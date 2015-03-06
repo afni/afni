@@ -49,6 +49,36 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  3,  Mar, 2015, RCR, "powell_int.c", MICRO, TYPE_BUG_FIX,
+   "multiple include directives got joined on one line",
+   NULL
+ } ,
+
+ {  3,  Mar, 2015, RCR, "afni_proc.py", MICRO, TYPE_ENHANCE,
+   "added MIN_OUTLER as an option to -volreg_align_to",
+   "Also, udpated requirement data from Feb 9 to Nov 9."
+ } ,
+
+ {  2,  Mar, 2015, RCR, "afni_proc.py", MICRO, TYPE_BUG_FIX,
+   "fixed 3dTproject call for resting state on surface",
+   "Thanks to Tara (message board) for noting the problem."
+ } ,
+
+ { 27,  Feb, 2015, RCR, "afni_proc.py", MICRO, TYPE_NEW_OPT,
+   "added -regress_WMeL_corr option, which I forgot about last time",
+   NULL
+ } ,
+
+ { 27,  Feb, 2015, RCR, "@compute_gcor", MICRO, TYPE_NEW_OPT,
+   "added -corr_vol, to output a global correlation volume",
+   "Note that afni_proc.py does these steps by default."
+ } ,
+
+ { 24,  Feb, 2015, RCR, "neuro_deconvolve.py", MINOR, TYPE_ENHANCE,
+   "re-wrote method: new decon, upsample, multiple files, reconvolve",
+   "This is partially for evaluation of the decon/recon PPI steps."
+ } ,
+
  { 13,  Feb, 2015, RCR, "afni_proc.py", MICRO, TYPE_ENHANCE,
    "make WMeLocal for fast anaticor a float dataset",
    "Also, generate WMeL_corr as a diagnostic volume."

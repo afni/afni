@@ -258,6 +258,19 @@ SUMA_Boolean SUMA_DrawFaceSetMarker (SUMA_FaceSetMarker* FM,
                                      SUMA_SurfaceViewer *sv);
 SUMA_FaceSetMarker* SUMA_Alloc_FaceSetMarker (void);
 void SUMA_Free_FaceSetMarker (SUMA_FaceSetMarker* FM);
+int SUMA_NodeMask_to_FaceMask(SUMA_SurfaceObject *SO, byte *nodemask,
+                              int N_nz_nodemask,
+                              int *triblock, byte **facemask, 
+                              int minhits);
+int SUMA_Prep_SO_DrawPatches(SUMA_SurfaceObject *SO, SUMA_SurfaceViewer *sv);
+SUMA_DrawPatch *SUMA_New_DrawPatchDatum(SUMA_SurfaceObject *SO, int *triblock,
+                                        int N_Faces, byte *facemask);
+void SUMA_Free_DrawPatchDatum(void *data);
+int SUMA_ComplimentaryPatches(SUMA_SurfaceObject *SO, int *triblock, 
+                              int N_Faces, byte *facemask, 
+                              SUMA_DrawPatch **ptch0, 
+                              SUMA_DrawPatch **ptch1);
+void SUMA_DrawMesh_mask(SUMA_SurfaceObject *SurfObj, SUMA_SurfaceViewer *sv);
 void SUMA_DrawMesh(SUMA_SurfaceObject *SurfObj, SUMA_SurfaceViewer *csv);
 void SUMA_SimpleDrawMesh(SUMA_SurfaceObject *SurfObj, 
                          GLfloat *colp, SUMA_SurfaceViewer *sv);
@@ -291,6 +304,8 @@ SUMA_Boolean SUMA_Blank_AfniSO_Coord_System(NI_group *aSO);
 char *SUMA_SideName(SUMA_SO_SIDE ss);
 SUMA_SO_SIDE SUMA_SideType(char *s);
 SUMA_Boolean SUMA_Free_Surface_Object (SUMA_SurfaceObject *SO);
+SUMA_Boolean SUMA_FreeDrawMasks(SUMA_DRAW_MASKS * DW);
+SUMA_Boolean SUMA_EmptyDrawMasks(SUMA_DRAW_MASKS * DW);
 SUMA_VolumeObject *SUMA_FreeVolumeObject(SUMA_VolumeObject *VO);
 void SUMA_Print_Surface_Object(SUMA_SurfaceObject *SO, FILE *Out);
 char *SUMA_VisX_XformType2Name(SUMA_VISX_XFORM_TYPE tt);

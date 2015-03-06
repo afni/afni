@@ -1979,9 +1979,9 @@ int SUMA_search_file(char **fnamep, char *epath)
              ename[ii]  = '/' ; ename[ii+1] = '\0' ;
          }
          strcpy(dname,ename) ;
-         strncat(dname,*fnamep, THD_MAX_NAME-1) ;       /* add dataset name */
+         SUMA_strncat(dname,*fnamep, THD_MAX_NAME-1) ;     /* add dataset name */
          if (imode == 2) {
-            strncat(dname,".gz", THD_MAX_NAME-1);    /* add compression flag */
+            SUMA_strncat(dname,".gz", THD_MAX_NAME-1); /* add compression flag */
          }
          if ( SUMA_filexists(dname) ) {
             SUMA_free(*fnamep); *fnamep = SUMA_copy_string(dname);
@@ -3386,6 +3386,19 @@ static ENV_SPEC envlist[] = {
       "you are debugging.\n",
       "SUMA_CountProcs_Verb",
       "NO" },
+   {  "Number of transparency levels to jump with each 'o' key press\n"
+      "Choose one of 1, 2, 4, or 8\n",
+      "SUMA_Transparency_Step",
+      "4" },
+   {  "If YES, then automatically load datasets with names matching those \n"
+      "the surface just read.\n"
+      "For example, if you load a surface named PATH/TOY.gii, for instance,\n"
+      "and there exists a file called PATH/TOY.niml.dset then that file\n"
+      "is automatically loaded onto surface TOY.gii. This would work for\n"
+      "all surface types (e.g. TOY.ply) and dataset types (e.g. TOY.1D.dset)\n"
+      "Choose from YES or NO\n",
+      "SUMA_AutoLoad_Matching_Dset",
+      "YES" },
    {  NULL, NULL, NULL  }
 };
       

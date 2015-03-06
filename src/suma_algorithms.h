@@ -201,6 +201,10 @@ void dlist_init(DList *list, void (*destroy)(void *data));
 
 void dlist_destroy(DList *list);
 
+void dlist_empty(DList *list);
+
+void dlist_destroy_z(DList *list, int content_only);
+
 int dlist_ins_next(DList *list, DListElmt *element, const void *data);
 
 int dlist_ins_prev(DList *list, DListElmt *element, const void *data);

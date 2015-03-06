@@ -1546,10 +1546,63 @@ SUMA_SurfaceObject * SUMA_Load_Surface_Object_eng (
       SUMA_SL_Err("Failed to set surface's properties");
       SUMA_RETURN (NULL);
    }
+   
       
    SUMA_RETURN (SO);
    
 }/*SUMA_Load_Surface_Object_eng*/
+
+/*!< Look for datasets names exactly like the surface but with
+a dataset extension and load them if found*/
+SUMA_Boolean SUMA_AutoLoad_SO_Dsets(SUMA_SurfaceObject *SO)   
+{
+   static char FuncName[]={"SUMA_AutoLoad_SO_Dsets"};
+   char *ddd=NULL, *ddde=NULL, *soname=NULL;
+   SUMA_Boolean LocalHead = NOPE;
+
+   SUMA_ENTRY;
+   
+   soname = SUMA_SurfaceFileName(SO, 1);
+   ddd = SUMA_RemoveSurfNameExtension (soname, SO->FileType);
+   SUMA_LH("Checking for %s dsets on root %s", soname, ddd);
+   if (SUMA_filexists((ddde = SUMA_append_string(ddd,".niml.dset")))) {
+      SUMA_S_Note("Auto Loading %s onto %s", ddde, soname);
+      SUMA_LoadDsetOntoSO(ddde, (void *)SO);
+      SUMA_ifree(ddde);
+   }
+   if (ddde) {/* try again */
+      SUMA_ifree(ddde);
+      if (SUMA_filexists((ddde = SUMA_append_string(ddd,".1D.dset")))) {
+         SUMA_S_Note("Auto Loading %s onto %s", ddde, soname);
+         SUMA_LoadDsetOntoSO(ddde, (void *)SO);
+         SUMA_ifree(ddde);
+      }
+   }
+   if (ddde) {/* try again */
+      SUMA_ifree(ddde);
+      if (SUMA_filexists((ddde = SUMA_append_string(ddd,".gii.dset")))) {
+         SUMA_S_Note("Auto Loading %s onto %s", ddde, soname);
+         SUMA_LoadDsetOntoSO(ddde, (void *)SO);
+         SUMA_ifree(ddde);
+      }
+   }
+   if (ddde) {/* try again */
+      SUMA_ifree(ddde);
+      if ( SO->FileType != SUMA_GIFTI &&
+           SUMA_filexists((ddde = SUMA_append_string(ddd,".gii")))) {
+         SUMA_S_Note("Auto Loading %s onto %s", ddde, soname);
+         SUMA_LoadDsetOntoSO(ddde, (void *)SO);
+         SUMA_ifree(ddde);
+      }
+   }
+   SUMA_ifree(ddd);
+   SUMA_ifree(soname);
+   if (!ddde) SUMA_RETURN(YUP); /* got one */
+
+   SUMA_ifree(ddde);
+   SUMA_RETURN(NOPE);
+}
+   
 
  
 /*!
@@ -3891,8 +3944,29 @@ SUMA_Boolean SUMA_LoadSpec_eng (
          /* check if surface read was unique 
          it's inefficient to check after the surface is read, 
          but idcode is generated in the read routine 
-         and users should not be making this mistake too often */
-
+         and users should not be making this mistake too often 
+         Search for similar comment elsewhere in the code once
+         a better remedy is found*/
+         if (SUMA_existSO (SO->idcode_str, dov, *N_dov)) {
+            /* Check the filename match, to get around ID collision 
+               This modification is no guarantee that collisions
+               won't occur but it is a start until I figure out
+               the problem with hashcode */
+            char *name=NULL, *mname=NULL;
+            SUMA_SurfaceObject *SOm = NULL;
+            SOm = SUMA_findSOp_inDOv(SO->idcode_str, dov, *N_dov);
+            mname = SUMA_SurfaceFileName(SOm, 1);
+            name = SUMA_SurfaceFileName(SO, 1);
+            if (strcmp(mname, name)) {
+               char *stmp;
+               /* give SO a new ID */
+               stmp = SUMA_append_replace_string(name, SO->idcode_str,"_",0);
+               SUMA_ifree(SO->idcode_str);
+               SUMA_NEW_ID(SO->idcode_str, stmp);
+               SUMA_ifree(stmp);
+            }
+            SUMA_ifree(name); SUMA_ifree(mname);
+         }
          if (SUMA_existSO (SO->idcode_str, dov, *N_dov)) {
             SUMA_SurfaceObject *SOm = NULL;
             SOm = SUMA_findSOp_inDOv(SO->idcode_str, dov, *N_dov);
@@ -3958,6 +4032,9 @@ SUMA_Boolean SUMA_LoadSpec_eng (
             }
             SUMA_LHv("NodeMarker %s loaded\n", Spec->NodeMarker[i]);
          }
+         /* Any dsets identically named? If so, load them */
+         if (SUMA_isEnv("SUMA_AutoLoad_Matching_Dset","YES"))
+                                          SUMA_AutoLoad_SO_Dsets(SO);
       }/* Mappable surfaces */
    }/* first loop across mappable surfaces */
 
@@ -4172,6 +4249,9 @@ SUMA_Boolean SUMA_LoadSpec_eng (
             SUMA_S_Notev("Will need to load NodeMarker %s for non mappable %s\n",
                          Spec->NodeMarker[i], SO->Label);
          }
+         if (SUMA_isEnv("SUMA_AutoLoad_Matching_Dset","YES"))
+                                        SUMA_AutoLoad_SO_Dsets(SO);
+
       }/* Non Mappable surfaces */
 
    }/*locate and load all NON Mappable surfaces */
@@ -4267,7 +4347,8 @@ SUMA_Boolean SUMA_SurfaceMetrics_eng (
 {
    static char FuncName[]={"SUMA_SurfaceMetrics_eng"};
    float *Cx=NULL, *SOCx = NULL;
-   SUMA_Boolean DoConv, DoArea, DoCurv, DoEL, DoMF, DoWind, LocalHead = NOPE;
+   SUMA_Boolean DoConv, DoArea, DoCurv, DoEL, DoMF, DoWind, DoDW, 
+                LocalHead = NOPE;
    int i = 0;
    
    SUMA_ENTRY;
@@ -4282,6 +4363,7 @@ SUMA_Boolean SUMA_SurfaceMetrics_eng (
       SUMA_RETURN(NOPE);
    }
    DoConv = DoArea = DoCurv = DoEL = DoMF = DoWind = NOPE;
+   DoDW = YUP; /* No need to skimp on this one, costs nothing */
    
    if (SUMA_iswordin (Metrics, "Convexity")) DoConv = YUP;
    if (SUMA_iswordin (Metrics, "PolyArea")) DoArea = YUP;
@@ -4291,14 +4373,13 @@ SUMA_Boolean SUMA_SurfaceMetrics_eng (
    if (SUMA_iswordin (Metrics, "CheckWind")) DoWind = YUP;
    
    /* check for input inconsistencies and warn */
-   if (!DoConv && !DoArea && !DoCurv && !DoEL  && !DoMF && !DoWind) {
+   if (!DoConv && !DoArea && !DoCurv && !DoEL  && !DoMF && !DoWind && !DoDW) {
       if (debug) fprintf ( SUMA_STDERR,
                            "Warning %s: Nothing to do.\n", FuncName);
       SUMA_RETURN (YUP);
    }
    
-   SOCx = (float *)SUMA_GetCx (SO->idcode_str, DsetList, 0); 
-   if (DoConv && SOCx) {
+   if (DoConv && (SOCx = (float *)SUMA_GetCx (SO->idcode_str, DsetList, 0))) {
       if (debug) fprintf ( SUMA_STDERR,
                            "Warning %s: SOCx != NULL \n"
                            "and thus appears to have been precomputed.\n",
@@ -4641,6 +4722,21 @@ SUMA_Boolean SUMA_SurfaceMetrics_eng (
       }
    }
 
+   /* Initialize drawing masks */
+   if (DoDW) {
+      if (!SOinh) {
+         SO->DW = (SUMA_DRAW_MASKS *)SUMA_calloc(1,sizeof(SUMA_DRAW_MASKS));
+         SO->DW->do_type = not_DO_type;
+         SO->DW->LinkedPtrType = SUMA_LINKED_DRAW_MASKS_TYPE;
+         SO->DW->N_links = 0;
+         sprintf(SO->DW->owner_id, "%s", SO->idcode_str);
+         SUMA_EmptyDrawMasks(SO->DW);
+      } else {
+         if (LocalHead) 
+               fprintf(SUMA_STDOUT, "%s: Linking Drawing Masks ...\n", FuncName);
+         SO->DW = (SUMA_DRAW_MASKS *)SUMA_LinkToPointer((void*)SOinh->DW);
+      }
+   }
    SUMA_RETURN (YUP);
 }
 

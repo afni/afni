@@ -93,6 +93,12 @@ void usage_SUMA_BrainSkin (SUMA_GENERIC_ARGV_PARSE *ps)
 "\n"
 "     -vol_skin MASK: Deform an Icosahedron to match the outer \n"
 "                     boundary of a mask volume.\n"
+"     -no_zero_attraction: With vol_skin, the surface will try to shrink\n"
+"                          agressively, even if there is no promise of\n"
+"                          non-zero values below. Use this option if\n"
+"                          you do not want zero values to attract the surface\n"
+"                          inwards. This option is only useful with -vol_skin \n"
+"                          and it must follow it.\n"
 "     -vol_hull MASK: Deform an Icosahedron to match the convex \n"
 "                     hull of a mask volume.\n"
 "     -vol_skin and -vol_hull are mutually exclusive\n"
@@ -308,6 +314,15 @@ SUMA_BRAIN_SKIN_OPTIONS *SUMA_BrainSkin_ParseInput(
 			}
 			Opt->shrink_mode = 2;
          Opt->in_name = SUMA_copy_string(argv[kar]);
+         brk = YUP;
+		}
+      
+      if (!brk && (strcmp(argv[kar], "-no_zero_attraction") == 0)) {
+			if (!Opt->shrink_mode)  {
+		  		fprintf (SUMA_STDERR, "Use -vol_skin before -no_zero_attraction \n");
+				exit (1);
+			}
+			Opt->shrink_mode = 1;
          brk = YUP;
 		}
       
@@ -1445,7 +1460,7 @@ int main (int argc,char *argv[])
       SUMA_S_Note("Now infilling");
       DSET_delete(odset); odset = NULL;
       if (!SUMA_VolumeInFill(odseti, &odset, Opt.infill, -1, -1, 
-                                    Opt.infill == 2?1:-1,0,0,0.0)) {
+                                    Opt.infill == 2?1:-1,0,0,0.0, NULL)) {
          SUMA_S_Err("Failed to infill");
          exit(1);
       }
@@ -1456,7 +1471,7 @@ int main (int argc,char *argv[])
       
       /* And now you construct a new surface */
       SUMA_S_Note("Isosurface extraction and smoothing");
-      SOf = SUMA_THD_IsoSurface(odset, 1.0, 0.0, Opt.debug);
+      SOf = SUMA_THD_IsoSurface(odset, 1.0, 0.0, 1, Opt.debug);
       /* Now some smoothin, a la Taubin */
       if (!SUMA_Taubin_Smooth_SO( SOf, SUMA_EQUAL, 0.1, NULL, 0, 100)) {
          SUMA_S_Err("Failed to smooth surface");
