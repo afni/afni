@@ -47,8 +47,10 @@ capabilities include:
 .. figure:: media/FAT_overview.jpg
    :align: center
    :width: 70%
-
-   *A schematic overview of available FATCAT tools (in blue).*
+   :name: media/FAT_overview.jpg
+   :target: ../_images/FAT_overview.jpg
+   
+   *A schematic overview of available FATCAT tools (in blue).* :ref:`(link)<media/FAT_overview.jpg>`
 
 Announcements of updates, fixes and new programmation are made and
 recorded on the AFNI `Message Board

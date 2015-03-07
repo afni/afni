@@ -187,11 +187,12 @@ given method as a typical default:
 .. figure:: media/ROIS/ROI_neigh_img.png
    :width: 80%
    :align: center
-
+   :name: media/ROIS/ROI_neigh_img.png
+   
    *Basic voxel terminology, and its use in defining three standard,
    symmetric (nearest-)neighborhoods for an individual voxel. The
    central voxel is darkened, with each type of neighborhood colored
-   in a 3D, high-tec, separated image.*
+   in a 3D, high-tec, separated image.* :ref:`(link)<media/ROIS/ROI_neigh_img.png>`
 
 For example, the default in each of AFNI's ``3dClustSim`` and the
 Clusterize function is a face-wise neighbor definition. The same is

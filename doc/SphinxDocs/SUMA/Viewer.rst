@@ -29,16 +29,25 @@ You should have *AFNI* up by now, and *SUMA* soon after.
 .. figure:: media/surfview.0000.jpg
    :align: right
    :figwidth: 30%
+   :name: media/surfview.0000.jpg
    
+   :ref:`SUMA viewer showing smoothed white matter surfaces<media/surfview.0000.jpg>`
    
 .. figure:: media/surfview.0001.jpg
    :align: left
    :figwidth: 30%
-
+   :name: media/surfview.0001.jpg
+   
+   :ref:`AFNI slice view<media/surfview.0001.jpg>`
+   
 .. figure:: media/surfview.0002.jpg
    :align: center
    :figwidth: 30%
-
+   :target: ../_images/surfview.0002.jpg
+   :name: media/surfview.0002.jpg
+   
+   :ref:`AFNI Controller<media/surfview.0002.jpg>`
+   
 .. container:: clearer
    
     .. image:: media/blank.jpg
@@ -65,6 +74,10 @@ Quick Tour
             .. figure:: media/surfview.0003.jpg
                :align: right
                :figwidth: 40%
+               :target: ../_images/surfview.0003.jpg
+               :name: media/surfview.0003.jpg
+               
+               :ref:`AFNI slice view with anatomically correct surfaces' contours<media/surfview.0003.jpg>`
                
       * Navigate through the volume in *AFNI*
       
@@ -109,10 +122,18 @@ Quick Tour
       
       .. figure:: media/surfview_pry3.jpg
          :align: center
-      
+         :name: media/surfview_pry3.jpg
+         :target: ../_images/surfview_pry3.jpg
+         
+         :ref:`Prying anatomically correct surfaces<media/surfview_pry3.jpg>`
+         
       .. figure:: media/surfview_pry3b.jpg
          :align: center
-      
+         :name: media/surfview_pry3b.jpg
+         :target: ../_images/surfview_pry3b.jpg
+         
+         :ref:`Prying flat surfces<media/surfview_pry3b.jpg>`
+         
       .. container:: clearer
    
          .. image:: media/blank.jpg
@@ -151,6 +172,9 @@ Quick Tour
                :align: right
                :figwidth: 20%
                :target: ../_images/surfview.0010.jpg
+               :name: media/surfview.0010.jpg
+               
+               :ref:`The little crosshair that could<media/surfview.0010.jpg>`
                
          * Note the information written to the shell regarding the properties of the picked Node and Facet.
          
@@ -172,7 +196,10 @@ Quick Tour
             :align: right
             :figwidth: 20%
             :target: ../_images/surfview_card.jpg
-               
+            :name: media/surfview_card.jpg
+            
+            :ref:`The cardinals<media/surfview_card.jpg>`
+              
       * Resetting the view point
       
          * Press :ref:`Home(fn+left arrow macs)<HOME>`  to get back to the original vantage point.
@@ -208,7 +235,10 @@ Quick Tour
                :align: right
                :figwidth: 20%
                :target: ../_images/surfview.0015.jpg
-
+               :name: media/surfview.0015.jpg
+               
+               :ref:`This was a post-bac<media/surfview.0015.jpg>`
+               
       * Press :ref:`r<LC_r>` on the **colorbar** of the :ref:`surface controller<SurfCont>` records an image of the colorbar.
       
       * Press :ref:`R<UC_r>` to record continuously from the viewer. Doing so puts the viewer in :term:`Recording Mode` where any operation that causes a change in the rendered image is directly captured in the recorder.
@@ -255,6 +285,9 @@ Quick Tour
          :align: center
          :figwidth: 30%
          :target: ../_images/SurfCont.auto.QT.ALL.jpg
+         :name: media/SurfCont.auto.QT.ALL.jpg
+         
+         :ref:`The controller of surfaces<media/SurfCont.auto.QT.ALL.jpg>`
          
       * From the available options, select one of **v2s.lh.TS.niml.dset**, or **v2s.rh.TS.niml.dset**.
          
@@ -271,8 +304,9 @@ Quick Tour
                   :align: center
                   :figwidth: 30%
                   :target: ../_images/ts.jpg
+                  :name: media/ts.jpg
                   
-                  For more help on graph window usage, including for instance how to save the time series, type **ctrl+h** with the graphing window in focus.
+                  For more help on graph window usage, including for instance how to save the time series, type **ctrl+h** with the graphing window in focus. :ref:`(link)<media/ts.jpg>`
                
          * Now let's look at a delay dataset (computed with :ref:`3ddelay<3ddelay>`). Press :ref:`Load Dset<SurfCont->Dset_Controls->Load_Dset>` and load one of **v2s.lh.DEL.niml.dset** or **v2s.rh.DEL.niml.dset**. SUMA will colorize the loaded dataset thereby creating a color plane for it, and will display it on the top of the pre-existing :term:`color planes`.
          
@@ -286,8 +320,9 @@ Quick Tour
                :align: right
                :figwidth: 30%
                :target: ../_images/SurfCont.auto.QT.DEL.Dset_Mapping.jpg  
+               :name: media/SurfCont.auto.QT.DEL.Dset_Mapping.jpg
                
-               ..
+               :ref:`Dset colormapping GUI. <media/SurfCont.auto.QT.DEL.Dset_Mapping.jpg>` Should it look different, consider the more updated documentation :ref:`here<SurfCont>`
                   
             .. container:: clearer
 
@@ -367,7 +402,12 @@ with dashed ellipsoids (ell) for ease of finding.
    .. figure:: media/FAT_VIEWING_ROIS/Screen_Shot_2015-02-01_at_9.15.34_AM.png
       :align: center
       :width: 60%
-
+      :target: ../_images/Screen_Shot_2015-02-01_at_9.15.34_AM.png
+      :name: media/FAT_VIEWING_ROIS/Screen_Shot_2015-02-01_at_9.15.34_AM.png
+      
+      :ref:`(link)<media/FAT_VIEWING_ROIS/Screen_Shot_2015-02-01_at_9.15.34_AM.png>`
+      
+      
    Volumes by default are viewed as slices, and in grayscale, so we
    mostly see the FA map and not the PAIRMAP of tract results nor the
    target ROI map.  The dset is represented as a graph, showing the
@@ -383,7 +423,11 @@ with dashed ellipsoids (ell) for ease of finding.
    .. figure:: media/FAT_VIEWING_ROIS/Screen_Shot_2015-02-01_at_9.15.44_AM_B.png
       :align: center
       :width: 75%
-
+      :target: ../_images/Screen_Shot_2015-02-01_at_9.15.44_AM_B.png
+      :name: media/FAT_VIEWING_ROIS/Screen_Shot_2015-02-01_at_9.15.44_AM_B.png
+      
+      :ref:`(link)<media/FAT_VIEWING_ROIS/Screen_Shot_2015-02-01_at_9.15.44_AM_B.png>`
+      
    Each data object (here, volume or dset) will have its own control
    panel, which we can toggle through using the small up/down triangle
    "Switch" at the top of the panel (magenta ell.).  But first, we
@@ -400,7 +444,11 @@ with dashed ellipsoids (ell) for ease of finding.
    .. figure:: media/FAT_VIEWING_ROIS/Screen_Shot_2015-02-01_at_9.16.05_AM_B.png
       :align: center
       :width: 75%
-
+      :name: media/FAT_VIEWING_ROIS/Screen_Shot_2015-02-01_at_9.16.05_AM_B.png
+      :target: ../_images/Screen_Shot_2015-02-01_at_9.16.05_AM_B.png
+      
+      :ref:`(link)<media/FAT_VIEWING_ROIS/Screen_Shot_2015-02-01_at_9.16.05_AM_B.png>`
+      
    This zeroth brick contains a mask of all the WM ROIs found between
    any pair of targets in the image. Right now, it's being shown as
    slices, so it's hard to appreciate. Let's view these results as the
@@ -420,7 +468,11 @@ with dashed ellipsoids (ell) for ease of finding.
    .. figure:: media/FAT_VIEWING_ROIS/Screen_Shot_2015-02-01_at_9.16.25_AM_B.png
       :align: center
       :width: 75%
-
+      :name: media/FAT_VIEWING_ROIS/Screen_Shot_2015-02-01_at_9.16.25_AM_B.png
+      :target: ../_images/Screen_Shot_2015-02-01_at_9.16.25_AM_B.png
+      
+      :ref:`(link)<media/FAT_VIEWING_ROIS/Screen_Shot_2015-02-01_at_9.16.25_AM_B.png>`
+      
    To change the colorscheme of the PAIRMAP (though, it is just a
    binary mask in this case), we can go to the 'Cmp' button in the
    Controller panel (magenta ell). 
@@ -430,14 +482,22 @@ with dashed ellipsoids (ell) for ease of finding.
    .. figure:: media/FAT_VIEWING_ROIS/Screen_Shot_2015-02-01_at_9.16.42_AM.png
       :align: center
       :width: 75%
-
+      :target: ../_images/Screen_Shot_2015-02-01_at_9.16.42_AM.png
+      :name: media/FAT_VIEWING_ROIS/Screen_Shot_2015-02-01_at_9.16.42_AM.png
+      
+      :ref:`(link)<media/FAT_VIEWING_ROIS/Screen_Shot_2015-02-01_at_9.16.42_AM.png>`
+      
    and you can scroll through the list until you find something nice
    and visually pleasing, for example:
 
    .. figure:: media/FAT_VIEWING_ROIS/Screen_Shot_2015-02-01_at_9.17.16_AM.png
       :align: center
       :width: 75%
-  
+      :name: media/FAT_VIEWING_ROIS/Screen_Shot_2015-02-01_at_9.17.16_AM.png
+      :target: ../_images/Screen_Shot_2015-02-01_at_9.17.16_AM.png
+      
+      :ref:`(link)<media/FAT_VIEWING_ROIS/Screen_Shot_2015-02-01_at_9.17.16_AM.png>`
+      
    Ok, so that completes viewing that volume.
     
 #. Now, let's say we want to *turn off* the viewing of the dset data.
@@ -451,7 +511,11 @@ with dashed ellipsoids (ell) for ease of finding.
    .. figure:: media/FAT_VIEWING_ROIS/Screen_Shot_2015-02-01_at_9.17.41_AM_B.png
       :align: center
       :width: 75%
-
+      :name: media/FAT_VIEWING_ROIS/Screen_Shot_2015-02-01_at_9.17.41_AM_B.png
+      :target: ../_images/Screen_Shot_2015-02-01_at_9.17.41_AM_B.png
+      
+      :ref:`(link)<media/FAT_VIEWING_ROIS/Screen_Shot_2015-02-01_at_9.17.41_AM_B.png>`
+      
    To not see any graph stuff, we'll just raise the threshold for the
    colorbar from '0' (green ell) all the way to the top.  Doing so
    (blue ell in next figure), results in a farwell to labels and edges:
@@ -459,7 +523,11 @@ with dashed ellipsoids (ell) for ease of finding.
    .. figure:: media/FAT_VIEWING_ROIS/Screen_Shot_2015-02-01_at_9.17.56_AM_B.png
       :align: center
       :width: 75%
-
+      :name: media/FAT_VIEWING_ROIS/Screen_Shot_2015-02-01_at_9.17.56_AM_B.png
+      :target: ../_images/Screen_Shot_2015-02-01_at_9.17.56_AM_B.png
+      
+      :ref:`(link)<media/FAT_VIEWING_ROIS/Screen_Shot_2015-02-01_at_9.17.56_AM_B.png>`
+      
    If you have no use for the dset at this time, you also didn't have
    to load it into the SUMA viewer, either.
 
@@ -474,6 +542,10 @@ with dashed ellipsoids (ell) for ease of finding.
    .. figure:: media/FAT_VIEWING_ROIS/Screen_Shot_2015-02-01_at_9.18.28_AM_B.png
       :align: center
       :width: 75%
+      :target: ../_images/Screen_Shot_2015-02-01_at_9.18.28_AM_B.png
+      :name: media/FAT_VIEWING_ROIS/Screen_Shot_2015-02-01_at_9.18.28_AM_B.png
+      
+      :ref:`(link)<media/FAT_VIEWING_ROIS/Screen_Shot_2015-02-01_at_9.18.28_AM_B.png>`
       
    |
 
@@ -486,16 +558,23 @@ with dashed ellipsoids (ell) for ease of finding.
    .. figure:: media/FAT_VIEWING_ROIS/Screen_Shot_2015-02-01_at_9.19.25_AM_B.png
       :align: center
       :width: 75%
+      :target: ../_images/Screen_Shot_2015-02-01_at_9.19.25_AM_B.png
+      :name: media/FAT_VIEWING_ROIS/Screen_Shot_2015-02-01_at_9.19.25_AM_B.png 
+      
+      :ref:`(link)<media/FAT_VIEWING_ROIS/Screen_Shot_2015-02-01_at_9.19.25_AM_B.png>`
       
    |
 
 #. And that's pretty much that!  You can view the results from
    different angles:
 
-   +---------------------------------------------------------------------------+---------------------------------------------------------------------------+
-   |.. image:: media/FAT_VIEWING_ROIS/Screen_Shot_2015-02-01_at_9.20.40_AM.png |.. image:: media/FAT_VIEWING_ROIS/Screen_Shot_2015-02-01_at_9.22.18_AM.png |
-   |   :width: 100%                                                            |   :width: 100%                                                            |
-   +---------------------------------------------------------------------------+---------------------------------------------------------------------------+
+   +----------------------------------------------------------------------------------+----------------------------------------------------------------------------------+
+   |.. figure:: media/FAT_VIEWING_ROIS/Screen_Shot_2015-02-01_at_9.20.40_AM.png       |.. figure:: media/FAT_VIEWING_ROIS/Screen_Shot_2015-02-01_at_9.22.18_AM.png       |
+   |   :width: 100%                                                                   |   :width: 100%                                                                   |
+   |   :name:  media/FAT_VIEWING_ROIS/Screen_Shot_2015-02-01_at_9.20.40_AM.png        |   :name:  media/FAT_VIEWING_ROIS/Screen_Shot_2015-02-01_at_9.22.18_AM.png        |
+   |                                                                                  |                                                                                  |   
+   |   :ref:`(link)<media/FAT_VIEWING_ROIS/Screen_Shot_2015-02-01_at_9.20.40_AM.png>` |   :ref:`(link)<media/FAT_VIEWING_ROIS/Screen_Shot_2015-02-01_at_9.22.18_AM.png>` |
+   +----------------------------------------------------------------------------------+----------------------------------------------------------------------------------+
 
    |
 
@@ -533,16 +612,26 @@ Quick Tour
          :align: left
          :figwidth: 30%
          :target: ../_images/QT_TractCont.0000.jpg
+         :name: media/QT_TractCont.0000.jpg
 
-
+         :ref:`(link)<media/QT_TractCont.0000.jpg>`
+         
       .. figure:: media/QT_TractCont.0001.jpg
          :align: right
          :figwidth: 30%
-
+         :target: ../_images/QT_TractCont.0001.jpg
+         :name: media/QT_TractCont.0001.jpg
+         
+         :ref:`(link)<media/QT_TractCont.0001.jpg>`
+         
       .. figure:: media/QT_TractCont.0002.jpg
          :align: center
          :figwidth: 30%
-
+         :name: media/QT_TractCont.0002.jpg
+         :target: ../_images/QT_TractCont.0002.jpg
+         
+         :ref:`(link)<media/QT_TractCont.0002.jpg>`
+         
       .. container:: clearer
 
           .. image:: media/blank.jpg
@@ -563,22 +652,27 @@ Quick Tour
          :align: center
          :figwidth: 30%
          :target: ../_images/QT_TractCont.0003.jpg
-
+         :name: media/QT_TractCont.0003.jpg
+         
+         :ref:`(link)<media/QT_TractCont.0003.jpg>`
+         
       To move the sphere right-double click on it to place SUMA in :ref:`Mask Manipulation Mode<Mask_Manipulation_Mode>` which is indicated by displaying the ball as a mesh.
       
       .. figure:: media/QT_TractCont.0004.jpg
          :align: left
          :figwidth: 30%
          :target: ../_images/QT_TractCont.0004.jpg
-
-         SUMA in mask manipulation mode
+         :name: media/QT_TractCont.0004.jpg
+         
+         :ref:`SUMA in mask manipulation mode<media/QT_TractCont.0004.jpg>`
          
       .. figure:: media/QT_TractCont.0007.jpg
          :align: right
          :figwidth: 30%
          :target: ../_images/QT_TractCont.0007.jpg
-
-         Selection of voxel while in mask manipulation mode repositions mask at selected voxel.
+         :name: media/QT_TractCont.0007.jpg
+         
+         :ref:`Selection of voxel while in mask manipulation mode repositions mask at selected voxel.<media/QT_TractCont.0007.jpg>`
          
       .. container:: clearer
 
@@ -592,15 +686,17 @@ Quick Tour
          :align: left
          :figwidth: 45%
          :target: ../_images/QT_TractCont.0015.jpg
-      
-         Hidden tracts shown in gray.
+         :name: media/QT_TractCont.0015.jpg
+         
+         :ref:`Hidden tracts shown in gray.<media/QT_TractCont.0015.jpg>`
          
       .. figure:: media/QT_TractCont.0016.jpg
          :align: right
          :figwidth: 45%
          :target: ../_images/QT_TractCont.0016.jpg
-      
-         Hidden tracts shown in dimmed color
+         :name: media/QT_TractCont.0016.jpg
+         
+         :ref:`Hidden tracts shown in dimmed color<media/QT_TractCont.0016.jpg>`
          
       .. container:: clearer
 
@@ -612,8 +708,9 @@ Quick Tour
          :align: center
          :figwidth: 30%
          :target: ../_images/QT_TractCont.0005.jpg
-
-         Crosshair movements in AFNI while SUMA is in mask manipulation mode will reposition the ball at the selected voxel's center.
+         :name: media/QT_TractCont.0005.jpg
+         
+         Crosshair movements in AFNI while SUMA is in mask manipulation mode will reposition the ball at the selected voxel's center :ref:`(link)<media/QT_TractCont.0005.jpg>`.
          
       You can manipulate the size of the mask with :ref:`Ctrl+Scroll (go slow!) <Ctrl+Scroll>` or with the masks controller interface mentioned below.
 
@@ -621,7 +718,10 @@ Quick Tour
          :align: center
          :figwidth: 30%
          :target: ../_images/QT_TractCont.0006.jpg
-
+         :name: media/QT_TractCont.0006.jpg
+         
+         :ref:`(link)<media/QT_TractCont.0006.jpg>`
+         
       To turn off 'Mask Manipulation Mode', right-double click in open air, or on the ball itself.
       
       Another click on Masks will also open the :ref:`masks controller<MaskCont>`, which allows for :ref:`complex masking configurations<Tract_Tinting>`. Check out the mask controller's :ref:`link <MaskCont>` for information on how to manipluate the mask in detail.
@@ -658,20 +758,26 @@ Quick Tour
    :align: left
    :figwidth: 30%
    :target: ../_images/QT_TractCont.0008.jpg
-
+   :name: media/QT_TractCont.0008.jpg
+   
+   :ref:`(link)<media/QT_TractCont.0008.jpg>`
    
 .. figure:: media/QT_TractCont.0009.jpg
    :align: right
    :figwidth: 30%
    :target: ../_images/QT_TractCont.0009.jpg
+   :name: media/QT_TractCont.0009.jpg
    
-   Colors indicate the number of tracts passing through a voxel. Search for **INDIMAP** in the help for program :ref:`3dTrackID<3dTrackID>`. 
+   Colors indicate the number of tracts passing through a voxel :ref:`(link)<media/QT_TractCont.0009.jpg>`. Search for **INDIMAP** in the help for program :ref:`3dTrackID<3dTrackID>`. 
    
 .. figure:: media/QT_TractCont.0013.jpg
    :align: center
    :figwidth: 30%
    :target: ../_images/QT_TractCont.0013.jpg
-
+   :name: media/QT_TractCont.0013.jpg
+   
+   :ref:`(link)<media/QT_TractCont.0013.jpg>`
+   
 .. container:: clearer
    
     .. image:: media/blank.jpg
@@ -682,15 +788,17 @@ Quick Tour
       :align: left
       :figwidth: 30%
       :target: ../_images/QT_TractCont.0011.jpg
-
-      Tract coloring by direction at mid tract
+      :name: media/QT_TractCont.0011.jpg
+      
+      :ref:`Tract coloring by direction at mid tract<media/QT_TractCont.0011.jpg>`
 
    .. figure:: media/QT_TractCont.0012.jpg
       :align: right
       :figwidth: 30%
       :target: ../_images/QT_TractCont.0012.jpg
-
-      Tract coloring by bundle. All tacts are part of the same bundle here.
+      :name: media/QT_TractCont.0012.jpg
+      
+      :ref:`Tract coloring by bundle. All tacts are part of the same bundle here.<media/QT_TractCont.0012.jpg>`
 
 .. container:: clearer
    
@@ -702,6 +810,9 @@ Quick Tour
       :align: center
       :figwidth: 50%
       :target: ../_images/QT_TractCont.0014.jpg
+      :name: media/QT_TractCont.0014.jpg
+      
+      :ref:`(link)<media/QT_TractCont.0014.jpg>`
 
    6. Whole brain tractography results with surfaces.
    
@@ -724,22 +835,25 @@ Quick Tour
          :align: left
          :figwidth: 30%
          :target: ../_images/QT_TractCont.0018.jpg
-
-         You can position the mask on the surface but few of the tracts are visible this way.
+         :name: media/QT_TractCont.0018.jpg
+         
+         You can position the mask on the surface but few of the tracts are visible this way. :ref:`(link)<media/QT_TractCont.0018.jpg>`
 
       .. figure:: media/QT_TractCont.0021.jpg
          :align: right
          :figwidth: 30%
          :target: ../_images/QT_TractCont.0021.jpg
-
-         Surface pried open and viewer opacity turned off with two more :ref:`o. <LC_o>` clicks. You can continue to position the mask on the pried surfaces.
+         :name: media/QT_TractCont.0021.jpg
+         
+         Surface pried open and viewer opacity turned off with two more :ref:`o. <LC_o>` clicks :ref:`(link)<media/QT_TractCont.0021.jpg>`. You can continue to position the mask on the pried surfaces.
 
       .. figure:: media/QT_TractCont.0019.jpg
          :align: center
          :figwidth: 30%
          :target: ../_images/QT_TractCont.0019.jpg
-
-         Turning on 50% transparency for all objects by clicking :ref:`o<LC_o>` twice - not thrice - helps, but not that cool. 
+         :name: media/QT_TractCont.0019.jpg
+         
+         Turning on 50% transparency for all objects by clicking :ref:`o<LC_o>` twice - not thrice - helps, but not that cool :ref:`(link)<media/QT_TractCont.0019.jpg>`. 
 
       .. container:: clearer
 
@@ -802,22 +916,25 @@ Quick Tour
          :align: left
          :figwidth: 30%
          :target: ../_images/QT_TractCont.0022.jpg
-
-         Graph display, with slices in background at 50% transparency.
+         :name: QT_TractCont.0022.jpg
+         
+         Graph display, with slices in background at 50% transparency :ref:`(link)<QT_TractCont.0022.jpg>`.
 
       .. figure:: media/QT_TractCont.0024.jpg
          :align: right
          :figwidth: 30%
          :target: ../_images/QT_TractCont.0024.jpg
-
-         Dual graph representation as a matrix
+         :name: media/QT_TractCont.0024.jpg
+         
+         :ref:`Dual graph representation as a matrix<media/QT_TractCont.0024.jpg>`
 
       .. figure:: media/QT_TractCont.0023.jpg
          :align: center
          :figwidth: 30%
          :target: ../_images/QT_TractCont.0023.jpg
-
-         Setting for tract controller. 
+         :name: media/QT_TractCont.0023.jpg
+         
+         :ref:`Setting for tract controller.<media/QT_TractCont.0023.jpg>` 
 
       .. container:: clearer
 
@@ -834,15 +951,17 @@ Quick Tour
          :align: left
          :figwidth: 30%
          :target: ../_images/QT_TractCont.0026.jpg
-
-         Connections to node N000:R3 only in 3D graph rendering
+         :name: media/QT_TractCont.0026.jpg
+         
+         :ref:`Connections to node N000:R3 only in 3D graph rendering<media/QT_TractCont.0026.jpg>`
 
       .. figure:: media/QT_TractCont.0027.jpg
          :align: right
          :figwidth: 30%
          :target: ../_images/QT_TractCont.0027.jpg
-
-         Connections to node N000:R3 in matrix rendering
+         :name: media/QT_TractCont.0027.jpg
+         
+         :ref:`Connections to node N000:R3 in matrix rendering<media/QT_TractCont.0027.jpg>`
 
       .. container:: clearer
 
@@ -857,8 +976,9 @@ Quick Tour
          :align: center
          :figwidth: 45%
          :target: ../_images/QT_TractCont.0025.jpg
-
-         Representing edges by corresponding bundles
+         :name: media/QT_TractCont.0025.jpg
+         
+         :ref:`Representing edges by corresponding bundles<media/QT_TractCont.0025.jpg>`
 
       .. container:: clearer
 
@@ -925,7 +1045,9 @@ Color planes of the same group are mixed together:
 
 .. figure:: media/opacity_01.jpg
    :align: center
-      
+   :name: media/opacity_01.jpg
+   
+   :ref:`(link)<media/opacity_01.jpg>`
    
 .. _Plane_Layering:
    
@@ -935,7 +1057,9 @@ Layering fore- & background planes
       
       .. figure:: media/collayer.0000.jpg
          :align: center
-      
+         :name: media/collayer.0000.jpg
+         
+         :ref:`(link)<media/collayer.0000.jpg>`
       ..
       
       Turn foreground plane(s) off by pressing :ref:`f <LC_f>` once   
@@ -943,18 +1067,28 @@ Layering fore- & background planes
       
       .. figure:: media/collayer.0001.jpg
          :align: center
-      
+         :name: media/collayer.0001.jpg
+         
+         :ref:`(link)`<media/collayer.0001.jpg>`
+         
       Turn background planes off by pressing :ref:`b <LC_b>` once   
          Now all you see is "No Color" color on all nodes   
       
       .. figure:: media/collayer.0002.jpg
          :align: center
-      
+         :name: media/collayer.0002.jpg
+         
+         :ref:`(link)<media/collayer.0002.jpg>`
+         
       Turn foreground plane(s) back on with :ref:`f <LC_f>`   
          Now you have foreground without background   
          
       .. figure:: media/collayer.0003.jpg
          :align: center
+         :name: media/collayer.0003.jpg
+         
+         :ref:`(link)<media/collayer.0003.jpg>`
+         
          
       Turn background plane(s) back on with :ref:`b <LC_b>`  
          Now you have foreground atop background   
@@ -964,9 +1098,16 @@ Layering fore- & background planes
       
       .. figure:: media/collayer.0004.jpg
          :align: left
+         :name: media/collayer.0004.jpg
          
+         :ref:`(link)<media/collayer.0004.jpg>`
+         
+        
       .. figure:: media/collayer.0000.jpg
          :align: center
+         
+         :ref:`(link)<media/collayer.0000.jpg>`
+         
 
 .. _Color_Plane_Opacity:
 
@@ -983,7 +1124,10 @@ Playing with color plane opacity
       
       .. figure:: media/colop.0000.jpg
          :align: center
-      
+         :name: media/colop.0000.jpg
+         
+         :ref:`(link)<media/colop.0000.jpg>`
+
       ..
       
       Background attenuation is not affected by plane's opacity
@@ -991,14 +1135,26 @@ Playing with color plane opacity
          
       .. figure:: media/colop.0001.jpg
          :align: center
+         :name: media/colop.0001.jpg
+         
+         :ref:`(link)<media/colop.0001.jpg>`
+
       
       Now lower the opacity of :file:`lh.1D.col` with :ref:`Opa <SurfCont->Dset_Controls->Opa>` and watch the colors from the planes below start to show through
       
       .. figure:: media/colop.0003.jpg
          :align: left
+         :name: media/colop.0003.jpg
+         
+         :ref:`(link)<media/colop.0003.jpg>`
+
 
       .. figure:: media/colop.0002.jpg
          :align: center
+         :name: media/colop.0002.jpg
+         
+         :ref:`(link)<media/colop.0002.jpg>`
+
 
       |
       

@@ -22,8 +22,9 @@ The :ref:`figure <std_mesh_flow>` below shows the common approach for performing
 .. figure:: media/StdMeshes_S+R_F1.jpg
    :align: center
    :figwidth: 70%
+   :name: media/StdMeshes_S+R_F1.jpg
    
-   The process of transforming original- to standard-mesh surfaces. See above for details. a1, a2, and a3 are the barycentric coordinates of node n in the triangle formed by nodes p1,p2,p3. Node colors of original-mesh surfaces (top two rows) show FreeSurfer's cortical parcellations. Colors on standard-mesh surfaces (bottomrow) reflect each node's index. Figure and text taken from [Saad_2011]_.
+   The process of transforming original- to standard-mesh surfaces. See above for details. a1, a2, and a3 are the barycentric coordinates of node n in the triangle formed by nodes p1,p2,p3. Node colors of original-mesh surfaces (top two rows) show FreeSurfer's cortical parcellations. Colors on standard-mesh surfaces (bottomrow) reflect each node's index. :ref:`Figure<media/StdMeshes_S+R_F1.jpg>` and text taken from [Saad_2011]_.
 
 
 With SUMA, instead of mapping a subject's data value onto the template mesh,we recreate each subject's original surface using the mesh of the standard model (shown at a very coarse level in the illustration). In other words, instead of assigning to each node n of the standardmesh a data value interpolated from data on the subject's originalmesh (p.), we now assign to that node a new set of coordinates Xn based on the coordinates of the subject's original mesh Xp. (C). When the process is repeated for all the nodes of the standard mesh, its geometry becomes essentially identical to that of the original surface: 99.9% of nodes of the standardmesh surface are within 0.01mm of the original surface1 (Saad et al.,

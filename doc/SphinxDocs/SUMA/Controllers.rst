@@ -38,8 +38,9 @@ Object Controllers
       .. figure:: media/object_controller_notebook_gray.jpg
          :align: center
          :figwidth: 50 %
-
-         Object Controller Notebook: Holder of all controllers. Grayed out area will be different for different object types.
+         :name: media/object_controller_notebook_gray.jpg
+         
+         Object Controller Notebook: Holder of all controllers. Grayed out area will be different for different object types. :ref:`(link)<media/object_controller_notebook_gray.jpg>`
 
       Once you select an object, its controller is popped to the top. You can also use the :ref:`Switch <GL_CN_Switch>` to get at the controller for an object that you don't want to select or that is simply out of reach (invisible). 
 

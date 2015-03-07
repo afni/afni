@@ -7926,6 +7926,9 @@ void SUMA_cb_createSurfaceCont_SO(Widget w, XtPointer data, XtPointer callData)
 "\n"
 ".. figure:: media/SurfCont.auto.ALL.jpg\n"
 "   :align: center\n"
+"   :name: media/SurfCont.auto.ALL.jpg\n"
+"\n"
+"   :ref:`(link)<media/SurfCont.auto.ALL.jpg>`\n"
 "\n\n"
 "   ..\n\n"
 ":DEF:"
@@ -7986,11 +7989,14 @@ void SUMA_cb_createSurfaceCont_SO(Widget w, XtPointer data, XtPointer callData)
       SUMA_Register_Widget_Help( www , 0,
                                  "SurfCont->Surface_Properties",
                                  "Surface Properties",
-                  "Block providing information about selected surface."
-                  ":SPX:\n\n"
-                  ".. figure:: media/SurfCont.auto.Surface_Properties.jpg\n"
-                  "   :align: right\n\n"
-                  "   ..\n\n"
+            "Block providing information about selected surface."
+            ":SPX:\n\n"
+            ".. figure:: media/SurfCont.auto.Surface_Properties.jpg\n"
+            "   :align: right\n"
+            "   :name: media/SurfCont.auto.Surface_Properties.jpg\n"
+            "\n"
+            "   :ref:`(link)<media/SurfCont.auto.Surface_Properties.jpg>`\n"
+            "   ..\n\n"
                   ":SPX:") ;
 
       rc_SurfProp = XtVaCreateWidget ("rowcolumn",
@@ -8144,7 +8150,10 @@ void SUMA_cb_createSurfaceCont_SO(Widget w, XtPointer data, XtPointer callData)
                       "Crosshair Information",
                   ":SPX:\n\n"
                   ".. figure:: media/SurfCont.auto.Xhair_Info.jpg\n"
-                  "   :align: right\n\n"
+                  "   :align: right\n"
+                  "   :name: media/SurfCont.auto.Xhair_Info.jpg\n"
+                  "\n"
+                  "   :ref:`(link)<media/SurfCont.auto.Xhair_Info.jpg>`\n"
                   "   ..\n\n"
                   ":SPX:") ;
       /* vertical row column */
@@ -8189,7 +8198,10 @@ void SUMA_cb_createSurfaceCont_SO(Widget w, XtPointer data, XtPointer callData)
                                  "Dset Color Mapping",
                   ":SPX:\n\n"
                   ".. figure:: media/SurfCont.auto.Dset_Mapping.jpg\n"
-                  "   :align: right\n\n"
+                  "   :align: right\n"
+                  "   :name: media/SurfCont.auto.Dset_Mapping.jpg\n"
+                  "\n"
+                  "   :ref:`(link)<media/SurfCont.auto.Dset_Mapping.jpg>`\n"
                   "   ..\n\n"
                   ":SPX:") ;
       
@@ -8234,7 +8246,10 @@ void SUMA_cb_createSurfaceCont_SO(Widget w, XtPointer data, XtPointer callData)
                                  "Dset Controls", 
                   ":SPX:\n\n"
                   ".. figure:: media/SurfCont.auto.Dset_Controls.jpg\n"
-                  "   :align: right\n\n"
+                  "   :align: right\n"
+                  "   :name: media/SurfCont.auto.Dset_Controls.jpg\n"
+                  "\n"
+                  "   :ref:`(link)<media/SurfCont.auto.Dset_Controls.jpg>`\n"
                   "   ..\n\n"
                   ":SPX:") ;
       /* vertical row column */
@@ -8762,6 +8777,9 @@ void SUMA_cb_createSurfaceCont_GLDO(Widget w, XtPointer data,
 "\n"
 ".. figure:: media/GraphCont.auto.ALL.jpg\n"
 "   :align: center\n"
+"   :name: media/GraphCont.auto.ALL.jpg\n"
+"\n"
+"   :ref:`(link)<media/GraphCont.auto.ALL.jpg>`\n"
 "\n\n"
 "   ..\n\n"
 ":DEF:"
@@ -8821,11 +8839,14 @@ void SUMA_cb_createSurfaceCont_GLDO(Widget w, XtPointer data,
       SUMA_Register_Widget_Help( www , 0,
                               "GraphCont->Graph_Dset_Properties",
                               "Properties of graph dset",
-                  ":SPX:\n\n"
-                  ".. figure:: media/GraphCont.auto.Graph_Dset_Properties.jpg\n"
-                  "   :align: right\n\n"
-                  "   ..\n\n"
-                  ":SPX:") ;
+            ":SPX:\n\n"
+            ".. figure:: media/GraphCont.auto.Graph_Dset_Properties.jpg\n"
+            "   :align: right\n"
+            "   :name: media/GraphCont.auto.Graph_Dset_Properties.jpg\n"
+            "\n"
+            "   :ref:`(link)<media/GraphCont.auto.Graph_Dset_Properties.jpg>`\n"
+            "   ..\n\n"
+            ":SPX:") ;
       
       rc_SurfProp = XtVaCreateWidget ("rowcolumn",
             xmRowColumnWidgetClass, SurfCont->SurfFrame,
@@ -8970,7 +8991,10 @@ void SUMA_cb_createSurfaceCont_GLDO(Widget w, XtPointer data,
                       "Crosshair Information",
                   ":SPX:\n\n"
                   ".. figure:: media/GraphCont.auto.Xhair_Info.jpg\n"
-                  "   :align: right\n\n"
+                  "   :align: right\n"
+                  "   :name: media/GraphCont.auto.Xhair_Info.jpg\n"
+                  "\n"
+                  "   :ref:`(link)<media/GraphCont.auto.Xhair_Info.jpg>`\n"
                   "   ..\n\n"
                   ":SPX:") ;
       /* vertical row column */
@@ -9014,7 +9038,10 @@ void SUMA_cb_createSurfaceCont_GLDO(Widget w, XtPointer data,
                               "Control mapping of edge/cell values to color map",
                   ":SPX:\n\n"
                   ".. figure:: media/GraphCont.auto.GDset_Mapping.jpg\n"
-                  "   :align: right\n\n"
+                  "   :align: right\n"
+                  "   :name: media/GraphCont.auto.GDset_Mapping.jpg\n"
+                  "\n"
+                  "   :ref:`(link)<media/GraphCont.auto.GDset_Mapping.jpg>`\n"
                   "   ..\n\n"
                   ":SPX:") ;
        
@@ -9059,7 +9086,10 @@ void SUMA_cb_createSurfaceCont_GLDO(Widget w, XtPointer data,
                         "Control appearance of 3D graphs and matrices",
                   ":SPX:\n\n"
                   ".. figure:: media/GraphCont.auto.GDset_Controls.jpg\n"
-                  "   :align: right\n\n"
+                  "   :align: right\n"
+                  "   :name: media/GraphCont.auto.GDset_Controls.jpg\n"
+                  "\n"
+                  "   :ref:`(link)<media/GraphCont.auto.GDset_Controls.jpg>`\n"
                   "   ..\n\n"
                   ":SPX:") ;
       
@@ -9698,6 +9728,9 @@ void SUMA_cb_createSurfaceCont_TDO(Widget w, XtPointer data,
 "\n"
 ".. figure:: media/TractCont.auto.ALL.jpg\n"
 "   :align: center\n"
+"   :name: media/TractCont.auto.ALL.jpg\n"
+"\n"
+"   :ref:`(link)<media/TractCont.auto.ALL.jpg>`\n"
 "\n\n"
 "   ..\n\n"
 ":DEF:"
@@ -9761,7 +9794,10 @@ void SUMA_cb_createSurfaceCont_TDO(Widget w, XtPointer data,
                " selected network of tracts. "
                   ":SPX:\n\n"
                   ".. figure:: media/TractCont.auto.Tract_Properties.jpg\n"
-                  "   :align: right\n\n"
+                  "   :align: right\n"
+                  "   :name: media/TractCont.auto.Tract_Properties.jpg\n"
+                  "\n"
+                  "   :ref:`(link)<media/TractCont.auto.Tract_Properties.jpg>`\n"
                   "   ..\n\n"
                   ":SPX:") ;
       
@@ -9852,6 +9888,9 @@ void SUMA_cb_createSurfaceCont_TDO(Widget w, XtPointer data,
                   ":SPX:\n\n"
                   ".. figure:: media/TractCont.auto.Xhair_Info.jpg\n"
                   "   :align: right\n\n"
+                  "   :name: media/TractCont.auto.Xhair_Info.jpg\n"
+                  "\n"
+                  "   :ref:`(link)<media/TractCont.auto.Xhair_Info.jpg>`\n"
                   "   ..\n\n"
                   ":SPX:") ;            
       /* vertical row column */
@@ -9895,7 +9934,10 @@ void SUMA_cb_createSurfaceCont_TDO(Widget w, XtPointer data,
                                  "Tract Dset Color Mapping",
                   ":SPX:\n\n"
                   ".. figure:: media/TractCont.auto.Dset_Mapping.jpg\n"
-                  "   :align: right\n\n"
+                  "   :align: right\n"
+                  "   :name: media/TractCont.auto.Dset_Mapping.jpg\n"
+                  "\n"
+                  "   :ref:`(link)<media/TractCont.auto.Dset_Mapping.jpg>`\n"
                   "   ..\n\n"
                   ":SPX:") ;            
             
@@ -9946,9 +9988,12 @@ void SUMA_cb_createSurfaceCont_TDO(Widget w, XtPointer data,
 " they are only of the RGB variety. This will change in the future, when you"
 " would be able to drive a flying car and have arbitrary sets much like on"
 " surfaces or volumes."
-                  ":SPX:\n\n"
-                  ".. figure:: media/TractCont.auto.Coloring_Controls.jpg\n"
-                  "   :align: right\n\n"
+":SPX:\n\n"
+".. figure:: media/TractCont.auto.Coloring_Controls.jpg\n"
+"   :align: right\n"
+"   :name: media/TractCont.auto.Coloring_Controls.jpg\n"
+"\n"
+"   :ref:`(link)<media/TractCont.auto.Coloring_Controls.jpg>`\n"
                   "   ..\n\n"
                   ":SPX:") ;            
       /* vertical row column */
@@ -10485,7 +10530,9 @@ void SUMA_cb_createSurfaceCont_VO(Widget w, XtPointer data, XtPointer callData)
 "\n"
 ".. figure:: media/VolCont.auto.ALL.jpg\n"
 "   :align: center\n"
-"\n\n"
+"   :name: media/VolCont.auto.ALL.jpg\n"
+"\n"
+"   :ref:`(link)<media/VolCont.auto.ALL.jpg>`\n"
 "   ..\n\n"
 ":DEF:"
 "you can launch the Volume Controller with:"
@@ -10545,7 +10592,10 @@ void SUMA_cb_createSurfaceCont_VO(Widget w, XtPointer data, XtPointer callData)
                   "Block providing information about selected volume."
                   ":SPX:\n\n"
                   ".. figure:: media/VolCont.auto.Volume_Properties.jpg\n"
-                  "   :align: right\n\n"
+                  "   :align: right\n"
+                  "   :name: media/VolCont.auto.Volume_Properties.jpg\n"
+                  "\n"
+                  "   :ref:`(link)<media/VolCont.auto.Volume_Properties.jpg>`\n"
                   "   ..\n\n"
                   ":SPX:") ;
       
@@ -10638,7 +10688,10 @@ void SUMA_cb_createSurfaceCont_VO(Widget w, XtPointer data, XtPointer callData)
                                  "Information at crosshair",
                                  ":SPX:\n\n"
                   ".. figure:: media/VolCont.auto.Xhair_Info.jpg\n"
-                  "   :align: right\n\n"
+                  "   :align: right\n"
+                  "   :name: media/VolCont.auto.Xhair_Info.jpg\n"
+                  "\n"
+                  "   :ref:`(link)<media/VolCont.auto.Xhair_Info.jpg>`\n"
                   "   ..\n\n"
                   ":SPX:") ;
      
@@ -10684,7 +10737,10 @@ void SUMA_cb_createSurfaceCont_VO(Widget w, XtPointer data, XtPointer callData)
                                  "Dset Color Mapping",
                   ":SPX:\n\n"
                   ".. figure:: media/VolCont.auto.Dset_Mapping.jpg\n"
-                  "   :align: right\n\n"
+                  "   :align: right\n"
+                  "   :name: media/VolCont.auto.Dset_Mapping.jpg\n"
+                  "\n"
+                  "   :ref:`(link)<media/VolCont.auto.Dset_Mapping.jpg>`\n"
                   "   ..\n\n"
                   ":SPX:") ;
             
@@ -10727,8 +10783,11 @@ void SUMA_cb_createSurfaceCont_VO(Widget w, XtPointer data, XtPointer callData)
                              "Set up which and how many slices are displayed",
                   ":SPX:\n\n"
                   ".. figure:: media/VolCont.auto.Slice_Controls.jpg\n"
-                  "   :align: right\n\n"
-                  "   ..\n\n"
+                  "   :align: right\n"
+                  "   :name: media/VolCont.auto.Slice_Controls.jpg\n"
+                  "\n"
+                  "   :ref:`(link)<media/VolCont.auto.Slice_Controls.jpg>`\n"
+                  "\n"
                   ":SPX:") ;
 
       /* vertical row column */
@@ -10814,10 +10873,13 @@ void SUMA_cb_createSurfaceCont_VO(Widget w, XtPointer data, XtPointer callData)
       SUMA_Register_Widget_Help(www, 0,
                                 "VolCont->Volume_Rendering_Controls",
                                 "Set the parameters for 3D rendering",
-               ":SPX:\n\n"
-               ".. figure:: media/VolCont.auto.Volume_Rendering_Controls.jpg\n"
-               "   :align: right\n\n"
-               "   ..\n\n"
+         ":SPX:\n\n"
+         ".. figure:: media/VolCont.auto.Volume_Rendering_Controls.jpg\n"
+         "   :align: right\n"
+         "   :name: media/VolCont.auto.Volume_Rendering_Controls.jpg\n"
+         "\n"
+         "   :ref:`(link)<media/VolCont.auto.Volume_Rendering_Controls.jpg>`\n"
+         "\n"
                ":SPX:"      );
       /* vertical row column */
       rcv = XtVaCreateWidget ("rowcolumn",
@@ -10861,8 +10923,11 @@ void SUMA_cb_createSurfaceCont_VO(Widget w, XtPointer data, XtPointer callData)
                                  "Dset Controls",
                   ":SPX:\n\n"
                   ".. figure:: media/VolCont.auto.Dset_Controls.jpg\n"
-                  "   :align: right\n\n"
-                  "   ..\n\n"
+                  "   :align: right\n"
+                  "   :name: media/VolCont.auto.Dset_Controls.jpg\n"
+                  "\n"
+                  "   :ref:`(link)<media/VolCont.auto.Dset_Controls.jpg>`\n"
+                  "\n"
                   ":SPX:") ;
       
       /* vertical row column */
@@ -12722,8 +12787,10 @@ SUMA_Register_Widget_Help( SUMAg_CF->X->DrawROI->AppShell , 0,
 "\n"
 ".. figure:: media/ROICont.auto.ALL.jpg\n"
 "   :align: center\n"
-"\n\n"
-"   ..\n\n"
+"   :name: media/ROICont.auto.ALL.jpg\n"
+"\n"
+"   :ref:`(link)<media/ROICont.auto.ALL.jpg>`\n"
+"\n"
 ":DEF:"
 "You can launch the Draw ROI Controller with:"
 "\n'ctrl+d' or 'Tools-->Draw ROI'\n"
@@ -12762,8 +12829,11 @@ SUMA_Register_Widget_Help( SUMAg_CF->X->DrawROI->AppShell , 0,
                   "Controls for drawing ROIs."
                   ":SPX:\n\n"
                   ".. figure:: media/ROICont.auto.ROI.jpg\n"
-                  "   :align: right\n\n"
-                  "   ..\n\n"
+                  "   :align: right\n"
+                  "   :name: media/ROICont.auto.ROI.jpg\n"
+                  "\n"
+                  "   :ref:`(link)<media/ROICont.auto.ROI.jpg>`\n"
+                  "\n"
                   ":SPX:") ;
 
    /* vertical row column to stack horizontal rcs in */
@@ -16417,6 +16487,9 @@ void SUMA_cb_createSumaCont(Widget ww, XtPointer ddata, XtPointer ccallData)
 "\n"
 ".. figure:: media/SumaCont.auto.ALL.jpg\n"
 "   :align: center\n"
+"   :name: media/SumaCont.auto.ALL.jpg\n"
+"\n"
+"   :ref:`(link)<media/SumaCont.auto.ALL.jpg>`\n"
 "\n\n"
 "   ..\n\n"
 ":DEF:"

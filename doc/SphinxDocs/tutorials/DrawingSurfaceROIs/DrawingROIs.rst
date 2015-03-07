@@ -11,8 +11,9 @@ You can draw Regions Of Interest (ROIs) directly on the surface models. To do so
 .. figure:: media/Draw_ROI_GUI.jpg
    :figwidth: 40%
    :align: center
-
-   The Draw ROI GUI
+   :name: media/Draw_ROI_GUI.jpg
+   
+   :ref:`The Draw ROI GUI<media/Draw_ROI_GUI.jpg>`
 
  
 Demo:

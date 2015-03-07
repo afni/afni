@@ -15,6 +15,8 @@ SUMA is a program that adds cortical surface based functional imaging analysis t
    :align: center
    :target: ../_images/Cover2.jpg
    
+   :ref:`Days of yore<cover-figure>`
+   
 .. _connectivity-data:
 
 SUMA also allows display and manipulation of matrices for various flavors of connectivity data, tractography results from AFNI's FATCAT toolbox, and the rendering of volumetric data.
@@ -26,6 +28,8 @@ SUMA also allows display and manipulation of matrices for various flavors of con
    :align: center
    :target: ../_images/image_HBM14_01.jpg
    
+   :ref:`FACTCAT Days<HBM14_01>`
+   
    Whole brain deterministic tractography with AFNI-FATCAT as rendered with SUMA. Surface models, here shown with transparency, are pried apart to reveal internal structures.
 
 .. _HBM14_04:
@@ -34,8 +38,8 @@ SUMA also allows display and manipulation of matrices for various flavors of con
    :figwidth: 70%
    :align: center
    :target: ../_images/image_HBM14_04.jpg
-   
-   **A**.Rendering of matrix data as a 3D graph. **B**.Graph edges represented by bundles. **C**.Matrix representation of connectivity data
+      
+   **A**.Rendering of matrix data as a 3D graph. **B**.Graph edges represented by bundles. **C**.Matrix representation of connectivity data :ref:`(link)<HBM14_04>`
 
 
 .. _highlights:
@@ -51,7 +55,9 @@ Multimodal rendering with direct AFNI link
    :figwidth: 70%
    :align: center
    :target: ../_images/image_HBM14_05.jpg
+   :name:    media/image_HBM14_05.jpg
    
+   :ref:`(link)<media/image_HBM14_05.jpg>`
 
 Multiple Linked Viewers
 -----------------------
@@ -62,7 +68,10 @@ You can have up to 8 linked surface viewers open simultaneously.
    :figwidth: 40%
    :align: right
    :target: ../_images/MultiView.jpg
-
+   :name: media/MultiView.jpg
+   
+   :ref:`(link)<media/MultiView.jpg>`
+   
 .. container:: clearer
    
    .. image:: media/blank.jpg
@@ -74,7 +83,10 @@ ROI Drawing
    :figwidth: 40%
    :align: right
    :target: ../_images/ROI_draw.jpg
-
+   :name: media/ROI_draw.jpg
+   
+   :ref:`(link)<media/ROI_draw.jpg>`
+   
 .. container:: clearer
    
    .. image:: media/blank.jpg
@@ -90,6 +102,9 @@ Simultaneous yoked left / right hemisphere display
    :figwidth: 30%
    :align: center
    :target: ../_images/both_smoothwm.jpg
+   :name: media/both_smoothwm.jpg
+   
+   :ref:`(link)<media/both_smoothwm.jpg>`
    
    Most actions, such as dataset loading and parameter settings on one hemisphere are automatically carried out on the other hemisphere.
 
@@ -107,8 +122,9 @@ If your volumetric data are in Talairach space, you can display them on these su
    :figwidth: 30%
    :align: right
    :target: ../_images/tlrc.jpg
+   :name: media/tlrc.jpg
    
-   See :ref:`Template Surfaces<TemplateSurfaces>` for details on obtaining the surfaces.
+   See :ref:`Template Surfaces<TemplateSurfaces>` for details on obtaining the surfaces. :ref:`(link)<media/tlrc.jpg>`
    
 .. container:: clearer
    
@@ -124,8 +140,9 @@ Each dataset is colored interactively using SUMA's surface controller shown belo
    :figwidth: 25%
    :align: center
    :target: ../_images/ColPlanes2.jpg
+   :name: media/ColPlanes2.jpg
    
-   surface models with 4 stacked color planes consisting of the surface convexity, drawn ROIs, functional data from AFNI  and a node color data file that looks cool.
+   surface models with 4 stacked color planes consisting of the surface convexity, drawn ROIs, functional data from AFNI  and a node color data file that looks cool. :ref:`(link)<media/ColPlanes2.jpg>`
    
 .. container:: clearer
    
@@ -139,25 +156,25 @@ Similarly, data coloring can be done for volumes, graphs, and  connectivity matr
    :align: left
    :figwidth: 32%
    :target: ../_images/GC_3D.jpg
+   :name: media/GC_3D.jpg
    
-   ..
-   
-   
-   
+   :ref:`(link)<media/GC_3D.jpg>`
+      
 .. figure:: media/conn_matrix_01.jpg
    :align: right
    :figwidth: 32%
    :target: ../_images/conn_matrix_01.jpg
-
-   ..
+   :name: media/conn_matrix_01.jpg
+   
+   :ref:`(link)<media/conn_matrix_01.jpg>`
    
 .. figure:: media/conn_matrix_02.jpg
    :align: center
    :figwidth: 32%
    :target: ../_images/conn_matrix_02.jpg
-
-   ..
+   :name: media/conn_matrix_02.jpg
    
+   :ref:`(link)<media/conn_matrix_02.jpg>`
    
 .. container:: clearer
    
@@ -173,7 +190,10 @@ Rendered images can be :ref:`captured <LC_r>` by an AFNI-esque image viewers and
    :figwidth: 30%
    :align: center
    :target: ../_images/record_int.jpg
-
+   :name: media/record_int.jpg
+   
+   :ref:`(link)<media/record_int.jpg>`
+   
 .. container:: clearer
    
    .. image:: media/blank.jpg
@@ -188,6 +208,9 @@ You can automate the majority of tasks normally performed interactively. See dem
    :figwidth: 90%
    :align: center
    :target: ../_images/Drive_S+R_F3.jpg
+   :name: media/Drive_S+R_F3.jpg
+   
+   :ref:`(link)<media/Drive_S+R_F3.jpg>`
 
    Illustration for driving SUMA's GUI from the command line with DriveSuma. The example here illustrates the functioning of a script that automatically generates a movie of MEG SAM data from 0 to 600 ms after stimulus delivery. (Data and script to generate this movie are courtesy of Chunmao Wang, and available `here <http://afni.nimh.nih.gov/pub/dist/tgz/SumaMovieDemo.tgz>`_.
 
@@ -212,5 +235,8 @@ Interactive Functional and Anatomical Connectivity
    :figwidth: 90%
    :align: center
    :target: ../_images/f+a_conn.jpg
+   :name: media/f+a_conn.jpg
+   
+   :ref:`(link)<media/f+a_conn.jpg>`
    
 Perform simultaneous, interactive functional and anatomical connectivity, all while maintaining a link to AFNI and original volumetric data. Use demo script **Do_09_VISdti_SUMA_visual_ex3.tcsh** which is part of the :ref:`FATCAT Demo<FATCAT_DEMO>` to walk through the process.  
