@@ -1282,17 +1282,17 @@ char * SUMA_help_Plot_message_Info(void)
 char * SUMA_hkf_eng(char *keyi, TFORM target, char *cm)
 {
    static char FuncName[]={"SUMA_hkf_eng"};
-   static char ss[20][256];
+   static char ss[20][512];
    char key1[256], key2[256], *direc="kbd";
    static int c;
-   char *s;
+   char *s, cs[5]={""}, *wname_URI=NULL;
    int ichar=-1;
    
    if (!cm) cm = "";
    
    ++c;
    if (c > 19) c = 0;
-   s = (char *)ss[c]; s[0] = s[255] = '\0';
+   s = (char *)ss[c]; s[0] = s[511] = '\0';
    if (!keyi) return(s);
    switch (target) {
       default:
@@ -1308,7 +1308,7 @@ char * SUMA_hkf_eng(char *keyi, TFORM target, char *cm)
          } else {
             snprintf(key1, 255, "%s", keyi);
          }
-            snprintf(s, 255, "  %s", key1);
+            snprintf(s, 511, "  %s", key1);
          return(s);
          break;
       case SPX: /* Sphinx */
@@ -1332,16 +1332,73 @@ char * SUMA_hkf_eng(char *keyi, TFORM target, char *cm)
          
          if (ichar > -1) { 
             if (SUMA_IS_UPPER_C(key1[ichar])) {
-               snprintf(s, 255, "\n.. _%sUC_%s:\n\n:%s:`%s`"
-                  , cm, deblank_allname(key1,'_'), direc, deblank_name(key2));
+               sprintf(cs,"UC_");
             } else { 
-               snprintf(s, 255, "\n.. _%sLC_%s:\n\n:%s:`%s`"
-                  , cm, deblank_allname(key1,'_'), direc, deblank_name(key2));
+               sprintf(cs,"LC_");
             }
          } else {
-            snprintf(s, 255, "\n.. _%s%s:\n\n:%s:`%s`"
-                  , cm, deblank_allname(key1,'_'), direc, deblank_name(key2));
+            cs[0] = '\0';
          }
+         
+         #if 0 /* Good for sphinx, not good for having permalinks ! */
+         snprintf(s, 511, "\n.. _%s%s%s:\n\n:%s:`%s`"
+            , cm, cs, deblank_allname(key1,'_') 
+            , direc, deblank_name(key2));
+         #elif 1 /* Good for sphinx and for permalinks */
+         if (!strcmp(direc,"kbd")) direc="(kbd)";
+         else direc = "";
+         snprintf(s, 511, "\n.. _%s%s%s:\n\n:ref:`%s %s<%s%s%s>`"
+            , cm, cs, deblank_allname(key1,'_') 
+            , deblank_name(key2), direc, cm, cs, deblank_allname(key1,'_'));
+         #else
+         /* Brute force, and a pain, as you can see below.
+            Left here as illustration for 'raw html use */
+         /* Note that I endup with two labels for the key,
+         one as an html permalink and another sphinx one
+         preceding the text of the first line. The reason
+         this was done has to do with how the help
+         for each key is defined explicitly in 
+         a series of SUMA_StringAppend() calls.
+         I could skip the second (sphinx) label but then
+         my html page would have ':' at the beginning of
+         each line. The solution would be to store the
+         help for each key much as I do for each widget
+         and make SUMA_hkf() take the 1st line and body (a parallel 
+         to the widget hint and help) as options. That's a lot
+         of tediousness I don't care for quite yet. */
+         wname_URI = SUMA_append_replace_string(cm,
+                              deblank_allname(key1,'_'),cs,0);
+         SUMA_SPHINX_WIDGET_NAME_2_LINK(wname_URI);
+               snprintf(s, 511, "\n"
+           ".. _%s%s%s:\n"
+           "\n"
+           ".. only:: latex or latexpdf\n"
+           "\n"
+           "   :%s:`%s`\n"
+           "\n"
+           "..\n"
+           "\n"
+           ".. only:: html\n"
+           "\n"
+           "   .. raw:: html\n"
+           "\n"
+           "      <div class=\"section\" id=\"%s\">\n"
+           "      <p><a class=\"section\" href=\"#%s\" title=\"%s keyb link\">"
+           "<strong>%s</strong>:</a> </p></div>\n"
+           "\n"
+           "..\n"
+           "\n"
+           ":%s:`%s`",
+                  cm, cs, deblank_allname(key1,'_') ,
+                  direc, deblank_name(key2),
+                  wname_URI, wname_URI,
+                  deblank_name(key2), deblank_name(key2),
+                  direc, deblank_name(key2)); 
+                              
+            SUMA_ifree(wname_URI);
+
+         #endif
+         
          return(s);
          break;
    }
@@ -1570,7 +1627,16 @@ char * SUMA_gsf(char *uwname, TFORM target, char **hintout, char **helpout)
                                 "**%s**: %s\n"
                                 "\n",
                               wname, wnameclp,sii);
-               #else
+               #elif 1 /* Good for sphinx and for permalinks */
+               snprintf(s, 511, "\n"
+                                "   .. _%s:\n"
+                                "\n"
+                                ":ref:`%s<%s>`: %s\n"
+                                "\n",
+                              wname, wnameclp, wname, sii);
+                #else
+               /* Brute force, and a pain, as you can see below.
+               Left here as illustration for 'raw html use */
                /* The "only::" directives below are not
                necessary if we are only producing html
                output. I kept them in should we build 
@@ -1578,24 +1644,24 @@ char * SUMA_gsf(char *uwname, TFORM target, char **hintout, char **helpout)
                wname_URI = SUMA_copy_string(wname);
                SUMA_SPHINX_WIDGET_NAME_2_LINK(wname_URI);
                snprintf(s, 511, "\n"
-           "   .. _%s:\n"
-           "\n"
-           ".. only:: latex or latexpdf\n"
-           "\n"
-           "   **%s**:\n"
-           "\n"
-           "..\n"
-           "\n"
-           ".. only:: html\n"
-           "\n"
-           "   .. raw:: html\n"
-           "\n"
-           "      <div class=\"section\" id=\"%s\">\n"
-           "      <p><a class=\"section\" href=\"#%s\" title=\"%s widget link\">"
-           "<strong>%s</strong>:</a> %s</p></div>\n"
-           "\n"
-           "..\n"
-           "\n",
+        " .. _%s:\n"
+        "\n"
+        "   .. only:: latex or latexpdf\n"
+        "\n"
+        "      **%s**:\n"
+        "\n"
+        "   ..\n"
+        "\n"
+        "   .. only:: html\n"
+        "\n"
+        "      .. raw:: html\n"
+        "\n"
+        "         <div class=\"section\" id=\"%s\">\n"
+        "         <p><a class=\"section\" href=\"#%s\" title=\"%s widget link\">"
+        "<strong>%s</strong>:</a> %s</p></div>\n"
+        "\n"
+        "   ..\n"
+        "\n",
                               wname, 
                               wnameclp,
                               wname_URI, wname_URI, wnameclp,
@@ -1619,6 +1685,7 @@ char * SUMA_gsf(char *uwname, TFORM target, char **hintout, char **helpout)
            "\n",
                               wname_URI, wname_URI, wnameclp);
                SUMA_ifree(wname_URI);
+               break;
             default:
                SUMA_S_Err("Bad type %d", gwh->type);
                break;
@@ -1829,7 +1896,7 @@ char * SUMA_help_message_Info(TFORM targ)
 "              See also -do_draw_mask option in DriveSuma\n\n"
 "        ** DO stands for displayable objects, see 'Ctrl+Alt+s'\n"
 "           below.\n"
-"        ** For the moment, 'Ctrl+p' only applies to segment \n"
+"        ** For the moment, 'Alt+p' only applies to segment \n"
 "           and sphere DOs  that are node based. \n"
 "           If you need it applied to other DOs, let me know.\n"
       , SUMA_hkf("p", targ), SUMA_hkf("Ctrl+p", targ), SUMA_hkf("Alt+p", targ));
@@ -1903,7 +1970,7 @@ char * SUMA_help_message_Info(TFORM targ)
 "                 name will replace currently loaded versions.\n"
 "                 Note 2: Node-based (Types 3 and 4) objects\n"
 "                 will follow a node when its coordinates change.\n"
-"                 Note 3: See also 'Ctrl+p' for restricting which \n"
+"                 Note 3: See also 'Alt+p' for restricting which \n"
 "                 node-based objects get displayed.\n\n"
 "          Type 1:Segments between (x0,y0,z0) and (x1,y1,z1) \n"
 "                 1st line must be '#segments' (without quotes),\n"
@@ -2430,7 +2497,10 @@ char * SUMA_help_message_Info(TFORM targ)
 ":SPX:"
 ".. figure:: media/surface_selection.jpg\n"
 "    :figwidth: 30%\n"
-"    :align: center\n\n"
+"    :align: center\n"
+"    :name: media/surface_selection.jpg\n"
+"\n"
+"    :ref:`(link)<media/surface_selection.jpg>`\n"
 ":SPX:"
 "2- Voxel picking in volumes: You can select voxels on rendered slices as "
 "long as the voxels are not thresholded out of view. They maybe too dark to "

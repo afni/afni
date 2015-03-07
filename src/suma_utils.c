@@ -3546,10 +3546,10 @@ char * SUMA_env_list_help(int DEFAULT_values, TFORM targ){
             sli = SUMA_Sphinx_String_Edit(&sli, targ, 0);
             SS = SUMA_StringAppend_va(SS,
                            ".. _%s:\n\n"
-                           ":envvar:`%s`: %s\n\n"
+                           ":ref:`%s (env)<%s>`: %s\n\n"
                            "  default value:   %s = %s\n\n",
                            se.envname,
-                           se.envname, sli,
+                           se.envname, se.envname, sli,
                            se.envname, se.envval);
             SUMA_free(sli); sli = NULL;
             break;
