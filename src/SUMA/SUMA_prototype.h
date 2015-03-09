@@ -5,6 +5,7 @@
 void SUMA_mapStateChanged(Widget w, XtPointer clientData, XEvent * event, Boolean * cont);
 char * SUMA_gsf(char *wname, TFORM target, char **hintout, char **helpout);
 char * SUMA_hkcf(char *keyi, TFORM target);
+char *SUMA_Sphinx_Widget_Name_2_Link(char *name) ;
 char * SUMA_hkf(char *keyi, TFORM target);
 char * SUMA_hkf_eng(char *keyi, TFORM target, char *cm);
 void SUMA_help(void);
