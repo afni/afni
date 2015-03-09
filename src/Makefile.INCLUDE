@@ -3166,7 +3166,7 @@ SUMA_PROGS = testGL suma ScaleToMap CompareSurfaces \
    DriveSuma SurfDist SpharmReco SpharmDeco prompt_user SurfRetinoMap \
    ParseName 3dGenPriors 3dGenFeatureDist 3dSeg SurfExtrema 3dinfill \
    3dHist HalloSuma InstaTract niprobe SUMA_glxdino SUMA_paperplane \
-   SUMA_pixmap2eps
+   SUMA_pixmap2eps BrainSkin
 
 SUMA_GTS_PROGS = SurfMesh
            
@@ -3300,6 +3300,8 @@ suma_clean:
 	if [ -f SUMA/SampBias ]; then $(RM) SUMA/SampBias; fi;
 	if [ -f 3dSkullStrip  ]; then $(RM) 3dSkullStrip ; fi;
 	if [ -f SUMA/3dSkullStrip  ]; then $(RM) SUMA/3dSkullStrip ; fi;
+	if [ -f BrainSkin  ]; then $(RM) BrainSkin ; fi;
+	if [ -f SUMA/BrainSkin  ]; then $(RM) SUMA/BrainSkin ; fi;
 	if [ -f 3dCRUISEtoAFNI  ]; then $(RM) 3dCRUISEtoAFNI ; fi;
 	if [ -f SUMA/3dCRUISEtoAFNI  ]; then $(RM) SUMA/3dCRUISEtoAFNI ; fi;
 	if [ -f 3dBRAIN_VOYAGERtoAFNI  ]; then $(RM) 3dBRAIN_VOYAGERtoAFNI ; fi;
@@ -3368,7 +3370,7 @@ suma_link:
    SurfToSurf Surf2VolCoord ROIgrow SurfDsetInfo SurfInfo AnalyzeTrace \
    DriveSuma SurfDist SpharmReco SpharmDeco prompt_user SurfRetinoMap \
    ParseName 3dGenPriors 3dGenFeatureDist 3dSeg SurfExtrema 3dinfill \
-   3dHist HalloSuma niprobe \
+   3dHist HalloSuma niprobe BrainSkin \
    InstaTract; \
 	$(MAKE) -f $(SUMA_MAKEFILE_NAME) testGL suma MakeColorMap ROI2dataset \
    3dVol2Surf 3dSurf2Vol ScaleToMap SurfMeasures SurfFWHM \
@@ -3379,7 +3381,7 @@ suma_link:
 	SurfToSurf Surf2VolCoord ROIgrow SurfDsetInfo SurfInfo AnalyzeTrace \
    DriveSuma SurfDist SpharmReco SpharmDeco prompt_user SurfRetinoMap \
    ParseName 3dGenPriors 3dGenFeatureDist 3dSeg SurfExtrema 3dinfill \
-   3dHist HalloSuma InstaTract niprobe \
+   3dHist HalloSuma InstaTract niprobe BrainSkin \
 	'INSTALLDIR=$(INSTALLDIR)' \
 	'SUMA_MDEFS=$(SUMA_MDEFS)' \
 	'SUMA_INCLUDE_PATH=$(SUMA_INCLUDE_PATH)' \
@@ -3412,7 +3414,7 @@ suma_install:
    SUMA/SpharmReco SUMA/SpharmDeco SUMA/prompt_user SUMA/SurfRetinoMap \
    SUMA/ParseName SUMA/3dGenPriors SUMA/3dGenFeatureDist SUMA/3dSeg \
    SUMA/SurfExtrema SUMA/3dinfill \
-   SUMA/3dHist SUMA/HalloSuma SUMA/InstaTract SUMA/niprobe \
+   SUMA/3dHist SUMA/HalloSuma SUMA/InstaTract SUMA/niprobe SUMA/BrainSkin \
    ${INSTALLDIR} ; \
 	if [ -f SUMA/SurfMesh ]; then $(CP) SUMA/SurfMesh ${INSTALLDIR} ; fi; \
 	$(CP) @SUMA_* ${INSTALLDIR} ;)
