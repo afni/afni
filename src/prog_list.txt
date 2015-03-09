@@ -323,6 +323,7 @@
 AFNI_Batch_R
 AlphaSim
 AnalyzeTrace
+BrainSkin
 CompareSurfaces
 ConvertDset
 ConvertSurface
