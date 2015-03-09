@@ -56,11 +56,11 @@ Object Controllers
 
          .. _GL_CN_BHelp:
 
-         :ref:`BHelp<GL_CN_BHelp>`: Obtain context specific help by clicking on this button then clicking on the contextfor which you want information.
+         :ref:`BHelp<GL_CN_BHelp>`: Obtain context specific help by clicking on this button then clicking on the context for which you want information.
 
          .. _GL_CN_WHelp:
 
-         :ref:`WHelp<GL_CN_WHelp>`: Obtain web-based context specific help by clicking on this button then clicking on the contextfor which you want information.
+         :ref:`WHelp<GL_CN_WHelp>`: Obtain web-based context specific help by clicking on this button then clicking on the context for which you want information.
 
          .. _CL_CN_All_Objs:
 
