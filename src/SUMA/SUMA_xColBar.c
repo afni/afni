@@ -3611,7 +3611,14 @@ void SUMA_CreateTable(  Widget parent,
                      cd ,   /* client data */
                      XtListTail ) ; 
                }
-               snprintf(wname, 63, "%s.r%02d", TF->wname, i);
+               if (0 && TF->HasRowTit &&  row_tit[i]) { /* Much better name, but 
+                    Cannot use it before updating
+                    help generating functions which now call for help on .c00, 
+                    .c01, or .r00 .r01, etc. */
+                  snprintf(wname, 63, "%s.%s", TF->wname, row_tit[i]);
+               } else { 
+                  snprintf(wname, 63, "%s.r%02d", TF->wname, i);
+               }
                SUMA_Register_Widget_Help(TF->cells[n], 1, wname, 
                                          row_hint?row_hint[i]:NULL, 
                                          row_help?row_help[i]:NULL ) ;
@@ -3705,7 +3712,14 @@ void SUMA_CreateTable(  Widget parent,
                      cd ,   /* client data */
                      XtListTail ) ; 
                }                 
-               snprintf(wname, 63, "%s.c%02d", TF->wname, j);
+               if (0 && TF->HasColTit &&  col_tit[j]) {/* Much better name, but 
+                    Cannot use it before updating
+                    help generating functions which now call for help on .c00, 
+                    .c01, or .r00 .r01, etc. */
+                  snprintf(wname, 63, "%s.%s", TF->wname, col_tit[j]);
+               } else {
+                  snprintf(wname, 63, "%s.c%02d", TF->wname, j);
+               }
                SUMA_Register_Widget_Help(TF->cells[n], 1, wname,
                                          col_hint?col_hint[j]:NULL, 
                                          col_help?col_help[j]:NULL ) ;  

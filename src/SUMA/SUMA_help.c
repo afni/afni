@@ -1367,7 +1367,7 @@ char * SUMA_hkf_eng(char *keyi, TFORM target, char *cm)
          of tediousness I don't care for quite yet. */
          wname_URI = SUMA_append_replace_string(cm,
                               deblank_allname(key1,'_'),cs,0);
-         SUMA_SPHINX_WIDGET_NAME_2_LINK(wname_URI);
+         SUMA_Sphinx_Widget_Name_2_Link(wname_URI);
                snprintf(s, 511, "\n"
            ".. _%s%s%s:\n"
            "\n"
@@ -1412,6 +1412,34 @@ char * SUMA_hkf(char *keyi, TFORM target) {
 char * SUMA_hkcf(char *keyi, TFORM target) {
    /* for colormap area keys */
    return(SUMA_hkf_eng(keyi,target,"CM_"));
+}
+
+char *SUMA_Sphinx_Widget_Name_2_Link(char *name) 
+{
+   static char FuncName[]={"SUMA_Sphinx_Widget_Name_2_Link"};
+   int m_i, m_c=0; 
+   
+   SUMA_ENTRY;
+   
+   if (name)   {
+      SUMA_TO_LOWER(name);
+      if (name[strlen(name)-1] == '.') name[strlen(name)-1]='\0';
+      
+      for (m_i=0, m_c=0; m_i<strlen(name); ++m_i) {
+         if (SUMA_IS_BLANK(name[m_i]) || name[m_i] == '/' || 
+             name[m_i] == '[' || name[m_i] == ']' || name[m_i] == '.' ||
+             name[m_i] == '_' ) {
+            name[m_c++] = '-'; 
+         } else if (name[m_i] == '>') {
+            /* ignore it */
+         } else {
+            name[m_c++] = name[m_i];
+         }
+      }
+   }
+   name[m_c] = '\0';
+   
+   SUMA_RETURN(name);
 }
 
 
@@ -1500,7 +1528,7 @@ char * SUMA_gsf(char *uwname, TFORM target, char **hintout, char **helpout)
          }
          snprintf(s,511,"http://afni.nimh.nih.gov/pub/dist/doc/htmldoc");
          if (found) {
-            SUMA_SPHINX_WIDGET_NAME_2_LINK(lnm);
+            SUMA_Sphinx_Widget_Name_2_Link(lnm);
             SUMA_strncat(s,"/SUMA/Controllers.html#", 511);
             SUMA_strncat(s,lnm,511);
             SUMA_ifree(sii);
@@ -1542,7 +1570,7 @@ char * SUMA_gsf(char *uwname, TFORM target, char **hintout, char **helpout)
             /* Turn the container name to a link */
             if (gwh->hint) {
                sii = SUMA_copy_string(gwh->hint);
-               SUMA_SPHINX_WIDGET_NAME_2_LINK(sii);
+               SUMA_Sphinx_Widget_Name_2_Link(sii);
                SUMA_strncat(s,"/SUMA/Controllers.html#", 511);
                SUMA_strncat(s,sii,511);
                SUMA_ifree(sii);
@@ -1572,6 +1600,9 @@ char * SUMA_gsf(char *uwname, TFORM target, char **hintout, char **helpout)
          lnm = gwh->name[gwh->name_lvl-1];
          snprintf(wnameclp, 255, "%s", lnm);
          if (strstr(wnameclp,".r00")) { /* get rid of .r00 */
+            wnameclp[strlen(lnm)-4]='\0';
+         }
+         if (strstr(wnameclp,".c00")) { /* get rid of .c00 */
             wnameclp[strlen(lnm)-4]='\0';
          }
          
@@ -1641,7 +1672,7 @@ char * SUMA_gsf(char *uwname, TFORM target, char **hintout, char **helpout)
                output. I kept them in should we build 
                other than html in the future */
                wname_URI = SUMA_copy_string(wname);
-               SUMA_SPHINX_WIDGET_NAME_2_LINK(wname_URI);
+               SUMA_Sphinx_Widget_Name_2_Link(wname_URI);
                snprintf(s, 511, "\n"
         " .. _%s:\n"
         "\n"
@@ -1670,7 +1701,7 @@ char * SUMA_gsf(char *uwname, TFORM target, char **hintout, char **helpout)
                break;
             case 2: /* Just permalink, no text to appear on purpose */
                wname_URI = SUMA_copy_string(wname);
-               SUMA_SPHINX_WIDGET_NAME_2_LINK(wname_URI);
+               SUMA_Sphinx_Widget_Name_2_Link(wname_URI);
                snprintf(s, 511, "\n"
            ".. only:: html\n"
            "\n"
