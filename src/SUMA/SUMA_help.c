@@ -1345,8 +1345,7 @@ char * SUMA_hkf_eng(char *keyi, TFORM target, char *cm)
             , cm, cs, deblank_allname(key1,'_') 
             , direc, deblank_name(key2));
          #elif 1 /* Good for sphinx and for permalinks */
-         if (!strcmp(direc,"kbd")) direc="(kbd)";
-         else direc = "";
+         direc = "";
          snprintf(s, 511, "\n.. _%s%s%s:\n\n:ref:`%s %s<%s%s%s>`"
             , cm, cs, deblank_allname(key1,'_') 
             , deblank_name(key2), direc, cm, cs, deblank_allname(key1,'_'));
