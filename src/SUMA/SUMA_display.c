@@ -7579,6 +7579,7 @@ void SUMA_cb_createSurfaceCont(Widget w, XtPointer data, XtPointer callData)
 SUMA_Boolean SUMA_is_Documented_Widget(char *wname)
 {
    static char FuncName[]={"SUMA_is_Documented_Widget"};
+   SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
    
@@ -7592,6 +7593,7 @@ SUMA_Boolean SUMA_is_Documented_Widget(char *wname)
    }
    if (strstr(SUMAg_CF->DocumentedWidgets, wname)) SUMA_RETURN(YUP);
    
+   SUMA_LH("Widget %s not in:\n%s", wname, SUMAg_CF->DocumentedWidgets);
    SUMA_RETURN(NOPE); 
 }
 
