@@ -5293,24 +5293,34 @@ int SUMA_Class_stats(THD_3dim_dataset *aset,
                ++n; 
             }   
          }
-         Astd = sqrt((Asum2-Asum*Asum/n)/(n-1))*af;
-         Amean = Asum/n*af;
-         AstdL = sqrt((Asum2L-AsumL*AsumL/n)/(n-1));
-         AmeanL = AsumL/n;
+         if (n>1 && af != 0.0) {
+            Astd = sqrt((Asum2-Asum*Asum/n)/(n-1))*af;
+         } else {
+            Astd = 0.0;
+         }
+         if (n*af != 0.0) Amean = Asum/n*af;
+         else Amean = 0.0;
+         if (n>1) {
+            AstdL = sqrt((Asum2L-AsumL*AsumL/n)/(n-1));
+         } else {
+            AstdL = 0.0;
+         }
+         if (n) AmeanL = AsumL/n;
+         else AmeanL = 0.0;
+         
          SUMA_set_Stat(cs, cs->label[j], "num", n);
          SUMA_set_Stat(cs, cs->label[j], "mean", Amean);
          SUMA_set_Stat(cs, cs->label[j], "stdv", Astd);
          SUMA_set_Stat(cs, cs->label[j], "meanL", AmeanL);
          SUMA_set_Stat(cs, cs->label[j], "stdvL", AstdL);
-         SUMA_set_Stat(cs, cs->label[j], "mix", n/cmask_count);
+         if (cmask_count) SUMA_set_Stat(cs, cs->label[j], "mix", n/cmask_count);
+         else SUMA_set_Stat(cs, cs->label[j], "mix", 0);
       }
    } else {
       /* Check classes at input */
       bad = 0;
       for (j=0; j<cs->N_label; ++j) {
-         if (SUMA_get_Stat(cs, cs->label[j], "num") == 0 ||
-             SUMA_get_Stat(cs, cs->label[j], "mix") < 1.0e-6 ||
-             isnan(SUMA_get_Stat(cs, cs->label[j], "meanL")) ||
+         if (isnan(SUMA_get_Stat(cs, cs->label[j], "meanL")) ||
              isnan(SUMA_get_Stat(cs, cs->label[j], "stdvL")) ||
              isnan(SUMA_get_Stat(cs, cs->label[j], "mean")) ||
              isnan(SUMA_get_Stat(cs, cs->label[j], "stdv")) ) {
@@ -5399,12 +5409,16 @@ int SUMA_Class_stats(THD_3dim_dataset *aset,
          Astd = sqrt(Asum2/wsum)*af;
          Amean = Amean*af;
          AstdL = sqrt(Asum2L/wsum);
+         if (isnan(Astd) || isnan(AstdL)) {
+            Astd = AstdL = 0; 
+         } 
          SUMA_set_Stat(cs, cs->label[j], "num", n);
          SUMA_set_Stat(cs, cs->label[j], "mean", Amean);
          SUMA_set_Stat(cs, cs->label[j], "stdv", Astd);
          SUMA_set_Stat(cs, cs->label[j], "meanL", AmeanL);
          SUMA_set_Stat(cs, cs->label[j], "stdvL", AstdL);
-         SUMA_set_Stat(cs, cs->label[j], "mix", wsum/mixden[j]);
+         if (mixden[j]) SUMA_set_Stat(cs, cs->label[j], "mix", wsum/mixden[j]);
+         else SUMA_set_Stat(cs, cs->label[j], "mix", 0);
       }
       SUMA_ifree(mixden);
    }
@@ -5412,9 +5426,7 @@ int SUMA_Class_stats(THD_3dim_dataset *aset,
    /* Check classes at input */
    bad = 0;
    for (j=0; j<cs->N_label; ++j) {
-      if (SUMA_get_Stat(cs, cs->label[j], "num") == 0 ||
-          SUMA_get_Stat(cs, cs->label[j], "mix") < 1.0e-6 ||
-          isnan(SUMA_get_Stat(cs, cs->label[j], "meanL")) ||
+      if (isnan(SUMA_get_Stat(cs, cs->label[j], "meanL")) ||
           isnan(SUMA_get_Stat(cs, cs->label[j], "stdvL")) ||
           isnan(SUMA_get_Stat(cs, cs->label[j], "mean")) ||
           isnan(SUMA_get_Stat(cs, cs->label[j], "stdv")) ) {
