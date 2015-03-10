@@ -1428,7 +1428,7 @@ char *SUMA_Sphinx_Widget_Name_2_Link(char *name)
       for (m_i=0, m_c=0; m_i<strlen(name); ++m_i) {
          if (SUMA_IS_BLANK(name[m_i]) || name[m_i] == '/' || 
              name[m_i] == '[' || name[m_i] == ']' || name[m_i] == '.' ||
-             name[m_i] == '_' ) {
+             name[m_i] == '_' || name[m_i] == '+') {
             name[m_c++] = '-'; 
          } else if (name[m_i] == '>') {
             /* ignore it */
