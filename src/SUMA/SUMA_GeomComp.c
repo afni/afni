@@ -4119,6 +4119,9 @@ float * SUMA_Taubin_Smooth (SUMA_SurfaceObject *SO, float **wgt,
       SUMA_SL_Err("NULL SO or fin_orig\n");
       SUMA_RETURN(NULL);
    }
+   if (!SO->FN) { /* try to compute, perhaps oversight */
+      SUMA_SurfaceMetrics(SO, "EdgeList|MemberFace", NULL);
+   }
    if (!SO->FN) {
       SUMA_SL_Err("NULL SO->FN\n");
       SUMA_RETURN(NULL);

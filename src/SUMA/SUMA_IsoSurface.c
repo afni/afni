@@ -665,7 +665,7 @@ int main (int argc,char *argv[])
             if (Opt->N_it) {
                if (!SUMA_Taubin_Smooth_SO( SOm, SUMA_EQUAL, 
                                            Opt->Zt, NULL, 0, Opt->N_it)) {
-                  SUMA_S_Err("Failed to smooth surface");
+                  SUMA_S_Err("Failed to smooth surface %s", Opt->out_prefix);
                }
             }
 
@@ -737,10 +737,12 @@ int main (int argc,char *argv[])
             i=0;
             while (SOv[i]) {
                labcp = SUMA_Decode_ROI_IsoSurfacesLabels(SOv[i]->Label, &key);
+               labcp = cdeblank_allname(labcp,'_');
+               labcp = deslash_allname(labcp,'-');
                if (labcp && key > 0) {
-                  snprintf(astr,100,".%s.k%d",cdeblank_allname(labcp,'_'), key);
+                  snprintf(astr,100,".%s.k%d",labcp, key);
                } else if (labcp) {
-                  snprintf(astr,100,".%s",cdeblank_allname(labcp,'_'));
+                  snprintf(astr,100,".%s",labcp);
                } else if (key > 0) {
                   snprintf(astr,100,".k%d",key);
                } else {
@@ -760,13 +762,13 @@ int main (int argc,char *argv[])
                if (Opt->N_it) {
                   if (!SUMA_Taubin_Smooth_SO( SOv[i], SUMA_EQUAL, 
                                               Opt->Zt, NULL, 0, Opt->N_it)) {
-                     SUMA_S_Err("Failed to smooth surface");
+                     SUMA_S_Err("Failed to smooth surface %d: %s", i, ppo);
                   }
                }
 
                if (!SUMA_Save_Surface_Object (SO_name, SOv[i], Opt->SurfFileType, 
                                         Opt->SurfFileFormat, NULL)) {
-                        SUMA_S_Err("Failed to write surface object.\n");
+                        SUMA_S_Err("Failed to write surface object %s.\n", ppo);
                      exit (1);
                }
                
