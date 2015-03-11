@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 11,  Mar, 2015, RCR, "afni_util.py", MINOR, TYPE_ENHANCE,
+   "added covary and linear_fit; -listfunc takes -/stdin to read from stdin",
+   NULL
+ } ,
+
  {  3,  Mar, 2015, RCR, "powell_int.c", MICRO, TYPE_BUG_FIX,
    "multiple include directives got joined on one line",
    NULL

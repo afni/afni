@@ -2980,6 +2980,20 @@ def variance(data):
     if val < 0.0 : return 0.0
     return val
 
+def covary(x, y):
+    """return the raw covariance:
+       sum[(xi - mean_x)*(yi - mean_y)] / (N-1)
+    """
+
+    ll = len(x)
+    mx = mean(x)
+    my = mean(y)
+
+    vv = loc_sum([(x[i]-mx)*(y[i]-my) for i in range(ll)])
+
+    if ll > 1: return 1.0 * vv / (ll-1.0)
+    else:      return 0.0
+
 def r(vA, vB, unbiased=0):
     """return Pearson's correlation coefficient
 
@@ -3006,6 +3020,42 @@ def r(vA, vB, unbiased=0):
 
     if unbiased: return r * (1 + (1-r*r)/(2*la))
     return r
+
+def linear_fit(vy, vx=None):
+   """return slope and intercept for linear fit to data
+
+      if vx is not provided (i.e. no scatterplot fit), then return
+      fit to straight line (i.e. apply as vx = 1..N, demeaned)
+
+      slope = N*sum(xy) - (sum(x)*sum(y)]
+              ---------------------------
+              N*sum(x*x) - (sum(x))^2
+
+      inter = 1/N * (sum(y) - slope*sum(x))
+
+      note: we could compute slope = covary(x,y)/covary(x,x)
+   """
+
+   N = len(vy)
+   mn = (N-1.0)/2
+
+   # maybe use demeaned, slope 1 line
+   if vx == None: vx = [i-mn for i in range(N)]
+   else:
+      if len(vx) != N:
+         print '** cannot fit vectors of different lengths'
+         return 0.0, 0.0
+
+   sx   = loc_sum(vx)
+   sy   = loc_sum(vy)
+   ssx  = dotprod(vx, vx)
+   ssxy = dotprod(vy, vx)
+
+   slope = (1.0 * N * ssxy - sx * sy) / (N * ssx - sx*sx )
+   inter = 1.0 * (sy - slope * sx) / N
+
+   return slope, inter
+
 
 def eta2(vA, vB):
     """return eta^2 (eta squared - Cohen, NeuroImage 2008
@@ -3477,6 +3527,8 @@ afni_util.py: not really intended as a main program
       -listfunc [SUB_OPTS] FUNC LIST ... : execute FUNC(LIST)
 
          With this option, LIST is a list of values to be passed to FUNC().
+         Note that LIST can be simply '-' or 'stdin', in which case the
+         list values are read from stdin.
 
          This is similar to eval, but instead of requiring:
             -eval "FUNC([v1,v2,v3,...])"
@@ -3492,15 +3544,20 @@ afni_util.py: not really intended as a main program
 
          Examples for listfunc:
 
-            afni_util.py -listfunc min_mean_max_stdev 1 2 3 4 5
+            afni_util.py -listfunc        min_mean_max_stdev 1 2 3 4 5
             afni_util.py -listfunc -print min_mean_max_stdev 1 2 3 4 5
-            afni_util.py -listfunc -join min_mean_max_stdev 1 2 3 4 5
-            afni_util.py -listfunc -join -float demean  1 2 3 4 5
-            afni_util.py -listfunc -join shuffle `count -digits 4 1 124`
+            afni_util.py -listfunc -join  min_mean_max_stdev 1 2 3 4 5
 
-         Also, if LIST contins -list2, then 2 lists can be input to do
+            afni_util.py -listfunc -join -float demean 1 2 3 4 5
+
+            afni_util.py -listfunc -join shuffle `count -digits 4 1 124`
+            count -digits 4 1 124 | afni_util.py -listfunc -join shuffle -
+
+            afni_util.py -listfunc -join -float linear_fit 2 3 5 4 8 5 8 9
+
+         Also, if LIST contains -list2, then 2 lists can be input to do
          something like:
-            -eval "FUNC([v1,v2,v3], [v4,v5,v6]
+            -eval "FUNC([v1,v2,v3], [v4,v5,v6])"
 
          Examples with -list2:
 
@@ -3542,7 +3599,14 @@ def process_listfunc(argv):
    func = eval(argv[argbase])
 
    # get args, and check for -list2
+   # (allow for - to read all data into array)
    args1 = argv[argbase+1:]
+   if len(args1) == 1:
+      if args1[0] == '-' or args1[0] == 'stdin':
+         fvals = read_text_file()
+         args1 = []
+         for fv in fvals: args1.extend(fv.split())
+
    args2 = []
    if '-list2' in args1:
       l2ind = args1.index('-list2')
