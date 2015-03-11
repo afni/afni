@@ -2225,11 +2225,11 @@ ENTRY("regress_toz") ;
        FREE_IMARR(impr) ;
      }
 #endif
-     for( ii=0 ; ii < mm ; ii++ ){
+     for( ii=0 ; ii < mm ; ii++ ){  /* fit coefficients */
        for( val=0.0f,jj=0 ; jj < nA ; jj++ ) val += PA(ii,jj)*zA[jj] ;
        betA[ii] = val ;
      }
-     for( jj=0 ; jj < nA ; jj++ ){
+     for( jj=0 ; jj < nA ; jj++ ){  /* residuals */
        val = -zA[jj] ;
        for( ii=0 ; ii < mm ; ii++ ) val += XA(jj,ii)*betA[ii] ;
        zdifA[jj] = val ; ssqA += val*val ;
