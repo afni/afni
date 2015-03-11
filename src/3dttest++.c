@@ -2704,7 +2704,7 @@ void TT_matrix_setup( int kout )
 
 ENTRY("TT_matrix_setup") ;
 
-   /*-- load setA matrix --*/
+   /*-- load setA matrix [first colum is all 1s] --*/
 
    for( kk=0 ; kk < nval_AAA ; kk++ ) AXX(kk,0) = 1.0f ; /* the mean */
    for( jj=1 ; jj <= mcov ; jj++ ){
@@ -2713,7 +2713,7 @@ ENTRY("TT_matrix_setup") ;
      for( kk=0 ; kk < nval_AAA ; kk++ ) AXX(kk,jj) = fpt[kk] ;
    }
 
-   /*-- load setB matrix --*/
+   /*-- load setB matrix [first colum is all 1s] --*/
 
    if( twosam && ttest_opcode != 2 ){  /* un-paired 2-sample case */
      for( kk=0 ; kk < nval_BBB ; kk++ ) BXX(kk,0) = 1.0f ; /* the mean */
