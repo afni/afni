@@ -180,6 +180,8 @@ typedef struct {
    
    int       N_hspec;
    SUMA_HIST **hspec;
+   
+   double mix_frac_floor;
 } SEG_OPTS;
 
 void GenPriors_usage(int) ;

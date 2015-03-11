@@ -1215,6 +1215,40 @@ int is_shorty(THD_3dim_dataset *pset)
 }
 
 /*!
+   Set the floor of mixing fractions in class stat struct
+*/
+SUMA_Boolean SUMA_set_Stat_mix_floor(SUMA_CLASS_STAT *cs, float floor)
+{
+   static char FuncName[]={"SUMA_set_Stat_mix_floor"};
+   int i, N_tot = 0;
+   double d, m;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   if (!cs || cs->N_label < 2) SUMA_RETURN(NOPE);
+   
+   if (floor > 1.0/cs->N_label) floor = 1.0/cs->N_label;
+   if (floor == 0.0) SUMA_RETURN(YUP); /* nothing to do */
+   if (floor == -1.0f) floor = 0.000001;
+   
+   d = floor/(1.0-floor*cs->N_label);
+   for (i=0; i<cs->N_label; ++i) {
+      N_tot += SUMA_get_Stat(cs, cs->label[i], "num");
+   }
+   for (i=0; i<cs->N_label; ++i) {
+      m = SUMA_get_Stat(cs, cs->label[i], "mix");
+      m = (m+d)/(1.0+cs->N_label*d); 
+      SUMA_set_Stat(cs, cs->label[i], "mix", m);
+      SUMA_set_Stat(cs, cs->label[i], "num", (int)(m*N_tot));
+   }
+   
+   SUMA_RETURN(YUP);
+   
+}
+   
+
+/*!
    Set the floor of the probabilities in a dataset 
 */
 int set_p_floor(THD_3dim_dataset *pset, float pfl, byte *cmask)
@@ -5256,7 +5290,7 @@ int SUMA_Class_stats(THD_3dim_dataset *aset,
                      THD_3dim_dataset *pstCgALL,
                      THD_3dim_dataset *priCgALL,
                      THD_3dim_dataset *gold,
-                     SUMA_CLASS_STAT *cs) 
+                     SUMA_CLASS_STAT *cs, float mixfloor) 
 {
    static char FuncName[]={"SUMA_Class_stats"};
    int i=0, j = 0, sb=0, l, bad=0;   
@@ -5289,7 +5323,8 @@ int SUMA_Class_stats(THD_3dim_dataset *aset,
             if (IN_MASK(cmask,i) && c[i] == cs->keys[j]) {
                Asum2 += a[i]*a[i]; 
                Asum  += a[i];
-               la = log(a[i]*af+0.00001); Asum2L += la*la; AsumL += la;
+               la = log(SUMA_MAX_PAIR(a[i]*af,0.00001)); 
+               Asum2L += la*la; AsumL += la;
                ++n; 
             }   
          }
@@ -5308,6 +5343,8 @@ int SUMA_Class_stats(THD_3dim_dataset *aset,
          if (n) AmeanL = AsumL/n;
          else AmeanL = 0.0;
          
+         if (isnan(Astd)) Astd = 0;
+         if (isnan(AstdL)) AstdL = 0; 
          SUMA_set_Stat(cs, cs->label[j], "num", n);
          SUMA_set_Stat(cs, cs->label[j], "mean", Amean);
          SUMA_set_Stat(cs, cs->label[j], "stdv", Astd);
@@ -5316,6 +5353,7 @@ int SUMA_Class_stats(THD_3dim_dataset *aset,
          if (cmask_count) SUMA_set_Stat(cs, cs->label[j], "mix", n/cmask_count);
          else SUMA_set_Stat(cs, cs->label[j], "mix", 0);
       }
+      SUMA_set_Stat_mix_floor(cs, mixfloor);
    } else {
       /* Check classes at input */
       bad = 0;
@@ -5389,7 +5427,8 @@ int SUMA_Class_stats(THD_3dim_dataset *aset,
             if (IN_MASK(cmask,i)) {
                ww = w[i]*wf;
                Asum  += ww*a[i]; wsum += ww;
-               AsumL += ww*log(a[i]*af+0.00001);
+               la = log(SUMA_MAX_PAIR(a[i]*af,0.00001)); 
+               AsumL += ww*la;
             }   
          }
          Amean = Asum/wsum;
@@ -5401,7 +5440,7 @@ int SUMA_Class_stats(THD_3dim_dataset *aset,
                ff = (a[i]-Amean);
                ww = w[i]*wf;
                Asum2  += ww*(ff*ff);
-               la = log(a[i]*af+0.00001)-AmeanL;
+               la = log(SUMA_MAX_PAIR(a[i]*af,0.00001))-AmeanL;
                Asum2L += ww*(la*la);
                if (c && c[i] == cs->keys[j]) ++n;
             }   
@@ -5409,9 +5448,9 @@ int SUMA_Class_stats(THD_3dim_dataset *aset,
          Astd = sqrt(Asum2/wsum)*af;
          Amean = Amean*af;
          AstdL = sqrt(Asum2L/wsum);
-         if (isnan(Astd) || isnan(AstdL)) {
-            Astd = AstdL = 0; 
-         } 
+         if (isnan(Astd)) Astd = 0;
+         if (isnan(AstdL)) AstdL = 0; 
+         
          SUMA_set_Stat(cs, cs->label[j], "num", n);
          SUMA_set_Stat(cs, cs->label[j], "mean", Amean);
          SUMA_set_Stat(cs, cs->label[j], "stdv", Astd);
@@ -5423,7 +5462,9 @@ int SUMA_Class_stats(THD_3dim_dataset *aset,
       SUMA_ifree(mixden);
    }
    
-   /* Check classes at input */
+   SUMA_set_Stat_mix_floor(cs, mixfloor);
+   
+   /* Check classes at output */
    bad = 0;
    for (j=0; j<cs->N_label; ++j) {
       if (isnan(SUMA_get_Stat(cs, cs->label[j], "meanL")) ||
@@ -5806,7 +5847,7 @@ double SUMA_mixopt_2_mixfrac(char *mixopt, char *label, int key, int N_clss,
    SUMA_ENTRY;
    
  
-   if (!mixopt || !strncmp(mixopt,"UNI",3)) {
+   if (!mixopt || !strncmp(mixopt,"UNI",3) || !strcmp(mixopt,"IGNORE")) {
       frac = 1.0/(double)N_clss;
    } else if (!strcmp(mixopt,"TOY_DEBUG")) {
            if (!strcmp(label, "CSF"))frac = 0.1;
@@ -6436,7 +6477,7 @@ int SUMA_pst_C_giv_ALL(THD_3dim_dataset *aset,
    static int icall=0, iwarn=0;
    
    SUMA_ENTRY;
-   
+
    if (!pout) {
       NEW_SHORTY(aset,cs->N_label,"SUMA_pst_C_giv_ALL",pout);
       *pcgallp = pout;
@@ -6663,7 +6704,7 @@ int SUMA_SegInitCset(THD_3dim_dataset *aseti,
    }
    /* compute class stats */
    if (!SUMA_Class_stats( aseti, cset, cmask, cmask_count, 
-                           NULL, NULL, Opt->gold, cs)) {
+                           NULL, NULL, Opt->gold, cs, Opt->mix_frac_floor)) {
       SUMA_S_Err("Failed in class stats");
       SUMA_RETURN(0);
    }
@@ -6741,7 +6782,7 @@ int SUMA_SegInitCset(THD_3dim_dataset *aseti,
    
    /* recompute class stats using this posterior */
    if (!SUMA_Class_stats( aseti, cset, cmask, cmask_count, 
-                          pstC, NULL, Opt->gold, cs)) {
+                          pstC, NULL, Opt->gold, cs, Opt->mix_frac_floor)) {
       SUMA_S_Err("Failed in class stats");
       SUMA_RETURN(0);
    }
