@@ -17753,7 +17753,7 @@ SUMA_CREATE_TEXT_SHELL_STRUCT * SUMA_CreateTextShell (
                      TextShell); 
       if (TextShell->weblink) {
          web_w = XtVaCreateManagedWidget (
-                     "View",
+                     "WHelp",
                      xmPushButtonWidgetClass, 
                      rowcol_h, NULL);
          XtAddCallback (web_w, 
