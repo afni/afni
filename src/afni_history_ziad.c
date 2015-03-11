@@ -65,6 +65,12 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 11, Mar, 2014, ZSS, "3dSeg", MAJOR, TYPE_NEW_OPT,
+   "Added -mixfloor to avoid getting NAN when certain classes disappear.",
+   "Also added -mixfrac IGNORE to turn off any modulation by the mixing\n"
+   "fraction during the EM routines."
+ },
+
  { 4, Mar, 2014, ZSS, "suma", MAJOR, TYPE_NEW_OPT,
    "Added WHelp button to mimic BHelp but open online pages",
    "This required a few additional modifications to the auto-help\n"
