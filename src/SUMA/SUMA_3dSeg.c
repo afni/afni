@@ -864,7 +864,7 @@ int main(int argc, char **argv)
          SUMA_S_Err("Cannot use field bias correction on volumes with negative\n"
            "values. Either turn off bias field estimation with -bias_fwhm 0.0\n"
            "or shift the values of the input by something like:\n"
-           "   3dcalc -a %s -expr 'a+equals(a,0)*(%d)' -prefix SHIFTED\n"
+           "   3dcalc -a %s -expr 'a+bool(a)*%d' -prefix SHIFTED\n"
            "and rerun the segmentation on SHIFTED. Note the suggested shift\n"
            "leaves zero values unchanged.",
               DSET_HEADNAME(Opt->aset), (int)ceil(-amin+1.0));
