@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 12,  Mar, 2015, RCR, "3dDeconvolve.py", MICRO, TYPE_MODIFY,
+   "allow for collinearity in regressor warnings",
+   NULL
+ } ,
+
  { 12,  Mar, 2015, RCR, "afni_base.py", MICRO, TYPE_BUG_FIX,
    "fixed capture in shell_exec2 for old python, where readlines() would hang",
    NULL
