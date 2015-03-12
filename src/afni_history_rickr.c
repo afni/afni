@@ -49,6 +49,26 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 12,  Mar, 2015, RCR, "3dDeconvolve.py", MICRO, TYPE_MODIFY,
+   "allow for collinearity in regressor warnings",
+   NULL
+ } ,
+
+ { 12,  Mar, 2015, RCR, "afni_base.py", MICRO, TYPE_BUG_FIX,
+   "fixed capture in shell_exec2 for old python, where readlines() would hang",
+   NULL
+ } ,
+
+ { 12,  Mar, 2015, RCR, "afni_util.py", MICRO, TYPE_ENHANCE,
+   "implemented fast=0 in get/show_process_stack",
+   NULL
+ } ,
+
+ { 11,  Mar, 2015, RCR, "afni_util.py", MINOR, TYPE_ENHANCE,
+   "added covary and linear_fit; -listfunc takes -/stdin to read from stdin",
+   NULL
+ } ,
+
  {  3,  Mar, 2015, RCR, "powell_int.c", MICRO, TYPE_BUG_FIX,
    "multiple include directives got joined on one line",
    NULL
