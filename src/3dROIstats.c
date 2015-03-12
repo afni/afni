@@ -130,6 +130,18 @@ void usage_3dROIstats(int detail) {
 "                This option cannot be used with -nomeanout.\n"
 "  -mode       Compute the mode of all voxels. (integral valued sets only)\n"
 "  -nzmode     Compute the mode of non_zero voxels.\n"
+"  -pcxyz      Compute the principal direction of the voxels in the ROI \n"
+"              including the three eigen values. You'll get 12 values out\n"
+"              per ROI, per sub-brick, with this option.\n"
+"                 pc0x pc0y pc0z pc1x pc1y pc1z pc2x pc2y pc2z eig0 eig1 eig2\n"
+"  -nzpcxyz    Same as -pcxyz, but exclude zero valued voxels.\n"
+"  -pcxyz+     Same as -pcxyz, but also with FA, MD, Cl, Cp, and Cs computed \n"
+"              from the three eigen values.\n"
+"              You will get 17 values out per ROI, per sub-brick, beginning\n"
+"              with all the values from -pcxyz and -nzpcxyz then followed by\n"
+"                 FA MD Cl Cp Cs\n"
+"  -nzpcxyz+   Same as -nzpcxyz, but also with FA, MD, Cl, Cp, and Cs.\n"
+"  -key        Output the integer key for the ROI in question\n"
 "\n"
 "The output is printed to stdout (the terminal), and can be\n"
 "saved to a file using the usual redirection operation '>'.\n"
@@ -152,7 +164,7 @@ int main(int argc, char *argv[])
     int debug = 0, quiet = 0, summary = 0;
     int minmax = 0, nzminmax = 0, donzsum = 0;		/* 07 July, 2004 [rickr] */
     short *mask_data;
-    int nvox, i, brik;
+    int nvox, i, brik, k;
     int num_ROI, ROI, mask_f2s = 0;
     int force_num_ROI = 0;	/* Added 5/00 */
     int narg = 1;
@@ -166,7 +178,9 @@ int main(int argc, char *argv[])
     double *percentile=NULL;
     float *fv = NULL;
     int *iv=NULL, niv=0, *modes=NULL;
-    int nfv = 0, perc = 0, nzperc = 0, mode = 0, nzmode=0;
+    double *pvec=NULL, *eigv=NULL;
+    int nfv = 0, perc = 0, nzperc = 0, mode = 0, nzmode=0, 
+        pcxyz=0, nzpcxyz=0, key=0, *keys=NULL;
     int nobriklab=0 ;  /* 14 Mar 2008 */
     int disp1d=1;   /* ZSS May 2008 */
     byte *roisel=NULL;
@@ -294,6 +308,43 @@ int main(int argc, char *argv[])
              Error_Exit("nzperc cannot be used with perc");
             }
             nzperc = 1;
+	    narg++;
+	    continue;
+	}
+   if (strcmp(argv[narg], "-pcxyz") == 0) {
+	    if (nzpcxyz) {
+          Error_Exit("mode cannot be used with nzpcxyz");
+         }
+            pcxyz = 1;
+	    narg++;
+	    continue;
+	}
+   if (strcmp(argv[narg], "-nzpcxyz") == 0) {
+	    if (pcxyz) {
+          Error_Exit("mode cannot be used with pcxyz");
+         }
+            nzpcxyz = 1;
+	    narg++;
+	    continue;
+	}
+   if (strcmp(argv[narg], "-pcxyz+") == 0) {
+	    if (nzpcxyz) {
+          Error_Exit("mode cannot be used with nzpcxyz");
+         }
+            pcxyz = 2;
+	    narg++;
+	    continue;
+	}
+   if (strcmp(argv[narg], "-nzpcxyz+") == 0) {
+	    if (pcxyz) {
+          Error_Exit("mode cannot be used with pcxyz");
+         }
+            nzpcxyz = 2;
+	    narg++;
+	    continue;
+	}
+   if (strcmp(argv[narg], "-key") == 0) {
+	    key = 1;
 	    narg++;
 	    continue;
 	}
@@ -551,6 +602,35 @@ int main(int argc, char *argv[])
       if (nzmode) {
          fprintf(stdout, "\tNZMod_%s ", sklab);
       }
+      if (pcxyz) {
+         for (k=0; k< 3; ++k) fprintf(stdout, "\tpc0%c_%s ", 'x'+k, sklab);
+         for (k=0; k< 3; ++k) fprintf(stdout, "\tpc1%c_%s ", 'x'+k, sklab);
+         for (k=0; k< 3; ++k) fprintf(stdout, "\tpc2%c_%s ", 'x'+k, sklab);
+         for (k=0; k< 3; ++k) fprintf(stdout, "\teig%d_%s ", k, sklab);
+         if (pcxyz == 2) {
+            fprintf(stdout, "\tFA_%s ", sklab);
+            fprintf(stdout, "\tMD_%s ", sklab);
+            fprintf(stdout, "\tCl_%s ", sklab);
+            fprintf(stdout, "\tCp_%s ", sklab);
+            fprintf(stdout, "\tCs_%s ", sklab);
+         }
+      }
+      if (nzpcxyz) {
+         for (k=0; k< 3; ++k) fprintf(stdout, "\tNZpc0%c_%s ", 'x'+k, sklab);
+         for (k=0; k< 3; ++k) fprintf(stdout, "\tNZpc1%c_%s ", 'x'+k, sklab);
+         for (k=0; k< 3; ++k) fprintf(stdout, "\tNZpc2%c_%s ", 'x'+k, sklab);
+         for (k=0; k< 3; ++k) fprintf(stdout, "\tNZeig%d_%s ", k, sklab);
+         if (nzpcxyz == 2) {
+            fprintf(stdout, "\tNZFA_%s ", sklab);
+            fprintf(stdout, "\tNZMD_%s ", sklab);
+            fprintf(stdout, "\tNZCl_%s ", sklab);
+            fprintf(stdout, "\tNZCp_%s ", sklab);
+            fprintf(stdout, "\tNZCs_%s ", sklab);
+         }
+      }
+      if (key) {
+         fprintf(stdout, "\tKey_%s ", sklab);
+      }
 	    }
 	}
     /* load the non_zero array if the numROI option used - 5/00 */
@@ -594,6 +674,35 @@ int main(int argc, char *argv[])
       if (nzmode) {
          fprintf(stdout, "\tNZMod_%s ", sklab );
       }
+      if (pcxyz) {
+         for (k=0; k< 3; ++k) fprintf(stdout, "\tpc0%c_%s ", 'x'+k, sklab);
+         for (k=0; k< 3; ++k) fprintf(stdout, "\tpc1%c_%s ", 'x'+k, sklab);
+         for (k=0; k< 3; ++k) fprintf(stdout, "\tpc2%c_%s ", 'x'+k, sklab);
+         for (k=0; k< 3; ++k) fprintf(stdout, "\teig%d_%s ", k, sklab);
+         if (pcxyz == 2) {
+            fprintf(stdout, "\tFA_%s ", sklab);
+            fprintf(stdout, "\tMD_%s ", sklab);
+            fprintf(stdout, "\tCl_%s ", sklab);
+            fprintf(stdout, "\tCp_%s ", sklab);
+            fprintf(stdout, "\tCs_%s ", sklab);
+         }      }
+      if (nzpcxyz) {
+         for (k=0; k< 3; ++k) fprintf(stdout, "\tNZpc0%c_%s ", 'x'+k, sklab);
+         for (k=0; k< 3; ++k) fprintf(stdout, "\tNZpc0%c_%s ", 'x'+k, sklab);
+         for (k=0; k< 3; ++k) fprintf(stdout, "\tNZpc2%c_%s ", 'x'+k, sklab);
+         for (k=0; k< 3; ++k) fprintf(stdout, "\tNZeig%d_%s ", k, sklab);
+         if (nzpcxyz == 2) {
+            fprintf(stdout, "\tNZFA_%s ", sklab);
+            fprintf(stdout, "\tNZMD_%s ", sklab);
+            fprintf(stdout, "\tNZCl_%s ", sklab);
+            fprintf(stdout, "\tNZCp_%s ", sklab);
+            fprintf(stdout, "\tNZCs_%s ", sklab);
+         }
+      }
+      if (key) {
+         fprintf(stdout, "\tKey_%s ", sklab);
+      }
+
 	    }
 	}
 	num_ROI = force_num_ROI;
@@ -833,8 +942,87 @@ int main(int argc, char *argv[])
          free(iv); iv = NULL;
 	    }
        
+       /* do the XYZ PCA */
+       if (pcxyz || nzpcxyz) {
+         float *xyzp=NULL;
+         double pc_vec[9], pc_eig[3], trace;
+         int nvi, nvij, N_xyz=0;
+         THD_fvec3 fv3;
+         THD_ivec3 vi;
+         nvi   = DSET_NX(input_dset);
+         nvij  = nvi * DSET_NY(input_dset);
+         pvec = (double *)malloc(sizeof(double)*num_ROI*9);
+         eigv = (double *)malloc(sizeof(double)*num_ROI*3);
+         for (ROI=0; ROI < num_ROI; ++ROI){ /* ROI */
+            N_xyz = 0;
+            for (i = 0; i < nvox; i++) {
+               if (mask_data[i] && ROI == non_zero[mask_data[i] + 32768]) {
+                  if (pcxyz || input_data[i] != 0.0) ++N_xyz;
+               }
+            }
+            pvec[9*ROI  ] = pvec[9*ROI+1] =  pvec[9*ROI+2] = 
+            pvec[9*ROI+3] = pvec[9*ROI+4] =  pvec[9*ROI+5] = 
+            pvec[9*ROI+6] = pvec[9*ROI+7] =  pvec[9*ROI+8] = 0.0;
+            eigv[3*ROI  ] = eigv[3*ROI+1] =  eigv[3*ROI+2] = 0.0;
+            if (N_xyz) {
+               xyzp = (float *)malloc(sizeof(float)*N_xyz*3);
+               k = 0;
+               for (i = 0; i < nvox; i++) { /* i */
+                  if (mask_data[i] && ROI == non_zero[mask_data[i] + 32768]) {
+                     if (pcxyz) {
+                        AFNI_1D_to_3D_index(i, vi.ijk[0], vi.ijk[1], vi.ijk[2], 
+                                               nvi, nvij);
+                        fv3 = THD_3dind_to_dicomm_no_wod(input_dset, vi);
+                        xyzp[k        ] = fv3.xyz[0]; 
+                        xyzp[k+N_xyz  ] = fv3.xyz[1]; 
+                        xyzp[k+N_xyz*2] = fv3.xyz[2]; 
+                        ++k;
+                     } else { /* non zero only */
+                        AFNI_1D_to_3D_index(i, vi.ijk[0], vi.ijk[1], vi.ijk[2], 
+                                               nvi, nvij);
+                        fv3 = THD_3dind_to_dicomm_no_wod(input_dset, vi);
+                        if (input_data[i] != 0.0) {
+                           xyzp[k        ] = fv3.xyz[0]; 
+                           xyzp[k+N_xyz  ] = fv3.xyz[1]; 
+                           xyzp[k+N_xyz*2] = fv3.xyz[2]; 
+                           ++k;
+                        }
+                     }
+                  }
+               }/* i */
+               if ((trace = pca_fast3(xyzp, N_xyz, 1, pc_vec, pc_eig)) < 0) {
+                  ERROR_message("Failed calculating PC for %dth ROI, \n"
+                                "setting all 0\n", ROI);
+               } else {
+                  pvec[9*ROI+0] = pc_vec[0];
+                  pvec[9*ROI+1] = pc_vec[3];
+                  pvec[9*ROI+2] = pc_vec[6];
+                  pvec[9*ROI+3] = pc_vec[1];
+                  pvec[9*ROI+4] = pc_vec[4];
+                  pvec[9*ROI+5] = pc_vec[7];
+                  pvec[9*ROI+6] = pc_vec[2];
+                  pvec[9*ROI+7] = pc_vec[5];
+                  pvec[9*ROI+8] = pc_vec[8];
+                  for (k=0; k<3; ++k) eigv[3*ROI+k] = pc_eig[k];
+               }
+               free(xyzp); xyzp=NULL;
+            }
+         }
+       }
        
-
+       if (key) {
+         keys = (int*)malloc(sizeof(int)*num_ROI);
+         for (ROI=0; ROI < num_ROI; ++ROI){ /* ROI */
+            keys[ROI] = -1;
+            for (i = 0; i < nvox; i++) {
+               if (mask_data[i] && ROI == non_zero[mask_data[i] + 32768]) {
+                  keys[ROI] = mask_data[i];
+                  break;
+               }
+            }
+         }
+       }
+       
        /* print the next line of results */
 	    if (!quiet && !summary){
          if( nobriklab )
@@ -897,6 +1085,33 @@ int main(int argc, char *argv[])
          if (mode || nzmode) {
 			    fprintf(stdout, "\t%d", modes[i] );
 			}
+         if (pcxyz || nzpcxyz) {
+            fprintf(stdout, "\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t\t%f\t%f\t%f",
+                  pvec[9*i  ], pvec[9*i+1], pvec[9*i+2],
+                  pvec[9*i+3], pvec[9*i+4], pvec[9*i+5],
+                  pvec[9*i+6], pvec[9*i+7], pvec[9*i+8],
+                  eigv[3*i  ], eigv[3*i+1], eigv[3*i+2]);
+            if (pcxyz == 2 || nzpcxyz == 2) {
+               double md, fa, cl, cp, cs;
+               /* FA and Cl, Cp, Cs */
+               md = (eigv[3*i  ]+eigv[3*i+1]+eigv[3*i+2])/3.0;
+               fa = sqrt(3*((eigv[3*i  ]-md)*(eigv[3*i  ]-md) +
+                            (eigv[3*i+1]-md)*(eigv[3*i+1]-md) +
+                            (eigv[3*i+2]-md)*(eigv[3*i+2]-md))) / 
+                    sqrt(2* (eigv[3*i  ]*eigv[3*i  ]+
+                             eigv[3*i+1]*eigv[3*i+1]+
+                             eigv[3*i+2]*eigv[3*i+2]));
+               cl = (eigv[3*i  ]-eigv[3*i+1])/(3.0*md);
+               cp = (eigv[3*i+1]-eigv[3*i+2])/(3.0*md)*2.0;
+               cs = eigv[3*i+2]/md;
+               
+               fprintf(stdout, "\t%f\t%f\t%f\t%f\t%f",
+                                 fa, md, cl, cp, cs );
+            }
+         }
+         if (key) {
+            fprintf(stdout, "\t%d", keys[i]);
+         }
           } else {	/* no voxels, so just leave blanks */
 			if (mean) fprintf(stdout, "\t%s", zerofill);
 			if (nzmean)
@@ -921,7 +1136,22 @@ int main(int argc, char *argv[])
              fprintf(stdout, "\t%s", zerofill);
 		   if (mode || nzmode)
 			    fprintf(stdout, "\t%s", zerofill); 
-          }
+         if (pcxyz || nzpcxyz) {
+            fprintf(stdout, "\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t\t%s\t%s\t%s",
+                  zerofill, zerofill, zerofill, 
+                  zerofill, zerofill, zerofill, 
+                  zerofill, zerofill, zerofill, 
+                  zerofill, zerofill, zerofill);
+            if (pcxyz == 2 || nzpcxyz == 2) {
+               fprintf(stdout, "\t%s\t%s\t%s\t%s\t%s",
+                     zerofill, zerofill, zerofill, 
+                     zerofill, zerofill);
+            }
+         }
+         if (key) {
+            fprintf(stdout, "\t%s", zerofill);
+         }
+            }                
 		}		/* loop over ROI for print */
 
 		fprintf(stdout, "\n");
@@ -978,6 +1208,11 @@ int main(int argc, char *argv[])
     if (mode || nzmode) {
 	if (modes) free(modes); modes = NULL;
 	 }
+    if (pcxyz || nzpcxyz) {
+   if (pvec) free(pvec); pvec = NULL;
+   if (eigv) free(eigv); eigv = NULL;
+    }
+    if (keys) free(keys); keys=NULL;
     if (roisel) free(roisel); roisel=NULL;
     exit(0);
 }
