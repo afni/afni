@@ -43,7 +43,12 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 12 , FEB , 2015 , RWC , "afni GUI graphs" , MICRO , TYPE_GENERAL ,
+  { 11 , MAR , 2015 , RWC , "afni GUI" , MICRO , TYPE_NEW_ENV ,
+   "AFNI_CROSSHAIR_THICKNESS" ,
+   "Lets user set thickness of image crosshair lines.  For someone named\n"
+   "Corianne, if that is a real name." } ,
+
+ { 12 , FEB , 2015 , RWC , "afni GUI graphs" , MICRO , TYPE_GENERAL ,
    "Labels for x-axis range" ,
    NULL } ,
 

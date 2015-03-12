@@ -1632,7 +1632,7 @@ static char *readme_env[] = {
    "this purpose from the GUI menu item 'Label Append String'.\n" ,
    "\n" ,
    "------------------------------\n" ,
-   "Variable: AFNI_CROSSHAIR_LINES (editable)\n" ,
+   "Variable: AFNI_CROSSHAIR_LINES (editable) -- THIS VARIABLE IS NOW UNUSED\n" ,
    "------------------------------\n" ,
    "If this YES/NO variable is set to YES, then the image crosshairs will be\n" ,
    "drawn using lines rather than pixels.  By default (this is the original\n" ,
@@ -1654,6 +1654,15 @@ static char *readme_env[] = {
    "So you have to decide what you need most.  You can change this item using\n" ,
    "the \"Edit Environment\" pseudo-plugin on the Datamode->Misc menu, so you\n" ,
    "can play with it interactively to get the features you want.\n" ,
+   "\n" ,
+   "----------------------------------\n" ,
+   "Variable: AFNI_CROSSHAIR_THICKNESS\n" ,
+   "----------------------------------\n" ,
+   "This numeric variable lets you set the thickness of the lines used to draw\n" ,
+   "the image viewer crosshairs.  The default value is 0, which means thin lines.\n" ,
+   "The units are fractions of the image size, and the legal range is 0 .. 0.05\n" ,
+   "(which will be very thick lines, I assure you).  This variable was introduced\n" ,
+   "in March 2015 for Corianne (if there is such a person).\n" ,
    "\n" ,
    "----------------------------\n" ,
    "Variable: AFNI_CROP_ZOOMSAVE (editable)\n" ,
@@ -3962,4 +3971,4 @@ static char *readme_env[] = {
    "If set to YES, enable distance measures that are not ready for prime time in\n" ,
    "the instacorr interface.\n" ,
    NULL } ;
-#define NUM_readme_env 3961
+#define NUM_readme_env 3970

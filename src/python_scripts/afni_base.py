@@ -850,13 +850,32 @@ def shell_exec2(s, capture=0):
          se = []
       else:
          i,o,e = os.popen3(s) #captures stdout in o,  stderr in e and stdin in i      
-         #The readlines seems to hang below despite all the attempts at limiting the size
-         #and flushing, etc. The hangup happens when a program spews out a lot to stdout
-         #So when that is expected, redirect output to a file at the command.
-         #Or use the "script" execution mode
-         so = o.readlines(64)  #default is to read till EOF but that might make python hang 
-         se = e.readlines(64)  # output to stdout and stderr is too large.
-         o.close             #Have tried readlines(1024) and (256) to little effect 
+         # The readlines seems to hang below despite all the attempts at
+         # limiting the size and flushing, etc. The hangup happens when a
+         # program spews out a lot to stdout.  So when that is expected,
+         # redirect output to a file at the command.
+         # Or use the "script" execution mode
+
+         # Forget readlines() and just use readline().  From that,
+         # construct the desired lists.        12 Mar 2015 [rickr]
+
+         so = []
+         ll = o.readline()
+         while len(ll) > 0:
+            so.append(ll)
+            ll = o.readline()
+
+         se = []
+         ll = e.readline()
+         while len(ll) > 0:
+            se.append(ll)
+            ll = e.readline()
+
+         #so = o.readlines(64)  - read till EOF, but python might hang 
+         #se = e.readlines(64)  - if output to stdout and stderr is too large.
+         #Have tried readlines(1024) and (256) to little effect 
+
+         o.close
          e.close             #
          status = 0; #Don't got status here 
    else:
