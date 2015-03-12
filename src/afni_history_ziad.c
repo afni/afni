@@ -65,6 +65,11 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 12, Mar, 2014, ZSS, "3dROIstats", MINOR, TYPE_NEW_OPT,
+   "Added -pc* and -key options to compute coordinate PC of clusters.",
+   "See -help for details."
+ },
+
  { 11, Mar, 2014, ZSS, "3dSeg", MAJOR, TYPE_NEW_OPT,
    "Added -mixfloor to avoid getting NAN when certain classes disappear.",
    "Also added -mixfrac IGNORE to turn off any modulation by the mixing\n"
