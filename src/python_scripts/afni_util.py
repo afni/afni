@@ -272,10 +272,10 @@ def write_afni_com_history(fname, length=0, wrap=1):
    script = '\n'.join(hist)+'\n'
    write_text_to_file(fname, script, wrap=wrap)
 
-def get_process_depth(pid=-1, prog=None):
+def get_process_depth(pid=-1, prog=None, fast=1):
    """print stack of processes up to init"""
 
-   pstack = get_process_stack(pid=pid)
+   pstack = get_process_stack(pid=pid, fast=fast)
 
    if prog == None: return len(pstack)
 
@@ -283,7 +283,7 @@ def get_process_depth(pid=-1, prog=None):
    return len(pids)
 
 # get/show_process_stack(), get/show_login_shell()   28 Jun 2013 [rickr]
-def get_process_stack(pid=-1, verb=1):
+def get_process_stack(pid=-1, fast=1, verb=1):
    """the stack of processes up to init
 
       return an array of [pid, ppid, user, command] elements
@@ -312,6 +312,11 @@ def get_process_stack(pid=-1, verb=1):
          if pind < 0: return 1, []
          indtree.append(pind)
       return 0, indtree
+
+   if not fast:
+      stack = get_process_stack_slow(pid=pid)
+      stack.reverse()
+      return stack
 
    if verb < 2: cmd = 'ps -eo pid,ppid,user,comm'
    else:        cmd = 'ps -eo pid,ppid,user,args'
@@ -398,7 +403,7 @@ def get_process_stack_slow(pid=-1, verb=1):
 
 def show_process_stack(pid=-1,fast=1,verb=1):
    """print stack of processes up to init"""
-   pstack = get_process_stack(pid=pid,verb=verb)
+   pstack = get_process_stack(pid=pid,fast=fast,verb=verb)
    if len(pstack) == 0:
       print '** empty process stack'
       return
