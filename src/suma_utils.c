@@ -969,6 +969,8 @@ SUMA_Boolean SUMA_ShowParsedFname(SUMA_PARSED_NAME *pn, FILE *out)
       SS = SUMA_StringAppend_va(SS, "HeadName      :%s\n", pn->HeadName);
       SS = SUMA_StringAppend_va(SS, "BrikName      :%s\n", pn->BrikName);
       SS = SUMA_StringAppend_va(SS, "OnDisk        :%d\n", pn->OnDisk);
+      SS = SUMA_StringAppend_va(SS, "ExistsAs      :%s\n", 
+                                                pn->ExistsAs?pn->ExistsAs:"");
       SS = SUMA_StringAppend_va(SS, "Size          :%d\n", pn->Size);
       SS = SUMA_StringAppend_va(SS, "NameAsParsed  :%s\n", pn->NameAsParsed);
       SS = SUMA_StringAppend_va(SS, "cwdAsParsed   :%s\n", pn->cwdAsParsed);
@@ -1386,6 +1388,47 @@ SUMA_PARSED_NAME * SUMA_ParseFname_eng (char *FileName, char *ucwd,
       if (NewName->OnDisk) {
          SUMA_LH("Setting filesize for %s...",  NewName->HeadName);
          NewName->Size = THD_filesize(NewName->HeadName);
+      }
+      if (!NewName->OnDisk) {
+         NewName->ExistsAs = NULL;
+         if (NewName->View[0] == '\0') { 
+            char *sss = NULL;
+                                 /* See if anything is there with 
+                                 +orig, +acpc, +tlrc anything */
+            if (!NewName->ExistsAs) {
+               sss = SUMA_append_replace_string(NewName->Path,"+orig.HEAD",
+                                                     NewName->Prefix, 0);
+               if (THD_is_file(sss)) {
+                  NewName->ExistsAs = sss; sss = NULL;
+               } else {
+                  SUMA_ifree(sss); sss = NULL;
+               }
+            }
+            if (!NewName->ExistsAs) {
+               sss = SUMA_append_replace_string(NewName->Path,"+acpc.HEAD",
+                                                     NewName->Prefix, 0);
+               if (THD_is_file(sss)) {
+                  NewName->ExistsAs = sss; sss = NULL;
+               } else {
+                  SUMA_ifree(sss); sss = NULL;
+               }
+            }
+            if (!NewName->ExistsAs) {
+               sss = SUMA_append_replace_string(NewName->Path,"+tlrc.HEAD",
+                                                     NewName->Prefix, 0);
+               if (THD_is_file(sss)) {
+                  NewName->ExistsAs = sss; sss = NULL;
+               } else {
+                  SUMA_ifree(sss); sss = NULL;
+               }
+            }
+         }        
+      } else {
+         NewName->ExistsAs = SUMA_copy_string(NewName->HeadName);
+      }
+      if (!NewName->ExistsAs) { /* no nulls please */
+         NewName->ExistsAs = (char*)SUMA_malloc(1*sizeof(char));
+         NewName->ExistsAs[0] = '\0';
       }
    }
    if (LocalHead) {
@@ -1855,6 +1898,7 @@ void *SUMA_Free_Parsed_Name(SUMA_PARSED_NAME *Test)
    if (Test->RangeSelect) SUMA_free(Test->RangeSelect);
    if (Test->NameAsParsed) SUMA_free(Test->NameAsParsed);
    if (Test->cwdAsParsed) SUMA_free(Test->cwdAsParsed);
+   if (Test->ExistsAs) SUMA_free(Test->ExistsAs);
    
    SUMA_free(Test);
    
