@@ -1214,7 +1214,6 @@ class MyInterface:
       else:
          print '** no stats_dset to get final_view from'
          view = ''
-         print '== rcr - vr = %s' % self.dsets.val('volreg_dset')
 
       if len(view) != 5: # maybe surface, go after volreg explicitly for now
          vv = "+orig"
