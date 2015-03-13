@@ -65,6 +65,12 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 13, Mar, 2014, ZSS, "ParseName", MINOR, TYPE_NEW_OPT,
+   "Added ExistsAs in ParseName",
+   "This can find whether or not you have datasets on disk with some \n"
+   "view (+tlrc), say given only a prefix."
+ },
+
  { 12, Mar, 2014, ZSS, "3dROIstats", MINOR, TYPE_NEW_OPT,
    "Added -pc* and -key options to compute coordinate PC of clusters.",
    "See -help for details."
