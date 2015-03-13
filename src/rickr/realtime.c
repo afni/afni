@@ -430,6 +430,12 @@ int ART_send_control_info( ART_comm * ac, vol_t * v, int debug )
     sprintf( tbuf, "TR %f", v->geh.tr );
     ART_ADD_TO_BUF( ac->buf, tbuf );
 
+    /* possibly pass echo times                     13 Mar 2015 [rickr] */
+    if( ac->param->opts.te_list ) {
+       sprintf( tbuf, "ECHO_TIMES %s", ac->param->opts.te_list );
+       ART_ADD_TO_BUF( ac->buf, tbuf );
+    }
+
     /* volume dimensions */
     /* if the data is oblique, get dz directly from the image structure */
     /*                                              25 Jun 2009 [rickr] */

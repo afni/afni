@@ -192,6 +192,7 @@ typedef struct {
    char * im[MAX_CHAN] ;                        /* place for next slice to be read */
    int nvol[MAX_CHAN] ;                         /* # volumes read so far */
    int nsl[MAX_CHAN] ;                          /* # slices read so far */
+   float TE[MAX_CHAN] ;           /* echo times, per channel - for T2* est */
 
    int sbr_size ;                 /* # bytes per sub-brick */
    int imsize ;                   /* # bytes per image */
@@ -538,26 +539,31 @@ static char * GRAPH_strings[NGRAPH] = { "No" , "Yes" , "Realtime" } ;
 #define RT_CHMER_SUM       1
 #define RT_CHMER_L1NORM    2
 #define RT_CHMER_L2NORM    3
-#define N_RT_CHMER_MODES   4
+/* Begin FMRIF changes for RT T2* estimates - VR */
+#define RT_CHMER_T2STAREST 4
+#define N_RT_CHMER_MODES   5
    static char *RT_chmrg_strings[N_RT_CHMER_MODES] =
-                { "none" , "sum" , "L1 norm" , "L2 norm" } ;
+                { "none" , "sum" , "L1 norm" , "L2 norm" , "T2* est"} ;
    static char *RT_chmrg_labels[N_RT_CHMER_MODES] =
-                { "none" , "sum" , "L1" , "L2" } ;
+                { "none" , "sum" , "L1" , "L2" , "T2star" } ;
+/* End FMRIF changes for RT T2* estimates - VR */
    static int RT_chmrg_mode  = 0 ;
    static int RT_chmrg_datum = -1 ;
    static char * RT_chmrg_list = NULL ;
 
-   MRI_IMAGE * RT_mergerize( int , THD_3dim_dataset ** , int , int * ) ;
+   MRI_IMAGE * RT_mergerize( RT_input * , int ) ;
 
 /* variables for regisrtation of merged dataset  17 May 2010 [rickr] */
 #define RT_CM_RMODE_NONE     0
 #define RT_CM_RMODE_REG_MRG  1  /* register merged dataset           */
 #define RT_CM_RMODE_REG_CHAN 2  /* also apply xform to raw channels  */
 #define N_RT_CM_RMODES       3
-   static char *RT_chmrg_rmode_strings[N_RT_CHMER_MODES] =
+/* Begin FMRIF changes - wrong variable used here ? - VR */
+   static char *RT_chmrg_rmode_strings[N_RT_CM_RMODES] =
                 { "none" , "reg merged" , "reg channels" } ;
-   static char *RT_chmrg_rmode_labels[N_RT_CHMER_MODES] =
+   static char *RT_chmrg_rmode_labels[N_RT_CM_RMODES] =
                 { "none" , "reg_merge" , "reg_chan" } ;
+/* End FMRIF changes - wrong variable used here ? - VR */
    static int RT_chmrg_reg_mode = RT_CM_RMODE_NONE;
 
 # define REGMODE_NONE      0
@@ -2079,6 +2085,7 @@ RT_input * new_RT_input( IOCHAN *ioc_data )
       rtin->im[cc]          = NULL ;
       rtin->nvol[cc]        = 0 ;
       rtin->nsl[cc]         = 0 ;
+      rtin->TE[cc]          = 0.0 ;    /* 12 Mar 2015 [rickr] */
       rtin->im3d[cc]        = im3d ;
       rtin->sess[cc]        = GLOBAL_library.sslist->ssar[im3d->vinfo->sess_num] ;
       rtin->sess_num[cc]    = im3d->vinfo->sess_num ;
@@ -3291,8 +3298,9 @@ int RT_parser_init( RT_input * rtin )
 
 int RT_process_info( int ninfo , char * info , RT_input * rtin )
 {
-   int jj , nstart,nend , nbuf ;
-   char buf[NBUF] ;
+   int jj , nstart,nend , nbuf , nord , nb , nq ;
+   int numte = 0;
+   char buf[NBUF] , str32[32] ;
 
    if( rtin == NULL || info == NULL || ninfo == 0 ) return -1 ;
 
@@ -3585,11 +3593,11 @@ int RT_process_info( int ninfo , char * info , RT_input * rtin )
                                             /* so that later changes are      */
       } else if( STARTER("ZORDER") ){       /* ineffective.                   */
          if( ! rtin->zorder_lock ){
-           char str[32] = "\0" ; int nord=0 , nb = 0 , nq ;
-           sscanf( buf , "ZORDER %31s%n" , str , &nb ) ;
-                if( strcmp(str,"alt") == 0 ) rtin->zorder = ZORDER_ALT ;
-           else if( strcmp(str,"seq") == 0 ) rtin->zorder = ZORDER_SEQ ;
-           else if( strcmp(str,"explicit") == 0 ){
+           str32[0] = '\0';  nb = 0; nord = 0 ; nq = 0 ;
+           sscanf( buf , "ZORDER %31s%n" , str32 , &nb ) ;
+                if( strcmp(str32,"alt") == 0 ) rtin->zorder = ZORDER_ALT ;
+           else if( strcmp(str32,"seq") == 0 ) rtin->zorder = ZORDER_SEQ ;
+           else if( strcmp(str32,"explicit") == 0 ){
               rtin->zorder = ZORDER_EXP ;
               do{                                  /* get all numbers */
                  rtin->zseq[nord] = -1 ; nq = -1 ;
@@ -3606,12 +3614,11 @@ int RT_process_info( int ninfo , char * info , RT_input * rtin )
 
       } else if( STARTER("TPATTERN") ){               /* get timing pattern  */
          if( ! rtin->zorder_lock ){                   /* 10 May 2005 [rickr] */
-           int nord=0 , nb , nq ;
-           char str[32] = "\0" ;
-           sscanf( buf , "TPATTERN %31s%n" , str, &nb ) ;
-                if( strcmp(str,"alt+z") == 0 ) rtin->tpattern = ZORDER_ALT ;
-           else if( strcmp(str,"seq+z") == 0 ) rtin->tpattern = ZORDER_SEQ ;
-           else if( strcmp(str,"explicit") == 0 ) {
+           str32[0] = '\0';  nb = 0; nord = 0 ; nq = 0 ;
+           sscanf( buf , "TPATTERN %31s%n" , str32, &nb ) ;
+                if( strcmp(str32,"alt+z") == 0 ) rtin->tpattern = ZORDER_ALT ;
+           else if( strcmp(str32,"seq+z") == 0 ) rtin->tpattern = ZORDER_SEQ ;
+           else if( strcmp(str32,"explicit") == 0 ) {
               /* extract explicit slice timing           25 Apr 2011 [rickr] */
               rtin->tpattern = ZORDER_EXP ;
               do{                                  /* get all numbers */
@@ -3705,10 +3712,44 @@ int RT_process_info( int ninfo , char * info , RT_input * rtin )
             if(verbose>1) fprintf(stderr,"RT: command DRIVE_WAIT %s\n",buf+11);
          }
 
+      } else if( STARTER("ECHO_TIMES") ){   /* 12 Mar 2015 [rickr] */
+         /* just see what we find, like explicit TPATTERN, and verify against
+          * num_chan later (being more kind and gentle than I feel) */
+         nb = strlen("ECHO_TIMES");  nord = 0 ;  nq = 0 ;
+         numte = 0;
+         do {
+            sscanf(buf+nb, "%f%n", &(rtin->TE[numte]) , &nq) ;
+            if( nq < 1 ) break;
+            if( rtin->TE[numte] <= 0.0 ) {
+               WARNING_message("bad echo time at start of %-20s", buf+nb);
+               BADNEWS ;
+            }
+            nb += nq;
+            numte++; /* got one */
+         } while( nb < nbuf && numte < MAX_CHAN );
+         /* test against num_chan later */
+
+         if( numte < 1 ) BADNEWS ;
+         else if( verbose > 1 )
+            fprintf(stderr,"RT: found %d echo times in %s\n", numte, buf);
+
       } else {                              /* this is bad news */
          BADNEWS ;
       }
    }  /* end of loop over command buffers */
+
+   /* check numte against num_chan (can equal, or numte == 1) */
+   if( numte > 0 ) {
+      if( rtin->num_chan > 1 && numte == 1 ) /* then dupe */
+         for( jj=1; jj < rtin->num_chan; jj++ ) rtin->TE[jj] = rtin->TE[0] ;
+      else if( rtin->num_chan != numte ) {
+         fprintf(stderr, "RT: have numte = %d but num_chan = %d\n",
+                 numte, rtin->num_chan);
+         /* leave as init to 0.0 or dupe?  okay, dupe last one */
+         for( jj=numte; jj < rtin->num_chan; jj++ )
+            rtin->TE[jj] = rtin->TE[numte-1] ;
+      }
+   }
 
    /** now, determine if enough information exists to create a dataset **/
 
@@ -4729,7 +4770,7 @@ void RT_process_image( RT_input * rtin )
                      rtin->chan_list[0], rtin->chan_list_str);
         }
 
-        mrgim = RT_mergerize(rtin->num_chan, rtin->dset, iv, rtin->chan_list) ;
+        mrgim = RT_mergerize(rtin, iv) ;
         if( mrgim == NULL ){
           ERROR_message("RT can't merge channels at time index #%d",iv) ;
         } else {
@@ -7333,10 +7374,18 @@ void RT_test_callback(void *junk)
  *           - created via MCW_get_intlist, so dlist[0] is the length
  */
 
+/* was mrgim = RT_mergerize(rtin->num_chan, rtin->dset, iv, rtin->chan_list);
 MRI_IMAGE * RT_mergerize(int nds , THD_3dim_dataset **ds , int iv, int * dlist)
+   but pass rtin instead of elements                     12 Mar 2015 [rickr] */
+
+MRI_IMAGE * RT_mergerize(RT_input * rtin, int iv)
 {
+   THD_3dim_dataset **ds = rtin->dset ;
+   int * dlist = rtin->chan_list ;
+   int nds = rtin->num_chan ;
+
    float *far[MAX_CHAN] ; complex *car[MAX_CHAN] ;
-   int cc , nvox , idatum , ii , ndsets=nds ;
+   int cc , nvox , idatum , ii , ndsets=rtin->num_chan ;
    MRI_IMAGE *mrgim ;
    float *fmar=NULL , *ftar ; complex *cmar=NULL , *ctar ;
 
@@ -7444,6 +7493,65 @@ MRI_IMAGE * RT_mergerize(int nds , THD_3dim_dataset **ds , int iv, int * dlist)
        }
        for( ii=0 ; ii < nvox ; ii++ ) fmar[ii] = sqrtf(fmar[ii]) ;
      break ; /* done with L2 */
+
+     /* Begin FMRIF changes for RT T2* estimates - VR */
+
+     case RT_CHMER_T2STAREST:  /* output datum is always float */
+        if( idatum != MRI_float )
+           fprintf(stderr,"** type of T2star est dataset must be float\n");
+        else {
+           float t2startest, intercept;
+           float sumX, sumY, sumX2, sumXY, diffSumX2, logY;
+
+           sumX = sumX2 = 0.0, diffSumX2 = 1.0;
+           for (cc=0 ; cc < ndsets ; cc++)
+           {
+              sumX  += (rtin->TE[cc]);
+              sumX2 += (rtin->TE[cc] * rtin->TE[cc]);
+           }
+           diffSumX2 = ((ndsets * sumX2) - (sumX * sumX));
+
+           for (ii=0 ; ii < nvox ; ii++)
+           {
+              sumY = sumXY = 0.0;
+              for (cc=0 ; cc < ndsets ; cc++)
+              {
+                 ftar   = (far[cc]);
+
+                 if (ftar[ii] > 0.5)
+                    logY   = log (ftar[ii]);
+                 else
+                    logY   = 0.0;
+
+                 sumY  += (logY);
+                 sumXY += (logY * rtin->TE[cc]);
+              }
+
+              /* Regression Formula:                                          *
+               *                                                              *
+               * Slope     = ((N * sum (X * Y)) - (sum (X) * sum (Y))) /      *
+               *             ((N * sum (X * X)) - ((sum (X)^2)))              *
+               *                                                              *
+               * Intercept = (sum(Y) - Slope * sum(X)) / N                    *
+               *                                                              *
+               * For this simple model, slope = -1 / T2*, so T2* = -1 / slope *
+               *                                                              *
+               * Statement for slope computed via linear regression is:       *
+               *                                                              *
+               *   fmar[ii] = ((ndsets * sumXY) - (sumX * sumY)) / diffSumX2; *
+               *                                                              *
+               * For T2* value directly from linear regression coefficients:  */
+               if (((sumX * sumY) - (ndsets * sumXY)) > 0.001)
+                  fmar[ii] = diffSumX2 / ((sumX * sumY) - (ndsets * sumXY));
+               else
+                  fmar[ii] = 0.0;
+           }
+       }
+     break ; /* done with RT_CHMER_T2STAREST */
+
+     fflush (stdout);
+
+     /* End FMRIF changes for RT T2* estimates - VR */
 
      /*** sum of input values ***/
 
@@ -8715,8 +8823,8 @@ void RT_detrend( RT_input * rtin, int mode )
               fprintf(stderr,"RT_DETREND: Updated voxel corr for dset %d\n",it);
     
     
-	    /* if it > num_ort perform detrend, otherwise dont */ 
-	    if( rtin->nvol[0] > detrend_num_ort )
+            /* if it > num_ort perform detrend, otherwise dont */ 
+            if( rtin->nvol[0] > detrend_num_ort )
             {
                 /* get the fit */
                 PCOR_get_lsqfit( pc_ref, pc_vc, fit );
