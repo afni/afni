@@ -3957,7 +3957,7 @@ SUMA_Boolean SUMA_LoadSpec_eng (
             SOm = SUMA_findSOp_inDOv(SO->idcode_str, dov, *N_dov);
             mname = SUMA_SurfaceFileName(SOm, 1);
             name = SUMA_SurfaceFileName(SO, 1);
-            if (strcmp(mname, name)) {
+            if (mname && name && strcmp(mname, name)) {
                char *stmp;
                /* give SO a new ID */
                stmp = SUMA_append_replace_string(name, SO->idcode_str,"_",0);
@@ -4641,7 +4641,12 @@ SUMA_Boolean SUMA_SurfaceMetrics_eng (
       if (DsetList){ /* put the convexity as a DataSet */
          SUMA_DSET *dset = NULL;
          char *name_tmp=NULL;
-         if (SO->Label) {
+         if ((name_tmp = SUMA_SurfaceFileName(SO, 1))) {
+            /* Go with this baby, maybe someday modify
+               fuction above to return full path, making it
+               more robust */
+            name_tmp = SUMA_append_replace_string("Convexity_",name_tmp,"",2);
+         }else if (SO->Label) {
             name_tmp = SUMA_append_string("Convexity_",SO->Label);
          } else {
             name_tmp = SUMA_append_string("Convexity_",SO->idcode_str);

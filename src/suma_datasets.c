@@ -6239,22 +6239,24 @@ int SUMA_InsertDsetPointer (SUMA_DSET **dsetp, DList *DsetList, int replace)
          won't occur but it is a start until I figure out
          the problem with hashcode */
       char *name=NULL, *mname=NULL;
-      mname = SDSET_FILENAME(dprev);
-      name = SDSET_FILENAME(dset);
+      if (!(mname = SDSET_FILENAME(dprev))) mname = "NULLITY";
+      if (!(name = SDSET_FILENAME(dset))) name = "NULLITY";
       if (name && mname && strcmp(name, mname)) {
          char *stmp;
          /* give dset a new ID */
          stmp = SUMA_append_replace_string(name, SDSET_ID(dset),"_",0);
          SUMA_NewDsetID2(dset, stmp);
          SUMA_ifree(stmp);
+         s= SDSET_ID(dset);
       }
       dprev=NULL;
    }
 
    
    if ((dprev = SUMA_FindDset_ns (s,  DsetList))) {
-      sprintf(stmp,  "Dset with similar idcode (%s)\n"
-                        "found in list. Trying replacement.\n", s);
+      sprintf(stmp,  "Dset %s has similar idcode (%s) in list as \n"
+                     "dset %s. Trying replacement.\n", 
+                     SUMA_sdset_filename(dset), s, SUMA_sdset_filename(dprev));
    } else if (!dprev && replace) { /* try a looser search */
       SUMA_LH("ID match not found, trying filename match");
       dprev = SUMA_FindDsetLoose(dset, DsetList,"filename");
@@ -10550,6 +10552,7 @@ SUMA_DSET *SUMA_LoadDset_eng (char *iName, SUMA_DSET_FORMAT *form, int verb)
    if (NodeSel) free (NodeSel); NodeSel = NULL;
    if (RowSel)   free(RowSel); RowSel = NULL;
    if (pn) SUMA_Free_Parsed_Name(pn); pn = NULL;
+   
    SUMA_RETURN(dset);
 }
 
