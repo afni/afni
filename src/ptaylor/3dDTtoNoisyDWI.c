@@ -391,6 +391,6 @@ int main(int argc, char *argv[]) {
    free(dtsname);
    mri_free(GRADS);
 
-	return 0;
+	exit(0);
 }
 

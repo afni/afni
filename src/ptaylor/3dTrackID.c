@@ -1275,7 +1275,7 @@ int main(int argc, char *argv[])
 
 
 
-   RETURN(1);
+   exit(0);
 }
 
 
