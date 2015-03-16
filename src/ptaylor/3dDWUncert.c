@@ -1505,7 +1505,7 @@ int main(int argc, char *argv[]) {
       free(OUTCI);
    }
 
-	return 0;
+	exit(0);
 }
 
 
