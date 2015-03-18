@@ -6,7 +6,7 @@ Unix and shell commands
 
 Tcsh shell commands, Unix commands and special key strokes
 
-.. note:: for getting help in Unix, try the "manual" pages: `man COMMAND`
+.. note:: for getting help in Unix, try the "manual" pages: :command:`man COMMAND`
 
 
 Shell commands are particular to the shell (:command:`tcsh`, in this case).
@@ -205,7 +205,15 @@ This does not just clear the variable, but makes it "not exist".
 Unix Commands
 =============
 
-A shell command is one that is processed internally by the shell.
+A Unix command is a command that refers to an actual file on disk.  There is a
+``/bin/ls`` file, but there is no file for ``cd``.
+
+   Example commands to consider::
+
+      which cat
+      which cd
+      which ls
+      which afni
 
 .. _U_mc_cat:
 
@@ -243,6 +251,14 @@ The gedit program is a graphical text editor that works well across many Unix-li
    - `wiki.gnome.org/Apps/Gedit <https://wiki.gnome.org/Apps/Gedit>`_
    - `en.wikipedia.org/wiki/Gedit <http://en.wikipedia.org/wiki/Gedit>`_
 
+
+.. _U_mc_less:
+
+less
+----
+a text file viewer
+
+rcr - add this
 
 .. _U_mc_ls:
 
