@@ -5346,6 +5346,8 @@ extern int THD_bandpass_vectors( int nlen, int nvec, float **vec, /* 30 Apr 2009
                                  float dt, float fbot, float ftop,
                                  int qdet, int nort, float **ort ) ;
 extern int THD_bandpass_OK( int nx, float dt, float fbot, float ftop, int verb ) ;
+extern int THD_bandpass_remain_dim(int nx, float dt, float fbot, float ftop, int verb) ;  /* 18 Mar 2015 [rickr] */
+
 extern int THD_bandpass_set_nfft( int n ) ;
 
 extern int THD_bandpass_vectim( MRI_vectim *mrv ,

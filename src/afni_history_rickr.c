@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 18,  Mar, 2015, RCR, "3dBandpass", MICRO, TYPE_ENHANCE,
+   "let user know details of demensionality reduction",
+   NULL
+ } ,
+
  { 13,  Mar, 2015, RCR, "Dimon", MICRO, TYPE_NEW_OPT,
    "added option -te_list to pass ECHO_TIMES to plug_realtime",
    NULL
