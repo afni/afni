@@ -1,4 +1,4 @@
-.. _tutorials:
+.. _self_guided_scripts:
 
 ************************
 Self Guided Demo Scripts

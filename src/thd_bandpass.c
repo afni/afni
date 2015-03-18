@@ -58,6 +58,53 @@ int THD_bandpass_OK( int nx , float dt , float fbot , float ftop , int verb )
 }
 
 /*--------------------------------------------------------------------------*/
+/*! Return the number of degrees of freedom that would remain after
+    bandpassing (the dimension of the subspace the data will be 
+    projected into).
+
+    Returns twice the length of the passband index range.
+    Returns 0 if life is bad.
+
+    based on THD_bandpass_OK                    18 Mar 2015 [rickr]
+*//*------------------------------------------------------------------------*/
+
+int THD_bandpass_remain_dim(int nx, float dt, float fbot, float ftop, int verb)
+{
+   int nfft , jbot,jtop ; float df ;
+
+   if( nx   <  9    ) {
+      if( verb ) WARNING_message("length %d too short for bandpassing", nx);
+      return 0 ; }
+
+   if( dt   <= 0.0f ) dt   = 1.0f ;
+   if( fbot <  0.0f ) fbot = 0.0f ;
+   if( ftop <= fbot ){
+      if( verb ) WARNING_message("bad bandpass frequencies (ftop<=fbot)");
+      return 0; }
+   if( verb && dt > 60.0f ){
+     WARNING_message("Your bandpass timestep (%f) is high.\n"
+                     "   Make sure units are 'sec', not 'msec'.\n"
+                     "   This warning will not be repeated." ,
+                     dt);
+   }
+
+   nfft = (nfft_fixed >= nx) ? nfft_fixed : csfft_nextup_even(nx) ;
+   df   = 1.0f / (nfft * dt) ;  /* freq step */
+   jbot = (int)rint(fbot/df) ;  /* band bot index */
+   jtop = (int)rint(ftop/df) ;  /* band top index */
+   if( jtop >= nfft/2 ) jtop = nfft/2-1 ;
+   if( jbot+1 >= jtop ){
+     if( verb )
+        WARNING_message("bandpass: fbot=%g and ftop=%g too close"
+                        " ==> jbot=%d jtop=%d [nfft=%d dt=%g]",
+                        fbot,ftop,jbot,jtop,nfft,dt) ;
+     return 0 ;
+   }
+
+   return 2*(jtop-jbot+1);
+}
+
+/*--------------------------------------------------------------------------*/
 /*! Bandpass a set of vectors, optionally removing some orts as well.
    - Uses FFTs for the bandpass-ization, and least squares for the ort-ing.
    - To do a highpass only, set ftop to something larger than the Nyquist
