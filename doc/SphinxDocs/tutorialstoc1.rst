@@ -7,7 +7,7 @@ Tutorials, Demos
 .. toctree::
    :maxdepth: 2
    
-   tutorials/tutorials.rst
+   tutorials/SelfGuidedScripts
    tutorials/fatcat_demo/fatcat_demo.rst
    tutorials/WalnutBrain/WalnutBrain
    tutorials/ContributeDocs/ContributeDocs

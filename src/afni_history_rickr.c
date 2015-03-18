@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 18,  Mar, 2015, RCR, "sphinx", MICRO, TYPE_MODIFY,
+   "renamed tutorials.rst to SelfGuidedScripts.rst, along with tag",
+   NULL
+ } ,
+
  { 18,  Mar, 2015, RCR, "3dBandpass", MICRO, TYPE_ENHANCE,
    "let user know details of demensionality reduction",
    NULL
