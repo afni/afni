@@ -315,7 +315,7 @@ int SUMA_set_threshold_one(SUMA_ALL_DO *ado, SUMA_OVERLAYS *colp,
 int SUMA_set_threshold(SUMA_ALL_DO *ado, SUMA_OVERLAYS *colp,
                            float *val);
 void SUMA_cb_set_threshold(Widget w, XtPointer clientData, XtPointer call);
-int SUMA_set_threshold_label(SUMA_ALL_DO *ado, float val);
+int SUMA_set_threshold_label(SUMA_ALL_DO *ado, float val, float val2);
 void SUMA_optmenu_EV( Widget w , XtPointer cd ,
                       XEvent *ev , Boolean *continue_to_dispatch );
 void SUMA_cb_SetCoordBias(Widget widget, XtPointer client_data, 
