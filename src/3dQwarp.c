@@ -1250,6 +1250,13 @@ int main( int argc , char *argv[] )
 
      /*---------------*/
 
+     if( strcasecmp(argv[nopt],"-NOallineate") == 0 ||     /* 17 Mar 2015 */
+         strcasecmp(argv[nopt],"-NOallin"    ) == 0   ){
+       do_allin =  0 ; nopt++ ; continue ;
+     }
+
+     /*---------------*/
+
      if( strcasecmp(argv[nopt],"-allinkeep") == 0 ){       /* 27 Aug 2013 */
        keep_allin = 1 ; nopt++ ; continue ;
      }
