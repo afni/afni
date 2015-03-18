@@ -123,7 +123,7 @@ void MD5Init (MD5_CTX *context)
 ------------------------------------------------------------------------*/
 
 void MD5Update (MD5_CTX *context, unsigned char *input,
-                                         unsigned int inputLen  )
+                                  unsigned int inputLen  )
 {
   unsigned int i, index, partLen;
 
