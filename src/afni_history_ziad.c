@@ -65,6 +65,12 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 18, Mar, 2014, ZSS, "SurfClust", MINOR, TYPE_NEW_OPT,
+   "Added options in_range, ex_range for thresholding and output COM and Cent",
+   "These changes resulted in numerous small changes throughout the code for \n"
+   "a more uniform handling of thresholding methods"
+ },
+
  { 13, Mar, 2014, ZSS, "ParseName", MINOR, TYPE_NEW_OPT,
    "Added ExistsAs in ParseName",
    "This can find whether or not you have datasets on disk with some \n"

@@ -957,7 +957,7 @@ void SUMA_cmap_wid_input(Widget w, XtPointer clientData, XtPointer callData)
   SUMA_RETURNe;
 }
 
-int SUMA_set_threshold_label(SUMA_ALL_DO *ado, float val)
+int SUMA_set_threshold_label(SUMA_ALL_DO *ado, float val, float val2)
 {
    static char FuncName[]={"SUMA_set_threshold_label"};
    char slabel[100];
@@ -974,13 +974,33 @@ int SUMA_set_threshold_label(SUMA_ALL_DO *ado, float val)
    SurfCont = SUMA_ADO_Cont(ado);
    curColPlane = SUMA_ADO_CurColPlane(ado);
    
-   if (curColPlane->OptScl->ThrMode != SUMA_ABS_LESS_THAN) 
-      sprintf(slabel, "%5s", MV_format_fval(val)); 
-   else {
-      /* used to use this:
-      sprintf(slabel, "|%5s|", .... 
-      but that does not work in the editable field ... */
-      sprintf(slabel, "%5s", MV_format_fval(val)); 
+   switch (curColPlane->OptScl->ThrMode) {
+      case SUMA_LESS_THAN: 
+         sprintf(slabel, "%5s", MV_format_fval(val));
+         break;
+      case SUMA_ABS_LESS_THAN:
+         /* used to use this:
+         sprintf(slabel, "|%5s|", .... 
+         but that does not work in the editable field ... */
+         sprintf(slabel, "%5s", MV_format_fval(val));
+         break;
+      case SUMA_THRESH_INSIDE_RANGE:
+         /* This is just a place holder for now */
+         sprintf(slabel, "<%5s..%5s>", 
+                       MV_format_fval(val), MV_format_fval(val2));
+         break;
+      case SUMA_THRESH_OUTSIDE_RANGE:
+         /* This is just a place holder for now */
+         sprintf(slabel, ">%5s..%5s<", 
+                       MV_format_fval(val), MV_format_fval(val2));
+         break;
+      case SUMA_NO_THRESH:
+         break;
+      default:
+         /* This is just a place holder for now */
+         sprintf(slabel, "?%5s??%5s?<", 
+                       MV_format_fval(val), MV_format_fval(val2));
+         break;
    }
    /* SUMA_SET_LABEL(SurfCont->thr_lb,  slabel);*/
       SUMA_INSERT_CELL_STRING(SurfCont->SetThrScaleTable, 0,0,slabel); 
@@ -993,6 +1013,9 @@ int SUMA_set_threshold_label(SUMA_ALL_DO *ado, float val)
       SUMA_UpdateColPlaneShellAsNeeded(ado);
    #endif
    
+   /* Will need to ponder Pvalue field when I start using
+      SUMA_THRESH_INSIDE_RANGE and SUMA_THRESH_OUTSIDE_RANGE.
+      Also, should also consider one tail versus two tail...*/
    SUMA_UpdatePvalueField (ado, val); 
    
    SUMA_RETURN(1);  
@@ -1017,7 +1040,7 @@ void SUMA_cb_set_threshold_label(Widget w, XtPointer clientData, XtPointer call)
    XtVaGetValues(w, XmNuserData, &dec, NULL);
    fff = (float)cbs->value / pow(10.0, dec);
    
-   SUMA_set_threshold_label(ado, fff);
+   SUMA_set_threshold_label(ado, fff, 0.0);
    
    SUMA_RETURNe;
 }
@@ -1094,7 +1117,7 @@ int SUMA_set_threshold_one(SUMA_ALL_DO *ado, SUMA_OVERLAYS *colp,
    }
 
    /* call this one since it is not being called as the slider is dragged. */
-   SUMA_set_threshold_label(ado, val);   
+   SUMA_set_threshold_label(ado, val, 0.0);   
 
    /* sad as it is */
    SUMA_FORCE_SCALE_HEIGHT(SUMA_ADO_Cont(ado)); 
@@ -1972,18 +1995,52 @@ void SUMA_cb_AbsThresh_tb_toggled (Widget w, XtPointer data,
       SUMA_S_Warn("NULL input 2"); SUMA_RETURNe; 
    }
 
-   if (curColPlane->OptScl->ThrMode != SUMA_ABS_LESS_THAN) {
+   if (curColPlane->OptScl->ThrMode == SUMA_LESS_THAN) {
       curColPlane->OptScl->ThrMode = SUMA_ABS_LESS_THAN;
-      /* used to use this:
-      sprintf(slabel, "|%5s|", .... 
-      but that does not work in the editable field ... */
-      sprintf(slabel, "%5s", MV_format_fval(
-               fabs(curColPlane->OptScl->ThreshRange[0])));
-   } else {
+   } else if (curColPlane->OptScl->ThrMode == SUMA_ABS_LESS_THAN){
       curColPlane->OptScl->ThrMode = SUMA_LESS_THAN;
-      sprintf(slabel, "%5s", MV_format_fval(
-               curColPlane->OptScl->ThreshRange[0]));
+   } else if (curColPlane->OptScl->ThrMode == SUMA_THRESH_OUTSIDE_RANGE){
+      curColPlane->OptScl->ThrMode = SUMA_THRESH_INSIDE_RANGE;
+   } else if (curColPlane->OptScl->ThrMode == SUMA_THRESH_INSIDE_RANGE){
+      curColPlane->OptScl->ThrMode = SUMA_THRESH_OUTSIDE_RANGE;
+   } else {
+      SUMA_S_Err("Not ready for this situation %d...", 
+                 curColPlane->OptScl->ThrMode);
    }
+   switch (curColPlane->OptScl->ThrMode) {
+      case SUMA_LESS_THAN: 
+         sprintf(slabel, "%5s", 
+            MV_format_fval(curColPlane->OptScl->ThreshRange[0]));
+         break;
+      case SUMA_ABS_LESS_THAN:
+         /* used to use this:
+         sprintf(slabel, "|%5s|", .... 
+         but that does not work in the editable field ... */
+         sprintf(slabel, "%5s", 
+               MV_format_fval(fabs(curColPlane->OptScl->ThreshRange[0])));
+         break;
+      case SUMA_THRESH_INSIDE_RANGE:
+         /* This is just a place holder for now */
+         sprintf(slabel, "<%5s..%5s>", 
+                       MV_format_fval(curColPlane->OptScl->ThreshRange[0]), 
+                       MV_format_fval(curColPlane->OptScl->ThreshRange[1]));
+         break;
+      case SUMA_THRESH_OUTSIDE_RANGE:
+         /* This is just a place holder for now */
+         sprintf(slabel, ">%5s..%5s<", 
+                       MV_format_fval(curColPlane->OptScl->ThreshRange[0]), 
+                       MV_format_fval(curColPlane->OptScl->ThreshRange[1]));
+         break;
+      case SUMA_NO_THRESH:
+         break;
+      default:
+         /* This is just a place holder for now */
+         sprintf(slabel, "?%5s??%5s?<", 
+                       MV_format_fval(curColPlane->OptScl->ThreshRange[0]), 
+                       MV_format_fval(curColPlane->OptScl->ThreshRange[1]));
+         break;
+   }
+   
    /* SUMA_SET_LABEL(SurfCont->thr_lb,  slabel); */
    SUMA_INSERT_CELL_STRING(SurfCont->SetThrScaleTable, 0,0,slabel); 
    if (SUMA_GetDsetColRange(curColPlane->dset_link, 
@@ -7008,10 +7065,17 @@ void SUMA_set_cmap_options_SO(SUMA_ALL_DO *ado, SUMA_Boolean NewDset,
       /* do the initialization */
       SUMA_InitClustTable(ado); /* init the clust table values*/
       
+      /* This button is NOT appropriate for anything other than 
+         SUMA_ABS_LESS_THAN and SUMA_LESS_THAN
+         Probably need separate button ormenu system for other
+         thresholding modes */
       if (curColPlane->OptScl->ThrMode == SUMA_ABS_LESS_THAN) {
          XmToggleButtonSetState( SurfCont->AbsThresh_tb, True, NOPE);
-      } else {
+      } else if (curColPlane->OptScl->ThrMode == SUMA_LESS_THAN) {
          XmToggleButtonSetState( SurfCont->AbsThresh_tb, False, NOPE);
+      } else {
+         SUMA_S_Err("Not ready to handle ThrModeR of %d yet", 
+                     curColPlane->OptScl->ThrMode);
       }
       if (!curColPlane->SymIrange) {
          XmToggleButtonSetState( SurfCont->SymIrange_tb, False, NOPE);
@@ -7637,8 +7701,11 @@ void SUMA_set_cmap_options_VO(SUMA_ALL_DO *ado, SUMA_Boolean NewDset,
       
       if (curColPlane->OptScl->ThrMode == SUMA_ABS_LESS_THAN) {
          XmToggleButtonSetState( SurfCont->AbsThresh_tb, True, NOPE);
-      } else {
+      } else if (curColPlane->OptScl->ThrMode == SUMA_LESS_THAN){
          XmToggleButtonSetState( SurfCont->AbsThresh_tb, False, NOPE);
+      } else {
+         SUMA_S_Err("Not ready to handle ThrModeR of %d yet", 
+                     curColPlane->OptScl->ThrMode);
       }
       if (!curColPlane->SymIrange) {
          XmToggleButtonSetState( SurfCont->SymIrange_tb, False, NOPE);
@@ -8195,8 +8262,11 @@ void SUMA_set_cmap_options_GLDO(SUMA_ALL_DO *ado, SUMA_Boolean NewDset,
             
       if (curColPlane->OptScl->ThrMode == SUMA_ABS_LESS_THAN) {
          XmToggleButtonSetState( SurfCont->AbsThresh_tb, True, NOPE);
-      } else {
+      } else if (curColPlane->OptScl->ThrMode == SUMA_LESS_THAN) {
          XmToggleButtonSetState( SurfCont->AbsThresh_tb, False, NOPE);
+      } else {
+         SUMA_S_Err("Not ready to handle ThrModeR of %d yet", 
+                     curColPlane->OptScl->ThrMode);
       }
       if (!curColPlane->SymIrange) {
          XmToggleButtonSetState( SurfCont->SymIrange_tb, False, NOPE);
@@ -11094,6 +11164,10 @@ void SUMA_SetScaleRange(SUMA_ALL_DO *ado, double range[2])
       } else {
          range[1] = fabs((double)range[1]); range[0] = 0.0;
       }
+   } else if (curColPlane->OptScl->ThrMode == SUMA_LESS_THAN) {
+   
+   } else {
+      SUMA_S_Err("Not ready for ThrModeR == %d", curColPlane->OptScl->ThrMode);
    }
    if (range[1] - range[0] > pow(10.0,SUMAg_CF->SUMA_ThrScalePowerBias)) { 
       /* no need for power */
@@ -11216,13 +11290,16 @@ void SUMA_SetScaleRange(SUMA_ALL_DO *ado, double range[2])
             NULL);   
             
    /* set the label on top */
-   if (curColPlane->OptScl->ThrMode != SUMA_ABS_LESS_THAN) 
+   if (curColPlane->OptScl->ThrMode != SUMA_ABS_LESS_THAN) {
       sprintf(slabel, "%5s", MV_format_fval((float)cv / pow(10.0, dec))); 
-   else {
+   } else if (curColPlane->OptScl->ThrMode != SUMA_LESS_THAN){
       /* used to use this:
       sprintf(slabel, "|%5s|", .... 
       but that does not work in the editable field ... */
       sprintf(slabel, "%5s", MV_format_fval((float)cv / pow(10.0, dec))); 
+   } else {
+         SUMA_S_Err("Not ready to handle ThrModeR of %d yet", 
+                     curColPlane->OptScl->ThrMode);
    }
    /* SUMA_SET_LABEL(SurfCont->thr_lb,  slabel);*/
       SUMA_INSERT_CELL_STRING(SurfCont->SetThrScaleTable, 0,0,slabel); 
