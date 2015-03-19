@@ -34,9 +34,9 @@ After this is done, it may be necessary to open a new terminal window.
 
    - `@update.afni.binaries -help <http://afni.nimh.nih.gov/pub/dist/doc/program_help/@update.afni.binaries.html>`_
    - `HowTo #0 - main page <http://afni.nimh.nih.gov/pub/dist/HOWTO/howto/ht00_inst/html/index.html>`_
-   - `HowTo #0 - Linux install <http://afni.nimh.nih.gov/pub/dist/HOWTO/howto/ht00_inst/html/linux_inst_basic.shtml>`_
+   - `HowTo #0 - Linux install <http://afni.nimh.nih.gov/pub/dist/HOWTO/howto/ht00_inst/html/linux_inst_basic.html>`_
    - `HowTo #0 - Mac install <http://afni.nimh.nih.gov/pub/dist/HOWTO/howto/ht00_inst/html/mac_10.78.html>`_
-   - `AFNI bootcamp class setup <http://afni.nimh.nih.gov/pub/dist/HOWTO/howto/ht00_inst/html/class_setup.shtml>`_
+   - `AFNI bootcamp class setup <http://afni.nimh.nih.gov/pub/dist/HOWTO/howto/ht00_inst/html/class_setup.html>`_
 
 
 
