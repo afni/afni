@@ -96,7 +96,7 @@ void usage_SUMA_ConvertSurface (SUMA_GENERIC_ARGV_PARSE *ps, int detail)
 "                          should that option also be requested.\n"
 "                          This option outputs file DEPTHPREF.pcdepth.1D.dset\n"
 "                          which contains node index, followed by depth, then \n"
-"                          height of node.\n"
+"                          height of node. See also same option in SurfPatch\n"
 "\n" 
 "    -pc_proj ONTO PREFIX: Project coordinates onto ONTO, where ONTO is one \n"
 "                   of the parameters listed below.\n"
@@ -1090,53 +1090,20 @@ int main (int argc,char *argv[])
    }
    
    if (Do_NodeDepth) {
-      float *dpth=NULL, mx=0.0; int ii;
+      float *dpth=NULL, mx=0.0;
       SUMA_PC_XYZ_PROJ *pcp=NULL;
-      if (SUMA_NodeDepth(SO->NodeList, SO->N_Node, &dpth, 
+      if (SUMA_NodeDepth(SO->NodeList, SO->N_Node, E1_DIR_PRJ, &dpth, 
                      0.0, NULL, &mx, &pcp) < 0) {
          SUMA_S_Err("Failed to compute node depth");
          exit(1);
       } else {
-         FILE *fout=NULL;
-         char *s2=NULL, *s1=NULL;
-         s2 = SUMA_ModifyName(NodeDepthpref, "append",".pcdepth", NULL);
-         s1 = SUMA_Extension(s2,".1D.dset",NOPE); SUMA_ifree(s2);
-         if (!THD_ok_overwrite() && SUMA_filexists(s1)) {
-            SUMA_S_Err(
-              "%s exists already, will not overwrite without -overwrite!",s1);
-            SUMA_ifree(s1); SUMA_RETURN(NOPE);
-         }
-
-         if (!(fout = fopen(s1, "w"))) {
-            SUMA_S_Err("No write permissions for %s?", s1);
+         if (!SUMA_WriteNodeDepth(NodeDepthpref,pcp,dpth, mx)) {
+            SUMA_S_Err("Failed to write node depth");
             exit(1);
-         }
-         fprintf(fout,"#Coordinates in original space for:\n"
-             "#   Center Of Mass               :   %f %f %f\n"
-             "#   Top node's projection    & ID:   %f %f %f    %d\n"
-             "#   Bottom node's projection & ID:   %f %f %f    %d\n",
-                      pcp->avg[0], pcp->avg[1],pcp->avg[2],
-                      pcp->highest_proj[0], pcp->highest_proj[1],
-                        pcp->highest_proj[2], pcp->highest_node,
-                      pcp->lowest_proj[0], pcp->lowest_proj[1],
-                        pcp->lowest_proj[2], pcp->lowest_node);
-         fprintf(fout,
-             "#   Principal Direction          :   %f %f %f\n",
-                      pcp->target_params[0], pcp->target_params[1], 
-                      pcp->target_params[2]);
-         fprintf(fout,"#\n#Node depths along 1st principal direction\n");
-         fprintf(fout,"#   Col. 0 == Node Index\n"
-                      "#   Col. 1 == Node Depth (from top)\n"
-                      "#   Col. 2 == Node Height (from bottom)\n");
-         for (ii=0; ii<SO->N_Node; ++ii) {
-            fprintf(fout,"%d %f %f\n", 
-                     ii, dpth[ii], mx-dpth[ii]);
-         }
-         fclose(fout); fout = NULL;
-         SUMA_ifree(dpth);
-         SUMA_ifree(s1);
-         pcp = SUMA_Free_PC_XYZ_Proj(pcp);
+         } 
       }
+      SUMA_ifree(dpth);
+      pcp = SUMA_Free_PC_XYZ_Proj(pcp);
    }
    
    if (Do_PCproj > NO_PRJ) {
@@ -1159,18 +1126,18 @@ int main (int argc,char *argv[])
    }
 
    
-   if (LocalHead) SUMA_Print_Surface_Object (SO, stderr);
-   
-   fprintf (SUMA_STDOUT,"Writing surface...\n");
-   
    
    /* write the surface object */
-   if (!(SUMA_Save_Surface_Object ( SO_name,
+   if (SO_name) {
+      if (LocalHead) SUMA_Print_Surface_Object (SO, stderr);
+      fprintf (SUMA_STDOUT,"Writing surface...\n");
+      if (!(SUMA_Save_Surface_Object ( SO_name,
                                     SO, oType, oFormat, SOpar))) {
          fprintf (SUMA_STDERR,
                   "Error %s: Failed to write surface object.\n", 
                   FuncName);
          exit (1);
+      }
    } 
    
    
