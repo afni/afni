@@ -4772,11 +4772,12 @@ char * SUMA_SurfaceFileName (SUMA_SurfaceObject * SO, SUMA_Boolean MitPath)
 
    /* check if recognizable type */
    switch (SO->FileType) {
-      case SUMA_FT_NOT_SPECIFIED:
-         SUMA_error_message(FuncName, "SO_FileType not specified", 0);
-         SUMA_RETURN (NULL);
-         break;
       case SUMA_VEC:
+      case SUMA_SUREFIT:
+         if (!SO->Name_coord.Path || !SO->Name_coord.FileName ||
+             SO->Name_topo.Path   || !SO->Name_topo.FileName) {
+            SUMA_RETURN(NULL);
+         }
          if (MitPath) nalloc = 
             strlen(SO->Name_coord.Path) + 
             strlen(SO->Name_coord.FileName) +
@@ -4785,15 +4786,7 @@ char * SUMA_SurfaceFileName (SUMA_SurfaceObject * SO, SUMA_Boolean MitPath)
          else nalloc =  strlen(SO->Name_coord.FileName) +
                         strlen(SO->Name_topo.FileName) + 5;
          break;
-      case SUMA_SUREFIT:
-         if (MitPath) nalloc = 
-               strlen(SO->Name_coord.Path) + 
-               strlen(SO->Name_coord.FileName) +
-               strlen(SO->Name_topo.Path) + 
-               strlen(SO->Name_topo.FileName) + 5;
-         else nalloc =  strlen(SO->Name_coord.FileName) +
-                        strlen(SO->Name_topo.FileName) + 5;
-         break;
+      case SUMA_FT_NOT_SPECIFIED:
       case SUMA_INVENTOR_GENERIC:
       case SUMA_FREE_SURFER:
       case SUMA_FREE_SURFER_PATCH:
@@ -4806,6 +4799,9 @@ char * SUMA_SurfaceFileName (SUMA_SurfaceObject * SO, SUMA_Boolean MitPath)
       case SUMA_MNI_OBJ:
       case SUMA_STL:
       case SUMA_PLY:
+         if (!SO->Name.Path || !SO->Name.FileName ) {
+            SUMA_RETURN(NULL);
+         }
          if (MitPath) 
             nalloc = strlen(SO->Name.Path) + strlen(SO->Name.FileName) + 5;
          else nalloc = strlen(SO->Name.FileName) + 5;
@@ -4823,6 +4819,7 @@ char * SUMA_SurfaceFileName (SUMA_SurfaceObject * SO, SUMA_Boolean MitPath)
    }
    
    switch (SO->FileType) {
+      case SUMA_FT_NOT_SPECIFIED:
       case SUMA_INVENTOR_GENERIC:
       case SUMA_FREE_SURFER:
       case SUMA_FREE_SURFER_PATCH:
@@ -4852,7 +4849,6 @@ char * SUMA_SurfaceFileName (SUMA_SurfaceObject * SO, SUMA_Boolean MitPath)
          else sprintf(Name,"%s__%s", 
             SO->Name_coord.FileName, SO->Name_topo.FileName);
          break;
-      case SUMA_FT_NOT_SPECIFIED:
       case SUMA_N_SO_FILE_TYPE:
       case SUMA_CMAP_SO:
       case SUMA_FT_ERROR:
