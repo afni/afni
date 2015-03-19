@@ -10,7 +10,9 @@ in a shell script, the single quote and backslash characters.
    Commands and descriptions:
 
    - :ref:`single quotes <U_mcc_squote>`
+   - :ref:`double quotes <U_mcc_dquote>`
    - :ref:`backslash characters <U_mcc_backslash>`
+   - :ref:`pound characters <U_mcc_pound>`
    - :ref:`U_mc_cat` : display a text file in the terminal window
    - :ref:`U_mc_gedit` : a graphical editor
    - `3dDeconvolve -help <http://afni.nimh.nih.gov/pub/dist/doc/program_help/3dDeconvolve.html>`_
@@ -134,58 +136,55 @@ Quotes are used for multiple reasons in this one command.
 
    Quotes are used again this way with the -gltsym option.
 
-   Another way to view this is that the quotes hide the spaces from
-   from the shell, so that they are not processed as parameter
-   separation characters.  Which leads us to the other use of the
-   quotes here...
+   Another way to view this is that the quotes hide the spaces from from the
+   shell, so that they are not processed as parameter separation characters.
+   Which leads us to the other use of the quotes here...
 
 
-   The stim_times option takes a basis function as its third
-   parameter, e.g. 'BLOCK(20,1)'.  But the () characters are
-   special to the shell.  So to hide those characters from the
-   shell and let 3dDeconvolve see them, they are put within quotes.
-   That way 3dDeconvolve reads BLOCK(20,1) as the basis function.
+   The stim_times option takes a basis function as its third parameter,
+   e.g. 'BLOCK(20,1)'.  But the ``()`` characters are special to the shell.
+   So to hide those characters from the shell and let 3dDeconvolve see them,
+   they are put within quotes.  That way 3dDeconvolve reads BLOCK(20,1) as
+   the basis function.
 
-   Similarly, [] are special to the shell (for wildcard matching).
-   But we want to pass motion.1D[0] to 3dDeconvolve (using the
-   -stim_file option).  And to prevent the shell from trying to use
-   [0] for wildcard file name matching, it is put in quotes, as in::
+   Similarly, [] are special to the shell (for wildcard matching).  But we
+   want to pass motion.1D[0] to 3dDeconvolve using the -stim_file option 
+   (so that 3dDeconvolve knows the 'roll' regressor comes from column #0
+   of motion.1D).  And to prevent the shell from trying to use [0] for
+   wildcard file name matching, it is put in quotes, as in::
 
       -stim_file 3 motion.1D'[0]'
 
-   Note that the quotes could go in multiple places, they are used
-   to hide [].  So the following example would work as well::
+   The quotes could go in multiple places, as they are just used to hide [].
+   Plus, either single or double quotes would hide those characters from the
+   shell, so the following example would work as well::
 
-      -stim_file 3 'motion.1D[0]'
+      -stim_file 3 "motion.1D[0]"
       
 
-another example
+Use of comments
 ---------------
 
-file quick.s1.afni_proc: a simple script with comments and a command
+Another short script can be seen in the file :file:`epi_r1_regress`.
 
-   Like rall_regress, this file contains a script with just one command.
-   The afni_proc.py command is preceded by 2 comment lines (lines that
-   start with '#'), describing the purpose of the command.
+   This script contains 2 AFNI commands, along with comments describing those
+   commands.  View the script using::
 
-   The afni_proc.py command is used to generate a single subject FMRI
-   processing script, and in this case, execute it.
+      cat epi_r1_regress
 
-   This script has line continuation characters '\' as before, as well
-   as single quotes hiding special characters from the shell in the option
-   -regress_basis 'BLOCK(20,1)'.
+   .. image::
+      whereisit.jpg
+      rcr
 
-   From a Unix perspective, the additional aspect of this script is the
-   pound/sharp character '#'.  When used in a script, this character says
-   that the rest of the line is to be ignored.  Effectively, the script
-   does not see anything from '#' to the end of the line.
+   A ``#`` character (that is not hidden from the shell using quotes, say)
+   is ignored by the shell, along with the rest of that line, as if it were
+   not in the script.  The purpose of such a "comment line" is to describe
+   the script's intention to someone reading it.  So even with out knowing
+   what ``3dvolreg`` is, we can read that it will register the dataset,
+   saving motion parameters (to a file, presumably).
 
-   Such lines are generally used as comment lines, a way to tell/remind
-   the reader the purpose of the following line or lines in the script.
-
-   In this example, the comment describes what the afni_proc.py command
-   will end up doing (creating and then executing a processing script).
-
+   The next comment suggests that the ``3dDeconvolve`` command is used to
+   perform a simple regression on the newly registered data.
 
 .. note::
 

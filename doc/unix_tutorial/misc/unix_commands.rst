@@ -393,6 +393,53 @@ an alias.
 
 Some programs allow for a similar interpretation (and other interpretations).
 
+.. _U_mcc_pound:
+
+``#``
+-----
+pound/hash character: apply as comment or return list length
+
+The pound character has 2 main uses in a t-shell script, to start a comment
+or to return the length of an array.  
+
+In a shell script, if ``#`` is not hidden from the shell (in quotes or
+escaped with ``\``), then from that character onward is ignored by the
+shell, as if it were not there.  The point of this is to allow one to
+add comments to a script: text that merely tells a reader what the script
+is intending to do.
+
+   For example, if a t-shell script had these lines::
+
+      set greeting = pineapple
+      # check whether user wants to say "hi" or "hello"
+      if ( $greeting == hi ) then
+         # the short greeting
+         echo hi there
+      else 
+         echo hello there   # this is a strange place for a comment
+      endif
+
+Then the "check whether user wants" line does not affect the script,
+nor does the comment "this is a strange place for a comment".
+
+The output is simply, "hello there".
+
+   .. note::
+
+      Pound characters entered at the command line are not treated as comments,
+      they are treated as any other simple text (possibly because the shell
+      authors did not see any reason why one might want comments at the command
+      line, such as for when cutting and pasting scripts).
+
+
+Another use of ``#`` is to get the length of a shell array variable, such
+as ``$path``.  For example::
+
+      echo my path has $#path directories in it
+      echo the full list is: $path
+
+   .. note:: this use does not apply to environment variables, such as $PATH
+
 .. _U_mcc_squote:
 
 ``'``
