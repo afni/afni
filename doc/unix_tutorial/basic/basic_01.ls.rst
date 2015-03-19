@@ -81,7 +81,7 @@ There are anatomical, EPI, statistical and mask datasets here, along with script
 
 Again, the -al options show all files and using a long format.  Note that the list starts with '.' and '..' at the top.
 
-The output might look like the following (`ls -al` is ommitted, just because it is long).
+The output might look like the following (`ls -al` is omitted, just because it is long).
 
 .. image:: media/basic_1_C.jpg
    :align: center
@@ -100,7 +100,7 @@ Change to directory '.' (the current directory).  This accomplishes nothing.
 
 Since '.' is the current directory, "cd ." says to move to where we already are.  This is not a practical example, but hopefully makes it clear at least what the '.' represents.
 
-Again, `ls -al` is ommited from the output.
+Again, `ls -al` is omitted from the output.
 
 .. image:: media/basic_1_D.jpg
    :align: center

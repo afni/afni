@@ -172,19 +172,19 @@ Another short script can be seen in the file :file:`epi_r1_regress`.
 
       cat epi_r1_regress
 
-   .. image::
-      whereisit.jpg
-      rcr
+   .. image:: media/basic_4_C.jpg
+      :align: center
 
    A ``#`` character (that is not hidden from the shell using quotes, say)
    is ignored by the shell, along with the rest of that line, as if it were
    not in the script.  The purpose of such a "comment line" is to describe
    the script's intention to someone reading it.  So even with out knowing
-   what ``3dvolreg`` is, we can read that it will register the dataset,
-   saving motion parameters (to a file, presumably).
+   what ``3dvolreg`` is, we can read that it will register the time series
+   dataset, saving the motion parameters (to a file, presumably).
 
    The next comment suggests that the ``3dDeconvolve`` command is used to
-   perform a simple regression on the newly registered data.
+   perform a simple regression on the newly registered data.  It is very
+   similar to the rall_regress script, reviewed above.
 
 .. note::
 
