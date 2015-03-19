@@ -73,6 +73,12 @@ void usage_SUMA_getPatch (SUMA_GENERIC_ARGV_PARSE *ps, int detail)
 "                     specified (not = -1)\n"
 "     -patch2surf: Turn surface patch into a surface where only nodes used in\n"
 "                  forming the mesh are preserved.\n"
+"     -node_depth NODE_DEPTH: Compute depth of each node after projection onto\n"
+"                  the 1st principal direction of the nodes making up the\n"
+"                  surface. The results are written in a file with prefix\n"
+"                  NODE_DEPTH.pcdepth.1D.dset. You must use -patch2surf \n"
+"                  in order to use this option. \n"
+"                  Option is similar to the one in program ConvertSurface.\n" 
 "     -check_bowtie: Check if the patch has a section hanging by one node to\n"
 "                    the rest of the mesh. Think of a patch made of two \n"
 "                    triangles that are connected at one node only. \n"
@@ -190,6 +196,7 @@ typedef struct {
    SUMA_Boolean Do_p2s;
    int verb;
    int flip;
+   char *nodedepth;
 } SUMA_GETPATCH_OPTIONS;
 
 /*!
@@ -229,6 +236,7 @@ SUMA_GETPATCH_OPTIONS *SUMA_GetPatch_ParseInput (char *argv[], int argc,
    Opt->VolOnly = 0;
    Opt->coordgain = 0.0;
    Opt->Do_p2s = NOPE;
+   Opt->nodedepth = NULL;
    Opt->FixBowTie = -1;
    Opt->adjust_contour = -1;
    Opt->oType = SUMA_FT_NOT_SPECIFIED;
@@ -272,6 +280,16 @@ SUMA_GETPATCH_OPTIONS *SUMA_GetPatch_ParseInput (char *argv[], int argc,
 				exit (1);
 			}
 			Opt->thislabel = atoi(argv[kar]);
+			brk = YUP;
+		}
+      
+      if (!brk && (strcmp(argv[kar], "-node_depth") == 0)) {
+         kar ++;
+			if (kar >= argc)  {
+		  		fprintf (SUMA_STDERR, "need argument after -node_depth \n");
+				exit (1);
+			}
+			Opt->nodedepth = argv[kar];
 			brk = YUP;
 		}
       
@@ -528,6 +546,11 @@ int main (int argc,char *argv[])
       exit(1);
    }
    
+   if (!Opt->Do_p2s && Opt->nodedepth) {
+      SUMA_S_Err("You should not use -node_depth without -patch2surf");
+      exit(1);
+   }
+   
    if (Opt->oType != SUMA_FT_NOT_SPECIFIED && !Opt->VolOnly) { 
       for (i=0; i < Spec->N_Surfs; ++i) {
          if (Spec->N_Surfs > 1) {
@@ -758,12 +781,31 @@ int main (int argc,char *argv[])
             }
          }
          
+         if (Opt->nodedepth) {
+            float *dpth=NULL, mx=0.0;
+            SUMA_LH("Writing node depths into %s...\n", Opt->nodedepth);
+            SUMA_PC_XYZ_PROJ *pcp=NULL;
+            if (SUMA_NodeDepth(SO->NodeList, SO->N_Node, E1_DIR_PRJ, &dpth, 
+                               0.0, NULL, &mx, &pcp) < 0) {
+               SUMA_S_Err("Failed to compute node depth");
+               exit(1);
+            } else {
+               if (!SUMA_WriteNodeDepth(Opt->nodedepth,pcp,dpth, mx)) {
+                  SUMA_S_Err("Failed to write node depth");
+                  exit(1);
+               } 
+            }
+            SUMA_ifree(dpth);
+            pcp = SUMA_Free_PC_XYZ_Proj(pcp);
+         }
+
          /* bring SO back to shape */
          SO->FileType = typetmp;
          SO->FaceSetList = FaceSetList; FaceSetList = NULL;
          SO->N_FaceSet = N_FaceSet; N_FaceSet = -1;
          SO->NodeList = NodeList; NodeList = NULL;
          SO->N_Node = N_Node; N_Node = -1;
+         
          
          if (SO_name) SUMA_free(SO_name); SO_name = NULL;
          if (ptch) SUMA_freePatch(ptch); ptch = NULL;
