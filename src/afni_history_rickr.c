@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 18,  Mar, 2015, RCR, "sphinx", MAJOR, TYPE_ENHANCE,
+   "added unix_tutorial to the doc tree",
+   NULL
+ } ,
+
  { 18,  Mar, 2015, RCR, "sphinx", MICRO, TYPE_MODIFY,
    "renamed tutorials.rst to SelfGuidedScripts.rst, along with tag",
    NULL
