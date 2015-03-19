@@ -65,8 +65,19 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 18, Mar, 2014, ZSS, "SurfPatch", MINOR, TYPE_NEW_OPT,
+   "Added -node_depth ",
+   NULL
+ },
+
+ { 18, Mar, 2014, ZSS, "suma-general", MINOR, TYPE_BUG_FIX,
+   "Node depths were being computed along the principal direction closest to Z ",
+   "The proper intent is along the principal direction, regardless of \n"
+   "whether or not it is closest to the Z direction"
+ },
+
  { 18, Mar, 2014, ZSS, "SurfClust", MINOR, TYPE_NEW_OPT,
-   "Added options in_range, ex_range for thresholding and output COM and Cent",
+   "Added options -in_range, -ex_range for thresholding and output COM and Cent",
    "These changes resulted in numerous small changes throughout the code for \n"
    "a more uniform handling of thresholding methods"
  },
