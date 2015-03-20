@@ -28,7 +28,7 @@ SUMA_SurfaceObject *SUMA_ConvexHullSurface(
       /* load the 1D file */
       im = mri_read_1D (Opt->UseThisBrain);
       if (!im) {
-         SUMA_S_Err("Failed to read file");
+         SUMA_S_Err("Failed to read file %s", Opt->UseThisBrain);
          SUMA_RETURN(NULL);
       }   
 
