@@ -907,8 +907,9 @@ int main (int argc, char *argv[])
    if (SO_morph->MF==NULL) 
       SUMA_SurfaceMetrics_eng(SO_morph, "MemberFace", NULL, 
                               0, SUMAg_CF->DsetList);    
-   if (!SO_morph->Label) {
-      SO_morph->Label =  SUMA_SurfaceFileName(SO_morph, NOPE);
+   if (!SO_morph->Label && !
+       (SO_morph->Label =  SUMA_SurfaceFileName(SO_morph, NOPE))){
+       SO_morph->Label = SUMA_copy_string("LeMorphometre");
    }
    if (!(SUMA_SetSphereParams(SO_morph, 0.1))) {
       SUMA_S_Err("Failed to set sphere parameters");

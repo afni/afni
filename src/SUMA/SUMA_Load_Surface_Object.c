@@ -1563,6 +1563,7 @@ SUMA_Boolean SUMA_AutoLoad_SO_Dsets(SUMA_SurfaceObject *SO)
    SUMA_ENTRY;
    
    soname = SUMA_SurfaceFileName(SO, 1);
+   if (!soname) soname = SUMA_copy_string("No_SO_name.gii");
    ddd = SUMA_RemoveSurfNameExtension (soname, SO->FileType);
    SUMA_LH("Checking for %s dsets on root %s", soname, ddd);
    if (SUMA_filexists((ddde = SUMA_append_string(ddd,".niml.dset")))) {
@@ -3585,11 +3586,13 @@ SUMA_SurfaceObject * SUMA_Load_Spec_Surf(
    SO->Group = (char *)SUMA_calloc(strlen(Spec->Group[i])+1, sizeof(char));
    SO->State = (char *)SUMA_calloc(strlen(Spec->State[i])+1, sizeof(char));
    if (Spec->SurfaceLabel[i][0] == '\0') {
-      SO->Label = SUMA_SurfaceFileName (SO, NOPE);
+      if (!(SO->Label = SUMA_SurfaceFileName (SO, NOPE))) {
+         SO->Label = SUMA_copy_string("Who_Am_I");
+      }
    } else {
       SO->Label = SUMA_copy_string(Spec->SurfaceLabel[i]);
    }
-
+   
    if (SO->isSphere == SUMA_GEOM_NOT_SET) { 
       SUMA_SetSphereParams(SO, -0.1);   /* sets the spheriosity parameters */
    }
@@ -3657,7 +3660,9 @@ SUMA_SurfaceObject * SUMA_Load_Spec_Surf_with_Metrics(
                                           SUMAg_CF->DsetList);
    if (!SO->MF) SUMA_SurfaceMetrics_eng(SO, "MemberFace", NULL, debug,  
                                           SUMAg_CF->DsetList);
-   if (!SO->Label) SUMA_SurfaceFileName(SO, NOPE);
+   if (!SO->Label && !(SO->Label = SUMA_SurfaceFileName(SO, NOPE))) {
+      SO->Label = SUMA_copy_string("A_Horse_With_No_Name");
+   }
    
    SUMA_RETURN(SO);
 }
@@ -4646,10 +4651,12 @@ SUMA_Boolean SUMA_SurfaceMetrics_eng (
                fuction above to return full path, making it
                more robust */
             name_tmp = SUMA_append_replace_string("Convexity_",name_tmp,"",2);
-         }else if (SO->Label) {
+         } else if (SO->Label) {
             name_tmp = SUMA_append_string("Convexity_",SO->Label);
-         } else {
+         } else if (SO->idcode_str) {
             name_tmp = SUMA_append_string("Convexity_",SO->idcode_str);
+         } else {
+            name_tmp = SUMA_append_string("Convexity_","Give_Peace_A_Chance");
          }
          dset = SUMA_CreateDsetPointer(name_tmp, /*   no file name, but specify a
                                                       name anyway _COD is 
