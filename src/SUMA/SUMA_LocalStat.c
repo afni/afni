@@ -515,7 +515,9 @@ char *SUMA_ClustCommandLineFromOpt(char *pname, SUMA_SurfaceObject *SO,
    if (!pname) pname = "SurfClust";
    
    if (SO) {
-      s = SUMA_SurfaceFileName(SO,1);
+      if (!(s = SUMA_SurfaceFileName(SO,1))) {
+         s = SUMA_copy_string("Qui_Etes_Vous.gii");
+      }
    } else {
       s = SUMA_copy_string("SOunknown");
    }
