@@ -4774,8 +4774,8 @@ char * SUMA_SurfaceFileName (SUMA_SurfaceObject * SO, SUMA_Boolean MitPath)
    switch (SO->FileType) {
       case SUMA_VEC:
       case SUMA_SUREFIT:
-         if (!SO->Name_coord.Path || !SO->Name_coord.FileName ||
-             SO->Name_topo.Path   || !SO->Name_topo.FileName) {
+         if (!SO->Name_coord.Path  || !SO->Name_coord.FileName ||
+             !SO->Name_topo.Path   || !SO->Name_topo.FileName) {
             SUMA_RETURN(NULL);
          }
          if (MitPath) nalloc = 
