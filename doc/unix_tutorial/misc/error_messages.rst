@@ -63,12 +63,24 @@ does not know of a command or program by the given name.
 
       .. seealso:: `file_tool -help <http://afni.nimh.nih.gov/pub/dist/doc/program_help/file_tool.html>`_
 
+.. _U_MU_err_undefined_var:
+
+Undefined variable.
+-------------------
+This error means no variable exists by the given name.
+
+   0. maybe there is a typo in the variable name
+
+   1. maybe the script author forgot to set the variable
+
+   2. maybe the variable was set in a child shell and does not exist
+      in this context (or even in a different terminal window shell)
+
 .. _U_MU_err_todo:
 
 others - todo
 -------------
 
-   - b 04: subj: Undefined variable.
    - No match.
    - ls: ...: No such file or directory
 

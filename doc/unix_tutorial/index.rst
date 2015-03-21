@@ -32,7 +32,7 @@ Basic Unix Tutorial
    basic/basic_02.bg
    basic/basic_03.scripts
    basic/basic_04.scripts.2
-   basic/basic_09.vars
+   basic/basic_05.vars
 
 Unix commands
 =============

@@ -1,8 +1,9 @@
 
 .. _U_misc_commands:
 
+***********************
 Unix and shell commands
-=======================
+***********************
 
 Tcsh shell commands, Unix commands and special key strokes
 
@@ -184,6 +185,30 @@ For more help, see ``man tcsh``.
    - :ref:`U_mc_unsetenv`
 
 
+.. _U_mc_unset:
+
+unset
+-----
+delete a shell variable
+
+This does not just clear the variable, but makes it "not exist".
+
+   Examples::
+
+      set value = 7
+      echo $value
+      unset value
+      echo $value
+
+   The result of the last ``echo $value`` command would produce an error,
+   since that variable no longer exists.
+
+.. seealso::
+
+   - :ref:`U_mc_set`
+   - :ref:`U_mc_unsetenv`
+
+
 .. _U_mc_unsetenv:
 
 unsetenv
@@ -282,7 +307,7 @@ Multiple directories may be listed, in which case each directory is shows one by
       ls -ltr ~
       ls -lSr dir.with.big.files
 
-   Options::
+   Common options::
 
       -a  : list all files/directories, including those starting with '.'
       -l  : use the long format, which includes:
@@ -628,3 +653,8 @@ This keystroke is often followed by ``bg`` (background: a built-in shell command
    - :ref:`U_mc_jobs`
    - `ccalc -help <http://afni.nimh.nih.gov/pub/dist/doc/program_help/ccalc.html>`_
 
+
+todo::
+
+   rcr - consider adding any of these over time...
+   *, ?, [], !, |, :, ~, %, (, {, <, > 
