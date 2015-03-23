@@ -6103,8 +6103,8 @@ SUMA_Boolean SUMA_isVoxelIntersect_Triangle
 }
 
 /*
-\brief This function is a stripped down version of SUMA_MT_intersect_triangle. It is meant to
-work faster when few triangles are to be tested. 
+\brief This function is a stripped down version of SUMA_MT_intersect_triangle. 
+       It is meant to work faster when few triangles are to be tested. 
 
 ans = SUMA_MT_isIntersect_Triangle (P0, P1, vert0, vert1, vert2, iP, d, closest_vert);
 
@@ -6228,7 +6228,8 @@ SUMA_MT_INTERSECT_TRIANGLE *
 SUMA_MT_intersect_triangle(float *P0, float *P1, 
                            float *NodeList, int N_Node, 
                            int *FaceSetList, int N_FaceSet, 
-                           SUMA_MT_INTERSECT_TRIANGLE *prevMTI)
+                           SUMA_MT_INTERSECT_TRIANGLE *prevMTI,
+                           int posonly)
 
 \param   P0 (float *) 3x1 containing XYZ of point 0
 \param   P1 (float *) 3x1 containing XYZ of point 1
@@ -6251,7 +6252,9 @@ SUMA_MT_intersect_triangle(float *P0, float *P1,
                it to NULL and then send it to SUMA_MT_intersect_triangle.
 \param   posonly if 1 then search only in the positive direction. P0 --> P1
                  if 0 then abs min
-                 if -1 then only in neg direction
+                 if -1 then only in neg direction 
+                 Note that MTI->N_poshits is only properly set with 
+                 posonly == 0 or posonly == 1
 \ret   MTI (SUMA_MT_INTERSECT_TRIANGLE *) pointer to structure containing 
                isHit (SUMA_Boolean *) N_FaceSet x 1 vector. 
                isHit[i] = YUP --> FaceSet i is pierced by ray P0-->P1
@@ -6409,9 +6412,13 @@ SUMA_MT_intersect_triangle(float *P0, float *P1,
                MTI->isHit[iface] = YUP;
                ++MTI->N_hits; 
                /* store shortest distance triangle info */
-               if (MTI->t[iface] < 0) disttest = -MTI->t[iface];
-                  else { disttest = MTI->t[iface]; ++MTI->N_poshits;}
-                   
+               if (MTI->t[iface] < 0) {
+                  if (posonly>0) continue; 
+                  disttest = -MTI->t[iface];
+               }   else  { 
+                  if (posonly<0) continue; 
+                  disttest = MTI->t[iface]; ++MTI->N_poshits;
+               }    
                if (disttest < tmin) {
                   tmin = disttest;
                   MTI->ifacemin = iface;
@@ -6780,15 +6787,18 @@ SUMA_Boolean SUMA_MT_count_intersect_triangle(void *v0, void *v1,
 Show contents of SUMA_MT_INTERSECT_TRIANGLE structure
 */
 SUMA_Boolean SUMA_Show_MT_intersect_triangle(
-               SUMA_MT_INTERSECT_TRIANGLE *MTI, FILE *Out)
+               SUMA_MT_INTERSECT_TRIANGLE *MTI, FILE *Out, char *preamble)
 {
    static char FuncName[]={"SUMA_Show_MT_intersect_triangle"};
-   int MaxShow = 5, i,j;
+   int MaxShow = 5, i,j, mxs;
    
    SUMA_ENTRY;
 
    if (Out == NULL) Out = stdout;
-      
+   
+   if (preamble) {
+      fprintf (Out, "%s", preamble);
+   }   
    if (MTI == NULL) {
       fprintf (Out, "NULL Surface Object Pointer\n");
       SUMA_RETURN(NOPE);
@@ -6806,40 +6816,43 @@ SUMA_Boolean SUMA_Show_MT_intersect_triangle(
       SUMA_RETURN (NOPE);
    }
    else {
-      if (MaxShow > MTI->N_el) MaxShow = MTI->N_el; 
+      if (MaxShow > MTI->N_el) mxs = MTI->N_el;
+      else mxs = MaxShow; 
       fprintf (Out, 
-         "Intersection results (showing first %d out of %d elements):\n", 
-               MaxShow, MTI->N_el);
-      for (i=0; i < MaxShow; ++i)   {
-         fprintf (Out, "\tisHit: %d t %f u %f v %f", 
+         "   Intersection results (showing max of %d out of %d elements):\n", 
+               mxs, MTI->N_el);
+      for (i=0; i < mxs; ++i)   {
+         fprintf (Out, "      isHit: %d t %f u %f v %f\n", 
             MTI->isHit[i], MTI->t[i], MTI->u[i],MTI->v[i]);
       }
          fprintf (Out, "\n");
       
       if (MTI->N_hits) {
-         fprintf (Out, "\n%d hits, (%d hists with positive distance).\n", 
+         if (MaxShow > MTI->N_hits) mxs = MTI->N_hits;
+         else mxs = MaxShow; 
+         fprintf (Out, "\n%d hits, (%d hits with positive distance).\n", 
                   MTI->N_hits, MTI->N_poshits);
-         fprintf (Out, "Minimum Distance: %d t %f u %f v %f\n",
+         fprintf (Out, "Minimum Distance on triangle %d of t=%f u %f v %f\n",
                   MTI->ifacemin, MTI->t[MTI->ifacemin], 
                   MTI->u[MTI->ifacemin],MTI->v[MTI->ifacemin]);
-         fprintf (Out, "Intersection point P at Minimum Distance FaceSet:\n"
-                       "%f, %f, %f\n",
+         fprintf (Out, "   Intersection point P on Minimum Distance FaceSet:\n"
+                       "      %f, %f, %f\n",
                   MTI->P[0], MTI->P[1], MTI->P[2]);
-         fprintf (Out, "Closest node is number %d in Minimum Distance Faceset "
+         fprintf (Out,"   Closest node is number %d in Minimum Distance Faceset "
                        "(%d in NodeList) at %f distance.\n",
                   MTI->inodeminlocal, MTI->inodemin, MTI->d);                           
-         fprintf (Out, "Maximum Distance: %d t %f u %f v %f\n\n", 
+         fprintf (Out, "Maximum Distance on triangle %d of t=%f u %f v %f\n\n", 
                   MTI->ifacemax, MTI->t[MTI->ifacemax], 
                   MTI->u[MTI->ifacemax],MTI->v[MTI->ifacemax]);
-         fprintf (Out, "Intersection of ray with surface "
-                       "(showing first %d out of %d elements):\n", 
-                  MaxShow, MTI->N_el);
+         fprintf (Out, "   Intersection of ray with surface "
+                       "(showing at most %d out of %d elements):\n", 
+                  mxs, MTI->N_el);
          i = 0;
          j = 0;
-         while (i< MTI->N_el && j < MTI->N_hits) {
+         while (i< MTI->N_el && j < mxs) {
             if (MTI->isHit[i]) {
                ++j;
-               fprintf (Out, "\tisHit: %d t %f u %f v %f\n", 
+               fprintf (Out, "   isHit: %d t %f u %f v %f\n", 
                         MTI->isHit[i], MTI->t[i], MTI->u[i],MTI->v[i]);
             }
             ++i;
