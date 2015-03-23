@@ -1018,31 +1018,42 @@ int SUMA_isSelfIntersect(SUMA_SurfaceObject *SO, int StopAt, byte *report)
    
    hit = 0; k = 0;
    while (k < SO->EL->N_EL) {
-         t1 = SO->EL->ELps[k][1]; t2 = SO->EL->ELps[SUMA_MIN_PAIR(k+1, SO->EL->N_EL-1)][1];
-         ep1 = &(SO->NodeList[3*SO->EL->EL[k][0]]); ep2 = &(SO->NodeList[3*SO->EL->EL[k][1]]);
+         t1 = SO->EL->ELps[k][1]; 
+         t2 = SO->EL->ELps[SUMA_MIN_PAIR(k+1, SO->EL->N_EL-1)][1];
+         ep1 = &(SO->NodeList[3*SO->EL->EL[k][0]]); 
+         ep2 = &(SO->NodeList[3*SO->EL->EL[k][1]]);
          /* find out if segment intersects */
-         MTI = SUMA_MT_intersect_triangle(ep1, ep2, SO->NodeList, SO->N_Node, SO->FaceSetList, SO->N_FaceSet, MTI, 0); 
+         MTI = SUMA_MT_intersect_triangle(ep1, ep2, SO->NodeList, SO->N_Node, 
+                                       SO->FaceSetList, SO->N_FaceSet, MTI, 0); 
          for (it=0; it<SO->N_FaceSet; ++it) {
-            if (MTI->isHit[it] && it != t1 && it != t2 && MTI->u[it] > SUMA_EPSILON && MTI->v[it] > SUMA_EPSILON) {
+            if (MTI->isHit[it] && it != t1 && it != t2 && 
+                MTI->u[it] > SUMA_EPSILON && MTI->v[it] > SUMA_EPSILON) {
                /* ray hit triangle, is intersection inside segment ? */
                /* SUMA_LH("Checking hit..."); */
                it3 = SO->FaceSetDim*it;
-               n1 = SO->FaceSetList[it3]; n2 = SO->FaceSetList[it3+1]; n3 = SO->FaceSetList[it3+2];
-               p1 = &(SO->NodeList[SO->NodeDim*n1]); p2 = &(SO->NodeList[SO->NodeDim*n2]); p3 = &(SO->NodeList[SO->NodeDim*n3]);   
+               n1 = SO->FaceSetList[it3]; 
+               n2 = SO->FaceSetList[it3+1]; 
+               n3 = SO->FaceSetList[it3+2];
+               p1 = &(SO->NodeList[SO->NodeDim*n1]); 
+               p2 = &(SO->NodeList[SO->NodeDim*n2]); 
+               p3 = &(SO->NodeList[SO->NodeDim*n3]);   
                SUMA_FROM_BARYCENTRIC(MTI->u[it], MTI->v[it], p1, p2, p3, p);
                
                if (p[0] > ep1[0] && p[0] < ep2[0]) {
-                  /* if  (LocalHead && it == 1638) {
-                  fprintf(SUMA_STDERR,"%s: Segment [%d %d] u = %f v = %f\nep1: %.6f   %.6f   %.6f\n p : %.6f   %.6f  %.6f\nep2: %.6f   %.6f  %.6f\n", 
-                                 FuncName, SO->EL->EL[k][0], SO->EL->EL[k][1], MTI->u[it], MTI->v[it],ep1[0], ep1[1], ep1[2], p[0], p[1], p[2], ep2[0], ep2[1], ep2[2]); 
-                  } */ 
                   if (p[1] > ep1[1] && p[1] < ep2[1]) {
                      if (p[2] > ep1[2] && p[2] < ep2[2]) {
                         /* point in segment, self intersection detected. */
-                        if (report || LocalHead) fprintf(SUMA_STDERR,"%s: Triangle %d (%d, %d, %d) was hit by segment formed by nodes [%d, %d]\n", 
-                           FuncName, it, n1, n2, n3, SO->EL->EL[k][0], SO->EL->EL[k][1]);
+                        if (report || LocalHead) 
+                            fprintf(SUMA_STDERR,
+                               "%s: Triangle %d (%d, %d, %d) was hit by segment "
+                               "formed by nodes [%d, %d]\n",
+                                 FuncName, it, n1, n2, n3, 
+                                 SO->EL->EL[k][0], SO->EL->EL[k][1]);
                            ++ hit;
-                           if (report) { report[SO->EL->EL[k][0]] = report[SO->EL->EL[k][1]] = 1; }
+                           if (report) { 
+                              report[SO->EL->EL[k][0]] = 
+                                 report[SO->EL->EL[k][1]] = 1; 
+                           }
                         break;
                      }
                   }
@@ -5457,15 +5468,15 @@ float *SUMA_NN_GeomSmooth2( SUMA_SurfaceObject *SO, int N_iter, float *fin_orig,
                                              SOe->NodeList, SOe->N_Node, 
                                              SOe->FaceSetList, SOe->N_FaceSet, 
                                              MTI, 1);
-                     if (MTI->N_hits ==0) { 
+                     if (MTI->N_poshits ==0) { 
                         /* go backwards VERY inefficient, consider writing
                            intersection function that keeps separate min/max */
                         MTI = SUMA_MT_intersect_triangle(P0, P2, 
                                              SOe->NodeList, SOe->N_Node, 
                                              SOe->FaceSetList, SOe->N_FaceSet, 
-                                             MTI,-1);
+                                             MTI, 1);
                      }
-                     if (MTI->N_hits ==0) { /* Nothing */
+                     if (MTI->N_poshits ==0) { /* Nothing */
                         SUMA_S_Warnv("No hits for node %d\n", ii);
                      } else {
                         for (jj=0; jj<vpn; ++jj) 
@@ -5631,6 +5642,7 @@ float *SUMA_NN_GeomSmooth3( SUMA_SurfaceObject *SO, int N_iter, float *fin_orig,
             }  
             
             if (anchor_wght) {
+               SUMA_LH("Anchoring...");
                /* allow move based on weight */
                for (ii=0; ii<SO->N_Node; ++ii) {
                   id = vpn*ii;
@@ -5642,13 +5654,34 @@ float *SUMA_NN_GeomSmooth3( SUMA_SurfaceObject *SO, int N_iter, float *fin_orig,
                } 
             }
             
+            
             if (fin_initial && !((niter+1) % MaskEnforce)) {
+               if (cs && cs->Send) {
+                  if (!SUMA_SendToSuma (SO, cs, (void *)fout, 
+                                        SUMA_NODE_XYZ, 1)) {
+                     SUMA_SL_Warn("Failed in SUMA_SendToSuma\n"
+                                  "Communication halted.");
+                  }
+               }            
                SUMA_LHv("Facelift %d (%d)\n", niter, MaskEnforce);
+               if (LocalHead) {
+                  char sbuf[256];
+                  THD_force_ok_overwrite(1) ;
+                  sprintf(sbuf,"exp_prelift.%03d",niter);
+                  SUMA_Save_Surface_Object_Wrap(sbuf, NULL, SO, 
+                                          SUMA_GIFTI, SUMA_ASCII, NULL);
+               }               
                /* recompute normals */
                if (SN.FaceNormList) SUMA_free(SN.FaceNormList);
                if (SN.NodeNormList) SUMA_free(SN.NodeNormList);
                SN = SUMA_SurfNorm(fout, SO->N_Node, 
                                   SO->FaceSetList, SO->N_FaceSet );
+               #if 0
+               /* Slows things down but might come in handy */
+               SN.NodeNormList = SUMA_SmoothAttr_Neighb_Rec (SN.NodeNormList, 
+                                                SO->N_Node*3, SN.NodeNormList, 
+                                                SO->FN, 3, 6, NULL, 0);
+               #endif
                for (ii=0; ii<SO->N_Node; ++ii) {
                   id = vpn*ii;
                   if (nmask && !nmask[ii]) {
@@ -5673,15 +5706,24 @@ float *SUMA_NN_GeomSmooth3( SUMA_SurfaceObject *SO, int N_iter, float *fin_orig,
                      P2[2] = Points[1][2];
                      if (ii==SUMA_SSidbg) {
                         SUMA_S_Notev(
-               "Node %d, expanding potential along: [%f %f %f] --> [%f %f %f]\n",
-                        ii, P0[0], P0[1], P0[2], P1[0], P1[1], P1[2]);   
+               "Node %d, iter %d at: %f %f %f, normal %f %f %f\n"
+               "expanding potential along: [%f %f %f] --> [%f %f %f] or \n"
+               "                           [%f %f %f] --> [%f %f %f]",
+                        ii, niter, fout[id], fout[id+1], fout[id+2],
+                        N0[0], N0[1], N0[2],
+                        P0[0], P0[1], P0[2], P1[0], P1[1], P1[2],
+                        P0[0], P0[1], P0[2], P2[0], P2[1], P2[2]);   
                      }
                      /* now determine the distance along normal */
                      MTI = SUMA_MT_intersect_triangle(P0, P1, 
                                              SOe->NodeList, SOe->N_Node, 
                                              SOe->FaceSetList, SOe->N_FaceSet, 
                                              MTI, 1);
-                     if (MTI->N_hits ==0) { /* go backwards 
+                     if (ii==SUMA_SSidbg) {
+                        SUMA_Show_MT_intersect_triangle(MTI, NULL,
+                                          "Forward intersection result\n");
+                     }
+                     if (MTI->N_poshits ==0) { /* go backwards 
                                 Very inefficient, consider new intersection
                                 function that keeps minima from both directions*/
                         if (ii==SUMA_SSidbg){
@@ -5691,9 +5733,14 @@ float *SUMA_NN_GeomSmooth3( SUMA_SurfaceObject *SO, int N_iter, float *fin_orig,
                         MTI = SUMA_MT_intersect_triangle(P0, P2, 
                                              SOe->NodeList, SOe->N_Node, 
                                              SOe->FaceSetList, SOe->N_FaceSet, 
-                                             MTI,-1);
+                                             MTI,1);
+                        if (ii==SUMA_SSidbg) {
+                           SUMA_S_Note("Reverse intersection result");
+                           SUMA_Show_MT_intersect_triangle(MTI, NULL, 
+                                                "Reverse intersection result\n");
+                        }
                      }
-                     if (MTI->N_hits ==0) { /* Nothing */
+                     if (MTI->N_poshits ==0) { /* Nothing */
                         SUMA_S_Warnv("No hits for node %d\n", ii);
                      } else {
                         if (ii==SUMA_SSidbg) {
@@ -5707,12 +5754,27 @@ float *SUMA_NN_GeomSmooth3( SUMA_SurfaceObject *SO, int N_iter, float *fin_orig,
                      }
                   }
                }
-            }
-            
-            if (cs && cs->Send) {
-               if (!SUMA_SendToSuma (SO, cs, (void *)fout, SUMA_NODE_XYZ, 1)) {
-                  SUMA_SL_Warn("Failed in SUMA_SendToSuma\n"
-                               "Communication halted.");
+               if (LocalHead) {
+                  char sbuf[256];
+                  THD_force_ok_overwrite(1) ;
+                  sprintf(sbuf,"exp_postlift.%03d",niter);
+                  SUMA_Save_Surface_Object_Wrap(sbuf, NULL, SO, 
+                                          SUMA_GIFTI, SUMA_ASCII, NULL);
+               }   
+               if (cs && cs->Send) {
+                  if (!SUMA_SendToSuma (SO, cs, (void *)fout, 
+                                        SUMA_NODE_XYZ, 1)) {
+                     SUMA_SL_Warn("Failed in SUMA_SendToSuma\n"
+                                  "Communication halted.");
+                  }
+               }
+            } else {
+               if (cs && cs->Send) {
+                  if (!SUMA_SendToSuma (SO, cs, (void *)fout, 
+                                        SUMA_NODE_XYZ, 1)) {
+                     SUMA_SL_Warn("Failed in SUMA_SendToSuma\n"
+                                  "Communication halted.");
+                  }
                }
             }
          }
@@ -5730,6 +5792,7 @@ float *SUMA_NN_GeomSmooth3( SUMA_SurfaceObject *SO, int N_iter, float *fin_orig,
    
    if (fbuf) SUMA_free(fbuf); fbuf = NULL;
    if (fin_initial) SUMA_free(fin_initial); fin_initial=NULL; 
+
    SUMA_RETURN(fout);    
 }
 

@@ -8551,7 +8551,13 @@ SUMA_Boolean SUMA_ShrinkSkullHull2Mask(SUMA_SurfaceObject *SO,
       if (!(SUMA_DotNormals(SO, dirZ, &dots))) {
          SUMA_S_Err("Failed to get dots");
       } else {
-         if (LocalHead) SUMA_WRITE_ARRAY_1D(dots, SO->N_Node, 1, "DOTS.1D.dset");
+         if (LocalHead) {
+            SUMA_WRITE_ARRAY_1D(dots, SO->N_Node, 1, "DOTS.1D.dset");
+            THD_force_ok_overwrite(1) ;
+            sprintf(sbuf,"shrink.init");
+            SUMA_Save_Surface_Object_Wrap(sbuf, NULL, SO, 
+                                 SUMA_GIFTI, SUMA_ASCII, NULL);
+         }
       }
    
    
@@ -8702,7 +8708,7 @@ SUMA_Boolean SUMA_ShrinkSkullHull2Mask(SUMA_SurfaceObject *SO,
          SUMA_LHv("Iteration %d, N_movers = %d, area = %f (Darea=%f%%)\n",
                iter, N_movers, area, darea);
          THD_force_ok_overwrite(1) ;
-         sprintf(sbuf,"shrink.02%d",iter);
+         sprintf(sbuf,"shrink.%03d",iter);
          SUMA_Save_Surface_Object_Wrap(sbuf, NULL, SO, 
                                  SUMA_GIFTI, SUMA_ASCII, NULL);
       } else if (ndbg >= 0) {
