@@ -65,6 +65,11 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 23, Mar, 2014, ZSS, "BrainSkin", MINOR, TYPE_BUG_FIX,
+   "Fixed projection error in  SUMA_NN_GeomSmooth?_SO ",
+   NULL
+ },
+
  { 18, Mar, 2014, ZSS, "SurfPatch", MINOR, TYPE_NEW_OPT,
    "Added -node_depth ",
    NULL
