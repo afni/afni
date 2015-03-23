@@ -9,6 +9,7 @@ import glob
 import afni_base as BASE
 import afni_util as UTIL
 import lib_subjects as SUBJ
+import lib_vars_object as VO
 
 DEF_UBER_DIR = 'uber_results'        # top directory for output
 DEF_TOP_DIR  = 'tool_results'     # top subject dir under uber_results
@@ -45,13 +46,13 @@ g_version = '0.11 (June 2, 2014)'
 # (as well as string versions of control and user defaults)
 
 # ---- resulting values returned after class actions ----
-g_res_defs = SUBJ.VarsObject("slow_surf_clustsim result variables")
+g_res_defs = VO.VarsObject("slow_surf_clustsim result variables")
 g_res_defs.file_proc     = ''   # file name for process script
 g_res_defs.output_proc   = ''   # output from running proc script
 
 # ---- control variables: process control, not set by user in GUI
 
-g_ctrl_defs = SUBJ.VarsObject("slow_surf_clustsim control defaults")
+g_ctrl_defs = VO.VarsObject("slow_surf_clustsim control defaults")
 g_ctrl_defs.verb         = 1     # verbose level
 g_ctrl_defs.proc_dir     = '.'   # process dir: holds scripts and result dir
 g_ctrl_defs.time_process = 'yes' # run /usr/bin/time on commands?
@@ -62,7 +63,7 @@ g_ctrl_defs.keepblocks   = 10    # number of iteration block outputs to keep
 
 # ---- user variables: process control, alignment inputs and options ----
 
-g_user_defs = SUBJ.VarsObject("slow_surf_clustsim user defaults")
+g_user_defs = VO.VarsObject("slow_surf_clustsim user defaults")
 g_user_defs.copy_scripts   = 'yes'      # do we make .orig copies of scripts?
 g_user_defs.results_dir    = 'clust.results' # where script puts results
 
@@ -137,7 +138,7 @@ class SurfClust(object):
       # variables
 
       # LV: variables local to this interface, not passed
-      self.LV = SUBJ.VarsObject("local AP_Subject vars")
+      self.LV = VO.VarsObject("local AP_Subject vars")
       self.LV.indent  = 8               # default indent for main options
       self.LV.istr    = ' '*self.LV.indent
       self.LV.retdir  = ''              # return directory (for jumping around)
