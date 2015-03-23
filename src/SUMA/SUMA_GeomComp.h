@@ -419,10 +419,13 @@ SUMA_PC_XYZ_PROJ *SUMA_Project_Coords_PCA (float *xyz, int N_xyz, int iref,
                                 float *xyzref,
                                 SUMA_PC_PROJ compnum, SUMA_PC_ROT rotate, 
                                 int remean);
-int SUMA_NodeDepth(float *NodeList, int N_Node, float **dpth, 
+SUMA_Boolean SUMA_WriteNodeDepth(char *prefix, SUMA_PC_XYZ_PROJ *pcp, 
+                                 float *dpth, float mx);
+int SUMA_NodeDepth(float *NodeList, int N_Node, SUMA_PC_PROJ prjdir, 
+                   float **dpth, 
                    float thr, byte **cmaskp, float *mxdpth,
                    SUMA_PC_XYZ_PROJ **pcpu);
-int SUMA_VoxelDepth(THD_3dim_dataset *dset, float **dpth,
+int SUMA_VoxelDepth(THD_3dim_dataset *dset, SUMA_PC_PROJ prjdir, float **dpth,
                     float thr, byte **cmaskp, int applymask);
 int SUMA_VoxelDepth_Z(THD_3dim_dataset *dset, byte *cmasku,
                      float **dpth,

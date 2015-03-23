@@ -21,6 +21,7 @@ void usage_SurfInfo (SUMA_GENERIC_ARGV_PARSE *ps)
                "                  only for the specified parameters.\n"  
                "     -N_Node: Number of nodes\n"
                "     -N_FaceSet or -N_Tri: Number of triangles.\n"
+               "     -COM: Center of mass\n"
                "     \n"
                "     -quiet: Do not include name of parameter in output.\n"
                "     -sep SEP: Use string SEP to separate parameter values.\n"
@@ -114,6 +115,12 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_SurfInfo_ParseInput(char *argv[], int arg
       if (!brk && (strcmp(argv[kar], "-N_Node") == 0))
       {
          Opt->s = SUMA_append_replace_string(Opt->s,"N_Node","|",1);
+         brk = YUP;
+      }
+      
+      if (!brk && (strcmp(argv[kar], "-COM") == 0))
+      {
+         Opt->s = SUMA_append_replace_string(Opt->s,"COM","|",1);
          brk = YUP;
       }
       
@@ -234,6 +241,20 @@ int main (int argc,char *argv[])
                if (i) fprintf(SUMA_STDOUT, "%s%s=%d", 
                                           Opt->in_1D, s, SO->N_FaceSet);
                else fprintf(SUMA_STDOUT, "%s=%d", s, SO->N_FaceSet);
+            }
+         } else if (!strcmp(s,"COM")) {
+            if (Opt->b2) {
+               if (i) fprintf(SUMA_STDOUT, "%s%f %f %f", 
+                              Opt->in_1D, 
+                              SO->Center[0], SO->Center[1],SO->Center[2]);
+               else fprintf(SUMA_STDOUT, "%f %f %f", 
+                              SO->Center[0], SO->Center[1],SO->Center[2]);
+            } else {
+               if (i) fprintf(SUMA_STDOUT, "%s%s=%f %f %f", 
+                              Opt->in_1D, s, 
+                              SO->Center[0], SO->Center[1],SO->Center[2]);
+               else fprintf(SUMA_STDOUT, "%s=%f %f %f", s, 
+                              SO->Center[0], SO->Center[1],SO->Center[2]);
             }
          } else {
             SUMA_S_Errv("Don't know about parameter >>%s<<\n", s);
