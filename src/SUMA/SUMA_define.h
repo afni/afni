@@ -718,10 +718,15 @@ typedef enum { SUMA_UNDEFINED_MODE,
                                             SUMA_WIDGET_CMAP_MODE */
                
 typedef enum {
+               SUMA_NOT_SET=-1,
+               SUMA_NO_THRESH,
                SUMA_LESS_THAN,   /*!< Mask if T[i] < Opt->ThreshRange[0] */
-               SUMA_ABS_LESS_THAN, /*!< Mask if T[i] < Opt->ThreshRange[0] || T[i] > -Opt->ThreshRange[0] */
-               SUMA_THRESH_OUTSIDE_RANGE, /*!< Mask if T[i] < Opt->ThreshRange[0] || T[i] > Opt->ThreshRange[1] */
-               SUMA_THRESH_INSIDE_RANGE, /*!< Mask if T[i] > Opt->ThreshRange[0] || T[i] < Opt->ThreshRange[1] */
+               SUMA_ABS_LESS_THAN, /*!< Mask if T[i] < Opt->ThreshRange[0] || 
+                                        T[i] > -Opt->ThreshRange[0] */
+               SUMA_THRESH_OUTSIDE_RANGE, /*!< Mask if T[i] < Opt->ThreshRange[0]
+                                                 || T[i] > Opt->ThreshRange[1] */
+               SUMA_THRESH_INSIDE_RANGE, /*!< Mask if T[i] >= Opt->ThreshRange[0]
+                                              && T[i] <= Opt->ThreshRange[1] */
             }  SUMA_THRESH_MODE;
 /*! a structure holding the options for the function SUMA_ScaleToMap 
 \sa SUMA_ScaleToMapOptInit to allocate and initialize such a structure 
@@ -879,8 +884,8 @@ typedef struct {
    float DistLim;
    float AreaLim;
    int NodeLim;
-   int DoThreshold;
-   float Thresh;
+   SUMA_THRESH_MODE DoThreshold;
+   float ThreshR[2];
    int tind;
    float update;
    int DoCentrality;

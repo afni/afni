@@ -3058,7 +3058,9 @@ SUMA_Boolean SUMA_FreeSurfer_WritePatch (char *fileNm, SUMA_SurfaceObject *SO, c
    if (firstLine) {
       fprintf(fout, "%s\n", firstLine);
    } else {
-      if (!SO->Label) SO->Label = SUMA_SurfaceFileName (SO, NOPE);
+      if (!SO->Label && !(SO->Label = SUMA_SurfaceFileName (SO, NOPE))) {
+         SO->Label = SUMA_copy_string("Ein_Lousy_Label");
+      }
       fprintf(fout, "#!ascii version of patch %s\n", SO->Label);
    }
    
