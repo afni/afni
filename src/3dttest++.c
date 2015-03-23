@@ -2,9 +2,7 @@
 
 /*------------------------------- prototypes, etc. ---------------------------*/
 
-#undef  LTRUNC
-#define LTRUNC(ss) \
- do{ if( strlen(ss) > MAX_LABEL_SIZE ){(ss)[MAX_LABEL_SIZE] = '\0'; }} while(0)
+/* funcs to do the t-tests on sets of numbers */
 
 void regress_toz( int numA , float *zA ,
                   int numB , float *zB , int opcode ,
@@ -15,9 +13,35 @@ void regress_toz( int numA , float *zA ,
 
 float_pair ttest_toz( int numx, float *xar, int numy, float *yar, int opcode ) ;
 
+/* similar funcs for the case of -singletonA */
+
+void regress_toz_singletonA( float zA ,
+                             int numB , float *zB ,
+                             int mcov ,
+                             float *xA ,
+                             float *xB , float *psinvB , float *xtxinvB ,
+                             float *outvec , float *workspace             ) ;
+
+float_pair ttest_toz_singletonA( float xar , int numy, float *yar ) ;
+
+/* convert t-stat to z-score */
+
 double GIC_student_t2z( double tt , double dof ) ;
 
+/* setup the covariates matrices */
+
 void TT_matrix_setup( int kout ) ;  /* 30 Jul 2010 */
+
+/* macro to truncate labels */
+
+#undef  MAX_LABEL_SIZE
+#define MAX_LABEL_SIZE 12
+
+#undef  LTRUNC
+#define LTRUNC(ss) \
+ do{ if( strlen(ss) > MAX_LABEL_SIZE ){(ss)[MAX_LABEL_SIZE] = '\0'; }} while(0)
+
+/* macro for some memory usage info */
 
 #undef MEMORY_CHECK
 #ifdef USING_MCW_MALLOC
@@ -32,18 +56,19 @@ void TT_matrix_setup( int kout ) ;  /* 30 Jul 2010 */
 #endif
 
 /*----------------------------------------------------------------------------*/
+/* Constants and globals */
 
 #undef  MAXCOV
 #define MAXCOV 31
-
-#undef  MAX_LABEL_SIZE
-#define MAX_LABEL_SIZE 12
 
 static int toz    = 0 ;  /* convert t-statistics to z-scores? */
 static int twosam = 0 ;
 
 static int brickwise     = 0 ;                 /* 28 Jan 2014 */
 static int brickwise_num = 0 ;
+
+static int singletonA    = 0 ;                 /* 19 Mar 2015 */
+static float singleton_variance_ratio = 1.0f ; /* 20 Mar 2015 */
 
 static NI_element         *covnel=NULL ;       /* covariates */
 static NI_str_array       *covlab=NULL ;
@@ -267,6 +292,72 @@ void display_help_menu(void)
       "  ***              The option '-AminusB' can be used to explicitly    ***\n"
       "  *****            specify the standard subtraction order.          *****\n"
       "\n"
+      "---------------------------------------------------------------\n"
+      "TESTING A SINGLE DATASET VERSUS THE MEAN OF A GROUP OF DATASETS\n"
+      "---------------------------------------------------------------\n"
+      "\n"
+      "This new [Mar 2015] option allows you to test a single value versus\n"
+      "a group of datasets.  To do this, replace the '-setA' option with the\n"
+      "'-singletonA' option described below, and input '-setB' normally\n"
+      "(that is, '-setB' must have more than 1 dataset).\n"
+      "\n"
+      " -singletonA dataset_A\n"
+      "   *OR*\n"
+      " -singletonA LABL_A dataset_A\n"
+      "\n"
+      "* In the first form, just give the 1 sub-brick dataset name after the option.\n"
+      "  In the second form, you can provide a dataset 'label' to be used for\n"
+      "  covariates extraction.\n"
+      "\n"
+      "* The output dataset will have 2 sub-bricks:\n"
+      "  ++ The difference (at each voxel) between the dataset_A value and the\n"
+      "     mean of the setB dataset values.\n"
+      "  ++ The t-statistic corresponding to this difference.\n"
+      "\n"
+      "* If covariates are used, at each voxel the slopes of the setB data values with\n"
+      "  respect to the covariates are estimated (as usual).\n"
+      "  ++ These slopes are then used to project the covariates out of the mean of\n"
+      "     the setB values, and are also applied similarly to the single value from\n"
+      "     the singleton dataset_A.\n"
+      "  ++ That is, the covariate slopes from setB are applied to the covariate values\n"
+      "     for dataset_A in order to subtract the covariate effects from dataset_A,\n"
+      "     as well as from the setB mean.\n"
+      "  ++ Since it impossible to independently estimate the covariate slopes for\n"
+      "     dataset_A, this procedure seems (to me) like the only reasonable way to use\n"
+      "     covariates with a singleton dataset.\n"
+      "\n"
+      "* The t-statistic is computed assuming that the variance of dataset_A is the\n"
+      "  same as the variance of the setB datasets.\n"
+      "  ++ Of course, it is impossible to estimate the variance of dataset_A at each\n"
+      "     voxel from its single number!\n"
+      "  ++ In this way, the t-statistic differs from testing the setB mean against\n"
+      "     a (voxel-dependent) constant, which would not have any variance.\n"
+      "  ++ In particular, the t-statistic will be smaller than in the more usual\n"
+      "     'test-against-constant' case, since the test here allows for the variance\n"
+      "     of the dataset_A value.\n"
+      "  ++ As a special case, you can use the option\n"
+      "       -singleton_variance_ratio RRR\n"
+      "     to set the (assumed) variance of dataset_A to be RRR times the variance\n"
+      "     of set B. Here, 'RRR' must be a positive number -- it cannot be zero,\n"
+      "     so if you really want to test against a voxel-wise constant, use something\n"
+      "     like 0.0001 for RRR.\n"
+      "\n"
+      "* Statistical inference on a single sample (dataset_A values) isn't really\n"
+      "  possible.  The purpose of '-singletonA' is to give you some guidance when\n"
+      "  a voxel value in dataset_A is markedly different from the distribution of\n"
+      "  values in setB.\n"
+      "  ++ However, a statistician would caution you that when an elephant walks into\n"
+      "     the room, it might just be a 3000 standard deviation mouse, and you can't\n"
+      "     validly conclude it is a different species until you get some more data.\n"
+      "\n"
+      "* At present, '-singletonA' cannot be used with '-brickwise'.\n"
+      "  ++ Various other options don't make sense with '-singletonA', including\n"
+      "     '-paired' and '-center SAME'.\n"
+      "\n"
+      "* Note that there is no '-singletonB' option -- the only reason this is labeled\n"
+      "  as '-singletonA' is to remind the user (you) that this option replaces the\n"
+      "  '-setA' option.\n"
+      "\n"
       "--------------------------------------\n"
       "COVARIATES - per dataset and per voxel\n"
       "--------------------------------------\n"
@@ -308,8 +399,8 @@ void display_help_menu(void)
       "\n"
       "* If you used a short form '-setX' option, each dataset label is\n"
       "   the dataset's prefix name (truncated to 12 characters).\n"
-      "  ++ e.g.,  Fred+tlrc'[3]'  ==>  Fred\n"
-      "  ++ e.g.,  Elvis.nii.gz    ==>  Elvis\n"
+      "  ++ e.g.,  Klaatu+tlrc'[3]' ==>  Klaatu\n"
+      "  ++ e.g.,  Elvis.nii.gz     ==>  Elvis\n"
       "\n"
       "* '-covariates' can only be used with the short form '-setX' option\n"
       "   if each input dataset has only 1 sub-brick (so that each label\n"
@@ -499,7 +590,8 @@ void display_help_menu(void)
       "                 (significantly different inter-subject variance\n"
       "                 between the two different collections of datasets).\n"
       "             ++  Our experience is that for most FMRI data, using\n"
-      "                 '-unpooled' is not needed.\n"
+      "                 '-unpooled' is not needed; the option is here for\n"
+      "                 those who like to experiment or who are very cautious.\n"
       "\n"
       " -toz      = Convert output t-statistics to z-scores\n"
       "             ++ -unpooled implies -toz, since t-statistics won't be\n"
@@ -820,8 +912,59 @@ void display_help_menu(void)
       "matrix inversions needs to be carried out.\n"
       "\n"
 
+      "-------------------------------------------\n"
+      "HOW SINGLETON TESTING WORKS WITH COVARIATES\n"
+      "-------------------------------------------\n"
+      "\n"
+      "(1) For setB, the standard regression is carried out to give the\n"
+      "    covariate slope estimates (at each voxel):\n"
+      "      [b] = [Xp] [z]\n"
+      "    where [z]  = column vector of the setB values\n"
+      "          [Xp] = pseudo-inverse of the [X] matrix for the setB covariates\n"
+      "          [b]  = covariate parameter estimates\n"
+      "    Under the usual assumptions, [b] has mean [b_truth] and covariance\n"
+      "    matrix sigma^2 [Xi], where sigma^2 = variance of the zB values, and\n"
+      "    [Xi] = inverse[X'X].  (Again, ' = tranpose.)\n"
+      "    (If centering is used, [X] is replaced by [Xc] in all of the above.)\n"
+      "\n"
+      "(2) Call the singletonA value (at each voxel) y;\n"
+      "    then the statistical model for y is\n"
+      "       y = yoff + [c]'[b_truth] + Normal(0,sigma^2)\n"
+      "    where the column vector [c] is the transpose of the 1-row matrix [X]\n"
+      "    for the singletonA dataset -- that is, the first element of [c] is 1,\n"
+      "    and the other elements are the covariate values for this dataset.\n"
+      "    (The null hypothesis is that the mean offset yoff is 0.)\n"
+      "    The covariate slopes [b] from step (1) are projected out of y now:\n"
+      "      y0 = y - [c]'[b]\n"
+      "    which under the null hypothesis has mean 0 and variance\n"
+      "      sigma^2 ( 1 + [c]'[Xi][c] )\n"
+      "    Here, the '1' comes from the variance of y, and the [c]'[Xi][c] comes\n"
+      "    from the variance of [b] dotted with [c].  Note that in the trivial\n"
+      "    case of no covariates, [X] = 1-column matrix of all 1s and [c] = scalar\n"
+      "    value of 1, so [c]'[Xi][c] = 1/N where N = number of datasets in setB.\n"
+      "\n"
+      "(3) sigma^2 is as usual estimated by s^2 = sum[ (z_i - mean(z))^2 ] / (N-m-1)\n"
+      "    where N = number of datasets in setB and m = number of covariates.\n"
+      "    Under the usual assumptions, s^2 is distributed like a random variable\n"
+      "    ( sigma^2 / (N-m) ) * ChiSquared(N-m).\n"
+      "\n"
+      "(4) Consider the test statistic\n"
+      "      tau = y0 / sqrt(s^2)\n"
+      "    Under the null hypothesis, this has the distribution of a random variable\n"
+      "      Normal(0,1 + [c]'[Xi][c]) / sqrt( ChiSquared(N-m)/(N-m) )\n"
+      "    So tau is not quite t-distributed, but dividing out the scale factor works:\n"
+      "      t = y0 / sqrt( s^2 * (1 + [c]'[Xi][c]) )\n"
+      "    and under the null hypothesis, this value t has a Student(N-m) distribution.\n"
+      "    Again, note that in the case of no covariates, [c]'[Xi][c] = 1/N.\n"
+      "\n"
+      "A test script that simulates random values and covariates has verified the\n"
+      "distribution of the results in both the null hypothesis (yoff == 0) case and the\n"
+      "alternative hypothesis (yoff !=0 ) case -- where the value t now takes on the\n"
+      "non-central Student distribution.\n"
+      "\n"
+
       "---------------------\n"
-      "A NOTE ABOUT p-VALUES\n"
+      "A NOTE ABOUT p-VALUES (everyone's favorite subject)\n"
       "---------------------\n"
       "\n"
       "The 2-sided p-value of a t-statistic value T is the likelihood (probability)\n"
@@ -958,6 +1101,7 @@ void display_help_menu(void)
   PRINT_COMPILE_DATE ; exit(0) ;
 }
 
+/*--------------------------------------------------------------------------*/
 /* Can this option be a label or subject name?  [ZSS Nov 29 2011] */
 
 int is_possible_filename( char * fname )
@@ -1184,7 +1328,8 @@ int main( int argc , char *argv[] )
        THD_3dim_dataset *qset , **dset=NULL ;
 
        if( cc == 'A' || cc == '2' ){
-         if( ndset_AAA > 0 ) ERROR_exit("Can't use '-setA' twice!") ;
+              if( ndset_AAA > 1 ) ERROR_exit("Can't use '-setA' twice!") ;
+         else if( singletonA    ) ERROR_exit("Can't use '-setA' and '-singletonA' together!") ;
        } else if( cc == 'B' || cc == '1' ){
          if( ndset_BBB > 0 ) ERROR_exit("Can't use '-setB' twice!") ;
        } else {
@@ -1343,6 +1488,84 @@ int main( int argc , char *argv[] )
 
      } /*----- end of '-set' -----*/
 
+     /*----- -singletonA [19 Mar 2015] -----*/
+
+     if( strcmp(argv[nopt],"-singletonA") == 0 ){
+       char *cpt, *qnam , *lnam ;
+       int nds=0 , ids , nv=0 ; char **nams=NULL , **labs=NULL , *snam=NULL ;
+       THD_3dim_dataset *qset , **dset=NULL ;
+
+       if( ndset_AAA > 1 )
+         ERROR_exit("Cannot use '-singletonA' and '-setA' together!") ;
+       if( singletonA )
+         ERROR_exit("Cannot use '-singletonA' twice!") ;
+       if( brickwise )
+         ERROR_exit("Cannot use '-singletonA' and '-brickwise' together :-(") ;
+       if( ++nopt >= argc )
+         ERROR_exit("Need argument after '%s'",argv[nopt-1]) ;
+       if( HAS_WILDCARD(argv[nopt]) )
+         ERROR_exit("Argument after '-singletonA' has wildcard -- this is not allowed!") ;
+
+       /* if next arg is a dataset, then it is the singleton dataset;
+          otherwise, it is the label and the NEXT arg is the dataset */
+
+       qset = THD_open_dataset( argv[nopt] ) ;
+
+       if( ISVALID_DSET(qset) ){   /* 1st arg is dataset name (and the label) */
+         lnam = argv[nopt] ;
+         qnam = argv[nopt] ; nopt++ ;
+       } else {                    /* 1st arg is dataset label, second is name */
+         if( strstr(argv[nopt],"+orig") != NULL ||
+             strstr(argv[nopt],"+tlrc") != NULL ||
+             strstr(argv[nopt],".nii" ) != NULL   )
+           WARNING_message("-singletonA: dataset label '%s' looks like a dataset name but isn't -- is this OK ?!?",
+                           argv[nopt] ) ;
+         if( is_possible_filename(argv[nopt]) )
+           WARNING_message("-singletonA: dataset label '%s' looks like it is also a filename on disk -- is this OK ?!?",
+                           argv[nopt] ) ;
+
+         qset = THD_open_dataset( argv[nopt+1] ) ;
+         if( !ISVALID_DSET(qset) )
+           ERROR_exit("Option -singletonA: can't open dataset '%s'",argv[nopt+1]) ;
+
+         lnam = argv[nopt] ;
+         qnam = argv[nopt+1] ; nopt += 2 ;
+       }
+
+       if( DSET_NVALS(qset) > 1 )
+         ERROR_exit("-singletonA dataset '%s' has more than 1 sub-brick -- not allowed!",qnam) ;
+
+       nams = (char **)malloc(sizeof(char *)) ;
+       labs = (char **)malloc(sizeof(char *)) ;
+       dset = (THD_3dim_dataset **)malloc(sizeof(THD_3dim_dataset *)) ;
+
+       nams[0] = strdup(qnam) ;
+       dset[0] = qset ;
+       labs[0] = strdup(THD_trailname(lnam,0)) ;
+       cpt = strchr(labs[0]+1,'+')    ; if( cpt != NULL ) *cpt = '\0' ;
+       cpt = strstr(labs[0]+1,".nii") ; if( cpt != NULL ) *cpt = '\0' ;
+       LTRUNC(labs[0]) ;
+
+       ndset_AAA = 1    ; snam_AAA = strdup("sngltnA") ; nval_AAA = 1    ;
+        name_AAA = nams ; labl_AAA = labs              ; dset_AAA = dset ;
+
+       singletonA = 1 ;
+       continue ;  /* nopt already points to next option */
+
+     }  /* end of '-singletonA' */
+
+     /*----- singleton_variance_ratio -----*/
+
+     if( strcmp(argv[nopt],"-singleton_variance_ratio") == 0 ){
+       float val ;
+       if( ++nopt >= argc ) ERROR_exit("need 1 argument after option '%s'",argv[nopt-1]);
+       val = (float)strtod(argv[nopt],NULL) ;
+       if( val <= 0.0f ) ERROR_exit("value after %s must be positive",argv[nopt-1]) ;
+       if( val >  9.9f ) WARNING_message("value after %s is kind of large = %g",argv[nopt-1],val) ;
+       singleton_variance_ratio = val ;
+       nopt++ ; continue ;
+     }
+
      /*----- covariates -----*/
 
      if( strcasecmp(argv[nopt],"-covariates") == 0 ){  /* 20 May 2010 */
@@ -1425,8 +1648,19 @@ int main( int argc , char *argv[] )
 
    twosam = (nval_BBB > 1) ; /* 2 sample test? */
 
+   if( singletonA && !twosam )
+     ERROR_exit("-singletonA was used, but -setB was not: this makes no sense!") ;
+
+   if( singletonA ){ do_1sam = 0 ; ttest_opcode = 0 ; }
+
+   if( singletonA && center_code == CENTER_SAME && mcov > 0 ){
+     WARNING_message("-singletonA and -center SAME don't work together;\n"
+                     "         ==> centering will be on -setB covariates only\n") ;
+     center_code = CENTER_DIFF ;
+   }
+
    if( nval_AAA <= 0 )
-     ERROR_exit("No '-setA' option?  Please please read the -help instructions!") ;
+     ERROR_exit("No '-setA' option?  Please please read the -help instructions again!") ;
 
    if( nval_AAA != nval_BBB && ttest_opcode == 2 )
      ERROR_exit("Can't do '-paired' with unequal set sizes: #A=%d #B=%d",
@@ -1468,9 +1702,9 @@ int main( int argc , char *argv[] )
                       zskip_BBB,nval_BBB) ;
    }
 
-   if( nval_AAA - mcov < 2 ||
-       ( twosam && (nval_BBB - mcov < 2) ) )
-     ERROR_exit("Too many covariates compared to number of datasets") ;
+   if( (!singletonA && (nval_AAA - mcov < 2) ) ||
+       ( twosam     && (nval_BBB - mcov < 2) )   )
+     ERROR_exit("Too many covariates (%d) compared to number of datasets in each -set",mcov) ;
 
    if( mcov > 0 && allow_cov <= 0 ){
      switch( allow_cov ){
@@ -1484,7 +1718,7 @@ int main( int argc , char *argv[] )
    }
 
    if( ttest_opcode == 1 && mcov > 0 ){
-     WARNING_message("-covariates does not support unpooled variance") ;
+     WARNING_message("-covariates does not support unpooled variance: switching to pooled") ;
      ttest_opcode = 0 ;
    }
 
@@ -1496,7 +1730,7 @@ int main( int argc , char *argv[] )
    }
 
    if( !do_1sam && !twosam ){
-     WARNING_message("-no1sam and no -setB datasets?  What do you mean?") ;
+     WARNING_message("-no1sam and no -setB datasets!  What do you mean?") ;
      do_1sam = 1 ;
    }
 
@@ -1504,6 +1738,9 @@ int main( int argc , char *argv[] )
    if( do_ranks && !twosam ){
      WARNING_message("-rankize only works with two-sample tests ==> ignoring") ;
      do_ranks = 0 ; do_1sam = 1 ;
+   } else if( do_ranks && singletonA ){
+     WARNING_message("-rankize doesn't work with -singletonA ==> ignoring") ;
+     do_ranks = 0 ;
    }
 #else
    if( do_ranks ){
@@ -1534,8 +1771,11 @@ int main( int argc , char *argv[] )
    if( twosam ){
      snam_PPP = (BminusA) ? snam_BBB : snam_AAA ;
      snam_MMM = (BminusA) ? snam_AAA : snam_BBB ;
-     INFO_message("%s test: results will be %s - %s",
-                  ttest_opcode == 2 ? "paired":"2-sample", snam_PPP,snam_MMM) ;
+     if( singletonA )
+       INFO_message("results will be %s - %s", snam_PPP,snam_MMM) ;
+     else
+       INFO_message("%s test: results will be %s - %s",
+                    ttest_opcode == 2 ? "paired":"2-sample", snam_PPP,snam_MMM) ;
    }
 
    /*----- set up covariates in a very lengthy aside now -----*/
@@ -1667,7 +1907,7 @@ int main( int argc , char *argv[] )
 
      /*-- end of loading covariate vectors --*/
 
-     /*-- next, create the covariate regression matrices --*/
+     /*-- next, create the (empty) covariate regression matrices --*/
 
      /*-- setA matrix --*/
 
@@ -1683,14 +1923,14 @@ int main( int argc , char *argv[] )
        Bxxim = Axxim ; Bxx = Axx ;   /* identical matrix to setA */
      }
 
-     /*-- fill them in and (pseudo)invert them */
+     /*-- fill them in and (pseudo)invert them --*/
 
      TT_matrix_setup(0) ;  /* 0 = voxel index (just sayin') */
 
      if( num_covset_col > 0 ) MEMORY_CHECK ;
 
-     if( twosam && num_covset_col < mcov ){             /* 19 Oct 2010 */
-       int toz_sav = toz ; float pp ;         /* test covariates for equality */
+     if( twosam && num_covset_col < mcov ){   /* 19 Oct 2010 */
+       int toz_sav = toz ; float pp ;         /* test covariates for equality-ishness */
 
        toz = 1 ;
        INFO_message(
@@ -1714,7 +1954,10 @@ int main( int argc , char *argv[] )
 
    /*-------------------- create empty output dataset ---------------------*/
 
-   nvres = nvout  = ((twosam && do_1sam) ? 6 : 2) * (mcov+1) ; /* # of output volumes */
+   if( singletonA )
+     nvres = nvout = 2 ;
+   else
+     nvres = nvout = ((twosam && do_1sam) ? 6 : 2) * (mcov+1) ; /* # of output volumes */
 
    if( !do_means || !do_tests ) nvout /= 2 ; /* no mean or stat sub-bricks? [05 Feb 2014] */
 
@@ -1755,16 +1998,20 @@ int main( int argc , char *argv[] )
 
    /* degrees of freedom for the t-statistics */
 
-   dof_A = nval_AAA - (mcov+1) ;
-   if( twosam ){
-    dof_B  = nval_BBB - (mcov+1) ;
-    dof_AB = (ttest_opcode==2) ? dof_A : dof_A+dof_B ;
+   if( singletonA ){
+     dof_A = dof_B = dof_AB = nval_BBB - (mcov+1) ;
+   } else {
+     dof_A = nval_AAA - (mcov+1) ;
+     if( twosam ){
+      dof_B  = nval_BBB - (mcov+1) ;
+      dof_AB = (ttest_opcode==2) ? dof_A : dof_A+dof_B ;
+     }
    }
 
 /*-:-:-:-:-:-:-:-:-:-:-:-:-:-:-:-:-:-:-:-:-:-:-:-:-:-:-:-:-:-:-:-:-:-:-:-:-:*/
 /*--------- macros for adding sub-brick labels and statistics codes --------*/
 
-   /* format for sub-brick index (good up to 999,999 sub-bricks) */
+   /* format for sub-brick index (good up to 99,999 sub-bricks) */
 
         if( brickwise_num <=    10 ) abbfmt = "#%d"   ;
    else if( brickwise_num <=   100 ) abbfmt = "#%02d" ;
@@ -1836,6 +2083,12 @@ int main( int argc , char *argv[] )
 
    stnam = (toz) ? "Zscr" : "Tstat" ;    /* name of statistic */
 
+   if( singletonA ){  /* special case [20 Mar 2015] */
+     if( do_means ) MEAN_LABEL_2SAM(snam_PPP,snam_MMM,"diff") ;
+     if( do_tests ) TEST_LABEL_2SAM_MEAN(snam_PPP,snam_MMM) ;
+     goto LABELS_ARE_DONE ;
+   }
+
    for( bb=0 ; bb < brickwise_num ; bb++ ){ /** loop over tests to perform **/
      bbase = bb*nvout ; ss = 0 ;
      if( mcov <= 0 ){                    /*--- no covariates ---*/
@@ -1881,6 +2134,8 @@ int main( int argc , char *argv[] )
        }
      } /* end of have covariates */
    } /* end of brickwise loop */
+
+LABELS_ARE_DONE:  /* target for goto above */
 
    /*----- create space to store results before dataset-izing them -----*/
 
@@ -1931,6 +2186,8 @@ int main( int argc , char *argv[] )
      if( vstep > 0 ) fprintf(stderr,"++ t-testing:") ;
      nconst = nzred = nzskip = 0 ;
 
+     /*------- the actual work is in this loop over voxels! -------*/
+
      for( kout=ivox=0 ; ivox < nvox ; ivox++ ){  /* for each voxel to process */
 
        if( mask != NULL && mask[ivox] == 0 ) continue ;  /* don't process me */
@@ -1959,8 +2216,12 @@ int main( int argc , char *argv[] )
 
        /* skip processing for input voxels whose data is constant */
 
-       for( ii=1 ; ii < nval_AAA && datAAA[ii] == datAAA[0] ; ii++ ) ; /*nada*/
-       dconst = (ii == nval_AAA) ;
+       if( nval_AAA > 1 ){
+         for( ii=1 ; ii < nval_AAA && datAAA[ii] == datAAA[0] ; ii++ ) ; /*nada*/
+         dconst = (ii == nval_AAA) ;
+       } else {
+         dconst = 0 ;  /* for singletonA */
+       }
        if( twosam && !dconst ){
          for( ii=1 ; ii < nval_BBB && datBBB[ii] == datBBB[0] ; ii++ ) ; /*nada*/
          dconst = (ii == nval_BBB) ;
@@ -2009,7 +2270,11 @@ int main( int argc , char *argv[] )
 #ifdef ALLOW_RANK
            if( do_ranks ) rank_order_2floats( nAAA,zAAA , nBBB,zBBB ) ;
 #endif
-           tpair = ttest_toz( nAAA,zAAA , nBBB,zBBB , ttest_opcode ) ; /* 2 sample A-B */
+           if( singletonA ){
+             tpair = ttest_toz_singletonA( zAAA[0] , nBBB,zBBB ) ;
+           } else {
+             tpair = ttest_toz( nAAA,zAAA , nBBB,zBBB , ttest_opcode ) ; /* 2 sample A-B */
+           }
            resar[0] = tpair.a ; resar[1] = tpair.b ;
            if( debug > 1 ) fprintf(stderr,"   resar[0]=%g  [1]=%g\n",resar[0],resar[1]) ;
          } else {
@@ -2035,10 +2300,18 @@ int main( int argc , char *argv[] )
 #ifdef ALLOW_RANK
          if( do_ranks ) rank_order_2floats( nval_AAA, datAAA, nval_BBB, datBBB ) ;
 #endif
-         regress_toz( nval_AAA , datAAA , nval_BBB , datBBB , ttest_opcode ,
-                      mcov ,
-                      Axx , Axx_psinv , Axx_xtxinv ,
-                      Bxx , Bxx_psinv , Bxx_xtxinv , resar , workspace ) ;
+         if( singletonA ){
+           regress_toz_singletonA( datAAA[0] ,
+                                   nval_BBB , datBBB ,
+                                   mcov ,
+                                   Axx ,
+                                   Bxx , Bxx_psinv , Bxx_xtxinv , resar , workspace ) ;
+         } else {
+           regress_toz( nval_AAA , datAAA , nval_BBB , datBBB , ttest_opcode ,
+                        mcov ,
+                        Axx , Axx_psinv , Axx_xtxinv ,
+                        Bxx , Bxx_psinv , Bxx_xtxinv , resar , workspace ) ;
+         }
        }
 
        if( BminusA && ntwosam ){  /* negate 2 sample results? [05 Nov 2010] */
@@ -2046,7 +2319,8 @@ int main( int argc , char *argv[] )
        }
 
        kout++ ;
-     }  /* end of loop over voxels */
+
+     }  /*------- end of loop over voxels -------*/
 
      /*--- print messages for this set of t-tests ---*/
 
@@ -2085,7 +2359,7 @@ int main( int argc , char *argv[] )
        DSET_NULL_ARRAY(bbset,kk) ;
      }
 
-   } /* end of brickwise loop */
+   } /*----- end of brickwise loop -----*/
 
    /*-------- get rid of the input data and workspaces now --------*/
 
@@ -2138,7 +2412,9 @@ int main( int argc , char *argv[] )
 
    DSET_write(outset) ; WROTE_DSET(outset) ; DSET_unload(outset) ;
 
-   if( twosam )
+   if( singletonA )
+     ININFO_message("results are %s - %s", snam_PPP,snam_MMM) ;
+   else if( twosam )
      ININFO_message("%s test: results are %s - %s",
                     ttest_opcode == 2 ? "paired":"2-sample", snam_PPP,snam_MMM) ;
 
@@ -2341,6 +2617,89 @@ ENTRY("regress_toz") ;
    EXRETURN ;
 }
 
+/*---------------------------------------------------------------------------*/
+/*  zA      = datum for the singleton
+    zB      = numB data points for the reference sample
+    mcov    = number of covariates
+    xA      =    1 X (mcov+1) matrix -- in column-major order {1st columns}
+    xB      = numB X (mcov+1) matrix -- in column-major order {are all one}
+    psinvB  = (mcov+1) X numB matrix -- in column-major order
+    xtxinvB = (mcov+1) X (mcov+1) matrix = inv[xB'xB]
+*//*-------------------------------------------------------------------------*/
+
+        /* off diagonal elements */
+#define xtxBij(i,j) xtxinvB[(i)+(j)*mm]
+
+        /* variance(singleton) / variance(group) */
+#define SINGLETON_VARIANCE_RATIO singleton_variance_ratio
+
+void regress_toz_singletonA( float zA ,
+                             int numB , float *zB ,
+                             int mcov ,
+                             float *xA ,
+                             float *xB , float *psinvB , float *xtxinvB ,
+                             float *outvec , float *workspace             )
+{
+   int kt=0,nws , mm=mcov+1 , nB=numB , nA=1 ;
+   float *betB=NULL , *zdifB=NULL ;
+   float ssqB=0.0f , varB=0.0f , zdifA ;
+   float val , den ; register int ii,jj,tt ;
+
+ENTRY("regress_toz_singletonA") ;
+
+   nws = 0 ;
+   betB  = workspace + nws ; nws += mm ;
+   zdifB = workspace + nws ; nws += nB ;
+
+   /*-- compute estimates for B parameters --*/
+
+   for( ii=0 ; ii < mm ; ii++ ){
+     for( val=0.0f,jj=0 ; jj < nB ; jj++ ) val += PB(ii,jj)*zB[jj] ;
+     betB[ii] = val ;
+   }
+   for( jj=0 ; jj < nB ; jj++ ){
+     val = -zB[jj] ;
+     for( ii=0 ; ii < mm ; ii++ ) val += XB(jj,ii)*betB[ii] ;
+     zdifB[jj] = val ; ssqB += val*val ;
+   }
+   varB = ssqB / (nB-mm) ; if( varB <= 0.0f ) varB = VBIG ;
+
+   /*-- compute estimate for A (using covariate betas from B) --*/
+
+   zdifA = zA ;
+   for( ii=0 ; ii < mm ; ii++ ) zdifA -= XA(0,ii)*betB[ii] ;
+
+   /* Below is the denominator to adjust the t-statistic, which
+      basically allows for the variance of zA and the variance
+      introduced by the subtracting off the covariate estimates
+      themselves (in the loop above) to give the adjusted data zdifA.
+      In the case where there are no covariates, then the matrix
+      xB = [1 1 1 ... 1]' (numB 1s), so xtxinvB = 1/numB -- but this
+      special case is actually hard-coded in ttest_toz_singletonA().
+      SINGLETON_VARIANCE_RATIO allows for the variance of zA itself;
+      if it were a constant (not random), then SINGLETON_VARIANCE_RATIO
+      would be zero, and we'd be back in standard 1-sample t-test-ville. */
+
+   den = SINGLETON_VARIANCE_RATIO ;  /* default value of this is 1 */
+   for( jj=0 ; jj < mm ; jj++ ){
+     for( ii=0 ; ii < mm ; ii++ ) den += XA(0,ii)*XA(0,jj)*xtxBij(ii,jj) ;
+   }
+   if( den <  SINGLETON_VARIANCE_RATIO ) den = SINGLETON_VARIANCE_RATIO ;
+
+#if 0
+{ static int first=1 ; if( first ){ fprintf(stderr,"\nden = 1+cXXc = %g\n",den) ; first=0 ; } }
+#endif
+
+   /*-- carry out singleton A - group B test --*/
+
+   outvec[kt++] = zdifA ;
+   val          = zdifA / sqrtf( varB * den ) ;
+   outvec[kt++] = (toz) ? (float)GIC_student_t2z( (double)val , (double)(nB-mm) )
+                        : TCLIP(val) ;
+
+   EXRETURN ;
+}
+
 /*----------------------------------------------------------------------------*/
 /*! Various sorts of t-tests; output = Z-score.
    - numx = number of points in the first sample (must be > 1)
@@ -2461,6 +2820,41 @@ ENTRY("ttest_toz") ;
    result.a = delta ;
    result.b = (toz) ? (float)GIC_student_t2z( (double)tstat , (double)dof )
                     : TCLIP(tstat) ;
+   RETURN(result) ;
+}
+
+/*----------------------------------------------------------------------------*/
+/* the simple test of a single value xar vs. the group yar;
+   however, xar is assumed to have the same variance as yar[]
+*//*--------------------------------------------------------------------------*/
+
+float_pair ttest_toz_singletonA( float xar , int numy, float *yar )
+{
+   float_pair result = {0.0f,0.0f} ;
+   int ii ;
+   float avy , sdy , tstat ;
+
+ENTRY("ttest_toz_singletonA") ;
+
+   avy = 0.0f ;
+   for( ii=0 ; ii < numy ; ii++ ) avy += yar[ii] ;
+   avy /= numy ; sdy = 0.0f ;
+   for( ii=0 ; ii < numy ; ii++ ) sdy += (yar[ii]-avy)*(yar[ii]-avy) ;
+   sdy /= (numy-1.0f) ;  /* variance (estimate) for yar */
+
+   /* Normally, the tstat of yar against a constant would have
+      the denominator sqrt(sdy/numy) but in this case, the
+      denominator is sqrt(sdy*(1+1/numy)) since we are assuming
+      the variance of the singleton xar is the same that of yar;
+      the result is that the tstat is smaller and less significant. */
+
+   sdy *= (SINGLETON_VARIANCE_RATIO + 1.0f/numy) ; if( sdy <= 0.0f ) sdy = 1.e+9f ;
+
+   result.a = (xar-avy) ;
+   tstat    = (xar-avy) / sqrtf(sdy) ;
+   result.b = (toz) ? (float)(float)GIC_student_t2z( (double)tstat , (double)(numy-1.0f) )
+                    : TCLIP(tstat) ;
+
    RETURN(result) ;
 }
 
@@ -2659,13 +3053,15 @@ ENTRY("TT_centerize") ;
 
    /*-- process each matrix separately --*/
 
-   if( center_code != CENTER_SAME || Bxx == NULL || Bxx == Axx ){
+   if( center_code != CENTER_SAME || Bxx == NULL || Bxx == Axx || singletonA ){
 
-     for( jj=1 ; jj <= mcov ; jj++ ){
-       for( kk=0 ; kk < nval_AAA ; kk++ ) vv[kk] = AXX(kk,jj) ;
-       if( center_meth == CMETH_MEDIAN ) sum = qmed_float (nval_AAA,vv) ;
-       else                              sum = qmean_float(nval_AAA,vv) ;
-       for( kk=0 ; kk < nval_AAA ; kk++ ) AXX(kk,jj) -= sum ;
+     if( !singletonA ){
+       for( jj=1 ; jj <= mcov ; jj++ ){
+         for( kk=0 ; kk < nval_AAA ; kk++ ) vv[kk] = AXX(kk,jj) ;
+         if( center_meth == CMETH_MEDIAN ) sum = qmed_float (nval_AAA,vv) ;
+         else                              sum = qmean_float(nval_AAA,vv) ;
+         for( kk=0 ; kk < nval_AAA ; kk++ ) AXX(kk,jj) -= sum ;
+       }
      }
 
      if( Bxx != NULL & Bxx != Axx ){
@@ -2674,6 +3070,7 @@ ENTRY("TT_centerize") ;
          if( center_meth == CMETH_MEDIAN ) sum = qmed_float (nval_BBB,vv) ;
          else                              sum = qmean_float(nval_BBB,vv) ;
          for( kk=0 ; kk < nval_BBB ; kk++ ) BXX(kk,jj) -= sum ;
+         if( singletonA ) AXX(0,jj) -= sum ;
        }
      }
 
@@ -2752,12 +3149,17 @@ ENTRY("TT_matrix_setup") ;
 
    if( imprA != NULL ) DESTROY_IMARR(imprA) ;
 
-   imprA = mri_matrix_psinv_pair( Axxim , 0.0f ) ;
-   if( imprA == NULL ) ERROR_exit("Can't invert setA covariate matrix?! :-(") ;
-   Axx_psinv  = MRI_FLOAT_PTR(IMARR_SUBIM(imprA,0)) ;
-   Axx_xtxinv = MRI_FLOAT_PTR(IMARR_SUBIM(imprA,1)) ;
+   if( !singletonA ){
+     imprA = mri_matrix_psinv_pair( Axxim , 0.0f ) ;
+     if( imprA == NULL ) ERROR_exit("Can't invert setA covariate matrix?! :-(") ;
+     Axx_psinv  = MRI_FLOAT_PTR(IMARR_SUBIM(imprA,0)) ;
+     Axx_xtxinv = MRI_FLOAT_PTR(IMARR_SUBIM(imprA,1)) ;
+   } else {
+     Axx_psinv  = NULL ;
+     Axx_xtxinv = NULL ;
+   }
 
-   if( debug ){
+   if( debug && !singletonA ){
      sprintf(label,"setA psinv") ;
      mri_matrix_print(stderr,IMARR_SUBIM(imprA,0),label) ;
      sprintf(label,"setA xtxinv") ;

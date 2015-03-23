@@ -10,6 +10,9 @@ first.in.path <- function(file) {
 source(first.in.path('AFNIio.R'))
 ExecName <- '3dLME'
 
+# Global variables
+tolL <- 1e-16 # bottom tolerance for avoiding division by 0 and for avioding analyzing data with most 0's
+
 #################################################################################
 ##################### Begin 3dLME Input functions ################################
 #################################################################################
@@ -22,7 +25,7 @@ help.LME.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
           ================== Welcome to 3dLME ==================          
     AFNI Group Analysis Program with Multi-Variate Modeling Approach
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 1.7.4, March 3, 2015
+Version 1.7.5, March 23, 2015
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - http://afni.nimh.nih.gov/sscc/gangc/lme.html
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -1178,8 +1181,7 @@ cat('Reading input files: Done!\n\n')
 
 if (!is.na(lop$maskFN)) {
    Mask <- read.AFNI(lop$maskFN, verb=lop$verb, meth=lop$iometh, forcedset = TRUE)$brk[,,,1]
-   inData <- array(apply(inData, 4, function(x) x*read.AFNI(lop$maskFN, verb=lop$verb, meth=lop$iometh, forcedset = TRUE)$brk[,,,1]),
-      dim=c(dimx,dimy,dimz,NoFile))
+   inData <- array(apply(inData, 4, function(x) x*(abs(Mask)>tolL)), dim=c(dimx,dimy,dimz,NoFile))
 }
    
 # voxel-wise covariate files

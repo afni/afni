@@ -18,6 +18,7 @@ from PyQt4 import QtCore, QtGui
 import afni_base as BASE
 import afni_util as UTIL
 import lib_subjects as SUBJ
+import lib_vars_object as VO
 import lib_uber_align as UALIGN
 import lib_qt_gui as QLIB
 
@@ -46,7 +47,7 @@ class MainWindow(QtGui.QMainWindow):
       # ------------------------------
       # init main vars structs
       self.atest  = None        # AlignTest class element
-      self.gvars  = SUBJ.VarsObject('uber_subject gui vars')
+      self.gvars  = VO.VarsObject('uber_subject gui vars')
 
       # init verb and try to update from uvars
       self.verb = 1
@@ -1086,7 +1087,7 @@ class MainWindow(QtGui.QMainWindow):
       """set uvars from defaults and redisplay GUI
          EXCEPT: keep dataset fields from subject"""
 
-      uvars = SUBJ.VarsObject()
+      uvars = VO.VarsObject()
       for atr in ['anat', 'epi', 'epi_base']:
          uvars.set_var(atr, self.uvars.val(atr))
       
