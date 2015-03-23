@@ -43,7 +43,12 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 11 , MAR , 2015 , RWC , "afni GUI" , MICRO , TYPE_NEW_ENV ,
+  { 23 , MAR , 2015 , RWC , "3dttest++" , MAJOR , TYPE_NEW_OPT ,
+   "Add -singletonA option" ,
+   "For testing one subject vs a collection of 'normals'.  Works with\n"
+   "covariates." } ,
+
+ { 11 , MAR , 2015 , RWC , "afni GUI" , MICRO , TYPE_NEW_ENV ,
    "AFNI_CROSSHAIR_THICKNESS" ,
    "Lets user set thickness of image crosshair lines.  For someone named\n"
    "Corianne, if that is a real name." } ,
