@@ -293,10 +293,10 @@ void display_help_menu(void)
       "  *****            specify the standard subtraction order.          *****\n"
       "\n"
       "---------------------------------------------------------------\n"
-      "TESTING A SINGLE DATASET versus the mean of a group of datasets\n"
+      "TESTING A SINGLE DATASET VERSUS THE MEAN OF A GROUP OF DATASETS\n"
       "---------------------------------------------------------------\n"
       "\n"
-      "This new [20 Mar 2015] option allows you to test a single value versus\n"
+      "This new [Mar 2015] option allows you to test a single value versus\n"
       "a group of datasets.  To do this, replace the '-setA' option with the\n"
       "'-singletonA' option described below, and input '-setB' normally\n"
       "(that is, '-setB' must have more than 1 dataset).\n"
@@ -318,13 +318,13 @@ void display_help_menu(void)
       "  respect to the covariates are estimated (as usual).\n"
       "  ++ These slopes are then used to project the covariates out of the mean of\n"
       "     the setB values, and are also applied similarly to the single value from\n"
-      "     the singleton dataset_A;\n"
+      "     the singleton dataset_A.\n"
       "  ++ That is, the covariate slopes from setB are applied to the covariate values\n"
       "     for dataset_A in order to subtract the covariate effects from dataset_A,\n"
       "     as well as from the setB mean.\n"
       "  ++ Since it impossible to independently estimate the covariate slopes for\n"
-      "     dataset_A, this procedure seems like the only way to use covariates\n"
-      "     with a singleton dataset.\n"
+      "     dataset_A, this procedure seems (to me) like the only reasonable way to use\n"
+      "     covariates with a singleton dataset.\n"
       "\n"
       "* The t-statistic is computed assuming that the variance of dataset_A is the\n"
       "  same as the variance of the setB datasets.\n"
@@ -337,9 +337,10 @@ void display_help_menu(void)
       "     of the dataset_A value.\n"
       "  ++ As a special case, you can use the option\n"
       "       -singleton_variance_ratio RRR\n"
-      "     to set the variance of dataset_A to be RRR times the variance of setB.\n"
-      "     Here, 'RRR' must be a positive number -- it cannot be zero, so if you\n"
-      "     really want to test against a voxel-wise constant, use 0.0001 for RRR.\n"
+      "     to set the (assumed) variance of dataset_A to be RRR times the variance\n"
+      "     of set B. Here, 'RRR' must be a positive number -- it cannot be zero,\n"
+      "     so if you really want to test against a voxel-wise constant, use something\n"
+      "     like 0.0001 for RRR.\n"
       "\n"
       "* Statistical inference on a single sample (dataset_A values) isn't really\n"
       "  possible.  The purpose of '-singletonA' is to give you some guidance when\n"
@@ -352,6 +353,10 @@ void display_help_menu(void)
       "* At present, '-singletonA' cannot be used with '-brickwise'.\n"
       "  ++ Various other options don't make sense with '-singletonA', including\n"
       "     '-paired' and '-center SAME'.\n"
+      "\n"
+      "* Note that there is no '-singletonB' option -- the only reason this is labeled\n"
+      "  as '-singletonA' is to remind the user (you) that this option replaces the\n"
+      "  '-setA' option.\n"
       "\n"
       "--------------------------------------\n"
       "COVARIATES - per dataset and per voxel\n"
@@ -394,8 +399,8 @@ void display_help_menu(void)
       "\n"
       "* If you used a short form '-setX' option, each dataset label is\n"
       "   the dataset's prefix name (truncated to 12 characters).\n"
-      "  ++ e.g.,  Fred+tlrc'[3]'  ==>  Fred\n"
-      "  ++ e.g.,  Elvis.nii.gz    ==>  Elvis\n"
+      "  ++ e.g.,  Klaatu+tlrc'[3]' ==>  Klaatu\n"
+      "  ++ e.g.,  Elvis.nii.gz     ==>  Elvis\n"
       "\n"
       "* '-covariates' can only be used with the short form '-setX' option\n"
       "   if each input dataset has only 1 sub-brick (so that each label\n"
@@ -907,8 +912,59 @@ void display_help_menu(void)
       "matrix inversions needs to be carried out.\n"
       "\n"
 
+      "-------------------------------------------\n"
+      "HOW SINGLETON TESTING WORKS WITH COVARIATES\n"
+      "-------------------------------------------\n"
+      "\n"
+      "(1) For setB, the standard regression is carried out to give the\n"
+      "    covariate slope estimates (at each voxel):\n"
+      "      [b] = [Xp] [z]\n"
+      "    where [z]  = column vector of the setB values\n"
+      "          [Xp] = pseudo-inverse of the [X] matrix for the setB covariates\n"
+      "          [b]  = covariate parameter estimates\n"
+      "    Under the usual assumptions, [b] has mean [b_truth] and covariance\n"
+      "    matrix sigma^2 [Xi], where sigma^2 = variance of the zB values, and\n"
+      "    [Xi] = inverse[X'X].  (Again, ' = tranpose.)\n"
+      "    (If centering is used, [X] is replaced by [Xc] in all of the above.)\n"
+      "\n"
+      "(2) Call the singletonA value (at each voxel) y;\n"
+      "    then the statistical model for y is\n"
+      "       y = yoff + [c]'[b_truth] + Normal(0,sigma^2)\n"
+      "    where the column vector [c] is the transpose of the 1-row matrix [X]\n"
+      "    for the singletonA dataset -- that is, the first element of [c] is 1,\n"
+      "    and the other elements are the covariate values for this dataset.\n"
+      "    (The null hypothesis is that the mean offset yoff is 0.)\n"
+      "    The covariate slopes [b] from step (1) are projected out of y now:\n"
+      "      y0 = y - [c]'[b]\n"
+      "    which under the null hypothesis has mean 0 and variance\n"
+      "      sigma^2 ( 1 + [c]'[Xi][c] )\n"
+      "    Here, the '1' comes from the variance of y, and the [c]'[Xi][c] comes\n"
+      "    from the variance of [b] dotted with [c].  Note that in the trivial\n"
+      "    case of no covariates, [X] = 1-column matrix of all 1s and [c] = scalar\n"
+      "    value of 1, so [c]'[Xi][c] = 1/N where N = number of datasets in setB.\n"
+      "\n"
+      "(3) sigma^2 is as usual estimated by s^2 = sum[ (z_i - mean(z))^2 ] / (N-m-1)\n"
+      "    where N = number of datasets in setB and m = number of covariates.\n"
+      "    Under the usual assumptions, s^2 is distributed like a random variable\n"
+      "    ( sigma^2 / (N-m) ) * ChiSquared(N-m).\n"
+      "\n"
+      "(4) Consider the test statistic\n"
+      "      tau = y0 / sqrt(s^2)\n"
+      "    Under the null hypothesis, this has the distribution of a random variable\n"
+      "      Normal(0,1 + [c]'[Xi][c]) / sqrt( ChiSquared(N-m)/(N-m) )\n"
+      "    So tau is not quite t-distributed, but dividing out the scale factor works:\n"
+      "      t = y0 / sqrt( s^2 * (1 + [c]'[Xi][c]) )\n"
+      "    and under the null hypothesis, this value t has a Student(N-m) distribution.\n"
+      "    Again, note that in the case of no covariates, [c]'[Xi][c] = 1/N.\n"
+      "\n"
+      "A test script that simulates random values and covariates has verified the\n"
+      "distribution of the results in both the null hypothesis (yoff == 0) case and the\n"
+      "alternative hypothesis (yoff !=0 ) case -- where the value t now takes on the\n"
+      "non-central Student distribution.\n"
+      "\n"
+
       "---------------------\n"
-      "A NOTE ABOUT p-VALUES\n"
+      "A NOTE ABOUT p-VALUES (everyone's favorite subject)\n"
       "---------------------\n"
       "\n"
       "The 2-sided p-value of a t-statistic value T is the likelihood (probability)\n"
@@ -2160,8 +2216,12 @@ LABELS_ARE_DONE:  /* target for goto above */
 
        /* skip processing for input voxels whose data is constant */
 
-       for( ii=1 ; ii < nval_AAA && datAAA[ii] == datAAA[0] ; ii++ ) ; /*nada*/
-       dconst = (ii == nval_AAA) ;
+       if( nval_AAA > 1 ){
+         for( ii=1 ; ii < nval_AAA && datAAA[ii] == datAAA[0] ; ii++ ) ; /*nada*/
+         dconst = (ii == nval_AAA) ;
+       } else {
+         dconst = 0 ;  /* for singletonA */
+       }
        if( twosam && !dconst ){
          for( ii=1 ; ii < nval_BBB && datBBB[ii] == datBBB[0] ; ii++ ) ; /*nada*/
          dconst = (ii == nval_BBB) ;
@@ -2620,11 +2680,15 @@ ENTRY("regress_toz_singletonA") ;
       if it were a constant (not random), then SINGLETON_VARIANCE_RATIO
       would be zero, and we'd be back in standard 1-sample t-test-ville. */
 
-   den = SINGLETON_VARIANCE_RATIO ;
+   den = SINGLETON_VARIANCE_RATIO ;  /* default value of this is 1 */
    for( jj=0 ; jj < mm ; jj++ ){
      for( ii=0 ; ii < mm ; ii++ ) den += XA(0,ii)*XA(0,jj)*xtxBij(ii,jj) ;
    }
    if( den <  SINGLETON_VARIANCE_RATIO ) den = SINGLETON_VARIANCE_RATIO ;
+
+#if 0
+{ static int first=1 ; if( first ){ fprintf(stderr,"\nden = 1+cXXc = %g\n",den) ; first=0 ; } }
+#endif
 
    /*-- carry out singleton A - group B test --*/
 
@@ -2781,7 +2845,8 @@ ENTRY("ttest_toz_singletonA") ;
    /* Normally, the tstat of yar against a constant would have
       the denominator sqrt(sdy/numy) but in this case, the
       denominator is sqrt(sdy*(1+1/numy)) since we are assuming
-      the variance of the singleton xar is the same that of yar. */
+      the variance of the singleton xar is the same that of yar;
+      the result is that the tstat is smaller and less significant. */
 
    sdy *= (SINGLETON_VARIANCE_RATIO + 1.0f/numy) ; if( sdy <= 0.0f ) sdy = 1.e+9f ;
 
