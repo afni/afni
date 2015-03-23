@@ -12,7 +12,7 @@ import afni_base as BASE
 import option_list as OL
 import afni_util as UTIL        # not actually used, but probably will be
 import lib_afni1D as LAD
-import lib_subjects as SUBJ
+import lib_vars_object as VO
 
 # ----------------------------------------------------------------------
 # globals
@@ -509,7 +509,7 @@ setenv AFNI_NO_OBLIQUE_WARNING YES
 
 """
 
-g_eg_uvar = SUBJ.VarsObject('sample user vars')
+g_eg_uvar = VO.VarsObject('sample user vars')
 g_eg_uvar.subj            = 'FT'
 g_eg_uvar.rm_trs          = 2
 g_eg_uvar.num_stim        = 2
@@ -559,7 +559,7 @@ g_uvar_dict = {
  'template_space'   :'set final view of data (orig/tlrc)'
 }
 
-g_cvars_defs = SUBJ.VarsObject('default control vars')
+g_cvars_defs = VO.VarsObject('default control vars')
 g_cvars_defs.verb       = 1
 g_cvars_defs.scr_basic  = '@ss_review_basic'
 g_cvars_defs.scr_drive  = '@ss_review_driver'
@@ -671,11 +671,11 @@ class MyInterface:
       self.status          = 0                       # exit value
       self.valid_opts      = None
       self.user_opts       = None
-      self.uvars           = SUBJ.VarsObject('user variables')
-      self.cvars           = SUBJ.VarsObject('control variables')
+      self.uvars           = VO.VarsObject('user variables')
+      self.cvars           = VO.VarsObject('control variables')
       self.cvars.merge(g_cvars_defs)
 
-      self.dsets           = SUBJ.VarsObject('dset instances')
+      self.dsets           = VO.VarsObject('dset instances')
 
       # script text
       self.text_basic      = ''

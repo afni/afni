@@ -4,7 +4,7 @@ import sys, os
 from PyQt4 import QtCore, QtGui
 import copy, glob
 
-import lib_subjects as SUBJ
+import lib_vars_object as VO
 import afni_util as UTIL
 
 g_history = """
@@ -378,7 +378,7 @@ def create_label_line_grid(labels, tips=None, cb=None, rlen=2):
 
    # main widget to return
    widget = QtGui.QWidget()
-   widget.gvars = SUBJ.VarsObject(name='label_line_grid')
+   widget.gvars = VO.VarsObject(name='label_line_grid')
 
    if tips:
       if len(tips) != len(labels):
@@ -779,7 +779,7 @@ class StringTable(QtGui.QTableWidget):
 
       super(StringTable, self).__init__(parent)
 
-      self.lvars = SUBJ.VarsObject(name=name)
+      self.lvars = VO.VarsObject(name=name)
       self.lvars.verb = verb
 
       self.Label_count = None           # track table length
@@ -975,14 +975,14 @@ class DatasetTableWidget(QtGui.QWidget):
 
       super(DatasetTableWidget, self).__init__(parent)
 
-      self.lvars = SUBJ.VarsObject(name='DatasetTableWidget local vars')
+      self.lvars = VO.VarsObject(name='DatasetTableWidget local vars')
       self.lvars.dset_col  = 0          # column with dataset names
       self.lvars.sid_col   = 0          # column with subject IDs
       self.lvars.sort_col  = 0          # column to sort by, unless specified
       self.lvars.cb_edited = None       # callback for when table is edited
       self.lvars.verb      = verb
 
-      self.gvars = SUBJ.VarsObject(name='DatasetTableWidget GUI vars')
+      self.gvars = VO.VarsObject(name='DatasetTableWidget GUI vars')
       vlayout = QtGui.QVBoxLayout(self)
 
       # add any button widgets
@@ -1216,8 +1216,8 @@ class DsetChooser(QtGui.QDialog):
 
       super(DsetChooser, self).__init__(parent)
 
-      self.gvars = SUBJ.VarsObject(name='DsetChooser GUI vars')
-      self.lvars = SUBJ.VarsObject(name='DsetChooser local vars')
+      self.gvars = VO.VarsObject(name='DsetChooser GUI vars')
+      self.lvars = VO.VarsObject(name='DsetChooser local vars')
       self.lvars.verb = verb
       self.lvars.pop_cb = None
 

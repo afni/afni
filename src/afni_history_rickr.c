@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 23,  Mar, 2015, RCR, "python-general", MINOR, TYPE_ENHANCE,
+   "broke VarsObject class out into separate file",
+   NULL
+ } ,
+
  { 19, Mar, 2015, RCR, "unix_tutorial", MINOR, TYPE_ENHANCE,
    "populated AFNI_data6/unix_tutorial with Sphinx version",
    "The previous tutorial was moved under 'old'."
