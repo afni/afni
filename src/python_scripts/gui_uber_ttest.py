@@ -18,6 +18,7 @@ from PyQt4 import QtCore, QtGui
 import afni_base as BASE
 import afni_util as UTIL
 import lib_subjects as SUBJ
+import lib_vars_object as VO
 import lib_uber_ttest as LTT
 import lib_qt_gui as QLIB
 
@@ -47,7 +48,7 @@ class MainWindow(QtGui.QMainWindow):
       # ------------------------------
       # init main vars structs
       self.ttobj  = None        # TTest class element
-      self.gvars  = SUBJ.VarsObject('uber_ttest gui vars')
+      self.gvars  = VO.VarsObject('uber_ttest gui vars')
 
       # init verb and try to update from uvars
       self.verb = 1
@@ -1035,7 +1036,7 @@ class MainWindow(QtGui.QMainWindow):
       if show_func_seq: print '=== xL ==='
 
 
-      uvars = SUBJ.VarsObject()
+      uvars = VO.VarsObject()
       for atr in ['anat', 'epi', 'epi_base']:
          uvars.set_var(atr, self.uvars.val(atr))
       
