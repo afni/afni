@@ -249,14 +249,16 @@ int main (int argc,char *argv[])
       SUMA_Free_Surface_Object(SOr); SOr=SOrr; SOrr=NULL;
       SUMA_SurfaceMetrics_eng(SOr, "EdgeList|MemberFace", NULL, 0, 
                                           SUMAg_CF->DsetList);
-      if (!SOr->Label) SUMA_SurfaceFileName(SOr, NOPE);
+      if (!SOr->Label && !(SUMA_SurfaceFileName(SOr, NOPE))) {
+         SOr->Label = SUMA_copy_string("Le_Remaille");
+      }
    }
    
    SO = SUMA_Load_Spec_Surf_with_Metrics(Spec, 1, ps->sv[0], 1);
 
    if (Opt->flt1 != 1.0) {
       SUMA_LHv("Masking out nodes deeper than %f mm", Opt->flt1);
-      N_inmask = SUMA_NodeDepth(SO->NodeList, SO->N_Node, NULL, 
+      N_inmask = SUMA_NodeDepth(SO->NodeList, SO->N_Node, prjdir,  NULL, 
                                 Opt->flt1, &cmask, NULL);
    } else {
       N_inmask = SO->N_Node;

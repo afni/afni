@@ -23,7 +23,9 @@ typedef struct {
    int maxabsnode;
    int centralnode;
    int weightedcentralnode;
-   /* int rank; */  /* completely useless ... rank is inferred from order in list! */
+   float com[3]; /*center of mass * N_Node*/
+   float cen[3]; /*centroid * N_Node */
+   /*int rank;*//* completely useless ... rank is inferred from order in list! */
 } SUMA_CLUST_DATUM;
 
                            

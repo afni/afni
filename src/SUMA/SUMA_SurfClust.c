@@ -49,9 +49,15 @@ void usage_SUMA_SurfClust (int detail)
 "     -thresh_col tcolind: Index of thresholding column.\n"
 "                          Default is column 0.\n "
 "     -thresh tval: Apply thresholding prior to clustering.\n"
-"                   A node n is considered if thresh_col[n] > tval.\n"
+"                   A node n is considered if thresh_col[n] >= tval.\n"
 "     -athresh tval: Apply absolute thresholding prior to clustering.\n"
-"                    A node n is considered if | thresh_col[n] | > tval.\n" 
+"                    A node n is considered if | thresh_col[n] | >= tval.\n" 
+"     -ir_range R0 R1: Apply thresholding in range.\n"
+"                    A node n is considered if \n"
+"                       thresh_col[n] >= R0 && thresh_col[n] <= R1\n" 
+"     -ex_range R0 R1: Apply thresholding outside of range.\n"
+"                    A node n is considered if \n"
+"                       thresh_col[n] < R0 || thresh_col[n] > R1\n" 
 "     -amm2 minarea: Do not output results for clusters having\n"
 "                    an area less than minarea. \n"
 "                    If minarea < 0 AND -n is not set (or < 0)\n"
@@ -127,6 +133,16 @@ void usage_SUMA_SurfClust (int detail)
 "     Col. 10 Node where maximum value occurred.\n"
 "     Col. 11 Variance of values in cluster.\n"
 "     Col. 12 Standard error of the mean ( sqrt(variance/number of nodes) ).\n"
+"     Col. 13 = Minimum |value|\n"
+"     Col. 14 = |Minimum| node\n"
+"     Col. 15  = Maximum |value|\n"
+"     Col. 16 = |Maximum| node\n"
+"     Col. 17 = Center of Mass x\n"
+"     Col. 18 = Center of Mass y\n"
+"     Col. 19 = Center of Mass z\n"
+"     Col. 20 = Centroid x\n"
+"     Col. 21 = Centroid y\n"
+"     Col. 22 = Centroid z\n"
 "   The CenterNode n is such that: \n"
 "   ( sum (Uia * dia * wi) ) - ( Uca * dca * sum (wi) ) is minimal\n" 
 "     where i is a node in the cluster\n"
@@ -307,14 +323,38 @@ SUMA_SURFCLUST_OPTIONS *SUMA_SurfClust_ParseInput (char *argv[], int argc,
 			brk = YUP;
 		}
       
+      if (!brk && (strcmp(argv[kar], "-in_range") == 0)) {
+         kar ++;
+			if (kar+1 >= argc)  {
+		  		fprintf (SUMA_STDERR, "need two arguments after -in_range \n");
+				exit (1);
+			}
+			Opt->DoThreshold = SUMA_THRESH_INSIDE_RANGE;
+         Opt->ThreshR[0] = atof(argv[kar]); ++kar;
+         Opt->ThreshR[1] = atof(argv[kar]);
+			brk = YUP;
+		}
+      
+      if (!brk && (strcmp(argv[kar], "-ex_range") == 0)) {
+         kar ++;
+			if (kar+1 >= argc)  {
+		  		fprintf (SUMA_STDERR, "need two arguments after -ex_range \n");
+				exit (1);
+			}
+			Opt->DoThreshold = SUMA_THRESH_OUTSIDE_RANGE;
+         Opt->ThreshR[0] = atof(argv[kar]); ++kar;
+         Opt->ThreshR[1] = atof(argv[kar]);
+			brk = YUP;
+		}
+      
       if (!brk && (strcmp(argv[kar], "-thresh") == 0)) {
          kar ++;
 			if (kar >= argc)  {
 		  		fprintf (SUMA_STDERR, "need argument after -thresh \n");
 				exit (1);
 			}
-			Opt->DoThreshold = 1;
-         Opt->Thresh = atof(argv[kar]);
+			Opt->DoThreshold = SUMA_LESS_THAN;
+         Opt->ThreshR[0] = atof(argv[kar]);
 			brk = YUP;
 		}
       
@@ -324,8 +364,8 @@ SUMA_SURFCLUST_OPTIONS *SUMA_SurfClust_ParseInput (char *argv[], int argc,
 		  		fprintf (SUMA_STDERR, "need argument after -athresh \n");
 				exit (1);
 			}
-			Opt->DoThreshold = 2;
-         Opt->Thresh = atof(argv[kar]);
+			Opt->DoThreshold = SUMA_ABS_LESS_THAN;
+         Opt->ThreshR[0] = atof(argv[kar]);
 			brk = YUP;
 		}
       
@@ -554,7 +594,8 @@ int main (int argc,char *argv[])
       SUMA_S_Err("Failed to find node index column");
       exit(1);
    }
-   /* copy nip's contents because you will be modifying in the thresholding below */
+   /* copy nip's contents because you will be modifying in the 
+      thresholding below */
    ni = (int *)SUMA_malloc(N_ni*sizeof(int));
    memcpy (ni, nip, N_ni*sizeof(int));
    nv = SUMA_DsetCol2Float(dset, Opt->labelcol, 0);
@@ -564,33 +605,55 @@ int main (int argc,char *argv[])
    }
    
    /* any thresholding ? */
-   if (Opt->DoThreshold) {
+   if (Opt->DoThreshold > SUMA_NO_THRESH) {
       nt = SUMA_DsetCol2Float(dset, Opt->tind, 0);
       if (!nt) {
          SUMA_S_Err("Failed to find threshold column");
          exit(1);
       }
       cnt = 0;
-      if (Opt->DoThreshold == 1) {
+      if (Opt->DoThreshold == SUMA_LESS_THAN) {
          if (Opt->update) 
             fprintf( SUMA_STDERR,
-                     "%s: Thresholding at %f...\n", FuncName, Opt->Thresh);
+                     "%s: Thresholding at %f...\n", FuncName, Opt->ThreshR[0]);
          for (i=0;i<N_ni; ++i) {
-            if (nt[i] >= Opt->Thresh) {
+            if (nt[i] >= Opt->ThreshR[0]) {
+               ni[cnt] = ni[i];
+               nv[cnt] = nv[i];
+               ++cnt;
+            }
+         }
+      } else if (Opt->DoThreshold == SUMA_ABS_LESS_THAN) {
+         SUMA_LH("ABS Thresholding at %f...", Opt->ThreshR[0]);
+         for (i=0;i<N_ni; ++i) {
+            if (fabs(nt[i]) >= Opt->ThreshR[0]) {
+               ni[cnt] = ni[i];
+               nv[cnt] = nv[i];
+               ++cnt;
+            }
+         }
+      } else if (Opt->DoThreshold == SUMA_THRESH_INSIDE_RANGE) {
+         SUMA_LH("Range Thresholding at %f %f...", 
+                 Opt->ThreshR[0], Opt->ThreshR[1]);
+         for (i=0;i<N_ni; ++i) {
+            if (nt[i] >= Opt->ThreshR[0] && nt[i] <= Opt->ThreshR[1]) {
+               ni[cnt] = ni[i];
+               nv[cnt] = nv[i];
+               ++cnt;
+            }
+         }
+      } else if (Opt->DoThreshold ==  SUMA_THRESH_OUTSIDE_RANGE) {
+         SUMA_LH("Ex Range Thresholding at %f %f...",
+                  Opt->ThreshR[0], Opt->ThreshR[1]);
+         for (i=0;i<N_ni; ++i) {
+            if (nt[i] < Opt->ThreshR[0] || nt[i] > Opt->ThreshR[1]) {
                ni[cnt] = ni[i];
                nv[cnt] = nv[i];
                ++cnt;
             }
          }
       } else {
-         SUMA_LH("ABS Thresholding...");
-         for (i=0;i<N_ni; ++i) {
-            if (fabs(nt[i]) >= Opt->Thresh) {
-               ni[cnt] = ni[i];
-               nv[cnt] = nv[i];
-               ++cnt;
-            }
-         }
+         SUMA_S_Err("Not ready for threshold mode of %d", Opt->DoThreshold);
       }
       N_ni = cnt;
    }
