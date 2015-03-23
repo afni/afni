@@ -9,6 +9,7 @@ import glob
 import afni_base as BASE
 import afni_util as UTIL
 import lib_subjects as SUBJ
+import lib_vars_object as VO
 
 DEF_UBER_DIR = 'uber_results'        # top directory for output
 DEF_TOP_DIR  = 'tool_results'     # top subject dir under uber_results
@@ -33,19 +34,19 @@ g_def_tlrc_base   = 'TT_N27+tlrc'
 # (as well as string versions of control and user defaults)
 
 # ---- resulting values returned after class actions ----
-g_res_defs = SUBJ.VarsObject("uber_skel result variables")
+g_res_defs = VO.VarsObject("uber_skel result variables")
 g_res_defs.file_proc     = ''   # file name for process script
 g_res_defs.output_proc   = ''   # output from running proc script
 
 # ---- control variables: process control, not set by user in GUI
 
-g_ctrl_defs = SUBJ.VarsObject("uber_skel control defaults")
+g_ctrl_defs = VO.VarsObject("uber_skel control defaults")
 g_ctrl_defs.proc_dir     = '.'  # process dir: holds scripts and result dir
 
 
 # ---- user variables: process control, alignment inputs and options ----
 
-g_user_defs = SUBJ.VarsObject("uber_skel user defaults")
+g_user_defs = VO.VarsObject("uber_skel user defaults")
 g_user_defs.verb           = 1          # verbose level
 g_user_defs.copy_scripts   = 'yes'      # do we make .orig copies of scripts?
 
@@ -98,7 +99,7 @@ class AlignTest(object):
       # variables
 
       # LV: variables local to this interface, not passed
-      self.LV = SUBJ.VarsObject("local AP_Subject vars")
+      self.LV = VO.VarsObject("local AP_Subject vars")
       self.LV.indent = 8                # default indent for main options
       self.LV.istr   = ' '*self.LV.indent
       self.LV.retdir = ''               # return directory (for jumping around)

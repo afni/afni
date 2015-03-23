@@ -18,6 +18,7 @@ from PyQt4 import QtCore, QtGui
 import afni_base as BASE
 import afni_util as UTIL
 import lib_subjects as SUBJ
+import lib_vars_object as VO
 import lib_uber_subject as USUBJ
 import lib_qt_gui as QLIB
 
@@ -53,7 +54,7 @@ class SingleSubjectWindow(QtGui.QMainWindow):
       # init main vars structs
       self.verb   = verb
       self.apsubj = None        # AP_Subject class element
-      self.gvars  = SUBJ.VarsObject('uber_subject gui vars')
+      self.gvars  = VO.VarsObject('uber_subject gui vars')
 
       # initialize the subject variables to defaults, update at the end
       self.svars  = USUBJ.g_sdef_strs.copy('subject vars')
@@ -2588,7 +2589,7 @@ class SingleSubjectWindow(QtGui.QMainWindow):
       """set cvars, svars from defaults and redisplay GUI
          EXCEPT: keep dataset fields from subject"""
 
-      svars = SUBJ.VarsObject()
+      svars = VO.VarsObject()
       for atr in ['sid', 'gid', 'anat', 'epi', 'stim']:
          svars.set_var(atr, self.svars.val(atr))
       

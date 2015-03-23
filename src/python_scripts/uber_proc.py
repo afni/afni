@@ -7,7 +7,7 @@ from PyQt4 import QtCore, QtGui
 import signal
 signal.signal(signal.SIGINT, signal.SIG_DFL)
 
-import lib_subjects as SUBJ
+import lib_vars_object as VO
 import lib_uber_subject as USUBJ
 import lib_qt_gui as QLIB
 import gui_uber_subj as GUS    # single subject GUI
@@ -40,8 +40,8 @@ class MainWindow(QtGui.QMainWindow):
    def __init__(self, parent=None):
       super(MainWindow, self).__init__(parent)
 
-      self.gvars = SUBJ.VarsObject('uber_proc gui vars')
-      self.vars = SUBJ.VarsObject('uber_proc vars')
+      self.gvars = VO.VarsObject('uber_proc gui vars')
+      self.vars = VO.VarsObject('uber_proc vars')
 
       # rcr -delete
       self.SSD = None
