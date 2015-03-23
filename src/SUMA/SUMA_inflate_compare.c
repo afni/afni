@@ -323,11 +323,13 @@ int main (int argc,char *argv[])
     p2[0] = Points[1][0]; 
     p2[1] = Points[1][1]; 
     p2[2] = Points[1][2];
-    triangle = SUMA_MT_intersect_triangle(p1,p2, SO2->NodeList, SO2->N_Node, SO2->FaceSetList, SO2->N_FaceSet, NULL, 0);
-    //SUMA_Show_MT_intersect_triangle(triangle, NULL);
+    triangle = SUMA_MT_intersect_triangle(p1,p2, SO2->NodeList, SO2->N_Node, 
+                                    SO2->FaceSetList, SO2->N_FaceSet, NULL, 0);
+    //SUMA_Show_MT_intersect_triangle(triangle, NULL, NULL);
     if (triangle->N_hits ==0) {
       distance[i] = -1;
-      // fprintf(SUMA_STDERR, "Could not find hit for node %d in either direction.\n", i);
+      // fprintf(SUMA_STDERR, 
+         "Could not find hit for node %d in either direction.\n", i);
     }
     else {
       distance[i] = sqrtf( pow(triangle->P[0]-P0[0],2)+
