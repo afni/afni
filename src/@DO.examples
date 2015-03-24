@@ -8,7 +8,7 @@ if ("$1" == "-h" || "$1" == "-help") goto HELP
 if ("$1" == "-auto_test") then
    set testmode = 1
    set to = "-to 2.0" 
-else
+else if ($#argv != 0) then
    #Need to exit with unknown options.
    echo "No such parameter ($1) accepted. See `basename $0` -help."
    exit 1

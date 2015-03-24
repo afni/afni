@@ -1762,7 +1762,7 @@ char * SUMA_help_message_Info(TFORM targ)
       "*On MACs*, Alt is the Apple/Command key.\n"
       "   If it is commandeered by the OS, and you can't get it back, then\n"
       "   try the alt/option key instead.\n\n"
-      "*On Linux*, Turn NumLock OFF, otherwise certainly mouse or \n"
+      "*On Linux*, Turn NumLock OFF, otherwise certain mouse or \n"
       "   keyboard combinations do not work as intended.\n\n");
    SS = SUMA_StringAppend_va (SS, 
       "   %s: attenuation by background, toggle. "
@@ -1924,8 +1924,8 @@ char * SUMA_help_message_Info(TFORM targ)
 "           n1Crosshair: Crosshair node only\n"
 "           None: Show nothing.\n\n"
 "              See also -do_draw_mask option in DriveSuma\n\n"
-"        ** DO stands for displayable objects, see 'Ctrl+Alt+s'\n"
-"           below.\n"
+"        ** DO stands for displayable objects, see also\n"
+"           :ref:`Ctrl+Alt+s<LC_Ctrl+Alt+s>` below.\n"
 "        ** For the moment, 'Alt+p' only applies to segment \n"
 "           and sphere DOs  that are node based. \n"
 "           If you need it applied to other DOs, let me know.\n"
@@ -2323,7 +2323,7 @@ char * SUMA_help_message_Info(TFORM targ)
       "*On MACs*, Alt is the Apple/Command key.\n"
       "   If it is commandeered by the OS, and you can't get it back, then\n"
       "   try the alt/option key instead.\n\n"
-      "*On Linux*, Turn NumLock OFF, otherwise certainly mouse or \n"
+      "*On Linux*, Turn NumLock OFF, otherwise certain mouse or \n"
       "   keyboard combinations do not work as intended.\n\n");
       
    SS = SUMA_StringAppend_va (SS, 
