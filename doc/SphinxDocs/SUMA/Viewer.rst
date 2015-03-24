@@ -995,7 +995,31 @@ Displayable Objects
 
    .. todo::
 
-      Show directions for example, show surface based normals, explain how you can hide some, etc. Link to other demos
+      Show directions for example, show surface based normals, explain how you can hide some, etc. Link to other demos. For now, see the following for some inspiration: 
+         1. Interactive loading of displayable objects: :ref:`Ctrl+Alt+s<LC_Ctrl+Alt+s>`
+         
+         2. Demo script illustrating variety of DOs: :ref:`@DO.examples<@DO.examples>`
+         
+      .. figure:: media/DO.examples.jpg
+         :align: center
+         :name: media/DO.examples.jpg
+         :figwidth: 50%
+         :target: ../_images/DO.examples.jpg
+
+         :ref:`Output of script @DO.examples<media/DO.examples.jpg>` showing text, textures and geometric objects displayed simultaneously.
+         
+      ..
+         
+         2. This AFNI message board `posting <http://afni.nimh.nih.gov/afni/community/board/read.php?1,146351,146380#msg-146380>`_  explaining how to show principal orientations in a volume.
+         
+      .. figure:: media/directions.jpg
+         :align: center
+         :name: media/directions.jpg
+         
+         :ref:`Display of voxelwise diffusion directions<media/directions.jpg>`
+      ..
+      
+          
 
 .. _ECOG_Grid_Viewing:
 
@@ -1004,13 +1028,15 @@ ECOG Grid Viewing
 
    .. todo::
 
-      Show example of grid viewing.
+      Show example of grid viewing. Until that is done, take a look at script :ref:`@ElectroGrid<@ElectroGrid>`
 
      
 .. _ Mouse+Keyboard:
 
 Mouse & Keyboard
 ================
+
+   This section includes help for mouse (pointer) and keyboard driven interactions with SUMA.
 
 .. include:: auto_inc/Mouse_Keyb_help.inc
 
