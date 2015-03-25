@@ -1629,7 +1629,10 @@ void AFNI_sigfunc_alrm(int sig)
      "  They mean:         I am implacably opposed to your proposal"                          ,
 
      "\n  If reasonable priors lead to different conclusions, then it's time to\n"
-     "  look for more data, think harder, mumble inaudibly, or take a wild guess"
+     "  look for more data, think harder, mumble inaudibly, or take a wild guess"             ,
+
+     "\n  To be stupid, selfish, and have good health are three requirements for\n"
+     "   happiness; though if stupidity is lacking, all is lost.\n"
    } ;
 #undef NTOP
 #ifdef USE_SONNETS
