@@ -2707,7 +2707,7 @@ SUMA_VR_FIELD * SUMA_AllocVRField(char *wname)
    VrF->NewValueCallbackData = NULL;
    VrF->N_slice_num_str = NULL;
    VrF->N_slice_units = SUMA_NO_NUM_UNITS;
-   VrF->N_slice_num = 150;
+   VrF->N_slice_num = -1;
    if (wname) snprintf(VrF->wname,63,"%s", wname);
    else snprintf(VrF->wname,63,"UNNAMED");
    SUMA_RETURN(VrF);

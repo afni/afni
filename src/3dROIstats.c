@@ -162,6 +162,7 @@ int main(int argc, char *argv[])
     int mask_subbrik = 0;
     int sigma = 0, nzsigma = 0, mean = 1, nzmean = 0, nzcount = 0;
     int debug = 0, quiet = 0, summary = 0;
+    char wpc[2] = {""};
     int minmax = 0, nzminmax = 0, donzsum = 0;		/* 07 July, 2004 [rickr] */
     short *mask_data;
     int nvox, i, brik, k;
@@ -311,6 +312,13 @@ int main(int argc, char *argv[])
 	    narg++;
 	    continue;
 	}
+   
+   if (strcmp(argv[narg], "-wpc") == 0) {
+	    wpc[0] = 'w'; wpc[1] = '\0';
+	    narg++;
+	    continue;
+	}
+   
    if (strcmp(argv[narg], "-pcxyz") == 0) {
 	    if (nzpcxyz) {
           Error_Exit("mode cannot be used with nzpcxyz");
@@ -603,29 +611,29 @@ int main(int argc, char *argv[])
          fprintf(stdout, "\tNZMod_%s ", sklab);
       }
       if (pcxyz) {
-         for (k=0; k< 3; ++k) fprintf(stdout, "\tpc0%c_%s ", 'x'+k, sklab);
-         for (k=0; k< 3; ++k) fprintf(stdout, "\tpc1%c_%s ", 'x'+k, sklab);
-         for (k=0; k< 3; ++k) fprintf(stdout, "\tpc2%c_%s ", 'x'+k, sklab);
-         for (k=0; k< 3; ++k) fprintf(stdout, "\teig%d_%s ", k, sklab);
+         for (k=0; k< 3; ++k) fprintf(stdout, "\t%spc0%c_%s ",wpc,'x'+k, sklab);
+         for (k=0; k< 3; ++k) fprintf(stdout, "\t%spc1%c_%s ",wpc,'x'+k, sklab);
+         for (k=0; k< 3; ++k) fprintf(stdout, "\t%spc2%c_%s ",wpc,'x'+k, sklab);
+         for (k=0; k< 3; ++k) fprintf(stdout, "\t%seig%d_%s ",wpc,k, sklab);
          if (pcxyz == 2) {
-            fprintf(stdout, "\tFA_%s ", sklab);
-            fprintf(stdout, "\tMD_%s ", sklab);
-            fprintf(stdout, "\tCl_%s ", sklab);
-            fprintf(stdout, "\tCp_%s ", sklab);
-            fprintf(stdout, "\tCs_%s ", sklab);
+            fprintf(stdout, "\t%sFA_%s ",wpc,sklab);
+            fprintf(stdout, "\t%sMD_%s ",wpc,sklab);
+            fprintf(stdout, "\t%sCl_%s ",wpc,sklab);
+            fprintf(stdout, "\t%sCp_%s ",wpc,sklab);
+            fprintf(stdout, "\t%sCs_%s ",wpc,sklab);
          }
       }
       if (nzpcxyz) {
-         for (k=0; k< 3; ++k) fprintf(stdout, "\tNZpc0%c_%s ", 'x'+k, sklab);
-         for (k=0; k< 3; ++k) fprintf(stdout, "\tNZpc1%c_%s ", 'x'+k, sklab);
-         for (k=0; k< 3; ++k) fprintf(stdout, "\tNZpc2%c_%s ", 'x'+k, sklab);
-         for (k=0; k< 3; ++k) fprintf(stdout, "\tNZeig%d_%s ", k, sklab);
+         for (k=0; k< 3; ++k) fprintf(stdout,"\t%sNZpc0%c_%s ",wpc,'x'+k, sklab);
+         for (k=0; k< 3; ++k) fprintf(stdout,"\t%sNZpc1%c_%s ",wpc,'x'+k, sklab);
+         for (k=0; k< 3; ++k) fprintf(stdout,"\t%sNZpc2%c_%s ",wpc,'x'+k, sklab);
+         for (k=0; k< 3; ++k) fprintf(stdout,"\t%sNZeig%d_%s ",wpc,k, sklab);
          if (nzpcxyz == 2) {
-            fprintf(stdout, "\tNZFA_%s ", sklab);
-            fprintf(stdout, "\tNZMD_%s ", sklab);
-            fprintf(stdout, "\tNZCl_%s ", sklab);
-            fprintf(stdout, "\tNZCp_%s ", sklab);
-            fprintf(stdout, "\tNZCs_%s ", sklab);
+            fprintf(stdout, "\t%sNZFA_%s ",wpc,sklab);
+            fprintf(stdout, "\t%sNZMD_%s ",wpc,sklab);
+            fprintf(stdout, "\t%sNZCl_%s ",wpc,sklab);
+            fprintf(stdout, "\t%sNZCp_%s ",wpc,sklab);
+            fprintf(stdout, "\t%sNZCs_%s ",wpc,sklab);
          }
       }
       if (key) {
@@ -675,28 +683,28 @@ int main(int argc, char *argv[])
          fprintf(stdout, "\tNZMod_%s ", sklab );
       }
       if (pcxyz) {
-         for (k=0; k< 3; ++k) fprintf(stdout, "\tpc0%c_%s ", 'x'+k, sklab);
-         for (k=0; k< 3; ++k) fprintf(stdout, "\tpc1%c_%s ", 'x'+k, sklab);
-         for (k=0; k< 3; ++k) fprintf(stdout, "\tpc2%c_%s ", 'x'+k, sklab);
-         for (k=0; k< 3; ++k) fprintf(stdout, "\teig%d_%s ", k, sklab);
+         for (k=0; k< 3; ++k) fprintf(stdout, "\t%spc0%c_%s ", wpc,'x'+k, sklab);
+         for (k=0; k< 3; ++k) fprintf(stdout, "\t%spc1%c_%s ", wpc,'x'+k, sklab);
+         for (k=0; k< 3; ++k) fprintf(stdout, "\t%spc2%c_%s ", wpc,'x'+k, sklab);
+         for (k=0; k< 3; ++k) fprintf(stdout, "\t%seig%d_%s ", wpc,k, sklab);
          if (pcxyz == 2) {
-            fprintf(stdout, "\tFA_%s ", sklab);
-            fprintf(stdout, "\tMD_%s ", sklab);
-            fprintf(stdout, "\tCl_%s ", sklab);
-            fprintf(stdout, "\tCp_%s ", sklab);
-            fprintf(stdout, "\tCs_%s ", sklab);
+            fprintf(stdout, "\t%sFA_%s ", wpc,sklab);
+            fprintf(stdout, "\t%sMD_%s ", wpc,sklab);
+            fprintf(stdout, "\t%sCl_%s ", wpc,sklab);
+            fprintf(stdout, "\t%sCp_%s ", wpc,sklab);
+            fprintf(stdout, "\t%sCs_%s ", wpc,sklab);
          }      }
       if (nzpcxyz) {
-         for (k=0; k< 3; ++k) fprintf(stdout, "\tNZpc0%c_%s ", 'x'+k, sklab);
-         for (k=0; k< 3; ++k) fprintf(stdout, "\tNZpc0%c_%s ", 'x'+k, sklab);
-         for (k=0; k< 3; ++k) fprintf(stdout, "\tNZpc2%c_%s ", 'x'+k, sklab);
-         for (k=0; k< 3; ++k) fprintf(stdout, "\tNZeig%d_%s ", k, sklab);
+         for (k=0; k< 3; ++k) fprintf(stdout,"\t%sNZpc0%c_%s ",wpc,'x'+k, sklab);
+         for (k=0; k< 3; ++k) fprintf(stdout,"\t%sNZpc0%c_%s ",wpc,'x'+k, sklab);
+         for (k=0; k< 3; ++k) fprintf(stdout,"\t%sNZpc2%c_%s ",wpc,'x'+k, sklab);
+         for (k=0; k< 3; ++k) fprintf(stdout,"\t%sNZeig%d_%s ",wpc,k, sklab);
          if (nzpcxyz == 2) {
-            fprintf(stdout, "\tNZFA_%s ", sklab);
-            fprintf(stdout, "\tNZMD_%s ", sklab);
-            fprintf(stdout, "\tNZCl_%s ", sklab);
-            fprintf(stdout, "\tNZCp_%s ", sklab);
-            fprintf(stdout, "\tNZCs_%s ", sklab);
+            fprintf(stdout, "\t%sNZFA_%s ", wpc,sklab);
+            fprintf(stdout, "\t%sNZMD_%s ", wpc,sklab);
+            fprintf(stdout, "\t%sNZCl_%s ", wpc,sklab);
+            fprintf(stdout, "\t%sNZCp_%s ", wpc,sklab);
+            fprintf(stdout, "\t%sNZCs_%s ", wpc,sklab);
          }
       }
       if (key) {
@@ -944,8 +952,8 @@ int main(int argc, char *argv[])
        
        /* do the XYZ PCA */
        if (pcxyz || nzpcxyz) {
-         float *xyzp=NULL;
-         double pc_vec[9], pc_eig[3], trace;
+         float *xyzp=NULL, fac=1.0;
+         double pc_vec[9], pc_eig[3], trace, sfac;
          int nvi, nvij, N_xyz=0;
          THD_fvec3 fv3;
          THD_ivec3 vi;
@@ -967,29 +975,35 @@ int main(int argc, char *argv[])
             if (N_xyz) {
                xyzp = (float *)malloc(sizeof(float)*N_xyz*3);
                k = 0;
+               fac = 1.0; sfac = 1.0;
                for (i = 0; i < nvox; i++) { /* i */
+                  if (wpc[0] == 'w') {
+                     fac = input_data[i];
+                     sfac += fac;
+                  } else fac = 1.0;
                   if (mask_data[i] && ROI == non_zero[mask_data[i] + 32768]) {
                      if (pcxyz) {
                         AFNI_1D_to_3D_index(i, vi.ijk[0], vi.ijk[1], vi.ijk[2], 
                                                nvi, nvij);
                         fv3 = THD_3dind_to_dicomm_no_wod(input_dset, vi);
-                        xyzp[k        ] = fv3.xyz[0]; 
-                        xyzp[k+N_xyz  ] = fv3.xyz[1]; 
-                        xyzp[k+N_xyz*2] = fv3.xyz[2]; 
+                        xyzp[k        ] = fv3.xyz[0]*fac; 
+                        xyzp[k+N_xyz  ] = fv3.xyz[1]*fac; 
+                        xyzp[k+N_xyz*2] = fv3.xyz[2]*fac; 
                         ++k;
                      } else { /* non zero only */
                         AFNI_1D_to_3D_index(i, vi.ijk[0], vi.ijk[1], vi.ijk[2], 
                                                nvi, nvij);
                         fv3 = THD_3dind_to_dicomm_no_wod(input_dset, vi);
                         if (input_data[i] != 0.0) {
-                           xyzp[k        ] = fv3.xyz[0]; 
-                           xyzp[k+N_xyz  ] = fv3.xyz[1]; 
-                           xyzp[k+N_xyz*2] = fv3.xyz[2]; 
+                           xyzp[k        ] = fv3.xyz[0]*fac; 
+                           xyzp[k+N_xyz  ] = fv3.xyz[1]*fac; 
+                           xyzp[k+N_xyz*2] = fv3.xyz[2]*fac; 
                            ++k;
                         }
                      }
                   }
                }/* i */
+               
                if ((trace = pca_fast3(xyzp, N_xyz, 1, pc_vec, pc_eig)) < 0) {
                   ERROR_message("Failed calculating PC for %dth ROI, \n"
                                 "setting all 0\n", ROI);
