@@ -1675,7 +1675,7 @@ void AFNI_sigfunc_alrm(int sig)
        MCW_melt_widget( im3d->vwid->top_form ) ;
      }
    }
-
+   selenium_close(); /* close any selenium opened browser windows if open */
    exit(sig);
 }
 #undef NMSG
