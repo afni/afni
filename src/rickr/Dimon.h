@@ -121,6 +121,7 @@ typedef struct  /* user options */
     int              swap;          /* swap bytes when sending data     */
     int              rev_bo;        /* reverse BYTEORDER command        */
     int              num_chan;      /* number of data channels to use   */
+    char           * te_list;       /* list of echo times (in one string)*/
     char           * host;          /* pointer to hostname              */
     string_list      drive_list;    /* list of DRIVE_AFNI commands      */
     string_list      wait_list;     /* list of DRIVE_AFNI commands      */

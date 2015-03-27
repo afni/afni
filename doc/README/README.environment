@@ -1630,7 +1630,7 @@ viewer window into which the user has not specifically set a string for
 this purpose from the GUI menu item 'Label Append String'.
 
 ------------------------------
-Variable: AFNI_CROSSHAIR_LINES (editable)
+Variable: AFNI_CROSSHAIR_LINES (editable) -- THIS VARIABLE IS NOW UNUSED
 ------------------------------
 If this YES/NO variable is set to YES, then the image crosshairs will be
 drawn using lines rather than pixels.  By default (this is the original
@@ -1652,6 +1652,15 @@ Good points about crosshairs drawn with pixel overlay:
 So you have to decide what you need most.  You can change this item using
 the "Edit Environment" pseudo-plugin on the Datamode->Misc menu, so you
 can play with it interactively to get the features you want.
+
+----------------------------------
+Variable: AFNI_CROSSHAIR_THICKNESS
+----------------------------------
+This numeric variable lets you set the thickness of the lines used to draw
+the image viewer crosshairs.  The default value is 0, which means thin lines.
+The units are fractions of the image size, and the legal range is 0 .. 0.05
+(which will be very thick lines, I assure you).  This variable was introduced
+in March 2015 for Corianne (if there is such a person).
 
 ----------------------------
 Variable: AFNI_CROP_ZOOMSAVE (editable)

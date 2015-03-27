@@ -37,7 +37,7 @@ else
       echo "Have $Nelecs electrodes, $Ncoords[1] coordinates!"
       goto BEND
    endif
-   set tcopt = '-these_coords /tmp/${RNS}.xyz.1D'
+   set tcopt = "-these_coords /tmp/${RNS}.xyz.1D"
 endif
 if ($dim[2] == 1) then
    goto ONED

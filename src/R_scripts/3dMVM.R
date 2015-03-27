@@ -18,6 +18,7 @@ ExecName <- '3dMVM'
 # Global variables
 iterPar <- 'matrPar'
 respVar <- c('InputFile', 'Inputfile', 'inputFile', 'inputfile', 'Ausgang_val', 'ausgang_val')
+tolL <- 1e-16 # bottom tolerance for avoiding division by 0 and for avioding analyzing data with most 0's
 
 #################################################################################
 ##################### Begin MVM Input functions ################################
@@ -31,7 +32,7 @@ help.MVM.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
           ================== Welcome to 3dMVM ==================          
     AFNI Group Analysis Program with Multi-Variate Modeling Approach
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 3.5.5, Feb 12, 2014
+Version 3.5.6, Feb 23, 2014
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - http://afni.nimh.nih.gov/sscc/gangc/MVM.html
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -1374,7 +1375,7 @@ if(any(!is.na(lop$vVars))) {
 
 if (!is.na(lop$maskFN)) {
    Mask <- read.AFNI(lop$maskFN, verb=lop$verb, meth=lop$iometh, forcedset = TRUE)$brk[,,,1]
-   inData <- array(apply(inData, 4, function(x) x*Mask),
+   inData <- array(apply(inData, 4, function(x) x*(abs(Mask)>tolL)),
       dim=c(dimx,dimy,dimz,lop$NoFile+(!is.na(lop$vQV[1]))*lop$nSubj))
 }
                                                 

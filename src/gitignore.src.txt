@@ -11,6 +11,7 @@ macros.make
 Makefile
 Makevars
 Makefile.R.INCLUDE
+Makefile.R.INCLUDE.BACK
 
 #Python
 *.pyc

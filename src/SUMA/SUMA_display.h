@@ -1156,7 +1156,9 @@ SUMA_Boolean SUMA_Register_Widget_Children_Help(Widget, int type, char *name,
    "label, menu, etc. to go to the corresponding online help.\n"  \
    "Clicking on table cells might take you to the help for the\n" \
    "entire table or the GUI section the table is in. You might\n" \
-   "get a more focused result by clicking on the table's headings.\n" 
+   "get a more focused result by clicking on the table's headings.\n"   \
+   "At the moment, this button will not deliver any puppies."
+    
    
 #define SUMA_closeSumaCont_help \
    "Close SUMA controller window.\n"   \

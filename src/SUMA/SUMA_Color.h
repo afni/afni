@@ -6,7 +6,8 @@
 #define PSV_NOTHING 0
 #define PSV_BIND_VOL    1
 
-
+byte SUMA_Val_Meets_Thresh(float val, double *ThreshRange, 
+                           SUMA_THRESH_MODE ThrMode);
 int SUMA_a_good_col(char *name, int i, float *acol);
 SUMA_COLOR_MAP *SUMA_LabelsKeys2Cmap (char **str, int num, int *keys, 
                                       float **cols, int nc, char *Name);

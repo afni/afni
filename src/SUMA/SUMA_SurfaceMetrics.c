@@ -821,8 +821,7 @@ int main (int argc,char *argv[])
    /* create the surface label*/
    SO->Label = SUMA_SurfaceFileName (SO, NOPE);
    if (!SO->Label) {
-      SUMA_S_Err("Failed to create Label");
-      exit(1);
+      SO->Label = SUMA_copy_string("No_Decent_Label");
    }
 
    if (LocalHead) SUMA_Print_Surface_Object (SO, stderr);

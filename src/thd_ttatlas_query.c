@@ -8756,6 +8756,22 @@ char *deblank_allname(char *name, char fill)
    return(name);
 }
 
+char *deslash_allname(char *name, char fill)
+{
+   int bb=0;
+   
+   if (!name) return(name);
+   
+      bb=0; 
+   while (name[bb] != '\0') {
+      if (name[bb] == '\\' || name[bb] == '/') name[bb]=fill;
+      ++bb;
+   }
+   
+   return(name);
+}
+
+
 /* deblank and compress (reduce successive blanks to
    just one blank */
 char *cdeblank_allname(char *name, char fill)
