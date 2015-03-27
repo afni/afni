@@ -190,7 +190,7 @@ static THD_3dim_dataset *TS_fset = NULL ; /* 21 Sep 2011 */
 
 static char *TS_tpattern = NULL ;
 
-static char TS_prefix[THD_MAX_PREFIX] = "tshift" ;
+static char TS_prefix[THD_MAX_NAME] = "tshift" ;
 
 /*-----------------------------------------------------------------------------*/
 
@@ -297,7 +297,7 @@ int main( int argc , char *argv[] )
 
       if( strcmp(argv[nopt],"-prefix") == 0 ){
          if( ++nopt >= argc ) TS_syntax("-prefix needs an argument!") ;
-         MCW_strncpy( TS_prefix , argv[nopt] , THD_MAX_PREFIX ) ;
+         MCW_strncpy( TS_prefix , argv[nopt] , THD_MAX_NAME ) ;
          if( !THD_filename_ok(TS_prefix) ) TS_syntax("illegal value after -prefix") ;
          nopt++ ; continue ;
       }

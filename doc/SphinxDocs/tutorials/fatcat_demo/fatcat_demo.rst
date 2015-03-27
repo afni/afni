@@ -61,16 +61,18 @@ Results visualized by script Do_06_VISdti_SUMA_visual_ex1.tcsh
       :align: left
       :figwidth: 40%
       :target: ../../_images/Do_06_vis1.jpg
-
-      Tracts going though an interactively positioned :ref:`mask<TractCont->Coloring_Controls->Masks>` in the midbrain area. :ref:`Slice transparency<VolCont->Slice_Controls->Trn>` set to 8. 
+      :name: media/Do_06_vis1.jpg
+      
+      Tracts going though an interactively positioned :ref:`mask<TractCont->Coloring_Controls->Masks>` in the midbrain area. :ref:`Slice transparency<VolCont->Slice_Controls->Trn>` set to 8. :ref:`(link)<media/Do_06_vis1.jpg>` 
 
 
    .. figure:: media/Do_06_vis2.jpg
       :align: right
       :figwidth: 40%
       :target: ../../_images/Do_06_vis2.jpg
+      :name: media/Do_06_vis2.jpg
 
-      Tracts going though one ROI, with :ref:`volume rendering<VolCont->VR->Ns->v>` turned on
+      Tracts going though one ROI, with :ref:`volume rendering<VolCont->VR->Ns->v>` turned on. :ref:`(link)<media/Do_06_vis2.jpg>` 
    
    .. container:: clearer
 
@@ -88,23 +90,26 @@ Results visualized by script Do_09_VISdti_SUMA_visual_ex2.tcsh
       :align: left
       :figwidth: 40%
       :target: ../../_images/Do_09_vis2.1.jpg
-
-      Surfaces with surface contour (see :ref:`IsoSurface<IsoSurface>`) of ROI in color, slices, and tracts barely visible.
+      :name: media/Do_09_vis2.1.jpg
+      
+      Surfaces with surface contour (see :ref:`IsoSurface<IsoSurface>`) of ROI in color, slices, and tracts barely visible. ref:`(link)<media/Do_06_vis2.1.jpg>`
 
    .. figure:: media/Do_09_vis2.2.jpg
       :align: right
       :figwidth: 40%
       :target: ../../_images/Do_09_vis2.2.jpg
+      :name: media/Do_09_vis2.2.jpg
 
-      Surfaces hidden to reveal deterministic tracts through ROIs of the DMN.
+      Surfaces hidden to reveal deterministic tracts through ROIs of the DMN. ref:`(link)<media/Do_09_vis2.2.jpg>` 
 
 
    .. figure:: media/Do_09_vis2.3.jpg
       :align: center
       :figwidth: 50%
       :target: ../../_images/Do_09_vis2.3.jpg
+      :name: media/Do_09_vis2.3.jpg
 
-      Connection is maintained with AFNI which is displaying intersection of surfaces with the volume. Clicking anywhere in SUMA will cause AFNI to jump to the corresponding location.
+      Connection is maintained with AFNI which is displaying intersection of surfaces with the volume. Clicking anywhere in SUMA will cause AFNI to jump to the corresponding location. :ref:`(link)<media/Do_09_vis2.3.jpg>`
 
    .. container:: clearer
 
@@ -116,16 +121,18 @@ Results visualized by script Do_09_VISdti_SUMA_visual_ex2.tcsh
       :align: left
       :figwidth: 44%
       :target: ../../_images/Do_09_vis2.4.jpg
-
-      Deterministic.
+      :name: media/Do_09_vis2.4.jpg
+      
+      :ref:`Deterministic.<media/Do_09_vis2.4.jpg>`
 
 
    .. figure:: media/Do_09_vis2.5.jpg
       :align: right
       :figwidth: 44%
       :target: ../../_images/Do_09_vis2.4.jpg
-
-      Probabilistic.
+      :name: media/Do_09_vis2.5.jpg
+      
+      :ref:`Probabilistic.<media/Do_09_vis2.5.jpg>`
 
    .. container:: clearer
 
@@ -135,7 +142,9 @@ Results visualized by script Do_09_VISdti_SUMA_visual_ex2.tcsh
 
    .. figure:: media/Do_09_vis3.1.jpg
       :align: center
+      :name: media/Do_09_vis3.1.jpg
       
+      :ref:`(link)<media/Do_09_vis3.1.jpg>`
       ..
       
 Do_09_VISdti_SUMA_visual_ex3.tcsh
@@ -150,8 +159,10 @@ Do_09_VISdti_SUMA_visual_ex3.tcsh
    
    .. figure:: ../../SUMA/media/f+a_conn.jpg
       :align: center
+      :name: SUMA/media/f+a_conn.jpg
       
-      ..
+      :ref:`(link)<SUMA/media/f+a_conn.jpg>`
+      
 
 Connectoming
 ------------
@@ -161,8 +172,9 @@ Connectoming
    .. figure:: media/Connectoming.jpg
       :align: center
       :target: ../../_images/Connectoming.jpg
+      :name: media/Connectoming.jpg
       
-      The tracts here are :ref:`colored<TractCont->Coloring_Controls->Switch_Dset>` depending on which pair of ROIs they join. To launch suma with the results displayed here, use::
+      The tracts here are :ref:`colored<TractCont->Coloring_Controls->Switch_Dset>` depending on which pair of ROIs they join. :ref:`(link)<media/Connectoming.jpg>`. To launch suma with the results displayed here, use::
       
          suma -tract CONNECTOMING/o.OME8_000.niml.tract
 

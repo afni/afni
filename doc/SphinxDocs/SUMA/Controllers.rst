@@ -38,8 +38,9 @@ Object Controllers
       .. figure:: media/object_controller_notebook_gray.jpg
          :align: center
          :figwidth: 50 %
-
-         Object Controller Notebook: Holder of all controllers. Grayed out area will be different for different object types.
+         :name: media/object_controller_notebook_gray.jpg
+         
+         Object Controller Notebook: Holder of all controllers. Grayed out area will be different for different object types. :ref:`(link)<media/object_controller_notebook_gray.jpg>`
 
       Once you select an object, its controller is popped to the top. You can also use the :ref:`Switch <GL_CN_Switch>` to get at the controller for an object that you don't want to select or that is simply out of reach (invisible). 
 
@@ -51,23 +52,23 @@ Object Controllers
 
          .. _GL_CN_Close:
 
-         :guilabel:`Close`: Close controller. Settings are not lost. You can bring it back with :ref:`Ctrl+s <LC_Ctrl+s>` key.
+         :ref:`Close<GL_CN_Close>`: Close controller. Settings are not lost. You can bring it back with :ref:`Ctrl+s <LC_Ctrl+s>` key.
 
          .. _GL_CN_BHelp:
 
-         :guilabel:`BHelp`: Obtain context specific help by clicking on this button then clicking on the contextfor which you want information.
+         :ref:`BHelp<GL_CN_BHelp>`: Obtain context specific help by clicking on this button then clicking on the context for which you want information.
 
          .. _GL_CN_WHelp:
 
-         :guilabel:`WHelp`: Obtain web-based context specific help by clicking on this button then clicking on the contextfor which you want information.
+         :ref:`WHelp<GL_CN_WHelp>`: Obtain web-based context specific help by clicking on this button then clicking on the context for which you want information.
 
          .. _CL_CN_All_Objs:
 
-         :guilabel:`All Objs`: Initialize controllers for all objects that have one. This is particularly useful when a particular may not be visible under the default settings.
+         :ref:`All Objs<CL_CN_All_Objs>`: Initialize controllers for all objects that have one. This is particularly useful when a particular may not be visible under the default settings.
  
          .. _GL_CN_Switch:
 
-         :guilabel:`Switch`: Switch between controller notebook pages. You can use the arrows to cycle between pages or set the page number directly. 
+         :ref:`Switch<GL_CN_Switch>`: Switch between controller notebook pages. You can use the arrows to cycle between pages or set the page number directly. 
 
  
 .. include:: auto_inc/SurfCont_help.inc 

@@ -82,14 +82,16 @@ float *SUMA_CalculateNodeAreas(SUMA_SurfaceObject *SO, byte *mask)
    \brief builds a cluster starting from some node 
    
    \param dothisnode (int) start building from this node
-   \param AddToThisClust (SUMA_CLUST_DATUM *)pointer to cluster to add to. Send NULL
-                    when function is first called. This is a non NULL when the 
-                    function recurses.
-   \param ToBeAssigned (float *) if ToBeAssigned[i] then node i (index into SO's nodelist)
-                                 is considered in the clustering and the value at that
-                                 node is ToBeAssigned[i]. Vector is SO->N_Node elements
-                                 long. Gets modified during recursion.
-   \param N_ToBeAssigned (int *) pointer to number of value values in ToBeAssigned. 
+   \param AddToThisClust (SUMA_CLUST_DATUM *)pointer to cluster to add to. 
+                    Send NULL when function is first called. 
+                    This is a non NULL when the function recurses.
+   \param ToBeAssigned (float *) if ToBeAssigned[i] then node i 
+                   (index into SO's nodelist) is considered in the clustering 
+                   and the value at that node is ToBeAssigned[i]. 
+                   Vector is SO->N_Node elements long. 
+                   Gets modified during recursion.
+   \param N_ToBeAssigned (int *) pointer to number of value values 
+                                 in ToBeAssigned. 
                                  Changes with recursive calls. 
    \param NodeArea(float *) Vector containing area of each node of surface
    \param SO (SUMA_SurfaceObject *) the usual deal
@@ -108,7 +110,7 @@ SUMA_CLUST_DATUM * SUMA_Build_Cluster_From_Node(
    static char FuncName[]={"SUMA_Build_Cluster_From_Node"};
    SUMA_CLUST_DATUM *Clust = NULL;
    static int ncall;
-   int il, jl, neighb;
+   int il, jl, neighb, nnn, kkk;
    SUMA_GET_OFFSET_STRUCT *OffS = NULL;
    DList *offlist = NULL;
    DListElmt *elm = NULL;
@@ -135,7 +137,9 @@ SUMA_CLUST_DATUM * SUMA_Build_Cluster_From_Node(
       Clust->varvalue = 0.0;  Clust->centralnode = 0; 
       Clust->weightedcentralnode = 0; 
       Clust->NodeList = (int *)SUMA_malloc((*N_TobeAssigned) * sizeof(int)); 
-      Clust->ValueList = (float *)SUMA_malloc((*N_TobeAssigned) * sizeof(float));  
+      Clust->ValueList = (float *)SUMA_malloc((*N_TobeAssigned) * sizeof(float));
+      memset(Clust->com, 0, 3*sizeof(float));
+      memset(Clust->cen, 0, 3*sizeof(float));
       if (!Clust->NodeList || !Clust->ValueList) { 
          SUMA_SL_Crit("Failed to allocate for NodeList or ValueList");  
          SUMA_free(Clust); Clust = NULL;
@@ -178,6 +182,11 @@ SUMA_CLUST_DATUM * SUMA_Build_Cluster_From_Node(
       Clust->maxabsnode = dothisnode; 
    }
    Clust->ValueList[Clust->N_Node] = ToBeAssigned[dothisnode];
+   nnn = SO->NodeDim*dothisnode;
+   for (kkk = 0; kkk<SO->NodeDim; ++kkk) {
+      Clust->com[kkk] += ToBeAssigned[dothisnode] * SO->NodeList[nnn+kkk];
+      Clust->cen[kkk] += SO->NodeList[nnn+kkk];
+   }
    ++Clust->N_Node;
 
    /* mark it as assigned, an reduce the number of nodes left to assign*/
@@ -298,7 +307,8 @@ SUMA_CLUST_DATUM * SUMA_Build_Cluster_From_Node(
 /*! 
    A macro for SUMA_Build_Cluster_From_Node_NoRec
 */
-#define SUMA_ADD_NODE_TO_CLUST(dothisnode, Clust, NodeArea, ToBeAssigned) {   \
+#define SUMA_ADD_NODE_TO_CLUST(dothisnode, Clust, NodeArea, ToBeAssigned, SO){ \
+   int nnn, kkk; \
    if (LocalHead) fprintf(SUMA_STDERR,"%s: Adding node %d to cluster %p of %d nodes\nClustMax is %f, incoming value is %f\n", FuncName, dothisnode, Clust, Clust->N_Node, Clust->maxvalue, ToBeAssigned[dothisnode]);   \
    Clust->NodeList[Clust->N_Node] = dothisnode; \
    Clust->totalarea += NodeArea[dothisnode]; \
@@ -309,6 +319,11 @@ SUMA_CLUST_DATUM * SUMA_Build_Cluster_From_Node(
    if (SUMA_ABS(ToBeAssigned[dothisnode]) < Clust->minabsvalue) { Clust->minabsvalue = SUMA_ABS(ToBeAssigned[dothisnode]); Clust->minabsnode = dothisnode; }\
    if (SUMA_ABS(ToBeAssigned[dothisnode]) > Clust->maxabsvalue) { Clust->maxabsvalue = SUMA_ABS(ToBeAssigned[dothisnode]); Clust->maxabsnode = dothisnode; }\
    Clust->ValueList[Clust->N_Node] = ToBeAssigned[dothisnode]; \
+   nnn = SO->NodeDim*dothisnode; \
+   for (kkk = 0; kkk<SO->NodeDim; ++kkk) {\
+      Clust->com[kkk] += ToBeAssigned[dothisnode] * SO->NodeList[nnn+kkk]; \
+      Clust->cen[kkk] += SO->NodeList[nnn+kkk]; \
+   }  \
    ++Clust->N_Node;  \
 }
 
@@ -372,7 +387,9 @@ SUMA_CLUST_DATUM * SUMA_Build_Cluster_From_Node_NoRec    (  int dothisnode,
       Clust->varvalue = 0.0;  Clust->centralnode = 0; 
       Clust->weightedcentralnode = 0;
       Clust->NodeList = (int *)SUMA_malloc((*N_TobeAssigned) * sizeof(int)); 
-      Clust->ValueList = (float *)SUMA_malloc((*N_TobeAssigned) * sizeof(float));  
+      Clust->ValueList = (float *)SUMA_malloc((*N_TobeAssigned) * sizeof(float));
+      memset(Clust->com, 0, 3*sizeof(float));
+      memset(Clust->cen, 0, 3*sizeof(float));
       if (!Clust->NodeList || !Clust->ValueList || !OffS) { 
          SUMA_SL_Crit("Failed to allocate for NodeList or ValueList");  
          SUMA_free(Clust); Clust = NULL;
@@ -387,7 +404,7 @@ SUMA_CLUST_DATUM * SUMA_Build_Cluster_From_Node_NoRec    (  int dothisnode,
    }
    dlist_init(candlist, NULL);
    /* Add node to cluster */
-   SUMA_ADD_NODE_TO_CLUST(dothisnode, Clust, NodeArea, ToBeAssigned);
+   SUMA_ADD_NODE_TO_CLUST(dothisnode, Clust, NodeArea, ToBeAssigned, SO);
    /* mark it as assigned, an reduce the number of nodes left to assign*/
    ToBeAssigned[dothisnode] = 0; --(*N_TobeAssigned);
    visited[dothisnode] = YUP;
@@ -409,7 +426,7 @@ SUMA_CLUST_DATUM * SUMA_Build_Cluster_From_Node_NoRec    (  int dothisnode,
                         OffS->OffVect[neighb] <= Opt->DistLim) {
                      /* take that node into the cluster */
                      SUMA_ADD_NODE_TO_CLUST( neighb, Clust, 
-                                             NodeArea, ToBeAssigned);
+                                             NodeArea, ToBeAssigned, SO);
                      /* mark it as assigned, an reduce the number 
                         of nodes left to assign*/
                      ToBeAssigned[neighb] = 0; --(*N_TobeAssigned);
@@ -442,7 +459,7 @@ SUMA_CLUST_DATUM * SUMA_Build_Cluster_From_Node_NoRec    (  int dothisnode,
                   if (  ToBeAssigned[neighb] ) {
                         /* take that node into the cluster */
                      SUMA_ADD_NODE_TO_CLUST( neighb, Clust, 
-                                             NodeArea, ToBeAssigned);
+                                             NodeArea, ToBeAssigned, SO);
                      /* mark it as assigned, an reduce the number 
                         of nodes left to assign*/
                      ToBeAssigned[neighb] = 0; --(*N_TobeAssigned);
@@ -498,7 +515,9 @@ char *SUMA_ClustCommandLineFromOpt(char *pname, SUMA_SurfaceObject *SO,
    if (!pname) pname = "SurfClust";
    
    if (SO) {
-      s = SUMA_SurfaceFileName(SO,1);
+      if (!(s = SUMA_SurfaceFileName(SO,1))) {
+         s = SUMA_copy_string("Qui_Etes_Vous.gii");
+      }
    } else {
       s = SUMA_copy_string("SOunknown");
    }
@@ -508,14 +527,21 @@ char *SUMA_ClustCommandLineFromOpt(char *pname, SUMA_SurfaceObject *SO,
               Opt->labelcol, Opt->DistLim );
    if (s) SUMA_free(s); s= NULL;
    if (Opt->tind>=0) {
-      if (Opt->DoThreshold < 0) {
-         SS = SUMA_StringAppend(SS,"NO_COMPARABLE_THRESHOLD ");
-      } else if (Opt->DoThreshold == 1) {
+      if (Opt->DoThreshold == SUMA_NO_THRESH) {
+      } else if (Opt->DoThreshold == SUMA_LESS_THAN) {
          SS = SUMA_StringAppend_va(SS,"-thresh_col %d -thresh %f ",
-                              Opt->tind, Opt->Thresh);
-      } else if (Opt->DoThreshold == 2) {
+                              Opt->tind, Opt->ThreshR[0]);
+      } else if (Opt->DoThreshold == SUMA_ABS_LESS_THAN) {
          SS = SUMA_StringAppend_va(SS,"-thresh_col %d -athresh %f ",
-                              Opt->tind, Opt->Thresh);
+                              Opt->tind, Opt->ThreshR[0]);
+      } else if (Opt->DoThreshold == SUMA_THRESH_OUTSIDE_RANGE) {
+         SS = SUMA_StringAppend_va(SS,"-thresh_col %d -ex_range %f %f",
+                              Opt->tind, Opt->ThreshR[0], Opt->ThreshR[1]);
+      } else if (Opt->DoThreshold == SUMA_THRESH_INSIDE_RANGE) {
+         SS = SUMA_StringAppend_va(SS,"-thresh_col %d -in_range %f %f",
+                              Opt->tind, Opt->ThreshR[0], Opt->ThreshR[1]);
+      } else {
+         SS = SUMA_StringAppend(SS,"NO_COMPARABLE_THRESHOLD ");
       }
    }
    if (Opt->AreaLim < 0) {
@@ -1138,6 +1164,8 @@ SUMA_CLUST_DATUM * SUMA_Build_Cluster_From_Node_Extrema (
       SUMA_free(Clust); Clust = NULL;
       SUMA_RETURN(NULL);  
    }
+   memset(Clust->com, 0, 3*sizeof(float));
+   memset(Clust->cen, 0, 3*sizeof(float));
    candlist = (DList*)SUMA_malloc(sizeof(DList));
    visited = (byte *)SUMA_calloc(SO->N_Node, sizeof(byte));
    if (!visited || !candlist) {
@@ -1147,7 +1175,7 @@ SUMA_CLUST_DATUM * SUMA_Build_Cluster_From_Node_Extrema (
    }
    dlist_init(candlist, NULL);
    /* Add node to cluster */
-   SUMA_ADD_NODE_TO_CLUST(dothisnode, Clust, NodeArea, ToBeAssigned);
+   SUMA_ADD_NODE_TO_CLUST(dothisnode, Clust, NodeArea, ToBeAssigned, SO);
    /* mark it as assigned, an reduce the number of nodes left to assign*/
    ToBeAssigned[dothisnode] = 0; --(*N_TobeAssigned);
    visited[dothisnode] = YUP;
@@ -1169,7 +1197,7 @@ SUMA_CLUST_DATUM * SUMA_Build_Cluster_From_Node_Extrema (
                         OffS->OffVect[neighb] <= Opt->DistLim) {
                      /* take that node into the cluster */
                      SUMA_ADD_NODE_TO_CLUST( neighb, Clust, 
-                                             NodeArea, ToBeAssigned);
+                                             NodeArea, ToBeAssigned, SO);
                      /* mark it as assigned, an reduce the number 
                         of nodes left to assign*/
                      ToBeAssigned[neighb] = 0; --(*N_TobeAssigned);
@@ -1201,7 +1229,7 @@ SUMA_CLUST_DATUM * SUMA_Build_Cluster_From_Node_Extrema (
                   if (  ToBeAssigned[neighb] ) {
                         /* take that node into the cluster */
                      SUMA_ADD_NODE_TO_CLUST( neighb, Clust, 
-                                             NodeArea, ToBeAssigned);
+                                             NodeArea, ToBeAssigned, SO);
                      /* mark it as assigned, an reduce the number 
                         of nodes left to assign*/
                      ToBeAssigned[neighb] = 0; --(*N_TobeAssigned);
@@ -1437,12 +1465,14 @@ char *SUMA_Show_SurfClust_list_Info(DList *list, int detail, char *params,
    DListElmt *elmt=NULL;
    SUMA_CLUST_DATUM *cd=NULL;
    char *s=NULL, *pad_str, str[20];   
-   int lc[]= { 6, 6, 9, 9, 9, 6, 6, 9, 6, 9, 6, 9, 9, 9, 8, 9, 8 };
+   int lc[]= { 6, 6, 9, 9, 9, 6, 6, 9, 6, 9, 6, 9, 9, 9, 8, 9, 8, 
+               9, 9, 9, 9, 9, 9 };
    char Col[][12] = { 
       {"# Rank"}, {"num Nd"}, {"Area"}, {"Mean"}, 
       {"|Mean|"},{"Cent"}, {"W Cent"},{"Min V"}, 
       {"Min Nd"}, {"Max V"}, {"Max Nd"} , {"Var"}, {"SEM"},
-      {"Min |V|"}, {"|Min| Nd"}, {"Max |V|"}, {"|Max| Nd"} };
+      {"Min |V|"}, {"|Min| Nd"}, {"Max |V|"}, {"|Max| Nd"},
+      {"COM x"},  {"COM y"}, {"COM z"}, {"Cent x"},  {"Cent y"}, {"Cent z"} };  
    
    SUMA_ENTRY;
 
@@ -1476,11 +1506,18 @@ char *SUMA_Show_SurfClust_list_Info(DList *list, int detail, char *params,
                                     "#Col. 13 = Minimum |value|\n"
                                     "#Col. 14 = |Minimum| node\n"
                                     "#Col. 15  = Maximum |value|\n"
-                                    "#Col. 16 = |Maximum| node\n");
+                                    "#Col. 16 = |Maximum| node\n"
+                                    "#Col. 17 = Center of Mass x\n"
+                                    "#Col. 18 = Center of Mass y\n"
+                                    "#Col. 19 = Center of Mass z\n"
+                                    "#Col. 20 = Centroid x\n"
+                                    "#Col. 21 = Centroid y\n"
+                                    "#Col. 22 = Centroid z\n"
+                                    );
       } 
       SS = SUMA_StringAppend_va (SS,"#Command history:\n"
                                     "#%s\n", params);
-      for (ic=0; ic<17; ++ic) {
+      for (ic=0; ic<23; ++ic) {
          if (ic == 0) sprintf(str,"%s", Col[ic]); 
          else sprintf(str,"%s", Col[ic]); 
          pad_str = SUMA_pad_string(str, ' ', lc[ic], 0);
@@ -1524,6 +1561,8 @@ char *SUMA_Show_SurfClust_list_Info(DList *list, int detail, char *params,
                   "   %9.3f   %9.3f"
                   "   %9.3f   %8d"
                   "   %9.3f   %8d"
+                  "   %9.3f   %9.3f   %9.3f"
+                  "   %9.3f   %9.3f   %9.3f"
                   , ic, cd->N_Node, cd->totalarea
                   , cd->totalvalue/((float)cd->N_Node)
                   , cd->totalabsvalue/((float)cd->N_Node)
@@ -1532,7 +1571,14 @@ char *SUMA_Show_SurfClust_list_Info(DList *list, int detail, char *params,
                   , cd->maxvalue, cd->maxnode
                   , cd->varvalue, sqrt(cd->varvalue/cd->N_Node)
                   , cd->minabsvalue, cd->minabsnode
-                  , cd->maxabsvalue, cd->maxabsnode);
+                  , cd->maxabsvalue, cd->maxabsnode
+                  , cd->com[0]/cd->totalvalue
+                  , cd->com[1]/cd->totalvalue
+                  , cd->com[2]/cd->totalvalue
+                  , cd->cen[0]/((float)cd->N_Node)
+                  , cd->cen[1]/((float)cd->N_Node)
+                  , cd->cen[2]/((float)cd->N_Node)
+                  );
          if (detail > 0) {
             if (detail == 1) {
                if (cd->N_Node < 5) max = cd->N_Node; else max = 5;
@@ -1867,21 +1913,26 @@ SUMA_DSET *SUMA_SurfClust_list_2_DsetMask(
 }
 
 /*!
-   \brief Finds a node that best approximates the property of the center of mass on the surface.
-   Note that the real center of mass of a curved surface is rarely on the surface, so this is 
-   an attempt at localizing a node that is central to an ROI and that can reflect the weight, 
-   or activity, distribution in that ROI.
+   \brief Finds a node that best approximates the property of the center of 
+          mass on the surface.
+   The real center of mass of a curved surface is rarely on the surface, 
+   so this is an attempt at localizing a node that is central to an ROI 
+   and that can reflect the weight, or activity, distribution in that ROI.
    
    \param SO (SUMA_SurfaceObject *)
-   \param cd (SUMA_CLUST_DATUM *) basically the output of SUMA_SUMA_Build_Cluster_From_Node or 
-                                  an element of the list returned by SUMA_FindClusters
-                                  Function will fill centralnode and weightedcentralnode
-   \param UseSurfDist (int) 0: use distances along the surface (approximated by distances on the graph)
+   \param cd (SUMA_CLUST_DATUM *) basically the output of 
+                                  SUMA_SUMA_Build_Cluster_From_Node or 
+                                  an element of the list returned by 
+                                  SUMA_FindClusters
+               Function will fill centralnode and weightedcentralnode
+   \param UseSurfDist (int) 0: use distances along the surface 
+                               (approximated by distances on the graph)
                             1: use Euclidian distances. 
    \return ans (int) : NOPE failed, YUP succeeded.
                        
 */
-int SUMA_ClusterCenterofMass  (SUMA_SurfaceObject *SO, SUMA_CLUST_DATUM *cd, int UseSurfDist)
+int SUMA_ClusterCenterofMass  (SUMA_SurfaceObject *SO, SUMA_CLUST_DATUM *cd, 
+                               int UseSurfDist)
 {
    static char FuncName[]={"SUMA_ClusterCenterofMass"};
    SUMA_GET_OFFSET_STRUCT *OffS = NULL;
@@ -1936,7 +1987,9 @@ int SUMA_ClusterCenterofMass  (SUMA_SurfaceObject *SO, SUMA_CLUST_DATUM *cd, int
       SUMA_SL_Crit("Failed to allocate.");
       SUMA_RETURN(NOPE);
    }
-   for (c=0; c < OS.N_Neighb; ++c) { DistVec[OS.Neighb_ind[c]] = OS.Neighb_dist[c]; }
+   for (c=0; c < OS.N_Neighb; ++c) { 
+      DistVec[OS.Neighb_ind[c]] = OS.Neighb_dist[c]; 
+   }
    
    /* Now calculate the center of massity of each node 
    This is no center of mass in the proper definition of the term*/
@@ -1949,34 +2002,66 @@ int SUMA_ClusterCenterofMass  (SUMA_SurfaceObject *SO, SUMA_CLUST_DATUM *cd, int
       for (c=0; c < OS.N_Neighb; ++c) {
          nc = OS.Neighb_ind[c]; /* Node index into SO of center node */
          s[0] = s[1] = s[2] = 0.0; s_w[0] = s_w[1] = s_w[2] = 0.0; 
-         centrality[c] = 0.0; weightedcentrality[c] = 0.0; mtotal_w = 0.0; /* recalculated each time, not a big deal ... */
+         centrality[c] = 0.0; weightedcentrality[c] = 0.0; 
+         mtotal_w = 0.0; /* recalculated each time, not a big deal ... */
          for (i=0; i<cd->N_Node; ++i) {
             mi_w = cd->ValueList[i];
             mtotal_w += mi_w; 
-            ni = cd->NodeList[i]; /* Node index into SO of other node in cluster */
-            SUMA_UNIT_VEC((&(SO->NodeList[3*ni])), (&(SO->NodeList[3*nanch])), Uia, dia);
-            if (UseSurfDist) { for (k=0; k<3;++k) { fac = Uia[k] * DistVec[ni]; s_w[k] += mi_w * fac; s[k] += fac;} }
-            else { for (k=0; k<3;++k) { fac = Uia[k] * dia; s_w[k] += mi_w * fac; s[k] += fac; } }
+            ni = cd->NodeList[i];/*Node index into SO of other node in cluster*/
+            SUMA_UNIT_VEC((&(SO->NodeList[3*ni])), (&(SO->NodeList[3*nanch])), 
+                          Uia, dia);
+            if (UseSurfDist) { 
+               for (k=0; k<3;++k) { 
+                  fac = Uia[k] * DistVec[ni]; 
+                  s_w[k] += mi_w * fac; 
+                  s[k] += fac;
+            } } else { 
+               for (k=0; k<3;++k) { 
+                  fac = Uia[k] * dia; 
+                  s_w[k] += mi_w * fac; 
+                  s[k] += fac; 
+            } }
          }
-         SUMA_UNIT_VEC((&(SO->NodeList[3*nc])), (&(SO->NodeList[3*nanch])), Uca, dca);
-         if (UseSurfDist) { for (k=0; k<3;++k) { fac = Uca[k] * DistVec[nc]; s_w[k] -= mtotal_w * fac; s[k] -= cd->N_Node * fac;  } }
-         else { for (k=0; k<3;++k) { fac =  Uca[k] * dca; s_w[k] -= mtotal_w * fac; s[k] -= cd->N_Node * fac;} }
+         SUMA_UNIT_VEC((&(SO->NodeList[3*nc])), (&(SO->NodeList[3*nanch])), 
+                       Uca, dca);
+         if (UseSurfDist) { 
+            for (k=0; k<3;++k) { 
+               fac = Uca[k] * DistVec[nc]; 
+               s_w[k] -= mtotal_w * fac; 
+               s[k] -= cd->N_Node * fac;  
+         } } else { 
+            for (k=0; k<3;++k) { 
+               fac =  Uca[k] * dca; 
+               s_w[k] -= mtotal_w * fac; 
+               s[k] -= cd->N_Node * fac;
+         } }
          
-         SUMA_NORM_VEC(s, 3, centrality[c]); SUMA_NORM_VEC(s_w, 3, weightedcentrality[c]); 
-         if (LocalHead) fprintf(SUMA_STDERR,"%s: call %d, Centrality of node %d / %d = %f , weighted %f\n", FuncName, ncall, nc, nanch, centrality[c], weightedcentrality[c]); 
+         SUMA_NORM_VEC(s, 3, centrality[c]); 
+         SUMA_NORM_VEC(s_w, 3, weightedcentrality[c]); 
+         SUMA_LH("call %d, Centrality of node %d / %d = %f , weighted %f\n", 
+                  ncall, nc, nanch, centrality[c], weightedcentrality[c]); 
          if (c == 0) { 
-            mincentrality = centrality[c]; centralnode = nc; 
-            minweightedcentrality = weightedcentrality[c]; weightedcentralnode = nc; 
+            mincentrality = centrality[c]; 
+            centralnode = nc; 
+            minweightedcentrality = weightedcentrality[c]; 
+            weightedcentralnode = nc; 
          } else {
-            if (centrality[c] < mincentrality) { mincentrality = centrality[c]; centralnode = nc; }
-            if (weightedcentrality[c] < minweightedcentrality) { minweightedcentrality = weightedcentrality[c]; weightedcentralnode = nc; }
+            if (centrality[c] < mincentrality) { 
+               mincentrality = centrality[c]; 
+               centralnode = nc; 
+            }
+            if (weightedcentrality[c] < minweightedcentrality) { 
+               minweightedcentrality = weightedcentrality[c]; 
+               weightedcentralnode = nc; 
+            }
          }
          
       }
    }
    cd->centralnode = centralnode;
    cd->weightedcentralnode = weightedcentralnode;
-   if (LocalHead) fprintf(SUMA_STDERR,"%s: Central node chosen %d, weighted %d\n", FuncName, cd->centralnode, cd->weightedcentralnode);
+   SUMA_LH("Central node chosen %d, weighted %d\n", 
+           cd->centralnode, cd->weightedcentralnode);
    #else
    if (cd->N_Node == 1) {
       centralnode = cd->NodeList[0];
@@ -1984,22 +2069,28 @@ int SUMA_ClusterCenterofMass  (SUMA_SurfaceObject *SO, SUMA_CLUST_DATUM *cd, int
       for (c=0; c < OS.N_Neighb; ++c) {
          nc = OS.Neighb_ind[c]; /* Node index into SO of center node */
          s[0] = s[1] = s[2] = 0.0;
-         centrality[c] = 0.0; mtotal = 0.0; /* recalculated each time, not a big deal ... */
+         centrality[c] = 0.0; 
+         mtotal = 0.0;/*recalculated each time, not a big deal ... */
          for (i=0; i<cd->N_Node; ++i) {
             if (WeightByValue) mi = cd->ValueList[i];
             else mi = 1.0;
             mtotal += mi;
-            ni = cd->NodeList[i]; /* Node index into SO of other node in cluster */
-            SUMA_UNIT_VEC((&(SO->NodeList[3*ni])), (&(SO->NodeList[3*nanch])), Uia, dia);
-            if (UseSurfDist) { for (k=0; k<3;++k) s[k] += mi * Uia[k] * DistVec[ni]; }
-            else { for (k=0; k<3;++k) s[k] += mi * Uia[k] * dia; }
+            ni = cd->NodeList[i];/*Node index into SO of other node in cluster*/
+            SUMA_UNIT_VEC((&(SO->NodeList[3*ni])), (&(SO->NodeList[3*nanch])), 
+                          Uia, dia);
+            if (UseSurfDist) { 
+               for (k=0; k<3;++k) s[k] += mi * Uia[k] * DistVec[ni]; 
+            } else { for (k=0; k<3;++k) s[k] += mi * Uia[k] * dia; }
          }
-         SUMA_UNIT_VEC((&(SO->NodeList[3*nc])), (&(SO->NodeList[3*nanch])), Uca, dca);
-         if (UseSurfDist) { for (k=0; k<3;++k) s[k] -= mtotal * Uca[k] * DistVec[nc]; }
-         else { for (k=0; k<3;++k) s[k] -= mtotal * Uca[k] * dca; }
+         SUMA_UNIT_VEC((&(SO->NodeList[3*nc])), (&(SO->NodeList[3*nanch])), 
+                       Uca, dca);
+         if (UseSurfDist) { 
+            for (k=0; k<3;++k) s[k] -= mtotal * Uca[k] * DistVec[nc]; 
+         } else { for (k=0; k<3;++k) s[k] -= mtotal * Uca[k] * dca; }
          
          SUMA_NORM_VEC(s, 3, centrality[c]);
-         if (LocalHead) fprintf(SUMA_STDERR,"%s: call %d, Centrality of node %d / %d = %f\n", FuncName, ncall, nc, nanch, centrality[c]); 
+         SUMA_LH("call %d, Centrality of node %d / %d = %f\n", 
+                 ncall, nc, nanch, centrality[c]); 
          if (c == 0) { mincentrality = centrality[c]; centralnode = nc; }
          else if (centrality[c] < mincentrality) { 
             mincentrality = centrality[c]; centralnode = nc; 
@@ -2007,7 +2098,7 @@ int SUMA_ClusterCenterofMass  (SUMA_SurfaceObject *SO, SUMA_CLUST_DATUM *cd, int
       }
    }
    cd->centralnode = centralnode;
-   if (LocalHead) fprintf(SUMA_STDERR,"%s: Central node chosen %d\n", FuncName, cd->centralnode);
+   SUMA_LH("Central node chosen %d\n", cd->centralnode);
    cd->weightedcentralnode = -1;
    #endif   
    
@@ -2139,8 +2230,8 @@ SUMA_SURFCLUST_OPTIONS *SUMA_create_SurfClust_Opt(char *init_for)
    Opt->OutClustDset = NOPE;
    Opt->FullROIList = NOPE;
    Opt->WriteFile = NOPE;
-   Opt->DoThreshold = 0;
-   Opt->Thresh = 0.0;
+   Opt->DoThreshold = SUMA_NO_THRESH;
+   Opt->ThreshR[0] = Opt->ThreshR[1] = 0.0;
    Opt->tind = 0;
    Opt->prepend_node_index = NOPE;
    Opt->update = 0;

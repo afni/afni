@@ -327,6 +327,7 @@ void Show_Atlas (AFNI_ATLAS *aa);
 AFNI_ATLAS *Free_Atlas(AFNI_ATLAS *aa) ;
 AFNI_ATLAS_REGION *ROI_String_Decode(char *str, ATLAS_LIST *atlas_list);
 char * deblank_name(char *name);
+char *deslash_allname(char *name, char fill);
 char *deblank_allname(char *name, char fill);
 char *cdeblank_allname(char *name, char fill);
 char * depunct_name(char *name);

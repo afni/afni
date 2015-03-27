@@ -49,6 +49,66 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 23,  Mar, 2015, RCR, "python-general", MINOR, TYPE_ENHANCE,
+   "broke VarsObject class out into separate file",
+   NULL
+ } ,
+
+ { 19, Mar, 2015, RCR, "unix_tutorial", MINOR, TYPE_ENHANCE,
+   "populated AFNI_data6/unix_tutorial with Sphinx version",
+   "The previous tutorial was moved under 'old'."
+ } ,
+
+ { 18,  Mar, 2015, RCR, "sphinx", MAJOR, TYPE_ENHANCE,
+   "added unix_tutorial to the doc tree",
+   NULL
+ } ,
+
+ { 18,  Mar, 2015, RCR, "sphinx", MICRO, TYPE_MODIFY,
+   "renamed tutorials.rst to SelfGuidedScripts.rst, along with tag",
+   NULL
+ } ,
+
+ { 18,  Mar, 2015, RCR, "3dBandpass", MICRO, TYPE_ENHANCE,
+   "let user know details of demensionality reduction",
+   NULL
+ } ,
+
+ { 13,  Mar, 2015, RCR, "Dimon", MICRO, TYPE_NEW_OPT,
+   "added option -te_list to pass ECHO_TIMES to plug_realtime",
+   NULL
+ } ,
+
+ { 13,  Mar, 2015, RCR, "plug_realtime", MINOR, TYPE_ENHANCE,
+   "added code to receive and store ECHO_TIMES",
+   "This is passed as control information and is stored in rtin->TE."
+ } ,
+
+ { 13,  Mar, 2015, RCR, "plug_realtime", MINOR, TYPE_ENHANCE,
+   "added V Roopchansingh update for T2* est Merge function",
+   NULL
+ } ,
+
+ { 12,  Mar, 2015, RCR, "3dDeconvolve.py", MICRO, TYPE_MODIFY,
+   "allow for collinearity in regressor warnings",
+   NULL
+ } ,
+
+ { 12,  Mar, 2015, RCR, "afni_base.py", MICRO, TYPE_BUG_FIX,
+   "fixed capture in shell_exec2 for old python, where readlines() would hang",
+   NULL
+ } ,
+
+ { 12,  Mar, 2015, RCR, "afni_util.py", MICRO, TYPE_ENHANCE,
+   "implemented fast=0 in get/show_process_stack",
+   NULL
+ } ,
+
+ { 11,  Mar, 2015, RCR, "afni_util.py", MINOR, TYPE_ENHANCE,
+   "added covary and linear_fit; -listfunc takes -/stdin to read from stdin",
+   NULL
+ } ,
+
  {  3,  Mar, 2015, RCR, "powell_int.c", MICRO, TYPE_BUG_FIX,
    "multiple include directives got joined on one line",
    NULL

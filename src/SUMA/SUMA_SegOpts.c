@@ -78,6 +78,7 @@ SEG_OPTS *SegOpt_Struct()
    Opt->fitmeth = 0;
    Opt->N_enhance_cset_init = 0;
    Opt->N_main = 0;
+   Opt->mix_frac_floor = 0.0001;
    Opt->clust_cset_init = 0;
    
    Opt->cs = NULL;
@@ -837,6 +838,16 @@ SEG_OPTS *Seg_ParseInput (SEG_OPTS *Opt, char *argv[], int argc)
          brk = 1;
 		}
       
+      if (!brk && (strcmp(argv[kar], "-mixfloor") == 0)) {
+         kar ++;
+			if (kar >= argc)  {
+		  		fprintf (stderr, "need value between 0 and 1/(number of classes)"
+                             " after -mixfloor \n");
+				exit (1);
+			}
+			Opt->mix_frac_floor = atof(argv[kar]);
+         brk = 1;
+		}
       if (!brk && (strcmp(argv[kar], "-clust_cset_init") == 0)) {
 			Opt->clust_cset_init = 1;
          brk = 1;

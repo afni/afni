@@ -65,6 +65,45 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 23, Mar, 2014, ZSS, "BrainSkin", MINOR, TYPE_BUG_FIX,
+   "Fixed projection error in  SUMA_NN_GeomSmooth?_SO ",
+   NULL
+ },
+
+ { 18, Mar, 2014, ZSS, "SurfPatch", MINOR, TYPE_NEW_OPT,
+   "Added -node_depth ",
+   NULL
+ },
+
+ { 18, Mar, 2014, ZSS, "suma-general", MINOR, TYPE_BUG_FIX,
+   "Node depths were being computed along the principal direction closest to Z ",
+   "The proper intent is along the principal direction, regardless of \n"
+   "whether or not it is closest to the Z direction"
+ },
+
+ { 18, Mar, 2014, ZSS, "SurfClust", MINOR, TYPE_NEW_OPT,
+   "Added options -in_range, -ex_range for thresholding and output COM and Cent",
+   "These changes resulted in numerous small changes throughout the code for \n"
+   "a more uniform handling of thresholding methods"
+ },
+
+ { 13, Mar, 2014, ZSS, "ParseName", MINOR, TYPE_NEW_OPT,
+   "Added ExistsAs in ParseName",
+   "This can find whether or not you have datasets on disk with some \n"
+   "view (+tlrc), say given only a prefix."
+ },
+
+ { 12, Mar, 2014, ZSS, "3dROIstats", MINOR, TYPE_NEW_OPT,
+   "Added -pc* and -key options to compute coordinate PC of clusters.",
+   "See -help for details."
+ },
+
+ { 11, Mar, 2014, ZSS, "3dSeg", MAJOR, TYPE_NEW_OPT,
+   "Added -mixfloor to avoid getting NAN when certain classes disappear.",
+   "Also added -mixfrac IGNORE to turn off any modulation by the mixing\n"
+   "fraction during the EM routines."
+ },
+
  { 4, Mar, 2014, ZSS, "suma", MAJOR, TYPE_NEW_OPT,
    "Added WHelp button to mimic BHelp but open online pages",
    "This required a few additional modifications to the auto-help\n"

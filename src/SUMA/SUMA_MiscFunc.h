@@ -162,7 +162,7 @@ SUMA_MT_INTERSECT_TRIANGLE *SUMA_MT_intersect_triangle(
       SUMA_MT_INTERSECT_TRIANGLE * PrevMTI, int posonly);
 void * SUMA_Free_MT_intersect_triangle(SUMA_MT_INTERSECT_TRIANGLE *MTI);
 SUMA_Boolean SUMA_Show_MT_intersect_triangle(SUMA_MT_INTERSECT_TRIANGLE *MTI, 
-                                             FILE *Out);
+                                             FILE *Out, char *preamble);
 SUMA_Boolean	SUMA_mattoquat (float **mat, float *q);
 SUMA_Boolean SUMA_FromToRotation (float *v0, float *v1, float **mtx);
 int * SUMA_fqsortrow (float **X , int nr, int nc  );
@@ -177,8 +177,9 @@ SUMA_EDGE_LIST * SUMA_Make_Edge_List_eng (int *FaceSetList, int N_FaceSet, int N
 void SUMA_free_Edge_List (SUMA_EDGE_LIST *SEL);
 int SUMA_isConsistent (int *T, int *t);
 int SUMA_isTriLinked (int*T, int *t, int *cn);
-SUMA_FACESET_FIRST_EDGE_NEIGHB *SUMA_allocate_FaceSet_Edge_Neighb (int N_FaceSet);
-SUMA_FACESET_FIRST_EDGE_NEIGHB *SUMA_FaceSet_Edge_Neighb (int **EL, int **ELps, int N_EL);
+SUMA_FACESET_FIRST_EDGE_NEIGHB *SUMA_allocate_FaceSet_Edge_Neighb(int N_FaceSet);
+SUMA_FACESET_FIRST_EDGE_NEIGHB *SUMA_FaceSet_Edge_Neighb (int **EL, int **ELps, 
+                                                          int N_EL);
 float * SUMA_SmoothAttr_Neighb (float *attr,  int N_attr, float *attr_sm, 
                                 SUMA_NODE_FIRST_NEIGHB *fn, int nr, byte *nmask,
                                 byte strict_mask);

@@ -2954,6 +2954,8 @@ SUMA_Boolean SUMA_ScaleToMap_Interactive (   SUMA_OVERLAYS *Sover )
          SUMA_RETURN(NOPE);
       }
       switch (Opt->ThrMode) {
+         case SUMA_NO_THRESH:
+            break;
          case SUMA_LESS_THAN:
             for (i=0; i<SDSET_VECFILLED(Sover->dset_link); ++i) {
                if (Sover->T[i] < Opt->ThreshRange[0]) {
@@ -2971,16 +2973,16 @@ SUMA_Boolean SUMA_ScaleToMap_Interactive (   SUMA_OVERLAYS *Sover )
             break;
          case SUMA_THRESH_OUTSIDE_RANGE:
             for (i=0; i<SDSET_VECFILLED(Sover->dset_link); ++i) {
-               if (Sover->T[i] < Opt->ThreshRange[0] || 
-                   Sover->T[i] > Opt->ThreshRange[1]) {
+               if (Sover->T[i] >= Opt->ThreshRange[0] && 
+                   Sover->T[i] <= Opt->ThreshRange[1]) {
                   SV->isMasked[i] = YUP; /* Mask */
                }
             }
             break;
          case SUMA_THRESH_INSIDE_RANGE:
             for (i=0; i<SDSET_VECFILLED(Sover->dset_link); ++i) {
-               if (Sover->T[i] > Opt->ThreshRange[0] && 
-                   Sover->T[i] < Opt->ThreshRange[1]) {
+               if (Sover->T[i] < Opt->ThreshRange[0] ||
+                   Sover->T[i] > Opt->ThreshRange[1]) {
                   SV->isMasked[i] = YUP; /* Mask */
                }
             }
@@ -3087,22 +3089,24 @@ SUMA_Boolean SUMA_ScaleToMap_Interactive (   SUMA_OVERLAYS *Sover )
                Opt->ClustOpt->labelcol = Opt->find;
                Opt->ClustOpt->in_name = SDSET_FILENAME(Sover->dset_link);
                Opt->ClustOpt->tind = Opt->tind;
+               Opt->ClustOpt->DoThreshold = Opt->ThrMode;
                switch(Opt->ThrMode) {
+                  case SUMA_NO_THRESH:
                   case SUMA_LESS_THAN:
-                     Opt->ClustOpt->Thresh = Opt->ThreshRange[0];
-                     Opt->ClustOpt->DoThreshold = 1;
+                     Opt->ClustOpt->ThreshR[0] = Opt->ThreshRange[0];
                      break;
                   case SUMA_ABS_LESS_THAN:
-                     Opt->ClustOpt->Thresh = Opt->ThreshRange[0];
-                     Opt->ClustOpt->DoThreshold = 2;
+                     Opt->ClustOpt->ThreshR[0] = Opt->ThreshRange[0];
                      break;
                   case SUMA_THRESH_OUTSIDE_RANGE:
+                     Opt->ClustOpt->ThreshR[0] = Opt->ThreshRange[0];
+                     Opt->ClustOpt->ThreshR[1] = Opt->ThreshRange[1];
                   case SUMA_THRESH_INSIDE_RANGE:
-                     SUMA_S_Warn("No such thresholding available for SurfClust");
-                     Opt->ClustOpt->DoThreshold = -1;
+                     Opt->ClustOpt->ThreshR[0] = Opt->ThreshRange[0];
+                     Opt->ClustOpt->ThreshR[1] = Opt->ThreshRange[1];
                      break;
                   default:
-                     Opt->ClustOpt->DoThreshold = 0;
+                     Opt->ClustOpt->DoThreshold = SUMA_NOT_SET;
                      break;
                }
                if ((s = SUMA_ClustCommandLineFromOpt("SurfClust",

@@ -101,13 +101,25 @@ NULL
 "-mixfrac",
 "-mixfrac 'MIXFRAC': MIXFRAC sets up the volume-wide (within mask)\n"
 "                    tissue fractions while initializing the \n"
-"                    segmentation. You can specify the mixing fractions\n"
+"                    segmentation (see IGNORE for exception).\n"
+"                    You can specify the mixing fractions\n"
 "                    directly such as with '0.1 0.45 0.45', or with\n"
 "                    the following special flags:\n"
 "              'UNI': Equal mixing fractions \n"
 "              'AVG152_BRAIN_MASK': Mixing fractions reflecting AVG152\n"
-"                                   template.",
+"                                   template.\n"
+"              'IGNORE': Ignore mixing fraction while computing posterior\n"
+"                        probabilities for all the iterations, not just at the\n"
+"                        initialization as for the preceding variants",
 "UNI" 
+      }, 
+   {  
+"-mixfloor",
+"-mixfloor 'FLOOR': Set the minimum value for any class's mixing fraction.\n"
+"                   The value should be between 0 and 1 and not to exceed\n"
+"                   1/(number of classes). This parameter should be kept to\n"
+"                   a small value.",
+"0.0001" 
       }, 
    {  
 "-gold",
@@ -430,7 +442,7 @@ int SUMA_SegEngine(SEG_OPTS *Opt)
       So these estimates are from cset alone */
    if (!SUMA_Class_stats( Opt->aset, Opt->cset, Opt->cmask, Opt->cmask_count,
                           Opt->pstCgALL, Opt->priCgALL, Opt->gold, 
-                          Opt->cs)) {
+                          Opt->cs, Opt->mix_frac_floor)) {
       SUMA_S_Err("Failed in class stats");
       SUMA_RETURN(0);
    }
@@ -446,9 +458,10 @@ int SUMA_SegEngine(SEG_OPTS *Opt)
 
    if (!Opt->pstCgALL) { /* Compute initial posterior distribution */
       if (!(SUMA_pst_C_giv_ALL(Opt->aset, 
-                               Opt->cmask, Opt->cmask_count,
-                               Opt->cs, Opt->priCgALL, Opt->pCgN, 
-                               Opt->B, Opt->T, 1,
+                   Opt->cmask, Opt->cmask_count,
+                   Opt->cs, Opt->priCgALL, Opt->pCgN, 
+                   Opt->B, Opt->T, 
+                   (!Opt->mixopt || strcmp(Opt->mixopt,"IGNORE")) ? 1:0,
                                &Opt->pstCgALL))) {
          SUMA_S_Err("Failed in SUMA_pst_C_giv_ALL");
          SUMA_RETURN(0);
@@ -457,7 +470,7 @@ int SUMA_SegEngine(SEG_OPTS *Opt)
      
    if (!SUMA_Class_stats( Opt->aset, Opt->cset, Opt->cmask, Opt->cmask_count,
                           Opt->pstCgALL, Opt->priCgALL, Opt->gold, 
-                          Opt->cs)) {
+                          Opt->cs, Opt->mix_frac_floor)) {
       SUMA_S_Err("Failed in class stats");
       SUMA_RETURN(0);
    }
@@ -592,10 +605,11 @@ int SUMA_SegEngine(SEG_OPTS *Opt)
       }
                                   
       if (!(SUMA_pst_C_giv_ALL(Opt->xset, 
-                               Opt->cmask, Opt->cmask_count,
-                               Opt->cs,  
-                               Opt->priCgALL, Opt->pCgN,
-                               Opt->B, Opt->T, 1,
+                Opt->cmask, Opt->cmask_count,
+                Opt->cs,  
+                Opt->priCgALL, Opt->pCgN,
+                Opt->B, Opt->T, 
+                (!Opt->mixopt || strcmp(Opt->mixopt,"IGNORE")) ? 1:0,
                                &Opt->pstCgALL))) {
          SUMA_S_Err("Failed in SUMA_pst_C_giv_ALL");
          SUMA_RETURN(0);
@@ -619,7 +633,7 @@ int SUMA_SegEngine(SEG_OPTS *Opt)
       if (!SUMA_Class_stats(  Opt->xset, Opt->cset, 
                               Opt->cmask, Opt->cmask_count,
                               Opt->pstCgALL, Opt->priCgALL, Opt->gold, 
-                              Opt->cs)) {
+                              Opt->cs, Opt->mix_frac_floor)) {
          SUMA_S_Err("Failed in class stats");
          SUMA_RETURN(0);
       }
@@ -840,6 +854,23 @@ int main(int argc, char **argv)
       }
    }
    
+   /* Make sure you have no negative values and requesting bias field correction.
+      The implementation uses log() for this so the negative values would be
+      ill advised */
+   {
+      float amin, amax;
+      THD_subbrick_minmax(Opt->aset, 0, 1,&amin, &amax);
+      if (amin < 0 && Opt->bias_param > 0) {
+         SUMA_S_Err("Cannot use field bias correction on volumes with negative\n"
+           "values. Either turn off bias field estimation with -bias_fwhm 0.0\n"
+           "or shift the values of the input by something like:\n"
+           "   3dcalc -a %s -expr 'a+bool(a)*%d' -prefix SHIFTED\n"
+           "and rerun the segmentation on SHIFTED. Note the suggested shift\n"
+           "leaves zero values unchanged.",
+              DSET_HEADNAME(Opt->aset), (int)ceil(-amin+1.0));
+         exit(1);
+      }
+   }
    /* Show the match between keys and classes */
    if (Opt->debug > 1) {
       SUMA_S_Note("Class-->key map");
@@ -853,6 +884,7 @@ int main(int argc, char **argv)
       SUMA_S_Err("Less than 2 classes? I am out of here");
       SUMA_RETURN(0);
    }
+   
    /* Mask setup */
    if (Opt->debug > 1) {
       SUMA_S_Note("MaskSetup");
@@ -981,7 +1013,7 @@ int main(int argc, char **argv)
       SUMA_set_Stat(Opt->cs, Opt->cs->label[i], "mix", ff);
    }
 
-      
+   
    /* Now call the workhorse */
    if (!SUMA_SegEngine(Opt)) {
       SUMA_S_Err("Failed in SUMA_SegEngine");

@@ -280,6 +280,10 @@ Glossary
       
       .. figure:: SUMA/media/surfview_rec.jpg
          :align: center
+         :name: SUMA/media/surfview_rec.jpg
+         :target: ../_images/surfview_rec.jpg
+         
+         :ref:`Viewer in record mode.<SUMA/media/surfview_rec.jpg>`
          
    Spec
    Spec file
