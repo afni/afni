@@ -2093,7 +2093,7 @@ int main( int argc , char *argv[] )
    stnam = (toz) ? "Zscr" : "Tstat" ;    /* name of statistic */
 
    if( singletonA ){  /* special case [20 Mar 2015] */
-     bbase = 0; ss=0; /* ZSS BOB -please check that ss and bb are OK at 0 here */
+     bbase = ss = 0 ;
      if( do_means ) MEAN_LABEL_2SAM(snam_PPP,snam_MMM,"diff") ;
      if( do_tests ) TEST_LABEL_2SAM_MEAN(snam_PPP,snam_MMM) ;
      goto LABELS_ARE_DONE ;
