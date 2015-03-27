@@ -13676,7 +13676,8 @@ void SUMA_sigfunc(int sig)   /** signal handler for fatal errors **/
    fprintf(stderr,"\nFatal Signal %d (%s) received\n",sig,sname); fflush(stderr);
    TRACEBACK ;
    fprintf(stderr,"*** Program Abort ***\nSUMA Version %.2f\nCompile Date: %s\n", SUMA_LatestVersionNumber(), __DATE__) ; fflush(stderr) ;
-   exit(1) ;
+   selenium_close(); /* close any selenium opened browser windows if open */
+   exit(sig) ;
 }
 
 
