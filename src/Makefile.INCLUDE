@@ -2217,7 +2217,7 @@ MISC_OBJS  = afni_suma.o vol2surf.o nifti1_io.o znzlib.o list_struct.o  \
 	     nifti_statlib.o nifticdf.o r_new_resam_dset.o r_idisp.o    \
 	     r_misc.o matrix.o gifti_choice.o misc_math.o
 
-libmri.a:$(NIML_OBJS) $(MRI_OBJS) $(THD_OBJS)                \
+libmri.a:$(NIML_OBJS) $(MRI_OBJS) $(THD_OBJS) thd_selenium.o   \
          $(EDT_OBJS)  $(CS_OBJS)  $(EIS_OBJS) $(NETCDF_OBJS) \
          $(SUMA_OBJS) $(MISC_OBJS) niml.h mrilib.h Aomp.h 3ddata.h $(SOMEAFOBJS)
 	$(RM) $@
