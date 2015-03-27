@@ -315,7 +315,7 @@ int SUMA_set_threshold_one(SUMA_ALL_DO *ado, SUMA_OVERLAYS *colp,
 int SUMA_set_threshold(SUMA_ALL_DO *ado, SUMA_OVERLAYS *colp,
                            float *val);
 void SUMA_cb_set_threshold(Widget w, XtPointer clientData, XtPointer call);
-int SUMA_set_threshold_label(SUMA_ALL_DO *ado, float val);
+int SUMA_set_threshold_label(SUMA_ALL_DO *ado, float val, float val2);
 void SUMA_optmenu_EV( Widget w , XtPointer cd ,
                       XEvent *ev , Boolean *continue_to_dispatch );
 void SUMA_cb_SetCoordBias(Widget widget, XtPointer client_data, 
@@ -1521,16 +1521,19 @@ XmFontList SUMA_AppendToFontList(XmFontList fontlisti, Widget w,
 ":SPX:\n\n"\
 "   .. figure:: media/MaskedTracts.01.jpg\n"\
 "      :align: left\n"\
-"      :figwidth: 30%\n\n"\
-"      Tracts going through any of the three masks.\n\n"\
+"      :figwidth: 30%\n"\
+"      :name: media/MaskedTracts.01.jpg\n\n"\
+"      :ref:`Tracts going through any of the three masks.<media/MaskedTracts.01.jpg>`\n\n"\
 "   .. figure:: media/MaskedTracts.02.jpg\n"\
 "      :align: right\n"\
-"      :figwidth: 30%\n\n"\
-"      Tracts evaluating to true per expression: '( b & c ) | a'.\n\n"\
+"      :figwidth: 30%\n"\
+"      :name: media/MaskedTracts.02.jpg\n\n"\
+"      Tracts evaluating to true per expression: '( b & c ) | a'. :ref:`(link)<media/MaskedTracts.02.jpg>`\n\n"\
 "   .. figure:: media/MaskController.02.jpg\n"\
 "      :align: center\n"\
+"      :name: media/MaskController.02.jpg\n"\
 "      :figwidth: 30%\n\n"\
-"      Mask Controller.\n\n"\
+"      :ref:`Mask Controller.<media/MaskController.02.jpg>`\n\n"\
 SUMA_SHPINX_BREAK \
 ":SPX:"  \
 "When using the the Mask Eval expression, the color of tracts that go though a set of regions is equal to the alpha weighted average of the colors of those regions.:SPX: This can be seen in the figure on the right side above.\n\n"\
@@ -1543,16 +1546,19 @@ SUMA_SHPINX_BREAK \
 ":SPX:\n\n"\
 "  .. figure:: media/Masks.02.jpg\n"\
 "     :align: left\n"\
+"     :name: media/Masks.02.jpg\n"\
 "     :figwidth: 30%\n\n"\
-"     Tracts going through any of 2 masks 'a|b', with 'Mask Eval' ON.\n\n"\
+"     Tracts going through any of 2 masks 'a|b', with 'Mask Eval' ON. :ref:`(link)<media/Masks.02.jpg>`\n\n"\
 "  .. figure:: media/Masks.03.jpg\n"\
 "     :align: right\n"\
+"     :name: media/Masks.03.jpg\n"\
 "     :figwidth: 30%\n\n"\
-"     Tracts going through 'a|b' but with alpha of ROI 'a' - the blue one - set to 0. Tracts going through the blue ROI are not tinted by it at all.\n\n"\
+"     Tracts going through 'a|b' but with alpha of ROI 'a' - the blue one - set to 0. Tracts going through the blue ROI are not tinted by it at all. :ref:`(link)<media/Masks.03.jpg>`\n\n"\
 "  .. figure:: media/Masks.00.jpg\n"\
 "     :align: center\n"\
+"     :name: media/Masks.00.jpg\n"\
 "     :figwidth: 30%\n\n"\
-"     Mask Controller settings for image to the left.\n\n"\
+"     Mask Controller settings for image to the left. :ref:`(link)<media/Masks.00.jpg>`\n\n"\
 SUMA_SHPINX_BREAK \
 ":SPX:"  \
 
@@ -1568,12 +1574,14 @@ SUMA_SHPINX_BREAK \
 ":SPX:\n\n"\
 ".. figure:: media/Graph3D.jpg\n"\
 "   :align: left\n"\
+"   :name: media/Graph3D.jpg\n"\
 "   :figwidth: 30%\n\n"\
-"   Graph shown in 3D. Edges represented by straight lines.\n\n"\
+"   :ref:`Graph shown in 3D. <media/Graph3D.jpg>` Edges represented by straight lines.\n\n"\
 ".. figure:: media/Graph3D_Bundles.jpg\n"\
 "   :align: right\n"\
+"   :name: media/Graph3D_Bundles.jpg\n"\
 "   :figwidth: 30%\n\n"\
-"   Graph shown in 3D. Edges represented by bundles derived from.\n"\
+"   Graph shown in 3D. :ref:`Edges represented by bundles <media/Graph3D_Bundles.jpg>` derived from.\n"\
 "   tractography with 3dTrackID. See :ref:`FATCAT_DEMO` for details.\n\n"\
 SUMA_SHPINX_BREAK \
 "Figures were generated using :ref:`FATCAT_DEMO` output with::\n\n"\
@@ -1592,8 +1600,9 @@ SUMA_SHPINX_BREAK \
 "\n"\
 ".. figure:: media/MaskButtonInController.jpg\n"\
 "   :align: center\n"\
+"   :name: media/MaskButtonInController.jpg\n"\
 "\n"\
-"   ..\n\n"\
+"   :ref:`(link)<media/MaskButtonInController.jpg>`\n\n"\
 ":SPX:"\
 "Clicking on Masks after the initialization brings up the "\
 ":ref:`Mask Controller<MaskCont>`. See :ref:`mask manipulation"\

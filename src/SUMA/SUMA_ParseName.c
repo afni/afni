@@ -257,6 +257,9 @@ int main (int argc,char *argv[])
          } else if (strcmp(out,"FName") == 0) {
             fprintf(SUMA_STDOUT, "%s", 
                         Test->FileName);
+         } else if (strcmp(out,"ExistsAs") == 0) {
+            fprintf(SUMA_STDOUT, "%s", 
+                        Test->ExistsAs?Test->ExistsAs:"");
          } else if (strncmp(out,"trim",4) == 0) {
             int mxlen=20;
             if (strlen(out) == 4) mxlen = 20;

@@ -132,10 +132,11 @@ static char * g_history[] =
     " 4.10 Nov 19, 2014 [rickr]:\n",
     "      - do not allow num_suffix entries to be read as octal\n"
     "      - show version upon execution\n"
+    " 4.11 Mar 13, 2015 [rickr]: added option -te_list for VR\n",
     "----------------------------------------------------------------------\n"
 };
 
-#define DIMON_VERSION "version 4.10 (November 19, 2014)"
+#define DIMON_VERSION "version 4.11 (March 13, 2015)"
 
 /*----------------------------------------------------------------------
  * Dimon - monitor real-time aquisition of Dicom or I-files
@@ -2598,6 +2599,7 @@ static int init_param_t( param_t * p )
    p->opts.ep = IFM_EPSILON;           /* allow user to override     */
    p->opts.max_images = IFM_MAX_VOL_SLICES;   /* allow user override */
    p->opts.sleep_frac = 1.1;           /* fraction of TR to sleep    */
+   p->opts.te_list = NULL;
 
    init_string_list( &p->opts.drive_list, 0, 0 );   /* no allocation */
    init_string_list( &p->opts.wait_list, 0, 0 );
@@ -3114,6 +3116,16 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
         {
             A->swap = 1;                /* do byte swapping before sending  */
             p->opts.swap = 1;           /* just note the user option        */
+        }
+        else if ( ! strncmp( argv[ac], "-te_list", 6 ) )
+        {
+            if ( ++ac >= argc )
+            {
+                fputs( "option usage: -te_list TE1 TE2 ...\n", stderr );
+                return 1;
+            }
+
+            p->opts.te_list = argv[ac];
         }
         else if ( ! strncmp( argv[ac], "-file_type", 7 ) )
         {
@@ -5012,6 +5024,15 @@ printf(
     "\n"
     "           If for some reason the user wishes to reverse the order\n"
     "           from what is detected, '-rev_byte_order' can be used.\n"
+    "\n"
+    "    -te_list 'TE TE TE ...' : specify a list of echo times\n"
+    "\n"
+    "        e.g. -te_list '13.9 31.7 49.5'\n"
+    "\n"
+    "        This optins is used to pass along a list of echo times to the\n"
+    "        realtime plugin.  The list should be enclosed in quotes to be\n"
+    "        a single program argument.  It is passed to plug_realtime as\n"
+    "        ECHO_TIMES TE TE TE ...\n"
     "\n"
     "    -zorder ORDER     : slice order over time\n"
     "\n"

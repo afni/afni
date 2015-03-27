@@ -43,6 +43,7 @@ char *SUMA_Decode_ROI_IsoSurfacesLabels(char *SOlabel, int *key)
       do {
          labcp[k++] = *label; ++label;
       } while (*label != '\0');
+      labcp[k++] = '\0';
    } else {
       SUMA_ifree(labcp);
    }           

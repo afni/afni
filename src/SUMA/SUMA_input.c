@@ -8949,6 +8949,7 @@ int SUMA_MarkLineVOslicesIntersect (SUMA_SurfaceViewer *sv, SUMA_DO *dov,
    SUMA_RETURN(ans);
 }
 
+#if 0
 /* BEFORE you start using this MACRO everywhere, including with the, 
    other ThrMode values, make sure you write a function version of it 
    which can be used as a sanity check. For now, this seems OK */
@@ -8956,6 +8957,34 @@ int SUMA_MarkLineVOslicesIntersect (SUMA_SurfaceViewer *sv, SUMA_DO *dov,
       ((ThrMode) == SUMA_LESS_THAN && (val) >= ThreshRange[0])?1: \
      (((ThrMode) == SUMA_ABS_LESS_THAN && ( (val) >=  ThreshRange[0] ||   \
                                             (val) <= -ThreshRange[0]))?1:0) )
+#endif
+byte SUMA_Val_Meets_Thresh(float val, double *ThreshRange, 
+                           SUMA_THRESH_MODE ThrMode)
+{
+   static char FuncName[]={"SUMA_Val_Meets_Thresh"};
+   switch(ThrMode){
+      case SUMA_LESS_THAN:
+         return((val >= ThreshRange[0])); 
+         break;
+      case SUMA_ABS_LESS_THAN:
+         return((val >=  ThreshRange[0]) || (val <=  -ThreshRange[0]));
+         break;
+      case SUMA_THRESH_OUTSIDE_RANGE:
+         return((val <  ThreshRange[0]) || (val > ThreshRange[1]));
+         break;
+      case SUMA_THRESH_INSIDE_RANGE:
+         return((val >=  ThreshRange[0]) && (val <= ThreshRange[1]));
+         break;  
+      case SUMA_NO_THRESH:
+         return(1);
+      default:
+         SUMA_S_Warn("Bad thresh mode %d", ThrMode);
+         return(1);
+         break;
+   } 
+   SUMA_S_Warn("Should not be here %d", ThrMode);
+   return(1);     
+}
 
 int SUMA_ComputeLineVOslicesIntersect (SUMA_SurfaceViewer *sv, SUMA_DO *dov, 
                                        int IgnoreSameNode, SUMA_ALL_DO **pado)
@@ -9047,7 +9076,7 @@ int SUMA_ComputeLineVOslicesIntersect (SUMA_SurfaceViewer *sv, SUMA_DO *dov,
                       
                       /* Do we meet intensity thresholds? */
                       okinten = 0;
-                      if ( SUMA_VAL_MEETS_THRESH(val, 
+                      if ( SUMA_Val_Meets_Thresh(val, 
                                     colplane->OptScl->ThreshRange,
                                     colplane->OptScl->ThrMode ) && 
                            (val != 0.0f || !colplane->OptScl->MaskZero)) {

@@ -78,6 +78,7 @@ typedef struct {
    char *BrikName;
    char *NameAsParsed;
    char *cwdAsParsed;
+   char *ExistsAs;
 }SUMA_PARSED_NAME;
 
 typedef struct {

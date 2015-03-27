@@ -467,6 +467,6 @@ int main(int argc, char *argv[]) {
    free(eigvecs);
    free(eigvals);
 
-	return 0;
+	exit(0);
 }
 

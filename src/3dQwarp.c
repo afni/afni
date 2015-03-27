@@ -639,6 +639,9 @@ void Qhelp(void)
     "               * Note that using negative values with '-blur' means that the\n"
     "                 progressive blurring will be done with median filters, rather\n"
     "                 than Gaussian linear blurring.\n"
+    "         -->>*** The combination of the -allineate and -pblur options will make\n"
+    "                 the results of using 3dQwarp to align to a template somewhat\n"
+    "                 less sensitive to initial head position and scaling.\n"
     "\n"
     " -nopblur     = Don't use '-pblur'; equivalent to '-pblur 0 0'.\n"
     "\n"
@@ -1243,6 +1246,13 @@ int main( int argc , char *argv[] )
      if( strcasecmp(argv[nopt],"-allineate") == 0 ||       /* 15 Jul 2013 */
          strcasecmp(argv[nopt],"-allin"    ) == 0   ){
        do_allin =  1 ; nopt++ ; continue ;
+     }
+
+     /*---------------*/
+
+     if( strcasecmp(argv[nopt],"-NOallineate") == 0 ||     /* 17 Mar 2015 */
+         strcasecmp(argv[nopt],"-NOallin"    ) == 0   ){
+       do_allin =  0 ; nopt++ ; continue ;
      }
 
      /*---------------*/

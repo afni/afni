@@ -6827,7 +6827,8 @@ ENTRY("calculate_results") ;
       WARNING_message("Problems with the X matrix columns, listed below:") ;
       for( k=0 ; iar[2*k] >= 0 ; k++ ){
         if( iar[2*k+1] >= 0 ){
-          WARNING_message("!! * Columns %d [%s] and %d [%s] are nearly collinear!",
+          WARNING_message(
+             "!! * Columns %d [%s] and %d [%s] are (nearly?) collinear!",
                   iar[2*k]  ,COLUMN_LABEL(iar[2*k]  ),
                   iar[2*k+1],COLUMN_LABEL(iar[2*k+1]) ) ;
           nerr++ ; badlev++ ;

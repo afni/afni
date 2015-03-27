@@ -1629,7 +1629,10 @@ void AFNI_sigfunc_alrm(int sig)
      "  They mean:         I am implacably opposed to your proposal"                          ,
 
      "\n  If reasonable priors lead to different conclusions, then it's time to\n"
-     "  look for more data, think harder, mumble inaudibly, or take a wild guess"
+     "  look for more data, think harder, mumble inaudibly, or take a wild guess"             ,
+
+     "\n  To be stupid, selfish, and have good health are three requirements for\n"
+     "   happiness; though if stupidity is lacking, all is lost.\n"
    } ;
 #undef NTOP
 #ifdef USE_SONNETS
@@ -3609,13 +3612,16 @@ STATUS("drawing triangle lines") ;
 
      if( do_xhar ){
       MCW_grapher *grapher = UNDERLAY_TO_GRAPHER(im3d,br) ;
+      float thth = (float)AFNI_numenv("AFNI_CROSSHAIR_THICKNESS") ;
 
       THD_ivec3 ib = THD_3dind_to_fdind( br ,
                                          TEMP_IVEC3( im3d->vinfo->i1 ,
                                                      im3d->vinfo->j2 ,
                                                      im3d->vinfo->k3  ) ) ;
 STATUS("drawing crosshairs") ;
-      set_thick_memplot(0.0) ;
+
+      if( thth < 0.0f || thth > 0.05f ) thth = 0.0f ;
+      set_thick_memplot(thth) ;
 
       if( n == ib.ijk[2] || im3d->vinfo->xhairs_all ){
          int jp,ip , jcen,icen , gappp , jj,ii ;
