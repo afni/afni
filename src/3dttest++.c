@@ -1159,7 +1159,10 @@ int main( int argc , char *argv[] )
    PUTENV("AFNI_GLOB_SELECTORS","YES") ;  /* 19 Jun 2012 */
 
    nopt = 1 ;
+   debug = AFNI_yesenv("AFNI_DEBUG") ;
    while( nopt < argc ){
+
+     if( debug ) INFO_message("=== argv[%d] = %s",nopt,argv[nopt]) ;
 
      /*----- brickwise [28 Jan 2014] -----*/
 
@@ -1639,7 +1642,7 @@ int main( int argc , char *argv[] )
 
      /*----- bad user, bad bad bad -----*/
 
-     ERROR_exit("3dttest++: don't recognize option '%s'",argv[nopt]) ;
+     ERROR_exit("3dttest++: don't recognize option '%s' (argv[%d])",argv[nopt],nopt) ;
 
    }  /*-------------------- end of option parsing --------------------*/
 
