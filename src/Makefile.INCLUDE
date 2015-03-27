@@ -20,8 +20,7 @@ DOCS     = ../doc/ps/*.ps ../doc/README/README*                    \
            AFNI.changes.dglen
 MINDOCS  = rickr/AFNI.changes.rickr AFNI.changes.dglen
 
-IMOBJS  = display.o imseq.o bbox.o xim.o xutil.o LiteClue.o thd_xwebber.o \
-            thd_selenium.o
+IMOBJS  = display.o imseq.o bbox.o xim.o xutil.o LiteClue.o thd_xwebber.o 
 
 AFOBJS  = afni.o afni_func.o afni_widg.o afni_warp.o afni_fimmer.o \
             afni_slice_short.o afni_slice_float.o afni_filer.o     \
@@ -2224,7 +2223,7 @@ libmri.a:$(NIML_OBJS) $(MRI_OBJS) $(THD_OBJS)                \
 	$(RM) $@
 	$(AR) q libmri.a $(MRI_OBJS) $(THD_OBJS) $(EDT_OBJS)        \
 		$(NIML_OBJS) $(CS_OBJS) $(EIS_OBJS) $(NETCDF_OBJS)  \
-		$(SUMA_OBJS) $(MISC_OBJS) $(SOMEAFOBJS)
+		$(SUMA_OBJS) $(MISC_OBJS) $(SOMEAFOBJS) thd_selenium.o
 	$(RANLIB) libmri.a
 
 libmrix.so:$(IMOBJS) imseq.h display.h xim.h bbox.h xutil.h
