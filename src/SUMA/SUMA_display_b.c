@@ -3402,6 +3402,10 @@ void SUMA_CreateVrFields(  Widget parent,
       SUMA_Register_Widget_Help(VrF->lab, 1, wname, hint, help);
    }
    
+   if (VrF->N_slice_num < 0) {
+      VrF->N_slice_num = SUMA_VO_N_Slices((SUMA_VolumeObject *)ado, "Mx");
+   }
+   if (VrF->N_slice_num <= 0) VrF->N_slice_num = 150;
    sprintf(sbuf,"%-3d", (int)VrF->N_slice_num);
    VrF->text = XtVaCreateManagedWidget(
                      "slice",  
