@@ -43,7 +43,13 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 23 , MAR , 2015 , RWC , "3dttest++" , MAJOR , TYPE_NEW_OPT ,
+  { 27 , MAR , 2015 , RWC , "3dttest++" , MICRO , TYPE_BUG_FIX ,
+   "linux_xorg7_64 distribution gets argv[nopt] wrong?!" ,
+   "Fixed by putting in a debug printout statement for argv[nopt] at start\n"
+   "of loop over options.  Even when not used, this fixes the problem --\n"
+   "probably caused by the gcc optimizer." } ,
+
+ { 23 , MAR , 2015 , RWC , "3dttest++" , MAJOR , TYPE_NEW_OPT ,
    "Add -singletonA option" ,
    "For testing one subject vs a collection of 'normals'.  Works with\n"
    "covariates." } ,
