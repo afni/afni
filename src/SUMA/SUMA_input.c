@@ -5577,6 +5577,17 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                       }
                   }
                   
+                  if (1) {
+                      SUMA_LH("Trying for volume VR intersections");
+                      hit =  SUMA_ComputeLineVOvrIntersect(sv, SUMAg_DOv, 
+                                                               0, NULL);
+                      if (hit < 0) {
+                         fprintf( SUMA_STDERR,
+                            "Error %s: "
+                            "Failed in SUMA_MarkLineVOvrIntersect.\n",
+                                  FuncName);
+                      }
+                  }
                   #if 0
                   if (SUMA_ALTHELL || 
                       SUMA_VisibleSOs(sv, SUMAg_DOv, NULL, 0) == 0) {
@@ -6184,6 +6195,17 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                       fprintf( SUMA_STDERR,
                          "Error %s: "
                          "Failed in SUMA_MarkLineVOslicesIntersect.\n",
+                               FuncName);
+                   }
+               }
+               if (1) {
+                   SUMA_LH("Trying for volume rendering intersections");
+                   hit =  SUMA_ComputeLineVOvrIntersect(sv, SUMAg_DOv, 
+                                                            0, NULL);
+                   if (hit < 0) {
+                      fprintf( SUMA_STDERR,
+                         "Error %s: "
+                         "Failed in SUMA_MarkLineVOvrIntersect.\n",
                                FuncName);
                    }
                }
@@ -8986,6 +9008,16 @@ byte SUMA_Val_Meets_Thresh(float val, double *ThreshRange,
    return(1);     
 }
 
+/* 
+   This function is almost identical to SUMA_ComputeLineVOvrIntersect()
+   They could be merged quite readily but for some reason this feels 
+   cleaner to me. 
+   Make sure that any change here is mirrored verbatim (to the degree possible)  
+   in SUMA_ComputeLineVOvrIntersect() .
+   
+   Consider merging SUMA_ComputeLineVOvrIntersect() into 
+   SUMA_ComputeLineVOslicesIntersect() in the future if maintenance is a problem 
+*/
 int SUMA_ComputeLineVOslicesIntersect (SUMA_SurfaceViewer *sv, SUMA_DO *dov, 
                                        int IgnoreSameNode, SUMA_ALL_DO **pado)
 {/* determine intersection */
@@ -9167,6 +9199,202 @@ int SUMA_ComputeLineVOslicesIntersect (SUMA_SurfaceViewer *sv, SUMA_DO *dov,
    GOT_IT:
    SUMA_RETURN(N_Hit);
 }/* determine intersection with slices of VO*/
+
+/* 
+   This function is almost identical to SUMA_ComputeLineVOslicesIntersect()
+   They could be merged quite readily but for some reason this feels 
+   cleaner to me. 
+   Make sure that any change here is mirrored verbatim (to the degree possible)  
+   in SUMA_ComputeLineVOslicesIntersect() .
+   
+   Consider merging SUMA_ComputeLineVOvrIntersect() into 
+   SUMA_ComputeLineVOslicesIntersect() in the future if maintenance is a problem 
+
+
+*/
+int SUMA_ComputeLineVOvrIntersect (SUMA_SurfaceViewer *sv, SUMA_DO *dov, 
+                                   int IgnoreSameNode, SUMA_ALL_DO **pado)
+{/* determine intersection */
+   static char FuncName[]={"SUMA_ComputeLineVOvrIntersect"};
+   float P0f[3], P1f[3], pinter[3], I[3];
+   int NP, N_Hit, okinten=0; 
+   float delta_t_tmp, dmin, val; 
+   struct timeval tt_tmp; 
+   int ip, it, id, ii, imin, I1d, Irw, Hit, ive, icolplane, indef=-1;
+   int *MembDOs=NULL, N_MembDOs, UseAlphaTresh=1;
+   float valpha=0.0;
+   SUMA_DO_Types ttv[12];
+   char sfield[100], sdestination[100], CommString[SUMA_MAX_COMMAND_LENGTH];
+   SUMA_VolumeObject *VO=NULL;
+   SUMA_Boolean NodeIgnored = NOPE;
+   SUMA_RENDERED_SLICE *rslc;
+   SUMA_ALL_DO *ado = NULL;
+   SUMA_DSET *dset = NULL;
+   SUMA_OVERLAYS *colplane=NULL;
+   SUMA_VOL_SAUX *VSaux = NULL;
+   SUMA_PICK_RESULT *PR=NULL;
+   DListElmt *el=NULL;
+   SUMA_Boolean LocalHead = NOPE;
+
+   SUMA_ENTRY;
+
+   P0f[0] = sv->Pick0[0];
+   P0f[1] = sv->Pick0[1];
+   P0f[2] = sv->Pick0[2];
+   P1f[0] = sv->Pick1[0];
+   P1f[1] = sv->Pick1[1];
+   P1f[2] = sv->Pick1[2];
+
+   ttv[0] = VO_type; ttv[1] = NOT_SET_type;
+   MembDOs = SUMA_ViewState_Membs(&(sv->VSv[sv->iState]), ttv, &N_MembDOs);
+   SUMA_LHv("Searching for hit: %f %f %f --> %f %f %f\n", 
+            P0f[0], P0f[1], P0f[2], P1f[0], P1f[1], P1f[2]);   
+   N_Hit = 0;
+   for (ii=0; ii<N_MembDOs; ++ii) {
+      {
+         VO = (SUMA_VolumeObject *)(dov[MembDOs[ii]].OP);
+         ado = (SUMA_ALL_DO *)VO;
+         if (!(VSaux = SUMA_ADO_VSaux(ado))) continue;
+         SUMA_LH("%d VR slices on %s, show=%d", dlist_size(VSaux->vrslcl), 
+                              ADO_LABEL(ado), VSaux->ShowVrSlc);
+         if (!VSaux->ShowVrSlc) continue;
+         if (!dlist_size(VSaux->vrslcl)) continue;
+         /* now compute intersection from the top down */
+         Hit = 0; 
+         el = NULL;
+         do {
+            if (!el) el = dlist_head(VSaux->vrslcl);
+            else el = dlist_next(el);
+            rslc = (SUMA_RENDERED_SLICE *)el->data;
+            /* does line intersect this plane? */
+            SUMA_SEGMENT_PLANE_INTERSECT(P0f, P1f, rslc->Eq, Hit, pinter);
+            if (Hit) {/* is the intersection point in the volume? */
+               Hit = 0; /* demote, real hit decided on below */
+               ive = 0;
+               while (VO->VE && VO->VE[ive]) {
+                  AFF44_MULT_I(I, VO->VE[ive]->X2I, pinter);
+                  SUMA_LH("On %s: Inter at X=[%f %f %f] --> ijk=[%f %f %f]", 
+                           SUMA_VE_Headname(VO->VE, ive),
+                           pinter[0], pinter[1], pinter[2], I[0], I[1], I[2]);
+                  I[0] = (int)I[0]; I[1] = (int)I[1]; I[2] = (int)I[2];
+                  if (I[0] >= 0.0f && I[1] >= 0.0f && I[2] >= 0.0f &&
+                      I[0] < VO->VE[ive]->Ni &&  I[1] < VO->VE[ive]->Nj &&
+                      I[2] < VO->VE[ive]->Nk) {
+                      dset = SUMA_VE_dset(VO->VE, ive);
+                      colplane =  SUMA_Fetch_OverlayPointerByDset(
+                                          (SUMA_ALL_DO *)VO, dset, &icolplane); 
+                      /* here you check on the value at I in the dataset */
+                      I1d = I[2]*VO->VE[ive]->Ni*VO->VE[ive]->Nj + 
+                            I[1]*VO->VE[ive]->Ni+I[0];
+                      Irw = SUMA_GetNodeRow_FromNodeIndex_eng(dset, I1d,-1);
+                      if (!colplane->V) {
+                        SUMA_S_Err("Need SUMA_GetDsetValInCol to get vals");
+                        SUMA_RETURN(NOPE);
+                      } else {
+                        val = colplane->V[Irw];
+                      }
+                      SUMA_LH("Have intersection on ive %d inside VE %s\n"
+                              "IJK [%d %d %d], I1d=%d, Irw=%d, \n"
+                              "val %f, thr [%f %f]\n",
+                              ive, SUMA_VE_Headname(VO->VE, ive), 
+                              (int)I[0], (int)I[1], (int)I[2], 
+                              I1d, Irw, val,
+                              colplane->OptScl->ThreshRange[0], 
+                              colplane->OptScl->ThreshRange[1]);
+                      
+                      /* Do we meet intensity thresholds? */
+                      okinten = 0;
+                      if ( SUMA_Val_Meets_Thresh(val, 
+                                    colplane->OptScl->ThreshRange,
+                                    colplane->OptScl->ThrMode ) && 
+                           (val != 0.0f || !colplane->OptScl->MaskZero)) {
+                        okinten = 1;
+                      }
+                      
+                      indef = -1;
+                      UseAlphaTresh = 1;/* control from interface someday */
+                      valpha = 2.0; /* no masking */
+                      if (UseAlphaTresh && okinten && colplane->ColAlpha) {
+                        /* Also mask if value is below alpha thresh 
+                           This is a slow search... So you may not want
+                           to use it all the time. 
+                           Problem is finding the row of the voxel in
+                           NodeDef, and that's too slow for a big 
+                           volume to be run repeatedly...Would
+                           be easier if I had a function to recompute
+                           a voxel's alpha, rather than search for it
+                           in ColAlpha. Oh, well, someday I guess. For
+                           now we search*/
+                        if ((indef=SUMA_GetSortedNodeOverInd(colplane, I1d))>=0){
+                           valpha = colplane->ColAlpha[indef]/255.0;
+                        }
+                      }
+                      
+                      if ( okinten && (valpha > colplane->AlphaThresh) ) {
+                        SUMA_LH("FOUND IT, on VE %s, IJK [%d %d %d], val %f," 
+                               "thresh[%f %f], UseAlphaTresh = %d, "
+                               "valpha=%f, ColAlphaThresh=%f\n",
+                                   SUMA_VE_Headname(VO->VE, ive), 
+                                   (int)I[0], (int)I[1], (int)I[2], val,
+                                   colplane->OptScl->ThreshRange[0], 
+                                   colplane->OptScl->ThreshRange[1],
+                                   UseAlphaTresh,
+                                   valpha, colplane->AlphaThresh*255);
+                           PR = SUMA_New_Pick_Result(NULL);
+                           PR->ado_idcode_str = SUMA_replace_string(
+                                           PR->ado_idcode_str, ADO_ID(ado));
+                           if (pado) *pado = ado; /* user wants it */
+                           PR->primitive = SUMA_replace_string(
+                                                         PR->primitive,"voxel");
+                           PR->primitive_index = -1;
+                           PR->PickXYZ[0] = pinter[0];
+                           PR->PickXYZ[1] = pinter[1];
+                           PR->PickXYZ[2] = pinter[2];
+                           PR->ignore_same_datum = IgnoreSameNode;
+                           PR->datum_index = I1d;
+                           PR->iAltSel[SUMA_VOL_I] = I[0];
+                           PR->iAltSel[SUMA_VOL_J] = I[1];
+                           PR->iAltSel[SUMA_VOL_K] = I[2];
+                           PR->iAltSel[SUMA_VOL_IJK] = I1d;
+                           PR->iAltSel[SUMA_VOL_SLC_NUM] = rslc->slc_num;
+                           PR->iAltSel[SUMA_VOL_SLC_VARIANT] = 
+                                 (int)SUMA_SlcVariantToCode(rslc->variant);
+                           PR->dAltSel[SUMA_VOL_SLC_EQ0] = rslc->Eq[0];
+                           PR->dAltSel[SUMA_VOL_SLC_EQ1] = rslc->Eq[1];
+                           PR->dAltSel[SUMA_VOL_SLC_EQ2] = rslc->Eq[2];
+                           PR->dAltSel[SUMA_VOL_SLC_EQ3] = rslc->Eq[3];
+                           PR->dset_idcode_str = SUMA_replace_string(
+                                           PR->dset_idcode_str, SDSET_ID(dset));
+                           if (!SUMA_Add_To_PickResult_List(sv, ado, 
+                                                            "voxel", &PR)) {
+                              SUMA_S_Err("Failed to add selected ado");
+                              SUMA_RETURN(0);
+                           }
+                           Hit = 1;
+                           ++N_Hit; 
+                           /* You could leave at the first hit IF:
+                           you only have one direction of slices in the 
+                           entire stack, AND if they are properly
+                           ordered for rendering.
+                           Should speed be an issue you can check for
+                           this condition and bolt with the line below */
+                           /* goto GOT_IT; */
+                      }
+                  }
+                  ++ive;
+               }
+            }
+            SUMA_LH("el now %p,\n"
+                    "tail = %p, N_Hit = %d", 
+                    el, dlist_tail(VSaux->vrslcl), N_Hit);
+         } while(el != dlist_tail(VSaux->vrslcl));
+      }
+   }
+
+
+   GOT_IT:
+   SUMA_RETURN(N_Hit);
+}/* determine intersection with 3D rendering of VO*/
 
 int SUMA_Apply_PR_VO(SUMA_SurfaceViewer *sv, SUMA_VolumeObject *VO, 
                      SUMA_PICK_RESULT **PRi) 
