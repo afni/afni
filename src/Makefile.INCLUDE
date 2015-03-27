@@ -20,7 +20,8 @@ DOCS     = ../doc/ps/*.ps ../doc/README/README*                    \
            AFNI.changes.dglen
 MINDOCS  = rickr/AFNI.changes.rickr AFNI.changes.dglen
 
-IMOBJS  = display.o imseq.o bbox.o xim.o xutil.o LiteClue.o thd_xwebber.o
+IMOBJS  = display.o imseq.o bbox.o xim.o xutil.o LiteClue.o thd_xwebber.o \
+            thd_selenium.o
 
 AFOBJS  = afni.o afni_func.o afni_widg.o afni_warp.o afni_fimmer.o \
             afni_slice_short.o afni_slice_float.o afni_filer.o     \
@@ -97,7 +98,7 @@ PROGRAMS = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge count   
            3dNormalityTest 3dmask_tool FIRdesign help_format 2perm 3dClustCount \
            column_cat 3dUnifize 3dNwarpCat 3dQwarp 3dLocalHistog 3dNwarpAdjust  \
            3dNwarpFuncs 3dTproject afni_open 3dConformist 3dNwarpXYZ 3dTRfix    \
-           3dToyProg 3dRankizer \
+           3dToyProg 3dRankizer selenium_test\
            $(EXTRAS)
 
 PROGRAMS_NOPLUG = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge      \
@@ -133,7 +134,7 @@ PROGRAMS_NOPLUG = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge  
                   apsearch 3dNormalityTest 3dmask_tool 2perm 3dClustCount           \
                   3dUnifize 3dNwarpCat 3dQwarp 3dLocalHistog 3dNwarpAdjust 3dTRfix  \
                   3dNwarpFuncs 3dTproject  afni_open   3dConformist 3dNwarpXYZ      \
-                  3dToyProg     \
+                  3dToyProg selenium_test   \
                   $(EXTRAS)
 
 # For CYGWIN (look for "exe" to find various places below)
@@ -168,7 +169,7 @@ PROGRAMS_EXE = afni.exe to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge 
                1dFlagMotion 3dTsort 1dTsort 3dTfitter afni_history 1dUpsample     \
                3dTcorrMap 3dABoverlap 3dRank 3dFFT 3dTcorr1D 3dClustSim 3dTRfix   \
                3dRetinoPhase 3dMaskToASCII 3dttest++ 3dDTtoDWI niccc 3dXYZcat     \
-               column_cat 
+               column_cat selenium_test
 
 SCRIPTS = @4Daverage @CommandGlobb @GetAfniOrient @DTI_studio_reposition          \
           @GetAfniPrefix @NoExt @UpdateAfni @RenamePanga @2dwarper                \
@@ -1505,7 +1506,7 @@ afni_version.o:afni_version.c
 
 afni:$(AFOBJS) libcoxplot.a libmri.a libmrix.a libvolpack.a libjpeg.a libXmHTML.a volpack.h coxplot.h niml.h
 	$(RM) $@
-	$(CC) -o afni $(AFOBJS) $(PLFLAGS) -lmrix -lcoxplot -lmri -lvolpack libXmHTML.a libjpeg.a $(LLIBS) -lm -lc
+	$(CC) -o afni $(AFOBJS) $(PLFLAGS) -lmrix -lcoxplot -lmri -lvolpack libXmHTML.a libjpeg.a $(LLIBS) -lm -lc 
 
 afni+:$(AFOBJS) libcoxplot.a libmri.a libmrix.a coxplot.h niml.h
 	$(RM) $@
@@ -2576,6 +2577,10 @@ column_cat: rickr/column_cat.c
 	$(RM) $@
 	$(CC) -o 3dexample1 3dexample1.o $(LFLAGS) $(LLIBS)
 
+selenium_test: selenium_test.o
+	$(RM) $@
+	$(CC) -o selenium_test selenium_test.o $(LFLAGS) $(LLIBS) $(LPYTHON)
+
 
 #######
 # rendering library
@@ -2698,6 +2703,10 @@ libXmHTML.a:
 
 thd_xwebber.o:thd_xwebber.c
 	$(CC) -c thd_xwebber.c -I./XmHTML/include $(INFLAGS)
+
+thd_selenium.o: thd_selenium.c
+	$(CC) -c thd_selenium.c -O1 $(IPYTHON) $(INFLAGS)
+
 
 #######
 # FFTW - not used
