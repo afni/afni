@@ -1679,8 +1679,13 @@ int SUMA_dset_tex_slice_corners_gui(SUMA_VolumeElement **VE, int ive,
             if (nslc >= VE[ive]->Nk) nslc = VE[ive]->Nk-1;
          } 
          break;
+      case 'V': /* Volume rendering, do not do much */
+         SUMA_S_Note("What to return here?");
+         SUMA_RETURN(0);
+         break;
       default:
-         SUMA_S_Err("What gives? Variant %s", variant);
+         SUMA_S_Err("What gives? Variant '%s'", variant);
+         SUMA_DUMP_TRACE("Bad variant trace");
          SUMA_RETURN(-1);
    }
    if (PlEq) { /* Equation of plane for slice in question */
@@ -2061,7 +2066,8 @@ int SUMA_VO_SelectedSlice(SUMA_VolumeObject *vo, char *variant, float *scorners)
             VSaux->PR->iAltSel[SUMA_VOL_J],
             VSaux->PR->iAltSel[SUMA_VOL_K],
             nslc);
-   if (nslc >= 0 && scorners) {
+   if (nslc >= 0 && scorners && 
+       VSaux->PR->iAltSel[SUMA_VOL_SLC_VARIANT] != SUMA_VR_VARIANT) {
       SUMA_dset_tex_slice_corners_gui(vo->VE, 0, variant, nslc, 
                           slc_tcorners, slc_corners, 
                           NULL, NULL, 0 );
@@ -2463,7 +2469,7 @@ SUMA_Boolean SUMA_GET_VR_Slice_Pack(SUMA_VolumeObject *VO,
    for (nn=0; nn<N_slc; ++nn) {
       rslc = (SUMA_RENDERED_SLICE *) SUMA_malloc(sizeof(SUMA_RENDERED_SLICE));
       rslc->Eq[0] = Eq[0]; rslc->Eq[1] = Eq[1]; rslc->Eq[2] = Eq[2];
-      rslc->Eq[3] = PlOff[nn] ;
+      rslc->Eq[3] = PlOff[nn] ; sprintf(rslc->variant,"Vr");
       /* stick plane in list, last one to be rendered goes to top */
       SUMA_LH("Intersecting VR plane %f %f %f %f, on vol %s\n"
               "(origin %f %f %f)",
@@ -3036,10 +3042,10 @@ SUMA_Boolean SUMA_DrawVolumeDO_slices(SUMA_VolumeObject *VO,
    if (SUMA_SV_GetShowSelectedFaceSet(sv)) { 
       int selslice = -1;
       float nlt[12];
-      char variant[8];
+      char variant[8]={"notset"};
       GLfloat No_Color[4] = { 0.0, 0.0, 0.0, 0.0 };
       selslice = SUMA_VO_SelectedSlice(VO, variant, nlt);
-      if (selslice >= 0) {
+      if (selslice >= 0 && variant[0] != 'V') {
          SUMA_LH("Drawing %s Slice %d Selection Contour\n"
                  "%f %f %f --> %f %f %f ...\n", 
                  variant, selslice,
@@ -3058,7 +3064,8 @@ SUMA_Boolean SUMA_DrawVolumeDO_slices(SUMA_VolumeObject *VO,
                         or risk hurting functions that expect it to be off. */
          glDisable(GL_COLOR_MATERIAL);
       } else {
-         SUMA_LH("Either no selection or failed to find slice");
+         SUMA_LH("Either no selection or failed to find slice, "
+                 "or VR intersection (variant=%s)", variant);
       }
    } else {
       SUMA_LH("Do not show selected faceset");

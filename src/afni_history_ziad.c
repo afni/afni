@@ -65,6 +65,16 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 27, Mar, 2014, ZSS, "suma", MINOR, TYPE_NEW_OPT,
+   "Selection now possible on VR rendered image in SUMA",
+   NULL
+ },
+
+ { 27, Mar, 2014, ZSS, "suma", MINOR, TYPE_BUG_FIX,
+   "Fixed syntax for env SUMA_VO_InitSlices, space chars are bad.",
+   NULL
+ },
+
  { 23, Mar, 2014, ZSS, "BrainSkin", MINOR, TYPE_BUG_FIX,
    "Fixed projection error in  SUMA_NN_GeomSmooth?_SO ",
    NULL
