@@ -13,6 +13,8 @@
  */
 
 #include "mrilib.h"
+
+#ifdef SELENIUM_READY
 #include <Python.h>
 
 // extern char *THD_abindir(char withslash);
@@ -125,4 +127,11 @@ int afni_uses_selenium()
    return(AFNI_yesenv("AFNI_SELENIUM")) ;
 }
 
+#else
 
+int afni_uses_selenium() { return(0) ; }
+
+int selenium_open_webpage(char *webpage) { return(0); }
+int selenium_close() { return(0); }
+
+#endif
