@@ -49,6 +49,10 @@
 
 
 afni_history_struct dglen_history[] = {
+{ 27, MAR, 2015 , DRG , "Selenium webdriver to open webpages" , 
+    MAJOR , TYPE_GENERAL, 
+    "Opens webpages without multiple tabs using python selenium webdriver"
+} ,
 { 3, MAR, 2015 , DRG , "align_epi_anat.py align_centers on/off/yes/no" , 
     MICRO , TYPE_MODIFY, 
     "align_centers can be on or yes, off or no"
