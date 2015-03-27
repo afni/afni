@@ -4793,6 +4793,7 @@ Mon Oct  5 17:48:12 eomer.nimh.nih.gov suma[4538] <Error>: unknown error code: i
             if (SUMAg_CF->X->SumaCont->AppShell) {
                XtDestroyWidget(SUMAg_CF->X->SumaCont->AppShell);
             }
+            selenium_close();/* close selenium opened browser windows if open */
             exit(0);
          }
    } else {
@@ -16804,6 +16805,8 @@ void  SUMA_cb_doneSumaCont(Widget wcall, XtPointer cd1, XtPointer cbs)
    /* close up */
    if (LocalHead) fprintf (SUMA_STDERR, "%s: Closing shop...\n", FuncName);
    XtCloseDisplay( SUMAg_CF->X->DPY_controller1 ) ;
+   
+   selenium_close(); /* close any selenium opened browser windows if open */
    exit(0) ;
 
    SUMA_RETURNe;

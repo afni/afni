@@ -5422,6 +5422,7 @@ void *SUMA_nimlEngine2Engine(NI_group *ngr)
          break;
       case SE_niKillSuma:
          XtCloseDisplay( SUMAg_CF->X->DPY_controller1 ) ;
+         selenium_close();/* close selenium opened browser windows if open */
          exit(0);
          break;
       default:
