@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 30,  Mar, 2015, RCR, "Makefile.linux_xorg7", MICRO, TYPE_ENHANCE,
+   "update for selenium",
+   NULL
+ } ,
+
  { 23,  Mar, 2015, RCR, "python-general", MINOR, TYPE_ENHANCE,
    "broke VarsObject class out into separate file",
    NULL
