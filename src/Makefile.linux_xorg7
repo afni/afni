@@ -8,9 +8,10 @@ LZLIB    = -lz
 USE_GIFTI = -DHAVE_GIFTI
 LGIFTI    = /usr/lib/libexpat.a
 
-SELENIUM_FLAG = -DSELENIUM_READY
-SELENIUM_INC  = -I/usr/include/python2.4
-SELENIUM_LINK = -lpython2.4
+# ------------------------------
+# python from C
+IPYTHON  = -DSELENIUM_READY -I/usr/include/python2.4
+LDPYTHON = -lpython2.4
 
 # ----------------------------------------------------------------------
 # X configuration
@@ -41,7 +42,7 @@ endif
 
 # for LFS (large file support): -D_FILE_OFFSET_BITS=64
 CCDEBS = -DAFNI_DEBUG -DIMSEQ_DEBUG -DDISPLAY_DEBUG -DTHD_DEBUG
-CEXTRA = -Wcomment -Wformat -DUSE_TRACING -DHAVE_XDBE $(CPROF) -DDONT_USE_XTDESTROY -D_FILE_OFFSET_BITS=64 $(LESSTIF_DEFS) $(SELENIUM_FLAG)
+CEXTRA = -Wcomment -Wformat -DUSE_TRACING -DHAVE_XDBE $(CPROF) -DDONT_USE_XTDESTROY -D_FILE_OFFSET_BITS=64 $(LESSTIF_DEFS)
 
 CC     = /usr/bin/gcc -O2 -march=i686 -mmmx -DLINUX2 -DXORG7 $(CEXTRA)
 CCVOL  = /usr/bin/gcc -O2 -march=i686 -mmmx -DLINUX2 -DXORG7 $(CEXTRA)
@@ -57,8 +58,8 @@ CCMIN  = /usr/bin/gcc $(CPROF)
 CCD    = $(CC) $(CCDEBS)
 CCOLD  = $(CC)
 
-IFLAGS = -I. $(XROOT_I) -I/usr/include $(SELENIUM_INC)
-LFLAGS = -L. -L/usr/lib
+IFLAGS = -I. $(XROOT_I) -I/usr/include
+LFLAGS = -L. -L/usr/lib -L/usr/local/lib
 
 CCSVD = /usr/bin/gcc -O0
 
@@ -97,7 +98,8 @@ EXPROGS = gifti_tool $(GSLPROGS)
 
 # for static linking to Motif, dynamic to all else
 
-LLIBS  = -lmri -lf2c $(XLIBS) -lXft -lXp -lXpm -lXext -lXmu -lSM -lICE -lX11 $(SELENIUM_LINK) -ljpeg -lpng $(LZLIB) $(LGIFTI) -lm  -ldl -lc -L/usr/local/lib
+LLIBS  = -lmri -lf2c $(XLIBS) -lXft -lXp -lXpm -lXext -lXmu -lSM -lICE -lX11 \
+         $(LDPYTHON) -ljpeg -lpng $(LZLIB) $(LGIFTI) -lm  -ldl -lc
 
 # for static linking, as far as possible
 

@@ -49,9 +49,9 @@
 
 afni_history_struct rickr_history[] = {
 
- { 30,  Mar, 2015, RCR, "Makefile.linux_xorg7", MICRO, TYPE_ENHANCE,
+ { 30,  Mar, 2015, RCR, "afni-general", MICRO, TYPE_ENHANCE,
    "update for selenium",
-   NULL
+   "Includes: Makefile.linux_openmp*, xorg7*, osx_10.7*, fedora19_64."
  } ,
 
  { 23,  Mar, 2015, RCR, "python-general", MINOR, TYPE_ENHANCE,
