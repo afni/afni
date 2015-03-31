@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 31,  Mar, 2015, RCR, "1d_tool.py", MICRO, TYPE_ENHANCE,
+   "allow -censor_fill_parent with simple 1D files",
+   "Done for 3dpc and censoring in afni_proc.py."
+ } ,
+
  { 30,  Mar, 2015, RCR, "afni-general", MINOR, TYPE_ENHANCE,
    "update for selenium",
    "Includes: Makefile.linux_openmp*, xorg7*, osx_10.7*, fedora19_64,\n"
