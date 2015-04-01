@@ -454,21 +454,25 @@ g_history = """
         - added -regress_ROI_PC, -regress_ROI_maskave (for external masks)
         - added -regress_ROI_erode
         - warp anat w/skull for QC
+    4.35 Apr  1, 2015:
+        -tcat_remove_first_trs can take a list
+        - done for P Hamilton
 """
 
-g_version = "version 4.34, April 1, 2015"
+g_version = "version 4.35, April 1, 2015"
 
 # version of AFNI required for script execution
 g_requires_afni = "1 Apr 2015" # 1d_tool.py uncensor from 1D
 
 g_todo_str = """Todo:
   - add option to pass extern NL warp datasets
-  - allow -tcat_remove_first_trs to take list
   - add help for -regress_ROI_PC/maskave
   - add erode option for regress_ROI_* inputs
   - add option to use dict key other than WMe for anaticor
   - (related) show example for passing FreeSurfer WMe with erode option
   - add option to block anat from anat followers?
+  - add/modify AP tests for some cases
+  - add AP test for varying remove_first_trs
 """
 
 # ----------------------------------------------------------------------
@@ -802,7 +806,7 @@ class SubjProcSream:
         # block options
         self.valid_opts.add_opt('-tcat_preSS_warn_limit', 1, [],
                         helpstr='set limit where TR #0 outliers suggest pre-SS')
-        self.valid_opts.add_opt('-tcat_remove_first_trs', 1, [],
+        self.valid_opts.add_opt('-tcat_remove_first_trs', -1, [],
                         helpstr='num TRs to remove from start of each run')
         self.valid_opts.add_opt('-tcat_remove_last_trs', 1, [],
                         helpstr='num TRs to remove from end of each run')
