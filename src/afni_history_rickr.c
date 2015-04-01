@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  1,  Apr, 2015, RCR, "1d_tool.py", MICRO, TYPE_ENHANCE,
+   "allow -censor_fill_parent with 2D files",
+   NULL
+ } ,
+
  { 31,  Mar, 2015, RCR, "1d_tool.py", MICRO, TYPE_ENHANCE,
    "allow -censor_fill_parent with simple 1D files",
    "Done for 3dpc and censoring in afni_proc.py."
