@@ -49,6 +49,16 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  1,  Apr, 2015, RCR, "afni_proc.py", MAJOR, TYPE_NEW_OPT,
+   "anat followers and ROI_PC",
+   "Datasets can follow the anatomical warps\n"
+   "Added options -regress_ROI_PC, -regress_ROI_maskave, -regress_ROI_erode.\n"
+   "PC allows for some number of principle components to be regressed, and\n"
+   "   maskave is for mask averages to be regressed.\n"
+   "The _erode option applies to either, and happens before xform.\n"
+   "Also, any anat with skull is applied as a follower."
+ } ,
+
  {  1,  Apr, 2015, RCR, "1d_tool.py", MICRO, TYPE_ENHANCE,
    "allow -censor_fill_parent with 2D files",
    NULL
