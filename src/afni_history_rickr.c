@@ -56,7 +56,8 @@ afni_history_struct rickr_history[] = {
    "PC allows for some number of principle components to be regressed, and\n"
    "   maskave is for mask averages to be regressed.\n"
    "The _erode option applies to either, and happens before xform.\n"
-   "Also, any anat with skull is applied as a follower."
+   "Also, any anat with skull is applied as a follower.\n"
+   "Also, -tcat_remove_first_trs can now take a list."
  } ,
 
  {  1,  Apr, 2015, RCR, "1d_tool.py", MICRO, TYPE_ENHANCE,
