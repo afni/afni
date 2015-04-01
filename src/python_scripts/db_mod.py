@@ -92,10 +92,10 @@ def db_mod_tcat(block, proc, user_opts):
     uopt = user_opts.find_opt('-tcat_remove_first_trs')
     bopt = block.opts.find_opt('-tcat_remove_first_trs')
     if uopt and bopt:
-        try: bopt.parlist[0] = int(uopt.parlist[0])
+        try: bopt.parlist = [int(param) for param in uopt.parlist]
         except:
-            print "** ERROR: %s: invalid integer: %s"   \
-                  % (uopt.label, uopt.parlist[0])
+            print "** ERROR: %s: invalid as integers: %s"   \
+                  % (uopt.label, ' '.join(uopt.parlist))
             errs += 1
         if errs == 0 and bopt.parlist[0] > 0:
           print                                                              \
@@ -114,7 +114,16 @@ def db_mod_tcat(block, proc, user_opts):
 def db_cmd_tcat(proc, block):
     cmd = ''
     opt = block.opts.find_opt('-tcat_remove_first_trs')
+    flist = opt.parlist
     first = opt.parlist[0]
+    # if multiple runs, length of flist should match
+    if proc.runs > 1:
+       if len(flist) == 1:
+          flist = [first for r in range(proc.runs)]
+
+    if len(flist) != proc.runs:
+       print '** error: -tcat_remove_first_trs takes either 1 value or nruns'
+       return 1, ''
 
     # maybe the user updated our warning limit
     val, err = block.opts.get_type_opt(float, '-tcat_preSS_warn_limit')
@@ -135,7 +144,7 @@ def db_cmd_tcat(proc, block):
                 "# apply 3dTcat to copy input dsets to results dir, while\n"  \
                 "# removing the first %d TRs\n"                               \
                 % (block_header('auto block: tcat'), first)
-    for run in range(0, proc.runs):
+    for run in range(proc.runs):
         if rmlast == 0: final = '$'
         else:
             reps = proc.reps_all[run]
@@ -145,10 +154,14 @@ def db_cmd_tcat(proc, block):
                       % (run+1, reps, rmlast)
         cmd = cmd + "3dTcat -prefix %s/%s %s'[%d..%s]'\n" %              \
                     (proc.od_var, proc.prefix_form(block,run+1),
-                     proc.dsets[run].rel_input(), first, final)
+                     proc.dsets[run].rel_input(), flist[run], final)
 
     proc.reps   -= first+rmlast # update reps to account for removed TRs
-    proc.reps_all = [reps-first-rmlast for reps in proc.reps_all]
+
+    for run in range(len(proc.reps_all)):
+       proc.reps_all[run] -= (flist[run] + rmlast)
+    if not UTIL.vals_are_constant(proc.reps_all):
+       proc.reps_vary = 1
 
     cmd = cmd + '\n'                                                    \
                 '# and make note of repetitions (TRs) per run\n'        \
@@ -730,12 +743,14 @@ def db_cmd_ricor(proc, block):
     if proc.verb > 2: print '-- ricor: slice 0 labels: %s' % ' '.join(nsr_labs)
 
     # check reps against adjusted NT
-    nt = adata.nt-proc.ricor_nfirst-proc.ricor_nlast
-    if proc.reps != nt:
-        print "** ERROR: ricor NT != dset len (%d, %d)"                 \
-              "   (check -ricor_regs_nfirst/-tcat_remove_first_trs)"    \
-              % (nt, proc.reps)
-        return
+    for run, rfile in enumerate(proc.ricor_regs):
+        fdata = LAD.Afni1D(rfile)
+        nt = fdata.nt-proc.ricor_nfirst-proc.ricor_nlast
+        if proc.reps_all[run] != nt:
+           print "** ERROR: run %d ricor NT != dset len (%d, %d)\n"       \
+                 "   (check -ricor_regs_nfirst/-tcat_remove_first_trs)"   \
+                 % (run+1, nt, proc.reps_all[run])
+           return
 
     # get user polort, else default based on twice the time length
     val, err = block.opts.get_type_opt(int, '-ricor_polort')
@@ -7432,6 +7447,7 @@ g_help_string = """
         -tcat_remove_first_trs NUM : specify how many TRs to remove from runs
 
                 e.g. -tcat_remove_first_trs 3
+                e.g. -tcat_remove_first_trs 3 1 0 0 3
                 default: 0
 
             Since it takes several seconds for the magnetization to reach a
@@ -7439,6 +7455,9 @@ g_help_string = """
             each run may have values that are significantly greater than the
             later ones.  This option is used to specify how many TRs to
             remove from the beginning of every run.
+
+            If the number needs to vary across runs, then one number should
+            be specified per run.
 
         -tcat_remove_last_trs NUM : specify TRs to remove from run ends
 
