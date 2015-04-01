@@ -10,6 +10,7 @@ from afni_base import *
 from afni_util import *
 from option_list import *
 from db_mod import *
+import lib_vars_object as VO
 import ask_me
 
 # ----------------------------------------------------------------------
@@ -447,12 +448,28 @@ g_history = """
     4.33 Mar  3, 2015:
         - allow MIN_OUTLIER as a parameter in -volreg_align_to
         - update requirement date (Feb 9 -> Nov 9)
+    4.34 Apr  1, 2015: anat followers and ROI_PC
+        - added ability to warp anat followers
+           - anat is default if skull and align or tlrc blocks
+        - added -regress_ROI_PC, -regress_ROI_maskave (for external masks)
+        - added -regress_ROI_erode
+        - warp anat w/skull for QC
 """
 
-g_version = "version 4.32, March 2, 2015"
+g_version = "version 4.34, April 1, 2015"
 
 # version of AFNI required for script execution
-g_requires_afni = "9 Nov 2014" # 3dNwarpApply
+g_requires_afni = "1 Apr 2015" # 1d_tool.py uncensor from 1D
+
+g_todo_str = """Todo:
+  - add option to pass extern NL warp datasets
+  - allow -tcat_remove_first_trs to take list
+  - add help for -regress_ROI_PC/maskave
+  - add erode option for regress_ROI_* inputs
+  - add option to use dict key other than WMe for anaticor
+  - (related) show example for passing FreeSurfer WMe with erode option
+  - add option to block anat from anat followers?
+"""
 
 # ----------------------------------------------------------------------
 # dictionary of block types and modification functions
@@ -553,6 +570,7 @@ class SubjProcSream:
         self.anat_unif_meth = 'default' # unifize method
         self.anat_unifized = 0          # has the anat been unifized
         self.anat_final = None          # anat assumed aligned with stats
+        self.anat_warps = []            # array of anat warp matrices
         self.nlw_aff_mat= ''
         self.nlw_NL_mat = ''
         self.tlrcanat   = None          # expected name of tlrc dataset
@@ -581,6 +599,8 @@ class SubjProcSream:
         self.ssr_basic    = '@ss_review_basic' # basic review script
         self.test_stims   = 1           # test stim_files for appropriateness
         self.test_dsets   = 1           # test datasets for existence
+
+        self.afollowers   = []          # anat follower dataset VOs
 
         self.ricor_apply  = 'no'        # apply ricor regs in 3dDeconvolve
         self.ricor_reg    = None        # ricor reg to apply in regress block
@@ -619,6 +639,7 @@ class SubjProcSream:
         self.tcsh_cmd   = ''            # tcsh formatted exec_cmd
         self.regmask    = 0             # apply any full_mask in regression
         self.regress_orts = []          # list of ortvec [file, label] pairs
+        self.regress_polort = 0         # applied polort
         self.origview   = '+orig'       # view could also be '+tlrc'
         self.view       = '+orig'       # (starting and 'current' views)
         self.xmat       = 'X.xmat.1D'   # X-matrix file (might go uncensored)
@@ -1052,6 +1073,12 @@ class SubjProcSream:
                         helpstr="execute 3dREMLfit command script")
         self.valid_opts.add_opt('-regress_ROI', -1, [], okdash=0,
                         helpstr="regress out known ROIs")
+        self.valid_opts.add_opt('-regress_ROI_PC', 3, [], okdash=0,
+                        helpstr="regress PCs from ROI (label #pc dset)")
+        self.valid_opts.add_opt('-regress_ROI_maskave', 2, [], okdash=0,
+                        helpstr="regress average over ROI (label dset)")
+        self.valid_opts.add_opt('-regress_ROI_erode', -1, [], okdash=0,
+                        helpstr="erode ROI masks for given labels")
         self.valid_opts.add_opt('-regress_RONI', -1, [], okdash=0,
                         helpstr="1-based list of regressors of no interest")
         self.valid_opts.add_opt('-regress_RSFC', 0, [],
@@ -1618,7 +1645,7 @@ class SubjProcSream:
         
         block = self.find_block('volreg')
         if not block:
-            if verb > 0: print "** cannot get vr_base_indices: no volreg block"
+            if verb>0: print "** warning: no volreg block for vr_base_indices"
             return -1, -1
         opt = block.opts.find_opt('-volreg_base_ind')
 
@@ -1912,6 +1939,18 @@ class SubjProcSream:
             if self.verb > 1:
                 print '++ copying external censor file to %s'%self.censor_file
 
+        # copy any -regress_ROI_* datasets; possibly convert to AFNI
+        if len(self.afollowers) > 0:
+           tstr = '# copy any -regress_ROI_* datasets into the results dir\n'
+           for af in self.afollowers:
+              tstr += '3dcopy %s %s/%s\n' % \
+                      (af.aname.rel_input(), self.od_var, af.aname.prefix)
+              # update current name, in case we switch to AFNI format
+              af.cname = afni_name(af.aname.prefix)
+              if af.cname.view == '': af.cname.new_view(self.view)
+           self.write_text(add_line_wrappers(tstr))
+           self.write_text("%s\n" % stat_inc)
+
         opt = self.user_opts.find_opt('-copy_files')
         if opt and len(opt.parlist) > 0:
             tstr = '# copy extra files into results dir\n' \
@@ -2090,6 +2129,159 @@ class SubjProcSream:
           print '** invalid index for block label: %d' % index
           return 'NO_LABEL'
        return self.pblabels[index]
+
+
+    def anat_follower(self, name='', aname=None, dgrid='epi', label='',
+                      NN=0, num_pc=0, mave=0):
+        """provide either a name/prefix or an afni_name,
+           dgrid : 'anat','epi','orig', the destination grid
+           label : applied for any regression ort
+           NN    : 0/1, should apply NN interpolation
+           num_pc: if > 0, use 3dpc to generate regressors
+           mave  : if set, use 3dmaskave
+        """
+
+        # force an aname element
+        if aname == None:
+           if name == '':
+              print '** new_anat_follower requires name or aname'
+              return None 
+           aname = afni_name(name)
+
+        if dgrid not in ['epi', 'anat', 'self']:
+           print '** invalid dgrid %s for %s' % (dgrid, aname.rel_input())
+           return None
+
+        vo = VO.VarsObject()
+
+        # set_var is not needed, but is a reminder
+        vo.set_var('aname',  aname)
+        vo.set_var('cname',  aname)     # cname is current name
+        vo.set_var('dgrid',  dgrid)
+        vo.set_var('label',  label)
+        vo.set_var('erode',  0)         # 0=no, 1=pre, 2=post
+        vo.set_var('NN',     NN)
+        vo.set_var('num_pc', num_pc)
+        vo.set_var('mave',   mave)
+        vo.set_var('final_prefix', '')
+        vo.set_var('is_warped', 0)      # has it been warped?
+
+        return vo
+
+    # ======================================================================
+    # notes regarding anat followers:
+    #    - assume they start out in register with anatomy
+    #    - apply any warps that are applied to anat
+    #    - erode? global PC option? per ROI?
+    # *     - IF ERODE (pre-erode), use 3dmask_tool instead of 3dcopy?
+    #          - ponder post-erode separately?
+    #
+    # warp cases (3 in volreg, 3 in align, 1 in postdata):
+    #    1. volreg: affine (align and/or tlrc) (standard case)
+    #    2. volreg: NL     (align and/or tlrc)
+    #    3. volreg: none   (no tlrc, no a2e (either no align or e2a))
+    #
+    #    4. align (no vr): affine
+    #    5. align (no vr): NL
+    #    6. align (no vr): none:  e2a -> identity warp
+    #
+    #    7. postdata (no vr, no align): just resample
+    #
+    # warp options:
+    #    - erode (before or after warps)
+    #       -regress_ROI_PC_pre_erode Label1 Label2 ...
+    #          - process in postdata block
+    #       -regress_ROI_PC_post_erode Label1 Label2 ...
+    #          - process in warp_anat_followers()
+    #    - dgrid (warp to grid: anat, epi, self)
+    #    - NN (interpolation: NN or default=wsinc5)
+    #
+    # test (esp, check anat/ROI align before and after):
+    #    - no anat included, else always include anat for reference
+    #    - all 7 warp cases
+    #    - erode option (require -regress_ROI_PC_erode LABEL1 LABEL2 ...)
+    #       - let LABEL = ALL be a special option
+    #       - apply in post block, where 3dresample/3dmask_calc would be done
+    # 
+    # warps:
+    #    volreg dowarp:   -tlrc_anat or -copy_anat w/tlrc
+    #           doe2a:    epi -> anat
+    #           doadwarp: adwarp on anat
+    #       a. anat -> EPI
+    #       b. anat -> EPI and tlrc
+    #       c. e2a and tlrc
+    #       d. tlrc (adwarp or follow)
+    #
+    # PC option:   -regress_ROI_PC LABEL NUM_PCs dataset
+    # dset option: -regress_ROI_maskave LABEL dataset
+    #
+    # checks:
+    #  - labels must be unique (and cannot match those in -regress_ROI)
+    #
+    # steps:
+    #  - 3dcopy into results directory (3dmask_tool if pre-erode?)
+    #  - if volreg block, warp them there
+    #    else if align block, do it there
+    #    else resample?
+    #     - if no volreg, dest grid is via run1 dset from prior block
+    #        - proc.volreg_prefix would not be set, so get prior prefix
+    #          from proc.prefix_form_run(prior block)
+    #  - if maskave, just add label to proc.roi_dict
+    #  - generate orts (follow db_cmd_regress_ROI())
+    #     - follow db_cmd_regress_ROI():
+    #     - detrend volreg data at 3dD polort, per run
+    #         3dDetrend -polort 2 -prefix t.3.det pb02.FT.ospace.r03.volreg
+    #     - catenate runs
+    #         3dTcat -prefix rm.vr.det.all.runs t.?.det*.HEAD
+    #     - create censored time series via $keep_trs
+    #         keep = 1d_tool.py -infile $mfile -show_trs_uncensored encoded
+    #         3dpc -mask $mset -pcsave 3 -prefix P3_ det.all.runs+orig"[$keep]"
+    #
+    #     - use 3dpc or 3dmaskave to extract time series
+    #     - uncensor: 1d_tool.py -censor_fill_parent
+    #
+    # to do:
+    #  - basic
+    #  - 3dROIstats?
+    #  - use -stim_file instead of -ortvec to get betas and stats
+    #     - start by extracting each column as file under stimuli/
+    #     - then it would be less special to insert
+    # ======================================================================
+
+
+    # track datasets that should follow anat transformations
+    # (e.g. anat w/skull or ROIs)
+    # anat follows if: -copy_anat, -anat_has_skull, align2epi OR tlrc
+    def add_anat_follower(self, name='', aname=None, dgrid='epi', label='',
+                          NN=0, num_pc=0, mave=0):
+        """add object only if shortinput does not match any existing one 
+
+           return follower object, even if already existing
+        """
+
+        if aname == None and name == '':
+           print '** new_anat_follower requires name or aname'
+           return None
+
+        release = 0
+        if aname == None:
+           aname = afni_name(name)
+           release = 1
+        si = aname.shortinput()
+
+        for af in self.afollowers:
+           if af.aname.shortinput() == si:
+              # found: nuke any copy and return VO
+              if release: del(aname)
+              return af
+
+        # not yet in list
+        af = self.anat_follower(aname=aname, dgrid=dgrid, label=label,
+                                NN=NN, num_pc=num_pc, mave=mave)
+        self.afollowers.append(af)
+
+        return af
+
 
     # given a block, run, return a prefix of the form: pNN.SUBJ.rMM.BLABEL
     #    NN = block index, SUBJ = subj label, MM = run, BLABEL = block label
