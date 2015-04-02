@@ -9,9 +9,9 @@ USE_GIFTI = -DHAVE_GIFTI
 LGIFTI    = /usr/lib/libexpat.a
 
 # ------------------------------
-# python from C
-IPYTHON  = -DSELENIUM_READY -I/usr/include/python2.4
-LDPYTHON = -lpython2.4
+# python from C (off for now)
+# IPYTHON  = -DSELENIUM_READY -I/usr/include/python2.4
+# LDPYTHON = -lpython2.4
 
 # ----------------------------------------------------------------------
 # X configuration
