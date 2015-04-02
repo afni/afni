@@ -5084,12 +5084,54 @@ def db_mod_tlrc(block, proc, user_opts):
     apply_uopt_to_block('-tlrc_base', user_opts, block)
     apply_uopt_to_block('-tlrc_opts_at', user_opts, block)
     apply_uopt_to_block('-tlrc_NL_warp', user_opts, block)
+    apply_uopt_to_block('-tlrc_NL_warped_dsets', user_opts, block)
     apply_uopt_to_block('-tlrc_NL_awpy_rm', user_opts, block)
     apply_uopt_to_block('-tlrc_no_ss', user_opts, block)
     apply_uopt_to_block('-tlrc_rmode', user_opts, block)
     apply_uopt_to_block('-tlrc_suffix', user_opts, block)
 
+    if block.opts.find_opt('-tlrc_NL_warped_dsets'):
+       mod_check_tlrc_NL_warp_dsets(proc, block)
+
     block.valid = 1
+
+def mod_check_tlrc_NL_warp_dsets(proc, block):
+    """if we are given NL-warped datasets, fill nlw_priors"""
+
+    oname = '-tlrc_NL_warped_dsets'
+    dslist, rv = block.opts.get_string_list(oname)
+    if not dslist:
+       print '** error: failed parsing option %s' % oname
+       return None
+    if len(dslist) != 3:
+       print '** error: %s requires 3 elements, have %d' % (oname, len(dslist))
+       return None
+
+    # get and check anat, 1D warp, NL warp
+    aname = BASE.afni_name(dslist[0])
+    if aname.view == '': aname.new_view('+tlrc')
+    dims = aname.dims()
+    if dims[3] != 1:
+       print '** error in %s p1: tlrc anat should be 1 volume,' % oname
+       print '   but dataset %s shows %d' % (aname.shortinput(), dims[3])
+       return None
+
+    axname = BASE.afni_name(dslist[1])
+    if axname.type != '1D':
+       print '** error in %s p2: affine xform %s should be 1D' \
+             % (oname, axname.shortinput())
+       return None
+
+    nlname = BASE.afni_name(dslist[2])
+    if nlname.view == '' and nlname.type == 'BRIK' : nlname.new_view('+tlrc')
+    dims = nlname.dims()
+    if dims[3] != 3:
+       print '** error in %s p3: NL warp should be 3 volumes,' % oname
+       print '   but dataset %s shows %d' % (nlname.shortinput(), dims[3])
+       return None
+
+    # store the afni_names and bolt
+    proc.nlw_priors = [aname, axname, nlname]
 
 # create a command to run @auto_tlrc
 def db_cmd_tlrc(proc, block):
@@ -5098,6 +5140,10 @@ def db_cmd_tlrc(proc, block):
     if not proc.anat.pv() :
         print "** missing dataset name for tlrc operation"
         return None
+
+    # if we are given NL-warped datasets, just apply them
+    if block.opts.find_opt('-tlrc_NL_warped_dsets'):
+       return tlrc_cmd_nlwarp_priors(proc, block)
 
     # no longer look to add +orig
 
@@ -5249,6 +5295,40 @@ def tlrc_cmd_nlwarp (proc, block, aset, base, strip=1, suffix='', exopts=[]):
        proc.rm_list.append('awpy') ; proc.rm_dirs = 1
 
     return cmd + pstr
+
+def tlrc_cmd_nlwarp_priors(proc, block):
+    """NL warping has already been done,
+       just note datasets as if there were made here
+
+       set tlrcanat, nlw_aff_mat, nlw_NL_mat
+       append the warps
+    """
+
+    if len(proc.nlw_priors) != 3: return ''
+
+    print '-- importing NL-warp datasets'
+
+    p0 = proc.nlw_priors[0]
+    p1 = proc.nlw_priors[1]
+    p2 = proc.nlw_priors[2]
+
+    cmd = "# %s\n" % block_header('tlrc')
+    cmd += '\n'                                                         \
+           '# nothing to do: have external -tlrc_NL_warped_dsets\n\n'   \
+           '# warped anat     : %s\n'                                   \
+           '# affine xform    : %s\n'                                   \
+           '# non-linear warp : %s\n\n'                                 \
+           % (p0.shortinput(), p1.shortinput(), p2.shortinput())
+
+    proc.tlrcanat = p0
+
+    proc.nlw_aff_mat = p1.shortinput()
+    proc.nlw_NL_mat  = p2.shortinput()
+
+    proc.anat_warps.append(proc.nlw_aff_mat)
+    proc.anat_warps.append(proc.nlw_NL_mat)
+
+    return cmd
 
 def tlrc_cmd_warp(proc, aset, base, strip=1, rmode='', suffix='', exopts=[]):
     """return block string for case of @auto_tlrc
