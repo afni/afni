@@ -457,17 +457,17 @@ g_history = """
     4.35 Apr  1, 2015:
         -tcat_remove_first_trs can take a list
         - done for P Hamilton
+    4.36 Apr  2, 2015: added -tlrc_NL_warped_dsets to import 3dQwarp result
 """
 
-g_version = "version 4.35, April 1, 2015"
+g_version = "version 4.36, April 2, 2015"
 
 # version of AFNI required for script execution
 g_requires_afni = "1 Apr 2015" # 1d_tool.py uncensor from 1D
 
 g_todo_str = """Todo:
-  - add option to pass extern NL warp datasets
   - add help for -regress_ROI_PC/maskave
-  - add erode option for regress_ROI_* inputs
+  - add help for -tlrc_NL_warped_dsets
   - add option to use dict key other than WMe for anaticor
   - (related) show example for passing FreeSurfer WMe with erode option
   - add option to block anat from anat followers?
@@ -577,6 +577,7 @@ class SubjProcSream:
         self.anat_warps = []            # array of anat warp matrices
         self.nlw_aff_mat= ''
         self.nlw_NL_mat = ''
+        self.nlw_priors = []            # afni_name list of 3 warped_dsets
         self.tlrcanat   = None          # expected name of tlrc dataset
         self.tlrc_base  = None          # afni_name dataset used in -tlrc_base
         self.tlrc_nlw   = 0             # are we using non-linear registration
@@ -862,6 +863,8 @@ class SubjProcSream:
                         helpstr='use non-linear warping to template')
         self.valid_opts.add_opt('-tlrc_NL_warp', 0, [],
                         helpstr='use non-linear warping to template')
+        self.valid_opts.add_opt('-tlrc_NL_warped_dsets', 3, [],
+                        helpstr='pass dsets that have already been NLwarped')
         self.valid_opts.add_opt('-tlrc_no_ss', 0, [],
                         helpstr='do not skull-strip during @auto_tlrc')
         self.valid_opts.add_opt('-tlrc_rmode', 1, [],
@@ -1952,6 +1955,15 @@ class SubjProcSream:
               # update current name, in case we switch to AFNI format
               af.cname = afni_name(af.aname.prefix)
               if af.cname.view == '': af.cname.new_view(self.view)
+           self.write_text(add_line_wrappers(tstr))
+           self.write_text("%s\n" % stat_inc)
+
+        # copy and -tlrc_NL_warped_dsets files (self.nlw_priors dsets)
+        if len(self.nlw_priors) == 3:
+           tstr = '# copy external -tlrc_NL_warped_dsets datasets\n'
+           for an in self.nlw_priors:
+              tstr += '3dcopy %s %s/%s\n' % \
+                      (an.rel_input(), self.od_var, an.out_prefix())
            self.write_text(add_line_wrappers(tstr))
            self.write_text("%s\n" % stat_inc)
 
