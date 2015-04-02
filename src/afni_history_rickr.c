@@ -49,9 +49,9 @@
 
 afni_history_struct rickr_history[] = {
 
- {  2,  Apr, 2015, RCR, "afni-general", MICRO, TYPE_MODIFY,
-   "do not link to python in linux builds",
-   "Dynamic linking will generally fail, python versions differ."
+ {  2,  Apr, 2015, RCR, "rickr/Makefile", MICRO, TYPE_BUG_FIX,
+   "Imon and serial_helper should not use LLIBS",
+   NULL
  } ,
 
  {  1,  Apr, 2015, RCR, "afni_proc.py", MAJOR, TYPE_NEW_OPT,
