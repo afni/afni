@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  2,  Apr, 2015, RCR, "afni-general", MICRO, TYPE_MODIFY,
+   "do not link to python in linux builds",
+   "Dynamic linking will generally fail, python versions differ."
+ } ,
+
  {  1,  Apr, 2015, RCR, "afni_proc.py", MAJOR, TYPE_NEW_OPT,
    "anat followers and ROI_PC",
    "Datasets can follow the anatomical warps\n"
