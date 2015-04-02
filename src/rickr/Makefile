@@ -25,7 +25,7 @@ Dimon1: Dimon1.o realtime1.o
 
 serial_helper: serial_helper.o
 	$(RM) $@
-	$(CC) -o serial_helper serial_helper.o -L.. -lm $(LLIBS)
+	$(CC) -o serial_helper serial_helper.o $(LFLAGS) -L.. -lm $(LLIBS)
 
 # ----------------------------------------------------------------------
 # local Imon objects need mcw_glob, but without MCW_MALLOC
