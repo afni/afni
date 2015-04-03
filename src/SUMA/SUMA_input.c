@@ -1903,6 +1903,7 @@ int SUMA_L_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode, char *strgval)
    switch (k) {
       case XK_l:
             if ((SUMA_CTRL_KEY(key))){
+               #if 0 /* Not of much use */
                if (SUMAg_CF->Dev) {
                   if (!list) list = SUMA_CreateList();
                   ED = SUMA_InitializeEngineListData (SE_ToggleLockAllCrossHair);
@@ -1920,7 +1921,51 @@ int SUMA_L_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode, char *strgval)
                               "Error %s: SUMA_Engine call failed.\n", FuncName);
                   }
                }
-            } if ((SUMA_ALT_KEY(key) || SUMA_APPLE_KEY(key))){ /* alt + l */
+               #else
+               GLfloat light0_color[] = { SUMA_LIGHT0_COLOR_INIT};
+                  /* dim the lights */
+                  sv->dim_spe = sv->dim_spe * 0.8; 
+                     if (sv->dim_spe < 0.1) sv->dim_spe = 1.0;
+                  sv->dim_dif = sv->dim_dif * 0.8; 
+                     if (sv->dim_dif < 0.1) sv->dim_dif = 1.0;
+                  sv->dim_amb = sv->dim_amb * 0.8; 
+                     if (sv->dim_amb < 0.1) sv->dim_amb = 1.0;
+                  sv->dim_emi = sv->dim_emi * 0.8; 
+                     if (sv->dim_emi < 0.1) sv->dim_emi = 1.0;
+                  fprintf(SUMA_STDERR,
+                           "%s:  light dim factor now %.3f\n", 
+                           FuncName, sv->dim_spe);
+                  /*fprintf(SUMA_STDERR,"%s:  light dim factor now %.3f\n"
+                                        "%f %f %f %f\n", 
+                                        FuncName, sv->dim_spe,
+                           sv->light0_color[0], sv->light0_color[1], 
+                           sv->light0_color[2], sv->light0_color[3]);
+                                                      */
+                  light0_color[0] = sv->light0_color[0]*sv->dim_spe;
+                  light0_color[1] = sv->light0_color[1]*sv->dim_spe;
+                  light0_color[2] = sv->light0_color[2]*sv->dim_spe;
+                  light0_color[3] = sv->light0_color[3]*sv->dim_spe;
+                  glLightfv(GL_LIGHT0, GL_SPECULAR, light0_color);
+                  light0_color[0] = sv->light0_color[0]*sv->dim_dif;
+                  light0_color[1] = sv->light0_color[1]*sv->dim_dif;
+                  light0_color[2] = sv->light0_color[2]*sv->dim_dif;
+                  light0_color[3] = sv->light0_color[3]*sv->dim_dif;
+                  glLightfv(GL_LIGHT0, GL_DIFFUSE, light0_color);
+                  light0_color[0] = sv->lmodel_ambient[0]*sv->dim_amb;
+                  light0_color[1] = sv->lmodel_ambient[1]*sv->dim_amb;
+                  light0_color[2] = sv->lmodel_ambient[2]*sv->dim_amb;
+                  light0_color[3] = sv->lmodel_ambient[3]*sv->dim_amb;
+                  glLightModelfv(GL_LIGHT_MODEL_AMBIENT, sv->lmodel_ambient);
+                  if (!list) list = SUMA_CreateList(); 
+                  SUMA_REGISTER_HEAD_COMMAND_NO_DATA( list, SE_Redisplay, 
+                                                      SES_Suma, sv);
+
+                  if (!SUMA_Engine (&list)) {
+                     fprintf(stderr, 
+                             "Error SUMA_input: SUMA_Engine call failed.\n");
+                  }
+               #endif
+            } else if ((SUMA_AALT_KEY(key))){ /* alt + l */
                /* register cross hair XYZ with ED */
                if (!list) list = SUMA_CreateList();
                ED = SUMA_InitializeEngineListData (SE_SetLookAt);
@@ -1956,17 +2001,16 @@ int SUMA_L_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode, char *strgval)
          break;
       case XK_L:
                if ((SUMA_CTRL_KEY(key))){
-                  if (SUMAg_CF->Dev) {
-                     GLfloat light0_color[] = { SUMA_LIGHT0_COLOR_INIT};
-                     sv->dim_spe = sv->dim_spe * 0.8; 
-                        if (sv->dim_spe < 0.1) sv->dim_spe = 1.0;
-                     sv->dim_dif = sv->dim_dif * 0.8; 
-                        if (sv->dim_dif < 0.1) sv->dim_dif = 1.0;
-                     sv->dim_amb = sv->dim_amb * 0.8; 
-                        if (sv->dim_amb < 0.1) sv->dim_amb = 1.0;
-                     sv->dim_emi = sv->dim_emi * 0.8; 
-                        if (sv->dim_emi < 0.1) sv->dim_emi = 1.0;
-                     /* dim the lights */
+                  GLfloat light0_color[] = { SUMA_LIGHT0_COLOR_INIT};
+                  /* brighten the lights */
+                  sv->dim_spe = sv->dim_spe / 0.8; 
+                  if (sv->dim_spe > 1) sv->dim_spe = 0.1;
+                  sv->dim_dif = sv->dim_dif / 0.8; 
+                     if (sv->dim_dif > 1) sv->dim_dif = 0.1;
+                  sv->dim_amb = sv->dim_amb / 0.8; 
+                     if (sv->dim_amb > 1) sv->dim_amb = 0.1;
+                  sv->dim_emi = sv->dim_emi / 0.8; 
+                     if (sv->dim_emi > 1) sv->dim_emi = 0.1;
                      fprintf(SUMA_STDERR,
                               "%s:  light dim factor now %.3f\n", 
                               FuncName, sv->dim_spe);
@@ -1999,7 +2043,8 @@ int SUMA_L_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode, char *strgval)
                         fprintf(stderr, 
                                 "Error SUMA_input: SUMA_Engine call failed.\n");
                      }
-                  }
+               } else if ((SUMA_AALT_KEY(key))){
+               
                } else {
                   SUMA_PROMPT_DIALOG_STRUCT *prmpt;
                   prmpt = SUMA_CreatePromptDialogStruct (
@@ -4431,14 +4476,34 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
             break; 
               
          case XK_l:
-               if (!SUMA_L_Key(sv, "l", "interactive", NULL)) {
+               if (Kev.state & ControlMask){
+                  if (!SUMA_L_Key(sv, "ctrl+l", "interactive", NULL)) {
+                        SUMA_S_Err("Failed in key func.");
+                  }
+               } else if (SUMA_ALTHELL){
+                  if (!SUMA_L_Key(sv, "alt+l", "interactive", NULL)) {
                      SUMA_S_Err("Failed in key func.");
+                  }
+               } else {
+                  if (!SUMA_L_Key(sv, "l", "interactive", NULL)) {
+                        SUMA_S_Err("Failed in key func.");
+                  }
                }
             break;
 
          case XK_L:
-               if (!SUMA_L_Key(sv, "L", "interactive", NULL)) {
+               if (Kev.state & ControlMask){
+                  if (!SUMA_L_Key(sv, "ctrl+L", "interactive", NULL)) {
+                        SUMA_S_Err("Failed in key func.");
+                  }
+               } else if (SUMA_ALTHELL){
+                  if (!SUMA_L_Key(sv, "alt+L", "interactive", NULL)) {
                      SUMA_S_Err("Failed in key func.");
+                  }
+               } else {
+                  if (!SUMA_L_Key(sv, "L", "interactive", NULL)) {
+                        SUMA_S_Err("Failed in key func.");
+                  }
                }
             break;
          

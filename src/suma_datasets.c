@@ -1280,7 +1280,6 @@ NI_element *SUMA_FindNgrAttributeElement(NI_group *ngr, char *attname)
 /*! \brief Return the attribute that contains the set of unique values
             in a column 
 */
-
 NI_element * SUMA_GetUniqueValsAttr(SUMA_DSET *dset, int icol)
 {
    static char FuncName[]={"SUMA_GetUniqueValsAttr"};
@@ -1448,6 +1447,29 @@ int SUMA_isVolDataset(SUMA_DSET *dset)
    return(0);
 }
 
+NI_element * SUMA_GetAtlasLabelTable(SUMA_DSET *dset)
+{
+   static char FuncName[]={"SUMA_GetAtlasLabelTable"};
+   NI_element *nel=NULL;
+   SUMA_Boolean LocalHead = NOPE;
+   /* This is for volumes only */
+   nel = SUMA_FindDsetAttributeElement (dset, "ATLAS_LABEL_TABLE");
+   SUMA_LH("ATLAS_LABEL_TABLE  nel:%p", nel);
+   SUMA_RETURN(nel);
+}
+
+NI_element * SUMA_GetValueLabelTable(SUMA_DSET *dset)
+{
+   static char FuncName[]={"SUMA_GetValueLabelTable"};
+   NI_element *nel=NULL;
+   SUMA_Boolean LocalHead = NOPE;
+   /* This is for volumes only */
+   nel = SUMA_FindDsetAttributeElement (dset, "VALUE_LABEL_DTABLE");
+   SUMA_LH("VALUE_LABEL_DTABLE  nel:%p", nel);
+   SUMA_RETURN(nel);
+}
+
+
 /*! \brief Add an attribute that contains the set of unique values
             in a column 
 */
@@ -1455,7 +1477,7 @@ int SUMA_isVolDataset(SUMA_DSET *dset)
 SUMA_Boolean SUMA_SetUniqueValsAttr(SUMA_DSET *dset, int icol, byte replace)
 {
    static char FuncName[]={"SUMA_SetUniqueValsAttr"};
-   int *unq=NULL, N_unq=0;
+   int *unq=NULL, N_unq=0, i=0;
    char aname[256];
    NI_element *nel=NULL;
    SUMA_Boolean LocalHead = NOPE;
@@ -1463,11 +1485,7 @@ SUMA_Boolean SUMA_SetUniqueValsAttr(SUMA_DSET *dset, int icol, byte replace)
    SUMA_ENTRY;
    
    if (!dset || !dset->ngr) SUMA_RETURN(NOPE);
-   /* add a unique list attribute */
-   if (SUMA_ColType2TypeCast(SUMA_TypeOfDsetColNumb(dset, icol))!=SUMA_int) {
-      SUMA_S_Err("Bad column type for unique values");
-      SUMA_RETURN(NOPE);
-   }
+   
    sprintf(aname, "UNIQUE_VALS_%06d", icol);
    nel = SUMA_FindDsetAttributeElement (dset, aname);
    if (nel) {
@@ -1481,10 +1499,42 @@ SUMA_Boolean SUMA_SetUniqueValsAttr(SUMA_DSET *dset, int icol, byte replace)
       SUMA_S_Err("Should not be here"); 
       SUMA_RETURN(NOPE);
    }
-   if (!(unq =  UniqueInt ( SDSET_VEC(dset, icol), SDSET_VECLEN(dset), 
-                                 &N_unq, 0))) {
-      SUMA_S_Err("Failed to get unique values");
-      SUMA_RETURN(NOPE);
+   
+   switch(SUMA_ColType2TypeCast(SUMA_TypeOfDsetColNumb(dset, icol))) {
+      case  SUMA_byte: {
+         byte *bunq=NULL;
+         if (!(bunq =  UniqueByte ( SDSET_VEC(dset, icol), SDSET_VECLEN(dset), 
+                                       &N_unq, 0))) {
+            SUMA_S_Err("Failed to get unique values");
+            SUMA_RETURN(NOPE);
+         }
+         unq = (int *)SUMA_malloc(N_unq*sizeof(int));
+         for (i=0; i<N_unq; ++i) unq[i] = bunq[i];
+         SUMA_ifree(bunq);
+         break; }
+      case SUMA_int: 
+         if (!(unq =  UniqueInt ( SDSET_VEC(dset, icol), SDSET_VECLEN(dset), 
+                                       &N_unq, 0))) {
+            SUMA_S_Err("Failed to get unique values");
+            SUMA_RETURN(NOPE);
+         }
+         break;
+      case SUMA_short: {
+         short *sunq=NULL;
+         if (!(sunq =  UniqueShort ( SDSET_VEC(dset, icol), SDSET_VECLEN(dset), 
+                                     &N_unq, 0))) {
+            SUMA_S_Err("Failed to get unique values");
+            SUMA_RETURN(NOPE);
+         }
+         unq = (int *)SUMA_malloc(N_unq*sizeof(int));
+         for (i=0; i<N_unq; ++i) unq[i] = sunq[i];
+         SUMA_ifree(sunq);
+         break; }
+      default:
+         SUMA_S_Err("Bad column type %d for unique values",
+                  SUMA_TypeOfDsetColNumb(dset, icol));
+         SUMA_RETURN(NOPE);
+         break;
    }
    nel = NI_new_data_element("AFNI_atr", N_unq);
    NI_set_attribute(nel, "atr_name", aname);
@@ -12188,6 +12238,12 @@ int SUMA_is_Label_dset(SUMA_DSET *dset, NI_group **NIcmap)
    
    if (!dset) SUMA_RETURN(0);
    
+   if (SUMA_isVolDataset(dset)) {
+      if(SUMA_GetAtlasLabelTable(dset) || SUMA_GetValueLabelTable(dset)) {
+         SUMA_RETURN(1);
+      } 
+   }
+   
    SUMA_LH( "All Cons Type = %d : %d\n"
             "SDSET_TYPE (%s) = %d\n",
             SUMA_NODE_ILABEL,
@@ -13484,6 +13540,11 @@ SUMA_DSET *SUMA_afnidset2sumadset(
    dset = *dsetp;
    if (!dset) { SUMA_S_Err("NULL *dsetp."); SUMA_RETURN(newset); }
 
+   if (is_Dset_Atlasy(dset,NULL)) {
+      SUMA_LH("This is an atlas");
+   } else {
+      SUMA_LH("No atlas");
+   }
    if (floatize == -1) {
       set_ni_globs_from_env();
       ngr = THD_dset_to_ni_surf_dset(dset, copy_data);

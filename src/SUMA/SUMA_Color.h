@@ -15,6 +15,7 @@ SUMA_COLOR_MAP * SUMA_MakeColorMap (float **Fiducials, int Nfid, byte rgba,
                                     int Ncols, SUMA_Boolean SkipLast, 
                                     char *Name);
 void SUMA_Free_ColorMap (SUMA_COLOR_MAP* SM);
+SUMA_COLOR_MAP* SUMA_DuplicateColorMap (SUMA_COLOR_MAP *cin, char *newname);
 SUMA_SCALE_TO_MAP_OPT * SUMA_ScaleToMapOptInit(void);
 void SUMA_Free_ColorScaledVect (SUMA_COLOR_SCALED_VECT * S);
 SUMA_COLOR_SCALED_VECT * SUMA_Create_ColorScaledVect(int N_Node, int mode);
@@ -184,7 +185,7 @@ SUMA_Boolean SUMA_Selected_Node_Activate_Callbacks (
 SUMA_DRAWN_ROI * SUMA_is_NamedColPlane_ForROI(char *PlaneName);
 SUMA_Boolean  SUMA_isDsetRelated(SUMA_DSET *dset, SUMA_SurfaceObject *SO);
 NI_group * SUMA_CreateCmapForLabelDset(SUMA_DSET *dset, 
-                                       SUMA_COLOR_MAP *ThisCmap) ;
+                                       SUMA_COLOR_MAP *ThisCmap, int alaa) ;
 SUMA_Boolean SUMA_IsCmapOKForLabelDset(SUMA_DSET *dset, SUMA_COLOR_MAP *cmap);
 int SUMA_dset_to_Label_dset_cmap(SUMA_DSET *dset, SUMA_COLOR_MAP *cmap); 
 
