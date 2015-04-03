@@ -65,107 +65,125 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
- { 27, Mar, 2014, ZSS, "suma", MINOR, TYPE_NEW_OPT,
+ { 3, Apr, 2015, ZSS, "suma-general", MINOR, TYPE_MODIFY,
+   "Changes to how labeled datasets (volumes in particular) are shown in SUMA",
+   "Made atlas and labeled volumes appear in SUMA as they do in AFNI. \n"
+   "No labels show up upon clicking though. Appearance of labeled dataset \n"
+   "will change for labeled datasets created earlier, unless env.\n"
+   "SUMA_Classic_Label_Colors is set to YES"
+ },
+
+ { 3, Apr, 2015, ZSS, "suma-general", MICRO, TYPE_NEW_ENV,
+   "SUMA_Classic_Label_Colors , see .sumarc after updating it for details",
+   NULL
+ },
+
+ { 2, Apr, 2015, ZSS, "suma", MICRO, TYPE_NEW_OPT,
+   "Added ctrl+l and ctrl+L to globally dim/brighten lighting",
+   NULL
+ },
+
+ { 27, Mar, 2015, ZSS, "suma", MINOR, TYPE_NEW_OPT,
    "Selection now possible on VR rendered image in SUMA",
    NULL
  },
 
- { 27, Mar, 2014, ZSS, "suma", MINOR, TYPE_BUG_FIX,
+ { 27, Mar, 2015, ZSS, "suma", MINOR, TYPE_BUG_FIX,
    "Fixed syntax for env SUMA_VO_InitSlices, space chars are bad.",
    NULL
  },
 
- { 23, Mar, 2014, ZSS, "BrainSkin", MINOR, TYPE_BUG_FIX,
+ { 23, Mar, 2015, ZSS, "BrainSkin", MINOR, TYPE_BUG_FIX,
    "Fixed projection error in  SUMA_NN_GeomSmooth?_SO ",
    NULL
  },
 
- { 18, Mar, 2014, ZSS, "SurfPatch", MINOR, TYPE_NEW_OPT,
+ { 18, Mar, 2015, ZSS, "SurfPatch", MINOR, TYPE_NEW_OPT,
    "Added -node_depth ",
    NULL
  },
 
- { 18, Mar, 2014, ZSS, "suma-general", MINOR, TYPE_BUG_FIX,
+ { 18, Mar, 2015, ZSS, "suma-general", MINOR, TYPE_BUG_FIX,
    "Node depths were being computed along the principal direction closest to Z ",
    "The proper intent is along the principal direction, regardless of \n"
    "whether or not it is closest to the Z direction"
  },
 
- { 18, Mar, 2014, ZSS, "SurfClust", MINOR, TYPE_NEW_OPT,
+ { 18, Mar, 2015, ZSS, "SurfClust", MINOR, TYPE_NEW_OPT,
    "Added options -in_range, -ex_range for thresholding and output COM and Cent",
    "These changes resulted in numerous small changes throughout the code for \n"
    "a more uniform handling of thresholding methods"
  },
 
- { 13, Mar, 2014, ZSS, "ParseName", MINOR, TYPE_NEW_OPT,
+ { 13, Mar, 2015, ZSS, "ParseName", MINOR, TYPE_NEW_OPT,
    "Added ExistsAs in ParseName",
    "This can find whether or not you have datasets on disk with some \n"
    "view (+tlrc), say given only a prefix."
  },
 
- { 12, Mar, 2014, ZSS, "3dROIstats", MINOR, TYPE_NEW_OPT,
+ { 12, Mar, 2015, ZSS, "3dROIstats", MINOR, TYPE_NEW_OPT,
    "Added -pc* and -key options to compute coordinate PC of clusters.",
    "See -help for details."
  },
 
- { 11, Mar, 2014, ZSS, "3dSeg", MAJOR, TYPE_NEW_OPT,
+ { 11, Mar, 2015, ZSS, "3dSeg", MAJOR, TYPE_NEW_OPT,
    "Added -mixfloor to avoid getting NAN when certain classes disappear.",
    "Also added -mixfrac IGNORE to turn off any modulation by the mixing\n"
    "fraction during the EM routines."
  },
 
- { 4, Mar, 2014, ZSS, "suma", MAJOR, TYPE_NEW_OPT,
+ { 4, Mar, 2015, ZSS, "suma", MAJOR, TYPE_NEW_OPT,
    "Added WHelp button to mimic BHelp but open online pages",
    "This required a few additional modifications to the auto-help\n"
    "generating functions. Lots of work under the hood."
  },
 
- { 3, Mar, 2014, ZSS, "afni-general", MINOR, TYPE_BUG_FIX,
+ { 3, Mar, 2015, ZSS, "afni-general", MINOR, TYPE_BUG_FIX,
    "Fixed misuse of strncat in distribution",
    NULL
  },
 
- { 26, Feb, 2014, ZSS, "BrainSkin", MINOR, TYPE_NEW_OPT,
+ { 26, Feb, 2015, ZSS, "BrainSkin", MINOR, TYPE_NEW_OPT,
    "Added -no_zero_attraction",
    "See help for details"
  },
 
- { 26, Feb, 2014, ZSS, "IsoSurface", MINOR, TYPE_NEW_OPT,
+ { 26, Feb, 2015, ZSS, "IsoSurface", MINOR, TYPE_NEW_OPT,
    "Added -autocrop and -mergerois+dset",
    "See help for details"
  },
 
- { 25, Feb, 2014, ZSS, "IsoSurface", MINOR, TYPE_NEW_OPT,
+ { 25, Feb, 2015, ZSS, "IsoSurface", MINOR, TYPE_NEW_OPT,
    "Added -remesh option to simplify meshes",
    NULL
  },
 
- { 25, Feb, 2014, ZSS, "IsoSurface", MICRO, TYPE_NEW_OPT,
+ { 25, Feb, 2015, ZSS, "IsoSurface", MICRO, TYPE_NEW_OPT,
    "Added auto dset generation along with surfaces with -isorois+dsets",
    NULL
  },
 
- { 25, Feb, 2014, ZSS, "suma", MICRO, TYPE_BUG_FIX,
+ { 25, Feb, 2015, ZSS, "suma", MICRO, TYPE_BUG_FIX,
    "Patched ID collisions for input datasets",
    NULL
  },
 
- { 25, Feb, 2014, ZSS, "suma", MICRO, TYPE_NEW_ENV,
+ { 25, Feb, 2015, ZSS, "suma", MICRO, TYPE_NEW_ENV,
    "Implemented dataset autoloading",
    "See env SUMA_AutoLoad_Matching_Dset in ~/.sumarc"
  },
 
- { 25, Feb, 2014, ZSS, "suma", MICRO, TYPE_NEW_ENV,
+ { 25, Feb, 2015, ZSS, "suma", MICRO, TYPE_NEW_ENV,
    "Added env SUMA_AutoLoad_Matching_Dset to control transparency step",
    NULL
  },
 
- { 25, Feb, 2014, ZSS, "suma", MICRO, TYPE_NEW_ENV,
+ { 25, Feb, 2015, ZSS, "suma", MICRO, TYPE_NEW_ENV,
    "Added env SUMA_Transparency_Step to control transparency step",
    NULL
  },
 
- { 23, Feb, 2014, ZSS, "suma-general", MAJOR, TYPE_MODIFY,
+ { 23, Feb, 2015, ZSS, "suma-general", MAJOR, TYPE_MODIFY,
    "Allow SUMA to break a surface into multiple drawing patches",
    "This makes it possible to show certain parts of a mesh based on \n"
    "a nodemask. The nodemask can be generated on the fly and updated with \n"
@@ -173,123 +191,123 @@ afni_history_struct ziad_history[] = {
    "and temporary env SUMA_TEMP_NODE_CMASK_EXPR"
  },
 
- { 23, Feb, 2014, ZSS, "suma-general", MINOR, TYPE_NEW_OPT,
+ { 23, Feb, 2015, ZSS, "suma-general", MINOR, TYPE_NEW_OPT,
    "Set transparency and rendering modes per object",
    "See ctrl+o, ctrl+p"
  },
 
- { 23, Feb, 2014, ZSS, "suma-general", MICRO, TYPE_BUG_FIX,
+ { 23, Feb, 2015, ZSS, "suma-general", MICRO, TYPE_BUG_FIX,
    "Patched source for hash collisions on file names",
    NULL
  },
 
- { 23, Feb, 2014, ZSS, "suma-general", MICRO, TYPE_NEW_OPT,
+ { 23, Feb, 2015, ZSS, "suma-general", MICRO, TYPE_NEW_OPT,
    "Added support for STL I/O format. It is handy for 3D printing.",
    NULL
  },
 
- { 23, Feb, 2014, ZSS, "IsoSurface", MAJOR, TYPE_NEW_OPT,
+ { 23, Feb, 2015, ZSS, "IsoSurface", MAJOR, TYPE_NEW_OPT,
    "Made IsoSurface handle ROI volumes better",
    "See options -mergerois, -isorois for details"
  },
 
- { 23, Feb, 2014, ZSS, "afni-general", MICRO, TYPE_MODIFY,
+ { 23, Feb, 2015, ZSS, "afni-general", MICRO, TYPE_MODIFY,
    "Made SUMA_Swap_String handle increased string length.",
    NULL
  },
 
- { 6, Feb, 2014, ZSS, "3dSurfMask", MICRO, TYPE_NEW_OPT,
+ { 6, Feb, 2015, ZSS, "3dSurfMask", MICRO, TYPE_NEW_OPT,
    "Added -meth peri to return intersection with surface only.",
    NULL
  },
 
- { 5, Feb, 2014, ZSS, "3dinfill", MICRO, TYPE_NEW_OPT,
+ { 5, Feb, 2015, ZSS, "3dinfill", MICRO, TYPE_NEW_OPT,
    "Added -mask option to restrict filling to holes within mask",
    NULL
  },
 
- { 5, Feb, 2014, ZSS, "@Test_disk_IO", MICRO, TYPE_NEW_PROG,
+ { 5, Feb, 2015, ZSS, "@Test_disk_IO", MICRO, TYPE_NEW_PROG,
    "Script to test disk I/O speeds",
    NULL
  },
 
- { 5, Feb, 2014, ZSS, "3danisosmooth.c", MICRO, TYPE_MODIFY,
+ { 5, Feb, 2015, ZSS, "3danisosmooth.c", MICRO, TYPE_MODIFY,
    "More smoothing feature output.",
    "Output cosine of principal gradient eigen vector with radial "
    "direction in debugging output."
  },
 
- { 5, Feb, 2014, ZSS, "3dBrickStat.c", MICRO, TYPE_NEW_OPT,
+ { 5, Feb, 2015, ZSS, "3dBrickStat.c", MICRO, TYPE_NEW_OPT,
    "added -stdev",
    NULL
  },
 
- { 2, Feb, 2014, ZSS, "DriveSuma", MINOR, TYPE_NEW_OPT,
+ { 2, Feb, 2015, ZSS, "DriveSuma", MINOR, TYPE_NEW_OPT,
    "Take coords from a surface rather than just a file for -com node_xyz",
    NULL
  },
 
- { 30, Jan, 2014, ZSS, "3dinfill", MINOR, TYPE_NEW_OPT,
+ { 30, Jan, 2015, ZSS, "3dinfill", MINOR, TYPE_NEW_OPT,
    "Improvements to SOLID fill method and addition of option -ed",
    NULL
  },
 
- { 30, Jan, 2014, ZSS, "BrainSkin", MINOR, TYPE_NEW_OPT,
+ { 30, Jan, 2015, ZSS, "BrainSkin", MINOR, TYPE_NEW_OPT,
    "Added -vol_skin and -vol_hull to create smooth contours of mask volume.",
    NULL
  },
 
- { 23, Jan, 2014, ZSS, "3dLocalstat", MINOR, TYPE_NEW_OPT,
+ { 23, Jan, 2015, ZSS, "3dLocalstat", MINOR, TYPE_NEW_OPT,
    "Added -stat list and -stat hist* .",
    NULL
  },
 
- { 21, Jan, 2014, ZSS, "3dGenPriors", MICRO, TYPE_NEW_OPT,
+ { 21, Jan, 2015, ZSS, "3dGenPriors", MICRO, TYPE_NEW_OPT,
    "Made program output centrality measures with -do o .",
    "Documentaiton hidden until option is ready for mass usage." 
  },
 
- { 21, Jan, 2014, ZSS, "3dGenPriors", MICRO, TYPE_MODIFY,
+ { 21, Jan, 2015, ZSS, "3dGenPriors", MICRO, TYPE_MODIFY,
    "Made it use labeltable from -cset if needed & check for empty init classes.",
    NULL
  },
 
- { 21, Jan, 2014, ZSS, "3dSkullStrip", MICRO, TYPE_BUG_FIX,
+ { 21, Jan, 2015, ZSS, "3dSkullStrip", MICRO, TYPE_BUG_FIX,
    "Made program take sub-brick selectors at input.",
    "Involved bringing SUMA_AfniExists() and SUMA_AfniPrefix() from stone age." 
  },
 
- { 16, Jan, 2014, ZSS, "3dHist", MICRO, TYPE_NEW_OPT,
+ { 16, Jan, 2015, ZSS, "3dHist", MICRO, TYPE_NEW_OPT,
    "Added -get outl",
    "Included fixing returned values in SUMA_hist_value() when out of bounds." 
  },
 
- { 15, Jan, 2014, ZSS, "imcat", MICRO, TYPE_NEW_OPT,
+ { 15, Jan, 2015, ZSS, "imcat", MICRO, TYPE_NEW_OPT,
    "-zero_wrap, and -gray_wrap for padding with black, white, or gray levels.",
    NULL 
  },
 
- { 15, Jan, 2014, ZSS, "@ExamineGenFeatDists", MICRO, TYPE_NEW_OPT,
+ { 15, Jan, 2015, ZSS, "@ExamineGenFeatDists", MICRO, TYPE_NEW_OPT,
    "Added option -nx, padding with white, fixed couple of small glitches too.",
    NULL 
  },
 
- { 13, Jan, 2014, ZSS, "afni-general", MICRO, TYPE_MODIFY,
+ { 13, Jan, 2015, ZSS, "afni-general", MICRO, TYPE_MODIFY,
    "Made R_io.so loading error a little more helpful.",
    NULL 
  },
 
- { 9, Jan, 2014, ZSS, "afni-general", MINOR, TYPE_MODIFY,
+ { 9, Jan, 2015, ZSS, "afni-general", MINOR, TYPE_MODIFY,
    "Made sure neighborhoods containing central voxel return its value 1st.",
    NULL 
  },
 
- { 9, Jan, 2014, ZSS, "suma-general", MINOR, TYPE_MODIFY,
+ { 9, Jan, 2015, ZSS, "suma-general", MINOR, TYPE_MODIFY,
    "Released new documentation to the wild.",
    NULL 
  },
 
- { 9, Jan, 2014, ZSS, "3dLocalstat", MINOR, TYPE_MODIFY,
+ { 9, Jan, 2015, ZSS, "3dLocalstat", MINOR, TYPE_MODIFY,
    "Added -*diffs options for computing local differences",
    NULL 
  },

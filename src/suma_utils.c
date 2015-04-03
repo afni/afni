@@ -3443,6 +3443,11 @@ static ENV_SPEC envlist[] = {
       "Choose from YES or NO\n",
       "SUMA_AutoLoad_Matching_Dset",
       "YES" },
+   {  "Colorize labeled datasets without attempting to make colors match\n"
+      "what would be displayed in AFNI (YES or NO). Set to YES to match\n"
+      "old style colorization preceding the addition of this variable\n",
+      "SUMA_Classic_Label_Colors",
+      "NO" }, 
    {  NULL, NULL, NULL  }
 };
       
