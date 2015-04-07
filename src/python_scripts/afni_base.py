@@ -51,13 +51,25 @@ class afni_name:
                          self.view, self.extension)
       return s
 
-   def ppves(self):
+   def ppves(self, quotes=1):
       """show path, prefix, view, extension and all selectors
          (colsel, rowsel, nodesel, rangesel)"""
-      s = "%s%s%s%s'%s%s%s%s'" % (self.p(), self.prefix, \
-                         self.view, self.extension,\
-                         self.colsel, self.rowsel,\
-                         self.nodesel, self.rangesel)
+
+      # if no selectors, do not incude quotes    7 Apr 2015 [rickr]
+      pstuff = "%s%s%s%s" % (self.p(), self.prefix, self.view, self.extension)
+      sstuff = '%s%s%s%s' % (self.colsel, self.rowsel, self.nodesel,
+                             self.rangesel)
+
+      if sstuff == '': return pstuff
+    
+      if quotes: return "%s'%s'" % (pstuff, sstuff)
+      else:      return "%s%s" % (pstuff, sstuff)
+
+      # s = "%s%s%s%s'%s%s%s%s'" % (self.p(), self.prefix, \
+      #                    self.view, self.extension,\
+      #                    self.colsel, self.rowsel,\
+      #                    self.nodesel, self.rangesel)
+
       return s
       
    def input(self):
@@ -137,9 +149,9 @@ class afni_name:
    def pve(self):
       """return prefix, view, extension formatted name"""
       return "%s%s%s" % (self.prefix, self.view, self.extension)
-   def dims(self):
+   def dims(self, quotes=1):
       """return xyzt dimensions, as a list of ints"""
-      return dset_dims(self.ppves())
+      return dset_dims(self.ppves(quotes=quotes))
    def exist(self):
       """return whether the dataset seems to exist on disk"""
       if (self.type == 'NIFTI'):
@@ -548,7 +560,8 @@ def read_attribute(dset, atr, verb=1):
 
 # return dimensions of dset, 4th dimension included
 def dset_dims(dset):
-   dl = [-1 -1 -1 -1]
+   # always return 4 values, trap some errors    7 Apr 2015 [rickr]
+   dl = [-1, -1, -1, -1]
    if 0: #This approach fails with selectors!
       ld = read_attribute(dset, 'DATASET_DIMENSIONS')
       lr = read_attribute(dset, 'DATASET_RANK')
@@ -557,12 +570,29 @@ def dset_dims(dset):
          dl.append(int(dd))
       dl.append(int(lr[1]))
    else:
-      com = shell_com('3dnvals -all %s' % dset, capture=1);
-      if (com.run()):
-         print '** failed to get dimensions.'
-         return []
-      dl = [int(com.val(0,0)), int(com.val(0,1)),
-            int(com.val(0,2)), int(com.val(0,3))]   
+      cstr = '3dnvals -all %s' % dset
+      com = shell_com(cstr, capture=1);
+      rv = com.run()
+      if rv:
+         print '** Failed "%s"' % cstr
+         return dl
+      if len(com.so) < 1:
+         print '** no stdout from "%s"' % cstr
+         return dl
+      vlist = com.so[0].split()
+      if len(vlist) != 4:
+         print '** failed "%s"' % cstr
+         return dl
+      try:
+         vl = [int(val) for val in vlist]
+         # so only if success
+         dl = vl
+      except:
+         print '** could not convert output to int:\n'  \
+               '   command: %s\n'                       \
+               '   output: %s' % (cstr, com.so)
+      # dl = [int(com.val(0,0)), int(com.val(0,1)),
+      #       int(com.val(0,2)), int(com.val(0,3))]   
    return dl
    
 

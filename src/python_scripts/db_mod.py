@@ -5091,7 +5091,7 @@ def db_mod_tlrc(block, proc, user_opts):
     apply_uopt_to_block('-tlrc_suffix', user_opts, block)
 
     if block.opts.find_opt('-tlrc_NL_warped_dsets'):
-       mod_check_tlrc_NL_warp_dsets(proc, block)
+       if mod_check_tlrc_NL_warp_dsets(proc, block): return
 
     block.valid = 1
 
@@ -5102,36 +5102,38 @@ def mod_check_tlrc_NL_warp_dsets(proc, block):
     dslist, rv = block.opts.get_string_list(oname)
     if not dslist:
        print '** error: failed parsing option %s' % oname
-       return None
+       return 1
     if len(dslist) != 3:
        print '** error: %s requires 3 elements, have %d' % (oname, len(dslist))
-       return None
+       return 1
 
     # get and check anat, 1D warp, NL warp
     aname = BASE.afni_name(dslist[0])
-    if aname.view == '': aname.new_view('+tlrc')
+    if aname.view == '' and aname.type == 'BRIK': aname.new_view('+tlrc')
     dims = aname.dims()
     if dims[3] != 1:
        print '** error in %s p1: tlrc anat should be 1 volume,' % oname
        print '   but dataset %s shows %d' % (aname.shortinput(), dims[3])
-       return None
+       return 1
 
     axname = BASE.afni_name(dslist[1])
     if axname.type != '1D':
        print '** error in %s p2: affine xform %s should be 1D' \
              % (oname, axname.shortinput())
-       return None
+       return 1
 
     nlname = BASE.afni_name(dslist[2])
-    if nlname.view == '' and nlname.type == 'BRIK' : nlname.new_view('+tlrc')
+    if nlname.view == '' and nlname.type == 'BRIK': nlname.new_view('+tlrc')
     dims = nlname.dims()
     if dims[3] != 3:
        print '** error in %s p3: NL warp should be 3 volumes,' % oname
        print '   but dataset %s shows %d' % (nlname.shortinput(), dims[3])
-       return None
+       return 1
 
     # store the afni_names and bolt
     proc.nlw_priors = [aname, axname, nlname]
+
+    return 0
 
 # create a command to run @auto_tlrc
 def db_cmd_tlrc(proc, block):
