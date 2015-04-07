@@ -49,6 +49,21 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  7,  Apr, 2015, RCR, "afni_proc.py", MICRO, TYPE_BUG_FIX,
+   "TLRC_warped_dsets: no view update if type != BRIK",
+   NULL
+ } ,
+
+ {  7,  Apr, 2015, RCR, "afni_base.py", MICRO, TYPE_MODIFY,
+   "ppves: no sel -> no quotes; dset_dims: check failures and return 4 vals",
+   NULL
+ } ,
+
+ {  7,  Apr, 2015, RCR, "3dnvals", MICRO, TYPE_MODIFY,
+   "have 3dnvals return status 1 if all dataset opens fail",
+   NULL
+ } ,
+
  {  2,  Apr, 2015, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
    "added -tlrc_NL_warped_dsets to import 3dQwarp result",
    NULL
