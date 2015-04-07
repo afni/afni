@@ -5,6 +5,12 @@ LZLIB     = -lz
 USE_GIFTI = -DHAVE_GIFTI
 LGIFTI    = /usr/local64/lib/libexpat64.a
 
+# ------------------------------
+# python from C
+IPYTHON     = -I/sw/include/python2.7 -DSELENIUM_READY
+LPYTHON     = -L/sw/lib/python2.7/config
+LDPYTHON    = -lpython2.7
+
 # ----------------------------------------------------------------------
 # X configuration
 #
@@ -47,7 +53,8 @@ CCOLD  = $(CC)
 OMPFLAG = -fopenmp -DUSE_OMP
 
 IFLAGS = -I. $(XROOT_I) -I/usr/local/include -I/usr/X11R6/include -I/sw/include 
-LFLAGS = -L. $(XROOT_L) -L/usr/lib -L/usr/local/lib -L/usr/X11R6/lib -L/sw/lib  -Wl,-x -Wl,-multiply_defined -Wl,warning -Wl,-bind_at_load
+LFLAGS = -L. $(XROOT_L) -L/usr/lib -L/usr/local/lib -L/usr/X11R6/lib -L/sw/lib  -Wl,-x -Wl,-multiply_defined -Wl,warning -Wl,-bind_at_load $(LPYTHON)
+
 
 CCSVD  = /usr/local/bin/gcc -m64 -O0
 
@@ -89,7 +96,9 @@ EXTRA_INSTALL_FILES = /usr/local/lib/libgomp.1.dylib                \
                       /usr/local/lib/libgcc_s.1.dylib               \
                       /sw/lib/fontconfig2/lib/libfontconfig.1.dylib \
                       /sw/lib/fontconfig2/lib/libfontconfig.la      \
-                      /sw/lib/freetype219/lib/libfreetype.6.dylib
+                      /sw/lib/freetype219/lib/libfreetype.6.dylib   \
+                      /sw/lib/python2.7/config/libpython2.7.dylib
+
 
 EXTRA_INSTALL_COMMANDS = ( cd $(INSTALLDIR) ;                                 \
                            ln -sf libglib-2.0.0.dylib   libglib-2.0.dylib ;   \
@@ -109,7 +118,7 @@ EXPROGS = gifti_tool $(GSLPROGS)
 
 # for dynamic linking
 
-LLIBS  = -lmri -lf2c $(XLIBS) -lXft -lfontconfig -lpng -liconv -lXmu -lXp -lXpm -lXext -lX11 $(LZLIB) $(LGIFTI) -lm -lc
+LLIBS  = -lmri -lf2c $(XLIBS) -lXft -lfontconfig -lpng -liconv -lXmu -lXp -lXpm -lXext -lX11 $(LZLIB) $(LGIFTI) $(LDPYTHON) -lm -lc
 
 # vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
 # For suma 

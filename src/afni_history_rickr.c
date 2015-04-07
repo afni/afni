@@ -49,6 +49,58 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  7,  Apr, 2015, RCR, "afni_proc.py", MICRO, TYPE_BUG_FIX,
+   "TLRC_warped_dsets: no view update if type != BRIK",
+   NULL
+ } ,
+
+ {  7,  Apr, 2015, RCR, "afni_base.py", MICRO, TYPE_MODIFY,
+   "ppves: no sel -> no quotes; dset_dims: check failures and return 4 vals",
+   NULL
+ } ,
+
+ {  7,  Apr, 2015, RCR, "3dnvals", MICRO, TYPE_MODIFY,
+   "have 3dnvals return status 1 if all dataset opens fail",
+   NULL
+ } ,
+
+ {  2,  Apr, 2015, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
+   "added -tlrc_NL_warped_dsets to import 3dQwarp result",
+   NULL
+ } ,
+
+ {  2,  Apr, 2015, RCR, "rickr/Makefile", MICRO, TYPE_BUG_FIX,
+   "Imon and serial_helper should not use LLIBS",
+   NULL
+ } ,
+
+ {  1,  Apr, 2015, RCR, "afni_proc.py", MAJOR, TYPE_NEW_OPT,
+   "anat followers and ROI_PC",
+   "Datasets can follow the anatomical warps\n"
+   "Added options -regress_ROI_PC, -regress_ROI_maskave, -regress_ROI_erode.\n"
+   "PC allows for some number of principle components to be regressed, and\n"
+   "   maskave is for mask averages to be regressed.\n"
+   "The _erode option applies to either, and happens before xform.\n"
+   "Also, any anat with skull is applied as a follower.\n"
+   "Also, -tcat_remove_first_trs can now take a list."
+ } ,
+
+ {  1,  Apr, 2015, RCR, "1d_tool.py", MICRO, TYPE_ENHANCE,
+   "allow -censor_fill_parent with 2D files",
+   NULL
+ } ,
+
+ { 31,  Mar, 2015, RCR, "1d_tool.py", MICRO, TYPE_ENHANCE,
+   "allow -censor_fill_parent with simple 1D files",
+   "Done for 3dpc and censoring in afni_proc.py."
+ } ,
+
+ { 30,  Mar, 2015, RCR, "afni-general", MINOR, TYPE_ENHANCE,
+   "update for selenium",
+   "Includes: Makefile.linux_openmp*, xorg7*, osx_10.7*, fedora19_64,\n"
+   "as well as Makefile.INCLUDE and rickr/Makefile for LLIBS."
+ } ,
+
  { 23,  Mar, 2015, RCR, "python-general", MINOR, TYPE_ENHANCE,
    "broke VarsObject class out into separate file",
    NULL
