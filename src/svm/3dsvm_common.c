@@ -1,3 +1,40 @@
+/*****************************************************************************/
+/*                                                                           */
+/* 3dsvm_common.c                                                            */
+/*                                                                           */
+/* Definitions and functions used by 3dsvm                                   */
+/*                                                                           */
+/* Copyright (C) 2007 Stephen LaConte                                        */
+/*                                                                           */
+/* This file is part of 3dsvm                                                */
+/*                                                                           */
+/* 3dsvm is free software: you can redistribute it and/or modify             */
+/* it under the terms of the GNU General Public License as published by      */
+/* the Free Software Foundation, either version 3 of the License, or         */
+/* (at your option) any later version.                                       */
+/*                                                                           */
+/* 3dsvm is distributed in the hope that it will be useful,                  */
+/* but WITHOUT ANY WARRANTY; without even the implied warranty of            */
+/* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the             */
+/* GNU General Public License for more details.                              */
+/*                                                                           */
+/* You should have received a copy of the GNU General Public License         */
+/* along with 3dsvm.  If not, see <http://www.gnu.org/licenses/>.            */
+/*                                                                           */
+/*                                                                           */
+/* The SVM-light software is copyrighted by Thorsten Joachims                */
+/* and is redistributed by permission.                                       */
+/*                                                                           */
+/* The SVM-light software is free only for non-commercial use. It must not   */
+/* be distributed without prior permission of the author. The author is not  */
+/* responsible for implications from the use of this software.               */
+/*                                                                           */
+/*                                                                           */
+/* For AFNI's copyright please refer to ../README.copyright.                 */
+/*                                                                           */
+/*****************************************************************************/
+
+
 #include "3dsvm_common.h"
 #include "debugtrace.h"
 
@@ -118,38 +155,66 @@ void print_version()
   printf("%s", change_string);
 }
 
-void detrend_linear_cnsrs(float *data, float *data_cnsrs, LABELS *labels)
+int detrend_linear_cnsrs(float *data, LABELS *labels, char *errorString)
 {
+
+  /* This function performs detrending without censored time-points, so that 
+   * removing censored volumes (e.g. using 3dTcat) is equivalent to using
+   * 3dsvm with a censorfile and/or 9999 in the label file. 
+   * The classifier output is typically written to the prediction file 
+   * for all time-points, thus censored time-points are detrended based on 
+   * on all data 
+   *
+   * TODO: Having a flag to detrend based on all data, even if
+   * data points are censored, might be good
+   *
+   * JL Aug. 2013: Bugfix: Checking of censored data points did not include
+   * censorfile causing buffer overflow */
+
+
   int t, tc, nt, ntc = 0;
+  float *data_cnsrs  = NULL;
+
   
   ENTRY("detrend_linear_cnsrs");
 
   nt = labels->n;
   ntc = nt - labels->n_cnsrs;
 
-  for(t = 0, tc = 0; t < nt; t++) {
-    if((labels->lbls[t] != 9999) && (labels->lbls[t] != -9999)) {
+  if( (data_cnsrs = (float *)malloc(sizeof(float)*(ntc))) == NULL ) {
+    snprintf(errorString, LONG_STRING, "detrend_linear_cnsrs: "
+        "Memory allocation for dist_cnsrs failed!");
+    RETURN(1);
+  }
+    
+  /* get data for uncensored time-points */
+  for( t=0, tc=0; t<nt; t++) {
+    if( labels->cnsrs[t] == 1 ) { /* not censored */
       data_cnsrs[tc] = data[t];
       tc++;
-      }
+    }
   }
 
-  DETREND_linear(nt,  data);
-  DETREND_linear(ntc, data_cnsrs);
+  DETREND_linear(nt,  data); /* detrend all  */
+  DETREND_linear(ntc, data_cnsrs); /* detrend without censored time-points */
  
-  for(t=0, tc=0; t<nt; t++) {
-    if((labels->lbls[t] != 9999) && (labels->lbls[t] != -9999)) {
+  /* replace values for uncensored data points */
+  for( t=0, tc=0; t<nt; t++ ) {
+    if( labels->cnsrs[t] == 1 ) {
       data[t] = data_cnsrs[tc];
       tc++;
-      }
+    }
   }
-  EXRETURN; 
+
+  free(data_cnsrs);
+
+  RETURN(0);
 }
 
 /* JL June 2009: This function writes the svm-light DOC structure into 
  * a svm-light readable textfile
  *
- * JL Apr. 2010: Writing 1e6 for voxels (features) equal to 0, otherwise
+ * JL Apr. 2010: Writing 1e-6 for voxels (features) equal to 0, otherwise
  * svm-light gets the feature index wrong!
  *
  */
@@ -285,10 +350,6 @@ void printAfniModel( AFNI_MODEL *afniModel )
     INFO_message("afniModel: compute_loo[%04d]            = %d\n", i, afniModel->compute_loo[i]);
     INFO_message("afniModel: rho[%04d]                    = %f\n", i, afniModel->rho[i]);
     INFO_message("afniModel: xa_depth[%04d]               = %d\n", i, afniModel->xa_depth[i]);
-    for( t=0; t<afniModel->timepoints; ++t ) {
-      INFO_message("afniModel: cAlphas[%04d][%04d]          = %e\n", i, t, afniModel->cAlphas[i][t]);
-      INFO_message("afniModel: alphas[%04d][%04d]           = %e\n", i, t, afniModel->alphas[i][t]);
-    }
   }
 
   EXRETURN;
@@ -395,8 +456,6 @@ void getAllocateCmdlArgv( char *cmdl, char *progname, int *myargc, char ***myarg
     option = strtok(NULL, " ");
   }
   nargs++; /* +1 for program name */
-  /* fprintf(stderr, "** DBG: nargs = %ld\n", nargs); */
-
 
   /* -- allocate args -- */
   args = Allocate2c(nargs, LONG_STRING);
@@ -416,7 +475,6 @@ void getAllocateCmdlArgv( char *cmdl, char *progname, int *myargc, char ***myarg
     }
       
     strncpy(args[nargs], option, LONG_STRING);
-    /*fprintf(stderr, "** DBG: args[%ld]=%s\n", nargs, option); */
     option = strtok(NULL, " ");
 
     nargs++;
@@ -979,14 +1037,14 @@ void freeDOCs(DOC *docs, long ndocsTime)
 }
 
 int allocateMultiClassArrays( float ***multiclass_dist, float **classCorrect, 
-    float **classIncorrect, long **nClass, int **classVote,
-    long n_classMax, long n_classComb, long nt, char *errorString )
+    float **classIncorrect, int **classVote, int **classList, long n_classMax, 
+    long n_classComb, long nt, char *errorString )
 {
   float ** tmp_mcdist           = NULL;
   float *  tmp_classCorrect     = NULL;
   float *  tmp_classIncorrect   = NULL;
-  long  *  tmp_nClass           = NULL;
   int   *  tmp_classVote        = NULL;
+  int   *  tmp_classList        = NULL;
 
   ENTRY("allocateMultiClassArrays");
 
@@ -1024,9 +1082,9 @@ int allocateMultiClassArrays( float ***multiclass_dist, float **classCorrect,
     RETURN(1);
   }
 
-  if( (tmp_nClass = (long *)malloc(sizeof(long)*n_classMax)) == NULL ) {
+  if( (tmp_classVote = (int *)malloc(sizeof(int)*n_classMax)) == NULL ) {
     snprintf(errorString, LONG_STRING, "allocateMultiClassArrays: " 
-        "Memory allocation for tmp_nClass failed!");
+        "Memory allocation for tmp_classVote failed!");
     
     /* free and return */
     free2f(tmp_mcdist, n_classComb);
@@ -1035,30 +1093,31 @@ int allocateMultiClassArrays( float ***multiclass_dist, float **classCorrect,
     RETURN(1);
   }
 
-  if( (tmp_classVote = (int *)malloc(sizeof(int)*n_classMax)) == NULL ) {
+  if( (tmp_classList = (int *)malloc(sizeof(int)*n_classMax)) == NULL ) {
     snprintf(errorString, LONG_STRING, "allocateMultiClassArrays: " 
-        "Memory allocation for tmp_nClass failed!");
+        "Memory allocation for tmp_classList failed!");
     
     /* free and return */
     free2f(tmp_mcdist, n_classComb);
     free(tmp_classCorrect);
     free(tmp_classIncorrect);
-    free(tmp_nClass);
+    free(tmp_classVote);
     RETURN(1);
   }
+
 
   /* -- return pointers to allocated memory -- */
   *multiclass_dist = tmp_mcdist;
   *classCorrect    = tmp_classCorrect;
   *classIncorrect  = tmp_classIncorrect;
-  *nClass          = tmp_nClass;
   *classVote       = tmp_classVote;
+  *classList       = tmp_classList;
 
   RETURN(0);
 }
 
 void freeMultiClassArrays( float **multiclass_dist, float *classCorrect, 
-     float *classIncorrect, long *nClass, int *classVote, long n_classComb )
+     float *classIncorrect, int *classVote, int *classList, long n_classComb )
 {
 
   ENTRY("freeMultiClassArryas");
@@ -1066,11 +1125,130 @@ void freeMultiClassArrays( float **multiclass_dist, float *classCorrect,
   free2f(multiclass_dist, n_classComb);
   free(classCorrect);
   free(classIncorrect);
-  free(nClass);
   free(classVote);
+  free(classList);
 
   EXRETURN;
 }
+
+/* JL Mar 2014: Added this function for handeling mask datasets of various
+ * data types (byte only before that) */
+MaskType* getAllocateMaskArray( THD_3dim_dataset *dset, char *errorString )
+{
+  long  v         = 0;    /* index over nvox */
+  long  nvox      = 0;    /* number of voxels */
+  int   datum     = 0;    /* datum type */
+
+  MaskType* maskArray = NULL;
+
+  ENTRY("getAllocateMaskArray");
+
+  /* --- just making sure we have a dset to work with --- */
+  /*      we should never get here                        */
+  if( dset == NULL ) {
+    snprintf(errorString, LONG_STRING, "getAllocateMaskArray: "
+        "What happened?! Pointer to dataset is NULL!");
+
+    RETURN(NULL);
+
+  }
+  if( !DSET_LOADED(dset) ) {
+    snprintf(errorString, LONG_STRING, "getAllocateMaskArray: "
+        "What happened?! Dataset is not in memory!");
+
+    RETURN(NULL);
+  }
+
+  if ( DSET_NUM_TIMES(dset) > 1 ) {
+    /* 3D+t as a mask dataset? */
+    snprintf(errorString, LONG_STRING, "getAllocateMaskArray: "
+        "Time dimension not supported!");
+    RETURN(NULL);
+  }
+
+  /* --- initialize and allocate ---*/
+  nvox = DSET_NVOX( dset );
+
+  if( (maskArray = (MaskType *) malloc(sizeof(MaskType)*nvox)) == NULL) {
+    snprintf(errorString, LONG_STRING, "getAllocateMaskArray: "
+        "Memory allocation for dsetMask failed!");
+
+    RETURN(NULL);
+  }
+
+  /* --- convert to internal mask representation (MaskType) --- */
+  datum = DSET_BRICK_TYPE(dset,0);
+
+  switch (datum) {
+    case MRI_float: {
+
+      float* tmp_dsetArray = (float *) DSET_ARRAY(dset,0);
+
+      /* fill mask array */
+      for( v=0; v<nvox; ++v ) {
+        if( abs(tmp_dsetArray[v]) > 0.0000001f ) maskArray[v] = (MaskType) 1;
+        else maskArray[v] = (MaskType) 0;
+      }
+    }
+    break;
+
+    case MRI_short: {
+
+      short* tmp_dsetArray = (short *) DSET_ARRAY(dset,0);
+
+      /* fill mask array */
+      for( v=0; v<nvox; ++v ) {
+        if( abs(tmp_dsetArray[v]) > 0 ) maskArray[v] = (MaskType) 1;
+        else maskArray[v] = (MaskType) 0;
+      }
+    }
+    break;
+
+    case MRI_byte: {
+      /* That's the datum type we want, but might define it differently
+       * in the future, so doing cast regardless. */
+
+      byte* tmp_dsetArray = (byte *) DSET_ARRAY(dset,0);
+
+      /* fill mask array */
+      for( v=0; v<nvox; ++v ) {
+        if( tmp_dsetArray[v] > 0 ) maskArray[v] = (MaskType) 1;
+        else maskArray[v] = (MaskType) 0;
+      }
+    }
+    break;
+
+    case MRI_rgb:
+      snprintf(errorString, LONG_STRING,
+          "Sorry, datum-type MRI_rgb (%d) is not supported!", datum);
+
+      /* free end return */
+      free(maskArray);
+      RETURN(NULL);
+      break;
+
+    case MRI_complex:
+      snprintf(errorString, LONG_STRING,
+          "Sorry, datum-type MRI_complex (%d) is not supported!", datum);
+
+      /* free end return */
+      free(maskArray);
+      RETURN(NULL);
+      break;
+
+    default:
+      snprintf(errorString, LONG_STRING,
+          "Unknown datum-type (%d)", datum);
+
+      /* free end return */
+      free(maskArray);
+      RETURN(NULL);
+      break;
+  }
+
+  RETURN(maskArray);
+}
+
 
 DatasetType** getAllocateDsetArray( THD_3dim_dataset *dset, char *errorString )
 {
@@ -1375,18 +1553,14 @@ void freeModel( MODEL *model, AFNI_MODEL *afni_model, enum modes mode )
     free(model->index);
   }
 
-  //if(model->kernel_parm.kernel_type == LINEAR ) free(model->lin_weights);
+  /* if(model->kernel_parm.kernel_type == LINEAR ) free(model->lin_weights); */
 
   EXRETURN;
 }
 
 void updateModel(MODEL *model, AFNI_MODEL *afni_model, int comb) 
- 
-  /* fill in all values for the first (index 0) class combination */
 {
   long i  = 0;
-  long nt = 0;
-  long t  = 0;
   long sv = 0;
 
   
@@ -1401,33 +1575,33 @@ void updateModel(MODEL *model, AFNI_MODEL *afni_model, int comb)
   strncpy(model->kernel_parm.custom, afni_model->kernel_custom[i], 50);
   model->b = (double) afni_model->b[comb];
 
-  /* our approach to multiclass is to keep all training timepoints 
-   * with non-support vectors as alpha = 0
-   * thus the model "documents" and number of support vectors is
-   * always the number of timepoints in in the training data
-   *
-   * JL July 2009: For sv-regression (and testing only!) the number of support 
-   * vectors is the number of non-zero alphas and only non-zero alphas are
-   * written into the svm-light model.
-   *
-   */
-
-  model->totdoc = (long) afni_model->timepoints;
-  nt = (long) afni_model->timepoints;
-
+  
+  /* regression */
   if( !strcmp(afni_model->svm_type,"regression") )  {
-    model->sv_num = (long) afni_model->total_support_vectors[comb];
-    
+    /* comb = 0 for regression */
+    /* number of docs is doubled for regression */
+    model->totdoc = (long) afni_model->timepoints*2;
+    model->sv_num = (long) afni_model->total_support_vectors[0];
+
     sv=1;
-    for( t=0; t<nt; ++t) {
-      if ( afni_model->alphas[comb][t] != 0 ) {
-        model->alpha[sv] = (double) afni_model->alphas[comb][t];
+    for( i=0; i<model->totdoc; ++i) {
+      if ( fabs(afni_model->alphas[0][i]) > 0 ) {
+        model->alpha[sv] = (double) afni_model->alphas[0][i];
       
         ++sv;
       }
     }
   }
-  else { /* before sv-regression */
+  /* classification */
+  else { 
+  
+  /* our approach to multiclass is to keep all training timepoints 
+   * with non-support vectors as alpha = 0
+   * thus the model "documents" and number of support vectors is
+   * always the number of timepoints in in the training data
+   *
+   */
+    model->totdoc = (long) afni_model->timepoints;
     model->sv_num = (long) afni_model->timepoints + 1;
     for( i=0 ; i< model->sv_num - 1 ; ++i ) {
       model->alpha[i+1] = (double)afni_model->alphas[comb][i];    
@@ -1448,6 +1622,7 @@ void updateModel(MODEL *model, AFNI_MODEL *afni_model, int comb)
   }
 
   if(verbosity >= 2) {
+    INFO_message( "updateModel:");
     INFO_message( "sv_num = %ld", model->sv_num );
     INFO_message( "kernel_type = %ld", model->kernel_parm.kernel_type ); 
     INFO_message( "poly_degree = %ld", model->kernel_parm.poly_degree ); 
@@ -1457,6 +1632,11 @@ void updateModel(MODEL *model, AFNI_MODEL *afni_model, int comb)
     INFO_message( "totwords = %ld", model->totwords ); 
     INFO_message( "totdoc = %ld", model->totdoc );
     INFO_message( "b = %lf", model->b );
+
+    for( i=0 ; i< model->sv_num - 1 ; ++i ) {
+      INFO_message(" model->alpha[%ld+1] = %e", i, model->alpha[i+1]);
+    }
+
   }
 
   EXRETURN;
@@ -1706,58 +1886,62 @@ void get_svm_model(MODEL *model, DatasetType **dsetModelArray,
 
   long nt        = 0; /* number of timepoints */
   long t         = 0; /* index of nt */
-  long nth       = 0; /* number of timepoints half */
-  long th        = 0; /* index over nth */
   long v         = 0; /* index over model_vox */
   long nvox_msk  = 0; /* number of masked voxels */
   long vmsk      = 0; /* index over nvox_msk */
   long sv        = 0; /* sv index */
   
   ENTRY("get_svm_model");
+
+  /* JL June 2014: Changed how alphas are retrieved for regression */
  
-  /* JL Feb. 2009: For sv-regression, only support vectors (alpha != 0) are wirtten into 
-   * svm-light's modelfile. Afni_model->alphas contains the alphas and batas and has 
-   * twice as many timepoints as the model brick. To retrieve the alpha and beta support-
-   * vectors we need to loop through the model brick twice. */
-  
   if( !strcmp(afni_model->svm_type,"regression") ) { 
     nt = afni_model->timepoints;
-    nth = afni_model->timepoints/2;
     nvox_msk = (long) afni_model->total_masked_features[0];
+
+    /* For regression, the array storing the alphas is twice as 
+     * long as for classification. Since the number of timepoints
+     * in the model (number of observations in training data) is 
+     * not twice as long, alphas of index nt+t belong to model data 
+     * of index t. */
     
     sv=1;
-    for( t=0, th=0; t<nt; ++t, ++th ) {
-      if ( th == nth ) th=0;
-      vmsk=0;
-      if ( afni_model->alphas[0][t] != 0 ) {
-        for( v=0; v<model_vox; ++v ) {
-          if( vmsk<nvox_msk ) {
-            if( noMaskFlag ) { /* no mask */
-              (model->supvec[sv])->words[vmsk].wnum = vmsk + 1;
-              (model->supvec[sv])->words[vmsk].weight = 
-                (float)dsetModelArray[th][v];
-            
-              ++vmsk;
-            }
-            else if( dsetMaskArray[v] ) { /* mask */
-              (model->supvec[sv])->words[vmsk].wnum = vmsk + 1;
-              (model->supvec[sv])->words[vmsk].weight = 
-                (float)dsetModelArray[th][v];
+    for( k=0; k<2; k++) { 
+      for( t=0; t<nt; ++t ) {
+        vmsk=0;
+        if( fabs(afni_model->alphas[0][k*nt+t]) > 0.0 ) {
+          for( v=0; v<model_vox; ++v ) {
+            if( vmsk<nvox_msk ) {
+              if( noMaskFlag ) { /* no mask */
+                (model->supvec[sv])->words[vmsk].wnum = vmsk + 1;
+                (model->supvec[sv])->words[vmsk].weight = 
+                  (float)dsetModelArray[t][v];
+              
+                ++vmsk;
+              }
+              else {
+                if( dsetMaskArray[v] ) { /* mask */
+                  (model->supvec[sv])->words[vmsk].wnum = vmsk + 1;
+                  (model->supvec[sv])->words[vmsk].weight = 
+                    (float)dsetModelArray[t][v];
 
-              ++vmsk;
+                  ++vmsk;
+                }
+              } 
             }
           }
+          (model->supvec[sv])->words[vmsk].wnum=0; /* end of list */
+          (model->supvec[sv])->twonorm_sq = sprod_ss((model->supvec[sv])->words, 
+              (model->supvec[sv])->words);
+          (model->supvec[sv])->docnum = -1;
+          
+          ++sv;   
         }
-        (model->supvec[sv])->words[vmsk].wnum=0; /* end of list */
-        (model->supvec[sv])->twonorm_sq = sprod_ss((model->supvec[sv])->words, 
-            (model->supvec[sv])->words);
-        (model->supvec[sv])->docnum = -1;
-        
-        ++sv;   
       }
     }
   }
   else { /* before sv-regression: */
+
     for(i = 1; i < afni_model->timepoints + 1; i++) {  
       /* number of support vectors is (afni_model->timepoints + 1) */
       /* this simplifies multi-class life by allowing us to essentially */
@@ -1801,6 +1985,7 @@ int readAllocateAfniModel( THD_3dim_dataset *dsetModel, AFNI_MODEL *afniModel, c
   ATR_int *    atr_int     = NULL;
   ATR_string * atr_string  = NULL;
   long i,j                 = 0;
+  long nalphas             = 0;
 
 
 
@@ -1842,6 +2027,7 @@ int readAllocateAfniModel( THD_3dim_dataset *dsetModel, AFNI_MODEL *afniModel, c
    *
    */
 
+   
   /* --- determine version number for backward compatiblity ---*/
   atr_string = THD_find_string_atr( dsetModel->dblk, "3DSVM_VERSION" );
 
@@ -2159,9 +2345,23 @@ int readAllocateAfniModel( THD_3dim_dataset *dsetModel, AFNI_MODEL *afniModel, c
     for( i=0 ; i<atr_int->nin ; ++i ) {
       afniModel->polynomial_degree[i] = atr_int->in[i];
     }
+
+    /* For regression, the array holding the alphas needs to be twice as long as for 
+     * classification */
+    if( !strcmp(afniModel->svm_type, "regression") ) {
+      nalphas=afniModel->timepoints*2;
+    }
+    else if( !strcmp(afniModel->svm_type, "classification") ) {
+      nalphas=afniModel->timepoints;
+    }
+    /* we should never get here */
+    else {
+      snprintf(errorString, LONG_STRING, "Can not read model! SVM type unknown!");
+      RETURN(1);
+    }
   
     if( (afniModel->alphas = Allocate2f((long) afniModel->combinations, 
-            (long) afniModel->timepoints)) == NULL ) {
+            nalphas)) == NULL ) {
       snprintf(errorString, LONG_STRING, "readAllocateAfniModel: "
           "Memory allocation for alphas failed!");
 
@@ -2206,7 +2406,7 @@ int readAllocateAfniModel( THD_3dim_dataset *dsetModel, AFNI_MODEL *afniModel, c
     for(i = 0; i < afniModel->combinations; ++i ) {
       snprintf(headernames, LONG_STRING, "3DSVM_ALPHAS_%s", afniModel->combName[i]);
       atr_float = THD_find_float_atr( dsetModel->dblk, headernames); 
-      for(j = 0; j < afniModel->timepoints; ++j ) {
+      for(j = 0; j < nalphas; ++j ) {
         afniModel->alphas[i][j] = (double)atr_float->fl[j];
       }
     }
@@ -3044,7 +3244,7 @@ int readAllocateAfniModel( THD_3dim_dataset *dsetModel, AFNI_MODEL *afniModel, c
     }
 
     if( (afniModel->alphas = Allocate2f((long) afniModel->combinations, 
-            (long) afniModel->timepoints)) == NULL ) {
+            nalphas)) == NULL ) {
 
       snprintf(errorString, LONG_STRING, "readAllocateAfniModel: "
           "Memory allocation for alphas failed!");
@@ -3090,7 +3290,7 @@ int readAllocateAfniModel( THD_3dim_dataset *dsetModel, AFNI_MODEL *afniModel, c
     for(i = 0; i < afniModel->combinations; ++i ) {
       snprintf(headernames, LONG_STRING, "ALPHAS_%s", afniModel->combName[i]);
       atr_float = THD_find_float_atr( dsetModel->dblk, headernames); 
-      for(j = 0; j < afniModel->timepoints; ++j ) {
+      for(j = 0; j < nalphas; ++j ) {
         afniModel->alphas[i][j] = (double)atr_float->fl[j];
       }
     }
@@ -3203,8 +3403,6 @@ void addToModelMap_bucket ( MODEL_MAPS *maps, AFNI_MODEL *afni_model,
   long nvoxh  = 0;
   long t      = 0; 
   long nt     = 0;
-  long th     = 0;
-  long nth    = 0;
 
   ENTRY("addToModelMap_bucket");
 
@@ -3221,156 +3419,103 @@ void addToModelMap_bucket ( MODEL_MAPS *maps, AFNI_MODEL *afni_model,
   iMap=maps->index; /* TODO: prone for errors, should do something better than that */
   
   /* --- calculate weight-vector map for regression --- */
-  if( !strcmp(afni_model->svm_type, "regression")) {  
-    nt = afni_model->total_samples[cc];
 
-    if ( nt%2 != 0 ) { /* I'm being redundant... */
-      ERROR_exit("Adding to model map failed for sv-regression"
-          "The number of time-points (samples) is not a multiple of 2!");
-    }
-    nth=nt/2;
-
-    for (t=0, th=0; t<nt; ++t, ++th) {
-      if (th == nth ) th=0;
+  /* JL Aug. 2014: For regression, the array holding the alphas is twice as
+   * long as for classification, but, for linear-kernels, alpha-alpha* is 
+   * stored in the first half, so we can simply use the same method (as for 
+   * classification) to calculate the weighted sum. 
+   */
+  nt = afni_model->total_samples[cc];
+   
+  /*  -- linear kernel -- */
+  if(afni_model->kernel_type[cc] == LINEAR) {    
+    for (t=0; t<nt; ++t) {
       if ( afni_model->cAlphas[cc][t] ) {
         for (v=0; v<maps->nvox; ++v) {
           if ( maskFile[0] ) { /* mask */
             if ( dsetMaskArray[v] ) {
-              maps->data[iMap][v] += afni_model->cAlphas[cc][t] * dsetTrainArray[th][v];
+              maps->data[iMap][v] += afni_model->cAlphas[cc][t] * 
+                                        dsetTrainArray[t ][v];
             }
             else { 
               maps->data[iMap][v] = 0;
-            }
+            } 
           }
           else { /* no mask */
-            maps->data[iMap][v] += afni_model->cAlphas[cc][t] * dsetTrainArray[th][v];          
+            maps->data[iMap][v] += afni_model->cAlphas[cc][t] * 
+                                        dsetTrainArray[t ][v];
           }
         }
       }
     }
-    snprintf(maps->names[iMap], LONG_STRING, "RegresMapRea_%s", afni_model->combName[cc]);
+    snprintf(maps->names[iMap], LONG_STRING, "w_%s", afni_model->combName[cc]);
     ++iMap;
-  }
+  } 
+  /* -- complex-linear kernel -- */
+  /* JL: Experimental stuff for Scott Peltier */
+  else if( (afni_model->kernel_type[cc] == CUSTOM) && 
+      (!strcmp(afni_model->kernel_custom[cc],"complex1")) ) {
+
+    nvoxh = maps->nvox;
   
-  /* --- calculate weight-vector maps --- */ 
-  else {
-    nt = afni_model->total_samples[cc];
-    
-    /*  -- (real)-linear kernel -- */
-    if(afni_model->kernel_type[cc] == LINEAR) {    
-      for (t=0; t<nt; ++t) {
-        if ( afni_model->cAlphas[cc][t] ) {
-          for (v=0; v<maps->nvox; ++v) {
-            if ( maskFile[0] ) { /* mask */
-              if ( dsetMaskArray[v] ) {
-                maps->data[iMap][v] += afni_model->cAlphas[cc][t] * 
-                                          dsetTrainArray[t ][v];
-              }
-              else { 
-                maps->data[iMap][v] = 0;
-              } 
-            }
-            else { /* no mask */
-              maps->data[iMap][v] += afni_model->cAlphas[cc][t] * 
-                                          dsetTrainArray[t ][v];
-            }
-          }
-        }
-      }
-      snprintf(maps->names[iMap], LONG_STRING, "RealWvMapRea_%s", afni_model->combName[cc]);
-      ++iMap;
-      } 
+    for (t=0; t<nt; ++t) {
+      if ( afni_model->cAlphas[cc][t] ) {
+        for (v=0; v<maps->nvox; ++v) {
+          if ( maskFile[0] ) { /* mask */
+            if ( dsetMaskArray[v] ) {
 
-  
-    /* -- complex-linear kernel -- */
-    else if( (afni_model->kernel_type[cc] == CUSTOM) && 
-        (!strcmp(afni_model->kernel_custom[cc],"complex1")) ) {
-
-      nvoxh = maps->nvox;
-    
-      for (t=0; t<nt; ++t) {
-        if ( afni_model->cAlphas[cc][t] ) {
-          for (v=0; v<maps->nvox; ++v) {
-            if ( maskFile[0] ) { /* mask */
-              if ( dsetMaskArray[v] ) {
-
-                /*   - RE -   */
-                maps->data[iMap  ][v] += afni_model->cAlphas[cc][t     ] *
-                                              dsetTrainArray[t ][v     ];
-                /*   - IM -   */
-                maps->data[iMap+1][v] += afni_model->cAlphas[cc][t      ] *
-                                              dsetTrainArray[t ][v+nvoxh];
-                /*  - MAG1 - */
-                maps->data[iMap+2][v] += afni_model->cAlphas[cc][t      ] *
-                  sqrt( dsetTrainArray[t ][v      ] * dsetTrainArray[t ][v      ] +
-                        dsetTrainArray[t ][v+nvoxh] * dsetTrainArray[t ][v+nvoxh]);
-             
-                /*  - PHA1 - */
-                maps->data[iMap+3][v] += 10e5 *afni_model->cAlphas[cc][t      ] *
-                  atan2(dsetTrainArray[t ][v+nvoxh], dsetTrainArray[t ][v     ]);
-              
-                //printf("*** DBG: t = %ld, RE: %d, IM: %d, ALPHA: %e, PHA: %f, ALPHA*PHA:%f, wPha1[%ld] = %f\n",
-                //t, dsetTrainArray[t ][v], dsetTrainArray[t ][v+nvoxh],
-                //10e5*afni_model->cAlphas[cc][t],
-                //atan2(dsetTrainArray[t ][v+nvoxh], dsetTrainArray[t ][v     ]),
-                //10e5*afni_model->cAlphas[cc][t      ] *
-                //atan2(dsetTrainArray[t ][v+nvoxh], dsetTrainArray[t ][v     ]),
-                //v, maps->data[iMap+3][v] );
-
-              }
-              else { 
-                maps->data[iMap  ][v] = 0;
-                maps->data[iMap+1][v] = 0;
-                maps->data[iMap+2][v] = 0;
-                maps->data[iMap+3][v] = 0;
-
-              } 
-            }
-            else { /* no mask */
-            
-              /*  - RE - */
+              /*   - RE -   */
               maps->data[iMap  ][v] += afni_model->cAlphas[cc][t     ] *
-                                            dsetTrainArray[t ][v   ];
-              /*  - IM - */
+                                            dsetTrainArray[t ][v     ];
+              /*   - IM -   */
               maps->data[iMap+1][v] += afni_model->cAlphas[cc][t      ] *
                                             dsetTrainArray[t ][v+nvoxh];
               /*  - MAG1 - */
               maps->data[iMap+2][v] += afni_model->cAlphas[cc][t      ] *
-                  sqrt( dsetTrainArray[t ][v      ] * dsetTrainArray[t ][v      ] +
-                        dsetTrainArray[t ][v+nvoxh] * dsetTrainArray[t ][v+nvoxh]);
+                sqrt( dsetTrainArray[t ][v      ] * dsetTrainArray[t ][v      ] +
+                      dsetTrainArray[t ][v+nvoxh] * dsetTrainArray[t ][v+nvoxh]);
+           
               /*  - PHA1 - */
-              maps->data[iMap+3][v] += afni_model->cAlphas[cc][t      ] *
-                  atan2(dsetTrainArray[t ][v+nvoxh], dsetTrainArray[t ][v     ]);
+              maps->data[iMap+3][v] += 10e5 *afni_model->cAlphas[cc][t      ] *
+                atan2(dsetTrainArray[t ][v+nvoxh], dsetTrainArray[t ][v     ]);
+            
+            }
+            else { 
+              maps->data[iMap  ][v] = 0;
+              maps->data[iMap+1][v] = 0;
+              maps->data[iMap+2][v] = 0;
+              maps->data[iMap+3][v] = 0;
 
             } 
           }
-        }
-      }
-      snprintf(maps->names[iMap  ], LONG_STRING, "CpxWvMapReal_%s", afni_model->combName[cc]);
-      snprintf(maps->names[iMap+1], LONG_STRING, "CpxWvMapImag_%s", afni_model->combName[cc]);
-      snprintf(maps->names[iMap+2], LONG_STRING, "CpxWvMapMag1_%s", afni_model->combName[cc]);
-      snprintf(maps->names[iMap+3], LONG_STRING, "CpxWvMapPha1_%s", afni_model->combName[cc]);
+          else { /* no mask */
+          
+            /*  - RE - */
+            maps->data[iMap  ][v] += afni_model->cAlphas[cc][t     ] *
+                                          dsetTrainArray[t ][v   ];
+            /*  - IM - */
+            maps->data[iMap+1][v] += afni_model->cAlphas[cc][t      ] *
+                                          dsetTrainArray[t ][v+nvoxh];
+            /*  - MAG1 - */
+            maps->data[iMap+2][v] += afni_model->cAlphas[cc][t      ] *
+                sqrt( dsetTrainArray[t ][v      ] * dsetTrainArray[t ][v      ] +
+                      dsetTrainArray[t ][v+nvoxh] * dsetTrainArray[t ][v+nvoxh]);
+            /*  - PHA1 - */
+            maps->data[iMap+3][v] += afni_model->cAlphas[cc][t      ] *
+                atan2(dsetTrainArray[t ][v+nvoxh], dsetTrainArray[t ][v     ]);
 
-      for (v=0; v<maps->nvox; ++v) {
-        if ( maskFile[0] ) { /* mask */
-          if ( dsetMaskArray[v] ) {
-            /*   - MAG2 - */
-            maps->data[iMap+4][v] = sqrt( maps->data[iMap  ][v] * 
-                                          maps->data[iMap  ][v] +
-                                          maps->data[iMap+1][v] * 
-                                          maps->data[iMap+1][v] );  
-            /*  - PHA2 - */
-            maps->data[iMap+5][v] = atan2( maps->data[iMap+1][v] ,
-                                         maps->data[iMap  ][v] );
-            //printf("*** DBG: RE: %f, IM: %f, MAG: %f, PHA: %f\n", maps->data[iMap][v],
-            //maps->data[iMap+1][v],maps->data[iMap+2][v],maps->data[iMap+3][v]);
-          }
-          else { 
-            maps->data[iMap+4][v] = 0;
-            maps->data[iMap+5][v] = 0;
           } 
         }
-        else { /* no mask */
+      }
+    }
+    snprintf(maps->names[iMap  ], LONG_STRING, "CpxWvMapReal_%s", afni_model->combName[cc]);
+    snprintf(maps->names[iMap+1], LONG_STRING, "CpxWvMapImag_%s", afni_model->combName[cc]);
+    snprintf(maps->names[iMap+2], LONG_STRING, "CpxWvMapMag1_%s", afni_model->combName[cc]);
+    snprintf(maps->names[iMap+3], LONG_STRING, "CpxWvMapPha1_%s", afni_model->combName[cc]);
+
+    for (v=0; v<maps->nvox; ++v) {
+      if ( maskFile[0] ) { /* mask */
+        if ( dsetMaskArray[v] ) {
           /*   - MAG2 - */
           maps->data[iMap+4][v] = sqrt( maps->data[iMap  ][v] * 
                                         maps->data[iMap  ][v] +
@@ -3380,11 +3525,25 @@ void addToModelMap_bucket ( MODEL_MAPS *maps, AFNI_MODEL *afni_model,
           maps->data[iMap+5][v] = atan2( maps->data[iMap+1][v] ,
                                        maps->data[iMap  ][v] );
         }
+        else { 
+          maps->data[iMap+4][v] = 0;
+          maps->data[iMap+5][v] = 0;
+        } 
       }
-      snprintf(maps->names[iMap+4], LONG_STRING, "CpxWvMapMag2_%s", afni_model->combName[cc]);
-      snprintf(maps->names[iMap+5], LONG_STRING, "CpxWvMapPha2_%s", afni_model->combName[cc]);
-      iMap=iMap+6;
+      else { /* no mask */
+        /*   - MAG2 - */
+        maps->data[iMap+4][v] = sqrt( maps->data[iMap  ][v] * 
+                                      maps->data[iMap  ][v] +
+                                      maps->data[iMap+1][v] * 
+                                      maps->data[iMap+1][v] );  
+        /*  - PHA2 - */
+        maps->data[iMap+5][v] = atan2( maps->data[iMap+1][v] ,
+                                     maps->data[iMap  ][v] );
+      }
     }
+    snprintf(maps->names[iMap+4], LONG_STRING, "CpxWvMapMag2_%s", afni_model->combName[cc]);
+    snprintf(maps->names[iMap+5], LONG_STRING, "CpxWvMapPha2_%s", afni_model->combName[cc]);
+    iMap=iMap+6;
   }
   
   maps->index=iMap;
@@ -3597,6 +3756,7 @@ int writeModelBrik(AFNI_MODEL *afniModel, THD_3dim_dataset* dsetTrain,
   long t                      = 0;
   long nvox                   = 0;
   long v                      = 0;
+  long nalphas                = 0;
   int datum                   = 0;
   int maskUsed                = 0;
   int ierror                  = 0;
@@ -3643,6 +3803,18 @@ int writeModelBrik(AFNI_MODEL *afniModel, THD_3dim_dataset* dsetTrain,
   if( ierror > 0 ) {
     snprintf(errorString, LONG_STRING, "writeModelBrik: "
         "%d errors in attempting to create model dataset!", ierror );
+    RETURN(1);
+  }
+
+  if( !strcmp(options->svmType, "regression") ) {
+    nalphas = (long)afniModel->timepoints*2;
+  }
+  else if( !strcmp(options->svmType, "classification") ) {
+    nalphas = (long)afniModel->timepoints;
+  }
+  else {
+    /* should never get here */
+    snprintf(errorString, LONG_STRING, "allocateAfniModel: SVM type unknown!");
     RETURN(1);
   }
 
@@ -3870,7 +4042,7 @@ int writeModelBrik(AFNI_MODEL *afniModel, THD_3dim_dataset* dsetTrain,
       afniModel->combinations, afniModel->xa_depth );
   for(i = 0; i < afniModel->combinations; ++i) {
     snprintf(headernames, LONG_STRING, "3DSVM_ALPHAS_%s",afniModel->combName[i]);
-    THD_set_float_atr( dsetModel->dblk, headernames, afniModel->timepoints, afniModel->alphas[i] );
+    THD_set_float_atr( dsetModel->dblk, headernames, nalphas, afniModel->alphas[i] );
   }
   
   /* --- write brick --- */
@@ -3895,10 +4067,8 @@ void addToAfniModel(AFNI_MODEL *afniModel, MODEL *model, LEARN_PARM *learn_parm,
   long sv     = 0; /* index over nsv */
   long nt     = 0; /* number of timepoints */
   long t      = 0; /* index over timepoints */
-  long nth    = 0; /* number of timepoints half (needed for sv-regression)*/
-  long th     = 0; /* index of nth */
-  long ac     = 0; /* incrementing non-censored alphas count */
   long qid    = 0; /* incrementing queryid */
+  long nqid   = 0;
 
   FILE *fp    = NULL; /* alpha file output for sv-regression*/
   char alphaFile[LONG_STRING]; /* naming of alphafile output */
@@ -3915,85 +4085,16 @@ void addToAfniModel(AFNI_MODEL *afniModel, MODEL *model, LEARN_PARM *learn_parm,
    * since, for sv-regression, svm-light is not writing the alphas in time-
    * order
    *
-   * JL Aug. 2010: Added alpha file output for classification as well.
-   * We used to write the alphas by using svm-light code (i.e. by assigning
-   * learn_parm->alphafile). However, the resulting model was slightly different
-   * (i.e. #SV, |w|, ...) based on weather learn_parm->alphafile was assigned or
-   * not (??? !).  Could not reproduce the same behavior using svm-light.
-   * Bottom line: if we don't use svm-light code to write out the alphas,
-   * the model is right.
+   * JL Jul. 2014. Changed how alphas are stored for regression and how they
+   * are written to file.
    *
    */
 
-
-  /* --- initilization ---*/
+  /* --- initialization ---*/
   nsv = model->sv_num;
   nt = afniModel->timepoints;
-    
-  /* --- determine timorder of alphas --- */ 
-  /* -- for sv-regression -- */
-   if ( !strncmp(options->svmType, "regression", LONG_STRING) ) {
-    ac=0; 
-    qid=0;
-
-
-    nth=nt/2;
-    for( t=0, th=0; t<nt; ++t, ++th ) {
-      /* - null, to make alphas for non-support vectors zero - */
-      afniModel->alphas[classCount][t] =  0.0;
-    
-      if ( th == nth ) th=0;
-      if ( abs(tmp_labels[th]) == 1) {
-        /* - searching for alpha with (queryid == qid) - */ 
-        for ( sv=1; sv<nsv; ++sv ) {
-          if ( (model->supvec[sv])->queryid == qid) {
-            afniModel->alphas[classCount][t] = (float)model->alpha[sv];
-    
-            /* - reset queryid for second loop through - */
-            (model->supvec[sv])->queryid = -1.0;
-
-            /* - alpha found. Exit for-loop over sv -*/
-            break;        
-          }
-        }
-        ++qid;
-        if (qid == nth) qid = 0;
-
-        /* - write cAlphas - */ 
-        afniModel->cAlphas[classCount][ac] = afniModel->alphas[classCount][t];
-        ++ac;
-      }
-    }
-  }
-
-  /*  -- for classification --  */
-  else {
-    ac=0;
-    qid=0;
-    for( t=0; t<nt; ++t ) {
-      /* - null, to make non-support vectors zero - */
-      afniModel->alphas[classCount][t] =  0.0;
-
-      if ( abs(tmp_labels[t]) == 1) {
-        /* - serching for alpha with (queryid == qid) - */ 
-        for ( sv=1; sv<nsv; ++sv ) {
-          if ( (model->supvec[sv])->queryid == qid) {
-            afniModel->alphas[classCount][t] = (float)model->alpha[sv];
-    
-            /* - alpha found. Exit for-loop over sv - */
-            break;        
-          }
-        }
-        ++qid;
-
-        /* - write cAlphas (alpha index matches data index) - */ 
-        afniModel->cAlphas[classCount][ac] = afniModel->alphas[classCount][t];
-        ++ac;
-      }
-    }
-  }
-
-  /* JL Aug 2009: Alpha file output */
+ 
+  /* - open file for writing alphas */ 
   if( options->modelAlphaFile[0] ) {
     if (afniModel->class_count > 2) {
       snprintf( alphaFile, LONG_STRING, "%s_%d_%d.1D", options->modelAlphaFile,
@@ -4008,14 +4109,81 @@ void addToAfniModel(AFNI_MODEL *afniModel, MODEL *model, LEARN_PARM *learn_parm,
     }
     else {
       fflush(stdout);
-      if ( verbosity >= 1 ) INFO_message("Writing alphafile...");
-      for ( t=0; t<nt; ++t ) {
+      if ( verbosity >= 1 ) INFO_message("Writing alphafile: %s...", alphaFile);
+    }
+  }
+
+  /* recover time-order of alphas using quid and write them into 
+   * afniModel->alphas (index over all time points) and into 
+   * afniModel->cAlphas (index over non-censored time-points).
+   * alphas for non SVs are set to zero. 
+   */
+
+  qid=0;
+  for( t=0; t<nt; ++t ) {
+    /* - initialize to zero (alphas for non SVs are set to zero) */
+    afniModel->alphas[classCount][t] =  0.0;
+    afniModel->cAlphas[classCount][qid] = 0.0;
+
+    /* only look at non-censored time-points, quid index only runs 
+     * over non-censored time-points */
+    if ( abs((int)rint(tmp_labels[t])) == 1) {
+
+      /* - searching for alpha with (queryid == qid) - */ 
+      for( sv=1; sv<nsv; ++sv) {
+        if ( (model->supvec[sv])->queryid == qid) {
+          afniModel->alphas[classCount][t] = (float)model->alpha[sv];
+          afniModel->cAlphas[classCount][qid] = (float)model->alpha[sv];
+
+         /* - write alpha to file - */
+          if( options->modelAlphaFile[0] ) {
+            fprintf(fp,"%.8g", afniModel->alphas[classCount][t]);
+          }
+
+          /* - alpha with quid found. Exit loop over sv - */
+          break;
+        }
+      }      
+
+      /* For regression, the number of alphas might double, so the 
+       * array size for storing the alphas is twice as long  (nt*2) as for 
+       * classification. Continue looping through the svmLight model and
+       * keep searching for alphas with given qid. */
+      if( !strcmp(options->svmType, "regression") ) { 
+        afniModel->alphas[classCount][nt+t] =  0.0;
+        afniModel->cAlphas[classCount][sampleCount+qid] = 0.0;
+
+        ++sv;
+        for( ; sv<nsv; ++sv) {
+          if( (model->supvec[sv])->queryid == qid ) {
+            afniModel->alphas[classCount][nt+t] = (float)model->alpha[sv];
+            afniModel->cAlphas[classCount][sampleCount+qid] = 
+              (float)model->alpha[sv];
+
+            /* - write second alpha to file - */
+            if( options->modelAlphaFile[0] ) {
+              fprintf(fp,"\t %.8g", afniModel->alphas[classCount][nt+t]);
+            }
+
+            /* - second alpha with quid found. Exit loop over sv - */
+            break;        
+          }
+        }
+      }
+
+      /* - done with writing alpha(s) for current timepoint - */
+      if( options->modelAlphaFile[0] ) fprintf(fp,"\n");
+      
+      /* increment qid (quid only runs over non-censored time-points!) */
+      ++qid;
+    }
+    else {
+      if( options->modelAlphaFile[0] ) {
         fprintf(fp,"%.8g\n", afniModel->alphas[classCount][t]);
       }
     }
-    fclose(fp);
   }
-
+  if( options->modelAlphaFile[0] ) fclose(fp);
 
   /* JL Feb. 2009: Added kernel_custom and kernel_type
    *    May. 2009: Added svm_type to support sv-regression
@@ -4248,11 +4416,6 @@ int getCensoredClassTarget(LabelType *censoredTarget, long *sampleCount,
     RETURN(1);
   }
 
-  /*
-     printf("DBG: class0 = %5d, class1 = %5d, classIndex0 = %5ld, classIndex1 = %5ld\n",
-      class0, class1, classIndex0, classIndex1);
-   */
-
   if(verbosity >= 2) printf("++ ");
 
   for( i=0 ; i<labels->n ; ++i) {   /* convert timeseries input to one that
@@ -4282,14 +4445,6 @@ int getCensoredClassTarget(LabelType *censoredTarget, long *sampleCount,
     else {
       censoredTarget[i] = 9999.0; /* censored sample - ignore */
     }
-
-     /*
-       printf("** DBG: label[%3ld] = %5ld, censoredTarget[%3ld] = %6.1f, class0 = %5d, "
-        "class1 = %5d, censor[%3ld] = %5ld, sampleCount = %5ld\n",
-        i, lround(labels->lbls[i]), i, censoredTarget[i], class0, class1,
-        i, lround(labels->cnsrs[i]), *sampleCount);
-    */
-
   }
   if( labelWarningFlag && (verbosity >= 1) ) {
     INFO_message("Time points ignored. If not using multi-class, check for bad labels.");
@@ -4351,6 +4506,7 @@ int allocateAfniModel(AFNI_MODEL *afniModel, LABELS *labels,
     ASLoptions *options, char *errorString)
 { 
   long max_comb = CLASS_MAX*(CLASS_MAX-1)/2;
+  long nalphas = 0;
 
   ENTRY("allocateAfniModel");
 
@@ -4360,20 +4516,29 @@ int allocateAfniModel(AFNI_MODEL *afniModel, LABELS *labels,
    * JL June 2011: Modified error handling: Passing error string as argument
    * to the calling function, allocated memory is freed, RETURN(1) 
    * instead of ERROR_exit. Checking each malloc individually. 
+   *
+   * JL July 2014: Changed allocation of array holding alphas for regression 
+   *
    */
 
-  
-  /* JL June 2009: Doubled the number of timepoints to make sv-regression work
-   * with svm-light! */
+  /* alpha and alpha* might be stored separately for sv-regression,
+   * so the array being allocated to store them needs to be twice as long */
   if( !strcmp(options->svmType, "regression") ) {
-    afniModel->timepoints = (int) (labels->n)*2;
+    nalphas = (int) labels->n*2; 
+  }
+  else if( !strcmp(options->svmType, "classification") ) {
+    nalphas = (int) labels->n;
   }
   else {
-    afniModel->timepoints = (int) labels->n; 
-    /* would like to be long, but no equivalent to THD_set_int_atr */
+    /* should never get here */
+    snprintf(errorString, LONG_STRING, "allocateAfniModel: SVM type unknown!");
+    RETURN(1);
   }
   
-  afniModel->class_count = (int) labels->n_classes;	/* would like to be long, but no equivalent to THD_set_int_atr */
+  afniModel->timepoints = (int) labels->n; 
+    /* would like to be long, but no equivalent to THD_set_int_atr */
+  afniModel->class_count = (int) labels->n_classes;	
+    /* would like to be long, but no equivalent to THD_set_int_atr */
   afniModel->combinations = (long) ( (labels->n_classes * (labels->n_classes - 1)) / 2 );
   if( (afniModel->kernel_type = (int *)malloc( afniModel->combinations * sizeof(int))) == NULL ) {
     snprintf(errorString, LONG_STRING, "allocateAfniModel: Memory allocation for kernel_type failed!");
@@ -4474,7 +4639,7 @@ int allocateAfniModel(AFNI_MODEL *afniModel, LABELS *labels,
     RETURN(1);
   }
 
-  if( (afniModel->alphas = Allocate2f((long) afniModel->combinations, (long) afniModel->timepoints)) == NULL ) {
+  if( (afniModel->alphas = Allocate2f((long) afniModel->combinations, nalphas)) == NULL ) {
     snprintf(errorString, LONG_STRING, "allocateAfniModel: Memory allocation for alphas failed!");
 
     /* free and return */
@@ -4490,7 +4655,7 @@ int allocateAfniModel(AFNI_MODEL *afniModel, LABELS *labels,
     RETURN(1);
   }
 
-  if( (afniModel->cAlphas = Allocate2f((long) afniModel->combinations, (long) afniModel->timepoints)) == NULL ) {
+  if( (afniModel->cAlphas = Allocate2f((long) afniModel->combinations, nalphas)) == NULL ) {
     snprintf(errorString, LONG_STRING, "allocateAfniModel: Memory allocation for cAlphas failed!");
 
     /* free and return */
@@ -5121,6 +5286,7 @@ void freeClassificationLabels(LABELS *labels) {
   free(labels->cnsrs);
   free(labels->lbls_cont);
   free(labels->class_list);
+  free(labels->lbls_count);
   
   EXRETURN;
 }
@@ -5149,6 +5315,10 @@ int getAllocateClassificationLabels( LABELS *labels, char *labelFile,
    * JL June 2011:  Modified error handling: Passing error string as argument
    *                to the calling function, allocated memory is freed, RETURN(1)
    *                instead of ERROR_exit.
+   *
+   * JL Mar. 2014:  Determine occurrence of each label and store in lbls_count
+   *                (Needed for calculating of multi-class accuracies)
+   *             
    */ 
 
   /*----- RETRIEVE LABEL FILE AND CENSOR FILE--------------*/
@@ -5192,6 +5362,20 @@ int getAllocateClassificationLabels( LABELS *labels, char *labelFile,
     free(labels->lbls_cont);
     RETURN(1);
   }
+  
+  /* JL Mar. 2014 */
+  if( (labels->lbls_count = (int *)malloc(sizeof(int)*CLASS_MAX)) == NULL ) {
+    snprintf(errorString, LONG_STRING, "getAllocateClassificationLabels: "
+        "Could not allocate lbls_count!");
+
+    /* free and return */
+    fclose(fp);
+    free(labels->lbls);
+    free(labels->lbls_cont);
+    free(labels->class_list);
+    RETURN(1);
+  }
+
 
   /* --- read labels from file and do some error checking --- */
   for( i=0; i<labels->n; i++ ) {
@@ -5207,12 +5391,13 @@ int getAllocateClassificationLabels( LABELS *labels, char *labelFile,
       free(labels->lbls);
       free(labels->lbls_cont);
       free(labels->class_list);
+      free(labels->lbls_count);
       RETURN(1);
     }
     else labels->lbls[i] = (LabelType) atof(labelString);
 
     /* -- check for negative entires other than -9999 */
-    if ( (labels->lbls[i] < 0.0) && (labels->lbls[i] != -9999) ) {
+    if ( (labels->lbls[i] < 0.0) && ((int)labels->lbls[i] != -9999) ) {
       snprintf(errorString, LONG_STRING, "Labelfile: '%s' contains a negative "
           "entry in line %ld! ", labelFile, i+1);
       /* free and return */
@@ -5220,6 +5405,7 @@ int getAllocateClassificationLabels( LABELS *labels, char *labelFile,
       free(labels->lbls);
       free(labels->lbls_cont);
       free(labels->class_list);
+      free(labels->lbls_count);
       RETURN(1);
     }
   }
@@ -5234,6 +5420,8 @@ int getAllocateClassificationLabels( LABELS *labels, char *labelFile,
     free(labels->lbls);
     free(labels->lbls_cont);
     free(labels->class_list);
+    free(labels->lbls_count);
+
     RETURN(1);
   }
 
@@ -5251,6 +5439,7 @@ int getAllocateClassificationLabels( LABELS *labels, char *labelFile,
       free(labels->lbls);
       free(labels->lbls_cont);
       free(labels->class_list);
+      free(labels->lbls_count);
       free(labels->cnsrs);
       RETURN(1);
     }
@@ -5264,6 +5453,7 @@ int getAllocateClassificationLabels( LABELS *labels, char *labelFile,
       free(labels->lbls);
       free(labels->lbls_cont);
       free(labels->class_list);
+      free(labels->lbls_count);
       free(labels->cnsrs);
       fclose(fp);
       RETURN(1);
@@ -5282,6 +5472,7 @@ int getAllocateClassificationLabels( LABELS *labels, char *labelFile,
         free(labels->lbls);
         free(labels->lbls_cont);
         free(labels->class_list);
+        free(labels->lbls_count);
         free(labels->cnsrs);
         fclose(fp);
         RETURN(1);
@@ -5300,6 +5491,7 @@ int getAllocateClassificationLabels( LABELS *labels, char *labelFile,
         free(labels->lbls);
         free(labels->lbls_cont);
         free(labels->class_list);
+        free(labels->lbls_count);
         free(labels->cnsrs);
         fclose(fp);
         RETURN(1);
@@ -5310,7 +5502,10 @@ int getAllocateClassificationLabels( LABELS *labels, char *labelFile,
 
   /*----- DETERMINE NUMBER OF CLASSES --------------*/
   /* --- initializ class list --- */
-  for(j=0; j<CLASS_MAX; ++j) labels->class_list[j] = 9999;
+  for(j=0; j<CLASS_MAX; ++j) {
+    labels->class_list[j] = 9999;
+    labels->lbls_count[j] = 0;
+  }
 
   /* i indexes all time points
   ** j indexes over total allowed classes (CLASS_MAX)
@@ -5319,18 +5514,18 @@ int getAllocateClassificationLabels( LABELS *labels, char *labelFile,
   labels->n_classes = 0;
   k = 0;
   for( i=0; i < labels->n; ++i ) {
-    if( (labels->lbls[i] != 9999)  &&  /* not censored in labelfile */
-        (labels->lbls[i] != -9999) &&  /* not trunsductive ) */
-        ((int)labels->cnsrs[i]) )  {   /* not censored in censorfile*/
+    if( ((int)rint(labels->lbls[i]) != 9999)  &&  /* not censored in labelfile */
+        ((int)rint(labels->lbls[i]) != -9999) &&  /* not trunsductive ) */
+        ((int)rint(labels->cnsrs[i])) )  {   /* not censored in censorfile*/
 
       for( j=0; j < CLASS_MAX; ++j ) {
-        if( labels->lbls[i] == labels->class_list[j] ) {
+        if( (int)rint(labels->lbls[i]) == labels->class_list[j] ) {
           class_exists_flag = 1;
           break;
         }
       }
       if( !class_exists_flag ) {
-        labels->class_list[k] = labels->lbls[i];
+        labels->class_list[k] = (int)rint(labels->lbls[i]);
         ++labels->n_classes;
         ++k;
       }
@@ -5340,37 +5535,29 @@ int getAllocateClassificationLabels( LABELS *labels, char *labelFile,
     }
     else { 
       labels->n_cnsrs++;
-      if (labels->lbls[i] != -9999) labels->cnsrs[i] = (LabelType)0;
+      if ((int)rint(labels->lbls[i]) != -9999) labels->cnsrs[i] = (LabelType)0;
     }
-    /*
-      printf("DBG: lbls[%3ld] = %7.2f, cnsrs[%3ld]=%7.2f, n_classes=%3d\n",
-          i, labels->lbls[i], i, labels->cnsrs[i], labels->n_classes);
-    */
   }
   
   /* -- sort label list -- */
   qsort( labels->class_list, CLASS_MAX, sizeof(int), (void *)compare_ints );
 
-  /* -- convert user-given labels to continues label values */
+  /* -- convert user-given labels to continuous label values */
   for (j=0; j<labels->n_classes; ++j) {
     for(i=0; i<labels->n; ++i ) {
-      if( (labels->lbls[i] != 9999)  && /* not censored in labelfile */
-          (labels->lbls[i] != -9999) && /* not trunsductive ) */
-          ((int)labels->cnsrs[i]) )       {  /* not censored in censorfile*/
+      if( ((int)rint(labels->lbls[i]) != 9999)  && /* not censored in labelfile */
+          ((int)rint(labels->lbls[i]) != -9999) && /* not trunsductive ) */
+          ((int)rint(labels->cnsrs[i])) )       {  /* not censored in censorfile*/
 
-        if (labels->lbls[i] == labels->class_list[j]) {
-          labels->lbls_cont[i] = j;
+        if ((int)rint(labels->lbls[i]) == labels->class_list[j]) {
+          labels->lbls_cont[i] = (LabelType)j;
+          /* JL Mar 2014: Count occurrence of each label */
+          labels->lbls_count[j]++;
         }
       }
       else {
-        labels->lbls_cont[i] = 9999;
+        labels->lbls_cont[i] = (LabelType)9999;
       }
-      /*
-        if (j == labels->n_classes-1) {
-        printf("DBG: lbls=%6.2f, lbls_cont=%6.2f\n", labels->lbls[i],
-            labels->lbls_cont[i]);
-        }
-      */
     }
   }
 
@@ -5391,6 +5578,7 @@ int getAllocateClassificationLabels( LABELS *labels, char *labelFile,
     free(labels->lbls);
     free(labels->lbls_cont);
     free(labels->class_list);
+    free(labels->lbls_count);
     free(labels->cnsrs);
     RETURN(1);
    }
@@ -5626,9 +5814,6 @@ int test_classification (ASLoptions *options, MODEL *model, AFNI_MODEL *afniMode
 
   float dist_tmp          = 0;
   float *dist             = NULL;  /* holds the distance for all timepoints */
-  float *dist_cnsrs       = NULL;  /* holds the distance for non-censored timpepoints */
-                                   /* TODO: we need to write our own detrending, so we can
-                                      store the dist with double precision */ 
   float **multiclass_dist = NULL;  
    /* doing all of the pairwise tests and storing them in principle, don't have
     * to do this with directed, acyclic graph (DAG) but each test does not take
@@ -5644,25 +5829,21 @@ int test_classification (ASLoptions *options, MODEL *model, AFNI_MODEL *afniMode
   float correct             = 0.0;
   float incorrect           = 0.0;
 
-  long res_a                = 0;
-  long res_b                = 0;
-  long res_c                = 0;
-  long res_d                = 0;
-
   int DAG                   = 0;   /* abbreviation for Directed Acyclic Graph:
                                     * index variable for traversing multiclass_dist */
   short edgeFlag            = 0;   /* DAG related */
+  short classExistFlag      = 0;   /* multi-class related */
   int classAssignment       = 0;   /* multi-class related */
   float *classCorrect       = NULL;
   float *classIncorrect     = NULL;
 
-  long *nClass              = NULL;
   int *classVote            = NULL; /* mulit-class vote */
   int currentComb           = 0;
   int class0, class1        = 0;
   int winningCount          = 0;    /* mulit-class vote */
-  long classCountMax        = 0;    /* maximum number of classes, needed to for
-                                     * allocation of multi-class arrays */
+  int *classList            = NULL; /* needed for mapping non-continuous 
+                                     * to continuous class labels in multiclass */
+                                                  
 
   enum mctypes { MCTYPE_DAG, MCTYPE_VOTE }; /* types for multiclass */
   enum mctypes mctype       = MCTYPE_DAG;   /* default value */
@@ -5680,7 +5861,7 @@ int test_classification (ASLoptions *options, MODEL *model, AFNI_MODEL *afniMode
                                      * number of class-combinations */
   /* etc: */
   FILE *fp                   = NULL;
-  long i,j,c                 = 0;
+  long i,j,c,cl              = 0;
   char predictionsFile[LONG_STRING];
 
 
@@ -5697,6 +5878,8 @@ int test_classification (ASLoptions *options, MODEL *model, AFNI_MODEL *afniMode
    * JL July 2011: Modified error handling: Passing error message 
    *               as argument (errorString) to the calling function, 
    *               allocated memory is freed, RETURN(1) instead of ERROR_exit().
+   * JL Mar. 2014: Fixed -classout and multi-class accuracies for non-continuous
+   *               class labels
    */
 
   if (verbosity >= 1) INFO_message("\n++ CLASSIFICATION (testing):\n++");
@@ -5848,55 +6031,8 @@ int test_classification (ASLoptions *options, MODEL *model, AFNI_MODEL *afniMode
     RETURN(1);
   }
 
-  if( options->testLabelFile[0] ) {
-    if( (dist_cnsrs = (float *)malloc(sizeof(float)*(nt-testLabels.n_cnsrs))) == NULL ) {
-      /* dist_cnsrs hold the distance (to the hyperplane) for non-censored timepoints */
-      snprintf(errorString, LONG_STRING, "allocateModel: "
-        "Memory allocation for dist_cnsrs failed!");
-    
-      /* free and return */
-      freeDsetArray(dsetTest, dsetTestArray);
-      DSET_unload(dsetTest);
-      freeClassificationLabels(&testLabels);
-      free(censoredTargets);
-      freeDOCs(docsTest, nt);
-      freeModel(model, afniModel, TEST);
-      free(dist);
-      RETURN(1);
-    }
-  }
-
   /* ------ ALLOCATE MULTICLASS ARRAYS ----- */
-  /* JL Mar. 2009: Check if the number of classes in labelfile is grater than
-   * the number of classes in model and allocate multi-class arrays based on that.
-   */
-  classCountMax = afniModel->class_count;
-  if( options->testLabelFile[0] ) {
-    if (testLabels.n_classes > afniModel->class_count) {
-      classCountMax = testLabels.n_classes;
-    }
-  }
-
- 
-  /* JL July 2011: Only allocate multiclass arrays when needed */
-  if( afniModel->class_count > 2 ) { /* multiclass ! */
-    if( allocateMultiClassArrays(&multiclass_dist, &classCorrect, 
-          &classIncorrect, &nClass, &classVote,
-          classCountMax, (long) afniModel->combinations, nt, errorString) ) {
-      
-      /* free and return */
-      freeDsetArray(dsetTest, dsetTestArray);
-      DSET_unload(dsetTest);
-      if( options->testLabelFile[0] ) freeClassificationLabels(&testLabels);
-      if( options->testLabelFile[0] ) free(censoredTargets);
-      freeDOCs(docsTest, nt);
-      freeModel(model, afniModel, TEST);
-      free(dist);
-      if( options->testLabelFile[0] ) free(dist_cnsrs);
-      RETURN(1);
-    }
-  }
- 
+  
   /* JL Apr. 2010: Allocate p string for strtok */
   p_string_size = afniModel->combinations*CSV_STRING;
   if ( (p = (char *) malloc(p_string_size * sizeof (char))) == NULL ) {
@@ -5911,15 +6047,46 @@ int test_classification (ASLoptions *options, MODEL *model, AFNI_MODEL *afniMode
     freeDOCs(docsTest, nt);
     freeModel(model, afniModel, TEST);
     free(dist);
-    if( options->testLabelFile[0] )   free(dist_cnsrs);
     if( afniModel->class_count > 2 ) {
       freeMultiClassArrays(multiclass_dist, classCorrect, 
-          classIncorrect, nClass, classVote,
+          classIncorrect,  classVote, classList,
           (long) afniModel->combinations);
     }
     RETURN(1);
   }
 
+  /* JL July 2011: Only allocate multiclass arrays when needed */
+  if( afniModel->class_count > 2 ) { /* multiclass ! */
+    if( allocateMultiClassArrays(&multiclass_dist, &classCorrect, 
+          &classIncorrect, &classVote,
+          &classList, afniModel->class_count, (long) afniModel->combinations, 
+          nt, errorString) ) {
+      
+      /* free and return */
+      freeDsetArray(dsetTest, dsetTestArray);
+      DSET_unload(dsetTest);
+      if( options->testLabelFile[0] ) freeClassificationLabels(&testLabels);
+      if( options->testLabelFile[0] ) free(censoredTargets);
+      freeDOCs(docsTest, nt);
+      freeModel(model, afniModel, TEST);
+      free(dist);
+      RETURN(1);
+    }
+
+    /* recover class labels in model from class combinations */
+    for( c = 0; c < afniModel->class_count-1; ++c ) {
+      strncpy(p, afniModel->combName[c], p_string_size);
+      q = strtok(p,"_");
+      cc = atol(q);
+      q = strtok(NULL,"_");
+      dd = atol(q);
+
+      if( c == 0 ) classList[c]=cc;
+      classList[c+1]=dd;
+    }
+  }
+ 
+  /* -- binary classification -- */
   for(i = 0; i < afniModel->combinations; ++i ) {
     if(verbosity >= 1) {
       INFO_message(" ");
@@ -5927,16 +6094,15 @@ int test_classification (ASLoptions *options, MODEL *model, AFNI_MODEL *afniMode
           "------------------");
       INFO_message("Category combination = %ld  (%s)", i, afniModel->combName[i]);
     }
- 
-    if( options->testLabelFile[0] ) {
-      /* use strtok to recover combination name integers so that we can use
-       * the test label data */
-      strncpy(p, afniModel->combName[i], p_string_size);
-      q = strtok(p,"_");
-      cc = atol(q);
-      q = strtok(NULL,"_");
-      dd = atol(q);
 
+    /* recover current class combination integers */
+    strncpy(p, afniModel->combName[i], p_string_size);
+    q = strtok(p,"_");
+    cc = atol(q);
+    q = strtok(NULL,"_");
+    dd = atol(q);
+
+    if( options->testLabelFile[0] ) {
       if( getCensoredClassTarget(censoredTargets, &sampleCount, &testLabels,
             cc, dd, TEST, errorString) ) {
 
@@ -5948,10 +6114,9 @@ int test_classification (ASLoptions *options, MODEL *model, AFNI_MODEL *afniMode
         freeDOCs(docsTest, nt);
         freeModel(model, afniModel, TEST);
         free(dist);
-        free(dist_cnsrs);
         if( afniModel->class_count > 2 ) {
           freeMultiClassArrays(multiclass_dist, classCorrect, 
-            classIncorrect, nClass, classVote,
+            classIncorrect, classVote, classList,
             (long) afniModel->combinations);
         }
         free(p);
@@ -5960,10 +6125,6 @@ int test_classification (ASLoptions *options, MODEL *model, AFNI_MODEL *afniMode
      
       correct=0.0; 
       incorrect=0.0;
-      res_a=0.0;
-      res_b=0.0;
-      res_c=0.0;
-      res_d=0.0;
     }
   
     /*----- GET SVM-LIGHT MODEL STRUCTURE -----*/
@@ -5988,16 +6149,15 @@ int test_classification (ASLoptions *options, MODEL *model, AFNI_MODEL *afniMode
       freeDOCs(docsTest, nt);
       freeModel(model, afniModel, TEST);
       free(dist);
-      if( options->testLabelFile[0] ) free(dist_cnsrs);
       if( afniModel->class_count > 2 ) {
-      freeMultiClassArrays(multiclass_dist, classCorrect, 
-          classIncorrect, nClass, classVote,
+        freeMultiClassArrays(multiclass_dist, classCorrect, 
+          classIncorrect,  classVote, classList,
           (long) afniModel->combinations);
       }
       free(p);
       RETURN(1);
     }
-    
+
     /* JL Feb. 2009: Changed this part to support non-linear kernels */
     if (afniModel->kernel_type[i] == LINEAR) { /* linear kernel */
       for(j = 0; j < nt; ++j) {
@@ -6014,9 +6174,29 @@ int test_classification (ASLoptions *options, MODEL *model, AFNI_MODEL *afniMode
     }
     
     /* JL Nov. 2008: Changed detrending for censored timepoints */
+    /* JL Aug. 2013: Bugfix: detrend_linear_cnsrs */ 
     if( (options->testLabelFile[0]) && (testLabels.n_cnsrs != 0) &&
         (!options->noPredDetrend) ) {
-      detrend_linear_cnsrs(dist, dist_cnsrs, &testLabels);
+      if( detrend_linear_cnsrs(dist, &testLabels, errorString) ) {
+        snprintf(errorString, LONG_STRING,
+          "Could not open file for writing predictions: %s", predictionsFile );
+
+        /* free and return */
+        freeDsetArray(dsetTest, dsetTestArray);
+        DSET_unload(dsetTest);
+        if( options->testLabelFile[0] ) freeClassificationLabels(&testLabels);
+        if( options->testLabelFile[0] ) free(censoredTargets);
+        freeDOCs(docsTest, nt);
+        freeModel(model, afniModel, TEST);
+        free(dist);
+        if( afniModel->class_count > 2 ) {
+          freeMultiClassArrays(multiclass_dist, classCorrect, 
+            classIncorrect, classVote, classList,
+            (long) afniModel->combinations);
+        }
+        free(p);
+        RETURN(1);
+      }
     }
     else {
       /* WC and SL Aug. 08 : moved this up so that detrending is done before
@@ -6030,19 +6210,12 @@ int test_classification (ASLoptions *options, MODEL *model, AFNI_MODEL *afniMode
     /* WC and SL Aug. 08 : now calculate the percent accuracy with the detrended data*/
     if( options->testLabelFile[0] ) {
       for(j = 0; j < nt; ++j){
-
-     /* printf("DBG: censoredTargets[%ld] = %f, dist[%ld]= %f\n",
-           j, censoredTargets[j], j, dist[j]); */
-
-
-        if( abs(censoredTargets[j]) != 9999) {
+        if( abs((int)rint(censoredTargets[j])) != 9999) {
           if(dist[j]>0) {
             if(censoredTargets[j]>0) correct++; else incorrect++;
-            if(censoredTargets[j]>0) res_a++; else res_b++;
           }
           else {
             if(censoredTargets[j]<0) correct++; else incorrect++;
-            if(censoredTargets[j]>0) res_c++; else res_d++;
           }
         }
       }
@@ -6077,14 +6250,16 @@ int test_classification (ASLoptions *options, MODEL *model, AFNI_MODEL *afniMode
 
       /* output integer class memberships */
       if( (options->classout) && (!options->noPredScale) ){
-        dist[j] = rint(dist[j]); /* round (no rintf) */
-	if(dist[j] > 1) dist[j] = 1.0;
- 	if(dist[j] < 0) dist[j] = 0.0;
+        /* dist is centered around 0.5 */
+        /* JL Mar 2014: Return correct class membership for non-
+         * continuous class labels (integers) */
+ 	if(dist[j] > 0.5) dist[j] = dd;
+        else dist[j] = cc;
       }
 
-      /* only write non-censored predicitons */
-      if (options->noPredCensor) {
-        if( abs(censoredTargets[j]) != 9999) fprintf(fp,"%.8g\n",dist[j]);
+      /* only write non-censored predictions */
+      if ( options->testLabelFile[0] && options->noPredCensor ) {
+        if( abs((int)rint(censoredTargets[j])) != 9999) fprintf(fp,"%.8g\n",dist[j]);
       }
       else fprintf(fp,"%.8g\n",dist[j]);
     }
@@ -6097,20 +6272,14 @@ int test_classification (ASLoptions *options, MODEL *model, AFNI_MODEL *afniMode
   /* JL Aug. 2010: Modified (DAG and vote) to enable calculation of
    *               prediction accuracies for (non-continuous) class labels
    */
-
-  if(afniModel->class_count > 2) { /* mulitclass! */
+  if(afniModel->class_count > 2) { 
 
     if( options->testLabelFile[0] ) {
       correct=0.0; 
       incorrect=0.0;
-      res_a=0.0;
-      res_b=0.0;
-      res_c=0.0;
-      res_d=0.0;
       for(c = 0; c < afniModel->class_count; ++c) {
-    	  classCorrect[c] = 0.0;
-    	  classIncorrect[c] = 0.0;
-    	  nClass[c] = 0L;
+        classCorrect[c] = 0.0;
+    	classIncorrect[c] = 0.0;
       }
     }
 
@@ -6130,8 +6299,8 @@ int test_classification (ASLoptions *options, MODEL *model, AFNI_MODEL *afniMode
       /* code largely duplicated in DAG ................. */
         if(verbosity >=2) {
           for(i = 0; i < afniModel->combinations; ++i) { 
-            INFO_message("model number:%ld time point:%ld classifier output=%f"
-                ,i,j,multiclass_dist[i][j]);
+            INFO_message("model number:%ld time point:%ld classifier output=%f",
+                i,j,multiclass_dist[i][j]);
           }
         }
         for(c = 0; c < afniModel->class_count; ++c) {
@@ -6144,6 +6313,7 @@ int test_classification (ASLoptions *options, MODEL *model, AFNI_MODEL *afniMode
           for(class1 = class0+1; class1 < afniModel->class_count; ++class1) { 
             if(multiclass_dist[currentComb][j] < 0) {
               classVote[class0]++; 
+             
               if(classVote[class0] > winningCount) {
                 winningCount = classVote[class0];
                 classAssignment = class0;
@@ -6162,41 +6332,42 @@ int test_classification (ASLoptions *options, MODEL *model, AFNI_MODEL *afniMode
            
         if(verbosity >=2) printf("++ point number %ld:    ",j);
           for(i = 0; i < afniModel->class_count; ++i) { 
-            if(verbosity >=2) printf("+ classVote[%ld] = %d;   ",i, classVote[i]);
+            if(verbosity >=2) printf("+ class: %d, classVote[%ld] = %d;   ",
+                classList[i], i, classVote[i]);
         }
         if(verbosity >=2) printf("\n");
            
-        /* code is largely duplicated in DAG ................. */
-        if(verbosity >=2) INFO_message("Voting result: observation number=%ld"
-            "model number=%d, classAssignment = %d\n",j, DAG, classAssignment);
-        fprintf(fp,"%d\n", classAssignment);  
-           
-        if((options->testLabelFile[0]) && ((int)(testLabels.lbls_cont[j] != 9999))) {
-          nClass[(int)testLabels.lbls_cont[j]]++;
-          if (classAssignment == testLabels.lbls_cont[j])  {
+        if(verbosity >=2) INFO_message("Voting result: observation number=%ld, "
+            "classAssignment = %d\n", j, classList[classAssignment]);
+
+        /* write class assignment to prediction file */
+        fprintf(fp,"%d\n", classList[classAssignment]);  
+
+
+        /* compare result with label file */
+        if( (options->testLabelFile[0]) && ((int)rint(testLabels.cnsrs[j])) ) {
+
+          if (classList[classAssignment] == (int)rint(testLabels.lbls[j]))  {
             correct++; 
-            classCorrect[(int)testLabels.lbls_cont[j]]++;
+            classCorrect[classAssignment]++;
           }
           else {
             incorrect++;
-            classIncorrect[(int)testLabels.lbls_cont[j]]++;
+            classIncorrect[classAssignment]++;
           }
+
           if(verbosity >= 2) {
-            INFO_message("Overall:  test labels=%d, current number correct = %d" 
-                "incorrect = %d", (int) rint(testLabels.lbls_cont[j]),
-                (int) rint(correct), (int) rint(incorrect));
-            for(c = 0; c < afniModel->class_count; ++c) {
-              INFO_message("Class Specific:  classLabel = %ld, current number"
-                  "correct = %d   incorrect = %d", testLabels.class_list[c],
-                  (int) rint(classCorrect[c]),(int) rint(classIncorrect[c]) );
-            }
+            INFO_message("Overall:  test labels=%d, current number "
+                "correct = %d incorrect = %d", (int)(testLabels.lbls[j]), 
+                (int)rint(correct), (int)rint(incorrect));
+
           }
         }
       }
       fclose(fp);
     }
     /* --- multiclass:  Directed acyclic graph (DAG) ---*/
-    else { // if (mctype == MCTYPE_DAG)
+    else { /* if (mctype == MCTYPE_DAG) */
 
    /*  Directed acyclic graph of pairwise classifiers *************************
     *
@@ -6238,9 +6409,8 @@ int test_classification (ASLoptions *options, MODEL *model, AFNI_MODEL *afniMode
         freeDOCs(docsTest, nt);
         freeModel(model, afniModel, TEST);
         free(dist);
-        if( options->testLabelFile[0] ) free(dist_cnsrs);
         freeMultiClassArrays(multiclass_dist, classCorrect, 
-          classIncorrect, nClass, classVote,
+          classIncorrect,  classVote, classList,
           (long) afniModel->combinations);
         free(p);
         RETURN(1);
@@ -6271,12 +6441,12 @@ int test_classification (ASLoptions *options, MODEL *model, AFNI_MODEL *afniMode
 	  if(multiclass_dist[DAG][j]>0) {
 	    if(edgeFlag) {
 	      DAG += afniModel->class_count - i - 1;
-	      if(verbosity >=2) INFO_message("next model number=%d, current max"
+	      if(verbosity >=2) INFO_message("next model number=%d, current max "
 	          "possible classAssignment = %d", DAG, classAssignment);
 	    }   
 	    else {
 	      DAG += afniModel->class_count - i;
-	      if(verbosity >=2) INFO_message("next model number=%d, current max"
+	      if(verbosity >=2) INFO_message("next model number=%d, current max "
 	          "possible classAssignment = %d", DAG, classAssignment);
 	    }
 	  }
@@ -6284,77 +6454,85 @@ int test_classification (ASLoptions *options, MODEL *model, AFNI_MODEL *afniMode
 	    edgeFlag = 0;
 	    DAG--;
 	    classAssignment--;
-	    if(verbosity >=2) INFO_message("next model number=%d, current max"
+	    if(verbosity >=2) INFO_message("next model number=%d, current max "
 	        "possible classAssignment = %d", DAG, classAssignment);
 	  }
 	}
-	if(verbosity >=2) INFO_message("DAG result: observation number=%ld model"
-            "number=%d, classAssignment = %d",j, DAG, classAssignment);
-        fprintf(fp,"%d\n", classAssignment);  
+	if(verbosity >=2) INFO_message("DAG result: observation number=%ld model "
+            "number=%d, classAssignment = %d (%d)", j, DAG, classAssignment, 
+            classList[classAssignment]);
 
+        /* write result to prediction file */
+        fprintf(fp,"%d\n", classList[classAssignment]);  
+
+        /* compare result with label file */
         if((options->testLabelFile[0]) && ((int)(testLabels.lbls_cont[j] != 9999))) {
-          nClass[(int)testLabels.lbls_cont[j]]++;
-          if (classAssignment == testLabels.lbls_cont[j])  {
+
+          if (classList[classAssignment] == (int)testLabels.lbls[j])  {
             correct++; 
-            classCorrect[(int)testLabels.lbls_cont[j]]++;
+            classCorrect[classAssignment]++;
           }
           else {
             incorrect++;
-            classIncorrect[(int)testLabels.lbls_cont[j]]++;
+            classIncorrect[classAssignment]++;
           }
-          if(verbosity >= 2) {
-            INFO_message("Overall:  test labels=%d, current number correct = %d"
-                "incorrect = %d", (int) rint(testLabels.lbls_cont[j]),
-                (int) rint(correct), (int) rint(incorrect));
 
-            for(c = 0; c < afniModel->class_count; ++c) {
-              INFO_message("Class Specific:  classLabel = %ld, current number"
-                  "correct = %d   incorrect = %d", testLabels.class_list[c],
-                  (int) rint(classCorrect[c]),(int) rint(classIncorrect[c]) );
-            }
+          if(verbosity >= 2) {
+            INFO_message("Overall:  test labels=%d, current number "
+                "correct = %d incorrect = %d", (int)(testLabels.lbls[j]), 
+                (int)rint(correct), (int)rint(incorrect));
+
           }
         }
       }
     fclose(fp);
     }
+
+
+    /* report accuracies */
+    if(options->testLabelFile[0] && (verbosity>=1)) {
+      INFO_message("Overall accuracy on multiclass test set: %.2f%% "
+          "(%d correct, %d incorrect, %d total)", 
+          (float)correct*100.0/((int)rint(correct)+(int)rint(incorrect)),
+          (int)rint(correct),(int)rint(incorrect),
+          (int)rint(correct)+(int)rint(incorrect) );
+
+
+      INFO_message("Individual Breakdown:");
+      for( cl = 0; cl < testLabels.n_classes; ++cl ) {
+        classExistFlag = 0;
+        for( c = 0; c < afniModel->class_count; ++c ) {
+          if( classList[c] == testLabels.class_list[cl] ) {
+            classExistFlag=1;
+
+            INFO_message("                       "
+              "classLabel = %3d: %.2f%% (%d correct, %d total)\n",
+              classList[c], 
+              classCorrect[c]*100.0/testLabels.lbls_count[cl],
+              (int)rint(classCorrect[c]), 
+              testLabels.lbls_count[cl]);
+
+            break;
+          }
+        }
+        if(!classExistFlag) {
+            WARNING_message("              "
+            "classLabel = %3d: not present in model file!\n",
+                testLabels.class_list[cl]);
+        }
+      }
+    }
+
+    /* free arrays allocated for multiclass */
+    freeMultiClassArrays(multiclass_dist, classCorrect, classIncorrect, 
+        classVote, classList, (long) afniModel->combinations);
+
   } /* multiclass done */
 
-
-  if(verbosity >= 1)  INFO_message("Predictions for all categories written to %s",
-    predictionsFile);
-
-  if(options->testLabelFile[0] && afniModel->class_count > 2 && (verbosity>=1)) {
-    INFO_message("Overall accuracy on multiclass test set: %.2f%% (%d correct,"
-        "%d incorrect, %d total)", (float)(correct)*100.0/
-        ( (int)rint(correct)+(int)rint(incorrect)),(int)rint(correct),
-        (int)rint(incorrect),(int)rint(correct)+(int)rint(incorrect) );
-
-    INFO_message("Individual Breakdown:");
-    for(c = 0; c < afniModel->class_count; ++c) {
-      /* JL: Apr. Check for nan */
-      if (nClass[c] == 0) {
-        INFO_message("                       "
-            "classLabel = %ld: 0.00%% (0 correct, 0 incorrect, 0 total)",
-            testLabels.class_list[c]);
-
-      }
-      else {
-	  INFO_message("                       "
-	      "classLabel = %ld: %.2f%% (%d correct, %d incorrect, %ld total)\n",
-	      testLabels.class_list[c], (float)(classCorrect[c])*100.0/nClass[c],
-	      (int)rint(classCorrect[c]), (int)rint(classIncorrect[c]), nClass[c] );
-      }
-    }
-  }
-
-  /* JL Mar 2010: */
-  if( options->testLabelFile[0] ) {
-    if (testLabels.n_classes > afniModel->class_count) {
-  	  WARNING_message("Number of classes: %d in labelfile: %s is grater than\n"
-  			  "            the number of classes: %d in modelfile: %s",
-            testLabels.n_classes, options->testLabelFile, afniModel->class_count,
-            options->modelFile);
-    }
+  if(verbosity >= 1)  {
+    INFO_message("\n");
+    INFO_message("Predictions for all categories written to %s", 
+        predictionsFile);
   }
 
   /* free */
@@ -6363,16 +6541,10 @@ int test_classification (ASLoptions *options, MODEL *model, AFNI_MODEL *afniMode
   freeDOCs(docsTest, nt);
   freeModel(model, afniModel, TEST);
   free(dist);
-  if( options->testLabelFile[0] ) free(dist_cnsrs);
-  if( afniModel->class_count > 2 ) {
-    freeMultiClassArrays(multiclass_dist, classCorrect, 
-        classIncorrect, nClass, classVote,
-        (long) afniModel->combinations);
-  }
+   
   free(p);
   freeDsetArray(dsetTest, dsetTestArray);
   DSET_unload(dsetTest);
-
 
 
   RETURN(0);
@@ -6514,6 +6686,7 @@ int test_regression (ASLoptions *options, MODEL *model, AFNI_MODEL *afniModel,
  
   get_svm_model(model, dsetModelArray, dsetMaskArray, afniModel, nvox_mod,
       options->outModelNoMask);
+
   updateModel(model, afniModel,  0);
 
   /*----- ALLOCATE PREDICTION ARRAY --------*/
@@ -6666,6 +6839,9 @@ int train_classification( MODEL *model, LEARN_PARM *learn_parm, KERNEL_PARM *ker
   /* JL June 2011: Modified error handling: Passing error string as argument
    * to the calling function, allocated memory is freed, RETURN(1) 
    * instead of ERROR_exit.
+   *
+   * JL March 2014: Removed byte data type restriction for mask dataset.
+   *
    */
   
   if (verbosity >= 1) INFO_message("\n++ CLASSIFICATION (training):\n++");
@@ -6739,23 +6915,11 @@ int train_classification( MODEL *model, LEARN_PARM *learn_parm, KERNEL_PARM *ker
     }
     DSET_load(dsetMask);
 
-    /* -- check if mask is binary -- */
-    if( DSET_BRICK_TYPE(dsetMask,0) != MRI_byte ) {
-      snprintf(errorString, LONG_STRING, "Mask file: '%s' is not a byte-format "
-          "brick.\n", options->maskFile ); 
-
-      /* free and return */
-      freeDsetArray(dsetTrain, dsetTrainArray);
-      DSET_unload(dsetTrain);
-      DSET_unload(dsetMask);
-      RETURN(1);
-    }
-
     /* JL May 2010: Make sure mask and training dataset have the same number of
      * voxels */
     if( DSET_NVOX( dsetMask ) != nvox) {
       snprintf(errorString, LONG_STRING, "Number of voxels in mask file: '%s' "
-          "and training dataset: '%s' does not match", options->maskFile, 
+          "and training dataset: '%s' do not match", options->maskFile, 
           options->trainFile); 
 
       /* free and return */
@@ -6765,16 +6929,33 @@ int train_classification( MODEL *model, LEARN_PARM *learn_parm, KERNEL_PARM *ker
       RETURN(1);
     }
 
+   /* JL Mar 2014: Make sure we have only one brick */
+    if ( DSET_NUM_TIMES(dsetMask) > 1 ) {
+      snprintf(errorString, LONG_STRING, "Mask file: '%s' can only contain "
+          "a single brick!", options->maskFile);
+      /* free and return */
+      freeDsetArray(dsetTrain, dsetTrainArray);
+      DSET_unload(dsetTrain);
+      DSET_unload(dsetMask);
+      RETURN(1);
+    }
+
     /* -- get pointer to mask array -- */
-    dsetMaskArrayPtr = (MaskType*)DSET_ARRAY(dsetMask,0);
+    if( (dsetMaskArrayPtr = getAllocateMaskArray(dsetMask, errorString)) == NULL ) {
+
+      /* free and return */
+      freeDsetArray(dsetTrain, dsetTrainArray);
+      DSET_unload(dsetTrain);
+      RETURN(1);
+    }
+    DSET_unload(dsetMask);
 
     /* -- count number of voxels in mask -- */
     for( i=0 ; i<nvox ; ++i ) {
       if( dsetMaskArrayPtr[i] ) nvox_masked++;
     }
     if(verbosity >= 1) {
-      INFO_message( "The number of non-zero elements in mask is: %ld\n",
-          nvox_masked );
+      INFO_message( "Number of non-zero mask voxels is: %ld\n", nvox_masked );
     }
 
     /* JL Sep. 2010: Some trivial error checking */
@@ -6785,7 +6966,7 @@ int train_classification( MODEL *model, LEARN_PARM *learn_parm, KERNEL_PARM *ker
       /* free and return */
       freeDsetArray(dsetTrain, dsetTrainArray);
       DSET_unload(dsetTrain);
-      DSET_unload(dsetMask); dsetMaskArrayPtr = NULL;
+      free(dsetMaskArrayPtr);
       RETURN(1); 
     }
   }
@@ -6811,7 +6992,7 @@ int train_classification( MODEL *model, LEARN_PARM *learn_parm, KERNEL_PARM *ker
     /* free and return */
     freeDsetArray(dsetTrain, dsetTrainArray);
     DSET_unload(dsetTrain);
-    if( options->maskFile[0] ) DSET_unload(dsetMask); 
+    if( options->maskFile[0] ) free(dsetMaskArrayPtr);
     RETURN(1);
   }
 
@@ -6823,7 +7004,7 @@ int train_classification( MODEL *model, LEARN_PARM *learn_parm, KERNEL_PARM *ker
     /* free and return */
     freeDsetArray(dsetTrain, dsetTrainArray);
     DSET_unload(dsetTrain);
-    if( options->maskFile[0] ) DSET_unload(dsetMask);
+    if( options->maskFile[0] ) free(dsetMaskArrayPtr);
     freeClassificationLabels(&labels);
     RETURN(1);
   }
@@ -6838,7 +7019,7 @@ int train_classification( MODEL *model, LEARN_PARM *learn_parm, KERNEL_PARM *ker
     /* free and return */
     freeDsetArray(dsetTrain, dsetTrainArray);
     DSET_unload(dsetTrain);
-    if( options->maskFile[0] ) DSET_unload(dsetMask);
+    if( options->maskFile[0] ) free(dsetMaskArrayPtr);
     freeClassificationLabels(&labels);
     RETURN(1);
   }
@@ -6849,7 +7030,7 @@ int train_classification( MODEL *model, LEARN_PARM *learn_parm, KERNEL_PARM *ker
     /* free and return */
     freeDsetArray(dsetTrain, dsetTrainArray);
     DSET_unload(dsetTrain);
-    if( options->maskFile[0] ) DSET_unload(dsetMask);
+    if( options->maskFile[0] ) free(dsetMaskArrayPtr);
     freeClassificationLabels(&labels);
     RETURN(1);
   }
@@ -6862,7 +7043,7 @@ int train_classification( MODEL *model, LEARN_PARM *learn_parm, KERNEL_PARM *ker
     /* free and return */
     freeDsetArray(dsetTrain, dsetTrainArray);
     DSET_unload(dsetTrain);
-    if( options->maskFile[0] ) DSET_unload(dsetMask);
+    if( options->maskFile[0] ) free(dsetMaskArrayPtr);
     freeClassificationLabels(&labels);
     freeAfniModel(&afniModel);
     RETURN(1);
@@ -6877,7 +7058,7 @@ int train_classification( MODEL *model, LEARN_PARM *learn_parm, KERNEL_PARM *ker
     /* free and return */
     freeDsetArray(dsetTrain, dsetTrainArray);
     DSET_unload(dsetTrain);
-    if( options->maskFile[0] ) DSET_unload(dsetMask);
+    if( options->maskFile[0] ) free(dsetMaskArrayPtr);
     freeClassificationLabels(&labels);
     freeAfniModel(&afniModel);
     free(censoredTarget);
@@ -6904,7 +7085,7 @@ int train_classification( MODEL *model, LEARN_PARM *learn_parm, KERNEL_PARM *ker
         /* free and return */
         freeDsetArray(dsetTrain, dsetTrainArray);
         DSET_unload(dsetTrain);
-        if( options->maskFile[0] ) DSET_unload(dsetMask);
+        if( options->maskFile[0] ) free(dsetMaskArrayPtr);
         freeClassificationLabels(&labels);
         freeAfniModel(&afniModel);
         free(censoredTarget);
@@ -6922,7 +7103,7 @@ int train_classification( MODEL *model, LEARN_PARM *learn_parm, KERNEL_PARM *ker
         /* free and return */
         freeDsetArray(dsetTrain, dsetTrainArray); 
         DSET_unload(dsetTrain); 
-        if( options->maskFile[0] ) DSET_unload(dsetMask); 
+        if( options->maskFile[0] ) free(dsetMaskArrayPtr);
         freeClassificationLabels(&labels); 
         freeAfniModel(&afniModel); 
         free(censoredTarget);
@@ -6937,7 +7118,7 @@ int train_classification( MODEL *model, LEARN_PARM *learn_parm, KERNEL_PARM *ker
         /* free and return */
         freeDsetArray(dsetTrain, dsetTrainArray); 
         DSET_unload(dsetTrain); 
-        if( options->maskFile[0] ) DSET_unload(dsetMask); 
+        if( options->maskFile[0] ) free(dsetMaskArrayPtr);
         freeClassificationLabels(&labels); 
         freeAfniModel(&afniModel); 
         free(censoredTarget);
@@ -6953,7 +7134,7 @@ int train_classification( MODEL *model, LEARN_PARM *learn_parm, KERNEL_PARM *ker
         /* free and return */
         freeDsetArray(dsetTrain, dsetTrainArray); 
         DSET_unload(dsetTrain); 
-        if( options->maskFile[0] ) DSET_unload(dsetMask); 
+        if( options->maskFile[0] ) free(dsetMaskArrayPtr);
         freeClassificationLabels(&labels); 
         freeAfniModel(&afniModel); 
         free(censoredTarget);
@@ -6971,7 +7152,7 @@ int train_classification( MODEL *model, LEARN_PARM *learn_parm, KERNEL_PARM *ker
         /* free and return */
         freeDsetArray(dsetTrain, dsetTrainArray); 
         DSET_unload(dsetTrain); 
-        if( options->maskFile[0] ) DSET_unload(dsetMask); 
+        if( options->maskFile[0] ) free(dsetMaskArrayPtr);
         freeClassificationLabels(&labels); 
         freeAfniModel(&afniModel); 
         free(censoredTarget);
@@ -7012,6 +7193,9 @@ int train_classification( MODEL *model, LEARN_PARM *learn_parm, KERNEL_PARM *ker
         
           svm_learn_classification( docsClassTrain, classTarget, sampleCount,
               nvox_masked, learn_parm, kernel_parm, &kernel_cache, model );
+
+          /* Free the memory used for the cache. */
+          kernel_cache_cleanup(&kernel_cache);
       
         }
         fflush(stdout);
@@ -7059,7 +7243,7 @@ int train_classification( MODEL *model, LEARN_PARM *learn_parm, KERNEL_PARM *ker
       /* free and return */
       freeDsetArray(dsetTrain, dsetTrainArray); 
       DSET_unload(dsetTrain); 
-      if( options->maskFile[0] ) DSET_unload(dsetMask); 
+      if( options->maskFile[0] ) free(dsetMaskArrayPtr);
       freeClassificationLabels(&labels); 
       freeAfniModel(&afniModel); 
       free(censoredTarget);
@@ -7076,7 +7260,7 @@ int train_classification( MODEL *model, LEARN_PARM *learn_parm, KERNEL_PARM *ker
       /* free and return */
       freeDsetArray(dsetTrain, dsetTrainArray); 
       DSET_unload(dsetTrain); 
-      if( options->maskFile[0] ) DSET_unload(dsetMask); 
+      if( options->maskFile[0] ) free(dsetMaskArrayPtr);
       freeClassificationLabels(&labels);
       freeAfniModel(&afniModel); 
       free(censoredTarget);
@@ -7088,7 +7272,7 @@ int train_classification( MODEL *model, LEARN_PARM *learn_parm, KERNEL_PARM *ker
   /* free memory */
   freeDsetArray(dsetTrain, dsetTrainArray); 
   DSET_unload(dsetTrain); 
-  if( options->maskFile[0] ) DSET_unload(dsetMask); 
+  if( options->maskFile[0] ) free(dsetMaskArrayPtr);
   freeClassificationLabels(&labels); 
   freeAfniModel(&afniModel); 
   free(censoredTarget);
@@ -7149,6 +7333,9 @@ int train_regression(MODEL *model, LEARN_PARM *learn_parm,
   /* JL June 2011: Modified error handling: Passing error string as argument
    * to the calling function, allocated memory is freed, RETURN(1) 
    * instead of ERROR_exit.
+   *
+   * JL March 2014: Removed byte data type restriction for mask dataset.
+   *
    */
 
   if (verbosity >= 1) INFO_message("\n++ REGRESSION (training):\n++");
@@ -7196,9 +7383,12 @@ int train_regression(MODEL *model, LEARN_PARM *learn_parm,
     }
     DSET_load(dsetMask);
 
-    if( DSET_BRICK_TYPE(dsetMask,0) != MRI_byte ) {
-      snprintf(errorString, LONG_STRING,
-          "Mask file: %s is not a byte-format brick.\n", options->maskFile);
+    /* JL April 2014: Make sure mask and training dataset have the same number of
+     * voxels */
+    if( DSET_NVOX( dsetMask ) != nvox) {
+      snprintf(errorString, LONG_STRING, "Number of voxels in mask file: '%s' "
+          "and training dataset: '%s' do not match", options->maskFile,
+          options->trainFile);
 
       /* free and return */
       DSET_unload(dsetTrain);
@@ -7206,14 +7396,30 @@ int train_regression(MODEL *model, LEARN_PARM *learn_parm,
       RETURN(1);
     }
 
-    dsetMaskArrayPtr = (MaskType*)DSET_ARRAY(dsetMask,0);
+    /* JL Mar 2014: Make sure we have only one brick */
+    if ( DSET_NUM_TIMES(dsetMask) > 1 ) {
+      snprintf(errorString, LONG_STRING, "Mask file: '%s' can only contain "
+          "a single brick!", options->maskFile);
+      /* free and return */
+      DSET_unload(dsetTrain);
+      DSET_unload(dsetMask);
+      RETURN(1);
+    }
+
+    if( (dsetMaskArrayPtr = getAllocateMaskArray(dsetMask, errorString)) == NULL ) {
+
+      /* free and return */
+      DSET_unload(dsetTrain);
+      RETURN(1);
+    }
+    DSET_unload(dsetMask);
+
+
     for( i=0 ; i<nvox ; ++i ) {
-      if( dsetMaskArrayPtr[i] )
-        nvox_masked++;
+      if( dsetMaskArrayPtr[i] ) nvox_masked++;
     }
     if(verbosity >= 1) 
-      INFO_message( "The number of non-zero elements in mask is: %ld\n",
-          nvox_masked );
+      INFO_message( "Number of non-zero mask voxels is: %ld\n", nvox_masked );
   }
   else if( !(options->outModelNoMask) ) {
     snprintf(errorString, LONG_STRING, 
@@ -7232,7 +7438,7 @@ int train_regression(MODEL *model, LEARN_PARM *learn_parm,
 
     /* free and return */
     DSET_unload(dsetTrain);
-    if( options->maskFile[0] ) DSET_unload(dsetMask);
+    if( options->maskFile[0] ) free(dsetMaskArrayPtr);
     RETURN(1);
   }
     
@@ -7244,19 +7450,19 @@ int train_regression(MODEL *model, LEARN_PARM *learn_parm,
     
     /* free and return */
     DSET_unload(dsetTrain);
-    if( options->maskFile[0] ) DSET_unload(dsetMask);
+    if( options->maskFile[0] ) free(dsetMaskArrayPtr);
     freeRegressionLabelsAndTarget(&labels, target);
     RETURN(1);
   }
   
   sampleCount=labels.n-labels.n_cnsrs; /* number of uncensored timepoints */
 
-  /*----  GET TRAINING ARRAAY -----*/
+  /*----  GET TRAINING ARRAY -----*/
   if( (dsetTrainArray = getAllocateDsetArray(dsetTrain, errorString)) == NULL ) {
     
     /* free and return */
     DSET_unload(dsetTrain);
-    if( options->maskFile[0] ) DSET_unload(dsetMask);
+    if( options->maskFile[0] ) free(dsetMaskArrayPtr);
     freeRegressionLabelsAndTarget(&labels, target);
     RETURN(1);
   }
@@ -7271,7 +7477,7 @@ int train_regression(MODEL *model, LEARN_PARM *learn_parm,
     /* free and return */
     freeDsetArray(dsetTrain, dsetTrainArray);
     DSET_unload(dsetTrain);
-    if( options->maskFile[0] ) DSET_unload(dsetMask);
+    if( options->maskFile[0] ) free(dsetMaskArrayPtr);
     freeRegressionLabelsAndTarget(&labels, target);
     RETURN(1);
   }
@@ -7282,7 +7488,7 @@ int train_regression(MODEL *model, LEARN_PARM *learn_parm,
     /* free and return */
     freeDsetArray(dsetTrain, dsetTrainArray);
     DSET_unload(dsetTrain);
-    if( options->maskFile[0] ) DSET_unload(dsetMask);
+    if( options->maskFile[0] ) free(dsetMaskArrayPtr);
     freeCensoredRegressionArray(dsetTrainArrayCensored, &labels);
     freeRegressionLabelsAndTarget(&labels, target);
     RETURN(1);
@@ -7297,7 +7503,7 @@ int train_regression(MODEL *model, LEARN_PARM *learn_parm,
       /* free and return */
       freeDsetArray(dsetTrain, dsetTrainArray);
       DSET_unload(dsetTrain);
-      if( options->maskFile[0] ) DSET_unload(dsetMask);
+      if( options->maskFile[0] ) free(dsetMaskArrayPtr); 
       freeCensoredRegressionArray(dsetTrainArrayCensored, &labels);
       freeRegressionLabelsAndTarget(&labels, target);
       freeAfniModel(&afniModel);
@@ -7313,7 +7519,7 @@ int train_regression(MODEL *model, LEARN_PARM *learn_parm,
     /* free and return */
     freeDsetArray(dsetTrain, dsetTrainArray);
     DSET_unload(dsetTrain);
-    if( options->maskFile[0] ) DSET_unload(dsetMask);
+    if( options->maskFile[0] ) free(dsetMaskArrayPtr);
     freeCensoredRegressionArray(dsetTrainArrayCensored, &labels);
     freeRegressionLabelsAndTarget(&labels, target);
     freeAfniModel(&afniModel);
@@ -7337,17 +7543,20 @@ int train_regression(MODEL *model, LEARN_PARM *learn_parm,
 
     }
     else { /* non-linear kernel */
-      kernel_cache_init(&kernel_cache, sampleCount, *kernel_cache_size);
+      kernel_cache_init(&kernel_cache, 2*sampleCount, *kernel_cache_size);
 
       svm_learn_regression ( docsTrain, target, sampleCount, nvox_masked,
           learn_parm, kernel_parm, &kernel_cache, model);
+
+      /* Free the memory used for the cache. */
+      kernel_cache_cleanup(&kernel_cache);
     }
   }
-  
+
   /*----- UPDATE AFNI-MODEL -----*/
   if ( !options->docFileOnly[0] ) {
     addToAfniModel(&afniModel, model, learn_parm,  &(labels.cnsrs[0]), options,
-      0, sampleCount*2, 0, 0);
+      0, sampleCount, 0, 0);
   }
 
   /*---- UPDATE MODEL-MAPS -----*/
@@ -7369,7 +7578,7 @@ int train_regression(MODEL *model, LEARN_PARM *learn_parm,
       /* free and return */
       freeDsetArray(dsetTrain, dsetTrainArray);
       DSET_unload(dsetTrain);
-      if( options->maskFile[0] ) DSET_unload(dsetMask);
+      if( options->maskFile[0] ) free(dsetMaskArrayPtr);
       freeCensoredRegressionArray(dsetTrainArrayCensored, &labels);
       freeRegressionLabelsAndTarget(&labels, target);
       freeModel(model, &afniModel, TRAIN);
@@ -7389,7 +7598,7 @@ int train_regression(MODEL *model, LEARN_PARM *learn_parm,
       /* free and return */
       freeDsetArray(dsetTrain, dsetTrainArray);
       DSET_unload(dsetTrain);
-      if( options->maskFile[0] ) DSET_unload(dsetMask);
+      if( options->maskFile[0] ) free(dsetMaskArrayPtr);
       freeCensoredRegressionArray(dsetTrainArrayCensored, &labels);
       freeRegressionLabelsAndTarget(&labels, target);
       freeModel(model, &afniModel, TRAIN);
@@ -7410,7 +7619,7 @@ int train_regression(MODEL *model, LEARN_PARM *learn_parm,
   /*----- FREE MEMORY -----*/
   freeDsetArray(dsetTrain, dsetTrainArray);
   DSET_unload(dsetTrain);
-  if( options->maskFile[0] ) DSET_unload(dsetMask);
+  if( options->maskFile[0] ) free(dsetMaskArrayPtr);
   freeCensoredRegressionArray(dsetTrainArrayCensored, &labels);
   freeRegressionLabelsAndTarget(&labels, target);
   if (!options->docFileOnly[0]) freeModel(model, &afniModel, TRAIN);

@@ -1,3 +1,40 @@
+/*****************************************************************************/
+/*                                                                           */
+/* plug_3dsvm.c                                                              */
+/*                                                                           */
+/* 3dsvm GUI and plugin for AFNI                                             */
+/*                                                                           */
+/* Copyright (C) 2007 Stephen LaConte                                        */
+/*                                                                           */
+/* This file is part of 3dsvm                                                */
+/*                                                                           */
+/* 3dsvm is free software: you can redistribute it and/or modify             */
+/* it under the terms of the GNU General Public License as published by      */
+/* the Free Software Foundation, either version 3 of the License, or         */
+/* (at your option) any later version.                                       */
+/*                                                                           */
+/* 3dsvm is distributed in the hope that it will be useful,                  */
+/* but WITHOUT ANY WARRANTY; without even the implied warranty of            */
+/* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the             */
+/* GNU General Public License for more details.                              */
+/*                                                                           */
+/* You should have received a copy of the GNU General Public License         */
+/* along with 3dsvm.  If not, see <http://www.gnu.org/licenses/>.            */
+/*                                                                           */
+/*                                                                           */
+/* The SVM-light software is copyrighted by Thorsten Joachims                */
+/* and is redistributed by permission.                                       */
+/*                                                                           */
+/* The SVM-light software is free only for non-commercial use. It must not   */
+/* be distributed without prior permission of the author. The author is not  */
+/* responsible for implications from the use of this software.               */
+/*                                                                           */
+/*                                                                           */
+/* For AFNI's copyright please refer to ../README.copyright.                 */
+/*                                                                           */
+/*****************************************************************************/
+
+
 /* PLUG_AFNI_SVM_LIGHT */
 #include "3dsvm_common.h"
 
@@ -35,7 +72,7 @@ PLUGIN_interface* PLUGIN_init( int ncall )
   char *help_contribution_string;
   int str_length = strlen(plugin_helpstring) + strlen(contribution_string) + 2;
 
-  /* --- register dirver for plugin (See README.driver) --- */
+  /* --- register driver for plugin (See README.driver) --- */
   if (!ncall) {/* ZSS Nov 2011: Call just once at first or get yelled at */
     AFNI_driver_register( "3DSVM", drive_3dsvm_plugin ) ;
   }

@@ -25,6 +25,7 @@ int main( int argc , char * argv[] )
 {
    THD_3dim_dataset * dset ;
    int iarg , all = 0, verbose = 0, cnt = 0;
+   int rval = -1;  /* exit(1) if all datasets fail   7 Apr 2015 [rickr] */
 
    if( argc < 2 || strncmp(argv[1],"-help",4) == 0 ) Syntax() ;
 
@@ -38,9 +39,11 @@ int main( int argc , char * argv[] )
    for( ; iarg < argc ; iarg++ ){
       dset = THD_open_dataset( argv[iarg] ) ;
       if( dset == NULL ){
+         if ( rval == -1 ) rval = 1; /* if unset, set bad exit code */
          printf("-1\n") ;
          continue ;
       }
+      rval = 0; /* set good exit code */
       if (!all) {
          if (verbose) {
             printf("%s: %d\n",
@@ -63,5 +66,7 @@ int main( int argc , char * argv[] )
       }
       THD_delete_3dim_dataset( dset , False ) ;
    }
-   exit(0) ;
+
+   if( rval == -1 ) exit(0) ; /* unset rval is okay */
+   exit(rval) ;
 }

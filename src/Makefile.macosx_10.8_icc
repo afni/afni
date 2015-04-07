@@ -5,6 +5,12 @@ LZLIB     = -lz
 USE_GIFTI = -DHAVE_GIFTI
 LGIFTI    = /usr/local64/lib/libexpat64.a
 
+# ------------------------------
+# python from C
+IPYTHON     = -I/sw/include/python2.7 -DSELENIUM_READY
+LPYTHON     = -L/sw/lib/python2.7/config
+LDPYTHON    = -lpython2.7
+
 # ----------------------------------------------------------------------
 # X configuration
 #
@@ -47,7 +53,9 @@ CCOLD  = $(CC)
 OMPFLAG = -openmp -openmp-link static -DUSE_OMP
 
 IFLAGS = -I. $(XROOT_I) -I/usr/local/include -I/usr/X11R6/include -I/sw/include 
-LFLAGS = -L/opt/intel/Compiler/11.0/059/lib -L. $(XROOT_L) -L/usr/lib -L/usr/local/lib -L/usr/X11R6/lib -L/sw/lib  -Wl,-x -Wl,-multiply_defined -Wl,warning -Wl,-bind_at_load
+LFLAGS = -L/opt/intel/Compiler/11.0/059/lib -L. $(XROOT_L) -L/usr/lib -L/usr/local/lib  \
+         -L/usr/X11R6/lib -L/sw/lib  -Wl,-x -Wl,-multiply_defined \
+         -Wl,warning -Wl,-bind_at_load $(LPYTHON)
 
 CCSVD  = icc -m64 -O0
 
@@ -84,7 +92,8 @@ EXPROGS = gifti_tool $(GSLPROGS)
 
 # for dynamic linking
 
-LLIBS  = -lmri -lf2c $(XLIBS) -lXft -lfontconfig -lpng -liconv -lXmu -lXp -lXpm -lXext -lX11 $(LZLIB) $(LGIFTI) -lm -lc
+LLIBS  = -lmri -lf2c $(XLIBS) -lXft -lfontconfig $(LDPYTHON) -lpng -liconv \
+         -lXmu -lXp -lXpm -lXext -lX11 $(LZLIB) $(LGIFTI) -lm -lc
 
 # vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
 # For suma 
