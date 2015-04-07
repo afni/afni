@@ -8,6 +8,10 @@ LZLIB    = -lz
 USE_GIFTI = -DHAVE_GIFTI
 LGIFTI    = /usr/lib/libexpat.a
 
+# ------------------------------
+# python from C (off for now)
+# IPYTHON  = -DSELENIUM_READY -I/usr/include/python2.4
+# LDPYTHON = -lpython2.4
 
 # ----------------------------------------------------------------------
 # X configuration
@@ -55,7 +59,7 @@ CCD    = $(CC) $(CCDEBS)
 CCOLD  = $(CC)
 
 IFLAGS = -I. $(XROOT_I) -I/usr/include
-LFLAGS = -L. -L/usr/lib
+LFLAGS = -L. -L/usr/lib -L/usr/local/lib
 
 CCSVD = /usr/bin/gcc -O0
 
@@ -94,7 +98,8 @@ EXPROGS = gifti_tool $(GSLPROGS)
 
 # for static linking to Motif, dynamic to all else
 
-LLIBS  = -lmri -lf2c $(XLIBS) -lXft -lXp -lXpm -lXext -lXmu -lSM -lICE -lX11 -ljpeg -lpng $(LZLIB) $(LGIFTI) -lm  -ldl -lc -L/usr/local/lib
+LLIBS  = -lmri -lf2c $(XLIBS) -lXft -lXp -lXpm -lXext -lXmu -lSM -lICE -lX11 \
+         $(LDPYTHON) -ljpeg -lpng $(LZLIB) $(LGIFTI) -lm  -ldl -lc
 
 # for static linking, as far as possible
 
