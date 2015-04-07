@@ -3284,7 +3284,7 @@ int SUMA_Register_GUI_Help(char *which, char *hint, char *help,
                         SUMA_Name_GUI_Help(gwh), 
                   LocalHead ? "":"\nFurther warnings for this name curtailed.");
             if (!sstmp) SUMA_strncat(WhinedNames,buf, 1023);
-            SUMA_DUMP_TRACE("Trace at duplicate GUI name");
+            if (LocalHead) SUMA_DUMP_TRACE("Trace at duplicate GUI name");
             SUMA_free(gwh);
          }
          SUMA_RETURN(YUP);
