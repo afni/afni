@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  8,  Apr, 2015, RCR, "afni_system_check.py", MICRO, TYPE_ENHANCE,
+   "check for FATCAT_DEMO",
+   NULL
+ } ,
+
  {  7,  Apr, 2015, RCR, "afni_proc.py", MICRO, TYPE_BUG_FIX,
    "TLRC_warped_dsets: no view update if type != BRIK",
    NULL
