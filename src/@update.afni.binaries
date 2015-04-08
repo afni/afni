@@ -67,6 +67,7 @@ set use_curl    = 0
 set do_apsearch = 1     # run apserach -update_all_afni_help
 set do_recur    = 1     # download a new version of @uab, first
 set quick       = 0     # no fancies (recur, apsearch)
+set revert      = 0     # Revert binaries to those in backup directory
 
 set bad_opt     = ''    # if bad_opt and do_recur, see if we continue
 
@@ -101,6 +102,8 @@ while ( $ac <= $#argv )
         exit 0
     else if ( "$argv[$ac]" == "-hist" ) then
         goto SHOW_HIST
+    else if ( "$argv[$ac]" == "-revert" ) then
+        set revert = 1
     else if ( "$argv[$ac]" == "-package" ) then
         @ ac ++
         if ( $ac > $#argv ) then
@@ -233,6 +236,10 @@ if ( $help ) then
     echo ""
     echo "    -test                 : just attempt the download and quit"
     echo ""
+#    echo "    -revert               : Revert binaries to those in the "
+#    echo "                            ABIN/auto_backup.PACKAGE directory."
+#    echo "                            Use this option if the last update of"
+#    echo "                            the binaries got you a lump of coal." 
     echo "Note that the user must have write permissions in the ABIN"
     echo "directory."
     echo ""
@@ -344,6 +351,10 @@ echo "   install dir: $abin..."
 if ( -d $abin ) then
    echo "-- have install dir"
 else
+   if ( $revert == 1 ) then
+      echo "** Nothing to revert from"
+      exit 1
+   endif
    echo "++ creating install dir"
    mkdir -pv $abin
    if ( $status ) then
@@ -357,6 +368,25 @@ endif
 # note appropriate backup directory
 set date = `date +%Y_%m_%d`
 set backup_dir = auto_backup.$package
+
+#Revert only
+if ($revert == 1) then
+   # Revert to backup dir
+   if ( ! -d $abin/$backup_dir ) then
+      echo "** failed to find backup directory $abin/$backup_dir"
+      exit 1
+   else
+      echo "Running rsync -ra $abin/$backup_dir/ $abin/"
+      rsync -ra $abin/$backup_dir/ $abin/
+      if ( $status ) then
+         echo "** rsync failed"
+      else
+         echo "Binaries now replaced with those in $abin/$backup_dir"
+         exit 0 
+      endif
+   endif
+   exit 0
+endif
 
 # ----------------------------------------------------------------------
 # go to the binary directory and check that we can write
