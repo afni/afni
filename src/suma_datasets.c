@@ -6307,7 +6307,6 @@ int SUMA_InsertDsetPointer (SUMA_DSET **dsetp, DList *DsetList, int replace)
       dprev=NULL;
    }
 
-   
    if ((dprev = SUMA_FindDset_ns (s,  DsetList))) {
       snprintf(stmp, 198, "Dset %s has similar idcode (%s) in list as \n"
                      "dset %s. Trying replacement.\n", 
@@ -6326,7 +6325,7 @@ int SUMA_InsertDsetPointer (SUMA_DSET **dsetp, DList *DsetList, int replace)
                         "in your ~/.sumarc or ~/.afnirc files.\n");
              SUMA_RETURN(0);
          } else {
-            sprintf(stmp,  
+            snprintf(stmp, 198,  
                   "Dset match based on filename, although IDs did not match.\n"
                   "Allowing replacement per SUMA_AllowFilenameDsetMatch\n"
                   "environment variable setting.\n");
@@ -6365,7 +6364,7 @@ int SUMA_InsertDsetPointer (SUMA_DSET **dsetp, DList *DsetList, int replace)
          *dsetp = dprev;
       } else {
          SUMA_LH("Not Replacing");
-         sprintf(stmp,  "Dset with similar idcode (%s)\n"
+         snprintf(stmp, 198, "Dset with similar idcode (%s)\n"
                         "found in list. \n"
                         "Replacement option is turned off.\n"
                         "Set 'SUMA_AllowDsetReplacement = YES'\n"
@@ -6835,7 +6834,7 @@ char *SUMA_Taylor_Bundle_Info(TAYLOR_BUNDLE *tb, int show_maxu)
 
       s = NULL;
       for (ii=0; ii<show_max; ++ii) {
-         sprintf(stmp, "      Bun.Trc %d ++> ", ii);
+         snprintf(stmp, 62,"      Bun.Trc %d ++> ", ii);
          s = SUMA_append_replace_string(s,
                SUMA_Taylor_Tract_Info(tb->tracts+ii, show_maxu),stmp,2);
       }
@@ -6879,7 +6878,7 @@ char * SUMA_Taylor_Network_Info(TAYLOR_NETWORK *net,
 
       s = NULL;
       for (ii=0; ii<show_max; ++ii) {
-         sprintf(stmp, "   Net.Bun. %d --> ", ii);
+         snprintf(stmp, 62, "   Net.Bun. %d --> ", ii);
          s = SUMA_append_replace_string(s,
                SUMA_Taylor_Bundle_Info(net->tbv[ii], show_maxub),stmp,2);
       }
@@ -8383,7 +8382,7 @@ char * SUMA_GetDsetValInCol(SUMA_DSET *dset, int ind, int ival, double *dval)
    vtp = SUMA_ColType2TypeCast (ctp) ;
    if (LocalHead) {
       char stmp[1000]={""};
-      sprintf(stmp,
+      snprintf(stmp, 998,
             "%s:\n"
             "dset %p, label %s, filen %s\n"
             "ind %d, ival %d\n"
