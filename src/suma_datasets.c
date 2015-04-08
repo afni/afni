@@ -1452,6 +1452,7 @@ NI_element * SUMA_GetAtlasLabelTable(SUMA_DSET *dset)
    static char FuncName[]={"SUMA_GetAtlasLabelTable"};
    NI_element *nel=NULL;
    SUMA_Boolean LocalHead = NOPE;
+   SUMA_ENTRY;
    /* This is for volumes only */
    nel = SUMA_FindDsetAttributeElement (dset, "ATLAS_LABEL_TABLE");
    SUMA_LH("ATLAS_LABEL_TABLE  nel:%p", nel);
@@ -1463,6 +1464,7 @@ NI_element * SUMA_GetValueLabelTable(SUMA_DSET *dset)
    static char FuncName[]={"SUMA_GetValueLabelTable"};
    NI_element *nel=NULL;
    SUMA_Boolean LocalHead = NOPE;
+   SUMA_ENTRY;
    /* This is for volumes only */
    nel = SUMA_FindDsetAttributeElement (dset, "VALUE_LABEL_DTABLE");
    SUMA_LH("VALUE_LABEL_DTABLE  nel:%p", nel);
@@ -6263,6 +6265,7 @@ int SUMA_InsertDsetPointer (SUMA_DSET **dsetp, DList *DsetList, int replace)
 
    SUMA_ENTRY;
    
+   SUMA_LH("About to insert dset pointer %p", dsetp ? *dsetp:NULL);
    if (!DsetList)  { SUMA_SL_Err("Need Dset List"); SUMA_RETURN(0); }
    if (!dsetp) { SUMA_SL_Err("dsetp is NULL"); SUMA_RETURN(0); }
    else dset = *dsetp;  /* dset is the new pointer */
@@ -6289,14 +6292,16 @@ int SUMA_InsertDsetPointer (SUMA_DSET **dsetp, DList *DsetList, int replace)
          won't occur but it is a start until I figure out
          the problem with hashcode */
       char *name=NULL, *mname=NULL;
+      SUMA_LH("Hash code collision of (%s) with dset %p (%s)", 
+               SDSET_LABEL(dset), dprev, SDSET_LABEL(dprev));
       if (!(mname = SDSET_FILENAME(dprev))) mname = "NULLITY";
       if (!(name = SDSET_FILENAME(dset))) name = "NULLITY";
       if (name && mname && strcmp(name, mname)) {
-         char *stmp;
+         char *stimpy;
          /* give dset a new ID */
-         stmp = SUMA_append_replace_string(name, SDSET_ID(dset),"_",0);
-         SUMA_NewDsetID2(dset, stmp);
-         SUMA_ifree(stmp);
+         stimpy = SUMA_append_replace_string(name, SDSET_ID(dset),"_",0);
+         SUMA_NewDsetID2(dset, stimpy);
+         SUMA_ifree(stimpy);
          s= SDSET_ID(dset);
       }
       dprev=NULL;
@@ -6304,7 +6309,7 @@ int SUMA_InsertDsetPointer (SUMA_DSET **dsetp, DList *DsetList, int replace)
 
    
    if ((dprev = SUMA_FindDset_ns (s,  DsetList))) {
-      sprintf(stmp,  "Dset %s has similar idcode (%s) in list as \n"
+      snprintf(stmp, 198, "Dset %s has similar idcode (%s) in list as \n"
                      "dset %s. Trying replacement.\n", 
                      SUMA_sdset_filename(dset), s, SUMA_sdset_filename(dprev));
    } else if (!dprev && replace) { /* try a looser search */
