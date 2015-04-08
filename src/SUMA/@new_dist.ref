@@ -395,7 +395,7 @@ endif
 
 if ($mcwmalloc == 1) then
    #Make sure it is there
-   set ll = "s:CEXTRA\( \)*=\(.\)*:CEXTRA = -DUSE_TRACING  -UDONT_USE_MCW_MALLOC:"
+   set ll = "s:CEXTRA\( \)*=:CEXTRA = -DUSE_TRACING  -UDONT_USE_MCW_MALLOC :"
    sed "$ll" Makefile | sed 's/-DDONT_USE_MCW_MALLOC//g'> ___mm
    mv ___mm  Makefile
 else if ($mcwmalloc == -1) then
