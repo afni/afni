@@ -113,6 +113,7 @@ class SysInfo:
       # locate various data trees, and possibly show recent history
       self.show_data_dir_info('AFNI_data6', 'history.txt')
       self.show_data_dir_info('suma_demo', 'README.archive_creation')
+      self.show_data_dir_info('FATCAT_DEMO', 'README.timestamp')
 
       evar = 'AFNI_ATLAS_DIR'
       tryenv = 0                        # might suggest setting evar
