@@ -518,7 +518,7 @@ if ( $do_recur ) then
    else
       echo "-- $prog is current, continuing with this version..."
       if ( "$bad_opt" != "" ) then
-         echo "** unknown option $argv[$ac]"
+         echo "** unknown option $bad_opt"
          exit 1
       endif
    endif
