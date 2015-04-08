@@ -257,8 +257,8 @@ ATLAS_POINT_LIST * dset_niml_to_atlas_list(THD_3dim_dataset *dset)
          if(ngr) NI_free_element(ngr) ;
          RETURN(NULL);
       }
-      NI_free_element(ngr) ;
       apl = niml_atlas_label_table_to_atlas_list(ngr);
+      NI_free_element(ngr) ; ngr = NULL;
       RETURN(apl);
    }
    else {
