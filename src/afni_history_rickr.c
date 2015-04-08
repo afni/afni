@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  8,  Apr, 2015, RCR, "@update.afni.binaries", MINOR, TYPE_ENHANCE,
+   "updated to Ziad's new -revert option",
+   NULL
+ } ,
+
  {  8,  Apr, 2015, RCR, "afni_system_check.py", MICRO, TYPE_ENHANCE,
    "check for FATCAT_DEMO",
    NULL
