@@ -106,7 +106,15 @@ static unsigned char PADDING[64] = {
 # define               XOR_NUM 1024
  static int            XOR_iii = -1 ;
  static unsigned char *XOR_bbb = NULL ;
+ static int            XOR_use = 1 ;
 #endif /* USE_XOR */
+
+void MD5_set_xor_use(int xx){
+#ifdef USE_XOR
+  XOR_use = xx ;
+#endif
+}
+/*----------------------------------------------------------------------*/
 
 /*----------------------------------------------------------------------*/
 /*! MD5 initialization. Begins an MD5 operation, writing a new context.
