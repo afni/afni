@@ -7577,42 +7577,6 @@ void SUMA_cb_createSurfaceCont(Widget w, XtPointer data, XtPointer callData)
    SUMA_RETURNe;
 }
 
-SUMA_Boolean SUMA_is_Documented_Widget(char *wname)
-{
-   static char FuncName[]={"SUMA_is_Documented_Widget"};
-   SUMA_Boolean LocalHead = NOPE;
-   
-   SUMA_ENTRY;
-   
-   if (!wname) SUMA_RETURN(NOPE);
-   if (!SUMAg_CF->DocumentedWidgets) {
-      SUMAg_CF->DocumentedWidgets = SUMA_All_Documented_Widgets();
-   }
-   if (!SUMAg_CF->DocumentedWidgets) {
-      SUMA_S_Err("Failed to initialize!");
-      SUMA_RETURN(NOPE);
-   }
-   if (strstr(SUMAg_CF->DocumentedWidgets, wname)) SUMA_RETURN(YUP);
-   
-   SUMA_LH("Widget %s not in:\n%s", wname, SUMAg_CF->DocumentedWidgets);
-   SUMA_RETURN(NOPE); 
-}
-
-char *SUMA_All_Documented_Widgets(void)
-{
-   static char FuncName[]={"SUMA_All_Documented_Widgets"};
-   char *s=NULL;
-   SUMA_ENTRY;
-   s = SUMA_append_replace_string(s,SUMA_Help_AllSumaCont(TXT),"\n",3);
-   s = SUMA_append_replace_string(s,SUMA_Help_AllSurfCont(TXT),"\n",3);
-   s = SUMA_append_replace_string(s,SUMA_Help_AllGraphCont(TXT),"\n",3);
-   s = SUMA_append_replace_string(s,SUMA_Help_AllTractCont(TXT),"\n",3);
-   s = SUMA_append_replace_string(s,SUMA_Help_AllMaskCont(TXT),"\n",3);
-   s = SUMA_append_replace_string(s,SUMA_Help_AllVolCont(TXT),"\n",3);
-   s = SUMA_append_replace_string(s,SUMA_Help_AllROICont(TXT),"\n",3);
-   SUMA_RETURN(s);
-}
-
 SUMA_Boolean SUMA_WriteCont_Help(SUMA_DO_Types do_type, TFORM targ, char *fname)
 {
    static char FuncName[]={"SUMA_WriteCont_Help"};
