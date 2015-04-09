@@ -12,6 +12,7 @@ Welcome to AFNI's documentation!
    :numbered: 2
    :includehidden:
 
+   .. afnitoc1
    sumatoc1
    fatcattoc1
    tutorialstoc1
