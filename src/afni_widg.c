@@ -5094,6 +5094,9 @@ STATUS("making dmode->rowcol") ;
    /*----- rowcol to hold all program controls stuff -----*/
 
 STATUS("making prog->rowcol") ;
+   SUMA_Register_Widget_Help( prog->frame, 0, "AfniCont->ProgCont", 
+                             "rowcol to hold all program controls stuff", 
+                             "Wish to write something here?");
 
    prog->rowcol =
       XtVaCreateWidget(
@@ -5217,9 +5220,13 @@ STATUS("making prog->rowcol") ;
    /* check for -disable_done                21 Aug 2008 [rickr] */
    XtSetSensitive( prog->quit_pb, GLOBAL_argopt.disable_done == 0 ) ;
 
+   #if 0
    MCW_register_help( prog->quit_pb , AFNI_quit_help ) ;
    MCW_register_hint( prog->quit_pb , "Click twice to close window" ) ;
-
+   #else
+   SUMA_Register_Widget_Help(prog->quit_pb, 1, "AfniCont->ProgCont->done", 
+                             "Click twice to close window", AFNI_quit_help);
+   #endif
    prog->quit_first = True ;  /* mark this button as not pressed yet */
 
    /*----- manage the managers -----*/

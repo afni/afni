@@ -51,6 +51,7 @@
    #include "suma_utils.h"
    #include "suma_string_manip.h"
    #include "suma_datasets.h"
+   #include "suma_help.h"
    #include "SUMA/SUMA_Macros.h"  
    #include "SUMA/SUMA_StringParse.h"
    #define SUMA_ENTRY ENTRY(FuncName)
