@@ -1305,13 +1305,13 @@ def db_cmd_volreg(proc, block):
         cmd = cmd + '\n'
 
         if dowarp or doadwarp:
+            afile = proc.tlrcanat.shortinput(head=1)
             cmd = cmd + \
-                "# verify that we have a +tlrc warp dataset\n"          \
-                "if ( ! -f %s.HEAD ) then\n"                            \
-                '    echo "** missing +tlrc warp dataset: %s.HEAD" \n'  \
-                '    exit\n'                                            \
-                'endif\n\n'                                             \
-                % (proc.tlrcanat.pv(), proc.tlrcanat.pv())
+                "# verify that we have a +tlrc warp dataset\n"    \
+                "if ( ! -f %s ) then\n"                           \
+                '    echo "** missing +tlrc warp dataset: %s" \n' \
+                '    exit\n'                                      \
+                'endif\n\n' % (afile, afile)
 
         if dowarp or do_extents: cmd = cmd + '# register and warp\n'
 
@@ -7781,6 +7781,16 @@ g_help_string = """
             Please see 'auto_warp.py -help' for more information.
             See also -tlrc_opts_at, -anat_uniform_method.
 
+        -tlrc_NL_warped_dsets ANAT WARP.1D NL_WARP: import auto_warp.py output
+
+                e.g. -tlrc_NL_warped_dsets anat.nii           \\
+                                           anat.un.aff.Xat.1D \\
+                                           anat.un.aff.qw_WARP.nii 
+
+            If the user has already run auto_warp.py on the subject anatomy
+            to transform (non-linear) to standard space, those datasets can
+            be input to save re-processing time.
+
         -tlrc_NL_awpy_rm Y/N    : specify whether to remove awpy directory
 
                 e.g.     -tlrc_NL_awpy_rm no
@@ -9346,6 +9356,31 @@ g_help_string = """
 
             See also -mask_segment_anat.
             Please see '3dSeg -help' for motion information on the masks.
+
+        -regress_ROI_erode LABEL LABEL ...: erode masks for given labels
+
+                e.g. -regress_ROI_erode WMe
+
+            Perform a single erosion step on the mask dataset for the given
+            label.  This is done on the anatomical grid.
+
+            rcr - add more
+
+        -regress_ROI_maskave LABEL MASK_SET : regress out average masked signal
+
+                e.g. -regress_ROI_maskave WMe WMe+orig
+
+            The mask dataset must be aligned with the input anatomy.
+
+            rcr - add more
+
+        -regress_ROI_PC LABEL NUM_PC MASK_SET : regress out PCs within mask
+
+                e.g. -regress_ROI_PC ventricles 3 LatVent+orig
+
+            The mask dataset must be aligned with the input anatomy.
+
+            rcr - add more
 
         -regress_RSFC           : perform bandpassing via 3dRSFC
 

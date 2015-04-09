@@ -458,9 +458,10 @@ g_history = """
         -tcat_remove_first_trs can take a list
         - done for P Hamilton
     4.36 Apr  2, 2015: added -tlrc_NL_warped_dsets to import 3dQwarp result
+    4.37 Apr  9, 2015: fix for NIFTI NL anat; add a little help
 """
 
-g_version = "version 4.36, April 2, 2015"
+g_version = "version 4.37, April 9, 2015"
 
 # version of AFNI required for script execution
 g_requires_afni = "1 Apr 2015" # 1d_tool.py uncensor from 1D
@@ -1961,9 +1962,21 @@ class SubjProcSream:
         # copy and -tlrc_NL_warped_dsets files (self.nlw_priors dsets)
         if len(self.nlw_priors) == 3:
            tstr = '# copy external -tlrc_NL_warped_dsets datasets\n'
-           for an in self.nlw_priors:
+
+           # if priors[0].type == NIFTI, convert to AFNI   9 Apr 2015
+           an = self.nlw_priors[0]
+           tstr += '3dcopy %s %s/%s\n'%(an.rel_input(), self.od_var, an.prefix)
+
+           for an in self.nlw_priors[1:]:
               tstr += '3dcopy %s %s/%s\n' % \
                       (an.rel_input(), self.od_var, an.out_prefix())
+
+           # if priors[0].type == NIFTI, convert to AFNI   9 Apr 2015
+           if self.nlw_priors[0].type == 'NIFTI':
+              an = self.nlw_priors[0]
+              an = afni_name('%s+tlrc' % an.prefix)
+              self.nlw_priors[0] = an
+
            self.write_text(add_line_wrappers(tstr))
            self.write_text("%s\n" % stat_inc)
 
