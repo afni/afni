@@ -154,6 +154,16 @@ if ($do_thelp) then
    end
 endif
 
+APSEARCH:
+if ( ! -d tutorials/Coding/auto_inc ) mkdir -p tutorials/Coding/auto_inc
+if ( $do_markup_demo ) then
+   cd tutorials/Coding/auto_inc
+   printf "which outputs this help message (need to beautify at some point)::\n\n" > apsearch_txt.inc
+   apsearch -doc_markup_sample >& ___m
+   sed 's/^/   /' ___m >>& apsearch_txt.inc
+   \rm -f ___m
+endif
+
 if ($do_phelp) then
    set plist = (`apsearch -list_all_afni_progs`)
    #set plist = (3dinfo @SUMA_Make_Spec_FS suma afni)
@@ -220,6 +230,7 @@ PARSE:
    set do_thelp = 0
    set do_phelp = 0
    set help_max_cnt = 1000
+   set do_markup_demo = 0
    set webupdate = 0
    while ($cnt <= $Narg)
       if ("$argv[$cnt]" == "-d" || "$argv[$cnt]" == "-echo") then
@@ -232,6 +243,16 @@ PARSE:
          goto HELP
       endif
       
+      if ("$argv[$cnt]" == "-no_markup_demo") then
+         set do_markup_demo = 0
+         goto CONTINUE
+      endif
+
+      if ("$argv[$cnt]" == "-markup_demo") then
+         set do_markup_demo = 1
+         goto CONTINUE
+      endif
+
       if ("$argv[$cnt]" == "-no_html") then
          set do_html = 0
          goto CONTINUE
