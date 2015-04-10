@@ -358,8 +358,8 @@ STATUS("creating top_form") ;
             XmNinitialResourcesPersistent , False ,
          NULL ) ;
 
-   MCW_register_help( vwid->top_form , AFNI_tophelp ) ;
-
+   SUMA_Register_Widget_Help( vwid->top_form, 0, "AfniCont", 
+                              NULL, AFNI_tophelp);
    vwid->file_dialog = NULL ; /* Mar 1997 */
 
    /* create pixmaps, if desired */
@@ -5096,7 +5096,18 @@ STATUS("making dmode->rowcol") ;
 STATUS("making prog->rowcol") ;
    SUMA_Register_Widget_Help( prog->frame, 0, "AfniCont->ProgCont", 
                              "rowcol to hold all program controls stuff", 
-                             "Wish to write something here?");
+                             "Here is where the help would go."
+":SPX:\n\n"
+"Although this image is in the string used by BHelp, it only seen "
+"by the Sphinx.\n\n"
+"   .. figure:: media/william-shakespeare.jpg\n"
+"      :align: center\n"
+"      :figwidth: 50%\n"
+"      :name: Bill\n"
+"      :target: http://www.poetryfoundation.org/bio/william-shakespeare\n"
+"\n"
+"      :ref:`Frequent contributor<Bill>`\n"
+":SPX:\n\n");
 
    prog->rowcol =
       XtVaCreateWidget(

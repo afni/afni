@@ -51,6 +51,7 @@ char * AFNI_Help_AllMainCont (TFORM targ)
    int k=0;
    SUMA_STRING *SS = NULL;
    char *worder[] = {
+                     "AfniCont",
                      "AfniCont->ProgCont",
                      "AfniCont->ProgCont->done",
                      NULL };
