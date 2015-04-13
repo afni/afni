@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  9,  Apr, 2015, RCR, "afni_proc.py", MICRO, TYPE_BUG_FIX,
+   "fix -tlrc_NL_warped_dsets for NIFTI anat; add some -regress_ROI_PC help",
+   NULL
+ } ,
+
  {  8,  Apr, 2015, RCR, "@update.afni.binaries", MINOR, TYPE_ENHANCE,
    "updated to Ziad's new -revert option",
    NULL
