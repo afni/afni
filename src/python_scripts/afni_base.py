@@ -91,21 +91,27 @@ class afni_name:
       else:
          return self.rppve() 
 
-   def rel_input(self):
+   def rel_input(self, head=0):
       """relative path to dataset in 'input' format
          e.g. +orig, but no .HEAD
          e.g. would include .nii"""
       if self.type == 'BRIK':
-         return self.rpv()
+         name = self.rpv()
+         if head: return '%s%s' % (name, '.HEAD')
+         else:    return name
       else:
          return self.rpve() 
 
-   def shortinput(self):
+   def shortinput(self, head=0):
       """dataset name in 'input' format
          - no directory prefix
-         - include extension if non-BRIK format"""
+         - include extension if non-BRIK format
+         - if head: include .HEAD suffix
+      """
       if self.type == 'BRIK':
-         return self.pv()
+         name = self.pv()
+         if head: return '%s%s' % (name, '.HEAD')
+         else:    return name
       else:
          return self.pve() 
 

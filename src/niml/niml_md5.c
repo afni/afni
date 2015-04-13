@@ -101,6 +101,22 @@ static unsigned char PADDING[64] = {
   }
 
 /*----------------------------------------------------------------------*/
+#define USE_XOR
+#ifdef  USE_XOR
+# define               XOR_NUM 1024
+ static int            XOR_iii = -1 ;
+ static unsigned char *XOR_bbb = NULL ;
+ static int            XOR_use = 1 ;
+#endif /* USE_XOR */
+
+void MD5_set_xor_use(int xx){
+#ifdef USE_XOR
+  XOR_use = xx ;
+#endif
+}
+/*----------------------------------------------------------------------*/
+
+/*----------------------------------------------------------------------*/
 /*! MD5 initialization. Begins an MD5 operation, writing a new context.
 ------------------------------------------------------------------------*/
 
@@ -114,6 +130,17 @@ void MD5Init (MD5_CTX *context)
   context->state[1] = 0xefcdab89;
   context->state[2] = 0x98badcfe;
   context->state[3] = 0x10325476;
+
+#ifdef USE_XOR
+  if( XOR_iii < 0 ){
+    XOR_bbb = (unsigned char *)malloc(sizeof(unsigned char)*XOR_NUM) ;
+    for( XOR_iii=0 ; XOR_iii < XOR_NUM ; XOR_iii++ )
+      XOR_bbb[XOR_iii] = (unsigned char)((XOR_iii*557+1021)%255) ;
+    XOR_iii = 0 ;
+  }
+#endif
+
+  return ;
 }
 
 /*----------------------------------------------------------------------*/
@@ -202,6 +229,14 @@ void MD5Final (unsigned char digest[16], MD5_CTX *context)
 static void MD5Transform (UINT4 state[4], unsigned char block[64])
 {
   UINT4 a = state[0], b = state[1], c = state[2], d = state[3], x[16];
+
+#ifdef USE_XOR
+  { register int qq ;
+    for( qq=0 ; qq < 64 ; qq++ ){
+      block[qq] ^= XOR_bbb[XOR_iii] ; XOR_iii = (XOR_iii+1)%XOR_NUM ;
+    }
+  }
+#endif
 
   Decode (x, block, 64);
 
