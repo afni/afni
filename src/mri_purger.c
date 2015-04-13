@@ -267,12 +267,12 @@ ENTRY("mri_killpurge") ;
      char str[256] ;
      STATUS("check fname") ; sprintf(str,"fname = %s",(im->fname!=NULL) ? im->fname : "NULL") ; STATUS(str) ;
    }
+   if( im->fname == NULL ){ STATUS("can't killpurge NULL fname!") ; EXRETURN ; }
    STATUS("check if purged") ;
 #endif
    if( MRI_IS_PURGED(im) ){
-#if 0
-     STATUS("is purged to following filename") ;
-     STATUS(im->fname) ;
+#if 1
+     STATUS(" is purged to following filename") ; STATUS(im->fname) ;
 #endif
      remove(im->fname); im->fondisk = 0; kill_purge(im->fname);
      if( PRINT_TRACING ){
