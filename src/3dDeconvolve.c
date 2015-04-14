@@ -9030,7 +9030,7 @@ MRI_IMAGE * PLOT_matrix_gray( matrix X )
 
    xar = (float **)malloc( sizeof(float *)*nts ) ;
    for( jj=0 ; jj < nts ; jj++ ){
-     xar[jj] = (float *)malloc( sizeof(float *)*npt ) ;
+     xar[jj] = (float *)malloc( sizeof(float)*npt ) ;
      for( ii=0 ; ii < npt ; ii++ ) xar[jj][ii] = X.elts[ii][jj] ;
    }
 
