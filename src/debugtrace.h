@@ -80,6 +80,7 @@ extern "C" {
    int DBG_stoff = 0 ;   /* temporarily disable ENTRY/RETURN stack [01 Jun 2009] */
    int DBG_trace = 0 ;   /* turn off at start (cf. mainENTRY) */
    FILE *DBG_fp  = NULL ;    /* 01 Sep 2006 */
+   FILE *DBG_tfp = NULL ;    /* 13 Apr 2015 */
 
    char *DBG_labels[3] = { "Trace=OFF " , "Trace=LOW " , "Trace=HIGH" } ;
 
@@ -101,10 +102,11 @@ extern "C" {
 void DBG_traceback(void)
 { int tt ;
   MCHECK ;
+  if( DBG_tfp == NULL ) DBG_tfp = stderr ;
   if( last_status[0] != '\0' )
-    fprintf(stderr,"Last STATUS: %s\n",last_status) ;
+    fprintf(DBG_tfp,"Last STATUS: %s\n",last_status) ;
   for( tt=DBG_num-1; tt >= 1 ; tt-- )
-    fprintf(stderr,"%*.*s%s\n",tt+1,tt+1," ",DBG_rout[tt]) ;
+    fprintf(DBG_tfp,"%*.*s%s\n",tt+1,tt+1," ",DBG_rout[tt]) ;
 }
 
 void DBG_sigfunc(int sig)   /** signal handler for fatal errors **/
@@ -137,14 +139,39 @@ void DBG_sigfunc(int sig)   /** signal handler for fatal errors **/
    fprintf(stderr,"** [[Precompiled binary " SHSTRING ": " __DATE__ "]]\n");
 #endif
 
-   fprintf(stderr,"** Program Abort **\n") ;
-   if( sig != SIGINT && sig != SIGTERM )
-   fprintf(stderr,"** If you report this crash to the AFNI message board,\n"
-                  "** please copy the error messages EXACTLY, and give\n"
-                  "** the command line you used to run the program, and\n"
-                  "** any other information needed to repeat the problem.\n"
-                  "** You may later be asked to upload data to help debug.\n");
-   fflush(stderr) ;
+   fprintf(stderr,"** Program Abort **\n") ; fflush(stderr) ;
+   if( sig != SIGINT && sig != SIGTERM ){  /* add crashlog [13 Apr 2015] */
+     FILE *dfp ; char *home , fname[1024] ;
+     fprintf(stderr,"** If you report this crash to the AFNI message board,\n"
+                    "** please copy the error messages EXACTLY, and give\n"
+                    "** the command line you used to run the program, and\n"
+                    "** any other information needed to repeat the problem.\n"
+                    "** You may later be asked to upload data to help debug.\n");
+
+     home = getenv("HOME") ;  /* crashlog stuff starts here */
+     if( home != NULL ){
+       strcpy(fname,home) ; strcat(fname,"/.afni.crashlog") ;
+     } else {
+       strcpy(fname,".afni.crashlog") ;
+     }
+     dfp = fopen( fname , "a" ) ;
+     if( dfp != NULL ){
+       fprintf(dfp,"\n*********-----------------------------------------------*********") ;
+       fprintf(dfp,"\nFatal Signal %d (%s) received\n",sig,sname); fflush(stderr);
+       DBG_tfp = dfp ; DBG_traceback() ; DBG_tfp = stderr ;
+#ifdef AVERZHN
+       fprintf(dfp,"** AFNI version = " AVERZHN "  Compile date = " __DATE__ "\n" );
+#else
+       fprintf(dfp,"** AFNI compile date = " __DATE__ "\n" ) ;
+#endif
+#ifdef SHSTRING
+       fprintf(dfp,"** [[Precompiled binary " SHSTRING ": " __DATE__ "]]\n") ;
+#endif
+       fprintf(dfp,"** Program Hideous Death **\n") ;
+       fclose(dfp) ;
+       fprintf(stderr,"** Crash log is appended to file %s\n",fname) ;
+     }
+   }
    MPROBE ; exit(1) ;
 }
 
@@ -158,6 +185,7 @@ void DBG_sigfunc(int sig)   /** signal handler for fatal errors **/
    extern int DBG_stoff ;
    extern int DBG_trace ;
    extern FILE *DBG_fp ;
+   extern FILE *DBG_tfp ;
    extern char *DBG_labels[3] ;
    extern void DBG_sigfunc(int) ;
    extern void DBG_traceback(void) ;

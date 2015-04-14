@@ -43,6 +43,19 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
+  { 14 , Apr , 2015 , RWC , "AFNI GUI"     , MICRO , TYPE_BUG_FIX ,
+    "Fix index text overlay clash in graph window" ,
+    "Because Daniel Glen is trouble, that's why." } ,
+
+  { 13 , APR , 2015 , RWC , "all programs" , MICRO , TYPE_GENERAL ,
+    "AFNI programs now write crash logs to file ~/.afni.crashlog" ,
+    NULL } ,
+
+  { 13 , APR , 2015 , RWC , "AFNI itself" , MICRO , TYPE_BUG_FIX ,
+    "Fix crash when ClustSim info in dataset header is incomplete" ,
+    "Problem was if mask string was missing, it tried to read the\n"
+    "mask idcode from a now-deleleted NIML element -- bad news." } ,
+
   { 27 , MAR , 2015 , RWC , "3dttest++" , MICRO , TYPE_BUG_FIX ,
    "linux_xorg7_64 distribution gets argv[nopt] wrong?!" ,
    "Fixed by putting in a debug printout statement for argv[nopt] at start\n"
