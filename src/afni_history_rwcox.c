@@ -43,6 +43,10 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
+  { 14 , Apr , 2015 , RWC , "AFNI GUI"     , MICRO , TYPE_BUG_FIX ,
+    "Fix index text overlay clash in graph window" ,
+    "Because Daniel Glen is trouble, that's why." } ,
+
   { 13 , APR , 2015 , RWC , "all programs" , MICRO , TYPE_GENERAL ,
     "AFNI programs now write crash logs to file ~/.afni.crashlog" ,
     NULL } ,
