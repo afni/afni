@@ -13724,7 +13724,8 @@ char *SUMA_OutputDsetFileStatus(char *prefix, char *inname,
 }
 
 
-
+/* Note that this function is not getting called anymore.
+DBG_sigfunc() in debugtrace.h is being called instead */
 void SUMA_sigfunc(int sig)   /** signal handler for fatal errors **/
 {
    char * sname ;
@@ -13740,8 +13741,35 @@ void SUMA_sigfunc(int sig)   /** signal handler for fatal errors **/
    }
    fprintf(stderr,"\nFatal Signal %d (%s) received\n",sig,sname); fflush(stderr);
    TRACEBACK ;
-   fprintf(stderr,"*** Program Abort ***\nSUMA Version %.2f\nCompile Date: %s\n", SUMA_LatestVersionNumber(), __DATE__) ; fflush(stderr) ;
+   fprintf(stderr,"*** SUMA Abort ***\nCompile Date: %s\n",
+                          __DATE__) ; fflush(stderr) ;
    selenium_close(); /* close any selenium opened browser windows if open */
+   
+   if( sig != SIGINT && sig != SIGTERM ){  /* add crashlog [14 Apr 2015] */
+     FILE *dfp ; char *home , fname[1024] ;
+     home = THD_homedir(0) ;
+     strcat(fname,"/.afni.crashlog") ;
+     fprintf(stderr,"** If you report this crash to the AFNI message\n"
+                    "** board, please copy the error messages EXACTLY.\n"
+                    "** Crash log recorded in: %s\n",
+                     fname ) ;
+     
+     dfp = fopen( fname , "a" ) ;
+     if( dfp != NULL ){
+       fprintf(dfp,
+         "\n*********-----------------------------------------------*********") ;
+       fprintf(dfp,"\nFatal Signal %d (%s) received\n",sig,sname); 
+       fflush(stderr);
+       DBG_tfp = dfp ; DBG_traceback() ; DBG_tfp = stderr ;
+       fprintf(stderr,"*** SUMA Abort ***\nCompile Date: %s\n",
+                          __DATE__) ; fflush(stderr) ;
+#ifdef SHSTRING
+       fprintf(dfp,"** [[Precompiled binary " SHSTRING ": " __DATE__ "]]\n") ;
+#endif
+       fprintf(dfp,"** SUMA Program Tragically Lost **\n") ;
+       fclose(dfp) ;
+     }
+   }
    exit(sig) ;
 }
 

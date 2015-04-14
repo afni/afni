@@ -3,10 +3,10 @@
 
 typedef struct {
   char* M1_IDcode;  
-  int M1_N_Nodes; /*! Numer of nodes forming SO1
+  int M1_N_Nodes; /*! Number of nodes forming SO1
                      So far, it is the same as M1Nn */
   char* M2_IDcode;
-  int M2_N_Nodes; /*! Numer of nodes forming SO2 */
+  int M2_N_Nodes; /*! Number of nodes forming SO2 */
   
   int M1Nn; /*!< number of node considered on M1 */
   int *M1n; /*!< vector of node indices on M1 
