@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 14,  Apr, 2015, RCR, "3dDeconvolve", MICRO, TYPE_MODIFY,
+   "PLOT_matrix_gray: add error messages to clarify malloc failures",
+   NULL
+ } ,
+
  {  9,  Apr, 2015, RCR, "afni_proc.py", MICRO, TYPE_BUG_FIX,
    "fix -tlrc_NL_warped_dsets for NIFTI anat; add some -regress_ROI_PC help",
    NULL
