@@ -149,9 +149,9 @@ int  read_file         ( char * filename, char ** fdata, int * flen );
 int  read_partial_file ( char * filename, void * fdata, int len );
 int  set_params        ( param_t * p, int argc, char * argv[] );
 
-int  scr_show_file     ( char * filename, param_t * p );
-int  scr_show_bad_bs   ( char * filename, param_t * p );
-int  scr_show_bad_ch   ( char * filename, param_t * p );
+int  scr_show_file     ( char ** fname, param_t * p );
+int  scr_show_bad_bs   ( char ** fname, param_t * p );
+int  scr_show_bad_ch   ( char ** fname, param_t * p );
 
 
 int  help_full         ( char * prog );
