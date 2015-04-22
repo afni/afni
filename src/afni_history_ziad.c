@@ -65,6 +65,15 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 15, Apr, 2015, ZSS, "suma-general", MAJOR, TYPE_BUG_FIX,
+   "Turned off USE_XOR for now.",
+   "Was causing very mysterious problem with labels displaying atop each other\n"
+   "in the SUMA viewer. Possibly other problems too like crash when opening  \n"
+   "surface controller or changing threshold. No time to get to the bottom \n"
+   "of this at this time. But turning this off fixed problem on linux and osx.\n"
+   "Valgrind had nothing to complain about..."
+ },
+
  { 3, Apr, 2015, ZSS, "suma-general", MINOR, TYPE_MODIFY,
    "Changes to how labeled datasets (volumes in particular) are shown in SUMA",
    "Made atlas and labeled volumes appear in SUMA as they do in AFNI. \n"
