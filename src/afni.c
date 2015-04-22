@@ -1323,11 +1323,32 @@ void AFNI_sigfunc(int sig)
 #ifdef SHSTRING
    fprintf(stderr,"** [[Precompiled binary " SHSTRING ": " __DATE__ "]]\n") ;
 #endif
-   fprintf(stderr,"** Program Abort **\n") ;
-   if( sig != SIGINT && sig != SIGTERM )
-   fprintf(stderr,"** If you report this crash to the AFNI message\n"
-                  "** board, please copy the error messages EXACTLY.\n") ;
+   fprintf(stderr,"** AFNI Program Is Dead :-( **\n") ;
    fflush(stderr) ;
+   if( sig != SIGINT && sig != SIGTERM ){  /* add crashlog [13 Apr 2015] */
+     FILE *dfp ; char *home , fname[1024] ;
+     fprintf(stderr,"** If you report this crash to the AFNI message\n"
+                    "** board, please copy the error messages EXACTLY.\n") ;
+     home = getenv("HOME") ;
+     if( home != NULL ){
+       strcpy(fname,home) ; strcat(fname,"/.afni.crashlog") ;
+     } else {
+       strcpy(fname,".afni.crashlog") ;
+     }
+     dfp = fopen( fname , "a" ) ;
+     if( dfp != NULL ){
+       fprintf(dfp,"\n*********-----------------------------------------------*********") ;
+       fprintf(dfp,"\nFatal Signal %d (%s) received\n",sig,sname); fflush(stderr);
+       DBG_tfp = dfp ; DBG_traceback() ; DBG_tfp = stderr ;
+       fprintf(dfp,"** AFNI version = " AVERZHN "  Compile date = " __DATE__ "\n" );
+#ifdef SHSTRING
+       fprintf(dfp,"** [[Precompiled binary " SHSTRING ": " __DATE__ "]]\n") ;
+#endif
+       fprintf(dfp,"** AFNI Program Hideous Death **\n") ;
+       fclose(dfp) ;
+       fprintf(stderr,"** Crash log appended to file %s\n",fname) ;
+     }
+   }
    exit(1) ;
 }
 
