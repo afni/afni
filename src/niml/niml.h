@@ -732,6 +732,7 @@ extern char * MD5_malloc_file(char * filename) ;
 extern char * MD5_B64_array( int n, char * bytes ) ;
 extern char * MD5_B64_string( char * string ) ;
 extern char * MD5_B64_file(char * filename) ;
+extern void   MD5_set_xor_use(int) ;  /* 09 Apr 2015 */
 
 extern char * UNIQ_idcode(void) ;
 extern void   UNIQ_idcode_fill( char * ) ;

@@ -425,7 +425,7 @@ typedef struct {
    void      *xax_fdbr ;
    MRI_IMAGE *xax_cen  ;  /* 12 Feb 2015 */
 
-   int xx_text_1 , xx_text_2 , xx_text_2p , xx_text_3 ;
+   int xx_text_1 , xx_text_2 , xx_text_2p , xx_text_3 , xx_text_igf ;
 
    /* external time-series stuff */
 
