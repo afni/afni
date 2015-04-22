@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 22,  Apr, 2015, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,
+   "add -todo; help update; verify use of erode list",
+   NULL
+ } ,
+
  { 22,  Apr, 2015, RCR, "file_tool", MINOR, TYPE_ENHANCE,
    "add fix for non-unix files; allow for multiple tests with -prefix",
    NULL
