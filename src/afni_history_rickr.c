@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 22,  Apr, 2015, RCR, "afni-general", MICRO, TYPE_MODIFY,
+   "Makefile.linux_fedora_19_64: alter -I dirs for glib to build on F21",
+   NULL
+ } ,
+
  {  9,  Apr, 2015, RCR, "afni_proc.py", MICRO, TYPE_BUG_FIX,
    "fix -tlrc_NL_warped_dsets for NIFTI anat; add some -regress_ROI_PC help",
    NULL
