@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 22,  Apr, 2015, RCR, "afni_proc.py", MINOR, TYPE_BUG_FIX,
+   "put in cat_matvec string to create warp.all.anat.aff12.1D",
+   "Thanks to sgreen (MB) for noting the problem."
+ } ,
+
  { 22,  Apr, 2015, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,
    "add -todo; help update; verify use of erode list",
    NULL
