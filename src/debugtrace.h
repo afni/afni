@@ -140,7 +140,7 @@ void DBG_sigfunc(int sig)   /** signal handler for fatal errors **/
    fprintf(stderr,"** [[Precompiled binary " SHSTRING ": " __DATE__ "]]\n");
 #endif
 
-   fprintf(stderr,"** Program Abort **\n") ; fflush(stderr) ;
+   fprintf(stderr,"** Program Death **\n") ; fflush(stderr) ;
    if( sig != SIGINT && sig != SIGTERM ){  /* add crashlog [13 Apr 2015] */
      FILE *dfp ; char *home , fname[1024] ;
      fprintf(stderr,"** If you report this crash to the AFNI message board,\n"
@@ -169,6 +169,8 @@ void DBG_sigfunc(int sig)   /** signal handler for fatal errors **/
        fprintf(dfp,"** [[Precompiled binary " SHSTRING ": " __DATE__ "]]\n") ;
 #endif
        fprintf(dfp,"** Program Hideous Death **\n") ;
+       if( mcw_malloc_enabled() && getenv("AFNI_CRASH_MALLDUMP") != NULL )
+         mcw_malloc_dump_fp(dfp) ; /* 23 Apr 2015 */
        fclose(dfp) ;
        fprintf(stderr,"** Crash log is appended to file %s\n",fname) ;
      }
