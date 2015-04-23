@@ -8,9 +8,9 @@ function [N] = WordCount (S,D)
 %
 %Input Parameters:
 %   S a string, trailing blanks are removed
-%   D (optional) one or more characters to use as delimter, for example
-%     'ab' for either 'a' or 'b' as a delimeter, and  '|' for | as a
-%     delimiter only. default is ' '
+%   D (optional) a series of characters to be used as delimiters like
+%     ' |' for a space or | as delimiters or '|' for | as a delimiter only
+%     default is ' '
 %
 %Output Parameters:
 %   N number of words
@@ -30,18 +30,25 @@ function [N] = WordCount (S,D)
 %Define the function name for easy referencing
 FuncName = 'WordCount';
 
-if (nargin < 2),
+%initailize return variables
+N = [];
+
+if (nargin == 1),
 	D = ' ';
 end
 
 S = deblank (S);
 
-matching=any(bsxfun(@eq,S(:),D(:)'),2);
+Sdiff = S;
+N=0;
 
-% avoid repetitions
-matching(matching(2:end) & matching(1:(end-1)))=false;
 
-N=sum(matching)+1;
+while (~isempty(Sdiff))
+	[Word,Sdiff] = strtok(Sdiff,D);
+   if (~isempty(Word)), N=N+1; end
+end
+
+
 
 
 return;
