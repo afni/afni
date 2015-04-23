@@ -1568,6 +1568,7 @@ def warp_anat_followers(proc, block, anat_aname, epi_aname=None, prevepi=0):
          break
 
    # affine vs NL: program, interp option, warp option, indent
+   tstr = ''
    if donl:
       prog    = '3dNwarpApply'
       iopt    = '-ainterp'
@@ -1590,6 +1591,7 @@ def warp_anat_followers(proc, block, anat_aname, epi_aname=None, prevepi=0):
          tstr = "# catenate all transformations\n" \
                 "cat_matvec -ONELINE \\\n"         \
                 "           %s > %s\n\n" % (xall, xform)
+
       if xform == identity_warp: warpstr = "-1Dparam_apply %s\\'" % xform
       else:                      warpstr = '-1Dmatrix_apply %s' % xform
 
@@ -1598,6 +1600,8 @@ def warp_anat_followers(proc, block, anat_aname, epi_aname=None, prevepi=0):
    else:                        wtstr = 'affine'
    wstr = '# -----------------------------------------\n'  \
           '# warp anat follower datasets (%s)\n' % wtstr
+
+   if tstr: wstr += '\n%s' % tstr
 
    # perform any pre-erode
    efirst = 1
