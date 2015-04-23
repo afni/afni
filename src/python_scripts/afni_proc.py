@@ -460,8 +460,10 @@ g_history = """
     4.36 Apr  2, 2015: added -tlrc_NL_warped_dsets to import 3dQwarp result
     4.37 Apr  9, 2015: fix for NIFTI NL anat; add a little help
     4.38 Apr 22, 2015:
-        - help update for -regress_ROI_*; verify erode list use
+        - help update for -regress_ROI_*
+        -  verify erode list use
         - added -todo to show current list
+    4.39 Apr 22, 2015: add missed cat_matvec to create warp.all.anat.aff12.1D
 """
 
 g_version = "version 4.38, April 22, 2015"
