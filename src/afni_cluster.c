@@ -1530,7 +1530,8 @@ ENTRY("AFNI_clus_action_CB") ;
      THD_3dim_dataset *dset ;
 
      if( cdds.dset != NULL ){
-       STATUS("free(cdds.dset)"); free((void *)cdds.dset); cdds.dset = NULL;
+       STATUS("free(cdds.dset)") ; free((void *)cdds.dset) ;
+       if( getenv("AFNI_CLUSTERIZE_AUXCRASH") == NULL ) cdds.dset = NULL ;
      }
      cdds.ndset = 0 ;
      STATUS("realloc(cdds.dset)") ;
