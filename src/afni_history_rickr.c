@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 23,  Apr, 2015, RCR, "gen_ss_review_scripts.py", MICRO, TYPE_NEW_OPT,
+   "add -help_fields[_brief], to describe the 'basic' output fields",
+   NULL
+ } ,
+
  { 22,  Apr, 2015, RCR, "afni_proc.py", MINOR, TYPE_BUG_FIX,
    "put in cat_matvec string to create warp.all.anat.aff12.1D",
    "Thanks to sgreen (MB) for noting the problem."
