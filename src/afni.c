@@ -1891,7 +1891,7 @@ int main( int argc , char *argv[] )
                      "            fink install netpbm\n" ) ;
 #endif
 
-   /** Start the debug traceback stuff **/
+   /** Start the debug traceback stuff (also resets signal handler) **/
 
    mainENTRY("AFNI:main") ; /* 26 Jan 2001: replace ENTRY w/ mainENTRY */
 
