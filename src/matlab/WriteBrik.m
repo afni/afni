@@ -118,10 +118,10 @@ end
 if (~isfield(Opt, 'AdjustHeader')) Opt.AdjustHeader = 'y'; end
 if (isfield(Opt,'prefix')), Opt.Prefix = Opt.prefix; end %comes from New_HEAD
 if (isfield(Opt,'scale')), Opt.Scale =  Opt.scale; end %comes from New_HEAD
-if (isfield(Opt,'overwrite')), Opt.OverWrite =  Opt.overwrite; end 
-if (~isfield(Opt, 'Prefix') || isempty (Opt.Prefix)), 
-   err = 1; 
-   ErrMessage = sprintf('Error %s: You must specify Opt.Prefix.', FuncName);  
+if (isfield(Opt,'overwrite')), Opt.OverWrite =  Opt.overwrite; end
+if (~isfield(Opt, 'Prefix') || isempty (Opt.Prefix)),
+   err = 1;
+   ErrMessage = sprintf('Error %s: You must specify Opt.Prefix.', FuncName);
    errordlg(ErrMessage); return;
 end
 
@@ -133,8 +133,9 @@ else
 end
 
 %set format if not present
-   err = 1; 
-   ErrMessage = sprintf('Error %s: Info must be a struct. Check your arguments.', FuncName);  
+if (~isempty(Info) && ~isstruct(Info)),
+   err = 1;
+   ErrMessage = sprintf('Error %s: Info must be a struct. Check your arguments.', FuncName);
    errordlg(ErrMessage); return;
 end
 if (~isempty(Info) && ( ~isfield(Info,'FileFormat') || isempty(Info.FileFormat)  ) ),
@@ -147,15 +148,15 @@ if (isempty(Info) && size(M,4) == 1 && size(M,3) == 1),
 elseif (strcmp(Info.FileFormat,'1D')),
    is1D = 1;
    if (size(M,4) ~= 1 || size(M,3) ~= 1),
-      err = 1; 
-      ErrMessage = sprintf('Error %s: M is not one or two dimensional.', FuncName);  
+      err = 1;
+      ErrMessage = sprintf('Error %s: M is not one or two dimensional.', FuncName);
       errordlg(ErrMessage); return;
    end
 elseif (strcmp(Info.FileFormat,'NIML')),
    is1D = 2;
    if (size(M,4) ~= 1 || size(M,3) ~= 1),
-      err = 1; 
-      ErrMessage = sprintf('Error %s: M is not one or two dimensional.', FuncName);  
+      err = 1;
+      ErrMessage = sprintf('Error %s: M is not one or two dimensional.', FuncName);
       errordlg(ErrMessage); return;
    end
 end
@@ -165,8 +166,8 @@ if (is1D == 1),
    if (isempty(Info)), [err,Info] = Info_1D(M); end
    if (OverW == 0) Opt1D.OverWrite = 'n'; % default mode
    else Opt1D.OverWrite = 'y';
-   end 
-   if (isfield(Opt,'Slices') && ~isempty(Opt.Slices)), 
+   end
+   if (isfield(Opt,'Slices') && ~isempty(Opt.Slices)),
       if (length(Opt.Slices) ~= 1),
          err = 1;
          ErrMessage = sprintf('Error %s: .Slices can only have one value for 1D files', FuncName);
@@ -197,8 +198,8 @@ if (is1D == 1),
    return;
 elseif (is1D == 2), %NIML
    if (isfield(Opt,'Slices') && ~isempty(Opt.Slices)),
-      err = 1; 
-      ErrMessage = sprintf('Error %s: .Slices cannot be used for NIML files', FuncName);  
+      err = 1;
+      ErrMessage = sprintf('Error %s: .Slices cannot be used for NIML files', FuncName);
       errordlg(ErrMessage); return;
    end
    [Name, Ext] = RemoveNIMLExtension(Opt.Prefix);
@@ -217,7 +218,7 @@ end
    if (~isfield(Opt, 'Scale') || isempty (Opt.Scale)), Opt.Scale = 0; end
    if (isfield(Opt,'view')) Opt.View = Opt.view; end  %comes from New_HEAD
    if (~isfield(Opt, 'View') || isempty(Opt.View)), Opt.View = ''; end
-   
+
    %Make sure prefix is clear of view
       [Opt.Prefix, uv, ue]  = AfniPrefix(Opt.Prefix);
       if (~isempty(uv)),
@@ -234,8 +235,8 @@ end
             fprintf(2,'\nNote %s:\n Adopting view (%s) from supplied prefix \n', FuncName, Opt.View);
          end
       end
-      if (isempty(Opt.View)), 
-         Opt.View = '+orig'; 
+      if (isempty(Opt.View)),
+         Opt.View = '+orig';
          if (isfield(Info,'SCENE_DATA') && ~isempty(Info.SCENE_DATA)),
             switch Info.SCENE_DATA(1),
                case 0
@@ -317,14 +318,14 @@ end
    if (isfield(Info, 'DATASET_RANK') && length(Info.DATASET_RANK) < 2),
       err = 1; ErrMessage = sprintf('Error %s: If you specify DATASET_RANK it must be a vector of two elements', FuncName); errordlg(ErrMessage); return;
    end
-   
+
    if ((~isfield(Info, 'DATASET_DIMENSIONS') ||  isempty(Info.DATASET_DIMENSIONS)) && isVect)
       err = 1; ErrMessage = sprintf('Error %s: If M is a vector, you must specify DATASET_DIMENSIONS in Info', FuncName); errordlg(ErrMessage); return;
    end
    if ((~isfield(Info, 'DATASET_RANK') ||  isempty(Info.DATASET_RANK)) && isVect)
       err = 1; ErrMessage = sprintf('Error %s: If M is a vector, you must specify DATASET_RANK in Info', FuncName); errordlg(ErrMessage); return;
    end
-   
+
    if (isfield(Info, 'DATASET_DIMENSIONS') && ~isempty(Info.DATASET_DIMENSIONS) && ~isVect)
 %      if (N(1) ~= Info.DATASET_DIMENSIONS(1) ||  N(2) ~= Info.DATASET_DIMENSIONS(2) || N(3) ~= Info.DATASET_DIMENSIONS(3) || N(4) ~= Info.DATASET_RANK(2))
       if (N(1) ~= Info.DATASET_DIMENSIONS(1) ||  N(2) ~= Info.DATASET_DIMENSIONS(2) || N(3) > Info.DATASET_DIMENSIONS(3) || N(4) > Info.DATASET_RANK(2))
@@ -332,9 +333,9 @@ end
       end
    end
 
-%OK, setup .DATASET_DIMENSIONS and .DATASET_RANK if needed 
+%OK, setup .DATASET_DIMENSIONS and .DATASET_RANK if needed
    if (~isfield(Info, 'DATASET_DIMENSIONS') || isempty(Info.DATASET_DIMENSIONS)),
-      Info.DATASET_DIMENSIONS = N(1:3); 
+      Info.DATASET_DIMENSIONS = N(1:3);
    end
    if (~isfield(Info, 'DATASET_RANK') || isempty(Info.DATASET_RANK)),
       Info.DATASET_RANK = [3 N(4)];
@@ -418,13 +419,13 @@ end
 
 %figure out if scaling is required
 allslices=1:Info.DATASET_DIMENSIONS(3);
-if  (~isfield(Opt,'Slices') || isempty(Opt.Slices)),   
-   Opt.Slices = allslices; 
+if  (~isfield(Opt,'Slices') || isempty(Opt.Slices)),
+   Opt.Slices = allslices;
 end
 isallslices=all(ismember(allslices,Opt.Slices));
 allframes=1:Info.DATASET_RANK(2);
-if  (~isfield(Opt,'Frames') || isempty(Opt.Frames)),   
-   Opt.Frames = allframes; 
+if  (~isfield(Opt,'Frames') || isempty(Opt.Frames)),
+   Opt.Frames = allframes;
 end
 isallframes=all(ismember(allframes,Opt.Frames));
 
