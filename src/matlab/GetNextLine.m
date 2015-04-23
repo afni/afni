@@ -41,7 +41,7 @@ DBG = 1;
 err = 1;
 strt = 0; stp = 0;
 
-inl = find(setstr(s) == 10);
+inl = find(char(s) == 10);
 
 Nlines = length(inl);
 if (n <= Nlines),

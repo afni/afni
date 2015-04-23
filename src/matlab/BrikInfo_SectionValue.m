@@ -78,7 +78,7 @@ err = 1;
 		
 	%read all values
 		Svals = BRIKinfo(itmp:inxt); %that's where the values are
-		inl = find(setstr(Svals) == 10 | setstr(Svals) == 13); %find any new lines left in Svals (13 was added to work in DOS (CR and LF))
+		inl = find(char(Svals) == 10 | char(Svals) == 13); %find any new lines left in Svals (13 was added to work in DOS (CR and LF))
 		
 		if (~isempty(inl)), 
 			Svals(inl) = ' '; %replace them by space characters
