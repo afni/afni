@@ -43,6 +43,12 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
+  { 23 , Apr , 2015 , RWC , "AFNI GUI"     , MICRO , TYPE_BUG_FIX ,
+    "Fix Aux.Dset button crash in Clusterize" ,
+    "Because Ziad Saad is trouble, that's why.\n"
+    "(Either that, or 'free(x)' should imply 'x=NULL'.)\n"
+    "Also, catch SIGABRT signal, so Mac malloc() errors are tracebacked." } ,
+
   { 14 , Apr , 2015 , RWC , "AFNI GUI"     , MICRO , TYPE_BUG_FIX ,
     "Fix index text overlay clash in graph window" ,
     "Because Daniel Glen is trouble, that's why." } ,
