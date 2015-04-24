@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 24,  Apr, 2015, RCR, "gen_group_command.py", MICRO, TYPE_ENHANCE,
+   "tiny help update: examples of usage regarding subject IDs",
+   NULL
+ } ,
+
  { 23,  Apr, 2015, RCR, "gen_ss_review_scripts.py", MICRO, TYPE_NEW_OPT,
    "add -help_fields[_brief], to describe the 'basic' output fields",
    NULL
