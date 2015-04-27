@@ -477,6 +477,9 @@ g_todo_str = """todo:
   - add option to block anat from anat followers?
   - add/modify AP tests for some cases
   - add AP test for varying remove_first_trs
+  - add -4095_check and -4095_ok options?
+     - maybe check means the 3dToutcount would fail, and ok would continue
+     - or have 3dToc just report, maybe write a volume?
 
   -compute_corr_volumes LABEL ... ?
   - warn of missing input dsets?  (-dsets, -copy_anat, any 3dcopy)
