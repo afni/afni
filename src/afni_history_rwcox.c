@@ -43,7 +43,12 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 23 , Apr , 2015 , RWC , "AFNI GUI"     , MICRO , TYPE_BUG_FIX ,
+  { 27 , APR , 2015 , RWC , "debug tracing" , MICRO , TYPE_GENERAL ,
+   "Added 'recent internal history' to .afni.crashlog" ,
+   "The last few ENTRY/EXIT/STATUS updates are saved, to help pinpoint the\n"
+   "sequence of events before the demise of the patient." } ,
+
+ { 23 , Apr , 2015 , RWC , "AFNI GUI"     , MICRO , TYPE_BUG_FIX ,
     "Fix Aux.Dset button crash in Clusterize" ,
     "Because Ziad Saad is trouble, that's why.\n"
     "(Either that, or 'free(x)' should imply 'x=NULL'.)\n"
