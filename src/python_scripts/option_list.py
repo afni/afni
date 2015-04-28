@@ -275,7 +275,7 @@ class OptionList:
 
         # global options (some take a parameter)
         global_opts = [ '-optlist_verbose', '-optlist_no_show_count',
-                        '-all_opts', '-h_find', '-h_view' ]
+                        '-all_opts', '-h_find', '-h_view', '-hview' ]
 
         alen = len(argv)
 
@@ -313,6 +313,15 @@ class OptionList:
 
         if '-h_view' in argv:
             oname = '-h_view'
+            ind = argv.index(oname)
+            prog = os.path.basename(argv[0])
+            cmd = 'apsearch -view_prog_help %s' % prog
+            if self.verb>1: print '++ optlist: applying %s via: %s'%(oname,cmd)
+            BASE.simple_shell_exec(cmd)
+            sys.exit(0)
+
+        if '-hview' in argv:
+            oname = '-hview'
             ind = argv.index(oname)
             prog = os.path.basename(argv[0])
             cmd = 'apsearch -view_prog_help %s' % prog
