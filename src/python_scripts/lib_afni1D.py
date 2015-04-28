@@ -997,14 +997,17 @@ class Afni1D:
          return 1
 
       # explicitly set newvec, including with zeros
-      newvec = cvec[:]
-      goodind = 0
-      for ind, val in enumerate(cvec):
-         if val:
-            newvec[ind] = self.mat[0][goodind]
-            goodind += 1
-         else:
-            newvec[ind] = 0
+      newmat = []
+      for mvec in self.mat:
+         newvec = cvec[:]
+         goodind = 0
+         for ind, val in enumerate(cvec):
+            if val:
+               newvec[ind] = mvec[goodind]
+               goodind += 1
+            else:
+               newvec[ind] = 0
+         newmat.append(newvec)
 
       if self.verb > 1:
          print '++ uncensored %d values from vector' % ncen
@@ -1014,7 +1017,7 @@ class Afni1D:
             del(cenlist)
 
       del(self.mat)
-      self.mat     = [newvec]
+      self.mat     = newmat
       self.nt      = clen
       self.run_len = [self.nt]
 

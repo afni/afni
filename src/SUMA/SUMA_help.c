@@ -1865,19 +1865,22 @@ char * SUMA_help_message_Info(TFORM targ)
       "   %s: Light's XYZ coordinates.\n"
       "        Default setting is 0.0 0.0 %.1f \n", SUMA_hkf("L", targ), 
       1.0 * SUMA_INTITIAL_LIGHT0_SWITCH);
-   if (SUMAg_CF->Dev) SS = SUMA_StringAppend_va (SS, 
-      "   %s: Dim all lights and colors by a factor of 0.8\n", 
+   SS = SUMA_StringAppend_va (SS, 
+      "   %s: Brighten specular and diffuse lights by a factor of 1/0.8\n", 
             SUMA_hkf("Ctrl+L", targ) );
    SS = SUMA_StringAppend_va (SS, 
       "   %s: look at point\n", SUMA_hkf("l", targ));
    SS = SUMA_StringAppend_va (SS, 
       "   %s: look at cross hair\n", SUMA_hkf("Alt+l", targ));
-   SS = SUMA_StringAppend_va (SS, 
+   /* SS = SUMA_StringAppend_va (SS, 
       "   %s: Switch locking mode for all viewers \n"
       "             between: No Lock, Index Lock and \n"
       "             XYZ Lock. The switching is order is \n"
       "             based on the lock of the first viewer.\n\n", 
-      SUMA_hkf("Ctrl+l", targ));
+      SUMA_hkf("Ctrl+l", targ)); */
+   SS = SUMA_StringAppend_va (SS, 
+      "   %s: Dim specular and diffuse lights by a factor of 0.8\n", 
+            SUMA_hkf("Ctrl+l", targ) );
    SS = SUMA_StringAppend_va (SS, 
       "   %s: Dumps memory trace to file \n"
       "                 called malldump.NNN where NNN\n"
@@ -3281,7 +3284,7 @@ int SUMA_Register_GUI_Help(char *which, char *hint, char *help,
                         SUMA_Name_GUI_Help(gwh), 
                   LocalHead ? "":"\nFurther warnings for this name curtailed.");
             if (!sstmp) SUMA_strncat(WhinedNames,buf, 1023);
-            SUMA_DUMP_TRACE("Trace at duplicate GUI name");
+            if (LocalHead) SUMA_DUMP_TRACE("Trace at duplicate GUI name");
             SUMA_free(gwh);
          }
          SUMA_RETURN(YUP);

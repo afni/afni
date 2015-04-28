@@ -988,9 +988,10 @@ g_history = """
    1.22 Apr 10, 2014 - added -index_to_run_tr
    1.23 Jan 20, 2015 - added -show_trs_to_zero
    1.24 Mar 31, 2015 - allow -censor_fill_parent with simple 1D files
+   1.25 Apr  1, 2015 - expand simple -censor_fill_parent for 2-D files
 """
 
-g_version = "1d_tool.py version 1.24, March 31, 2015"
+g_version = "1d_tool.py version 1.25, April 1, 2015"
 
 
 class A1DInterface:

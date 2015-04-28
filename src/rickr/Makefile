@@ -13,7 +13,7 @@ file_tool: file_tool.o file_tool.h fields.o fields.h
 
 Imon: Imon.o $(IMON_OBJS) Imon.h realtime.h
 	$(RM) $@
-	$(CC) -o Imon Imon.o $(IMON_OBJS) ../thd_iochan.o $(LFLAGS) -L.. -lm $(LLIBS)
+	$(CC) -o Imon Imon.o $(IMON_OBJS) ../thd_iochan.o -lm
 
 Dimon: Dimon.o realtime.o
 	$(RM) $@
@@ -25,7 +25,7 @@ Dimon1: Dimon1.o realtime1.o
 
 serial_helper: serial_helper.o
 	$(RM) $@
-	$(CC) -o serial_helper serial_helper.o -L.. -lm $(LLIBS)
+	$(CC) -o serial_helper serial_helper.o -lm
 
 # ----------------------------------------------------------------------
 # local Imon objects need mcw_glob, but without MCW_MALLOC

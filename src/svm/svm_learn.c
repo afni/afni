@@ -871,7 +871,8 @@ long optimize_to_convergence(DOC *docs, long int *label, long int totdoc,
   clear_index(working2dnum);
 
                             /* repeat this loop until we have convergence */
-  for(;retrain;iteration++) {
+  /* JL: stop optimization after max_iterations. Thanks for your help Cameron. */
+  for(iteration=1;(iteration<=learn_parm->max_iterations && retrain);iteration++) {
 
     if(kernel_cache)
       kernel_cache->time=iteration;  /* for lru cache */
@@ -1161,6 +1162,11 @@ long optimize_to_convergence(DOC *docs, long int *label, long int totdoc,
       }
     }
   } /* end of loop */
+
+  /* JL: If retrain == 1, assuming optimization has not reached convergence! */
+  if(retrain) {
+    fprintf(stderr, "\n++ WARNING: Optimization has not reached convergence after maximum number of iterations! ");
+  }
 
   free(chosen);
   free(last_suboptimal_at);

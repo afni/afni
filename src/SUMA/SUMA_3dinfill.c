@@ -122,13 +122,14 @@ SEG_OPTS *Infill_ParseInput (SEG_OPTS *Opt, char *argv[], int argc)
          brk = 1;
       }
       
-      if( !brk && (strncmp(argv[kar],"-mrange",5) == 0) ){
+      if( !brk && (strncmp(argv[kar],"-mrange",5) == 0 || \
+                   strcmp(argv[kar],"-mask_range") == 0) ) {
          if( kar+2 >= argc )
-           ERROR_exit("-mrange option requires 2 following arguments!\n");
+           ERROR_exit("-mrange (or -mask_range) requires 2  arguments!\n");
          Opt->mask_bot = strtod( argv[++kar] , NULL ) ;
          Opt->mask_top = strtod( argv[++kar] , NULL ) ;
          if( Opt->mask_top < Opt->mask_bot )
-           ERROR_exit("-mrange inputs are illegal!\n") ;
+           ERROR_exit("-mrange (or -mask_range) inputs are illegal!\n") ;
          brk = 1;
       }
       
@@ -346,7 +347,8 @@ void Infill_usage()
 "            Values filled in by this process get value V.\n"
 "   -mask MSET: Provide mask dataset to select subset of input.\n"
 "   -mask_range BOT TOP: Specify the range of values to consider from MSET.\n"
-"                        Default is anything non-zero\n" 
+"                        Default is anything non-zero.\n"
+"   -mrange BOT TOP: Same as option -mask_range\n" 
 "   -cmask CMASK: Provide cmask expression. Voxels where expression is 0\n"
 "                 are excluded from computations. For example:\n"
 "            -cmask '-a T1.div.r+orig -b T1.uni.r+orig -expr step(a/b-10)'\n"

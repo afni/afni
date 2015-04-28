@@ -235,20 +235,14 @@ print_atlas_point_list(ATLAS_POINT_LIST *apl)
 /* convert a NIML table from a dataset to an atlas list structure */
 ATLAS_POINT_LIST * dset_niml_to_atlas_list(THD_3dim_dataset *dset)
 {
-   ATLAS_POINT_LIST *apl;
-   int i, tdlev, tdval;
-   char *temp_str;
-   ATLAS_POINT *at_pt;
+   ATLAS_POINT_LIST *apl=NULL;
+   int LocalHead = wami_lh();
    NI_element *nel=NULL;
    NI_group *ngr=NULL;
-   int LocalHead = wami_lh();
-
-   float cog[3];
-   short okey;
    ATR_string *atr=NULL;
-
+   
    ENTRY("dset_niml_to_atlas_list");
-
+   
    if (LocalHead) fprintf(stderr, "assigning NIML attributes to apl.\n");
 
    atr = THD_find_string_atr( dset->dblk ,
@@ -263,12 +257,36 @@ ATLAS_POINT_LIST * dset_niml_to_atlas_list(THD_3dim_dataset *dset)
          if(ngr) NI_free_element(ngr) ;
          RETURN(NULL);
       }
+      apl = niml_atlas_label_table_to_atlas_list(ngr);
+      NI_free_element(ngr) ; ngr = NULL;
+      RETURN(apl);
    }
    else {
       if (LocalHead) fprintf(stderr, "Label table NOT found in attributes.\n");
       RETURN(NULL);
    }
+   
+   RETURN(NULL);
+}
 
+/* convert a NIML table to an atlas list structure */
+ATLAS_POINT_LIST * niml_atlas_label_table_to_atlas_list(NI_group *ngr)
+{
+   ATLAS_POINT_LIST *apl;
+   int i, tdlev, tdval;
+   char *temp_str;
+   ATLAS_POINT *at_pt;
+   NI_element *nel=NULL;
+   int LocalHead = wami_lh();
+
+   float cog[3];
+   short okey;
+   ATR_string *atr=NULL;
+
+   ENTRY("niml_atlas_label_table_to_atlas_list");
+
+   if (!ngr) RETURN(NULL);
+   
    /* get each segmented region - the "atlas point" from 
       a NIML formatted string */ 
    apl = (ATLAS_POINT_LIST *) calloc(1, sizeof(ATLAS_POINT_LIST));
@@ -314,7 +332,6 @@ ATLAS_POINT_LIST * dset_niml_to_atlas_list(THD_3dim_dataset *dset)
       at_pt->zz = cog[2];
    }    
 
-   NI_free_element(ngr) ;
    RETURN(apl); 
 }
 
