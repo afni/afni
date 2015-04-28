@@ -49,6 +49,11 @@
 
 
 afni_history_struct dglen_history[] = {
+{ 28, APR, 2015 , DRG , "to3d - do not write BRIK" , 
+    MICRO , TYPE_NEW_OPT, 
+    "Do not write binary data with -nowritebrik",
+    "May be useful for faster realtime acquisition with symlinks"
+} ,
 { 27, MAR, 2015 , DRG , "Selenium webdriver to open webpages" , 
     MAJOR , TYPE_GENERAL, 
     "Opens webpages without multiple tabs using python selenium webdriver"

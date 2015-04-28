@@ -1529,8 +1529,12 @@ ENTRY("AFNI_clus_action_CB") ;
      int vv = im3d->vinfo->view_type ;
      THD_3dim_dataset *dset ;
 
-     if( cdds.dset != NULL ) free((void *)cdds.dset) ;
+     if( cdds.dset != NULL ){
+       STATUS("free(cdds.dset)") ; free((void *)cdds.dset) ;
+       if( getenv("AFNI_CLUSTERIZE_AUXCRASH") == NULL ) cdds.dset = NULL ;
+     }
      cdds.ndset = 0 ;
+     STATUS("realloc(cdds.dset)") ;
      cdds.dset = (THD_3dim_dataset **)realloc(cdds.dset,
                                               sizeof(THD_3dim_dataset *)
                                              *im3d->ss_now->num_dsset  ) ;
