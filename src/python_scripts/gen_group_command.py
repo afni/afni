@@ -31,6 +31,18 @@ gen_group_command.py    - generate group commands: 3dttest++, 3dMEMA,
             volumes are accessed using sub-brick selectors via -subs_betas 
             and possbily -subs_tstats.
 
+   This program can parse subject IDs from dataset names when the IDs are the
+   varying part of dataset names (e.g. stats_subj1234+tlrc.HEAD), as in:
+
+            gen_group_command.py -command 3dttest++        \\
+                -dsets stats*+tlrc.HEAD
+
+   or when the subject IDs are the varying part of the directory names (while
+   the actual file names are identical), as in:
+
+            gen_group_command.py -command 3dttest++        \\
+                -dsets subject_results/*/*.results/stats+tlrc.HEAD
+
 ------------------------------------------
 examples (by program)
 
@@ -555,9 +567,10 @@ g_history = """
    0.8  Sep 04, 2012 - fixed error message
    0.9  Oct 03, 2012 - some options do not allow dashed parameters
    0.10 Oct 30, 2013 - added -keep_dirent_pre
+   0.11 Apr 24, 2015 - tiny help update (example)
 """
 
-g_version = "gen_group_command.py version 0.10, October 30, 2013"
+g_version = "gen_group_command.py version 0.11, April 24, 2015"
 
 
 class CmdInterface:

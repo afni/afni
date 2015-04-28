@@ -1734,6 +1734,8 @@ MRI_TYPE SUMA_GetBrickType(SUMA_DSET *dset, int ii);
 float SUMA_GetBrickFactor(SUMA_DSET *dset, int ii);
 float * SUMA_GetDatasetI2X(SUMA_DSET *dset, float M[4][4]);
 int SUMA_isVolDataset(SUMA_DSET *dset);
+NI_element * SUMA_GetAtlasLabelTable(SUMA_DSET *dset);
+NI_element * SUMA_GetValueLabelTable(SUMA_DSET *dset);
 SUMA_Boolean SUMA_SetUniqueIndicesAttr(SUMA_DSET *dset, byte replace);
 int SUMA_GetDsetColRange(SUMA_DSET *dset, int col_index, 
                          double range[2], int loc[2]);
