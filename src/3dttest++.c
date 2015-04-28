@@ -703,7 +703,7 @@ void display_help_menu(void)
       "                  covariate values -- for that, you'd have to relapse to scripting.\n"
       "              ++ EXAMPLE:\n"
       "                  Each input dataset (meg*.nii) has 100 time points; the 'X'\n"
-      "                  datasets are for one test condition and the 'Y' dataset are\n"
+      "                  datasets are for one test condition and the 'Y' datasets are\n"
       "                  for another. In this example, the subjects are the same in\n"
       "                  both conditions, so the '-paired' option makes sense.\n"
       "                    3dttest++ -brickwise -prefix megXY.nii -no1sam -paired\\\n"

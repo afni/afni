@@ -665,21 +665,13 @@ void SUMA_cmap_wid_input(Widget w, XtPointer clientData, XtPointer callData)
             break;
          case XK_f:
             {
-               if (1) { /* needs work, don't feel like it for now */
+               if (1) { 
                   SUMA_LH("Flipping colormap");
                   SUMA_Flip_Color_Map(
                      SUMA_CmapOfPlane(curColPlane));
                   SUMA_LH("Switching colormap");
-                  SUMA_SwitchColPlaneCmap(ado,
-                     SUMA_CmapOfPlane(curColPlane));
-                  #if SUMA_SEPARATE_SURF_CONTROLLERS
-                     SUMA_LH("Updating shells");
-                     SUMA_UpdateColPlaneShellAsNeeded(ado);
-                  #endif
-
-                  /* update Lbl fields */
-                  SUMA_LH("Updating NodeLblFields");
-                  SUMA_UpdateNodeLblField(ado);
+                  SUMA_SwitchCmap(ado,
+                         SUMA_CmapOfPlane(curColPlane), 0);
                }
             }
             break;
@@ -767,15 +759,8 @@ void SUMA_cmap_wid_input(Widget w, XtPointer clientData, XtPointer callData)
             {
                SUMA_COLOR_MAP *CM = SUMA_CmapOfPlane(curColPlane);
                if (SUMA_Rotate_Color_Map(CM, 0) % CM->N_M[0]) { 
-                  SUMA_LH("Got color map modification to do");
-                  SUMA_SwitchColPlaneCmap(ado,
-                     SUMA_CmapOfPlane(curColPlane));
-                  #if SUMA_SEPARATE_SURF_CONTROLLERS
-                     SUMA_UpdateColPlaneShellAsNeeded(ado);
-                  #endif
-
-                  /* update Lbl fields */
-                  SUMA_UpdateNodeLblField(ado);
+                  SUMA_SwitchCmap(ado,
+                         SUMA_CmapOfPlane(curColPlane), 0);
                } else {
                   SUMA_cmap_wid_postRedisplay(w, (XtPointer)ado, NULL);
                }
@@ -814,16 +799,8 @@ void SUMA_cmap_wid_input(Widget w, XtPointer clientData, XtPointer callData)
                   SUMA_Rotate_Color_Map(
                      SUMA_CmapOfPlane(curColPlane), frac);
                   SUMA_LH("Switching colormap");
-                  SUMA_SwitchColPlaneCmap(ado,
-                     SUMA_CmapOfPlane(curColPlane));
-                  #if SUMA_SEPARATE_SURF_CONTROLLERS
-                     SUMA_LH("Updating shells");
-                     SUMA_UpdateColPlaneShellAsNeeded(ado);
-                  #endif
-
-                  /* update Lbl fields */
-                  SUMA_LH("Updating NodeLblFields");
-                  SUMA_UpdateNodeLblField(ado);
+                  SUMA_SwitchCmap(ado,
+                         SUMA_CmapOfPlane(curColPlane), 0);
                }
             }
             break;
@@ -852,14 +829,8 @@ void SUMA_cmap_wid_input(Widget w, XtPointer clientData, XtPointer callData)
                   }
                   SUMA_Rotate_Color_Map(
                      SUMA_CmapOfPlane(curColPlane), -frac);
-                  SUMA_SwitchColPlaneCmap(ado,
-                     SUMA_CmapOfPlane(curColPlane));
-                  #if SUMA_SEPARATE_SURF_CONTROLLERS
-                     SUMA_UpdateColPlaneShellAsNeeded(ado);
-                  #endif
-
-                  /* update Lbl fields */
-                  SUMA_UpdateNodeLblField(ado);
+                  SUMA_SwitchCmap(ado,
+                         SUMA_CmapOfPlane(curColPlane), 0);
                }
             }
             break;

@@ -8240,25 +8240,31 @@ SUMA_FACESET_FIRST_EDGE_NEIGHB *SUMA_FaceSet_Edge_Neighb (int **EL, int **ELps, 
    
    ans = SUMA_MakeConsistent (FaceSetList, N_FaceSet, SEL, detail, trouble) 
    
-   \param FaceSetList (int *) N_FaceSet x 3 vector (was matrix prior to SUMA 1.2) containing triangle definition
+   \param FaceSetList (int *) N_FaceSet x 3 vector (was matrix prior to SUMA 1.2)                               containing triangle definition
    \param N_FaceSet int
-   \param SEL (SUMA_EDGE_LIST *) pointer Edgelist structure as output by SUMA_Make_Edge_List
+   \param SEL (SUMA_EDGE_LIST *) pointer Edgelist structure as output 
+                                 by SUMA_Make_Edge_List
    \param detail (int)  0: quiet, except for errors and warnings
                         1: report at end
                         2: LocalHead gets turned on
-   \param trouble (int *): a flag that is set to 1 if the surface had inconsistent mesh 
+   \param trouble (int *): a flag that is set to 1 if the surface 
+                           had inconsistent mesh 
                            or if the surface could not be fully traversed.
-                           0 if all went well and the mesh looks good (for the purposes of this function)
+                           0 if all went well and the mesh looks good 
+                           (for the purposes of this function)
    \ret ans (SUMA_Boolean) YUP, NOPE 
    
    \sa SUMA_Make_Edge_List
      
 */
-SUMA_Boolean SUMA_MakeConsistent (int *FL, int N_FL, SUMA_EDGE_LIST *SEL, int detail, int *trouble) 
+SUMA_Boolean SUMA_MakeConsistent (int *FL, int N_FL, SUMA_EDGE_LIST *SEL, 
+                                  int detail, int *trouble) 
 {
    static char FuncName[]={"SUMA_MakeConsistent"};
    /* see for more documentation labbook NIH-2 test mesh  p61 */
-   int i, it, NP, ip, N_flip=0, *isflip, *ischecked, ht0, ht1, NotConsistent, miss, miss_cur, N_iter, EdgeSeed, TriSeed, N_checked;
+   int i, it, NP, ip, N_flip=0, *isflip, *ischecked, ht0, ht1, 
+       NotConsistent, miss, miss_cur, N_iter, EdgeSeed, TriSeed, N_checked,
+       N_bad=0;
    SUMA_FACESET_FIRST_EDGE_NEIGHB *SFFN;
    SUMA_Boolean LocalHead = NOPE;
    
@@ -8276,7 +8282,7 @@ SUMA_Boolean SUMA_MakeConsistent (int *FL, int N_FL, SUMA_EDGE_LIST *SEL, int de
    ischecked = (int *)SUMA_calloc(SEL->N_EL/3, sizeof(int));
    
    if (isflip == NULL || ischecked == NULL ) {
-      fprintf(SUMA_STDERR, "Error %s: Failed to allocate for isflip\n", FuncName);
+      SUMA_S_Err("Failed to allocate for isflip");
       SUMA_RETURN (NOPE);
    }
    
@@ -8309,7 +8315,17 @@ SUMA_Boolean SUMA_MakeConsistent (int *FL, int N_FL, SUMA_EDGE_LIST *SEL, int de
          /* make sure edge is not part of three triangles, if it is, skip it */
          if (SEL->ELps[i][2] > 2) {
             ++i;
-            fprintf(SUMA_STDERR, "%s: Bad edge (#%d: %d--%d), part of more than 2 triangles, skip it\n", FuncName, i, SEL->EL[i][0], SEL->EL[i][1]); 
+            ++N_bad;
+            if (N_bad < 50) {
+               fprintf(SUMA_STDERR, 
+    "%s: Bad edge (#%d: %d--%d), part of more than 2 triangles, skipping it\n", 
+               FuncName, i, SEL->EL[i][0], SEL->EL[i][1]);
+               if (N_bad == 49) {
+                  fprintf(SUMA_STDERR, 
+                     "No more Bad edge warnings will be output to stderr. \n"
+                     "See BadEdgeNodes file if it is a part of the output.\n");
+               }
+            }
             continue;
          }
          if (SEL->ELps[i][2] == 2) {
@@ -8376,8 +8392,9 @@ SUMA_Boolean SUMA_MakeConsistent (int *FL, int N_FL, SUMA_EDGE_LIST *SEL, int de
                ++i; 
                continue;
             } 
-            if (!ischecked[ht0] && !ischecked [ht1]) { /* a good lead that was missed on this pass */
-               if (LocalHead) fprintf(SUMA_STDERR,"%s: Miss = %d, MissCur = %d\n", FuncName, miss, miss_cur); 
+            if (!ischecked[ht0] && !ischecked [ht1]) { 
+                        /* a good lead that was missed on this pass */
+               SUMA_LH("Miss = %d, MissCur = %d\n", miss, miss_cur); 
                ++miss;
             }
          }
@@ -8402,6 +8419,10 @@ SUMA_Boolean SUMA_MakeConsistent (int *FL, int N_FL, SUMA_EDGE_LIST *SEL, int de
       *trouble = 1;
    }
    
+   if (N_bad) {
+      if (detail) fprintf(SUMA_STDERR,"%s: A total of %d segments were part of more than 2 triangles.\n", FuncName, N_bad);
+      *trouble = 1;
+   }
    #if 0
       /* now show the fixed mesh list */
       fprintf (SUMA_STDERR,"%s: %d triangles were flipped \n", FuncName, N_flip);

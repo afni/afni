@@ -1240,7 +1240,7 @@ SUMA_SurfaceObject * SUMA_Load_Surface_Object_eng (
          SO->Name = SUMA_StripPath(SO_FileName);
          /* check for file existence  */
          if (!SUMA_filexists(SO_FileName)) {
-            sprintf(stmp,"File %s not found!", SO_FileName);
+            snprintf(stmp,998,"File %s not found!", SO_FileName);
             SUMA_error_message(FuncName, stmp, 0);
             SUMA_RETURN (NULL);
          }
