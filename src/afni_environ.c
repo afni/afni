@@ -320,11 +320,11 @@ char *get_help_help() {
 "-help: The entire help output\n"
 "-HELP: Extreme help, same as -help in majority of cases.\n"
 "-h_view: Open help in text editor. AFNI will try to find a GUI editor\n"
-"         on your machine. You can control which it should use by\n"
+"-hview : on your machine. You can control which it should use by\n"
 "         setting environment variable AFNI_GUI_EDITOR.\n"
-"-h_web: Open help in web browser. AFNI will try to find a browser\n"
-"         on your machine. You can control which it should use by\n"
-"         setting environment variable AFNI_GUI_EDITOR.\n"
+"-h_web: Open help in web browser. AFNI will try to find a browser.\n"
+"-hweb : on your machine. You can control which it should use by\n"
+"        setting environment variable AFNI_GUI_EDITOR. \n"
 "-h_find WORD: Look for lines in this programs's -help output that match\n"
 "              (approximately) WORD.\n"
 "-h_raw: Help string unedited\n"\
@@ -440,16 +440,16 @@ int AFNI_prefilter_args( int *argc , char **argv )
      }
      
      
-     if( strcmp(argv[ii],"-h_view") == 0 ){
-       if( ttt ) fprintf(stderr,"++ argv[%d] is -h_view\n",ii) ;
+     if( strcmp(argv[ii],"-h_view") == 0 || strcmp(argv[ii],"-hview") == 0 ){
+       if( ttt ) fprintf(stderr,"++ argv[%d] is -h_view or -hview \n",ii) ;
        view_prog_help(argv[0]);
        used[ii] = 1 ; 
        exit(0); 
          /* better exit, otherwise output get burried by program's own -help */ 
      }
      
-     if( strcmp(argv[ii],"-h_web") == 0 ){
-       if( ttt ) fprintf(stderr,"++ argv[%d] is -h_web\n",ii) ;
+     if( strcmp(argv[ii],"-h_web") == 0  || strcmp(argv[ii],"-hweb") == 0 ){
+       if( ttt ) fprintf(stderr,"++ argv[%d] is -h_web or -hweb\n",ii) ;
        web_prog_help(argv[0],0);
        used[ii] = 1 ; 
        exit(0); 
