@@ -689,8 +689,14 @@ void mcw_free( void *fred )
    mallitem *ip ;
 
    if( fred == NULL ) return ;
-   if( use_tracking && (ip=shift_tracker(fred)) != NULL ) free_track( ip ) ;
-   else                                                   free( fred ) ;
+   if( use_tracking && (ip=shift_tracker(fred)) != NULL )
+     free_track( ip ) ;
+   else {
+#ifdef USE_TRACING
+     if( use_tracking ) STATUS("** attempt to free non-tracked pointer!") ;
+#endif
+     free( fred ) ;
+   }
 }
 
 /*-----------------------------------------------------------------
