@@ -1563,11 +1563,12 @@ def warp_anat_followers(proc, block, anat_aname, epi_aname=None, prevepi=0):
    # check for any non-linear warp
    donl = 0
    for warp in warps:
-       if warp.endswith('qw_WARP.nii'):
-          donl = 1
-          break
+      if warp.endswith('qw_WARP.nii'):
+         donl = 1
+         break
 
    # affine vs NL: program, interp option, warp option, indent
+   tstr = ''
    if donl:
       prog    = '3dNwarpApply'
       iopt    = '-ainterp'
@@ -1590,6 +1591,7 @@ def warp_anat_followers(proc, block, anat_aname, epi_aname=None, prevepi=0):
          tstr = "# catenate all transformations\n" \
                 "cat_matvec -ONELINE \\\n"         \
                 "           %s > %s\n\n" % (xall, xform)
+
       if xform == identity_warp: warpstr = "-1Dparam_apply %s\\'" % xform
       else:                      warpstr = '-1Dmatrix_apply %s' % xform
 
@@ -1598,6 +1600,8 @@ def warp_anat_followers(proc, block, anat_aname, epi_aname=None, prevepi=0):
    else:                        wtstr = 'affine'
    wstr = '# -----------------------------------------\n'  \
           '# warp anat follower datasets (%s)\n' % wtstr
+
+   if tstr: wstr += '\n%s' % tstr
 
    # perform any pre-erode
    efirst = 1
@@ -1615,7 +1619,7 @@ def warp_anat_followers(proc, block, anat_aname, epi_aname=None, prevepi=0):
    if not efirst: wstr += '\n# and apply any warp operations\n'
 
    # process all followers
-   wcount = 0
+   wlist = []
    for afobj in proc.afollowers:
       if afobj.is_warped == 1:
          print '** calling warp_anat_followers multiple times!'
@@ -1639,7 +1643,9 @@ def warp_anat_followers(proc, block, anat_aname, epi_aname=None, prevepi=0):
       else:        istr = 'wsinc5'
 
       if xform == identity_warp and afobj.dgrid != 'epi': 
-         continue # what to do, no warp needed
+         if proc.verb > 1:
+            print '-- no need to warp anat follower %s' % afobj.aname.prefix
+         continue # no warp needed
 
       wstr += '%s -source %s -master %s \\\n' \
               '%s            %s %s %s\\\n'   \
@@ -1651,12 +1657,14 @@ def warp_anat_followers(proc, block, anat_aname, epi_aname=None, prevepi=0):
       # update current name based on master dataset and new prefix
       afobj.cname = mname.new(new_pref=prefix)
       afobj.is_warped = 1
-      wcount += 1
+      wlist.append(afobj.aname.prefix)
 
       # and add this dataset to the ROI regression dictionary
       proc.roi_dict[afobj.label] = afobj.cname
 
-   print '-- applied warps to %d dataset(s)' % wcount
+   if len(wlist) > 0:
+      print '-- applying anat warps to %d dataset(s): %s' \
+            % (len(wlist), ', '.join(wlist))
 
    wstr += '\n'
    return 0, wstr
@@ -2752,6 +2760,7 @@ def add_ROI_PC_followers(proc, block):
 
     elist, rv = block.opts.get_string_list('-regress_ROI_erode')
     if elist == None: elist = []
+    else:             elist = elist[:]  # copy, to trash later
 
     # if maskave, prepare to add to -regress_ROI parlist
     roiparlist = []
@@ -2796,7 +2805,9 @@ def add_ROI_PC_followers(proc, block):
         ff = proc.add_anat_follower(name=dname, dgrid='epi', label=label,
                                     NN=1, num_pc=npc)
         ff.set_var('final_prefix', 'ROI_PC_dset_%s' % label)
-        if label in elist: ff.set_var('erode', 1)
+        if label in elist:
+           ff.set_var('erode', 1)
+           elist.remove(label)
 
         # just warn if ROI dataset is not found
         if not ff.aname.exist():
@@ -2827,12 +2838,20 @@ def add_ROI_PC_followers(proc, block):
         ff = proc.add_anat_follower(name=dname, dgrid='epi', label=label,
                                     NN=1, mave=1)
         ff.set_var('final_prefix', 'ROI_mask_dset_%s' % label)
-        if label in elist: ff.set_var('erode', 1)
+        if label in elist:
+           ff.set_var('erode', 1)
+           elist.remove(label)
 
         # just warn if ROI dataset is not found
         if not ff.aname.exist():
            print '** warning, do not see %s dataset %s' \
                  % (oname, ff.aname.rel_input())
+
+    # check for an missing erosions
+    if len(elist) > 0:
+       print '** have %d unused -regress_ROI_erode label(s): %s' \
+             % (len(elist), ', '.join(elist))
+       return 1
 
     # if we have something...
     if len(proc.afollowers) > 0:
@@ -3782,7 +3801,7 @@ def db_cmd_regress(proc, block):
     # check the X-matrix for high pairwise correlations
     opt = block.opts.find_opt('-regress_cormat_warnigns')
     if not opt or OL.opt_is_yes(opt):  # so default to 'yes'
-        rcmd = "# display any large pariwise correlations from the X-matrix\n"\
+        rcmd = "# display any large pairwise correlations from the X-matrix\n"\
                "1d_tool.py -show_cormat_warnings -infile %s"                  \
                " |& tee out.cormat_warn.txt\n\n" % proc.xmat
         cmd = cmd + rcmd
@@ -7791,6 +7810,8 @@ g_help_string = """
             to transform (non-linear) to standard space, those datasets can
             be input to save re-processing time.
 
+            In such a case, the 'tlrc' block will be empty of actions.
+
         -tlrc_NL_awpy_rm Y/N    : specify whether to remove awpy directory
 
                 e.g.     -tlrc_NL_awpy_rm no
@@ -9355,32 +9376,85 @@ g_help_string = """
             Note: use of any non-brain cases requires -mask_segment_anat.
 
             See also -mask_segment_anat.
-            Please see '3dSeg -help' for motion information on the masks.
+            Please see '3dSeg -help' for more information on the masks.
 
         -regress_ROI_erode LABEL LABEL ...: erode masks for given labels
 
                 e.g. -regress_ROI_erode WMe
 
             Perform a single erosion step on the mask dataset for the given
-            label.  This is done on the anatomical grid.
+            label.  This is done on the input ROI (anatomical?) grid.
 
-            rcr - add more
+            The erosion step is applied before any transformation, and uses the
+            18-neighbor approach (6 face and 12 edge neighbors, not 8 corner
+            neighbors) in 3dmask_tool.
 
-        -regress_ROI_maskave LABEL MASK_SET : regress out average masked signal
+            See also -regress_ROI_PC, -regress_ROI_maskave.
+            Please see '3dmask_tool -help' for more information on eroding.
+
+        -regress_ROI_maskave LABEL MASK : regress out average masked signal
 
                 e.g. -regress_ROI_maskave WMe WMe+orig
 
-            The mask dataset must be aligned with the input anatomy.
+            Regress the average EPI volreg value over the MASK.
 
-            rcr - add more
+            This follows the same method as for -regress_ROI_PC below, except
+            that step 3 (extraction of PCs) is replaced with a simple 3dmaskave
+            result across all runs.  Detrending and censoring are not needed
+            for the maskave case, as they are handled in the regression.
 
-        -regress_ROI_PC LABEL NUM_PC MASK_SET : regress out PCs within mask
+          * The given MASK must be in register with the anatomical dataset,
+            though is does not necessarily need to be on the anatomical grid.
+
+            See also -regress_ROI_PC, -regress_ROI_erode, -regress_ROI.
+
+        -regress_ROI_PC LABEL NUM_PC MASK : regress out PCs within mask
 
                 e.g. -regress_ROI_PC ventricles 3 LatVent+orig
 
-            The mask dataset must be aligned with the input anatomy.
+            Add the top principle components (PCs) over an anatomical mask as
+            regressors of no interest.  
 
-            rcr - add more
+              - LABEL   : the class label given to this set of regressors
+              - NUM_PC  : the number of principle components to include
+              - MASK    : the mask over which PCs will be computed
+                          (this must be in alignment with the input anatomy)
+
+            Method:
+              1. erode the input MASK, if requested via -regress_ROI_erode
+              2. apply all anatomical transformations to the MASK
+                 a. catenate all anatomical transformations
+                    i.   anat to EPI?
+                    ii.  affine xform of anat to template?
+                    iii. subsequent non-linear xform of anat to template?
+                 b. sample the transformed mask on the EPI grid
+                 c. use nearest neighbor interpolation, NN
+              3. extract the top NUM_PC principle components from the volume
+                 registered EPI data, over the mask
+                 a. detrend the volume registered EPI data at the polort level
+                    to be used in the regression, per run
+                 b. catenate the detrended volreg data across runs
+                 c. compute the top PCs from the (censored?) time series
+                 d. if censoring, zero-fill the time series with volumes of
+                    zeros at the censored TRs, to maintain TR correspondence
+              4. include those PCs as regressors of no interest
+                 a. apply with: 3dDeconvolve -ortvec PCs LABEL
+
+            Typical usage might start with the FreeSurfer parcellation of the
+            subject's anatomical dataset, followed by ROI extraction using 
+            3dcalc (to make a new dataset of just the desired regions).  Then
+            choose the number of components to extract and a label.
+
+            That ROI dataset, PC count and label are then applied with this
+            option.
+
+          * The given MASK must be in register with the anatomical dataset,
+            though is does not necessarily need to be on the anatomical grid.
+
+          * This differs from -regress_ROI in that these are external ROIs,
+            while -regress_ROI will create ROIs in the proc script using 3dSeg.
+
+            See also -regress_ROI_maskave, -regress_ROI_erode, -regress_ROI.
 
         -regress_RSFC           : perform bandpassing via 3dRSFC
 

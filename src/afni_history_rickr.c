@@ -49,6 +49,36 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 24,  Apr, 2015, RCR, "gen_group_command.py", MICRO, TYPE_ENHANCE,
+   "tiny help update: examples of usage regarding subject IDs",
+   NULL
+ } ,
+
+ { 23,  Apr, 2015, RCR, "gen_ss_review_scripts.py", MICRO, TYPE_NEW_OPT,
+   "add -help_fields[_brief], to describe the 'basic' output fields",
+   NULL
+ } ,
+
+ { 22,  Apr, 2015, RCR, "afni_proc.py", MINOR, TYPE_BUG_FIX,
+   "put in cat_matvec string to create warp.all.anat.aff12.1D",
+   "Thanks to sgreen (MB) for noting the problem."
+ } ,
+
+ { 22,  Apr, 2015, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,
+   "add -todo; help update; verify use of erode list",
+   NULL
+ } ,
+
+ { 22,  Apr, 2015, RCR, "file_tool", MINOR, TYPE_ENHANCE,
+   "add fix for non-unix files; allow for multiple tests with -prefix",
+   NULL
+ } ,
+
+ { 22,  Apr, 2015, RCR, "afni-general", MICRO, TYPE_MODIFY,
+   "Makefile.linux_fedora_19_64: alter -I dirs for glib to build on F21",
+   NULL
+ } ,
+
  { 14,  Apr, 2015, RCR, "uber_subject.py", MICRO, TYPE_NEW_OPT,
    "add MIN_OUTLIERS as an option for volreg base",
    NULL
@@ -91,7 +121,7 @@ afni_history_struct rickr_history[] = {
 
  {  2,  Apr, 2015, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
    "added -tlrc_NL_warped_dsets to import 3dQwarp result",
-   NULL
+   "Added for P Molfese and others."
  } ,
 
  {  2,  Apr, 2015, RCR, "rickr/Makefile", MICRO, TYPE_BUG_FIX,

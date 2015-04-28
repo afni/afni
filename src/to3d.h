@@ -44,7 +44,7 @@ typedef struct {
    char geometry_dataname[THD_MAX_NAME] ,
 	anatomy_dataname[THD_MAX_NAME] ;
 
-   int  nimage , nvals , nosave ;
+   int  nimage , nvals , nosave, writebrik ;
 
    MCW_idcode anatomy_parent_idcode ;
 
