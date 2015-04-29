@@ -16,6 +16,8 @@
 ###########################################################################
 ###########################################################################
 
+# Apr,2015
+#    + minor bug fix
 
 import lib_fat_funcs as GR
 from numpy import set_printoptions
@@ -435,7 +437,7 @@ if __name__=="__main__":
     if Ninter :
         for i in range(len(var_isinterac)):
             if var_isinterac[i][0][0] :
-                var_list_EX = var_list[2].split('*')
+                var_list_EX = var_list[i].split('*') # Apr,2015: bug fix
                 var_iscateg_EX, var_isinterac_EX, Ninter_EX = GR.CheckFor_Cats_and_Inters( tab_data,
                                                                                            tab_colvars,
                                                                                            tab_coltypes,
@@ -467,6 +469,8 @@ if __name__=="__main__":
         print "   List of matrix parameters is:\n   \t  %s." % par_str
     print "   List of quantitative variables is:\n   \t%s." % varQ_str
     print "   List of categorical variables is:\n   \t%s." % varC_str
+    # add: Apr,2015
+    print "   List of interacting variables is:\n   \t%s." % varI_str
 
 
 
