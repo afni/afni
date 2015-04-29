@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 28,  Apr, 2015, RCR, "NIFTI", MAJOR, TYPE_ENHANCE,
+   "apply updates to NIFTI-2 I/O library",
+   "Also, include initial mods to nifti_tool, hidden under nifti2 dir."
+ } ,
+
  { 28,  Apr, 2015, RCR, "NIFTI", MINOR, TYPE_GENERAL,
    "add nifti/nifti2 directory with current NIFTI-1 versions of 4 files",
    "This tracks initial changes to nifti2_io.[ch] nifti_tool.[ch]."

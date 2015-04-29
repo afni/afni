@@ -26,8 +26,8 @@ typedef struct{
    int      cbl, cci;            /* -copy_XXX option flags        */
    int      dts, dci, dci_lines; /* display collapsed img flags   */
    int      make_im;             /* create a new image on the fly */
-   int      ci_dims[8];          /* user dims list (last 7 valid) */
-   int      new_dim[8];          /* user dim list for new image   */
+   int64_t  ci_dims[8];          /* user dims list (last 7 valid) */
+   int64_t  new_dim[8];          /* user dim list for new image   */
    int      new_datatype;        /* datatype for new image        */
    int      debug, keep_hist;    /* debug level and history flag  */
    int      overwrite;           /* overwrite flag                */
@@ -40,14 +40,16 @@ typedef struct{
    char     command[NT_CMD_LEN]; /* for inserting the command     */
 } nt_opts;
 
-#define USE_SHORT      1
-#define USE_FULL       2
-#define USE_HIST       3
-#define USE_FIELD_HDR  4
-#define USE_FIELD_NIM  5
-#define USE_FIELD_ANA  6
-#define USE_DTYPES     7
-#define USE_VERSION    8
+#define USE_SHORT       1
+#define USE_FULL        2
+#define USE_HIST        3
+#define USE_FIELD_HDR1 11
+#define USE_FIELD_HDR2 12
+#define USE_FIELD_NIM1 21
+#define USE_FIELD_NIM2 22
+#define USE_FIELD_ANA  31
+#define USE_DTYPES     41
+#define USE_VERSION    51
 
 #define CHECK_NEXT_OPT(n,m,str)                                       \
    do { if ( (n) >= (m) ) {                                           \
@@ -69,7 +71,8 @@ typedef struct{
  *----------------------------------------------------------------------*/
 
 #define NT_FIELD_NAME_LEN  20       /* more than length of longest name */
-#define NT_HDR_NUM_FIELDS  43       /* in the nifti_1_header struct     */
+#define NT_HDR1_NUM_FIELDS 43       /* in the nifti_1_header struct     */
+#define NT_HDR2_NUM_FIELDS 37       /* in the nifti_2_header struct     */
 #define NT_ANA_NUM_FIELDS  47       /* in the  nifti_analyze75 struct   */
 #define NT_NIM_NUM_FIELDS  63       /* in the nifti_image struct        */
 #define NT_DT_STRING      -0xfff    /* some strange number to abuse...  */
@@ -87,6 +90,10 @@ typedef struct {
 
 /* for computing the offset from the start of the struct */
 #define NT_OFF(str,field) ((int)( ((char *)&str.field) - ((char *)&str) ))
+#define SHOW_STRUCT_OFFSET(str,field,mesg) do { str ss;                 \
+   if(mesg)printf("%s ",(char*)mesg);                                   \
+   printf("%s.%s @ offset %d\n", #str, #field, NT_OFF(ss,field)); }     \
+   while (0)
 
 /* call fill_field() for a single type, name and number of elements */
 /* nstr is the base struct, and fldp is a field pointer */
@@ -141,21 +148,23 @@ int disp_raw_data    (void * data, int type, int nvals, char space,int newline);
 int fill_cmd_string  (nt_opts * opts, int argc, char * argv[]);
 int fill_field       (field_s *fp, int type, int offset, int num, char *name);
 int fill_hdr_field_array(field_s * nh_fields);
+int fill_hdr2_field_array(field_s * nh_fields);
 int fill_nim_field_array(field_s * nim_fields);
+int fill_nim2_field_array(field_s * nim_fields);
 int fill_ana_field_array(field_s * ah_fields);
 int modify_all_fields(void *basep, nt_opts *opts, field_s *fields, int flen);
 int modify_field     (void * basep, field_s * field, char * data);
 int process_opts     (int argc, char * argv[], nt_opts * opts);
 int remove_ext_list  (nifti_image * nim, char ** elist, int len);
 int usage            (char * prog, int level);
-int use_full         (char * prog);
+int use_full         ();
 int verify_opts      (nt_opts * opts, char * prog);
 int write_hdr_to_file(nifti_1_header * nhdr, char * fname);
 
 /* wrappers for nifti reading functions (allow MAKE_IM) */
 nifti_image    * nt_image_read (nt_opts * opts, char * fname, int doread);
 nifti_image    * nt_read_bricks(nt_opts * opts, char * fname, int len,
-                                int * list, nifti_brick_list * NBL);
+                                int64_t * list, nifti_brick_list * NBL);
 nifti_1_header * nt_read_header(nt_opts * opts, char * fname, int * swapped,
                                 int check);
 
