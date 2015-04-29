@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 29,  Apr, 2015, RCR, "NIFTI", MINOR, TYPE_MODIFY,
+   "allow reading and writing unknown extensions",
+   NULL
+ } ,
+
  { 28,  Apr, 2015, RCR, "NIFTI", MINOR, TYPE_NEW_PROG,
    "added clib_02.nifti2.c demo and Makefile",
    NULL
