@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 28,  Apr, 2015, RCR, "NIFTI", MINOR, TYPE_GENERAL,
+   "add nifti/nifti2 directory with current NIFTI-1 versions of 4 files",
+   "This tracks initial changes to nifti2_io.[ch] nifti_tool.[ch]."
+ } ,
+
  { 24,  Apr, 2015, RCR, "gen_group_command.py", MICRO, TYPE_ENHANCE,
    "tiny help update: examples of usage regarding subject IDs",
    NULL
