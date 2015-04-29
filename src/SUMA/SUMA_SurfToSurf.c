@@ -724,9 +724,15 @@ int main (int argc,char *argv[])
             SUMA_S_Errv("Failed to map %s\n", Opt->in_name);
             exit(1);
          }
-         s1 = SUMA_append_string(
+         if (0 && !strchr(Opt->out_prefix,'/') ){
+            /* Don't know what made me think that appending the
+               path of the input was a good idea... */
+            s1 = SUMA_append_string(
                   SUMA_FnameGet(Opt->in_name,"pa", SUMAg_CF->cwd),
                   Opt->out_prefix); 
+         } else {
+            s1 = SUMA_copy_string(Opt->out_prefix); 
+         }
          s2 = SUMA_RemoveDsetExtension_s(
                SUMA_FnameGet(Opt->in_name,"l",SUMAg_CF->cwd), 
                SUMA_NO_DSET_FORMAT);
