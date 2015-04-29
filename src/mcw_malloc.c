@@ -650,7 +650,11 @@ void * mcw_realloc( void *fred , size_t n , char *fnam , int lnum )
       return realloc_track( ip , n , fnam,lnum ) ;
    else {
 #ifdef USE_TRACING
-      if( use_tracking && fred != NULL ) STATUS("** attempt to realloc non-tracked pointer!") ;
+      if( use_tracking ){
+        char buf[1024] ;
+        sprintf(buf,"** attempt to realloc non-tracked pointer -- %s line %d",fnam,lnum) ;
+        STATUS(buf) ;
+      }
 #endif
       return realloc( fred , n ) ;
    }
@@ -689,8 +693,14 @@ void mcw_free( void *fred )
    mallitem *ip ;
 
    if( fred == NULL ) return ;
-   if( use_tracking && (ip=shift_tracker(fred)) != NULL ) free_track( ip ) ;
-   else                                                   free( fred ) ;
+   if( use_tracking && (ip=shift_tracker(fred)) != NULL )
+     free_track( ip ) ;
+   else {
+#ifdef USE_TRACING
+     if( use_tracking ) STATUS("** attempt to free non-tracked pointer!") ;
+#endif
+     free( fred ) ;
+   }
 }
 
 /*-----------------------------------------------------------------
