@@ -134,6 +134,8 @@ SET_PBAR_ALL [c.]{+|-}99 topval colorscale_name [options]
   value to go at the top of the colorscale.  The string 'colorscale_name'
   tells which colorscale to use.  For example:
     SET_PBAR_ALL A.+99 1.0 Color_circle_AJJ
+  Please note that the '+' or '-' betfor the 99 is NOT optional -- you must
+  put one of these signs in before the number!
 
   The 'options' available at this time only apply when in this "continuous"
   colorscale case.  They are
