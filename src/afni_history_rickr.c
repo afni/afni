@@ -49,6 +49,12 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 30,  Apr, 2015, RCR, "afni_proc.py", MICRO, TYPE_NEW_OPT,
+   "allow AM2 centering param via basis backdoor (for now)",
+   "For example, use basis function 'BLOCK(2) :x:0.176'\n"
+   "Done for J Britton."
+ } ,
+
  { 29,  Apr, 2015, RCR, "NIFTI", MINOR, TYPE_MODIFY,
    "allow reading and writing unknown extensions",
    NULL
