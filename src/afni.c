@@ -2010,7 +2010,7 @@ int main( int argc , char *argv[] )
      AFNI_mark_environ_done() ;                           /* 16 Apr 2000 */
    }
 
-   /*-- 30 May 2015: some messages about obsolete environment variables --*/
+   /*-- 30 Apr 2015: some messages about obsolete environment variables --*/
 
    if( getenv("AFNI_SLAVE_THRTIME") != NULL ){
      WARNING_message("environment variable AFNI_SLAVE_THRTIME is no longer used!") ;
