@@ -3610,8 +3610,15 @@ def db_cmd_regress(proc, block):
         else:
             if stim_types[ind] == 'times': st_suf = ''
             else:                          st_suf = '_%s' % stim_types[ind]
-            O3dd.append("    -stim_times%s %d %s '%s'"  % \
-                        (st_suf, ind+1, proc.stims[ind], basis[ind]))
+            # allow for AM2 centering via basis backdoor        30 Apr 2015
+            # rcr - consider adding a more formal option later
+            posn = basis[ind].find(' :')
+            if stim_types[ind] == 'AM2' and posn > 3:
+               bb = basis[ind]
+               bstr = "'%s' %s" % (bb[0:posn], bb[posn+1:])
+            else: bstr = "'%s'" % basis[ind]
+            O3dd.append("    -stim_times%s %d %s %s"  % \
+                        (st_suf, ind+1, proc.stims[ind], bstr))
             # accumulate timing files with TENTs for later error checks
             if basis[ind].find('TENT') >= 0: tent_times.append(proc.stims[ind])
         # and add the label
