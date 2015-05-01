@@ -43,6 +43,30 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
+  { 27 , APR , 2015 , RWC , "debug tracing" , MICRO , TYPE_GENERAL ,
+   "Added 'recent internal history' to .afni.crashlog" ,
+   "The last few ENTRY/EXIT/STATUS updates are saved, to help pinpoint the\n"
+   "sequence of events before the demise of the patient." } ,
+
+ { 23 , Apr , 2015 , RWC , "AFNI GUI"     , MICRO , TYPE_BUG_FIX ,
+    "Fix Aux.Dset button crash in Clusterize" ,
+    "Because Ziad Saad is trouble, that's why.\n"
+    "(Either that, or 'free(x)' should imply 'x=NULL'.)\n"
+    "Also, catch SIGABRT signal, so Mac malloc() errors are tracebacked." } ,
+
+  { 14 , Apr , 2015 , RWC , "AFNI GUI"     , MICRO , TYPE_BUG_FIX ,
+    "Fix index text overlay clash in graph window" ,
+    "Because Daniel Glen is trouble, that's why." } ,
+
+  { 13 , APR , 2015 , RWC , "all programs" , MICRO , TYPE_GENERAL ,
+    "AFNI programs now write crash logs to file ~/.afni.crashlog" ,
+    NULL } ,
+
+  { 13 , APR , 2015 , RWC , "AFNI itself" , MICRO , TYPE_BUG_FIX ,
+    "Fix crash when ClustSim info in dataset header is incomplete" ,
+    "Problem was if mask string was missing, it tried to read the\n"
+    "mask idcode from a now-deleleted NIML element -- bad news." } ,
+
   { 27 , MAR , 2015 , RWC , "3dttest++" , MICRO , TYPE_BUG_FIX ,
    "linux_xorg7_64 distribution gets argv[nopt] wrong?!" ,
    "Fixed by putting in a debug printout statement for argv[nopt] at start\n"

@@ -49,6 +49,72 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 30,  Apr, 2015, RCR, "afni_proc.py", MICRO, TYPE_NEW_OPT,
+   "allow AM2 centering param via basis backdoor (for now)",
+   "For example, use basis function 'BLOCK(2) :x:0.176'\n"
+   "Done for J Britton."
+ } ,
+
+ { 29,  Apr, 2015, RCR, "NIFTI", MINOR, TYPE_MODIFY,
+   "allow reading and writing unknown extensions",
+   NULL
+ } ,
+
+ { 28,  Apr, 2015, RCR, "NIFTI", MINOR, TYPE_NEW_PROG,
+   "added clib_02.nifti2.c demo and Makefile",
+   NULL
+ } ,
+
+ { 28,  Apr, 2015, RCR, "NIFTI", MAJOR, TYPE_ENHANCE,
+   "apply updates to NIFTI-2 I/O library",
+   "Also, include initial mods to nifti_tool, hidden under nifti2 dir."
+ } ,
+
+ { 28,  Apr, 2015, RCR, "NIFTI", MINOR, TYPE_GENERAL,
+   "add nifti/nifti2 directory with current NIFTI-1 versions of 4 files",
+   "This tracks initial changes to nifti2_io.[ch] nifti_tool.[ch]."
+ } ,
+
+ { 24,  Apr, 2015, RCR, "gen_group_command.py", MICRO, TYPE_ENHANCE,
+   "tiny help update: examples of usage regarding subject IDs",
+   NULL
+ } ,
+
+ { 23,  Apr, 2015, RCR, "gen_ss_review_scripts.py", MICRO, TYPE_NEW_OPT,
+   "add -help_fields[_brief], to describe the 'basic' output fields",
+   NULL
+ } ,
+
+ { 22,  Apr, 2015, RCR, "afni_proc.py", MINOR, TYPE_BUG_FIX,
+   "put in cat_matvec string to create warp.all.anat.aff12.1D",
+   "Thanks to sgreen (MB) for noting the problem."
+ } ,
+
+ { 22,  Apr, 2015, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,
+   "add -todo; help update; verify use of erode list",
+   NULL
+ } ,
+
+ { 22,  Apr, 2015, RCR, "file_tool", MINOR, TYPE_ENHANCE,
+   "add fix for non-unix files; allow for multiple tests with -prefix",
+   NULL
+ } ,
+
+ { 22,  Apr, 2015, RCR, "afni-general", MICRO, TYPE_MODIFY,
+   "Makefile.linux_fedora_19_64: alter -I dirs for glib to build on F21",
+   NULL
+ } ,
+
+ { 14,  Apr, 2015, RCR, "uber_subject.py", MICRO, TYPE_NEW_OPT,
+   "add MIN_OUTLIERS as an option for volreg base",
+   NULL
+ } ,
+
+ { 14,  Apr, 2015, RCR, "3dDeconvolve", MICRO, TYPE_MODIFY,
+   "PLOT_matrix_gray: add error messages to clarify malloc failures",
+   NULL
+ } ,
+
  {  9,  Apr, 2015, RCR, "afni_proc.py", MICRO, TYPE_BUG_FIX,
    "fix -tlrc_NL_warped_dsets for NIFTI anat; add some -regress_ROI_PC help",
    NULL
@@ -81,7 +147,7 @@ afni_history_struct rickr_history[] = {
 
  {  2,  Apr, 2015, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
    "added -tlrc_NL_warped_dsets to import 3dQwarp result",
-   NULL
+   "Added for P Molfese and others."
  } ,
 
  {  2,  Apr, 2015, RCR, "rickr/Makefile", MICRO, TYPE_BUG_FIX,
