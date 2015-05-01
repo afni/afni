@@ -49,6 +49,10 @@
 
 
 afni_history_struct dglen_history[] = {
+{ 30, APR, 2015 , DRG , "Selenium webdriver for afni help page too" , 
+    MICRO , TYPE_GENERAL, 
+    "Opens page for all afni help page using python selenium webdriver"
+},
 { 28, APR, 2015 , DRG , "to3d - do not write BRIK" , 
     MICRO , TYPE_NEW_OPT, 
     "Do not write binary data with -nowritebrik",
