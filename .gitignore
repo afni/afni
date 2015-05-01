@@ -8,6 +8,7 @@ ___*
 *.a
 *.dSYM
 *junk*
+*.swp
 
 #Datasets
 *.nii*
