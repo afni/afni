@@ -90,6 +90,8 @@ if ("$package" == "") then
       set expat_sh = 1
       set fontconf = 1
       set dynxlibs = 1
+      set soXm = 1
+      set soXt = 1
       set user_bin = '/home/ziad/abin'
    else if ( "${thishost}" =~ manwe* ) then
       if ($lesstifing == 0) then
@@ -357,6 +359,16 @@ if ($dynXm == 1) then
    mv ___mm Makefile
 endif
 
+if ($soXm == 1) then
+   sed 's:libXm.a:-libXm.so:g' Makefile > ___mm
+   mv ___mm Makefile
+endif
+
+if ($soXt == 1) then
+   sed 's:libXt.a:-libXt.so:g' Makefile > ___mm
+   mv ___mm Makefile
+endif
+
 if ( $dynxlibs ) then
    sed 's/# XLIBS = -lXm -lXt/ XLIBS = -lXm -lXt/g' Makefile > ___mm
    mv ___mm Makefile
@@ -577,6 +589,8 @@ PARSE_COMMAND:
    set mcwmalloc = 0
    set dynXft = 0
    set dynXm = 0
+   set soXm = 0
+   set soXt = 0
    set dynjpeg = 0
    set glib2 = 0
    set bufcheck = 0
