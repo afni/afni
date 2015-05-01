@@ -368,7 +368,7 @@ int AFNI_process_plugout( PLUGOUT_spec *pp )
 
    if( jj < 0 ){    /* something bad happened */
       if( po_verbose )
-         fprintf(stderr,"PO: plugout %s has broken connection!\n",pp->po_name) ;
+         fprintf(stderr,"PO: plugout '%s' has broken connection!\n",pp->po_name) ;
       spt = iochan_error_string() ;
       if( spt != NULL && po_verbose ) fprintf(stderr,"  : %s\n",spt) ;
       return(-1) ;
