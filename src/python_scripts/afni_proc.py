@@ -459,21 +459,45 @@ g_history = """
         - done for P Hamilton
     4.36 Apr  2, 2015: added -tlrc_NL_warped_dsets to import 3dQwarp result
     4.37 Apr  9, 2015: fix for NIFTI NL anat; add a little help
+    4.38 Apr 22, 2015:
+        - help update for -regress_ROI_*
+        -  verify erode list use
+        - added -todo to show current list
+    4.39 Apr 22, 2015: add missed cat_matvec to create warp.all.anat.aff12.1D
+    4.40 Apr 30, 2015: allow AM2 centering param via basis backdoor
+        - e.g. use basis "BLOCK(2) :x:0.176"
 """
 
-g_version = "version 4.37, April 9, 2015"
+g_version = "version 4.40, April 22, 2015"
 
 # version of AFNI required for script execution
 g_requires_afni = "1 Apr 2015" # 1d_tool.py uncensor from 1D
 
-g_todo_str = """Todo:
-  - add help for -regress_ROI_PC/maskave
-  - add help for -tlrc_NL_warped_dsets
+g_todo_str = """todo:
   - add option to use dict key other than WMe for anaticor
   - (related) show example for passing FreeSurfer WMe with erode option
   - add option to block anat from anat followers?
   - add/modify AP tests for some cases
   - add AP test for varying remove_first_trs
+  - add -4095_check and -4095_ok options?
+     - maybe check means the 3dToutcount would fail, and ok would continue
+     - or have 3dToc just report, maybe write a volume?
+
+  -compute_corr_volumes LABEL ... ?
+  - warn of missing input dsets?  (-dsets, -copy_anat, any 3dcopy)
+  - use anaticor_fast method to produce QC volume from WMe of VR data
+     - WMe mask and blur volreg, correlate with same volreg (detrend)
+  - add -volreg_align_base_to_ext_dset (probably a small displacement)
+    (to match volreg_base to -align_epi_ext_dset)
+  - if no align/tlrc blocks, but -mask_segment_anat, run 3dSkullStrip
+    see http://afni.nimh.nih.gov/afni/community/board/read.php?1,145004
+  - add anaticor in surface analysis
+  - update surface examples to use standard mesh surfaces
+
+  - motsim regression: per voxel; PCs; combined with mot params?
+     - is this extra useful in the case of no censoring?  e.g. PPI
+  - add -regress_basis_AM2_offsets or _basis_multi_params (now hidden in basis)
+     for something like -stim_times_AM2 'BLOCK(2)' :x:0.176
 """
 
 # ----------------------------------------------------------------------
@@ -714,6 +738,8 @@ class SubjProcSream:
                         helpstr='show which date is required of AFNI')
         self.valid_opts.add_opt('-show_valid_opts', 0, [],
                         helpstr="show all valid options")
+        self.valid_opts.add_opt('-todo', 0, [],
+                        helpstr="show current todo list")
         self.valid_opts.add_opt('-ver', 0, [],
                         helpstr="show module version")
 
@@ -1168,6 +1194,10 @@ class SubjProcSream:
         if opt_list.find_opt('-requires_afni_version'): # print required version
             print g_requires_afni
             return 0  # gentle termination
+        
+        if opt_list.find_opt('-todo'):     # print "todo" list
+            print g_todo_str
+            return 0
         
         if opt_list.find_opt('-ver'):      # show the version string
             print g_version

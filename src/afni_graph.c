@@ -998,7 +998,7 @@ if(PRINT_TRACING)
 
    grapher->xx_text_1    =
     grapher->xx_text_2   =
-     grapher->xx_text_2p = grapher->xx_text_3 = 1 ;
+     grapher->xx_text_2p = grapher->xx_text_3 = grapher->xx_text_igf = 1 ;
 
    grapher->ref_ts = NULL ;
    grapher->ort_ts = NULL ;
@@ -1565,8 +1565,10 @@ ENTRY("GRA_redraw_overlay") ;
       xxx = MAX( grapher->xx_text_2 ,
                  grapher->xorigin[grapher->xc][grapher->yc]-39 ) ;
 
-      if( grapher->init_ignore > 0 || grapher->thresh_fade )
+      if( grapher->init_ignore > 0 || grapher->thresh_fade ){
         xxx = MAX( xxx , grapher->xx_text_2p ) ;
+        xxx = MAX( xxx , grapher->xx_text_igf ) ; /* this allows for Fading + Ignore together */
+      }
 
       DC_fg_color( grapher->dc , IDEAL_COLOR(grapher) ) ;
       overlay_txt( grapher, xxx , GB_DLY-15 , strp ) ;
@@ -1684,10 +1686,10 @@ ENTRY("redraw_graph") ;
    if( grapher->init_ignore > 0 ){                    /* 23 May 2005 */
      sprintf(strp,"Ignore%4d",grapher->init_ignore) ;
      if( grapher->thresh_fade ) sprintf(strp+strlen(strp)," Fading") ;
-     fd_txt( grapher , xxx , 35, strp) ;
+     fd_txt( grapher , xxx , 35, strp) ; grapher->xx_text_igf = 1+xxx+DC_text_width(grapher->dc,strp) ;
    } else if( grapher->thresh_fade ){
      sprintf(strp,"Fading") ;
-     fd_txt( grapher , xxx , 35, strp) ;
+     fd_txt( grapher , xxx , 35, strp) ; grapher->xx_text_igf = 1+xxx+DC_text_width(grapher->dc,strp) ;
    }
 
    sprintf(strp,"Grid:%5d", grapher->grid_spacing ) ;

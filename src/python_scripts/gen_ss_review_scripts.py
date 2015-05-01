@@ -29,6 +29,13 @@ gen_ss_review_scripts.py - generate single subject analysis review scripts
         o  generate @ss_review_driver_commands
            (same as @ss_review_driver, but a pure command file)
 
+   Consider following this with gen_ss_review_table.py, after many/all
+   subjects are analyzed.  For example:
+
+      cd subject_results
+      gen_ss_review_table.py -tablefile review_table.xls \\
+          -infiles group.*/subj.*/*.results/out.ss_review.*
+
 ------------------------------------------
 
    examples:
@@ -94,6 +101,8 @@ gen_ss_review_scripts.py - generate single subject analysis review scripts
    terminal options:
 
       -help                     : show this help
+      -help_fields              : show help describing fields from review_basic
+      -help_fields_brief        : show only the brief field help
       -hist                     : show module history
       -show_uvar_dict           : show all user variables
       -show_uvar_eg             : show example of user variables
@@ -167,6 +176,128 @@ Thanks to J Jarcho and C Deveney for suggestions, feedback and testing.
 R Reynolds    July 2011
 =============================================================================
 """
+
+g_basic_help_fields = []
+def add_field_help(fname, hshort='', hlong=[]):
+   global g_basic_help_fields
+   vo = VO.VarsObject(fname)
+   vo.hshort = hshort
+   vo.hlong = hlong
+   g_basic_help_fields.append(vo)
+
+def disp_field_help(full=1, update=1):
+   global g_basic_help_fields
+   if update: update_basic_field_help()
+   if full:
+      sostr = ' (SO = potential Subject Omission)'
+      print ''
+   else: sostr = ''
+   print 'Descriptions for %d fields%s:' % (len(g_basic_help_fields), sostr)
+   if full: print ''
+   jlong = '\n      '
+   for field in g_basic_help_fields:
+      print '  %-26s : %s' % (field.name, field.hshort)
+      if full and len(field.hlong) > 0:
+         print '%s%s\n' % (jlong, jlong.join(field.hlong))
+   if full: print ''
+
+def update_basic_field_help():
+   add_field_help('subject ID', 'subject identifier, used in file names')
+   add_field_help('TRs removed (per run)',
+      'num TRs removed at the start of each run',
+      ['This is currently just for the case of a constant number across runs.'])
+   add_field_help('num stim classes provided',
+      'basically, the number of -stim_* files')
+   add_field_help('final anatomy dset', 'copy of anat aligned with EPI results')
+   add_field_help('final stats dset',
+      'stats dataset output from linear regression')
+   add_field_help('final voxel resolution', 'voxel grid size of EPI results')
+
+   add_field_help('motion limit','limit for enorm/motion censoring, if applied')
+   add_field_help('num TRs above mot limit', 'num enorm TRs above limit')
+   add_field_help('average motion (per TR)',
+      'average enorm value across all TRs')
+   add_field_help('average censored motion',
+      'average enorm value across non-censored TRs',
+     ['SO - This field is worth considering for subject omission.',
+      '     A high number suggests consistent movement, even after censoring.'])
+   add_field_help('max motion displacement',
+      'max displacement among pairs of volumes',
+     ['Among all pairs of TRs, this is the maximum displacement (difference',
+      'in position), as estimated by the motion parameters.'])
+   add_field_help('max censored displacement',
+      'max among non-censored volume pairs',
+     ['Among all pairs of non-censored volumes, this is the maximum',
+      'displacement estimated by the motion parameters.',
+      'SO - This field is worth considering for subject omission.',
+      '     A large number may suggest relative field distortions.'])
+   add_field_help('outlier limit', 'limit for outlier censoring, if applied')
+   add_field_help('average outlier frac (TR)',
+      'average outlier fraction among all TRs')
+   add_field_help('num TRs above out limit','TR count above outlier frac limit')
+
+   add_field_help('num runs found', 'should be number of -dsets provided')
+   add_field_help('num TRs per run', 'list of run lengths, in TRs')
+   add_field_help('num TRs per run (applied)',
+      'per run: TRs that were not censored')
+   add_field_help('num TRs per run (censored)',
+      'per run: TRs that were censored')
+   add_field_help('fraction censored per run',
+      'per run: TRs censored / total TRs')
+   add_field_help('TRs total (uncensored)', 'total TRs across all runs')
+   add_field_help('TRs total', 'total TRs across runs, after censoring')
+   add_field_help('degrees of freedom used', 'DOF used in regression',
+      ['This is the total number of regressors.'])
+   add_field_help('degrees of freedom left', 'TRs total - DOF used',
+     ['This is the total number of TRs minus the number of regressors.',
+      'SO - This field is worth considering for subject omission.',
+      '     A small value suggests over-modeling the data.'])
+
+   add_field_help('TRs censored', 'total censored across all runs')
+   add_field_help('censor fraction', 'fraction of total TRs',
+     ['SO - This field is worth considering for subject omission.',
+      '     (alternatively, consider "degrees of freedom left")',
+      '     A high value means a large fraction of TRs were "lost"',
+      '     to censoring.'])
+   add_field_help('num regs of interest', 'num regressors formed from -stim_*')
+   add_field_help('num TRs per stim', 'num non-zero TRs in orig regressors',
+     ['This is the number of TRs each regressor is non-zero, no censoring.'])
+   add_field_help('num TRs censored per stim', 'num non-zero TRs censored',
+     ['This is the number of non-zero TRs censored, per regressor.'])
+   add_field_help('fraction TRs censored', 'num TRs censored / num TRs',
+     ['For each regressor (of interest), this is the fraction of non-zero TRs',
+      'that were censored.',
+      'SO - This field is worth considering for subject omission.',
+      '     A high value for an important regressor suggest that it is',
+      '     under-powered.'])
+   add_field_help('ave mot per sresp (orig)', 'ave enorm over non-zero TRs',
+     ['This is the average enorm value across non-zero TRs for each regressor',
+      'of interest.',
+      'This gives an idea of motion per stim class.'])
+   add_field_help('ave mot per sresp (cens)', 'similar average, after censor',
+     ['This is the average enorm value across non-zero TRs for each regressor',
+      'of interest, but computed after censoring.',
+      'This gives an idea of motion per stim class after censoring.'])
+
+   add_field_help('TSNR average', 'average temporal signal-to-noise ratio',
+     ['This is the TSNR volume averaged over the full_mask.'])
+   add_field_help('global correlation (GCOR)', 'average corr over voxel pairs',
+     ['This shows the average correlation across all pairs of voxels (within',
+      'the brain mask: full_mask).',
+      'A larger number suggests more coherence, which is likely artifactual.'])
+   add_field_help('anat/EPI mask correlation', 'r(mask_anat, full_mask)',
+     ['This is simply the correlation between the anatomical mask (mask_anat)',
+      'and the EPI mask (full_mask).',
+      'A low value might flag alignment failure.'])
+   add_field_help('maximum F-stat (masked)', 'max F from stats dataset',
+     ['This is the maximum F-stat from the final stats dataset, restricted',
+      'to the full_mask.'])
+   add_field_help('blur estimates', 'computed blur estimates',
+    ['These are the blur estimates computed over the full_mask dataset',
+     'from either the residuals or the regression input.',
+     'Such values are generally averaged across subjects and input to',
+     '3dClustSim for multiple comparison correction.'])
+
 
 # cannot have empty line
 g_basic_header_str = """#!/bin/tcsh
@@ -646,6 +777,8 @@ g_history = """
         - if out.mask_ae_corr.txt, note correlation
    0.39 Jul 15, 2014: added average motion per stim response 
                       (probably change to per stim, later)
+   0.40 Apr 23, 2015: added -help_fields/-help_fields_brief for describing
+                      basic output fields
 """
 
 g_version = "gen_ss_review_scripts.py version 0.39, Jul 1:, 2014"
@@ -689,6 +822,8 @@ class MyInterface:
 
       # short, terminal arguments
       vopts.add_opt('-help', 0, [], helpstr='display program help')
+      vopts.add_opt('-help_fields', 0, [], helpstr='display field help')
+      vopts.add_opt('-help_fields_brief', 0, [], helpstr='brief field help')
       vopts.add_opt('-help_todo', 0, [], helpstr='display current "todo" list')
       vopts.add_opt('-hist', 0, [], helpstr='display the modification history')
       vopts.add_opt('-show_uvar_dict', 0, [],
@@ -742,6 +877,14 @@ class MyInterface:
       # if no arguments are given, do default processing
       if '-help' in argv:
          print g_help_string
+         return 1
+
+      if '-help_fields' in argv:
+         disp_field_help()
+         return 1
+
+      if '-help_fields_brief' in argv:
+         disp_field_help(full=0)
          return 1
 
       if '-help_todo' in argv:
