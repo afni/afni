@@ -49,6 +49,10 @@
 
 
 afni_history_struct dglen_history[] = {
+{ 30, APR, 2015 , DRG , "Selenium webdriver for afni help page too" , 
+    MICRO , TYPE_GENERAL, 
+    "Opens page for all afni help page using python selenium webdriver"
+} ,
 { 27, MAR, 2015 , DRG , "Selenium webdriver to open webpages" , 
     MAJOR , TYPE_GENERAL, 
     "Opens webpages without multiple tabs using python selenium webdriver"
