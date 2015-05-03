@@ -11,12 +11,17 @@ function [p,s]=afni_niml_read(fn)
 
 s=simpleread(fn);
 
-[b1, ext]=is_non_niml_ascii(fn); % if the extension suggests that it is not ASCII NIML
-if b1 || is_non_niml_ascii(s);   % ... or the file contents suggest this
-                                 % then we try to convert the file
-    warning('Input file seems to be not a NIML ASCII file, will try to convert it to ascii');
-    s=binaryToASCII(s,ext);
+try_binary_ascii=false; % disabled for now
+if try_binary_ascii
+    [b1, ext]=is_non_niml_ascii(fn); % if the extension suggests that it is not ASCII NIML
+    if b1 || is_non_niml_ascii(s);   % ... or the file contents suggest this
+                                     % then we try to convert the file
+        warning('Input file seems to be not a NIML ASCII file, will try to convert it to ascii');
+        s=binaryToASCII(s,ext);
+    end
 end
+
+% parse string
 p=afni_niml_parse(s);
 
 
