@@ -43,5 +43,3 @@ fprintf(fid,s);
 if fid>2 % we don't close standard input, output, or error
     fclose(fid);
 end
-
-fprintf('Written NIML struct to %s\n', fn);

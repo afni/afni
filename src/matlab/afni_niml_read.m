@@ -21,7 +21,6 @@ p=afni_niml_parse(s);
 
 
 function s=simpleread(fn)
-fprintf('Reading %s\n', fn);
 fid=fopen(fn);
 if fid==-1
     error('Error reading from file %s\n', fn);
