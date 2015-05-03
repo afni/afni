@@ -69,7 +69,7 @@ for k=1:nodecount
                     end
             end
         otherwise
-            S.misc.(Nk.name)=Nk.data
+            S.misc.(Nk.name)=Nk.data;
     end
 end
 
