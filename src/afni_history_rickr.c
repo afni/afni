@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  1,  May, 2015, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
+   "added -anat_follower, -anat_follower_ROI, -regress_anaticor_label",
+   NULL
+ } ,
+
  {  1,  May, 2015, RCR, "gen_ss_review_scripts.py", MICRO, TYPE_MODIFY,
    "keep num regs of interest = 0 if num stim = 0",
    NULL
