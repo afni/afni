@@ -402,6 +402,10 @@ extern void ERROR_message  ( char *fmt , ... ) ;
 extern void ERROR_exit     ( char *fmt , ... ) ;
 extern void SET_message_file( char *fname )    ;  /* 09 Mar 2007 */
 
+extern void   SET_message_outbuf( int use_outbuf ) ; /* 01 May 2015 */
+extern char * GET_message_outbuf(void) ;
+extern char * THD_zzprintf( char * sss , char * fmt , ... ) ;
+
 #define FATAL_ERROR_message ERROR_exit
 
 #ifdef  __cplusplus
