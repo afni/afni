@@ -107,7 +107,7 @@ ENTRY("SYM_test_gltsym") ;
    if( nbad == 0 )
      outbuf = THD_zzprintf(outbuf,"++ INFO: This gltsym appears to be OKAY :-)\n") ;
    else
-     outbuf = THD_zzprintf(outbuf,"++ SORRY: This gltsym appears to be BAD :-(\n") ;
+     outbuf = THD_zzprintf(outbuf,"** SORRY: This gltsym appears to be BAD :-(\n") ;
 
    RETURN(outbuf) ;
 }
