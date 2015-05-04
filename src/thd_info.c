@@ -15,10 +15,10 @@
 
 #include <stdarg.h>
 
-#undef  ZMAX
+#undef  ZMAX              /* these values must be the same as in debugtrace.c */
 #undef  SZMAX
-#define ZMAX  32222        /* increased for Ziad (who else is so crazy?) */
-#define SZMAX "%.32222s"   /* same as ZMAX */
+#define ZMAX  32222       /* increased for Ziad (who else is so crazy?) */
+#define SZMAX "%.32222s"  /* same as ZMAX */
 
 /* There is also: storage_mode_name() */
 const char * storage_mode_str(int mode) {
@@ -638,54 +638,4 @@ ENTRY("THD_dataset_info") ;
    }
 
    RETURN(outbuf) ;
-}
-
-/*---------------------------------------------------------------------------*/
-/* Originally written for THD_dataset_info(), now used in other places.
-   * Used to write results into an ever-lengthening string.
-   * On the first call, 'sss' should be NULL.  It will be malloc()-ed and
-     contain the print-formatted results.
-   * On a subsequent call, 'sss' is the return value from the previous call.
-   * When finally done with it, you can free() the result.
-*//*-------------------------------------------------------------------------*/
-
-char * THD_zzprintf( char *sss , char *fmt , ... )
-{
-   static char *sbuf = NULL ;  /* workspace */
-   char *zz ;
-   int   nzz , nsbuf ;
-   va_list vararg_ptr ;
-
-ENTRY("THD_zzprintf") ;
-
-   va_start( vararg_ptr , fmt ) ;
-
-   /* first time in ==> create workspace */
-
-   if( sbuf == NULL ) sbuf = AFMALL(char, ZMAX+90) ;
-
-   /* write current stuff into workspace */
-
-   sbuf[0] = '\0' ;
-   vsnprintf( sbuf , sizeof(char)*(ZMAX+89) , fmt , vararg_ptr ) ;
-   nsbuf = strlen(sbuf) ;
-   if( nsbuf == 0 ) RETURN(sss) ;  /* nothing happened */
-   if( nsbuf >= ZMAX ){            /* too much happened */
-     WARNING_message("THD_zzprintf() long string truncation = the ZSS syndrome") ;
-     strcpy(sbuf+ZMAX-4,"...") ;
-     nsbuf = strlen(sbuf) ;
-   }
-
-   /* make new space, copy input string sss, append new stuff, return result */
-
-   if( sss == NULL || *sss == '\0' ){  /* no input string ==> copy new stuff */
-     zz = (char *) malloc( sizeof(char)*(nsbuf+2) ) ;
-     strcpy(zz,sbuf) ;
-   } else {             /* the full Monty: copy old then new */
-     nzz = strlen(sss) + nsbuf + 2 ;
-     zz  = (char *) malloc( sizeof(char) * nzz ) ;
-     strcpy(zz,sss) ; strcat(zz,sbuf) ;
-     free(sss) ;       /* don't need input copy any more */
-   }
-   RETURN(zz) ;
 }
