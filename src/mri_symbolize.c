@@ -8,7 +8,7 @@ int SYM_expand_errcount(void){ return nerr; }  /* 03 May 2007 */
 #define INIT_OUTBUF                                                         \
  do{ if( outbuf == NULL ){                                                  \
        outbuf = THD_zzprintf(outbuf,"***** Scanned GLT messages *****\n") ; \
-       outbuf = THD_zzprintf(outbuf,"++ -gltsym is: '%s'\n",gltsym) ;              \
+       outbuf = THD_zzprintf(outbuf,"++ INFO: -gltsym is: '%s'\n",gltsym) ; \
  } } while(0)
 
 #define NLAST_TEST 999999
@@ -51,7 +51,7 @@ ENTRY("SYM_test_gltsym") ;
    STATUS("scanning varlist") ;
    vsar = NI_decode_string_list( varlist , ",;" ) ;
    if( vsar == NULL ){
-     outbuf = THD_zzprintf(outbuf,"** ERROR: Cannot decode variable list names!") ; nbad++ ; nerr++ ;
+     outbuf = THD_zzprintf(outbuf,"** ERROR: Cannot decode variable list names!\n") ; nbad++ ; nerr++ ;
      RETURN(outbuf) ;
    }
 
@@ -63,10 +63,10 @@ ENTRY("SYM_test_gltsym") ;
      vnam = vsar->str[vv] ;
      if( vnam == NULL || *vnam == '\0' ) continue ; /* bad ==> skip */
      if( !isalpha(vnam[0]) ){
-       outbuf = THD_zzprintf(outbuf,"** ERROR: Variable name '%s' doesn't start with alphabetic character",vnam) ;
+       outbuf = THD_zzprintf(outbuf,"** ERROR: Variable name '%s' doesn't start with alphabetic character\n",vnam) ;
        nbad++ ; nerr++ ;
      } else if( strlen(vnam) > 63 ){
-       outbuf = THD_zzprintf(outbuf,"** ERROR: Variable name '%s' is too long (> 63)",vnam) ;
+       outbuf = THD_zzprintf(outbuf,"** ERROR: Variable name '%s' is too long (> 63)\n",vnam) ;
        nbad++ ; nerr++ ;
      } else {
        rang[nrang].nbot = 0 ;
