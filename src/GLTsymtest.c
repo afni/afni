@@ -37,7 +37,7 @@ int main( int argc , char *argv[] )
        "    ++ INFO: -gltsym: isolated '+' is being ignored\n"
        "    ** ERROR: -gltsym: can't match symbolic name 'Verl'\n"
        "    ** ERROR: -gltsym: can't match symbolic name 'aud'\n"
-       "    ++ SORRY: This gltsym appears to be BAD :-(\n"
+       "    ** SORRY: This gltsym appears to be BAD :-(\n"
        "\n"
        "NOTES\n"
        "-----\n"
