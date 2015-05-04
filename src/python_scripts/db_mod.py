@@ -185,6 +185,9 @@ def db_mod_postdata(block, proc, user_opts):
        This block will probably never get named options.
     """
 
+    # note other anat followers (-anat_follower*)
+    if apply_general_anat_followers(proc): return
+
     if len(block.opts.olist) == 0: pass
     block.valid = 1
 
@@ -224,6 +227,29 @@ def db_cmd_postdata(proc, block):
        if tcmd: cmd += tcmd
 
     return cmd
+
+def apply_general_anat_followers(proc):
+   # add any other anat follower datasets
+   for oname in ['-anat_follower', '-anat_follower_ROI' ]:
+
+      for opt in proc.user_opts.find_all_opts(oname):
+         label = opt.parlist[0]
+         dgrid = opt.parlist[1]
+         dname = opt.parlist[2]
+
+         if oname == '-anat_follower_ROI': 
+            ff = proc.add_anat_follower(name=dname, dgrid=dgrid,
+                                        NN=1, label=label)
+            flab = 'follow_ROI'
+         else:
+            ff = proc.add_anat_follower(name=dname, dgrid=dgrid, label=label)
+            flab = 'follow_anat'
+
+         if ff == None:
+            print '** failed to add follower %s' % dname
+            return 1
+
+         ff.set_var('final_prefix', '%s_%s'%(flab, label))
 
 def make_uniformity_commands(proc, umeth):
     """apply uniformity correction to the anat, based on umeth"""
@@ -1645,6 +1671,7 @@ def warp_anat_followers(proc, block, anat_aname, epi_aname=None, prevepi=0):
       if xform == identity_warp and afobj.dgrid != 'epi': 
          if proc.verb > 1:
             print '-- no need to warp anat follower %s' % afobj.aname.prefix
+         proc.roi_dict[afobj.label] = afobj.cname
          continue # no warp needed
 
       wstr += '%s -source %s -master %s \\\n' \
@@ -2750,6 +2777,24 @@ def db_cmd_scale(proc, block):
 
     return cmd
 
+def all_erode_labels_used(proc, block):
+    elist, rv = block.opts.get_string_list('-regress_ROI_erode')
+    if elist == None: return 1
+    elist = elist[:]  # copy, to trash later
+
+    ok = 1
+    for label in elist:
+       found = 0
+       for af in proc.afollowers:
+          if label == af.label:
+             found = 1
+             break
+       if not found:
+          print "** ERROR: erode label '%s' not in followers list" % label
+          ok = 0
+
+    return ok
+
 def add_ROI_PC_followers(proc, block):
     """add any appropriate datasets anat followers
 
@@ -2759,10 +2804,9 @@ def add_ROI_PC_followers(proc, block):
     """
 
     elist, rv = block.opts.get_string_list('-regress_ROI_erode')
-    if elist == None: elist = []
-    else:             elist = elist[:]  # copy, to trash later
 
     # if maskave, prepare to add to -regress_ROI parlist
+    # (maskave extraction is done via -regress_ROI masks)
     roiparlist = []
     if block.opts.find_opt('-regress_ROI_maskave'):
        # then prepare to add to -regress_ROI_PC
@@ -2807,7 +2851,6 @@ def add_ROI_PC_followers(proc, block):
         ff.set_var('final_prefix', 'ROI_PC_dset_%s' % label)
         if label in elist:
            ff.set_var('erode', 1)
-           elist.remove(label)
 
         # just warn if ROI dataset is not found
         if not ff.aname.exist():
@@ -2840,18 +2883,11 @@ def add_ROI_PC_followers(proc, block):
         ff.set_var('final_prefix', 'ROI_mask_dset_%s' % label)
         if label in elist:
            ff.set_var('erode', 1)
-           elist.remove(label)
 
         # just warn if ROI dataset is not found
         if not ff.aname.exist():
            print '** warning, do not see %s dataset %s' \
                  % (oname, ff.aname.rel_input())
-
-    # check for an missing erosions
-    if len(elist) > 0:
-       print '** have %d unused -regress_ROI_erode label(s): %s' \
-             % (len(elist), ', '.join(elist))
-       return 1
 
     # if we have something...
     if len(proc.afollowers) > 0:
@@ -2899,6 +2935,7 @@ def db_mod_regress(block, proc, user_opts):
     apply_uopt_to_block('-regress_anaticor_radius', user_opts, block)
     apply_uopt_to_block('-regress_anaticor_fast', user_opts, block)
     apply_uopt_to_block('-regress_anaticor_fwhm', user_opts, block)
+    apply_uopt_to_block('-regress_anaticor_label', user_opts, block)
     apply_uopt_to_block('-regress_WMeL_corr', user_opts, block)
 
     # check for user updates
@@ -3457,6 +3494,8 @@ def db_cmd_regress(proc, block):
         if err: return
         if newcmd: cmd = cmd + newcmd
 
+    if not all_erode_labels_used(proc, block): return
+
     # ----------------------------------------
     # possibly use a mask
     if proc.mask and proc.regmask:
@@ -3863,10 +3902,13 @@ def db_cmd_regress(proc, block):
        epre = '%serrts.$subj.fanaticor' % tmp_prefix
        rset = proc.regress_inset.new(epre)
 
-       lset = rset.new('WMeLocal_rall')
+       roilab,rv = block.opts.get_string_opt('-regress_anaticor_label',
+                                             default='WMe')
+       lset = rset.new('Local_%s_rall'%roilab)
 
        # first set of commands: generate WMeLocal
-       rv, tcmd = db_cmd_regress_anaticor_fast(proc, block, rset, lset)
+       rv, tcmd = db_cmd_regress_anaticor_fast(proc, block, rset, lset,
+                                               roilab=roilab)
        if rv: return
        cmd += tcmd
 
@@ -3876,6 +3918,12 @@ def db_cmd_regress(proc, block):
        if not tpcmd: return
        cmd += tcmd
 
+    # just make sure a label exists
+    roilab,rv = block.opts.get_string_opt('-regress_anaticor_label')
+    if roilab and not rv:
+       if not proc.roi_dict.has_key(roilab):
+          print "** -regress_anaticor_label: missing ROI label: '%s'" % roilab
+          return
 
     # maybe add the 3dRSFC block
     if block.opts.find_opt('-regress_RSFC'):
@@ -4091,12 +4139,12 @@ def db_cmd_regress_gcor(proc, block, errts_pre):
     return cmd
 
 # run 3dTfitter on the xmatrix and any 4-D dataset needed in regression
-def db_cmd_anaticor(proc, block, rset, select='', radius=45):
+def db_cmd_anaticor(proc, block, rset, select='', radius=45, roilab='WMe'):
     """return a string for running 3dTfitter
 
        inputs: 
           volreg datasets       : to compute WMeLocal time series
-          mask_WMe_resam        : same
+          mask_WMe_resam        : same (or other mask based on roilab)
           rset                  : BASE.afni_name for Localstat result
 
        Generate rm.all_runs.volreg, then WMeLocal_rall.
@@ -4105,11 +4153,11 @@ def db_cmd_anaticor(proc, block, rset, select='', radius=45):
     """
 
     volreg_wild = proc.dset_form_wild('volreg')
-    if not proc.roi_dict.has_key('WMe'):
-       print '** ANATICOR needs WMe mask -->\n' \
-             '   (options -mask_segment_anat, -mask_segment_erode)'
+    if not proc.roi_dict.has_key(roilab):
+       print "** ANATICOR missing mask label: '%s' -->\n" \
+             '   (options -mask_segment_anat, -mask_segment_erode)' % roilab
        return 1, ''
-    mset = proc.roi_dict['WMe']
+    mset = proc.roi_dict[roilab]
     vall = 'rm.all_runs.volreg'
     
     cmd = '# catenate volreg dsets in case of censored sub-brick selection\n' \
@@ -4128,12 +4176,12 @@ def db_cmd_anaticor(proc, block, rset, select='', radius=45):
     return 0, cmd
 
 # run 3dTfitter on the xmatrix and any 4-D dataset needed in regression
-def db_cmd_anaticor_fast(proc, block, rset, fwhm=30):
+def db_cmd_anaticor_fast(proc, block, rset, fwhm=30, roilab='WMe'):
     """return a string for running 3dTproject
 
        inputs: 
           volreg datasets       : to compute WMeLocal time series
-          mask_WMe_resam        : same
+          mask_WMe_resam        : same (or mask based on roilab)
           rset                  : BASE.afni_name for result
 
        Generate rm.all_runs.volreg, then WMeLocal_rall.
@@ -4142,11 +4190,12 @@ def db_cmd_anaticor_fast(proc, block, rset, fwhm=30):
     """
 
     volreg_wild = proc.dset_form_wild('volreg')
-    if not proc.roi_dict.has_key('WMe'):
-       print '** ANATICOR needs WMe mask -->\n' \
-             '   (options -mask_segment_anat, -mask_segment_erode)'
+    if not proc.roi_dict.has_key(roilab):
+       print "** fast ANATICOR missing mask label: '%s' -->\n" \
+             '   see options: -mask_segment_anat, -mask_segment_erode' \
+             ' -regress_ROI_*' % roilab
        return 1, ''
-    mset = proc.roi_dict['WMe']
+    mset = proc.roi_dict[roilab]
     vall = 'rm.all_runs.volreg'
     vmask = 'rm.all_runs.volreg.mask'
     
@@ -4162,10 +4211,10 @@ def db_cmd_anaticor_fast(proc, block, rset, fwhm=30):
            '3dmerge -1blur_fwhm %g -doall -prefix %s %s%s\n\n'               \
            % (fwhm, rset.out_prefix(), vmask, proc.view)
 
-    if block.opts.have_yes_opt('-regress_WMeL_corr', default=1):
+    if block.opts.have_yes_opt('-regress_%sL_corr'%roilab, default=1):
       cmd +='# diagnostic volume: voxel correlation with local white matter\n'\
             '3dTcorrelate -prefix %s %s%s %s\n\n'                             \
-            % ('WMeL_corr', vall, proc.view, rset.pv())
+            % ('%sL_corr'%roilab, vall, proc.view, rset.pv())
 
     return 0, cmd
 
@@ -4187,9 +4236,6 @@ def db_cmd_regress_tfitter(proc, block):
        return status (0=success) and command string
     """
 
-    if block.opts.find_opt('-regress_anaticor_fast'):
-       return db_cmd_regress_anaticor_fast(proc, block)
-
     if not block.opts.find_opt('-regress_anaticor'): return 0, ''
 
     if proc.surf_anat:
@@ -4199,7 +4245,9 @@ def db_cmd_regress_tfitter(proc, block):
     rlabel = 'anaticor'
     rset = BASE.afni_name('errts.%s.$subj'%rlabel)
     rset.view = proc.view
-    lset = BASE.afni_name('WMeLocal_rall')
+    roilab, rv = block.opts.get_string_opt('-regress_anaticor_label',
+                                           default='WMe')
+    lset = BASE.afni_name('Local_%s_rall'%roilab)
     lset.view = proc.view
 
     proc.errts_pre = rset.prefix
@@ -4226,7 +4274,8 @@ def db_cmd_regress_tfitter(proc, block):
        proc.errts_cen = 1       # proc.errts_pre has TRs removed
     else: substr = ''
 
-    rv, cs = db_cmd_anaticor(proc, block, lset, select=substr, radius=radius)
+    rv, cs = db_cmd_anaticor(proc, block, lset, select=substr, radius=radius,
+                             roilab=roilab)
     if rv: return 1, ''
     cmd += cs
 
@@ -4235,7 +4284,7 @@ def db_cmd_regress_tfitter(proc, block):
     else: maskstr = ''
 
     cmd += '# use 3dTfitter to perform the original regression,\n'      \
-           '# plus regress out the voxel-wise WMeLocal time series\n'
+           '# plus regress out the voxel-wise %s time series\n' % lset.prefix
 
     fitts = 'fitts.%s.$subj' % rlabel
     cmd += '3dTfitter -polort -1 %s\\\n'                    \
@@ -4253,11 +4302,11 @@ def db_cmd_regress_tfitter(proc, block):
     return 0, cmd
 
 # return anaticor commands, except for final 3dTproject
-def db_cmd_regress_anaticor_fast(proc, block, rset, lset):
+def db_cmd_regress_anaticor_fast(proc, block, rset, lset, roilab='WMe'):
     """return a string for running fast anaticor - generate errts dataset
 
        rset - afni_name of goal dataset
-       lset - afni_name for WMeLocal dataset
+       lset - afni_name for WMeLocal dataset (or from other mask)
 
        return status (0=success) and command string
     """
@@ -4278,7 +4327,7 @@ def db_cmd_regress_anaticor_fast(proc, block, rset, lset):
     cmd = '# --------------------------------------------------\n' \
           '# generate ANATICOR result: %s\n\n' % rset.shortinput()
 
-    rv, cs = db_cmd_anaticor_fast(proc, block, lset, fwhm=fwhm)
+    rv, cs = db_cmd_anaticor_fast(proc, block, lset, fwhm=fwhm, roilab=roilab)
     if rv: return 1, ''
     cmd += cs
 
@@ -8576,6 +8625,26 @@ g_help_string = """
             Please see "@ANATICOR -help" for more detail, including the paper
             reference for the method.
             See also -mask_segment_anat, -mask_segment_erode, -regress_3dD_stop.
+
+        -regress_anaticor_label LABEL : specify LABEL for ANATICOR ROI
+
+            To go with either -regress_anaticor or -regress_anaticor_fast,
+            this option is used the specifiy an alternate label of an ROI
+            mask to be used in the ANATICOR step.  The default LABEL is WMe
+            (eroded white matter from 3dSeg).
+
+            When this option is included, it is up to the user to make sure
+            afni_proc.py has such a lable, either by including options:
+                -mask_segment_anat, and possibly -mask_segment_erode
+            or options:
+                -regress_ROI_PC or -regress_ROI_maskave
+            or:
+                -anat_follower_ROI
+
+            Any known label made via those options may be used.
+
+            See also -mask_segment_anat, -mask_segment_erode, -regress_ROI_PC,
+                -regress_ROI_maskave, -anat_follower_ROI.
 
         -regress_anaticor_radius RADIUS : specify RADIUS for 3dLocalstat
 
