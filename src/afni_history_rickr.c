@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  1,  May, 2015, RCR, "gen_ss_review_scripts.py", MICRO, TYPE_MODIFY,
+   "keep num regs of interest = 0 if num stim = 0",
+   NULL
+ } ,
+
  { 30,  Apr, 2015, RCR, "afni_proc.py", MICRO, TYPE_NEW_OPT,
    "allow AM2 centering param via basis backdoor (for now)",
    "For example, use basis function 'BLOCK(2) :x:0.176'\n"
