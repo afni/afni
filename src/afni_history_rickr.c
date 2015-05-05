@@ -49,7 +49,12 @@
 
 afni_history_struct rickr_history[] = {
 
- {  1,  May, 2015, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
+ {  5,  May, 2015, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,
+   "added help and a few follower modifications",
+   NULL
+ } ,
+
+ {  4,  May, 2015, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
    "added -anat_follower, -anat_follower_ROI, -regress_anaticor_label",
    NULL
  } ,
