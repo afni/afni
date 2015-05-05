@@ -11,7 +11,7 @@ if module_test_lib.num_import_failures(testlibs): sys.exit(1)
 import copy
 
 import afni_util as UTIL
-import lib_subjects as SUBJ
+import lib_vars_object as VO
 import lib_uber_subject as USUBJ
 import option_list as OPT
 
@@ -222,8 +222,8 @@ def process_options(valid_opts, argv):
    if not uopts: return -1, None, None, None
 
    # init subject options struct
-   svars = SUBJ.VarsObject('subject vars from command line')
-   cvars = SUBJ.VarsObject('control vars from command line')
+   svars = VO.VarsObject('subject vars from command line')
+   cvars = VO.VarsObject('control vars from command line')
    guiopts = ['uber_subject.py'] 
 
    # first set verbose level

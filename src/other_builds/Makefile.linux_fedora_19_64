@@ -9,6 +9,11 @@ LZLIB    = -lz
 USE_GIFTI = -DHAVE_GIFTI
 LGIFTI    = -lexpat
 
+# ------------------------------
+# python from C
+IPYTHON  = -DSELENIUM_READY -I/usr/include/python2.7
+LDPYTHON = -lpython2.7
+
 # ----------------------------------------------------------------------
 # X configuration
 XLIBS = -lXm -lXt
@@ -71,7 +76,8 @@ EXPROGS = gifti_tool $(GSLPROGS)
 
 # link choices are made above
 
-LLIBS  = -lmri -lf2c $(XLIBS) -lXft -lXp -lXpm -lXext -lXmu -lSM -lICE -lX11 -lpng -ljpeg $(LZLIB) $(LGIFTI) -lm  -ldl -lc
+LLIBS  = -lmri -lf2c $(XLIBS) -lXft -lXp -lXpm -lXext -lXmu -lSM -lICE -lX11 \
+         $(LDPYTHON) -lpng -ljpeg $(LZLIB) $(LGIFTI) -lm  -ldl -lc
 
 # for static linking, as far as possible
 
@@ -96,7 +102,9 @@ SUMA_GLIB_VER = -2.0
 GLw_IPATH  = -IGLw_local
 GLw_LIB = libGLws.a
 
-SUMA_INCLUDE_PATH = $(GLw_IPATH) $(IFLAGS) -I.. -I../niml -Igts/src -I/usr/include/glib-1.2 -I/usr/include/glib-2.0 -I/usr/lib64/glib-2.0/include
+SUMA_INCLUDE_PATH = $(GLw_IPATH) $(IFLAGS) -I.. -I../niml -Igts/src \
+    -I/usr/lib64/glib-2.0/include -I/usr/include/glib-2.0           \
+    -I/usr/include/glib-1.2
 SUMA_LINK_PATH = -L.. $(LFLAGS)
 #use -lGLw if you have libGLw.a or libGLw.so* or 
 #  -lMesaGLw if you have Mesa's version (libMesaGLw*) of libGLw

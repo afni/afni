@@ -9589,6 +9589,7 @@ SUMA_OBJ_STRUCT *SUMA_OBJ_Read(char *fname)
 {
    static char FuncName[]={"SUMA_OBJ_Read"};
    int nread = 0, i = 0,  good=0;
+   int nwarn_face=0;
    char *fl=NULL, *op = NULL,sbuf[256]={""}, 
         *oc, *op2;
    SUMA_OBJ_STRUCT *obj=NULL;
@@ -9684,7 +9685,10 @@ SUMA_OBJ_STRUCT *SUMA_OBJ_Read(char *fname)
                SUMA_RETURN(SUMA_Free_OBJ(obj)); 
             }
             if (*op == '/') {
-               SUMA_S_Warn("Ignoring additional face parameters");
+               if (!nwarn_face) {
+                  SUMA_S_Warn("Ignoring additional face parameters");
+               }
+               ++nwarn_face;
                SUMA_SKIP_TO_NEXT_BLANK(op, NULL);
             }
             SUMA_ADVANCE_PAST_NUM(op, num, good);
@@ -9696,7 +9700,10 @@ SUMA_OBJ_STRUCT *SUMA_OBJ_Read(char *fname)
                SUMA_RETURN(SUMA_Free_OBJ(obj)); 
             }
             if (*op == '/') {
-               SUMA_S_Warn("Ignoring additional face parameters");
+               if (!nwarn_face) {
+                  SUMA_S_Warn("Ignoring additional face parameters");
+               }
+               ++nwarn_face;               
                SUMA_SKIP_TO_NEXT_BLANK(op, NULL);
             }
             SUMA_ADVANCE_PAST_NUM(op, num, good);
@@ -9708,7 +9715,10 @@ SUMA_OBJ_STRUCT *SUMA_OBJ_Read(char *fname)
                SUMA_RETURN(SUMA_Free_OBJ(obj)); 
             }
             if (*op == '/') {
-               SUMA_S_Warn("Ignoring additional face parameters");
+               if (!nwarn_face) {
+                  SUMA_S_Warn("Ignoring additional face parameters");
+               }
+               ++nwarn_face;
                SUMA_SKIP_TO_NEXT_BLANK(op, NULL);
             }
             SUMA_SKIP_PURE_BLANK(op, NULL);

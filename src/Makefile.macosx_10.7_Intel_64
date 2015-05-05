@@ -8,6 +8,12 @@ LZLIB     = -lz
 USE_GIFTI = -DHAVE_GIFTI
 LGIFTI    = $(SW_ROOT)/lib/libexpat.a
 
+# ------------------------------
+# python from C
+IPYTHON     = -I/sw/include/python2.7 -DSELENIUM_READY
+LPYTHON     = -L/sw/lib/python2.7/config
+LDPYTHON    = -lpython2.7
+
 # ----------------------------------------------------------------------
 # X configuration
 #
@@ -21,7 +27,8 @@ XLIBS = /sw/lib/libXm.a /sw/lib/libjpeg.a -lXt
 
 
 CCDEBS = -DAFNI_DEBUG -DIMSEQ_DEBUG -DDISPLAY_DEBUG -DTHD_DEBUG
-CEXTRA = -m64 -Wcomment -Wformat -DUSE_TRACING -DHAVE_XDBE -DDONT_USE_MCW_MALLOC $(LESSTIF_DEFS)
+CEXTRA = -m64 -Wcomment -Wformat -DUSE_TRACING -DHAVE_XDBE \
+	 -DDONT_USE_MCW_MALLOC $(LESSTIF_DEFS)
 CC     = /usr/local/bin/gcc -O2  -DDARWIN $(CEXTRA)
 CCVOL  = /usr/local/bin/gcc -O2  -DDARWIN $(CEXTRA)
 CCFAST = /usr/local/bin/gcc -O2  -DDARWIN $(CEXTRA)
@@ -45,7 +52,8 @@ EXTRA_INSTALL_FILES = /usr/local/lib/libgomp.1.dylib                \
                       /sw/lib/libintl.8.dylib                       \
                       /sw/lib/fontconfig2/lib/libfontconfig.1.dylib \
                       /sw/lib/fontconfig2/lib/libfontconfig.la      \
-                      /sw/lib/freetype219/lib/libfreetype.6.dylib
+                      /sw/lib/freetype219/lib/libfreetype.6.dylib   \
+                      /sw/lib/python2.7/config/libpython2.7.dylib
 
 EXTRA_INSTALL_COMMANDS = ( cd $(INSTALLDIR) ;                                 \
                            ln -sf libglib.dylib         libglib-1.2.0.dylib ; \
@@ -56,8 +64,9 @@ EXTRA_INSTALL_COMMANDS = ( cd $(INSTALLDIR) ;                                 \
                            ln -sf libfontconfig.1.dylib libfontconfig.dylib ; \
                            if [ -d $(HOME)/EXTRAPROGS ]; then $(CP) $(HOME)/EXTRAPROGS/* . ; fi ; )
 
-IFLAGS = -I. $(XROOT_I) -I/usr/local/include -I/usr/X11R6/include -I/sw/include
-LFLAGS = -L. $(XROOT_L) -L/usr/lib -L/usr/local/lib -L/usr/X11R6/lib -L/sw/lib  -Wl,-x -Wl,-multiply_defined -Wl,warning -Wl,-bind_at_load
+IFLAGS = -I. $(XROOT_I) -I/usr/local/include -I/usr/X11R6/include \
+         -I/sw/include
+LFLAGS = -L. $(XROOT_L) -L/usr/lib -L/usr/local/lib -L/usr/X11R6/lib -L/sw/lib  -Wl,-x -Wl,-multiply_defined -Wl,warning -Wl,-bind_at_load $(LPYTHON)
 
 CCSVD  = /usr/local/bin/gcc -m64 -O0
 
@@ -93,7 +102,9 @@ EXPROGS = gifti_tool $(GSLPROGS)
 
 # for dynamic linking
 
-LLIBS  = -lmri -lf2c $(XLIBS) /sw/lib/xft2/lib/libXft.a -lfontconfig /sw/lib/libpng.a -liconv -lXmu -lXp -lXpm -lXext -lX11 $(LZLIB) $(LGIFTI) -lm -lc
+LLIBS  = -lmri -lf2c $(XLIBS) /sw/lib/xft2/lib/libXft.a -lfontconfig \
+         /sw/lib/libpng.a -liconv -lXmu -lXp -lXpm -lXext -lX11      \
+         $(LZLIB) $(LGIFTI) $(LDPYTHON) -lm -lc
 
 # vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
 # For suma

@@ -70,8 +70,9 @@ STATUS("didn't find filenames") ;
    rlist = THD_extract_regular_files( flist ) ;
 STATUS("destroying all_filenames list") ;
    DESTROY_SARR(flist) ;
+STATUS("all_filenames list destroyed") ;
    if( rlist == NULL || rlist->num <= 0 ){
-STATUS("didn't find regular files") ;
+STATUS("didn't find any regular files") ;
       DESTROY_SARR(rlist) ;
       DESTROY_MODEL_ARRAY(outar) ;
       RETURN (NULL) ;
@@ -85,14 +86,19 @@ STATUS("didn't find regular files") ;
 
    /*----- scan thru and find all filenames ending in DYNAMIC_suffix -----*/
 
+STATUS("scanning filenames for models") ;
    for( ir=0 ; ir < rlist->num ; ir++ ){
       fname = rlist->ar[ir] ; if( fname == NULL ) continue ;
       if (strstr(fname, "model_") == NULL)  continue;
 
       suff = strstr(fname,DYNAMIC_suffix) ;
       if( suff != NULL  &&  strlen(suff) == strlen(DYNAMIC_suffix)){
+STATUS("trying to open a model file") ;
          model  = NLFIT_read_MODEL( fname ) ;
-         if( model != NULL ) ADDTO_MODEL_ARRAY( outar , model ) ;
+         if( model != NULL ){
+STATUS("adding model file to list") ;
+           ADDTO_MODEL_ARRAY( outar , model ) ;
+         }
       }
    }
 
@@ -102,6 +108,7 @@ STATUS("didn't find regular files") ;
     }
 
 
+STATUS("destroying regular filename list") ;
    DESTROY_SARR(rlist) ;
    if( outar->num == 0 ) DESTROY_MODEL_ARRAY(outar) ;
    RETURN (outar) ;

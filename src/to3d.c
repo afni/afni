@@ -2013,7 +2013,8 @@ void T3D_initialize_user_data(void)
 ENTRY("T3D_initialize_user_data") ;
 
    user_inputs = default_user_inputs ;  /* copy defaults */
-   user_inputs.nosave = 0 ;
+   user_inputs.nosave = 0 ;        /* save data  - head and brik */
+   user_inputs.writebrik = 1;      /* write dataset brik out by default  */
 
    /*-- initialize strings --*/
 
@@ -2198,6 +2199,12 @@ ENTRY("T3D_initialize_user_data") ;
 
       if( strncmp(Argv[nopt],"-nosave",4) == 0 ){
          user_inputs.nosave = 1 ;
+         nopt++ ; continue ;
+      }
+
+      /*---- -nowritebrik -----*/
+      if( strncmp(Argv[nopt],"-nowritebrik",4) == 0 ){
+         user_inputs.writebrik = 0 ;
          nopt++ ; continue ;
       }
 
@@ -3135,6 +3142,9 @@ void Syntax()
     "\n"
     "  -nosave  will suppress autosave of 3D dataset, which normally occurs\n"
     "           when the command line options supply all needed data correctly\n"
+    "\n"
+    "  -nowritebrik  will suppress saving of the BRIK file. May be useful for\n"
+    "           realtime saving when symbolic links are used instead\n"
     "\n"
     "  -view type [* NEW IN 1996 *]\n"
     "    Will set the dataset's viewing coordinates to 'type', which\n"
@@ -5163,7 +5173,7 @@ void T3D_save_file_CB( Widget w ,
    if( npad == 0 ){   /* the old code */
 
       good = THD_write_3dim_dataset( user_inputs.session_filename ,
-                                     user_inputs.output_filename , dset , True ) ;
+                   user_inputs.output_filename , dset , user_inputs.writebrik ) ;
 
    } else {           /* 05 Feb 2001: allow for zero-padding in z-direction */
       THD_3dim_dataset * qset=NULL ;
@@ -5201,7 +5211,8 @@ void T3D_save_file_CB( Widget w ,
 
       THD_load_statistics( qset ) ;
       good = THD_write_3dim_dataset( user_inputs.session_filename ,
-                                     user_inputs.output_filename , qset , True ) ;
+                                     user_inputs.output_filename ,
+                                     qset , user_inputs.writebrik ) ;
       DSET_delete(qset) ;
    }
 

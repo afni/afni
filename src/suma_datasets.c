@@ -1280,7 +1280,6 @@ NI_element *SUMA_FindNgrAttributeElement(NI_group *ngr, char *attname)
 /*! \brief Return the attribute that contains the set of unique values
             in a column 
 */
-
 NI_element * SUMA_GetUniqueValsAttr(SUMA_DSET *dset, int icol)
 {
    static char FuncName[]={"SUMA_GetUniqueValsAttr"};
@@ -1448,6 +1447,31 @@ int SUMA_isVolDataset(SUMA_DSET *dset)
    return(0);
 }
 
+NI_element * SUMA_GetAtlasLabelTable(SUMA_DSET *dset)
+{
+   static char FuncName[]={"SUMA_GetAtlasLabelTable"};
+   NI_element *nel=NULL;
+   SUMA_Boolean LocalHead = NOPE;
+   SUMA_ENTRY;
+   /* This is for volumes only */
+   nel = SUMA_FindDsetAttributeElement (dset, "ATLAS_LABEL_TABLE");
+   SUMA_LH("ATLAS_LABEL_TABLE  nel:%p", nel);
+   SUMA_RETURN(nel);
+}
+
+NI_element * SUMA_GetValueLabelTable(SUMA_DSET *dset)
+{
+   static char FuncName[]={"SUMA_GetValueLabelTable"};
+   NI_element *nel=NULL;
+   SUMA_Boolean LocalHead = NOPE;
+   SUMA_ENTRY;
+   /* This is for volumes only */
+   nel = SUMA_FindDsetAttributeElement (dset, "VALUE_LABEL_DTABLE");
+   SUMA_LH("VALUE_LABEL_DTABLE  nel:%p", nel);
+   SUMA_RETURN(nel);
+}
+
+
 /*! \brief Add an attribute that contains the set of unique values
             in a column 
 */
@@ -1455,7 +1479,7 @@ int SUMA_isVolDataset(SUMA_DSET *dset)
 SUMA_Boolean SUMA_SetUniqueValsAttr(SUMA_DSET *dset, int icol, byte replace)
 {
    static char FuncName[]={"SUMA_SetUniqueValsAttr"};
-   int *unq=NULL, N_unq=0;
+   int *unq=NULL, N_unq=0, i=0;
    char aname[256];
    NI_element *nel=NULL;
    SUMA_Boolean LocalHead = NOPE;
@@ -1463,11 +1487,7 @@ SUMA_Boolean SUMA_SetUniqueValsAttr(SUMA_DSET *dset, int icol, byte replace)
    SUMA_ENTRY;
    
    if (!dset || !dset->ngr) SUMA_RETURN(NOPE);
-   /* add a unique list attribute */
-   if (SUMA_ColType2TypeCast(SUMA_TypeOfDsetColNumb(dset, icol))!=SUMA_int) {
-      SUMA_S_Err("Bad column type for unique values");
-      SUMA_RETURN(NOPE);
-   }
+   
    sprintf(aname, "UNIQUE_VALS_%06d", icol);
    nel = SUMA_FindDsetAttributeElement (dset, aname);
    if (nel) {
@@ -1481,10 +1501,42 @@ SUMA_Boolean SUMA_SetUniqueValsAttr(SUMA_DSET *dset, int icol, byte replace)
       SUMA_S_Err("Should not be here"); 
       SUMA_RETURN(NOPE);
    }
-   if (!(unq =  UniqueInt ( SDSET_VEC(dset, icol), SDSET_VECLEN(dset), 
-                                 &N_unq, 0))) {
-      SUMA_S_Err("Failed to get unique values");
-      SUMA_RETURN(NOPE);
+   
+   switch(SUMA_ColType2TypeCast(SUMA_TypeOfDsetColNumb(dset, icol))) {
+      case  SUMA_byte: {
+         byte *bunq=NULL;
+         if (!(bunq =  UniqueByte ( SDSET_VEC(dset, icol), SDSET_VECLEN(dset), 
+                                       &N_unq, 0))) {
+            SUMA_S_Err("Failed to get unique values");
+            SUMA_RETURN(NOPE);
+         }
+         unq = (int *)SUMA_malloc(N_unq*sizeof(int));
+         for (i=0; i<N_unq; ++i) unq[i] = bunq[i];
+         SUMA_ifree(bunq);
+         break; }
+      case SUMA_int: 
+         if (!(unq =  UniqueInt ( SDSET_VEC(dset, icol), SDSET_VECLEN(dset), 
+                                       &N_unq, 0))) {
+            SUMA_S_Err("Failed to get unique values");
+            SUMA_RETURN(NOPE);
+         }
+         break;
+      case SUMA_short: {
+         short *sunq=NULL;
+         if (!(sunq =  UniqueShort ( SDSET_VEC(dset, icol), SDSET_VECLEN(dset), 
+                                     &N_unq, 0))) {
+            SUMA_S_Err("Failed to get unique values");
+            SUMA_RETURN(NOPE);
+         }
+         unq = (int *)SUMA_malloc(N_unq*sizeof(int));
+         for (i=0; i<N_unq; ++i) unq[i] = sunq[i];
+         SUMA_ifree(sunq);
+         break; }
+      default:
+         SUMA_S_Err("Bad column type %d for unique values",
+                  SUMA_TypeOfDsetColNumb(dset, icol));
+         SUMA_RETURN(NOPE);
+         break;
    }
    nel = NI_new_data_element("AFNI_atr", N_unq);
    NI_set_attribute(nel, "atr_name", aname);
@@ -6213,6 +6265,7 @@ int SUMA_InsertDsetPointer (SUMA_DSET **dsetp, DList *DsetList, int replace)
 
    SUMA_ENTRY;
    
+   SUMA_LH("About to insert dset pointer %p", dsetp ? *dsetp:NULL);
    if (!DsetList)  { SUMA_SL_Err("Need Dset List"); SUMA_RETURN(0); }
    if (!dsetp) { SUMA_SL_Err("dsetp is NULL"); SUMA_RETURN(0); }
    else dset = *dsetp;  /* dset is the new pointer */
@@ -6239,22 +6292,23 @@ int SUMA_InsertDsetPointer (SUMA_DSET **dsetp, DList *DsetList, int replace)
          won't occur but it is a start until I figure out
          the problem with hashcode */
       char *name=NULL, *mname=NULL;
+      SUMA_LH("Hash code collision of (%s) with dset %p (%s)", 
+               SDSET_LABEL(dset), dprev, SDSET_LABEL(dprev));
       if (!(mname = SDSET_FILENAME(dprev))) mname = "NULLITY";
       if (!(name = SDSET_FILENAME(dset))) name = "NULLITY";
       if (name && mname && strcmp(name, mname)) {
-         char *stmp;
+         char *stimpy;
          /* give dset a new ID */
-         stmp = SUMA_append_replace_string(name, SDSET_ID(dset),"_",0);
-         SUMA_NewDsetID2(dset, stmp);
-         SUMA_ifree(stmp);
+         stimpy = SUMA_append_replace_string(name, SDSET_ID(dset),"_",0);
+         SUMA_NewDsetID2(dset, stimpy);
+         SUMA_ifree(stimpy);
          s= SDSET_ID(dset);
       }
       dprev=NULL;
    }
 
-   
    if ((dprev = SUMA_FindDset_ns (s,  DsetList))) {
-      sprintf(stmp,  "Dset %s has similar idcode (%s) in list as \n"
+      snprintf(stmp, 198, "Dset %s has similar idcode (%s) in list as \n"
                      "dset %s. Trying replacement.\n", 
                      SUMA_sdset_filename(dset), s, SUMA_sdset_filename(dprev));
    } else if (!dprev && replace) { /* try a looser search */
@@ -6271,7 +6325,7 @@ int SUMA_InsertDsetPointer (SUMA_DSET **dsetp, DList *DsetList, int replace)
                         "in your ~/.sumarc or ~/.afnirc files.\n");
              SUMA_RETURN(0);
          } else {
-            sprintf(stmp,  
+            snprintf(stmp, 198,  
                   "Dset match based on filename, although IDs did not match.\n"
                   "Allowing replacement per SUMA_AllowFilenameDsetMatch\n"
                   "environment variable setting.\n");
@@ -6310,7 +6364,7 @@ int SUMA_InsertDsetPointer (SUMA_DSET **dsetp, DList *DsetList, int replace)
          *dsetp = dprev;
       } else {
          SUMA_LH("Not Replacing");
-         sprintf(stmp,  "Dset with similar idcode (%s)\n"
+         snprintf(stmp, 198, "Dset with similar idcode (%s)\n"
                         "found in list. \n"
                         "Replacement option is turned off.\n"
                         "Set 'SUMA_AllowDsetReplacement = YES'\n"
@@ -6780,7 +6834,7 @@ char *SUMA_Taylor_Bundle_Info(TAYLOR_BUNDLE *tb, int show_maxu)
 
       s = NULL;
       for (ii=0; ii<show_max; ++ii) {
-         sprintf(stmp, "      Bun.Trc %d ++> ", ii);
+         snprintf(stmp, 62,"      Bun.Trc %d ++> ", ii);
          s = SUMA_append_replace_string(s,
                SUMA_Taylor_Tract_Info(tb->tracts+ii, show_maxu),stmp,2);
       }
@@ -6824,7 +6878,7 @@ char * SUMA_Taylor_Network_Info(TAYLOR_NETWORK *net,
 
       s = NULL;
       for (ii=0; ii<show_max; ++ii) {
-         sprintf(stmp, "   Net.Bun. %d --> ", ii);
+         snprintf(stmp, 62, "   Net.Bun. %d --> ", ii);
          s = SUMA_append_replace_string(s,
                SUMA_Taylor_Bundle_Info(net->tbv[ii], show_maxub),stmp,2);
       }
@@ -8328,7 +8382,7 @@ char * SUMA_GetDsetValInCol(SUMA_DSET *dset, int ind, int ival, double *dval)
    vtp = SUMA_ColType2TypeCast (ctp) ;
    if (LocalHead) {
       char stmp[1000]={""};
-      sprintf(stmp,
+      snprintf(stmp, 998,
             "%s:\n"
             "dset %p, label %s, filen %s\n"
             "ind %d, ival %d\n"
@@ -12188,6 +12242,12 @@ int SUMA_is_Label_dset(SUMA_DSET *dset, NI_group **NIcmap)
    
    if (!dset) SUMA_RETURN(0);
    
+   if (SUMA_isVolDataset(dset)) {
+      if(SUMA_GetAtlasLabelTable(dset) || SUMA_GetValueLabelTable(dset)) {
+         SUMA_RETURN(1);
+      } 
+   }
+   
    SUMA_LH( "All Cons Type = %d : %d\n"
             "SDSET_TYPE (%s) = %d\n",
             SUMA_NODE_ILABEL,
@@ -13484,6 +13544,11 @@ SUMA_DSET *SUMA_afnidset2sumadset(
    dset = *dsetp;
    if (!dset) { SUMA_S_Err("NULL *dsetp."); SUMA_RETURN(newset); }
 
+   if (is_Dset_Atlasy(dset,NULL)) {
+      SUMA_LH("This is an atlas");
+   } else {
+      SUMA_LH("No atlas");
+   }
    if (floatize == -1) {
       set_ni_globs_from_env();
       ngr = THD_dset_to_ni_surf_dset(dset, copy_data);
@@ -13659,7 +13724,8 @@ char *SUMA_OutputDsetFileStatus(char *prefix, char *inname,
 }
 
 
-
+/* Note that this function is not getting called anymore.
+DBG_sigfunc() in debugtrace.h is being called instead */
 void SUMA_sigfunc(int sig)   /** signal handler for fatal errors **/
 {
    char * sname ;
@@ -13675,8 +13741,36 @@ void SUMA_sigfunc(int sig)   /** signal handler for fatal errors **/
    }
    fprintf(stderr,"\nFatal Signal %d (%s) received\n",sig,sname); fflush(stderr);
    TRACEBACK ;
-   fprintf(stderr,"*** Program Abort ***\nSUMA Version %.2f\nCompile Date: %s\n", SUMA_LatestVersionNumber(), __DATE__) ; fflush(stderr) ;
-   exit(1) ;
+   fprintf(stderr,"*** SUMA Abort ***\nCompile Date: %s\n",
+                          __DATE__) ; fflush(stderr) ;
+   selenium_close(); /* close any selenium opened browser windows if open */
+   
+   if( sig != SIGINT && sig != SIGTERM ){  /* add crashlog [14 Apr 2015] */
+     FILE *dfp ; char *home , fname[1024] ;
+     home = THD_homedir(0) ;
+     strcat(fname,"/.afni.crashlog") ;
+     fprintf(stderr,"** If you report this crash to the AFNI message\n"
+                    "** board, please copy the error messages EXACTLY.\n"
+                    "** Crash log recorded in: %s\n",
+                     fname ) ;
+     
+     dfp = fopen( fname , "a" ) ;
+     if( dfp != NULL ){
+       fprintf(dfp,
+         "\n*********-----------------------------------------------*********") ;
+       fprintf(dfp,"\nFatal Signal %d (%s) received\n",sig,sname); 
+       fflush(stderr);
+       DBG_tfp = dfp ; DBG_traceback() ; DBG_tfp = stderr ;
+       fprintf(stderr,"*** SUMA Abort ***\nCompile Date: %s\n",
+                          __DATE__) ; fflush(stderr) ;
+#ifdef SHSTRING
+       fprintf(dfp,"** [[Precompiled binary " SHSTRING ": " __DATE__ "]]\n") ;
+#endif
+       fprintf(dfp,"** SUMA Program Tragically Lost **\n") ;
+       fclose(dfp) ;
+     }
+   }
+   exit(sig) ;
 }
 
 

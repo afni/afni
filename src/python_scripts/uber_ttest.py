@@ -12,6 +12,7 @@ import copy
 
 import afni_util as UTIL
 import lib_subjects as SUBJ
+import lib_vars_object as VO
 import lib_uber_ttest as LTT
 import option_list as OPT
 
@@ -192,8 +193,8 @@ class MainInterface(object):
       uopts = self.uopts # convenience
 
       # init subject options struct
-      self.cvars = SUBJ.VarsObject('control vars from command line')
-      self.uvars = SUBJ.VarsObject('user vars from command line')
+      self.cvars = VO.VarsObject('control vars from command line')
+      self.uvars = VO.VarsObject('user vars from command line')
       self.guiopts = ['uber_ttest.py']
 
       # first set verbose level

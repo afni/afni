@@ -38,6 +38,88 @@ help.cat.file.AFNI <- function (pname=NULL, targ='TXT') {
    return(paste("|apsearch ", dopt ,pname,"-"));
 }
 
+#print warnings a la AFNI
+prompt.AFNI <- function (str='I await', choices=c('y','n'), vals=NULL) {
+   if (!is.null(vals) && length(vals) != length(choices)) {
+      err.AFNI(paste("Have ", length(choices), "options, but",
+                     length(vals), "values to return"));
+      return(0)
+   }
+   choices[1]<-toupper(choices[1])
+   kk<-vector(length=0);
+   spr <- paste(str," [",paste(choices, collapse='|'),"]:", sep='')
+   if (BATCH_MODE) { #Only two choices available for this one!
+      if (length(choices)!=2) {
+         err.AFNI("This one can't run in batch mode for more than 2 choices")
+         return(0)
+      }
+      ss <- sys.AFNI(paste(
+         "prompt_user -pause '", spr,"'", sep='' ))
+      if (ss$out == "0") return(2) #The not default
+      else return(1) #The default
+   } else {
+      while (length(kk) == 0) {
+         cat(spr)
+         bb <- readLines(n=1)
+         if (bb == '') {
+            kk <- 1;
+         } else {
+            kk <-which(tolower(choices) == tolower(bb))
+         }
+      }
+      if (!is.null(vals)) {
+         return(vals[kk])
+      } else {
+         return(kk)
+      }
+   }
+   return(0)
+}
+
+set.AFNI.msg.trace <- function (vv=FALSE) { SHOW_TRC <<- vv }
+
+warn.AFNI <- function (str='Consider yourself warned',
+                       callstr=NULL, 
+                       newline=TRUE) {
+   if (is.null(callstr)) {
+      if (SHOW_TRC) callstr <- who.called.me(TRUE)
+      else callstr <- ''
+   }
+   nnn<-''
+   if (newline) nnn <- '\n'
+   if (BATCH_MODE) ff <- stderr()
+   else ff <- ''
+   cat(  '\n', 'oo Warning: ',  callstr,'\n   ', 
+         paste(str, collapse=''), nnn, 
+       sep='', file = ff);
+}
+
+err.AFNI <- function (str='Danger Danger Will Robinson',
+                        callstr=NULL, 
+                      newline=TRUE) {
+   if (is.null(callstr)) {
+      if (SHOW_TRC) callstr <- who.called.me(TRUE)
+      else callstr <- ''
+   }
+   nnn<-''
+   if (newline) nnn <- '\n'
+   if (BATCH_MODE) ff <- stderr()
+   else ff <- ''
+   cat(  '\n', '** Error: ',  callstr,'\n   ', 
+         paste(str, collapse=''), nnn, 
+       sep='', file = ff);
+}
+
+errex.AFNI <- function (str='Alas this must end',
+                        callstr=NULL, newline=TRUE) {
+   if (is.null(callstr)) {
+      if (SHOW_TRC) callstr <- who.called.me(TRUE)
+      else callstr <- ''
+   }
+   err.AFNI(str,callstr, newline)
+   exit.AFNI(str='\n   Execution halted',stat=1)
+}
+
 note.AFNI <- function (str='May I speak frankly?',
                        callstr=NULL, newline=TRUE, tic=1,
                        trimtrace=30) {
@@ -61,6 +143,16 @@ note.AFNI <- function (str='May I speak frankly?',
        sep='', file = ff);
 }
 
+exit.AFNI <- function(str='The piano has been drinking.', stat=0) {
+   if (BATCH_MODE) {
+      quit(save='no', status = stat);
+   } else {
+      #note.AFNI(str)
+      stop(str)
+   }
+}
+
+#Locate and load R_io.so
 set_R_io <- function() {
    rio <- 0
    ll <- find.in.path('R_io.so')
@@ -1103,96 +1195,6 @@ who.called.me <- function (quiet_inquisitor=FALSE, trim = 0) {
    return(callstr)
 }
 
-#print warnings a la AFNI
-prompt.AFNI <- function (str='I await', choices=c('y','n'), vals=NULL) {
-   if (!is.null(vals) && length(vals) != length(choices)) {
-      err.AFNI(paste("Have ", length(choices), "options, but",
-                     length(vals), "values to return"));
-      return(0)
-   }
-   choices[1]<-toupper(choices[1])
-   kk<-vector(length=0);
-   spr <- paste(str," [",paste(choices, collapse='|'),"]:", sep='')
-   if (BATCH_MODE) { #Only two choices available for this one!
-      if (length(choices)!=2) {
-         err.AFNI("This one can't run in batch mode for more than 2 choices")
-         return(0)
-      }
-      ss <- sys.AFNI(paste(
-         "prompt_user -pause '", spr,"'", sep='' ))
-      if (ss$out == "0") return(2) #The not default
-      else return(1) #The default
-   } else {
-      while (length(kk) == 0) {
-         cat(spr)
-         bb <- readLines(n=1)
-         if (bb == '') {
-            kk <- 1;
-         } else {
-            kk <-which(tolower(choices) == tolower(bb))
-         }
-      }
-      if (!is.null(vals)) {
-         return(vals[kk])
-      } else {
-         return(kk)
-      }
-   }
-   return(0)
-}
-
-set.AFNI.msg.trace <- function (vv=FALSE) { SHOW_TRC <<- vv }
-
-warn.AFNI <- function (str='Consider yourself warned',
-                       callstr=NULL, 
-                       newline=TRUE) {
-   if (is.null(callstr)) {
-      if (SHOW_TRC) callstr <- who.called.me(TRUE)
-      else callstr <- ''
-   }
-   nnn<-''
-   if (newline) nnn <- '\n'
-   if (BATCH_MODE) ff <- stderr()
-   else ff <- ''
-   cat(  '\n', 'oo Warning: ',  callstr,'\n   ', 
-         paste(str, collapse=''), nnn, 
-       sep='', file = ff);
-}
-
-err.AFNI <- function (str='Danger Danger Will Robinson',
-                        callstr=NULL, 
-                      newline=TRUE) {
-   if (is.null(callstr)) {
-      if (SHOW_TRC) callstr <- who.called.me(TRUE)
-      else callstr <- ''
-   }
-   nnn<-''
-   if (newline) nnn <- '\n'
-   if (BATCH_MODE) ff <- stderr()
-   else ff <- ''
-   cat(  '\n', '** Error: ',  callstr,'\n   ', 
-         paste(str, collapse=''), nnn, 
-       sep='', file = ff);
-}
-
-errex.AFNI <- function (str='Alas this must end',
-                        callstr=NULL, newline=TRUE) {
-   if (is.null(callstr)) {
-      if (SHOW_TRC) callstr <- who.called.me(TRUE)
-      else callstr <- ''
-   }
-   err.AFNI(str,callstr, newline)
-   exit.AFNI(str='\n   Execution halted',stat=1)
-}
-
-exit.AFNI <- function(str='The piano has been drinking.', stat=0) {
-   if (BATCH_MODE) {
-      quit(save='no', status = stat);
-   } else {
-      #note.AFNI(str)
-      stop(str)
-   }
-}
 
 #return 1 if all strings in vector ss can be changed to numbers
 is.num.string <- function(ss) {

@@ -9,6 +9,7 @@ import glob
 import afni_base as BASE
 import afni_util as UTIL
 import lib_subjects as SUBJ
+import lib_vars_object as VO
 
 DEF_UBER_DIR = 'uber_results'        # top directory for output
 DEF_TOP_SDIR = 'subject_results'     # top subject dir under uber_results
@@ -143,9 +144,10 @@ g_history = """
          - thanks to P Taylor for noting the problem
     0.35 Feb 13, 2012: let user know of subj_dir when writing AP command
     0.36 Apr  5, 2013: added help web link for class handouts
+    0.37 Apr 14, 2015: added MIN_OUTLIER to volreg base list
 """
 
-g_version = '0.36 (April 5, 2013)'
+g_version = '0.37 (April 14, 2015)'
 
 # ----------------------------------------------------------------------
 # global definition of default processing blocks
@@ -157,7 +159,7 @@ g_def_blocks_all  = ['despike', 'tshift', 'align', 'tlrc', 'volreg', 'surf',
 g_def_blocks      = ['tshift', 'volreg', 'blur', 'mask', 'scale', 'regress']
 g_def_blocks_anat = ['tshift', 'align', 'tlrc', 'volreg', 'blur', 'mask',
                      'scale', 'regress']
-g_vreg_base_list  = ['first', 'third', 'last']
+g_vreg_base_list  = ['first', 'third', 'last', 'MIN_OUTLIER']
 g_def_vreg_base   = 'third'
 g_align_cost_list = ['lpc', 'lpc+ZZ', 'lpc+', 'lpa', 'nmi', 'ls']
 g_def_align_cost  = 'lpc'
@@ -173,13 +175,13 @@ g_def_stim_types_list = ['times', 'AM1', 'AM2', 'IM', 'file']
 # global definitions of subject defaults for single subject analysis
 
 # ---- control values passed in for class actions ----
-g_ctrl_defs = SUBJ.VarsObject("uber_subject control defaults")
+g_ctrl_defs = VO.VarsObject("uber_subject control defaults")
 g_ctrl_defs.subj_dir      = '.'         # destination for scripts and results
 g_ctrl_defs.copy_scripts  = 'yes'       # do we make .orig copies of scripts?
 g_ctrl_defs.verb          = 1           # verbose level
 
 # ---- resulting values returned after class actions ----
-g_res_defs = SUBJ.VarsObject("uber_subject result variables")
+g_res_defs = VO.VarsObject("uber_subject result variables")
 g_res_defs.file_ap       = ''           # file name for afni_proc.py command
 g_res_defs.file_proc     = ''           # file name for proc script
 g_res_defs.results_dir   = ''           # results directory from proc script
@@ -188,7 +190,7 @@ g_res_defs.output_proc   = ''           # output from running proc script
 
 # ----------------------------------------------------------------------
 # a global definition of subject defaults for single subject analysis
-g_subj_defs = SUBJ.VarsObject("Single Subject Dialog defaults")
+g_subj_defs = VO.VarsObject("Single Subject Dialog defaults")
 g_subj_defs.anal_domain   = 'volume'    # see g_def_anal_domains
 g_subj_defs.anal_type     = 'task'      # see g_def_anal_types
 g_subj_defs.blocks        = g_def_blocks_anat
@@ -293,7 +295,7 @@ g_svars_not_opt = [
 
 # ----------------------------------------------------------------------
 # subj defaults for resting state analysis
-g_rest_defs = SUBJ.VarsObject("resting state defaults")
+g_rest_defs = VO.VarsObject("resting state defaults")
 g_rest_defs.anal_type     = 'rest'              # see g_def_anal_types
 g_rest_defs.blocks        = ['despike', 'tshift', 'align', 'tlrc', 'volreg',
                              'blur', 'mask', 'regress']
@@ -305,7 +307,7 @@ g_rest_defs.run_clustsim  = 'no'
 # ----------------------------------------------------------------------
 # subj defaults for task analysis (as opposed to rest)
 # NOTE: elements should match g_rest_defs
-g_task_defs = SUBJ.VarsObject("task analysis defaults")
+g_task_defs = VO.VarsObject("task analysis defaults")
 g_task_defs.anal_type     = 'task'              # see g_def_anal_types
 g_task_defs.blocks        = g_def_blocks_anat
 g_task_defs.regress_bandpass  = []              # -regress_bandpass
@@ -354,7 +356,7 @@ class AP_Subject(object):
       self.warnings = []                # list of warning strings
 
       # LV: variables local to this interface, not passed
-      self.LV = SUBJ.VarsObject("local AP_Subject vars")
+      self.LV = VO.VarsObject("local AP_Subject vars")
       self.LV.indent = 8                # default indent for AP options
       self.LV.istr   = ' '*self.LV.indent
       self.LV.warp   = ''               # '', 'adwarp', 'warp'
