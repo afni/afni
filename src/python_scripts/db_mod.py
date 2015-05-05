@@ -4202,9 +4202,9 @@ def db_cmd_anaticor_fast(proc, block, rset, fwhm=30, roilab='WMe'):
     cmd = '# catenate volreg dsets in case of censored sub-brick selection\n' \
           '3dTcat -prefix %s %s\n\n' % (vall, volreg_wild)
 
-    cmd += '# mask white matter before blurring\n'       \
-           '3dcalc -a %s%s -b %s -expr "a*bool(b)" \\\n' \
-           '       -datum float -prefix %s\n\n' \
+    cmd += '# mask white matter before blurring\n'                \
+           '3dcalc -a %s%s -b %s \\\n'                            \
+           '       -expr "a*bool(b)" -datum float -prefix %s\n\n' \
            % (vall, proc.view, mset.shortinput(), vmask)
 
     cmd += '# generate time series averaged over the closest white matter\n' \
@@ -4212,9 +4212,17 @@ def db_cmd_anaticor_fast(proc, block, rset, fwhm=30, roilab='WMe'):
            % (fwhm, rset.out_prefix(), vmask, proc.view)
 
     if block.opts.have_yes_opt('-regress_%sL_corr'%roilab, default=1):
+      # what is exaplained above and beyond the X-matrix
       cmd +='# diagnostic volume: voxel correlation with local white matter\n'\
-            '3dTcorrelate -prefix %s %s%s %s\n\n'                             \
-            % ('%sL_corr'%roilab, vall, proc.view, rset.pv())
+            '#                    (above and beyond X-matrix regressors)\n'   \
+            '3dTcorrelate -prefix %s -ort %s \\\n'                            \
+            '             %s%s %s\n\n'                     \
+            % ('%sL_corr'%roilab, proc.xmat_nocen, vall, proc.view, rset.pv())
+
+      cmd +='# diagnostic volume: raw correlation, no X-matrix regressors\n'  \
+            '3dTcorrelate -prefix %s \\\n'                                    \
+            '             %s%s %s\n\n'                                        \
+            % ('%sL_corr_raw'%roilab, vall, proc.view, rset.pv())
 
     return 0, cmd
 
@@ -6271,7 +6279,7 @@ g_help_string = """
                   -regress_run_clustsim no                                   \\
                   -regress_est_blur_errts
 
-       9b. Resting state analysis with ANATICOR.
+       Example 9b. Resting state analysis with ANATICOR.
 
            Like example #9, but also regress out the signal from locally
            averaged white matter.  The only change is adding the option
@@ -6294,7 +6302,6 @@ g_help_string = """
                   -regress_apply_mot_types demean deriv                      \\
                   -regress_run_clustsim no                                   \\
                   -regress_est_blur_errts
-
 
        Example 10. Resting state analysis, with tissue-based regressors.
 
@@ -6344,6 +6351,44 @@ g_help_string = """
                   -regress_RSFC                                              \\
                   -regress_run_clustsim no                                   \\
                   -regress_est_blur_errts
+
+       Example 11. Resting state analysis (more modern :).
+           
+         o Yes, censor (outliers and motion) and despike.
+         o Use non-linear registration to MNI template.
+         o No bandpassing.
+         o Use fast ANATICOR method (slightly different from default ANATICOR).
+         o Use FreeSurfer segmentation for:
+             - regression of average eroded white matter
+             - regression of first 3 principle components of lateral ventricles
+             - ANATICOR white matter mask
+         o Erode FS white matter and ventricle masks before application.
+         o Bring along FreeSurfer parcellation datasets:
+             - aaseg : NN interpolated onto the anatomical grid
+             - aeseg : NN interpolated onto the EPI        grid
+           These follower datasets are just for evaluation.
+
+                afni_proc.py -subj_id FT.11.rest                             \\
+                  -blocks despike tshift align tlrc volreg blur mask regress \\
+                  -copy_anat FT_anat+orig                                    \\
+                  -anat_follower_ROI aaseg anat aparc.a2009s+aseg_rank.nii   \\
+                  -anat_follower_ROI aeseg epi  aparc.a2009s+aseg_rank.nii   \\
+                  -dsets FT_epi_r?+orig.HEAD                                 \\
+                  -tcat_remove_first_trs 2                                   \\
+                  -tlrc_base MNI_caez_N27+tlrc                               \\
+                  -tlrc_NL_warp                                              \\
+                  -volreg_align_e2a                                          \\
+                  -volreg_tlrc_warp                                          \\
+                  -regress_ROI_erode FSvent FSWe                             \\
+                  -regress_ROI_PC FSvent 3 FT_vent.nii                       \\
+                  -regress_ROI_maskave FSWe FT_white.nii                     \\
+                  -regress_anaticor_fast                                     \\
+                  -regress_anaticor_label FSWe                               \\
+                  -regress_censor_motion 0.2                                 \\
+                  -regress_censor_outliers 0.1                               \\
+                  -regress_apply_mot_types demean deriv                      \\
+                  -regress_est_blur_errts                                    \\
+                  -regress_run_clustsim no
 
     --------------------------------------------------
     -ask_me EXAMPLES:  ** NOTE: -ask_me is antiquated **
