@@ -461,25 +461,25 @@ g_history = """
     4.37 Apr  9, 2015: fix for NIFTI NL anat; add a little help
     4.38 Apr 22, 2015:
         - help update for -regress_ROI_*
-        -  verify erode list use
+        - verify erode list use
         - added -todo to show current list
     4.39 Apr 22, 2015: add missed cat_matvec to create warp.all.anat.aff12.1D
     4.40 Apr 30, 2015: allow AM2 centering param via basis backdoor
         - e.g. use basis "BLOCK(2) :x:0.176"
-    4.41 May 06, 2015:
+    4.41 May 05, 2015:
         - added -anat_follower, -anat_follower_ROI, -regress_anaticor_label
+        - followers are copied to copy_af_LABEL
 """
 
-g_version = "version 4.40, April 22, 2015"
+g_version = "version 4.41, May 5, 2015"
 
 # version of AFNI required for script execution
 g_requires_afni = "1 Apr 2015" # 1d_tool.py uncensor from 1D
 
 g_todo_str = """todo:
-  - add help for -anat_follower*
   - (related) show example for passing FreeSurfer WMe with erode option
+    and anat followers
   - add option to block anat from anat followers?
-  - add/modify AP tests for some cases
   - add AP test for varying remove_first_trs
   - add -4095_check and -4095_ok options?
      - maybe check means the 3dToutcount would fail, and ok would continue
@@ -1991,12 +1991,12 @@ class SubjProcSream:
 
         # copy any -regress_ROI_* datasets; possibly convert to AFNI
         if len(self.afollowers) > 0:
-           tstr = '# copy any -regress_ROI_* datasets into the results dir\n'
+           tstr = '# copy anatomical follower datasets into the results dir\n'
            for af in self.afollowers:
               tstr += '3dcopy %s %s/%s\n' % \
-                      (af.aname.rel_input(), self.od_var, af.aname.prefix)
+                   (af.aname.rel_input(), self.od_var, af.cpname.out_prefix())
               # update current name, in case we switch to AFNI format
-              af.cname = afni_name(af.aname.prefix)
+              af.cname = af.cpname
               if af.cname.view == '': af.cname.new_view(self.view)
            self.write_text(add_line_wrappers(tstr))
            self.write_text("%s\n" % stat_inc)
@@ -2235,6 +2235,9 @@ class SubjProcSream:
         # set_var is not needed, but is a reminder
         vo.set_var('aname',  aname)
         vo.set_var('cname',  aname)     # cname is current name
+        if label: cppre = 'copy_af_%s' % label
+        else:     cppre = aname.prefix
+        vo.set_var('cpname', afni_name(cppre))
         vo.set_var('dgrid',  dgrid)
         vo.set_var('label',  label)
         vo.set_var('erode',  0)         # 0=no, 1=pre, 2=post
@@ -2341,17 +2344,13 @@ class SubjProcSream:
            print '** new_anat_follower requires name or aname'
            return None
 
-        release = 0
-        if aname == None:
-           aname = afni_name(name)
-           release = 1
+        if aname == None: aname = afni_name(name)
         si = aname.shortinput()
 
+        # warn user if dupe is seen
         for af in self.afollowers:
            if af.aname.shortinput() == si:
-              # found: nuke any copy and return VO
-              if release: del(aname)
-              return af
+              print '** warning: have duplicate anat follower: %s' % si
 
         # not yet in list
         af = self.anat_follower(aname=aname, dgrid=dgrid, label=label,

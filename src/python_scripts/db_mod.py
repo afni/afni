@@ -7138,6 +7138,48 @@ g_help_string = """
 
         ------------ general execution and setup options ------------
 
+        -anat_follower LABEL GRID DSET : specify anat follower dataset
+
+                e.g. -anat_follower GM anat FS_GM_MASK.nii
+
+            Use this option to pass any anatomical follower dataset.  Such a
+            dataset is warped by any transformations that take the original
+            anat to anat_final.
+
+            Anatomical follower datasets are resampled using wsinc5.  The only
+            difference with -anat_follower_ROI is that such ROI datasets are
+            resampled using nearest neighbor interpolation.
+
+               LABEL    : to name and refer to this dataset
+               GRID     : which grid should this be sampled on, anat or epi?
+               DSET     : name of input dataset, changed to copy_af_LABEL
+
+            A default anatomical follower (in the case of skull stripping) is
+            the original anat.  That is to get a warped version that still has
+            a skull, for quality control.
+
+            See also -anat_follower_ROI.
+
+        -anat_follower_ROI LABEL GRID DSET : specify anat follower ROI dataset
+
+                e.g. -anat_follower_ROI aaseg anat aparc.a2009s+aseg_rank.nii
+                e.g. -anat_follower_ROI aeseg epi  aparc.a2009s+aseg_rank.nii
+
+            Use this option to pass any anatomical follower dataset.  Such a
+            dataset is warped by any transformations that take the original
+            anat to anat_final.
+
+            Similar to -anat_follower, except that these anatomical follower
+            datasets are resampled using nearest neighbor (NN) interpolation,
+            to preserve data values (as opposed to -anat_follower, which uses
+            wsinc5).  That is the only difference between these options.
+
+               LABEL    : to name and refer to this dataset
+               GRID     : which grid should this be sampled on, anat or epi?
+               DSET     : name of input dataset, changed to copy_af_LABEL
+
+            See also -anat_follower.
+
         -anat_has_skull yes/no  : specify whether the anatomy has a skull
 
                 e.g. -anat_has_skull no
