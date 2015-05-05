@@ -62,6 +62,7 @@ class Afni1D:
       self.command   = ''       # from CommandLine
 
       # list variables (from attributes)
+      self.havelabs = 0         # did we find any labels
       self.labels   = []        # label per vector       (from ColumnLabels)
       self.groups   = []        # integral column groups (from ColumnGroups)
       self.goodlist = []        # good time points       (from GoodList)
@@ -980,6 +981,48 @@ class Afni1D:
       # and restrict to run_index
       return self.restrict_tr_list_to_run(tr_list, run_index)
 
+   def uncensor_from_vector(self, cvec):
+      """zero-pad list to match length of cvec
+         current list length must match uncensored cved list
+      """
+      if self.nruns > 1:
+         print '** cannot uncensor multiple runs from vector'
+         return 1
+
+      clen = len(cvec)
+      ncen = cvec.count(0)
+      if self.nt != clen - ncen:
+         print '** uncensor from vec: nt = %d, but nocen len = %d' \
+               (self.nt, clen-ncen)
+         return 1
+
+      # explicitly set newvec, including with zeros
+      newmat = []
+      for mvec in self.mat:
+         newvec = cvec[:]
+         goodind = 0
+         for ind, val in enumerate(cvec):
+            if val:
+               newvec[ind] = mvec[goodind]
+               goodind += 1
+            else:
+               newvec[ind] = 0
+         newmat.append(newvec)
+
+      if self.verb > 1:
+         print '++ uncensored %d values from vector' % ncen
+         if self.verb > 2:
+            cenlist = ['%s'%i for i in range(clen) if not cvec[i]]
+            print '   zero-pad list: %s' % (', '.join(cenlist))
+            del(cenlist)
+
+      del(self.mat)
+      self.mat     = newmat
+      self.nt      = clen
+      self.run_len = [self.nt]
+
+      return 0
+
    def restrict_tr_list_to_run(self, tr_list, run_index=-1):
       """rely on runstart to restrict tr_list
          return status and restricted list
@@ -1700,6 +1743,11 @@ class Afni1D:
 
       if isinstance(parent, Afni1D):
          if self.verb > 2: print '-- apply_goodlist: run info from parent'
+
+         # allow for processing simple 1D
+         if not parent.havelabs:
+            return self.uncensor_from_vector(parent.mat[0])
+
          runstart = parent.runstart
          goodlist = parent.goodlist
          nrowfull = parent.nrowfull
@@ -2294,6 +2342,8 @@ class Afni1D:
          if not label: continue
 
          verb_level = 3     # cutoff for verbose level
+
+         self.havelabs = 1
 
          try:      # to process some of the data
             if label == 'ni_type':

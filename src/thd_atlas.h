@@ -22,6 +22,7 @@
 
 void free_atlas_point_list(ATLAS_POINT_LIST *apl);
 void print_atlas_point_list(ATLAS_POINT_LIST *apl);
+ATLAS_POINT_LIST * niml_atlas_label_table_to_atlas_list(NI_group *ngr);
 ATLAS_POINT_LIST *dset_niml_to_atlas_list(THD_3dim_dataset *dset);
 ATLAS_POINT_LIST *label_table_to_atlas_point_list(Dtable *dtbl);
 int whereami_9yards( ATLAS_COORD ac, ATLAS_QUERY **wamip, 

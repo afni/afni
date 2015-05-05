@@ -11,7 +11,7 @@ if module_test_lib.num_import_failures(testlibs): sys.exit(1)
 import copy
 
 import afni_util as UTIL
-import lib_subjects as SUBJ
+import lib_vars_object as VO
 import lib_uber_align as UALIGN
 import option_list as OPT
 
@@ -159,8 +159,8 @@ class AlignInterface(object):
       uopts = self.uopts # convenience
 
       # init subject options struct
-      self.cvars = SUBJ.VarsObject('control vars from command line')
-      self.uvars = SUBJ.VarsObject('user vars from command line')
+      self.cvars = VO.VarsObject('control vars from command line')
+      self.uvars = VO.VarsObject('user vars from command line')
       self.guiopts = ['uber_align_test.py']
 
       # first set verbose level

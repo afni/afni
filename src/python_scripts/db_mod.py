@@ -10,6 +10,7 @@ import math, os
 import afni_base as BASE, afni_util as UTIL
 import option_list as OL
 import lib_afni1D as LD
+import lib_vars_object as VO
 
 
 WARP_EPI_TLRC_ADWARP    = 1
@@ -33,12 +34,51 @@ def apply_uopt_to_block(opt_name, user_opts, block):
     uopt = user_opts.find_opt(opt_name)
     if uopt:
         bopt = block.opts.find_opt(opt_name)
+        # if it exists, modify, else append
         if bopt: bopt.parlist = uopt.parlist
-        else:    block.opts.add_opt(opt_name, 1, uopt.parlist, setpar=1)
+        else:    block.opts.olist.append(uopt)
 
         return 1
 
     return 0
+
+def apply_uopt_list_to_block(opt_name, user_opts, block):
+    """pass all such opts to the block, which should start with none
+       return 0/1, based on whether the option was found
+       return -1 on error
+    """
+    bopt = block.opts.find_opt(opt_name)
+    if bopt != None:
+       print "** attempting to re-add all '%s' options to block??" % opt_name
+       print "   failing..."
+       return -1
+
+    found = 0
+    for opt in user_opts.find_all_opts(opt_name):
+        block.opts.olist.append(opt)
+        found = 1
+
+    return found
+
+def new_warp_item(desc='', wtype='', src='', xfiles=[], inv=[]):
+   """desc      = description of warp
+      wtype     = rigid, affine, NL
+      src       = source dataset
+      xfiles    = known files for transforms
+      inv       = whether to invert a given file transform
+   """
+   vo = VO.VarsObject()
+   vo.set_var('desc', desc)
+   vo.set_var('wtype', wtype)
+   vo.set_var('src', src)
+   vo.set_var('xfiles', xfiles)
+   vo.set_var('inv', inv)
+   # if no inv values passed, init to no inverse per xfile
+   if len(vo.xfiles) > 0 and len(vo.inv) == 0:
+      vo.inv = [0 for i in range(len(vo.xfiles))]
+   
+   return vo
+
 
 # --------------- tcat ---------------
 
@@ -52,10 +92,10 @@ def db_mod_tcat(block, proc, user_opts):
     uopt = user_opts.find_opt('-tcat_remove_first_trs')
     bopt = block.opts.find_opt('-tcat_remove_first_trs')
     if uopt and bopt:
-        try: bopt.parlist[0] = int(uopt.parlist[0])
+        try: bopt.parlist = [int(param) for param in uopt.parlist]
         except:
-            print "** ERROR: %s: invalid integer: %s"   \
-                  % (uopt.label, uopt.parlist[0])
+            print "** ERROR: %s: invalid as integers: %s"   \
+                  % (uopt.label, ' '.join(uopt.parlist))
             errs += 1
         if errs == 0 and bopt.parlist[0] > 0:
           print                                                              \
@@ -74,7 +114,16 @@ def db_mod_tcat(block, proc, user_opts):
 def db_cmd_tcat(proc, block):
     cmd = ''
     opt = block.opts.find_opt('-tcat_remove_first_trs')
+    flist = opt.parlist
     first = opt.parlist[0]
+    # if multiple runs, length of flist should match
+    if proc.runs > 1:
+       if len(flist) == 1:
+          flist = [first for r in range(proc.runs)]
+
+    if len(flist) != proc.runs:
+       print '** error: -tcat_remove_first_trs takes either 1 value or nruns'
+       return 1, ''
 
     # maybe the user updated our warning limit
     val, err = block.opts.get_type_opt(float, '-tcat_preSS_warn_limit')
@@ -95,7 +144,7 @@ def db_cmd_tcat(proc, block):
                 "# apply 3dTcat to copy input dsets to results dir, while\n"  \
                 "# removing the first %d TRs\n"                               \
                 % (block_header('auto block: tcat'), first)
-    for run in range(0, proc.runs):
+    for run in range(proc.runs):
         if rmlast == 0: final = '$'
         else:
             reps = proc.reps_all[run]
@@ -105,10 +154,14 @@ def db_cmd_tcat(proc, block):
                       % (run+1, reps, rmlast)
         cmd = cmd + "3dTcat -prefix %s/%s %s'[%d..%s]'\n" %              \
                     (proc.od_var, proc.prefix_form(block,run+1),
-                     proc.dsets[run].rel_input(), first, final)
+                     proc.dsets[run].rel_input(), flist[run], final)
 
     proc.reps   -= first+rmlast # update reps to account for removed TRs
-    proc.reps_all = [reps-first-rmlast for reps in proc.reps_all]
+
+    for run in range(len(proc.reps_all)):
+       proc.reps_all[run] -= (flist[run] + rmlast)
+    if not UTIL.vals_are_constant(proc.reps_all):
+       proc.reps_vary = 1
 
     cmd = cmd + '\n'                                                    \
                 '# and make note of repetitions (TRs) per run\n'        \
@@ -131,6 +184,9 @@ def db_mod_postdata(block, proc, user_opts):
        affects the EPI data.
        This block will probably never get named options.
     """
+
+    # note other anat followers (-anat_follower*)
+    if apply_general_anat_followers(proc): return
 
     if len(block.opts.olist) == 0: pass
     block.valid = 1
@@ -155,7 +211,45 @@ def db_cmd_postdata(proc, block):
         if rv: return   # failure (error has been printed)
         cmd = cmd + oc
 
+    # add anat to anat followers?
+    if proc.anat_has_skull:
+       if proc.find_block('align') or proc.find_block('tlrc'):
+          # add anat to own follower list (we are now after 3dcopy)
+          ff = proc.add_anat_follower(aname=proc.anat, dgrid='anat',
+                                      label='anat_w_skull')
+          ff.set_var('final_prefix', 'anat_w_skull_warped')
+
+    # ---------------
+    # if requested, create any anat followers
+    if should_warp_anat_followers(proc, block):
+       rv, tcmd = warp_anat_followers(proc, block, proc.anat, prevepi=1)
+       if rv: return
+       if tcmd: cmd += tcmd
+
     return cmd
+
+def apply_general_anat_followers(proc):
+   # add any other anat follower datasets
+   for oname in ['-anat_follower', '-anat_follower_ROI' ]:
+
+      for opt in proc.user_opts.find_all_opts(oname):
+         label = opt.parlist[0]
+         dgrid = opt.parlist[1]
+         dname = opt.parlist[2]
+
+         if oname == '-anat_follower_ROI': 
+            ff = proc.add_anat_follower(name=dname, dgrid=dgrid,
+                                        NN=1, label=label)
+            flab = 'follow_ROI'
+         else:
+            ff = proc.add_anat_follower(name=dname, dgrid=dgrid, label=label)
+            flab = 'follow_anat'
+
+         if ff == None:
+            print '** failed to add follower %s' % dname
+            return 1
+
+         ff.set_var('final_prefix', '%s_%s'%(flab, label))
 
 def make_uniformity_commands(proc, umeth):
     """apply uniformity correction to the anat, based on umeth"""
@@ -362,8 +456,9 @@ def db_cmd_align(proc, block):
     else:
         rind, bind = proc.get_vr_base_indices()
         if rind < 0:
-            print '** align base index failure: %d, %d' % (rind, bind)
-            return     # error message is printed
+            rind, bind = 0, 0
+            print '** warning: will use align base defaults: %d, %d'%(rind,bind)
+            # return (allow as success now, for no volreg block)
         basevol = proc.prev_prefix_form(rind+1, block, view=1)
 
     # check for EPI skull strip method
@@ -386,7 +481,7 @@ def db_cmd_align(proc, block):
        proc.anat_has_skull = 0
        ss_opt = ''      # user already passing it
 
-    # note whether this the aea output is expected to be used
+    # note whether the aea output is expected to be used
     e2a = (proc.find_block_opt('volreg', '-volreg_align_e2a') != None)
     astr   = '' # maybe to save skullstrip dset
     if e2a: # if the option was passed, the output is junk
@@ -406,8 +501,11 @@ def db_cmd_align(proc, block):
           % (proc.anat.pv(), astr, suffix, basevol, bind, essopt, ss_opt,
              extra_opts)
 
-    # store alignment matrix file for possible later use
+    # store the alignment matrix file for possible later use
     proc.a2e_mat = "%s%s_mat.aff12.1D" % (proc.anat.prefix, suffix)
+    if not e2a: # store xform file
+        proc.anat_warps.append(proc.a2e_mat)
+  
 
     # if e2a:   update anat and tlrc to '_ss' version (intermediate, stripped)
     #           (only if skull: '-anat_has_skull no' not found in extra_opts)
@@ -447,6 +545,14 @@ def db_cmd_align(proc, block):
           '# (new anat will be %s %s)\n'        \
           % (block_header('align'), astr, istr, proc.anat.pv())
 
+    # ---------------
+    # if requested, create any anat followers
+    if should_warp_anat_followers(proc, block):
+        rv, tcmd = warp_anat_followers(proc, block, proc.anat, prevepi=1)
+        if rv: return
+        if tcmd: cmd += tcmd
+
+    # used 3dvolreg, so have these labels
     # note the alignment in EPIs warp bitmap (2=a2e)
     proc.warp_epi |= WARP_EPI_ALIGN_A2E
 
@@ -663,12 +769,14 @@ def db_cmd_ricor(proc, block):
     if proc.verb > 2: print '-- ricor: slice 0 labels: %s' % ' '.join(nsr_labs)
 
     # check reps against adjusted NT
-    nt = adata.nt-proc.ricor_nfirst-proc.ricor_nlast
-    if proc.reps != nt:
-        print "** ERROR: ricor NT != dset len (%d, %d)"                 \
-              "   (check -ricor_regs_nfirst/-tcat_remove_first_trs)"    \
-              % (nt, proc.reps)
-        return
+    for run, rfile in enumerate(proc.ricor_regs):
+        fdata = LAD.Afni1D(rfile)
+        nt = fdata.nt-proc.ricor_nfirst-proc.ricor_nlast
+        if proc.reps_all[run] != nt:
+           print "** ERROR: run %d ricor NT != dset len (%d, %d)\n"       \
+                 "   (check -ricor_regs_nfirst/-tcat_remove_first_trs)"   \
+                 % (run+1, nt, proc.reps_all[run])
+           return
 
     # get user polort, else default based on twice the time length
     val, err = block.opts.get_type_opt(int, '-ricor_polort')
@@ -1223,13 +1331,13 @@ def db_cmd_volreg(proc, block):
         cmd = cmd + '\n'
 
         if dowarp or doadwarp:
+            afile = proc.tlrcanat.shortinput(head=1)
             cmd = cmd + \
-                "# verify that we have a +tlrc warp dataset\n"          \
-                "if ( ! -f %s.HEAD ) then\n"                            \
-                '    echo "** missing +tlrc warp dataset: %s.HEAD" \n'  \
-                '    exit\n'                                            \
-                'endif\n\n'                                             \
-                % (proc.tlrcanat.pv(), proc.tlrcanat.pv())
+                "# verify that we have a +tlrc warp dataset\n"    \
+                "if ( ! -f %s ) then\n"                           \
+                '    echo "** missing +tlrc warp dataset: %s" \n' \
+                '    exit\n'                                      \
+                'endif\n\n' % (afile, afile)
 
         if dowarp or do_extents: cmd = cmd + '# register and warp\n'
 
@@ -1438,13 +1546,173 @@ def db_cmd_volreg(proc, block):
         if rv: return
         cmd += tcmd
 
+    # ---------------
+    # if requested, create any anat followers
+    if should_warp_anat_followers(proc, block):
+        rv, tcmd = warp_anat_followers(proc, block, proc.anat_final)
+        if rv: return
+        if tcmd: cmd += tcmd
+
     # used 3dvolreg, so have these labels
     proc.mot_labs = ['roll', 'pitch', 'yaw', 'dS', 'dL', 'dP']
 
     return cmd
 
-#wcmd = apply_catenated_warps(proc, allinbase, prev_prefix, wprefix,
-#                             dim, all1_input)
+def warp_anat_followers(proc, block, anat_aname, epi_aname=None, prevepi=0):
+   """apply a single catenated warp to all followers, to match that of anat
+
+      - if nothing to do, leave
+      - warps should be listed in reverse order, as A(B(C))
+      - if multiple xforms in anat_warps[] and no NLwarp
+          - concatenate the warps
+      - if NO warps are passed, then use 3dAllineate and
+         '1D: 12@0' for any epi dwarp
+      - create warp string (single warp or combined NLwarp)
+      - for each follower
+          - if dgrid dataset is passed, warp to it (note NN, final_prefix)
+
+      - return status and command string
+   """
+   if len(proc.afollowers) < 1: return 0, None
+
+   if epi_aname == None:
+      if prevepi: epi_aname = BASE.afni_name(proc.prev_prefix_form(1, block))
+      else:       epi_aname = BASE.afni_name(proc.prefix_form(block, 1))
+      epi_aname.new_view(proc.view)
+
+   warps = proc.anat_warps[:]
+   warps.reverse()
+
+   identity_warp = "'1D: 12@0'"
+   nwarps = len(warps)
+
+   # check for any non-linear warp
+   donl = 0
+   for warp in warps:
+      if warp.endswith('qw_WARP.nii'):
+         donl = 1
+         break
+
+   # affine vs NL: program, interp option, warp option, indent
+   tstr = ''
+   if donl:
+      prog    = '3dNwarpApply'
+      iopt    = '-ainterp'
+      sp      = ' ' # indent needs extra space
+      xform   = ''
+      warpstr = '-nwarp %s' % ' '.join(warps)
+
+   else:
+      prog    = '3dAllineate'
+      iopt    = '-final'
+      sp      = ''
+
+      # decide on final 'xform' to apply (identity/single/combined)
+      if   nwarps == 0: xform = identity_warp
+      elif nwarps == 1: xform = warps[0]
+      else: # nwarps > 1, catenate them
+         xall  = ' \\\n           '.join(warps)
+         xform = 'warp.all.anat.aff12.1D'
+
+         tstr = "# catenate all transformations\n" \
+                "cat_matvec -ONELINE \\\n"         \
+                "           %s > %s\n\n" % (xall, xform)
+
+      if xform == identity_warp: warpstr = "-1Dparam_apply %s\\'" % xform
+      else:                      warpstr = '-1Dmatrix_apply %s' % xform
+
+   if donl:                     wtstr = 'non-liner'
+   elif xform == identity_warp: wtstr = 'identity: resample'
+   else:                        wtstr = 'affine'
+   wstr = '# -----------------------------------------\n'  \
+          '# warp anat follower datasets (%s)\n' % wtstr
+
+   if tstr: wstr += '\n%s' % tstr
+
+   # perform any pre-erode
+   efirst = 1
+   for afobj in proc.afollowers:
+       if afobj.erode != 1: continue
+
+       if efirst: # first eroded dataset
+          efirst = 0
+          wstr += '\n# first perform any pre-warp erode operations\n'
+
+       cname = afobj.cname.new(new_pref=(afobj.cname.prefix+'_erode'))
+       wstr += '3dmask_tool -input %s -dilate_input -1 -prefix %s\n' \
+               % (afobj.cname.shortinput(), cname.out_prefix())
+       afobj.cname = cname
+   if not efirst: wstr += '\n# and apply any warp operations\n'
+
+   # process all followers
+   wlist = []
+   for afobj in proc.afollowers:
+      if afobj.is_warped == 1:
+         print '** calling warp_anat_followers multiple times!'
+         return 1, None
+
+      if afobj.dgrid == 'epi':    mname = epi_aname
+      elif afobj.dgrid == 'anat': mname = anat_aname
+      else:                       mname = afobj.cname
+
+      if mname == None:
+         print '** warp anat followers: missing %s grid for input %s' \
+               % (afobj.dgrid, afobj.aname.shortinput())
+         return 1, None
+
+      # rcr - deal with post_erode, final prefix would come later
+
+      if afobj.final_prefix: prefix = afobj.final_prefix
+      else:                  prefix = 'afwarp_%s' % afobj.label
+
+      if afobj.NN: istr = 'NN'
+      else:        istr = 'wsinc5'
+
+      if xform == identity_warp and afobj.dgrid != 'epi': 
+         if proc.verb > 1:
+            print '-- no need to warp anat follower %s' % afobj.aname.prefix
+         proc.roi_dict[afobj.label] = afobj.cname
+         continue # no warp needed
+
+      wstr += '%s -source %s -master %s \\\n' \
+              '%s            %s %s %s\\\n'   \
+              '%s            -prefix %s\n'   \
+              % (prog, afobj.cname.shortinput(), mname.shortinput(),
+                 sp, iopt, istr, warpstr,
+                 sp, prefix)
+
+      # update current name based on master dataset and new prefix
+      afobj.cname = mname.new(new_pref=prefix)
+      afobj.is_warped = 1
+      wlist.append(afobj.aname.prefix)
+
+      # and add this dataset to the ROI regression dictionary
+      proc.roi_dict[afobj.label] = afobj.cname
+
+   if len(wlist) > 0:
+      print '-- applying anat warps to %d dataset(s): %s' \
+            % (len(wlist), ', '.join(wlist))
+
+   wstr += '\n'
+   return 0, wstr
+
+def should_warp_anat_followers(proc, block):
+   if len(proc.afollowers) == 0: return 0
+
+   # volreg gets priority
+   if block.label == 'volreg':   return 1
+   if proc.find_block('volreg'): return 0
+
+   # else align gets priority
+   if block.label == 'align':   return 1
+   if proc.find_block('align'): return 0
+
+   # else postdata is only option
+   if block.label == 'postdata': return 1
+
+   print '** should_warp_anat_followers: in bad block %s' % block.label
+   return 0
+
 def apply_catenated_warps(proc, gridbase, winput, woutput, dim, all1_dset,cstr):
    """generate either 3dAllineate or 3dNwarpApply commands"""
 
@@ -2509,6 +2777,130 @@ def db_cmd_scale(proc, block):
 
     return cmd
 
+def all_erode_labels_used(proc, block):
+    elist, rv = block.opts.get_string_list('-regress_ROI_erode')
+    if elist == None: return 1
+    elist = elist[:]  # copy, to trash later
+
+    ok = 1
+    for label in elist:
+       found = 0
+       for af in proc.afollowers:
+          if label == af.label:
+             found = 1
+             break
+       if not found:
+          print "** ERROR: erode label '%s' not in followers list" % label
+          ok = 0
+
+    return ok
+
+def add_ROI_PC_followers(proc, block):
+    """add any appropriate datasets anat followers
+
+       We cannot check for overlaps between these labels and
+       those set in mask_segment_anat until the cmd_regress(),
+       but as ortvecs, do we really care?
+    """
+
+    elist, rv = block.opts.get_string_list('-regress_ROI_erode')
+
+    # if maskave, prepare to add to -regress_ROI parlist
+    # (maskave extraction is done via -regress_ROI masks)
+    roiparlist = []
+    if block.opts.find_opt('-regress_ROI_maskave'):
+       # then prepare to add to -regress_ROI_PC
+       opt = block.opts.find_opt('-regress_ROI')
+       if not opt: block.opts.add_opt('-regress_ROI', 0, [], setpar=1)
+       opt = block.opts.find_opt('-regress_ROI')
+       roiparlist = opt.parlist
+
+    newlabs = []
+    oname = '-regress_ROI_PC'
+    ROIlist = block.opts.find_all_opts(oname)
+    # option form is LABEL NUM_PCs dataset (check existence?)
+    for roiopt in ROIlist:
+        label = roiopt.parlist[0]
+        numpc = roiopt.parlist[1]
+        dname = roiopt.parlist[2]
+
+        # make sure labels are unique and not datasets
+        if label in newlabs:
+           print "** error: %s label '%s' already used" % (oname, label)
+           return 1
+        badname = BASE.afni_name(label)
+        if badname.exist():
+           print '** ERROR: %s label exists as a dataset, %s' % (oname, label)
+           print "   format: %s LABEL NUM_PCs DATASET" % oname
+           return 1
+        newlabs.append(label)
+
+        # numpc must be a positive integer
+        try: npc = int(numpc)
+        except:
+           print '** error: %s illegal NUM_PCs = %s' % (oname, numpc) 
+           print "   format: %s LABEL NUM_PCs DATASET" % oname
+           return 1
+        if npc <= 0:
+           print '** error: %s illegal NUM_PCs = %s' % (oname, numpc)
+           print "   format: %s LABEL NUM_PCs DATASET" % oname
+           return 1
+
+        ff = proc.add_anat_follower(name=dname, dgrid='epi', label=label,
+                                    NN=1, num_pc=npc)
+        ff.set_var('final_prefix', 'ROI_PC_dset_%s' % label)
+        if label in elist:
+           ff.set_var('erode', 1)
+
+        # just warn if ROI dataset is not found
+        if not ff.aname.exist():
+           print '** warning, do not see %s dataset %s' \
+                 % (oname, ff.aname.rel_input())
+
+    oname = '-regress_ROI_maskave'
+    ROIlist = block.opts.find_all_opts(oname)
+    # option form is LABEL dataset (check existence?)
+    for roiopt in ROIlist:
+        label = roiopt.parlist[0]
+        dname = roiopt.parlist[1]
+
+        # make sure labels are unique and not datasets
+        if label in newlabs:
+           print "** error: %s label '%s' already used" % (oname, label)
+           print "   format: %s LABEL DATASET" % oname
+           return 1
+        badname = BASE.afni_name(label)
+        if badname.exist():
+           print '** ERROR: %s label exists as a dataset, %s' % (oname, label)
+           print "   format: %s LABEL DATASET" % oname
+           return 1
+        newlabs.append(label)
+
+        roiparlist.append(label) # also add label to -regress_ROI parlist
+
+        ff = proc.add_anat_follower(name=dname, dgrid='epi', label=label,
+                                    NN=1, mave=1)
+        ff.set_var('final_prefix', 'ROI_mask_dset_%s' % label)
+        if label in elist:
+           ff.set_var('erode', 1)
+
+        # just warn if ROI dataset is not found
+        if not ff.aname.exist():
+           print '** warning, do not see %s dataset %s' \
+                 % (oname, ff.aname.rel_input())
+
+    # if we have something...
+    if len(proc.afollowers) > 0:
+       if proc.verb > 1:
+          print '-- have %d ROI anat followers' % len(proc.afollowers)
+
+       # rcr - allow for align or nothing
+       if proc.user_opts.find_opt('-volreg_tlrc_adwarp'):
+          print '** rcr - allow regress_ROI_* warp via adwarp'
+          return 1
+
+    return 0
+
 def db_mod_regress(block, proc, user_opts):
     if len(block.opts.olist) == 0: # then init
         block.opts.add_opt('-regress_basis', 1, ['GAM'], setpar=1)
@@ -2537,10 +2929,13 @@ def db_mod_regress(block, proc, user_opts):
 
     errs = 0  # allow errors to accumulate
 
+    apply_uopt_to_block('-regress_motion_file', user_opts, block)
+
     apply_uopt_to_block('-regress_anaticor', user_opts, block)
     apply_uopt_to_block('-regress_anaticor_radius', user_opts, block)
     apply_uopt_to_block('-regress_anaticor_fast', user_opts, block)
     apply_uopt_to_block('-regress_anaticor_fwhm', user_opts, block)
+    apply_uopt_to_block('-regress_anaticor_label', user_opts, block)
     apply_uopt_to_block('-regress_WMeL_corr', user_opts, block)
 
     # check for user updates
@@ -2612,7 +3007,15 @@ def db_mod_regress(block, proc, user_opts):
                   uopt.parlist
             errs += 1
 
+    # --------------------------------------------------
+    # -regress_ROI* options
     apply_uopt_to_block('-regress_ROI', user_opts, block)  # 04 Sept 2012
+    apply_uopt_list_to_block('-regress_ROI_PC', user_opts, block) # 01 Apr 2015
+    apply_uopt_list_to_block('-regress_ROI_maskave', user_opts, block)
+    apply_uopt_to_block('-regress_ROI_erode', user_opts, block)
+
+    # add any appropriate datasets anat followers   01 Apr 2015
+    if add_ROI_PC_followers(proc, block): errs += 1
 
     # times is one file per class
     uopt = user_opts.find_opt('-regress_stim_times')
@@ -3010,6 +3413,8 @@ def db_cmd_regress(proc, block):
                   % opt.parlist[0]
             return
 
+    proc.regress_polort = polort
+
     # ---- allow no stims
     # if len(proc.stims) <= 0:   # be sure we have some stim files
     #    print "** missing stim files (-regress_stim_times/-regress_stim_files)"
@@ -3081,6 +3486,15 @@ def db_cmd_regress(proc, block):
         err, newcmd = db_cmd_regress_ROI(proc, block)
         if err: return
         if newcmd: cmd = cmd + newcmd
+
+    # ----------------------------------------
+    # regress anything from anat_followers.
+    if len(proc.afollowers) > 0:
+        err, newcmd = db_cmd_regress_pc_followers(proc, block)
+        if err: return
+        if newcmd: cmd = cmd + newcmd
+
+    if not all_erode_labels_used(proc, block): return
 
     # ----------------------------------------
     # possibly use a mask
@@ -3235,8 +3649,15 @@ def db_cmd_regress(proc, block):
         else:
             if stim_types[ind] == 'times': st_suf = ''
             else:                          st_suf = '_%s' % stim_types[ind]
-            O3dd.append("    -stim_times%s %d %s '%s'"  % \
-                        (st_suf, ind+1, proc.stims[ind], basis[ind]))
+            # allow for AM2 centering via basis backdoor        30 Apr 2015
+            # rcr - consider adding a more formal option later
+            posn = basis[ind].find(' :')
+            if stim_types[ind] == 'AM2' and posn > 3:
+               bb = basis[ind]
+               bstr = "'%s' %s" % (bb[0:posn], bb[posn+1:])
+            else: bstr = "'%s'" % basis[ind]
+            O3dd.append("    -stim_times%s %d %s %s"  % \
+                        (st_suf, ind+1, proc.stims[ind], bstr))
             # accumulate timing files with TENTs for later error checks
             if basis[ind].find('TENT') >= 0: tent_times.append(proc.stims[ind])
         # and add the label
@@ -3395,7 +3816,8 @@ def db_cmd_regress(proc, block):
     # line with space, backslash, a newline, and possibly another indent,
 
     jstr = ' \\\n%s' % istr
-    c3d  = '# run the regression analysis\n' + feh_str + \
+    c3d  = '# ------------------------------\n'          \
+           '# run the regression analysis\n' + feh_str + \
            jstr.join([s for s in O3dd if s])
     c3d += tpcmd + rcmd + feh_end + '\n\n'
 
@@ -3425,7 +3847,7 @@ def db_cmd_regress(proc, block):
     # check the X-matrix for high pairwise correlations
     opt = block.opts.find_opt('-regress_cormat_warnigns')
     if not opt or OL.opt_is_yes(opt):  # so default to 'yes'
-        rcmd = "# display any large pariwise correlations from the X-matrix\n"\
+        rcmd = "# display any large pairwise correlations from the X-matrix\n"\
                "1d_tool.py -show_cormat_warnings -infile %s"                  \
                " |& tee out.cormat_warn.txt\n\n" % proc.xmat
         cmd = cmd + rcmd
@@ -3480,10 +3902,13 @@ def db_cmd_regress(proc, block):
        epre = '%serrts.$subj.fanaticor' % tmp_prefix
        rset = proc.regress_inset.new(epre)
 
-       lset = rset.new('WMeLocal_rall')
+       roilab,rv = block.opts.get_string_opt('-regress_anaticor_label',
+                                             default='WMe')
+       lset = rset.new('Local_%s_rall'%roilab)
 
        # first set of commands: generate WMeLocal
-       rv, tcmd = db_cmd_regress_anaticor_fast(proc, block, rset, lset)
+       rv, tcmd = db_cmd_regress_anaticor_fast(proc, block, rset, lset,
+                                               roilab=roilab)
        if rv: return
        cmd += tcmd
 
@@ -3493,6 +3918,12 @@ def db_cmd_regress(proc, block):
        if not tpcmd: return
        cmd += tcmd
 
+    # just make sure a label exists
+    roilab,rv = block.opts.get_string_opt('-regress_anaticor_label')
+    if roilab and not rv:
+       if not proc.roi_dict.has_key(roilab):
+          print "** -regress_anaticor_label: missing ROI label: '%s'" % roilab
+          return
 
     # maybe add the 3dRSFC block
     if block.opts.find_opt('-regress_RSFC'):
@@ -3708,12 +4139,12 @@ def db_cmd_regress_gcor(proc, block, errts_pre):
     return cmd
 
 # run 3dTfitter on the xmatrix and any 4-D dataset needed in regression
-def db_cmd_anaticor(proc, block, rset, select='', radius=45):
+def db_cmd_anaticor(proc, block, rset, select='', radius=45, roilab='WMe'):
     """return a string for running 3dTfitter
 
        inputs: 
           volreg datasets       : to compute WMeLocal time series
-          mask_WMe_resam        : same
+          mask_WMe_resam        : same (or other mask based on roilab)
           rset                  : BASE.afni_name for Localstat result
 
        Generate rm.all_runs.volreg, then WMeLocal_rall.
@@ -3722,11 +4153,11 @@ def db_cmd_anaticor(proc, block, rset, select='', radius=45):
     """
 
     volreg_wild = proc.dset_form_wild('volreg')
-    if not proc.roi_dict.has_key('WMe'):
-       print '** ANATICOR needs WMe mask -->\n' \
-             '   (options -mask_segment_anat, -mask_segment_erode)'
+    if not proc.roi_dict.has_key(roilab):
+       print "** ANATICOR missing mask label: '%s' -->\n" \
+             '   (options -mask_segment_anat, -mask_segment_erode)' % roilab
        return 1, ''
-    mset = proc.roi_dict['WMe']
+    mset = proc.roi_dict[roilab]
     vall = 'rm.all_runs.volreg'
     
     cmd = '# catenate volreg dsets in case of censored sub-brick selection\n' \
@@ -3745,12 +4176,12 @@ def db_cmd_anaticor(proc, block, rset, select='', radius=45):
     return 0, cmd
 
 # run 3dTfitter on the xmatrix and any 4-D dataset needed in regression
-def db_cmd_anaticor_fast(proc, block, rset, fwhm=30):
+def db_cmd_anaticor_fast(proc, block, rset, fwhm=30, roilab='WMe'):
     """return a string for running 3dTproject
 
        inputs: 
           volreg datasets       : to compute WMeLocal time series
-          mask_WMe_resam        : same
+          mask_WMe_resam        : same (or mask based on roilab)
           rset                  : BASE.afni_name for result
 
        Generate rm.all_runs.volreg, then WMeLocal_rall.
@@ -3759,11 +4190,12 @@ def db_cmd_anaticor_fast(proc, block, rset, fwhm=30):
     """
 
     volreg_wild = proc.dset_form_wild('volreg')
-    if not proc.roi_dict.has_key('WMe'):
-       print '** ANATICOR needs WMe mask -->\n' \
-             '   (options -mask_segment_anat, -mask_segment_erode)'
+    if not proc.roi_dict.has_key(roilab):
+       print "** fast ANATICOR missing mask label: '%s' -->\n" \
+             '   see options: -mask_segment_anat, -mask_segment_erode' \
+             ' -regress_ROI_*' % roilab
        return 1, ''
-    mset = proc.roi_dict['WMe']
+    mset = proc.roi_dict[roilab]
     vall = 'rm.all_runs.volreg'
     vmask = 'rm.all_runs.volreg.mask'
     
@@ -3779,10 +4211,10 @@ def db_cmd_anaticor_fast(proc, block, rset, fwhm=30):
            '3dmerge -1blur_fwhm %g -doall -prefix %s %s%s\n\n'               \
            % (fwhm, rset.out_prefix(), vmask, proc.view)
 
-    if block.opts.have_yes_opt('-regress_WMeL_corr', default=1):
+    if block.opts.have_yes_opt('-regress_%sL_corr'%roilab, default=1):
       cmd +='# diagnostic volume: voxel correlation with local white matter\n'\
             '3dTcorrelate -prefix %s %s%s %s\n\n'                             \
-            % ('WMeL_corr', vall, proc.view, rset.pv())
+            % ('%sL_corr'%roilab, vall, proc.view, rset.pv())
 
     return 0, cmd
 
@@ -3804,9 +4236,6 @@ def db_cmd_regress_tfitter(proc, block):
        return status (0=success) and command string
     """
 
-    if block.opts.find_opt('-regress_anaticor_fast'):
-       return db_cmd_regress_anaticor_fast(proc, block)
-
     if not block.opts.find_opt('-regress_anaticor'): return 0, ''
 
     if proc.surf_anat:
@@ -3816,7 +4245,9 @@ def db_cmd_regress_tfitter(proc, block):
     rlabel = 'anaticor'
     rset = BASE.afni_name('errts.%s.$subj'%rlabel)
     rset.view = proc.view
-    lset = BASE.afni_name('WMeLocal_rall')
+    roilab, rv = block.opts.get_string_opt('-regress_anaticor_label',
+                                           default='WMe')
+    lset = BASE.afni_name('Local_%s_rall'%roilab)
     lset.view = proc.view
 
     proc.errts_pre = rset.prefix
@@ -3843,7 +4274,8 @@ def db_cmd_regress_tfitter(proc, block):
        proc.errts_cen = 1       # proc.errts_pre has TRs removed
     else: substr = ''
 
-    rv, cs = db_cmd_anaticor(proc, block, lset, select=substr, radius=radius)
+    rv, cs = db_cmd_anaticor(proc, block, lset, select=substr, radius=radius,
+                             roilab=roilab)
     if rv: return 1, ''
     cmd += cs
 
@@ -3852,7 +4284,7 @@ def db_cmd_regress_tfitter(proc, block):
     else: maskstr = ''
 
     cmd += '# use 3dTfitter to perform the original regression,\n'      \
-           '# plus regress out the voxel-wise WMeLocal time series\n'
+           '# plus regress out the voxel-wise %s time series\n' % lset.prefix
 
     fitts = 'fitts.%s.$subj' % rlabel
     cmd += '3dTfitter -polort -1 %s\\\n'                    \
@@ -3870,11 +4302,11 @@ def db_cmd_regress_tfitter(proc, block):
     return 0, cmd
 
 # return anaticor commands, except for final 3dTproject
-def db_cmd_regress_anaticor_fast(proc, block, rset, lset):
+def db_cmd_regress_anaticor_fast(proc, block, rset, lset, roilab='WMe'):
     """return a string for running fast anaticor - generate errts dataset
 
        rset - afni_name of goal dataset
-       lset - afni_name for WMeLocal dataset
+       lset - afni_name for WMeLocal dataset (or from other mask)
 
        return status (0=success) and command string
     """
@@ -3895,7 +4327,7 @@ def db_cmd_regress_anaticor_fast(proc, block, rset, lset):
     cmd = '# --------------------------------------------------\n' \
           '# generate ANATICOR result: %s\n\n' % rset.shortinput()
 
-    rv, cs = db_cmd_anaticor_fast(proc, block, lset, fwhm=fwhm)
+    rv, cs = db_cmd_anaticor_fast(proc, block, lset, fwhm=fwhm, roilab=roilab)
     if rv: return 1, ''
     cmd += cs
 
@@ -4042,6 +4474,7 @@ def db_cmd_tsnr(proc, comment, signal, noise, view,
               istr, suff, vsuff, cstr,
               istr, estr, dname)
 
+    proc.have_rm = 1
     cmd += '%s\n' % feh_end     # add final newline
 
     return cmd
@@ -4234,6 +4667,89 @@ def db_cmd_regress_sfiles2times(proc, block):
 
     return cmd
 
+# from -regress_ROI_PC/maskave
+def db_cmd_regress_pc_followers(proc, block):
+    """regress principle components from follower datasets
+       return an error code (0=success) and command string
+    """
+
+    rois = []
+    for afobj in proc.afollowers:
+       if afobj.num_pc < 1: continue
+       rois.append(afobj.label)
+
+    if len(rois) == 0: return 0, ''
+
+    clist = ['# ------------------------------\n']
+    clist.append('# create ROI PC ort sets: %s\n' % ', '.join(rois))
+
+    # if there is no volreg prefix, get a more recent one
+    vr_prefix = proc.volreg_prefix
+    if not vr_prefix:
+       vblock = get_possible_volreg_block(proc, block)
+       vr_prefix = proc.prefix_form_run(vblock)
+
+    tpre = 'rm.det_pcin'
+    clist.append(                                                \
+       '\n# create a time series dataset to run 3dpc on...\n\n'  \
+       '# detrend, so principle components are not affected\n'   \
+       'foreach run ( $runs )\n'                                 \
+       '    3dDetrend -polort %d -prefix %s_r$run \\\n'          \
+       '              %s%s\n'                                    \
+          'end\n\n' % (proc.regress_polort, tpre, vr_prefix, proc.view) \
+       )
+     
+
+    # will be censor and uncensor
+    if proc.censor_file: c1str = ', prepare to censor TRs'
+    else:                c1str = ''
+ 
+    clist.append('# catenate runs%s\n' % c1str)
+    clist.append('3dTcat -prefix %s_rall %s_r*%s.HEAD\n'%(tpre,tpre,proc.view))
+    tpre += '_rall'
+
+    if proc.censor_file:
+       c1 = '1d_tool.py -infile %s \\\n' \
+            '%22s -show_trs_uncensored encoded' % (proc.censor_file, ' ')
+       clist.append('set ktrs = `%s`\n' % c1)
+       select = '"[$ktrs]"'
+    else: select = ''
+
+    clist.append('\n')
+    pcind = 0
+    for afobj in proc.afollowers:
+       if afobj.num_pc < 1: continue
+       pcind += 1
+
+       # create roi_pc_01_LABEL_00.1D ...
+       pcpref = 'roi_pc_%02d_%s' % (pcind, afobj.label)
+
+       if proc.censor_file: c1str = ' and uncensor (zero-pad)'
+       else:                c1str = ''
+
+       clist.append('# make ROI PCs%s : %s\n'            \
+              '3dpc -mask %s -pcsave %d -prefix %s \\\n' \
+              '     %s%s%s\n'                            \
+              % (c1str, afobj.label, afobj.cname.shortinput(),
+                 afobj.num_pc, pcpref, tpre, proc.view, select))
+       pcname = '%s_vec.1D' % pcpref
+
+       # append pcfiles to orts list
+       # (possibly create censor file, first)
+       if proc.censor_file:
+          newname = '%s_noc.1D' % pcpref
+          clist.append(                                     \
+             '1d_tool.py -censor_fill_parent %s \\\n'       \
+             '    -infile %s -write %s\n'%(proc.censor_file, pcname, newname))
+          pcname = newname
+       
+       proc.regress_orts.append([pcname, 'ROI.PC.%s'%afobj.label])
+       clist.append('\n')
+
+    print '-- have %d PC ROIs to regress: %s' % (len(rois), ', '.join(rois))
+
+    return 0, ''.join(clist)
+
 def db_cmd_regress_ROI(proc, block):
     """remove any regressors of no interest
 
@@ -4275,8 +4791,15 @@ def db_cmd_regress_ROI(proc, block):
         return 1, ''
 
     if len(rois) > 1:
-          cmd = '# create %d ROI regressors: %s\n' % (len(rois),', '.join(rois))
+       cmd = '# ------------------------------\n' \
+             '# create %d ROI regressors: %s\n' % (len(rois),', '.join(rois))
     else: cmd = '# create ROI regressor: %s\n' % rois[0]
+
+    # if there is no volreg prefix, get a more recent one
+    vr_prefix = proc.volreg_prefix
+    if not vr_prefix:
+       vblock = get_possible_volreg_block(proc, block)
+       vr_prefix = proc.prefix_form_run(vblock)
 
     cmd += 'foreach run ( $runs )\n'
     cmd += '    # get each ROI average time series and remove resulting mean\n'
@@ -4289,7 +4812,7 @@ def db_cmd_regress_ROI(proc, block):
         ofile = 'rm.ROI.%s.r$run.1D' % roi
         cmd += '    3dmaskave -quiet -mask %s %s%s \\\n'                   \
                '              | 1d_tool.py -infile - -demean -write %s \n' \
-               % (mset.pv(), proc.volreg_prefix, proc.view, ofile)
+               % (mset.pv(), vr_prefix, proc.view, ofile)
     cmd += 'end\n'
 
     cmd += '# and catenate the demeaned ROI averages across runs\n'
@@ -4300,9 +4823,24 @@ def db_cmd_regress_ROI(proc, block):
         proc.regress_orts.append([rfile, rname])
     cmd += '\n'
 
-    print '++ have %d ROIs to regress: %s' % (len(rois), ', '.join(rois))
+    proc.have_rm = 1
+    print '-- have %d ROIs to regress: %s' % (len(rois), ', '.join(rois))
 
     return 0, cmd
+
+def get_possible_volreg_block(proc, block):
+    """find volreg block, or pre surf/blur/scale/current block
+       require that it is no later than current
+    """
+    rblock = proc.find_block('volreg')
+    if rblock: return rblock
+
+    rblock = proc.find_block('surf')
+    if not rblock: rblock = proc.find_block('blur')
+    if not rblock: rblock = proc.find_block('scale')
+    if not rblock: rblock = block
+
+    return proc.find_block(proc.prev_lab(rblock))
 
 def db_cmd_regress_bandpass(proc, block):
     """apply bandpass filtering in 3dDeconvolve
@@ -4377,6 +4915,14 @@ def db_cmd_regress_motion_stuff(proc, block):
     """
 
     if block.opts.find_opt('-regress_no_motion'): return 0, ''
+    if not proc.find_block('volreg') and \
+       not block.opts.find_opt('-regress_motion_file'):
+         # fail if censoring was requested
+         if block.opts.find_opt('-regress_censor_motion'):
+            print '** error: -regress_censor_motion requires volreg ' \
+                  'block or motion file'
+            return 1, ''
+         return 0, ''
 
     cmd = ''
 
@@ -4613,12 +5159,56 @@ def db_mod_tlrc(block, proc, user_opts):
     apply_uopt_to_block('-tlrc_base', user_opts, block)
     apply_uopt_to_block('-tlrc_opts_at', user_opts, block)
     apply_uopt_to_block('-tlrc_NL_warp', user_opts, block)
+    apply_uopt_to_block('-tlrc_NL_warped_dsets', user_opts, block)
     apply_uopt_to_block('-tlrc_NL_awpy_rm', user_opts, block)
     apply_uopt_to_block('-tlrc_no_ss', user_opts, block)
     apply_uopt_to_block('-tlrc_rmode', user_opts, block)
     apply_uopt_to_block('-tlrc_suffix', user_opts, block)
 
+    if block.opts.find_opt('-tlrc_NL_warped_dsets'):
+       if mod_check_tlrc_NL_warp_dsets(proc, block): return
+
     block.valid = 1
+
+def mod_check_tlrc_NL_warp_dsets(proc, block):
+    """if we are given NL-warped datasets, fill nlw_priors"""
+
+    oname = '-tlrc_NL_warped_dsets'
+    dslist, rv = block.opts.get_string_list(oname)
+    if not dslist:
+       print '** error: failed parsing option %s' % oname
+       return 1
+    if len(dslist) != 3:
+       print '** error: %s requires 3 elements, have %d' % (oname, len(dslist))
+       return 1
+
+    # get and check anat, 1D warp, NL warp
+    aname = BASE.afni_name(dslist[0])
+    if aname.view == '' and aname.type == 'BRIK': aname.new_view('+tlrc')
+    dims = aname.dims()
+    if dims[3] != 1:
+       print '** error in %s p1: tlrc anat should be 1 volume,' % oname
+       print '   but dataset %s shows %d' % (aname.shortinput(), dims[3])
+       return 1
+
+    axname = BASE.afni_name(dslist[1])
+    if axname.type != '1D':
+       print '** error in %s p2: affine xform %s should be 1D' \
+             % (oname, axname.shortinput())
+       return 1
+
+    nlname = BASE.afni_name(dslist[2])
+    if nlname.view == '' and nlname.type == 'BRIK': nlname.new_view('+tlrc')
+    dims = nlname.dims()
+    if dims[3] != 3:
+       print '** error in %s p3: NL warp should be 3 volumes,' % oname
+       print '   but dataset %s shows %d' % (nlname.shortinput(), dims[3])
+       return 1
+
+    # store the afni_names and bolt
+    proc.nlw_priors = [aname, axname, nlname]
+
+    return 0
 
 # create a command to run @auto_tlrc
 def db_cmd_tlrc(proc, block):
@@ -4627,6 +5217,10 @@ def db_cmd_tlrc(proc, block):
     if not proc.anat.pv() :
         print "** missing dataset name for tlrc operation"
         return None
+
+    # if we are given NL-warped datasets, just apply them
+    if block.opts.find_opt('-tlrc_NL_warped_dsets'):
+       return tlrc_cmd_nlwarp_priors(proc, block)
 
     # no longer look to add +orig
 
@@ -4760,6 +5354,9 @@ def tlrc_cmd_nlwarp (proc, block, aset, base, strip=1, suffix='', exopts=[]):
     proc.nlw_aff_mat = 'anat.%saff.Xat.1D' % uxstr
     proc.nlw_NL_mat = 'anat.%saff.qw_WARP.nii' % uxstr
 
+    proc.anat_warps.append(proc.nlw_aff_mat)
+    proc.anat_warps.append(proc.nlw_NL_mat)
+
     pstr = '# move results up out of the awpy directory\n'  \
            '# (NL-warped anat, affine warp, NL warp)\n'     \
            '# (use typical standard space name for anat)\n' \
@@ -4775,6 +5372,40 @@ def tlrc_cmd_nlwarp (proc, block, aset, base, strip=1, suffix='', exopts=[]):
        proc.rm_list.append('awpy') ; proc.rm_dirs = 1
 
     return cmd + pstr
+
+def tlrc_cmd_nlwarp_priors(proc, block):
+    """NL warping has already been done,
+       just note datasets as if there were made here
+
+       set tlrcanat, nlw_aff_mat, nlw_NL_mat
+       append the warps
+    """
+
+    if len(proc.nlw_priors) != 3: return ''
+
+    print '-- importing NL-warp datasets'
+
+    p0 = proc.nlw_priors[0]
+    p1 = proc.nlw_priors[1]
+    p2 = proc.nlw_priors[2]
+
+    cmd = "# %s\n" % block_header('tlrc')
+    cmd += '\n'                                                         \
+           '# nothing to do: have external -tlrc_NL_warped_dsets\n\n'   \
+           '# warped anat     : %s\n'                                   \
+           '# affine xform    : %s\n'                                   \
+           '# non-linear warp : %s\n\n'                                 \
+           % (p0.shortinput(), p1.shortinput(), p2.shortinput())
+
+    proc.tlrcanat = p0
+
+    proc.nlw_aff_mat = p1.shortinput()
+    proc.nlw_NL_mat  = p2.shortinput()
+
+    proc.anat_warps.append(proc.nlw_aff_mat)
+    proc.anat_warps.append(proc.nlw_NL_mat)
+
+    return cmd
 
 def tlrc_cmd_warp(proc, aset, base, strip=1, rmode='', suffix='', exopts=[]):
     """return block string for case of @auto_tlrc
@@ -4822,6 +5453,12 @@ def tlrc_cmd_warp(proc, aset, base, strip=1, rmode='', suffix='', exopts=[]):
            "%s"                                         \
            "\n\n"                                       \
            % (base, aset.pv(), sstr, rstr, sufstr, exstr)
+
+    # create xform file
+    wfile = 'warp.anat.Xat.1D'
+    cmd += '# store forward transformation matrix in a text file\n' \
+           'cat_matvec %s::WARP_DATA -I > %s\n\n' % (proc.tlrcanat.pv(),wfile)
+    proc.anat_warps.append(wfile)
 
     return cmd
 
@@ -5382,6 +6019,7 @@ g_help_string = """
                         -dsets sb23/epi_r??+orig.HEAD           \\
                         -blocks despike ricor tshift align tlrc \\
                                 volreg blur mask regress        \\
+                        -copy_anat sb23/sb23_mpra+orig          \\
                         -tcat_remove_first_trs 3                \\
                         -ricor_regs_nfirst 3                    \\
                         -ricor_regs sb23/RICOR/r*.slibase.1D    \\
@@ -6966,6 +7604,7 @@ g_help_string = """
         -tcat_remove_first_trs NUM : specify how many TRs to remove from runs
 
                 e.g. -tcat_remove_first_trs 3
+                e.g. -tcat_remove_first_trs 3 1 0 0 3
                 default: 0
 
             Since it takes several seconds for the magnetization to reach a
@@ -6973,6 +7612,9 @@ g_help_string = """
             each run may have values that are significantly greater than the
             later ones.  This option is used to specify how many TRs to
             remove from the beginning of every run.
+
+            If the number needs to vary across runs, then one number should
+            be specified per run.
 
         -tcat_remove_last_trs NUM : specify TRs to remove from run ends
 
@@ -7213,6 +7855,18 @@ g_help_string = """
 
             Please see 'auto_warp.py -help' for more information.
             See also -tlrc_opts_at, -anat_uniform_method.
+
+        -tlrc_NL_warped_dsets ANAT WARP.1D NL_WARP: import auto_warp.py output
+
+                e.g. -tlrc_NL_warped_dsets anat.nii           \\
+                                           anat.un.aff.Xat.1D \\
+                                           anat.un.aff.qw_WARP.nii 
+
+            If the user has already run auto_warp.py on the subject anatomy
+            to transform (non-linear) to standard space, those datasets can
+            be input to save re-processing time.
+
+            In such a case, the 'tlrc' block will be empty of actions.
 
         -tlrc_NL_awpy_rm Y/N    : specify whether to remove awpy directory
 
@@ -7971,6 +8625,26 @@ g_help_string = """
             Please see "@ANATICOR -help" for more detail, including the paper
             reference for the method.
             See also -mask_segment_anat, -mask_segment_erode, -regress_3dD_stop.
+
+        -regress_anaticor_label LABEL : specify LABEL for ANATICOR ROI
+
+            To go with either -regress_anaticor or -regress_anaticor_fast,
+            this option is used the specifiy an alternate label of an ROI
+            mask to be used in the ANATICOR step.  The default LABEL is WMe
+            (eroded white matter from 3dSeg).
+
+            When this option is included, it is up to the user to make sure
+            afni_proc.py has such a lable, either by including options:
+                -mask_segment_anat, and possibly -mask_segment_erode
+            or options:
+                -regress_ROI_PC or -regress_ROI_maskave
+            or:
+                -anat_follower_ROI
+
+            Any known label made via those options may be used.
+
+            See also -mask_segment_anat, -mask_segment_erode, -regress_ROI_PC,
+                -regress_ROI_maskave, -anat_follower_ROI.
 
         -regress_anaticor_radius RADIUS : specify RADIUS for 3dLocalstat
 
@@ -8778,7 +9452,85 @@ g_help_string = """
             Note: use of any non-brain cases requires -mask_segment_anat.
 
             See also -mask_segment_anat.
-            Please see '3dSeg -help' for motion information on the masks.
+            Please see '3dSeg -help' for more information on the masks.
+
+        -regress_ROI_erode LABEL LABEL ...: erode masks for given labels
+
+                e.g. -regress_ROI_erode WMe
+
+            Perform a single erosion step on the mask dataset for the given
+            label.  This is done on the input ROI (anatomical?) grid.
+
+            The erosion step is applied before any transformation, and uses the
+            18-neighbor approach (6 face and 12 edge neighbors, not 8 corner
+            neighbors) in 3dmask_tool.
+
+            See also -regress_ROI_PC, -regress_ROI_maskave.
+            Please see '3dmask_tool -help' for more information on eroding.
+
+        -regress_ROI_maskave LABEL MASK : regress out average masked signal
+
+                e.g. -regress_ROI_maskave WMe WMe+orig
+
+            Regress the average EPI volreg value over the MASK.
+
+            This follows the same method as for -regress_ROI_PC below, except
+            that step 3 (extraction of PCs) is replaced with a simple 3dmaskave
+            result across all runs.  Detrending and censoring are not needed
+            for the maskave case, as they are handled in the regression.
+
+          * The given MASK must be in register with the anatomical dataset,
+            though is does not necessarily need to be on the anatomical grid.
+
+            See also -regress_ROI_PC, -regress_ROI_erode, -regress_ROI.
+
+        -regress_ROI_PC LABEL NUM_PC MASK : regress out PCs within mask
+
+                e.g. -regress_ROI_PC ventricles 3 LatVent+orig
+
+            Add the top principle components (PCs) over an anatomical mask as
+            regressors of no interest.  
+
+              - LABEL   : the class label given to this set of regressors
+              - NUM_PC  : the number of principle components to include
+              - MASK    : the mask over which PCs will be computed
+                          (this must be in alignment with the input anatomy)
+
+            Method:
+              1. erode the input MASK, if requested via -regress_ROI_erode
+              2. apply all anatomical transformations to the MASK
+                 a. catenate all anatomical transformations
+                    i.   anat to EPI?
+                    ii.  affine xform of anat to template?
+                    iii. subsequent non-linear xform of anat to template?
+                 b. sample the transformed mask on the EPI grid
+                 c. use nearest neighbor interpolation, NN
+              3. extract the top NUM_PC principle components from the volume
+                 registered EPI data, over the mask
+                 a. detrend the volume registered EPI data at the polort level
+                    to be used in the regression, per run
+                 b. catenate the detrended volreg data across runs
+                 c. compute the top PCs from the (censored?) time series
+                 d. if censoring, zero-fill the time series with volumes of
+                    zeros at the censored TRs, to maintain TR correspondence
+              4. include those PCs as regressors of no interest
+                 a. apply with: 3dDeconvolve -ortvec PCs LABEL
+
+            Typical usage might start with the FreeSurfer parcellation of the
+            subject's anatomical dataset, followed by ROI extraction using 
+            3dcalc (to make a new dataset of just the desired regions).  Then
+            choose the number of components to extract and a label.
+
+            That ROI dataset, PC count and label are then applied with this
+            option.
+
+          * The given MASK must be in register with the anatomical dataset,
+            though is does not necessarily need to be on the anatomical grid.
+
+          * This differs from -regress_ROI in that these are external ROIs,
+            while -regress_ROI will create ROIs in the proc script using 3dSeg.
+
+            See also -regress_ROI_maskave, -regress_ROI_erode, -regress_ROI.
 
         -regress_RSFC           : perform bandpassing via 3dRSFC
 

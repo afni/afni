@@ -10,6 +10,7 @@ except: pass
 import option_list as OPT
 import afni_util as UTIL
 import lib_subjects as SUBJ
+import lib_vars_object as VO
 import lib_surf_clustsim as CLUST
 
 # ----------------------------------------------------------------------
@@ -220,8 +221,8 @@ class MyInterface:
       # ------------------------------------------------------------
       # init subject options struct
 
-      self.cvars = SUBJ.VarsObject('control vars from command line')
-      self.uvars = SUBJ.VarsObject('user vars from command line')
+      self.cvars = VO.VarsObject('control vars from command line')
+      self.uvars = VO.VarsObject('user vars from command line')
 
       val, err = uopts.get_type_opt(int, '-verb')
       if val != None and not err: self.verb = val

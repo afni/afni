@@ -410,7 +410,7 @@ with dashed ellipsoids (ell) for ease of finding.
       
    Volumes by default are viewed as slices, and in grayscale, so we
    mostly see the FA map and not the PAIRMAP of tract results nor the
-   target ROI map.  The dset is represented as a graph, showing the
+   target ROI map. That default can be changed via environment variable :ref:`SUMA_VO_InitSlices<SUMA_VO_InitSlices>` in your :term:`.sumarc` file. If you have a volume rendered in 3D at this stage, turn that off with the :ref:`v<VolCont->VR->Ns->v>` button. The dset is represented as a graph, showing the
    centers-of-mass of the target ROIs with yellow spheres, and the
    locations of tractographic bundles on lines, colored by a matrix
    property in the dset.
@@ -457,10 +457,9 @@ with dashed ellipsoids (ell) for ease of finding.
    Firstly, turn *off* the slice viewing, by unchecking the slice
    viewers, if they currently are highlighted (green ell.).  Then,
    turn *on* the surface viewing for the volume, by highlighting the
-   'v' in the "Volume Rendering Controls" (blue ell). Additionally, in
+   :ref:`'v'<VolCont->VR->Ns->v>` in the "Volume Rendering Controls" (blue ell). Additionally, in
    this same part of the panel, you can adjust the density of surface
-   rendering points, by changing the number in the 'Ns' box; a lot of
-   times, I make it '300', instead of the default '150'.
+   rendering points, by changing the number in the 'Ns' box; this parameter is now set to the maximum number of slices in the volume. Increasing the number beyond this value does not help much, decreasing the number speeds up the rendering at the cost of more artifacts.
 
 #. What you should see now is a big, gray mass of tract volume, as in
    the SUMA Viewer window here:
@@ -566,7 +565,7 @@ with dashed ellipsoids (ell) for ease of finding.
    |
 
 #. And that's pretty much that!  You can view the results from
-   different angles:
+   different angles, and note that you can select voxels rendered in 3D much like you can select voxels on slices, tracts, etc.: 
 
    +----------------------------------------------------------------------------------+----------------------------------------------------------------------------------+
    |.. figure:: media/FAT_VIEWING_ROIS/Screen_Shot_2015-02-01_at_9.20.40_AM.png       |.. figure:: media/FAT_VIEWING_ROIS/Screen_Shot_2015-02-01_at_9.22.18_AM.png       |
@@ -984,7 +983,7 @@ Quick Tour
 
        .. image:: media/blank.jpg
 
-   Note that as with all AFNI datasets, you can have multiple :term:`sub-bricks`, here matrices of course. You can navigate between them using the sub-brick selectors (:ref:`I<GraphCont->GDset_Mapping->I>`, :ref:`T<GraphCont->GDset_Mapping->T>`,:ref:`B<GraphCont->GDset_Mapping->B>`) on the right side of the controller.
+   Note that as with all AFNI datasets, you can have multiple :term:`sub-bricks`, here matrices of course. You can navigate between them using the sub-brick selectors (:ref:`I<GraphCont->GDset_Mapping->I>`, :ref:`T<GraphCont->GDset_Mapping->T>`, :ref:`B<GraphCont->GDset_Mapping->B>`) on the right side of the controller.
 
    So far, no thresholding was applied, so go ahead and try it out.
    
@@ -995,7 +994,31 @@ Displayable Objects
 
    .. todo::
 
-      Show directions for example, show surface based normals, explain how you can hide some, etc. Link to other demos
+      Show directions for example, show surface based normals, explain how you can hide some, etc. Link to other demos. For now, see the following for some inspiration: 
+         1. Interactive loading of displayable objects: :ref:`Ctrl+Alt+s<LC_Ctrl+Alt+s>`
+         
+         2. Demo script illustrating variety of DOs: :ref:`@DO.examples<@DO.examples>`
+         
+      .. figure:: media/DO.examples.jpg
+         :align: center
+         :name: media/DO.examples.jpg
+         :figwidth: 50%
+         :target: ../_images/DO.examples.jpg
+
+         :ref:`Output of script @DO.examples<media/DO.examples.jpg>` showing text, textures and geometric objects displayed simultaneously.
+         
+      ..
+         
+         2. This AFNI message board `posting <http://afni.nimh.nih.gov/afni/community/board/read.php?1,146351,146380#msg-146380>`_  explaining how to show principal orientations in a volume.
+         
+      .. figure:: media/directions.jpg
+         :align: center
+         :name: media/directions.jpg
+         
+         :ref:`Display of voxelwise diffusion directions<media/directions.jpg>`
+      ..
+      
+          
 
 .. _ECOG_Grid_Viewing:
 
@@ -1004,13 +1027,15 @@ ECOG Grid Viewing
 
    .. todo::
 
-      Show example of grid viewing.
+      Show example of grid viewing. Until that is done, take a look at script :ref:`@ElectroGrid<@ElectroGrid>`
 
      
 .. _ Mouse+Keyboard:
 
 Mouse & Keyboard
 ================
+
+   This section includes help for mouse (pointer) and keyboard driven interactions with SUMA.
 
 .. include:: auto_inc/Mouse_Keyb_help.inc
 

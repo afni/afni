@@ -244,6 +244,11 @@ examples (very basic for now):
          1d_tool.py -infile sum.ideal.1D -censor_fill_parent X.xmat.1D \\
                     -write sum.ideal.uncensored.1D
 
+       c. if censor information needs to come from a simple 1D time series
+
+         1d_tool.py -censor_fill_parent motion_FT_censor.1D \\
+                    -infile cdata.1D -write cdata.zeropad.1D
+
   Example 13. Show whether the input file is valid as a numeric data file.
 
        a. as any generic 1D file
@@ -982,9 +987,11 @@ g_history = """
    1.21 Dec 30, 2013 - skip polort against polort in -show_cormat_warnings
    1.22 Apr 10, 2014 - added -index_to_run_tr
    1.23 Jan 20, 2015 - added -show_trs_to_zero
+   1.24 Mar 31, 2015 - allow -censor_fill_parent with simple 1D files
+   1.25 Apr  1, 2015 - expand simple -censor_fill_parent for 2-D files
 """
 
-g_version = "1d_tool.py version 1.23, January 20, 2015"
+g_version = "1d_tool.py version 1.25, April 1, 2015"
 
 
 class A1DInterface:

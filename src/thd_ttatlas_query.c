@@ -9511,25 +9511,34 @@ int whereami_browser(char *url)
 {
    char cmd[2345] ;
    static int icall=0;
-   
-   if (!GLOBAL_browser && !icall) {
-      if (!(GLOBAL_browser = GetAfniWebBrowser())) {
-         ERROR_message("Have no browser set. "
-           "Specify one by adding the environment variable AFNI_WEB_BROWSER to\n"
-           "your ~/.afnirc. For example:  AFNI_WEB_BROWSER firefox\n"
-           "On a MAC you can also do: AFNI_WEB_BROWSER open\n"); 
-      }
-      icall = 1;
-   }
-   if (!GLOBAL_browser) return(0);
 
-   sprintf(cmd ,
-          "%s '%s' &" ,
-          GLOBAL_browser, url ) ;
-   if(wami_verb())
-      printf("system command to send to browser is:\n%s\n",cmd);
-   
-   return(system(cmd));
+   if( (url==NULL) || (strlen(url)==0)) return(-1);
+
+   /* open a webpage using selenium webdriver */
+   if( afni_uses_selenium() ) {
+      selenium_open_webpage(url);
+      return(0);
+   }
+   else{  /* open a webpage with regular system browser call */
+      if (!GLOBAL_browser && !icall) {
+         if (!(GLOBAL_browser = GetAfniWebBrowser())) {
+            ERROR_message("Have no browser set. "
+              "Specify one by adding the environment variable AFNI_WEB_BROWSER to\n"
+              "your ~/.afnirc. For example:  AFNI_WEB_BROWSER firefox\n"
+              "On a MAC you can also do: AFNI_WEB_BROWSER open\n"); 
+         }
+         icall = 1;
+      }
+      if (!GLOBAL_browser) return(0);
+
+      sprintf(cmd ,
+             "%s '%s' &" ,
+             GLOBAL_browser, url ) ;
+      if(wami_verb())
+         printf("system command to send to browser is:\n%s\n",cmd);
+
+      return(system(cmd));
+  }
 }
 
 /* return copy of input url with special characters escaped */

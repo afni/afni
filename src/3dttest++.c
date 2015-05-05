@@ -703,7 +703,7 @@ void display_help_menu(void)
       "                  covariate values -- for that, you'd have to relapse to scripting.\n"
       "              ++ EXAMPLE:\n"
       "                  Each input dataset (meg*.nii) has 100 time points; the 'X'\n"
-      "                  datasets are for one test condition and the 'Y' dataset are\n"
+      "                  datasets are for one test condition and the 'Y' datasets are\n"
       "                  for another. In this example, the subjects are the same in\n"
       "                  both conditions, so the '-paired' option makes sense.\n"
       "                    3dttest++ -brickwise -prefix megXY.nii -no1sam -paired\\\n"
@@ -946,25 +946,81 @@ void display_help_menu(void)
       "(3) sigma^2 is as usual estimated by s^2 = sum[ (z_i - mean(z))^2 ] / (N-m-1)\n"
       "    where N = number of datasets in setB and m = number of covariates.\n"
       "    Under the usual assumptions, s^2 is distributed like a random variable\n"
-      "    ( sigma^2 / (N-m) ) * ChiSquared(N-m).\n"
+      "    ( sigma^2 / (N-m-1) ) * ChiSquared(N-m-1).\n"
       "\n"
       "(4) Consider the test statistic\n"
       "      tau = y0 / sqrt(s^2)\n"
       "    Under the null hypothesis, this has the distribution of a random variable\n"
-      "      Normal(0,1 + [c]'[Xi][c]) / sqrt( ChiSquared(N-m)/(N-m) )\n"
+      "      Normal(0,1 + [c]'[Xi][c]) / sqrt( ChiSquared(N-m-1)/(N-m-1) )\n"
       "    So tau is not quite t-distributed, but dividing out the scale factor works:\n"
       "      t = y0 / sqrt( s^2 * (1 + [c]'[Xi][c]) )\n"
-      "    and under the null hypothesis, this value t has a Student(N-m) distribution.\n"
-      "    Again, note that in the case of no covariates, [c]'[Xi][c] = 1/N.\n"
+      "    and under the null hypothesis, this value t has a Student(N-m-1) distribution.\n"
+      "    Again, note that in the case of no covariates, [c]'[Xi][c] = 1/N, so that\n"
+      "      t = y / sqrt( s^2 * (1+1/N) )\n"
+      "    If we were testing against a constant y, rather than y itself being random,\n"
+      "    we'd have\n"
+      "      t_con = y / sqrt( s^2 / (N-1) )\n"
+      "    which shows that the t statistic for the '-singletonA' test will usually be\n"
+      "    much smaller than the t statistic for the 'test against constant' case --\n"
+      "    because we have to allow for the variance of the singleton dataset value y.\n"
+      "\n"
+      "Please note that the singleton dataset is assumed to be statistically\n"
+      "independent of the reference datasets -- if you put the singleton dataset\n"
+      "into the reference collection, then you are violating this assumption --\n"
+      "a different statistic would have to be computed.\n"
       "\n"
       "A test script that simulates random values and covariates has verified the\n"
       "distribution of the results in both the null hypothesis (yoff == 0) case and the\n"
-      "alternative hypothesis (yoff !=0 ) case -- where the value t now takes on the\n"
+      "alternative hypothesis (yoff !=0) case -- where the value t now takes on the\n"
       "non-central Student distribution.\n"
       "\n"
-
+      "Below is a sketch of how a covariate might be useful in singleton tests:\n"
+      " * the 'z' labels are voxel values from setB\n"
+      " * the 'y' label is the voxel value from singletonA\n"
+      " * y is not markedly different from some of the z values\n"
+      " * but for the singleton subject's age, y IS very different\n"
+      " * a test WITHOUT the age covariate would not give a large t-statistic for y\n"
+      " * a test WITH the age covariate will show a larger t-statistic for y\n"
+      "              --------------------------------\n"
+      "            D |                   z          |\n"
+      "            a |                      z       |\n"
+      "            t |              z  z  z   z     |\n"
+      "            a |            z z z  z          |\n"
+      "              |          z z  z  z  z        |\n"
+      "            v |        z z   z  z z          |\n"
+      "            a |       z z   z z z            |\n"
+      "            l |    z  z   z   z              |\n"
+      "            u |   z    z   z           y     |\n"
+      "            e |      z  z                    |\n"
+      "              |                              |\n"
+      "              |                              |\n"
+      "              |                              |\n"
+      "              --------------------------------\n"
+      "                     Subject age\n"
+      "\n"
+      "After linear regression removes the covariate effect (values at smaller\n"
+      "ages are increased and values at larger ages are decreased), the cartoon\n"
+      "graph would look something like this, where the modified y value is\n"
+      "now clearly far away from the cluster of z values:\n"
+      "              --------------------------------\n"
+      "          R D |                              |\n"
+      "          e a |                              |\n"
+      "          g t |    z       z z               |\n"
+      "          r a |   z   zz z z z  z z          |\n"
+      "          e   |       z  z    zz             |\n"
+      "          s v |      z  z    z     z z       |\n"
+      "          s a |        z  z z z zzz    z     |\n"
+      "          e l |            z  z z            |\n"
+      "          d u |         z         z z        |\n"
+      "            e |                              |\n"
+      "              |                              |\n"
+      "              |                              |\n"
+      "              |                        y     |\n"
+      "              --------------------------------\n"
+      "                     Subject age\n"
+      "\n"
       "---------------------\n"
-      "A NOTE ABOUT p-VALUES (everyone's favorite subject)\n"
+      "A NOTE ABOUT p-VALUES (everyone's favorite subject :-)\n"
       "---------------------\n"
       "\n"
       "The 2-sided p-value of a t-statistic value T is the likelihood (probability)\n"
@@ -1153,7 +1209,10 @@ int main( int argc , char *argv[] )
    PUTENV("AFNI_GLOB_SELECTORS","YES") ;  /* 19 Jun 2012 */
 
    nopt = 1 ;
+   debug = AFNI_yesenv("AFNI_DEBUG") ;
    while( nopt < argc ){
+
+     if( debug ) INFO_message("=== argv[%d] = %s",nopt,argv[nopt]) ;
 
      /*----- brickwise [28 Jan 2014] -----*/
 
@@ -1633,7 +1692,7 @@ int main( int argc , char *argv[] )
 
      /*----- bad user, bad bad bad -----*/
 
-     ERROR_exit("3dttest++: don't recognize option '%s'",argv[nopt]) ;
+     ERROR_exit("3dttest++: don't recognize option '%s' (argv[%d])",argv[nopt],nopt) ;
 
    }  /*-------------------- end of option parsing --------------------*/
 
@@ -2084,6 +2143,7 @@ int main( int argc , char *argv[] )
    stnam = (toz) ? "Zscr" : "Tstat" ;    /* name of statistic */
 
    if( singletonA ){  /* special case [20 Mar 2015] */
+     bbase = ss = bb = 0 ;
      if( do_means ) MEAN_LABEL_2SAM(snam_PPP,snam_MMM,"diff") ;
      if( do_tests ) TEST_LABEL_2SAM_MEAN(snam_PPP,snam_MMM) ;
      goto LABELS_ARE_DONE ;
