@@ -4139,11 +4139,6 @@ SUMA_CommonFields * SUMA_Create_CommonFields ()
    cf->X->AllMaskCont = NULL;
    cf->X->MaskStateID = 0;
    cf->X->DPY_controller1 = NULL;
-   memset(&(cf->X->App), 0, sizeof(XtAppContext)); /* a futile effort 
-                  to get rid of Conditional jump or move messages from
-                  valgrind... Problem may be in XtOpenApplication which
-                  returns App, perhaps poorly initialized*/
-   
    cf->X->Cr = (SUMA_GLCONTEXT_RECORD *)calloc(1, sizeof(SUMA_GLCONTEXT_RECORD));
    cf->X->Cr->last_context_DPY = NULL;
    cf->X->Cr->last_context_WDW = -1;

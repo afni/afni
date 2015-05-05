@@ -14,6 +14,7 @@ void MCW_htmlwin_alter( MCW_htmlwin *hw, char *mmm ){ return ; }
 
 XmImageConfig *_xmimage_cfg = NULL ;
 
+
 static void MCW_htmlwinkill_CB( Widget , XtPointer , XtPointer ) ;
 static void MCW_htmlwin_CB    ( Widget , XtPointer , XtPointer ) ;
 
@@ -58,20 +59,24 @@ ENTRY("anchorCB") ;
     case ANCHOR_HTTP:{                               /* external http links */
       static char *webb=NULL ; static int first=1 ;
       if( first == 1 ){ webb = GetAfniWebBrowser() ; first = 2 ; }
-      if( webb != NULL ){
-        char *cmd = (char *)malloc( strlen(webb) + strlen(cbs->href) + 32 ) ;
-        sprintf( cmd , "%s '%s' &" , webb , cbs->href ) ;
-        system( cmd ) ; free( cmd ) ;
-      } else if( first == 2 ){
-          INFO_message("No command line Web browser program found in your path.") ;
-        ININFO_message("Set environment variable AFNI_WEB_BROWSER to the full"  ) ;
-        ININFO_message("pathname of a browser than can be started from the Unix") ;
-        ININFO_message("command line -- e.g., '/usr/local/bin/mozilla'"         ) ;
-        first = 0 ;
+      if( afni_uses_selenium() ) {
+         selenium_open_webpage(cbs->href);
+      }
+      else{
+         if( webb != NULL ){
+           char *cmd = (char *)malloc( strlen(webb) + strlen(cbs->href) + 32 ) ;
+           sprintf( cmd , "%s '%s' &" , webb , cbs->href ) ;
+           system( cmd ) ; free( cmd ) ;
+         } else if( first == 2 ){
+             INFO_message("No command line Web browser program found in your path.") ;
+           ININFO_message("Set environment variable AFNI_WEB_BROWSER to the full"  ) ;
+           ININFO_message("pathname of a browser than can be started from the Unix") ;
+           ININFO_message("command line -- e.g., '/usr/local/bin/mozilla'"         ) ;
+           first = 0 ;
+         }
       }
     }
     break ;
-
   }
 
   EXRETURN ;

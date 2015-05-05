@@ -20,7 +20,7 @@ DOCS     = ../doc/ps/*.ps ../doc/README/README*                    \
            AFNI.changes.dglen
 MINDOCS  = rickr/AFNI.changes.rickr AFNI.changes.dglen
 
-IMOBJS  = display.o imseq.o bbox.o xim.o xutil.o LiteClue.o thd_xwebber.o
+IMOBJS  = display.o imseq.o bbox.o xim.o xutil.o LiteClue.o thd_xwebber.o 
 
 AFOBJS  = afni.o afni_func.o afni_widg.o afni_warp.o afni_fimmer.o \
             afni_slice_short.o afni_slice_float.o afni_filer.o     \
@@ -83,7 +83,7 @@ PROGRAMS = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge count   
            nifti_tool 3dAllineate nifti1_test whereami plugout_drive 3dLSS      \
            3dMedianFilter 3dretroicor 3dAFNItoNIML 3dAFNItoRaw im2niml 3dedge3  \
            DTIStudioFibertoSegments Dimon1 Dimon 3dLocalstat 3danisosmooth      \
-           3dmaxima    \
+           3dmaxima GLTsymtest                                                  \
            3dTwotoComplex 3dInvFMRI 3dmatcalc 3dAcost 3dLocalBistat 3dFWHMx     \
            3dBlurToFWHM 1dSEM 3dDFT 3dSynthesize 1dMarry 3dEmpty 3dsvm          \
            1dFlagMotion 3dTsort 1dTsort 3dTfitter afni_history 1dUpsample       \
@@ -133,7 +133,7 @@ PROGRAMS_NOPLUG = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge  
                   apsearch 3dNormalityTest 3dmask_tool 2perm 3dClustCount           \
                   3dUnifize 3dNwarpCat 3dQwarp 3dLocalHistog 3dNwarpAdjust 3dTRfix  \
                   3dNwarpFuncs 3dTproject  afni_open   3dConformist 3dNwarpXYZ      \
-                  3dToyProg     \
+                  3dToyProg    \
                   $(EXTRAS)
 
 # For CYGWIN (look for "exe" to find various places below)
@@ -168,7 +168,7 @@ PROGRAMS_EXE = afni.exe to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge 
                1dFlagMotion 3dTsort 1dTsort 3dTfitter afni_history 1dUpsample     \
                3dTcorrMap 3dABoverlap 3dRank 3dFFT 3dTcorr1D 3dClustSim 3dTRfix   \
                3dRetinoPhase 3dMaskToASCII 3dttest++ 3dDTtoDWI niccc 3dXYZcat     \
-               column_cat 
+               column_cat GLTsymtest
 
 SCRIPTS = @4Daverage @CommandGlobb @GetAfniOrient @DTI_studio_reposition          \
           @GetAfniPrefix @NoExt @UpdateAfni @RenamePanga @2dwarper                \
@@ -1153,6 +1153,10 @@ adwarp:adwarp.o
 	$(RM) $@
 	$(CC) -o adwarp adwarp.o $(LFLAGS) $(LLIBS)
 
+GLTsymtest:GLTsymtest.o
+	$(RM) $@
+	$(CC) -o GLTsymtest GLTsymtest.o $(LFLAGS) $(LLIBS)
+
 2dImReg:2dImReg.o
 	$(RM) $@
 	$(CC) -o 2dImReg 2dImReg.o $(LFLAGS) $(LLIBS)
@@ -1505,7 +1509,7 @@ afni_version.o:afni_version.c
 
 afni:$(AFOBJS) libcoxplot.a libmri.a libmrix.a libvolpack.a libjpeg.a libXmHTML.a volpack.h coxplot.h niml.h
 	$(RM) $@
-	$(CC) -o afni $(AFOBJS) $(PLFLAGS) -lmrix -lcoxplot -lmri -lvolpack libXmHTML.a libjpeg.a $(LLIBS) -lm -lc
+	$(CC) -o afni $(AFOBJS) $(PLFLAGS) -lmrix -lcoxplot -lmri -lvolpack libXmHTML.a libjpeg.a $(LLIBS) -lm -lc 
 
 afni+:$(AFOBJS) libcoxplot.a libmri.a libmrix.a coxplot.h niml.h
 	$(RM) $@
@@ -2217,13 +2221,13 @@ MISC_OBJS  = afni_suma.o vol2surf.o nifti1_io.o znzlib.o list_struct.o  \
 	     nifti_statlib.o nifticdf.o r_new_resam_dset.o r_idisp.o    \
 	     r_misc.o matrix.o gifti_choice.o misc_math.o
 
-libmri.a:$(NIML_OBJS) $(MRI_OBJS) $(THD_OBJS)                \
+libmri.a:$(NIML_OBJS) $(MRI_OBJS) $(THD_OBJS) thd_selenium.o   \
          $(EDT_OBJS)  $(CS_OBJS)  $(EIS_OBJS) $(NETCDF_OBJS) \
          $(SUMA_OBJS) $(MISC_OBJS) niml.h mrilib.h Aomp.h 3ddata.h $(SOMEAFOBJS)
 	$(RM) $@
 	$(AR) q libmri.a $(MRI_OBJS) $(THD_OBJS) $(EDT_OBJS)        \
 		$(NIML_OBJS) $(CS_OBJS) $(EIS_OBJS) $(NETCDF_OBJS)  \
-		$(SUMA_OBJS) $(MISC_OBJS) $(SOMEAFOBJS)
+		$(SUMA_OBJS) $(MISC_OBJS) $(SOMEAFOBJS) thd_selenium.o
 	$(RANLIB) libmri.a
 
 libmrix.so:$(IMOBJS) imseq.h display.h xim.h bbox.h xutil.h
@@ -2527,27 +2531,27 @@ file_tool: ge4_header.o rickr/file_tool.c
 Dimon: rickr/Dimon.c rickr/Dimon.h rickr/realtime.c rickr/realtime.h
 	( cd rickr ; 							\
 	$(MAKE) Dimon 'RM=$(RM)' 'CC=$(CC)' 'IFLAGS=$(ISFLAGS)'        	\
-		  'LFLAGS=$(LFLAGS)' 'EXTRA_LIBS_2=$(EXTRA_LIBS_2)'	\
+		  'LFLAGS=$(LFLAGS)' 'LLIBS=$(LLIBS)'           	\
 		  'LGIFTI=$(LGIFTI)' ;					\
 	$(MV) Dimon .. ; )
 
 Dimon1: rickr/Dimon1.c rickr/Imon.h rickr/realtime1.c rickr/realtime.h
 	( cd rickr ; 							\
 	$(MAKE) Dimon1 'RM=$(RM)' 'CC=$(CC)' 'MV=$(MV)' 'IFLAGS=$(ISFLAGS)' \
-		  'LFLAGS=$(LFLAGS)' 'EXTRA_LIBS_2=$(EXTRA_LIBS_2)'	\
+		  'LFLAGS=$(LFLAGS)' 'LLIBS=$(LLIBS)'                   \
 		  'LGIFTI=$(LGIFTI)' ;					\
 	$(MV) Dimon1 .. ; )
 
 Imon: rickr/Imon.c rickr/Imon.h rickr/realtime.c rickr/realtime.h thd_iochan.o
 	( cd rickr ; 							\
 	$(MAKE) Imon 'RM=$(RM)' 'CC=$(CC)' 'IFLAGS=$(ISFLAGS)'        	\
-		  'LFLAGS=$(LFLAGS)' 'EXTRA_LIBS_2=$(EXTRA_LIBS_2)' ;	\
+		  'LFLAGS=$(LFLAGS)' 'LLIBS=$(LLIBS)' ;			\
 	$(MV) Imon .. ; )
 
 serial_helper: rickr/serial_helper.c
 	( cd rickr ;                                                    \
-	$(MAKE) serial_helper 'RM=$(RM)' 'CC=$(CC)' 'IFLAGS=$(ISFLAGS)'  \
-		  'LFLAGS=$(LFLAGS)' 'EXTRA_LIBS_2=$(EXTRA_LIBS_2)' ;	\
+	$(MAKE) serial_helper 'RM=$(RM)' 'CC=$(CC)' 'IFLAGS=$(ISFLAGS)' \
+		  'LFLAGS=$(LFLAGS)' 'LLIBS=$(LLIBS)' ; 		\
 	$(MV) serial_helper .. ; )
 
 serial_writer: rickr/serial_writer.c
@@ -2575,6 +2579,10 @@ column_cat: rickr/column_cat.c
 3dexample1: 3dexample1.o libmri.a
 	$(RM) $@
 	$(CC) -o 3dexample1 3dexample1.o $(LFLAGS) $(LLIBS)
+
+selenium_test: selenium_test.o
+	$(RM) $@
+	$(CC) -o selenium_test selenium_test.o $(LFLAGS) $(LLIBS) $(LPYTHON)
 
 
 #######
@@ -2698,6 +2706,10 @@ libXmHTML.a:
 
 thd_xwebber.o:thd_xwebber.c
 	$(CC) -c thd_xwebber.c -I./XmHTML/include $(INFLAGS)
+
+thd_selenium.o: thd_selenium.c
+	$(CC) -c thd_selenium.c -O1 $(IPYTHON) $(INFLAGS)
+
 
 #######
 # FFTW - not used

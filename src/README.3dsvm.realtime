@@ -31,7 +31,7 @@ How to configure the 3dsvm plugin for real-time experiments using plugout_drive:
         
       N.B.: -rt_train and -rt_test serve as flags for the real-time training 
             and testing modes, respectively. No brik or nifti file is 
-            specified since it is expected from the scanner (or rt_feedme).
+            specified since it is expected from the scanner (or rtfeedme).
 
   Options:
   --------

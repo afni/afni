@@ -1228,7 +1228,9 @@ ENTRY("THD_dset_to_ni_surf_dset");
     }
     nsd_add_str_atr_to_group("BRICK_STATSYM", "COLMS_STATSYM", blk, ngr);
     nsd_add_str_atr_to_group("HISTORY_NOTE", NULL, blk, ngr);
-    
+    nsd_add_str_atr_to_group("ATLAS_LABEL_TABLE", NULL, blk, ngr);
+    nsd_add_str_atr_to_group("VALUE_LABEL_DTABLE", NULL, blk, ngr);
+     
     for (ibr=0; ibr<DSET_NVALS(dset); ++ibr) {
       sprintf(name,"FDRCURVE_%06d",ibr) ;
       nsd_add_atr_to_group(name, NULL, blk, ngr);

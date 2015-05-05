@@ -227,7 +227,7 @@ char *summarize_string(char *us, int lmax)
    
    if (strlen(us)<=lmax) {
       strcpy(s,us);
-      return(s);
+      SUMA_RETURN(s);
    }
    
    
@@ -240,7 +240,7 @@ char *summarize_string(char *us, int lmax)
    SUMA_strncat(s, us+strlen(us)-nleft, nleft);
    s[lmax] = '\0';
    
-   return(s);
+   SUMA_RETURN(s);
 }
 
 /* 

@@ -9,6 +9,11 @@ LZLIB    = -lz
 USE_GIFTI = -DHAVE_GIFTI
 LGIFTI    = /usr/lib/libexpat.a
 
+# ------------------------------
+# python from C (off for now)
+# IPYTHON  = -DSELENIUM_READY -I/usr/include/python2.5
+# LDPYTHON = -lpython2.5
+
 # ----------------------------------------------------------------------
 # X configuration
 #
@@ -94,7 +99,8 @@ EXPROGS = gifti_tool $(GSLPROGS)
 
 # link choices are made above
 
-LLIBS  = -lmri -lf2c $(XLIBS) -lXft -lXp -lXpm -lXext -lXmu -lSM -lICE -lX11 -lpng -ljpeg $(LZLIB) $(LGIFTI) -lm  -ldl -lc
+LLIBS  = -lmri -lf2c $(XLIBS) -lXft -lXp -lXpm -lXext -lXmu -lSM -lICE -lX11 \
+	 $(LDPYTHON) -lpng -ljpeg $(LZLIB) $(LGIFTI) -lm  -ldl -lc
 
 # for static linking, as far as possible
 

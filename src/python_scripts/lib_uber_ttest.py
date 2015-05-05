@@ -9,6 +9,7 @@ import glob
 import afni_base as BASE
 import afni_util as UTIL
 import lib_subjects as SUBJ
+import lib_vars_object as VO
 
 DEF_UBER_DIR = 'uber_results'        # top directory for output
 DEF_TOP_DIR  = 'group_results'       # top output dir under uber_results
@@ -40,13 +41,13 @@ g_prog_list = ['3dttest++', '3dMEMA']
 # (as well as string versions of control and user defaults)
 
 # ---- resulting values returned after class actions ----
-g_res_defs = SUBJ.VarsObject("uber_ttest result variables")
+g_res_defs = VO.VarsObject("uber_ttest result variables")
 g_res_defs.file_proc     = ''   # file name for process script
 g_res_defs.output_proc   = ''   # output from running proc script
 
 # ---- control variables: process control, not set by user in GUI
 
-g_ctrl_defs = SUBJ.VarsObject("uber_ttest control defaults")
+g_ctrl_defs = VO.VarsObject("uber_ttest control defaults")
 g_ctrl_defs.proc_dir     = '.'    # process dir: holds scripts and result dir
 g_ctrl_defs.verb         = 1      # verbose level
 g_ctrl_defs.copy_scripts = 'yes'  # make .orig copies of scripts?
@@ -62,7 +63,7 @@ g_cvar_dict = {
 
 # ---- user variables ----
 
-g_user_defs = SUBJ.VarsObject("uber_ttest user defaults")
+g_user_defs = VO.VarsObject("uber_ttest user defaults")
 
 # required inputs
 g_user_defs.program        = g_prog_list[0]
@@ -156,7 +157,7 @@ class TTest(object):
       # variables
 
       # LV: variables local to this interface, not passed
-      self.LV = SUBJ.VarsObject("local AP_Subject vars")
+      self.LV = VO.VarsObject("local AP_Subject vars")
       self.LV.indent = 8                # default indent for main options
       self.LV.istr   = ' '*self.LV.indent
       self.LV.retdir = ''               # return directory (for jumping around)

@@ -136,9 +136,12 @@ static char g_history[] =
  " 3.14 Dec 30, 2013    - bad_backslash includes files ending with one\n"
  " 3.15 Sep 15, 2014    - applied -prefix for -show_file_type\n"
  " 3.16 Feb 09, 2015    - warn on '\\' without preceding space\n"
+ " 3.17 Apr 22, 2015\n"
+ "      - add 'fix' for non-unix files: ignoring bad chars\n"
+ "      - allow for multiple tests/fixes using -prefix\n"
  "----------------------------------------------------------------------\n";
 
-#define VERSION         "3.16 (February 9, 2015)"
+#define VERSION         "3.17 (April 22, 2015)"
 
 
 /* ----------------------------------------------------------------------
@@ -277,11 +280,12 @@ attack_files( param_t * p )
 int
 process_script( char * filename, param_t * p )
 {
+    char * fname = filename;  /* this can change if prefix is applied */
     int rv = 0;
 
-    if (       p->script & SCR_SHOW_FILE  ) rv = scr_show_file  (filename, p);
-    if (!rv && p->script & SCR_SHOW_BAD_BS) rv = scr_show_bad_bs(filename, p);
-    if (!rv && p->script & SCR_SHOW_BAD_CH) rv = scr_show_bad_ch(filename, p);
+    if (!rv && p->script & SCR_SHOW_BAD_CH) rv = scr_show_bad_ch(&fname, p);
+    if (!rv && p->script & SCR_SHOW_FILE  ) rv = scr_show_file  (&fname, p);
+    if (!rv && p->script & SCR_SHOW_BAD_BS) rv = scr_show_bad_bs(&fname, p);
 
     return rv;
 }
@@ -322,12 +326,14 @@ FILE * open_correction_file(char * fname, char * check_type, int overwrite,
  * If prefix is set, write to a new file.
  *------------------------------------------------------------*/
 int
-scr_show_bad_bs( char * filename, param_t * p )
+scr_show_bad_bs( char ** fname, param_t * p )
 {
     static char * fdata = NULL;
     static int    flen  = 0;
     char        * line_start, *cp;
+    char        * filename = *fname;      /* might change */
     int           count, cur, bcount = 0, bad = 0;
+    int           owrite = p->overwrite;  /* might change */
     int           lnum = 1;
 
     FILE        * outfp = NULL; /* for writing "corrected" file */
@@ -340,8 +346,10 @@ scr_show_bad_bs( char * filename, param_t * p )
 
     /* maybe try to fix any errors */
     if ( p->prefix ) {
-       outfp = open_correction_file(p->prefix, "bad backslash", p->overwrite,
+       if( filename == p->prefix ) owrite = 1;
+       outfp = open_correction_file(p->prefix, "bad backslash", owrite,
                                     p->debug+1);
+       *fname = p->prefix;  /* and allow successive modifications */
        if( !outfp ) return 1;
     }
 
@@ -435,12 +443,14 @@ scr_show_bad_bs( char * filename, param_t * p )
  * scan file for non-printable characters
  *------------------------------------------------------------*/
 int
-scr_show_bad_ch( char * filename, param_t * p )
+scr_show_bad_ch( char ** fname, param_t * p )
 {
     static char * fdata = NULL;
     static int    flen  = 0;
-    char        * cp;
+    FILE        * outfp = NULL;
+    char        * cp, * filename = *fname;      /* might change */
     int           length, lineno, count, bad = 0, bad_loc=-1, bad_line=-1;
+    int           owrite = p->overwrite;        /* might change */
 
     if( p->debug ) fprintf(stderr,"-- show_bad_chars: file %s ...\n",
                            filename);
@@ -448,6 +458,15 @@ scr_show_bad_ch( char * filename, param_t * p )
     if( (length = read_file( filename, &fdata, &flen )) < 0 ) return -1;
 
     if( p->debug ) fprintf(stderr,"file length = %d\n", length);
+
+    /* maybe try to fix any errors */
+    if ( p->prefix ) {
+       if( filename == p->prefix ) owrite = 1;
+       outfp = open_correction_file(p->prefix, "bad char check", owrite,
+                                    p->debug+1);
+       *fname = p->prefix;  /* and allow successive modifications */
+       if( !outfp ) return 1;
+    }
 
     lineno = 1;
     for( cp = fdata, count = 0; count < length; count++ )
@@ -465,7 +484,8 @@ scr_show_bad_ch( char * filename, param_t * p )
                 bad_line = lineno;
             }
             bad++;
-        }
+        } else if( outfp ) fputc(cp[count], outfp); /* else, pass on */
+
         if( cp[count] == '\n' ) lineno++;
     }
 
@@ -476,6 +496,8 @@ scr_show_bad_ch( char * filename, param_t * p )
         if( bad_loc > 50 )
            printf("  -- bad chars follow: '%.50s'\n",fdata+(bad_loc-50));
     } else putchar('\n');
+    if( outfp ) fclose(outfp);
+
     return 0;
 }
 
@@ -487,13 +509,14 @@ scr_show_bad_ch( char * filename, param_t * p )
  *     unix: else
  *------------------------------------------------------------*/
 int
-scr_show_file( char * filename, param_t * p )
+scr_show_file( char ** fname, param_t * p )
 {
     static char * fdata = NULL;
     static int    flen  = 0;
     FILE        * outfp = NULL;
-    char        * cp;
+    char        * cp, * filename = *fname;      /* might change */
     int           length, count, bin = 0, bom, warn = 1;
+    int           owrite = p->overwrite;        /* might change */
 
     if( p->debug ) fprintf(stderr,"-- show_file_type: file %s ...\n",filename);
 
@@ -503,8 +526,10 @@ scr_show_file( char * filename, param_t * p )
 
     /* maybe try to fix any errors */
     if ( p->prefix ) {
-       outfp = open_correction_file(p->prefix, "non-Unix check", p->overwrite,
+       if( filename == p->prefix ) owrite = 1;
+       outfp = open_correction_file(p->prefix, "non-Unix check", owrite,
                                     p->debug+1);
+       *fname = p->prefix;  /* and allow successive modifications */
        if( !outfp ) return 1;
     }
 
@@ -1426,7 +1451,8 @@ set_params( param_t * p, int argc, char * argv[] )
     }
 
     /* allow max of 1 'script' test with prefix */
-    if ( p->prefix && p->script ) {
+    /* now apply -prefix with overwrites on successive tests   22 Apr 2015 */
+    if ( 0 && p->prefix && p->script ) {
        int sval, ns=0;
        for( sval=p->script; sval; sval>>=1 )
           if( sval & 1 ) ns++;
