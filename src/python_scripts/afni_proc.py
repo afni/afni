@@ -469,6 +469,8 @@ g_history = """
     4.41 May 05, 2015:
         - added -anat_follower, -anat_follower_ROI, -regress_anaticor_label
         - followers are copied to copy_af_LABEL
+        - added Example 11 - a more modern resting state example
+        - added local WMe correlation diagnostic using -ort X-matrix
 """
 
 g_version = "version 4.41, May 5, 2015"
@@ -477,8 +479,6 @@ g_version = "version 4.41, May 5, 2015"
 g_requires_afni = "1 Apr 2015" # 1d_tool.py uncensor from 1D
 
 g_todo_str = """todo:
-  - (related) show example for passing FreeSurfer WMe with erode option
-    and anat followers
   - add option to block anat from anat followers?
   - add AP test for varying remove_first_trs
   - add -4095_check and -4095_ok options?

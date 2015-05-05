@@ -50,7 +50,7 @@
 afni_history_struct rickr_history[] = {
 
  {  5,  May, 2015, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,
-   "added help and a few follower modifications",
+   "added help (inc Ex 11), follower modifications, WMe corr diag change",
    NULL
  } ,
 
