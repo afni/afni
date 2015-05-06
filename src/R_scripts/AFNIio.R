@@ -2369,7 +2369,7 @@ statsym.distold2new <- function(dist) {
 statsym.list2code <- function(statsym) {
    if (is.null(statsym) || length(statsym)==0) return("")
    imx <- statsym[[1]]$sb
-   for (i in 2:length(statsym)) {
+   if(length(statsym)>1) for (i in 2:length(statsym)) {
       if (imx < statsym[[i]]$sb) imx <- statsym[[i]]$sb
    }
    code <- NULL

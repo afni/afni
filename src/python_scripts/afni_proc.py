@@ -461,25 +461,30 @@ g_history = """
     4.37 Apr  9, 2015: fix for NIFTI NL anat; add a little help
     4.38 Apr 22, 2015:
         - help update for -regress_ROI_*
-        -  verify erode list use
+        - verify erode list use
         - added -todo to show current list
     4.39 Apr 22, 2015: add missed cat_matvec to create warp.all.anat.aff12.1D
+    4.40 Apr 30, 2015: allow AM2 centering param via basis backdoor
+        - e.g. use basis "BLOCK(2) :x:0.176"
+    4.41 May 05, 2015:
+        - added -anat_follower, -anat_follower_ROI, -regress_anaticor_label
+        - followers are copied to copy_af_LABEL
+        - added Example 11 - a more modern resting state example
+        - added local WMe correlation diagnostic using -ort X-matrix
 """
 
-g_version = "version 4.38, April 22, 2015"
+g_version = "version 4.41, May 5, 2015"
 
 # version of AFNI required for script execution
 g_requires_afni = "1 Apr 2015" # 1d_tool.py uncensor from 1D
 
 g_todo_str = """todo:
-  - add option to use dict key other than WMe for anaticor
-  - (related) show example for passing FreeSurfer WMe with erode option
   - add option to block anat from anat followers?
-  - add/modify AP tests for some cases
   - add AP test for varying remove_first_trs
   - add -4095_check and -4095_ok options?
      - maybe check means the 3dToutcount would fail, and ok would continue
      - or have 3dToc just report, maybe write a volume?
+  - add warnings from and bad GLTsymtest output
 
   -compute_corr_volumes LABEL ... ?
   - warn of missing input dsets?  (-dsets, -copy_anat, any 3dcopy)
@@ -494,6 +499,8 @@ g_todo_str = """todo:
 
   - motsim regression: per voxel; PCs; combined with mot params?
      - is this extra useful in the case of no censoring?  e.g. PPI
+  - add -regress_basis_AM2_offsets or _basis_multi_params (now hidden in basis)
+     for something like -stim_times_AM2 'BLOCK(2)' :x:0.176
 """
 
 # ----------------------------------------------------------------------
@@ -760,6 +767,10 @@ class SubjProcSream:
         self.valid_opts.add_opt('-subj_id', 1, [],
                         helpstr='subject ID, used in most filenames')
 
+        self.valid_opts.add_opt('-anat_follower', 3, [],
+                        helpstr='specify label and anat follower dataset')
+        self.valid_opts.add_opt('-anat_follower_ROI', 3, [],
+                        helpstr='specify label and anat follower ROI dataset')
         self.valid_opts.add_opt('-anat_has_skull', 1, [],
                         acplist=['yes','no'],
                         helpstr='does the anat have a skull (to be stripped)')
@@ -982,6 +993,8 @@ class SubjProcSream:
                         helpstr="specify FWHM for fast WMeLocal extraction")
         self.valid_opts.add_opt('-regress_anaticor_radius', 1, [],
                         helpstr="specify radius for WMeLocal extraction")
+        self.valid_opts.add_opt('-regress_anaticor_label', 1, [],
+                        helpstr="specify ROI label for anaticor (default=WMe)")
         self.valid_opts.add_opt('-regress_WMeL_corr', 0, [],
                         helpstr="if WMeLocal, compute correlation volume")
         self.valid_opts.add_opt('-regress_apply_mask', 0, [],
@@ -1208,15 +1221,18 @@ class SubjProcSream:
 
         # end terminal options
 
-        # options that imply other options
+        # --------------------------------------------------
+        # options that imply options in _prior_ blocks
+
+        # anaticor implies segment, unless a label is specified
         if opt_list.find_opt('-regress_anaticor') \
            or opt_list.find_opt('-regress_anaticor_fast'):
-           opt_list.add_opt("-mask_segment_anat", 1, ["yes"], setpar=1)
-           opt_list.add_opt("-mask_segment_erode", 1, ["yes"], setpar=1)
+           if not opt_list.find_opt('-regress_anaticor_label'):
+              opt_list.add_opt("-mask_segment_anat", 1, ["yes"], setpar=1)
+              opt_list.add_opt("-mask_segment_erode", 1, ["yes"], setpar=1)
 
         # end options that imply other options
-
-        # end terminal options
+        # --------------------------------------------------
 
         opt = opt_list.find_opt('-check_results_dir')
         if opt_is_no(opt): self.check_rdir = 'no'
@@ -1975,12 +1991,12 @@ class SubjProcSream:
 
         # copy any -regress_ROI_* datasets; possibly convert to AFNI
         if len(self.afollowers) > 0:
-           tstr = '# copy any -regress_ROI_* datasets into the results dir\n'
+           tstr = '# copy anatomical follower datasets into the results dir\n'
            for af in self.afollowers:
               tstr += '3dcopy %s %s/%s\n' % \
-                      (af.aname.rel_input(), self.od_var, af.aname.prefix)
+                   (af.aname.rel_input(), self.od_var, af.cpname.out_prefix())
               # update current name, in case we switch to AFNI format
-              af.cname = afni_name(af.aname.prefix)
+              af.cname = af.cpname
               if af.cname.view == '': af.cname.new_view(self.view)
            self.write_text(add_line_wrappers(tstr))
            self.write_text("%s\n" % stat_inc)
@@ -2203,6 +2219,13 @@ class SubjProcSream:
               return None 
            aname = afni_name(name)
 
+        if label:
+           lname = afni_name(label)
+           if lname.exist():
+              print "** ERROR: anat_follower label exists as dataset: '%s'" \
+                    % label
+              return None
+
         if dgrid not in ['epi', 'anat', 'self']:
            print '** invalid dgrid %s for %s' % (dgrid, aname.rel_input())
            return None
@@ -2212,6 +2235,9 @@ class SubjProcSream:
         # set_var is not needed, but is a reminder
         vo.set_var('aname',  aname)
         vo.set_var('cname',  aname)     # cname is current name
+        if label: cppre = 'copy_af_%s' % label
+        else:     cppre = aname.prefix
+        vo.set_var('cpname', afni_name(cppre))
         vo.set_var('dgrid',  dgrid)
         vo.set_var('label',  label)
         vo.set_var('erode',  0)         # 0=no, 1=pre, 2=post
@@ -2318,17 +2344,13 @@ class SubjProcSream:
            print '** new_anat_follower requires name or aname'
            return None
 
-        release = 0
-        if aname == None:
-           aname = afni_name(name)
-           release = 1
+        if aname == None: aname = afni_name(name)
         si = aname.shortinput()
 
+        # warn user if dupe is seen
         for af in self.afollowers:
            if af.aname.shortinput() == si:
-              # found: nuke any copy and return VO
-              if release: del(aname)
-              return af
+              print '** warning: have duplicate anat follower: %s' % si
 
         # not yet in list
         af = self.anat_follower(aname=aname, dgrid=dgrid, label=label,

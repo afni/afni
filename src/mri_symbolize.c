@@ -4,7 +4,117 @@ static int nerr=0 ;
 int SYM_expand_errcount(void){ return nerr; }  /* 03 May 2007 */
 
 /*----------------------------------------------------------------------------*/
-/*! Expand a string like "Fred 2*Jed -Ned[1..3]" into a float vector.
+
+#define INIT_OUTBUF                                                         \
+ do{ if( outbuf == NULL ){                                                  \
+       outbuf = THD_zzprintf(outbuf,"***** Scanned GLT messages *****\n") ; \
+       outbuf = THD_zzprintf(outbuf,"++ INFO: -gltsym is: '%s'\n",gltsym) ; \
+ } } while(0)
+
+#define NLAST_TEST 999999
+
+/*----------------------------------------------------------------------------*/
+/* This funcion is for testing a gltsym string for basic validity.
+   It returns a string that contains the messages generated during the tests.
+    * varlist = space (or comma or semicolon) delimited list of variable names
+    * gltsym  = expression for GLT
+   If NULL is returned, there were no problems detected.  [01 May 2015]
+*//*--------------------------------------------------------------------------*/
+
+char * SYM_test_gltsym( char *varlist , char *gltsym )
+{
+   char *outbuf=NULL ; int nbad=0 , nerrtemp=0 ;
+   NI_str_array *vsar=NULL ; int vv=0 ; char *vnam=NULL , *mbuf=NULL ;
+   int nrang=0 ; SYM_irange *rang=NULL ;
+   floatvecvec *fvv=NULL ;
+
+ENTRY("SYM_test_gltsym") ;
+
+   /* check for bad inputs */
+
+   if( gltsym == NULL || *gltsym == '\0' ){
+     gltsym = "<EMPTY STRING>" ;  /* must have something for INIT_OUTBUF */
+     INIT_OUTBUF ;
+     outbuf = THD_zzprintf(outbuf,"** ERROR: cannot continue\n") ; nbad++ ; nerr++ ;
+     RETURN(outbuf) ;
+   }
+
+   INIT_OUTBUF ;
+   if( varlist == NULL || *varlist == '\0' ){
+     outbuf = THD_zzprintf(outbuf,"** ERROR: Allowed variable list is empty\n") ; nbad++ ; nerr++ ;
+   } else {
+     outbuf = THD_zzprintf(outbuf,"++ INFO: Allowed variable list is '%s'\n",varlist) ;
+   }
+
+   /* decode the variable list into individual names */
+
+   STATUS("scanning varlist") ;
+   vsar = NI_decode_string_list( varlist , ",;" ) ;
+   if( vsar == NULL ){
+     outbuf = THD_zzprintf(outbuf,"** ERROR: Cannot decode variable list names!\n") ; nbad++ ; nerr++ ;
+     RETURN(outbuf) ;
+   }
+
+   /* make list of variable for parsing, with made up data ranges */
+
+   STATUS("creating fictional SYM_irange") ;
+   rang = (SYM_irange *)calloc(sizeof(SYM_irange),vsar->num) ;
+   for( nrang=vv=0 ; vv < vsar->num ; vv++ ){
+     vnam = vsar->str[vv] ;
+     if( vnam == NULL || *vnam == '\0' ) continue ; /* bad ==> skip */
+     if( !isalpha(vnam[0]) ){
+       outbuf = THD_zzprintf(outbuf,"** ERROR: Variable name '%s' doesn't start with alphabetic character\n",vnam) ;
+       nbad++ ; nerr++ ;
+     } else if( strlen(vnam) > 63 ){
+       outbuf = THD_zzprintf(outbuf,"** ERROR: Variable name '%s' is too long (> 63)\n",vnam) ;
+       nbad++ ; nerr++ ;
+     } else {
+       rang[nrang].nbot = 0 ;
+       rang[nrang].ntop = NLAST_TEST ;
+       rang[nrang].gbot = 0 ;
+       NI_strncpy(rang[nrang].name,vnam,64) ; nrang++ ;
+     }
+   }
+
+   NI_delete_str_array(vsar);
+
+   /* now parse gltsym to see if it works OKAY */
+
+   nerrtemp = nerr ;
+   SET_message_outbuf(1) ;
+
+   fvv = SYM_expand_ranges( NLAST_TEST , nrang , rang , gltsym ) ;
+
+   if( fvv != NULL ){
+     int iv ; floatvec *fv ;
+     STATUS("freeing fvv") ;
+     for( iv=0 ; iv < fvv->nvec ; iv++ ){
+       fv = fvv->fvar + iv ;
+       if( fv->ar != NULL ) free(fv->ar) ;
+     }
+     free(fvv->fvar) ; free(fvv) ;
+   }
+
+   nbad += nerr - nerrtemp ;
+
+   mbuf  = GET_message_outbuf() ;
+   if( mbuf != NULL ){
+     size_t ll = strlen(outbuf) + strlen(mbuf) + 32 ;
+     outbuf = (char *)realloc(outbuf,ll) ; strcat(outbuf,mbuf) ;
+   }
+   SET_message_outbuf(0) ;
+
+   if( nbad == 0 )
+     outbuf = THD_zzprintf(outbuf,"++ INFO: This gltsym appears to be OKAY :-)\n") ;
+   else
+     outbuf = THD_zzprintf(outbuf,"** SORRY: This gltsym appears to be BAD :-(\n") ;
+
+   RETURN(outbuf) ;
+}
+
+/*----------------------------------------------------------------------------*/
+/*! Expand a string like "Fred 2*Jed -Ned[1..3]" into a float vector
+    that comprises the weights for each beta element in 3dDeconvolve.
 
     Each SYM_irange struct has 4 fields
       - name = string that names this field
@@ -56,7 +166,44 @@ ENTRY("SYM_expand_ranges") ;
      RETURN(fvv) ;
    }
 
-   /* scan each chunk */
+   /* scan chunks and merge isolated '+' or '-' with next chunk [01 May 2015] */
+
+#if 1
+   for( ss=0 ; ss < sar->num ; ss++ ){
+     qstr = sar->str[ss] ;
+     if( qstr == NULL || *qstr == '\0' ) continue ;          /* bad entry? */
+     if( *qstr == '#' ||                              /* comment ends line */
+        (*qstr == '/' && *(qstr+1) == '/') ) break ;
+
+     /* process a string of length=1 and is either "+" or "-" */
+
+     if( strlen(qstr) == 1 && (*qstr == '+' || *qstr == '-') ){
+       if( ss == sar->num-1 ){                     /* at end ==> mark to ignore this */
+         ERROR_message("-gltsym: isolated '%s' at end of -gltsym? IGNORING!",qstr) ;
+         qstr[0] = '\0' ; nerr++ ;
+       } else if ( *qstr == '+' ){                 /* can just ignore this "+"! */
+         INFO_message("INFO: -gltsym: isolated '+' is being ignored") ;
+         qstr[0] = '\0' ;
+       } else {                                    /* this is a "-" */
+         qpt = sar->str[ss+1] ;                    /* the next string in the list */
+         if( qpt == NULL || *qpt == '\0' ){        /* is it bad?? should never happen */
+           ERROR_message("-gltsym: isolated '%s' is followed by NULL entry in? IGNORING!",qstr) ;
+           qstr[0] = '\0' ; nerr++ ;
+         } else if( *qpt == '+' || *qpt == '-' ){  /* next string should not already be signed! */
+           ERROR_message("-gltsym: isolated '-' is followed by '%s' which is already signed? IGNORING!",qpt) ;
+           qstr[0] = '\0' ; nerr++ ;
+         } else {                                  /* everything is cool: attach sign to next string */
+           qls = (char *)malloc(sizeof(char)*(strlen(qpt)+4)) ;
+           strcpy(qls,qstr) ; strcpy(qls,qpt) ;
+           INFO_message("INFO: -gltsym: isolated '-' is merged with following '%s'",qpt) ;
+           NI_free(qpt) ; sar->str[ss+1] = qls ; qstr[0] = '\0' ;
+         }
+       }
+     }
+   }
+#endif
+
+   /* process each chunk */
 
    for( ss=0 ; ss < sar->num ; ss++ ){
      qstr = sar->str[ss] ;
