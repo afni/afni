@@ -2951,7 +2951,8 @@ choice (Chrome,Firefox,Safari). The default browser will be chrome if the
 AFNI_WEB_BROWSER variable is not set. If AFNI_SELENIUM is not set or set
 to NO, AFNI will open the standard browser using a system command. Selenium
 may be installed with "pip install -U selenium" on a Mac or "sudo yum install
-selenium" on Linux.
+selenium" on Linux. If you need to get pip, it is available from
+https://pypi.python.org/pypi/pip .
 
 -----------------------------
 Variable: AFNI_WEB_DOWNLOADER
