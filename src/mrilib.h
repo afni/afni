@@ -8,7 +8,7 @@
 #define _MCW_MRILIB_HEADER_
 
 #define MRILIB_7D
-#define _GNU_SOURCE             /* 23 Jun 2011 */
+#define _GNU_SOURCE 1           /* 23 Jun 2011 */
 
 #define COXEMAIL "rwcox@nih.gov"        /* or /dev/null, if you prefer */
 
