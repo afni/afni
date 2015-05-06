@@ -284,6 +284,9 @@ end
    end
 
    if (nd <= 2)
+      if length(Opt.Slices)~=1
+         N = [N(1) 1 1 N(2)];
+      end
       isVect = 1;
    else
       isVect = 0;
@@ -294,7 +297,7 @@ end
          Info = rmfield(Info,'BRICK_STATS');  end
       if (isfield(Info,'BRICK_FLOAT_FACS')),
          Info = rmfield(Info,'BRICK_FLOAT_FACS');  end
-      if (isfield(Info,'DATASET_DIMENSIONS')),
+      if (isfield(Info,'DATASET_DIMENSIONS') && ~isVect), 
          Info = rmfield(Info,'DATASET_DIMENSIONS');  end
       if (isfield(Info,'DATASET_RANK')),
          if (Info.DATASET_RANK(2) ~= N(4)),
