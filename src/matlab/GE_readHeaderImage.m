@@ -3,7 +3,7 @@ function im_hdr = GE_readHeaderImage(fid, byte_align)
 % im_hdr = GE_readHeaderImage(fid, byte_align)
 %
 % Loads the image header from a file with filed id fid
-% and returns it as a structure. 
+% and returns it as a structure.
 % if byte_align = 1 then 32-bit alignment (SGI, LX2 format)
 % if byte_align = 0 then 16-bit alignment (Sun, 5.X format)
 %

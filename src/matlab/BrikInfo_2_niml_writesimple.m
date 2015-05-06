@@ -3,7 +3,7 @@ function S=BrikInfo_2_niml_writesimple(Info, S)
 %   [S]=BrikInfo_2_niml_writesimple(Info, [S])
 %
 %Purpose:
-% Converts some fields in the BRIK header structure 
+% Converts some fields in the BRIK header structure
 % to a structure used in function afni_niml_writesimple
 %
 %Input Parameters:
@@ -11,8 +11,8 @@ function S=BrikInfo_2_niml_writesimple(Info, S)
 %  S: If specifed add fields to this struct
 %
 %Output:
-%  S: Struct to be used in afni_niml_writesimple   
-%     
+%  S: Struct to be used in afni_niml_writesimple
+%
 %
 
 if (nargin == 1),
@@ -56,7 +56,7 @@ while (i<nv),
    sb = v(i); %sub-brick
    st = v(i+1); %stat type
    np = v(i+2); %number of params
-   s(sb+1) = cellstr(sprintf('%s(',char(tt(st))));  
+   s(sb+1) = cellstr(sprintf('%s(',char(tt(st))));
    j=1;
    while(j<=np),
       if (j==np),
