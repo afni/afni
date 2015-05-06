@@ -30,16 +30,33 @@ if ~isempty(setxor(fieldnames(s),{'headername','headertext','body'}))
     error('Illegal struct s, expected s.headername, s.headertext, s.body');
 end
 
-% if more than 1 element, parse each of them seperately and put them in a
-% cell.
 scount=numel(s);
-if scount>1
+
+if isstruct(s) && numel(s)>1
+    % In Matlab, parse results are stored in a struct
     niml=cell(scount,1);
     for k=1:scount
         niml{k}=afni_niml_parse(s(k));
     end
     return
 end
+
+
+if iscell(s.headername);
+    % in Octave, parse results are stored in a cell
+    n=numel(s.headername);
+    niml=cell(n,1);
+    for k=1:n
+        sk=struct();
+        sk.headername=s.headername{k};
+        sk.headertext=s.headertext{k};
+        sk.body=s.body{k};
+
+        niml{k}=afni_niml_parse(sk);
+    end
+    return
+end
+
 
 % parse the header part
 niml=afni_nel_parsekeyvalue(s.headertext);
@@ -79,7 +96,16 @@ function p=afni_nel_parsekeyvalue(s)
 % parses a string of the form "K1=V1 K2=V2 ...
     expr='\s*(?<lhs>\w+)\s*=\s*"(?<rhs>[^"]+)"';
     hh=regexp(s,expr,'names');
-    p = cell2struct({hh(:).rhs}, {hh(:).lhs},2); clear hh;
+
+    if numel(hh)==1
+        lhs=hh.lhs;
+        rhs=hh.rhs;
+    else
+        lhs={hh(:).lhs};
+        rhs={hh(:).rhs};
+    end
+
+    p = cell2struct(rhs, lhs,2); clear hh;
 
 function p=afni_nel_parseheaderbody(s)
 % parses a header and body

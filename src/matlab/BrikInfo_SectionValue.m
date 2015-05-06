@@ -5,12 +5,12 @@ function [err,v, typ] = BrikInfo_SectionValue (BRIKinfo, sSection)
 %Purpose:
 %   Get the values of a section in the .HEAD string
 %   This function is dedicated for BrikInfo function
-%   
+%
 %Input Parameters:
 %   sHead, a string vector containing the .HEAD info
 %   sSection, the section name such as: 'DATASET_DIMENSIONS'
-%   
-%   
+%
+%
 %Output Parameters:
 %   err : 0 No Problem
 %       : 1 Mucho Problems
@@ -18,16 +18,16 @@ function [err,v, typ] = BrikInfo_SectionValue (BRIKinfo, sSection)
 %     v is empty (and err = 1) if the section can't be found
 %   typ : is a string to indicate the type of parameter (string or number)
 %      that v is
-%   
+%
 %Key Terms:
-%   
+%
 %More Info :
-%  see also BrikInfo 
-%   
-%   
+%  see also BrikInfo
+%
+%
 %
 %     Author : Ziad Saad
-%     Date : Mon Oct 18 13:46:28 CDT 1999 
+%     Date : Mon Oct 18 13:46:28 CDT 1999
 
 
 %Define the function name for easy referencing
@@ -45,7 +45,7 @@ err = 1;
 	%like History note and history note appears first.
    %Nick OOsterhof suggested the following fix:
    htmp = regexp (BRIKinfo, ['name\s*=\s*' sSection]);
-   if (isempty(htmp) | length(htmp) > 1), v = []; return; end
+   if (isempty(htmp) || length(htmp) > 1), v = []; return; end
    itmp = findstr(BRIKinfo(htmp:N_BRIKinfo),sSection)+htmp-1;
 	if (isempty(itmp)), v = []; return; end
 	
@@ -73,14 +73,14 @@ err = 1;
 			return;
 		end
 		
-	%advance to the next line, after count 
+	%advance to the next line, after count
 		itmp = itmp + stp + 1;
 		
 	%read all values
 		Svals = BRIKinfo(itmp:inxt); %that's where the values are
-		inl = find(setstr(Svals) == 10 | setstr(Svals) == 13); %find any new lines left in Svals (13 was added to work in DOS (CR and LF))
+		inl = find(char(Svals) == 10 | char(Svals) == 13); %find any new lines left in Svals (13 was added to work in DOS (CR and LF))
 		
-		if (~isempty(inl)), 
+		if (~isempty(inl)),
 			Svals(inl) = ' '; %replace them by space characters
 		end
 	
@@ -88,10 +88,10 @@ err = 1;
 	   v = zdeblank(Svals);
       if isempty(v)
 			typ = 'string';
-      elseif strcmp(v(1),'''') & strcmp(v(length(v)),'~')
+      elseif strcmp(v(1),'''') && strcmp(v(length(v)),'~')
 			%This parameter is a string, do not change to numbers
 			%remove first and last chars
-		   v = v(2:length(v)-1); 
+		   v = v(2:length(v)-1);
 			typ = 'string';
 		else
 			v = str2num(Svals);

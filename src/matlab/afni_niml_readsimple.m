@@ -10,24 +10,24 @@ function S=afni_niml_readsimple(fn,full)
 %  .data           PxN data for P nodes and N columns (values per node).
 %  .node_indices   Px1 indices of P nodes that data refers to (base 0)
 %  .history        String with history information
-%  .stats          1xN cell with strings of the statistics of the data 
+%  .stats          1xN cell with strings of the statistics of the data
 %                  (for example, Z or T score).
 %  .labels         1xN cell with strings of the labels of the data columns
 %  .dset_type      String with the data set type
 %
 % S=AFNI_NIML_READSIMPLE(FN,true) returns a struct S but with a
-% full data matrix (rather than sparse) for all nodes; node indices not 
+% full data matrix (rather than sparse) for all nodes; node indices not
 % defined in the file are set to zero. S does not contain a field
-% .node_indices. 
-% 
+% .node_indices.
+%
 % Please note that this function is *VERY EXPERIMENTAL*, and has only been
 % tested with functional data NIML files.
-% 
+%
 % NNO Jan 2010 <n.oosterhof@bangor.ac.uk>
 
 D=afni_niml_read(fn);
 
-if ~isstruct(D) || ~isfield(D,'dset_type') 
+if ~isstruct(D) || ~isfield(D,'dset_type')
     disp(D);
     error('Unrecognized data cell');
 end
@@ -42,7 +42,7 @@ for k=1:nodecount
         disp(Dk);
         error('Missing name in node element %d',k);
     end
-    
+
     switch(Nk.name)
         case 'INDEX_LIST'
             S.node_indices=Nk.data;
@@ -53,7 +53,7 @@ for k=1:nodecount
                 disp(Nk);
                 error('Field %s in node element %d has missing atr_name\n', Nk.name, D);
             end
-            
+
             switch Nk.atr_name
                 case 'HISTORY_NOTE'
                     S.history=Nk.data;
@@ -69,10 +69,10 @@ for k=1:nodecount
                     end
             end
         otherwise
-            error('Unsupported element %s in node element %d', Nk.name, D);
-    end    
+            S.misc.(Nk.name)=Nk.data;
+    end
 end
-    
+
 if nargin>1 && full && isfield(S,'node_indices')
     data=zeros(max(S.node_indices)+1,size(S.data,2));
     data(S.node_indices+1,:)=S.data;
