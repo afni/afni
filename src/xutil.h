@@ -233,6 +233,8 @@ extern MCW_htmlwin * new_MCW_htmlwin( Widget wpar , char *msg ,
                                       MCW_action_item *umai, int nact ) ;
 extern void MCW_htmlwin_alter( MCW_htmlwin *hw , char *mmm ) ;
 
+extern char * convert_text_to_html( char *txt ) ; /* 06 May 2015 */
+
 extern void RWC_visibilize_widget( Widget ) ;  /* 09 Nov 1999 */
 
 #define RWC_visibilize RWC_visibilize_widget   /* 27 Sep 2000: sometimes I forget */
