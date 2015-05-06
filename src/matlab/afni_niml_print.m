@@ -1,4 +1,4 @@
-function s=afni_niml_print(p)
+function s=afni_niml_print(p, format)
 % takes a NIML data structure and converts it to string representation
 %
 % S=AFNI_NIML_PRINT(P) takes an NIML datastructure P and returns a string
@@ -13,11 +13,15 @@ function s=afni_niml_print(p)
 %
 % NNO Dec 2009 <n.oosterhof@bangor.ac.uk>
 
+if nargin<2
+    format='ascii';
+end
+
 if iscell(p)
     ss=cell(1,numel(p));
     % simple recursion
     for k=1:numel(p)
-        ss{k}=afni_niml_print(p{k});
+        ss{k}=afni_niml_print(p{k},format);
     end
     s=[ss{:}]; % concatenate
 else
@@ -26,7 +30,7 @@ else
 
     if isfield(p,'nodes')
         % is a group, do recursion
-        sbody=afni_niml_print(p.nodes);
+        sbody=afni_niml_print(p.nodes,format);
         p=rmfield(p,'nodes'); % 'nodes' is not a standard NIML field
     elseif isfield(p,'data')
         if ~isfield(p,'vec_typ')
@@ -45,7 +49,10 @@ else
             error('vec_typ=%d not supported (yet)', p.vec_typ);
         end
 
-        sbody=afni_niml_print_body(p);
+        [sbody,ni_form]=afni_niml_print_data(p,format);
+        if ~isempty(ni_form)
+            p.ni_form=ni_form;
+        end
 
         % some fields are not standard NIML (I think), we remove these
         removefields=strvcat('vec_typ','vec_len','vec_num','name','data');
@@ -62,21 +69,71 @@ else
     end
 
     headertext=afni_niml_print_header(p);
-    s=sprintf('<%s\n%s >\n%s</%s>\n',headername,headertext,sbody,headername);
+    s=sprintf('<%s\n%s >%s</%s>\n',headername,headertext,sbody,headername);
 end
 
-function s=afni_niml_print_body(p)
 
-format=get_print_format(p.vec_typ,p.data);
-if strcmp(format,'%s')
-    around='"'; %surround by quotes if it is a string - CHECKME is that according to the standard?
-else
-    around='';
-    p.data=p.data'; %transpose to fix major row vs. major column order
-end
-s=sprintf([format '\n'],p.data);
+function [s, ni_form]=afni_niml_print_data(p,format)
+    ni_form=[];
+    pat=get_print_format(p.vec_typ,p.data);
 
-s=[around s(1:(end-1)) around]; % remove last newline
+    is_string=strcmp(pat,'%s');
+    is_ascii=strcmp(format,'ascii');
+    if is_string || is_ascii
+        if is_string
+            around='"';
+        else
+            around='';
+            %transpose to fix major row vs. major column order
+            p.data=p.data';
+        end
+
+        s=sprintf([pat '\n'],p.data);
+        s=[ around s(1:(end-1)) around ]; % remove last newline
+        ni_form=[];
+    else
+        s=afni_niml_print_body_binary(p,format);
+
+        [unused, unused, endian]=computer();
+        ni_form=sprintf('binary.%ssbfirst',lower(endian));
+    end
+
+function binary_data=afni_niml_print_body_binary(p, format)
+    if ~strcmp(format, 'binary')
+        error('format must be ''ascii'' or ''binary''');
+    end
+
+    vec_typ=p.vec_typ;
+    if numel(vec_typ)>1 && any(vec_typ(1)~=vec_typ)
+        error('binary only supported for uniform vec_type');
+    end
+
+    ni_defs=afni_ni_defs();
+
+    switch vec_typ(1)
+        case ni_defs.NI_BYTE
+            converter=@char;
+
+        case ni_defs.NI_SHORT
+            converter=@int16;
+
+        case ni_defs.NI_INT
+            converter=@int32;
+
+        case ni_defs.NI_FLOAT32
+            converter=@single;
+
+        case ni_defs.NI_FLOAT64
+            converter=@double;
+
+        otherwise
+            error('unsupported vec_type %d', vec_typ(1));
+    end
+
+    data=converter(p.data');
+
+    binary_data=typecast(data(:)','uint8');
+
 
 
 function s=afni_niml_print_header(p)
