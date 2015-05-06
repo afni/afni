@@ -114,12 +114,12 @@ end
    MLname = 'ml.niml';
    LRname = 'lr.niml';
    rname = 'refnames.txt';
-   
+
    NLbl_ML = size(MapML,1);
    MaxLbl_ML = size(MapML,2)+3;
    NLbl_MPM = length(MapMPM);
    MaxLbl_MPM = 0;
-   for (i=1:1:NLbl_MPM), 
+   for (i=1:1:NLbl_MPM),
       if (MaxLbl_MPM < length(MapMPM(i).name)), MaxLbl_MPM = length(MapMPM(i).name); end
    end
    MaxLbl_MPM = MaxLbl_MPM+3;
@@ -139,7 +139,7 @@ if (~isempty(which('se_note'))),
    se_note;
    k = 0;
    vers = '';
-   if (exist('fg')),   
+   if (exist('fg')),
       h = get(fg, 'Children');
       cs = [];
       nref = 0;
@@ -149,12 +149,12 @@ if (~isempty(which('se_note'))),
          if (~isempty(tmp)),
             k = k + 1;
             cs(k).s = tmp;
-            if (iscellstr(cs(k).s) && length(cs(k).s) > 1), 
-               if (length(cs(k).s) > 5), %papers 
+            if (iscellstr(cs(k).s) && length(cs(k).s) > 1),
+               if (length(cs(k).s) > 5), %papers
                   nref = nref + 1;
                   ref(nref) = k;
                   cs(k).typ = 1;
-               else 
+               else
                   cs(k).typ = -1; %the authors's info
                   au = cellstr(cs(k).s);
                end
@@ -163,10 +163,10 @@ if (~isempty(which('se_note'))),
                ot(l) = cellstr(cs(k).s);
                if (~isempty(strfind(char(ot(l)), 'Version'))),
                   vers = zdeblank(char(ot(l)));
-               end 
+               end
                l = l + 1;
             end
-         end   
+         end
       end
       if (isempty(vers)),
          fprintf(2,'Version string not found!\n');
@@ -243,12 +243,12 @@ end
 %   fprintf(fidc,'%s', str);
 %Now create MPM structure in NIML atlas point list format
    fprintf(fidc,'# -----------     MPM      ---------------------\n');
-   fprintf(fidc,'# ----------- Based on: %s --------------\n', MPM_file);   
+   fprintf(fidc,'# ----------- Based on: %s --------------\n', MPM_file);
    fprintf(fidc,'<atlas_point_list\n');
    fprintf(fidc,' ni_form="ni_group" >\n');
-   for (i=1:1:NLbl_MPM), 
+   for (i=1:1:NLbl_MPM),
       [err,PathString,FileString] = GetPath (MapMPM(i).ref, 1);
-      
+
       fprintf(fidc, '<ATLAS_POINT\n');
       fprintf(fidc, '  data_type="atlas_point"\n');
       fprintf(fidc, '  STRUCT="%s"\n',deblank(MapMPM(i).name));
@@ -262,7 +262,7 @@ end
    end
    fprintf(fidc, '</atlas_point_list>\n');
    fclose(fidc);
-   
+
    % now, repeat with the closely related PM maps (probability maps)
    PMname = sprintf('%s/%s', toolbox_dir, PMname);
    fidc = fopen (PMname,'w');
@@ -276,10 +276,10 @@ end
 %   fprintf(fidc,'%s', str);
 %Now create PMaps structure in NIML atlas point list format
    fprintf(fidc,'# -----------     PMaps      ---------------------\n');
-   fprintf(fidc,'# ----------- Based on: %s --------------\n', MPM_file);   
+   fprintf(fidc,'# ----------- Based on: %s --------------\n', MPM_file);
    fprintf(fidc,'<atlas_point_list\n');
    fprintf(fidc,' ni_form="ni_group" >\n');
-   for (i=1:1:NLbl_MPM), 
+   for (i=1:1:NLbl_MPM),
       [err,PathString,FileString] = GetPath (MapMPM(i).ref, 1);
       fprintf(fidc, '<ATLAS_POINT\n');
       fprintf(fidc, '  data_type="atlas_point"\n');
@@ -295,8 +295,8 @@ end
    fprintf(fidc, '</atlas_point_list>\n');
    fclose(fidc);
 
-   
-   
+
+
    % now, make Macrolabel NIML atlas point list
    MLname = sprintf('%s/%s', toolbox_dir, MLname);
    fidc = fopen (MLname,'w');
@@ -312,10 +312,10 @@ end
 %   fprintf(fidc,'%s', str);
 %Now create ML (macrolabel) structure in NIML atlas point list format
    fprintf(fidc,'# -----------     Macrolabels    ---------------------\n');
-   fprintf(fidc,'# ----------- Based on: %s --------------\n', ML_file(1).name);   
+   fprintf(fidc,'# ----------- Based on: %s --------------\n', ML_file(1).name);
    fprintf(fidc,'<atlas_point_list\n');
    fprintf(fidc,' ni_form="ni_group" >\n');
-   for (i=1:1:NLbl_ML), 
+   for (i=1:1:NLbl_ML),
       fprintf(fidc, '<ATLAS_POINT\n');
       fprintf(fidc, '  data_type="atlas_point"\n');
       fprintf(fidc, '  STRUCT="%s"\n',deblank(MapML(i,:)));
@@ -327,8 +327,8 @@ end
    end
    fprintf(fidc, '</atlas_point_list>\n\n');
    fclose(fidc);
-   
-   
+
+
    % now, make Left/Right Brain NIML atlas point list
    LRname = sprintf('%s/%s', toolbox_dir, LRname);
    fidc = fopen (LRname,'w');
@@ -342,11 +342,11 @@ end
 %   fprintf(fidc,'%s', str);
 %Now create LR (left/right) structure in NIML atlas point list format
    fprintf(fidc,'# -----------     LeftRight    ---------------------\n');
-   fprintf(fidc,'# ----------- Based on: %s --------------\n', LRname);   
+   fprintf(fidc,'# ----------- Based on: %s --------------\n', LRname);
    fprintf(fidc,'<atlas_point_list\n');
    fprintf(fidc,' ni_form="ni_group" >\n');
    Lst = {'Right Brain' 'Left Brain'};
-   for (i=1:1:2), 
+   for (i=1:1:2),
       fprintf(fidc, '<ATLAS_POINT\n');
       fprintf(fidc, '  data_type="atlas_point"\n');
       fprintf(fidc, '  STRUCT="%s"\n',char(Lst(i)));
@@ -358,7 +358,7 @@ end
    end
    fprintf(fidc, '</atlas_point_list>\n');
    fclose(fidc);
-   
+
 return;
 
 function str = fix_string(stri)
@@ -369,16 +369,16 @@ function str = fix_string(stri)
    broken = 0;
    closed = 0;
    while (i > 1 && ~broken),
-      if (str(i) == ')'), 
-         closed = closed + 1; 
-      elseif (str(i) == '('), 
+      if (str(i) == ')'),
+         closed = closed + 1;
+      elseif (str(i) == '('),
          if (closed == 0),
             broken = 1;
          end
       end
       i = i - 1;
    end
-   
+
    if (broken),
       i = n_str;
       fixed = 0;
@@ -390,9 +390,9 @@ function str = fix_string(stri)
             fixed = 1;
          end
          i = i - 1;
-      end   
+      end
    end
-return;  
+return;
 
 function str = pad_with_dot(stri, ntot)
    if (nargin == 2),
@@ -406,5 +406,5 @@ function str = pad_with_dot(stri, ntot)
       str(i) = '.';
       i = i - 1;
    end
-      
-return;  
+
+return;

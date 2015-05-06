@@ -3,25 +3,25 @@ function [err, out_fn] = Norm (InBrik, N_runs, run, run_norm, run_mask, foutid_l
 %   [err, norm_fn] = Norm(InBrik, N_runs, run)
 %
 %Purpose:
-%   
+%
 %   Normalize the original dataset so that the beta values in 3dDeconvolve would be automatically percent signal change.
-%   
+%
 %Input Parameters:
-%   
-%   
-%   
+%
+%
+%
 %Output Parameters:
 %   err : 0 No Problem
 %       : 1  Problems
-%   
-%   
-%      
+%
+%
+%
 %Key Terms:
-%   
+%
 %More Info :
-%   
-%   
-%   
+%
+%
+%
 %
 %     Author : Gang Chen
 %     Date : Mon Oct 20 11:26:38 EDT 2003
@@ -61,7 +61,7 @@ if (run_mask.do == 1),
 	rm_cmmd = sprintf('%s %s%s%s', rm_cmmd, automask_fn, InBrikView, InBrikExt);
 	
 	%If no normalization, do masking
-   if (run_norm == 0), 
+   if (run_norm == 0),
 	   out_fn = sprintf('%s_mask', InBrikPrefix);
       mask_signal = sprintf('3dcalc -fscale -a  %s%s  \\\n', InBrikPrefix, InBrikView);
  	   mask_signal = sprintf('%s    -b %s%s \\\n', mask_signal, automask_fn, InBrikView);
@@ -83,7 +83,7 @@ if (run_norm == 1),   %for normalization
    concat = sprintf('3dTcat -prefix %s ', out_fn);
 	
    for (i=1:1:N_runs),
-   
+
    %store each mean dataset in a temporary file, and delete it before leaving this function.
       mean_fn = sprintf('%s_mean%i', InBrikPrefix, i);
 	   get_mean = sprintf('3dTstat -mean -prefix %s %s%s''[%i..%i]''', mean_fn, InBrikPrefix, InBrikView, run(i).first, run(i).last);
@@ -99,8 +99,8 @@ if (run_norm == 1),   %for normalization
 %	norm_signal = sprintf('3dcalc -datum float -a  %s%s''[%i..%i]''  \\\n', InBrikPrefix, InBrikView, run(i).first, run(i).last);
 	   norm_signal = sprintf('3dcalc -fscale -a  %s%s''[%i..%i]''  \\\n', InBrikPrefix, InBrikView, run(i).first, run(i).last);
    	norm_signal = sprintf('%s    -b %s%s \\\n', norm_signal, mean_fn, InBrikView);
-		if (run_mask.do == 1), 
-		   norm_signal = sprintf('%s    -c %s%s \\\n', norm_signal, automask_fn,InBrikView); 
+		if (run_mask.do == 1),
+		   norm_signal = sprintf('%s    -c %s%s \\\n', norm_signal, automask_fn,InBrikView);
 		%	norm_signal = sprintf('%s    -expr  "(a/b*100)*step(b-clip_level)" \\\n', norm_signal);
    	   norm_signal = sprintf('%s    -expr  "(a/b*100)*c" \\\n', norm_signal);
 		else norm_signal = sprintf('%s    -expr  "a/b*100" \\\n', norm_signal);

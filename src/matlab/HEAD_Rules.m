@@ -4,12 +4,12 @@ function [err, ErrMessage, Rules] = HEAD_Rules (FieldNames)
 %
 %Purpose:
 %   Retrieve the rules for the different fields in AFNI
-%   
-%   
+%
+%
 %Input Parameters:
 %   FieldNames is a ~ delirited list of N field names
-%   
-%   
+%
+%
 %Output Parameters:
 %   err : 0 No Problem
 %       : 1 Mucho Problems
@@ -18,14 +18,14 @@ function [err, ErrMessage, Rules] = HEAD_Rules (FieldNames)
 %     .isNum if it is supposed to be a string or a number (0 (string)/1 (int)/2(float), -1 for fields not in the database)
 %     .Length length of number vector or string (leave empty if not applicable)
 %     .minLength minimum length of vector or string (leave empty if not applicable)
-%   
-%      
+%
+%
 %Key Terms:
-%   
+%
 %More Info :
 %   AFNI's README.attributes
-%   
-%   
+%
+%
 %
 %     Author : Ziad Saad
 %     Date : Mon Apr 9 15:58:24 PDT 2001
@@ -48,7 +48,7 @@ if (nargin == 0),
 end
 
 if (isempty(FieldNames)),
-	%Need to retrieve rules for all fields 
+	%Need to retrieve rules for all fields
 	%This is a ~ delimited list of all the fields present in this function
 		tmp1 = 'BRICK_FLOAT_FACS~BRICK_LABS~BRICK_KEYWORDS~BRICK_STATAUX~BRICK_STATS~BRICK_TYPES~BYTEORDER_STRING~';
 		tmp2 = 'DATASET_DIMENSIONS~DATASET_KEYWORDS~DATASET_NAME~DATASET_RANK~DELTA~HISTORY_NOTE~IDCODE_ANAT_PARENT~';
@@ -218,11 +218,11 @@ end %for cnt
 
 
 
-	 
- 
+	
 
 
- 
+
+
 
 
 err = 0;
