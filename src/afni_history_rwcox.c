@@ -43,7 +43,12 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 27 , APR , 2015 , RWC , "debug tracing" , MICRO , TYPE_GENERAL ,
+  { 4 , MAY , 2015 , RWC , "GLTsymtest" , MINOR , TYPE_NEW_PROG ,
+   "For testing symbolic GLTs in a script" ,
+   "So that the big boy (3dDeconvolve) doesn't have to be run just for this\n"
+   "purpose.  To help out with afni_proc.py" } ,
+
+ { 27 , APR , 2015 , RWC , "debug tracing" , MICRO , TYPE_GENERAL ,
    "Added 'recent internal history' to .afni.crashlog" ,
    "The last few ENTRY/EXIT/STATUS updates are saved, to help pinpoint the\n"
    "sequence of events before the demise of the patient." } ,
