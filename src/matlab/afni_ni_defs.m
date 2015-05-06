@@ -1,7 +1,7 @@
 function [nidef] = afni_ni_defs()
    global nidef;
-   
-   %work out types /* definitions from niml.h 
+
+   %work out types /* definitions from niml.h
    nidef.NI_BYTE     =   0        ;       %/* == MRI_byte    */
    nidef.NI_SHORT    =   1       ;        %/* == MRI_short   */
    nidef.NI_INT      =   2       ;        %/* == MRI_int     */
@@ -19,7 +19,7 @@ function [nidef] = afni_ni_defs()
 %    Note that if this changes,
 %    the NI_rowtype stuff must be altered accordingly. */
    nidef.NI_NUM_BASIC_TYPES = 8;
-   
+
 %/*! One more than the last NI_ data type code defined above. */
    nidef.NI_NUM_TYPES       = 9;
 

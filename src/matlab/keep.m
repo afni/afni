@@ -5,7 +5,7 @@ function keep(varargin);
 %       Xiaoning (David) Yang   xyang@lanl.gov 1998
 %       Revision based on comments from Michael McPartland,
 %       michael@gaitalf.mgh.harvard.edu, 1999
- 
+
 %       Keep all
 if isempty(varargin)
         return
@@ -66,4 +66,4 @@ if length(I) ~= 1
                 end
         end
         evalin('caller',['clear ',del{:}])
-end 
+end
