@@ -442,21 +442,20 @@ set rc = ( `1d_tool.py -infile $xstim -show_rows_cols -verb 0` )
 set nint = $rc[2]
 @ nm1 = $nint - 1
 
+# if censoring, print main censor fraction
 if ( $was_censored ) then
     set ntr_censor = `cat $censor_dset | grep 0 | wc -l`
     echo "TRs censored              : $ntr_censor"
     echo "censor fraction           : `ccalc $ntr_censor/$total_trs`"
+endif
+
+# print num regressors of interest
+if ( $num_stim > 0 ) then
     echo "num regs of interest      : $nint"
 else
-    # no censoring - just compute num TRs per regressor
-    set stim_trs = ()
-    foreach index ( `count -digits 1 0 $nm1` )
-        set st = `1deval -a $xstim"[$index]" -expr 'bool(a)' | grep 1 | wc -l`
-        set stim_trs = ( $stim_trs $st )
-    end
-    echo "num regs of interest      : $nint"
-    echo "num TRs per stim          : $stim_trs"
+    echo "num regs of interest      : $num_stim"
 endif
+
 
 # report per-stim censoring
 if ( $was_censored && $num_stim > 0 ) then
@@ -483,6 +482,14 @@ if ( $was_censored && $num_stim > 0 ) then
     echo "num TRs per stim (orig)   : $stim_trs"
     echo "num TRs censored per stim : $stim_trs_censor"
     echo "fraction TRs censored     : $stim_frac_censor"
+else if ( $num_stim > 0 ) then
+    # no censoring - just compute num TRs per regressor
+    set stim_trs = ()
+    foreach index ( `count -digits 1 0 $nm1` )
+        set st = `1deval -a $xstim"[$index]" -expr 'bool(a)' | grep 1 | wc -l`
+        set stim_trs = ( $stim_trs $st )
+    end
+    echo "num TRs per stim          : $stim_trs"
 endif
 
 """
@@ -779,9 +786,10 @@ g_history = """
                       (probably change to per stim, later)
    0.40 Apr 23, 2015: added -help_fields/-help_fields_brief for describing
                       basic output fields
+   0.41 May  1, 2015: keep num regs of interest = 0 if num stim = 0
 """
 
-g_version = "gen_ss_review_scripts.py version 0.39, Jul 1:, 2014"
+g_version = "gen_ss_review_scripts.py version 0.41, May 1, 2015"
 
 g_todo_str = """
    - figure out template_space (should we output 3dinfo -space?)

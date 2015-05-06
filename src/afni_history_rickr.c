@@ -49,6 +49,27 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  5,  May, 2015, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,
+   "added help (inc Ex 11), follower modifications, WMe corr diag change",
+   NULL
+ } ,
+
+ {  4,  May, 2015, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
+   "added -anat_follower, -anat_follower_ROI, -regress_anaticor_label",
+   NULL
+ } ,
+
+ {  1,  May, 2015, RCR, "gen_ss_review_scripts.py", MICRO, TYPE_MODIFY,
+   "keep num regs of interest = 0 if num stim = 0",
+   NULL
+ } ,
+
+ { 30,  Apr, 2015, RCR, "afni_proc.py", MICRO, TYPE_NEW_OPT,
+   "allow AM2 centering param via basis backdoor (for now)",
+   "For example, use basis function 'BLOCK(2) :x:0.176'\n"
+   "Done for J Britton."
+ } ,
+
  { 29,  Apr, 2015, RCR, "NIFTI", MINOR, TYPE_MODIFY,
    "allow reading and writing unknown extensions",
    NULL
