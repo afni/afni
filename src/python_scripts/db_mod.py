@@ -4274,8 +4274,8 @@ def db_cmd_regress_tfitter(proc, block):
 
     # sub-brick selection, in case of censoring
     if proc.censor_file:
-       cs = '# 3dTfitter does not take censor file, so note TRs to process\n' \
-            'set keep_trs = `1d_tool.py -infile %s %s`\n\n'                   \
+       cs = '# for backward compatibility, exclude censored TRs\n' \
+            'set keep_trs = `1d_tool.py -infile %s %s`\n\n'       \
             % (proc.xmat, '-show_trs_uncensored encoded')
        cmd += cs
        substr = '"[$keep_trs]"'
@@ -4291,21 +4291,13 @@ def db_cmd_regress_tfitter(proc, block):
         maskstr = '-mask %s ' % proc.mask.shortinput()
     else: maskstr = ''
 
-    cmd += '# use 3dTfitter to perform the original regression,\n'      \
-           '# plus regress out the voxel-wise %s time series\n' % lset.prefix
+    cmd += '# use 3dTproject to regress out the voxel-size time series\n' \
+           '# %s, along with all original regressors\n' % lset.prefix
 
-    fitts = 'fitts.%s.$subj' % rlabel
-    cmd += '3dTfitter -polort -1 %s\\\n'                    \
-           '          -RHS %s%s%s \\\n'                     \
-           '          -LHS %s %s \\\n'                      \
-           '          -prefix stats.%s.$subj -fitts %s\n\n' \
-           % (maskstr, proc.all_runs, proc.view, substr,
-                       proc.xmat, lset.shortinput(), rlabel, fitts)
-
-    cmd += '# compute the final errts dataset (as all_runs - fitts)\n' \
-           '3dcalc -a %s%s%s -b %s%s \\\n'      \
-           '       -expr a-b -prefix %s\n\n'  \
-           % (proc.all_runs, proc.view, substr, fitts, proc.view, rset.prefix)
+    cmd += '3dTproject -polort 0 -input %s%s%s \\\n'  \
+           '       -ort %s -dsort %s -prefix %s\n\n'  \
+           % (proc.all_runs, proc.view, substr, proc.xmat, lset.shortinput(),
+              rset.prefix)
 
     return 0, cmd
 
