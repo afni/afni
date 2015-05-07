@@ -1585,9 +1585,10 @@ void AFNI_sigfunc_alrm(int sig)
      "Shedding new light on the brain since 1994!"                   ,
      "Brain-ology at the cutting edge since 1994!"                   ,
      "Don't you wish it had a 'Write Nature Paper' button?"          ,
-     "Coming soon: the 'Write Science Paper' interface"              ,
+     "Coming REAL soon: the 'Write Science Paper' interface"         ,
      "And flights of angels sing thee to thy rest"                   ,
 
+     "Have you made your long term (trillion year) research plan yet? Get busy"       ,
      "Why is 'Gold Standard' used in science? Gold is pretty but almost useless"      ,
      "Oh well, you can always end your paper with 'Further research needed'"          ,
      "It's not true my youth was wild and crazy -- only half of that is true"         ,
