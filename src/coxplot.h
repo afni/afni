@@ -105,7 +105,11 @@ typedef struct {
       if( (name)->nxyline == (name)->nxyline_all ){                                        \
         nn = (name)->nxyline_all = EXP_MEMPLOT * (name)->nxyline_all + INC_MEMPLOT ;       \
         (name)->xyline = (float *)realloc( (name)->xyline, sizeof(float)*NXY_MEMPLOT*nn ); \
-      }                                                                                    \
+        if( nn > 999999 ){                                                                 \
+          double qq=log10((double)nn) ;                                                    \
+          if( qq-(int)qq < 0.08 )                                                          \
+            fprintf(stderr,"** WARNING: in memory plot exceeds %d elements!\n",nn) ;       \
+      } }                                                                                  \
       nn = NXY_MEMPLOT * (name)->nxyline ;                                                 \
       (name)->xyline[nn++] = (x1) ; (name)->xyline[nn++] = (y1) ;                          \
       (name)->xyline[nn++] = (x2) ; (name)->xyline[nn++] = (y2) ;                          \

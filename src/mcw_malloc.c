@@ -25,6 +25,7 @@
 #undef realloc
 #undef calloc
 #undef free
+#undef strdup
 #undef XtMalloc
 #undef XtRealloc
 #undef XtFree
@@ -33,6 +34,7 @@
 #undef mcw_realloc
 #undef mcw_calloc
 #undef mcw_free
+#undef mcw_strdup
 
 #undef  UINT
 #define UINT unsigned int
@@ -422,49 +424,61 @@ long long mcw_malloc_total(void)  /* 01 Feb 2007 */
 extern int THD_is_file( char * ) ;
 extern void qsort_intint( int , int * , int * ) ;
 static int size_sort = 0;
+void mcw_malloc_dump_fp(FILE *fp) ;
 
-void mcw_malloc_dump(void)
+/** 23 Apr 2015: factor the filename finding and the dumping **/
+
+void mcw_malloc_dump(void)   /* make up a filename and then call the dumper */
 {
-   if( ! use_tracking ) return ;
+#pragma omp critical (MCW_MALLOC_dump)
+ { int ii ; char fname[32] ; FILE *fp=NULL ;
+   for( ii=1 ; ii < 1000 ; ii++ ){ /* find and open an output file */
+     sprintf(fname,"malldump.%03d",ii) ;
+     if( THD_is_file(fname) ) continue ;
+     fp = fopen( fname , "w" ) ;
+     if( fp == NULL ){
+       fprintf(stderr,"** Unable to open file %s for malloc table dump!\n",fname);
+       goto IAMDONE ;
+     }
+     break ;
+   }
+   if( fp == NULL ){
+     fprintf(stderr,"** Attempt to exceed 999 malloc table dump files!\n") ;
+     goto IAMDONE ;
+   }
+
+   mcw_malloc_dump_fp(fp) ; fclose(fp) ;  /* do the work and quit */
+
+IAMDONE: ; /*nada*/
+ } /* end OpenMP critical */
+
+ return ;
+}
+
+/*------------------------------------------------------------------*/
+/* 23 Apr 2015: do the dumping to an already open file (left open) */
+
+void mcw_malloc_dump_fp(FILE *fp)
+{
+   if( ! use_tracking || fp == NULL ) return ;
 
 #pragma omp critical (MCW_MALLOC_dump)
- { int ii,jj,kk ;
-   char fname[32] , *str ;
-   FILE *fp = NULL ;
-   int nptr=0 ;
-   int *ss , *jk ;
-
-   /* find and open an output file */
-
-   for( ii=1 ; ii < 1000 ; ii++ ){
-      sprintf(fname,"malldump.%03d",ii) ;
-      if( THD_is_file(fname) ) continue ;
-      fp = fopen( fname , "w" ) ;
-      if( fp == NULL ){
-         fprintf(stderr,"** Unable to open file %s for malloc table dump!\n",
-                 fname ) ;
-         goto IAMDONE ;
-      }
-      break ;
-   }
-
-   if( fp == NULL ){
-      fprintf(stderr,"** Attempt to exceed 999 malloc table dump files!\n") ;
-      goto IAMDONE ;
-   }
+ { int ii,jj,kk,nptr=0 ; char *str ; int *ss , *jk ;
 
    /* count number of entries in the hash table */
 
    for( jj=0 ; jj < SLOTS ; jj++ ){
-      for( kk=0 ; kk < nhtab[jj] ; kk++ ){
-         if( htab[jj][kk].pmt != NULL ) nptr++ ;
-      }
+     for( kk=0 ; kk < nhtab[jj] ; kk++ ){
+       if( htab[jj][kk].pmt != NULL ) nptr++ ;
+     }
    }
 
+   fprintf(fp,".....................................................................\n");
+   fprintf(fp,".................... mcw_malloc() tracking table ....................\n");
    if( nptr < 1 ){
-      fprintf(fp    ,"--- Nothing is malloc()-ed !? ---\n") ;
-      fprintf(stderr,"--- Nothing is malloc()-ed !? ---\n") ;
-      fclose(fp) ;
+     fprintf(fp    ,"--- Nothing is malloc()-ed !? ---\n") ;
+     fprintf(stderr,"--- Nothing is malloc()-ed !? ---\n") ;
+     goto IAMDONE ;
    }
 
    /* setup to sort by serial number */
@@ -477,14 +491,14 @@ void mcw_malloc_dump(void)
    /* scan table for non-NULL entries */
 
    for( ii=jj=0 ; jj < SLOTS ; jj++ ){
-      for( kk=0 ; kk < nhtab[jj] ; kk++ ){
-         if( htab[jj][kk].pmt != NULL ){
-            if (size_sort) ss[ii] =  htab[jj][kk].psz ; /* save size */
-            else ss[ii] = htab[jj][kk].pss ;   /* save serial number */
-            jk[ii] = JBASE*jj + kk ;      /* save jj and kk */
-            ii++ ;
-         }
-      }
+     for( kk=0 ; kk < nhtab[jj] ; kk++ ){
+       if( htab[jj][kk].pmt != NULL ){
+         if (size_sort) ss[ii] = htab[jj][kk].psz ; /* save size */
+         else           ss[ii] = htab[jj][kk].pss ; /* save serial number */
+         jk[ii] = JBASE*jj + kk ;                   /* save jj and kk */
+         ii++ ;
+       }
+     }
    }
 
    qsort_intint( nptr , ss , jk ) ;  /* sort by ss, carrying jk along */
@@ -505,40 +519,44 @@ void mcw_malloc_dump(void)
       jj = jk[ii] / JBASE ;           /* retrieve jj and kk */
       kk = jk[ii] % JBASE ;
       if( htab[jj][kk].pmt != NULL ){
-         fprintf(fp,"%7u %10d %-20.30s %5d %10p %5d %3d",
-                 htab[jj][kk].pss , (int)htab[jj][kk].psz ,
-                 htab[jj][kk].pfn , htab[jj][kk].pln , htab[jj][kk].pmt ,
-                 jj,kk ) ;
+        fprintf(fp,"%7u %10d %-20.30s %5d %10p %5d %3d",
+                htab[jj][kk].pss , (int)htab[jj][kk].psz ,
+                htab[jj][kk].pfn , htab[jj][kk].pln , htab[jj][kk].pmt ,
+                jj,kk ) ;
 #ifdef USE_TRACING
-         { int tt ;
-           for( tt=0 ; tt < NTB && htab[jj][kk].ptb[tt] != NULL ; tt++ )
-              fprintf(fp," <- %s",htab[jj][kk].ptb[tt]) ;
-         }
+        { int tt ;
+          for( tt=0 ; tt < NTB && htab[jj][kk].ptb[tt] != NULL ; tt++ )
+             fprintf(fp," <- %s",htab[jj][kk].ptb[tt]) ;
+        }
 #endif
-         fprintf(fp,"\n") ;
+        fprintf(fp,"\n") ;
       }
       else
-         fprintf(fp,"*** Error at ii=%d jj=%d kk=%d\n",ii,jj,kk) ;
+        fprintf(fp,"*** Error at ii=%d jj=%d kk=%d\n",ii,jj,kk) ;
    }
 
    free(ss) ; free(jk) ;
 
-   /* and print out the summary line (to the file and screen) */
+   /* and print out the summary line (to the file) */
 
    str = mcw_malloc_status(NULL,0) ;
    fprintf(fp,"----- Summary: %s\n",str) ;
-   fclose(fp) ;
 
-   fprintf(stderr,"** Malloc table dumped to file %s\n",fname) ;
-   fprintf(stderr,"** Summary: %s\n",str) ;
+   if( fp != stderr ){
+     fprintf(stderr,"** Malloc table dumped to output file\n") ;
+     fprintf(stderr,"** Summary: %s\n",str) ;
+   }
 
-   IAMDONE: ;
+IAMDONE:
+   fprintf(fp,".....................................................................\n");
  } /* end OpenMP critical */
 
  return ;
 }
 
+/*--------------------------------------------------------------------*/
 /* put below mcw_malloc_dump to appease solaris   30 Dec 2013 [rickr] */
+
 void mcw_malloc_dump_sort(int opt) {
    if (opt == 1) size_sort = 1;
    mcw_malloc_dump();
@@ -624,7 +642,7 @@ void * mcw_malloc( size_t n , char *fnam , int lnum )
    The actual replacement for realloc()
 ------------------------------------------------------------------*/
 
-void * mcw_realloc( void * fred , size_t n , char *fnam , int lnum )
+void * mcw_realloc( void *fred , size_t n , char *fnam , int lnum )
 {
    mallitem *ip ;
 
@@ -633,8 +651,16 @@ void * mcw_realloc( void * fred , size_t n , char *fnam , int lnum )
 
    if( use_tracking && (ip=shift_tracker(fred)) != NULL )
       return realloc_track( ip , n , fnam,lnum ) ;
-   else
+   else {
+#ifdef USE_TRACING
+      if( use_tracking ){
+        char buf[1024] ;
+        sprintf(buf,"** realloc() of non-tracked pointer [%s line %d]",fnam,lnum) ;
+        STATUS(buf) ;
+      }
+#endif
       return realloc( fred , n ) ;
+   }
 }
 
 /*----------------------------------------------------------------
@@ -645,6 +671,29 @@ void * mcw_calloc( size_t n , size_t m , char *fnam , int lnum )
 {
    if( use_tracking ) return calloc_track( n , m , fnam,lnum ) ;
    else               return calloc( n , m ) ;
+}
+
+/*-----------------------------------------------------------------
+  Replacement for strdup() [06 May 2015]
+-------------------------------------------------------------------*/
+
+char * mcw_strdup( char *ssin , char *fnam , int lnum )
+{
+   char *ssout = NULL ; size_t lss ;
+
+   if( ssin == NULL ) return ssout ;  /* stupid (ab)user */
+
+   lss = strlen(ssin)+1 ;
+   if( use_tracking ){
+     ssout = mcw_malloc( lss , fnam,lnum ) ;
+#if 0
+     { char buf[1024]; sprintf(buf,"called mcw_strdup() [%s line %d p=%p]",fnam,lnum,ssout); STATUS(buf); }
+#endif
+   } else {
+     ssout = malloc(lss) ;
+   }
+   strcpy(ssout,ssin) ;
+   return ssout ;
 }
 
 #ifndef DONT_USE_MCW_MALLOC
@@ -670,8 +719,14 @@ void mcw_free( void *fred )
    mallitem *ip ;
 
    if( fred == NULL ) return ;
-   if( use_tracking && (ip=shift_tracker(fred)) != NULL ) free_track( ip ) ;
-   else                                                   free( fred ) ;
+   if( use_tracking && (ip=shift_tracker(fred)) != NULL )
+     free_track( ip ) ;
+   else {
+#ifdef USE_TRACING
+     if( use_tracking ) STATUS("** free() of non-tracked pointer [strdup? NIML?]") ;
+#endif
+     free( fred ) ;
+   }
 }
 
 /*-----------------------------------------------------------------

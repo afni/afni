@@ -45,6 +45,10 @@
     Jan 2015b:
         minor bug fix when tiny number of input suprathreshold voxels
 
+    April 2015:
+        minor bug fix: outsets needed to have brickfac nulled, for when
+        byte and short insets were used (-> had been causing error and 
+        no output)
 */
 
 
@@ -1269,9 +1273,10 @@ int main(int argc, char *argv[]) {
    else
       sprintf(prefix_GM,"%s_GM",prefix);
 
-
+   
 	EDIT_dset_items( outsetGM,
 						  ADN_datum_all , MRI_short , 
+                    ADN_brick_fac, NULL,
 						  ADN_prefix    , prefix_GM ,
 						  ADN_none ) ;
 	
@@ -1526,6 +1531,7 @@ int main(int argc, char *argv[]) {
 
 	EDIT_dset_items( outsetGMI,
 						  ADN_datum_all , MRI_short , 
+                    ADN_brick_fac, NULL,
 						  ADN_prefix    , prefix_GMI ,
 						  ADN_none ) ;
 	
