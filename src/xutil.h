@@ -3,7 +3,7 @@
    of Wisconsin, 1994-2000, and are released under the Gnu General Public
    License, Version 2.  See the file README.Copyright for details.
 ******************************************************************************/
-
+ 
 #ifndef _MCW_XUTIL_HEADER_
 #define _MCW_XUTIL_HEADER_
 
@@ -232,6 +232,8 @@ extern MCW_htmlwin * new_MCW_htmlwin( Widget wpar , char *msg ,
                                       void_func *kill_func , XtPointer kill_data,
                                       MCW_action_item *umai, int nact ) ;
 extern void MCW_htmlwin_alter( MCW_htmlwin *hw , char *mmm ) ;
+
+extern char * convert_text_to_html( char *txt ) ; /* 06 May 2015 */
 
 extern void RWC_visibilize_widget( Widget ) ;  /* 09 Nov 1999 */
 

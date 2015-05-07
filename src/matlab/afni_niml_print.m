@@ -4,7 +4,7 @@ function s=afni_niml_print(p)
 % S=AFNI_NIML_PRINT(P) takes an NIML datastructure P and returns a string
 % representation S.
 %
-% This function is more or less the inverse of AFNI_NIML_PARSE. 
+% This function is more or less the inverse of AFNI_NIML_PARSE.
 %
 % The current implementation will take any struct that has the required
 % NIML fields; it does not check for any data consisentence.
@@ -23,17 +23,17 @@ if iscell(p)
 else
     headername=p.name;
     p=rmfield(p,'name'); % we don't want this as a field
-    
-    if isfield(p,'nodes') 
+
+    if isfield(p,'nodes')
         % is a group, do recursion
         sbody=afni_niml_print(p.nodes);
         p=rmfield(p,'nodes'); % 'nodes' is not a standard NIML field
-    elseif isfield(p,'data') 
+    elseif isfield(p,'data')
         if ~isfield(p,'vec_typ')
-            % in case the type is not specified, we try 
+            % in case the type is not specified, we try
             % to derive it based on the type of p.data
             ps=derive_vec_type(p.data);
-            
+
             % set field names if not set
             fns=fieldnames(ps);
             for k=1:numel(fns)
@@ -44,10 +44,10 @@ else
         elseif p.vec_typ<0;
             error('vec_typ=%d not supported (yet)', p.vec_typ);
         end
-                
+
         sbody=afni_niml_print_body(p);
-        
-        % some fields are not standard NIML (I think), we remove these 
+
+        % some fields are not standard NIML (I think), we remove these
         removefields=strvcat('vec_typ','vec_len','vec_num','name','data');
         fns=fieldnames(p);
         for k=1:numel(fns)
@@ -60,11 +60,11 @@ else
         disp(p)
         error('Do not understand this struct');
     end
-    
+
     headertext=afni_niml_print_header(p);
     s=sprintf('<%s\n%s >\n%s</%s>\n',headername,headertext,sbody,headername);
 end
-    
+
 function s=afni_niml_print_body(p)
 
 format=get_print_format(p.vec_typ,p.data);
@@ -77,7 +77,7 @@ end
 s=sprintf([format '\n'],p.data);
 
 s=[around s(1:(end-1)) around]; % remove last newline
-        
+
 
 function s=afni_niml_print_header(p)
 pre='  ';           % a bit of indendationn
@@ -89,12 +89,12 @@ ss=cell(1,n);
 for k=1:n
     fn=fns{k};
     val=strtrim(p.(fn));
-    
+
     if isnumeric(val)
         warning('Converting numeric to string for field %s\n', fn);
         val=num2str(val);
     end
-    
+
     % surround by quotes, if that's not the case yet
     if val(1) ~= '"' && val(end) ~= '"'
         val=['"' val '"'];
@@ -134,18 +134,18 @@ function p=derive_vec_type(data)
         disp(data)
         error('Unknown data type');
     end
-    
+
     if nm>1
         prefix=sprintf('%d*',nm);
     else
         prefix='';
     end
-    
+
     tps=strtrim(nidefs.type_name(tp+1,:)); % tricky base0 vs base1
-    
+
     p.ni_type=[prefix tps];
     p.ni_dimen=sprintf('%d',ln); %NNO Jan 2010 fix
-    
+
     p.vec_typ=repmat(tp,1,nm); % tricky base0 vs base1 % Jan 2010: removed 'tp+1'
     p.vec_len=ln;
     p.vec_num=nm;
@@ -189,7 +189,7 @@ function f=get_print_format(vec_typ,data,nidefs)
                 f=sprintf('%%.%df',precision);
         end
     end
-    
 
-        
-    
+
+
+

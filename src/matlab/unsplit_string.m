@@ -18,7 +18,7 @@ if n==0
     s='';
     return
 end
-    
+
 r=cell(1,2*n);
 for k=1:n
     r{k*2-1}=sep;
