@@ -405,7 +405,7 @@ char * MCW_buthighlight(Widget w)
    static char *buthighlight = NULL ;
 
    if( buthighlight == NULL ){
-     char *xdef = RWC_getname( (w!=NULL) ? XtDisplay(w) : NULL, 
+     char *xdef = RWC_getname( (w!=NULL) ? XtDisplay(w) : NULL,
                                                 "buthighlight" ) ;
 
      buthighlight = (xdef != NULL) ? (xdef) : ("blue2") ;
