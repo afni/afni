@@ -471,9 +471,10 @@ g_history = """
         - followers are copied to copy_af_LABEL
         - added Example 11 - a more modern resting state example
         - added local WMe correlation diagnostic using -ort X-matrix
+    4.42 May 07, 2015: replaced slow 3dTfitter with 3dTproject in anaticor
 """
 
-g_version = "version 4.41, May 5, 2015"
+g_version = "version 4.42, May 7, 2015"
 
 # version of AFNI required for script execution
 g_requires_afni = "1 Apr 2015" # 1d_tool.py uncensor from 1D
