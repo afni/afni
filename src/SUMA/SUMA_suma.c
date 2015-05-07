@@ -10,7 +10,6 @@
 #include "../afni.h"
 
 /* CODE */
-
 #ifdef SUMA_DISASTER
 /*!
    a function to test debugging 

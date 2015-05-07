@@ -11,17 +11,21 @@ function [p,s]=afni_niml_read(fn)
 
 s=simpleread(fn);
 
-[b1, ext]=is_non_niml_ascii(fn); % if the extension suggests that it is not ASCII NIML
-if b1 || is_non_niml_ascii(s);   % ... or the file contents suggest this
-                                 % then we try to convert the file   
-    warning('Input file seems to be not a NIML ASCII file, will try to convert it to ascii');
-    s=binaryToASCII(s,ext);
+try_binary_ascii=false; % disabled for now
+if try_binary_ascii
+    [b1, ext]=is_non_niml_ascii(fn); % if the extension suggests that it is not ASCII NIML
+    if b1 || is_non_niml_ascii(s);   % ... or the file contents suggest this
+                                     % then we try to convert the file
+        warning('Input file seems to be not a NIML ASCII file, will try to convert it to ascii');
+        s=binaryToASCII(s,ext);
+    end
 end
+
+% parse string
 p=afni_niml_parse(s);
 
 
 function s=simpleread(fn)
-fprintf('Reading %s\n', fn);
 fid=fopen(fn);
 if fid==-1
     error('Error reading from file %s\n', fn);
@@ -40,7 +44,7 @@ rand('twister',sum(100*clock)); % initialize random number generator
 while true
     idx=floor(rand()*1e6);
     prefix=sprintf('__TMP_%d',idx);
-    tmpfn1=sprintf('%s_in%s',prefix,ext);          % input 
+    tmpfn1=sprintf('%s_in%s',prefix,ext);          % input
     tmpfn2=sprintf('%s_out%s',prefix,'.niml.dset'); % output
     if ~exist(tmpfn1,'file') && ~exist(tmpfn2,'file')
         break;
@@ -48,7 +52,7 @@ while true
 end
 
 fid=fopen(tmpfn1,'w');
-if fid<0 
+if fid<0
     error('Could not open temporary file for writing');
 end
 
@@ -102,4 +106,4 @@ end
 
 
 
-    
+

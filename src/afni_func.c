@@ -6610,15 +6610,27 @@ void AFNI_list_papers( Widget w )
 {
 #include "afni_papers.h"
    int ii ;
-   if( w != (Widget)NULL && XtIsWidget(w) ){
+
+   if( w != (Widget)NULL && XtIsWidget(w) ){  /* open a window */
      char *inf=NULL ;
-     for( ii=0 ; afni_papers[ii] != NULL ; ii++ )
+     for( ii=0 ; afni_papers[ii] != NULL ; ii++ ){
        inf = THD_zzprintf( inf , " %s" , afni_papers[ii] ) ;
-     (void) new_MCW_textwin( w , inf , TEXT_READONLY ) ;
+     }
+#ifdef DONT_USE_HTMLWIN
+     (void) new_MCW_textwin( w , inf , TEXT_READONLY ) ;  /* plain text */
+#else
+     { char *qqq = convert_text_to_html(inf) ;       /* HTML with links */
+       (void)new_MCW_htmlwin( w , qqq , NULL,NULL,NULL,0 ) ;
+       free(qqq) ;
+     }
+#endif
      free(inf) ;
-   } else {
+
+   } else {   /* write papers list to stdout */
+
      for( ii=0 ; afni_papers[ii] != NULL ; ii++ )
        fputs(afni_papers[ii],stdout) ;
+
    }
    return ;
 }
@@ -7451,12 +7463,14 @@ ENTRY("AFNI_hidden_CB") ;
 
    else if( w == im3d->vwid->prog->hidden_browser_pb && w != NULL &&
             GLOBAL_browser != NULL ){
-
+     whereami_browser("http://afni.nimh.nih.gov/afni/doc/program_help/index.html");
+#if 0
      char cmd[2345] ;
      sprintf(cmd ,
              "%s http://afni.nimh.nih.gov/afni/doc/program_help/index.html &" ,
              GLOBAL_browser ) ;
      system(cmd) ;
+#endif
    }
 
    /*------- random speaking --------*/
