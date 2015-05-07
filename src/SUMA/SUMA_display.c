@@ -7769,6 +7769,7 @@ void SUMA_cb_createSurfaceCont_SO(Widget w, XtPointer data, XtPointer callData)
                   SUMA_ADO_Label(ado));
       SUMA_RETURNe;
    }
+   SUMA_LH("Cur Col Plane = %s", curColPlane->Name);
    if (SurfCont->TLS) {
       fprintf (SUMA_STDERR,
                "Error %s: SurfCont->TopLevelShell!=NULL.\n"
@@ -8551,7 +8552,11 @@ void SUMA_cb_createSurfaceCont_SO(Widget w, XtPointer data, XtPointer callData)
    
    if (SUMA_ADO_N_Overlays(ado)>0) {
       SUMA_LH("Initializing ColPlaneShell");
-      SUMA_InitializeColPlaneShell(ado, SUMA_ADO_Overlay0(ado));
+      SUMA_InitializeColPlaneShell(ado, curColPlane); /* Used to use Over0, 
+                              But that is not good when Over0 is not
+                              the current color Plane. This
+                              function no longer gets down to here without
+                           cutColPlane, so we should be good to go May 4th 2015*/
       #ifdef NONONO /* It looks like I do not need this anymore 
                        Used to be #idef DARWIN */
       /* Sometimes color maps do not show up on mac when you first 
