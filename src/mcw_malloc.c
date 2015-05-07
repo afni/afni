@@ -34,6 +34,7 @@
 #undef mcw_realloc
 #undef mcw_calloc
 #undef mcw_free
+#undef mcw_strdup
 
 #undef  UINT
 #define UINT unsigned int
@@ -423,6 +424,7 @@ long long mcw_malloc_total(void)  /* 01 Feb 2007 */
 extern int THD_is_file( char * ) ;
 extern void qsort_intint( int , int * , int * ) ;
 static int size_sort = 0;
+void mcw_malloc_dump_fp(FILE *fp) ;
 
 /** 23 Apr 2015: factor the filename finding and the dumping **/
 

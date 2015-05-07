@@ -369,6 +369,7 @@ static mday holiday[] = {
    {MAY, 5,"Henryk Sienkiewicz's birthday"                           } ,
    {MAY, 6,"Anniversary of Hindenburg explosion"                     } ,
    {MAY, 7,"Anniversary of sinking of Lusitania"                     } ,
+   {MAY, 7,"Anniversary of HMS Victory launch"                       } ,
    {MAY, 8,"VE Day"                                                  } ,
    {MAY, 8,"Harry S Truman's birthday"                               } ,
    {MAY, 9,"John Brown's birthday"                                   } ,
