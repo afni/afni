@@ -9,12 +9,12 @@ function S=afni_niml_readsimpleroi(fn)
 %   .iLabel       integer value of label
 %   .edge         1xP cell with node indices of ROI edges
 %   .region       1xQ cell with node indices contained in ROI (typically Q==1)
-% 
+%
 % Node indices are returned in base 1 (first node has index 1)
 %
 % Please note that this function is *VERY EXPERIMENTAL*, and has only been
 % tested with some ROI NIML files generated with AFNI SUMA.
-% 
+%
 % SEE ALSO: AFNI_NIML_READSIMPLE, AFNI_NIML_READ
 %
 % NNO Nov 2010
@@ -34,11 +34,11 @@ S=cell(n,1); % multiple ROIs
 
 for k=1:n
     Dk=D{k};
-    
+
     Sk=struct();
     Sk.Label=Dk.Label;
     Sk.iLabel=str2double(Dk.iLabel);
-    
+
     idxs=sscanf(Dk.data,'%f');
     nidxs=numel(idxs);
     pos=0; % last position of previous list of indices
@@ -58,5 +58,5 @@ for k=1:n
     end
     S{k}=Sk;
 end
-    
-    
+
+

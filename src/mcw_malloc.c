@@ -25,6 +25,7 @@
 #undef realloc
 #undef calloc
 #undef free
+#undef strdup
 #undef XtMalloc
 #undef XtRealloc
 #undef XtFree
@@ -652,7 +653,7 @@ void * mcw_realloc( void *fred , size_t n , char *fnam , int lnum )
 #ifdef USE_TRACING
       if( use_tracking ){
         char buf[1024] ;
-        sprintf(buf,"** attempt to realloc non-tracked pointer -- %s line %d",fnam,lnum) ;
+        sprintf(buf,"** realloc() of non-tracked pointer [%s line %d]",fnam,lnum) ;
         STATUS(buf) ;
       }
 #endif
@@ -668,6 +669,29 @@ void * mcw_calloc( size_t n , size_t m , char *fnam , int lnum )
 {
    if( use_tracking ) return calloc_track( n , m , fnam,lnum ) ;
    else               return calloc( n , m ) ;
+}
+
+/*-----------------------------------------------------------------
+  Replacement for strdup() [06 May 2015]
+-------------------------------------------------------------------*/
+
+char * mcw_strdup( char *ssin , char *fnam , int lnum )
+{
+   char *ssout = NULL ; size_t lss ;
+
+   if( ssin == NULL ) return ssout ;  /* stupid (ab)user */
+
+   lss = strlen(ssin)+1 ;
+   if( use_tracking ){
+     ssout = mcw_malloc( lss , fnam,lnum ) ;
+#if 0
+     { char buf[1024]; sprintf(buf,"called mcw_strdup() [%s line %d p=%p]",fnam,lnum,ssout); STATUS(buf); }
+#endif
+   } else {
+     ssout = malloc(lss) ;
+   }
+   strcpy(ssout,ssin) ;
+   return ssout ;
 }
 
 #ifndef DONT_USE_MCW_MALLOC
@@ -697,7 +721,7 @@ void mcw_free( void *fred )
      free_track( ip ) ;
    else {
 #ifdef USE_TRACING
-     if( use_tracking ) STATUS("** attempt to free non-tracked pointer!") ;
+     if( use_tracking ) STATUS("** free() of non-tracked pointer [strdup? NIML?]") ;
 #endif
      free( fred ) ;
    }
