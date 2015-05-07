@@ -22,7 +22,7 @@ git config --global user.email  mertzf@bargle.argle
 git config --global core.editor vim
 
 #Create a copy of the repository on your machine:
-git clone https://github.com/afniHQ/AFNI.git
+git clone https://github.com/afni/afni.git
 
 ###..... Stuff to do as needed .....###
 

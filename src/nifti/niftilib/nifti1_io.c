@@ -4570,8 +4570,8 @@ static int nifti_fill_extension( nifti1_extension *ext, const char * data,
               (void *)ext, data, len);
       return -1;
    } else if( ! nifti_is_valid_ecode(ecode) ){
-      fprintf(stderr,"** fill_ext: invalid ecode %d\n", ecode);
-      return -1;
+      fprintf(stderr,"** warning: writing unknown ecode %d\n", ecode);
+      /* should not be fatal    29 Apr 2015 [rickr] */
    }
 
    /* compute esize, first : len+8, and take ceiling up to a mult of 16 */
@@ -4701,8 +4701,8 @@ int valid_nifti_extensions(const nifti_image * nim)
    for ( c = 0; c < nim->num_ext; c++ ){
       if( ! nifti_is_valid_ecode(ext->ecode) ) {
          if( g_opts.debug > 1 )
-            fprintf(stderr,"-d ext %d, invalid code %d\n", c, ext->ecode);
-         errs++;
+            fprintf(stderr,"-d ext %d, unknown code %d\n", c, ext->ecode);
+         /* should not be fatal    29 Apr 2015 [rickr] */
       }
 
       if( ext->esize <= 0 ){
@@ -4761,7 +4761,7 @@ static int nifti_check_extension(nifti_image *nim, int size, int code, int rem)
    if( ! nifti_is_valid_ecode(code) ) {
       if( g_opts.debug > 2 )
          fprintf(stderr,"-d invalid extension code %d\n",code);
-      return 0;
+      /* should not be fatal    29 Apr 2015 [rickr] */
    }
 
    if( size < 16 ){
@@ -6387,14 +6387,14 @@ int nifti_short_order(void)   /* determine this CPU's byte order */
 nifti_image *nifti_image_from_ascii( const char *str, int * bytes_read )
 {
    char lhs[1024] , rhs[1024] ;
-   int ii , spos, nn , slen ;
+   int ii , spos, nn ;
    nifti_image *nim ;              /* will be output */
 
    if( str == NULL || *str == '\0' ) return NULL ;  /* bad input!? */
 
    /* scan for opening string */
 
-   spos = 0 ; slen = (int)strlen(str) ;
+   spos = 0 ; 
    ii = sscanf( str+spos , "%1023s%n" , lhs , &nn ) ; spos += nn ;
    if( ii == 0 || strcmp(lhs,"<nifti_image") != 0 ) return NULL ;
 

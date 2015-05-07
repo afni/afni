@@ -8,7 +8,7 @@
 #define _MCW_MRILIB_HEADER_
 
 #define MRILIB_7D
-#define _GNU_SOURCE             /* 23 Jun 2011 */
+#define _GNU_SOURCE 1           /* 23 Jun 2011 */
 
 #define COXEMAIL "rwcox@nih.gov"        /* or /dev/null, if you prefer */
 
@@ -1475,7 +1475,8 @@ typedef struct {
 } SYM_irange ;
 
 extern floatvecvec * SYM_expand_ranges( int, int, SYM_irange *, char * );
-extern int SYM_expand_errcount(void) ; /* 03 May 2007 */
+extern int SYM_expand_errcount(void) ;                          /* 03 May 2007 */
+extern char * SYM_test_gltsym( char *varlist , char *gltsym ) ; /* 01 May 2015 */
 
 /*-----------------  30 Oct 1996: incorporation of cdflib ----------------*/
 /*-----------------  09 May 2007: get them from nifticdf  ----------------*/

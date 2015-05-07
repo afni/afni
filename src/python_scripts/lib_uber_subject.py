@@ -144,9 +144,10 @@ g_history = """
          - thanks to P Taylor for noting the problem
     0.35 Feb 13, 2012: let user know of subj_dir when writing AP command
     0.36 Apr  5, 2013: added help web link for class handouts
+    0.37 Apr 14, 2015: added MIN_OUTLIER to volreg base list
 """
 
-g_version = '0.36 (April 5, 2013)'
+g_version = '0.37 (April 14, 2015)'
 
 # ----------------------------------------------------------------------
 # global definition of default processing blocks
@@ -158,7 +159,7 @@ g_def_blocks_all  = ['despike', 'tshift', 'align', 'tlrc', 'volreg', 'surf',
 g_def_blocks      = ['tshift', 'volreg', 'blur', 'mask', 'scale', 'regress']
 g_def_blocks_anat = ['tshift', 'align', 'tlrc', 'volreg', 'blur', 'mask',
                      'scale', 'regress']
-g_vreg_base_list  = ['first', 'third', 'last']
+g_vreg_base_list  = ['first', 'third', 'last', 'MIN_OUTLIER']
 g_def_vreg_base   = 'third'
 g_align_cost_list = ['lpc', 'lpc+ZZ', 'lpc+', 'lpa', 'nmi', 'ls']
 g_def_align_cost  = 'lpc'

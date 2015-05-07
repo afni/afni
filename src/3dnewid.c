@@ -86,22 +86,26 @@ int main( int argc , char * argv[] )
          ERROR_message("You need a string following -hash");
          exit(1);
       }
-      printf("%s\n", UNIQ_hashcode(argv[2]));  
+      printf("%s\n", UNIQ_hashcode(argv[2]));
       exit(0) ;
-   }  else if ( strcmp(argv[1],"-MD5") == 0 ){ /* Feb. 2015:for debugging 
-                                                -MD5 jj.k40.gii 
+   }  else if ( strcmp(argv[1],"-MD5") == 0 ){ /* Feb. 2015:for debugging
+                                                -MD5 jj.k40.gii
                                                    is giving the same string as
                                                 -MD5 jj.k60.gii */
       char *eee = NULL;
-      
+
       if( argc != 3 ) {
          ERROR_message("You need a string following -MD5");
          exit(1);
       }
+      MD5_set_xor_use(1) ;
       eee = MD5_B64_string(argv[2]) ;
-      printf("%s\n", eee);  free(eee);
+      printf("%s [with XOR of input]\n", eee);  free(eee);
+      MD5_set_xor_use(0) ;
+      eee = MD5_B64_string(argv[2]) ;
+      printf("%s [without XOR of input]\n", eee);  free(eee);
       exit(0) ;
-   }      
+   }
 
    /*-- OK, not for fun --*/
 

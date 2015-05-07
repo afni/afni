@@ -3,25 +3,25 @@ function D=afni_niml_writesimple(S,fn)
 %
 % D=AFNI_NIML_WRITESIMPLE(fn,S) writes surface data S to the file FN.
 % S should be a struct with a field S.data, and optionally S.stats,
-% S.labels, S.history, S.types, and S.node_indices. 
-% This function returns the more complicated NIML-struct D that is 
+% S.labels, S.history, S.types, and S.node_indices.
+% This function returns the more complicated NIML-struct D that is
 % written by afni_niml_write
 %
 % S.data            a PxN struct for P nodes and N datapoints per node.
-% S.node_indices    (optional) a Nx1 vector with indices in base 0. If 
-%                   omitted, then it is assumed that all nodes have data. 
-% S.stats       }   Either a string (with ';'-separated elements for 
-% S.labels      }   S.stats and .labels: , or a cell with strings. 
-% S.history     }   In the latter case, if the number of elements in the 
+% S.node_indices    (optional) a Nx1 vector with indices in base 0. If
+%                   omitted, then it is assumed that all nodes have data.
+% S.stats       }   Either a string (with ';'-separated elements for
+% S.labels      }   S.stats and .labels: , or a cell with strings.
+% S.history     }   In the latter case, if the number of elements in the
 %                   cell is less than P, then elements are taken in cycles.
 %
-% Example: 
+% Example:
 %   S=struct()
 %   S.data=randn(100002,4);
 %   S.labels={'A-mean','A-Tscore','B-mean','B-Tscore'};
 %   S.stats={'none','Ttest(15)'}; % each stat descriptor will be used twice
-%   afni_niml_writesimple('test.niml.dset',S)         
-% 
+%   afni_niml_writesimple('test.niml.dset',S)
+%
 % NNO Feb 2010 <n.oosterhof@bangor.ac.uk>
 
 if isnumeric(S)

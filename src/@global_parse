@@ -30,7 +30,9 @@ Global Help Options:
 --------------------
 
    -h_web: Open webpage with help for this program
+   -hweb: Same as -h_web
    -h_view: Open -help output in a GUI editor
+   -hview: Same as -hview
    -all_opts: List all of the options for this script
    -h_find WORD: Search for lines containing WORD in -help
                  output. Seach is approximate.
@@ -53,7 +55,7 @@ EOF
    endif
 endif
 
-   echo "$*" | \grep -w -E  '\-h_find|\-h_view|\-all_opts|\-h_web' >& /dev/null
+   echo "$*" | \grep -w -E  '\-h_find|\-h_view|\-hview|\-all_opts|\-h_web|\-hweb' >& /dev/null
    if ($status) then
       #Nothing here, go back
       exit 0
@@ -63,7 +65,17 @@ endif
       apsearch -view_prog_help $1
       exit 1
    endif
+   echo "$*" | \grep -w '\-hview' >& /dev/null
+   if ($status == 0) then
+      apsearch -view_prog_help $1
+      exit 1
+   endif
    echo "$*" | \grep -w '\-h_web' >& /dev/null
+   if ($status == 0) then
+      apsearch -web_prog_help $1
+      exit 1
+   endif
+   echo "$*" | \grep -w '\-hweb' >& /dev/null
    if ($status == 0) then
       apsearch -web_prog_help $1
       exit 1
