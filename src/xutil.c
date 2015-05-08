@@ -405,7 +405,7 @@ char * MCW_buthighlight(Widget w)
    static char *buthighlight = NULL ;
 
    if( buthighlight == NULL ){
-     char *xdef = RWC_getname( (w!=NULL) ? XtDisplay(w) : NULL, 
+     char *xdef = RWC_getname( (w!=NULL) ? XtDisplay(w) : NULL,
                                                 "buthighlight" ) ;
 
      buthighlight = (xdef != NULL) ? (xdef) : ("blue2") ;
@@ -742,7 +742,7 @@ void MCW_popup_message_once( Widget w, char *msg, char *expiry, char *codestring
        }
        eyear = (int)strtol(dc,NULL,10)-1900 ;
        if( emon >= 0 && emon < 12 && eday > 0 && eday < 32 && eyear > 0 ){
-			if( lt->tm_year >  eyear ) return ;  /* past the expiry year == DONE */
+         if( lt->tm_year >  eyear ) return ;  /* past the expiry year == DONE */
          if( lt->tm_year == eyear ){          /* in expiry year */
            if( lt->tm_mon >  emon ) return ;  /* past expiry month    == DONE */
            if( lt->tm_mon == emon ){          /* in expiry month */

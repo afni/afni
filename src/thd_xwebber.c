@@ -3,9 +3,11 @@
 
 #ifdef DONT_USE_HTMLWIN  /*-------------------- dummy routines ------------------------------*/
 
-MCW_htmlwin * new_MCW_htmlwin( Widget w, char *m, void_func *kf, XtPointer kd , 
+MCW_htmlwin * new_MCW_htmlwin( Widget w, char *m, void_func *kf, XtPointer kd ,
                                MCW_action_items *mai, int nact){ return NULL ; }
 void MCW_htmlwin_alter( MCW_htmlwin *hw, char *mmm ){ return ; }
+
+char * convert_text_to_html( char *txt ){ return txt; }  /* 06 May 2015 */
 
 #else                    /*---------- non-dummy routines --------------------*/
 
@@ -188,10 +190,12 @@ ENTRY("htmlize") ;
    RETURN(mmm) ;
 }
 
+/*----------------------------------------------------------------------------*/
 /* This is a callback to deal with some refresh problems
    that should have been handled by the XmHTML library.
    For now this call is not needed. It looks like the patching
    of XmHTML did the trick ZSS March 2012 */
+
 void RefreshHTML_AtEvent( Widget w , XtPointer client_data ,
                   XEvent * ev , Boolean * continue_to_dispatch )
 {
@@ -203,6 +207,7 @@ void RefreshHTML_AtEvent( Widget w , XtPointer client_data ,
    If msg starts with "file:", then it indicates a file to read and display.
    Otherwise, it is the content of the page directly.
 *//*--------------------------------------------------------------------------*/
+
 MCW_htmlwin * new_MCW_htmlwin( Widget wpar , char *msg ,
                                void_func *kill_func , XtPointer kill_data,
                                MCW_action_item *umai, int nact)
@@ -225,8 +230,8 @@ ENTRY("new_MCW_htmlwin") ;
 
    if( wpar == NULL || !XtIsRealized(wpar) || msg == NULL || *msg == '\0' )
      RETURN(NULL) ;
-   
-   
+
+
    /*-- set position based on parent and screen geometry --*/
 
    MCW_widget_geom( wpar , &wx,&hy,&xx,&yy ) ;     /* geometry of parent */
@@ -284,9 +289,9 @@ ENTRY("new_MCW_htmlwin") ;
         mai[ii].make_red = 0 ;
       }
       mai[nact-1].make_red = 1 ;
-   } else { 
+   } else {
       /* use user preference */
-      mai = umai; 
+      mai = umai;
    }
 
    hw->wactar = MCW_action_area( hw->wtop , mai , nact ) ;
@@ -345,7 +350,7 @@ STATUS("create HTML widget") ;
                 NULL ) ;
    XtAddCallback( hw->whtml, XmNactivateCallback, (XtCallbackProc)anchorCB, NULL ) ;
    XtAddCallback( hw->whtml, XmNarmCallback     , (XtCallbackProc)armCB   , NULL ) ;
-   
+
 #if 0 /* This was needed to deal with some refreshing problems when the scrollbar
          was moved. The patch in XmHTML seems to have do the trick. These are
          left here should we need to reuse them someday */
@@ -354,13 +359,13 @@ STATUS("create HTML widget") ;
                          FALSE ,            /* this window */
                          RefreshHTML_AtEvent,
                          (XtPointer) hw->whtml ,
-                         XtListTail ) ;     /* last in queue */      
+                         XtListTail ) ;     /* last in queue */
    XtInsertEventHandler( hw->whtml ,        /* notify when */
                          EnterWindowMask ,  /* pointer leaves */
                          FALSE ,            /* this window */
                          RefreshHTML_AtEvent,
                          (XtPointer) hw->whtml ,
-                         XtListTail ) ;     /* last in queue */      
+                         XtListTail ) ;     /* last in queue */
 #endif
 
 STATUS("manage HTML widgets") ;
@@ -456,6 +461,109 @@ ENTRY("MCW_htmlwinkill_CB") ;
    XtDestroyWidget( hw->wshell ) ;
    myXtFree( hw ) ;
    EXRETURN ;
+}
+
+/*--------------------------------------------------------------------*/
+
+#define HTTP_check(str) ( strncmp((str),"http://",7) == 0  &&              \
+                          !isspace((str)[7])               &&              \
+                          !iscntrl((str)[7])               &&              \
+                          (str)[7] != '\0'                 &&              \
+                          (str)[7] != '*'                  &&              \
+                          (str)[7] != '.'                     )
+
+#define CHK4(abcd)                                                         \
+  ( tolower(buf[hend-4])==abcd[0] && tolower(buf[hend-3])==abcd[1] &&      \
+    tolower(buf[hend-2])==abcd[2] && tolower(buf[hend-1])==abcd[3]   )
+
+#define EMIT_char(ch)                                                      \
+ do{ if( itout == atout ){                                                 \
+       atout = (int)(1.5f*atout+1024); tout = (char *)realloc(tout,atout); \
+     }                                                                     \
+     tout[itout++] = (ch) ;                                                \
+ } while(0)
+
+#define EMIT_string(cs)                                                    \
+ do{ char *cq ;                                                            \
+     for( cq=cs ; *cq != '\0' ; cq++ ) EMIT_char(*cq) ;                    \
+ } while(0)
+
+/*----------------------------------------------------------------------------*/
+/* Convert plain text to HTML, inserting links and a few other miscellany.
+   free() the returned string when done, if you don't mind.  [06 May 2015]
+*//*--------------------------------------------------------------------------*/
+
+char * convert_text_to_html( char *txt )
+{
+   char *tout=NULL , tbuf[2048] , *tin=txt , cc ;
+   int  itout=0 , atout=0 ;
+
+ENTRY("convert_text_to_html") ;
+
+   if( txt == NULL || *txt == '\0' ) RETURN(tout) ; /* bad input */
+
+   atout = strlen(txt)+1024 ;  /* size of output buffer */
+    tout = (char *)malloc(atout) ; itout = 0 ;
+
+   EMIT_string("<html>\n"
+               "<head>\n"
+               "<title>AFNI Papers</title>\n"
+               "</head>\n"
+               "<body>\n<br />\n" ) ;
+
+#if 0
+   EMIT_string("<center><img src=\"afnigui_logo.jpg\" align=middle></center>\n") ;
+#endif
+
+   while( *tin != '\0' ){
+
+#if 0
+     /* some HTML already? just pass it thru */
+
+     if( *tin == '<' && ( isalpha(*(tin+1)) || *(tin+1) == '/') ){  /* "<something...>" */
+       do{
+         EMIT_char(*tin) ; tin++ ;
+       } while( *tin != '>' && *tin != '\0' ) ;
+       if( *tin == '>' ){ EMIT_char(*tin) ; tin++ ; }
+       continue ;
+     }
+#endif
+
+     /* link to a web page? "http://something" */
+
+     if( HTTP_check(tin) ){
+       int hend , ii ;
+
+       /* scan forward to get to end of 'http://something' string at hend */
+
+       for( hend=7 ; tin[hend] != '\0' && !isspace(tin[hend]) ; hend++ ) ; /*nada*/
+
+       /* insert hyperlink here*/
+
+       EMIT_string("<a href=\"") ;
+       for( ii=0 ; ii < hend ; ii++ )  EMIT_char(tin[ii]);
+       EMIT_string("\">") ;
+       for( ii=0 ; ii < hend ; ii++ )  EMIT_char(tin[ii]);
+       EMIT_string("</a>") ;
+
+       tin += hend ; continue ;
+     }
+
+     /* a single normal character */
+
+     cc = *tin ;
+          if( cc == ' ' ) EMIT_string("&nbsp;")   ;   /* put in HTML escapes */
+     else if( cc == '&' ) EMIT_string("&amp;")    ;   /* for special cases */
+     else if( cc == '<' ) EMIT_string("&lt;")     ;
+     else if( cc == '>' ) EMIT_string("&gt;")     ;
+     else if( cc == '\n') EMIT_string("<br />\n") ;
+     else                 EMIT_char  (cc)         ;   /* perfectly normal character */
+     tin++ ;
+   }
+
+   EMIT_string("\n</body></html>\n") ;
+   EMIT_char('\0') ;
+   RETURN(tout) ;
 }
 
 #endif /* DONT_USE_HTMLWIN */

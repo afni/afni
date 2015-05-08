@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  7,  May, 2015, RCR, "afni_proc.py", MINOR, TYPE_MODIFY,
+   "replaced slow 3dTfitter with 3dTproject in anaticor",
+   "This should not affect the result, just the processing time."
+ } ,
+
  {  5,  May, 2015, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,
    "added help (inc Ex 11), follower modifications, WMe corr diag change",
    NULL
