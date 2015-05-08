@@ -43,7 +43,7 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 8 , MAY , 2015 , RWC , "InstaCorr" , MICRO , TYPE_BUG_FIX ,
+ { 8 , MAY , 2015 , RWC , "InstaCorr" , MICRO , TYPE_BUG_FIX ,
    "Change way index in 3D+time dataset is chosen from xyz" ,
    "Instead of just converting from xyz (eg, crosshair) coordinates via the\n"
    "standard grid transformation functions in thd_coords.c, what we want is\n"
@@ -55,6 +55,11 @@ afni_history_struct rwcox_history[] = {
    "in order to find the voxel in the 3D+time dataset that, when transformed\n"
    "back to the underlay dataset, is closest.  Brute force, but that's what\n"
    "you have to do when dealing with the Spanish Inquisition." } ,
+
+  { 7 , MAY , 2015 , RWC , "AFNI GUI" , MICRO , TYPE_MODIFY ,
+   "Change 'List of AFNI papers' to be in HTML, not plain text" ,
+   "So it appears in an htmlwin rather than a textwin, and there are links\n"
+   "to the papers.  Works by a new convert_text_to_html() function." } ,
 
  { 4 , MAY , 2015 , RWC , "GLTsymtest" , MINOR , TYPE_NEW_PROG ,
    "For testing symbolic GLTs in a script" ,
