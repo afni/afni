@@ -4,21 +4,28 @@
 
 
 
-                    * 98 *
-From you have I been absent in the spring,
-When proud-pied April dress'd in all his trim
-Hath put a spirit of youth in every thing,
-That heavy Saturn laugh'd and leap'd with him.
-Yet nor the lays of birds nor the sweet smell
-Of different flowers in odour and in hue
-Could make me any summer's story tell,
-Or from their proud lap pluck them where they grew;
-Nor did I wonder at the lily's white,
-Nor praise the deep vermilion in the rose;
-They were but sweet, but figures of delight,
-Drawn after you, you pattern of all those.
-  Yet seem'd it winter still, and, you away,
-  As with your shadow I with these did play:
+************************************************
+* GPL AFNI: Analysis of Functional NeuroImages *
+*           Version AFNI_2011_12_21_1014       *
+*                                              *
+* Major portions are Copyright 1994-2000,      *
+*   Medical College of Wisconsin               *
+*   Milwaukee, WI 53226-0509                   *
+* See file README.copyright for information,   *
+* or the Datamode->Misc->License menu item.    *
+*                                              *
+* Released to the public by MCW under the GNU  *
+* General Public License (version 2), Dec 2000 *
+*                                              *
+* Author:  Robert W Cox, PhD                   *
+************************************************
+
+   .. figure:: media/AfniCont.auto.jpg
+      :name: media/AfniCont.auto.jpg
+      :align: center
+
+      :ref: `(link)<media/AfniCont.auto.jpg>`
+
 
 
 .. _AfniCont->ProgCont:
@@ -28,7 +35,7 @@ rowcol to hold all program controls stuff
 
 Here is where the help would go.
 
-Hiding things that only the Sphinx sees.
+Although this image is in the string used by BHelp, it only seen by the Sphinx.
 
    .. figure:: media/william-shakespeare.jpg
       :align: center

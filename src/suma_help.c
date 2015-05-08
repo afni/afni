@@ -500,6 +500,8 @@ char * SUMA_gsf_eng(char *uwname, TFORM target, char **hintout, char **helpout)
    Register help for a widget. This is to replace all individual
 calls to MCW_register_help and _hint.
 
+   Pointer to help is copied so make sure help is not freed.
+   
    Widget help becoming centralized to help with auto generation of
    help webpage
 */

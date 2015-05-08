@@ -159,8 +159,8 @@ if ( ! -d tutorials/Coding/auto_inc ) mkdir -p tutorials/Coding/auto_inc
 if ( $do_markup_demo ) then
    cd tutorials/Coding/auto_inc
    printf "which outputs this help message (need to beautify at some point)::\n\n" > apsearch_txt.inc
-   apsearch -doc_markup_sample >& ___m
-   sed 's/^/   /' ___m >>& apsearch_txt.inc
+   apsearch -doc_markup_sample_web >& ___m
+   #sed 's/^/   /' ___m >>& apsearch_txt.inc
    \rm -f ___m
 endif
 

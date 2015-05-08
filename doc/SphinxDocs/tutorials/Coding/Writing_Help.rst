@@ -96,7 +96,7 @@ C-GUI
                      /* with */
                      SUMA_Register_Widget_Help( vwid->top_form, 0, "AfniCont", NULL, AFNI_tophelp);
 
-               2. Add an entry for "AfniCont->ProgCont", "ProgCont" stands for "program controls", a phrase a took from the comment in afni_widg.c::
+               2. Add an entry for "AfniCont->ProgCont", "ProgCont" stands for "program controls", a phrase I took from the comment in afni_widg.c::
          
                      /* replace */
                      MCW_register_hint( prog->frame , "rowcol to hold all program controls stuff" ) ;

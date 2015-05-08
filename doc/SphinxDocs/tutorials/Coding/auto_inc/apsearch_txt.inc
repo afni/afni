@@ -1,11 +1,11 @@
-Thusly::
+Creating strings with special markup for classic and sphinx display::
 
-   
-   Simple trickery to use same string for both SUMA and SPHINX
-   formatting.
-    Function SUMA_Sphinx_String_Edit is used to 
-   take strings with these special markers and return them in
-   either Sphinx or regular text.
+
+   Function SUMA_Sphinx_String_Edit is used to take strings with 
+   the following special markers and return them formatted in either
+   Sphinx or regular text. What follows is a list of special directives
+   that change the output string depending on the desired format and a bunch
+   examples to illustrate their use.
    
     :SPX: Hiding a SPHINX directive with minimal fanfare:
         Text between :SPX: markers does not appear in default output
@@ -60,14 +60,14 @@ Thusly::
    See function SUMA_Sphinx_String_Edit_Help() for a code sample.
    
    
-   
-           Source Code Version:
+Strings as defined in the source code::
+
    Example 1:
    Below you will see a figure directive, but only for Sphinx format.
    :SPX:
    
-   .. :figure: _static/junk.jpg
-               :align: center
+   .. figure:: media/face_houstonbull.jpg
+      :align: center
    
    :SPX:And now the rest of text continues...
    
@@ -95,9 +95,10 @@ Thusly::
       7    1   0   1   
       14   0.7 0.3 0   
    
-       -------
-   
-           Edited   for   SUMA:
+    -------
+
+Edited for display in AFNI or SUMA::
+
    Example 1:
    Below you will see a figure directive, but only for Sphinx format.
    And now the rest of text continues...
@@ -111,9 +112,11 @@ Thusly::
    Example 3:
    For 'Trn' choose one of:
       0: No transparency.
-         Surface is opaque.
+  
+      Surface is opaque.
       8: 50% transparency.
-         Surface is in cheese cloth transparency.
+  
+      Surface is in cheese cloth transparency.
    
    Example 4:
    ... or if '|T|' is used then ...
@@ -126,15 +129,16 @@ Thusly::
       7    1   0   1   
       14   0.7 0.3 0   
    
-       -------
-   
-           Edited  for  SPHINX:
+    -------
+
+Edited  for  SPHINX::
+
    Example 1:
    Below you will see a figure directive, but only for Sphinx format.
    
    
-   .. :figure: _static/junk.jpg
-               :align: center
+   .. figure:: media/face_houstonbull.jpg
+      :align: center
    
    And now the rest of text continues...
    
@@ -164,4 +168,43 @@ Thusly::
       7    1   0   1   
       14   0.7 0.3 0   
    
-       -------
+    -------
+
+As would be displayed by SPHINX once compiled:
+
+   Example 1:
+   Below you will see a figure directive, but only for Sphinx format.
+   
+   
+   .. figure:: media/face_houstonbull.jpg
+      :align: center
+   
+   And now the rest of text continues...
+   
+   Example 2:
+   Press buton :ref:`a <LC_a>` to attenuate...
+   
+   Example 2.1 (simpler version):
+   Press buton :ref:`a <LC_a>` to attenuate...
+   
+   Example 3:
+   For 'Trn' choose one of:
+   
+      0: No transparency. Surface is opaque.
+   
+      8: 50% transparency. Surface is in cheese cloth transparency.
+   
+   
+   Example 4:
+   ... or if '\|T\|' is used then ...
+   
+   Example 5:
+   A sample file would be: test.1D.col with content::
+   
+      0    0.1 0.2 1   
+      1    0   1   0.8 
+      4    1   1   1   
+      7    1   0   1   
+      14   0.7 0.3 0   
+   
+    -------
