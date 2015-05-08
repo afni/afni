@@ -471,9 +471,11 @@ g_history = """
         - followers are copied to copy_af_LABEL
         - added Example 11 - a more modern resting state example
         - added local WMe correlation diagnostic using -ort X-matrix
+    4.42 May 07, 2015: replaced slow 3dTfitter with 3dTproject in anaticor
+    4.43 May 08, 2015: added -regress_make_corr_vols
 """
 
-g_version = "version 4.41, May 5, 2015"
+g_version = "version 4.43, May 8, 2015"
 
 # version of AFNI required for script execution
 g_requires_afni = "1 Apr 2015" # 1d_tool.py uncensor from 1D
@@ -486,7 +488,6 @@ g_todo_str = """todo:
      - or have 3dToc just report, maybe write a volume?
   - add warnings from and bad GLTsymtest output
 
-  -compute_corr_volumes LABEL ... ?
   - warn of missing input dsets?  (-dsets, -copy_anat, any 3dcopy)
   - use anaticor_fast method to produce QC volume from WMe of VR data
      - WMe mask and blur volreg, correlate with same volreg (detrend)
@@ -1096,6 +1097,8 @@ class SubjProcSream:
                         helpstr="apply -local_times option to 3dDeconvolve")
         self.valid_opts.add_opt('-regress_make_ideal_sum', 1, [],
                         helpstr="filename for sum of ideal regressors")
+        self.valid_opts.add_opt('-regress_make_corr_vols', -1, [],
+                        helpstr="get correlation volumes for given ROIs")
         self.valid_opts.add_opt('-regress_no_ideal_sum', 0, [],
                         helpstr="do not compute the sum of regressors")
         self.valid_opts.add_opt('-regress_no_fitts', 0, [],
@@ -2359,6 +2362,10 @@ class SubjProcSream:
 
         return af
 
+    def get_anat_follower(self, label):
+       for af in self.afollowers:
+          if af.label == label: return af
+       return None
 
     # given a block, run, return a prefix of the form: pNN.SUBJ.rMM.BLABEL
     #    NN = block index, SUBJ = subj label, MM = run, BLABEL = block label

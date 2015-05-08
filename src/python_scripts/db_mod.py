@@ -1671,7 +1671,8 @@ def warp_anat_followers(proc, block, anat_aname, epi_aname=None, prevepi=0):
       if xform == identity_warp and afobj.dgrid != 'epi': 
          if proc.verb > 1:
             print '-- no need to warp anat follower %s' % afobj.aname.prefix
-         proc.roi_dict[afobj.label] = afobj.cname
+         # rcr - why is this here?
+         # proc.roi_dict[afobj.label] = afobj.cname
          continue # no warp needed
 
       wstr += '%s -source %s -master %s \\\n' \
@@ -1687,7 +1688,7 @@ def warp_anat_followers(proc, block, anat_aname, epi_aname=None, prevepi=0):
       wlist.append(afobj.aname.prefix)
 
       # and add this dataset to the ROI regression dictionary
-      proc.roi_dict[afobj.label] = afobj.cname
+      if afobj.dgrid == 'epi': proc.roi_dict[afobj.label] = afobj.cname
 
    if len(wlist) > 0:
       print '-- applying anat warps to %d dataset(s): %s' \
@@ -2937,6 +2938,7 @@ def db_mod_regress(block, proc, user_opts):
     apply_uopt_to_block('-regress_anaticor_fwhm', user_opts, block)
     apply_uopt_to_block('-regress_anaticor_label', user_opts, block)
     apply_uopt_to_block('-regress_WMeL_corr', user_opts, block)
+    apply_uopt_to_block('-regress_make_corr_vols', user_opts, block)
 
     # check for user updates
     uopt = user_opts.find_opt('-regress_basis')
@@ -4136,6 +4138,39 @@ def db_cmd_regress_gcor(proc, block, errts_pre):
            "3dTstat -sum -prefix %s %s\n\n"                             \
            % (uset.pv(), gu_mean, dp_dset.prefix, gcor_dset, dp_dset.pv())
 
+    # compute extra correlation volumes (assuming EPI grid ROIs followers):
+    #   3dcalc -a ROI -b full_mask -expr 'a*b' -prefix ROI.FM
+    #   3dmaskave -quiet -mask ROI.FM rm.errts.unit+tlrc > mean.ROI.1D
+    #   3dcalc -a rm.errts.unit+tlrc -b mean.ROI.1D -expr 'a*b' -prefix rm.ROI
+    #   3dTstat -sum -prefix corr_ROI rm.ROI
+    oname = '-regress_make_corr_vols'
+    roilist, rv = block.opts.get_string_list(oname)
+    if roilist:
+       rstr = '# compute %d requested correlation volume(s)\n' % len(roilist)
+       for roi in roilist:
+          if not proc.roi_dict.has_key(roi):
+             print "** %s: no matching ROI '%s'" % (oname, roi)
+             return
+
+          mset = proc.roi_dict[roi]
+          mpre = 'rm.fm.%s' % roi
+          meants = 'mean.unit.%s.1D' % roi
+          cvol = 'corr_af_%s' % roi
+
+          rstr += '# create correlation volume %s\n' % cvol
+          rstr += "3dcalc -a %s -b %s -expr 'a*b' \\\n"         \
+                  "       -prefix %s\n" \
+                  % (mset.pv(), proc.mask_epi.pv(), mpre)
+          rstr += "3dmaskave -q -mask %s%s %s > %s\n"           \
+                  % (mpre, proc.view, uset.pv(), meants)
+          rstr += "3dcalc -a %s -b %s \\\n"                     \
+                  "       -expr 'a*b' -prefix rm.DP.%s\n"       \
+                  % (uset.pv(), meants, roi)
+          rstr += "3dTstat -sum -prefix %s rm.DP.%s%s\n\n"      \
+                  % (cvol, roi, proc.view)
+
+       cmd += rstr
+
     return cmd
 
 # run 3dTfitter on the xmatrix and any 4-D dataset needed in regression
@@ -4274,8 +4309,8 @@ def db_cmd_regress_tfitter(proc, block):
 
     # sub-brick selection, in case of censoring
     if proc.censor_file:
-       cs = '# 3dTfitter does not take censor file, so note TRs to process\n' \
-            'set keep_trs = `1d_tool.py -infile %s %s`\n\n'                   \
+       cs = '# for backward compatibility, exclude censored TRs\n' \
+            'set keep_trs = `1d_tool.py -infile %s %s`\n\n'       \
             % (proc.xmat, '-show_trs_uncensored encoded')
        cmd += cs
        substr = '"[$keep_trs]"'
@@ -4291,21 +4326,13 @@ def db_cmd_regress_tfitter(proc, block):
         maskstr = '-mask %s ' % proc.mask.shortinput()
     else: maskstr = ''
 
-    cmd += '# use 3dTfitter to perform the original regression,\n'      \
-           '# plus regress out the voxel-wise %s time series\n' % lset.prefix
+    cmd += '# use 3dTproject to regress out the voxel-size time series\n' \
+           '# %s, along with all original regressors\n' % lset.prefix
 
-    fitts = 'fitts.%s.$subj' % rlabel
-    cmd += '3dTfitter -polort -1 %s\\\n'                    \
-           '          -RHS %s%s%s \\\n'                     \
-           '          -LHS %s %s \\\n'                      \
-           '          -prefix stats.%s.$subj -fitts %s\n\n' \
-           % (maskstr, proc.all_runs, proc.view, substr,
-                       proc.xmat, lset.shortinput(), rlabel, fitts)
-
-    cmd += '# compute the final errts dataset (as all_runs - fitts)\n' \
-           '3dcalc -a %s%s%s -b %s%s \\\n'      \
-           '       -expr a-b -prefix %s\n\n'  \
-           % (proc.all_runs, proc.view, substr, fitts, proc.view, rset.prefix)
+    cmd += '3dTproject -polort 0 -input %s%s%s \\\n'  \
+           '       -ort %s -dsort %s -prefix %s\n\n'  \
+           % (proc.all_runs, proc.view, substr, proc.xmat, lset.shortinput(),
+              rset.prefix)
 
     return 0, cmd
 
@@ -6352,7 +6379,7 @@ g_help_string = """
                   -regress_run_clustsim no                                   \\
                   -regress_est_blur_errts
 
-       Example 11. Resting state analysis (more modern :).
+       Example 11. Resting state analysis (now even more modern :).
            
          o Yes, censor (outliers and motion) and despike.
          o Use non-linear registration to MNI template.
@@ -6367,6 +6394,8 @@ g_help_string = """
              - aaseg : NN interpolated onto the anatomical grid
              - aeseg : NN interpolated onto the EPI        grid
            These follower datasets are just for evaluation.
+         o Compute average correlation volumes of the errts against the
+           the gray matter (aeseg) and ventricle (FSVent) masks.
 
                 afni_proc.py -subj_id FT.11.rest                             \\
                   -blocks despike tshift align tlrc volreg blur mask regress \\
@@ -6382,6 +6411,7 @@ g_help_string = """
                   -regress_ROI_erode FSvent FSWe                             \\
                   -regress_ROI_PC FSvent 3 FT_vent.nii                       \\
                   -regress_ROI_maskave FSWe FT_white.nii                     \\
+                  -regress_make_corr_vols aeseg FSvent                       \\
                   -regress_anaticor_fast                                     \\
                   -regress_anaticor_label FSWe                               \\
                   -regress_censor_motion 0.2                                 \\
@@ -9117,6 +9147,34 @@ g_help_string = """
             added to the 3dDeconvolve command.
 
             Please see '3dDeconvolve -help' for more details.
+
+        -regress_make_corr_vols LABEL1 ... : create correlation volume dsets
+
+                e.g. -regress_make_corr_vols aeseg FSvent
+                default: one is made against full_mask
+
+            This option is used to specify extra correlation volumes to compute
+            based on the residuals (so generally for resting state analysis).
+
+            What is a such a correlation volume?
+
+               Given: errts     : the residuals from the linear regression
+                      a mask    : to correlate over, e.g. full_mask
+
+               Compute: for each voxel (in the errts, say), compute the average
+                  correlation over all voxels within the given mask.  In some
+                  sense, this is a measure of self correlation over a specified
+                  region.
+
+               This is a mean correlation rather than a correlation with the
+               mean.
+
+            The labels specified can be from any ROI mask, such as those coming
+            via -anat_follower_ROI, -regress_ROI_PC or _maskave, or from the
+            automatic masks from -mask_segment_anat.
+
+            See also -anat_follower_ROI, -regress_ROI_PC, _maskave, 
+            and -mask_segment_anat.
 
         -regress_mot_as_ort yes/no : regress motion parameters using -ortvec
 
