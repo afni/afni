@@ -321,7 +321,8 @@ static char jumpstring[128];                  /* 13 Jun 2014 */
 
 void AFNI_make_widgets( Three_D_View *im3d )
 {
-
+   char *s=NULL;
+   
 ENTRY("AFNI_make_widgets") ;
 
    /*---- initialize -----*/
@@ -358,8 +359,16 @@ STATUS("creating top_form") ;
             XmNinitialResourcesPersistent , False ,
          NULL ) ;
 
+   s = SUMA_append_string(AFNI_tophelp, 
+         ":SPX:\n\n"
+         "   .. figure:: media/AfniCont.auto.jpg\n"
+         "      :name: media/AfniCont.auto.jpg\n"
+         "      :align: center\n\n"
+         "      :ref: `(link)<media/AfniCont.auto.jpg>`\n"
+         "\n"
+         ":SPX:") ;
    SUMA_Register_Widget_Help( vwid->top_form, 0, "AfniCont", 
-                              NULL, AFNI_tophelp);
+                              NULL, s); s = NULL; /* Do not free s */
    vwid->file_dialog = NULL ; /* Mar 1997 */
 
    /* create pixmaps, if desired */
