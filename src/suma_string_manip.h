@@ -45,7 +45,7 @@ NI_str_array *SUMA_Split_String(char *s, char *sc);
 char *SUMA_Cut_Between_String(char *s, char *sc0, char *sc1, char *save);
 char *SUMA_Sphinx_String_Edit(char **s, TFORM targ, int off);
 char *SUMA_Sphinx_SetVars(char **s, TFORM targ);
-void SUMA_Sphinx_String_Edit_Help(FILE *fout);
+void SUMA_Sphinx_String_Edit_Help(FILE *fout, int forweb);
 char *SUMA_Sphinx_File_Edit(char *fname, TFORM targ, int off);
 int SUMA_Demote_Underlining(char *sh);
 int SUMA_is_underline(char *sh, char *ul, int *nread);

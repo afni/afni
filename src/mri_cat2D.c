@@ -33,7 +33,8 @@ MRI_IMAGE * mri_cat2D(  int mx , int my , int gap ,
    int nx , ny , ii , jj , kind , ij , nxout , nyout , ijoff , jout,iout, iijj ;
    MRI_IMAGE *imout , *imin=NULL ;
    void *vout ;
-
+   int warn = 0;
+   
 ENTRY("mri_cat2D") ;
 
    /*--- sanity checks ---*/
@@ -135,8 +136,10 @@ ENTRY("mri_cat2D") ;
 
                case MRI_rgba:{                      /* 09 Dec 2014 */
                   rgba *pout = (rgba *)vout ;
-                  if (WrapZero != 1) {
-                     fprintf(stderr,"No support for non-zero filling for rgba");
+                  if (!warn && WrapZero > 1) {
+                     fprintf(stderr,"No support for non-zero filling for rgba.\n"
+                                    "Setting ignored.\n");
+                     ++warn;
                   }
                   for( jout=0 ; jout < ny ; jout++ , ijoff+=nxout )
                      (void) memset( pout+ijoff , 0 , sizeof(rgba)*nx ) ;
@@ -144,8 +147,10 @@ ENTRY("mri_cat2D") ;
 
                case MRI_short:{
                   short *pout = ((short *) vout);
-                  if (WrapZero != 1) {
-                     fprintf(stderr,"No support for non-zero filling for short");
+                  if (!warn && WrapZero > 1) {
+                     fprintf(stderr,"No support for non-zero filling for short\n"
+                                    "Setting ignored.\n");
+                     ++warn;
                   }
                   for( jout=0 ; jout < ny ; jout++ , ijoff+=nxout )
                      (void) memset( pout+ijoff , 0 , sizeof(short)*nx ) ;
