@@ -127,9 +127,9 @@ THD_ivec3 THD_3dmm_to_3dind_warn( THD_3dim_dataset* dset ,
    *out = 0;
    daxes = CURRENT_DAXES(dset) ;
 
-   iv.ijk[0] = (fv.xyz[0] - daxes->xxorg) / daxes->xxdel + 0.499 ;
-   iv.ijk[1] = (fv.xyz[1] - daxes->yyorg) / daxes->yydel + 0.499 ;
-   iv.ijk[2] = (fv.xyz[2] - daxes->zzorg) / daxes->zzdel + 0.499 ;
+   iv.ijk[0] = (fv.xyz[0] - daxes->xxorg) / daxes->xxdel + 0.49f ;
+   iv.ijk[1] = (fv.xyz[1] - daxes->yyorg) / daxes->yydel + 0.49f ;
+   iv.ijk[2] = (fv.xyz[2] - daxes->zzorg) / daxes->zzdel + 0.49f ;
 
         if( iv.ijk[0] < 0            ) { iv.ijk[0] = 0 ; *out = 1; }
    else if( iv.ijk[0] > daxes->nxx-1 ) { iv.ijk[0] = daxes->nxx-1 ; *out = 1; }
@@ -150,9 +150,9 @@ THD_ivec3 THD_3dmm_to_3dind( THD_3dim_dataset *dset , THD_fvec3 fv )
 
    daxes = CURRENT_DAXES(dset) ;
 
-   iv.ijk[0] = (fv.xyz[0] - daxes->xxorg) / daxes->xxdel + 0.499 ;
-   iv.ijk[1] = (fv.xyz[1] - daxes->yyorg) / daxes->yydel + 0.499 ;
-   iv.ijk[2] = (fv.xyz[2] - daxes->zzorg) / daxes->zzdel + 0.499 ;
+   iv.ijk[0] = (fv.xyz[0] - daxes->xxorg) / daxes->xxdel + 0.49f ;
+   iv.ijk[1] = (fv.xyz[1] - daxes->yyorg) / daxes->yydel + 0.49f ;
+   iv.ijk[2] = (fv.xyz[2] - daxes->zzorg) / daxes->zzdel + 0.49f ;
 
         if( iv.ijk[0] < 0            ) iv.ijk[0] = 0 ;
    else if( iv.ijk[0] > daxes->nxx-1 ) iv.ijk[0] = daxes->nxx-1 ;
@@ -163,10 +163,13 @@ THD_ivec3 THD_3dmm_to_3dind( THD_3dim_dataset *dset , THD_fvec3 fv )
         if( iv.ijk[2] < 0            ) iv.ijk[2] = 0 ;
    else if( iv.ijk[2] > daxes->nzz-1 ) iv.ijk[2] = daxes->nzz-1 ;
 
+#if defined(USE_TRACING) && 0
+INFO_message("THD_3dmm_to_3dind: fv=%f %f %f  iv=%d %d %d  from %s",
+             fv.xyz[0],fv.xyz[1],fv.xyz[2] , iv.ijk[0],iv.ijk[1],iv.ijk[2] , DBROUT ) ;
+#endif
+
    return iv ;
 }
-
-
 
 /*--------------------------------------------------------------------*/
 
@@ -179,9 +182,9 @@ THD_ivec3 THD_3dmm_to_3dind_no_wod( THD_3dim_dataset *dset , THD_fvec3 fv )
 
    daxes = dset->daxes ;
 
-   iv.ijk[0] = (fv.xyz[0] - daxes->xxorg) / daxes->xxdel + 0.499 ;
-   iv.ijk[1] = (fv.xyz[1] - daxes->yyorg) / daxes->yydel + 0.499 ;
-   iv.ijk[2] = (fv.xyz[2] - daxes->zzorg) / daxes->zzdel + 0.499 ;
+   iv.ijk[0] = (fv.xyz[0] - daxes->xxorg) / daxes->xxdel + 0.49f ;
+   iv.ijk[1] = (fv.xyz[1] - daxes->yyorg) / daxes->yydel + 0.49f ;
+   iv.ijk[2] = (fv.xyz[2] - daxes->zzorg) / daxes->zzdel + 0.49f ;
 
         if( iv.ijk[0] < 0            ) iv.ijk[0] = 0 ;
    else if( iv.ijk[0] > daxes->nxx-1 ) iv.ijk[0] = daxes->nxx-1 ;
@@ -191,6 +194,11 @@ THD_ivec3 THD_3dmm_to_3dind_no_wod( THD_3dim_dataset *dset , THD_fvec3 fv )
 
         if( iv.ijk[2] < 0            ) iv.ijk[2] = 0 ;
    else if( iv.ijk[2] > daxes->nzz-1 ) iv.ijk[2] = daxes->nzz-1 ;
+
+#if defined(USE_TRACING) && 0
+INFO_message("THD_3dmm_to_3dind_no_wod: fv=%f %f %f  iv=%d %d %d  from %s",
+             fv.xyz[0],fv.xyz[1],fv.xyz[2] , iv.ijk[0],iv.ijk[1],iv.ijk[2] , DBROUT ) ;
+#endif
 
    return iv ;
 }

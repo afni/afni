@@ -1658,6 +1658,8 @@ STATUS("beginning NN outer loop") ;
 
 /*----------------------------------------------------------------------------*/
 
+#undef DBG_ZZZ
+
 void LMAP_ZNAME( THD_linear_mapping * map , int resam_mode ,
                  THD_dataxes * old_daxes , DTYPE * bold ,
                  THD_dataxes * new_daxes , int zk_fix , DTYPE * bslice )
@@ -1683,6 +1685,15 @@ void LMAP_ZNAME( THD_linear_mapping * map , int resam_mode ,
   ENTRY("AFNI_lmap_to_zslice") ;
 #else
   ENTRY( XSTRING(LMAP_ZNAME) ) ;
+#endif
+
+#ifdef DBG_ZZZ
+INFO_message("+++++ Enter %s",XSTRING(LMAP_ZNAME)) ;
+ININFO_message(" zk_fix = %d",zk_fix) ;
+DUMP_MAT33(" + mt ",mt) ;
+DUMP_FVEC3(" + vt ",vt) ;
+DUMP_FVEC3(" + bot",map->bot) ;
+DUMP_FVEC3(" + top",map->top) ;
 #endif
 
    /*--- set up ranges ---*/
@@ -1720,13 +1731,25 @@ void LMAP_ZNAME( THD_linear_mapping * map , int resam_mode ,
               + mt.mat[2][1] * yj_new
               + mt.mat[2][2] * zk_new - vt.xyz[2] ;
 
+#ifdef DBG_ZZZ
+ININFO_message(" f??_base = %f %f %f",fxi_base,fyj_base,fzk_base) ;
+#endif
+
    dfxi_outer = mt.mat[0][1] ;  /* outer loop is in y = 1 */
    dfyj_outer = mt.mat[1][1] ;
    dfzk_outer = mt.mat[2][1] ;
 
+#ifdef DBG_ZZZ
+ININFO_message(" df??_outer = %f %f %f",dfxi_outer,dfyj_outer,dfzk_outer) ;
+#endif
+
    dfxi_inner = mt.mat[0][0] ;  /* inner loop is in x = 0 */
    dfyj_inner = mt.mat[1][0] ;
    dfzk_inner = mt.mat[2][0] ;
+
+#ifdef DBG_ZZZ
+ININFO_message(" df??_inner = %f %f %f",dfxi_inner,dfyj_inner,dfzk_inner) ;
+#endif
 
    fxi_top = nxold - 0.51 ;  fxi_bot = -0.49 ;
    fyj_top = nyold - 0.51 ;  fyj_bot = -0.49 ;
@@ -1783,6 +1806,10 @@ if(PRINT_TRACING)
                                         (fzk_max < fzk_bot) || (fzk_min > fzk_top)
                                      : 0 ;
 
+#ifdef DBG_ZZZ
+ININFO_message(" any_outside=%d  all_outside=%d",any_outside,all_outside) ;
+#endif
+
 #ifdef SL_DEBUG
 if(PRINT_TRACING)
 { char str[256] ;
@@ -1832,6 +1859,10 @@ STATUS("NN resample has all outside") ;
             int thz , tho , ob , ub=0 ;
 
             fxi_base += 0.5 ; fyj_base += 0.5 ; fzk_base += 0.5 ;
+
+#ifdef DBG_ZZZ
+ININFO_message(" new f??_base = %f %f %f",fxi_base,fyj_base,fzk_base) ;
+#endif
 
             fxi_top = nxold - 0.01 ; fxi_bot = 0.0 ;  /* we can use FLOOR instead */
             fyj_top = nyold - 0.01 ; fyj_bot = 0.0 ;  /* of ROUND to find the NN  */
