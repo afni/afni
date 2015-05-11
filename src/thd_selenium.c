@@ -67,8 +67,15 @@ int selenium_open_browser()
    if(selenium_started<=0)
       selenium_init();
 
+
    if((webb==NULL)||(strcasestr(webb,"Chrome"))||(strcasecmp(webb, "open")==0)){
-      PyRun_SimpleString("browser = webdriver.Chrome('/Users/dglen/selenium_dev/chromedriver')"); 
+      if(selenium_started<2) {
+         printf("For Chrome, must install chromedriver binary available from.\n");      
+         printf("https://sites.google.com/a/chromium.org/chromedriver\n");
+         printf("Put the chromedriver binary in your path or update path to include\n");
+         printf("the chromedriver binary\n");
+      }
+      PyRun_SimpleString("browser = webdriver.Chrome('chromedriver')"); 
    }
    else if (strcasestr(webb, "Firefox"))
       PyRun_SimpleString("browser = webdriver.Firefox()");
@@ -86,9 +93,9 @@ int selenium_open_browser()
 
       PyRun_SimpleString("browser = webdriver.Safari()");
    }
-   else
-      PyRun_SimpleString("browser = webdriver.Chrome('/Users/dglen/selenium_dev/chromedriver')");
-
+   else {
+      PyRun_SimpleString("browser = webdriver.Chrome('chromedriver')");
+   }
    selenium_started = 2;
    return(0);
 }
@@ -97,6 +104,7 @@ int selenium_open_browser()
 int selenium_open_webpage(char *webpage)
 {
    char webstring[1024];
+
 printf("selenium_started level = %d, webpage requested is\n   %s\n", selenium_started, webpage);
    /* legit webpage */
    if (!webpage || (strlen(webpage)==0))
