@@ -32,7 +32,7 @@ end
 
 scount=numel(s);
 
-if isstruct(s) && numel(s)>1
+if numel(s)>1
     % In Matlab, parse results are stored in a struct
     niml=cell(scount,1);
     for k=1:scount
@@ -83,12 +83,10 @@ else
     niml.vec_num = length(niml.vec_typ);
 
     % parse only 
-    if (~afni_ni_is_numeric_type(niml.vec_typ)),
-      %fprintf(2,'Data not all numeric, will not parse it');
- 
-        niml.data = afni_nel_parse_nonnumeric(niml, s.body);
-    else
+    if afni_ni_is_numeric_type(niml.vec_typ)
         niml.data = afni_nel_parse_data(niml, s.body);
+    else
+        niml.data = afni_nel_parse_nonnumeric(niml, s.body);
     end
 end   
    
