@@ -1,4 +1,4 @@
-function niml = afni_niml_parse(s)
+function niml_cell = afni_niml_parse(s)
 % Simple parsing routine for AFNI NIML datasets
 %
 % N=AFNI_NIML_PARSE(S) parses the niml string S and returns a parsed
@@ -6,9 +6,6 @@ function niml = afni_niml_parse(s)
 %
 % P can either be an niml element, or a group of niml elements. In the
 % formder case, P contains a field .data; in the latter, a cell .nodes.
-%
-% If S contains multiple niml datasets that are not in a group, then N will
-% be a cell with the parsed datasets.
 %
 % This function is more or less the inverse of AFNI_NIML_PRINT.
 %
@@ -20,7 +17,26 @@ function niml = afni_niml_parse(s)
 % NNO Dec 2009 <n.oosterhof@bangor.ac.uk>
 % NNO May 2015 <nikolaas.oosterhof@unitn.it>
 
-    niml=niml_parse_helper(s,1);
+    len_s=numel(s);
+
+    niml_cell=cell(1,1);
+
+    pos=1;
+    elem_counter=0;
+    while pos<len_s
+        [niml,pos]=niml_parse_helper(s,1);
+
+        elem_counter=elem_counter+1;
+        if numel(niml_cell)>elem_counter
+            % allocate more space
+            niml_cell{1+2*elem_counter,1}=[];
+        end
+
+        niml_cell{elem_counter}=niml;
+    end
+
+    niml_cell=niml_cell(1:elem_counter);
+
 
 function [niml,pos]=niml_parse_helper(s, pos)
 % pos is current character that has to be parsed
