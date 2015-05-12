@@ -153,7 +153,7 @@ function [niml,pos] = niml_parse_numeric_data(s, pos, niml)
                                         '%f',n_columns*n_rows);
     end
 
-    niml.data = reshape(data, niml.vec_num, niml.vec_len)';
+    niml.data = reshape(double(data), niml.vec_num, niml.vec_len)';
 
     pos=pos+d_pos-1;
 
@@ -277,8 +277,13 @@ function vec_typ=afni_nel_getvectype(tt)
 
 
 function pos=niml_consume_endmarker(s, pos, niml)
-    end_marker=['</' niml.name '>'];
-    pos=consume_string(s, pos, end_marker);
+    %end_marker=['</' niml.name '>'];
+    pos=consume_string(s, pos, '</');
+    pos=consume_whitespace_optionally(s, pos);
+    pos=consume_string(s, pos, niml.name);
+    pos=consume_string(s, pos, '>');
+
+    %pos=consume_string(s, pos, end_marker);
 
 function [data,pos]=niml_parse_string_data_element(s, pos, vec_typ)
     % parse data in ascii format
@@ -289,8 +294,8 @@ function [data,pos]=niml_parse_string_data_element(s, pos, vec_typ)
     end
 
     % define delimeters
-    quote='"''';
-    data_delim_char=';';
+    quote=uint8('"''');
+    data_delim_char=uint8(';');
     ni_def=afni_ni_defs();
 
     % process white space
@@ -338,15 +343,15 @@ function [data,pos]=niml_parse_string_data_element(s, pos, vec_typ)
     end
 
 
-function s_escaped=niml_unescape_string(s)
+function s_unescaped=niml_unescape_string(s)
     ni_def=afni_ni_defs();
     escape=ni_def.escape;
 
-    s_escaped=char(s);
+    s_unescaped=char(s);
 
     n=size(escape,1);
-    for k=1:n
-        s_escaped=strrep(s_escaped,escape{1},escape{2});
+    for k=n:-1:1
+        s_unescaped=strrep(s_unescaped,escape{k,1},escape{k,2});
     end
 
 
@@ -372,7 +377,8 @@ function pos=consume_string(s, pos, needle)
 function pos=consume_char_optionally(s, pos, c)
     % skip any characters in c from s starting at pos
     n=numel(s);
-    while pos<=n && any(s(pos)==c)
+    c_bytes=uint8(c);
+    while pos<=n && any(s(pos)==c_bytes)
         pos=pos+1;
     end
 
@@ -406,9 +412,11 @@ function char_pos=find_char(s, pos, c, negate)
         offset=1;
     end
 
+    c_bytes=uint8(c);
+
     n=numel(s);
     for start_pos=pos:n
-        if any(s(start_pos)==c)==~negate
+        if any(s(start_pos)==c_bytes)==~negate
             char_pos=start_pos+offset;
             return;
         end
@@ -425,5 +433,5 @@ function next_pos=find_whitespace(s, pos)
 
 
 function whitespace_characters=get_whitespace_characters()
-    whitespace_characters=sprintf(' \t\r\n\f\v');
+    whitespace_characters=uint8(sprintf(' \t\r\n\f\v'));
 
