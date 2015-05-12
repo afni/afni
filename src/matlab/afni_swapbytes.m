@@ -1,5 +1,7 @@
 function y=afni_swapbytes(x)
 % Perform byteswap for input data of type int, single or double
+%
+% (Octave 3.8 does not support a byteswap for data of class 'single')
 
     c=class(x);
 
