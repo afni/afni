@@ -27,9 +27,16 @@ function S=afni_niml_readsimple(fn,full)
 
 D=afni_niml_read(fn);
 
+if iscell(D)
+    if numel(D)==1
+        D=D{1};
+    else
+        error('Cell with multiple elements is not supported');
+    end
+end
+
 if ~isstruct(D) || ~isfield(D,'dset_type')
-    disp(D);
-    error('Unrecognized data cell');
+    error('Unrecognized input');
 end
 
 S=struct();
