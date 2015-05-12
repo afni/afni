@@ -14,7 +14,7 @@ function afni_niml_write(p,fn,format)
 % NNO Dec 2009 <n.oosterhof@bangor.ac.uk>
 
 if nargin<3
-    format='ascii';
+    format='binary';
 end
 
 if nargin<2
