@@ -1,4 +1,4 @@
-function D=afni_niml_writesimple(S,fn)
+function D=afni_niml_writesimple(S,fn,varargin)
 % writes surface data in a 'simple' struct in NIML format to a file.
 %
 % D=AFNI_NIML_WRITESIMPLE(fn,S) writes surface data S to the file FN.
@@ -105,7 +105,7 @@ nodes{2}=nd;
 nd=struct();
 nd.atr_name='COLMS_RANGE';
 nd.name='AFNI_atr';
-nd.data=data2range(S.data);
+nd.data={{data2range(S.data)}};
 nodes{3}=nd;
 
 % default labels for columns
@@ -172,7 +172,7 @@ elseif ~ischar(vals)
     error('Unrecognized data type for field %s (%s)', Nodefieldname, Sfieldname);
 end
 
-elem.data=vals;
+elem.data={{vals}};
 
 
 function r=data2range(data,precision)
