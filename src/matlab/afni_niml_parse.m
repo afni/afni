@@ -136,12 +136,14 @@ function [niml,pos] = niml_parse_numeric_data(s, pos, niml)
 
         data_type=func2str(ni_def.type{ni_def_index});
 
-        data_bytes=s(pos+(0:(n_data_bytes-1)));
+
+        data_bytes=uint8(s(pos+(0:(n_data_bytes-1))));
         data=typecast(data_bytes,data_type);
+
         d_pos=n_data_bytes+1;
 
         if niml_binary_data_requires_byteswap(niml.ni_form)
-            data=swapbytes(data);
+            data=afni_swapbytes(data);
         end
 
     else
