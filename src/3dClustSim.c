@@ -217,9 +217,15 @@ void display_help_menu()
    "** the simulated data over a finite volume introduces 2 artifacts, which might\n"
    "** be called 'edge effects'.  To minimize these problems, this program now makes\n"
    "** extra-large (padded) simulated volumes before blurring, and then trims those\n"
-   "** back down to the desired size.  The effect of this change is most evident at\n"
-   "** larger smoothing FWHM values, of course.  To run 3dClustSim without this\n"
-   "** padding added, use the new '-nopad' option.\n"
+   "** back down to the desired size, before continuing with the thresholding and\n"
+   "** cluster-counting steps.  To run 3dClustSim without this padding added, use\n"
+   "** the new '-nopad' option.\n"
+#if 0
+   "** Also see the manuscript\n"
+   "**   A Eklund, T Nichols, M Andersson, and H Knutsson.\n"
+   "**   Empirically Investigating the Statistical Validity of SPM, FSL and AFNI\n"
+   "**   for Single Subject FMRI Analysis.\n"
+#endif
    "**** -------------------------------------------------------------------------**\n"
    "\n"
    "-------\n"
@@ -897,7 +903,7 @@ void get_options( int argc , char **argv )
 
   do_blur = (sigmax > 0.0f || sigmay > 0.0f || sigmaz > 0.0f ) ;
 
-  if( do_blur && allow_padding ){  /* 12 May 2015 */
+  if( do_blur && allow_padding ){           /* 12 May 2015 */
     ex_pad = (int)rintf(1.666f*fwhm_x/dx) ;
     ey_pad = (int)rintf(1.666f*fwhm_y/dy) ;
     ez_pad = (int)rintf(1.666f*fwhm_z/dz) ;
@@ -1577,7 +1583,7 @@ int main( int argc , char **argv )
 
    fim  = (float *)malloc(sizeof(float)*nxyz) ;  /* image space */
    bfim = (byte * )malloc(sizeof(byte) *nxyz) ;
-   if( do_pad ) pfim = (float *)malloc(sizeof(float)*nxyz_pad) ;
+   if( do_pad ) pfim = (float *)malloc(sizeof(float)*nxyz_pad); /* 12 May 2015 */
    else         pfim = NULL ;
 
    vstep = (int)( niter / (nthr*50.0f) + 0.901f) ;
@@ -1611,7 +1617,7 @@ int main( int argc , char **argv )
 
   } /* end of simulation loop */
 
-  free(fim) ; free(bfim) ;
+  free(fim) ; free(bfim) ; if( pfim != NULL ) free(pfim) ;
   free(inow_g[ithr]) ; free(jnow_g[ithr]) ; free(know_g[ithr]) ;
 
   if( ithr == 0 && verb ) fprintf(stderr,"\n") ;
