@@ -207,17 +207,17 @@ function ni_type=vec_typ2string(vec_typ)
     ni_type=cat(2,ni_type_cell{1:pos});
 
 
-function [vec_typ, vec_len]=get_vec_type_len_from_data(data)
+function [vec_typ, vec_len]=get_vec_typ_len_from_data(data)
     % helper function to get vec type from data
-    if iscell(data)
+    if iscell(data) && ~iscellstr(data)
         % do recursive call
-        vec_typ=cell2mat(cellfun(@get_vec_type_len_from_data,data));
+        vec_typ=cellfun(@get_vec_typ_len_from_data,data);
 
         if ~isvector(vec_typ)
             error('Unrecognized data');
         end
 
-        vec_len_s=cell2mat(cellfun(@numel,data));
+        vec_len_s=cellfun(@numel,data);
         if ~all(vec_len_s(1)==vec_len_s)
             error('data has different sizes');
         end
@@ -227,7 +227,7 @@ function [vec_typ, vec_len]=get_vec_type_len_from_data(data)
         return
     end
 
-    vec_num=size(data,2);
+    [vec_len,vec_num]=size(data);
 
     if islogical(data)
         data=single(data); % convert to numeric
@@ -235,16 +235,12 @@ function [vec_typ, vec_len]=get_vec_type_len_from_data(data)
 
     ni_defs=afni_ni_defs();
 
-    type_string_s=cellfun(func2str, ni_defs.type);
+    type_string_s=cellfun(@func2str, ni_defs.type, 'UniformOutput',false);
 
-    % check builtin types
-    for k=1:numel(type_strings)
-        type_string=type_string_s{k};
-        if isa(data, type_string)
-            vec_typ=k-1;
-            return
-        end
-    end
+
+
+    tp=[];
+
 
     if isnumeric(data)
         if isequal(round(data),data)
@@ -257,37 +253,49 @@ function [vec_typ, vec_len]=get_vec_type_len_from_data(data)
         tp=ni_defs.NI_STRING;
 
     else
+         % check builtin types
+        for k=1:numel(type_string_s)
+            type_string=type_string_s{k};
+            if isa(data, type_string)
+                tp=k-1;
+                break;
+            end
+        end
+    end
+
+    if isempty(tp)
         error('Data not understood');
     end
 
-    vec_len=size(data,1);
     vec_typ=repmat(tp,1,vec_num);
 
 
 function f=get_ascii_printer(vec_typ,data)
 % use vec_typ to create a format string for printf
-% data is used in case we print floats; we use the least possible number of
+% data is used in case we print floats; use the least possible number of
 % floating point positions
 
     ni_defs=afni_ni_defs();
 
     n_vec_typ=numel(vec_typ);
-    has_numeric_vec_typ=all(vec_typ(1)~=ni_defs.NI_STRING) ...
-                                                && ~iscell(data);
 
-    if has_numeric_vec_typ
+    if vec_typ_and_data_is_all_numeric(vec_typ, data)
         pat1=get_single_element_ascii_print_format(vec_typ,data,ni_defs);
         pat=repmat([pat1 ' '],1,n_vec_typ);
         pat(end)=sprintf('\n');
 
         f=@(x)sprintf(pat,x');
-        return;
     else
         if ~iscell(data)
-            error('illegal data');
+            error('illegal data: espected cell, found %s', class(data));
         end
 
         n_col=numel(data);
+        if n_vec_typ~=n_col
+            error('vec_typ has %d elements, but data has %d elements',...
+                        n_vec_typ, n+col);
+        end
+
         pats=cell(1,n_col);
         for k=1:n_col
             pats{k}=get_single_element_ascii_print_format(vec_typ(k),...
