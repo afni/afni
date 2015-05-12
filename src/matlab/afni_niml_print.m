@@ -363,7 +363,7 @@ function s_escaped=niml_escape_string(s)
 
     n=size(escape,1);
     for k=1:n
-        s_escaped=strrep(s_escaped,escape{2},escape{1});
+        s_escaped=strrep(s_escaped,escape{k,2},escape{k,1});
     end
 
 
