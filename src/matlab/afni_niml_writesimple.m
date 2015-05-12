@@ -132,7 +132,7 @@ nodes{7}=make_str_element('HISTORY_NOTE',S,'history',defaulthistory,ncols);
 
 D.nodes=nodes;
 
-afni_niml_write(D,fn);
+afni_niml_write(D,fn,varargin{:});
 
 % NNO May 2011 bug fixed reported by Ziad Saad
 % http://afni.nimh.nih.gov/afni/community/board/read.php?f=1&i=38222&t=3818
