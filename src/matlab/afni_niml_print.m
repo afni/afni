@@ -13,11 +13,30 @@ function s=afni_niml_print(p, format)
 %
 % NNO Dec 2009 <n.oosterhof@bangor.ac.uk>
 
-if nargin<2
-    format='ascii';
-end
+    if nargin<2
+        format='binary';
+    end
 
-s=afni_niml_print_helper(p, format);
+    format=update_output_format(format);
+    s=afni_niml_print_helper(p, format);
+
+
+function format=update_output_format(format)
+    supported_formats={'ascii','binary',...
+                        'binary.lsbfirst','binary.msbfirst'};
+
+    if strcmp(format,'binary')
+        [unused,unused,endian]=computer();
+        format=sprintf('binary.%ssbfirst',lower(endian));
+    end
+
+    if isempty(strmatch(format, supported_formats))
+        error('illegal format %s, use one of:%s', ...
+                format, sprintf(' %s', supported_formats{:}));
+    end
+
+
+
 
 function s=afni_niml_print_helper(p, format)
     if iscell(p)
@@ -33,8 +52,10 @@ function s=afni_niml_print_helper(p, format)
 
         if isfield(p,'nodes')
             % is a group, do recursion
-            sbody=afni_niml_print_helper(p.nodes,format);
-            p=rmfield(p,'nodes'); % 'nodes' is not a standard NIML field
+            sbody=uint8(afni_niml_print_helper(p.nodes,format));
+
+            field_to_remove={'nodes'};
+
         elseif isfield(p,'data')
 
             % in case the type is not specified, we try
