@@ -305,6 +305,9 @@ function f=get_ascii_printer(vec_typ,data)
         f=@(x)print_cell_ascii(pats,data);
     end
 
+function tf=vec_typ_and_data_is_all_numeric(vec_typ, data)
+    ni_defs=afni_ni_defs();
+    tf=all(vec_typ(1)~=ni_defs.NI_STRING) && ~iscell(data);
 
 
 
