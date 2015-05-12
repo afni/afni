@@ -163,15 +163,15 @@ function s=afni_niml_print_header(p)
 function niml=set_niml_vec_typ_attributes(niml)
 % sets the vector type, in case this is not given.
     if ~isfield(niml,'vec_typ') || ~isfield(niml,'vec_len')
-        [niml.vec_type, niml.vec_len]=get_vec_type_len_from_data(...
+        [niml.vec_typ, niml.vec_len]=get_vec_typ_len_from_data(...
                                                             niml.data);
     end
     niml.vec_num=numel(niml.vec_typ);
 
-    niml.ni_type=vec_type2string(niml.vec_typ);
+    niml.ni_type=vec_typ2string(niml.vec_typ);
     niml.ni_dimen=sprintf('%d',niml.vec_len);
 
-function ni_type=vec_type2string(vec_typ)
+function ni_type=vec_typ2string(vec_typ)
     % converts numeric vec_typ to string representation
     ni_defs=afni_ni_defs();
     type_name=cellstr(ni_defs.type_name);
