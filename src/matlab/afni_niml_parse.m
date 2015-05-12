@@ -73,6 +73,7 @@ function [niml,pos]=niml_parse_helper(s, pos)
 
     pos=consume_whitespace_optionally(s, pos);
     pos=niml_consume_endmarker(s, pos, niml);
+    pos=consume_whitespace_optionally(s, pos);
 
 
 
