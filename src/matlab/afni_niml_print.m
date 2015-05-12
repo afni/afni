@@ -143,8 +143,9 @@ function s=afni_niml_print_header(p)
         val=strtrim(p.(fn));
 
         if isnumeric(val)
-            warning('Converting numeric to string for field %s\n', fn);
             val=num2str(val);
+        elseif ~ischar(val)
+            error('expected char or numeric value, found %s', class(val));
         end
 
         % surround by quotes, if that's not the case yet
