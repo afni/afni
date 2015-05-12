@@ -47,59 +47,63 @@ function s=afni_niml_print_helper(p, format)
             end
 
             % some fields are not standard NIML (I think), we remove these
-            illegal_fields={'vec_typ','vec_len','vec_num','name','data'};
+            field_to_remove={'vec_typ','vec_len','vec_num','name','data'};
 
-            to_remove=intersect(fieldnames(p),illegal_fields);
-            p=rmfield(p, to_remove);
         else
-            disp(p)
-            error('Do not understand this struct');
+            error('Do not understand input from class %s', class(p));
         end
 
+        to_remove=intersect(fieldnames(p),field_to_remove);
+        p=rmfield(p, to_remove);
+
         headertext=afni_niml_print_header(p);
-        s=sprintf('<%s\n%s >%s</%s>\n',headername,...
-                                       headertext,...
-                                       sbody,...
-                                       headername);
+
+        prefix=uint8(sprintf('<%s\n%s >',headername,headertext));
+        postfix=uint8(sprintf('</%s>\n',headername));
+
+        s=[prefix sbody postfix];
     end
 
 
 function [s, ni_form]=afni_niml_print_data(p,format)
-    pat=get_ascii_printer(p.vec_typ,p.data);
 
-    is_string=strcmp(pat,'%s');
-    is_ascii=strcmp(format,'ascii');
-    if is_string || is_ascii
+    out_format_is_ascii=strcmp(format,'ascii');
+    data_is_all_numeric=vec_typ_and_data_is_all_numeric(p.vec_typ, p.data);
+
+    if out_format_is_ascii || ~data_is_all_numeric
         s=afni_niml_print_body_ascii(p);
         ni_form=[];
     else
         s=afni_niml_print_body_binary(p,format);
-
-        [unused, unused, endian]=computer();
-        ni_form=sprintf('binary.%ssbfirst',lower(endian));
+        ni_form=format;
     end
 
 
 function string_data=afni_niml_print_body_ascii(p)
     printer=get_ascii_printer(p.vec_typ,p.data);
-    string_data=printer(p.data);
+    string_data=uint8(printer(p.data));
 
 
 
 
 function binary_data=afni_niml_print_body_binary(p, format)
-    if ~strcmp(format, 'binary')
-        error('format must be ''ascii'' or ''binary''');
-    end
-
     vec_typ=p.vec_typ;
     if numel(vec_typ)>1 && any(vec_typ(1)~=vec_typ)
-        error('binary only supported for uniform vec_type');
+        error('binary only supported for uniform vec_typ');
     end
 
     ni_defs=afni_ni_defs();
-    converter=ni_defs.type(vec_typ(1)+1); % base 1
+    converter=ni_defs.type{vec_typ(1)+1}; % base 1
     data=converter(p.data');
+
+    [unused,unused,endian]=computer();
+    computer_format=sprintf('binary.%ssbfirst',lower(endian));
+
+    do_swap=~strcmp(format, computer_format);
+
+    if do_swap
+        data=afni_swapbytes(data);
+    end
 
     binary_data=typecast(data(:)','uint8');
 
