@@ -26,8 +26,8 @@ function y=afni_swapbytes(x)
 
     % convert x to bytes, with the k-th column the byte representation of
     % the k-th element of x
-    x_bytes=reshape(typecast(x,'uint8'),nbytes,[]);
+    x_bytes=reshape(typecast(x(:),'uint8'),nbytes,[]);
 
     % swap each columna and convert back to original format
-    y=reshape(typecast(x_bytes(end:-1:1,:),c),size(x));
+    y=reshape(typecast(reshape(x_bytes(end:-1:1,:),[],1),c),size(x));
 
