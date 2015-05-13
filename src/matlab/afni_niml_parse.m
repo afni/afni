@@ -51,6 +51,7 @@ function [niml,pos]=niml_parse_helper(s, pos)
     end
 
     header_start_pos=find_char(s, pos, '<');
+
     key_values_start_pos=find_whitespace(s, header_start_pos);
 
     header_name=char(s(header_start_pos:(key_values_start_pos-2)));
@@ -422,7 +423,7 @@ function char_pos=find_char(s, pos, c, negate)
         end
     end
 
-    char_pos=0;
+    error('Character %s not found', c);
 
 
 function next_pos=find_whitespace(s, pos)
