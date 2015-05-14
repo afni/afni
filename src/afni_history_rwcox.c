@@ -43,7 +43,13 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
- { 8 , MAY , 2015 , RWC , "InstaCorr" , MICRO , TYPE_BUG_FIX ,
+  { 12 , MAY , 2015 , RWC , "3dClustSim" , MINOR , TYPE_MODIFY ,
+   "Eliminate edge effects of smoothing by padding and unpadding" ,
+   "Simulate extra-size volumes then smooth, then cut back to the desired\n"
+   "volume size.  Can use new '-nopad' option to try the old-fashioned\n"
+   "method. (H/T to Anders Eklund and Tom Nichols.)" } ,
+
+{ 8 , MAY , 2015 , RWC , "InstaCorr" , MICRO , TYPE_BUG_FIX ,
    "Change way index in 3D+time dataset is chosen from xyz" ,
    "Instead of just converting from xyz (eg, crosshair) coordinates via the\n"
    "standard grid transformation functions in thd_coords.c, what we want is\n"
