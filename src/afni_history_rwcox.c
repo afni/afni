@@ -43,7 +43,11 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 14 , MAY , 2015 , RWC , "afni Clusterize" , MICRO , TYPE_MODIFY ,
+  { 14 , MAY , 2015 , RWC , "1dplot" , MICRO , TYPE_NEW_OPT ,
+   "Add -demean option == remove mean from time series before plotting" ,
+   "Multiple -demean options implies higher order polynomials!" } ,
+
+ { 14 , MAY , 2015 , RWC , "afni Clusterize" , MICRO , TYPE_MODIFY ,
    "Add 'Detrend??' button to hidden popup" ,
    "Allows user (me) to detrend the aux data before plotting it." } ,
 
