@@ -43,7 +43,11 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 12 , MAY , 2015 , RWC , "3dClustSim" , MINOR , TYPE_MODIFY ,
+  { 14 , MAY , 2015 , RWC , "afni Clusterize" , MICRO , TYPE_MODIFY ,
+   "Add 'Detrend??' button to hidden popup" ,
+   "Allows user (me) to detrend the aux data before plotting it." } ,
+
+ { 12 , MAY , 2015 , RWC , "3dClustSim" , MINOR , TYPE_MODIFY ,
    "Eliminate edge effects of smoothing by padding and unpadding" ,
    "Simulate extra-size volumes then smooth, then cut back to the desired\n"
    "volume size.  Can use new '-nopad' option to try the old-fashioned\n"
