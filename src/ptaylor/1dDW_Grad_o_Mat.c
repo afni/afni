@@ -11,6 +11,9 @@
   + adding ability to input a (multi-b0)+dwi file, and have
     the b0s get averaged and put as 0th brick
 
+  May 2015
+  + minor new option for outputting bval file: -out_bval_row_sep
+
 */
 
 // 3dDWItoDT: Bxx, Byy, Bzz, Bxy, Bxz, Byz
@@ -91,7 +94,8 @@ void usage_1dDW_Grad_o_Mat(int detail)
 "         { -in_bvals BVAL_IN }                                      \\\n"
 "         { -bmax_ref THRESH }                                       \\\n"
 "         { -out_grad_cols | -out_gmatT_cols | -out_gmatA_cols |     \\\n"
-"           -out_bmatT_cols | -out_gmatA_cols | -out_grad_rows } OUTFILE \n\n"
+"           -out_bmatT_cols | -out_gmatA_cols | -out_grad_rows } OUTFILE \\\n"
+"         { -out_bval_row_sep BB }                                   \n\n"
 "    where:\n"
 "        (one of the following six formats of input must be given):\n"
 "    -in_grad_rows  INFILE :input file of 3 rows of gradients (e.g., dcm2nii-\n"
@@ -159,6 +163,7 @@ void usage_1dDW_Grad_o_Mat(int detail)
 "                           '-bmax_ref 5.1'.\n"
 "    -out_bval_col         :switch to put a column of the bvalues as the\n"
 "                           first column in the output data.\n"
+"    -out_bval_row_sep BB  :output a file BB of bvalues in a single row.\n"
 "\n"
 "* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n"
 "\n"
@@ -725,19 +730,16 @@ int main(int argc, char *argv[])
       }
    }
 
-   fprintf(stderr,"\n AAA");
    if(BVAL_OUT_SEP)
       if( (foutBV = fopen(Fname_outputBV, "w")) == NULL) {
          fprintf(stderr, "\n\nError opening file %s.\n",Fname_outputBV);
          exit(1);
       }
-      fprintf(stderr,"\n BBB");
 
    if( (fout = fopen(Fname_output, "w")) == NULL) {
       fprintf(stderr, "\n\nError opening file %s.\n",Fname_output);
       exit(1);
    }
-   fprintf(stderr,"\n CCC");
 
    // 0 is grad row;  
    // 1 is grad col;
@@ -761,7 +763,6 @@ int main(int argc, char *argv[])
                fprintf(fout,"%11.5f  ", 0.0);
          fprintf(fout,"\n");
       }
-      fprintf(stderr,"\n DDD");
 
       ct_dwi = 0;
       for(i=0 ; i<idx ; i++){ 
@@ -771,7 +772,6 @@ int main(int argc, char *argv[])
                fprintf(fout,"%8d  ", (int) OUT_GRAD[i][0]);
             if( BVAL_OUT_SEP )
                fprintf(foutBV,"%8d  ", (int) OUT_GRAD[i][0]);
-            fprintf(stderr,"\n EEE");
 
             if( (OUT_FORM == 4) || (OUT_FORM ==5) )
                for( k=1 ; k<7 ; k++ )
