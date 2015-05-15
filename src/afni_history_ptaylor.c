@@ -66,6 +66,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 15, May , 2015 , PT , "1dDW_Grad_o_Mat" , MINOR , TYPE_NEW_OPT,
+   "Can output separate bval file.",
+   "Useful in some TORT preprocessing.\n"
+},
+
 { 27, Apr , 2015 , PT , "3dROIMaker" , MINOR , TYPE_BUG_FIX,
    "Fixed output when byte/short insets were used.",
    "Had been not writing data; needed to null brick_facs in outsets.\n"
