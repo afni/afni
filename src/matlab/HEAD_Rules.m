@@ -63,11 +63,23 @@ else
     FieldNames = zdeblank (FieldNames);
 end
 
+
+% Allowed are letters, digits, underscores ('_'), and tildes ('~')
+allowed_pattern='^[\w~]*$';
+if isempty(regexp(FieldNames, allowed_pattern, 'once'))
+    error('FieldNames contain illegal character(s)');
+end
+
 %remove last ~ delimiter
 Ntmp = length(FieldNames);
 if (FieldNames(Ntmp) == '~'), FieldNames = FieldNames(1:Ntmp-1); end
 
-Nfields = WordCount(FieldNames, '~');
+% find tile positions
+% (virtual positions are added at one character before and after the
+% string)
+tilde_pos=[0, find(FieldNames=='~'), numel(FieldNames)+1];
+Nfields=numel(tilde_pos)-1;
+
 %initialize structure fields
 Rules=struct();
 Rules(Nfields).Name = '';
@@ -78,6 +90,7 @@ Rules(Nfields).minLength = [];
 for (ir=1:1:Nfields),
     name_start_pos=tilde_pos(ir)+1;
     name_end_pos=tilde_pos(ir+1)-1;
+
     CurName=FieldNames(name_start_pos:name_end_pos);
     isNum = [];
     Length = [];
