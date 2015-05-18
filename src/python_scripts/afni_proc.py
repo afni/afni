@@ -475,7 +475,7 @@ g_history = """
     4.43 May 08, 2015: added -regress_make_corr_vols
     4.44 May 18, 2015: apply ROIs more generally; allow local ROI PCs
         - external ROIs should now be passed via -anat_follower_ROI,
-          rather than -regress_ROI_*; the latter no longer taking datasets
+          rather than -regress_ROI_*, the latter no longer taking datasets
         - also changed -regress_ROI_erode to -anat_follower_erode
         - removed option -regress_ROI_maskave (use -regress_ROI)
 """
