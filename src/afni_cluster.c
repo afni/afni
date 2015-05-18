@@ -567,6 +567,14 @@ ENTRY("AFNI_clus_make_widgets") ;
      MCW_set_bbox( cwid->spearman_bbox , sval ) ;
    }
 
+   { char *blab = "Detrend??" ; int sval ;
+     cwid->detrend_bbox = new_MCW_bbox( cwid->top_menu , 1,&blab ,
+                                        MCW_BB_check , MCW_BB_noframe , NULL,NULL ) ;
+     MCW_reghint_children( cwid->detrend_bbox->wrowcol , "Detrend before Mean plot?") ;
+     sval = AFNI_yesenv("AFNI_CLUSTER_DETREND") ;
+     MCW_set_bbox( cwid->detrend_bbox , sval ) ;
+   }
+
    /*---- end of popup menu ----*/
 
 #undef  VLINE
@@ -1930,6 +1938,19 @@ ENTRY("AFNI_clus_action_CB") ;
                                 "** for graphing that!  **\n " ,
                             MCW_USER_KILL | MCW_TIMER_KILL ) ;
          DESTROY_IMARR(imar) ; SHOW_AFNI_READY; EXRETURN ;
+       }
+
+       /* Detrend all (sub)vectors in the data before combining them [14 May 2015] */
+
+       if( MCW_val_bbox(cwid->detrend_bbox) == 1 && (domean || dopc || domedn) ){
+         int qq ; float *far ;
+         for( qq=0 ; qq < IMARR_COUNT(imar) ; qq++ ){
+           far = MRI_FLOAT_PTR( IMARR_SUBIMAGE(imar,qq) ) + ibot ;
+           if( domedn )
+             THD_generic_detrend_L1 ( itop-ibot+1 , far , 1 , 0,NULL,NULL ) ;
+           else
+             THD_generic_detrend_LSQ( itop-ibot+1 , far , 1 , 0,NULL,NULL ) ;
+         }
        }
 
        /*--- extract single vector for display or save ---*/
