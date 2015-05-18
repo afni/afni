@@ -55,6 +55,17 @@ static float fwhm_y = 0.0f ;
 static float fwhm_z = 0.0f ;
 static int   niter  = 10000 ;
 
+static int   ex_pad = 0  ;  /* 12 May 2015 -- allow for padding the volume */
+static int   ey_pad = 0  ;
+static int   ez_pad = 0  ;
+static int   do_pad = 0  ;
+static int   nx_pad      ;
+static int   ny_pad      ;
+static int   nz_pad      ;
+static int   nxy_pad     ;
+static int   nxyz_pad    ;
+static int   allow_padding = 1 ;  /* on by default */
+
 static float sigmax , sigmay , sigmaz ;
 static int do_blur = 0 ;
 
@@ -200,6 +211,22 @@ void display_help_menu()
    "**** this program (and echoed into file '3dClustSim.cmd') shows the new form\n"
    "**** of the names involved.\n"
    "**** -------------------------------------------------------------------------**\n"
+   "**** SMOOTHING CHANGE -- May 2015 **********************************************\n"
+   "** ---------------------------------------------------------------------------**\n"
+   "** It was pointed out to me (by Anders Eklund and Tom Nichols) that smoothing\n"
+   "** the simulated data over a finite volume introduces 2 artifacts, which might\n"
+   "** be called 'edge effects'.  To minimize these problems, this program now makes\n"
+   "** extra-large (padded) simulated volumes before blurring, and then trims those\n"
+   "** back down to the desired size, before continuing with the thresholding and\n"
+   "** cluster-counting steps.  To run 3dClustSim without this padding added, use\n"
+   "** the new '-nopad' option.\n"
+#if 0
+   "** Also see the manuscript\n"
+   "**   A Eklund, T Nichols, M Andersson, and H Knutsson.\n"
+   "**   Empirically Investigating the Statistical Validity of SPM, FSL and AFNI\n"
+   "**   for Single Subject FMRI Analysis.\n"
+#endif
+   "**** -------------------------------------------------------------------------**\n"
    "\n"
    "-------\n"
    "OPTIONS  [at least 1 option is required, or you'll get this help message!]\n"
@@ -242,6 +269,12 @@ void display_help_menu()
    "                   axis, you can instead use option\n"
    "                     -fwhmxyz sx sy sz\n"
    "                   to specify the three values separately.\n"
+   "\n"
+   "-nopad          = The program now [12 May 2015] adds 'padding' slices along\n"
+   "                   each face to allow for edge effects of the smoothing process.\n"
+   "                   If you want to turn this feature off, use the '-nopad' option.\n"
+   "                  * For example, if you want to compare the 'old' (un-padded)\n"
+   "                    results with the 'new' (padded) results.\n"
    "\n"
    "-pthr p1 .. pn = list of uncorrected (per voxel) p-values at which to\n"
    "                  threshold the simulated images prior to clustering.\n"
@@ -578,6 +611,12 @@ void get_options( int argc , char **argv )
       fwhm_y = fwhm_z = fwhm_x ; nopt++; continue;
     }
 
+    /*-----   -nopad     -----*/
+
+    if( strcasecmp(argv[nopt],"-nopad") == 0 ){  /* 12 May 2015 */
+      allow_padding = 0 ; nopt++ ; continue ;
+    }
+
     /*-----   -fwhmxyz s s s   -----*/
 
     if( strcasecmp(argv[nopt],"-fwhmxyz") == 0 ){
@@ -864,6 +903,22 @@ void get_options( int argc , char **argv )
 
   do_blur = (sigmax > 0.0f || sigmay > 0.0f || sigmaz > 0.0f ) ;
 
+  if( do_blur && allow_padding ){           /* 12 May 2015 */
+    ex_pad = (int)rintf(1.666f*fwhm_x/dx) ;
+    ey_pad = (int)rintf(1.666f*fwhm_y/dy) ;
+    ez_pad = (int)rintf(1.666f*fwhm_z/dz) ;
+    do_pad = (ex_pad > 0) || (ey_pad > 0) || (ez_pad > 0) ;
+    if( do_pad )
+      INFO_message(
+       "Padding by %d x %d x %d slices to allow for edge effects of blurring" ,
+       ex_pad,ey_pad,ez_pad) ;
+  }
+  nx_pad   = 2*ex_pad + nx ;
+  ny_pad   = 2*ey_pad + ny ;
+  nz_pad   = 2*ez_pad + nz ;
+  nxy_pad  = nx_pad  * ny_pad ;
+  nxyz_pad = nxy_pad * nz_pad ;
+
   return ;
 }
 
@@ -885,11 +940,38 @@ void ssave_dataset( float *fim )  /* 24 Apr 2014 */
 }
 
 /*---------------------------------------------------------------------------*/
-/* Generate random smoothed masked image, with stdev=1. */
+/* Create the "functional" image, with smoothing and padding [12 May 2015] */
 
-void generate_image( float *fim , unsigned short xran[] )
+void generate_fim_padded( float *fim , float *pfim , unsigned short xran[] )
 {
-  register int ii ; register float sum ;
+  int ii,jj,kk,pp,qq ;
+
+  /* random N(0,1) stuff to create the larger (padded) volume */
+
+  for( ii=0 ; ii < nxyz_pad ; ii++ ) pfim[ii] = zgaussian_sss(xran) ;
+
+  /* smoothization */
+
+  if( do_blur )
+    FIR_blur_volume_3d(nx_pad,ny_pad,nz_pad,dx,dy,dz,pfim,sigmax,sigmay,sigmaz) ;
+
+  /* cut back to smaller unpadded volume */
+
+  for( pp=kk=0 ; kk < nz ; kk++ ){
+   for( jj=0 ; jj < ny ; jj++ ){
+    qq = ex_pad + (jj+ey_pad)*nx_pad + (kk+ez_pad)*nxy_pad ;
+    for( ii=0 ; ii < nx ; ii++ ) fim[pp++] = pfim[qq++] ;
+  }}
+
+  return ;
+}
+
+/*---------------------------------------------------------------------------*/
+/* Create the functional "image", with no padding and optional smoothing. */
+
+void generate_fim_unpadded( float *fim , unsigned short xran[] )
+{
+  int ii ; float sum ;
 
   /* random N(0,1) stuff */
 
@@ -897,20 +979,43 @@ void generate_image( float *fim , unsigned short xran[] )
 
   /* smoothization */
 
-  if( do_blur ){
+  if( do_blur )
     FIR_blur_volume_3d(nx,ny,nz,dx,dy,dz,fim,sigmax,sigmay,sigmaz) ;
-    for( sum=0.0f,ii=0 ; ii < nxyz ; ii++ ) sum += fim[ii]*fim[ii] ;
-    sum = sqrtf( nxyz / sum ) ;  /* fix stdev back to 1 */
-    for( ii=0 ; ii < nxyz ; ii++ ) fim[ii] *= sum ;
-  }
+
+  return ;
+}
+
+/*---------------------------------------------------------------------------*/
+/* Generate random smoothed masked image, with stdev=1. */
+
+void generate_image( float *fim , float *pfim , unsigned short xran[] )
+{
+  register int ii ; register float sum ;
+
+  /* Outsource the creation of the smoothed random field [12 May 2015] */
+
+  if( do_pad )
+    generate_fim_padded( fim , pfim , xran ) ;
+  else
+    generate_fim_unpadded( fim , xran ) ;
+
+  /* normalizing */
+
+  for( sum=0.0f,ii=0 ; ii < nxyz ; ii++ ) sum += fim[ii]*fim[ii] ;
+  sum = sqrtf( nxyz / sum ) ;  /* fix stdev back to 1 */
+  for( ii=0 ; ii < nxyz ; ii++ ) fim[ii] *= sum ;
+
+  /* save this volume? */
 
   if( do_ssave == SSAVE_BLURRED ) ssave_dataset(fim) ;
 
-  /* maskizing */
+  /* maskizing? */
 
   if( mask_vol != NULL ){
     for( ii=0 ; ii < nxyz ; ii++ ) if( !mask_vol[ii] ) fim[ii] = 0.0f ;
   }
+
+  /* save THIS volume? */
 
   if( do_ssave == SSAVE_MASKED ) ssave_dataset(fim) ;
 
@@ -1410,6 +1515,7 @@ int main( int argc , char **argv )
  {
    int iter, ithr, ipthr, **mt_1sid[4],**mt_2sid[4],**mt_bsid[4] , nnn ;
    float *fim ; byte *bfim ; unsigned short xran[3] ;
+   float *pfim ;
    int vstep , vii ;
 
   /* create separate tables for each thread, if using OpenMP */
@@ -1477,6 +1583,8 @@ int main( int argc , char **argv )
 
    fim  = (float *)malloc(sizeof(float)*nxyz) ;  /* image space */
    bfim = (byte * )malloc(sizeof(byte) *nxyz) ;
+   if( do_pad ) pfim = (float *)malloc(sizeof(float)*nxyz_pad); /* 12 May 2015 */
+   else         pfim = NULL ;
 
    vstep = (int)( niter / (nthr*50.0f) + 0.901f) ;
    vii   = 0 ;
@@ -1491,7 +1599,7 @@ int main( int argc , char **argv )
       vii++ ; if( vii%vstep == vstep/2 ) vstep_print() ;
     }
 
-    generate_image( fim , xran ) ;
+    generate_image( fim , pfim , xran ) ;
 
     for( ipthr=0 ; ipthr < npthr ; ipthr++ ){
       gather_stats_NN1_1sid( ipthr , fim , bfim , mt_1sid[1][ipthr] , ithr ) ;
@@ -1509,7 +1617,7 @@ int main( int argc , char **argv )
 
   } /* end of simulation loop */
 
-  free(fim) ; free(bfim) ;
+  free(fim) ; free(bfim) ; if( pfim != NULL ) free(pfim) ;
   free(inow_g[ithr]) ; free(jnow_g[ithr]) ; free(know_g[ithr]) ;
 
   if( ithr == 0 && verb ) fprintf(stderr,"\n") ;
