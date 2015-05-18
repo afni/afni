@@ -15,7 +15,7 @@ MISC_OBJS	= nifticdf.o znzlib.o
 OBJS	   	= nifti2_io.o $(MISC_OBJS)
 
 TOOLS 	   	= nifti_tool nifti1_tool
-EXAMPLES   	= clib_02.nifti2
+EXAMPLES   	= clib_02_nifti2
 
 
 # --------------------------------------------------
@@ -36,7 +36,7 @@ clean:
 
 nifti2objs: $(OBJS)
 
-clib_02.nifti2: clib_02.nifti2.o nifti2objs
+clib_02_nifti2: clib_02_nifti2.o nifti2objs
 	$(CC) -o $@ $(CFLAGS) $< $(OBJS) $(LLIBS)
 
 # --------------------------------------------------

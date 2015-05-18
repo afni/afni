@@ -1510,7 +1510,7 @@ void AFNI_sigfunc_alrm(int sig)
      "I am not bound to please thee with my statistics"              ,
      "I will praise any man that will praise me"                     ,
      "If you have tears, prepare to shed them now"                   ,
-     "Man, those neutrinos are killing me"                           ,
+     "Man, those solar neutrinos are killing me"                     ,
      "Are you ready for the explosion of Eta Carinae?"               ,
      "Remember -- AFNI is free, but worth at least 1000 times more"  ,
      "Remember -- Nothing is always absolutely so"                   ,
@@ -1651,11 +1651,11 @@ void AFNI_sigfunc_alrm(int sig)
      "\n  When someone says: I agree 100% with your concept,\n"
      "  They mean:         I am implacably opposed to your proposal"                          ,
 
-     "\n  If reasonable priors lead to different conclusions, then it's time to\n"
+     "\n  If 2 reasonable priors lead to different conclusions, then it's time to\n"
      "  look for more data, think harder, mumble inaudibly, or take a wild guess"             ,
 
-     "\n  To be stupid, selfish, and have good health are three requirements for\n"
-     "   happiness; though if stupidity is lacking, all is lost.\n"
+     "\n  To be stupid, selfish, and have good health are three requirements\n"
+     "   for happiness; though if stupidity is lacking, all is lost.\n"
    } ;
 #undef NTOP
 #ifdef USE_SONNETS
@@ -3308,7 +3308,7 @@ STATUS("defining surface drawing parameters") ;
         DC_parse_color( im3d->dc , ag->line_color , &rr_lin,&gg_lin,&bb_lin ) ;
         DC_parse_color( im3d->dc , ag->box_color  , &rr_box,&gg_box,&bb_box ) ;
         linewidth = ag->line_width * 0.002f ;
-		  skip_boxes = 1 ; skip_lines = 0 ; skip_lcen = 0; skip_ledg = 1 ;
+        skip_boxes = 1 ; skip_lines = 0 ; skip_lcen = 0; skip_ledg = 1 ;
 
       } else {                                   /* the old way    */
                                                  /* to set colors:  */
@@ -9468,7 +9468,6 @@ THD_fvec3 AFNI_transform_vector( THD_3dim_dataset *old_dset ,
 
    return old_fv ;
 }
-
 
 /*------------------------------------------------------------------------
   09 May 2001: fix a Solaris stupidity, where the scale is resized
