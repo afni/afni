@@ -49,6 +49,15 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 18,  May, 2015, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,
+   "allow ROI PC regression for local masks (not just external ones)",
+   "External ROIs should now be passed via -anat_follower_ROI, rather than\n"
+   "-regress_ROI_*, the latter no longer taking dataset parameters.\n"
+   "Also changed -regress_ROI_erode to -anat_follower_erode and\n"
+   "removed option -regress_ROI_maskave (use -regress_ROI)\n"
+   "Done for R W Cox."
+ } ,
+
  {  8,  May, 2015, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
    "added -regress_make_corr_vols",
    "Use this to compute average correlation volumes for various masks."

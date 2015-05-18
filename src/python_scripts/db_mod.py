@@ -215,8 +215,9 @@ def db_cmd_postdata(proc, block):
     if proc.anat_has_skull:
        if proc.find_block('align') or proc.find_block('tlrc'):
           # add anat to own follower list (we are now after 3dcopy)
+          # (no existence check)
           ff = proc.add_anat_follower(aname=proc.anat, dgrid='anat',
-                                      label='anat_w_skull')
+                                      label='anat_w_skull', check=0)
           ff.set_var('final_prefix', 'anat_w_skull_warped')
 
     # ---------------
@@ -230,6 +231,9 @@ def db_cmd_postdata(proc, block):
 
 def apply_general_anat_followers(proc):
    # add any other anat follower datasets
+
+   elist, rv = proc.user_opts.get_string_list('-anat_follower_erode')
+   if elist == None: elist = []
    for oname in ['-anat_follower', '-anat_follower_ROI' ]:
 
       for opt in proc.user_opts.find_all_opts(oname):
@@ -248,6 +252,9 @@ def apply_general_anat_followers(proc):
          if ff == None:
             print '** failed to add follower %s' % dname
             return 1
+
+         # note whether we erode this mask
+         if label in elist: ff.set_var('erode', 1)
 
          ff.set_var('final_prefix', '%s_%s'%(flab, label))
 
@@ -1639,7 +1646,8 @@ def warp_anat_followers(proc, block, anat_aname, epi_aname=None, prevepi=0):
           wstr += '\n# first perform any pre-warp erode operations\n'
 
        cname = afobj.cname.new(new_pref=(afobj.cname.prefix+'_erode'))
-       wstr += '3dmask_tool -input %s -dilate_input -1 -prefix %s\n' \
+       wstr += '3dmask_tool -input %s -dilate_input -1 \\\n'    \
+               '            -prefix %s\n'                       \
                % (afobj.cname.shortinput(), cname.out_prefix())
        afobj.cname = cname
    if not efirst: wstr += '\n# and apply any warp operations\n'
@@ -1675,10 +1683,11 @@ def warp_anat_followers(proc, block, anat_aname, epi_aname=None, prevepi=0):
          # proc.roi_dict[afobj.label] = afobj.cname
          continue # no warp needed
 
-      wstr += '%s -source %s -master %s \\\n' \
+      wstr += '%s -source %s \\\n'           \
+              '%s            -master %s\\\n' \
               '%s            %s %s %s\\\n'   \
               '%s            -prefix %s\n'   \
-              % (prog, afobj.cname.shortinput(), mname.shortinput(),
+              % (prog, afobj.cname.shortinput(), sp, mname.shortinput(),
                  sp, iopt, istr, warpstr,
                  sp, prefix)
 
@@ -1688,7 +1697,8 @@ def warp_anat_followers(proc, block, anat_aname, epi_aname=None, prevepi=0):
       wlist.append(afobj.aname.prefix)
 
       # and add this dataset to the ROI regression dictionary
-      if afobj.dgrid == 'epi': proc.roi_dict[afobj.label] = afobj.cname
+      if afobj.dgrid == 'epi':
+         if proc.add_roi_dict_key(afobj.label, afobj.cname): return 1, None
 
    if len(wlist) > 0:
       print '-- applying anat warps to %d dataset(s): %s' \
@@ -2360,8 +2370,20 @@ def db_mod_mask(block, proc, user_opts):
     apply_uopt_to_block('-mask_type',         user_opts, block)
 
     proc.mask_epi = BASE.afni_name('full_mask%s$subj' % proc.sep_char)
+
     # we have an EPI mask, add it to the roi_dict for optional regress_ROI
-    proc.roi_dict['brain'] = proc.mask_epi
+    if not proc.have_roi_label('brain'):
+       if proc.add_roi_dict_key('brain', proc.mask_epi): return 1
+
+    # possibly note that we will add some automatic ROIs
+    roilist = ['CSF', 'GM', 'WM']
+    if block.opts.have_yes_opt('-mask_segment_anat', 0):
+       for roi in roilist:
+          proc.add_roi_dict_key(roi)
+    if block.opts.have_yes_opt('-mask_segment_erode', 0):
+       for roi in roilist:
+          proc.add_roi_dict_key('%se' % roi)
+
     proc.mask = proc.mask_epi   # default to referring to EPI mask
 
     block.valid = 1
@@ -2542,10 +2564,12 @@ def mask_segment_anat(proc, block):
     proc.mask_classes = cres    # store, just in case
     
     for sc in sclasses:
-       proc.roi_dict[sc] = BASE.afni_name('mask_%s_resam%s' % (sc, proc.view))
+       newname = BASE.afni_name('mask_%s_resam%s' % (sc, proc.view))
+       if proc.add_roi_dict_key(sc, newname, overwrite=1): return ''
        if erode:
           ec = '%se' % sc
-          proc.roi_dict[ec] = BASE.afni_name('mask_%s_resam%s'%(ec,proc.view))
+          newname = BASE.afni_name('mask_%s_resam%s'%(ec,proc.view))
+          if proc.add_roi_dict_key(ec, newname, overwrite=1): return ''
 
     return cmd
 
@@ -2779,7 +2803,7 @@ def db_cmd_scale(proc, block):
     return cmd
 
 def all_erode_labels_used(proc, block):
-    elist, rv = block.opts.get_string_list('-regress_ROI_erode')
+    elist, rv = proc.user_opts.get_string_list('-anat_follower_erode')
     if elist == None: return 1
     elist = elist[:]  # copy, to trash later
 
@@ -2804,17 +2828,7 @@ def add_ROI_PC_followers(proc, block):
        but as ortvecs, do we really care?
     """
 
-    elist, rv = block.opts.get_string_list('-regress_ROI_erode')
-
-    # if maskave, prepare to add to -regress_ROI parlist
-    # (maskave extraction is done via -regress_ROI masks)
-    roiparlist = []
-    if block.opts.find_opt('-regress_ROI_maskave'):
-       # then prepare to add to -regress_ROI_PC
-       opt = block.opts.find_opt('-regress_ROI')
-       if not opt: block.opts.add_opt('-regress_ROI', 0, [], setpar=1)
-       opt = block.opts.find_opt('-regress_ROI')
-       roiparlist = opt.parlist
+    elist, rv = block.opts.get_string_list('-anat_follower_erode')
 
     newlabs = []
     oname = '-regress_ROI_PC'
@@ -2823,7 +2837,7 @@ def add_ROI_PC_followers(proc, block):
     for roiopt in ROIlist:
         label = roiopt.parlist[0]
         numpc = roiopt.parlist[1]
-        dname = roiopt.parlist[2]
+        # dname = roiopt.parlist[2]
 
         # make sure labels are unique and not datasets
         if label in newlabs:
@@ -2840,55 +2854,17 @@ def add_ROI_PC_followers(proc, block):
         try: npc = int(numpc)
         except:
            print '** error: %s illegal NUM_PCs = %s' % (oname, numpc) 
-           print "   format: %s LABEL NUM_PCs DATASET" % oname
+           print "   format: %s LABEL NUM_PCs" % oname
            return 1
         if npc <= 0:
            print '** error: %s illegal NUM_PCs = %s' % (oname, numpc)
-           print "   format: %s LABEL NUM_PCs DATASET" % oname
+           print "   format: %s LABEL NUM_PCs" % oname
            return 1
 
-        ff = proc.add_anat_follower(name=dname, dgrid='epi', label=label,
-                                    NN=1, num_pc=npc)
-        ff.set_var('final_prefix', 'ROI_PC_dset_%s' % label)
-        if label in elist:
-           ff.set_var('erode', 1)
-
-        # just warn if ROI dataset is not found
-        if not ff.aname.exist():
-           print '** warning, do not see %s dataset %s' \
-                 % (oname, ff.aname.rel_input())
-
-    oname = '-regress_ROI_maskave'
-    ROIlist = block.opts.find_all_opts(oname)
-    # option form is LABEL dataset (check existence?)
-    for roiopt in ROIlist:
-        label = roiopt.parlist[0]
-        dname = roiopt.parlist[1]
-
-        # make sure labels are unique and not datasets
-        if label in newlabs:
-           print "** error: %s label '%s' already used" % (oname, label)
-           print "   format: %s LABEL DATASET" % oname
+        ff = proc.get_anat_follower(label)
+        if not ff and not proc.roi_dict.has_key(label):
+           print "** ERROR: no anat follower or ROI dict label '%s'" % label
            return 1
-        badname = BASE.afni_name(label)
-        if badname.exist():
-           print '** ERROR: %s label exists as a dataset, %s' % (oname, label)
-           print "   format: %s LABEL DATASET" % oname
-           return 1
-        newlabs.append(label)
-
-        roiparlist.append(label) # also add label to -regress_ROI parlist
-
-        ff = proc.add_anat_follower(name=dname, dgrid='epi', label=label,
-                                    NN=1, mave=1)
-        ff.set_var('final_prefix', 'ROI_mask_dset_%s' % label)
-        if label in elist:
-           ff.set_var('erode', 1)
-
-        # just warn if ROI dataset is not found
-        if not ff.aname.exist():
-           print '** warning, do not see %s dataset %s' \
-                 % (oname, ff.aname.rel_input())
 
     # if we have something...
     if len(proc.afollowers) > 0:
@@ -3013,8 +2989,6 @@ def db_mod_regress(block, proc, user_opts):
     # -regress_ROI* options
     apply_uopt_to_block('-regress_ROI', user_opts, block)  # 04 Sept 2012
     apply_uopt_list_to_block('-regress_ROI_PC', user_opts, block) # 01 Apr 2015
-    apply_uopt_list_to_block('-regress_ROI_maskave', user_opts, block)
-    apply_uopt_to_block('-regress_ROI_erode', user_opts, block)
 
     # add any appropriate datasets anat followers   01 Apr 2015
     if add_ROI_PC_followers(proc, block): errs += 1
@@ -3491,7 +3465,7 @@ def db_cmd_regress(proc, block):
 
     # ----------------------------------------
     # regress anything from anat_followers.
-    if len(proc.afollowers) > 0:
+    if block.opts.find_opt('-regress_ROI_PC'):
         err, newcmd = db_cmd_regress_pc_followers(proc, block)
         if err: return
         if newcmd: cmd = cmd + newcmd
@@ -3923,7 +3897,7 @@ def db_cmd_regress(proc, block):
     # just make sure a label exists
     roilab,rv = block.opts.get_string_opt('-regress_anaticor_label')
     if roilab and not rv:
-       if not proc.roi_dict.has_key(roilab):
+       if not proc.have_roi_label(roilab):
           print "** -regress_anaticor_label: missing ROI label: '%s'" % roilab
           return
 
@@ -4120,7 +4094,8 @@ def db_cmd_regress_gcor(proc, block, errts_pre):
           '# compute and store GCOR (global correlation average)\n'     \
           '# (sum of squares of global mean of unit errts)\n'           \
           '3dTnorm -norm2 -prefix %s %s%s\n'                            \
-          '3dmaskave -quiet -mask %s %s > %s\n'                         \
+          '3dmaskave -quiet -mask %s %s \\\n'                           \
+          '          > %s\n'                                            \
           % (uset.prefix, errts_pre, proc.view, proc.mask_epi.pv(),
              uset.pv(), gu_mean)
 
@@ -4148,11 +4123,11 @@ def db_cmd_regress_gcor(proc, block, errts_pre):
     if roilist:
        rstr = '# compute %d requested correlation volume(s)\n' % len(roilist)
        for roi in roilist:
-          if not proc.roi_dict.has_key(roi):
+          mset = proc.get_roi_dset(roi)
+          if mset == None:
              print "** %s: no matching ROI '%s'" % (oname, roi)
              return
 
-          mset = proc.roi_dict[roi]
           mpre = 'rm.fm.%s' % roi
           meants = 'mean.unit.%s.1D' % roi
           cvol = 'corr_af_%s' % roi
@@ -4188,11 +4163,11 @@ def db_cmd_anaticor(proc, block, rset, select='', radius=45, roilab='WMe'):
     """
 
     volreg_wild = proc.dset_form_wild('volreg')
-    if not proc.roi_dict.has_key(roilab):
+    mset = proc.get_roi_dset(roilab)
+    if mset == None:
        print "** ANATICOR missing mask label: '%s' -->\n" \
              '   (options -mask_segment_anat, -mask_segment_erode)' % roilab
        return 1, ''
-    mset = proc.roi_dict[roilab]
     vall = 'rm.all_runs.volreg'
     
     cmd = '# catenate volreg dsets in case of censored sub-brick selection\n' \
@@ -4225,12 +4200,12 @@ def db_cmd_anaticor_fast(proc, block, rset, fwhm=30, roilab='WMe'):
     """
 
     volreg_wild = proc.dset_form_wild('volreg')
-    if not proc.roi_dict.has_key(roilab):
+    mset = proc.get_roi_dset(roilab)
+    if mset == None:
        print "** fast ANATICOR missing mask label: '%s' -->\n" \
              '   see options: -mask_segment_anat, -mask_segment_erode' \
              ' -regress_ROI_*' % roilab
        return 1, ''
-    mset = proc.roi_dict[roilab]
     vall = 'rm.all_runs.volreg'
     vmask = 'rm.all_runs.volreg.mask'
     
@@ -4708,15 +4683,28 @@ def db_cmd_regress_pc_followers(proc, block):
        return an error code (0=success) and command string
     """
 
-    rois = []
-    for afobj in proc.afollowers:
-       if afobj.num_pc < 1: continue
-       rois.append(afobj.label)
+    oname = '-regress_ROI_PC'
 
-    if len(rois) == 0: return 0, ''
+    # make a list of [LABEL, NPC]
+    roipcs = []
+    for opt in proc.user_opts.find_all_opts(oname):
+       label = opt.parlist[0]
+       npc   = opt.parlist[1]
+       try : numpc = int(npc)
+       except:
+          print '** -regress_ROI_PC %s %s: bad NUM_PC = %s' % (label, npc, npc)
+          return 1, ''
+       if numpc < 0:
+          print '** -regress_ROI_PC %s %s: bad NUM_PC = %d' % (label, numpc)
+          return 1, ''
+       # okay, append to the list
+       roipcs.append([label, numpc])
 
+    if len(roipcs) == 0: return 0, ''
+
+    roinames = ', '.join([r[0] for r in roipcs])
     clist = ['# ------------------------------\n']
-    clist.append('# create ROI PC ort sets: %s\n' % ', '.join(rois))
+    clist.append('# create ROI PC ort sets: %s\n' % roinames)
 
     # if there is no volreg prefix, get a more recent one
     vr_prefix = proc.volreg_prefix
@@ -4751,13 +4739,17 @@ def db_cmd_regress_pc_followers(proc, block):
     else: select = ''
 
     clist.append('\n')
-    pcind = 0
-    for afobj in proc.afollowers:
-       if afobj.num_pc < 1: continue
-       pcind += 1
+    for pcind, pcentry in enumerate(roipcs):
+       label = pcentry[0]
+       num_pc = pcentry[1]
+       cname = proc.get_roi_dset(label)
+       if cname == None:
+          print '** applying %s, failed to get ROI dset for label %s' \
+                % (oname, label)
+          return 1, ''
 
        # create roi_pc_01_LABEL_00.1D ...
-       pcpref = 'roi_pc_%02d_%s' % (pcind, afobj.label)
+       pcpref = 'roi_pc_%02d_%s' % (pcind+1, label)
 
        if proc.censor_file: c1str = ' and uncensor (zero-pad)'
        else:                c1str = ''
@@ -4765,8 +4757,8 @@ def db_cmd_regress_pc_followers(proc, block):
        clist.append('# make ROI PCs%s : %s\n'            \
               '3dpc -mask %s -pcsave %d -prefix %s \\\n' \
               '     %s%s%s\n'                            \
-              % (c1str, afobj.label, afobj.cname.shortinput(),
-                 afobj.num_pc, pcpref, tpre, proc.view, select))
+              % (c1str, label, cname.shortinput(),
+                 num_pc, pcpref, tpre, proc.view, select))
        pcname = '%s_vec.1D' % pcpref
 
        # append pcfiles to orts list
@@ -4778,10 +4770,10 @@ def db_cmd_regress_pc_followers(proc, block):
              '    -infile %s -write %s\n'%(proc.censor_file, pcname, newname))
           pcname = newname
        
-       proc.regress_orts.append([pcname, 'ROI.PC.%s'%afobj.label])
+       proc.regress_orts.append([pcname, 'ROI.PC.%s'%label])
        clist.append('\n')
 
-    print '-- have %d PC ROIs to regress: %s' % (len(rois), ', '.join(rois))
+    print '-- have %d PC ROIs to regress: %s' % (len(roipcs), roinames)
 
     return 0, ''.join(clist)
 
@@ -4809,7 +4801,7 @@ def db_cmd_regress_ROI(proc, block):
     segstr = 'requires -mask_segment_anat'
     erdstr = 'requires -mask_segment_anat and -mask_segment_erode'
     for roi in rois:
-        if not proc.roi_dict.has_key(roi):
+        if not proc.have_roi_label(roi):
             if   roi == 'brain': estr='EPI automask requires mask block'
             elif roi == 'GM'   : estr='gray matter %s'  % segstr
             elif roi == 'WM'   : estr='white matter %s' % segstr
@@ -4829,6 +4821,7 @@ def db_cmd_regress_ROI(proc, block):
        cmd = '# ------------------------------\n' \
              '# create %d ROI regressors: %s\n' % (len(rois),', '.join(rois))
     else: cmd = '# create ROI regressor: %s\n' % rois[0]
+    cmd += '# (get each ROI average time series and remove resulting mean)\n'
 
     # if there is no volreg prefix, get a more recent one
     vr_prefix = proc.volreg_prefix
@@ -4837,15 +4830,18 @@ def db_cmd_regress_ROI(proc, block):
        vr_prefix = proc.prefix_form_run(vblock)
 
     cmd += 'foreach run ( $runs )\n'
-    cmd += '    # get each ROI average time series and remove resulting mean\n'
     for roi in rois:
-        mset = proc.roi_dict[roi]
+        mset = proc.get_roi_dset(roi)
+        if mset == None:
+           print "** regress_ROI: missing ROI dset for '%s'" % roi
+           return 1, ''
         # -- no more label table, masks are now unit            22 Apr 2013
         # maybe we need a label table value selector
         # if roi in ['GM', 'WM', 'CSF']: substr = '"<%s>"' % roi
         # else:                          substr = ''
         ofile = 'rm.ROI.%s.r$run.1D' % roi
-        cmd += '    3dmaskave -quiet -mask %s %s%s \\\n'                   \
+        cmd += '    3dmaskave -quiet -mask %s \\\n'                        \
+               '              %s%s \\\n'                                   \
                '              | 1d_tool.py -infile - -demean -write %s \n' \
                % (mset.pv(), vr_prefix, proc.view, ofile)
     cmd += 'end\n'
@@ -6402,15 +6398,17 @@ g_help_string = """
                   -copy_anat FT_anat+orig                                    \\
                   -anat_follower_ROI aaseg anat aparc.a2009s+aseg_rank.nii   \\
                   -anat_follower_ROI aeseg epi  aparc.a2009s+aseg_rank.nii   \\
+                  -anat_follower_ROI FSvent epi FT_vent.nii                  \\
+                  -anat_follower_ROI FSWe epi FT_white.nii                   \\
+                  -anat_follower_erode FSvent FSWe                           \\
                   -dsets FT_epi_r?+orig.HEAD                                 \\
                   -tcat_remove_first_trs 2                                   \\
                   -tlrc_base MNI_caez_N27+tlrc                               \\
                   -tlrc_NL_warp                                              \\
                   -volreg_align_e2a                                          \\
                   -volreg_tlrc_warp                                          \\
-                  -regress_ROI_erode FSvent FSWe                             \\
-                  -regress_ROI_PC FSvent 3 FT_vent.nii                       \\
-                  -regress_ROI_maskave FSWe FT_white.nii                     \\
+                  -regress_ROI_PC FSvent 3                                   \\
+                  -regress_ROI FSWe                                          \\
                   -regress_make_corr_vols aeseg FSvent                       \\
                   -regress_anaticor_fast                                     \\
                   -regress_anaticor_label FSWe                               \\
@@ -7233,7 +7231,21 @@ g_help_string = """
             the original anat.  That is to get a warped version that still has
             a skull, for quality control.
 
-            See also -anat_follower_ROI.
+            See also -anat_follower_ROI, anat_follower_erode.
+
+        -anat_follower_erode LABEL LABEL ...: erode masks for given labels
+
+                e.g. -anat_follower_erode WMe
+
+            Perform a single erosion step on the mask dataset for the given
+            label.  This is done on the input ROI (anatomical?) grid.
+
+            The erosion step is applied before any transformation, and uses the
+            18-neighbor approach (6 face and 12 edge neighbors, not 8 corner
+            neighbors) in 3dmask_tool.
+
+            See also -regress_ROI_PC, -regress_ROI.
+            Please see '3dmask_tool -help' for more information on eroding.
 
         -anat_follower_ROI LABEL GRID DSET : specify anat follower ROI dataset
 
@@ -7253,7 +7265,7 @@ g_help_string = """
                GRID     : which grid should this be sampled on, anat or epi?
                DSET     : name of input dataset, changed to copy_af_LABEL
 
-            See also -anat_follower.
+            See also -anat_follower, anat_follower_erode.
 
         -anat_has_skull yes/no  : specify whether the anatomy has a skull
 
@@ -8751,17 +8763,14 @@ g_help_string = """
             (eroded white matter from 3dSeg).
 
             When this option is included, it is up to the user to make sure
-            afni_proc.py has such a lable, either by including options:
-                -mask_segment_anat, and possibly -mask_segment_erode
-            or options:
-                -regress_ROI_PC or -regress_ROI_maskave
-            or:
-                -anat_follower_ROI
+            afni_proc.py has such a label, either by including options:
+                -mask_segment_anat (and possibly -mask_segment_erode),
+                -regress_ROI_PC, -regress_ROI, or -anat_follower_ROI.
 
             Any known label made via those options may be used.
 
             See also -mask_segment_anat, -mask_segment_erode, -regress_ROI_PC,
-                -regress_ROI_maskave, -anat_follower_ROI.
+                -anat_follower_ROI.
 
         -regress_anaticor_radius RADIUS : specify RADIUS for 3dLocalstat
 
@@ -9599,50 +9608,21 @@ g_help_string = """
             See also -mask_segment_anat.
             Please see '3dSeg -help' for more information on the masks.
 
-        -regress_ROI_erode LABEL LABEL ...: erode masks for given labels
+        -regress_ROI_PC LABEL NUM_PC    : regress out PCs within mask
 
-                e.g. -regress_ROI_erode WMe
-
-            Perform a single erosion step on the mask dataset for the given
-            label.  This is done on the input ROI (anatomical?) grid.
-
-            The erosion step is applied before any transformation, and uses the
-            18-neighbor approach (6 face and 12 edge neighbors, not 8 corner
-            neighbors) in 3dmask_tool.
-
-            See also -regress_ROI_PC, -regress_ROI_maskave.
-            Please see '3dmask_tool -help' for more information on eroding.
-
-        -regress_ROI_maskave LABEL MASK : regress out average masked signal
-
-                e.g. -regress_ROI_maskave WMe WMe+orig
-
-            Regress the average EPI volreg value over the MASK.
-
-            This follows the same method as for -regress_ROI_PC below, except
-            that step 3 (extraction of PCs) is replaced with a simple 3dmaskave
-            result across all runs.  Detrending and censoring are not needed
-            for the maskave case, as they are handled in the regression.
-
-          * The given MASK must be in register with the anatomical dataset,
-            though is does not necessarily need to be on the anatomical grid.
-
-            See also -regress_ROI_PC, -regress_ROI_erode, -regress_ROI.
-
-        -regress_ROI_PC LABEL NUM_PC MASK : regress out PCs within mask
-
-                e.g. -regress_ROI_PC ventricles 3 LatVent+orig
+                e.g. -regress_ROI_PC ventricles 3
 
             Add the top principle components (PCs) over an anatomical mask as
             regressors of no interest.  
 
               - LABEL   : the class label given to this set of regressors
               - NUM_PC  : the number of principle components to include
-              - MASK    : the mask over which PCs will be computed
-                          (this must be in alignment with the input anatomy)
 
-            Method:
-              1. erode the input MASK, if requested via -regress_ROI_erode
+            The LABEL can apply to something from -segment_anat, eroded, or
+            from -anat_follower_* (assuming 'epi' grid), or 'brain'.
+
+            Method (including 'follower' steps):
+              1. erode the input MASK, if requested, via -anat_follower_erode
               2. apply all anatomical transformations to the MASK
                  a. catenate all anatomical transformations
                     i.   anat to EPI?
@@ -9675,7 +9655,8 @@ g_help_string = """
           * This differs from -regress_ROI in that these are external ROIs,
             while -regress_ROI will create ROIs in the proc script using 3dSeg.
 
-            See also -regress_ROI_maskave, -regress_ROI_erode, -regress_ROI.
+            See also -anat_follower, -anat_follower_ROI, -regress_ROI_erode,
+            -regress_ROI.
 
         -regress_RSFC           : perform bandpassing via 3dRSFC
 
