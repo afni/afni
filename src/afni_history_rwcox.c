@@ -43,7 +43,39 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 4 , MAY , 2015 , RWC , "GLTsymtest" , MINOR , TYPE_NEW_PROG ,
+  { 14 , MAY , 2015 , RWC , "1dplot" , MICRO , TYPE_NEW_OPT ,
+   "Add -demean option == remove mean from time series before plotting" ,
+   "Multiple -demean options implies higher order polynomials!" } ,
+
+ { 14 , MAY , 2015 , RWC , "afni Clusterize" , MICRO , TYPE_MODIFY ,
+   "Add 'Detrend??' button to hidden popup" ,
+   "Allows user (me) to detrend the aux data before plotting it." } ,
+
+ { 12 , MAY , 2015 , RWC , "3dClustSim" , MINOR , TYPE_MODIFY ,
+   "Eliminate edge effects of smoothing by padding and unpadding" ,
+   "Simulate extra-size volumes then smooth, then cut back to the desired\n"
+   "volume size.  Can use new '-nopad' option to try the old-fashioned\n"
+   "method. (H/T to Anders Eklund and Tom Nichols.)" } ,
+
+{ 8 , MAY , 2015 , RWC , "InstaCorr" , MICRO , TYPE_BUG_FIX ,
+   "Change way index in 3D+time dataset is chosen from xyz" ,
+   "Instead of just converting from xyz (eg, crosshair) coordinates via the\n"
+   "standard grid transformation functions in thd_coords.c, what we want is\n"
+   "the voxel in the 3D+time dataset that is closest in 3D to the xyz\n"
+   "location AFTER it is transformed back to the underlay for display.  In\n"
+   "this way, the center of correlation will map to the clicked voxel.  This\n"
+   "selection is done in new function THD_find_closest_roundtrip() which\n"
+   "searches the 27 points in a cube around the thd_coords.c derived point,\n"
+   "in order to find the voxel in the 3D+time dataset that, when transformed\n"
+   "back to the underlay dataset, is closest.  Brute force, but that's what\n"
+   "you have to do when dealing with the Spanish Inquisition." } ,
+
+  { 7 , MAY , 2015 , RWC , "AFNI GUI" , MICRO , TYPE_MODIFY ,
+   "Change 'List of AFNI papers' to be in HTML, not plain text" ,
+   "So it appears in an htmlwin rather than a textwin, and there are links\n"
+   "to the papers.  Works by a new convert_text_to_html() function." } ,
+
+ { 4 , MAY , 2015 , RWC , "GLTsymtest" , MINOR , TYPE_NEW_PROG ,
    "For testing symbolic GLTs in a script" ,
    "So that the big boy (3dDeconvolve) doesn't have to be run just for this\n"
    "purpose.  To help out with afni_proc.py" } ,
