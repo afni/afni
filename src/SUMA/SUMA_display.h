@@ -347,8 +347,6 @@ void SUMA_cb_XHlock_toggled(Widget w, XtPointer data, XtPointer callData);
 void SUMA_cb_XHviewlock_toggled(Widget w, XtPointer data, XtPointer callData);
 void SUMA_cb_closeSurfaceCont(Widget w, XtPointer data, XtPointer callData);
 SUMA_Boolean SUMA_WriteCont_Help(SUMA_DO_Types do_type, TFORM targ, char *fname);
-SUMA_Boolean SUMA_is_Documented_Widget(char *wname);
-char *SUMA_All_Documented_Widgets(void);
 SUMA_Boolean SUMA_Snap_AllCont(SUMA_DO_Types do_type, char *fname);
 void SUMA_cb_createSurfaceCont(Widget w, XtPointer data, XtPointer callData);
 void SUMA_cb_createSurfaceCont_SO(Widget w, XtPointer data, XtPointer callData);
@@ -907,10 +905,6 @@ void SUMA_C_laplace(SUMA_C_FILTER *mat);
 void SUMA_C_convolve(SUMA_SurfaceViewer *csv, SUMA_DO *dov, SUMA_C_FILTER *mat);
 
 /* *************** End Convolution utilities *************** */
-SUMA_Boolean SUMA_Register_Widget_Help(Widget w, int type, char *name, 
-                                       char *hint, char *help);
-SUMA_Boolean SUMA_Register_Widget_Children_Help(Widget, int type, char *name, 
-                                                char *hint, char *help);  
 #define SUMA_XformOrtFile_Load_help   \
    "Load an ort file"
 
