@@ -165,7 +165,7 @@ THD_3dim_dataset * THD_open_ctfmri( char *fname )
    int iview ;
    int ngood , length , datum_type=0 , datum_len , oxx,oyy,ozz ;
    int   nx,ny,nz ;
-   float dx,dy,dz , xorg,yorg,zorg ;
+   float dx,dy,dz=0.0, xorg,yorg,zorg=0.0;
 
 ENTRY("THD_open_ctfmri") ;
 
