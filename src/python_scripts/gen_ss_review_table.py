@@ -33,6 +33,9 @@ gen_ss_review_table.py - generate a table from ss_review_basic output files
    The first column will be either detected group names from the inputs,
       or will simply be the input file names.
 
+ * See "gen_ss_review_scripts.py -help_fields" for short descriptions of
+   the fields.
+
 ------------------------------------------
 examples:
 
@@ -111,6 +114,7 @@ g_history = """
    0.2  Apr 09, 2014    - help update, separators, parents
    0.3  Jun 26, 2014    - label typos: track 'degress of freedom' as 'degrees'
    0.4  Aug 25, 2014    - defined oind
+   0.5  May 19, 2014    - mention gen_ss_review_scripts.py -help_fields
 """
 
 g_version = "gen_ss_review_table.py version 0.4, Aug 25, 2014"

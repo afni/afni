@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 18,  May, 2015, RCR, "gen_ss_review_table.py", MINOR, TYPE_NEW_OPT,
+   "mention gen_ss_review_scripts.py -help_fields in help",
+   NULL
+ } ,
+
  {  8,  May, 2015, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
    "added -regress_make_corr_vols",
    "Use this to compute average correlation volumes for various masks."
