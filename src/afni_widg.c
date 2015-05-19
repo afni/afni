@@ -321,7 +321,8 @@ static char jumpstring[128];                  /* 13 Jun 2014 */
 
 void AFNI_make_widgets( Three_D_View *im3d )
 {
-
+   char *s=NULL;
+   
 ENTRY("AFNI_make_widgets") ;
 
    /*---- initialize -----*/
@@ -358,8 +359,16 @@ STATUS("creating top_form") ;
             XmNinitialResourcesPersistent , False ,
          NULL ) ;
 
-   MCW_register_help( vwid->top_form , AFNI_tophelp ) ;
-
+   s = SUMA_append_string(AFNI_tophelp, 
+         ":SPX:\n\n"
+         "   .. figure:: media/AfniCont.auto.jpg\n"
+         "      :name: media/AfniCont.auto.jpg\n"
+         "      :align: center\n\n"
+         "      :ref: `(link)<media/AfniCont.auto.jpg>`\n"
+         "\n"
+         ":SPX:") ;
+   SUMA_Register_Widget_Help( vwid->top_form, 0, "AfniCont", 
+                              NULL, s); s = NULL; /* Do not free s */
    vwid->file_dialog = NULL ; /* Mar 1997 */
 
    /* create pixmaps, if desired */
@@ -5094,6 +5103,20 @@ STATUS("making dmode->rowcol") ;
    /*----- rowcol to hold all program controls stuff -----*/
 
 STATUS("making prog->rowcol") ;
+   SUMA_Register_Widget_Help( prog->frame, 0, "AfniCont->ProgCont", 
+                             "rowcol to hold all program controls stuff", 
+                             "Here is where the help would go."
+":SPX:\n\n"
+"Although this image is in the string used by BHelp, it only seen "
+"by the Sphinx.\n\n"
+"   .. figure:: media/william-shakespeare.jpg\n"
+"      :align: center\n"
+"      :figwidth: 50%\n"
+"      :name: Bill\n"
+"      :target: http://www.poetryfoundation.org/bio/william-shakespeare\n"
+"\n"
+"      :ref:`Frequent contributor<Bill>`\n"
+":SPX:\n\n");
 
    prog->rowcol =
       XtVaCreateWidget(
@@ -5217,9 +5240,13 @@ STATUS("making prog->rowcol") ;
    /* check for -disable_done                21 Aug 2008 [rickr] */
    XtSetSensitive( prog->quit_pb, GLOBAL_argopt.disable_done == 0 ) ;
 
+   #if 0
    MCW_register_help( prog->quit_pb , AFNI_quit_help ) ;
    MCW_register_hint( prog->quit_pb , "Click twice to close window" ) ;
-
+   #else
+   SUMA_Register_Widget_Help(prog->quit_pb, 1, "AfniCont->ProgCont->done", 
+                             "Click twice to close window", AFNI_quit_help);
+   #endif
    prog->quit_first = True ;  /* mark this button as not pressed yet */
 
    /*----- manage the managers -----*/

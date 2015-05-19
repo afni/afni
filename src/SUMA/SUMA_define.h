@@ -3883,8 +3883,6 @@ typedef struct {
    char **dcom;
    int N_dcom;
    
-   char *DocumentedWidgets; /*!< Widget names for which a Sphinx documentation 
-                                 entry is being created */ 
 } SUMA_CommonFields;
 
 

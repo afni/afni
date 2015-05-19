@@ -122,6 +122,11 @@ void usage_1dplot(int detail)
      "              have max absolute value = 1 (L_infinity norm).\n"
      " -norm1     = Independently scale each time series plotted to\n"
      "              have max sum of absolute values = 1 (L_1 norm).\n"
+     " -demean    = This option will remove the mean from each time series\n"
+     "              (before normalizing).  The combination '-demean -normx -one'\n"
+     "              can be useful when plotting disparate data together.\n"
+     "             * If you use '-demean' twice, you will get linear detrending.\n"
+     "             * Et cetera (e.g,, 4 times gives you cubic detrending.)\n"
      "\n"
      " -x  X.1D   = Use for X axis the data in X.1D.\n"
      "              Note that X.1D should have one column\n"
@@ -469,6 +474,7 @@ int main( int argc , char *argv[] )
    float xbot,xtop   , ybot,ytop ; float thik=0.0f ;
    int skip_x11=0 , imsave=0 ; char *imfile=NULL ;
    int do_norm=0 ;   /* 26 Mar 2008 */
+   int demean=0 ;    /* 14 May 2015 */
    char *ytran=NULL; /* 16 Jun 2009 */
    char *xtran=NULL; /* 23 Oct 2013 */
    char autotitle[512]={""}; /* 23 March 2009 */
@@ -575,6 +581,9 @@ int main( int argc , char *argv[] )
      }
      if( strcmp(argv[iarg],"-normx") == 0 ){
        do_norm = 666 ; iarg++ ; continue ;
+     }
+     if( strcmp(argv[iarg],"-demean") == 0 ){  /* 14 May 2015 */
+       demean++ ; iarg++ ; continue ;
      }
 
       /*----------*/
@@ -1242,6 +1251,11 @@ int main( int argc , char *argv[] )
    }
 
    /*--- 26 Mar 2008: normalize time series? ---*/
+
+   if( demean ){      /* 14 May 2015 */
+     for( ii=0 ; ii < ny ; ii++ )
+       THD_generic_detrend_LSQ(nx,yar[ii],demean,0,NULL,NULL) ;
+   }
 
    switch( do_norm ){
      case 2:
