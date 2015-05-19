@@ -10622,7 +10622,7 @@ ENTRY("AFNI_jump_and_seed") ;
 
 int AFNI_creepto_dicom( Three_D_View *im3d , float xx, float yy, float zz )
 {
-   float xc,yc,zc , dxx,dyy,dzz ; int ndd,qq,ii  ;
+   float xc,yc,zc , dxx,dyy,dzz ; int ndd,qq,ii=0 ;
 
 ENTRY("AFNI_creepto_dicom") ;
 
