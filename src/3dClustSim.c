@@ -318,6 +318,8 @@ void display_help_menu()
    "-both          = Output the table in XML/NIML format AND in .1D format.\n"
    "                  * You probably want to use '-prefix' with this option!\n"
    "                    Otherwise, everything is mixed together on stdout.\n"
+   "                  * '-both' implies 'niml' which implies '-LOTS'.\n"
+   "\n                  So '-pthr' should follow '-both'/'-niml'."
    "\n"
    "-prefix ppp    = Write output for NN method #k to file 'ppp.NNk_Xsided.1D',\n"
    "                  for k=1, 2, 3, and for X=1sided, 2sided, bisided.\n"
@@ -525,7 +527,7 @@ void display_help_menu()
 void get_options( int argc , char **argv )
 {
   char * ep;
-  int nopt=1 , ii ;
+  int nopt=1 , ii , have_pthr=0;
 
   /*----- add to program log -----*/
 
@@ -710,6 +712,7 @@ void get_options( int argc , char **argv )
         }
         nopt += npthr ;
       }
+      have_pthr = 1 ;  /* warn if -pthr is before -both/-niml */
       continue ;
     }
 
@@ -762,6 +765,10 @@ void get_options( int argc , char **argv )
 
     if( strcasecmp(argv[nopt],"-niml") == 0 ||
         strcasecmp(argv[nopt],"-both") == 0   ){
+      /* let users know what to do with -pthr    19 May 2015 [rickr] */
+      if( have_pthr )
+        ERROR_exit("-both or -niml cannot follow -pthr, as they override it\n"
+                   "   i.e. -pthr should be after -both or -niml") ;
       npthr = npthr_lots ;
       pthr = (double *)realloc(pthr,sizeof(double)*npthr) ;
       memcpy( pthr , pthr_lots , sizeof(double)*npthr ) ;

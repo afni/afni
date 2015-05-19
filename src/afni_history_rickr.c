@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 19,  May, 2015, RCR, "3dClustSim", MICRO, TYPE_MODIFY,
+   "do not allow -pthr to preceed -both or -niml",
+   "Otherwise -pthr values would be lost."
+ } ,
+
  { 18,  May, 2015, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,
    "allow ROI PC regression for local masks (not just external ones)",
    "External ROIs should now be passed via -anat_follower_ROI, rather than\n"
