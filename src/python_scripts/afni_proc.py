@@ -473,9 +473,14 @@ g_history = """
         - added local WMe correlation diagnostic using -ort X-matrix
     4.42 May 07, 2015: replaced slow 3dTfitter with 3dTproject in anaticor
     4.43 May 08, 2015: added -regress_make_corr_vols
+    4.44 May 18, 2015: apply ROIs more generally; allow local ROI PCs
+        - external ROIs should now be passed via -anat_follower_ROI,
+          rather than -regress_ROI_*, the latter no longer taking datasets
+        - also changed -regress_ROI_erode to -anat_follower_erode
+        - removed option -regress_ROI_maskave (use -regress_ROI)
 """
 
-g_version = "version 4.43, May 8, 2015"
+g_version = "version 4.44, May 18, 2015"
 
 # version of AFNI required for script execution
 g_requires_afni = "1 Apr 2015" # 1d_tool.py uncensor from 1D
@@ -502,6 +507,8 @@ g_todo_str = """todo:
      - is this extra useful in the case of no censoring?  e.g. PPI
   - add -regress_basis_AM2_offsets or _basis_multi_params (now hidden in basis)
      for something like -stim_times_AM2 'BLOCK(2)' :x:0.176
+
+           - check all_erode_labels_used
 """
 
 # ----------------------------------------------------------------------
@@ -539,6 +546,8 @@ DefSurfLabs    = ['tcat','tshift','align','volreg','surf','blur',
 # names for blocks that do NOT process (make new) EPI data
 #   --> these do not need index increments
 EPInomodLabs = ['postdata', 'align', 'tlrc', 'mask']
+
+default_roi_keys = ['brain', 'GM', 'WM', 'CSF', 'GMe', 'WMe', 'CSFe']
 
 # --------------------------------------------------------------------------
 # data processing stream class
@@ -663,6 +672,7 @@ class SubjProcSream:
 
         # options for tissue based time series
         self.roi_dict   = {}            # dictionary of ROI vs afni_name
+        self.def_roi_keys = default_roi_keys
 
         self.bandpass     = []          # bandpass limits
         self.censor_file  = ''          # for use as '-censor FILE' in 3dD
@@ -770,6 +780,8 @@ class SubjProcSream:
 
         self.valid_opts.add_opt('-anat_follower', 3, [],
                         helpstr='specify label and anat follower dataset')
+        self.valid_opts.add_opt('-anat_follower_erode', -1, [], okdash=0,
+                        helpstr="erode follower datasets for given labels")
         self.valid_opts.add_opt('-anat_follower_ROI', 3, [],
                         helpstr='specify label and anat follower ROI dataset')
         self.valid_opts.add_opt('-anat_has_skull', 1, [],
@@ -1119,12 +1131,8 @@ class SubjProcSream:
                         helpstr="execute 3dREMLfit command script")
         self.valid_opts.add_opt('-regress_ROI', -1, [], okdash=0,
                         helpstr="regress out known ROIs")
-        self.valid_opts.add_opt('-regress_ROI_PC', 3, [], okdash=0,
-                        helpstr="regress PCs from ROI (label #pc dset)")
-        self.valid_opts.add_opt('-regress_ROI_maskave', 2, [], okdash=0,
-                        helpstr="regress average over ROI (label dset)")
-        self.valid_opts.add_opt('-regress_ROI_erode', -1, [], okdash=0,
-                        helpstr="erode ROI masks for given labels")
+        self.valid_opts.add_opt('-regress_ROI_PC', 2, [], okdash=0,
+                        helpstr="regress PCs from ROI (label num_pc)")
         self.valid_opts.add_opt('-regress_RONI', -1, [], okdash=0,
                         helpstr="1-based list of regressors of no interest")
         self.valid_opts.add_opt('-regress_RSFC', 0, [],
@@ -1233,6 +1241,9 @@ class SubjProcSream:
            if not opt_list.find_opt('-regress_anaticor_label'):
               opt_list.add_opt("-mask_segment_anat", 1, ["yes"], setpar=1)
               opt_list.add_opt("-mask_segment_erode", 1, ["yes"], setpar=1)
+
+           # rcr - what if label is from auto segment anyway?  so...
+           # else: possibly add anyway
 
         # end options that imply other options
         # --------------------------------------------------
@@ -2296,14 +2307,21 @@ class SubjProcSream:
     #       c. e2a and tlrc
     #       d. tlrc (adwarp or follow)
     #
-    # PC option:   -regress_ROI_PC LABEL NUM_PCs dataset
-    # dset option: -regress_ROI_maskave LABEL dataset
+    # PC option:   -regress_ROI_PC LABEL NUM_PCs
     #
     # checks:
     #  - labels must be unique (and cannot match those in -regress_ROI)
     #
+    # ROI overview:
+    #  - masks can come from -mask_segment_anat, 'full'? (so EPI),
+    #    or -anat_follower_ROI XXXX epi XXXX
+    #  - regression can come from -regress_ROI or -regress_ROI_PC
+    #    or -regress_anaticor[_fast], maybe with _label
+    #
     # steps:
     #  - 3dcopy into results directory (3dmask_tool if pre-erode?)
+    #  * any anat follower being warped to the epi grid gets its label
+    #    added to proc.roi_dict
     #  - if volreg block, warp them there
     #    else if align block, do it there
     #    else resample?
@@ -2337,8 +2355,10 @@ class SubjProcSream:
     # (e.g. anat w/skull or ROIs)
     # anat follows if: -copy_anat, -anat_has_skull, align2epi OR tlrc
     def add_anat_follower(self, name='', aname=None, dgrid='epi', label='',
-                          NN=0, num_pc=0, mave=0):
+                          NN=0, num_pc=0, mave=0, check=1):
         """add object only if shortinput does not match any existing one 
+
+           check: check for existence
 
            return follower object, even if already existing
         """
@@ -2360,12 +2380,70 @@ class SubjProcSream:
                                 NN=NN, num_pc=num_pc, mave=mave)
         self.afollowers.append(af)
 
+        # warn if it does not seem to exist
+        if check and not aname.exist():
+           print '** WARNING: anat follower does not seem to exist: %s' \
+                 % aname.rel_input()
+           print '   originally from %s' % aname.initial
+           if self.verb > 1: aname.show()
+
         return af
 
     def get_anat_follower(self, label):
        for af in self.afollowers:
           if af.label == label: return af
        return None
+
+    def add_roi_dict_key(self, key, aname=None, overwrite=0):
+       """set roi_dict[key], but check for existence
+          return non-zero on error
+       """
+       if isinstance(aname, afni_name): newset = aname.shortinput()
+       else: newset = 'NOT_YET_SET'
+
+       if self.roi_dict.has_key(key):
+          oname = self.roi_dict[key]
+          if isinstance(oname, afni_name): oldset = oname.shortinput()
+          else: oldset = 'NOT_YET_SET'
+
+          if self.verb > 1 or not overwrite:
+             print "** trying to overwrite roi_dict['%s'] = %s with %s" \
+                   % (key, oldset, newset)
+
+          if not overwrite:
+             if label in self.def_roi_keys: 
+                print "** ROI key '%s' in default list, consider renaming"%label
+             return 1
+
+       elif self.verb > 1:
+            print "++ setting roi_dict['%s'] = %s" % (key, newset)
+
+       self.roi_dict[key] = aname
+
+       return 0
+
+    def get_roi_dset(self, label):
+       """check roi_dict and afollowers list for label"""
+
+       if self.roi_dict.has_key(label): return self.roi_dict[label]
+
+       af = self.get_anat_follower(label)
+       if af: return af.cname
+
+       return None
+
+    def have_roi_label(self, label):
+       """check roi_dict and afollowers list for label"""
+
+       if self.roi_dict.has_key(label): return 1
+
+       af = self.get_anat_follower(label)
+       if not af: return 0
+
+       # have a follower, require EPI grid 
+       if af.dgrid == 'epi': return 1
+
+       return 0
 
     # given a block, run, return a prefix of the form: pNN.SUBJ.rMM.BLABEL
     #    NN = block index, SUBJ = subj label, MM = run, BLABEL = block label

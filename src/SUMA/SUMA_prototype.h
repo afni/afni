@@ -3,11 +3,6 @@
 
 /* functions that have yet to be prototyped in a particular spot */
 void SUMA_mapStateChanged(Widget w, XtPointer clientData, XEvent * event, Boolean * cont);
-char * SUMA_gsf(char *wname, TFORM target, char **hintout, char **helpout);
-char * SUMA_hkcf(char *keyi, TFORM target);
-char *SUMA_Sphinx_Widget_Name_2_Link(char *name) ;
-char * SUMA_hkf(char *keyi, TFORM target);
-char * SUMA_hkf_eng(char *keyi, TFORM target, char *cm);
 void SUMA_help(void);
 void SUMA_help_message(FILE *Out, TFORM targ);
 void SUMA_cmap_help_message(FILE *Out, TFORM targ);
@@ -53,22 +48,11 @@ char * SUMA_Help_AllVolCont (TFORM targ);
 char * SUMA_Help_AllGraphCont (TFORM targ);
 char * SUMA_Help_AllSurfCont (TFORM targ);
 char * SUMA_Help_AllSurfCont_old (void);
-char *SUMA_Name_GUI_Help(GUI_WIDGET_HELP *gwh);
-char *SUMA_Name_GUI_Help_eng(GUI_WIDGET_HELP *gwh, int lvl);
-GUI_WIDGET_HELP *SUMA_Get_Widget_Help( Widget w );
-char *SUMA_All_GUI_Help_Info(DList *dl, int detail, int format);
-void SUMA_Show_All_GUI_Help(DList *dl, FILE *fout, int detail, int format);
 void SUMA_click_webhelp_CB(Widget w, XtPointer data, 
                                      XtPointer callData);
-GUI_WIDGET_HELP *SUMA_Get_GUI_Help( char *gname, TFORM format, 
-                                    char **helpout, char **hintout, 
-                                    int whelp_off);
-int SUMA_Register_GUI_Help(char *which, char *hint, char *help, 
-                           Widget w, int type);
-void SUMA_Free_Widget_Help(void *data);
 char *SUMA_do_type_2_contwname(SUMA_DO_Types do_type);
-void SUMA_suggest_GUI_Name_Match(char *wname, int nmx, DList *dl);
-
+char * SUMA_gsf(char *wname, TFORM target, char **hintout, char **helpout);
+char *SUMA_All_Documented_Widgets(void);
 
 
 #endif
