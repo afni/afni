@@ -27,9 +27,16 @@ function S=afni_niml_readsimple(fn,full)
 
 D=afni_niml_read(fn);
 
+if iscell(D)
+    if numel(D)==1
+        D=D{1};
+    else
+        error('Cell with multiple elements is not supported');
+    end
+end
+
 if ~isstruct(D) || ~isfield(D,'dset_type')
-    disp(D);
-    error('Unrecognized data cell');
+    error('Unrecognized input');
 end
 
 S=struct();
@@ -39,35 +46,34 @@ nodecount=numel(D.nodes);
 for k=1:nodecount
     Nk=D.nodes{k};
     if ~isfield(Nk,'name')
-        disp(Dk);
         error('Missing name in node element %d',k);
     end
 
     switch(Nk.name)
         case 'INDEX_LIST'
             S.node_indices=Nk.data;
+
         case 'SPARSE_DATA'
             S.data=Nk.data;
+
         case 'AFNI_atr'
             if ~isfield(Nk,'atr_name')
-                disp(Nk);
-                error('Field %s in node element %d has missing atr_name\n', Nk.name, D);
+                error('Field %s in node %d has missing atr_name\n', ...
+                            Nk.name, D);
             end
 
             switch Nk.atr_name
                 case 'HISTORY_NOTE'
-                    S.history=Nk.data;
+                    S.history=get_string_cell_data(Nk.data);
+
                 case 'COLMS_STATSYM'
-                    S.stats=split_string(Nk.data,';');
-                    if numel(S.stats{end})==0         %if final character is ';'
-                        S.stats={S.stats{1:(end-1)}}; %then remove last element
-                    end
+                    S.stats=get_string_cell_data(Nk.data);
+
                 case 'COLMS_LABS'
-                    S.labels=split_string(Nk.data,';');
-                    if numel(S.labels{end})==0        % as above
-                        S.labels={S.labels{1:(end-1)}};
-                    end
+                    S.labels=get_string_cell_data(Nk.data);
+
             end
+
         otherwise
             S.misc.(Nk.name)=Nk.data;
     end
@@ -80,6 +86,16 @@ if nargin>1 && full && isfield(S,'node_indices')
     S=rmfield(S,'node_indices');
 end
 
+
+function labels=get_string_cell_data(data)
+    while iscell(data) && numel(data)==1 && ~ischar(data)
+        data=data{1};
+    end
+
+    labels=split_string(data,';');
+    if numel(labels{end})==0        % as above
+        labels=labels(1:(end-1));
+    end
 
 
 
