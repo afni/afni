@@ -752,7 +752,6 @@ int main( int argc , char *argv[] )
           qar = MRI_FLOAT_PTR(qim) ;
           for( qq=0 ; qq < qim->ny ; qq++ )
             plot_ts_add_sepx( qim->nx , qar + qq*qim->nx ) ;
-          mri_free(qim) ;
         }
         if( iarg < argc && strcmp(argv[iarg],"-") == 0 ) iarg++ ;
         continue ;
