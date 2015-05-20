@@ -632,8 +632,7 @@ THD_ivec3 THD_find_closest_roundtrip( THD_3dim_dataset *odset,
    int di,dj,dk ; float dist , dbest=666666.6f ;
 
    xv = THD_dicomm_to_3dmm        ( odset, uxyz ) ;
-   iv = THD_3dmm_to_3dind_no_wod  ( odset, xv   ) ;
-
+   iv = THD_3dmm_to_3dind_no_wod  ( odset, xv   ) ; ivbest = iv ;
    for( di=-1 ; di <= 1 ; di++ ){
     for( dj=-1 ; dj <= 1 ; dj++ ){
      for( dk=-1 ; dk <= 1 ; dk++ ){
