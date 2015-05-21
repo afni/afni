@@ -15,6 +15,12 @@
 
    June. 2014:
        + internal testing/plotting options.
+
+   May, 2015:
+       + introduce CALC_THR_FA: option to only calc uncert of high-FA
+         vox in order to save mucho computational time (well, hopefully)
+       + debug: several iarg++ probs, affected order of calling things
+
 */
 
 #include <stdio.h>
@@ -125,6 +131,12 @@ void usage_DWUncert(int detail)
 "                      Otherwise, data should be masked already.\n"
 "    -iters  NUMBER   :number of jackknife resample iterations,\n"
 "                      e.g. 50.\n"
+"    -calc_thr_FA  FF :set a threshold for the minimum FA value above which\n"
+"                      one calculates uncertainty; useful if one doesn't want\n"
+"                      to waste time calculating uncertainty in very low-FA\n"
+"                      voxels that are likely GM/CSF.  For example, in adult\n"
+"                      subjects one might set FF=0.1 or 0.15, depending on\n"
+"                      SNR and user's whims (default: FF=-1, i.e., do all).\n"
 "    -csf_fa NUMBER   :number marking FA value of `bad' voxels, such as \n"
 "                      those with S0 value <=mean(S_i), which breaks DT\n"
 "                      assumptions due to, e.g., bulk/flow motion.\n"
@@ -245,8 +257,13 @@ int main(int argc, char *argv[]) {
 	int Nj=10;
 	int Mj=0;
 	int MAXBAD=0;
+   int CHOOSE_SEED = 0;     // for int testing
+
+   float CALC_THR_FA = -1.;  // DEFAULT: value for new option of only
+                            // calculating uncert in some voxels, save
+                            // where CSF/GM would cost time AND money!
 	
-	long seed;
+	long seed1, seed2;
 	const gsl_rng_type * T;
 	gsl_rng *r;
          /* ZSS2PT: Don't decalre variables in the middle of a scope
@@ -283,6 +300,7 @@ int main(int argc, char *argv[]) {
    char *dti_listname=NULL;
 	NI_element *nel=NULL;
 
+   /*
    // for random number generation
 	srand(time(0));
 	seed = time(NULL) ;
@@ -290,7 +308,7 @@ int main(int argc, char *argv[]) {
 	T = gsl_rng_default;
 	r = gsl_rng_alloc (T);
 	gsl_rng_set (r, seed);
-	
+	*/
 
 	mainENTRY("3dDWUncert"); machdep(); 
    
@@ -326,16 +344,17 @@ int main(int argc, char *argv[]) {
 		}
 		
 		if( strcmp(argv[iarg],"-prefix") == 0 ){ // will be output
-			iarg++ ; if( iarg >= argc ) 
+			if( ++iarg >= argc ) 
 							ERROR_exit("Need argument after '-prefix'");
 			prefix = strdup(argv[iarg]) ;
 			if( !THD_filename_ok(prefix) ) 
 				ERROR_exit("Illegal name after '-prefix'");
+         INFO_message("Output prefix is: %s",prefix);
 			iarg++ ; continue ;
 		}
 		
 		if( strcmp(argv[iarg],"-input") == 0 ){ // initial results of 3dDWItoDTI
-			iarg++ ; if( iarg >= argc ) 
+			if( ++iarg >= argc ) 
 							ERROR_exit("Need argument after '-input'");
 
          infix = strdup(argv[iarg]) ;
@@ -346,8 +365,7 @@ int main(int argc, char *argv[]) {
 		}
 	 
       if( strcmp(argv[iarg],"-input_list") == 0 ){
-			iarg++ ; 
-			if( iarg >= argc ) 
+			if( ++iarg >= argc ) 
 				ERROR_exit("Need argument after '-input_list'");
          dti_listname = strdup(argv[iarg]) ;
 
@@ -355,8 +373,7 @@ int main(int argc, char *argv[]) {
 		}
 
 		if( strcmp(argv[iarg],"-grads") == 0 ){ 
-			iarg++ ; 
-			if( iarg >= argc ) 
+			if( ++iarg >= argc ) 
 				ERROR_exit("Need argument after '-grads'");
 			
          BMAT = 0;
@@ -365,8 +382,7 @@ int main(int argc, char *argv[]) {
 			iarg++ ; continue ;
 		}
 		else if( strcmp(argv[iarg],"-bmatr") == 0 ){ 
-			iarg++ ; 
-			if( iarg >= argc ) 
+			if( ++iarg >= argc ) 
 				ERROR_exit("Need argument after '-bmatr'");
 			 
 			// if b-matrix is being used as input,
@@ -378,7 +394,7 @@ int main(int argc, char *argv[]) {
 		}
 		
 		if( strcmp(argv[iarg],"-mask") == 0 ){
-			iarg++ ; if( iarg >= argc ) 
+			if( ++iarg >= argc ) 
 							ERROR_exit("Need argument after '-mask'");
 			HAVE_MASK=1;
 			
@@ -393,8 +409,7 @@ int main(int argc, char *argv[]) {
 		}
 
 		if( strcmp(argv[iarg],"-iters") == 0 ){
-			iarg++ ; 
-			if( iarg >= argc ) 
+			if( ++iarg >= argc ) 
 				ERROR_exit("Need integer argument after '-iters'");
 		
 			Nj = atoi(argv[iarg]);
@@ -413,6 +428,30 @@ int main(int argc, char *argv[]) {
 			iarg++ ; continue ;
 		}
 	 
+
+      // May, 2015: new option to set minimum value to both
+      // calculating uncertainty: default is -1, but in an adult, one
+      // could maybe use 0.1 or even 0.15
+      if( strcmp(argv[iarg],"-calc_thr_FA") == 0 ){
+			if( ++iarg >= argc ) 
+				ERROR_exit("Need integer argument after '-calc_thr_FA'");
+			CALC_THR_FA = atof(argv[iarg]);
+         INFO_message("Setting FA threshold for calculation to be: "
+                      "%.5f !",CALC_THR_FA);
+
+			iarg++ ; continue ;
+		}
+
+      if( strcmp(argv[iarg],"-pt_choose_seed") == 0) {
+         if( ++iarg >= argc ) 
+            ERROR_exit("Need argument after '-pt_choose_seed'");
+         CHOOSE_SEED = atoi(argv[iarg]);
+         INFO_message("(PT) Internal option: "
+                      "random seed for testing set to: %d.",CHOOSE_SEED);
+
+         iarg++ ; continue ;
+      }
+
       if( strcmp(argv[iarg],"-pt_jkval") == 0 ){
 			if( ++iarg >= argc ) 
 				ERROR_exit("Need integer argument after '-pt_jkval'");
@@ -461,9 +500,23 @@ int main(int argc, char *argv[]) {
 	}
   
 	if (iarg < 5) {
-		ERROR_message("Too few options. Try -help for details.\n");
+		ERROR_message("Too few options: %d. Try -help for details.\n", iarg);
 		exit(1);
 	}
+
+   // for random number generation
+   if( CHOOSE_SEED )
+      seed1 = seed2 = CHOOSE_SEED;
+   else {
+   seed1 = time(NULL);
+	seed2 = time(NULL) ;
+   }
+
+	srand(seed1);
+	gsl_rng_env_setup();
+	T = gsl_rng_default;
+	r = gsl_rng_alloc (T);
+	gsl_rng_set (r, seed2);
   
    if( infix && dti_listname ) {
 		ERROR_message("Use *either* '-input' or '-input_list'.\n");
@@ -901,7 +954,9 @@ int main(int argc, char *argv[]) {
   
    for( i=0 ; i<Nvox ; i++ ) 
       if( ( HAVE_MASK && !(THD_get_voxel(MASK,i,0)>0) ) ||
-			 ( (HAVE_MASK==0) && (THD_get_voxel(insetPARS[2],i,0)<EPS_V) ) ) 
+			 ( (HAVE_MASK==0) && (THD_get_voxel(insetPARS[2],i,0)<EPS_V) ) ||
+          (THD_get_voxel(insetPARS[0],i,0) < CALC_THR_FA) // extra option!
+          ) 
          continue;
       else
          Ndata++;
@@ -931,8 +986,11 @@ int main(int argc, char *argv[]) {
    count_jkout = 0;
 
 	for(i=0 ; i<Nvox ; i++) 
+      // May, 2015: added extra condition here, allowing user to set
+      // FA threshold for calculation.  default is :-1
 		if( ( HAVE_MASK && !(THD_get_voxel(MASK,i,0)>0) ) ||
-			 ( (HAVE_MASK==0) && (THD_get_voxel(insetPARS[2],i,0)<EPS_V) ) ) {
+			 ( (HAVE_MASK==0) && (THD_get_voxel(insetPARS[2],i,0)<EPS_V) ) ||
+          (THD_get_voxel(insetPARS[0],i,0) < CALC_THR_FA) ) {
 			//for(j=0 ; j<6 ; j++) 
 			//	OUT[j][i] = 0.0;
          continue;

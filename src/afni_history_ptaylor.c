@@ -66,6 +66,12 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+
+{ 4, Aug , 2014 , PT , "3dDWUncert" , MICRO , TYPE_NEW_OPT,
+   "Can choose to analyze only high-FA voxels: don't waste time on GM/CSF.",
+   "Option to ignore low-FA vox for uncert, leave them 0.\n"
+},
+
 { 15, May , 2015 , PT , "1dDW_Grad_o_Mat" , MINOR , TYPE_NEW_OPT,
    "Can output separate bval file.",
    "Useful in some TORT preprocessing.\n"
