@@ -2,34 +2,34 @@
 
 set stat = 0
 set sdir = $PWD
-
+set dname = 3dPFM_Demo
 
 goto PARSE
 RET_PARSE:
 
-if ( -d ./3dPFM_Demo_sample) then
+if ( -d ./${dname}) then
 echo ""
 echo "ERROR:"
-echo "   Directory ./3dPFM_Demo_sample exists already"
+echo "   Directory ./${dname} exists already"
 echo "   If you want to recreate it, remove it with:"
-echo "\rm -rf ./3dPFM_Demo_sample"
+echo "\rm -rf ./3dPFM_Demo"
 echo "   then run `basename $0` $argv[*] again."
 echo ""
-echo "Otherwise to run demos, see content of ./3dPFM_Demo_sample/README.txt"
+echo "Otherwise to run demos, see content of ./${dname}/README.txt"
 echo ""
 goto END
    endif
 
 which curl
 if ($status) then
-   wget http://afni.nimh.nih.gov/pub/dist/tgz/3dPFM_Demo_sample.tgz
+   wget http://afni.nimh.nih.gov/pub/dist/data/${dname}.tgz
 else
-   curl -O http://afni.nimh.nih.gov/pub/dist/tgz/3dPFM_Demo_sample.tgz
+   curl -O http://afni.nimh.nih.gov/pub/dist/data/${dname}.tgz
 endif
-tar xvzf 3dPFM_Demo_sample.tgz
-cd 3dPFM_Demo_sample
+tar xvzf ${dname}.tgz
+cd ${dname}
    echo "********************************************************"
-   echo "Follow examples in ./3dPFM_Demo_sample/README.txt "
+   echo "Follow examples in ./${dname}/README.txt "
    echo "********************************************************"
 cd -
 goto END
