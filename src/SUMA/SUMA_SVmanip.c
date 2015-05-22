@@ -1292,7 +1292,7 @@ SUMA_Boolean SUMA_Process_Selected_ADO(SUMA_SurfaceViewer *sv, int deepfirst)
                             "After sorting deepest first:\n", NULL);
       } else {
          SUMA_Show_PickList(sv->SelAdo, 1, 
-                            "After sorting deepest first:\n", NULL);
+                            "After sorting deepest last:\n", NULL);
       }
    }
 
