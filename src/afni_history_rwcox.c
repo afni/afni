@@ -48,7 +48,7 @@ afni_history_struct rwcox_history[] = {
    "Multiple -demean options implies higher order polynomials!" } ,
 
  { 14 , MAY , 2015 , RWC , "afni Clusterize" , MICRO , TYPE_MODIFY ,
-   "Add 'Detrend??' button to hidden popup" ,
+   "Add ' Detrend?? ' button to hidden popup" ,
    "Allows user (me) to detrend the aux data before plotting it." } ,
 
  { 12 , MAY , 2015 , RWC , "3dClustSim" , MINOR , TYPE_MODIFY ,
