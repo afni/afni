@@ -67,7 +67,12 @@ afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
 
-{ 4, Aug , 2014 , PT , "3dDWUncert" , MICRO , TYPE_NEW_OPT,
+{ 21, May , 2015 , PT , "fat_mvm_scripter.py" , MINOR , TYPE_BUG_FIX,
+   "Minor bug fixed for inputting sublist of ROIs.",
+   "Short option for doing so worked, but not the long one; fixed now.\n"
+},
+
+{ 21, May , 2015 , PT , "3dDWUncert" , MICRO , TYPE_NEW_OPT,
    "Can choose to analyze only high-FA voxels: don't waste time on GM/CSF.",
    "Option to ignore low-FA vox for uncert, leave them 0.\n"
 },
