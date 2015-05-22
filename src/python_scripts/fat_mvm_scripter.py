@@ -258,8 +258,8 @@ def main(argv):
                                                                 "prefix=",
                                                                 "table=",
                                                                 "log_file=",
-                                                                "rois="
-                                                                "File_Pars="
+                                                                "rois=",
+                                                                "File_Pars=",
                                                                 "Pars="
                                                                 ])
     except getopt.GetoptError:
