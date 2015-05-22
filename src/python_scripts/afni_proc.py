@@ -478,9 +478,10 @@ g_history = """
           rather than -regress_ROI_*, the latter no longer taking datasets
         - also changed -regress_ROI_erode to -anat_follower_erode
         - removed option -regress_ROI_maskave (use -regress_ROI)
+    4.44 May 22, 2015: help clarifications
 """
 
-g_version = "version 4.44, May 18, 2015"
+g_version = "version 4.45, May 22, 2015"
 
 # version of AFNI required for script execution
 g_requires_afni = "1 Apr 2015" # 1d_tool.py uncensor from 1D
@@ -491,7 +492,7 @@ g_todo_str = """todo:
   - add -4095_check and -4095_ok options?
      - maybe check means the 3dToutcount would fail, and ok would continue
      - or have 3dToc just report, maybe write a volume?
-  - add warnings from and bad GLTsymtest output
+  - add warnings from any bad GLTsymtest output
 
   - warn of missing input dsets?  (-dsets, -copy_anat, any 3dcopy)
   - use anaticor_fast method to produce QC volume from WMe of VR data
@@ -507,8 +508,6 @@ g_todo_str = """todo:
      - is this extra useful in the case of no censoring?  e.g. PPI
   - add -regress_basis_AM2_offsets or _basis_multi_params (now hidden in basis)
      for something like -stim_times_AM2 'BLOCK(2)' :x:0.176
-
-           - check all_erode_labels_used
 """
 
 # ----------------------------------------------------------------------
