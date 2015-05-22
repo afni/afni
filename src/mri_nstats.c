@@ -64,6 +64,14 @@ float mri_nstat( int code , int npt , float *far , float voxval )
        qmedmad_float( npt , far , NULL , &val ) ; outval = val ;
      break ;
 
+     case NSTAT_MODE:
+       outval = qmode_float( npt , far);
+     break ;
+
+     case NSTAT_NZMODE:
+       outval = qnzmode_float( npt , far);
+     break ;
+
      case NSTAT_P2SKEW:
        /* Pearson's second skewness coefficient */
        {

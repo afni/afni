@@ -49,6 +49,10 @@
 
 
 afni_history_struct dglen_history[] = {
+{ 22, MAY, 2015 , DRG , "3dLocalstat mode" , 
+    MINOR , TYPE_NEW_OPT, 
+    "Find mode and non-zero mode in voxel neighborhood"
+},
 { 30, APR, 2015 , DRG , "Selenium webdriver for afni help page too" , 
     MICRO , TYPE_GENERAL, 
     "Opens page for all afni help page using python selenium webdriver"
