@@ -651,3 +651,13 @@ SET_GRAPH_GEOM gname geom=X-geometry-string
     300x100         = set window size to 300 pixels wide, 100 high
     +50+90          = set window location to 50 pixels across, 90 down
     300x100+50+90   = set window size and location at the same time
+
+--------------------------
+
+WRITE_CONT_SPX_HELP filename
+   Write the help for the main controller GUI in SPHINX form to filename
+
+SNAP_CONT image.jpg
+   Take a snapshot of the main controller and save into image.jpg
+   
+

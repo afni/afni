@@ -193,7 +193,7 @@ void write_string(char *s, char *prelude, char *postscript,
 */ 
 char *SUMA_strncat(char *s1, char *s2, int nmax)
 {
-   int ns1;
+   int ns1=0;
    if (!s1 || !s2) return(s1);
    if (s1) {
       ns1 = strlen(s1);
@@ -1628,15 +1628,16 @@ char *SUMA_Cut_Between_String(char *s, char *sc0, char *sc1, char *save)
    A function to illustrate the use of markup gimmicks.
    if fout == NULL, use stderr for output.
 */
-void SUMA_Sphinx_String_Edit_Help(FILE *fout)
+void SUMA_Sphinx_String_Edit_Help(FILE *fout, int forweb)
 {
    static char FuncName[]={"SUMA_Sphinx_String_Edit_Help"};
-   char *s0, *s1;
+   char *s0=NULL;
    char intro[]={
-"Simple trickery to use same string for both SUMA and SPHINX\n"
-"formatting.\n Function SUMA_Sphinx_String_Edit is used to \n"
-"take strings with these special markers and return them in\n"
-"either Sphinx or regular text.\n"
+"Function SUMA_Sphinx_String_Edit is used to take strings with \n"
+"the following special markers and return them formatted in either\n"
+"Sphinx or regular text. What follows is a list of special directives\n"
+"that change the output string depending on the desired format and a bunch\n"
+"examples to illustrate their use.\n"
 "\n"
 " :SPX: Hiding a SPHINX directive with minimal fanfare:\n"
 "     Text between :SPX: markers does not appear in default output\n"
@@ -1693,8 +1694,8 @@ void SUMA_Sphinx_String_Edit_Help(FILE *fout)
 "Example 1:\n"
 "Below you will see a figure directive, but only for Sphinx format.\n"
 ":SPX:\n\n"
-".. :figure: _static/junk.jpg\n"
-"            :align: center\n"
+".. figure:: media/face_houstonbull.jpg\n"
+"   :align: center\n"
 "\n:SPX:"
 "And now the rest of text continues...\n"
 "\n"
@@ -1726,14 +1727,42 @@ void SUMA_Sphinx_String_Edit_Help(FILE *fout)
       
    if (!fout) fout = SUMA_STDERR;
       
-   fprintf(fout,"\n%s\n", intro);
-   s0 = strdup(s); s1 = strdup(s);
-   fprintf(fout,"\n        Source Code Version:\n%s\n    -------\n", s);
-   fprintf(fout,"\n        Edited   for   SUMA:\n%s\n    -------\n", 
-                  SUMA_Sphinx_String_Edit(&s0,TXT,0));
-   fprintf(fout,"\n        Edited  for  SPHINX:\n%s\n    -------\n", 
-                  SUMA_Sphinx_String_Edit(&s1,SPX, 0));
-   free(s0); free(s1);
+   if (forweb) {
+      fprintf(fout,
+         "Creating strings with special markup for classic and "
+         "sphinx display::\n\n");
+      s0 = SUMA_Offset_Lines(intro,3);
+   } else {
+      s0 = SUMA_copy_string(intro);
+   }
+   
+   fprintf(fout,"\n%s\n", s0); SUMA_ifree(s0);
+   
+   if (forweb) {
+      fprintf(fout,
+         "Strings as defined in the source code::\n\n");
+      s0 = SUMA_Offset_Lines(s,3);
+   } else {
+      s0 = SUMA_copy_string(s);
+   }
+   fprintf(fout,
+      "%s\n    -------\n", s0); SUMA_ifree(s0);
+   
+   s0 = SUMA_copy_string(s);
+   fprintf(fout,
+              "\nEdited for display in AFNI or SUMA::\n\n%s\n    -------\n",
+              SUMA_Sphinx_String_Edit(&s0,TXT, forweb?3:0)); SUMA_ifree(s0);
+   
+   s0 = SUMA_copy_string(s);
+   fprintf(fout,"\nEdited  for  SPHINX::\n\n%s\n    -------\n", 
+                  SUMA_Sphinx_String_Edit(&s0,SPX, forweb?3:0)); 
+   
+   if (forweb) {
+      fprintf(fout,"\nAs would be displayed by SPHINX once compiled:\n\n%s"
+                   "\n    -------\n", 
+                   s0);
+   }
+   SUMA_ifree(s0);
 
    return;
 }

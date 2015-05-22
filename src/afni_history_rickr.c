@@ -49,6 +49,32 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 22,  May, 2015, RCR, "afni_proc.py", MICRO, TYPE_ENHANCE,
+   "help clarifications for -regress_ROI* options",
+   NULL
+ } ,
+
+ { 22,  May, 2015, RCR, "afni-general", MINOR, TYPE_MODIFY,
+   "allow for small differences when comparing oblique angles",
+   "Define OBLIQ_ANGLE_THRESH=0.01 as a tolerance for the difference.\n"
+   "This was done to fix registration to external dset in realtime.\n" 
+   "Thanks to V Roopchansingh for bringing up the problem."
+ } ,
+
+ { 19,  May, 2015, RCR, "3dClustSim", MICRO, TYPE_MODIFY,
+   "do not allow -pthr to preceed -both or -niml",
+   "Otherwise -pthr values would be lost."
+ } ,
+
+ { 18,  May, 2015, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,
+   "allow ROI PC regression for local masks (not just external ones)",
+   "External ROIs should now be passed via -anat_follower_ROI, rather than\n"
+   "-regress_ROI_*, the latter no longer taking dataset parameters.\n"
+   "Also changed -regress_ROI_erode to -anat_follower_erode and\n"
+   "removed option -regress_ROI_maskave (use -regress_ROI)\n"
+   "Done for R W Cox."
+ } ,
+
  {  8,  May, 2015, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
    "added -regress_make_corr_vols",
    "Use this to compute average correlation volumes for various masks."
