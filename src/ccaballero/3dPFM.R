@@ -1,0 +1,2713 @@
+#!/usr/bin/env AFNI_Batch_R
+
+#Clean up
+rm(list = ls())
+
+first.in.path <- function(file) {
+   ff <- paste(strsplit(Sys.getenv('PATH'),':')[[1]],'/', file, sep='')
+   ff<-ff[lapply(ff,file.exists)==TRUE];
+   #cat('Using ', ff[1],'\n');
+   return(gsub('//','/',ff[1], fixed=TRUE)) 
+}
+source(first.in.path('AFNIio.R'))
+
+#Make sure you set this variable to your own program name. 
+#Do not include the .R part
+ExecName <- '3dPFM'
+
+#################################################################################
+################### Begin RprogDemo Input functions #############################
+#################################################################################
+
+greeting.RprogDemo <- function ()
+   return( "#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+          ================== Welcome to 3dPFM ==============================          
+          A sample program illustrating AFNI API to read/write volumes
+#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+Version 1.0.0,  summer/fall/winter/spring 2014-2015
+Author: Cesar Caballero Gaudes (c.caballero@bcbl.eu)
+Basque Center on Cognition, Brain and Language
+Donostia, 20009, Spain
+#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
+      )
+      
+
+#The help function for 3dPFM batch (command line mode)
+help.RprogDemo.opts <- function (params, alpha = TRUE, 
+                                 itspace='   ', adieu=FALSE) {
+
+   intro <- 
+'
+Usage: 3dPFM [options]
+------ 
+
+Brief summary:
+==============
+* 3dPFM is a program that identifies brief BOLD events (order of sec) in fMRI time series
+   without prior knowledge of their timing. 3dPFM deconvolves a hemodynamic response 
+   function for each fMRI voxel and estimates the neuronal-related signal that generates
+   the  BOLD events according to the linear haemodynamic model. In many ways, 
+   the neuronal-related signal could be understood as the stimulus signal defined by the 
+   experimental paradigm in a standard GLM approach, where the onsets 
+   and duration of the experimental conditions are known a-priori. Alternatively, 
+   3dPFM does not assume such information and estimates the signal underlying the 
+   BOLD events with NO PARADIGM INFORMATION, i.e. PARADIGM FREE MAPPING (PFM). For instance,
+   this algorithm can be useful to identify spontaneous BOLD events in resting-state
+   fMRI data.
+
+* The ideas behind 3dPFM are described in
+    C Caballero-Gaudes, N Petridou, ST Francis, IL Dryden, and PA Gowland.
+    Paradigm Free Mapping with Sparse Regression Automatically detects Single-Trial
+    Functional Magnetic Resonance Imaging Blood Oxygenation Level Dependent Responses.
+    Human Brain Mapping, 34(3):501-18, 2013.
+    http://dx.doi.org/10.1002/hbm.21452
+
+
+* For the deconvolution, 3dPFM assumes a linear convolution model and that 
+  the neuronal-related signal is sparse in time, i.e. it has a non-zero amplitude 
+  in a relatively small number of time points. How relative depends on the number 
+  of time points of the signal, i.e. the length of the signal, a.k.a. scans, volumes. 
+
+* In many ways, the rationale of 3dPFM is very similar to 3dTfitter with the -FALTUNG 
+  (deconvolution) option. Both programs differ in the manner the deconvolution
+  is solved and several other relevant and interesting options.
+  **** I would also recommend you to read 3dTfitter -help for useful tips *****
+  ************* !!!  3dPFM is neither for the casual user !!!! ****************
+
+* IMPORTANT. This program is written in R. Please follow the guidelines in 
+    
+      http://afni.nimh.nih.gov/sscc/gangc/Rinstall.html
+
+  to install R and make AFNI compatible with R. In addition, you need to install 
+  the following libraries with dependencies:
+  
+   install.packages("abind",dependencies=TRUE)
+   install.packages("MASS",dependencies=TRUE)
+   install.packages("lars",dependencies=TRUE)
+
+  You can find a demo on how to run this program in @Install_3dPFM_Demo
+
+
+A brief in deconvolution and regularization
+===========================================
+Only for the non-casual user !!!:
+===========================================
+
+ The basic idea of 3dPFM is to assume that the time series at each voxel y(t) 
+ is given by the linear convolution model (e.g., a linear haemodynamic model)
+ 
+                y(t) = sum { h(j) * s(t-j) }  +  e(t)
+                       j>=0
+ 
+ where h(t) is an user-supplied kernel function (e.g., haemodynamic response 
+ function (HRF)), s(t) is the neuronal-related time series to be estimated, and e(t) is 
+ a noise term capturing all noisy components of the signal. In matrix notation, 
+ the convolution model can be "simply" written as
+
+                           y =  H*s + e 
+
+ where y, s and e are the input voxel, the neuronal-related and the error time series, 
+ respectively, and H is a matrix with time-shifted versions of the kernel function 
+ across columns. The convolution model is defined such that the size of H is N x N, 
+ where N is the length of the input time series and, accordingly, the estimated 
+ neuronal-related time series has the same length as the input time series. 
+ 
+ Assuming that the noise is random and following a Gaussian distribution, a very 
+ sensible way to estimate the time series s would be to minimize the sum of squares 
+ of the residuals (RSS), a.k.a. L2fit, Least-Squares (LS) fit, and so forth, i.e. 
+ 
+                    s*  =  min || y - H*s ||_2^2
+                            s
+
+ Unfortunately, in our problem the least squares solution tends to overfit the 
+ input time series (i.e. the input time series tend to produce a perfect fit of the
+ input signal including the noise) since the number of variables to estimate is 
+ equal to the number of observations in the original time series. In addition, 
+ since the columns of the convolution matrix H are highly correlated, the LS estimates 
+ can become poorly determined and exhibit high variance. 
+
+ One solution to these drawbacks is to impose a regularization term on (or penalization of) 
+ the coefficient estimates based on prior information about the input signal. Typically, 
+ regularization terms based on the Lp-norm of the estimates are used, such that the estimate
+ of s is computed by solving
+  
+             s*  =  min || y - H*s ||_2^2   subject to  || s ||_p <= λ 
+                     s
+
+ or, similarly,
+
+             s*  =  min  || s ||_p  subject to  || y - H*s ||_2^2 <= λ 
+                     s
+
+ or, using Lagrangian multipliers,
+  
+             s*  =  min || y - H*s ||_2^2   +  λ || s ||_p 
+                     s
+
+ The three optimization problems are relatively equivalent, where λ is  
+ a positive regularization parameter that balance the tradeoff between the term 
+ of the residuals sum of squares (RSS) and the regularization or penalty term.
+ Note: The value of λ in the Lagrangian formulation is not equal (i.e. does
+ not have one-to-one correspondence) to the value of λ in the constrained problems. 
+
+ The L1-norm (p = 1) is a convex, and widely studied, regularization term that promotes 
+ sparse estimates. Relevant for fMRI data analysis, if BOLD responses were generated 
+ by brief (on the fMRI time scale) bursts of neuronal activation, it could be assumed 
+ that the neuronal-related time series s is a sparse vector with few coefficients 
+ whose amplitude are significantly different from zero. In fact, this is typically assumed 
+ in event-related fMRI experiments where we assume that one voxel responds to brief stimuli 
+ in some, but not all, conditions. 
+
+ In 3dPFM, two regularized estimation problems are currently implemented based on the L1-norm:
+ 
+ * LASSO: The least absolute shrinkage and selection operator (LASSO) [Tibshirani, 1996], 
+ which is equivalent to basis pursuit denoising (BPDN) [Chen et al., 1998]: 
+ 
+             s*  =  min || y - H*s ||_2^2   subject to  || s ||_1 <=  λ
+                     s
+
+ * DS: The Dantzig Selector [Candes and Tao, 2007]
+  
+             s*  =  min || s ||_1   subject to || H^T (y - H*s) ||_infty <= λ
+                     s
+ where the L_infty (infinity-norm) refers to the maximum absolute value of a vector.
+ In practice, minimizing the error term subject to a constraint in the norm is often 
+ equivalent to minimizing the norm subject to a constraint in the error term, 
+ with a one-to-one correspondence between the regularization parameters of both problems. 
+ All in all, one can see that the main difference between the LASSO and the DS relates 
+ to the error term. The LASSO considers the residual sum of squares (RSS), whereas 
+ the DS considers the maximum correlation (in absolute value) of the residuals with 
+ the model. Very intelligent minds have shown that there are very strong links 
+ between the DS and the LASSO  (see Bickel et al., 2009 
+ http://projecteuclid.org/euclid.aos/1245332830; and James et al., 2009
+ http://dx.doi.org/10.1111/j.1467-9868.2008.00668.x for more information). 
+ For lesser mortals, it is enough to know that the L_infty norm term in the DS is 
+ equivalent to the differentiation of the RSS term with respect to s in the LASSO. 
+ Actually, in practice the results of 3dPFM with the DS are usually very similar
+ to the ones obtained with the LASSO (and viceversa). 
+
+ Algorithms for solving the LASSO and DS
+ ---------------------------------------
+ 3dPFM relies on homotopy continuation procedures to solve the above optimization
+ problems. These procedures are very useful since they compute the complete 
+ set of solutions of the problem for all possible regularization parameters.
+ This is known as the regularization path. In particular, 3dPFM employs an R-version 
+ of homotopy continuation algorithms for the DS (L1-homotopy) developed by Asif and Romberg 
+ (see http://dx.doi.org/10.1109/CISS.2010.5464890), and the R-package LARS for the LASSO.  
+
+ Choice of regularization parameter
+ ----------------------------------
+ Once the regularization path with all solutions is computed, what is the optimal one?
+ i.e., what is the optimal regularization parameter λ ??. This is a very difficult question. 
+ In fact, it is nearly impossible to select the optimal λ unless one is aware of 
+ the optimal solution in advance (i.e. be the ORACLE) (but then we would not need to 
+ estimate anymore!!!). In 3dPFM, the choice of the regularization parameter is done 
+ based on model selection criteria that balance the degrees of freedom (df) that are 
+ employed to fit the signal and the RSS relative to the number of observations. 
+ For instance, when we use the Least Squares estimator to fit a general linear model 
+ (GLM), as in 3dDeconvolve, the value of df is approximately equal to number of 
+ regressors that we define in the model. So, here is the key question in 3dPFM: 
+ If the convolution model used in 3dPFM (i.e. the matrix) has as many columns as 
+ the number of observations, is not the degrees of freedom equal or higher than 
+ the number of time points of the signal? The answer is NO for the L1-norm 
+ regularization problems as the LASSO. 
+ The trick is that an unbiased estimate of the degrees of freedom of the LASSO is 
+ the number of non-zero coefficients of the LASSO estimate (for demonstration see 
+ http://projecteuclid.org/euclid.aos/1194461726) if the matrix H is orthogonal. 
+ Unfortunately, the matrix H in 3dPFM is not orthogonal and this result is not 
+ completely accurate.  Yet, we consider it valid as it works quite nicely 
+ in our application, i.e. counting the number of non-zero coefficients in the solution is 
+ a very good approximation of the degrees of freedom. Moreover, 3dPFM also uses this 
+ approximation for the Dantzig Selector due to the close link with the LASSO.  
+
+ Therefore, the unbiased estimate of the degrees of freedom can be used to construct 
+ model selection criteria to select the regularization parameter. Two different 
+ criteria are implemented in 3dPFM: 
+ 
+  * -bic: (Bayesian Information Criterion, equivalent to Minimum Description Length)
+
+          λ*  =  min  N*log(|| y - H*s(λ) ||_2^2) + log(N)*df(λ)
+                  λ
+
+  * -aic: (Akaike Information Criterion)
+
+          λ*  =  min  N*log(|| y - H*s(λ) ||_2^2) + 2*df(λ)
+                  λ
+ 
+ where s(λ) and df(λ) denote that the estimate and df depend on the regularization 
+ parameter λ. 
+
+ As shown in (Caballero-Gaudes et al. 2013), the bayesian information criterion (bic) 
+ typically gives better results than the akaike information crition (aic). 
+
+ If you want the 3dPFM ORACLE (i.e. the author of this program) to implement other 
+ criteria, such as AICc, MDLc, please write him an email. 
+ 
+
+ Option -nonzeros Q:
+ Alternatively, one could also select the regularization parameter such that 
+ the estimate only includes Q coefficients with non-zero amplitude, where Q 
+ is an arbitrary number given as input. In statistics, the set of nonzero coeffients 
+ for a given regularization parameter is defined as the active (or support) set. 
+ A typical use of this option would be that we hypothesize that our signal 
+ only includes Q nonzero coefficients (i.e. haemodynamic events of TR duration)
+ but we do not know when they ocurr.
+ 
+
+ IMPORTANT: If two successive events are non-zero, do both coeffients represent one or
+ two events? Intuitively, one could think that both coefficients model a single event
+ that spans several coefficients and, thus, requires several non-zero coefficients to
+ to be properly modelled. This case is NOT considered in the program. 
+ To deal with this situation, 3dPFM should have an option like "-nevents Q", 
+ where Q is the number of events or successive non-zero coefficients. Unfortunately, 
+ this cannot be easily defined. For instance, an estimate where all coefficients are 
+ non-zero would represent a SINGLE event!!!
+ If you think of a sensible manner to implement this option, please contact THE ORACLE.
+
+ VERY IMPORTANT: In practice, the regularization path could include 2 different solutions 
+ for 2 different regularization parameters but with equal number of non-zero coefficients!!! 
+ This occurs because in the process of computing the regularization path for decreasing values
+ of the regularization parameter (i.e. λ1 > λ2 > λ3), the number of elements in the active set 
+ (i.e. the set of coefficients with non-zero amplitide) can increase or decrease. In fact, 
+ the knots of the regularization path are the points where one element of the active set changes
+ (i.e. it is removed or added to the active set) as λ decreases to zero. Consequently, the 
+ active set could include Q non-zero elements for λ1, Q+1 for λ2 < λ1, and Q for λ3 < λ2. 
+ In that case, the estimate given by 3dPFM is the solution for the largest regularization 
+ parameter.
+
+ CAREFUL!! use option -nonzeros at your own risk!!
+ - Not all voxels show neuronal related BOLD events. 
+ - These options are appropriate for ROI or VOI analyses where there is a clear hypothesis 
+   that a given number of BOLD events should exist but we have no clue of their timing.
+
+------------
+ References:
+------------
+
+  If you find 3dPFM useful, the papers to cite are:
+       
+       C Caballero-Gaudes, N Petridou, ST Francis, IL Dryden, and PA Gowland.
+       Paradigm Free Mapping with Sparse Regression Automatically detects Single-Trial
+       Functional Magnetic Resonance Imaging Blood Oxygenation Level Dependent Responses.
+       Human Brain Mapping, 34(3):501-18, 2013.
+       http://dx.doi.org/10.1002/hbm.21452
+       
+       C Caballero-Gaudes, N Petridou, IL Dryden, L Bai, ST Francis and PA Gowland.
+       Detection and characterization of single-trial fMRI bold responses: 
+       Paradigm free mapping. Human Brain Mapping, 32(9):1400-18, 2011
+       http://dx.doi.org/10.1002/hbm.21116.
+
+  If you find 3dPFM very useful for the analysis of resting state data and finding invisible 
+  sponteneous BOLD events, the paper to cite is:
+       N Petridou, C Caballero-Gaudes, IL Dryden, ST Francis and PA Gowland
+       Periods of rest in fMRI contain individual spontaneous events which 
+       are related to slowly fluctuating spontaneous activity. Human Brain Mapping, 
+       34(6):1319-29, 2013.
+       http://dx.doi.org/10.1002/hbm.21513
+
+  If you use the Dantzig Selector in 3dPFM and want to know more about the homotopy algorithm 
+  for solving it, the paper to read (and cite) is:
+      M Salman Asif and J Romberg, On the LASSO and Dantzig selector equivalence, 
+      Conference on Information Sciences and Systems (CISS), Princeton, NJ, March 2010.
+      http://dx.doi.org/10.1109/CISS.2010.5464890
+      
+  Finally, additional references for the LASSO and the Dantzig Selector are:
+
+      R Tibshirani. Regression Shrinkage and Selection via the Lasso. Journal of 
+      the Royal Statistical Society. Series B (Methodological), 58(1): 267-288, 1996.
+      http://www.jstor.org/stable/2346178
+
+      H Zou, T Hastie, R Tibshirani. On the “degrees of freedom” of the lasso. 
+      Annals of Statistics 35(5): 2173--2192, 2007. 
+      http://projecteuclid.org/euclid.aos/1194461726.
+
+      B Efron, T Hastie, I. Johnstone, R Tibshirani. Least Angle Regression. 
+      Annals of Statistics 32(2): 407–-499, 2004.
+      http://projecteuclid.org/euclid.aos/1083178935
+
+      E Candes and T. Tao. The Dantzig selector: Statistical estimation when p is 
+      much larger than n. The Annals of Statistics 35(6):2313--2351, 2007.
+      http://projecteuclid.org/euclid.aos/1201012958.
+
+      M Salman Asif and J Romberg, On the LASSO and Dantzig selector equivalence, 
+      Conference on Information Sciences and Systems (CISS), Princeton, NJ, March 2010.
+      http://dx.doi.org/10.1109/CISS.2010.5464890
+
+---------------------------------------------------------------------------------------
+
+  Author: C. Caballero Gaudes, THE ORACLE (c.caballero@bcbl) (May 1st, 2015)
+
+  (many thanks to Z. Saad, R.W. Cox, G. Chen, and N. Petridou for neverending support) 
+
+
+'
+   
+   ex1 <- 
+"
+Example usage:
+-----------------------------------------------------------------------------
+      3dPFM       -input epi.nii      \
+                  -mask mask.nii      \
+                  -algorithm dantzig  \
+                  -criteria bic       \
+                  -LHS regparam.1D    \
+                  -hrf SPMG1          \
+                  -jobs 1             \
+                  -outALL yes
+
+\n"      
+
+
+   parnames <- names(params)
+   ss <- vector('character')
+   if (alpha) {
+       parnames <- sort(parnames)   
+      ss <- paste('Options in alphabetical order:\n',
+                  '------------------------------\n', sep='')
+   } else {
+      ss <- paste('Options:\n',
+                  '--------\n', sep='')
+   }
+   for (ii in 1:length(parnames)) {
+      op <- params[parnames[ii]][[1]]
+      if (!is.null(op$help)) {
+         ss <- c(ss , paste(itspace, op$help, sep=''));
+      } else {
+         ss <- c(ss, paste(itspace, parnames[ii], 
+                           '(no help available)\n', sep='')); 
+      }
+   }
+   ss <- paste(ss, sep='\n');
+   cat(intro, ex1, ss, sep='\n');
+   
+   if (adieu) exit.AFNI();
+}
+
+#Change command line arguments into an options list
+read.RprogDemo.opts.batch <- function (args=NULL, verb = 0) {
+   params <- list (
+                     
+      '-input' = apl (n = 1, d = NA, dup = TRUE, h = paste (
+   "-input DSET1                       \n",
+   "     Specify the dataset to analyze with Paradigm Free Mapping (3dPFM).\n",
+   "     It can be any of the formats available in AFNI. \n",
+   "         e.g: -input Data+orig                       \n",
+   "     Also .1D files where each column is a voxel timecourse.\n",
+   "     If an .1D file is input, you MUST specify the TR with option -TR.\n"
+                        ) ),
+                           
+      '-mask' = apl(1, h = paste(
+   "-mask MASK:                       \n",
+   "     Process voxels inside this mask only. Default is no masking.\n"
+                     ) ),
+   
+      '-algorithm' = apl(1, d = NA, h = paste(
+   "-algorithm ALG:  Regularization (a.k.a. penalty) function used for HRF deconvolution. \n",
+   "     * Available options for ALG are: \n",
+   "         dantzig:  Dantzig Selector (default) \n",
+   "         lasso:    LASSO                      \n",
+   "     * If you want other options, contact with the ORACLE (c.caballero@bcbl.eu). \n"
+                    ) ),
+   
+      '-criteria' = apl(1, d = 'bic', h = paste(
+   "-criteria CRIT:  Model selection criterion for HRF deconvolution. \n",
+   "     * Available options are: \n",
+   "         BIC:  Bayesian Information Criterion \n",
+   "         AIC:  Akaike Information Criterion \n",
+   "     * Default is BIC since it tends to produce more accurate deconvolution (see 3dPFM paper).\n",
+   "     * If you want other options, write to the ORACLE. \n",
+   "     * This option is incompatible with -nonzeros. \n"
+                     ) ),
+   
+      '-nonzeros' = apl(1, d = NA, h = paste(
+   "-nonzeros XX:                                                                         \n",
+   "     * Choose the estimate of the regularization path with XX nonzero coefficients      \n",
+   "       as the output of the deconvolution.                                              \n",
+   "     * Since the regularization path could have several estimates with identical        \n",
+   "       number of nonzero coefficients, the program will choose the first one in the     \n",
+   "       regularization path, i.e. the solution with the largest regularization parameter.\n",
+   "     * This option is incompatible with -criteria. \n",
+   "     * This option is not used by default.\n"
+                    ) ),
+   
+      '-maxiter' = apl(1, d = NA, h = paste(
+   "-maxiter MaxIter:                                                                   \n",
+   "     * Maximum number of iterations in the homotopy procedure (absolute value).     \n",
+   "     * Setting up MaxIter < 1 might be useful to speed up the program, e.g.         \n", 
+   "       with the option -nonzeros Q, MaxIter = 2*Q is reasonable (default)           \n"
+                     ) ),
+   
+      '-maxiterfactor' = apl(1, d = 1, h = paste(
+   "-maxiterfactor MaxIterFactor:                 \n",
+   "     * Maximum number of iterations in the homotopy procedure is relative to       \n",
+   "       the number of volumes of the input time series, i.e.  MaxIterFactor*nscans, \n",
+   "     * Default value is MaxIterFactor = 1                                          \n",
+   "                                                                                   \n",
+   " MaxIter OR MaxIterFactor                                                  \n",
+   "--------------------------                                                 \n",
+   "  * If both MaxIterFactor and MaxIter are given for any mistaken reason,   \n",
+   "    the program will STOP. It only admits one of the two options.          \n",
+   "  * If none of them is given, the number of iterations is equal to nscans. \n",
+   "  * The homotopy procedure adds or removes one coefficient from the active \n",
+   "    set of non-zero coefficients in the estimate in each iteration.        \n",
+   "  * If you expect Q non-zero coefficients in the deconvolved time-series,  \n",
+   "    a reasonable choice is MaxIter = 2*Q  (default with -nonzero Q)        \n",
+   "  * If you want to speed up the program, choose MaxIterfactor = 1 or  0.5. \n"
+                     ) ),
+   
+      '-TR' = apl(n=1, d = 1, h = paste(
+   "-TR tr:  Repetition time or sampling period of the input data           \n",
+   "     * It is required for the generation of the deconvolution HRF model.  \n",
+   "     * If input dataset is .1D file, TR must be specified in seconds.     \n",
+   "       If TR is not given, the program will STOP.                         \n",
+   "     * If input dataset is a 3D+time volume and tr is NOT given,          \n",
+   "       the value of TR is taken from the dataset header.                  \n",
+   "     * If TR is specified and it is different from the TR in the header   \n",
+   "       of the input dataset, the program will STOP.                       \n",
+   "       I am not sure know why you want to do that!!!                      \n",
+   "       but if you want, first change the TR of the input with 3drefit.    \n"
+                     ) ),
+   
+      '-hrf' = apl(n=1,d = 1, h=paste(
+   "-hrf fhrf:   haemodynamic response function used for deconvolution       \n",
+   "     *  If fhrf == 'GAM', the 1 parameter gamma variate is used [Default]  \n",    
+   "                     (t/(p*q))^p * exp(p-t/q)                              \n",
+   "                    Defaults: p=8.6 q=0.547 if only 'GAM' is used          \n",
+   "                 ** The peak of 'GAM(p,q)' is at time p*q after            \n",
+   "                    the stimulus.  The FWHM is about 2.3*sqrt(p)*q.        \n",
+   "     *  If fhrf == 'SPMG1', the SPM canonical HRF is used with default parameters.\n",
+   "     *  If fhrf is a .1D or .txt file, the program will use it as the HRF model. \n",
+   "            ** It should be generated with the same TR as the input data   \n",
+   "               to get sensible results (i.e. know what you are doing).     \n",
+   "            ** fhrf must be column or row vector, i.e. only 1 hrf allowed. \n",
+   "               In future, this option might be changed to model the hrf as \n",
+   "               a linear combination of functions.                          \n",
+   "     * The HRF is normalized to have unit peak.                            \n",
+   "     * You can use 3dDeconvolve or waver to generate useful kernels.      \n"
+        )),
+   
+      '-LHS' = apl(n = 1, d = NA, dup = TRUE, h = paste(
+   "-LHS lset:                                     \n",
+   "     Options: file.1D or functional dataset(s) \n",
+   "     * Additional regressors that will be fitted to the data after deconvolution.\n",
+   "     * Usually, these will be nuisance regressors that explain some variability  \n", 
+   "     of the data, e.g. the realignment parameters estimated with 3dVolreg.\n",
+   "     * More than one 'lset' can follow the '-LHS' option and it can be any of the AFNI formats.\n",
+   "     * Each 'lset' can be a 3D+time dataset or a 1D file with 1 or more columns.\n",
+   "     * A 3D+time dataset defines one column in the LHS matrix.\n",
+   "           ++ If input is a 1D file, then you cannot input a 3D+time         \n",
+   "               dataset with '-LHS'.                                           \n",
+   "           ++ If input is a 3D+time dataset, then the LHS 3D+time dataset(s)  \n",
+   "              must have the same voxel grid as the input.                     \n",
+   "     * A 1D file will include all its columns in the LHS matrix.              \n",
+   "           ++ For example, you could input the LHS matrix from the            \n",
+   "              .xmat.1D file output by 3dDeconvolve, if you wanted             \n",
+   "              to repeat the same linear regression using 3dPFM.               \n",
+   "     * Columns are assembled in the order given on the command line,         \n",
+   "             which means that LHS parameters will be output in that order!    \n",
+   "                                                                              \n",
+   "    NOTE: These notes are ALMOST a copy of the -LHS option in 3dTfitter and     \n",
+   "          they are replicated here for simplicity and because it is difficult \n",
+   "          to do it better !!                                                  \n"
+                    ) ),
+   
+#      '-stim_file' = apl(n = 1, d = 1, h = paste(
+#   "-stim_file sf.1D: 1D file with the ideal time series of one stimulus condition.       \n",
+#   "   * This is particularly useful for PPI analysis where the time series      \n",
+#   "     modelling the psycho-physiological interaction is the multiplication    \n",
+#   "     of deconvolved time series s(t) and ideal stimulus time series sf(t),   \n",
+#   "                   ppi(t) = s(t) * sf(t)                                     \n",
+#   "   * In this case, the most common way of using 3dPFM will be to give        \n",
+#   "     a single 1D file as -input, representing a voxel- or region-of-interest.\n",
+#                    ) ),
+   
+   
+      '-jobs' = apl(n = 1, d = 1, h = paste(
+   "-jobs NJOBS: On a multi-processor machine, parallel computing will speed\n",
+   "             up the program significantly.                              \n",
+   "             Choose 1 for a single-processor computer (DEFAULT).        \n"
+                    ) ),
+
+
+
+      '-verb' = apl(n=1, d = 0, h = paste(
+   "-verb VERB: VERB is an integer specifying verbosity level.\n",
+   "            0 for quiet, 1 (default) or more: talkative.\n"
+                    ) ),
+
+      '-help' = apl(n=0, h = '-help: this help message\n'),
+
+   
+      '-beta' = apl (n = 1, d = NA, dup = TRUE, h = paste (
+   "-beta          Prefix for the neuronal-related (i.e. deconvolved) time series.  \n",
+   "                 It wil have the same length as the input time series.            \n",
+   "                 This volume is always saved with default name 'PFM' if not given.\n",
+   "                 ++ If you don't want this time series (why?), set it to NULL.    \n",
+   "                    This is another similarity with 3dTfitter.                    \n" 
+                    ) ),
+   
+      '-betafitts' = apl (n = 1, d = NA, dup = TRUE, h = paste (
+   "-betafitts     Prefix of the convolved neuronal-related time series.          \n",
+   "                 It wil have the same length as the input time series             \n",
+   "                 Default = NULL, which means that the program will not save it.   \n"
+                    ) ),
+   
+   
+      '-fitts' = apl (n = 1, d = NA, dup = TRUE, h = paste (
+   "-fitts         Prefix for the fitted time series.                             \n",
+   "                 Default = NULL, although it's recommendable to save it           \n",
+   "                 to check the fit of the model to the data.                       \n"
+                    ) ),
+   
+      '-resid' = apl (n = 1, d = NA, dup = TRUE, h = paste (
+   "-resid         Prefix for the residuals of the fit to the data.                \n",
+   "                 Default = NULL.                                                   \n",
+   "                 It could also be computed as input - ffitts with 3dcalc.          \n"
+                    ) ),
+   
+      '-mean' = apl (n = 1, d = NA, dup = TRUE, h = paste (
+   "-mean          Prefix for the intercept of the model                           \n", 
+   "                 Default = NULL.                                                   \n"
+                    ) ),
+   
+      '-LHSest' = apl (n = 1, d = NA, dup = TRUE, h = paste (
+   "-LHSest        Prefix for the estimates of the LHS parameters.                 \n",
+   "                 Default = NULL.                                                   \n"
+                    ) ),
+   
+      '-LHSfitts' = apl (n = 1, d = NA, dup = TRUE, h = paste (
+   "-LHSfitts      Prefix for the fitted time series of the LHS parameters.        \n",
+   "                 Default = NULL.                                                   \n"
+                    ) ),
+
+      '-lambda' = apl (n = 1, d = NA, dup = TRUE, h = paste (
+  "-lambda        Prefix for output volume with the regularization parameter      \n",
+  "                 of the deconvolution of each voxel.                               \n",
+  "                 Default = NULL.                                                   \n",
+  "                                                                                    \n",
+  "                                                                                    \n",
+  " Output volumes of T-stats, F-stats and Z-stats                                     \n",
+  " ==============================================                                     \n"
+                    ) ),
+   
+      '-Tstats_beta' = apl (n = 1, d = NA, dup = TRUE, h = paste (
+   "-Tstats_beta   Prefix for the T-statistics of beta at each time point         \n",
+   "                 according to a linear model including the nonzero coefficients   \n",
+   "                 of the deconvolved signal, plus LHS regressors and intercept     \n",
+   "                 It wil have the same length as the input time series             \n",
+   "                 Recommendation: Use -Tdf_beta too!!                              \n",
+   "                 Default = NULL.                                                  \n"
+                   ) ),
+   
+      '-Tdf_beta' = apl (n = 1, d = NA, dup = TRUE, h = paste (
+   "-Tdf_beta      Prefix for degrees of freedom of the T-statistics of beta.     \n",
+   "                 Useful if you want to check Tstats_beta since different voxels   \n",
+   "                 might have different degrees of freedom.                         \n",
+   "                 Default = NULL.                                                  \n"
+                   ) ),
+   
+      '-Z_Tstats_beta' = apl (n = 1, d = NA, dup = TRUE, h = paste (
+   "-Z_Tstats_beta Prefix for (normalized) z-scores of the T-statistics of beta.  \n",
+   "                 Recommendable option to visualize the results instead of         \n",
+   "                 Tstats_beta and Tdf_beta since (again) different voxels          \n",
+   "                 might be fitted with different degrees of freedom.               \n",
+   "                 Default = NULL. \n"
+                   ) ),
+   
+      '-Fstats_beta' = apl (n = 1, d = NA, dup = TRUE, h = paste (
+   "-Fstats_beta   Prefix for the F-statistics of the deconvolved component.      \n",
+   "                 Recommendation: Use -Fdf_beta too!! for the very same reasons.   \n",
+   "                 Default = NULL. \n"
+                   ) ),
+   
+      '-Fdf_beta' = apl (n = 1, d = NA, dup = TRUE, h = paste (
+   "-Fdf_beta      Prefix for degrees of freedom of Fstats_beta.                  \n",
+   "                 Useful to check Fstats_beta for the very same reasons.           \n",
+   "                 Default = NULL.                                                  \n"
+                   ) ),
+   
+      '-Z_Fstats_beta' = apl (n = 1, d = NA, dup = TRUE, h = paste (
+   "-Z_Fstats_beta Prefix for (normalized) z-scores of the Fstats_beta.           \n",
+   "                 Recomendable option instead of Fstats_beta and Fdf_beta.         \n",
+   "                 Default = NULL. \n"
+                   ) ),
+
+
+     '-Tstats_LHS' = apl (n = 1, d = NA, dup = TRUE, h = paste (
+  "-Tstats_LHS    Prefix for T-statistics of LHS regressors at each time point.  \n",
+  "                 It wil have the same length as the total number of LHS regressors.\n",
+  "                 Recommendation: Use -Tdf_LHS too!!                                \n",
+  "                 Default = NULL. \n"
+                  ) ),
+
+    '-Tdf_LHS' = apl (n = 1, d = NA, dup = TRUE, h = paste (
+  "-Tdf_LHS       Prefix for degrees of freedom of the Tstats_LHS.               \n",
+  "                 Useful if you want to check Tstats_LHS since different voxels    \n",
+  "                 might have different degrees of freedom.                         \n",
+  "                 Default = NULL. \n"
+                  ) ),
+
+    '-Z_Tstats_LHS' = apl (n = 1, d = NA, dup = TRUE, h = paste (
+  "-Z_Tstats_LHS  Prefix for (normalized) z-scores of the Tstats_LHS.           \n",
+  "                 Recommendable option instead of Tstats_LHS and Tdf_LHS.         \n",
+  "                 Default = NULL.                                                 \n"
+                  ) ),
+
+    '-Fstats_LHS' = apl (n = 1, d = NA, dup = TRUE, h = paste (
+  "-Fstats_LHS    Prefix for the F-statistics of the LHS regressors.            \n",
+  "                 Recommendation: Use -Fdf_LHS too!!                              \n",
+  "                 Default = NULL.                                                 \n"
+                  ) ),
+
+    '-Fdf_LHS' = apl (n = 1, d = NA, dup = TRUE, h = paste (
+  "-Fdf_LHS       Prefix for degrees of freedom of the Fstats_LHS.             \n",
+  "                 Default = NULL.                                                \n"
+                  ) ),
+
+    '-Z_Fstats_LHS' = apl (n = 1, d = NA, dup = TRUE, h = paste (
+  "-Z_Fstats_LHS  Prefix for (normalized) z-scores of Fstats_LHS.              \n",
+  "                 Recommendable option instead of Fstats_LHS and Fdf_LHS.        \n",
+  "                 Default = NULL.                                                \n"
+                  ) ),
+
+
+      '-Fstats_full' = apl (n = 1, d = NA, dup = TRUE, h = paste (
+   "-Fstats_full   Prefix for the F-statistics of the full (deconvolved) model.\n",
+   "                 Default = NULL.                                               \n"
+                   ) ),
+   
+      '-Fdf_full' = apl (n = 1, d = NA, dup = TRUE, h = paste (
+   "-Fdf_full      Prefix for the degrees of freedom of the Fstats_full.      \n",
+   "                 Default = NULL.                                              \n"
+                   ) ),
+   
+      '-Z_Fstats_full' = apl (n = 1, d = NA, dup = TRUE, h = paste (
+   "-Z_Fstats_full Prefix for (normalized) z-scores of Fstats_full.          \n",
+   "                 Default = NULL.                                             \n"
+                   ) ),
+   
+      '-R2_full' = apl (n = 1, d = NA, dup = TRUE, h = paste (
+   "-R2_full       Prefix for R^2 (i.e. coefficient of determination) of the full model.\n",
+   "                 Default = NULL. \n"
+                   ) ),
+   
+      '-R2adj_full' = apl (n = 1, d = NA, dup = TRUE, h = paste (
+   "-R2adj_full    Prefix for Adjusted R^2 coefficient of the full model.   \n",
+   "                 Default = NULL. \n"
+                   ) ),
+
+      '-outALL' = apl (n = 1, d = NA, dup = TRUE, h = paste (
+   "-outALL suffix                                                                    \n", 
+   "     * If -outALL is used, the program will save ALL output volumes.              \n",
+   "     * The names of the output volumes will be automatically generated as         \n",
+   "       outputname_suffix_input, e.g. if -input = TheEmperor+orig, and suffix is Zhark, \n",
+   "       the names of the volumes will be beta_Zhark_TheEmperor+orig for -beta option,\n",
+   "       betafitts_Zhark_TheEmperor+orig for -betafitts option, and so forth.        \n",
+   "     * If suffix = 'yes', then no suffix will be used and the names will be just  \n",
+   "       outputname_input, i.e. beta_TheEmperor+orig.                               \n",
+   "     * If you want to specify a given name for an output volume, you must define  \n",
+   "       the name of the output volume in the options above. The program will use it \n",
+   "       instead of the name automatically generated.\n",
+   "                Default = NULL. \n"
+                   ) ),
+
+      '-outZAll' = apl (n = 1, d = NA, dup = TRUE, h = paste (
+   "-outZAll suffix                                                                  \n",
+   "     * If -outZAll is used, the program will save ALMOST ALL output volumes.     \n",
+   "     * Similar to -outALL, but the program will only save the Z_Tstats_* and Z_Fstats_* volumes  \n",
+   "       i.e. it will not save the Tstats_*, Tdf_*, Fstats_* and Fdf_* volumes. \n",
+   "     * This option is incompatible with -outALL. The program will STOP if both options are given.\n",
+   "               Default = NULL. \n"
+                   ) ),
+      
+      '-show_allowed_options' = apl(n=0, h=
+   "-show_allowed_options: list of allowed options\n" )
+   
+         );
+                     
+   ops <- parse.AFNI.args(args,  params,
+                          other_ok=FALSE
+                          )
+   if (verb) show.AFNI.args(ops, verb=0, hstr='');
+   if (is.null(ops)) {
+      errex.AFNI('Error parsing arguments. See 3dRprogDemo -help for details.\n');
+   }
+   
+   #initialize with defaults
+   com_history <-AFNI.command.history(ExecName, args,NULL)
+   lop <- AFNI.new.options.list(history = com_history, parsed_args = ops)
+   lop$input <- NULL
+   lop$TR <- NULL
+   lop$mask <- NULL
+   lop$nNodes <- 1
+   lop$hrf <- 'GAM'
+   lop$algorithm <- NULL
+   lop$criteria <- NULL
+   lop$nonzeros <- NULL
+   lop$maxiter <- NULL
+   lop$maxiterfactor <- NULL
+   lop$LHS <- NULL
+   lop$verb <- 1
+   lop$iometh <- 'clib'
+   
+   #initialize default names for output datasets
+   lop$beta_pfx <- NULL
+   lop$betafitts_pfx <- NULL
+   lop$fitts_pfx <- NULL
+   lop$resid_pfx <- NULL
+   lop$mean_pfx <- NULL
+   lop$lambda_pfx <- NULL
+   lop$LHSest_pfx <- NULL
+   lop$LHSfitts_pfx <- NULL
+   
+   # statistics of beta parameters
+   lop$Tstats_beta_pfx <- NULL
+   lop$Tdf_beta_pfx <- NULL
+   lop$Z_Tstats_beta_pfx <- NULL
+   lop$Fstats_beta_pfx <- NULL
+   lop$Fdf_beta_pfx <- NULL
+   lop$Z_Fstats_beta_pfx <- NULL
+
+   # statistics for LHS parameters
+   lop$Tstats_LHS_pfx <- NULL
+   lop$Tdf_LHS_pfx <- NULL
+   lop$Z_Tstats_LHS_pfx <- NULL
+   lop$Fstats_LHS_pfx <- NULL
+   lop$Fdf_LHS_pfx <- NULL
+   lop$Z_Fstats_LHS_pfx <- NULL
+   
+   # statistics of full model
+   lop$Fstats_full_pfx <- NULL
+   lop$Fdf_full_pfx <- NULL
+   lop$Z_Fstats_full_pfx <- NULL
+   lop$R2_full_pfx <- NULL
+   lop$R2adj_full_pfx <- NULL
+   lop$outALL <- NULL
+   lop$outZALL <- NULL
+
+   #Get user's input
+   for (i in 1:length(ops)) {
+      opname <- strsplit(names(ops)[i],'^-')[[1]];
+      opname <- opname[length(opname)];
+      switch(opname,
+             
+             input  = lop$input <- ops[[i]],
+             TR = lop$TR <- ops[[i]],
+             mask = lop$mask <- ops[[i]],
+             maxiter = lop$maxiter <- ops[[i]],
+             maxiterfactor = lop$maxiterfactor <- ops[[i]],
+             algorithm = lop$algorithm <- ops[[i]],
+             criteria = lop$criteria <- ops[[i]],
+             nonzeros = lop$nonzeros <- c(lop$nonzeros, ops[[i]]),
+             hrf = lop$hrf <- ops[[i]],
+             # See how to input different multiple LHS parameters in list 
+             LHS = lop$LHS <- c(lop$LHS, ops[[i]]),
+             verb = lop$verb <- ops[[i]],
+             jobs   = lop$nNodes <- ops[[i]],
+             
+             beta = lop$beta_pfx <- pprefix.AFNI.name(ops[[i]]),
+             betafitts = lop$betafitts_pfx <- pprefix.AFNI.name(ops[[i]]),
+             fitts = lop$fitts_pfx <- pprefix.AFNI.name(ops[[i]]),
+             resid = lop$resid_pfx <- pprefix.AFNI.name(ops[[i]]),
+             mean = lop$mean_pfx <- pprefix.AFNI.name(ops[[i]]),
+             lambda = lop$lambda_pfx <- pprefix.AFNI.name(ops[[i]]),
+             LHSest = lop$LHSest_pfx <- pprefix.AFNI.name(ops[[i]]),
+             LHSfitts = lop$LHSfitts_pfx <- pprefix.AFNI.name(ops[[i]]),
+
+             # Statistics for the beta parameters
+             Tstats_beta = lop$Tstats_beta_pfx <- pprefix.AFNI.name(ops[[i]]),
+             Tdf_beta = lop$Tdf_beta_pfx <- pprefix.AFNI.name(ops[[i]]),
+             Z_Tstats_beta = lop$Z_Tstats_beta_pfx <- pprefix.AFNI.name(ops[[i]]),
+             Fstats_beta = lop$Fstats_beta_pfx <- pprefix.AFNI.name(ops[[i]]),
+             Fdf_beta = lop$Fdf_beta_pfx <- pprefix.AFNI.name(ops[[i]]),
+             Z_Fstats_beta = lop$Z_Fstats_beta_pfx <- pprefix.AFNI.name(ops[[i]]),
+             
+             # Statistics for the LHS parameters
+             Tstats_LHS = lop$Tstats_LHS_pfx <- pprefix.AFNI.name(ops[[i]]),
+             Tdf_LHS = lop$Tdf_LHS_pfx <- pprefix.AFNI.name(ops[[i]]),
+             Z_Tstats_LHS = lop$Z_Tstats_LHS_pfx <- pprefix.AFNI.name(ops[[i]]),
+             Fstats_LHS = lop$Fstats_LHS_pfx <- pprefix.AFNI.name(ops[[i]]),
+             Fdf_LHS = lop$Fdf_LHS_pfx <- pprefix.AFNI.name(ops[[i]]),
+             Z_Fstats_LHS = lop$Z_Fstats_LHS_pfx <- pprefix.AFNI.name(ops[[i]]),
+             
+             # Statistics for the full model
+             Fstats_full = lop$Fstats_full_pfx <- pprefix.AFNI.name(ops[[i]]),
+             Fdf_full = lop$Fdf_full_pfx <- pprefix.AFNI.name(ops[[i]]),
+             Z_Fstats_full = lop$Z_Fstats_full_pfx <- pprefix.AFNI.name(ops[[i]]),
+             R2_full = lop$R2_full_pfx <- pprefix.AFNI.name(ops[[i]]),
+             R2adj_full = lop$R2adj_full_pfx <- pprefix.AFNI.name(ops[[i]]),
+             outALL = lop$outALL <- pprefix.AFNI.name(ops[[i]]),
+             outZAll = lop$outZAll <- pprefix.AFNI.name(ops[[i]]),
+
+            
+             help = help.RprogDemo.opts(params, alpha=FALSE, adieu=TRUE),
+             show_allowed_options = show.AFNI.args(ops, verb=0, 
+                                              hstr="3dPFM's",adieu=TRUE)
+             )
+   }
+
+   if (length(lop$input) < 1) {
+      if (lop$verb) {
+         str(lop)
+         errex.AFNI('No input? Check dumped input struct above. \n');
+      } else {
+         errex.AFNI('No input? \n');
+      }
+      return(NULL)
+   }
+   
+
+   return(lop)
+}# end of read.RprogDemo.opts.batch
+
+################################################################################
+##################### Utility functions for 3dPFM ##############################
+################################################################################
+
+# to consider division by zero, keep the sign of numerator
+mydiv <- function(a,b){
+  c <- a/b
+  b0 <- which(b==0)
+  c2change <- which(sign(a[b0]) != sign(c[b0]))
+  c[c2change] <- -1*c[c2change]
+  return(c)
+}
+
+# this function is not used anymore, but keep here as reminiscer of the first 3dPFM steps!!!
+mymatmult <- function(a,b){
+  if (length(b)==1) {
+    c <- b*a
+  } else {
+    c <- a %*% b
+  }
+  return(c)
+}
+
+####################################################
+#### Function to create the SPM Canonical HRF  #####
+####################################################
+
+myHRF <- function(RT, P) {
+  
+  # Returns a hemodynamic response function
+  # FORMAT hrf <- myHRF(RT,[p])
+  
+  # RT - scan repeat time
+  # P - input parameters of the response function (two gamma functions)
+  #
+  #                                                     defaults
+  #                                                    (seconds)
+  #   p[1] - delay of response (relative to onset)         6
+  #   p[2] - delay of undershoot (relative to onset)      16
+  #   p[3] - dispersion of response                        1
+  #   p[4] - dispersion of undershoot                      1
+  #   p[5] - ratio of response to undershoot               6
+  #   p[6] - onset (seconds)                               0
+  #   p[7] - length of kernel (seconds)                   32
+  #
+  # The function returns the hrf  - hemodynamic response function
+  #__________________________________________________________________________
+  # Based on the spm_hrf function in SPM8
+  # Written in R by Cesar Caballero Gaudes
+  
+  # global parameter
+  #--------------------------------------------------------------------------
+  fMRI_T <- 16
+  
+  # default parameters
+  #--------------------------------------------------------------------------
+  p <- c(6,16,1,1,6,0,32)
+  if(nargs() > 1) {
+    p[1:length(P)] = P
+  }
+  
+  # modelled hemodynamic response function - {mixture of Gammas}
+  #--------------------------------------------------------------------------
+  dt <- RT / fMRI_T
+  u <- seq(0, p[7]/dt, by=1) - p[6]/dt
+  a1 <- p[1] / p[3]
+  b1 <- 1 / p[3]
+  a2 <- p[2] / p[4] 
+  b2 <- 1 / p[4]
+  # hrf <- spm_Gpdf(u,p(1)/p(3),dt/p(3)) - spm_Gpdf(u,p(2)/p(4),dt/p(4))/p(5)
+  hrf <- (dgamma(u*dt, a1, 1/b1) - dgamma(u*dt, a2, 1/b2)/p[5])/dt
+  time_axis <- seq(0, p[7]/RT, by=1) * fMRI_T + 1
+  hrf <- hrf[time_axis]
+  hrf <- as.matrix(hrf)
+  
+  return(hrf)
+  
+}
+
+#################################################################################
+######################## DS_homotopy function ###################################
+#################################################################################
+
+DS_homotopy_function <- function(A, y, thresh = 0, maxiter) {
+  
+  # Solves the following Dantzing selector (DS) problem
+  # min_x  ||x||_1  subject to  ||A'(Ax-y)||_\infty <= epsilon
+  #
+  # using Primal Dual Pursuit Homotopy method. 
+  #
+  # Usage: 
+  # [xk_1, lambdak_1, gamma_xk, gamma_lambdak, iter, th] = DS_homotopy_function(A, y, thresh, maxiter);
+  # 
+  # Inputs: 
+  # A - MxN measurement matrix.  
+  # y - Mx1 vector of observations.
+  # thresh - scalar (desired value of epsilon)
+  # maxiter - Maximum number of primal-dual iterations.  
+  #           Default = 10*M.
+  # 
+  # Outputs:
+  # xk_1 - Final Primal solution
+  # lambdak_1 - Final Dual solution
+  # gamma_xk - Primal support at the solution
+  # gamma_lambdak - Dual support at the solution
+  
+  # Written by: Salman Asif, Georgia Tech
+  # Email: sasif@ece.gatech.edu
+  #-------------------------------------------+
+  # Copyright (c) 2007.  Muhammad Salman Asif 
+  #-------------------------------------------+
+  
+  # Check the following reference for the homotopy functions
+  # M Salman Asif and J Romberg, On the LASSO and Dantzig selector equivalence, 
+  # Conference on Information Sciences and Systems (CISS), Princeton, NJ, March 2010.
+  # http://dx.doi.org/10.1109/CISS.2010.5464890
+  
+  # Adapted for R by: Cesar Caballero, BCBL
+  # Email: c.caballero@bcbl.eu
+  
+  # t0 <- proc.time()
+  
+  
+  N <- NCOL(A)
+  M <- NROW(A)
+  # t0 = cputime;
+  
+  if(nargs() < 4) {
+    maxiter <- N
+  }
+  
+  #  Initialization of variables to save regularization path
+  x_path <- matrix(0,N,maxiter+1) 
+  epsilon_path <- rep(0,maxiter+1)
+  
+  # Initialization of primal and dual sign and support
+  z_x <-matrix(0,N,1)
+  z_lambda <- matrix(0,N,1)
+  
+  # Initial step
+  Primal_constrk <- -crossprod(A,y)
+  #[c i] = max(abs(Primal_constrk));
+  temp <- abs(Primal_constrk)
+  max_temp <- max(temp)
+  i <- which.max(temp)
+  
+  gamma_lambdak <- i
+  gamma_xk <- gamma_lambdak
+  
+  z_lambda[gamma_lambdak] <- sign(Primal_constrk[gamma_lambdak])
+  epsilon <- max_temp
+  Primal_constrk[gamma_lambdak] <- sign(Primal_constrk[gamma_lambdak])*epsilon
+  xk_1 <- matrix(0,N,1)
+  
+  lambdak_1 <- matrix(0,N,1)
+  lambdak_1[gamma_lambdak] <- solve(crossprod(A[,gamma_lambdak],A[,gamma_lambdak])) %*% z_lambda[gamma_lambdak]
+  
+  Dual_constrk <- crossprod(A, (A %*% lambdak_1) )
+  
+  z_x[gamma_xk] <- -sign(Dual_constrk[gamma_xk])
+  Dual_constrk[gamma_xk] <- sign(Dual_constrk[gamma_xk])
+  
+  z_xk <- z_x
+  z_lambdak <- z_lambda
+  
+  old_delta <- 0
+  out_lambda <- vector('numeric')
+  count_delta_stop <- 0
+  
+  AtglAgx <- crossprod (A[,gamma_lambdak], A[,gamma_xk])
+  iAtglAgx <- solve(AtglAgx)
+  AtgxAgl <- t(AtglAgx)
+  iAtgxAgl <- t(iAtglAgx)
+  
+  # save first estimates for regularization path
+  x_path[,1] <- xk_1
+  epsilon_path[1] <- epsilon
+  
+  # loop parameters
+  iter <- 0
+  
+  while (iter < maxiter){
+    iter <- iter+1
+    # print(iter)
+    # warning('off','MATLAB:divideByZero')
+    gamma_x <- gamma_xk
+    gamma_lambda <- gamma_lambdak
+    z_lambda <- z_lambdak
+    z_x <- z_xk
+    x_k <- xk_1
+    lambda_k <- lambdak_1
+    
+    ######## update on x #########
+    # Update direction
+    del_x <- -iAtglAgx %*% z_lambda[gamma_lambda]
+    #del_x <- mymatmult(-iAtglAgx, z_lambda[gamma_lambda])
+    del_x_vec <- matrix(0,N,1)
+    del_x_vec[gamma_x] <- del_x
+    
+    pk <- Primal_constrk
+    # dk = AtA*del_x_vec
+    Agdelx = A[,gamma_x] %*% del_x
+    # Agdelx <- mymatmult(A[,gamma_x],del_x)
+    dk <- crossprod(A,Agdelx)
+    
+    ######## CONTROL THE MACHINE PRECISION ERROR AT EVERY OPERATION: LIKE BELOW. 
+    pk_temp <- Primal_constrk
+    gammaL_temp <- which(abs(abs(Primal_constrk)-epsilon) < min(c(epsilon,2*.Machine$double.eps)))
+    pk_temp[gammaL_temp] <- sign(Primal_constrk[gammaL_temp])*epsilon
+    
+    xk_temp <- x_k
+    gammaX_temp <- which(abs(x_k) < .Machine$double.eps)
+    xk_temp[gammaX_temp] <- 0
+    ########################################
+    
+    # Step size computation
+    
+    # [i_delta, out_x, delta, chk_x] = update_primal(gamma_x, gamma_lambda, z_x,  xk_temp, del_x_vec, pk_temp, dk, epsilon, out_lambda);
+    out_update_primal <- update_primal(gamma_x, gamma_lambda, z_x,  xk_temp, del_x_vec, pk_temp, dk, epsilon, out_lambda)
+    i_delta <- out_update_primal[[1]]
+    out_x <- out_update_primal[[2]]
+    delta <- out_update_primal[[3]]
+    chk_x <- out_update_primal[[4]]
+    rm(out_update_primal)
+    
+    if ((old_delta < 4*.Machine$double.eps) && (delta < 4*.Machine$double.eps)){
+      count_delta_stop = count_delta_stop + 1
+    } else {
+      count_delta_stop = 0
+    }
+    
+    if (count_delta_stop >= 50) {
+      # disp('stuck in some corner');
+      break
+    }
+    old_delta <- delta
+    
+    xk_1 <- x_k + delta*del_x_vec
+    Primal_constrk <- pk + delta*dk
+    epsilon_old <- epsilon
+    
+    # save primal solution and epsilon in the regularization path
+    epsilon_path[iter+1] <- epsilon
+    x_path[,iter+1] <- xk_1
+    
+    # update the value of epsilon for next iteration
+    epsilon <- epsilon - delta
+    
+    #############################
+    if (epsilon < thresh) {
+      xk_1 <- x_k + (epsilon_old-thresh)*del_x_vec
+      epsilon <- thresh
+      # save these new variables in the regularization paths
+      epsilon_path[iter+1] <- epsilon
+      x_path[,iter+1] <- xk_1
+      break
+    }
+    #############################
+    
+    if (chk_x == 1){
+      
+      # If an element is removed from gamma_x
+      out_x <- out_x[1]
+      gl_old <- gamma_lambda
+      gx_old <- gamma_x
+      
+      outx_index <- which(gamma_x==out_x)
+      gamma_x[outx_index] = gamma_x[length(gamma_x)]
+      gamma_x[length(gamma_x)] <- out_x
+      gamma_x <- gamma_x[1:length(gamma_x)-1]
+      
+      # CHECK THIS SINGULARITY CONDITION USING SCHUR COMPLEMENT IDEA !!!
+      # X = [A B; C D];
+      # detX = detA detS
+      # S = D-C A^{-1} B
+      
+      # So the idea here is slightly different, we don't want the last
+      # entry (Q22) in the inverse of modified Gram matrix to be zero, because
+      # that will make inversion impossible.
+      
+      # This is a better thing, pick the index with maximum absolute
+      # value in the column corresponding to out_x in iAtgxgl. This will
+      # ensure that new matrix will be invertible.
+      # the following lines execute [max_val outl_index] = max(abs(iAtgxAgl(:,outx_index)));
+      temp <- abs(iAtgxAgl[,outx_index])
+      max_val <- max(temp)
+      outl_index <- which.max(temp)
+      rm(temp)
+      new_lambda <- gamma_lambda[outl_index]
+      some_lambda <- new_lambda
+      
+      outl_index <- which(gamma_lambda == some_lambda);
+      gamma_lambda[outl_index] <- gamma_lambda[length(gamma_lambda)]
+      gamma_lambda[length(gamma_lambda)] <- some_lambda
+      gamma_lambdak <- gamma_lambda
+      gamma_lambda <- gamma_lambda[1:length(gamma_lambda)-1]
+      
+      rowi <- outx_index    # ith row of A is swapped with last row (out_x)
+      colj <- outl_index    # jth column of A is swapped with last column (out_lambda)
+      AtgxAgl_ij <- AtgxAgl
+      temp_row <- AtgxAgl_ij[rowi, ,drop = FALSE]
+      AtgxAgl_ij[rowi,] <- AtgxAgl_ij[NROW(AtgxAgl_ij), ,drop = FALSE]
+      AtgxAgl_ij[NROW(AtgxAgl_ij),] <- temp_row
+      temp_col <- AtgxAgl_ij[,colj,drop = FALSE]
+      AtgxAgl_ij[,colj] <- AtgxAgl_ij[,NCOL(AtgxAgl_ij),drop = FALSE]
+      AtgxAgl_ij[,NCOL(AtgxAgl_ij)] <- temp_col
+      iAtgxAgl_ij <- iAtgxAgl
+      temp_row <- iAtgxAgl_ij[colj, ,drop = FALSE]
+      iAtgxAgl_ij[colj,] <- iAtgxAgl_ij[NROW(iAtgxAgl_ij), ,drop = FALSE]
+      iAtgxAgl_ij[NROW(iAtgxAgl_ij),] <- temp_row
+      temp_col <- iAtgxAgl_ij[,rowi,drop = FALSE]
+      iAtgxAgl_ij[,rowi] <- iAtgxAgl_ij[,NCOL(iAtgxAgl_ij),drop = FALSE]
+      iAtgxAgl_ij[,NCOL(iAtgxAgl_ij)] <- temp_col
+      
+      AtgxAgl <- AtgxAgl_ij[1:NROW(AtgxAgl_ij)-1,1:NCOL(AtgxAgl_ij)-1,drop = FALSE]
+      AtglAgx <- t(AtgxAgl)
+      iAtgxAgl <- update_inverse(AtgxAgl_ij, iAtgxAgl_ij,2)
+      iAtglAgx <- t(iAtgxAgl)
+      xk_1[out_x] <- 0;
+      
+    } else {
+      # If a new element is added to gamma_lambda
+      gamma_lambdak <- c(gamma_lambda,i_delta)
+      new_lambda <- i_delta
+      lambda_k[new_lambda] <- 0
+    }
+    
+    
+    out_lambda <- vector('numeric')
+    z_lambdak <- matrix(0,N,1)
+    z_lambdak[gamma_lambdak] <- sign(Primal_constrk[gamma_lambdak])
+    sgn_new_lambda <- sign(Primal_constrk[new_lambda])
+    Primal_constrk[gamma_lambdak] <- sign(Primal_constrk[gamma_lambdak])*epsilon
+    
+    
+    ########################
+    ### update on lambda ###
+    ########################
+    
+    sgn_new_lambda <- sign(Primal_constrk[new_lambda])
+    
+    AtgxAnl <- crossprod(A[,gamma_x], A[,new_lambda])
+    # AtgxAnl <- AtA[gamma_x,new_lambda]
+    
+    # Update direction
+    # del_lambda <- -solve(t(A[,gamma_x])*A[,gamma_lambda])%*%(t(A[,gamma_x]) %*% A[,new_lambda])
+    del_lambda <- -iAtgxAgl %*% AtgxAnl
+    del_lambda_p <- matrix(0,N,1)
+    del_lambda_p[gamma_lambda] <- del_lambda*sgn_new_lambda
+    del_lambda_p[new_lambda] <- sgn_new_lambda
+    
+    ak <- Dual_constrk
+    # bk = AtA*del_lambda_p;
+    Agdel_lam <- A[,c(gamma_lambda, new_lambda)] %*% del_lambda_p[c(gamma_lambda, new_lambda)]
+    bk <- crossprod(A, Agdel_lam)
+    
+    # check if the sign of update direction is correct
+    #if ((sign(bk[out_x]) == sign(ak[out_x])) && (abs(bk[out_x]) >= 1*.Machine$double.eps)) {
+    #  bk <- -bk
+    #  del_lambda_p <- -del_lambda_p
+    #}
+    if (length(out_x)>0){
+      if (sign(bk[out_x]) == sign(ak[out_x])) {
+        if ( abs(bk[out_x]) >= 1*.Machine$double.eps ){
+          bk <- -bk
+          del_lambda_p <- -del_lambda_p
+        }
+      }
+    }
+    
+    
+    ########################################################################
+    ## CONTROL THE MACHINE PRECISION ERROR AT EVERY OPERATION: LIKE BELOW ##
+    ak_temp <- Dual_constrk
+    gammaX_temp <- which(abs(abs(Dual_constrk)-1) < 2*.Machine$double.eps)
+    ak_temp[gammaX_temp] <- sign(Dual_constrk[gammaX_temp])
+    
+    lambdak_temp <- lambda_k
+    gammaL_temp <- which(abs(lambda_k) < 1*.Machine$double.eps)
+    lambdak_temp[gammaL_temp] <- 0
+    ########################################################################
+    
+    # Step size computation
+    # [i_theta, out_lambda, theta, chk_lambda] = update_dual(gamma_x, gamma_lambda, z_lambda, lambdak_temp, del_lambda_p, ak_temp, bk, new_lambda, out_x);
+    out_update_dual <- update_dual(gamma_x, gamma_lambda, z_lambda, lambdak_temp, del_lambda_p, ak_temp, bk, new_lambda, out_x)
+    i_theta <- out_update_dual[[1]] 
+    out_lambda <- out_update_dual[[2]] 
+    theta <- out_update_dual[[3]] 
+    chk_lambda <- out_update_dual[[4]] 
+    rm(out_update_dual)
+    
+    out_x <- vector('numeric')
+    
+    lambdak_1 <- lambda_k + theta*del_lambda_p
+    Dual_constrk <- ak + theta*bk
+    
+    if (chk_lambda == 1) {
+      # If an element is removed from gamma_lambda
+      outl_index <- which(gamma_lambda == out_lambda)
+      i_theta <- gamma_x[length(gamma_x)]
+      
+      if (length(outl_index) > 0 ) { # because otherwise new_lambda is removed
+        # Use Sherman-Woodburry-Morrison formula
+        # (A+BC)^{-1} = A^{-1} - A^{-1}B(I+CA^{-1}B)^{-1}CA^{-1};
+        iA <- iAtgxAgl
+        B <- AtgxAnl - crossprod(A[,gamma_x], A[,out_lambda])
+        C <- matrix(0,1,length(gamma_lambda))
+        C[outl_index] <- 1
+        AtgxAgl[,outl_index] <- AtgxAnl
+        AtglAgx <- t(AtgxAgl)
+        
+        iAB <- iA %*% B;
+        CiA <- iA[outl_index,]
+        iAtgxAgl <- iA - iAB %*% ((CiA)/(1+iAB[outl_index]))
+        iAtglAgx <- t(iAtgxAgl)
+        
+        gamma_lambda[outl_index] <- new_lambda
+      }
+      
+      z_xk <- matrix(0,N,1)
+      z_xk[gamma_x] <- -sign(Dual_constrk[gamma_x])
+      lambdak_1[out_lambda] <- 0
+      
+    } else {
+      
+      # If an element is added to gamma_x
+      ## adding columns
+      
+      # AtglAgx_mod = zeros(length(gamma_x));
+      # AtglAgx_mod = [AtglAgx A(:,gamma_lambda)'*A(:,i_theta); AtgxAnl' A(:,new_lambda)'*A(:,i_theta)];
+      temp_A11 <- AtglAgx
+      temp_A12 <- crossprod(A[,gamma_lambda], A[,i_theta])
+      temp_A1 <- cbind(temp_A11,temp_A12)
+      temp_A21 <- t(AtgxAnl)
+      temp_A22 <- crossprod(A[,new_lambda],A[,i_theta])
+      temp_A2 <- cbind(temp_A21,temp_A22)
+      AtglAgx_mod <- rbind(temp_A1,temp_A2)
+      rm(temp_A11,temp_A12,temp_A1,temp_A21,temp_A22,temp_A2)
+      #AtglAgx_mod = [AtglAgx AtA(gamma_lambda,i_theta); AtgxAnl' AtA(new_lambda,i_theta)];
+      
+      # CHECK THIS SINGULARITY CONDITION USING SCHUR COMPLEMENT IDEA !!!
+      # X = [A B; C D];
+      # detX = detA detS
+      # S = D-C A^{-1} B
+      A11 <- AtglAgx
+      A12 <- AtglAgx_mod[1:NROW(AtglAgx_mod)-1,NCOL(AtglAgx_mod),drop = FALSE]
+      A21 <- AtglAgx_mod[NROW(AtglAgx_mod),1:NCOL(AtglAgx_mod)-1,drop = FALSE]
+      A22 <- AtglAgx_mod[NROW(AtglAgx_mod),NCOL(AtglAgx_mod),drop = FALSE]
+      S = A22 - A21 %*% (iAtglAgx %*% A12)
+      #if (abs(S) < 10*.Machine$double.eps) {
+        # cat('matrix has become singular\n')
+        # done <- 1
+        # break
+      #}
+      
+      AtglAgx <- AtglAgx_mod
+      AtgxAgl <- t(AtglAgx)
+      iAtglAgx <- update_inverse(AtglAgx, iAtglAgx,1)
+      iAtgxAgl <- t(iAtglAgx)
+      
+      out_lambda <- vector('numeric')
+      gamma_lambda <- c(gamma_lambda, new_lambda)
+      
+      gamma_x <- c(gamma_x, i_theta)
+      z_xk <- matrix(0,N,1)
+      z_xk[gamma_x] <- -sign(Dual_constrk[gamma_x])
+      xk_1[i_theta] <- 0
+      
+    }
+    
+    Dual_constrk[gamma_x] <- sign(Dual_constrk[gamma_x])
+    gamma_lambdak <- gamma_lambda
+    gamma_xk <- gamma_x
+    
+  }
+  
+  total_iter <- iter
+  # total_time <- proc.time-t0
+  total_time <- 0
+  
+  return(list(x_path,epsilon_path,xk_1,total_iter,total_time))
+}
+
+
+#################################################################################
+##################### L1 homotopy update functions ##############################
+#################################################################################
+
+
+update_primal <- function(gamma_x, gamma_lambda, z_x, x_k, del_x_vec, pk, dk, epsilon, out_lambda) {
+  #
+  # This function computes the minimum step size in the primal update direction and
+  # finds change in the primal or dual support with that step.
+  #
+  # Inputs:
+  # gamma_x - current support of x
+  # gamma_lambda - current support of lambda
+  # z_x - sign sequence of x
+  # z_lambda - sign sequence of lambda
+  # del_x_vec - primal update direction
+  # pk
+  # dk
+  # epsilon - current value of epsilon
+  # out_lambda - element removed from support of lambda in previous step (if any)
+  #
+  # Outputs:
+  # i_delta - index corresponding to newly active primal constraint (new_lambda)
+  # out_x - element in x shrunk to zero
+  # delta - primal step size
+  # chk_x - 1  an element is removed from support of x
+  #         0  a new element enters the support of lambda
+  #
+  # Written by: Salman Asif, Georgia Tech
+  # Email: sasif@ece.gatech.edu
+  # Adapted for R by: Cesar Caballero Gaudes, BCBL
+  # Email: c.caballero@bcbl.eu
+  
+  N <- length(x_k)
+  
+  # gamma_lc = setdiff([1:N]', [gamma_lambda; out_lambda]); WRONG
+  # check out_lambda as well, that is if outgoing lambda switches sign in just one step
+  temp_gamma <- matrix(0,N,1)
+  temp_gamma[gamma_lambda] <- gamma_lambda
+  gamma_lc <- which( 1:N != temp_gamma)
+  
+  delta1_constr <- mydiv((epsilon - pk[gamma_lc]) , (1+dk[gamma_lc]))
+  delta1_pos_ind <- which(delta1_constr>0)
+  
+  delta1_pos <- delta1_constr[delta1_pos_ind]
+  #[delta1 i_delta1] = min(delta1_pos);
+  delta1 <- min(delta1_pos)
+  i_delta1 <- which.min(delta1_pos)
+  
+  if (length(delta1)==0) {
+    delta1 = Inf
+  }
+  delta2_constr <- mydiv((epsilon+pk[gamma_lc]) , (1-dk[gamma_lc]))
+  delta2_pos_ind <- which(delta2_constr>0)
+  delta2_pos <- delta2_constr[delta2_pos_ind]
+  delta2 <- min(delta2_pos)
+  i_delta2 <- which.min(delta2_pos)
+  if (length(delta2)==0) {
+    delta2 = Inf
+  }
+  
+  if (delta1 > delta2) {
+    delta <- delta2
+    i_delta <- gamma_lc[delta2_pos_ind[i_delta2]]
+  } else {
+    delta <- delta1
+    i_delta <- gamma_lc[delta1_pos_ind[i_delta1]]
+  }
+  
+  delta3_constr <- -1*mydiv(x_k[gamma_x] , del_x_vec[gamma_x])
+  delta3_pos_index <- which(delta3_constr>0)
+  if (length(delta3_pos_index)==0){
+    delta3 = Inf
+  } else {
+    delta3  = min(delta3_constr[delta3_pos_index])
+  }
+  i_delta3 = which.min(delta3_constr[delta3_pos_index])
+  out_x_index = gamma_x[delta3_pos_index[i_delta3]]
+  
+  chk_x <- 0
+  out_x <- vector('numeric')
+  if ((delta3 > 0) && (delta3 <= delta)) {
+    chk_x <- 1;
+    delta <- delta3;
+    out_x <- out_x_index;
+  }
+  
+  # THESE ARE PROBABLY UNNECESSARY, NEED TO REMOVE THEM. 
+  # The following checks are just to deal with degenerate cases when more
+  # than one elements want to enter or leave the support at any step
+  # (e.g., Bernoulli matrix with small number of measurements)
+  
+  # This one is ONLY for those indices which are zero. And we don't know where
+  # will its dx point in next steps, so after we calculate dx and its in opposite
+  # direction to z_x, we will have to remove that index from the support.
+  xk_1 <- x_k + delta * del_x_vec
+  xk_1[out_x] <- 0
+  temp <- sign(xk_1[gamma_x]) * z_x[gamma_x]
+  wrong_sign <- which(temp==-1)
+  rm(temp)
+  if (length(gamma_x[wrong_sign]) > 0) {
+    chk_x <- 1
+    delta <- 0
+    # can also choose specific element which became non-zero first but all
+    # that matters here is AtA(gx,gl) doesn't become singular.
+    # [val_wrong_x ind_wrong_x] =  sort(abs(del_x_vec(gamma_x(wrong_sign))),'descend');
+    out_x <- gamma_x[wrong_sign[1]]
+  }
+  
+  # If more than one primal constraints became active in previous iteration i.e.,
+  # more than one elements wanted to enter the support and we added only one.
+  # So here we need to check if those remaining elements are still active.
+  temp <- abs(pk[gamma_lc] + delta*dk[gamma_lc])-(epsilon-delta)
+  i_delta_temp <- gamma_lc[which(temp >= 10*.Machine$double.eps)]
+  rm(temp)
+  if (length(i_delta_temp) > 0) {
+    
+    i_delta_more <- i_delta_temp
+    
+    if ((length(i_delta_more)>=1) && (sum(i_delta_temp==i_delta)==0)) {
+      # ideal way would be to check that incoming element doesn't make AtA
+      # singular
+      temp <- -1*mydiv(pk[i_delta_more] , dk[i_delta_more])
+      v_temp <- max(temp)
+      i_temp <- which.max(temp)
+      rm(temp)
+      i_delta <- i_delta_more[i_temp]
+      delta <- 0
+      chk_x <- 0
+      out_x <- vector('numeric')
+    }
+  }
+  
+  return(list(i_delta, out_x, delta, chk_x))
+  
+}
+
+update_dual <- function(gamma_x, gamma_lambda, z_lambda, lambda_k, del_lambda_p, ak, bk, new_lambda, out_x) {
+  # 
+  # function [i_theta, out_lambda, theta, chk_lambda] = update_dual(gamma_x, gamma_lambda, z_lambda, lambda_k, del_lambda_p, ak, bk, new_lambda, out_x);
+  #
+  # This function computes the minimum step size in the dual update direction and
+  # finds change in the primal or dual support with that step.
+  # 
+  # Inputs: 
+  # gamma_x - current support of x
+  # gamma_lambda - current support of lambda
+  # z_x - sign sequence of x
+  # z_lambda - sign sequence of lambda
+  # del_lambda_p - dual update direction
+  # ak 
+  # bk
+  # new_lambda - element entered in the support of lambda during primal update
+  # out_x - element of x shrunk to zero during primal update phase.
+  #
+  # Outputs: 
+  # i_theta - index corresponding to newly active dual constraint (new_x)
+  # out_lambda - element in lambda shrunk to zero
+  # theta - dual step size 
+  # chk_lambda - 1  an element is removed from support of lambda
+  #              0  a new element enters the support of x
+  # 
+  # Written by: Salman Asif, Georgia Tech
+  # Email: sasif@ece.gatech.edu
+  # Adapted for R by: Cesar Caballero Gaudes, BCBL
+  # Email: c.caballero@bcbl.eu
+  # 
+  
+  N <- length(lambda_k)
+  
+  # gamma_xc = setdiff([1:N]', [gamma_x; out_x]); WRONG
+  # check out_x as well, that is if outgoing x switches sign in just one step
+  temp_gamma <- matrix(0,N,1)
+  temp_gamma[gamma_x] <- gamma_x
+  gamma_xc <- which(1:N != temp_gamma)
+  
+  # theta1_constr <- (1-ak[gamma_xc]) / bk[gamma_xc]
+  theta1_constr <- mydiv((1-ak[gamma_xc]) , bk[gamma_xc])
+  theta1_pos_index <- which(theta1_constr>0)
+  theta1_pos <- theta1_constr[theta1_pos_index]
+  # [theta1 i_theta1] = min[theta1_pos]
+  theta1 <- min(theta1_pos)
+  i_theta1 <- which.min(theta1_pos)
+  if (length(theta1)==0) {
+    theta1 <- Inf
+  }
+  # theta2_constr <- -(1+ak[gamma_xc]) / bk[gamma_xc]
+  theta2_constr <- -1*mydiv((1+ak[gamma_xc]) , bk[gamma_xc])
+  theta2_pos_index <- which(theta2_constr > 0)
+  theta2_pos <- theta2_constr[theta2_pos_index]
+  # [theta2 i_theta2] = min(theta2_pos);
+  theta2 <- min(theta2_pos)
+  i_theta2 <- which.min(theta2_pos)
+  if (length(theta2)==0) {
+    theta2 = Inf
+  }
+  
+  if (theta1 > theta2) {
+    theta <- theta2
+    i_theta <- gamma_xc[theta2_pos_index[i_theta2]]
+  }  else {
+    theta <- theta1
+    i_theta <- gamma_xc[theta1_pos_index[i_theta1]]
+  }
+  
+  #gamma_lambda_app <- rbind(gamma_lambda, new_lambda)
+  gamma_lambda_app <- c(gamma_lambda, new_lambda)
+  # theta3_constr <- -lambda_k[gamma_lambda_app] / del_lambda_p[gamma_lambda_app]
+  theta3_constr <- -1*mydiv(lambda_k[gamma_lambda_app],del_lambda_p[gamma_lambda_app])
+  
+  theta3_pos_index <- which(theta3_constr > 0)
+  # [theta3 i_theta3] = min(theta3_constr(theta3_pos_index));
+  temp <- theta3_constr[theta3_pos_index]
+  theta3 <- min(temp)
+  i_theta3 <- which.min(temp)
+  rm(temp)
+  out_lambda_index <- gamma_lambda_app[theta3_pos_index[i_theta3]]
+  
+  chk_lambda <- 0
+  out_lambda <- vector('numeric')
+  if ((theta3 > 0) && (theta3<theta)) {
+    chk_lambda <- 1
+    theta <- theta3
+    out_lambda <- out_lambda_index
+  }
+  
+  # THESE ARE PROBABLY UNNECESSARY, NEED TO REMOVE THEM. 
+  # This one is ONLY for those indices which are zero. And we don't know where
+  # will its dlambda point in next steps, so after we calculate dlambda and its in opposite
+  # direction to z_lambda, we will have to remove that index from the support.
+  
+  lambdak_1 <- lambda_k + theta*del_lambda_p
+  lambdak_1[out_lambda] <- 0
+  wrong_sign <- which((sign(lambdak_1[gamma_lambda]) * z_lambda[gamma_lambda]) == -1)
+  if (length(gamma_lambda[wrong_sign]) > 0) {
+    chk_lambda <- 1
+    theta <- 0
+    out_lambda <- gamma_lambda[wrong_sign[1]]
+  }
+  
+  # The following checks are just to deal with degenerate cases when more
+  # than one elements want to enter or leave the support at any step 
+  # (e.g., Bernoulli matrix with small number of measurements)
+  
+  # This happens if more than one dual constraints become active in one step
+  # so some of the new elements in support of x got missed, here we check if
+  # they are still active.
+  
+  # i_theta_temp = gamma_xc(find(abs(ak(gamma_xc)+theta*bk(gamma_xc))-1 >= 10*eps));
+  temp <- which((abs(ak[gamma_xc] + theta*bk[gamma_xc]) -1) >= 10*.Machine$double.eps)
+  i_theta_temp <- gamma_xc[temp]
+  rm(temp)
+  if (length(out_x) > 0) {
+    i_theta_more <- i_theta_temp[which(i_theta_temp != out_x)]
+  } else {
+    i_theta_more <- i_theta_temp
+  }
+  
+  if (length(i_theta_more) > 0) {
+    theta <- 0
+    i_theta <- i_theta_more[1]
+    out_lambda <- vector('numeric')
+    chk_lambda <- 0
+  }
+  
+  return(list(i_theta, out_lambda, theta, chk_lambda))
+  
+}
+
+update_inverse <- function(AtB,iAtB_old,flag) {
+  # This function uses matrix inversion lemma to update the inverse of 
+  # square matrix after addition or removal of a row-column pair.
+  #
+  # Written by: Salman Asif, Georgia Tech
+  # Email: sasif@ece.gatech.edu
+  # Adapted for R by: Cesar Caballero Gaudes, BCBL
+  # Email: c.caballero@bcbl.eu
+  
+  n <- NROW(AtB)
+  
+  #A11 = AtB(1:n-1,1:n-1);
+  A12 <- AtB[1:n-1,n,drop = FALSE]  # column vector
+  A21 <- AtB[n,1:n-1,drop = FALSE]  # row vector
+  A22 <- AtB[n,n,drop = FALSE]
+  
+  if (flag == 1) { # add columns
+    iA11 <- iAtB_old
+    iA11A12 <- iA11 %*% A12  # iA11A12 is column vector of length n-1
+    A21iA11 <- A21 %*% iA11  # A21iA11 is row vector of length n-1
+    S <- drop(A22-A21 %*% iA11A12)  # S is scalar
+    Q11_right <- iA11A12 %*% mydiv(A21iA11,S) 
+    
+    iAtB <- matrix(0,n,n)
+    iAtB[1:n-1,1:n-1] <- iA11 + Q11_right
+    iAtB[1:n-1,n] <- -1*mydiv(iA11A12,S) 
+    iAtB[n,1:n-1] <-  -1*mydiv(A21iA11,S)
+    iAtB[n,n] <- mydiv(1,S)
+  }
+  
+  if (flag == 2) { # delete columns
+    Q11 <- iAtB_old[1:n-1,1:n-1,drop = FALSE]  # n-1 x n-1 matrix
+    Q12 <- iAtB_old[1:n-1,n,drop = FALSE] # n-1 column vector
+    Q21 <- iAtB_old[n,1:n-1,drop = FALSE] # n-1 row vector
+    Q22 <- drop(iAtB_old[n,n]) # scalar
+    Q12Q21_Q22 <- Q12 %*% mydiv(Q21,Q22)
+    iAtB <- Q11 - Q12Q21_Q22;
+    # iAtB = iA11;
+  }
+  
+  return(iAtB)
+  
+}
+
+
+
+#################################################################################
+############### Begin RprogDemo Computation functions ###########################
+#################################################################################
+
+
+# The big function
+Rprog.PFM <- function( inData, hrf_mtx, infoDeconv = NULL,  LHSconstant = NULL, infoLHS = NULL) {
+  
+  # get Deconvolution parameters from infoDeconv (criteria, algorithm, maximum iterations)
+  algorithm <- infoDeconv$algorithm
+  criteria <- infoDeconv$criteria
+  if (criteria == 'nonzeros') nonzeros <- infoDeconv$nonzeros;
+  maxiter <- infoDeconv$maxiter
+  
+  #if (any(as.logical(inData))) browser();
+  inData <- as.matrix(inData)
+  # split inData in input time series and voxel-dependent additional regressors
+  yi <- inData[,1,drop=FALSE]
+  if (any(as.logical(infoLHS$isVoxelDependent))) {
+    LHSdependent <- inData[,2:NCOL(inData),drop=FALSE]
+  }
+  
+  nscans <- NROW(yi)
+  if (!is.null(infoLHS)) {
+    ncolsLHS <- sum(infoLHS$ncols) # total number of additional regressors 
+  } else {
+    ncolsLHS <- 0
+  }
+  # Remove mean of time series prior to anything else
+  # if data is constant time series (e.g. zeros due to masking), it is not fitted
+  # just the mean and the fitts are set to the mean value
+  mean_yi <- mean(yi)
+  yi <- yi - mean_yi
+  
+  # Define output list to return results and initialize all values to zero
+  outpfm <- list()
+  
+  outpfm$beta <- array(0,dim=c(1,nscans))
+  outpfm$betafitts <- array(0,dim=c(1,nscans))
+  outpfm$fitts <- array(0,dim=c(1,nscans))
+  outpfm$resid <- array(0,dim=c(1,nscans))
+  outpfm$lambda <- 0
+  outpfm$mean <- 0
+  
+  outpfm$Tstats_beta <- array(0,dim=c(1,nscans))
+  outpfm$Tdf_beta <- 0
+  outpfm$Z_Tstats_beta <- array(0,dim=c(1,nscans))
+  outpfm$Fstats_beta <- 0
+  outpfm$Fdf_beta <- array(0,dim=c(1,2))
+  outpfm$Z_Fstats_beta <- 0
+  
+  if (!is.null(infoLHS)) {
+    outpfm$LHSest <- array(0,dim=c(1,ncolsLHS))
+    outpfm$LHSfitts <- array(0,dim=c(1,nscans))
+    outpfm$Tstats_LHS <- array(0,dim=c(1,ncolsLHS))
+    outpfm$Tdf_LHS <- 0
+    outpfm$Z_Tstats_LHS <- array(0,dim=c(1,ncolsLHS))
+    outpfm$Fstats_LHS <- 0
+    outpfm$Fdf_LHS <- array(0,dim=c(1,2))
+    outpfm$Z_Fstats_LHS <- 0
+  }
+  
+  outpfm$Fstats_full <- 0
+  outpfm$Fdf_full <- array(0,dim=c(1,2))
+  outpfm$Z_Fstats_full <- 0
+  outpfm$R2_full <- 0
+  outpfm$R2adj_full <- 0
+
+  
+  if (any(as.logical(yi))) {
+    
+    # check if the input data included voxel-dependent additional regressors
+    if (!is.null(infoLHS)) {
+      # ncolsLHS <- sum(infoLHS$ncols) # total number of additional regressors 
+      LHS <- array(0,dim=c(nscans,ncolsLHS))
+      j <- 1 # index for columns of LHS
+      iLHSdependent <- 1 # index for extracting additional regressors in LHSdependent
+      iLHSconstant <- 1 # index for extracting additional regressors in LHSconstant
+      for (iLHS in 1:length(infoLHS$isVoxelDependent)){
+        if (infoLHS$isVoxelDependent[iLHS]){
+          # VOXEL-DEPENDENT (only one column)
+          LHS[,j:(j+infoLHS$ncols[iLHS]-1)] <- LHSdependent[,iLHSdependent,drop=FALSE]
+          iLHSdependent <- iLHSdependent + 1
+        } else {
+          # NON VOXEL-DEPENDENT
+          LHS[,j:(j+infoLHS$ncols[iLHS]-1)] <- 
+            LHSconstant[,iLHSconstant:(iLHSconstant+infoLHS$ncols[iLHS]-1),drop=FALSE]
+          iLHSconstant <- iLHSconstant + infoLHS$ncols[iLHS]
+        }
+        j <- j + infoLHS$ncols[iLHS]
+      }
+    }
+
+    #browser()
+    
+    if (algorithm == 'dantzig') {
+      # HRF deconvolution with the homotopy algorithm of the dantzig selector
+      DS_out <- DS_homotopy_function(A = hrf_mtx, y = yi, maxiter = maxiter)
+      beta_path <- DS_out[[1]] 
+      epsilon_path <- DS_out[[2]]
+      
+      # criteria for model selection
+      nsolutions <- length(epsilon_path)
+      beta_path[which(abs(beta_path) < 10*.Machine$double.eps)] <- 0
+      betafit_path <- hrf_mtx %*% beta_path
+      # compute residuals
+      residuals <- yi %*% matrix(1,1,nsolutions) - betafit_path
+      # compute RSS and number of degrees of freedom of each solution
+      df <- matrix(0,nsolutions,1)
+      L2res <- matrix(0,nsolutions,1)
+      for (solutions_iter in 1:nsolutions){
+        # RSS
+        crresiduals <- residuals[,solutions_iter,drop=FALSE]
+        L2res[solutions_iter,1] <- sum(abs(crresiduals)^2)
+        # degrees of freedom
+        crbeta <- beta_path[,solutions_iter,drop=FALSE]
+        crindex_events <- which(abs(crbeta) > 10*.Machine$double.eps)
+        # df[solutions_iter,1] <- sum(diag(crPHI %*% tcrossprod(ginv(crossprod(crPHI)),crPHI)))
+        # degrees of freedom is approximately equivalent to number of nonzero coefficients
+        df[solutions_iter,1] <- length(crindex_events)
+        
+      } # for solutions_iter
+    }
+    if (algorithm == 'lasso') {
+      LASSO_out <- lars(hrf_mtx, yi, type = "lasso", max.steps = maxiter,
+                        normalize = FALSE, intercept = FALSE, eps = 10*.Machine$double.eps)
+      lambda.lasso <- c(LASSO_out$lambda,0)
+      beta_path <- coef(LASSO_out)
+      beta_path <- t(beta_path)
+      L2res <- unname(c(LASSO_out$RSS))
+      df <- unname(c(LASSO_out$df))
+      epsilon_path <- LASSO_out$lambda
+      #browser()
+    }
+    
+    
+    # Selection of solution according to selection criterion 
+    if (criteria == 'bic') {
+      costs <- nscans*log(L2res) + log(nscans)*df
+      opt_idx <- which.min(costs)
+    }
+    if (criteria == 'aic') {
+      costs <- nscans*log(L2res) + 2*df
+      opt_idx <- which.min(costs)
+    }
+    if (criteria == 'nonzeros') {
+      opt_idx <- which(df == nonzeros)
+    }
+    
+    # if there are two equal values of the costs (very unlikely)
+    # take the sparsest solution (i.e. first in regularizatin path)
+    if (length(opt_idx)>1){
+      opt_idx <- opt_idx[1]
+    }
+    epsilon_opt <- epsilon_path[opt_idx]
+    outpfm$lambda <- epsilon_opt
+    
+    beta_opt <- beta_path[,opt_idx,drop=FALSE]
+    index_events_opt <- which(abs(beta_opt) > 10*.Machine$double.eps)
+    numActiveSet <- length(index_events_opt)
+    
+    if (numActiveSet > 0) {
+      LSeventscols <- 1:numActiveSet
+      X_events <- hrf_mtx[,index_events_opt,drop=FALSE]
+    }
+    
+    #browser()
+
+    # add the mean of the input signal again prior to debiasing
+    yi <- yi + mean_yi
+    
+    if (ncolsLHS > 0){
+      
+      if (numActiveSet > 0){
+        # CASE 1: LHS & Events
+        LSfitdebias <- lm(yi ~ X_events + LHS)
+        
+        # summary and anova of LSfitdebias
+        summary_LSfitdebias <- summary(LSfitdebias)
+        anova_LSfitdebias <- anova(LSfitdebias)
+        
+        #browser()
+        #mean (intercept)
+        outpfm$mean <- LSfitdebias$coefficients[[1]]
+        # compute fitted data
+        fitts <-fitted(LSfitdebias)
+        outpfm$fitts <- array(fitts,dim=c(1,nscans))
+        # compute residuals
+        outpfm$resid <- array(yi - fitts,dim=c(1,nscans))
+
+        # save debias coefficients
+        coef_LSfitdebias <- coef(LSfitdebias)
+        beta <- matrix(0,nscans,1)
+        beta[index_events_opt,1] <- coef_LSfitdebias[2:(numActiveSet+1)]
+        outpfm$beta <- array(beta,dim=c(1,nscans))
+        LHSest <- coef_LSfitdebias[(numActiveSet+2):length(coef_LSfitdebias)]
+        outpfm$LHSest <- array(LHSest,dim=c(1,ncolsLHS))
+        
+        # fitted signals
+        outpfm$betafitts <- array(X_events%*%beta[index_events_opt,1],dim=c(1,nscans))
+        outpfm$LHSfitts <- array(LHS%*%LHSest,dim=c(1,nscans)) 
+        
+        # save tstats of the model regressors
+        # computed as tstats <- coef(LSfitdebias) / sqrt(diag(vcov(LSfitdebias)))
+        #Tstats_LSfitdebias <- summary_LSfitdebias$coef[,3]
+        Tstats_betadebias <- matrix(0,1,nscans)
+        Z_Tstats_betadebias <- matrix(0,1,nscans)
+        Tstats_betadebias[index_events_opt] <- summary_LSfitdebias$coef[2:(numActiveSet+1),3]
+        # Tdf_LSfitdebias <- df.residual(LSfitdebias)
+        outpfm$Tstats_beta <- array(Tstats_betadebias,dim=c(1,nscans))
+        outpfm$Tdf_beta <- df.residual(LSfitdebias)
+        # convert tstats into z-scores
+        # first compute p-values of tstats, then compute z-scores
+        # pvalues <- 2 * pt(abs(Tstats_betadebias), df = Tdf_LSfitdebias, lower.tail = FALSE)
+        Z_Tstats_betadebias[index_events_opt] <- qnorm(1 - (0.5*summary_LSfitdebias$coef[2:(numActiveSet+1),4])) 
+        outpfm$Z_Tstats_beta <- array(Z_Tstats_betadebias,dim=c(1,nscans))
+        # tstats of LHS coefficients
+        # Tstats_LHS <- summary_LSfitdebias$coef[(numActiveSet+2):length(Tstats_LSfitdebias),3]
+        outpfm$Tstats_LHS <- array(summary_LSfitdebias$coef[(numActiveSet+2):NROW(summary_LSfitdebias$coef),3],dim=c(1,ncolsLHS))
+        outpfm$Tdf_LHS <- df.residual(LSfitdebias)
+        outpfm$Z_Tstats_LHS <- array(qnorm(1 - (0.5*summary_LSfitdebias$coef[(numActiveSet+2):NROW(summary_LSfitdebias$coef),4])),dim=c(1,ncolsLHS))
+        
+        
+        # F-statistic of the full model
+        fstats_full <- summary_LSfitdebias$fstatistic
+        outpfm$Fstats_full <- fstats_full[1]
+        outpfm$Fdf_full <- array(fstats_full[2:3],dim=c(1,2))
+        outpfm$Z_Fstats_full <- abs(qnorm(0.5*pf(fstats_full[1],fstats_full[2],fstats_full[3],lower.tail=F)))
+        # R-squared (R2) and Adjusted R2
+        outpfm$R2_full <- summary_LSfitdebias$r.squared
+        outpfm$R2adj_full <- summary_LSfitdebias$adj.r.squared
+        
+        # F-statistics (ANOVA) of each model term
+        outpfm$Fstats_beta <- anova_LSfitdebias[1,4]
+        outpfm$Fdf_beta <- array(anova_LSfitdebias[c(1,3),1],dim=c(1,2))
+        outpfm$Z_Fstats_beta <- abs(qnorm(0.5*anova_LSfitdebias[1,5]))
+        outpfm$Fstats_LHS <- anova_LSfitdebias[2,4]
+        outpfm$Fdf_LHS <- array(anova_LSfitdebias[c(2,3),1],dim=c(1,2))
+        outpfm$Z_Fstats_LHS <- abs(qnorm(0.5*anova_LSfitdebias[2,5]))
+        
+      } else {
+        #CASE 2: LHS
+        LSfitdebias <- lm(yi ~ LHS)
+        
+        #browser()
+        # summary and anova of LSfitdebias
+        summary_LSfitdebias <- summary(LSfitdebias)
+        anova_LSfitdebias <- anova(LSfitdebias)
+        
+        #mean (intercept)
+        outpfm$mean <- LSfitdebias$coefficients[[1]]
+        # compute fitted data
+        fitts <- fitted(LSfitdebias)
+        outpfm$fitts <- array(fitts,dim=c(1,nscans))
+        # compute residuals
+        outpfm$resid <- array(yi - fitts,dim=c(1,nscans))
+
+        # save debias coefficients
+        coef_LSfitdebias <- coef(LSfitdebias)
+        LHSest <- coef_LSfitdebias[(numActiveSet+2):length(coef_LSfitdebias)]
+        outpfm$LHSest <- array(LHSest,dim=c(1,ncolsLHS))
+        # fitted signals
+        outpfm$LHSfitts <- array(LHS%*%LHSest,dim=c(1,nscans)) 
+        
+        # tstats of LHS coefficients
+        Tstats_LHS <- summary_LSfitdebias$coef[(numActiveSet+2):NROW(summary_LSfitdebias$coef),3]
+        outpfm$Tstats_LHS <- array(Tstats_LHS,dim=c(1,ncolsLHS))
+        outpfm$Tdf_LHS <- df.residual(LSfitdebias)
+        outpfm$Z_Tstats_LHS <- 
+          array(qnorm(1 - (0.5*summary_LSfitdebias$coef[(numActiveSet+2):NROW(summary_LSfitdebias$coef),4])),dim=c(1,ncolsLHS))
+        
+        # F-statistic of the full model
+        fstats_full <- summary_LSfitdebias$fstatistic
+        outpfm$Fstats_full <- fstats_full[1]
+        outpfm$Fdf_full <- array(fstats_full[2:3],dim=c(1,2))
+        outpfm$Z_Fstats_full <- abs(qnorm(0.5*pf(fstats_full[1],fstats_full[2],fstats_full[3],lower.tail=F)))
+        # R-squared (R2) and Adjusted R2
+        outpfm$R2_full <- summary_LSfitdebias$r.squared
+        outpfm$R2adj_full <- summary_LSfitdebias$adj.r.squared
+
+        # F-statistics (ANOVA) of each model term
+        outpfm$Fstats_LHS <- anova_LSfitdebias[1,4]
+        outpfm$Fdf_LHS <- array(anova_LSfitdebias[c(1,2),1],dim=c(1,2))
+        outpfm$Z_Fstats_LHS <- abs(qnorm(0.5*anova_LSfitdebias[1,5]))
+      }
+      
+    } else {
+      if (numActiveSet > 0) {
+        #CASE 3: Events
+        LSfitdebias <- lm(yi ~ X_events)
+        
+        #browser()        
+        # summary and anova of LSfitdebias
+        summary_LSfitdebias <- summary(LSfitdebias)
+        anova_LSfitdebias <- anova(LSfitdebias)
+        
+        # mean (intercept)
+        outpfm$mean <- LSfitdebias$coefficients[[1]]
+        # compute fitted data
+        fitts <- fitted(LSfitdebias)
+        outpfm$fitts <- array(fitts,dim=c(1,nscans))
+        # compute residuals
+        outpfm$resid <- array(yi - fitts,dim=c(1,nscans))
+        
+        # save debias coefficients
+        coef_LSfitdebias <- coef(LSfitdebias)
+        beta <- matrix(0,nscans,1)
+        beta[index_events_opt,1] <- coef_LSfitdebias[2:(numActiveSet+1)]
+        outpfm$beta <- array(beta,dim=c(1,nscans))
+        
+        # fitted signals
+        outpfm$betafitts <- array(X_events%*%beta[index_events_opt,1],dim=c(1,nscans))
+        
+        # save tstats of the model regressors
+        # computed as tstats <- coef(LSfitdebias) / sqrt(diag(vcov(LSfitdebias)))
+        Tstats_betadebias <- matrix(0,nscans,1)
+        Z_Tstats_betadebias <- matrix(0,nscans,1)
+        Tstats_betadebias[index_events_opt] <- summary_LSfitdebias$coef[2:(numActiveSet+1),3]
+        outpfm$Tstats_beta <- array(Tstats_betadebias,dim=c(1,nscans))
+        outpfm$Tdf_beta <- df.residual(LSfitdebias)
+        # convert tstats into z-scores
+        # first compute p-values of tstats, then compute z-scores
+        # pvalues <- 2 * pt(abs(Tstats_betadebias), df = Tdf_LSfitdebias, lower.tail = FALSE)
+        Z_Tstats_betadebias[index_events_opt] <- qnorm(1 - (0.5*summary_LSfitdebias$coef[2:(numActiveSet+1),4])) 
+        outpfm$Z_Tstats_beta <- array(Z_Tstats_betadebias,dim=c(1,nscans))
+        
+        # F-statistic of the full model
+        fstats_full <- summary_LSfitdebias$fstatistic
+        outpfm$Fstats_full <- fstats_full[1]
+        outpfm$Fdf_full <- array(fstats_full[2:3],dim=c(1,2))
+        outpfm$Z_Fstats_full <- abs(qnorm(0.5*pf(fstats_full[1],fstats_full[2],fstats_full[3],lower.tail=F)))
+        # R-squared (R2) and Adjusted R2
+        outpfm$R2_full <- summary_LSfitdebias$r.squared
+        outpfm$R2adj_full <- summary_LSfitdebias$adj.r.squared
+        
+        # F-statistics (ANOVA) of each model term
+        outpfm$Fstats_beta <- anova_LSfitdebias[1,4]
+        outpfm$Fdf_beta <- array(anova_LSfitdebias[c(1,2),1],dim=c(1,2))
+        outpfm$Z_Fstats_beta <- abs(qnorm(0.5*anova_LSfitdebias[1,5]))
+        
+      } else {
+        #CASE 4: No Events & No LHS
+        outpfm$mean <- mean(yi)
+        outpfm$fitts <- array(mean(yi),dim=c(1,nscans))
+        outpfm$resid <-  array(yi - mean_yi,dim=c(1,nscans))
+      } 
+    }
+  }
+  else {
+    outpfm$mean <- mean_yi
+    outpfm$fitts <- array(mean_yi,dim=c(1,nscans))
+    outpfm$resid <- array(yi - mean_yi,dim=c(1,nscans))
+  }
+	return(outpfm);
+}
+
+#################################################################################
+######################## Begin RprogDemo main ##################################
+#################################################################################
+if (!exists('.DBG_args')) { 
+   args = (commandArgs(TRUE))  
+   rfile <- first.in.path(sprintf('%s.R',ExecName))  
+   save(args, rfile, file=sprintf('.%s.dbg.AFNI.args',ExecName), ascii = TRUE) 
+} else {
+   note.AFNI("Using .DBG_args resident in workspace");
+   args <- .DBG_args
+}
+if (!length(args)) {
+   errex.AFNI('Error parsing interactive input.');
+} else {
+   if (!exists('.DBG_args')) {
+      BATCH_MODE <<- 1
+   } else {
+      BATCH_MODE <<- 0
+   }  
+   if (is.null(lop <- read.RprogDemo.opts.batch(args, verb = 0))) {
+      errex.AFNI('Error parsing input');
+   }
+   #str(lop);
+}
+   
+if (lop$verb > 1) { 
+   str(lop);
+}
+
+if (lop$verb) {
+   cat(sprintf("Processing volume %s \n", lop$input[1]));
+}
+
+###########################################################################################
+# load third-party libraries
+cat('Loading mass library. Required for Generalized-Pseudoinverse function.\n')
+library('MASS')
+cat('Loading abind library. Required for combining multi-dimensional arrays.\n')
+library('abind')
+
+
+###########################################################################################
+# check number of nodes in case jobs < 1
+if(lop$nNodes < 1) {
+  lop$nNodes <- 1
+  cat('-jobs < 1?? No CPU??. Setting number of jobs to 1.\n')
+}
+browser()
+###########################################################################################
+# Load input dataset
+cat(sprintf('Load input dataset %s \n',lop$input[1]))
+idset <- read.AFNI(lop$input[1], verb = max(0,lop$verb-1), meth=lop$iometh)
+
+###########################################################################################
+#Set TR value, given as parameter for input 1D files or use TR from header of input dataset
+if (substr(lop$input[1],nchar(lop$input[1])-2,nchar(lop$input[1]))==".1D"){
+  if (is.null(lop$TR)){
+    if (lop$verb) {
+      str(lop)
+      errex.AFNI('Input is .1D file. No TR given? You must specify TR in seconds!!');
+    } else {
+      errex.AFNI('Input is .1D file. No TR given?');
+    }
+    return(NULL)
+  } else {
+    TR <- lop$TR
+  }
+} else {
+  TR <- dset.attr(idset,'TR')
+  if (!is.null(lop$TR)){
+    if (TR != lop$TR) {
+      errex.AFNI(sprintf("Input -TR is different from TR in header of %s \n",lop$input[[1]]))
+    }
+  }
+}
+
+
+###########################################################################################
+#For convenience, change the dimensions so that the first 3 
+#dimensions are turned into 1
+ddi <- dset.dimBRKarray(idset)
+idset <- dset.3DBRKarrayto1D(idset)
+dd <- dim(idset$brk)
+nscans <- dd[2]  # number of volumes in input dataset
+nvoxels <- dd[1]  # number of voxels in input dataset
+
+#browser()
+
+###########################################################################################
+#Load mask, check dimensions and apply mask
+mdset <- NULL
+if (!is.null(lop$mask)) {
+   if (lop$verb) {
+      cat(sprintf("Loading and applying mask %s to %s \n",lop$mask,lop$input[1]));
+   }
+   mdset <- read.AFNI(lop$mask, verb = max(lop$verb-1), meth=lop$iometh)
+   mdset <-  dset.3DBRKarrayto1D(mdset);
+   if (!dset.gridmatch(mdset, idset)) {
+      errex.AFNI(sprintf("Mismatch between grids of mask %s and input %s \n",lop$mask,lop$input[1]));
+   } else {
+     idset$brk <- (mdset$brk%*%matrix(1,1,nscans))*idset$brk
+   }
+}
+
+###########################################################################################
+# create HRF toeplitz matrix for convolution
+# first, load or generate kernel function
+if (is.null(lop$hrf)) {lop$hrf <- 'GAM'} 
+if ((substr(lop$hrf,nchar(lop$hrf)-2,nchar(lop$hrf))==".1D") 
+    || (substr(lop$hrf,nchar(lop$hrf)-3,nchar(lop$hrf))==".txt")) {
+  hrf_TR <- read.AFNI.matrix(lop$hrf)
+  if ((NCOL(hrf_TR) > 1) && (NROW(hrf_TR) > 1)) {
+    errex.AFNI(sprintf("More than one hrf in %s. It must be column or row vector.\n",lop$hrf))
+  } else {
+    if (NCOL(hrf_TR) > 1) {
+      hrf_TR <- t(hrf_TR)
+    }
+  }
+} else {
+  switch(lop$hrf,
+         'GAM' = {
+           b <- 8.6
+           c <- 0.547
+           hrf_TR <- myHRF(TR, c((b+1)*c,16,c,1,200,0,32))
+         },
+         'SPMG1' = hrf_TR <- myHRF(TR)
+  )
+}
+# normalize to unit peak
+if (max(hrf_TR) < 0) {
+  cat(sprintf("Warning: Maximum of HRF is negative. Normalizing to unit peak implies sign change. \n"))
+}
+hrf_TR <- hrf_TR / max(hrf_TR)
+L_hrf <- length(hrf_TR)
+# create Toeplitz matrix
+hrf_mtx <- matrix(0,nscans+L_hrf-1,nscans)
+for(i in 1:nscans) {
+  hrf_mtx[i:(i+L_hrf-1),i] <- hrf_TR
+}
+hrf_mtx <- hrf_mtx[1:nscans,1:nscans]
+
+###########################################################################################
+# Create list with information about the HRF deconvolution algorithm
+infoDeconv <- list() 
+
+# Define deconvolution algorithm parameters
+infoDeconv$algorithm <- 'dantzig' # default
+if (!is.null(lop$algorithm)) {
+  infoDeconv$algorithm <- lop$algorithm
+} 
+# load libraries required for HRF deconvolution
+if (infoDeconv$algorithm == 'lasso') {
+  library('lars')
+}
+
+# Define parameters for selection criteria of Deconvolution algorithm
+infoDeconv$criteria <- 'bic'
+if ((!is.null(lop$criteria)) && (!is.null(lop$nonzeros))) {
+  errex.AFNI(sprintf("BOTH -criteria and -nonzeros given as selection criteria. Only one type is allowed!!"));
+}
+if ((!is.null(lop$criteria)) && (is.null(lop$nonzeros))) {
+  infoDeconv$criteria <- lop$criteria
+}
+if ((is.null(lop$criteria)) && (!is.null(lop$nonzeros))) {
+  infoDeconv$criteria <- 'nonzeros'
+  infoDeconv$nonzeros <- lop$nonzeros
+}
+
+
+###########################################################################################
+# Set value of maxiter, maximum number of iterations of homotopy procedure
+if ((!is.null(lop$maxiter)) && (!is.null(lop$maxiterfactor))){
+  errex.AFNI(sprintf("Both -maxiter %s and -maxiterfactor %s given as input. Choose one of them!!",
+                     lop$maxiter, lop$maxiterfactor));
+}
+if ((is.null(lop$maxiter))&&(is.null(lop$maxiterfactor))){
+  if ((infoDeconv$criteria == 'bic') || (infoDeconv$criteria=='aic')) {
+    infoDeconv$maxiter <- 1*nscans
+  }
+  if (infoDeconv$criteria == 'nonzeros'){
+    infoDeconv$maxiter <- 2*max(infoDeconv$nonzeros)
+  }
+}
+if (!is.null(lop$maxiter)) infoDeconv$maxiter = lop$maxiter;
+if (!is.null(lop$maxiterfactor)) infoDeconv$maxiter = lop$maxiterfactor * nscans;
+
+#browser()
+###########################################################################################
+# Dealing with LHS parameters (i.e. additional regressors): 
+#   - infoLHS : Information about Voxel-Dependency and Number of Columns of each LHS
+#               This variable tracks where the LHS data is when running the main loop
+#   - LHS : list variable with the LHS datasets (this may be unnecessary)
+#   - LHSconstant : matrix with all non voxel-dependent additional regressors 
+#   - LHSvoxdepend : list with all voxel-dependent additional regressors
+#   - ncolsLHS : total number of additional regressors
+###########################################################################################
+
+infoLHS <- NULL
+LHS <- NULL
+LHSconstant <- NULL
+LHSdependent <- NULL
+
+if (!is.null(lop$LHS)) {
+  
+  numLHS <- length(lop$LHS) # number of LHS variables
+  # initialize LHS variable (array of lists)
+  LHS <- array(list(),dim=c(0,numLHS))
+  infoLHS <- list()
+  LHSconstant <- list()
+  iLHSconstant <- 1
+  for (iLHS in 1:numLHS) {
+    
+    if (lop$verb) {
+      cat(sprintf("Loading LHS %s \n", lop$LHS[iLHS]))
+    }
+    
+    if ((substr(lop$LHS[iLHS],nchar(lop$LHS[iLHS])-2,nchar(lop$LHS[iLHS]))==".1D") 
+        || (substr(lop$LHS[iLHS],nchar(lop$LHS[iLHS])-3,nchar(lop$LHS[iLHS]))==".txt")) {
+      
+      # NON VOXEL-DEPENDENT LHS (i.e. equal for all voxels)
+      temp <- read.AFNI(lop$LHS[iLHS], verb = max(0,lop$verb-1), meth=lop$iometh)
+      LHS[[iLHS]] <- temp
+      # check if LHS parameters have proper dimensions according to format
+      if (NROW(temp$brk) != nscans){
+        errex.AFNI(sprintf("Number of rows in %s is not equal to number of scans of input %s",
+                           lop$LHS[iLHS], lop$input[1])) } 
+      # update infoLHS
+      infoLHS$isVoxelDependent[iLHS] <- 'FALSE'
+      infoLHS$ncols[iLHS] <- NCOL(temp$brk)
+      # transpose matrix so that time dimension is columns (i.e. same as input data)
+      LHSconstant[[iLHSconstant]]<-temp$brk
+      iLHSkconstant <- iLHSconstant + 1
+      
+    } else {
+      
+      # VOXEL-DEPENDENT LHS 
+      temp <- read.AFNI(lop$LHS[iLHS], verb = max(0,lop$verb-1), meth=lop$iometh)
+      itemp <-  dset.3DBRKarrayto1D(temp)
+      if (!dset.gridmatch(itemp, idset)) {
+        errex.AFNI(sprintf("Mismatch between grids of LHS %s and input %s",
+                           lop$LHS[iLHS], lop$input[1])) }
+      if (NCOL(itemp$brk) != nscans) {
+        errex.AFNI(sprintf("Number of scans/rows in %s is not equal to number of scans in input %s",
+                           lop$LHS[iLHS], lop$input[1])) }
+      
+      if (!is.null(lop$mask)) {
+        if (lop$verb) {
+          cat(sprintf("Applying mask %s to %s \n", lop$mask,lop$LHS[iLHS]));
+        }
+        itemp$brk <- (mdset$brk%*%matrix(1,1,nscans))*itemp$brk
+      }
+      LHS[[iLHS]] <- itemp
+      # update infoLHS
+      infoLHS$isVoxelDependent[iLHS] <- 'TRUE'
+      infoLHS$ncols[iLHS] <- 1
+    }
+  } 
+  ncolsLHS <- sum(infoLHS$ncols) # total number of additional regressors
+  
+  if (!is.null(LHSconstant)){
+    # compact all non-voxel dependent regressors into one single matrix
+    LHSconstant <- do.call("cbind",LHSconstant)
+  }  
+} 
+
+#browser()
+###########################################################################################
+#Generate names for output datasets if options outALL or outZAll are used
+if ((!is.null(lop$outALL)) || (!is.null(lop$outZAll))){
+  # Check both options are not given. Otherwise, complain
+  if ((!is.null(lop$outALL)) && (!is.null(lop$outZAll))){
+    errex.AFNI(sprintf("Both -outALL and -outZAll are defined. Use only one of them!!.\n"))
+  }   
+  if (!is.null(lop$outALL)){
+    names_out_ALL <- c('beta','betafitts','fitts','resid','mean','lambda',
+                       'Tstats_beta','Tdf_beta','Z_Tstats_beta','Fstats_beta','Fdf_beta','Z_Fstats_beta',
+                       'Fstats_full','Fdf_full','Z_Fstats_full','R2_full','R2adj_full')
+    names_out_LHS_ALL <- c('LHSest','LHSfitts','Tstats_LHS','Tdf_LHS','Z_Tstats_LHS',
+                       'Fstats_LHS','Fdf_LHS','Z_Fstats_LHS')
+    suffix = lop$outALL
+  } else {
+    names_out_ALL <- c('beta','betafitts','fitts','resid','mean','lambda',
+                         'Z_Tstats_beta','Z_Fstats_beta','Z_Fstats_full','R2_full','R2adj_full')
+    names_out_LHS_ALL <- c('LHSest','LHSfitts','Z_Tstats_LHS','Z_Fstats_LHS')
+    suffix = lop$outZAll
+  }
+  if (toupper(suffix)=='YES'){
+    for (ii in 1:length(names_out_ALL)){
+      temp <- paste(names_out_ALL[ii],"_pfx",sep="")
+      if (is.null(lop[[temp]])){
+        lop[[temp]] <- pprefix.AFNI.name(paste(names_out_ALL[ii],lop$input,sep="_"))
+      }
+      
+    }
+    if (!is.null(lop$LHS)){
+      for (ii in 1:length(names_out_LHS_ALL)){
+        temp <- paste(names_out_LHS_ALL[ii],"_pfx",sep="")
+        if (is.null(lop[[temp]])) {
+          lop[[temp]] <- pprefix.AFNI.name(paste(names_out_LHS_ALL[ii],lop$input,sep="_"))
+        } 
+      }
+    }
+  } else {
+    for (ii in 1:length(names_out_ALL)){
+      temp <- paste(names_out_ALL[ii],"_pfx",sep="")
+      if (is.null(lop[[temp]])) {
+        lop[[temp]] <- pprefix.AFNI.name(paste(names_out_ALL[ii],suffix,lop$input,sep="_"))
+      }
+    }
+    if (!is.null(lop$LHS)){
+      for (ii in 1:length(names_out_LHS_ALL)){
+        temp <- paste(names_out_LHS_ALL[ii],"_pfx",sep="")
+        if (is.null(lop[[temp]])) {
+          lop[[temp]] <- pprefix.AFNI.name(paste(names_out_LHS_ALL[ii],suffix,lop$input,sep="_"))
+        }
+      }
+    }
+  }
+}
+
+# Always save the neuronal-related deconvolved time series
+if (is.null(lop$beta_pfx)){lop[[beta_pfx]] <- 'PFM'}
+
+###########################################################################################
+#Create arrays for output datasets
+#beta <- array(0, dim=c(nvoxels,nscans))
+#if (!is.null(lop$betafitts_pfx)) betafitts <- array(0, dim=c(nvoxels,nscans));
+#if (!is.null(lop$fitts_pfx)) fitts <- array(0, dim=c(nvoxels,nscans));
+#if (!is.null(lop$resid_pfx)) resid <- array(0, dim=c(nvoxels,nscans));
+#if (!is.null(lop$mean_pfx)) mean <- array(0, dim=c(nvoxels,1));
+#if (!is.null(lop$lambda_pfx)) lambda <- array(0, dim=c(nvoxels,1))
+# output volumes for statistics of deconvolved time series
+#if (!is.null(lop$Tstats_beta_pfx)) Tstats_beta <- array(0, dim=c(nvoxels,nscans));
+#if (!is.null(lop$Tdf_beta_pfx)) Tdf_beta <- array(0, dim=c(nvoxels,1));
+#if (!is.null(lop$Z_Tstats_beta_pfx)) Z_Tstats_beta <- array(0, dim=c(nvoxels,nscans));
+#if (!is.null(lop$Fstats_beta_pfx)) Fstats_beta <- array(0, dim=c(nvoxels,1));
+#if (!is.null(lop$Fdf_beta_pfx)) Fdf_beta <- array(0, dim=c(nvoxels,2));
+#if (!is.null(lop$Z_Fstats_beta_pfx))Z_Fstats_beta <- array(0, dim=c(nvoxels,1))
+# output volumes for LHS parameters
+#if (!is.null(lop$LHS)){
+#  if (!is.null(lop$LHSest_pfx)) LHSest <- array(0, dim=c(nvoxels,ncolsLHS));
+#  if (!is.null(lop$LHSfitts_pfx)) LHSfitts <- array(0, dim=c(nvoxels,nscans));
+#  if (!is.null(lop$Tstats_LHS_pfx)) Tstats_LHS <- array(0, dim=c(nvoxels,ncolsLHS));
+#  if (!is.null(lop$Tdf_LHS_pfx)) Tdf_LHS <- array(0, dim=c(nvoxels,2));
+#  if (!is.null(lop$Z_Tstats_LHS_pfx)) Z_Tstats_LHS <- array(0, dim=c(nvoxels,ncolsLHS));
+#  if (!is.null(lop$Fstats_LHS_pfx)) Fstats_LHS <- array(0, dim=c(nvoxels,1));
+#  if (!is.null(lop$Fdf_LHS_pfx)) Fdf_LHS <- array(0, dim=c(nvoxels,2));
+#  if (!is.null(lop$Z_Fstats_LHS_pfx)) Fstats_LHS <- array(0, dim=c(nvoxels,1));
+#}
+# output volumes for statistics of full model
+#if (!is.null(lop$Fstats_full_pfx)) Fstats_full <- array(0, dim=c(nvoxels,1));
+#if (!is.null(lop$Fdf_full_pfx)) Fdf_full <- array(0, dim=c(nvoxels,2));
+#if (!is.null(lop$Z_Fstats_full_pfx)) Z_Fstats_full <- array(0, dim=c(nvoxels,1));
+#if (!is.null(lop$R2_full_pfx)) R2_full <- array(0, dim=c(nvoxels,1));
+#if (!is.null(lop$R2adj_full_pfx)) R2adj_full <- array(0, dim=c(nvoxels,1));
+
+###########################################################################################
+# create inData = variable with voxel-dependent time-series to pass to Rprog.PFM
+NoFiles <- 1 + sum(infoLHS$isVoxelDependent=='TRUE')
+inData <- array(0,dim=c(nvoxels,nscans,NoFiles))
+inData[ , ,1] <- idset$brk
+#inData <- idset$brk
+# next indexes will be voxel-dependent additional regressors
+if (!is.null(lop$LHS)) {
+  j <- 2
+  for (iLHS in 1:numLHS){
+    if (infoLHS$isVoxelDependent[iLHS]){
+      inData[,,j] <- LHS[[iLHS]]$brk 
+      j <- j+1
+    }
+  }
+}
+
+###########################################################################################
+# prepare data for parallel computation
+nSeg <- 20
+# break into 20 segments, leading to 5% increamental in parallel computing
+dimSeg <- nvoxels%/%nSeg + 1
+# number of voxels need to be filled
+fill <- nSeg-nvoxels%%nSeg
+# pad input dataset with extra 0s so that all segments have same number of voxels
+#inData <- abind(idset$brk, array(0, dim=c(fill,nscans,NoFiles)),along=1)
+inData <- abind(inData, array(0, dim=c(fill,nscans,NoFiles)),along=1)
+# break input multiple segments
+dim(inData) <- c(dimSeg, nSeg, nscans, NoFiles)
+## do the same for the voxel-dependent additional regressors
+#for (kk in 1:length(LHSdependent)){
+#  temp <- rbind(LHSdependent[[kk]]$brk,array(0, dim=c(fill, nscans)))
+#  temp <- t(temp)
+#  dim(temp) <- c(nscans,dimSeg,nSeg)
+#  LHSdependent[[kk]]$brk <- aperm(temp,c(2,3,1))
+#}
+# declare output receiver
+out <- array(list(), dim=c(dimSeg, nSeg))
+
+# browser()
+
+###########################################################################################
+# Loop for parallel computation
+if (lop$nNodes==1) {
+  cat(sprintf("Starting computation of Paradigm Free Mapping algorithm.\n"))
+  for(kk in 1:nSeg) {
+    #Run Rprog.PFM in this segment 
+    out[,kk] <- apply(inData[,kk,,], 1, Rprog.PFM, hrf_mtx = hrf_mtx, infoDeconv = infoDeconv, 
+                       infoLHS = infoLHS, LHSconstant = LHSconstant)
+    if (lop$verb) 
+      cat("Computation done: ", 100*kk/nSeg, "%: ", format(Sys.time(), "%D %H:%M:%OS3"), "\n", sep='');
+  } 
+}
+
+if (lop$nNodes>1) {
+  library(snow)
+  # open cluster connection
+  cat('Opening cluster connection with ', lop$nNodes, 'nodes.\n')
+  cl <- makeCluster(lop$nNodes, type = "SOCK")
+  # make cluster aware of libraries
+  clusterEvalQ(cl, library(MASS)); #clusterEvalQ(cl, library(phia))
+  if (infoDeconv$algorithm == 'lasso') clusterEvalQ(cl, library(lars));
+  clusterExport(cl, c("hrf_mtx","LHSconstant","infoLHS","infoDeconv",
+                      "DS_homotopy_function","update_primal","update_dual",
+                      "update_inverse","mydiv","mymatmult"), envir=environment())
+  cat(sprintf("Starting computation of Paradigm Free Mapping algorithm.\n"))
+  for(kk in 1:nSeg) {
+    #Run Rprog.PFM in this segment
+    out[,kk] <- parApply(cl,inData[,kk,,], 1, Rprog.PFM, hrf_mtx = hrf_mtx, infoDeconv = infoDeconv, 
+                      infoLHS = infoLHS, LHSconstant = LHSconstant)
+    if (lop$verb) 
+      cat("Computation done: ", 100*kk/nSeg, "%: ", format(Sys.time(), "%D %H:%M:%OS3"), "\n", sep='');
+  }
+  cat('Closing cluster connection with ', lop$nNodes, 'nodes.\n')
+  stopCluster(cl)
+}
+
+#browser()
+###########################################################################################
+# convert to number of original voxels
+length(out) <- c(dimSeg*nSeg)
+# remove the padded voxels
+out <- out[-c((dimSeg*nSeg-fill+1):(dimSeg*nSeg)),drop=F]
+# Loop over output variables of Rprog.PFM to save in output volumes
+names_out <- names(out[[1]])
+fields_out <- names(out[[1]])
+for (ii in 1:length(names_out)){
+  assign(names_out[ii],do.call(rbind,lapply(out,"[[",fields_out[ii])))
+}
+
+###########################################################################################
+#Reshape output volumes back to 3D mode
+dim(beta) <- ddi
+if (!is.null(lop$betafitts_pfx)) dim(betafitts) <- ddi;
+if (!is.null(lop$fitts_pfx)) dim(fitts) <- ddi;
+if (!is.null(lop$resid_pfx)) dim(resid) <- ddi;
+if (!is.null(lop$mean_pfx)) dim(mean) <- c(ddi[1:3],1);
+if (!is.null(lop$lambda_pfx)) dim(lambda) <- c(ddi[1:3],1);
+if (!is.null(lop$LHSest_pfx)) dim(LHSest) <- c(ddi[1:3],ncolsLHS);
+if (!is.null(lop$LHSfitts_pfx)) dim(LHSfitts) <- ddi;
+# output volumes for statistics of beta parameters
+if (!is.null(lop$Tstats_beta_pfx)) dim(Tstats_beta) <- ddi;
+if (!is.null(lop$Tdf_beta_pfx)) dim(Tdf_beta) <- c(ddi[1:3],1);
+if (!is.null(lop$Z_Tstats_beta_pfx)) dim(Z_Tstats_beta) <- ddi;
+if (!is.null(lop$Fstats_beta_pfx)) dim(Fstats_beta) <- c(ddi[1:3],1);
+if (!is.null(lop$Fdf_beta_pfx)) dim(Fdf_beta) <- c(ddi[1:3],2);
+if (!is.null(lop$Z_Fstats_beta_pfx)) dim(Z_Fstats_beta) <- c(ddi[1:3],1);
+# output volumes for statistics of LHS parameters
+if (!is.null(lop$Tstats_LHS_pfx)) dim(Tstats_LHS) <- c(ddi[1:3],ncolsLHS);
+if (!is.null(lop$Tdf_LHS_pfx)) dim(Tdf_LHS) <- c(ddi[1:3],1);
+if (!is.null(lop$Z_Tstats_LHS_pfx)) dim(Z_Tstats_LHS) <- c(ddi[1:3],ncolsLHS);
+if (!is.null(lop$Fstats_LHS_pfx)) dim(Fstats_LHS) <- c(ddi[1:3],1);
+if (!is.null(lop$Fdf_LHS_pfx)) dim(Fdf_LHS) <- c(ddi[1:3],2);
+if (!is.null(lop$Z_Fstats_LHS_pfx)) dim(Z_Fstats_LHS) <- c(ddi[1:3],1);
+# output volumes for statistics of full model
+if (!is.null(lop$Fstats_full_pfx)) dim(Fstats_full) <- c(ddi[1:3],1);
+if (!is.null(lop$Fdf_full_pfx)) dim(Fdf_full) <- c(ddi[1:3],2);
+if (!is.null(lop$Z_Fstats_full_pfx)) dim(Z_Fstats_full) <- c(ddi[1:3],1);
+if (!is.null(lop$R2_full_pfx)) dim(R2_full) <- c(ddi[1:3],1);
+if (!is.null(lop$R2adj_full_pfx)) dim(R2adj_full) <- c(ddi[1:3],1);
+
+#browser()
+
+if (lop$verb) 
+   cat( paste('Writing results to', lop$prefix, '\n'));
+
+write.AFNI(lop$beta_pfx, beta, defhead=idset, com_hist = lop$com_history);
+
+if (!is.null(lop$betafitts_pfx)) write.AFNI(lop$betafitts_pfx, betafitts, defhead=idset, com_hist = lop$com_history);
+
+if (!is.null(lop$fitts_pfx)) write.AFNI(lop$fitts_pfx, fitts, defhead=idset, com_hist = lop$com_history);
+
+if (!is.null(lop$resid_pfx)) write.AFNI(lop$resid_pfx, resid, defhead=idset, com_hist = lop$com_history);
+
+if (!is.null(lop$mean_pfx)) {
+  idset_new <- idset
+  dataset_rank_idset_new <- dset.attr(idset,"DATASET_RANK")
+  dataset_rank_idset_new[2] <- 1
+  idset_new <- dset.attr(idset_new,"DATASET_RANK",val=dataset_rank_idset_new)
+  taxis_nums_idset_new <- dset.attr(idset,"TAXIS_NUMS")
+  taxis_nums_idset_new[1] <- 1
+  idset_new <- dset.attr(idset_new,"TAXIS_NUMS",val=taxis_nums_idset_new)
+  write.AFNI(lop$mean_pfx, mean, defhead=idset_new, com_hist = lop$com_history)
+}
+if (!is.null(lop$lambda_pfx)) {
+  idset_new <- idset
+  dataset_rank_idset_new <- dset.attr(idset,"DATASET_RANK")
+  dataset_rank_idset_new[2] <- 1
+  idset_new <- dset.attr(idset_new,"DATASET_RANK",val=dataset_rank_idset_new)
+  taxis_nums_idset_new <- dset.attr(idset,"TAXIS_NUMS")
+  taxis_nums_idset_new[1] <- 1
+  idset_new <- dset.attr(idset_new,"TAXIS_NUMS",val=taxis_nums_idset_new)
+  write.AFNI(lop$lambda_pfx, lambda, defhead=idset_new, com_hist = lop$com_history)
+}
+
+if (!is.null(lop$LHSest_pfx)) {
+  idset_new <- idset
+  dataset_rank_idset_new <- dset.attr(idset,"DATASET_RANK")
+  dataset_rank_idset_new[2] <- ncolsLHS
+  idset_new <- dset.attr(idset_new,"DATASET_RANK",val=dataset_rank_idset_new)
+  taxis_nums_idset_new <- dset.attr(idset,"TAXIS_NUMS")
+  taxis_nums_idset_new[1] <- ncolsLHS
+  idset_new <- dset.attr(idset_new,"TAXIS_NUMS",val=taxis_nums_idset_new)
+  write.AFNI(lop$LHSest_pfx, LHSest, defhead=idset_new, com_hist = lop$com_history)
+}
+if (!is.null(lop$LHSfitts_pfx)) write.AFNI(lop$LHSfitts_pfx, LHSfitts, defhead=idset, com_hist = lop$com_history);
+
+# output volumes for statistics of beta parameters
+if (!is.null(lop$Tstats_beta_pfx)) write.AFNI(lop$Tstats_beta_pfx, Tstats_beta, defhead=idset, com_hist = lop$com_history);
+
+if (!is.null(lop$Z_Tstats_beta_pfx)) write.AFNI(lop$Z_Tstats_beta_pfx, Z_Tstats_beta, defhead=idset, com_hist = lop$com_history);
+
+if (!is.null(lop$Tdf_beta_pfx)) {
+  idset_new <- idset
+  dataset_rank_idset_new <- dset.attr(idset,"DATASET_RANK")
+  dataset_rank_idset_new[2] <- 1
+  idset_new <- dset.attr(idset_new,"DATASET_RANK",val=dataset_rank_idset_new)
+  taxis_nums_idset_new <- dset.attr(idset,"TAXIS_NUMS")
+  taxis_nums_idset_new[1] <- 1
+  idset_new <- dset.attr(idset_new,"TAXIS_NUMS",val=taxis_nums_idset_new)
+  write.AFNI(lop$Tdf_beta_pfx, Tdf_beta, defhead=idset_new, com_hist = lop$com_history)
+}
+
+if (!is.null(lop$Fstats_beta_pfx)) {
+  idset_new <- idset
+  dataset_rank_idset_new <- dset.attr(idset,"DATASET_RANK")
+  dataset_rank_idset_new[2] <- 1
+  idset_new <- dset.attr(idset_new,"DATASET_RANK",val=dataset_rank_idset_new)
+  taxis_nums_idset_new <- dset.attr(idset,"TAXIS_NUMS")
+  taxis_nums_idset_new[1] <- 1
+  idset_new <- dset.attr(idset_new,"TAXIS_NUMS",val=taxis_nums_idset_new)
+  write.AFNI(lop$Fstats_beta_pfx, Fstats_beta, defhead=idset_new, com_hist = lop$com_history)
+}
+
+if (!is.null(lop$Fdf_beta_pfx)) {
+  idset_new <- idset
+  dataset_rank_idset_new <- dset.attr(idset,"DATASET_RANK")
+  dataset_rank_idset_new[2] <- 2
+  idset_new <- dset.attr(idset_new,"DATASET_RANK",val=dataset_rank_idset_new)
+  taxis_nums_idset_new <- dset.attr(idset,"TAXIS_NUMS")
+  taxis_nums_idset_new[1] <- 2
+  idset_new <- dset.attr(idset_new,"TAXIS_NUMS",val=taxis_nums_idset_new)
+  write.AFNI(lop$Fdf_beta_pfx, Fdf_beta, defhead=idset_new, com_hist = lop$com_history)
+}
+
+if (!is.null(lop$Z_Fstats_beta_pfx)) {
+  idset_new <- idset
+  dataset_rank_idset_new <- dset.attr(idset,"DATASET_RANK")
+  dataset_rank_idset_new[2] <- 1
+  idset_new <- dset.attr(idset_new,"DATASET_RANK",val=dataset_rank_idset_new)
+  taxis_nums_idset_new <- dset.attr(idset,"TAXIS_NUMS")
+  taxis_nums_idset_new[1] <- 1
+  idset_new <- dset.attr(idset_new,"TAXIS_NUMS",val=taxis_nums_idset_new)
+  write.AFNI(lop$Z_Fstats_beta_pfx, Z_Fstats_beta, defhead=idset_new, com_hist = lop$com_history)
+}
+
+
+
+# output volumes for statistics of LHS parameters
+if (!is.null(lop$Tstats_LHS_pfx)) {
+  idset_new <- idset
+  dataset_rank_idset_new <- dset.attr(idset,"DATASET_RANK")
+  dataset_rank_idset_new[2] <- ncolsLHS
+  idset_new <- dset.attr(idset_new,"DATASET_RANK",val=dataset_rank_idset_new)
+  taxis_nums_idset_new <- dset.attr(idset,"TAXIS_NUMS")
+  taxis_nums_idset_new[1] <- ncolsLHS
+  idset_new <- dset.attr(idset_new,"TAXIS_NUMS",val=taxis_nums_idset_new)
+  write.AFNI(lop$Tstats_LHS_pfx, Tstats_LHS, defhead=idset_new, com_hist = lop$com_history)
+}
+
+if (!is.null(lop$Tdf_LHS_pfx)) {
+  idset_new <- idset
+  dataset_rank_idset_new <- dset.attr(idset,"DATASET_RANK")
+  dataset_rank_idset_new[2] <- 1
+  idset_new <- dset.attr(idset_new,"DATASET_RANK",val=dataset_rank_idset_new)
+  taxis_nums_idset_new <- dset.attr(idset,"TAXIS_NUMS")
+  taxis_nums_idset_new[1] <- 1
+  idset_new <- dset.attr(idset_new,"TAXIS_NUMS",val=taxis_nums_idset_new)
+  write.AFNI(lop$Tdf_LHS_pfx, Tdf_LHS, defhead=idset_new, com_hist = lop$com_history)
+}
+
+if (!is.null(lop$Z_Tstats_LHS_pfx)) {
+  idset_new <- idset
+  dataset_rank_idset_new <- dset.attr(idset,"DATASET_RANK")
+  dataset_rank_idset_new[2] <- ncolsLHS
+  idset_new <- dset.attr(idset_new,"DATASET_RANK",val=dataset_rank_idset_new)
+  taxis_nums_idset_new <- dset.attr(idset,"TAXIS_NUMS")
+  taxis_nums_idset_new[1] <- ncolsLHS
+  idset_new <- dset.attr(idset_new,"TAXIS_NUMS",val=taxis_nums_idset_new)
+  write.AFNI(lop$Z_Tstats_LHS_pfx, Z_Tstats_LHS, defhead=idset_new, com_hist = lop$com_history)
+}
+
+if (!is.null(lop$Fstats_LHS_pfx)) {
+  idset_new <- idset
+  dataset_rank_idset_new <- dset.attr(idset,"DATASET_RANK")
+  dataset_rank_idset_new[2] <- 1
+  idset_new <- dset.attr(idset_new,"DATASET_RANK",val=dataset_rank_idset_new)
+  taxis_nums_idset_new <- dset.attr(idset,"TAXIS_NUMS")
+  taxis_nums_idset_new[1] <- 1
+  idset_new <- dset.attr(idset_new,"TAXIS_NUMS",val=taxis_nums_idset_new)
+  write.AFNI(lop$Fstats_LHS_pfx, Fstats_LHS, defhead=idset_new, com_hist = lop$com_history)
+}
+
+if (!is.null(lop$Fdf_LHS_pfx)) {
+  idset_new <- idset
+  dataset_rank_idset_new <- dset.attr(idset,"DATASET_RANK")
+  dataset_rank_idset_new[2] <- 2
+  idset_new <- dset.attr(idset_new,"DATASET_RANK",val=dataset_rank_idset_new)
+  taxis_nums_idset_new <- dset.attr(idset,"TAXIS_NUMS")
+  taxis_nums_idset_new[1] <- 2
+  idset_new <- dset.attr(idset_new,"TAXIS_NUMS",val=taxis_nums_idset_new)
+  write.AFNI(lop$Fdf_LHS_pfx, Fdf_LHS, defhead=idset_new, com_hist = lop$com_history)
+}
+
+if (!is.null(lop$Z_Fstats_LHS_pfx)) {
+  idset_new <- idset
+  dataset_rank_idset_new <- dset.attr(idset,"DATASET_RANK")
+  dataset_rank_idset_new[2] <- 1
+  idset_new <- dset.attr(idset_new,"DATASET_RANK",val=dataset_rank_idset_new)
+  taxis_nums_idset_new <- dset.attr(idset,"TAXIS_NUMS")
+  taxis_nums_idset_new[1] <- 1
+  idset_new <- dset.attr(idset_new,"TAXIS_NUMS",val=taxis_nums_idset_new)
+  write.AFNI(lop$Z_Fstats_LHS_pfx, Z_Fstats_LHS, defhead=idset_new, com_hist = lop$com_history)
+}
+
+# output volumes for statistics of full model
+if (!is.null(lop$Fstats_full_pfx)) {
+  idset_new <- idset
+  dataset_rank_idset_new <- dset.attr(idset,"DATASET_RANK")
+  dataset_rank_idset_new[2] <- 1
+  idset_new <- dset.attr(idset_new,"DATASET_RANK",val=dataset_rank_idset_new)
+  taxis_nums_idset_new <- dset.attr(idset,"TAXIS_NUMS")
+  taxis_nums_idset_new[1] <- 1
+  idset_new <- dset.attr(idset_new,"TAXIS_NUMS",val=taxis_nums_idset_new)
+  write.AFNI(lop$Fstats_full_pfx, Fstats_full, defhead=idset_new, com_hist = lop$com_history)
+}
+
+if (!is.null(lop$Fdf_full_pfx)) {
+  idset_new <- idset
+  dataset_rank_idset_new <- dset.attr(idset,"DATASET_RANK")
+  dataset_rank_idset_new[2] <- 2
+  idset_new <- dset.attr(idset_new,"DATASET_RANK",val=dataset_rank_idset_new)
+  taxis_nums_idset_new <- dset.attr(idset,"TAXIS_NUMS")
+  taxis_nums_idset_new[1] <- 2
+  idset_new <- dset.attr(idset_new,"TAXIS_NUMS",val=taxis_nums_idset_new)
+  write.AFNI(lop$Fdf_full_pfx, Fdf_full, defhead=idset_new, com_hist = lop$com_history)
+}
+
+if (!is.null(lop$Z_Fstats_full_pfx)) {
+  idset_new <- idset
+  dataset_rank_idset_new <- dset.attr(idset,"DATASET_RANK")
+  dataset_rank_idset_new[2] <- 1
+  idset_new <- dset.attr(idset_new,"DATASET_RANK",val=dataset_rank_idset_new)
+  taxis_nums_idset_new <- dset.attr(idset,"TAXIS_NUMS")
+  taxis_nums_idset_new[1] <- 1
+  idset_new <- dset.attr(idset_new,"TAXIS_NUMS",val=taxis_nums_idset_new)
+  write.AFNI(lop$Z_Fstats_full_pfx, Z_Fstats_full, defhead=idset_new, com_hist = lop$com_history)
+}
+
+if (!is.null(lop$R2_full_pfx)) {
+  idset_new <- idset
+  dataset_rank_idset_new <- dset.attr(idset,"DATASET_RANK")
+  dataset_rank_idset_new[2] <- 1
+  idset_new <- dset.attr(idset_new,"DATASET_RANK",val=dataset_rank_idset_new)
+  taxis_nums_idset_new <- dset.attr(idset,"TAXIS_NUMS")
+  taxis_nums_idset_new[1] <- 1
+  idset_new <- dset.attr(idset_new,"TAXIS_NUMS",val=taxis_nums_idset_new)
+  write.AFNI(lop$R2_full_pfx, R2_full, defhead=idset_new, com_hist = lop$com_history)
+}
+
+if (!is.null(lop$R2adj_full_pfx)) {
+  idset_new <- idset
+  dataset_rank_idset_new <- dset.attr(idset,"DATASET_RANK")
+  dataset_rank_idset_new[2] <- 1
+  idset_new <- dset.attr(idset_new,"DATASET_RANK",val=dataset_rank_idset_new)
+  taxis_nums_idset_new <- dset.attr(idset,"TAXIS_NUMS")
+  taxis_nums_idset_new[1] <- 1
+  idset_new <- dset.attr(idset_new,"TAXIS_NUMS",val=taxis_nums_idset_new)
+  write.AFNI(lop$R2adj_full_pfx, R2adj_full, defhead=idset_new, com_hist = lop$com_history)
+}
