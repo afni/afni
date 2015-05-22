@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 22,  May, 2015, RCR, "afni_proc.py", MICRO, TYPE_ENHANCE,
+   "help clarifications for -regress_ROI* options",
+   NULL
+ } ,
+
  { 22,  May, 2015, RCR, "afni-general", MINOR, TYPE_MODIFY,
    "allow for small differences when comparing oblique angles",
    "Define OBLIQ_ANGLE_THRESH=0.01 as a tolerance for the difference.\n"
@@ -68,11 +73,6 @@ afni_history_struct rickr_history[] = {
    "Also changed -regress_ROI_erode to -anat_follower_erode and\n"
    "removed option -regress_ROI_maskave (use -regress_ROI)\n"
    "Done for R W Cox."
- } ,
-
- { 18,  May, 2015, RCR, "gen_ss_review_table.py", MICRO, TYPE_NEW_OPT,
-   "mention gen_ss_review_scripts.py -help_fields in help",
-   NULL
  } ,
 
  {  8,  May, 2015, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
