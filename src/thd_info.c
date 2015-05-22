@@ -100,6 +100,7 @@ int dset_obliquity(THD_3dim_dataset *dset , float *anglep)
    return(obliquity);
 }
 
+/* common tolerance is OBLIQ_ANGLE_THRESH = 0.01 */
 double dset_obliquity_angle_diff(THD_3dim_dataset *dset1, 
                                  THD_3dim_dataset *dset2, 
                                  double tol) 
@@ -111,6 +112,7 @@ double dset_obliquity_angle_diff(THD_3dim_dataset *dset1,
    return(daxes_obliquity_angle_diff(dset1->daxes, dset2->daxes,tol));
 }
 
+/* common tolerance is OBLIQ_ANGLE_THRESH = 0.01 */
 double daxes_obliquity_angle_diff(THD_dataxes *ax1, THD_dataxes *ax2, 
                                   double tol) 
 {

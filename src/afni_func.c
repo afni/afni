@@ -3667,7 +3667,7 @@ void AFNI_check_obliquity(Widget w, THD_3dim_dataset *dset,
 
    if(AFNI_yesenv("AFNI_ONE_OBLIQUE_WARNING") && num_warn) EXRETURN;
 
-   angle = dset_obliquity_angle_diff(dset, rset, 0.01);
+   angle = dset_obliquity_angle_diff(dset, rset, OBLIQ_ANGLE_THRESH);
    if(angle == 0.0) EXRETURN ;
 
    /* A simple way to keep AFNI form complaining about obliquity all the time */

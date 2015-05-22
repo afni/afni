@@ -687,7 +687,8 @@ int main( int argc , char *argv[] )
          WARNING_message("%s grid mismatch with %s",
                DSET_BRIKNAME(dset) , DSET_BRIKNAME(DSUB(iv)) ) ;
        }
-       angle = dset_obliquity_angle_diff(new_dset, DSUB(iv), -1.0);
+       /* allow for small angle differences   22 May 2015 [rickr] */
+       angle = dset_obliquity_angle_diff(new_dset, DSUB(iv),OBLIQ_ANGLE_THRESH);
        if (angle > 0.0) {
          WARNING_message(
             "dataset %s has an obliquity difference of %f degress with %s\n",
