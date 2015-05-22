@@ -377,13 +377,13 @@ void plot_ts_fetch_sepx( int *ns , int **ls , float ***sx )
 
 void plot_ts_clear_sepx(void)
 {
-   if( lsepx != NULL ){ free(lsepx) ; lsepx = NULL ; }
+   if( lsepx != NULL ) free(lsepx) ;
    if( nsepx > 0 && sepx != NULL ){
      int kk ;
      for( kk=0 ; kk < nsepx ; kk++ ) free(sepx[kk]) ;
-     free(sepx) ; sepx = NULL ;
+     free(sepx) ;
    }
-   nsepx = 0 ; return ;
+   nsepx = 0 ; sepx = NULL ; lsepx = NULL ; return ;
 }
 
 void plot_ts_add_sepx( int lx , float *x )
