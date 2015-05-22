@@ -55,7 +55,8 @@ ENTRY("THD_dataset_mismatch") ;
    if( cd > 0.1*(c1+c2) ) code |= MISMATCH_CENTER ;
 
    /* check if the obliquity is the same */
-   angle = dset_obliquity_angle_diff(ds1, ds2, -1.0);
+   /* (allow for truncation differnces)   22 May 2015 [rickr] */
+   angle = dset_obliquity_angle_diff(ds1, ds2, OBLIQ_ANGLE_THRESH);
    if (angle > 0.0) code |= MISMATCH_OBLIQ ;
    
    RETURN(code) ;

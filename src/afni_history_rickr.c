@@ -49,6 +49,13 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 22,  May, 2015, RCR, "afni-general", MINOR, TYPE_MODIFY,
+   "allow for small differences when comparing oblique angles",
+   "Define OBLIQ_ANGLE_THRESH=0.01 as a tolerance for the difference.\n"
+   "This was done to fix registration to external dset in realtime.\n" 
+   "Thanks to V Roopchansingh for bringing up the problem."
+ } ,
+
  { 19,  May, 2015, RCR, "3dClustSim", MICRO, TYPE_MODIFY,
    "do not allow -pthr to preceed -both or -niml",
    "Otherwise -pthr values would be lost."

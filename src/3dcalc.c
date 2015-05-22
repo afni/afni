@@ -1634,7 +1634,9 @@ int main( int argc , char *argv[] )
                                 DSET_BRIKNAME(CALC_dset[ids]) ) ;
 
        }
-       angle = dset_obliquity_angle_diff(new_dset, CALC_dset[iii], -1.0);
+       /* allow for small angle differences   22 May 2015 [rickr] */
+       angle = dset_obliquity_angle_diff(new_dset, CALC_dset[iii],
+                                         OBLIQ_ANGLE_THRESH);
        if (angle > 0.0) {
          WARNING_message(
            "dataset '%c'=%s has an obliquity difference of %f degrees with %s\n",
