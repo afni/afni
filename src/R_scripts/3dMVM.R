@@ -320,7 +320,7 @@ read.MVM.opts.batch <- function (args=NULL, verb = 0) {
        '-wsMVT' = apl(n=0, h = paste(
    "-wsMVT: By default 3dMVM provides an F-stat through univariate testing (UVT)",
    "         for each effect that involves a within-subject factor. If at least",
-   "         one within-subject factor is involved in the model, option -wsMVT"
+   "         one within-subject factor is involved in the model, option -wsMVT",
    "         provides within-subject multivariate testing for any effect",
    "         associated with a within-subject variable. The testing strategy is",
    "         different from the conventional univariate GLM, see more details in",
