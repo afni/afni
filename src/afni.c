@@ -1630,6 +1630,9 @@ void AFNI_sigfunc_alrm(int sig)
      "Analyze your data rigorously -- you can fake the conclusions all you want later",
      "O wad some Pow'r the giftie gie us, To see oursels as ithers see us"            ,
 
+     "\n  The great thing about the human condition:\n"
+     "  No matter how bad it is, it can always get worse"                                     ,
+
      "\n  When someone says: I'm going to simplify things.\n"
      "  They mean:         Be confused. Be very, very confused"                               ,
 
