@@ -547,7 +547,9 @@ char * nifti_makebasename(const char* fname);
 nifti_1_header   nifti_convert_nim2nhdr(const nifti_image* nim);
 nifti_1_header * nifti_make_new_n1_header(const int64_t arg_dims[], int arg_dtype);
 nifti_2_header * nifti_make_new_n2_header(const int64_t arg_dims[], int arg_dtype);
-nifti_1_header * nifti_read_header(const char *hname, int *swapped, int check);
+void * nifti_read_header( const char *hname, int *nver );
+nifti_1_header * nifti_read_n1_hdr(const char *hname, int *swapped, int check);
+nifti_2_header * nifti_read_n2_hdr(const char *hname, int *swapped, int check);
 nifti_image    * nifti_copy_nim_info(const nifti_image * src);
 nifti_image    * nifti_make_new_nim(const int64_t dims[], int datatype,
                                     int data_fill);
