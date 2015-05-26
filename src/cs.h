@@ -43,6 +43,9 @@ extern void qmedmadbmv_float( int, float *, float *, float *, float * ) ;
 
 extern float centromean_float( int n , float *ar ) ;          /* 01 Nov 2010 */
 
+/***** mode search */
+extern float qmode_float     ( int , float * ) ;
+extern float qnzmode_float   ( int , float * ) ; /* non-zero mode search */
 
 /***** Eigensolutions *****/
 
