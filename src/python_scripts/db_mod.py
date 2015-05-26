@@ -2803,19 +2803,20 @@ def db_cmd_scale(proc, block):
     return cmd
 
 def all_erode_labels_used(proc, block):
+    """all erode labels should apply to anat followers"""
     elist, rv = proc.user_opts.get_string_list('-anat_follower_erode')
     if elist == None: return 1
-    elist = elist[:]  # copy, to trash later
 
     ok = 1
     for label in elist:
-       found = 0
-       for af in proc.afollowers:
-          if label == af.label:
-             found = 1
-             break
-       if not found:
+       af = proc.get_anat_follower(label)
+       if af == None:
           print "** ERROR: erode label '%s' not in followers list" % label
+          ok = 0
+          continue
+
+       if not af.erode:
+          print "** ERROR: follower label '%s' not properly eroded" % label
           ok = 0
 
     return ok
@@ -2827,8 +2828,6 @@ def add_ROI_PC_followers(proc, block):
        those set in mask_segment_anat until the cmd_regress(),
        but as ortvecs, do we really care?
     """
-
-    elist, rv = block.opts.get_string_list('-anat_follower_erode')
 
     newlabs = []
     oname = '-regress_ROI_PC'
@@ -4679,7 +4678,7 @@ def db_cmd_regress_sfiles2times(proc, block):
 
 # from -regress_ROI_PC/maskave
 def db_cmd_regress_pc_followers(proc, block):
-    """regress principle components from follower datasets
+    """regress principal components from follower datasets
        return an error code (0=success) and command string
     """
 
@@ -4715,7 +4714,7 @@ def db_cmd_regress_pc_followers(proc, block):
     tpre = 'rm.det_pcin'
     clist.append(                                                \
        '\n# create a time series dataset to run 3dpc on...\n\n'  \
-       '# detrend, so principle components are not affected\n'   \
+       '# detrend, so principal components are not affected\n'   \
        'foreach run ( $runs )\n'                                 \
        '    3dDetrend -polort %d -prefix %s_r$run \\\n'          \
        '              %s%s\n'                                    \
@@ -6330,7 +6329,8 @@ g_help_string = """
 
            Like example #9, but also regress eroded white matter and CSF
            averages.  The WMe and CSFe signals come from the Classes dataset,
-           created by 3dSeg via the -mask_segment_anat option.
+           created by 3dSeg via the -mask_segment_anat and -mask_segment_erode
+           options.
 
                 afni_proc.py -subj_id subj123                                \\
                   -dsets epi_run1+orig.HEAD                                  \\
@@ -6340,6 +6340,7 @@ g_help_string = """
                   -volreg_align_e2a                                          \\
                   -volreg_tlrc_warp                                          \\
                   -mask_segment_anat yes                                     \\
+                  -mask_segment_erode yes                                    \\
                   -regress_censor_motion 0.2                                 \\
                   -regress_censor_outliers 0.1                               \\
                   -regress_bandpass 0.01 0.1                                 \\
@@ -6368,6 +6369,7 @@ g_help_string = """
                   -blur_size 6.0                                             \\
                   -mask_apply epi                                            \\
                   -mask_segment_anat yes                                     \\
+                  -mask_segment_erode yes                                    \\
                   -regress_bandpass 0.01 0.1                                 \\
                   -regress_apply_mot_types demean deriv                      \\
                   -regress_ROI WMe CSFe                                      \\
@@ -6383,7 +6385,7 @@ g_help_string = """
          o Use fast ANATICOR method (slightly different from default ANATICOR).
          o Use FreeSurfer segmentation for:
              - regression of average eroded white matter
-             - regression of first 3 principle components of lateral ventricles
+             - regression of first 3 principal components of lateral ventricles
              - ANATICOR white matter mask
          o Erode FS white matter and ventricle masks before application.
          o Bring along FreeSurfer parcellation datasets:
@@ -6981,7 +6983,7 @@ g_help_string = """
             This could even be done automatically with afni_proc.py, as part
             of the single-subject processing stream (not yet implemented).
             One would have afni_proc.py extract average time series (or maybe
-            principle components) from all the ROIs in a dataset and apply
+            principal components) from all the ROIs in a dataset and apply
             them as regressors of interest or of no interest.
 
         - with 3dBlurToFWHM, using an AlphaSim look-up table might be possible
@@ -7250,7 +7252,7 @@ g_help_string = """
         -anat_follower_ROI LABEL GRID DSET : specify anat follower ROI dataset
 
                 e.g. -anat_follower_ROI aaseg anat aparc.a2009s+aseg_rank.nii
-                e.g. -anat_follower_ROI aeseg epi  aparc.a2009s+aseg_rank.nii
+                e.g. -anat_follower_ROI FSvent epi FreeSurfer_ventricles.nii
 
             Use this option to pass any anatomical follower dataset.  Such a
             dataset is warped by any transformations that take the original
@@ -7265,7 +7267,10 @@ g_help_string = """
                GRID     : which grid should this be sampled on, anat or epi?
                DSET     : name of input dataset, changed to copy_af_LABEL
 
-            See also -anat_follower, anat_follower_erode.
+            Labels defined via this option may be used in -regress_ROI or _PC.
+
+            See also -anat_follower, anat_follower_erode, -regress_ROI
+            or -regress_ROI_PC.
 
         -anat_has_skull yes/no  : specify whether the anatomy has a skull
 
@@ -8646,11 +8651,15 @@ g_help_string = """
             regression.  Note that for such a use, the ROI time series should
             come from the volreg data, before any blur.
 
+          * Mask labels created by -mask_segment_anat and -mask_segment_erode
+            can be applied with -regress_ROI and -regress_ROI_PC.
+
             Consider use of -anat_uniform_method along with this option.
 
             Please see '3dSeg -help' for more information.
             Please see '3dUnifize -help' for more information.
-            See also -mask_rm_segsy, -anat_uniform_method.
+            See also -mask_rm_segsy, -anat_uniform_method -mask_segment_erode,
+             and -regress_ROI, -regress_ROI_PC.
 
         -mask_segment_erode Y/N
 
@@ -8660,9 +8669,11 @@ g_help_string = """
             This option is a companion to -mask_segment_anat.
 
             Anatomical segmentation is used to create GM (gray matter), WM
-            (white matter) and CSF masks.
+            (white matter) and CSF masks.  When the _erode option is applied,
+            eroded versions of those masks are created via 3dmask_tool.
 
             See also -mask_segment_anat, -regress_anaticor.
+            Please see '3dmask_tool -help' for more information.
 
         -mask_test_overlap Y/N  : choose whether to test anat/EPI mask overlap
 
@@ -9179,11 +9190,10 @@ g_help_string = """
                mean.
 
             The labels specified can be from any ROI mask, such as those coming
-            via -anat_follower_ROI, -regress_ROI_PC or _maskave, or from the
-            automatic masks from -mask_segment_anat.
+            via -anat_follower_ROI, -regress_ROI_PC, or from the automatic
+            masks from -mask_segment_anat.
 
-            See also -anat_follower_ROI, -regress_ROI_PC, _maskave, 
-            and -mask_segment_anat.
+            See also -anat_follower_ROI, -regress_ROI_PC, -mask_segment_anat.
 
         -regress_mot_as_ort yes/no : regress motion parameters using -ortvec
 
@@ -9588,9 +9598,10 @@ g_help_string = """
 
                 e.g. -regress_ROI WMe
                 e.g. -regress_ROI brain WMe CSF
+                e.g. -regress_ROI FSvent FSwhite
 
             Use this option to regress out one more more known ROI averages.
-            Currently known ROIs include:
+            ROIs that can be generated from -mask_segment_anat/_erode include:
 
                 name    description     source dataset    creation program
                 -----   --------------  --------------    ----------------
@@ -9602,44 +9613,60 @@ g_help_string = """
                 WM      white matter    mask_WM_resam     3dSeg -> Classes
                 WMe     white (eroded)  mask_WMe_resam    3dSeg -> Classes
 
-            Note: use of this option requires the 'mask' processing block
-            Note: use of any non-brain cases requires -mask_segment_anat.
+            Other ROI labels can come from -anat_follower_ROI options, i.e.
+            imported masks.
 
-            See also -mask_segment_anat.
+          * Use of this option requires either -mask_segment_anat or labels
+            defined via -anat_follower_ROI options.
+
+            See also -mask_segment_anat/_erode, -anat_follower_ROI.
             Please see '3dSeg -help' for more information on the masks.
 
         -regress_ROI_PC LABEL NUM_PC    : regress out PCs within mask
 
                 e.g. -regress_ROI_PC ventricles 3
 
-            Add the top principle components (PCs) over an anatomical mask as
+            Add the top principal components (PCs) over an anatomical mask as
             regressors of no interest.  
 
               - LABEL   : the class label given to this set of regressors
-              - NUM_PC  : the number of principle components to include
+              - NUM_PC  : the number of principal components to include
 
-            The LABEL can apply to something from -segment_anat, eroded, or
-            from -anat_follower_* (assuming 'epi' grid), or 'brain'.
+            The LABEL can apply to something defined via -mask_segment_anat
+            maybe with -mask_segment_erode, or from -anat_follower_ROI
+            (assuming 'epi' grid), or 'brain' (full_mask).  The -mask_segment*
+            options define ROI labels implicitly (see above), while the user
+            defines ROI labels in any -anat_follower_ROI options.
 
             Method (including 'follower' steps):
-              1. erode the input MASK, if requested, via -anat_follower_erode
-              2. apply all anatomical transformations to the MASK
-                 a. catenate all anatomical transformations
-                    i.   anat to EPI?
-                    ii.  affine xform of anat to template?
-                    iii. subsequent non-linear xform of anat to template?
-                 b. sample the transformed mask on the EPI grid
-                 c. use nearest neighbor interpolation, NN
-              3. extract the top NUM_PC principle components from the volume
-                 registered EPI data, over the mask
-                 a. detrend the volume registered EPI data at the polort level
-                    to be used in the regression, per run
-                 b. catenate the detrended volreg data across runs
-                 c. compute the top PCs from the (censored?) time series
-                 d. if censoring, zero-fill the time series with volumes of
-                    zeros at the censored TRs, to maintain TR correspondence
-              4. include those PCs as regressors of no interest
-                 a. apply with: 3dDeconvolve -ortvec PCs LABEL
+
+              If -anat_follower_ROI is used to define the label, then the
+              follower ROI steps would first be applied to that dataset.
+
+              If ROIs are created 'automatically' via 3dSeg (-mask_segment_anat)
+              then the follower steps do not apply.
+
+              F1. if requested (-anat_follower_erode) erode the ROI mask
+              F2. apply all anatomical transformations to the ROI mask
+                  a. catenate all anatomical transformations
+                     i.   anat to EPI?
+                     ii.  affine xform of anat to template?
+                     iii. subsequent non-linear xform of anat to template?
+                  b. sample the transformed mask on the EPI grid
+                  c. use nearest neighbor interpolation, NN
+
+           Method (post-mask alignment):
+
+              P1. extract the top NUM_PC principal components from the volume
+                  registered EPI data, over the mask
+                  a. detrend the volume registered EPI data at the polort level
+                     to be used in the regression, per run
+                  b. catenate the detrended volreg data across runs
+                  c. compute the top PCs from the (censored?) time series
+                  d. if censoring, zero-fill the time series with volumes of
+                     zeros at the censored TRs, to maintain TR correspondence
+              P2. include those PCs as regressors of no interest
+                  a. apply with: 3dDeconvolve -ortvec PCs LABEL
 
             Typical usage might start with the FreeSurfer parcellation of the
             subject's anatomical dataset, followed by ROI extraction using 
@@ -9650,13 +9677,10 @@ g_help_string = """
             option.
 
           * The given MASK must be in register with the anatomical dataset,
-            though is does not necessarily need to be on the anatomical grid.
-
-          * This differs from -regress_ROI in that these are external ROIs,
-            while -regress_ROI will create ROIs in the proc script using 3dSeg.
+            though it does not necessarily need to be on the anatomical grid.
 
             See also -anat_follower, -anat_follower_ROI, -regress_ROI_erode,
-            -regress_ROI.
+            and -regress_ROI.
 
         -regress_RSFC           : perform bandpassing via 3dRSFC
 

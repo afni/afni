@@ -166,6 +166,11 @@ extern "C" {
 #undef  isnumeric
 #define isnumeric(c) (isdigit(c) || (c) == '-' || (c) == '+' || (c) == '.')
 
+/* define what angular difference constitues a "real" difference
+ * (allow for truncation artifacts)          22 May 2015 [rickr] */
+#undef OBLIQ_ANGLE_THRESH
+#define OBLIQ_ANGLE_THRESH 0.01
+
 /***************  generic function with no return value  **********************/
 
 /*! Generic function type returning void. */
