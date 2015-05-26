@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 26,  May, 2015, RCR, "NIFTI", MINOR, TYPE_ENHANCE,
+   "nifti_read_header returns generic pointer; rename N-1/2 header read funcs",
+   NULL
+ } ,
+
  { 22,  May, 2015, RCR, "afni_proc.py", MICRO, TYPE_ENHANCE,
    "help clarifications for -regress_ROI* options",
    NULL

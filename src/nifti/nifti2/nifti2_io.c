@@ -340,20 +340,6 @@ static char const * const gni1_history[] =
   "----------------------------------------------------------------------\n"
 };
 
-static char const * const gni2_history[] =
-{
-  "----------------------------------------------------------------------\n"
-  "history (of nifti-2 library changes):\n"
-  "\n",
-  "0.00 02 Jan, 2014 [rickr]\n"
-  "     Richard Reynolds of the National Institutes of Health, SSCC/DIRP/NIMH\n"
-  "   - initial version - change types to 64-bit based on new nifti_image\n",
-  "0.01 04 Apr, 2014 [rickr]\n"
-  "   - added functionality for both nifti-1 and -2 headers\n"
-  "     (read/display/swap/convert2nim/make_new_n?_hdr)\n"
-  "   - still needs much nifti-2 functionality\n"
-};
-
 /* rcr - todo
 
    - nifti_tool -copy_sform SFORM_DSET.nii -infile ORIG.nii -prefix PP
@@ -371,8 +357,25 @@ static char const * const gni2_history[] =
    - nifti_image_write_hdr_img2: write nifti_2_header
  */
 
+static char const * const gni2_history[] =
+{
+  "----------------------------------------------------------------------\n"
+  "history (of nifti-2 library changes):\n"
+  "\n",
+  "2.00 02 Jan, 2014 [rickr]\n"
+  "     Richard Reynolds of the National Institutes of Health, SSCC/DIRP/NIMH\n"
+  "   - initial version - change types to 64-bit based on new nifti_image\n",
+  "2.01 04 Apr, 2014 [rickr]\n"
+  "   - added functionality for both nifti-1 and -2 headers\n"
+  "     (read/display/swap/convert2nim/make_new_n?_hdr)\n"
+  "   - still needs much nifti-2 functionality\n",
+  "2.02 11 May, 2015 [rickr]\n"
+  "   - added to repository 28 Apr, 2015\n"
+  "   - nifti_read_header() now returns found header struct\n"
+};
+
 static const char gni_version[]
-        = "nifti-2 library version 0.01 (04 April, 2014)";
+        = "nifti-2 library version 2.02 (11 May, 2015)";
 
 /*! global nifti options structure - init with defaults */
 static nifti_global_options g_opts = {
@@ -5109,13 +5112,13 @@ znzFile nifti_image_open(const char * hname, char * opts, nifti_image ** nim)
 
     \sa nifti_image_read, nifti_image_free, nifti_image_read_bricks
 *//*--------------------------------------------------------------------*/
-nifti_1_header * nifti_read_header(const char * hname, int * swapped, int check)
+nifti_1_header * nifti_read_n1_hdr(const char * hname, int *swapped, int check)
 {
    nifti_1_header   nhdr, * hptr;
    znzFile          fp;
    int              bytes, lswap;
    char           * hfile;
-   char             fname[] = { "nifti_read_header" };
+   char             fname[] = { "nifti_read_n1_hdr" };
 
    /* determine file name to use for header */
    hfile = nifti_findhdrname(hname);
@@ -5204,16 +5207,17 @@ nifti_1_header * nifti_read_header(const char * hname, int * swapped, int check)
 
     \warning ASCII header type is not supported
 
-    \sa nifti_read_header, nifti_image_read, nifti_image_read_bricks
+    \sa nifti_read_header, nifti_read_n1_hdr,
+        nifti_image_read, nifti_image_read_bricks
 *//*--------------------------------------------------------------------*/
-nifti_2_header * nifti2_read_header(const char * hname, int * swapped,
+nifti_2_header * nifti_read_n2_hdr(const char * hname, int * swapped,
                                     int check)
 {
    nifti_2_header   nhdr, * hptr;
    znzFile          fp;
    int              bytes, lswap;
    char           * hfile;
-   char             fname[] = { "nifti2_read_header" };
+   char             fname[] = { "nifti_read_n2_hdr" };
 
    /* determine file name to use for header */
    hfile = nifti_findhdrname(hname);
@@ -5509,6 +5513,123 @@ static int need_nhdr_swap( short dim0, int hdrsize )
              (hname != NULL) ? hname : "(null)" , (msg) ) ;  \
      return NULL ; } while(0)
 */
+
+
+/***************************************************************
+ * nifti_read_header
+ ***************************************************************/
+/*! \brief Read and return a nifti header, along with the found type
+
+        - The data buffer will be byteswapped if necessary.
+        - The data buffer will not be scaled.
+        - The data buffer is allocated with calloc().
+
+    \param hname filename of the nifti dataset
+    \param nver : 
+    \return A void pointer, which should be cast based on the returned nver.
+            It points to an allocated header struct.
+*/
+void * nifti_read_header( const char *hname, int *nver )
+{
+   nifti_1_header  n1hdr;
+   nifti_2_header  n2hdr;
+   znzFile         fp;
+   void          * hresult = NULL;
+   int64_t         remain, h1size=0, h2size=0;
+   char            fname[] = { "nifti_read_header" };
+   char           *hfile=NULL, *posn;
+   int             ii, ni_ver;
+
+   if( g_opts.debug > 2 ){
+      fprintf(stderr,"-d reading header from '%s'",hname);
+      fprintf(stderr,", HAVE_ZLIB = %d\n", nifti_compiled_with_zlib());
+   }
+
+   /**- determine filename to use for header */
+   hfile = nifti_findhdrname(hname);
+   if( hfile == NULL ){
+      if(g_opts.debug > 0)
+         LNI_FERR(fname,"failed to find header file for", hname);
+      return NULL;  /* check return */
+   } else if( g_opts.debug > 2 )
+      fprintf(stderr,"-d %s: found header filename '%s'\n",fname,hfile);
+
+   h1size = sizeof(nifti_1_header);
+   h2size = sizeof(nifti_2_header);
+
+   /**- open file, separate reading of header, extensions and data */
+   fp = znzopen(hfile, "rb", nifti_is_gzfile(hfile));
+   if( znz_isnull(fp) ){
+      if( g_opts.debug > 0 ) LNI_FERR(fname,"failed to open header file",hfile);
+      free(hfile);
+      return NULL;
+   }
+
+   /**- next read into nifti_1_header and determine nifti type */
+   ii = (int)znzread(&n1hdr, 1, h1size, fp);
+
+   if( ii < (int)h1size ){      /* failure? */
+      if( g_opts.debug > 0 ){
+         LNI_FERR(fname,"bad binary header read for file", hfile);
+         fprintf(stderr,"  - read %d of %d bytes\n",ii, (int)h1size);
+      }
+      znzclose(fp) ;
+      free(hfile);
+      return NULL;
+   }
+
+   /* find out what type of header we have */
+   ni_ver = nifti_header_version((char *)&n1hdr, h1size);
+   if( g_opts.debug > 2 )
+      fprintf(stderr,"-- %s: NIFTI version = %d", fname, ni_ver);
+
+   /* maybe set return NIFTI version */
+   if( nver ) *nver = ni_ver;
+
+   /* if NIFTI-2, copy and finish reading header */
+   if ( ni_ver == 2 ) {
+      if( g_opts.debug > 2 )
+         fprintf(stderr,"-- %s: copying and filling NIFTI-2 header...", fname);
+      memcpy(&n2hdr, &n1hdr, h1size);   /* copy first part */
+      remain = h2size - h1size;
+      posn = (char *)&n2hdr + h1size;
+      ii = (int)znzread(posn, 1, remain, fp); /* read remaining part */
+      if( ii < (int)remain) {
+         LNI_FERR(fname,"short NIFTI-2 header read for file", hfile);
+         znzclose(fp);  free(hfile);  return NULL;
+      }
+   }
+
+   /* clean up */
+   znzclose(fp);
+   free(hfile);
+
+   /* allocate header space and return */
+   if( ni_ver == 0 || ni_ver == 1 ) {
+      hresult = malloc(sizeof(h1size));
+      if( ! hresult ) {
+         LNI_FERR(fname,"failed to alloc NIFTI-1 header for file", hname);
+         return NULL;
+      }
+      memcpy(hresult, (void *)&n1hdr, h1size);
+   } else if ( ni_ver == 2 ) {
+      hresult = malloc(sizeof(h2size));
+      if( ! hresult ) {
+         LNI_FERR(fname,"failed to alloc NIFTI-2 header for file", hname);
+         return NULL;
+      }
+      memcpy(hresult, (void *)&n2hdr, h2size);
+   } else {
+      if( g_opts.debug > 0 )
+         fprintf(stderr, "** %s: bad nifti header version %d\n", hfile, ni_ver);
+      hresult = NULL;
+   }
+
+   if( g_opts.debug > 1 )
+      fprintf(stderr,"-- returning NIFTI-%d header in %s", ni_ver, hname);
+
+   return hresult;
+}
 
 
 /***************************************************************
