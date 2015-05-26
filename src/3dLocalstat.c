@@ -123,7 +123,7 @@ void usage_3dLocalstat(int detail)
 "               * sum    = sum of the values in the region:\n"
 "               * FWHM   = compute (like 3dFWHM) image smoothness\n"
 "                          inside each voxel's neighborhood.  Results\n"
-"                          are in 3 sub-bricks: FWHMx, FHWMy, and FWHMz.\n"
+"                          are in 3 sub-bricks: FWHMx, FWHMy, and FWHMz.\n"
 "                          Places where an output is -1 are locations\n"
 "                          where the FWHM value could not be computed\n"
 "                          (e.g., outside the mask).\n"
