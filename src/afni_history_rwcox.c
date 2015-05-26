@@ -43,7 +43,11 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 14 , MAY , 2015 , RWC , "1dplot" , MICRO , TYPE_NEW_OPT ,
+  { 26 , MAY , 2015 , RWC , "3dClustSim" , MICRO , TYPE_NEW_OPT ,
+   "Add secret -tdof option" ,
+   NULL } ,
+
+ { 14 , MAY , 2015 , RWC , "1dplot" , MICRO , TYPE_NEW_OPT ,
    "Add -demean option == remove mean from time series before plotting" ,
    "Multiple -demean options implies higher order polynomials!" } ,
 
