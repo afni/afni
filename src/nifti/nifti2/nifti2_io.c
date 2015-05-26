@@ -5285,6 +5285,10 @@ nifti_2_header * nifti_read_n2_hdr(const char * hname, int * swapped,
    return hptr;
 }
 
+/* rcr - updates for hdr_looks good
+       - write nifti_hdr2_looks_good
+*/
+
 
 /*----------------------------------------------------------------------*/
 /*! decide if this nifti_1_header structure looks reasonable
