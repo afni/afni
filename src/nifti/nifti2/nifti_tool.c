@@ -43,14 +43,15 @@
  *   nifti_tool -check_nim -infiles f1 ...
 
  *   nifti_tool -disp_exts -infiles f1 ...
- *   nifti_tool -disp_hdr [-field fieldname] [...] -infiles f1 ...
- *   nifti_tool -disp_nim [-field fieldname] [...] -infiles f1 ...
- *   nifti_tool -disp_ana [-field fieldname] [...] -infiles f1 ...
+ *   nifti_tool -disp_hdr1 [-field fieldname] [...] -infiles f1 ...
+ *   nifti_tool -disp_hdr2 [-field fieldname] [...] -infiles f1 ...
+ *   nifti_tool -disp_nim  [-field fieldname] [...] -infiles f1 ...
+ *   nifti_tool -disp_ana  [-field fieldname] [...] -infiles f1 ...
  *   nifti_tool -disp_ts I J K [-dci_lines] -infiles f1 ...
  *   nifti_tool -disp_ci I J K T U V W [-dci_lines] -infiles f1 ...
  *
- *   nifti_tool -diff_hdr [-field fieldname] [...] -infiles f1 f2
- *   nifti_tool -diff_nim [-field fieldname] [...] -infiles f1 f2
+ *   nifti_tool -diff_hdr1 [-field fieldname] [...] -infiles f1 f2
+ *   nifti_tool -diff_nim  [-field fieldname] [...] -infiles f1 f2
  *
  *   nifti_tool -add_afni_ext    "extension in quotes" -infiles f1 ...
  *   nifti_tool -add_comment_ext "extension in quotes" -infiles f1 ...
@@ -239,12 +240,13 @@ int main( int argc, char * argv[] )
                       && ((rv = act_swap_hdrs (&opts)) != 0) ) FREE_RETURN(rv);
 
    /* if a diff, return wither a difference exists (like the UNIX command) */
-   if( opts.diff_hdr  && ((rv = act_diff_hdrs(&opts)) != 0) ) FREE_RETURN(rv);
-   if( opts.diff_nim  && ((rv = act_diff_nims(&opts)) != 0) ) FREE_RETURN(rv);
+   if( opts.diff_hdr1 && ((rv = act_diff_hdr1s(&opts)) != 0) ) FREE_RETURN(rv);
+   if( opts.diff_nim  && ((rv = act_diff_nims(&opts))  != 0) ) FREE_RETURN(rv);
 
    /* last action type is display */
    if( opts.disp_exts && ((rv = act_disp_exts(&opts)) != 0) ) FREE_RETURN(rv);
-   if( opts.disp_hdr  && ((rv = act_disp_hdrs(&opts)) != 0) ) FREE_RETURN(rv);
+   if( opts.disp_hdr1 && ((rv = act_disp_hdr1(&opts)) != 0) ) FREE_RETURN(rv);
+   if( opts.disp_hdr2 && ((rv = act_disp_hdr2(&opts)) != 0) ) FREE_RETURN(rv);
    if( opts.disp_nim  && ((rv = act_disp_nims(&opts)) != 0) ) FREE_RETURN(rv);
    if( opts.disp_ana  && ((rv = act_disp_anas(&opts)) != 0) ) FREE_RETURN(rv);
 
@@ -372,14 +374,16 @@ int process_opts( int argc, char * argv[], nt_opts * opts )
          opts->debug = atoi(argv[ac]);
          g_debug = opts->debug;
       }
-      else if( ! strcmp(argv[ac], "-diff_hdr") )
-         opts->diff_hdr = 1;
+      else if( ! strcmp(argv[ac], "-diff_hdr1") )
+         opts->diff_hdr1 = 1;
       else if( ! strcmp(argv[ac], "-diff_nim") )
          opts->diff_nim = 1;
       else if( ! strncmp(argv[ac], "-disp_exts", 9) )
          opts->disp_exts = 1;
-      else if( ! strcmp(argv[ac], "-disp_hdr") )
-         opts->disp_hdr = 1;
+      else if( ! strcmp(argv[ac], "-disp_hdr1") )
+         opts->disp_hdr1 = 1;
+      else if( ! strcmp(argv[ac], "-disp_hdr2") )
+         opts->disp_hdr2 = 1;
       else if( ! strcmp(argv[ac], "-disp_nim") )
          opts->disp_nim = 1;
       else if( ! strcmp(argv[ac], "-disp_ana") )
@@ -575,8 +579,8 @@ int verify_opts( nt_opts * opts, char * prog )
 
    /* check that only one of disp, diff, mod or add_*_ext is used */
    ac  = (opts->check_hdr || opts->check_nim                   ) ? 1 : 0;
-   ac += (opts->diff_hdr  || opts->diff_nim                    ) ? 1 : 0;
-   ac += (opts->disp_hdr  || opts->disp_nim  ||
+   ac += (opts->diff_hdr1 || opts->diff_nim                    ) ? 1 : 0;
+   ac += (opts->disp_hdr1 || opts->disp_hdr2 || opts->disp_nim  ||
           opts->disp_ana  || opts->disp_exts                   ) ? 1 : 0;
    ac += (opts->mod_hdr   || opts->mod_nim                     ) ? 1 : 0;
    ac += (opts->swap_hdr  || opts->swap_ana  || opts->swap_old ) ? 1 : 0;
@@ -642,7 +646,7 @@ int verify_opts( nt_opts * opts, char * prog )
    /* verify the number of files given for each of 4 action types */
 
    /* -diff_... : require nfiles == 2 */
-   if( opts->diff_hdr || opts->diff_nim )
+   if( opts->diff_hdr1 || opts->diff_nim )
    {
      if( opts->infiles.len != 2 )
      {
@@ -959,9 +963,10 @@ int use_full()
    "    nifti_tool -make_im -prefix new_im.nii\n"
    "\n");
    printf(
-   "    nifti_tool -disp_hdr [-field FIELDNAME] [...] -infiles f1 ...\n"
-   "    nifti_tool -disp_nim [-field FIELDNAME] [...] -infiles f1 ...\n"
-   "    nifti_tool -disp_ana [-field FIELDNAME] [...] -infiles f1 ...\n"
+   "    nifti_tool -disp_hdr1 [-field FIELDNAME] [...] -infiles f1 ...\n"
+   "    nifti_tool -disp_hdr2 [-field FIELDNAME] [...] -infiles f1 ...\n"
+   "    nifti_tool -disp_nim  [-field FIELDNAME] [...] -infiles f1 ...\n"
+   "    nifti_tool -disp_ana  [-field FIELDNAME] [...] -infiles f1 ...\n"
    "    nifti_tool -disp_exts -infiles f1 ...\n"
    "    nifti_tool -disp_ts I J K [-dci_lines] -infiles f1 ...\n"
    "    nifti_tool -disp_ci I J K T U V W [-dci_lines] -infiles f1 ...\n"
@@ -982,8 +987,8 @@ int use_full()
    "    nifti_tool -strip_extras -infiles f1 ...\n"
    "\n");
    printf(
-   "    nifti_tool -diff_hdr [-field FIELDNAME] [...] -infiles f1 f2\n"
-   "    nifti_tool -diff_nim [-field FIELDNAME] [...] -infiles f1 f2\n"
+   "    nifti_tool -diff_hdr1 [-field FIELDNAME] [...] -infiles f1 f2\n"
+   "    nifti_tool -diff_nim  [-field FIELDNAME] [...] -infiles f1 f2\n"
    "\n"
    "  ------------------------------\n");
 
@@ -1000,19 +1005,20 @@ int use_full()
    printf(
    "    B. show header differences:\n"
    "\n"
-   "      1. nifti_tool -diff_hdr -field dim -field intent_code  \\\n"
+   "      1. nifti_tool -diff_hdr1 -field dim -field intent_code  \\\n"
    "                    -infiles dset0.nii dset1.nii \n"
-   "      2. nifti_tool -diff_hdr -new_dims 3 10 20 30 0 0 0 0   \\\n"
+   "      2. nifti_tool -diff_hdr1 -new_dims 3 10 20 30 0 0 0 0   \\\n"
    "                    -infiles my_dset.nii MAKE_IM \n"
    "\n"
    "    C. display structures or fields:\n"
    "\n");
    printf(
-   "      1. nifti_tool -disp_hdr -infiles dset0.nii dset1.nii dset2.nii\n"
-   "      2. nifti_tool -disp_hdr -field dim -field descrip -infiles dset.nii\n"
-   "      3. nifti_tool -disp_exts -infiles dset0.nii dset1.nii dset2.nii\n"
-   "      4. nifti_tool -disp_ts 23 0 172 -infiles dset1_time.nii\n"
-   "      5. nifti_tool -disp_ci 23 0 172 -1 0 0 0 -infiles dset1_time.nii\n"
+   "      1. nifti_tool -disp_hdr1 -infiles dset0.nii dset1.nii dset2.nii\n"
+  "      2. nifti_tool -disp_hdr1 -field dim -field descrip -infiles dset.nii\n"
+  "      3. nifti_tool -disp_hdr2 -field dim -field descrip -infiles dset.nii\n"
+   "      4. nifti_tool -disp_exts -infiles dset0.nii dset1.nii dset2.nii\n"
+   "      5. nifti_tool -disp_ts 23 0 172 -infiles dset1_time.nii\n"
+   "      6. nifti_tool -disp_ci 23 0 172 -1 0 0 0 -infiles dset1_time.nii\n"
    "\n");
    printf(
    "      6. nifti_tool -disp_ana -infiles analyze.hdr\n"
@@ -1055,7 +1061,7 @@ int use_full()
  "      4. cp old_dset.hdr analyze_swap.hdr \n"
  "         nifti_tool -swap_as_analyze -overwrite -infiles analyze_swap.hdr\n"
  "      5. nifti_tool -swap_as_old -prefix old_swap.hdr -infiles old_dset.hdr\n"
- "         nifti_tool -diff_hdr -infiles nifti_swap.hdr old_swap.hdr\n"
+ "         nifti_tool -diff_hdr1 -infiles nifti_swap.hdr old_swap.hdr\n"
    "\n");
    printf(
    "    G. strip, add or remove extensions:\n"
@@ -1269,7 +1275,7 @@ int use_full()
    "\n"
    "  options for display actions:\n"
    "\n"
-   "    -disp_hdr          : display nifti_1_header fields for datasets\n"
+   "    -disp_hdr1         : display nifti_1_header fields for datasets\n"
    "\n"
    "       This flag means the user wishes to see some of the nifti_1_header\n"
    "       fields in one or more nifti datasets. The user may want to specify\n"
@@ -1280,24 +1286,24 @@ int use_full()
    "       If no '-field' option is present, all fields will be displayed.\n"
    "\n"
    "       e.g. to display the contents of all fields:\n"
-   "       nifti_tool -disp_hdr -infiles dset0.nii\n"
-   "       nifti_tool -disp_hdr -infiles dset0.nii dset1.nii dset2.nii\n"
+   "       nifti_tool -disp_hdr1 -infiles dset0.nii\n"
+   "       nifti_tool -disp_hdr1 -infiles dset0.nii dset1.nii dset2.nii\n"
    "\n"
    "       e.g. to display the contents of select fields:\n"
-   "       nifti_tool -disp_hdr -field dim -infiles dset0.nii\n"
-   "       nifti_tool -disp_hdr -field dim -field descrip -infiles dset0.nii\n"
+   "       nifti_tool -disp_hdr1 -field dim -infiles dset0.nii\n"
+   "       nifti_tool -disp_hdr1 -field dim -field descrip -infiles dset0.nii\n"
    "\n");
    printf(
    "    -disp_nim          : display nifti_image fields for datasets\n"
    "\n"
-   "       This flag option works the same way as the '-disp_hdr' option,\n"
+   "       This flag option works the same way as the '-disp_hdr1' option,\n"
    "       except that the fields in question are from the nifti_image\n"
    "       structure.\n"
    "\n");
    printf(
    "    -disp_ana          : display nifti_analyze75 fields for datasets\n"
    "\n"
-   "       This flag option works the same way as the '-disp_hdr' option,\n"
+   "       This flag option works the same way as the '-disp_hdr1' option,\n"
    "       except that the fields in question are from the nifti_analyze75\n"
    "       structure.\n"
    "\n");
@@ -1559,11 +1565,11 @@ int use_full()
    "\n"
    "  options for showing differences:\n"
    "\n"
-   "    -diff_hdr         : display header field diffs between two datasets\n"
+   "    -diff_hdr1        : display header field diffs between two datasets\n"
    "\n"
-   "       This option is used to find differences between two datasets.\n"
-   "       If any fields are different, the contents of those fields is\n"
-   "       displayed (unless the '-quiet' option is used).\n"
+   "       This option is used to find differences between two NIFTI-1\n"
+   "       dataset headers.  If any fields are different, the contents of\n"
+   "       those fields are displayed (unless the '-quiet' option is used).\n"
    "\n");
    printf(
    "       A list of fields can be specified by using multiple '-field'\n"
@@ -1573,16 +1579,16 @@ int use_full()
    "       Exactly two dataset names must be provided via '-infiles'.\n"
    "\n"
    "       e.g. to display all nifti_1_header field differences:\n"
-   "       nifti_tool -diff_hdr -infiles dset0.nii dset1.nii\n"
+   "       nifti_tool -diff_hdr1 -infiles dset0.nii dset1.nii\n"
    "\n");
    printf(
    "       e.g. to display selected nifti_1_header field differences:\n"
-   "       nifti_tool -diff_hdr -field dim -field intent_code  \\\n"
+   "       nifti_tool -diff_hdr1 -field dim -field intent_code  \\\n"
    "                  -infiles dset0.nii dset1.nii \n"
    "\n"
    "    -diff_nim         : display nifti_image field diffs between datasets\n"
    "\n"
-   "       This option works the same as '-diff_hdr', except that the fields\n"
+   "       This option works the same as '-diff_hdr1', except that the fields\n"
    "       in question are from the nifti_image structure.\n"
    "\n"
    "  ------------------------------\n");
@@ -1606,7 +1612,7 @@ int use_full()
    "       compare.  This option can be used along with one of the action\n"
    "       options presented above.\n"
    "\n"
-   "       See '-disp_hdr', above, for complete examples.\n"
+   "       See '-disp_hdr1', above, for complete examples.\n"
    "\n"
    "       e.g. nifti_tool -field descrip\n"
    "       e.g. nifti_tool -field descrip -field dim\n"
@@ -1784,8 +1790,9 @@ int disp_nt_opts(char * mesg, nt_opts * opts)
 
    fprintf(stderr,"nt_opts @ %p\n"
                   "   check_hdr, check_nim = %d, %d\n"
-                  "   diff_hdr, diff_nim   = %d, %d\n"
-                  "   disp_hdr, disp_nim   = %d, %d\n"
+                  "   diff_hdr1, diff_nim  = %d, %d\n"
+                  "   disp_hdr1, disp_hdr2 = %d, %d\n"
+                  "   disp_nim             = %d\n"
                   "   disp_ana, disp_exts  = %d, %d\n"
                   "   add_exts, rm_exts    = %d, %d\n"
                   "   mod_hdr,  mod_nim    = %d, %d\n"
@@ -1796,7 +1803,8 @@ int disp_nt_opts(char * mesg, nt_opts * opts)
                   "   make_im              = %d\n",
             (void *)opts,
             opts->check_hdr, opts->check_nim,
-            opts->diff_hdr, opts->diff_nim, opts->disp_hdr, opts->disp_nim,
+            opts->diff_hdr1, opts->diff_nim, opts->disp_hdr1, opts->disp_hdr2,
+            opts->disp_nim,
             opts->disp_ana, opts->disp_exts, opts->add_exts, opts->rm_exts,
             opts->mod_hdr, opts->mod_nim,
             opts->swap_hdr, opts->swap_ana, opts->swap_old,
@@ -2207,13 +2215,13 @@ int remove_ext_list( nifti_image * nim, char ** elist, int len )
  *
  * return: 1 if diffs exist, 0 otherwise
  *----------------------------------------------------------------------*/
-int act_diff_hdrs( nt_opts * opts )
+int act_diff_hdr1s( nt_opts * opts )
 {
    nifti_1_header * nhdr0, * nhdr1;
    int              diffs = 0;
 
    if( opts->infiles.len != 2 ){
-      fprintf(stderr,"** -diff_hdr requires 2 -infiles, have %d\n",
+      fprintf(stderr,"** -diff_hdr1 requires 2 -infiles, have %d\n",
               opts->infiles.len);
       return 1;
    }
@@ -2235,9 +2243,9 @@ int act_diff_hdrs( nt_opts * opts )
               opts->infiles.list[0], opts->infiles.list[1]);
 
    if( opts->flist.len <= 0 )
-      diffs = diff_hdrs(nhdr0, nhdr1, g_debug > 0);
+      diffs = diff_hdr1s(nhdr0, nhdr1, g_debug > 0);
    else
-      diffs = diff_hdrs_list(nhdr0, nhdr1, &opts->flist, g_debug > 0);
+      diffs = diff_hdr1s_list(nhdr0, nhdr1, &opts->flist, g_debug > 0);
 
    if( diffs == 0 && g_debug > 1 )
       fprintf(stderr,"+d no differences found\n");
@@ -2403,7 +2411,7 @@ int act_disp_exts( nt_opts * opts )
 /*----------------------------------------------------------------------
  * for each file, read nifti1_header and display all fields
  *----------------------------------------------------------------------*/
-int act_disp_hdrs( nt_opts * opts )
+int act_disp_hdr1( nt_opts * opts )
 {
    nifti_1_header *  nhdr;
    field_s        *  fnhdr;
@@ -2438,7 +2446,75 @@ int act_disp_hdrs( nt_opts * opts )
          sptr = opts->flist.list;
          for( fc = 0; fc < opts->flist.len; fc++ )
          {
-            fnhdr = get_hdr_field(*sptr, filenum == 0);
+            fnhdr = get_hdr1_field(*sptr, filenum == 0);
+            if( fnhdr ) disp_field(NULL, fnhdr, nhdr, 1, g_debug>0 && fc == 0);
+            sptr++;
+         }
+      }
+
+      free(nhdr);
+   }
+
+   return 0;
+}
+
+
+/*----------------------------------------------------------------------
+ * for each file, read nifti1_header and display all fields
+ *----------------------------------------------------------------------*/
+int act_disp_hdr2( nt_opts * opts )
+{
+   nifti_2_header *  nhdr;
+   field_s        *  fnhdr;
+   char           ** sptr;
+   int               nfields, filenum, fc;
+
+/*
+{
+   nifti_2_header *  n2hdr;
+   int               nver;
+   n2hdr = nifti_read_header(opts->infiles.list[0], &nver);
+   fprintf(stderr,"== version %d\n", nver);
+   disp_field("\nall fields:\n", g_hdr2_fields, n2hdr, NT_HDR2_NUM_FIELDS, 0);
+
+   return 0;
+}
+*/
+
+   /* set the number of fields to display */
+   nfields = opts->flist.len > 0 ? opts->flist.len : NT_HDR2_NUM_FIELDS;
+
+   if( g_debug > 2 )
+      fprintf(stderr,"-d displaying %d N-2 fields for %d nifti datasets...\n",
+              nfields, opts->infiles.len);
+
+   for( filenum = 0; filenum < opts->infiles.len; filenum++ )
+   {
+      /* do not validate the header structure */
+
+/* rcr - update nt_read_header to handle either, with MAKE_IM */
+
+      nhdr = nifti_read_n2_hdr(opts->infiles.list[filenum], NULL, g_debug>1);
+      if( !nhdr ) return 1;  /* errors are printed from library */
+
+      if( g_debug > 0 )
+         fprintf(stdout,"\nNIFTI-2 header file '%s', num_fields = %d\n",
+                 opts->infiles.list[filenum], nfields);
+/* 
+      if( g_debug > 1 )
+         fprintf(stderr,"-d header is: %s\n",
+                 nifti_hdr_looks_good(nhdr) ? "valid" : "invalid");
+*/
+
+      if( opts->flist.len <= 0 ) /* then display all fields */
+         disp_field("\nall fields:\n", g_hdr2_fields, nhdr, nfields, g_debug>0);
+      else  /* print only the requested fields... */
+      {
+         /* must locate each field before printing it */
+         sptr = opts->flist.list;
+         for( fc = 0; fc < opts->flist.len; fc++ )
+         {
+            fnhdr = get_hdr2_field(*sptr, filenum == 0);
             if( fnhdr ) disp_field(NULL, fnhdr, nhdr, 1, g_debug>0 && fc == 0);
             sptr++;
          }
@@ -2491,7 +2567,7 @@ int act_disp_anas( nt_opts * opts )
          sptr = opts->flist.list;
          for( fc = 0; fc < opts->flist.len; fc++ )
          {
-            fnhdr = get_hdr_field(*sptr, filenum == 0);
+            fnhdr = get_hdr1_field(*sptr, filenum == 0);
             if( fnhdr ) disp_field(NULL, fnhdr, nhdr, 1, g_debug>0 && fc == 0);
             sptr++;
          }
@@ -3841,7 +3917,7 @@ int disp_nifti1_extension(char *mesg, nifti1_extension * ext, int maxlen)
 /*----------------------------------------------------------------------
  * return the appropritate pointer into the g_hdr1_fields struct
  *----------------------------------------------------------------------*/
-field_s * get_hdr_field( char * fname, int show_fail )
+field_s * get_hdr1_field( char * fname, int show_fail )
 {
    field_s * fp;
    int       c;
@@ -3855,7 +3931,31 @@ field_s * get_hdr_field( char * fname, int show_fail )
    if( c == NT_HDR1_NUM_FIELDS )
    {
       if( show_fail > 0 )
-         fprintf(stderr,"** get_hdr_field: field not found in hdr: %s\n",fname);
+        fprintf(stderr,"** get_hdr1_field: field not found in hdr: %s\n",fname);
+      return NULL;
+   }
+
+   return fp;
+}
+
+/*----------------------------------------------------------------------
+ * return the appropritate pointer into the g_hdr1_fields struct
+ *----------------------------------------------------------------------*/
+field_s * get_hdr2_field( char * fname, int show_fail )
+{
+   field_s * fp;
+   int       c;
+
+   if( ! fname || *fname == '\0' ) return NULL;
+
+   fp = g_hdr2_fields;
+   for( c = 0; c < NT_HDR2_NUM_FIELDS; c++, fp++ )
+      if( strcmp(fname, fp->name) == 0 ) break;
+
+   if( c == NT_HDR2_NUM_FIELDS )
+   {
+      if( show_fail > 0 )
+        fprintf(stderr,"** get_hdr2_field: field not found in hdr: %s\n",fname);
       return NULL;
    }
 
@@ -3891,7 +3991,7 @@ field_s * get_nim_field( char * fname, int show_fail )
 /*----------------------------------------------------------------------
  * return the number of fields that differ
  *----------------------------------------------------------------------*/
-int diff_hdrs( nifti_1_header * s0, nifti_1_header * s1, int display )
+int diff_hdr1s( nifti_1_header * s0, nifti_1_header * s1, int display )
 {
    field_s * fp = g_hdr1_fields;
    int       c, ndiff = 0;
@@ -3931,8 +4031,8 @@ int diff_nims( nifti_image * s0, nifti_image * s1, int display )
 /*----------------------------------------------------------------------
  * return the number of fields that differ
  *----------------------------------------------------------------------*/
-int diff_hdrs_list( nifti_1_header * s0, nifti_1_header * s1, str_list * slist,
-                    int display )
+int diff_hdr1s_list( nifti_1_header * s0, nifti_1_header * s1, str_list * slist,
+                     int display )
 {
    field_s  * fp;
    char    ** sptr;
@@ -3941,7 +4041,7 @@ int diff_hdrs_list( nifti_1_header * s0, nifti_1_header * s1, str_list * slist,
    sptr = slist->list;
    for( c = 0; c < slist->len; c++ )
    {
-      fp = get_hdr_field(*sptr, 1);    /* "not found" displayed in func */
+      fp = get_hdr1_field(*sptr, 1);    /* "not found" displayed in func */
       if( fp && diff_field(fp, s0, s1, 1) )
       {
          if( display ) disp_field(NULL, fp, s0, 1, ndiff == 0);
@@ -4381,8 +4481,8 @@ nifti_1_header * nt_read_header(nt_opts * opts, char * fname, int * swapped,
     /* if the user does not want an empty image, do normal image_read */
     if( strncmp(fname,NT_MAKE_IM_NAME,strlen(NT_MAKE_IM_NAME)) ) {
         if(g_debug > 1)
-            fprintf(stderr,"-d calling nifti_read_header(%s,...)\n", fname);
-        return nifti_read_header(fname, swapped, check);
+            fprintf(stderr,"-d calling nifti_read_n1_hdr(%s,...)\n", fname);
+        return nifti_read_n1_hdr(fname, swapped, check);
     }
 
     /* else "MAKE_IM", so generate an emtpy image */
