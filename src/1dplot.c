@@ -752,7 +752,6 @@ int main( int argc , char *argv[] )
           qar = MRI_FLOAT_PTR(qim) ;
           for( qq=0 ; qq < qim->ny ; qq++ )
             plot_ts_add_sepx( qim->nx , qar + qq*qim->nx ) ;
-          mri_free(qim) ;
         }
         if( iarg < argc && strcmp(argv[iarg],"-") == 0 ) iarg++ ;
         continue ;
@@ -1395,9 +1394,12 @@ int main( int argc , char *argv[] )
 
    if( xtran != NULL ){
      int ss , ns , *ls ; float **sx ;
+STATUS("xtran xar[]") ;
      ss = PARSER_1dtran( xtran , nx , xar[ii] ) ;
      if( ss <= 0 ) ERROR_exit("Can't evaluate -xtran expression '%s'",xtran) ;
+STATUS("fetch sepx") ;
      plot_ts_fetch_sepx( &ns , &ls , &sx ) ;
+STATUS("xtran sepx") ;
      for( ss=0 ; ss < ns ; ss++ ) PARSER_1dtran( xtran , ls[ss] , sx[ss] ) ;
    }
 

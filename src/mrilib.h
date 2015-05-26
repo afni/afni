@@ -718,6 +718,8 @@ extern void binarize_mask( int , byte * ) ;
 #define NSTAT_MAD         5
 #define NSTAT_MAX         6
 #define NSTAT_MIN         7
+#define NSTAT_MODE        8       /* DRG 05/21/2015 */
+#define NSTAT_NZMODE      9       /* DRG 05/21/2015 */
 #define NSTAT_ABSMAX      13
 #define NSTAT_VAR         17
 #define NSTAT_NUM         18

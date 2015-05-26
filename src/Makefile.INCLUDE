@@ -196,7 +196,7 @@ SCRIPTS = @4Daverage @CommandGlobb @GetAfniOrient @DTI_studio_reposition        
           @Install_ClustScat_Demo @Install_FATMVM_DEMO                            \
           @move.to.series.dirs @toMNI_Awarp @toMNI_Qwarpar @simulate_motion	    \
           @afni.run.me 3dRprogDemo @ExamineGenFeatDists rPkgsInstall 	         \
-          @Install_DBSproc
+          @Install_DBSproc @Install_3dPFM_Demo
 
 
 PY_DIR = python_scripts
@@ -1826,7 +1826,8 @@ backup:
 afni_src.tgz:
 	$(MKDIR) afni_src
 	$(CP) -p *.c *.f *.inc *.h *.hhh Makefile.* *.xbm $(MINDOCS) $(MISC)     ./afni_src
-	$(CP) -pr coxplot volpack moveup moveAFNI* eispack avovk ptaylor pkundu        ./afni_src
+	$(CP) -pr coxplot volpack moveup moveAFNI* eispack                       ./afni_src
+	$(CP) -pr avovk ptaylor pkundu ccaballero                                ./afni_src
 	$(CP) -pr $(SCRIPTS) $(PY_DIR) $(R_DIR)                                  ./afni_src
 	$(CP) -pr gifsicledir qhulldir f2cdir mpeg_encodedir                     ./afni_src
 	$(CP) -pr 3DEdge netcdf-3.5.0 jpeg-6b niml Makefile_* nifti dlcompat     ./afni_src
@@ -1859,7 +1860,7 @@ afni_doc.tgz:
 
 ### Put things in their places
 
-install: $(INSTALLDIR) $(INSTALL_PREREQ) ptaylor_install pkundu_install
+install: $(INSTALLDIR) $(INSTALL_PREREQ) ptaylor_install pkundu_install ccaballero_install
 	$(MV) $(PROGRAMS) $(INSTALLDIR)
 	$(CP) $(SCRIPTS)  $(INSTALLDIR)
 	$(CP) $(PY_DIR)/*.py  $(R_DIR)/*.R $(INSTALLDIR)
@@ -3118,6 +3119,15 @@ pkundu_install:
 	( cd pkundu ;	\
 	./@install_pkundu $(INSTALLDIR)	;\
 	cd ../	;		)
+
+#####################
+#CCABALLERO directory
+
+ccaballero_install:
+	( cd ccaballero ;	\
+	$(CP) *.R $(INSTALLDIR)	;\
+	cd ../	;		)
+
 
 #############
 #SUMA
