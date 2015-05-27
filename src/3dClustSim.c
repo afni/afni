@@ -66,6 +66,8 @@ static int   nxy_pad     ;
 static int   nxyz_pad    ;
 static int   allow_padding = 1 ;  /* on by default */
 
+static float tdof = 0.0f ;        /* 26 May 2015 - secret stuff */
+
 static float sigmax , sigmay , sigmaz ;
 static int do_blur = 0 ;
 
@@ -319,7 +321,7 @@ void display_help_menu()
    "                  * You probably want to use '-prefix' with this option!\n"
    "                    Otherwise, everything is mixed together on stdout.\n"
    "                  * '-both' implies 'niml' which implies '-LOTS'.\n"
-   "\n                  So '-pthr' should follow '-both'/'-niml'."
+   "                    So '-pthr' (if desired) should follow '-both'/'-niml'\n"
    "\n"
    "-prefix ppp    = Write output for NN method #k to file 'ppp.NNk_Xsided.1D',\n"
    "                  for k=1, 2, 3, and for X=1sided, 2sided, bisided.\n"
@@ -570,6 +572,15 @@ void get_options( int argc , char **argv )
 
     if( strcmp(argv[nopt],"-OKsmallmask") == 0 ){  /* 29 Mar 2011 */
       minmask = 2 ; nopt++ ; continue ;
+    }
+
+    /**** -tdof dof ****/
+
+    if( strcmp(argv[nopt],"-tdof") == 0 ){  /* 26 May 2015 -- hidden option */
+      nopt++ ; if( nopt >= argc ) ERROR_exit("need argument after -tdof!") ;
+      tdof = (float)strtod(argv[nopt],NULL) ;
+      if( tdof > 0.0f && tdof < 6.0f ) ERROR_exit("illegal value after -tdof") ;
+      nopt++ ; continue ;
     }
 
     /**** -mask mset ****/
@@ -1020,6 +1031,19 @@ void generate_image( float *fim , float *pfim , unsigned short xran[] )
 
   if( mask_vol != NULL ){
     for( ii=0 ; ii < nxyz ; ii++ ) if( !mask_vol[ii] ) fim[ii] = 0.0f ;
+  }
+
+  if( tdof > 0.0f ){  /* 26 May 2015: secret stuff */
+    float zfac = 1.0f/(1.0f-0.25f/tdof) ;
+    float tfac = 0.5f/tdof ;
+    float zhat , denom ;
+    for( ii=0 ; ii < nxyz ; ii++ ){
+      if( fim[ii] != 0.0f ){
+        zhat = fim[ii]*zfac ;
+        denom = 1.0f - zhat*zhat*tfac ; if( denom < 0.1f ) denom = 0.1f ;
+        fim[ii] = zhat / sqrtf(denom) ;
+      }
+    }
   }
 
   /* save THIS volume? */
