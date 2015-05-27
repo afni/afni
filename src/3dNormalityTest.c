@@ -291,7 +291,10 @@ int main( int argc , char *argv[] )
      if( atr == NULL ) ERROR_exit("Simulation failed!?") ;
      /** ININFO_message("range %g .. %g",atr[0],atr[ntr-1]) ; **/
 
-     INFO_message("Converting A-D statistics to exponential distribution") ;
+     if( dopval )
+       INFO_message("Converting A-D statistics to p-values") ;
+     else
+       INFO_message("Converting A-D statistics to exponential distribution") ;
 
      anderson_darling_expify( nvox , avar , ntr , atr , dopval ) ;
      free(atr) ;
