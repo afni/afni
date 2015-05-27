@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 27,  May, 2015, RCR, "@Install_TSrestMovieDemo", MICRO, TYPE_BUG_FIX,
+   "set and applied $demo as Suma_TSrestMovieDemo",
+   NULL
+ } ,
+
  { 26,  May, 2015, RCR, "3dBlurToFWHM", MICRO, TYPE_MODIFY,
    "make -help output consistent in using FWHM (along with 3dLocalstat)",
    NULL
