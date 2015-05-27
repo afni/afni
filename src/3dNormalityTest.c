@@ -282,8 +282,8 @@ int main( int argc , char *argv[] )
 
    if( convertize ){
      ntr = 9*nvox ;
-          if( ntr <  400000 ) ntr =  400000 ;
-     else if( ntr > 4000000 ) ntr = 4000000 ;
+          if( ntr <  300000 ) ntr =  300000 ;
+     else if( ntr > 3000000 ) ntr = 3000000 ;
 
      INFO_message("Simulating A-D null distribution: %d trials",ntr) ;
 
