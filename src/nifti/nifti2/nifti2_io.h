@@ -547,7 +547,7 @@ char * nifti_makebasename(const char* fname);
 nifti_1_header   nifti_convert_nim2nhdr(const nifti_image* nim);
 nifti_1_header * nifti_make_new_n1_header(const int64_t arg_dims[], int arg_dtype);
 nifti_2_header * nifti_make_new_n2_header(const int64_t arg_dims[], int arg_dtype);
-void * nifti_read_header( const char *hname, int *nver );
+void * nifti_read_header          (const char *hname, int *nver,    int check);
 nifti_1_header * nifti_read_n1_hdr(const char *hname, int *swapped, int check);
 nifti_2_header * nifti_read_n2_hdr(const char *hname, int *swapped, int check);
 nifti_image    * nifti_copy_nim_info(const nifti_image * src);
@@ -556,10 +556,12 @@ nifti_image    * nifti_make_new_nim(const int64_t dims[], int datatype,
 
 
 nifti_image    * nifti_simple_init_nim(void);
-nifti_image    * nifti_convert_nhdr2nim(nifti_1_header nhdr, const char *fname);
+nifti_image    * nifti_convert_n1hdr2nim(nifti_1_header nhdr,const char *fname);
+nifti_image    * nifti_convert_n2hdr2nim(nifti_2_header nhdr,const char *fname);
 
-int    nifti_hdr_looks_good        (const nifti_1_header * hdr);
-int    nifti2_hdr_looks_good       (const nifti_2_header * hdr);
+
+int    nifti_hdr1_looks_good       (const nifti_1_header * hdr);
+int    nifti_hdr2_looks_good       (const nifti_2_header * hdr);
 int    nifti_is_valid_datatype     (int dtype);
 int    nifti_is_valid_ecode        (int ecode);
 int    nifti_nim_is_valid          (nifti_image * nim, int complain);
@@ -693,6 +695,9 @@ typedef struct {
 #define REVERSE_ORDER(x) (3-(x))    /* convert MSB_FIRST <--> LSB_FIRST */
 
 #define LNI_MAX_NIA_EXT_LEN 100000  /* consider a longer extension invalid */
+
+#undef NIFTI_IS_16_BIT_INT
+#define NIFTI_IS_16_BIT_INT(x) ((x) <= 32767 && (x) >= -32768)
 
 #endif  /* _NIFTI2_IO_C_ section */
 /*------------------------------------------------------------------------*/
