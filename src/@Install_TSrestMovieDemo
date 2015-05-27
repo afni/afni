@@ -3,20 +3,22 @@
 set stat = 0
 set sdir = $PWD
 
+set demo = Suma_TSrestMovieDemo
+
 
 goto PARSE
 RET_PARSE:
 
-if ( -d ./Suma_TSrestMovieDemo/SUMA_Recordings) then
+if ( -d ./$demo/SUMA_Recordings) then
 echo ""
 echo "ERROR:"
-echo "   Directory ./Suma_TSrestMovieDemo/SUMA_Recordings exists already"
+echo "   Directory ./$demo/SUMA_Recordings exists already"
 echo "   If you want to recreate movie frames, remove it with:"
-echo "\rm -rf ./Suma_TSrestMovieDemo/SUMA_Recordings"
+echo "\rm -rf ./$demo/SUMA_Recordings"
 echo "   then run `basename $0` $argv[*] again."
 echo ""
 echo "Otherwise to just view the images run:"
-echo "   aiv Suma_TSrestMovieDemo/SUMA_Recordings/*jpg &"
+echo "   aiv $demo/SUMA_Recordings/*jpg &"
 echo "Press 'v' in the image window to start the movie, space bar to stop."
 echo ""
 goto END
@@ -24,25 +26,25 @@ goto END
 
 which curl
 if ($status) then
-   wget http://afni.nimh.nih.gov/pub/dist/tgz/Suma_TSrestMovieDemo.tgz
+   wget http://afni.nimh.nih.gov/pub/dist/tgz/$demo.tgz
 else
-   curl -O http://afni.nimh.nih.gov/pub/dist/tgz/Suma_TSrestMovieDemo.tgz
+   curl -O http://afni.nimh.nih.gov/pub/dist/tgz/$demo.tgz
 endif
-tar xvzf SUMA_TSrestMovieDemo.tgz
-cd Suma_TSrestMovieDemo
+tar xvzf $demo.tgz
+cd $demo
    echo "********************************************************"
    echo "Script @CreateMovie will now be used to automatically "
    echo "generate a movie of the time series at 30 frames per "
    echo "second. You should see SUMA working on your screen,"
    echo "Images will be saved to the disk. Check for further"
    echo "comments once SUMA stops. "
-   echo "See also README file in ./Suma_TSrestMovieDemo"
+   echo "See also README file in ./$demo"
    echo "---------------------------------------------------------"
    tcsh ./@CreateMovie >& ./cm.log
    echo "---------------------------------------------------------"
-   echo "JPEGs are all under Suma_TSrestMovieDemo/SUMA_Recordings"
+   echo "JPEGs are all under $demo/SUMA_Recordings"
    echo "To view all the frames you can run:"
-   echo "   aiv Suma_TSrestMovieDemo/SUMA_Recordings/*jpg & "
+   echo "   aiv $demo/SUMA_Recordings/*jpg & "
    echo "Press 'v' in the image window to start the movie, space bar to stop."
    echo "********************************************************"
 cd -
@@ -75,8 +77,8 @@ goto RET_PARSE
 HELP:
    echo "Installs and runs demo script for making a resting-state movie"
    echo "demo with @CreateMovie."
-   echo "After the archive is downloaded and unpacked, see its README.txt"
-   echo "and @CreateMovie script."
+   echo "After the archive $demo is downloaded and unpacked,"
+   echo "see its README.txt and @CreateMovie script."
    goto END
 
 BEND:

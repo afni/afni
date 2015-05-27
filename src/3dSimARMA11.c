@@ -41,7 +41,7 @@ int main( int argc , char *argv[] )
       "-vbb xx = stdev of baseline polynomial coefficients  [default=3   ]\n"
       "-blr xx = FWHM of blurring to be applied to baseline [default=5   ]\n"
       "-mxa xx = max value of ARMA11 parameter 'a' to use   [default=+0.8]\n"
-      "-mnb xx = min value of ARMA11 parameter 'a' to use   [default= 0.0]\n"
+      "-mna xx = min value of ARMA11 parameter 'a' to use   [default= 0.0]\n"
       "-mxb xx = max value of ARMA11 parameter 'b' to use   [default=+0.5]\n"
       "-mnb xx = max value of ARMA11 parameter 'b' to use   [default=-0.5]\n"
       "-smx xx = max value of time series stdev to use      [default=5   ]\n"
