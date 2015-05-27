@@ -321,7 +321,7 @@ void display_help_menu()
    "                  * You probably want to use '-prefix' with this option!\n"
    "                    Otherwise, everything is mixed together on stdout.\n"
    "                  * '-both' implies 'niml' which implies '-LOTS'.\n"
-   "\n                  So '-pthr' should follow '-both'/'-niml'."
+   "                    So '-pthr' (if desired) should follow '-both'/'-niml'\n"
    "\n"
    "-prefix ppp    = Write output for NN method #k to file 'ppp.NNk_Xsided.1D',\n"
    "                  for k=1, 2, 3, and for X=1sided, 2sided, bisided.\n"
