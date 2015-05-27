@@ -30,7 +30,11 @@
  *
  *   nifti_tool -help
  *   nifti_tool -help_hdr
+ *   nifti_tool -help_hdr1
+ *   nifti_tool -help_hdr2
  *   nifti_tool -help_nim
+ *   nifti_tool -help_nim1
+ *   nifti_tool -help_nim2
  *   nifti_tool -help_ana
  *   nifti_tool -help_datatypes
  *   nifti_tool -hist
@@ -203,13 +207,13 @@ int main( int argc, char * argv[] )
 
    /* now perform the requested action(s) */
 
-   if( (rv = fill_hdr_field_array(g_hdr1_fields)) != 0 )
+   if( (rv = fill_hdr1_field_array(g_hdr1_fields)) != 0 )
       FREE_RETURN(rv);
 
    if( (rv = fill_hdr2_field_array(g_hdr2_fields)) != 0 )
       FREE_RETURN(rv);
 
-   if( (rv = fill_nim_field_array(g_nim1_fields)) != 0 )
+   if( (rv = fill_nim1_field_array(g_nim1_fields)) != 0 )
       FREE_RETURN(rv);
 
    if( (rv = fill_nim2_field_array(g_nim2_fields)) != 0 )
@@ -289,10 +293,14 @@ int process_opts( int argc, char * argv[], nt_opts * opts )
          return 1;
       }
       else if( ! strcmp(argv[ac], "-help_hdr") )
+         return usage(argv[0], USE_FIELD_HDR2);
+      else if( ! strcmp(argv[ac], "-help_hdr1") )
          return usage(argv[0], USE_FIELD_HDR1);
       else if( ! strcmp(argv[ac], "-help_hdr2") )
          return usage(argv[0], USE_FIELD_HDR2);
       else if( ! strcmp(argv[ac], "-help_nim") )
+         return usage(argv[0], USE_FIELD_NIM2);
+      else if( ! strcmp(argv[ac], "-help_nim1") )
          return usage(argv[0], USE_FIELD_NIM1);
       else if( ! strcmp(argv[ac], "-help_nim2") )
          return usage(argv[0], USE_FIELD_NIM2);
@@ -823,7 +831,7 @@ int usage(char * prog, int level)
    {
       field_s nhdr_fields[NT_HDR1_NUM_FIELDS];  /* just do it all here */
 
-      fill_hdr_field_array(nhdr_fields);
+      fill_hdr1_field_array(nhdr_fields);
       disp_field_s_list("nifti_1_header: ", nhdr_fields, NT_HDR1_NUM_FIELDS);
       printf("   sizeof(nifti_1_header) = %d\n", (int)sizeof(nifti_1_header));
    }
@@ -847,9 +855,9 @@ int usage(char * prog, int level)
    {
       field_s nim_fields[NT_NIM_NUM_FIELDS];
 
-      fill_nim_field_array(nim_fields);
-      disp_field_s_list("nifti_image: ", nim_fields, NT_NIM_NUM_FIELDS);
-      printf("   sizeof(nifti_image) = %d\n", (int)sizeof(nifti_image));
+      fill_nim1_field_array(nim_fields);
+      disp_field_s_list("nifti1_image: ", nim_fields, NT_NIM_NUM_FIELDS);
+      printf("   sizeof(nifti1_image) = %d\n", (int)sizeof(nifti1_image));
    }
    else if( level == USE_FIELD_NIM2 )
    {
@@ -931,14 +939,22 @@ int use_full()
    "        or to learn a field's type, size of each element, or the number\n"
    "        of elements in the field, use either the '-help_hdr' option, or\n"
    "        the '-help_nim' option.  No further options are required.\n"
+   "\n"
+   "        See -help_hdr, -help_hdr1, -help_hdr2, -help_ana,\n"
+   "            -help_nim, -help_nim1, -help_nim2.\n"
+   "\n"
    "  ------------------------------\n");
    printf(
    "\n"
    "  usage styles:\n"
    "\n"
    "    nifti_tool -help                 : show this help\n"
-   "    nifti_tool -help_hdr             : show nifti_1_header field info\n"
-   "    nifti_tool -help_nim             : show nifti_image field info\n"
+   "    nifti_tool -help_hdr             : show nifti_2_header field info\n"
+   "    nifti_tool -help_hdr1            : show nifti_1_header field info\n"
+   "    nifti_tool -help_hdr2            : show nifti_2_header field info\n"
+   "    nifti_tool -help_nim             : show nifti_image (2) field info\n"
+   "    nifti_tool -help_nim1            : show nifti1_image field info\n"
+   "    nifti_tool -help_nim2            : show nifti2_image field info\n"
    "    nifti_tool -help_ana             : show nifti_analyze75 field info\n"
    "    nifti_tool -help_datatypes       : show datatype table\n"
    "\n");
@@ -1107,7 +1123,7 @@ int use_full()
    "    -check_nim         : check for a valid nifti_image struct\n"
    "\n"
    "       This action is used to check the nifti_image structure for\n"
-   "       problems.  This is tested via both nifti_convert_nhdr2nim()\n"
+   "       problems.  This is tested via both nifti_convert_n1hdr2nim()\n"
    "       and nifti_nim_is_valid(), though other functions are called\n"
    "       below them, of course.  Current checks are:\n"
    "\n");
@@ -1652,8 +1668,13 @@ int use_full()
    "       VALUE_LIST must be one or more values, as many as are required\n"
    "       for the field, contained in quotes if more than one is provided.\n"
    "\n"
-   "       Use 'nifti_tool -help_hdr' to get a list of nifti_1_header fields\n"
+   "       Use 'nifti_tool -help_hdr' to get a list of nifti_2_header fields\n"
+   "       Use 'nifti_tool -help_hdr1' to get a list of nifti_1_header fields\n"
+   "       Use 'nifti_tool -help_hdr2' to get a list of nifti_2_header fields\n"
    "       Use 'nifti_tool -help_nim' to get a list of nifti_image fields\n"
+   "       Use 'nifti_tool -help_nim1' to get a list of nifti1_image fields\n"
+   "       Use 'nifti_tool -help_nim2' to get a list of nifti2_image fields\n"
+   "       Use 'nifti_tool -help_ana' to get a list of nifti_analyze75 fields\n"
    "\n"
    "       See '-mod_hdr', above, for complete examples.\n"
    "\n");
@@ -1716,13 +1737,29 @@ int use_full()
    "\n"
    "       e.g.  nifti_tool -help\n"
    "\n"
-   "    -help_hdr         : show nifti_1_header field info\n"
+   "    -help_hdr         : show nifti_2_header field info\n"
    "\n"
    "       e.g.  nifti_tool -help_hdr\n"
    "\n"
-   "    -help_nim         : show nifti_image field info\n"
+   "    -help_hdr1        : show nifti_1_header field info\n"
+   "\n"
+   "       e.g.  nifti_tool -help_hdr1\n"
+   "\n"
+   "    -help_hdr2        : show nifti_2_header field info\n"
+   "\n"
+   "       e.g.  nifti_tool -help_hdr2\n"
+   "\n"
+   "    -help_nim         : show nifti_image field info (currently NIFTI-2)\n"
    "\n"
    "       e.g.  nifti_tool -help_nim\n"
+   "\n"
+   "    -help_nim1         : show nifti1_image field info\n"
+   "\n"
+   "       e.g.  nifti_tool -help_nim1\n"
+   "\n"
+   "    -help_nim2         : show nifti2_image field info\n"
+   "\n"
+   "       e.g.  nifti_tool -help_nim2\n"
    "\n"
    "    -help_ana         : show nifti_analyze75 field info\n"
    "\n"
@@ -2218,7 +2255,7 @@ int remove_ext_list( nifti_image * nim, char ** elist, int len )
 int act_diff_hdr1s( nt_opts * opts )
 {
    nifti_1_header * nhdr0, * nhdr1;
-   int              diffs = 0;
+   int              diffs = 0, nv=1;
 
    if( opts->infiles.len != 2 ){
       fprintf(stderr,"** -diff_hdr1 requires 2 -infiles, have %d\n",
@@ -2232,10 +2269,13 @@ int act_diff_hdr1s( nt_opts * opts )
 
    /* get the nifiti headers (but do not validate them) */
 
-   nhdr0 = nt_read_header(opts, opts->infiles.list[0], NULL, 0);
+   /* nhdr0 = nt_read_header(opts, opts->infiles.list[0], NULL, 0); */
+   nhdr0 = nt_read_header(opts->infiles.list[0], &nv, NULL, 0,
+                          opts->new_datatype, opts->new_dim);
    if( ! nhdr0 ) return 1;  /* errors have been printed */
 
-   nhdr1 = nt_read_header(opts, opts->infiles.list[1], NULL, 0);
+   nhdr1 = nt_read_header(opts->infiles.list[1], &nv, NULL, 0,
+                          opts->new_datatype, opts->new_dim);
    if( ! nhdr1 ){ free(nhdr0); return 1; }
 
    if( g_debug > 1 )
@@ -2320,7 +2360,7 @@ int act_check_hdrs( nt_opts * opts )
 {
    nifti_1_header *  nhdr;
    nifti_image    *  nim;
-   int               filenum, rv;
+   int               filenum, rv, nver=1;
 
    if( g_debug > 2 )
       fprintf(stderr,"-d checking hdrs/nims for %d nifti datasets...\n",
@@ -2329,7 +2369,8 @@ int act_check_hdrs( nt_opts * opts )
    for( filenum = 0; filenum < opts->infiles.len; filenum++ )
    {
       /* do not validate the header structure */
-      nhdr = nt_read_header(opts, opts->infiles.list[filenum], NULL, 0);
+      nhdr = nt_read_header(opts->infiles.list[filenum], &nver, NULL, 0,
+                             opts->new_datatype, opts->new_dim);
       if( !nhdr ) continue;  /* errors are printed from library */
 
       if( opts->check_hdr )
@@ -2338,7 +2379,7 @@ int act_check_hdrs( nt_opts * opts )
              fprintf(stdout,"\nchecking nifti_1_header for file '%s'\n",
                      opts->infiles.list[filenum]);
 
-          rv = nifti_hdr_looks_good(nhdr);
+          rv = nifti_hdr1_looks_good(nhdr);
 
           if( rv && g_debug > 0 )  /* if quiet, no GOOD response */
              printf("header IS GOOD for file %s\n",opts->infiles.list[filenum]);
@@ -2348,7 +2389,7 @@ int act_check_hdrs( nt_opts * opts )
 
       if( opts->check_nim )
       {
-          nim = nifti_convert_nhdr2nim(*nhdr, opts->infiles.list[filenum]);
+          nim = nifti_convert_n1hdr2nim(*nhdr, opts->infiles.list[filenum]);
           if( !nim ) continue;  /* errors are printed from library */
 
           if( g_debug > 1 )
@@ -2416,7 +2457,7 @@ int act_disp_hdr1( nt_opts * opts )
    nifti_1_header *  nhdr;
    field_s        *  fnhdr;
    char           ** sptr;
-   int               nfields, filenum, fc;
+   int               nfields, filenum, fc, nver=-1;
 
    /* set the number of fields to display */
    nfields = opts->flist.len > 0 ? opts->flist.len : NT_HDR1_NUM_FIELDS;
@@ -2428,7 +2469,8 @@ int act_disp_hdr1( nt_opts * opts )
    for( filenum = 0; filenum < opts->infiles.len; filenum++ )
    {
       /* do not validate the header structure */
-      nhdr = nt_read_header(opts, opts->infiles.list[filenum], NULL, 0);
+      nhdr = nt_read_header(opts->infiles.list[filenum], &nver, NULL, g_debug>1,
+                             opts->new_datatype, opts->new_dim);
       if( !nhdr ) return 1;  /* errors are printed from library */
 
       if( g_debug > 0 )
@@ -2436,7 +2478,7 @@ int act_disp_hdr1( nt_opts * opts )
                  opts->infiles.list[filenum], nfields);
       if( g_debug > 1 )
          fprintf(stderr,"-d header is: %s\n",
-                 nifti_hdr_looks_good(nhdr) ? "valid" : "invalid");
+                 nifti_hdr1_looks_good(nhdr) ? "valid" : "invalid");
 
       if( opts->flist.len <= 0 ) /* then display all fields */
          disp_field("\nall fields:\n", g_hdr1_fields, nhdr, nfields, g_debug>0);
@@ -2467,7 +2509,7 @@ int act_disp_hdr2( nt_opts * opts )
    nifti_2_header *  nhdr;
    field_s        *  fnhdr;
    char           ** sptr;
-   int               nfields, filenum, fc;
+   int               nfields, filenum, fc, nver=-2;
 
 /*
 {
@@ -2494,7 +2536,8 @@ int act_disp_hdr2( nt_opts * opts )
 
 /* rcr - update nt_read_header to handle either, with MAKE_IM */
 
-      nhdr = nifti_read_n2_hdr(opts->infiles.list[filenum], NULL, g_debug>1);
+      nhdr = nt_read_header(opts->infiles.list[filenum], &nver, NULL, g_debug>1,
+                             opts->new_datatype, opts->new_dim);
       if( !nhdr ) return 1;  /* errors are printed from library */
 
       if( g_debug > 0 )
@@ -2535,7 +2578,7 @@ int act_disp_anas( nt_opts * opts )
    nifti_analyze75  * nhdr;
    field_s          * fnhdr;
    char            ** sptr;
-   int                nfields, filenum, fc;
+   int                nfields, filenum, fc, nver=1;
 
    /* set the number of fields to display */
    nfields = opts->flist.len > 0 ? opts->flist.len : NT_ANA_NUM_FIELDS;
@@ -2547,8 +2590,8 @@ int act_disp_anas( nt_opts * opts )
    for( filenum = 0; filenum < opts->infiles.len; filenum++ )
    {
       /* do not validate the header structure */
-      nhdr = (nifti_analyze75 *)nt_read_header(opts,
-                                        opts->infiles.list[filenum], NULL, 0);
+      nhdr = nt_read_header(opts->infiles.list[filenum], &nver, NULL, 0,
+                             opts->new_datatype, opts->new_dim);
       if( !nhdr ) return 1;  /* errors are printed from library */
 
       if( g_debug > 0 )
@@ -2556,7 +2599,7 @@ int act_disp_anas( nt_opts * opts )
                  opts->infiles.list[filenum], nfields);
       if( g_debug > 1 )
          fprintf(stderr,"-d analyze header is: %s\n",
-                 nifti_hdr_looks_good((nifti_1_header *)nhdr) ?
+                 nifti_hdr1_looks_good((nifti_1_header *)nhdr) ?
                  "valid" : "invalid");
 
       if( opts->flist.len <= 0 ) /* then display all fields */
@@ -2638,7 +2681,7 @@ int act_mod_hdrs( nt_opts * opts )
 {
    nifti_1_header * nhdr;
    nifti_image    * nim;         /* for reading/writing entire datasets */
-   int              filec, swap;
+   int              filec, swap, nver=1;
    char           * fname, * dupname;
    char             func[] = { "act_mod_hdrs" };
 
@@ -2656,8 +2699,11 @@ int act_mod_hdrs( nt_opts * opts )
          continue;
       }
 
+/* rcr - this should be mod_hdr1s */
+
       /* do not validate the header structure */
-      nhdr = nt_read_header(opts, fname, &swap, 0);
+      nhdr = nt_read_header(fname, &nver, &swap, 0,
+                             opts->new_datatype, opts->new_dim);
       if( !nhdr ) return 1;
 
       if( g_debug > 1 )
@@ -2665,7 +2711,7 @@ int act_mod_hdrs( nt_opts * opts )
          fprintf(stderr,"-d modifying %d fields of '%s' header\n",
                  opts->flist.len, fname);
          fprintf(stderr,"-d header is: %s\n",
-                 nifti_hdr_looks_good(nhdr) ? "valid" : "invalid");
+                 nifti_hdr1_looks_good(nhdr) ? "valid" : "invalid");
       }
 
       /* okay, let's actually trash the data fields */
@@ -2727,7 +2773,7 @@ int act_swap_hdrs( nt_opts * opts )
 {
    nifti_1_header * nhdr;
    nifti_image    * nim;         /* for reading/writing entire datasets */
-   int              filec, swap;
+   int              filec, swap, nver=1;
    char           * fname, * dupname;
    char             func[] = { "act_mod_hdrs" };
 
@@ -2751,8 +2797,11 @@ int act_swap_hdrs( nt_opts * opts )
          continue;
       }
 
+/* rcr - this should be swap_hdr1s */
+
       /* do not validate the header structure */
-      nhdr = nt_read_header(opts, fname, &swap, 0);
+      nhdr = nt_read_header(fname, &nver, &swap, 0, opts->new_datatype,
+                                                    opts->new_dim);
       if( !nhdr ) return 1;
 
       if( g_debug > 1 ) {
@@ -3135,7 +3184,7 @@ int modify_field(void * basep, field_s * field, char * data)
 /*----------------------------------------------------------------------
  * fill the nifti_1_header field list
  *----------------------------------------------------------------------*/
-int fill_hdr_field_array( field_s * nh_fields )
+int fill_hdr1_field_array( field_s * nh_fields )
 {
    nifti_1_header   nhdr;
    field_s        * nhf = nh_fields;
@@ -3298,7 +3347,7 @@ int fill_hdr2_field_array( field_s * nh_fields )
 /*----------------------------------------------------------------------
  * fill the nifti_image field list
  *----------------------------------------------------------------------*/
-int fill_nim_field_array( field_s * nim_fields )
+int fill_nim1_field_array( field_s * nim_fields )
 {
    nifti_image   nim;
    field_s     * nif = nim_fields;
@@ -4468,13 +4517,17 @@ nifti_image * nt_image_read( nt_opts * opts, char * fname, int doread )
  * this adds the option to generage an empty image, if the
  * filename starts with "MAKE_IM"
  *----------------------------------------------------------------------*/
-nifti_1_header * nt_read_header(nt_opts * opts, char * fname, int * swapped,
-                                int check)
+void * nt_read_header(char * fname, int * nver, int * swapped, int check, 
+                      int new_datatype, int64_t new_dim[8])
 {
+    nifti_image * nim = NULL;
+    void        * nptr = NULL;
+    char          func[] = { "nt_read_header" };
+    int           nv;
+
     /* swapped is not necessary */
-    if( !opts || !fname ) {
-        fprintf(stderr,"** nt_read_header: bad params (%p,%p)\n",
-                (void *)opts,(void *)fname);
+    if( !fname ) {
+        fprintf(stderr,"** nt_read_header: missing fname\n");
         return NULL;
     }
 
@@ -4482,7 +4535,45 @@ nifti_1_header * nt_read_header(nt_opts * opts, char * fname, int * swapped,
     if( strncmp(fname,NT_MAKE_IM_NAME,strlen(NT_MAKE_IM_NAME)) ) {
         if(g_debug > 1)
             fprintf(stderr,"-d calling nifti_read_n1_hdr(%s,...)\n", fname);
-        return nifti_read_n1_hdr(fname, swapped, check);
+
+        /* if not set or 0, return whatever is found */
+        if( ! nver || ! *nver ) return nifti_read_header(fname, nver, check);
+
+        if( *nver < -2 || *nver > 2 ) {
+           fprintf(stderr,"** nt_read_header, illegal nver = %d\n", *nver);
+           return NULL;
+        }
+
+        /* 1 or 2 means try to return only that */
+        if( *nver == 1 ) return nifti_read_n1_hdr(fname, swapped, check);
+        if( *nver == 2 ) return nifti_read_n2_hdr(fname, swapped, check);
+
+        /* handle negatives, start by simply reading the header */
+        nptr = nifti_read_header(fname, &nv, check);
+        if( !nptr ) return NULL;
+            
+        /* negative means convert, if necessary */
+        if( *nver == -1 ) {
+           nifti_1_header * hdr=NULL;
+           if( nv == 1 ) return nptr;
+
+           /* else assume 2: convert headers via nim? */
+           hdr = (nifti_1_header *)malloc(sizeof(nifti_1_header));
+           if( !hdr ) {
+              fprintf(stderr,"** %s: failed to alloc nifti_1_header\n", func);
+              return NULL;
+           }
+
+           nim = nifti_convert_n2hdr2nim(*(nifti_2_header*)nptr, NULL);
+           if( !nim ) {
+              fprintf(stderr,"** %s: failed n2hdr2nim on %s\n", func, fname);
+              return NULL;
+           }
+           *hdr = nifti_convert_nim2nhdr(nim);
+           return hdr;
+        }
+/* rcr - write this */
+        if( *nver == 2 ) return nifti_read_n2_hdr(fname, swapped, check);
     }
 
     /* else "MAKE_IM", so generate an emtpy image */
@@ -4491,14 +4582,14 @@ nifti_1_header * nt_read_header(nt_opts * opts, char * fname, int * swapped,
         fprintf(stderr,"+d NT_RH: generating EMPTY IMAGE from %s...\n",fname);
         if(g_debug > 2) {
             printf("   new_dim[8] = ");
-            disp_raw_data(opts->new_dim, DT_INT64, 8, ' ', 1);
-            printf("   new_datatype = %d\n", opts->new_datatype);
+            disp_raw_data(new_dim, DT_INT64, 8, ' ', 1);
+            printf("   new_datatype = %d\n", new_datatype);
             fflush(stdout);
         }
     }
 
     /* return creation of new header */
-    return nifti_make_new_n1_header(opts->new_dim, opts->new_datatype);
+    return nifti_make_new_n1_header(new_dim, new_datatype);
 }
 
 

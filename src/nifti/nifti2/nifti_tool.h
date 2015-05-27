@@ -149,9 +149,9 @@ int disp_nt_opts     (char * mesg, nt_opts * opts);
 int disp_raw_data    (void * data, int type, int nvals, char space,int newline);
 int fill_cmd_string  (nt_opts * opts, int argc, char * argv[]);
 int fill_field       (field_s *fp, int type, int offset, int num, char *name);
-int fill_hdr_field_array(field_s * nh_fields);
+int fill_hdr1_field_array(field_s * nh_fields);
 int fill_hdr2_field_array(field_s * nh_fields);
-int fill_nim_field_array(field_s * nim_fields);
+int fill_nim1_field_array(field_s * nim_fields);
 int fill_nim2_field_array(field_s * nim_fields);
 int fill_ana_field_array(field_s * ah_fields);
 int modify_all_fields(void *basep, nt_opts *opts, field_s *fields, int flen);
@@ -167,8 +167,9 @@ int write_hdr_to_file(nifti_1_header * nhdr, char * fname);
 nifti_image    * nt_image_read (nt_opts * opts, char * fname, int doread);
 nifti_image    * nt_read_bricks(nt_opts * opts, char * fname, int len,
                                 int64_t * list, nifti_brick_list * NBL);
-nifti_1_header * nt_read_header(nt_opts * opts, char * fname, int * swapped,
-                                int check);
+void * nt_read_header(char * fname, int * nver, int * swapped, int check,
+                      int new_datatype, int64_t new_dim[8]);
+
 
 
 #endif  /* _NIFTI_TOOL_H_ */

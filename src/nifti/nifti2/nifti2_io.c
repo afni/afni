@@ -4497,8 +4497,8 @@ int disp_nifti_2_header( const char * info, const nifti_2_header * hp )
 
 
 #undef  ERREX
-#define ERREX(msg)                                           \
- do{ fprintf(stderr,"** ERROR: nifti_convert_nhdr2nim: %s\n", (msg) ) ;  \
+#define ERREX(msg)                                                        \
+ do{ fprintf(stderr,"** ERROR: nifti_convert_n1hdr2nim: %s\n", (msg) ) ;  \
      return NULL ; } while(0)
 
 /*----------------------------------------------------------------------*/
@@ -4506,7 +4506,7 @@ int disp_nifti_2_header( const char * info, const nifti_2_header * hp )
 
    \return an allocated nifti_image, or NULL on failure
 *//*--------------------------------------------------------------------*/
-nifti_image* nifti_convert_nhdr2nim(nifti_1_header nhdr, const char * fname)
+nifti_image* nifti_convert_n1hdr2nim(nifti_1_header nhdr, const char * fname)
 {
    int   ii , doswap , ioff ;
    int   ni_ver , is_onefile ;
@@ -5174,7 +5174,7 @@ nifti_1_header * nifti_read_n1_hdr(const char * hname, int *swapped, int check)
 
    if ( g_opts.debug > 2 ) disp_nifti_1_header("-d nhdr post-swap: ", &nhdr);
 
-   if ( check && ! nifti_hdr_looks_good(&nhdr) ){
+   if ( check && ! nifti_hdr1_looks_good(&nhdr) ){
       LNI_FERR(fname,"nifti_1_header looks bad for file", hname);
       return NULL;
    }
@@ -5266,7 +5266,7 @@ nifti_2_header * nifti_read_n2_hdr(const char * hname, int * swapped,
 
    if ( g_opts.debug > 2 ) disp_nifti_2_header("-d nhdr post-swap: ", &nhdr);
 
-   if ( check && ! nifti2_hdr_looks_good(&nhdr) ){
+   if ( check && ! nifti_hdr2_looks_good(&nhdr) ){
       LNI_FERR(fname,"nifti_2_header looks bad for file", hname);
       return NULL;
    }
@@ -5301,7 +5301,7 @@ nifti_2_header * nifti_read_n2_hdr(const char * hname, int * swapped,
 
    \sa nifti_nim_is_valid, valid_nifti_extensions
 *//*--------------------------------------------------------------------*/
-int nifti_hdr_looks_good(const nifti_1_header * hdr)
+int nifti_hdr1_looks_good(const nifti_1_header * hdr)
 {
    int ni_ver, c, errs = 0;
 
@@ -5408,7 +5408,7 @@ int nifti_valid_header_size(int ni_ver, int whine)
 
    \sa nifti_nim_is_valid, valid_nifti_extensions
 *//*--------------------------------------------------------------------*/
-int nifti2_hdr_looks_good(const nifti_2_header * hdr)
+int nifti_hdr2_looks_good(const nifti_2_header * hdr)
 {
    int     ni_ver, c, errs = 0;
    int64_t d0;
@@ -5533,7 +5533,7 @@ static int need_nhdr_swap( short dim0, int hdrsize )
     \return A void pointer, which should be cast based on the returned nver.
             It points to an allocated header struct.
 */
-void * nifti_read_header( const char *hname, int *nver )
+void * nifti_read_header( const char *hname, int *nver, int check )
 {
    nifti_1_header  n1hdr;
    nifti_2_header  n2hdr;
@@ -5616,6 +5616,11 @@ void * nifti_read_header( const char *hname, int *nver )
          return NULL;
       }
       memcpy(hresult, (void *)&n1hdr, h1size);
+
+      if ( check && ! nifti_hdr1_looks_good(hresult) ){
+         LNI_FERR(fname,"nifti_1_header looks bad for file", hname);
+         return NULL;
+      }
    } else if ( ni_ver == 2 ) {
       hresult = malloc(sizeof(h2size));
       if( ! hresult ) {
@@ -5623,6 +5628,11 @@ void * nifti_read_header( const char *hname, int *nver )
          return NULL;
       }
       memcpy(hresult, (void *)&n2hdr, h2size);
+
+      if ( check && ! nifti_hdr2_looks_good(hresult) ){
+         LNI_FERR(fname,"nifti_2_header looks bad for file", hname);
+         return NULL;
+      }
    } else {
       if( g_opts.debug > 0 )
          fprintf(stderr, "** %s: bad nifti header version %d\n", hfile, ni_ver);
@@ -5720,7 +5730,7 @@ nifti_image *nifti_image_read( const char *hname , int read_data )
       fprintf(stderr,"-- %s: NIFTI version = %d", fname, ni_ver);
 
    if( ni_ver == 0 || ni_ver == 1 ) {
-      nim = nifti_convert_nhdr2nim(n1hdr,hfile);
+      nim = nifti_convert_n1hdr2nim(n1hdr,hfile);
       onefile = NIFTI_ONEFILE(n1hdr);
    } else if ( ni_ver == 2 ) {
       /* fill nifti-2 header and convert */
@@ -7064,6 +7074,11 @@ nifti_image * nifti_make_new_nim(const int64_t dims[], int datatype,
    return nim;
 }
 
+#undef N_CHECK_2BYTE_VAL
+#define N_CHECK_2BYTE_VAL(fn) if( ! NIFTI_IS_16_BIT_INT(nim->fn) )        \
+   fprintf(stderr,"** nim->%s = %lld does not fit into NIFTI-1 header\n", \
+           #fn, (long long)nim->fn)
+
 
 /*----------------------------------------------------------------------*/
 /*! convert a nifti_image structure to a nifti_1_header struct
@@ -7086,6 +7101,17 @@ nifti_1_header nifti_convert_nim2nhdr(const nifti_image * nim)
 
    nhdr.sizeof_hdr = sizeof(nhdr) ;
    nhdr.regular    = 'r' ;             /* for some stupid reason */
+
+   N_CHECK_2BYTE_VAL(ndim);
+   N_CHECK_2BYTE_VAL(nx);
+   N_CHECK_2BYTE_VAL(ny);
+   N_CHECK_2BYTE_VAL(nz);
+   N_CHECK_2BYTE_VAL(nt);
+   N_CHECK_2BYTE_VAL(nu);
+   N_CHECK_2BYTE_VAL(nv);
+   N_CHECK_2BYTE_VAL(nw);
+   N_CHECK_2BYTE_VAL(datatype);
+   N_CHECK_2BYTE_VAL(nbyper);
 
    nhdr.dim[0] = nim->ndim ;
    nhdr.dim[1] = nim->nx ; nhdr.dim[2] = nim->ny ; nhdr.dim[3] = nim->nz ;
@@ -7125,10 +7151,17 @@ nifti_1_header nifti_convert_nim2nhdr(const nifti_image * nim)
      if( nim->nifti_type == NIFTI_FTYPE_NIFTI1_1 ) strcpy(nhdr.magic,"n+1") ;
      else                                          strcpy(nhdr.magic,"ni1") ;
 
-     nhdr.pixdim[1] = (float)fabs(nhdr.pixdim[1]) ; nhdr.pixdim[2] = (float)fabs(nhdr.pixdim[2]) ;
-     nhdr.pixdim[3] = (float)fabs(nhdr.pixdim[3]) ; nhdr.pixdim[4] = (float)fabs(nhdr.pixdim[4]) ;
-     nhdr.pixdim[5] = (float)fabs(nhdr.pixdim[5]) ; nhdr.pixdim[6] = (float)fabs(nhdr.pixdim[6]) ;
+     nhdr.pixdim[1] = (float)fabs(nhdr.pixdim[1]) ;
+     nhdr.pixdim[2] = (float)fabs(nhdr.pixdim[2]) ;
+     nhdr.pixdim[3] = (float)fabs(nhdr.pixdim[3]) ;
+     nhdr.pixdim[4] = (float)fabs(nhdr.pixdim[4]) ;
+     nhdr.pixdim[5] = (float)fabs(nhdr.pixdim[5]) ;
+     nhdr.pixdim[6] = (float)fabs(nhdr.pixdim[6]) ;
      nhdr.pixdim[7] = (float)fabs(nhdr.pixdim[7]) ;
+
+     N_CHECK_2BYTE_VAL(intent_code);
+     N_CHECK_2BYTE_VAL(qform_code);
+     N_CHECK_2BYTE_VAL(sform_code);
 
      nhdr.intent_code = nim->intent_code ;
      nhdr.intent_p1   = nim->intent_p1 ;
@@ -7169,6 +7202,10 @@ nifti_1_header nifti_convert_nim2nhdr(const nifti_image * nim)
        nhdr.srow_z[2]  = nim->sto_xyz.m[2][2] ;
        nhdr.srow_z[3]  = nim->sto_xyz.m[2][3] ;
      }
+
+     N_CHECK_2BYTE_VAL(sform_code);
+     N_CHECK_2BYTE_VAL(slice_start);
+     N_CHECK_2BYTE_VAL(slice_end);
 
      nhdr.dim_info = FPS_INTO_DIM_INFO( nim->freq_dim ,
                                         nim->phase_dim , nim->slice_dim ) ;
@@ -8225,7 +8262,7 @@ nifti_image *nifti_image_from_ascii( const char *str, int * bytes_read )
 
     \return 1 if the structure seems valid, otherwise 0
 
-    \sa nifti_nim_has_valid_dims, nifti_hdr_looks_good
+    \sa nifti_nim_has_valid_dims, nifti_hdr1_looks_good
 *//*-------------------------------------------------------------------------*/
 int nifti_nim_is_valid(nifti_image * nim, int complain)
 {
@@ -8256,7 +8293,7 @@ int nifti_nim_is_valid(nifti_image * nim, int complain)
 
     \return 1 if valid, 0 if not
 
-    \sa nifti_nim_is_valid, nifti_hdr_looks_good
+    \sa nifti_nim_is_valid, nifti_hdr1_looks_good
 
     rely on dim[] as the master
 *//*-------------------------------------------------------------------------*/
