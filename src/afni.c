@@ -1587,6 +1587,7 @@ void AFNI_sigfunc_alrm(int sig)
      "Don't you wish it had a 'Write Nature Paper' button?"          ,
      "Coming REAL soon: the 'Write Science Paper' interface"         ,
      "And flights of angels sing thee to thy rest"                   ,
+     "Hast seen the White Whale?"                                    ,
 
      "Have you made your long term (trillion year) research plan yet? Get busy"       ,
      "Why is 'Gold Standard' used in science? Gold is pretty but almost useless"      ,
