@@ -11,6 +11,9 @@
   + adding ability to input a (multi-b0)+dwi file, and have
     the b0s get averaged and put as 0th brick
 
+  May 2015
+  + minor new option for outputting bval file: -out_bval_row_sep
+
 */
 
 // 3dDWItoDT: Bxx, Byy, Bzz, Bxy, Bxz, Byz
@@ -91,7 +94,8 @@ void usage_1dDW_Grad_o_Mat(int detail)
 "         { -in_bvals BVAL_IN }                                      \\\n"
 "         { -bmax_ref THRESH }                                       \\\n"
 "         { -out_grad_cols | -out_gmatT_cols | -out_gmatA_cols |     \\\n"
-"           -out_bmatT_cols | -out_gmatA_cols | -out_grad_rows } OUTFILE \n\n"
+"           -out_bmatT_cols | -out_gmatA_cols | -out_grad_rows } OUTFILE \\\n"
+"         { -out_bval_row_sep BB }                                   \n\n"
 "    where:\n"
 "        (one of the following six formats of input must be given):\n"
 "    -in_grad_rows  INFILE :input file of 3 rows of gradients (e.g., dcm2nii-\n"
@@ -159,6 +163,7 @@ void usage_1dDW_Grad_o_Mat(int detail)
 "                           '-bmax_ref 5.1'.\n"
 "    -out_bval_col         :switch to put a column of the bvalues as the\n"
 "                           first column in the output data.\n"
+"    -out_bval_row_sep BB  :output a file BB of bvalues in a single row.\n"
 "\n"
 "* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n"
 "\n"
@@ -178,9 +183,10 @@ int main(int argc, char *argv[])
 	int iarg;
    char *Fname_input = NULL;
    char *Fname_output = NULL;
+   char *Fname_outputBV = NULL;
    char *Fname_bval = NULL;
    int opt;
-   FILE *fin, *fout, *finbv;
+   FILE *fin, *fout, *finbv, *foutBV;
    int i,j,k;
    int BZER=0,idx=0,idx2=0;
 
@@ -200,6 +206,7 @@ int main(int argc, char *argv[])
    int EXTRA_ZEROS=0;
    int HAVE_BVAL = 0;
    int BVAL_OUT = 0; 
+   int BVAL_OUT_SEP = 0; 
    float BMAX_REF = 1; // i.e., essentially zero
    int IN_FORM = 0; // 0 for row, 1 for col
    int OUT_FORM = 1; // 1 for col, 2 for bmatr 
@@ -397,6 +404,17 @@ int main(int argc, char *argv[])
 			iarg++ ; continue ;
 		}
 
+      // May,2015
+      if( strcmp(argv[iarg],"-out_bval_row_sep") == 0) {
+         if( ++iarg >= argc ) 
+				ERROR_exit("Need argument after '-out_bval_row_sep'\n") ;
+         
+         Fname_outputBV = argv[iarg];
+         BVAL_OUT_SEP = 1;
+         
+         iarg++ ; continue ;
+		}
+      
 		if( strcmp(argv[iarg],"-proc_dset") == 0 ){ // in DWIs
 			if( ++iarg >= argc ) 
 				ERROR_exit("Need argument after '-proc_dset'") ;
@@ -440,46 +458,55 @@ int main(int argc, char *argv[])
    if( (Fname_input == NULL) ) {
       fprintf(stderr,
               "\n\tBad Command-lining!  Option '-in_*' requires argument.\n");
-      exit(0);
+      exit(1);
    }
    if( (Fname_output == NULL) ) {
       fprintf(stderr,
               "\n\tBad Command-lining!  Option '-out_*' requires arg.\n");
-      exit(0);
+      exit(2);
    }
 
    if( count_in > 1 ) {
       fprintf(stderr,
               "\n\tBad Command-lining!  Can't have >1 vec file input.\n");
-      exit(0);
+      exit(3);
    }
    if( count_out > 1 ) {
       fprintf(stderr,
               "\n\tBad Command-lining!  Can't have >1 output file opt.\n");
-      exit(0);
+      exit(4);
    }
 
    if(YES_B && dwset) {
       fprintf(stderr,
               "\n** Bad Command-lining! "
               "Can't have '-keep_b0s' and '-proc_dset' together.\n");
-      exit(1);
+      exit(5);
    }
    
    if( !prefix && dwset) {
       fprintf(stderr,
               "\n** Bad Command-lining! "
               "Need an output '-pref_dset' when using '-proc_dset'.\n");
-      exit(1);
+      exit(6);
    }
    
    if(YES_B && DWI_COMP_FAC) {
       fprintf(stderr,
               "\n** Bad Command-lining! "
               "Can't have '-keep_b0s' and '-dwi_comp_fac' together.\n");
-      exit(1);
+      exit(7);
    }
    
+
+   if(!HAVE_BVAL && (BVAL_OUT || BVAL_OUT_SEP)) {
+      fprintf(stderr,
+              "\n** Bad Command-lining! "
+              "Can't have ask for outputting bvals with no '-in_bvals FILE'.\n");
+      exit(8);
+   }
+
+
    // ********************************************************************
    // ************************* start reading ****************************
    // ********************************************************************
@@ -621,7 +648,7 @@ int main(int argc, char *argv[])
       for( i=0; i<idx ; i++ ) {
          OUT_MATR[i][0] = OUT_GRAD[i][0] =  *(READBVAL + i);
       }
-   else if ( OUT_FORM > 3 || BVAL_OUT || HAVE_BMAX_REF ) {
+   else if ( OUT_FORM > 3 || BVAL_OUT ||  BVAL_OUT_SEP || HAVE_BMAX_REF ) {
       fprintf(stderr, "ERROR:  you asked for b-value dependent output, "
               "but gave me no bvals to work with.\n");
       exit(2);
@@ -703,8 +730,11 @@ int main(int argc, char *argv[])
       }
    }
 
-
-
+   if(BVAL_OUT_SEP)
+      if( (foutBV = fopen(Fname_outputBV, "w")) == NULL) {
+         fprintf(stderr, "\n\nError opening file %s.\n",Fname_outputBV);
+         exit(1);
+      }
 
    if( (fout = fopen(Fname_output, "w")) == NULL) {
       fprintf(stderr, "\n\nError opening file %s.\n",Fname_output);
@@ -722,7 +752,9 @@ int main(int argc, char *argv[])
       if( EXTRA_ZEROS ) {
          if( BVAL_OUT )
             fprintf(fout,"%8d  ", 0);
-         
+         if( BVAL_OUT_SEP )
+            fprintf(foutBV,"%8d  ", 0);
+
          if( OUT_FORM == 1 )
             for( k=1 ; k<4 ; k++ )
                fprintf(fout,"%11.5f  ", 0.0);
@@ -731,14 +763,16 @@ int main(int argc, char *argv[])
                fprintf(fout,"%11.5f  ", 0.0);
          fprintf(fout,"\n");
       }
-      
+
       ct_dwi = 0;
       for(i=0 ; i<idx ; i++){ 
          if(FLAG[i]) {
             
             if( BVAL_OUT )
                fprintf(fout,"%8d  ", (int) OUT_GRAD[i][0]);
-            
+            if( BVAL_OUT_SEP )
+               fprintf(foutBV,"%8d  ", (int) OUT_GRAD[i][0]);
+
             if( (OUT_FORM == 4) || (OUT_FORM ==5) )
                for( k=1 ; k<7 ; k++ )
                   OUT_MATR[i][k]*= OUT_MATR[i][0];
@@ -777,12 +811,17 @@ int main(int argc, char *argv[])
                          " you are outputting in rows.");
       
       for( k=1 ; k<4 ; k++ ) {
-         if(EXTRA_ZEROS)
+         if(EXTRA_ZEROS){
             fprintf(fout,"% -11.5f  ", 0.0);
+            if( (k==1) && BVAL_OUT_SEP ) // only output 1 zeroin bval file
+               fprintf(foutBV,"%8d  ", 0);
+         }
          ct_dwi = 0;
          for(i=0 ; i<idx ; i++) {
             if(FLAG[i]) {
                fprintf(fout,"% -11.5f  ", OUT_GRAD[i][k]);
+               if( (k==1) && BVAL_OUT_SEP )// only output 1 zeroin bval file
+                  fprintf(foutBV,"%8d  ", (int) OUT_GRAD[i][0]);
                ct_dwi++;
             }
             if( (ct_dwi == Ndwi_final) && DWI_COMP_FAC ) {
@@ -796,6 +835,10 @@ int main(int argc, char *argv[])
    }
 
    fclose(fout);
+   if( BVAL_OUT_SEP ) {
+      fprintf(foutBV,"\n");
+      fclose(foutBV);
+   }
 
    if(dwset) {
       INFO_message("Processing the B0+DWI file now.");
@@ -912,6 +955,8 @@ int main(int argc, char *argv[])
    if(dwset) {
       printf("\n\t-> as well as the data_set '%s'",DSET_FILECODE(dwout));
    }
+   if(BVAL_OUT_SEP)
+      printf("\n\t-> and even the b-value rows '%s'",Fname_outputBV);
    printf("\n\n");
 
    exit(0);   
