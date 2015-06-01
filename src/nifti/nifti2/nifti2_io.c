@@ -5610,7 +5610,7 @@ void * nifti_read_header( const char *hname, int *nver, int check )
 
    /* allocate header space and return */
    if( ni_ver == 0 || ni_ver == 1 ) {
-      hresult = malloc(sizeof(h1size));
+      hresult = malloc(h1size);
       if( ! hresult ) {
          LNI_FERR(fname,"failed to alloc NIFTI-1 header for file", hname);
          return NULL;
@@ -5622,12 +5622,12 @@ void * nifti_read_header( const char *hname, int *nver, int check )
          return NULL;
       }
    } else if ( ni_ver == 2 ) {
-      hresult = malloc(sizeof(h2size));
+      hresult = malloc(h2size);
       if( ! hresult ) {
          LNI_FERR(fname,"failed to alloc NIFTI-2 header for file", hname);
          return NULL;
       }
-      memcpy(hresult, (void *)&n2hdr, h2size);
+      memcpy(hresult, &n2hdr, h2size);
 
       if ( check && ! nifti_hdr2_looks_good(hresult) ){
          LNI_FERR(fname,"nifti_2_header looks bad for file", hname);
@@ -5640,7 +5640,7 @@ void * nifti_read_header( const char *hname, int *nver, int check )
    }
 
    if( g_opts.debug > 1 )
-      fprintf(stderr,"-- returning NIFTI-%d header in %s", ni_ver, hname);
+      fprintf(stderr,"-- returning NIFTI-%d header in %s\n", ni_ver, hname);
 
    return hresult;
 }
