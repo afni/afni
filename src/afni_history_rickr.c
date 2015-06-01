@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  1,  Jun, 2015, RCR, "nifti_tool", MINOR, TYPE_ENHANCE,
+   "diff/disp_hdr detects type; diff_hdr1/2",
+   NULL
+ } ,
+
  { 27,  May, 2015, RCR, "@Install_TSrestMovieDemo", MICRO, TYPE_BUG_FIX,
    "set and applied $demo as Suma_TSrestMovieDemo",
    NULL
