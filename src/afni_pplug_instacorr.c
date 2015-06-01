@@ -1519,7 +1519,7 @@ STATUS("transform coords to index" ) ;
 #if 0
    kv  = THD_3dmm_to_3dind_no_wod( giset->dset, jv ) ;
 #else
-   kv  = THD_find_closest_roundtrip(im3d->iset->dset,im3d->anat_now,iv) ;
+   kv  = THD_find_closest_roundtrip(giset->dset,im3d->anat_now,iv) ;
 #endif
    ijk = DSET_ixyz_to_index( giset->dset, kv.ijk[0],kv.ijk[1],kv.ijk[2] ) ;
 
