@@ -730,6 +730,11 @@ void display_help_menu(void)
       "                Otherwise you may end up files containing numbers but\n"
       "                not a full set of header information.\n"
       "\n"
+      " -dupe_ok  = Duplicate dataset labels are OK.  Do not generate warnings\n"
+      "             for dataset pairs.\n"
+      "\n"
+      "             * This option must preceed corresponding -setX options.\n"
+      "\n"
       " -debug    = Prints out information about the analysis, which can\n"
       "              be VERY lengthy -- not for general usage (or even for colonels).\n"
       "             ++ Two copies of '-debug' will give even MORE output!\n"
@@ -1186,6 +1191,7 @@ int main( int argc , char *argv[] )
    char blab[64] , *stnam ;
    float dof_AB=0.0f , dof_A=0.0f , dof_B=0.0f ;
    int BminusA=-1 , ntwosam=0 ;  /* 05 Nov 2010 */
+   int dupe_ok=0;  /* 1 Jun 2015 [rickr] */
    char *snam_PPP=NULL, *snam_MMM=NULL ;
    static int iwarn=0;
 
@@ -1284,6 +1290,12 @@ int main( int argc , char *argv[] )
 
      if( strcmp(argv[nopt],"-debug") == 0 ){  /* 22 Sep 2010 */
        debug++ ; nopt++ ; continue ;
+     }
+
+     /*----- dupe_ok -----*/
+
+     if( strcmp(argv[nopt],"-dupe_ok") == 0 ){  /* 01 Jun 2015 [rickr] */
+       dupe_ok = 1 ; nopt++ ; continue ;
      }
 
      /*----- cmeth -----*/
@@ -1524,12 +1536,23 @@ int main( int argc , char *argv[] )
 
        /* check for duplicate labels */
 
-       for( ii=0 ; ii < nds ; ii++ ){
-         for( jj=ii+1 ; jj < nds ; jj++ )
-           if( strcmp(labs[ii],labs[jj]) == 0 ) nbad++ ;
+       { int max_report = 7;
+         for( ii=0 ; ii < nds ; ii++ ){
+           for( jj=ii+1 ; jj < nds ; jj++ )
+             if( strcmp(labs[ii],labs[jj]) == 0 ) {
+               nbad++ ;
+               if( ! dupe_ok ) {
+                 if( nbad < max_report )
+                   WARNING_message("label match %d=%s, %d=%s\n",
+                                   ii, labs[ii], jj, labs[jj]);
+                 else if( nbad == max_report ) WARNING_message(" ...");
+               }
+             }
+         }
        }
        if( nbad > 0 ){  /* duplicate labels :-( */
          WARNING_message("Duplicate labels for datasets in option '%s'",onam) ;
+         if( ! dupe_ok ) fprintf(stderr,"   (consider -dupe_ok)\n\n");
          allow_cov = -1 ;
        }
 
