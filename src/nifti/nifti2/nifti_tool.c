@@ -2762,8 +2762,6 @@ int act_disp_hdr2( nt_opts * opts )
    {
       /* do not validate the header structure */
 
-/* rcr - update nt_read_header to handle either, with MAKE_IM */
-
       nhdr = nt_read_header(opts->infiles.list[filenum], &nver, NULL, g_debug>1,
                              opts->new_datatype, opts->new_dim);
       if( !nhdr ) return 1;  /* errors are printed from library */
@@ -2771,11 +2769,11 @@ int act_disp_hdr2( nt_opts * opts )
       if( g_debug > 0 )
          fprintf(stdout,"\nNIFTI-2 header file '%s', num_fields = %d\n",
                  opts->infiles.list[filenum], nfields);
-/* 
+
       if( g_debug > 1 )
          fprintf(stderr,"-d header is: %s\n",
-                 nifti_hdr_looks_good(nhdr) ? "valid" : "invalid");
-*/
+                 nifti_hdr2_looks_good(nhdr) ? "valid" : "invalid");
+
 
       if( opts->flist.len <= 0 ) /* then display all fields */
          disp_field("\nall fields:\n", g_hdr2_fields, nhdr, nfields, g_debug>0);
@@ -4846,16 +4844,28 @@ void * nt_read_header(char * fname, int * nver, int * swapped, int check,
               fprintf(stderr,"** %s: failed n2hdr2nim on %s\n", func, fname);
               return NULL;
            }
-           *hdr = nifti_convert_nim2nhdr(nim);
+           *hdr = nifti_convert_nim2n1hdr(nim);
            return hdr;
         }
         else { /* assume -2 */
            nifti_2_header * hdr=NULL;
            if( nv == 2 ) return nptr;
 
-fprintf(stderr,"** rcr - write this: convert n1hdr to n2hdr\n");
-           return NULL;
+           /* else assume 2: convert headers via nim? */
+           hdr = (nifti_2_header *)malloc(sizeof(nifti_2_header));
+           if( !hdr ) {
+              fprintf(stderr,"** %s: failed to alloc nifti_2_header\n", func);
+              return NULL;
+           }
 
+           nim = nifti_convert_n1hdr2nim(*(nifti_1_header*)nptr, NULL);
+           if( !nim ) {
+              fprintf(stderr,"** %s: failed n1hdr2nim on %s\n", func, fname);
+              return NULL;
+           }
+           *hdr = nifti_convert_nim2n2hdr(nim);
+
+           return hdr;
         }
     }
 
