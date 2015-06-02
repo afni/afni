@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  2,  Jun, 2015, RCR, "NIFTI", MICRO, TYPE_GENERAL,
+   "NIFTI-1,2: added NIFTI_ECODE_CIFTI/VARIABLE_FRAME_TIMING/EVAL/MATLAB",
+   NULL
+ } ,
+
  {  1,  Jun, 2015, RCR, "nifti_tool", MINOR, TYPE_ENHANCE,
    "diff/disp_hdr detects type; diff_hdr1/2",
    NULL
