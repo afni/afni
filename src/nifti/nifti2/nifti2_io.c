@@ -7087,10 +7087,10 @@ nifti_image * nifti_make_new_nim(const int64_t dims[], int datatype,
     As in:
     <pre>
     nifti_1_header my_header;
-    my_header = nifti_convert_nim2nhdr(my_nim_pointer);
+    my_header = nifti_convert_nim2n1hdr(my_nim_pointer);
     </pre>
 *//*--------------------------------------------------------------------*/
-nifti_1_header nifti_convert_nim2nhdr(const nifti_image * nim)
+nifti_1_header nifti_convert_nim2n1hdr(const nifti_image * nim)
 {
    nifti_1_header nhdr;
 
@@ -7214,6 +7214,111 @@ nifti_1_header nifti_convert_nim2nhdr(const nifti_image * nim)
      nhdr.slice_end      = nim->slice_end ;
      nhdr.slice_duration = nim->slice_duration ;
    }
+
+   return nhdr;
+}
+
+
+/*----------------------------------------------------------------------*/
+/*! convert a nifti_image structure to a nifti_2_header struct
+
+    No allocation is done, this should be used via structure copy.
+    As in:
+    <pre>
+    nifti_2_header my_header;
+    my_header = nifti_convert_nim2n2hdr(my_nim_pointer);
+    </pre>
+*//*--------------------------------------------------------------------*/
+nifti_2_header nifti_convert_nim2n2hdr(const nifti_image * nim)
+{
+   nifti_2_header nhdr;
+
+   memset(&nhdr,0,sizeof(nhdr)) ;  /* zero out header, to be safe */
+
+
+   /**- load the ANALYZE-7.5 generic parts of the header struct */
+
+   nhdr.sizeof_hdr = sizeof(nhdr) ;
+   if( nim->nifti_type == NIFTI_FTYPE_NIFTI2_1 ) strcpy(nhdr.magic,"n+2") ;
+   else                                          strcpy(nhdr.magic,"ni2") ;
+
+   nhdr.datatype = nim->datatype ;
+   nhdr.bitpix   = 8 * nim->nbyper ;
+
+   nhdr.dim[0] = nim->ndim ;
+   nhdr.dim[1] = nim->nx ; nhdr.dim[2] = nim->ny ; nhdr.dim[3] = nim->nz ;
+   nhdr.dim[4] = nim->nt ; nhdr.dim[5] = nim->nu ; nhdr.dim[6] = nim->nv ;
+   nhdr.dim[7] = nim->nw ;
+
+   nhdr.intent_p1 = nim->intent_p1 ;
+   nhdr.intent_p2 = nim->intent_p2 ;
+   nhdr.intent_p3 = nim->intent_p3 ;
+
+   nhdr.pixdim[0] = 0.0 ;
+   nhdr.pixdim[1] = fabs(nim->dx) ; nhdr.pixdim[2] = fabs(nim->dy) ;
+   nhdr.pixdim[3] = fabs(nim->dz) ; nhdr.pixdim[4] = fabs(nim->dt) ;
+   nhdr.pixdim[5] = fabs(nim->du) ; nhdr.pixdim[6] = fabs(nim->dv) ;
+   nhdr.pixdim[7] = fabs(nim->dw) ;
+
+   nhdr.vox_offset  = nim->iname_offset ;
+
+   nhdr.scl_slope = nim->scl_slope ;
+   nhdr.scl_inter = nim->scl_inter ;
+
+   nhdr.cal_max = nim->cal_max ;
+   nhdr.cal_min = nim->cal_min ;
+
+   nhdr.slice_duration = nim->slice_duration ;
+   nhdr.toffset        = nim->toffset ;
+   nhdr.slice_start    = nim->slice_start ;
+   nhdr.slice_end      = nim->slice_end ;
+
+   if( nim->descrip[0] != '\0' ){
+     memcpy(nhdr.descrip ,nim->descrip ,79) ; nhdr.descrip[79] = '\0' ;
+   }
+   if( nim->aux_file[0] != '\0' ){
+     memcpy(nhdr.aux_file ,nim->aux_file ,23) ; nhdr.aux_file[23] = '\0' ;
+   }
+
+   if( nim->qform_code > 0 ){
+     nhdr.qform_code = nim->qform_code ;
+     nhdr.quatern_b  = nim->quatern_b ;
+     nhdr.quatern_c  = nim->quatern_c ;
+     nhdr.quatern_d  = nim->quatern_d ;
+     nhdr.qoffset_x  = nim->qoffset_x ;
+     nhdr.qoffset_y  = nim->qoffset_y ;
+     nhdr.qoffset_z  = nim->qoffset_z ;
+     nhdr.pixdim[0]  = (nim->qfac >= 0.0) ? 1.0f : -1.0f ;
+   }
+
+   if( nim->sform_code > 0 ){
+     nhdr.sform_code = nim->sform_code ;
+     nhdr.srow_x[0]  = nim->sto_xyz.m[0][0] ;
+     nhdr.srow_x[1]  = nim->sto_xyz.m[0][1] ;
+     nhdr.srow_x[2]  = nim->sto_xyz.m[0][2] ;
+     nhdr.srow_x[3]  = nim->sto_xyz.m[0][3] ;
+     nhdr.srow_y[0]  = nim->sto_xyz.m[1][0] ;
+     nhdr.srow_y[1]  = nim->sto_xyz.m[1][1] ;
+     nhdr.srow_y[2]  = nim->sto_xyz.m[1][2] ;
+     nhdr.srow_y[3]  = nim->sto_xyz.m[1][3] ;
+     nhdr.srow_z[0]  = nim->sto_xyz.m[2][0] ;
+     nhdr.srow_z[1]  = nim->sto_xyz.m[2][1] ;
+     nhdr.srow_z[2]  = nim->sto_xyz.m[2][2] ;
+     nhdr.srow_z[3]  = nim->sto_xyz.m[2][3] ;
+   }
+
+   nhdr.slice_code  = nim->slice_code ;
+   nhdr.xyzt_units  = SPACE_TIME_TO_XYZT( nim->xyz_units, nim->time_units ) ;
+   nhdr.intent_code = nim->intent_code ;
+   if( nim->intent_name[0] != '\0' ){
+     memcpy(nhdr.intent_name,nim->intent_name,15) ;
+     nhdr.intent_name[15] = '\0' ;
+   }
+
+   nhdr.dim_info = FPS_INTO_DIM_INFO( nim->freq_dim ,
+                                      nim->phase_dim , nim->slice_dim ) ;
+
+   nhdr.unused_str[0] = '\0' ;  /* not needed, but complete */
 
    return nhdr;
 }
@@ -7431,7 +7536,7 @@ znzFile nifti_image_write_hdr_img2(nifti_image *nim, int write_opts,
    if( nim->nifti_type == NIFTI_FTYPE_ASCII )   /* non-standard case */
       return nifti_write_ascii_image(nim,NBL,opts,write_data,leave_open);
 
-   nhdr = nifti_convert_nim2nhdr(nim);    /* create the nifti1_header struct */
+   nhdr = nifti_convert_nim2n1hdr(nim);    /* create the nifti1_header struct */
 
    /* if writing to 2 files, make sure iname is set and different from fname */
    if( nim->nifti_type != NIFTI_FTYPE_NIFTI1_1 ){

@@ -544,7 +544,8 @@ char * nifti_makebasename(const char* fname);
 
 
 /* other routines */
-nifti_1_header   nifti_convert_nim2nhdr(const nifti_image* nim);
+nifti_1_header   nifti_convert_nim2n1hdr(const nifti_image* nim);
+nifti_2_header   nifti_convert_nim2n2hdr(const nifti_image* nim);
 nifti_1_header * nifti_make_new_n1_header(const int64_t arg_dims[], int arg_dtype);
 nifti_2_header * nifti_make_new_n2_header(const int64_t arg_dims[], int arg_dtype);
 void * nifti_read_header          (const char *hname, int *nver,    int check);
