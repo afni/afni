@@ -49,6 +49,17 @@
 
 
 afni_history_struct dglen_history[] = {
+{ 2, JUN, 2015, DRG, "plugout_drive to stdout or file",
+    MICRO, TYPE_NEW_ENV,
+    "Allow plugout_drive to get xyz,ijk,AFNI environment to file",
+    "plugout_drive for GET_DICOM_XYZ, GET_ENV was to stdout of afni\n"
+    "GUI. This was difficult to parse. Allow resetting output to file\n"
+    "using AFNI_OUTPLUG environment variable or SET_OUTPLUG command"
+},
+{ 2, JUN, 2015, DRG, "graph allow single time point for writing graph",
+    MICRO, TYPE_MODIFY,
+    "Allow single TR/anat dataset to work with 'w' in graph mode"
+},
 { 22, MAY, 2015 , DRG , "3dLocalstat mode" , 
     MINOR , TYPE_NEW_OPT, 
     "Find mode and non-zero mode in voxel neighborhood"
