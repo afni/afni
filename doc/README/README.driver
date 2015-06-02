@@ -394,6 +394,13 @@ SET_INDEX     [c] ijk
 GET_DICOM_XYZ [c]
 GET_IJK       [c]
   Have AFNI print the controller current coordinates (to stdout).
+SET_OUTPLUG fname
+  Set plugout drive commands like GET_DICOM_XYZ,GET_IJK,GETENV to append output
+  to a selected text file. The default output is to stdout of the afni GUI rather
+  than the plugout_drive's program. The string 'stdout' resets the output to
+  stdout. The default output file can also be set by the AFNI environment variable,
+  AFNI_OUTPLUG.Note the output is always appended, so if you need this to be a
+  new file, you will have to delete or rename the old copy first.
 
 SET_XHAIRS [c.]code
   Set the crosshairs ('Xhairs') control to the specified value, where
