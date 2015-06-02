@@ -55,6 +55,9 @@ static int AFNI_drive_write_overlay( char *cmd ) ;  /* 16 Jun 2014 */
 static int AFNI_drive_write_cont_spxhelp(char *cmd);/* 08 Apr 2015 */
 static int AFNI_drive_snap_cont( char *cmd );       /* 08 Apr 2015 */
 
+static FILE * AFNI_drive_get_outstream(void);       /* 02 Jun 2015 */
+static int AFNI_drive_set_outstream(char *outfile); /* 02 Jun 2015 */
+
 static int AFNI_drive_system( char *cmd ) ;         /* 19 Dec 2002 */
 static int AFNI_drive_chdir ( char *cmd ) ;         /* 19 Dec 2002 */
 
@@ -160,7 +163,7 @@ static AFNI_driver_pair dpair[] = {
  { "SET_INDEX"        , AFNI_drive_set_ijk_index     } ,
  { "SET_XHAIRS"       , AFNI_drive_set_xhairs        } ,
  { "SET_CROSSHAIRS"   , AFNI_drive_set_xhairs        } ,
-
+ { "SET_OUTPLUG"      , AFNI_drive_set_outstream     } ,
  { "OPEN_GRAPH_XY"    , AFNI_drive_open_graph_xy     } ,
  { "CLOSE_GRAPH_XY"   , AFNI_drive_close_graph_xy    } ,
  { "CLEAR_GRAPH_XY"   , AFNI_drive_clear_graph_xy    } ,
@@ -226,6 +229,7 @@ static AFNI_driver_pair dpair[] = {
 
 static int           num_epair = 0 ;      /* 04 Dec 2007 */
 static AFNI_driver_pair *epair = NULL ;   /* dynamic commands */
+static FILE *afniout = NULL;             /* no default output stream */
 
 /*----------------------------------------------------------------------*/
 
@@ -253,6 +257,9 @@ ENTRY("AFNI_driver") ;
 #endif
 
    if( cmdd == NULL || *cmdd == '\0' ) RETURN(-1) ;  /* bad */
+
+   /* change output from stdout to something else maybe */
+   AFNI_drive_get_outstream();                             /* 02 Jun 2015 DRG */
 
    if( strncmp(cmdd,"DRIVE_AFNI ",11) == 0 ) cmdd += 11 ;  /* 28 Dec 2006 */
 
@@ -2609,8 +2616,8 @@ int AFNI_drive_getenv( char *cmd )
    /*-- get and printf the actual environment variable --*/
 
    eee = my_getenv(nam);
-   printf("%s = %s\n", nam, eee ? eee : "<UNSET>");
-   fflush(stdout);
+   fprintf(afniout,"%s = %s\n", nam, eee ? eee : "<UNSET>");
+   fflush(afniout);
 
    return 0;
 }
@@ -2991,9 +2998,63 @@ static int AFNI_drive_get_dicom_xyz( char *cmd )
    y = im3d->vinfo->yj ;
    z = im3d->vinfo->zk ;
 
-   fprintf(stdout, "RAI xyz: %f %f %f\n", x, y, z);
+   fprintf(afniout, "RAI xyz: %f %f %f\n", x, y, z);
+/*   fprintf(stdout, "RAI xyz: %f %f %f\n", x, y, z);*/
+   fflush(afniout);
 
    return 0 ;
+}
+
+/* get the output file for plugout info */
+static FILE *
+AFNI_drive_get_outstream()
+{
+   char *afni_outfile;
+
+   /* first time in set the output stream to stdout or environment variable */
+   if(afniout==NULL){
+      /* get from environment variable if set */
+      afni_outfile = my_getenv("AFNI_OUTPLUG");
+      if(afni_outfile!=NULL) {
+         AFNI_drive_set_outstream(afni_outfile);
+      }
+   }
+
+   /* if still NULL output stream, set to default of stdout */
+   if(afniout==NULL) afniout = stdout;
+
+   return(afniout);
+}
+
+/* set the output stream to a file rather than stdout*/
+static int
+AFNI_drive_set_outstream(char *outfile)
+{
+   /* if just passed a NULL, reset output to stdout */
+   if(outfile==NULL){
+      afniout = stdout;
+      return(-1);
+   }
+
+   /* check if resetting to stdout by string from plugout command */
+   if(strcmp(outfile, "stdout")==0) {
+      afniout = stdout;
+      return 0;
+   }
+
+    /* make sure this file name is a good one, and open it for append */
+   if( THD_filename_ok(outfile) )
+      afniout = fopen(outfile, "a");
+
+   /* something went wrong, so tell user and reset to stdout */
+   if(afniout==NULL){
+      fprintf(stderr, "**** couldn't open outfile, resetting to stdout\n");
+      afniout = stdout;
+      return(-1);
+   }
+   else {
+    return 0;
+   }
 }
 
 /*--------------------------------------------------------------------*/
@@ -3060,7 +3121,8 @@ static int AFNI_drive_get_ijk( char *cmd )
    j = im3d->vinfo->j2 ;
    k = im3d->vinfo->k3 ;
 
-   fprintf(stdout, "ijk: %d %d %d\n", i,j,k);
+   fprintf(afniout, "ijk: %d %d %d\n", i,j,k);
+   fflush(afniout);
 
    return 0 ;
 }
@@ -3525,7 +3587,6 @@ static int AFNI_drive_snap_cont( char *cmd )
    int ic, dadd=2 , ii ; 
    Three_D_View *im3d ; 
    char *prefix;
-   FILE *fout = NULL;
    
    if( strlen(cmd) < 3 ) return -1 ;
 
