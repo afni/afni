@@ -2584,27 +2584,30 @@ def group_mask_command(proc, block):
         return ''
 
     #--- first things first, see if we can locate the tlrc base
+    #    if the user didn't already tell us where it is
 
-    cmd = '@FindAfniDsetPath %s' % proc.tlrc_base.pv()
-    if proc.verb > 1: estr = 'echo'
-    else            : estr = ''
-    com = BASE.shell_com(cmd, estr, capture=1)
-    com.run()
+    if '/' not in proc.tlrc_base.initname:
+        cmd = '@FindAfniDsetPath %s' % proc.tlrc_base.pv()
+        if proc.verb > 1: estr = 'echo'
+        else            : estr = ''
+        com = BASE.shell_com(cmd, estr, capture=1)
+        com.run()
 
-    if com.status or not com.so or len(com.so[0]) < 2:
-        # call this a non-fatal error for now
-        print "** failed to find tlrc_base '%s' for group mask" \
-              % proc.tlrc_base.pv()
-        if proc.verb > 2:
-           print '   status = %s' % com.status
-           print '   stdout = %s' % com.so
-           print '   stderr = %s' % com.se
-        return ''
+        if com.status or not com.so or len(com.so[0]) < 2:
+            # call this a non-fatal error for now
+            print "** failed to find tlrc_base '%s' for group mask" \
+                  % proc.tlrc_base.pv()
+            if proc.verb > 2:
+               print '   status = %s' % com.status
+               print '   stdout = %s' % com.so
+               print '   stderr = %s' % com.se
+            return ''
 
-    proc.tlrc_base.path = com.so[0]
-    # nuke any newline character
-    newline = proc.tlrc_base.path.find('\n')
-    if newline > 1: proc.tlrc_base.path = proc.tlrc_base.path[0:newline]
+        proc.tlrc_base.path = com.so[0]
+        # nuke any newline character
+        newline = proc.tlrc_base.path.find('\n')
+        if newline > 1: proc.tlrc_base.path = proc.tlrc_base.path[0:newline]
+
     print "-- masking: group anat = '%s', exists = %d"   \
           % (proc.tlrc_base.pv(), proc.tlrc_base.exist())
 
