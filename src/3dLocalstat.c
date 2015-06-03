@@ -111,6 +111,8 @@ void usage_3dLocalstat(int detail)
 "               * min    = minimum\n"
 "               * max    = maximum\n"
 "               * absmax = maximum of the absolute values\n"
+"               * mode   = mode\n"
+"               * nzmode = non-zero mode\n"
 "               * num    = number of the values in the region:\n"
 "                          with the use of -mask or -automask,\n"
 "                          the size of the region around any given\n"
@@ -121,7 +123,7 @@ void usage_3dLocalstat(int detail)
 "               * sum    = sum of the values in the region:\n"
 "               * FWHM   = compute (like 3dFWHM) image smoothness\n"
 "                          inside each voxel's neighborhood.  Results\n"
-"                          are in 3 sub-bricks: FWHMx, FHWMy, and FWHMz.\n"
+"                          are in 3 sub-bricks: FWHMx, FWHMy, and FWHMz.\n"
 "                          Places where an output is -1 are locations\n"
 "                          where the FWHM value could not be computed\n"
 "                          (e.g., outside the mask).\n"
@@ -241,7 +243,8 @@ int main( int argc , char *argv[] )
    char allstats[] = { "mean; stdev; var; cvar; median; MAD; P2skew;"
                        "kurt; min; max; absmax; num; nznum; fnznum;"
                        "sum; rank; frank; fwhm; diffs; adiffs; mMP2s;"
-                       "mmMP2s; list; hist; perc; fwhmbar; fwhmbar12; ALL;" };
+                       "mmMP2s; list; hist; perc; fwhmbar; fwhmbar12;"
+                       "mode;nzmode;ALL;" };
    THD_3dim_dataset *inset=NULL , *outset ;
    int ncode=0 , code[MAX_NCODE] , iarg=1 , ii ;
    float codeparams[MAX_NCODE][MAX_CODE_PARAMS+1], 
@@ -589,6 +592,8 @@ int main( int argc , char *argv[] )
        else if( strcasecmp(cpt,"cvar")  == 0 ) code[ncode++] = NSTAT_CVAR  ;
        else if( strcasecmp(cpt,"median")== 0 ) code[ncode++] = NSTAT_MEDIAN;
        else if( strcasecmp(cpt,"MAD")   == 0 ) code[ncode++] = NSTAT_MAD   ;
+       else if( strcasecmp(cpt,"mode")  == 0 ) code[ncode++] = NSTAT_MODE  ;
+       else if( strcasecmp(cpt,"nzmode") == 0) code[ncode++] = NSTAT_NZMODE  ;
        else if( strcasecmp(cpt,"P2skew")== 0 ) code[ncode++] = NSTAT_P2SKEW;
        else if( strcasecmp(cpt,"kurt")  == 0 ) code[ncode++] = NSTAT_KURT  ;
        else if( strcasecmp(cpt,"min")   == 0 ) code[ncode++] = NSTAT_MIN   ;
@@ -689,7 +694,7 @@ int main( int argc , char *argv[] )
          code[ncode++] = NSTAT_MEDIAN; code[ncode++] = NSTAT_MAD   ;
          code[ncode++] = NSTAT_MIN   ; code[ncode++] = NSTAT_MAX   ;
          code[ncode++] = NSTAT_ABSMAX; code[ncode++] = NSTAT_NUM   ;
-         code[ncode++] = NSTAT_SUM   ;
+         code[ncode++] = NSTAT_SUM   ; code[ncode++] = NSTAT_MODE   ;
          code[ncode++] = NSTAT_FWHMx ; code[ncode++] = NSTAT_FWHMy ;
          code[ncode++] = NSTAT_FWHMz ; do_fwhm++ ;
          code[ncode++] = NSTAT_RANK  ; code[ncode++] = NSTAT_FRANK ; 
@@ -711,6 +716,7 @@ int main( int argc , char *argv[] )
 
    THD_localstat_verb(verb) ;
    THD_localstat_datum(datum);
+
    outset = THD_localstat(inset , mask , nbhd , ncode , code, codeparams, 
                           redx, restore_grid == 1 ? resam_mode : -1);
    if( outset == NULL ) ERROR_exit("Function THD_localstat() fails?!") ;
@@ -746,6 +752,7 @@ int main( int argc , char *argv[] )
      lcode[NSTAT_adiffs0] = "Avg|Dif|";lcode[NSTAT_adiffs1]    = "Min|Dif|";
                                        lcode[NSTAT_adiffs2]    = "Max|Dif|";
      lcode[NSTAT_LIST]    = "list";    lcode[NSTAT_HIST]       = "hist"; 
+     lcode[NSTAT_MODE]    = "MODE";    lcode[NSTAT_NZMODE]     = "NZMODE";
      
      if( DSET_NVALS(inset) == 1 ){
        ii=0;

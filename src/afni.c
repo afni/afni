@@ -1,6 +1,6 @@
 
 /*-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+*/
-/*   This is the mother goddess of all FMRI programs, so bow down before it.  */
+/*   This is the mother goddess of all FMRI programs, so bow down before it!  */
 /*-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+*/
 
 /*****************************************************************************
@@ -1510,7 +1510,7 @@ void AFNI_sigfunc_alrm(int sig)
      "I am not bound to please thee with my statistics"              ,
      "I will praise any man that will praise me"                     ,
      "If you have tears, prepare to shed them now"                   ,
-     "Man, those neutrinos are killing me"                           ,
+     "Man, those solar neutrinos are killing me"                     ,
      "Are you ready for the explosion of Eta Carinae?"               ,
      "Remember -- AFNI is free, but worth at least 1000 times more"  ,
      "Remember -- Nothing is always absolutely so"                   ,
@@ -1585,8 +1585,11 @@ void AFNI_sigfunc_alrm(int sig)
      "Shedding new light on the brain since 1994!"                   ,
      "Brain-ology at the cutting edge since 1994!"                   ,
      "Don't you wish it had a 'Write Nature Paper' button?"          ,
-     "Coming soon: the 'Write Science Paper' interface"              ,
+     "Coming REAL soon: the 'Write Science Paper' interface"         ,
+     "And flights of angels sing thee to thy rest"                   ,
+     "Hast seen the White Whale?"                                    ,
 
+     "Have you made your long term (trillion year) research plan yet? Get busy"       ,
      "Why is 'Gold Standard' used in science? Gold is pretty but almost useless"      ,
      "Oh well, you can always end your paper with 'Further research needed'"          ,
      "It's not true my youth was wild and crazy -- only half of that is true"         ,
@@ -1628,6 +1631,9 @@ void AFNI_sigfunc_alrm(int sig)
      "Analyze your data rigorously -- you can fake the conclusions all you want later",
      "O wad some Pow'r the giftie gie us, To see oursels as ithers see us"            ,
 
+     "\n  The great thing about the human condition:\n"
+     "  No matter how bad it is, it can always get worse"                                     ,
+
      "\n  When someone says: I'm going to simplify things.\n"
      "  They mean:         Be confused. Be very, very confused"                               ,
 
@@ -1649,11 +1655,11 @@ void AFNI_sigfunc_alrm(int sig)
      "\n  When someone says: I agree 100% with your concept,\n"
      "  They mean:         I am implacably opposed to your proposal"                          ,
 
-     "\n  If reasonable priors lead to different conclusions, then it's time to\n"
+     "\n  If 2 reasonable priors lead to different conclusions, then it's time to\n"
      "  look for more data, think harder, mumble inaudibly, or take a wild guess"             ,
 
-     "\n  To be stupid, selfish, and have good health are three requirements for\n"
-     "   happiness; though if stupidity is lacking, all is lost.\n"
+     "\n  To be stupid, selfish, and have good health are three requirements\n"
+     "   for happiness; though if stupidity is lacking, all is lost.\n"
    } ;
 #undef NTOP
 #ifdef USE_SONNETS
@@ -3306,7 +3312,7 @@ STATUS("defining surface drawing parameters") ;
         DC_parse_color( im3d->dc , ag->line_color , &rr_lin,&gg_lin,&bb_lin ) ;
         DC_parse_color( im3d->dc , ag->box_color  , &rr_box,&gg_box,&bb_box ) ;
         linewidth = ag->line_width * 0.002f ;
-		  skip_boxes = 1 ; skip_lines = 0 ; skip_lcen = 0; skip_ledg = 1 ;
+        skip_boxes = 1 ; skip_lines = 0 ; skip_lcen = 0; skip_ledg = 1 ;
 
       } else {                                   /* the old way    */
                                                  /* to set colors:  */
@@ -9467,7 +9473,6 @@ THD_fvec3 AFNI_transform_vector( THD_3dim_dataset *old_dset ,
    return old_fv ;
 }
 
-
 /*------------------------------------------------------------------------
   09 May 2001: fix a Solaris stupidity, where the scale is resized
                improperly when the Define Function panel is opened!
@@ -10621,7 +10626,7 @@ ENTRY("AFNI_jump_and_seed") ;
 
 int AFNI_creepto_dicom( Three_D_View *im3d , float xx, float yy, float zz )
 {
-   float xc,yc,zc , dxx,dyy,dzz ; int ndd,qq,ii  ;
+   float xc,yc,zc , dxx,dyy,dzz ; int ndd,qq,ii=0 ;
 
 ENTRY("AFNI_creepto_dicom") ;
 

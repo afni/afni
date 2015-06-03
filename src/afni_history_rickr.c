@@ -49,6 +49,77 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  2,  Jun, 2015, RCR, "NIFTI", MICRO, TYPE_GENERAL,
+   "NIFTI-1,2: added NIFTI_ECODE_CIFTI/VARIABLE_FRAME_TIMING/EVAL/MATLAB",
+   NULL
+ } ,
+
+ {  1,  Jun, 2015, RCR, "nifti_tool", MINOR, TYPE_ENHANCE,
+   "diff/disp_hdr detects type; diff_hdr1/2",
+   NULL
+ } ,
+
+ {  1,  Jun, 2015, RCR, "3dttest++", MICRO, TYPE_NEW_OPT,
+   "added -dupe_ok and more warnings when dataset labels match",
+   NULL
+ } ,
+
+ { 27,  May, 2015, RCR, "@Install_TSrestMovieDemo", MICRO, TYPE_BUG_FIX,
+   "set and applied $demo as Suma_TSrestMovieDemo",
+   NULL
+ } ,
+
+ { 26,  May, 2015, RCR, "3dBlurToFWHM", MICRO, TYPE_MODIFY,
+   "make -help output consistent in using FWHM (along with 3dLocalstat)",
+   NULL
+ } ,
+
+ { 26,  May, 2015, RCR, "NIFTI", MINOR, TYPE_ENHANCE,
+   "nifti_read_header returns generic pointer; rename N-1/2 header read funcs",
+   NULL
+ } ,
+
+ { 22,  May, 2015, RCR, "afni_proc.py", MICRO, TYPE_ENHANCE,
+   "help clarifications for -regress_ROI* options",
+   NULL
+ } ,
+
+ { 22,  May, 2015, RCR, "afni-general", MINOR, TYPE_MODIFY,
+   "allow for small differences when comparing oblique angles",
+   "Define OBLIQ_ANGLE_THRESH=0.01 as a tolerance for the difference.\n"
+   "This was done to fix registration to external dset in realtime.\n"
+   "Thanks to V Roopchansingh for bringing up the problem."
+ } ,
+
+ { 19,  May, 2015, RCR, "3dClustSim", MICRO, TYPE_MODIFY,
+   "do not allow -pthr to preceed -both or -niml",
+   "Otherwise -pthr values would be lost."
+ } ,
+
+ { 18,  May, 2015, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,
+   "allow ROI PC regression for local masks (not just external ones)",
+   "External ROIs should now be passed via -anat_follower_ROI, rather than\n"
+   "-regress_ROI_*, the latter no longer taking dataset parameters.\n"
+   "Also changed -regress_ROI_erode to -anat_follower_erode and\n"
+   "removed option -regress_ROI_maskave (use -regress_ROI)\n"
+   "Done for R W Cox."
+ } ,
+
+ { 18,  May, 2015, RCR, "gen_ss_review_table.py", MICRO, TYPE_NEW_OPT,
+   "mention gen_ss_review_scripts.py -help_fields in help",
+   NULL
+ } ,
+
+ {  8,  May, 2015, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
+   "added -regress_make_corr_vols",
+   "Use this to compute average correlation volumes for various masks."
+ } ,
+
+ {  7,  May, 2015, RCR, "afni_proc.py", MINOR, TYPE_MODIFY,
+   "replaced slow 3dTfitter with 3dTproject in anaticor",
+   "This should not affect the result, just the processing time."
+ } ,
+
  {  5,  May, 2015, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,
    "added help (inc Ex 11), follower modifications, WMe corr diag change",
    NULL

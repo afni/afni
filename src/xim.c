@@ -927,7 +927,7 @@ ENTRY("ISQ_snapfile2") ;
    }
    if( !XtIsRealized(w) || !XtIsManaged(w) ) {
       ERROR_message("widget not managed (%d) or realized (%d) yet",
-                     XtIsRealized(w), XtIsManaged(w));
+                     XtIsManaged(w), XtIsRealized(w));
       EXRETURN ;
    }
    win = XtWindow(w); if( win == (Window)0 ) {

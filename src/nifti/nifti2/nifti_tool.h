@@ -16,8 +16,8 @@ typedef struct{
 typedef struct{
             /* action options (flags) */
    int      check_hdr,  check_nim;
-   int      diff_hdr,   diff_nim;
-   int      disp_hdr,   disp_nim, disp_ana;
+   int      diff_hdr,   diff_hdr1, diff_hdr2, diff_nim;
+   int      disp_hdr1,  disp_hdr2, disp_hdr, disp_nim, disp_ana;
    int      disp_exts,  add_exts, rm_exts;
    int      mod_hdr,    mod_nim;
    int      swap_hdr,   swap_ana, swap_old;
@@ -111,10 +111,14 @@ int    act_cbl        ( nt_opts * opts );  /* copy brick list */
 int    act_cci        ( nt_opts * opts );  /* copy collapsed dimensions */
 int    act_check_hdrs ( nt_opts * opts );  /* check for valid hdr or nim */
 int    act_diff_hdrs  ( nt_opts * opts );
+int    act_diff_hdr1s ( nt_opts * opts );
+int    act_diff_hdr2s ( nt_opts * opts );
 int    act_diff_nims  ( nt_opts * opts );
 int    act_disp_ci    ( nt_opts * opts );  /* display general collapsed data */
 int    act_disp_exts  ( nt_opts * opts );
-int    act_disp_hdrs  ( nt_opts * opts );
+int    act_disp_hdr   ( nt_opts * opts );
+int    act_disp_hdr1  ( nt_opts * opts );
+int    act_disp_hdr2  ( nt_opts * opts );
 int    act_disp_nims  ( nt_opts * opts );
 int    act_disp_anas  ( nt_opts * opts );
 int    act_disp_ts    ( nt_opts * opts );  /* display time series */
@@ -125,13 +129,17 @@ int    act_rm_ext     ( nt_opts * opts );
 int    act_strip      ( nt_opts * opts );  /* strip extras from datasets */
 
 
-field_s * get_hdr_field( char * fname, int show_fail );
+field_s * get_hdr1_field( char * fname, int show_fail );
+field_s * get_hdr2_field( char * fname, int show_fail );
 field_s * get_nim_field( char * fname, int show_fail );
 char    * field_type_str (int type);
 
-int diff_hdrs     (nifti_1_header *s0, nifti_1_header *s1, int display);
-int diff_hdrs_list(nifti_1_header *s0, nifti_1_header *s1, str_list *slist,
-                   int display);
+int diff_hdr1s    (nifti_1_header *s0, nifti_1_header *s1, int display);
+int diff_hdr1s_list(nifti_1_header *s0, nifti_1_header *s1, str_list *slist,
+                    int display);
+int diff_hdr2s    (nifti_2_header *s0, nifti_2_header *s1, int display);
+int diff_hdr2s_list(nifti_2_header *s0, nifti_2_header *s1, str_list *slist,
+                    int display);
 int diff_nims     (nifti_image *s0,nifti_image *s1,        int display);
 int diff_nims_list(nifti_image *s0,nifti_image *s1,str_list *slist,int display);
 
@@ -147,9 +155,9 @@ int disp_nt_opts     (char * mesg, nt_opts * opts);
 int disp_raw_data    (void * data, int type, int nvals, char space,int newline);
 int fill_cmd_string  (nt_opts * opts, int argc, char * argv[]);
 int fill_field       (field_s *fp, int type, int offset, int num, char *name);
-int fill_hdr_field_array(field_s * nh_fields);
+int fill_hdr1_field_array(field_s * nh_fields);
 int fill_hdr2_field_array(field_s * nh_fields);
-int fill_nim_field_array(field_s * nim_fields);
+int fill_nim1_field_array(field_s * nim_fields);
 int fill_nim2_field_array(field_s * nim_fields);
 int fill_ana_field_array(field_s * ah_fields);
 int modify_all_fields(void *basep, nt_opts *opts, field_s *fields, int flen);
@@ -165,8 +173,9 @@ int write_hdr_to_file(nifti_1_header * nhdr, char * fname);
 nifti_image    * nt_image_read (nt_opts * opts, char * fname, int doread);
 nifti_image    * nt_read_bricks(nt_opts * opts, char * fname, int len,
                                 int64_t * list, nifti_brick_list * NBL);
-nifti_1_header * nt_read_header(nt_opts * opts, char * fname, int * swapped,
-                                int check);
+void * nt_read_header(char * fname, int * nver, int * swapped, int check,
+                      int new_datatype, int64_t new_dim[8]);
+
 
 
 #endif  /* _NIFTI_TOOL_H_ */

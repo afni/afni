@@ -620,7 +620,53 @@ ENTRY("AFNI_icor_setref_anatijk") ;
    RETURN(ijk) ;
 }
 
-/*-----------------------------------------------------------------------*/
+/*----------------------------------------------------------------------------*/
+/* Find the best index triple in the odset to match the uxyz
+   coordinates in the udset [07 May 2015].
+*//*--------------------------------------------------------------------------*/
+
+THD_ivec3 THD_find_closest_roundtrip( THD_3dim_dataset *odset,
+                                      THD_3dim_dataset *udset, THD_fvec3 uxyz )
+{
+   THD_ivec3 iv,jv,kv , ivbest ; THD_fvec3 xv,yv,zv ;
+   int di,dj,dk ; float dist , dbest=666666.6f ;
+
+   xv = THD_dicomm_to_3dmm        ( odset, uxyz ) ;
+   iv = THD_3dmm_to_3dind_no_wod  ( odset, xv   ) ; ivbest = iv ;
+   for( di=-1 ; di <= 1 ; di++ ){
+    for( dj=-1 ; dj <= 1 ; dj++ ){
+     for( dk=-1 ; dk <= 1 ; dk++ ){
+       jv.ijk[0] = iv.ijk[0] + di ;
+       jv.ijk[1] = iv.ijk[1] + dj ;
+       jv.ijk[2] = iv.ijk[2] + dk ;
+       yv = THD_3dind_to_dicomm_no_wod( odset, jv   ) ;
+       xv = THD_dicomm_to_3dmm        ( udset, yv   ) ;
+       kv = THD_3dmm_to_3dind         ( udset, xv   ) ;
+       xv = THD_3dind_to_3dmm         ( udset, kv   ) ;
+       yv = THD_3dmm_to_dicomm        ( udset, xv   ) ;
+
+       dist = fabsf(uxyz.xyz[0]-yv.xyz[0])+fabsf(uxyz.xyz[1]-yv.xyz[1])+fabsf(uxyz.xyz[2]-yv.xyz[2]) ;
+       if( dist < dbest ){
+         ivbest = jv ; dbest = dist ;
+       }
+#if 0
+INFO_message("roundtrip: input xyz=%f %f %f  output xyz=%f %f %f  dist=%f  dijk=%d %d %d %s",
+             uxyz.xyz[0] , uxyz.xyz[1] , uxyz.xyz[2] ,
+             yv.xyz[0]   , yv.xyz[1]   , yv.xyz[2]   ,
+             fabsf(uxyz.xyz[0]-yv.xyz[0])+fabsf(uxyz.xyz[1]-yv.xyz[1])+fabsf(uxyz.xyz[2]-yv.xyz[2]) ,
+             di,dj,dk , (dist==dbest) ? "*" : "\0" ) ;
+#endif
+   }}}
+
+#if 0
+INFO_message("iv nominal=%d %d %d   ivbest=%d %d %d",
+             iv.ijk[0] , iv.ijk[1] , iv.ijk[2] , ivbest.ijk[0] , ivbest.ijk[1] , ivbest.ijk[2] ) ;
+#endif
+
+   return ivbest ;
+}
+
+/*----------------------------------------------------------------------------*/
 /* Seed location at DICOM x,y,z location */
 
 int AFNI_icor_setref_xyz( Three_D_View *im3d , float xx,float yy,float zz )
@@ -665,7 +711,11 @@ ENTRY("AFNI_icor_setref_xyz") ;
 
    /* convert to index in the InstaCorr dataset */
 
+#if 0
    kv  = THD_3dmm_to_3dind_no_wod( im3d->iset->dset, jv ) ;
+#else
+   kv  = THD_find_closest_roundtrip(im3d->iset->dset,im3d->anat_now,iv) ;
+#endif
    ijk = DSET_ixyz_to_index( im3d->iset->dset, kv.ijk[0],kv.ijk[1],kv.ijk[2] ) ;
 
    /* do the real work: ijk = voxel index */
@@ -1466,7 +1516,11 @@ STATUS("check coordinates") ;
 
 STATUS("transform coords to index" ) ;
 
+#if 0
    kv  = THD_3dmm_to_3dind_no_wod( giset->dset, jv ) ;
+#else
+   kv  = THD_find_closest_roundtrip(giset->dset,im3d->anat_now,iv) ;
+#endif
    ijk = DSET_ixyz_to_index( giset->dset, kv.ijk[0],kv.ijk[1],kv.ijk[2] ) ;
 
    /** INFO_message("DEBUG: AFNI_gicor_setref called: ijk=%d",ijk) ; **/

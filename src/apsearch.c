@@ -759,7 +759,14 @@ int main(int argc, char **argv)
       
       
       if (!strcmp(argv[iarg],"-doc_markup_sample")) {
-         SUMA_Sphinx_String_Edit_Help(NULL);
+         SUMA_Sphinx_String_Edit_Help(NULL,0);
+         ++iarg;
+         return(0);
+         continue; 
+      }
+      
+      if (!strcmp(argv[iarg],"-doc_markup_sample_web")) {
+         SUMA_Sphinx_String_Edit_Help(NULL,1);
          ++iarg;
          return(0);
          continue; 
