@@ -9320,9 +9320,11 @@ int SUMA_ComputeLineVOvrIntersect (SUMA_SurfaceViewer *sv, SUMA_DO *dov,
          VO = (SUMA_VolumeObject *)(dov[MembDOs[ii]].OP);
          ado = (SUMA_ALL_DO *)VO;
          if (!(VSaux = SUMA_ADO_VSaux(ado))) continue;
-         SUMA_LH("%d VR slices on %s, show=%d", dlist_size(VSaux->vrslcl), 
-                              ADO_LABEL(ado), VSaux->ShowVrSlc);
-         if (!VSaux->ShowVrSlc) continue;
+         SUMA_LH("%d VR slices on %s, show=%d, VrSelect=%d", 
+                              dlist_size(VSaux->vrslcl), 
+                              ADO_LABEL(ado), VSaux->ShowVrSlc, 
+                              VSaux->VrSelect);
+         if (!VSaux->ShowVrSlc || !VSaux->VrSelect) continue;
          if (!dlist_size(VSaux->vrslcl)) continue;
          /* now compute intersection from the top down */
          Hit = 0; 

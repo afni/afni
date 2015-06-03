@@ -3410,7 +3410,11 @@ static ENV_SPEC envlist[] = {
       "otherwise you have no way of opening a volume controller\n"
       "Example: 'Ax:0.5:3:10,Co:123:2:50,Vr'",
       "SUMA_VO_InitSlices",
-      "Ax:0.5,Sa:0.5:2:0.5,hCo:0.5,Vr" }, 
+      "Ax:0.5,Sa:0.5:2:0.5,hCo:0.5,Vr" },
+   {  "Allow selection of voxels on 3D rendering.\n"
+      "Choose one of: YES or NO\n",
+      "SUMA_VrSelectable",
+      "YES"  },
    {  "Perform 'Home' call in SUMA after each prying.\n"
       "If YES, objects are repositioned to stay in the middle of the viewer\n"
       "as you pry the surfaces apart. This behavior is desired in general, \n"

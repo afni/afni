@@ -863,6 +863,7 @@ void SUMA_CreateVrFields(  Widget parent,
                         void (*NewValueCallback)(void * data), void *cb_data,
                         SUMA_VR_FIELD *VrF);
 void SUMA_cb_ShowVrF_toggled(Widget w, XtPointer data, XtPointer client_data);
+void SUMA_cb_VrSelect_toggled(Widget w, XtPointer data, XtPointer client_data);
 void SUMA_cb_VSliceAtXYZ_toggled(Widget w, XtPointer data,XtPointer client_data);
 void SUMA_leave_NslcField( Widget w , XtPointer client_data ,
                             XEvent * ev , Boolean * continue_to_dispatch );
