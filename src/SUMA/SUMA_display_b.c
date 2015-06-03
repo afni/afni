@@ -3441,7 +3441,7 @@ void SUMA_CreateVrFields(  Widget parent,
                          (XtPointer) VrF ,
                          XtListTail ) ;     /* last in queue */
 
-   /* Now for the toggle button */
+   /* Now for the view toggle button */
    VrF->tb = XtVaCreateManagedWidget("v", 
       xmToggleButtonWidgetClass, VrF->rc, NULL);
    XtAddCallback (VrF->tb, 
@@ -3455,6 +3455,21 @@ void SUMA_CreateVrFields(  Widget parent,
 
    SUMA_SET_SELECT_COLOR(VrF->tb);
    XmToggleButtonSetState (VrF->tb, VSaux->ShowVrSlc , NOPE);
+   
+   /* Now for the selectable toggle button */
+   VrF->tbs = XtVaCreateManagedWidget("s", 
+      xmToggleButtonWidgetClass, VrF->rc, NULL);
+   XtAddCallback (VrF->tbs, 
+         XmNvalueChangedCallback, SUMA_cb_VrSelect_toggled, ado);
+   if (hint || help) {
+      snprintf(wname,63,"%s->Ns->s", VrF->wname);
+      SUMA_Register_Widget_Help(VrF->tbs, 1, wname, 
+                                "Allow voxel selection on rendered volume (ON)", 
+                                SUMA_SurfContHelp_VrSelectTgl);
+   }
+
+   SUMA_SET_SELECT_COLOR(VrF->tbs);
+   XmToggleButtonSetState (VrF->tbs, VSaux->VrSelect , NOPE);
    
    SUMA_RETURNe;
 }
@@ -3476,6 +3491,26 @@ void SUMA_cb_ShowVrF_toggled(Widget w, XtPointer data, XtPointer client_data)
       
    SUMA_SetShowSlice((SUMA_VolumeObject *)ado, "Vr", 
                       XmToggleButtonGetState (SurfCont->VR_fld->tb));
+   SUMA_RETURNe;
+}
+
+void SUMA_cb_VrSelect_toggled(Widget w, XtPointer data, XtPointer client_data)
+{
+   static char FuncName[]={"SUMA_cb_VrSelect_toggled"};
+   SUMA_ALL_DO *ado = NULL;
+   SUMA_X_SurfCont *SurfCont=NULL;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   SUMA_LH("Called");
+   
+   ado = (SUMA_ALL_DO *)data;
+   if (!ado || !(SurfCont=SUMA_ADO_Cont(ado))) { 
+      SUMA_S_Warn("NULL input"); SUMA_RETURNe; }
+      
+   SUMA_SetShowSlice((SUMA_VolumeObject *)ado, "Sel", 
+                      XmToggleButtonGetState (SurfCont->VR_fld->tbs));
    SUMA_RETURNe;
 }
 
