@@ -143,6 +143,7 @@ typedef struct {
    int ShowSaSlc;
    int ShowCoSlc;
    int ShowVrSlc;
+   int VrSelect;
    
    int SlicesAtCrosshair; /* Make three slices jump to location of crosshair */
    SUMA_ATRANS_MODES TransMode; /*!< polygon transparency  */

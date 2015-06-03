@@ -4502,6 +4502,11 @@ int SUMA_SetShowSlice(SUMA_VolumeObject *vdo, char *variant, int val)
          #endif        
       }
       SUMA_LH("SlicesAtCrosshair now %d", VSaux->SlicesAtCrosshair);
+   } else if (!strcmp(variant, "Sel")) {
+      if (VSaux->VrSelect != val) {
+         VSaux->VrSelect = val;
+      }
+      SUMA_LH("VrSelect now %d", VSaux->VrSelect);
    } else {
       SUMA_S_Err("And what is variant %s for?", variant);
       SUMA_RETURN(NOPE);

@@ -186,7 +186,7 @@ int main(int argc, char *argv[])
    char *Fname_outputBV = NULL;
    char *Fname_bval = NULL;
    int opt;
-   FILE *fin, *fout, *finbv, *foutBV;
+   FILE *fin=NULL, *fout=NULL, *finbv=NULL, *foutBV=NULL;
    int i,j,k;
    int BZER=0,idx=0,idx2=0;
 

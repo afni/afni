@@ -282,8 +282,8 @@ int main( int argc , char *argv[] )
 
    if( convertize ){
      ntr = 9*nvox ;
-          if( ntr <  200000 ) ntr =  200000 ;
-     else if( ntr > 2000000 ) ntr = 2000000 ;
+          if( ntr <  300000 ) ntr =  300000 ;
+     else if( ntr > 3000000 ) ntr = 3000000 ;
 
      INFO_message("Simulating A-D null distribution: %d trials",ntr) ;
 
@@ -291,7 +291,10 @@ int main( int argc , char *argv[] )
      if( atr == NULL ) ERROR_exit("Simulation failed!?") ;
      /** ININFO_message("range %g .. %g",atr[0],atr[ntr-1]) ; **/
 
-     INFO_message("Converting A-D statistics to exponential distribution") ;
+     if( dopval )
+       INFO_message("Converting A-D statistics to p-values") ;
+     else
+       INFO_message("Converting A-D statistics to exponential distribution") ;
 
      anderson_darling_expify( nvox , avar , ntr , atr , dopval ) ;
      free(atr) ;

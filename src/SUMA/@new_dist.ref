@@ -211,7 +211,7 @@ else if ($fromcvs == "git") then
       echo "ERROR: Don't know how to do this with git yet"
       goto END
    else
-      git clone https://github.com/afniHQ/AFNI.git $tdir
+      git clone https://github.com/afni/afni.git $tdir
    endif
 else
    if ( ! -d $fromcvs ) then

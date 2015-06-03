@@ -340,20 +340,6 @@ static char const * const gni1_history[] =
   "----------------------------------------------------------------------\n"
 };
 
-static char const * const gni2_history[] =
-{
-  "----------------------------------------------------------------------\n"
-  "history (of nifti-2 library changes):\n"
-  "\n",
-  "0.00 02 Jan, 2014 [rickr]\n"
-  "     Richard Reynolds of the National Institutes of Health, SSCC/DIRP/NIMH\n"
-  "   - initial version - change types to 64-bit based on new nifti_image\n",
-  "0.01 04 Apr, 2014 [rickr]\n"
-  "   - added functionality for both nifti-1 and -2 headers\n"
-  "     (read/display/swap/convert2nim/make_new_n?_hdr)\n"
-  "   - still needs much nifti-2 functionality\n"
-};
-
 /* rcr - todo
 
    - nifti_tool -copy_sform SFORM_DSET.nii -infile ORIG.nii -prefix PP
@@ -371,8 +357,25 @@ static char const * const gni2_history[] =
    - nifti_image_write_hdr_img2: write nifti_2_header
  */
 
+static char const * const gni2_history[] =
+{
+  "----------------------------------------------------------------------\n"
+  "history (of nifti-2 library changes):\n"
+  "\n",
+  "2.00 02 Jan, 2014 [rickr]\n"
+  "     Richard Reynolds of the National Institutes of Health, SSCC/DIRP/NIMH\n"
+  "   - initial version - change types to 64-bit based on new nifti_image\n",
+  "2.01 04 Apr, 2014 [rickr]\n"
+  "   - added functionality for both nifti-1 and -2 headers\n"
+  "     (read/display/swap/convert2nim/make_new_n?_hdr)\n"
+  "   - still needs much nifti-2 functionality\n",
+  "2.02 11 May, 2015 [rickr]\n"
+  "   - added to repository 28 Apr, 2015\n"
+  "   - nifti_read_header() now returns found header struct\n"
+};
+
 static const char gni_version[]
-        = "nifti-2 library version 0.01 (04 April, 2014)";
+        = "nifti-2 library version 2.02 (11 May, 2015)";
 
 /*! global nifti options structure - init with defaults */
 static nifti_global_options g_opts = {
@@ -4494,8 +4497,8 @@ int disp_nifti_2_header( const char * info, const nifti_2_header * hp )
 
 
 #undef  ERREX
-#define ERREX(msg)                                           \
- do{ fprintf(stderr,"** ERROR: nifti_convert_nhdr2nim: %s\n", (msg) ) ;  \
+#define ERREX(msg)                                                        \
+ do{ fprintf(stderr,"** ERROR: nifti_convert_n1hdr2nim: %s\n", (msg) ) ;  \
      return NULL ; } while(0)
 
 /*----------------------------------------------------------------------*/
@@ -4503,7 +4506,7 @@ int disp_nifti_2_header( const char * info, const nifti_2_header * hp )
 
    \return an allocated nifti_image, or NULL on failure
 *//*--------------------------------------------------------------------*/
-nifti_image* nifti_convert_nhdr2nim(nifti_1_header nhdr, const char * fname)
+nifti_image* nifti_convert_n1hdr2nim(nifti_1_header nhdr, const char * fname)
 {
    int   ii , doswap , ioff ;
    int   ni_ver , is_onefile ;
@@ -5109,13 +5112,13 @@ znzFile nifti_image_open(const char * hname, char * opts, nifti_image ** nim)
 
     \sa nifti_image_read, nifti_image_free, nifti_image_read_bricks
 *//*--------------------------------------------------------------------*/
-nifti_1_header * nifti_read_header(const char * hname, int * swapped, int check)
+nifti_1_header * nifti_read_n1_hdr(const char * hname, int *swapped, int check)
 {
    nifti_1_header   nhdr, * hptr;
    znzFile          fp;
    int              bytes, lswap;
    char           * hfile;
-   char             fname[] = { "nifti_read_header" };
+   char             fname[] = { "nifti_read_n1_hdr" };
 
    /* determine file name to use for header */
    hfile = nifti_findhdrname(hname);
@@ -5171,7 +5174,7 @@ nifti_1_header * nifti_read_header(const char * hname, int * swapped, int check)
 
    if ( g_opts.debug > 2 ) disp_nifti_1_header("-d nhdr post-swap: ", &nhdr);
 
-   if ( check && ! nifti_hdr_looks_good(&nhdr) ){
+   if ( check && ! nifti_hdr1_looks_good(&nhdr) ){
       LNI_FERR(fname,"nifti_1_header looks bad for file", hname);
       return NULL;
    }
@@ -5204,16 +5207,17 @@ nifti_1_header * nifti_read_header(const char * hname, int * swapped, int check)
 
     \warning ASCII header type is not supported
 
-    \sa nifti_read_header, nifti_image_read, nifti_image_read_bricks
+    \sa nifti_read_header, nifti_read_n1_hdr,
+        nifti_image_read, nifti_image_read_bricks
 *//*--------------------------------------------------------------------*/
-nifti_2_header * nifti2_read_header(const char * hname, int * swapped,
+nifti_2_header * nifti_read_n2_hdr(const char * hname, int * swapped,
                                     int check)
 {
    nifti_2_header   nhdr, * hptr;
    znzFile          fp;
    int              bytes, lswap;
    char           * hfile;
-   char             fname[] = { "nifti2_read_header" };
+   char             fname[] = { "nifti_read_n2_hdr" };
 
    /* determine file name to use for header */
    hfile = nifti_findhdrname(hname);
@@ -5262,7 +5266,7 @@ nifti_2_header * nifti2_read_header(const char * hname, int * swapped,
 
    if ( g_opts.debug > 2 ) disp_nifti_2_header("-d nhdr post-swap: ", &nhdr);
 
-   if ( check && ! nifti2_hdr_looks_good(&nhdr) ){
+   if ( check && ! nifti_hdr2_looks_good(&nhdr) ){
       LNI_FERR(fname,"nifti_2_header looks bad for file", hname);
       return NULL;
    }
@@ -5281,6 +5285,10 @@ nifti_2_header * nifti2_read_header(const char * hname, int * swapped,
    return hptr;
 }
 
+/* rcr - updates for hdr_looks good
+       - write nifti_hdr2_looks_good
+*/
+
 
 /*----------------------------------------------------------------------*/
 /*! decide if this nifti_1_header structure looks reasonable
@@ -5293,7 +5301,7 @@ nifti_2_header * nifti2_read_header(const char * hname, int * swapped,
 
    \sa nifti_nim_is_valid, valid_nifti_extensions
 *//*--------------------------------------------------------------------*/
-int nifti_hdr_looks_good(const nifti_1_header * hdr)
+int nifti_hdr1_looks_good(const nifti_1_header * hdr)
 {
    int ni_ver, c, errs = 0;
 
@@ -5400,7 +5408,7 @@ int nifti_valid_header_size(int ni_ver, int whine)
 
    \sa nifti_nim_is_valid, valid_nifti_extensions
 *//*--------------------------------------------------------------------*/
-int nifti2_hdr_looks_good(const nifti_2_header * hdr)
+int nifti_hdr2_looks_good(const nifti_2_header * hdr)
 {
    int     ni_ver, c, errs = 0;
    int64_t d0;
@@ -5512,6 +5520,133 @@ static int need_nhdr_swap( short dim0, int hdrsize )
 
 
 /***************************************************************
+ * nifti_read_header
+ ***************************************************************/
+/*! \brief Read and return a nifti header, along with the found type
+
+        - The data buffer will be byteswapped if necessary.
+        - The data buffer will not be scaled.
+        - The data buffer is allocated with calloc().
+
+    \param hname filename of the nifti dataset
+    \param nver : 
+    \return A void pointer, which should be cast based on the returned nver.
+            It points to an allocated header struct.
+*/
+void * nifti_read_header( const char *hname, int *nver, int check )
+{
+   nifti_1_header  n1hdr;
+   nifti_2_header  n2hdr;
+   znzFile         fp;
+   void          * hresult = NULL;
+   int64_t         remain, h1size=0, h2size=0;
+   char            fname[] = { "nifti_read_header" };
+   char           *hfile=NULL, *posn;
+   int             ii, ni_ver;
+
+   if( g_opts.debug > 2 ){
+      fprintf(stderr,"-d reading header from '%s'",hname);
+      fprintf(stderr,", HAVE_ZLIB = %d\n", nifti_compiled_with_zlib());
+   }
+
+   /**- determine filename to use for header */
+   hfile = nifti_findhdrname(hname);
+   if( hfile == NULL ){
+      if(g_opts.debug > 0)
+         LNI_FERR(fname,"failed to find header file for", hname);
+      return NULL;  /* check return */
+   } else if( g_opts.debug > 2 )
+      fprintf(stderr,"-d %s: found header filename '%s'\n",fname,hfile);
+
+   h1size = sizeof(nifti_1_header);
+   h2size = sizeof(nifti_2_header);
+
+   /**- open file, separate reading of header, extensions and data */
+   fp = znzopen(hfile, "rb", nifti_is_gzfile(hfile));
+   if( znz_isnull(fp) ){
+      if( g_opts.debug > 0 ) LNI_FERR(fname,"failed to open header file",hfile);
+      free(hfile);
+      return NULL;
+   }
+
+   /**- next read into nifti_1_header and determine nifti type */
+   ii = (int)znzread(&n1hdr, 1, h1size, fp);
+
+   if( ii < (int)h1size ){      /* failure? */
+      if( g_opts.debug > 0 ){
+         LNI_FERR(fname,"bad binary header read for file", hfile);
+         fprintf(stderr,"  - read %d of %d bytes\n",ii, (int)h1size);
+      }
+      znzclose(fp) ;
+      free(hfile);
+      return NULL;
+   }
+
+   /* find out what type of header we have */
+   ni_ver = nifti_header_version((char *)&n1hdr, h1size);
+   if( g_opts.debug > 2 )
+      fprintf(stderr,"-- %s: NIFTI version = %d", fname, ni_ver);
+
+   /* maybe set return NIFTI version */
+   if( nver ) *nver = ni_ver;
+
+   /* if NIFTI-2, copy and finish reading header */
+   if ( ni_ver == 2 ) {
+      if( g_opts.debug > 2 )
+         fprintf(stderr,"-- %s: copying and filling NIFTI-2 header...", fname);
+      memcpy(&n2hdr, &n1hdr, h1size);   /* copy first part */
+      remain = h2size - h1size;
+      posn = (char *)&n2hdr + h1size;
+      ii = (int)znzread(posn, 1, remain, fp); /* read remaining part */
+      if( ii < (int)remain) {
+         LNI_FERR(fname,"short NIFTI-2 header read for file", hfile);
+         znzclose(fp);  free(hfile);  return NULL;
+      }
+   }
+
+   /* clean up */
+   znzclose(fp);
+   free(hfile);
+
+   /* allocate header space and return */
+   if( ni_ver == 0 || ni_ver == 1 ) {
+      hresult = malloc(h1size);
+      if( ! hresult ) {
+         LNI_FERR(fname,"failed to alloc NIFTI-1 header for file", hname);
+         return NULL;
+      }
+      memcpy(hresult, (void *)&n1hdr, h1size);
+
+      if ( check && ! nifti_hdr1_looks_good(hresult) ){
+         LNI_FERR(fname,"nifti_1_header looks bad for file", hname);
+         return NULL;
+      }
+   } else if ( ni_ver == 2 ) {
+      hresult = malloc(h2size);
+      if( ! hresult ) {
+         LNI_FERR(fname,"failed to alloc NIFTI-2 header for file", hname);
+         return NULL;
+      }
+      memcpy(hresult, &n2hdr, h2size);
+
+      if ( check && ! nifti_hdr2_looks_good(hresult) ){
+         LNI_FERR(fname,"nifti_2_header looks bad for file", hname);
+         return NULL;
+      }
+   } else {
+      if( g_opts.debug > 0 )
+         fprintf(stderr, "** %s: bad nifti header version %d\n", hfile, ni_ver);
+      hresult = NULL;
+   }
+
+   if( g_opts.debug > 1 )
+      fprintf(stderr,"-- returning NIFTI-%d header in %s\n", ni_ver, hname);
+
+   return hresult;
+}
+
+
+/***************************************************************
  * nifti_image_read
  ***************************************************************/
 /*! \brief Read a nifti header and optionally the data, creating a nifti_image.
@@ -5595,7 +5730,7 @@ nifti_image *nifti_image_read( const char *hname , int read_data )
       fprintf(stderr,"-- %s: NIFTI version = %d", fname, ni_ver);
 
    if( ni_ver == 0 || ni_ver == 1 ) {
-      nim = nifti_convert_nhdr2nim(n1hdr,hfile);
+      nim = nifti_convert_n1hdr2nim(n1hdr,hfile);
       onefile = NIFTI_ONEFILE(n1hdr);
    } else if ( ni_ver == 2 ) {
       /* fill nifti-2 header and convert */
@@ -6939,6 +7074,11 @@ nifti_image * nifti_make_new_nim(const int64_t dims[], int datatype,
    return nim;
 }
 
+#undef N_CHECK_2BYTE_VAL
+#define N_CHECK_2BYTE_VAL(fn) if( ! NIFTI_IS_16_BIT_INT(nim->fn) )        \
+   fprintf(stderr,"** nim->%s = %lld does not fit into NIFTI-1 header\n", \
+           #fn, (long long)nim->fn)
+
 
 /*----------------------------------------------------------------------*/
 /*! convert a nifti_image structure to a nifti_1_header struct
@@ -6947,10 +7087,10 @@ nifti_image * nifti_make_new_nim(const int64_t dims[], int datatype,
     As in:
     <pre>
     nifti_1_header my_header;
-    my_header = nifti_convert_nim2nhdr(my_nim_pointer);
+    my_header = nifti_convert_nim2n1hdr(my_nim_pointer);
     </pre>
 *//*--------------------------------------------------------------------*/
-nifti_1_header nifti_convert_nim2nhdr(const nifti_image * nim)
+nifti_1_header nifti_convert_nim2n1hdr(const nifti_image * nim)
 {
    nifti_1_header nhdr;
 
@@ -6961,6 +7101,17 @@ nifti_1_header nifti_convert_nim2nhdr(const nifti_image * nim)
 
    nhdr.sizeof_hdr = sizeof(nhdr) ;
    nhdr.regular    = 'r' ;             /* for some stupid reason */
+
+   N_CHECK_2BYTE_VAL(ndim);
+   N_CHECK_2BYTE_VAL(nx);
+   N_CHECK_2BYTE_VAL(ny);
+   N_CHECK_2BYTE_VAL(nz);
+   N_CHECK_2BYTE_VAL(nt);
+   N_CHECK_2BYTE_VAL(nu);
+   N_CHECK_2BYTE_VAL(nv);
+   N_CHECK_2BYTE_VAL(nw);
+   N_CHECK_2BYTE_VAL(datatype);
+   N_CHECK_2BYTE_VAL(nbyper);
 
    nhdr.dim[0] = nim->ndim ;
    nhdr.dim[1] = nim->nx ; nhdr.dim[2] = nim->ny ; nhdr.dim[3] = nim->nz ;
@@ -7000,10 +7151,17 @@ nifti_1_header nifti_convert_nim2nhdr(const nifti_image * nim)
      if( nim->nifti_type == NIFTI_FTYPE_NIFTI1_1 ) strcpy(nhdr.magic,"n+1") ;
      else                                          strcpy(nhdr.magic,"ni1") ;
 
-     nhdr.pixdim[1] = (float)fabs(nhdr.pixdim[1]) ; nhdr.pixdim[2] = (float)fabs(nhdr.pixdim[2]) ;
-     nhdr.pixdim[3] = (float)fabs(nhdr.pixdim[3]) ; nhdr.pixdim[4] = (float)fabs(nhdr.pixdim[4]) ;
-     nhdr.pixdim[5] = (float)fabs(nhdr.pixdim[5]) ; nhdr.pixdim[6] = (float)fabs(nhdr.pixdim[6]) ;
+     nhdr.pixdim[1] = (float)fabs(nhdr.pixdim[1]) ;
+     nhdr.pixdim[2] = (float)fabs(nhdr.pixdim[2]) ;
+     nhdr.pixdim[3] = (float)fabs(nhdr.pixdim[3]) ;
+     nhdr.pixdim[4] = (float)fabs(nhdr.pixdim[4]) ;
+     nhdr.pixdim[5] = (float)fabs(nhdr.pixdim[5]) ;
+     nhdr.pixdim[6] = (float)fabs(nhdr.pixdim[6]) ;
      nhdr.pixdim[7] = (float)fabs(nhdr.pixdim[7]) ;
+
+     N_CHECK_2BYTE_VAL(intent_code);
+     N_CHECK_2BYTE_VAL(qform_code);
+     N_CHECK_2BYTE_VAL(sform_code);
 
      nhdr.intent_code = nim->intent_code ;
      nhdr.intent_p1   = nim->intent_p1 ;
@@ -7045,6 +7203,10 @@ nifti_1_header nifti_convert_nim2nhdr(const nifti_image * nim)
        nhdr.srow_z[3]  = nim->sto_xyz.m[2][3] ;
      }
 
+     N_CHECK_2BYTE_VAL(sform_code);
+     N_CHECK_2BYTE_VAL(slice_start);
+     N_CHECK_2BYTE_VAL(slice_end);
+
      nhdr.dim_info = FPS_INTO_DIM_INFO( nim->freq_dim ,
                                         nim->phase_dim , nim->slice_dim ) ;
      nhdr.slice_code     = nim->slice_code ;
@@ -7052,6 +7214,111 @@ nifti_1_header nifti_convert_nim2nhdr(const nifti_image * nim)
      nhdr.slice_end      = nim->slice_end ;
      nhdr.slice_duration = nim->slice_duration ;
    }
+
+   return nhdr;
+}
+
+
+/*----------------------------------------------------------------------*/
+/*! convert a nifti_image structure to a nifti_2_header struct
+
+    No allocation is done, this should be used via structure copy.
+    As in:
+    <pre>
+    nifti_2_header my_header;
+    my_header = nifti_convert_nim2n2hdr(my_nim_pointer);
+    </pre>
+*//*--------------------------------------------------------------------*/
+nifti_2_header nifti_convert_nim2n2hdr(const nifti_image * nim)
+{
+   nifti_2_header nhdr;
+
+   memset(&nhdr,0,sizeof(nhdr)) ;  /* zero out header, to be safe */
+
+
+   /**- load the ANALYZE-7.5 generic parts of the header struct */
+
+   nhdr.sizeof_hdr = sizeof(nhdr) ;
+   if( nim->nifti_type == NIFTI_FTYPE_NIFTI2_1 ) strcpy(nhdr.magic,"n+2") ;
+   else                                          strcpy(nhdr.magic,"ni2") ;
+
+   nhdr.datatype = nim->datatype ;
+   nhdr.bitpix   = 8 * nim->nbyper ;
+
+   nhdr.dim[0] = nim->ndim ;
+   nhdr.dim[1] = nim->nx ; nhdr.dim[2] = nim->ny ; nhdr.dim[3] = nim->nz ;
+   nhdr.dim[4] = nim->nt ; nhdr.dim[5] = nim->nu ; nhdr.dim[6] = nim->nv ;
+   nhdr.dim[7] = nim->nw ;
+
+   nhdr.intent_p1 = nim->intent_p1 ;
+   nhdr.intent_p2 = nim->intent_p2 ;
+   nhdr.intent_p3 = nim->intent_p3 ;
+
+   nhdr.pixdim[0] = 0.0 ;
+   nhdr.pixdim[1] = fabs(nim->dx) ; nhdr.pixdim[2] = fabs(nim->dy) ;
+   nhdr.pixdim[3] = fabs(nim->dz) ; nhdr.pixdim[4] = fabs(nim->dt) ;
+   nhdr.pixdim[5] = fabs(nim->du) ; nhdr.pixdim[6] = fabs(nim->dv) ;
+   nhdr.pixdim[7] = fabs(nim->dw) ;
+
+   nhdr.vox_offset  = nim->iname_offset ;
+
+   nhdr.scl_slope = nim->scl_slope ;
+   nhdr.scl_inter = nim->scl_inter ;
+
+   nhdr.cal_max = nim->cal_max ;
+   nhdr.cal_min = nim->cal_min ;
+
+   nhdr.slice_duration = nim->slice_duration ;
+   nhdr.toffset        = nim->toffset ;
+   nhdr.slice_start    = nim->slice_start ;
+   nhdr.slice_end      = nim->slice_end ;
+
+   if( nim->descrip[0] != '\0' ){
+     memcpy(nhdr.descrip ,nim->descrip ,79) ; nhdr.descrip[79] = '\0' ;
+   }
+   if( nim->aux_file[0] != '\0' ){
+     memcpy(nhdr.aux_file ,nim->aux_file ,23) ; nhdr.aux_file[23] = '\0' ;
+   }
+
+   if( nim->qform_code > 0 ){
+     nhdr.qform_code = nim->qform_code ;
+     nhdr.quatern_b  = nim->quatern_b ;
+     nhdr.quatern_c  = nim->quatern_c ;
+     nhdr.quatern_d  = nim->quatern_d ;
+     nhdr.qoffset_x  = nim->qoffset_x ;
+     nhdr.qoffset_y  = nim->qoffset_y ;
+     nhdr.qoffset_z  = nim->qoffset_z ;
+     nhdr.pixdim[0]  = (nim->qfac >= 0.0) ? 1.0f : -1.0f ;
+   }
+
+   if( nim->sform_code > 0 ){
+     nhdr.sform_code = nim->sform_code ;
+     nhdr.srow_x[0]  = nim->sto_xyz.m[0][0] ;
+     nhdr.srow_x[1]  = nim->sto_xyz.m[0][1] ;
+     nhdr.srow_x[2]  = nim->sto_xyz.m[0][2] ;
+     nhdr.srow_x[3]  = nim->sto_xyz.m[0][3] ;
+     nhdr.srow_y[0]  = nim->sto_xyz.m[1][0] ;
+     nhdr.srow_y[1]  = nim->sto_xyz.m[1][1] ;
+     nhdr.srow_y[2]  = nim->sto_xyz.m[1][2] ;
+     nhdr.srow_y[3]  = nim->sto_xyz.m[1][3] ;
+     nhdr.srow_z[0]  = nim->sto_xyz.m[2][0] ;
+     nhdr.srow_z[1]  = nim->sto_xyz.m[2][1] ;
+     nhdr.srow_z[2]  = nim->sto_xyz.m[2][2] ;
+     nhdr.srow_z[3]  = nim->sto_xyz.m[2][3] ;
+   }
+
+   nhdr.slice_code  = nim->slice_code ;
+   nhdr.xyzt_units  = SPACE_TIME_TO_XYZT( nim->xyz_units, nim->time_units ) ;
+   nhdr.intent_code = nim->intent_code ;
+   if( nim->intent_name[0] != '\0' ){
+     memcpy(nhdr.intent_name,nim->intent_name,15) ;
+     nhdr.intent_name[15] = '\0' ;
+   }
+
+   nhdr.dim_info = FPS_INTO_DIM_INFO( nim->freq_dim ,
+                                      nim->phase_dim , nim->slice_dim ) ;
+
+   nhdr.unused_str[0] = '\0' ;  /* not needed, but complete */
 
    return nhdr;
 }
@@ -7269,7 +7536,7 @@ znzFile nifti_image_write_hdr_img2(nifti_image *nim, int write_opts,
    if( nim->nifti_type == NIFTI_FTYPE_ASCII )   /* non-standard case */
       return nifti_write_ascii_image(nim,NBL,opts,write_data,leave_open);
 
-   nhdr = nifti_convert_nim2nhdr(nim);    /* create the nifti1_header struct */
+   nhdr = nifti_convert_nim2n1hdr(nim);    /* create the nifti1_header struct */
 
    /* if writing to 2 files, make sure iname is set and different from fname */
    if( nim->nifti_type != NIFTI_FTYPE_NIFTI1_1 ){
@@ -8100,7 +8367,7 @@ nifti_image *nifti_image_from_ascii( const char *str, int * bytes_read )
 
     \return 1 if the structure seems valid, otherwise 0
 
-    \sa nifti_nim_has_valid_dims, nifti_hdr_looks_good
+    \sa nifti_nim_has_valid_dims, nifti_hdr1_looks_good
 *//*-------------------------------------------------------------------------*/
 int nifti_nim_is_valid(nifti_image * nim, int complain)
 {
@@ -8131,7 +8398,7 @@ int nifti_nim_is_valid(nifti_image * nim, int complain)
 
     \return 1 if valid, 0 if not
 
-    \sa nifti_nim_is_valid, nifti_hdr_looks_good
+    \sa nifti_nim_is_valid, nifti_hdr1_looks_good
 
     rely on dim[] as the master
 *//*-------------------------------------------------------------------------*/

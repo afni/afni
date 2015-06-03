@@ -1572,6 +1572,7 @@ typedef struct {
    Widget rc; /*! container row column */
    Widget lab; /*! Label */
    Widget tb;  /*! Toggle button for view slice */
+   Widget tbs;  /*! Toggle button for allow selection */
    Widget text; /*! Text area where user enters slice number */
    int Nslc;
    char *N_slice_num_str;
@@ -3883,8 +3884,6 @@ typedef struct {
    char **dcom;
    int N_dcom;
    
-   char *DocumentedWidgets; /*!< Widget names for which a Sphinx documentation 
-                                 entry is being created */ 
 } SUMA_CommonFields;
 
 

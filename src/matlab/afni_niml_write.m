@@ -1,4 +1,4 @@
-function afni_niml_write(p,fn)
+function afni_niml_write(p,fn,format)
 % simple function to write niml files in ASCII format
 %
 % AFNI_NIML_WRITE(P,FN) writes a NIML struct to file FN. P should be in the
@@ -13,6 +13,10 @@ function afni_niml_write(p,fn)
 %
 % NNO Dec 2009 <n.oosterhof@bangor.ac.uk>
 
+if nargin<3
+    format='binary';
+end
+
 if nargin<2
     fn=1;
 end
@@ -24,7 +28,7 @@ if isstruct(fn) || iscell(fn) % allow for wrong order of arguments; swap
 end
 
 % conversion to string
-s=afni_niml_print(p);
+s=afni_niml_print(p, format);
 
 % see if output is a file identifier
 if isnumeric(fn) && round(fn)==fn
@@ -38,7 +42,7 @@ if fid==0
     error('Could not write to %s\n', fn);
 end
 
-fprintf(fid,s);
+fwrite(fid,s);
 
 if fid>2 % we don't close standard input, output, or error
     fclose(fid);

@@ -3949,7 +3949,7 @@ STATUS(str); }
          MRI_IMAGE * tsim ;
          int xd,yd,zd ;     /* 24 Sep 1999 */
 
-         EXRONE(grapher) ;  /* 22 Sep 2000 */
+         /* EXRONE(grapher) ; */ /* 22 Sep 2000 */
 
          ll   = MAX( grapher->status->nx , grapher->status->ny ) ;
          ll   = MAX( grapher->status->nz , ll ) ;
@@ -4128,7 +4128,7 @@ STATUS("User pressed Done button: starting timeout") ;
    }
 
    if( w == grapher->opt_write_suffix_pb ){
-      EXRONE(grapher) ;  /* 22 Sep 2000 */
+/*      EXRONE(grapher) ; */ /* 22 Sep 2000 */
       GRA_timer_stop(grapher) ;   /* 04 Dec 2003 */
       MCW_choose_string( grapher->option_rowcol ,
                          "'Write Center' Suffix:" , Grapher_Stuff.wcsuffix ,
