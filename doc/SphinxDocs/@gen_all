@@ -12,6 +12,30 @@ RETURN_PARSE:
 
 if ( -f ___build.log) \rm ___build.log
 if ( ! -d SUMA/auto_inc ) mkdir SUMA/auto_inc
+if ($noafni == 0) then
+   sed 's/   .. afnitoc1/   afnitoc1/' index.rst > __tmp
+   diff -q __tmp index.rst
+   if ($status) then
+      if ( -f __tmp ) then
+         \mv __tmp index.rst
+      endif 
+   endif
+   if ( -f __tmp ) \rm -f __tmp
+   afni  -no_detach \
+         -com 'WRITE_CONT_SPX_HELP AFNI/auto_inc/AfniCont_help.inc' \
+         -com 'SNAP_CONT AFNI/media/AfniCont.auto.jpg' \
+         -com 'QUIT'
+else
+   sed 's/   afnitoc1/   .. afnitoc1/' index.rst > __tmp
+   diff -q __tmp index.rst
+   if ($status) then
+      if ( -f __tmp ) then
+         \mv __tmp index.rst
+      endif 
+   endif
+   if ( -f __tmp ) \rm -f __tmp
+endif
+
 if ($nosuma == 0) then
    @Quiet_Talkers 
    \rm SUMA/auto_inc/SurfCont_help.inc \
@@ -130,6 +154,16 @@ if ($do_thelp) then
    end
 endif
 
+APSEARCH:
+if ( ! -d tutorials/Coding/auto_inc ) mkdir -p tutorials/Coding/auto_inc
+if ( $do_markup_demo ) then
+   cd tutorials/Coding/auto_inc
+   printf "which outputs this help message (need to beautify at some point)::\n\n" > apsearch_txt.inc
+   apsearch -doc_markup_sample_web >& ___m
+   #sed 's/^/   /' ___m >>& apsearch_txt.inc
+   \rm -f ___m
+endif
+
 if ($do_phelp) then
    set plist = (`apsearch -list_all_afni_progs`)
    #set plist = (3dinfo @SUMA_Make_Spec_FS suma afni)
@@ -190,11 +224,13 @@ PARSE:
 	set Narg = $#
 	set cnt = 1
    set nosuma = 1
+   set noafni = 1
    set do_html = 0
    set clean_html = 0
    set do_thelp = 0
    set do_phelp = 0
    set help_max_cnt = 1000
+   set do_markup_demo = 0
    set webupdate = 0
    while ($cnt <= $Narg)
       if ("$argv[$cnt]" == "-d" || "$argv[$cnt]" == "-echo") then
@@ -207,6 +243,16 @@ PARSE:
          goto HELP
       endif
       
+      if ("$argv[$cnt]" == "-no_markup_demo") then
+         set do_markup_demo = 0
+         goto CONTINUE
+      endif
+
+      if ("$argv[$cnt]" == "-markup_demo") then
+         set do_markup_demo = 1
+         goto CONTINUE
+      endif
+
       if ("$argv[$cnt]" == "-no_html") then
          set do_html = 0
          goto CONTINUE
@@ -259,6 +305,16 @@ PARSE:
          goto CONTINUE
       endif
 
+      if ("$argv[$cnt]" == "-no_afni") then
+         set noafni = 1
+         goto CONTINUE
+      endif
+
+      if ("$argv[$cnt]" == "-afni") then
+         set noafni = 0
+         goto CONTINUE
+      endif
+
 
       if ("$argv[$cnt]" == "-web_upload") then
          set webupdate = 1
@@ -293,6 +349,11 @@ HELP:
    echo "-clean_html: Run make clean html"
    echo "-no_suma: Do not regenerate SUMA's auto docs. (default)"
    echo "-suma: Do regenerate SUMA's auto docs."
+   echo "-no_afni: Do not regenerate AFNI's auto docs. (default)"
+   echo "-afni: Do regenerate AFNI's auto docs."
+   echo "       For now, without an explicit -afni, no AFNI docs"
+   echo "       will be included in the build. This restriction will"
+   echo "       be removed once enough help is created."
    echo "-phelp: Generate help pages for all programs."
    echo "-no_phelp: Don't -phelp. (default)"
    echo "-thelp: Generate help pages for all tutorial scripts."

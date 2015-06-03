@@ -1151,6 +1151,8 @@ XmFontList SUMA_AppendToFontList(XmFontList fontlisti, Widget w,
    "View (ON)/Hide slice"
 #define SUMA_SurfContHelp_ShowVrFTgl \
    "View (ON)/Hide Volume Rendering"
+#define SUMA_SurfContHelp_VrSelectTgl \
+   "When ON, allow voxel selection on volume rendering."
 
 #define SUMA_SurfContHelp_SetRngTbl_r0 \
    "Used for setting the clipping ranges. "   \

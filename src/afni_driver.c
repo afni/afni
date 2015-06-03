@@ -52,6 +52,11 @@ static int AFNI_drive_save_filtered( char *cmd ) ;  /* 14 Dec 2006 */
 static int AFNI_drive_save_allpng( char *cmd ) ;    /* 15 Dec 2006 */
 static int AFNI_drive_write_underlay( char *cmd ) ; /* 16 Jun 2014 */
 static int AFNI_drive_write_overlay( char *cmd ) ;  /* 16 Jun 2014 */
+static int AFNI_drive_write_cont_spxhelp(char *cmd);/* 08 Apr 2015 */
+static int AFNI_drive_snap_cont( char *cmd );       /* 08 Apr 2015 */
+
+static FILE * AFNI_drive_get_outstream(void);       /* 02 Jun 2015 */
+static int AFNI_drive_set_outstream(char *outfile); /* 02 Jun 2015 */
 
 static int AFNI_drive_system( char *cmd ) ;         /* 19 Dec 2002 */
 static int AFNI_drive_chdir ( char *cmd ) ;         /* 19 Dec 2002 */
@@ -158,7 +163,7 @@ static AFNI_driver_pair dpair[] = {
  { "SET_INDEX"        , AFNI_drive_set_ijk_index     } ,
  { "SET_XHAIRS"       , AFNI_drive_set_xhairs        } ,
  { "SET_CROSSHAIRS"   , AFNI_drive_set_xhairs        } ,
-
+ { "SET_OUTPLUG"      , AFNI_drive_set_outstream     } ,
  { "OPEN_GRAPH_XY"    , AFNI_drive_open_graph_xy     } ,
  { "CLOSE_GRAPH_XY"   , AFNI_drive_close_graph_xy    } ,
  { "CLEAR_GRAPH_XY"   , AFNI_drive_clear_graph_xy    } ,
@@ -214,6 +219,9 @@ static AFNI_driver_pair dpair[] = {
  { "WRITE_OVERLAY"      , AFNI_drive_write_overlay     } ,
  { "SAVE_UNDERLAY"      , AFNI_drive_write_underlay    } ,
  { "WRITE_UNDERLAY"     , AFNI_drive_write_underlay    } ,
+ { "WRITE_UNDERLAY"     , AFNI_drive_write_underlay    } ,
+ { "WRITE_CONT_SPX_HELP", AFNI_drive_write_cont_spxhelp} ,
+ { "SNAP_CONT"          , AFNI_drive_snap_cont         } ,
 
 
  { NULL , NULL }  /* flag that we've reached the end times */
@@ -221,6 +229,7 @@ static AFNI_driver_pair dpair[] = {
 
 static int           num_epair = 0 ;      /* 04 Dec 2007 */
 static AFNI_driver_pair *epair = NULL ;   /* dynamic commands */
+static FILE *afniout = NULL;             /* no default output stream */
 
 /*----------------------------------------------------------------------*/
 
@@ -248,6 +257,9 @@ ENTRY("AFNI_driver") ;
 #endif
 
    if( cmdd == NULL || *cmdd == '\0' ) RETURN(-1) ;  /* bad */
+
+   /* change output from stdout to something else maybe */
+   AFNI_drive_get_outstream();                             /* 02 Jun 2015 DRG */
 
    if( strncmp(cmdd,"DRIVE_AFNI ",11) == 0 ) cmdd += 11 ;  /* 28 Dec 2006 */
 
@@ -2604,8 +2616,8 @@ int AFNI_drive_getenv( char *cmd )
    /*-- get and printf the actual environment variable --*/
 
    eee = my_getenv(nam);
-   printf("%s = %s\n", nam, eee ? eee : "<UNSET>");
-   fflush(stdout);
+   fprintf(afniout,"%s = %s\n", nam, eee ? eee : "<UNSET>");
+   fflush(afniout);
 
    return 0;
 }
@@ -2986,9 +2998,63 @@ static int AFNI_drive_get_dicom_xyz( char *cmd )
    y = im3d->vinfo->yj ;
    z = im3d->vinfo->zk ;
 
-   fprintf(stdout, "RAI xyz: %f %f %f\n", x, y, z);
+   fprintf(afniout, "RAI xyz: %f %f %f\n", x, y, z);
+/*   fprintf(stdout, "RAI xyz: %f %f %f\n", x, y, z);*/
+   fflush(afniout);
 
    return 0 ;
+}
+
+/* get the output file for plugout info */
+static FILE *
+AFNI_drive_get_outstream()
+{
+   char *afni_outfile;
+
+   /* first time in set the output stream to stdout or environment variable */
+   if(afniout==NULL){
+      /* get from environment variable if set */
+      afni_outfile = my_getenv("AFNI_OUTPLUG");
+      if(afni_outfile!=NULL) {
+         AFNI_drive_set_outstream(afni_outfile);
+      }
+   }
+
+   /* if still NULL output stream, set to default of stdout */
+   if(afniout==NULL) afniout = stdout;
+
+   return(afniout);
+}
+
+/* set the output stream to a file rather than stdout*/
+static int
+AFNI_drive_set_outstream(char *outfile)
+{
+   /* if just passed a NULL, reset output to stdout */
+   if(outfile==NULL){
+      afniout = stdout;
+      return(-1);
+   }
+
+   /* check if resetting to stdout by string from plugout command */
+   if(strcmp(outfile, "stdout")==0) {
+      afniout = stdout;
+      return 0;
+   }
+
+    /* make sure this file name is a good one, and open it for append */
+   if( THD_filename_ok(outfile) )
+      afniout = fopen(outfile, "a");
+
+   /* something went wrong, so tell user and reset to stdout */
+   if(afniout==NULL){
+      fprintf(stderr, "**** couldn't open outfile, resetting to stdout\n");
+      afniout = stdout;
+      return(-1);
+   }
+   else {
+    return 0;
+   }
 }
 
 /*--------------------------------------------------------------------*/
@@ -3055,7 +3121,8 @@ static int AFNI_drive_get_ijk( char *cmd )
    j = im3d->vinfo->j2 ;
    k = im3d->vinfo->k3 ;
 
-   fprintf(stdout, "ijk: %d %d %d\n", i,j,k);
+   fprintf(afniout, "ijk: %d %d %d\n", i,j,k);
+   fflush(afniout);
 
    return 0 ;
 }
@@ -3472,6 +3539,75 @@ static int AFNI_drive_write_underlay( char *cmd )  /* 16 Jun 2014 */
    prefix = cmd+ii ; if( !THD_filename_ok(prefix) ) return -1 ;
 
    AFNI_writeout_dataset( im3d->anat_now , prefix ) ;
+   return 0 ;
+}
+
+/*--------------------------------------------------------------------*/
+/* WRITE_CONT_SPX_HELP prefix */
+extern char * AFNI_Help_AllMainCont (TFORM targ);
+static int AFNI_drive_write_cont_spxhelp( char *cmd ) 
+{
+   int ic, dadd=2 , ii ; 
+   Three_D_View *im3d ; 
+   char *prefix, *s=NULL;
+   FILE *fout = NULL;
+   
+   if( strlen(cmd) < 3 ) return -1 ;
+
+   ic = AFNI_controller_code_to_index( cmd ) ;
+   if( ic < 0 ){ ic = 0 ; dadd = 0 ; }
+   im3d = GLOBAL_library.controllers[ic] ;
+   if( !IM3D_OPEN(im3d) ) return -1 ;
+
+   /* skip blanks */
+
+   for( ii=dadd ; cmd[ii] != '\0' && isspace(cmd[ii]) ; ii++ ) ; /*nada*/
+   prefix = cmd+ii ; if( !THD_filename_ok(prefix) ) return -1 ;
+
+   fout = fopen(prefix,"w");
+   if (!fout) {
+      fprintf(stderr,"Failed to open %s for writing", prefix);
+   } else {
+      if ((s = AFNI_Help_AllMainCont(SPX))) {
+         fprintf(fout,"%s", s);
+      } else {
+         fprintf(stderr,"Failed to get help string");
+      }
+      fclose(fout); fout = NULL;
+   }
+
+   return 0 ;
+}
+
+/*--------------------------------------------------------------------*/
+/* SNAP_CONT prefix 
+   Take a selfie of the main controller*/
+static int AFNI_drive_snap_cont( char *cmd ) 
+{
+   int ic, dadd=2 , ii ; 
+   Three_D_View *im3d ; 
+   char *prefix;
+   
+   if( strlen(cmd) < 3 ) return -1 ;
+
+   ic = AFNI_controller_code_to_index( cmd ) ;
+   if( ic < 0 ){ ic = 0 ; dadd = 0 ; }
+   im3d = GLOBAL_library.controllers[ic] ;
+   if( !IM3D_OPEN(im3d) ||  !im3d->vwid->top_form) return -1 ;
+   if ( ! XtIsManaged(im3d->vwid->top_form) ||
+        ! XtIsRealized(im3d->vwid->top_form) )  {
+      fprintf(stderr,"im3d->vwid->top_form ot realized (%d) or managed (%d)\n",
+         XtIsRealized(im3d->vwid->top_form), XtIsManaged(im3d->vwid->top_form));
+      return -1 ;
+   }
+   
+   /* skip blanks */
+
+   for( ii=dadd ; cmd[ii] != '\0' && isspace(cmd[ii]) ; ii++ ) ; /*nada*/
+   prefix = cmd+ii ; if( !THD_filename_ok(prefix) ) return -1 ;
+
+   ISQ_snapfile2 ( im3d->vwid->top_form,  prefix);
+
    return 0 ;
 }
 

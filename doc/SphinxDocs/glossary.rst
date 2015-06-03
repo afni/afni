@@ -297,3 +297,8 @@ Glossary
       For surfaces, state is shorthand for the deformation state. For instance,  lh.pial.gii and lh.inflated.gii surfaces are of two states, pial, and inflated, respectively. You can change the default state names by editing the :term:`spec file` manually. Surfaces of the same state are displayed together, otherwise you can switch between states with :ref:`,<LC_,>`, :ref:`.<LC_.>`, or :ref:`SPACE<SPACE>`. Some states are anatomically correct, like pial, and white. Some such as sphere or inflated are not.
       
       For the remaining objects, the previous definition of state no longer applies, but it is still used as a label for grouping what gets displayed together. For instance, a volume is internally labeled as having *ANY_ANATOMICAL* as its state, which is codestate to disply it along with any visualization state that is anatomically correct. This way, volumes are displayed whether you're looking at the pial surfaces or the smoothed white matter surfaces. The same goes for graphs that are displayed in 3D, however graphs are also displayed in matrix form which has its own state and is displayed without anatomically correct objects with it.
+
+   DO
+   DOs
+   Displayable Object
+      A SUMA displayable object such as lines, spheres, text, images, planes, etc. See documentation under SUMA DO loading instructions with :ref:`Ctrl+Alt+s<LC_Ctrl+Alt+s>`, and NIML formatted DOs (nido) material from the output of :ref:`suma -help_nido <suma--help_nido>`   

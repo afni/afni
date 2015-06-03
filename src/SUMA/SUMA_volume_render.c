@@ -970,9 +970,25 @@ SUMA_Boolean SUMA_LoadVolDO (char *fname,
          SurfCont->Co_slc->slice_num = (int)(SUMA_VO_N_Slices(VO, "Co")/2.0); 
          
          VSaux->ShowVrSlc = 0;
+         VSaux->VrSelect = 0;
          VSaux->SlicesAtCrosshair = 0;
          /* Maybe params froms the env? */
          SUMA_Set_VO_Slice_Params(SUMA_EnvVal("SUMA_VO_InitSlices"), VO);
+         /* And for selectable VR */
+         { 
+            char *eee = getenv("SUMA_VrSelectable");
+            if (eee) {
+               if (strcmp(eee,"NO") == 0)  VSaux->VrSelect = NOPE;
+               else if (strcmp(eee,"YES") == 0) VSaux->VrSelect = YUP;
+               else {
+                  fprintf (SUMA_STDERR,   
+                           "Warning %s:\n"
+                        "Bad value for environment variable SUMA_VrSelectable\n"
+                           "Assuming default of YES", FuncName);
+                  VSaux->VrSelect = YUP;
+               }
+            } else VSaux->VrSelect = YUP;
+         } 
       } else {
          SUMA_S_Err("Failed to initialize volume display");
       }

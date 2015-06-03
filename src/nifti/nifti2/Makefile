@@ -14,8 +14,8 @@ LLIBS 		= -lz -lm
 MISC_OBJS	= nifticdf.o znzlib.o
 OBJS	   	= nifti2_io.o $(MISC_OBJS)
 
-TOOLS 	   	= nifti_tool nifti1_tool
-EXAMPLES   	= clib_02.nifti2
+TOOLS 	   	= nifti_tool nifti1_tool nifti2_tool
+EXAMPLES   	= clib_02_nifti2
 
 
 # --------------------------------------------------
@@ -36,7 +36,7 @@ clean:
 
 nifti2objs: $(OBJS)
 
-clib_02.nifti2: clib_02.nifti2.o nifti2objs
+clib_02_nifti2: clib_02_nifti2.o nifti2objs
 	$(CC) -o $@ $(CFLAGS) $< $(OBJS) $(LLIBS)
 
 # --------------------------------------------------
@@ -51,4 +51,8 @@ znzlib.o:
 nifti1_tool: $(MISC_OBJS)
 	$(CC) -o $@ -I../utils $(CFLAGS) \
 	../utils/nifti_tool.c ../niftilib/nifti1_io.c $(MISC_OBJS) $(LLIBS)
+
+# make non-clashing version
+nifti2_tool: nifti_tool
+	cp -p nifti_tool nifti2_tool
 

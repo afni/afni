@@ -469,7 +469,19 @@ int    valid_nifti_extensions(const nifti_image *nim);
                                              /index.php/Caret:Documentation
                                              :CaretNiftiExtension             */
 
-#define NIFTI_MAX_ECODE             30  /******* maximum extension code *******/
+#define NIFTI_ECODE_CIFTI           32  /* CIFTI-2_Main_FINAL_1March2014.pdf */
+
+#define NIFTI_ECODE_VARIABLE_FRAME_TIMING 34
+
+/* 36 is currently unassigned, waiting on NIFTI_ECODE_AGILENT_PROCPAR */
+
+#define NIFTI_ECODE_EVAL            38  /* Munster University Hospital */
+
+/* http://www.mathworks.com/matlabcentral/fileexchange/42997-dicom-to-nifti-converter */
+#define NIFTI_ECODE_MATLAB          40  /* MATLAB extension */
+
+
+#define NIFTI_MAX_ECODE             40  /******* maximum extension code *******/
 
 /* nifti_type file codes */
 #define NIFTI_FTYPE_ANALYZE   0

@@ -268,7 +268,8 @@ void SUMA_usage (SUMA_GENERIC_ARGV_PARSE *ps, int detail)
 "-help_sphinx_interactive HOUT: Write the help for interactive usage into \n"
 "                   SPHINX formatted file HOUT"
 "See DriveSuma's -write_*_help options for more\n"
-"-test_help_string_edit: Show example of help string editing and quit\n");
+"-test_help_string_edit: Show example of help string editing and quit\n"
+"-test_help_string_edit_web: Like its prefix, but nicer for webpage.\n");
    }
    
    if (detail > 1) { printf(
@@ -683,7 +684,11 @@ int main (int argc,char *argv[])
 		}
       
       if (strcmp(argv[kar], "-test_help_string_edit") == 0) {
-         SUMA_Sphinx_String_Edit_Help(SUMA_STDOUT);
+         SUMA_Sphinx_String_Edit_Help(SUMA_STDOUT, 0);
+         exit(0);
+      }
+      if (strcmp(argv[kar], "-test_help_string_edit_web") == 0) {
+         SUMA_Sphinx_String_Edit_Help(SUMA_STDOUT, 1);
          exit(0);
       }
       

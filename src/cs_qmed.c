@@ -121,6 +121,82 @@ float qmed_float( int n , float *ar )
    return (nodd) ? a[mid] : 0.5*(a[mid]+a[mid-1]) ;
 }
 
+/* find the modal value in a list of numbers
+   mostly useful for integers, but not limiting here.
+   doing this brute force for now */
+float qmode_float( int n , float *ar )
+{
+   register int i , j ;           /* scanning indices */
+   register float temp, mode ;
+   register float *a = ar, *b;
+   register int cnt, maxcnt ;
+
+   /* no values, get out of here */
+   if (n==0) return(0.0);
+
+
+   /* general case */
+   maxcnt = 0; mode = -9999;
+   for(i=0;i<n;i++) {
+      temp = *a++;    /* value in list */
+      if(temp==mode) continue;   /* same value as the mode already, skip to next */
+      b = a;
+      cnt = 1;   /* the value itself is the first time in the list */
+      /* count how many times that number occurs in the rest of the list */
+      for(j=i+1;j<n;j++){  /* only have to check remaining values*/
+         if(temp==*b++)
+            cnt++;
+      }
+
+      /* new mode value if value shows up more than the previous mode */
+      if(cnt>maxcnt) {
+         maxcnt = cnt;
+         mode = temp;
+      }
+   }
+
+   return(mode) ;
+}
+
+/* find the non-zero modal value in a list of numbers
+   mostly useful for integers, but not limiting here.
+   doing this brute force for now */
+float qnzmode_float( int n , float *ar )
+{
+   register int i , j ;           /* scanning indices */
+   register float temp, mode ;
+   register float *a = ar, *b;
+   register int cnt, maxcnt ;
+
+   /* no values, get out of here */
+   if (n==0) return(0.0);
+
+   /* general case */
+   maxcnt = 0; mode = -9999;
+   for(i=0;i<n;i++) {
+      temp = *a++;    /* value in list */
+      if((temp==mode)||(temp==0)) continue;   /* ignore zero or current mode value */
+      b = a;
+      cnt = 1;   /* the value itself is the first time in the list */
+      /* count how many times that number occurs in the rest of the list */
+      for(j=i+1;j<n;j++){  /* only have to check remaining values*/
+         if(temp==*b++)
+            cnt++;
+      }
+
+      /* new mode value if value shows up more than the previous mode */
+      if(cnt>maxcnt) {
+         maxcnt = cnt;
+         mode = temp;
+      }
+   }
+
+   /* if didn't find anything non-zero,return 0.0 */
+   if(maxcnt==0) return(0.0);
+   /* normal case - return mode */
+   return(mode) ;
+}
+
 /*---------------------------------------------------------------
   Return mean and sigma of a float array -- 07 Dec 2006
 -----------------------------------------------------------------*/

@@ -78,7 +78,9 @@ ENTRY("THD_open_tcat") ;
                   "THD_open_tcat: %s grid mismatch with %s\n",
                   sar->str[0] , sar->str[dd] ) ;  /* don't increment nerr! */
        }
-       angle = dset_obliquity_angle_diff(dset_in[dd], dset_in[0], -1.0);
+       /* allow for small differences    22 May 2015 [rickr] */
+       angle = dset_obliquity_angle_diff(dset_in[dd], dset_in[0],
+                                         OBLIQ_ANGLE_THRESH);
        if (angle > 0.0) {
          WARNING_message(
             "dataset %s has an obliquity difference of %f degress with %s\n",

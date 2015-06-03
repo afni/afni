@@ -121,5 +121,5 @@ with an archive of the directory you have created.
 
 .. todo::
 
-   This should be written to instruct how one can send a push request
+   This should be written to instruct how one can send a pull request
    to github for this.
