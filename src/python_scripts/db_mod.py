@@ -1208,7 +1208,7 @@ def db_mod_volreg(block, proc, user_opts):
            print "   either -copy_anat or the 'tlrc' processing block"
            return 1
         if exists:
-           wpieces = UTIL.get_num_warp_pieces(proc.tlrcanat.ppv(),proc.verb)
+           wpieces = UTIL.get_num_warp_pieces(proc.tlrcanat.input(),proc.verb)
            if uopt and wpieces == 1:    # warning
               print "** have auto_tlrc anat, consider '-volreg_tlrc_warp'\n" \
                     "   (in place of '-volreg_tlrc_adwarp')"
@@ -1931,7 +1931,7 @@ def db_mod_surf(block, proc, user_opts):
 
     errs = 0
     if not proc.surf_anat.exist(): 
-        print '** error: missing -surf_anat dataset: %s' % proc.surf_anat.ppv()
+        print '** error: missing -surf_anat dataset: %s' % proc.surf_anat.input()
         errs += 1
     if not proc.surf_spec:
         print '** error: missing -surf_spec option'
@@ -2624,7 +2624,7 @@ def group_mask_command(proc, block):
     tanat = proc.mask_group.new('rm.resam.group') # temp resampled group dset
     cmd = cmd + "3dresample -master %s -prefix ./%s \\\n" \
                 "           -input %s\n\n"                \
-                % (proc.mask_epi.pv(), tanat.prefix, proc.tlrc_base.ppv())
+                % (proc.mask_epi.pv(), tanat.prefix, proc.tlrc_base.input())
 
     # convert to a binary mask via 3dmask_tool, to fill in a bit
     cmd = cmd + "# convert to binary group mask; fill gaps and holes\n"     \
