@@ -68,6 +68,19 @@ int main( int argc , char *argv[] )
    iarg = 1 ;
    while( iarg < argc ){
 
+
+     if( strcmp(argv[iarg],"-tdof") == 0 ){  /* hidden option */
+       float tdof=0.0f ;
+       iarg++ ; if( iarg >= argc ) ERROR_exit("need argument after -tdof!") ;
+       tdof = (float)strtod(argv[iarg],NULL) ;
+       if( tdof > 0.0f && tdof < 4.0f ) ERROR_exit("illegal value after -tdof") ;
+       if( tdof > 0.0f ){
+         INFO_message("Transforming Gaussian deviates to t(DOF=%g)",tdof) ;
+         mri_genARMA11_set_tdof(tdof) ;
+       }
+       iarg++ ; continue ;
+     }
+
      if( strncmp(argv[iarg],"-prefix",4) == 0 ){
        iarg++; if( iarg >= argc ) ERROR_exit("need arg after %s",argv[iarg-1]);
        prefix = strdup(argv[iarg]) ;
