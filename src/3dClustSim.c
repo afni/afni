@@ -579,7 +579,7 @@ void get_options( int argc , char **argv )
     if( strcmp(argv[nopt],"-tdof") == 0 ){  /* 26 May 2015 -- hidden option */
       nopt++ ; if( nopt >= argc ) ERROR_exit("need argument after -tdof!") ;
       tdof = (float)strtod(argv[nopt],NULL) ;
-      if( tdof > 0.0f && tdof < 6.0f ) ERROR_exit("illegal value after -tdof") ;
+      if( tdof > 0.0f && tdof < 4.0f ) ERROR_exit("illegal value after -tdof") ;
       nopt++ ; continue ;
     }
 
