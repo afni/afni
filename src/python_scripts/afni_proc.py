@@ -2383,7 +2383,7 @@ class SubjProcSream:
         if check and not aname.exist():
            print '** WARNING: anat follower does not seem to exist: %s' \
                  % aname.rel_input()
-           print '   originally from %s' % aname.initial
+           print '   originally from %s' % aname.initname
            if self.verb > 1: aname.show()
 
         return af
