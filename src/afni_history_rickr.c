@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  6,  Jun, 2015, RCR, "timing_tool.py", MICRO, TYPE_NEW_OPT,
+   "added -per_run_file",
+   NULL
+ } ,
+
  {  2,  Jun, 2015, RCR, "NIFTI", MICRO, TYPE_GENERAL,
    "NIFTI-1,2: added NIFTI_ECODE_CIFTI/VARIABLE_FRAME_TIMING/EVAL/MATLAB",
    NULL
