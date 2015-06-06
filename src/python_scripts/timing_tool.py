@@ -2002,6 +2002,7 @@ class ATInterface:
             prefix = fname[:fname.find('.1D')]
          for run, res in enumerate(result):
             TD.write_1D_file(res, '%s_r%02d.1D'%(prefix,run+1))
+         return
 
       TD.write_1D_file(result, fname, self.per_run)
 
