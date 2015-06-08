@@ -152,9 +152,9 @@ ENTRY("mri_genARMA11") ;
      }
    }
 
-   if( tdof > 0.0f ){
-     zfac = 1.0f/(1.0f-0.25f/tdof) ;
-     tfac = 0.5f/tdof ;
+   if( tdof != 0.0f ){
+     zfac = 1.0f/(1.0f-0.25f/fabsf(tdof)) ;
+     tfac = 0.5f/fabsf(tdof) ;
    }
 
    /* simulate */
@@ -166,6 +166,13 @@ ENTRY("mri_genARMA11") ;
      for( ii=0 ; ii < nlen ; ii++ ) rvec[ii] = zgaussian() ;
      if( tdof > 0.0f ){
        for( ii=0 ; ii < nlen ; ii++ ){
+         zhat = rvec[ii]*zfac ;
+         denom = 1.0f - zhat*zhat*tfac ; if( denom < 0.1f ) denom = 0.1f ;
+         rvec[ii] = zhat / sqrtf(denom) ;
+       }
+     } else if( tdof < 0.0f ){
+       int di=1 ;
+       for( ii=2 ; ii < nlen ; ii+=di,di++ ){
          zhat = rvec[ii]*zfac ;
          denom = 1.0f - zhat*zhat*tfac ; if( denom < 0.1f ) denom = 0.1f ;
          rvec[ii] = zhat / sqrtf(denom) ;
