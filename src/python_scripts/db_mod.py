@@ -1208,7 +1208,7 @@ def db_mod_volreg(block, proc, user_opts):
            print "   either -copy_anat or the 'tlrc' processing block"
            return 1
         if exists:
-           wpieces = UTIL.get_num_warp_pieces(proc.tlrcanat.ppv(),proc.verb)
+           wpieces = UTIL.get_num_warp_pieces(proc.tlrcanat.input(),proc.verb)
            if uopt and wpieces == 1:    # warning
               print "** have auto_tlrc anat, consider '-volreg_tlrc_warp'\n" \
                     "   (in place of '-volreg_tlrc_adwarp')"
@@ -1931,7 +1931,7 @@ def db_mod_surf(block, proc, user_opts):
 
     errs = 0
     if not proc.surf_anat.exist(): 
-        print '** error: missing -surf_anat dataset: %s' % proc.surf_anat.ppv()
+        print '** error: missing -surf_anat dataset: %s' % proc.surf_anat.input()
         errs += 1
     if not proc.surf_spec:
         print '** error: missing -surf_spec option'
@@ -2584,27 +2584,30 @@ def group_mask_command(proc, block):
         return ''
 
     #--- first things first, see if we can locate the tlrc base
+    #    if the user didn't already tell us where it is
 
-    cmd = '@FindAfniDsetPath %s' % proc.tlrc_base.pv()
-    if proc.verb > 1: estr = 'echo'
-    else            : estr = ''
-    com = BASE.shell_com(cmd, estr, capture=1)
-    com.run()
+    if '/' not in proc.tlrc_base.initname:
+        cmd = '@FindAfniDsetPath %s' % proc.tlrc_base.pv()
+        if proc.verb > 1: estr = 'echo'
+        else            : estr = ''
+        com = BASE.shell_com(cmd, estr, capture=1)
+        com.run()
 
-    if com.status or not com.so or len(com.so[0]) < 2:
-        # call this a non-fatal error for now
-        print "** failed to find tlrc_base '%s' for group mask" \
-              % proc.tlrc_base.pv()
-        if proc.verb > 2:
-           print '   status = %s' % com.status
-           print '   stdout = %s' % com.so
-           print '   stderr = %s' % com.se
-        return ''
+        if com.status or not com.so or len(com.so[0]) < 2:
+            # call this a non-fatal error for now
+            print "** failed to find tlrc_base '%s' for group mask" \
+                  % proc.tlrc_base.pv()
+            if proc.verb > 2:
+               print '   status = %s' % com.status
+               print '   stdout = %s' % com.so
+               print '   stderr = %s' % com.se
+            return ''
 
-    proc.tlrc_base.path = com.so[0]
-    # nuke any newline character
-    newline = proc.tlrc_base.path.find('\n')
-    if newline > 1: proc.tlrc_base.path = proc.tlrc_base.path[0:newline]
+        proc.tlrc_base.path = com.so[0]
+        # nuke any newline character
+        newline = proc.tlrc_base.path.find('\n')
+        if newline > 1: proc.tlrc_base.path = proc.tlrc_base.path[0:newline]
+
     print "-- masking: group anat = '%s', exists = %d"   \
           % (proc.tlrc_base.pv(), proc.tlrc_base.exist())
 
@@ -2621,7 +2624,7 @@ def group_mask_command(proc, block):
     tanat = proc.mask_group.new('rm.resam.group') # temp resampled group dset
     cmd = cmd + "3dresample -master %s -prefix ./%s \\\n" \
                 "           -input %s\n\n"                \
-                % (proc.mask_epi.pv(), tanat.prefix, proc.tlrc_base.ppv())
+                % (proc.mask_epi.pv(), tanat.prefix, proc.tlrc_base.input())
 
     # convert to a binary mask via 3dmask_tool, to fill in a bit
     cmd = cmd + "# convert to binary group mask; fill gaps and holes\n"     \
