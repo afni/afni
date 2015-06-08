@@ -134,9 +134,10 @@ g_history = """
          - added reconvolution for comparison
          - replaced -input with -infiles
          - added options -old, -infiles, -tr_nup
+    0.3  Jun 08, 2015: allow infiles to include paths
 """
 
-g_version = "version 0.2, February 24, 2015"
+g_version = "version 0.3, June 8, 2015"
 
 g_todo = """
    - temporal partitioning based on stimulus timing and durations
@@ -409,7 +410,7 @@ class Decon:
                'foreach findex ( `count -digits 2 1 $#files` )\n' \
                '   # no zero-padding in shell index\n'            \
                '   set ival   = `ccalc -i $findex`\n'             \
-               '   set infile = $files[$ival]\n'                  \
+               '   set infile = $files[$ival]:t\n'                \
                '   set label  = $labels[$ival]\n\n'               \
 
         polort = UTIL.get_default_polort(self.tr, self.reps)
