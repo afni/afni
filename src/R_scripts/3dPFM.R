@@ -933,6 +933,7 @@ myHRF <- function(RT, P) {
   hrf <- (dgamma(u*dt, a1, 1/b1) - dgamma(u*dt, a2, 1/b2)/p[5])/dt
   time_axis <- seq(0, p[7]/RT, by=1) * fMRI_T + 1
   hrf <- hrf[time_axis]
+  hrf[which(hrf == 0)] <- 1*.Machine$double.eps
   hrf <- as.matrix(hrf)
   
   return(hrf)
@@ -1176,6 +1177,7 @@ DS_homotopy_function <- function(A, y, thresh = 0, maxiter) {
       
       AtgxAgl <- AtgxAgl_ij[1:NROW(AtgxAgl_ij)-1,1:NCOL(AtgxAgl_ij)-1,drop = FALSE]
       AtglAgx <- t(AtgxAgl)
+      browser()
       iAtgxAgl <- update_inverse(AtgxAgl_ij, iAtgxAgl_ij,2)
       iAtglAgx <- t(iAtgxAgl)
       xk_1[out_x] <- 0;
@@ -1221,7 +1223,9 @@ DS_homotopy_function <- function(A, y, thresh = 0, maxiter) {
     #  bk <- -bk
     #  del_lambda_p <- -del_lambda_p
     #}
+    #browser()
     if (length(out_x)>0){
+      browser()
       if (sign(bk[out_x]) == sign(ak[out_x])) {
         if ( abs(bk[out_x]) >= 1*.Machine$double.eps ){
           bk <- -bk
@@ -1667,6 +1671,8 @@ update_inverse <- function(AtB,iAtB_old,flag) {
 # The big function
 Rprog.PFM <- function( inData, hrf_mtx, infoDeconv = NULL,  LHSconstant = NULL, infoLHS = NULL) {
   
+  browser()
+  
   # get Deconvolution parameters from infoDeconv (criteria, algorithm, maximum iterations)
   algorithm <- infoDeconv$algorithm
   criteria <- infoDeconv$criteria
@@ -2070,7 +2076,8 @@ idset <- read.AFNI(lop$input[1], verb = max(0,lop$verb-1), meth=lop$iometh)
 
 ###########################################################################################
 #Set TR value, given as parameter for input 1D files or use TR from header of input dataset
-if (substr(lop$input[1],nchar(lop$input[1])-2,nchar(lop$input[1]))==".1D"){
+if ((substr(lop$input[1],nchar(lop$input[1])-2,nchar(lop$input[1]))==".1D") || 
+  (substr(lop$input[1],nchar(lop$input[1])-3,nchar(lop$input[1]))==".1D'")){
   if (is.null(lop$TR)){
     if (lop$verb) {
       str(lop)
@@ -2095,6 +2102,7 @@ if (substr(lop$input[1],nchar(lop$input[1])-2,nchar(lop$input[1]))==".1D"){
 ###########################################################################################
 #For convenience, change the dimensions so that the first 3 
 #dimensions are turned into 1
+browser()
 ddi <- dset.dimBRKarray(idset)
 idset <- dset.3DBRKarrayto1D(idset)
 dd <- dim(idset$brk)
@@ -2151,6 +2159,13 @@ hrf_TR <- hrf_TR / max(hrf_TR)
 L_hrf <- length(hrf_TR)
 # create Toeplitz matrix
 hrf_mtx <- matrix(0,nscans+L_hrf-1,nscans)
+
+
+# change zero values in HRF to minimal precision values
+if (length(which(hrf_TR == 0))>0){
+  cat(sprintf("Warning: Zero values in HRF found and changed to minimum double precision for numerical stability . \n"))
+  hrf_TR[which(hrf_TR == 0)]=1*.Machine$double.eps
+}
 for(i in 1:nscans) {
   hrf_mtx[i:(i+L_hrf-1),i] <- hrf_TR
 }
@@ -2280,7 +2295,7 @@ if (!is.null(lop$LHS)) {
   }  
 } 
 
-#browser()
+browser()
 ###########################################################################################
 #Generate names for output datasets if options outALL or outZAll are used
 if ((!is.null(lop$outALL)) || (!is.null(lop$outZAll))){
@@ -2388,6 +2403,7 @@ if (!is.null(lop$LHS)) {
   }
 }
 
+browser()
 ###########################################################################################
 # prepare data for parallel computation
 nSeg <- 20
@@ -2410,7 +2426,7 @@ dim(inData) <- c(dimSeg, nSeg, nscans, NoFiles)
 # declare output receiver
 out <- array(list(), dim=c(dimSeg, nSeg))
 
-# browser()
+browser()
 
 ###########################################################################################
 # Loop for parallel computation
@@ -2418,7 +2434,7 @@ if (lop$nNodes==1) {
   cat(sprintf("Starting computation of Paradigm Free Mapping algorithm.\n"))
   for(kk in 1:nSeg) {
     #Run Rprog.PFM in this segment 
-    out[,kk] <- apply(inData[,kk,,], 1, Rprog.PFM, hrf_mtx = hrf_mtx, infoDeconv = infoDeconv, 
+    out[,kk] <- apply(inData[,kk,,,drop=FALSE], 1, Rprog.PFM, hrf_mtx = hrf_mtx, infoDeconv = infoDeconv, 
                        infoLHS = infoLHS, LHSconstant = LHSconstant)
     if (lop$verb) 
       cat("Computation done: ", 100*kk/nSeg, "%: ", format(Sys.time(), "%D %H:%M:%OS3"), "\n", sep='');
