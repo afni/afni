@@ -1177,7 +1177,6 @@ DS_homotopy_function <- function(A, y, thresh = 0, maxiter) {
       
       AtgxAgl <- AtgxAgl_ij[1:NROW(AtgxAgl_ij)-1,1:NCOL(AtgxAgl_ij)-1,drop = FALSE]
       AtglAgx <- t(AtgxAgl)
-      browser()
       iAtgxAgl <- update_inverse(AtgxAgl_ij, iAtgxAgl_ij,2)
       iAtglAgx <- t(iAtgxAgl)
       xk_1[out_x] <- 0;
@@ -1223,9 +1222,7 @@ DS_homotopy_function <- function(A, y, thresh = 0, maxiter) {
     #  bk <- -bk
     #  del_lambda_p <- -del_lambda_p
     #}
-    #browser()
     if (length(out_x)>0){
-      browser()
       if (sign(bk[out_x]) == sign(ak[out_x])) {
         if ( abs(bk[out_x]) >= 1*.Machine$double.eps ){
           bk <- -bk
@@ -1671,8 +1668,6 @@ update_inverse <- function(AtB,iAtB_old,flag) {
 # The big function
 Rprog.PFM <- function( inData, hrf_mtx, infoDeconv = NULL,  LHSconstant = NULL, infoLHS = NULL) {
   
-  browser()
-  
   # get Deconvolution parameters from infoDeconv (criteria, algorithm, maximum iterations)
   algorithm <- infoDeconv$algorithm
   criteria <- infoDeconv$criteria
@@ -1757,8 +1752,6 @@ Rprog.PFM <- function( inData, hrf_mtx, infoDeconv = NULL,  LHSconstant = NULL, 
         j <- j + infoLHS$ncols[iLHS]
       }
     }
-
-    #browser()
     
     if (algorithm == 'dantzig') {
       # HRF deconvolution with the homotopy algorithm of the dantzig selector
@@ -1797,7 +1790,6 @@ Rprog.PFM <- function( inData, hrf_mtx, infoDeconv = NULL,  LHSconstant = NULL, 
       L2res <- unname(c(LASSO_out$RSS))
       df <- unname(c(LASSO_out$df))
       epsilon_path <- LASSO_out$lambda
-      #browser()
     }
     
     
@@ -1830,8 +1822,6 @@ Rprog.PFM <- function( inData, hrf_mtx, infoDeconv = NULL,  LHSconstant = NULL, 
       LSeventscols <- 1:numActiveSet
       X_events <- hrf_mtx[,index_events_opt,drop=FALSE]
     }
-    
-    #browser()
 
     # add the mean of the input signal again prior to debiasing
     yi <- yi + mean_yi
@@ -1846,7 +1836,6 @@ Rprog.PFM <- function( inData, hrf_mtx, infoDeconv = NULL,  LHSconstant = NULL, 
         summary_LSfitdebias <- summary(LSfitdebias)
         anova_LSfitdebias <- anova(LSfitdebias)
         
-        #browser()
         #mean (intercept)
         outpfm$mean <- LSfitdebias$coefficients[[1]]
         # compute fitted data
@@ -1909,7 +1898,6 @@ Rprog.PFM <- function( inData, hrf_mtx, infoDeconv = NULL,  LHSconstant = NULL, 
         #CASE 2: LHS
         LSfitdebias <- lm(yi ~ LHS)
         
-        #browser()
         # summary and anova of LSfitdebias
         summary_LSfitdebias <- summary(LSfitdebias)
         anova_LSfitdebias <- anova(LSfitdebias)
@@ -1955,8 +1943,7 @@ Rprog.PFM <- function( inData, hrf_mtx, infoDeconv = NULL,  LHSconstant = NULL, 
       if (numActiveSet > 0) {
         #CASE 3: Events
         LSfitdebias <- lm(yi ~ X_events)
-        
-        #browser()        
+           
         # summary and anova of LSfitdebias
         summary_LSfitdebias <- summary(LSfitdebias)
         anova_LSfitdebias <- anova(LSfitdebias)
@@ -2068,7 +2055,7 @@ if(lop$nNodes < 1) {
   lop$nNodes <- 1
   cat('-jobs < 1?? No CPU??. Setting number of jobs to 1.\n')
 }
-browser()
+
 ###########################################################################################
 # Load input dataset
 cat(sprintf('Load input dataset %s \n',lop$input[1]))
@@ -2102,14 +2089,11 @@ if ((substr(lop$input[1],nchar(lop$input[1])-2,nchar(lop$input[1]))==".1D") ||
 ###########################################################################################
 #For convenience, change the dimensions so that the first 3 
 #dimensions are turned into 1
-browser()
 ddi <- dset.dimBRKarray(idset)
 idset <- dset.3DBRKarrayto1D(idset)
 dd <- dim(idset$brk)
 nscans <- dd[2]  # number of volumes in input dataset
 nvoxels <- dd[1]  # number of voxels in input dataset
-
-#browser()
 
 ###########################################################################################
 #Load mask, check dimensions and apply mask
@@ -2216,7 +2200,6 @@ if ((is.null(lop$maxiter))&&(is.null(lop$maxiterfactor))){
 if (!is.null(lop$maxiter)) infoDeconv$maxiter = lop$maxiter;
 if (!is.null(lop$maxiterfactor)) infoDeconv$maxiter = lop$maxiterfactor * nscans;
 
-#browser()
 ###########################################################################################
 # Dealing with LHS parameters (i.e. additional regressors): 
 #   - infoLHS : Information about Voxel-Dependency and Number of Columns of each LHS
@@ -2295,7 +2278,6 @@ if (!is.null(lop$LHS)) {
   }  
 } 
 
-browser()
 ###########################################################################################
 #Generate names for output datasets if options outALL or outZAll are used
 if ((!is.null(lop$outALL)) || (!is.null(lop$outZAll))){
@@ -2403,7 +2385,6 @@ if (!is.null(lop$LHS)) {
   }
 }
 
-browser()
 ###########################################################################################
 # prepare data for parallel computation
 nSeg <- 20
@@ -2426,7 +2407,6 @@ dim(inData) <- c(dimSeg, nSeg, nscans, NoFiles)
 # declare output receiver
 out <- array(list(), dim=c(dimSeg, nSeg))
 
-browser()
 
 ###########################################################################################
 # Loop for parallel computation
@@ -2464,7 +2444,6 @@ if (lop$nNodes>1) {
   stopCluster(cl)
 }
 
-#browser()
 ###########################################################################################
 # convert to number of original voxels
 length(out) <- c(dimSeg*nSeg)
@@ -2507,8 +2486,6 @@ if (!is.null(lop$Fdf_full_pfx)) dim(Fdf_full) <- c(ddi[1:3],2);
 if (!is.null(lop$Z_Fstats_full_pfx)) dim(Z_Fstats_full) <- c(ddi[1:3],1);
 if (!is.null(lop$R2_full_pfx)) dim(R2_full) <- c(ddi[1:3],1);
 if (!is.null(lop$R2adj_full_pfx)) dim(R2adj_full) <- c(ddi[1:3],1);
-
-#browser()
 
 if (lop$verb) 
    cat( paste('Writing results to', lop$prefix, '\n'));
