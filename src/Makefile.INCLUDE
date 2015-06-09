@@ -196,7 +196,7 @@ SCRIPTS = @4Daverage @CommandGlobb @GetAfniOrient @DTI_studio_reposition        
           @Install_ClustScat_Demo @Install_FATMVM_DEMO                            \
           @move.to.series.dirs @toMNI_Awarp @toMNI_Qwarpar @simulate_motion	    \
           @afni.run.me 3dRprogDemo @ExamineGenFeatDists rPkgsInstall 	         \
-          @Install_DBSproc @Install_3dPFM_Demo
+          @Install_DBSproc @Install_3dPFM_Demo 3dPFM
 
 
 PY_DIR = python_scripts
