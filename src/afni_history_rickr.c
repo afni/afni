@@ -49,6 +49,16 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 10,  Jun, 2015, RCR, "@diff.files", MAJOR, TYPE_NEW_PROG,
+   "compare list of files with those in other directory",
+   NULL
+ } ,
+
+ { 10,  Jun, 2015, RCR, "@diff.tree", MAJOR, TYPE_NEW_PROG,
+   "look for differences between files in two directories",
+   "Should merge @diff.files and @diff.tree, and change to python."
+ } ,
+
  {  8,  Jun, 2015, RCR, "neuro_deconvolve.py", MICRO, TYPE_ENHANCE,
    "allow -inputs to include paths",
    NULL
