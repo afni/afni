@@ -115,7 +115,7 @@ if ( $#new_files != $#old_files ) then
         endif
     end
     foreach file ( $old_files )
-        if ( ! $ignore_missing && -f $ndir/$file ) then
+        if ( ! $ignore_missing && ! -f $ndir/$file ) then
            echo extra old file: $odir/$file
         endif
     end
