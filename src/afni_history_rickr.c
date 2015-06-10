@@ -49,6 +49,17 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 10,  Jun, 2015, RCR, "auto_warp.py", MICRO, TYPE_BUG_FIX,
+   "clear any AFNI_COMPRESSOR variable, so that scripts do not get confused",
+   "NIFTI is the default, so avoid script confusion with automatic nii.gz.\n"
+   "In the future, maybe process as AFNI."
+ } ,
+
+ { 10,  Jun, 2015, RCR, "NIFTI", MICRO, TYPE_BUG_FIX,
+   "THD_open_one_dataset: let THD_open_nifti look for alternate files",
+   "CHECK_FOR_DATA() requires a file name match, but NIFTI is forgiving."
+ } ,
+
  { 10,  Jun, 2015, RCR, "@diff.files", MAJOR, TYPE_NEW_PROG,
    "compare list of files with those in other directory",
    NULL
