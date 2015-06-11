@@ -236,7 +236,8 @@ ENTRY("THD_open_one_dataset") ;
        STRING_HAS_SUFFIX(pathname,".nii.gz") ||
        STRING_HAS_SUFFIX(pathname,".nia")      ){
 
-     CHECK_FOR_DATA(pathname) ;               /* 06 Jan 2005 */
+     /* let NIFTI decide if the dataset is there   10 Jun 2015 [ricrk] */
+     /* CHECK_FOR_DATA(pathname) ; */              /* 06 Jan 2005 */
      dset = THD_open_nifti(pathname) ;
      THD_patch_brickim(dset) ;  /* 20 Oct 2006 */
      THD_report_obliquity(dset) ;  /* 20 Dec 2007 */

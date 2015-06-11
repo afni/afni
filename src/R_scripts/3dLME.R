@@ -25,7 +25,7 @@ help.LME.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
           ================== Welcome to 3dLME ==================          
     AFNI Group Analysis Program with Multi-Variate Modeling Approach
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 1.7.5, March 23, 2015
+Version 1.7.6, May 20, 2015
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - http://afni.nimh.nih.gov/sscc/gangc/lme.html
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -456,7 +456,7 @@ read.LME.opts.batch <- function (args=NULL, verb = 0) {
    "         not modeled in the analysis.\n",
    "         4) The context of the table can be saved as a separate file, e.g.,",
    "         called table.txt. Do not forget to include a backslash at the end of",
-   "         each row. In the script specify the data with '-dataTable table.txt'.",
+   "         each row. In the script specify the data with '-dataTable @table.txt'.",
    "         This option is useful: (a) when there are many input files so that",
    "         the program complains with an 'Arg list too long' error; (b) when",
    "         you want to try different models with the same dataset.\n",

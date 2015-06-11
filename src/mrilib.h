@@ -1558,7 +1558,8 @@ extern double generic_dmat44_determinant( dmat44 P ) ;
 
 /*------------------------------------------------------------------------*/
 
-MRI_IMAGE * mri_genARMA11( int nlen, int nvec, float ap, float lm, float sg ) ;
+extern MRI_IMAGE * mri_genARMA11( int nlen, int nvec, float ap, float lm, float sg ) ;
+extern void mri_genARMA11_set_tdof( float ttt ) ;
 
 /*------------------------------------------------------------------------*/
 /* some of these clusterize prototypes require editvol.h */

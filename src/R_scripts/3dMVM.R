@@ -32,7 +32,7 @@ help.MVM.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
           ================== Welcome to 3dMVM ==================          
     AFNI Group Analysis Program with Multi-Variate Modeling Approach
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 3.5.6, Feb 23, 2015
+Version 3.5.7, May 20, 2015
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - http://afni.nimh.nih.gov/sscc/gangc/MVM.html
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -172,9 +172,12 @@ Example 2 --- two between-subjects (genotype and sex), onewithin-subject
           s63   NN         female 29   110    neg       s63+tlrc\'[neg_beta]\'           \\
           s63   NN         female 29   110    neu       s63+tlrc\'[neu_beta]\'         
 
-   NOTE:  1) Option -wsE2 is used to combine both the univariate testing and the within-subject
-          multivariate approach. This option only makes sense if a within-subject factor has
-          more than 3 level.
+   NOTE:  1) By default the program provides an F-stat through the univariate testing
+          (UVT) method for each effect that involves a within-subject factor. With option
+          -wsE2 UVT is combined with the within-subject multivariate approach, and the
+          merged result remains the same as UVT most of the time (or in most brain regions),
+          but occasionally it may be more powerful. This option only makes sense if a
+          within-subject factor has more than 3 level.
           2) The 2nd GLT shows the age effect (slope) while the 3rd GLT reveals the contrast
           between the emotions at the age of 30 (5 above the center). On the other hand,
           all the other GLTs (1st, 4th, and 5th) should be interpreted at the center Age
@@ -315,8 +318,10 @@ read.MVM.opts.batch <- function (args=NULL, verb = 0) {
    "         other.\n", sep = '\n') ),
 
        '-wsMVT' = apl(n=0, h = paste(
-   "-wsMVT: If at least one within-subject factor is involved in the model, this",
-   "         option provides within-subject multivariate testing for any effect",
+   "-wsMVT: By default 3dMVM provides an F-stat through univariate testing (UVT)",
+   "         for each effect that involves a within-subject factor. If at least",
+   "         one within-subject factor is involved in the model, option -wsMVT",
+   "         provides within-subject multivariate testing for any effect",
    "         associated with a within-subject variable. The testing strategy is",
    "         different from the conventional univariate GLM, see more details in",
    "         Chen et al. (2014), Applications of Multivariate Modeling to",
@@ -335,7 +340,12 @@ read.MVM.opts.batch <- function (args=NULL, verb = 0) {
    "         omnibus F-test associated with a within-subject factor is assessed",
    "         with both univariate and within-subject multivariate tests. Use",
    "         the option only if at least one within-subject factor has more",
-   "         than two levels.\n", sep='\n')),
+   "         than two levels. By default 3dMVM provides an F-stat through the",
+   "         univariate testing (UVT) method for each effect that involves a",
+   "         within-subject factor. With option -wsE2 UVT is combined with the",
+   "         within-subject multivariate approach, and the merged result remains",
+   "         the same as UVT most of the time (or in most brain regions), but",
+   "         occasionally it may be more powerful.\n", sep='\n')),
 
        '-mvE5' = apl(n=0, h = paste(
    "", sep='\n')),
