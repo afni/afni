@@ -43,7 +43,11 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 26 , MAY , 2015 , RWC , "3dClustSim" , MICRO , TYPE_NEW_OPT ,
+  { 5 , JUN , 2015 , RWC , "3dSimARMA11" , MICRO , TYPE_NEW_OPT ,
+   "Add hidden -tdof option" ,
+   NULL } ,
+
+ { 26 , MAY , 2015 , RWC , "3dClustSim" , MICRO , TYPE_NEW_OPT ,
    "Add secret -tdof option" ,
    NULL } ,
 

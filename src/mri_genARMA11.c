@@ -113,6 +113,9 @@ static INLINE double qgaussian(void)
    L2-normalized (sum of squares=1).
 *//*-------------------------------------------------------------------------*/
 
+static float tdof = 0.0f ;
+void mri_genARMA11_set_tdof( float ttt ){ tdof = ttt ; }
+
 MRI_IMAGE * mri_genARMA11( int nlen, int nvec, float ap, float lm, float sg )
 {
    int kk,ii , do_rcmat ;
@@ -121,6 +124,7 @@ MRI_IMAGE * mri_genARMA11( int nlen, int nvec, float ap, float lm, float sg )
    rcmat *rcm=NULL ;
    MRI_IMAGE *outim ;
    float     *outar , *vv ;
+   float zfac=0.0f , tfac=0.0f , zhat , denom ;
 #if 0
    long seed=0 ;
    seed = (long)time(NULL)+(long)getpid() ;
@@ -148,6 +152,11 @@ ENTRY("mri_genARMA11") ;
      }
    }
 
+   if( tdof != 0.0f ){
+     zfac = 1.0f/(1.0f-0.25f/fabsf(tdof)) ;
+     tfac = 0.5f/fabsf(tdof) ;
+   }
+
    /* simulate */
 
    outim = mri_new( nlen , nvec , MRI_float ) ; outar = MRI_FLOAT_PTR(outim) ;
@@ -155,6 +164,20 @@ ENTRY("mri_genARMA11") ;
 
    for( kk=0 ; kk < nvec ; kk++ ){
      for( ii=0 ; ii < nlen ; ii++ ) rvec[ii] = zgaussian() ;
+     if( tdof > 0.0f ){
+       for( ii=0 ; ii < nlen ; ii++ ){
+         zhat = rvec[ii]*zfac ;
+         denom = 1.0f - zhat*zhat*tfac ; if( denom < 0.1f ) denom = 0.1f ;
+         rvec[ii] = zhat / sqrtf(denom) ;
+       }
+     } else if( tdof < 0.0f ){
+       int di=1 ;
+       for( ii=2 ; ii < nlen ; ii+=di,di++ ){
+         zhat = rvec[ii]*zfac ;
+         denom = 1.0f - zhat*zhat*tfac ; if( denom < 0.1f ) denom = 0.1f ;
+         rvec[ii] = zhat / sqrtf(denom) ;
+       }
+     }
      if( do_rcmat ) rcmat_lowert_vecmul( rcm , rvec ) ;
      vv = outar + kk*nlen ;
      if( do_norm ){

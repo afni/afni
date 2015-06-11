@@ -49,6 +49,37 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 10,  Jun, 2015, RCR, "auto_warp.py", MICRO, TYPE_BUG_FIX,
+   "clear any AFNI_COMPRESSOR variable, so that scripts do not get confused",
+   "NIFTI is the default, so avoid script confusion with automatic nii.gz.\n"
+   "In the future, maybe process as AFNI."
+ } ,
+
+ { 10,  Jun, 2015, RCR, "NIFTI", MICRO, TYPE_BUG_FIX,
+   "THD_open_one_dataset: let THD_open_nifti look for alternate files",
+   "CHECK_FOR_DATA() requires a file name match, but NIFTI is forgiving."
+ } ,
+
+ { 10,  Jun, 2015, RCR, "@diff.files", MAJOR, TYPE_NEW_PROG,
+   "compare list of files with those in other directory",
+   NULL
+ } ,
+
+ { 10,  Jun, 2015, RCR, "@diff.tree", MAJOR, TYPE_NEW_PROG,
+   "look for differences between files in two directories",
+   "Should merge @diff.files and @diff.tree, and change to python."
+ } ,
+
+ {  8,  Jun, 2015, RCR, "neuro_deconvolve.py", MICRO, TYPE_ENHANCE,
+   "allow -inputs to include paths",
+   NULL
+ } ,
+
+ {  6,  Jun, 2015, RCR, "timing_tool.py", MICRO, TYPE_NEW_OPT,
+   "added -per_run_file",
+   NULL
+ } ,
+
  {  2,  Jun, 2015, RCR, "NIFTI", MICRO, TYPE_GENERAL,
    "NIFTI-1,2: added NIFTI_ECODE_CIFTI/VARIABLE_FRAME_TIMING/EVAL/MATLAB",
    NULL

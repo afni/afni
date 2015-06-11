@@ -277,7 +277,7 @@ read.MEMA.opts.interactive <- function (verb = 0) {
          lop$covData <- 
             readMultiFiles(lop$nCov, 1, "covariate")  # 1: assuming no header  
       }
-
+      
       print("Each covariate should be centered around its mean or some other meaningful value so that group effect")
       print("can be interpreted with the covariate being at the mean or other user-specified value. Otherwise")
       print("the interpretation would be with the covariate being at 0!")
@@ -347,7 +347,7 @@ read.MEMA.opts.interactive <- function (verb = 0) {
                               # add names for those interactions
          }
       }
-
+      if(dim(lop$covData)[1]==1) lop$covData <- t(lop$covData)
       #browser()
       lop$xMat <- as.matrix(cbind(lop$xMat, lop$covData))           
    } else {lop$nCov <- 0; lop$xMat <- as.matrix(lop$xMat)}
@@ -507,7 +507,7 @@ greeting.MEMA <- function ()
           ================== Welcome to 3dMEMA.R ==================          
              AFNI Mixed-Effects Meta-Analysis Modeling Package!
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 0.2.5, Sept 10, 2014
+Version 0.2.6, Jun 3, 2015
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - http://afni.nimh.nih.gov/sscc/gangc/MEMA.html
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -1324,7 +1324,7 @@ process.MEMA.opts <- function (lop, verb = 0) {
       if(!all(dim(lop$maskData[,,,1])==lop$myDim[1:3])) 
          stop("Mask dimensions don't match the input files!")
 
-   if(lop$nGrp==1) lop$xMat <- rep(1, sum(lop$nSubj))      
+   if(lop$nGrp==1) lop$xMat <- matrix(rep(1, sum(lop$nSubj)), lop$nSubj, 1) # lop$xMat <- rep(1, sum(lop$nSubj))      
    if(lop$nGrp==2) 
       lop$xMat <- cbind(rep(1, sum(lop$nSubj)), 
                     c(rep(0, lop$nSubj[1]), rep(1, lop$nSubj[2]))) 
@@ -1407,6 +1407,7 @@ process.MEMA.opts <- function (lop, verb = 0) {
          }
       }
       #browser()
+      if(dim(lop$covData)[1]==1) lop$covData <- t(lop$covData)
       lop$xMat <- as.matrix(cbind(lop$xMat, lop$covData))           
    } else {lop$nCov <- 0; lop$xMat <- as.matrix(lop$xMat)}
 
