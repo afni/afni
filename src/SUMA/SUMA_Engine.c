@@ -2549,6 +2549,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
             SUMA_ALL_DO *adodat=NULL;
             char *idcode=NULL, *eee=NULL;
             NI_element *nel=NULL;
+
             /* expects a node (datum) index in i and maybe a ngr in ngr
             ngr is only being used when AFNI is the src of the call*/
             if (EngineData->i_Dest   != NextComCode ||
@@ -2660,7 +2661,6 @@ SUMA_Boolean SUMA_Engine (DList **listp)
             SUMA_LH("Update node field");
             SUMA_UpdateNodeField(ado);
             SUMA_LH("Done with SE_SetSelectedNode");
-            
             
             /* Might need to update nodemask -- experimental, need much love 
                and cleanup 
