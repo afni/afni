@@ -30,7 +30,7 @@ SEXP getListElement(SEXP list, const char *str)
 
 SEXP R_THD_load_dset(SEXP Sfname, SEXP Opts)
 {
-   SEXP Rdset, brik, head, names, opt, node_list;
+   SEXP Rdset, brik, head, names, opt, node_list=R_NilValue;
    int i=0, ip=0, sb, cnt=0, *iv=NULL, kparts=2;
    char *fname = NULL, *head_str;
    NI_group *ngr=NULL;
@@ -140,7 +140,7 @@ SEXP R_THD_load_dset(SEXP Sfname, SEXP Opts)
    PROTECT(Rdset = allocVector(VECSXP,kparts));
    SET_VECTOR_ELT(Rdset, 0, head);
    SET_VECTOR_ELT(Rdset, 1, brik);
-   if (kparts==3) SET_VECTOR_ELT(Rdset, 2, node_list);
+   if (node_list != R_NilValue) SET_VECTOR_ELT(Rdset, 2, node_list);
    setAttrib(Rdset, R_NamesSymbol, names);
    
    if (debug > 1) fprintf(stderr,"Unprotecting...\n");
