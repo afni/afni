@@ -1591,7 +1591,24 @@ void AFNI_sigfunc_alrm(int sig)
      "Coming REAL soon: the 'Write Science Paper' interface"         ,
      "And flights of angels sing thee to thy rest"                   ,
      "Hast seen the White Whale?"                                    ,
+     "Our sweetest songs are those that tell of saddest thought"     ,
+     "The more we study, the more we discover our ignorance"         ,
+     "Fear not for the future; weep not for the past"                ,
+     "Nothing ever becomes real until it is experienced"             ,
+     "No bird soars too high if he soars with his own wings"         ,
+     "Great things are done when men and mountains meet"             ,
+     "A fool sees not the same tree that a wise man sees"            ,
+     "What is now proved was once only imagined"                     ,
+     "It is easier to forgive an enemy than to forgive a friend"     ,
+     "The true method of knowledge is experiment"                    ,
+     "The flower that smells the sweetest is shy and lowly"          ,
+     "He knows not his own strength, that has not met adversity"     ,
+     "Weigh the meaning, and look not at the words"                  ,
+     "Statistics are no substitute for judgment"                     ,
 
+     "There are 2 kinds of statistics: those you compute and those you just make up"  ,
+     "It is the mark of a truly intelligent person to be moved by statistics"         ,
+     "Dreams are true while they last, and do we not live in dreams?"                 ,
      "Have you made your long term (trillion year) research plan yet? Get busy"       ,
      "Why is 'Gold Standard' used in science? Gold is pretty but almost useless"      ,
      "Oh well, you can always end your paper with 'Further research needed'"          ,
@@ -1633,6 +1650,8 @@ void AFNI_sigfunc_alrm(int sig)
      "Let us therefore study the incidents of this as philosophy to learn wisdom from",
      "Analyze your data rigorously -- you can fake the conclusions all you want later",
      "O wad some Pow'r the giftie gie us, To see oursels as ithers see us"            ,
+
+     "My name is AFNImandias, Brain of Brains; Look on my Statistics, ye Clever, and despair" ,
 
      "\n  The great thing about the human condition:\n"
      "  No matter how bad it is, it can always get worse"                                     ,
