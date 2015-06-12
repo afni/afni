@@ -379,7 +379,7 @@ void L1F_worker( int nt , double dt , float *vec , int dofit , char **label )
 
       for( ks=0 ; ks < ntsim ; ks++ ){
          for( jh=0 ; jh < tsim[ks]->ny ; jh++ ){
-           sprintf(sbuf,"Coef of %s[jh] = %g\n" , tsim[ks]->name,jh , fit[ir++] ) ;
+           sprintf(sbuf,"Coef of %s[%d] = %g\n" , tsim[ks]->name,jh , fit[ir++] ) ;
            strcat(lbuf,sbuf) ;
          }
       }
