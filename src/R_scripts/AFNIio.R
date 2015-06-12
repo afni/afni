@@ -3072,7 +3072,7 @@ write.c.AFNI <- function( filename, dset=NULL, label=NULL,
                         maskinf=0, scale = TRUE, 
                         overwrite=FALSE, addFDR=0,
                         statsym=NULL, view=NULL,
-                        com_hist=NULL, TR=TR, type=NULL) {
+                        com_hist=NULL, TR=NULL, type=NULL) {
   
    an <- parse.AFNI.name(filename);
    if (verb > 1) {
