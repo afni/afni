@@ -1530,6 +1530,9 @@ int main( int argc , char *argv[] )
          if( DSET_NVOX(dset[ids]) != DSET_NVOX(dset[0]) ){
            ERROR_message("Option %s: dataset '%s' does not match first one in size",
                          onam,nams[ids]) ; nbad++ ;
+           ININFO_message("'%s' has %d voxels, but first one '%s' has %d voxels",
+                          nams[ids],DSET_NVOX(dset[ids]) ,
+                          nams[0]  ,DSET_NVOX(dset[0])    ) ;
          }
        }
        if( nbad > 0 ) ERROR_exit("Cannot go on after such an error!") ;
