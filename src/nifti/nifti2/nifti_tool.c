@@ -340,6 +340,18 @@ int process_opts( int argc, char * argv[], nt_opts * opts )
       }
 
       /* begin normal execution options... */
+      else if( ! strcmp(argv[ac], "-add_ext") )
+      {
+         int new_ecode;
+         ac++;
+         CHECK_NEXT_OPT(ac, argc, "-add_ext");
+         new_ecode = atoll(argv[ac]);
+         if( add_int(&opts->etypes, new_ecode) ) return -1;
+         ac++;
+         CHECK_NEXT_OPT(ac, argc, "-add_ext");
+         if( add_string(&opts->elist, argv[ac]) ) return -1; /* add extension */
+         opts->add_exts = 1;
+      }
       else if( ! strcmp(argv[ac], "-add_afni_ext") )
       {
          ac++;
@@ -1369,8 +1381,7 @@ int use_full()
    "    -disp_exts         : display all AFNI-type extensions\n"
    "\n"
    "       This flag option is used to display all nifti_1_extension data,\n"
-   "       for only those extensions of type AFNI (code = 4).  The only\n"
-   "       other option used will be '-infiles'.\n"
+   "       for extensions of type AFNI (4), COMMENT (6) or CIFTI (32).\n"
    "\n");
    printf(
    "       e.g. to display the extensions in datasets:\n"
@@ -1986,6 +1997,10 @@ int act_add_exts( nt_opts * opts )
             ext = edata;
          }
 
+         if( ! nifti_is_valid_ecode(opts->etypes.list[ec]) )
+            fprintf(stderr,"** warning: applying unknown ECODE %d\n",
+                    opts->etypes.list[ec]);
+
          if( nifti_add_extension(nim, ext, elen, opts->etypes.list[ec]) ){
             nifti_image_free(nim);
             return 1;
@@ -2600,7 +2615,7 @@ int act_check_hdrs( nt_opts * opts )
 int act_disp_exts( nt_opts * opts )
 {
    nifti_image * nim;
-   char          mesg[32];
+   char          mesg[32], *mptr;
    int           ec, fc;
 
    if( g_debug > 2 )
@@ -2618,7 +2633,10 @@ int act_disp_exts( nt_opts * opts )
       for( ec = 0; ec < nim->num_ext; ec++ )
       {
          sprintf(mesg, "    ext #%d : ", ec);
-         disp_nifti1_extension(mesg, nim->ext_list + ec, -1);
+         if( g_debug > 0 ) mptr = mesg;
+         else              mptr = NULL;
+
+         disp_nifti1_extension(mptr, nim->ext_list + ec, -1);
       }
 
       nifti_image_free(nim);
@@ -4159,8 +4177,9 @@ int diff_field(field_s *fieldp, void * str0, void * str1, int nfields)
  *----------------------------------------------------------------------*/
 int disp_nifti1_extension(char *mesg, nifti1_extension * ext, int maxlen)
 {
-   int len;
-   if( mesg ) fputs(mesg, stdout);
+   FILE * outfp = stdout;
+   int    len;
+   if( mesg ) fputs(mesg, outfp);
 
    if( !ext )
    {
@@ -4168,22 +4187,23 @@ int disp_nifti1_extension(char *mesg, nifti1_extension * ext, int maxlen)
       return 1;
    }
 
-   fprintf(stdout,"ecode = %d, esize = %d, edata = ",
-           ext->ecode, ext->esize);
+   if( g_debug > 0 )
+      fprintf(outfp,"ecode = %d, esize = %d, edata = ", ext->ecode,ext->esize);
 
    if( !ext->edata )
-      fprintf(stdout,"(NULL)\n");
+      fprintf(outfp,"(NULL)\n");
    else if ( ext->ecode == NIFTI_ECODE_AFNI ||
-             ext->ecode == NIFTI_ECODE_COMMENT )
+             ext->ecode == NIFTI_ECODE_COMMENT ||
+             ext->ecode == NIFTI_ECODE_CIFTI )
    {
       len = ext->esize-8;
       if( maxlen >= 0 && len > maxlen ) len = maxlen;
-      fprintf(stdout,"%.*s\n", len, (char *)ext->edata);
+      fprintf(outfp,"%.*s\n", len, (char *)ext->edata);
    }
    else
-      fprintf(stdout,"(unknown data type)\n");
+      fprintf(outfp,"(unknown data type)\n");
 
-   fflush(stdout);
+   fflush(outfp);
 
    return 0;
 }
