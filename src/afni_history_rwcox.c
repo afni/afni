@@ -43,7 +43,11 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 5 , JUN , 2015 , RWC , "3dSimARMA11" , MICRO , TYPE_NEW_OPT ,
+  { 12 , JUN , 2015 , RWC , "plug_L1fit" , MICRO , TYPE_MODIFY ,
+   "Modify Timeseries input to use all columns of file, not just 1st" ,
+   NULL } ,
+
+ { 5 , JUN , 2015 , RWC , "3dSimARMA11" , MICRO , TYPE_NEW_OPT ,
    "Add hidden -tdof option" ,
    NULL } ,
 

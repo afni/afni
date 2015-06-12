@@ -1591,6 +1591,9 @@ void AFNI_sigfunc_alrm(int sig)
      "Coming REAL soon: the 'Write Science Paper' interface"         ,
      "And flights of angels sing thee to thy rest"                   ,
      "Hast seen the White Whale?"                                    ,
+     "Our sweetest songs are those that tell of saddest thought"     ,
+     "The more we study, the more we discover our ignorance"         ,
+     "Fear not for the future, weep not for the past"                ,
 
      "Have you made your long term (trillion year) research plan yet? Get busy"       ,
      "Why is 'Gold Standard' used in science? Gold is pretty but almost useless"      ,
