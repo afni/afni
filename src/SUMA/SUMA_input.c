@@ -6730,6 +6730,9 @@ SUMA_PICK_RESULT *SUMA_WhatWasPicked_FrameSO(SUMA_SurfaceViewer *sv, int ido)
          SUMA_S_Err("No dset for GLDO?");
          SUMA_RETURN(PR);
       }
+      GSaux->IgnoreSelection = 0; /* Selection being made on matrix 
+                                     representation of graph.
+                                     turn off IgnoreSelection */
       switch (dset->Aux->matrix_shape) {
          case MAT_FULL:
          case MAT_TRI:

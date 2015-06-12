@@ -10950,7 +10950,7 @@ SUMA_Boolean SUMA_DrawGSegmentDO (SUMA_GRAPH_SAUX *GSaux, SUMA_SurfaceViewer *sv
       fprintf(stderr,"Error %s: NULL pointer.\n", FuncName);
       SUMA_RETURN (NOPE);
    }
-   
+      
    gl_dt = glIsEnabled(GL_DEPTH_TEST);
    
    if (stipsel) {
@@ -11123,9 +11123,10 @@ SUMA_Boolean SUMA_DrawGSegmentDO (SUMA_GRAPH_SAUX *GSaux, SUMA_SurfaceViewer *sv
       goto BOTTOM;
    }
    
-   SUMA_LHv("Stippling %d (XXX=%d, Val=%d, 01=%d) wbox=%d\n",
+   SUMA_LHv("Stippling %d (XXX=%d, Val=%d, 01=%d) wbox=%d\n, IgnoreSelection=%d",
                 curcol->EdgeStip, SW_SurfCont_DsetEdgeStipXXX, 
-                SW_SurfCont_DsetEdgeStipVal, SW_SurfCont_DsetEdgeStip1, wbox);
+                SW_SurfCont_DsetEdgeStipVal, SW_SurfCont_DsetEdgeStip1, wbox,
+                GSaux->IgnoreSelection);
    if (curcol->EdgeStip == SW_SurfCont_DsetEdgeStipXXX ||
        curcol->EdgeStip < 0) {
       SDO->Stipple = SUMA_SOLID_LINE;
