@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 15,  Jun, 2015, RCR, "nifti_tool", MINOR, TYPE_NEW_OPT,
+   "added -disp_cext",
+   NULL
+ } ,
+
  { 10,  Jun, 2015, RCR, "auto_warp.py", MICRO, TYPE_BUG_FIX,
    "clear any AFNI_COMPRESSOR variable, so that scripts do not get confused",
    "NIFTI is the default, so avoid script confusion with automatic nii.gz.\n"
