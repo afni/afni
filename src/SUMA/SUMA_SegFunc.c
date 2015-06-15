@@ -7151,6 +7151,40 @@ SUMA_HIST *SUMA_hist(float *v, int n, int Ku, float Wu, float *range,
    
    SUMA_ENTRY;
    
+   
+   if (!v && !n) {/* special case for uniform histogram */
+      if (Ku < 1 || !range || (range[1]<=range[0])) {
+         SUMA_S_Err("Need proper range and number of bins for uniform hist");
+         SUMA_RETURN(hh);
+      }
+      min = range[0]; max = range[1];
+      hh = (SUMA_HIST *)SUMA_calloc(1, sizeof(SUMA_HIST));
+      hh->max = max;
+      hh->min = min;
+      if (label) hh->label = SUMA_copy_string(label);
+      SUMA_LHv("User opts: %d, %f, range [%f %f]\n",
+                  Ku, Wu, 
+                  range?range[0]:-1111, range?range[1]:-1111);
+      hh->K = Ku;
+      hh->W = (max-min)/(float)hh->K;
+      SUMA_LHv("Window %f, Bins %d, min %f max %f\n",
+            hh->W, hh->K , min, max);
+      /* initialize */
+      hh->b = (float *)SUMA_calloc(hh->K, sizeof(float));
+      hh->c = (int *)SUMA_calloc(hh->K, sizeof(int));
+      hh->cn = (float *)SUMA_calloc(hh->K, sizeof(float));
+   
+      /* fill it */
+      hh->N_ignored = 0;
+      hh->n = 10*hh->K;
+      for (i=0; i<hh->K;++i) {
+         hh->c[i] = 10;
+         hh->b[i] = hh->min+(i+0.5)*hh->W;
+         hh->cn[i] = 1.0/hh->K;
+      }
+      SUMA_RETURN(hh); 
+   }
+   
    if (!v) SUMA_RETURN(hh);
    if (n < 10) {
       SUMA_S_Errv("A hist with n = %d samples!!!\n", n);
@@ -7235,7 +7269,7 @@ SUMA_HIST *SUMA_hist_opt(float *v, int n, int Ku, float Wu, float *range,
    SUMA_ENTRY;
    
    hh = SUMA_hist(v,n,Ku,Wu,range,label,ignoreout);
-   if (!hh) SUMA_RETURN(hh);
+   if (!hh || (!v && n == 0)) SUMA_RETURN(hh);
    if (!methods) {
       methods = "Range|OsciBinWidth";
    }
