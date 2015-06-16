@@ -2910,6 +2910,7 @@ def db_mod_regress(block, proc, user_opts):
 
     apply_uopt_to_block('-regress_motion_file', user_opts, block)
 
+    apply_uopt_to_block('-regress_stim_time_offset', user_opts, block)
     apply_uopt_to_block('-regress_anaticor', user_opts, block)
     apply_uopt_to_block('-regress_anaticor_radius', user_opts, block)
     apply_uopt_to_block('-regress_anaticor_fast', user_opts, block)
@@ -3084,9 +3085,14 @@ def db_mod_regress(block, proc, user_opts):
     # if we are here, then we should have stimulus files
     if len(proc.stims_orig) > 0:
         # create local names for stim files
+        oname = '-regress_stim_time_offset'
+        val, err = block.opts.get_type_opt(float, oname)
+        if err or val == None: pre = ''
+        else:                  pre = 'offset_'
         proc.stims = []
         for file in proc.stims_orig:
-            proc.stims.append('stimuli/%s' % os.path.basename(file))
+            proc.stims.append('stimuli/%s%s' % \
+                (pre, os.path.basename(file)))
 
     apply_uopt_to_block('-regress_mot_as_ort', user_opts, block)
 
