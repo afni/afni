@@ -9862,7 +9862,7 @@ g_help_string = """
 
                If the -regress_stim_times option is uses, and if ALL stim files
                are timing files, then timing_tool.py will be used to add the
-               time offset to each -regres_stim_times file as it is copied into
+               time offset to each -regress_stim_times file as it is copied into
                the stimuli directory (near the beginning of the script).
 
             With -regress_stim_files:
