@@ -478,10 +478,11 @@ g_history = """
           rather than -regress_ROI_*, the latter no longer taking datasets
         - also changed -regress_ROI_erode to -anat_follower_erode
         - removed option -regress_ROI_maskave (use -regress_ROI)
-    4.44 May 22, 2015: help clarifications
+    4.45 May 22, 2015: help clarifications
+    4.46 Jun 15, 2015: added -regress_stim_time_offset
 """
 
-g_version = "version 4.45, May 22, 2015"
+g_version = "version 4.46, June 15, 2015"
 
 # version of AFNI required for script execution
 g_requires_afni = "1 Apr 2015" # 1d_tool.py uncensor from 1D
@@ -997,6 +998,8 @@ class SubjProcSream:
 
         self.valid_opts.add_opt('-regress_3dD_stop', 0, [],
                         helpstr="stop 3dDeconvolve after matrix generation")
+        self.valid_opts.add_opt('-regress_stim_time_offset', 1, [],
+                        helpstr="add given offset to all stimulus times")
         self.valid_opts.add_opt('-regress_anaticor', 0, [],
                         helpstr="apply ANATICOR: regress WMeLocal time series")
         self.valid_opts.add_opt('-regress_anaticor_fast', 0, [],
@@ -1940,12 +1943,24 @@ class SubjProcSream:
                         % (self.od_var, self.od_var, stat_inc))
 
         if len(self.stims_orig) > 0: # copy stim files into script's stim dir
+          oname = '-regress_stim_time_offset'
+          val, err = self.user_opts.get_type_opt(float, oname)
+          if err: return 1
+          if val != None: 
+            tstr = '# copy stim files into stimulus directory ' \
+                   '(times offset by %g s)\n' % val
+            for ind in range(len(self.stims_orig)):
+              oldfile = self.stims_orig[ind]
+              newfile = self.stims[ind]
+              tstr += 'timing_tool.py -timing %s -add_offset %g -write_timing' \
+                      ' %s\n' % (oldfile, val, newfile)
+          else:
             tstr = '# copy stim files into stimulus directory\ncp'
             for ind in range(len(self.stims)):
                 tstr += ' %s' % self.stims_orig[ind]
             tstr += ' %s/stimuli\n' % self.od_var
-            self.write_text(add_line_wrappers(tstr))
-            self.write_text("%s\n" % stat_inc)
+          self.write_text(add_line_wrappers(tstr))
+          self.write_text("%s\n" % stat_inc)
 
         if len(self.extra_stims) > 0: # copy extra stim files into stim dir
             tstr = '# copy extra stim files\n'   \
