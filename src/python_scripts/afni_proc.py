@@ -1952,8 +1952,9 @@ class SubjProcSream:
             for ind in range(len(self.stims_orig)):
               oldfile = self.stims_orig[ind]
               newfile = self.stims[ind]
-              tstr += 'timing_tool.py -timing %s -add_offset %g -write_timing' \
-                      ' %s\n' % (oldfile, val, newfile)
+              tstr += 'timing_tool.py -timing %s \\\n'                   \
+                      '               -add_offset %g -write_timing %s\n' \
+                      % (oldfile, val, newfile)
           else:
             tstr = '# copy stim files into stimulus directory\ncp'
             for ind in range(len(self.stims)):
