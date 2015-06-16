@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 16,  Jun, 2015, RCR, "CIFTI", MINOR, TYPE_GENERAL,
+   "added initial nifti/cifti tree",
+   NULL
+ } ,
+
  { 16,  Jun, 2015, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,
    "applied -regress_stim_times_offset to typical timing files",
    "Allows for stim timing offset when copying to stimuli directory."
