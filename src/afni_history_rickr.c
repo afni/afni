@@ -49,8 +49,8 @@
 
 afni_history_struct rickr_history[] = {
 
- { 15,  Jun, 2015, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
-   "added -regress_stim_times_offset",
+ { 16,  Jun, 2015, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,
+   "applied -regress_stim_times_offset to typical timing files",
    "Allows for stim timing offset when copying to stimuli directory."
  } ,
 
