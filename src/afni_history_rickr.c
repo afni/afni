@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 17,  Jun, 2015, RCR, "GIFTI", MINOR, TYPE_NEW_OPT,
+   "added functions for reading from a buffer",
+   NULL
+ } ,
+
  { 16,  Jun, 2015, RCR, "CIFTI", MINOR, TYPE_GENERAL,
    "added initial nifti/cifti tree",
    NULL
