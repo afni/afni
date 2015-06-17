@@ -134,9 +134,10 @@ static char * gifti_history[] =
   "       (requested by H Breman, J Mulders, N Schmansky)\n"
   "1.11 07 March, 2012: fixed sizeof in memset of gim (noted by B Cox)\n",
   "1.12 15 June, 2012: make num_dim violation a warning, because of mris_convert\n",
+  "1.13 17 June, 2015: added gifti_read_image_buf\n"
 };
 
-static char gifti_version[] = "gifti library version 1.12, 15 June, 2012";
+static char gifti_version[] = "gifti library version 1.13, 17 June, 2015";
 
 /* ---------------------------------------------------------------------- */
 /*! global lists of XML strings */
@@ -346,6 +347,25 @@ gifti_image * gifti_read_image( const char * fname, int read_data )
     gxml_set_verb(G.verb);
 
     return gxml_read_image(fname, read_data, NULL, 0);
+}
+
+/*----------------------------------------------------------------------
+ *! Like gifti_read_image, but read from a buffer.
+ *
+ *  return an allocated gifti_image struct on success,
+ *         NULL on error
+*//*-------------------------------------------------------------------*/
+gifti_image * gifti_read_image_buf(const char * buf, long long bsize,
+                                   int read_data )
+{
+    if( !buf || bsize <= 0 ) {
+        fprintf(stderr,"** gifti_read_image: missing filename\n");
+        return NULL;
+    }
+
+    gxml_set_verb(G.verb);
+
+    return gxml_read_image_buf(buf, bsize, read_data, NULL, 0);
 }
 
 /*----------------------------------------------------------------------
@@ -3094,7 +3114,7 @@ int gifti_compare_nvpairs(const nvpairs * p1, const nvpairs * p2, int verb)
 {
     char * value;
     int    lverb = verb;        /* possibly override passed verb */
-    int    c, len, diffs = 0;
+    int    c, diffs = 0;
 
     if( G.verb > lverb ) lverb = G.verb;
 
@@ -3119,7 +3139,6 @@ int gifti_compare_nvpairs(const nvpairs * p1, const nvpairs * p2, int verb)
 
     /* search for mis-matches or non-existence from list 1 into list 2  */
     /* assume Names are unique (each that is not will show a mis-match) */
-    len = p1->length < p2->length ? p1->length : p2->length;
     for( c = 0; c < p1->length; c++ ) {
         if( ! p1->value[c] ) continue;  /* skip anything that doesn't exist */
         value = gifti_get_meta_value(p2, p1->name[c]);
@@ -3189,7 +3208,7 @@ static int compare_labeltables(const giiLabelTable *t1, const giiLabelTable *t2,
                                int verb, int approx)
 {
     int lverb = verb;        /* possibly override passed verb */
-    int c, roff, offset, diffs = 0;
+    int c, offset, diffs = 0;
 
     if( G.verb > lverb ) lverb = G.verb;
 
@@ -3227,7 +3246,6 @@ static int compare_labeltables(const giiLabelTable *t1, const giiLabelTable *t2,
     }
 
     /* walk through list to compare labels */
-    roff = 0;
     for( c = 0; c < t1->length; c++ ) {
         if( gifti_strdiff(t1->label[c], t2->label[c]) ) {
             if(lverb>2)printf("-- labeltable Label diff at index %d\n", c);
