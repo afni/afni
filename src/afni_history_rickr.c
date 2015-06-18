@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 18,  Jun, 2015, RCR, "3dExtrema", MINOR, TYPE_NEW_OPT,
+   "added -nbest",
+   "Output -nbest extrema; -quiet does not suppress extrema output."
+ } ,
+
  { 17,  Jun, 2015, RCR, "GIFTI", MINOR, TYPE_NEW_OPT,
    "added functions for reading from a buffer",
    NULL
