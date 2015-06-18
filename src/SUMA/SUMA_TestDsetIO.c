@@ -26,6 +26,109 @@ void usage_Test_DSET_IO ()
           SUMA_free(sb);
           exit (0);
   }/*Usage*/
+
+/* Create a toy CIFTI dataset that is made up of two surfaces isotopic with the surface named in sdomain and the volume grid in vdomain */
+SUMA_DSET *SUMA_Create_Fake_CIFTI(char *sdomain, char *vdomain)
+{
+   SUMA_DSET *sdset = NULL;
+   SUMA_SurfaceObject *SO = NULL;
+   THD_3dim_dataset *vdset = NULL;
+   byte *mask;
+   int N_mask;
+   /* 
+      Define indices for which there is some data on ld3, assume for left hemi 
+      For convenience, the data values at these nodes will be generated to be 
+      some silly version of the indices themselves.
+   */
+   int indLeft[] = {57, 58, 40, 39, 52, 53, 59, 81, 45, 47, 48, 49, 21};
+   int N_indLeft = 13;
+   /* Ditto for the right hemisphere.*/
+   int indRight[] = {30, 30, 32, 80, 88, 11, 90, 35, 36, 29 };
+   int N_indRight = 10;
+   
+   /* Hard code the domains, no time to get fancy here */
+   sdomain="ld3";
+   vdomain="ciftivol+tlrc.HEAD";
+   
+   /* Load the domains */
+   if (!(SO = SUMA_Load_Surface_Object_Wrapper(sdomain, NULL, NULL,
+                                         SUMA_GIFTI, SUMA_FF_NOT_SPECIFIED, 
+                                         NULL, 2))) {
+      SUMA_S_Err("Failed to load SO %s", sdomain);                                      SUMA_RETURN(NULL);
+   }
+   
+   if (!(vdset = THD_open_dataset(vdomain))) {
+      SUMA_S_Err("Failed to load vdset %s", vdomain);
+      SUMA_Free_Surface_Object(SO); SO = NULL;
+      SUMA_RETURN(NULL);
+   }
+   mask = THD_makemask( vdset , 0 , 1.0, -1.0 );
+   N_mask = THD_countmask(DSET_NVOX(vdset), mask);
+   
+   /* Number of entries, we assume this is not a full dataset */
+   N_Alloc = N_indLeft + N_indRight + N_mask;
+
+   /* Create the dataset pointer */
+   sdset = SUMA_CreateDsetPointer ("ToyCifti.niml.dset", SUMA_CIFTI_BUCKET,
+                                    NULL, NULL, N_Alloc ); 
+
+   /* Create the index column and some data */
+   ind = (int *)SUMA_calloc(N_Alloc, sizeof(int));
+   v1 = (float *)SUMA_calloc(N_Alloc, sizeof(float));
+   v2 = (float *)SUMA_calloc(N_Alloc, sizeof(float));
+   
+   IndOffset[0] = 0;
+   k = 0;
+   i = 0;
+   while (i < N_indLeft) { /* Think of this as CIFTI brain model */
+      ind[k] = i;
+      v1[k] = indLeft[i]/2.0;
+      v2[k] = indLeft[i]/3.0;
+      ++k; ++i;
+   }
+   IndOffset[1] = IndOffset[0]+N_indLeft;
+   i = 0;
+   while (i < N_indRight) {
+      ind[k] = i+IndOffset[1];
+      v1[k] = indRight[i]/2.0;
+      v2[k] = indRight[i]/3.0;
+      ++k; ++i;
+   }
+   IndOffset[2] = IndOffset[1]+N_indRight;
+   i = 0;
+   while (i < DSET_NVOX(vdset)) {
+      if (mask[i]) {
+         ind[k] = ind[k-1]+1;
+         v1[k] = i;
+         v2[k] = k-IndOffset[2]; 
+         ++k;
+      }
+      ++i;
+   }
+   IndOffset[3] = IndOffset[2]+N_mask; /* for convenience, always create the final unreachable index */
+   
+   /* 
+      Notes on ind 
+      The indices in ind at this stage, simply reflect the row number in the dataset at hand. It is not of much use unless we start writing sparse versions of this dataset.
+      
+      A particular row index can be used to determine which domain it belongs to
+      
+      Need to write: SUMA_CIFTI_RowIndex_to_DomainID()    
+   */
+   
+   
+}
+
+SUMA_CIFTI_RowIndex_to_DomainIndex(SUMA_DSET dset, rind, idcode)
+{
+   if (rind < 0) return(-1);
+   for (k=0; k<N_Domains; ++k) {
+      if (rind < IndOffset[k+1]) {
+         if (idcode) sprintf(idcode, "%s", DomainID[k-1]->idcode_str);
+         return(k-1);
+      }
+   }
+}
    
 int main (int argc,char *argv[])
 {/* Main */

@@ -4843,6 +4843,9 @@ char * SUMA_Dset_Type_Name (SUMA_DSET_TYPE tp)
       case SUMA_TRACT_BUCKET:
          SUMA_RETURN("Tract_Bucket");
          break;
+      case SUMA_CIFTI_BUCKET:
+         SUMA_RETURN("CIFTI_Bucket");
+         break;
       default:
          SUMA_RETURN("Cowabonga-gothdo");
          break;
@@ -4882,6 +4885,7 @@ SUMA_DSET_TYPE SUMA_Dset_Type (char *Name)
    if (!strcmp(Name,"Node_Label")) SUMA_RETURN (SUMA_NODE_LABEL);
    if (!strcmp(Name,"Tract_Bucket")) SUMA_RETURN (SUMA_TRACT_BUCKET);
    if (!strcmp(Name,"Graph_Bucket")) SUMA_RETURN (SUMA_GRAPH_BUCKET);
+   if (!strcmp(Name,"CIFTI_Bucket")) SUMA_RETURN (SUMA_CIFTI_BUCKET);
    
    SUMA_RETURN (SUMA_ERROR_DSET_TYPE);
 }
@@ -5960,6 +5964,10 @@ SUMA_Boolean SUMA_Add_Dset_Aux(SUMA_DSET *dset)
       dset->Aux = (SUMA_DSET_AUX *)SUMA_calloc(1,sizeof(SUMA_DSET_AUX));
       dset->Aux->matrix_shape = MAT_NA;
       dset->Aux->isGraph = TRACT_DSET;
+   } else if (SUMA_isCIFTIDsetNgr(dset->ngr)) {
+      dset->Aux = (SUMA_DSET_AUX *)SUMA_calloc(1,sizeof(SUMA_DSET_AUX));
+      dset->Aux->matrix_shape = MAT_NA;
+      dset->Aux->isGraph = CIFTI_DSET;
    } else { /* you should always have Aux allocated, default to surf_dset...*/
       dset->Aux = (SUMA_DSET_AUX *)SUMA_calloc(1,sizeof(SUMA_DSET_AUX));
       dset->Aux->isGraph = SURF_DSET;
@@ -16017,6 +16025,43 @@ byte SUMA_isTractDsetNgr(NI_group *ngr)
    if (!ngr) return(0);
    switch (SUMA_Dset_Type(NEL_DSET_TYPE(ngr))) {
       case SUMA_TRACT_BUCKET:
+         return(1);
+      default:
+         return(0);
+   }
+   return(0);
+}
+
+/**************** CIFTI dset functions *************************/
+
+/* This query goes back to the source all the time,
+   use SUMA_isCIFTIDset_fast for speed */
+byte SUMA_isCIFTIDset(SUMA_DSET *dset) 
+{
+   static char FuncName[]={"SUMA_isCIFTIDset"};
+   
+   SUMA_ENTRY;
+   
+   if (!dset || !dset->ngr) SUMA_RETURN(NOPE);
+   
+   if (!dset->Aux) { /* create one, always good */
+      if (!SUMA_Add_Dset_Aux(dset)) {
+         SUMA_S_Err("Bad news, this should not fail");
+         SUMA_RETURN(NOPE);
+      }      
+   }
+   if (SUMA_isCIFTIDsetNgr(dset->ngr)) {
+      dset->Aux->isGraph == CIFTI_DSET;
+   }
+   
+   SUMA_RETURN(dset->Aux->isGraph == CIFTI_DSET);
+}
+
+byte SUMA_isCIFTIDsetNgr(NI_group *ngr)
+{
+   if (!ngr) return(0);
+   switch (SUMA_Dset_Type(NEL_DSET_TYPE(ngr))) {
+      case SUMA_CIFTI_BUCKET:
          return(1);
       default:
          return(0);

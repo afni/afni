@@ -120,6 +120,7 @@ typedef enum {
    SUMA_LABEL_TABLE_OBJECT,
    SUMA_GRAPH_BUCKET,
    SUMA_TRACT_BUCKET,
+   SUMA_CIFTI_BUCKET,
    SUMA_N_DSET_TYPES
 } SUMA_DSET_TYPE; /*!<  Type of data set ( should be called Object, not DSET ) 
                         When you add a new element, modify functions
@@ -362,6 +363,24 @@ typedef struct {
                            can be used by niml. Fields are a reflection 
                            of those in SUMA_DRAWN_ROI*/
 
+typedef struct { /* A structure to contain information about a domain
+                    over which a subset of a dataset is defined.
+                    This structure was introduced to support CIFTI data */
+   char *idcode_str; /* idcode string of the object that represents the domain */
+   
+   /* The following variables are named after those in CIFTI's documentation for
+      BrainModel Element */
+      int IndexOffset; /* The number of the first row in dset corresponding to
+                       the first datum over this domain  */
+      int IndexCount; /* How many consecutive rows in dset correspond to this 
+                      domain*/
+      SUMA_DO_Types ModelType; /* Is this a surface, volume, etc...*/
+    
+   int *DatumIndices; /* DatumIndices[k] is the index of the elementary datum
+                         of this domain corresponding to the row IndexOffset+k 
+                         in the parent dataset */
+} SUMA_DSET_DOMAINS;
+
 typedef enum { SUMA_NO_PTR_TYPE, 
                SUMA_LINKED_DSET_TYPE, /*!< For pointers to SUMA_DSET */
                SUMA_LINKED_OVERLAY_TYPE, /*!< For pointers to SUMA_OVERLAYS */
@@ -378,7 +397,7 @@ typedef enum { MAT_UNKNOWN=-2, MAT_NA = -1, MAT_HEEHAW = 0 /* not set */,
                MAT_FULL = 1, MAT_TRI, MAT_TRI_DIAG, MAT_SPARSE 
               } SUMA_SQ_MATRIX_SHAPES; 
 
-typedef enum { SURF_DSET, GRAPH_DSET, TRACT_DSET, VOLUME_DSET } 
+typedef enum { SURF_DSET, GRAPH_DSET, TRACT_DSET, VOLUME_DSET, CIFTI_DSET } 
                                                    SUMA_DSET_FLAVORS;
 typedef enum { SUMA_ELEM_DAT=0, /* Nodes of surface, points of tracts, 
                                  edges of graph */
@@ -408,6 +427,10 @@ typedef struct { /* Something to hold auxiliary datasets structs */
    long int N_all_nodes; /* Total number of nodes stored in nodelist of the
                             graph dataset */
    SUMA_DSET_FLAVORS isGraph;
+   
+   SUMA_DSET_DOMAINS *doms; /* domains over which the dataset 
+                               (only CIFTI for now) is defined */
+   int N_doms;              /* Number of domains          */
 } SUMA_DSET_AUX;
 
 /*!   
@@ -1643,10 +1666,13 @@ SUMA_Boolean SUMA_CopyDsetAttributes ( SUMA_DSET *src, SUMA_DSET *dest,
 /* A quick way to check graphinity. Use SUMA_isGraphDset for safety */
 #define SUMA_isGraphDset_fast(dset) ( ((dset)->Aux->isGraph==GRAPH_DSET) ) 
 #define SUMA_isTractDset_fast(dset) ( ((dset)->Aux->isGraph==TRACT_DSET) ) 
+#define SUMA_isCIFTIDset_fast(dset) ( ((dset)->Aux->isGraph==CIFTI_DSET) ) 
 byte SUMA_isGraphDset(SUMA_DSET *dset);
 byte SUMA_isGraphDsetNgr(NI_group *ngr);
 byte SUMA_isTractDset(SUMA_DSET *dset);
 byte SUMA_isTractDsetNgr(NI_group *ngr);
+byte SUMA_isCIFTIDset(SUMA_DSET *dset);
+byte SUMA_isCIFTIDsetNgr(NI_group *ngr);
 SUMA_Boolean SUMA_Add_Dset_Aux(SUMA_DSET *dset);
 SUMA_Boolean SUMA_NewDsetGrp (SUMA_DSET *dset, SUMA_DSET_TYPE dtp, 
                            char* MeshParent_idcode, 
