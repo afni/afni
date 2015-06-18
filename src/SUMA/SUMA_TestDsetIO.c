@@ -107,14 +107,15 @@ SUMA_DSET *SUMA_Create_Fake_CIFTI(char *sdomain, char *vdomain)
    }
    IndOffset[3] = IndOffset[2]+N_mask; /* for convenience, always create the final unreachable index */
    
-   /* 
+      /* 
       Notes on ind 
-      The indices in ind at this stage, simply reflect the row number in the dataset at hand. It is not of much use unless we start writing sparse versions of this dataset.
+      The indices in ind at this stage, simply reflect the row number in the dataset at hand. It is not of much use unless we start writing sparse versions of this dataset. With Sparse CIFTI datasets, the node index will correspond to the row in a full version of this dataset, ie. one that has a row for each and every possible datum in all of its domains. 
       
       A particular row index can be used to determine which domain it belongs to
       
       Need to write: SUMA_CIFTI_RowIndex_to_DomainID()    
    */
+
    
    
 }
