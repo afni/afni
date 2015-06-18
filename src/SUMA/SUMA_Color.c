@@ -7774,6 +7774,10 @@ SUMA_Boolean SUMA_MixOverlays (  SUMA_OVERLAYS ** Overlays, int N_Overlays,
          Glob = NOPE; Locl = NOPE;
       }
       
+      /* Some datasets are defined over non-elementary data,
+      think over a whole tract, instead of each tract point,
+      this next call would make sure overlay is defined
+      over each elementary datum */
       if (!SUMA_ElementarizeOverlay(Over, &ColEVec, &NodeEDef, 
                                      &N_NodeEDef,&LocalEOpacity)) {
          SUMA_S_Err("Failed to elementarize overlay");
