@@ -112,6 +112,18 @@ Overlays or Color Planes
 
 All DOs have one or multiple **SUMA_OVERLAYS**, which are the colorized instance of the datasets as they are mapped onto them. These overlays (also called colorplanes) are mixed together to form one final set of colors per elementary object datum (nodes on the surface, edge of a graph, point of a tract, etc.)
 
+   Here is a sequence of events that occurs after a new dataset is loaded. The sequence is loosely based on *SUMA_LoadDsetOntoSO_eng()* :
+   
+   1- Create an overlay pointer given the dataset and its domain. See *SUMA_CreateOverlayPointer()*
+   
+   2- Add this plane to the list of overlay planes already defined over this domain, e.g. *SUMA_AddNewPlane()*
+   
+   3- Setup the options for colorizing this particular plane
+   
+   4- Colorize the plane with *SUMA_ColorizePlane()*
+   
+   5- Remix all the color planes on a particular DO and redisplay with *SUMA_Remixedisplay()* 
+   
 Functions of Interest
 ---------------------
 

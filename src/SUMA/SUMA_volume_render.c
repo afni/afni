@@ -297,11 +297,12 @@ GLubyte * SUMA_VE_to_tex3d(SUMA_VolumeElement **VE, int iVE, byte col)
       SUMA_LHv("Copying %d intensity in R, G, B, A \n", 
                SUMA_VE_Nvox(VE, iVE)*4);
    }
-   if (!SUMA_Colorize_dset(sdset, tex3ddata, col)) {
+   #if 0
+   if (!SUMA_Colorize_dset_OBSOLETE(sdset, tex3ddata, col)) {
       SUMA_S_Err("Failed to colorize VO");
       SUMA_RETURN(NULL); 
    }
-
+   #endif
    
    SUMA_RETURN(tex3ddata);
 }
@@ -311,10 +312,10 @@ GLubyte * SUMA_VE_to_tex3d(SUMA_VolumeElement **VE, int iVE, byte col)
    free SV for each colorizing operation. 
    
 */
-SUMA_Boolean SUMA_Colorize_dset(SUMA_DSET *dset, 
+SUMA_Boolean SUMA_Colorize_dset_OBSOLETE(SUMA_DSET *dset, 
                                 byte *tex3ddata, byte colopt)
 {
-   static char FuncName[]={"SUMA_Colorize_dset"};
+   static char FuncName[]={"SUMA_Colorize_dset_OBSOLETE"};
    static SUMA_SCALE_TO_MAP_OPT *Opt=NULL;  
    static SUMA_COLOR_MAP *ColMap=NULL; 
    SUMA_COLOR_SCALED_VECT * SV= NULL;
