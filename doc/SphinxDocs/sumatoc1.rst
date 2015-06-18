@@ -12,3 +12,4 @@ SUMA
    SUMA/cover
    SUMA/Viewer
    SUMA/Controllers
+   SUMA/Code
