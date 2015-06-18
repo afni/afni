@@ -79,6 +79,7 @@ static int        EX_interior   = 1;      /* flag for interior or closure */
 static int        EX_slice      = 1;      /* flag for slice or volume */
 static int        EX_sort       = 1;      /* flag for sort extrema */
 static int        EX_merge      = 1;      /* flag for remove or average */
+static int        EX_nbest      = -1;     /* if >= 0, num ext to print */
 static float      EX_sep_dist   = 0.0;    /* minimum separation distance */
 
 static float      EX_mask_thr   = 1.0;    /* mask threshold */
@@ -217,43 +218,47 @@ void print_all_extrema (int ivolume, int islice, extrema * extrema_ptr)
 {
   int index;
 
-  printf ("\n");
-  if (EX_maxima)
-    printf ("Maxima ");
-  else
-    printf ("Minima ");
+  if( !EX_quiet ) {     /* print header text */
+     printf ("\n");
+     if (EX_maxima) printf ("Maxima ");
+     else           printf ("Minima ");
 
-  if (EX_slice)
-    printf ("for Volume #%d and Slice #%d (Coordinates Order = %s): \n", ivolume, islice, EX_cord.orcode);
-  else
-    printf ("for Volume #%d (Coordinates Order = %s): \n", ivolume, EX_cord.orcode);
+     if (EX_slice)
+       printf ("for Volume #%d and Slice #%d (Coordinates Order = %s): \n",
+               ivolume, islice, EX_cord.orcode);
+     else
+       printf ("for Volume #%d (Coordinates Order = %s): \n", ivolume,
+               EX_cord.orcode);
 
-
-  if (extrema_ptr != NULL)
-    {
-      printf ("%5s",     "Index");
-      printf ("%15s",    "Intensity");
-      printf ("%6s[mm]", ORIENT_tinystr[EX_cord.xxor]);
-      printf ("%6s[mm]", ORIENT_tinystr[EX_cord.yyor]);
-      printf ("%6s[mm]", ORIENT_tinystr[EX_cord.zzor]);
-      printf ("%10s",    "Count");
-      printf ("%6s[mm]", "Dist");
-      printf ("\n");
-      
-      printf ( "%5s", "-----");
-      printf ("%15s", "---------");
-      printf ("%10s", "------");
-      printf ("%10s", "------");
-      printf ("%10s", "------");
-      printf ("%10s", "-----");
-      printf ("%10s", "--------");
-      printf ("\n");
-    }
+     if (extrema_ptr != NULL)
+     {
+         printf ("%5s",     "Index");
+         printf ("%15s",    "Intensity");
+         printf ("%6s[mm]", ORIENT_tinystr[EX_cord.xxor]);
+         printf ("%6s[mm]", ORIENT_tinystr[EX_cord.yyor]);
+         printf ("%6s[mm]", ORIENT_tinystr[EX_cord.zzor]);
+         printf ("%10s",    "Count");
+         printf ("%6s[mm]", "Dist");
+         printf ("\n");
+         
+         printf ( "%5s", "-----");
+         printf ("%15s", "---------");
+         printf ("%10s", "------");
+         printf ("%10s", "------");
+         printf ("%10s", "------");
+         printf ("%10s", "-----");
+         printf ("%10s", "--------");
+         printf ("\n");
+     }
+  }
 
   index = 0;
   while (extrema_ptr != NULL)
     {
       index++;
+
+      if( EX_nbest >= 0 && index > EX_nbest ) break;  /* 18 Jun 2015 [rickr] */
+
       print_extrema (index, extrema_ptr);
       extrema_ptr = extrema_ptr->next_extrema;
     }
@@ -958,6 +963,8 @@ void EX_Syntax(void)
     "-data_thr d        Only voxels whose value (intensity) is greater      \n"
     "                   than d in absolute value will be considered.        \n"
     "                                                                       \n"
+    "-nbest N           Only print the first N extrema.\n"
+    "                                                                       \n"
     "-sep_dist d        Min. separation distance [mm] for distinct extrema  \n"
     "                                                                       \n"
     "Choose type of extrema (one and only one choice):                      \n"
@@ -985,10 +992,13 @@ void EX_Syntax(void)
     "\n Examples: \n"
     "  Compute maximum value in amygdala region of Talairach-transformed dataset\n"
     "    3dExtrema -volume -closure -sep_dist 512 \\ \n"
-    "      -mask_file 'TT_Daemon::amygdala' func_slim+tlrc.'[0]'\n"
+    "      -mask_file 'TT_Daemon::amygdala' func_slim+tlrc'[0]'\n"
     "  Show minimum voxel values not on edge of mask, where the mask >= 0.95\n"
     "    3dExtrema -minima -volume -mask_file 'statmask+orig' \\ \n"
-    "      -mask_thr 0.95 func_slim+tlrc.'[0]'\n"
+    "      -mask_thr 0.95 func_slim+tlrc'[0]'\n"
+    "  Get the maximum 3 values across the given ROI.\n"
+    "    3dExtrema -volume -closure -mask_file MY_ROI+tlrc \\\n"
+    "              -nbest 3 func_slim+tlrc'[0]'\n"
     "\n") ;
 
    printf("\n" MASTER_SHORTHELP_STRING ) ;
@@ -1172,6 +1182,22 @@ int EX_read_opts( int argc , char * argv[] )
       if( strcmp(argv[nopt],"-weight") == 0 ){
          EX_merge = 3;
          nopt++;  continue;
+      }
+
+
+      /**** -nbest     18 Jun 2015 [rickr] ****/
+      if( strcmp(argv[nopt],"-nbest") == 0 ){
+	 int ival;
+         nopt++ ;
+         if( nopt >= argc ){
+            EX_error (" need 1 argument after -nbest"); 
+         }
+	 sscanf (argv[nopt], "%i", &ival); 
+	 if (ival < 0) {
+            EX_error (" Require -nbest parameter >= 0 ");
+         }
+	 EX_nbest = ival;
+	 nopt++;  continue;
       }
 
 
@@ -1627,7 +1653,9 @@ void output_results ()
 
 
   /*----- Write extrema to screen -----*/
-  if (!EX_quiet)
+
+  /* why quiet extrema reporting?   18 Jun 2015 [rickr] */
+  /* if (!EX_quiet) */
     if (EX_slice)
       for (ibrick = 0;  ibrick < nbricks;  ibrick++)
 	{
