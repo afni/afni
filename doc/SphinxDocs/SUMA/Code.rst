@@ -26,7 +26,7 @@ Displayable_Objects
 Functions of Interest
 ---------------------
 
-   *SUMA_whichDO, SUMA_LoadVolDO(), SUMA_Load_Surface_Object_eng(), SUMA_ReadTractDO(), SUMA_ADO_Info(), SUMA_ADO_Cont()*
+   *SUMA_whichDO, SUMA_LoadVolDO(), SUMA_Load_Surface_Object_eng(), SUMA_ReadTractDO(), SUMA_ADO_Info(), SUMA_ADO_Cont(), SUMA_DO_dbg_info()*
 
 
 .. _DO_freaks:
@@ -123,11 +123,13 @@ All DOs have one or multiple **SUMA_OVERLAYS**, which are the colorized instance
    4- Colorize the plane with *SUMA_ColorizePlane()*
    
    5- Remix all the color planes on a particular DO and redisplay with *SUMA_Remixedisplay()* 
+      
+      Remixing is handled in *SUMA_MixColors(Viewer)* where each DO registered with the viewer will get all of its color planes mixed with  *SUMA_Overlays_2_GLCOLAR4()* --> *SUMA_MixOverlays()*. The resultant colors for each DO are stored in a structure called **SUMA_COLORLIST_STRUCT** accessible from the Viewer's structure with the likes of *SUMA_GetColorListStruct()* and *SUMA_GetColorListPtr()* .
    
 Functions of Interest
 ---------------------
 
-   *SUMA_ADO_Overlays(), SUMA_ADO_CurColPlane(),  SUMA_MixColors(), SUMA_Overlays_2_GLCOLAR4(), SUMA_MixOverlays(), SUMA_ScaleToMap(), SUMA_Fetch_OverlayPointerByDset(), SUMA_CreateOverlayPointer(), SUMA_AddNewPlane(), SUMA_ColorizePlane()*
+   *SUMA_ADO_Overlays(), SUMA_ADO_CurColPlane(),  SUMA_MixColors(), SUMA_Overlays_2_GLCOLAR4(), SUMA_MixOverlays(), SUMA_ScaleToMap(), SUMA_Fetch_OverlayPointerByDset(), SUMA_CreateOverlayPointer(), SUMA_AddNewPlane(), SUMA_ColorizePlane(), SUMA_Show_ColorOverlayPlanes()*
    
 
 .. _Picking_Code:
@@ -189,7 +191,16 @@ For better or for worse
    
    When adding fields to a structure, ponder whether they belong to the dataset level, the object level, the viewer level, or SUMA-wide level. Recall that datasets can be shared across objects, and that some datasets effectively double as displayable objects.
    
-                           
+Debugging Utilities
+===================
+
+   LocalHead: A flag local to most functions that turns on otherwise hidden debugging messages with macros *SUMA_LH* . Macro *TLH* is a shorthand for turning LocalHead on and off locally within a function.
+   
+   SUMA_DUMP_TRACE: A macro to dump memory allocation table
+   
+   Structure Contents: Numerous functions with "Info" in the name create strings detailing the content of a particular structure. Those functions are usually called by counterparts with "Show" in the name. Older debugging functions have "Print" in the name. 
+
+Document which functions, is functions, find functions and macros                      
 Unfinished Worthwhile Business
 ==============================
 

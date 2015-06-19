@@ -5817,7 +5817,7 @@ SUMA_DSET * SUMA_NewDsetPointer(void)
    dset->owner_id[0] = '\0';
    dset->LinkedPtrType = SUMA_LINKED_DSET_TYPE;
    dset->Aux = NULL;
-   dset->do_type = SDSET_type; 
+   dset->do_type = ANY_DSET_type; 
    SUMA_RETURN(dset);
 }
 
@@ -10606,6 +10606,10 @@ SUMA_DSET *SUMA_LoadDset_eng (char *iName, SUMA_DSET_FORMAT *form, int verb)
       }
       SUMA_FreeDset(dset); dset = dset_c; dset_c = NULL;
    }
+   
+   /* set do_type */
+   if (SUMA_isGraphDset(dset)) dset->do_type = GDSET_type;
+   else if (SUMA_isCIFTIDset(dset)) dset->do_type = CDSET_type;
    
    GOODBYE:
    if (b_ColSel) SUMA_free(b_ColSel); b_ColSel = NULL;

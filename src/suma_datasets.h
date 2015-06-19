@@ -268,7 +268,7 @@ typedef enum { NOT_SET_type = -1,
                NBSP_type, PL_type, VO_type,
                NBT_type, SBT_type, DBT_type, /*!< Those three will 
                                                    likely not be used */
-               NIDO_type, SDSET_type, TRACT_type,
+               NIDO_type, ANY_DSET_type, GDSET_type, CDSET_type, TRACT_type,
                GRAPH_LINK_type, MASK_type, DIR_type, ODIR_type, PNT_type,
                N_DO_TYPES } SUMA_DO_Types;   
 
