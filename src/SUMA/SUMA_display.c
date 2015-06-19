@@ -2317,8 +2317,12 @@ void SUMA_display_one(SUMA_SurfaceViewer *csv, SUMA_DO *dov)
                break;
             case SO_type:
                break;
-            case SDSET_type: /* Should not be in DO list */
+            case ANY_DSET_type:
+            case GDSET_type: /* Should not be in DO list */
                SUMA_S_Warn("Should not have such objects as registrered DOs");
+               break;
+            case CDSET_type:
+               SUMA_S_Err("Not sure what to do yet. Treat like GDSET or like GRAPH_LINK?");
                break;
             case AO_type:
                if (csv->ShowEyeAxis){
@@ -2485,8 +2489,12 @@ void SUMA_display_one(SUMA_SurfaceViewer *csv, SUMA_DO *dov)
             case DBT_type:
                /* those types are not used */
                break;
-            case SDSET_type:
+            case ANY_DSET_type:
+            case GDSET_type:
                SUMA_S_Warn("Should not have type in DO list to be rendered");
+               break;
+            case CDSET_type:
+               SUMA_S_Err("Still need to decide whether this will be the registred DO or not");
                break;
             case MASK_type:
                if (!SUMA_DrawMaskDO (
@@ -6584,6 +6592,8 @@ int SUMA_OpenCloseSurfaceCont(Widget w,
    Get a listing of all surfaces in the surface controller notebook pages
    You'll have to change the returned pointer someday to allow 
    for other objects that may have a page in Notebook... 
+   
+   I think this function needs to be updated to include tracts, volumes, and CIFTI datasets.
 */
 SUMA_ALL_DO **SUMA_DOsInSurfContNotebook(Widget NB)
 {
@@ -6616,7 +6626,7 @@ SUMA_ALL_DO **SUMA_DOsInSurfContNotebook(Widget NB)
       
       for (j=0; j<SUMAg_N_DOv; ++j) {
          if (SUMAg_DOv[j].ObjectType == SO_type ||
-             SUMAg_DOv[j].ObjectType == SDSET_type) {
+             SUMAg_DOv[j].ObjectType == GDSET_type ) {
             DOt = (SUMA_ALL_DO *)SUMAg_DOv[j].OP;
             SurfCont = SUMA_ADO_Cont(DOt);
             if (DOt && SurfCont) {
@@ -6654,6 +6664,16 @@ SUMA_ALL_DO **SUMA_DOsInSurfContNotebook(Widget NB)
             } else {
                SUMA_LHv("Surface %s has no controller open yet\n", 
                         DOt?SUMA_ADO_Label(DOt):"NULL");
+            }
+         } else {
+            switch(SUMAg_DOv[j].ObjectType) {
+               case CDSET_type:
+               case VO_type:
+               case TRACT_type:
+                  SUMA_S_Warn("Objects not feeling the love here");
+                  break;
+               default:
+                  break;
             }
          }
       }
@@ -7549,7 +7569,10 @@ void SUMA_cb_createSurfaceCont(Widget w, XtPointer data, XtPointer callData)
       case SO_type:
          SUMA_cb_createSurfaceCont_SO(w, data, callData);
          break; 
-      case SDSET_type:
+      case CDSET_type:
+         SUMA_S_Err("The jury is out");
+         break;
+      case GDSET_type:
          SUMA_S_Err("Cannot create a controller for a dataset"
                     "with no rendering variant");
          SUMA_RETURNe;
@@ -11331,7 +11354,11 @@ SUMA_Boolean SUMA_Init_SurfCont_SurfParam(SUMA_ALL_DO *ado)
       case SO_type:
          SUMA_RETURN(SUMA_Init_SurfCont_SurfParam_SO((SUMA_SurfaceObject *)ado));
          break;
-      case SDSET_type:
+      case CDSET_type:
+         SUMA_S_Err("Not sure what to do yet");
+         SUMA_RETURN(NOPE);
+         break;
+      case GDSET_type:
          SUMA_S_Err("Should not send me DOs that can't be displayed \n"
                     "without variant info");
          SUMA_RETURN(NOPE);
@@ -11924,7 +11951,7 @@ SUMA_Boolean SUMA_InitializeDrawROIWindow (SUMA_DRAWN_ROI *DrawnROI)
 /*!
    \brief Initializes the widgets in the color plane shell window based on the SUMA_OVERLAYS structue
 */
-SUMA_Boolean SUMA_InitializeColPlaneShell (
+SUMA_Boolean SUMA_InitializeColPlaneShell(
                   SUMA_ALL_DO *ado, 
                   SUMA_OVERLAYS *colPlane)
 {
@@ -11948,9 +11975,13 @@ SUMA_Boolean SUMA_InitializeColPlaneShell (
          SUMA_RETURN(SUMA_InitializeColPlaneShell_SO(
                               (SUMA_SurfaceObject *)ado, colPlane));
          break;
-      case SDSET_type:
+      case GDSET_type:
          SUMA_S_Err("No init for a DO that cannot be dispalyed\n"
                     "without variant");
+         SUMA_RETURN(NOPE);
+         break;
+      case CDSET_type:
+         SUMA_S_Err("What to do about this?");
          SUMA_RETURN(NOPE);
          break;
       case GRAPH_LINK_type: {
@@ -12681,8 +12712,11 @@ SUMA_Boolean SUMA_UpdateColPlaneShellAsNeeded(SUMA_ALL_DO *ado)
             }
          }
          break;
-      case SDSET_type:
+      case GDSET_type:
          SUMA_S_Warn("This should not happen in this modern day and age");
+         break;
+      case CDSET_type:
+         SUMA_S_Err("Not ready, no sir");
          break;
       case VO_type:
       case TRACT_type:
@@ -15269,7 +15303,8 @@ SUMA_Boolean SUMA_Remixedisplay (SUMA_ALL_DO *ADO)
       case VO_type:
       case MASK_type:
       case TRACT_type:
-      case SDSET_type:
+      case CDSET_type:
+      case GDSET_type:
          idcode = SUMA_ADO_idcode(ADO);
          break;
       case GRAPH_LINK_type: {

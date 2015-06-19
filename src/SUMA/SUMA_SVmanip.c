@@ -1469,7 +1469,20 @@ SUMA_Boolean SUMA_ADO_FillColorList_Params(SUMA_ALL_DO *ADO,
          SUMA_LHv("Filling a color list for surface %s (%s).\n", 
                   SO->Label, SO->idcode_str);
          } break;
-      case SDSET_type: {
+      case CDSET_type: {
+         SUMA_DSET *dset=(SUMA_DSET *)ADO;
+         if (!SUMA_isCIFTIDset(dset)) {
+            SUMA_S_Err("Dataset should be CIFTI type");
+            SUMA_RETURN(NOPE);
+         }
+         SUMA_S_Err("Still need to figure out how to do color lists for cifti");
+         SUMA_RETURN(NOPE);
+         *N_points = -1;
+         *idcode = SDSET_ID(dset);
+         SUMA_LHv("Filling a color list for dset %s (%s).\n", 
+                  SDSET_LABEL(dset), SDSET_ID(dset));
+         } break;
+      case GDSET_type: {
          SUMA_DSET *dset=(SUMA_DSET *)ADO;
          if (!SUMA_isGraphDset(dset)) {
             SUMA_S_Err("Dataset should be graph type");
@@ -1628,7 +1641,13 @@ SUMA_Boolean SUMA_FillColorList (SUMA_SurfaceViewer *sv, SUMA_ALL_DO *ADO)
    /* make sure idcode is not in the list already */
    for (i=0; i<sv->N_ColList; ++i) {
       if (strcmp (idcode, sv->ColList[i]->idcode_str) == 0) {
-         if (ADO->do_type != SDSET_type && 
+         if (ADO->do_type == CDSET_type) {
+            SUMA_S_Err("Serious ponderination needed here. "
+                    "Likely must have a color list per domain for such a beast");
+            SUMA_RETURN(NOPE);
+         }
+         if (ADO->do_type != GDSET_type &&
+             ADO->do_type != CDSET_type && 
              ADO->do_type != TRACT_type &&
              ADO->do_type != VO_type &&
              ADO->do_type != MASK_type) {
@@ -2007,7 +2026,10 @@ SUMA_Boolean SUMA_SetLocalRemixFlag (char *DO_idcode_str, SUMA_SurfaceViewer *sv
             }  
          }
          break;
-      case SDSET_type:
+      case CDSET_type:
+         SUMA_S_Err("Is this needed? If so then do it");
+         break;
+      case GDSET_type:
          dset = (SUMA_DSET *)pp;
          for (k=0; k < sv->N_DO; ++k) {
             ado2 = (SUMA_ALL_DO *)SUMAg_DOv[sv->RegistDO[k].dov_ind].OP;
@@ -2173,7 +2195,12 @@ SUMA_Boolean SUMA_SetRemixFlag (char *DO_idcode_str, SUMA_SurfaceViewer *SVv,
             }
          }
          break; }
-      case SDSET_type: {
+      case CDSET_type: {
+         SUMA_S_Err("Not ready for this puppy");
+         SUMA_RETURN(NOPE);
+         break;
+         }
+      case GDSET_type: {
          SUMA_DSET *dset = (SUMA_DSET *)pp;
           
          if (!dset) {
@@ -3648,7 +3675,8 @@ SUMA_SurfaceViewer *SUMA_BestViewerForADO(SUMA_ALL_DO *ado)
          sv = &(SUMAg_SVv[0]);
          break; }
       case GRAPH_LINK_type:
-      case SDSET_type:
+      case GDSET_type:
+      case CDSET_type:
       case VO_type:
       case MASK_type:
       case TRACT_type:
@@ -6438,10 +6466,10 @@ SUMA_ALL_DO *SUMA_SurfCont_GetcurDOp(SUMA_X_SurfCont *SurfCont)
                ADO_TNAME(ado), SurfCont->prv_variant);
       switch (ado->do_type) {
          case GRAPH_LINK_type:
-            SUMA_S_Err("This should not be, you should have put the GDSET here");
+            SUMA_S_Err("This should not be, See SUMA_SurfCont_SetcurDOp");
             return(NULL);
             break;
-         case SDSET_type:
+         case GDSET_type:
             return((SUMA_ALL_DO *)SUMA_find_Dset_GLDO((SUMA_DSET *)ado, 
                                                  SurfCont->prv_variant,NULL));
             break;
@@ -6475,9 +6503,13 @@ SUMA_Boolean SUMA_SurfCont_SetcurDOp(SUMA_X_SurfCont *SurfCont, SUMA_ALL_DO *ado
                   *(SurfCont->prv_curDOp), SurfCont->prv_variant);
          return(YUP);
          break;
-      case SDSET_type:
+      case GDSET_type:
          SUMA_S_Err( "You should not set the current DOp to a DO that has\n"
                      "ambiguous rendering\n");
+         return(NOPE);
+         break;
+      case CDSET_type:
+         SUMA_S_Err("Have to figure out this machinery");
          return(NOPE);
          break;
       case TRACT_type:

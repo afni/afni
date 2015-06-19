@@ -300,7 +300,9 @@ SUMA_Boolean SUMA_Free_Displayable_Object (SUMA_DO *dov)
          /* those types are not used */
          SUMA_S_Warnv("Type %d should not be in  use!\n", dov->ObjectType);
          break;
-      case SDSET_type:
+      case GDSET_type:
+      case CDSET_type:
+      case ANY_DSET_type:
          SUMA_FreeDset(dov->OP);
          break;
       case TRACT_type:
@@ -1080,8 +1082,14 @@ const char *SUMA_ObjectTypeCode2ObjectTypeName(SUMA_DO_Types dd)
       case SBT_type:
          return("SBT");
          break;
-      case SDSET_type:
-         return("SDSET");
+      case GDSET_type:
+         return("GDSET");
+         break;
+      case CDSET_type:
+         return("CDSET");
+         break;
+      case ANY_DSET_type:
+         return("ANY_DSET");
          break;
       case DBT_type:
          return("DBT");
@@ -2153,7 +2161,11 @@ void *SUMA_find_any_object(char *idcode_str, SUMA_DO_Types *do_type)
    if (!idcode_str) SUMA_RETURN(PP);
    if (do_type) *do_type = NOT_SET_type;
    if ((PP = SUMA_FindDset_s(idcode_str, SUMAg_CF->DsetList))) {
-      if (do_type) *do_type = SDSET_type;
+      if (do_type) {
+         if (SUMA_isGraphDset((SUMA_DSET *)PP)) *do_type = GDSET_type;
+         else if (SUMA_isCIFTIDset((SUMA_DSET *)PP)) *do_type = CDSET_type;
+         else *do_type = ANY_DSET_type;
+      }
       SUMA_RETURN(PP);
    } else if ((PP = SUMA_findSOp_inDOv (idcode_str, SUMAg_DOv, SUMAg_N_DOv))){
       if (do_type) *do_type = SO_type;
@@ -2786,15 +2798,19 @@ SUMA_Boolean SUMA_isRelated( SUMA_ALL_DO *ado1, SUMA_ALL_DO *ado2 , int level)
          SUMA_RETURN(SUMA_isRelated_SO((SUMA_SurfaceObject *)ado1,
                                        (SUMA_SurfaceObject *)ado2,level));
          break;
-      case SDSET_type:
+      case GDSET_type:
       case GRAPH_LINK_type:
-         if (ado2->do_type != SDSET_type && ado2->do_type != GRAPH_LINK_type) 
+         if (ado2->do_type != GDSET_type && ado2->do_type != GRAPH_LINK_type) 
                                                          SUMA_RETURN(NOPE); 
          if ((p1=SUMA_ADO_Parent_idcode(ado1)) && 
              (p2=SUMA_ADO_Parent_idcode(ado2)) &&
              !strcmp(p1,p2)) {
             SUMA_RETURN(YUP);
          }
+         SUMA_RETURN(NOPE);
+         break;
+      case CDSET_type:
+         SUMA_S_Err("Fill me with love");
          SUMA_RETURN(NOPE);
          break;
       case VO_type:
