@@ -327,7 +327,7 @@ gifti_image * gxml_read_image(const char * fname, int read_data,
 /* note: the buffer needs to be large enough to contain any contiguous
          piece of (CDATA?) text, o.w. it will require parsing in pieces */
 gifti_image * gxml_read_image_buf(const char * buf_in, long long bin_len,
-                                  int read_data, const int * dalist, int dalen)
+                                  const int * dalist, int dalen)
 {
     gxml_data  * xd = &GXD;     /* point to global struct */
     XML_Parser   parser;
@@ -342,7 +342,7 @@ gifti_image * gxml_read_image_buf(const char * buf_in, long long bin_len,
     if( init_gxml_data(xd, 0, dalist, dalen) ) /* reset non-user variables */
         return NULL;
 
-    xd->dstore = read_data;  /* store for global access */
+    xd->dstore = 1;  /* store for global access */
 
     if( !buf_in || bin_len < 0 ) {
         fprintf(stderr,"** gxml_read_image_buf: missing buffer\n");
