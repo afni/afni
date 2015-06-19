@@ -2782,8 +2782,11 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                   SUMA_VisX_Pointers4Display(SO, 0);/* revert to surf cooords. */
                   SUMA_UpdateTriField(SO);
                   break; }
-               case SDSET_type:
+               case GDSET_type:
                   SUMA_S_Err("ambigous display method without variant");
+                  break;
+               case CDSET_type:
+                  SUMA_S_Err("Help me please");
                   break;
                case GRAPH_LINK_type: {
                   SUMA_DSET *dset = SUMA_find_GLDO_Dset((SUMA_GraphLinkDO*)ado);
@@ -5697,8 +5700,12 @@ SUMA_Boolean SUMA_isVisibleDO (SUMA_SurfaceViewer *sv,
             }
          }
          break;
-      case SDSET_type:
+      case GDSET_type:
          SUMA_S_Err("Can't judge this without variant");
+         SUMA_RETURN(NOPE);
+         break;
+      case CDSET_type:
+         SUMA_S_Err("Don't know how to handle this yet");
          SUMA_RETURN(NOPE);
          break;
       case VO_type:

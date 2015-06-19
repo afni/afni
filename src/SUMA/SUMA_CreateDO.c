@@ -7410,6 +7410,13 @@ void *SUMA_Picked_reference_object(SUMA_COLID_OFFSET_DATUM *cod,
          SUMA_S_Err("Could not find reference dset");
       }
       if (do_type) *do_type = CDSET_type;
+   } else if (cod->ref_do_type == ANY_DSET_type) {
+      SUMA_S_Warn("Should not happen");
+      if (!(PP = SUMA_FindDset_s(cod->ref_idcode_str, 
+                                     SUMAg_CF->DsetList))) {
+         SUMA_S_Err("Could not find reference dset");
+      }
+      if (do_type) *do_type = ANY_DSET_type;
    } else if (cod->ref_do_type == GRAPH_LINK_type) {
       PP = (void *)SUMA_whichADOg(cod->ref_idcode_str);
       if (do_type) *do_type = GRAPH_LINK_type;
@@ -7438,7 +7445,11 @@ void *SUMA_Picked_reference_object(SUMA_COLID_OFFSET_DATUM *cod,
             SUMA_ObjectTypeCode2ObjectTypeName(cod->ref_do_type));
       if ((PP = SUMA_FindDset_s(cod->ref_idcode_str, 
                                         SUMAg_CF->DsetList))) {
-         if (do_type) *do_type = GDSET_type;
+         if (do_type) {
+            if (SUMA_isGraphDset((SUMA_DSET *)PP)) *do_type = GDSET_type;
+            else if (SUMA_isCIFTIDset((SUMA_DSET *)PP)) *do_type = CDSET_type;
+            else *do_type = ANY_DSET_type;
+         }
       } else if ((PP = SUMA_findSOp_inDOv (cod->ref_idcode_str, 
                                                  SUMAg_DOv, SUMAg_N_DOv))){
          if (do_type) *do_type = SO_type;
@@ -9020,13 +9031,20 @@ SUMA_Boolean SUMA_Load_Dumb_DO(SUMA_ALL_DO *ado, SUMA_DUMB_DO *DDO)
       case GDSET_type: {
          SUMA_S_Err("Bad idea, no nodelist possible without variant");
          break; }
-      STOPPED HERE, ADD CDSET
       case GRAPH_LINK_type:{
          DDO->idcode_str = SUMA_ADO_idcode(ado);
          DDO->NodeList = SUMA_GDSET_NodeList(
                               SUMA_find_GLDO_Dset((SUMA_GraphLinkDO *)ado), 
                               &(DDO->N_Node), 0, &(DDO->NodeIndex),
                               SUMA_ADO_variant(ado));
+         DDO->AvgLe = 4;
+         DDO->err = 0;
+         break; }
+      case CDSET_type: {
+         DDO->idcode_str = SUMA_ADO_idcode(ado);
+         DDO->NodeList = SUMA_CDSET_NodeList(
+                              (SUMA_DSET*)ado, 
+                              &(DDO->N_Node), 0, &(DDO->NodeIndex));
          DDO->AvgLe = 4;
          DDO->err = 0;
          break; }
@@ -10072,6 +10090,30 @@ float *SUMA_GDSET_NodeList(SUMA_DSET *dset, int *N_Node, int recompute,
    SUMA_RETURN(NULL);
 }
 
+/* Return a pointer copy of a CIFTI dset's node coordinates,
+   *ind is a copy of the node index pointer 
+*/
+float *SUMA_CDSET_NodeList(SUMA_DSET *dset, int *N_Node, int recompute, 
+                           int **ind) 
+{
+   static char FuncName[]={"SUMA_CDSET_NodeList"};
+   NI_element *nel=NULL, *nelxyz=NULL;
+   float *NodeList=NULL, *X=NULL, *Y=NULL, *Z=NULL;
+   int ii, ii3, iicoord;
+    char *cs = NULL;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   SUMA_S_Err("Not ready yet");
+   /* Now how should this be implemented? One vector for all? 
+      If so, then what for? Decide in context of application.
+      Consider SUMA_GDSET_NodeList, */
+      
+     
+   SUMA_RETURN(NULL);
+}
+
 void SUMA_free_colid_offset_datum (void *vv) 
 {
    SUMA_COLID_OFFSET_DATUM *cod = (SUMA_COLID_OFFSET_DATUM *)vv;
@@ -10427,7 +10469,9 @@ GLubyte *SUMA_DO_get_pick_colid(SUMA_ALL_DO *DO, char *idcode_str,
             SUMA_RETURN(colv); 
          }
          break; }
-      case SDSET_type: {
+      case ANY_DSET_type:
+      case CDSET_type:
+      case GDSET_type: {
          SUMA_S_Warn("I do not intend this picking type for dsets. Go away");
          SUMA_RETURN(NULL);
          break; }
@@ -19645,7 +19689,9 @@ char *SUMA_ADO_Info(SUMA_ALL_DO *ado, DList *DsetList, int detail)
    switch(ado->do_type) {
       case SO_type:
          return(SUMA_SurfaceObject_Info((SUMA_SurfaceObject *)ado, DsetList));
-      case SDSET_type:
+      case ANY_DSET_type:
+      case CDSET_type:
+      case GDSET_type:
          return(SUMA_DsetInfo((SUMA_DSET *)ado, detail));
       case TRACT_type:
          return(SUMA_TractDOInfo((SUMA_TractDO *)ado, detail));

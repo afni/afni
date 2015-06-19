@@ -4273,13 +4273,17 @@ SUMA_Boolean SUMA_LoadSpec_eng (
          case VO_type: {
             SUMA_LoadVolDO (Spec->DO_name[i], GL_REPLACE, NULL); 
             break; }
-         case SDSET_type:
+         case GDSET_type:
             SUMA_LHv("Loading graph dset %s\n",Spec->DO_name[i]);
             /* Expecting it to be a graph dset */
             if (!(SUMA_LoadDsetOntoSO_eng(Spec->DO_name[i], 
                                           NULL, 1, 1, 1, NULL))) {
                SUMA_S_Errv("Failed to load %s\n", Spec->DO_name[i]);
             }
+            break;
+         case CDSET_type:
+            SUMA_LHv("Loading cifti dset %s\n",Spec->DO_name[i]);
+            SUMA_S_Err("Sorry, not ready yet");
             break;
          default:
             SUMA_S_Errv("Bad or unexpected type %s for %s\n",
