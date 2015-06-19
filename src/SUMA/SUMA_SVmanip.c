@@ -1770,6 +1770,7 @@ GLfloat * SUMA_GetColorList (SUMA_SurfaceViewer *sv, char *DO_idstr)
 
 }
 
+/* Return the color list structure for a particular object */
 SUMA_COLORLIST_STRUCT * SUMA_GetColorListStruct (SUMA_SurfaceViewer *sv, 
                                                  char *DO_idstr)
 {

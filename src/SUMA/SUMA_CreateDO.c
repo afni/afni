@@ -842,7 +842,7 @@ SUMA_DO_Types SUMA_Guess_DO_Type(char *s)
    } else if (strstr(sbuf,"#mask")) {
       dotp = MASK_type;
    } else if (strstr(sbuf,"#suma_dset")) { /* this case should not happen */
-      dotp = SDSET_type;
+      dotp = ANY_DSET_type;
    } else if (strstr(sbuf,"nido_head")) {
       dotp = NIDO_type;
    } else if (strstr(sbuf,"<") || strstr(sbuf,">")) {
@@ -7324,7 +7324,7 @@ int SUMA_Picked_DO_ID(SUMA_COLID_OFFSET_DATUM *codf)
    if (!codf) SUMA_RETURN(-1);
    
    switch (codf->ref_do_type) {
-      case SDSET_type:
+      case GDSET_type:
          #if 0
          if (!(PP = SUMA_FindDset_s(codf->ref_idcode_str, 
                                      SUMAg_CF->DsetList))) {
@@ -7341,6 +7341,10 @@ int SUMA_Picked_DO_ID(SUMA_COLID_OFFSET_DATUM *codf)
                                  SUMAg_DOv, SUMAg_N_DOv)) < 0) {
             SUMA_S_Err("Could not find reference GRAPH_LINK");
          }
+         SUMA_RETURN(ido);
+         break;
+      case CDSET_type:
+         SUMA_S_Err("Not ready for CIFTI yet");
          SUMA_RETURN(ido);
          break;
       case SO_type:
@@ -7392,13 +7396,20 @@ void *SUMA_Picked_reference_object(SUMA_COLID_OFFSET_DATUM *cod,
    
    if (!cod) SUMA_RETURN(PP);
    
-   if (cod->ref_do_type == SDSET_type) {
+   if (cod->ref_do_type == GDSET_type) {
       SUMA_S_Warn("Should not happen");
       if (!(PP = SUMA_FindDset_s(cod->ref_idcode_str, 
                                      SUMAg_CF->DsetList))) {
          SUMA_S_Err("Could not find reference dset");
       }
-      if (do_type) *do_type = SDSET_type;
+      if (do_type) *do_type = GDSET_type;
+   } else if (cod->ref_do_type == CDSET_type) {
+      SUMA_S_Warn("Not sure this is ready for this");
+      if (!(PP = SUMA_FindDset_s(cod->ref_idcode_str, 
+                                     SUMAg_CF->DsetList))) {
+         SUMA_S_Err("Could not find reference dset");
+      }
+      if (do_type) *do_type = CDSET_type;
    } else if (cod->ref_do_type == GRAPH_LINK_type) {
       PP = (void *)SUMA_whichADOg(cod->ref_idcode_str);
       if (do_type) *do_type = GRAPH_LINK_type;
@@ -7417,6 +7428,9 @@ void *SUMA_Picked_reference_object(SUMA_COLID_OFFSET_DATUM *cod,
    } else if (cod->ref_do_type == MASK_type) {
       PP = (void *)SUMA_whichADOg(cod->ref_idcode_str);
       if (do_type) *do_type = MASK_type;
+   } else if (cod->ref_do_type == CDSET_type) {
+      PP = (void *)SUMA_whichADOg(cod->ref_idcode_str);
+      if (do_type) *do_type = CDSET_type;
    } else {
       SUMA_S_Warnv("Ref do_type %d (%s) is unexpected. "
                    "Trying to guess...\n",
@@ -7424,7 +7438,7 @@ void *SUMA_Picked_reference_object(SUMA_COLID_OFFSET_DATUM *cod,
             SUMA_ObjectTypeCode2ObjectTypeName(cod->ref_do_type));
       if ((PP = SUMA_FindDset_s(cod->ref_idcode_str, 
                                         SUMAg_CF->DsetList))) {
-         if (do_type) *do_type = SDSET_type;
+         if (do_type) *do_type = GDSET_type;
       } else if ((PP = SUMA_findSOp_inDOv (cod->ref_idcode_str, 
                                                  SUMAg_DOv, SUMAg_N_DOv))){
          if (do_type) *do_type = SO_type;
@@ -9003,9 +9017,10 @@ SUMA_Boolean SUMA_Load_Dumb_DO(SUMA_ALL_DO *ado, SUMA_DUMB_DO *DDO)
          
          DDO->err = 0;
          break; }
-      case SDSET_type: {
+      case GDSET_type: {
          SUMA_S_Err("Bad idea, no nodelist possible without variant");
          break; }
+      STOPPED HERE, ADD CDSET
       case GRAPH_LINK_type:{
          DDO->idcode_str = SUMA_ADO_idcode(ado);
          DDO->NodeList = SUMA_GDSET_NodeList(

@@ -6598,10 +6598,10 @@ SUMA_Boolean SUMA_FreeOverlayPointer (SUMA_OVERLAYS * Sover)
 }
 
 /*! 
-   function to fetch a certain overlay pointer 
-   ptr = SUMA_Fetch_OverlayPointer (Overlays, N_Overlays, Name, OverInd);
+   function to fetch a certain overlay pointer for a displayable object
+   ptr = SUMA_Fetch_OverlayPointer (ado, Name, OverInd);
    
-   if an overlay pointer of the name Name exists in SO then it is returned in ptr
+   if an overlay pointer named Name exists for ado then it is returned in ptr
    else ptr is null
    \param Overlays (SUMA_OVERLAYS **) vector of overlay plane pointers
    \param N_Overlays (int) number of overlay planes
@@ -6628,10 +6628,15 @@ SUMA_OVERLAYS * SUMA_Fetch_OverlayPointer (SUMA_ALL_DO *ado, const char * Name,
          SUMA_RETURN(SUMA_Fetch_OverlayPointer_arr(SO->Overlays, SO->N_Overlays,
                                                 Name, OverInd));
          break; }
-      case SDSET_type: {
+      case ANY_DSET_type:
+         SUMA_S_Err("Why any here?");
+         SUMA_RETURN(NULL);
+         break;
+      case GDSET_type: {
          SUMA_OVERLAYS *over = SUMA_ADO_Overlay(ado,0);
          SUMA_RETURN(SUMA_Fetch_OverlayPointer_arr (&over, 1, Name, OverInd));
          break; }
+      case CDSET_type: 
       case TRACT_type: {
          int N_over;
          SUMA_OVERLAYS **over=SUMA_ADO_Overlays(ado, &N_over);
@@ -6643,7 +6648,7 @@ SUMA_OVERLAYS * SUMA_Fetch_OverlayPointer (SUMA_ALL_DO *ado, const char * Name,
       case VO_type: {
          static int ncnt;
          if (!ncnt) {
-            SUMA_LH("No overlay to return for volumes, not yet at least");
+            SUMA_LH("Not implemented yet, is this needed?");
             ++ncnt;
          }
          break; }
@@ -6729,11 +6734,16 @@ SUMA_OVERLAYS * SUMA_Fetch_OverlayPointerByDset (SUMA_ALL_DO *ado,
          SUMA_RETURN(SUMA_Fetch_OverlayPointerByDset_arr(SO->Overlays, 
                         SO->N_Overlays, dset, OverInd));
          break; }
-      case SDSET_type: {
+      case ANY_DSET_type:
+         SUMA_S_Err("Why any?");
+         SUMA_RETURN(NULL);
+         break;
+      case GDSET_type: {
          SUMA_OVERLAYS *over = SUMA_ADO_Overlay(ado,0);
          SUMA_RETURN(SUMA_Fetch_OverlayPointerByDset_arr(&over, 1, 
                         dset, OverInd));
          break; }
+      case CDSET_type:
       case VO_type: {
          SUMA_OVERLAYS **over = SUMA_ADO_Overlays(ado, &N_over);
          SUMA_RETURN(SUMA_Fetch_OverlayPointerByDset_arr(over, N_over,
@@ -6824,7 +6834,16 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4(SUMA_ALL_DO *ado,
          SUMA_RETURN(SUMA_Overlays_2_GLCOLAR4_SO((SUMA_SurfaceObject *)ado,
                                                  SV, glcolar));
          break; 
-      case SDSET_type: {
+      case ANY_DSET_type:
+         SUMA_S_Err("Why are you here with this?");
+         SUMA_RETURN(NOPE);
+         break;
+      case CDSET_type:
+         SUMA_S_Err("Nooot yet implemented but this is one place "
+                    "where the excitement begins");
+         SUMA_RETURN(NOPE);
+         break;
+      case GDSET_type: {
          SUMA_DSET *dset=(SUMA_DSET *)ado;
          SUMA_GRAPH_SAUX *GSaux = SDSET_GSAUX(dset);
          if (!GSaux || !GSaux->Overlay) {
@@ -8415,7 +8434,8 @@ SUMA_ALL_DO *SUMA_Overlay_OwnerADO(SUMA_OVERLAYS *Over)
       case SO_type:
       case TRACT_type:
       case GRAPH_LINK_type:
-      case SDSET_type:
+      case GDSET_type:
+      case CDSET_type:
       case VO_type:
          SUMA_RETURN((SUMA_ALL_DO *)pp);
       default:
@@ -8798,7 +8818,13 @@ SUMA_Boolean SUMA_AddNewPlane (SUMA_ALL_DO *ado, SUMA_OVERLAYS *Overlay,
             break;
          }
          break; }
-      case SDSET_type: {
+      case CDSET_type: {
+         if (!(SUMA_ADO_Append_Overlay(ado, &Overlay))) {
+            SUMA_S_Err("Failed to append Overlay");
+            break;
+         }
+         break; }
+      case GDSET_type: {
          SUMA_S_Warn("Should not have multiple planes for graph dsets");
          break; }
       case VO_type: {
@@ -8866,7 +8892,7 @@ SUMA_Boolean SUMA_MixColors (SUMA_SurfaceViewer *sv)
                }
                sv->ColList[i]->Remix = NOPE;
                break;
-            case SDSET_type:
+            case GDSET_type:
                dset = (SUMA_DSET *)pp;
                SUMA_LHv("Mixing Graph Dset Colors (%s), Dset %s...\n", 
                         sv->ColList[i]->idcode_str, SDSET_LABEL(dset));
@@ -8877,6 +8903,24 @@ SUMA_Boolean SUMA_MixColors (SUMA_SurfaceViewer *sv)
                }
                sv->ColList[i]->Remix = NOPE;
                break;
+            case CDSET_type: {
+               dset = (SUMA_DSET *)pp;
+               SUMA_LHv("Mixing CIFTI Object Colors (%s), Dset %s, sv %d ...\n",
+                  sv->ColList[i]->idcode_str, SDSET_LABEL(dset), isv);
+               if (!SUMA_Overlays_2_GLCOLAR4((SUMA_ALL_DO *)dset, sv, 
+                                       SUMA_GetColorListPtr(sv->ColList[i]))) {
+                  SUMA_S_Err("Failed in SUMA_Overlays_2_GLCOLAR4.");
+                  SUMA_RETURN(NOPE);
+               }
+               sv->ColList[i]->Remix = NOPE;
+               SUMA_S_Warn("This block below is only needed if one of the"
+                           "domains is a volume");
+               for(kk=0; kk<SUMA_MAX_SURF_VIEWERS; ++kk) {
+                  if (kk != isv) {
+                     sv->ColList[i]->per_sv_extra[kk] |= PSV_BIND_VOL;
+                  }
+               }
+               break; }
             case VO_type: {
                SUMA_VolumeObject *VO = (SUMA_VolumeObject *)pp;
                SUMA_LHv("Mixing Volume Object Colors (%s), Dset %s, sv %d ...\n",
