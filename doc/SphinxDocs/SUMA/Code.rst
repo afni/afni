@@ -39,9 +39,9 @@ Graph Link Displayable Objects (GLDO)
 
    Most objects are rendered directly, such as surfaces, or tracts, but there can also be objects that are rendered in different ways depending on the context. For example, consider matrices (a.k.a graphs).
 
-   In SUMA, a matrix is considered as a displayable object of type **SDSET_type** , that is because the matrix is stored as a NIML group in structure **SUMA_DSET** much as surface-based datasets. So a **SDSET_type** displayable object is mostly a pointer to the dataset object itself.
+   In SUMA, a matrix is considered as a displayable object of type **GDSET_type** , that is because the matrix is stored as a NIML group in structure **SUMA_DSET** much as surface-based datasets. So a **GDSET_type** displayable object is mostly a pointer to the dataset object itself.
   
-   The same matrix dataset can be rendered as a grid (matrix), as a graph usually embedded in 3D, or a variety of other ways (a.k.a. variants). As a result, the rendering of the matrix is done on the fly, using the matrix data, and the rendering variant. To display an object in SUMA however, you need to have an entry for it in **SUMAg_DOv** , and you need to have it registered with the viewer. We do have an entry for the matrix as an **SDSET_type**, but how to render it is ambiguous. To remedy this, without duplicating color overlay data and so on, we define the **SUMA_GraphLinkDO** structure (and enumeration **GRAPH_LINK_type** often abbreviated as GLDO) which contains little more than the idcode string for the matrix data set, and a string defining the rendering variant. 
+   The same matrix dataset can be rendered as a grid (matrix), as a graph usually embedded in 3D, or a variety of other ways (a.k.a. variants). As a result, the rendering of the matrix is done on the fly, using the matrix data, and the rendering variant. To display an object in SUMA however, you need to have an entry for it in **SUMAg_DOv** , and you need to have it registered with the viewer. We do have an entry for the matrix as an **GDSET_type**, but how to render it is ambiguous. To remedy this, without duplicating color overlay data and so on, we define the **SUMA_GraphLinkDO** structure (and enumeration **GRAPH_LINK_type** often abbreviated as GLDO) which contains little more than the idcode string for the matrix data set, and a string defining the rendering variant. 
 
    If this is all too confusing, ponder this. A surface object (SO) is mostly made up of nodes and triangles that define its fixed shape; it needs no datasets to be rendered. A graph object is mostly made up of dataset, and the way it is rendered depends on the user's whim.
    
@@ -193,14 +193,20 @@ For better or for worse
    
 Debugging Utilities
 ===================
-
+   
+   FuncName: Almost all functions explicitly define the function name in a static variable called FuncName, and they use the macros *SUMA_ENTRY* and *SUMA_RETURN* or *SUMA_RETURNe* for returning variables or a void, respectively. 
+   The only exception to this rule would be functions that are called a large number of times and with relatively brief execution time. If you follow this scheme, you can check for improperly entered or terminated functions with AnalyzeTrace -suma_c SUMA*.c ../suma_*.c
+    
    LocalHead: A flag local to most functions that turns on otherwise hidden debugging messages with macros *SUMA_LH* . Macro *TLH* is a shorthand for turning LocalHead on and off locally within a function.
    
    SUMA_DUMP_TRACE: A macro to dump memory allocation table
    
    Structure Contents: Numerous functions with "Info" in the name create strings detailing the content of a particular structure. Those functions are usually called by counterparts with "Show" in the name. Older debugging functions have "Print" in the name. 
 
-Document which functions, is functions, find functions and macros                      
+   Functions and macros look for stuff: Look for function and macro names beginning with "SUMA_Which, SUMA_which, or SUMA_WHICH". Also, look for functions and macros with "_Find or _FIND or _find" in the name. There are lots of them.
+   
+   Functions and macros to ask about stuff: Look for function and macro names beginning with "SUMA_is". 
+                         
 Unfinished Worthwhile Business
 ==============================
 

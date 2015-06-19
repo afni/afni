@@ -2757,8 +2757,11 @@ char *SUMA_do_type_2_contwname(SUMA_DO_Types do_type)
       case not_DO_type:
          snprintf(ss, 63,"SumaCont");
          break;
-      case SDSET_type:
+      case GDSET_type:
          snprintf(ss, 63,"NoCont");
+         break;
+      case CDSET_type:
+         snprintf(ss, 63,"CiftiCont");
          break;
       default:
          snprintf(ss, 63,"NOT_SET_FIX_ME");

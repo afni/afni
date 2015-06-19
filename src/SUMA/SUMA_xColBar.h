@@ -201,6 +201,7 @@ SUMA_Boolean SUMA_ADO_isLabel(SUMA_ALL_DO *ado, char *lbl);
 char *SUMA_ADO_sLabel(SUMA_ALL_DO *ado);
 char * SUMA_ADO_idcode(SUMA_ALL_DO *ado);
 char * SUMA_ADO_Parent_idcode(SUMA_ALL_DO *ado);
+SUMA_CIFTI_SAUX *SUMA_ADO_CSaux(SUMA_ALL_DO *ado);
 SUMA_GRAPH_SAUX *SUMA_ADO_GSaux(SUMA_ALL_DO *ado);
 SUMA_TRACT_SAUX *SUMA_ADO_TSaux(SUMA_ALL_DO *ado);
 SUMA_MASK_SAUX *SUMA_ADO_MSaux(SUMA_ALL_DO *ado);

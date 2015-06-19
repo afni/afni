@@ -46,6 +46,19 @@ typedef struct {
     UT_hash_handle hh;  /* keep it named 'hh' for same reasons  */
 }  SUMA_NGR_INDEX_HASH_DATUM;
 
+/*! CIFTI dataset Auxiliary structure for SUMA's use */
+typedef struct {
+   DList *DisplayUpdates;
+   
+   SUMA_OVERLAYS *Overlay;
+   SUMA_X_SurfCont *DOCont;/*!< Displayable object controller */
+   SUMA_PICK_RESULT *PR;
+   SUMA_Boolean *isColored; /*!< is the datum receiving color? Not masked say 
+                                 by thresholds etc. */
+   float *Center; /* Geometric center of all nodes/voxels*/
+   float *Range;  /* Min Max of X, Y, and Z of all nodes/voxels*/
+   
+} SUMA_CIFTI_SAUX;
 
 /*! Graph dataset Auxiliary structure for SUMA's use */
 typedef struct {
@@ -149,6 +162,9 @@ typedef struct {
    SUMA_ATRANS_MODES TransMode; /*!< polygon transparency  */
 } SUMA_VOL_SAUX;
 
+#define SDSET_CSAUX(dset) ( ( (dset) && (dset)->Aux && (dset)->Aux->Saux &&   \
+                               SUMA_isCIFTIDset(dset) ) ? \
+                           (SUMA_CIFTI_SAUX *)((dset)->Aux->Saux):NULL )
 #define SDSET_GSAUX(dset) ( ( (dset) && (dset)->Aux && (dset)->Aux->Saux &&   \
                                SUMA_isGraphDset(dset) ) ? \
                            (SUMA_GRAPH_SAUX *)((dset)->Aux->Saux):NULL )
@@ -236,6 +252,8 @@ int SUMA_GDSET_GMATRIX_CellPixSize(SUMA_DSET *dset, SUMA_SurfaceViewer *sv,
                                    float *Sz);
 float *SUMA_GDSET_NodeList(SUMA_DSET *dset, int *N_Node, int recompute,    
                            int **ind, char *thisvariant); 
+float *SUMA_CDSET_NodeList(SUMA_DSET *dset, int *N_Node, int recompute, 
+                           int **ind);
 NI_element * SUMA_SO_NIDO_Node_Texture (  SUMA_SurfaceObject *SO, SUMA_DO* dov, 
                                           int N_do, SUMA_SurfaceViewer *sv );
 SUMA_NEW_SO_OPT *SUMA_NewNewSOOpt(void);
