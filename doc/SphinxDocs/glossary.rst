@@ -230,12 +230,13 @@ Glossary
    sub-bricks
    subbricks
    subbrick
+   Datasets
    Dataset column
       Dataset in AFNI & SUMA land are loosely described as a collection of N values for each datum (voxel, node, point, graph edge, etc.). To take volumes as an example, each of these N values forms a sub-brick. A single anatomical volume such as a T1 weighted image has one value per voxel or one sub-brick. A dataset output by a statistical program will almost always have multiple sub-brick. A simple t-test for instance will produce a dataset of two sub-bricks one containing the effect size (e.g. contrast) and another containing the T statistic. The same goes for surface-based datasets, graph datasets, etc. For wonders of sub-brick selection see the output of suma -help, section "Selecting subsets of a dataset".
    
    color plane
    color planes
-      A color plane, is the result of the colorization of a dataset according the the parameter settings in the object's controller. Each dataset gets its own color plane and the resultant color depends on the stacking order of the color planes and their transparencies. It helps to think of a color plane as a stacked set of transparency sheet observed from above. See also :ref:`plane layering<Plane_Layering>`.
+      A color plane, is the result of the colorization of a dataset according the the parameter settings in the object's controller. Each dataset gets its own color plane and the resultant color mapped onto the :term:`Displayable Object` depends on the stacking order of the color planes and their transparencies. It helps to think of a color plane as a stacked set of transparency sheets observed from above. See also :ref:`plane layering<Plane_Layering>`.
       
    data
    datum
@@ -301,4 +302,5 @@ Glossary
    DO
    DOs
    Displayable Object
+   Displayable Objects
       A SUMA displayable object such as lines, spheres, text, images, planes, etc. See documentation under SUMA DO loading instructions with :ref:`Ctrl+Alt+s<LC_Ctrl+Alt+s>`, and NIML formatted DOs (nido) material from the output of :ref:`suma -help_nido <suma--help_nido>`   
