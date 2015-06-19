@@ -355,8 +355,7 @@ gifti_image * gifti_read_image( const char * fname, int read_data )
  *  return an allocated gifti_image struct on success,
  *         NULL on error
 *//*-------------------------------------------------------------------*/
-gifti_image * gifti_read_image_buf(const char * buf, long long bsize,
-                                   int read_data )
+gifti_image * gifti_read_image_buf(const char * buf, long long bsize)
 {
     if( !buf || bsize <= 0 ) {
         fprintf(stderr,"** gifti_read_image: missing filename\n");
@@ -365,7 +364,7 @@ gifti_image * gifti_read_image_buf(const char * buf, long long bsize,
 
     gxml_set_verb(G.verb);
 
-    return gxml_read_image_buf(buf, bsize, read_data, NULL, 0);
+    return gxml_read_image_buf(buf, bsize, NULL, 0);
 }
 
 /*----------------------------------------------------------------------
