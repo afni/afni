@@ -63,11 +63,18 @@ static int VL_rotcom = 0 ;     /* 04 Sep 2000: print out 3drotate commands? */
 
 static int VL_maxdisp= 1 ;     /* 03 Aug 2006: print out max displacment? */
 static THD_fvec3 *VL_dispvec=NULL ;
-static float VL_dmax = 0.0f ;
-static int   VL_dmaxi= 0 ;
-static char  VL_dmaxfile[256] = "\0" ;
-static float *VL_dmaxar  = NULL ;
 static char *VL_commandline = NULL ;
+
+static float  VL_dmax          = 0.0f ;
+static int    VL_dmaxi         = 0    ;
+static char   VL_dmaxfile[999] = "\0" ;
+static float *VL_dmaxar        = NULL ;
+
+static float  VL_emax          = 0.0f ;   /* 22 Jun 2015 */
+static int    VL_emaxi         = 0    ;
+static char   VL_emaxfile[999] = "\0" ;
+static float *VL_emaxar        = NULL ;
+static THD_dfvec3 *VL_emaxvec  = NULL ;
 
 static char *VL_savedisp          = NULL ;  /* 04 Apr 2012: save all displacements */
 static int   VL_savedisp19        = 0    ;
@@ -1028,8 +1035,8 @@ int main( int argc , char *argv[] )
 
    { char sbuf[128] , anam[32] ;
      THD_fvec3 cv ;
-     THD_dmat33 rmat ;
-     float matar[12] ;
+     THD_dmat33 rmat ; float matar[12] ;
+     THD_dfvec3 *qvec=NULL ;             /* 22 Jun 2015 */
 
      /* -rotparent and -gridparent datasets, if present */
 
@@ -1073,11 +1080,12 @@ int main( int argc , char *argv[] )
 
      /* each volume's transformation parameters, matrix, and vector */
 
-     if( VL_maxdisp > 0 ){
+     if( VL_maxdisp > 0 ){  /* for computing and saving max displacements */
        if( VL_verbose )
          INFO_message("Max displacements (mm) for each sub-brick:") ;
-       if( *VL_dmaxfile != '\0' )
-         VL_dmaxar = (float *)calloc(sizeof(float),imcount) ;
+       VL_dmaxar  = (float *)calloc(sizeof(float),imcount) ;
+       VL_emaxar  = (float *)calloc(sizeof(float),imcount) ;
+       VL_emaxvec = (THD_dfvec3 *)calloc( sizeof(THD_dfvec3) , VL_maxdisp ) ;
      }
 
      if( VL_matrix_save_1D != NULL ){             /* 24 Jul 2007 */
@@ -1188,8 +1196,8 @@ int main( int argc , char *argv[] )
         /* 04 Aug 2006: max displacement calculation */
 
         if( VL_maxdisp > 0 ){
-          THD_dmat33 pp,ppt ; THD_dfvec3 dv,qv,vorg ;
-          int qq ; float dmax=0.0f , xo,yo,zo , ddd ;
+          THD_dmat33 pp,ppt ; THD_dfvec3 dv,qv,vorg , ev ;
+          int qq ; float dmax=0.0f , xo,yo,zo , ddd , eee,emax=0.0f ;
           LOAD_DFVEC3(tvec,matar[3],matar[7],matar[11]) ;
           pp   = DBLE_mat_to_dicomm( VL_dset ) ;   /* convert rmat to dataset coord order */
           ppt  = TRANSPOSE_DMAT(pp);
@@ -1202,10 +1210,17 @@ int main( int argc , char *argv[] )
             FVEC3_TO_DFVEC3( VL_dispvec[qq] , dv );
             qv = SUB_DFVEC3(dv,vorg); qv = DMATVEC_ADD(rmat,qv,tvec); qv = ADD_DFVEC3(qv,vorg);
             qv = SUB_DFVEC3(dv,qv); ddd = SIZE_DFVEC3(qv); if( ddd > dmax ) dmax = ddd;
+            if( VL_emaxvec != NULL ){
+              ev = (kim > 0) ? VL_emaxvec[qq] : qv ;
+              VL_emaxvec[qq] = qv ;
+              ev = SUB_DFVEC3(ev,qv) ; eee = SIZE_DFVEC3(ev) ; if( eee > emax ) emax = eee ;
+            }
           }
           if( VL_dmax < dmax ){ VL_dmax = dmax ; VL_dmaxi = kim ; }
-          if( VL_verbose ) fprintf(stderr," %.2f",dmax) ;
+          if( VL_emax < emax ){ VL_emax = emax ; VL_emaxi = kim ; }
+          if( VL_verbose ) fprintf(stderr," %.2f(%.2f)",dmax,emax) ;
           if( VL_dmaxar != NULL ) VL_dmaxar[kim] = dmax ;
+          if( VL_emaxar != NULL ) VL_emaxar[kim] = emax ;
         }
 
      }  /*--- end of loop over registered sub-bricks ---*/
@@ -1215,7 +1230,8 @@ int main( int argc , char *argv[] )
      if( VL_maxdisp > 0 ){
        if( VL_verbose ) fprintf(stderr,"\n") ;
        INFO_message("Max displacement in automask = %.2f (mm) at sub-brick %d",VL_dmax,VL_dmaxi);
-       free((void *)VL_dispvec) ;
+       INFO_message("Max delta displ  in automask = %.2f (mm) at sub-brick %d",VL_emax,VL_emaxi);
+       free((void *)VL_dispvec) ; free((void *)VL_emaxvec) ;
        if( *VL_dmaxfile != '\0' && VL_dmaxar != NULL ){
          FILE *fp ;
          if( strcmp(VL_dmaxfile,"-") != 0 ){
@@ -1227,6 +1243,19 @@ int main( int argc , char *argv[] )
          fprintf(fp,"# %s\n",VL_commandline) ;
          fprintf(fp,"# max displacement (mm) for each volume\n") ;
          for( kim=0 ; kim < imcount ; kim++ ) fprintf(fp," %.3f\n",VL_dmaxar[kim]) ;
+         if( fp != stdout ) fclose(fp) ;
+       }
+       if( *VL_emaxfile != '\0' && VL_emaxar != NULL ){
+         FILE *fp ;
+         if( strcmp(VL_emaxfile,"-") != 0 ){
+           if( THD_is_file(VL_emaxfile) ) WARNING_message("Overwriting file %s",VL_emaxfile);
+           fp = fopen( VL_emaxfile , "w" ) ;
+         } else {
+           fp = stdout ;
+         }
+         fprintf(fp,"# %s\n",VL_commandline) ;
+         fprintf(fp,"# max delta displ (mm) for each volume\n") ;
+         for( kim=0 ; kim < imcount ; kim++ ) fprintf(fp," %.3f\n",VL_emaxar[kim]) ;
          if( fp != stdout ) fclose(fp) ;
        }
      }
@@ -1459,7 +1488,8 @@ void VL_syntax(void)
     "                    If '-verbose' is given, the max displacement will be\n"
     "                    printed to the screen for each sub-brick; otherwise,\n"
     "                    just the overall maximum displacement will get output.\n"
-    "                    [-maxdisp is turned on by default]\n"
+    "                 ** This displacement is relative to the base volume.\n"
+    "                    [-maxdisp is now turned on by default]\n"
     "  -nomaxdisp    = Do NOT calculate and print the maximum displacement.\n"
     "                    [maybe it offends you in some theological sense?]\n"
     "                    [maybe you have some real 'need for speed'?]\n"
@@ -1468,6 +1498,10 @@ void VL_syntax(void)
     "                    You may find that graphing this file (cf. 1dplot)\n"
     "                    is a useful diagnostic tool for your FMRI datasets.\n"
     "                    [the 'mm' filename can be '-', which means stdout]\n"
+    "                 ** The program also outputs the maximum change (delta) in\n"
+    "                    displacement between 2 successive time points, into the\n"
+    "                    file with name 'mm_delt'.  This output can let you see\n"
+    "                    when there is a sudden head jerk, for example. [22 Jun 2015]\n"
     "\n"
     "  -savedisp sss = Save 3 3D+time datasets with the x,y,z displacments at each\n"
     "                  voxel at each time point.  The prefix for the x displacement\n"
@@ -1698,7 +1732,10 @@ void VL_command_line(void)
         VL_maxdisp = 0 ; Iarg++ ; continue ;
       }
       if( strcmp(Argv[Iarg],"-maxdisp1D") == 0 ){
-        VL_maxdisp = 1 ; strcpy(VL_dmaxfile,Argv[++Iarg]) ;
+        char *eq ;
+        VL_maxdisp = 1 ; MCW_strncpy(VL_dmaxfile,Argv[++Iarg],998) ;
+        eq = modify_afni_prefix(VL_dmaxfile,NULL,"_delt") ;
+        if( eq != NULL ) MCW_strncpy(VL_emaxfile,eq,998) ;
         Iarg++ ; continue ;
       }
 
@@ -2706,14 +2743,14 @@ void * VL_create_disprod( THD_3dim_dataset *tdset ,
    THD_3dim_dataset *ddset ;
    int nvox=DSET_NVOX(tdset) , nvals=DSET_NVALS(tdset) , ii,iv ;
    float *xd , *yd , *zd , *dd ;
-                                    
+
    ddset = EDIT_empty_copy(tdset) ;
    tross_Copy_History(tdset,ddset) ;
    strcpy(lab,"_D") ; strcat(lab,xlab[xp]) ; strcat(lab,ylab[yp]) ; strcat(lab,zlab[zp]) ;
    SDAPP(lab) ;
    EDIT_dset_items(ddset,ADN_prefix,pr,ADN_none) ;
    sprintf(pr,"-- %s savedisp output",lab) ; tross_Append_History(ddset,pr) ;
-   
+
    for( iv=0 ; iv < nvals ; iv++ ){
      EDIT_substitute_brick( ddset , iv , MRI_float , NULL ) ;
      dd = DSET_BRICK_ARRAY(ddset,iv) ;

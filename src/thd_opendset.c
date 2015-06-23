@@ -27,7 +27,7 @@ static char * file_extension_list[] = {
     ".mnc",
     ".mri",
     ".svl",
-    ".1D", ".1D.dset", ".1D.do",
+    ".1D", ".1D.dset", ".1D.do", ".txt",
     ".3D",
     ".nii", ".nii.gz", ".nia", ".hdr", ".img",
     ".mpg", ".mpeg", ".MPG", ".MPEG",

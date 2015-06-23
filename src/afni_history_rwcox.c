@@ -43,7 +43,11 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 12 , JUN , 2015 , RWC , "plug_L1fit" , MICRO , TYPE_MODIFY ,
+  { 22 , JUN , 2015 , RWC , "3dvolreg" , MICRO , TYPE_MODIFY ,
+   "Add output of max inter-TR displacement" ,
+   "In addition to the max total displacement (as of old)." } ,
+
+ { 12 , JUN , 2015 , RWC , "plug_L1fit" , MICRO , TYPE_MODIFY ,
    "Modify Timeseries input to use all columns of file, not just 1st" ,
    NULL } ,
 
