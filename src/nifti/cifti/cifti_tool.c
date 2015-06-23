@@ -26,6 +26,7 @@ typedef struct {
    char * fin;
    char * fout;
    int    verb;
+   int    as_cext;
    int    eval_cext;
    int    show_cext;
 } opts_t;
@@ -35,13 +36,14 @@ opts_t gopt;
 
 /* ----------------------------------------------------------------- */
 /* protos */
-int disp_cifti_extension(nifti_image * nim, char * fout);
-int eval_cifti_extension(nifti_image * nim);
+int disp_cifti_extension (nifti_image * nim, char * fout);
+int eval_cifti_buf       (char * buf, long long blen);
+int eval_cext_file       (char * fin);
+int eval_cifti_extension (nifti_image * nim);
+int process_args         (int argc, char * argv[], opts_t * opts);
+int process              (opts_t * opts);
+int show_help            (void);
 int write_cifti_extension(FILE * fp, nifti1_extension * ext, int maxlen);
-
-int process_args(int argc, char * argv[], opts_t * opts);
-int process     (opts_t * opts);
-int show_help   (void);
 
 /* ----------------------------------------------------------------- */
 int main(int argc, char * argv[])
@@ -73,6 +75,10 @@ int process_args(int argc, char * argv[], opts_t * opts)
       if( ! strncmp(argv[ac], "-h", 2) ) {
          return show_help();
       }
+      else if( ! strcmp(argv[ac], "-as_cext") ||
+               ! strcmp(argv[ac], "-as_cifti_ext") ) {
+         opts->as_cext = 1;
+      }
       else if( ! strcmp(argv[ac], "-input") ) {
          if( ++ac >= argc ) {
             fprintf(stderr, "** missing argument for -input\n");
@@ -94,6 +100,7 @@ int process_args(int argc, char * argv[], opts_t * opts)
          }
          opts->verb = atoi(argv[ac]);
          nifti_set_debug_level(opts->verb);
+         gifti_set_verb(opts->verb);
       }
       else {
          fprintf(stderr,"** invalid option, '%s'\n", argv[ac]);
@@ -110,6 +117,9 @@ int process(opts_t * opts)
    nifti_image * nim;
 
    if( !opts->fin ){ fprintf(stderr, "** missing option '-input'\n"); return 1;}
+
+   /* maybe the input is pure CIFTI */
+   if( opts->as_cext ) return eval_cext_file(opts->fin);
 
    /* read input dataset, including data */
    nim = nifti_image_read(opts->fin, 1);
@@ -165,8 +175,7 @@ int disp_cifti_extension(nifti_image * nim, char * fout)
 int eval_cifti_extension(nifti_image * nim)
 {
    nifti1_extension * ext;
-   gifti_image      * gim;
-   int                ind, found;
+   int                ind, found, rv;
 
    found = 0;
    ext = nim->ext_list;
@@ -176,12 +185,37 @@ int eval_cifti_extension(nifti_image * nim)
       found++;
       if( found > 1 ) fprintf(stderr,"** found CIFTI extension #%d\n", found);
 
-      gim = gifti_read_image_buf(ext->edata, ext->esize-8);
-      if( !gim ) {
-         fprintf(stderr,"** failed to process CIFTI extension in %s\n",
-                 nim->fname);
-         return 1;
+      rv = eval_cifti_buf(ext->edata, ext->esize-8);
+      if( rv ) {
+         fprintf(stderr,"** failure for file %s\n", nim->fname);
+         return rv;
       }
+   }
+
+   return 0;
+}
+
+int eval_cext_file(char * fin)
+{
+   gifti_image * gim;
+
+   gim = gifti_read_image(fin, 1);
+   if( !gim ) {
+      fprintf(stderr,"** failed to process CIFTI ext file %s\n", fin);
+      return 1;
+   }
+
+   return 0;
+}
+
+int eval_cifti_buf(char * buf, long long blen)
+{
+   gifti_image * gim;
+
+   gim = gifti_read_image_buf(buf, blen);
+   if( !gim ) {
+      fprintf(stderr,"** failed to process CIFTI buffer\n");
+      return 1;
    }
 
    return 0;
