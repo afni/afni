@@ -217,6 +217,18 @@ if ($webupdate == 1) then
    endif
 endif
 
+if ($webupdate == 2) then
+   echo "Enter 'y' to send _build/html/SUMA to $afwpg y/[N]:"
+   set kk = $<
+   if ("$kk" == 'y' || "$kk" == 'Y') then
+      rsync -rv _build/html/SUMA $afscp
+      rsync -rv _build/html/suma*html $afscp
+      echo "Content updated for $afwpg/sumatoc1.html"
+   else
+      echo "Update of SUMA web docs canceled"
+   endif
+endif
+
 
 goto END
 
@@ -318,6 +330,11 @@ PARSE:
 
       if ("$argv[$cnt]" == "-web_upload") then
          set webupdate = 1
+         goto CONTINUE
+      endif
+      
+      if ("$argv[$cnt]" == "-web_suma_upload") then
+         set webupdate = 2
          goto CONTINUE
       endif
       

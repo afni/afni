@@ -173,19 +173,21 @@ Functions of Interest
 For better or for worse
 =======================
 
-   The Little Engine That Is
-   -------------------------
+   A colleaction of comments on some of the oddities in the way certain things are done in SUMA. All for a good reason at some point, including ignorance, but there they are.
+   
+The Little Engine That Is
+-------------------------
    
    The engine function *SUMA_Engine()* is used to drive SUMA for much of user interactions. The function takes a list of engine structures that direct it to perform various tasks in the listed order. There are functions to create a new engine list, to add commands to an engine list (either prepend or append), and of course SUMA_Engine() to execute the list.  
    
    *SUMA_Engine()* was created with the tought that all user actions should be scriptable. Most GUI callbacks are mere shells to setup a command list and call *SUMA_Engine()* 
    
-   Levels of organization 
-   ----------------------
+Levels of organization 
+----------------------
    
    The big structures are for Displayable Objects ( **SUMA_SurfaceObject**, **SUMA_VolumeObject** **SUMA_TractDO**, etc), Viewers ( **SUMA_SurfaceViewer**) ,  Datasets ( **SUMA_DSET** )
    
-   The global variables are all prefixed with SUMAg_ and the most relevant ones are: **SUMAg_CF** for all SUMA-wide settings and variables, **SUMAg_DOv** for all DOs, and **SUMAg_SVv** for all viewer structs.
+   The global variables are all prefixed with "SUMAg_" and the most relevant ones are: **SUMAg_CF** for all SUMA-wide settings and variables, **SUMAg_DOv** for all DOs, and **SUMAg_SVv** for all viewer structs.
    
    Many large pointers can be shared across objects, viewers, etc. Check existing accessor functions, make your own if need be.
    
@@ -214,3 +216,40 @@ Unfinished Worthwhile Business
    
    Autoload datsets *SUMA_AutoLoad_SO_Dsets()*
    
+
+Examples (musings perhaps)
+==========================
+
+Sitcky moving along the tract of first intersection 
+---------------------------------------------------
+      
+   Tract intersection is done via the :ref:`picking buffer<Picking_Code>` mechanism so one can imagine implementing the sticky feature in one of the following two ways. When in sticky mode, search the pick buffer for the closest pixel that matches the color of the first pick. 
+      
+   Normally the determination of what was picked from the buffer involves finding the closest colored pixel to the mouse pointer's location (see *SUMA_ComputeLineDOsIntersect()* )  and then reverse looking up of the object represented by that color ( *SUMA_WhatWasPicked()*). For the sticky picking to work, the search function has to know to search only for a certain color and you will probably want to increase the search space around the pointer considerably from the current level. Also one should ponder the need to search with preference along the direction of displacement of the pointer to avoid unexpected jump, think of a tract that curls upwards and back on itself like a respectable moustache. 
+      
+   Another thing to consider is the fact that some tracts don't go far enough in the bundle they are in and one might actualy want to continue tracking along the bundle itself, or a new tract in the bundle should a stoppage be encountered. So in case of stoppage, one should consider the next closest color in the buffer that is for a tract in the same bundle, adopt the new tract if found and continue along it.
+      
+      .. note:: One could consider other scenarios to implement the searches above. For instance, when sticky track picking is desired, only render the tract or bundles of interest (see *SUMA_DrawTractDO()* ). Or one could decide to categorize at the bundle, rather than the tract level (see *SUMA_DO_get_pick_colid()* ).
+
+      
+   You will also need to see if there is a configuration of keyboard+click that would put the viewer in Sticky Tract Mode. Mouse and keyboard inputs are handled in *SUMA_input()* . Looking at "case ButtonPress: --> case Button3:" we see that ControlMask ony (without combination with ShiftMask, or Alt) is not used up. Similarly with mouse motion (dragging) "case MotionNotify:  --> case SUMA_Button_3_Motion:" and button release "case ButtonRelease: --> case Button3".
+      
+   So here is an outline for implementing this approach:
+
+   1- Setup for adding a flag for being in Sticky Tract Mode.
+
+      Per the reasoning above, this should be done at Ctrl+ButtonPress3 and can be encoded as a new value for **MouseMode** in the **SUMA_SurfaceViewer** struct. Search for constant **SUMA_MASK_MANIP_MMODE** and macro *MASK_MANIP_MODE* for an example on how such modes are set and queried. 
+
+      However we must allow  **MouseMode** to simultaneously encode for both  Mask Manipulation  and Sticky Tract Modes. So to make **MouseMode**  more easily queried, consider turning it into a bitwise mask. At the moment, it is just a series of integer values. For an example of bitwise mask, see definitions for **UPDATE_ROT_MASK** and its ilk, along with the use of **viewopt** in *SUMA_SetupSVforDOs()* .
+
+      Consider also changing the crosshair from arrow to '+' (perhaps) to indicate that one is in a different mouse manipulation mode. This is now done for drawing ROIs; see  *SUMA_UpdateViewerCursor()* for inspiration. 
+
+      Also, should one only turn Sticky Mode on only when the hit is on a tract?
+
+   2- Modify the search in *SUMA_ComputeLineDOsIntersect()* or perhaps only in  *SUMA_GetColidInPickBuffer4()* to act differently in Tract Sticky mode
+
+   3- Snap out of Tacky Mode once Button3Release happens (regardless of whether or not user still has ctrl down perhaps?)
+
+       So we can plan on setting **MouseMode** in sticky tract mode with ctrl+Button3Press (only if a tract is selected?), modify intersection rules during ctrl+Button_3_Motion, then unset Sticky Tract mode durin Button3Release.
+
+
