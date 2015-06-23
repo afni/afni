@@ -6735,7 +6735,7 @@ SUMA_Boolean SUMA_DrawTractDO (SUMA_TractDO *TDO, SUMA_SurfaceViewer *sv)
    }
    
    if (!sv->DO_PickMode || (sv->DO_PickMode && !(MASK_MANIP_MODE(sv)))) {
-      /* Apply masking if not picking or picking while in mask moving mode */
+      /* Apply masking if not picking or picking while not in mask moving mode */
       SUMA_TractMasksIntersect(TDO, SUMA_GetMaskEvalExpr());
    }
    
