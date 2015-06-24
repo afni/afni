@@ -253,3 +253,11 @@ Sitcky moving along the tract of first intersection
        So we can plan on setting **MouseMode** in sticky tract mode with ctrl+Button3Press (only if a tract is selected?), modify intersection rules during ctrl+Button_3_Motion, then unset Sticky Tract mode durin Button3Release.
 
 
+Tract intersection with masks 
+-----------------------------
+
+   Currently, interactively controlled tract masks are either spheres or boxes that are defined on the fly in the :ref:`masks table <MaskCont>` of the :ref:`tract controller<TractCont>`. The intent here is to make it possible to specify a generic mask, let's say a surface of arbitrary shape as another mask type.
+   
+   Things we would need to consider:
+   
+      1- Intersection of the mask with tracts. For interactive STOPPED HERE  
