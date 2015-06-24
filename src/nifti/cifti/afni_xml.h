@@ -32,16 +32,22 @@ typedef struct {
 
 /* all memory implied by this structure is self contained */
 typedef struct afni_xml_s {
-   char              * name;        /* name of element                     */
+   char               * name;        /* name of element                     */
 
-   char              * xdata;       /* XML data, still in text             */
-   int                 dlen;        /* length of (nul-terminated) XML data */
-   int                 cdata;       /* flag: is data stored as CDATA       */
-   int                 encode;      /* encoding type (e.g. b64 binary)     */
+   char               * xdata;       /* XML data, still in text             */
+   int                  dlen;        /* length of (nul-terminated) XML data */
+   int                  cdata;       /* flag: is data stored as CDATA       */
+   int                  encode;      /* encoding type (e.g. b64 binary)     */
 
-   struct afni_xml_s * xchild;      /* child elements                      */
-   nvpairs             attrs;       /* attributes                          */
+   int                  nchild;      /* number of child elements            */
+   struct afni_xml_s ** xchild;      /* child elements                      */
+   nvpairs              attrs;       /* attributes                          */
 } afni_xml_t;
+
+typedef struct {
+   int           len;
+   afni_xml_t ** xlist;
+} afni_xml_list;
    
 typedef struct {
    /* general control */
@@ -49,23 +55,23 @@ typedef struct {
    int     dstore;      /* flag: store data on read? */
    int     indent;      /* spaces to indent when writing */
    int     buf_size;    /* size of xml reading buffer */
+   FILE  * stream;      /* show stream, maybe stderr */
 
    /* active control and information */
-   int          depth;  /* current depth */
-   int          dskip;  /* stack depth to skip */
-   int          errors; /* reading errors */
-   afni_xml_t * stack[AXML_MAX_DEPTH]; /* xml stack of names */
+   int           depth;  /* current depth */
+   int           dskip;  /* stack depth to skip */
+   int           errors; /* reading errors */
+   afni_xml_t  * stack[AXML_MAX_DEPTH+1]; /* xml stack of pointers */
 
-   afni_xml_t * xroot;  /* pointer to root of XML struct tree */
-   afni_xml_t * xcur;   /* pointer to current XML struct */
+   afni_xml_list * xroot;   /* list of root XML tree pointers */
 } afni_xml_control;
 
 
 /* protos */
 
 /* main interface */
-afni_xml_t * axml_read_file(const char * fname, int read_data);
-afni_xml_t * axml_read_buf (const char * buf_in, int64_t blen);
+afni_xml_list  axml_read_file(const char * fname, int read_data);
+/* afni_xml_list  axml_read_buf (const char * buf_in, int64_t blen); */
 
 int          axml_write_stream(FILE * fp, afni_xml_t * xroot, int write_data);
 
