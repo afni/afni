@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 24,  Jun, 2015, RCR, "CIFTI", MINOR, TYPE_NEW_OPT,
+   "afni_xml udpates, and start to afni_xml_tool",
+   NULL
+ } ,
+
  { 18,  Jun, 2015, RCR, "3dExtrema", MINOR, TYPE_NEW_OPT,
    "added -nbest",
    "Output -nbest extrema; -quiet does not suppress extrema output."
