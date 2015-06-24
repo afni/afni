@@ -3,7 +3,13 @@
 
 #include <zlib.h>
 #include <expat.h>
+
+#ifdef USE_NIFTI2
+#include <nifti2_io.h>
+#else
 #include <nifti1_io.h>
+#endif
+
 /* also #include "gifti_xml.h", but at the end */
 
 /* ---------------------------------------------------------------------- */
@@ -145,8 +151,7 @@ typedef struct {
 
 /* main interface protos */
 gifti_image * gifti_read_image  (const char * fname, int read_data );
-gifti_image * gifti_read_image_buf(const char * buf, long long bisze,
-                                 int read_data );
+gifti_image * gifti_read_image_buf(const char * buf, long long bisze);
 gifti_image * gifti_read_da_list(const char * fname, int read_data,
                                  const int * dalist, int len );
 int    gifti_free_image         (gifti_image * gim);
