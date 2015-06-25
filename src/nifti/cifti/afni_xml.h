@@ -39,9 +39,9 @@ typedef struct afni_xml_s {
    int                  cdata;       /* flag: is data stored as CDATA       */
    int                  encode;      /* encoding type (e.g. b64 binary)     */
 
+   nvpairs              attrs;       /* attributes                          */
    int                  nchild;      /* number of child elements            */
    struct afni_xml_s ** xchild;      /* child elements                      */
-   nvpairs              attrs;       /* attributes                          */
 } afni_xml_t;
 
 typedef struct {
@@ -73,8 +73,13 @@ typedef struct {
 afni_xml_list  axml_read_file(const char * fname, int read_data);
 /* afni_xml_list  axml_read_buf (const char * buf_in, int64_t blen); */
 
-int          axml_write_stream(FILE * fp, afni_xml_t * xroot, int write_data);
+int axml_disp_xlist(char * mesg, afni_xml_list * axlist);
+int axml_disp_xml_t(char * mesg, afni_xml_t * ax, int showatr, int indent);
 
+int axml_write_stream(FILE * fp, afni_xml_t * xroot, int write_data);
+
+
+/* control API */
 int   axml_set_verb        ( int val );
 int   axml_get_verb        ( void    );
 int   axml_set_dstore      ( int val );

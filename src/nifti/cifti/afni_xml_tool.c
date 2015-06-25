@@ -101,7 +101,7 @@ int process(opts_t * opts)
       return 1;
    }
 
-   axml_disp_xlist(&xlist);
+   axml_disp_xlist(NULL, &xlist);
 
    return 0;
 }
