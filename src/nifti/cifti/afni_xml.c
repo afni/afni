@@ -44,6 +44,7 @@ static afni_xml_control gAXD = {
    0,          /* depth, current stack depth                 */
    0,          /* dskip depth (at positive depth, 0 is clear)*/
    0,          /* errors, number of encountered errors       */
+   0,          /* wkeep, keep white until pop                */
    {NULL},     /* stack, of afni_xml_t *                     */
 
    NULL,       /* afni_xml_list * xroot                      */
@@ -95,25 +96,27 @@ int axml_set_buf_size( int val )
 
 static XML_Parser init_xml_parser   (void *);
 
+static void XMLCALL cb_char         (void *, const char *, int);
 static void XMLCALL cb_default      (void *, const char *, int);
 static void XMLCALL cb_start_ele(void *, const char *, const char **);
 static void XMLCALL cb_stop_ele (void *, const char *);
 
-static int epush(afni_xml_control *, const char *, const char **);
-static int epop (afni_xml_control *, const char *);
+static int  epush(afni_xml_control *, const char *, const char **);
+static int  epop (afni_xml_control *, const char *);
 
-static int add_to_xchild_list(afni_xml_t * parent, afni_xml_t * child);
-static int add_to_xroot_list (afni_xml_control * xd, afni_xml_t * newp);
-static int disp_axml_data (char * mesg, afni_xml_control * dp, int show_all );
-static int free_xd_results(afni_xml_control * xd);
-static int free_xd_buffers(afni_xml_control * xd);
-static int init_axml_ctrl (afni_xml_control *xp, int doall);
-static int reset_xml_buf  (afni_xml_control * xd, char ** buf, int * bsize);
-static int white_first    (const char * str, int len);
-static int white_last     (const char * str, int len);
-
-static int show_depth     (afni_xml_control *, int show);
-static int show_attrs     (afni_xml_control *, const char *, const char **);
+static int  add_to_xchild_list(afni_xml_t * parent, afni_xml_t * child);
+static int  add_to_xroot_list (afni_xml_control * xd, afni_xml_t * newp);
+static int  append_to_string(char **, int *, const char *, int);
+static int  disp_axml_ctrl (char * mesg, afni_xml_control * dp, int show_all );
+static int  disp_gen_text(afni_xml_control *, const char *, const char *, int);
+static void free_whitespace(void);
+static int  init_axml_ctrl (afni_xml_control *xp, int doall);
+static int  reset_xml_buf  (afni_xml_control * xd, char ** buf, int * bsize);
+static int  white_first    (const char * str, int len);
+static int  white_last     (const char * str, int len);
+ 
+static int  show_depth     (afni_xml_control *, int show);
+static int  show_attrs     (afni_xml_control *, const char *, const char **);
 
 static afni_xml_t * new_afni_xml(const char * ename, const char ** attr);
 static char       * strip_whitespace(const char * str, int slen);
@@ -162,8 +165,7 @@ afni_xml_list axml_read_file(const char * fname, int read_data)
 
     while( !done )
     {
-        if( reset_xml_buf(xd, &buf, &bsize) )  /* fail out */
-            { free_xd_results(xd); break; }
+        if( reset_xml_buf(xd, &buf, &bsize) ) break;
 
         blen = fread(buf, 1, bsize, fp);
         done = blen < bsize;
@@ -174,8 +176,6 @@ afni_xml_list axml_read_file(const char * fname, int read_data)
             fprintf(stderr,"** %s at line %u\n",
                     XML_ErrorString(XML_GetErrorCode(parser)),
                     (unsigned int)XML_GetCurrentLineNumber(parser));
-            
-            free_xd_results(xd);
             break;
         }
     }
@@ -197,13 +197,11 @@ afni_xml_list axml_read_file(const char * fname, int read_data)
         }
 */
 
-    free_xd_buffers(xd);  /* free data buffers */
-
     return xlist;
 }
 
 /* display the list of afni_xml_t structs */
-int axml_disp_xlist(char * mesg, afni_xml_list * axlist)
+int axml_disp_xlist(char * mesg, afni_xml_list * axlist, int verb)
 {
    FILE * fp = stderr;
    int    ind;
@@ -220,14 +218,14 @@ int axml_disp_xlist(char * mesg, afni_xml_list * axlist)
    fprintf(fp, "afni_xml_list, len = %d\n", axlist->len);
    for(ind = 0; ind < axlist->len; ind++ ) {
       fprintf(fp, "   afni_xml_t root %d of %d:\n", ind+1, axlist->len);
-      axml_disp_xml_t(NULL, axlist->xlist[ind], gAXD.verb-1, gAXD.indent);
+      axml_disp_xml_t(NULL, axlist->xlist[ind], gAXD.indent, verb);
    }
 
    return 0;
 }
 
 /* recursive function to display an afni_xml_t struct */
-int axml_disp_xml_t(char * mesg, afni_xml_t * ax, int verb, int indent)
+int axml_disp_xml_t(char * mesg, afni_xml_t * ax, int indent, int verb)
 {
    FILE * fp = stderr;
    int    ind;
@@ -239,14 +237,19 @@ int axml_disp_xml_t(char * mesg, afni_xml_t * ax, int verb, int indent)
    if( ! ax ) { fprintf(fp, "%*sNULL\n", indent, ""); return 1; }
 
 
-   if( verb > 0 ) {
+   if( verb > 1 ) {
       fprintf(fp, "%*s - name   : %s\n", indent-gAXD.indent, "", ax->name);
-      if( verb > 1 ) {
+      if( verb > 2 ) {
+         if(ax->xtext) {
+           if(verb>3) fprintf(fp, "%*sxtext   : %s\n",indent,"",ax->xtext);
+           else fprintf(fp, "%*sxtext   : %.30s...\n",indent,"", ax->xtext);
+         } else fprintf(fp, "%*sxtext  : NULL\n", indent, "");
+         fprintf(fp, "%*sxlen   : %d\n", indent, "", ax->xlen);
          fprintf(fp, "%*scdata  : %d\n", indent, "", ax->cdata);
          fprintf(fp, "%*sencode : %d\n", indent, "", ax->encode);
       }
       fprintf(fp, "%*snattrs : %d\n", indent, "", ax->attrs.length);
-      if( verb ) {
+      if( verb > 2 ) {
          for(ind=0; ind < ax->attrs.length; ind++)
             fprintf(fp, "%*s         '%s' = '%s'\n",
                     indent, "", ax->attrs.name[ind], ax->attrs.value[ind]);
@@ -258,7 +261,60 @@ int axml_disp_xml_t(char * mesg, afni_xml_t * ax, int verb, int indent)
 
    /* recursively display the child structures */
    for(ind=0; ind < ax->nchild; ind++)
-      axml_disp_xml_t(NULL, ax->xchild[ind], verb, indent+gAXD.indent);
+      axml_disp_xml_t(NULL, ax->xchild[ind], indent+gAXD.indent, verb);
+
+   return 0;
+}
+
+/* free the list of afni_xml_t structs */
+int axml_free_xlist(afni_xml_list * axlist)
+{
+   int    ind;
+
+   /* check for quick returns */
+   if( ! axlist ) return 0;
+   if( ! axlist->xlist ) { axlist->len = 0; return 0; }
+
+   for( ind = 0; ind < axlist->len; ind++ )
+      axml_free_xml_t(axlist->xlist[ind]);
+
+   free(axlist->xlist);
+
+   axlist->xlist = NULL;
+   axlist->len   = 0;
+
+   free_whitespace(); /* this frees static string in strip_whitespace */
+
+   return 0;
+}
+
+/* recursive free */
+int axml_free_xml_t(afni_xml_t * ax)
+{
+   int ind;
+
+   if( !ax ) return 0;
+
+   if( ax->name )  { free(ax->name);  ax->name  = NULL; }
+   if( ax->xtext ) { free(ax->xtext); ax->xtext = NULL; }
+   ax->xlen = 0;
+
+   /* free all attributes */
+   for(ind = 0; ind < ax->attrs.length; ind++ ) {
+      if( ax->attrs.name  && ax->attrs.name[ind] )  free(ax->attrs.name[ind]);
+      if( ax->attrs.value && ax->attrs.value[ind] ) free(ax->attrs.value[ind]);
+   }
+   if( ax->attrs.name )  { free(ax->attrs.name);  ax->attrs.name = NULL; }
+   if( ax->attrs.value ) { free(ax->attrs.value); ax->attrs.value = NULL; }
+   ax->attrs.length = 0;
+
+   /* and free children */
+   if( ax->nchild > 0 && ax->xchild )
+      for( ind=0; ind < ax->nchild; ind++ ) axml_free_xml_t(ax->xchild[ind]);
+   ax->nchild = 0;
+   if( ax->xchild ) { free(ax->xchild); ax->xchild = NULL; }
+
+   free(ax);
 
    return 0;
 }
@@ -281,19 +337,20 @@ static int init_axml_ctrl(afni_xml_control *xp, int doall)
    xp->depth = 0;
    xp->dskip = 0;
    xp->errors = 0;
+   xp->wkeep = 0;
    memset(xp->stack, 0, sizeof(xp->stack));
 
    xp->xroot = NULL;
 
    /* maybe show the user */
    if( xp->verb > 2 )
-       disp_axml_data("-- user opts: ", xp, xp->verb > 3);
+       disp_axml_ctrl("-- user opts: ", xp, xp->verb > 3);
 
    return 0;
 }
 
 
-static int disp_axml_data(char * mesg, afni_xml_control * dp, int show_all )
+static int disp_axml_ctrl(char * mesg, afni_xml_control * dp, int show_all )
 {
    if( mesg ) fputs(mesg, stderr);
 
@@ -311,7 +368,8 @@ static int disp_axml_data(char * mesg, afni_xml_control * dp, int show_all )
               "   depth       : %d\n"
               "   dskip       : %d\n"
               "   errors      : %d\n"
-              , dp->depth, dp->dskip, dp->errors);
+              "   wkeep       : %d\n"
+              , dp->depth, dp->dskip, dp->errors, dp->wkeep);
 
    return 0;
 }
@@ -340,17 +398,6 @@ static int reset_xml_buf(afni_xml_control * xd, char ** buf, int * bsize)
     return 0;
 }
 
-static int free_xd_results(afni_xml_control * xd)
-{
-   fprintf(stderr,"== rcr - free results\n");
-   return 0;
-}
-
-static int free_xd_buffers(afni_xml_control * xd)
-{
-   fprintf(stderr,"== rcr - free xd buffers\n");
-   return 0;
-}
 
 static XML_Parser init_xml_parser(void * user_data)
 {
@@ -360,6 +407,7 @@ static XML_Parser init_xml_parser(void * user_data)
 
    XML_SetStartElementHandler(parser, cb_start_ele);
    XML_SetEndElementHandler  (parser, cb_stop_ele);
+   XML_SetCharacterDataHandler(parser, cb_char);
    XML_SetDefaultHandler     (parser, cb_default);
 
    if( gAXD.verb > 3 ) fprintf(stderr,"-- parser initialized\n");
@@ -370,21 +418,31 @@ static XML_Parser init_xml_parser(void * user_data)
 static void XMLCALL cb_start_ele(void *udata, const char *ename,
                                               const char **attr)
 {
-    afni_xml_control * xd = (afni_xml_control *)udata;
-    (void)epush(xd, ename, attr);
+   afni_xml_control * xd = (afni_xml_control *)udata;
+
+   if( xd->wkeep ) xd->wkeep = 0; /* clear storage continuation */
+
+   (void)epush(xd, ename, attr);
 }
 
 static void XMLCALL cb_stop_ele(void *udata, const char *ename)
 {
-    afni_xml_control * xd = (afni_xml_control *)udata;
-    (void)epop(xd, ename);
+   afni_xml_control * xd = (afni_xml_control *)udata;
+
+   if( xd->wkeep ) xd->wkeep = 0; /* clear storage continuation */
+
+   (void)epop(xd, ename);
 }
 
 static int epush(afni_xml_control * xd, const char * ename, const char ** attr)
 {
    afni_xml_t * acur = NULL;
 
-   if( xd->depth < 0 || xd->depth > AXML_MAX_DEPTH ) {
+   if( xd->wkeep ) xd->wkeep = 0; /* clear storage continuation */
+
+   xd->depth++;
+
+   if( xd->depth <= 0 || xd->depth > AXML_MAX_DEPTH ) {
        fprintf(stderr,"** push: stack depth %d out of [0,%d] range\n",
                xd->depth, AXML_MAX_DEPTH);
        xd->errors++;
@@ -407,24 +465,54 @@ static int epush(afni_xml_control * xd, const char * ename, const char ** attr)
        if( xd->verb > 3 )
            fprintf(stderr,"-- skip=%d, depth=%d, skipping push element '%s'\n",
                    xd->dskip, xd->depth, ename);
-       xd->stack[xd->depth] = NULL;
+       xd->stack[xd->depth-1] = NULL;
    } else {
       /* --- control depth and corresponding vars --- */
       acur = new_afni_xml(ename, attr);
       if( ! acur ) { xd->dskip = xd->depth; return 1; }
-      xd->stack[xd->depth] = acur;
+      xd->stack[xd->depth-1] = acur;
 
       /* we have either a root element or a child */
-      if( xd->depth == 0 ) {
+      if( xd->depth == 1 ) {
          if( add_to_xroot_list(xd, acur) ) { xd->dskip = xd->depth; return 1; }
       } else {
-         if( add_to_xchild_list(xd->stack[xd->depth-1], acur) ) {
+         if( add_to_xchild_list(xd->stack[xd->depth-2], acur) ) {
             xd->dskip = xd->depth; return 1;
          }
       }
    }
 
-   xd->depth++;
+   return 0;
+}
+
+
+static int epop(afni_xml_control * xd, const char * ename)
+{
+   afni_xml_t * ax;
+
+   if( xd->wkeep ) xd->wkeep = 0; /* clear storage continuation */
+
+   if( xd->dskip ) {
+      if( xd->dskip == xd->depth ) xd->dskip = 0;  /* clear */
+
+      if( xd->verb > 3 )
+          fprintf(stderr,"-- skip=%d, depth=%d, skipping pop element '%s'\n",
+                  xd->dskip, xd->depth, ename);
+   } else {
+      /* verify things? */
+      ax = xd->stack[xd->depth-1];
+      if( strcmp(ename, ax->name) )
+         if( gAXD.verb ) fprintf(stderr,"** pop mismatch!\n");
+   }
+
+   xd->stack[xd->depth-1] = NULL;  /* should be irrelevant */
+
+   if( xd->verb > 4 ) {
+       show_depth(xd, 1);
+       fprintf(stderr,"++ pop '%s'\n", ename);
+   }
+
+   xd->depth--;
 
    return 0;
 }
@@ -479,7 +567,7 @@ static afni_xml_t * new_afni_xml(const char * ename, const char ** attr)
 
    /* be picky */
    newp->name   = strdup(ename);
-   newp->xdata  = NULL;
+   newp->xtext  = NULL;
    newp->xchild = NULL;
 
    if( attr ) {
@@ -518,32 +606,6 @@ static afni_xml_t * new_afni_xml(const char * ename, const char ** attr)
 }
 
 
-int epop(afni_xml_control * xd, const char * ename)
-{
-
-   if( xd->dskip ) {
-      if( xd->dskip == xd->depth ) xd->dskip = 0;  /* clear */
-
-      if( xd->verb > 3 )
-          fprintf(stderr,"-- skip=%d, depth=%d, skipping pop element '%s'\n",
-                  xd->dskip, xd->depth, ename);
-   }
-
-   if( ! xd->dskip ) {
-      /* rcr - do some work */
-   }
-
-   xd->depth--;
-
-   if( xd->verb > 4 ) {
-       show_depth(xd, 1);
-       fprintf(stderr,"++ pop '%s'\n", ename);
-   }
-
-   return 0;
-}
-
-
 static int show_attrs(afni_xml_control * xd, const char * ename,
                                              const char ** attr)
 {
@@ -555,6 +617,8 @@ static int show_attrs(afni_xml_control * xd, const char * ename,
    return 0;
 }
 
+static void free_whitespace(void) { strip_whitespace(NULL,-2); }
+
 /* if slen == 0, use entire length */
 static char * strip_whitespace(const char * str, int slen)
 {
@@ -562,7 +626,11 @@ static char * strip_whitespace(const char * str, int slen)
    static int    blen = 0;
    int           len, ifirst, ilast;  /* first non-white char and AFTER last */
 
-   if( !str ) return (char *)str;
+   /* backdoor to free this memory, e.g. on call to free list */
+   if(!str && slen == -2){if(buf) { free(buf); buf=NULL; } blen=0; return 0; }
+
+   /* if string is long, forget it */
+   if( !str || slen > 1024 ) return (char *)str;
 
    len = strlen(str);
    if( slen > 0 && slen < len ) len = slen;
@@ -590,34 +658,100 @@ static char * strip_whitespace(const char * str, int slen)
    return buf;
 }
 
-
-static void XMLCALL cb_default(void * udata, const char * str, int length)
+static void XMLCALL cb_char(void *udata, const char * cdata, int length)
 {
    afni_xml_control * xd = (afni_xml_control *)udata;
-   int                wlen = white_first(str,length);
-   int                len = length;
+   afni_xml_t       * parent;
+   int                wlen = white_first(cdata,length);
+
+
+   /* wkeep: set once non-white chars are found, clear on push/pop */
+   /* once set: even white chars are appended to current xtext */
+
+   if( !xd->wkeep && wlen == length ) {
+      if(xd->verb > 4) fprintf(stderr,"-- skipping white char [%d]\n",length);
+      return;
+   }
+
+   if( xd->dskip ) {
+      if(xd->verb > 3) fprintf(stderr,"-- skipping char [%d]\n",length);
+      return;
+   }
+
+   if( ! xd->wkeep ) xd->wkeep = 1; /* store everything at this point */
+
+   if( xd->verb > 4 ) disp_gen_text(xd, "char", cdata, length);
+
+   parent = xd->stack[xd->depth-1];
+   if( !parent ) {
+      fprintf(stderr,"** no parent to store char data under\n");
+      return;
+   }
+
+   append_to_string(&parent->xtext, &parent->xlen, cdata, length);
+}
+
+/* append new string (of given length) to old string and length */
+static int append_to_string(char ** ostr, int * olen, 
+                            const char * istr, int ilen)
+{
+   int newlen;
+
+   /* be safe; also init old length to 1 */
+   if( !*ostr || *olen <= 0 ) { *ostr = NULL; *olen = 1; }
+
+   newlen = *olen + ilen;
+
+   *ostr = (char *)realloc(*ostr, newlen * sizeof(char));
+   if( !*ostr ) {
+      fprintf(stderr,"** AX.A2S: failed to alloc %d chars\n", newlen);
+      return 1;
+   }
+
+   /* copy, starting at old nul char (if any), and terminate */
+   strncpy((*ostr)+*olen-1, istr, ilen);
+   (*ostr)[newlen-1] = '\0';
+   *olen = newlen;
+
+   return 0;
+}
+
+static int disp_gen_text(afni_xml_control * xd, const char * header, 
+                         const char * cdata, int length)
+{
+   const char * str = cdata;
+   int          wlen = white_first(cdata,length);
+   int          len = length;
 
    if( len == wlen ) {
-       if( xd->verb < 6 ) return;
-
        str = "whitespace";     /* just note the whitespace */
        len = strlen(str);
    }
 
-   if( xd->verb > 5 ) {
-       show_depth(xd, 1);
-       fprintf(stderr, "default XML element [%d]: '%s'\n",length,
-                       strip_whitespace(str, len));
-   }
+   show_depth(xd, 1);
+   fprintf(stderr, "%s [len %d]: '%s'\n", header, length,
+                   strip_whitespace(str, len));
+
+   return 0;
 }
 
-static int show_depth(afni_xml_control * ax, int show)
+static void XMLCALL cb_default(void * udata, const char * cdata, int length)
+{
+   afni_xml_control * xd = (afni_xml_control *)udata;
+
+   if( xd->wkeep ) xd->wkeep = 0; /* clear storage continuation */
+
+   if( xd->verb > 5 ) disp_gen_text(xd, "default XML", cdata, length);
+}
+
+
+static int show_depth(afni_xml_control * xd, int show)
 {
    FILE * fp = stderr;
-   if( ax->stream ) fp = ax->stream;
+   if( xd->stream ) fp = xd->stream;
 
-   if( show ) fprintf(fp, "%*s %02d ", ax->indent*ax->depth, "", ax->depth);
-   else       fprintf(fp, "%*s    ", ax->indent*ax->depth, "");
+   if( show ) fprintf(fp, "%*s %02d ", xd->indent*xd->depth, "", xd->depth);
+   else       fprintf(fp, "%*s    ", xd->indent*xd->depth, "");
    return 0;
 }
 
