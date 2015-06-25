@@ -115,7 +115,7 @@ static int white_last     (const char * str, int len);
 static int show_depth     (afni_xml_control *, int show);
 static int show_attrs     (afni_xml_control *, const char *, const char **);
 
-static afni_xml_t * new_afni_xml(void);
+static afni_xml_t * new_afni_xml(const char * ename, const char ** attr);
 static char       * strip_whitespace(const char * str, int slen);
 
 /*----------------------- main I/O functions ---------------------------*/
@@ -202,6 +202,7 @@ afni_xml_list axml_read_file(const char * fname, int read_data)
     return xlist;
 }
 
+/* display the list of afni_xml_t structs */
 int axml_disp_xlist(char * mesg, afni_xml_list * axlist)
 {
    FILE * fp = stderr;
@@ -218,20 +219,48 @@ int axml_disp_xlist(char * mesg, afni_xml_list * axlist)
 
    fprintf(fp, "afni_xml_list, len = %d\n", axlist->len);
    for(ind = 0; ind < axlist->len; ind++ ) {
-      fprintf(fp, "   afni_xml_t root %d of %d:\n", ind, axlist->len);
-      axml_disp_xml_t(NULL, axlist->xlist[ind], 1);
+      fprintf(fp, "   afni_xml_t root %d of %d:\n", ind+1, axlist->len);
+      axml_disp_xml_t(NULL, axlist->xlist[ind], gAXD.verb-1, gAXD.indent);
    }
 
    return 0;
 }
 
-int axml_disp_xml_t(char * mesg, afni_xml_t * ax)
+/* recursive function to display an afni_xml_t struct */
+int axml_disp_xml_t(char * mesg, afni_xml_t * ax, int verb, int indent)
 {
    FILE * fp = stderr;
    int    ind;
 
    if( gAXD.stream != NULL ) fp = gAXD.stream;
+   if( mesg ) fprintf(fp, "%*s%s", indent, "", mesg);
 
+   /* bail on no struct */
+   if( ! ax ) { fprintf(fp, "%*sNULL\n", indent, ""); return 1; }
+
+
+   if( verb > 0 ) {
+      fprintf(fp, "%*s - name   : %s\n", indent-gAXD.indent, "", ax->name);
+      if( verb > 1 ) {
+         fprintf(fp, "%*scdata  : %d\n", indent, "", ax->cdata);
+         fprintf(fp, "%*sencode : %d\n", indent, "", ax->encode);
+      }
+      fprintf(fp, "%*snattrs : %d\n", indent, "", ax->attrs.length);
+      if( verb ) {
+         for(ind=0; ind < ax->attrs.length; ind++)
+            fprintf(fp, "%*s         '%s' = '%s'\n",
+                    indent, "", ax->attrs.name[ind], ax->attrs.value[ind]);
+      }
+      fprintf(fp, "%*snchild : %d\n", indent, "", ax->nchild);
+   } else 
+      /* just show the name */
+      fprintf(fp, "%*s%s\n", indent, "", ax->name);
+
+   /* recursively display the child structures */
+   for(ind=0; ind < ax->nchild; ind++)
+      axml_disp_xml_t(NULL, ax->xchild[ind], verb, indent+gAXD.indent);
+
+   return 0;
 }
 
 
@@ -480,8 +509,8 @@ static afni_xml_t * new_afni_xml(const char * ename, const char ** attr)
 
       /* and get the attributes */
       for(c = 0, aind = 0; attr[c]; c += 2, aind++) {
-         newp->attrs.name[aind]  = strdup(strip_whitespace(attr[c]));
-         newp->attrs.value[aind] = strdup(strip_whitespace(attr[c+1]));
+         newp->attrs.name[aind]  = strdup(strip_whitespace(attr[c],0));
+         newp->attrs.value[aind] = strdup(strip_whitespace(attr[c+1],0));
       }
    }
  
@@ -526,6 +555,7 @@ static int show_attrs(afni_xml_control * xd, const char * ename,
    return 0;
 }
 
+/* if slen == 0, use entire length */
 static char * strip_whitespace(const char * str, int slen)
 {
    static char * buf = NULL;
@@ -535,7 +565,7 @@ static char * strip_whitespace(const char * str, int slen)
    if( !str ) return (char *)str;
 
    len = strlen(str);
-   if( slen < len ) len = slen;
+   if( slen > 0 && slen < len ) len = slen;
    if( len <= 0 ) return (char *)str;
 
    /* make sure we have local space */
