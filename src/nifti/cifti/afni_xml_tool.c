@@ -14,7 +14,9 @@
 typedef struct {
    char * fin;
    char * fout;
+   int    disp_xlist;
    int    verb;
+   int    xverb;
 } opts_t;
 
 opts_t gopt;
@@ -32,7 +34,7 @@ int main(int argc, char * argv[])
    int rv;
 
    memset(&gopt, 0, sizeof(gopt));
-   gopt.verb = 1;
+   gopt.xverb = 1;
 
    rv = process_args(argc, argv, &gopt);
    if( rv < 0 ) return 1;  /* error */
@@ -55,30 +57,34 @@ int process_args(int argc, char * argv[], opts_t * opts)
    for( ac = 1; ac < argc; ac++ ) {
       if( ! strncmp(argv[ac], "-h", 2) ) {
          return show_help();
-      }
-      else if( ! strcmp(argv[ac], "-input") ) {
+      } else if( ! strcmp(argv[ac], "-disp_xml") ) {
+         opts->disp_xlist = 1;
+      } else if( ! strcmp(argv[ac], "-input") ) {
          if( ++ac >= argc ) {
             fprintf(stderr, "** missing argument for -input\n");
             return 1;
          }
          opts->fin = argv[ac];  /* no string copy, just pointer assignment */
-      }
-      else if( ! strcmp(argv[ac], "-output") ) {
+      } else if( ! strcmp(argv[ac], "-output") ) {
          if( ++ac >= argc ) {
             fprintf(stderr, "** missing argument for -output\n");
             return 2;
          }
          opts->fout = argv[ac];
-      }
-      else if( ! strcmp(argv[ac], "-verb") ) {
+      } else if( ! strcmp(argv[ac], "-verb") ) {
          if( ++ac >= argc ) {
             fprintf(stderr, "** missing argument for -verb\n");
             return 2;
          }
          opts->verb = atoi(argv[ac]);
-         axml_set_verb(opts->verb);
-      }
-      else {
+      } else if( ! strcmp(argv[ac], "-verb_lib") ) {
+         if( ++ac >= argc ) {
+            fprintf(stderr, "** missing argument for -verb_lib\n");
+            return 2;
+         }
+         opts->xverb = atoi(argv[ac]);
+         axml_set_verb(opts->xverb);
+      } else {
          fprintf(stderr,"** invalid option, '%s'\n", argv[ac]);
          return 1;
       }
@@ -101,7 +107,14 @@ int process(opts_t * opts)
       return 1;
    }
 
-   axml_disp_xlist(NULL, &xlist);
+   /* maybe display the results */
+   if( opts->disp_xlist )
+      axml_disp_xlist(NULL, &xlist, opts->verb);
+   else if ( opts->verb > 1 )
+      printf("xlist read, nothing to do (but free it)\n");
+
+   /* free everything when we are done */
+   axml_free_xlist(&xlist);
 
    return 0;
 }
@@ -118,6 +131,7 @@ int show_help( void )
       "       -help               : show this help\n"
       "       -input  INFILE      : specify input dataset\n"
       "       -verb LEVEL         : set the verbose level to LEVEL\n"
+      "       -verb_lib LEVEL     : set the library verbose level to LEVEL\n"
       "\n");
    return 1;
 }
