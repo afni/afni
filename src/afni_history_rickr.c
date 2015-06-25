@@ -49,11 +49,6 @@
 
 afni_history_struct rickr_history[] = {
 
- { 24,  Jun, 2015, RCR, "afni_xml_tool", MINOR, TYPE_ENHANCE,
-   "recursive display of afni_xml_list",
-   NULL
- } ,
-
  { 24,  Jun, 2015, RCR, "afni_xml_tool", MINOR, TYPE_NEW_OPT,
    "afni_xml udpates, and start to afni_xml_tool",
    NULL
