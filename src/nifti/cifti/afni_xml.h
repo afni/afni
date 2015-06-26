@@ -55,7 +55,7 @@ typedef struct {
    int     dstore;      /* flag: store data on read? */
    int     indent;      /* spaces to indent when writing */
    int     buf_size;    /* size of xml reading buffer */
-   FILE  * stream;      /* show stream, maybe stderr */
+   FILE  * wstream;     /* show stream, maybe stderr */
 
    /* active control and information */
    int           depth;  /* current depth */
@@ -72,8 +72,8 @@ typedef struct {
 /* protos */
 
 /* main interface */
-afni_xml_list  axml_read_file(const char * fname, int read_data);
-/* afni_xml_list  axml_read_buf (const char * buf_in, int64_t blen); */
+afni_xml_list axml_read_buf (const char * buf_in, int64_t bin_len);
+afni_xml_list axml_read_file(const char * fname, int read_data);
 
 int axml_disp_xlist(char * mesg, afni_xml_list * axlist, int verb);
 int axml_disp_xml_t(char * mesg, afni_xml_t * ax, int indent, int verb);
@@ -85,13 +85,15 @@ int axml_write_stream(FILE * fp, afni_xml_t * xroot, int write_data);
 
 
 /* control API */
-int   axml_set_verb        ( int val );
-int   axml_get_verb        ( void    );
-int   axml_set_dstore      ( int val );
-int   axml_get_dstore      ( void    );
-int   axml_set_indent      ( int val );
-int   axml_get_indent      ( void    );
-int   axml_set_buf_size    ( int val );
-int   axml_get_buf_size    ( void    );
+int    axml_set_verb        ( int val  );
+int    axml_get_verb        ( void     );
+int    axml_set_dstore      ( int val  );
+int    axml_get_dstore      ( void     );
+int    axml_set_indent      ( int val  );
+int    axml_get_indent      ( void     );
+int    axml_set_buf_size    ( int val  );
+int    axml_get_buf_size    ( void     );
+int    axml_set_wstream     ( FILE *fp );
+FILE * axml_get_wstream     ( void     );
 
 #endif /* AFNI_XML_H */

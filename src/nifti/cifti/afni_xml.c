@@ -39,7 +39,7 @@ static afni_xml_control gAXD = {
    1,          /* dstore, flag whether to store data         */
    3,          /* indent, spaces per indent level            */
    AXML_DEF_BSIZE, /* buf_size, allocated for XML parsing    */
-   NULL,       /* stream                                     */
+   NULL,       /* wstream                                    */
 
    0,          /* depth, current stack depth                 */
    0,          /* dskip depth (at positive depth, 0 is clear)*/
@@ -91,6 +91,10 @@ int axml_set_buf_size( int val )
     else return 1;      /* failure - no action */
     return 0;
 }
+
+/*! wstream is the write stream, should be valid or NULL */
+FILE * axml_get_wstream( void      ) { return gAXD.wstream; }
+int    axml_set_wstream( FILE * fp ) { gAXD.wstream = fp; return 0; }
 
 /*----------------------- local prototypes -----------------------------*/
 
@@ -180,25 +184,87 @@ afni_xml_list axml_read_file(const char * fname, int read_data)
         }
     }
 
-    if(xd->verb > 1) {
-         fprintf(stderr,"++ done, status is SOMETHING\n");
-    }
-
     fclose(fp);
     if( buf ) free(buf);        /* parser buffer */
     XML_ParserFree(parser);
 
-/*
-    if( dalist && xd->da_list )
-        if( apply_da_list_order(xd, dalist, dalen) ) {
-            fprintf(stderr,"** failed apply_da_list_order\n");
-            gifti_free_image(xd->gim);
-            xd->gim = NULL;
-        }
-*/
+    if(xd->verb > 1) fprintf(stderr,"++ done parsing XML file %s\n", fname);
 
     return xlist;
 }
+
+
+/* parse a complete buffer as XML */
+afni_xml_list axml_read_buf(const char * buf_in, int64_t bin_len)
+{
+    afni_xml_control * xd = &gAXD;        /* point to global struct */
+    afni_xml_list      xlist = {0, NULL};
+
+    XML_Parser   parser;
+    unsigned     blen;
+    int64_t      bin_remain = bin_len;
+    const char * bin_ptr = buf_in;      /* current buffer location */
+    char       * buf = NULL;
+    int          bsize;    /* be sure it doesn't change at some point */
+    int          done = 0, pcount = 1;
+ 
+    if( init_axml_ctrl(xd, 0) ) /* reset non-user variables */
+        return xlist;
+
+    xd->xroot = &xlist;      /* return struct */
+    xd->dstore = 1;          /* store for global access */
+
+    if( ! buf_in || bin_len < 0L ) {
+       fprintf(stderr,"** axml_read_buf: missing buffer\n");
+       return xlist;
+    }
+
+    /* create a new buffer */
+    bsize = 0;
+    if( reset_xml_buf(xd, &buf, &bsize) ) { return xlist; }
+
+    if(xd->verb > 1)
+       fprintf(stderr,"-- reading xml from length %ld buffer\n", bin_len);
+
+    /* create parser, init handlers */
+    parser = init_xml_parser((void *)xd);
+
+    while( !done )
+    {
+        if( reset_xml_buf(xd, &buf, &bsize) ) break;
+
+        /*--- replace fread with buffer copy ---*/
+
+        /* decide how much to copy and copy */
+        if( bin_remain >= bsize ) blen = bsize;
+        else                      blen = bin_remain;
+
+        memcpy(buf, bin_ptr, blen);
+        buf[blen] = '\0';
+
+        /* update bytes remaining to process and decide if done */
+        bin_remain -= blen;
+        bin_ptr += blen;
+        done = bin_remain <= 0;
+
+        if(xd->verb > 4) fprintf(stderr,"-- XML_Parse # %d\n", pcount);
+        pcount++;
+        if( XML_Parse(parser, buf, blen, done) == XML_STATUS_ERROR) {
+            fprintf(stderr,"** %s at line %u\n",
+                    XML_ErrorString(XML_GetErrorCode(parser)),
+                    (unsigned int)XML_GetCurrentLineNumber(parser));
+            break;
+        }
+    }
+
+    if( buf ) free(buf);        /* parser buffer */
+    XML_ParserFree(parser);
+
+    if(xd->verb > 1) fprintf(stderr,"++ done parsing XML buffer\n");
+
+    return xlist;
+}
+
 
 /* display the list of afni_xml_t structs */
 int axml_disp_xlist(char * mesg, afni_xml_list * axlist, int verb)
@@ -206,7 +272,7 @@ int axml_disp_xlist(char * mesg, afni_xml_list * axlist, int verb)
    FILE * fp = stderr;
    int    ind;
 
-   if( gAXD.stream != NULL ) fp = gAXD.stream;
+   if( gAXD.wstream != NULL ) fp = gAXD.wstream;
 
    if( mesg ) fputs(mesg, fp);
 
@@ -230,7 +296,7 @@ int axml_disp_xml_t(char * mesg, afni_xml_t * ax, int indent, int verb)
    FILE * fp = stderr;
    int    ind;
 
-   if( gAXD.stream != NULL ) fp = gAXD.stream;
+   if( gAXD.wstream != NULL ) fp = gAXD.wstream;
    if( mesg ) fprintf(fp, "%*s%s", indent, "", mesg);
 
    /* bail on no struct */
@@ -331,7 +397,7 @@ static int init_axml_ctrl(afni_xml_control *xp, int doall)
       xp->dstore   = 1;
       xp->indent   = 3;
       xp->buf_size = AXML_DEF_BSIZE;
-      xp->stream   = stderr;    /* rcr - ponder accessor (might need close) */
+      xp->wstream  = stderr;    /* rcr - ponder accessor (might need close) */
    }
 
    xp->depth = 0;
@@ -387,7 +453,7 @@ static int reset_xml_buf(afni_xml_control * xd, char ** buf, int * bsize)
         fprintf(stderr,"++ update buf, %d to %d bytes\n",*bsize,xd->buf_size);
 
     *bsize = xd->buf_size;
-    *buf = (char *)realloc(*buf, *bsize * sizeof(char));
+    *buf = (char *)realloc(*buf, (*bsize+1) * sizeof(char));
 
     if( ! *buf ) {
         fprintf(stderr,"** failed to alloc %d bytes of xml buf!\n", *bsize);
@@ -437,6 +503,7 @@ static void XMLCALL cb_stop_ele(void *udata, const char *ename)
 static int epush(afni_xml_control * xd, const char * ename, const char ** attr)
 {
    afni_xml_t * acur = NULL;
+   int          errs = 0;
 
    if( xd->wkeep ) xd->wkeep = 0; /* clear storage continuation */
 
@@ -446,7 +513,7 @@ static int epush(afni_xml_control * xd, const char * ename, const char ** attr)
        fprintf(stderr,"** push: stack depth %d out of [0,%d] range\n",
                xd->depth, AXML_MAX_DEPTH);
        xd->errors++;
-       return 1;
+       errs = 1;
    }
 
    if( xd->verb > 2 ) {       /* maybe we want to print something */
@@ -456,7 +523,7 @@ static int epush(afni_xml_control * xd, const char * ename, const char ** attr)
    }
 
    /* rcr - determine whether we should go into a skip block */
-   if( 0 ) {
+   if( errs ) {
       xd->dskip = xd->depth;
    }
 
@@ -465,7 +532,6 @@ static int epush(afni_xml_control * xd, const char * ename, const char ** attr)
        if( xd->verb > 3 )
            fprintf(stderr,"-- skip=%d, depth=%d, skipping push element '%s'\n",
                    xd->dskip, xd->depth, ename);
-       xd->stack[xd->depth-1] = NULL;
    } else {
       /* --- control depth and corresponding vars --- */
       acur = new_afni_xml(ename, attr);
@@ -505,11 +571,13 @@ static int epop(afni_xml_control * xd, const char * ename)
          if( gAXD.verb ) fprintf(stderr,"** pop mismatch!\n");
    }
 
-   xd->stack[xd->depth-1] = NULL;  /* should be irrelevant */
+   if( ! xd->dskip ) {
+      xd->stack[xd->depth-1] = NULL;  /* should be irrelevant */
 
-   if( xd->verb > 4 ) {
-       show_depth(xd, 1);
-       fprintf(stderr,"++ pop '%s'\n", ename);
+      if( xd->verb > 4 ) {
+          show_depth(xd, 1);
+          fprintf(stderr,"++ pop '%s'\n", ename);
+      }
    }
 
    xd->depth--;
@@ -748,7 +816,7 @@ static void XMLCALL cb_default(void * udata, const char * cdata, int length)
 static int show_depth(afni_xml_control * xd, int show)
 {
    FILE * fp = stderr;
-   if( xd->stream ) fp = xd->stream;
+   if( xd->wstream ) fp = xd->wstream;
 
    if( show ) fprintf(fp, "%*s %02d ", xd->indent*xd->depth, "", xd->depth);
    else       fprintf(fp, "%*s    ", xd->indent*xd->depth, "");
