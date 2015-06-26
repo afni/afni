@@ -13,7 +13,7 @@ int main( int argc , char *argv[] )
       "* Converts a dataset statistical sub-bricks to p-values.\n"
       "* Sub-bricks that are not marked as statistical volumes are unchanged.\n"
       "* However, all output volumes will be converted to float format!\n"
-      "* A quick hack by Zhark the Probabilistic [26 Jun 2015].\n"
+      "* A quick hack for Isaac, by Zhark the Probabilistic [26 Jun 2015].\n"
       "\n"
       "Options:\n"
       "=======\n"
