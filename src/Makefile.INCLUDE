@@ -83,7 +83,7 @@ PROGRAMS = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge count   
            nifti_tool 3dAllineate nifti1_test whereami plugout_drive 3dLSS      \
            3dMedianFilter 3dretroicor 3dAFNItoNIML 3dAFNItoRaw im2niml 3dedge3  \
            DTIStudioFibertoSegments Dimon1 Dimon 3dLocalstat 3danisosmooth      \
-           3dmaxima GLTsymtest                                                  \
+           3dmaxima GLTsymtest 3dPval                                           \
            3dTwotoComplex 3dInvFMRI 3dmatcalc 3dAcost 3dLocalBistat 3dFWHMx     \
            3dBlurToFWHM 1dSEM 3dDFT 3dSynthesize 1dMarry 3dEmpty 3dsvm          \
            1dFlagMotion 3dTsort 1dTsort 3dTfitter afni_history 1dUpsample       \
@@ -1021,6 +1021,10 @@ rotcom:rotcom.o
 3dDistize:3dDistize.o
 	$(RM) $@
 	$(CC) -o 3dDistize 3dDistize.o $(LFLAGS) $(LLIBS)
+
+3dPval:3dPval.o
+	$(RM) $@
+	$(CC) -o 3dPval 3dPval.o $(LFLAGS) $(LLIBS)
 
 3dDimize:3dDimize.o
 	$(RM) $@
@@ -2138,7 +2142,7 @@ MRI_OBJS = mri_cfft.o mri_complex_arith.o mri_fft_complex.o mri_free.o    \
            mri_warpfield.o mri_dicom_stuff.o mri_check.o mri_allzero.o         \
            mri_subset.o mri_to_fvect.o mri_genalign_util.o rcmat.o dmat44.o    \
            mri_sharpness.o mri_genARMA11.o mri_catvol.o mri_polyfit.o          \
-           mri_nwarp.o mri_extract.o
+           mri_nwarp.o mri_extract.o mri_to_pval.o
 
 THD_OBJS = thd_atr.o thd_dsetto1D.o thd_initalldir.o thd_reconpar.o \
            thd_auxdata.o thd_editdaxes.o thd_initdblk.o thd_sarr.o  \
