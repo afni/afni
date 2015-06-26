@@ -3,16 +3,17 @@
 TARFILE_NAME	= nifti2clib-0.0.1
 
 USEZLIB         = -DHAVE_ZLIB
-GDIR            = ../../gifti
+N2DIR           = ../nifti2
 
 ## Compiler  defines
-CC		= gcc
+CC		= gcc -g
 IFLAGS          = -I. 
 CFLAGS          = -Wall -std=gnu99 -pedantic
-NIFLAGS         = -I$(GDIR) -I../nifti2 -I../niftilib -I../znzlib $(USEZLIB)
+NIFLAGS         = $(IFLAGS) -I$(N2DIR) -I../niftilib -I../znzlib $(USEZLIB)
 
-OBJS            = afni_xml.o
 LLIBS 		= -lz -lm
+OBJS            = afni_xml.o
+NOBJS           = nifti2_io.o nifticdf.o znzlib.o
 
 # --------------------------------------------------
 # default compile for C files
@@ -24,17 +25,31 @@ LLIBS 		= -lz -lm
 
 
 afni_xml_tool: afni_xml_tool.c $(OBJS)
-	$(CC) -o $@ $(CFLAGS) $(IFLAGS) $< $(OBJS)      \
-        -lexpat $(LLIBS)
+	$(CC) -o $@ $(CFLAGS) $(IFLAGS) $< $(OBJS) -lexpat $(LLIBS)
 
 clean:
-	$(RM) *.o afni_xml_tool
+	$(RM) *.o afni_xml_tool cifti_tool
 
 afni_xml.o: afni_xml.c afni_xml.h
 	$(CC) -c $(CFLAGS) -I. $< 
 
+cifti_tool.o: cifti_tool.c
+	$(CC) -c $(CFLAGS) $(NIFLAGS) $< 
+
+cifti_tool: $(OBJS) $(NOBJS) cifti_tool.o
+	$(CC) -o $@ $(CFLAGS) $(NIFLAGS) \
+              cifti_tool.o $(OBJS) $(NOBJS) -lexpat $(LLIBS)
+
 # --------------------------------------------------
 # targets from source residing elsewhere
-gifti_xml.o:
-	$(CC) -O3 -DHAVE_ZLIB -c $(CFLAGS) $(IFLAGS) $(GDIR)/gifti_xml.c -o $@
+
+nifti2_io.o:
+	$(CC) -c -DHAVE_ZLIB $(CFLAGS) $(NIFLAGS) $(N2DIR)/nifti2_io.c
+
+nifticdf.o:
+	$(CC) -c -DHAVE_ZLIB $(CFLAGS) $(NIFLAGS) ../nifticdf/nifticdf.c
+
+znzlib.o:
+	$(CC) -c -DHAVE_ZLIB $(CFLAGS) $(NIFLAGS) ../znzlib/znzlib.c
+
 

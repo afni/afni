@@ -18,7 +18,7 @@
 
 #define USE_NIFTI2
 #include <nifti2_io.h>
-#include "gifti_io.h"
+#include "afni_xml.h"
 
 /* ----------------------------------------------------------------- */
 /* define and declare main option struct */
@@ -43,7 +43,10 @@ int eval_cifti_extension (nifti_image * nim);
 int process_args         (int argc, char * argv[], opts_t * opts);
 int process              (opts_t * opts);
 int show_help            (void);
-int write_cifti_extension(FILE * fp, nifti1_extension * ext, int maxlen);
+int write_extension      (FILE * fp, nifti1_extension * ext, int maxlen);
+
+int    close_stream(FILE * fp);
+FILE * open_write_stream (char * fname);
 
 /* ----------------------------------------------------------------- */
 int main(int argc, char * argv[])
@@ -79,6 +82,9 @@ int process_args(int argc, char * argv[], opts_t * opts)
                ! strcmp(argv[ac], "-as_cifti_ext") ) {
          opts->as_cext = 1;
       }
+      else if( ! strcmp(argv[ac], "-eval_cext") ) {
+         opts->eval_cext = 1;
+      }
       else if( ! strcmp(argv[ac], "-input") ) {
          if( ++ac >= argc ) {
             fprintf(stderr, "** missing argument for -input\n");
@@ -93,14 +99,15 @@ int process_args(int argc, char * argv[], opts_t * opts)
          }
          opts->fout = argv[ac];
       }
+      else if( ! strcmp(argv[ac], "-show_cext") ) {
+         opts->show_cext = 1;
+      }
       else if( ! strcmp(argv[ac], "-verb") ) {
          if( ++ac >= argc ) {
             fprintf(stderr, "** missing argument for -verb\n");
             return 2;
          }
          opts->verb = atoi(argv[ac]);
-         nifti_set_debug_level(opts->verb);
-         gifti_set_verb(opts->verb);
       }
       else {
          fprintf(stderr,"** invalid option, '%s'\n", argv[ac]);
@@ -122,6 +129,7 @@ int process(opts_t * opts)
    if( opts->as_cext ) return eval_cext_file(opts->fin);
 
    /* read input dataset, including data */
+   nifti_set_debug_level(opts->verb);
    nim = nifti_image_read(opts->fin, 1);
    if( !nim ) {
       fprintf(stderr,"** failed to read NIfTI image from '%s'\n", opts->fin);
@@ -137,37 +145,56 @@ int process(opts_t * opts)
 int disp_cifti_extension(nifti_image * nim, char * fout)
 {
    FILE * fp = NULL;
-   int    to_file=0;
    int    ind, found=0;
 
-   if      ( ! fout ) fp = stdout;
-   else if ( ! strcmp(fout, "stdout") ) fp = stdout;
-   else if ( ! strcmp(fout, "-")      ) fp = stdout;
-   else if ( ! strcmp(fout, "stderr") ) fp = stderr;
-   else {
-      fp = fopen(fout, "w");
-      if( !fp ) {
-         fprintf(stderr,"** failed to open '%s' for writing\n", fout);
-         return 1;
-      }
-      to_file = 1;
-   }
-  
+   fp = open_write_stream(fout);
+   if( !fp ) return 1;
+
+   if(gopt.verb) fprintf(stderr,"-- looking for extension\n");
+
    found = 0;
    for( ind = 0; ind < nim->num_ext; ind++ ) {
       if( nim->ext_list[ind].ecode != NIFTI_ECODE_CIFTI ) continue;
 
       found++;
       if( found > 1 ) fprintf(stderr,"** found CIFTI extension #%d\n", found);
+      if( gopt.verb ) fprintf(stderr,"++ writing CIFTI exten to %s\n",
+                              fout ? fout : "DEFAULT");
 
-      if( gopt.verb && to_file )
-         fprintf(stderr,"++ writing CIFTI exten to %s\n", fout);
-
-      write_cifti_extension(fp, nim->ext_list + ind, -1);
+      write_extension(fp, nim->ext_list + ind, -1);
    }
 
    /* possibly close file */
-   if( to_file ) fclose(fp);
+   close_stream(fp);
+
+   return 0;
+}
+
+/* look for stdin/stdout */
+FILE * open_write_stream(char * fname)
+{
+   FILE * fp = NULL;
+
+   if      ( ! fname ) fp = stdout;
+   else if ( ! strcmp(fname, "stdout") ) fp = stdout;
+   else if ( ! strcmp(fname, "-")      ) fp = stdout;
+   else if ( ! strcmp(fname, "stderr") ) fp = stderr;
+   else {
+      fp = fopen(fname, "w");
+      if( !fp ) fprintf(stderr,"** failed to open '%s' for writing\n", fname);
+   }
+
+   return fp;
+}
+
+/* look for stdin/stdout (do not close them) */
+int close_stream(FILE * fp)
+{
+   if( !fp ) return 1;
+
+   if( fp == stdin || fp == stdout || fp == stderr ) return 0;
+
+   fclose(fp);
 
    return 0;
 }
@@ -197,43 +224,56 @@ int eval_cifti_extension(nifti_image * nim)
 
 int eval_cext_file(char * fin)
 {
-   gifti_image * gim;
+   afni_xml_list xlist;
 
-   gim = gifti_read_image(fin, 1);
-   if( !gim ) {
+   axml_set_verb(gopt.verb);
+   xlist = axml_read_file(fin, 1);
+   if( xlist.len == 0 ) {
       fprintf(stderr,"** failed to process CIFTI ext file %s\n", fin);
       return 1;
    }
+
+   axml_free_xlist(&xlist);
 
    return 0;
 }
 
 int eval_cifti_buf(char * buf, long long blen)
 {
-   gifti_image * gim;
+   afni_xml_list xlist;
 
-   gim = gifti_read_image_buf(buf, blen);
-   if( !gim ) {
+   axml_set_verb(gopt.verb);
+   xlist = axml_read_buf(buf, blen);
+   if( xlist.len == 0 ) {
       fprintf(stderr,"** failed to process CIFTI buffer\n");
       return 1;
    }
 
+   axml_free_xlist(&xlist);
+
    return 0;
 }
 
-int write_cifti_extension(FILE * fp, nifti1_extension * ext, int maxlen)
+int write_extension(FILE * fp, nifti1_extension * ext, int maxlen)
 {
+   afni_xml_list xlist;
+
    int len;
 
    if( gopt.verb > 1 )
-      fprintf(stderr,"ecode = %d, esize = %d\n", ext->ecode, ext->esize);
+      fprintf(fp,"ecode = %d, esize = %d\n", ext->ecode, ext->esize);
 
    if( ! ext->edata ) { fprintf(fp, "(NULL)\n"); return 0; }
 
    len = ext->esize-8;
    if( maxlen >= 0 && len > maxlen ) len = maxlen;
 
-   fprintf(fp, "%.*s\n", len, (char *)ext->edata);
+   /* process as generic xml */
+   axml_set_verb(gopt.verb);
+   xlist = axml_read_buf((char *)(ext->edata), len);
+   return 0;
+   axml_set_wstream(fp);
+   axml_disp_xlist("have extension: ", &xlist, gopt.verb);
 
    return 0;
 }
@@ -251,7 +291,12 @@ int show_help( void )
       "    options:\n"
       "\n"
       "       -help               : show this help\n"
+      "\n"
       "       -input  INFILE      : specify input dataset\n"
+      "\n"
+      "       -as_cext            : process the input as just an extension\n"
+      "       -eval_cext          : evaluate the CIFTI extension\n"
+      "       -show_cext          : display the CIFTI extension\n"
       "       -verb LEVEL         : set the verbose level to LEVEL\n"
       "\n");
    return 1;
