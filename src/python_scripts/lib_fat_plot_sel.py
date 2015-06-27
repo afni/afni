@@ -165,12 +165,13 @@ def DefaultNamingPrefType(list_all):
 
 def MakeMyBar(name):
 
+    wind = 0.002
+    sfac = 0.999
+
     if name == 'hot_cold_gap':
 
         # window/level parameters
         midlev = 0.5
-        wind = 0.002
-        sfac = 0.999
 
         cdict_00 = {'red': ((0.0, 0.0, 0.0),
                             (midlev-wind     , 0., 0.90),
@@ -196,8 +197,41 @@ def MakeMyBar(name):
         out = clr.LinearSegmentedColormap('my_colormap',
                                           cdict_00,
                                           512)
-        return out
 
+    elif name == 'gap_jet':
+        cdict_01 = {'red': ((0., 0, 0),
+                            (wind*sfac, 0, 0),
+                            (wind, 0, 0),
+                            (0.11, 0, 0),
+                            (0.66, 1, 1),
+                            (0.89, 1, 1),
+                            (1, 0.5, 0.5)),
+                    'green': ((0., 0, 0),
+                              (wind*sfac, 0, 0),
+                              (wind, 0, 0),
+                              (0.11, 0, 0),
+                              (0.375, 1, 1),
+                              (0.64, 1, 1),
+                              (0.91, 0, 0),
+                              (1, 0, 0)),
+                    'blue': ((0., 0, 0),
+                             (wind*sfac, 0, 0),
+                             (wind, .5, 0.5),
+                             (0.11, 1, 1),
+                             (0.34, 1, 1),
+                             (0.65, 0, 0),
+                             (1, 0, 0))}
+        
+        out = clr.LinearSegmentedColormap('my_colormap',
+                                          cdict_01,
+                                          512)
+    else:
+        print "Unrecognized colormap specialification."
+        sys.exit(151)
+        
+    return out
+
+    
 ### -----------------------------------------------------------------
 
 def Fat_Mat_Plot( X, 
@@ -231,10 +265,11 @@ def Fat_Mat_Plot( X,
 
 
     # internal colorbar
-    if MAP_of_COL == 'hot_cold_gap':
-        print "MAKING COLORMAP!",
+    if ( MAP_of_COL == 'hot_cold_gap' ) or   \
+       ( MAP_of_COL == 'gap_jet' ):
+        print "MAKING COLORMAP:", MAP_of_COL 
         MAP_of_COL = MakeMyBar(MAP_of_COL)
-        print MAP_of_COL, type(MAP_of_COL)
+        #print MAP_of_COL, type(MAP_of_COL)
 
     # get the mat
     WhichMat = X[2][WhichVar]
@@ -272,11 +307,13 @@ def Fat_Mat_Plot( X,
                     vmin=MATMIN, 
                     vmax=MATMAX,
                     cmap=MAP_of_COL)
+    print "Hi"
     plt.xticks( np.arange(len(MATTICKS)), MATTICKS, rotation=37, 
                 fontsize=LAB_SIZE_FONT )
     plt.yticks( np.arange(len(MATTICKS)), MATTICKS, rotation=0, 
                 fontsize=LAB_SIZE_FONT )
     plt.title('%s' % (X[1][WhichMat]), fontsize=FS+1 )
+    print "Hi2"
 
     if DO_COLORBAR:
         cbar_perc = WIDTH_CBAR_PERC+"%"
@@ -294,6 +331,7 @@ def Fat_Mat_Plot( X,
                             ticks=ColBar, 
                             format=WhatForm)
         cbar.ax.tick_params(labelsize=FS) 
+    print "Hi3"
 
     if DO_PLOT:
         name_out = filestr
@@ -301,16 +339,22 @@ def Fat_Mat_Plot( X,
         plt.savefig( name_out_full, dpi=MATDPI )
     else:
         name_out_full = ''
+    print "Hi4"
 
     if TIGHT_LAY :
         plt.tight_layout()
     else:
         subb.set_position([box.x0+box.width*0.0, box.y0+box.height*0.05,  
                            box.width*0.95, box.height*0.95])
+    print "Hi5"
     plt.ion()
-    plt.show()
+    print "Hi6"
+    #plt.show()
+    print "Hi7"
 
     if HOLD_IMG :
+        plt.show()
         raw_input()
+    print "Hi8"
 
     return name_out_full
