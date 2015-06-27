@@ -307,13 +307,13 @@ def Fat_Mat_Plot( X,
                     vmin=MATMIN, 
                     vmax=MATMAX,
                     cmap=MAP_of_COL)
-    print "Hi"
+
     plt.xticks( np.arange(len(MATTICKS)), MATTICKS, rotation=37, 
                 fontsize=LAB_SIZE_FONT )
     plt.yticks( np.arange(len(MATTICKS)), MATTICKS, rotation=0, 
                 fontsize=LAB_SIZE_FONT )
     plt.title('%s' % (X[1][WhichMat]), fontsize=FS+1 )
-    print "Hi2"
+
 
     if DO_COLORBAR:
         cbar_perc = WIDTH_CBAR_PERC+"%"
@@ -331,7 +331,6 @@ def Fat_Mat_Plot( X,
                             ticks=ColBar, 
                             format=WhatForm)
         cbar.ax.tick_params(labelsize=FS) 
-    print "Hi3"
 
     if DO_PLOT:
         name_out = filestr
@@ -339,22 +338,17 @@ def Fat_Mat_Plot( X,
         plt.savefig( name_out_full, dpi=MATDPI )
     else:
         name_out_full = ''
-    print "Hi4"
 
     if TIGHT_LAY :
         plt.tight_layout()
     else:
         subb.set_position([box.x0+box.width*0.0, box.y0+box.height*0.05,  
                            box.width*0.95, box.height*0.95])
-    print "Hi5"
     plt.ion()
-    print "Hi6"
-    #plt.show()
-    print "Hi7"
+    plt.show()
 
     if HOLD_IMG :
-        plt.show()
+#        plt.show()
         raw_input()
-    print "Hi8"
 
     return name_out_full
