@@ -385,6 +385,27 @@ int axml_free_xml_t(afni_xml_t * ax)
    return 0;
 }
 
+/* generic recursive function that processes an afni_xml_t tree */
+int axml_recur(int(*func)(afni_xml_t *, int), afni_xml_t * ax)
+{
+   static int depth = 1;
+   int        ind;
+
+   if( !func || !ax ) return 1;
+
+   /* call on current struct and recur over kids */
+
+   func(ax, depth);
+
+   depth++;
+   if( ax->nchild > 0 && ax->xchild )
+      for( ind=0; ind < ax->nchild; ind++ ) axml_recur(func, ax->xchild[ind]);
+   depth--;
+
+   return 0;
+}
+
+
 
 /*----------------------- end main I/O functions -----------------------*/
 
