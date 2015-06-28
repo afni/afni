@@ -27,6 +27,7 @@ typedef struct {
    char * fout;
    int    verb;
    int    as_cext;
+   int    ccheck;
    int    eval_cext;
    int    show_cext;
 } opts_t;
@@ -83,6 +84,9 @@ int process_args(int argc, char * argv[], opts_t * opts)
                ! strcmp(argv[ac], "-as_cifti_ext") ) {
          opts->as_cext = 1;
       }
+      else if( ! strcmp(argv[ac], "-ccheck") ) {
+         opts->ccheck = 1;
+      }
       else if( ! strcmp(argv[ac], "-eval_cext") ) {
          opts->eval_cext = 1;
       }
@@ -137,6 +141,7 @@ int process(opts_t * opts)
       return 1;
    }
 
+   if( opts->ccheck )    check_cifti_extension(nim);
    if( opts->eval_cext ) eval_cifti_extension(nim);
    if( opts->show_cext ) disp_cifti_extension(nim, opts->fout);
 
@@ -200,6 +205,29 @@ int close_stream(FILE * fp)
    return 0;
 }
 
+int check_cifti_extension(nifti_image * nim)
+{
+   nifti1_extension * ext;
+   int                ind, found, rv;
+
+   found = 0;
+   ext = nim->ext_list;
+   for( ind = 0; ind < nim->num_ext; ind++, ext++ ) {
+      if( ext->ecode != NIFTI_ECODE_CIFTI ) continue;
+
+      found++;
+      if( found > 1 ) fprintf(stderr,"** found CIFTI extension #%d\n", found);
+
+      rv = eval_cifti_buf(ext->edata, ext->esize-8);
+      if( rv ) {
+         fprintf(stderr,"** failure for file %s\n", nim->fname);
+         return rv;
+      }
+   }
+
+   return 0;
+}
+
 int eval_cifti_extension(nifti_image * nim)
 {
    nifti1_extension * ext;
@@ -255,6 +283,17 @@ int eval_cifti_buf(char * buf, long long blen)
    return 0;
 }
 
+int check_axml_data(afni_xml_t * ax, int depth)
+{
+   if( !ax ) return 1;
+   if( !ax->xtext || ax->xlen <= 0 ) return 0;
+
+   //fprintf(stderr,"%*sdata in depth %d %s\n", depth*3, "", depth, ax->name);
+   fprintf(stderr,"%s\n", ax->name);
+
+   return 0;
+}
+
 int write_extension(FILE * fp, nifti1_extension * ext, int maxlen)
 {
    afni_xml_list xlist;
@@ -285,7 +324,8 @@ int write_extension(FILE * fp, nifti1_extension * ext, int maxlen)
    xlist = axml_read_buf((char *)(ext->edata), len);
 
    axml_set_wstream(fp);
-   axml_disp_xlist("have extension: ", &xlist, gopt.verb);
+   /* axml_disp_xlist("have extension: ", &xlist, gopt.verb); */
+   axml_recur(check_axml_data, xlist.xlist[0]);
 
    return 0;
 }
@@ -333,6 +373,7 @@ int show_help( void )
       "       -output OUTFILE     : where to write output\n"
       "\n"
       "       -as_cext            : process the input as just an extension\n"
+      "       -ccheck             : recur 'check' func on CIFTI extension\n"
       "       -eval_cext          : evaluate the CIFTI extension\n"
       "       -show_cext          : display the CIFTI extension\n"
       "       -verb LEVEL         : set the verbose level to LEVEL\n"

@@ -83,6 +83,7 @@ int axml_free_xml_t(afni_xml_t * ax);
 
 int axml_write_stream(FILE * fp, afni_xml_t * xroot, int write_data);
 
+int axml_recur(int(*func)(afni_xml_t*,int), afni_xml_t * root);
 
 /* control API */
 int    axml_set_verb        ( int val  );
