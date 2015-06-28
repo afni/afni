@@ -37,6 +37,7 @@ opts_t gopt;
 /* ----------------------------------------------------------------- */
 /* protos */
 int disp_cifti_extension (nifti_image * nim, char * fout);
+int disp_hex_data        (const char *, const void *data, int len, FILE *fp);
 int eval_cifti_buf       (char * buf, long long blen);
 int eval_cext_file       (char * fin);
 int eval_cifti_extension (nifti_image * nim);
@@ -150,7 +151,7 @@ int disp_cifti_extension(nifti_image * nim, char * fout)
    fp = open_write_stream(fout);
    if( !fp ) return 1;
 
-   if(gopt.verb) fprintf(stderr,"-- looking for extension\n");
+   if(gopt.verb > 1) fprintf(stderr,"-- looking for extensions\n");
 
    found = 0;
    for( ind = 0; ind < nim->num_ext; ind++ ) {
@@ -258,7 +259,7 @@ int write_extension(FILE * fp, nifti1_extension * ext, int maxlen)
 {
    afni_xml_list xlist;
 
-   int len;
+   int len, slen;
 
    if( gopt.verb > 1 )
       fprintf(fp,"ecode = %d, esize = %d\n", ext->ecode, ext->esize);
@@ -268,15 +269,51 @@ int write_extension(FILE * fp, nifti1_extension * ext, int maxlen)
    len = ext->esize-8;
    if( maxlen >= 0 && len > maxlen ) len = maxlen;
 
+   slen = strlen((char*)ext->edata);
+   if( slen < len ) {
+      if( gopt.verb > 1 ) {
+         fprintf(stderr, "-- shortening CIFTI header len from %d to %d\n",
+                 len, slen);
+         disp_hex_data("   last bytes: ", ext->edata+slen, len-slen, stderr);
+         fputc('\n', stderr);
+      }
+      len = slen;
+   }
+
    /* process as generic xml */
    axml_set_verb(gopt.verb);
    xlist = axml_read_buf((char *)(ext->edata), len);
-   return 0;
+
    axml_set_wstream(fp);
    axml_disp_xlist("have extension: ", &xlist, gopt.verb);
 
    return 0;
 }
+
+/*----------------------------------------------------------------------
+ *! display data in hexidecimal, on one line
+ *
+ *  if mesg is set, print the message first
+ *  if fp is not set, print to stdout
+*//*-------------------------------------------------------------------*/
+int disp_hex_data(const char *mesg, const void *data, int len, FILE *fp)
+{
+    const char * dp = (const char *)data;
+    FILE       * stream;
+    int          c;
+
+    stream = fp ? fp : stdout;
+
+    if( !data || len < 1 ) return -1;
+
+    if( mesg ) fputs(mesg, stream);
+
+    for( c = 0; c < len; c++ )
+        fprintf(stream, " %02x", dp[c]);
+
+    return 0;
+}
+
 
 
 int show_help( void )
@@ -293,6 +330,7 @@ int show_help( void )
       "       -help               : show this help\n"
       "\n"
       "       -input  INFILE      : specify input dataset\n"
+      "       -output OUTFILE     : where to write output\n"
       "\n"
       "       -as_cext            : process the input as just an extension\n"
       "       -eval_cext          : evaluate the CIFTI extension\n"
