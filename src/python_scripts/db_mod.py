@@ -7325,15 +7325,15 @@ g_help_string = """
             See also -anat_uniform_method.
 
         -anat_unif_GM yes/no    : also unifize gray matter (lower intensities)
-                                  the default is 'yes'
+                                  the default is 'no'
 
                 e.g. -anat_unif_GM yes
-                default -anat_unif_GM no
+                default: -anat_unif_GM no
 
-            If this is set to yes (which is the default), 3dUnifize will not
-            only apply uniformity correction across the volume, but it will
-            also perform a correction to voxels that look like gray matter.
-            That is to say '-GM' will be added to the 3dUnifize command.
+            If this is set to yes, 3dUnifize will not only apply uniformity
+            correction across the brain volume, but also to voxels that look
+            like gray matter.  That is to say the option adds '-GM' to the
+            3dUnifize command.
 
           * The default was changed from yes to no 2014, May 16.
 
