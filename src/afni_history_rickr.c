@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  1,  Jul, 2015, RCR, "cifti_tool", MINOR, TYPE_NEW_OPT,
+   "reorg and more recur functions",
+   NULL
+ } ,
+
  {  1,  Jul, 2015, RCR, "afni_proc.py", MICRO, TYPE_GENERAL,
    "clarified help for -anat_unif_GM",
    NULL
