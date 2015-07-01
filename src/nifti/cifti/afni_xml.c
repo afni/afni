@@ -122,7 +122,8 @@ static int  white_last     (const char * str, int len);
 static int  show_depth     (afni_xml_control *, int show);
 static int  show_attrs     (afni_xml_control *, const char *, const char **);
 
-static afni_xml_t * new_afni_xml(const char * ename, const char ** attr);
+static int64_t      loc_strnlen     (const char * str, int64_t maxlen);
+static afni_xml_t * new_afni_xml    (const char * ename, const char ** attr);
 static char       * strip_whitespace(const char * str, int slen);
 
 /*----------------------- main I/O functions ---------------------------*/
@@ -131,66 +132,77 @@ static char       * strip_whitespace(const char * str, int slen);
          piece of (CDATA?) text, o.w. it will require parsing in pieces */
 afni_xml_list axml_read_file(const char * fname, int read_data)
 {
-    afni_xml_control * xd = &gAXD;        /* point to global struct */
-    afni_xml_list      xlist = {0, NULL};
+   afni_xml_control * xd = &gAXD;        /* point to global struct */
+   afni_xml_list      xlist = {0, NULL};
 
-    XML_Parser   parser;
-    unsigned     blen;
-    FILE       * fp;
-    char       * buf = NULL;
-    int          bsize;    /* be sure it doesn't change at some point */
-    int          done = 0, pcount = 1;
- 
-    if( init_axml_ctrl(xd, 0) ) /* reset non-user variables */
-        return xlist;
+   XML_Parser   parser;
+   unsigned     blen;
+   FILE       * fp;
+   char       * buf = NULL;
+   int64_t      bshort;
+   int          bsize;    /* be sure it doesn't change at some point */
+   int          done = 0, pcount = 1;
 
-    xd->xroot = &xlist;      /* return struct */
-    xd->dstore = read_data;  /* store for global access */
+   if( init_axml_ctrl(xd, 0) ) /* reset non-user variables */
+      return xlist;
 
-    if( !fname ) {
-        fprintf(stderr,"** axml_read_image: missing filename\n");
-        return xlist;
-    }
+   xd->xroot = &xlist;      /* return struct */
+   xd->dstore = read_data;  /* store for global access */
 
-    fp = fopen(fname, "r");
-    if( !fp ) {
-        fprintf(stderr,"** failed to open XML file '%s'\n", fname);
-        return xlist;
-    }
+   if( !fname ) {
+      fprintf(stderr,"** axml_read_image: missing filename\n");
+      return xlist;
+   }
 
-    /* create a new buffer */
-    bsize = 0;
-    if( reset_xml_buf(xd, &buf, &bsize) ) { fclose(fp); return xlist; }
+   fp = fopen(fname, "r");
+   if( !fp ) {
+      fprintf(stderr,"** failed to open XML file '%s'\n", fname);
+      return xlist;
+   }
 
-    if(xd->verb > 1) fprintf(stderr,"-- reading xml file '%s'\n", fname);
+   /* create a new buffer */
+   bsize = 0;
+   if( reset_xml_buf(xd, &buf, &bsize) ) { fclose(fp); return xlist; }
 
-    /* create parser, init handlers */
-    parser = init_xml_parser((void *)xd);
+   if(xd->verb > 1) fprintf(stderr,"-- reading xml file '%s'\n", fname);
 
-    while( !done )
-    {
-        if( reset_xml_buf(xd, &buf, &bsize) ) break;
+   /* create parser, init handlers */
+   parser = init_xml_parser((void *)xd);
 
-        blen = fread(buf, 1, bsize, fp);
-        done = blen < bsize;
+   while( !done )
+   {
+      if( reset_xml_buf(xd, &buf, &bsize) ) break;
 
-        if(xd->verb > 4) fprintf(stderr,"-- XML_Parse # %d\n", pcount);
-        pcount++;
-        if( XML_Parse(parser, buf, blen, done) == XML_STATUS_ERROR) {
-            fprintf(stderr,"** %s at line %u\n",
-                    XML_ErrorString(XML_GetErrorCode(parser)),
-                    (unsigned int)XML_GetCurrentLineNumber(parser));
-            break;
-        }
-    }
+      blen = fread(buf, 1, bsize, fp);
 
-    fclose(fp);
-    if( buf ) free(buf);        /* parser buffer */
-    XML_ParserFree(parser);
+      /* check for early termination */
+      bshort = loc_strnlen(buf, blen);
+      if( bshort < blen ) {
+         if( xd->verb > 1 )
+            fprintf(stderr,"-- AXML: truncating fbuffer from %d to %ld\n",
+                    blen, bshort);
+         blen = (int)bshort;
+      }
 
-    if(xd->verb > 1) fprintf(stderr,"++ done parsing XML file %s\n", fname);
+      done = blen < bsize;
 
-    return xlist;
+      if(xd->verb > 4) fprintf(stderr,"-- XML_Parse # %d\n", pcount);
+      pcount++;
+      if( XML_Parse(parser, buf, blen, done) == XML_STATUS_ERROR) {
+          fprintf(stderr,"** %s at line %u\n",
+                  XML_ErrorString(XML_GetErrorCode(parser)),
+                  (unsigned int)XML_GetCurrentLineNumber(parser));
+          break;
+      }
+   }
+
+   fclose(fp);
+   if( buf ) free(buf);        /* parser buffer */
+   XML_ParserFree(parser);
+
+   if(xd->verb > 1) fprintf(stderr,"++ done parsing XML file %s\n", fname);
+
+   return xlist;
 }
 
 
@@ -202,7 +214,7 @@ afni_xml_list axml_read_buf(const char * buf_in, int64_t bin_len)
 
     XML_Parser   parser;
     unsigned     blen;
-    int64_t      bin_remain = bin_len;
+    int64_t      bin_remain;
     const char * bin_ptr = buf_in;      /* current buffer location */
     char       * buf = NULL;
     int          bsize;    /* be sure it doesn't change at some point */
@@ -219,12 +231,18 @@ afni_xml_list axml_read_buf(const char * buf_in, int64_t bin_len)
        return xlist;
     }
 
+    /* check for early termination */
+    bin_remain = loc_strnlen(buf_in, bin_len);
+    if( bin_remain < bin_len && xd->verb > 1 )
+       fprintf(stderr,"-- AXML: truncating buffer from %ld to %ld\n",
+               bin_len, bin_remain);
+
     /* create a new buffer */
     bsize = 0;
     if( reset_xml_buf(xd, &buf, &bsize) ) { return xlist; }
 
     if(xd->verb > 1)
-       fprintf(stderr,"-- reading xml from length %ld buffer\n", bin_len);
+       fprintf(stderr,"-- reading xml from length %ld buffer\n", bin_remain);
 
     /* create parser, init handlers */
     parser = init_xml_parser((void *)xd);
@@ -863,5 +881,18 @@ static int white_last(const char * str, int len)
         if( !isspace(str[c]) ) return (len-1-c);
 
     return len;
+}
+
+/* like strlen(), but do not look or return past maxlen */
+/* note: strnlen() is probably too new to assume        */
+static int64_t loc_strnlen(const char * str, int64_t maxlen)
+{
+   const char * sptr;
+   int64_t      len;
+
+   for( sptr=str, len=0; *sptr && len<maxlen; sptr++, len++)
+      ;
+
+   return len;  /* max of maxlen */
 }
 
