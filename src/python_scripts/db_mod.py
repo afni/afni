@@ -6936,6 +6936,7 @@ g_help_string = """
          -align_opts_aea -giant_move
          -align_opts_aea -cost lpc+ZZ -giant_move
          -align_opts_aea -cost lpc+ZZ -giant_move -resample off
+         -align_opts_aea -skullstrip_opts -blur_fwhm 2
 
     3. Testing alignment with align_epi_anat.py directly.
 
@@ -8114,6 +8115,7 @@ g_help_string = """
                 e.g. -align_opts_aea -cost lpc+ZZ
                 e.g. -align_opts_aea -Allineate_opts -source_automask+4
                 e.g. -align_opts_aea -giant_move -AddEdge -epi_strip 3dAutomask
+                e.g. -align_opts_aea -skullstrip_opts -blur_fwhm 2
 
             This option allows the user to add extra options to the alignment
             command, align_epi_anat.py.
@@ -8124,6 +8126,9 @@ g_help_string = """
             Note the second example.  In order to pass '-source_automask+4' to
             3dAllineate, one must pass '-Allineate_opts -source_automask+4' to
             align_epi_anat.py.
+
+            Similarly, the fourth example passes '-blur_fwhm 2' down through
+            align_epi_anat.py to 3dSkullStrip.
 
             Please see "align_epi_anat.py -help" for more information.
             Please see "3dAllineate -help" for more information.
