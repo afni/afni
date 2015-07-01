@@ -1608,7 +1608,7 @@ int SUMA_AddDsetColAttr (  SUMA_DSET *dset, char *col_label,
    
    SUMA_ENTRY;
    
-   if (SUMA_IS_DATUM_INDEX_COL(ctp)) {
+   if (SUMA_IS_DATUM_INDEX_COL(ctp) || SUMA_IS_MD_DATUM_INDEX_COL(ctp)) {
       SUMA_RETURN(
          SUMA_AddDsetNodeIndexColAttr (dset, col_label, ctp, col_attr));
    }
@@ -1703,7 +1703,7 @@ int SUMA_AddDsetNodeIndexColAttr (SUMA_DSET *dset, char *col_label,
    
    SUMA_ENTRY;
    
-   if (!SUMA_IS_DATUM_INDEX_COL(ctp)) {
+   if (!SUMA_IS_DATUM_INDEX_COL(ctp) && !SUMA_IS_MD_DATUM_INDEX_COL(ctp)) {
       SUMA_S_Err("Don't call me like that");
       SUMA_RETURN(0); 
    }
@@ -1844,6 +1844,11 @@ int SUMA_AddColAttr (NI_element *nel, char *col_label, SUMA_COL_TYPE ctp,
          NI_set_attribute ( nel, Attr, NULL);
          break;
      
+      case SUMA_MD_NODE_INDEX:
+         /* form the string of attributes for this column */
+         NI_set_attribute ( nel, Attr, NULL);
+         break;
+     
       case SUMA_NODE_INT:
          NI_set_attribute ( nel, Attr, NULL);
          break;
@@ -1973,7 +1978,7 @@ int SUMA_AddGenDsetColAttr (  SUMA_DSET *dset, SUMA_COL_TYPE ctp,
    
    SUMA_ENTRY;
    
-   if (SUMA_IS_DATUM_INDEX_COL(ctp)) {
+   if (SUMA_IS_DATUM_INDEX_COL(ctp) || SUMA_IS_MD_DATUM_INDEX_COL(ctp)) {
       SUMA_RETURN(SUMA_AddGenDsetNodeIndexColAttr (dset, ctp, col, stride) );
    }
    
@@ -2122,10 +2127,18 @@ int SUMA_AddGenDsetNodeIndexColAttr (SUMA_DSET *dset, SUMA_COL_TYPE ctp,
          snprintf(Name, 500*sizeof(char),"0 0 -1 -1%s0 0 -1 -1%s0 0 -1 -1", 
                   SUMA_NI_CSS, SUMA_NI_CSS);
          stmp = SUMA_copy_string(Name);
+      } if (SUMA_isCIFTIDset(dset)) {
+         SUMA_S_Err("This needs to be done per domain also, "
+                    "so we're not there yet. ");
+         SUMA_RETURN(0);
       } else {
          stmp = SUMA_copy_string("0 0 -1 -1");
       }
    } else { 
+      if (SUMA_isCIFTIDset(dset)) {
+         SUMA_S_Err("Have yet to figure out how to do this for MD_NODE_INDEX");
+         SUMA_RETURN(0);
+      }
       SUMA_LH("Calculating indrange");
       icol = SUMA_DATUM_INDEX_CTP2COL(ctp);
       N_col = stride*SDSET_VECFILLED(dset);
@@ -2624,6 +2637,11 @@ int SUMA_GetDsetNodeIndexColRange_eng(  SUMA_DSET *dset,
    loc[0] = -1; loc[1] = -1;
    
    if (!dset || !dset->inel) { SUMA_SL_Err("Null input"); SUMA_RETURN(0); }
+   if (SUMA_isCIFTIDset(dset)) {
+      SUMA_SL_Err("Cannot answer this question without adding domain as"
+                  "an extra parameter");
+      SUMA_RETURN(0);
+   }
    if (ii != 0) {
       if (!SUMA_isGraphDset(dset)) {
          SUMA_S_Errv("Should not ask for %d unless with graph dset",ii);
@@ -2874,6 +2892,9 @@ int SUMA_AddDsetIndexCol(SUMA_DSET *dset, int *icolu, int *icolp1, int *icolp2)
       if (SUMA_isGraphDset(dset)) { /* sorry no guessing */
          SUMA_RETURN(YUP);
       }
+      if (SUMA_isCIFTIDset(dset)) { /* no guessing either */
+         SUMA_RETURN(YUP);
+      }
       if (!(icol = (int *)SUMA_malloc(sizeof(int)*SDSET_VECLEN(dset)))) {
          SUMA_S_Err("Failed to icolate");
          SUMA_RETURN(NOPE); 
@@ -2886,11 +2907,20 @@ int SUMA_AddDsetIndexCol(SUMA_DSET *dset, int *icolu, int *icolp1, int *icolp2)
       }
       icol = icolu;
    }
-   if (!SUMA_AddDsetNelIndexCol (dset, "node index", 
-                                 SUMA_NODE_INDEX, (void *)icol,
-                                 NULL, 1)) {
-      SUMA_S_Err("Failed to add default index col");
-      SUMA_RETURN(NOPE);                             
+   if (SUMA_isCIFTIDset(dset)) {
+      if (!SUMA_AddDsetNelIndexCol (dset, "MD node index", 
+                                    SUMA_MD_NODE_INDEX, (void *)icol,
+                                    NULL, 1)) {
+         SUMA_S_Err("Failed to add default multi domain index col");
+         SUMA_RETURN(NOPE);                             
+      }
+   } else {
+      if (!SUMA_AddDsetNelIndexCol (dset, "node index", 
+                                    SUMA_NODE_INDEX, (void *)icol,
+                                    NULL, 1)) {
+         SUMA_S_Err("Failed to add default index col");
+         SUMA_RETURN(NOPE);                             
+      }
    }
    if (icolp1) {
       if (!SUMA_AddDsetNelIndexCol (dset, "P1 index", 
@@ -2987,7 +3017,15 @@ int SUMA_AddDsetNelIndexCol ( SUMA_DSET *dset, char *col_label,
       } else {
          NI_set_attribute(dset->inel, "sorted_node_def", "Unknown");
       }
-   } 
+   } else if (ctp == SUMA_MD_NODE_INDEX) { 
+      SUMA_S_Warn("Not ready to check on sortedness yet, this must"
+                  "be done domain by domain. For now, setting to No");
+      if (col) {
+         NI_set_attribute(dset->inel, "sorted_node_def", "No");   
+      } else {
+         NI_set_attribute(dset->inel, "sorted_node_def", "Unknown");
+      }
+   }
    
    
    SUMA_LH("Setting index attributes");
@@ -3405,7 +3443,10 @@ SUMA_DSET * SUMA_EmptyCopyofDset (  SUMA_DSET *odset,
    SUMA_ENTRY;
    
    if (!odset) { SUMA_SL_Err("Null input"); SUMA_RETURN(NULL); }
-   
+   if (SUMA_isCIFTIDset(odset)) {
+      SUMA_SL_Err("Not ready for CIFTI dsets");
+      SUMA_RETURN(NULL);
+   }
    ind = SDSET_NODE_INDEX_COL(odset);
    if (rowmask && !ind) {
       SUMA_S_Note("Will force population of node index element");
@@ -3648,7 +3689,9 @@ SUMA_DSET * SUMA_PaddedCopyofDset ( SUMA_DSET *odset, int MaxNodeIndex )
    SUMA_ENTRY;
    
    if (!odset) { SUMA_SL_Err("Null input"); SUMA_RETURN(NULL); }
-  
+   if (SUMA_isCIFTIDset(odset)) { 
+      SUMA_SL_Err("Not ready for CIFTI"); SUMA_RETURN(NULL); 
+   }
    /* deal with node index element */
    if ((indold = SDSET_NODE_INDEX_COL(odset))) {
       rti = NI_rowtype_find_code(SUMA_ColType2TypeCast(SUMA_NODE_INDEX)) ;
@@ -4389,7 +4432,7 @@ int SUMA_FillDsetNelNodeIndexCol (SUMA_DSET *dset, char *col_label,
       SUMA_RETURN(0);
    }   
    
-   if (!SUMA_IS_DATUM_INDEX_COL(ctp)) {
+   if (!SUMA_IS_DATUM_INDEX_COL(ctp) && !SUMA_IS_MD_DATUM_INDEX_COL(ctp)) {
       SUMA_S_Err("Not for you!");
       SUMA_RETURN(0);
    }
@@ -4434,6 +4477,18 @@ int SUMA_FillDsetNelNodeIndexCol (SUMA_DSET *dset, char *col_label,
          } else {
             NI_set_attribute(dset->inel, "sorted_node_def", "No");   
          }
+         /* set some generic attributes */
+         SUMA_AddGenDsetColAttr (dset, ctp, col, stride, -1, 0);
+         /* add the attributes of that column */
+         SUMA_AddDsetColAttr (dset, col_label, ctp, col_attr, -1, 0);
+      } else {
+         NI_set_attribute(dset->inel, "sorted_node_def", "Unknown");
+      }
+   } else if (ctp == SUMA_MD_NODE_INDEX) {
+      if (col) {
+         SUMA_S_Warn("Not ready to determine sorting for MD indices");
+         NI_set_attribute(dset->inel, "sorted_node_def", "No");   
+         
          /* set some generic attributes */
          SUMA_AddGenDsetColAttr (dset, ctp, col, stride, -1, 0);
          /* add the attributes of that column */
@@ -4640,6 +4695,7 @@ SUMA_VARTYPE SUMA_ColType2TypeCast (SUMA_COL_TYPE ctp)
       case SUMA_EDGE_P2_INDEX:
       case SUMA_GNODE_INDEX:
       case SUMA_GNODE_IGROUP:
+      case SUMA_MD_NODE_INDEX:
       case SUMA_NODE_INDEX:
          SUMA_RETURN(SUMA_int);
          break;
@@ -4909,6 +4965,9 @@ char * SUMA_Col_Type_Name (SUMA_COL_TYPE tp)
       case SUMA_NODE_INDEX:
          SUMA_RETURN("Node_Index");
          break;
+      case SUMA_MD_NODE_INDEX:
+         SUMA_RETURN("MD_Node_Index");
+         break;
       case SUMA_GNODE_INDEX:
          SUMA_RETURN("GNode_Index");
          break;
@@ -5027,6 +5086,7 @@ SUMA_COL_TYPE SUMA_Col_Type (char *Name)
    if (!strcmp(Name,"Generic_Int")) SUMA_RETURN (SUMA_NODE_INT);
    if (!strcmp(Name,"Generic_Short")) SUMA_RETURN (SUMA_NODE_SHORT);
    if (!strcmp(Name,"Node_Index")) SUMA_RETURN (SUMA_NODE_INDEX);
+   if (!strcmp(Name,"MD_Node_Index")) SUMA_RETURN (SUMA_MD_NODE_INDEX);
    if (!strcmp(Name,"GNode_Index")) SUMA_RETURN (SUMA_GNODE_INDEX);
    if (!strcmp(Name,"GNode_Group")) SUMA_RETURN (SUMA_GNODE_IGROUP);
    if (!strcmp(Name,"Edge_P1_Index")) SUMA_RETURN (SUMA_EDGE_P1_INDEX);
@@ -5675,7 +5735,6 @@ SUMA_DSET * SUMA_FindDsetLoose (
 void SUMA_FreeDset(void *vp)
 {
    static char FuncName[]={"SUMA_FreeDset"};
-   int i;
    SUMA_DSET *dset;
    SUMA_Boolean LocalHead = NOPE;
    
@@ -5693,6 +5752,22 @@ void SUMA_FreeDset(void *vp)
       SUMA_RETURNe;
    }
    
+   if (!SUMA_FreeDsetContent(dset)) {
+      SUMA_S_Err("Failed to free content, proceeding, "
+                 "but danger danger Will Robinson!");
+   }
+   
+   SUMA_LH("The last straw");
+   SUMA_free(dset); dset = NULL;
+   
+   SUMA_RETURNe;
+}
+
+SUMA_Boolean SUMA_FreeDsetContent (SUMA_DSET *dset) 
+{
+   static char FuncName[]={"SUMA_FreeDsetContent"};
+   SUMA_Boolean LocalHead = YUP;
+      
    #ifdef OLD_DSET /* before ngr was used */
    SUMA_LH("Old dset");
    if (dset->nel) 
@@ -5720,14 +5795,12 @@ void SUMA_FreeDset(void *vp)
          } else dset->Aux->FreeSaux(dset->Aux->Saux);
          dset->Aux->Saux =NULL; /* pointer freed in freeing function */
       }
-      SUMA_free(dset->Aux);
+      SUMA_CIFTI_Free_Doms(dset);
+      SUMA_ifree(dset->Aux);
    }
    
-   SUMA_LH("The last straw");
-   SUMA_free(dset); dset = NULL;
    
-   SUMA_RETURNe;
-}
+}  
 
 /*!
    \brief Pointer linking and unliking functions.
@@ -6222,8 +6295,7 @@ SUMA_DSET * SUMA_CreateFullDsetPointer (
                               char *filename, SUMA_DSET_TYPE tp,
                               char *idcode,
                               char *domain_idcode,
-                              int N_Alloc 
-                              ) 
+                              int N_Alloc ) 
 {
    static char FuncName[]={"SUMA_CreateFullDsetPointer"};
    SUMA_DSET *dset=NULL;
@@ -6240,12 +6312,21 @@ SUMA_DSET * SUMA_CreateFullDsetPointer (
       SUMA_FreeDset(dset); dset=NULL;
    } else {
       for (ii=0; ii<N_Alloc; ++ii) col[ii]=ii;
-      if (!SUMA_AddDsetNelCol ( dset, "Node Index", 
-                                SUMA_NODE_INDEX, (void *)col, NULL, 1)) {
-         SUMA_S_Err("Failed to add node index column");
-         SUMA_FreeDset(dset); dset=NULL;
+      if (tp == SUMA_CIFTI_BUCKET) {
+         if (!SUMA_AddDsetNelCol ( dset, "MD Node Index", 
+                                   SUMA_MD_NODE_INDEX, (void *)col, NULL, 1)) {
+            SUMA_S_Err("Failed to add MD node index column");
+            SUMA_FreeDset(dset); dset=NULL;
+         }
+      } else {
+         if (!SUMA_AddDsetNelCol ( dset, "Node Index", 
+                                   SUMA_NODE_INDEX, (void *)col, NULL, 1)) {
+            SUMA_S_Err("Failed to add node index column");
+            SUMA_FreeDset(dset); dset=NULL;
+         }
       }
    }
+   
    if (col) SUMA_free(col); col = NULL;
    SUMA_RETURN(dset);
 }
@@ -6603,8 +6684,10 @@ char *SUMA_DsetInfo (SUMA_DSET *dset, int detail)
                                  SUMA_N_LEV_DAT);
       SS = SUMA_StringAppend_va(SS, "Number of Links: %d\n", dset->N_links);
       if (dset->dnel) {
-         SS = SUMA_StringAppend_va(SS, "Dset Name: %s (%d)\n", 
-            dset->dnel->name, SUMA_Dset_Type(dset->dnel->name));
+         SS = SUMA_StringAppend_va(SS, 
+            "Dset Name: %s (%d), isGraph %d, isCIFTI %d\n", 
+            dset->dnel->name, SUMA_Dset_Type(dset->dnel->name),
+            SUMA_isGraphDset(dset), SUMA_isCIFTIDset(dset));
          if (SDSET_FILENAME(dset)) 
             SS = SUMA_StringAppend_va( SS, "filename: %s\n", 
                                        SDSET_FILENAME(dset));
@@ -6659,6 +6742,51 @@ char *SUMA_DsetInfo (SUMA_DSET *dset, int detail)
             }
          }
          
+         if (!dset->Aux) SS = SUMA_StringAppend_va(SS, "Aux struct is NULL");
+         else {
+            SS = SUMA_StringAppend_va(SS, "Saux: %p\n", 
+                           dset->Aux->Saux?dset->Aux->Saux:NULL); 
+            SS = SUMA_StringAppend_va(SS, "matrix_shape: %d", 
+                                       dset->Aux->matrix_shape);
+            SS = SUMA_StringAppend_va(SS, 
+               "matrix_max_index: %ld, matrix_size: %ld %ld, matrix_2M: %ld\b", 
+                  dset->Aux->matrix_max_index, 
+                  dset->Aux->matrix_size[0], dset->Aux->matrix_size[1],
+                  dset->Aux->matrix_2M);
+            SS = SUMA_StringAppend_va(SS, 
+               "range_edge_index: %ld %ld, range_node_index: %ld %ld\n"
+               "N_seg_nodes: %ld, N_all_nodes: %ld\n",
+               dset->Aux->range_edge_index[0], dset->Aux->range_edge_index[1],
+               dset->Aux->range_node_index[0], dset->Aux->range_node_index[1],
+               dset->Aux->N_seg_nodes, dset->Aux->N_all_nodes);
+            SS = SUMA_StringAppend_va(SS, "%d domains:\n", dset->Aux->N_doms);
+            if (dset->Aux->doms) {
+               for (i=0; i<dset->Aux->N_doms; ++i) {
+                  if (dset->Aux->doms[i]) {
+                     SS = SUMA_StringAppend_va(SS, 
+                           "   dom[%d]:\n"
+                           "      idcode_str: %s\n"
+                           "      IndexOffset: %d\n"
+                           "      IndexCount: %d\n"
+                           "      Max_N_Data: %d\n"
+                           "      ModelType: %d %s\n"
+                           "      Range: %d %d %d %d\n",
+                     i, SUMA_CHECK_NULL_STR(dset->Aux->doms[i]->idcode_str),
+                     dset->Aux->doms[i]->IndexOffset, 
+                     dset->Aux->doms[i]->IndexCount,
+                     dset->Aux->doms[i]->Max_N_Data,
+                     dset->Aux->doms[i]->ModelType,
+            SUMA_ObjectTypeCode2ObjectTypeName(dset->Aux->doms[i]->ModelType),
+                     dset->Aux->doms[i]->Range[0], dset->Aux->doms[i]->Range[1],
+                     dset->Aux->doms[i]->Range[2], dset->Aux->doms[i]->Range[3]);
+                  } else {
+                     SS = SUMA_StringAppend_va(SS, "   dom[%d]=NULL\n", i);
+                  }
+               }
+            } else {
+               SS = SUMA_StringAppend_va(SS, "dset->Aux->doms is NULL");
+            }
+         }
          SS = SUMA_StringAppend_va(SS, "Data Element:\n");
          SS = SUMA_StringAppend_va(SS, 
                   "dnel->vec_num (N_subsets): %d\n", SDSET_VECNUM(dset));
@@ -10052,7 +10180,10 @@ SUMA_Boolean SUMA_AddNodeIndexColumn(SUMA_DSET *dset, int N_Node)
    SUMA_ENTRY;
    
    if (!dset) SUMA_RETURN(NOPE);
-   
+   if (SUMA_isCIFTIDset(dset)) {
+      SUMA_S_Err("Have yet to work out the logic for this type");
+      SUMA_RETURN(NOPE);
+   }
    /* check for obvious insult */
    if (SDSET_VECLEN(dset) > N_Node) {
       SUMA_SL_Err("more values in dset than nodes in surface.");
@@ -10069,7 +10200,8 @@ SUMA_Boolean SUMA_AddNodeIndexColumn(SUMA_DSET *dset, int N_Node)
          }
          SUMA_LH("Graph dset with explicit indexing possible, nothing to do."
                  "You can if you insist add an explicit indexing element, but"
-                 "that strikes me as a waste. You would do it as with the Populate function");
+                 "that strikes me as a waste. "
+                 "You would do it as with the Populate function");
          SUMA_RETURN(YUP);
       }
       /* would the first column work ? */
@@ -10154,7 +10286,10 @@ SUMA_Boolean SUMA_PopulateDsetNodeIndexNel(SUMA_DSET *dset, int verb)
    if (!dset ) {
       SUMA_S_Err("NULL input dset");
    }
-   
+   if (SUMA_isCIFTIDset(dset)) {
+      SUMA_S_Err("Have yet to work out the logic for this type");
+      SUMA_RETURN(NOPE);
+   }
    if (!dset->inel) {
       SUMA_S_Err("NULL dset->inel");
    }
@@ -15999,6 +16134,147 @@ NI_element *SUMA_AddGDsetNodeListElement(SUMA_DSET *dset,
    SUMA_RETURN(nel);  
 }
 
+SUMA_DO_Types SUMA_ObjectTypeName2ObjectTypeCode(char *cc)
+{
+   static char FuncName[]={"SUMA_ObjectTypeName2ObjectTypeCode"};
+   
+   if (!cc) SUMA_RETURN(NOT_SET_type);
+   if (!strcmp(cc,"WhatTheWhat")) SUMA_RETURN(NOT_SET_type);
+   if (!strcmp(cc,"NOT_SET_type")) SUMA_RETURN(NOT_SET_type);
+   if (!strcmp(cc,"not_DO")) SUMA_RETURN(not_DO_type);
+   if (!strcmp(cc,"Surface")) SUMA_RETURN(SO_type);
+   if (!strcmp(cc,"Axis")) SUMA_RETURN(AO_type);
+   if (!strcmp(cc,"ROI_drawn")) SUMA_RETURN(ROIdO_type);
+   if (!strcmp(cc,"ROI")) SUMA_RETURN(ROIO_type);
+   if (!strcmp(cc,"GO")) SUMA_RETURN(GO_type);
+   if (!strcmp(cc,"Line_Segment")) SUMA_RETURN(LS_type);
+   if (!strcmp(cc,"Node_Based_Line_Segment")) SUMA_RETURN(NBLS_type);
+   if (!strcmp(cc,"Oriented_Line_Segment")) SUMA_RETURN(OLS_type);
+   if (!strcmp(cc,"Oriented_Direction")) SUMA_RETURN(ODIR_type);
+   if (!strcmp(cc,"Direction")) SUMA_RETURN(DIR_type);
+   if (!strcmp(cc,"Point")) SUMA_RETURN(PNT_type);
+   if (!strcmp(cc,"Oriented_Node_Based_Line_Segment")) SUMA_RETURN(NBOLS_type);
+   if (!strcmp(cc,"Node_Based_Vector")) SUMA_RETURN(NBV_type);
+   if (!strcmp(cc,"Oriented_Node_Based_Vector")) SUMA_RETURN(ONBV_type);
+   if (!strcmp(cc,"Sphere")) SUMA_RETURN(SP_type);
+   if (!strcmp(cc,"Node_Based_Sphere")) SUMA_RETURN(NBSP_type);
+   if (!strcmp(cc,"Plane")) SUMA_RETURN(PL_type);
+   if (!strcmp(cc,"VO")) SUMA_RETURN(VO_type);
+   if (!strcmp(cc,"NBT")) SUMA_RETURN(NBT_type);
+   if (!strcmp(cc,"SBT")) SUMA_RETURN(SBT_type);
+   if (!strcmp(cc,"GDSET")) SUMA_RETURN(GDSET_type);
+   if (!strcmp(cc,"CDSET")) SUMA_RETURN(CDSET_type);
+   if (!strcmp(cc,"ANY_DSET")) SUMA_RETURN(ANY_DSET_type);
+   if (!strcmp(cc,"DBT")) SUMA_RETURN(DBT_type);
+   if (!strcmp(cc,"NIDO")) SUMA_RETURN(NIDO_type);
+   if (!strcmp(cc,"TRACT")) SUMA_RETURN(TRACT_type);
+   if (!strcmp(cc,"MASK")) SUMA_RETURN(MASK_type);
+   if (!strcmp(cc,"GRAPH_LINK")) SUMA_RETURN(GRAPH_LINK_type);
+   if (!strcmp(cc,"Number_Of_DO_Types")) SUMA_RETURN(N_DO_TYPES);
+}
+
+const char *SUMA_ObjectTypeCode2ObjectTypeName(SUMA_DO_Types dd) 
+{
+   static char FuncName[]={"SUMA_ObjectTypeCode2ObjectTypeName"};
+   switch (dd) {
+      case NOT_SET_type:
+         return("NOT_SET_type");
+         break;
+      case not_DO_type:
+         return("not_DO");
+         break;
+      case SO_type:
+         return("Surface");
+         break;
+      case AO_type:
+         return("Axis");
+         break;
+      case ROIdO_type:
+         return("ROI_drawn");
+         break;
+      case ROIO_type:
+         return("ROI");
+         break;
+      case GO_type:
+         return("GO");
+         break;
+      case LS_type:
+         return("Line_Segment");
+         break;
+      case NBLS_type:
+         return("Node_Based_Line_Segment");
+         break;
+      case OLS_type:
+         return("Oriented_Line_Segment");
+         break;
+      case ODIR_type:
+         return("Oriented_Direction");
+         break;
+      case DIR_type:
+         return("Direction");
+         break;
+      case PNT_type:
+         return("Point");
+         break;
+      case NBOLS_type:
+         return("Oriented_Node_Based_Line_Segment");
+         break;
+      case NBV_type:
+         return("Node_Based_Vector");
+         break;
+      case ONBV_type:
+         return("Oriented_Node_Based_Vector");
+         break;
+      case SP_type:
+         return("Sphere");
+         break;
+      case NBSP_type:
+         return("Node_Based_Sphere");
+         break;
+      case PL_type:
+         return("Plane");
+         break;
+      case VO_type:
+         return("VO");
+         break;
+      case NBT_type:
+         return("NBT");
+         break;
+      case SBT_type:
+         return("SBT");
+         break;
+      case GDSET_type:
+         return("GDSET");
+         break;
+      case CDSET_type:
+         return("CDSET");
+         break;
+      case ANY_DSET_type:
+         return("ANY_DSET");
+         break;
+      case DBT_type:
+         return("DBT");
+         break;
+      case NIDO_type:
+         return("NIDO");
+         break;
+      case TRACT_type:
+         return("TRACT");
+         break;
+      case MASK_type:
+         return("MASK");
+         break;
+      case GRAPH_LINK_type:
+         return("GRAPH_LINK");
+         break;
+      case N_DO_TYPES:
+         return("Number_Of_DO_Types");
+         break;
+      default:
+         return("WhatTheWhat!");
+   }
+}
+
 /**************** Tract dset functions *************************/
 
 /* This query goes back to the source all the time,
@@ -16072,4 +16348,183 @@ byte SUMA_isCIFTIDsetNgr(NI_group *ngr)
    }
    return(0);
 }
+
+SUMA_Boolean SUMA_CIFTI_Set_Domains(SUMA_DSET *dset, int N_doms, 
+                                    int *dind, int *dindoff, int *dn,
+                                    SUMA_DO_Types *dtp, char *dids)
+{
+   static char FuncName[]={"SUMA_CIFTI_Set_Domains"};
+   char *str = NULL, buff[500]={""};
+   int i, k, min, max, imin, imax, sorted, N, *ind=NULL;
+   SUMA_Boolean LocalHead = YUP;
+   
+   SUMA_ENTRY;
+   
+   if (!dset || !dset->inel) {
+      SUMA_S_Err("dset or dset->inel is NULL");
+      SUMA_RETURN(NOPE);
+   }
+   
+   NI_SET_INT(dset->inel, "N_Domains", N_doms);
+   NI_SET_INTv(dset->inel, "Index_Offsets", dind, N_doms+1);
+   NI_SET_INTv(dset->inel, "Domain_N_Data", dn, N_doms); /* total number of 
+                                    nodes, voxels, etc possible in domain.*/
+   str = NULL;
+   for (i=0; i<N_doms; ++i) {
+      str = SUMA_append_replace_string(
+               str, (char *)SUMA_ObjectTypeCode2ObjectTypeName(dtp[i]),";",1);
+   }
+   NI_SET_STR(dset->inel, "Model_Types", str); SUMA_ifree(str);
+   
+   /* check the indices and set the ranges, location of min and max for
+      each domain is relative to the full list */
+   str = NULL;
+   sorted = 1;
+   for (i=0; i<N_doms; ++i) {
+      ind = dind+dindoff[i]; N=dindoff[i+1]-dindoff[i];
+      min = max = ind[0];
+      for (k=0; k<N; ++k) {
+         if (sorted && k<N-1 && ind[k] >= ind[k+1]) sorted = 0;
+         if (ind[k] < min) min = ind[k]; imin = k+dindoff[i];
+         if (ind[k] > max) max = ind[k]; imax = k+dindoff[i];
+      }
+      snprintf(buff, 500*sizeof(char),"%d %d %d %d", 
+                     min, max, imin, imax);
+      str = SUMA_append_replace_string(str, buff, SUMA_NI_CSS, 1);
+   }
+   NI_set_attribute(dset->inel, "COLMS_RANGE", str); SUMA_ifree(str); 
+   
+   /* Set the sorted flag */
+   if (sorted) {
+      NI_set_attribute(dset->inel, "sorted_node_def", "Yes");
+   } else {
+      NI_set_attribute(dset->inel, "sorted_node_def", "No");
+   }
+   
+   /* You have yet to put in the indices */
+   if (!SDSET_NODEINDNUM(dset)) {
+      SUMA_S_Warn("Have empty inel");
+   } else {
+      SUMA_LH("Have inel col of %d vals", dset->inel->vec_len);
+      ind = (int *)(dset->inel->vec[0]);
+      for (i=0; i<SDSET_VECLEN(dset); ++i) {
+         ind[i] = dind[i];
+      }
+   }
+   
+   if (dids) {
+      SUMA_S_Err("Not sure I need domain ids stored here, hold off for now");
+   }
+   
+   SUMA_RETURN(NOPE);
+}
+
+SUMA_Boolean SUMA_CIFTI_Free_Doms(SUMA_DSET *dset)
+{
+   static char FuncName[]={"SUMA_CIFTI_Free_Doms"};
+   int i;
+   
+   if (!dset || !dset->Aux) return(NOPE);
+   
+   if (dset->Aux->doms && dset->Aux->N_doms > 0) {
+      for (i=0; i<dset->Aux->N_doms; ++i) {
+         if (dset->Aux->doms[i]) {
+            SUMA_ifree(dset->Aux->doms[i]->idcode_str);
+            SUMA_ifree(dset->Aux->doms[i]);
+         }
+      }
+      SUMA_ifree(dset->Aux->doms);
+   }
+   dset->Aux->N_doms = -1; dset->Aux->doms = NULL;
+   
+   return(YUP);
+}
+
+/* Take dset->ngr->inel domain information and write them into
+   C-struct fields 
+   \sa  SUMA_CIFTI_NgrFromDomains */
+SUMA_Boolean SUMA_CIFTI_DomainsFromNgr(SUMA_DSET *dset)
+{
+   static char FuncName[]={"SUMA_CIFTI_DomainsFromNgr"};
+   double nums[4];
+   int i, k, ibuff[51], jbuff[51];
+   char *mtstr=NULL, *rnstr=NULL, *ss=NULL;
+   
+   SUMA_ENTRY;
+   
+   if (!SUMA_isCIFTIDset(dset) || !dset->Aux) {
+      SUMA_S_Err("I'm calling my lawyer");
+      SUMA_RETURN(NOPE);
+   }
+   if (dset->Aux->doms) {
+      SUMA_CIFTI_Free_Doms(dset);
+   }
+   
+   NI_GET_INT(dset->inel, "N_Domains", dset->Aux->N_doms);
+   if (dset->Aux->N_doms > 50) {
+      SUMA_S_Err("No setup to deal with so many doms. Fix me");
+      dset->Aux->N_doms = -1;
+      SUMA_RETURN(NOPE);
+   }
+   
+   NI_GET_INTv(dset->inel,"Index_Offsets", ibuff, dset->Aux->N_doms+1, 0);
+   NI_GET_INTv(dset->inel,"Domain_N_Data", jbuff, dset->Aux->N_doms, 0);
+   NI_GET_STR(dset->inel, "Model_Types", mtstr);
+   NI_GET_STR(dset->inel, "COLMS_RANGE", rnstr);
+   if (!mtstr || !rnstr) {
+      SUMA_S_Err("Malformation suspected");
+      SUMA_RETURN(NOPE);
+   }
+   dset->Aux->doms = (SUMA_DSET_DOMAIN **)SUMA_calloc(
+                              dset->Aux->N_doms, sizeof(SUMA_DSET_DOMAIN *));
+   for (i=0; i<dset->Aux->N_doms; ++i) {
+      dset->Aux->doms[i] = (SUMA_DSET_DOMAIN *)
+                                 SUMA_calloc(1,sizeof(SUMA_DSET_DOMAIN));
+      dset->Aux->doms[i]->IndexOffset = ibuff[i];
+      dset->Aux->doms[i]->IndexCount  = ibuff[i+1]-ibuff[i];
+      dset->Aux->doms[i]->Max_N_Data  = jbuff[i];
+      ss = SUMA_Get_Sub_String(mtstr,SUMA_NI_CSS, i);
+      dset->Aux->doms[i]->ModelType   = SUMA_ObjectTypeName2ObjectTypeCode(ss);
+      SUMA_ifree(ss);
+      if (SUMA_StringToNum(rnstr, (void *)nums, 4, 2) != 4) { 
+         SUMA_SL_Err("Failed to read 4 nums from range.");  
+         for (k=0; k<4; ++k) dset->Aux->doms[i]->Range[k] = -1; 
+      } else {
+         for (k=0; k<4; ++k) dset->Aux->doms[i]->Range[k] = nums[k]; 
+      }
+   }
+   
+   SUMA_RETURN(YUP);
+}
+
+/* Take C-struct domain information and write them into
+   dset->ngr->inel element
+   \sa SUMA_CIFTI_DomainsFromNgr */
+SUMA_Boolean SUMA_CIFTI_NgrFromDomains(SUMA_DSET *dset)
+{
+   static char FuncName[]={"SUMA_CIFTI_NgrFromDomains"};
+   int dindoff[51], dn[51], i;
+   SUMA_DO_Types dtp[51];
+    
+   if (!SUMA_isCIFTIDset(dset) || !dset->Aux || !dset->Aux->doms) {
+      SUMA_S_Err("I'm calling my mom!");
+      SUMA_RETURN(NOPE);
+   }
+   if (dset->Aux->N_doms > 50) {
+      SUMA_S_Err("No setup to deal with so many doms. Fix me");
+      SUMA_RETURN(NOPE);
+   }
+   for (i=1; i<dset->Aux->N_doms; ++i) {
+      dindoff[i] = dset->Aux->doms[i]->IndexOffset;
+      dn[i] = dset->Aux->doms[i]->Max_N_Data;
+      dtp[i] = dset->Aux->doms[i]->ModelType;
+      if (dset->Aux->doms[i]->idcode_str) {
+         SUMA_S_Warn("Not ready to include idcode_str");
+      }
+   }
+   SUMA_CIFTI_Set_Domains(dset, dset->Aux->N_doms, SDSET_NODE_INDEX_COL(dset),
+                          dindoff, dn, dtp, NULL);
+   SUMA_RETURN(YUP);   
+}
+
 

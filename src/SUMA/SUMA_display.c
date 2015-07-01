@@ -6626,7 +6626,9 @@ SUMA_ALL_DO **SUMA_DOsInSurfContNotebook(Widget NB)
       
       for (j=0; j<SUMAg_N_DOv; ++j) {
          if (SUMAg_DOv[j].ObjectType == SO_type ||
-             SUMAg_DOv[j].ObjectType == GDSET_type ) {
+             SUMAg_DOv[j].ObjectType == GDSET_type ||
+             SUMAg_DOv[j].ObjectType == TRACT_type ||
+             SUMAg_DOv[j].ObjectType == VO_type) {
             DOt = (SUMA_ALL_DO *)SUMAg_DOv[j].OP;
             SurfCont = SUMA_ADO_Cont(DOt);
             if (DOt && SurfCont) {
@@ -6657,7 +6659,7 @@ SUMA_ALL_DO **SUMA_DOsInSurfContNotebook(Widget NB)
                      }
                   }
                } else {
-                  SUMA_LHv("Surface %s has no current SO in its controller\n"
+                  SUMA_LHv("Surface %s has no current DO set in its controller\n"
                         "This should mean its controller has never been open\n",
                          SUMA_ADO_Label(DOt));
                }
@@ -6668,9 +6670,8 @@ SUMA_ALL_DO **SUMA_DOsInSurfContNotebook(Widget NB)
          } else {
             switch(SUMAg_DOv[j].ObjectType) {
                case CDSET_type:
-               case VO_type:
-               case TRACT_type:
-                  SUMA_S_Warn("Objects not feeling the love here");
+                  SUMA_S_Warn("Objects of type (%s) not feeling the love here",
+                    SUMA_ObjectTypeCode2ObjectTypeName(SUMAg_DOv[j].ObjectType));
                   break;
                default:
                   break;

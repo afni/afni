@@ -70,7 +70,6 @@ SUMA_INODE * SUMA_BreakInodeLink (SUMA_INODE *IN, const char *HolderIDcode);
 SUMA_Boolean SUMA_existSO(char *idcode, SUMA_DO *dov, int N_dov);
 SUMA_Boolean SUMA_existVO(char *idcode, SUMA_DO *dov, int N_dov);
 SUMA_Boolean SUMA_existDO(char *idcode, SUMA_DO *dov, int N_dov);
-const char *SUMA_ObjectTypeCode2ObjectTypeName(SUMA_DO_Types dd);
 
 #define SUMA_whichADOg(idcode) SUMA_whichADO((idcode), SUMAg_DOv, SUMAg_N_DOv)
 SUMA_ALL_DO* SUMA_whichADO(char *idcode, SUMA_DO *dov, int N_dov);

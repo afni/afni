@@ -377,6 +377,7 @@ HELP:
    echo "-no_thelp: Don't -thelp. (default)"
    echo "-web_upload: Send new build to $afwpg"
    echo "-no_web_upload: Don't -web_upload. (default)"
+   echo "-web_suma_upload: Send only SUMA's docs to the webpage"
    echo "-echo: Yap yap"
    echo ""
    goto END

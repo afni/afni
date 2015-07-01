@@ -3102,14 +3102,14 @@ int SUMA_Up_Key(SUMA_SurfaceViewer *sv, char *key, char *caller)
    Widget w;
    double dd[3] = {0.0, -1.0, 0.0}; /* up */
    SUMA_SurfaceObject *SO=NULL;
-   SUMA_Boolean LocalHead = NOPE;
+   SUMA_Boolean LocalHead = YUP;
    
    SUMA_ENTRY;
    
    SUMA_KEY_COMMON;
    
    SUMA_KEY_SWITCH;
-   
+   SUMA_LH("WHAAAAAAAAAAAT");
    w = sv->X->GLXAREA;
    /* do the work */
    switch (k) {

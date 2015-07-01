@@ -98,6 +98,8 @@ SUMA_Boolean SUMA_MovePlaneUp (SUMA_ALL_DO *ado, char *Name);
 SUMA_Boolean SUMA_MovePlaneDown (SUMA_ALL_DO *ado, char *Name);
 SUMA_OVERLAYS * SUMA_NewPlaneSearch(SUMA_ALL_DO *ado, 
                                     SUMA_OVERLAYS *Overlay);
+SUMA_Boolean SUMA_LoadCIFTIDO (char *fname, 
+                        SUMA_DO_CoordUnits coord_type, SUMA_DSET **odset);
 void SUMA_LoadDsetOntoSO (char *filename, void *data);
 SUMA_Boolean SUMA_LoadDsetOntoSO_eng (char *filename, SUMA_SurfaceObject *SO,
                               int SetupOverlay, int MakeOverlayCurrent, 
