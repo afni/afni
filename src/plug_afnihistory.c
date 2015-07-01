@@ -38,10 +38,10 @@ static char *histusername = NULL ;
 static char *level_labs[NLEVEL] = { "MICRO" , "MINOR" ,
                                     "MAJOR" , "SUPER" , "SUPERDUPER" } ;
 
-#define NTYPE 6
+#define NTYPE 7
 static char *type_labs[NTYPE] = { "TYPE_GENERAL" , "TYPE_NEW_PROG" ,
                                   "TYPE_NEW_OPT" , "TYPE_NEW_ENV"  ,
-                                  "TYPE_BUG_FIX" , "TYPE_MODIFY"    } ;
+                                  "TYPE_BUG_FIX" , "TYPE_MODIFY"   , "TYPE_ENHANCE" } ;
 
 /* don't need to symbolically define the number
    of months, since that's unlikely to change soon */
