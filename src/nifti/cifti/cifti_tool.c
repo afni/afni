@@ -37,6 +37,7 @@ opts_t gopt;
 
 /* ----------------------------------------------------------------- */
 /* protos */
+int check_cifti_extension(nifti_image * nim);
 int disp_cifti_extension (nifti_image * nim, char * fout);
 int disp_hex_data        (const char *, const void *data, int len, FILE *fp);
 int eval_cifti_buf       (char * buf, long long blen);
@@ -298,7 +299,7 @@ int write_extension(FILE * fp, nifti1_extension * ext, int maxlen)
 {
    afni_xml_list xlist;
 
-   int len, slen;
+   int len;
 
    if( gopt.verb > 1 )
       fprintf(fp,"ecode = %d, esize = %d\n", ext->ecode, ext->esize);
@@ -307,17 +308,6 @@ int write_extension(FILE * fp, nifti1_extension * ext, int maxlen)
 
    len = ext->esize-8;
    if( maxlen >= 0 && len > maxlen ) len = maxlen;
-
-   slen = strlen((char*)ext->edata);
-   if( slen < len ) {
-      if( gopt.verb > 1 ) {
-         fprintf(stderr, "-- shortening CIFTI header len from %d to %d\n",
-                 len, slen);
-         disp_hex_data("   last bytes: ", ext->edata+slen, len-slen, stderr);
-         fputc('\n', stderr);
-      }
-      len = slen;
-   }
 
    /* process as generic xml */
    axml_set_verb(gopt.verb);
