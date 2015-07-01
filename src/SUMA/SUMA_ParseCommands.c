@@ -2990,21 +2990,29 @@ SUMA_SO_File_Type SUMA_GuessSurfFormatFromExtension_core(char *Name,
    static char FuncName[]={"SUMA_GuessSurfFormatFromExtension_core"};
    SUMA_SO_File_Type form=SUMA_FT_NOT_SPECIFIED;
    int tp=0;
+   char *pname=NULL;
    
    SUMA_ENTRY;
    if (!Name) { SUMA_RETURN(form); }
+   if (pdsname && *pdsname) {
+      SUMA_S_Err("Bad init for pdsname");
+      SUMA_RETURN(form);
+   }
    if ( (tp = SUMA_is_predefined_SO_name(Name, NULL, 
-                                          pdspec, pdsv, pdsname)) ) {  
+                                          pdspec, pdsv, &pname)) ) {  
+      fprintf(stderr,"tp=%d\n", tp);
       switch(tp) {
          case 1:
          case 2: 
+            if (pdsname) *pdsname=pname;
+            else SUMA_ifree(pname);
             SUMA_RETURN(SUMA_PREDEFINED);
             break;
          case 3:
             /* Spec file, not for here */
             break;
          case 4: /* pre-existing template file */
-            Name = *pdsname; /* format TBD below */
+            Name = pname; /* format TBD below */
             break;   
       }
    }
@@ -3028,7 +3036,9 @@ SUMA_SO_File_Type SUMA_GuessSurfFormatFromExtension_core(char *Name,
          SUMA_isExtension(Name, ".go")) form =  SUMA_BYU;
    else if (  SUMA_isExtension(Name, ".cmap")) form = SUMA_CMAP_SO;
    
-   
+   if (pdsname) *pdsname=pname;
+   else SUMA_ifree(pname);
+    
    SUMA_RETURN(form);
 }
 
@@ -4458,9 +4468,10 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[],
             } else {
                tmp_i = SUMA_copy_string(argv[kar]);
             }
-            
-            SUMA_LHv("accept_i %d (argv[%d]=%s), brk = %d, tmp_i=%s\n", 
-                     ps->accept_i, kar, argv[kar], brk, tmp_i);
+            SUMA_LHv(
+               "accept_i %d (argv[%d]=%s), brk = %d, tmp_i=%s, pdsname=%s\n", 
+                ps->accept_i, kar, argv[kar], brk, tmp_i, 
+                SUMA_CHECK_NULL_STR(pdsname));
             if (!brk && ( (strcmp(tmp_i, "-i_bv") == 0) || 
                         (strcmp(tmp_i, "-i_BV") == 0) ) ) {
                ps->arg_checked[kar]=1;

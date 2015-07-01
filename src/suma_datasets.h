@@ -385,6 +385,7 @@ typedef struct { /* A structure to contain information about a domain
                      present in the full index list for this domain.
                      imin and imax are the rows into the full index list
                      where these min and max indices are found */
+      char *Source;
 } SUMA_DSET_DOMAIN;
 /* Get the pointer to the beginning of the data indices for domain dom */
 
@@ -2079,7 +2080,7 @@ char *SUMA_GDSET_Edge_Label(SUMA_DSET *dset, int isel, char *pref, char *sep);
 /************************ CIFTI Dset functions ******************** */
 SUMA_Boolean SUMA_CIFTI_Set_Domains(SUMA_DSET *dset, int N_doms, 
                                     int *dind, int *dindoff, int *dn,
-                                    SUMA_DO_Types *dtp, char *dids);
+                                    SUMA_DO_Types *dtp, char **dsrcs);
 SUMA_Boolean SUMA_CIFTI_NgrFromDomains(SUMA_DSET *dset);
 SUMA_Boolean SUMA_CIFTI_DomainsFromNgr(SUMA_DSET *dset);
 SUMA_Boolean SUMA_CIFTI_Free_Doms(SUMA_DSET *dset);

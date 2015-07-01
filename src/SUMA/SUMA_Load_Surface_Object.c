@@ -830,7 +830,7 @@ SUMA_SurfaceObject * SUMA_Load_Surface_Object_eng (
    SUMA_SureFit_struct *SF;
    SUMA_FreeSurfer_struct *FS;
    SUMA_SO_File_Type gSO_FT;
-   char *tname=NULL;
+   char *tname=NULL, *psv=NULL, *pname=NULL;
    int i1=0, par=0;
    SUMA_SurfaceObject *SO;
    
@@ -845,6 +845,14 @@ SUMA_SurfaceObject * SUMA_Load_Surface_Object_eng (
       tname = ((SUMA_SFname*)SO_FileName_vp)->name_coord;   
    } else {
       tname = (char *)SO_FileName_vp;
+      /* A little ugly, but check if this is a template name */
+      i1 = SUMA_is_predefined_SO_name(tname, &par, NULL, &psv, &pname);
+      if (i1 ==  4 ) {
+         tname = pname;
+         VolParName = psv;
+      } else {
+         SUMA_ifree(pname); SUMA_ifree(psv);
+      }
    }
    if (tname) {
       gSO_FT = SUMA_GuessSurfFormatFromExtension(tname, NULL);
@@ -855,8 +863,11 @@ SUMA_SurfaceObject * SUMA_Load_Surface_Object_eng (
                        SUMA_SurfaceTypeString(gSO_FT));
          SO_FT = gSO_FT;
       }
+      if (i1 == 4) { /* Have template surface, adopt format */
+         SO_FT = gSO_FT; 
+      }
       if (  gSO_FT > SUMA_FT_NOT_SPECIFIED && 
-            gSO_FT != SO_FT ) {
+            gSO_FT != SO_FT && !pname) {
          SUMA_S_Warnv("Warning Warning MSB!!!\n"
                       "Surface file name's (%s) extension indcates a\n"
                       "surface of type %s and conflicts with specified\n"
@@ -899,6 +910,7 @@ SUMA_SurfaceObject * SUMA_Load_Surface_Object_eng (
          break;
       default:
          SUMA_error_message(FuncName, "SO_FileType not supported", 0);
+         SUMA_ifree(pname); SUMA_ifree(psv);
          SUMA_RETURN (NULL);
          break;
    } /* SO_FT*/
@@ -909,25 +921,29 @@ SUMA_SurfaceObject * SUMA_Load_Surface_Object_eng (
       case SUMA_CMAP_SO:
          /* nothing to do here */
          SUMA_SL_Err("Don't know how to read those from disk:");
+         SUMA_ifree(pname); SUMA_ifree(psv);
          SUMA_RETURN(NULL);
       
       case SUMA_FT_NOT_SPECIFIED:
          fprintf (SUMA_STDERR,"Error %s: No File Type specified.\n", FuncName);
+         SUMA_ifree(pname); SUMA_ifree(psv);
          SUMA_RETURN(NULL);
       
       case SUMA_N_SO_FILE_TYPE:
          fprintf (SUMA_STDERR,
                   "Error %s: This should not happen (SUMA_N_SO_FILE_TYPE)\n", 
                   FuncName);
+         SUMA_ifree(pname); SUMA_ifree(psv);
          SUMA_RETURN(NULL);
       
       case SUMA_STL:
-         if (!SUMA_STL_Read ((char *)SO_FileName_vp, SO)) {
+         if (!SUMA_STL_Read (tname, SO)) {
             fprintf (SUMA_STDERR,
                      "Error %s: Failed in SUMA_STL_Read.\n", FuncName);
+            SUMA_ifree(pname); SUMA_ifree(psv);
             SUMA_RETURN(NULL);
          }
-         SUMA_NEW_ID(SO->idcode_str,(char *)SO_FileName_vp); 
+         SUMA_NEW_ID(SO->idcode_str,tname); 
          
          /* change coordinates to align them with volparent data set, 
             if possible */
@@ -951,12 +967,13 @@ SUMA_SurfaceObject * SUMA_Load_Surface_Object_eng (
          SO->normdir = 0;  /* not set */
          break;
       case SUMA_PLY:
-         if (!SUMA_Ply_Read ((char *)SO_FileName_vp, SO)) {
+         if (!SUMA_Ply_Read (tname, SO)) {
             fprintf (SUMA_STDERR,
                      "Error %s: Failed in SUMA_Ply_Read.\n", FuncName);
+            SUMA_ifree(pname); SUMA_ifree(psv);
             SUMA_RETURN(NULL);
          }
-         SUMA_NEW_ID(SO->idcode_str,(char *)SO_FileName_vp); 
+         SUMA_NEW_ID(SO->idcode_str,tname); 
          
          /* change coordinates to align them with volparent data set, 
             if possible */
@@ -980,12 +997,13 @@ SUMA_SurfaceObject * SUMA_Load_Surface_Object_eng (
          SO->normdir = 0;  /* not set */
          break;
       case SUMA_MNI_OBJ:
-         if (!SUMA_MNI_OBJ_Read ((char *)SO_FileName_vp, SO)) {
+         if (!SUMA_MNI_OBJ_Read (tname, SO)) {
             fprintf (SUMA_STDERR,
                      "Error %s: Failed in SUMA_MNI_OBJ_Read.\n", FuncName);
+            SUMA_ifree(pname); SUMA_ifree(psv);
             SUMA_RETURN(NULL);
          }
-         SUMA_NEW_ID(SO->idcode_str,(char *)SO_FileName_vp); 
+         SUMA_NEW_ID(SO->idcode_str,tname); 
          
          /* change coordinates to align them with 
             volparent data set, if possible */
@@ -1010,12 +1028,13 @@ SUMA_SurfaceObject * SUMA_Load_Surface_Object_eng (
          SO->normdir = 0;  /* not set */
          break;
       case SUMA_OPENDX_MESH:
-         if (!SUMA_OpenDX_Read_SO ((char *)SO_FileName_vp, SO)) {
+         if (!SUMA_OpenDX_Read_SO (tname, SO)) {
             fprintf (SUMA_STDERR,
                      "Error %s: Failed in SUMA_OpenDX_Read_SO.\n", FuncName);
+            SUMA_ifree(pname); SUMA_ifree(psv);
             SUMA_RETURN(NULL);
          }
-         SUMA_NEW_ID(SO->idcode_str,(char *)SO_FileName_vp); 
+         SUMA_NEW_ID(SO->idcode_str,tname); 
          
          /* change coordinates to align them with volparent data set, 
             if possible */
@@ -1041,8 +1060,9 @@ SUMA_SurfaceObject * SUMA_Load_Surface_Object_eng (
          break;
      case SUMA_OBJ_MESH:
          { 
-            if (!(SUMA_OBJ_Read_SO((char *)SO_FileName_vp, SO, NULL))) {
-               SUMA_S_Err("Failed to read %s", (char *)SO_FileName_vp);
+            if (!(SUMA_OBJ_Read_SO(tname, SO, NULL))) {
+               SUMA_S_Err("Failed to read %s", tname);
+               SUMA_ifree(pname); SUMA_ifree(psv);
                SUMA_RETURN(NULL);
             }
             /* Don't change ID here, that is done inside SUMA_OBJ_Read_SO */     
@@ -1070,7 +1090,7 @@ SUMA_SurfaceObject * SUMA_Load_Surface_Object_eng (
          }
          break;
      case SUMA_PREDEFINED:
-         i1 = SUMA_is_predefined_SO_name((char *)SO_FileName_vp, &par, 
+         i1 = SUMA_is_predefined_SO_name(tname, &par, 
                                          NULL, NULL, NULL);
          switch(i1) {
             case 1:
@@ -1083,11 +1103,12 @@ SUMA_SurfaceObject * SUMA_Load_Surface_Object_eng (
                break;
             default:
                SUMA_S_Errv("Not ready for typ %d on %s\n",
-                           i1, (char *)SO_FileName_vp);
+                           i1, tname);
+               SUMA_ifree(pname); SUMA_ifree(psv);
                SUMA_RETURN(NULL);         
                break;
          }
-         SO->Name = SUMA_StripPath((char *)SO_FileName_vp);
+         SO->Name = SUMA_StripPath(tname);
          SO->FileType = SUMA_PREDEFINED;
          /* change coordinates to align them with volparent data set, 
             if possible */
@@ -1113,7 +1134,7 @@ SUMA_SurfaceObject * SUMA_Load_Surface_Object_eng (
          break;
          
      case SUMA_BRAIN_VOYAGER:
-         if (0 && SUMA_GuessSurfFormatFromExtension((char *)SO_FileName_vp,     
+         if (0 && SUMA_GuessSurfFormatFromExtension(tname,     
                                                          NULL)==SUMA_GIFTI) {
             /* Allowing for cases where BrainVoyager.gii surfaces are in the same
             coordinate system as their native format and so will require
@@ -1128,21 +1149,23 @@ SUMA_SurfaceObject * SUMA_Load_Surface_Object_eng (
             SUMA_S_Warn("This should not be used regularly.\n"
                         "Surfaces will not display in the proper place\n"
                         "in SUMA.\n");
-            if (!SUMA_GIFTI_Read ((char *)SO_FileName_vp, SO, 1)) {
+            if (!SUMA_GIFTI_Read (tname, SO, 1)) {
                fprintf (SUMA_STDERR,
                      "Error %s: Failed in SUMA_GIFTI_Read.\n", FuncName);
+               SUMA_ifree(pname); SUMA_ifree(psv);
                SUMA_RETURN(NULL);
             }
             SO->FileType = SUMA_BRAIN_VOYAGER;
          } else {
-            if (!SUMA_BrainVoyager_Read ((char *)SO_FileName_vp, SO, 1, 1)) {
+            if (!SUMA_BrainVoyager_Read (tname, SO, 1, 1)) {
                fprintf (SUMA_STDERR,
                         "Error %s: Failed in SUMA_BrainVoyager_Read.\n", 
                         FuncName);
+               SUMA_ifree(pname); SUMA_ifree(psv);
                SUMA_RETURN(NULL);
             }
          }
-         SUMA_NEW_ID(SO->idcode_str,(char *)SO_FileName_vp); 
+         SUMA_NEW_ID(SO->idcode_str,tname); 
          
          /* change coordinates to align them with volparent data set, 
             if possible */
@@ -1169,12 +1192,13 @@ SUMA_SurfaceObject * SUMA_Load_Surface_Object_eng (
          break;
       
       case SUMA_BYU:
-         if (!SUMA_BYU_Read ((char *)SO_FileName_vp, SO, 1, 1)) {
+         if (!SUMA_BYU_Read (tname, SO, 1, 1)) {
             fprintf (SUMA_STDERR,
                      "Error %s: Failed in SUMA_BYU_Read.\n", FuncName);
+            SUMA_ifree(pname); SUMA_ifree(psv);
             SUMA_RETURN(NULL);
          }
-         SUMA_NEW_ID(SO->idcode_str,(char *)SO_FileName_vp); 
+         SUMA_NEW_ID(SO->idcode_str,tname); 
          
          /* change coordinates to align them with volparent data set, 
             if possible */
@@ -1201,12 +1225,13 @@ SUMA_SurfaceObject * SUMA_Load_Surface_Object_eng (
          break;
       
       case SUMA_GIFTI:
-         if (!SUMA_GIFTI_Read ((char *)SO_FileName_vp, SO, 1)) {
+         if (!SUMA_GIFTI_Read (tname, SO, 1)) {
             fprintf (SUMA_STDERR,
                      "Error %s: Failed in SUMA_GIFTI_Read.\n", FuncName);
+            SUMA_ifree(pname); SUMA_ifree(psv);
             SUMA_RETURN(NULL);
          }
-         SUMA_NEW_ID(SO->idcode_str,(char *)SO_FileName_vp); 
+         SUMA_NEW_ID(SO->idcode_str,tname); 
          
          /* change coordinates to align them with volparent data set, 
             if possible */
@@ -1233,7 +1258,7 @@ SUMA_SurfaceObject * SUMA_Load_Surface_Object_eng (
          break;
                
       case SUMA_INVENTOR_GENERIC:
-         SO_FileName = (char *)SO_FileName_vp;
+         SO_FileName = tname;
          /* You need to split name into path and name ... */
 	      if ( debug )
             fprintf(stdout,"%s\n", SO_FileName);
@@ -1250,12 +1275,14 @@ SUMA_SurfaceObject * SUMA_Load_Surface_Object_eng (
          SO->NodeList = SUMA_IV_XYZextract (SO_FileName, &(SO->N_Node), 0);
          if (SO->NodeList == NULL) {
             SUMA_error_message(FuncName,"SUMA_IV_XYZextract failed!",0);
+            SUMA_ifree(pname); SUMA_ifree(psv);
             SUMA_RETURN(NULL);
          }
          SO->FaceSetList = SUMA_IV_FaceSetsextract (SO_FileName, 
                                                    &(SO->N_FaceSet));
          if (SO->FaceSetList == NULL) {
             SUMA_error_message(FuncName,"SUMA_IV_FaceSetsextract failed!",0);
+            SUMA_ifree(pname); SUMA_ifree(psv);
             SUMA_RETURN(NULL);
          }
          SO->FaceSetDim = 3; /*This must also be automated */
@@ -1272,6 +1299,7 @@ SUMA_SurfaceObject * SUMA_Load_Surface_Object_eng (
          if (FS == NULL) {
             fprintf( SUMA_STDERR,
                      "Error %s: Failed to allocate for FS\n", FuncName);
+            SUMA_ifree(pname); SUMA_ifree(psv);
             SUMA_RETURN (NULL);
          }
          /* add a couple of lines to appease the optimation gods...         */
@@ -1288,6 +1316,7 @@ SUMA_SurfaceObject * SUMA_Load_Surface_Object_eng (
                fprintf( SUMA_STDERR,
                         "Error %s: Failed in SUMA_FreeSurfer_Read.\n",
                         FuncName);
+               SUMA_ifree(pname); SUMA_ifree(psv);
                SUMA_RETURN (NULL);
             }
          } else if (SO->FileFormat == SUMA_BINARY_BE) {
@@ -1295,10 +1324,12 @@ SUMA_SurfaceObject * SUMA_Load_Surface_Object_eng (
                fprintf( SUMA_STDERR,
                         "Error %s: Failed in SUMA_FreeSurfer_Read.\n", 
                         FuncName);
+               SUMA_ifree(pname); SUMA_ifree(psv);
                SUMA_RETURN (NULL);
             }
          } else {
             SUMA_SL_Err("Format not supported.");
+            SUMA_ifree(pname); SUMA_ifree(psv);
             SUMA_RETURN (NULL);
          }
 	 if ( debug > 1)
@@ -1339,11 +1370,12 @@ SUMA_SurfaceObject * SUMA_Load_Surface_Object_eng (
          if (!SUMA_Free_FreeSurfer (FS)) {
             fprintf( SUMA_STDERR,
                      "Error %s: Failed in SUMA_Free_FreeSurfer.\n", FuncName);
+            SUMA_ifree(pname); SUMA_ifree(psv);
             SUMA_RETURN (NULL);
          }
          
          /* create the IDcode */
-         SUMA_NEW_ID(SO->idcode_str, (char *)SO_FileName_vp);
+         SUMA_NEW_ID(SO->idcode_str, tname);
          if (LocalHead) 
             fprintf (SUMA_STDERR, 
                      "%s: Assigned idcode_str:%s:.\n", FuncName, SO->idcode_str);
@@ -1364,11 +1396,13 @@ SUMA_SurfaceObject * SUMA_Load_Surface_Object_eng (
          if (!SUMA_filexists(SF_FileName->name_coord)) {
             fprintf(SUMA_STDERR,"Error %s: Could not find %s\n", 
                      FuncName, SF_FileName->name_coord);
+            SUMA_ifree(pname); SUMA_ifree(psv);
             SUMA_RETURN (NULL);
          }
          if (!SUMA_filexists(SF_FileName->name_topo)) {
             fprintf(SUMA_STDERR,"Error %s: Could not find %s\n", 
                      FuncName, SF_FileName->name_topo);
+            SUMA_ifree(pname); SUMA_ifree(psv);
             SUMA_RETURN (NULL);
          }
          
@@ -1376,6 +1410,7 @@ SUMA_SurfaceObject * SUMA_Load_Surface_Object_eng (
             SUMA_SLP_Err("Failed to read 1D file");
             if (SO->NodeList) SUMA_free(SO->NodeList);
             if (SO->FaceSetList) SUMA_free(SO->FaceSetList);
+            SUMA_ifree(pname); SUMA_ifree(psv);
             SUMA_RETURN (NULL);
          }
                   
@@ -1416,6 +1451,7 @@ SUMA_SurfaceObject * SUMA_Load_Surface_Object_eng (
          if (SF == NULL) {
             fprintf( SUMA_STDERR,
                      "Error %s: Failed to allocate for SF\n", FuncName);
+            SUMA_ifree(pname); SUMA_ifree(psv);
             SUMA_RETURN (NULL);
          }
          SF->NodeList= NULL;
@@ -1440,6 +1476,7 @@ SUMA_SurfaceObject * SUMA_Load_Surface_Object_eng (
                                        SF)) {
             fprintf( SUMA_STDERR,
                      "Error %s: Failed in SUMA_SureFit_Read_Coord.\n", FuncName);
+            SUMA_ifree(pname); SUMA_ifree(psv);
             SUMA_RETURN (NULL);
          }
          /* copy the pertinent data to SO */
@@ -1454,6 +1491,7 @@ SUMA_SurfaceObject * SUMA_Load_Surface_Object_eng (
          if (!SUMA_SureFit_Read_Topo (SF_FileName->name_topo, SF)) {
             fprintf( SUMA_STDERR,
                      "Error %s: Failed in SUMA_SureFit_Read_Topo.\n", FuncName);
+            SUMA_ifree(pname); SUMA_ifree(psv);
             SUMA_RETURN (NULL);
          }
          
@@ -1514,6 +1552,7 @@ SUMA_SurfaceObject * SUMA_Load_Surface_Object_eng (
          if (!SUMA_Free_SureFit (SF)) {
             fprintf( SUMA_STDERR,
                      "Error %s: Failed in SUMA_Free_SureFit.\n", FuncName);
+            SUMA_ifree(pname); SUMA_ifree(psv);
             SUMA_RETURN (NULL);
          }
          
@@ -1524,6 +1563,7 @@ SUMA_SurfaceObject * SUMA_Load_Surface_Object_eng (
    if (SO->N_Node <=0 || SO->N_FaceSet<=0) {
       SUMA_SL_Crit("0 nodes or 0 facesets.\nProceed I will not.\n");
       SUMA_Free_Surface_Object (SO);
+      SUMA_ifree(pname); SUMA_ifree(psv);
       SUMA_RETURN (NULL);
    }
 
@@ -1544,10 +1584,12 @@ SUMA_SurfaceObject * SUMA_Load_Surface_Object_eng (
 
    if (!SUMA_PrepSO_GeomProp_GL (SO)) {
       SUMA_SL_Err("Failed to set surface's properties");
+      SUMA_ifree(pname); SUMA_ifree(psv);
       SUMA_RETURN (NULL);
    }
    
       
+   SUMA_ifree(pname); SUMA_ifree(psv);
    SUMA_RETURN (SO);
    
 }/*SUMA_Load_Surface_Object_eng*/
