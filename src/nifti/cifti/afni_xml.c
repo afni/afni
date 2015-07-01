@@ -404,7 +404,7 @@ int axml_free_xml_t(afni_xml_t * ax)
 }
 
 /* generic recursive function that processes an afni_xml_t tree */
-int axml_recur(int(*func)(afni_xml_t *, int), afni_xml_t * ax)
+int axml_recur(int(*func)(FILE * fp, afni_xml_t *, int), afni_xml_t * ax)
 {
    static int depth = 1;
    int        ind;
@@ -413,11 +413,12 @@ int axml_recur(int(*func)(afni_xml_t *, int), afni_xml_t * ax)
 
    /* call on current struct and recur over kids */
 
-   func(ax, depth);
+   func(gAXD.wstream, ax, depth);
 
    depth++;
    if( ax->nchild > 0 && ax->xchild )
-      for( ind=0; ind < ax->nchild; ind++ ) axml_recur(func, ax->xchild[ind]);
+      for( ind=0; ind < ax->nchild; ind++ ) 
+         axml_recur(func, ax->xchild[ind]);
    depth--;
 
    return 0;
