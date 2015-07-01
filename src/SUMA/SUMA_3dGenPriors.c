@@ -184,7 +184,11 @@ static char shelp_GenPriors[] = {
 "  -features 'F1 F2 F3 ...': Use these features only. Otherwise use all \n"
 "                            features in the signature file will be used.\n"
 "                            Note that partial matching is used to resolve\n"
-"                            which features to keep from training set.\n"
+"                            which features to keep from training set. If you\n"
+"                            want exact feature name matching, use\n"
+"                            option -strict_feature_match\n"
+"  -strict_feature_match: Use strict feature name matching when resolving \n"
+"                         which feature to keep from the traning set.\n" 
 "  -featgroups 'G1 G2 G3 ...': TO BE WRITTEN\n"
 "                            Example: -featgroups 'MEDI MAD. P2S'\n"
 "  -ShowThisDist DIST: Show information obtained from the training data about\n"
@@ -273,6 +277,7 @@ SEG_OPTS *GenPriors_Default(char *argv[], int argc)
    Opt->Gcs = NULL;
    Opt->fast = 1;
    Opt->ShowThisDist = NULL;
+   Opt->featmatchmode = 1;/* strstr match */
    
    RETURN(Opt);
 }
@@ -889,6 +894,11 @@ SEG_OPTS *GenPriors_ParseInput (SEG_OPTS *Opt, char *argv[], int argc)
          brk = 1;
 		}
       
+      if (!brk && (strcmp(argv[kar], "-strict_feature_match") == 0)) {
+         Opt->featmatchmode = 0;
+         brk = 1;
+		}
+      
       if (!brk && (strcmp(argv[kar], "-featgroups") == 0)) {
          kar ++;
 			if (kar >= argc)  {
@@ -1429,9 +1439,16 @@ int main(int argc, char **argv)
       for (j=0; j<Opt->feats->num; ++j) {
          nfound = 0;
          for (i=0; i<allfeats->num; ++i) {
-            if (strstr(allfeats->str[i], Opt->feats->str[j])) {
-               nisa = SUMA_NI_str_array(nisa, allfeats->str[i], "A"); 
-               ++nfound;
+            if (Opt->featmatchmode) { /* partial match */
+               if (strstr(allfeats->str[i], Opt->feats->str[j])) {
+                  nisa = SUMA_NI_str_array(nisa, allfeats->str[i], "A"); 
+                  ++nfound;
+               }
+            } else {
+               if (!strcmp(allfeats->str[i], Opt->feats->str[j])) {
+                  nisa = SUMA_NI_str_array(nisa, allfeats->str[i], "A"); 
+                  ++nfound;
+               }
             }
          }
          if (!nfound) {
