@@ -4271,7 +4271,7 @@ SUMA_Boolean SUMA_LoadSpec_eng (
             SUMA_LoadMaskDO (Spec->DO_name[i], NULL );
             break; }
          case VO_type: {
-            SUMA_LoadVolDO (Spec->DO_name[i], GL_REPLACE, NULL); 
+            SUMA_LoadVolDO (Spec->DO_name[i], SUMA_WORLD, NULL); 
             break; }
          case GDSET_type:
             SUMA_LHv("Loading graph dset %s\n",Spec->DO_name[i]);
@@ -4282,8 +4282,7 @@ SUMA_Boolean SUMA_LoadSpec_eng (
             }
             break;
          case CDSET_type:
-            SUMA_LHv("Loading cifti dset %s\n",Spec->DO_name[i]);
-            SUMA_S_Err("Sorry, not ready yet");
+            SUMA_LoadCIFTIDO (Spec->DO_name[i], SUMA_WORLD, NULL);
             break;
          default:
             SUMA_S_Errv("Bad or unexpected type %s for %s\n",
@@ -6343,5 +6342,63 @@ SUMA_SurfSpecFile *SUMA_IO_args_2_spec(SUMA_GENERIC_ARGV_PARSE *ps, int *nspec)
                "%s: About to return, have %d spec files.\n", FuncName, *nspec);
    }
    SUMA_RETURN(spec);
+}
+
+
+/* Load a CIFTI DO */
+SUMA_Boolean SUMA_LoadCIFTIDO (char *fname, 
+                        SUMA_DO_CoordUnits coord_type, SUMA_DSET **odset)
+{
+   static char FuncName[]={"SUMA_LoadCIFTIDO"};
+   SUMA_VolumeObject *VO=NULL;
+   SUMA_DSET *cdset=NULL;
+   SUMA_DSET_FORMAT tff = SUMA_NIML;
+   
+   SUMA_ENTRY;
+
+   if (!fname) SUMA_RETURN(NOPE);
+   if (coord_type != SUMA_NORM_SCREEN_UNIT &&
+       coord_type != SUMA_WORLD) coord_type = SUMA_WORLD;
+       
+   if (!(cdset = SUMA_LoadDset_eng( fname, &tff, 1 ))) {
+      SUMA_S_Errv("Failed to open %s\n", fname);
+      SUMA_free(fname); fname = NULL;
+      SUMA_RETURN(NOPE);
+   }     
+
+   if (!SUMA_isCIFTIDsetNgr(cdset->ngr)) {
+      SUMA_S_Err("All is bad that starts bad, or is it?\nNot a CIFTIcle.");
+      SUMA_RETURN(NOPE);
+   }
+   
+   /* Create DO trappings */
+   if (odset) {
+      if (*odset == NULL) {
+         *odset = cdset;
+      } else {
+         /* Replace any existing parts of *dset, with those from cdset */
+         if (!SUMA_FreeDsetContent(*odset)) {
+            SUMA_S_Err("Failed to free dset content");
+            SUMA_RETURN(NOPE);
+         }
+         (*odset)->ngr = cdset->ngr; cdset->ngr = NULL;
+         SUMA_FreeDset(cdset);
+         cdset = *odset; 
+      }
+   } 
+   
+   
+   SUMA_S_Warn("What next here? Do we have SurfCont, do we have CSaux?");
+
+   /* Set some display defaults (see SUMA_LoadVolDO() for example */
+   
+   /* Add CIFTI into DO list */
+   if (!SUMA_AddDO(SUMAg_DOv, &(SUMAg_N_DOv), (void *)cdset,  
+                     CDSET_type, coord_type)) {
+      fprintf(SUMA_STDERR,"Error %s: Error Adding DO\n", FuncName);
+      SUMA_RETURN(NOPE);
+   }
+   
+   SUMA_RETURN(YUP);
 }
 
