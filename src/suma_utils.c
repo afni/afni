@@ -2780,11 +2780,20 @@ char * SUMA_append_string(char *s1, char *s2)
    - s1 (but not s2 or spc ) IS FREED inside this function
    -free returned pointer with:  if(s_ap) SUMA_free(s_ap);
    
-   \sa SUMA_append_string
+   \sa SUMA_append_string, SUMA_ar_string, SUMA_append_replace_string_eng
 */
 char * SUMA_append_replace_string(char *s1, char *s2, char *Spc, int whichTofree)
 {
-   static char FuncName[]={"SUMA_append_replace_string"};
+   return(SUMA_append_replace_string_eng(s1, s2, Spc, whichTofree, 0));
+}
+char * SUMA_ar_string(char *s1, char *s2, char *Spc, int whichTofree)
+{
+   return(SUMA_append_replace_string_eng(s1, s2, Spc, whichTofree, 1));
+}
+char * SUMA_append_replace_string_eng(char *s1, char *s2, char *Spc, 
+                                      int whichTofree, int cleanstart)
+{
+   static char FuncName[]={"SUMA_append_replace_string_eng"};
    char *atr = NULL;
    int i,cnt, N_s2, N_s1, N_Spc=0;
 
@@ -2816,7 +2825,7 @@ char * SUMA_append_replace_string(char *s1, char *s2, char *Spc, int whichTofree
    }
      
    i=0;
-   if (Spc) {
+   if (Spc && (N_s1 || !cleanstart)) {
       while (Spc[i]) {
          atr[cnt] = Spc[i];
          ++i;
