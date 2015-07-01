@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  1,  Jul, 2015, RCR, "afni_proc.py", MICRO, TYPE_GENERAL,
+   "clarified help for -anat_unif_GM",
+   NULL
+ } ,
+
  { 24,  Jun, 2015, RCR, "afni_xml_tool", MINOR, TYPE_NEW_OPT,
    "afni_xml udpates, and start to afni_xml_tool",
    NULL
