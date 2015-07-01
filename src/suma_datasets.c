@@ -2960,6 +2960,11 @@ int SUMA_AddDsetNelIndexCol ( SUMA_DSET *dset, char *col_label,
    if (LocalHead) {
       SUMA_DUMP_TRACE("Trace at entry");
    }
+   if (ctp == SUMA_MD_NODE_INDEX) {
+      SUMA_S_Err("This function cannot handle multiple domain indices\n"
+                 "You might want to call SUMA_CIFTI_Set_Domains()\n");
+      SUMA_RETURN(0);
+   }
    if (!dset || !dset->inel || !SDSET_NODEINDLEN(dset)) { 
       SUMA_SL_Err("Null input"); 
       SUMA_DUMP_TRACE("Bad dset->inel, dumping trace for debug:"); 
@@ -3017,15 +3022,8 @@ int SUMA_AddDsetNelIndexCol ( SUMA_DSET *dset, char *col_label,
       } else {
          NI_set_attribute(dset->inel, "sorted_node_def", "Unknown");
       }
-   } else if (ctp == SUMA_MD_NODE_INDEX) { 
-      SUMA_S_Warn("Not ready to check on sortedness yet, this must"
-                  "be done domain by domain. For now, setting to No");
-      if (col) {
-         NI_set_attribute(dset->inel, "sorted_node_def", "No");   
-      } else {
-         NI_set_attribute(dset->inel, "sorted_node_def", "Unknown");
-      }
    }
+   
    
    
    SUMA_LH("Setting index attributes");
@@ -16351,7 +16349,7 @@ byte SUMA_isCIFTIDsetNgr(NI_group *ngr)
 
 SUMA_Boolean SUMA_CIFTI_Set_Domains(SUMA_DSET *dset, int N_doms, 
                                     int *dind, int *dindoff, int *dn,
-                                    SUMA_DO_Types *dtp, char *dids)
+                                    SUMA_DO_Types *dtp, char **dsrcs)
 {
    static char FuncName[]={"SUMA_CIFTI_Set_Domains"};
    char *str = NULL, buff[500]={""};
@@ -16371,10 +16369,11 @@ SUMA_Boolean SUMA_CIFTI_Set_Domains(SUMA_DSET *dset, int N_doms,
                                     nodes, voxels, etc possible in domain.*/
    str = NULL;
    for (i=0; i<N_doms; ++i) {
-      str = SUMA_append_replace_string(
+      str = SUMA_ar_string(
                str, (char *)SUMA_ObjectTypeCode2ObjectTypeName(dtp[i]),";",1);
    }
    NI_SET_STR(dset->inel, "Model_Types", str); SUMA_ifree(str);
+   
    
    /* check the indices and set the ranges, location of min and max for
       each domain is relative to the full list */
@@ -16390,9 +16389,16 @@ SUMA_Boolean SUMA_CIFTI_Set_Domains(SUMA_DSET *dset, int N_doms,
       }
       snprintf(buff, 500*sizeof(char),"%d %d %d %d", 
                      min, max, imin, imax);
-      str = SUMA_append_replace_string(str, buff, SUMA_NI_CSS, 1);
+      str = SUMA_ar_string(str, buff, SUMA_NI_CSS, 1);
    }
    NI_set_attribute(dset->inel, "COLMS_RANGE", str); SUMA_ifree(str); 
+   
+   /* domain sources */
+   str = NULL;
+   for (i=0; i<N_doms; ++i) {
+      str = SUMA_ar_string(str, dsrcs[i],";",1);
+   }
+   NI_SET_STR(dset->inel, "Domain_Sources", str); SUMA_ifree(str);
    
    /* Set the sorted flag */
    if (sorted) {
@@ -16403,17 +16409,13 @@ SUMA_Boolean SUMA_CIFTI_Set_Domains(SUMA_DSET *dset, int N_doms,
    
    /* You have yet to put in the indices */
    if (!SDSET_NODEINDNUM(dset)) {
-      SUMA_S_Warn("Have empty inel");
+      NI_add_column_stride ( dset->inel, NI_INT, dind, 1);
    } else {
       SUMA_LH("Have inel col of %d vals", dset->inel->vec_len);
       ind = (int *)(dset->inel->vec[0]);
       for (i=0; i<SDSET_VECLEN(dset); ++i) {
          ind[i] = dind[i];
       }
-   }
-   
-   if (dids) {
-      SUMA_S_Err("Not sure I need domain ids stored here, hold off for now");
    }
    
    SUMA_RETURN(NOPE);
@@ -16430,6 +16432,7 @@ SUMA_Boolean SUMA_CIFTI_Free_Doms(SUMA_DSET *dset)
       for (i=0; i<dset->Aux->N_doms; ++i) {
          if (dset->Aux->doms[i]) {
             SUMA_ifree(dset->Aux->doms[i]->idcode_str);
+            SUMA_ifree(dset->Aux->doms[i]->Source);
             SUMA_ifree(dset->Aux->doms[i]);
          }
       }
@@ -16448,7 +16451,7 @@ SUMA_Boolean SUMA_CIFTI_DomainsFromNgr(SUMA_DSET *dset)
    static char FuncName[]={"SUMA_CIFTI_DomainsFromNgr"};
    double nums[4];
    int i, k, ibuff[51], jbuff[51];
-   char *mtstr=NULL, *rnstr=NULL, *ss=NULL;
+   char *mtstr=NULL, *rnstr=NULL, *ss=NULL, *dsstr=NULL;
    
    SUMA_ENTRY;
    
@@ -16470,8 +16473,9 @@ SUMA_Boolean SUMA_CIFTI_DomainsFromNgr(SUMA_DSET *dset)
    NI_GET_INTv(dset->inel,"Index_Offsets", ibuff, dset->Aux->N_doms+1, 0);
    NI_GET_INTv(dset->inel,"Domain_N_Data", jbuff, dset->Aux->N_doms, 0);
    NI_GET_STR(dset->inel, "Model_Types", mtstr);
+   NI_GET_STR(dset->inel, "Domain_Sources", dsstr);
    NI_GET_STR(dset->inel, "COLMS_RANGE", rnstr);
-   if (!mtstr || !rnstr) {
+   if (!mtstr || !rnstr || !dsstr) {
       SUMA_S_Err("Malformation suspected");
       SUMA_RETURN(NOPE);
    }
@@ -16485,6 +16489,9 @@ SUMA_Boolean SUMA_CIFTI_DomainsFromNgr(SUMA_DSET *dset)
       dset->Aux->doms[i]->Max_N_Data  = jbuff[i];
       ss = SUMA_Get_Sub_String(mtstr,SUMA_NI_CSS, i);
       dset->Aux->doms[i]->ModelType   = SUMA_ObjectTypeName2ObjectTypeCode(ss);
+      SUMA_ifree(ss);
+      ss = SUMA_Get_Sub_String(mtstr,SUMA_NI_CSS, i);
+      dset->Aux->doms[i]->Source = SUMA_copy_string(ss);
       SUMA_ifree(ss);
       if (SUMA_StringToNum(rnstr, (void *)nums, 4, 2) != 4) { 
          SUMA_SL_Err("Failed to read 4 nums from range.");  
@@ -16504,6 +16511,7 @@ SUMA_Boolean SUMA_CIFTI_NgrFromDomains(SUMA_DSET *dset)
 {
    static char FuncName[]={"SUMA_CIFTI_NgrFromDomains"};
    int dindoff[51], dn[51], i;
+   char *dsrcs[51];
    SUMA_DO_Types dtp[51];
     
    if (!SUMA_isCIFTIDset(dset) || !dset->Aux || !dset->Aux->doms) {
@@ -16521,10 +16529,10 @@ SUMA_Boolean SUMA_CIFTI_NgrFromDomains(SUMA_DSET *dset)
       if (dset->Aux->doms[i]->idcode_str) {
          SUMA_S_Warn("Not ready to include idcode_str");
       }
+      dsrcs[i] = dset->Aux->doms[i]->Source;
    }
    SUMA_CIFTI_Set_Domains(dset, dset->Aux->N_doms, SDSET_NODE_INDEX_COL(dset),
-                          dindoff, dn, dtp, NULL);
+                          dindoff, dn, dtp, dsrcs);
    SUMA_RETURN(YUP);   
 }
-
 

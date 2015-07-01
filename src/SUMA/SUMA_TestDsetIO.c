@@ -28,16 +28,17 @@ void usage_Test_DSET_IO ()
   }/*Usage*/
 
 /* Create a toy CIFTI dataset that is made up of two surfaces isotopic with the surface named in sdomain and the volume grid in vdomain */
-SUMA_DSET *SUMA_Create_Fake_CIFTI(char *sdomain, char *vdomain)
+SUMA_DSET *SUMA_Create_Fake_CIFTI(char *sdomain0, char *sdomain1, char *vdomain)
 {
    static char FuncName[]={"SUMA_Create_Fake_CIFTI"};
    SUMA_DSET *sdset = NULL;
-   SUMA_SurfaceObject *SO = NULL;
+   SUMA_SurfaceObject *SO0 = NULL, *SO1 = NULL;
    THD_3dim_dataset *vdset = NULL;
    byte *mask;
    int N_mask, i, k, *dind=NULL, *dmaxind, *ind=NULL, *IndOffset=NULL;
-   float *v1=NULL, *v2=NULL;
+   float *v1=NULL, *v2=NULL, *fv=NULL;
    SUMA_DO_Types *dtp=NULL;
+   char **dsstr=NULL;
    SUMA_Boolean LocalHead = YUP;
    
    /* 
@@ -52,25 +53,39 @@ SUMA_DSET *SUMA_Create_Fake_CIFTI(char *sdomain, char *vdomain)
    int N_indRight = 10;
    int N_Alloc;
    
+   SUMA_ENTRY;
+   
    /* Hard code the domains, no time to get fancy here */
-   sdomain="ld3";
-   vdomain="ciftivol+tlrc.HEAD";
+   if (!sdomain0) sdomain0 = "lh:MNI_N27:ld20:smoothwm";
+   if (!sdomain1) sdomain1 = "rh:MNI_N27:ld20:smoothwm";
+   if (!vdomain) vdomain = "ciftivolmsk+tlrc.HEAD";
    
    /* Load the domains */
-   if (!(SO = SUMA_Load_Surface_Object_Wrapper(sdomain, NULL, NULL,
-                                         SUMA_GIFTI, SUMA_FF_NOT_SPECIFIED, 
+   
+   if (!(SO0 = SUMA_Load_Surface_Object_Wrapper(sdomain0, NULL, NULL,
+                                         SUMA_PREDEFINED, SUMA_FF_NOT_SPECIFIED, 
                                          NULL, 2))) {
-      SUMA_S_Err("Failed to load SO %s", sdomain);                                      SUMA_RETURN(NULL);
+      SUMA_S_Err("Failed to load SO0 %s", sdomain0);
+      SUMA_RETURN(NULL);
+   }
+   
+   if (!(SO1 = SUMA_Load_Surface_Object_Wrapper(sdomain1, NULL, NULL,
+                                         SUMA_PREDEFINED, SUMA_FF_NOT_SPECIFIED, 
+                                         NULL, 2))) {
+      SUMA_S_Err("Failed to load SO1 %s", sdomain1);
+      SUMA_RETURN(NULL);
    }
    
    if (!(vdset = THD_open_dataset(vdomain))) {
       SUMA_S_Err("Failed to load vdset %s", vdomain);
-      SUMA_Free_Surface_Object(SO); SO = NULL;
+      SUMA_Free_Surface_Object(SO0); SO0 = NULL;
+      SUMA_Free_Surface_Object(SO1); SO1 = NULL;
       SUMA_RETURN(NULL);
    }
    mask = THD_makemask( vdset , 0 , 1.0, -1.0 );
    N_mask = THD_countmask(DSET_NVOX(vdset), mask);
-   
+   fv = THD_extract_to_float ( 0, vdset);
+      
    /* Number of entries, we assume this is not a full dataset */
    N_Alloc = N_indLeft + N_indRight + N_mask;
 
@@ -78,10 +93,12 @@ SUMA_DSET *SUMA_Create_Fake_CIFTI(char *sdomain, char *vdomain)
    sdset = SUMA_CreateDsetPointer ("ToyCifti.niml.dset", SUMA_CIFTI_BUCKET,
                                     NULL, NULL, N_Alloc ); 
 
+   
    /* Create the index column and some data */
    SUMA_S_Warn("Check what is to be preserved in output dset and free the rest");
    IndOffset = (int *)SUMA_calloc(3+1,sizeof(int));
    dmaxind = (int *)SUMA_calloc(3,sizeof(int));
+   dsstr = (char **)SUMA_calloc(3, sizeof(char *));
    dtp = (SUMA_DO_Types *)SUMA_calloc(3,sizeof(SUMA_DO_Types));
    /* This is the domain index vector: dind[k] is the datum index of row k on 
    domain(k). This means that you could have duplicate indices whereby
@@ -95,34 +112,37 @@ SUMA_DSET *SUMA_Create_Fake_CIFTI(char *sdomain, char *vdomain)
    v2 = (float *)SUMA_calloc(N_Alloc, sizeof(float));
    
    IndOffset[0] = 0;
-   dmaxind[0] = SO->N_Node;
+   dmaxind[0] = SO0->N_Node;
+   dsstr[0] = SUMA_copy_string(sdomain0);
    dtp[0] = SO_type;
    k = 0;
    i = 0;
    while (i < N_indLeft) { /* Think of this as CIFTI brain model */
-      dind[k] = i;
-      v1[k] = indLeft[i]/2.0;
-      v2[k] = indLeft[i]/3.0;
+      dind[k] = indLeft[i];
+      v1[k] = cos(i/300.0);
+      v2[k] = sin(i/300.0);
       ++k; ++i;
    }
    IndOffset[1] = IndOffset[0]+N_indLeft;
-   dmaxind[1] = SO->N_Node;
+   dmaxind[1] = SO1->N_Node;
+   dsstr[1] = SUMA_copy_string(sdomain1);
    dtp[1] = SO_type;
    i = 0;
    while (i < N_indRight) {
-      dind[k] = i+IndOffset[1];
-      v1[k] = indRight[i]/2.0;
-      v2[k] = indRight[i]/3.0;
+      dind[k] = indRight[i];
+      v1[k] = sin(i/300.0);
+      v2[k] = cos(i/300.0);
       ++k; ++i;
    }
    IndOffset[2] = IndOffset[1]+N_indRight;
    dmaxind[2] = DSET_NVOX(vdset);
+   dsstr[2] = SUMA_copy_string(vdomain);
    dtp[2] = VO_type;
    i = 0;
    while (i < DSET_NVOX(vdset)) {
       if (mask[i]) {
-         dind[k] = dind[k-1]+1;
-         v1[k] = i;
+         dind[k] = i;
+         v1[k] = fv[i];
          v2[k] = k-IndOffset[2]; 
          ++k;
       }
@@ -145,9 +165,9 @@ SUMA_DSET *SUMA_Create_Fake_CIFTI(char *sdomain, char *vdomain)
                                   NULL,
                                   NULL,       /* no domain str specified */
                                   N_Alloc    /* Number of nodes allocated for */
-                                    ); /* 
+                                    );  
    /* Setup the CIFTI domains */
-   SUMA_CIFTI_Set_Domains(sdset, 3, dind, IndOffset, dmaxind, dtp, NULL);
+   SUMA_CIFTI_Set_Domains(sdset, 3, dind, IndOffset, dmaxind, dtp, dsstr);
    
    if (!SUMA_AddDsetNelCol (sdset, "Need", 
                                   SUMA_NODE_FLOAT, (void *)v1, NULL ,1)) {
@@ -159,132 +179,19 @@ SUMA_DSET *SUMA_Create_Fake_CIFTI(char *sdomain, char *vdomain)
       SUMA_S_Err("Failed in SUMA_AddDsetNelCol");
    }
    
-   
-   SUMA_WriteDset_eng("ToyCifti.niml.dset", sdset, SUMA_ASCII_NIML, 1, 1, 1);
-   DSET_delete(sdset); sdset = NULL;
+   SUMA_Free_Surface_Object(SO0); SO0 = NULL;
+   SUMA_Free_Surface_Object(SO1); SO1 = NULL;
+   DSET_delete(vdset);
+   SUMA_ifree(v1); SUMA_ifree(v2); SUMA_ifree(dind);
+   SUMA_ifree(IndOffset); SUMA_ifree(dmaxind); SUMA_ifree(dtp);
+   for (i=0; i<3; ++i) SUMA_ifree(dsstr[i]);
+   SUMA_ifree(dsstr);
+   SUMA_ifree(mask);
+   SUMA_ifree(fv);
    
    SUMA_RETURN(sdset);
 }
 
-SUMA_Boolean SUMA_CIFTI_Free_Doms(SUMA_DSET *dset)
-{
-   static char FuncName[]={"SUMA_CIFTI_Free_Doms"};
-   
-   if (!dset) return(NOPE);
-   
-   if (dset->doms && dset->N_doms > 0) {
-      for (i=0; i<dset->N_doms; ++i) {
-         if (dset->doms[i]) {
-            SUMA_ifree(dset->doms[i]->idcode);
-            SUMA_ifree(dset->doms[i]);
-         }
-      }
-      SUMA_ifree(dset->doms);
-   }
-   dset->N_doms = -1; dset->doms = NULL;
-   
-   return(YUP);
-}
-
-/* Take dset->ngr->inel domain information and write them into
-   C-struct fields 
-   \sa  SUMA_CIFTI_NgrFromDomains */
-SUMA_Boolean SUMA_CIFTI_DomainsFromNgr(SUMA_DSET *dset)
-{
-   static char FuncName[]={"SUMA_CIFTI_DomainsFromNgr"};
-   double nums[4];
-   int i, k;
-   char *mtstr=NULL, *rnstr=NULL;
-   
-   SUMA_ENTRY;
-   
-   if (!SUMA_isCIFTIDset(dset)) {
-      SUMA_S_Err("I'm calling my lawyer");
-      SUMA_RETURN(NOPE);
-   }
-   if (dset->doms) {
-      SUMA_CIFTI_Free_Doms(dset);
-   }
-   
-   NI_GET_INTv(dset->inel,"Index_Offsets", ibuff, dset->N_doms+1);
-   NI_GET_INTv(dset->inel,"Domain_N_Data", jbuff, dset->N_doms);
-   NI_GET_STR(dset->inel, "Model_Types", mtstr);
-   NI_GET_STR(dset->inel, "COLMS_RANGE", rnstr);
-   if (!mtstr || !rnstr) {
-      SUMA_S_Err("Malformation suspected");
-      SUMA_RETURN(NOPE);
-   }
-   NI_GET_INT(dset->inel, "N_Domains", dset->N_doms);
-   if (dset->N_doms > 50) {
-      SUMA_S_Err("No setup to deal with so many doms. Fix me");
-      dset->N_doms = -1;
-      SUMA_RETURN(NOPE);
-   }
-   
-   dset->inel->doms = (SUMA_DSET_DOMAIN **)SUMA_calloc(
-                              dset->inel->N_doms, sizeof(SUMA_DSET_DOMAIN *));
-   for (i=0; i<dset->N_doms; ++i) {
-      dset->inel->doms[i] = (SUMA_DSET_DOMAIN *)
-                                 SUMA_calloc(1,sizeof(SUMA_DSET_DOMAIN));
-      dset->inel->doms[i]->IndexOffset = ibuff[i];
-      dset->inel->doms[i]->IndexCount  = ibuff[i+1]-ibuff[i];
-      dset->inel->doms[i]->Max_N_Data  = jbuff[i];
-      ss = SUMA_Get_Sub_String(mtstr,SUMA_NI_CSS, i);
-      dset->inel->doms[i]->ModelType   = SUMA_ObjectTypeName2ObjectTypeCode(ss);
-      if (SUMA_StringToNum(rnstr, (void *)nums, 4, 2) != 4) { 
-         SUMA_SL_Err("Failed to read 4 nums from range.");  
-         for (k=0; k<4; ++k) dset->inel->doms[i]->Range[k] = -1; 
-      } else {
-         for (k=0; k<4; ++k) dset->inel->doms[i]->Range[k] = nums[k]; 
-      }
-   }
-   
-   SUMA_RETURN(YUP);
-}
-
-/* Take C-struct domain information and write them into
-   dset->ngr->inel element
-   \sa SUMA_CIFTI_DomainsFromNgr */
-SUMA_Boolean SUMA_CIFTI_NgrFromDomains(SUMA_DSET *dset)
-{
-   static char FuncName[]={"SUMA_CIFTI_NgrFromDomains"};
-   int dindoff[51], dn[51];
-   SUMA_DO_Types dtp[51];
-    
-   if (!SUMA_isCIFTIDset(dset) || !dset->doms) {
-      SUMA_S_Err("I'm calling my mom!");
-      SUMA_RETURN(NOPE);
-   }
-   if (dset->N_doms > 50) {
-      SUMA_S_Err("No setup to deal with so many doms. Fix me");
-      SUMA_RETURN(NOPE);
-   }
-   for (i=1; i<dset->N_doms; ++i) {
-      dindoff[i] = dset->doms[i]->IndexOffset;
-      dn[i] = dset->doms[i]->Max_N_Data;
-      dtp[i] = dset->inel->doms[i]->ModelType;
-      if (dset->inel->doms[i]->idcode_str) {
-         SUMA_S_Warn("Not ready to include idcode_str");
-      }
-   }
-   SUMA_CIFTI_Set_Domains(dset, dset->N_doms, SDSET_NODE_INDEX_COL(dset),
-                          dindoff, dn, dtp, NULL);
-   SUMA_RETURN(YUP);   
-}
-
-SUMA_CIFTI_RowIndex_to_DomainIndex(SUMA_DSET dset, int rind, char *idcode)
-{
-   int k, N_Domains = 3;
-   
-   fprintf(stderr,"Move this function to where it belongs, and need a function to get N_Domains from dset, AND IndOffset from dset. \n");
-   if (rind < 0) return(-1);
-   for (k=0; k<N_Domains; ++k) {
-      if (rind < IndOffset[k+1]) {
-         if (idcode) sprintf(idcode, "%s", DomainID[k-1]->idcode_str);
-         return(k-1);
-      }
-   }
-}
    
 int main (int argc,char *argv[])
 {/* Main */
@@ -307,10 +214,16 @@ int main (int argc,char *argv[])
 	
    LocalHead = YUP; /* turn on debugging */
    SUMA_LH("Creating CIFTI toy");
-   cdset = SUMA_Create_Fake_CIFTI(NULL, NULL);
+   if (!(cdset = SUMA_Create_Fake_CIFTI(NULL, NULL, NULL))) {
+      SUMA_S_Err("Failed to create fake CIFTI");
+      exit(1);
+   }
+   SUMA_WriteDset_eng("ToyCifti.niml.dset", cdset, SUMA_ASCII_NIML, 1, 1, 1);
    SUMA_FreeDset(cdset); cdset = NULL;
-   
-   SUMA_LH("Creating Data ...");
+   SUMA_LH("Fix this exit and localhead");
+      exit(1);
+
+   SUMA_LH("Creating Surface Data ...");
    /* Create some sample data*/
       /* let us create some colors to go on each node */
       N_Alloc = 50;
