@@ -202,6 +202,7 @@ typedef enum {
    SUMA_EDGE_P1_INDEX,        /* First point (Graph Node) defining an edge */
    SUMA_EDGE_P2_INDEX,        /* Second point defining an edge */
    
+   SUMA_MD_NODE_INDEX, /*!< Index col. into a Multiple Domain object a la CIFTI*/
    
    SUMA_N_COL_TYPES           /* MAX number of col types */
 }  SUMA_COL_TYPE; /*!<  Column types.
@@ -235,7 +236,9 @@ typedef enum {
 #define SUMA_IS_DATUM_INDEX_COL(ctp) (((ctp)==SUMA_NODE_INDEX || \
                                  (ctp)==SUMA_EDGE_P1_INDEX || \
                                  (ctp)==SUMA_EDGE_P2_INDEX ) ? 1:0)
-#define SUMA_DATUM_INDEX_CTP2COL(ctp) ( (ctp)==SUMA_NODE_INDEX ? 0 : \
+#define SUMA_IS_MD_DATUM_INDEX_COL(ctp) (((ctp)==SUMA_NODE_INDEX) ? 1 : 0)
+#define SUMA_DATUM_INDEX_CTP2COL(ctp) ( ((ctp)==SUMA_NODE_INDEX || \
+                                         (ctp)==SUMA_MD_NODE_INDEX) ? 0 : \
                                     ( (ctp)==SUMA_EDGE_P1_INDEX ? 1: \
                                        ( (ctp)==SUMA_EDGE_P2_INDEX ? 2:-1 ) )  )
                                     
@@ -374,12 +377,22 @@ typedef struct { /* A structure to contain information about a domain
                        the first datum over this domain  */
       int IndexCount; /* How many consecutive rows in dset correspond to this 
                       domain*/
+      int Max_N_Data; /* Maximum number of data points in domain 
+                         SO->N_Node, DSET_NVOX(dset) */                
       SUMA_DO_Types ModelType; /* Is this a surface, volume, etc...*/
-    
-   int *DatumIndices; /* DatumIndices[k] is the index of the elementary datum
-                         of this domain corresponding to the row IndexOffset+k 
-                         in the parent dataset */
-} SUMA_DSET_DOMAINS;
+      int Range[4];  /* min , max , imin, imax
+                     min, and max are the minimum and maximum node indices
+                     present in the full index list for this domain.
+                     imin and imax are the rows into the full index list
+                     where these min and max indices are found */
+} SUMA_DSET_DOMAIN;
+/* Get the pointer to the beginning of the data indices for domain dom */
+
+#define SUMA_DOMAIN_INDICES(dset,dom) ((( (dset) && \
+                                 (dset)->inel && \
+                                 (dset)->inel->vec[0] && \
+                                 IndexOffset >= 0)) ? \
+                                dset->inel->vec[0]+IndexOffset:NULL)
 
 typedef enum { SUMA_NO_PTR_TYPE, 
                SUMA_LINKED_DSET_TYPE, /*!< For pointers to SUMA_DSET */
@@ -428,7 +441,7 @@ typedef struct { /* Something to hold auxiliary datasets structs */
                             graph dataset */
    SUMA_DSET_FLAVORS isGraph;
    
-   SUMA_DSET_DOMAINS *doms; /* domains over which the dataset 
+   SUMA_DSET_DOMAIN **doms; /* domains over which the dataset 
                                (only CIFTI for now) is defined */
    int N_doms;              /* Number of domains          */
 } SUMA_DSET_AUX;
@@ -1692,6 +1705,7 @@ int SUMA_RemoveNgrHist(NI_group *ngr);
 int SUMA_RemoveDsetHist(SUMA_DSET *dset);
 int SUMA_AddNelHist(NI_element *nel, char *CallingFunc, int N_arg, char **arg);
 void SUMA_FreeDset(void *dset);
+SUMA_Boolean SUMA_FreeDsetContent (SUMA_DSET *dset);
 SUMA_DSET * SUMA_FindDset_ns (char *idcode_str, DList *DsetList);
 SUMA_DSET * SUMA_FindDset2_ns (char *idcode_str, DList *DsetList, char *itype);
 DListElmt * SUMA_FindDsetEl_ns (char *idcode, DList *DsetList);
@@ -2011,6 +2025,8 @@ int SUMA_init_GISET_setup(NI_stream nsg , NI_element *nel, GICOR_setup *giset,
                           int bmode);   /* 17 Aug 2012 [rickr] */
 int SUMA_PopulateDsetsFromGICORnel(NI_element *nel, GICOR_setup *giset, 
                                    SUMA_DSET **sdsetv);
+const char *SUMA_ObjectTypeCode2ObjectTypeName(SUMA_DO_Types dd);
+SUMA_DO_Types SUMA_ObjectTypeName2ObjectTypeCode(char *cc);
 
 /************************ GRAPH Dset functions  ******************** */
 
@@ -2060,5 +2076,11 @@ int SUMA_GDSET_Max_Edge_Index(SUMA_DSET *dset);
 char *SUMA_GDSET_Node_Label(SUMA_DSET *dset, int psel);
 char *SUMA_GDSET_Edge_Label(SUMA_DSET *dset, int isel, char *pref, char *sep);
 
-
+/************************ CIFTI Dset functions ******************** */
+SUMA_Boolean SUMA_CIFTI_Set_Domains(SUMA_DSET *dset, int N_doms, 
+                                    int *dind, int *dindoff, int *dn,
+                                    SUMA_DO_Types *dtp, char *dids);
+SUMA_Boolean SUMA_CIFTI_NgrFromDomains(SUMA_DSET *dset);
+SUMA_Boolean SUMA_CIFTI_DomainsFromNgr(SUMA_DSET *dset);
+SUMA_Boolean SUMA_CIFTI_Free_Doms(SUMA_DSET *dset);
 #endif

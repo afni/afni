@@ -3453,6 +3453,7 @@ char *SUMA_help_IO_Args(SUMA_GENERIC_ARGV_PARSE *opt)
    if (opt->accept_do) {
       SS = SUMA_StringAppend (SS, 
 " Specifying displayable objects:\n"
+"    -cdset CDSET: Load and display a CIFTI dataset\n"
 "    -gdset GDSET: Load and display a graph dataset\n"
 "    -tract TRACT: Load and display a tractography dataset\n"      
 "    -vol VOL: Load and display a volume\n"      
@@ -4115,10 +4116,11 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[],
                (  (strcmp(argv[kar], "-tract") == 0) ||
                   (strcmp(argv[kar], "-gdset") == 0) ||
                   (strcmp(argv[kar], "-vol") == 0)   ||
+                  (strcmp(argv[kar], "-cdset") == 0) ||
                   (strcmp(argv[kar], "-mask") == 0) )) {
 			   if (kar+1 >= argc)  {
 		  		   fprintf (SUMA_STDERR,
-                        "need 1 argument after -tract/-gdset/-vol \n");
+                     "need 1 argument after -tract/-cdset/-gdset/-vol/-mask \n");
 				   exit (1);
 			   }
             do {
@@ -4126,7 +4128,7 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[],
                /* do we have a - as the first char ? */
                if (argv[kar][0] == '-') {
                   fprintf (SUMA_STDERR,
-                       "no option should directly follow -tract/-gdset/-vol \n");
+              "no option should directly follow -tract/-cdset/-gdset/-vol \n");
 				      exit (1);
                }
 			      if (ps->N_DO+1 < SUMA_MAX_DO_ON_COMMAND) {
