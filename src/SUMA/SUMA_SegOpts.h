@@ -109,6 +109,7 @@ typedef struct {
    NI_str_array *feats, *clss, *featsfam;
    float **feat_exp;
    int featexpmeth;
+   int featmatchmode;
    int Other;
    int *keys;
    
