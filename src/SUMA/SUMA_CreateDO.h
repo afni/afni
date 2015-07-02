@@ -107,6 +107,20 @@ typedef struct {
    float *Range;  /* Min Max of X, Y, and Z of all points */
 } SUMA_TRACT_SAUX;
 
+/*! A CIFTI object's Auxiliary structure for SUMA's use */
+typedef struct {
+   DList *DisplayUpdates;
+   SUMA_X_SurfCont *DOCont;/*!< Displayable object controller */
+   SUMA_PICK_RESULT *PR;
+   SUMA_OVERLAYS **Overlays;
+   int N_Overlays;
+   SUMA_Boolean *isColored; /*!< is the datum receiving color? Not masked say 
+                                 by thresholds etc. */
+   
+   float *Center; /* Geometric center of all points */
+   float *Range;  /* Min Max of X, Y, and Z of all points */
+} SUMA_CIFTI_SAUX;
+
 /*! A Mask object's Auxiliary structure for SUMA's use */
 typedef struct {
    DList *DisplayUpdates;
@@ -172,6 +186,9 @@ typedef struct {
 #define SDSET_GOVERLAY(dset) (( (dset) && (dset)->Aux && (dset)->Aux->Saux &&   \
                                SUMA_isGraphDset(dset) ) ? \
                   ((SUMA_GRAPH_SAUX *)(dset)->Aux->Saux)->Overlay:NULL )
+#define SDSET_COVERLAY(dset) (( (dset) && (dset)->Aux && (dset)->Aux->Saux &&   \
+                               SUMA_isCIFTIDset(dset) ) ? \
+                  ((SUMA_CIFTI_SAUX *)(dset)->Aux->Saux)->Overlay:NULL )
                   
 #define SDSET_GMATSO(dset) (( (dset) && (dset)->Aux && (dset)->Aux->Saux &&   \
                                SUMA_isGraphDset(dset) ) ? \

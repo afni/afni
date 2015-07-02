@@ -100,6 +100,7 @@ SUMA_OVERLAYS * SUMA_NewPlaneSearch(SUMA_ALL_DO *ado,
                                     SUMA_OVERLAYS *Overlay);
 SUMA_Boolean SUMA_LoadCIFTIDO (char *fname, 
                         SUMA_DO_CoordUnits coord_type, SUMA_DSET **odset);
+SUMA_Boolean SUMA_CIFTI_load_domains(SUMA_DSET *cdset);
 void SUMA_LoadDsetOntoSO (char *filename, void *data);
 SUMA_Boolean SUMA_LoadDsetOntoSO_eng (char *filename, SUMA_SurfaceObject *SO,
                               int SetupOverlay, int MakeOverlayCurrent, 

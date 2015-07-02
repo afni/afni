@@ -5750,6 +5750,10 @@ void SUMA_FreeDset(void *vp)
       SUMA_RETURNe;
    }
    
+   if (SUMA_isCIFTIDset(dset)) {
+      SUMA_S_Warn("Note that objects defining domain of the dataset\n"
+                  "being deleted are not being freed\n");
+   }
    if (!SUMA_FreeDsetContent(dset)) {
       SUMA_S_Err("Failed to free content, proceeding, "
                  "but danger danger Will Robinson!");
@@ -16363,8 +16367,8 @@ SUMA_Boolean SUMA_CIFTI_Set_Domains(SUMA_DSET *dset, int N_doms,
       SUMA_RETURN(NOPE);
    }
    
-   NI_SET_INT(dset->inel, "N_Domains", N_doms);
-   NI_SET_INTv(dset->inel, "Index_Offsets", dind, N_doms+1);
+   NI_SET_INT (dset->inel, "N_Domains", N_doms);
+   NI_SET_INTv(dset->inel, "Index_Offsets", dindoff, N_doms+1);
    NI_SET_INTv(dset->inel, "Domain_N_Data", dn, N_doms); /* total number of 
                                     nodes, voxels, etc possible in domain.*/
    str = NULL;
