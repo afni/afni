@@ -9139,6 +9139,43 @@ SUMA_Boolean SUMA_AddDsetSaux(SUMA_DSET *dset)
       }
       
       SUMA_DrawDO_UL_FullMonty(GSaux->DisplayUpdates);
+   } else if (SUMA_isCIFTIDset(dset)) {
+      SUMA_CIFTI_SAUX *CSaux;
+      if (dset->Aux->Saux) {
+         CSaux = (SUMA_CIFTI_SAUX *)dset->Aux->Saux;
+         /* empty old updates list */
+         SUMA_DrawDO_UL_EmptyList(CSaux->DisplayUpdates, NULL);
+         
+         if (CSaux->Overlay) {
+            SUMA_S_Warn("Have overlay already, will remove it. Revisit later.");
+            SUMA_FreeOverlayPointer(CSaux->Overlay);
+            CSaux->Overlay = NULL;
+         }
+         
+         if (CSaux->DOCont) {
+            SUMA_S_Warn("Have controller already. Keep it.");
+         } else {
+            GSaux->DOCont = SUMA_CreateSurfContStruct(SDSET_ID(dset), 
+                                                      CIFTI_type);
+         }
+         SUMA_ifree(CSaux->Center);
+         SUMA_ifree(CSaux->Range);
+      } else {
+         dset->Aux->FreeSaux = SUMA_Free_CSaux;
+         dset->Aux->Saux = (void *)SUMA_calloc(1,sizeof(SUMA_CIFTI_SAUX));
+         CSaux = (SUMA_CIFTI_SAUX *)dset->Aux->Saux;
+         
+         CSaux->DisplayUpdates = (DList *)SUMA_malloc(sizeof(DList));
+         dlist_init(CSaux->DisplayUpdates, SUMA_Free_Saux_DisplayUpdates_datum);
+         
+         CSaux->Overlay = NULL;
+         CSaux->DOCont = SUMA_CreateSurfContStruct(SDSET_ID(dset), 
+                                                   CIFTI_type);
+         CSaux->PR = SUMA_New_Pick_Result(NULL);
+         CSaux->Center = NULL;
+         CSaux->Range = NULL;
+      }
+      
    }    
    
    
@@ -9222,7 +9259,9 @@ SUMA_Boolean SUMA_AddTractSaux(SUMA_TractDO *tdo)
 
    SUMA_LH("TSaux %p %p %p", TSaux->Overlays, TSaux->PR, TSaux->DOCont);
    
-   SUMA_DrawDO_UL_FullMonty(TSaux->DisplayUpdates);
+   #if 0 /* not used for tracts */
+      SUMA_DrawDO_UL_FullMonty(TSaux->DisplayUpdates);
+   #endif
    
    SUMA_RETURN(YUP);  
 }
@@ -9348,8 +9387,10 @@ SUMA_Boolean SUMA_AddMaskSaux(SUMA_MaskDO *mdo)
 
    SUMA_LH("MSaux %p %p %p", MSaux->Overlays, MSaux->PR, MSaux->DOCont);
    
+   #if 0 /* Not used for tracts */
    if (!MDO_IS_SHADOW(mdo))
       SUMA_DrawDO_UL_FullMonty(MSaux->DisplayUpdates);
+   #endif
    
    SUMA_RETURN(YUP);  
 }
@@ -9438,8 +9479,9 @@ SUMA_Boolean SUMA_AddVolSaux(SUMA_VolumeObject *vo)
       VSaux->TransMode = SATM_ViewerDefault;
    }
 
-   
+   #if 0 /* not in use for Volumes yet */
    SUMA_DrawDO_UL_FullMonty(VSaux->DisplayUpdates);
+   #endif
    
    SUMA_RETURN(YUP);  
 }
