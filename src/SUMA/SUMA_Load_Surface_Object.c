@@ -6392,7 +6392,7 @@ SUMA_Boolean SUMA_LoadCIFTIDO (char *fname,
                         SUMA_DO_CoordUnits coord_type, SUMA_DSET **odset)
 {
    static char FuncName[]={"SUMA_LoadCIFTIDO"};
-   SUMA_VolumeObject *VO=NULL;
+   SUMA_CIFTI_SAUX *CSaux=NULL;
    SUMA_DSET *cdset=NULL;
    SUMA_DSET_FORMAT tff = SUMA_NIML;
    
@@ -6429,18 +6429,211 @@ SUMA_Boolean SUMA_LoadCIFTIDO (char *fname,
       }
    } 
    
-   
-   SUMA_S_Warn("What next here? Do we have SurfCont, do we have CSaux?");
-
-   /* Set some display defaults (see SUMA_LoadVolDO() for example */
-   
-   /* Add CIFTI into DO list */
-   if (!SUMA_AddDO(SUMAg_DOv, &(SUMAg_N_DOv), (void *)cdset,  
-                     CDSET_type, coord_type)) {
-      fprintf(SUMA_STDERR,"Error %s: Error Adding DO\n", FuncName);
+   /* add the dset to the list SUMAg_CF->DsetList*/
+   dsetpre = dset;
+   if (LocalHead) {
+      fprintf( SUMA_STDERR,
+               "%s: New dset (%s) has pointer %p\n", 
+               FuncName, SDSET_LABEL(dset), dset); 
+   }
+   if (!SUMA_InsertDsetPointer(  &dset, SUMAg_CF->DsetList, 
+                                 SUMAg_CF->Allow_Dset_Replace)) {
+      SUMA_SLP_Err("Failed to add new dset to list");
+      /* is there not a function to replace a dset yet? */
+      SUMA_FreeDset(dset); dset = NULL;
       SUMA_RETURN(NOPE);
    }
+   if (LocalHead) {
+      fprintf( SUMA_STDERR,
+               "%s: Now dset (%s) is  pointer %p\n", 
+               FuncName, SDSET_LABEL(dset), dset); 
+   }
+   
+   /* Does this dset have a built in colormap?
+      If it does, then loadit into SCM */
+   if (!SUMA_Insert_Cmap_of_Dset(dset)) {
+      SUMA_S_Err("Failed to insert Cmap");
+      SUMA_FreeDset(dset); dset = NULL;
+      SUMA_RETURN(NOPE);
+   }
+
+   STOPPED HERE
+   SUMA_S_Warn("Need to create or identify a parent DO for this dset\n"
+               "Before proceeding. The DO can be created from the info\n"
+               "in the CIFTI dataset header. You can see if a similar DO\n"
+               "exists (isotopic all the way) and adopt it, or you can\n"
+               "add a new one to the DO list then adopt it.\n");
+                 
+   
+   if (SetupOverlay) {
+      SUMA_LH("Setting up overlay for CIFTI dset");
+      OverInd = -1; /* OverInd is not used for now, 
+                       just one overlay per CIFTI dset, at least for now */
+      {
+         if (dset != dsetpre) { /* dset was pre-existing in the list */
+            SDSET_CSAUX(dset) is not applicable here because
+            CSAUX should be stored directly onto a bonafied DO of the 
+            type CIFTI_type. So it is best not to have a CIFTI dset's CSAUX,
+            but rather the CSAUX of the CIFTI Object itself
+            Revisit indented portion below...
+            
+                     if (!(CSaux = SDSET_CSAUX(dset))) {
+                        SUMA_S_Warn("That is weird, should this happen?");
+                        if (!SUMA_AddDsetSaux(dset)) {
+                           SUMA_S_Err("Failed to create Saux struct");
+                           SUMA_RETURN(NOPE);   
+                        }   
+                        CSaux = SDSET_CSAUX(dset);
+                     }
+                     if (LocalHead) {
+                        fprintf( SUMA_STDERR,
+                                 "%s: Dset %s (%p) pre-existing, "
+                                 "finding its pre-existing overlays.\n", 
+                                 FuncName, SDSET_LABEL(dset), dset); 
+                     }
+                     colplanepre = SDSET_COVERLAY(dset);
+                     OKdup = 1;
+                  } else { /* dset is considered new */
+                     colplanepre = NULL;
+                     if (!SUMA_AddDsetSaux(dset)) {
+                        SUMA_S_Err("Failed to create Saux struct");
+                        SUMA_RETURN(NOPE);   
+                     }   
+                     CSaux = SDSET_CSAUX(dset);
+                     OKdup = 0;
+                  }
+
+                  /* set up the colormap for this dset */
+                  CSaux->Overlay = SUMA_CreateOverlayPointer ( filename, 
+                                                               dset, SDSET_ID(dset), 
+                                                               colplanepre);
+                  if (!CSaux->Overlay) {
+                     fprintf (SUMA_STDERR, 
+                              "Error %s: Failed in SUMA_CreateOverlayPointer.\n", 
+                              FuncName);
+                     SUMA_RETURN(NOPE);
+                  }
+               }
+
+            /* Match old settings? */
+   
+            /* Get domains info from Ngr */
+            if (!(SUMA_CIFTI_DomainsFromNgr(cdset))) {
+               SUMA_S_Err("Failed to get domains from Ngr");
+               SUMA_FreeDset(cdset);
+               SUMA_RETURN(NOPE);
+            }
+
+            /* Check on the objects defining the domains */
+            if (!SUMA_CIFTI_load_domains(cdset)) {
+               SUMA_S_Err("Failed to load domains");
+               SUMA_FreeDset(cdset);
+               SUMA_RETURN(NOPE);
+            }
+            SUMA_S_Warn("What next here? Do we have SurfCont, do we have CSaux?");
+
+            /* Set some display defaults (see SUMA_LoadVolDO() for example */
+
+            /* Add CIFTI into DO list 
+               But should it not be added to the DsetList, and possibly have
+               a CDSET_DO_Link for type? 
+               Should I not create a CDSET*/
+            if (!SUMA_AddDO(SUMAg_DOv, &(SUMAg_N_DOv), (void *)cdset,  
+                              CDSET_type, coord_type)) {
+               fprintf(SUMA_STDERR,"Error %s: Error Adding DO\n", FuncName);
+               SUMA_RETURN(NOPE);
+            }
+   
    
    SUMA_RETURN(YUP);
 }
 
+/* Load the domains over which the data are defined in a CIFTI object */
+SUMA_Boolean SUMA_CIFTI_load_domains(SUMA_DSET *cdset)
+{
+   static char FuncName[]={"SUMA_CIFTI_load_domains"};
+   int k;
+   SUMA_ALL_DO *ado=NULL;
+   SUMA_Boolean LocalHead = YUP;
+   
+   SUMA_ENTRY;
+   
+   if (!cdset || !cdset->Aux || !cdset->Aux->N_doms) {
+      SUMA_S_Err("Junk in the house");
+      SUMA_RETURN(NOPE);
+   }
+   
+   for (k=0; k<cdset->Aux->N_doms; ++k) {
+      /* verify validity of existing id */
+      if (cdset->Aux->doms[k]->idcode_str) {
+         if (!SUMA_whichADOg(cdset->Aux->doms[k]->idcode_str)) {
+            SUMA_S_Warn("Have ID but object could not be located.\n"
+                        "Will attempt to recover from source");
+            SUMA_ifree(cdset->Aux->doms[k]->idcode_str);
+         }
+      }
+      
+      /* If still null, try to get from source */
+      if (!cdset->Aux->doms[k]->idcode_str && 
+           cdset->Aux->doms[k]->Source) {
+         switch (cdset->Aux->doms[k]->ModelType) {
+            case SO_type:
+               ado = (SUMA_ALL_DO *)
+                  SUMA_Load_Surface_Object_Wrapper(
+                        cdset->Aux->doms[k]->Source, NULL, NULL, 
+                        SUMA_FT_NOT_SPECIFIED, SUMA_FF_NOT_SPECIFIED,
+                        NULL, 2);
+               break;
+            case VO_type: {
+               SUMA_VolumeObject *VO=NULL;
+               SUMA_S_Note("This requires some additional thinking:\n"
+                           "1-All is needed for the volume is the grid.\n"
+                           "  So might want to have LoadVolDO create a \n"
+                           "  dummy volume from just a grid string (AFNI has\n"
+                           "  such utilities.\n"
+                           "  The actual data in the volume is now loaded by\n"
+                           "  default but it is useless because it is \n"
+                           "  to be trumped by the data in the CIFTI dataset.\n"
+                           "2-Even if loading volume, might want to have an\n"
+                           "  autocrop at loading option. See AFNI convenience\n"
+                           "  function: THD_autobbox()\n");
+               
+               if (SUMA_LoadVolDO(cdset->Aux->doms[k]->Source, SUMA_WORLD, &VO)){
+                  ado = (SUMA_ALL_DO *)VO; VO = NULL;
+               } 
+               break; }
+            default:
+               SUMA_S_Err("Not ready for domain %d (%s) with CIFTI",
+                  cdset->Aux->doms[k]->ModelType,
+                  SUMA_ObjectTypeCode2ObjectTypeName(
+                                                cdset->Aux->doms[k]->ModelType));
+               SUMA_RETURN(NOPE);
+               break;
+         }
+         if (!ado) {
+            SUMA_S_Err("Failed to load %s\n", cdset->Aux->doms[k]->Source);     
+         } else {
+            SUMA_LH("Adding object %s",ADO_LABEL(ado));
+            if (!SUMA_AddDO(SUMAg_DOv, &(SUMAg_N_DOv), (void *)ado,  
+                     cdset->Aux->doms[k]->ModelType, SUMA_WORLD)) {
+               fprintf(SUMA_STDERR,"Error %s: Error Adding DO\n", FuncName);
+               SUMA_RETURN(NOPE);
+            }
+            cdset->Aux->doms[k]->idcode_str = SUMA_copy_string(ADO_ID(ado));
+         }
+      }
+      
+      if (!cdset->Aux->doms[k]->idcode_str) {
+         SUMA_S_Err( "Bad news in tennis shoes for loading CIFTI domains\n"
+                     "A leaky return for you." );
+         SUMA_RETURN(NOPE);
+      } else {
+         SUMA_LH("Domain %d, idcode_str %s OK", 
+                  k, cdset->Aux->doms[k]->idcode_str)
+      }
+      
+   }
+   
+   
+   SUMA_RETURN(YUP);
+}

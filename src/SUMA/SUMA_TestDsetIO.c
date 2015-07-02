@@ -89,10 +89,6 @@ SUMA_DSET *SUMA_Create_Fake_CIFTI(char *sdomain0, char *sdomain1, char *vdomain)
    /* Number of entries, we assume this is not a full dataset */
    N_Alloc = N_indLeft + N_indRight + N_mask;
 
-   /* Create the dataset pointer */
-   sdset = SUMA_CreateDsetPointer ("ToyCifti.niml.dset", SUMA_CIFTI_BUCKET,
-                                    NULL, NULL, N_Alloc ); 
-
    
    /* Create the index column and some data */
    SUMA_S_Warn("Check what is to be preserved in output dset and free the rest");
@@ -167,6 +163,7 @@ SUMA_DSET *SUMA_Create_Fake_CIFTI(char *sdomain0, char *sdomain1, char *vdomain)
                                   N_Alloc    /* Number of nodes allocated for */
                                     );  
    /* Setup the CIFTI domains */
+   for (k=0; k<4;++k) fprintf(stderr,"%d %d\n",k,IndOffset[k]);
    SUMA_CIFTI_Set_Domains(sdset, 3, dind, IndOffset, dmaxind, dtp, dsstr);
    
    if (!SUMA_AddDsetNelCol (sdset, "Need", 

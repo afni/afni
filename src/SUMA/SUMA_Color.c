@@ -10118,9 +10118,7 @@ SUMA_Boolean SUMA_LoadDsetOntoSO_eng (char *filename, SUMA_SurfaceObject *SO,
          NI_set_attribute(dset->ngr,"geometry_parent_idcode", SO->idcode_str);
          if (LocalHead > 1) SUMA_ShowDset(dset, 0, NULL);
       } else {
-         SUMA_S_Warn("For graph dsets, the rest of the procedure should\n"
-                     "move to another function where there is no SO needed.\n"
-                     "Problem is, one needs a SurfCont to work with...\n");
+         SUMA_S_Warn("Why are you here?");
       }
    }
    
