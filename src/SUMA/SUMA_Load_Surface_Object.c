@@ -6413,12 +6413,12 @@ SUMA_Boolean SUMA_LoadCIFTIDO (char *fname,
       SUMA_RETURN(NOPE);
    }
    
-   /* Create DO trappings */
+   /* Swaps ?*/
    if (odset) {
       if (*odset == NULL) {
          *odset = cdset;
       } else {
-         /* Replace any existing parts of *dset, with those from cdset */
+         /* Replace any existing parts of *odset, with those from cdset */
          if (!SUMA_FreeDsetContent(*odset)) {
             SUMA_S_Err("Failed to free dset content");
             SUMA_RETURN(NOPE);
@@ -6429,6 +6429,28 @@ SUMA_Boolean SUMA_LoadCIFTIDO (char *fname,
       }
    } 
    
+   /* Get domains info from Ngr */
+   if (!(SUMA_CIFTI_DomainsFromNgr(cdset))) {
+      SUMA_S_Err("Failed to get domains from Ngr");
+      SUMA_FreeDset(cdset);
+      SUMA_RETURN(NOPE);
+   }
+   
+   /* Can we pile onto an existing domain? (think multiple
+      datasets over the same surface)                     */
+
+   CO = NULL;
+   if (OkAdopt && (CO = SUMA_CIFTI_find_matching_domain(cdset, NULL, NULL))) {
+      SUMA_LH("Adopting CO");
+   } else {
+      SUMA_LH("Create CO from cdset");
+      if (!(CO=SUMA_CIFTI_DO_from_dset(cdset, 1))) {
+         SUMA_S_Err("Failed to create DO from dset");
+         SUMA_FreeDset(cdset);
+         SUMA_RETURN(NOPE);
+      }
+   }
+            
    /* add the dset to the list SUMAg_CF->DsetList*/
    dsetpre = dset;
    if (LocalHead) {
@@ -6458,6 +6480,8 @@ SUMA_Boolean SUMA_LoadCIFTIDO (char *fname,
    }
 
    STOPPED HERE
+   Recall how you attach dset to DO, do that an proceed with this function
+   
    SUMA_S_Warn("Need to create or identify a parent DO for this dset\n"
                "Before proceeding. The DO can be created from the info\n"
                "in the CIFTI dataset header. You can see if a similar DO\n"
@@ -6517,19 +6541,7 @@ SUMA_Boolean SUMA_LoadCIFTIDO (char *fname,
 
             /* Match old settings? */
    
-            /* Get domains info from Ngr */
-            if (!(SUMA_CIFTI_DomainsFromNgr(cdset))) {
-               SUMA_S_Err("Failed to get domains from Ngr");
-               SUMA_FreeDset(cdset);
-               SUMA_RETURN(NOPE);
-            }
-
-            /* Check on the objects defining the domains */
-            if (!SUMA_CIFTI_load_domains(cdset)) {
-               SUMA_S_Err("Failed to load domains");
-               SUMA_FreeDset(cdset);
-               SUMA_RETURN(NOPE);
-            }
+            
             SUMA_S_Warn("What next here? Do we have SurfCont, do we have CSaux?");
 
             /* Set some display defaults (see SUMA_LoadVolDO() for example */
@@ -6548,92 +6560,148 @@ SUMA_Boolean SUMA_LoadCIFTIDO (char *fname,
    SUMA_RETURN(YUP);
 }
 
-/* Load the domains over which the data are defined in a CIFTI object */
-SUMA_Boolean SUMA_CIFTI_load_domains(SUMA_DSET *cdset)
+/* Create CIFTI displayable object from the CIFTI dataset */
+SUMA_CIFTIObject * SUMA_CIFTI_DO_from_dset(SUMA_DSET *cdset, int insert)
 {
-   static char FuncName[]={"SUMA_CIFTI_load_domains"};
+   static char FuncName[]={"SUMA_CIFTI_DO_from_dset"};
    int k;
    SUMA_ALL_DO *ado=NULL;
    SUMA_Boolean LocalHead = YUP;
    
    SUMA_ENTRY;
    
+   if (!SUMA_isCIFTIDset(cdset)) {
+      SUMA_S_Err("Not for this you don't");
+      SUMA_RETURN(NULL);
+   }
    if (!cdset || !cdset->Aux || !cdset->Aux->N_doms) {
       SUMA_S_Err("Junk in the house");
-      SUMA_RETURN(NOPE);
+      SUMA_RETURN(NULL);
    }
+   ss = SUMA_ar_string("DO_", ADO_LABEL((SUMA_ALL_DO *)cdset),"",0);
+   CO = SUMA_CreateCIFTIObject(ss); SUMA_ifree(ss);
    
+   if (CO->N_subdoms < 0) CO->N_subdoms = 0;
    for (k=0; k<cdset->Aux->N_doms; ++k) {
-      /* verify validity of existing id */
-      if (cdset->Aux->doms[k]->idcode_str) {
-         if (!SUMA_whichADOg(cdset->Aux->doms[k]->idcode_str)) {
-            SUMA_S_Warn("Have ID but object could not be located.\n"
-                        "Will attempt to recover from source");
-            SUMA_ifree(cdset->Aux->doms[k]->idcode_str);
-         }
-      }
+      if (!cdset->Aux->doms[k]->Source) {
+         SUMA_S_Err("Null source");
+         SUMA_FreeCIFTIObject(CO);
+         SUMA_RETURN(NULL);
+      }      
       
-      /* If still null, try to get from source */
-      if (!cdset->Aux->doms[k]->idcode_str && 
-           cdset->Aux->doms[k]->Source) {
-         switch (cdset->Aux->doms[k]->ModelType) {
-            case SO_type:
-               ado = (SUMA_ALL_DO *)
-                  SUMA_Load_Surface_Object_Wrapper(
-                        cdset->Aux->doms[k]->Source, NULL, NULL, 
-                        SUMA_FT_NOT_SPECIFIED, SUMA_FF_NOT_SPECIFIED,
-                        NULL, 2);
-               break;
-            case VO_type: {
-               SUMA_VolumeObject *VO=NULL;
-               SUMA_S_Note("This requires some additional thinking:\n"
-                           "1-All is needed for the volume is the grid.\n"
-                           "  So might want to have LoadVolDO create a \n"
-                           "  dummy volume from just a grid string (AFNI has\n"
-                           "  such utilities.\n"
-                           "  The actual data in the volume is now loaded by\n"
-                           "  default but it is useless because it is \n"
-                           "  to be trumped by the data in the CIFTI dataset.\n"
-                           "2-Even if loading volume, might want to have an\n"
-                           "  autocrop at loading option. See AFNI convenience\n"
-                           "  function: THD_autobbox()\n");
-               
-               if (SUMA_LoadVolDO(cdset->Aux->doms[k]->Source, SUMA_WORLD, &VO)){
-                  ado = (SUMA_ALL_DO *)VO; VO = NULL;
-               } 
-               break; }
-            default:
-               SUMA_S_Err("Not ready for domain %d (%s) with CIFTI",
-                  cdset->Aux->doms[k]->ModelType,
-                  SUMA_ObjectTypeCode2ObjectTypeName(
-                                                cdset->Aux->doms[k]->ModelType));
-               SUMA_RETURN(NOPE);
-               break;
-         }
-         if (!ado) {
-            SUMA_S_Err("Failed to load %s\n", cdset->Aux->doms[k]->Source);     
-         } else {
-            SUMA_LH("Adding object %s",ADO_LABEL(ado));
-            if (!SUMA_AddDO(SUMAg_DOv, &(SUMAg_N_DOv), (void *)ado,  
-                     cdset->Aux->doms[k]->ModelType, SUMA_WORLD)) {
-               fprintf(SUMA_STDERR,"Error %s: Error Adding DO\n", FuncName);
-               SUMA_RETURN(NOPE);
-            }
-            cdset->Aux->doms[k]->idcode_str = SUMA_copy_string(ADO_ID(ado));
-         }
+      switch (cdset->Aux->doms[k]->ModelType) {
+         case SO_type:
+            ado = (SUMA_ALL_DO *)
+               SUMA_Load_Surface_Object_Wrapper(
+                     cdset->Aux->doms[k]->Source, NULL, NULL, 
+                     SUMA_FT_NOT_SPECIFIED, SUMA_FF_NOT_SPECIFIED,
+                     NULL, 2);
+            break;
+         case VO_type: {
+            SUMA_VolumeObject *VO=NULL;
+            SUMA_S_Note("This requires some additional thinking:\n"
+                        "1-All is needed for the volume is the grid.\n"
+                        "  So might want to have LoadVolDO create a \n"
+                        "  dummy volume from just a grid string (AFNI has\n"
+                        "  such utilities.\n"
+                        "  The actual data in the volume is now loaded by\n"
+                        "  default but it is useless because it is \n"
+                        "  to be trumped by the data in the CIFTI dataset.\n"
+                        "2-Even if loading volume, might want to have an\n"
+                        "  autocrop at loading option. See AFNI convenience\n"
+                        "  function: THD_autobbox()\n");
+
+            if (SUMA_LoadVolDO(cdset->Aux->doms[k]->Source, SUMA_WORLD, &VO)){
+               ado = (SUMA_ALL_DO *)VO; VO = NULL;
+            } 
+            break; }
+         default:
+            SUMA_S_Err("Not ready for domain %d (%s) with CIFTI",
+               cdset->Aux->doms[k]->ModelType,
+               SUMA_ObjectTypeCode2ObjectTypeName(
+                                             cdset->Aux->doms[k]->ModelType));
+            SUMA_FreeCIFTIObject(CO); CO = NULL;
+            SUMA_RETURN(NULL);
+            break;
       }
-      
-      if (!cdset->Aux->doms[k]->idcode_str) {
-         SUMA_S_Err( "Bad news in tennis shoes for loading CIFTI domains\n"
-                     "A leaky return for you." );
-         SUMA_RETURN(NOPE);
+      if (!ado) {
+         SUMA_S_Err("Failed to load %s\n", cdset->Aux->doms[k]->Source);
+         SUMA_FreeCIFTIObject(CO); CO = NULL;
+         SUMA_RETURN(NULL);     
       } else {
-         SUMA_LH("Domain %d, idcode_str %s OK", 
-                  k, cdset->Aux->doms[k]->idcode_str)
+         ++CO->N_subdoms;
+         CO->subdoms = (SUMA_ALL_DO **)SUMA_realloc(CO->subdoms, 
+                                          CO->N_subdoms*sizeof(SUMA_ALL_DO *));
+         CO->subdoms[CO->N_subdoms-1] = ado; ado = NULL;
       }
-      
    }
    
+   if (add) {
+      SUMA_LH("Adding CO %s to objects list", ADO_LABEL((SUMA_ALL_DO *)CO));
+      if (!SUMA_AddDO(SUMAg_DOv, &(SUMAg_N_DOv), (void *)CO,  
+               CIFTI_type, SUMA_WORLD)) {
+         fprintf(SUMA_STDERR,"Error %s: Error Adding DO\n", FuncName);
+         SUMA_FreeCIFTIObject(CO); CO = NULL;
+         SUMA_RETURN(NULL);
+      }
+   }
+
    
-   SUMA_RETURN(YUP);
+   SUMA_RETURN(CO);
+}
+
+/* Search all DOs for a CiftiObject that can be the domain
+for a certain CIFTI dataset */
+SUMA_CIFTIObject *SUMA_CIFTI_find_matching_domain(SUMA_DSET *cdset, 
+                                                  SUMA_DO *dov, int N_dov) 
+{
+   static char FuncName[]={"SUMA_CIFTI_find_matching_domain"};
+   SUMA_CIFTIObject *CO=NULL;
+   int i;
+   
+   SUMA_ENTRY;
+   
+   if (!dov) { dov = SUMAg_DOv; N_dov = SUMAg_N_DOv; }
+   
+   for (i=0; i<N_dov; ++i) {
+      if (dov[i].ObjectType == CIFTI_type) {
+         CO = (SUMA_CIFTIObject *)dov[i].OP;
+         for (f=0,k=0; k<cdset->Aux->N_doms; ++k) {
+            sid = SUMA_CIFTI_find_sub_domain(CO, 
+                                 cdset->Aux->doms[k]->ModelType,
+                                 cdset->Aux->doms[k]->ModelSide,
+                                 cdset->Aux->doms[k]->Max_N_Data);
+            if (sid) {++f};
+         }
+         if (f == cdset->Aux->N_doms) {
+            SUMA_RETURN(CO);
+         }
+      }
+   }
+   SUMA_RETURN(NULL);
+}
+
+/* Search the sub-domains of a CiftiObject to match desired parameters */
+char *SUMA_CIFTI_find_sub_domain(CO, SUMA_DO_Types ModelType,
+                               SUMA_SO_SIDE ModelSide,
+                               int Max_N_Data,
+                               int *k)
+{
+   static char FuncName[]={"SUMA_CIFTI_find_sub_domain"};
+   char *sid = NULL;
+   int i;
+   
+   SUMA_ENTRY;
+   if (k) *k = -1;
+   
+   for (i=0; i<CO->N_subdoms; ++i) {
+      if ( CO->subdom[i]->do_type == ModelType &&
+          (ModelType != SO_type || ModelSide == SO->Side) &&
+          Max_N_Data == SUMA_ADO_N_Datum(CO->subdom[i]) ) {
+         if (k) *k = i;
+         SUMA_RETURN(ADO_ID(ado));   
+      }
+   }
+   
+   SUMA_RETURN(NULL);
 }
