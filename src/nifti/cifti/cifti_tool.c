@@ -20,6 +20,8 @@
 #include <nifti2_io.h>
 #include "afni_xml.h"
 
+static char g_version[] = "version -1.3";
+
 /* ----------------------------------------------------------------- */
 /* define and declare main option struct */
 typedef struct {
@@ -87,7 +89,7 @@ int process_args(int argc, char * argv[], opts_t * opts)
 
    /* process user options: 4 are valid presently */
    for( ac = 1; ac < argc; ac++ ) {
-      if( ! strncmp(argv[ac], "-h", 2) ) {
+      if( ! strcmp(argv[ac], "-h") || ! strcmp(argv[ac], "-help") ) {
          return show_help();
       } else if( ! strcmp(argv[ac], "-as_cext") ||
                ! strcmp(argv[ac], "-as_cifti_ext") ) {
@@ -99,30 +101,33 @@ int process_args(int argc, char * argv[], opts_t * opts)
       } else if( ! strcmp(argv[ac], "-eval_type") ) {
          if( ++ac >= argc ) {
             fprintf(stderr, "** missing argument for -eval_type\n");
-            return 1;
+            return -1;
          }
          opts->eval_type = argv[ac];
       } else if( ! strcmp(argv[ac], "-input") ) {
          if( ++ac >= argc ) {
             fprintf(stderr, "** missing argument for -input\n");
-            return 1;
+            return -1;
          }
          opts->fin = argv[ac];  /* no string copy, just pointer assignment */
       } else if( ! strcmp(argv[ac], "-output") ) {
          if( ++ac >= argc ) {
             fprintf(stderr, "** missing argument for -output\n");
-            return 2;
+            return -1;
          }
          opts->fout = argv[ac];
       } else if( ! strcmp(argv[ac], "-verb") ) {
          if( ++ac >= argc ) {
             fprintf(stderr, "** missing argument for -verb\n");
-            return 2;
+            return -1;
          }
          opts->verb = atoi(argv[ac]);
+      } else if( ! strcmp(argv[ac], "-ver") ) {
+         puts(g_version);
+         return 1;
       } else {
          fprintf(stderr,"** invalid option, '%s'\n", argv[ac]);
-         return 1;
+         return -1;
       }
    }
 
@@ -339,7 +344,7 @@ int disp_hex_data(const char *mesg, const void *data, int len, FILE *fp)
 int show_help( void )
 {
    printf(
-      "ct : short exmample of reading/writing CIFTI-2 datasets\n"
+      "ct : short example of reading/writing CIFTI-2 datasets\n"
       "\n"
       "    This program is to demonstrate how to read a CIFTI-2 dataset.\n"
       "\n"
