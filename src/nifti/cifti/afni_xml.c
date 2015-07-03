@@ -350,6 +350,49 @@ int axml_disp_xml_t(char * mesg, afni_xml_t * ax, int indent, int verb)
    return 0;
 }
 
+/* recursive allocation of text data, depending on name */
+/*
+   CIFTI labels with data, with corresponding types:
+      text: Label
+      text: Name
+      text: Value
+      text: MapName
+
+      float64_t : TransformationMatrixVoxelIndicesIJKtoXYZ
+      int64_t   : VertexIndices
+      int64_t   : Vertices
+      int64_t   : VoxelIndicesIJK (int triplets)
+*/
+int axml_convert_text_data(afni_xml_t * ax)
+{
+   int ind;
+
+   if( !ax ) return 0;
+
+   if( ax->name )  { free(ax->name);  ax->name  = NULL; }
+   if( ax->xtext ) { free(ax->xtext); ax->xtext = NULL; }
+   ax->xlen = 0;
+
+   /* free all attributes */
+   for(ind = 0; ind < ax->attrs.length; ind++ ) {
+      if( ax->attrs.name  && ax->attrs.name[ind] )  free(ax->attrs.name[ind]);
+      if( ax->attrs.value && ax->attrs.value[ind] ) free(ax->attrs.value[ind]);
+   }
+   if( ax->attrs.name )  { free(ax->attrs.name);  ax->attrs.name = NULL; }
+   if( ax->attrs.value ) { free(ax->attrs.value); ax->attrs.value = NULL; }
+   ax->attrs.length = 0;
+
+   /* and free children */
+   if( ax->nchild > 0 && ax->xchild )
+      for( ind=0; ind < ax->nchild; ind++ ) axml_free_xml_t(ax->xchild[ind]);
+   ax->nchild = 0;
+   if( ax->xchild ) { free(ax->xchild); ax->xchild = NULL; }
+
+   free(ax);
+
+   return 0;
+}
+
 /* free the list of afni_xml_t structs */
 int axml_free_xlist(afni_xml_list * axlist)
 {
