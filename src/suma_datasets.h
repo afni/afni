@@ -368,9 +368,7 @@ typedef struct {
 
 typedef struct { /* A structure to contain information about a domain
                     over which a subset of a dataset is defined.
-                    This structure was introduced to support CIFTI data */
-   char *idcode_str; /* idcode string of the object that represents the domain */
-   
+                    This structure was introduced to support CIFTI data */   
    /* The following variables are named after those in CIFTI's documentation for
       BrainModel Element */
       int IndexOffset; /* The number of the first row in dset corresponding to
@@ -380,6 +378,7 @@ typedef struct { /* A structure to contain information about a domain
       int Max_N_Data; /* Maximum number of data points in domain 
                          SO->N_Node, DSET_NVOX(dset) */                
       SUMA_DO_Types ModelType; /* Is this a surface, volume, etc...*/
+      SUMA_SO_SIDE  ModelSide; /* Which hemisphere? ...*/
       int Range[4];  /* min , max , imin, imax
                      min, and max are the minimum and maximum node indices
                      present in the full index list for this domain.

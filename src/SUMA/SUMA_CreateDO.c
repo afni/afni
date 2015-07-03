@@ -19732,9 +19732,12 @@ char *SUMA_ADO_Info(SUMA_ALL_DO *ado, DList *DsetList, int detail)
       case SO_type:
          return(SUMA_SurfaceObject_Info((SUMA_SurfaceObject *)ado, DsetList));
       case ANY_DSET_type:
-      case CDSET_type:
       case GDSET_type:
          return(SUMA_DsetInfo((SUMA_DSET *)ado, detail));
+      case CDSET_type:
+         SUMA_S_Err("Have not written SUMA_CIFTI_Info yet");
+         s = SUMA_copy_string("Have not written SUMA_CIFTI_Info yet");
+         return(s);
       case TRACT_type:
          return(SUMA_TractDOInfo((SUMA_TractDO *)ado, detail));
       case VO_type:
@@ -20976,6 +20979,94 @@ SUMA_VolumeObject *SUMA_FreeVolumeObject(SUMA_VolumeObject *VO) {
    }
    
    SUMA_free(VO);
+   
+   SUMA_RETURN(NULL);
+}
+
+/*!
+Create a CIFTI displayable Object data structure 
+*/
+SUMA_CIFTIObject *SUMA_CreateCIFTIObject(char *Label)
+{
+   static char FuncName[]={"SUMA_CreateCIFTIObject"};
+   SUMA_CIFTIObject *CO=NULL;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+
+   CO = (SUMA_CIFTIObject *)SUMA_calloc(1,sizeof(SUMA_CIFTIObject));
+   if (CO == NULL) {
+      SUMA_S_Crit("Failed to allocate");
+      SUMA_RETURN(NULL);
+   }
+   
+   
+   CO->do_type = CIFTI_type;
+   if (Label) {
+      CO->Label = SUMA_copy_string(Label);
+   } else {
+      CO->Label = SUMA_copy_string("NoLabel");
+   }
+   CO->idcode_str = UNIQ_hashcode(CO->Label);
+   
+   CO->Saux = NULL;
+   CO->FreeSaux = NULL;
+   if (!SUMA_AddCIFTISaux(CO)) {
+      SUMA_S_Err("Failed to add CIFTI Saux");
+   }
+  
+   CO->N_subdom = 0;
+   CO->subdom = NULL;
+   
+   CO->Show = 1;
+   
+
+   CO->SelectedDatum = -1;
+   CO->SelectedSubado = -1;
+
+   SUMA_RETURN(CO);
+}
+
+SUMA_CIFTIObject *SUMA_FreeCIFTIObject(SUMA_CIFTIObject *CO) 
+{
+   static char FuncName[]={"SUMA_FreeCIFTIObject"};
+   int i;
+   SUMA_ENTRY;
+   
+   if (!CO) SUMA_RETURN(NULL);
+   
+   
+   if (CO->Saux) {
+      if (!CO->FreeSaux) {
+         SUMA_S_Err("You're leaky, you're leaky");
+      } else CO->FreeSaux(CO->Saux);
+      CO->Saux=NULL; /* pointer freed in freeing function */
+   }
+   
+   SUMA_ifree(CO->idcode_str); 
+   SUMA_ifree(CO->Label);
+   
+   for (i=0; i<CO->N_subdom; ++i) {
+      if (CO->subdom[i]) {
+         switch (CO->subdom[i]->do_type) {
+            case SO_type:
+               SUMA_Free_Surface_Object((SUMA_SurfaceObject *)CO->subdom[i]);
+               break;
+            case VO_type:
+               SUMA_FreeVolumeObject((SUMA_VolumeObject *)CO->subdom[i]);
+               break;
+            default:
+               SUMA_S_Err("Not expecting type %d %s here. Leaky business.",
+                  CO->subdom[i]->do_type, 
+                  SUMA_ObjectTypeCode2ObjectTypeName(CO->subdom[i]->do_type));
+               break;
+         }
+         CO->subdom[i] = NULL;
+      }
+   }
+   SUMA_ifree(CO->subdom);
+   
+   SUMA_free(CO);
    
    SUMA_RETURN(NULL);
 }
