@@ -343,6 +343,8 @@ SUMA_Boolean SUMA_Free_Surface_Object (SUMA_SurfaceObject *SO);
 SUMA_Boolean SUMA_FreeDrawMasks(SUMA_DRAW_MASKS * DW);
 SUMA_Boolean SUMA_EmptyDrawMasks(SUMA_DRAW_MASKS * DW);
 SUMA_VolumeObject *SUMA_FreeVolumeObject(SUMA_VolumeObject *VO);
+SUMA_CIFTIObject *SUMA_FreeCIFTIObject(SUMA_CIFTIObject *CO); 
+SUMA_CIFTIObject *SUMA_CreateCIFTIObject(char *Label);
 void SUMA_Print_Surface_Object(SUMA_SurfaceObject *SO, FILE *Out);
 char *SUMA_VisX_XformType2Name(SUMA_VISX_XFORM_TYPE tt);
 char *SUMA_VisX_Info(SUMA_VIS_XFORM VisX, int N_Node, char *mumble);

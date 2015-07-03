@@ -163,7 +163,6 @@ SUMA_DSET *SUMA_Create_Fake_CIFTI(char *sdomain0, char *sdomain1, char *vdomain)
                                   N_Alloc    /* Number of nodes allocated for */
                                     );  
    /* Setup the CIFTI domains */
-   for (k=0; k<4;++k) fprintf(stderr,"%d %d\n",k,IndOffset[k]);
    SUMA_CIFTI_Set_Domains(sdset, 3, dind, IndOffset, dmaxind, dtp, dsstr);
    
    if (!SUMA_AddDsetNelCol (sdset, "Need", 

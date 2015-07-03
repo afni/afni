@@ -3369,6 +3369,26 @@ typedef struct {
    
 } SUMA_VolumeObject; /*! \sa SUMA_CreateVolumeObject */
 
+typedef struct {
+      /* FIRST VARIABLES MUST RETAIN THEIR ORDER and follow SUMA_ALL_DO */
+   SUMA_DO_Types do_type; 
+   char *idcode_str;    
+   char *Label; 
+   
+      /* Begin specific fields */
+   int N_subdom; /* Number of sub objects defining domain */
+   SUMA_ALL_DO **subdom; /* Collection of sub-domains */ 
+   
+   void *Saux; /* A pointer to a structure for SUMA's use */
+   void (*FreeSaux)(void *Saux); /* Function to free Saux */
+
+   int SelectedDatum;
+   int SelectedSubAdo;
+   
+   byte Show;
+   
+} SUMA_CIFTIObject; /*! \sa SUMA_CreateCIFTIObject */
+
                    
 /*! Structure for creating a hash of color ids */
 typedef struct {
