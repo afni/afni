@@ -18,7 +18,7 @@ typedef struct{
    int      check_hdr,  check_nim;
    int      diff_hdr,   diff_hdr1, diff_hdr2, diff_nim;
    int      disp_hdr1,  disp_hdr2, disp_hdr, disp_nim, disp_ana;
-   int      disp_exts,  add_exts, rm_exts;
+   int      disp_exts,  add_exts, rm_exts, disp_cext;
    int      mod_hdr,    mod_nim;
    int      swap_hdr,   swap_ana, swap_old;
 
@@ -116,6 +116,7 @@ int    act_diff_hdr2s ( nt_opts * opts );
 int    act_diff_nims  ( nt_opts * opts );
 int    act_disp_ci    ( nt_opts * opts );  /* display general collapsed data */
 int    act_disp_exts  ( nt_opts * opts );
+int    act_disp_cext  ( nt_opts * opts );
 int    act_disp_hdr   ( nt_opts * opts );
 int    act_disp_hdr1  ( nt_opts * opts );
 int    act_disp_hdr2  ( nt_opts * opts );
@@ -148,6 +149,7 @@ int add_string       (str_list * slist, char * str);
 int check_total_size (char *mesg, field_s *fields, int nfields, int tot_size);
 int clear_float_zeros( char * str );
 int diff_field       (field_s *fieldp, void * str0, void * str1, int nfields);
+int disp_cifti_extension (char *mesg, nifti1_extension * ext, int maxlen);
 int disp_nifti1_extension(char *mesg, nifti1_extension * ext, int maxlen);
 int disp_field       (char *mesg,field_s *fp,void *str,int nfields,int header);
 int disp_field_s_list(char * mesg, field_s *, int nfields);

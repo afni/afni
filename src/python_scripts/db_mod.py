@@ -1001,7 +1001,8 @@ def db_mod_tshift(block, proc, user_opts):
         # warn the user about -regress_stim_times_offset
         if user_opts.find_opt('-regress_stim_files') and proc.verb > 0   \
            and not user_opts.find_opt('-regress_stim_times_offset')      \
-           and not user_opts.find_opt('-regress_no_stim_times'):
+           and not user_opts.find_opt('-regress_no_stim_times')          \
+           and not user_opts.find_opt('-regress_use_stim_files'):
           print '-----------------------------------------------------------\n'\
                 '** warning: using -tshift_align_to and -regress_stim_files\n' \
                 '   --> if temporal alignment is not to the beginning of the\n'\
@@ -3084,9 +3085,26 @@ def db_mod_regress(block, proc, user_opts):
     # if we are here, then we should have stimulus files
     if len(proc.stims_orig) > 0:
         # create local names for stim files
+        pre = ''
+        oname = '-regress_stim_times_offset'
+        val, err = block.opts.get_type_opt(float, oname)
+        if err:
+           print '** bad offset to %s' % oname
+           errs += 1
+        # if we have an offset
+        elif val:
+           if proc.have_all_stim_times():       # good
+              pre = 'offset_'
+           elif proc.have_some_stim_times():    # bad
+              # offset cannot go with either timing or file->times conversion
+              print '** option %s applies to either all stim times\n' \
+                    '   or all stim files, but not to a mix\n' % oname
+              errs += 1
+
         proc.stims = []
-        for file in proc.stims_orig:
-            proc.stims.append('stimuli/%s' % os.path.basename(file))
+        for fname in proc.stims_orig:
+            proc.stims.append('stimuli/%s%s' % \
+                (pre, os.path.basename(fname)))
 
     apply_uopt_to_block('-regress_mot_as_ort', user_opts, block)
 
@@ -6918,6 +6936,7 @@ g_help_string = """
          -align_opts_aea -giant_move
          -align_opts_aea -cost lpc+ZZ -giant_move
          -align_opts_aea -cost lpc+ZZ -giant_move -resample off
+         -align_opts_aea -skullstrip_opts -blur_fwhm 2
 
     3. Testing alignment with align_epi_anat.py directly.
 
@@ -7307,15 +7326,15 @@ g_help_string = """
             See also -anat_uniform_method.
 
         -anat_unif_GM yes/no    : also unifize gray matter (lower intensities)
-                                  the default is 'yes'
+                                  the default is 'no'
 
                 e.g. -anat_unif_GM yes
-                default -anat_unif_GM no
+                default: -anat_unif_GM no
 
-            If this is set to yes (which is the default), 3dUnifize will not
-            only apply uniformity correction across the volume, but it will
-            also perform a correction to voxels that look like gray matter.
-            That is to say '-GM' will be added to the 3dUnifize command.
+            If this is set to yes, 3dUnifize will not only apply uniformity
+            correction across the brain volume, but also to voxels that look
+            like gray matter.  That is to say the option adds '-GM' to the
+            3dUnifize command.
 
           * The default was changed from yes to no 2014, May 16.
 
@@ -8096,6 +8115,7 @@ g_help_string = """
                 e.g. -align_opts_aea -cost lpc+ZZ
                 e.g. -align_opts_aea -Allineate_opts -source_automask+4
                 e.g. -align_opts_aea -giant_move -AddEdge -epi_strip 3dAutomask
+                e.g. -align_opts_aea -skullstrip_opts -blur_fwhm 2
 
             This option allows the user to add extra options to the alignment
             command, align_epi_anat.py.
@@ -8106,6 +8126,9 @@ g_help_string = """
             Note the second example.  In order to pass '-source_automask+4' to
             3dAllineate, one must pass '-Allineate_opts -source_automask+4' to
             align_epi_anat.py.
+
+            Similarly, the fourth example passes '-blur_fwhm 2' down through
+            align_epi_anat.py to 3dSkullStrip.
 
             Please see "align_epi_anat.py -help" for more information.
             Please see "3dAllineate -help" for more information.
@@ -9837,22 +9860,33 @@ g_help_string = """
         -regress_stim_times_offset OFFSET : add OFFSET to -stim_times files
 
                 e.g. -regress_stim_times_offset 1.25
+                e.g. -regress_stim_times_offset -9.2
                 default: 0
 
-            If the -regress_stim_files option is used (so the script converts
-            -stim_files to -stim_times before 3dDeconvolve), the user may want
-            to add an offset to the times in the output timing files.
+            With -regress_stim_times:
 
-            For example, if -tshift_align_to is applied, and the user chooses
-            to align volumes to the middle of the TR, it would be appropriate
-            to add TR/2 to the times of the stim_times files.
+               If the -regress_stim_times option is uses, and if ALL stim files
+               are timing files, then timing_tool.py will be used to add the
+               time offset to each -regress_stim_times file as it is copied into
+               the stimuli directory (near the beginning of the script).
 
-            This OFFSET will be applied to the make_stim_times.py command in
-            the output script.
+            With -regress_stim_files:
+
+               If the -regress_stim_files option is used (so the script would
+               convert -stim_files to -stim_times before 3dDeconvolve), the
+               user may want to add an offset to the times in the resulting
+               timing files.
+
+               For example, if -tshift_align_to is applied and the user chooses
+               to align volumes to the middle of the TR, it might be appropriate
+               to add TR/2 to the times of the stim_times files.
+
+               This OFFSET will be applied to the make_stim_times.py command in
+               the output script.
 
             Please see 'make_stim_times.py -help' for more information.
             See also -regress_stim_files, -regress_use_stim_files,
-                     -tshift_align_to.
+                     -regress_stim_times and -tshift_align_to.
 
         -regress_stim_types TYPE1 TYPE2 ... : specify list of stim types
 

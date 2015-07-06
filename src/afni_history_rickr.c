@@ -49,6 +49,46 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  1,  Jul, 2015, RCR, "cifti_tool", MINOR, TYPE_NEW_OPT,
+   "reorg and more recur functions",
+   NULL
+ } ,
+
+ {  1,  Jul, 2015, RCR, "afni_proc.py", MICRO, TYPE_GENERAL,
+   "clarified help for -anat_unif_GM",
+   NULL
+ } ,
+
+ { 24,  Jun, 2015, RCR, "afni_xml_tool", MINOR, TYPE_NEW_OPT,
+   "afni_xml udpates, and start to afni_xml_tool",
+   NULL
+ } ,
+
+ { 18,  Jun, 2015, RCR, "3dExtrema", MINOR, TYPE_NEW_OPT,
+   "added -nbest",
+   "Output -nbest extrema; -quiet does not suppress extrema output."
+ } ,
+
+ { 17,  Jun, 2015, RCR, "GIFTI", MINOR, TYPE_NEW_OPT,
+   "added functions for reading from a buffer",
+   NULL
+ } ,
+
+ { 16,  Jun, 2015, RCR, "CIFTI", MINOR, TYPE_GENERAL,
+   "added initial nifti/cifti tree",
+   NULL
+ } ,
+
+ { 16,  Jun, 2015, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,
+   "applied -regress_stim_times_offset to typical timing files",
+   "Allows for stim timing offset when copying to stimuli directory."
+ } ,
+
+ { 15,  Jun, 2015, RCR, "nifti_tool", MINOR, TYPE_NEW_OPT,
+   "added -disp_cext",
+   NULL
+ } ,
+
  { 10,  Jun, 2015, RCR, "auto_warp.py", MICRO, TYPE_BUG_FIX,
    "clear any AFNI_COMPRESSOR variable, so that scripts do not get confused",
    "NIFTI is the default, so avoid script confusion with automatic nii.gz.\n"
