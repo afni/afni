@@ -115,6 +115,8 @@ static int  disp_axml_ctrl (char * mesg, afni_xml_control * dp, int show_all );
 static int  disp_gen_text(afni_xml_control *, const char *, const char *, int);
 static void free_whitespace(void);
 static int  init_axml_ctrl (afni_xml_control *xp, int doall);
+static int  process_popped_element(afni_xml_control * xd, int pop_depth,
+                                   const char * ename);
 static int  reset_xml_buf  (afni_xml_control * xd, char ** buf, int * bsize);
 static int  white_first    (const char * str, int len);
 static int  white_last     (const char * str, int len);
@@ -605,10 +607,8 @@ static int epush(afni_xml_control * xd, const char * ename, const char ** attr)
        if( xd->verb > 3 ) show_attrs(xd, ename, attr);
    }
 
-   /* rcr - determine whether we should go into a skip block */
-   if( errs ) {
-      xd->dskip = xd->depth;
-   }
+   /* determine whether we should go into a skip block */
+   if( errs ) xd->dskip = xd->depth;
 
    /* if we are in a skip block, do nothing but monitor stack */
    if( xd->dskip ) {
@@ -637,8 +637,6 @@ static int epush(afni_xml_control * xd, const char * ename, const char ** attr)
 
 static int epop(afni_xml_control * xd, const char * ename)
 {
-   afni_xml_t * ax;
-
    if( xd->wkeep ) xd->wkeep = 0; /* clear storage continuation */
 
    if( xd->dskip ) {
@@ -648,10 +646,7 @@ static int epop(afni_xml_control * xd, const char * ename)
           fprintf(stderr,"-- skip=%d, depth=%d, skipping pop element '%s'\n",
                   xd->dskip, xd->depth, ename);
    } else {
-      /* verify things? */
-      ax = xd->stack[xd->depth-1];
-      if( strcmp(ename, ax->name) )
-         if( gAXD.verb ) fprintf(stderr,"** pop mismatch!\n");
+      process_popped_element(xd, xd->depth-1, ename);
    }
 
    if( ! xd->dskip ) {
@@ -664,6 +659,23 @@ static int epop(afni_xml_control * xd, const char * ename)
    }
 
    xd->depth--;
+
+   return 0;
+}
+
+static int process_popped_element(afni_xml_control * xd, int pop_depth,
+                                  const char * ename)
+{
+   afni_xml_t * ax;
+   ax = xd->stack[xd->depth-1];
+
+   if( strcmp(ename, ax->name) ) {
+      if( gAXD.verb ) fprintf(stderr,"** pop mismatch!\n");
+      return 1;
+   }
+
+   /* rcr - if we have data, consider allocating per type */
+   /*     * time to depend on NIFTI ... */
 
    return 0;
 }
