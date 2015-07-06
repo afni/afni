@@ -4,14 +4,6 @@
 #define AXML_MAX_DEPTH 16    /* maximum stack depth */
 #define AXML_MAX_ELEN  128   /* maximum element length */
 
-#define AFNI_XML_VERSION       "0.0"
-#define AFNI_XML_ENCODING      "UTF-8"
-
-/* potential encoding types, maybe with B64 */
-#define AXML_ENCODING_UNDEF  0  /* undefined */
-#define AXML_ENCODING_ASCII  1  /* human readable ASCII data  */
-#define AXML_ENCODING_MAX    1
-
 #include <stdio.h>
 
 /* ----------------------------------------------------------------------
@@ -22,50 +14,9 @@
    are provided by the afni_xml_control struct, via accessor functions.
 
    Much of afni_xml will be left as static.
-
-   CIFTI XML structure:
-
-      CIFTI
-            attr = Version
-         Matrix
-            MetaData
-               MD
-                  Name [text]
-                  Value [text]
-            MatrixIndicesMap
-                  attr = ApliesToMatrixDimension,
-                         IndicesMapToDataType [int = intent code],
-                         NumberOfSeriesPoints, SeriesExponenet,
-                         SeriesStart, SeriesStep, SeriesUnit [string??]
-               NamedMap
-                  MetaData
-                  LabelTable
-                     Label [text - name of label]
-                        attr = Key[int], Red, Green, Blue, Alpha [f 0..1]
-                  MapName [text - name of map]
-               Surface
-                  attr = BrainStructure, SurfaceNumberOfVertices [int64_t]
-               Parcel
-                  attr = Name [text]
-                  Vertices [int64_t]
-                     attr = BrainStructure
-                  VoxelIndicesIJK
-               Volume
-                  attr = VolumeDimensions [int64_t,int64_t,int64_t]
-                  TransformationMatrixVoxelIndicesIJKtoXYZ
-                     [text - 16 x double xform matrix (row major)]
-                     attr = MeterExponent [int - power of 10]
-               BrainModel
-                  attr = IndexOffset [int], IndexCount [int64_t],
-                         ModelType[??], BrainStructure[??],
-                         SurfaceNumberOfVertices
-                  VoxelIndicesIJK [int64_t triples (see IndexCount)]
-                     * might convert IJK to just Indices via VolumeDimensions
-                       (this is only for volume, Surface gives just indices)
-                  VertexIndices [int64_t (see IndexCount)]
-
-    - convert as in SUMA_Create_Fake_CIFTI()
  * ----------------------------------------------------------------------*/
+
+/* --------------------------- structures --------------------------------- */
 
 typedef struct {
     char ** name;
@@ -82,9 +33,15 @@ typedef struct afni_xml_s {
    int                  cdata;       /* flag: is data stored as CDATA       */
    int                  encode;      /* encoding type (e.g. b64 binary)     */
 
+   /* these fields are not for use by afni_xml, and are left clear          */
+   void               * bdata;       /* decoded binary data                 */
+   int64_t              blen;        /* number of elements of btype         */
+   int                  btype;       /* probably a NIFTI data type          */
+
    nvpairs              attrs;       /* attributes                          */
    int                  nchild;      /* number of child elements            */
    struct afni_xml_s ** xchild;      /* child elements                      */
+   struct afni_xml_s  * xparent;     /* parent element                      */
 } afni_xml_t;
 
 typedef struct {
@@ -95,24 +52,24 @@ typedef struct {
 typedef struct {
    /* general control */
    int     verb;        /* verbose level (0=quiet, 1=default) */
-   int     dstore;      /* flag: store data on read? */
-   int     indent;      /* spaces to indent when writing */
-   int     buf_size;    /* size of xml reading buffer */
-   FILE  * wstream;     /* show stream, maybe stderr */
+   int     dstore;      /* flag: store data on read?         */
+   int     indent;      /* spaces to indent when writing    */
+   int     buf_size;    /* size of xml reading buffer      */
+   FILE  * wstream;     /* show stream, maybe stderr      */
 
-   /* active control and information */
-   int           depth;  /* current depth */
-   int           dskip;  /* stack depth to skip */
-   int           errors; /* reading errors */
-   int           wkeep;  /* flag: keep found whitespace char */
+   /* active control and information                                     */
+   int           depth;  /* current depth                                */
+   int           dskip;  /* stack depth to skip                          */
+   int           errors; /* reading errors                               */
+   int           wkeep;  /* flag: keep found whitespace char             */
                          /* (keep once non-white is seen, until any pop) */
-   afni_xml_t  * stack[AXML_MAX_DEPTH]; /* xml stack of pointers */
+   afni_xml_t  * stack[AXML_MAX_DEPTH]; /* xml stack of pointers         */
 
-   afni_xml_list * xroot;   /* list of root XML tree pointers */
+   afni_xml_list * xroot;   /* list of root XML tree pointers            */
 } afni_xml_control;
 
 
-/* protos */
+/* --------------------------- prototypes --------------------------------- */
 
 /* main interface */
 afni_xml_list axml_read_buf (const char * buf_in, int64_t bin_len);
@@ -121,8 +78,12 @@ afni_xml_list axml_read_file(const char * fname, int read_data);
 int axml_disp_xlist(char * mesg, afni_xml_list * axlist, int verb);
 int axml_disp_xml_t(char * mesg, afni_xml_t * ax, int indent, int verb);
 
-int axml_free_xlist(afni_xml_list * axlist);
-int axml_free_xml_t(afni_xml_t * ax);
+
+/* create/free */
+afni_xml_t * new_afni_xml   (const char * name);
+int          axml_add_attrs (afni_xml_t * ax, const char ** attr);
+int          axml_free_xml_t(afni_xml_t * ax);
+int          axml_free_xlist(afni_xml_list * axlist);
 
 int axml_write_stream(FILE * fp, afni_xml_t * xroot, int write_data);
 

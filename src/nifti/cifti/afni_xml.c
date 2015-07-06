@@ -114,7 +114,7 @@ static int  append_to_string(char **, int *, const char *, int);
 static int  disp_axml_ctrl (char * mesg, afni_xml_control * dp, int show_all );
 static int  disp_gen_text(afni_xml_control *, const char *, const char *, int);
 static void free_whitespace(void);
-static int  init_axml_ctrl (afni_xml_control *xp, int doall);
+static int  init_axml_ctrl (afni_xml_control *xd, int doall);
 static int  process_popped_element(afni_xml_control * xd, int pop_depth,
                                    const char * ename);
 static int  reset_xml_buf  (afni_xml_control * xd, char ** buf, int * bsize);
@@ -125,7 +125,7 @@ static int  show_depth     (afni_xml_control *, int show);
 static int  show_attrs     (afni_xml_control *, const char *, const char **);
 
 static int64_t      loc_strnlen     (const char * str, int64_t maxlen);
-static afni_xml_t * new_afni_xml    (const char * ename, const char ** attr);
+static afni_xml_t * make_afni_xml   (const char * ename, const char ** attr);
 static char       * strip_whitespace(const char * str, int slen);
 
 /*----------------------- main I/O functions ---------------------------*/
@@ -333,6 +333,13 @@ int axml_disp_xml_t(char * mesg, afni_xml_t * ax, int indent, int verb)
          fprintf(fp, "%*sxlen   : %d\n", indent, "", ax->xlen);
          fprintf(fp, "%*scdata  : %d\n", indent, "", ax->cdata);
          fprintf(fp, "%*sencode : %d\n", indent, "", ax->encode);
+
+         /* only display binary information if there is something there */
+         if( ax->bdata || ax->blen > 0 ) {
+            fprintf(fp, "%*sbdata  : %p\n", indent, "", ax->bdata);
+            fprintf(fp, "%*sblen   : %ld\n", indent, "", ax->blen);
+            fprintf(fp, "%*sbtype  : %d\n", indent, "", ax->btype);
+         }
       }
       fprintf(fp, "%*snattrs : %d\n", indent, "", ax->attrs.length);
       if( verb > 2 ) {
@@ -341,6 +348,8 @@ int axml_disp_xml_t(char * mesg, afni_xml_t * ax, int indent, int verb)
                     indent, "", ax->attrs.name[ind], ax->attrs.value[ind]);
       }
       fprintf(fp, "%*snchild : %d\n", indent, "", ax->nchild);
+      if(verb>3) fprintf(fp, "%*sxparent : %s\n",indent,"",
+                         ax->xparent ? "SET" : "NONE" );
    } else 
       /* just show the name */
       fprintf(fp, "%*s%s\n", indent, "", ax->name);
@@ -352,48 +361,75 @@ int axml_disp_xml_t(char * mesg, afni_xml_t * ax, int indent, int verb)
    return 0;
 }
 
-/* recursive allocation of text data, depending on name */
-/*
-   CIFTI labels with data, with corresponding types:
-      text: Label
-      text: Name
-      text: Value
-      text: MapName
 
-      float64_t : TransformationMatrixVoxelIndicesIJKtoXYZ
-      int64_t   : VertexIndices
-      int64_t   : Vertices
-      int64_t   : VoxelIndicesIJK (int triplets)
-*/
-int axml_convert_text_data(afni_xml_t * ax)
+/* allocate a new afni_xml_t struct, and possibly copy the name */
+afni_xml_t * new_afni_xml(const char * name)
 {
-   int ind;
+   afni_xml_t * newp;
 
-   if( !ax ) return 0;
-
-   if( ax->name )  { free(ax->name);  ax->name  = NULL; }
-   if( ax->xtext ) { free(ax->xtext); ax->xtext = NULL; }
-   ax->xlen = 0;
-
-   /* free all attributes */
-   for(ind = 0; ind < ax->attrs.length; ind++ ) {
-      if( ax->attrs.name  && ax->attrs.name[ind] )  free(ax->attrs.name[ind]);
-      if( ax->attrs.value && ax->attrs.value[ind] ) free(ax->attrs.value[ind]);
+   newp = (afni_xml_t *)calloc(1, sizeof(afni_xml_t));
+   if( ! newp ) {
+      fprintf(stderr,"** failed to alloc afni_xml_t struct\n");
+      return NULL;
    }
-   if( ax->attrs.name )  { free(ax->attrs.name);  ax->attrs.name = NULL; }
-   if( ax->attrs.value ) { free(ax->attrs.value); ax->attrs.value = NULL; }
-   ax->attrs.length = 0;
 
-   /* and free children */
-   if( ax->nchild > 0 && ax->xchild )
-      for( ind=0; ind < ax->nchild; ind++ ) axml_free_xml_t(ax->xchild[ind]);
-   ax->nchild = 0;
-   if( ax->xchild ) { free(ax->xchild); ax->xchild = NULL; }
+   /* be picky with pointers */
+   newp->name    = NULL;
+   newp->xtext   = NULL;
+   newp->bdata   = NULL;
+   newp->xparent = NULL;
+   newp->xchild  = NULL;
 
-   free(ax);
+   if( name ) newp->name = strdup(name);
 
+   return newp;
+}
+
+
+int axml_add_attrs(afni_xml_t * ax, const char ** attr)
+{
+   int c, aind, natr;
+
+   if( ! ax ) return 1;
+
+   if( ! attr ) return 0;
+
+   if( ax->attrs.name || ax->attrs.value )
+      fprintf(stderr,"** axml_add_attrs: have non-NULL at input\n");
+
+   for(c=0, natr=0; attr[c]; c += 2, natr++)
+      ;  /* just count */
+
+   ax->attrs.length = natr;
+
+   if( natr == 0 ) { /* we are done */
+      ax->attrs.name = NULL;
+      ax->attrs.value = NULL;
+      return 0;
+   }
+
+   ax->attrs.name = (char **)malloc(natr*sizeof(char *));
+   ax->attrs.value = (char **)malloc(natr*sizeof(char *));
+
+   /* failure? */
+   if( ! ax->attrs.name || ! ax->attrs.value ) {
+      fprintf(stderr,"** NAX: failed to alloc 2 sets of %d char*\n", natr);
+      ax->attrs.length = 0;
+      if( ax->attrs.name )  free(ax->attrs.name);
+      if( ax->attrs.value ) free(ax->attrs.value);
+      ax->attrs.name = ax->attrs.value = NULL;
+      return 1;
+   }
+
+   /* and get the attributes */
+   for(c = 0, aind = 0; attr[c]; c += 2, aind++) {
+      ax->attrs.name[aind]  = strdup(strip_whitespace(attr[c],0));
+      ax->attrs.value[aind] = strdup(strip_whitespace(attr[c+1],0));
+   }
+ 
    return 0;
 }
+
 
 /* free the list of afni_xml_t structs */
 int axml_free_xlist(afni_xml_list * axlist)
@@ -426,6 +462,7 @@ int axml_free_xml_t(afni_xml_t * ax)
 
    if( ax->name )  { free(ax->name);  ax->name  = NULL; }
    if( ax->xtext ) { free(ax->xtext); ax->xtext = NULL; }
+   if( ax->bdata ) { free(ax->bdata); ax->bdata = NULL; }
    ax->xlen = 0;
 
    /* free all attributes */
@@ -442,6 +479,7 @@ int axml_free_xml_t(afni_xml_t * ax)
       for( ind=0; ind < ax->nchild; ind++ ) axml_free_xml_t(ax->xchild[ind]);
    ax->nchild = 0;
    if( ax->xchild ) { free(ax->xchild); ax->xchild = NULL; }
+   ax->xparent = NULL;
 
    free(ax);
 
@@ -475,27 +513,27 @@ int axml_recur(int(*func)(FILE * fp, afni_xml_t *, int), afni_xml_t * ax)
 
 
 
-static int init_axml_ctrl(afni_xml_control *xp, int doall)
+static int init_axml_ctrl(afni_xml_control *xd, int doall)
 {
    if( doall ) {         /* user modifiable - init all to defaults */
-      xp->verb     = 1;
-      xp->dstore   = 1;
-      xp->indent   = 3;
-      xp->buf_size = AXML_DEF_BSIZE;
-      xp->wstream  = stderr;    /* rcr - ponder accessor (might need close) */
+      xd->verb     = 1;
+      xd->dstore   = 1;
+      xd->indent   = 3;
+      xd->buf_size = AXML_DEF_BSIZE;
+      xd->wstream  = stderr;    /* rcr - ponder accessor (might need close) */
    }
 
-   xp->depth = 0;
-   xp->dskip = 0;
-   xp->errors = 0;
-   xp->wkeep = 0;
-   memset(xp->stack, 0, sizeof(xp->stack));
+   xd->depth = 0;
+   xd->dskip = 0;
+   xd->errors = 0;
+   xd->wkeep = 0;
+   memset(xd->stack, 0, sizeof(xd->stack));
 
-   xp->xroot = NULL;
+   xd->xroot = NULL;
 
    /* maybe show the user */
-   if( xp->verb > 2 )
-       disp_axml_ctrl("-- user opts: ", xp, xp->verb > 3);
+   if( xd->verb > 2 )
+       disp_axml_ctrl("-- user opts: ", xd, xd->verb > 3);
 
    return 0;
 }
@@ -617,7 +655,7 @@ static int epush(afni_xml_control * xd, const char * ename, const char ** attr)
                    xd->dskip, xd->depth, ename);
    } else {
       /* --- control depth and corresponding vars --- */
-      acur = new_afni_xml(ename, attr);
+      acur = make_afni_xml(ename, attr);
       if( ! acur ) { xd->dskip = xd->depth; return 1; }
       xd->stack[xd->depth-1] = acur;
 
@@ -674,9 +712,6 @@ static int process_popped_element(afni_xml_control * xd, int pop_depth,
       return 1;
    }
 
-   /* rcr - if we have data, consider allocating per type */
-   /*     * time to depend on NIFTI ... */
-
    return 0;
 }
 
@@ -713,57 +748,21 @@ static int add_to_xchild_list(afni_xml_t * parent, afni_xml_t * child)
    }
    parent->xchild[parent->nchild-1] = child;
 
+   /* and note the child's parent */
+   child->xparent = parent;
+
    return 0;
 }
 
 
-static afni_xml_t * new_afni_xml(const char * ename, const char ** attr)
+static afni_xml_t * make_afni_xml(const char * ename, const char ** attr)
 {
    afni_xml_t * newp;
-   int          c, aind, natr;
 
-   newp = (afni_xml_t *)calloc(1, sizeof(afni_xml_t));
-   if( ! newp ) {
-      fprintf(stderr,"** failed to alloc afni_xml_t struct\n");
-      return NULL;
-   }
+   newp = new_afni_xml(ename);
+   if( ! newp ) return NULL;
 
-   /* be picky */
-   newp->name   = strdup(ename);
-   newp->xtext  = NULL;
-   newp->xchild = NULL;
-
-   if( attr ) {
-      for(c=0, natr=0; attr[c]; c += 2, natr++)
-         ;  /* just count */
-
-      newp->attrs.length = natr;
-
-      if( natr == 0 ) { /* we are done */
-         newp->attrs.name = NULL;
-         newp->attrs.value = NULL;
-         return newp;
-      }
-
-      newp->attrs.name = (char **)malloc(natr*sizeof(char *));
-      newp->attrs.value = (char **)malloc(natr*sizeof(char *));
-
-      /* failure? */
-      if( ! newp->attrs.name || ! newp->attrs.value ) {
-         fprintf(stderr,"** NAX: failed to alloc 2 sets of %d char*\n", natr);
-         newp->attrs.length = 0;
-         if( newp->attrs.name )  free(newp->attrs.name);
-         if( newp->attrs.value ) free(newp->attrs.value);
-         newp->attrs.name = newp->attrs.value = NULL;
-         return newp;
-      }
-
-      /* and get the attributes */
-      for(c = 0, aind = 0; attr[c]; c += 2, aind++) {
-         newp->attrs.name[aind]  = strdup(strip_whitespace(attr[c],0));
-         newp->attrs.value[aind] = strdup(strip_whitespace(attr[c+1],0));
-      }
-   }
+   axml_add_attrs(newp, attr);
  
    return newp;
 }
@@ -851,7 +850,8 @@ static void XMLCALL cb_char(void *udata, const char * cdata, int length)
       return;
    }
 
-   append_to_string(&parent->xtext, &parent->xlen, cdata, length);
+   if( gAXD.dstore )
+      append_to_string(&parent->xtext, &parent->xlen, cdata, length);
 }
 
 /* append new string (of given length) to old string and length */
