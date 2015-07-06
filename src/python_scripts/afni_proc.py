@@ -478,10 +478,12 @@ g_history = """
           rather than -regress_ROI_*, the latter no longer taking datasets
         - also changed -regress_ROI_erode to -anat_follower_erode
         - removed option -regress_ROI_maskave (use -regress_ROI)
-    4.44 May 22, 2015: help clarifications
+    4.45 May 22, 2015: help clarifications
+    4.46 Jun 15, 2015: applied -regress_stim_times_offset to typical timing
+    4.47 Jul 01, 2015: clarified help for -anat_unif_GM, default = no
 """
 
-g_version = "version 4.45, May 22, 2015"
+g_version = "version 4.47, July 1, 2015"
 
 # version of AFNI required for script execution
 g_requires_afni = "1 Apr 2015" # 1d_tool.py uncensor from 1D
@@ -547,6 +549,7 @@ DefSurfLabs    = ['tcat','tshift','align','volreg','surf','blur',
 EPInomodLabs = ['postdata', 'align', 'tlrc', 'mask']
 
 default_roi_keys = ['brain', 'GM', 'WM', 'CSF', 'GMe', 'WMe', 'CSFe']
+stim_file_types  = ['times', 'AM1', 'AM2', 'IM', 'file']
 
 # --------------------------------------------------------------------------
 # data processing stream class
@@ -1060,9 +1063,9 @@ class SubjProcSream:
         self.valid_opts.add_opt('-regress_no_stim_times', 0, [],
                         helpstr="do not convert stim_files to timing")
         self.valid_opts.add_opt('-regress_stim_times_offset', 1, [],
-                        helpstr="add offset when converting to timing")
+                        helpstr="add offset to timing")
         self.valid_opts.add_opt('-regress_stim_types', -1, [], okdash=0,
-                        acplist=['times', 'AM1', 'AM2', 'IM', 'file'],
+                        acplist=stim_file_types,
                         helpstr="specify times/AM1/AM2/IM for each stim class")
         self.valid_opts.add_opt('-regress_use_stim_files', 0, [],
                         helpstr="do not convert stim_files to timing")
@@ -1940,12 +1943,29 @@ class SubjProcSream:
                         % (self.od_var, self.od_var, stat_inc))
 
         if len(self.stims_orig) > 0: # copy stim files into script's stim dir
+          oname = '-regress_stim_times_offset'
+          val, err = self.user_opts.get_type_opt(float, oname)
+          if err: return 1
+
+          # if normal timing and want offset, apply it right away
+          if val != None and self.have_all_stim_times(): 
+            tstr = '# copy stim files into stimulus directory ' \
+                   '(times offset by %g s)\n' % val
+            for ind in range(len(self.stims_orig)):
+              oldfile = self.stims_orig[ind]
+              newfile = self.stims[ind]
+              tstr += 'timing_tool.py -add_offset %g -timing %s \\\n'   \
+                      '               -write_timing %s/%s\n'            \
+                      % (val, oldfile, self.od_var, newfile)
+
+          # otherwise, have either regular timing files or no offset
+          else:
             tstr = '# copy stim files into stimulus directory\ncp'
             for ind in range(len(self.stims)):
                 tstr += ' %s' % self.stims_orig[ind]
             tstr += ' %s/stimuli\n' % self.od_var
-            self.write_text(add_line_wrappers(tstr))
-            self.write_text("%s\n" % stat_inc)
+          self.write_text(add_line_wrappers(tstr))
+          self.write_text("%s\n" % stat_inc)
 
         if len(self.extra_stims) > 0: # copy extra stim files into stim dir
             tstr = '# copy extra stim files\n'   \
@@ -2214,6 +2234,42 @@ class SubjProcSream:
           return 'NO_LABEL'
        return self.pblabels[index]
 
+    def have_all_stim_times(self):
+        """return whether all stim files are with regular timing"""
+
+        # must have timing files
+        sopt = self.user_opts.find_opt('-regress_stim_times')
+        if not sopt: return 0
+        if len(sopt.parlist) < 1: return 0
+
+        # must not have regular stim files
+        if self.user_opts.find_opt('-regress_stim_files'): return 0
+
+        # must not have 'file' type
+        stypes, rv = self.user_opts.get_string_list('-regress_stim_types')
+        if rv: return 0
+        if stypes != None:
+           if 'file' in stypes: return 0
+
+        # okay, I think that is basically everything
+        return 1
+
+    def have_some_stim_times(self):
+        """return whether there exist stim files are with regular timing"""
+
+        # must have timing files
+        sopt = self.user_opts.find_opt('-regress_stim_times')
+        if not sopt: return 0
+        if len(sopt.parlist) < 1: return 0
+
+        # must have something besides 'file' type
+        stypes, rv = self.user_opts.get_string_list('-regress_stim_types')
+        if rv: return 0
+        for stype in stypes:
+           if stype != 'file': return 1
+
+        # did not find anything
+        return 0
 
     def anat_follower(self, name='', aname=None, dgrid='epi', label='',
                       NN=0, num_pc=0, mave=0):

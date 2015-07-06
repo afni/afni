@@ -105,6 +105,8 @@ typedef struct {
 /* main interface */
 gifti_image * gxml_read_image (const char * fname, int read_data,
                                const int * dalist, int len);
+gifti_image * gxml_read_image_buf(const char * buf_in, long long bin_len,
+                                  const int * dalist, int dalen);
 int           gxml_write_image(gifti_image * gim, const char * fname,
                                int write_data);
 

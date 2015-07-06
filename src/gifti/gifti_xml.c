@@ -285,7 +285,7 @@ gifti_image * gxml_read_image(const char * fname, int read_data,
             { gifti_free_image(xd->gim); xd->gim = NULL; break; }
 
         blen = fread(buf, 1, bsize, fp);
-        done = blen < sizeof(buf);
+        done = blen < bsize;
 
         if(xd->verb > 3) fprintf(stderr,"-- XML_Parse # %d\n", pcount);
         pcount++;
@@ -308,6 +308,106 @@ gifti_image * gxml_read_image(const char * fname, int read_data,
     }
 
     fclose(fp);
+    if( buf ) free(buf);        /* parser buffer */
+    XML_ParserFree(parser);
+
+    if( dalist && xd->da_list )
+        if( apply_da_list_order(xd, dalist, dalen) ) {
+            fprintf(stderr,"** failed apply_da_list_order\n");
+            gifti_free_image(xd->gim);
+            xd->gim = NULL;
+        }
+
+    free_xd_data(xd);  /* free data buffers */
+
+    return xd->gim;
+}
+
+
+/* note: the buffer needs to be large enough to contain any contiguous
+         piece of (CDATA?) text, o.w. it will require parsing in pieces */
+gifti_image * gxml_read_image_buf(const char * buf_in, long long bin_len,
+                                  const int * dalist, int dalen)
+{
+    gxml_data  * xd = &GXD;     /* point to global struct */
+    XML_Parser   parser;
+    long long    bin_remain = bin_len;  /* remaining bytes to process */
+    const char * bin_ptr = buf_in;      /* current buffer location */
+    const char * fname = "FROM_BUFFER";
+    unsigned     blen;
+    char       * buf = NULL;
+    int          bsize;    /* be sure it doesn't change at some point */
+    int          done = 0, pcount = 1;
+ 
+    if( init_gxml_data(xd, 0, dalist, dalen) ) /* reset non-user variables */
+        return NULL;
+
+    xd->dstore = 1;  /* store for global access */
+
+    if( !buf_in || bin_len < 0 ) {
+        fprintf(stderr,"** gxml_read_image_buf: missing buffer\n");
+        return NULL;
+    }
+
+    /* create a new buffer */
+    bsize = 0;
+    if( reset_xml_buf(xd, &buf, &bsize) ) return NULL;
+
+    if(xd->verb > 1) {
+        fprintf(stderr,"-- reading gifti image '%s'\n", fname);
+        if(xd->da_list) fprintf(stderr,"   (length %d DA list)\n", xd->da_len);
+        fprintf(stderr,"-- using %d byte XML buffer\n",bsize);
+        if(xd->verb > 4) show_enames(stderr);
+    }
+
+    /* allocate return structure */
+    xd->gim = (gifti_image *)calloc(1,sizeof(gifti_image));
+    if( !xd->gim ) {
+        fprintf(stderr,"** failed to alloc initial gifti_image\n");
+        free(buf);
+        return NULL;
+    }
+
+    /* create parser, init handlers */
+    parser = init_xml_parser((void *)xd);
+
+    while( !done )
+    {
+        if( reset_xml_buf(xd, &buf, &bsize) )  /* fail out */
+            { gifti_free_image(xd->gim); xd->gim = NULL; break; }
+
+        /*--- replace fread with buffer copy ---*/
+
+        /* decide how much to copy and copy */
+        if( bin_remain >= bsize ) blen = bsize;
+        else                      blen = bin_remain;
+
+        memcpy(buf, bin_ptr, bsize);
+
+        /* update bytes remaining to process and decide if done */
+        bin_remain -= bsize;
+        done = bin_remain <= 0;
+
+        if(xd->verb > 3) fprintf(stderr,"-- XML_Parse # %d\n", pcount);
+        pcount++;
+        if( XML_Parse(parser, buf, blen, done) == XML_STATUS_ERROR) {
+            fprintf(stderr,"** %s at line %u\n",
+                    XML_ErrorString(XML_GetErrorCode(parser)),
+                    (unsigned int)XML_GetCurrentLineNumber(parser));
+            gifti_free_image(xd->gim);
+            xd->gim = NULL;
+            break;
+        }
+    }
+
+    if(xd->verb > 1) {
+        if(xd->gim)
+            fprintf(stderr,"-- have gifti image '%s', "
+                           "(%d DA elements = %lld MB)\n",
+                    fname, xd->gim->numDA, gifti_gim_DA_size(xd->gim,1));
+        else fprintf(stderr,"** gifti image '%s', failure\n", fname);
+    }
+
     if( buf ) free(buf);        /* parser buffer */
     XML_ParserFree(parser);
 
