@@ -149,7 +149,8 @@ set count = 0
 foreach file ( $new_files )
   # skip files that we don't want to spend time on
   if ( $skip_data &&  \
-        ( $file =~ *.BRIK || $file =~ *.BRIK.gz || $file =~ *.dcm ) ) continue
+        ( $file =~ *.BRIK || $file =~ *.BRIK.gz || $file =~ *.dcm || \
+          $file =~ *.nii  || $file =~ *.nii.gz ) ) continue
 
   if ( $showdiffs ) then
     diff $ndir/$file $odir/$file >& /dev/null
