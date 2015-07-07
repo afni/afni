@@ -18,7 +18,7 @@
 
 #define USE_NIFTI2
 #include <nifti2_io.h>
-#include "afni_xml.h"
+#include "afni_xml_io.h"
 
 static char g_version[] = "version -1.3";
 
@@ -42,9 +42,9 @@ opts_t gopt;
 /* protos */
 
 /* processing */
-int disp_cifti_extension(afni_xml_list xlist, opts_t * opts);
+int disp_cifti_extension(afni_xml_t * ax, opts_t * opts);
 int disp_hex_data       (const char *mesg, const void *data, int len, FILE *fp);
-int eval_cifti_extension(afni_xml_list xlist, opts_t * opts);
+int eval_cifti_extension(afni_xml_t * ax, opts_t * opts);
 
 /* main */
 int process_args        (int argc, char * argv[], opts_t * opts);
@@ -54,13 +54,14 @@ int write_extension     (FILE * fp, nifti1_extension * ext, int maxlen);
 
 /* recur */
 int ax_has_data         (FILE * fp, afni_xml_t * ax, int depth);
+int ax_num_tokens       (FILE * fp, afni_xml_t * ax, int depth);
 int ax_show_text_data   (FILE * fp, afni_xml_t * ax, int depth);
 int ax_show_names       (FILE * fp, afni_xml_t * ax, int depth);
 
 /* stream */
-int             close_stream       (FILE * fp);
-FILE          * open_write_stream  (char * fname);
-afni_xml_list   get_cifti_extension(char * fin, opts_t * opts);
+int          close_stream        (FILE * fp);
+FILE       * open_write_stream   (char * fname);
+afni_xml_t * read_cifti_extension(char * fin, opts_t * opts);
 
 /* ----------------------------------------------------------------- */
 int main(int argc, char * argv[])
@@ -137,38 +138,38 @@ int process_args(int argc, char * argv[], opts_t * opts)
 /* ----------------------------------------------------------------- */
 int process(opts_t * opts)
 {
-   afni_xml_list xlist;
+   afni_xml_t * ax;
 
    if( !opts->fin ){ fprintf(stderr, "** missing option '-input'\n"); return 1;}
 
    axml_set_verb(opts->verb);
    nifti_set_debug_level(opts->verb);
 
-   /* get xlist from file or extension */
-   if( opts->as_cext ) xlist = axml_read_file(opts->fin, 1);
-   else                xlist = get_cifti_extension(opts->fin, opts);
+   /* get xml pointer from file or extension */
+   if( opts->as_cext ) ax = axio_read_file(opts->fin);
+   else                ax = read_cifti_extension(opts->fin, opts);
 
-   if( xlist.len == 0 ) {
+   if( ! ax ) {
       fprintf(stderr,"** failed to read CIFTI ext from %s\n", opts->fin);
       return 1;
    }
 
-   if( opts->disp_cext ) disp_cifti_extension(xlist, opts);
-   if( opts->eval_cext ) eval_cifti_extension(xlist, opts);
+   if( opts->disp_cext ) disp_cifti_extension(ax, opts);
+   if( opts->eval_cext ) eval_cifti_extension(ax, opts);
 
    return 0;
 }
 
-afni_xml_list get_cifti_extension(char * fin, opts_t * opts)
+afni_xml_t * read_cifti_extension(char * fin, opts_t * opts)
 {
    nifti_image      * nim = nifti_image_read(opts->fin, 0);
    nifti1_extension * ext;
-   afni_xml_list      xlist = {0, NULL};
+   afni_xml_t       * ax;
    int                ind, found = 0;
 
    if( !nim ) {
       fprintf(stderr,"** failed to read NIfTI image from '%s'\n", opts->fin);
-      return xlist;
+      return NULL;
    }
 
    if( gopt.verb > 1 )
@@ -180,14 +181,13 @@ afni_xml_list get_cifti_extension(char * fin, opts_t * opts)
 
       found ++;
       if( found > 1 ) fprintf(stderr,"** found CIFTI extension #%d\n", found);
-      xlist = axml_read_buf(ext->edata, ext->esize-8);
-      if( xlist.len > 0 ) break;
+      else            ax = axio_read_buf(ext->edata, ext->esize-8);
    }
 
-   return xlist;
+   return ax;
 }
 
-int disp_cifti_extension(afni_xml_list xlist, opts_t * opts)
+int disp_cifti_extension(afni_xml_t * ax, opts_t * opts)
 {
    FILE * fp;
 
@@ -197,7 +197,7 @@ int disp_cifti_extension(afni_xml_list xlist, opts_t * opts)
 
    fp = open_write_stream(opts->fout);
    axml_set_wstream(fp);
-   axml_disp_xlist("have extension ", &xlist, opts->verb);
+   axml_disp_xml_t("have extension ", ax, 0, opts->verb);
    
    /* possibly close file */
    close_stream(fp);
@@ -205,7 +205,7 @@ int disp_cifti_extension(afni_xml_list xlist, opts_t * opts)
    return 0;
 }
 
-int eval_cifti_extension(afni_xml_list xlist, opts_t * opts)
+int eval_cifti_extension(afni_xml_t * ax, opts_t * opts)
 {
    FILE * fp;
 
@@ -220,13 +220,15 @@ int eval_cifti_extension(afni_xml_list xlist, opts_t * opts)
                                 opts->eval_type ? opts->eval_type : "NULL");
 
    if( ! opts->eval_type ) 
-      axml_recur(ax_show_names, xlist.xlist[0]);
+      axml_recur(ax_show_names, ax);
    else if( ! strcmp(opts->eval_type, "has_data" ) )
-      axml_recur(ax_has_data, xlist.xlist[0]);
+      axml_recur(ax_has_data, ax);
+   else if( ! strcmp(opts->eval_type, "num_tokens" ) )
+      axml_recur(ax_num_tokens, ax);
    else if( ! strcmp(opts->eval_type, "show_text_data" ) )
-      axml_recur(ax_show_text_data, xlist.xlist[0]);
+      axml_recur(ax_show_text_data, ax);
    else /* names is default */
-      axml_recur(ax_show_names, xlist.xlist[0]);
+      axml_recur(ax_show_names, ax);
    
    /* possibly close file */
    close_stream(fp);
@@ -274,6 +276,28 @@ int ax_has_data(FILE * fp, afni_xml_t * ax, int depth)
       fprintf(fp,"%*sdata in depth %d %s\n", depth*3, "", depth, ax->name);
    else
       fprintf(fp,"%s\n", ax->name);
+
+   return 0;
+}
+
+int ax_num_tokens(FILE * fp, afni_xml_t * ax, int depth)
+{
+   int64_t nt;
+
+   if( !ax ) return 1;
+
+   /* if no data, blow out of here */
+   if( gopt.verb < 3 ) {
+      if( !ax->xtext || ax->xlen <= 0 ) return 0;
+   }
+
+   nt = axio_num_tokens(ax->xtext, ax->xlen);
+
+   if( gopt.verb > 1 )
+      fprintf(fp,"%*stokens in depth %d %s: %ld\n",
+              depth*3, "", depth, ax->name, nt);
+   else
+      fprintf(fp,"%s %ld\n", ax->name, nt);
 
    return 0;
 }
@@ -377,6 +401,14 @@ int show_help( void )
       "       -as_cext            : process the input as just an extension\n"
       "       -disp_cext          : display the CIFTI extension\n"
       "       -eval_cext          : evaluate the CIFTI extension\n"
+      "       -eval_type ETYPE    : method for evaluation of axml elements\n"
+      "\n"
+      "          valid ETYPES:\n"
+      "             has_data       - show elements with attached text data\n"
+      "             num_tokens     - show the number of tokens in such text\n"
+      "             show_text_data - show the actual text data\n"
+      "             show_names     - show element names, maybe depth indented\n"
+      "\n"
       "       -verb LEVEL         : set the verbose level to LEVEL\n"
       "\n");
    return 1;

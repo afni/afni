@@ -508,6 +508,18 @@ int axml_recur(int(*func)(FILE * fp, afni_xml_t *, int), afni_xml_t * ax)
 }
 
 
+/* return corresponding value pointer for attribute */
+char * axml_attr_value(afni_xml_t * ax, const char * name)
+{
+   int ind;
+   if( !ax ) return NULL;
+   for( ind = 0; ind < ax->attrs.length; ind++ )
+      if( ! strcmp(ax->attrs.name[ind], name) ) return ax->attrs.value[ind];
+
+   return NULL;  /* not found */
+}
+
+
 
 /*----------------------- end main I/O functions -----------------------*/
 
