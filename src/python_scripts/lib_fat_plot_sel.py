@@ -247,6 +247,7 @@ def Fat_Mat_Plot( X,
                   FTYPE,
                   DO_PLOT,
                   TIGHT_LAY,
+                  DO_XTICK_LABS,
                   MATDPI,
                   MAT_X,
                   MAT_Y,
@@ -308,8 +309,12 @@ def Fat_Mat_Plot( X,
                     vmax=MATMAX,
                     cmap=MAP_of_COL)
 
-    plt.xticks( np.arange(len(MATTICKS)), MATTICKS, rotation=37, 
-                fontsize=LAB_SIZE_FONT )
+    if DO_XTICK_LABS:
+        plt.xticks( np.arange(len(MATTICKS)), MATTICKS, rotation=37, 
+                    fontsize=LAB_SIZE_FONT )
+    else:
+        plt.xticks( np.arange(len(MATTICKS)), len(MATTICKS)*'',
+                    fontsize=LAB_SIZE_FONT )
     plt.yticks( np.arange(len(MATTICKS)), MATTICKS, rotation=0, 
                 fontsize=LAB_SIZE_FONT )
     plt.title('%s' % (X[1][WhichMat]), fontsize=FS+1 )
