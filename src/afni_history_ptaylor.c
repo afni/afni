@@ -66,6 +66,10 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 7, Jul , 2015 , PT , "fat_mat_sel.py" , MINOR , TYPE_NEW_OPT,
+   "Simple new option to exclude x-axis labels.",
+   "They might just be annoying.\n"
+},
 
 { 21, May , 2015 , PT , "fat_mvm_scripter.py" , MINOR , TYPE_BUG_FIX,
    "Minor bug fixed for inputting sublist of ROIs.",
