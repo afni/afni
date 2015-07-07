@@ -3,6 +3,7 @@
 
 
 #include <stdio.h>
+#include "afni_xml.h"
 
 /* ----------------------------------------------------------------------
    CIFTI XML structure:
@@ -29,7 +30,7 @@
                   attr = BrainStructure, SurfaceNumberOfVertices [int64_t]
                Parcel
                   attr = Name [text]
-                  Vertices [int64_t]
+                  Vertices [int64_t (of unknown length?)]
                      attr = BrainStructure
                   VoxelIndicesIJK
                Volume
@@ -58,5 +59,7 @@
 afni_xml_t * axio_read_buf (const char * buf, int64_t blen);
 afni_xml_t * axio_read_file(const char * fname);
 
+int axio_text_to_binary (afni_xml_t * ax);
+int axio_num_tokens     (const char * str, int64_t maxlen);
 
 #endif /* AFNI_XML_IO_H */
