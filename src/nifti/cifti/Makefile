@@ -12,13 +12,13 @@ CFLAGS          = -Wall -std=gnu99 -pedantic
 NIFLAGS         = $(IFLAGS) -I$(N2DIR) -I../niftilib -I../znzlib $(USEZLIB)
 
 LLIBS 		= -lz -lm
-OBJS            = afni_xml.o
+OBJS            = afni_xml.o afni_xml_io.o
 NOBJS           = nifti2_io.o nifticdf.o znzlib.o
 
 # --------------------------------------------------
 # default compile for C files
 %.o : %.c %.h
-	$(CC) -c $(CFLAGS) $(IFLAGS) $< -o $@
+	$(CC) -c $(CFLAGS) $(NIFLAGS) $< -o $@
 
 # --------------------------------------------------
 # main targets (primary is nifti_tool, for now)
@@ -30,8 +30,8 @@ afni_xml_tool: afni_xml_tool.c $(OBJS)
 clean:
 	$(RM) *.o afni_xml_tool cifti_tool
 
-afni_xml.o: afni_xml.c afni_xml.h
-	$(CC) -c $(CFLAGS) -I. $< 
+#afni_xml.o: afni_xml.c afni_xml.h
+#	$(CC) -c $(CFLAGS) -I. $< 
 
 cifti_tool.o: cifti_tool.c
 	$(CC) -c $(CFLAGS) $(NIFLAGS) $< 
