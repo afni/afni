@@ -15,7 +15,7 @@ extern int SUMAg_N_DOv;
 
 
 /*! 
-This function creates an RGB colormap containing Ncols that vary linearily 
+This function creates an RGB colormap containing Ncols that vary linearly 
    from the first color in Fiducials to the last.
    
    SM = SUMA_MakeColorMap (Fiducials, N , isRGBA, N_cols, SkipLast, Name)
@@ -831,6 +831,7 @@ SUMA_AFNI_COLORS *SUMA_Get_AFNI_Default_Color_Maps ()
    SUMA_PBARDEF_ADD(ROI_64_CMD);
    SUMA_PBARDEF_ADD(ROI_128_CMD);
    SUMA_PBARDEF_ADD(ROI_256_CMD);
+   SUMA_PBARDEF_ADD(RedBlueGreen_CMD);
 
    /* now wrap it up */   
    SAC = (SUMA_AFNI_COLORS *) SUMA_calloc(1,sizeof(SUMA_AFNI_COLORS));

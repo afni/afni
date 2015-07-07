@@ -49,6 +49,14 @@
 
 
 afni_history_struct dglen_history[] = {
+{ 6, JUL, 2015, DRG, "RedBlueGreen Colormap",
+    MICRO, TYPE_MODIFY,
+    "New RedBlueGreen colormap for afni and suma"
+},
+{ 14, JUN, 2015, DRG, "align_epi_anat.py edge",
+    MICRO, TYPE_BUG_FIX,
+    "Fixed broken edge option"
+},
 { 2, JUN, 2015, DRG, "plugout_drive to stdout or file",
     MICRO, TYPE_NEW_ENV,
     "Allow plugout_drive to get xyz,ijk,AFNI environment to file",

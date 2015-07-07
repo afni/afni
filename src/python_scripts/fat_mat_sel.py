@@ -47,7 +47,8 @@ def main(argv):
         --xlen_file=LX  --ylen_file=LY  --Tight_layout_on  --Fig_off   \\
         --Size_font=S  --Lab_size_font=S2   --Cbar_off                 \\
         --A_plotmin=MIN  --B_plotmax=MAX  --width_cbar_perc=W          \\
-        --Map_of_colors=MAP  --cbar_int_num=N  --specifier=STR
+        --Map_of_colors=MAP  --cbar_int_num=N  --specifier=STR         \\
+        --Xtick_lab_off
 
 
     -P, --Pars='T S R ...'   :supply names of parameters, separated by 
@@ -134,12 +135,18 @@ def main(argv):
                               N = 4).
     -w, --width_cbar_perc=W  :width of colorbar as percentage (0, 100) of width
                               of correlation matrix (default = 5).
-    -s, --specifier=STR      :Format the numbers in the colorbar; these can be
+    -s, --specifier=STR      :format the numbers in the colorbar; these can be
                               used to specify numbers of decimal places on 
                               floats (e.g., '%.4f' has four) or to use 
                               scientific notation ('%e') (default: trying to 
                               guess int or float, the latter using three 
                               decimal places.)
+    -X, --Xtick_lab_off      :switch to turn off labels along x- (horizontal)
+                              axis but to leave those along y- (vertical) axis.
+                              Can be used in conjunction with other label-
+                              editing/specifying options (default: show labels
+                              along both axes).
+
 
 * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 
@@ -165,6 +172,7 @@ def main(argv):
     TIGHT_LAY = 0
     OUT_GRID = 0
     DO_hold_image = 0
+    DO_XTICK_LABS = 1
 
     FS = 10                        # fontsize of whole plot
     N_CBAR_INT = 4
@@ -183,11 +191,12 @@ def main(argv):
     try:
         opts, args = \
          getopt.getopt(argv,
-                       "hECFToHOS:M:c:t:d:x:y:m:l:P:A:B:s:w:L:",
+                       "hECFTXoHOS:M:c:t:d:x:y:m:l:P:A:B:s:w:L:",
                        [ "help", "ExternLabsNo",
                          "Cbar_off",
                          "Fig_off",
                          "Tight_layout_on",
+                         "Xtick_lab_off",
                          "out_ind_matr",
                          "Hold_image",
                          "Out_ind_1ddset",
@@ -228,6 +237,8 @@ def main(argv):
             DO_PLOT = 0
         elif opt in ("-T", "--Tight_layout_on"):
             TIGHT_LAY = 1
+        elif opt in ("-X", "--Xtick_lab_off"):
+            DO_XTICK_LABS = 0
         elif opt in ("-S", "--Size_font"):
             FS = int(arg)
         elif opt in ("-H", "--Hold_image"):
@@ -262,6 +273,7 @@ def main(argv):
     if ( file_matr_glob == '' ) and ( file_listmatch == '' ):
 	print "** ERROR: missing a necessary matrix file input."
         print "\t Need to use either '-m' or '-l'."
+        print "\t Use 'fat_mat_sel.py -h' for viewing helpfile."
         sys.exit()
     if not( file_matr_glob == '' ) and not( file_listmatch == '' ):
         print "*+ Warning: both a path for globbing *and* a listfile have",
@@ -302,7 +314,8 @@ def main(argv):
     return file_matr_glob, file_listmatch, SWITCH_ExternLabsOK, \
      par_str, FS, DO_COLORBAR, N_CBAR_INT, FTYPE, DO_PLOT, \
      TIGHT_LAY, MATDPI, MAT_X, MAT_Y, OUT_GRID, MATMIN_str, MATMAX_str, \
-     SPEC_FORM, MAP_of_COL, DO_hold_image, WIDTH_CBAR_PERC, LAB_SIZE_FONT
+     SPEC_FORM, MAP_of_COL, DO_hold_image, WIDTH_CBAR_PERC, LAB_SIZE_FONT, \
+     DO_XTICK_LABS
 
 ########################################################################
 
@@ -312,8 +325,8 @@ if __name__=="__main__":
     file_matr_glob, file_listmatch, ExternLabsOK, \
      par_str, FS, DO_COLORBAR, N_CBAR_INT, FTYPE, DO_PLOT, \
      TIGHT_LAY, MATDPI, MAT_X, MAT_Y, OUT_GRID, MATMIN_str, MATMAX_str, \
-     SPEC_FORM, MAP_of_COL, DO_hold_image, WIDTH_CBAR_PERC, LAB_SIZE_FONT \
-     = main(sys.argv[1:])
+     SPEC_FORM, MAP_of_COL, DO_hold_image, WIDTH_CBAR_PERC, LAB_SIZE_FONT, \
+     DO_XTICK_LABS = main(sys.argv[1:])
     
 
     # parameter names
@@ -378,6 +391,7 @@ if __name__=="__main__":
                                              FTYPE,
                                              DO_PLOT,
                                              TIGHT_LAY,
+                                             DO_XTICK_LABS,
                                              MATDPI,
                                              MAT_X,
                                              MAT_Y,
