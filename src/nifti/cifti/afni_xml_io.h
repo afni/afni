@@ -56,6 +56,9 @@
 
 /* --------------------------- prototypes --------------------------------- */
 
+int axio_read_cifti_file(const char * fname, int get_ndata, 
+                         nifti_image ** nim_out, afni_xml_t ** ax_out);
+
 afni_xml_t * axio_read_buf (const char * buf, int64_t blen);
 afni_xml_t * axio_read_file(const char * fname);
 

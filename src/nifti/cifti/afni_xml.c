@@ -336,7 +336,8 @@ int axml_disp_xml_t(char * mesg, afni_xml_t * ax, int indent, int verb)
 
          /* only display binary information if there is something there */
          if( ax->bdata || ax->blen > 0 ) {
-            fprintf(fp, "%*sbdata  : %p\n", indent, "", ax->bdata);
+            fprintf(fp, "%*sbdata  : %s\n", indent, "",
+                        ax->bdata ? "SET" : "CLEAR");
             fprintf(fp, "%*sblen   : %ld\n", indent, "", ax->blen);
             fprintf(fp, "%*sbtype  : %d\n", indent, "", ax->btype);
          }
