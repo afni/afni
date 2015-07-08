@@ -2321,8 +2321,8 @@ void SUMA_display_one(SUMA_SurfaceViewer *csv, SUMA_DO *dov)
             case GDSET_type: /* Should not be in DO list */
                SUMA_S_Warn("Should not have such objects as registrered DOs");
                break;
-            case CDSET_type:
-               SUMA_S_Err("Not sure what to do yet. Treat like GDSET or like GRAPH_LINK?");
+            case CDOM_type:
+               SUMA_S_Err("Needs implementation");
                break;
             case AO_type:
                if (csv->ShowEyeAxis){
@@ -2493,8 +2493,13 @@ void SUMA_display_one(SUMA_SurfaceViewer *csv, SUMA_DO *dov)
             case GDSET_type:
                SUMA_S_Warn("Should not have type in DO list to be rendered");
                break;
-            case CDSET_type:
-               SUMA_S_Err("Still need to decide whether this will be the registred DO or not");
+            case CDOM_type:
+               if (!SUMA_DrawCIFTIDO (
+                     (SUMA_CIFTI_DO *)dov[sRegistDO[i].dov_ind].OP, csv)) {
+                  fprintf( SUMA_STDERR, 
+                           "Error %s: Failed in SUMA_DrawCIFTIDO.\n", 
+                           FuncName);
+               }
                break;
             case MASK_type:
                if (!SUMA_DrawMaskDO (
@@ -6669,7 +6674,7 @@ SUMA_ALL_DO **SUMA_DOsInSurfContNotebook(Widget NB)
             }
          } else {
             switch(SUMAg_DOv[j].ObjectType) {
-               case CDSET_type:
+               case CDOM_type:
                   SUMA_S_Warn("Objects of type (%s) not feeling the love here",
                     SUMA_ObjectTypeCode2ObjectTypeName(SUMAg_DOv[j].ObjectType));
                   break;
@@ -7570,8 +7575,8 @@ void SUMA_cb_createSurfaceCont(Widget w, XtPointer data, XtPointer callData)
       case SO_type:
          SUMA_cb_createSurfaceCont_SO(w, data, callData);
          break; 
-      case CDSET_type:
-         SUMA_S_Err("The jury is out");
+      case CDOM_type:
+         SUMA_cb_createSurfaceCont_CO(w, (XtPointer)ado,  callData);
          break;
       case GDSET_type:
          SUMA_S_Err("Cannot create a controller for a dataset"
@@ -11355,9 +11360,8 @@ SUMA_Boolean SUMA_Init_SurfCont_SurfParam(SUMA_ALL_DO *ado)
       case SO_type:
          SUMA_RETURN(SUMA_Init_SurfCont_SurfParam_SO((SUMA_SurfaceObject *)ado));
          break;
-      case CDSET_type:
-         SUMA_S_Err("Not sure what to do yet");
-         SUMA_RETURN(NOPE);
+      case CDOM_type:
+         SUMA_RETURN(SUMA_Init_SurfCont_SurfParam_CO((SUMA_CIFTI_DO *)ado));
          break;
       case GDSET_type:
          SUMA_S_Err("Should not send me DOs that can't be displayed \n"
@@ -11981,9 +11985,8 @@ SUMA_Boolean SUMA_InitializeColPlaneShell(
                     "without variant");
          SUMA_RETURN(NOPE);
          break;
-      case CDSET_type:
-         SUMA_S_Err("What to do about this?");
-         SUMA_RETURN(NOPE);
+      case CDOM_type:
+         SUMA_RETURN(SUMA_InitializeColPlaneShell_CO(ado, colPlane));
          break;
       case GRAPH_LINK_type: {
          SUMA_GraphLinkDO *gldo=(SUMA_GraphLinkDO *)ado;
@@ -12716,9 +12719,7 @@ SUMA_Boolean SUMA_UpdateColPlaneShellAsNeeded(SUMA_ALL_DO *ado)
       case GDSET_type:
          SUMA_S_Warn("This should not happen in this modern day and age");
          break;
-      case CDSET_type:
-         SUMA_S_Err("Not ready, no sir");
-         break;
+      case CDOM_type:
       case VO_type:
       case TRACT_type:
       case MASK_type:
@@ -15304,7 +15305,7 @@ SUMA_Boolean SUMA_Remixedisplay (SUMA_ALL_DO *ADO)
       case VO_type:
       case MASK_type:
       case TRACT_type:
-      case CDSET_type:
+      case CDOM_type:
       case GDSET_type:
          idcode = SUMA_ADO_idcode(ADO);
          break;

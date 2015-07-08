@@ -7398,7 +7398,7 @@ SUMA_PICK_RESULT *SUMA_WhatWasPicked(SUMA_SurfaceViewer *sv, GLubyte *colid,
          case GDSET_type:
             SUMA_S_Err("I don't expect graph dsets to be picked directly");
             break;
-         case CDSET_type:
+         case CDOM_type:
             SUMA_S_Err("CIFTI not picked on buffer");
             break;
          case VO_type:
@@ -7568,9 +7568,11 @@ SUMA_Boolean SUMA_ADO_StorePickResult(SUMA_ALL_DO *ado, SUMA_PICK_RESULT **PRP)
          Saux->PR = *PRP; *PRP = NULL;
          SUMA_RETURN(YUP);
          break; }
-      case CDSET_type: {
-         SUMA_S_Err("Yall have to figure this one out");
-         SUMA_RETURN(NOPE);
+      case CDOM_type: {
+         SUMA_CIFTI_SAUX *Saux = SUMA_ADO_CSaux(ado);
+         SUMA_free_PickResult(Saux->PR);
+         Saux->PR = *PRP; *PRP = NULL;
+         SUMA_RETURN(YUP);
          break; }
       case GDSET_type: {
          SUMA_DSET *dset=(SUMA_DSET *)ado;
@@ -7656,9 +7658,9 @@ SUMA_PICK_RESULT * SUMA_ADO_GetPickResult(SUMA_ALL_DO *ado, char *primitive)
          SUMA_SURF_SAUX *Saux = SUMA_ADO_SSaux(ado);
          SUMA_RETURN(Saux->PR);
          break; }
-      case CDSET_type: {
-         SUMA_S_Err("Not ready freddy");
-         SUMA_RETURN(NULL); 
+      case CDOM_type: {
+         SUMA_CIFTI_SAUX *Saux = SUMA_ADO_CSaux(ado);
+         SUMA_RETURN(Saux->PR); 
          break; }
       case GDSET_type: {
          SUMA_DSET *dset=(SUMA_DSET *)ado;
@@ -7749,7 +7751,6 @@ char *SUMA_Pick_Colid_List_Info (DList *pick_colid_list)
          switch (do_type) {
             case ANY_DSET_type:
             case GDSET_type:
-            case CDSET_type:
                dset = (SUMA_DSET *)vv;
                SS = SUMA_StringAppend_va(SS,
                         "     Reference object is a %s dataset labeled %s "
@@ -7778,6 +7779,13 @@ char *SUMA_Pick_Colid_List_Info (DList *pick_colid_list)
             case TRACT_type:
                SS = SUMA_StringAppend_va(SS,
                         "     Reference object is a tract object labeled %s "
+                        "(reference type %s)\n",
+                        SUMA_ADO_Label(ado),
+                        SUMA_ObjectTypeCode2ObjectTypeName(cod->ref_do_type));
+               break;
+            case CDOM_type:
+               SS = SUMA_StringAppend_va(SS,
+                        "     Reference object is a CIFTI DO labeled %s "
                         "(reference type %s)\n",
                         SUMA_ADO_Label(ado),
                         SUMA_ObjectTypeCode2ObjectTypeName(cod->ref_do_type));
@@ -11690,9 +11698,8 @@ void SUMA_JumpIndex (char *s, void *data)
       case GDSET_type:
          SUMA_JumpIndex_GDSET (s, sv, (SUMA_DSET *)ado, variant);
          break;
-      case CDSET_type:
-         SUMA_S_Err("Not ready jenny");
-         SUMA_RETURNe;
+      case CDOM_type:
+         SUMA_JumpIndex_CO (s, sv, (SUMA_CIFTI_DO *)ado);
          break;
       case GRAPH_LINK_type: {
          SUMA_GraphLinkDO *gldo=(SUMA_GraphLinkDO *)ado;

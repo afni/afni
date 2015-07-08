@@ -7343,7 +7343,7 @@ int SUMA_Picked_DO_ID(SUMA_COLID_OFFSET_DATUM *codf)
          }
          SUMA_RETURN(ido);
          break;
-      case CDSET_type:
+      case CDOM_type:
          SUMA_S_Err("Not ready for CIFTI yet");
          SUMA_RETURN(ido);
          break;
@@ -7403,13 +7403,12 @@ void *SUMA_Picked_reference_object(SUMA_COLID_OFFSET_DATUM *cod,
          SUMA_S_Err("Could not find reference dset");
       }
       if (do_type) *do_type = GDSET_type;
-   } else if (cod->ref_do_type == CDSET_type) {
+   } else if (cod->ref_do_type == CDOM_type) {
       SUMA_S_Warn("Not sure this is ready for this");
-      if (!(PP = SUMA_FindDset_s(cod->ref_idcode_str, 
-                                     SUMAg_CF->DsetList))) {
-         SUMA_S_Err("Could not find reference dset");
+      if (!(PP = (void *)SUMA_whichADOg(cod->ref_idcode_str))) {
+         SUMA_S_Err("Could not find reference DO");
       }
-      if (do_type) *do_type = CDSET_type;
+      if (do_type) *do_type = CDOM_type;
    } else if (cod->ref_do_type == ANY_DSET_type) {
       SUMA_S_Warn("Should not happen");
       if (!(PP = SUMA_FindDset_s(cod->ref_idcode_str, 
@@ -7435,9 +7434,6 @@ void *SUMA_Picked_reference_object(SUMA_COLID_OFFSET_DATUM *cod,
    } else if (cod->ref_do_type == MASK_type) {
       PP = (void *)SUMA_whichADOg(cod->ref_idcode_str);
       if (do_type) *do_type = MASK_type;
-   } else if (cod->ref_do_type == CDSET_type) {
-      PP = (void *)SUMA_whichADOg(cod->ref_idcode_str);
-      if (do_type) *do_type = CDSET_type;
    } else {
       SUMA_S_Warnv("Ref do_type %d (%s) is unexpected. "
                    "Trying to guess...\n",
@@ -7447,7 +7443,6 @@ void *SUMA_Picked_reference_object(SUMA_COLID_OFFSET_DATUM *cod,
                                         SUMAg_CF->DsetList))) {
          if (do_type) {
             if (SUMA_isGraphDset((SUMA_DSET *)PP)) *do_type = GDSET_type;
-            else if (SUMA_isCIFTIDset((SUMA_DSET *)PP)) *do_type = CDSET_type;
             else *do_type = ANY_DSET_type;
          }
       } else if ((PP = SUMA_findSOp_inDOv (cod->ref_idcode_str, 
@@ -9040,10 +9035,10 @@ SUMA_Boolean SUMA_Load_Dumb_DO(SUMA_ALL_DO *ado, SUMA_DUMB_DO *DDO)
          DDO->AvgLe = 4;
          DDO->err = 0;
          break; }
-      case CDSET_type: {
+      case CDOM_type: {
          DDO->idcode_str = SUMA_ADO_idcode(ado);
-         DDO->NodeList = SUMA_CDSET_NodeList(
-                              (SUMA_DSET*)ado, 
+         DDO->NodeList = SUMA_CDOM_NodeList(
+                              (SUMA_CIFTI_DO*)ado, 
                               &(DDO->N_Node), 0, &(DDO->NodeIndex));
          DDO->AvgLe = 4;
          DDO->err = 0;
@@ -10132,13 +10127,13 @@ float *SUMA_GDSET_NodeList(SUMA_DSET *dset, int *N_Node, int recompute,
    SUMA_RETURN(NULL);
 }
 
-/* Return a pointer copy of a CIFTI dset's node coordinates,
+/* Return a pointer copy of a CIFTI dset's domain node coordinates,
    *ind is a copy of the node index pointer 
 */
-float *SUMA_CDSET_NodeList(SUMA_DSET *dset, int *N_Node, int recompute, 
+float *SUMA_CDOM_NodeList(SUMA_CIFTI_DO *CO, int *N_Node, int recompute, 
                            int **ind) 
 {
-   static char FuncName[]={"SUMA_CDSET_NodeList"};
+   static char FuncName[]={"SUMA_CDOM_NodeList"};
    NI_element *nel=NULL, *nelxyz=NULL;
    float *NodeList=NULL, *X=NULL, *Y=NULL, *Z=NULL;
    int ii, ii3, iicoord;
@@ -10147,7 +10142,7 @@ float *SUMA_CDSET_NodeList(SUMA_DSET *dset, int *N_Node, int recompute,
    
    SUMA_ENTRY;
    
-   SUMA_S_Err("Not ready yet");
+   SUMA_S_Err("Not ready yet. Whos is calling? What would this be?");
    /* Now how should this be implemented? One vector for all? 
       If so, then what for? Decide in context of application.
       Consider SUMA_GDSET_NodeList, */
@@ -10512,11 +10507,14 @@ GLubyte *SUMA_DO_get_pick_colid(SUMA_ALL_DO *DO, char *idcode_str,
          }
          break; }
       case ANY_DSET_type:
-      case CDSET_type:
       case GDSET_type: {
          SUMA_S_Warn("I do not intend this picking type for dsets. Go away");
          SUMA_RETURN(NULL);
          break; }
+      case CDOM_type:
+         SUMA_S_Err("Have not implemented picking on this composite domain yet");
+         SUMA_RETURN(NULL);
+         break;
       default:
          SUMA_S_Errv("Not supported for types %d (%s)\n", 
                      DO->do_type,
@@ -19734,7 +19732,7 @@ char *SUMA_ADO_Info(SUMA_ALL_DO *ado, DList *DsetList, int detail)
       case ANY_DSET_type:
       case GDSET_type:
          return(SUMA_DsetInfo((SUMA_DSET *)ado, detail));
-      case CDSET_type:
+      case CDOM_type:
          SUMA_S_Err("Have not written SUMA_CIFTI_Info yet");
          s = SUMA_copy_string("Have not written SUMA_CIFTI_Info yet");
          return(s);
@@ -20986,15 +20984,15 @@ SUMA_VolumeObject *SUMA_FreeVolumeObject(SUMA_VolumeObject *VO) {
 /*!
 Create a CIFTI displayable Object data structure 
 */
-SUMA_CIFTIObject *SUMA_CreateCIFTIObject(char *Label)
+SUMA_CIFTI_DO *SUMA_CreateCIFTIObject(char *Label)
 {
    static char FuncName[]={"SUMA_CreateCIFTIObject"};
-   SUMA_CIFTIObject *CO=NULL;
+   SUMA_CIFTI_DO *CO=NULL;
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
 
-   CO = (SUMA_CIFTIObject *)SUMA_calloc(1,sizeof(SUMA_CIFTIObject));
+   CO = (SUMA_CIFTI_DO *)SUMA_calloc(1,sizeof(SUMA_CIFTI_DO));
    if (CO == NULL) {
       SUMA_S_Crit("Failed to allocate");
       SUMA_RETURN(NULL);
@@ -21027,7 +21025,7 @@ SUMA_CIFTIObject *SUMA_CreateCIFTIObject(char *Label)
    SUMA_RETURN(CO);
 }
 
-SUMA_CIFTIObject *SUMA_FreeCIFTIObject(SUMA_CIFTIObject *CO) 
+SUMA_CIFTI_DO *SUMA_FreeCIFTIObject(SUMA_CIFTI_DO *CO) 
 {
    static char FuncName[]={"SUMA_FreeCIFTIObject"};
    int i;

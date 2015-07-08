@@ -1469,19 +1469,6 @@ SUMA_Boolean SUMA_ADO_FillColorList_Params(SUMA_ALL_DO *ADO,
          SUMA_LHv("Filling a color list for surface %s (%s).\n", 
                   SO->Label, SO->idcode_str);
          } break;
-      case CDSET_type: {
-         SUMA_DSET *dset=(SUMA_DSET *)ADO;
-         if (!SUMA_isCIFTIDset(dset)) {
-            SUMA_S_Err("Dataset should be CIFTI type");
-            SUMA_RETURN(NOPE);
-         }
-         SUMA_S_Err("Still need to figure out how to do color lists for cifti");
-         SUMA_RETURN(NOPE);
-         *N_points = -1;
-         *idcode = SDSET_ID(dset);
-         SUMA_LHv("Filling a color list for dset %s (%s).\n", 
-                  SDSET_LABEL(dset), SDSET_ID(dset));
-         } break;
       case GDSET_type: {
          SUMA_DSET *dset=(SUMA_DSET *)ADO;
          if (!SUMA_isGraphDset(dset)) {
@@ -1499,6 +1486,7 @@ SUMA_Boolean SUMA_ADO_FillColorList_Params(SUMA_ALL_DO *ADO,
             SUMA_RETURN(SUMA_ADO_FillColorList_Params(
                                     (SUMA_ALL_DO *)dset, N_points, idcode));
          } break;
+      case CDOM_type:
       case MASK_type:
       case TRACT_type:
       case VO_type: {
@@ -1641,16 +1629,12 @@ SUMA_Boolean SUMA_FillColorList (SUMA_SurfaceViewer *sv, SUMA_ALL_DO *ADO)
    /* make sure idcode is not in the list already */
    for (i=0; i<sv->N_ColList; ++i) {
       if (strcmp (idcode, sv->ColList[i]->idcode_str) == 0) {
-         if (ADO->do_type == CDSET_type) {
-            SUMA_S_Err("Serious ponderination needed here. "
-                    "Likely must have a color list per domain for such a beast");
-            SUMA_RETURN(NOPE);
-         }
          if (ADO->do_type != GDSET_type &&
-             ADO->do_type != CDSET_type && 
+             ADO->do_type != CDOM_type && 
              ADO->do_type != TRACT_type &&
              ADO->do_type != VO_type &&
-             ADO->do_type != MASK_type) {
+             ADO->do_type != MASK_type 
+             ) {
             SUMA_S_Err("idcode is already in sv->ColList, \n"
                        "This is an error for a SurfaceObject, though I doubt\n"
                        "it is of serious consequence. Type is question is %s\n"
@@ -2026,8 +2010,10 @@ SUMA_Boolean SUMA_SetLocalRemixFlag (char *DO_idcode_str, SUMA_SurfaceViewer *sv
             }  
          }
          break;
-      case CDSET_type:
-         SUMA_S_Err("Is this needed? If so then do it");
+      case CDOM_type:
+         SUMA_S_Err("Is this needed (perhaps once we have isotopic COs ? "
+                    "If so then do it");
+         SUMA_RETURN (NOPE);
          break;
       case GDSET_type:
          dset = (SUMA_DSET *)pp;
@@ -2154,6 +2140,7 @@ SUMA_Boolean SUMA_SetRemixFlag (char *DO_idcode_str, SUMA_SurfaceViewer *SVv,
          }
          break; }
       case VO_type:
+      case CDOM_type:
       case MASK_type:
       case TRACT_type: {
          SUMA_ALL_DO *ADO = (SUMA_ALL_DO*)pp;
@@ -2195,11 +2182,6 @@ SUMA_Boolean SUMA_SetRemixFlag (char *DO_idcode_str, SUMA_SurfaceViewer *SVv,
             }
          }
          break; }
-      case CDSET_type: {
-         SUMA_S_Err("Not ready for this puppy");
-         SUMA_RETURN(NOPE);
-         break;
-         }
       case GDSET_type: {
          SUMA_DSET *dset = (SUMA_DSET *)pp;
           
@@ -3676,7 +3658,7 @@ SUMA_SurfaceViewer *SUMA_BestViewerForADO(SUMA_ALL_DO *ado)
          break; }
       case GRAPH_LINK_type:
       case GDSET_type:
-      case CDSET_type:
+      case CDOM_type:
       case VO_type:
       case MASK_type:
       case TRACT_type:
@@ -5325,7 +5307,7 @@ SUMA_STANDARD_VIEWS SUMA_BestStandardView (  SUMA_SurfaceViewer *sv,
    SUMA_SurfaceObject *SO = NULL;
    char *variant=NULL;
    SUMA_DO_Types ttv[10]={SO_type, GRAPH_LINK_type, TRACT_type, 
-                          VO_type, MASK_type, NOT_SET_type};
+                          VO_type, CDOM_type, MASK_type, NOT_SET_type};
    SUMA_SO_SIDE side=SUMA_NO_SIDE;
    SUMA_Boolean LocalHead = NOPE;
    
@@ -5361,6 +5343,7 @@ SUMA_STANDARD_VIEWS SUMA_BestStandardView (  SUMA_SurfaceViewer *sv,
             } 
             break;
          case VO_type:
+         case CDOM_type:
          case MASK_type:
          case TRACT_type:
             maxdim = 3;
@@ -5505,7 +5488,7 @@ SUMA_Boolean SUMA_SetupSVforDOs (SUMA_SurfSpecFile *Spec, SUMA_DO *DOv,
    SUMA_SurfaceObject *SO;
    SUMA_Axis *EyeAxis;
    SUMA_DO_Types ttv[10]={SO_type, GRAPH_LINK_type, TRACT_type, 
-                          MASK_type, VO_type, NOT_SET_type};
+                          MASK_type, VO_type, CDOM_type, NOT_SET_type};
    int EyeAxis_ID, *MembDOs=NULL, N_MembDOs=0;
    int haveSpec=0;
    SUMA_Boolean LocalHead = NOPE;
@@ -5615,6 +5598,7 @@ SUMA_Boolean SUMA_SetupSVforDOs (SUMA_SurfSpecFile *Spec, SUMA_DO *DOv,
                "No further action needed here");
             break;
          case MASK_type:
+         case CDOM_type:
          case VO_type:
             SUMA_LH(
                "Registration was done after loading in object\n"
@@ -6425,7 +6409,7 @@ SUMA_ALL_DO *SUMA_findany_ADO_WithSurfContWidget(int *dov_id,
    static char FuncName[]={"SUMA_findany_ADO_WithSurfContWidget"};
    SUMA_ALL_DO *ado=NULL;
    SUMA_DO_Types ttv[N_DO_TYPES] = { SO_type, GRAPH_LINK_type, 
-                                     VO_type, TRACT_type,  
+                                     VO_type, TRACT_type, CDOM_type, 
                                      NOT_SET_type };
    int ii, tt;
    void *pp;
@@ -6508,10 +6492,10 @@ SUMA_Boolean SUMA_SurfCont_SetcurDOp(SUMA_X_SurfCont *SurfCont, SUMA_ALL_DO *ado
                      "ambiguous rendering\n");
          return(NOPE);
          break;
-      case CDSET_type:
          SUMA_S_Err("Have to figure out this machinery");
          return(NOPE);
          break;
+      case CDOM_type:
       case TRACT_type:
          *(SurfCont->prv_curDOp) = (void *)ado;
          return(YUP);

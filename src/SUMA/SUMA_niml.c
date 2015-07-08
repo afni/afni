@@ -2410,7 +2410,7 @@ NI_element * SUMA_makeNI_CrossHair (SUMA_SurfaceViewer *sv)
          break;
       case GDSET_type:
          break;
-      case CDSET_type:
+      case CDOM_type:
          SUMA_S_Err("Implement me");SUMA_RETURN (NULL);
          break;
       case GRAPH_LINK_type:
@@ -2558,7 +2558,7 @@ NI_group * SUMA_makeNI_InstaTract_Query (SUMA_SurfaceViewer *sv)
          break;
       case GDSET_type:
          break;
-      case CDSET_type:
+      case CDOM_type:
          SUMA_S_Err("Implement me"); SUMA_RETURN(NULL);
          break;
       case GRAPH_LINK_type:
@@ -2642,7 +2642,7 @@ SUMA_Boolean SUMA_CanTalkToAfni (SUMA_DO *dov, int N_dov)
             break;
          case VO_type:
          case MASK_type:
-         case CDSET_type:
+         case CDOM_type:
          case TRACT_type:
             SUMA_RETURN(YUP);
             break;

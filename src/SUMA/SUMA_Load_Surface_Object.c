@@ -4323,8 +4323,8 @@ SUMA_Boolean SUMA_LoadSpec_eng (
                SUMA_S_Errv("Failed to load %s\n", Spec->DO_name[i]);
             }
             break;
-         case CDSET_type:
-            SUMA_LoadCIFTIDO (Spec->DO_name[i], SUMA_WORLD, NULL);
+         case CDOM_type:
+            SUMA_LoadCIFTIDO (Spec->DO_name[i], SUMA_WORLD, NULL, 1);
             break;
          default:
             SUMA_S_Errv("Bad or unexpected type %s for %s\n",
@@ -6389,12 +6389,16 @@ SUMA_SurfSpecFile *SUMA_IO_args_2_spec(SUMA_GENERIC_ARGV_PARSE *ps, int *nspec)
 
 /* Load a CIFTI DO */
 SUMA_Boolean SUMA_LoadCIFTIDO (char *fname, 
-                        SUMA_DO_CoordUnits coord_type, SUMA_DSET **odset)
+                        SUMA_DO_CoordUnits coord_type, SUMA_DSET **odset, 
+                        int OkAdopt)
 {
    static char FuncName[]={"SUMA_LoadCIFTIDO"};
    SUMA_CIFTI_SAUX *CSaux=NULL;
    SUMA_DSET *cdset=NULL;
+   SUMA_CIFTI_DO *CO = NULL;
    SUMA_DSET_FORMAT tff = SUMA_NIML;
+   SUMA_DSET *dsetpre = NULL;
+   SUMA_Boolean LocalHead = YUP;
    
    SUMA_ENTRY;
 
@@ -6440,7 +6444,7 @@ SUMA_Boolean SUMA_LoadCIFTIDO (char *fname,
       datasets over the same surface)                     */
 
    CO = NULL;
-   if (OkAdopt && (CO = SUMA_CIFTI_find_matching_domain(cdset, NULL, NULL))) {
+   if (OkAdopt && (CO = SUMA_CIFTI_find_matching_domain(cdset, NULL, -1))) {
       SUMA_LH("Adopting CO");
    } else {
       SUMA_LH("Create CO from cdset");
@@ -6479,25 +6483,30 @@ SUMA_Boolean SUMA_LoadCIFTIDO (char *fname,
       SUMA_RETURN(NOPE);
    }
 
-   STOPPED HERE
-   Recall how you attach dset to DO, do that an proceed with this function
+   /* 
+   Note that there is currently no solid way
+   of attaching a dataset to a displayable object.
+   That has not been needed so far. There is a meek 
+   attempt to do something with SUMA_SetParent_DsetToLoad()
+   but only for surface-based datasets, and ONLY for generating
+   an ID that is based on a combo of filename and parent surface.
    
-   SUMA_S_Warn("Need to create or identify a parent DO for this dset\n"
-               "Before proceeding. The DO can be created from the info\n"
-               "in the CIFTI dataset header. You can see if a similar DO\n"
-               "exists (isotopic all the way) and adopt it, or you can\n"
-               "add a new one to the DO list then adopt it.\n");
-                 
+   Should we need to find the DO that defines the domain of 
+   a particular CIFTI dataset, we might need to write a function
+   to search which CDOM_type object contains an overlay for the 
+   dataset in question.
+   */
+   
    
    if (SetupOverlay) {
       SUMA_LH("Setting up overlay for CIFTI dset");
       OverInd = -1; /* OverInd is not used for now, 
                        just one overlay per CIFTI dset, at least for now */
       {
-         if (dset != dsetpre) { /* dset was pre-existing in the list */
+         if (cdset != dsetpre) { /* dset was pre-existing in the list */
             SDSET_CSAUX(dset) is not applicable here because
             CSAUX should be stored directly onto a bonafied DO of the 
-            type CIFTI_type. So it is best not to have a CIFTI dset's CSAUX,
+            type CDOM_type. So it is best not to have a CIFTI dset's CSAUX,
             but rather the CSAUX of the CIFTI Object itself
             Revisit indented portion below...
             
@@ -6551,7 +6560,7 @@ SUMA_Boolean SUMA_LoadCIFTIDO (char *fname,
                a CDSET_DO_Link for type? 
                Should I not create a CDSET*/
             if (!SUMA_AddDO(SUMAg_DOv, &(SUMAg_N_DOv), (void *)cdset,  
-                              CDSET_type, coord_type)) {
+                              CDOM_type, coord_type)) {
                fprintf(SUMA_STDERR,"Error %s: Error Adding DO\n", FuncName);
                SUMA_RETURN(NOPE);
             }
@@ -6561,7 +6570,7 @@ SUMA_Boolean SUMA_LoadCIFTIDO (char *fname,
 }
 
 /* Create CIFTI displayable object from the CIFTI dataset */
-SUMA_CIFTIObject * SUMA_CIFTI_DO_from_dset(SUMA_DSET *cdset, int insert)
+SUMA_CIFTI_DO * SUMA_CIFTI_DO_from_dset(SUMA_DSET *cdset, int insert)
 {
    static char FuncName[]={"SUMA_CIFTI_DO_from_dset"};
    int k;
@@ -6650,13 +6659,13 @@ SUMA_CIFTIObject * SUMA_CIFTI_DO_from_dset(SUMA_DSET *cdset, int insert)
    SUMA_RETURN(CO);
 }
 
-/* Search all DOs for a CiftiObject that can be the domain
+/* Search all DOs for a CIFTIObject that can be the domain
 for a certain CIFTI dataset */
-SUMA_CIFTIObject *SUMA_CIFTI_find_matching_domain(SUMA_DSET *cdset, 
+SUMA_CIFTI_DO *SUMA_CIFTI_find_matching_domain(SUMA_DSET *cdset, 
                                                   SUMA_DO *dov, int N_dov) 
 {
    static char FuncName[]={"SUMA_CIFTI_find_matching_domain"};
-   SUMA_CIFTIObject *CO=NULL;
+   SUMA_CIFTI_DO *CO=NULL;
    int i;
    
    SUMA_ENTRY;
@@ -6665,7 +6674,7 @@ SUMA_CIFTIObject *SUMA_CIFTI_find_matching_domain(SUMA_DSET *cdset,
    
    for (i=0; i<N_dov; ++i) {
       if (dov[i].ObjectType == CIFTI_type) {
-         CO = (SUMA_CIFTIObject *)dov[i].OP;
+         CO = (SUMA_CIFTI_DO *)dov[i].OP;
          for (f=0,k=0; k<cdset->Aux->N_doms; ++k) {
             sid = SUMA_CIFTI_find_sub_domain(CO, 
                                  cdset->Aux->doms[k]->ModelType,
@@ -6681,7 +6690,7 @@ SUMA_CIFTIObject *SUMA_CIFTI_find_matching_domain(SUMA_DSET *cdset,
    SUMA_RETURN(NULL);
 }
 
-/* Search the sub-domains of a CiftiObject to match desired parameters */
+/* Search the sub-domains of a CIFTIObject to match desired parameters */
 char *SUMA_CIFTI_find_sub_domain(CO, SUMA_DO_Types ModelType,
                                SUMA_SO_SIDE ModelSide,
                                int Max_N_Data,

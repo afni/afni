@@ -2785,7 +2785,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                case GDSET_type:
                   SUMA_S_Err("ambigous display method without variant");
                   break;
-               case CDSET_type:
+               case CDOM_type:
                   SUMA_S_Err("Help me please");
                   break;
                case GRAPH_LINK_type: {
@@ -5704,10 +5704,7 @@ SUMA_Boolean SUMA_isVisibleDO (SUMA_SurfaceViewer *sv,
          SUMA_S_Err("Can't judge this without variant");
          SUMA_RETURN(NOPE);
          break;
-      case CDSET_type:
-         SUMA_S_Err("Don't know how to handle this yet");
-         SUMA_RETURN(NOPE);
-         break;
+      case CDOM_type:
       case VO_type:
       case MASK_type:
       case TRACT_type:
