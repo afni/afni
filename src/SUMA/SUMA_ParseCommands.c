@@ -4148,7 +4148,7 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[],
                   }  else if ((strcmp(argv[kar-1], "-gdset") == 0)) {
                      ps->DO_type[ps->N_DO] = GDSET_type;
                   }  else if ((strcmp(argv[kar-1], "-cdset") == 0)) {
-                     ps->DO_type[ps->N_DO] = CDSET_type;
+                     ps->DO_type[ps->N_DO] = CDOM_type;
                   }  else if ((strcmp(argv[kar-1], "-vol") == 0)) {
                      ps->DO_type[ps->N_DO] = VO_type;
                   } else if ((strcmp(argv[kar-1], "-mask") == 0)) {

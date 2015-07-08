@@ -294,6 +294,9 @@ SUMA_Boolean SUMA_Free_Displayable_Object (SUMA_DO *dov)
       case NIDO_type:
          SUMA_free_NIDO((SUMA_NIDO*)dov->OP);
          break;
+      case CDOM_type:
+         SUMA_FreeCIFTIObject((SUMA_CIFTI_DO *)dov->OP);
+         break;
       case NBT_type:
       case SBT_type:
       case DBT_type:
@@ -301,7 +304,6 @@ SUMA_Boolean SUMA_Free_Displayable_Object (SUMA_DO *dov)
          SUMA_S_Warnv("Type %d should not be in  use!\n", dov->ObjectType);
          break;
       case GDSET_type:
-      case CDSET_type:
       case ANY_DSET_type:
          SUMA_FreeDset(dov->OP);
          break;
@@ -2062,7 +2064,6 @@ void *SUMA_find_any_object(char *idcode_str, SUMA_DO_Types *do_type)
    if ((PP = SUMA_FindDset_s(idcode_str, SUMAg_CF->DsetList))) {
       if (do_type) {
          if (SUMA_isGraphDset((SUMA_DSET *)PP)) *do_type = GDSET_type;
-         else if (SUMA_isCIFTIDset((SUMA_DSET *)PP)) *do_type = CDSET_type;
          else *do_type = ANY_DSET_type;
       }
       SUMA_RETURN(PP);
@@ -2708,8 +2709,9 @@ SUMA_Boolean SUMA_isRelated( SUMA_ALL_DO *ado1, SUMA_ALL_DO *ado2 , int level)
          }
          SUMA_RETURN(NOPE);
          break;
-      case CDSET_type:
-         SUMA_S_Err("Fill me with love");
+      case CDOM_type:
+         SUMA_S_Err("Fill me with love. Some day we might have 'isotopic' CIFTI "
+                    "domains. Let us leave complications alone for now");
          SUMA_RETURN(NOPE);
          break;
       case VO_type:

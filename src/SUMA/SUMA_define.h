@@ -3387,7 +3387,7 @@ typedef struct {
    
    byte Show;
    
-} SUMA_CIFTIObject; /*! \sa SUMA_CreateCIFTIObject */
+} SUMA_CIFTI_DO; /*! \sa SUMA_CreateCIFTIObject */
 
                    
 /*! Structure for creating a hash of color ids */
