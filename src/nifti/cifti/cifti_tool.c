@@ -29,6 +29,7 @@ typedef struct {
    char * fout;
    char * eval_type;
    int    verb;
+   int    vread;
    int    as_cext;
    int    eval_cext;
    int    disp_cext;
@@ -54,6 +55,7 @@ int write_extension     (FILE * fp, nifti1_extension * ext, int maxlen);
 
 /* recur */
 int ax_has_data         (FILE * fp, afni_xml_t * ax, int depth);
+int ax_has_bdata        (FILE * fp, afni_xml_t * ax, int depth);
 int ax_num_tokens       (FILE * fp, afni_xml_t * ax, int depth);
 int ax_show_text_data   (FILE * fp, afni_xml_t * ax, int depth);
 int ax_show_names       (FILE * fp, afni_xml_t * ax, int depth);
@@ -70,6 +72,7 @@ int main(int argc, char * argv[])
 
    memset(&gopt, 0, sizeof(gopt));
    gopt.verb = 1;
+   gopt.vread = 1;
 
    rv = process_args(argc, argv, &gopt);
    if( rv < 0 ) return 1;  /* error */
@@ -123,6 +126,19 @@ int process_args(int argc, char * argv[], opts_t * opts)
             return -1;
          }
          opts->verb = atoi(argv[ac]);
+      } else if( ! strcmp(argv[ac], "-verb_read") ) {
+         if( ++ac >= argc ) {
+            fprintf(stderr, "** missing argument for -verb\n");
+            return -1;
+         }
+         opts->vread = atoi(argv[ac]);
+      } else if( ! strcmp(argv[ac], "-vboth") ) {
+         if( ++ac >= argc ) {
+            fprintf(stderr, "** missing argument for -verb\n");
+            return -1;
+         }
+         opts->verb = atoi(argv[ac]);
+         opts->vread = atoi(argv[ac]);
       } else if( ! strcmp(argv[ac], "-ver") ) {
          puts(g_version);
          return 1;
@@ -138,16 +154,17 @@ int process_args(int argc, char * argv[], opts_t * opts)
 /* ----------------------------------------------------------------- */
 int process(opts_t * opts)
 {
-   afni_xml_t * ax;
+   nifti_image * nim;
+   afni_xml_t  * ax;
 
    if( !opts->fin ){ fprintf(stderr, "** missing option '-input'\n"); return 1;}
 
-   axml_set_verb(opts->verb);
-   nifti_set_debug_level(opts->verb);
+   axml_set_verb(opts->vread);
+   nifti_set_debug_level(opts->vread);
 
    /* get xml pointer from file or extension */
    if( opts->as_cext ) ax = axio_read_file(opts->fin);
-   else                ax = read_cifti_extension(opts->fin, opts);
+   else                axio_read_cifti_file(opts->fin, 0, &nim, &ax);
 
    if( ! ax ) {
       fprintf(stderr,"** failed to read CIFTI ext from %s\n", opts->fin);
@@ -197,6 +214,7 @@ int disp_cifti_extension(afni_xml_t * ax, opts_t * opts)
 
    fp = open_write_stream(opts->fout);
    axml_set_wstream(fp);
+   axml_set_verb(opts->verb);
    axml_disp_xml_t("have extension ", ax, 0, opts->verb);
    
    /* possibly close file */
@@ -218,16 +236,24 @@ int eval_cifti_extension(afni_xml_t * ax, opts_t * opts)
 
    if( opts->verb > 1 ) fprintf(stderr, "-- recursive eval from %s\n", 
                                 opts->eval_type ? opts->eval_type : "NULL");
+   axml_set_verb(opts->verb);
+
+   if( axio_text_to_binary(ax) )
+      fprintf(stderr,"** errors converting text to data\n");
 
    if( ! opts->eval_type ) 
       axml_recur(ax_show_names, ax);
    else if( ! strcmp(opts->eval_type, "has_data" ) )
       axml_recur(ax_has_data, ax);
+   else if( ! strcmp(opts->eval_type, "has_bdata" ) )
+      axml_recur(ax_has_bdata, ax);
    else if( ! strcmp(opts->eval_type, "num_tokens" ) )
       axml_recur(ax_num_tokens, ax);
+   else if( ! strcmp(opts->eval_type, "show" ) )
+      axml_disp_xml_t("CIFTI extension ", ax, 0, opts->verb);
    else if( ! strcmp(opts->eval_type, "show_text_data" ) )
       axml_recur(ax_show_text_data, ax);
-   else /* names is default */
+   else /* show_names is default */
       axml_recur(ax_show_names, ax);
    
    /* possibly close file */
@@ -269,13 +295,39 @@ int ax_has_data(FILE * fp, afni_xml_t * ax, int depth)
 {
    if( !ax ) return 1;
 
-   /* if no data, blow out of here */
-   if( !ax->xtext || ax->xlen <= 0 ) return 0;
+   /* if no data (xtext or bdata), blow out of here */
+   if( !ax->xtext && ax->xlen <= 0  && !ax->bdata && ax->blen <= 0 ) return 0;
 
-   if( gopt.verb > 1 )
+   if( gopt.verb > 2 ) {
+      fprintf(fp,"%*sdata in depth %d %s : ", depth*3, "", depth, ax->name);
+      fprintf(fp,"xtext[%d], bdata[%ld]\n", ax->xlen, ax->blen);
+   } else if( gopt.verb > 1 )
       fprintf(fp,"%*sdata in depth %d %s\n", depth*3, "", depth, ax->name);
    else
       fprintf(fp,"%s\n", ax->name);
+
+   return 0;
+}
+
+int ax_has_bdata(FILE * fp, afni_xml_t * ax, int depth)
+{
+   if( !ax ) return 1;
+
+   /* if no bdata blow out of here */
+   if( ! ax->bdata && ax->blen <= 0 ) return 0;
+
+   if( gopt.verb > 1 ) fprintf(fp,"%*sdata in depth %d ", depth*3, "", depth);
+   fprintf(fp, "%s : bdata[%ld]", ax->name, ax->blen);
+
+   if( gopt.verb > 2 && ax->blen > 1 ) {
+      if( ax->btype == NIFTI_TYPE_FLOAT64 ) {
+         double * dp = (double *)ax->bdata;
+         fprintf(fp, " = %lf  %lf  ...\n", dp[0], dp[1]);
+      } else if( ax->btype == NIFTI_TYPE_INT64 ) {
+         int64_t * dp = (int64_t *)ax->bdata;
+         fprintf(fp, " = %ld  %ld  ...\n", dp[0], dp[1]);
+      }
+   } else fputc('\n', fp);
 
    return 0;
 }
@@ -405,11 +457,15 @@ int show_help( void )
       "\n"
       "          valid ETYPES:\n"
       "             has_data       - show elements with attached text data\n"
+      "             has_bdata      - show elements with attached binary data\n"
       "             num_tokens     - show the number of tokens in such text\n"
+      "             show           - like -disp_cext\n"
       "             show_text_data - show the actual text data\n"
       "             show_names     - show element names, maybe depth indented\n"
       "\n"
       "       -verb LEVEL         : set the verbose level to LEVEL\n"
+      "       -verb_read LEVEL    : set verbose level when reading\n"
+      "       -vboth LEVEL        : apply both -verb options\n"
       "\n");
    return 1;
 }
