@@ -10,7 +10,7 @@
 #include <string.h>
 #include <ctype.h>
 #include <nifti2_io.h>
-#include "afni_xml.h"
+#include "afni_xml_io.h"
 
 
 /* local protos */
@@ -23,6 +23,54 @@ static int dalloc_as_nifti_type(FILE * fp, afni_xml_t * ax, int64_t nvals,
 
 static int64_t text_to_i64(int64_t *result, const char * text, int64_t nvals);
 static int64_t text_to_f64(double * result, const char * text, int64_t nvals);
+
+
+/* read a complete CIFTI dataset, returning nifti and and xml pieces
+   
+   text data is converted to binary, when known
+ */
+int axio_read_cifti_file(const char * fname, int get_ndata,
+                         nifti_image ** nim_out, afni_xml_t ** ax_out)
+{
+   nifti1_extension * ext;
+   nifti_image      * nim;
+   afni_xml_t       * ax = NULL;
+   int                ind;
+
+   if( !fname || !nim_out || !ax_out ) {
+      fprintf(stderr,"** axio_CIFTI: NULL inputs %p, %p, %p\n",
+              fname, (void *)nim_out, (void *)ax_out);
+      return 1;
+   }
+
+   /* init */
+   *ax_out = NULL;
+
+   /* set nim_out */
+   nim = nifti_image_read(fname, get_ndata);
+   *nim_out = nim;
+
+   if( ! nim ) {
+      fprintf(stderr,"** axio: failed to read NIFTI part of %s\n", fname);
+      return 1;
+   }
+
+   /* set ax_out */
+   ext = nim->ext_list;
+   for( ind = 0; ind < nim->num_ext; ind++ ) {
+      if( ext->ecode != NIFTI_ECODE_CIFTI ) continue;
+      ax = axio_read_buf(ext->edata, ext->esize-8);
+   }
+   *ax_out = ax;
+
+   if( ! ax ) {
+      fprintf(stderr,"** axio: no CIFTI extension found in %s\n", fname);
+      return 1;
+   }
+
+   /* convert known data from text to binary */
+   return axml_recur(axio_alloc_known_data, ax);
+}
 
 
 /* read file into a single, allocated afni_xml_t struct */
@@ -51,7 +99,7 @@ afni_xml_t * axio_read_file(const char * fname)
    return xlist_to_ax1(&xlist);
 }
 
-/* rcr */
+/* convert any known text to binary */
 int axio_text_to_binary(afni_xml_t * ax)
 {
    if( ! ax ) return 0;
@@ -105,6 +153,8 @@ static int axio_alloc_known_data(FILE * fp, afni_xml_t * ax, int depth)
    if( ! ax ) return 1;
    if( ! ax->xtext || ax->xlen <= 0 ) return 0;  /* nothing to allocate */
 
+   if( ax->bdata ) return 0;  /* already allocated? */
+
    if( ! ax->name ) {
       fprintf(stderr,"** missing ax name for data alloc\n");
       return 1;
@@ -122,9 +172,16 @@ static int axio_alloc_known_data(FILE * fp, afni_xml_t * ax, int depth)
 
    if( ! strcmp(ax->name, "VertexIndices") ) {
       cp = axml_attr_value(ax->xparent, "IndexCount");
-      if( ! cp ) { fprintf(fp, "** AXAKD: no IndexCount\n");  return 1; }
+      if( ! cp ) { fprintf(fp, "** axAKD: no IndexCount\n");  return 1; }
       text_to_i64(&ival, cp, 1);
       return dalloc_as_nifti_type(fp, ax, ival, NIFTI_TYPE_INT64);
+   }
+
+   if( ! strcmp(ax->name, "VoxelIndicesIJK") ) {
+      cp = axml_attr_value(ax->xparent, "IndexCount");
+      if( ! cp ) { fprintf(fp, "** axAKD: no ijk IndexCount\n");  return 1; }
+      text_to_i64(&ival, cp, 1);  /* allocate for this many IJK triples */
+      return dalloc_as_nifti_type(fp, ax, 3*ival, NIFTI_TYPE_INT64);
    }
 
    return 0;
