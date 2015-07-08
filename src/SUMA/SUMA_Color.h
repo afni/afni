@@ -99,13 +99,14 @@ SUMA_Boolean SUMA_MovePlaneDown (SUMA_ALL_DO *ado, char *Name);
 SUMA_OVERLAYS * SUMA_NewPlaneSearch(SUMA_ALL_DO *ado, 
                                     SUMA_OVERLAYS *Overlay);
 SUMA_Boolean SUMA_LoadCIFTIDO (char *fname, 
-                        SUMA_DO_CoordUnits coord_type, SUMA_DSET **odset);
-SUMA_Boolean SUMA_CIFTI_DO_from_dset(SUMA_DSET *cdset, int add);
-char *SUMA_CIFTI_find_sub_domain(CO, SUMA_DO_Types ModelType,
+                        SUMA_DO_CoordUnits coord_type, SUMA_DSET **odset,
+                        int OkAdopt);
+SUMA_CIFTI_DO * SUMA_CIFTI_DO_from_dset(SUMA_DSET *cdset, int add);
+char *SUMA_CIFTI_find_sub_domain(SUMA_CIFTI_DO *CO, SUMA_DO_Types ModelType,
                                SUMA_SO_SIDE ModelSide,
                                int Max_N_Data,
                                int *k);
-SUMA_CiftiObject *SUMA_CIFTI_find_matching_domain(SUMA_DSET *cdset, 
+SUMA_CIFTI_DO *SUMA_CIFTI_find_matching_domain(SUMA_DSET *cdset, 
                                                   SUMA_DO *dov, int N_dov); 
 void SUMA_LoadDsetOntoSO (char *filename, void *data);
 SUMA_Boolean SUMA_LoadDsetOntoSO_eng (char *filename, SUMA_SurfaceObject *SO,

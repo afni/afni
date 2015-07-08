@@ -6636,7 +6636,7 @@ SUMA_OVERLAYS * SUMA_Fetch_OverlayPointer (SUMA_ALL_DO *ado, const char * Name,
          SUMA_OVERLAYS *over = SUMA_ADO_Overlay(ado,0);
          SUMA_RETURN(SUMA_Fetch_OverlayPointer_arr (&over, 1, Name, OverInd));
          break; }
-      case CDSET_type: 
+      case CDOM_type: 
       case TRACT_type: {
          int N_over;
          SUMA_OVERLAYS **over=SUMA_ADO_Overlays(ado, &N_over);
@@ -6743,7 +6743,7 @@ SUMA_OVERLAYS * SUMA_Fetch_OverlayPointerByDset (SUMA_ALL_DO *ado,
          SUMA_RETURN(SUMA_Fetch_OverlayPointerByDset_arr(&over, 1, 
                         dset, OverInd));
          break; }
-      case CDSET_type:
+      case CDOM_type:
       case VO_type: {
          SUMA_OVERLAYS **over = SUMA_ADO_Overlays(ado, &N_over);
          SUMA_RETURN(SUMA_Fetch_OverlayPointerByDset_arr(over, N_over,
@@ -6838,7 +6838,7 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4(SUMA_ALL_DO *ado,
          SUMA_S_Err("Why are you here with this?");
          SUMA_RETURN(NOPE);
          break;
-      case CDSET_type:
+      case CDOM_type:
          SUMA_S_Err("Nooot yet implemented but this is one place "
                     "where the excitement begins");
          SUMA_RETURN(NOPE);
@@ -8435,7 +8435,7 @@ SUMA_ALL_DO *SUMA_Overlay_OwnerADO(SUMA_OVERLAYS *Over)
       case TRACT_type:
       case GRAPH_LINK_type:
       case GDSET_type:
-      case CDSET_type:
+      case CDOM_type:
       case VO_type:
          SUMA_RETURN((SUMA_ALL_DO *)pp);
       default:
@@ -8818,7 +8818,7 @@ SUMA_Boolean SUMA_AddNewPlane (SUMA_ALL_DO *ado, SUMA_OVERLAYS *Overlay,
             break;
          }
          break; }
-      case CDSET_type: {
+      case CDOM_type: {
          if (!(SUMA_ADO_Append_Overlay(ado, &Overlay))) {
             SUMA_S_Err("Failed to append Overlay");
             break;
@@ -8903,11 +8903,11 @@ SUMA_Boolean SUMA_MixColors (SUMA_SurfaceViewer *sv)
                }
                sv->ColList[i]->Remix = NOPE;
                break;
-            case CDSET_type: {
-               dset = (SUMA_DSET *)pp;
-               SUMA_LHv("Mixing CIFTI Object Colors (%s), Dset %s, sv %d ...\n",
-                  sv->ColList[i]->idcode_str, SDSET_LABEL(dset), isv);
-               if (!SUMA_Overlays_2_GLCOLAR4((SUMA_ALL_DO *)dset, sv, 
+            case CDOM_type: {
+               CO = (SUMA_CIFTI_DO *)pp;
+               SUMA_LHv("Mixing CIFTI Object Colors (%s), CO %s, sv %d ...\n",
+                  sv->ColList[i]->idcode_str, ADO_LABEL((SUMA_ALL_DO *)CO), isv);
+               if (!SUMA_Overlays_2_GLCOLAR4((SUMA_ALL_DO *)CO, sv, 
                                        SUMA_GetColorListPtr(sv->ColList[i]))) {
                   SUMA_S_Err("Failed in SUMA_Overlays_2_GLCOLAR4.");
                   SUMA_RETURN(NOPE);

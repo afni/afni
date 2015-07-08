@@ -2760,7 +2760,7 @@ char *SUMA_do_type_2_contwname(SUMA_DO_Types do_type)
       case GDSET_type:
          snprintf(ss, 63,"NoCont");
          break;
-      case CDSET_type:
+      case CDOM_type:
          snprintf(ss, 63,"CiftiCont");
          break;
       default:

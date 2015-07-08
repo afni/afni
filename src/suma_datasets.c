@@ -6767,13 +6767,13 @@ char *SUMA_DsetInfo (SUMA_DSET *dset, int detail)
                   if (dset->Aux->doms[i]) {
                      SS = SUMA_StringAppend_va(SS, 
                            "   dom[%d]:\n"
-                           "      idcode_str: %s\n"
+                           "      Source: %s\n"
                            "      IndexOffset: %d\n"
                            "      IndexCount: %d\n"
                            "      Max_N_Data: %d\n"
                            "      ModelType: %d %s\n"
                            "      Range: %d %d %d %d\n",
-                     i, SUMA_CHECK_NULL_STR(dset->Aux->doms[i]->idcode_str),
+                     i, SUMA_CHECK_NULL_STR(dset->Aux->doms[i]->Source),
                      dset->Aux->doms[i]->IndexOffset, 
                      dset->Aux->doms[i]->IndexCount,
                      dset->Aux->doms[i]->Max_N_Data,
@@ -10746,8 +10746,10 @@ SUMA_DSET *SUMA_LoadDset_eng (char *iName, SUMA_DSET_FORMAT *form, int verb)
    
    /* set do_type */
    if (SUMA_isGraphDset(dset)) dset->do_type = GDSET_type;
-   else if (SUMA_isCIFTIDset(dset)) dset->do_type = CDSET_type;
-   
+   else if (SUMA_isCIFTIDset(dset)) {
+      SUMA_LH("Found no need to flag CIFTI dset as anything other\n"
+              "than generic dataset");
+   }
    GOODBYE:
    if (b_ColSel) SUMA_free(b_ColSel); b_ColSel = NULL;
    if (b_RowSel) SUMA_free(b_RowSel); b_RowSel = NULL;
@@ -16165,7 +16167,7 @@ SUMA_DO_Types SUMA_ObjectTypeName2ObjectTypeCode(char *cc)
    if (!strcmp(cc,"NBT")) SUMA_RETURN(NBT_type);
    if (!strcmp(cc,"SBT")) SUMA_RETURN(SBT_type);
    if (!strcmp(cc,"GDSET")) SUMA_RETURN(GDSET_type);
-   if (!strcmp(cc,"CDSET")) SUMA_RETURN(CDSET_type);
+   if (!strcmp(cc,"CDOM")) SUMA_RETURN(CDOM_type);
    if (!strcmp(cc,"ANY_DSET")) SUMA_RETURN(ANY_DSET_type);
    if (!strcmp(cc,"DBT")) SUMA_RETURN(DBT_type);
    if (!strcmp(cc,"NIDO")) SUMA_RETURN(NIDO_type);
@@ -16248,8 +16250,8 @@ const char *SUMA_ObjectTypeCode2ObjectTypeName(SUMA_DO_Types dd)
       case GDSET_type:
          return("GDSET");
          break;
-      case CDSET_type:
-         return("CDSET");
+      case CDOM_type:
+         return("CDOM");
          break;
       case ANY_DSET_type:
          return("ANY_DSET");
@@ -16435,7 +16437,6 @@ SUMA_Boolean SUMA_CIFTI_Free_Doms(SUMA_DSET *dset)
    if (dset->Aux->doms && dset->Aux->N_doms > 0) {
       for (i=0; i<dset->Aux->N_doms; ++i) {
          if (dset->Aux->doms[i]) {
-            SUMA_ifree(dset->Aux->doms[i]->idcode_str);
             SUMA_ifree(dset->Aux->doms[i]->Source);
             SUMA_ifree(dset->Aux->doms[i]);
          }
@@ -16530,9 +16531,6 @@ SUMA_Boolean SUMA_CIFTI_NgrFromDomains(SUMA_DSET *dset)
       dindoff[i] = dset->Aux->doms[i]->IndexOffset;
       dn[i] = dset->Aux->doms[i]->Max_N_Data;
       dtp[i] = dset->Aux->doms[i]->ModelType;
-      if (dset->Aux->doms[i]->idcode_str) {
-         SUMA_S_Warn("Not ready to include idcode_str");
-      }
       dsrcs[i] = dset->Aux->doms[i]->Source;
    }
    SUMA_CIFTI_Set_Domains(dset, dset->Aux->N_doms, SDSET_NODE_INDEX_COL(dset),

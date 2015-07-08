@@ -46,20 +46,6 @@ typedef struct {
     UT_hash_handle hh;  /* keep it named 'hh' for same reasons  */
 }  SUMA_NGR_INDEX_HASH_DATUM;
 
-/*! CIFTI dataset Auxiliary structure for SUMA's use */
-typedef struct {
-   DList *DisplayUpdates;
-   
-   SUMA_OVERLAYS *Overlay;
-   SUMA_X_SurfCont *DOCont;/*!< Displayable object controller */
-   SUMA_PICK_RESULT *PR;
-   SUMA_Boolean *isColored; /*!< is the datum receiving color? Not masked say 
-                                 by thresholds etc. */
-   float *Center; /* Geometric center of all nodes/voxels*/
-   float *Range;  /* Min Max of X, Y, and Z of all nodes/voxels*/
-   
-} SUMA_CIFTI_SAUX;
-
 /*! Graph dataset Auxiliary structure for SUMA's use */
 typedef struct {
    DList *DisplayUpdates;
@@ -176,9 +162,6 @@ typedef struct {
    SUMA_ATRANS_MODES TransMode; /*!< polygon transparency  */
 } SUMA_VOL_SAUX;
 
-#define SDSET_CSAUX(dset) ( ( (dset) && (dset)->Aux && (dset)->Aux->Saux &&   \
-                               SUMA_isCIFTIDset(dset) ) ? \
-                           (SUMA_CIFTI_SAUX *)((dset)->Aux->Saux):NULL )
 #define SDSET_GSAUX(dset) ( ( (dset) && (dset)->Aux && (dset)->Aux->Saux &&   \
                                SUMA_isGraphDset(dset) ) ? \
                            (SUMA_GRAPH_SAUX *)((dset)->Aux->Saux):NULL )
@@ -204,6 +187,7 @@ typedef struct {
                                  tbi >= 0 && tbi < (tdo)->net->N_tbv) ? \
                                                    (tdo)->net->tbv[tbi] : NULL )
 #define TDO_TSAUX(tdo) ( (tdo) ? (SUMA_TRACT_SAUX *)(tdo)->Saux:NULL )
+#define CDO_CSAUX(cdo) ( (cdo) ? (SUMA_CIFTI_SAUX *)(cdo)->Saux:NULL )
 #define VDO_VSAUX(vo) ( (vo) ? (SUMA_VOL_SAUX *)(vo)->Saux:NULL )
 #define SDO_SSAUX(so) ( (so) ? (SUMA_SURF_SAUX *)(so)->Saux:NULL )
 #define MDO_MSAUX(mo) ( (mo) ? (SUMA_MASK_SAUX *)(mo)->Saux:NULL )
@@ -269,7 +253,7 @@ int SUMA_GDSET_GMATRIX_CellPixSize(SUMA_DSET *dset, SUMA_SurfaceViewer *sv,
                                    float *Sz);
 float *SUMA_GDSET_NodeList(SUMA_DSET *dset, int *N_Node, int recompute,    
                            int **ind, char *thisvariant); 
-float *SUMA_CDSET_NodeList(SUMA_DSET *dset, int *N_Node, int recompute, 
+float *SUMA_CDOM_NodeList(SUMA_CIFTI_DO *CO, int *N_Node, int recompute, 
                            int **ind);
 NI_element * SUMA_SO_NIDO_Node_Texture (  SUMA_SurfaceObject *SO, SUMA_DO* dov, 
                                           int N_do, SUMA_SurfaceViewer *sv );
@@ -343,8 +327,8 @@ SUMA_Boolean SUMA_Free_Surface_Object (SUMA_SurfaceObject *SO);
 SUMA_Boolean SUMA_FreeDrawMasks(SUMA_DRAW_MASKS * DW);
 SUMA_Boolean SUMA_EmptyDrawMasks(SUMA_DRAW_MASKS * DW);
 SUMA_VolumeObject *SUMA_FreeVolumeObject(SUMA_VolumeObject *VO);
-SUMA_CIFTIObject *SUMA_FreeCIFTIObject(SUMA_CIFTIObject *CO); 
-SUMA_CIFTIObject *SUMA_CreateCIFTIObject(char *Label);
+SUMA_CIFTI_DO *SUMA_FreeCIFTIObject(SUMA_CIFTI_DO *CO); 
+SUMA_CIFTI_DO *SUMA_CreateCIFTIObject(char *Label);
 void SUMA_Print_Surface_Object(SUMA_SurfaceObject *SO, FILE *Out);
 char *SUMA_VisX_XformType2Name(SUMA_VISX_XFORM_TYPE tt);
 char *SUMA_VisX_Info(SUMA_VIS_XFORM VisX, int N_Node, char *mumble);
