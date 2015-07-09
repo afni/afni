@@ -9,6 +9,15 @@ extern SUMA_SurfaceViewer *SUMAg_SVv;
 extern int SUMAg_N_SVv; 
 extern int SUMAg_N_DOv;  
 
+#define DUMP_CMAP(cm) { \
+   int cm_ii;           \
+   printf("%s\n", (cm)->Name); \
+   for(cm_ii=0;cm_ii < (cm)->N_M[0];cm_ii++) { \
+      printf(" %3d %.3f %.3f %.3f\n", cm_ii, \
+            (cm)->M[cm_ii][0], (cm)->M[cm_ii][1], (cm)->M[cm_ii][2]); \
+   } \
+}
+
 /*! The set of functions deals with node colors
 */
 
@@ -394,7 +403,8 @@ SUMA_COLOR_MAP* SUMA_DuplicateColorMap (SUMA_COLOR_MAP *cin, char *newname)
 }
 
 /* based on AFNI's PBAR_define_bigmap */
-SUMA_COLOR_MAP * SUMA_pbardef_to_CM(char *cmd)
+SUMA_COLOR_MAP * SUMA_pbardef_to_CM
+(char *cmd)
 {
    static char FuncName[]={"SUMA_pbardef_to_CM"};
    SUMA_COLOR_MAP *CM=NULL;
@@ -404,8 +414,7 @@ SUMA_COLOR_MAP * SUMA_pbardef_to_CM(char *cmd)
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
-   
-   
+
    CM = (SUMA_COLOR_MAP *)SUMA_calloc(1,sizeof(SUMA_COLOR_MAP));
    if (CM == NULL ) {
       SUMA_SL_Crit ("Failed to allocate for CM");
@@ -454,6 +463,14 @@ SUMA_COLOR_MAP * SUMA_pbardef_to_CM(char *cmd)
                   SUMA_LHv("%d [%d %d %d]\n", 
                         kkk,
                         bm[iii][kkk].r, bm[iii][kkk].g, bm[iii][kkk].b);
+#if 0
+
+               CM->M[kkk][0] = bm[iii][kkk].r / 255.0f ; 
+               CM->M[kkk][1] = bm[iii][kkk].g / 255.0f ; 
+               CM->M[kkk][2] = bm[iii][kkk].b / 255.0f ;
+               CM->M[kkk][3] = 1.0;
+
+#endif
                CM->M[NPANE_BIG-(kkk+1)][0] = bm[iii][kkk].r / 255.0f ; 
                CM->M[NPANE_BIG-(kkk+1)][1] = bm[iii][kkk].g / 255.0f ; 
                CM->M[NPANE_BIG-(kkk+1)][2] = bm[iii][kkk].b / 255.0f ;
@@ -485,7 +502,7 @@ SUMA_COLOR_MAP * SUMA_pbardef_to_CM(char *cmd)
    } else {
       name[0] = '\0' ; ii = 0 ;
       sscanf(cmd,"%127s%n",name,&ii) ;
-      SUMA_LHv("name = %s %d\n",name,ii);
+      SUMA_LHv("name here = %s %d\n",name,ii);
       CM->Name = SUMA_copy_string(name);
 
       if( *name == '\0' || ii == 0 ) RETURN(NULL) ;
@@ -517,7 +534,6 @@ SUMA_COLOR_MAP * SUMA_pbardef_to_CM(char *cmd)
          neq++;
       }
       SUMA_LHv("Map %s, neq = %d\n", name, neq);
-
       /* in AFNI, all of these maps get interpolated to NPANE_BIG
          but that is not needed in SUMA. Only some maps need the 
          interpolation to look good */
@@ -526,21 +542,24 @@ SUMA_COLOR_MAP * SUMA_pbardef_to_CM(char *cmd)
          /* now do the interpolation to NPANE_BIG */
          CMn = SUMA_MakeColorMap(CM->M, neq, 0, NPANE_BIG+1, 0, CM->Name);
          SUMA_Free_ColorMap(CM); CM=CMn; CMn=NULL;
+         /* flip color map if it came from AFNI - short or long  */
+         SUMA_Flip_Color_Map(CM);   
       } else { /* leave it like it is */
          SUMA_LHv("Leaving map %s at %d colors\n", CM->Name, neq);
          /* realloc */
          N_Col = neq;
          M = (float**)SUMA_allocate2D (N_Col, 4, sizeof(float));
          for (ii=0; ii<N_Col; ++ii) { 
-            M[ii][0] = CM->M[ii][0];
-            M[ii][1] = CM->M[ii][1];
-            M[ii][2] = CM->M[ii][2];
-            M[ii][3] = CM->M[ii][3];
+            M[N_Col-ii-1][0] = CM->M[ii][0];
+            M[N_Col-ii-1][1] = CM->M[ii][1];
+            M[N_Col-ii-1][2] = CM->M[ii][2];
+            M[N_Col-ii-1][3] = CM->M[ii][3];
          }
          SUMA_free2D((char**)CM->M, CM->N_M[0]); CM->M = M; M = NULL;
          CM->N_M[0] = N_Col; CM->N_M[1] = 4;
       }
    }
+
    SUMA_RETURN(CM);
 }
 /*!
@@ -562,6 +581,7 @@ SUMA_COLOR_MAP * SUMA_pbardef_to_CM(char *cmd)
       SUMA_RETURN(NULL);   \
    }  \
 }
+
 SUMA_AFNI_COLORS *SUMA_Get_AFNI_Default_Color_Maps ()
 {
    static char FuncName[]={"SUMA_Get_AFNI_Default_Color_Maps"};
@@ -10947,6 +10967,20 @@ int SUMA_AFNI_Extract_Colors ( char *fname, SUMA_AFNI_COLORS *SAC )
                   fprintf( SUMA_STDERR,
                            "Error %s: Color %s not found in dbase.\n"
                            "Using no-color in its place\n", FuncName, right);
+#if 0
+                  CM->M[ii][0] = 
+                  CM->M[ii][1] = 
+                  CM->M[ii][2] = -1.0;
+                  CM->M[ii][3] = 0.0; 
+               } else {
+                  CM->M[ii][0] = SAC->Cv[icol].r;
+                  CM->M[ii][1] = SAC->Cv[icol].g;
+                  CM->M[ii][2] = SAC->Cv[icol].b;
+                  CM->M[ii][3] = 1.0;
+               }
+               CM->frac[ii] = atof(left);
+#endif
+
                   CM->M[npane - ii - 1][0] = 
                   CM->M[npane - ii - 1][1] = 
                   CM->M[npane - ii - 1][2] = -1.0;
@@ -10959,6 +10993,8 @@ int SUMA_AFNI_Extract_Colors ( char *fname, SUMA_AFNI_COLORS *SAC )
                }
                CM->frac[npane - ii - 1] = atof(left);
             }
+
+
             if (CM->frac[CM->N_M[0]-1] != 1.0f) {
                CM->top_frac = CM->frac[CM->N_M[0]-1];
             }
