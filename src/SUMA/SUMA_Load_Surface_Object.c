@@ -4324,7 +4324,8 @@ SUMA_Boolean SUMA_LoadSpec_eng (
             }
             break;
          case CDOM_type:
-            SUMA_LoadCIFTIDO (Spec->DO_name[i], SUMA_WORLD, NULL, 1);
+            SUMA_LoadCIFTIDO (Spec->DO_name[i], 
+                              SUMA_WORLD, NULL, 1, 1, 1, 1, NULL);
             break;
          default:
             SUMA_S_Errv("Bad or unexpected type %s for %s\n",
@@ -6390,14 +6391,22 @@ SUMA_SurfSpecFile *SUMA_IO_args_2_spec(SUMA_GENERIC_ARGV_PARSE *ps, int *nspec)
 /* Load a CIFTI DO */
 SUMA_Boolean SUMA_LoadCIFTIDO (char *fname, 
                         SUMA_DO_CoordUnits coord_type, SUMA_DSET **odset, 
-                        int OkAdopt)
+                        int OkAdopt, int SetupOverlay, int LaunchDisplay, 
+                        int MakeOverlayCurrent, SUMA_OVERLAYS **used_over)
 {
    static char FuncName[]={"SUMA_LoadCIFTIDO"};
    SUMA_CIFTI_SAUX *CSaux=NULL;
    SUMA_DSET *cdset=NULL;
    SUMA_CIFTI_DO *CO = NULL;
+   SUMA_ALL_DO *aCO = NULL;
    SUMA_DSET_FORMAT tff = SUMA_NIML;
+   DList *list=NULL;
+   SUMA_LIST_WIDGET *LW=NULL;
    SUMA_DSET *dsetpre = NULL;
+   SUMA_OVERLAYS *NewColPlane = NULL,  *colplanepre = NULL;
+   int OverInd=-1, OKdup=-1, loc[2];
+   char *dsetcmap=NULL;
+   SUMA_X_SurfCont *SurfCont=NULL;
    SUMA_Boolean LocalHead = YUP;
    
    SUMA_ENTRY;
@@ -6455,31 +6464,41 @@ SUMA_Boolean SUMA_LoadCIFTIDO (char *fname,
       }
    }
             
+   /* Make sure the SUMA Aux structure is there */
+   if (!(CSaux = CDO_CSAUX(CO))) {
+      SUMA_S_Warn("That is weird, should this happen?");
+      if (!SUMA_AddCIFTISaux(CO)) {
+         SUMA_S_Err("Failed to create Saux struct");
+         SUMA_RETURN(NOPE);   
+      }   
+      CSaux = CDO_CSAUX(CO);
+   }
+   
    /* add the dset to the list SUMAg_CF->DsetList*/
-   dsetpre = dset;
+   dsetpre = cdset;
    if (LocalHead) {
       fprintf( SUMA_STDERR,
                "%s: New dset (%s) has pointer %p\n", 
-               FuncName, SDSET_LABEL(dset), dset); 
+               FuncName, SDSET_LABEL(cdset), cdset); 
    }
-   if (!SUMA_InsertDsetPointer(  &dset, SUMAg_CF->DsetList, 
+   if (!SUMA_InsertDsetPointer(  &cdset, SUMAg_CF->DsetList, 
                                  SUMAg_CF->Allow_Dset_Replace)) {
       SUMA_SLP_Err("Failed to add new dset to list");
       /* is there not a function to replace a dset yet? */
-      SUMA_FreeDset(dset); dset = NULL;
+      SUMA_FreeDset(cdset); cdset = NULL;
       SUMA_RETURN(NOPE);
    }
    if (LocalHead) {
       fprintf( SUMA_STDERR,
                "%s: Now dset (%s) is  pointer %p\n", 
-               FuncName, SDSET_LABEL(dset), dset); 
+               FuncName, SDSET_LABEL(cdset), cdset); 
    }
    
    /* Does this dset have a built in colormap?
       If it does, then loadit into SCM */
-   if (!SUMA_Insert_Cmap_of_Dset(dset)) {
+   if (!SUMA_Insert_Cmap_of_Dset(cdset)) {
       SUMA_S_Err("Failed to insert Cmap");
-      SUMA_FreeDset(dset); dset = NULL;
+      SUMA_FreeDset(cdset); cdset = NULL;
       SUMA_RETURN(NOPE);
    }
 
@@ -6498,73 +6517,199 @@ SUMA_Boolean SUMA_LoadCIFTIDO (char *fname,
    */
    
    
+   aCO = (SUMA_ALL_DO *)CO; /* just for convenience */
    if (SetupOverlay) {
       SUMA_LH("Setting up overlay for CIFTI dset");
-      OverInd = -1; /* OverInd is not used for now, 
-                       just one overlay per CIFTI dset, at least for now */
+      OverInd = -1; 
       {
          if (cdset != dsetpre) { /* dset was pre-existing in the list */
-            SDSET_CSAUX(dset) is not applicable here because
-            CSAUX should be stored directly onto a bonafied DO of the 
-            type CDOM_type. So it is best not to have a CIFTI dset's CSAUX,
-            but rather the CSAUX of the CIFTI Object itself
-            Revisit indented portion below...
-            
-                     if (!(CSaux = SDSET_CSAUX(dset))) {
-                        SUMA_S_Warn("That is weird, should this happen?");
-                        if (!SUMA_AddDsetSaux(dset)) {
-                           SUMA_S_Err("Failed to create Saux struct");
-                           SUMA_RETURN(NOPE);   
-                        }   
-                        CSaux = SDSET_CSAUX(dset);
-                     }
-                     if (LocalHead) {
-                        fprintf( SUMA_STDERR,
-                                 "%s: Dset %s (%p) pre-existing, "
-                                 "finding its pre-existing overlays.\n", 
-                                 FuncName, SDSET_LABEL(dset), dset); 
-                     }
-                     colplanepre = SDSET_COVERLAY(dset);
-                     OKdup = 1;
-                  } else { /* dset is considered new */
-                     colplanepre = NULL;
-                     if (!SUMA_AddDsetSaux(dset)) {
-                        SUMA_S_Err("Failed to create Saux struct");
-                        SUMA_RETURN(NOPE);   
-                     }   
-                     CSaux = SDSET_CSAUX(dset);
-                     OKdup = 0;
-                  }
-
-                  /* set up the colormap for this dset */
-                  CSaux->Overlay = SUMA_CreateOverlayPointer ( filename, 
-                                                               dset, SDSET_ID(dset), 
-                                                               colplanepre);
-                  if (!CSaux->Overlay) {
-                     fprintf (SUMA_STDERR, 
-                              "Error %s: Failed in SUMA_CreateOverlayPointer.\n", 
-                              FuncName);
-                     SUMA_RETURN(NOPE);
-                  }
-               }
-
-            /* Match old settings? */
-   
-            
-            SUMA_S_Warn("What next here? Do we have SurfCont, do we have CSaux?");
-
-            /* Set some display defaults (see SUMA_LoadVolDO() for example */
-
-            /* Add CIFTI into DO list 
-               But should it not be added to the DsetList, and possibly have
-               a CDSET_DO_Link for type? 
-               Should I not create a CDSET*/
-            if (!SUMA_AddDO(SUMAg_DOv, &(SUMAg_N_DOv), (void *)cdset,  
-                              CDOM_type, coord_type)) {
-               fprintf(SUMA_STDERR,"Error %s: Error Adding DO\n", FuncName);
+            if (!(CSaux = CDO_CSAUX(CO))) {
+               SUMA_S_Warn("That is weird, should this happen?");
+               if (!SUMA_AddCIFTISaux(CO)) {
+                  SUMA_S_Err("Failed to create Saux struct");
+                  SUMA_RETURN(NOPE);   
+               }   
+               CSaux = CDO_CSAUX(CO);
+            }
+            if (LocalHead) {
+               fprintf( SUMA_STDERR,
+                        "%s: Dset %s (%p) pre-existing, "
+                        "finding its pre-existing overlays.\n", 
+                        FuncName, SDSET_LABEL(cdset), cdset); 
+            }
+            if (!(colplanepre = SUMA_Fetch_OverlayPointerByDset (
+                                           aCO, cdset, &OverInd))) {
+               SUMA_SLP_Err("Failed to fetch existing dset's "
+                            "overlay pointer");
                SUMA_RETURN(NOPE);
             }
-   
+            /* Here you'd remove coord bias if you end up using it */
+            /* Here you'd set the flag to recompute clusters if you support it */
+            OKdup = 1;
+         } else { /* cdset is considered new */
+            SUMA_LH("New");
+            colplanepre = NULL;
+            /* The overlay index for that plane is SO->N_Overlays */
+            OverInd = SUMA_ADO_N_Overlays(aCO);
+            OKdup = 0;
+         }
+
+         /* set up the colormap for this dset */
+         NewColPlane = SUMA_CreateOverlayPointer ( fname, 
+                                                   cdset, SDSET_ID(cdset), 
+                                                   colplanepre);
+         if (!NewColPlane) {
+            fprintf (SUMA_STDERR, 
+                     "Error %s: Failed in SUMA_CreateOverlayPointer.\n", 
+                     FuncName);
+            SUMA_RETURN(NOPE);
+         }
+               
+         if (SetupOverlay < 0) {
+            SUMA_LH("Have not pondered how to do 'background' for the "
+                    "volume part of a CIFTI domain...");
+            NewColPlane->isBackGrnd = YUP;
+         } else NewColPlane->isBackGrnd = NOPE;     
+               
+         /* Add this plane to Overlays */
+         SUMA_LH("Adding new plane to Overlays");
+         if (!SUMA_AddNewPlane (aCO, NewColPlane, SUMAg_DOv, 
+                                SUMAg_N_DOv, OKdup)) {
+            SUMA_SL_Err("Failed in SUMA_AddNewPlane");
+            SUMA_FreeOverlayPointer(NewColPlane);
+            if (!SUMA_DeleteDsetPointer(&cdset, SUMAg_CF->DsetList)) {
+               SUMA_S_Err("Failed to delete cdset pointer");
+            }
+
+            SUMA_RETURN(NOPE);
+         }
+      }
+
+      /* Match old settings? */
+      SUMA_LH("Settings");
+      if (colplanepre == NewColPlane) { /* old col plane found for this dset*/
+         /* Don't change settings. Before Aug 2012, it would reset as below */
+      } else if ((SurfCont = SUMA_ADO_Cont(aCO)) &&
+                 SUMA_PreserveOverlaySettings(SurfCont->curColPlane,
+                                                 NewColPlane)) {
+                           /* attempt to preserve current situation */
+            SUMA_OVERLAYS *settingPlane = NULL;
+         settingPlane = SurfCont->curColPlane;
+         NewColPlane->GlobalOpacity = settingPlane->GlobalOpacity;
+         NewColPlane->ShowMode = settingPlane->ShowMode;
+         NewColPlane->OptScl->BrightFact = settingPlane->OptScl->BrightFact;
+         NewColPlane->OptScl->find = settingPlane->OptScl->find;
+         NewColPlane->OptScl->tind = settingPlane->OptScl->tind;
+         NewColPlane->OptScl->bind = settingPlane->OptScl->bind;
+         NewColPlane->OptScl->UseThr = settingPlane->OptScl->UseThr;
+         NewColPlane->OptScl->UseBrt = settingPlane->OptScl->UseBrt;
+         NewColPlane->OptScl->ThrMode = settingPlane->OptScl->ThrMode;
+         NewColPlane->OptScl->ThreshRange[0] = 
+                                       settingPlane->OptScl->ThreshRange[0];
+         NewColPlane->OptScl->ThreshRange[1] = 
+                                       settingPlane->OptScl->ThreshRange[1];
+         NewColPlane->OptScl->BrightRange[0] = 
+                                       settingPlane->OptScl->BrightRange[0];
+         NewColPlane->OptScl->BrightRange[1] = 
+                                       settingPlane->OptScl->BrightRange[1];
+         NewColPlane->OptScl->BrightMap[0] = 
+                                       settingPlane->OptScl->BrightMap[0];
+         NewColPlane->OptScl->BrightMap[1] = 
+                                       settingPlane->OptScl->BrightMap[1];
+         NewColPlane->SymIrange = settingPlane->SymIrange;
+         NewColPlane->OptScl->IntRange[0] = settingPlane->OptScl->IntRange[0];
+         NewColPlane->OptScl->IntRange[1] = settingPlane->OptScl->IntRange[1];
+         dsetcmap = NI_get_attribute(cdset->ngr,"SRT_use_this_cmap");
+         if (dsetcmap) {
+            SUMA_STRING_REPLACE(NewColPlane->cmapname, dsetcmap);
+         } else {
+            SUMA_STRING_REPLACE(NewColPlane->cmapname, 
+                                settingPlane->cmapname);
+         }         
+         NewColPlane->OptScl->Clusterize = settingPlane->OptScl->Clusterize;
+         NewColPlane->OptScl->ClustOpt->AreaLim = 
+            settingPlane->OptScl->ClustOpt->AreaLim;
+         NewColPlane->OptScl->ClustOpt->DistLim = 
+            settingPlane->OptScl->ClustOpt->DistLim;
+      } else {
+         SUMA_LH("New settings");
+         /* set the opacity, index column and the range */
+         NewColPlane->GlobalOpacity = YUP;
+         NewColPlane->ShowMode = SW_SurfCont_DsetViewCol;
+         if (!colplanepre) {/* only set this if first time creating plane*/
+            NewColPlane->OptScl->BrightFact = 0.8;
+         }
+         NewColPlane->OptScl->find = 0;
+         NewColPlane->OptScl->tind = 0;
+         NewColPlane->OptScl->bind = 0;
+         SUMA_GetDsetColRange(cdset, 0, NewColPlane->OptScl->IntRange, loc);
+         if (NewColPlane->SymIrange) {
+            NewColPlane->OptScl->IntRange[0] = 
+               -fabs(SUMA_MAX_PAIR( NewColPlane->OptScl->IntRange[0],
+                                    NewColPlane->OptScl->IntRange[1]));
+            NewColPlane->OptScl->IntRange[1] = 
+               -NewColPlane->OptScl->IntRange[0];
+         }
+
+         /* stick a colormap onto that plane ? */
+         dsetcmap = NI_get_attribute(cdset->ngr,"SRT_use_this_cmap");
+         if (dsetcmap) {
+            SUMA_STRING_REPLACE(NewColPlane->cmapname, dsetcmap);
+         } else {
+            /* don't worry, there's a default one */
+         }
+      }
+      if (NewColPlane->OptScl->Clusterize) 
+         NewColPlane->OptScl->RecomputeClust = 1;
+      /* colorize the plane */
+      SUMA_LH("Colorizing Plane");
+      SUMA_ColorizePlane(NewColPlane);
+
+      /* SUMA_Show_ColorOverlayPlanes(&NewColPlane, 1, 1); */
+
+      if (SurfCont && MakeOverlayCurrent) 
+         SurfCont->curColPlane = SUMA_ADO_Overlay(aCO, OverInd); 
+   }
+
+   if (SurfCont && LaunchDisplay) {
+      SUMA_LHv("Remix Redisplay %s\n", ADO_LABEL(aCO));
+      /* remix-redisplay  for surface */
+      if (!SUMA_Remixedisplay (aCO)) {
+         SUMA_RETURN(NOPE);
+      }
+
+      SUMA_LH("Refreshing Dset list");            
+      /*update the list widget if open */
+      LW = SurfCont->SwitchDsetlst;
+      if (LW) {
+         if (!LW->isShaded) SUMA_RefreshDsetList (aCO);  
+      } 
+
+      SUMA_LH("Refreshing sub-brick selectors");            
+      /* if lists for switching sub-bricks are not shaded, update them too */
+      if (SurfCont->SwitchIntMenu) {
+         if ((LW = SurfCont->SwitchIntMenu->lw) && !LW->isShaded) {
+            SUMA_DsetColSelectList(aCO, 0, 0, 1);
+         }
+         if ((LW = SurfCont->SwitchThrMenu->lw) && !LW->isShaded) {
+            SUMA_DsetColSelectList(aCO, 1, 0, 1);
+         }
+         if ((LW = SurfCont->SwitchBrtMenu->lw) && !LW->isShaded) {
+            SUMA_DsetColSelectList(aCO, 2, 0, 1);
+         }
+
+         if (LocalHead) 
+            fprintf (SUMA_STDERR,
+                     "%s: Updating Dset frame, OverInd=%d\n", 
+                     FuncName, OverInd);
+         /* update the Dset frame */
+         if (OverInd >= 0)        
+            SUMA_InitializeColPlaneShell(aCO, 
+                                         SUMA_ADO_Overlay(aCO, OverInd));
+      }
+   }
+
+   if (used_over) *used_over = SUMA_ADO_Overlay(aCO, OverInd);
    
    SUMA_RETURN(YUP);
 }
@@ -6574,7 +6719,9 @@ SUMA_CIFTI_DO * SUMA_CIFTI_DO_from_dset(SUMA_DSET *cdset, int insert)
 {
    static char FuncName[]={"SUMA_CIFTI_DO_from_dset"};
    int k;
+   char *ss=NULL;
    SUMA_ALL_DO *ado=NULL;
+   SUMA_CIFTI_DO *CO=NULL;
    SUMA_Boolean LocalHead = YUP;
    
    SUMA_ENTRY;
@@ -6645,10 +6792,10 @@ SUMA_CIFTI_DO * SUMA_CIFTI_DO_from_dset(SUMA_DSET *cdset, int insert)
       }
    }
    
-   if (add) {
+   if (insert) {
       SUMA_LH("Adding CO %s to objects list", ADO_LABEL((SUMA_ALL_DO *)CO));
       if (!SUMA_AddDO(SUMAg_DOv, &(SUMAg_N_DOv), (void *)CO,  
-               CIFTI_type, SUMA_WORLD)) {
+               CDOM_type, SUMA_WORLD)) {
          fprintf(SUMA_STDERR,"Error %s: Error Adding DO\n", FuncName);
          SUMA_FreeCIFTIObject(CO); CO = NULL;
          SUMA_RETURN(NULL);
@@ -6662,25 +6809,26 @@ SUMA_CIFTI_DO * SUMA_CIFTI_DO_from_dset(SUMA_DSET *cdset, int insert)
 /* Search all DOs for a CIFTIObject that can be the domain
 for a certain CIFTI dataset */
 SUMA_CIFTI_DO *SUMA_CIFTI_find_matching_domain(SUMA_DSET *cdset, 
-                                                  SUMA_DO *dov, int N_dov) 
+                                               SUMA_DO *dov, int N_dov) 
 {
    static char FuncName[]={"SUMA_CIFTI_find_matching_domain"};
    SUMA_CIFTI_DO *CO=NULL;
-   int i;
+   int i, f, k;
+   char *sid;
    
    SUMA_ENTRY;
    
    if (!dov) { dov = SUMAg_DOv; N_dov = SUMAg_N_DOv; }
    
    for (i=0; i<N_dov; ++i) {
-      if (dov[i].ObjectType == CIFTI_type) {
+      if (dov[i].ObjectType == CDOM_type) {
          CO = (SUMA_CIFTI_DO *)dov[i].OP;
          for (f=0,k=0; k<cdset->Aux->N_doms; ++k) {
             sid = SUMA_CIFTI_find_sub_domain(CO, 
                                  cdset->Aux->doms[k]->ModelType,
                                  cdset->Aux->doms[k]->ModelSide,
-                                 cdset->Aux->doms[k]->Max_N_Data);
-            if (sid) {++f};
+                                 cdset->Aux->doms[k]->Max_N_Data, NULL);
+            if (sid) {++f;}
          }
          if (f == cdset->Aux->N_doms) {
             SUMA_RETURN(CO);
@@ -6691,7 +6839,7 @@ SUMA_CIFTI_DO *SUMA_CIFTI_find_matching_domain(SUMA_DSET *cdset,
 }
 
 /* Search the sub-domains of a CIFTIObject to match desired parameters */
-char *SUMA_CIFTI_find_sub_domain(CO, SUMA_DO_Types ModelType,
+char *SUMA_CIFTI_find_sub_domain(SUMA_CIFTI_DO *CO, SUMA_DO_Types ModelType,
                                SUMA_SO_SIDE ModelSide,
                                int Max_N_Data,
                                int *k)
@@ -6704,11 +6852,12 @@ char *SUMA_CIFTI_find_sub_domain(CO, SUMA_DO_Types ModelType,
    if (k) *k = -1;
    
    for (i=0; i<CO->N_subdoms; ++i) {
-      if ( CO->subdom[i]->do_type == ModelType &&
-          (ModelType != SO_type || ModelSide == SO->Side) &&
-          Max_N_Data == SUMA_ADO_N_Datum(CO->subdom[i]) ) {
+      if ( CO->subdoms[i]->do_type == ModelType &&
+          (    ModelType != SO_type || 
+               ModelSide == ((SUMA_SurfaceObject *)(CO->subdoms[i]))->Side ) &&
+          Max_N_Data == SUMA_ADO_N_Datum(CO->subdoms[i]) ) {
          if (k) *k = i;
-         SUMA_RETURN(ADO_ID(ado));   
+         SUMA_RETURN(ADO_ID((SUMA_ALL_DO*)CO));   
       }
    }
    

@@ -99,8 +99,9 @@ SUMA_Boolean SUMA_MovePlaneDown (SUMA_ALL_DO *ado, char *Name);
 SUMA_OVERLAYS * SUMA_NewPlaneSearch(SUMA_ALL_DO *ado, 
                                     SUMA_OVERLAYS *Overlay);
 SUMA_Boolean SUMA_LoadCIFTIDO (char *fname, 
-                        SUMA_DO_CoordUnits coord_type, SUMA_DSET **odset,
-                        int OkAdopt);
+                        SUMA_DO_CoordUnits coord_type, SUMA_DSET **odset, 
+                        int OkAdopt, int SetupOverlay, int LaunchDisplay, 
+                        int MakeOverlayCurrent, SUMA_OVERLAYS **used_over);
 SUMA_CIFTI_DO * SUMA_CIFTI_DO_from_dset(SUMA_DSET *cdset, int add);
 char *SUMA_CIFTI_find_sub_domain(SUMA_CIFTI_DO *CO, SUMA_DO_Types ModelType,
                                SUMA_SO_SIDE ModelSide,
