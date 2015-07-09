@@ -3376,8 +3376,8 @@ typedef struct {
    char *Label; 
    
       /* Begin specific fields */
-   int N_subdom; /* Number of sub objects defining domain */
-   SUMA_ALL_DO **subdom; /* Collection of sub-domains */ 
+   int N_subdoms; /* Number of sub objects defining domain */
+   SUMA_ALL_DO **subdoms; /* Collection of sub-domains */ 
    
    void *Saux; /* A pointer to a structure for SUMA's use */
    void (*FreeSaux)(void *Saux); /* Function to free Saux */

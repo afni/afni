@@ -8904,7 +8904,7 @@ SUMA_Boolean SUMA_MixColors (SUMA_SurfaceViewer *sv)
                sv->ColList[i]->Remix = NOPE;
                break;
             case CDOM_type: {
-               CO = (SUMA_CIFTI_DO *)pp;
+               SUMA_CIFTI_DO *CO = (SUMA_CIFTI_DO *)pp;
                SUMA_LHv("Mixing CIFTI Object Colors (%s), CO %s, sv %d ...\n",
                   sv->ColList[i]->idcode_str, ADO_LABEL((SUMA_ALL_DO *)CO), isv);
                if (!SUMA_Overlays_2_GLCOLAR4((SUMA_ALL_DO *)CO, sv, 

@@ -13352,7 +13352,7 @@ int SUMA_ADO_SelectedDatum(SUMA_ALL_DO *ado, void *extra, void *extra2)
             Selections could be on surfaces or volumes so what needs 
             to be filled out in the extras will depend on the type of
             domain over which the selection was made. */
-         return(TSaux->PR->datum_index);
+         return(CSaux->PR->datum_index);
          break; }   
       case GDSET_type: {
          SUMA_DSET *dset=(SUMA_DSET *)ado;
@@ -13527,7 +13527,6 @@ SUMA_Boolean SUMA_ADO_Set_SelectedDatum(SUMA_ALL_DO *ado, int sel,
          } else {
             /* Will need to setup other PR fields once we decide on extras */
          }   
-         break; }
          break; }
       case GDSET_type: {
          SUMA_DSET *dset=(SUMA_DSET *)ado;
@@ -13935,9 +13934,6 @@ char * SUMA_ADO_Parent_idcode(SUMA_ALL_DO *ado)
       case MASK_type:
          return(((SUMA_MaskDO*)ado)->Parent_idcode_str);
          break;
-      case CDOM_type:
-         return(((SUMA_CIFTI_DO*)ado)->Parent_idcode_str);
-         break;
       case NBLS_type:
       case NBOLS_type:
       case NBV_type:
@@ -13960,6 +13956,7 @@ char * SUMA_ADO_Parent_idcode(SUMA_ALL_DO *ado)
          break;
       case AO_type: /* those are their own parents */
       case PL_type: 
+      case CDOM_type:
       case VO_type:
          return(ado->private_idcode_str);
          break;
