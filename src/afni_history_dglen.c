@@ -49,6 +49,10 @@
 
 
 afni_history_struct dglen_history[] = {
+{ 9, JUL, 2015, DRG, "suma flip colormaps",
+    MICRO, TYPE_MODIFY,
+    "Colormaps imported from AFNI are now flipped \'properly\'"
+},
 { 6, JUL, 2015, DRG, "RedBlueGreen Colormap",
     MICRO, TYPE_MODIFY,
     "New RedBlueGreen colormap for afni and suma"
