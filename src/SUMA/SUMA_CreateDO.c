@@ -9134,45 +9134,88 @@ SUMA_Boolean SUMA_AddDsetSaux(SUMA_DSET *dset)
       }
       
       SUMA_DrawDO_UL_FullMonty(GSaux->DisplayUpdates);
-   } else if (SUMA_isCIFTIDset(dset)) {
-      SUMA_CIFTI_SAUX *CSaux;
-      if (dset->Aux->Saux) {
-         CSaux = (SUMA_CIFTI_SAUX *)dset->Aux->Saux;
-         /* empty old updates list */
-         SUMA_DrawDO_UL_EmptyList(CSaux->DisplayUpdates, NULL);
-         
-         if (CSaux->Overlay) {
-            SUMA_S_Warn("Have overlay already, will remove it. Revisit later.");
-            SUMA_FreeOverlayPointer(CSaux->Overlay);
-            CSaux->Overlay = NULL;
-         }
-         
-         if (CSaux->DOCont) {
-            SUMA_S_Warn("Have controller already. Keep it.");
-         } else {
-            GSaux->DOCont = SUMA_CreateSurfContStruct(SDSET_ID(dset), 
-                                                      CIFTI_type);
-         }
-         SUMA_ifree(CSaux->Center);
-         SUMA_ifree(CSaux->Range);
+   } 
+   
+   
+   SUMA_RETURN(YUP);  
+}
+
+SUMA_Boolean SUMA_AddCIFTISaux(SUMA_CIFTI_DO *cdo)
+{
+   static char FuncName[]={"SUMA_AddCIFTISaux"};
+   SUMA_CIFTI_SAUX *CSaux;
+   int j;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   if (!cdo) {
+      SUMA_S_Err("NULL input");
+      SUMA_RETURN(NOPE);
+   }
+   
+   if (cdo->Saux) {
+      CSaux = (SUMA_CIFTI_SAUX *)cdo->Saux;
+      /* empty old updates list */
+      SUMA_DrawDO_UL_EmptyList(CSaux->DisplayUpdates, NULL);
+
+      if (CSaux->Overlays) {
+         SUMA_S_Warn("Have overlay already, leaving them.");
       } else {
-         dset->Aux->FreeSaux = SUMA_Free_CSaux;
-         dset->Aux->Saux = (void *)SUMA_calloc(1,sizeof(SUMA_CIFTI_SAUX));
-         CSaux = (SUMA_CIFTI_SAUX *)dset->Aux->Saux;
-         
-         CSaux->DisplayUpdates = (DList *)SUMA_malloc(sizeof(DList));
-         dlist_init(CSaux->DisplayUpdates, SUMA_Free_Saux_DisplayUpdates_datum);
-         
-         CSaux->Overlay = NULL;
-         CSaux->DOCont = SUMA_CreateSurfContStruct(SDSET_ID(dset), 
-                                                   CIFTI_type);
-         CSaux->PR = SUMA_New_Pick_Result(NULL);
-         CSaux->Center = NULL;
-         CSaux->Range = NULL;
+         SUMA_S_Note("Hmm, this should not be necessary."
+                     "Check logic before approving. Also check"
+                     "!DOCont and !PR in same block");
+         CSaux->Overlays = 
+         (SUMA_OVERLAYS **)
+            SUMA_malloc(sizeof(SUMA_OVERLAYS *) * SUMA_MAX_OVERLAYS);
+         for (j=0; j < SUMA_MAX_OVERLAYS; ++j) {
+            CSaux->Overlays[j] = NULL;
+         }
+         CSaux->N_Overlays = 0;
+      }
+
+      if (CSaux->DOCont) {
+         SUMA_S_Warn("Have controller already. Keep it.");
+      } else {
+         CSaux->DOCont = 
+         SUMA_CreateSurfContStruct(SUMA_ADO_idcode((SUMA_ALL_DO *)cdo), 
+                                   CDOM_type);
       }
       
-   }    
+      if (!CSaux->PR) {
+         CSaux->PR = SUMA_New_Pick_Result(NULL);
+      }
+      SUMA_ifree(CSaux->Center);
+      SUMA_ifree(CSaux->Range);
+   } else {
+      cdo->FreeSaux = SUMA_Free_CSaux;
+      cdo->Saux = (void *)SUMA_calloc(1,sizeof(SUMA_CIFTI_SAUX));
+
+      CSaux = (SUMA_CIFTI_SAUX *)cdo->Saux;
+      CSaux->DisplayUpdates = (DList *)SUMA_malloc(sizeof(DList));
+      dlist_init(CSaux->DisplayUpdates, SUMA_Free_Saux_DisplayUpdates_datum);
+
+      CSaux->Overlays = 
+         (SUMA_OVERLAYS **)
+            SUMA_malloc(sizeof(SUMA_OVERLAYS *) * SUMA_MAX_OVERLAYS);
+      for (j=0; j < SUMA_MAX_OVERLAYS; ++j) {
+         CSaux->Overlays[j] = NULL;
+      }
+      CSaux->N_Overlays = 0;
+      CSaux->DOCont = 
+         SUMA_CreateSurfContStruct(SUMA_ADO_idcode((SUMA_ALL_DO *)cdo), 
+                                   CDOM_type);
+      CSaux->PR = SUMA_New_Pick_Result(NULL);
+      
+      SUMA_ifree(CSaux->Center);
+      SUMA_ifree(CSaux->Range);
+   }
+
+   SUMA_LH("CSaux %p %p %p", CSaux->Overlays, CSaux->PR, CSaux->DOCont);
    
+   /* Do we need this or its ilk for CIFTI? */
+   SUMA_S_Note("Try without me...");
+      SUMA_DrawDO_UL_FullMonty(CSaux->DisplayUpdates);
    
    SUMA_RETURN(YUP);  
 }
@@ -9669,6 +9712,42 @@ void SUMA_Free_TSaux(void *vSaux)
    SUMA_ifree(Saux->Center);
    SUMA_ifree(Saux->Range);
    SUMA_ifree(Saux->tract_lengths);
+
+   SUMA_ifree(Saux);
+   return; 
+}
+
+void SUMA_Free_CSaux(void *vSaux)
+{
+   static char FuncName[]={"SUMA_Free_CSaux"};
+   int i;
+   SUMA_CIFTI_SAUX *Saux;
+   
+   if (!vSaux) return;
+   Saux = (SUMA_CIFTI_SAUX *)vSaux;
+   
+   if (Saux->DisplayUpdates) {
+      dlist_destroy(Saux->DisplayUpdates);
+      SUMA_free(Saux->DisplayUpdates);
+   }
+   
+   if (Saux->Overlays) {
+      for (i=0; i<Saux->N_Overlays; ++i) {
+         SUMA_FreeOverlayPointer(Saux->Overlays[i]);
+      }
+      SUMA_ifree(Saux->Overlays);
+      Saux->N_Overlays = 0;
+   }
+   
+   SUMA_ifree(Saux->isColored);
+   
+   if (Saux->DOCont) SUMA_FreeSurfContStruct(Saux->DOCont);
+   Saux->DOCont=NULL;
+   
+   if (Saux->PR) Saux->PR = SUMA_free_PickResult(Saux->PR);
+   
+   SUMA_ifree(Saux->Center);
+   SUMA_ifree(Saux->Range);
 
    SUMA_ifree(Saux);
    return; 
@@ -20999,7 +21078,7 @@ SUMA_CIFTI_DO *SUMA_CreateCIFTIObject(char *Label)
    }
    
    
-   CO->do_type = CIFTI_type;
+   CO->do_type = CDOM_type;
    if (Label) {
       CO->Label = SUMA_copy_string(Label);
    } else {
@@ -21013,14 +21092,14 @@ SUMA_CIFTI_DO *SUMA_CreateCIFTIObject(char *Label)
       SUMA_S_Err("Failed to add CIFTI Saux");
    }
   
-   CO->N_subdom = 0;
-   CO->subdom = NULL;
+   CO->N_subdoms = 0;
+   CO->subdoms = NULL;
    
    CO->Show = 1;
    
 
    CO->SelectedDatum = -1;
-   CO->SelectedSubado = -1;
+   CO->SelectedSubAdo = -1;
 
    SUMA_RETURN(CO);
 }
@@ -21044,25 +21123,25 @@ SUMA_CIFTI_DO *SUMA_FreeCIFTIObject(SUMA_CIFTI_DO *CO)
    SUMA_ifree(CO->idcode_str); 
    SUMA_ifree(CO->Label);
    
-   for (i=0; i<CO->N_subdom; ++i) {
-      if (CO->subdom[i]) {
-         switch (CO->subdom[i]->do_type) {
+   for (i=0; i<CO->N_subdoms; ++i) {
+      if (CO->subdoms[i]) {
+         switch (CO->subdoms[i]->do_type) {
             case SO_type:
-               SUMA_Free_Surface_Object((SUMA_SurfaceObject *)CO->subdom[i]);
+               SUMA_Free_Surface_Object((SUMA_SurfaceObject *)CO->subdoms[i]);
                break;
             case VO_type:
-               SUMA_FreeVolumeObject((SUMA_VolumeObject *)CO->subdom[i]);
+               SUMA_FreeVolumeObject((SUMA_VolumeObject *)CO->subdoms[i]);
                break;
             default:
                SUMA_S_Err("Not expecting type %d %s here. Leaky business.",
-                  CO->subdom[i]->do_type, 
-                  SUMA_ObjectTypeCode2ObjectTypeName(CO->subdom[i]->do_type));
+                  CO->subdoms[i]->do_type, 
+                  SUMA_ObjectTypeCode2ObjectTypeName(CO->subdoms[i]->do_type));
                break;
          }
-         CO->subdom[i] = NULL;
+         CO->subdoms[i] = NULL;
       }
    }
-   SUMA_ifree(CO->subdom);
+   SUMA_ifree(CO->subdoms);
    
    SUMA_free(CO);
    
