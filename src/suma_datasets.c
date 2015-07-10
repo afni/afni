@@ -16457,10 +16457,11 @@ SUMA_Boolean SUMA_CIFTI_DomainsFromNgr(SUMA_DSET *dset)
    double nums[4];
    int i, k, ibuff[51], jbuff[51];
    char *mtstr=NULL, *rnstr=NULL, *ss=NULL, *dsstr=NULL;
+   SUMA_Boolean LocalHead = YUP;
    
    SUMA_ENTRY;
    
-   if (!SUMA_isCIFTIDset(dset) || !dset->Aux) {
+   if (!SUMA_isCIFTIDset(dset) || !dset->Aux || !dset->inel) {
       SUMA_S_Err("I'm calling my lawyer");
       SUMA_RETURN(NOPE);
    }
@@ -16474,18 +16475,28 @@ SUMA_Boolean SUMA_CIFTI_DomainsFromNgr(SUMA_DSET *dset)
       dset->Aux->N_doms = -1;
       SUMA_RETURN(NOPE);
    }
+   SUMA_LH("%d Domains", dset->Aux->N_doms);
    
    NI_GET_INTv(dset->inel,"Index_Offsets", ibuff, dset->Aux->N_doms+1, 0);
    NI_GET_INTv(dset->inel,"Domain_N_Data", jbuff, dset->Aux->N_doms, 0);
-   NI_GET_STR(dset->inel, "Model_Types", mtstr);
-   NI_GET_STR(dset->inel, "Domain_Sources", dsstr);
-   NI_GET_STR(dset->inel, "COLMS_RANGE", rnstr);
+   SUMA_LH("Getting strings");
+   NI_GET_STR_CP(dset->inel, "Model_Types", mtstr);
+   NI_GET_STR_CP(dset->inel, "Domain_Sources", dsstr);
+   NI_GET_STR_CP(dset->inel, "COLMS_RANGE", rnstr);
    if (!mtstr || !rnstr || !dsstr) {
       SUMA_S_Err("Malformation suspected");
       SUMA_RETURN(NOPE);
    }
+
+   SUMA_LH("Creating doms");
    dset->Aux->doms = (SUMA_DSET_DOMAIN **)SUMA_calloc(
                               dset->Aux->N_doms, sizeof(SUMA_DSET_DOMAIN *));
+   if ((i = SUMA_StringToNum(rnstr, (void *)nums, 4, 2)) != 
+                                                         4*dset->Aux->N_doms) {
+      SUMA_SL_Err("Failed to read %d nums from range string %s. Got %d", 
+                  4*dset->Aux->N_doms, rnstr, i);
+      for (i=0; i<4*dset->Aux->N_doms; ++i) nums[i]=-1; 
+   }
    for (i=0; i<dset->Aux->N_doms; ++i) {
       dset->Aux->doms[i] = (SUMA_DSET_DOMAIN *)
                                  SUMA_calloc(1,sizeof(SUMA_DSET_DOMAIN));
@@ -16498,12 +16509,7 @@ SUMA_Boolean SUMA_CIFTI_DomainsFromNgr(SUMA_DSET *dset)
       ss = SUMA_Get_Sub_String(mtstr,SUMA_NI_CSS, i);
       dset->Aux->doms[i]->Source = SUMA_copy_string(ss);
       SUMA_ifree(ss);
-      if (SUMA_StringToNum(rnstr, (void *)nums, 4, 2) != 4) { 
-         SUMA_SL_Err("Failed to read 4 nums from range.");  
-         for (k=0; k<4; ++k) dset->Aux->doms[i]->Range[k] = -1; 
-      } else {
-         for (k=0; k<4; ++k) dset->Aux->doms[i]->Range[k] = nums[k]; 
-      }
+      for (k=0; k<4; ++k) dset->Aux->doms[i]->Range[k] = nums[4*i+k]; 
    }
    
    SUMA_RETURN(YUP);
