@@ -48,7 +48,7 @@ ${PTAYLORLIB} : ${PTAYLOR_OBJS}
 
 
 clean:
-	$(RM) *.o *.a
+	$(RM) *.o *.a ${FC_PROGRAMS}
 
 #cluster.o:cluster.c
 #	$(RM) $@
