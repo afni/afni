@@ -2779,6 +2779,20 @@ SUMA_Boolean SUMA_SV_Mark_Textures_Status(SUMA_SurfaceViewer *sv, char *MarkAs,
    }
 }
 
+SUMA_Boolean SUMA_Draw_CIFTI_DO(SUMA_CIFTI_DO *CO, 
+                               SUMA_SurfaceViewer *sv)
+{
+   static char FuncName[]={"SUMA_Draw_CIFTI_DO"};
+   SUMA_ENTRY;
+   
+   SUMA_S_Err("The big cheese");
+   
+   SUMA_RETURN(NOPE);
+   
+   
+   SUMA_RETURN(YUP);
+}
+
 SUMA_Boolean SUMA_DrawVolumeDO(SUMA_VolumeObject *VO, 
                                SUMA_SurfaceViewer *sv)
 {

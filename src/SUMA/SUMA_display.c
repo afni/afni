@@ -2494,10 +2494,10 @@ void SUMA_display_one(SUMA_SurfaceViewer *csv, SUMA_DO *dov)
                SUMA_S_Warn("Should not have type in DO list to be rendered");
                break;
             case CDOM_type:
-               if (!SUMA_DrawCIFTIDO (
+               if (!SUMA_Draw_CIFTI_DO (
                      (SUMA_CIFTI_DO *)dov[sRegistDO[i].dov_ind].OP, csv)) {
                   fprintf( SUMA_STDERR, 
-                           "Error %s: Failed in SUMA_DrawCIFTIDO.\n", 
+                           "Error %s: Failed in SUMA_Draw_CIFTI_DO.\n", 
                            FuncName);
                }
                break;
@@ -10329,6 +10329,34 @@ void SUMA_cb_createSurfaceCont_TDO(Widget w, XtPointer data,
    SUMA_RETURNe;
 }
 
+void SUMA_cb_createSurfaceCont_CO(Widget w, XtPointer data, XtPointer callData)
+{
+   static char FuncName[] = {"SUMA_cb_createSurfaceCont_CO"};
+   Widget tl, pb, form, 
+          rc_left, rc_right, rc_mamma, rc_gmamma, tls=NULL;
+   Display *dpy;
+   SUMA_ALL_DO *ado;
+   SUMA_CIFTI_DO *co;
+   char *slabel, *lbl30, *sss=NULL;
+   XmString xmstmp; 
+   SUMA_X_SurfCont *SurfCont=NULL;
+   SUMA_OVERLAYS *curColPlane=NULL, *over0=NULL;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   ado = (SUMA_ALL_DO *)data;
+   if (ado->do_type != CDOM_type) {
+      SUMA_S_Errv("Calling me with (%s) other than VO_type type,\n" 
+                  "I don't like that, call me with VO",
+                  SUMA_ObjectTypeCode2ObjectTypeName(ado->do_type));
+      SUMA_RETURNe;
+   }
+   
+   SUMA_S_Err("I am nothing but am empty shell, a glistneing facade");
+   
+   SUMA_RETURNe;  
+}
 
 void SUMA_cb_createSurfaceCont_VO(Widget w, XtPointer data, XtPointer callData)
 {
@@ -11361,7 +11389,7 @@ SUMA_Boolean SUMA_Init_SurfCont_SurfParam(SUMA_ALL_DO *ado)
          SUMA_RETURN(SUMA_Init_SurfCont_SurfParam_SO((SUMA_SurfaceObject *)ado));
          break;
       case CDOM_type:
-         SUMA_RETURN(SUMA_Init_SurfCont_SurfParam_CO((SUMA_CIFTI_DO *)ado));
+         SUMA_RETURN(SUMA_Init_SurfCont_SurfParam_CO(ado));
          break;
       case GDSET_type:
          SUMA_S_Err("Should not send me DOs that can't be displayed \n"
@@ -11704,6 +11732,12 @@ SUMA_Boolean SUMA_Init_SurfCont_SurfParam_TDO(SUMA_ALL_DO *ado)
 SUMA_Boolean SUMA_Init_SurfCont_SurfParam_VO(SUMA_ALL_DO *ado)
 {
    static char FuncName[]={"SUMA_Init_SurfCont_SurfParam_VO"};
+   return(SUMA_Init_SurfCont_SurfParam_ADO(ado));
+}
+
+SUMA_Boolean SUMA_Init_SurfCont_SurfParam_CO(SUMA_ALL_DO *ado)
+{
+   static char FuncName[]={"SUMA_Init_SurfCont_SurfParam_CO"};
    return(SUMA_Init_SurfCont_SurfParam_ADO(ado));
 }
 

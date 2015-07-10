@@ -7138,6 +7138,34 @@ void SUMA_set_cmap_options_SO(SUMA_ALL_DO *ado, SUMA_Boolean NewDset,
    SUMA_RETURNe;
 }
 
+void SUMA_set_cmap_options_CO(SUMA_ALL_DO *ado, SUMA_Boolean NewDset,
+                           SUMA_Boolean NewMap)
+{
+   static char FuncName[]={"SUMA_set_cmap_options_CO"};
+   SUMA_MenuItem  *SwitchInt_Menu = NULL, *SwitchThr_Menu = NULL, 
+                  *SwitchBrt_Menu = NULL;
+   int N_items, FirstTime;
+   SUMA_X_SurfCont *SurfCont=NULL;
+   SUMA_OVERLAYS *curColPlane=NULL;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   if (!ado) SUMA_RETURNe;
+   if (ado->do_type != CDOM_type) {
+      SUMA_S_Err("Should not be here");
+      SUMA_RETURNe;
+   }
+   SurfCont = SUMA_ADO_Cont(ado);
+   curColPlane = SUMA_ADO_CurColPlane(ado);
+
+   if (!SurfCont) SUMA_RETURNe;
+   
+   SUMA_S_Err("Nothing here still");
+     
+   SUMA_RETURNe;
+}
+
 void SUMA_set_cmap_options_VO(SUMA_ALL_DO *ado, SUMA_Boolean NewDset,
                            SUMA_Boolean NewMap)
 {
@@ -10453,6 +10481,54 @@ void SUMA_CreateXhairWidgets_VO(Widget parent, SUMA_ALL_DO *ado)
    
 }
 
+/* I suspect this will be a mixture of _VO and _SO */
+void SUMA_CreateXhairWidgets_CO(Widget parent, SUMA_ALL_DO *ado)
+{
+   static char FuncName[]={"SUMA_CreateXhairWidgets_CO"};
+   char *Xhair_tit[]=   {  "Xhr ", NULL};
+   char *Xhair_hint[]=  {  "Crosshair coordinates.", NULL};
+   char *Xhair_help[]=  {  SUMA_SurfContHelp_Xhr , NULL};
+   char *I_tit[]=      { "Ind ", NULL };
+   char *I_hint[] =    { "Voxel 1D index in volume", NULL };
+   char *I_help[] =    { SUMA_VolContHelp_I, NULL };
+   char *BTP_tit[]=    {  "IJK"   , NULL};
+   char *BTP_hint[]=   {  "Voxel 3D indices in volume",
+                           NULL};
+   char *BTP_help[]=   {  SUMA_SurfContHelp_IJK , NULL};
+   char *Data_tit[]=    {  "    ", "Intens", "Thresh", "Bright" , NULL};
+   char *Data_colhint[]=      {  "Data Values at voxel in focus", 
+                                 "Intensity (I) value", 
+                                 "Threshold (T) value", 
+                                 "Brightness modulation (B) value" , NULL};
+   char *Data_colhelp[]=      {  SUMA_VolContHelp_NodeValTblc0, 
+                                 SUMA_SurfContHelp_NodeValTblc1, 
+                                 SUMA_SurfContHelp_NodeValTblc2, 
+                                 SUMA_SurfContHelp_NodeValTblc3 , NULL}; 
+   
+   char *Data_rtit[]=      {  "    ", "Val " , NULL};
+   char *Data_rowhint[]=   {  "Data values at voxel in focus", 
+                              "Data values at voxel in focus" , NULL};
+   char *Data_rowhelp[]=   {  SUMA_SurfContHelp_NodeValTblr0, 
+                              SUMA_SurfContHelp_NodeValTblr0 , NULL};
+   
+   char *Label_tit[]=   {  "Lbl ", NULL};
+   char *Label_hint[]=  {  "Label at voxel in focus", NULL};
+   char *Label_help[]=  {  SUMA_SurfContHelp_NodeLabelTblr0 , NULL};
+   SUMA_X_SurfCont *SurfCont=NULL;
+   Widget rcc, rcch;
+   
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   if (!ado || ado->do_type != CDOM_type || !(SurfCont = SUMA_ADO_Cont(ado))) {
+      SUMA_RETURNe;
+   }
+   
+   SUMA_S_Err("Fill me up scotty, premium dude, premium");
+
+   SUMA_RETURNe;
+}
 
 void SUMA_CreateCmapWidgets(Widget parent, SUMA_ALL_DO *ado)
 {
