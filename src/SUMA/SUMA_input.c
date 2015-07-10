@@ -12191,6 +12191,33 @@ void SUMA_JumpIndex_TDO (char *s, SUMA_SurfaceViewer *sv,
 
 }
 
+/* Jump to a certain datum on a CIFTI object */
+void SUMA_JumpIndex_CO (char *s, SUMA_SurfaceViewer *sv, 
+                        SUMA_CIFTI_DO *co)
+{
+   static char FuncName[]={"SUMA_JumpIndex_CO"};
+   DList *list=NULL;
+   SUMA_ALL_DO *ado = (SUMA_ALL_DO *)vo;
+   DListElmt *el=NULL, *Location=NULL;
+   SUMA_EngineData *ED = NULL;
+   float fv3[3], fv15[15];
+   int it, iv15[15], iv3[3], nv = 0, *dims=NULL;
+   char stmp[64];
+   SUMA_DSET *dset=NULL;
+   SUMA_Boolean revert_on_err = YUP;
+   SUMA_Boolean LocalHead = NOPE; 
+
+   SUMA_ENTRY;
+   
+   SUMA_LH("Called");
+   
+   SUMA_S_Err("Not implemented, see SUMA_JumpIndex_VO and SUMA_JumpIndex_SO "
+              "for inspiration. You will need to determine the domain of "
+              "the index before jumping anyway");
+              
+   SUMA_RETURN(NOPE);
+}
+
 /* Jump to a certain point on a volume object */
 void SUMA_JumpIndex_VO (char *s, SUMA_SurfaceViewer *sv, 
                         SUMA_VolumeObject *vo)

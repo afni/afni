@@ -12440,6 +12440,41 @@ SUMA_Boolean SUMA_InitializeColPlaneShell_TDO (
 }
 
 /*!
+   This function mirrors SUMA_InitializeColPlaneShell_SO or _VO
+   but it is for CIFTI objects  
+*/
+SUMA_Boolean SUMA_InitializeColPlaneShell_CO (
+                  SUMA_ALL_DO *ado, 
+                  SUMA_OVERLAYS *ColPlane)
+{
+   static char FuncName[] = {"SUMA_InitializeColPlaneShell_CO"};
+   char sbuf[SUMA_MAX_LABEL_LENGTH];
+   double range[2];
+   int loc[2], i;
+   SUMA_OVERLAYS *curColPlane=NULL;
+   SUMA_X_SurfCont *SurfCont=NULL;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   SUMA_LH("Called with ColPlane %p", ColPlane);
+   
+   SurfCont = SUMA_ADO_Cont(ado);
+   curColPlane = SUMA_ADO_CurColPlane(ado);
+   
+   if (!ado || !SurfCont) {
+      SUMA_S_Err("NULL input, what gives?");
+      SUMA_RETURN(NOPE);
+   }
+
+   SUMA_S_Err("Place Holder, nothing yet. See comparable functions for "
+              "_VO and _SO");
+              
+   SUMA_RETURN(NOPE);
+}
+
+
+/*!
    This function mirrors SUMA_InitializeColPlaneShell_SO
    but it is for volume objects  
 */
