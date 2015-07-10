@@ -12197,7 +12197,7 @@ void SUMA_JumpIndex_CO (char *s, SUMA_SurfaceViewer *sv,
 {
    static char FuncName[]={"SUMA_JumpIndex_CO"};
    DList *list=NULL;
-   SUMA_ALL_DO *ado = (SUMA_ALL_DO *)vo;
+   SUMA_ALL_DO *ado = (SUMA_ALL_DO *)co;
    DListElmt *el=NULL, *Location=NULL;
    SUMA_EngineData *ED = NULL;
    float fv3[3], fv15[15];
@@ -12215,7 +12215,7 @@ void SUMA_JumpIndex_CO (char *s, SUMA_SurfaceViewer *sv,
               "for inspiration. You will need to determine the domain of "
               "the index before jumping anyway");
               
-   SUMA_RETURN(NOPE);
+   SUMA_RETURNe;
 }
 
 /* Jump to a certain point on a volume object */

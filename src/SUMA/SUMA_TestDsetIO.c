@@ -208,7 +208,6 @@ int main (int argc,char *argv[])
    SUMA_mainENTRY;
    
 	
-   LocalHead = YUP; /* turn on debugging */
    SUMA_LH("Creating CIFTI toy");
    if (!(cdset = SUMA_Create_Fake_CIFTI(NULL, NULL, NULL))) {
       SUMA_S_Err("Failed to create fake CIFTI");
@@ -216,8 +215,6 @@ int main (int argc,char *argv[])
    }
    SUMA_WriteDset_eng("ToyCifti.niml.dset", cdset, SUMA_ASCII_NIML, 1, 1, 1);
    SUMA_FreeDset(cdset); cdset = NULL;
-   SUMA_LH("Fix this exit and localhead");
-      exit(1);
 
    SUMA_LH("Creating Surface Data ...");
    /* Create some sample data*/

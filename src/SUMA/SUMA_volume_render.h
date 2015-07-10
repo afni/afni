@@ -75,6 +75,8 @@ SUMA_Boolean SUMA_SV_isTextureLoaded(SUMA_SurfaceViewer *sv,
                                      GLuint texName, int *N_tex);
 int SUMA_Count_All_VO_Textures(void);
 SUMA_Boolean SUMA_DrawVolumeDO(SUMA_VolumeObject *VO, SUMA_SurfaceViewer *sv);
+SUMA_Boolean SUMA_Draw_CIFTI_DO(SUMA_CIFTI_DO *CO, 
+                               SUMA_SurfaceViewer *sv);
 SUMA_Boolean SUMA_DrawVolumeDO_slices(SUMA_VolumeObject *VO, 
                                     SUMA_SurfaceViewer *sv);
 SUMA_Boolean SUMA_DrawVolumeDO_3D(SUMA_VolumeObject *VO, 
