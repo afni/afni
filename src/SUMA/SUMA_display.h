@@ -621,6 +621,9 @@ SUMA_Boolean SUMA_InitializeColPlaneShell_TDO(SUMA_ALL_DO *ado,
                                              SUMA_OVERLAYS *ColPlane);
 SUMA_Boolean SUMA_InitializeColPlaneShell_VO(SUMA_ALL_DO *ado,
                                              SUMA_OVERLAYS *ColPlane);
+SUMA_Boolean SUMA_InitializeColPlaneShell_CO (
+                  SUMA_ALL_DO *ado, 
+                  SUMA_OVERLAYS *ColPlane);
 SUMA_Boolean SUMA_InitializeColPlaneShell_MDO (SUMA_ALL_DO *ado, 
                                                SUMA_OVERLAYS *ColPlane);
 SUMA_Boolean SUMA_UpdateColPlaneShellAsNeeded(SUMA_ALL_DO *SO);
