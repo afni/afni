@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  11,  Jul, 2015, RCR, "@diff.files", MICRO, TYPE_NEW_OPT,
+   "added -longlist",
+   NULL
+ } ,
+
  {  1,  Jul, 2015, RCR, "cifti_tool", MINOR, TYPE_NEW_OPT,
    "reorg and more recur functions",
    NULL
