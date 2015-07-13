@@ -61,9 +61,10 @@ afni_history_struct rickr_history[] = {
 
  { 13,  Jul, 2015, RCR, "NIFTI-2", MAJOR, TYPE_ENHANCE,
    "added NIFTI-2 support into AFNI",
-   "Compiling nifti/nifti2 into AFNI required changes to:\n"
-   "   3ddata.h, Makefile.INCLUDE, SUMA_Makefile_NoDev,\n"
-   "   Makefile.avovk.INCLUDE, Makefile.ptaylor.INCLUDE"
+   "Main source update: nifti/nifti2 tree, then applied it in mostly\n"
+   "   thd_niftiread/write.c (plus gifti_io.h, 3ddata.h, mrilib.h).\n"
+   "To compile into all of AFNI edit: Makefile.INCLUDE, SUMA_Makefile_NoDev,\n"
+   "   Makefile.avovk.INCLUDE and Makefile.ptaylor.INCLUDE."
  } ,
 
  {  11,  Jul, 2015, RCR, "@diff.files", MICRO, TYPE_NEW_OPT,
