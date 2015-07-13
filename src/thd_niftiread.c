@@ -3,7 +3,7 @@
 #ifndef DONT_INCLUDE_ANALYZE_STRUCT
 #define DONT_INCLUDE_ANALYZE_STRUCT
 #endif
-#include "nifti1_io.h"   /** will include nifti1.h **/
+#include "nifti2_io.h"   /** will include nifti1.h **/
 static void NIFTI_code_to_space(int code,THD_3dim_dataset *dset);
 static int NIFTI_code_to_view(int code);
 static int NIFTI_default_view();
@@ -317,7 +317,9 @@ ENTRY("THD_open_nifti") ;
 
      /* convert sform to nifti orientation codes */
 
-     nifti_mat44_to_orientation(nim->sto_xyz, &oritmp[0], &oritmp[1], &oritmp[2] ) ;
+     /* n2   10 Jul, 2015 [rickr] */
+     nifti_dmat44_to_orientation(nim->sto_xyz,
+                                 &oritmp[0], &oritmp[1], &oritmp[2] ) ;
 
      /* convert nifti orientation codes to AFNI codes and store in vector */
 
@@ -697,7 +699,7 @@ ENTRY("THD_open_nifti") ;
                rhs = NI_get_attribute( nngr , "NIfTI_nums" ) ;    /* check if */
                if( rhs != NULL ){                       /* dataset dimensions */
                  char buf[128] ;                              /* were altered */
-                 sprintf(buf,"%d,%d,%d,%d,%d,%d" ,             /* 12 May 2005 */
+                 sprintf(buf,"%ld,%ld,%ld,%ld,%ld,%d" ,        /* 12 May 2005 */
                    nim->nx, nim->ny, nim->nz, nim->nt, nim->nu, nim->datatype );
                  if( strcmp(buf,rhs) != 0 ){
                    static int nnn=0 ;
@@ -722,6 +724,24 @@ ENTRY("THD_open_nifti") ;
 
    nifti_image_free(nim) ; RETURN(dset) ;
 }
+
+
+/* n2   10 Jul, 2015 [rickr] */
+int64_t * copy_ints_as_i64(int * ivals, int nvals)
+{
+   int64_t * i64;
+   int       c;
+
+   i64 = (int64_t *)malloc(nvals * sizeof(int64_t));
+   if( ! i64 ) {
+      fprintf(stderr,"** CIA64: failed to alloc %d int64_t's\n", nvals);
+      return NULL;
+   }
+   for( c=0; c<nvals; c++ ) i64[c] = ivals[c];
+
+   return i64;
+}
+
 
 /*-----------------------------------------------------------------
   Load a NIFTI dataset's data into memory
@@ -760,9 +780,13 @@ ENTRY("THD_load_nifti") ;
 
    if( ! DBLK_IS_MASTERED(dblk) )   /* allow mastering   14 Apr 2006 [rickr] */
        nim = nifti_image_read_bricks( dkptr->brick_name, 0,NULL , &NBL ) ;
-   else
+   else {
+       /* n2   10 Jul, 2015 [rickr] */
+       /* convert master_ival to an array of int64_t */
+       int64_t * i64_vals = copy_ints_as_i64(dblk->master_ival, dblk->nvals);
        nim = nifti_image_read_bricks( dkptr->brick_name, dblk->nvals,
-                                      dblk->master_ival, &NBL ) ;
+                                      i64_vals, &NBL ) ;
+   }
 
    if( nim == NULL || NBL.nbricks <= 0 ) EXRETURN ;
 

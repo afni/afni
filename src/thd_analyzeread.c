@@ -93,7 +93,7 @@ static void swap_analyze_hdr( struct dsr *pntr )
 #ifndef DONT_INCLUDE_ANALYZE_STRUCT
 #define DONT_INCLUDE_ANALYZE_STRUCT
 #endif
-#include "nifti1_io.h"                 /*** NIFTI spec and funcs ***/
+#include "nifti2_io.h"                 /*** NIFTI spec and funcs ***/
 /*-----------------------------------------------------------------*/
 
 #undef swap_2

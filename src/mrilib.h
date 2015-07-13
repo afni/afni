@@ -78,7 +78,7 @@ extern int     valid_g_siemens_times(int nz, float TR, int verb);
 }
 #endif
 
-#include "nifti1_io.h"
+#include "nifti2_io.h"
 extern int use_MRILIB_dicom_matrix ;    /* 26 Jan 2006 */
 extern mat44   MRILIB_dicom_matrix ;
 
