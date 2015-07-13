@@ -54,6 +54,12 @@ afni_history_struct rickr_history[] = {
    NULL
  } ,
 
+ { 13,  Jul, 2015, RCR, "NIFTI-2", MAJOR, TYPE_ENHANCE,
+   "added NIFTI-2 support into AFNI",
+   "The old nifti_tool (based on NIFTI-1) is now nifti1_tool,\n"
+   "kept just in case."
+ } ,
+
  {  1,  Jul, 2015, RCR, "cifti_tool", MINOR, TYPE_NEW_OPT,
    "reorg and more recur functions",
    NULL
