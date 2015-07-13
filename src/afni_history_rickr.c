@@ -49,15 +49,26 @@
 
 afni_history_struct rickr_history[] = {
 
- {  11,  Jul, 2015, RCR, "@diff.files", MICRO, TYPE_NEW_OPT,
-   "added -longlist",
+ { 13,  Jul, 2015, RCR, "nifti_tool", MAJOR, TYPE_ENHANCE,
+   "nifti_tool is now based on NIFTI-2, with many corresponding new options",
+   "The old nifti_tool (based on NIFTI-1) is now nifti1_tool."
+ } ,
+
+ { 13,  Jul, 2015, RCR, "nifti1_tool", MINOR, TYPE_NEW_PROG,
+   "nifti1_tool is the NIFTI-1 version of nifti_tool",
    NULL
  } ,
 
  { 13,  Jul, 2015, RCR, "NIFTI-2", MAJOR, TYPE_ENHANCE,
    "added NIFTI-2 support into AFNI",
-   "The old nifti_tool (based on NIFTI-1) is now nifti1_tool,\n"
-   "kept just in case."
+   "Compiling nifti/nifti2 into AFNI required changes to:\n"
+   "   3ddata.h, Makefile.INCLUDE, SUMA_Makefile_NoDev,\n"
+   "   Makefile.avovk.INCLUDE, Makefile.ptaylor.INCLUDE"
+ } ,
+
+ {  11,  Jul, 2015, RCR, "@diff.files", MICRO, TYPE_NEW_OPT,
+   "added -longlist",
+   NULL
  } ,
 
  {  1,  Jul, 2015, RCR, "cifti_tool", MINOR, TYPE_NEW_OPT,
