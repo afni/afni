@@ -1379,6 +1379,7 @@ void AFNI_sigfunc_alrm(int sig)
      "Happy trails to you, until we meet again"                      ,
      "Only in the agony of parting do we see the depths of love"     ,
      "Goodbye isn't painful, unless we'll never say hello again"     ,
+     "The pain of parting is nothing to the joy of meeting again"    ,
      "Be well, do good work, and keep in touch"                      ,
      "In the hope to meet shortly again"                             ,
      "May the wind be ever at your back"                             ,
