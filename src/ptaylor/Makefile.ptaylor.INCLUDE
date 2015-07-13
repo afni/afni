@@ -7,7 +7,7 @@ PTAYLOR_SRCS = DoTrackit.c TrackIO.c rsfc.c diffusiony.c FuncTrac.c roiing.c Fat
 PTAYLOR_OBJS = ${PTAYLOR_SRCS:.c=.o}
 
 PTAYLOR_INCLUDE_PATH = ${IFLAGS} -I/usr/local/include \
-                  -I../nifti/niftilib -I../nifti/nifticdf \
+                  -I../nifti/nifti2 -I../nifti/niftilib -I../nifti/nifticdf \
                  -I../nifti/znzlib -I../3DEdge/src -I../rickr \
                  -I../ -I../niml/ -Igts/src -I../SUMA/ 
 
@@ -48,7 +48,7 @@ ${PTAYLORLIB} : ${PTAYLOR_OBJS}
 
 
 clean:
-	$(RM) *.o *.a
+	$(RM) *.o *.a ${FC_PROGRAMS}
 
 #cluster.o:cluster.c
 #	$(RM) $@

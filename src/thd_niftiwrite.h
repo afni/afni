@@ -1,7 +1,7 @@
 #ifndef _THD_NIFTIWRITE_H_
 #define _THD_NIFTIWRITE_H_
 
-#include "nifti1_io.h"
+#include "nifti2_io.h"
 
 #define VARIOUS_CONSTANTS             2
 
