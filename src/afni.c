@@ -1379,6 +1379,7 @@ void AFNI_sigfunc_alrm(int sig)
      "Happy trails to you, until we meet again"                      ,
      "Only in the agony of parting do we see the depths of love"     ,
      "Goodbye isn't painful, unless we'll never say hello again"     ,
+     "The pain of parting is nothing to the joy of meeting again"    ,
      "Be well, do good work, and keep in touch"                      ,
      "In the hope to meet shortly again"                             ,
      "May the wind be ever at your back"                             ,
@@ -1608,6 +1609,7 @@ void AFNI_sigfunc_alrm(int sig)
      "Weigh the meaning, and look not at the words"                  ,
      "Statistics are no substitute for judgment"                     ,
 
+     "A software's reach should exceed its CPU, or what's a supercomputer for?"       ,
      "There are 2 kinds of statistics: those you compute and those you just make up"  ,
      "It is the mark of a truly intelligent person to be moved by statistics"         ,
      "Dreams are true while they last, and do we not live in dreams?"                 ,
