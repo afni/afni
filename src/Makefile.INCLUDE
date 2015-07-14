@@ -12,8 +12,11 @@ F2C = f2c -A
 
 ## 07 Dec 2005: modify the include flags here
 
-INFLAGS  = $(IFLAGS) -Inifti/niftilib -Inifti/nifticdf -Inifti/znzlib -I3DEdge/src -Irickr $(USE_ZLIB) $(USE_GIFTI)
-ISFLAGS  = $(IFLAGS) -I../nifti/niftilib -I../nifti/nifticdf -I../nifti/znzlib -I../3DEdge/src -I../rickr $(USE_ZLIB)
+# INFLAGS  = $(IFLAGS) -Inifti/niftilib -Inifti/nifticdf -Inifti/znzlib -I3DEdge/src -Irickr $(USE_ZLIB) $(USE_GIFTI)
+# ISFLAGS  = $(IFLAGS) -I../nifti/niftilib -I../nifti/nifticdf -I../nifti/znzlib -I../3DEdge/src -I../rickr $(USE_ZLIB)
+
+INFLAGS  = $(IFLAGS) -Inifti/nifti2 -Inifti/niftilib -Inifti/nifticdf -Inifti/znzlib -I3DEdge/src -Irickr $(USE_ZLIB) $(USE_GIFTI)
+ISFLAGS  = $(IFLAGS) -Inifti/nifti2 -I../nifti/niftilib -I../nifti/nifticdf -I../nifti/znzlib -I../nifti/nifti2 -I../3DEdge/src -I../rickr $(USE_ZLIB)
 
 DOCS     = ../doc/ps/*.ps ../doc/README/README*                    \
            rickr/AFNI.changes.rickr rhammett/AFNI.changes.rhammett \
@@ -83,7 +86,7 @@ PROGRAMS = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge count   
            nifti_tool 3dAllineate nifti1_test whereami plugout_drive 3dLSS      \
            3dMedianFilter 3dretroicor 3dAFNItoNIML 3dAFNItoRaw im2niml 3dedge3  \
            DTIStudioFibertoSegments Dimon1 Dimon 3dLocalstat 3danisosmooth      \
-           3dmaxima GLTsymtest                                                  \
+           3dmaxima GLTsymtest 3dPval                                           \
            3dTwotoComplex 3dInvFMRI 3dmatcalc 3dAcost 3dLocalBistat 3dFWHMx     \
            3dBlurToFWHM 1dSEM 3dDFT 3dSynthesize 1dMarry 3dEmpty 3dsvm          \
            1dFlagMotion 3dTsort 1dTsort 3dTfitter afni_history 1dUpsample       \
@@ -97,7 +100,7 @@ PROGRAMS = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge count   
            3dNormalityTest 3dmask_tool FIRdesign help_format 2perm 3dClustCount \
            column_cat 3dUnifize 3dNwarpCat 3dQwarp 3dLocalHistog 3dNwarpAdjust  \
            3dNwarpFuncs 3dTproject afni_open 3dConformist 3dNwarpXYZ 3dTRfix    \
-           3dToyProg 3dRankizer \
+           3dToyProg 3dRankizer nifti1_tool \
            $(EXTRAS)
 
 PROGRAMS_NOPLUG = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge      \
@@ -133,7 +136,7 @@ PROGRAMS_NOPLUG = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge  
                   apsearch 3dNormalityTest 3dmask_tool 2perm 3dClustCount           \
                   3dUnifize 3dNwarpCat 3dQwarp 3dLocalHistog 3dNwarpAdjust 3dTRfix  \
                   3dNwarpFuncs 3dTproject  afni_open   3dConformist 3dNwarpXYZ      \
-                  3dToyProg    \
+                  3dToyProg nifti1_tool    \
                   $(EXTRAS)
 
 # For CYGWIN (look for "exe" to find various places below)
@@ -168,7 +171,7 @@ PROGRAMS_EXE = afni.exe to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge 
                1dFlagMotion 3dTsort 1dTsort 3dTfitter afni_history 1dUpsample     \
                3dTcorrMap 3dABoverlap 3dRank 3dFFT 3dTcorr1D 3dClustSim 3dTRfix   \
                3dRetinoPhase 3dMaskToASCII 3dttest++ 3dDTtoDWI niccc 3dXYZcat     \
-               column_cat GLTsymtest
+               column_cat GLTsymtest nifti1_tool
 
 SCRIPTS = @4Daverage @CommandGlobb @GetAfniOrient @DTI_studio_reposition          \
           @GetAfniPrefix @NoExt @UpdateAfni @RenamePanga @2dwarper                \
@@ -1021,6 +1024,10 @@ rotcom:rotcom.o
 3dDistize:3dDistize.o
 	$(RM) $@
 	$(CC) -o 3dDistize 3dDistize.o $(LFLAGS) $(LLIBS)
+
+3dPval:3dPval.o
+	$(RM) $@
+	$(CC) -o 3dPval 3dPval.o $(LFLAGS) $(LLIBS)
 
 3dDimize:3dDimize.o
 	$(RM) $@
@@ -2138,7 +2145,7 @@ MRI_OBJS = mri_cfft.o mri_complex_arith.o mri_fft_complex.o mri_free.o    \
            mri_warpfield.o mri_dicom_stuff.o mri_check.o mri_allzero.o         \
            mri_subset.o mri_to_fvect.o mri_genalign_util.o rcmat.o dmat44.o    \
            mri_sharpness.o mri_genARMA11.o mri_catvol.o mri_polyfit.o          \
-           mri_nwarp.o mri_extract.o
+           mri_nwarp.o mri_extract.o mri_to_pval.o
 
 THD_OBJS = thd_atr.o thd_dsetto1D.o thd_initalldir.o thd_reconpar.o \
            thd_auxdata.o thd_editdaxes.o thd_initdblk.o thd_sarr.o  \
@@ -2223,7 +2230,7 @@ NETCDF_OBJS =  netcdf_attr.o   netcdf_dim.o   netcdf_error.o netcdf_libvers.o \
 SUMA_OBJS = suma_afni_surface.o suma_datasets.o suma_utils.o \
             suma_string_manip.o suma_algorithms.o suma_help.o
 
-MISC_OBJS  = afni_suma.o vol2surf.o nifti1_io.o znzlib.o list_struct.o  \
+MISC_OBJS  = afni_suma.o vol2surf.o nifti2_io.o znzlib.o list_struct.o  \
 	     nifti_statlib.o nifticdf.o r_new_resam_dset.o r_idisp.o    \
 	     r_misc.o matrix.o gifti_choice.o misc_math.o
 
@@ -3000,13 +3007,17 @@ galler:galler.o
 	$(RM) $@
 	$(CC) -c 3dAFNItoNIFTI.c $(INFLAGS)
 
-3dAFNItoNIFTI:3dAFNItoNIFTI.o nifti1_io.o znzlib.o
+3dAFNItoNIFTI:3dAFNItoNIFTI.o nifti2_io.o znzlib.o
 	$(RM) $@
-	$(CC) -o 3dAFNItoNIFTI 3dAFNItoNIFTI.o nifti1_io.o znzlib.o $(LFLAGS) $(LLIBS)
+	$(CC) -o 3dAFNItoNIFTI 3dAFNItoNIFTI.o nifti2_io.o znzlib.o $(LFLAGS) $(LLIBS)
 
 nifti1_io.o:nifti/niftilib/nifti1_io.c nifti/niftilib/nifti1_io.h
 	$(RM) $@
 	$(CC) -c nifti/niftilib/nifti1_io.c $(INFLAGS)
+
+nifti2_io.o:nifti/nifti2/nifti2_io.c nifti/nifti2/nifti2_io.h
+	$(RM) $@
+	$(CC) -c nifti/nifti2/nifti2_io.c -Inifti/nifti2 $(INFLAGS)
 
 znzlib.o:nifti/znzlib/znzlib.c nifti/znzlib/znzlib.h
 	$(RM) $@
@@ -3038,17 +3049,25 @@ nifti1_test:nifti1_test.o nifti1_io.o znzlib.o
 	$(RM) $@
 	$(CC) -o nifti1_test nifti1_test.o nifti1_io.o znzlib.o $(LZLIB) -lm
 
-nifti_tool.o:nifti/utils/nifti_tool.c
+nifti1_tool.o:nifti/utils/nifti_tool.c
 	$(RM) $@
-	$(CC) -c nifti/utils/nifti_tool.c $(INFLAGS)
+	$(CC) -c -o $@ nifti/utils/nifti_tool.c $(INFLAGS)
 
-nifti_tool:nifti_tool.o nifti1_io.o znzlib.o
+nifti1_tool:nifti1_tool.o nifti1_io.o znzlib.o
 	$(RM) $@
-	$(CC) -o nifti_tool nifti_tool.o nifti1_io.o znzlib.o $(LZLIB) -lm
+	$(CC) -o $@ nifti1_tool.o nifti1_io.o znzlib.o $(LZLIB) -lm
 
-nifti_tool.exe:nifti_tool.o nifti1_io.o znzlib.o
+nifti_tool.o:nifti/nifti2/nifti_tool.c
 	$(RM) $@
-	$(CC) -o nifti_tool.exe nifti_tool.o nifti1_io.o znzlib.o $(LZLIB) -lm
+	$(CC) -c nifti/nifti2/nifti_tool.c $(INFLAGS)
+
+nifti_tool:nifti_tool.o nifti2_io.o znzlib.o
+	$(RM) $@
+	$(CC) -o nifti_tool nifti_tool.o nifti2_io.o znzlib.o $(LZLIB) -lm
+
+nifti_tool.exe:nifti_tool.o nifti2_io.o znzlib.o
+	$(RM) $@
+	$(CC) -o nifti_tool.exe nifti_tool.o nifti2_io.o znzlib.o $(LZLIB) -lm
 
 # just compile completely, removing issue of libraries
 gifti_tool:nifti1_io.o znzlib.o

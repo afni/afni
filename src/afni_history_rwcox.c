@@ -43,7 +43,16 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 12 , JUN , 2015 , RWC , "plug_L1fit" , MICRO , TYPE_MODIFY ,
+  { 26 , JUN , 2015 , RWC , "3dPval" , MICRO , TYPE_NEW_PROG ,
+   "3dPval converts statistics bricks to p-values" ,
+   "For Isaac.  Non-statistic bricks are converted to float and passed\n"
+   "through unchanged." } ,
+
+ { 22 , JUN , 2015 , RWC , "3dvolreg" , MICRO , TYPE_MODIFY ,
+   "Add output of max inter-TR displacement" ,
+   "In addition to the max total displacement (as of old)." } ,
+
+ { 12 , JUN , 2015 , RWC , "plug_L1fit" , MICRO , TYPE_MODIFY ,
    "Modify Timeseries input to use all columns of file, not just 1st" ,
    NULL } ,
 

@@ -78,7 +78,7 @@ extern int     valid_g_siemens_times(int nz, float TR, int verb);
 }
 #endif
 
-#include "nifti1_io.h"
+#include "nifti2_io.h"
 extern int use_MRILIB_dicom_matrix ;    /* 26 Jan 2006 */
 extern mat44   MRILIB_dicom_matrix ;
 
@@ -995,6 +995,8 @@ extern MRI_IMAGE *mri_to_complex( MRI_IMAGE * ) ;
 extern MRI_IMAGE *mri_to_byte( MRI_IMAGE * ) ;
 extern byte      *mri_to_bytemask( MRI_IMAGE *, float,float ) ;
 extern MRI_IMAGE *mri_to_byte_scl( double , double , MRI_IMAGE * ) ;
+extern MRI_IMAGE *mri_to_pval  ( MRI_IMAGE *im , int , float * ) ;
+extern MRI_IMAGE *mri_to_zscore( MRI_IMAGE *im , int , float * ) ;
 
 extern MRI_IMAGE * mri_to_rgb( MRI_IMAGE * ) ;
 extern MRI_IMAGE * mri_3to_rgb( MRI_IMAGE * , MRI_IMAGE * , MRI_IMAGE * ) ;
