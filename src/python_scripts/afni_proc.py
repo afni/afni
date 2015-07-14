@@ -480,9 +480,10 @@ g_history = """
         - removed option -regress_ROI_maskave (use -regress_ROI)
     4.45 May 22, 2015: help clarifications
     4.46 Jun 15, 2015: applied -regress_stim_times_offset to typical timing
+    4.47 Jul 01, 2015: clarified help for -anat_unif_GM, default = no
 """
 
-g_version = "version 4.46, June 16, 2015"
+g_version = "version 4.47, July 1, 2015"
 
 # version of AFNI required for script execution
 g_requires_afni = "1 Apr 2015" # 1d_tool.py uncensor from 1D

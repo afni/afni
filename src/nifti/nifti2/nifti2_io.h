@@ -381,7 +381,8 @@ char const *nifti_orientation_string( int ii ) ;
 
 int   nifti_is_inttype( int dt ) ;
 
-mat44 nifti_mat44_inverse( mat44 R ) ;
+mat44        nifti_mat44_inverse ( mat44 R ) ;
+nifti_dmat44 nifti_dmat44_inverse( nifti_dmat44 R ) ;
 
 nifti_dmat33 nifti_dmat33_inverse( nifti_dmat33 R ) ;
 nifti_dmat33 nifti_dmat33_polar  ( nifti_dmat33 A ) ;
