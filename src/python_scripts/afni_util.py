@@ -3560,6 +3560,7 @@ afni_util.py: not really intended as a main program
 
             afni_util.py -listfunc -join -float linear_fit 2 3 5 4 8 5 8 9
 
+
          Also, if LIST contains -list2, then 2 lists can be input to do
          something like:
             -eval "FUNC([v1,v2,v3], [v4,v5,v6])"
@@ -3571,6 +3572,9 @@ afni_util.py: not really intended as a main program
 
             afni_util.py -listfunc -print -float ttest_paired   \\
                           1 2 3 4 5 -list2 2 4 5 6 8
+
+            afni_util.py -listfunc -join -float linear_fit      \\
+                         `cat y.1D` -list2 `cat x.1D`
 
 """
 
