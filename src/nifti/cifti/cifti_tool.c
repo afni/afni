@@ -20,7 +20,7 @@
 #include <nifti2_io.h>
 #include "afni_xml_io.h"
 
-static char g_version[] = "version -1.3";
+static char g_version[] = "version 0.0";
 
 /* ----------------------------------------------------------------- */
 /* define and declare main option struct */
