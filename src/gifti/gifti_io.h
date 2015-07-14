@@ -4,7 +4,7 @@
 #include <zlib.h>
 #include <expat.h>
 
-#ifdef USE_NIFTI2
+#if 1  /* ifdef USE_NIFTI2 */
 #include <nifti2_io.h>
 #else
 #include <nifti1_io.h>
