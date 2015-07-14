@@ -4,10 +4,10 @@
 #include <zlib.h>
 #include <expat.h>
 
-#if 1  /* ifdef USE_NIFTI2 */
-#include <nifti2_io.h>
-#else
+#ifdef USE_NIFTI_VERSION_1    # not used - so 2 is default   13 Jul, 2015
 #include <nifti1_io.h>
+#else
+#include <nifti2_io.h>
 #endif
 
 /* also #include "gifti_xml.h", but at the end */
