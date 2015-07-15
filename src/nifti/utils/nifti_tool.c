@@ -1061,7 +1061,7 @@ int use_full(char * prog)
    "       nifti_tool -check_hdr -infiles dset0.nii dset1.nii\n"
    "       nifti_tool -check_hdr -infiles *.nii *.hdr\n"
    "       \n"
-   "       e.g. add the -quiet option, so that only erros are reported\n"
+   "       e.g. add the -quiet option, so that only errros are reported\n"
    "       nifti_tool -check_hdr -quiet -infiles *.nii *.hdr\n"
    "\n");
    printf(
@@ -1240,7 +1240,7 @@ int use_full(char * prog)
    "\n"
    "       This flag means the user wishes to see some of the nifti_1_header\n"
    "       fields in one or more nifti datasets. The user may want to specify\n"
-   "       mutliple '-field' options along with this.  This option requires\n"
+   "       multiple '-field' options along with this.  This option requires\n"
    "       one or more files input, via '-infiles'.\n"
    "\n");
    printf(
@@ -1505,7 +1505,7 @@ int use_full(char * prog)
    "\n"
    "       notes  - extension indices begin with 0 (zero)\n"
    "              - to view the current extensions, see '-disp_exts'\n"
-   "              - all exensions can be removed using ALL or -1 for INDEX\n"
+   "              - all extensions can be removed using ALL or -1 for INDEX\n"
    "\n");
    printf(
    "       e.g. to remove the extension #0:\n"
@@ -1562,7 +1562,7 @@ int use_full(char * prog)
    "\n"
    "       Level 0 will attempt to operate with no screen output, but errors.\n"
    "       Level 1 is the default.\n"
-   "       Levels 2 and 3 give progressively more infomation.\n"
+   "       Levels 2 and 3 give progressively more information.\n"
    "\n"
    "       e.g. -debug 2\n"
    "\n");
@@ -1643,7 +1643,7 @@ int use_full(char * prog)
    printf(
    "       In general, the user is recommended to use the '-prefix' option\n"
    "       to create new files.  But if overwriting the contents of the\n"
-   "       input files is prefered, this is how to do it.\n"
+   "       input files is preferred, this is how to do it.\n"
    "\n"
    "       See '-mod_hdr' or '-add_afni_ext', above, for complete examples.\n"
    "\n"
