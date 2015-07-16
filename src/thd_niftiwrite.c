@@ -520,9 +520,10 @@ ENTRY("populate_nifti_image") ;
          }
 
          /* if no pattern yet, try list without zeros */
-         if( pattern == NIFTI_SLICE_UNKNOWN )
+         if( pattern == NIFTI_SLICE_UNKNOWN ) {
             pattern = get_slice_timing_pattern(tlist+sfirst, tlen-1, &fsdur);
             nim->slice_duration = (double)fsdur;
+         }
 
          if( pattern == NIFTI_SLICE_UNKNOWN ) {
             nim->slice_code = pattern ;
