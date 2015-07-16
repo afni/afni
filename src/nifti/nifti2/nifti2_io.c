@@ -1512,6 +1512,31 @@ void nifti_datatype_sizes( int datatype , int *nbyper, int *swapsize )
    ASSIF(nbyper,nb) ; ASSIF(swapsize,ss) ; return ;
 }
 
+
+/*-----------------------------------------------------------------*/
+/*! copy between float and double mat44 types 10 Jul, 2015 [rickr] */
+
+int nifti_mat44_to_dmat44(mat44 * fm, nifti_dmat44 * dm)
+{
+   int i, j;
+   if( !dm || !fm ) return 1;
+   for( i=0; i<4; i++ )
+      for( j=0; j<4; j++ )
+         dm->m[i][j] = (double)fm->m[i][j];
+   return 0;
+}
+
+int nifti_dmat44_to_mat44(nifti_dmat44 * dm, mat44 * fm)
+{
+   int i, j;
+   if( !dm || !fm ) return 1;
+   for( i=0; i<4; i++ )
+      for( j=0; j<4; j++ )
+         fm->m[i][j] = (float)dm->m[i][j];
+   return 0;
+}
+
+
 /*---------------------------------------------------------------------------*/
 /*! Given the quaternion parameters (etc.), compute a transformation matrix
     of doubles.
