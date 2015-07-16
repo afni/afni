@@ -152,23 +152,6 @@ static int needs_convertion_to_float(THD_3dim_dataset *dset, int warn)
   RETURN(0);
 }
 
-/* n2   10 Jul, 2015 [rickr] */
-int nifti_mat44_2_dmat44(mat44 * fm, nifti_dmat44 * dm)
-{
-   int i, j;
-   for( i=0; i<4; i++ )
-      for( j=0; j<4; j++ )
-         dm->m[i][j] = (double)fm->m[i][j];
-}
-
-/* n2   10 Jul, 2015 [rickr] */
-int nifti_dmat44_2_mat44(nifti_dmat44 * dm, mat44 * fm)
-{
-   int i, j;
-   for( i=0; i<4; i++ )
-      for( j=0; j<4; j++ )
-         fm->m[i][j] = (float)dm->m[i][j];
-}
 
 /*******************************************************************/
 
@@ -183,7 +166,6 @@ nifti_image * populate_nifti_image(THD_3dim_dataset *dset, niftiwr_opts_t option
   float axstep[3] , axstart[3] ;
   int   axnum[3] ;
   float fac0 ;
-  /* n2   10 Jul, 2015 [rickr] */
   double dumqx, dumqy, dumqz, dumdx, dumdy, dumdz ;
   float *tlist, fsdur;
 
@@ -411,7 +393,7 @@ ENTRY("populate_nifti_image") ;
   else {
       /* fill in sform with AFNI daxes transformation matrix */
       /* n2   10 Jul, 2015 [rickr] */
-      nifti_mat44_2_dmat44(&dset->daxes->ijk_to_dicom_real, &nim->sto_xyz);
+      nifti_mat44_to_dmat44(&dset->daxes->ijk_to_dicom_real, &nim->sto_xyz);
      /* negate first two rows of sform for NIFTI - LPI standard versus
                                             AFNI RAI "DICOM" standard */
      for( ii = 0; ii < 2; ii++) {
@@ -429,9 +411,10 @@ ENTRY("populate_nifti_image") ;
   STATUS("set quaternion") ;
 
   /* n2   10 Jul, 2015 [rickr] */
-  nifti_dmat44_to_quatern( nim->qto_xyz , &nim->quatern_b, &nim->quatern_c, &nim->quatern_d,
-                    &dumqx, &dumqy, &dumqz, &dumdx, &dumdy, &dumdz, &nim->qfac ) ;
-
+  nifti_dmat44_to_quatern( nim->qto_xyz ,
+                          &nim->quatern_b, &nim->quatern_c, &nim->quatern_d,
+                          &dumqx, &dumqy, &dumqz, &dumdx, &dumdy, &dumdz,
+                          &nim->qfac ) ;
 
   /*-- verify dummy quaternion parameters --*/
 
@@ -439,7 +422,7 @@ ENTRY("populate_nifti_image") ;
     /* n2   10 Jul, 2015 [rickr] */
     fprintf(stderr,"++ Quaternion check:\n"
           "%f , %f\n %f , %f\n %f , %f\n %f , %f\n %f , %f\n %f , %f\n; %f\n",
-           nim->qoffset_x, dumqx , nim->qoffset_y, dumqy , nim->qoffset_z, dumqz ,
+           nim->qoffset_x, dumqx, nim->qoffset_y,dumqy, nim->qoffset_z, dumqz ,
            nim->dx, dumdx , nim->dy, dumdy , nim->dz, dumdz, nim->qfac ) ;
 
   /*-- calculate inverse qform            --*/
