@@ -43,7 +43,11 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 26 , JUN , 2015 , RWC , "3dPval" , MICRO , TYPE_NEW_PROG ,
+  { 17 , JUL , 2015 , RWC , "mri_write.c" , MICRO , TYPE_BUG_FIX ,
+   "Make mri_write_1D(\"stdout:\") work correctly" ,
+   "Before you could get filename \"stdout:.1D\" which is not very useful." } ,
+
+ { 26 , JUN , 2015 , RWC , "3dPval" , MICRO , TYPE_NEW_PROG ,
    "3dPval converts statistics bricks to p-values" ,
    "For Isaac.  Non-statistic bricks are converted to float and passed\n"
    "through unchanged." } ,
