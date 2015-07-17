@@ -31,11 +31,11 @@ static FILE * fopen_maybe( char *fname )  /* 05 Feb 2008 */
       tname[tlen-3] = '\0';
    } else tname = fname;
 
-   if( strcmp(tname,"-") == 0 || strcmp(tname,"stdout")  == 0
-                              || strcmp(tname,"stdout:") == 0 ) return stdout ;
+   if( strcmp(tname,"-") == 0 || strcmp (tname,"stdout")    == 0
+                              || strncmp(tname,"stdout:",7) == 0 ) return stdout ;
 
-   if( strcmp(tname,"stderr" ) == 0 ||
-       strcmp(tname,"stderr:") == 0  ) return stderr ;
+   if( strcmp (tname,"stderr"   ) == 0 ||
+       strncmp(tname,"stderr:",7) == 0   ) return stderr ;
 
    if( tname != fname ) free(tname);             /* done with tname */
    /* ------------------------------------------------------------- */
