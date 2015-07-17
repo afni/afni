@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 17,  Jul, 2015, RCR, "plug_realtime", MINOR, TYPE_ENHANCE,
+   "Dimon->afni: systems with small TCP buffers can be very slow passing a volume",
+   "In iochan_recvall, only increase nap time when packets < 4 KB are recived."
+ } ,
+
  { 13,  Jul, 2015, RCR, "nifti_tool", MAJOR, TYPE_ENHANCE,
    "nifti_tool is now based on NIFTI-2, with many corresponding new options",
    "The old nifti_tool (based on NIFTI-1) is now nifti1_tool."
