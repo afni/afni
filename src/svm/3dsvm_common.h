@@ -882,7 +882,7 @@ static char contribution_string [] =
 "Original version written by JP and SL, August 2006 \n"
 "Released to general public, July 2007 \n"
 "\n"
-"Questions/Comments/Bugs - email slaconte@vt.edu \n"
+"Questions/Comments/Bugs - email slaconte@vtc.vt.edu \n"
 "\n\n"
 "Reference:\n"
 "LaConte, S., Strother, S., Cherkassky, V. and Hu, X. 2005. Support vector\n" 
