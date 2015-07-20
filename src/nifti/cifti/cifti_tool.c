@@ -63,7 +63,6 @@ int ax_show_names       (FILE * fp, afni_xml_t * ax, int depth);
 /* stream */
 int          close_stream        (FILE * fp);
 FILE       * open_write_stream   (char * fname);
-afni_xml_t * read_cifti_extension(char * fin, opts_t * opts);
 
 /* ----------------------------------------------------------------- */
 int main(int argc, char * argv[])
@@ -175,33 +174,6 @@ int process(opts_t * opts)
    if( opts->eval_cext ) eval_cifti_extension(ax, opts);
 
    return 0;
-}
-
-afni_xml_t * read_cifti_extension(char * fin, opts_t * opts)
-{
-   nifti_image      * nim = nifti_image_read(opts->fin, 0);
-   nifti1_extension * ext;
-   afni_xml_t       * ax;
-   int                ind, found = 0;
-
-   if( !nim ) {
-      fprintf(stderr,"** failed to read NIfTI image from '%s'\n", opts->fin);
-      return NULL;
-   }
-
-   if( gopt.verb > 1 )
-      fprintf(stderr,"-- looking for CIFTI ext in NIFTI %s\n", fin);
-
-   ext = nim->ext_list;
-   for(ind = 0; ind < nim->num_ext; ind++, ext++) {
-      if( ext->ecode != NIFTI_ECODE_CIFTI ) continue;
-
-      found ++;
-      if( found > 1 ) fprintf(stderr,"** found CIFTI extension #%d\n", found);
-      else            ax = axio_read_buf(ext->edata, ext->esize-8);
-   }
-
-   return ax;
 }
 
 int disp_cifti_extension(afni_xml_t * ax, opts_t * opts)
