@@ -1876,9 +1876,9 @@ int getAllocateModelArrays(THD_3dim_dataset *dsetModel,
 /* just fills in the model data set (assumed constant accross class combinations) */
 /* Need to also use updateModel for class */
 /* The idea is to only call this once and then updateModel for combination specific aspects */
-void get_svm_model(MODEL *model, DatasetType **dsetModelArray, 
+int get_svm_model(MODEL *model, DatasetType **dsetModelArray, 
     MaskType *dsetMaskArray, AFNI_MODEL *afni_model, long model_vox, 
-    int noMaskFlag)
+    int noMaskFlag, char *errorString)
 {
   long i = 0;
   long j = 0;
@@ -1910,6 +1910,13 @@ void get_svm_model(MODEL *model, DatasetType **dsetModelArray,
       for( t=0; t<nt; ++t ) {
         vmsk=0;
         if( fabs(afni_model->alphas[0][k*nt+t]) > 0.0 ) {
+
+          if( sv >= afni_model->total_support_vectors[0] ) {
+            /* should never get here */
+            snprintf(errorString, LONG_STRING, "Reading model failed. More SVs than expected!");
+            RETURN(1);
+          }
+
           for( v=0; v<model_vox; ++v ) {
             if( vmsk<nvox_msk ) {
               if( noMaskFlag ) { /* no mask */
@@ -1934,8 +1941,8 @@ void get_svm_model(MODEL *model, DatasetType **dsetModelArray,
           (model->supvec[sv])->twonorm_sq = sprod_ss((model->supvec[sv])->words, 
               (model->supvec[sv])->words);
           (model->supvec[sv])->docnum = -1;
-          
-          ++sv;   
+
+          ++sv;
         }
       }
     }
@@ -1976,9 +1983,9 @@ void get_svm_model(MODEL *model, DatasetType **dsetModelArray,
     }
   } 
 
-  EXRETURN;
-
+  RETURN(0);
 }
+
 int readAllocateAfniModel( THD_3dim_dataset *dsetModel, AFNI_MODEL *afniModel, char *errorString )
 {
   ATR_float *  atr_float   = NULL;
@@ -2381,28 +2388,6 @@ int readAllocateAfniModel( THD_3dim_dataset *dsetModel, AFNI_MODEL *afniModel, c
       RETURN(1);
     }
 
-    if( (afniModel->cAlphas = Allocate2f((long) afniModel->combinations, 
-            (long)afniModel->timepoints)) == NULL ) {
-      snprintf(errorString, LONG_STRING, "readAllocateAfniModel: "
-          "Memory allocation for cAlphas failed!"); 
-      
-      /* free and return */
-      free(p);
-      free2c(afniModel->combName, max_comb);
-      free2c(afniModel->kernel_custom, max_comb);
-      free(afniModel->kernel_type);
-      free(afniModel->rbf_gamma);
-      free(afniModel->linear_coefficient);
-      free(afniModel->constant_coefficient);
-      free(afniModel->total_masked_features);
-      free(afniModel->total_samples); 
-      free(afniModel->total_support_vectors); 
-      free(afniModel->b);
-      free(afniModel->polynomial_degree);
-      free2f(afniModel->alphas, afniModel->combinations);
-      RETURN(1);
-    }
-
     for(i = 0; i < afniModel->combinations; ++i ) {
       snprintf(headernames, LONG_STRING, "3DSVM_ALPHAS_%s", afniModel->combName[i]);
       atr_float = THD_find_float_atr( dsetModel->dblk, headernames); 
@@ -2432,7 +2417,6 @@ int readAllocateAfniModel( THD_3dim_dataset *dsetModel, AFNI_MODEL *afniModel, c
       free(afniModel->b);
       free(afniModel->polynomial_degree);
       free2f(afniModel->alphas, afniModel->combinations);
-      free2f(afniModel->cAlphas, afniModel->combinations);
       RETURN(1);
     }
     for (i=0; i < afniModel->combinations; ++i ) {
@@ -2458,7 +2442,6 @@ int readAllocateAfniModel( THD_3dim_dataset *dsetModel, AFNI_MODEL *afniModel, c
       free(afniModel->b);
       free(afniModel->polynomial_degree);
       free2f(afniModel->alphas, afniModel->combinations);
-      free2f(afniModel->cAlphas, afniModel->combinations);
       free(afniModel->svm_c);
       RETURN(1);
     }
@@ -2485,7 +2468,6 @@ int readAllocateAfniModel( THD_3dim_dataset *dsetModel, AFNI_MODEL *afniModel, c
       free(afniModel->b);
       free(afniModel->polynomial_degree);
       free2f(afniModel->alphas, afniModel->combinations);
-      free2f(afniModel->cAlphas, afniModel->combinations);
       free(afniModel->svm_c);
       free(afniModel->eps);
       RETURN(1);
@@ -2513,7 +2495,6 @@ int readAllocateAfniModel( THD_3dim_dataset *dsetModel, AFNI_MODEL *afniModel, c
       free(afniModel->b);
       free(afniModel->polynomial_degree);
       free2f(afniModel->alphas, afniModel->combinations);
-      free2f(afniModel->cAlphas, afniModel->combinations);
       free(afniModel->svm_c);
       free(afniModel->eps);
       free(afniModel->biased_hyperplane);
@@ -2542,7 +2523,6 @@ int readAllocateAfniModel( THD_3dim_dataset *dsetModel, AFNI_MODEL *afniModel, c
       free(afniModel->b);
       free(afniModel->polynomial_degree);
       free2f(afniModel->alphas, afniModel->combinations);
-      free2f(afniModel->cAlphas, afniModel->combinations);
       free(afniModel->svm_c);
       free(afniModel->eps);
       free(afniModel->biased_hyperplane);
@@ -2572,7 +2552,6 @@ int readAllocateAfniModel( THD_3dim_dataset *dsetModel, AFNI_MODEL *afniModel, c
       free(afniModel->b);
       free(afniModel->polynomial_degree);
       free2f(afniModel->alphas, afniModel->combinations);
-      free2f(afniModel->cAlphas, afniModel->combinations);
       free(afniModel->svm_c);
       free(afniModel->eps);
       free(afniModel->biased_hyperplane);
@@ -2604,7 +2583,6 @@ int readAllocateAfniModel( THD_3dim_dataset *dsetModel, AFNI_MODEL *afniModel, c
       free(afniModel->b);
       free(afniModel->polynomial_degree);
       free2f(afniModel->alphas, afniModel->combinations);
-      free2f(afniModel->cAlphas, afniModel->combinations);
       free(afniModel->svm_c);
       free(afniModel->eps);
       free(afniModel->biased_hyperplane);
@@ -2636,7 +2614,6 @@ int readAllocateAfniModel( THD_3dim_dataset *dsetModel, AFNI_MODEL *afniModel, c
       free(afniModel->b);
       free(afniModel->polynomial_degree);
       free2f(afniModel->alphas, afniModel->combinations);
-      free2f(afniModel->cAlphas, afniModel->combinations);
       free(afniModel->svm_c);
       free(afniModel->eps);
       free(afniModel->biased_hyperplane);
@@ -2670,7 +2647,6 @@ int readAllocateAfniModel( THD_3dim_dataset *dsetModel, AFNI_MODEL *afniModel, c
       free(afniModel->b);
       free(afniModel->polynomial_degree);
       free2f(afniModel->alphas, afniModel->combinations);
-      free2f(afniModel->cAlphas, afniModel->combinations);
       free(afniModel->svm_c);
       free(afniModel->eps);
       free(afniModel->biased_hyperplane);
@@ -2704,7 +2680,6 @@ int readAllocateAfniModel( THD_3dim_dataset *dsetModel, AFNI_MODEL *afniModel, c
       free(afniModel->b);
       free(afniModel->polynomial_degree);
       free2f(afniModel->alphas, afniModel->combinations);
-      free2f(afniModel->cAlphas, afniModel->combinations);
       free(afniModel->svm_c);
       free(afniModel->eps);
       free(afniModel->biased_hyperplane);
@@ -2739,7 +2714,6 @@ int readAllocateAfniModel( THD_3dim_dataset *dsetModel, AFNI_MODEL *afniModel, c
       free(afniModel->b);
       free(afniModel->polynomial_degree);
       free2f(afniModel->alphas, afniModel->combinations);
-      free2f(afniModel->cAlphas, afniModel->combinations);
       free(afniModel->svm_c);
       free(afniModel->eps);
       free(afniModel->biased_hyperplane);
@@ -2775,7 +2749,6 @@ int readAllocateAfniModel( THD_3dim_dataset *dsetModel, AFNI_MODEL *afniModel, c
       free(afniModel->b);
       free(afniModel->polynomial_degree);
       free2f(afniModel->alphas, afniModel->combinations);
-      free2f(afniModel->cAlphas, afniModel->combinations);
       free(afniModel->svm_c);
       free(afniModel->eps);
       free(afniModel->biased_hyperplane);
@@ -2811,7 +2784,6 @@ int readAllocateAfniModel( THD_3dim_dataset *dsetModel, AFNI_MODEL *afniModel, c
       free(afniModel->b);
       free(afniModel->polynomial_degree);
       free2f(afniModel->alphas, afniModel->combinations);
-      free2f(afniModel->cAlphas, afniModel->combinations);
       free(afniModel->svm_c);
       free(afniModel->eps);
       free(afniModel->biased_hyperplane);
@@ -2848,7 +2820,6 @@ int readAllocateAfniModel( THD_3dim_dataset *dsetModel, AFNI_MODEL *afniModel, c
       free(afniModel->b);
       free(afniModel->polynomial_degree);
       free2f(afniModel->alphas, afniModel->combinations);
-      free2f(afniModel->cAlphas, afniModel->combinations);
       free(afniModel->svm_c);
       free(afniModel->eps);
       free(afniModel->biased_hyperplane);
@@ -2886,7 +2857,6 @@ int readAllocateAfniModel( THD_3dim_dataset *dsetModel, AFNI_MODEL *afniModel, c
       free(afniModel->b);
       free(afniModel->polynomial_degree);
       free2f(afniModel->alphas, afniModel->combinations);
-      free2f(afniModel->cAlphas, afniModel->combinations);
       free(afniModel->svm_c);
       free(afniModel->eps);
       free(afniModel->biased_hyperplane);
@@ -2925,7 +2895,6 @@ int readAllocateAfniModel( THD_3dim_dataset *dsetModel, AFNI_MODEL *afniModel, c
       free(afniModel->b);
       free(afniModel->polynomial_degree);
       free2f(afniModel->alphas, afniModel->combinations);
-      free2f(afniModel->cAlphas, afniModel->combinations);
       free(afniModel->svm_c);
       free(afniModel->eps);
       free(afniModel->biased_hyperplane);
@@ -3265,28 +3234,6 @@ int readAllocateAfniModel( THD_3dim_dataset *dsetModel, AFNI_MODEL *afniModel, c
       RETURN(1);
     }
      
-    if( (afniModel->cAlphas = Allocate2f((long) afniModel->combinations,
-            (long) afniModel->timepoints)) == NULL ) {
-      snprintf(errorString, LONG_STRING, "readAllocateAfniModel: "
-          "Memory allocation for cAlphas failed!");
-
-      /* -- free and return -- */
-      free(p);
-      free2c(afniModel->combName, max_comb);
-      free2c(afniModel->kernel_custom, max_comb);
-      free(afniModel->kernel_type);
-      free(afniModel->rbf_gamma);
-      free(afniModel->linear_coefficient);
-      free(afniModel->constant_coefficient);
-      free(afniModel->total_masked_features);
-      free(afniModel->total_samples);
-      free(afniModel->total_support_vectors);
-      free(afniModel->b);
-      free(afniModel->polynomial_degree);
-      free2f(afniModel->alphas, afniModel->combinations);
-      RETURN(1);
-    }
-
     for(i = 0; i < afniModel->combinations; ++i ) {
       snprintf(headernames, LONG_STRING, "ALPHAS_%s", afniModel->combName[i]);
       atr_float = THD_find_float_atr( dsetModel->dblk, headernames); 
@@ -3312,7 +3259,6 @@ int readAllocateAfniModel( THD_3dim_dataset *dsetModel, AFNI_MODEL *afniModel, c
     free(afniModel->b);
     free(afniModel->polynomial_degree);
     free2f(afniModel->alphas, afniModel->combinations);
-    free2f(afniModel->cAlphas, afniModel->combinations);
     RETURN(1);
   }
     
@@ -3391,6 +3337,7 @@ void freeModelMaps(MODEL_MAPS *maps)
   free2d(maps->data, maps->nmaps);
   free2c(maps->names, maps->nmaps);
 
+
   EXRETURN;
 }
 
@@ -3402,6 +3349,8 @@ void addToModelMap_bucket ( MODEL_MAPS *maps, AFNI_MODEL *afni_model,
   long iMap   = 0;
   long nvoxh  = 0;
   long t      = 0; 
+  long k      = 0;
+  long nk     = 0;
   long nt     = 0;
 
   ENTRY("addToModelMap_bucket");
@@ -3413,37 +3362,43 @@ void addToModelMap_bucket ( MODEL_MAPS *maps, AFNI_MODEL *afni_model,
    * The kernel has to be the same for each class-combination!
    *
    * JL Aug 2009: Added regression maps
-   * JL Apr 2010: Incorporated map_index into the MODEL_MAPS structure*/
+   * JL Apr 2010: Incorporated map_index into the MODEL_MAPS structure
+   * JL Jul 2015: Check for non-zero alphas more rigorously 
+   * JL JUL 2015: Got rid of cAlphas (censored alphas). Unnecessary. 
+   */
 
   /* --- initialization ---*/
   iMap=maps->index; /* TODO: prone for errors, should do something better than that */
-  
-  /* --- calculate weight-vector map for regression --- */
 
-  /* JL Aug. 2014: For regression, the array holding the alphas is twice as
-   * long as for classification, but, for linear-kernels, alpha-alpha* is 
-   * stored in the first half, so we can simply use the same method (as for 
-   * classification) to calculate the weighted sum. 
-   */
-  nt = afni_model->total_samples[cc];
-   
+
+  if( !strcmp(afni_model->svm_type, "regression") ) {
+    /* For regression, the array storing the alphas is twice as long 
+     * as for classification. */
+    nk = 2;
+  }
+  else nk = 1;
+
+  nt = afni_model->timepoints;
+
   /*  -- linear kernel -- */
   if(afni_model->kernel_type[cc] == LINEAR) {    
-    for (t=0; t<nt; ++t) {
-      if ( afni_model->cAlphas[cc][t] ) {
-        for (v=0; v<maps->nvox; ++v) {
-          if ( maskFile[0] ) { /* mask */
-            if ( dsetMaskArray[v] ) {
-              maps->data[iMap][v] += afni_model->cAlphas[cc][t] * 
-                                        dsetTrainArray[t ][v];
+    for (k=0; k<nk; ++k) {
+      for (t=0; t<nt; ++t) {
+        if ( fabs(afni_model->alphas[cc][k*nt+t]) > 0.0 ) {
+          for (v=0; v<maps->nvox; ++v) {
+            if ( maskFile[0] ) { /* mask */
+              if ( dsetMaskArray[v] ) {
+                maps->data[iMap][v] += afni_model->alphas[cc][k*nt+t] * 
+                                          dsetTrainArray[t ][v];
+              }
+              else { 
+                maps->data[iMap][v] = 0;
+              } 
             }
-            else { 
-              maps->data[iMap][v] = 0;
-            } 
-          }
-          else { /* no mask */
-            maps->data[iMap][v] += afni_model->cAlphas[cc][t] * 
-                                        dsetTrainArray[t ][v];
+            else { /* no mask */
+              maps->data[iMap][v] += afni_model->alphas[cc][k*nt+t] * 
+                                          dsetTrainArray[t ][v];
+            }
           }
         }
       }
@@ -3458,53 +3413,55 @@ void addToModelMap_bucket ( MODEL_MAPS *maps, AFNI_MODEL *afni_model,
 
     nvoxh = maps->nvox;
   
-    for (t=0; t<nt; ++t) {
-      if ( afni_model->cAlphas[cc][t] ) {
-        for (v=0; v<maps->nvox; ++v) {
-          if ( maskFile[0] ) { /* mask */
-            if ( dsetMaskArray[v] ) {
+    for (k=0; k<nk; ++k) {
+      for (t=0; t<nt; ++t) {
+        if ( fabs(afni_model->alphas[cc][k*nt+t]) > 0.0 ) {
+          for (v=0; v<maps->nvox; ++v) {
+            if ( maskFile[0] ) { /* mask */
+              if ( dsetMaskArray[v] ) {
 
-              /*   - RE -   */
-              maps->data[iMap  ][v] += afni_model->cAlphas[cc][t     ] *
-                                            dsetTrainArray[t ][v     ];
-              /*   - IM -   */
-              maps->data[iMap+1][v] += afni_model->cAlphas[cc][t      ] *
+                /*   - RE -   */
+                maps->data[iMap  ][v] += afni_model->alphas[cc][k*nt+t] *
+                                              dsetTrainArray[t ][v     ];
+                /*   - IM -   */
+                maps->data[iMap+1][v] += afni_model->alphas[cc][k*nt+t] *
+                                              dsetTrainArray[t ][v+nvoxh];
+                /*  - MAG1 - */
+                maps->data[iMap+2][v] += afni_model->alphas[cc][k*nt+t] *
+                  sqrt( dsetTrainArray[t ][v      ] * dsetTrainArray[t][v      ] +
+                        dsetTrainArray[t ][v+nvoxh] * dsetTrainArray[t][v+nvoxh]);
+             
+                /*  - PHA1 - */
+                maps->data[iMap+3][v] += 10e5 *afni_model->alphas[cc][k*nt+t ] *
+                  atan2(dsetTrainArray[t ][v+nvoxh], dsetTrainArray[t ][v     ]);
+              
+              }
+              else { 
+                maps->data[iMap  ][v] = 0;
+                maps->data[iMap+1][v] = 0;
+                maps->data[iMap+2][v] = 0;
+                maps->data[iMap+3][v] = 0;
+
+              } 
+            }
+            else { /* no mask */
+            
+              /*  - RE - */
+              maps->data[iMap  ][v] += afni_model->alphas[cc][k*nt+t] *
+                                            dsetTrainArray[t ][v   ];
+              /*  - IM - */
+              maps->data[iMap+1][v] += afni_model->alphas[cc][k*nt+t] *
                                             dsetTrainArray[t ][v+nvoxh];
               /*  - MAG1 - */
-              maps->data[iMap+2][v] += afni_model->cAlphas[cc][t      ] *
-                sqrt( dsetTrainArray[t ][v      ] * dsetTrainArray[t ][v      ] +
-                      dsetTrainArray[t ][v+nvoxh] * dsetTrainArray[t ][v+nvoxh]);
-           
+              maps->data[iMap+2][v] += afni_model->alphas[cc][k*nt+t] *
+                  sqrt( dsetTrainArray[t ][v      ] * dsetTrainArray[t ][v      ] +
+                        dsetTrainArray[t ][v+nvoxh] * dsetTrainArray[t ][v+nvoxh]);
               /*  - PHA1 - */
-              maps->data[iMap+3][v] += 10e5 *afni_model->cAlphas[cc][t      ] *
-                atan2(dsetTrainArray[t ][v+nvoxh], dsetTrainArray[t ][v     ]);
-            
-            }
-            else { 
-              maps->data[iMap  ][v] = 0;
-              maps->data[iMap+1][v] = 0;
-              maps->data[iMap+2][v] = 0;
-              maps->data[iMap+3][v] = 0;
+              maps->data[iMap+3][v] += afni_model->alphas[cc][k*nt+t] *
+                  atan2(dsetTrainArray[t ][v+nvoxh], dsetTrainArray[t ][v     ]);
 
             } 
           }
-          else { /* no mask */
-          
-            /*  - RE - */
-            maps->data[iMap  ][v] += afni_model->cAlphas[cc][t     ] *
-                                          dsetTrainArray[t ][v   ];
-            /*  - IM - */
-            maps->data[iMap+1][v] += afni_model->cAlphas[cc][t      ] *
-                                          dsetTrainArray[t ][v+nvoxh];
-            /*  - MAG1 - */
-            maps->data[iMap+2][v] += afni_model->cAlphas[cc][t      ] *
-                sqrt( dsetTrainArray[t ][v      ] * dsetTrainArray[t ][v      ] +
-                      dsetTrainArray[t ][v+nvoxh] * dsetTrainArray[t ][v+nvoxh]);
-            /*  - PHA1 - */
-            maps->data[iMap+3][v] += afni_model->cAlphas[cc][t      ] *
-                atan2(dsetTrainArray[t ][v+nvoxh], dsetTrainArray[t ][v     ]);
-
-          } 
         }
       }
     }
@@ -4085,9 +4042,14 @@ void addToAfniModel(AFNI_MODEL *afniModel, MODEL *model, LEARN_PARM *learn_parm,
    * since, for sv-regression, svm-light is not writing the alphas in time-
    * order
    *
-   * JL Jul. 2014. Changed how alphas are stored for regression and how they
+   * JL Jul. 2014: Changed how alphas are stored for regression and how they
    * are written to file.
    *
+   * JL Jul. 2015: Bugfix. Initialized alphas properly. Otherwise, some alphas
+   * that should be zero might not be zero. This leads to problems 
+   * (too many SVs) when the model is read in. 
+   * Got rid of cAlphas (censored alphas). Unnecessary. 
+   * Write both sets of alphas for regression even if they are zero. 
    */
 
   /* --- initialization ---*/
@@ -4114,17 +4076,20 @@ void addToAfniModel(AFNI_MODEL *afniModel, MODEL *model, LEARN_PARM *learn_parm,
   }
 
   /* recover time-order of alphas using quid and write them into 
-   * afniModel->alphas (index over all time points) and into 
-   * afniModel->cAlphas (index over non-censored time-points).
-   * alphas for non SVs are set to zero. 
+   * afniModel->alphas (index over all time points)
    */
+
+  /* - initialize alphas to zero - */
+  if( !strcmp(options->svmType, "regression") ) { 
+    /* For regression, the arrays holding the alphas is twice as long */
+    for( t=0; t<2*nt; ++t ) afniModel->alphas[classCount][t] = 0.0;
+  }
+  else {
+    for( t=0; t<nt; ++t ) afniModel->alphas[classCount][t] = 0.0;
+  }
 
   qid=0;
   for( t=0; t<nt; ++t ) {
-    /* - initialize to zero (alphas for non SVs are set to zero) */
-    afniModel->alphas[classCount][t] =  0.0;
-    afniModel->cAlphas[classCount][qid] = 0.0;
-
     /* only look at non-censored time-points, quid index only runs 
      * over non-censored time-points */
     if ( abs((int)rint(tmp_labels[t])) == 1) {
@@ -4133,44 +4098,38 @@ void addToAfniModel(AFNI_MODEL *afniModel, MODEL *model, LEARN_PARM *learn_parm,
       for( sv=1; sv<nsv; ++sv) {
         if ( (model->supvec[sv])->queryid == qid) {
           afniModel->alphas[classCount][t] = (float)model->alpha[sv];
-          afniModel->cAlphas[classCount][qid] = (float)model->alpha[sv];
-
-         /* - write alpha to file - */
-          if( options->modelAlphaFile[0] ) {
-            fprintf(fp,"%.8g", afniModel->alphas[classCount][t]);
-          }
 
           /* - alpha with quid found. Exit loop over sv - */
           break;
         }
-      }      
+      }
+
+      /* - write alpha to file - */
+      if( options->modelAlphaFile[0] ) {
+        fprintf(fp,"%.8g", afniModel->alphas[classCount][t]);
+      }
 
       /* For regression, the number of alphas might double, so the 
        * array size for storing the alphas is twice as long  (nt*2) as for 
        * classification. Continue looping through the svmLight model and
        * keep searching for alphas with given qid. */
       if( !strcmp(options->svmType, "regression") ) { 
-        afniModel->alphas[classCount][nt+t] =  0.0;
-        afniModel->cAlphas[classCount][sampleCount+qid] = 0.0;
-
         ++sv;
         for( ; sv<nsv; ++sv) {
           if( (model->supvec[sv])->queryid == qid ) {
             afniModel->alphas[classCount][nt+t] = (float)model->alpha[sv];
-            afniModel->cAlphas[classCount][sampleCount+qid] = 
               (float)model->alpha[sv];
-
-            /* - write second alpha to file - */
-            if( options->modelAlphaFile[0] ) {
-              fprintf(fp,"\t %.8g", afniModel->alphas[classCount][nt+t]);
-            }
 
             /* - second alpha with quid found. Exit loop over sv - */
             break;        
           }
         }
+        /* - write second alpha to file - */
+        if( options->modelAlphaFile[0] ) {
+          fprintf(fp,"\t %.8g", afniModel->alphas[classCount][nt+t]);
+        }
       }
-
+      
       /* - done with writing alpha(s) for current timepoint - */
       if( options->modelAlphaFile[0] ) fprintf(fp,"\n");
       
@@ -4178,8 +4137,14 @@ void addToAfniModel(AFNI_MODEL *afniModel, MODEL *model, LEARN_PARM *learn_parm,
       ++qid;
     }
     else {
+      /* - censored timepoints alpha=0 - -*/
       if( options->modelAlphaFile[0] ) {
-        fprintf(fp,"%.8g\n", afniModel->alphas[classCount][t]);
+        if( !strcmp(options->svmType, "regression") ) { 
+          fprintf(fp,"%.8g\t %.8g\n", 0.0, 0.0);
+        }
+        else {
+          fprintf(fp,"%.8g\n", 0.0);
+        }
       }
     }
   }
@@ -4471,7 +4436,6 @@ void freeAfniModel(AFNI_MODEL *afniModel)
   free( afniModel->total_support_vectors );
   free( afniModel->b );
   free2f(afniModel->alphas,  (long) afniModel->combinations);
-  free2f(afniModel->cAlphas, (long) afniModel->combinations);
   free2c(afniModel->combName, max_comb);
 
   /* Oct. 2008: */
@@ -4655,23 +4619,6 @@ int allocateAfniModel(AFNI_MODEL *afniModel, LABELS *labels,
     RETURN(1);
   }
 
-  if( (afniModel->cAlphas = Allocate2f((long) afniModel->combinations, nalphas)) == NULL ) {
-    snprintf(errorString, LONG_STRING, "allocateAfniModel: Memory allocation for cAlphas failed!");
-
-    /* free and return */
-    free(afniModel->kernel_type);
-    free(afniModel->polynomial_degree);
-    free(afniModel->rbf_gamma);
-    free(afniModel->linear_coefficient);
-    free(afniModel->constant_coefficient);
-    free(afniModel->total_masked_features);
-    free(afniModel->total_samples);
-    free(afniModel->total_support_vectors);
-    free(afniModel->b);
-    free2f(afniModel->alphas, (long) afniModel->combinations);
-    RETURN(1);
-  }
-
 
   /* JL Nov 2009: Added model parameters */
   if( (afniModel->eps = (float *)malloc( afniModel->combinations * sizeof(float) )) == NULL ) {
@@ -4688,7 +4635,6 @@ int allocateAfniModel(AFNI_MODEL *afniModel, LABELS *labels,
     free(afniModel->total_support_vectors);
     free(afniModel->b);
     free2f(afniModel->alphas, (long) afniModel->combinations);
-    free2f(afniModel->cAlphas, (long) afniModel->combinations);
     RETURN(1);
   }
 
@@ -4706,7 +4652,6 @@ int allocateAfniModel(AFNI_MODEL *afniModel, LABELS *labels,
     free(afniModel->total_support_vectors);
     free(afniModel->b);
     free2f(afniModel->alphas, (long) afniModel->combinations);
-    free2f(afniModel->cAlphas, (long) afniModel->combinations);
     free(afniModel->eps);
     RETURN(1);
   }
@@ -4725,7 +4670,6 @@ int allocateAfniModel(AFNI_MODEL *afniModel, LABELS *labels,
     free(afniModel->total_support_vectors);
     free(afniModel->b);
     free2f(afniModel->alphas, (long) afniModel->combinations);
-    free2f(afniModel->cAlphas, (long) afniModel->combinations);
     free(afniModel->eps);
     free(afniModel->svm_c);
     RETURN(1);
@@ -4745,7 +4689,6 @@ int allocateAfniModel(AFNI_MODEL *afniModel, LABELS *labels,
     free(afniModel->total_support_vectors);
     free(afniModel->b);
     free2f(afniModel->alphas, (long) afniModel->combinations);
-    free2f(afniModel->cAlphas, (long) afniModel->combinations);
     free(afniModel->eps);
     free(afniModel->svm_c);
     free(afniModel->biased_hyperplane);
@@ -4766,7 +4709,6 @@ int allocateAfniModel(AFNI_MODEL *afniModel, LABELS *labels,
     free(afniModel->total_support_vectors);
     free(afniModel->b);
     free2f(afniModel->alphas, (long) afniModel->combinations);
-    free2f(afniModel->cAlphas, (long) afniModel->combinations);
     free(afniModel->eps);
     free(afniModel->svm_c);
     free(afniModel->biased_hyperplane);
@@ -4788,7 +4730,6 @@ int allocateAfniModel(AFNI_MODEL *afniModel, LABELS *labels,
     free(afniModel->total_support_vectors);
     free(afniModel->b);
     free2f(afniModel->alphas, (long) afniModel->combinations);
-    free2f(afniModel->cAlphas, (long) afniModel->combinations);
     free(afniModel->eps);
     free(afniModel->svm_c);
     free(afniModel->biased_hyperplane);
@@ -4811,7 +4752,6 @@ int allocateAfniModel(AFNI_MODEL *afniModel, LABELS *labels,
     free(afniModel->total_support_vectors);
     free(afniModel->b);
     free2f(afniModel->alphas, (long) afniModel->combinations);
-    free2f(afniModel->cAlphas, (long) afniModel->combinations);
     free(afniModel->eps);
     free(afniModel->svm_c);
     free(afniModel->biased_hyperplane);
@@ -4835,7 +4775,6 @@ int allocateAfniModel(AFNI_MODEL *afniModel, LABELS *labels,
     free(afniModel->total_support_vectors);
     free(afniModel->b);
     free2f(afniModel->alphas, (long) afniModel->combinations);
-    free2f(afniModel->cAlphas, (long) afniModel->combinations);
     free(afniModel->eps);
     free(afniModel->svm_c);
     free(afniModel->biased_hyperplane);
@@ -4860,7 +4799,6 @@ int allocateAfniModel(AFNI_MODEL *afniModel, LABELS *labels,
     free(afniModel->total_support_vectors);
     free(afniModel->b);
     free2f(afniModel->alphas, (long) afniModel->combinations);
-    free2f(afniModel->cAlphas, (long) afniModel->combinations);
     free(afniModel->eps);
     free(afniModel->svm_c);
     free(afniModel->biased_hyperplane);
@@ -4886,7 +4824,6 @@ int allocateAfniModel(AFNI_MODEL *afniModel, LABELS *labels,
     free(afniModel->total_support_vectors);
     free(afniModel->b);
     free2f(afniModel->alphas, (long) afniModel->combinations);
-    free2f(afniModel->cAlphas, (long) afniModel->combinations);
     free(afniModel->eps);
     free(afniModel->svm_c);
     free(afniModel->biased_hyperplane);
@@ -4913,7 +4850,6 @@ int allocateAfniModel(AFNI_MODEL *afniModel, LABELS *labels,
     free(afniModel->total_support_vectors);
     free(afniModel->b);
     free2f(afniModel->alphas, (long) afniModel->combinations);
-    free2f(afniModel->cAlphas, (long) afniModel->combinations);
     free(afniModel->eps);
     free(afniModel->svm_c);
     free(afniModel->biased_hyperplane);
@@ -4941,7 +4877,6 @@ int allocateAfniModel(AFNI_MODEL *afniModel, LABELS *labels,
     free(afniModel->total_support_vectors);
     free(afniModel->b);
     free2f(afniModel->alphas, (long) afniModel->combinations);
-    free2f(afniModel->cAlphas, (long) afniModel->combinations);
     free(afniModel->eps);
     free(afniModel->svm_c);
     free(afniModel->biased_hyperplane);
@@ -4970,7 +4905,6 @@ int allocateAfniModel(AFNI_MODEL *afniModel, LABELS *labels,
     free(afniModel->total_support_vectors);
     free(afniModel->b);
     free2f(afniModel->alphas, (long) afniModel->combinations);
-    free2f(afniModel->cAlphas, (long) afniModel->combinations);
     free(afniModel->eps);
     free(afniModel->svm_c);
     free(afniModel->biased_hyperplane);
@@ -5000,7 +4934,6 @@ int allocateAfniModel(AFNI_MODEL *afniModel, LABELS *labels,
     free(afniModel->total_support_vectors);
     free(afniModel->b);
     free2f(afniModel->alphas, (long) afniModel->combinations);
-    free2f(afniModel->cAlphas, (long) afniModel->combinations);
     free(afniModel->eps);
     free(afniModel->svm_c);
     free(afniModel->biased_hyperplane);
@@ -5031,7 +4964,6 @@ int allocateAfniModel(AFNI_MODEL *afniModel, LABELS *labels,
     free(afniModel->total_support_vectors);
     free(afniModel->b);
     free2f(afniModel->alphas, (long) afniModel->combinations);
-    free2f(afniModel->cAlphas, (long) afniModel->combinations);
     free(afniModel->eps);
     free(afniModel->svm_c);
     free(afniModel->biased_hyperplane);
@@ -5063,7 +4995,6 @@ int allocateAfniModel(AFNI_MODEL *afniModel, LABELS *labels,
     free(afniModel->total_support_vectors);
     free(afniModel->b);
     free2f(afniModel->alphas, (long) afniModel->combinations);
-    free2f(afniModel->cAlphas, (long) afniModel->combinations);
     free(afniModel->eps);
     free(afniModel->svm_c);
     free(afniModel->biased_hyperplane);
@@ -5097,7 +5028,6 @@ int allocateAfniModel(AFNI_MODEL *afniModel, LABELS *labels,
     free(afniModel->total_support_vectors);
     free(afniModel->b);
     free2f(afniModel->alphas, (long) afniModel->combinations);
-    free2f(afniModel->cAlphas, (long) afniModel->combinations);
     free(afniModel->eps);
     free(afniModel->svm_c);
     free(afniModel->biased_hyperplane);
@@ -5132,7 +5062,6 @@ int allocateAfniModel(AFNI_MODEL *afniModel, LABELS *labels,
     free(afniModel->total_support_vectors);
     free(afniModel->b);
     free2f(afniModel->alphas, (long) afniModel->combinations);
-    free2f(afniModel->cAlphas, (long) afniModel->combinations);
     free(afniModel->eps);
     free(afniModel->svm_c);
     free(afniModel->biased_hyperplane);
@@ -6012,8 +5941,18 @@ int test_classification (ASLoptions *options, MODEL *model, AFNI_MODEL *afniMode
   }
 
   /* -- fill MODEL with data from AFNI_MODEL */
-  get_svm_model( model, dsetModelArray, dsetMaskArray, afniModel, nvox_mod,
-      options->outModelNoMask );
+  if( get_svm_model( model, dsetModelArray, dsetMaskArray, afniModel, nvox_mod,
+      options->outModelNoMask, errorString) ) {
+
+    /* free and return */
+    freeDsetArray(dsetTest, dsetTestArray);
+    DSET_unload(dsetTest);
+    if( options->testLabelFile[0] ) freeClassificationLabels(&testLabels);
+    if( options->testLabelFile[0] ) free(censoredTargets);
+    freeDOCs(docsTest, nt);
+    freeModel(model, afniModel, TEST);
+    RETURN(1);
+  }
 
 
   /*----- ALLOCATE TEST PREDICTION ARRAYS -------*/
@@ -6684,8 +6623,18 @@ int test_regression (ASLoptions *options, MODEL *model, AFNI_MODEL *afniModel,
     RETURN(1);
   }
  
-  get_svm_model(model, dsetModelArray, dsetMaskArray, afniModel, nvox_mod,
-      options->outModelNoMask);
+  if( get_svm_model(model, dsetModelArray, dsetMaskArray, afniModel, nvox_mod,
+      options->outModelNoMask, errorString) ) {
+
+    /* free and return */
+    DSET_unload(dsetTest);
+    if( options->testLabelFile[0] ) 
+      freeRegressionLabelsAndTarget(&testLabels, target);
+    freeDsetArray(dsetTest, dsetTestArray);
+    freeDOCs(docsTest, nt);
+    freeModel(model, afniModel, TEST);
+    RETURN(1);
+  }
 
   updateModel(model, afniModel,  0);
 
@@ -7205,11 +7154,10 @@ int train_classification( MODEL *model, LEARN_PARM *learn_parm, KERNEL_PARM *ker
             classCount, sampleCount, labels.class_list[cc], labels.class_list[dd]);
 
         if( options->modelWeightFile[0] ) {
-          addToModelMap_bucket(&maps, &afniModel, dsetClassTrainArray,
+          addToModelMap_bucket(&maps, &afniModel, dsetTrainArray,
               dsetMaskArrayPtr, options->maskFile, classCount);
         }
       }
-      
 
       /* ---- WRITE DATASET IN SVM-LIGHT FORMATED TEXTFILE  ----*/
       if (options->docFile[0]) {
@@ -7561,7 +7509,7 @@ int train_regression(MODEL *model, LEARN_PARM *learn_parm,
 
   /*---- UPDATE MODEL-MAPS -----*/
   if( (options->modelWeightFile[0]) && (!options->docFileOnly[0]) ) {
-    addToModelMap_bucket(&maps, &afniModel, dsetTrainArrayCensored, dsetMaskArrayPtr,
+    addToModelMap_bucket(&maps, &afniModel, dsetTrainArray, dsetMaskArrayPtr,
         options->maskFile, 0);
   }
 
