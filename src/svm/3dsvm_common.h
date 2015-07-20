@@ -53,8 +53,8 @@
  * readAllocateAfniModel is using the version number to read in model
  * parameters correctly */
 
-#define VERSION_3DSVM "V1.25"
-#define VERSION_DATE_3DSVM "08/25/14"
+#define VERSION_3DSVM "V1.26"
+#define VERSION_DATE_3DSVM "07/10/15"
 #define CLASS_MAX 300
 #define SCALE 4000000
 #define MAX_FILE_NAME_LENGTH 500
@@ -194,10 +194,6 @@ typedef struct afniSvmModelHead {
   int   *total_masked_features;
   int   *total_samples;         /* number of time points per class */
   int   *total_support_vectors;
-  float **cAlphas;              /* JL: censored alphas,
-          * cAlphas[class][total_samples[cc]]. Contains alphas without censored
-          * timepoints (i.e., skipping labels: 9999 and censors), to match index
-          * of data and index of alphas for each class-combination */
   float **alphas;               /* alphas[class][timepoints] */
   float *b;
 
@@ -907,7 +903,14 @@ static char contribution_string [] =
 
 /*----- String that briefly describes changes -------------------*/
 static char change_string[] = "\n"
-"V1.25 (04/03/14)\n"
+"V1.26 (07/07/15)\n"
+"  1) Bugfix: Model was not initialized properly during regression training\n"
+"     when excluding timepoints (-censor). This might have caused a\n"
+"     crash (depending on platform) during testing\n"
+"  2) Changed alpha file output (-alpha) for regression. Always write both\n"
+"     sets of alphas even if they are zero\n" 
+"\n"
+"V1.25 (08/25/14)\n"
 "  1) Bugfix: Non-linear kernels were not working for regression and caused\n"
 "     3dsvm to crash. Classification was not affected by this.\n"
 "\n"
@@ -1037,8 +1040,8 @@ void           updateModel( MODEL *, AFNI_MODEL *, int );
 void           freeModelArrays( DatasetType**, MaskType*, long, int );
 int            getAllocateModelArrays( THD_3dim_dataset*, DatasetType***, 
                    MaskType**, long *, long *, int *, int, char * );
-void           get_svm_model( MODEL *, DatasetType **, MaskType *, AFNI_MODEL *,
-                   long, int noMaskFlag );
+int            get_svm_model( MODEL *, DatasetType **, MaskType *, AFNI_MODEL *,
+                   long, int, char * );
 int            readAllocateAfniModel( THD_3dim_dataset *,  AFNI_MODEL *, char * );
 int            allocateModelMaps( MODEL_MAPS *, long, long, char * );
 void           freeModelMaps( MODEL_MAPS * );
