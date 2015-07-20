@@ -563,6 +563,7 @@ nifti_image    * nifti_simple_init_nim(void);
 nifti_image    * nifti_convert_n1hdr2nim(nifti_1_header nhdr,const char *fname);
 nifti_image    * nifti_convert_n2hdr2nim(nifti_2_header nhdr,const char *fname);
 
+int    nifti_looks_like_cifti(nifti_image * nim);
 
 int    nifti_hdr1_looks_good       (const nifti_1_header * hdr);
 int    nifti_hdr2_looks_good       (const nifti_2_header * hdr);

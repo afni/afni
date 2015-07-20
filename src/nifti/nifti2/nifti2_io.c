@@ -482,6 +482,9 @@ static int   print_hex_vals    (const char * data, int nbytes, FILE * fp);
 static int   unescape_string   (char *str);  /* string utility functions */
 static char *escapize_string   (const char *str);
 
+/* consider for export */
+static int  nifti_ext_type_index(nifti_image * nim, int ecode);
+
 /* internal I/O routines */
 static znzFile nifti_image_load_prep( nifti_image *nim );
 static int     has_ascii_header(znzFile fp);
@@ -5812,6 +5815,39 @@ nifti_image *nifti_image_read( const char *hname , int read_data )
    else nim->data = NULL ;
 
    return nim ;
+}
+
+
+/*----------------------------------------------------------------------
+ # return the index of the first occurrence of the given ecode, else -1
+ *----------------------------------------------------------------------*/
+static int nifti_ext_type_index(nifti_image * nim, int ecode)
+{
+   int ind;
+
+   if ( !nim || ecode < 0 ) return -1;
+   for( ind = 0; ind < nim->num_ext; ind++ )
+      if( nim->ext_list[ind].ecode == ecode )
+         return ind;
+
+   return -1;
+}
+
+/*----------------------------------------------------------------------
+ * check dimensions and extension ecodes for CIFTI
+ *
+ * should have  - nx=ny=nz=nt=1, nu,nv>1, nw optional
+ *              - CIFTI extension
+ *----------------------------------------------------------------------*/
+int nifti_looks_like_cifti(nifti_image * nim)
+{
+   if( nifti_ext_type_index(nim, NIFTI_ECODE_CIFTI) < 0 ) return 0;
+
+   if( nim->nx > 1 || nim->ny > 1 || nim->nz > 1 || nim->nt > 1 ) return 0;
+
+   if( nim->nu > 1 && nim->nv > 1 ) return 1;  /* looks like it */
+
+   return 0;
 }
 
 
