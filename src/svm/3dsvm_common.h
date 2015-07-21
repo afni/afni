@@ -53,8 +53,8 @@
  * readAllocateAfniModel is using the version number to read in model
  * parameters correctly */
 
-#define VERSION_3DSVM "V1.26"
-#define VERSION_DATE_3DSVM "07/10/15"
+#define VERSION_3DSVM "V1.27"
+#define VERSION_DATE_3DSVM "07/21/15"
 #define CLASS_MAX 300
 #define SCALE 4000000
 #define MAX_FILE_NAME_LENGTH 500
@@ -903,6 +903,9 @@ static char contribution_string [] =
 
 /*----- String that briefly describes changes -------------------*/
 static char change_string[] = "\n"
+"V1.27 (07/21/15)\n"
+"  1) Bugfix: Forgot to update plug_3dsvm in V1.26. Thanks Rick!\n"
+"\n"
 "V1.26 (07/07/15)\n"
 "  1) Bugfix: Model was not initialized properly during regression training\n"
 "     when excluding timepoints (-censor). This might have caused a\n"
