@@ -31,10 +31,9 @@ static int sigurg = 0 ;  /* 02 Jan 2004 */
 
 #define CLOSEDOWN(ss) ( shutdown((ss),2) , close((ss)) )
 
-/*! This is used to set the send/receive buffer size for
-    sockets. It should be below the upper limit on all Unix systems. */
+/*! This is used to set the send/receive buffer size for sockets. */
 
-#define SOCKET_BUFSIZE  (31*1024)
+#define SOCKET_BUFSIZE  (63*1024)
 
 /*! This macro is used so I can replace recv() with something else if I want. */
 
@@ -352,7 +351,7 @@ static int tcp_connect( char *host , int port )
    }
 #endif
 
-   /* but large buffers are good */
+   /* but large I/O buffers are good */
 
 #ifdef SOCKET_BUFSIZE
    q = 0 ; qq = sizeof(int) ;                                 /* 03 Dec 2002:    */
@@ -446,6 +445,8 @@ static int tcp_listen( int port )
      }
    }
 #endif
+
+   /* set socket to have large I/O buffers */
 
 #ifdef SOCKET_BUFSIZE
    q = 0 ; qq = sizeof(int) ;
@@ -2898,7 +2899,7 @@ NI_dpr("  tcp: got %d/%d bytes ***\n",ii,nbytes) ;
 
 int NI_stream_fillbuf( NI_stream_type *ns, int minread, int msec )
 {
-   int nn , ii , ntot=0 , ngood=0 , mwait=0 ;
+   int nn , ii=0 , ntot=0 , ngood=0 , mwait=0 ;
    int start_msec = NI_clock_time() ;
 
    if( NI_stream_goodcheck(ns,0) < 0 ) return -1 ;   /* bad input */
@@ -2918,6 +2919,7 @@ int NI_stream_fillbuf( NI_stream_type *ns, int minread, int msec )
 
       if( ngood < 0 ) break ;                /* data stream gone bad, so exit */
 
+      ii = 0 ;
       if( ngood > 0 ){                       /* we can read ==> */
                                              /* try to fill buffer completely */
 
@@ -2947,7 +2949,7 @@ int NI_stream_fillbuf( NI_stream_type *ns, int minread, int msec )
 
       /* otherwise, sleep a little bit before trying again */
 
-      if( mwait < 9 ) mwait++ ;
+      if( mwait < 9 && ii < 4096 ) mwait++ ;
    }
 
    /* if didn't get any data, and
