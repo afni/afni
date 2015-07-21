@@ -1493,6 +1493,7 @@ int iochan_recvall( IOCHAN * ioc , char * buffer , int nbytes )
       /* Only slow down if we are receiving little bits, otherwise any large
          buffer that is broken into small pieces could take a very long time,
          even such as a single anatomical volume.         17 Jul 2015 [rickr]   */
+      /* Note that the limit is likely SOCKET_BUFSIZE (31*1024) bytes.          */
       if( ii < 4096 ) dms = NEXTDMS(dms) ;
 
       iochan_sleep(dms) ;                                    /* wait a while    */
