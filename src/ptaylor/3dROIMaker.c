@@ -1021,8 +1021,8 @@ int main(int argc, char *argv[]) {
          THD_subbrick_minmax(insetREF, i, 1,&dum1[0], &dum2[0]);
          if( dum1[0]<0 )//??inset-->fixed
             RESCALES[i] = 1 - ((int) dum1[0]);
-         printf("\n%d\t%d --> refscal=%d",(int) dum1[0], 
-                (int) dum2[0], RESCALES[i]);  // UNCOM
+         //printf("\n%d\t%d --> refscal=%d",(int) dum1[0], 
+         //     (int) dum2[0], RESCALES[i]);  
       }
       
       // rescale values as necessary
@@ -1325,11 +1325,11 @@ int main(int argc, char *argv[]) {
 	free(temp_arr);
    free(temp_arr_tmp);
 
-   if( NEIGHBOR_LIMIT == 2 )
-      WARNING_message("NB: as of Nov. 2014, "
-                   "voxel neighborhoods are facewise-only as a default\n"
-                   "\t(it's the general AFNI standard). "
-                   "See the helpfile for switches to change this feature.");
+   //   if( NEIGHBOR_LIMIT == 2 )
+   //  WARNING_message("NB: as of Nov. 2014, "
+   //              "voxel neighborhoods are facewise-only as a default\n"
+   //              "\t(it's the general AFNI standard). "
+   //              "See the helpfile for switches to change this feature.");
 
 	INFO_message("GM map is done.");
 
@@ -1350,7 +1350,7 @@ int main(int argc, char *argv[]) {
 		fprintf(stderr, "\n\n MemAlloc failure.\n\n");
 		exit(122);
 	}
-INFO_message("BAD AAA.");
+
 	ROI_LABELS_GM = calloc( Dim[3],sizeof(ROI_LABELS_GM));  
 	for(i=0 ; i<Dim[3] ; i++) 
 		ROI_LABELS_GM[i] = calloc(INVROI_GM[i]+1,sizeof(int)); 
@@ -1372,7 +1372,6 @@ INFO_message("BAD AAA.");
 		fprintf(stderr, "\n\n MemAlloc failure.\n\n");
 			exit(123);
 	}
-   INFO_message("BAD BBB.");
 
    // jul,2015: use '_tmp' one to match with DATA, which might be rescaled
 	bb = ViveLeRoi(outsetGM_tmp, 
@@ -1380,7 +1379,6 @@ INFO_message("BAD AAA.");
 						NROI_GM,       INVROI_GM);
 	if( bb != 1)
 		ERROR_exit("Problem loading/assigning GM labels");
-	INFO_message("BAD CCC.");
 
    DSET_delete(outsetGM_tmp); // jul,2015: unneeded hereafter
    free(outsetGM_tmp);
@@ -1391,7 +1389,6 @@ INFO_message("BAD AAA.");
 		// ?? Not sure what the next two lines were for...
       //for( i=0 ; i<NROI_GM[m]+1 ; i++ ) 
 		//	ROI_LABELS_GM[m][i] = 1; //switch to keep adding to it
-		INFO_message("BAD ... %d.", m);
 
 		for( k=0 ; k<Dim[2] ; k++ ) 
 			for( j=0 ; j<Dim[1] ; j++ ) 
@@ -1402,7 +1399,6 @@ INFO_message("BAD AAA.");
 							COUNT_GM[m][ INV_LABELS_GM[m][DATA[i][j][k][m]] ][2]++;
 					}
 	}
-INFO_message("BAD DDD.");
 
 	// go through and start inflating
 	// do 1 layer at a time, in case of squeezed neighborhoods and 
