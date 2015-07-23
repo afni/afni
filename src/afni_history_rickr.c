@@ -49,9 +49,14 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 23,  Jul, 2015, RCR, "afni-general", MICRO, TYPE_ENHANCE,
+   "allow Graph_Bucket niml.dsets to be read, but just as 1D",
+   NULL
+ } ,
+
  { 17,  Jul, 2015, RCR, "plug_realtime", MINOR, TYPE_ENHANCE,
-   "Dimon->afni: systems with small TCP buffers can be very slow passing a volume",
-   "In iochan_recvall, only increase nap time when packets < 4 KB are recived."
+   "Dimon->afni: small TCP buffers cause volumes to be passed slowly",
+   "In iochan_recvall, increase nap time only if packets < 4K are recieved."
  } ,
 
  { 13,  Jul, 2015, RCR, "nifti_tool", MAJOR, TYPE_ENHANCE,
