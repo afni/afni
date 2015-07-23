@@ -172,9 +172,10 @@ static char * g_history[] =
   "   - disp_hdr detects type\n"
   "   - diff_hdr detects type\n"
   "   - have diff_hdr1/diff_hdr2 to read as those types\n"
+  "2.03 23 Jul 2015 [rickr] - handle a couple of unknown version cases\n",
   "----------------------------------------------------------------------\n"
 };
-static char g_version[] = "version 2.02 (Jun1 1, 2015)";
+static char g_version[] = "version 2.03 (July 23, 2015)";
 static int  g_debug = 1;
 
 #define _NIFTI_TOOL_C_
@@ -2368,6 +2369,12 @@ int act_diff_hdrs( nt_opts * opts )
       fprintf(stderr,"   have NIFTI-%d and NIFTI-%d\n", nva, nvb);
    }
 
+   if( nva < 0 || nvb < 0 ) {
+      fprintf(stderr,"** resetting invalid NIFTI version(s) to 1\n");
+      if( nva < 0 ) nva = 1;
+      if( nvb < 0 ) nvb = 1;
+   }
+
    /* a difference is fatal */
    if( nva != nvb ) {
       fprintf(stderr,"** %s is NIFTI-%d, while %s is NIFTI-%d\n"
@@ -2723,6 +2730,11 @@ int act_disp_hdr( nt_opts * opts )
       nhdr = nt_read_header(opts->infiles.list[filenum], &nver, NULL, g_debug>1,
                              opts->new_datatype, opts->new_dim);
       if( !nhdr ) return 1;  /* errors are printed from library */
+
+      if( nver < 0 ) {
+         fprintf(stderr,"** resetting invalid NIFTI version to 1\n");
+         nver = 1;
+      }
 
       /* set the number of fields to display */
       nfields = opts->flist.len > 0 ? opts->flist.len : 

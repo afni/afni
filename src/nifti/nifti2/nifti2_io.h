@@ -472,6 +472,11 @@ int    disp_nifti_2_header( const char * info, const nifti_2_header * hp ) ;
 void   nifti_set_debug_level( int level ) ;
 void   nifti_set_skip_blank_ext( int skip ) ;
 void   nifti_set_allow_upper_fext( int allow ) ;
+int    nifti_get_alter_cifti( void );
+void   nifti_set_alter_cifti( int alter_cifti );
+
+int    nifti_alter_cifti_dims(nifti_image * nim);
+
 
 int    valid_nifti_brick_list(nifti_image * nim , int64_t nbricks,
                               const int64_t * blist, int disp_error);
@@ -669,6 +674,7 @@ typedef struct {
     int debug;               /*!< debug level for status reports  */
     int skip_blank_ext;      /*!< skip extender if no extensions  */
     int allow_upper_fext;    /*!< allow uppercase file extensions */
+    int alter_cifti;         /*!< convert CIFTI dimensions        */
 } nifti_global_options;
 
 typedef struct {
