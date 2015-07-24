@@ -12,7 +12,7 @@
 # define MPAIR float_pair
 #endif
 
-#include "mrilib.h"  /* Keep after decision about matrix.h inclusion 
+#include "mrilib.h"  /* Keep after decision about matrix.h inclusion
                                                       ZSS  Nov. 21 2014*/
 
 #undef  BIGVAL
@@ -69,6 +69,11 @@ typedef struct {
   int         nglt ;
   gltfactors **glt ;
 } reml_setup ;
+
+typedef struct {             /* for voxel-wise regression */
+  reml_setup *rset ;
+  matrix *X ; sparmat *Xs ;
+} reml_setup_plus ;          /* 22 Jul 2015 */
 
 /*****
   Struct to hold the information needed for all
@@ -708,6 +713,61 @@ reml_setup * REML_setup_one( matrix *X , int *tau , MTYPE rho , MTYPE bb )
    return rset ;
 }
 
+/*--------------------------------------------------------------------------*/
+/* Similar to above, BUT
+     * first add columns in Z to matrix
+     * then carry out the REML setup for this new matrix
+   This is to allow for voxel-wise regressors in 3dREMLfit.    [22 Jul 2015]
+*//*------------------------------------------------------------------------*/
+
+reml_setup_plus * REML_setup_plus( matrix *X, matrix *Z, int *tau, MTYPE rho, MTYPE bb )
+{
+   reml_setup_plus *rsetplus=NULL ;
+   matrix *XZ=NULL ;
+   double spcut ;
+
+ENTRY("REML_setup_plus") ;
+
+   if( X == NULL ) RETURN(rsetplus) ; /* bad */
+
+   /* create the catenated matrix XZ */
+
+   XZ = (matrix *)malloc(sizeof(matrix)) ;
+   if( Z == NULL || Z->cols == 0 ){
+     matrix_initialize(XZ) ;
+     matrix_equate(*X,XZ) ;
+   } else {
+     int ii,jj , nr,ncX,ncZ ; MTYPE *Xar, *Zar, *XZar ;
+     nr = X->rows ; ncX = X->cols ; ncZ = Z->cols ;
+     if( nr != Z->rows ) RETURN(rsetplus) ;    /* matrices don't conform?! */
+     matrix_initialize(XZ) ;
+     matrix_create( nr, ncX+ncZ , XZ ) ;
+     for( ii=0 ; ii < nr ; ii++ ){                       /* loop over rows */
+       Xar = X->elts[ii] ; Zar = Z->elts[ii] ; XZar = XZ->elts[ii] ;
+       for( jj=0 ; jj < ncX ; jj++ ) XZar[jj]     = Xar[jj] ; /* over cols */
+       for( jj=0 ; jj < ncZ ; jj++ ) XZar[jj+ncX] = Zar[jj] ;
+     }
+   }
+
+   rsetplus = (reml_setup_plus *)calloc(1,sizeof(reml_setup_plus)) ;
+
+   /* setup the REML calculations for this fun fun fun matrix */
+
+   rsetplus->rset = REML_setup_one( XZ , tau , rho , bb ) ;
+   if( rsetplus->rset == NULL ){        /* bad bad bad */
+     free(rsetplus) ; matrix_destroy(XZ) ; free(XZ) ; RETURN(NULL) ;
+   }
+
+   rsetplus->X = XZ ;  /* store matrix, then maybe its sparsification */
+
+   spcut = AFNI_numenv("AFNI_REML_SPARSITY_THRESHOLD") ;
+   if( spcut <= 0.0 ) spcut = 1.01 ;  /* always use sparmat */
+   if( sparsity_fraction(*XZ) <= spcut ) rsetplus->Xs = matrix_to_sparmat(*XZ) ;
+   else                                  rsetplus->Xs = NULL ;
+
+   RETURN(rsetplus) ;
+}
+
 /*==========================================================================*/
 /*--------------------------------------------------------------------------*/
 /*! Compute the REML -log(likelihood) function for a particular case,
@@ -805,6 +865,17 @@ void reml_setup_destroy( reml_setup *rset )
    if( rset->glt != NULL ) free(rset->glt) ;
    free((void *)rset) ;
    return ;
+}
+
+/*----------------------------------------------------------------------------*/
+
+void reml_setup_plus_destroy( reml_setup_plus *rsp )  /* 22 Jul 2015 */
+{
+   if( rsp == NULL ) return ;
+   reml_setup_destroy( rsp->rset ) ;
+   if( rsp->X  != NULL ){ matrix_destroy(rsp->X) ; free(rsp->X) ; }
+   if( rsp->Xs != NULL ) sparmat_destroy(rsp->Xs) ;
+   free(rsp) ; return ;
 }
 
 /*----------------------------------------------------------------------------*/
@@ -996,11 +1067,11 @@ reml_collection * REML_setup_all( matrix *X , int *tau ,
    /* set grid in a and b parameters */
 
    if( nlev > 0 ){
-     if( nlev < 3 ) nlev = 3 ;
-     if( btop < 0.0 || btop > 0.9 ) btop = 0.9 ;
+     if( nlev < 3 ) nlev = 3 ; else if( nlev > 7 ) nlev = 7 ;
+     if( btop <= 0.0 ) btop = 0.08 ; else if( btop > 0.9 ) btop = 0.9 ;
      nb = 1 << (nlev+1) ; pnb = nlev+1 ; bbot = -btop ; db = 2.0*btop / nb ;
 
-     if( atop < 0.0 || atop > 0.9 ) atop = 0.9 ;
+     if( atop <= 0.0 ) atop = 0.08 ; else if( atop > 0.9 ) atop = 0.9 ;
      if( allow_negative_cor ){
        na = 1 << (nlev+1) ; pna = nlev+1 ; abot = -atop ;
      } else {
@@ -1077,7 +1148,7 @@ reml_collection * REML_setup_all( matrix *X , int *tau ,
 #endif
 
  AFNI_OMP_START ;
-#pragma omp parallel if( maxthr > 1 )
+#pragma omp parallel if( maxthr > 1 && rrcol->nab > 2 )
  { int iab , nab , ii,jj,kk , ithr=0 ;
    MTYPE bb,aa, lam ; float avg ;
 #ifdef USE_OMP
@@ -1087,7 +1158,7 @@ reml_collection * REML_setup_all( matrix *X , int *tau ,
 #pragma omp for
      for( iab=0 ; iab < nab ; iab++ ){ /* loop over (aa,bb) pairs */
        ii  = iab % (na+1) ;
-       jj  = iab / (na+1) ;
+       jj  = iab / (na+1) ;  /* the (na+1) is correct here! */
        aa  = ii*da + abot ;                 /* AR parameter */
        bb  = jj*db + bbot ;                 /* MA parameter */
        lam = LAMBDA(aa,bb) ;                /* +1 super-diagonal element */
@@ -1327,13 +1398,23 @@ ENTRY("REML_get_gltfactors") ;
 
 void REML_add_glt_to_one( reml_setup *rs , matrix *G )
 {
-   gltfactors *gf ; int ng ;
+   gltfactors *gf=NULL ; int ng ;
 
 ENTRY("REML_add_glt_to_one") ;
 
    if( rs == NULL || G == NULL ) EXRETURN ;
 
-   gf = REML_get_gltfactors( rs->dd , G ) ;
+   if( G->cols == rs->mreg ){       /* case where G is right size */
+     gf = REML_get_gltfactors( rs->dd , G ) ;
+   } else if( G->cols < rs->mreg ){ /* G needs extra columns (all zero) */
+     matrix Gx ;                    /* [22 Jul 2015] */
+     matrix_initialize(&Gx) ; matrix_equate(*G,&Gx) ;
+     matrix_enlarge( 0 , rs->mreg - G->cols , &Gx ) ;
+     gf = REML_get_gltfactors( rs->dd , &Gx ) ;
+     matrix_destroy(&Gx) ;
+   } else {                         /* this should never happen! */
+     ERROR_message("REML_add_glt_to_one: G matrix has too many columns?!") ;
+   }
    if( gf == NULL ) EXRETURN ;
 
    ng = rs->nglt ;
@@ -1442,7 +1523,14 @@ ENTRY("REML_compute_gltstat") ;
    if( G != NULL ){
      MTYPE fsig ; int ii ;
      fsig = sqrt( fsumq / ddof ) ;  /* noise estimate */
-     if( Gs != NULL ){
+
+     if( G->cols < bfull->dim ){  /* 22 Jul 2015 */
+       matrix Gx ;
+       matrix_initialize(&Gx) ; matrix_equate(*G,&Gx) ;
+       matrix_enlarge( 0 , bfull->dim - G->cols , &Gx ) ;
+       vector_multiply( Gx , *bfull , betaG ) ;
+       matrix_destroy(&Gx) ;
+     } else if( Gs != NULL ){
        vector_create_noinit( Gs->rows , betaG ) ;
        vector_spc_multiply( Gs , bfull->elts , betaG->elts ) ;
      } else {
