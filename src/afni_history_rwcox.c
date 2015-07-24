@@ -43,7 +43,12 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 17 , JUL , 2015 , RWC , "mri_write.c" , MICRO , TYPE_BUG_FIX ,
+  { 23 , JUL , 2015 , RWC , "3dREMLfit" , MINOR , TYPE_NEW_OPT ,
+   "Add -dsort option" ,
+   "Allows the addition of voxel-wise baseline regressors.  To test out\n"
+   "ANATICOR applied to task-based FMRI data, for example." } ,
+
+ { 17 , JUL , 2015 , RWC , "mri_write.c" , MICRO , TYPE_BUG_FIX ,
    "Make mri_write_1D(\"stdout:\") work correctly" ,
    "Before you could get filename \"stdout:.1D\" which is not very useful." } ,
 
