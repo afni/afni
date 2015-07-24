@@ -596,9 +596,13 @@ static int nsdg_add_index_list(NI_group *ngr, gifti_image *gim)
     /* okay, let's actually add the list as NIFTI_INTENT_NODE_INDEX */
     if( GP->verb > 3 ) fprintf(stderr,"++ inserting NODE_INDEX element...\n");
 
+    /* append a new element and grab the pointer */
     if( gifti_add_empty_darray(gim, 1) ) RETURN(1);
-
     da = gim->darray[gim->numDA-1];
+
+    /* INDEX_LIST should be first DA, according to standard, so move new one */
+    /* (brought up by Nick Oosterhof)                    24 Jul 2015 [rickr] */
+    gifti_rotate_DAs_to_front(gim, 1);
 
     gifti_set_DA_defaults(da);
     da->intent   = NIFTI_INTENT_NODE_INDEX;
