@@ -4,7 +4,8 @@
 #include <zlib.h>
 #include <expat.h>
 
-#ifdef USE_NIFTI_VERSION_1    # not used - so 2 is default   13 Jul, 2015
+/* this variable is currently not used, so 2 is default   13 Jul, 2015 */
+#ifdef USE_NIFTI_VERSION_1
 #include <nifti1_io.h>
 #else
 #include <nifti2_io.h>
@@ -226,6 +227,7 @@ int    gifti_swap_Nbytes        (void *data, long long nsets, int swapsize);
 int    gifti_alloc_DA_data      (gifti_image * gim, const int *dalist, int len);
 int    gifti_add_empty_CS       (giiDataArray * da);
 int    gifti_add_empty_darray   (gifti_image * gim, int num_to_add);
+int    gifti_rotate_DAs_to_front(gifti_image * gim, int nrot);
 int    gifti_add_to_meta        (giiMetaData * md, const char * name,
                                  const char * value, int replace);
 int    gifti_add_to_nvpairs     (nvpairs * p, const char * name,
