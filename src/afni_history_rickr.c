@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 24,  Jul, 2015, RCR, "afni-general", MICRO, TYPE_BUG_FIX,
+   "GIFTI datasets should have NODE_INDEX list as first DataArray",
+   "Thanks to N Oosterhof for pointing this out."
+ } ,
+
  { 23,  Jul, 2015, RCR, "afni-general", MICRO, TYPE_ENHANCE,
    "allow Graph_Bucket niml.dsets to be read, but just as 1D",
    NULL
