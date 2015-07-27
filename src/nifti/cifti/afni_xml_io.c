@@ -32,10 +32,8 @@ static int64_t text_to_f64(double * result, const char * text, int64_t nvals);
 int axio_read_cifti_file(const char * fname, int get_ndata,
                          nifti_image ** nim_out, afni_xml_t ** ax_out)
 {
-   nifti1_extension * ext;
    nifti_image      * nim;
    afni_xml_t       * ax = NULL;
-   int                ind;
 
    if( !fname || !nim_out || !ax_out ) {
       fprintf(stderr,"** axio_CIFTI: NULL inputs %p, %p, %p\n",
@@ -56,11 +54,7 @@ int axio_read_cifti_file(const char * fname, int get_ndata,
    }
 
    /* set ax_out */
-   ext = nim->ext_list;
-   for( ind = 0; ind < nim->num_ext; ind++ ) {
-      if( ext->ecode != NIFTI_ECODE_CIFTI ) continue;
-      ax = axio_read_buf(ext->edata, ext->esize-8);
-   }
+   ax = axio_cifti_from_ext(nim);
    *ax_out = ax;
 
    if( ! ax ) {
@@ -137,6 +131,23 @@ int axio_num_tokens(const char * str, int64_t maxlen)
    return ntok;
 }
 
+
+afni_xml_t * axio_cifti_from_ext(nifti_image * nim)
+{
+   nifti1_extension * ext;
+   int                ind;
+
+   if( !nim ) return NULL;
+
+   /* just read until we have a CIFTI extension to process */
+   ext = nim->ext_list;
+   for( ind = 0; ind < nim->num_ext; ind++ ) {
+      if( ext->ecode != NIFTI_ECODE_CIFTI ) continue;
+      return axio_read_buf(ext->edata, ext->esize-8);
+   }
+
+   return NULL;
+}
 
 
 /* ====================================================================== */

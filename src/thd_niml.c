@@ -752,18 +752,18 @@ ENTRY("process_NSD_index_list");
     nel = (NI_element *)elist[0];       /* grab first element (only!?)  */
     NI_free(elist);                     /* and we're done with the list */
 
-    /* make sure this is a single array of ints */
+    /* make sure this is a single array of ints, else ignore */
     if( !nel || nel->vec_num != 1 || nel->vec_len <= 0 )
     {
-        if(gni.debug) fprintf(stderr,"** malformed INDEX_LIST element\n");
-        RETURN(1);
+        if(gni.debug) fprintf(stderr,"-- empty INDEX_LIST element\n");
+        RETURN(0);
     }
 
     if( nel->vec_typ[0] != NI_INT )
     {
         if(gni.debug)
             fprintf(stderr,"** INDEX_LIST has bad type %d\n",nel->vec_typ[0]);
-        RETURN(1);
+        RETURN(0);
     }
 
     /* note the byte order, in case we need to swap the index bytes */
@@ -887,7 +887,7 @@ ENTRY("process_NSD_sparse_data");
 
     if(gni.debug > 1)
         fprintf(stderr,
-                "+d setting datum, nxyz, nx to %s, %d, %d\n",
+                "+d setting datum, nxyz, nvals to %s, %d, %d\n",
                 tpafni == MRI_float ? "float":"complex" ,
                 nel->vec_len, nel->vec_num);
 

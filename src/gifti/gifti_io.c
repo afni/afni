@@ -133,11 +133,12 @@ static char * gifti_history[] =
   "     - can read/write ascii COMPLEX64, COMPLEX128, RGB24\n"
   "       (requested by H Breman, J Mulders, N Schmansky)\n"
   "1.11 07 March, 2012: fixed sizeof in memset of gim (noted by B Cox)\n",
-  "1.12 15 June, 2012: make num_dim violation a warning, because of mris_convert\n",
+  "1.12 15 June, 2012: make num_dim violation a warning (mris_convert)\n",
   "1.13 17 June, 2015: added gifti_read_image_buf\n"
+  "1.14 24 July, 2015: added gifti_rotate_DAs_to_front\n"
 };
 
-static char gifti_version[] = "gifti library version 1.13, 17 June, 2015";
+static char gifti_version[] = "gifti library version 1.14, 24 July, 2015";
 
 /* ---------------------------------------------------------------------- */
 /*! global lists of XML strings */
@@ -1220,6 +1221,55 @@ int gifti_add_empty_CS(giiDataArray * da)
     gifti_clear_CoordSystem(da->coordsys[da->numCS]);
 
     da->numCS++;
+
+    return 0;
+}
+
+/*----------------------------------------------------------------------
+ *! rotate DA list, moving from the back to the front
+ *
+ *  this (after add_empty) would allow one to add a new entry to the front
+ *
+ *  - allocate for nrot temp pointers
+ *  - copy nrot trailing pointers to temp
+ *  - shift numDA-nrot pointers to end
+ *  - copy temp pointers to start
+ *  - free temp array
+ *
+ *  return 0 on success
+ *         1 on error
+*//*-------------------------------------------------------------------*/
+int gifti_rotate_DAs_to_front(gifti_image * gim, int nrot)
+{
+    giiDataArray ** dtmp;
+    int             ind;
+
+    if( !gim || nrot < 0 || nrot >= gim->numDA) return 1;
+
+    if( nrot < 1 ) return 0;
+
+    if(G.verb > 3)fprintf(stderr,"++ rotate darray[%d] (%d)\n",gim->numDA,nrot);
+
+    /* allocate for temporary pointers */
+    dtmp = (giiDataArray **)malloc(nrot*sizeof(giiDataArray *));
+    if( !dtmp ) {
+       fprintf(stderr,"** failed to alloc %d DA pointers\n", nrot);
+       return 1;
+    }
+
+    /* copy nrot into temp list (cleaner than memcpy?) */
+    for( ind=0; ind < nrot; ind++ )
+       dtmp[ind] = gim->darray[gim->numDA-nrot+ind];
+
+    /* shift numDA-nrot to end (index downward over destinations) */
+    for( ind=gim->numDA-1; ind >= nrot; ind-- )
+       gim->darray[ind] = gim->darray[ind-nrot];
+
+    /* copy nrot from temp list to start */
+    for( ind=0; ind < nrot; ind++ )
+       gim->darray[ind] = dtmp[ind];
+
+    free(dtmp);
 
     return 0;
 }

@@ -50,7 +50,7 @@ extern "C" {                    /* care of Greg Balls    7 Aug 2006 [rickr] */
 #  define MAX(a,b) (((a)>(b)) ? (a) : (b))
 #endif
 
-#define NEXTDMS(dm) MIN(1.1*(dm)+1.01 , 1000.0)
+#define NEXTDMS(dm) MIN(1.1*(dm)+1.01 , 99.0)
 
 #define BCOPY memcpy
 

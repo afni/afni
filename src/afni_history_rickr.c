@@ -49,6 +49,26 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 27,  Jul, 2015, RCR, "afni_proc.py", MICRO, TYPE_MODIFY,
+   "renamed -regress_WMeL_corr to -regress_make_corr_AIC and default to 'no'",
+   NULL
+ } ,
+
+ { 24,  Jul, 2015, RCR, "afni-general", MICRO, TYPE_BUG_FIX,
+   "GIFTI datasets should have NODE_INDEX list as first DataArray",
+   "Thanks to N Oosterhof for pointing this out."
+ } ,
+
+ { 23,  Jul, 2015, RCR, "afni-general", MICRO, TYPE_ENHANCE,
+   "allow Graph_Bucket niml.dsets to be read, but just as 1D",
+   NULL
+ } ,
+
+ { 17,  Jul, 2015, RCR, "plug_realtime", MINOR, TYPE_ENHANCE,
+   "Dimon->afni: small TCP buffers cause volumes to be passed slowly",
+   "In iochan_recvall, increase nap time only if packets < 4K are recieved."
+ } ,
+
  { 13,  Jul, 2015, RCR, "nifti_tool", MAJOR, TYPE_ENHANCE,
    "nifti_tool is now based on NIFTI-2, with many corresponding new options",
    "The old nifti_tool (based on NIFTI-1) is now nifti1_tool."
