@@ -1529,6 +1529,7 @@ void AFNI_sigfunc_alrm(int sig)
      "Remember -- He who laughs, lasts"                              ,
      "Remember -- The innocent have everything to fear"              ,
      "Remember -- Memory is long but time is tricky"                 ,
+     "'It remains to be seen' == 'When pigs fly'"                    ,
      "Do not scorn pity that is the gift of a gentle heart"          ,
      "The best laid statistics of mice and men gang aft agley"       ,
      "A thousand farewells pass in one moment"                       ,
