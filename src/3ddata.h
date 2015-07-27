@@ -3747,7 +3747,6 @@ extern float THD_fdrcurve_zqtot( THD_3dim_dataset *dset , int iv , float zval ) 
 #define DSET_unload_one(ds,iv) THD_purge_one_brick( (ds)->dblk , (iv) )
 
 /*! Delete dataset ds's volumes and struct from memory.
-
     Does not delete from disk
 */
 #define DSET_delete(ds) THD_delete_3dim_dataset((ds),False)
@@ -3756,7 +3755,6 @@ extern float THD_fdrcurve_zqtot( THD_3dim_dataset *dset , int iv , float zval ) 
   do{ THD_delete_3dim_dataset((ds),False); myXtFree((ds)); } while(0)
 
 /*! Write dataset ds to disk.
-
     Also loads the sub-brick statistics
 */
 #define DSET_write(ds)  ( THD_load_statistics( (ds) ) ,                    \

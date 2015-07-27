@@ -2916,8 +2916,8 @@ def db_mod_regress(block, proc, user_opts):
     apply_uopt_to_block('-regress_anaticor_fast', user_opts, block)
     apply_uopt_to_block('-regress_anaticor_fwhm', user_opts, block)
     apply_uopt_to_block('-regress_anaticor_label', user_opts, block)
-    apply_uopt_to_block('-regress_WMeL_corr', user_opts, block)
     apply_uopt_to_block('-regress_make_corr_vols', user_opts, block)
+    apply_uopt_to_block('-regress_make_corr_AIC', user_opts, block)
 
     # check for user updates
     uopt = user_opts.find_opt('-regress_basis')
@@ -4241,18 +4241,18 @@ def db_cmd_anaticor_fast(proc, block, rset, fwhm=30, roilab='WMe'):
            '3dmerge -1blur_fwhm %g -doall -prefix %s %s%s\n\n'               \
            % (fwhm, rset.out_prefix(), vmask, proc.view)
 
-    if block.opts.have_yes_opt('-regress_%sL_corr'%roilab, default=1):
+    if block.opts.find_opt('-regress_make_corr_AIC'):
       # what is exaplained above and beyond the X-matrix
       cmd +='# diagnostic volume: voxel correlation with local white matter\n'\
             '#                    (above and beyond X-matrix regressors)\n'   \
             '3dTcorrelate -prefix %s -ort %s \\\n'                            \
             '             %s%s %s\n\n'                     \
-            % ('%sL_corr'%roilab, proc.xmat_nocen, vall, proc.view, rset.pv())
+            % ('corr_AIC_%sL'%roilab, proc.xmat_nocen, vall, proc.view, rset.pv())
 
       cmd +='# diagnostic volume: raw correlation, no X-matrix regressors\n'  \
             '3dTcorrelate -prefix %s \\\n'                                    \
             '             %s%s %s\n\n'                                        \
-            % ('%sL_corr_raw'%roilab, vall, proc.view, rset.pv())
+            % ('corr_AIC_%sL_raw'%roilab, vall, proc.view, rset.pv())
 
     return 0, cmd
 

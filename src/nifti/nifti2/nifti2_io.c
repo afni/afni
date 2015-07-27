@@ -372,16 +372,21 @@ static char const * const gni2_history[] =
   "2.02 11 May, 2015 [rickr]\n"
   "   - added to repository 28 Apr, 2015\n"
   "   - nifti_read_header() now returns found header struct\n"
+  "2.03 23 Jul, 2015 [rickr]\n"
+  "   - possibly alter dimensions on CIFTI read\n"
+  "   - return N-1 headers in unknown version cases\n",
 };
 
 static const char gni_version[]
-        = "nifti-2 library version 2.02 (11 May, 2015)";
+        = "nifti-2 library version 2.03 (23 July, 2015)";
 
 /*! global nifti options structure - init with defaults */
+/*  see 'option accessor functions'                     */
 static nifti_global_options g_opts = {
         1, /* debug level                                         */
         0, /* skip_blank_ext    - skip extender if no extensions  */
-        1  /* allow_upper_fext  - allow uppercase file extensions */
+        1, /* allow_upper_fext  - allow uppercase file extensions */
+        0, /* alter_cifti       - alter CIFTI dims to use nx,t,u,v*/
 };
 
 char nifti1_magic[4] = { 'n', '+', '1', '\0' };
@@ -481,6 +486,9 @@ static int   need_nhdr_swap    (short dim0, int hdrsize);
 static int   print_hex_vals    (const char * data, int nbytes, FILE * fp);
 static int   unescape_string   (char *str);  /* string utility functions */
 static char *escapize_string   (const char *str);
+
+/* consider for export */
+static int  nifti_ext_type_index(nifti_image * nim, int ecode);
 
 /* internal I/O routines */
 static znzFile nifti_image_load_prep( nifti_image *nim );
@@ -1511,6 +1519,31 @@ void nifti_datatype_sizes( int datatype , int *nbyper, int *swapsize )
 
    ASSIF(nbyper,nb) ; ASSIF(swapsize,ss) ; return ;
 }
+
+
+/*-----------------------------------------------------------------*/
+/*! copy between float and double mat44 types 10 Jul, 2015 [rickr] */
+
+int nifti_mat44_to_dmat44(mat44 * fm, nifti_dmat44 * dm)
+{
+   int i, j;
+   if( !dm || !fm ) return 1;
+   for( i=0; i<4; i++ )
+      for( j=0; j<4; j++ )
+         dm->m[i][j] = (double)fm->m[i][j];
+   return 0;
+}
+
+int nifti_dmat44_to_mat44(nifti_dmat44 * dm, mat44 * fm)
+{
+   int i, j;
+   if( !dm || !fm ) return 1;
+   for( i=0; i<4; i++ )
+      for( j=0; j<4; j++ )
+         fm->m[i][j] = (float)dm->m[i][j];
+   return 0;
+}
+
 
 /*---------------------------------------------------------------------------*/
 /*! Given the quaternion parameters (etc.), compute a transformation matrix
@@ -3508,6 +3541,10 @@ char * nifti_makebasename(const char* fname)
 }
 
 /*----------------------------------------------------------------------*/
+/* option accessor functions                                            */
+/*----------------------------------------------------------------------*/
+
+/*----------------------------------------------------------------------*/
 /*! set nifti's global debug level, for status reporting
 
     - 0    : quiet, nothing is printed to the terminal, but errors
@@ -3537,6 +3574,24 @@ void nifti_set_skip_blank_ext( int skip )
 void nifti_set_allow_upper_fext( int allow )
 {
     g_opts.allow_upper_fext = allow ? 1 : 0;
+}
+
+/*----------------------------------------------------------------------*/
+/*! get nifti's global alter_cifti flag              22 Jul 2015 [rickr]
+*//*--------------------------------------------------------------------*/
+int nifti_get_alter_cifti( void )
+{
+    return g_opts.alter_cifti;
+}
+
+/*----------------------------------------------------------------------*/
+/*! set nifti's global alter_cifti flag              22 Jul 2015 [rickr]
+
+    explicitly set to 0 or 1
+*//*--------------------------------------------------------------------*/
+void nifti_set_alter_cifti( int alter_cifti )
+{
+    g_opts.alter_cifti = alter_cifti ? 1 : 0;
 }
 
 /*----------------------------------------------------------------------*/
@@ -5285,10 +5340,6 @@ nifti_2_header * nifti_read_n2_hdr(const char * hname, int * swapped,
    return hptr;
 }
 
-/* rcr - updates for hdr_looks good
-       - write nifti_hdr2_looks_good
-*/
-
 
 /*----------------------------------------------------------------------*/
 /*! decide if this nifti_1_header structure looks reasonable
@@ -5450,7 +5501,7 @@ int nifti_hdr2_looks_good(const nifti_2_header * hdr)
    /* NIFTI_VERSION must return 2, or else sizes will not match */
    if( ni_ver != 2 || memcmp((hdr->magic+4), nifti2_magic+4, 4) ) {
       if( g_opts.debug > 0 ) {
-         fprintf(stderr, "-- header magic not NIFTI-2, magic = '%.4s' + 0x ",
+         fprintf(stderr, "-- header magic not NIFTI-2, magic = '%.4s' + ",
                          hdr->magic);
          print_hex_vals(hdr->magic+4, 4, stderr); fputc('\n', stderr);
       }
@@ -5619,7 +5670,7 @@ void * nifti_read_header( const char *hname, int *nver, int check )
 
       if ( check && ! nifti_hdr1_looks_good(hresult) ){
          LNI_FERR(fname,"nifti_1_header looks bad for file", hname);
-         return NULL;
+         return hresult;
       }
    } else if ( ni_ver == 2 ) {
       hresult = malloc(h2size);
@@ -5631,12 +5682,19 @@ void * nifti_read_header( const char *hname, int *nver, int check )
 
       if ( check && ! nifti_hdr2_looks_good(hresult) ){
          LNI_FERR(fname,"nifti_2_header looks bad for file", hname);
-         return NULL;
+         return hresult;
       }
    } else {
       if( g_opts.debug > 0 )
-         fprintf(stderr, "** %s: bad nifti header version %d\n", hfile, ni_ver);
-      hresult = NULL;
+         fprintf(stderr, "** %s: bad nifti header version %d\n", hname, ni_ver);
+
+      /* return a nifti-1 header anyway */
+      hresult = malloc(h1size);
+      if( ! hresult ) {
+         LNI_FERR(fname,"failed to alloc NIFTI-?? header for file", hname);
+         return NULL;
+      }
+      memcpy(hresult, (void *)&n1hdr, h1size);
    }
 
    if( g_opts.debug > 1 )
@@ -5748,7 +5806,7 @@ nifti_image *nifti_image_read( const char *hname , int read_data )
       onefile = NIFTI_ONEFILE(n2hdr);
    } else {
       if( g_opts.debug > 0 )
-         fprintf(stderr, "** %s: bad nifti header version %d\n", fname, ni_ver);
+         fprintf(stderr,"** %s: bad nifti im header version %d\n",fname,ni_ver);
       znzclose(fp);  free(hfile);  return NULL;
    }
 
@@ -5777,6 +5835,9 @@ nifti_image *nifti_image_read( const char *hname , int read_data )
    znzclose( fp ) ;                                      /* close the file */
    free(hfile);
 
+   if ( g_opts.alter_cifti && nifti_looks_like_cifti(nim) )
+      nifti_alter_cifti_dims(nim);
+
    /**- read the data if desired, then bug out */
    if( read_data ){
       if( nifti_image_load( nim ) < 0 ){
@@ -5787,6 +5848,65 @@ nifti_image *nifti_image_read( const char *hname , int read_data )
    else nim->data = NULL ;
 
    return nim ;
+}
+
+
+/*----------------------------------------------------------------------
+ # return the index of the first occurrence of the given ecode, else -1
+ *----------------------------------------------------------------------*/
+static int nifti_ext_type_index(nifti_image * nim, int ecode)
+{
+   int ind;
+
+   if ( !nim || ecode < 0 ) return -1;
+
+   for( ind = 0; ind < nim->num_ext; ind++ )
+      if( nim->ext_list[ind].ecode == ecode )
+         return ind;
+
+   return -1;
+}
+
+/*----------------------------------------------------------------------
+ *! does this dataset look like CIFTI?
+ *
+ * check dimensions and extension ecodes for CIFTI
+ *
+ * should have  - nx=ny=nz=nt=1, nu,nv>1, nw optional
+ *              - CIFTI extension
+ *----------------------------------------------------------------------*/
+int nifti_looks_like_cifti(nifti_image * nim)
+{
+   if( ! nim ) return 0;
+
+   if( nifti_ext_type_index(nim, NIFTI_ECODE_CIFTI) < 0 ) return 0;
+
+   if( nim->nx > 1 || nim->ny > 1 || nim->nz > 1 || nim->nt > 1 ) return 0;
+
+   if( nim->nu > 1 || nim->nv > 1 ) return 1;  /* looks like it */
+
+   return 0;
+}
+
+/*----------------------------------------------------------------------
+ *! alter the dims[] from CIFTI style
+ *
+ * convert nu -> nx, nv -> nt/nu, nw -> nv
+ *----------------------------------------------------------------------*/
+int nifti_alter_cifti_dims(nifti_image * nim)
+{
+   if( ! nifti_looks_like_cifti(nim) ) return 0;
+
+   /* the main effect, move position axis to x ... */
+   if( nim->nu > 1 || nim->dim[5] ) {
+      nim->nx = nim->nu;
+      nim->nu = 1;
+
+      nim->dim[1] = nim->dim[5];
+      nim->dim[5] = 1;
+   }
+
+   return 0;
 }
 
 
@@ -6307,7 +6427,7 @@ int nifti_header_version(const char * buf, int nbytes){
    /* failure */
 
    if( g_opts.debug > 0 )
-      fprintf(stderr,"** %s: bad sizeof_hdr = %d", fname, n1p->sizeof_hdr);
+      fprintf(stderr,"** %s: bad sizeof_hdr = %d\n", fname, n1p->sizeof_hdr);
 
    return -1;
 }

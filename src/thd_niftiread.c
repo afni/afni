@@ -39,6 +39,7 @@ ENTRY("THD_open_nifti") ;
       if( ept != NULL ) nifti_set_debug_level(atoi(ept));
    }
 
+   nifti_set_alter_cifti(1) ;  /* if CIFTI, shift dims   23 Jul 2015 [rickr] */
    nim = nifti_image_read( pathname, 0 ) ;
 
    if( nim == NULL || nim->nifti_type == 0 ) RETURN(NULL) ;
@@ -69,7 +70,15 @@ ENTRY("THD_open_nifti") ;
              pathname ) ;
      RETURN(NULL) ;
    }
+
    nvals = MAX(ntt,nbuc) ;
+
+   /* collapse higher-dimensional datasets    23 Jul 2015 [rickr] */
+   /* (this includes CIFTI)                                       */
+   if( nim->nv > 1 ) nvals *= nim->nv;
+   if( nim->nw > 1 ) nvals *= nim->nw;
+   if( ntt > 1 ) ntt = nvals;
+   else          nbuc = nvals;
 
    /* determine type of dataset values:
       if we are scaling, or if the data type in the NIfTI file

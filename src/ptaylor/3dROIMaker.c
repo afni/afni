@@ -49,6 +49,10 @@
         minor bug fix: outsets needed to have brickfac nulled, for when
         byte and short insets were used (-> had been causing error and 
         no output)
+
+    Jul 2015:
+        minor bug fix for negative-including refsets
+
 */
 
 
@@ -268,6 +272,7 @@ int main(int argc, char *argv[]) {
 	THD_3dim_dataset *insetSKEL=NULL;
 	THD_3dim_dataset *insetCSF_SKEL=NULL;
 	THD_3dim_dataset *outsetGM=NULL, *outsetGMI=NULL;
+   THD_3dim_dataset *outsetGM_tmp=NULL; // jul,2015: fix mismatch with rescal
 
    // default setting: neighbor shares face ONLY
    int NEIGHBOR_LIMIT = 2; 
@@ -300,6 +305,7 @@ int main(int argc, char *argv[]) {
 	short int ***CSF_SKEL=NULL;
 	int *N_thr=NULL, *relab_vox=NULL; // num of ROI vox per brik, pre-thr
 	short int **temp_arr=NULL,**temp_arr2=NULL;
+   short int **temp_arr_tmp=NULL; // jul,2015
 	int **ROI_LABELS_pre=NULL;
 	int **N_refvox_R=NULL;
 	float SKEL_THR=0.5;// default, such as if input SKEL is a mask
@@ -802,9 +808,14 @@ int main(int argc, char *argv[]) {
 	temp_arr = calloc( Dim[3],sizeof(temp_arr));  // XYZ components
 	for(i=0 ; i<Dim[3] ; i++) 
 		temp_arr[i] = calloc( Nvox,sizeof(short int) ); 
-	
+   // jul,2015
+   temp_arr_tmp = calloc( Dim[3],sizeof(temp_arr_tmp));  // XYZ components
+	for(i=0 ; i<Dim[3] ; i++) 
+		temp_arr_tmp[i] = calloc( Nvox,sizeof(short int) ); 
+
 	if( (DATA == NULL) || (N_thr == NULL) || (NROI_IN == NULL)
-		 || (NROI_IN_b == NULL) || (temp_arr == NULL) ) { 
+		 || (NROI_IN_b == NULL) || (temp_arr == NULL) 
+       || (temp_arr_tmp == NULL)) { 
 		fprintf(stderr, "\n\n MemAlloc failure.\n\n");
 		exit(14);
 	}
@@ -1011,7 +1022,7 @@ int main(int argc, char *argv[]) {
          if( dum1[0]<0 )//??inset-->fixed
             RESCALES[i] = 1 - ((int) dum1[0]);
          //printf("\n%d\t%d --> refscal=%d",(int) dum1[0], 
-         //     (int) dum2[0], RESCALES[i]);
+         //     (int) dum2[0], RESCALES[i]);  
       }
       
       // rescale values as necessary
@@ -1267,6 +1278,7 @@ int main(int argc, char *argv[]) {
 	// **************************************************************
 	// **************************************************************
 	
+	outsetGM_tmp = EDIT_empty_copy( inset ) ; // jul,2015
 	outsetGM = EDIT_empty_copy( inset ) ; 
    if( NIFTI_OUT )
       sprintf(prefix_GM,"%s_GM.nii.gz",prefix); // jan,2015
@@ -1279,7 +1291,11 @@ int main(int argc, char *argv[]) {
                     ADN_brick_fac, NULL,
 						  ADN_prefix    , prefix_GM ,
 						  ADN_none ) ;
-	
+   EDIT_dset_items( outsetGM_tmp,
+						  ADN_datum_all , MRI_short , 
+                    ADN_brick_fac, NULL,
+						  ADN_none ) ; // jul,2015
+
 	if( !THD_ok_overwrite() && THD_is_ondisk(DSET_HEADNAME(outsetGM)) )
 		ERROR_exit("Can't overwrite existing dataset '%s'",
 					  DSET_HEADNAME(outsetGM));
@@ -1289,24 +1305,31 @@ int main(int argc, char *argv[]) {
 		for( k=0 ; k<Dim[2] ; k++ ) 
 			for( j=0 ; j<Dim[1] ; j++ ) 
 				for( i=0 ; i<Dim[0] ; i++ ) {
-               if( DATA[i][j][k][m] )// account for neg values rescaled
+               if( DATA[i][j][k][m] ) {// account for neg values rescaled
                   temp_arr[m][idx] = DATA[i][j][k][m]-RESCALES[m];
+                  temp_arr_tmp[m][idx] = DATA[i][j][k][m]; // jul,2015
+               }
 					idx+=1;
 				}
 		EDIT_substitute_brick(outsetGM, m, MRI_short, temp_arr[m]); 
+		EDIT_substitute_brick(outsetGM_tmp, m, MRI_short, temp_arr_tmp[m]); 
 		temp_arr[m]=NULL; // to not get into trouble...
+		temp_arr_tmp[m]=NULL; // to not get into trouble...
 	}
+
 	
-	
-	for( m=0 ; m<Dim[3] ; m++ )
+	for( m=0 ; m<Dim[3] ; m++ ) {
 		free(temp_arr[m]);
+ 		free(temp_arr_tmp[m]);
+  }
 	free(temp_arr);
-	
-   if( NEIGHBOR_LIMIT == 2 )
-      WARNING_message("NB: as of Nov. 2014, "
-                   "voxel neighborhoods are facewise-only as a default\n"
-                   "\t(it's the general AFNI standard). "
-                   "See the helpfile for switches to change this feature.");
+   free(temp_arr_tmp);
+
+   //   if( NEIGHBOR_LIMIT == 2 )
+   //  WARNING_message("NB: as of Nov. 2014, "
+   //              "voxel neighborhoods are facewise-only as a default\n"
+   //              "\t(it's the general AFNI standard). "
+   //              "See the helpfile for switches to change this feature.");
 
 	INFO_message("GM map is done.");
 
@@ -1322,7 +1345,7 @@ int main(int argc, char *argv[]) {
 	NROI_GM = (int *)calloc(Dim[3], sizeof(int)); 
 	INVROI_GM = (int *)calloc(Dim[3], sizeof(int)); 
 	for( i=0 ; i<Dim[3] ; i++) 
-		INVROI_GM[i] = (int) THD_subbrick_max(outsetGM, i, 1);//??inset-->fixed
+		INVROI_GM[i] = (int) THD_subbrick_max(outsetGM_tmp, i, 1);//??inset-->fixed. jul,2015: new fix, temp values b/c of rescaling
    if( (INVROI_GM == NULL ) || ( NROI_GM == NULL ) ) {
 		fprintf(stderr, "\n\n MemAlloc failure.\n\n");
 		exit(122);
@@ -1350,18 +1373,23 @@ int main(int argc, char *argv[]) {
 			exit(123);
 	}
 
-	bb = ViveLeRoi(outsetGM, 
+   // jul,2015: use '_tmp' one to match with DATA, which might be rescaled
+	bb = ViveLeRoi(outsetGM_tmp, 
 						ROI_LABELS_GM, INV_LABELS_GM, 
 						NROI_GM,       INVROI_GM);
 	if( bb != 1)
 		ERROR_exit("Problem loading/assigning GM labels");
-	
+
+   DSET_delete(outsetGM_tmp); // jul,2015: unneeded hereafter
+   free(outsetGM_tmp);
+
+
 	// preliminary setting up of COUNT_GM
 	for( m=0 ; m<Dim[3] ; m++ ) {
 		// ?? Not sure what the next two lines were for...
       //for( i=0 ; i<NROI_GM[m]+1 ; i++ ) 
 		//	ROI_LABELS_GM[m][i] = 1; //switch to keep adding to it
-		
+
 		for( k=0 ; k<Dim[2] ; k++ ) 
 			for( j=0 ; j<Dim[1] ; j++ ) 
 				for( i=0 ; i<Dim[0] ; i++ ) 

@@ -383,6 +383,8 @@ int   nifti_is_inttype( int dt ) ;
 
 mat44        nifti_mat44_inverse ( mat44 R ) ;
 nifti_dmat44 nifti_dmat44_inverse( nifti_dmat44 R ) ;
+int          nifti_mat44_to_dmat44(mat44 * fm, nifti_dmat44 * dm);
+int          nifti_dmat44_to_mat44(nifti_dmat44 * dm, mat44 * fm);
 
 nifti_dmat33 nifti_dmat33_inverse( nifti_dmat33 R ) ;
 nifti_dmat33 nifti_dmat33_polar  ( nifti_dmat33 A ) ;
@@ -470,6 +472,11 @@ int    disp_nifti_2_header( const char * info, const nifti_2_header * hp ) ;
 void   nifti_set_debug_level( int level ) ;
 void   nifti_set_skip_blank_ext( int skip ) ;
 void   nifti_set_allow_upper_fext( int allow ) ;
+int    nifti_get_alter_cifti( void );
+void   nifti_set_alter_cifti( int alter_cifti );
+
+int    nifti_alter_cifti_dims(nifti_image * nim);
+
 
 int    valid_nifti_brick_list(nifti_image * nim , int64_t nbricks,
                               const int64_t * blist, int disp_error);
@@ -561,6 +568,7 @@ nifti_image    * nifti_simple_init_nim(void);
 nifti_image    * nifti_convert_n1hdr2nim(nifti_1_header nhdr,const char *fname);
 nifti_image    * nifti_convert_n2hdr2nim(nifti_2_header nhdr,const char *fname);
 
+int    nifti_looks_like_cifti(nifti_image * nim);
 
 int    nifti_hdr1_looks_good       (const nifti_1_header * hdr);
 int    nifti_hdr2_looks_good       (const nifti_2_header * hdr);
@@ -666,6 +674,7 @@ typedef struct {
     int debug;               /*!< debug level for status reports  */
     int skip_blank_ext;      /*!< skip extender if no extensions  */
     int allow_upper_fext;    /*!< allow uppercase file extensions */
+    int alter_cifti;         /*!< convert CIFTI dimensions        */
 } nifti_global_options;
 
 typedef struct {
