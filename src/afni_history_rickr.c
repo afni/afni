@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 27,  Jul, 2015, RCR, "afni_proc.py", MICRO, TYPE_MODIFY,
+   "renamed -regress_WMeL_corr to -regress_make_corr_AIC and default to 'no'",
+   NULL
+ } ,
+
  { 24,  Jul, 2015, RCR, "afni-general", MICRO, TYPE_BUG_FIX,
    "GIFTI datasets should have NODE_INDEX list as first DataArray",
    "Thanks to N Oosterhof for pointing this out."
