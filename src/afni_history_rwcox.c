@@ -43,7 +43,16 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 23 , JUL , 2015 , RWC , "3dREMLfit" , MINOR , TYPE_NEW_OPT ,
+  { 27 , JUL , 2015 , RWC , "3dREMLfit" , MINOR , TYPE_NEW_OPT ,
+   "-dsort_nods option" ,
+   "When used with -dsort, this option will make 3dREMLfit calculate the\n"
+   "results with the -dsort regressors(s) omitted as well as the results\n"
+   "with the -dsort regressor(s) included -- so the user can compare the\n"
+   "dsort and non-dsort results easily with 1 run of the program.  'nods' ==\n"
+   "'no dsort'.  Each nods dataset will have the string '_nods' appended to\n"
+   "the prefix." } ,
+
+ { 23 , JUL , 2015 , RWC , "3dREMLfit" , MINOR , TYPE_NEW_OPT ,
    "Add -dsort option" ,
    "Allows the addition of voxel-wise baseline regressors.  To test out\n"
    "ANATICOR applied to task-based FMRI data, for example." } ,
