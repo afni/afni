@@ -442,6 +442,7 @@ g_history = """
         - generate WMeL_corr as a diagnostic volume (corr w/WMeLocal)
         - todo: add ability to make WMeL_corr without fast anaticor
     4.31 Feb 27, 2015: added -regress_WMeL_corr option (forgot that)
+        - 27 July, 2015: option changed to -regress_make_corr_AIC
     4.32 Mar  2, 2015:
         - fixed 3dTproject call for resting state on surface
         - small change to get 3dSeg results using wildcard
@@ -481,9 +482,12 @@ g_history = """
     4.45 May 22, 2015: help clarifications
     4.46 Jun 15, 2015: applied -regress_stim_times_offset to typical timing
     4.47 Jul 01, 2015: clarified help for -anat_unif_GM, default = no
+    4.48 Jul 27, 2015:
+        - renamed -regress_WMeL_corr to -regress_make_corr_AIC
+        - default is now 'no' (since it is a somewhat slow operation)
 """
 
-g_version = "version 4.47, July 1, 2015"
+g_version = "version 4.48, July 27, 2015"
 
 # version of AFNI required for script execution
 g_requires_afni = "1 Apr 2015" # 1d_tool.py uncensor from 1D
@@ -497,8 +501,6 @@ g_todo_str = """todo:
   - add warnings from any bad GLTsymtest output
 
   - warn of missing input dsets?  (-dsets, -copy_anat, any 3dcopy)
-  - use anaticor_fast method to produce QC volume from WMe of VR data
-     - WMe mask and blur volreg, correlate with same volreg (detrend)
   - add -volreg_align_base_to_ext_dset (probably a small displacement)
     (to match volreg_base to -align_epi_ext_dset)
   - if no align/tlrc blocks, but -mask_segment_anat, run 3dSkullStrip
@@ -1010,8 +1012,6 @@ class SubjProcSream:
                         helpstr="specify radius for WMeLocal extraction")
         self.valid_opts.add_opt('-regress_anaticor_label', 1, [],
                         helpstr="specify ROI label for anaticor (default=WMe)")
-        self.valid_opts.add_opt('-regress_WMeL_corr', 0, [],
-                        helpstr="if WMeLocal, compute correlation volume")
         self.valid_opts.add_opt('-regress_apply_mask', 0, [],
                         helpstr="apply the mask in regression")
         self.valid_opts.add_opt('-regress_apply_ricor', 1, [],
@@ -1111,6 +1111,8 @@ class SubjProcSream:
                         helpstr="apply -local_times option to 3dDeconvolve")
         self.valid_opts.add_opt('-regress_make_ideal_sum', 1, [],
                         helpstr="filename for sum of ideal regressors")
+        self.valid_opts.add_opt('-regress_make_corr_AIC', 0, [],
+                        helpstr="if WMeLocal, compute correlation volume")
         self.valid_opts.add_opt('-regress_make_corr_vols', -1, [],
                         helpstr="get correlation volumes for given ROIs")
         self.valid_opts.add_opt('-regress_no_ideal_sum', 0, [],
