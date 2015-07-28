@@ -3889,6 +3889,11 @@ def db_cmd_regress(proc, block):
     # fast or slow anaticor via projection (resting state)
     if proc.anaticor:
 
+       if proc.anaticor == 1:
+          print '** WARNING: ANATICOR output now includes zero volumes at\n' \
+                '            censor points, matching fast ANATICOR and\n'    \
+                '            non-ANATICOR cases'
+
        # inputs, -censor, -cenmode, -ort Xmat, -prefix
        if proc.censor_file: xmat = '%s%s' % (tmp_prefix, newmat)
        else:                xmat = '%s%s' % (tmp_prefix, proc.xmat)
