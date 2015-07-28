@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 28,  Jul, 2015, RCR, "afni_proc.py", MICRO, TYPE_MODIFY,
+   "ANATICOR now includes zero volumes at censor points",
+   "This matches non-ANATICOR and fast ANATICOR cases."
+ } ,
+
  { 27,  Jul, 2015, RCR, "afni_proc.py", MICRO, TYPE_MODIFY,
    "renamed -regress_WMeL_corr to -regress_make_corr_AIC and default to 'no'",
    NULL
