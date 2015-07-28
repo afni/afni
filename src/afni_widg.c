@@ -5926,7 +5926,7 @@ ENTRY("new_AFNI_controller") ;
       XmAddWMProtocolCallback(
            im3d->vwid->top_shell ,
            XmInternAtom( dc->display , "WM_DELETE_WINDOW" , False ) ,
-           AFNI_quit_CB , im3d ) ;
+           AFNI_quit_CB , NULL ) ;
 
    if( MCW_isitmwm( im3d->vwid->top_shell ) )
       XtVaSetValues( im3d->vwid->top_shell ,
