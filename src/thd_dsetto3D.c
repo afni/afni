@@ -21,6 +21,8 @@ STATUS("make new image") ;
    var  = MRI_FLOAT_PTR(im) ;
    nvox = DSET_NVOX(dset) ;
 
+   if( DSET_ARRAY(dset,iv) == NULL ) DSET_load(dset) ;  /* 28 Jul 2015 */
+
    /*-- extract/scale brick into var --*/
 
    switch( DSET_BRICK_TYPE(dset,iv) ){
