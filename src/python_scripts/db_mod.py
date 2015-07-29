@@ -6076,6 +6076,9 @@ g_help_string = """
          * Also, consider '-volreg_align_to MIN_OUTLIER', to use the volume
            with the minimum outlier fraction as the registration base.
 
+         * Also, one can use ANATICOR with task (-regress_anaticor_fast, say)
+           in the case of -reml_exec.
+
         Example 7. Similar to 6, but get a little more esoteric.
 
            a. Register EPI volumes to the one which has the minimum outlier
