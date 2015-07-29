@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 29,  Jul, 2015, RCR, "gen_ss_reivew_scripts.py", MICRO, TYPE_MODIFY,
+   "block any _REMLvar stats dset (was _REMLvar+)",
+   "Might get stats*_REMLvar_nods, for example, via 3dREMLfit -dsort_nods."
+ } ,
+
  { 29,  Jul, 2015, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,
    "ANATICOR now works with task analysis, using -regress_reml_exec",
    "Done for R W Cox."
