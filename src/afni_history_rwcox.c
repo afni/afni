@@ -43,7 +43,13 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 27 , JUL , 2015 , RWC , "3dREMLfit" , MINOR , TYPE_NEW_OPT ,
+  { 29 , JUL , 2015 , RWC , "3dTstat" , MICRO , TYPE_NEW_OPT ,
+   "add -nzstdev option" ,
+   "Given a voxel, extract all the values.  Throw out those values that are\n"
+   "nonzero.  Compute the stdev of the remaining set (assuming at least 2),\n"
+   "with no further processing (no detrending)." } ,
+
+ { 27 , JUL , 2015 , RWC , "3dREMLfit" , MINOR , TYPE_NEW_OPT ,
    "-dsort_nods option" ,
    "When used with -dsort, this option will make 3dREMLfit calculate the\n"
    "results with the -dsort regressors(s) omitted as well as the results\n"
