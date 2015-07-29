@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 29,  Jul, 2015, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,
+   "ANATICOR now works with task analysis, using -regress_reml_exec",
+   "Done for R W Cox."
+ } ,
+
  { 29,  Jul, 2015, RCR, "3dcalc", MICRO, TYPE_MODIFY,
    "clarify error about mis-match in number of volumes",
    NULL
