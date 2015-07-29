@@ -49,7 +49,12 @@
 
 afni_history_struct rickr_history[] = {
 
- { 28,  Jul, 2015, RCR, "afni_proc.py", MICRO, TYPE_MODIFY,
+ { 29,  Jul, 2015, RCR, "3dcalc", MICRO, TYPE_MODIFY,
+   "clarify error about mis-match in number of volumes",
+   NULL
+ } ,
+
+ { 28,  Jul, 2015, RCR, "afni_proc.py", MINOR, TYPE_MODIFY,
    "ANATICOR now includes zero volumes at censor points",
    "This matches non-ANATICOR and fast ANATICOR cases."
  } ,
