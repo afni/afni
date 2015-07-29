@@ -488,12 +488,15 @@ g_history = """
     4.49 Jul 28, 2015:
         - ** ANATICOR now includes zero volumes at censor points
         -    (this matches non-ANATICOR and fast ANATICOR cases)
+    4.50 Jul 29, 2015:
+        - ANATICOR now works for task analysis, using -regress_reml_exec
 """
 
-g_version = "version 4.49, July 28, 2015"
+g_version = "version 4.50, July 29, 2015"
 
 # version of AFNI required for script execution
-g_requires_afni = "1 Apr 2015" # 1d_tool.py uncensor from 1D
+# prev: g_requires_afni = "1 Apr 2015" # 1d_tool.py uncensor from 1D
+g_requires_afni = "23 Jul 2015" # 3dREMLfit -dsort
 
 g_todo_str = """todo:
   - add option to block anat from anat followers?
@@ -634,6 +637,7 @@ class SubjProcSream:
         self.e2final    = ''            # aff12.1D file for e2final_mv
         self.regress_inset = None       # afni_name: first input to regression
         self.anaticor   = 0             # 0/1/2 = no/slow/fast
+        self.aic_lset   = None          # ANATICOR local WM time series dataset
         self.errts_pre  = ''            # possibly changing errts prefix
         self.errts_reml = ''            # prefix for any REML errts
         self.errts_cen  = 0             # flag: current errts has censored
