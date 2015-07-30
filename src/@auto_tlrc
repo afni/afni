@@ -1365,7 +1365,14 @@ if ( "$ref_path" == "$ref_in" ) then
    if ($verb) echo "Using template from ${ref_path} ..."
    set ref_in = ${ref_path}/${ref_in}
 else
-   #echo "Path specified (${ref_path}), stay out of this"
+   # echo "Path specified (${ref_path}), stay out of this"
+
+   # still check for existing dataset    30 Jul 2015 [rickr]
+   if ( `@CheckForAfniDset ${ref_in}` < 2 ) then
+      echo "Error: template (or -apar) dset not found: ${ref_in}"
+      goto BEND
+   endif
+
 endif
 
 END_REF_SEARCH:
