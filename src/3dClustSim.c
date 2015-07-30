@@ -87,7 +87,7 @@ static int do_ball = 0 ;
 
 static unsigned int gseed = 123456789 ;
 
-#define PMAX 0.2
+#define PMAX 0.5
 
 static double pthr_init[9] = { 0.05 , 0.02 , 0.01, 0.005, 0.002, 0.001, 0.0005, 0.0002, 0.0001 } ;
 static double athr_init[4] = { 0.10 , 0.05 , 0.02 , 0.01 } ;
