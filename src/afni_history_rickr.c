@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 31,  Jul, 2015, RCR, "@FindAfniDsetPath", MICRO, TYPE_ENHANCE,
+   "allow full paths to succeeed ; no args gives help",
+   NULL
+ } ,
+
  { 30,  Jul, 2015, RCR, "@auto_tlrc", MICRO, TYPE_BUG_FIX,
    "check for template existence even given path",
    "Was failing with -init_xform."
