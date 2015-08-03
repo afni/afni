@@ -106,10 +106,12 @@ static char * g_history[] =
     "        (problem reported by A Nilsen)\n"
     "      - also, pass along option TR in volume case\n"
     " 3.17 Aug 12, 2014 [rickr] - Dimon1: a fork of the old Dimon\n",
+    " 3.18 Aug  3, 2015 [rickr] : fixed calls to add_to_string_list()\n",
+    "      - affects -drive_afni, -drive_wait and -rt_cmd command lists\n"
     "----------------------------------------------------------------------\n"
 };
 
-#define DIMON_VERSION "version 3.17 (August 12, 2014)"
+#define DIMON_VERSION "version 3.18 (August 3, 2015)"
 
 /*----------------------------------------------------------------------
  * Dimon - monitor real-time aquisition of Dicom or I-files
@@ -2469,7 +2471,7 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
                 return 1;
             }
 
-            if ( add_to_string_list( &p->opts.drive_list, argv[ac], 0 ) != 0 )
+            if ( add_to_string_list( &p->opts.drive_list, argv[ac], 0 ) <= 0 )
             {
                 fprintf(stderr,"** failed add '%s' to drive_list\n",argv[ac]);
                 return 1;
@@ -2483,7 +2485,7 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
                 return 1;
             }
 
-            if ( add_to_string_list( &p->opts.wait_list, argv[ac], 0 ) != 0 )
+            if ( add_to_string_list( &p->opts.wait_list, argv[ac], 0 ) <= 0 )
             {
                 fprintf(stderr,"** failed add '%s' to drive_wait\n",argv[ac]);
                 return 1;
@@ -2523,7 +2525,7 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
                 return 1;
             }
 
-            if ( add_to_string_list( &p->opts.rt_list, argv[ac], 0 ) != 0 )
+            if ( add_to_string_list( &p->opts.rt_list, argv[ac], 0 ) <= 0 )
             {
                 fprintf(stderr,"** failed add '%s' to rt_list\n",argv[ac]);
                 return 1;

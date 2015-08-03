@@ -133,10 +133,13 @@ static char * g_history[] =
     "      - do not allow num_suffix entries to be read as octal\n"
     "      - show version upon execution\n"
     " 4.11 Mar 13, 2015 [rickr]: added option -te_list for VR\n",
+    " 4.12 Aug  3, 2015 [rickr]: \n",
+    "      - lost timing info in change to 3D+t (version 4.04, above)\n"
+    "      - add it back via new sequence type 3D+timing\n"
     "----------------------------------------------------------------------\n"
 };
 
-#define DIMON_VERSION "version 4.11 (March 13, 2015)"
+#define DIMON_VERSION "version 4.12 (August 3, 2015)"
 
 /*----------------------------------------------------------------------
  * Dimon - monitor real-time aquisition of Dicom or I-files
