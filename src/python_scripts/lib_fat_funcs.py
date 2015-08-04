@@ -1400,6 +1400,7 @@ def Check_Header_Spaces(X):
     N = len(X)
 
     for s in range(N):
+        X[s] = X[s].strip()    # first strip away leading/trailing WS; aug,2015
         nn = X[s].rfind(' ')
         if nn >= 0:
             bleep = str(X[s])  # cheap copy
