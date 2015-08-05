@@ -49,9 +49,9 @@
 
 afni_history_struct rickr_history[] = {
 
- {  3,  Aug, 2015, RCR, "Dimon1", MICRO, TYPE_BUG_FIX,
-   "fixed -drive_afni, -drive_wait and -rt_cmd command lists",
-   NULL
+ {  5,  Aug, 2015, RCR, "afni-general", MICRO, TYPE_ENHANCE,
+   "add some support for reading Voxel_Bucket datasets into AFNI",
+   "That is a type that is currently specific to SUMA."
  } ,
 
  {  3,  Aug, 2015, RCR, "Dimon", MICRO, TYPE_BUG_FIX,

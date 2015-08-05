@@ -599,7 +599,8 @@ int storage_mode_from_prefix( char * fname )
 ENTRY("storage_mode_from_prefix");
    
    if( !fname || !*fname )                     RETURN(STORAGE_UNDEFINED);
-   if ((sm = storage_mode_from_filename(fname)) != STORAGE_UNDEFINED) RETURN(sm);
+   sm = storage_mode_from_filename(fname);
+   if( sm != STORAGE_UNDEFINED ) RETURN(sm);
    
    if (fname[strlen(fname)-1] == '.') { 
       if( STRING_HAS_SUFFIX(fname, "+orig.") ||
