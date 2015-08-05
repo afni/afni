@@ -173,9 +173,10 @@ static char * g_history[] =
   "   - diff_hdr detects type\n"
   "   - have diff_hdr1/diff_hdr2 to read as those types\n"
   "2.03 23 Jul 2015 [rickr] - handle a couple of unknown version cases\n",
+  "2.04 05 Aug 2015 [rickr] - incorporate nifti-2 writing library change\n",
   "----------------------------------------------------------------------\n"
 };
-static char g_version[] = "version 2.03 (July 23, 2015)";
+static char g_version[] = "version 2.04 (August 5, 2015)";
 static int  g_debug = 1;
 
 #define _NIFTI_TOOL_C_
@@ -4968,7 +4969,11 @@ void * nt_read_header(char * fname, int * nver, int * swapped, int check,
               fprintf(stderr,"** %s: failed n2hdr2nim on %s\n", func, fname);
               return NULL;
            }
-           *hdr = nifti_convert_nim2n1hdr(nim);
+           if( nifti_convert_nim2n1hdr(nim, hdr) ) {
+              fprintf(stderr,"** %s: failed convert_nim2n1hdr on %s\n",
+                      func, fname);
+              return NULL;
+           }
            return hdr;
         }
         else { /* assume -2 */
@@ -4987,7 +4992,11 @@ void * nt_read_header(char * fname, int * nver, int * swapped, int check,
               fprintf(stderr,"** %s: failed n1hdr2nim on %s\n", func, fname);
               return NULL;
            }
-           *hdr = nifti_convert_nim2n2hdr(nim);
+           if( nifti_convert_nim2n2hdr(nim, hdr) ) {
+              fprintf(stderr,"** %s: failed convert_nim2n2hdr on %s\n",
+                      func, fname);
+              return NULL;
+           }
 
            return hdr;
         }
