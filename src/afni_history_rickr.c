@@ -49,6 +49,16 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  5,  Aug, 2015, RCR, "nifti_tool", MICRO, TYPE_ENHANCE,
+   "apply library updates for potentially writing NIFTI-2",
+   NULL
+ } ,
+
+ {  5,  Aug, 2015, RCR, "NIFTI", MINOR, TYPE_ENHANCE,
+   "if conversion to NIFTI-1 header fails on write, try NIFTI-2",
+   NULL
+ } ,
+
  {  5,  Aug, 2015, RCR, "afni-general", MICRO, TYPE_ENHANCE,
    "add some support for reading Voxel_Bucket datasets into AFNI",
    "That is a type that is currently specific to SUMA."
