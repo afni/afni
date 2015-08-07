@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  7,  Aug, 2015, RCR, "3dhistog", MICRO, TYPE_NEW_OPT,
+   "add -noempty option, to ignore empty bins",
+   NULL
+ } ,
+
  {  7,  Aug, 2015, RCR, "model_conv_PRF", MICRO, TYPE_MODIFY,
    "make everything static, to avoid confusion",
    NULL
