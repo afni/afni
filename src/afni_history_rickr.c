@@ -49,6 +49,16 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  7,  Aug, 2015, RCR, "model_conv_PRF", MICRO, TYPE_MODIFY,
+   "make everything static, to avoid confusion",
+   NULL
+ } ,
+
+ {  7,  Aug, 2015, RCR, "model_conv_PRF_6", MICRO, TYPE_BUG_FIX,
+   "make everything static, to avoid confusion; proto for conv_set_ref",
+   NULL
+ } ,
+
  {  5,  Aug, 2015, RCR, "nifti_tool", MICRO, TYPE_ENHANCE,
    "apply library updates for potentially writing NIFTI-2",
    NULL
