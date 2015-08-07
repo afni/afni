@@ -47,6 +47,7 @@ static int     HI_nomit = 0 ;
 static float * HI_omit  = NULL ;
 static int     HI_notit = 0 ;
 static int     HI_doall = 0 ;    /* 16 Feb 2005 */
+static int     HI_noempty = 0 ;  /*  7 Aug 2015 [rickr] */
 
 static byte  * HI_mask      = NULL ;
 static int     HI_mask_nvox = 0 ;
@@ -113,6 +114,8 @@ void usage_3dhistog(int detail)
     "              masked by 'm' before creating the histograms.\n"
     "  -doall    Means to include all sub-bricks in the calculation;\n"
     "              otherwise, only sub-brick #0 (or that from -dind) is used.\n"
+    "  -noempty  Only output bins that are not empty.\n"
+    "            This does not apply to NIML output via -prefix.\n"
     "  -notitle  Means to leave the title line off the output.\n"
     "  -log10    Output log10() of the counts, instead of the count values.\n"
     "            This option cannot be used with -pdf or with -prefix\n"
@@ -312,11 +315,11 @@ int main( int argc , char * argv[] )
       case MRI_byte:
       case MRI_short:
         /* 10 Jun 2011 */
-/*        if((HI_nbin==NBIN_SPECIAL) && use_ceil && ((ftop-fbot)<100)) {*/
+/*        if((HI_nbin==NBIN_SPECIAL) && use_ceil && ((ftop-fbot)<100)) */
         /* integral data, calculate the default number of bins differently */
-/*        if((HI_nbin<0) && (use_ceil)) {
+/*        if((HI_nbin<0) && (use_ceil)) 
                nbin = ftop-fbot+1;
-        }*/
+        */
       break ;
 
       case MRI_float:
@@ -485,6 +488,7 @@ int main( int argc , char * argv[] )
                      "#Magnitude", "Log_Freq", "Log_Cum_Freq");
 
            for( kk=0 ; kk < nbin ; kk++ ){
+             if( HI_noempty && !fbin[kk] ) continue;  /* 7 Aug 2015 */
              cumfbin += fbin[kk];
              if((use_ceil) && (nbin <= (ftop-fbot+1)))
                 printf ("%12d %13.6f %13.6f\n",
@@ -500,6 +504,7 @@ int main( int argc , char * argv[] )
              printf ("%12s %13s %13s\n",  "#Magnitude", "Freq", "Cum_Freq");
 
            for( kk=0 ; kk < nbin ; kk++ ){
+             if( HI_noempty && !fbin[kk] ) continue;  /* 7 Aug 2015 */
              cumfbin += fbin[kk];
              if((use_ceil) && (nbin <= (ftop-fbot+1)))
                 printf ("%12d %13lld %13lld\n",
@@ -748,6 +753,11 @@ void HI_read_opts( int argc , char * argv[] )
 
       if( strcmp(argv[nopt],"-float") == 0 ){
          HI_datatype = HI_FLOATOUT ;
+         nopt++ ; continue ;
+      }
+
+      if( strcmp(argv[nopt],"-noempty") == 0 ){
+         HI_noempty = 1 ;
          nopt++ ; continue ;
       }
 
