@@ -45,6 +45,8 @@ static float * refts     = NULL;   /* reference time series */
 static int   * refin     = NULL;   /* indexes of nonzero pts */
 static int     g_iter    = -1;     /* iteration number */
 
+static char  * g_model_ver = "model_conv_PRF, version 2.2, 11 Feb, 2015";
+
 
 /* exp variables, parameters */
 static float g_exp_maxval  = 8.0;  /* max x in exp(-x) */
@@ -824,6 +826,7 @@ void conv_model( float *  gs      , int     ts_length ,
       set_env_vars();   /* process environment variables */
       if(genv_debug && x_array) fprintf(stderr,"\n+d TR = %f\n",
                                         x_array[1][1]-x_array[0][1]);
+      fprintf(stderr,"++ %s\n", g_model_ver);
    }
 
    /*** make sure there is a reference function to convolve with ***/
