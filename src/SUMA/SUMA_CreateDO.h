@@ -152,6 +152,15 @@ typedef struct {
                                  by thresholds etc. */
    DList *slcl; /* Rendered slices, top slice rendered last */
    DList *vrslcl;
+   
+   char *State; /* Normally the state of a volume is ANY_ANATOMICAL,
+      	           but when it is a domain of a CIFTI object, we will
+		   change its state to reflect that fact. If we don't
+		   do that, the volume itself would get registered
+		   (and therefore displayed) in any anatomically correct state 
+		   with complete disregard for its lineage. We want to
+		   display the volume only when the CIFTI object is being
+		   displayed. */ 
    int ShowAxSlc;
    int ShowSaSlc;
    int ShowCoSlc;
@@ -441,6 +450,8 @@ char * SUMA_VE_Headname(SUMA_VolumeElement **VE, int ivo);
 SUMA_Boolean SUMA_VE_Set_Dims(SUMA_VolumeElement **VE, int ive);
 float *SUMA_TDO_Points_Center(SUMA_TractDO *tdo, float *here);
 float *SUMA_TDO_XYZ_Range(SUMA_TractDO *tdo, float *here);
+float *SUMA_SDO_XYZ_Range(SUMA_SurfaceObject *so, float *here);
+float *SUMA_CIFTI_DO_XYZ_Range(SUMA_CIFTI_DO *co, float *here);
 float *SUMA_VO_XYZ_Range(SUMA_VolumeObject *VO, float *here);
 float *SUMA_MDO_XYZ_Range(SUMA_MaskDO *MDO, float *here);
 SUMA_SphereDO * SUMA_Alloc_SphereDO (int N_n, char *Label, char *parent_idcode, 

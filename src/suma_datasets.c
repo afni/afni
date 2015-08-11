@@ -2135,9 +2135,8 @@ int SUMA_AddGenDsetNodeIndexColAttr (SUMA_DSET *dset, SUMA_COL_TYPE ctp,
          stmp = SUMA_copy_string("0 0 -1 -1");
       }
    } else { 
-      if (SUMA_isCIFTIDset(dset)) {
-         SUMA_S_Err("Have yet to figure out how to do this for MD_NODE_INDEX");
-         SUMA_RETURN(0);
+      if (LocalHead && SUMA_isCIFTIDset(dset)) {
+         SUMA_S_Warn("Caution, needs verification for ciftination");
       }
       SUMA_LH("Calculating indrange");
       icol = SUMA_DATUM_INDEX_CTP2COL(ctp);
@@ -3441,9 +3440,9 @@ SUMA_DSET * SUMA_EmptyCopyofDset (  SUMA_DSET *odset,
    SUMA_ENTRY;
    
    if (!odset) { SUMA_SL_Err("Null input"); SUMA_RETURN(NULL); }
-   if (SUMA_isCIFTIDset(odset)) {
-      SUMA_SL_Err("Not ready for CIFTI dsets");
-      SUMA_RETURN(NULL);
+   if (LocalHead && SUMA_isCIFTIDset(odset)) {
+      SUMA_S_Warn("Not fully tested for CIFTI dsets. Returned dataset is"
+      	          "a single domain one.");
    }
    ind = SDSET_NODE_INDEX_COL(odset);
    if (rowmask && !ind) {
@@ -5518,13 +5517,13 @@ SUMA_DSET * SUMA_FindDset_eng (char *idcode, DList *DsetList,
       else el = dlist_next(el);
       dset = (SUMA_DSET *)el->data;
       if (!dset) {
-        SUMA_LH("dset not found");
+        SUMA_LH("no dset in el->data!");
         SUMA_PushErrLog("SLP_Err", 
                         "Unexpected NULL dset element in list!\n"
                         "Please report this occurrence to saadz@mail.nih.gov.",
                         FuncName);
       } else {   
-         SUMA_LH("dset found");
+         SUMA_LH("Have dset in el->data, checking");
          #ifdef OLD_DSET      /* before dsets were NI_groups */
          if (idtype) {
             SUMA_S_Err("non-null idtype search not supported with old dsets");
@@ -5543,7 +5542,8 @@ SUMA_DSET * SUMA_FindDset_eng (char *idcode, DList *DsetList,
          }
          #else 
          if (dset->ngr) {
-            SUMA_LH("dset is ngr type");
+            SUMA_LH("dset is ngr type, ID=%s, Label=%s, user idtype is %s", 
+	            SDSET_ID(dset), SDSET_LABEL(dset), CNS(idtype));
             if (!idtype || !strcmp(idtype,"self_idcode")) {
                dsetid = NI_get_attribute(dset->ngr, "idcode"); /* obsolete */
                if (!dsetid) dsetid = NI_get_attribute(dset->ngr, "self_idcode");
@@ -5768,8 +5768,10 @@ void SUMA_FreeDset(void *vp)
 SUMA_Boolean SUMA_FreeDsetContent (SUMA_DSET *dset) 
 {
    static char FuncName[]={"SUMA_FreeDsetContent"};
-   SUMA_Boolean LocalHead = YUP;
-      
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
    #ifdef OLD_DSET /* before ngr was used */
    SUMA_LH("Old dset");
    if (dset->nel) 
@@ -5801,7 +5803,7 @@ SUMA_Boolean SUMA_FreeDsetContent (SUMA_DSET *dset)
       SUMA_ifree(dset->Aux);
    }
    
-   
+   SUMA_RETURN(YUP);
 }  
 
 /*!
@@ -6361,6 +6363,15 @@ int SUMA_InsertDsetPointer (SUMA_DSET **dsetp, DList *DsetList, int replace)
    if (!dsetp) { SUMA_SL_Err("dsetp is NULL"); SUMA_RETURN(0); }
    else dset = *dsetp;  /* dset is the new pointer */
    
+   if (SUMA_isCIFTIDset(dset) && !dset->dnel) {
+      SUMA_S_Warn("As things stand, dset->dnel, and other goodies might be NULL"
+      	          "and would cause an error in this function below.\n"
+		  "For now I will do nothing and return a positive result\n"
+		  "depite having done nothing.\n"
+		  "I am pretty sure we will want the MD dset present in the\n"
+		  "DsetList however.");
+      SUMA_RETURN(1);
+   }
    if (!dset->dnel) { 
       SUMA_SL_Err("dset->nel is NULL\nNothing to do"); 
       SUMA_RETURN(0); 
@@ -6687,10 +6698,20 @@ char *SUMA_DsetInfo (SUMA_DSET *dset, int detail)
       SS = SUMA_StringAppend_va(SS, "Number of Links: %d\n", dset->N_links);
       if (dset->dnel) {
          SS = SUMA_StringAppend_va(SS, 
-            "Dset Name: %s (%d), isGraph %d, isCIFTI %d\n", 
+            "Dset Name: %s (%d), isGraph %d, isCIFTI (MultiDomain)%d\n", 
             dset->dnel->name, SUMA_Dset_Type(dset->dnel->name),
             SUMA_isGraphDset(dset), SUMA_isCIFTIDset(dset));
-         if (SDSET_FILENAME(dset)) 
+         if ((s = NI_get_attribute(dset->ngr,"MD_parent_ID"))) {
+	    SS = SUMA_StringAppend_va(SS, 
+	          "Elemantary dataset created from multi domain parent:\n"
+		  "   ID: %s\n"
+		  "   Label: %s\n"
+		  "   Domain Index: %s",
+		  s, NI_get_attribute(dset->ngr,"MD_parent_label"),
+		  NI_get_attribute(dset->ngr,"MD_parent_subdomain_index"));
+	    s = NULL;
+	 }
+	 if (SDSET_FILENAME(dset)) 
             SS = SUMA_StringAppend_va( SS, "filename: %s\n", 
                                        SDSET_FILENAME(dset));
          else SS = SUMA_StringAppend_va(SS, "filename: NULL\n");
@@ -6765,15 +6786,18 @@ char *SUMA_DsetInfo (SUMA_DSET *dset, int detail)
             if (dset->Aux->doms) {
                for (i=0; i<dset->Aux->N_doms; ++i) {
                   if (dset->Aux->doms[i]) {
-                     SS = SUMA_StringAppend_va(SS, 
+                     
+		     SS = SUMA_StringAppend_va(SS, 
                            "   dom[%d]:\n"
+			   "      edset_id %s\n"
                            "      Source: %s\n"
                            "      IndexOffset: %d\n"
                            "      IndexCount: %d\n"
                            "      Max_N_Data: %d\n"
                            "      ModelType: %d %s\n"
                            "      Range: %d %d %d %d\n",
-                     i, SUMA_CHECK_NULL_STR(dset->Aux->doms[i]->Source),
+                     i, CNS(dset->Aux->doms[i]->edset_id),
+		     SUMA_CHECK_NULL_STR(dset->Aux->doms[i]->Source),
                      dset->Aux->doms[i]->IndexOffset, 
                      dset->Aux->doms[i]->IndexCount,
                      dset->Aux->doms[i]->Max_N_Data,
@@ -16169,6 +16193,7 @@ SUMA_DO_Types SUMA_ObjectTypeName2ObjectTypeCode(char *cc)
    if (!strcmp(cc,"GDSET")) SUMA_RETURN(GDSET_type);
    if (!strcmp(cc,"CDOM")) SUMA_RETURN(CDOM_type);
    if (!strcmp(cc,"ANY_DSET")) SUMA_RETURN(ANY_DSET_type);
+   if (!strcmp(cc,"MD_DSET")) SUMA_RETURN(MD_DSET_type);
    if (!strcmp(cc,"DBT")) SUMA_RETURN(DBT_type);
    if (!strcmp(cc,"NIDO")) SUMA_RETURN(NIDO_type);
    if (!strcmp(cc,"TRACT")) SUMA_RETURN(TRACT_type);
@@ -16256,6 +16281,9 @@ const char *SUMA_ObjectTypeCode2ObjectTypeName(SUMA_DO_Types dd)
       case ANY_DSET_type:
          return("ANY_DSET");
          break;
+      case MD_DSET_type:
+         return("MD_DSET");
+         break;
       case DBT_type:
          return("DBT");
          break;
@@ -16317,16 +16345,29 @@ byte SUMA_isTractDsetNgr(NI_group *ngr)
 }
 
 /**************** CIFTI dset functions *************************/
+byte SUMA_isMD_Dset(SUMA_DSET *dset) 
+{
+   static char FuncName[]={"SUMA_isMD_Dset"};
+   
+   SUMA_ENTRY;
+   
+   if (!dset || !dset->Aux) SUMA_RETURN(NOPE);
+   
+   dset->Aux->isGraph == MD_DSET;
+   
+   SUMA_RETURN(dset->Aux->isGraph == CIFTI_DSET);
+}
 
 /* This query goes back to the source all the time,
-   use SUMA_isCIFTIDset_fast for speed */
+   use SUMA_isCIFTIDset_fast for speed 
+   Logic might need revisiting at some point */
 byte SUMA_isCIFTIDset(SUMA_DSET *dset) 
 {
    static char FuncName[]={"SUMA_isCIFTIDset"};
    
    SUMA_ENTRY;
    
-   if (!dset || !dset->ngr) SUMA_RETURN(NOPE);
+   if (!dset) SUMA_RETURN(NOPE);
    
    if (!dset->Aux) { /* create one, always good */
       if (!SUMA_Add_Dset_Aux(dset)) {
@@ -16334,7 +16375,16 @@ byte SUMA_isCIFTIDset(SUMA_DSET *dset)
          SUMA_RETURN(NOPE);
       }      
    }
-   if (SUMA_isCIFTIDsetNgr(dset->ngr)) {
+   
+   if (dset->Aux->N_doms > 0) { /* no need to to further 
+      	             	       with CIFTI dataset that
+			       are elementarized, there is
+			       no more ngr, etc.*/
+      dset->Aux->isGraph == CIFTI_DSET;
+      SUMA_RETURN(YUP);
+   }
+   
+   if (dset->ngr && SUMA_isCIFTIDsetNgr(dset->ngr)) {
       dset->Aux->isGraph == CIFTI_DSET;
    }
    
@@ -16360,7 +16410,7 @@ SUMA_Boolean SUMA_CIFTI_Set_Domains(SUMA_DSET *dset, int N_doms,
    static char FuncName[]={"SUMA_CIFTI_Set_Domains"};
    char *str = NULL, buff[500]={""};
    int i, k, min, max, imin, imax, sorted, N, *ind=NULL;
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
    
@@ -16431,13 +16481,15 @@ SUMA_Boolean SUMA_CIFTI_Free_Doms(SUMA_DSET *dset)
 {
    static char FuncName[]={"SUMA_CIFTI_Free_Doms"};
    int i;
+   SUMA_DSET *edset = NULL;
    
    if (!dset || !dset->Aux) return(NOPE);
    
    if (dset->Aux->doms && dset->Aux->N_doms > 0) {
       for (i=0; i<dset->Aux->N_doms; ++i) {
          if (dset->Aux->doms[i]) {
-            SUMA_ifree(dset->Aux->doms[i]->Source);
+            SUMA_ifree(dset->Aux->doms[i]->edset_id);
+	    SUMA_ifree(dset->Aux->doms[i]->Source);
             SUMA_ifree(dset->Aux->doms[i]);
          }
       }
@@ -16451,13 +16503,15 @@ SUMA_Boolean SUMA_CIFTI_Free_Doms(SUMA_DSET *dset)
 /* Take dset->ngr->inel domain information and write them into
    C-struct fields 
    \sa  SUMA_CIFTI_NgrFromDomains */
-SUMA_Boolean SUMA_CIFTI_DomainsFromNgr(SUMA_DSET *dset)
+SUMA_Boolean SUMA_CIFTI_DomainsFromNgr(SUMA_DSET *dset, DList *DsetList, 
+      	             	      	       int allowreplace, SUMA_DSET **ret_edset)
 {
    static char FuncName[]={"SUMA_CIFTI_DomainsFromNgr"};
    double nums[4];
    int i, k, ibuff[51], jbuff[51];
    char *mtstr=NULL, *rnstr=NULL, *ss=NULL, *dsstr=NULL;
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_DSET *edset=NULL;
+   SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
    
@@ -16466,7 +16520,17 @@ SUMA_Boolean SUMA_CIFTI_DomainsFromNgr(SUMA_DSET *dset)
       SUMA_RETURN(NOPE);
    }
    if (dset->Aux->doms) {
+      SUMA_S_Note("Have doms already, freeing them but you might not like it"
+      	          "if reloading a CIFTI in SUMA...");
       SUMA_CIFTI_Free_Doms(dset);
+   }
+   if (!DsetList && !ret_edset) {
+      SUMA_S_Err("No way to preserve your edset!");
+      SUMA_RETURN(NOPE);
+   }
+   if (ret_edset && *ret_edset) {
+      SUMA_S_Err("*ret_edset must be NULL");
+      SUMA_RETURN(NOPE);
    }
    
    NI_GET_INT(dset->inel, "N_Domains", dset->Aux->N_doms);
@@ -16475,10 +16539,11 @@ SUMA_Boolean SUMA_CIFTI_DomainsFromNgr(SUMA_DSET *dset)
       dset->Aux->N_doms = -1;
       SUMA_RETURN(NOPE);
    }
-   SUMA_LH("%d Domains", dset->Aux->N_doms);
-   
+   SUMA_LH("%d Domains: %s", dset->Aux->N_doms,
+      	    CNS(NI_get_attribute(dset->inel,"Index_Offsets")));
    NI_GET_INTv(dset->inel,"Index_Offsets", ibuff, dset->Aux->N_doms+1, 0);
    NI_GET_INTv(dset->inel,"Domain_N_Data", jbuff, dset->Aux->N_doms, 0);
+      
    SUMA_LH("Getting strings");
    NI_GET_STR_CP(dset->inel, "Model_Types", mtstr);
    NI_GET_STR_CP(dset->inel, "Domain_Sources", dsstr);
@@ -16506,13 +16571,125 @@ SUMA_Boolean SUMA_CIFTI_DomainsFromNgr(SUMA_DSET *dset)
       ss = SUMA_Get_Sub_String(mtstr,SUMA_NI_CSS, i);
       dset->Aux->doms[i]->ModelType   = SUMA_ObjectTypeName2ObjectTypeCode(ss);
       SUMA_ifree(ss);
-      ss = SUMA_Get_Sub_String(mtstr,SUMA_NI_CSS, i);
+      ss = SUMA_Get_Sub_String(dsstr,SUMA_NI_CSS, i);
       dset->Aux->doms[i]->Source = SUMA_copy_string(ss);
       SUMA_ifree(ss);
       for (k=0; k<4; ++k) dset->Aux->doms[i]->Range[k] = nums[4*i+k]; 
+      /* aaaand the elementary dset */
+      edset = SUMA_CIFTI_2_edset(dset, i, NULL, DsetList, allowreplace);
+      dset->Aux->doms[i]->edset_id = SUMA_copy_string(SDSET_ID(edset)); 
+      if (ret_edset) *ret_edset = edset;
+      edset = NULL; 
+   }
+   
+   /* just empty the contents of dnel and inel to save space
+      but keep the metadata to keep dataset somewhat viable,
+      as we will be inserting the multi domain dataset into the
+      dataset list */
+   SUMA_CIFTI_free_MD_data(dset);
+
+   SUMA_RETURN(YUP);
+}
+
+/* A function to free the bulk of data in a CIFTI multi domain
+dataset. Do this to save memory, after having created the elementary
+datasets */
+SUMA_Boolean SUMA_CIFTI_free_MD_data(SUMA_DSET *dset)
+{
+   static char FuncName[]={"SUMA_CIFTI_free_MD_data"};
+   int i, k;
+   NI_element *nel=NULL;
+   
+   SUMA_ENTRY;
+   
+   /* assuming the bulk of content is in dnel, inel, etc */
+   for (k=0; k<4; ++k) {
+           if (k==0) nel = dset->dnel;
+      else if (k==1) nel = dset->inel;
+      else if (k==2) nel = dset->pdnel;
+      else if (k==3) nel = dset->pinel;
+      if (nel) {
+      	 for (i=0; i<nel->vec_num; ++i) {
+      	    NI_remove_column(nel,-1); 
+      	 }
+      }
    }
    
    SUMA_RETURN(YUP);
+}
+
+/* Create a single domain (elementary) dataset from a multi domain (CIFTI) dataset.
+Will need something to go the other way around, from a collection of 
+elementary dataset back to the MD dataset */
+SUMA_DSET *SUMA_CIFTI_2_edset(SUMA_DSET *dset, int i, byte *colmask, 
+      	             	      DList *DsetList, int allowreplace)
+{
+   static char FuncName[]={"SUMA_CIFTI_2_edset"};
+   SUMA_DSET *edset = NULL;
+   byte *rowmask = NULL;
+   char *lbl=NULL, sbuf[64]={""};
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+
+   if (!dset || !dset->Aux || !dset->Aux->doms || 
+       dset->Aux->N_doms <= i) {
+      SUMA_S_Err("Bad input to  SUMA_CIFTI_2_edset");
+      SUMA_RETURN(edset);  
+   }
+   if (!(rowmask = (byte *)SUMA_calloc(SDSET_VECLEN(dset), sizeof(byte)))) {
+      SUMA_S_Err("Failed to create rowmask"); 
+      SUMA_RETURN(edset);
+   }
+   SUMA_LH("Setting mask for %d rows at offset %d",
+      	   dset->Aux->doms[i]->IndexCount, dset->Aux->doms[i]->IndexOffset);
+   memset(rowmask+dset->Aux->doms[i]->IndexOffset, 1, 
+      	  dset->Aux->doms[i]->IndexCount*sizeof(byte));
+      
+   if (!(edset = SUMA_MaskedCopyofDset( dset, rowmask, colmask, 1, 1))) {
+      SUMA_S_Err("Failed to extract edset");
+   } else {
+      /* Label in peculiar fashion */
+      sprintf(sbuf, "ED%02d:", i);
+      /* change filename */
+      lbl = SUMA_ModifyName(SUMA_sdset_filename(dset), "prepend", sbuf, NULL);
+      SUMA_LH("Filename now %s", lbl);
+      NI_set_attribute(edset->ngr, "filename", lbl); 
+      if (LocalHead) {
+      	 SUMA_LH("Writing out elementary dset %s for debugging", lbl);
+      	 SUMA_WriteDset_s(lbl, edset, SUMA_ASCII_NIML, 1,1);
+      }
+      SUMA_ifree(lbl);
+      /* recreate the ID to reflect the filename */
+      lbl = UNIQ_hashcode(NI_get_attribute(edset->ngr, "filename")); 
+      NI_set_attribute(edset->ngr, "self_idcode", lbl); SUMA_ifree(lbl);
+      
+      /* and cute label */
+      lbl = SUMA_ar_string(sbuf, SUMA_sdset_label(dset),"",0);
+      SUMA_LabelDset(edset, lbl); SUMA_ifree(lbl);
+      
+      /* Put a reference to the multi-domain source */
+      NI_set_attribute(edset->ngr,"MD_parent_ID", SDSET_ID(dset));
+      NI_set_attribute(edset->ngr,"MD_parent_label", SDSET_LABEL(dset));
+      NI_SET_INT(edset->ngr,"MD_parent_subdomain_index", i);
+   }
+   SUMA_ifree(rowmask);
+   
+   SUMA_LH("Elementary dset (%s, id %s) has pointer %p \n", 
+            SDSET_LABEL(edset), SDSET_ID(edset), edset); 
+   
+   if (DsetList) {
+      if (!SUMA_InsertDsetPointer(  &edset, DsetList, allowreplace)) {
+	 SUMA_SLP_Err("Failed to add new dset to list");
+	 /* is there not a function to replace a dset yet? */
+	 SUMA_FreeDset(edset); edset = NULL;
+	 SUMA_RETURN(NULL);
+      }
+      SUMA_LH("Now dset (%s, id %s) is  pointer %p\n", 
+      	       SDSET_LABEL(edset), SDSET_ID(edset), edset); 
+   }
+   
+   SUMA_RETURN(edset);
 }
 
 /* Take C-struct domain information and write them into
@@ -16529,6 +16706,8 @@ SUMA_Boolean SUMA_CIFTI_NgrFromDomains(SUMA_DSET *dset)
       SUMA_S_Err("I'm calling my mom!");
       SUMA_RETURN(NOPE);
    }
+   SUMA_S_Warn("Function not ready to take elementary datasets and recreate the"
+      	       " multidomain version. See SUMA_CIFTI_2_Edset() ");
    if (dset->Aux->N_doms > 50) {
       SUMA_S_Err("No setup to deal with so many doms. Fix me");
       SUMA_RETURN(NOPE);
@@ -16541,6 +16720,7 @@ SUMA_Boolean SUMA_CIFTI_NgrFromDomains(SUMA_DSET *dset)
    }
    SUMA_CIFTI_Set_Domains(dset, dset->Aux->N_doms, SDSET_NODE_INDEX_COL(dset),
                           dindoff, dn, dtp, dsrcs);
+   
    SUMA_RETURN(YUP);   
 }
 

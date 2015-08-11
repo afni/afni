@@ -1,7 +1,7 @@
 #define DEBUG_1
 #ifdef DEBUG_1
-	#define DEBUG_2
-	#define DEBUG_3
+   #define DEBUG_2
+   #define DEBUG_3
 #endif
    
 /* Header FILES */
@@ -301,7 +301,7 @@ void SUMA_usage (SUMA_GENERIC_ARGV_PARSE *ps, int detail)
       ); } 
    }
    SUMA_free(sb); SUMA_free(sio); SUMA_free(ssym);
-	if (detail) {
+   if (detail) {
       SUMA_Version(NULL);
       printf ("\n" 
             "\n    Ziad S. Saad SSCC/NIMH/NIH saadz@mail.nih.gov \n\n");
@@ -501,7 +501,7 @@ Input paramters :
 \param   
    
 Usage : 
-		SUMA ( )
+      SUMA ( )
    
    
 Returns : 
@@ -520,14 +520,14 @@ Side effects :
 int main (int argc,char *argv[])
 {/* Main */
    static char FuncName[]={"suma"}; 
-	int kar, i;
-	SUMA_SFname *SF_name;
-	SUMA_Boolean brk, SurfIn;
-	char  *NameParam, *AfniHostName = NULL, *s = NULL, *pdspec=NULL, *pdsv=NULL;
+   int kar, i;
+   SUMA_SFname *SF_name;
+   SUMA_Boolean brk, SurfIn;
+   char  *NameParam, *AfniHostName = NULL, *s = NULL, *pdspec=NULL, *pdsv=NULL;
    char *specfilename[SUMA_MAX_N_GROUPS], *VolParName[SUMA_MAX_N_GROUPS];
    byte InMem[SUMA_MAX_N_GROUPS];
-	SUMA_SurfSpecFile *Specp[SUMA_MAX_N_GROUPS];   
-	SUMA_Axis *EyeAxis; 	
+   SUMA_SurfSpecFile *Specp[SUMA_MAX_N_GROUPS];   
+   SUMA_Axis *EyeAxis;    
    SUMA_EngineData *ED= NULL;
    DList *list = NULL;
    DListElmt *Element= NULL;
@@ -544,7 +544,7 @@ int main (int argc,char *argv[])
    SUMA_mainENTRY;
    
    
-	SUMAg_CF->isGraphical = YUP;
+   SUMAg_CF->isGraphical = YUP;
    
    ps = SUMA_Parse_IO_Args(argc, argv, "-i;-t;-dset;-do;");
 
@@ -555,12 +555,12 @@ int main (int argc,char *argv[])
       Specp[ispec] = NULL;
       InMem[ispec] = 0;
    }
-	AfniHostName = NULL; 
-	
+   AfniHostName = NULL; 
+   
       
-	/* Allocate space for DO structure */
-	SUMAg_DOv = SUMA_Alloc_DisplayObject_Struct (SUMA_MAX_DISPLAYABLE_OBJECTS);
-	
+   /* Allocate space for DO structure */
+   SUMAg_DOv = SUMA_Alloc_DisplayObject_Struct (SUMA_MAX_DISPLAYABLE_OBJECTS);
+   
    /* call the function to parse the other surface mode inputs */
    ispec = 0;
    if (LocalHead) SUMA_Show_IO_args(ps);
@@ -581,19 +581,19 @@ int main (int argc,char *argv[])
       }
       
    }
-	/* Work the options */
-	kar = 1;
-	brk = NOPE;
-	SurfIn = NOPE;
+   /* Work the options */
+   kar = 1;
+   brk = NOPE;
+   SurfIn = NOPE;
    Domemtrace = YUP; 
-	while (kar < argc) { /* loop accross command ine options */
-		/*fprintf(stdout, "%s verbose: Parsing command line...\n", FuncName);*/
-		
+   while (kar < argc) { /* loop accross command ine options */
+      /*fprintf(stdout, "%s verbose: Parsing command line...\n", FuncName);*/
+      
       if (strcmp(argv[kar], "-h") == 0 || strcmp(argv[kar], "-help") == 0) {
-			SUMA_usage (ps, strlen(argv[kar]) > 3 ? 2:1);
+         SUMA_usage (ps, strlen(argv[kar]) > 3 ? 2:1);
           exit (0); /* return a good status on -help   12 Jul 2013 [rickr] */
-		}
-		
+      }
+      
       /* -list_ports list and quit */
       if( strncmp(argv[kar],"-list_ports", 8) == 0) {
          show_ports_list(); exit(0);
@@ -615,12 +615,12 @@ int main (int argc,char *argv[])
       }
       
       if (strcmp(argv[kar], "-visuals") == 0) {
-			 SUMA_ShowAllVisuals ();
+          SUMA_ShowAllVisuals ();
           exit (0);
-		}
+      }
       
       if (strcmp(argv[kar], "-brethren_windows") == 0) {
-			 Display *dd=NULL; Window ww;
+          Display *dd=NULL; Window ww;
           if (!(dd = XOpenDisplay(NULL))) {
             SUMA_S_Err("No display "); exit(1);
           }
@@ -628,21 +628,21 @@ int main (int argc,char *argv[])
           
           SUMA_WindowsOnRootDisplay(dd, ww , 0);
           exit (0);
-		}
+      }
       
       if (strcmp(argv[kar], "-version") == 0) {
-			 s = SUMA_New_Additions (0.0, 1);
+          s = SUMA_New_Additions (0.0, 1);
           fprintf (SUMA_STDOUT,"%s\n", s); 
           SUMA_free(s); s = NULL;
           exit (0);
-		}
+      }
       
       if (strcmp(argv[kar], "-sources") == 0) {
-			 s = SUMA_sources_Info();
+          s = SUMA_sources_Info();
           fprintf (SUMA_STDOUT,"%s\n", s); 
           SUMA_free(s); s = NULL;
           exit (0);
-		}
+      }
       
       if (strcmp(argv[kar], "-help_nido") == 0) {
          s = SUMA_NIDO_Info();
@@ -652,16 +652,16 @@ int main (int argc,char *argv[])
       }
       
       if (strcmp(argv[kar], "-all_latest_news") == 0) {
-			 s = SUMA_New_Additions (-1.0, 0);
+          s = SUMA_New_Additions (-1.0, 0);
           fprintf (SUMA_STDOUT,"%s\n", s); 
           SUMA_free(s); s = NULL;
           exit (0);
-		}
+      }
       
       if (strcmp(argv[kar], "-help_sphinx_interactive") == 0) {
          FILE *fout = NULL;
          if( ++kar >= argc ) 
-            ERROR_exit("need a file name after -help_sphinx_interactive!"); 		
+            ERROR_exit("need a file name after -help_sphinx_interactive!");       
           fout = fopen(argv[kar],"w");
           if (!fout) {
             SUMA_S_Err("Failed to open %s for writing", argv[kar]);
@@ -670,10 +670,10 @@ int main (int argc,char *argv[])
           SUMA_help_message(fout,SPX);
           fclose(fout); fout = NULL;
           exit (0);
-		}
+      }
       
       if (strcmp(argv[kar], "-help_interactive") == 0) {
-			 FILE *fout = fopen("Mouse_Keyboard_Controls.txt","w");
+          FILE *fout = fopen("Mouse_Keyboard_Controls.txt","w");
           if (!fout) {
             SUMA_S_Err("Failed to open Mouse_Keyboard_Controls.txt for writing");
             exit(1);
@@ -681,7 +681,7 @@ int main (int argc,char *argv[])
           SUMA_help_message(fout,TXT);
           fclose(fout); fout = NULL;
           exit (0);
-		}
+      }
       
       if (strcmp(argv[kar], "-test_help_string_edit") == 0) {
          SUMA_Sphinx_String_Edit_Help(SUMA_STDOUT, 0);
@@ -693,7 +693,7 @@ int main (int argc,char *argv[])
       }
       
       if (strcmp(argv[kar], "-environment") == 0) {
-			 s = SUMA_env_list_help (0, TXT);
+          s = SUMA_env_list_help (0, TXT);
           fprintf (SUMA_STDOUT,  
             "#SUMA ENVIRONMENT \n"
             "# If you do not have a ~/.sumarc file, cannot find a SUMA\n"
@@ -713,10 +713,10 @@ int main (int argc,char *argv[])
                   "%s\n", s); 
           SUMA_free(s); s = NULL;
           exit (0);
-		}
+      }
       
       if (strcmp(argv[kar], "-default_env") == 0) {
-			 s = SUMA_env_list_help (1, NO_FORMAT);
+          s = SUMA_env_list_help (1, NO_FORMAT);
           fprintf (SUMA_STDOUT,  
                   "#SUMA DEFAULT ENVIRONMENT (user settings ignored)\n"
                   "# see also suma -udate_env or suma -environment\n"
@@ -725,10 +725,10 @@ int main (int argc,char *argv[])
                   "%s\n", s); 
           SUMA_free(s); s = NULL;
           exit (0);
-		}
+      }
       
       if (strcmp(argv[kar], "-update_env") == 0) {
-			 if (system("suma -environment > ___sumarc")) {
+          if (system("suma -environment > ___sumarc")) {
             SUMA_S_Err("Failed to create env file.");
             exit(1);
           }
@@ -744,160 +744,160 @@ int main (int argc,char *argv[])
           }
           SUMA_S_Note("Environment update done.");
           exit(0);
-		}
+      }
       
       if (strcmp(argv[kar], "-latest_news") == 0) {
-			 s = SUMA_New_Additions (0.0, 0);
+          s = SUMA_New_Additions (0.0, 0);
           fprintf (SUMA_STDOUT,"%s\n", s); 
           SUMA_free(s); s = NULL;
           exit (0);
-		}
+      }
       
       if (strcmp(argv[kar], "-progs") == 0) {
-			 s = SUMA_All_Programs();
+          s = SUMA_All_Programs();
           fprintf (SUMA_STDOUT,"%s\n", s); 
           SUMA_free(s); s = NULL;
           exit (0);
-		}
+      }
       
       if (strcmp(argv[kar], "-motif_ver") == 0) {  /* 9 Mar 2009 [rickr] */
          show_motif_version_string();
          exit (0);
       }
       
-		if (!brk && (strcmp(argv[kar], "-iodbg") == 0)) {
-			fprintf(SUMA_STDERR,"Error %s: Obsolete, use -trace\n", FuncName);
-			exit (0);
+      if (!brk && (strcmp(argv[kar], "-iodbg") == 0)) {
+         fprintf(SUMA_STDERR,"Error %s: Obsolete, use -trace\n", FuncName);
+         exit (0);
          /*
          fprintf(SUMA_STDOUT,
                  "Warning %s: SUMA running in in/out debug mode.\n", FuncName);
          SUMA_INOUT_NOTIFY_ON; 
-			brk = YUP;
+         brk = YUP;
          */
-		}
+      }
       
       
       
       SUMA_SKIP_COMMON_OPTIONS(brk, kar);
       
-		#if SUMA_MEMTRACE_FLAG
+      #if SUMA_MEMTRACE_FLAG
          if (!brk && (strcmp(argv[kar], "-memdbg") == 0)) {
-			   fprintf(SUMA_STDOUT,"Error %s: -memdbg is obsolete, use -trace\n", 
+            fprintf(SUMA_STDOUT,"Error %s: -memdbg is obsolete, use -trace\n", 
                                 FuncName);
-			   exit (0);
+            exit (0);
             fprintf( SUMA_STDOUT,
                      "Warning %s: SUMA running in memory trace mode.\n", 
                      FuncName);
-			   SUMAg_CF->MemTrace = YUP;
+            SUMAg_CF->MemTrace = YUP;
             #ifdef USING_MCW_MALLOC
             #endif
-			   brk = YUP;
-		   }
+            brk = YUP;
+         }
       #endif
       
       if (!brk && (strcmp(argv[kar], "-dev") == 0)) {
-			fprintf(SUMA_STDOUT,
+         fprintf(SUMA_STDOUT,
                   "Warning %s: SUMA running in developer mode, "
                   "some options may malfunction.\n", FuncName);
-			SUMAg_CF->Dev = YUP;
-			brk = YUP;
-		}
-		
+         SUMAg_CF->Dev = YUP;
+         brk = YUP;
+      }
+      
       if (!brk && (strcmp(argv[kar], "-fake_cmap") == 0)) {
-			SUMA_S_Warn("-fake_cmap is for automatic selfies of the widgets.\n"
+         SUMA_S_Warn("-fake_cmap is for automatic selfies of the widgets.\n"
                      "You should not use this option for any other reason\n");
-			SUMAg_CF->Fake_Cmap = YUP;
-			brk = YUP;
-		}
-		
+         SUMAg_CF->Fake_Cmap = YUP;
+         brk = YUP;
+      }
+      
       if (!brk && SUMAg_CF->Dev && (strcmp(argv[kar], "-truth_table") == 0)) {
-		   kar ++;
-			if (kar >= argc)  {
-		  		fprintf (SUMA_STDERR, "need expression after -truth_table \n");
-				exit (1);
-			}
+         kar ++;
+         if (kar >= argc)  {
+              fprintf (SUMA_STDERR, "need expression after -truth_table \n");
+            exit (1);
+         }
          SUMA_bool_eval_truth_table(argv[kar], 0);  exit(0);
-			brk = YUP;
-		}
+         brk = YUP;
+      }
       
       if (!brk && (strcmp(argv[kar], "-niml") == 0)) {
-			Start_niml = 1;
-			brk = YUP;
-		}
+         Start_niml = 1;
+         brk = YUP;
+      }
 
       if (!brk && (strcmp(argv[kar], "-noniml") == 0)) {
-			Start_niml = -1;
-			brk = YUP;
-		}
+         Start_niml = -1;
+         brk = YUP;
+      }
       
-		if (!brk && (strcmp(argv[kar], "-vp") == 0 || 
+      if (!brk && (strcmp(argv[kar], "-vp") == 0 || 
                    strcmp(argv[kar], "-sa") == 0 || 
                    strcmp(argv[kar], "-sv") == 0))
-		{
-			kar ++;
-			if (kar >= argc)  {
-		  		fprintf (SUMA_STDERR, "need argument after -vp|-sa|-sv \n");
-				exit (1);
-			}
-			if (ispec < 1) {
+      {
+         kar ++;
+         if (kar >= argc)  {
+              fprintf (SUMA_STDERR, "need argument after -vp|-sa|-sv \n");
+            exit (1);
+         }
+         if (ispec < 1) {
             fprintf (SUMA_STDERR, 
                      "a -spec option must precede the first -sv option\n");
-				exit (1);
+            exit (1);
          }
          if (!specfilename[ispec-1] && !Specp[ispec-1]) {
             fprintf (SUMA_STDERR, 
                      "a -spec option must precede each -sv option\n");
-				exit (1);
+            exit (1);
          }
          VolParName[ispec-1] = argv[kar]; 
-			if (LocalHead) {
+         if (LocalHead) {
             fprintf(SUMA_STDOUT, "Found: %s\n", VolParName[ispec]);
          }
          
-			brk = YUP;
-		}		
-		
-		if (!brk && strcmp(argv[kar], "-drive_com") == 0)
-		{
-			kar ++;
-			if (kar >= argc)  {
-		  		fprintf (SUMA_STDERR, "need argument after -drive_com\n");
-				exit (1);
-			}
-			SUMAg_CF->dcom = (char **)SUMA_realloc(SUMAg_CF->dcom,
+         brk = YUP;
+      }      
+      
+      if (!brk && strcmp(argv[kar], "-drive_com") == 0)
+      {
+         kar ++;
+         if (kar >= argc)  {
+              fprintf (SUMA_STDERR, "need argument after -drive_com\n");
+            exit (1);
+         }
+         SUMAg_CF->dcom = (char **)SUMA_realloc(SUMAg_CF->dcom,
                                           (SUMAg_CF->N_dcom+1)*sizeof(char *));
          SUMAg_CF->dcom[SUMAg_CF->N_dcom] = SUMA_copy_string(argv[kar]);
          ++SUMAg_CF->N_dcom;
-			brk = YUP;
-		}
+         brk = YUP;
+      }
       
-		if (!brk && strcmp(argv[kar], "-ah") == 0)
-		{
-			kar ++;
-			if (kar >= argc)  {
-		  		fprintf (SUMA_STDERR, "need argument after -ah\n");
-				exit (1);
-			}
-			if (strcmp(argv[kar],"localhost") != 0) {
+      if (!brk && strcmp(argv[kar], "-ah") == 0)
+      {
+         kar ++;
+         if (kar >= argc)  {
+              fprintf (SUMA_STDERR, "need argument after -ah\n");
+            exit (1);
+         }
+         if (strcmp(argv[kar],"localhost") != 0) {
             AfniHostName = argv[kar];
          }else {
            fprintf (SUMA_STDERR, 
                     "localhost is the default for -ah\n"
                     "No need to specify it.\n");
          }
-			/*fprintf(SUMA_STDOUT, "Found: %s\n", AfniHostName);*/
+         /*fprintf(SUMA_STDOUT, "Found: %s\n", AfniHostName);*/
 
-			brk = YUP;
-		}	
+         brk = YUP;
+      }   
       
-		if (!brk && strcmp(argv[kar], "-spec") == 0)
-		{ 
-		   kar ++;
-		   if (kar >= argc)  {
-		  		fprintf (SUMA_STDERR, "need argument after -spec \n");
-				exit (1);
-			}
-			
+      if (!brk && strcmp(argv[kar], "-spec") == 0)
+      { 
+         kar ++;
+         if (kar >= argc)  {
+              fprintf (SUMA_STDERR, "need argument after -spec \n");
+            exit (1);
+         }
+         
          if (ispec >= SUMA_MAX_N_GROUPS) {
             fprintf (SUMA_STDERR, 
                      "Cannot accept more than %d spec files.\n",     
@@ -910,18 +910,18 @@ int main (int argc,char *argv[])
             specfilename[ispec] = pdspec; pdspec = NULL; /* Memory leak! */
             VolParName[ispec] = pdsv; pdsv = NULL; /* Memory leak! */
          } else {
-			   specfilename[ispec] = argv[kar]; 
-			}
+            specfilename[ispec] = argv[kar]; 
+         }
          if (LocalHead) {
             fprintf(SUMA_STDOUT, "Found: %s\n", specfilename[ispec]);
          }
          ++ispec;
-			brk = YUP;
-		} 
-		
+         brk = YUP;
+      } 
       
-		if (!brk && !ps->arg_checked[kar]) {
-			if (  !strcmp(argv[kar], "-i") ||
+      
+      if (!brk && !ps->arg_checked[kar]) {
+         if (  !strcmp(argv[kar], "-i") ||
                !strncmp(argv[kar], "-i_",3) ) {
             fprintf (SUMA_STDERR,
       "Error %s: Option %s not understood. \n"
@@ -938,14 +938,14 @@ int main (int argc,char *argv[])
                   "Error %s: Option %s not understood. Try -help for usage\n", 
                   FuncName, argv[kar]);
             suggest_best_prog_option(argv[0], argv[kar]);
-			}
+         }
          exit (1);
-		} else {	
-			brk = NOPE;
-			kar ++;
-		}
-		
-	}/* loop accross command ine options */
+      } else {   
+         brk = NOPE;
+         kar ++;
+      }
+      
+   }/* loop accross command ine options */
    /* -ah option now checked for in ps */
    if (ps->cs->afni_host_name && !AfniHostName) {
       AfniHostName = SUMA_copy_string(ps->cs->afni_host_name);
@@ -991,7 +991,7 @@ int main (int argc,char *argv[])
    #endif
       
    /* any Specp to be found ?*/
-	if (specfilename[0] == NULL && Specp[0] == NULL) {
+   if (specfilename[0] == NULL && Specp[0] == NULL) {
       SUMA_SurfaceObject **SOv=NULL;
       int N_SOv = 0;
       fprintf (SUMA_STDERR,
@@ -1001,19 +1001,19 @@ int main (int argc,char *argv[])
                "     Use '.' and ',' to cycle between them.\n"
                "     See suma -help for assistance.\n"
                "\n", FuncName);
-		/* create your own surface and put it in a spec file */
+      /* create your own surface and put it in a spec file */
       SOv = SUMA_GimmeSomeSOs(&N_SOv);
       Specp[ispec] = SUMA_SOGroup_2_Spec (SOv, N_SOv);
       SUMA_free(SOv); SOv = NULL;
       InMem[ispec] = 1;
       ++ispec;
-	}
+   }
 
-	if(!SUMA_Assign_HostName (SUMAg_CF, AfniHostName, -1)) {
-		fprintf (SUMA_STDERR, 
+   if(!SUMA_Assign_HostName (SUMAg_CF, AfniHostName, -1)) {
+      fprintf (SUMA_STDERR, 
          "Error %s: Failed in SUMA_Assign_HostName\n", FuncName);
-		exit (1);
-	}
+      exit (1);
+   }
    
    #ifdef SUMA_DISASTER
    /* a function to test Memtracing */
@@ -1025,40 +1025,40 @@ int main (int argc,char *argv[])
    }
    #endif
    
-	/* create an Eye Axis DO */
-	EyeAxis = SUMA_Alloc_Axis ("Eye Axis", AO_type);
-	if (EyeAxis == NULL) {
-		SUMA_error_message (FuncName,"Error Creating Eye Axis",1);
-		exit(1);
-	}
+   /* create an Eye Axis DO */
+   EyeAxis = SUMA_Alloc_Axis ("Eye Axis", AO_type);
+   if (EyeAxis == NULL) {
+      SUMA_error_message (FuncName,"Error Creating Eye Axis",1);
+      exit(1);
+   }
 
-	/* Store it into SUMAg_DOv */
-	if (!SUMA_AddDO(  SUMAg_DOv, &SUMAg_N_DOv, 
+   /* Store it into SUMAg_DOv */
+   if (!SUMA_AddDO(  SUMAg_DOv, &SUMAg_N_DOv, 
                      (void *)EyeAxis,  AO_type, SUMA_SCREEN)) {
-		SUMA_error_message (FuncName,"Error Adding DO", 1);
-		exit(1);
-	}
-	/*fprintf (SUMA_STDERR, "SUMAg_N_DOv = %d created\n", SUMAg_N_DOv);
+      SUMA_error_message (FuncName,"Error Adding DO", 1);
+      exit(1);
+   }
+   /*fprintf (SUMA_STDERR, "SUMAg_N_DOv = %d created\n", SUMAg_N_DOv);
    SUMA_Show_DOv(SUMAg_DOv, SUMAg_N_DOv, NULL);*/
 
-	/* Allocate space (and initialize) Surface Viewer Structure */
-	SUMAg_SVv = SUMA_Alloc_SurfaceViewer_Struct (SUMA_MAX_SURF_VIEWERS);
+   /* Allocate space (and initialize) Surface Viewer Structure */
+   SUMAg_SVv = SUMA_Alloc_SurfaceViewer_Struct (SUMA_MAX_SURF_VIEWERS);
    
    /* SUMAg_N_SVv gets updated in SUMA_X_SurfaceViewer_Create
    and reflects not the number of elements in SUMAg_SVv which is
    SUMA_MAX_SURF_VIEWERS, but the number of viewers that were realized
    by X */
    
-	/* Check on initialization */
-	/*SUMA_Show_SurfaceViewer_Struct (SUMAg_cSV, stdout);*/
+   /* Check on initialization */
+   /*SUMA_Show_SurfaceViewer_Struct (SUMAg_cSV, stdout);*/
 
-	/* Create the Surface Viewer Window */
-	if (!SUMA_X_SurfaceViewer_Create ()) {
-		fprintf(stderr,"Error in SUMA_X_SurfaceViewer_Create. Exiting\n");
-		return 1;
-	}
+   /* Create the Surface Viewer Window */
+   if (!SUMA_X_SurfaceViewer_Create ()) {
+      fprintf(stderr,"Error in SUMA_X_SurfaceViewer_Create. Exiting\n");
+      return 1;
+   }
    
-	for (i=0; i<ispec; ++i) {
+   for (i=0; i<ispec; ++i) {
       if (!list) list = SUMA_CreateList();
       ED = SUMA_InitializeEngineListData (SE_Load_Group);
       if (!( Element = SUMA_RegisterEngineListCommand (  list, ED, 
@@ -1178,12 +1178,12 @@ int main (int argc,char *argv[])
 "\n");
    }
    
-	/*Main loop */
+   /*Main loop */
    XtAppMainLoop(SUMAg_CF->X->App);
 
-	
-	/* Done, clean up time */
-	if (ispec) {
+   
+   /* Done, clean up time */
+   if (ispec) {
       int k=0; 
       for (k=0; k<ispec; ++k) {
          if (!SUMA_FreeSpecFields((Specp[k]))) { 
@@ -1193,11 +1193,11 @@ int main (int argc,char *argv[])
       }
    } ispec = 0;
   
-	if (!SUMA_Free_Displayable_Object_Vect (SUMAg_DOv, SUMAg_N_DOv)) 
+   if (!SUMA_Free_Displayable_Object_Vect (SUMAg_DOv, SUMAg_N_DOv)) 
       SUMA_error_message(FuncName,"DO Cleanup Failed!",1);
-	if (!SUMA_Free_SurfaceViewer_Struct_Vect (SUMAg_SVv, SUMA_MAX_SURF_VIEWERS)) 
+   if (!SUMA_Free_SurfaceViewer_Struct_Vect (SUMAg_SVv, SUMA_MAX_SURF_VIEWERS)) 
       SUMA_error_message(FuncName,"SUMAg_SVv Cleanup Failed!",1);
-	if (!SUMA_Free_CommonFields(SUMAg_CF)) 
+   if (!SUMA_Free_CommonFields(SUMAg_CF)) 
       SUMA_error_message(FuncName,"SUMAg_CF Cleanup Failed!",1);
   SUMA_RETURN(0);             /* ANSI C requires main to return int. */
 }/* Main */ 

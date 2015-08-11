@@ -2318,7 +2318,8 @@ void SUMA_display_one(SUMA_SurfaceViewer *csv, SUMA_DO *dov)
             case SO_type:
                break;
             case ANY_DSET_type:
-            case GDSET_type: /* Should not be in DO list */
+            case MD_DSET_type:
+	    case GDSET_type: /* Should not be in DO list */
                SUMA_S_Warn("Should not have such objects as registrered DOs");
                break;
             case CDOM_type:
@@ -2490,16 +2491,20 @@ void SUMA_display_one(SUMA_SurfaceViewer *csv, SUMA_DO *dov)
                /* those types are not used */
                break;
             case ANY_DSET_type:
-            case GDSET_type:
+            case MD_DSET_type:
+	    case GDSET_type:
                SUMA_S_Warn("Should not have type in DO list to be rendered");
                break;
             case CDOM_type:
-               if (!SUMA_Draw_CIFTI_DO (
+               #if 0
+	          /* A CIFTI DO is not drawn directly, not any more */
+	       if (!SUMA_Draw_CIFTI_DO (
                      (SUMA_CIFTI_DO *)dov[sRegistDO[i].dov_ind].OP, csv)) {
                   fprintf( SUMA_STDERR, 
                            "Error %s: Failed in SUMA_Draw_CIFTI_DO.\n", 
                            FuncName);
                }
+	       #endif
                break;
             case MASK_type:
                if (!SUMA_DrawMaskDO (
@@ -6675,8 +6680,8 @@ SUMA_ALL_DO **SUMA_DOsInSurfContNotebook(Widget NB)
          } else {
             switch(SUMAg_DOv[j].ObjectType) {
                case CDOM_type:
-                  SUMA_S_Warn("Objects of type (%s) not feeling the love here",
-                    SUMA_ObjectTypeCode2ObjectTypeName(SUMAg_DOv[j].ObjectType));
+                  SUMA_LH("%s objects are no longer to get their own controller",
+		    SUMA_ObjectTypeCode2ObjectTypeName(SUMAg_DOv[j].ObjectType));
                   break;
                default:
                   break;
@@ -6778,7 +6783,11 @@ int SUMA_viewSurfaceCont(Widget w, SUMA_ALL_DO *ado,
       SUMA_RETURN(0);
    }
    
-   
+   if (ado->do_type == CDOM_type) {
+      SUMA_LH("I thought we decided to not have a separate "
+      	      "controller for CIFTI_DO!");
+      SUMA_RETURN(0);
+   }
    if (!sv) {
       SUMA_LHv("Got to get me an sv for %s\n", SUMA_ADO_Label(ado));
       if (!(sv = SUMA_BestViewerForADO(ado))) {
@@ -7576,8 +7585,11 @@ void SUMA_cb_createSurfaceCont(Widget w, XtPointer data, XtPointer callData)
          SUMA_cb_createSurfaceCont_SO(w, data, callData);
          break; 
       case CDOM_type:
-         SUMA_cb_createSurfaceCont_CO(w, (XtPointer)ado,  callData);
-         break;
+         SUMA_LH("No longer planning on separate controllers for CIFTI");
+	 #if 0
+	 SUMA_cb_createSurfaceCont_CO(w, (XtPointer)ado,  callData);
+         #endif
+	 break;
       case GDSET_type:
          SUMA_S_Err("Cannot create a controller for a dataset"
                     "with no rendering variant");
@@ -10353,7 +10365,7 @@ void SUMA_cb_createSurfaceCont_CO(Widget w, XtPointer data, XtPointer callData)
       SUMA_RETURNe;
    }
    
-   SUMA_S_Err("I am nothing but am empty shell, a glistneing facade");
+   SUMA_S_Err("CIFTI objects do not have their own controller");
    
    SUMA_RETURNe;  
 }
@@ -12097,8 +12109,9 @@ SUMA_Boolean SUMA_InitializeColPlaneShell_SO (
          }
       }
       if (!SOpar) {
-         SUMA_SL_Warn(  "No parent for dset found.\n"
-                        "Proceeding with next best option.");
+         SUMA_SL_Warn(  "No domain parent for dset %s found.\n"
+                        "Proceeding with next best option.", 
+			SDSET_LABEL(ColPlane->dset_link));
          SOpar = SO;
       }
       

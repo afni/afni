@@ -3377,7 +3377,7 @@ typedef struct {
    
       /* Begin specific fields */
    int N_subdoms; /* Number of sub objects defining domain */
-   SUMA_ALL_DO **subdoms; /* Collection of sub-domains */ 
+   char **subdoms_id; /* Collection of sub-domains */ 
    
    void *Saux; /* A pointer to a structure for SUMA's use */
    void (*FreeSaux)(void *Saux); /* Function to free Saux */

@@ -153,6 +153,7 @@
 }
 
 #define SUMA_CHECK_NULL_STR(str) ((str) ? (str) : "(NULL)")
+#define CNS SUMA_CHECK_NULL_STR
 
 #define SUMA_IS_STRICT_POS(a)   ( ((a) > 0) ? 1 : 0 )
 
