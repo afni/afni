@@ -2347,46 +2347,46 @@ class RegWrap:
    # create edge dataset of internal brain structure edges
    def edge_dset(self, e=None, prefix = "temp_edge", binarize=0,erodelevel=2):
       o = afni_name(prefix)
-
+      prefix = o.prefix
       o.view = e.view
       if (not o.exist() or ps.rewrite or ps.dry_run()):
          o.delete(ps.oexec)
          self.info_msg("Creating edge dataset")
-         com = shell_com("3dAutomask -overwrite -erode %s -prefix %s_edge_mask %s" \
+         com = shell_com("3dAutomask -overwrite -erode %s -prefix %s_mask %s" \
                          % (erodelevel, prefix, e.input()), ps.oexec)
          com.run()
 
          if(binarize):
-            lprefix = "%s_edge_cvar" % prefix
+            lprefix = "%s_cvar" % prefix
          else:
             lprefix = prefix
 
          com = shell_com(                                                  \
-                         "3dLocalstat -overwrite -mask %s_edge_mask%s " \
-                         "-nbhd 'RECT(-1,-1,0)'"                           \
+                         "3dLocalstat -overwrite -mask %s_mask%s " \
+                         "-nbhd 'RECT(-1,-1,-1)'"                           \
                          " -stat cvar -prefix %s %s" %                     \
                          (prefix, o.view, lprefix, e.input()), ps.oexec)
          com.run();
 
          if(binarize):
             com = shell_com( \
-              "3dhistog -omit 0 -max 1 -nbins 1000 %s_edge_cvar%s "     \
-                            " > %s_edge_histo.1D" % (prefix, o.view, prefix), ps.oexec)
+              "3dhistog -omit 0 -max 1 -nbins 1000 %s_cvar%s "     \
+                            " > %s_histo.1D" % (prefix, o.view, prefix), ps.oexec)
             com.run()
 
-            com = shell_com("3dTstat -argmax -prefix %s_edge_histomax "    \
-                            "%s_edge_histo.1D'[1]'\\' " %                  \
+            com = shell_com("3dTstat -argmax -prefix %s_histomax "    \
+                            "%s_histo.1D'[1]'\\' " %                  \
                             (prefix, prefix), ps.oexec)
             com.run()
 
-            com = shell_com("1dcat %s_edge_histomax.1D" %                  \
+            com = shell_com("1dcat %s_histomax.1D" %                  \
                              prefix, ps.oexec, capture=1)
             com.run()
 
             if(ps.dry_run()): edgeindex = 123
             else:  edgeindex = int(com.val(0,0))
 
-            com = shell_com("1dcat %s_edge_histo.1D'[0]{%d}'" %            \
+            com = shell_com("1dcat %s_histo.1D'[0]{%d}'" %            \
                   (prefix, edgeindex), ps.oexec, capture=1)
             com.run()
 
@@ -2396,7 +2396,7 @@ class RegWrap:
             # threshold anatomical and EPI edge data
             self.info_msg("Thresholding edges at %f" % edgevalue)
             com = shell_com( \
-                '3dcalc -a %s_edge_cvar%s -overwrite -expr "step(a-%f)"' \
+                '3dcalc -a %s_cvar%s -overwrite -expr "step(a-%f)"' \
                 ' -prefix %s' % (prefix, o.view, edgevalue, o.out_prefix()), ps.oexec)
             com.run()
 

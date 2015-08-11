@@ -30,12 +30,12 @@ SEXP getListElement(SEXP list, const char *str)
 
 SEXP R_THD_load_dset(SEXP Sfname, SEXP Opts)
 {
-   SEXP Rdset, brik, head, names, opt;
-   int i=0, ip=0, sb, cnt=0;
+   SEXP Rdset, brik, head, names, opt, node_list=R_NilValue;
+   int i=0, ip=0, sb, cnt=0, *iv=NULL, kparts=2;
    char *fname = NULL, *head_str;
    NI_group *ngr=NULL;
    NI_element *nel=NULL;
-   char *listels[2] = {"head","brk"}; /* the brk is on purpose 
+   char *listels[3] = {"head","brk","index_list"}; /* the brk is on purpose 
                                          for backward compatibility */
    double *dv=NULL;
    float *fv=NULL;
@@ -114,33 +114,51 @@ SEXP R_THD_load_dset(SEXP Sfname, SEXP Opts)
       else if (debug > 2) fprintf(stderr,"\n");
    }
    
+   /* how about an index list ? */
+   if (dset->dblk->nnodes && dset->dblk->node_list) {
+      if (debug > 1) 
+         fprintf(stderr,"Copying %d node indices\n", dset->dblk->nnodes);
+      PROTECT(node_list = NEW_INTEGER(dset->dblk->nnodes));
+      iv = INTEGER_POINTER(node_list);
+      memcpy(iv, dset->dblk->node_list, dset->dblk->nnodes*sizeof(int));
+      kparts = 3;
+   } else {
+      kparts = 2;
+      if (debug > 1) 
+         fprintf(stderr,"No node indices %d %p\n", 
+                  dset->dblk->nnodes, dset->dblk->node_list);
+   }
+   
    /* done with dset, dump it */
    DSET_delete(dset);
    
    /* form output list */
-   PROTECT(names = allocVector(STRSXP,2));
-   for (i=0; i<2; ++i) {
+   PROTECT(names = allocVector(STRSXP,kparts));
+   for (i=0; i<kparts; ++i) {
       SET_STRING_ELT(names, i, mkChar(listels[i]));
    } 
-   PROTECT(Rdset = allocVector(VECSXP,2));
+   PROTECT(Rdset = allocVector(VECSXP,kparts));
    SET_VECTOR_ELT(Rdset, 0, head);
    SET_VECTOR_ELT(Rdset, 1, brik);
+   if (node_list != R_NilValue) SET_VECTOR_ELT(Rdset, 2, node_list);
    setAttrib(Rdset, R_NamesSymbol, names);
    
    if (debug > 1) fprintf(stderr,"Unprotecting...\n");
-   UNPROTECT(6);
+   if (kparts==3) UNPROTECT(7);
+   else UNPROTECT(6);
    
    return(Rdset);
 }
 
 SEXP R_THD_write_dset(SEXP Sfname, SEXP Sdset, SEXP Opts)
 {
-   SEXP Rdset, brik, head, names, opt;
-   int i=0, ip=0, sb, cnt=0, scale = 1, overwrite=0, addFDR=0;
+   SEXP Rdset, brik, head, names, opt, node_list;
+   int i=0, ip=0, sb, cnt=0, scale = 1, overwrite=0, addFDR=0, 
+       kparts=2, *iv=NULL;
    char *fname = NULL, *head_str, *stmp=NULL, *hist=NULL;
    NI_group *ngr=NULL;
    NI_element *nel=NULL;
-   char *listels[2] = {"head","brk"}; /* the brk is on purpose 
+   char *listels[3] = {"head","brk","index_list"}; /* the brk is on purpose 
                                          for backward compatibility */
    double *dv=NULL;
    float *fv=NULL;
@@ -298,6 +316,16 @@ SEXP R_THD_write_dset(SEXP Sfname, SEXP Sdset, SEXP Opts)
                ININFO_message("failed to create FDR curves in dataset header") ;
          }
       }
+   }
+   
+   /* Do we have an index_list? */
+   if ((node_list=AS_INTEGER(getListElement(Rdset,"index_list")))!=R_NilValue) {
+      iv = INTEGER_POINTER(node_list);
+      if (debug > 1) INFO_message("First node index value %d, total (%d)\n", 
+                                  iv[0], length(node_list));
+      dset->dblk->nnodes = length(node_list);
+      dset->dblk->node_list = (int *)XtMalloc(dset->dblk->nnodes * sizeof(int));
+      memcpy(dset->dblk->node_list, iv, dset->dblk->nnodes*sizeof(int));
    }
    
    if (hist) {

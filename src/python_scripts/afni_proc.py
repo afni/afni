@@ -442,6 +442,7 @@ g_history = """
         - generate WMeL_corr as a diagnostic volume (corr w/WMeLocal)
         - todo: add ability to make WMeL_corr without fast anaticor
     4.31 Feb 27, 2015: added -regress_WMeL_corr option (forgot that)
+        - 27 July, 2015: option changed to -regress_make_corr_AIC
     4.32 Mar  2, 2015:
         - fixed 3dTproject call for resting state on surface
         - small change to get 3dSeg results using wildcard
@@ -478,13 +479,24 @@ g_history = """
           rather than -regress_ROI_*, the latter no longer taking datasets
         - also changed -regress_ROI_erode to -anat_follower_erode
         - removed option -regress_ROI_maskave (use -regress_ROI)
-    4.44 May 22, 2015: help clarifications
+    4.45 May 22, 2015: help clarifications
+    4.46 Jun 15, 2015: applied -regress_stim_times_offset to typical timing
+    4.47 Jul 01, 2015: clarified help for -anat_unif_GM, default = no
+    4.48 Jul 27, 2015:
+        - renamed -regress_WMeL_corr to -regress_make_corr_AIC
+        - default is now 'no' (since it is a somewhat slow operation)
+    4.49 Jul 28, 2015:
+        - ** ANATICOR now includes zero volumes at censor points
+        -    (this matches non-ANATICOR and fast ANATICOR cases)
+    4.50 Jul 29, 2015:
+        - ANATICOR now works for task analysis, using -regress_reml_exec
 """
 
-g_version = "version 4.45, May 22, 2015"
+g_version = "version 4.50, July 29, 2015"
 
 # version of AFNI required for script execution
-g_requires_afni = "1 Apr 2015" # 1d_tool.py uncensor from 1D
+# prev: g_requires_afni = "1 Apr 2015" # 1d_tool.py uncensor from 1D
+g_requires_afni = "23 Jul 2015" # 3dREMLfit -dsort
 
 g_todo_str = """todo:
   - add option to block anat from anat followers?
@@ -495,8 +507,6 @@ g_todo_str = """todo:
   - add warnings from any bad GLTsymtest output
 
   - warn of missing input dsets?  (-dsets, -copy_anat, any 3dcopy)
-  - use anaticor_fast method to produce QC volume from WMe of VR data
-     - WMe mask and blur volreg, correlate with same volreg (detrend)
   - add -volreg_align_base_to_ext_dset (probably a small displacement)
     (to match volreg_base to -align_epi_ext_dset)
   - if no align/tlrc blocks, but -mask_segment_anat, run 3dSkullStrip
@@ -547,6 +557,7 @@ DefSurfLabs    = ['tcat','tshift','align','volreg','surf','blur',
 EPInomodLabs = ['postdata', 'align', 'tlrc', 'mask']
 
 default_roi_keys = ['brain', 'GM', 'WM', 'CSF', 'GMe', 'WMe', 'CSFe']
+stim_file_types  = ['times', 'AM1', 'AM2', 'IM', 'file']
 
 # --------------------------------------------------------------------------
 # data processing stream class
@@ -573,6 +584,7 @@ class SubjProcSream:
         self.vr_int_name= ''            # other internal volreg dset name
         self.volreg_prefix = ''         # prefix for volreg dataset ($run)
                                         #   (using $subj and $run)
+        self.vr_vall    = None          # all runs from volreg block
         self.mot_labs   = []            # labels for motion params
         # motion parameter file (across all runs)
         self.mot_file   = 'dfile_rall.1D' # either mot_default or mot_extern
@@ -624,10 +636,13 @@ class SubjProcSream:
         self.e2final_mv = []            # matvec list takes epi base to final
         self.e2final    = ''            # aff12.1D file for e2final_mv
         self.regress_inset = None       # afni_name: first input to regression
+        self.anaticor   = 0             # 0/1/2 = no/slow/fast
+        self.aic_lset   = None          # ANATICOR local WM time series dataset
         self.errts_pre  = ''            # possibly changing errts prefix
         self.errts_reml = ''            # prefix for any REML errts
         self.errts_cen  = 0             # flag: current errts has censored
                                         #       TRs removed
+        self.keep_trs   = ''            # maybe becomes '"[$keep_trs]"'
         self.align_ebase= None          # external EPI for align_epi_anat.py
         self.align_epre = 'ext_align_epi' # copied align epi base prefix
         self.rm_rm      = 1             # remove rm.* files (user option)
@@ -1007,8 +1022,6 @@ class SubjProcSream:
                         helpstr="specify radius for WMeLocal extraction")
         self.valid_opts.add_opt('-regress_anaticor_label', 1, [],
                         helpstr="specify ROI label for anaticor (default=WMe)")
-        self.valid_opts.add_opt('-regress_WMeL_corr', 0, [],
-                        helpstr="if WMeLocal, compute correlation volume")
         self.valid_opts.add_opt('-regress_apply_mask', 0, [],
                         helpstr="apply the mask in regression")
         self.valid_opts.add_opt('-regress_apply_ricor', 1, [],
@@ -1060,9 +1073,9 @@ class SubjProcSream:
         self.valid_opts.add_opt('-regress_no_stim_times', 0, [],
                         helpstr="do not convert stim_files to timing")
         self.valid_opts.add_opt('-regress_stim_times_offset', 1, [],
-                        helpstr="add offset when converting to timing")
+                        helpstr="add offset to timing")
         self.valid_opts.add_opt('-regress_stim_types', -1, [], okdash=0,
-                        acplist=['times', 'AM1', 'AM2', 'IM', 'file'],
+                        acplist=stim_file_types,
                         helpstr="specify times/AM1/AM2/IM for each stim class")
         self.valid_opts.add_opt('-regress_use_stim_files', 0, [],
                         helpstr="do not convert stim_files to timing")
@@ -1108,6 +1121,8 @@ class SubjProcSream:
                         helpstr="apply -local_times option to 3dDeconvolve")
         self.valid_opts.add_opt('-regress_make_ideal_sum', 1, [],
                         helpstr="filename for sum of ideal regressors")
+        self.valid_opts.add_opt('-regress_make_corr_AIC', 0, [],
+                        helpstr="if WMeLocal, compute correlation volume")
         self.valid_opts.add_opt('-regress_make_corr_vols', -1, [],
                         helpstr="get correlation volumes for given ROIs")
         self.valid_opts.add_opt('-regress_no_ideal_sum', 0, [],
@@ -1940,12 +1955,29 @@ class SubjProcSream:
                         % (self.od_var, self.od_var, stat_inc))
 
         if len(self.stims_orig) > 0: # copy stim files into script's stim dir
+          oname = '-regress_stim_times_offset'
+          val, err = self.user_opts.get_type_opt(float, oname)
+          if err: return 1
+
+          # if normal timing and want offset, apply it right away
+          if val != None and self.have_all_stim_times(): 
+            tstr = '# copy stim files into stimulus directory ' \
+                   '(times offset by %g s)\n' % val
+            for ind in range(len(self.stims_orig)):
+              oldfile = self.stims_orig[ind]
+              newfile = self.stims[ind]
+              tstr += 'timing_tool.py -add_offset %g -timing %s \\\n'   \
+                      '               -write_timing %s/%s\n'            \
+                      % (val, oldfile, self.od_var, newfile)
+
+          # otherwise, have either regular timing files or no offset
+          else:
             tstr = '# copy stim files into stimulus directory\ncp'
             for ind in range(len(self.stims)):
                 tstr += ' %s' % self.stims_orig[ind]
             tstr += ' %s/stimuli\n' % self.od_var
-            self.write_text(add_line_wrappers(tstr))
-            self.write_text("%s\n" % stat_inc)
+          self.write_text(add_line_wrappers(tstr))
+          self.write_text("%s\n" % stat_inc)
 
         if len(self.extra_stims) > 0: # copy extra stim files into stim dir
             tstr = '# copy extra stim files\n'   \
@@ -2214,6 +2246,42 @@ class SubjProcSream:
           return 'NO_LABEL'
        return self.pblabels[index]
 
+    def have_all_stim_times(self):
+        """return whether all stim files are with regular timing"""
+
+        # must have timing files
+        sopt = self.user_opts.find_opt('-regress_stim_times')
+        if not sopt: return 0
+        if len(sopt.parlist) < 1: return 0
+
+        # must not have regular stim files
+        if self.user_opts.find_opt('-regress_stim_files'): return 0
+
+        # must not have 'file' type
+        stypes, rv = self.user_opts.get_string_list('-regress_stim_types')
+        if rv: return 0
+        if stypes != None:
+           if 'file' in stypes: return 0
+
+        # okay, I think that is basically everything
+        return 1
+
+    def have_some_stim_times(self):
+        """return whether there exist stim files are with regular timing"""
+
+        # must have timing files
+        sopt = self.user_opts.find_opt('-regress_stim_times')
+        if not sopt: return 0
+        if len(sopt.parlist) < 1: return 0
+
+        # must have something besides 'file' type
+        stypes, rv = self.user_opts.get_string_list('-regress_stim_types')
+        if rv: return 0
+        for stype in stypes:
+           if stype != 'file': return 1
+
+        # did not find anything
+        return 0
 
     def anat_follower(self, name='', aname=None, dgrid='epi', label='',
                       NN=0, num_pc=0, mave=0):
@@ -2383,7 +2451,7 @@ class SubjProcSream:
         if check and not aname.exist():
            print '** WARNING: anat follower does not seem to exist: %s' \
                  % aname.rel_input()
-           print '   originally from %s' % aname.initial
+           print '   originally from %s' % aname.initname
            if self.verb > 1: aname.show()
 
         return af

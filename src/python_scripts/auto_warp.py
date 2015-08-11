@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import sys
+import sys, os
 import copy
 from time import asctime
 
@@ -398,13 +398,18 @@ class RegWrap:
          self.exists_msg(n.input())
       
       return n
-   
-   
+
 
 ## BEGIN script specific functions   
    def process_input(self):
       for opt in self.user_opts.olist:
          if (opt.test() == None): ps.ciao(1)
+
+      # do not allow AFNI_COMPRESSOR (or avoid NIFTI)  10 Jun 2015 [rickr] */
+      ename = 'AFNI_COMPRESSOR'
+      if os.environ.has_key(ename):
+         print '-- clearing %s ...' % ename
+         del os.environ[ename]
 
       opt = self.user_opts.find_opt('-skull_strip_input')
       if opt == None:

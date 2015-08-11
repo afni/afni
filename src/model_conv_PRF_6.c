@@ -62,6 +62,7 @@ static float * refts     = NULL;   /* reference time series */
 static int   * refin     = NULL;   /* indexes of nonzero pts */
 static int     g_iter    = -1;     /* iteration number */
 
+static char  * g_model_ver = "model_conv_PRF_6, version 1.1, 7 Aug, 2015";
 
 /* exp variables, parameters */
 static float g_exp_maxval  = 8.0;  /* max x in exp(-x) */
@@ -74,32 +75,33 @@ static float * g_exp_ts  = NULL;  /* exp(-x) for x at index VAL*pieces */
 static THD_3dim_dataset * g_saset=NULL; /* stimulus aperature dataset */
 
 /* prototypes */
+static void conv_set_ref( int num , float * ref );
 static int signal_model( float * , int , float ** , float *, int );
-int reset_stim_aperature_dset(int);
-int reset_exp_time_series(void);
+static int reset_stim_aperature_dset(int);
+static int reset_exp_time_series(void);
 
-THD_3dim_dataset * convert_to_blurred_masks(THD_3dim_dataset *);
-THD_3dim_dataset * THD_reorg_dset(THD_3dim_dataset * din);
-int convolve_dset(THD_3dim_dataset * tset);
-float * get_float_volume_copy(THD_3dim_dataset * dset, int index, int nz);
-int compute_e_x_grid(float * e, int nx, int ny, float x0, float y0,
+static THD_3dim_dataset * convert_to_blurred_masks(THD_3dim_dataset *);
+static THD_3dim_dataset * THD_reorg_dset(THD_3dim_dataset * din);
+static int convolve_dset(THD_3dim_dataset * tset);
+static float * get_float_volume_copy(THD_3dim_dataset * dset, int index,int nz);
+static int compute_e_x_grid(float * e, int nx, int ny, float x0, float y0,
                      float sigma, float sigrat, float theta);
-int fill_computed_farray(float * ts, int tslen, THD_3dim_dataset * dset,
+static int fill_computed_farray(float * ts, int tslen, THD_3dim_dataset * dset,
                          float x0, float y0, float sigma, float sigrat,
                          float theta, float A, int debug);
-int fill_scaled_farray(float * fdest, int nt, THD_3dim_dataset * dsrc,
+static int fill_scaled_farray(float * fdest, int nt, THD_3dim_dataset * dsrc,
                        float x, float y, float sigma, float scale, int debug);
-int get_ABC(float sigma, float sigrat, float theta,
+static int get_ABC(float sigma, float sigrat, float theta,
             double * A, double * B, double * C);
-int inputs_to_coords(THD_3dim_dataset * dset, float x, float y, float sigma,
-                     float sigrat, float theta);
+static int inputs_to_coords(THD_3dim_dataset * dset, float x, float y,
+			    float sigma, float sigrat, float theta);
 
 static int   disp_floats(char * mesg, float * p, int len);
 static int   model_help(void);
-int          convolve_by_ref(float *, int, float *, int, int, int);
+static int   convolve_by_ref(float *, int, float *, int, int, int);
 
-void conv_model( float *  gs      , int     ts_length ,
-                 float ** x_array , float * ts_array   );
+static void conv_model( float *  gs      , int     ts_length ,
+			float ** x_array , float * ts_array   );
 
 #define ERREX(str) ( fprintf(stderr,"\n*** %s\a\n",str) , exit(1) )
 
@@ -112,20 +114,21 @@ void conv_model( float *  gs      , int     ts_length ,
 
 /* ---------------------------------------------------------------------- */
 /* interface to the environment */
-char * genv_conv_ref = NULL;    /* AFNI_CONVMODEL_REF */
-char * genv_prf_stim = NULL;    /* AFNI_MODEL_PRF_STIM_DSET */
-int    genv_diter    = -1;      /* debug iteration */
-int    genv_debug    = 0;       /* AFNI_MODEL_DEBUG */
+static char * genv_conv_ref = NULL;    /* AFNI_CONVMODEL_REF */
+static char * genv_prf_stim = NULL;    /* AFNI_MODEL_PRF_STIM_DSET */
+static int    genv_diter    = -1;      /* debug iteration */
+static int    genv_debug    = 0;       /* AFNI_MODEL_DEBUG */
 
-int    genv_on_grid      = 0;   /* restrict computations and results to grid */
-float  genv_sigma_max    = 1.0; /* on_grid: maximum blur sigma */
-int    genv_sigma_nsteps = 100; /* on_grid: number of blur steps */
-int    genv_sigma_ratio_nsteps = 4; /* integers >= 1, or any >= 1 if 0 */
-int    genv_theta_nsteps = 6;   /* truncate [-PI/2,PI/2) to S steps (if > 0) */
+static int    genv_on_grid      = 0;   /* restrict computations to grid */
+static float  genv_sigma_max    = 1.0; /* on_grid: maximum blur sigma */
+static int    genv_sigma_nsteps = 100; /* on_grid: number of blur steps */
+static int    genv_sigma_ratio_nsteps = 4; /* integers >= 1, or any >= 1 if 0 */
+static int    genv_theta_nsteps = 6;   /* truncate [-PI/2,PI/2) to S steps
+					  (if > 0) */
 
-int    genv_get_help = 0;       /* AFNI_MODEL_HELP_ALL or HELP_CONV_PRF */
+static int    genv_get_help = 0;      /* AFNI_MODEL_HELP_ALL or HELP_CONV_PRF */
 
-int set_env_vars(void)
+static int set_env_vars(void)
 {
    genv_conv_ref = my_getenv("AFNI_CONVMODEL_REF");       /* reference file */
    if( genv_conv_ref ) fprintf(stderr,"-- PRF: have REF %s\n", genv_conv_ref);
@@ -171,7 +174,7 @@ int set_env_vars(void)
    model function is convolved to produce the simulated data.
 ------------------------------------------------------------------------*/
 
-void conv_set_ref( int num , float * ref )
+static void conv_set_ref( int num , float * ref )
 {
    if( num > 0 && ref != NULL ){ /*** if have inputs, make space & copy in ***/
       int ii ;
@@ -227,7 +230,7 @@ void conv_set_ref( int num , float * ref )
 /* any failure should leave g_saset == NULL
  *
  * return 0 on success */
-int reset_stim_aperature_dset(int needed_length)
+static int reset_stim_aperature_dset(int needed_length)
 {
    THD_3dim_dataset * sanew;
    int                errs=0;
@@ -289,7 +292,7 @@ int reset_stim_aperature_dset(int needed_length)
 
 
 /* x-axis is convolution time axis, so for each row, convolve */
-int convolve_dset(THD_3dim_dataset * tset)
+static int convolve_dset(THD_3dim_dataset * tset)
 {
    float * result, * volbase, * dbase;
    int     nx, ny, nz, nt, nxy;
@@ -361,7 +364,7 @@ int convolve_dset(THD_3dim_dataset * tset)
  * EDIT_dset_item: set datum, NZ
  *------------------------------------------------------------
  */
-THD_3dim_dataset * convert_to_blurred_masks(THD_3dim_dataset * dset)
+static THD_3dim_dataset * convert_to_blurred_masks(THD_3dim_dataset * dset)
 {
    THD_3dim_dataset * dnew;
    THD_ivec3          iv_nxyz;
@@ -429,7 +432,7 @@ THD_3dim_dataset * convert_to_blurred_masks(THD_3dim_dataset * dset)
  * The main point is to make the time axes the fast direction.
  *
  * require MRI_float for now */
-THD_3dim_dataset * THD_reorg_dset(THD_3dim_dataset * din)
+static THD_3dim_dataset * THD_reorg_dset(THD_3dim_dataset * din)
 {
    THD_3dim_dataset * dout;
    THD_ivec3          iv_nxyz;
@@ -513,7 +516,7 @@ THD_3dim_dataset * THD_reorg_dset(THD_3dim_dataset * din)
 
 
 /* duplicate dset slice at given index nz times (into volume of nz slices) */
-float * get_float_volume_copy(THD_3dim_dataset * dset, int index, int nz)
+static float * get_float_volume_copy(THD_3dim_dataset * dset, int index, int nz)
 {
    MRI_IMAGE * fim;
    float     * fdata;
@@ -553,7 +556,7 @@ float * get_float_volume_copy(THD_3dim_dataset * dset, int index, int nz)
  * so step = 1/1000
  * g_exp_nvals = g_exp_maxval * g_exp_ipieces + 1 (for 0), plus a few
  */
-int reset_exp_time_series(void)
+static int reset_exp_time_series(void)
 {
    int   ind;
    float resol = 1.0/g_exp_ipieces;
@@ -583,7 +586,7 @@ int reset_exp_time_series(void)
   Function to compute the simulated time series.
 -------------------------------------------------------------------------*/
 
-void conv_model( float *  gs      , int     ts_length ,
+static void conv_model( float *  gs      , int     ts_length ,
                  float ** x_array , float * ts_array   )
 {
    int ii, cur_debug = 0, irfdur=0;
@@ -600,6 +603,7 @@ void conv_model( float *  gs      , int     ts_length ,
       set_env_vars();   /* process environment variables */
       if(genv_debug && x_array) fprintf(stderr,"\n+d TR = %f\n",
                                         x_array[1][1]-x_array[0][1]);
+      fprintf(stderr,"++ %s\n", g_model_ver);
    }
 
    /*** make sure there is a reference function to convolve with ***/
@@ -673,10 +677,9 @@ void conv_model( float *  gs      , int     ts_length ,
       init            : flag: init result?
       demean          : flag: demean result?
 */
-int convolve_by_ref(float * result, int rlen, float * signal, int siglen,
+static int convolve_by_ref(float * result, int rlen, float * signal, int siglen,
                     int init, int demean)
 {
-   static int first = 1;
    int    ii, jj, kk, jtop;
    float  val;  /* current reference value to apply */
    double mean; /* for demeaning result */
@@ -812,7 +815,6 @@ static int signal_model
   int      debug        /* make some noise */
 )
 {
-  int    it;            /* time index */
   int    maxind;        /* largest dimension */
   float  A, x, y, sigma;/* model params */
   float  sigrat, theta;
@@ -852,7 +854,7 @@ fprintf(stderr,"== rcr - need to apply sigrat, theta on grid\n");
 }
 
 /* get j, k, t from x, y, sigma, then copy data */
-int fill_scaled_farray(float * fdest, int length, THD_3dim_dataset * dsrc,
+static int fill_scaled_farray(float *fdest, int length, THD_3dim_dataset *dsrc,
                        float x, float y, float sigma, float scale, int debug)
 {
    float * inptr, * outptr;
@@ -899,8 +901,8 @@ int fill_scaled_farray(float * fdest, int length, THD_3dim_dataset * dsrc,
 
 
 /* as in fill_scaled_farray, but map x,y,s to i,j,k */
-int inputs_to_coords(THD_3dim_dataset * dset, float x, float y, float sigma,
-                     float sigrat, float theta)
+static int inputs_to_coords(THD_3dim_dataset * dset, float x, float y,
+			    float sigma, float sigrat, float theta)
 {
    int     nx, ny, nz;
    int     i, j, k;
@@ -942,7 +944,7 @@ int inputs_to_coords(THD_3dim_dataset * dset, float x, float y, float sigma,
  *   such computations will be sequential (at least starting from 0)
  * - at index 0, a new e^x slice will be computed and
  *   applied across time */
-int fill_computed_farray(float * ts, int tslen, THD_3dim_dataset * dset,
+static int fill_computed_farray(float * ts, int tslen, THD_3dim_dataset * dset,
                          float x0, float y0, float sigma, float sigrat,
                          float theta, float A, int debug)
 {
@@ -1001,7 +1003,7 @@ int fill_computed_farray(float * ts, int tslen, THD_3dim_dataset * dset,
  * B = -(R^2-1) * sin(2theta) / [4R^2sigma^2]
  * C = [R^2sin^2(theta) + cos^2(theta)] / [2R^2sigma^2]
  */
-int get_ABC(float sigma, float sigrat, float theta,
+static int get_ABC(float sigma, float sigrat, float theta,
             double * A, double * B, double * C)
 {
    double   R2, R2S2, C2, S2, So2;
@@ -1036,7 +1038,7 @@ int get_ABC(float sigma, float sigrat, float theta,
  *   R^2, 2R^2sigma^2,
  *   cos^2(theta), sin^2(theta), sin(2theta)
  */
-int compute_e_x_grid(float * e, int nx, int ny, float x0, float y0,
+static int compute_e_x_grid(float * e, int nx, int ny, float x0, float y0,
                      float sigma, float sigrat, float theta)
 {
    float  * eptr, eval;

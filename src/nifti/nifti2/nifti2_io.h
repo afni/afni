@@ -381,7 +381,10 @@ char const *nifti_orientation_string( int ii ) ;
 
 int   nifti_is_inttype( int dt ) ;
 
-mat44 nifti_mat44_inverse( mat44 R ) ;
+mat44        nifti_mat44_inverse ( mat44 R ) ;
+nifti_dmat44 nifti_dmat44_inverse( nifti_dmat44 R ) ;
+int          nifti_mat44_to_dmat44(mat44 * fm, nifti_dmat44 * dm);
+int          nifti_dmat44_to_mat44(nifti_dmat44 * dm, mat44 * fm);
 
 nifti_dmat33 nifti_dmat33_inverse( nifti_dmat33 R ) ;
 nifti_dmat33 nifti_dmat33_polar  ( nifti_dmat33 A ) ;
@@ -469,6 +472,11 @@ int    disp_nifti_2_header( const char * info, const nifti_2_header * hp ) ;
 void   nifti_set_debug_level( int level ) ;
 void   nifti_set_skip_blank_ext( int skip ) ;
 void   nifti_set_allow_upper_fext( int allow ) ;
+int    nifti_get_alter_cifti( void );
+void   nifti_set_alter_cifti( int alter_cifti );
+
+int    nifti_alter_cifti_dims(nifti_image * nim);
+
 
 int    valid_nifti_brick_list(nifti_image * nim , int64_t nbricks,
                               const int64_t * blist, int disp_error);
@@ -544,11 +552,11 @@ char * nifti_makebasename(const char* fname);
 
 
 /* other routines */
-nifti_1_header   nifti_convert_nim2n1hdr(const nifti_image* nim);
-nifti_2_header   nifti_convert_nim2n2hdr(const nifti_image* nim);
-nifti_1_header * nifti_make_new_n1_header(const int64_t arg_dims[], int arg_dtype);
-nifti_2_header * nifti_make_new_n2_header(const int64_t arg_dims[], int arg_dtype);
-void * nifti_read_header          (const char *hname, int *nver,    int check);
+int   nifti_convert_nim2n1hdr(const nifti_image* nim, nifti_1_header * hdr);
+int   nifti_convert_nim2n2hdr(const nifti_image* nim, nifti_2_header * hdr);
+nifti_1_header * nifti_make_new_n1_header(const int64_t arg_dims[], int dtype);
+nifti_2_header * nifti_make_new_n2_header(const int64_t arg_dims[], int dtype);
+void           * nifti_read_header(const char *hname, int *nver,    int check);
 nifti_1_header * nifti_read_n1_hdr(const char *hname, int *swapped, int check);
 nifti_2_header * nifti_read_n2_hdr(const char *hname, int *swapped, int check);
 nifti_image    * nifti_copy_nim_info(const nifti_image * src);
@@ -560,6 +568,7 @@ nifti_image    * nifti_simple_init_nim(void);
 nifti_image    * nifti_convert_n1hdr2nim(nifti_1_header nhdr,const char *fname);
 nifti_image    * nifti_convert_n2hdr2nim(nifti_2_header nhdr,const char *fname);
 
+int    nifti_looks_like_cifti(nifti_image * nim);
 
 int    nifti_hdr1_looks_good       (const nifti_1_header * hdr);
 int    nifti_hdr2_looks_good       (const nifti_2_header * hdr);
@@ -633,7 +642,19 @@ int    nifti_valid_header_size(int ni_ver, int whine);
                                              /index.php/Caret:Documentation
                                              :CaretNiftiExtension             */
 
-#define NIFTI_MAX_ECODE             30  /******* maximum extension code *******/
+#define NIFTI_ECODE_CIFTI           32  /* CIFTI-2_Main_FINAL_1March2014.pdf */
+
+#define NIFTI_ECODE_VARIABLE_FRAME_TIMING 34
+
+/* 36 is currently unassigned, waiting on NIFTI_ECODE_AGILENT_PROCPAR */
+
+#define NIFTI_ECODE_EVAL            38  /* Munster University Hospital */
+
+/* http://www.mathworks.com/matlabcentral/fileexchange/42997-dicom-to-nifti-converter */
+#define NIFTI_ECODE_MATLAB          40  /* MATLAB extension */
+
+
+#define NIFTI_MAX_ECODE             40  /******* maximum extension code *******/
 
 /* nifti_type file codes */
 #define NIFTI_FTYPE_ANALYZE   0         /* old ANALYZE */
@@ -653,6 +674,7 @@ typedef struct {
     int debug;               /*!< debug level for status reports  */
     int skip_blank_ext;      /*!< skip extender if no extensions  */
     int allow_upper_fext;    /*!< allow uppercase file extensions */
+    int alter_cifti;         /*!< convert CIFTI dimensions        */
 } nifti_global_options;
 
 typedef struct {

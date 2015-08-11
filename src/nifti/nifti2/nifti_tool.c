@@ -46,6 +46,7 @@
  *   nifti_tool -check_hdr -infiles f1 ...
  *   nifti_tool -check_nim -infiles f1 ...
 
+ *   nifti_tool -disp_cext -infiles f1 ...
  *   nifti_tool -disp_exts -infiles f1 ...
  *   nifti_tool -disp_hdr  [-field fieldname] [...] -infiles f1 ...
  *   nifti_tool -disp_hdr1 [-field fieldname] [...] -infiles f1 ...
@@ -171,9 +172,11 @@ static char * g_history[] =
   "   - disp_hdr detects type\n"
   "   - diff_hdr detects type\n"
   "   - have diff_hdr1/diff_hdr2 to read as those types\n"
+  "2.03 23 Jul 2015 [rickr] - handle a couple of unknown version cases\n",
+  "2.04 05 Aug 2015 [rickr] - incorporate nifti-2 writing library change\n",
   "----------------------------------------------------------------------\n"
 };
-static char g_version[] = "version 2.02 (Jun1 1, 2015)";
+static char g_version[] = "version 2.04 (August 5, 2015)";
 static int  g_debug = 1;
 
 #define _NIFTI_TOOL_C_
@@ -259,6 +262,7 @@ int main( int argc, char * argv[] )
 
    /* last action type is display */
    if( opts.disp_exts && ((rv = act_disp_exts(&opts)) != 0) ) FREE_RETURN(rv);
+   if( opts.disp_cext && ((rv = act_disp_cext(&opts)) != 0) ) FREE_RETURN(rv);
    if( opts.disp_hdr  && ((rv = act_disp_hdr (&opts)) != 0) ) FREE_RETURN(rv);
    if( opts.disp_hdr1 && ((rv = act_disp_hdr1(&opts)) != 0) ) FREE_RETURN(rv);
    if( opts.disp_hdr2 && ((rv = act_disp_hdr2(&opts)) != 0) ) FREE_RETURN(rv);
@@ -340,6 +344,18 @@ int process_opts( int argc, char * argv[], nt_opts * opts )
       }
 
       /* begin normal execution options... */
+      else if( ! strcmp(argv[ac], "-add_ext") )
+      {
+         int new_ecode;
+         ac++;
+         CHECK_NEXT_OPT(ac, argc, "-add_ext");
+         new_ecode = atoll(argv[ac]);
+         if( add_int(&opts->etypes, new_ecode) ) return -1;
+         ac++;
+         CHECK_NEXT_OPT(ac, argc, "-add_ext");
+         if( add_string(&opts->elist, argv[ac]) ) return -1; /* add extension */
+         opts->add_exts = 1;
+      }
       else if( ! strcmp(argv[ac], "-add_afni_ext") )
       {
          ac++;
@@ -403,6 +419,8 @@ int process_opts( int argc, char * argv[], nt_opts * opts )
          opts->diff_nim = 1;
       else if( ! strncmp(argv[ac], "-disp_exts", 9) )
          opts->disp_exts = 1;
+      else if( ! strncmp(argv[ac], "-disp_cext", 9) )
+         opts->disp_cext = 1;
       else if( ! strcmp(argv[ac], "-disp_hdr") )
          opts->disp_hdr = 1;
       else if( ! strcmp(argv[ac], "-disp_hdr1") )
@@ -608,7 +626,7 @@ int verify_opts( nt_opts * opts, char * prog )
                           || opts->diff_nim                    ) ? 1 : 0;
    ac += (opts->disp_hdr  || opts->disp_hdr1 || opts->disp_hdr2
                           || opts->disp_nim  || opts->disp_ana  
-                          || opts->disp_exts                   ) ? 1 : 0;
+                          || opts->disp_exts || opts->disp_cext) ? 1 : 0;
    ac += (opts->mod_hdr   || opts->mod_nim                     ) ? 1 : 0;
    ac += (opts->swap_hdr  || opts->swap_ana  || opts->swap_old ) ? 1 : 0;
    ac += (opts->add_exts  || opts->rm_exts                     ) ? 1 : 0;
@@ -1004,6 +1022,7 @@ int use_full()
    "    nifti_tool -disp_nim  [-field FIELDNAME] [...] -infiles f1 ...\n"
    "    nifti_tool -disp_ana  [-field FIELDNAME] [...] -infiles f1 ...\n"
    "    nifti_tool -disp_exts -infiles f1 ...\n"
+   "    nifti_tool -disp_cext -infiles f1 ...\n"
    "    nifti_tool -disp_ts I J K [-dci_lines] -infiles f1 ...\n"
    "    nifti_tool -disp_ci I J K T U V W [-dci_lines] -infiles f1 ...\n"
    "\n");
@@ -1057,12 +1076,13 @@ int use_full()
   "      2. nifti_tool -disp_hdr1 -field dim -field descrip -infiles dset.nii\n"
   "      3. nifti_tool -disp_hdr2 -field dim -field descrip -infiles dset.nii\n"
    "      4. nifti_tool -disp_exts -infiles dset0.nii dset1.nii dset2.nii\n"
-   "      5. nifti_tool -disp_ts 23 0 172 -infiles dset1_time.nii\n"
-   "      6. nifti_tool -disp_ci 23 0 172 -1 0 0 0 -infiles dset1_time.nii\n"
+   "      5. nifti_tool -disp_cext -infiles dset0.nii dset1.nii dset2.nii\n"
+   "      6. nifti_tool -disp_ts 23 0 172 -infiles dset1_time.nii\n"
+   "      7. nifti_tool -disp_ci 23 0 172 -1 0 0 0 -infiles dset1_time.nii\n"
    "\n");
    printf(
-   "      6. nifti_tool -disp_ana -infiles analyze.hdr\n"
-   "      7. nifti_tool -disp_nim -infiles nifti.nii\n"
+   "      8. nifti_tool -disp_ana -infiles analyze.hdr\n"
+   "      9. nifti_tool -disp_nim -infiles nifti.nii\n"
    "\n");
    printf(
    "    D. create a new dataset from nothing:\n"
@@ -1366,11 +1386,15 @@ int use_full()
    "       structure.\n"
    "\n");
    printf(
+   "    -disp_cext         : display CIFTI-type extensions\n"
+   "\n"
+   "       This flag option is used to display all CIFTI extension data.\n"
+   "\n");
+   printf(
    "    -disp_exts         : display all AFNI-type extensions\n"
    "\n"
    "       This flag option is used to display all nifti_1_extension data,\n"
-   "       for only those extensions of type AFNI (code = 4).  The only\n"
-   "       other option used will be '-infiles'.\n"
+   "       for extensions of type AFNI (4), COMMENT (6) or CIFTI (32).\n"
    "\n");
    printf(
    "       e.g. to display the extensions in datasets:\n"
@@ -1886,6 +1910,7 @@ int disp_nt_opts(char * mesg, nt_opts * opts)
                   "   disp_hdr1, disp_hdr2 = %d, %d\n"
                   "   disp_hdr,  disp_nim  = %d, %d\n"
                   "   disp_ana, disp_exts  = %d, %d\n"
+                  "   disp_cext            = %d\n"
                   "   add_exts, rm_exts    = %d, %d\n"
                   "   mod_hdr,  mod_nim    = %d, %d\n"
                   "   swap_hdr, swap_ana   = %d, %d\n"
@@ -1898,7 +1923,8 @@ int disp_nt_opts(char * mesg, nt_opts * opts)
             opts->diff_hdr1, opts->diff_hdr2,
             opts->diff_hdr, opts->diff_nim,
             opts->disp_hdr1, opts->disp_hdr2, opts->disp_hdr, opts->disp_nim,
-            opts->disp_ana, opts->disp_exts, opts->add_exts, opts->rm_exts,
+            opts->disp_ana, opts->disp_exts, opts->disp_cext,
+            opts->add_exts, opts->rm_exts,
             opts->mod_hdr, opts->mod_nim,
             opts->swap_hdr, opts->swap_ana, opts->swap_old,
             opts->cbl, opts->cci,
@@ -1985,6 +2011,10 @@ int act_add_exts( nt_opts * opts )
             }
             ext = edata;
          }
+
+         if( ! nifti_is_valid_ecode(opts->etypes.list[ec]) )
+            fprintf(stderr,"** warning: applying unknown ECODE %d\n",
+                    opts->etypes.list[ec]);
 
          if( nifti_add_extension(nim, ext, elen, opts->etypes.list[ec]) ){
             nifti_image_free(nim);
@@ -2340,6 +2370,12 @@ int act_diff_hdrs( nt_opts * opts )
       fprintf(stderr,"   have NIFTI-%d and NIFTI-%d\n", nva, nvb);
    }
 
+   if( nva < 0 || nvb < 0 ) {
+      fprintf(stderr,"** resetting invalid NIFTI version(s) to 1\n");
+      if( nva < 0 ) nva = 1;
+      if( nvb < 0 ) nvb = 1;
+   }
+
    /* a difference is fatal */
    if( nva != nvb ) {
       fprintf(stderr,"** %s is NIFTI-%d, while %s is NIFTI-%d\n"
@@ -2600,7 +2636,7 @@ int act_check_hdrs( nt_opts * opts )
 int act_disp_exts( nt_opts * opts )
 {
    nifti_image * nim;
-   char          mesg[32];
+   char          mesg[32], *mptr;
    int           ec, fc;
 
    if( g_debug > 2 )
@@ -2618,8 +2654,54 @@ int act_disp_exts( nt_opts * opts )
       for( ec = 0; ec < nim->num_ext; ec++ )
       {
          sprintf(mesg, "    ext #%d : ", ec);
-         disp_nifti1_extension(mesg, nim->ext_list + ec, -1);
+         if( g_debug > 0 ) mptr = mesg;
+         else              mptr = NULL;
+
+         disp_nifti1_extension(mptr, nim->ext_list + ec, -1);
       }
+
+      nifti_image_free(nim);
+   }
+
+   return 0;
+}
+
+
+/*----------------------------------------------------------------------
+ * display all GIFTI extensions for each dataset
+ *----------------------------------------------------------------------*/
+int act_disp_cext( nt_opts * opts )
+{
+   nifti_image * nim;
+   int           ec, fc, found;
+
+   if( g_debug > 2 )
+      fprintf(stderr,"-d displaying CIFTI extensions for %d files...\n",
+              opts->infiles.len);
+
+   for( fc = 0; fc < opts->infiles.len; fc++ )
+   {
+      nim = nt_image_read(opts, opts->infiles.list[fc], 0);
+      if( !nim ) return 1;  /* errors are printed from library */
+
+      if( g_debug > 1 )
+         fprintf(stdout,"header file '%s', num_ext = %d\n",
+                 nim->fname, nim->num_ext);
+      found = 0;
+      for( ec = 0; ec < nim->num_ext; ec++ )
+      {
+         if( nim->ext_list[ec].ecode != NIFTI_ECODE_CIFTI ) continue;
+         found++;
+         
+         if( found == 1 && g_debug > 1 )
+            fprintf(stdout,"header file '%s', ext %d of %d is CIFTI\n",
+                    nim->fname, ec, nim->num_ext);
+
+         disp_cifti_extension(NULL, nim->ext_list + ec, -1);
+      }
+
+      if( g_debug && ! found )
+         fprintf(stdout,"header file '%s': no CIFTI extension\n", nim->fname);
 
       nifti_image_free(nim);
    }
@@ -2649,6 +2731,11 @@ int act_disp_hdr( nt_opts * opts )
       nhdr = nt_read_header(opts->infiles.list[filenum], &nver, NULL, g_debug>1,
                              opts->new_datatype, opts->new_dim);
       if( !nhdr ) return 1;  /* errors are printed from library */
+
+      if( nver < 0 ) {
+         fprintf(stderr,"** resetting invalid NIFTI version to 1\n");
+         nver = 1;
+      }
 
       /* set the number of fields to display */
       nfields = opts->flist.len > 0 ? opts->flist.len : 
@@ -4157,10 +4244,47 @@ int diff_field(field_s *fieldp, void * str0, void * str1, int nfields)
 /*----------------------------------------------------------------------
  * display a single extension
  *----------------------------------------------------------------------*/
+int disp_cifti_extension(char *mesg, nifti1_extension * ext, int maxlen)
+{
+   FILE * outfp = stdout;
+   int    len;
+   if( mesg ) fputs(mesg, outfp);
+
+   if( !ext ) {
+      fprintf(stderr,"** no extension to display\n");
+      return 1;
+   }
+
+   if( ext->ecode != NIFTI_ECODE_CIFTI ) {
+      fprintf(stderr,"** extension code %d is not CIFTI\n", ext->ecode);
+      return 1;
+   }
+
+   if( g_debug > 1 )
+      fprintf(outfp,"ecode = %d, esize = %d, edata = ", ext->ecode,ext->esize);
+
+   if( !ext->edata )
+      fprintf(outfp,"(NULL)\n");
+   else {
+      len = ext->esize-8;
+      if( maxlen >= 0 && len > maxlen ) len = maxlen;
+      fprintf(outfp,"%.*s\n", len, (char *)ext->edata);
+   }
+
+   fflush(outfp);
+
+   return 0;
+}
+
+
+/*----------------------------------------------------------------------
+ * display a single extension
+ *----------------------------------------------------------------------*/
 int disp_nifti1_extension(char *mesg, nifti1_extension * ext, int maxlen)
 {
-   int len;
-   if( mesg ) fputs(mesg, stdout);
+   FILE * outfp = stdout;
+   int    len;
+   if( mesg ) fputs(mesg, outfp);
 
    if( !ext )
    {
@@ -4168,22 +4292,23 @@ int disp_nifti1_extension(char *mesg, nifti1_extension * ext, int maxlen)
       return 1;
    }
 
-   fprintf(stdout,"ecode = %d, esize = %d, edata = ",
-           ext->ecode, ext->esize);
+   if( g_debug > 0 )
+      fprintf(outfp,"ecode = %d, esize = %d, edata = ", ext->ecode,ext->esize);
 
    if( !ext->edata )
-      fprintf(stdout,"(NULL)\n");
+      fprintf(outfp,"(NULL)\n");
    else if ( ext->ecode == NIFTI_ECODE_AFNI ||
-             ext->ecode == NIFTI_ECODE_COMMENT )
+             ext->ecode == NIFTI_ECODE_COMMENT ||
+             ext->ecode == NIFTI_ECODE_CIFTI )
    {
       len = ext->esize-8;
       if( maxlen >= 0 && len > maxlen ) len = maxlen;
-      fprintf(stdout,"%.*s\n", len, (char *)ext->edata);
+      fprintf(outfp,"%.*s\n", len, (char *)ext->edata);
    }
    else
-      fprintf(stdout,"(unknown data type)\n");
+      fprintf(outfp,"(unknown data type)\n");
 
-   fflush(stdout);
+   fflush(outfp);
 
    return 0;
 }
@@ -4844,7 +4969,11 @@ void * nt_read_header(char * fname, int * nver, int * swapped, int check,
               fprintf(stderr,"** %s: failed n2hdr2nim on %s\n", func, fname);
               return NULL;
            }
-           *hdr = nifti_convert_nim2n1hdr(nim);
+           if( nifti_convert_nim2n1hdr(nim, hdr) ) {
+              fprintf(stderr,"** %s: failed convert_nim2n1hdr on %s\n",
+                      func, fname);
+              return NULL;
+           }
            return hdr;
         }
         else { /* assume -2 */
@@ -4863,7 +4992,11 @@ void * nt_read_header(char * fname, int * nver, int * swapped, int check,
               fprintf(stderr,"** %s: failed n1hdr2nim on %s\n", func, fname);
               return NULL;
            }
-           *hdr = nifti_convert_nim2n2hdr(nim);
+           if( nifti_convert_nim2n2hdr(nim, hdr) ) {
+              fprintf(stderr,"** %s: failed convert_nim2n2hdr on %s\n",
+                      func, fname);
+              return NULL;
+           }
 
            return hdr;
         }

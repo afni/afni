@@ -38,7 +38,7 @@
 
 #include "thd_compress.h"
 
-#include "nifti1_io.h"   /* 06 Dec 2005 */
+#include "nifti2_io.h"   /* 06 Dec 2005 */
 
 #ifndef myXtFree
 /*! Macro to free a pointer and NULL-ize it as well. */
@@ -3747,7 +3747,6 @@ extern float THD_fdrcurve_zqtot( THD_3dim_dataset *dset , int iv , float zval ) 
 #define DSET_unload_one(ds,iv) THD_purge_one_brick( (ds)->dblk , (iv) )
 
 /*! Delete dataset ds's volumes and struct from memory.
-
     Does not delete from disk
 */
 #define DSET_delete(ds) THD_delete_3dim_dataset((ds),False)
@@ -3756,7 +3755,6 @@ extern float THD_fdrcurve_zqtot( THD_3dim_dataset *dset , int iv , float zval ) 
   do{ THD_delete_3dim_dataset((ds),False); myXtFree((ds)); } while(0)
 
 /*! Write dataset ds to disk.
-
     Also loads the sub-brick statistics
 */
 #define DSET_write(ds)  ( THD_load_statistics( (ds) ) ,                    \
@@ -5878,6 +5876,13 @@ extern void set_gni_to_float(int) ;
 extern void set_gni_write_mode(int) ;
 extern int  set_ni_globs_from_env(void) ;
 extern int  set_sparse_data_attribs(NI_element *, THD_3dim_dataset *, int) ;
+
+/*------------------------------------------------------------------------*/
+/* for converting between NIFTI-1 and NIFTI-2   10 Jul, 2015 [rickr]      */
+int64_t * copy_ints_as_i64    (int * ivals, int nvals);
+int       nifti_mat44_2_dmat44(mat44 * fm, nifti_dmat44 * dm);
+int       nifti_dmat44_2_mat44(nifti_dmat44 * dm, mat44 * fm);
+
 
 
 #define SBFLAG_INDEX    (1<<0)

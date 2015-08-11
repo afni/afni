@@ -139,6 +139,12 @@ examples:
 
           1dplot -sepscl sfile.1D waver.1D X.xmat.1D
 
+   Example 6c. Do this per run, but leave each run in a separate file.
+
+          timing_tool.py -timing timing.txt -timing_to_1D sfile.1D      \\
+                         -tr 0.5 -stim_dur 2.5 -min_frac 0.3            \\
+                         -run_len 360 360 400 -per_run_file
+
    Example 7a. Truncate stimulus times to the beginning of respective TRs.
 
       Given a TR of 2.5 seconds and random stimulus times, truncate those times
@@ -593,9 +599,9 @@ action options (apply to single timing element, only):
         time series (maybe on a fine grid) with 1D files that are 1 when the
         given stimulus is on and 0 otherwise.
 
-            Consider -tr, -stim_dur, -min_frac, -run_len.
+            Consider -tr, -stim_dur, -min_frac, -run_len, -per_run_file.
 
-            Consider example 6a.
+            Consider example 6a or 6c.
 
    -transpose                   : transpose the data (only if rectangular)
 
@@ -765,6 +771,13 @@ general options:
 
         This option applies to -timing_to_1D, so that each 0/1 array is
         one row per run, as opposed to a single column across runs.
+
+   -per_run_file                : per run, but output multiple files
+
+        e.g. -per_run_file
+
+        This option applies to -timing_to_1D, so that the 0/1 array goes in a
+        seperate file per run.  With -per_run, each run is just a separate row.
 
    -run_len RUN_TIME ...        : specify the run duration(s), in seconds
 
@@ -962,9 +975,10 @@ g_history = """
                        (mostly to clarify dmBLOCK/dmUBLOCK)
    2.10 Oct 28, 2014 - expanded -help_basis (WAV, 3dDeconvolve, 1dplot)
    2.11 Jan 20, 2015 - allow ',' as married timing separator (with '*')
+   2.12 Jun 05, 2015 - added -per_run_file
 """
 
-g_version = "timing_tool.py version 2.11, January 20, 2015"
+g_version = "timing_tool.py version 2.12, June 5, 2015"
 
 
 
@@ -1244,6 +1258,8 @@ class ATInterface:
                          helpstr='set number of decimal places for printing')
       self.valid_opts.add_opt('-per_run', 0, [], 
                          helpstr='perform operations per run')
+      self.valid_opts.add_opt('-per_run_file', 0, [], 
+                         helpstr='perform operations per run (one file each)')
       self.valid_opts.add_opt('-run_len', -1, [], okdash=0,
                          helpstr='specify the lengths of each run (seconds)')
       self.valid_opts.add_opt('-show_tr_stats', 0, [], 
@@ -1335,6 +1351,11 @@ class ATInterface:
       oind = uopts.find_opt_index('-per_run')
       if oind >= 0:
          if uopts.find_opt('-per_run'): self.per_run = 1
+         uopts.olist.pop(oind)
+
+      oind = uopts.find_opt_index('-per_run_file')
+      if oind >= 0:
+         if uopts.find_opt('-per_run_file'): self.per_run = 2
          uopts.olist.pop(oind)
 
       oind = uopts.find_opt_index('-tr')
@@ -1972,6 +1993,16 @@ class ATInterface:
       if errstr:
          print errstr
          return 1
+
+      # maybe one file per run
+ 
+      if self.per_run == 2:
+         prefix = fname
+         if fname.endswith('.1D') and len(fname) > 3:
+            prefix = fname[:fname.find('.1D')]
+         for run, res in enumerate(result):
+            TD.write_1D_file(res, '%s_r%02d.1D'%(prefix,run+1))
+         return
 
       TD.write_1D_file(result, fname, self.per_run)
 

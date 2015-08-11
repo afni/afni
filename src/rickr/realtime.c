@@ -398,7 +398,9 @@ int ART_send_control_info( ART_comm * ac, vol_t * v, int debug )
 
     /* data organization style rcr - here */
     /* was 2D+zt, but for num_chan > 1, should be 3D+t            8 Sep 2014 */
-    strcpy( tbuf, "ACQUISITION_TYPE 3D+t" );
+    /* NEW: 3D+timing is sorted by volume (see num_chan>1) but has 
+            slice timing info (3D+t does not)                     3 Aug 2015 */
+    strcpy( tbuf, "ACQUISITION_TYPE 3D+timing" );
     ART_ADD_TO_BUF( ac->buf, tbuf );
 
     /* slice order */
