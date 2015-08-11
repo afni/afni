@@ -1046,6 +1046,28 @@ int SUMA_set_threshold(SUMA_ALL_DO *ado, SUMA_OVERLAYS *colp,
          }
       } 
    }
+   
+   /* CIFTI yoking outline 
+   
+   if (colp->dset_link) is CIFTI subdomain (see a. below)
+      Look up the parent cifti dset (cdset) by using MD_parent_ID 
+      
+      Look up also the CIFTI DO (CO) that goes with cdset using
+      SUMA_Fetch_OverlayPointerByDset()
+      
+      For each subdomain in CO and each corresponding dset and color plane
+      	 
+	 If the subdomain and the colorplane are different from ado , adoC (that
+	 would be (SUMA_ALL_DO *)SOC above), colp and colpC  
+	 
+	    call  SUMA_SetScaleThr_one() as per above 
+   
+   
+   
+   a. One way to find out if a dset is a subdomain would be to look for one of the MD_* attribute of dset->ngr that are created in SUMA_CIFTI_2_edset()
+   
+   */
+   
    SUMA_RETURN(1);  
 }
 
