@@ -843,6 +843,8 @@ SUMA_DO_Types SUMA_Guess_DO_Type(char *s)
       dotp = MASK_type;
    } else if (strstr(sbuf,"#suma_dset")) { /* this case should not happen */
       dotp = ANY_DSET_type;
+   } else if (strstr(sbuf,"#suma_md_dset")){/*this case also should not happen*/
+      dotp = MD_DSET_type;
    } else if (strstr(sbuf,"nido_head")) {
       dotp = NIDO_type;
    } else if (strstr(sbuf,"<") || strstr(sbuf,">")) {
@@ -3935,6 +3937,83 @@ float *SUMA_TDO_XYZ_Range(SUMA_TractDO *tdo, float *here)
    SUMA_RETURN(here);
 }
 
+float *SUMA_SDO_XYZ_Range(SUMA_SurfaceObject *cso, float *here) 
+{
+   static char FuncName[]={"SUMA_SDO_XYZ_Range"};
+   static int icall=0;
+   static float fv[10][6];
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   if (!here) {
+      ++icall; if (icall > 9) icall = 0;
+      here = (float *)(&fv[icall]);
+   }
+   here[0] = here[2] = here[4] =  -20;
+   here[1] = here[3] = here[5] =   20;
+   
+   if (!cso) SUMA_RETURN(here);
+   
+   here[0] = cso->MinDims[0]; here[1] = cso->MaxDims[0]; 
+   here[2] = cso->MinDims[1]; here[3] = cso->MaxDims[1]; 
+   here[4] = cso->MinDims[2]; here[5] = cso->MaxDims[2];
+
+   
+   SUMA_RETURN(here);
+}
+
+float *SUMA_CIFTI_DO_XYZ_Range(SUMA_CIFTI_DO *CO, float *here) 
+{
+   static char FuncName[]={"SUMA_CIFTI_DO_XYZ_Range"};
+   static int icall=0;
+   static float fv[10][6];
+   int k, j;
+   float *xyzr, def[6] = {-20, 20, -20, 20, -20, 20};
+   SUMA_ALL_DO *asdo=NULL;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   if (!here) {
+      ++icall; if (icall > 9) icall = 0;
+      here = (float *)(&fv[icall]);
+   }
+   here[0] = here[2] = here[4] =  -20;
+   here[1] = here[3] = here[5] =   20;
+   
+   if (!CO) SUMA_RETURN(here);
+   
+   for (k = 0; k < CO->N_subdoms; ++k) {
+      asdo = SUMA_CIFTI_subdom_ado(CO,k);
+      switch (asdo->do_type) {
+	 case SO_type:
+	    xyzr = SUMA_SDO_XYZ_Range((SUMA_SurfaceObject *)asdo,NULL);
+	    break;
+	 case VO_type: 
+      	    xyzr = SUMA_VO_XYZ_Range((SUMA_VolumeObject *)asdo,NULL);
+	    break;
+	 default:
+	    xyzr = def;
+	    SUMA_S_Warn("Not ready for %d in CIFTI", asdo->do_type);
+	    break;
+      }
+      if (k==0) {
+         for (j=0; j<6; ++j) {
+            here[j] = xyzr[j];
+         }
+      } else {
+         for (j=0; j<3; ++j) {
+            if (xyzr[2*j  ] < here[2*j  ])  here[2*j  ] = xyzr[2*j];
+            if (xyzr[2*j+1] > here[2*j+1])  here[2*j+1] = xyzr[2*j+1];
+         }
+      }
+   }
+
+   
+   SUMA_RETURN(here);
+}
+
 float *SUMA_VO_XYZ_Range(SUMA_VolumeObject *VO, float *here) 
 {
    static char FuncName[]={"SUMA_VO_XYZ_Range"};
@@ -4108,6 +4187,31 @@ float *SUMA_ADO_Center(SUMA_ALL_DO *ado, float *here)
             SUMA_RETURN(here);
          }
          break; }
+      case CDOM_type: {
+      	 float there[3] = {0,0,0};
+	 int k, i;
+	 SUMA_CIFTI_DO *CO=(SUMA_CIFTI_DO*)ado;
+	 SUMA_ALL_DO *asdo=NULL;
+	 for (k=0; k<CO->N_subdoms; ++k) {
+            asdo = SUMA_CIFTI_subdom_ado(CO,k);
+	    switch(asdo->do_type) {
+	       case VO_type:
+	       case SO_type:
+	          SUMA_ADO_Center(asdo, there);
+	          for (i=0; i<3;++i) here[i] += there[i];
+		  break;
+	       case CDOM_type:
+	          SUMA_S_Err("This should not happen. "
+		     	     "If it does, consider recursion problems");
+		  break;
+	       default:
+	          SUMA_S_Err("No support for subtype %d", 
+		     	     asdo->do_type);
+		  break;
+	    }
+	 }
+	 for (i=0; i<3;++i) here[i] /= ((float)CO->N_subdoms);
+      	 break; }
       default:
          SUMA_S_Err("Not ready to return center for type %s", ADO_TNAME(ado));
          SUMA_RETURN(here);
@@ -4214,6 +4318,10 @@ float *SUMA_ADO_Range(SUMA_ALL_DO *ado, float *here)
             SUMA_RETURN(here);
          }
          break; }
+      case CDOM_type:
+      	 SUMA_CIFTI_DO_XYZ_Range((SUMA_CIFTI_DO*)ado, here);
+         SUMA_RETURN(here);
+	 break;
       default:
          SUMA_S_Err("Not ready to return center for type %s", ADO_TNAME(ado));
          SUMA_RETURN(here);
@@ -5152,19 +5260,7 @@ void SUMA_WorldAxisStandard (SUMA_Axis* Ax, SUMA_SurfaceViewer *sv)
          switch (SUMAg_DOv[Vis_IDs[i]].ObjectType) {
             case SO_type:
                cso = (SUMA_SurfaceObject *)SUMAg_DOv[Vis_IDs[i]].OP;
-               if (MinDims[0] > MaxDims[0]) {/* initialize */
-                  for (j=0; j<3; ++j) {
-                     MinDims[j] = cso->MinDims[j];
-                     MaxDims[j] = cso->MaxDims[j];
-                  }
-               } else {
-                  for (j=0; j<3; ++j) {
-                     if (cso->MinDims[j] < MinDims[j]) 
-                        MinDims[j] = cso->MinDims[j];
-                     if (cso->MaxDims[j] > MaxDims[j]) 
-                        MaxDims[j] = cso->MaxDims[j];
-                  }
-               }
+	       xyzr = SUMA_SDO_XYZ_Range(cso, NULL);
                break;
             case GRAPH_LINK_type:
                if(!(dset=SUMA_find_GLDO_Dset(
@@ -5175,67 +5271,38 @@ void SUMA_WorldAxisStandard (SUMA_Axis* Ax, SUMA_SurfaceViewer *sv)
             
                if (!SUMA_IS_REAL_VARIANT(iDO_variant(Vis_IDs[i]))) break;
                xyzr = SUMA_GDSET_XYZ_Range(dset, iDO_variant(Vis_IDs[i]), NULL);
-               if (MinDims[0] > MaxDims[0]) {/* initialize */
-                  for (j=0; j<3; ++j) {
-                     MinDims[j] = xyzr[2*j];
-                     MaxDims[j] = xyzr[2*j+1];
-                  }
-               } else {
-                  for (j=0; j<3; ++j) {
-                     if (xyzr[2*j] < MinDims[j])  MinDims[j] = xyzr[2*j];
-                     if (xyzr[2*j+1] > MaxDims[j]) MaxDims[j] = xyzr[2*j+1];
-                  }
-               }
                break;
             case TRACT_type: {
                SUMA_TractDO *tdo=(SUMA_TractDO *)SUMAg_DOv[Vis_IDs[i]].OP;
                xyzr = SUMA_TDO_XYZ_Range(tdo, NULL);
-               if (MinDims[0] > MaxDims[0]) {/* initialize */
-                  for (j=0; j<3; ++j) {
-                     MinDims[j] = xyzr[2*j];
-                     MaxDims[j] = xyzr[2*j+1];
-                  }
-               } else {
-                  for (j=0; j<3; ++j) {
-                     if (xyzr[2*j] < MinDims[j])  MinDims[j] = xyzr[2*j];
-                     if (xyzr[2*j+1] > MaxDims[j]) MaxDims[j] = xyzr[2*j+1];
-                  }
-               }
                break; }
             case MASK_type: {
                SUMA_MaskDO *mdo=(SUMA_MaskDO *)SUMAg_DOv[Vis_IDs[i]].OP;
                xyzr = SUMA_MDO_XYZ_Range(mdo, NULL);
-               if (MinDims[0] > MaxDims[0]) {/* initialize */
-                  for (j=0; j<3; ++j) {
-                     MinDims[j] = xyzr[2*j];
-                     MaxDims[j] = xyzr[2*j+1];
-                  }
-               } else {
-                  for (j=0; j<3; ++j) {
-                     if (xyzr[2*j] < MinDims[j])  MinDims[j] = xyzr[2*j];
-                     if (xyzr[2*j+1] > MaxDims[j]) MaxDims[j] = xyzr[2*j+1];
-                  }
-               }
                break; }
             case VO_type: {
                SUMA_VolumeObject *VO=
                   (SUMA_VolumeObject *)SUMAg_DOv[Vis_IDs[i]].OP;
                xyzr = SUMA_VO_XYZ_Range(VO, NULL);
-               if (MinDims[0] > MaxDims[0]) {/* initialize */
-                  for (j=0; j<3; ++j) {
-                     MinDims[j] = xyzr[2*j];
-                     MaxDims[j] = xyzr[2*j+1];
-                  }
-               } else {
-                  for (j=0; j<3; ++j) {
-                     if (xyzr[2*j] < MinDims[j])  MinDims[j] = xyzr[2*j];
-                     if (xyzr[2*j+1] > MaxDims[j]) MaxDims[j] = xyzr[2*j+1];
-                  }
-               }
                break; }
-            default:
+            case CDOM_type: {
+	       xyzr = SUMA_CIFTI_DO_XYZ_Range((
+	             	SUMA_CIFTI_DO*)SUMAg_DOv[Vis_IDs[i]].OP, NULL);
+	       break; }
+	    default:
                SUMA_LHv("Ignoring dims of %s\n", iDO_label(Vis_IDs[i]));
                break;
+         }
+	 if (MinDims[0] > MaxDims[0]) {/* initialize */
+            for (j=0; j<3; ++j) {
+               MinDims[j] = xyzr[2*j];
+               MaxDims[j] = xyzr[2*j+1];
+            }
+         } else {
+            for (j=0; j<3; ++j) {
+               if (xyzr[2*j] < MinDims[j])  MinDims[j] = xyzr[2*j];
+               if (xyzr[2*j+1] > MaxDims[j]) MaxDims[j] = xyzr[2*j+1];
+            }
          }
       }
       if (MinDims[0] > MaxDims[0]) {/* Bad trip */
@@ -7416,6 +7483,13 @@ void *SUMA_Picked_reference_object(SUMA_COLID_OFFSET_DATUM *cod,
          SUMA_S_Err("Could not find reference dset");
       }
       if (do_type) *do_type = ANY_DSET_type;
+   } else if (cod->ref_do_type == MD_DSET_type) {
+      SUMA_S_Warn("Should not happen either");
+      if (!(PP = SUMA_FindDset_s(cod->ref_idcode_str, 
+                                     SUMAg_CF->DsetList))) {
+         SUMA_S_Err("Could not find reference dset");
+      }
+      if (do_type) *do_type = MD_DSET_type;
    } else if (cod->ref_do_type == GRAPH_LINK_type) {
       PP = (void *)SUMA_whichADOg(cod->ref_idcode_str);
       if (do_type) *do_type = GRAPH_LINK_type;
@@ -7443,7 +7517,8 @@ void *SUMA_Picked_reference_object(SUMA_COLID_OFFSET_DATUM *cod,
                                         SUMAg_CF->DsetList))) {
          if (do_type) {
             if (SUMA_isGraphDset((SUMA_DSET *)PP)) *do_type = GDSET_type;
-            else *do_type = ANY_DSET_type;
+            else if (SUMA_isMD_Dset((SUMA_DSET *)PP)) *do_type = MD_DSET_type  ;
+	    else *do_type = ANY_DSET_type;
          }
       } else if ((PP = SUMA_findSOp_inDOv (cod->ref_idcode_str, 
                                                  SUMAg_DOv, SUMAg_N_DOv))){
@@ -7588,6 +7663,7 @@ char *SUMA_DO_state(SUMA_DO *DO)
    static char FuncName[]={"SUMA_DO_state"};   
    SUMA_SurfaceObject *SO;
    SUMA_GraphLinkDO *GLDO;
+   SUMA_VOL_SAUX *VSaux=NULL;
    static char gret[256]={"ANY_ANATOMICAL"};
    
    SUMA_ENTRY;
@@ -7609,7 +7685,13 @@ char *SUMA_DO_state(SUMA_DO *DO)
          }
          break;
       case VO_type:
-         sprintf(gret,"ANY_ANATOMICAL");
+         VSaux = SUMA_ADO_VSaux((SUMA_ALL_DO*)DO->OP);
+	 if (VSaux) {
+	    snprintf(gret, 255*sizeof(char), "%s", VSaux->State);
+	 } else {
+	    SUMA_S_Err("Volumes must now have states, defaulting to old style");
+	    sprintf(gret,"ANY_ANATOMICAL");
+	 }
          SUMA_RETURN(gret);
          break;
       case TRACT_type:
@@ -7618,6 +7700,10 @@ char *SUMA_DO_state(SUMA_DO *DO)
          break;
       case MASK_type:
          sprintf(gret,"ANY_ANATOMICAL");
+         SUMA_RETURN(gret);
+         break;
+      case CDOM_type:
+      	 sprintf(gret,"ANY_ANATOMICAL");
          SUMA_RETURN(gret);
          break;
       default: /* any group for now */
@@ -7646,7 +7732,7 @@ int  SUMA_is_iDO_AnatCorrect(int dov_id)
 
 int SUMA_isDO_AnatCorrect(SUMA_DO *DO) 
 {
-   static char FuncName[]={"SUMA_is_iDO_AnatCorrect"};   
+   static char FuncName[]={"SUMA_isDO_AnatCorrect"};   
    if (!DO) return(0);
    return(SUMA_ADO_is_AnatCorrect((SUMA_ALL_DO*)DO->OP));
 }
@@ -7673,6 +7759,7 @@ int SUMA_ADO_is_AnatCorrect(SUMA_ALL_DO *ado)
          break;
       case VO_type:
       case MASK_type:
+      case CDOM_type:
       case TRACT_type:
          SUMA_RETURN(1);
          break;
@@ -9140,6 +9227,11 @@ SUMA_Boolean SUMA_AddDsetSaux(SUMA_DSET *dset)
    SUMA_RETURN(YUP);  
 }
 
+/* This function will need to be maintained should we end up
+sticking with CIFTI_DO as a full fledged DO, rather than 
+a DO made up of a bunch of elementary DOs much like the
+CIFTI dataset. In the current incarnation, a CIFTI DO will
+not have its own controller for instance. */
 SUMA_Boolean SUMA_AddCIFTISaux(SUMA_CIFTI_DO *cdo)
 {
    static char FuncName[]={"SUMA_AddCIFTISaux"};
@@ -9162,9 +9254,6 @@ SUMA_Boolean SUMA_AddCIFTISaux(SUMA_CIFTI_DO *cdo)
       if (CSaux->Overlays) {
          SUMA_S_Warn("Have overlay already, leaving them.");
       } else {
-         SUMA_S_Note("Hmm, this should not be necessary."
-                     "Check logic before approving. Also check"
-                     "!DOCont and !PR in same block");
          CSaux->Overlays = 
          (SUMA_OVERLAYS **)
             SUMA_malloc(sizeof(SUMA_OVERLAYS *) * SUMA_MAX_OVERLAYS);
@@ -9214,7 +9303,7 @@ SUMA_Boolean SUMA_AddCIFTISaux(SUMA_CIFTI_DO *cdo)
    SUMA_LH("CSaux %p %p %p", CSaux->Overlays, CSaux->PR, CSaux->DOCont);
    
    /* Do we need this or its ilk for CIFTI? */
-   SUMA_S_Note("Try without me...");
+   SUMA_LH("Try without me...");
       SUMA_DrawDO_UL_FullMonty(CSaux->DisplayUpdates);
    
    SUMA_RETURN(YUP);  
@@ -9486,6 +9575,9 @@ SUMA_Boolean SUMA_AddVolSaux(SUMA_VolumeObject *vo)
       if (!VSaux->vrslcl) {
          dlist_init(VSaux->vrslcl, SUMA_Free_SliceListDatum);
       }
+      if (!VSaux->State) {
+      	 VSaux->State = SUMA_copy_string("ANY_ANATOMICAL");
+      }
    } else {
       SUMA_LH("Fresh");
       vo->FreeSaux = SUMA_Free_VSaux;
@@ -9501,6 +9593,8 @@ SUMA_Boolean SUMA_AddVolSaux(SUMA_VolumeObject *vo)
       VSaux->vrslcl = (DList *)SUMA_malloc(sizeof(DList));
       dlist_init(VSaux->vrslcl, SUMA_Free_SliceListDatum); 
 
+      VSaux->State = SUMA_copy_string("ANY_ANATOMICAL");
+      
       VSaux->Overlays = 
          (SUMA_OVERLAYS **)
             SUMA_malloc(sizeof(SUMA_OVERLAYS *) * SUMA_MAX_OVERLAYS);
@@ -9839,6 +9933,8 @@ void SUMA_Free_VSaux(void *vSaux)
       dlist_destroy(Saux->slcl);
       SUMA_free(Saux->slcl);
    }
+   
+   SUMA_ifree(Saux->State);
    
    if (Saux->vrslcl) {
       dlist_destroy(Saux->vrslcl);
@@ -10586,6 +10682,7 @@ GLubyte *SUMA_DO_get_pick_colid(SUMA_ALL_DO *DO, char *idcode_str,
          }
          break; }
       case ANY_DSET_type:
+      case MD_DSET_type:
       case GDSET_type: {
          SUMA_S_Warn("I do not intend this picking type for dsets. Go away");
          SUMA_RETURN(NULL);
@@ -18025,7 +18122,9 @@ void SUMA_DrawMesh(SUMA_SurfaceObject *SurfObj, SUMA_SurfaceViewer *sv)
             if (SurfObj->PermCol) {
                glColorPointer (4, GL_FLOAT, 0, SurfObj->PermCol);
             } else {
-               SUMA_SL_Err("Null Color Pointer.");
+               SUMA_SL_Err("Null Color Pointer, going pink");
+	       glDisableClientState (GL_COLOR_ARRAY);
+	       glColor4f(1.0, 0.0, 1.0, 1.0);
             }
          } else { 
             glColorPointer (4, GL_FLOAT, 0, colp); 
@@ -18034,10 +18133,12 @@ void SUMA_DrawMesh(SUMA_SurfaceObject *SurfObj, SUMA_SurfaceViewer *sv)
          glVertexPointer (3, GL_FLOAT, 0, SurfObj->glar_NodeList);
          glNormalPointer (GL_FLOAT, 0, SurfObj->glar_NodeNormList);
          if (LocalHead) 
-            fprintf(stdout, "Ready to draw Elements %d\n", N_glar_FaceSet); 
+            fprintf(stdout, "Ready to draw Elements %d from %s\n", 
+	             N_glar_FaceSet, SurfObj->Label); 
          switch (RENDER_METHOD) {
             case TRIANGLES:
-               if (NP==3) {
+               SUMA_LH("Tri %d %p",NP, SurfObj->glar_FaceSetList);
+	       if (NP==3) {
                   glDrawElements (  GL_TRIANGLES, (GLsizei)N_glar_FaceSet*3, 
                                     GL_UNSIGNED_INT, SurfObj->glar_FaceSetList);
                } else if (NP==4) {
@@ -18073,7 +18174,7 @@ void SUMA_DrawMesh(SUMA_SurfaceObject *SurfObj, SUMA_SurfaceViewer *sv)
             glDisable(GL_TEXTURE_GEN_S);
          }
          
-         /*fprintf(stdout, "Disabling clients\n");*/
+         SUMA_LH("Disabling clients\n");
          glDisableClientState (GL_COLOR_ARRAY);   
          glDisableClientState (GL_VERTEX_ARRAY);
          glDisableClientState (GL_NORMAL_ARRAY);   
@@ -19809,6 +19910,7 @@ char *SUMA_ADO_Info(SUMA_ALL_DO *ado, DList *DsetList, int detail)
       case SO_type:
          return(SUMA_SurfaceObject_Info((SUMA_SurfaceObject *)ado, DsetList));
       case ANY_DSET_type:
+      case MD_DSET_type:
       case GDSET_type:
          return(SUMA_DsetInfo((SUMA_DSET *)ado, detail));
       case CDOM_type:
@@ -21093,7 +21195,7 @@ SUMA_CIFTI_DO *SUMA_CreateCIFTIObject(char *Label)
    }
   
    CO->N_subdoms = 0;
-   CO->subdoms = NULL;
+   CO->subdoms_id = NULL;
    
    CO->Show = 1;
    
@@ -21108,6 +21210,9 @@ SUMA_CIFTI_DO *SUMA_FreeCIFTIObject(SUMA_CIFTI_DO *CO)
 {
    static char FuncName[]={"SUMA_FreeCIFTIObject"};
    int i;
+   SUMA_ALL_DO *asdo=NULL;
+   SUMA_Boolean LocalHead = NOPE;
+   
    SUMA_ENTRY;
    
    if (!CO) SUMA_RETURN(NULL);
@@ -21124,24 +21229,15 @@ SUMA_CIFTI_DO *SUMA_FreeCIFTIObject(SUMA_CIFTI_DO *CO)
    SUMA_ifree(CO->Label);
    
    for (i=0; i<CO->N_subdoms; ++i) {
-      if (CO->subdoms[i]) {
-         switch (CO->subdoms[i]->do_type) {
-            case SO_type:
-               SUMA_Free_Surface_Object((SUMA_SurfaceObject *)CO->subdoms[i]);
-               break;
-            case VO_type:
-               SUMA_FreeVolumeObject((SUMA_VolumeObject *)CO->subdoms[i]);
-               break;
-            default:
-               SUMA_S_Err("Not expecting type %d %s here. Leaky business.",
-                  CO->subdoms[i]->do_type, 
-                  SUMA_ObjectTypeCode2ObjectTypeName(CO->subdoms[i]->do_type));
-               break;
-         }
-         CO->subdoms[i] = NULL;
+      if (CO->subdoms_id[i]) {
+         asdo = SUMA_CIFTI_subdom_ado(CO,i);
+	 SUMA_LH("Note that subdomain %s is not being freed here. \n"
+	               "It remains in the DO list, free it from there \n"
+		       "if you must.", ADO_LABEL(asdo));
+      	 SUMA_ifree(CO->subdoms_id[i]);
       }
    }
-   SUMA_ifree(CO->subdoms);
+   SUMA_ifree(CO->subdoms_id);
    
    SUMA_free(CO);
    

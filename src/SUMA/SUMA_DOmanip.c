@@ -304,6 +304,7 @@ SUMA_Boolean SUMA_Free_Displayable_Object (SUMA_DO *dov)
          SUMA_S_Warnv("Type %d should not be in  use!\n", dov->ObjectType);
          break;
       case GDSET_type:
+      case MD_DSET_type:
       case ANY_DSET_type:
          SUMA_FreeDset(dov->OP);
          break;
@@ -600,6 +601,10 @@ SUMA_Boolean SUMA_RegisterDO(int dov_id, SUMA_SurfaceViewer *cSVu)
    
    SUMA_ENTRY;
    
+   if (LocalHead) {
+      SUMA_DUMP_TRACE("at RegisterDO");
+   }
+   
    if (dov_id < 0) {
       SUMA_S_Err("A negative dov_id!");
       SUMA_DUMP_TRACE("Negative dov_id bro? What gives?");
@@ -782,9 +787,10 @@ SUMA_Boolean SUMA_RegisterDO(int dov_id, SUMA_SurfaceViewer *cSVu)
             break;
          case MASK_type:
          case VO_type:
+	 case CDOM_type:
          case TRACT_type:
             {
-            SUMA_ALL_DO *ADO=(SUMA_ALL_DO *)(SUMAg_DOv[dov_id].OP);
+	    SUMA_ALL_DO *ADO=(SUMA_ALL_DO *)(SUMAg_DOv[dov_id].OP);
             SUMA_LHv("With ADO %s, Anat Correctedness %s\n", 
                      ADO_LABEL(ADO),
                      SUMA_isDO_AnatCorrect(&(SUMAg_DOv[dov_id]))?"YES":"NO");
@@ -1022,7 +1028,8 @@ char *SUMA_DOv_Info (SUMA_DO *dov, int N_dov, int detail)
    SUMA_COL_TYPE ctp;
    char *s=NULL, stmp[200];
    SUMA_SurfaceObject *so_op=NULL;   
-   SUMA_VolumeObject *vo_op=NULL;   
+   SUMA_VolumeObject *vo_op=NULL; 
+   SUMA_CIFTI_DO *co=NULL;  
    SUMA_STRING *SS=NULL;
    SUMA_Boolean LocalHead = NOPE;
    SUMA_ENTRY;
@@ -1039,6 +1046,16 @@ char *SUMA_DOv_Info (SUMA_DO *dov, int N_dov, int detail)
                      "DOv ID: %d\n\tName: %s\n"
                      "\tType: %d (%s), Axis Attachment %d\n",
                      i,  SUMA_CHECK_NULL_STR(vo_op->Label), 
+                     dov[i].ObjectType, 
+                     SUMA_ObjectTypeCode2ObjectTypeName(dov[i].ObjectType), 
+                     dov[i].CoordType);
+               break;
+            case CDOM_type:
+               co = (SUMA_CIFTI_DO *)dov[i].OP;
+               SS = SUMA_StringAppend_va(SS,
+                     "DOv ID: %d\n\tName: %s\n"
+                     "\tType: %d (%s), Axis Attachment %d\n",
+                     i,  SUMA_CHECK_NULL_STR(co->Label), 
                      dov[i].ObjectType, 
                      SUMA_ObjectTypeCode2ObjectTypeName(dov[i].ObjectType), 
                      dov[i].CoordType);
@@ -1659,6 +1676,7 @@ int SUMA_whichDO(char *idcode, SUMA_DO *dov, int N_dov)
    SUMA_GraphLinkDO *gldo =NULL;
    SUMA_TractDO *tdo = NULL;
    SUMA_MaskDO *mdo=NULL;
+   SUMA_CIFTI_DO *CO=NULL;
    SUMA_Boolean LocalHead=NOPE;
    
    SUMA_ENTRY;
@@ -1737,7 +1755,13 @@ int SUMA_whichDO(char *idcode, SUMA_DO *dov, int N_dov)
                SUMA_RETURN (i);
             }
             break;
-         default:
+         case CDOM_type:
+	    CO = (SUMA_CIFTI_DO *)dov[i].OP;
+	    if (strcmp(idcode, CO->idcode_str)== 0) {
+               SUMA_RETURN (i);
+            }
+            break;
+	 default:
             SUMA_S_Warnv("Object type %d (%s) not checked.\n", 
                dov[i].ObjectType,
                SUMA_ObjectTypeCode2ObjectTypeName(dov[i].ObjectType));
@@ -2064,6 +2088,7 @@ void *SUMA_find_any_object(char *idcode_str, SUMA_DO_Types *do_type)
    if ((PP = SUMA_FindDset_s(idcode_str, SUMAg_CF->DsetList))) {
       if (do_type) {
          if (SUMA_isGraphDset((SUMA_DSET *)PP)) *do_type = GDSET_type;
+	 if (SUMA_isMD_Dset((SUMA_DSET *)PP)) *do_type = MD_DSET_type;
          else *do_type = ANY_DSET_type;
       }
       SUMA_RETURN(PP);

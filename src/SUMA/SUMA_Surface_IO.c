@@ -129,8 +129,9 @@ SUMA_SurfaceObject *SUMA_Load_Surface_Object_Wrapper (
          break;  
       
       default:
-         fprintf (SUMA_STDERR,"Error %s: Bad format.\n", FuncName);
-         exit(1);
+         SUMA_S_Err("Bad format %d.\n", SO_FT);
+         SUMA_DUMP_TRACE("Trace at Bad format");
+	 exit(1);
    }
 
    if (SF_name) SUMA_free(SF_name); SF_name = NULL;
