@@ -131,7 +131,8 @@ All DOs have one or multiple :literal:`SUMA_OVERLAYS` , which are the colorized 
    5- Remix all the color planes on a particular DO and redisplay with :literal:`SUMA_Remixedisplay()` 
       
       Remixing is handled in :literal:`SUMA_MixColors(Viewer)` where each DO registered with the viewer will get all of its color planes mixed with  :literal:`SUMA_Overlays_2_GLCOLAR4()` --> :literal:`SUMA_MixOverlays()`. The resultant colors for each DO are stored in a structure called :literal:`SUMA_COLORLIST_STRUCT` accessible from the Viewer's structure with the likes of :literal:`SUMA_GetColorListStruct()` and :literal:`SUMA_GetColorListPtr()`
-   
+      
+         
 Functions of Interest
 ---------------------
 

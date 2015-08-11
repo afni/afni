@@ -899,7 +899,8 @@ void SUMA_dset_slice_corners( int slc, float *orig, float *del,
 }
 
 SUMA_Boolean SUMA_LoadVolDO (char *fname, 
-                        SUMA_DO_CoordUnits coord_type, SUMA_VolumeObject **VOp)
+                        SUMA_DO_CoordUnits coord_type, SUMA_VolumeObject **VOp,
+			byte PutVOinList)
 {
    static char FuncName[]={"SUMA_LoadVolDO"};
    SUMA_VolumeObject *VO=NULL;
@@ -994,13 +995,14 @@ SUMA_Boolean SUMA_LoadVolDO (char *fname,
          SUMA_S_Err("Failed to initialize volume display");
       }
    }
-   /* Add VO into DO list */
-   if (!SUMA_AddDO(SUMAg_DOv, &(SUMAg_N_DOv), (void *)VO,  
-                     VO_type, coord_type)) {
-      fprintf(SUMA_STDERR,"Error %s: Error Adding DO\n", FuncName);
-      SUMA_RETURN(NOPE);
+   if (PutVOinList) {
+      /* Add VO into DO list */
+      if (!SUMA_AddDO(SUMAg_DOv, &(SUMAg_N_DOv), (void *)VO,  
+                	VO_type, coord_type)) {
+	 fprintf(SUMA_STDERR,"Error %s: Error Adding DO\n", FuncName);
+	 SUMA_RETURN(NOPE);
+      }
    }
-   
    SUMA_RETURN(YUP);
 }
 
@@ -1201,7 +1203,7 @@ SUMA_Boolean SUMA_Load3DTextureNIDOnel (NI_element *nel,
       coord_type = defaultcoordtype;
    }
    
-   if (!(SUMA_LoadVolDO(fname, coord_type, &VO))) {
+   if (!(SUMA_LoadVolDO(fname, coord_type, &VO,1))) {
       SUMA_S_Err("Failed to read %s", NI_get_attribute(nel,"filename"));
       SUMA_ifree(fname);
       SUMA_RETURN(NOPE);
@@ -1220,7 +1222,7 @@ SUMA_Boolean SUMA_Load3DTextureNIDOnel (NI_element *nel,
          break;
       }
       
-      if (!(SUMA_LoadVolDO( fname, coord_type, &VO ))) {
+      if (!(SUMA_LoadVolDO( fname, coord_type, &VO,1))) {
          SUMA_S_Errv("Failed to open %s\n", fname);
          SUMA_free(fname); fname = NULL;
          break;
@@ -2783,11 +2785,37 @@ SUMA_Boolean SUMA_Draw_CIFTI_DO(SUMA_CIFTI_DO *CO,
                                SUMA_SurfaceViewer *sv)
 {
    static char FuncName[]={"SUMA_Draw_CIFTI_DO"};
+   int i, pp=0;
+   SUMA_ALL_DO *asdo=NULL;
+   SUMA_Boolean LocalHead = NOPE;
+   
    SUMA_ENTRY;
    
-   SUMA_S_Err("The big cheese");
+   SUMA_LH("We are not rendering CIFTI DOs directly anymore.\n"
+      	   "Delete once we're sure we won't go down this route.\n"
+	   "CIFTI DOs are rendered by rendering their elementary\n"
+	   "DOs. And if you do go down that route, safer to refer\n"
+	   "to DOs by their IDs");
+	          
+   SUMA_RETURN(YUP);
    
-   SUMA_RETURN(NOPE);
+   for (i=0; i<CO->N_subdoms; ++i) {
+      if (CO->subdoms_id[i]) {
+      asdo = SUMA_CIFTI_subdom_ado(CO, i);
+      switch (asdo->do_type) {
+      	 case SO_type:
+	    if (!pp) SUMA_DrawMesh((SUMA_SurfaceObject *)asdo, sv);
+	    ++pp;
+	    break;
+	 case VO_type:
+	    SUMA_DrawVolumeDO((SUMA_VolumeObject*)asdo, sv);
+	    break;
+	 default:
+	    SUMA_S_Err("Not ready for subdom %d", asdo->do_type);
+	    break;      
+      }
+      }
+   }
    
    
    SUMA_RETURN(YUP);

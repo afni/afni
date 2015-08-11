@@ -3102,14 +3102,14 @@ int SUMA_Up_Key(SUMA_SurfaceViewer *sv, char *key, char *caller)
    Widget w;
    double dd[3] = {0.0, -1.0, 0.0}; /* up */
    SUMA_SurfaceObject *SO=NULL;
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
    
    SUMA_KEY_COMMON;
    
    SUMA_KEY_SWITCH;
-   SUMA_LH("WHAAAAAAAAAAAT");
+
    w = sv->X->GLXAREA;
    /* do the work */
    switch (k) {
@@ -7749,8 +7749,17 @@ char *SUMA_Pick_Colid_List_Info (DList *pick_colid_list)
                                           cod->i0, cod->i1);
          vv = SUMA_Picked_reference_object(cod, &do_type);
          switch (do_type) {
+            case MD_DSET_type:
+               dset = (SUMA_DSET *)vv;
+               SS = SUMA_StringAppend_va(SS,
+                        "     Reference object is a %s dataset labeled %s "
+                        "(reference type %s)\n",
+                        "Multi Domain",
+                        SDSET_LABEL(dset),
+                        SUMA_ObjectTypeCode2ObjectTypeName(cod->ref_do_type));
+               break;
             case ANY_DSET_type:
-            case GDSET_type:
+	    case GDSET_type:
                dset = (SUMA_DSET *)vv;
                SS = SUMA_StringAppend_va(SS,
                         "     Reference object is a %s dataset labeled %s "

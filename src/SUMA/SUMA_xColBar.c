@@ -13752,7 +13752,24 @@ int SUMA_ADO_N_Datum_Lev(SUMA_ALL_DO *ado, SUMA_DATUM_LEVEL dtlvl)
          return(-1);
          break; }
       case CDOM_type: {
-         SUMA_S_Err("Not sure how this will apply yet");
+         SUMA_CIFTI_DO *CO=(SUMA_CIFTI_DO *)ado;
+	 switch(dtlvl) {
+	    int i, nn;
+	    case SUMA_ELEM_DAT: /* The maximum possible number of data
+	             	      	   assuming all domains are filled to 
+				   the max */
+	       nn = 0;
+	       for (i=0; i<CO->N_subdoms; ++i) {
+	          nn += SUMA_ADO_N_Datum(SUMA_CIFTI_subdom_ado(CO,i));
+	       }
+	       return(nn);
+	       break;
+	    default:
+	       SUMA_S_Err("Should not be here, not yet at least (dtlvl = %d)", 
+	             	  dtlvl);
+	       return(-1);
+	       break;
+	 }
          return(-1);
          break; }
       case GDSET_type: {
@@ -13909,6 +13926,7 @@ char * SUMA_ADO_Label(SUMA_ALL_DO *ado)
          return(ado->private_Label);
          break; }
       case GDSET_type:
+      case MD_DSET_type:
       case ANY_DSET_type: {
          SUMA_DSET *dset=(SUMA_DSET *)ado;
          return(SDSET_LABEL(dset));
@@ -13980,6 +13998,7 @@ char * SUMA_ADO_idcode(SUMA_ALL_DO *ado)
          return(ado->private_idcode_str);
          break; }
       case ANY_DSET_type:
+      case MD_DSET_type:
       case GDSET_type: {/* The special beast */
          SUMA_DSET *dset=(SUMA_DSET *)ado;
          return(SDSET_ID(dset));
@@ -13994,6 +14013,7 @@ char * SUMA_ADO_Parent_idcode(SUMA_ALL_DO *ado)
    if (!ado) return(NULL);
    switch(ado->do_type) {
       case ANY_DSET_type:
+      case MD_DSET_type:
       case GDSET_type: {/* The special beast, as a DO, it is its own parent*/
          SUMA_DSET *dset=(SUMA_DSET *)ado;
          return(SDSET_ID(dset));
@@ -14949,6 +14969,7 @@ char *SUMA_ADO_LDP(SUMA_ALL_DO *ado)
          return(SO->LocalDomainParentID);
          break; }
       case ANY_DSET_type:
+      case MD_DSET_type:
       case GDSET_type: {
          SUMA_DSET *dset = (SUMA_DSET *)ado;
          return(SDSET_ID(dset)); /* itself */
@@ -15116,6 +15137,7 @@ SUMA_DSET *SUMA_ADO_Dset(SUMA_ALL_DO *ado)
          return(NULL);
          break; 
       case ANY_DSET_type:
+      case MD_DSET_type:
       case GDSET_type:
          return((SUMA_DSET *)ado);
          break;

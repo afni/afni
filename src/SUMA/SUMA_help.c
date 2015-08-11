@@ -2796,6 +2796,8 @@ char * SUMA_gsf(char *uwname, TFORM target, char **hintout, char **helpout)
    static int lock = 0;
    char *DW = SUMA_get_DocumentedWidgets();
    
+   SUMA_ENTRY;
+   
    if (target == WEB && !DW) { /* That is when gsf needs DocumentedWidgets */
       char *ss=NULL;
       if (!lock) {

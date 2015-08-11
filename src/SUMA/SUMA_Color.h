@@ -102,13 +102,17 @@ SUMA_Boolean SUMA_LoadCIFTIDO (char *fname,
                         SUMA_DO_CoordUnits coord_type, SUMA_DSET **odset, 
                         int OkAdopt, int SetupOverlay, int LaunchDisplay, 
                         int MakeOverlayCurrent, SUMA_OVERLAYS **used_over);
-SUMA_CIFTI_DO * SUMA_CIFTI_DO_from_dset(SUMA_DSET *cdset, int add);
+SUMA_CIFTI_DO * SUMA_CIFTI_DO_from_dset(SUMA_DSET *cdset);
 char *SUMA_CIFTI_find_sub_domain(SUMA_CIFTI_DO *CO, SUMA_DO_Types ModelType,
                                SUMA_SO_SIDE ModelSide,
                                int Max_N_Data,
                                int *k);
 SUMA_CIFTI_DO *SUMA_CIFTI_find_matching_domain(SUMA_DSET *cdset, 
-                                                  SUMA_DO *dov, int N_dov); 
+                                               SUMA_DO *dov, int N_dov); 
+SUMA_CIFTI_DO *SUMA_find_CIFTI_subdom_container(char *SD_id, int *ksubdom, 
+      	             	      	       SUMA_DO *dov, int N_dov);
+SUMA_ALL_DO *SUMA_CIFTI_subdom_ado(SUMA_CIFTI_DO *CO, int ksub);
+int SUMA_CIFTI_SubDomFullOffset(SUMA_CIFTI_DO *CO, int ksub);
 void SUMA_LoadDsetOntoSO (char *filename, void *data);
 SUMA_Boolean SUMA_LoadDsetOntoSO_eng (char *filename, SUMA_SurfaceObject *SO,
                               int SetupOverlay, int MakeOverlayCurrent, 
