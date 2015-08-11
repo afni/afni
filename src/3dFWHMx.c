@@ -1,5 +1,11 @@
 #include "mrilib.h"
 
+#if 0
+extern void mri_FWHM_1dif_moments( MRI_IMAGE *im , byte *mask ) ;
+extern void THD_estimate_FWHM_moments_all( THD_3dim_dataset *dset,
+                                    byte *mask, int demed , int unif ) ;
+#endif
+
 int main( int argc , char *argv[] )
 {
    THD_3dim_dataset *inset=NULL ;
@@ -21,8 +27,8 @@ int main( int argc , char *argv[] )
       "in the input dataset, each one separately.  The output for each one is\n"
       "written to the file specified by '-out'.  The mean (arithmetic or geometric)\n"
       "of all the FWHMs along each axis is written to stdout.  (A non-positive\n"
-      "output value indicates something happened; e.g., FWHM in z is meaningless\n"
-      "for a 2D dataset.)\n"
+      "output value indicates something bad happened; e.g., FWHM in z is meaningless\n"
+      "for a 2D dataset; the estimation method computed incoherent intermediate results.)\n"
       "\n"
       "METHODS:\n"
       " - Calculate ratio of variance of first differences to data variance.\n"
@@ -121,6 +127,22 @@ int main( int argc , char *argv[] )
       "rather than the standard deviation.  (If you must know the details, read the\n"
       "source code in mri_fwhm.c!)                    [For Jatin Vaidya, March 2010]\n"
       "\n"
+      "IF YOU WISH TO ALLOW FOR SPATIAL VARIABILITY IN NOISE SMOOTHNESS:\n"
+      "The semi-secret '-1difMOM' option uses moments of the first differences to\n"
+      "crudely estimate a single smoothness that is intended to represent the effect\n"
+      "of variable smoothness -- the idea being that larger smoothness has a bigger\n"
+      "effect on the 3dClustSim results than smaller smoothness does, so the results\n"
+      "from this option will tend to be larger than from the standard option.\n"
+      "** This option is intended for use with single subject data; it is probably\n"
+      "   too conservative to use this option on group data when the smoothness\n"
+      "   is adjusted upwards based on single subject noise statistics.  [August 2015]\n"
+      "** The adjustment upwards involves shifting an intermediate estimate by\n"
+      "   a fraction of its standard deviation.  The default shift is 0.5 of the\n"
+      "   standard deviation estimate.  If you want to see the result without this\n"
+      "   shift, use '-1difMOM 0.0' (smoothness values will be smaller).  To see\n"
+      "   the result with a full standard deviatioin shift, use '-1difMOM 1.0'\n"
+      "   (smoothness values will be larger).\n"
+      "\n"
       "ALSO SEE:\n"
       "* The older program 3dFWHM is now superseded by 3dFWHMx.\n"
       "* The program 3dClustSim takes as input the FHWM estimates and then\n"
@@ -166,6 +188,16 @@ int main( int argc , char *argv[] )
      if( strcmp(argv[iarg],"-2difMAD") == 0 ){              /* 24 Mar 2010 */
        mri_fwhm_setfester( mri_estimate_FWHM_12dif_MAD ) ;  /* secret option */
        iarg++ ; continue ;
+     }
+
+     if( strcmp(argv[iarg],"-1difMOM") == 0 ){              /* 11 Aug 2015 */
+       mri_fwhm_setfester( mri_FWHM_1dif_mom12 ) ;
+       iarg++ ;
+       if( iarg < argc && argv[iarg][0] >= '0' && argv[iarg][0] <= '9' ){
+         double val = strtod(argv[iarg++],NULL) ;
+         if( val >= 0.0 && val <= 1.0 ) mri_fwhm_mom12_set_stdev_fac(val) ;
+       }
+       continue ;
      }
 
      if( strncmp(argv[iarg],"-geom",4) == 0 ){          /* 15 Nov 2006 */
@@ -346,6 +378,11 @@ int main( int argc , char *argv[] )
 
    outim = THD_estimate_FWHM_all( inset , mask , demed,unif ) ;
 
+#if 0
+   if( AFNI_yesenv("MOMENTS") )
+     THD_estimate_FWHM_moments_all( inset , mask , demed,unif ) ;
+#endif
+
    DSET_unload(inset) ;
 
    if( outim == NULL ) ERROR_exit("Function THD_estimate_FWHM_all() fails?!") ;
@@ -362,6 +399,7 @@ int main( int argc , char *argv[] )
      cx = cy = cz = 0.0 ;
      for( ii=0 ; ii < nvals ; ii++ ){
        fx = outar[0+3*ii]; fy = outar[1+3*ii]; fz = outar[2+3*ii];
+/* INFO_message("geom: fx=%g fy=%g fz=%g",fx,fy,fz) ; */
        if( fx > 0.0 ){ cx += log(fx) ; nx++ ; }
        if( fy > 0.0 ){ cy += log(fy) ; ny++ ; }
        if( fz > 0.0 ){ cz += log(fz) ; nz++ ; }
