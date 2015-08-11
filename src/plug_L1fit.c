@@ -45,10 +45,10 @@ static PLUGIN_interface * global_plint = NULL ;
 #define NRMAX_TS  2
 #define HARM_MAX  22
 
-static int polort=1 , ignore=3 , nrsin=0 , nrts=0 , initialize=1 ;
+static int polort=1 , ignore=3 , nrsin=0 , ntsim=0,nrts=0 , initialize=1 ;
 static float sinper[NRMAX_SIN] ;
 static int   sinharm[NRMAX_SIN] ;
-static MRI_IMAGE * tsim[NRMAX_TS] ;
+static MRI_IMAGE *tsim[NRMAX_TS] ;
 
 /***********************************************************************
    Set up the interface to the user:
@@ -128,9 +128,9 @@ PLUGIN_interface * PLUGIN_init( int ncall )
 
 char * L1F_main( PLUGIN_interface * plint )
 {
-   char * str ;
+   char *str ;
    int  ii ;
-   float * tsar ;
+   float *tsar ;
 
    /*--------- go to first input line ---------*/
 
@@ -143,7 +143,7 @@ char * L1F_main( PLUGIN_interface * plint )
 
    /*------ loop over remaining options, check their tags, process them -----*/
 
-   nrsin = nrts = 0 ;
+   nrsin = nrts = ntsim = 0 ;
    do {
       str = PLUTO_get_optiontag(plint) ; if( str == NULL ) break ;
 
@@ -160,17 +160,17 @@ char * L1F_main( PLUGIN_interface * plint )
 
       } else if( strcmp(str,"Timeseries") == 0 ){
 
-         tsim[nrts] = PLUTO_get_timeseries(plint) ;
+         tsim[ntsim] = PLUTO_get_timeseries(plint) ;
 
-         if( tsim[nrts] == NULL || tsim[nrts]->nx < 3 || tsim[nrts]->kind != MRI_float )
+         if( tsim[ntsim] == NULL || tsim[ntsim]->nx < 3 || tsim[ntsim]->kind != MRI_float )
             return "*************************\n"
                    "Illegal Timeseries Input!\n"
                    "*************************"  ;
 
-         tsar = MRI_FLOAT_PTR(tsim[nrts]) ;
-         for( ii=ignore ; ii < tsim[nrts]->nx && tsar[ii] >= WAY_BIG ; ii++ ) ; /* nada */
+         tsar = MRI_FLOAT_PTR(tsim[ntsim]) ;
+         for( ii=ignore ; ii < tsim[ntsim]->nx && tsar[ii] >= WAY_BIG ; ii++ ) ; /* nada */
          ignore = ii ;
-         nrts++ ;
+         nrts += tsim[ntsim]->ny ; ntsim++ ;
 
       } else {
          return "************************\n"
@@ -213,21 +213,21 @@ void L1F_detrend( int nt , double to , double dt , float * vec , char ** label )
    return ;
 }
 
-static char lbuf[4096] ;  /* 22 Apr 1997: will hold label for graphs */
+static char lbuf[8192] ;  /* 22 Apr 1997: will hold label for graphs */
 static char sbuf[256] ;
 
-void L1F_worker( int nt , double dt , float * vec , int dofit , char ** label )
+void L1F_worker( int nt , double dt , float *vec , int dofit , char **label )
 {
    int nlen , nref ;
 
    static int nlen_old = -666 , nref_old = -666 ;
    static double dt_old = -666.666 ;
-   static float ** ref = NULL ;
-   static float *  fit = NULL ;
+   static float **ref = NULL ;
+   static float  *fit = NULL ;
 
    int ir , ii , ks,jh ;
    float fac , tm , val , cls ;
-   float * tsar ;
+   float *tsar , *qsar ;
 
    /*** compute how many ref functions are ordered ***/
 
@@ -315,15 +315,18 @@ void L1F_worker( int nt , double dt , float * vec , int dofit , char ** label )
 
       /* r(t) = timeseries files */
 
-      for( ks=0 ; ks < nrts ; ks++ ){
+      for( ks=0 ; ks < ntsim ; ks++ ){
          if( tsim[ks] == NULL || tsim[ks]->nx - ignore < nlen ){
             initialize = 1 ;
             fprintf(stderr,"Inadequate time series #%d in L1F plugin\n\a",ks+1) ;
             return ;
          }
          tsar = MRI_FLOAT_PTR(tsim[ks]) ;
-         for( ii=0 ; ii < nlen ; ii++ ) ref[ir][ii] = tsar[ii+ignore] ;
-         ir++ ;
+         for( jh=0 ; jh < tsim[ks]->ny ; jh++ ){
+           qsar = tsar + jh*tsim[ks]->nx ;
+           for( ii=0 ; ii < nlen ; ii++ ) ref[ir][ii] = qsar[ii+ignore] ;
+           ir++ ;
+         }
       }
 
       /* make space for fit vector */
@@ -374,9 +377,11 @@ void L1F_worker( int nt , double dt , float * vec , int dofit , char ** label )
          }
       }
 
-      for( ks=0 ; ks < nrts ; ks++ ){
-         sprintf(sbuf,"Coef of %s = %g\n" , tsim[ks]->name , fit[ir++] ) ;
-         strcat(lbuf,sbuf) ;
+      for( ks=0 ; ks < ntsim ; ks++ ){
+         for( jh=0 ; jh < tsim[ks]->ny ; jh++ ){
+           sprintf(sbuf,"Coef of %s[%d] = %g\n" , tsim[ks]->name,jh , fit[ir++] ) ;
+           strcat(lbuf,sbuf) ;
+         }
       }
 
       *label = lbuf ;  /* send address of lbuf back in what label points to */

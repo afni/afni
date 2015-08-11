@@ -335,6 +335,7 @@ STATUS("init pval_save") ;
    PBAR_define_bigmap( ROI_256_CMD );
    PBAR_define_bigmap( AMBER_REDTOP_BLUEBOT_CS );
    PBAR_define_bigmap( ADD_EDGE );
+   PBAR_define_bigmap( RedBlueGreen_CMD);
 
    RETURN( pbar );
 }

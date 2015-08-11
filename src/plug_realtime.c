@@ -94,6 +94,7 @@
 #define DTYPE_2DZT  78
 #define DTYPE_3D    79
 #define DTYPE_3DT   80
+#define DTYPE_3DTM  81
 
 #define ZORDER_ALT  33
 #define ZORDER_SEQ  34
@@ -3352,6 +3353,9 @@ int RT_process_info( int ninfo , char * info , RT_input * rtin )
          else if( strcmp(typ,"2D+zt") == 0 ) rtin->dtype = DTYPE_2DZT ;
          else if( strcmp(typ,"3D")    == 0 ) rtin->dtype = DTYPE_3D ;
          else if( strcmp(typ,"3D+t")  == 0 ) rtin->dtype = DTYPE_3DT ;
+         /* allow 3D ordering, but with slice timing   3 Aug 2015 [rickr] */
+         /* (apply as 3DT, except allow for timing info)                  */
+         else if( strcmp(typ,"3D+timing") == 0 ) rtin->dtype = DTYPE_3DTM ;
          else
               BADNEWS ;
 
@@ -4113,7 +4117,8 @@ void RT_start_dataset( RT_input * rtin )
                              ADN_tunits   , UNITS_SEC_TYPE ,
                           ADN_none ) ;
 
-      } else if( rtin->dtype == DTYPE_2DZT ){  /* slices at different times */
+      } else if( rtin->dtype == DTYPE_2DZT || rtin->dtype == DTYPE_3DTM ){
+         /* slices at different times */
 
          float * tpattern  = (float *) malloc( sizeof(float) * rtin->nzz ) ;
          float   tframe    = rtin->tr / rtin->nzz ;
@@ -4222,7 +4227,8 @@ void RT_start_dataset( RT_input * rtin )
 
 
    if( REG_MAKE_DSET(rtin->reg_mode) &&
-       ((rtin->dtype==DTYPE_2DZT) || (rtin->dtype==DTYPE_3DT)) ){
+       ((rtin->dtype==DTYPE_2DZT) || (rtin->dtype==DTYPE_3DT)) ||
+        (rtin->dtype==DTYPE_3DTM) ){
 
       /* if registering mrg_dset, use it as base for reg_dset */
       if( rtin->reg_chan_mode > RT_CM_RMODE_NONE ) {
@@ -4419,10 +4425,12 @@ void RT_start_dataset( RT_input * rtin )
        case DTYPE_2DZT: strcpy(acq,"2D+zt (multivolume, by slice")    ; break ;
        case DTYPE_3D:   strcpy(acq,"3D (1 volume, all at once)")      ; break ;
        case DTYPE_3DT:  strcpy(acq,"3D+t (multivolume, by 3D array)") ; break ;
+       case DTYPE_3DTM: strcpy(acq,"3D+t (multivol, by 3D w/timing)") ; break ;
        default:         strcpy(acq,"Bizarro world")                   ; break ;
      }
 
-     if( rtin->dtype == DTYPE_2DZ || rtin->dtype == DTYPE_2DZT ){
+     if( rtin->dtype == DTYPE_2DZ || rtin->dtype == DTYPE_2DZT ||
+                                     rtin->dtype == DTYPE_3DTM ){
        switch( rtin->zorder ){
          case ZORDER_ALT: strcat(acq," - interleaved order)") ; break ;
          case ZORDER_SEQ: strcat(acq," - sequential order)")  ; break ;
@@ -4691,7 +4699,8 @@ void RT_process_image( RT_input * rtin )
       rtin->nsl[cc] ++ ;                     /* 1 more slice */
       vdone = (rtin->nsl[cc] == rtin->nzz) ; /* have all slices? */
 
-   } else if( rtin->dtype == DTYPE_3DT || rtin->dtype == DTYPE_3D ){
+   } else if( rtin->dtype == DTYPE_3DT || rtin->dtype == DTYPE_3D ||
+              rtin->dtype == DTYPE_3DTM ){
 
 #if 0
       if( verbose > 1 )
@@ -4736,7 +4745,8 @@ void RT_process_image( RT_input * rtin )
       /* must also change the number of times recorded
          [EDIT_add_brick does 'nvals' correctly, but not 'ntt'] */
 
-      if( rtin->dtype == DTYPE_3DT || rtin->dtype == DTYPE_2DZT ){
+      if( rtin->dtype == DTYPE_3DT || rtin->dtype == DTYPE_2DZT ||
+          rtin->dtype == DTYPE_3DTM ){
          EDIT_dset_items( rtin->dset[cc], ADN_ntt, rtin->nvol[cc], ADN_none ) ;
          if( verbose > 1 )
            fprintf(stderr,"RT: altered ntt in dataset header in channel %02d\n",
@@ -5043,7 +5053,8 @@ void RT_process_image( RT_input * rtin )
             fprintf(stderr,"RT: checking for update status\n") ;
          VMCHECK ;
 
-         doit = ( (rtin->dtype==DTYPE_3DT || rtin->dtype==DTYPE_2DZT) &&
+         doit = ( (rtin->dtype==DTYPE_3DT || rtin->dtype==DTYPE_2DZT
+                                          || rtin->dtype==DTYPE_3DTM) &&
                   (cc+1 == rtin->num_chan)                            && /* 01 Aug 2002 */
                   (rtin->nvol[cc] == MIN_TO_GRAPH ||
                    (rtin->nvol[cc] > MIN_TO_GRAPH && rtin->nvol[cc] % update == 0)) ) ;

@@ -3,25 +3,24 @@
 #
 # Change log:
 
-if ( $#argv != 1 || "$argv[1]" == "-help") then
-    echo "Usage: `basename $0` <dsetname>"
-    echo ""
-echo "Search AFNI_GLOBAL_SESSION, AFNI_PLUGINPATH, and afni bin directory"
-echo " (in that order) for named dataset.  If found, echo the first valid path"
-echo " discovered and return zero status.  If not found, return non-zero status."
-echo ""
-echo "-help to get this message"
-echo ""
-echo " Jason W. Bacon"
-echo " Medical College of Wisconsin"
-echo " Sep 27, 2006"
-   echo ""
-    if ( $#argv != 1 ) exit 1
-    exit 0
-endif
+# separate length check
+if ( $#argv != 1 ) goto HELP
+if ( "$argv[1]" == "-help") goto HELP
 
 set ref_in = $1
 set dataset_path = './'
+
+
+# if path to dset, test separately    31 Jul 2015 [rickr]
+# (differs from ./$ref_in if path is absolute)
+set dir = "$ref_in:h"
+if ( "$dir" != "$ref_in" ) then
+    if ( `@CheckForAfniDset ${ref_in}` == 2 ) then
+	echo $dir
+        exit 0
+    endif
+endif
+
 
 if ( $?AFNI_GLOBAL_SESSION ) then
     set dataset_path = (${dataset_path} `echo $AFNI_GLOBAL_SESSION | tr ':' ' '`)
@@ -59,7 +58,28 @@ endif
 if ( `@CheckForAfniDset ${ref_path}/${ref_in}` ) then
     echo ${ref_path}
     exit 0
-else
-    exit 1
 endif
 
+# not found
+exit 1
+
+
+HELP:
+cat << EOF
+
+Usage: `basename $0` <dsetname>
+
+Search AFNI_GLOBAL_SESSION, AFNI_PLUGINPATH, and afni bin directory
+(in that order) for named dataset.  If found, echo the first valid path
+discovered and return zero status.  If not found, return non-zero status.
+
+   -help to get this message
+
+Jason W. Bacon
+Medical College of Wisconsin
+Sep 27, 2006
+
+EOF
+
+# be explicit
+exit 0

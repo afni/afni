@@ -814,7 +814,7 @@ STATUS("making imag->rowcol") ;
       XtSetSensitive( imag->pop_instacorr_pb , False ) ;
 
       imag->pop_icorrapair_pb =  /* Apr 2013: for 3dGroupInCorr */
-         XtVaCreateWidget(
+         XtVaCreateWidget(       /* note is not managed now */
             "dialog" , xmPushButtonWidgetClass , imag->popmenu ,
                LABEL_ARG("GIC: Apair Set") ,
                XmNmarginHeight , 0 ,
@@ -824,7 +824,7 @@ STATUS("making imag->rowcol") ;
       XtAddCallback( imag->pop_icorrapair_pb , XmNactivateCallback ,
                      AFNI_imag_pop_CB , im3d ) ;
 
-      imag->pop_icorramirr_pb =
+      imag->pop_icorramirr_pb =  /* note is not managed now */
          XtVaCreateWidget(
             "dialog" , xmPushButtonWidgetClass , imag->popmenu ,
                LABEL_ARG("GIC: Apair MirrorOFF") ,
@@ -5926,7 +5926,7 @@ ENTRY("new_AFNI_controller") ;
       XmAddWMProtocolCallback(
            im3d->vwid->top_shell ,
            XmInternAtom( dc->display , "WM_DELETE_WINDOW" , False ) ,
-           AFNI_quit_CB , im3d ) ;
+           AFNI_quit_CB , NULL ) ;
 
    if( MCW_isitmwm( im3d->vwid->top_shell ) )
       XtVaSetValues( im3d->vwid->top_shell ,

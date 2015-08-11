@@ -787,9 +787,11 @@ g_history = """
    0.40 Apr 23, 2015: added -help_fields/-help_fields_brief for describing
                       basic output fields
    0.41 May  1, 2015: keep num regs of interest = 0 if num stim = 0
+   0.42 Jul 29, 2015:
+        - do not allow _REMLvar stats dset (previously blocked only _REMLvar+)
 """
 
-g_version = "gen_ss_review_scripts.py version 0.41, May 1, 2015"
+g_version = "gen_ss_review_scripts.py version 0.42, July 29, 2015"
 
 g_todo_str = """
    - figure out template_space (should we output 3dinfo -space?)
@@ -1834,7 +1836,7 @@ class MyInterface:
 
       # now find all datasets, but remove expected REMLvar+VIEW ones
       dlist = glob.glob(gform)
-      dlist = [d for d in dlist if d.find('_REMLvar+') < 0]
+      dlist = [d for d in dlist if d.find('_REMLvar') < 0]
 
       if len(dlist) < 1:
          print '** failed to guess at any stats dset, resting state?'

@@ -133,10 +133,12 @@ static char * gifti_history[] =
   "     - can read/write ascii COMPLEX64, COMPLEX128, RGB24\n"
   "       (requested by H Breman, J Mulders, N Schmansky)\n"
   "1.11 07 March, 2012: fixed sizeof in memset of gim (noted by B Cox)\n",
-  "1.12 15 June, 2012: make num_dim violation a warning, because of mris_convert\n",
+  "1.12 15 June, 2012: make num_dim violation a warning (mris_convert)\n",
+  "1.13 17 June, 2015: added gifti_read_image_buf\n"
+  "1.14 24 July, 2015: added gifti_rotate_DAs_to_front\n"
 };
 
-static char gifti_version[] = "gifti library version 1.12, 15 June, 2012";
+static char gifti_version[] = "gifti library version 1.14, 24 July, 2015";
 
 /* ---------------------------------------------------------------------- */
 /*! global lists of XML strings */
@@ -346,6 +348,24 @@ gifti_image * gifti_read_image( const char * fname, int read_data )
     gxml_set_verb(G.verb);
 
     return gxml_read_image(fname, read_data, NULL, 0);
+}
+
+/*----------------------------------------------------------------------
+ *! Like gifti_read_image, but read from a buffer.
+ *
+ *  return an allocated gifti_image struct on success,
+ *         NULL on error
+*//*-------------------------------------------------------------------*/
+gifti_image * gifti_read_image_buf(const char * buf, long long bsize)
+{
+    if( !buf || bsize <= 0 ) {
+        fprintf(stderr,"** gifti_read_image: missing filename\n");
+        return NULL;
+    }
+
+    gxml_set_verb(G.verb);
+
+    return gxml_read_image_buf(buf, bsize, NULL, 0);
 }
 
 /*----------------------------------------------------------------------
@@ -1201,6 +1221,55 @@ int gifti_add_empty_CS(giiDataArray * da)
     gifti_clear_CoordSystem(da->coordsys[da->numCS]);
 
     da->numCS++;
+
+    return 0;
+}
+
+/*----------------------------------------------------------------------
+ *! rotate DA list, moving from the back to the front
+ *
+ *  this (after add_empty) would allow one to add a new entry to the front
+ *
+ *  - allocate for nrot temp pointers
+ *  - copy nrot trailing pointers to temp
+ *  - shift numDA-nrot pointers to end
+ *  - copy temp pointers to start
+ *  - free temp array
+ *
+ *  return 0 on success
+ *         1 on error
+*//*-------------------------------------------------------------------*/
+int gifti_rotate_DAs_to_front(gifti_image * gim, int nrot)
+{
+    giiDataArray ** dtmp;
+    int             ind;
+
+    if( !gim || nrot < 0 || nrot >= gim->numDA) return 1;
+
+    if( nrot < 1 ) return 0;
+
+    if(G.verb > 3)fprintf(stderr,"++ rotate darray[%d] (%d)\n",gim->numDA,nrot);
+
+    /* allocate for temporary pointers */
+    dtmp = (giiDataArray **)malloc(nrot*sizeof(giiDataArray *));
+    if( !dtmp ) {
+       fprintf(stderr,"** failed to alloc %d DA pointers\n", nrot);
+       return 1;
+    }
+
+    /* copy nrot into temp list (cleaner than memcpy?) */
+    for( ind=0; ind < nrot; ind++ )
+       dtmp[ind] = gim->darray[gim->numDA-nrot+ind];
+
+    /* shift numDA-nrot to end (index downward over destinations) */
+    for( ind=gim->numDA-1; ind >= nrot; ind-- )
+       gim->darray[ind] = gim->darray[ind-nrot];
+
+    /* copy nrot from temp list to start */
+    for( ind=0; ind < nrot; ind++ )
+       gim->darray[ind] = dtmp[ind];
+
+    free(dtmp);
 
     return 0;
 }
@@ -3094,7 +3163,7 @@ int gifti_compare_nvpairs(const nvpairs * p1, const nvpairs * p2, int verb)
 {
     char * value;
     int    lverb = verb;        /* possibly override passed verb */
-    int    c, len, diffs = 0;
+    int    c, diffs = 0;
 
     if( G.verb > lverb ) lverb = G.verb;
 
@@ -3119,7 +3188,6 @@ int gifti_compare_nvpairs(const nvpairs * p1, const nvpairs * p2, int verb)
 
     /* search for mis-matches or non-existence from list 1 into list 2  */
     /* assume Names are unique (each that is not will show a mis-match) */
-    len = p1->length < p2->length ? p1->length : p2->length;
     for( c = 0; c < p1->length; c++ ) {
         if( ! p1->value[c] ) continue;  /* skip anything that doesn't exist */
         value = gifti_get_meta_value(p2, p1->name[c]);
@@ -3189,7 +3257,7 @@ static int compare_labeltables(const giiLabelTable *t1, const giiLabelTable *t2,
                                int verb, int approx)
 {
     int lverb = verb;        /* possibly override passed verb */
-    int c, roff, offset, diffs = 0;
+    int c, offset, diffs = 0;
 
     if( G.verb > lverb ) lverb = G.verb;
 
@@ -3227,7 +3295,6 @@ static int compare_labeltables(const giiLabelTable *t1, const giiLabelTable *t2,
     }
 
     /* walk through list to compare labels */
-    roff = 0;
     for( c = 0; c < t1->length; c++ ) {
         if( gifti_strdiff(t1->label[c], t2->label[c]) ) {
             if(lverb>2)printf("-- labeltable Label diff at index %d\n", c);

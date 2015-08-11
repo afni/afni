@@ -1485,9 +1485,15 @@ int test_rt( DatasetType **currTestArray, long nvox_dset, double *dist, char *er
         1, GLOBAL_svm_vars.nvox_model, nvox_masked );
   
     /* --- fill SVM-LIGHT MODEL structure --- */
-    get_svm_model( svmlModel, GLOBAL_svm_vars.dsetModelArray,
+    if( get_svm_model(svmlModel, GLOBAL_svm_vars.dsetModelArray,
         GLOBAL_svm_vars.dsetMaskArray, GLOBAL_svm_vars.afniModel,
-        GLOBAL_svm_vars.nvox_model, (GLOBAL_svm_vars.options)->outModelNoMask );
+        GLOBAL_svm_vars.nvox_model, (GLOBAL_svm_vars.options)->outModelNoMask,
+        errorString) ) {
+
+      freeDOCs(currTestDoc, 1);
+      freeModel(svmlModel, GLOBAL_svm_vars.afniModel, TEST);
+      return 1;
+    }
   
     updateModel( svmlModel, GLOBAL_svm_vars.afniModel, 0 );
   

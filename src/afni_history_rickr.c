@@ -49,6 +49,192 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  7,  Aug, 2015, RCR, "3dhistog", MICRO, TYPE_NEW_OPT,
+   "add -noempty option, to ignore empty bins",
+   NULL
+ } ,
+
+ {  7,  Aug, 2015, RCR, "model_conv_PRF", MICRO, TYPE_MODIFY,
+   "make everything static, to avoid confusion",
+   NULL
+ } ,
+
+ {  7,  Aug, 2015, RCR, "model_conv_PRF_6", MICRO, TYPE_BUG_FIX,
+   "make everything static, to avoid confusion; proto for conv_set_ref",
+   NULL
+ } ,
+
+ {  5,  Aug, 2015, RCR, "nifti_tool", MICRO, TYPE_ENHANCE,
+   "apply library updates for potentially writing NIFTI-2",
+   NULL
+ } ,
+
+ {  5,  Aug, 2015, RCR, "NIFTI", MINOR, TYPE_ENHANCE,
+   "if conversion to NIFTI-1 header fails on write, try NIFTI-2",
+   NULL
+ } ,
+
+ {  5,  Aug, 2015, RCR, "afni-general", MICRO, TYPE_ENHANCE,
+   "add some support for reading Voxel_Bucket datasets into AFNI",
+   "That is a type that is currently specific to SUMA."
+ } ,
+
+ {  3,  Aug, 2015, RCR, "Dimon", MICRO, TYPE_BUG_FIX,
+   "applied ACQUSITION_TYPE as 3d+timing",
+   "Slice timing was lost (by the plugin) in the change to 3d+t ACQ TYPE.\n"
+   "Thanks to H Mandelkow for bringing this up."
+ } ,
+
+ {  3,  Aug, 2015, RCR, "plug_realtime", MINOR, TYPE_ENHANCE,
+   "added DTYPE_3DTM (3D+timing) ACQUSITION_TYPE",
+   "Treats data as per volume, but with slice timing.  This is needed for\n"
+   "num_chan>0, but when data does not come in num_chan slices at a time."
+ } ,
+
+ { 31,  Jul, 2015, RCR, "@FindAfniDsetPath", MICRO, TYPE_ENHANCE,
+   "allow full paths to succeeed ; no args gives help",
+   NULL
+ } ,
+
+ { 30,  Jul, 2015, RCR, "@auto_tlrc", MICRO, TYPE_BUG_FIX,
+   "check for template existence even given path",
+   "Was failing with -init_xform."
+ } ,
+
+ { 29,  Jul, 2015, RCR, "gen_ss_reivew_scripts.py", MICRO, TYPE_MODIFY,
+   "block any _REMLvar stats dset (was _REMLvar+)",
+   "Might get stats*_REMLvar_nods, for example, via 3dREMLfit -dsort_nods."
+ } ,
+
+ { 29,  Jul, 2015, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,
+   "ANATICOR now works with task analysis, using -regress_reml_exec",
+   "Done for R W Cox."
+ } ,
+
+ { 29,  Jul, 2015, RCR, "3dcalc", MICRO, TYPE_MODIFY,
+   "clarify error about mis-match in number of volumes",
+   NULL
+ } ,
+
+ { 28,  Jul, 2015, RCR, "afni_proc.py", MINOR, TYPE_MODIFY,
+   "ANATICOR now includes zero volumes at censor points",
+   "This matches non-ANATICOR and fast ANATICOR cases."
+ } ,
+
+ { 27,  Jul, 2015, RCR, "afni_proc.py", MICRO, TYPE_MODIFY,
+   "renamed -regress_WMeL_corr to -regress_make_corr_AIC and default to 'no'",
+   NULL
+ } ,
+
+ { 24,  Jul, 2015, RCR, "afni-general", MICRO, TYPE_BUG_FIX,
+   "GIFTI datasets should have NODE_INDEX list as first DataArray",
+   "Thanks to N Oosterhof for pointing this out."
+ } ,
+
+ { 23,  Jul, 2015, RCR, "afni-general", MICRO, TYPE_ENHANCE,
+   "allow Graph_Bucket niml.dsets to be read, but just as 1D",
+   NULL
+ } ,
+
+ { 17,  Jul, 2015, RCR, "plug_realtime", MINOR, TYPE_ENHANCE,
+   "Dimon->afni: small TCP buffers cause volumes to be passed slowly",
+   "In iochan_recvall, increase nap time only if packets < 4K are recieved."
+ } ,
+
+ { 13,  Jul, 2015, RCR, "nifti_tool", MAJOR, TYPE_ENHANCE,
+   "nifti_tool is now based on NIFTI-2, with many corresponding new options",
+   "The old nifti_tool (based on NIFTI-1) is now nifti1_tool."
+ } ,
+
+ { 13,  Jul, 2015, RCR, "nifti1_tool", MINOR, TYPE_NEW_PROG,
+   "nifti1_tool is the NIFTI-1 version of nifti_tool",
+   NULL
+ } ,
+
+ { 13,  Jul, 2015, RCR, "NIFTI-2", MAJOR, TYPE_ENHANCE,
+   "added NIFTI-2 support into AFNI",
+   "Main source update: nifti/nifti2 tree, then applied it in mostly\n"
+   "   thd_niftiread/write.c (plus gifti_io.h, 3ddata.h, mrilib.h).\n"
+   "To compile into all of AFNI edit: Makefile.INCLUDE, SUMA_Makefile_NoDev,\n"
+   "   Makefile.avovk.INCLUDE and Makefile.ptaylor.INCLUDE."
+ } ,
+
+ {  11,  Jul, 2015, RCR, "@diff.files", MICRO, TYPE_NEW_OPT,
+   "added -longlist",
+   NULL
+ } ,
+
+ {  1,  Jul, 2015, RCR, "cifti_tool", MINOR, TYPE_NEW_OPT,
+   "reorg and more recur functions",
+   NULL
+ } ,
+
+ {  1,  Jul, 2015, RCR, "afni_proc.py", MICRO, TYPE_GENERAL,
+   "clarified help for -anat_unif_GM",
+   NULL
+ } ,
+
+ { 24,  Jun, 2015, RCR, "afni_xml_tool", MINOR, TYPE_NEW_OPT,
+   "afni_xml udpates, and start to afni_xml_tool",
+   NULL
+ } ,
+
+ { 18,  Jun, 2015, RCR, "3dExtrema", MINOR, TYPE_NEW_OPT,
+   "added -nbest",
+   "Output -nbest extrema; -quiet does not suppress extrema output."
+ } ,
+
+ { 17,  Jun, 2015, RCR, "GIFTI", MINOR, TYPE_NEW_OPT,
+   "added functions for reading from a buffer",
+   NULL
+ } ,
+
+ { 16,  Jun, 2015, RCR, "CIFTI", MINOR, TYPE_GENERAL,
+   "added initial nifti/cifti tree",
+   NULL
+ } ,
+
+ { 16,  Jun, 2015, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,
+   "applied -regress_stim_times_offset to typical timing files",
+   "Allows for stim timing offset when copying to stimuli directory."
+ } ,
+
+ { 15,  Jun, 2015, RCR, "nifti_tool", MINOR, TYPE_NEW_OPT,
+   "added -disp_cext",
+   NULL
+ } ,
+
+ { 10,  Jun, 2015, RCR, "auto_warp.py", MICRO, TYPE_BUG_FIX,
+   "clear any AFNI_COMPRESSOR variable, so that scripts do not get confused",
+   "NIFTI is the default, so avoid script confusion with automatic nii.gz.\n"
+   "In the future, maybe process as AFNI."
+ } ,
+
+ { 10,  Jun, 2015, RCR, "NIFTI", MICRO, TYPE_BUG_FIX,
+   "THD_open_one_dataset: let THD_open_nifti look for alternate files",
+   "CHECK_FOR_DATA() requires a file name match, but NIFTI is forgiving."
+ } ,
+
+ { 10,  Jun, 2015, RCR, "@diff.files", MAJOR, TYPE_NEW_PROG,
+   "compare list of files with those in other directory",
+   NULL
+ } ,
+
+ { 10,  Jun, 2015, RCR, "@diff.tree", MAJOR, TYPE_NEW_PROG,
+   "look for differences between files in two directories",
+   "Should merge @diff.files and @diff.tree, and change to python."
+ } ,
+
+ {  8,  Jun, 2015, RCR, "neuro_deconvolve.py", MICRO, TYPE_ENHANCE,
+   "allow -inputs to include paths",
+   NULL
+ } ,
+
+ {  6,  Jun, 2015, RCR, "timing_tool.py", MICRO, TYPE_NEW_OPT,
+   "added -per_run_file",
+   NULL
+ } ,
+
  {  2,  Jun, 2015, RCR, "NIFTI", MICRO, TYPE_GENERAL,
    "NIFTI-1,2: added NIFTI_ECODE_CIFTI/VARIABLE_FRAME_TIMING/EVAL/MATLAB",
    NULL

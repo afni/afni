@@ -31,18 +31,21 @@ static int DEBUG = 0 ;
 /*------------------------- various string constants -------------------------*/
 
 #undef  ICALC_NUMTYPE
-#define ICALC_NUMTYPE 3
+#define ICALC_NUMTYPE 4
 static char *ICALC_typestr[] = { "Dataset: Value" ,
                                  "Dataset: Stat." ,
-                                 "Constant Value"  } ;
+                                 "Constant Value" ,
+                                 "Dataset: Pvalu"  } ;
 
 static char *ICALC_choosestr[] = { "Choose Dataset" ,
                                    "Choose Dataset" ,
-                                   "--------------"  } ;
+                                   "--------------" ,
+                                   "Choose Dataset"  } ;
 
 static char *ICALC_labelstr[]  = { "diffsub:" ,
                                    "3D stat:" ,
-                                   "Value:"     } ;
+                                   "Value:"   ,
+                                   "diffsub:"  } ;
 
 static char *ICALC_nothing_chosen = "---nothing chosen---" ;
 
@@ -54,6 +57,7 @@ static char abet[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ" ;  /* the alphabet! */
 #define ICALC_DSET_VALUE  0
 #define ICALC_DSET_STAT   1
 #define ICALC_CONSTANT    2
+#define ICALC_DSET_PVALU  3  /* 26 Jun 2015 */
 
 #define DSHIFT_MODE_STOP  0
 #define DSHIFT_MODE_WRAP  1
@@ -103,7 +107,9 @@ static MCW_action_item ICALC_act[] =
 #define ICALC_toggle_row(rr,state)                                                          \
  do{ int qz = state && (rr).menu_av->ival != ICALC_CONSTANT ;                               \
      int wz = state &&                                                                      \
-        ((rr).menu_av->ival == ICALC_DSET_VALUE || (rr).menu_av->ival == ICALC_DSET_STAT) ; \
+        ((rr).menu_av->ival == ICALC_DSET_VALUE ||                                          \
+         (rr).menu_av->ival == ICALC_DSET_STAT  ||                                          \
+         (rr).menu_av->ival == ICALC_DSET_PVALU   ) ;                                       \
      AV_SENSITIZE((rr).menu_av,state) ;                                                     \
      XtSetSensitive((rr).chooser_pb,qz) ; AV_SENSITIZE((rr).index_av,wz) ;                  \
      XtSetSensitive((rr).chooser_lab,qz) ;                                                  \
@@ -408,6 +414,7 @@ static void ICALC_chooser_CB( Widget w, XtPointer cd, XtPointer cbs )
    dsa = -1 ;
 
    switch( bb ){
+     case ICALC_DSET_PVALU:
      case ICALC_DSET_VALUE:
      case ICALC_DSET_STAT:  ICALC_choose_dataset( iwid , aa ) ; break ;
 
@@ -576,28 +583,27 @@ static char *helpstring =
    " (2) Select datasets to corresponds to symbols A, B, ..., as desired,\n"
    "     and then select a sub-brick index '[-]' to use.\n"
    "*OR* Choose a statistic (MIN or MAX) to use from a given dataset volume.\n"
-   "*OR* Set a given symbol to be a numeric constant.\n"
+   "*OR* Set a given symbol to be a numeric constant (not from a dataset).\n"
+   "*OR* Select a dataset and sub-brick to be converted from a statistical\n"
+   "     distribution (e.g., from a t-test) to a p-value.\n"
    "\n"
    " (3) Press the 'Compute InstaCalc' button to (re)calculate the output.\n"
    "\n"
    " * The output is stored into a dataset named A_ICALC (for controller A),\n"
    "   which will be switched to be the new overlay dataset.\n"
-   " * If you make changes to the expression, the datasets chosen, etc., the\n"
-   "   A_ICALC will NOT be recomputed automatically -- you must press the\n"
-   "   'Compute InstaCalc' button again.\n"
    "\n"
    "If you make changes to the expression, or to the symbol definitions, you\n"
    "must press 'Compute InstaCalc' again for the changes to be reflected in\n"
-   "the dataset.\n"
+   "the A_ICALC dataset -- it will not be recomputed automatically.\n"
    "\n"
-   "Simple Example: Dual Thresholding\n"
+   "Simple Example: Dual Thresholding (AKA 'conjunction' mapping)\n"
    "   A = Overlay sub-brick of interest\n"
    "   B = t-statistic for some effect\n"
    "   C = t-statistic for some other effect\n"
    "   Expression = 'A*astep(B,3.1)*astep(C,4.2)\n"
    "The effect is to colorize A only where abs(B) > 3.1 AND abs(C) > 4.2.\n"
    "\n"
-   "Advanced Usage [for AFNI Jedi Masters]:\n"
+   "Advanced Usage [for Jedi AFNI Masters]:\n"
    " * diffsub = as in 3dcalc, you can specify a differentially offset voxel,\n"
    "             which allows a limited amount of spatial processing.\n"
    "             Example:\n"
@@ -624,14 +630,15 @@ static char *helpstring =
    "             of the 'Index' time selector in the main AFNI controller window\n"
    "             will be used.  When you change the time 'Index' in AFNI,\n"
    "             InstaCalc will NOT be automatically updated -- you still have\n"
-   "             to press 'Compute InstaCalc' to get A_ICALC re-computed.\n"
+   "             to press 'Compute InstaCalc' to get dataset A_ICALC re-computed.\n"
    " * Pre-defined variables (if not set as described above) are\n"
    "     x = DICOM x coordinate (R=- L=+)\n"
    "     y = DICOM y coordinate (A=- P=+)\n"
    "     z = DICOM z coordiante (I=- S=+)\n"
    "     i = #1 3D index  j = #2 3D index  k = #3 3D index\n"
    "   You can use these variable names in the expression without defining them\n"
-   "   in the variable choosers.\n"
+   "   in the variable choosers.  Other variables names used in the expression\n"
+   "   must be defined by selecting the appropriate row.\n"
    "\n"
    "Author -- RW Cox -- Sep 2009\n"
    "\n"
@@ -937,6 +944,7 @@ if(DEBUG) ININFO_message("  get constant string") ;
 
        /* these cases aren't so easy */
 
+       case ICALC_DSET_PVALU:
        case ICALC_DSET_VALUE:
        case ICALC_DSET_STAT:{
          int idx      = iwid->war[ids].index_av->ival ;
@@ -968,7 +976,8 @@ if(DEBUG) ININFO_message("  dataset idx = %d",idx) ;
                                            abet[ids] ,
                                            DSET_HEADNAME(dset) , idx ) ;
 
-         if( bb == ICALC_DSET_VALUE ){  /*---- actual dataset voxel values ----*/
+         if( bb == ICALC_DSET_VALUE ||
+             bb == ICALC_DSET_PVALU   ){  /*---- actual dataset voxel values ----*/
 
            if( ics->dset_master == NULL ){
 if(DEBUG) ININFO_message("  set dset_master") ;
@@ -1079,7 +1088,7 @@ if(DEBUG) ININFO_message("  completely done with dataset processing") ;
 if(DEBUG) ININFO_message("check datasets for compatibility") ;
    nxyz = DSET_NVOX(ics->dset_master) ;
    for( ids=0 ; ids < 26 ; ids++ ){
-     if( ics->intyp[ids] != ICALC_DSET_VALUE ) continue ;
+     if( ics->intyp[ids] != ICALC_DSET_VALUE && ics->intyp[ids] != ICALC_DSET_PVALU ) continue ;
      dset = ics->inset[ids] ;
      if( !ISVALID_DSET(dset) || dset == ics->dset_master ) continue ;
      if( DSET_NVOX(dset) != nxyz ){
@@ -1185,6 +1194,7 @@ if(DEBUG) INFO_message("Start computation loop") ;
 
          /* however, this is not so easy (too many sub-cases) */
 
+         case ICALC_DSET_PVALU:
          case ICALC_DSET_VALUE:{
            THD_3dim_dataset *dset ;
 
@@ -1327,6 +1337,17 @@ if(CEBUG) ININFO_message("  dshift: jds=%d  id=%d jd=%d kd=%d ld=%d",jds,id,jd,k
                      atoz[ids][jj-ii] = vv ;
                    }
                  } /* end of data type extraction switch */
+
+                 if( ics->intyp[ids] == ICALC_DSET_PVALU        &&
+                     FUNC_IS_STAT(DSET_BRICK_STATCODE(dset,kts))   ){  /* 26 Jun 2015 */
+                   if( atoz[ids][jj-ii] != 0.0 )
+                     atoz[ids][jj-ii] = THD_stat_to_pval( fabs(atoz[ids][jj-ii]) ,
+                                                          DSET_BRICK_STATCODE(dset,kts) ,
+                                                          DSET_BRICK_STATAUX (dset,kts)  ) ;
+                   else
+                     atoz[ids][jj-ii] = 1.0 ;
+                 }
+
                } /* end of jj loop over voxels */
              } /* end of if getting actual data (wasn't time shifted to 0) */
            } /* end of differential subscripted sub-case */
@@ -1381,6 +1402,18 @@ if(CEBUG) ININFO_message("  normal dataset: kts=%d",kts) ;
                }
                break ;
              } /* end of data type extraction switch */
+
+             if( ics->intyp[ids] == ICALC_DSET_PVALU        &&
+                 FUNC_IS_STAT(DSET_BRICK_STATCODE(dset,kts))   ){  /* 26 Jun 2015 */
+               for( jj=jbot ; jj < jtop ; jj++ ){
+                 if( atoz[ids][jj-ii] != 0.0 )
+                   atoz[ids][jj-ii] = THD_stat_to_pval( fabs(atoz[ids][jj-ii]) ,
+                                                        DSET_BRICK_STATCODE(dset,kts) ,
+                                                        DSET_BRICK_STATAUX (dset,kts)  ) ;
+                 else
+                   atoz[ids][jj-ii] = 1.0 ;
+               }
+            }
 
           } /** end of 3D dataset normal sub-case **/
 

@@ -1086,7 +1086,7 @@ int main( int argc , char *argv[] )
 
    AFNI_SETUP_OMP(0) ;  /* 24 Jun 2013 */
 
-   if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
+   if( argc < 2 || strcasecmp(argv[1],"-help") == 0 ){
      printf(
       "Usage: 3dGroupInCorr [options]\n"
       "\n"
@@ -1203,11 +1203,12 @@ int main( int argc , char *argv[] )
 
       printf(
       "\n"
-      "==================================================================\n"
+      "===================================================================\n"
       "                       COMMAND LINE OPTIONS\n"
-      "==================================================================\n"
+      "[Most options are not case sensitive -- e.g., '-apair' == '-Apair']\n"
+      "===================================================================\n"
       "\n"
-      "-----------------------*** Input Files ***------------------------\n"
+      "-----------------------*** Input Files ***-------------------------\n"
       "\n"
       " -setA AAA.grpincorr.niml\n"
       "   = Give the setup file (from 3dSetupGroupInCorr) that describes\n"
@@ -1840,10 +1841,10 @@ int main( int argc , char *argv[] )
      if( strcmp(argv[nopt],"-verb") == 0 ){
        verb++ ; nopt++ ; continue ;
      }
-     if( strcmp(argv[nopt],"-VERB") == 0 ){
+     if( strcasecmp(argv[nopt],"-VERB") == 0 ){
        verb += 2 ; nopt++ ; continue ;
      }
-     if( strcmp(argv[nopt],"-debug") == 0 ){
+     if( strcasecmp(argv[nopt],"-debug") == 0 ){
        debug++ ; nopt++ ; continue ;
      }
 

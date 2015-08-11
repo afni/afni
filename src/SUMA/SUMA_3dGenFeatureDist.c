@@ -43,6 +43,18 @@ static HELP_OPT GenFeatureDistOptList[] = {
 NULL
       },
    {  
+"-OTHER", 
+"-OTHER: Add histograms for an 'OTHER' class that has a uniform pdf.\n", 
+NULL
+      },
+
+   {  
+"-no_OTHER", 
+"-no_OTHER: Opposite of -OTHER.\n", 
+NULL
+      },
+
+   {  
 "-features", 
 "-features 'FEATURES_STRING': FEATURES_STRING is a semicolon delimited\n"
 "                         string of features. For example\n"
@@ -270,6 +282,7 @@ SEG_OPTS *GenFeatureDist_Default(char *argv[], int argc)
    Opt->proot = SUMA_OptList_get(GenFeatureDistOptList, "-prefix","val");
    Opt->cs = NULL;
    Opt->Gcs = NULL;
+   Opt->Other = 1;
    
    RETURN(Opt);
 }
@@ -436,6 +449,16 @@ SEG_OPTS *GenFeatureDist_ParseInput (SEG_OPTS *Opt, char *argv[], int argc)
          
       if (!brk && (strcmp(argv[kar], "-no_openmp") == 0)) {
 			Opt->openmp = 0;
+         brk = 1;
+		}      
+
+      if (!brk && (strcmp(argv[kar], "-OTHER") == 0)) {
+			Opt->Other = 1;
+         brk = 1;
+		}   
+         
+      if (!brk && (strcmp(argv[kar], "-no_OTHER") == 0)) {
+			Opt->Other = 0;
          brk = 1;
 		}      
 
@@ -1076,7 +1099,8 @@ int main(int argc, char **argv)
    /* Compute histograms of features per class && save them*/
    hh = (SUMA_HIST ***)SUMA_calloc(Opt->feats->num, sizeof(SUMA_HIST **));
    for (aa=0; aa<Opt->feats->num; ++aa) {
-      hh[aa] = (SUMA_HIST **)SUMA_calloc(Opt->clss->num, sizeof(SUMA_HIST *));
+      /* allocate for one more to accommodate OTHER */
+      hh[aa] = (SUMA_HIST **)SUMA_calloc(Opt->clss->num+1, sizeof(SUMA_HIST *));
    }
 
    SUMA_S_Note("Computing histograms of features per class");
@@ -1112,6 +1136,31 @@ int main(int argc, char **argv)
       }
    }
    
+   if (Opt->Other) {   
+      cc = Opt->clss->num;
+      SUMA_S_Note("Generating OTHER class with uniform PDF");
+      for (aa=0; aa<Opt->feats->num; ++aa) {
+         sprintf(sbuf, "h(%s|%s)",Opt->feats->str[aa], "OTHER");
+         hrange[0] = hf[aa]->min; hrange[1] = hf[aa]->max; 
+         if (!(hh[aa][cc] = SUMA_hist_opt(NULL, 0, 
+                                    hf[aa]->K, hf[aa]->W, 
+                                    hrange, sbuf, 1,
+                                    0, "handsoff"))) {
+            SUMA_S_Errv("Failed to generate histogram for %s|%s. \n"
+                        "This will cause trouble at classification.\n",
+                        Opt->feats->str[aa], "OTHER")
+         } else {
+            if (Opt->debug > 1) SUMA_Show_hist(hh[aa][cc], 1, NULL);
+            /* save the histogram */
+            if (!SUMA_write_hist(hh[aa][cc],
+                     SUMA_hist_fname(Opt->proot, 
+                              Opt->feats->str[aa], "OTHER", 0))) {
+               SUMA_S_Errv("Failed to write histog to %s\n", sbuf);
+            } 
+         }
+      }
+   }
+    
    SUMA_S_Note("Computing Correlation matrices");
    /* L2 normalize all of FCset */
    for (cc=0; cc<Opt->clss->num; ++cc) {

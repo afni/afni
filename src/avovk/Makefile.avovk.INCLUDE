@@ -8,7 +8,7 @@ AVOVK_SRCS = thd_segtools_fNM.c # thd_segtools.c thd_segtools_fNM.c
 AVOVK_OBJS = ${AVOVK_SRCS:.c=.o}
 
 AVOVK_INCLUDE_PATH = ${IFLAGS} -I/usr/local/include \
-                  -I../nifti/niftilib -I../nifti/nifticdf \
+                -I../nifti/nifti2 -I../nifti/niftilib -I../nifti/nifticdf \
                  -I../nifti/znzlib -I../3DEdge/src -I../rickr \
                  -I../ -I../niml/ -Igts/src  
 

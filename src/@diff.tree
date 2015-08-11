@@ -1,0 +1,258 @@
+#!/bin/tcsh
+
+set prog = `basename $0`
+
+if ( $#argv < 2 ) then
+    goto SHOW_HELP
+endif
+
+set do_diffs  = 1
+set ignore_missing = 0
+set showfiles = 1
+set showdiffs = 0
+set savediffs = 0
+set verb      = 1
+set xxdiff    = 0
+
+set skip_data = 0 # skip BRIK, dcm
+set ignore_list = ( )
+
+set narg = 1
+@   amax = $#argv - 2
+while ( $narg <= $amax ) 
+    if ( "$argv[$narg]" == "-quiet" ) then
+        set verb = 0
+    else if ( "$argv[$narg]" == "-ignore_append" || \
+              "$argv[$narg]" == "-ia" ) then
+        @ narg ++
+        set ignore_list = ( $ignore_list `echo $argv[$narg]` )
+    else if ( "$argv[$narg]" == "-ignore_list" || \
+               "$argv[$narg]" == "-il" ) then
+        @ narg ++
+        set ignore_list = ( `echo $argv[$narg]` )
+    else if ( "$argv[$narg]" == "-ignore_missing" || \
+              "$argv[$narg]" == "-im" ) then
+        set ignore_missing = 1
+    else if ( "$argv[$narg]" == "-save" ) then
+        set savediffs = 1
+    else if ( "$argv[$narg]" == "-no_diffs" ) then
+        set do_diffs = 0
+    else if ( "$argv[$narg]" == "-show" ) then
+        set showdiffs = 1
+        set showfiles = 0
+    else if ( "$argv[$narg]" == "-skip_data" ) then
+        set skip_data = 1
+    else if ( "$argv[$narg]" == "-verb" ) then
+        @ narg ++
+        set verb = $argv[$narg]
+    else if ( "$argv[$narg]" == "-xxdiff" ) then
+        set xxdiff    = 1
+        set showdiffs = 1
+        set showfiles = 0
+    else if ( "$argv[$narg]" == "-X" ) then
+        set xxdiff    = 1
+        set showdiffs = 1
+        set showfiles = 0
+        set ignore_missing = 1
+    else
+        goto SHOW_HELP
+    endif
+    @ narg ++
+end
+
+# if xxdiff is requested, make sure it exists...
+if ( $xxdiff ) then
+   which xxdiff >& /dev/null
+   if ( $status ) then
+      echo "** missing Unix program xxdiff, please install and try again"
+      exit
+   endif
+endif
+
+# default to pdf output, but use ps if ps2pdf is not there
+set useps = 0
+which ps2pdf >& /dev/null
+if ( $status ) set useps = 1
+
+# if ignore_list, make compund grep expression
+set iglist = ( )
+foreach istr ( $ignore_list )
+   set iglist = ( $iglist -e $istr )
+end
+
+
+set ndir = $argv[$narg]
+@ narg ++
+set odir = $argv[$narg]
+
+# new files
+cd $ndir
+if ( $#ignore_list > 0 ) then
+   set new_files = ( `find . -type f | grep -v $iglist | cut -b3- | sort` )
+else
+   set new_files = ( `find . -type f | cut -b3- | sort` )
+endif
+cd -
+
+# old files
+cd $odir
+if ( $#ignore_list > 0 ) then
+   set old_files = ( `find . -type f | grep -v $iglist | cut -b3- | sort` )
+else
+   set old_files = ( `find . -type f | cut -b3- | sort` )
+endif
+cd -
+
+set use_files = ()
+if ( $#new_files != $#old_files ) then
+    echo different number of files found: $#new_files vs. $#old_files
+    # okay, where is the difference ?
+    foreach file ( $new_files )
+        if ( $ignore_missing ) then
+           set use_files = ( $use_files $file )
+        else if ( ! -f $odir/$file ) then
+           echo extra new file: $ndir/$file
+        endif
+    end
+    foreach file ( $old_files )
+        if ( ! $ignore_missing && ! -f $ndir/$file ) then
+           echo extra old file: $odir/$file
+        endif
+    end
+    if ( ! $ignore_missing ) then
+       exit
+    else if ( $#use_files < 1 ) then
+       echo "** no common files left to compare"
+       exit
+    endif
+
+    echo ""
+endif
+
+if ( $verb > 1 ) echo "-- comparing $#new_files files..."
+
+if ( ! $do_diffs ) exit
+
+if ( $savediffs ) then
+    if ( -d diffs ) then
+        echo removing old diff files...
+        \rm -f diffs/* >& /dev/null
+    endif
+    mkdir diffs
+    if ( $status ) then
+        echo failed to make diffs dir, exiting...
+        exit
+    endif
+endif
+
+set count = 0
+foreach file ( $new_files )
+  # skip files that we don't want to spend time on
+  if ( $skip_data &&  \
+        ( $file =~ *.BRIK || $file =~ *.BRIK.gz || $file =~ *.dcm || \
+          $file =~ *.nii  || $file =~ *.nii.gz ) ) continue
+
+  if ( $showdiffs ) then
+    diff $ndir/$file $odir/$file >& /dev/null
+    set ss = $status
+    if ( $ss ) then
+      if ( $verb ) then
+         echo "------------------------------------------------------------"
+         echo "--- $file ---"
+         echo ""
+      endif
+      if ( $xxdiff ) then
+         xxdiff $ndir/$file $odir/$file
+      else
+         diff $ndir/$file $odir/$file
+      endif
+    endif
+  else
+      diff $ndir/$file $odir/$file >& /dev/null
+      set ss = $status
+  endif
+  if ( $ss ) then
+    if ( $showfiles ) echo "    $ndir/$file"
+    @ count ++
+
+    if ( $savediffs ) then 
+      set dfile = `echo $file | sed 's/\//./g'`
+      diff $ndir/$file $odir/$file > diffs/t.$dfile.txt
+
+      if( $useps ) then
+          diff -bB $odir/$file $ndir/$file | diffpp $odir/$file \
+                   | enscript -Ge -p diffs/d.$dfile.ps
+          if ( $status ) then
+             echo "** failed -save diffs, exiting"
+             exit
+          endif
+      else
+          diff -bB $odir/$file $ndir/$file | diffpp $odir/$file \
+                   | enscript -Ge -p - | ps2pdf - > diffs/d.$dfile.pdf
+          # if ( $status ) then
+          if ( -z diffs/d.$dfile.pdf ) then
+             echo "** failed -save diffs, exiting"
+             exit
+          endif
+      endif
+    endif
+  else if ( $verb > 1 && $showfiles ) then
+    echo "-- no diffs for $file"
+  endif
+end
+
+if ( $verb > 1 || ! $showfiles ) then
+    if ( $count > 0 ) echo ""
+    if ( $verb ) echo $count file diffs found
+endif
+
+exit
+
+SHOW_HELP:
+cat << EOF
+
+   ----------------------------------------------------------------------
+   $prog - show file differences between 2 directories
+
+      Given: 2 directory names
+
+      If desired, list files that do not exist in one of the directories.
+      For the files that exist in both directories, list those that differ.
+      If desired, show the actual differences.
+
+      This is similar to @diff.files, which only looks at files in a
+      specified list.
+
+   ----------------------------------------------------------------------
+   usage: $prog [OPTIONS] new_dir old_dir"
+
+   ----------------------------------------------------------------------
+   options:
+
+      -ignore_append i1 ...  : append to ignore_list (list in quotes)
+      -ia                    : short for -ignore_append
+      -ignore_list i1 ...    : create new ignore_list (list in quotes)
+      -il                    : short for -ignore_list
+      -ignore_missing        : only compare overlapping files
+                               If different files, fail.
+      -no_diffs              : only compare existence of files
+      -quiet                 : only list files with diffs
+      -save                  : save actual file differences (txt and pdf)
+      -show                  : show actual file differences
+      -skip_data             : skip binary diff of select data files
+                               (.BRIK, .dcm, .BRIK.gz)
+      -verb LEVEL            : set verbosity level (0,1,2)
+                               (default 1)
+      -xxdiff                : use xxdiff to show diffs
+      -X                     : implies -xxdiff -ignore_missing
+
+
+   ----------------------------------------------------------------------
+   examples:
+
+   ----------------------------------------------------------------------
+   R Reynolds    written ages ago, but added 10 Jun, 2015
+   ----------------------------------------
+    
+EOF
+
