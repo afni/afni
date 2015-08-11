@@ -811,7 +811,7 @@ int main( int argc , char *argv[] )
       if( strcmp(argv[iarg],"-relabel_all") == 0 ||
           strcmp(argv[iarg],"-relabel_all_str") == 0){   /* 18 Apr 2011 */
         if( ++iarg >= argc ) SynErr("Need argument after -relabel_all*") ;
-        if (strcmp(argv[iarg],"-relabel_all") == 0 ) {
+        if (strcmp(argv[iarg-1],"-relabel_all") == 0 ) {
            char *str ;
            str = AFNI_suck_file(argv[iarg]) ;
            if( str == NULL || *str == '\0' )

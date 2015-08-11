@@ -549,10 +549,28 @@ int main( int argc , char *argv[] )
 
    MRI_IMARR *imar_addbase=NULL ; int ncol_addbase=0 ;
    MRI_IMARR *imar_slibase=NULL ; int ncol_slibase=0 , nfile_slibase=0 ;
-   int nrega,nrego , nbad , ss,ssold , dmbase=1 ;
+   int nrega,nrego , nbad , ss,ssold , dmbase=1 , nregda , nregu ;
    int               nsli , nsliper ;
    matrix          **Xsli =NULL ;
    reml_collection **RCsli=NULL ;
+
+   int                   num_dsort = 0 ;
+   THD_3dim_dataset_array *dsortar = NULL ;  /* 22 Jul 2015 */
+   reml_setup_plus *rsetp_dsort    = NULL ;
+   MRI_vectim  **dsortar_mrv       = NULL ;
+   float       **dsortar_mean      = NULL ;
+   matrix *dsort_Zmat              = NULL ;
+   float *dsort_iv=NULL , *dsort_jv= NULL ;
+   int                nconst_dsort = 0 ;
+   int                dsort_nods   = 0 ;     /* 27 Jul 2015 */
+   int                doing_nods   = 0 ;
+   int              last_nods_trip = 0 ;
+   char         *dsort_nods_suffix = "_nods" ;
+
+   reml_setup *my_rset  = NULL ;
+   matrix     *my_Xmat  = NULL ;
+   sparmat    *my_Xsmat = NULL ;
+   int         my_kill  = 0 ;
 
    int    eglt_num = 0    ;   /* extra GLTs from the command line */
    char **eglt_lab = NULL ;
@@ -565,7 +583,7 @@ int main( int argc , char *argv[] )
    int nallz = 0 ; int *allz = NULL ;  /* 15 Mar 2010 */
 
    /**------------ Get by with a little help from your friends? ------------**/
-   
+
    set_obliquity_report(0); /* silence obliquity */
 
    Argc = argc ; Argv = argv ;
@@ -659,8 +677,9 @@ int main( int argc , char *argv[] )
       "               up to order 'P'.  The default value is P=0, which\n"
       "               produces a matrix with a single column of all ones.\n"
       " -matim M  = Read a standard .1D file as the matrix.\n"
-      "           ** N.B.: You can only use 'Col' as a name in GLTs\n"
-      "                      with these nonstandard matrix input methods.\n"
+      "           ** N.B.: You can use only 'Col' as a name in GLTs\n"
+      "                    with these nonstandard matrix input methods,\n"
+      "                    since the other names come from the '-matrix' file.\n"
       " ** These mutually exclusive options are ignored if -matrix is used.\n"
       " -------------------------------------------------------------------\n"
      ) ;
@@ -717,6 +736,49 @@ int main( int argc , char *argv[] )
       "               + The censoring information from 3dDeconvolve is stored\n"
       "                   in the matrix file header, and you don't have to\n"
       "                   provide it again on the 3dREMLfit command line.\n"
+      "\n"
+      " -dsort dset = Similar to -addbase in concept, BUT the dataset 'dset'\n"
+      "                 provides a different baseline regressor for every\n"
+      "                 voxel.  This dataset must have the same number of\n"
+      "                 time points as the input dataset, and have the same\n"
+      "                 number of voxels.                          [Added 22 Jul 2015]\n"
+      "               + The REML (a,b) estimation is done WITHOUT this extra\n"
+      "                   voxel-wise regressor, and then the selected (a,b)\n"
+      "                   ARMA parameters are used to do the final regression for\n"
+      "                   the '-R...' output datasets.  This method is not ideal,\n"
+      "                   but the alternative of re-doing the (a,b) estimation with\n"
+      "                   a different matrix for each voxel would be VERY slow.\n"
+      "                   -- The -dsort estimation is thus different from the -addbase\n"
+      "                      and/or -slibase estimations, in that the latter cases\n"
+      "                      incorporate the extra regressors into the REML estimation\n"
+      "                      of the ARMA (a,b) parameters.  The practical difference\n"
+      "                      between these two methods is usually very small ;-)\n"
+      "               + If any voxel time series from -dsort is constant through time,\n"
+      "                   the program will print a warning message, and peculiar things\n"
+      "                   might happen.  Gleeble, fitzwilly, blorten, et cetera.\n"
+      "                   -- Actually, if this event happens, the 'offending' -dsort voxel\n"
+      "                      time series is replaced by the mean time series from that\n"
+      "                      -dsort dataset.\n"
+      "               + The '-Rbeta' (and/or '-Obeta') option will include the\n"
+      "                   fit coefficient for the -dsort regressor (last).\n"
+      "               + There is no way to include the -dsort regressor beta in a GLT.\n"
+      "               + You can use -dsort more than once.  Please don't go crazy.\n"
+      "               + Using this option slows the program down in the GLSQ loop,\n"
+      "                   since a new matrix and GLT set must be built up and torn down\n"
+      "                   for each voxel separately.\n"
+#ifdef USE_OMP
+      "                   -- And at this time, the GLSQ loop is not OpenMP-ized.\n"
+#endif
+      "               + The motivation for -dsort is to apply ANATICOR to task-based\n"
+      "                   FMRI analyses.  You might be clever and have a better idea!?\n"
+      "\n"
+      " -dsort_nods = If '-dsort' is used, the output datasets reflect the impact of the\n"
+      "                 voxel-wise regressor(s).  If you want to compare those results\n"
+      "                 to the case where you did NOT give the '-dsort' option, then\n"
+      "                 also use the '-dsort_nods' (nods is short for 'no dsort').\n"
+      "                 The linear regressions will be repeated without the -dsort\n"
+      "                 regressor(s) and the results put into datasets with the string\n"
+      "                 '_nods' added to the prefix.\n"
       "\n"
       " -slibase bb = Similar to -addbase in concept, BUT each .1D file 'bb'\n"
       "                 must have an integer multiple of the number of slices\n"
@@ -802,8 +864,8 @@ int main( int argc , char *argv[] )
 #endif
       "\n"
       " -nodmbase   = By default, baseline columns added to the matrix\n"
-      "                 via '-addbase' or '-slibase' will each have their\n"
-      "                 mean removed (as is done in 3dDeconvolve).  If you\n"
+      "                 via '-addbase' or '-slibase' or '-dsort' will each have\n"
+      "                 their mean removed (as is done in 3dDeconvolve).  If you\n"
       "                 do NOT want this operation performed, use '-nodmbase'.\n"
       "              * Using '-nodmbase' would make sense if you used\n"
       "                 '-polort -1' to set up the matrix in 3dDeconvolve, and/or\n"
@@ -912,6 +974,8 @@ int main( int argc , char *argv[] )
       "                      -gltsym 'SYM: Col[[10..11]]' Addons -tout -fout\n"
       "                    to create a GLT to include both of the added\n"
       "                    columns (numbers 10 and 11).\n"
+      "                    -- 'Col' cannot be used to test the '-dsort'\n"
+      "                       regressor for significance!\n"
       "\n"
       "The options below let you get the Ordinary Least SQuares outputs\n"
       "(without adjustment for serial correlation), for comparisons.\n"
@@ -1032,12 +1096,13 @@ int main( int argc , char *argv[] )
       "                close to being rank-deficient, then the program will\n"
       "                not proceed.  You can use this option to force the\n"
       "                program to continue past such a failed collinearity\n"
-      "                check, but you must check your results to see if they\n"
+      "                check, but you MUST check your results to see if they\n"
       "                make sense!\n"
       "              ** '-GOFORIT' is required if there are all zero columns\n"
       "                   in the regression matrix.  However, at this time\n"
       "                   [15 Mar 2010], the all zero columns CANNOT come from\n"
       "                   the '-slibase' inputs.\n"
+      "                 ** Nor from the '-dsort' inputs.\n"
       "              ** If there are all zero columns in the matrix, a number\n"
       "                   of WARNING messages will be generated as the program\n"
       "                   pushes forward in the solution of the linear systems.\n"
@@ -1084,8 +1149,8 @@ int main( int argc , char *argv[] )
       "* The 'Rbeta' dataset has the beta (model fit) parameters estimates\n"
       "    computed from the pre-whitened time series data in each voxel,\n"
       "    as in 3dDeconvolve's '-cbucket' output, in the order in which\n"
-      "    they occur in the matrix.  -addbase and -slibase beta values\n"
-      "    come last in this file.\n"
+      "    they occur in the matrix.  -addbase and -slibase and -dsort beta\n"
+      "    values come last in this file.\n"
        "   [The '-nobout' option will disable output of baseline parameters.]\n"
       "* The 'Rbuck' dataset has the beta parameters and their statistics\n"
       "    mixed together, as in 3dDeconvolve's '-bucket' output.\n"
@@ -1354,6 +1419,23 @@ int main( int argc , char *argv[] )
      }
      if( strcasecmp(argv[iarg],"-usetemp") == 0 ){
        usetemp = 1 ; iarg++ ; continue ;
+     }
+
+     /**==========   -dsort_nods    ==========**/
+
+     if( strcasecmp(argv[iarg],"-dsort_nods") == 0 ){
+       dsort_nods = 1 ; iarg++ ; continue ;
+     }
+
+     /**==========   -dsort    ==========**/
+
+     if( strcasecmp(argv[iarg],"-dsort") == 0 ){
+       THD_3dim_dataset *dsim ;
+       if( ++iarg >= argc ) ERROR_exit("Need value after option '%s'",argv[iarg-1]) ;
+       if( dsortar == NULL ) INIT_3DARR(dsortar) ;
+       dsim = THD_open_dataset(argv[iarg]) ; CHECK_OPEN_ERROR(dsim,argv[iarg]) ;
+       ADDTO_3DARR(dsortar,dsim) ;
+       iarg++ ; continue ;
      }
 
      /**==========   -addbase  ==========**/
@@ -1669,10 +1751,36 @@ STATUS("options done") ;
      if( abset != NULL ){ DSET_delete(abset) ; abset = NULL ; }
    }
 
+   if( dsort_nods && dsortar == NULL ){  /* 27 Jul 2015 */
+     WARNING_message("-dsort_nods given without -dsort ==> ignoring it") ;
+     dsort_nods = 0 ;
+   }
+
    nvals = DSET_NVALS(inset) ; nvox = DSET_NVOX(inset) ;
    dx = fabsf(DSET_DX(inset)) ; nx = DSET_NX(inset) ;
    dy = fabsf(DSET_DY(inset)) ; ny = DSET_NY(inset) ; nxy = nx*ny ;
    dz = fabsf(DSET_DZ(inset)) ; nz = DSET_NZ(inset) ;
+
+   /* check -dsort datasets, if any [22 Jul 2015] */
+
+   if( dsortar != NULL ){
+     int dd ;
+     for( nbad=dd=0 ; dd < dsortar->num ; dd++ ){
+       if( DSET_NVALS(dsortar->ar[dd]) != nvals ||
+           DSET_NVOX (dsortar->ar[dd]) != nvox    ){
+         ERROR_message("-dsort dataset '%s' doesn't match input dataset '%s'",
+                       DSET_HEADNAME(dsortar->ar[dd]) , DSET_HEADNAME(inset) ) ;
+         ININFO_message("      nt[dsort]=%d  nt[input] = %d",DSET_NVALS(dsortar->ar[dd]),      nvals) ;
+         ININFO_message("      nx[dsort]=%d  nx[input] = %d",DSET_NX(dsortar->ar[dd]),DSET_NX(inset)) ;
+         ININFO_message("      ny[dsort]=%d  ny[input] = %d",DSET_NY(dsortar->ar[dd]),DSET_NY(inset)) ;
+         ININFO_message("      nz[dsort]=%d  nz[input] = %d",DSET_NZ(dsortar->ar[dd]),DSET_NZ(inset)) ;
+         nbad++ ;
+       }
+     }
+     if( nbad > 0 )
+       ERROR_exit("Can't continue after -dsort mismatch error%s" , (nbad==1)?"\0":"s" ) ;
+     num_dsort = dsortar->num ;
+   }
 
 #ifdef USE_OMP
   omp_set_nested(0) ;
@@ -1920,11 +2028,12 @@ STATUS("options done") ;
 
 STATUS("process matrix") ;
 
-   nrego = nelmat->vec_num ;  /* number of matrix columns */
-   nrega = nrego ;            /* 'o'=original 'a'=after -addbase */
-   ntime = nelmat->vec_len ;  /* number of matrix rows */
-   ddof  = ntime - nrego ;
-   if( ddof < 1 )             /* should not happen! */
+   nrego  = nelmat->vec_num ;  /* number of matrix columns */
+   nrega  = nrego ;            /* 'o'=original 'a'=after -addbase */
+   nregda = nrega ;            /* 'da' = after -dsort AND -addbase */
+   ntime  = nelmat->vec_len ;  /* number of matrix rows */
+   ddof   = ntime - nrego ;
+   if( ddof < 1 )              /* should not happen! */
      ERROR_exit("matrix has more columns than rows!") ;
    if( ntime < 9 )
      ERROR_exit("matrix has %d rows, but minimum allowed is 9 :-(",ntime) ;
@@ -1978,7 +2087,7 @@ STATUS("process matrix") ;
 
    /*--- re-create the regression matrix X, from the NIML data element ---*/
 
-STATUS("re-create matrix") ;
+STATUS("re-create matrix from NIML element") ;
 
    matrix_initialize( &X ) ;
    matrix_create( ntime , nrego , &X ) ;
@@ -2120,8 +2229,8 @@ STATUS("process -addbase images") ;
    if( imar_slibase == NULL ){  /** no per-slice regressors */
 
      Xsli    = (matrix **)malloc(sizeof(matrix *)) ;
-     Xsli[0] = &X ;
-     nsli    = 1 ;
+     Xsli[0] = &X ;       /* matrix for this "slice" */
+     nsli    = 1 ;        /* number of slices */
      nsliper = (1<<30) ;  /* number of voxels per slice = 1 beellion */
 
    } else {                     /** have per-slice regressors **/
@@ -2244,6 +2353,28 @@ STATUS("process -slibase images") ;
 
    } /**** end of -slibase stuff ****/
 
+   /** allow space for -dsort betas **/
+
+   if( num_dsort > 0 ){
+     nregda = nrega + num_dsort ;
+
+     ddof = ntime - nregda ;
+     if( ddof < 1 )
+       ERROR_exit("matrix has more columns (%d) than rows (%d) after -dsort!" ,
+                  nregda , ntime ) ;
+
+     if( beta_lab != NULL ){
+       char lll[32] ;
+       beta_lab = NI_realloc( beta_lab , char * , sizeof(char *)*nregda ) ;
+       for( kk=nrega,ii=0 ; ii < num_dsort ; ii++,kk++ ){
+         sprintf(lll,"dsort#%d",ii+1) ;
+         beta_lab[kk] = NI_strdup(lll) ;
+       }
+     }
+   } else {
+     nregda = nrega ;
+   }
+
    /** Modify denominator DOF? Don't subtract for all zero regressors [16 Mar 2010] **/
 
    ddof += nallz ;
@@ -2312,7 +2443,18 @@ STATUS("process -slibase images") ;
      SymStim[stim_num+1].ntop = nrega-1 ;
      SymStim[stim_num+1].gbot = 0 ;
 
-     for( ss=0 ; ss < stim_num ; ss++ ){
+#if 0
+     if( num_dsort > 0 ){
+       nSymStim++ ;
+       SymStim = (SYM_irange *)realloc(SymStim,sizeof(SYM_irange)*nSymStim) ;
+       strcpy( SymStim[stim_num+2].name , "Dsort" ) ;
+       SymStim[stim_num+2].nbot = nrega ;
+       SymStim[stim_num+2].ntop = nregda-1 ;
+       SymStim[stim_num+2].gbot = 0 ;
+     }
+#endif
+
+     for( ss=0 ; ss < stim_num ; ss++ ){  /* "normal" stimulus regressors */
        SymStim[ss].nbot = 0 ;
        SymStim[ss].ntop = stim_top[ss]-stim_bot[ss] ;
        SymStim[ss].gbot = stim_bot[ss] ;
@@ -2338,15 +2480,26 @@ STATUS("process -slibase images") ;
      SymStim[0].ntop = nrega-1 ;
      SymStim[0].gbot = 0 ;
 
+#if 0
+     if( num_dsort > 0 ){
+       nSymStim++ ;
+       SymStim = (SYM_irange *)realloc(SymStim,sizeof(SYM_irange)*nSymStim) ;
+       strcpy( SymStim[1].name , "Dsort" ) ;  /* dsort regressors */
+       SymStim[1].nbot = nrega ;
+       SymStim[1].ntop = nregda-1 ;
+       SymStim[1].gbot = 0 ;
+     }
+#endif
+
    }
 
    /***--- set the betas to keep in the Rbeta/Obeta outputs ---***/
 
-   betaset = (int *)  malloc(sizeof(int)*nrega) ;  /* beta indexes to keep */
+   betaset = (int *)malloc(sizeof(int)*nregda) ;  /* beta indexes to keep */
 
    if( !nobout ){
-     for( ii=0 ; ii < nrega ; ii++ ) betaset[ii] = ii ;
-     nbetaset = nrega ;
+     for( ii=0 ; ii < nregda ; ii++ ) betaset[ii] = ii ;
+     nbetaset = nregda ;
    } else {
      for( kk=jj=0 ; jj < stim_num ; jj++ ){
        for( ii=stim_bot[jj] ; ii <= stim_top[jj] ; ii++ ) betaset[kk++] = ii ;
@@ -2378,7 +2531,7 @@ STATUS("process -slibase images") ;
 
    if( do_stat && do_glt ){
      char lnam[32] ; int nn,mm ; matrix *gm ;
-     int *set = (int *)malloc(sizeof(int)*nrega) ;  /* list of columns to keep */
+     int *set = (int *)malloc(sizeof(int)*nregda) ;  /* list of columns to keep */
 
 STATUS("make stim GLTs") ;
 
@@ -2518,7 +2671,7 @@ STATUS("make GLTs from matrix file") ;
    }
 
    vector_initialize( &y ) ; vector_create_noinit( ntime , &y ) ;
-   niv = (nvals+nrega+glt_num+9)*2 ;
+   niv = (nvals+nregda+glt_num+9)*2 ;
    iv  = (float *)malloc(sizeof(float)*(niv+1)) ; /* temp vectors */
    jv  = (float *)malloc(sizeof(float)*(niv+1)) ;
 
@@ -2709,7 +2862,7 @@ STATUS("make GLTs from matrix file") ;
 
     vvar = (int *)malloc(sizeof(int)*nmask) ;
     for( vv=ii=0 ; vv < nvox ; vv++ ) if( INMASK(vv) ) vvar[ii++] = vv ;
-    if( vstep ){ fprintf(stderr,"start %d OpenMP threads ",maxthr) ; vn = 0 ; }
+    if( vstep ){ fprintf(stderr,"[%d threads]",maxthr) ; vn = 0 ; }
 
 #ifdef USE_OMP
   AFNI_OMP_START ;
@@ -2743,8 +2896,9 @@ STATUS("make GLTs from matrix file") ;
        if( inset_mrv != NULL ){
          if( virtu_mrv ) THD_vector_fromfile( inset_mrv->nvals , rv , iv , mfp ) ;
          else            VECTIM_extract( inset_mrv , rv , iv ) ;
-       } else
+       } else {
          (void)THD_extract_array( vv , inset , 0 , iv ) ;  /* data vector */
+       }
  }
        for( ii=0 ; ii < ntime ; ii++ ) y.elts[ii] = (MTYPE)iv[goodlist[ii]] ;
        ss = vv / nsliper ;  /* slice index in Xsli and RCsli */
@@ -2849,6 +3003,10 @@ STATUS(" creating glt_ind") ;
 
    /*----- now, use these values to compute the Generalized Least  -----*/
    /*----- Squares (GLSQ) solution at each voxel, and save results -----*/
+
+   doing_nods = 0 ;  /* first time through, don't do nods */
+
+GLSQ_LOOPBACK_dsort_nods:  /* for the -nods option [27 Jul 2015] */
 
    Rbeta_dset = create_float_dataset( inset , nbetaset , Rbeta_prefix,1 , &Rbeta_fn,&Rbeta_fp ) ;
    if( Rbeta_dset != NULL && beta_lab != NULL ){
@@ -2960,29 +3118,135 @@ STATUS("setting up Rglt") ;
      free(fname_mrv) ; fname_mrv = NULL ; virtu_mrv = 0 ;
    }
 
+   /* setup for -dsort data extractificationizing */
+
+   nconst_dsort = 0 ;
+   if( num_dsort > 0 && dsortar_mean == NULL ){
+     int dd , vv , nzz ; float *dvv ;
+
+     /* create vectims for the dsorts? */
+
+     if( inset_mrv != NULL ){
+       dsortar_mrv = (MRI_vectim **)calloc(sizeof(MRI_vectim *),num_dsort) ;
+       for( dd=0 ; dd < num_dsort ; dd++ ){
+         DSET_load(dsortar->ar[dd]) ;
+         dsortar_mrv[dd] = THD_dset_to_vectim( dsortar->ar[dd] , mask , 0 ) ;
+         if( dsortar_mrv[dd] != NULL ) DSET_unload(dsortar->ar[dd]) ;
+         else                          ERROR_message("Can't create vector image from -dsort!?") ;
+       }
+     }
+
+     /* make some workspaces for -dsort */
+
+     dsort_Zmat = (matrix *)malloc(sizeof(matrix)) ;
+     matrix_initialize(dsort_Zmat) ;
+     matrix_create    (ntime,num_dsort,dsort_Zmat) ;
+     dsort_iv = (float *)malloc(sizeof(float)*(niv+1)) ;
+     dsort_jv = (float *)malloc(sizeof(float)*(niv+1)) ;
+
+     /* compute mean time series (in mask) from each dsort dataset */
+
+     dsortar_mean = (float **)malloc(sizeof(float *)*num_dsort) ;
+     for( dd=0 ; dd < num_dsort ; dd++ ){
+       dsortar_mean[dd] = (float *)calloc(nvals,sizeof(float)) ;
+       if( dsortar_mrv != NULL && dsortar_mrv[dd] != NULL ){
+         for( vv=0 ; vv < dsortar_mrv[dd]->nvec ; vv++ ){
+           dvv = VECTIM_PTR(dsortar_mrv[dd],vv) ;
+           for( ii=0 ; ii < ntime ; ii++ ) dsortar_mean[dd][ii] += dvv[ii] ;
+         }
+       } else {
+         MRI_IMAGE *dim ;
+         for( ii=0 ; ii < ntime ; ii++ ){
+           dim = THD_extract_float_brick(ii,dsortar->ar[dd]) ;
+           dvv = MRI_FLOAT_PTR(dim) ;
+           for( vv=0 ; vv < DSET_NVOX(dsortar->ar[dd]) ; vv++ ){
+             if( INMASK(vv) ) dsortar_mean[dd][ii] += dvv[vv] ;
+           }
+         }
+       }
+       for( nzz=ii=0 ; ii < ntime ; ii++ ){
+         dsortar_mean[dd][ii] /= nmask ;
+         if( dsortar_mean[dd][ii] == 0.0f ) nzz++ ;
+       }
+       if( nzz == ntime ){
+         WARNING_message("-dsort #%d mean timeseries is all zero -- randomizing :-(",dd) ;
+         for( ii=0 ; ii < ntime ;ii++ ) dsortar_mean[dd][ii] = drand48()-0.5 ;
+       }
+     }
+   }  /* end of setting up -dsort stuff */
+
    if( do_Rstuff ){
      MTYPE *bbar[7] , bbsumq ;  /* workspace for REML_func() [24 Jun 2009] */
      MTYPE *bb1 , *bb2 , *bb3 , *bb4 , *bb5 , *bb6 , *bb7 ;
      vector qq5 ;
 
+     /* how many regressors will be used this time through? */
+
+     if( num_dsort > 0 && !doing_nods ) nregu = nregda ; /* 27 Jul 2015 */
+     else                               nregu = nrega  ;
+
+     last_nods_trip = (num_dsort == 0) || (num_dsort > 0 && doing_nods) ;
+
      for( ii=0 ; ii < 7 ; ii++ )
        bbar[ii] = (MTYPE *)malloc(sizeof(MTYPE)*(2*ntime+66)) ;
      bb1 = bbar[0] ; bb2 = bbar[1] ; bb3 = bbar[2] ;
      bb4 = bbar[3] ; bb5 = bbar[4] ; bb6 = bbar[5] ; bb7 = bbar[6] ;
-     vector_initialize(&qq5) ; vector_create_noinit(nrega,&qq5) ;
+     vector_initialize(&qq5) ; vector_create_noinit(nregu,&qq5) ;
 
      /* ss = slice index, rv = VECTIM index, vv = voxel index */
 
-     if( vstep ){ fprintf(stderr,"++ GLSQ voxel loop: ") ; vn = 0 ; }
+     if( vstep )             { fprintf(stderr,"++ GLSQ loop:") ; vn = 0 ; }
+     if( vstep && dsort_nods ) fprintf(stderr,"{%s}",(doing_nods)?"nods":"dsort") ;
      for( ss=-1,rv=vv=0 ; vv < nvox ; vv++ ){
        if( vstep && vv%vstep==vstep-1 ) vstep_print() ;
        if( !INMASK(vv) ) continue ;
+
+       /* extract data vector */
+
        if( inset_mrv != NULL ){ /* 05 Nov 2008 */
          VECTIM_extract( inset_mrv , rv , iv ) ; rv++ ;
-       } else
+       } else {
          (void)THD_extract_array( vv , inset , 0 , iv ) ;  /* data vector */
+       }
        AAmemcpy( jv , iv , sizeof(float)*nfull ) ;         /* copy of data */
        for( ii=0 ; ii < ntime ; ii++ ) y.elts[ii] = iv[goodlist[ii]] ;
+
+       /* extract dsort vectors into dsort_Zmat matrix? [22 Jul 2015] */
+
+       if( num_dsort > 0 && !doing_nods ){
+         int dd ; int nzz ; double zsum ;
+         for( dd=0 ; dd < num_dsort ; dd++ ){
+           if( dsortar_mrv != NULL && dsortar_mrv[dd] != NULL ){
+             VECTIM_extract( dsortar_mrv[dd] , rv-1 , dsort_iv ) ;
+           } else {
+             (void)THD_extract_array( vv , dsortar->ar[dd] , 0 , dsort_iv ) ;
+           }
+           for( zsum=0.0,ii=0 ; ii < ntime ; ii++ ){
+             dsort_Zmat->elts[ii][dd] = dsort_iv[goodlist[ii]] ;
+             zsum += dsort_Zmat->elts[ii][dd] ;
+           }
+           zsum /= ntime ;
+           if( dmbase ){
+             for( nzz=ii=0 ; ii < ntime ;ii++ ){
+               dsort_Zmat->elts[ii][dd] -= zsum ;
+               if( dsort_Zmat->elts[ii][dd] == 0.0 ) nzz++ ;
+             }
+           } else {
+             for( nzz=ii=0 ; ii < ntime ; ii++ )
+               if( dsort_Zmat->elts[ii][dd] == zsum ) nzz++ ;
+           }
+           if( nzz == ntime ){
+#if 0
+             WARNING_message("at voxel %d (%d,%d,%d), dsort #%d is constant == %g -- replacing :-(",
+                             vv, DSET_index_to_ix(dsortar->ar[dd],vv) ,
+                                 DSET_index_to_jy(dsortar->ar[dd],vv) ,
+                                 DSET_index_to_kz(dsortar->ar[dd],vv) , zsum , dd ) ;
+#endif
+             nconst_dsort++ ;
+             for( ii=0 ; ii < ntime ;ii++ ) dsort_Zmat->elts[ii][dd] = dsortar_mean[dd][ii] ;
+           }
+         }
+       }
 
        ssold = ss ; ss = vv / nsliper ; /* ss = slice index in Xsli and RCsli */
 
@@ -2997,7 +3261,8 @@ STATUS("setting up Rglt") ;
 
        if( ss > ssold ){                                   /* at a new slice! */
          STATUS("new slice") ;
-         if( ssold >= 0 ) reml_collection_destroy( RCsli[ssold] , 1 ) ;
+         if( ssold >= 0 && last_nods_trip )
+           reml_collection_destroy( RCsli[ssold] , 1 ) ;
          if( RCsli[ss] == NULL ){              /* create this slice setup now */
            if( verb > 1 && vstep ) fprintf(stderr,"+") ;
            RCsli[ss] = REML_setup_all( Xsli[ss] , tau , nlevab, rhomax,bmax ) ;
@@ -3015,8 +3280,32 @@ STATUS("setting up Rglt") ;
        else
          jj = IAB(RCsli[ss],aar[vv],bar[vv]) ; /* closest point in (a,b) grid */
 
-       if( RCsli[ss]->rs[jj] == NULL ){       /* try to fix up this oversight */
-         int   ia  = jj % (1+RCsli[ss]->na);  /* by creating needed setup now */
+       /* select/create the REML setup to use [22 Jul 2015] */
+
+       my_rset = NULL ; my_Xmat = NULL ; my_Xsmat = NULL ; my_kill = 0 ; rsetp_dsort = NULL ;
+       if( num_dsort > 0 && !doing_nods ){    /* create modified REML setup for */
+         int   ia  = jj % (1+RCsli[ss]->na);  /* voxel-specific regression matrix */
+         int   ib  = jj / (1+RCsli[ss]->na);  /* the na+1 denom is correct here - RWC */
+         MTYPE aaa = RCsli[ss]->abot + ia * RCsli[ss]->da;
+         MTYPE bbb = RCsli[ss]->bbot + ib * RCsli[ss]->db;
+
+         /* glue dsort_Zmat to X, then do the REML setup via REML_setup_one */
+         /* (this voxel-wise REML setup is why -dsort is so slow) */
+
+         rsetp_dsort = REML_setup_plus( RCsli[ss]->X , dsort_Zmat , tau , aaa,bbb ) ;
+         if( rsetp_dsort == NULL ){  /* should not happen */
+           ERROR_message("can't compute REML_setup_plus() at voxel %d",vv) ;
+         }
+         my_rset  = rsetp_dsort->rset ;
+         my_Xmat  = rsetp_dsort->X ;
+         my_Xsmat = rsetp_dsort->Xs ;
+         my_kill  = 1 ;  /* flag to kill my_stuff when done with it */
+         for( kk=0 ; kk < glt_num ; kk++ )     /* include GLTs */
+           REML_add_glt_to_one( my_rset , glt_mat[kk] ) ;
+       }
+
+       if( my_rset == NULL && RCsli[ss]->rs[jj] == NULL ){ /* try to fix up this oversight */
+         int   ia  = jj % (1+RCsli[ss]->na);               /* by creating needed setup now */
          int   ib  = jj / (1+RCsli[ss]->na);
          MTYPE aaa = RCsli[ss]->abot + ia * RCsli[ss]->da;
          MTYPE bbb = RCsli[ss]->bbot + ib * RCsli[ss]->db;
@@ -3026,7 +3315,12 @@ STATUS("setting up Rglt") ;
          for( kk=0 ; kk < glt_num ; kk++ )     /* make sure GLTs are included */
            REML_add_glt_to_one( RCsli[ss]->rs[jj] , glt_mat[kk] ) ;
        }
-       if( RCsli[ss]->rs[jj] == NULL ){ /* should never happen */
+       if( my_rset == NULL ){
+         my_rset  = RCsli[ss]->rs[jj] ;
+         my_Xmat  = RCsli[ss]->X ;
+         my_Xsmat = RCsli[ss]->Xs ;
+       }
+       if( my_rset == NULL ){ /* should never happen */
          ERROR_message("bad REML! voxel #%d (%d,%d,%d) has a=%.3f b=%.3f lam=%.3f jj=%d",
                          vv, DSET_index_to_ix(inset,vv) ,
                              DSET_index_to_jy(inset,vv) ,
@@ -3035,7 +3329,7 @@ STATUS("setting up Rglt") ;
        } else {
 
          /*--- do the fitting; various results are in the bb? vectors:
-                bb5 = estimated betas       (nrega)
+                bb5 = estimated betas       (nregu)
                 bb6 = fitted model          (ntime)
                 bb7 = whitened fitted model (ntime) [not used below]
                 bb1 = whitened data         (ntime) [not used below]
@@ -3043,8 +3337,12 @@ STATUS("setting up Rglt") ;
                       (sum of squares of bb2 = bbsumq = noise variance) ------*/
 
          sprintf(sslab,"%s %d", "fitting" ,vv); STATUS(sslab) ;
+#if 1
+         (void)REML_func( &y , my_rset , my_Xmat , my_Xsmat , bbar , &bbsumq ) ;
+#else
          (void)REML_func( &y , RCsli[ss]->rs[jj] , RCsli[ss]->X , RCsli[ss]->Xs ,
                           bbar , &bbsumq ) ;
+#endif
 
          /*--------- scatter the results to various datasets ---------*/
 
@@ -3077,14 +3375,14 @@ STATUS("setting up Rglt") ;
          }
 
          if( Rvar_dset != NULL ){
-           iv[0] = RCsli[ss]->rs[jj]->rho ; iv[1] = RCsli[ss]->rs[jj]->barm ;
-           iv[2] = RCsli[ss]->rs[jj]->lam ; iv[3] = sqrt( bbsumq / ddof ) ;
+           iv[0] = my_rset->rho ; iv[1] = my_rset->barm ;
+           iv[2] = my_rset->lam ; iv[3] = sqrt( bbsumq / ddof ) ;
            iv[4] = (rar != NULL) ? rar[vv] : 0.0f ;
            sprintf(sslab,"%s %d", "Rvar" ,vv);
            save_series( vv , Rvar_dset , 5 , iv , Rvar_fp ) ;
          }
 
-         AAmemcpy( qq5.elts , bb5 , sizeof(MTYPE)*nrega ) ; /* 24 Jun 2009 */
+         AAmemcpy( qq5.elts , bb5 , sizeof(MTYPE)*nregu ) ; /* 24 Jun 2009 */
 
          if( glt_num > 0 && Rbuckt_dset != NULL ){
            MTYPE gv ; GLT_index *gin ; int nr ;
@@ -3092,11 +3390,11 @@ STATUS("setting up Rglt") ;
            for( kk=0 ; kk < glt_num ; kk++ ){
              gin = glt_ind[kk] ; if( gin == NULL ) continue ; /* skip this'n */
              nr = gin->nrow ;
-sprintf(sslab,"%s %d %d", "Rbuckt glt" ,vv,kk); STATUS(sslab) ;
-             gv = REML_compute_gltstat( ddof , &y , &qq5 , bbsumq ,
-                                        RCsli[ss]->rs[jj], RCsli[ss]->rs[jj]->glt[kk],
+             { sprintf(sslab,"%s %d %d", "Rbuckt glt" ,vv,kk); STATUS(sslab) ; }
+             gv = REML_compute_gltstat( ddof , &y , &qq5 , bbsumq  ,
+                                        my_rset , my_rset->glt[kk] ,
                                         glt_mat[kk] , glt_smat[kk] ,
-                                        RCsli[ss]->X , RCsli[ss]->Xs        ) ;
+                                        my_Xmat , my_Xsmat          ) ;
              if( gin->ftst_ind >= 0 ) iv[gin->ftst_ind] = gv ;
              if( gin->rtst_ind >= 0 ) iv[gin->rtst_ind] = betaR ;
              if( gin->beta_ind != NULL && betaG->dim >= nr ){
@@ -3121,10 +3419,10 @@ sprintf(sslab,"%s %d %d", "Rbuckt glt" ,vv,kk); STATUS(sslab) ;
            for( kk=oglt_num ; kk < glt_num ; kk++ ){
              gin = glt_ind[kk] ; if( gin == NULL ) continue ; /* skip this'n */
              nr = gin->nrow ;
-             gv = REML_compute_gltstat( ddof , &y , &qq5 , bbsumq ,
-                                        RCsli[ss]->rs[jj], RCsli[ss]->rs[jj]->glt[kk],
+             gv = REML_compute_gltstat( ddof , &y , &qq5 , bbsumq  ,
+                                        my_rset , my_rset->glt[kk] ,
                                         glt_mat[kk] , glt_smat[kk] ,
-                                        RCsli[ss]->X , RCsli[ss]->Xs        ) ;
+                                        my_Xmat , my_Xsmat          ) ;
              if( gin->ftst_ind >= 0 ) iv[gin->ftst_ind-isub] = gv ;
              if( gin->rtst_ind >= 0 ) iv[gin->rtst_ind-isub] = betaR ;
              if( gin->beta_ind != NULL && betaG->dim >= nr ){
@@ -3142,10 +3440,18 @@ sprintf(sslab,"%s %d %d", "Rbuckt glt" ,vv,kk); STATUS(sslab) ;
            save_series( vv , Rglt_dset , neglt , iv , Rglt_fp ) ;
          }
 
-       }
+         if( my_kill ){                   /* 22 Jun 2015 */
+           reml_setup_plus_destroy(rsetp_dsort) ;
+           my_rset = NULL ; my_Xmat = NULL ; my_Xsmat = NULL ; my_kill = 0 ; rsetp_dsort = NULL ;
+         }
+
+       } /* end of if actual have a reml_setup to process this data with */
+
      } /* end of voxel loop */
 
-     reml_collection_destroy( RCsli[nsli-1] , 1 ) ;  /* keep just izero case */
+     if( last_nods_trip )
+       reml_collection_destroy( RCsli[nsli-1] , 1 ) ;  /* keep just izero case (for OLSQ) */
+
      for( ii=0 ; ii < 7 ; ii++ ) free(bbar[ii]) ;
      vector_destroy(&qq5) ;
 
@@ -3153,8 +3459,10 @@ sprintf(sslab,"%s %d %d", "Rbuckt glt" ,vv,kk); STATUS(sslab) ;
      if( verb )
        ININFO_message("GLSQ regression done: total CPU=%.2f Elapsed=%.2f",
                       COX_cpu_time(),COX_clock_time() ) ;
+     if( nconst_dsort > 0 )
+       WARNING_message("%d voxels had constant -dsort vectors replaced",nconst_dsort) ;
      MEMORY_CHECK ;
-   }
+   } /* end of if(do_Rstuff) */
 
    /* macro to add FDR curves to a dataset and print a message */
 
@@ -3213,8 +3521,33 @@ sprintf(sslab,"%s %d %d", "Rbuckt glt" ,vv,kk); STATUS(sslab) ;
      MEMORY_CHECK ;
    }
 
+   /** If we just did -dsort case, and we are supposed to do -dsort_nods
+       case, then alter the prefixes and do all the above again [27 Jul 2015] **/
+
+#undef  PREFIX_NODSIZE
+#define PREFIX_NODSIZE(ppp)                                         \
+ do{ char *qp = modify_afni_prefix((ppp),NULL,dsort_nods_suffix) ;  \
+     if( qp != NULL ){ free((ppp)) ; (ppp) = qp ; }                 \
+ } while(0)
+
+   if( do_Rstuff && num_dsort > 0 && !doing_nods ){
+     PREFIX_NODSIZE(Rbeta_prefix ) ;
+     PREFIX_NODSIZE(Rvar_prefix  ) ;
+     PREFIX_NODSIZE(Rbuckt_prefix) ;
+     PREFIX_NODSIZE(Rfitts_prefix) ;
+     PREFIX_NODSIZE(Rerrts_prefix) ;
+     PREFIX_NODSIZE(Rwherr_prefix) ;
+     PREFIX_NODSIZE(Rglt_prefix  ) ;
+
+     doing_nods = 1 ; goto GLSQ_LOOPBACK_dsort_nods ;
+   }
+
    /*-------------------------------------------------------------------------*/
    /*---------------------- create OLSQ outputs, if any ----------------------*/
+
+   doing_nods = 0 ;  /* first time through, don't do nods */
+
+OLSQ_LOOPBACK_dsort_nods:  /* for the -nods option [27 Jul 2015] */
 
    Obeta_dset = create_float_dataset( inset , nbetaset , Obeta_prefix,1 , &Obeta_fn,&Obeta_fp ) ;
    if( Obeta_dset != NULL && beta_lab != NULL ){
@@ -3308,29 +3641,101 @@ sprintf(sslab,"%s %d %d", "Rbuckt glt" ,vv,kk); STATUS(sslab) ;
      MTYPE *bb1 , *bb2 , *bb3 , *bb4 , *bb5 , *bb6 , *bb7 ;
      vector qq5 ;
 
+     /* how many regressors will be used this time through? */
+
+     if( num_dsort > 0 && !doing_nods ) nregu = nregda ; /* 27 Jul 2015 */
+     else                               nregu = nrega  ;
+
+     last_nods_trip = (num_dsort == 0) || (num_dsort > 0 && doing_nods) ;
+
      for( ii=0 ; ii < 7 ; ii++ )
        bbar[ii] = (MTYPE *)malloc(sizeof(MTYPE)*(2*ntime+66)) ;
      bb1 = bbar[0] ; bb2 = bbar[1] ; bb3 = bbar[2] ;
      bb4 = bbar[3] ; bb5 = bbar[4] ; bb6 = bbar[5] ; bb7 = bbar[6] ;
-     vector_initialize(&qq5) ; vector_create_noinit(nrega,&qq5) ;
+     vector_initialize(&qq5) ; vector_create_noinit(nregu,&qq5) ;
 
      /* rv = VECTIM index, vv = voxel index */
 
-     if( vstep ){ fprintf(stderr,"++ OLSQ voxel loop: ") ; vn = 0 ; }
+     nconst_dsort = 0 ;
+     if( vstep )             { fprintf(stderr,"++ OLSQ loop:") ; vn = 0 ; }
+     if( vstep && dsort_nods ) fprintf(stderr,"{%s}",(doing_nods)?"nods":"dsort") ;
      for( rv=vv=0 ; vv < nvox ; vv++ ){
        if( vstep && vv%vstep==vstep-1 ) vstep_print() ;
        if( !INMASK(vv) ) continue ;
+
+       /* extract data vector */
+
        if( inset_mrv != NULL ){ /* 05 Nov 2008 */
          VECTIM_extract( inset_mrv , rv , iv ) ; rv++ ;
-       } else
+       } else {
          (void)THD_extract_array( vv , inset , 0 , iv ) ;  /* data vector */
+       }
        AAmemcpy( jv , iv , sizeof(float)*nfull ) ;
        for( ii=0 ; ii < ntime ; ii++ ) y.elts[ii] = (MTYPE)iv[goodlist[ii]] ;
+
+       /* extract dsort vectors into dsort_Zmat matrix? [22 Jul 2015] */
+
+       if( num_dsort > 0 && !doing_nods ){
+         int dd ; int nzz ; double zsum ;
+         for( dd=0 ; dd < num_dsort ; dd++ ){
+           if( dsortar_mrv != NULL && dsortar_mrv[dd] != NULL ){
+             VECTIM_extract( dsortar_mrv[dd] , rv-1 , dsort_iv ) ;
+           } else {
+             (void)THD_extract_array( vv , dsortar->ar[dd] , 0 , dsort_iv ) ;
+           }
+           for( zsum=0.0,ii=0 ; ii < ntime ; ii++ ){
+             dsort_Zmat->elts[ii][dd] = dsort_iv[goodlist[ii]] ;
+             zsum += dsort_Zmat->elts[ii][dd] ;
+           }
+           zsum /= ntime ;
+           if( dmbase ){
+             for( nzz=ii=0 ; ii < ntime ;ii++ ){
+               dsort_Zmat->elts[ii][dd] -= zsum ;
+               if( dsort_Zmat->elts[ii][dd] == 0.0 ) nzz++ ;
+             }
+           } else {
+             for( nzz=ii=0 ; ii < ntime ; ii++ )
+               if( dsort_Zmat->elts[ii][dd] == zsum ) nzz++ ;
+           }
+           if( nzz == ntime ){
+#if 0
+             WARNING_message("at voxel %d (%d,%d,%d), dsort #%d is constant == %g -- replacing :-(",
+                              vv, DSET_index_to_ix(dsortar->ar[dd],vv) ,
+                                  DSET_index_to_jy(dsortar->ar[dd],vv) ,
+                                  DSET_index_to_kz(dsortar->ar[dd],vv) , zsum , dd ) ;
+#endif
+             nconst_dsort++ ;
+             for( ii=0 ; ii < ntime ;ii++ ) dsort_Zmat->elts[ii][dd] = dsortar_mean[dd][ii] ;
+           }
+         }
+       }
 
        jj = izero ;                       /* OLSQ (a,b)=(0,0) case */
        ss = vv / nsliper ;                /* slice index */
 
-       if( RCsli[ss]->rs[jj] == NULL ){       /* try to fix up this oversight */
+       /* select/create the REML setup to use [22 Jul 2015] */
+
+       my_rset = NULL ; my_Xmat = NULL ; my_Xsmat = NULL ; my_kill = 0 ; rsetp_dsort = NULL ;
+       if( num_dsort > 0 && !doing_nods ){    /* create modified REML setup for */
+         int   ia  = jj % (1+RCsli[ss]->na);  /* voxel-specific regression matrix */
+         int   ib  = jj / (1+RCsli[ss]->na);
+         MTYPE aaa = RCsli[ss]->abot + ia * RCsli[ss]->da;
+         MTYPE bbb = RCsli[ss]->bbot + ib * RCsli[ss]->db;
+
+         /* glue dsort_Zmat to X, then do the REML setup via REML_setup_one */
+         rsetp_dsort = REML_setup_plus( RCsli[ss]->X , dsort_Zmat , tau , aaa,bbb ) ;
+         if( rsetp_dsort == NULL ){  /* should not happen */
+           ERROR_message("can't compute REML_setup_plus() at voxel %d",vv) ;
+         }
+         my_rset  = rsetp_dsort->rset ;
+         my_Xmat  = rsetp_dsort->X ;
+         my_Xsmat = rsetp_dsort->Xs ;
+         my_kill  = 1 ;  /* flag to kill my_stuff when done with it */
+         for( kk=0 ; kk < glt_num ; kk++ )     /* include GLTs */
+           REML_add_glt_to_one( my_rset , glt_mat[kk] ) ;
+       }
+
+       if( my_rset == NULL && RCsli[ss]->rs[jj] == NULL ){ /* try to fix up this oversight */
          int   ia  = jj % (1+RCsli[ss]->na);
          int   ib  = jj / (1+RCsli[ss]->na);
          MTYPE aaa = RCsli[ss]->abot + ia * RCsli[ss]->da;
@@ -3338,7 +3743,12 @@ sprintf(sslab,"%s %d %d", "Rbuckt glt" ,vv,kk); STATUS(sslab) ;
 
          RCsli[ss]->rs[jj] = REML_setup_one( Xsli[ss] , tau , aaa,bbb ) ;
        }
-       if( RCsli[ss]->rs[jj] == NULL ){ /* should never happen */
+       if( my_rset == NULL ){
+         my_rset  = RCsli[ss]->rs[jj] ;
+         my_Xmat  = RCsli[ss]->X ;
+         my_Xsmat = RCsli[ss]->Xs ;
+       }
+       if( my_rset == NULL ){ /* should never happen */
          ERROR_message("bad OLSQ! voxel #%d (%d,%d,%d) jj=%d",
                          vv, DSET_index_to_ix(inset,vv) ,
                              DSET_index_to_jy(inset,vv) ,
@@ -3347,13 +3757,18 @@ sprintf(sslab,"%s %d %d", "Rbuckt glt" ,vv,kk); STATUS(sslab) ;
 
          /* 17 May 2010: if Rstuff wasn't run, have to add GLTs now */
 
-         if( RCsli[ss]->rs[jj]->nglt == 0 ){
+         if( my_rset->nglt == 0 ){
            for( kk=0 ; kk < glt_num ; kk++ )
-             REML_add_glt_to_one( RCsli[ss]->rs[jj] , glt_mat[kk]) ;
+             REML_add_glt_to_one( my_rset , glt_mat[kk]) ;
          }
+
+#if 1
+         (void)REML_func( &y , my_rset , my_Xmat , my_Xsmat , bbar , &bbsumq ) ;
+#else
 
          (void)REML_func( &y , RCsli[ss]->rs[jj] , RCsli[ss]->X , RCsli[ss]->Xs ,
                           bbar , &bbsumq ) ;
+#endif
 
          if( Ofitts_dset != NULL ){
            for( ii=0 ; ii < ntime ; ii++ ) iv[goodlist[ii]] = bb6[ii] ;
@@ -3381,7 +3796,7 @@ sprintf(sslab,"%s %d %d", "Rbuckt glt" ,vv,kk); STATUS(sslab) ;
            save_series( vv , Ovar_dset , 1 , iv , Ovar_fp ) ;
          }
 
-         AAmemcpy( qq5.elts , bb5 , sizeof(MTYPE)*nrega ) ; /* 24 Jun 2009 */
+         AAmemcpy( qq5.elts , bb5 , sizeof(MTYPE)*nregu ) ; /* 24 Jun 2009 */
 
          if( glt_num > 0 && Obuckt_dset != NULL ){
            MTYPE gv ; GLT_index *gin ; int nr ;
@@ -3389,10 +3804,10 @@ sprintf(sslab,"%s %d %d", "Rbuckt glt" ,vv,kk); STATUS(sslab) ;
            for( kk=0 ; kk < glt_num ; kk++ ){
              gin = glt_ind[kk] ; if( gin == NULL ) continue ; /* skip this'n */
              nr = gin->nrow ;
-             gv = REML_compute_gltstat( ddof , &y , &qq5 , bbsumq ,
-                                        RCsli[ss]->rs[jj], RCsli[ss]->rs[jj]->glt[kk],
+             gv = REML_compute_gltstat( ddof , &y , &qq5 , bbsumq  ,
+                                        my_rset , my_rset->glt[kk] ,
                                         glt_mat[kk] , glt_smat[kk] ,
-                                        RCsli[ss]->X , RCsli[ss]->Xs        ) ;
+                                        my_Xmat , my_Xsmat          ) ;
              if( gin->ftst_ind >= 0 ) iv[gin->ftst_ind] = gv ;
              if( gin->rtst_ind >= 0 ) iv[gin->rtst_ind] = betaR ;
              if( gin->beta_ind != NULL && betaG->dim >= nr ){
@@ -3417,10 +3832,10 @@ sprintf(sslab,"%s %d %d", "Rbuckt glt" ,vv,kk); STATUS(sslab) ;
            for( kk=oglt_num ; kk < glt_num ; kk++ ){
              gin = glt_ind[kk] ; if( gin == NULL ) continue ; /* skip this'n */
              nr = gin->nrow ;
-             gv = REML_compute_gltstat( ddof , &y , &qq5 , bbsumq ,
-                                        RCsli[ss]->rs[jj], RCsli[ss]->rs[jj]->glt[kk],
+             gv = REML_compute_gltstat( ddof , &y , &qq5 , bbsumq  ,
+                                        my_rset , my_rset->glt[kk] ,
                                         glt_mat[kk] , glt_smat[kk] ,
-                                        RCsli[ss]->X , RCsli[ss]->Xs        ) ;
+                                        my_Xmat , my_Xsmat          ) ;
              if( gin->ftst_ind >= 0 ) iv[gin->ftst_ind-isub] = gv ;
              if( gin->rtst_ind >= 0 ) iv[gin->rtst_ind-isub] = betaR ;
              if( gin->beta_ind != NULL && betaG->dim >= nr ){
@@ -3437,6 +3852,12 @@ sprintf(sslab,"%s %d %d", "Rbuckt glt" ,vv,kk); STATUS(sslab) ;
            sprintf(sslab,"%s %d", "Oglt" ,vv);
            save_series( vv , Oglt_dset , neglt , iv , Oglt_fp ) ;
          }
+
+         if( my_kill ){                   /* 22 Jun 2015 */
+           reml_setup_plus_destroy(rsetp_dsort) ;
+           my_rset = NULL ; my_Xmat = NULL ; my_Xsmat = NULL ; my_kill = 0 ; rsetp_dsort = NULL ;
+         }
+
        }
      } /* end of voxel loop */
 
@@ -3447,6 +3868,8 @@ sprintf(sslab,"%s %d %d", "Rbuckt glt" ,vv,kk); STATUS(sslab) ;
      if( verb > 1 )
        ININFO_message("OLSQ regression done: total CPU=%.2f Elapsed=%.2f",
                       COX_cpu_time(),COX_clock_time() ) ;
+     if( nconst_dsort > 0 )
+       WARNING_message("%d voxels had constant -dsort vectors replaced",nconst_dsort) ;
    }
 
    /*----------------- done with the input dataset -----------------*/
@@ -3454,17 +3877,39 @@ sprintf(sslab,"%s %d %d", "Rbuckt glt" ,vv,kk); STATUS(sslab) ;
    /* delete lots of memory that's no longer needed */
 
    MEMORY_CHECK ;
-   if( verb > 1 ) ININFO_message("unloading input dataset and REML matrices");
-   if( inset_mrv != NULL ) VECTIM_destroy(inset_mrv) ; /* 05 Nov 2008 */
-   DSET_delete(inset) ; free(jv) ; free(iv) ; free(tau) ;
-   for( ss=0 ; ss < nsli ; ss++ ){
-     reml_collection_destroy(RCsli[ss],0) ; matrix_destroy(Xsli[ss]) ;
+
+   if( last_nods_trip ){
+     if( verb > 1 ) ININFO_message("unloading input dataset and REML matrices");
+STATUS("inset_mrv") ;
+     if( inset_mrv != NULL ) VECTIM_destroy(inset_mrv) ; /* 05 Nov 2008 */
+STATUS("inset") ;
+     DSET_delete(inset) ; free(jv) ; free(iv) ; free(tau) ;
+     if( num_dsort > 0 ){                                /* 22 Jun 2015 */
+       int dd ;
+STATUS("dsortar") ;
+       for( dd=0 ; dd < num_dsort ; dd++ ) DSET_delete(dsortar->ar[dd]) ;
+       if( dsortar_mrv != NULL ){
+STATUS("dsortar_mrv") ;
+         for( dd=0 ; dd < num_dsort ; dd++ )
+           if( dsortar_mrv[dd] != NULL ) VECTIM_destroy(dsortar_mrv[dd]) ;
+       }
+       if( dsortar_mean != NULL ){
+STATUS("dsortar_mean") ;
+         for( dd=0 ; dd < num_dsort ; dd++ )
+           if( dsortar_mean[dd] != NULL ) free(dsortar_mean[dd] ) ;
+       }
+     }
+STATUS("RCsli") ;
+     for( ss=0 ; ss < nsli ; ss++ ){
+       reml_collection_destroy(RCsli[ss],0) ; matrix_destroy(Xsli[ss]) ;
+     }
+     free(RCsli) ; free(Xsli) ;
+          if( abset != NULL ) DSET_delete(abset) ;
+     else if( aim   != NULL ) { mri_free(aim) ; mri_free(bim) ; }
+STATUS("ALL_GLTS") ;
+     KILL_ALL_GLTS ;
+     MEMORY_CHECK ;
    }
-   free(RCsli) ; free(Xsli) ;
-        if( abset != NULL ) DSET_delete(abset) ;
-   else if( aim   != NULL ) { mri_free(aim) ; mri_free(bim) ; }
-   KILL_ALL_GLTS ;
-   MEMORY_CHECK ;
 
    /*-------------- write output OLSQ datasets to disk --------------*/
 
@@ -3499,6 +3944,19 @@ sprintf(sslab,"%s %d %d", "Rbuckt glt" ,vv,kk); STATUS(sslab) ;
      FDRIZE(Oglt_dset) ;
      DSET_write(Oglt_dset); WROTE_DSET(Oglt_dset); DSET_deletepp(Oglt_dset);
      MEMORY_CHECK ;
+   }
+
+   /** rinse and repeat? [27 Jul 2015] */
+
+   if( do_Ostuff && num_dsort > 0 && !doing_nods ){
+     PREFIX_NODSIZE(Oerrts_prefix) ;
+     PREFIX_NODSIZE(Oglt_prefix  ) ;
+     PREFIX_NODSIZE(Obeta_prefix ) ;
+     PREFIX_NODSIZE(Ovar_prefix  ) ;
+     PREFIX_NODSIZE(Obuckt_prefix) ;
+     PREFIX_NODSIZE(Ofitts_prefix) ;
+
+     doing_nods = 1 ; goto OLSQ_LOOPBACK_dsort_nods ;
    }
 
    /*----------------------------- Free at last ----------------------------*/

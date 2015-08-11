@@ -152,6 +152,7 @@ static int needs_convertion_to_float(THD_3dim_dataset *dset, int warn)
   RETURN(0);
 }
 
+
 /*******************************************************************/
 
 nifti_image * populate_nifti_image(THD_3dim_dataset *dset, niftiwr_opts_t options)
@@ -165,8 +166,8 @@ nifti_image * populate_nifti_image(THD_3dim_dataset *dset, niftiwr_opts_t option
   float axstep[3] , axstart[3] ;
   int   axnum[3] ;
   float fac0 ;
-  float dumqx, dumqy, dumqz, dumdx, dumdy, dumdz ;
-  float *tlist;
+  double dumqx, dumqy, dumqz, dumdx, dumdy, dumdz ;
+  float *tlist, fsdur;
 
 ENTRY("populate_nifti_image") ;
   /*-- create nifti_image structure --*/
@@ -391,7 +392,8 @@ ENTRY("populate_nifti_image") ;
   }
   else {
       /* fill in sform with AFNI daxes transformation matrix */
-      nim->sto_xyz = dset->daxes->ijk_to_dicom_real;
+      /* n2   10 Jul, 2015 [rickr] */
+      nifti_mat44_to_dmat44(&dset->daxes->ijk_to_dicom_real, &nim->sto_xyz);
      /* negate first two rows of sform for NIFTI - LPI standard versus
                                             AFNI RAI "DICOM" standard */
      for( ii = 0; ii < 2; ii++) {
@@ -408,21 +410,25 @@ ENTRY("populate_nifti_image") ;
 
   STATUS("set quaternion") ;
 
-  nifti_mat44_to_quatern( nim->qto_xyz , &nim->quatern_b, &nim->quatern_c, &nim->quatern_d,
-                    &dumqx, &dumqy, &dumqz, &dumdx, &dumdy, &dumdz, &nim->qfac ) ;
-
+  /* n2   10 Jul, 2015 [rickr] */
+  nifti_dmat44_to_quatern( nim->qto_xyz ,
+                          &nim->quatern_b, &nim->quatern_c, &nim->quatern_d,
+                          &dumqx, &dumqy, &dumqz, &dumdx, &dumdy, &dumdz,
+                          &nim->qfac ) ;
 
   /*-- verify dummy quaternion parameters --*/
 
   if( options.debug_level > 2 )
+    /* n2   10 Jul, 2015 [rickr] */
     fprintf(stderr,"++ Quaternion check:\n"
           "%f , %f\n %f , %f\n %f , %f\n %f , %f\n %f , %f\n %f , %f\n; %f\n",
-           nim->qoffset_x, dumqx , nim->qoffset_y, dumqy , nim->qoffset_z, dumqz ,
+           nim->qoffset_x, dumqx, nim->qoffset_y,dumqy, nim->qoffset_z, dumqz ,
            nim->dx, dumdx , nim->dy, dumdy , nim->dz, dumdz, nim->qfac ) ;
 
   /*-- calculate inverse qform            --*/
 
-  nim->qto_ijk = nifti_mat44_inverse( nim->qto_xyz ) ;
+  /* n2   10 Jul, 2015 [rickr] */
+  nim->qto_ijk = nifti_dmat44_inverse( nim->qto_xyz ) ;
 
   /*-- set dimensions of grid array --*/
 
@@ -500,22 +506,24 @@ ENTRY("populate_nifti_image") ;
 
          /* try including leading adjacent zero in the pattern, first */
          if( sfirst > 0 ) {
-            pattern = get_slice_timing_pattern(tlist+sfirst-1, tlen,
-                                            &nim->slice_duration);
+            /* n2   10 Jul, 2015 [rickr] */
+            pattern = get_slice_timing_pattern(tlist+sfirst-1, tlen, &fsdur);
+            nim->slice_duration = (double)fsdur;
             if( pattern != NIFTI_SLICE_UNKNOWN ) sfirst--;
          }
 
          /* try including trailing adjacent zero in the pattern, next */
          if( pattern == NIFTI_SLICE_UNKNOWN && slast < nim->nz-1 ) {
-            pattern = get_slice_timing_pattern(tlist+sfirst, tlen,
-                                               &nim->slice_duration);
+            pattern = get_slice_timing_pattern(tlist+sfirst, tlen, &fsdur);
+            nim->slice_duration = (double)fsdur;
             if( pattern != NIFTI_SLICE_UNKNOWN ) slast++;
          }
 
          /* if no pattern yet, try list without zeros */
-         if( pattern == NIFTI_SLICE_UNKNOWN )
-            pattern = get_slice_timing_pattern(tlist+sfirst, tlen-1,
-                                               &nim->slice_duration);
+         if( pattern == NIFTI_SLICE_UNKNOWN ) {
+            pattern = get_slice_timing_pattern(tlist+sfirst, tlen-1, &fsdur);
+            nim->slice_duration = (double)fsdur;
+         }
 
          if( pattern == NIFTI_SLICE_UNKNOWN ) {
             nim->slice_code = pattern ;
@@ -633,7 +641,8 @@ void nifti_set_afni_extension( THD_3dim_dataset *dset , nifti_image *nim )
 
    /* 12 May 2005: add a signature to check the file on input to AFNI */
 
-   sprintf(buf,"%d,%d,%d,%d,%d,%d" ,
+   /* n2   10 Jul, 2015 [rickr] */
+   sprintf(buf,"%ld,%ld,%ld,%ld,%ld,%d" ,
            nim->nx, nim->ny, nim->nz, nim->nt, nim->nu, nim->datatype ) ;
    NI_set_attribute( ngr , "NIfTI_nums" , buf ) ;
 

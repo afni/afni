@@ -3072,7 +3072,7 @@ write.c.AFNI <- function( filename, dset=NULL, label=NULL,
                         maskinf=0, scale = TRUE, 
                         overwrite=FALSE, addFDR=0,
                         statsym=NULL, view=NULL,
-                        com_hist=NULL, TR=TR, type=NULL) {
+                        com_hist=NULL, TR=NULL, type=NULL) {
   
    an <- parse.AFNI.name(filename);
    if (verb > 1) {
@@ -3171,6 +3171,11 @@ write.c.AFNI <- function( filename, dset=NULL, label=NULL,
       delta <- dset.attr(defhead,"DELTA")
    if (!is.null(delta)) dset$NI_head <- 
                            dset.attr(dset$NI_head, "DELTA", val=delta)
+   
+   if (!is.null(defhead)) 
+      IJK_TO_DICOM_REAL <- dset.attr(defhead$NI_head,"IJK_TO_DICOM_REAL")
+   if (!is.null(IJK_TO_DICOM_REAL)) dset$NI_head <- 
+      dset.attr(dset$NI_head, "IJK_TO_DICOM_REAL", val=IJK_TO_DICOM_REAL)
    
    if (is.null(orient) && !is.null(defhead)) 
       orient <- dset.attr(defhead,"ORIENT_SPECIFIC")

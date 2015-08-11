@@ -78,7 +78,7 @@ extern int     valid_g_siemens_times(int nz, float TR, int verb);
 }
 #endif
 
-#include "nifti1_io.h"
+#include "nifti2_io.h"
 extern int use_MRILIB_dicom_matrix ;    /* 26 Jan 2006 */
 extern mat44   MRILIB_dicom_matrix ;
 
@@ -995,6 +995,8 @@ extern MRI_IMAGE *mri_to_complex( MRI_IMAGE * ) ;
 extern MRI_IMAGE *mri_to_byte( MRI_IMAGE * ) ;
 extern byte      *mri_to_bytemask( MRI_IMAGE *, float,float ) ;
 extern MRI_IMAGE *mri_to_byte_scl( double , double , MRI_IMAGE * ) ;
+extern MRI_IMAGE *mri_to_pval  ( MRI_IMAGE *im , int , float * ) ;
+extern MRI_IMAGE *mri_to_zscore( MRI_IMAGE *im , int , float * ) ;
 
 extern MRI_IMAGE * mri_to_rgb( MRI_IMAGE * ) ;
 extern MRI_IMAGE * mri_3to_rgb( MRI_IMAGE * , MRI_IMAGE * , MRI_IMAGE * ) ;
@@ -1558,7 +1560,8 @@ extern double generic_dmat44_determinant( dmat44 P ) ;
 
 /*------------------------------------------------------------------------*/
 
-MRI_IMAGE * mri_genARMA11( int nlen, int nvec, float ap, float lm, float sg ) ;
+extern MRI_IMAGE * mri_genARMA11( int nlen, int nvec, float ap, float lm, float sg ) ;
+extern void mri_genARMA11_set_tdof( float ttt ) ;
 
 /*------------------------------------------------------------------------*/
 /* some of these clusterize prototypes require editvol.h */
@@ -2021,6 +2024,8 @@ extern THD_fvec3 mriarr_estimate_FWHM_1dif( MRI_IMARR *, byte * , int ) ;
 
 extern THD_fvec3 mri_estimate_FWHM_12dif( MRI_IMAGE * , byte * ) ;
 extern THD_fvec3 mri_estimate_FWHM_12dif_MAD( MRI_IMAGE * , byte * ) ; /* 24 Mar 2010 */
+
+extern THD_fvec3 mri_FWHM_1dif_mom12( MRI_IMAGE * , byte * ) ; /* 11 Aug 2015 */
 
 void mri_fwhm_setfester( THD_fvec3 (*func)(MRI_IMAGE *, byte *) ) ;
 

@@ -1379,6 +1379,7 @@ void AFNI_sigfunc_alrm(int sig)
      "Happy trails to you, until we meet again"                      ,
      "Only in the agony of parting do we see the depths of love"     ,
      "Goodbye isn't painful, unless we'll never say hello again"     ,
+     "The pain of parting is nothing to the joy of meeting again"    ,
      "Be well, do good work, and keep in touch"                      ,
      "In the hope to meet shortly again"                             ,
      "May the wind be ever at your back"                             ,
@@ -1444,6 +1445,8 @@ void AFNI_sigfunc_alrm(int sig)
      "O Captain, My Captain, rise up and hear the bells"             ,
      "O Captain, My Captain, our fearful trip is done"               ,
      "Ever returning spring, trinity sure to me you bring"           ,
+     "If thou wast not grant to sing, thou would'st surely die"      ,
+     "Here, user that slowly passes, I give you my sprig of lilac"   ,
      "What a long strange trip it's been"                            ,
      "Sometime the light shines on me, other times I can barely see" ,
      "When life looks like Easy Street, there is danger at your door",
@@ -1524,6 +1527,9 @@ void AFNI_sigfunc_alrm(int sig)
      "Remember -- Aquaman cares"                                     ,
      "Remember -- She who laughs, lasts"                             ,
      "Remember -- He who laughs, lasts"                              ,
+     "Remember -- The innocent have everything to fear"              ,
+     "Remember -- Memory is long but time is tricky"                 ,
+     "'It remains to be seen' == 'When pigs fly'"                    ,
      "Do not scorn pity that is the gift of a gentle heart"          ,
      "The best laid statistics of mice and men gang aft agley"       ,
      "A thousand farewells pass in one moment"                       ,
@@ -1581,6 +1587,7 @@ void AFNI_sigfunc_alrm(int sig)
      "What do you do all day? I do very little, and do it slowly"    ,
      "Did you find a paradigm shift today?"                          ,
      "Was it the silver bullet you were hoping for?"                 ,
+     "Why is 'gold' the standard for data analysis, anyway?"         ,
      "Did you find the Holy Grail of neuroimaging yet?"              ,
      "Shedding new light on the brain since 1994!"                   ,
      "Brain-ology at the cutting edge since 1994!"                   ,
@@ -1588,7 +1595,27 @@ void AFNI_sigfunc_alrm(int sig)
      "Coming REAL soon: the 'Write Science Paper' interface"         ,
      "And flights of angels sing thee to thy rest"                   ,
      "Hast seen the White Whale?"                                    ,
+     "Our sweetest songs are those that tell of saddest thought"     ,
+     "The more we study, the more we discover our ignorance"         ,
+     "Nothing wilts faster than laurels that have been rested upon"  ,
+     "Fear not for the future; weep not for the past"                ,
+     "AFNI, when soft images fade, vibrates in the memory forever"   ,
+     "Nothing ever becomes real until it is experienced"             ,
+     "No bird soars too high if he soars with his own wings"         ,
+     "Great things are done when men and mountains meet"             ,
+     "A fool sees not the same tree that a wise man sees"            ,
+     "What is now proved was once only imagined"                     ,
+     "It is easier to forgive an enemy than to forgive a friend"     ,
+     "The true method of knowledge is experiment"                    ,
+     "The flower that smells the sweetest is shy and lowly"          ,
+     "He knows not his own strength, that has not met adversity"     ,
+     "Weigh the meaning, and look not at the words"                  ,
+     "Statistics are no substitute for judgment"                     ,
 
+     "A software's reach should exceed its CPU, or what's a supercomputer for?"       ,
+     "There are 2 kinds of statistics: those you compute and those you just make up"  ,
+     "It is the mark of a truly intelligent person to be moved by statistics"         ,
+     "Dreams are true while they last, and do we not live in dreams?"                 ,
      "Have you made your long term (trillion year) research plan yet? Get busy"       ,
      "Why is 'Gold Standard' used in science? Gold is pretty but almost useless"      ,
      "Oh well, you can always end your paper with 'Further research needed'"          ,
@@ -1608,6 +1635,9 @@ void AFNI_sigfunc_alrm(int sig)
      "If your experiment needs statistics, you need a better experiment"              ,
      "Wirth's law -- software gets slower faster than hardware gets faster"           ,
      "How wouldst thou worst, I wonder, than thou dost, defeat, thwart me?"           ,
+     "O the mind, mind has mountains, cliffs of fall frightful"                       ,
+     "All life death does end and each day dies with sleep"                           ,
+     "Let me be fell, force I must be brief"                                          ,
      "Meet me at the Torre Pendente di Pisa on the feast of St Rainerius"             ,
      "One martini is just right; two is too many; three is never enough"              ,
      "If you can't explain it simply, you don't understand it well enough"            ,
@@ -1630,6 +1660,8 @@ void AFNI_sigfunc_alrm(int sig)
      "Let us therefore study the incidents of this as philosophy to learn wisdom from",
      "Analyze your data rigorously -- you can fake the conclusions all you want later",
      "O wad some Pow'r the giftie gie us, To see oursels as ithers see us"            ,
+
+     "My name is AFNImandias, Brain of Brains; Look on my Statistics, ye Clever, and despair" ,
 
      "\n  The great thing about the human condition:\n"
      "  No matter how bad it is, it can always get worse"                                     ,
@@ -2523,9 +2555,11 @@ static char * random_goodbye(void)
 void AFNI_quit_CB( Widget wcall , XtPointer cd , XtPointer cbs )
 {
    Three_D_View *im3d = (Three_D_View *)cd ;
-   XmPushButtonCallbackStruct *pbcbs = (XmPushButtonCallbackStruct *) cbs ;
+   XmPushButtonCallbackStruct *pbcbs = (XmPushButtonCallbackStruct *)cbs ;
 
 ENTRY("AFNI_quit_CB") ;
+
+   if( cd == NULL ) AFexit(0) ;  /* 27 Jul 2015 */
 
    if( ! IM3D_OPEN(im3d) ) EXRETURN ;
 
@@ -2550,7 +2584,9 @@ ENTRY("AFNI_quit_CB") ;
        (ShiftMask|ControlMask|Button2Mask|Button3Mask) ){
 
       XtCloseDisplay( XtDisplay(im3d->vwid->top_shell) ) ;
+#if 0
       AFNI_speak(random_goodbye(),0) ;
+#endif
       AFexit(0) ;
    }
 

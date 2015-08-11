@@ -87,7 +87,7 @@ static int do_ball = 0 ;
 
 static unsigned int gseed = 123456789 ;
 
-#define PMAX 0.2
+#define PMAX 0.5
 
 static double pthr_init[9] = { 0.05 , 0.02 , 0.01, 0.005, 0.002, 0.001, 0.0005, 0.0002, 0.0001 } ;
 static double athr_init[4] = { 0.10 , 0.05 , 0.02 , 0.01 } ;
@@ -579,7 +579,7 @@ void get_options( int argc , char **argv )
     if( strcmp(argv[nopt],"-tdof") == 0 ){  /* 26 May 2015 -- hidden option */
       nopt++ ; if( nopt >= argc ) ERROR_exit("need argument after -tdof!") ;
       tdof = (float)strtod(argv[nopt],NULL) ;
-      if( tdof > 0.0f && tdof < 6.0f ) ERROR_exit("illegal value after -tdof") ;
+      if( tdof > 0.0f && tdof < 4.0f ) ERROR_exit("illegal value after -tdof") ;
       nopt++ ; continue ;
     }
 

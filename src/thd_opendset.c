@@ -27,7 +27,7 @@ static char * file_extension_list[] = {
     ".mnc",
     ".mri",
     ".svl",
-    ".1D", ".1D.dset", ".1D.do",
+    ".1D", ".1D.dset", ".1D.do", ".txt",
     ".3D",
     ".nii", ".nii.gz", ".nia", ".hdr", ".img",
     ".mpg", ".mpeg", ".MPG", ".MPEG",
@@ -236,7 +236,8 @@ ENTRY("THD_open_one_dataset") ;
        STRING_HAS_SUFFIX(pathname,".nii.gz") ||
        STRING_HAS_SUFFIX(pathname,".nia")      ){
 
-     CHECK_FOR_DATA(pathname) ;               /* 06 Jan 2005 */
+     /* let NIFTI decide if the dataset is there   10 Jun 2015 [ricrk] */
+     /* CHECK_FOR_DATA(pathname) ; */              /* 06 Jan 2005 */
      dset = THD_open_nifti(pathname) ;
      THD_patch_brickim(dset) ;  /* 20 Oct 2006 */
      THD_report_obliquity(dset) ;  /* 20 Dec 2007 */
@@ -598,7 +599,8 @@ int storage_mode_from_prefix( char * fname )
 ENTRY("storage_mode_from_prefix");
    
    if( !fname || !*fname )                     RETURN(STORAGE_UNDEFINED);
-   if ((sm = storage_mode_from_filename(fname)) != STORAGE_UNDEFINED) RETURN(sm);
+   sm = storage_mode_from_filename(fname);
+   if( sm != STORAGE_UNDEFINED ) RETURN(sm);
    
    if (fname[strlen(fname)-1] == '.') { 
       if( STRING_HAS_SUFFIX(fname, "+orig.") ||

@@ -87,7 +87,7 @@ The :command:`jobs` command also shows that :command:`suma` is suspended.
 
 try, try, again
 ---------------
-Repeat of B: try to type commands in the terminal window.
+Repeat of "fail to do anything": try to type commands in the terminal window.
 
    commands (type these in the terminal window)::
 

@@ -43,7 +43,62 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 26 , MAY , 2015 , RWC , "3dClustSim" , MICRO , TYPE_NEW_OPT ,
+  { 11 , AUG , 2015 , RWC , "3dFWHMx" , MICRO , TYPE_MODIFY ,
+   "Modify -2difMAD option calculations" ,
+   "If smoothness calculation fails using Median Absolute Deviation, retry\n"
+   "with Mean Absolute Deviation." } ,
+
+ { 11 , AUG , 2015 , RWC , "3dFWHMx" , MINOR , TYPE_NEW_OPT ,
+   "-1difMOD option" ,
+   "Computes the moments of the 1st differences, then estimates the mean and\n"
+   "standard deviation of the smoothness factors, then reports the mean\n"
+   "smoothness adjusted upwards to allow for the fact that 3dClustSim\n"
+   "depends more strongly on bigger smoothness than on smaller smoothness. \n"
+   "For use with single subject tests; probably too conservative for group\n"
+   "analyses." } ,
+
+ { 29 , JUL , 2015 , RWC , "3dTstat" , MICRO , TYPE_NEW_OPT ,
+   "add -nzstdev option" ,
+   "Given a voxel, extract all the values.  Throw out those values that are\n"
+   "nonzero.  Compute the stdev of the remaining set (assuming at least 2),\n"
+   "with no further processing (no detrending)." } ,
+
+ { 27 , JUL , 2015 , RWC , "3dREMLfit" , MINOR , TYPE_NEW_OPT ,
+   "-dsort_nods option" ,
+   "When used with -dsort, this option will make 3dREMLfit calculate the\n"
+   "results with the -dsort regressors(s) omitted as well as the results\n"
+   "with the -dsort regressor(s) included -- so the user can compare the\n"
+   "dsort and non-dsort results easily with 1 run of the program.  'nods' ==\n"
+   "'no dsort'.  Each nods dataset will have the string '_nods' appended to\n"
+   "the prefix." } ,
+
+ { 23 , JUL , 2015 , RWC , "3dREMLfit" , MINOR , TYPE_NEW_OPT ,
+   "Add -dsort option" ,
+   "Allows the addition of voxel-wise baseline regressors.  To test out\n"
+   "ANATICOR applied to task-based FMRI data, for example." } ,
+
+ { 17 , JUL , 2015 , RWC , "mri_write.c" , MICRO , TYPE_BUG_FIX ,
+   "Make mri_write_1D(\"stdout:\") work correctly" ,
+   "Before you could get filename \"stdout:.1D\" which is not very useful." } ,
+
+ { 26 , JUN , 2015 , RWC , "3dPval" , MICRO , TYPE_NEW_PROG ,
+   "3dPval converts statistics bricks to p-values" ,
+   "For Isaac.  Non-statistic bricks are converted to float and passed\n"
+   "through unchanged." } ,
+
+ { 22 , JUN , 2015 , RWC , "3dvolreg" , MICRO , TYPE_MODIFY ,
+   "Add output of max inter-TR displacement" ,
+   "In addition to the max total displacement (as of old)." } ,
+
+ { 12 , JUN , 2015 , RWC , "plug_L1fit" , MICRO , TYPE_MODIFY ,
+   "Modify Timeseries input to use all columns of file, not just 1st" ,
+   NULL } ,
+
+ { 5 , JUN , 2015 , RWC , "3dSimARMA11" , MICRO , TYPE_NEW_OPT ,
+   "Add hidden -tdof option" ,
+   NULL } ,
+
+ { 26 , MAY , 2015 , RWC , "3dClustSim" , MICRO , TYPE_NEW_OPT ,
    "Add secret -tdof option" ,
    NULL } ,
 
