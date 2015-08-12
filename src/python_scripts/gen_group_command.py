@@ -15,11 +15,12 @@ g_help_string = """
 =============================================================================
 gen_group_command.py    - generate group commands: 3dttest++, 3dMEMA,
                           3dANOVA2, 3dANOVA3
+                        - generate generic commands
                         - todo (maybe): 3dttest, GroupAna
 
    This program is to assist in writing group commands.  The hardest part (or
-   most tedious) is generally listing datasets and such, and that is the main
-   benefit of using this program.
+   most tedious) is generally listing datasets and such, particularly including
+   sub-brick selection, and that is the main benefit of using this program.
 
    If used without sufficient options (which might be typical), the generated
    commands will not be complete (e.g. they might fail).  So either provide
@@ -42,6 +43,18 @@ gen_group_command.py    - generate group commands: 3dttest++, 3dMEMA,
 
             gen_group_command.py -command 3dttest++        \\
                 -dsets subject_results/*/*.results/stats+tlrc.HEAD
+
+
+   Generic commands do not need to be part of AFNI.  Perhaps one just wants
+   an orderly and indented list of file names to be part of a bigger script.
+   consider:
+
+        gen_group_command.py -command ls -dsets group_results/OL*D
+
+   or perhaps using 3dTcat to collect a sub-brick from each subject:
+
+        gen_group_command.py -command 3dTcat -subs_betas 'Arel#0_Coef' \\
+                             -dsets group_results/OL*D
 
 ------------------------------------------
 examples (by program)
@@ -357,6 +370,49 @@ examples (by program)
                                     -adiff 1 2 OvsR                          \\
                                     -bdiff 1 2 VvsA
 
+   --------------------
+
+   E. generic/other programs
+
+      These commands apply to basically any program, as specified.  Options
+      may be provided, along with 1 or 2 sets of data.  If provided, the
+      -subs_betas selectors will be applied.
+
+      This might be useful for simply making part of a longer script, where
+      the dataset names are explicit.
+
+
+      1. perhaps a fairly useless example with 'ls', just for demonstration
+
+        gen_group_command.py -command ls -dsets group_results/OL*D
+
+      2. using 3dTcat to collect a sub-brick from each subject
+
+        gen_group_command.py -command 3dTcat -subs_betas 'Arel#0_Coef' \\
+                             -dsets group_results/OL*D
+
+      3. including 2 sets of subjects, with a different sub-brick per set
+
+        gen_group_command.py -command 3dTcat -subs_betas 0 1 \\
+                             -dsets group_results/OLSQ*D     \\
+                             -dsets group_results/REML*D
+
+      4. 2 sets of subjects (in different directories, and with different
+         sub-brick selectors), along with:
+
+            - a script name (to write the script to a text file)
+            - a -prefix
+            - options for the command (just 1 in this case)
+            - common sub-brick selectors for dataset lists
+
+        gen_group_command.py -command 3dMean                    \\
+                             -write_script cmd.3dmean.txt       \\
+                             -prefix aud_vid_stdev              \\
+                             -options -stdev                    \\
+                             -subs_betas 'Arel#0_Coef'          \\
+                             -dsets group_results/OLSQ*D        \\
+                             -dsets group_results/REML*D
+
 ------------------------------------------
 terminal options:
 
@@ -568,9 +624,10 @@ g_history = """
    0.9  Oct 03, 2012 - some options do not allow dashed parameters
    0.10 Oct 30, 2013 - added -keep_dirent_pre
    0.11 Apr 24, 2015 - tiny help update (example)
+   0.12 Aug 12, 2015 - allow generic (unknown) commands (via -command)
 """
 
-g_version = "gen_group_command.py version 0.11, April 24, 2015"
+g_version = "gen_group_command.py version 0.12, August 12, 2015"
 
 
 class CmdInterface:
@@ -919,6 +976,8 @@ class CmdInterface:
          cmd = self.get_anova2_command()
       elif self.command == '3dANOVA3':
          cmd = self.get_anova3_command()
+      elif self.command:
+         cmd = self.get_generic_command()
       else:
          print '** command not implemented: %s' % self.command
 
@@ -947,6 +1006,13 @@ class CmdInterface:
       return self.slist[0].make_mema_command(set_labs=self.lablist,
                      bsubs=self.betasubs, tsubs=self.tstatsubs, subjlist2=s2,
                      prefix=self.prefix, ttype=self.ttype, options=self.options)
+
+   def get_generic_command(self):
+      if len(self.slist) > 1: s2 = self.slist[1]
+      else:                   s2 = None
+      return self.slist[0].make_generic_command(self.command,
+                     bsubs=self.betasubs, subjlist2=s2, prefix=self.prefix,
+                     options=self.options)
 
    def get_ttpp_command(self):
       if len(self.slist) > 1: s2 = self.slist[1]
