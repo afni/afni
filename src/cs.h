@@ -39,7 +39,9 @@ extern float qmean_float    ( int , float * ) ;               /* 26 Mar 2013 */
 extern void  qmedmad_float  ( int,float *,float *,float * ) ; /* 08 Mar 2001 */
 extern void  meansigma_float( int,float *,float *,float * ) ; /* 07 Dec 2006 */
 
-extern void qmedmadbmv_float( int, float *, float *, float *, float * ) ;
+extern void qmedmadbmv_float   ( int, float *, float *, float *, float * ) ;
+extern void qmedmadmeanad_float( int, float *, float *, float *, float * ) ;
+
 
 extern float centromean_float( int n , float *ar ) ;          /* 01 Nov 2010 */
 

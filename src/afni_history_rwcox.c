@@ -43,7 +43,21 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 29 , JUL , 2015 , RWC , "3dTstat" , MICRO , TYPE_NEW_OPT ,
+  { 11 , AUG , 2015 , RWC , "3dFWHMx" , MICRO , TYPE_MODIFY ,
+   "Modify -2difMAD option calculations" ,
+   "If smoothness calculation fails using Median Absolute Deviation, retry\n"
+   "with Mean Absolute Deviation." } ,
+
+ { 11 , AUG , 2015 , RWC , "3dFWHMx" , MINOR , TYPE_NEW_OPT ,
+   "-1difMOD option" ,
+   "Computes the moments of the 1st differences, then estimates the mean and\n"
+   "standard deviation of the smoothness factors, then reports the mean\n"
+   "smoothness adjusted upwards to allow for the fact that 3dClustSim\n"
+   "depends more strongly on bigger smoothness than on smaller smoothness. \n"
+   "For use with single subject tests; probably too conservative for group\n"
+   "analyses." } ,
+
+ { 29 , JUL , 2015 , RWC , "3dTstat" , MICRO , TYPE_NEW_OPT ,
    "add -nzstdev option" ,
    "Given a voxel, extract all the values.  Throw out those values that are\n"
    "nonzero.  Compute the stdev of the remaining set (assuming at least 2),\n"
