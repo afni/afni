@@ -1282,8 +1282,11 @@ respVar <- lop$dataTable[wd]
 # even if lop$wsVars is NA (no within-subject factors), it would be still OK for Error(Subj/NA)
 if(is.na(lop$mVar)) {
    if(is.na(lop$wsVars)) ModelForm <- as.formula(paste("Beta ~", lop$model, '+Error(Subj)')) else {
+      if(length(strsplit(lop$wsVars, '\\,')[[1]]) > 1)
+         ModelForm <- as.formula(paste("Beta~", capture.output(cat(paste(strsplit(lop$model, '\\+')[[1]],"*", strsplit(lop$wsVars, '\\,')[[1]][1]), sep='+'))))   else {
       ModelForm <- as.formula(paste("Beta ~", lop$model, '+Error(Subj/(', lop$wsVars, '))'))
       ModelForm2 <- as.formula(paste("Beta ~ (", lop$model, ')*', lop$wsVars, '+Error(Subj/(', lop$wsVars, '))'))
+      }
    }
 } else 
    if(is.na(lop$wsVars)) ModelForm <- as.formula(paste("Beta ~", lop$model, '+Error(Subj/(', lop$mVar, '))')) else
@@ -1313,10 +1316,13 @@ for(ii in 2:(dim(lop$dataStr)[2]-1)) if(class(lop$dataStr[,ii]) == 'factor')
 cat(lop$num_glt, 'post hoc tests\n')
 
 cat('\nContingency tables of subject distributions among the categorical variables:\n\n')
-if(is.na(lop$mVar)) if(is.na(lop$wsVars)) showTab <- paste('~', lop$model) else
-   showTab <- paste('~', gsub("\\*", "+", lop$model), '+', gsub("\\*", "+", lop$wsVars)) else
-if(is.na(lop$wsVars)) showTab <- as.formula(paste('~', gsub("\\*", "+", lop$model), "+", gsub("\\*", "+", lop$mVar))) else
-   showTab <- paste('~', lop$model, "+", gsub("\\*", "+", lop$wsVars), "+", gsub("\\*", "+", lop$mVar))
+if(is.na(lop$mVar)) { if(is.na(lop$wsVars)) showTab <- paste('~', lop$model) else {
+    if(length(strsplit(lop$wsVars, '\\,')[[1]]) > 1) showTab <- paste('~', lop$model) else
+    showTab <- paste('~', gsub("\\*", "+", lop$model), '+', gsub("\\*", "+", lop$wsVars))
+   }
+   } else {
+   if(is.na(lop$wsVars)) showTab <- as.formula(paste('~', gsub("\\*", "+", lop$model), "+", gsub("\\*", "+", lop$mVar)))  else {                            
+   showTab <- paste('~', lop$model, "+", gsub("\\*", "+", lop$wsVars), "+", gsub("\\*", "+", lop$mVar)) } }
 #if(!is.na(lop$qVars)) for(ii in 1:length(lop$QV))
 #   showTab <- gsub(paste('\\*',lop$QV[ii], sep=''), '', gsub(paste('\\+',lop$QV[ii], sep=''), '', showTab))
 if(!is.na(lop$qVars)) for(ii in rev(levels(ordered(lop$QV)))) # reversing the oder of those quantitative covariates so that
@@ -1774,6 +1780,7 @@ cat("\nCongratulations! You have got an output ", lop$outFN, ".\n\n", sep='')
    lop$dataStr$Beta <- as.numeric(lop$dataStr[, FileCol]) # convert characters to values
    lop$outFN <- paste(strsplit(lop$outFN, '\\+tlrc')[[1]], '.txt', sep='')
    capture.output(cat(''), file = lop$outFN, append = FALSE)
+   if(length(strsplit(lop$wsVars, '\\,')[[1]]) > 1) pkgLoad('nlme')
    if(iterPar %in% dimnames(lop$dataStr)[[2]]) nPar <- nlevels(as.factor(lop$dataStr[[iterPar]])) else nPar <- 1
    for(nn in 1:nPar) {
    fm <- NULL
@@ -1781,49 +1788,80 @@ cat("\nCongratulations! You have got an output ", lop$outFN, ".\n\n", sep='')
    if((levels(as.factor(lop$dataStr[[iterPar]]))[nn] %in% lop$parSubsetVector) | is.null(lop$parSubsetVector)) 
       inData <- lop$dataStr[lop$dataStr[[iterPar]] == levels(as.factor(lop$dataStr[[iterPar]]))[nn],] else
       inData <- NULL
-   if(!is.null(inData)) suppressMessages(try(fm <- aov.car(ModelForm, data=inData, factorize=FALSE, type=lop$SS_type, return='full'), silent=TRUE)) else
+   if(!is.null(inData)) {
+      if(length(strsplit(lop$wsVars, '\\,')[[1]]) > 1) {  # at least one within-subject factor other than ROI
+         fm <- lme(ModelForm, random=~1|Subj, data=inData)
+      } else
+       suppressMessages(try(fm <- aov.car(ModelForm, data=inData, factorize=FALSE, type=lop$SS_type, return='full'), silent=TRUE)) } else
    fm <-NULL
    #fm <- aov.car(ModelForm, data=inData, factorize=FALSE, return='full')
    if(!is.null(fm)) {
+      if(length(strsplit(lop$wsVars, '\\,')[[1]]) > 1) {  # at least one within-subject factor other than ROI
+         termROI <- grep('ROI', rownames(anova(fm))) # term rows that contain 'ROI'
+         termROIn <- (1:nrow(anova(fm)))[-termROI]   # term rows that do not contain 'ROI'
+         out_p <- apply(cbind(anova(fm)[termROIn,][,'p-value'], anova(fm)[termROI,][,'p-value']), 1, min)
+         names(out_p) <- rownames(anova(fm))[termROIn]
+      } else { 
       #out_p <- apply(cbind(uvP[1:outTerms], uvP[(outTerms+1):length(uvP)], p_wsmvt[1:outTerms],
       #   p_wsmvt[(outTerms+1):length(uvP)], p_mvt), 1, min)
-      options(warn = -1)
-      lop$nF_mvE5 <- tryCatch(nrow(univ(fm$Anova)$anova)/2, error=function(e) NULL)
-      if(is.null(lop$nF_mvE5)) {
-         tryCatch(fm2 <- aov(ModelForm2, data=inData), error=function(e) NULL)
-         if(is.null(fm2)) errex.AFNI('Model failure...') else {
-         nF_aov <- dim(summary(fm2)[[1]][[1]])[1]-1
-         out_p <- apply(cbind(summary(fm2)[[1]][[1]][1:nF_aov,'Pr(>F)'], summary(fm2)[[2]][[1]][2:(nF_aov+1),'Pr(>F)']), 1, min)
-         names(out_p) <- dimnames(summary(fm2)[[1]][[1]])[[1]][1:nF_aov]
-         }
-      } else out_p <- mvCom5(fm, lop$nF_mvE5)
+         options(warn = -1)
+         lop$nF_mvE5 <- tryCatch(nrow(univ(fm$Anova)$anova)/2, error=function(e) NULL)
+         if(is.null(lop$nF_mvE5)) {
+            tryCatch(fm2 <- aov(ModelForm2, data=inData), error=function(e) NULL)
+            if(is.null(fm2)) errex.AFNI('Model failure...') else {
+            nF_aov <- dim(summary(fm2)[[1]][[1]])[1]-1
+            out_p <- apply(cbind(summary(fm2)[[1]][[1]][1:nF_aov,'Pr(>F)'], summary(fm2)[[2]][[1]][2:(nF_aov+1),'Pr(>F)']), 1, min)
+            names(out_p) <- dimnames(summary(fm2)[[1]][[1]])[[1]][1:nF_aov]
+            }
+         } else out_p <- mvCom5(fm, lop$nF_mvE5)
+      }
       # chisq 
       out_chisq <- qchisq(out_p, 1, lower.tail = FALSE)
+      out_chisq[out_chisq==Inf] <- 100
       out <- cbind(out_chisq, 1, out_p)
       dimnames(out)[[2]] <- c('# Chisq', 'DF', 'Pr(>Chisq)')
       dimnames(out)[[1]] <- sprintf('# %s', dimnames(out)[[1]])
       nC <- max(nchar(row.names(out)))
       term <- formatC(row.names(out), width=-nC)
       #or term <- sprintf("%-11s", row.names(out))
-      if(lop$num_glt>=1) {
-         out_post <- matrix(0, nrow = lop$num_glt, ncol = 4)
-         for(ii in 1:lop$num_glt) {
+      if(lop$num_glt>=1) { 
+          if(length(strsplit(lop$wsVars, '\\,')[[1]]) > 1) {  # # LME case: at least one within-subject factor other than ROI
+             out_post <- matrix(0, nrow = lop$num_glt, ncol = 3)
+             for(ii in 1:lop$num_glt) { # assuming no glts for basis functions
+               glt <- NULL
+               if(all(is.na(lop$gltList[[ii]]))) glt <- tryCatch(testInteractions(fm, pairwise=NULL, slope=lop$slpList[[ii]], 
+                  covariates=lop$covValList[[ii]], adjustment="none"), error=function(e) NULL) else
+               glt <- tryCatch(testInteractions(fm, custom=lop$gltList[[ii]], slope=lop$slpList[[ii]], 
+                  covariates=lop$covValList[[ii]], adjustment="none"), error=function(e) NULL)              
+               if(!is.null(glt)) {
+                  out_post[ii,1]   <- glt[1,1]
+                  out_post[ii,2]   <- sign(glt[1,1])*qnorm(glt[1,4]/2, lower.tail = F)  # convert chisq to Z
+                  out_post[ii,3]   <- glt[1,4]
+               }
+           }
+           dimnames(out_post)[[1]] <- sprintf('# %s', lop$gltLabel)
+           dimnames(out_post)[[2]] <- c('# value', 'z-stat', '2-sided-P')
+           nC2 <- max(nchar(row.names(out_post)))
+           term2 <- formatC(row.names(out_post), width=-nC2)
+         } else {   # MVM case
+            out_post <- matrix(0, nrow = lop$num_glt, ncol = 4)
+            for(ii in 1:lop$num_glt) {
             if(all(is.na(lop$gltList[[ii]]))) glt <- tryCatch(testInteractions(fm$lm, pairwise=NULL, slope=lop$slpList[[ii]], 
                covariates=lop$covValList[[n]], adjustment="none", idata = fm[["idata"]]), error=function(e) NULL) else
-            glt <- tryCatch(testInteractions(fm$lm, custom=lop$gltList[[ii]], slope=lop$slpList[[ii]], 
-               covariates=lop$covValList[[ii]], adjustment="none", idata = fm[["idata"]]), error=function(e) NULL)
-            if(!is.null(glt)) {
-               out_post[ii,1]   <- glt[1,1]
-               out_post[ii,2]   <- sign(glt[1,1]) * sqrt(glt[1,4])  # convert F to t
-               out_post[ii,3]   <- glt[1,6]
-               out_post[ii,4]   <- glt[1,7] 
-            } #if(!is.null(glt))
-         } # for(ii in 1:lop$num_glt)
-      
-         dimnames(out_post)[[1]] <- sprintf('# %s', lop$gltLabel)
-         dimnames(out_post)[[2]] <- c('# value', 't-stat', 'DF', '2-sided-P')
-         nC2 <- max(nchar(row.names(out_post)))
-         term2 <- formatC(row.names(out_post), width=-nC2)
+               glt <- tryCatch(testInteractions(fm$lm, custom=lop$gltList[[ii]], slope=lop$slpList[[ii]], 
+                  covariates=lop$covValList[[ii]], adjustment="none", idata = fm[["idata"]]), error=function(e) NULL)
+               if(!is.null(glt)) {
+                  out_post[ii,1]   <- glt[1,1]
+                  out_post[ii,2]   <- sign(glt[1,1]) * sqrt(glt[1,4])  # convert F to t
+                  out_post[ii,3]   <- glt[1,6]
+                  out_post[ii,4]   <- glt[1,7] 
+               } #if(!is.null(glt))
+            } # for(ii in 1:lop$num_glt)
+            dimnames(out_post)[[1]] <- sprintf('# %s', lop$gltLabel)
+            dimnames(out_post)[[2]] <- c('# value', 't-stat', 'DF', '2-sided-P')
+            nC2 <- max(nchar(row.names(out_post)))
+            term2 <- formatC(row.names(out_post), width=-nC2)
+         }
       } # if(lop$num_glt>=1)
       options(width = 800)  # include the width so that each line has enough capacity
       if(nPar==1) cat('# RESULTS: ANOVA table\n')  else

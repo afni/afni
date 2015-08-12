@@ -34,7 +34,7 @@ THD_fvec3 mriarr_estimate_FWHM_1dif( MRI_IMARR *imar, byte *mask, int unif )
      }
      sv = mri_estimate_FWHM_1dif( IMARR_SUBIM(imar,ii) , mask ) ;
      UNLOAD_FVEC3(sv,fx,fy,fz) ;
-     /*** INFO_message("  sub-brick[%d]: fx=%g fy=%g fz=%g",ii,fx,fy,fz) ; ***/
+/*** INFO_message("  sub-brick[%d]: fx=%g fy=%g fz=%g",ii,fx,fy,fz) ; ***/
      if( fx > 0.0f ){ cx += fx ; nx++ ; }
      if( fy > 0.0f ){ cy += fy ; ny++ ; }
      if( fz > 0.0f ){ cz += fz ; nz++ ; }
@@ -151,19 +151,29 @@ THD_fvec3 mri_estimate_FWHM_1dif( MRI_IMAGE *im , byte *mask )
   varzz = (countz < 6) ? 0.0
                        : (dfdzsq - (dfdzsum * dfdzsum)/countz) / (countz-1.0);
 
-  /*----- now estimate the FWHMs -----*/
-  /*---- 2.35482 = sqrt(8*log(2)) = sigma-to-FWHM conversion factor ----*/
+  /*----- now estimate the FWHMs                                    -----*/
+  /*---- the model is the correlation of the neighbors in x is
+            exp[ -dx^2 / (4 * sx^2) ]
+         which is the result of passing a Gaussian exp[-x^2/(2*sx^2)]
+         convolution over a white noise field.  Then the covariance of
+         the neigbhors is
+            2*V * { 1 - exp[ -dx^2 / (4*sx^2) ] }
+         where V = variance of the noise (var).                     -----*/
+  /*---- 2.35482 = sqrt(8*log(2)) = sigma-to-FWHM conversion factor -----*/
 
   dx = lim->dx; dy = lim->dy; dz = lim->dz;
 
   arg = 1.0 - 0.5*(varxx/var);
+/* ININFO_message("dx: varxx/var=%g arg=%g",varxx/var,arg) ; */
   if( arg > 0.0 && arg < 1.0 ) sx = 2.35482*sqrt( -1.0 / (4.0*log(arg)) ) * dx;
 
   arg = 1.0 - 0.5*(varyy/var);
   if( arg > 0.0 && arg < 1.0 ) sy = 2.35482*sqrt( -1.0 / (4.0*log(arg)) ) * dy;
+/* ININFO_message("dy: varyy/var=%g arg=%g",varyy/var,arg) ; */
 
   arg = 1.0 - 0.5*(varzz/var);
   if( arg > 0.0 && arg < 1.0 ) sz = 2.35482*sqrt( -1.0 / (4.0*log(arg)) ) * dz;
+/* ININFO_message("dz: varzz/var=%g arg=%g",varzz/var,arg) ; */
 
   LOAD_FVEC3(fw_xyz,sx,sy,sz) ;
   if( lim != im ) mri_free(lim) ;
@@ -268,7 +278,6 @@ fprintf(stderr,"countx=%d dx2sum=%g dx2sqq=%g vx2=%g\n",countx,dx2sum,dx2sqq,vx2
   /*----- now estimate the FWHMs -----*/
 
   dx = lim->dx; dy = lim->dy; dz = lim->dz;
-
   if( lim != im ) mri_free(lim) ;
 
   /*--- 2.35482 = sqrt(8*log(2)) = sigma-to-FWHM conversion factor ---*/
@@ -324,6 +333,8 @@ THD_fvec3 mri_estimate_FWHM_12dif_MAD( MRI_IMAGE *im , byte *mask )
   int ix, jy, kz, qm,qp ;
   float vx1,vy1,vz1 , arg ;
   float vx2,vy2,vz2 ;
+  float wx1,wy1,wz1 , brg ;
+  float wx2,wy2,wz2 ;
   int countx, county, countz;
 
   int ngood ; float *dx1ar,*dy1ar,*dz1ar , *dx2ar,*dy2ar,*dz2ar ;
@@ -383,12 +394,12 @@ THD_fvec3 mri_estimate_FWHM_12dif_MAD( MRI_IMAGE *im , byte *mask )
 
   /*----- estimate variances of differences -----*/
 
-  qmedmad_float( countx , dx1ar , NULL , &vx1 ) ; vx1 = vx1*vx1 ;
-  qmedmad_float( county , dy1ar , NULL , &vy1 ) ; vy1 = vy1*vy1 ;
-  qmedmad_float( countz , dz1ar , NULL , &vz1 ) ; vz1 = vz1*vz1 ;
-  qmedmad_float( countx , dx2ar , NULL , &vx2 ) ; vx2 = vx2*vx2 ;
-  qmedmad_float( county , dy2ar , NULL , &vy2 ) ; vy2 = vy2*vy2 ;
-  qmedmad_float( countz , dz2ar , NULL , &vz2 ) ; vz2 = vz2*vz2 ;
+  qmedmadmeanad_float( countx, dx1ar, NULL, &vx1, &wx1 ); vx1 = vx1*vx1; wx1 = wx1*wx1 ;
+  qmedmadmeanad_float( county, dy1ar, NULL, &vy1, &wy1 ); vy1 = vy1*vy1; wy1 = wy1*wy1 ;
+  qmedmadmeanad_float( countz, dz1ar, NULL, &vz1, &wz1 ); vz1 = vz1*vz1; wz1 = wz1*wz1 ;
+  qmedmadmeanad_float( countx, dx2ar, NULL, &vx2, &wx2 ); vx2 = vx2*vx2; wx2 = wx2*wx2 ;
+  qmedmadmeanad_float( county, dy2ar, NULL, &vy2, &wy2 ); vy2 = vy2*vy2; wy2 = wy2*wy2 ;
+  qmedmadmeanad_float( countz, dz2ar, NULL, &vz2, &wz2 ); vz2 = vz2*vz2; wz2 = wz2*wz2 ;
 
   free(dx1ar) ; free(dy1ar) ; free(dz1ar) ;
   free(dx2ar) ; free(dy2ar) ; free(dz2ar) ;
@@ -396,7 +407,6 @@ THD_fvec3 mri_estimate_FWHM_12dif_MAD( MRI_IMAGE *im , byte *mask )
   /*----- now estimate the FWHMs -----*/
 
   dx = lim->dx; dy = lim->dy; dz = lim->dz;
-
   if( lim != im ) mri_free(lim) ;
 
   /*--- 2.35482 = sqrt(8*log(2)) = sigma-to-FWHM conversion factor ---*/
@@ -407,28 +417,58 @@ THD_fvec3 mri_estimate_FWHM_12dif_MAD( MRI_IMAGE *im , byte *mask )
         x = exp[-dx**2/(4*sigma**2)] = correlation coefficient of neighbors;
         we solve for x, then use that to solve for sigma, and scale to FWHM --*/
 
+  /*--- Modified 11 Aug 2015, to use the mean absolute deviations (wx1 & wx2)
+        instead of the median absolute deviations (vx1 & vx2) if the
+        computation fails for the median absolute deviations (the backup) ---*/
+
   if( vx1 > 0.0 && vx2 > vx1 ){
-    arg = vx2 / vx1 ;
+    arg = vx2 / vx1 ; brg = wx2 / wx1 ;
     arg = cbrt(12.0*sqrt(48.0 - 120.0*arg + 81.0*arg*arg) + 108.0*arg - 80.0) ;
     arg = arg/6.0 - 4.0/(3.0*arg) - 1.0/3.0 ;
     if( arg > 0.0 && arg < 1.0 ) sx = 2.35482*sqrt( -1.0 / (4.0*log(arg)) )*dx ;
+    else if( brg > 1.0f ){
+      brg = cbrt(12.0*sqrt(48.0 - 120.0*brg + 81.0*brg*brg) + 108.0*brg - 80.0) ;
+      brg = brg/6.0 - 4.0/(3.0*brg) - 1.0/3.0 ;
+      if( brg > 0.0 && brg < 1.0 ) sx = 2.35482*sqrt( -1.0 / (4.0*log(brg)) )*dx ;
+    }
+/* INFO_message("FWHM x: vx1=%f vx2=%f arg=%f sx=%f countx=%d",vx1,vx2,arg,sx,countx) ; */
+  } else {
+/* INFO_message("FWHM x: vx1=%f vx2=%f NOT GOOD",vx1,vx2) ; */
   }
 
   if( vy1 > 0.0 && vy2 > vy1 ){
-    arg = vy2 / vy1 ;
+    arg = vy2 / vy1 ; brg = wy2 / wy1 ;
     arg = cbrt(12.0*sqrt(48.0 - 120.0*arg + 81.0*arg*arg) + 108.0*arg - 80.0) ;
     arg = arg/6.0 - 4.0/(3.0*arg) - 1.0/3.0 ;
     if( arg > 0.0 && arg < 1.0 ) sy = 2.35482*sqrt( -1.0 / (4.0*log(arg)) )*dy ;
+    else if( brg > 1.0f ){
+      brg = cbrt(12.0*sqrt(48.0 - 120.0*brg + 81.0*brg*brg) + 108.0*brg - 80.0) ;
+      brg = brg/6.0 - 4.0/(3.0*brg) - 1.0/3.0 ;
+      if( brg > 0.0 && brg < 1.0 ) sy = 2.35482*sqrt( -1.0 / (4.0*log(brg)) )*dy ;
+    }
+/* INFO_message("FWHM y: vy1=%f vy2=%f arg=%f sy=%f county=%d",vy1,vy2,arg,sy,county) ; */
+  } else {
+/* INFO_message("FWHM y: vy1=%f vy2=%f NOT GOOD",vy1,vy2) ; */
   }
 
   if( vz1 > 0.0 && vz2 > vz1 ){
-    arg = vz2 / vz1 ;
+    arg = vz2 / vz1 ; brg = wz2 / wz1 ;
     arg = cbrt(12.0*sqrt(48.0 - 120.0*arg + 81.0*arg*arg) + 108.0*arg - 80.0) ;
     arg = arg/6.0 - 4.0/(3.0*arg) - 1.0/3.0 ;
     if( arg > 0.0 && arg < 1.0 ) sz = 2.35482*sqrt( -1.0 / (4.0*log(arg)) )*dz ;
+    else if( brg > 1.0f ){
+      brg = cbrt(12.0*sqrt(48.0 - 120.0*brg + 81.0*brg*brg) + 108.0*brg - 80.0) ;
+      brg = brg/6.0 - 4.0/(3.0*brg) - 1.0/3.0 ;
+      if( brg > 0.0 && brg < 1.0 ) sz = 2.35482*sqrt( -1.0 / (4.0*log(brg)) )*dz ;
+    }
+/* INFO_message("FWHM z: vz1=%f vz2=%f arg=%f sz=%f countz=%d",vz1,vz2,arg,sz,countz) ; */
+  } else {
+/* INFO_message("FWHM z: vz1=%f vz2=%f NOT GOOD",vz1,vz2) ; */
   }
 
+/* INFO_message("12dif_MAD: sxyz = %g %g %g",sx,sy,sz) ; */
   LOAD_FVEC3(fw_xyz,sx,sy,sz) ;
+/* INFO_message("12dif_MAD: fw = %g %g %g",fw_xyz.xyz[0],fw_xyz.xyz[1],fw_xyz.xyz[2]) ; */
   return fw_xyz ;
 }
 
@@ -492,6 +532,7 @@ ENTRY("THD_estimate_FWHM_all") ;
      }
      fw = fester( bim , mask ) ; mri_free(bim) ;
      UNLOAD_FVEC3( fw , outar[0+3*iv] , outar[1+3*iv] , outar[2+3*iv] ) ;
+/* INFO_message("fester: fw = %g %g %g",fw.xyz[0],fw.xyz[1],fw.xyz[2]) ; */
    }
 
    if( demed ) mri_free(medim) ;
@@ -499,3 +540,163 @@ ENTRY("THD_estimate_FWHM_all") ;
 
    RETURN(outim) ;
 }
+
+#if 1
+/*------------------------------------------------------------------------*/
+static double mom12_stdev_fac = 0.5 ;
+
+mri_fwhm_mom12_set_stdev_fac( double fff ){ mom12_stdev_fac = fff ; }
+
+/*------------------------------------------------------------------------*/
+/*! New method using first and second moments of differences, instead
+    of only second moments.  [05 Aug 2015]
+*//*----------------------------------------------------------------------*/
+
+THD_fvec3 mri_FWHM_1dif_mom12( MRI_IMAGE *im , byte *mask )
+{
+  int nx;                       /* number of voxels along x-axis */
+  int ny;                       /* number of voxels along y-axis */
+  int nz;                       /* number of voxels along z-axis */
+  int nxy, nxyz;                /* total number of voxels */
+  int ixyz;                     /* voxel index */
+  double dx;                    /* voxel size along x-axis */
+  double dy;                    /* voxel size along y-axis */
+  double dz;                    /* voxel size along z-axis */
+  int ix, jy, kz, ixyz2;
+  double fsum, fsq, var , vfac , arg ;
+  double dfdx, dfdy, dfdz ;
+  double dfdxs1, dfdxs2, dfdxs3, dfdxs4, dfdxna ;
+  double dfdys1, dfdys2, dfdys3, dfdys4, dfdyna ;
+  double dfdzs1, dfdzs2, dfdzs3, dfdzs4, dfdzna ;
+  int count=0, countx=0, county=0, countz=0 ;
+
+  float sx=-1.0f,sy=-1.0f,sz=-1.0f ;
+  MRI_IMAGE *lim ; float *fim ;
+  THD_fvec3 fw_xyz ;
+
+  /*----- initialize local variables -----*/
+
+  LOAD_FVEC3(fw_xyz,sx,sy,sz) ;  /* load with error flags */
+
+  if( im == NULL || mri_allzero(im) ) return fw_xyz ;
+  lim = (im->kind == MRI_float) ? im : mri_to_float(im) ;
+  fim = MRI_FLOAT_PTR(lim) ;
+  nx = lim->nx; ny = lim->ny; nz = lim->nz; nxy = nx*ny; nxyz = nx*ny*nz;
+
+  /*----- estimate the variance of the data itself -----*/
+
+  fsum = 0.0; fsq = 0.0; count = 0;
+  for (ixyz = 0;  ixyz < nxyz;  ixyz++){
+    if( GOOD(ixyz) ){ count++; arg = fim[ixyz]; fsum += arg; fsq  += arg*arg; }
+  }
+  if( count < 9 || fsq <= 0.0 ){     /* no data? */
+    if( lim != im ) mri_free(lim) ;
+    return fw_xyz ;
+  }
+  var = (fsq - (fsum * fsum)/count) / (count-1.0);
+  if( var <= 0.0 ){                  /* crappy data? */
+    if( lim != im ) mri_free(lim) ;
+    return fw_xyz ;
+  }
+  vfac = 1.0 / sqrt(2.0*var) ;
+
+  /*----- estimate moments of the partial derivatives -----*/
+  /*((((( 3rd and 4th moments are not used at present )))))*/
+
+  dfdxs1 = dfdxs2 = dfdxs3 = dfdxs4 = 0.0 ; dfdxna = 0.0 ;
+  dfdys1 = dfdys2 = dfdys3 = dfdys4 = 0.0 ; dfdyna = 0.0 ;
+  dfdzs1 = dfdzs2 = dfdzs3 = dfdzs4 = 0.0 ; dfdzna = 0.0 ;
+  countx = county = countz = 0 ;
+
+  for (ixyz = 0;  ixyz < nxyz;  ixyz++){
+    if( GOOD(ixyz) ){
+
+      arg = fim[ixyz] ;
+      IJK_TO_THREE (ixyz, ix, jy, kz, nx, nxy);
+
+      if( ix+1 < nx ){
+        ixyz2 = ixyz+1 ;
+        if( dontcheckplus || GOOD(ixyz2) ){
+          dfdx = vfac*(fim[ixyz2] - arg) ; dfdxna += dfdx ; dfdx = fabs(dfdx) ;
+          dfdxs1 += dfdx; dfdxs2 += dfdx*dfdx;
+          dfdxs3 += dfdx*dfdx*dfdx; dfdxs4 += dfdx*dfdx*dfdx*dfdx;
+          countx++;
+        }
+     }
+
+      if( jy+1 < ny ){
+        ixyz2 = ixyz+nx ;
+        if( dontcheckplus || GOOD(ixyz2) ){
+          dfdy = vfac*(fim[ixyz2] - arg) ; dfdyna += dfdy ; dfdy = fabs(dfdy) ;
+          dfdys1 += dfdy; dfdys2 += dfdy*dfdy;
+          dfdys3 += dfdy*dfdy*dfdy; dfdys4 += dfdy*dfdy*dfdy*dfdy;
+          county++;
+        }
+      }
+
+      if( kz+1 < nz ){
+        ixyz2 = ixyz+nxy ;
+        if( dontcheckplus || GOOD(ixyz2) ){
+          dfdz = vfac*(fim[ixyz2] - arg) ; dfdzna += dfdz ; dfdz = fabs(dfdz) ;
+          dfdzs1 += dfdz; dfdzs2 += dfdz*dfdz;
+          dfdzs3 += dfdz*dfdz*dfdz; dfdzs4 += dfdz*dfdz*dfdz*dfdz;
+          countz++;
+        }
+      }
+    }
+  }
+  if( countx == 0 ) countx = 1 ;  /* patch for possible stupidity in data */
+  if( county == 0 ) county = 1 ;
+  if( county == 0 ) county = 1 ;
+
+  dfdxs1 /= countx; dfdxs2 /= countx; dfdxs3 /= countx; dfdxs4 /= countx;
+  dfdys1 /= county; dfdys2 /= county; dfdys3 /= county; dfdys4 /= county;
+  dfdzs1 /= countz; dfdzs2 /= countz; dfdzs3 /= countz; dfdzs4 /= countz;
+
+  dfdxna /= countx ; dfdyna /= county ; dfdzna /= countz ;
+
+  dx = lim->dx; dy = lim->dy; dz = lim->dz;
+  if( lim != im ) mri_free(lim) ;
+
+#if 0
+  ININFO_message(" var= %13.6g",var) ;
+  ININFO_message(" dx:  %13.6g  %13.6g  %13.6g  %13.6g  na = %13.6g  #x = %d",
+                 dfdxs1 , dfdxs2 , dfdxs3 , dfdxs4 , dfdxna , countx ) ;
+  ININFO_message(" dy:  %13.6g  %13.6g  %13.6g  %13.6g  na = %13.6g  #y = %d",
+                 dfdys1 , dfdys2 , dfdys3 , dfdys4 , dfdyna , county ) ;
+  ININFO_message(" dz:  %13.6g  %13.6g  %13.6g  %13.6g  na = %13.6g  #z = %d",
+                 dfdzs1 , dfdzs2 , dfdzs3 , dfdzs4 , dfdzna , countz ) ;
+#endif
+
+#undef  SQHPI
+#define SQHPI 1.253314  /* sqrt(PI/2) */
+#undef  SQEPI
+#define SQEPI 0.626657  /* sqrt(PI/8) */
+
+  { double mn, sg ;
+    mn = SQHPI*dfdxs1 ;
+    sg = dfdxs2 - mn*mn ;
+    if( sg > 0.0 ) mn -= mom12_stdev_fac*sqrt(sg) ;
+    mn *= mn ;
+/* ININFO_message("dx: arg=%g",mn) ; */
+    if( mn > 0.0 && mn < 1.0 ) sx = 2.35482*sqrt( -1.0 / (4.0*log(1.0-mn)) ) * dx;
+
+    mn = SQHPI*dfdys1 ;
+    sg = dfdys2 - mn*mn ;
+    if( sg > 0.0 ) mn -= mom12_stdev_fac*sqrt(sg) ;
+    mn *= mn ;
+/* ININFO_message("dy: arg=%g",mn) ; */
+    if( mn > 0.0 && mn < 1.0 ) sy = 2.35482*sqrt( -1.0 / (4.0*log(1.0-mn)) ) * dy;
+
+    mn = SQHPI*dfdzs1 ;
+    sg = dfdzs2 - mn*mn ;
+    if( sg > 0.0 ) mn -= mom12_stdev_fac*sqrt(sg) ;
+    mn *= mn ;
+/* ININFO_message("dz: arg=%g",mn) ; */
+    if( mn > 0.0 && mn < 1.0 ) sz = 2.35482*sqrt( -1.0 / (4.0*log(1.0-mn)) ) * dz;
+  }
+
+  LOAD_FVEC3(fw_xyz,sx,sy,sz) ;
+  return fw_xyz ;
+}
+#endif

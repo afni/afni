@@ -289,6 +289,42 @@ void qmedmadbmv_float( int n, float *ar, float *med, float *mad, float *bmv )
    return ;
 }
 
+/*---------------------------------------------------------------
+  Return median and MAD and mean AD -- 11 Aug 2015 - RWCox
+-----------------------------------------------------------------*/
+
+void qmedmadmeanad_float( int n, float *ar, float *med, float *mad , float *meanad )
+{
+   float me=0.0f , ma=0.0f , md=0.0f , *q ;
+   register int ii ;
+
+   if( (med == NULL && mad == NULL && meanad == NULL ) || n <= 0 || ar == NULL ) return ;
+
+#pragma omp critical (MALLOC)
+   q = (float *)malloc(sizeof(float)*n) ;  /* workspace */
+   AAmemcpy(q,ar,sizeof(float)*n) ;  /* duplicate input array */
+   me = qmed_float( n , q ) ;      /* compute median (partially sorts q) */
+
+   if( (mad != NULL || meanad != NULL) && n > 1 ){
+     for( ii=0 ; ii < n ; ii++ ){   /* subtract off median */
+       q[ii] = fabsf(q[ii]-me) ;   /* (absolute deviation) */
+       md += q[ii] ;
+     }
+     md /= n ;
+     if( mad != NULL ){
+       ma = qmed_float( n , q ) ;    /* MAD = median absolute deviation */
+     }
+   }
+
+#pragma omp critical (MALLOC)
+   free(q) ;
+
+   if( med    != NULL ) *med    = me ;
+   if( mad    != NULL ) *mad    = ma ;
+   if( meanad != NULL ) *meanad = md ;
+   return ;
+}
+
 /*---------------------------------------------------------------*/
 
 float centromean_float( int n , float *ar )  /* 01 Nov 2010 */
@@ -494,7 +530,7 @@ int compare_string (const void *a, const void *b )
    if (!*ib) return(1);
    return (strcmp(*ia, *ib));
 }
-   
+
 int compare_double (double *a, double *b )
 {/* compare_double*/
     if (*a < *b)
