@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 12,  Aug, 2015, RCR, "@radial_correlate", MICRO, TYPE_NEW_OPT,
+   "add -mask option, to apply instead of automask",
+   "Done for Giri."
+ } ,
+
  { 12,  Aug, 2015, RCR, "gen_group_command.py", MINOR, TYPE_ENHANCE,
    "allow for generic/unknown commands via -command (e.g. ls, 3dTcat)",
    "Done for W-L Tseng."
@@ -82,6 +87,11 @@ afni_history_struct rickr_history[] = {
  {  5,  Aug, 2015, RCR, "afni-general", MICRO, TYPE_ENHANCE,
    "add some support for reading Voxel_Bucket datasets into AFNI",
    "That is a type that is currently specific to SUMA."
+ } ,
+
+ {  3,  Aug, 2015, RCR, "Dimon1", MICRO, TYPE_BUG_FIX,
+   "fixed -drive_afni, -drive_wait and -rt_cmd command lists",
+   NULL
  } ,
 
  {  3,  Aug, 2015, RCR, "Dimon", MICRO, TYPE_BUG_FIX,
