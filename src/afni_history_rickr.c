@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 13,  Aug, 2015, RCR, "afni-general", MICRO, TYPE_BUG_FIX,
+   "suma_datasets.c: comment out call to SUMA_CIFTI_2_edset for now",
+   NULL
+ } ,
+
  { 12,  Aug, 2015, RCR, "@radial_correlate", MICRO, TYPE_NEW_OPT,
    "add -mask option, to apply instead of automask",
    "Done for Giri."
