@@ -59,13 +59,15 @@
 #define METH_CVARINV      32  /* RWC 09 Aug 2011 */
 #define METH_CVARINVNOD   33
 
-#define METH_ZCOUNT       34
-#define METH_NZMEDIAN     35  /* RCR 27 Jun 2012 */
-#define METH_SIGNED_ABSMAX 36 /* RCR 31 Aug 2012 */
-#define METH_L2_NORM      37  /* RCR 07 Jan 2013 */
+#define METH_ZCOUNT        34
+#define METH_NZMEDIAN      35  /* RCR 27 Jun 2012 */
+#define METH_SIGNED_ABSMAX 36  /* RCR 31 Aug 2012 */
+#define METH_L2_NORM       37  /* RCR 07 Jan 2013 */
 #define METH_NZCOUNT       38
 
-#define MAX_NUM_OF_METHS  39
+#define METH_NZSTDEV       39  /* RWC 29 Jul 2015 */
+
+#define MAX_NUM_OF_METHS   40
 
 /* allow single inputs for some methods (test as we care to add) */
 #define NUM_1_INPUT_METHODS 4
@@ -94,7 +96,7 @@ static char *meth_names[] = {
    "Offset"        , "Accumulate"   , "SS"            , "BiwtMidV"    ,
    "ArgMin+1"      , "ArgMax+1"     , "ArgAbsMax+1"   , "CentroMean"  ,
    "CVarInv"       , "CvarInv (NOD)", "ZeroCount"     , "NZ Median"   ,
-   "Signed Absmax"
+   "Signed Absmax" , "L2 Norm"      , "NonZero Count" , "NZ Stdev"
 };
 
 static void STATS_tsfunc( double tzero , double tdelta ,
@@ -142,6 +144,7 @@ void usage_3dTstat(int detail)
  "                [N.B.: the trend IS removed for this]\n"
  " -median    = compute median of input voxels  [undetrended]\n"
  " -nzmedian  = compute median of non-zero input voxels [undetrended]\n"
+ " -nzstdev   = standard deviation of non-zero input voxel [undetrended]\n"
  " -bmv       = compute biweight midvariance of input voxels [undetrended]\n"
  "                [actually is 0.989*sqrt(biweight midvariance), to make]\n"
  "                [the value comparable to the standard deviation output]\n"
@@ -323,6 +326,12 @@ int main( int argc , char *argv[] )
 
       if( strcasecmp(argv[nopt],"-nzmedian") == 0 ){
          meth[nmeths++] = METH_NZMEDIAN ;
+         nbriks++ ;
+         nopt++ ; continue ;
+      }
+
+      if( strcasecmp(argv[nopt],"-nzstdev") == 0 ){
+         meth[nmeths++] = METH_NZSTDEV ;
          nbriks++ ;
          nopt++ ; continue ;
       }
@@ -956,6 +965,21 @@ static void STATS_tsfunc( double tzero, double tdelta ,
            if( ts[lind] ) ts_copy[lnzcount++] = ts[lind];
         /* and get the result from the possibly shortened array */
         if( lnzcount > 0 ) val[out_index] = qmed_float( lnzcount , ts_copy ) ;
+        else               val[out_index] = 0.0 ;
+        free(ts_copy);
+      }
+      break ;
+
+      case METH_NZSTDEV:{      /* 29 Jul 2015 [RWC] */
+        float* ts_copy;
+        int    lind, lnzcount;
+        ts_copy = (float*)calloc(npts, sizeof(float));
+        /* replace memcpy with non-zero copy */
+        lnzcount=0;
+        for (lind=0; lind < npts; lind++)
+           if( ts[lind] ) ts_copy[lnzcount++] = ts[lind];
+        /* and get the result from the possibly shortened array */
+        if( lnzcount > 1 ) meansigma_float( lnzcount,ts_copy, NULL,val+out_index ) ;
         else               val[out_index] = 0.0 ;
         free(ts_copy);
       }

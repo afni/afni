@@ -622,6 +622,105 @@ class SubjectList(object):
 
       return cmd
 
+   def make_generic_command(self, command, bsubs=None, subjlist2=None,
+                            prefix=None, options=''):
+      """create a generic command
+
+         This basically allows one to create a generic command that takes
+         AFNI-style inputs.
+
+         Note: this is almost identical to make_mema_command, except for use 
+               of tsubs.
+
+         attach options before subject lists
+         bsubs can be of length 1 even with 2 set_labs, in that case:
+            - length 1: must have subjlist2 set, and apply to it
+            - length 2: no subjlist2, use with subjlist 1
+
+         return None on failure, command on success
+      """
+
+      if not command: return
+
+      # do we have a second slist?
+      s2 = subjlist2    # so much typing...
+
+      # make sure we have sub-brick selectors for possibly both lists
+      if bsubs == None: bsubs = [None]
+      if s2 and len(bsubs) == 1: bsubs.append(bsubs[0])
+
+      # ready for work, maybe note status
+      if self.verb > 1:
+         print '-- make_generic_command: %s -prefix %s' % (command, prefix)
+         print '                         s2 = %d, bsubs = %s'%(s2!=None,bsubs)
+
+      # initialize directories and variables
+      rv, cmd = self.set_data_dirs(subjlist2=s2)
+      if rv: return
+
+      # append actual command, prefix and options
+      indent = len(command)+1
+
+      # having no prefix is valid, skip that part
+      if prefix: cmd += '%s -prefix %s \\\n' % (command, prefix)
+      else:      cmd += '%s \\\n'            % (command)
+
+      if len(options) > 0:
+         cmd += '%*s%s \\\n' % (indent, '', ' '.join(options))
+
+      # if s2: cmd += '%*s# dataset list 1 \\\n' % (indent,'')
+      cmd += self.make_generic_set_list(bsubs[0], indent)
+      if s2:
+         cmd += '\\\n' + s2.make_generic_set_list(bsubs[1], indent)
+      elif len(bsubs) > 1:
+         cmd += '\\\n' + self.make_generic_set_list(bsubs[1], indent)
+
+      # strip trailing backslash (must dupe memory)
+      if cmd[-2:] == '\\\n': cmd = cmd[0:-2]
+
+      cmd += '\n\n'
+
+      return cmd
+
+   def set_data_dirs(self, subjlist2=None):
+      """Given 1 or 2 file lists, set directories and return initial
+         script to apply them with variables.
+
+         return status and script text
+
+         if there are 0 or 1 common dirs use them
+         if there are 2 and they are different, adjust var names
+      """
+      s2 = subjlist2  # so much typing...
+      self.set_common_data_dir()
+      uses2dir = 0
+      diffdirs = 0
+      if s2 != None:
+         s2.set_common_data_dir()
+         uses2dir = not UTIL.is_trivial_dir(s2.common_dir)
+         if not UTIL.is_trivial_dir(s2.common_dir)   and \
+            not UTIL.is_trivial_dir(self.common_dir) and \
+            self.common_dir != s2.common_dir:
+               # differentiate the directory variable names
+               self.common_dname = 'data1'
+               s2.common_dname = 'data2'
+               diffdirs = 1
+
+      cmd = ''
+      if not UTIL.is_trivial_dir(self.common_dir) or uses2dir:
+         cmd += '# apply any data directories with variables\n'
+
+      if not UTIL.is_trivial_dir(self.common_dir):
+         cmd += 'set %s = %s\n' % (self.common_dname, self.common_dir)
+
+      if diffdirs:
+         cmd += 'set %s = %s\n' % (s2.common_dname, s2.common_dir)
+
+      if cmd: cmd += '\n'
+
+      return 0, cmd
+
+
    def make_ttestpp_command(self, set_labs=None, bsubs=None, subjlist2=None,
                              prefix=None, comp_dir=None, options=None, verb=1):
       """create a basic 3dttest++ command
@@ -729,6 +828,10 @@ class SubjectList(object):
                 (indent, ' ', set_labs[1], S.make_ttpp_set_list(b, indent+3))
 
       if len(options) > 0: cmd += '%*s%s' % (indent, '', ' '.join(options))
+
+      # strip trailing backslash (must dupe memory)
+      if cmd[-2:] == '\\\n': cmd = cmd[0:-2]
+
       cmd += '\n\n'
 
       return cmd
@@ -830,6 +933,10 @@ class SubjectList(object):
          cmd += '%7s%s %s %s \\\n' % ('', opt, set_labs[0], set_labs[1])
 
       if len(options) > 0: cmd += '%7s%s' % ('', ' '.join(options))
+
+      # strip trailing backslash (must dupe memory)
+      if cmd[-2:] == '\\\n': cmd = cmd[0:-2]
+
       cmd += '\n\n'
 
       return cmd
@@ -864,6 +971,33 @@ class SubjectList(object):
          sstr += '%*s%s "%s[%s]" \\\n%*s "%s[%s]" \\\n' % \
                  (indent,    '', subj.sid, dset, bsub,
                   indent+ml, '',           dset, tsub)
+      return sstr
+
+   def make_generic_set_list(self, bsub, indent=0):
+      """return a multi-line string of the form:
+                "dset1[bsub]"
+                "dset2[bsub]"
+                ...
+         indent is per-line indentation
+      """
+      if not UTIL.is_trivial_dir(self.common_dir) and self.common_dname:
+         sdir = self.common_dname
+      else: sdir = ''
+
+      sstr = ''
+      for subj in self.subjects:
+         if sdir:
+            # see if the dataset is in a directory underneath
+            cdir = UTIL.child_dir_name(self.common_dir, subj.ddir)
+            if UTIL.is_trivial_dir(cdir): cstr = ''
+            else: cstr = '%s/' % cdir
+            dset = '$%s/%s%s' % (sdir, cstr, subj.dfile)
+         else:    dset = subj.dset
+         if bsub == None:
+            sstr += '%*s%s \\\n' % (indent, '', dset)
+         else: # use bsub
+            sstr += '%*s"%s[%s]" \\\n' % (indent, '', dset, bsub)
+
       return sstr
 
    def make_ttpp_set_list(self, bsub, indent=0):

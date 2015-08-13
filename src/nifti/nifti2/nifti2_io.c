@@ -375,10 +375,12 @@ static char const * const gni2_history[] =
   "2.03 23 Jul, 2015 [rickr]\n"
   "   - possibly alter dimensions on CIFTI read\n"
   "   - return N-1 headers in unknown version cases\n",
+  "2.04 05 Aug, 2015 [rickr]\n"
+  "   - have writing try NIFTI-2 if NIFTI-1 seesm insufficient\n"
 };
 
 static const char gni_version[]
-        = "nifti-2 library version 2.03 (23 July, 2015)";
+        = "nifti-2 library version 2.04 (5 August, 2015)";
 
 /*! global nifti options structure - init with defaults */
 /*  see 'option accessor functions'                     */
@@ -7195,9 +7197,9 @@ nifti_image * nifti_make_new_nim(const int64_t dims[], int datatype,
 }
 
 #undef N_CHECK_2BYTE_VAL
-#define N_CHECK_2BYTE_VAL(fn) if( ! NIFTI_IS_16_BIT_INT(nim->fn) )        \
+#define N_CHECK_2BYTE_VAL(fn) do { if( ! NIFTI_IS_16_BIT_INT(nim->fn) ) { \
    fprintf(stderr,"** nim->%s = %lld does not fit into NIFTI-1 header\n", \
-           #fn, (long long)nim->fn)
+           #fn, (long long)nim->fn); return 1; } } while(0)
 
 
 /*----------------------------------------------------------------------*/
@@ -7210,9 +7212,14 @@ nifti_image * nifti_make_new_nim(const int64_t dims[], int datatype,
     my_header = nifti_convert_nim2n1hdr(my_nim_pointer);
     </pre>
 *//*--------------------------------------------------------------------*/
-nifti_1_header nifti_convert_nim2n1hdr(const nifti_image * nim)
+int nifti_convert_nim2n1hdr(const nifti_image * nim, nifti_1_header * hdr)
 {
    nifti_1_header nhdr;
+
+   if( !hdr ) {
+      fprintf(stderr,"** nifti_CN2N1hdr: no hdr to fill\n");
+      return 1;
+   }
 
    memset(&nhdr,0,sizeof(nhdr)) ;  /* zero out header, to be safe */
 
@@ -7335,7 +7342,9 @@ nifti_1_header nifti_convert_nim2n1hdr(const nifti_image * nim)
      nhdr.slice_duration = nim->slice_duration ;
    }
 
-   return nhdr;
+   memcpy(hdr, &nhdr, sizeof(nhdr));
+
+   return 0;
 }
 
 
@@ -7349,9 +7358,14 @@ nifti_1_header nifti_convert_nim2n1hdr(const nifti_image * nim)
     my_header = nifti_convert_nim2n2hdr(my_nim_pointer);
     </pre>
 *//*--------------------------------------------------------------------*/
-nifti_2_header nifti_convert_nim2n2hdr(const nifti_image * nim)
+int nifti_convert_nim2n2hdr(const nifti_image * nim, nifti_2_header * hdr)
 {
    nifti_2_header nhdr;
+
+   if( !hdr ) {
+      fprintf(stderr,"** nifti_CN2N2hdr: no hdr to fill\n");
+      return 1;
+   }
 
    memset(&nhdr,0,sizeof(nhdr)) ;  /* zero out header, to be safe */
 
@@ -7440,7 +7454,9 @@ nifti_2_header nifti_convert_nim2n2hdr(const nifti_image * nim)
 
    nhdr.unused_str[0] = '\0' ;  /* not needed, but complete */
 
-   return nhdr;
+   memcpy(hdr, &nhdr, sizeof(nhdr));
+
+   return 0;
 }
 
 
@@ -7628,10 +7644,12 @@ znzFile nifti_image_write_hdr_img( nifti_image *nim , int write_data ,
 znzFile nifti_image_write_hdr_img2(nifti_image *nim, int write_opts,
                const char * opts, znzFile imgfile, const nifti_brick_list * NBL)
 {
-   nifti_1_header nhdr ;
+   nifti_1_header n1hdr ;
+   nifti_2_header n2hdr ;
    znzFile        fp=NULL;
    int64_t        ss ;
    int            write_data, leave_open;
+   int            nver=1, hsize=(int)sizeof(nifti_1_header);  /* 5 Aug 2015 */
    char           func[] = { "nifti_image_write_hdr_img2" };
 
    write_data = write_opts & 1;  /* just separate the bits now */
@@ -7656,7 +7674,16 @@ znzFile nifti_image_write_hdr_img2(nifti_image *nim, int write_opts,
    if( nim->nifti_type == NIFTI_FTYPE_ASCII )   /* non-standard case */
       return nifti_write_ascii_image(nim,NBL,opts,write_data,leave_open);
 
-   nhdr = nifti_convert_nim2n1hdr(nim);    /* create the nifti1_header struct */
+   /* create the nifti header struct                  5 Aug, 2015 [rickr]
+        - default is NIFTI-1 (option?)
+        - if that fails try NIFTI-2
+   */
+   if( nifti_convert_nim2n1hdr(nim, &n1hdr) ) {
+      if( nifti_convert_nim2n2hdr(nim, &n2hdr) ) return NULL;
+      fprintf(stderr,"+d writing %s as NIFTI-2, instead...\n", nim->fname);
+      nver = 2; /* we will write NIFTI-2 */
+      hsize = (int)sizeof(nifti_2_header);
+   }
 
    /* if writing to 2 files, make sure iname is set and different from fname */
    if( nim->nifti_type != NIFTI_FTYPE_NIFTI1_1 ){
@@ -7686,8 +7713,10 @@ znzFile nifti_image_write_hdr_img2(nifti_image *nim, int write_opts,
 
    /* write the header and extensions */
 
-   ss = znzwrite(&nhdr , 1 , sizeof(nhdr) , fp); /* write header */
-   if( ss < (int)sizeof(nhdr) ){
+   if( nver == 2 ) ss = znzwrite(&n2hdr , 1 , hsize , fp); /* write header */
+   else            ss = znzwrite(&n1hdr , 1 , hsize , fp); /* write header */
+
+   if( ss < hsize ){
       LNI_FERR(func,"bad header write to output file",nim->fname);
       znzclose(fp); return fp;
    }

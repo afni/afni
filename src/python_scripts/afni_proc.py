@@ -485,12 +485,18 @@ g_history = """
     4.48 Jul 27, 2015:
         - renamed -regress_WMeL_corr to -regress_make_corr_AIC
         - default is now 'no' (since it is a somewhat slow operation)
+    4.49 Jul 28, 2015:
+        - ** ANATICOR now includes zero volumes at censor points
+        -    (this matches non-ANATICOR and fast ANATICOR cases)
+    4.50 Jul 29, 2015:
+        - ANATICOR now works for task analysis, using -regress_reml_exec
 """
 
-g_version = "version 4.48, July 27, 2015"
+g_version = "version 4.50, July 29, 2015"
 
 # version of AFNI required for script execution
-g_requires_afni = "1 Apr 2015" # 1d_tool.py uncensor from 1D
+# prev: g_requires_afni = "1 Apr 2015" # 1d_tool.py uncensor from 1D
+g_requires_afni = "23 Jul 2015" # 3dREMLfit -dsort
 
 g_todo_str = """todo:
   - add option to block anat from anat followers?
@@ -578,6 +584,7 @@ class SubjProcSream:
         self.vr_int_name= ''            # other internal volreg dset name
         self.volreg_prefix = ''         # prefix for volreg dataset ($run)
                                         #   (using $subj and $run)
+        self.vr_vall    = None          # all runs from volreg block
         self.mot_labs   = []            # labels for motion params
         # motion parameter file (across all runs)
         self.mot_file   = 'dfile_rall.1D' # either mot_default or mot_extern
@@ -629,10 +636,13 @@ class SubjProcSream:
         self.e2final_mv = []            # matvec list takes epi base to final
         self.e2final    = ''            # aff12.1D file for e2final_mv
         self.regress_inset = None       # afni_name: first input to regression
+        self.anaticor   = 0             # 0/1/2 = no/slow/fast
+        self.aic_lset   = None          # ANATICOR local WM time series dataset
         self.errts_pre  = ''            # possibly changing errts prefix
         self.errts_reml = ''            # prefix for any REML errts
         self.errts_cen  = 0             # flag: current errts has censored
                                         #       TRs removed
+        self.keep_trs   = ''            # maybe becomes '"[$keep_trs]"'
         self.align_ebase= None          # external EPI for align_epi_anat.py
         self.align_epre = 'ext_align_epi' # copied align epi base prefix
         self.rm_rm      = 1             # remove rm.* files (user option)
