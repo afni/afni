@@ -49,6 +49,93 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 12,  Aug, 2015, RCR, "@radial_correlate", MICRO, TYPE_NEW_OPT,
+   "add -mask option, to apply instead of automask",
+   "Done for Giri."
+ } ,
+
+ { 12,  Aug, 2015, RCR, "gen_group_command.py", MINOR, TYPE_ENHANCE,
+   "allow for generic/unknown commands via -command (e.g. ls, 3dTcat)",
+   "Done for W-L Tseng."
+ } ,
+
+ {  7,  Aug, 2015, RCR, "3dhistog", MICRO, TYPE_NEW_OPT,
+   "add -noempty option, to ignore empty bins",
+   NULL
+ } ,
+
+ {  7,  Aug, 2015, RCR, "model_conv_PRF", MICRO, TYPE_MODIFY,
+   "make everything static, to avoid confusion",
+   NULL
+ } ,
+
+ {  7,  Aug, 2015, RCR, "model_conv_PRF_6", MICRO, TYPE_BUG_FIX,
+   "make everything static, to avoid confusion; proto for conv_set_ref",
+   NULL
+ } ,
+
+ {  5,  Aug, 2015, RCR, "nifti_tool", MICRO, TYPE_ENHANCE,
+   "apply library updates for potentially writing NIFTI-2",
+   NULL
+ } ,
+
+ {  5,  Aug, 2015, RCR, "NIFTI", MINOR, TYPE_ENHANCE,
+   "if conversion to NIFTI-1 header fails on write, try NIFTI-2",
+   NULL
+ } ,
+
+ {  5,  Aug, 2015, RCR, "afni-general", MICRO, TYPE_ENHANCE,
+   "add some support for reading Voxel_Bucket datasets into AFNI",
+   "That is a type that is currently specific to SUMA."
+ } ,
+
+ {  3,  Aug, 2015, RCR, "Dimon1", MICRO, TYPE_BUG_FIX,
+   "fixed -drive_afni, -drive_wait and -rt_cmd command lists",
+   NULL
+ } ,
+
+ {  3,  Aug, 2015, RCR, "Dimon", MICRO, TYPE_BUG_FIX,
+   "applied ACQUSITION_TYPE as 3d+timing",
+   "Slice timing was lost (by the plugin) in the change to 3d+t ACQ TYPE.\n"
+   "Thanks to H Mandelkow for bringing this up."
+ } ,
+
+ {  3,  Aug, 2015, RCR, "plug_realtime", MINOR, TYPE_ENHANCE,
+   "added DTYPE_3DTM (3D+timing) ACQUSITION_TYPE",
+   "Treats data as per volume, but with slice timing.  This is needed for\n"
+   "num_chan>0, but when data does not come in num_chan slices at a time."
+ } ,
+
+ { 31,  Jul, 2015, RCR, "@FindAfniDsetPath", MICRO, TYPE_ENHANCE,
+   "allow full paths to succeeed ; no args gives help",
+   NULL
+ } ,
+
+ { 30,  Jul, 2015, RCR, "@auto_tlrc", MICRO, TYPE_BUG_FIX,
+   "check for template existence even given path",
+   "Was failing with -init_xform."
+ } ,
+
+ { 29,  Jul, 2015, RCR, "gen_ss_reivew_scripts.py", MICRO, TYPE_MODIFY,
+   "block any _REMLvar stats dset (was _REMLvar+)",
+   "Might get stats*_REMLvar_nods, for example, via 3dREMLfit -dsort_nods."
+ } ,
+
+ { 29,  Jul, 2015, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,
+   "ANATICOR now works with task analysis, using -regress_reml_exec",
+   "Done for R W Cox."
+ } ,
+
+ { 29,  Jul, 2015, RCR, "3dcalc", MICRO, TYPE_MODIFY,
+   "clarify error about mis-match in number of volumes",
+   NULL
+ } ,
+
+ { 28,  Jul, 2015, RCR, "afni_proc.py", MINOR, TYPE_MODIFY,
+   "ANATICOR now includes zero volumes at censor points",
+   "This matches non-ANATICOR and fast ANATICOR cases."
+ } ,
+
  { 27,  Jul, 2015, RCR, "afni_proc.py", MICRO, TYPE_MODIFY,
    "renamed -regress_WMeL_corr to -regress_make_corr_AIC and default to 'no'",
    NULL

@@ -66,6 +66,21 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 10, Aug , 2015 , PT , "fat_mvm_scripter.py" , MINOR , TYPE_NEW_OPT,
+   "Minor new option: input list of ROIs with file.",
+   "For minor convenience.\n"
+},
+
+{ 9, Aug , 2015 , PT , "3dROIMaker" , MINOR , TYPE_BUG_FIX,
+   "Fixed minor bug when GM map has no ROIs/clusters.",
+   "No more crashing... Won't produce GM or GMI volumes; message only.\n"
+},
+
+{ 5, Aug , 2015 , PT , "fat_mvm_prep.py" , MICRO , TYPE_BUG_FIX,
+   "Micro ~bug fixed for inputting CSV headings.",
+   "Now strip off lead/trail whitespace, then replace rest with underscore.\n"
+},
+
 { 22, Jul , 2015 , PT , "3dROIMaker" , MINOR , TYPE_BUG_FIX,
    "Fixed minor bug when refset has negative values.",
    "No more crashing...\n"

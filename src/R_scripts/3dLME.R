@@ -351,7 +351,7 @@ read.LME.opts.batch <- function (args=NULL, verb = 0) {
 
      '-LOGIT' = apl(n=0, d=3, h = paste(
    "-LOGIT: This option allows 3dLME to perform voxel-wise logistic modeling.",
-   "        Currently not random effects are allowed ('-ranEff NA'), but this",
+   "        Currently no random effects are allowed ('-ranEff NA'), but this",
    "        limitation can be removed later if demand occurs. The InputFile",
    "        column is expected to list subjects' responses in 0s and 1s. In",
    "        addition, one voxel-wise covariate is currently allowed. Each",
@@ -959,6 +959,109 @@ runGLM <- function(inData, dataframe, ModelForm) {
 }
 # test runGLM(inData[20,20,20,], dataframe=lop$dataStr, ModelForm=ModelForm)      
 
+runGLM2 <- function(inData, dataframe, ModelForm, nBoot) {  
+   Stat   <- rep(0, lop$NoBrick+2*(nlevels(lop$dataStr$Subj) + 1))
+   if (!all(abs(inData) < 1e-8)) {
+      dataframe$Beta<-inData[1:lop$nVVars]
+      if(any(!is.na(lop$vQV))) {
+         dataframe <- assVV(dataframe, lop$vQV, inData, all(is.na(lop$vVarCenters)))
+      }
+      #browser()
+      dataframe$Beta <- lop$dataStr$InputFile
+      fm <- NULL
+      try(fm <- glm(ModelForm, family=binomial(logit), data=dataframe), silent=TRUE)
+      if(!is.null(fm)) {
+         Stat[seq(1,lop$NoBrick-(lop$cutoff>0)-1,2)] <- summary(fm)$coefficients[,'Estimate']
+         Stat[seq(2,lop$NoBrick-(lop$cutoff>0)-1,2)] <- summary(fm)$coefficients[,'z value']
+         pred <- prediction(fm$fitted.values, lop$dataStr$InputFile) # from ROCR
+         acc <- pred@tp[[1]]+pred@tn[[1]]
+         acc <- acc/(acc+pred@fp[[1]]+pred@fn[[1]]) # accuracy
+         cutoff <- c(1, pred@cutoffs[[1]][-1])  # the 1st one is Inf, replaced by 1 here
+
+         # accuracy associated the user-specified cutoff
+         #Stat[lop$NoBrick-1] <- acc[which.min(abs(cutoff-lop$cutoff))]
+        
+         acc0 <- rep(0, lop$nB)
+         nn <- 0
+         for(ii in 1: lop$nB) {
+            fm0 <- NULL
+            try(fm0 <- glm(ModelForm, family=binomial(logit), data=dataframe[nBoot[,ii],]), silent=TRUE)
+            if(!is.null(fm0)) {
+               nn<-nn+1
+               pred0 <- prediction(fm0$fitted.values, dataframe[nBoot[,ii],]$Beta)
+               acc1 <- pred0@tp[[1]]+pred0@tn[[1]]
+               acc1 <- acc1/(acc1+pred0@fp[[1]]+pred0@fn[[1]]) # accuracy
+               cutoff1 <- c(1, pred0@cutoffs[[1]][-1])  # the 1st one is Inf, replaced by 1 here
+               acc0[ii] <- acc1[which.min(abs(cutoff1-lop$cutoff))]
+            }
+         }
+         Stat[lop$NoBrick-1] <- mean(acc0)
+         Stat[lop$NoBrick] <- (Stat[lop$NoBrick-1]-0.5)/(sd(acc0)/sqrt(nn))
+         # the 2 values below are for max acc and the corresponding cutoff
+         #accMax <- max(acc)
+         #Stat[lop$NoBrick-1] <- cutoff[which(abs(acc-accMax) < 1e-8)][1]  # just take the first cutoff if ambiguous
+         #Stat[lop$NoBrick]   <- accMax
+      
+         Stat[(lop$NoBrick+1):(lop$NoBrick+nlevels(lop$dataStr$Subj) + 1)]  <- cutoff
+         Stat[(lop$NoBrick+nlevels(lop$dataStr$Subj) + 2):(lop$NoBrick+2*nlevels(lop$dataStr$Subj) + 2)] <- acc
+      }
+   } # if (!all(abs(inData) < 1e-8))
+   return(Stat)
+}
+
+# test runGLM2(inData[20,20,20,], dataframe=lop$dataStr, ModelForm=ModelForm, nBoot=nBoot)      
+
+runGLM0 <- function(inData, dataframe, ModelForm, nBoot) {  
+   Stat   <- rep(0, lop$NoBrick+2*(nlevels(lop$dataStr$Subj) + 1))
+   if (!all(abs(inData) < 1e-8)) {
+      dataframe$Beta<-inData[1:lop$nVVars]
+      if(any(!is.na(lop$vQV))) {
+         dataframe <- assVV(dataframe, lop$vQV, inData, all(is.na(lop$vVarCenters)))
+      }
+      #browser()
+      dataframe$Beta <- lop$dataStr$InputFile
+      fm <- NULL
+      try(fm <- glm(ModelForm, family=binomial(logit), data=dataframe), silent=TRUE)
+      if(!is.null(fm)) {
+         Stat[seq(1,lop$NoBrick-(lop$cutoff>0)-1,2)] <- summary(fm)$coefficients[,'Estimate']
+         Stat[seq(2,lop$NoBrick-(lop$cutoff>0)-1,2)] <- summary(fm)$coefficients[,'z value']
+         pred <- prediction(fm$fitted.values, lop$dataStr$InputFile) # from ROCR
+         acc <- pred@tp[[1]]+pred@tn[[1]]
+         acc <- acc/(acc+pred@fp[[1]]+pred@fn[[1]]) # accuracy
+         cutoff <- c(1, pred@cutoffs[[1]][-1])  # the 1st one is Inf, replaced by 1 here
+
+         # accuracy associated the user-specified cutoff
+         Stat[lop$NoBrick-1] <- acc[which.min(abs(cutoff-lop$cutoff))]
+         nB <- 30
+         acc0 <- rep(0, nB)
+         nn <- 0
+         for(ii in 1: nB) {
+            fm0 <- NULL
+            try(fm0 <- glm(ModelForm, family=binomial(logit), data=dataframe[nBoot[,ii],]), silent=TRUE)
+            if(!is.null(fm0)) {
+               nn<-nn+1
+               pred0 <- prediction(fm0$fitted.values, dataframe[nBoot[,ii],]$Beta)
+               acc1 <- pred0@tp[[1]]+pred0@tn[[1]]
+               acc1 <- acc1/(acc1+pred0@fp[[1]]+pred0@fn[[1]]) # accuracy
+               cutoff1 <- c(1, pred0@cutoffs[[1]][-1])  # the 1st one is Inf, replaced by 1 here
+               acc0[ii] <- acc1[which.min(abs(cutoff1-lop$cutoff))]
+            }
+         }
+         Stat[lop$NoBrick] <- (Stat[lop$NoBrick-1]-0.5)/(sd(acc0)/sqrt(nn))
+         # the 2 values below are for max acc and the corresponding cutoff
+         #accMax <- max(acc)
+         #Stat[lop$NoBrick-1] <- cutoff[which(abs(acc-accMax) < 1e-8)][1]  # just take the first cutoff if ambiguous
+         #Stat[lop$NoBrick]   <- accMax
+      
+         Stat[(lop$NoBrick+1):(lop$NoBrick+nlevels(lop$dataStr$Subj) + 1)]  <- cutoff
+         Stat[(lop$NoBrick+nlevels(lop$dataStr$Subj) + 2):(lop$NoBrick+2*nlevels(lop$dataStr$Subj) + 2)] <- acc
+      }
+   }
+   return(Stat)
+}
+
+# test runGLM2(inData[20,20,20,], dataframe=lop$dataStr, ModelForm=ModelForm, nBoot=nBoot)      
+
 
 #################################################################################
 ########################## Read information from a file #########################tryCatch(print(fm[[1]]), error=function(e) NULL)
@@ -1276,7 +1379,7 @@ if(lop$ICC) {  # ICC part
       try(fm <- glm(ModelForm, family=binomial(logit), data=lop$dataStr), silent=TRUE)
       if(!is.null(fm))  {
          print(sprintf("Great, test run passed at voxel (%i, %i, %i)!", ii, jj, kk))
-         lop$NoBrick <- 2*dim(summary(fm)$coefficients)[1] + (lop$cutoff>0) # add 1 sub-bricks for accMax and cutoff
+         lop$NoBrick <- 2*dim(summary(fm)$coefficients)[1] + (lop$cutoff>0)+1 # add 1 sub-bricks for accMax and cutoff
       } else if(ii<dimx) ii<-ii+1 else if(jj<dimy) {ii<-xinit; jj <- jj+1} else if(kk<dimz) {
          ii<-xinit; jj <- yinit; kk <- kk+1 } else {
       cat('~~~~~~~~~~~~~~~~~~~ Model test failed  ~~~~~~~~~~~~~~~~~~~\n')    
@@ -1391,8 +1494,20 @@ if(lop$ICC) {  # ICC part
    for(ii in 1:lop$NoBrick) statsym <- c(statsym, list(list(sb=ii-1,typ="fim")))
 } else if(lop$LOGIT) {  # logistic regression: no random effects for now
    Stat <- array(0, dim=c(dimx, dimy, dimz, lop$NoBrick+2*(nlevels(lop$dataStr$Subj) + 1)))
+   # the following is for bootstrapping
+   sam <- function(gA, gB) {       
+      A <- sample(gA, length(gA), replace=T)
+      B <- sample(gB, length(gB), replace=T)
+      return(c(A, B))
+   }
+   lop$nB <- 30
+   zero <- which(lop$dataStr$Beta==0)
+   one <- which(lop$dataStr$Beta==1)
+   nBoot <- replicate(lop$nB, sam(zero, one))
+    
    if (lop$nNodes==1) for (kk in 1:dimz) {
-      Stat[,,kk,] <- aperm(apply(inData[,,kk,], c(1,2), runGLM, dataframe=lop$dataStr, ModelForm=ModelForm), c(2,3,1))
+      Stat[,,kk,] <- aperm(apply(inData[,,kk,], c(1,2), runGLM2, dataframe=lop$dataStr, ModelForm=ModelForm, nBoot=nBoot), c(2,3,1))
+      #Stat[,,kk,] <- aperm(apply(inData[,,kk,], c(1,2), runGLM, dataframe=lop$dataStr, ModelForm=ModelForm), c(2,3,1))
       cat("Z slice ", kk, "done: ", format(Sys.time(), "%D %H:%M:%OS3"), "\n")
    }         
    if (lop$nNodes>1) {
@@ -1401,21 +1516,26 @@ if(lop$ICC) {  # ICC part
       clusterExport(cl, c("ModelForm", "assVV", "lop"), envir=environment())
       clusterEvalQ(cl, library(ROCR))
       for (kk in 1:dimz) {
-         Stat[,,kk,] <- aperm(parApply(cl, inData[,,kk,], c(1,2), runGLM, dataframe=lop$dataStr, ModelForm=ModelForm), c(2,3,1))
+         Stat[,,kk,] <- aperm(parApply(cl, inData[,,kk,], c(1,2), runGLM2, dataframe=lop$dataStr, ModelForm=ModelForm, nBoot=nBoot), c(2,3,1))
+         #Stat[,,kk,] <- aperm(parApply(cl, inData[,,kk,], c(1,2), runGLM, dataframe=lop$dataStr, ModelForm=ModelForm), c(2,3,1))
          cat("Z slice ", kk, "done: ", format(Sys.time(), "%D %H:%M:%OS3"), "\n")
       }
       stopCluster(cl)
    }
+   Stat[Stat==Inf] <- 0
+   Stat[Stat==-Inf] <- 0
    cutoff   <- Stat[,,,(lop$NoBrick+1):(lop$NoBrick+nlevels(lop$dataStr$Subj) + 1)]
    acc      <- Stat[,,,(lop$NoBrick+nlevels(lop$dataStr$Subj) + 2):(lop$NoBrick+2*(nlevels(lop$dataStr$Subj) + 1))]
    Stat     <- Stat[,,,1:lop$NoBrick]
    outLabel <- NULL
    statsym  <- NULL
-   for(ii in 1:((lop$NoBrick-1)/2)) {
+   for(ii in 1:(lop$NoBrick/2)) {
+   #for(ii in 1:((lop$NoBrick-1)/2)) {
+      if(ii==lop$NoBrick/2)  outLabel <- c(outLabel, 'accuracy', 'accuracy z') else
       outLabel <- c(outLabel, rownames(summary(fm)$coefficients)[ii], paste(rownames(summary(fm)$coefficients)[ii], 'z'))
       statsym <- c(statsym, list(list(sb=2*ii-1, typ="fizt", par=NULL)))
    }
-   outLabel <- c(outLabel, 'accuracy')
+   #outLabel <- c(outLabel, 'accuracy')
    #outLabel <- c(outLabel, 'cutoff', 'max accuracy')
 } else {  # typical LME part
    if(dimy == 1 & dimz == 1) {  # LME with surface or 1D data

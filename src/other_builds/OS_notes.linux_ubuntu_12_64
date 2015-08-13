@@ -21,8 +21,8 @@
 # where you replace 'N' with your specific number.
 
 # This (executable) file should be executable by typing:
-# $ chmod 755 OS_notes.linux_Ubuntu_64bit.txt
-# $ ./OS_notes.linux_Ubuntu_64bit.txt
+# $ chmod 755 OS_notes.linux_ubuntu_12_64
+# $ ./OS_notes.linux_ubuntu_12_64
 # in a terminal window; you could also copy/past the commands into a
 # terminal window, if you wish.  You may be prompted about whether to 
 # install some packages, to which methinks you should say yes (since 

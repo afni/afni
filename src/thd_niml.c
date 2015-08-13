@@ -337,6 +337,7 @@ ENTRY("storage_mode_from_niml");
                 ( !strcmp(atr, "Node_Bucket") ||
                   !strcmp(atr, "Node_ROI")    ||
                   !strcmp(atr, "Node_Label")  ||
+                  !strcmp(atr, "Voxel_Bucket")||    /* 5 Aug 2015 [rickr] */
                   !strcmp(atr, "Graph_Bucket"))   ) /* then SUMA DSET */
                 RETURN(STORAGE_BY_NI_SURF_DSET);
             RETURN(STORAGE_BY_NIML);                 /* else assume AFNI */
@@ -838,10 +839,13 @@ ENTRY("process_NSD_sparse_data");
        acceptable should also be Node_ROI_data but on 
        output, all will become Node_Bucket_data ZSS: Dec 07  */
     rhs = NI_get_attribute(nel, "data_type");
+    /* added Voxel_Bucket_data, though it is not properly handled
+       (but headed in the right direction)     5 Aug 2015 [rickr] */
     if( !rhs || 
-         (  strcmp(rhs, "Node_Bucket_data") &&
-            strcmp(rhs, "Node_ROI_data")   &&
-            strcmp(rhs, "Node_Label_data") &&
+         (  strcmp(rhs, "Node_Bucket_data")  &&
+            strcmp(rhs, "Node_ROI_data")     &&
+            strcmp(rhs, "Node_Label_data")   &&
+            strcmp(rhs, "Voxel_Bucket_data") &&
             strcmp(rhs, "Graph_Bucket_data")   ) )
     {
         if(gni.debug)
@@ -850,9 +854,12 @@ ENTRY("process_NSD_sparse_data");
              "or Node_Bucket_data\n");
         RETURN(1);
     }
-    if(gni.debug && !strcmp(rhs, "Graph_Bucket_data")) {
+    if(gni.debug && !strcmp(rhs, "Graph_Bucket_data"))
       fprintf(stderr,"+d Reading graph data but output will not retain type\n");
-    }
+
+    if(!strcmp(rhs, "Voxel_Bucket_data"))
+      fprintf(stderr,"** Voxel_Bucket dataset will be collapsed to 1D...\n");
+
     /* if we have a node list, verify that it matches the data in length */
     if( blk->nnodes > 0 && (blk->nnodes != nel->vec_len) )
     {
