@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 12,  Aug, 2015, RCR, "gen_group_command.py", MINOR, TYPE_ENHANCE,
+   "allow for generic/unknown commands via -command (e.g. ls, 3dTcat)",
+   "Done for W-L Tseng."
+ } ,
+
  {  7,  Aug, 2015, RCR, "3dhistog", MICRO, TYPE_NEW_OPT,
    "add -noempty option, to ignore empty bins",
    NULL
