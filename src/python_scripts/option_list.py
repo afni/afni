@@ -202,7 +202,7 @@ class OptionList:
         if not opt or not opt.parlist or len(opt.parlist) < 1: return None,0
         return opt.parlist, 0
 
-    def get_type_opt(self, type, opt_name='', opt=None):
+    def get_type_opt(self, type, opt_name='', opt=None, default=None):
         """return the option param value converted to the given type, and err
            (err = 0 on success, 1 on failure)
 
@@ -212,16 +212,16 @@ class OptionList:
         # if no opt was passed, try to find it
         if opt == None: opt = self.find_opt(opt_name)
 
-        if not opt or not opt.parlist: return None, 0
+        if not opt or not opt.parlist: return default, 0
         if not opt_name: opt_name = opt.name
         if len(opt.parlist) != 1:
             print "** expectin 1 parameter for option '%s', have: %s" % \
                   (opt_name, opt.parlist)
-            return None, 1
+            return default, 1
         try: val = type(opt.parlist[0])
         except:
             print "** cannot convert '%s' to %s" % (opt.parlist[0], type)
-            return None, 1
+            return default, 1
 
         return val, 0
 

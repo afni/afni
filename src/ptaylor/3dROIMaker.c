@@ -53,6 +53,9 @@
     Jul 2015:
         minor bug fix for negative-including refsets
 
+    Aug 2015:
+        minor bug fix: don't crash if no GM ROIs survive
+
 */
 
 
@@ -331,6 +334,7 @@ int main(int argc, char *argv[]) {
    int HOT_POINTS=0;
    int HOT_CONN=0;
    int NIFTI_OUT=0;
+   int N_nonzer = 0;
 
    int *RESCALES=NULL; // will be used if negative values in refset mask
    short int **temp_ref=NULL; // for holding rescaled values
@@ -1300,6 +1304,7 @@ int main(int argc, char *argv[]) {
 		ERROR_exit("Can't overwrite existing dataset '%s'",
 					  DSET_HEADNAME(outsetGM));
 	
+   
 	for( m=0 ; m<Dim[3] ; m++ ) {
 		idx=0;
 		for( k=0 ; k<Dim[2] ; k++ ) 
@@ -1308,6 +1313,7 @@ int main(int argc, char *argv[]) {
                if( DATA[i][j][k][m] ) {// account for neg values rescaled
                   temp_arr[m][idx] = DATA[i][j][k][m]-RESCALES[m];
                   temp_arr_tmp[m][idx] = DATA[i][j][k][m]; // jul,2015
+                  N_nonzer++; // Aug,2015
                }
 					idx+=1;
 				}
@@ -1321,7 +1327,7 @@ int main(int argc, char *argv[]) {
 	for( m=0 ; m<Dim[3] ; m++ ) {
 		free(temp_arr[m]);
  		free(temp_arr_tmp[m]);
-  }
+   }
 	free(temp_arr);
    free(temp_arr_tmp);
 
@@ -1331,8 +1337,12 @@ int main(int argc, char *argv[]) {
    //              "\t(it's the general AFNI standard). "
    //              "See the helpfile for switches to change this feature.");
 
-	INFO_message("GM map is done.");
-
+   if (N_nonzer)
+      INFO_message("GM map is done.");
+   else
+      WARNING_message("No ROIs left in GM map: nothing to output.\n"
+                      "\t Perhaps a different threshold might be warranted?\n"
+                      "\t Or maybe just <<c'est la vie.>>");
 
 	// **************************************************************
 	// **************************************************************
@@ -1340,282 +1350,297 @@ int main(int argc, char *argv[]) {
 	// **************************************************************
 	// **************************************************************
 
+   if (N_nonzer) {
 	
-	// find all index numbers for GM systematically.
-	NROI_GM = (int *)calloc(Dim[3], sizeof(int)); 
-	INVROI_GM = (int *)calloc(Dim[3], sizeof(int)); 
-	for( i=0 ; i<Dim[3] ; i++) 
-		INVROI_GM[i] = (int) THD_subbrick_max(outsetGM_tmp, i, 1);//??inset-->fixed. jul,2015: new fix, temp values b/c of rescaling
-   if( (INVROI_GM == NULL ) || ( NROI_GM == NULL ) ) {
-		fprintf(stderr, "\n\n MemAlloc failure.\n\n");
-		exit(122);
-	}
+      // find all index numbers for GM systematically.
+      NROI_GM = (int *)calloc(Dim[3], sizeof(int)); 
+      INVROI_GM = (int *)calloc(Dim[3], sizeof(int)); 
+      for( i=0 ; i<Dim[3] ; i++) 
+         INVROI_GM[i] = (int) THD_subbrick_max(outsetGM_tmp, i, 1);//??inset-->fixed. jul,2015: new fix, temp values b/c of rescaling
+      if( (INVROI_GM == NULL ) || ( NROI_GM == NULL ) ) {
+         fprintf(stderr, "\n\n MemAlloc failure.\n\n");
+         exit(122);
+      }
 
-	ROI_LABELS_GM = calloc( Dim[3],sizeof(ROI_LABELS_GM));  
-	for(i=0 ; i<Dim[3] ; i++) 
-		ROI_LABELS_GM[i] = calloc(INVROI_GM[i]+1,sizeof(int)); 
-	INV_LABELS_GM = calloc( Dim[3],sizeof(INV_LABELS_GM));  
-	for(i=0 ; i<Dim[3] ; i++) 
-		INV_LABELS_GM[i] = calloc(INVROI_GM[i]+1,sizeof(int)); 
+      ROI_LABELS_GM = calloc( Dim[3],sizeof(ROI_LABELS_GM));  
+      for(i=0 ; i<Dim[3] ; i++) 
+         ROI_LABELS_GM[i] = calloc(INVROI_GM[i]+1,sizeof(int)); 
+      INV_LABELS_GM = calloc( Dim[3],sizeof(INV_LABELS_GM));  
+      for(i=0 ; i<Dim[3] ; i++) 
+         INV_LABELS_GM[i] = calloc(INVROI_GM[i]+1,sizeof(int)); 
 
-	// will hold counts of ROIs (total and on skeleton) and some switches:
-	// GROW_ON = 1
-	COUNT_GM = ( int ***) calloc( Dim[3], sizeof( int **));
-	for ( i = 0 ; i < Dim[3] ; i++ ) 
-		COUNT_GM[i] = ( int **) calloc( INVROI_GM[i]+1, sizeof( int *));
-	for ( i = 0 ; i < Dim[3] ; i++ ) 
-		for ( j = 0 ; j < INVROI_GM[i]+1 ; j++ ) 
-			COUNT_GM[i][j] = ( int *) calloc( 3, sizeof( int));
+      // will hold counts of ROIs (total and on skeleton) and some switches:
+      // GROW_ON = 1
+      COUNT_GM = ( int ***) calloc( Dim[3], sizeof( int **));
+      for ( i = 0 ; i < Dim[3] ; i++ ) 
+         COUNT_GM[i] = ( int **) calloc( INVROI_GM[i]+1, sizeof( int *));
+      for ( i = 0 ; i < Dim[3] ; i++ ) 
+         for ( j = 0 ; j < INVROI_GM[i]+1 ; j++ ) 
+            COUNT_GM[i][j] = ( int *) calloc( 3, sizeof( int));
 
-	if( (ROI_LABELS_GM == NULL) || (INV_LABELS_GM == NULL) 
-		 || (COUNT_GM == NULL)) {
-		fprintf(stderr, "\n\n MemAlloc failure.\n\n");
+      if( (ROI_LABELS_GM == NULL) || (INV_LABELS_GM == NULL) 
+          || (COUNT_GM == NULL)) {
+         fprintf(stderr, "\n\n MemAlloc failure.\n\n");
 			exit(123);
-	}
+      }
 
-   // jul,2015: use '_tmp' one to match with DATA, which might be rescaled
-	bb = ViveLeRoi(outsetGM_tmp, 
-						ROI_LABELS_GM, INV_LABELS_GM, 
-						NROI_GM,       INVROI_GM);
-	if( bb != 1)
-		ERROR_exit("Problem loading/assigning GM labels");
+      // jul,2015: use '_tmp' one to match with DATA, which might be rescaled
+      bb = ViveLeRoi(outsetGM_tmp, 
+                     ROI_LABELS_GM, INV_LABELS_GM, 
+                     NROI_GM,       INVROI_GM);
+      if( bb != 1)
+         ERROR_exit("Problem loading/assigning GM labels");
 
-   DSET_delete(outsetGM_tmp); // jul,2015: unneeded hereafter
-   free(outsetGM_tmp);
-
-
-	// preliminary setting up of COUNT_GM
-	for( m=0 ; m<Dim[3] ; m++ ) {
-		// ?? Not sure what the next two lines were for...
-      //for( i=0 ; i<NROI_GM[m]+1 ; i++ ) 
-		//	ROI_LABELS_GM[m][i] = 1; //switch to keep adding to it
-
-		for( k=0 ; k<Dim[2] ; k++ ) 
-			for( j=0 ; j<Dim[1] ; j++ ) 
-				for( i=0 ; i<Dim[0] ; i++ ) 
-					if( DATA[i][j][k][m]>0 ) {
-						COUNT_GM[m][ INV_LABELS_GM[m][DATA[i][j][k][m]] ][1]++;
-						if(SKEL[i][j][k])
-							COUNT_GM[m][ INV_LABELS_GM[m][DATA[i][j][k][m]] ][2]++;
-					}
-	}
-
-	// go through and start inflating
-	// do 1 layer at a time, in case of squeezed neighborhoods and 
-	// book counting of WM intersections, etc.
-   i = ROI_make_inflate( Dim, 
-                         INFL_NUM,
-                         SKEL_STOP,
-                         NEIGHBOR_LIMIT,
-                         HAVE_MASK,
-                         MASK,
-                         DATA,
-                         SKEL,
-                         COUNT_GM,
-                         INV_LABELS_GM );
+      DSET_delete(outsetGM_tmp); // jul,2015: unneeded hereafter
+      free(outsetGM_tmp);
 
 
-   if(HAVE_PREINF) { 
-      // get rid of last vestiges of WM
-      
-      for( m=0 ; m<Dim[3] ; m++ )
+      // preliminary setting up of COUNT_GM
+      for( m=0 ; m<Dim[3] ; m++ ) {
+         // ?? Not sure what the next two lines were for...
+         //for( i=0 ; i<NROI_GM[m]+1 ; i++ ) 
+         //	ROI_LABELS_GM[m][i] = 1; //switch to keep adding to it
+
          for( k=0 ; k<Dim[2] ; k++ ) 
             for( j=0 ; j<Dim[1] ; j++ ) 
                for( i=0 ; i<Dim[0] ; i++ ) 
-                  if( SKEL[i][j][k]) 
-                     DATA[i][j][k][m] = 0;
-   }
+                  if( DATA[i][j][k][m]>0 ) {
+                     COUNT_GM[m][ INV_LABELS_GM[m][DATA[i][j][k][m]] ][1]++;
+                     if(SKEL[i][j][k])
+                        COUNT_GM[m][ INV_LABELS_GM[m][DATA[i][j][k][m]] ][2]++;
+                  }
+      }
+
+      // go through and start inflating
+      // do 1 layer at a time, in case of squeezed neighborhoods and 
+      // book counting of WM intersections, etc.
+      i = ROI_make_inflate( Dim, 
+                            INFL_NUM,
+                            SKEL_STOP,
+                            NEIGHBOR_LIMIT,
+                            HAVE_MASK,
+                            MASK,
+                            DATA,
+                            SKEL,
+                            COUNT_GM,
+                            INV_LABELS_GM );
+
+
+      if(HAVE_PREINF) { 
+         // get rid of last vestiges of WM
+      
+         for( m=0 ; m<Dim[3] ; m++ )
+            for( k=0 ; k<Dim[2] ; k++ ) 
+               for( j=0 ; j<Dim[1] ; j++ ) 
+                  for( i=0 ; i<Dim[0] ; i++ ) 
+                     if( SKEL[i][j][k]) 
+                        DATA[i][j][k][m] = 0;
+      }
    
-	// **************************************************************
-	// **************************************************************
-	//                 LABEL stuff
-	// **************************************************************
-	// **************************************************************
-   // nov, 2014:  labeltable stuff
-   ROI_STR_LABELS = (char ***) calloc( Dim[3], sizeof(char **) );
-   for ( i=0 ; i<Dim[3] ; i++ ) 
-      ROI_STR_LABELS[i] = (char **) calloc( NROI_GM[i]+1, sizeof(char *) );
-   for ( i=0 ; i<Dim[3] ; i++ ) 
-      for ( j=0 ; j<NROI_GM[i]+1 ; j++ ) 
-         ROI_STR_LABELS[i][j] = (char *) calloc( 100 , sizeof(char) );
-   if( ROI_STR_LABELS == NULL ) {
-      fprintf(stderr, "\n\n MemAlloc failure.\n\n");
-      exit(123);
-   }
+      // **************************************************************
+      // **************************************************************
+      //                 LABEL stuff
+      // **************************************************************
+      // **************************************************************
+      // nov, 2014:  labeltable stuff
+      ROI_STR_LABELS = (char ***) calloc( Dim[3], sizeof(char **) );
+      for ( i=0 ; i<Dim[3] ; i++ ) 
+         ROI_STR_LABELS[i] = (char **) calloc( NROI_GM[i]+1, sizeof(char *) );
+      for ( i=0 ; i<Dim[3] ; i++ ) 
+         for ( j=0 ; j<NROI_GM[i]+1 ; j++ ) 
+            ROI_STR_LABELS[i][j] = (char *) calloc( 100 , sizeof(char) );
+      if( ROI_STR_LABELS == NULL ) {
+         fprintf(stderr, "\n\n MemAlloc failure.\n\n");
+         exit(123);
+      }
    
-   // Nov 2014:  Labeltable stuff
-   // check refset for table
-   if(insetREF)
-      if (insetREF->Label_Dtable = DSET_Label_Dtable(insetREF) ) {
-         if ((LabTabStr = Dtable_to_nimlstring( DSET_Label_Dtable(insetREF),
-                                                "VALUE_LABEL_DTABLE"))) {
-            // fprintf(stdout,"%s", LabTabStr);
-            if (!(roi_dtable = Dtable_from_nimlstring(LabTabStr))) {
-               ERROR_exit("Could not parse labeltable.");
+      // Nov 2014:  Labeltable stuff
+      // check refset for table
+      if(insetREF)
+         if (insetREF->Label_Dtable = DSET_Label_Dtable(insetREF) ) {
+            if ((LabTabStr = Dtable_to_nimlstring( DSET_Label_Dtable(insetREF),
+                                                   "VALUE_LABEL_DTABLE"))) {
+               // fprintf(stdout,"%s", LabTabStr);
+               if (!(roi_dtable = Dtable_from_nimlstring(LabTabStr))) {
+                  ERROR_exit("Could not parse labeltable.");
+               }
+            } 
+            else {
+               INFO_message("No label table from '-refset'.");
             }
-         } 
+         }
+   
+      bb = Make_ROI_Output_Labels( ROI_STR_LABELS,
+                                   ROI_LABELS_GM, 
+                                   Dim[3],
+                                   NROI_GM,
+                                   roi_dtable, 
+                                   DUMP_with_LABELS);
+   
+      for( i=0 ; i<Dim[3] ; i++) 
+         if( NROI_GM[i]>MAXNROI )
+            MAXNROI = NROI_GM[i];
+   
+      // **************************************************************
+      // **************************************************************
+      //                 Store and output GMI info
+      // **************************************************************
+      // **************************************************************
+
+      temp_arr2 = calloc( Dim[3],sizeof(temp_arr2));  // XYZ components
+      for(i=0 ; i<Dim[3] ; i++) 
+         temp_arr2[i] = calloc( Nvox,sizeof(short int) ); 
+	
+      if( temp_arr2 == NULL ) { 
+         fprintf(stderr, "\n\n MemAlloc failure.\n\n");
+         exit(14);
+      }
+
+      outsetGMI = EDIT_empty_copy( inset ) ; 
+      if( NIFTI_OUT )
+         sprintf(prefix_GMI,"%s_GMI.nii.gz",prefix); // jan,2015
+      else
+         sprintf(prefix_GMI,"%s_GMI",prefix);
+
+      // start labelly stuff
+      // Nov 2014
+      if( DUMP_with_LABELS ) {
+         sprintf(prefix_dtable,"%s_GMI.niml.lt",prefix); 
+         sprintf(prefix_dtableGM,"%s_GM.niml.lt",prefix); 
+
+         if( roi_dtable ) {
+            // copy dtable
+            Dtable_str = Dtable_to_nimlstring(roi_dtable, "VALUE_LABEL_DTABLE");
+            new_dt = Dtable_from_nimlstring(Dtable_str);
+            free(Dtable_str); Dtable_str=NULL;
+         }
          else {
-            INFO_message("No label table from '-refset'.");
+            new_dt = new_Dtable( MAXNROI );
          }
-      }
-   
-   bb = Make_ROI_Output_Labels( ROI_STR_LABELS,
-                                ROI_LABELS_GM, 
-                                Dim[3],
-                                NROI_GM,
-                                roi_dtable, 
-                                DUMP_with_LABELS);
-   
-   for( i=0 ; i<Dim[3] ; i++) 
-      if( NROI_GM[i]>MAXNROI )
-         MAXNROI = NROI_GM[i];
-   
-	// **************************************************************
-	// **************************************************************
-	//                 Store and output GMI info
-	// **************************************************************
-	// **************************************************************
-
-	temp_arr2 = calloc( Dim[3],sizeof(temp_arr2));  // XYZ components
-	for(i=0 ; i<Dim[3] ; i++) 
-		temp_arr2[i] = calloc( Nvox,sizeof(short int) ); 
-	
-	if( temp_arr2 == NULL ) { 
-		fprintf(stderr, "\n\n MemAlloc failure.\n\n");
-		exit(14);
-	}
-
-	outsetGMI = EDIT_empty_copy( inset ) ; 
-   if( NIFTI_OUT )
-      sprintf(prefix_GMI,"%s_GMI.nii.gz",prefix); // jan,2015
-	else
-      sprintf(prefix_GMI,"%s_GMI",prefix);
-
-   // start labelly stuff
-   // Nov 2014
-   if( DUMP_with_LABELS ) {
-      sprintf(prefix_dtable,"%s_GMI.niml.lt",prefix); 
-      sprintf(prefix_dtableGM,"%s_GM.niml.lt",prefix); 
-
-      if( roi_dtable ) {
-         // copy dtable
-         Dtable_str = Dtable_to_nimlstring(roi_dtable, "VALUE_LABEL_DTABLE");
-         new_dt = Dtable_from_nimlstring(Dtable_str);
-         free(Dtable_str); Dtable_str=NULL;
-      }
-      else {
-         new_dt = new_Dtable( MAXNROI );
-      }
       
-      for( mm=0 ; mm<Dim[3] ; mm++) {
-         for( bb=1 ; bb<=NROI_GM[mm] ; bb++) {
-            snprintf(mini, 50, "%d", ROI_LABELS_GM[mm][bb]);
-            if(!(findin_Dtable_a( mini, new_dt ))) {
-               addto_Dtable(mini, ROI_STR_LABELS[mm][bb], new_dt );
+         for( mm=0 ; mm<Dim[3] ; mm++) {
+            for( bb=1 ; bb<=NROI_GM[mm] ; bb++) {
+               snprintf(mini, 50, "%d", ROI_LABELS_GM[mm][bb]);
+               if(!(findin_Dtable_a( mini, new_dt ))) {
+                  addto_Dtable(mini, ROI_STR_LABELS[mm][bb], new_dt );
+               }
             }
          }
-      }
 
-      Dtable_str = Dtable_to_nimlstring(new_dt, "VALUE_LABEL_DTABLE");
-      destroy_Dtable(new_dt); new_dt = NULL;
+         Dtable_str = Dtable_to_nimlstring(new_dt, "VALUE_LABEL_DTABLE");
+         destroy_Dtable(new_dt); new_dt = NULL;
 
-      // copy for GM
-      Dtable_strGM = strdup(Dtable_str);
+         // copy for GM
+         Dtable_strGM = strdup(Dtable_str);
 
 
-      THD_set_string_atr( outsetGMI->dblk , 
-                          "VALUE_LABEL_DTABLE" , Dtable_str);
+         THD_set_string_atr( outsetGMI->dblk , 
+                             "VALUE_LABEL_DTABLE" , Dtable_str);
       
-      // output for GMI
-      if( (fout1 = fopen(prefix_dtable, "w")) == NULL) {
-         fprintf(stderr, "Error opening file %s.",prefix_dtable);
-         exit(19);
-      }
-      fprintf(fout1,"%s",Dtable_str);
-      fclose(fout1);
-      free(Dtable_str); Dtable_str = NULL;
+         // output for GMI
+         if( (fout1 = fopen(prefix_dtable, "w")) == NULL) {
+            fprintf(stderr, "Error opening file %s.",prefix_dtable);
+            exit(19);
+         }
+         fprintf(fout1,"%s",Dtable_str);
+         fclose(fout1);
+         free(Dtable_str); Dtable_str = NULL;
  
-      // copy for GM map
+         // copy for GM map
       
-      THD_set_string_atr( outsetGM->dblk , 
-                          "VALUE_LABEL_DTABLE" , Dtable_strGM);
+         THD_set_string_atr( outsetGM->dblk , 
+                             "VALUE_LABEL_DTABLE" , Dtable_strGM);
 
-      if( (fout1 = fopen(prefix_dtableGM, "w")) == NULL) {
-         fprintf(stderr, "Error opening file %s.",prefix_dtableGM);
-         exit(19);
+         if( (fout1 = fopen(prefix_dtableGM, "w")) == NULL) {
+            fprintf(stderr, "Error opening file %s.",prefix_dtableGM);
+            exit(19);
+         }
+         fprintf(fout1,"%s",Dtable_strGM);
+         fclose(fout1);
+         free(Dtable_strGM); Dtable_strGM = NULL;
+
+
+         // end labelly stuff
       }
-      fprintf(fout1,"%s",Dtable_strGM);
-      fclose(fout1);
-      free(Dtable_strGM); Dtable_strGM = NULL;
+
+      THD_load_statistics(outsetGM);
+      tross_Make_History("3dROIMaker", argc, argv, outsetGM);
+      THD_write_3dim_dataset(NULL, NULL, outsetGM, True);
 
 
-     // end labelly stuff
+      EDIT_dset_items( outsetGMI,
+                       ADN_datum_all , MRI_short , 
+                       ADN_brick_fac, NULL,
+                       ADN_prefix    , prefix_GMI ,
+                       ADN_none ) ;
+	
+      if( !THD_ok_overwrite() && THD_is_ondisk(DSET_HEADNAME(outsetGMI)) )
+         ERROR_exit("Can't overwrite existing dataset '%s'",
+                    DSET_HEADNAME(outsetGMI));
+		
+      for( m=0 ; m<Dim[3] ; m++ ) {
+         idx=0;
+         for( k=0 ; k<Dim[2] ; k++ ) 
+            for( j=0 ; j<Dim[1] ; j++ ) 
+               for( i=0 ; i<Dim[0] ; i++ ) {
+                  if( DATA[i][j][k][m] )
+                     temp_arr2[m][idx] = DATA[i][j][k][m]-RESCALES[m];
+                  idx+=1;
+               }
+         EDIT_substitute_brick(outsetGMI, m, MRI_short, temp_arr2[m]); 
+         temp_arr2[m]=NULL; // to not get into trouble...
+      }
+
+      THD_load_statistics(outsetGMI);
+      tross_Make_History("3dROIMaker", argc, argv, outsetGMI);
+      THD_write_3dim_dataset(NULL, NULL, outsetGMI, True);
+
+      for( m=0 ; m<Dim[3] ; m++ )
+         free(temp_arr2[m]);
+      free(temp_arr2);
+	
+      INFO_message("GMI map is done.");
+
+      if( DUMP_with_LABELS )
+         INFO_message("Put labeltables on both the GM and GMI files.");
+      else
+         INFO_message("Did *not* put labeltables on both the GM and GMI files "
+                      "(but could have)");
+
+
+      // ************************************************************
+      // ************************************************************
+      //                    Freeing
+      // ************************************************************
+      // ************************************************************
+		
+      for ( i=0 ; i<Dim[3] ; i++ ) 
+         for ( j=0 ; j<NROI_GM[i]+1 ; j++ ) 
+            free(ROI_STR_LABELS[i][j]);
+      for ( i=0 ; i<Dim[3] ; i++ ) 
+         free(ROI_STR_LABELS[i]);
+      free(ROI_STR_LABELS);
+      
+      if(LabTabStr)
+         free(LabTabStr); 
+      if(roi_dtable)
+         free(roi_dtable);
+      
+      for( i=0 ; i<Dim[3] ; i++) {
+         for ( j = 0 ; j<NROI_GM[i]+1 ; j++ ) 
+            free(COUNT_GM[i][j]);
+         free(COUNT_GM[i]);
+         free(ROI_LABELS_GM[i]);
+         free(INV_LABELS_GM[i]);
+      }
+      free(ROI_LABELS_GM);
+      free(INV_LABELS_GM);
+      free(COUNT_GM);
+      free(NROI_GM);
+      free(INVROI_GM);
+
+
    }
-
-   THD_load_statistics(outsetGM);
-	tross_Make_History("3dROIMaker", argc, argv, outsetGM);
-	THD_write_3dim_dataset(NULL, NULL, outsetGM, True);
-
-
-	EDIT_dset_items( outsetGMI,
-						  ADN_datum_all , MRI_short , 
-                    ADN_brick_fac, NULL,
-						  ADN_prefix    , prefix_GMI ,
-						  ADN_none ) ;
-	
-	if( !THD_ok_overwrite() && THD_is_ondisk(DSET_HEADNAME(outsetGMI)) )
-		ERROR_exit("Can't overwrite existing dataset '%s'",
-					  DSET_HEADNAME(outsetGMI));
-		
-	for( m=0 ; m<Dim[3] ; m++ ) {
-		idx=0;
-		for( k=0 ; k<Dim[2] ; k++ ) 
-			for( j=0 ; j<Dim[1] ; j++ ) 
-				for( i=0 ; i<Dim[0] ; i++ ) {
-               if( DATA[i][j][k][m] )
-                  temp_arr2[m][idx] = DATA[i][j][k][m]-RESCALES[m];
-					idx+=1;
-				}
-		EDIT_substitute_brick(outsetGMI, m, MRI_short, temp_arr2[m]); 
-		temp_arr2[m]=NULL; // to not get into trouble...
-	}
-
-	THD_load_statistics(outsetGMI);
-	tross_Make_History("3dROIMaker", argc, argv, outsetGMI);
-	THD_write_3dim_dataset(NULL, NULL, outsetGMI, True);
-
-	for( m=0 ; m<Dim[3] ; m++ )
-		free(temp_arr2[m]);
-	free(temp_arr2);
-	
-	INFO_message("GMI map is done.");
-
-	if( DUMP_with_LABELS )
-      INFO_message("Put labeltables on both the GM and GMI files.");
-   else
-      INFO_message("Did *not* put labeltables on both the GM and GMI files "
-                   "(but could have)");
-
-
-	// ************************************************************
-	// ************************************************************
-	//                    Freeing
-	// ************************************************************
-	// ************************************************************
-		
-   for ( i=0 ; i<Dim[3] ; i++ ) 
-      for ( j=0 ; j<NROI_GM[i]+1 ; j++ ) 
-         free(ROI_STR_LABELS[i][j]);
-   for ( i=0 ; i<Dim[3] ; i++ ) 
-      free(ROI_STR_LABELS[i]);
-   free(ROI_STR_LABELS);
-
-   if(LabTabStr)
-      free(LabTabStr); 
-   if(roi_dtable)
-      free(roi_dtable);
-
-
 
 
 	DSET_delete(inset);
@@ -1696,18 +1721,6 @@ int main(int argc, char *argv[]) {
 	}
 	free(RESCALES);
 
-	for( i=0 ; i<Dim[3] ; i++) {
-		for ( j = 0 ; j<NROI_GM[i]+1 ; j++ ) 
-			free(COUNT_GM[i][j]);
-		free(COUNT_GM[i]);
-		free(ROI_LABELS_GM[i]);
-		free(INV_LABELS_GM[i]);
-	}
-	free(ROI_LABELS_GM);
-	free(INV_LABELS_GM);
-	free(COUNT_GM);
-	free(NROI_GM);
-	free(INVROI_GM);
 
 	for( i=0 ; i<Dim[3] ; i++) {
 		free(ROI_LABELS_pre[i]);

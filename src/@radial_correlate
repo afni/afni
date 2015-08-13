@@ -27,6 +27,7 @@ set rdir = corr_test.results
 set din_list = ( )
 set do_corr = yes       # use no for testing only
 set do_clust = no       # use no to just create correlation volumes
+set mask_in = ''
 
 
 set prog = @radial_correlate
@@ -55,6 +56,9 @@ while ( $ac <= $#argv )
    else if ( "$argv[$ac]" == "-min_thr" ) then
       @ ac += 1
       set min_thr = $argv[$ac]
+   else if ( "$argv[$ac]" == "-mask" ) then
+      @ ac += 1
+      set mask_in = $argv[$ac]
    else if ( "$argv[$ac]" == "-percentile" ) then
       @ ac += 1
       set percentile = $argv[$ac]
@@ -151,6 +155,14 @@ if( $do_corr == 'yes' ) then
           exit
       endif
    end
+
+   if ( $mask_in != "" ) then
+      3dcopy $mask_in $rdir/
+      if ( $status ) then
+          echo "** failed to copy -mask dataset $mask_in, exiting..."
+          exit
+      endif
+   endif
 endif
 
 # ----------------------------------------------------------------------
@@ -178,16 +190,23 @@ foreach index ( `count -digits 1 1 $#dset_list` )
 
    set dset = $dset_list[$index]
    set eset = epi.$index
-   set mset = $prefix.automask
+   set mpre = $prefix.automask
+   set mset = $mpre$view
    set sset = $prefix.scaled
    set cset = $prefix.corr
+
+   if ( $mask_in != "" ) then
+      set mset = $mask_in
+   endif
 
    echo "$prefix    <---    $dset" >> $name_file
 
    # ----------------------------------------
    # nuke pre-SS TRs and generate a mask
-   if ( $do_corr == 'yes' ) 3dAutomask -q -prefix $mset $eset$view
-   set nmask = `3dBrickStat -non-zero -count $mset$view`
+   if ( $do_corr == 'yes' && $mask_in == "" ) then
+      3dAutomask -q -prefix $mpre $eset$view
+   endif
+   set nmask = `3dBrickStat -non-zero -count $mset`
 
    if ( $do_corr == 'yes' && -f tt.scale1$view.HEAD ) \rm -f tt.*
 
@@ -203,21 +222,21 @@ foreach index ( `count -digits 1 1 $#dset_list` )
 
       if ( $sphere_rad != 0 ) then
            set rad = $sphere_rad
-           3dLocalstat -quiet -nbhd "SPHERE($rad)" -mask $mset$view \
+           3dLocalstat -quiet -nbhd "SPHERE($rad)" -mask $mset \
                   -stat mean -prefix sphere.mean.$rad.$index $eset$view
            3dTcorrelate -prefix $cset $eset$view sphere.mean.$rad.$index$view
       else
          # get a demeaned and scaled dataset (so sumsq = 1)
          3dTstat -mean -datum float -prefix $prefix.mean $eset$view
-         3dcalc -a $eset$view -b $prefix.mean$view -c $mset$view \
+         3dcalc -a $eset$view -b $prefix.mean$view -c $mset \
                 -expr 'c*(a-b)/b' -datum float -prefix tt.scale1
          3dTstat -sos -datum float -prefix tt.sos tt.scale1$view
-         3dcalc -a tt.scale1$view -b tt.sos$view -c $mset$view   \
+         3dcalc -a tt.scale1$view -b tt.sos$view -c $mset   \
                  -expr 'c*a/sqrt(b)' -prefix $sset
 
-         3dmaskave -quiet -mask $mset$view $sset$view > $prefix.mean_signal.1D
+         3dmaskave -quiet -mask $mset $sset$view > $prefix.mean_signal.1D
 
-         3dTcorr1D -mask $mset$view -pearson -prefix $cset \
+         3dTcorr1D -mask $mset -pearson -prefix $cset \
                  $sset$view $prefix.mean_signal.1D
       endif
    endif
@@ -231,7 +250,7 @@ foreach index ( `count -digits 1 1 $#dset_list` )
    # threshold correlations via either cthresh or at the percentile
    set thr = $cthresh
    if ( $thr == 0 ) then
-      set thr = `3dBrickStat -mask $mset$view -positive         \
+      set thr = `3dBrickStat -mask $mset -positive         \
                 -percentile $percentile 1 $percentile           \
                 $cset$view | awk '{print $2}'`
    endif
@@ -393,8 +412,9 @@ echo "          $prog -do_corr no -do_clust yes pb00.FT.*.HEAD"
 echo ""
 echo "  3.  Run a complete test, both creating the correlation volumes, and"
 echo "      then looking for large clusters of high correlations."
+echo "      Specify a mask."
 echo ""
-echo "          $prog -do_clust yes pb00.FT.*.HEAD"
+echo "          $prog -do_clust yes -mask full_mask.FT+orig pb00.FT.*.HEAD"
 echo ""
 echo "  4.  Run a complete test, but alter some clustering options."
 echo "        - threshold at 0.7 (instead of the default 0.9)"
@@ -411,6 +431,7 @@ echo "Overview of processing steps: "
 echo ""
 echo "0. The first 3 TRs are removed from the input (see -nfirst),"
 echo "   and an automask is created (limiting all future computations)."
+echo "   Any -mask overrides the automask operation."
 echo "   If -do_corr is 'no', this is skipped."
 echo ""
 echo "   (see -do_corr)"
@@ -431,7 +452,7 @@ echo ""
 echo "   b. with the average masked time series (if -sphere_rad is 0)"
 echo ""
 echo "      The demeaned data is scaled to have unit length (sumsq=1)."
-echo "      Then compute the mean time series over an automask ROI"
+echo "      Then compute the mean time series over the automask ROI"
 echo "      (so across the expected brain)."
 echo "      Correlate each voxel time series with the mean time series."
 echo ""
@@ -530,6 +551,10 @@ echo ""
 echo "   -frac_limit LIMIT : min mask fraction surviving cluster"
 echo "                       default = $frac_limit"
 echo ""
+echo "   -mask MASK_DSET   : specify a mask dataset to replace automask"
+echo "                       default = automask"
+echo "                       This mask is expected to cover the brain."
+echo ""
 echo "   -nfirst NFIRST    : number of initial TRs to remove"
 echo "                       default = $nfirst"
 echo ""
@@ -557,7 +582,8 @@ echo "   0.1  : Aug 16, 2011: initial version (was @check_corr_artifact)"
 echo "   0.2  : Sep  1, 2011: now $prog"
 echo "          - new default: just create correlation volumes"
 echo "          - add to AFNI distribution"
-echo "          - added -do_corr and -do_clust"
+echo "          - add -do_corr and -do_clust"
+echo "   0.3  : Aug 12, 2015: add -mask option"
 echo ""
 
 exit
