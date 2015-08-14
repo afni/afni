@@ -541,15 +541,14 @@ ENTRY("THD_estimate_FWHM_all") ;
    RETURN(outim) ;
 }
 
-#if 1
-/*------------------------------------------------------------------------*/
-static double mom12_stdev_fac = 0.5 ;
+/*========================================================================*/
+static double mom12_stdev_fac = 1.0 ;
 
 mri_fwhm_mom12_set_stdev_fac( double fff ){ mom12_stdev_fac = fff ; }
 
 /*------------------------------------------------------------------------*/
-/*! New method using first and second moments of differences, instead
-    of only second moments.  [05 Aug 2015]
+/*! New method using first and second moments of absolute values of
+    differences, instead of only second moments.  [05 Aug 2015]
 *//*----------------------------------------------------------------------*/
 
 THD_fvec3 mri_FWHM_1dif_mom12( MRI_IMAGE *im , byte *mask )
@@ -671,32 +670,78 @@ THD_fvec3 mri_FWHM_1dif_mom12( MRI_IMAGE *im , byte *mask )
 #undef  SQHPI
 #define SQHPI 1.253314  /* sqrt(PI/2) */
 #undef  SQEPI
-#define SQEPI 0.626657  /* sqrt(PI/8) */
+#define SQEPI 0.626657  /* sqrt(PI/8) -- needed for 3rd moment */
 
-  { double mn, sg ;
+  /*--------------------------------------------------------------------------*/
+  /*   Model: first differences are distributed like
+         ef = Normal( 0 , 2*V*tau^2 )
+       where tau = sqrt{ 1 - exp[-del^2/(4*s^2)] }
+             V    = variance (var) of data
+             del  = spacing of data in mm
+             s    = sigma of smoothing kernel
+                  = del * sqrt( -1/(4*log(1-tau^2))
+                    [s(tau) is a monotonic decreasing function of tau]
+             FWHM = sqrt(8*log(2))*s = 2.35482*s
+       and we assume that tau in turn is (independently) random, distributed
+       with density w(tau) over the interval [0,1].  That is, the density
+       function of df = ef/sqrt(2*V) is
+             |1
+          int|  w(tau) 1/[tau*sqrt(2*pi)] * exp[-df^2/(2*tau^2)] d(tau)
+             |0
+       Unless w(tau) is a delta function, df will be distributed non-normally.
+       Then the moments of the absolute value of df are related to the moments
+       of tau by        |1
+         E[|df|^p] = int|  w(tau) E[ |Normal(0,tau^2)|^p ] d(tau)
+                        |0
+                   = 2^(p/2) * Gamma((p+1)/2) / sqrt(pi) * E[tau^p]
+         E[|df|]   = sqrt(2/pi) * E[tau]
+         E[|df|^2] =              E[tau^2]
+         E[|df|^3] = sqrt(8/pi) * E[tau^3]
+         E[|df|^4] =          3 * E[tau^4] etc.
+       (At this time, we don't use the 3rd or 4th moments, but someday ...?)
+       The "standard" (Forman) way to estimate FWHN (mri_estimate_FWHM_1dif)
+       assumes s is constant; e.g., that w(tau) = delta(tau-q), in which
+       case E[|df|^2] = q^2, and so only the second moment is needed to
+       estimate tau=q (and thus FWHM).  In this routine, we use E[|df|] to
+       estimate E[tau], and then subtract off one standard deviation
+       of tau sqrt(E[tau^2]-E[tau]^2) to weight the estimate towards
+       smaller tau and thus larger FWHM -- since larger FWHM will produce
+       more "false positive" clusters. Completely ad hoc, but it's something. */
+  /*--------------------------------------------------------------------------*/
+
+  { double mn, sg , ff ;
     mn = SQHPI*dfdxs1 ;
     sg = dfdxs2 - mn*mn ;
-    if( sg > 0.0 ) mn -= mom12_stdev_fac*sqrt(sg) ;
+    if( mn > 0.0 && sg > 0.0 ){
+      sg = sqrt(sg) ;
+      for( ff=mom12_stdev_fac ; sg*ff >= mn ; ff *= 0.888 ) ; /*nada*/
+      mn -= ff*sg ;
+    }
     mn *= mn ;
-/* ININFO_message("dx: arg=%g",mn) ; */
     if( mn > 0.0 && mn < 1.0 ) sx = 2.35482*sqrt( -1.0 / (4.0*log(1.0-mn)) ) * dx;
 
     mn = SQHPI*dfdys1 ;
     sg = dfdys2 - mn*mn ;
-    if( sg > 0.0 ) mn -= mom12_stdev_fac*sqrt(sg) ;
+    if( mn > 0.0 && sg > 0.0 ){
+      sg = sqrt(sg) ;
+      for( ff=mom12_stdev_fac ; sg*ff >= mn ; ff *= 0.888 ) ; /*nada*/
+      mn -= ff*sg ;
+    }
     mn *= mn ;
-/* ININFO_message("dy: arg=%g",mn) ; */
     if( mn > 0.0 && mn < 1.0 ) sy = 2.35482*sqrt( -1.0 / (4.0*log(1.0-mn)) ) * dy;
 
     mn = SQHPI*dfdzs1 ;
     sg = dfdzs2 - mn*mn ;
-    if( sg > 0.0 ) mn -= mom12_stdev_fac*sqrt(sg) ;
+    if( mn > 0.0 && sg > 0.0 ){
+      sg = sqrt(sg) ;
+      for( ff=mom12_stdev_fac ; sg*ff >= mn ; ff *= 0.888 ) ; /*nada*/
+      mn -= ff*sg ;
+    }
     mn *= mn ;
-/* ININFO_message("dz: arg=%g",mn) ; */
     if( mn > 0.0 && mn < 1.0 ) sz = 2.35482*sqrt( -1.0 / (4.0*log(1.0-mn)) ) * dz;
   }
 
   LOAD_FVEC3(fw_xyz,sx,sy,sz) ;
   return fw_xyz ;
 }
-#endif
+/*========================================================================*/
