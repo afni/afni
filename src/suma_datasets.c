@@ -16657,8 +16657,8 @@ SUMA_DSET *SUMA_CIFTI_2_edset(SUMA_DSET *dset, int i, byte *colmask,
       NI_set_attribute(edset->ngr, "filename", lbl); 
       if (LocalHead) {
       	 SUMA_LH("(not) Writing out elementary dset %s for debugging", lbl);
-         /* Not linked into e.g. afni yet, can ponder.  13 Aug 2015 [rcr] */
-      	 /* SUMA_WriteDset_s(lbl, edset, SUMA_ASCII_NIML, 1,1); */
+         /* Use the 'no suma' version.  14 Aug 2015 [rickr] */
+      	 SUMA_WriteDset_ns(lbl, edset, SUMA_ASCII_NIML, 1,1);
       }
       SUMA_ifree(lbl);
       /* recreate the ID to reflect the filename */
