@@ -20,7 +20,9 @@
 #include <nifti2_io.h>
 #include "afni_xml_io.h"
 
-static char g_version[] = "version 0.0";
+static char g_version[] = "version 0.1";
+
+
 
 /* ----------------------------------------------------------------- */
 /* define and declare main option struct */
@@ -43,9 +45,10 @@ opts_t gopt;
 /* protos */
 
 /* processing */
-int disp_cifti_extension(afni_xml_t * ax, opts_t * opts);
+int disp_cifti_extension(nifti_image * nim, opts_t * opts);
 int disp_hex_data       (const char *mesg, const void *data, int len, FILE *fp);
 int eval_cifti_extension(afni_xml_t * ax, opts_t * opts);
+int show_cifti_summary  (FILE * fp, afni_xml_t * ax, int verb);
 
 /* main */
 int process_args        (int argc, char * argv[], opts_t * opts);
@@ -170,24 +173,34 @@ int process(opts_t * opts)
       return 1;
    }
 
-   if( opts->disp_cext ) disp_cifti_extension(ax, opts);
+   if( opts->disp_cext ) disp_cifti_extension(nim, opts);
    if( opts->eval_cext ) eval_cifti_extension(ax, opts);
 
    return 0;
 }
 
-int disp_cifti_extension(afni_xml_t * ax, opts_t * opts)
+int disp_cifti_extension(nifti_image * nim, opts_t * opts)
 {
-   FILE * fp;
+   nifti1_extension * ext;
+   FILE             * fp;
+   int                ind;
 
    if(gopt.verb > 1)
       fprintf(stderr,"-- displaying CIFTI extension to %s\n", 
               opts->fout ? opts->fout : "DEFAULT" );
 
+   if( !nim ) return 1;
+   ext = nim->ext_list;
+   for( ind = 0; ind < nim->num_ext; ind++ )
+      if( ext->ecode == NIFTI_ECODE_CIFTI ) break;
+
    fp = open_write_stream(opts->fout);
-   axml_set_wstream(fp);
-   axml_set_verb(opts->verb);
-   axml_disp_xml_t("have extension ", ax, 0, opts->verb);
+   if( ext && ext->ecode != NIFTI_ECODE_CIFTI ) {
+      fprintf(fp, "** no CIFTI extension in %s\n",nim->fname?nim->fname:"NULL");
+      return 1;
+   }
+
+   fprintf(fp, "%.*s\n", ext->esize-8, ext->edata);
    
    /* possibly close file */
    close_stream(fp);
@@ -223,6 +236,8 @@ int eval_cifti_extension(afni_xml_t * ax, opts_t * opts)
       axml_recur(ax_num_tokens, ax);
    else if( ! strcmp(opts->eval_type, "show" ) )
       axml_disp_xml_t("CIFTI extension ", ax, 0, opts->verb);
+   else if( ! strcmp(opts->eval_type, "show_summary" ) )
+      show_cifti_summary(fp, ax, opts->verb);
    else if( ! strcmp(opts->eval_type, "show_text_data" ) )
       axml_recur(ax_show_text_data, ax);
    else /* show_names is default */
@@ -262,6 +277,13 @@ int close_stream(FILE * fp)
 
    return 0;
 }
+
+int show_cifti_summary(FILE * fp, afni_xml_t * ax, int verb)
+{
+   if( !ax || !fp ) return 1;
+   return axio_show_mim_summary(fp, "CIFTI extension summary\n", ax, verb);
+}
+
 
 int ax_has_data(FILE * fp, afni_xml_t * ax, int depth)
 {
