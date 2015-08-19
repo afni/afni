@@ -540,7 +540,7 @@ Usage:
  both regression coefficients, or general linear contrasts among them, and the 
  corresponding t-statistics from each subject as input. It\'s required to install 
  R (http://www.r-project.org/), plus \'snow\' package if parallel computing is
- desirable. Version 0.2.5, Sept 10, 2014. If you want to cite the analysis
+ desirable. Version 0.2.7, Aug 18, 2015. If you want to cite the analysis
  approach, use the following at this moment:
 
  Chen et al., 2012. FMRI Group Analysis Combining Effect Estimates
