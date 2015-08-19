@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 19,  Aug, 2015, RCR, "gen_ss_review_table.py", MINOR, TYPE_NEW_OPT,
+   "add -show_missing, to show all missing labels from all files",
+   NULL
+ } ,
+
  { 14,  Aug, 2015, RCR, "afni-general", MICRO, TYPE_BUG_FIX,
    "SUMA_CIFTI_2_edset: use 'no suma' version: SUMA_WriteDset_ns",
    NULL
