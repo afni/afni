@@ -3368,6 +3368,42 @@ def random_merge(list1, list2):
 
     return mlist
 
+def show_sum_pswr(nT, nR):
+    cp = 0.0
+    prev = 0
+    for r in range(nR+1):
+       p = prob_start_with_R(nT,nR,r)
+       cp += p
+       # print 'prob at %3d = %g (cum %g)' % (r, p, cp)
+       if prev == 0: prev = p
+       print p, p/prev
+       prev = p
+    print 'cum result is %g' % cp
+
+
+def prob_start_with_R(nA, nB, nS):
+    """return the probability of starting nS (out of nB) class B elements
+       should equal: choose(nB, nS)*nS! * nA *(nB+nA-nS-1)! / (nA+nB)!
+       or: factorial(nB, init=nB-nS+1) * nA / fact(nA+nB, init=nA+nB-nS)
+
+       or: choose(nB,nS)/choose(nA+nB,nS) * nA/(nA+nB-nS)
+       
+    """
+    return 1.0 * nA * factorial(nB,    init=nB-nS+1) \
+                    / factorial(nA+nB, init=nA+nB-nS)
+
+def choose(n,m):
+    """return n choose m = n! / (m! * (n-m)!)"""
+    return factorial(n,init=n-m+1) / factorial(m)
+
+def factorial(n, init=1):
+    prod = 1
+    val = init
+    while val <= n:
+       prod *= val
+       val += 1
+    return prod
+
 def swap2(data):
     """swap data elements in pairs"""
     

@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 20,  Aug, 2015, RCR, "make_random_timing.py", MINOR, TYPE_NEW_OPT,
+   "add -show_isi_pdf and -show_isi_f_pdf",
+   NULL
+ } ,
+
  { 19,  Aug, 2015, RCR, "gen_ss_review_table.py", MINOR, TYPE_NEW_OPT,
    "add -show_missing, to show all missing labels from all files",
    NULL
