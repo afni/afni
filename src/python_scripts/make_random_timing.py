@@ -79,6 +79,77 @@ Create random stimulus timing files.
     Currently, -pre_stim_rest and -post_stim_rest cannot vary over runs.
 
 ----------------------------------------
+distribution of ISI:
+
+    To picture the distribution, consider the probability of starting with
+    r rest events, given R total rest events and T total task events.
+
+    The probability of starting with 0 rest events is actually the maximum, and
+    equals the probability of selecting a task event first.
+
+    Let X be a random variable indicating the number of rest events to start
+    a run.  Then P(X=0) = T/(T+R).
+    While this may look "large" (as in possibly close to 1), note that
+    typically R >> T.  For example, maybe there are 50 task events and 1000
+    rest "events" (e.g. 0.1 s, each).  Then P(X=0) = 50/1050 = 0.0476.
+    This ratio is generally closer to T/R than to 1.0.  T/R is 0.05 here.
+
+    More details...
+
+    To take one step back, viewing this as the probability of having t task
+    events among the first n events, it follows a hypergeometric distribution.
+    That is because for each event type that is selected, there are fewer such
+    events of that type remaing for subsequent selections.  The selection is
+    done *without* replacement.  The total numbers of each type of class are
+    fixed, as is the total rest.
+
+    This differs it from the binomial distribution, where selection is done
+    *with* repalcement.
+
+    Taking a more simplistic view, go back to the probabilty of starting with r
+    rest event, as stated at the beginning.  To be precise, that means starting
+    with r rest events followed by a task event.  That means first choosing r
+    rest events (R choose r / (R+T) choose r), then choosing one task event,
+    T / (R+T-r).
+
+                 (R)
+                 (r)        T            R!        (R+T-r-1)!
+        P(X=r) = ----- * ------      = ----- * T * ----------
+                 (R+T)   (R+T-r)       (R-r)!        (R+T)!
+                 (r  )
+
+    While this may not provide much insight on its own, consider the ratio
+    of incremental probabilities P(X=r+1) / P(X=r):
+
+        P(X=r+1)     R-r                                   R     - r
+        -------- = -------   = for visual significance = -----------
+         P(X=r)    R+T-1-r                               R+T-1   - r
+
+    The left side of that ratio is fixed at R/(R+T-1) = 1000/(1049) = .953
+    for the earlier example.  It may by common to be in that ballpark.
+    For subsequent r values, that ratio goes down, eventually hitting 0 when
+    the rest is exhausted (r=R).
+
+    This means that the distribution of such rest actually falls _below_ an
+    exponential decay curve.  It is close to (R/(R+T-1))^r at first, decaying
+    more rapidly until hitting 0.
+     
+    ==> The overall distribution of ISI rest looks like an exponential decay
+        curve, with a peak at r=0 (no rest) and probability close to T/R.
+
+    Note that the average ISI should be approximately equal to
+    total rest time / # task events
+    (e.g. 100s / 50 stimuli = 2s (per stim)).
+    So the cumulative distribution function would hit 0.5 where r corresponds
+    to this ratio, e.g. r = 20, where each rest event is 0.1s.
+
+
+    Note that this very different from using pure probabilities to select event
+    types per TR, allowing replacement (independence of events).  That would
+    lead to a binomial distribution, for which the ISI distribution might have
+    a similar mean but be effectively bell shaped around it.
+
+----------------------------------------
 getting TR-locked timing
 
     If TR-locked timing is desired, it can be enforced with the -tr_locked
@@ -342,6 +413,11 @@ informational arguments:
     -hist                       : display the modification history
     -show_valid_opts            : display all valid options (short format)
     -ver                        : display the version number
+
+    -show_isi_pdf NT NR         : show ISI PDF given Ntask, Nrest
+                                  (using incremental scaling)
+    -show_isi_f_pdf NT NR       : show ISI PDF given Ntask, Nrest
+                                  (using factorials (computationally limiting))
 
 ----------------------------------------
 required arguments:
@@ -761,6 +837,10 @@ class RandTiming:
                         helpstr='display program help')
         self.valid_opts.add_opt('-hist', 0, [],      \
                         helpstr='display the modification history')
+        self.valid_opts.add_opt('-show_isi_pdf', 2, [], \
+                        helpstr='show init ISI pdf given NTASK NREST')
+        self.valid_opts.add_opt('-show_isi_f_pdf', 2, [], \
+                        helpstr='show init fact ISI pdf given NTASK NREST')
         self.valid_opts.add_opt('-show_valid_opts', 0, [], \
                         helpstr='display all valid options')
         self.valid_opts.add_opt('-ver', 0, [],       \
@@ -849,6 +929,11 @@ class RandTiming:
         if '-show_valid_opts' in sys.argv:
             self.valid_opts.show('', 1)
             return 0
+
+        # ----------------------------------------
+        # terminal processing args that involve processing
+        if '-show_isi_pdf' in sys.argv or '-show_isi_f_pdf' in sys.argv:
+           return do_isi_pdfs(sys.argv)
 
         # ------------------------------------------------------------
         # read all user options
@@ -2119,6 +2204,77 @@ def make_concat_from_times(run_times, tr):
         cind += round(run_times[ind]/tr)
         str += ' %d' % cind
     return str + "' \\\n"
+
+def do_isi_pdfs(argv):
+   oname = '-show_isi_f_pdf'
+   if oname in argv:
+      ind = argv.index(oname)
+      try:
+         NT = int(argv[ind+1])
+         NR = int(argv[ind+2])
+      except:
+         print '** %s requires 2 integer params, NTask, NRest' % oname
+         return 1
+      show_sum_pswr(NT, NR)
+
+   oname = '-show_isi_pdf'
+   if oname in argv:
+      ind = argv.index(oname)
+      try:
+         NT = int(argv[ind+1])
+         NR = int(argv[ind+2])
+      except:
+         print '** %s requires 2 integer params, NTask, NRest' % oname
+         return 1
+      show_isi_pdf(NT, NR)
+
+   return 0
+
+def show_isi_pdf(T, R):
+   """akin to show_sum_pswr, but init and accumulate:
+
+      P(R=0) = T/(T+R)
+      P(R=r+1)/P(R=r) = (R-r)/(R+T-1-r)
+   """
+   pcur = 1.0*T/(T+R)
+   cump = pcur
+   rat  = pcur
+
+   print 'nstart   prob        inc'
+   print '------   ----------  ----------'
+   for r in range(0,R+1):
+      print "%5d   %-10g   %-10g" % (r, pcur, rat)
+      rat = (1.0*R - r) / (R + T - 1 - r)
+      pcur *= rat
+      cump += pcur
+   print 'cum result is %g' % cump
+
+def show_sum_pswr(nT, nR):
+   cp = 0.0
+   prev = 0
+   print 'nstart   prob        inc'
+   print '------   ----------  ----------'
+   for r in range(nR+1):
+      p = prob_start_with_R(nT,nR,r)
+      cp += p
+      # print 'prob at %3d = %g (cum %g)' % (r, p, cp)
+      if prev == 0: prev = p
+      print r, p, p/prev
+      prev = p
+   print 'cum result is %g' % cp
+
+
+def prob_start_with_R(nA, nB, nS):
+    """return the probability of starting nS (out of nB) class B elements
+       should equal: choose(nB, nS)*nS! * nA *(nB+nA-nS-1)! / (nA+nB)!
+       or: factorial(nB, init=nB-nS+1) * nA / fact(nA+nB, init=nA+nB-nS)
+
+       or: choose(nB,nS)/choose(nA+nB,nS) * nA/(nA+nB-nS)
+
+    """
+    return 1.0 * nA * UTIL.factorial(nB,    init=nB-nS+1) \
+                    / UTIL.factorial(nA+nB, init=nA+nB-nS)
+
 
 def process():
     timing = RandTiming('make random timing')
