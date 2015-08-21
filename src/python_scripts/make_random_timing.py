@@ -356,17 +356,18 @@ NOTE: distribution of ISI
     To take one step back, viewing this as the probability of having t task
     events among the first n events, it follows a hypergeometric distribution.
     That is because for each event type that is selected, there are fewer such
-    events of that type remaing for subsequent selections.  The selection is
+    events of that type remaining for subsequent selections.  The selection is
     done *without* replacement.  The total numbers of each type of class are
     fixed, as is the total rest.
 
     This differs it from the binomial distribution, where selection is done
-    *with* repalcement.
+    *with* replacement.
 
-    Taking a simplistic view, go back to the probabilty of starting with exactly
-    r rest events, as stated at the beginning.  That means starting with r rest
-    events followed by a task event.  That means first choosing r rest events
-    ((R choose r) / ((R+T) choose r)), then choosing one task event, T/(R+T-r).
+    Taking a simplistic view, go back to the probability of starting with
+    exactly r rest events, as stated at the beginning.  That means starting
+    with r rest events followed by one task event.  That means first choosing
+    r rest events ((R choose r) / ((R+T) choose r)), then choosing one task
+    event, T/(R+T-r).
 
                  (R)
                  (r)        T            R!        (R+T-r-1)!
@@ -410,7 +411,7 @@ NOTE: distribution of ISI
     Given the timing, "timing_tool.py -multi_timing_to_event_list" can be used
     to output ISIs (for example).  Use that to simply make a list of ISIs, and
     then make a histogram.  Let us repeat the process of generating events and
-    ISIs, accumlating a list of ISIs, a total of 100 times.  The generate and
+    ISIs, accumulating a list of ISIs, a total of 100 times.  The generate and
     plot of histogram of all ISI duration counts.
 
     Since rest is on a 0.1 s grid, we will scale by 10 and make an integer
@@ -438,7 +439,7 @@ NOTE: distribution of ISI
 
     Side note assuming replacement and the binomial distribution:
 
-       In the case of replacement, we get a binomal distribution.  In the same
+       In the case of replacement, we get a binomial distribution.  In the same
        P(X=r) case (starting with r rest events), the probabilities are simple.
           P(X=r) = [R/(R+T)]^r  * T(R+T)
        Each rest probability is simply R/(R+T), while task is T/(R+T).
