@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 21,  Aug, 2015, RCR, "make_random_timing.py", MICRO, TYPE_ENHANCE,
+   "add more help for 'NOTE: distribution of ISI', including a short script",
+   NULL
+ } ,
+
  { 20,  Aug, 2015, RCR, "make_random_timing.py", MINOR, TYPE_NEW_OPT,
    "add -show_isi_pdf and -show_isi_f_pdf",
    NULL
