@@ -777,7 +777,7 @@ general options:
         e.g. -per_run_file
 
         This option applies to -timing_to_1D, so that the 0/1 array goes in a
-        seperate file per run.  With -per_run, each run is just a separate row.
+        separate file per run.  With -per_run, each run is just a separate row.
 
    -run_len RUN_TIME ...        : specify the run duration(s), in seconds
 
