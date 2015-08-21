@@ -20,9 +20,23 @@
 #include <nifti2_io.h>
 #include "afni_xml_io.h"
 
-static char g_version[] = "version 0.1";
+static char * g_history[] =
+{
+  "----------------------------------------------------------------------\n"
+  "cifti_tool modification history:\n",
+  "0.0  16 Jun 2015 [rickr]\n"
+  "     (Rick Reynolds of the National Institutes of Health, SSCC/DIRP/NIMH)\n"
+  "     - initial version\n"
+  "0.1   8 Jul 2015 [rickr]\n"
+  "     - recur and up through axio_read_cifti_file\n"
+  "0.2  17 Aug 2015 [rickr]\n"
+  "     - new eval_type: 'show_summary'\n"
+  "0.3  21 Aug 2015 [rickr]\n"
+  "     - add more help and -hist\n"
+  "----------------------------------------------------------------------\n"
+};
 
-
+static char g_version[] = "cifti_tool version 0.3, 21 August, 2015";
 
 /* ----------------------------------------------------------------- */
 /* define and declare main option struct */
@@ -54,6 +68,7 @@ int show_cifti_summary  (FILE * fp, afni_xml_t * ax, int verb);
 int process_args        (int argc, char * argv[], opts_t * opts);
 int process             (opts_t * opts);
 int show_help           (void);
+int show_hist           (void);
 int write_extension     (FILE * fp, nifti1_extension * ext, int maxlen);
 
 /* recur */
@@ -93,10 +108,13 @@ int process_args(int argc, char * argv[], opts_t * opts)
 
    if( argc < 2 ) return show_help();   /* typing '-help' is sooo much work */
 
-   /* process user options: 4 are valid presently */
+   /* process user options */
    for( ac = 1; ac < argc; ac++ ) {
       if( ! strcmp(argv[ac], "-h") || ! strcmp(argv[ac], "-help") ) {
          return show_help();
+      } else if( ! strcmp(argv[ac], "-hist") ){ 
+         show_hist();
+         return 1;
       } else if( ! strcmp(argv[ac], "-as_cext") ||
                ! strcmp(argv[ac], "-as_cifti_ext") ) {
          opts->as_cext = 1;
@@ -411,6 +429,16 @@ int disp_hex_data(const char *mesg, const void *data, int len, FILE *fp)
 }
 
 
+int show_hist( void )
+{
+   int c, len = sizeof(g_history)/sizeof(char *);
+   for( c = 0; c < len; c++)
+      fputs(g_history[c], stdout);
+   putchar('\n');
+   return 0;
+}
+
+
 int show_help( void )
 {
    printf(
@@ -428,6 +456,8 @@ int show_help( void )
       "\n"
       "       cifti_tool -input FILE -eval_cext\n"
       "       cifti_tool -input FILE -eval_cext -verb 2\n"
+      "       cifti_tool -input FILE -eval_cext -eval_type show_summary\n"
+      "\n"
       "       cifti_tool -input FILE -eval_cext -eval_type show_name\n"
       "       cifti_tool -input FILE -eval_cext -eval_type has_data\n"
       "       cifti_tool -input FILE -eval_cext -eval_type show_text_data\n"
@@ -454,8 +484,9 @@ int show_help( void )
       "             has_bdata      - show elements with attached binary data\n"
       "             num_tokens     - show the number of tokens in such text\n"
       "             show           - like -disp_cext\n"
-      "             show_text_data - show the actual text data\n"
       "             show_names     - show element names, maybe depth indented\n"
+      "             show_summary   - summarize contents of dataset\n"
+      "             show_text_data - show the actual text data\n"
       "\n"
       "       -verb LEVEL         : set the verbose level to LEVEL\n"
       "       -verb_read LEVEL    : set verbose level when reading\n"
