@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 21,  Aug, 2015, RCR, "Makefile.INCLUDE", MICRO, TYPE_ENHANCE,
+   "make cifti_tool",
+   NULL
+ } ,
+
  { 21,  Aug, 2015, RCR, "cifti_tool", MICRO, TYPE_ENHANCE,
    "updated help and added -hist",
    NULL
