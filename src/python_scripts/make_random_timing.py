@@ -436,17 +436,27 @@ NOTE: distribution of ISI
     Basically, we are looking for something like a exponential decay curve
     in the frequency histogram (the lower plot).
 
+    Include plot of probabilities, computed incrementally (no factorials).
+    Use the same event counts, 100 task and 1000 rest events.  Truncate this
+    histogram to plot them together.
+
+       set nhist = `1dcat isis_hist.1D | wc -l`
+       make_random_timing.py -verb 0 -show_isi_pdf 100 1000 > pure_probs.1D
+       grep -v prob pure_probs.1D | grep -v result | grep -v '\-----' \\
+           | head -n $nhist > prob.1D
+       1dplot -sepscl prob.1D'[1]' isis_hist.1D'[1,2]'
 
     Side note assuming replacement and the binomial distribution:
 
        In the case of replacement, we get a binomial distribution.  In the same
        P(X=r) case (starting with r rest events), the probabilities are simple.
-          P(X=r) = [R/(R+T)]^r  * T(R+T)
+          P(X=r) = [R/(R+T)]^r  * T/(R+T)
        Each rest probability is simply R/(R+T), while task is T/(R+T).
        The incremental probability is simply that of getting one more rest,
        which is R/(R+T) because of independence (samples are "replaced").
 
-       In this case, the PDF should follow an exponential decay curve.
+       In this case, the PDF should more exactly follow an exponential decay
+       curve.
 
 ----------------------------------------------------------------------
 informational arguments:
