@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 21,  Aug, 2015, RCR, "timing_tool.py", MICRO, TYPE_BUG_FIX,
+   "start-of-run fix to -multi_timing_to_event_list offsets",
+   NULL
+ } ,
+
  { 21,  Aug, 2015, RCR, "make_random_timing.py", MICRO, TYPE_ENHANCE,
    "add more help for 'NOTE: distribution of ISI', including a short script",
    NULL
