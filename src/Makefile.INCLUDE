@@ -3077,6 +3077,14 @@ gifti_choice.o:gifti_choice.c thd_gifti.c suma_gifti.c
 	$(RM) $@
 	$(CC) -c gifti_choice.c -Igifti $(INFLAGS)
 
+# compile separately, akin to gifti_tool; do not bother with .o files
+cifti_tool:nifti2_io.o znzlib.o nifticdf.o nifti/cifti/cifti_tool.c
+	$(RM) $@
+	$(CC) -o cifti_tool $(INFLAGS) -Inifti/cifti                    \
+		nifti/cifti/cifti_tool.c                                \
+		nifti/cifti/afni_xml_io.c nifti/cifti/afni_xml.c        \
+		nifti2_io.o nifticdf.o znzlib.o $(LGIFTI) $(LZLIB) -lm
+
 tsdsim:tsdsim.o
 	$(RM) $@
 	$(CC) -o tsdsim tsdsim.o $(LFLAGS) $(LLIBS) -lmx
