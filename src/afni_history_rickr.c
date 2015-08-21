@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 21,  Aug, 2015, RCR, "cifti_tool", MICRO, TYPE_ENHANCE,
+   "updated help and added -hist",
+   NULL
+ } ,
+
  { 21,  Aug, 2015, RCR, "timing_tool.py", MICRO, TYPE_BUG_FIX,
    "start-of-run fix to -multi_timing_to_event_list offsets",
    NULL
