@@ -54,7 +54,7 @@ LIBDIR = $(INSTALLDIR)
 
 INSTALL_PREREQ = suma_gts
 #INSTALL_PREREQ = suma
-EXPROGS = gifti_tool
+EXPROGS = 
 
 # LIBDL = libdl.a
 
