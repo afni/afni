@@ -35,6 +35,7 @@ history for $prog :
   01 May 2014 : added -quick option; fixed sync of backup, was nesting
   15 Jan 2015 : if bad option and current version, fail after version check
   08 Apr 2015 : added -revert (zsaad and rickr)
+  25 Apr 2015 : update path and AFNI tab completion on initial install
 -------------------------------------------------------------------------------
 EOF
 exit
@@ -357,6 +358,7 @@ echo "   install dir: $abin..."
 
 # ----------------------------------------------------------------------
 # if the install dir does not exist, create it
+set new_install = 0
 if ( -d $abin ) then
    echo "-- have install dir"
 else
@@ -366,6 +368,7 @@ else
    endif
    echo "++ creating install dir"
    mkdir -pv $abin
+   set new_install = 1
    if ( $status ) then
       echo "** failed to create install dir, $abin"
       exit
@@ -710,12 +713,50 @@ else
    endif
 endif
 
+# if this is a new install, update .cshrc
+set rcfile = ~/.cshrc
+if ( $new_install && -d $abin ) then
+   if ( -f ~/.tcshrc ) then
+      set rcfile = ~/.tcshrc
+   else if ( -f ~/.cshrc ) then
+      set rcfile = ~/.cshrc
+   else
+      set rcfile = ~/.cshrc
+      echo ++ creating empty $rcfile
+      echo "" > $rcfile
+   endif
+
+   grep $abin:t $rcfile >& /dev/null
+   if ( $status ) then
+      # finally, update .csrhc and our current path
+      echo 'set path = ( $path ' $abin ' ) ' >> $rcfile
+      set path = ( $path $abin )
+   endif
+
+   rehash
+   set cur_afni = `which afni`
+   set cur_afni = $cur_afni:h
+endif
+
 # and possibly run apsearch
 if ( $do_apsearch && $cur_afni == $abin && $#prog_list == 0 ) then
    rehash
    set cmd = "apsearch -update_all_afni_help"
    echo "++ running $cmd ..."
    $cmd
+   
+   grep afni_help_dir $rcfile >& /dev/null
+   if ( $status && -f $rcfile ) then
+      cat << EOF >> $rcfile
+
+set ahdir = \`apsearch -afni_help_dir\`
+if ( -f \$ahdir/all_progs.COMP ) then
+   source \$ahdir/all_progs.COMP
+endif
+
+EOF
+   endif
+
 endif
 
 # maybe they need to set the DYLD_F_L_P

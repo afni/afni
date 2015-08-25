@@ -49,6 +49,12 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 25,  Aug, 2015, RCR, "@update.afni.binaries", MICRO, TYPE_ENHANCE,
+   "if initial install, update .cshrc",
+   "If initial install (afni not in PATH) and PATH not set in .csrhc,\n"
+   "update path (PATH) and do 'apsearch -afni_help_dir' update in .csrhc."
+ } ,
+
  { 21,  Aug, 2015, RCR, "Makefile.INCLUDE", MICRO, TYPE_ENHANCE,
    "move gifti_tool/cifti_tool from EXPROGS to PROGRAM_LIST",
    "Modified 28 Makefiles."
