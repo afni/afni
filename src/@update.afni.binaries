@@ -35,7 +35,7 @@ history for $prog :
   01 May 2014 : added -quick option; fixed sync of backup, was nesting
   15 Jan 2015 : if bad option and current version, fail after version check
   08 Apr 2015 : added -revert (zsaad and rickr)
-  25 Apr 2015 : update path and AFNI tab completion on initial install
+  25 Aug 2015 : update path and AFNI tab completion on initial install
 -------------------------------------------------------------------------------
 EOF
 exit
