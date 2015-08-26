@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 26,  Aug, 2015, RCR, "Makefile.ptaylor.INCLUDE", MICRO, TYPE_ENHANCE,
+   "put -L.. before $LFLAGS to link local libjpeg",
+   NULL
+ } ,
+
  { 25,  Aug, 2015, RCR, "@update.afni.binaries", MICRO, TYPE_ENHANCE,
    "if initial install, update .cshrc",
    "If initial install (afni not in PATH) and PATH not set in .csrhc,\n"
