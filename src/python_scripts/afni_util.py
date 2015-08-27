@@ -2665,6 +2665,7 @@ def search_path_dirs(word, mtype=0, casematch=1):
    rlist = []
    for pdir in plist:
       glist = glob.glob(form % (pdir, wpat))
+      glist.sort()
       if len(glist) > 0: rlist.extend(glist)
 
    # make a new list based on os.path.realpath, to avoid links
