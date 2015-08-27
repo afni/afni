@@ -261,9 +261,11 @@ which afni >& /dev/null
 if ( $status ) then
    echo "-- no current AFNI package..."
    set cur_afni = ""
+   set new_install = 1
 else
    set cur_afni = `which afni`
    set cur_afni = $cur_afni:h
+   set new_install = 0
    echo "-- have AFNI binaries under $cur_afni"
 endif
 
@@ -358,7 +360,6 @@ echo "   install dir: $abin..."
 
 # ----------------------------------------------------------------------
 # if the install dir does not exist, create it
-set new_install = 0
 if ( -d $abin ) then
    echo "-- have install dir"
 else
@@ -368,7 +369,6 @@ else
    endif
    echo "++ creating install dir"
    mkdir -pv $abin
-   set new_install = 1
    if ( $status ) then
       echo "** failed to create install dir, $abin"
       exit
