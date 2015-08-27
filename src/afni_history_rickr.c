@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 27,  Aug, 2015, RCR, "afni_system_check.py", MICRO, TYPE_ENHANCE,
+   "check for R packages via 'rPkgsInstall -pkgs ALL -check'",
+   NULL
+ } ,
+
  { 26,  Aug, 2015, RCR, "Makefile.ptaylor.INCLUDE", MICRO, TYPE_ENHANCE,
    "put -L.. before $LFLAGS to link local libjpeg",
    NULL
