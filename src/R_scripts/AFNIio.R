@@ -3172,10 +3172,11 @@ write.c.AFNI <- function( filename, dset=NULL, label=NULL,
    if (!is.null(delta)) dset$NI_head <- 
                            dset.attr(dset$NI_head, "DELTA", val=delta)
    
+   oblique_transform <- NULL
    if (!is.null(defhead)) 
-      IJK_TO_DICOM_REAL <- dset.attr(defhead$NI_head,"IJK_TO_DICOM_REAL")
-   if (!is.null(IJK_TO_DICOM_REAL)) dset$NI_head <- 
-      dset.attr(dset$NI_head, "IJK_TO_DICOM_REAL", val=IJK_TO_DICOM_REAL)
+      oblique_transform <- dset.attr(defhead$NI_head,"IJK_TO_DICOM_REAL")
+   if (!is.null(oblique_transform)) dset$NI_head <- 
+      dset.attr(dset$NI_head, "IJK_TO_DICOM_REAL", val=oblique_transform)
    
    if (is.null(orient) && !is.null(defhead)) 
       orient <- dset.attr(defhead,"ORIENT_SPECIFIC")
