@@ -43,7 +43,14 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 11 , AUG , 2015 , RWC , "3dFWHMx" , MICRO , TYPE_MODIFY ,
+  { 28 , AUG , 2015 , RWC , "3dDeconvolve" , MICRO , TYPE_BUG_FIX ,
+   "Hack to allow -stim_times_IM to work with times > TMAX" ,
+   "Times > TMAX are ignored.  In usual cases, this isn't a problem.  But\n"
+   "with IM regression, each time gets a regressor, and times > TMAX produce\n"
+   "all zero regressors -- which is a problem.  This hack will cut them off\n"
+   "(at least in some cases)." } ,
+
+ { 11 , AUG , 2015 , RWC , "3dFWHMx" , MICRO , TYPE_MODIFY ,
    "Modify -2difMAD option calculations" ,
    "If smoothness calculation fails using Median Absolute Deviation, retry\n"
    "with Mean Absolute Deviation." } ,
