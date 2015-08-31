@@ -2909,7 +2909,7 @@ typedef struct THD_3dim_dataset {
 
 /*! Dataset is tcat-ed? */
 
-#define DSET_IS_TCAT(ds) (ISVALID_DSET(ds) && (ds)->tcat_list != NULL)
+#define DSET_IS_TCAT(ds) (ISVALID_DSET(ds) && (ds)->tcat_list != NULL && (ds)->tcat_num > 0)
 
 /*! Return pointer to current dataset axes (warp-on-demand or permanent). */
 

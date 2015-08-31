@@ -296,8 +296,8 @@
 #define USE_GET   /* RWCox: extract multiple timeseries at once for speed */
 
 /*---------------------------------------------------------------------------*/
-/* Decide on the inclusion of mri_matrix.h before including mri_lib.h 
-   The latter now ends up including mri_matrix.h in a roundabout way 
+/* Decide on the inclusion of mri_matrix.h before including mri_lib.h
+   The latter now ends up including mri_matrix.h in a roundabout way
    via suma_utils.h                                   ZSS Nov. 21 2014   */
 #ifndef FLOATIZE
 # include "matrix.h"          /* double precision */
@@ -313,7 +313,7 @@
 # define MPAIR    float_pair
 #endif
 
-#include "mrilib.h"           /* Keep after decision about matrix.h inclusion 
+#include "mrilib.h"           /* Keep after decision about matrix.h inclusion
                                                       ZSS  Nov. 21 2014*/
 
 
@@ -1566,7 +1566,7 @@ void display_help_menu(int detail)
     "   This option allows you to input FSL-style 3-column timing files,    \n"
     "   where each line corresponds to one stimulus event/block; the        \n"
     "   line '40 20 1' means 'stimulus starts at 40 seconds, lasts for      \n"
-    "   20 seconds, and is given amplitude 1'.  Since In this format,       \n"
+    "   20 seconds, and is given amplitude 1'.  Since in this format,       \n"
     "   each stimulus can have a different duration and get a different     \n"
     "   response amplitude, the 'Rmodel' must be one of the 'dm'            \n"
     "   duration-modulated options above ['dmUBLOCK(1)' is probably the     \n"
@@ -2295,12 +2295,19 @@ void get_options
           option_data->input_filename[slen-1] = '\0' ; /* trim last blank */
           nopt = iopt ;
 #endif
-      { THD_3dim_dataset *dset ;
-        dset = THD_open_dataset (option_data->input_filename);
-        CHECK_OPEN_ERROR(dset,option_data->input_filename) ;
-        ttmax = DSET_NUM_TIMES(dset) * DSET_TR(dset) ;
-        DSET_delete(dset) ;
-      }
+        { THD_3dim_dataset *dset ; int lmax ;
+          dset = THD_open_dataset (option_data->input_filename);
+          CHECK_OPEN_ERROR(dset,option_data->input_filename) ;
+          lmax = DSET_NVALS(dset) ;
+          if( DSET_IS_TCAT(dset) && !option_data->tcat_noblock ){
+            int it ;
+            for( lmax=2,it=0 ; it < dset->tcat_num ; it++ )
+              lmax = MAX( lmax , dset->tcat_len[it] ) ;
+          }
+          ttmax = lmax * DSET_TR(dset) ;
+          DSET_delete(dset) ;
+        }
+
         continue;
       }
 
