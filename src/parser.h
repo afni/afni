@@ -131,8 +131,12 @@ extern "C" {                    /* care of Greg Balls    7 Aug 2006 [rickr] */
   " * minbelow(X,a,b,c,...) computes the smallest value amongst {a,b,c,...}\n" \
   "    that is LARGER than the first argument X; if all values are smaller\n"  \
   "    than X, then X will be returned\n"                                      \
-  " * maxbelow(X,a,b,c,...) similarly returns the largest value amonsgst\n"    \
+  " * maxbelow(X,a,b,c,...) similarly returns the largest value amongst\n"     \
   "    {a,b,c,...} that is SMALLER than the first argument X.\n"               \
+  " * extreme(a,b,c,...) finds the largest absolute value amongst\n"           \
+  "    {a,b,c,...} returning one of the original a,b,c,... values.\n"          \
+  " * absextreme(a,b,c,...) finds the largest absolute value amongst\n"        \
+  "    {a,b,c,...} returning the maximum absolute value of a,b,c,... values.\n"\
   " * lmode(a,b,c,...) and hmode(a,b,c,...) compute the mode\n"                \
   "    of their arguments - lmode breaks ties by choosing the\n"               \
   "    smallest value with the maximal count, hmode breaks ties by\n"          \
