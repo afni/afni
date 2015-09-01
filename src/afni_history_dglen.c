@@ -49,6 +49,10 @@
 
 
 afni_history_struct dglen_history[] = {
+{ 1, SEP, 2015, DRG, "3dcalc extreme, absextreme",
+    MINOR, TYPE_NEW_OPT,
+    "New extreme and absextreme operators to find extreme values"
+},
 { 9, JUL, 2015, DRG, "suma flip colormaps",
     MICRO, TYPE_MODIFY,
     "Colormaps imported from AFNI are now flipped \'properly\'"
