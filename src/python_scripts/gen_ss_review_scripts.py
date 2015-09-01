@@ -91,6 +91,7 @@ gen_ss_review_scripts.py - generate single subject analysis review scripts
       censor_dset          motion_FT_censor.1D
       sum_ideal            sum_ideal.1D
       stats_dset           stats.FT+tlrc.HEAD
+      errts_dset           errts.FT.fanaticor+tlrc.HEAD
       xmat_uncensored      X.nocensor.xmat.1D
       tsnr_dset            TSNR.ft+tlrc.HEAD
       gcor_dset            out.gcor.1D
@@ -669,6 +670,7 @@ g_eg_uvar.final_anat      = 'anat_final.FT+tlrc.HEAD'
 g_eg_uvar.final_view      = 'tlrc'
 g_eg_uvar.mask_dset       = 'full_mask.FT+tlrc.HEAD'
 g_eg_uvar.tsnr_dset       = 'TSNR.FT+tlrc.HEAD'
+g_eg_uvar.errts_dset      = 'errts.FT.fanaticor+tlrc.HEAD'
 
 # dictionary of variable names with help string
 g_uvar_dict = { 
@@ -693,6 +695,7 @@ g_uvar_dict = {
  'final_view'       :'set final view of data (orig/tlrc)',
  'mask_dset'        :'set EPI mask',
  'tsnr_dset'        :'set temporal signal to noise dataset',
+ 'errts_dset'       :'set residual dataset',
  # todo
  'template_space'   :'set final view of data (orig/tlrc)'
 }
@@ -789,9 +792,10 @@ g_history = """
    0.41 May  1, 2015: keep num regs of interest = 0 if num stim = 0
    0.42 Jul 29, 2015:
         - do not allow _REMLvar stats dset (previously blocked only _REMLvar+)
+   0.43 Sep  1, 2015: track errts dset, and possibly use it for voxel dims
 """
 
-g_version = "gen_ss_review_scripts.py version 0.42, July 29, 2015"
+g_version = "gen_ss_review_scripts.py version 0.43, Sep 1, 2015"
 
 g_todo_str = """
    - figure out template_space (should we output 3dinfo -space?)
@@ -1063,6 +1067,7 @@ class MyInterface:
       if self.guess_align_anat():  return 1
       if self.guess_mask_dset():   return 1
       if self.guess_tsnr_dset():   return 1
+      if self.guess_errts_dset():  return 1
       if self.guess_gcor_dset():   return 1
       if self.guess_mask_corr_dset(): return 1
 
@@ -1685,6 +1690,48 @@ class MyInterface:
 
       return 0
 
+   def guess_errts_dset(self):
+      """set uvars.errts_dset"""
+
+      # check if already set
+      if self.uvars.is_not_empty('errts_dset'):
+         if self.cvars.verb > 3:
+            print '-- already set: errts_dset = %s' % self.uvars.errts_dset
+
+      gind = 0
+      gstr = 'errts?%s*anaticor+%s.HEAD' \
+             % (self.uvars.subj, self.uvars.final_view)
+      glist = glob.glob(gstr)
+      if len(glist) == 0:
+         gstr = 'errts*anaticor+%s.HEAD' % (self.uvars.final_view)
+         glist = glob.glob(gstr)
+      if len(glist) == 0:
+         gstr = 'errts*tproject+%s.HEAD' % (self.uvars.final_view)
+         glist = glob.glob(gstr)
+      if len(glist) == 0:
+         gstr = 'errts*%s.HEAD' % (self.uvars.final_view)
+         glist = glob.glob(gstr)
+      if len(glist) == 0:
+         gstr = 'errts*.HEAD'
+         glist = glob.glob(gstr)
+      if len(glist) == 0:
+         print '** failed to find errts dset, continuing...'
+         return 0 # failure is not terminal
+      if len(glist) > 1:
+         if self.cvars.verb > 1:
+            print '++ found multiple errts datasets, picking between:\n   ',
+            print '\n   '.join(glist)
+         # if multiple and have REML use it
+         for ind, gname in enumerate(glist):
+            if gname.find('_REML') > 0:
+               gind = ind
+               break
+
+      self.uvars.errts_dset = glist[gind]
+      self.dsets.errts_dset = BASE.afni_name(self.uvars.errts_dset)
+
+      return 0
+
    def guess_gcor_dset(self):
       """set uvars.gcor_dset"""
 
@@ -1993,11 +2040,19 @@ class MyInterface:
          astr = 'echo "final anatomy dset        : $final_anat"\n'
       else: astr = ''
 
+      resvar = ''
+      sstr = ''
       if self.uvars.is_not_empty('stats_dset'):
-         sstr = 'echo "final stats dset          : $stats_dset"\n' \
-                'echo "final voxel resolution    : '               \
-                                        '`3dinfo -ad3 $stats_dset`"\n'
-      else: sstr = ''
+         sstr += 'echo "final stats dset          : $stats_dset"\n'
+         if not self.uvars.val('stats_dset').startswith('NO_'):
+            resvar = '$stats_dset'
+      if self.uvars.is_not_empty('errts_dset') \
+            and self.uvars.val('num_stim') == 0:
+         sstr += 'echo "final errts dset          : $errts_dset"\n'
+         if resvar == '': resvar = '$errts_dset'
+
+      if resvar != '': 
+         sstr += 'echo "final voxel resolution    : `3dinfo -ad3 %s`"\n'%resvar
 
       txt = g_overview_str + astr + sstr + 'echo ""\n' + g_mot_n_trs_str
 
@@ -2090,6 +2145,11 @@ class MyInterface:
       if val != None:
          txt += form % (var, self.uvars.val(var))
       # else: okay - not required (resting state)
+
+      var = 'errts_dset'
+      val = self.uvars.val(var)
+      if val != None:
+         txt += form % (var, self.uvars.val(var))
 
       var = 'censor_dset'
       if self.uvars.is_not_empty(var):

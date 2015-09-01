@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  1,  Sep, 2015, RCR, "gen_ss_review_scripts.py", MICRO, TYPE_ENHANCE,
+   "track errts dset, and possibly use it for voxel dims",
+   NULL
+ } ,
+
  { 27,  Aug, 2015, RCR, "afni_system_check.py", MICRO, TYPE_ENHANCE,
    "check for R packages via 'rPkgsInstall -pkgs ALL -check'",
    NULL
