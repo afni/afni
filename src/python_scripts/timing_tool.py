@@ -777,7 +777,7 @@ general options:
         e.g. -per_run_file
 
         This option applies to -timing_to_1D, so that the 0/1 array goes in a
-        seperate file per run.  With -per_run, each run is just a separate row.
+        separate file per run.  With -per_run, each run is just a separate row.
 
    -run_len RUN_TIME ...        : specify the run duration(s), in seconds
 
@@ -976,9 +976,10 @@ g_history = """
    2.10 Oct 28, 2014 - expanded -help_basis (WAV, 3dDeconvolve, 1dplot)
    2.11 Jan 20, 2015 - allow ',' as married timing separator (with '*')
    2.12 Jun 05, 2015 - added -per_run_file
+   2.13 Aug 21, 2015 - start-of-run fix to -multi_timing_to_event_list offsets
 """
 
-g_version = "timing_tool.py version 2.12, June 5, 2015"
+g_version = "timing_tool.py version 2.13, August 21, 2015"
 
 
 
@@ -1778,6 +1779,8 @@ class ATInterface:
          elif st == 'd': astr = '%8.3f' % dur
          elif st == 'o':
             offset = etime-tprev-dur
+            # check for first event per run
+            if tprev == 0.0: offset = etime
             if offset == 0.0:
                          astr = '   0    '
             else:        astr = '%8.3f' % offset

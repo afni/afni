@@ -255,8 +255,8 @@ class SysInfo:
          print
 
    def show_path_vars(self, header=1):
-      print UTIL.section_divider('path vars', hchar='-')
-      for evar in ['PATH', 'PYTHONPATH',
+      print UTIL.section_divider('env vars', hchar='-')
+      for evar in ['PATH', 'PYTHONPATH', 'R_LIBS',
                    'LD_LIBRARY_PATH',
                    'DYLD_LIBRARY_PATH', 'DYLD_FALLBACK_LIBRARY_PATH']:
          if os.environ.has_key(evar): print "%s = %s\n" % (evar, os.environ[evar])
@@ -306,6 +306,26 @@ class SysInfo:
             print ind + indn.join(se)
             fcount += 1
          else: print '    %-20s : success' % prog
+      print
+
+      print 'checking for R packages...'
+      cmd = 'rPkgsInstall -pkgs ALL -check'
+      st, so, se = BASE.shell_exec2(cmd, capture=1)
+      if st or len(se) < 2: okay = 0
+      else:
+         if se[1].startswith('++ Note:'): se = se[2:]
+         okay = 1
+         # require every subsequent string to say verified
+         for estr in se:
+            if estr != '' and estr.find('has been verified') < 0:
+               okay = 0   # any failure is terminal
+               break
+      if okay:
+         print '    %-20s : success' % cmd
+      else:
+         print '    %-20s : FAILURE' % cmd
+         print ind + indn.join(se)
+         fcount += 1
       print
 
       ascdir = UTIL.executable_dir()

@@ -97,7 +97,7 @@ PROGRAMS = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge count   
            3dNormalityTest 3dmask_tool FIRdesign help_format 2perm 3dClustCount \
            column_cat 3dUnifize 3dNwarpCat 3dQwarp 3dLocalHistog 3dNwarpAdjust  \
            3dNwarpFuncs 3dTproject afni_open 3dConformist 3dNwarpXYZ 3dTRfix    \
-           3dToyProg 3dRankizer nifti1_tool \
+           3dToyProg 3dRankizer nifti1_tool gifti_tool cifti_tool \
            $(EXTRAS)
 
 PROGRAMS_NOPLUG = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge      \
@@ -133,7 +133,7 @@ PROGRAMS_NOPLUG = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge  
                   apsearch 3dNormalityTest 3dmask_tool 2perm 3dClustCount           \
                   3dUnifize 3dNwarpCat 3dQwarp 3dLocalHistog 3dNwarpAdjust 3dTRfix  \
                   3dNwarpFuncs 3dTproject  afni_open   3dConformist 3dNwarpXYZ      \
-                  3dToyProg nifti1_tool    \
+                  3dToyProg nifti1_tool gifti_tool cifti_tool    \
                   $(EXTRAS)
 
 # For CYGWIN (look for "exe" to find various places below)
@@ -168,7 +168,7 @@ PROGRAMS_EXE = afni.exe to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge 
                1dFlagMotion 3dTsort 1dTsort 3dTfitter afni_history 1dUpsample     \
                3dTcorrMap 3dABoverlap 3dRank 3dFFT 3dTcorr1D 3dClustSim 3dTRfix   \
                3dRetinoPhase 3dMaskToASCII 3dttest++ 3dDTtoDWI niccc 3dXYZcat     \
-               column_cat GLTsymtest nifti1_tool
+               column_cat GLTsymtest nifti1_tool gifti_tool cifti_tool
 
 SCRIPTS = @4Daverage @CommandGlobb @GetAfniOrient @DTI_studio_reposition          \
           @GetAfniPrefix @NoExt @UpdateAfni @RenamePanga @2dwarper                \
@@ -3076,6 +3076,14 @@ gifti_tool:nifti1_io.o znzlib.o
 gifti_choice.o:gifti_choice.c thd_gifti.c suma_gifti.c
 	$(RM) $@
 	$(CC) -c gifti_choice.c -Igifti $(INFLAGS)
+
+# compile separately, akin to gifti_tool; do not bother with .o files
+cifti_tool:nifti2_io.o znzlib.o nifticdf.o nifti/cifti/cifti_tool.c
+	$(RM) $@
+	$(CC) -o cifti_tool $(INFLAGS) -Inifti/cifti                    \
+		nifti/cifti/cifti_tool.c                                \
+		nifti/cifti/afni_xml_io.c nifti/cifti/afni_xml.c        \
+		nifti2_io.o nifticdf.o znzlib.o $(LGIFTI) $(LZLIB) -lm
 
 tsdsim:tsdsim.o
 	$(RM) $@
