@@ -85,6 +85,10 @@ process options:
 
       This is mainly to help create a list of labels and parent labels.
 
+   -show_missing        : display all missing keys
+
+      Show all missing keys from all infiles.
+
    -tablefile OUT_NAME  : write final table to the given file
 
       If the specified file already exists, it will not be overwritten
@@ -115,9 +119,10 @@ g_history = """
    0.3  Jun 26, 2014    - label typos: track 'degress of freedom' as 'degrees'
    0.4  Aug 25, 2014    - defined oind
    0.5  May 19, 2014    - mention gen_ss_review_scripts.py -help_fields
+   0.6  Aug 19, 2015    - added -show_missing, to display missing keys
 """
 
-g_version = "gen_ss_review_table.py version 0.4, Aug 25, 2014"
+g_version = "gen_ss_review_table.py version 0.6, Aug 19, 2015"
 
 
 class MyInterface:
@@ -129,6 +134,7 @@ class MyInterface:
       self.valid_opts      = None
       self.user_opts       = None
       self.showlabs        = 0          # flag - print labels at end
+      self.show_missing    = 0          # flag - print missing keys
 
       # control
       self.separator       = ':'        # field separator (only first applies)
@@ -169,6 +175,8 @@ class MyInterface:
                     helpstr="specify field separator (default=':')")
       vopts.add_opt('-showlabs', 0, [],
                     helpstr='show list of labels found')
+      vopts.add_opt('-show_missing', 0, [],
+                    helpstr='show all missing keys')
       vopts.add_opt('-tablefile', 1, [],
                     helpstr='file name for output table')
       vopts.add_opt('-verb', 1, [], helpstr='set the verbose level (def=1)')
@@ -249,6 +257,9 @@ class MyInterface:
 
          elif opt.name == '-showlabs':
             self.showlabs = 1
+
+         elif opt.name == '-show_missing':
+            self.show_missing = 1
 
          elif opt.name == '-tablefile':
             self.tablefile, err = uopts.get_string_opt('', opt=opt)
@@ -646,6 +657,56 @@ class MyInterface:
             if nf > nv: fp.write('\t'*(nf-nv))
          fp.write('\n')
 
+   def display_missing(self):
+      """show files where keys are missing
+      """
+      if len(self.labels) < 1: return 1
+
+      nfiles = len(self.infiles)
+
+      # first generate list of missing labels per input file
+      # (plus allmissing: a list of all missing labels)
+      allmissing = []
+      mlist = [] # list of file, lablist of missing labels
+      for ind, infile in enumerate(self.infiles):
+         missing = []
+         for label in self.labels:
+            if not self.ldict[ind].has_key(label):
+               missing.append(label)
+            if not label in allmissing: allmissing.append(label)
+         if len(missing) > 0:
+            mlist.append([infile, missing])
+
+      if len(mlist) == 0: return
+
+      # note longest infile name length
+      lens = [len(mm[0]) for mm in mlist]
+      maxflen = max(lens)
+
+      # --- set oneline, based on max missing labels and max label length ---
+
+      # note maximum number of missing labels (over files)
+      lens = [len(mm[1]) for lab in mlist]
+      maxmissing = max(lens)
+
+      # note longest (missing) label
+      lens = [len(lab) for lab in allmissing]
+      maxllen = max(lens)
+
+      oneline = maxmissing < 2 or maxllen <= 10
+
+
+      # show results, on one or multiple lines, each
+      for mm in mlist:
+         infile = mm[0]
+         missing = mm[1]
+         if oneline:
+            print 'missing keys in %-*s : %s' \
+                  % (maxflen, infile, ', '.join(missing))
+         else:
+            for lab in missing:
+               print 'missing key in %-*s : %s' % (maxflen, infile, lab)
+
 def main():
    me = MyInterface()
    if not me: return 1
@@ -663,6 +724,8 @@ def main():
       return 1
 
    if me.showlabs: me.display_labels()
+
+   if me.show_missing: me.display_missing()
 
    return 0
 

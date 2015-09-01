@@ -336,6 +336,129 @@ examples:
                  -max_consec 2
 
 ----------------------------------------------------------------------
+NOTE: distribution of ISI
+
+    To picture the distribution, consider the probability of starting with
+    r rest events, given R total rest events and T total task events.
+
+    The probability of starting with 0 rest events is actually the maximum, and
+    equals the probability of selecting a task event first, which is T/(T+R).
+
+    Let X be a random variable indicating the number of rest events to start
+    a run.  Then P(X=0) = T/(T+R).
+    While this may look "large" (as in possibly close to 1), note that
+    typically R >> T.  For example, maybe there are 50 task events and 1000
+    rest "events" (e.g. 0.1 s, each).  Then P(X=0) = 50/1050 = 0.0476.
+    This ratio is generally closer to T/R than to 1.0.  T/R is 0.05 here.
+
+    More details...
+
+    To take one step back, viewing this as the probability of having t task
+    events among the first n events, it follows a hypergeometric distribution.
+    That is because for each event type that is selected, there are fewer such
+    events of that type remaining for subsequent selections.  The selection is
+    done *without* replacement.  The total numbers of each type of class are
+    fixed, as is the total rest.
+
+    This differs it from the binomial distribution, where selection is done
+    *with* replacement.
+
+    Taking a simplistic view, go back to the probability of starting with
+    exactly r rest events, as stated at the beginning.  That means starting
+    with r rest events followed by one task event.  That means first choosing
+    r rest events ((R choose r) / ((R+T) choose r)), then choosing one task
+    event, T/(R+T-r).
+
+                 (R)
+                 (r)        T            R!        (R+T-r-1)!
+        P(X=r) = ----- * ------      = ----- * T * ----------
+                 (R+T)   (R+T-r)       (R-r)!        (R+T)!
+                 (r  )
+
+    While this may not provide much insight on its own, consider the ratio
+    of incremental probabilities P(X=r+1) / P(X=r):
+
+        P(X=r+1)     R-r                                   R     - r
+        -------- = -------   = for visual significance = -----------
+         P(X=r)    R+T-1-r                               R+T-1   - r
+
+    The left side of that ratio is fixed at R/(R+T-1) = 1000/(1049) = .953
+    for the earlier example.  It may by common to be in that ballpark.
+    For subsequent r values, that ratio goes down, eventually hitting 0 when
+    the rest is exhausted (r=R).
+
+    This means that the distribution of such rest actually falls _below_ an
+    exponential decay curve.  It is close to (R/(R+T-1))^r at first, decaying
+    more rapidly until hitting 0.
+     
+    ==> The overall distribution of ISI rest looks like an exponential decay
+        curve, with a peak at r=0 (no rest) and probability close to T/R.
+
+    Note that the average ISI should be approximately equal to
+    total rest time / # task events
+    (e.g. 100s / 50 stimuli = 2s (per stim)).
+    So the cumulative distribution function would hit 0.5 where r corresponds
+    to this ratio, e.g. r = 20, where each rest event is 0.1s.
+
+    Test this:
+
+    Create a histogram of all ISI durations based on 100 2-second events in a
+    single run of length 300 (so 200 s for task, 100 s for rest), with rest
+    distributed randomly on a 0.1 s time grid.  Note that what matters is the
+    number of stim events (100) and the number of rest events (1000), not their
+    respective durations (unless there are user-imposed limits).
+
+    Given the timing, "timing_tool.py -multi_timing_to_event_list" can be used
+    to output ISIs (for example).  Use that to simply make a list of ISIs, and
+    then make a histogram.  Let us repeat the process of generating events and
+    ISIs, accumulating a list of ISIs, a total of 100 times.  The generate and
+    plot of histogram of all ISI duration counts.
+
+    Since rest is on a 0.1 s grid, we will scale by 10 and make an integer
+    histogram.
+
+       echo -n "" > isis_all.1D
+       foreach rep ( `count 1 100` )
+          echo simulation $rep
+          make_random_timing.py -num_stim 1 -num_runs 1 -run_time 300 \\
+              -stim_dur 2 -num_reps 100 -prefix t -verb 0
+          ( timing_tool.py -multi_timing t_01.1D -multi_stim_dur 2    \\
+              -multi_timing_to_event_list GE:o - -verb 0              \\
+              | 1deval -a - -expr '10*a' >> isis_all.1D ) >& /dev/null
+       end
+       3dhistog -int isis_all.1D | tee isis_hist.1D
+       1dplot -sepscl isis_hist.1D'[1,2]'
+
+    Note that the histogram might be scaled down by a factor of 100 to get
+    an expected ISI frequency per run (since we effectively accumulated the
+    ISI lists over 100 runs).
+
+    Basically, we are looking for something like a exponential decay curve
+    in the frequency histogram (the lower plot).
+
+    Include plot of probabilities, computed incrementally (no factorials).
+    Use the same event counts, 100 task and 1000 rest events.  Truncate this
+    histogram to plot them together.
+
+       set nhist = `1dcat isis_hist.1D | wc -l`
+       make_random_timing.py -verb 0 -show_isi_pdf 100 1000 > pure_probs.1D
+       grep -v prob pure_probs.1D | grep -v result | grep -v '\-----' \\
+           | head -n $nhist > prob.1D
+       1dplot -sepscl prob.1D'[1]' isis_hist.1D'[1,2]'
+
+    Side note assuming replacement and the binomial distribution:
+
+       In the case of replacement, we get a binomial distribution.  In the same
+       P(X=r) case (starting with r rest events), the probabilities are simple.
+          P(X=r) = [R/(R+T)]^r  * T/(R+T)
+       Each rest probability is simply R/(R+T), while task is T/(R+T).
+       The incremental probability is simply that of getting one more rest,
+       which is R/(R+T) because of independence (samples are "replaced").
+
+       In this case, the PDF should more exactly follow an exponential decay
+       curve.
+
+----------------------------------------------------------------------
 informational arguments:
 
     -help                       : display this help
@@ -692,6 +815,8 @@ g_history = """
          - requested by Liat
     1.7  Oct 03, 2012: some options do not allow dashed parameters
     1.8  Nov 14, 2012: fixed checks for random space in -max_consec case
+    1.9  Aug 21, 2015: added help for understanding the distribution of ISI
+                       see: NOTE: distribution of ISI
 """
 
 g_version = "version 1.8, Nov 14, 2012"
@@ -761,6 +886,10 @@ class RandTiming:
                         helpstr='display program help')
         self.valid_opts.add_opt('-hist', 0, [],      \
                         helpstr='display the modification history')
+        self.valid_opts.add_opt('-show_isi_pdf', 2, [], \
+                        helpstr='show init ISI pdf given NTASK NREST')
+        self.valid_opts.add_opt('-show_isi_f_pdf', 2, [], \
+                        helpstr='show init fact ISI pdf given NTASK NREST')
         self.valid_opts.add_opt('-show_valid_opts', 0, [], \
                         helpstr='display all valid options')
         self.valid_opts.add_opt('-ver', 0, [],       \
@@ -849,6 +978,11 @@ class RandTiming:
         if '-show_valid_opts' in sys.argv:
             self.valid_opts.show('', 1)
             return 0
+
+        # ----------------------------------------
+        # terminal processing args that involve processing
+        if '-show_isi_pdf' in sys.argv or '-show_isi_f_pdf' in sys.argv:
+           return do_isi_pdfs(sys.argv)
 
         # ------------------------------------------------------------
         # read all user options
@@ -2119,6 +2253,77 @@ def make_concat_from_times(run_times, tr):
         cind += round(run_times[ind]/tr)
         str += ' %d' % cind
     return str + "' \\\n"
+
+def do_isi_pdfs(argv):
+   oname = '-show_isi_f_pdf'
+   if oname in argv:
+      ind = argv.index(oname)
+      try:
+         NT = int(argv[ind+1])
+         NR = int(argv[ind+2])
+      except:
+         print '** %s requires 2 integer params, NTask, NRest' % oname
+         return 1
+      show_sum_pswr(NT, NR)
+
+   oname = '-show_isi_pdf'
+   if oname in argv:
+      ind = argv.index(oname)
+      try:
+         NT = int(argv[ind+1])
+         NR = int(argv[ind+2])
+      except:
+         print '** %s requires 2 integer params, NTask, NRest' % oname
+         return 1
+      show_isi_pdf(NT, NR)
+
+   return 0
+
+def show_isi_pdf(T, R):
+   """akin to show_sum_pswr, but init and accumulate:
+
+      P(R=0) = T/(T+R)
+      P(R=r+1)/P(R=r) = (R-r)/(R+T-1-r)
+   """
+   pcur = 1.0*T/(T+R)
+   cump = pcur
+   rat  = pcur
+
+   print 'nstart   prob        inc'
+   print '------   ----------  ----------'
+   for r in range(0,R+1):
+      print "%5d   %-10g   %-10g" % (r, pcur, rat)
+      rat = (1.0*R - r) / (R + T - 1 - r)
+      pcur *= rat
+      cump += pcur
+   print 'cum result is %g' % cump
+
+def show_sum_pswr(nT, nR):
+   cp = 0.0
+   prev = 0
+   print 'nstart   prob        inc'
+   print '------   ----------  ----------'
+   for r in range(nR+1):
+      p = prob_start_with_R(nT,nR,r)
+      cp += p
+      # print 'prob at %3d = %g (cum %g)' % (r, p, cp)
+      if prev == 0: prev = p
+      print r, p, p/prev
+      prev = p
+   print 'cum result is %g' % cp
+
+
+def prob_start_with_R(nA, nB, nS):
+    """return the probability of starting nS (out of nB) class B elements
+       should equal: choose(nB, nS)*nS! * nA *(nB+nA-nS-1)! / (nA+nB)!
+       or: factorial(nB, init=nB-nS+1) * nA / fact(nA+nB, init=nA+nB-nS)
+
+       or: choose(nB,nS)/choose(nA+nB,nS) * nA/(nA+nB-nS)
+
+    """
+    return 1.0 * nA * UTIL.factorial(nB,    init=nB-nS+1) \
+                    / UTIL.factorial(nA+nB, init=nA+nB-nS)
+
 
 def process():
     timing = RandTiming('make random timing')

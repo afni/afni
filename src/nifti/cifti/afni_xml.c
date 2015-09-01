@@ -122,7 +122,7 @@ static int  white_first    (const char * str, int len);
 static int  white_last     (const char * str, int len);
  
 static int  show_depth     (afni_xml_control *, int show);
-static int  show_attrs     (afni_xml_control *, const char *, const char **);
+static int  show_attrs     (afni_xml_control *, const char **, int);
 
 static int64_t      loc_strnlen     (const char * str, int64_t maxlen);
 static afni_xml_t * make_afni_xml   (const char * ename, const char ** attr);
@@ -509,6 +509,40 @@ int axml_recur(int(*func)(FILE * fp, afni_xml_t *, int), afni_xml_t * ax)
 }
 
 
+/* generic recursive function to find something in an xml tree
+   (using a depth-first search)
+   
+      func      : function to determine whether a struct is the desired one
+      ax        : root of the search tree
+      depth     : current depth
+      max_depth : if > 0, limit the search to this depth
+
+ */
+afni_xml_t * axml_recur_find_xml(int(*func)(afni_xml_t *, int), afni_xml_t * ax,
+                                 int depth, int max_depth)
+{
+   afni_xml_t * rv = NULL;
+   int          ind;
+
+   if( !func || !ax ) return NULL;
+
+   /* if we are looking at the correct struct, return it */
+   if( func(ax, depth) ) return ax;
+
+   /* if we are at the maximum depth and have not found it, fail */
+   if( max_depth > 0 && depth >= max_depth ) return NULL;
+
+   /* search deeper */
+   if( ax->nchild > 0 && ax->xchild )
+      for( ind=0; ind < ax->nchild; ind++ ) {
+         rv = axml_recur_find_xml(func, ax, depth+1, max_depth);
+         if( rv ) return rv;
+      }
+
+   return NULL;  /* failure - not in this tree */
+}
+
+
 /* return corresponding value pointer for attribute */
 char * axml_attr_value(afni_xml_t * ax, const char * name)
 {
@@ -655,7 +689,7 @@ static int epush(afni_xml_control * xd, const char * ename, const char ** attr)
    if( xd->verb > 2 ) {       /* maybe we want to print something */
        show_depth(xd, 1);
        fprintf(stderr,"++ push '%s'\n", ename);
-       if( xd->verb > 3 ) show_attrs(xd, ename, attr);
+       if( xd->verb > 3 ) show_attrs(xd, attr, 1);
    }
 
    /* determine whether we should go into a skip block */
@@ -781,12 +815,11 @@ static afni_xml_t * make_afni_xml(const char * ename, const char ** attr)
 }
 
 
-static int show_attrs(afni_xml_control * xd, const char * ename,
-                                             const char ** attr)
+static int show_attrs(afni_xml_control * xd, const char ** attr, int showd)
 {
    int count;
    for( count = 0; attr[count]; count += 2 ){
-      show_depth(xd, 0);
+      if( showd ) show_depth(xd, 0);
       fprintf(stderr,"      attr: %s='%s'\n", attr[count], attr[count+1]);
    }
    return 0;

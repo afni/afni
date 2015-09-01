@@ -16,10 +16,16 @@
 /* local protos */
 static afni_xml_t * xlist_to_ax1(afni_xml_list * xlist);
 
-static int axio_alloc_known_data(FILE * fp, afni_xml_t * ax, int depth);
-static int can_process_dtype(int dtype);
-static int dalloc_as_nifti_type(FILE * fp, afni_xml_t * ax, int64_t nvals,
-                                int dtype);
+static int  axio_alloc_known_data(FILE * fp, afni_xml_t * ax, int depth);
+static int  can_process_dtype(int dtype);
+static int  dalloc_as_nifti_type(FILE * fp, afni_xml_t * ax, int64_t nvals,int);
+
+static void disp_name_n_desc(FILE * fp, afni_xml_t * ax, int indent, int verb);
+static void disp_brainmodel_child(FILE * fp, afni_xml_t * ax, int verb);
+static void disp_namedmap_child(FILE * fp, afni_xml_t * ax, int verb);
+static void disp_parcel_child(FILE * fp, afni_xml_t * ax, int verb);
+static void disp_surface_child(FILE * fp, afni_xml_t * ax, int verb);
+static void disp_volume_child(FILE * fp, afni_xml_t * ax, int verb);
 
 static int64_t text_to_i64(int64_t *result, const char * text, int64_t nvals);
 static int64_t text_to_f64(double * result, const char * text, int64_t nvals);
@@ -149,10 +155,249 @@ afni_xml_t * axio_cifti_from_ext(nifti_image * nim)
    return NULL;
 }
 
+int axio_show_attrs(FILE * fp, afni_xml_t * ax, int indent)
+{
+   FILE * ofp = fp ? fp : stderr;
+   int    ind, maxl, slen;
+
+   if( !ax ) return 1;
+
+   for( ind = 0, maxl = 1; ind < ax->attrs.length; ind++ ) {
+      slen = strlen(ax->attrs.name[ind]);
+      if( slen > maxl ) maxl = slen;
+   }
+
+   for( ind = 0; ind < ax->attrs.length; ind++ )
+      fprintf(ofp, "%*s%-*s = %s\n", indent, "", maxl, ax->attrs.name[ind],
+                                                       ax->attrs.value[ind]);
+   return 0;
+}
+
+/* assume single Matrix for now */
+int axio_show_cifti_summary(FILE * fp, char * mesg, afni_xml_t * ax, int verb)
+{
+   FILE       * ofp = fp ? fp : stderr;
+   afni_xml_t * ac, * am;
+   int          ind;
+
+   if( ! ax ) {
+      fprintf(stderr,"** AX_SCS: missing ax pointer\n");
+      return 1;
+   }
+
+   if( mesg ) fputs(mesg, ofp);
+
+   if( strcmp(ax->name, "CIFTI") ) {
+      fprintf(ofp, "** missing CIFTI element, have %s\n", ax->name);
+      return 1;
+   }
+
+   ac = axio_find_map_name(ax, "Matrix", 2);
+   if( !ac ) {
+      fprintf(ofp, "** missing CIFTI Matrix element\n");
+      return 1;
+   }
+
+   if( verb > 1 ) fprintf(ofp, "-- have %d MIMap/MD elements\n", ac->nchild);
+
+   for( ind = 0; ind < ac->nchild; ind++ ) {
+      am = ac->xchild[ind];
+      if( strcmp(am->name, "MatrixIndicesMap") ) continue;
+      axio_show_mim_summary(ofp, NULL, am, verb);
+   }
+
+   return 0;
+}
+
+typedef void(*gen_disp_func_t)(FILE *, afni_xml_t *, int);
+#define AXIO_NMIM_KIDS 5
+static char * MIM_kids[AXIO_NMIM_KIDS+1] =
+   { "NamedMap", "Surface", "Parcel", "Volume", "BrainModel", "INVALID" };
+static gen_disp_func_t MIM_disp_funcs[AXIO_NMIM_KIDS] = {
+   disp_namedmap_child, disp_surface_child, disp_parcel_child,
+   disp_volume_child, disp_brainmodel_child
+};
+
+static int get_map_index(afni_xml_t * ax)
+{
+   int kid;
+
+   if( ! ax->name || ! *ax->name ) return -1;
+
+   for( kid=0; kid<AXIO_NMIM_KIDS; kid++ )
+      if( ! strcmp(ax->name, MIM_kids[kid]) )
+         return kid;
+
+   return -1;
+}
+
+
+int axio_show_mim_summary(FILE * fp, char * mesg, afni_xml_t * ax, int verb)
+{
+   afni_xml_t * xm, * xt;
+   FILE       * ofp = fp ? fp : stderr;
+   int          kid, matkid, mind;
+
+   if( ! ax ) {
+      fprintf(stderr,"** AX_SMS: missing struct pointer\n");
+      return 1;
+   }
+   if( mesg ) fputs(mesg, ofp);
+
+   xm = axio_find_map_name(ax, "Matrix", 2);
+
+   if( !xm || strcmp(xm->name, "Matrix") ) {
+      fprintf(ofp, "** missing Matrix element under %s\n", ax->name);
+      return 1;
+   }
+
+   if( verb > 1 ) fprintf(ofp, "-- have %d Matrix children\n", xm->nchild);
+
+   for( matkid = 0; matkid < xm->nchild; matkid++ ) {
+      xt = xm->xchild[matkid];
+      if( strcmp(xt->name, "MatrixIndicesMap") ) continue;
+      
+      if( verb > 1 ) fprintf(ofp, "-- have %d MIMap children\n", xt->nchild);
+
+      for( kid=0; kid<xt->nchild; kid++ ) {
+         mind = get_map_index(xt->xchild[kid]);
+         if( kid >= 0 ) MIM_disp_funcs[mind](ofp, xt->xchild[kid], verb);
+      }
+   }
+
+   return 0;
+}
+
+
+
+/* depth first search for struct with given name
+   if maxd >= 0, impose depth restriction
+ */
+afni_xml_t * axio_find_map_name(afni_xml_t * ax, char * name, int maxd)
+{
+   afni_xml_t * rv;
+   int          ind;
+
+   if( !ax || !name || !*name ) return NULL;
+
+   /* are we looking at it? */
+   if( ax->name && !strcmp(ax->name, name) ) return ax;
+
+   /* are we done looking? */
+   if( maxd == 0 ) return NULL;
+
+   for( ind=0; ind < ax->nchild; ind++ ) {
+      rv = axio_find_map_name(ax->xchild[ind], name, maxd-1);
+      if( rv ) return rv;
+   }
+
+   return NULL;
+}
+
 
 /* ====================================================================== */
 /* ====               local functions, not for export                ==== */
 /* ====================================================================== */
+
+static void disp_name_n_desc(FILE * fp, afni_xml_t * ax, int indent, int verb)
+{
+   int max=50;
+
+   if( !fp || !ax ) return;
+
+   fprintf(fp, "%*s%s : ", indent, "", ax->name);
+
+   if( ax && ax->xtext && ax->xlen > 0 ) {
+      if( ax->xlen <= max ) fprintf(fp, "%.*s\n", ax->xlen, ax->xtext);
+      else
+         fprintf(fp, "\n%*s: %.*s ...\n", indent+3, "", max, ax->xtext);
+      if( verb > 1 && ax->blen > 0 )
+         fprintf(fp, "%*s: %ld values of type %s\n", indent+3, "",
+                 ax->blen, nifti_datatype_string(ax->btype));
+   } else
+      fputc('\n', fp);
+
+   if( verb > 1 )axio_show_attrs(fp, ax, indent+6);
+}
+
+static void disp_namedmap_child(FILE * fp, afni_xml_t * ax, int verb)
+{
+   afni_xml_t * xt = axio_find_map_name(ax, "NamedMap", 1);
+   afni_xml_t * xc = axio_find_map_name(ax, "MapName", 2);
+   afni_xml_t * xl = axio_find_map_name(ax, "LabelTable", 2);
+
+   /* NamedMap */
+   disp_name_n_desc(fp, xt, 6, verb);
+   if( !xt ) return;
+
+   if( xl ) fprintf(fp, "         with length %d LabelTable\n", xl->nchild);
+   disp_name_n_desc(fp, xc, 9, verb);
+   disp_name_n_desc(fp, xl, 9, verb);
+
+   fputc('\n', fp);
+}
+
+static void disp_surface_child(FILE * fp, afni_xml_t * ax, int verb)
+{
+   afni_xml_t * xc = axio_find_map_name(ax, "Surface", 1);
+
+   if( !xc ) return;
+
+   disp_name_n_desc(fp, xc, 6, verb);
+
+   fputc('\n', fp);
+}
+
+static void disp_parcel_child(FILE * fp, afni_xml_t * ax, int verb)
+{
+   afni_xml_t * xc = axio_find_map_name(ax, "Parcel", 1);
+   afni_xml_t * xc1, * xc2;
+
+   if( !xc ) return;
+
+   xc1 = axio_find_map_name(xc, "Vertices", 1);
+   xc2 = axio_find_map_name(xc, "VoxelIndicesIJK", 1);
+
+   disp_name_n_desc(fp, xc,  6, verb);
+   disp_name_n_desc(fp, xc1, 9, verb);
+   disp_name_n_desc(fp, xc2, 9, verb);
+   
+
+   fputc('\n', fp);
+}
+
+static void disp_volume_child(FILE * fp, afni_xml_t * ax, int verb)
+{
+   afni_xml_t * xc = axio_find_map_name(ax, "Volume", 1);
+   afni_xml_t * xc1;
+
+   if( !xc ) return;
+
+   xc1 = axio_find_map_name(xc, "TransformationMatrixVoxelIndicesIJKtoXYZ", 1);
+
+   disp_name_n_desc(fp, xc,  6, verb);
+   disp_name_n_desc(fp, xc1, 9, verb);
+
+   fputc('\n', fp);
+}
+
+static void disp_brainmodel_child(FILE * fp, afni_xml_t * ax, int verb)
+{
+   afni_xml_t * xc = axio_find_map_name(ax, "BrainModel", 1);
+   afni_xml_t * xc1, * xc2;
+
+   if( !xc ) return;
+
+   xc1 = axio_find_map_name(xc, "VoxelIndicesIJK", 1);
+   xc2 = axio_find_map_name(xc, "VertexIndices", 1);
+
+   disp_name_n_desc(fp, xc,  6, verb);
+   disp_name_n_desc(fp, xc1, 9, verb);
+   disp_name_n_desc(fp, xc2, 9, verb);
+
+   fputc('\n', fp);
+}
+
 
 /* allocate data for afni_xml_t struct, for known types
    (prototype matches first argument of axml_recur) */

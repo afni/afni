@@ -52,7 +52,7 @@ SHOWOFF = -DSHOWOFF=linux_glibc22
 INSTALL_PREREQ = suma
 # uncomment if the Gnu Scientific Library is installed (libgsl, libgslcblas)
 # GSLPROGS = balloon
-EXPROGS = gifti_tool $(GSLPROGS)
+EXPROGS = $(GSLPROGS)
 
 # for dynamic linking
 
