@@ -69,7 +69,7 @@ INSTALL_PREREQ = suma
 #INSTALL_PREREQ = suma_gts
 # uncomment if the Gnu Scientific Library is installed (libgsl, libgslcblas)
  GSLPROGS = balloon
-EXPROGS = gifti_tool $(GSLPROGS)   # 3dQwarp gifti_tool $(GSLPROGS)
+EXPROGS = $(GSLPROGS)   # 3dQwarp gifti_tool $(GSLPROGS)
 
 # for dynamic linking
 

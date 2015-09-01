@@ -56,7 +56,7 @@ LIBDIR = $(INSTALLDIR)
 INSTALL_PREREQ = suma_gts
 # uncomment if the Gnu Scientific Library is installed (libgsl, libgslcblas)
 # GSLPROGS = balloon
-EXPROGS = gifti_tool help_format $(GSLPROGS)
+EXPROGS = help_format $(GSLPROGS)
 
 # for dynamic linking
 

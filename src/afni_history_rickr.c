@@ -49,6 +49,57 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 27,  Aug, 2015, RCR, "afni_system_check.py", MICRO, TYPE_ENHANCE,
+   "check for R packages via 'rPkgsInstall -pkgs ALL -check'",
+   NULL
+ } ,
+
+ { 26,  Aug, 2015, RCR, "Makefile.ptaylor.INCLUDE", MICRO, TYPE_ENHANCE,
+   "put -L.. before $LFLAGS to link local libjpeg",
+   NULL
+ } ,
+
+ { 25,  Aug, 2015, RCR, "@update.afni.binaries", MICRO, TYPE_ENHANCE,
+   "if initial install, update .cshrc",
+   "If initial install (afni not in PATH) and PATH not set in .csrhc,\n"
+   "update path (PATH) and do 'apsearch -afni_help_dir' update in .csrhc."
+ } ,
+
+ { 21,  Aug, 2015, RCR, "Makefile.INCLUDE", MICRO, TYPE_ENHANCE,
+   "move gifti_tool/cifti_tool from EXPROGS to PROGRAM_LIST",
+   "Modified 28 Makefiles."
+ } ,
+
+ { 21,  Aug, 2015, RCR, "Makefile.INCLUDE", MICRO, TYPE_ENHANCE,
+   "make cifti_tool",
+   NULL
+ } ,
+
+ { 21,  Aug, 2015, RCR, "cifti_tool", MICRO, TYPE_ENHANCE,
+   "updated help and added -hist",
+   NULL
+ } ,
+
+ { 21,  Aug, 2015, RCR, "timing_tool.py", MICRO, TYPE_BUG_FIX,
+   "start-of-run fix to -multi_timing_to_event_list offsets",
+   NULL
+ } ,
+
+ { 21,  Aug, 2015, RCR, "make_random_timing.py", MICRO, TYPE_ENHANCE,
+   "add more help for 'NOTE: distribution of ISI', including a short script",
+   NULL
+ } ,
+
+ { 20,  Aug, 2015, RCR, "make_random_timing.py", MINOR, TYPE_NEW_OPT,
+   "add -show_isi_pdf and -show_isi_f_pdf",
+   NULL
+ } ,
+
+ { 19,  Aug, 2015, RCR, "gen_ss_review_table.py", MINOR, TYPE_NEW_OPT,
+   "add -show_missing, to show all missing labels from all files",
+   NULL
+ } ,
+
  { 14,  Aug, 2015, RCR, "afni-general", MICRO, TYPE_BUG_FIX,
    "SUMA_CIFTI_2_edset: use 'no suma' version: SUMA_WriteDset_ns",
    NULL

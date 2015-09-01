@@ -11,7 +11,7 @@ PTAYLOR_INCLUDE_PATH = ${IFLAGS} -I/usr/local/include \
                  -I../nifti/znzlib -I../3DEdge/src -I../rickr \
                  -I../ -I../niml/ -Igts/src -I../SUMA/ 
 
-PTAYLOR_LINK_PATH = ${LFLAGS} -L/usr/lib -L/usr/local/lib -L../ 
+PTAYLOR_LINK_PATH = -L.. ${LFLAGS} -L/usr/lib -L/usr/local/lib 
 PTAYLOR_LINK_LIB = ${LLIBS} -lmri
 
 PTAYLOR_HDRS = DoTrackit.h TrackIO.h rsfc.h diffusiony.h FuncTrac.h roiing.h Fat_Labels.h
