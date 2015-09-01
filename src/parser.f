@@ -821,7 +821,7 @@ C
      X       GRAN,URAN,IRAN,ERAN,LRAN , ORSTAT , TENT, MAD ,
      X       MEAN , STDEV , SEM , POSVAL , ZZMOD
       REAL*8 ARGMAX,ARGNUM , PAIRMX,PAIRMN , AMONGF, WITHINF
-      REAL*8 MINABOVE , MAXBELOW
+      REAL*8 MINABOVE , MAXBELOW, EXTREME, ABSEXTREME
 C
 C  External library functions
 C
@@ -1212,6 +1212,14 @@ C.......................................................................
             NTM   = R8_EVAL(NEVAL)
             NEVAL = NEVAL - NTM
             R8_EVAL(NEVAL) = MAXBELOW( NTM , R8_EVAL(NEVAL) )
+         ELSEIF( CNCODE .EQ. 'EXTREME' )THEN
+            NTM   = R8_EVAL(NEVAL)
+            NEVAL = NEVAL - NTM
+            R8_EVAL(NEVAL) = EXTREME( NTM , R8_EVAL(NEVAL) )
+         ELSEIF( CNCODE .EQ. 'ABSEXTREME' )THEN
+            NTM   = R8_EVAL(NEVAL)
+            NEVAL = NEVAL - NTM
+            R8_EVAL(NEVAL) = ABSEXTREME( NTM , R8_EVAL(NEVAL) )
 C.......................................................................
          ELSEIF( CNCODE .EQ. 'FICO_T2P' )THEN
             NEVAL = NEVAL - 3
@@ -1368,7 +1376,7 @@ C
      X       GRAN,URAN,IRAN,ERAN,LRAN , ORSTAT , TENT, MAD ,
      X       MEAN , STDEV , SEM , POSVAL , ZZMOD
       REAL*8 ARGMAX,ARGNUM , PAIRMX,PAIRMN, AMONGF, WITHINF
-      REAL*8 MINABOVE , MAXBELOW
+      REAL*8 MINABOVE , MAXBELOW, EXTREME, ABSEXTREME
 C
 C  External library functions
 C
@@ -2182,6 +2190,26 @@ C.......................................................................
                ENDDO
                R8_EVAL(IV-IBV,NEVAL) = MAXBELOW( NTM, SCOP )
             ENDDO
+         ELSEIF( CNCODE .EQ. 'EXTREME'  )THEN
+            NTM   = R8_EVAL(1, NEVAL)
+            NEVAL = NEVAL - NTM
+            DO IV=IVBOT,IVTOP
+               DO JTM=1,NTM
+                  SCOP(JTM) = R8_EVAL(IV-IBV,NEVAL+JTM-1)
+               ENDDO
+               R8_EVAL(IV-IBV,NEVAL) = EXTREME( NTM, SCOP )
+            ENDDO
+         ELSEIF( CNCODE .EQ. 'ABSEXTREME'  )THEN
+            NTM   = R8_EVAL(1, NEVAL)
+            NEVAL = NEVAL - NTM
+            DO IV=IVBOT,IVTOP
+               DO JTM=1,NTM
+                  SCOP(JTM) = R8_EVAL(IV-IBV,NEVAL+JTM-1)
+               ENDDO
+               R8_EVAL(IV-IBV,NEVAL) = ABSEXTREME( NTM, SCOP )
+            ENDDO
+
+
 C.......................................................................
          ELSEIF( CNCODE .EQ. 'FICO_T2P' )THEN
             NEVAL = NEVAL - 3
@@ -2877,6 +2905,54 @@ C
       ENDDO
       IF( BBB .EQ. -1.0D+38 ) BBB = AAA
       MAXBELOW = BBB
+      RETURN
+      END
+C
+C
+C
+      FUNCTION EXTREME(N,X)
+      REAL*8 EXTREME , X(N) , AAA , BBB
+      INTEGER N,I
+C
+      IF( N .LT. 1 )THEN
+        EXTREME = 0.0D+00
+        RETURN
+      ENDIF
+      AAA = X(1)
+      IF( N .EQ. 1 )THEN
+        EXTREME = AAA
+        RETURN
+      ENDIF
+      BBB = 0.0
+      DO I=1,N
+        IF( ABS(X(I)) .GT. BBB ) BBB = X(I)
+      ENDDO
+      IF( BBB .EQ. 0.0 ) BBB = AAA
+      EXTREME = BBB
+      RETURN
+      END
+C
+C
+C
+      FUNCTION ABSEXTREME(N,X)
+      REAL*8 ABSEXTREME , X(N) , AAA , BBB
+      INTEGER N,I
+C
+      IF( N .LT. 1 )THEN
+        ABSEXTREME = 0.0D+00
+        RETURN
+      ENDIF
+      AAA = X(1)
+      IF( N .EQ. 1 )THEN
+        ABSEXTREME = AAA
+        RETURN
+      ENDIF
+      BBB = 0.0
+      DO I=1,N
+        IF( ABS(X(I)) .GT. BBB ) BBB = ABS(X(I))
+      ENDDO
+      IF( BBB .EQ. 0.0 ) BBB = AAA
+      ABSEXTREME = BBB
       RETURN
       END
 C
