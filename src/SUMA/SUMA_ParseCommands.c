@@ -3000,7 +3000,7 @@ SUMA_SO_File_Type SUMA_GuessSurfFormatFromExtension_core(char *Name,
    }
    if ( (tp = SUMA_is_predefined_SO_name(Name, NULL, 
                                           pdspec, pdsv, &pname)) ) {  
-      fprintf(stderr,"tp=%d\n", tp);
+      /* fprintf(stderr,"tp=%d\n", tp); */
       switch(tp) {
          case 1:
          case 2: 
