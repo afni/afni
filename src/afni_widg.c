@@ -5751,7 +5751,8 @@ STATUS("making prog->rowcol") ;
             NULL ) ;
       XtAddCallback( prog->hidden_papers_pb , XmNactivateCallback ,
                      AFNI_papers_CB , im3d ) ;
-      MCW_set_widget_bg( prog->hidden_papers_pb,"#0055aa",0) ;
+      MCW_set_widget_bg( prog->hidden_papers_pb,"#0044aa",0) ;
+      MCW_set_widget_fg( prog->hidden_papers_pb,"#ffff00") ;
 
       /*----------*/
 
