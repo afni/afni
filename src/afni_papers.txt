@@ -236,3 +236,12 @@ PA Taylor and ZS Saad.
   * http://www.ncbi.nlm.nih.gov/pubmed/23980912
   * http://dx.doi.org/10.1089/brain.2013.0154
 ----------------------------------------------------------------------------
+G Chen, NE Adleman, ZS Saad, E Leibenluft, and RW Cox.
+  Applications of multivariate modeling to neuroimaging group analysis:
+  A comprehensive alternative to univariate general linear model.
+  NeuroImage 99:571-588, 2014.
+
+  * The fun stuff behind 3dMVM -- more complex linear modeling for groups.
+  * http://dx.doi.org/10.1016/j.neuroimage.2014.06.027
+  * http://afni.nimh.nih.gov/pub/dist/doc/papers/3dMVM_2014.pdf
+----------------------------------------------------------------------------
