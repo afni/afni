@@ -3930,13 +3930,18 @@ def db_cmd_regress(proc, block):
        if rv: return
        cmd += tcmd
 
+    # ---------- DONE WITH ALL REGRESSION ----------
+
+    # note errts dataset
+    if proc.errts_reml: errts = proc.errts_reml
+    else:               errts = proc.errts_pre
+    proc.errts_final = errts
+
     # if errts and scaling, maybe create tsnr volume as mean/stdev(errts)
     # (if scaling, mean should be 100)
     opt = block.opts.find_opt('-regress_compute_tsnr')
     if opt.parlist[0] == 'yes':
-       if proc.errts_pre:
-          if proc.errts_reml: errts = proc.errts_reml
-          else:               errts = proc.errts_pre
+       if errts:
           tcmd = db_cmd_regress_tsnr(proc, block, proc.all_runs, errts)
           if tcmd == None: return  # error
           if tcmd != '': cmd += tcmd
@@ -3946,9 +3951,7 @@ def db_cmd_regress(proc, block):
     # unit errts (leave as rm. dataset)
     opt = block.opts.find_opt('-regress_compute_gcor')
     if opt.parlist[0] == 'yes':
-       if proc.errts_pre and proc.mask_epi and not proc.surf_anat:
-          if proc.errts_reml: errts = proc.errts_reml
-          else:               errts = proc.errts_pre
+       if errts and proc.mask_epi and not proc.surf_anat:
           tcmd = db_cmd_regress_gcor(proc, block, errts)
           if tcmd == None: return  # error
           if tcmd != '': cmd += tcmd
@@ -5659,9 +5662,11 @@ def db_cmd_gen_review(proc):
     if proc.mot_cen_lim > 0.0: lopts += '-mot_limit %s ' % proc.mot_cen_lim
     if proc.out_cen_lim > 0.0: lopts += '-out_limit %s ' % proc.out_cen_lim
     if proc.mot_extern != '' : lopts += '-motion_dset %s ' % proc.mot_file
+    if len(proc.stims) == 0 and proc.errts_final:       # 2 Sep, 2015
+       if proc.surf_anat: ename = proc.errts_final
+       else:              ename = '%s%s.HEAD' % (proc.errts_final, proc.view)
+       lopts += ' \\\n    -errts_dset %s ' % ename
 
-    # rcr - maybe add final errts here, if len(proc.stims) == 0?
-        
     cmd += '# generate scripts to review single subject results\n'      \
            '# (try with defaults, but do not allow bad exit status)\n'  \
            'gen_ss_review_scripts.py%s-exit0\n\n' % lopts
