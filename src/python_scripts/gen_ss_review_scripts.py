@@ -793,9 +793,10 @@ g_history = """
    0.42 Jul 29, 2015:
         - do not allow _REMLvar stats dset (previously blocked only _REMLvar+)
    0.43 Sep  1, 2015: track errts dset, and possibly use it for voxel dims
+   0.44 Sep  2, 2015: some option vars were over-written
 """
 
-g_version = "gen_ss_review_scripts.py version 0.43, Sep 1, 2015"
+g_version = "gen_ss_review_scripts.py version 0.44, Sep 2, 2015"
 
 g_todo_str = """
    - figure out template_space (should we output 3dinfo -space?)
@@ -982,7 +983,7 @@ class MyInterface:
                errs += 1
                continue
 
-         # uvar requires at least 2 parameters, name and value
+         # cvar requires at least 2 parameters, name and value
          elif opt.name == '-cvar':
             val, err = uopts.get_string_list('', opt=opt)
             if val == None or err: return -1
@@ -1100,9 +1101,10 @@ class MyInterface:
       verb = self.cvars.verb
 
       # check if already set
-      if self.uvars.is_not_empty('xmat_regress'):
+      uname = 'xmat_regress'
+      if self.uvars.is_not_empty(uname):
          if self.cvars.verb > 3:
-            print '-- already set: xmat_regress = %s' % self.uvars.xmat_regress
+            print '-- already set: %s = %s' % (uname,self.uvars.val(uname))
          # have cvar, check dsets
          if self.dsets.is_empty('xmat_ad'):
             return self.set_xmat_dset_from_name(self.uvars.xmat_regress)
@@ -1578,6 +1580,7 @@ class MyInterface:
       if self.uvars.is_not_empty('enorm_dset'):
          if self.cvars.verb > 3:
             print '-- already set: enorm_dset = %s' % self.uvars.enorm_dset
+         return 0
 
       gstr = 'motion_%s_enorm.1D' % self.uvars.subj
       if os.path.isfile(gstr):
@@ -1603,6 +1606,7 @@ class MyInterface:
       if self.uvars.is_not_empty('motion_dset'):
          if self.cvars.verb > 3:
             print '-- already set: motion_dset = %s' % self.uvars.motion_dset
+         return 0
 
       gstr = 'dfile_rall.1D'
       if not os.path.isfile(gstr): gstr = 'dfile.rall.1D'
@@ -1631,6 +1635,7 @@ class MyInterface:
       if self.uvars.is_not_empty('outlier_dset'):
          if self.cvars.verb > 3:
             print '-- already set: outlier_dset = %s' % self.uvars.outlier_dset
+         return 0
 
       gstr = 'outcount_rall.1D'
       if not os.path.isfile(gstr): gstr = 'outcount.rall.1D'
@@ -1656,6 +1661,7 @@ class MyInterface:
       if self.uvars.is_not_empty('mask_dset'):
          if self.cvars.verb > 3:
             print '-- already set: mask_dset = %s' % self.uvars.mask_dset
+         return 0
 
       gstr = 'full_mask?%s+%s.HEAD' % (self.uvars.subj, self.uvars.final_view)
       glist = glob.glob(gstr)
@@ -1675,6 +1681,7 @@ class MyInterface:
       if self.uvars.is_not_empty('tsnr_dset'):
          if self.cvars.verb > 3:
             print '-- already set: tsnr_dset = %s' % self.uvars.tsnr_dset
+         return 0
 
       gstr = 'TSNR?%s+%s.HEAD' % (self.uvars.subj, self.uvars.final_view)
       glist = glob.glob(gstr)
@@ -1697,6 +1704,7 @@ class MyInterface:
       if self.uvars.is_not_empty('errts_dset'):
          if self.cvars.verb > 3:
             print '-- already set: errts_dset = %s' % self.uvars.errts_dset
+         return 0
 
       gind = 0
       gstr = 'errts?%s*anaticor+%s.HEAD' \
@@ -1739,6 +1747,7 @@ class MyInterface:
       if self.uvars.is_not_empty('gcor_dset'):
          if self.cvars.verb > 3:
             print '-- already set: gcor_dset = %s' % self.uvars.gcor_dset
+         return 0
 
       gstr = 'out.gcor.1D'
 
@@ -1768,9 +1777,11 @@ class MyInterface:
       """set uvars.mask_corr_dset"""
 
       # check if already set
-      if self.uvars.is_not_empty('mask_corr_dset'):
+      uname = 'mask_corr_dset'
+      if self.uvars.is_not_empty(uname):
          if self.cvars.verb > 3:
-            print '-- already set: mask_corr_dset = %s' % self.uvars.mask_corr_dset
+            print '-- already set: %s = %s' % (uname, self.uvars.val(uname))
+         return 0
 
       gstr = 'out.mask_ae_corr.txt'
 
@@ -1789,6 +1800,7 @@ class MyInterface:
       if self.uvars.is_not_empty('volreg_dset'):
          if self.cvars.verb > 3:
             print '-- already set: volreg_dset = %s' % self.uvars.volreg_dset
+         return 0
 
       glist = self.glob_slist_per_view(                                 \
                 ['pb??.*.r01.volreg+%s.HEAD', 'pb*r001*volreg+%s.HEAD', \

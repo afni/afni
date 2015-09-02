@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  2,  Sep, 2015, RCR, "gen_ss_review_scripts.py", MICRO, TYPE_BUG_FIX,
+   "some option vars were being over-written",
+   NULL
+ } ,
+
  {  2,  Sep, 2015, RCR, "afni_proc.py", MICRO, TYPE_ENHANCE,
    "if rest and REML, use REML errts",
    NULL
