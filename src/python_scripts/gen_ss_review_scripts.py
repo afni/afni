@@ -656,6 +656,7 @@ g_eg_uvar.tcat_dset       = 'pb00.FT.r01.tcat+orig.HEAD'
 g_eg_uvar.enorm_dset      = 'motion_FT_enorm.1D'
 g_eg_uvar.censor_dset     = 'motion_FT_censor.1D'
 g_eg_uvar.motion_dset     = 'dfile_rall.1D'
+g_eg_uvar.volreg_dset     = 'pb02.FT.r01.volreg+tlrc.HEAD'
 g_eg_uvar.outlier_dset    = 'outcount_rall.1D'
 g_eg_uvar.gcor_dset       = 'out.gcor.1D'
 g_eg_uvar.mask_corr_dset  = 'out.mask_ae_corr.txt'
@@ -681,6 +682,7 @@ g_uvar_dict = {
  'censor_dset'      :'set motion_censor file',
  'enorm_dset'       :'set motion_enorm file',
  'motion_dset'      :'set motion parameter file',
+ 'volreg_dset'      :'set first volreg dataset',
  'outlier_dset'     :'set outcount_rall file',
  'gcor_dset'        :'set gcor_dset file',
  'mask_corr_dset'   :'set anat/EPI correlation file',
@@ -793,7 +795,9 @@ g_history = """
    0.42 Jul 29, 2015:
         - do not allow _REMLvar stats dset (previously blocked only _REMLvar+)
    0.43 Sep  1, 2015: track errts dset, and possibly use it for voxel dims
-   0.44 Sep  2, 2015: some option vars were over-written
+   0.44 Sep  2, 2015:
+        - some option vars were over-written
+        - add volreg_dset to uvar_dict
 """
 
 g_version = "gen_ss_review_scripts.py version 0.44, Sep 2, 2015"
