@@ -496,8 +496,9 @@ g_history = """
 g_version = "version 4.51, September 2, 2015"
 
 # version of AFNI required for script execution
-# prev: g_requires_afni = "1 Apr 2015" # 1d_tool.py uncensor from 1D
-g_requires_afni = "23 Jul 2015" # 3dREMLfit -dsort
+# prev: g_requires_afni =  "1 Apr 2015" # 1d_tool.py uncensor from 1D
+# prev: g_requires_afni = "23 Jul 2015" # 3dREMLfit -dsort
+g_requires_afni = "1 Sep 2015" # gen_ss_review_scripts.py -errts_dset
 
 g_todo_str = """todo:
   - add option to block anat from anat followers?
@@ -639,6 +640,7 @@ class SubjProcSream:
         self.regress_inset = None       # afni_name: first input to regression
         self.anaticor   = 0             # 0/1/2 = no/slow/fast
         self.aic_lset   = None          # ANATICOR local WM time series dataset
+        self.errts_final= ''            # final errts, for TSNR, etc
         self.errts_pre  = ''            # possibly changing errts prefix
         self.errts_pre_3dd = ''         # that used in 3dDeconvolve command
         self.errts_reml = ''            # prefix for any REML errts
