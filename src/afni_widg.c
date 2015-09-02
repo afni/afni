@@ -288,6 +288,8 @@ static char *AFNI_funcmode_bbox_label[2] =
    "(cubical) voxel dimensions for the\n"   \
    "data resampling"
 
+#define PVALUE_COLOR "#0088dd"
+
 /************* data for all widget create sub-functions ***************/
 
 /*** this is needed because of memory problems with the HP compiler ***/
@@ -3048,6 +3050,7 @@ STATUS("making func->rowcol") ;
    XtAddCallback( func->thr_pvalue_pb , XmNactivateCallback ,
                   AFNI_pvalue_CB , im3d ) ;
    MCW_register_hint( func->thr_pvalue_pb,"How to think about p-values" );
+   MCW_set_widget_bg( func->thr_pvalue_pb,PVALUE_COLOR,0) ;
 
    } /*---- end of thr_menu creation for top of threshold slider ----*/
 
@@ -5734,6 +5737,7 @@ STATUS("making prog->rowcol") ;
             NULL ) ;
       XtAddCallback( prog->hidden_pvalue_pb , XmNactivateCallback ,
                      AFNI_pvalue_CB , im3d ) ;
+      MCW_set_widget_bg( prog->hidden_pvalue_pb,PVALUE_COLOR,0) ;
 
       /*----------*/
 
@@ -5747,6 +5751,8 @@ STATUS("making prog->rowcol") ;
             NULL ) ;
       XtAddCallback( prog->hidden_papers_pb , XmNactivateCallback ,
                      AFNI_papers_CB , im3d ) ;
+      MCW_set_widget_bg( prog->hidden_papers_pb,"#0044aa",0) ;
+      MCW_set_widget_fg( prog->hidden_papers_pb,"#ffff00") ;
 
       /*----------*/
 
@@ -7006,6 +7012,7 @@ ENTRY("AFNI_misc_button") ;
    XtAddCallback( dmode->misc_pvalue_pb , XmNactivateCallback ,
                   AFNI_pvalue_CB , im3d ) ;
    MCW_register_hint( dmode->misc_pvalue_pb,"How to think about p-values" );
+   MCW_set_widget_bg( dmode->misc_pvalue_pb,PVALUE_COLOR,0) ;
 
    dmode->misc_license_pb =
          XtVaCreateManagedWidget(

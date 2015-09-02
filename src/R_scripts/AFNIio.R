@@ -3172,6 +3172,7 @@ write.c.AFNI <- function( filename, dset=NULL, label=NULL,
    if (!is.null(delta)) dset$NI_head <- 
                            dset.attr(dset$NI_head, "DELTA", val=delta)
    
+   IJK_TO_DICOM_REAL <- NULL
    if (!is.null(defhead)) 
       IJK_TO_DICOM_REAL <- dset.attr(defhead$NI_head,"IJK_TO_DICOM_REAL")
    if (!is.null(IJK_TO_DICOM_REAL)) dset$NI_head <- 

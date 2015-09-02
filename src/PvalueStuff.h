@@ -20,7 +20,7 @@ static char * PvalueStuff[] = {
    "     Assuming that the alternative hypothesis is true, how likely\n" ,
    "     is it that you would get the p-value of 0.0442, versus how\n" ,
    "     likely is p=0.0442 when the null hypothesis is true?\n" ,
-   "This is the question addressed in the paper\n" ,
+   "This is the question addressed in the paper:\n" ,
    "     Calibration of p Values for Testing Precise Null Hypotheses.\n" ,
    "     T Sellke, MJ Bayarri, and JO Berger.\n" ,
    "     The American Statistician v.55:62-71, 2001.\n" ,
@@ -65,7 +65,7 @@ static char * PvalueStuff[] = {
    "     p = 0.030  alpha = 0.222367\n" ,
    "     p = 0.040  alpha = 0.259255\n" ,
    "     p = 0.050  alpha = 0.289350\n" ,
-   "You can also try this AFNI package command to plot alpha(p) vs. p:\n" ,
+   "You can also try this fun AFNI package command to plot alpha(p) vs. p:\n" ,
    "     1deval -dx 0.001 -xzero 0.001 -num 99 -expr '1/(1-1/(exp(1)*p*log(p)))' |\n" ,
    "       1dplot -stdin -dx 0.001 -xzero 0.001 -xlabel 'p' -ylabel '\\alpha(p)'\n" ,
    "Another example: to reduce the likelihood of the null hypothesis being the\n" ,
@@ -76,17 +76,24 @@ static char * PvalueStuff[] = {
    "Finally, none of the discussion above is limited to the case of p-values that\n" ,
    "come from 2-sided t-tests.  The function alpha(p) applies (approximately) to\n" ,
    "many other situations.  However, it does NOT apply to 1-sided tests (which are\n" ,
-   "not testing 'Precise Null Hypotheses').  See the paper by Sellke et al. for\n" ,
-   "a lengthier and more precise discussion.  Another paper on the same topic is\n" ,
+   "not testing 'Precise Null Hypotheses', such as 'effect size == 0').  See the\n"
+   "paper by Sellke et al. for a lengthier and more precise discussion.  Another\n"
+   "article on the same topic is:\n" ,
    "     Revised standards for statistical evidence.\n" ,
    "     VE Johnson.  PNAS v110:19313-19317, 2013.\n" ,
    "     http://www.pnas.org/content/110/48/19313.long\n" ,
+   "And also see the very readable summary:\n"
+   "     An investigation of the false discovery rate and the misinterpretation\n"
+   "     of p-values.  D Colquhoun.  Royal Society of Open Science, Nov 2014.\n"
+   "     http://rsos.royalsocietypublishing.org/content/1/3/140216\n"
+   "In this latter article, a threshold of p < 0.001 is recommended!\n"
+   "\n" ,
    "For the case of 1-sided t-tests, the issue is more complex; the paper below\n" ,
    "may be of interest:\n" ,
    "     Default Bayes Factors for Nonnested Hypthesis Testing.\n" ,
    "     JO Berger and J Mortera.  J Am Stat Assoc v:94:542-554, 1999.\n" ,
    "     http://www.jstor.org/stable/2670175 [PDF]\n" ,
    "     http://ftp.isds.duke.edu/WorkingPapers/97-44.ps [PS preprint]\n" ,
-   "What I have tried to do herein is limn the p-value interpretation issue\n" ,
+   "What I have tried to do herein is outline the p-value interpretation issue\n" ,
    "using (mostly) non-technical words.\n" ,
    NULL } ;
