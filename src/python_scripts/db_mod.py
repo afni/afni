@@ -3343,7 +3343,7 @@ def db_mod_regress(block, proc, user_opts):
     # maybe do bandpass filtering in the regression
     apply_uopt_to_block('-regress_RSFC', user_opts, block)
 
-    # mayber replace 3dDeconvolve with 3dTproject
+    # maybe replace 3dDeconvolve with 3dTproject
     apply_uopt_to_block('-regress_use_tproject', user_opts, block)
 
     # prepare to return
@@ -3733,7 +3733,9 @@ def db_cmd_regress(proc, block):
 
     if not opt or not opt.parlist: errts = ''
     else:
-        proc.errts_pre = opt.parlist[0]
+        # note and apply
+        proc.errts_pre_3dd = opt.parlist[0]
+        proc.errts_pre     = proc.errts_pre_3dd
         errts = '    -errts %s%s' % (tmp_prefix, proc.errts_pre)
     # -- end errts --
 
@@ -3758,6 +3760,7 @@ def db_cmd_regress(proc, block):
     # are we going to stop with the 1D matrix?
     # (either explicit option or if using 3dTproject)
     opt = block.opts.find_opt('-regress_3dD_stop')
+    if opt: proc.have_olsq = 0
     if opt or use_tproj:
         stop_opt = '    -x1D_stop'
         proc.have_3dd_stats = 0
@@ -3788,7 +3791,7 @@ def db_cmd_regress(proc, block):
     O3dd.append("    -bucket %sstats.$subj%s\n" % (tmp_prefix, suff))
 
     # possibly run 3dTproject (instead of 3dDeconvolve)
-    if use_tproj:
+    if use_tproj and proc.have_olsq:
         # inputs, -censor, -cenmode, -ort Xmat, -prefix
         if proc.censor_file: xmat = '%s%s' % (tmp_prefix, newmat)
         else:                xmat = '%s%s' % (tmp_prefix, proc.xmat)
@@ -3875,8 +3878,8 @@ def db_cmd_regress(proc, block):
 
     # if REML and errts_pre, append _REML to errts_pre
     if block.opts.find_opt('-regress_reml_exec') and stop_opt \
-       and proc.errts_pre:
-        if not proc.surf_anat: proc.errts_pre = proc.errts_pre + '_REML'
+       and proc.errts_pre_3dd:
+        if not proc.surf_anat: proc.errts_pre = proc.errts_pre_3dd + '_REML'
 
     # create all_runs dataset
     proc.all_runs = 'all_runs%s$subj%s' % (proc.sep_char, suff)
@@ -4091,7 +4094,7 @@ def db_cmd_reml_exec(proc, block, short=0):
 
     cmd +='%s# -- execute the 3dREMLfit script, written by 3dDeconvolve --\n' \
           '%stcsh -x stats.REML_cmd %s%s\n' % (istr, istr, aopts, reml_opts)
-    if not proc.surf_anat: proc.errts_reml = proc.errts_pre + '_REML'
+    if not proc.surf_anat: proc.errts_reml = proc.errts_pre_3dd + '_REML'
 
     # if 3dDeconvolve fails, terminate the script
     if not short:
