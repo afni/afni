@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  2,  Sep, 2015, RCR, "afni_proc.py", MICRO, TYPE_ENHANCE,
+   "if rest and REML, use REML errts",
+   NULL
+ } ,
+
  {  1,  Sep, 2015, RCR, "gen_ss_review_scripts.py", MICRO, TYPE_ENHANCE,
    "track errts dset, and possibly use it for voxel dims",
    NULL

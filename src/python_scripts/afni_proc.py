@@ -490,9 +490,10 @@ g_history = """
         -    (this matches non-ANATICOR and fast ANATICOR cases)
     4.50 Jul 29, 2015:
         - ANATICOR now works for task analysis, using -regress_reml_exec
+    4.51 Sep 02, 2015: if rest with REML, use REML errts
 """
 
-g_version = "version 4.50, July 29, 2015"
+g_version = "version 4.51, September 2, 2015"
 
 # version of AFNI required for script execution
 # prev: g_requires_afni = "1 Apr 2015" # 1d_tool.py uncensor from 1D
@@ -639,6 +640,7 @@ class SubjProcSream:
         self.anaticor   = 0             # 0/1/2 = no/slow/fast
         self.aic_lset   = None          # ANATICOR local WM time series dataset
         self.errts_pre  = ''            # possibly changing errts prefix
+        self.errts_pre_3dd = ''         # that used in 3dDeconvolve command
         self.errts_reml = ''            # prefix for any REML errts
         self.errts_cen  = 0             # flag: current errts has censored
                                         #       TRs removed
@@ -649,6 +651,7 @@ class SubjProcSream:
         self.have_rm    = 0             # have rm.* files (such files exist)
         self.rm_dirs    = 0             # do we have dirs to remove?
         self.rm_list    = ['rm.*']      # array of items to nuke
+        self.have_olsq  = 1             # do we run 3dD or corresponding Tproj
         self.have_3dd_stats = 1         # do we have 3dDeconvolve stats
         self.have_reml_stats = 0        # do we have 3dREMLfit stats
         self.epi_review = '@epi_review.$subj' # filename for gen_epi_review.py
