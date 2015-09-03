@@ -5152,10 +5152,8 @@ STATUS("making prog->rowcol") ;
                  XmNalignment   , XmALIGNMENT_CENTER ,
                  XmNinitialResourcesPersistent , False ,
                NULL ) ;
-
          XtAddCallback( prog->clone_pb , XmNactivateCallback ,
                         AFNI_clone_controller_CB , im3d ) ;
-
          MCW_register_help( prog->clone_pb ,
                             "Use this to open\n"
                             "a new AFNI control\n"
@@ -5163,6 +5161,7 @@ STATUS("making prog->rowcol") ;
                           ) ;
          MCW_register_hint( prog->clone_pb ,
                             "Open a new AFNI controller window" ) ;
+         MCW_set_widget_bg( prog->clone_pb , "black" , 0 ) ;
       } else {
           prog->clone_pb = NULL ;
       }
@@ -6410,7 +6409,7 @@ void AFNI_controller_clonify(void)
 
 ENTRY("AFNI_controller_clonify") ;
 
-   if( MAX_CONTROLLERS == 1 ) EXRETURN ;
+   if( MAX_CONTROLLERS <= 1 ) EXRETURN ;
 
    clone_on = (Boolean)( AFNI_count_controllers() < MAX_CONTROLLERS ) ;
 

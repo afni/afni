@@ -1481,7 +1481,7 @@ void AFNI_sigfunc_alrm(int sig)
      "Let's blow this place and grab us some vino"                   ,
      "Let's blow this place and grab some brewskis"                  ,
      "Are you ready for a coffee break? I am"                        ,
-     "Make mine a tall skinny vanilla latte, if you please"          ,
+     "Make mine a tall skinny Earl Grey vanilla latte, if you please",
      "I'd like a strong cup of Lapsang Souchong about now"           ,
      "What's your favorite kind of bagel? I like pumpernickel"       ,
      "What's your favorite kind of cookie? I like white chocolate"   ,
