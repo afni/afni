@@ -798,9 +798,10 @@ g_history = """
    0.44 Sep  2, 2015:
         - some option vars were over-written
         - add volreg_dset to uvar_dict
+   0.45 Sep  3, 2015: change: have stats dset default to REML, if it exists
 """
 
-g_version = "gen_ss_review_scripts.py version 0.44, Sep 2, 2015"
+g_version = "gen_ss_review_scripts.py version 0.45, Sep 3, 2015"
 
 g_todo_str = """
    - figure out template_space (should we output 3dinfo -space?)
@@ -1861,7 +1862,7 @@ class MyInterface:
    def guess_stats_dset(self):
       """set uvars.stats_dset (check against dsets.xmat_ad)
 
-         ** try to use a _REML dset if a 3dD one is not found
+         ** try to use a _REML dset if one is found
 
          return 0 on success
       """
@@ -1912,10 +1913,11 @@ class MyInterface:
          if self.cvars.verb > 3:
             print '-- found %d potential stats dsets: %s' % (len(dlist), dlist)
          sset = ''
-         # take the first one without any '_REML', else take the first one
+         # take the first one with '_REML', else take the first one
          for dfile in dlist:
-            if not dfile.find('_REML'):
+            if dfile.find('_REML') >= 0:
                sset = dfile
+               break
          if not sset: sset = dlist[0]
 
       self.uvars.stats_dset = sset
