@@ -1464,6 +1464,10 @@ void AFNI_sigfunc_alrm(int sig)
      "Some cause happiness wherever they go; others whenever they go",
      "A man who does not think for himself does not think at all"    ,
      "The truth is rarely pure and never simple"                     ,
+     "A thing is not necessarily true because a man dies for it"     ,
+     "Experience is the name men give to their mistakes"             ,
+     "Whenever people agree with me, I think I must be wrong"        ,
+     "We are each our own devil, and make this world our hell"       ,
      "I have nothing to declare except my genius"                    ,
      "In matters of opinion, all my adversaries are insane"          ,
      "Everything is a matter of opinion: mine matters, yours doesn't",
@@ -1481,7 +1485,8 @@ void AFNI_sigfunc_alrm(int sig)
      "Let's blow this place and grab us some vino"                   ,
      "Let's blow this place and grab some brewskis"                  ,
      "Are you ready for a coffee break? I am"                        ,
-     "Make mine a tall skinny vanilla latte, if you please"          ,
+     "Make mine a tall skinny Earl Grey vanilla latte, if you please",
+     "What's your favorite ice cream? I like French vanilla"         ,
      "I'd like a strong cup of Lapsang Souchong about now"           ,
      "What's your favorite kind of bagel? I like pumpernickel"       ,
      "What's your favorite kind of cookie? I like white chocolate"   ,
@@ -1491,7 +1496,7 @@ void AFNI_sigfunc_alrm(int sig)
      "Meet me at the Leshan Dafo in Sichuan at 3pm next Wednesday"   ,
      "Let's meet at the Xuankong Si in Shanxi on Thursday week"      ,
      "Meet me the Namche Bazaar gompa next Thursday"                 ,
-     "Meet me at Dashashwamedh Ghat in Varanasi for Agni Puja"       ,
+     "Meet me at Dashashwamedh Ghat in Varanasi for Agni puja"       ,
      "Meet me at the top of Renjo La in the next snowstorm"          ,
      "See you in Dingboche next Christmas"                           ,
      "I'll see you at Angkor Wat at midnight next Saturday"          ,
@@ -1662,6 +1667,7 @@ void AFNI_sigfunc_alrm(int sig)
      "O wad some Pow'r the giftie gie us, To see oursels as ithers see us"            ,
 
      "My name is AFNImandias, Brain of Brains; Look on my Statistics, ye Clever, and despair" ,
+     "Statistically Significant is NOT the same as Significant -- they're not even close"     ,
 
      "\n  The great thing about the human condition:\n"
      "  No matter how bad it is, it can always get worse"                                     ,
