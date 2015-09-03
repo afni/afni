@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  3,  Sep, 2015, RCR, "gen_ss_review_scripts.py", MICRO, TYPE_MODIFY,
+   "give REML priority in guessing stats_dset",
+   NULL
+ } ,
+
  {  2,  Sep, 2015, RCR, "afni_proc.py", MICRO, TYPE_ENHANCE,
    "add -errts_dset to gen_ss_review_scripts.py command",
    NULL
