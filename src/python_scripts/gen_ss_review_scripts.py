@@ -1736,7 +1736,7 @@ class MyInterface:
             print '\n   '.join(glist)
          # if multiple and have REML use it
          for ind, gname in enumerate(glist):
-            if gname.find('_REML') > 0:
+            if UTIL.dset_prefix_endswith(gname, '_REML'):
                gind = ind
                break
 
@@ -1915,7 +1915,7 @@ class MyInterface:
          sset = ''
          # take the first one with '_REML', else take the first one
          for dfile in dlist:
-            if dfile.find('_REML') >= 0:
+            if UTIL.dset_prefix_endswith(dfile, '_REML'):
                sset = dfile
                break
          if not sset: sset = dlist[0]

@@ -616,6 +616,14 @@ def list_to_datasets(words, whine=0):
         return None
     return dsets
 
+def dset_prefix_endswith(dname, suffix):
+    """return 1 if an afni_name dset based on dname has a prefix
+       that ends with suffix"""
+    aname = BASE.afni_name(dname)
+    rv = aname.prefix.endswith(suffix)
+    del(aname)
+    return rv
+
 def basis_has_known_response(basis, warn=0):
     """given a string, if the prefix is either GAM or BLOCK, then the basis
        function has a known response curve
