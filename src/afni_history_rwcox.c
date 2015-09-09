@@ -43,7 +43,18 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 28 , AUG , 2015 , RWC , "3dDeconvolve" , MICRO , TYPE_BUG_FIX ,
+  { 9 , SEP , 2015 , RWC , "afni clusterize" , MICRO , TYPE_ENHANCE ,
+   "Add popup chooser for max number linkRbrain clusters" ,
+   NULL } ,
+
+ { 9 , SEP , 2015 , RWC , "whereami (etc)" , MICRO , TYPE_BUG_FIX ,
+   "Fix bug in parsing LinkRbrain output XML file" ,
+   "Problem: fread() of file does not NUL terminate the string -- causes\n"
+   "problems!  Simply solved.\n"
+   "Also fixed problem in afni_cluster.c, where peak coords and cmass coords\n"
+   "passed to LinkRbrain were being interchanged." } ,
+
+ { 28 , AUG , 2015 , RWC , "3dDeconvolve" , MICRO , TYPE_BUG_FIX ,
    "Hack to allow -stim_times_IM to work with times > TMAX" ,
    "Times > TMAX are ignored.  In usual cases, this isn't a problem.  But\n"
    "with IM regression, each time gets a regressor, and times > TMAX produce\n"
