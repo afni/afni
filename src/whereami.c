@@ -1383,7 +1383,8 @@ int main(int argc, char **argv)
          exit(1);
      }
      else {
-        if(send_linkrbrain_xml(linkrbrain_xml, temp_linkrbrain_results)!=0) {
+        int lll = send_linkrbrain_xml(linkrbrain_xml, temp_linkrbrain_results) ;
+        if( lll != 0 ){
            fprintf(stderr,"** Error: could not link to linkrbrain.org."
                         "   Check web connections\n");
            exit(1);
