@@ -692,18 +692,18 @@ ENTRY("AFNI_clus_make_widgets") ;
                            XtListTail            /* last in queue */
                           ) ;
 
-       { static char *clab[2] = { "Tasks" , "Genes" } ;
-         cwid->linkrbrain_av = new_MCW_optmenu( rc , "type" , 0,1,0,0 ,
-                            AFNI_linkrbrain_av_CB,im3d , MCW_av_substring_CB,clab ) ;
-         MCW_reghint_children( cwid->linkrbrain_av->wrowcol ,
-                                "Correlate coordinates with tasks or genes" ) ;
-         MCW_reghelp_children( cwid->linkrbrain_av->wrowcol ,
-                                "Choose whether to show the correlation or\n"
-                                "of cluster coordinates with either tasks or\n"
-                                "genes from the linkrbrain.org database.\n"
-                             ) ;
-         AV_SENSITIZE(cwid->linkrbrain_av, (showlinkr));
-       }
+     { static char *clab[2] = { "Tasks" , "Genes" } ;
+       cwid->linkrbrain_av = new_MCW_optmenu( rc , "type" , 0,1,0,0 ,
+                          AFNI_linkrbrain_av_CB,im3d , MCW_av_substring_CB,clab ) ;
+       MCW_reghint_children( cwid->linkrbrain_av->wrowcol ,
+                              "Correlate coordinates with tasks or genes" ) ;
+       MCW_reghelp_children( cwid->linkrbrain_av->wrowcol ,
+                              "Choose whether to show the correlation or\n"
+                              "of cluster coordinates with either tasks or\n"
+                              "genes from the linkrbrain.org database.\n"
+                           ) ;
+       AV_SENSITIZE(cwid->linkrbrain_av, (showlinkr));
+     }
    } else {
 /* WARNING_message("No whereami program in Unix path ==> no linkrbrain button in Clusterize!") ;*/
      cwid->linkrbrain_pb = cwid->savemask_pb ;
@@ -1170,6 +1170,8 @@ ENTRY("AFNI_clus_make_widgets") ;
    WAIT_for_window( cwid->wtop ) ;
    NORMAL_cursorize( cwid->rowcol ) ;
    POPUP_cursorize( cwid->top_lab ) ;
+   if( show_linkrbrain_link() && wherprog != NULL )  /* 09 Sep 2015 */
+     POPUP_cursorize( cwid->linkrbrain_pb ) ;
 
    EXRETURN ;
 }
