@@ -474,6 +474,8 @@ typedef struct {
   int save_as_mask ;
   float hbot,htop ;
 
+  int linkrbrain_nclu ;     /* 09 Sep 2015 */
+
   Widget     splot_pb , splot_clear_pb ;
   MRI_IMAGE *splotim ;       /* selected from spplot_pb */
 } AFNI_clu_widgets ;      /** not yet used **/
