@@ -6358,6 +6358,8 @@ g_help_string = """
        Example 11. Resting state analysis (now even more modern :).
            
          o Yes, censor (outliers and motion) and despike.
+         o Register EPI volumes to the one which has the minimum outlier
+              fraction (so hopefully the least motion).
          o Use non-linear registration to MNI template.
          o No bandpassing.
          o Use fast ANATICOR method (slightly different from default ANATICOR).
@@ -6385,6 +6387,7 @@ g_help_string = """
                   -tcat_remove_first_trs 2                                   \\
                   -tlrc_base MNI_caez_N27+tlrc                               \\
                   -tlrc_NL_warp                                              \\
+                  -volreg_align_to MIN_OUTLIER                               \\
                   -volreg_align_e2a                                          \\
                   -volreg_tlrc_warp                                          \\
                   -regress_ROI_PC FSvent 3                                   \\
