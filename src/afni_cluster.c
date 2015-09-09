@@ -432,6 +432,52 @@ ENTRY("AFNI_clus_dsetlabel") ;
 }
 
 /*---------------------------------------------------------------------------*/
+/* Stuff to set linkRbrain max cluster count from right-click popup
+   menu on the 'linkRbrain' button [09 Sep 2015]
+*//*-------------------------------------------------------------------------*/
+
+void AFNI_clus_linknum_CB( Widget w , XtPointer cd , MCW_choose_cbs *cbs )
+{
+   Three_D_View *im3d = (Three_D_View *)cd ;
+   AFNI_clu_widgets *cwid ;
+   if( !IM3D_OPEN(im3d) || cbs == NULL ) return ;
+   cwid = im3d->vwid->func->cwid ; if( cwid == NULL ) return ;
+   cwid->linkrbrain_nclu = cbs->ival ; return ;
+}
+
+/*---------------------------------------------------------------------------*/
+/* Right-click handler for linkRbrain button - asks for number [09 Sep 2015] */
+
+void AFNI_clus_linknum_EV( Widget w , XtPointer client_data ,
+                           XEvent *ev , Boolean *continue_to_dispatch )
+{
+   Three_D_View *im3d = (Three_D_View *)client_data ;
+   AFNI_clu_widgets *cwid ;
+
+ENTRY("AFNI_clus_linknum_EV") ;
+
+   if( !IM3D_OPEN(im3d) ) EXRETURN ;
+   cwid = im3d->vwid->func->cwid ; if( cwid == NULL ) EXRETURN ;
+
+   switch( ev->type ){
+      case ButtonPress:{
+         XButtonEvent *event = (XButtonEvent *)ev ;
+         if( event->button == Button3 ){
+            MCW_choose_integer( w , "Max linkRbrain clusters" ,
+                                0 , 99 , cwid->linkrbrain_nclu ,
+                                AFNI_clus_linknum_CB , client_data ) ;
+         } else if( event->button == Button2 ){
+            XBell(XtDisplay(w),100) ;
+            MCW_popup_message( w, " \n U R Bad! \n ", MCW_USER_KILL|MCW_TIMER_KILL );
+         }
+      }
+      break ;
+   }
+
+   EXRETURN ;
+}
+
+/*---------------------------------------------------------------------------*/
 /* Make the cluster report widgets initially */
 
 static void AFNI_clus_make_widgets( Three_D_View *im3d, int num )
@@ -620,7 +666,7 @@ ENTRY("AFNI_clus_make_widgets") ;
    wherprog = THD_find_executable("whereami") ;
    if( show_linkrbrain_link() && wherprog != NULL ){
      int  showlinkr;
-     xstr = XmStringCreateLtoR( "LinkrBrain" , XmFONTLIST_DEFAULT_TAG ) ;
+     xstr = XmStringCreateLtoR( "linkRbrain" , XmFONTLIST_DEFAULT_TAG ) ;
      cwid->linkrbrain_pb = XtVaCreateManagedWidget(
              "menu" , xmPushButtonWidgetClass , rc ,
               XmNlabelString , xstr ,
@@ -638,6 +684,14 @@ ENTRY("AFNI_clus_make_widgets") ;
      showlinkr = ((im3d->vinfo->view_type == VIEW_TALAIRACH_TYPE) && show_linkrbrain_link());
      SENSITIZE(cwid->linkrbrain_pb, (showlinkr) ) ;
 
+     XtInsertEventHandler( cwid->linkrbrain_pb,  /* 09 Sep 2015: popup menu */
+                           ButtonPressMask ,     /* button presses */
+                           FALSE ,               /* nonmaskable events? */
+                           AFNI_clus_linknum_EV, /* handler */
+                           (XtPointer)im3d ,     /* client data */
+                           XtListTail            /* last in queue */
+                          ) ;
+
        { static char *clab[2] = { "Tasks" , "Genes" } ;
          cwid->linkrbrain_av = new_MCW_optmenu( rc , "type" , 0,1,0,0 ,
                             AFNI_linkrbrain_av_CB,im3d , MCW_av_substring_CB,clab ) ;
@@ -654,7 +708,7 @@ ENTRY("AFNI_clus_make_widgets") ;
 /* WARNING_message("No whereami program in Unix path ==> no linkrbrain button in Clusterize!") ;*/
      cwid->linkrbrain_pb = cwid->savemask_pb ;
    }
-
+   cwid->linkrbrain_nclu = 0 ; /* 09 Sep 2015 */
 
    XtManageChild(rc) ;  /* finished with row #0 setup */
 
@@ -2160,48 +2214,55 @@ ENTRY("AFNI_clus_action_CB") ;
 
      /* linkrbrain.org website link ****************************************/
      if(w == cwid->linkrbrain_pb) {  /* 11 Feb 2014 */
-     char *lb_fnam;
-     MCW_cluster_array *clar = im3d->vwid->func->clu_list ;
-     int do_linkrbrain = (w == cwid->linkrbrain_pb && wherprog != NULL) ;
+      char *lb_fnam;
+      MCW_cluster_array *clar = im3d->vwid->func->clu_list ;
+      int do_linkrbrain = (w == cwid->linkrbrain_pb && wherprog != NULL) ;
 
-     int jtop , etop, coord_colx, coord_coly, coord_colz;
-     char *wout , ct[64] ; FILE *fp ; int inv ;
+      int jtop , etop, coord_colx, coord_coly, coord_colz;
+      char *wout , ct[64] , csuf[128] ; FILE *fp ; int inv ;
 
-     nclu = im3d->vwid->func->clu_num ;
-     cld  = im3d->vwid->func->clu_det ;
+      nclu = im3d->vwid->func->clu_num ;
+      cld  = im3d->vwid->func->clu_det ;
 
-     if( nclu == 0 || cld == NULL || do_linkrbrain == 0) EXRETURN ;
+      if( nclu == 0 || cld == NULL || do_linkrbrain == 0) EXRETURN ;
 
-     /* write out the coordinates to file first as in SaveTabl function*/
-     lb_fnam = AFNI_cluster_write_coord_table(im3d);
-     if(lb_fnam == NULL) EXRETURN;  /* couldn't create coordinate table */
+      /* write out the coordinates to file first as in SaveTabl function*/
+      lb_fnam = AFNI_cluster_write_coord_table(im3d);
+      if(lb_fnam == NULL) EXRETURN;  /* couldn't create coordinate table */
 #undef  WSIZ
 #define WSIZ 4096
 printf("wrote cluster table to %s\n", lb_fnam);
        SHOW_AFNI_PAUSE ;
        MCW_invert_widget(cwid->linkrbrain_pb) ; inv = 1 ;
        wout = (char *)malloc(sizeof(char)*WSIZ) ;
-       if(cwid->coord_mode == 1){  /* cmass columns */
-           coord_colx = 4; coord_coly = 5; coord_colz = 6;
+       if(cwid->coord_mode == 1){  /* cmass columns */     /*-----------------*/
+           coord_colx = 1; coord_coly = 2; coord_colz = 3; /* RWC: these were */
+       }                                                   /* reversed! Fixed */
+       else{   /* peak columns */                          /* on 09 Sep 2015. */
+           coord_colx = 4; coord_coly = 5; coord_colz = 6; /*-----------------*/
        }
-       else{   /* peak columns */
-           coord_colx = 1; coord_coly = 2; coord_colz = 3;
-       }
-
-       if(cwid->linkrbrain_av->ival == 0)   /* task correlation = default */
-          sprintf(wout,"%s -linkrbrain -coord_file %s'[%d,%d,%d]' -space %s",
-             wherprog,lb_fnam, coord_colx, coord_coly, coord_colz,
-             THD_get_space(im3d->fim_now)) ;
-       else   /* gene correlation */
-          sprintf(wout,"%s -linkrbrain -linkr_type genes -coord_file %s'[%d,%d,%d]' -space %s",
-             wherprog,lb_fnam, coord_colx, coord_coly, coord_colz,
-             THD_get_space(im3d->fim_now)) ;
 
        jtop = clar->num_clu ;
        etop = (int)AFNI_numenv("AFNI_CLUSTER_WAMIMAX") ;
-       if( etop <  1 ) etop = 20 ;
-       else if( etop > 99 ) etop = 99 ;
-       if( jtop > etop ) jtop = etop ;
+            if( etop <  1   ) etop = 20 ;
+       else if( etop > 99   ) etop = 99 ;
+            if( jtop > etop ) jtop = etop ;
+       if( cwid->linkrbrain_nclu > 0 && jtop > cwid->linkrbrain_nclu )
+         jtop = cwid->linkrbrain_nclu ;                        /* 09 Sep 2015 */
+
+       if( jtop > 0 && jtop < clar->num_clu )                  /* 09 Sep 2015 */
+         sprintf(csuf,"[%d,%d,%d]{0..%d}",coord_colx, coord_coly, coord_colz,jtop-1) ;
+       else
+         sprintf(csuf,"[%d,%d,%d]"       ,coord_colx, coord_coly, coord_colz) ;
+
+       if(cwid->linkrbrain_av->ival == 0)   /* task correlation = default */
+          sprintf(wout,"%s -linkrbrain -coord_file %s'%s' -space %s",
+             wherprog,lb_fnam, csuf ,
+             THD_get_space(im3d->fim_now)) ;
+       else   /* gene correlation */
+          sprintf(wout,"%s -linkrbrain -linkr_type genes -coord_file %s'%s' -space %s",
+             wherprog,lb_fnam, csuf ,
+             THD_get_space(im3d->fim_now)) ;
 
        if( jtop >= clar->num_clu ) strcpy (ct," ") ;
        else                        sprintf(ct," [first %d clusters]",jtop) ;
@@ -2225,7 +2286,7 @@ printf("wrote cluster table to %s\n", lb_fnam);
        free(wout) ;
        if( inv ) MCW_invert_widget(cwid->linkrbrain_pb) ;
        SHOW_AFNI_READY ;
-     } /* end of linkrbrain */
+      } /* end of linkrbrain */
 
      EXRETURN ;
    }
