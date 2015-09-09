@@ -293,6 +293,7 @@ class SysInfo:
                self.comments.append("consider only 1 version of AFNI in PATH")
       print
 
+      # try select AFNI programs
       print 'testing ability to start various programs...'
       ind = '%8s' % ' '
       indn = '\n%8s' % ' '
@@ -307,6 +308,23 @@ class SysInfo:
             fcount += 1
          else: print '    %-20s : success' % prog
       print
+      pfailure = fcount == len(proglist)
+
+      # if complete failure, retry from exec dir
+      ascdir = UTIL.executable_dir()
+      if pfailure and self.get_afni_dir() != ascdir:
+         fcount = 0
+         print 'none working, testing programs under implied %s...' % ascdir
+         for prog in proglist:
+            st, so, se = BASE.shell_exec2('%s/%s -help'%(ascdir,prog),capture=1)
+            if st:
+               print '    %-20s : FAILURE' % prog
+               print ind + indn.join(se)
+               fcount += 1
+            else: print '    %-20s : success' % prog
+         print
+         if fcount < len(proglist):
+            self.comments.append('consider adding %s to your PATH' % ascdir)
 
       print 'checking for R packages...'
       cmd = 'rPkgsInstall -pkgs ALL -check'
@@ -325,23 +343,7 @@ class SysInfo:
       else:
          print '    %-20s : FAILURE' % cmd
          print ind + indn.join(se)
-         fcount += 1
       print
-
-      ascdir = UTIL.executable_dir()
-      if fcount == len(proglist) and self.get_afni_dir() != ascdir:
-         fcount = 0
-         print 'none working, testing programs under implied %s...' % ascdir
-         for prog in proglist:
-            st, so, se = BASE.shell_exec2('%s/%s -help'%(ascdir,prog),capture=1)
-            if st:
-               print '    %-20s : FAILURE' % prog
-               print ind + indn.join(se)
-               fcount += 1
-            else: print '    %-20s : success' % prog
-         print
-         if fcount < len(proglist):
-            self.comments.append('consider adding %s to your PATH' % ascdir)
 
       print 'checking for $HOME files...'
       flist = ['.afnirc', '.sumarc', '.afni/help/all_progs.COMP']
