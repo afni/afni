@@ -713,29 +713,32 @@ else
    endif
 endif
 
-# if this is a new install, update .cshrc
+# if this is a new install and we are not root, update .cshrc
 set rcfile = ~/.cshrc
-if ( $new_install && -d $abin ) then
-   if ( -f ~/.tcshrc ) then
-      set rcfile = ~/.tcshrc
-   else if ( -f ~/.cshrc ) then
-      set rcfile = ~/.cshrc
-   else
-      set rcfile = ~/.cshrc
-      echo ++ creating empty $rcfile
-      echo "" > $rcfile
-   endif
+if ( $new_install && -d $abin && $?USER ) then
+   if ( $USER != root ) then
+      if ( -f ~/.tcshrc ) then
+         set rcfile = ~/.tcshrc
+      else if ( -f ~/.cshrc ) then
+         set rcfile = ~/.cshrc
+      else
+         set rcfile = ~/.cshrc
+         echo ++ creating empty $rcfile
+         echo "" > $rcfile
+      endif
 
-   grep $abin:t $rcfile >& /dev/null
-   if ( $status ) then
-      # finally, update .csrhc and our current path
-      echo 'set path = ( $path ' $abin ' ) ' >> $rcfile
-      set path = ( $path $abin )
-   endif
+      grep $abin:t $rcfile >& /dev/null
+      if ( $status ) then
+         # finally, update .csrhc and our current path
+         echo "++ updating path in $rcfile ..."
+         echo 'set path = ( $path ' $abin ' ) ' >> $rcfile
+         set path = ( $path $abin )
+      endif
 
-   rehash
-   set cur_afni = `which afni`
-   set cur_afni = $cur_afni:h
+      rehash
+      set cur_afni = `which afni`
+      set cur_afni = $cur_afni:h
+   endif
 endif
 
 # and possibly run apsearch
