@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  9,  Sep, 2015, RCR, "afni_system_check.py", MICRO, TYPE_BUG_FIX,
+   "fix sequence of program check from exec dir",
+   NULL
+ } ,
+
  {  3,  Sep, 2015, RCR, "gen_ss_review_scripts.py", MICRO, TYPE_MODIFY,
    "give REML priority in guessing stats_dset",
    NULL
