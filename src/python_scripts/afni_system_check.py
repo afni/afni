@@ -107,9 +107,10 @@ g_history = """
    0.10 Aug 12, 2014 - 'afni -ver' is now only 1 line
    0.11 Apr 08, 2015 - check for FATCAT_DEMO
    0.12 Aug 27, 2015 - run rPkgsInstall -pkgs ALL -check
+   0.13 Sep 09, 2015 - fix sequence of program check from exec dir
 """
 
-g_version = "afni_system_check.py version 0.12, Aug 27, 2015"
+g_version = "afni_system_check.py version 0.13, September 9, 2015"
 
 
 class CmdInterface:
