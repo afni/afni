@@ -9382,15 +9382,21 @@ char * whereami_XML_get(char *data, char *name, char **next) {
       /* no XML field with closing '>', look for "<field " with space instead */ 
       snprintf(n0,510,"<%s ", name);
       if (!(s0 = strstr(data, n0))) {
+/** INFO_message("whereami_XML_get failed to find '%s' in data",n0) ; **/
          return(NULL);
       }
    }
-   if (!(s1 = strstr(s0, n1))) return(NULL);
+   if (!(s1 = strstr(s0, n1))){
+/** INFO_message("whereami_XML_get found '%s' in data -- BUT",n0); **/
+/** INFO_message("whereami_XML_get failed to find '%s' in data",n1) ; **/
+     return(NULL);
+   }
    s0 = s0+strlen(n0);
    if (s1 > s0) {
       sout = (char *)calloc(s1-s0+1, sizeof(char));
       memcpy(sout,s0,sizeof(char)*(s1-s0));
       sout[s1-s0]='\0';
+/** INFO_message("whereami_XML_get found %d bytes of '%s' in data",(int)(s1-s0),n1) ; **/
    }
 
    /* advance to next entry */
@@ -9428,7 +9434,7 @@ int linkrbrain_XML_simple_report(char *xml_results_file,
     int linkr_corr_type)
 {
    FILE *xml_file;
-   char *task_str, tempbuffer[2048];
+   char *task_str, tempbuffer[2049];
    char *preset, *corr_str_ptr, *tempstr = NULL, *next = NULL;
    float corr;
    int len, found_correlation, temp;
@@ -9449,7 +9455,7 @@ int linkrbrain_XML_simple_report(char *xml_results_file,
       printf("Response from linkrbrain.org is zero length\n");
       RETURN(1);   /* take what we can get */
    }
-   tempstr = tempbuffer;
+   tempstr = tempbuffer; tempstr[len] = '\0' ;
    if(linkr_corr_type)
       printf("%-25s %-7s\n", genetype_str, corr_str);
    else
@@ -9466,10 +9472,13 @@ int linkrbrain_XML_simple_report(char *xml_results_file,
          corr_str_ptr = NULL;
       if(corr_str_ptr) {
           preset = strstr(corr_str_ptr, "preset=");
+/** if( preset == NULL ) ININFO_message("failed to find 'preset=' in data") ; **/
           if(preset) {
              preset += strlen("preset=");
              task_str = search_quotes(preset);
+/** if( task_str == NULL ) ININFO_message("failed to find quoted data after 'preset='") ; **/
              preset = strstr(preset, "overall score=");
+/** if( preset   == NULL ) ININFO_message("failed to find 'overall score=' in data") ; **/
              if(task_str && preset) {
                 preset += 1+ strlen("overall score=");
                 temp = sscanf(preset,"%f", &corr);
