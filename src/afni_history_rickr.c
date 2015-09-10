@@ -49,8 +49,8 @@
 
 afni_history_struct rickr_history[] = {
 
- {  9,  Sep, 2015, RCR, "afni_system_check.py", MICRO, TYPE_BUG_FIX,
-   "fix sequence of program check from exec dir",
+ { 10,  Sep, 2015, RCR, "afni_proc.py", MICRO, TYPE_BUG_FIX,
+   "fix resulting aligned SurfVol if input is NIFTI",
    NULL
  } ,
 
