@@ -32,7 +32,7 @@ help.MVM.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
           ================== Welcome to 3dMVM ==================          
     AFNI Group Analysis Program with Multi-Variate Modeling Approach
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 3.6.0, Sept 10, 2015
+Version 3.6.1, Sept 11, 2015
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - http://afni.nimh.nih.gov/sscc/gangc/MVM.html
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -1050,7 +1050,7 @@ runAOV <- function(inData, dataframe, ModelForm) {
                if(is.na(lop$wsVars) & is.na(lop$mVar)) {  # between-subjects factors/variables only
                   tryCatch(Fvalues <- uvfm[1:lop$nF,3], error=function(e) NULL)
                   if(!is.null(Fvalues)) if(!any(is.nan(Fvalues))) out[1:lop$nFu] <- Fvalues
-               } else if(lop$mvE5) { # combine 4 tests: assuming only one within-subject factor
+               } else if(lop$mvE5) { # combine 5 tests: assuming only one within-subject factor
                   tryCatch(out[(1:lop$nF)] <-
                   qchisq(mvCom5(fm, lop$nF_mvE5), 1, lower.tail = FALSE), error=function(e) NULL)
                } else {# contain within-subject variable(s)
@@ -1060,17 +1060,24 @@ runAOV <- function(inData, dataframe, ModelForm) {
                   if(!is.null(Fvalues)) if(!any(is.nan(Fvalues))) {
                      out[1:lop$nFu] <- Fvalues  # univariate Fs: no spherecity correction
                      if(lop$SC) { # sphericity correction
-                        getGG <- uvfm$sphericity.correction[,'HF eps'] < lop$crit
-                        GG    <- uvfm$sphericity.correction[,'Pr(>F[GG])']
-                        HF    <- uvfm$sphericity.correction[,'Pr(>F[HF])']
-                        #Fsc  <- ifelse(getGG, GG, HF)
-                        Fsc  <- ifelse(uvfm$mauchly[, 'p-value'] < 0.05, ifelse(getGG, GG, HF), uvfm$anova[, 'Pr(>F)'])
+                        if(lop$afex_new) { # new version of afex
+                           getGG <- uvfm$pval.adjustments[,'HF eps'] < lop$crit
+                           GG    <- uvfm$pval.adjustments[,'Pr(>F[GG])']
+                           HF    <- uvfm$pval.adjustments[,'Pr(>F[HF])']
+                           #Fsc  <- ifelse(getGG, GG, HF)
+                           Fsc  <- ifelse(uvfm$sphericity.tests[, 'p-value'] < 0.05, ifelse(getGG, GG, HF), uvfm$univariate.tests[, 'Pr(>F)'])
+                        } else { # old version of afex
+                           getGG <- uvfm$sphericity.correction[,'HF eps'] < lop$crit
+                           GG    <- uvfm$sphericity.correction[,'Pr(>F[GG])']
+                           HF    <- uvfm$sphericity.correction[,'Pr(>F[HF])']
+                           #Fsc  <- ifelse(getGG, GG, HF)
+                           Fsc  <- ifelse(uvfm$mauchly[, 'p-value'] < 0.05, ifelse(getGG, GG, HF), uvfm$anova[, 'Pr(>F)'])
+                           tryCatch(out[(lop$nFu+1):(lop$nFu+lop$nFsc)] <-
+                              qf(Fsc, lop$numDF, lop$denDF, lower.tail = FALSE), error=function(e) NULL)                                            
+                        }
                         tryCatch(out[(lop$nFu+1):(lop$nFu+lop$nFsc)] <-
-                           qf(Fsc, lop$numDF, lop$denDF, lower.tail = FALSE), error=function(e) NULL)                                
-                           #qf(Fsc, uvfm$anova[dimnames(uvfm$sphericity.correction)[[1]], 'num Df'],
-                           #   uvfm$anova[dimnames(uvfm$sphericity.correction)[[1]], 'den Df'],
-                           #   lower.tail = FALSE), error=function(e) NULL)
-                  } #if(lop$SC)
+                           qf(Fsc, lop$numDF, lop$denDF, lower.tail = FALSE), error=function(e) NULL)
+                     } #if(lop$SC)
                   if(lop$wsMVT) {  # within-subject MVT is requested
                      #for(ii in 1:length(fm$Anova$SSPE)) {
                      for(ii in 1:length(lop$mvtInd)) tryCatch(out[lop$nFu+lop$nFsc+ii] <-
@@ -1692,6 +1699,7 @@ if(dimy == 1 & dimz == 1) {
    # declare output receiver
    out <- array(0, dim=c(dimx_n, nSeg, NoBrick))
    # break input multiple segments for parrel computation
+   # test runAOV(inData[ii,kk,], dataframe=lop$dataStr, ModelForm=ModelForm)
    dim(inData) <- c(dimx_n, nSeg, lop$NoFile)
    if (lop$nNodes==1) for(kk in 1:nSeg) {
       if(NoBrick > 1) out[,kk,] <- aperm(apply(inData[,kk,], 1, runAOV, dataframe=lop$dataStr,
