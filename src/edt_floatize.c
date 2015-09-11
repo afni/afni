@@ -1,7 +1,8 @@
 #include "mrilib.h"
 
 /*-----------------------------------------------------------------*/
-/*! Convert this dataset to float format, in place. */
+/*! Convert this dataset to float format, in place.                */
+/*  Scale factors will always be applied, even for floats.         */
 
 void EDIT_floatize_dataset( THD_3dim_dataset *dset )
 {
@@ -23,8 +24,11 @@ ENTRY("EDIT_floatize_dataset") ;
    nvals = DSET_NVALS(dset) ;
    for( iv=0 ; iv < nvals ; iv++ ){
      bim  = DSET_BRICK(dset,iv) ;
-     if( bim->kind == MRI_float ) continue ; /* already floatized */
      bfac = DSET_BRICK_FACTOR(dset,iv) ;
+     /* still "scale" a float dataset if there are factors to apply
+        (as they are cleared after the loop)   11 Sep, 2015 [rickr] */
+     if( bim->kind == MRI_float && (bfac == 1.0 || bfac == 0.0) )
+        continue ; /* already floatized */
      qim  = mri_scale_to_float( bfac , bim ) ;
      qar  = MRI_FLOAT_PTR(qim) ;
      EDIT_substitute_brick( dset , iv , MRI_float , qar ) ;
