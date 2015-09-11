@@ -486,7 +486,10 @@ int main( int argc , char * argv[] )
 
    if( verb ) INFO_message("Creating output dataset in memory, then writing it") ;
    outset = EDIT_empty_copy(inset) ;
-   EDIT_dset_items( outset , ADN_prefix,prefix , ADN_none ) ;
+   /* do not copy scalars    11 Sep 2015 [rickr] */
+   EDIT_dset_items( outset , ADN_prefix,prefix ,
+                             ADN_brick_fac,NULL ,
+                    ADN_none ) ;
    tross_Copy_History( inset , outset ) ;
    tross_Make_History( "3dBandpass" , argc,argv , outset ) ;
 

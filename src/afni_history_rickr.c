@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 11,  Sep, 2015, RCR, "3dBandpass", MICRO, TYPE_MODIFY,
+   "do not propagate scalars",
+   NULL
+ } ,
+
  { 11,  Sep, 2015, RCR, "afni-general", MICRO, TYPE_BUG_FIX,
    "edt_floatize.c: for NIFTI float->float with scale factors, apply them",
    "Also, fix determination of when to convert.\n"
