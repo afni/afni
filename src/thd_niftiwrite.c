@@ -8,7 +8,7 @@ nifti_image * populate_nifti_image(THD_3dim_dataset *dset, niftiwr_opts_t option
 void nifti_set_afni_extension(THD_3dim_dataset *dset,nifti_image *nim) ;
 
 static int get_slice_timing_pattern( float * times, int len, float * delta );
-static int needs_convertion_to_float(THD_3dim_dataset *dset, int warn);
+static int needs_conversion_to_float(THD_3dim_dataset *dset, int warn);
 static int space_to_NIFTI_code(THD_3dim_dataset *dset);
 extern int THD_space_code(char *space);
 
@@ -44,7 +44,7 @@ ENTRY("THD_write_nifti") ;
 
   /* if we need a float dataset, make one (insted of failing)
    * (wasteful, but simple and effective)  6 Sep 2012 [rickr] */
-  if( needs_convertion_to_float(din, 1) ) {
+  if( needs_conversion_to_float(din, 1) ) {
      dset = EDIT_full_copy(din, NULL);
      EDIT_floatize_dataset(dset);
      tross_Copy_History(din, dset); /* ZSS May 23 2013 */
@@ -122,11 +122,12 @@ ENTRY("THD_write_nifti") ;
 
 /* if the dataset has inconsistent types or scale factors, then it needs
  * to be converted fo floats in order to write        6 Sep 2012 [rickr] */
-static int needs_convertion_to_float(THD_3dim_dataset *dset, int warn)
+static int needs_conversion_to_float(THD_3dim_dataset *dset, int warn)
 {
-  int type0, fac0, ii;
+  float fac0;                 /* was int, ick!   11 Sep 2015 [rickr] */
+  int   type0, ii;
 
-  ENTRY("needs_convertion_to_float");
+  ENTRY("needs_conversion_to_float");
 
   if( ! ISVALID_DSET(dset) )   RETURN(0);
 
