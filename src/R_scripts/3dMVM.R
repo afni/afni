@@ -32,7 +32,7 @@ help.MVM.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
           ================== Welcome to 3dMVM ==================          
     AFNI Group Analysis Program with Multi-Variate Modeling Approach
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 3.5.7, May 20, 2015
+Version 3.6.0, Sept 10, 2015
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - http://afni.nimh.nih.gov/sscc/gangc/MVM.html
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -963,7 +963,8 @@ maov <- function(SSPE, SSP, DF, error.DF)  # Pillai test with type = 3
 # takes model object from aov.car from afex as input: assuming that
 # model fitting with afex: ONE within-subject factor ONLY!
 mvCom5 <- function(fm, nF_mvE5) {
-   uvfm <- tryCatch(univ(fm$Anova), error=function(e) NULL)   # univariate model
+   if(lop$afex_new) uvfm <- tryCatch(summary(fm), error=function(e) NULL) else  # univariate model
+      uvfm <- tryCatch(univ(fm$Anova), error=function(e) NULL)
    uvP  <- rep(1, 2*nF_mvE5)
    #p_wsmvt <- rep(1, nF_mvE5)
    p_wsmvt <- rep(1, 2*nF_mvE5)
@@ -972,7 +973,7 @@ mvCom5 <- function(fm, nF_mvE5) {
    #nTerms <- nrow(uvfm$anova)  # totaly number of effect estimates
    #outTerms <- nTerms/2        # half of them
    # UVT p-values
-      uvP <- uvfm$anova[,'Pr(>F)'] # p-values for UVT
+   if(lop$afex_new) uvP <- uvfm$univariate.test[,'Pr(>F)'] else uvP <- uvfm$anova[,'Pr(>F)'] # p-values for UVT
    # within-subject MVT: one set
    #p_wsmvt <- rep(1, nTerms)   # initiation for within-subject MVT
    #   for(ii in 1:nF_mvE4) {
@@ -1040,9 +1041,11 @@ runAOV <- function(inData, dataframe, ModelForm) {
          #   dataframe[,pars[[10]][[1]]] <- scale(dataframe[,pars[[10]][[1]]], center=all(is.na(lop$vVarCenters)), scale=F)
       }
       fm <- NULL
+      if(lop$afex_new) suppressMessages(try(fm <- aov_car(ModelForm, data=dataframe, factorize=FALSE, type=lop$SS_type), silent=TRUE)) else
       suppressMessages(try(fm <- aov.car(ModelForm, data=dataframe, factorize=FALSE, type=lop$SS_type, return='full'), silent=TRUE))
       if(!is.null(fm)) {
-            uvfm <- tryCatch(univ(fm$Anova), error=function(e) NULL)   # univariate model 
+            if(lop$afex_new) uvfm <- tryCatch(summary(fm), error=function(e) NULL) else  # univariate model 
+               uvfm <- tryCatch(univ(fm$Anova), error=function(e) NULL)
             if(!is.null(uvfm)) {  
                if(is.na(lop$wsVars) & is.na(lop$mVar)) {  # between-subjects factors/variables only
                   tryCatch(Fvalues <- uvfm[1:lop$nF,3], error=function(e) NULL)
@@ -1052,7 +1055,8 @@ runAOV <- function(inData, dataframe, ModelForm) {
                   qchisq(mvCom5(fm, lop$nF_mvE5), 1, lower.tail = FALSE), error=function(e) NULL)
                } else {# contain within-subject variable(s)
                   #tryCatch(Fvalues <- unname(uvfm$anova[-1,5]), error=function(e) NULL)
-                  tryCatch(Fvalues <- unname(uvfm$anova[,5]), error=function(e) NULL)
+                  if(lop$afex_new) tryCatch(Fvalues <- unname(uvfm$univariate.tests[,5]), error=function(e) NULL) else
+                     tryCatch(Fvalues <- unname(uvfm$anova[,5]), error=function(e) NULL)
                   if(!is.null(Fvalues)) if(!any(is.nan(Fvalues))) {
                      out[1:lop$nFu] <- Fvalues  # univariate Fs: no spherecity correction
                      if(lop$SC) { # sphericity correction
@@ -1084,7 +1088,9 @@ runAOV <- function(inData, dataframe, ModelForm) {
                         if(!is.null(wsmvt)) {
                            p_wsmvt <- pf(wsmvt[2], wsmvt[3], wsmvt[4], lower.tail = FALSE)
                            # replace value at index ii
-                           if(p_wsmvt < uvfm$anova[ii,'Pr(>F)']) out[ii] <-
+                           if(lop$afex_new) if(p_wsmvt < uvfm$univariate.test[ii,'Pr(>F)']) out[ii] <-
+                              qf(p_wsmvt, uvfm$univariate.test[ii,'num Df'], uvfm$univariate.test[ii,'den Df'], lower.tail = FALSE) else
+                              if(p_wsmvt < uvfm$anova[ii,'Pr(>F)']) out[ii] <-
                               qf(p_wsmvt, uvfm$anova[ii,'num Df'], uvfm$anova[ii,'den Df'], lower.tail = FALSE)
                         }
                      }
@@ -1110,10 +1116,15 @@ runAOV <- function(inData, dataframe, ModelForm) {
             
          # GLT part below
          if(lop$num_glt>=1) for(ii in 1:lop$num_glt) {  # these are multivariate tests!
-            if(all(is.na(lop$gltList[[ii]]))) glt <- tryCatch(testInteractions(fm$lm, pairwise=NULL, slope=lop$slpList[[ii]], 
-               covariates=lop$covValList[[ii]], adjustment="none", idata = fm[["idata"]]), error=function(e) NULL) else
+             if(all(is.na(lop$gltList[[ii]]))) {
+               if(lop$afex_new) glt <- tryCatch(testInteractions(fm$lm, pairwise=NULL, slope=lop$slpList[[ii]], 
+                  covariates=lop$covValList[[ii]], adjustment="none", idata = fm$data$idata), error=function(e) NULL) else
+               glt <- tryCatch(testInteractions(fm$lm, pairwise=NULL, slope=lop$slpList[[ii]], 
+                  covariates=lop$covValList[[ii]], adjustment="none", idata = fm$idata), error=function(e) NULL) } else {
+            if(lop$afex_new) glt <- tryCatch(testInteractions(fm$lm, custom=lop$gltList[[ii]], slope=lop$slpList[[ii]], 
+               covariates=lop$covValList[[ii]], adjustment="none", idata = fm$data$idata), error=function(e) NULL) else
             glt <- tryCatch(testInteractions(fm$lm, custom=lop$gltList[[ii]], slope=lop$slpList[[ii]], 
-               covariates=lop$covValList[[ii]], adjustment="none", idata = fm[["idata"]]), error=function(e) NULL)
+               covariates=lop$covValList[[ii]], adjustment="none", idata = fm$idata), error=function(e) NULL) }
             if(!is.null(glt)) {
                out[lop$nF+2*ii-1] <- glt[1,1]
 	       out[lop$nF+2*ii]   <- sign(glt[1,1]) * sqrt(glt[1,4])  # convert F to t
@@ -1350,6 +1361,9 @@ FileCol <- dim(lop$dataStr)[2]
 #Number of input files
 lop$NoFile <- dim(lop$dataStr[1])[1]
 
+# check afex version
+lop$afex_new <- (packageVersion('afex') >= 0.14)
+                                                
 # Repeated-measures (use lme) or not (use lm)
 #if (length(unique(lop$dataStr$Subj)) != length(lop$dataStr$Subj)) RM <- TRUE else RM <- FALSE
 
@@ -1364,8 +1378,6 @@ dimz <- inData$dim[3]
 # for writing output purpose
 head <- inData
 
-# ww <- inData$NI_head
-#myHist <- inData$header$HISTORY_NOTE; myOrig <- inData$origin; myDelta <- inData$delta
 # Read in all input files
 inData <- unlist(lapply(lapply(lop$dataStr[,FileCol], read.AFNI, verb=lop$verb, meth=lop$iometh, forcedset = TRUE), '[[', 1))
 tryCatch(dim(inData) <- c(dimx, dimy, dimz, lop$NoFile), error=function(e)
@@ -1408,19 +1420,13 @@ assVV <- function(DF, vQV, value, c) {
     }
     DF[, vQV] <- as.numeric(DF[, vQV])
     return(DF)
-}
-
-#      if(all(is.na(lop$vVarCenters))) 
-#         lop$dataStr[,lop$QV] <- scale(lop$dataStr[,lop$QV], center=TRUE, scale=F) else
-#         lop$dataStr[,lop$QV] <- scale(lop$dataStr[,lop$QV], center=lop$vVarCenters, scale=F)
-                                                
+}                                           
 
 # add a new column to store the voxel-wise filenames
 if(any(!is.na(lop$vVars))) {
    lop$dataStr <- cbind(lop$dataStr, lop$dataStr[, lop$vQV[1]])                                                
    names(lop$dataStr)[length(names(lop$dataStr))] <- paste(lop$vQV[1], '_fn', sep='')
-}                                             
-#lop$dataStr <- assVV(lop$dataStr, paste(lop$vQV[1], '_fn', sep=''), vQV[20,20,20,])
+}                                           
                                                 
 # DF: lop$dataStr[,lop$vQV[1]]
                                                 
@@ -1444,7 +1450,8 @@ glfRes <- vector('list', lop$num_glf)
 cat('If the program hangs here for more than, for example, half an hour,\n')
 cat('kill the process because the model specification or the GLT coding\n')
 cat('is likely inappropriate.\n\n')
-                                                
+
+
 while(is.null(fm)) {
    fm<-NULL
    if (all(abs(inData[ii, jj, kk,]) < 10e-8)) fm<-NULL else {
@@ -1456,26 +1463,30 @@ while(is.null(fm)) {
       #   lop$dataStr[,lop$QV] <- scale(lop$dataStr[,lop$QV], center=TRUE, scale=F) else
       #   lop$dataStr[,lop$QV] <- scale(lop$dataStr[,lop$QV], center=lop$vVarCenters, scale=F)
    }   
-   #options(warn=-1)     
+   #options(warn=-1)   
+   if(lop$afex_new) suppressMessages(try(fm <- aov_car(ModelForm, data=lop$dataStr, factorize=FALSE, type=lop$SS_type), silent=TRUE)) else
    suppressMessages(try(fm <- aov.car(ModelForm, data=lop$dataStr, factorize=FALSE, type=lop$SS_type, return='full'), silent=TRUE))
 
    if(!is.null(fm)) {
-      uvfm <- univ(fm$Anova)  # univariate modeling
+      if(lop$afex_new) uvfm <- summary(fm) else uvfm <- univ(fm$Anova)  # univariate modeling
       if(!is.na(lop$mVar)) if(is.na(lop$wsVars)) mvfm <- Anova(fm$lm, type=lop$SS_type, test='Pillai')
    } 
 
    if(!is.null(fm)) if (lop$num_glt > 0) {
       n <- 1
       while(!is.null(fm) & (n <= lop$num_glt)) {
-         if(all(is.na(lop$gltList[[n]])))   # Covariate testing only without factors involved
+         if(all(is.na(lop$gltList[[n]]))) {  # Covariate testing only without factors involved
+            if(lop$afex_new) gltRes[[n]] <- tryCatch(testInteractions(fm$lm, pairwise=NULL,
+               covariates=lop$covValList[[n]], slope=lop$slpList[[n]], adjustment="none", idata = fm$data$idata),
+               error=function(e) NA) else
             gltRes[[n]] <- tryCatch(testInteractions(fm$lm, pairwise=NULL,
-            covariates=lop$covValList[[n]], slope=lop$slpList[[n]], adjustment="none", idata = fm[["idata"]]),
-            error=function(e) NA) else      # Involving factors
-         #gltRes[[n]] <- tryCatch(testInteractions(fm$lm, custom=lop$gltList[[n]], slope=lop$slpList[[n]], 
-         #   covariates=lop$covValList[[n]], adjustment="none", idata = fm[["idata"]]), error=function(e) NULL)
-         #if(any(is.null(gltRes[[n]]))) fm <- NULL
-         tryCatch(gltRes[[n]] <- testInteractions(fm$lm, custom=lop$gltList[[n]], slope=lop$slpList[[n]], 
-            covariates=lop$covValList[[n]], adjustment="none", idata = fm[["idata"]]), error=function(e) NULL)
+               covariates=lop$covValList[[n]], slope=lop$slpList[[n]], adjustment="none", idata = fm$idata),
+               error=function(e) NA) } else {     # Involving factors
+            if(lop$afex_new) tryCatch(gltRes[[n]] <- testInteractions(fm$lm, custom=lop$gltList[[n]], slope=lop$slpList[[n]], 
+            covariates=lop$covValList[[n]], adjustment="none", idata = fm$data$idata), error=function(e) NULL) else
+            tryCatch(gltRes[[n]] <- testInteractions(fm$lm, custom=lop$gltList[[n]], slope=lop$slpList[[n]], 
+            covariates=lop$covValList[[n]], adjustment="none", idata = fm$idata), error=function(e) NULL)
+         }
          if(any(is.null(gltRes[[n]]))) {
             fm <- NULL
             errex.AFNI(paste("Failed at GLT No. ", n, "! Make sure that the model or GLT specification syntax is correct.", sep=''))
@@ -1487,12 +1498,18 @@ while(is.null(fm)) {
    if(!is.null(fm)) if (lop$num_glf > 0) {
       n <- 1
       while(!is.null(fm) & (n <= lop$num_glf)) { # this part may need fixes!
-         if(all(is.na(lop$glfList[[n]])))  # Covariate testing only without factors involved: possible?
+         if(all(is.na(lop$glfList[[n]]))) { # Covariate testing only without factors involved: possible?
+            if(lop$afex_new) glfRes[[n]] <- tryCatch(testFactors(fm$lm, pairwise=NULL,
+            covariates=lop$covValListF[[n]], slope=lop$slpListF[[n]], adjustment="none", idata = fm$data$idata)$terms$`(Intercept)`$test,
+            error=function(e) NA) else 
             glfRes[[n]] <- tryCatch(testFactors(fm$lm, pairwise=NULL,
-            covariates=lop$covValListF[[n]], slope=lop$slpListF[[n]], adjustment="none", idata = fm[["idata"]])$terms$`(Intercept)`$test,
-            error=function(e) NA) else     # Involving factors
-         glfRes[[n]] <- tryCatch(testFactors(fm$lm, levels=lop$glfList[[n]], slope=lop$slpListF[[n]], 
-            covariates=lop$covValListF[[n]], adjustment="none", idata = fm[["idata"]])$terms$`(Intercept)`$test, error=function(e) NULL)
+            covariates=lop$covValListF[[n]], slope=lop$slpListF[[n]], adjustment="none", idata = fm$idata)$terms$`(Intercept)`$test,
+            error=function(e) NA) } else {  # Involving factors
+            if(lop$afex_new) glfRes[[n]] <- tryCatch(testFactors(fm$lm, levels=lop$glfList[[n]], slope=lop$slpListF[[n]], 
+            covariates=lop$covValListF[[n]], adjustment="none", idata = fm$data$idata)$terms$`(Intercept)`$test, error=function(e) NULL) else
+            glfRes[[n]] <- tryCatch(testFactors(fm$lm, levels=lop$glfList[[n]], slope=lop$slpListF[[n]], 
+            covariates=lop$covValListF[[n]], adjustment="none", idata = fm$idata)$terms$`(Intercept)`$test, error=function(e) NULL)
+         }
          if(any(is.null(glfRes[[n]]))) fm <- NULL
          n <- n+1
       }      
@@ -1569,11 +1586,13 @@ if(!is.na(lop$wsVars) | !is.na(lop$mVar)) {
 # but no impact on all others (nFu, nFsc, nF_MVT)
 
 # number of F-stat for univariate modeling 
-lop$nFu <- ifelse(is.na(lop$wsVars) & is.na(lop$mVar), dim(uvfm)[1]-1, dim(uvfm$anova)[1])  # contains intercept
+if(lop$afex_new) lop$nFu <- ifelse(is.na(lop$wsVars) & is.na(lop$mVar), dim(uvfm)[1]-1, dim(uvfm$univariate.test)[1]) else  # contains intercept
+   lop$nFu <- ifelse(is.na(lop$wsVars) & is.na(lop$mVar), dim(uvfm)[1]-1, dim(uvfm$anova)[1])
 # nFm: number of F-stat for real MVM
 if(!is.na(lop$mVar)) if(is.na(lop$wsVars))
    lop$nFm <- length(mvfm$terms) else lop$nFm <- 0 else lop$nFm <- 0
-if(lop$mvE5a | lop$mvE5) lop$nF_mvE5 <- nrow(uvfm$anova)/2
+if(lop$mvE5a | lop$mvE5) if(lop$afex_new) lop$nF_mvE5 <- nrow(uvfm$univariate.test)/2 else
+   lop$nF_mvE5 <- nrow(uvfm$anova)/2 
 lop$nF <- ifelse(lop$mvE5, lop$nF_mvE5, lop$nFu + lop$nFsc + nF_MVT + lop$nFm + lop$nF_mvE5)
 #nF <- nFu + nFsc + nF_MVT + nFm + nF_mvE5
                                                 
@@ -1581,7 +1600,8 @@ NoBrick <-lop$nF + 2*lop$num_glt + lop$num_glf
 
 if(is.na(lop$wsVars) & is.na(lop$mVar)) brickNames <-
    paste(dimnames(uvfm)[[1]][1:(length(dimnames(uvfm)[[1]])-1)], 'F') else {
-   brickNames <- paste(dimnames(uvfm$anova)[[1]], 'F')
+   if(lop$afex_new) brickNames <- paste(dimnames(uvfm$univariate.test)[[1]], 'F') else
+      brickNames <- paste(dimnames(uvfm$anova)[[1]], 'F')
    if(lop$SC & (lop$nFsc > 0)) brickNames <- c(brickNames, paste(corTerms, '-SC-', 'F'))
 #   if(lop$wsMVT & (nF_MVT > 0)) brickNames <- c(brickNames, paste(names(fm$Anova$SSPE), '-wsMVT-', 'F'))
    if(lop$wsMVT & (nF_MVT > 0)) brickNames <- c(brickNames, paste(rownames(uvfm$sphericity.correction), '-wsMVT-', 'F'))
@@ -1592,9 +1612,10 @@ if(is.na(lop$wsVars) & is.na(lop$mVar)) brickNames <-
 
 if(!is.na(lop$mVar)) brickNames <- c(brickNames, paste(mvfm$terms, '-MV0-', 'F'))                                    
 if(lop$mvE5a)                                                
+   if(lop$afex_new) brickNames <- c(brickNames, paste(dimnames(uvfm$univariate.test)[[1]][1:lop$nF_mvE5], '-mvE5', 'Chisq')) else
    brickNames <- c(brickNames, paste(dimnames(uvfm$anova)[[1]][1:lop$nF_mvE5], '-mvE5', 'Chisq'))
-if(lop$mvE5) brickNames <- paste(dimnames(uvfm$anova)[[1]][1:lop$nF_mvE5], '-mvE5', 'Chisq')  # no appending
-
+if(lop$mvE5) if(lop$afex_new) brickNames <- paste(dimnames(uvfm$univariate.test)[[1]][1:lop$nF_mvE5], '-mvE5', 'Chisq') else # no appending
+   brickNames <- paste(dimnames(uvfm$anova)[[1]][1:lop$nF_mvE5], '-mvE5', 'Chisq')
 if(lop$num_glt>0) for(ii in 1:lop$num_glt) {
    brickNames <- c(brickNames, lop$gltLabel[ii])
    brickNames <- c(brickNames, paste(lop$gltLabel[ii], 't'))
@@ -1604,9 +1625,15 @@ if(lop$num_glf>0) for(ii in 1:lop$num_glf)
    brickNames <- c(brickNames, paste(lop$glfLabel[ii], 'F'))
 
 if(lop$SC & (lop$nFsc > 0)) {
-   scTerms <- dimnames(uvfm$anova)[[1]] %in% corTerms
-   lop$numDF <- uvfm$anova[,'num Df'][scTerms]
-   lop$denDF <- uvfm$anova[,'den Df'][scTerms]
+   if(lop$afex_new) {
+      scTerms <- dimnames(uvfm$univariate.test)[[1]] %in% corTerms
+      lop$numDF <- uvfm$univariate.test[,'num Df'][scTerms]
+      lop$denDF <- uvfm$univariate.test[,'den Df'][scTerms]
+   } else {
+      scTerms <- dimnames(uvfm$anova)[[1]] %in% corTerms
+      lop$numDF <- uvfm$anova[,'num Df'][scTerms]
+      lop$denDF <- uvfm$anova[,'den Df'][scTerms]
+  }
 } else {
    lop$numDF <- NULL
    lop$denDF <- NULL
@@ -1621,8 +1648,8 @@ if(lop$num_glt>0) for(ii in 1:lop$num_glt)
 F_DF <- vector('list', lop$nF)
 for(ii in 1:lop$nFu) if(is.na(lop$mVar) & is.na(lop$wsVars)) # between-subjects variables only
    F_DF[[ii]] <- c(uvfm[ii, 'Df'], uvfm[lop$nF+1, 'Df']) else # having within-subject factor
-   F_DF[[ii]] <- c(unname(uvfm$anova[ii,'num Df']), unname(uvfm$anova[ii,'den Df'])) # skip the intercept: ii+1
-
+   if(lop$afex_new) F_DF[[ii]] <- c(unname(uvfm$univariate.test[ii,'num Df']), unname(uvfm$univariate.test[ii,'den Df'])) else # skip the intercept: ii+1
+      F_DF[[ii]] <- c(unname(uvfm$anova[ii,'num Df']), unname(uvfm$anova[ii,'den Df']))
 if(lop$nFsc > 0) for(ii in 1:lop$nFsc) F_DF[[lop$nFu+ii]] <- c(lop$numDF[ii], lop$denDF[ii])
                                                 
 if(nF_MVT > 0) for(ii in 1:nF_MVT) F_DF[[lop$nFu+lop$nFsc+ii]] <- c(unname(maov(fm$Anova$SSPE[[lop$mvtInd[ii]]], fm$Anova$SSP[[lop$mvtInd[ii]]],
@@ -1651,11 +1678,6 @@ print("and estimate the total run time as shown below.")
 print(format(Sys.time(), "%D %H:%M:%OS3"))
 
 ###############################
-#options(warn = -1) # suppress warnings!
-#getOption('warn')
-
-#for(ii in 1:dimx) for(jj in 1:dimy) 
-#   aa<-runAOV(inData[ii,jj,kk,], dataframe=lop$dataStr, ModelForm=ModelForm)
 
 if(dimy == 1 & dimz == 1) {
    nSeg <- 20
@@ -1789,23 +1811,25 @@ cat("\nCongratulations! You have got an output ", lop$outFN, ".\n\n", sep='')
       inData <- lop$dataStr[lop$dataStr[[iterPar]] == levels(as.factor(lop$dataStr[[iterPar]]))[nn],] else
       inData <- NULL
    if(!is.null(inData)) {
-      if(length(strsplit(lop$wsVars, '\\,')[[1]]) > 1) {  # at least one within-subject factor other than ROI
+      if(length(strsplit(lop$wsVars, '\\,')[[1]]) > 1) {  # LME: at least one within-subject factor other than ROI
          fm <- lme(ModelForm, random=~1|Subj, data=inData)
-      } else
-       suppressMessages(try(fm <- aov.car(ModelForm, data=inData, factorize=FALSE, type=lop$SS_type, return='full'), silent=TRUE)) } else
-   fm <-NULL
+      } else { # MVM
+      if(lop$afex_new) suppressMessages(try(fm <- aov_car(ModelForm, data=inData, factorize=FALSE, type=lop$SS_type), silent=TRUE)) else
+      suppressMessages(try(fm <- aov.car(ModelForm, data=inData, factorize=FALSE, type=lop$SS_type, return='full'), silent=TRUE)) } } else
+      fm <-NULL
    #fm <- aov.car(ModelForm, data=inData, factorize=FALSE, return='full')
    if(!is.null(fm)) {
-      if(length(strsplit(lop$wsVars, '\\,')[[1]]) > 1) {  # at least one within-subject factor other than ROI
+      if(length(strsplit(lop$wsVars, '\\,')[[1]]) > 1) {  # LME: at least one within-subject factor other than ROI
          termROI <- grep('ROI', rownames(anova(fm))) # term rows that contain 'ROI'
          termROIn <- (1:nrow(anova(fm)))[-termROI]   # term rows that do not contain 'ROI'
          out_p <- apply(cbind(anova(fm)[termROIn,][,'p-value'], anova(fm)[termROI,][,'p-value']), 1, min)
          names(out_p) <- rownames(anova(fm))[termROIn]
-      } else { 
+      } else { # MVM
       #out_p <- apply(cbind(uvP[1:outTerms], uvP[(outTerms+1):length(uvP)], p_wsmvt[1:outTerms],
       #   p_wsmvt[(outTerms+1):length(uvP)], p_mvt), 1, min)
          options(warn = -1)
-         lop$nF_mvE5 <- tryCatch(nrow(univ(fm$Anova)$anova)/2, error=function(e) NULL)
+         if(lop$afex_new) lop$nF_mvE5 <- tryCatch(nrow(summary(fm)$univariate.tests)/2, error=function(e) NULL) else
+            lop$nF_mvE5 <- tryCatch(nrow(univ(fm$Anova)$anova)/2, error=function(e) NULL)
          if(is.null(lop$nF_mvE5)) {
             tryCatch(fm2 <- aov(ModelForm2, data=inData), error=function(e) NULL)
             if(is.null(fm2)) errex.AFNI('Model failure...') else {
@@ -1846,10 +1870,15 @@ cat("\nCongratulations! You have got an output ", lop$outFN, ".\n\n", sep='')
          } else {   # MVM case
             out_post <- matrix(0, nrow = lop$num_glt, ncol = 4)
             for(ii in 1:lop$num_glt) {
-            if(all(is.na(lop$gltList[[ii]]))) glt <- tryCatch(testInteractions(fm$lm, pairwise=NULL, slope=lop$slpList[[ii]], 
-               covariates=lop$covValList[[n]], adjustment="none", idata = fm[["idata"]]), error=function(e) NULL) else
+               if(all(is.na(lop$gltList[[ii]]))) {
+                   if(lop$afex_new) glt <- tryCatch(testInteractions(fm$lm, pairwise=NULL, slope=lop$slpList[[ii]], 
+                      covariates=lop$covValList[[n]], adjustment="none", idata = fm$data$idata), error=function(e) NULL) else
+               glt <- tryCatch(testInteractions(fm$lm, pairwise=NULL, slope=lop$slpList[[ii]], 
+                      covariates=lop$covValList[[n]], adjustment="none", idata = fmidata), error=function(e) NULL) } else {
+               if(lop$afex_new) glt <- tryCatch(testInteractions(fm$lm, custom=lop$gltList[[ii]], slope=lop$slpList[[ii]], 
+                   covariates=lop$covValList[[ii]], adjustment="none", idata = fm$data$idata), error=function(e) NULL) else
                glt <- tryCatch(testInteractions(fm$lm, custom=lop$gltList[[ii]], slope=lop$slpList[[ii]], 
-                  covariates=lop$covValList[[ii]], adjustment="none", idata = fm[["idata"]]), error=function(e) NULL)
+                   covariates=lop$covValList[[ii]], adjustment="none", idata = fm$idata), error=function(e) NULL) }
                if(!is.null(glt)) {
                   out_post[ii,1]   <- glt[1,1]
                   out_post[ii,2]   <- sign(glt[1,1]) * sqrt(glt[1,4])  # convert F to t
