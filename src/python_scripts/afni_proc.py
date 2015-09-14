@@ -379,7 +379,7 @@ g_history = """
         - -regress_anaticor implies -mask_segment_anat and -mask_segment_erode
     3.47 May 09, 2013: small code reorg in prep for ...
     3.48 May 09, 2013: added options -write_3dD_script, -write_3dD_prefix
-    3.49 Jun 25, 2013: added options -volreg_mosim, -volreg_opts_ms
+    3.49 Jun 25, 2013: added options -volreg_motsim, -volreg_opts_ms
     3.50 Jun 27, 2013: added option -regress_mot_as_ort
     4.00 Aug 14, 2013: added non-linear template registration via auto_warp.py
         - added options -tlrc_NL_warp and -tlrc_NL_awpy_rm
