@@ -16353,9 +16353,7 @@ byte SUMA_isMD_Dset(SUMA_DSET *dset)
    
    if (!dset || !dset->Aux) SUMA_RETURN(NOPE);
    
-   dset->Aux->isGraph == MD_DSET;
-   
-   SUMA_RETURN(dset->Aux->isGraph == CIFTI_DSET);
+   SUMA_RETURN(dset->Aux->isGraph == MD_DSET);  /* hopefully  16 Sep 2015 */
 }
 
 /* This query goes back to the source all the time,

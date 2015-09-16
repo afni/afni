@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 16,  Sep, 2015, RCR, "suma", MICRO, TYPE_MODIFY,
+   "w/dglen SUMA_find_any_object: fixed loss of isGraphDset result",
+   NULL
+ } ,
+
  { 11,  Sep, 2015, RCR, "3dBandpass", MICRO, TYPE_MODIFY,
    "do not propagate scalars",
    NULL
