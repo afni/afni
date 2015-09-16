@@ -1777,6 +1777,8 @@ make_linkrbrain_xml(float *coords, int ncoords, char *srcspace, char *destspace,
             xout = *fptr; yout = *fptr+1; zout = *fptr+2;
          }
 #endif
+
+         /** can add w="%.1f" to include a weight with each point [RWC] **/
  
          fprintf(tempout, "<point x=\"%.1f\" y=\"%.1f\" z=\"%.1f\" />\n",
                 -xout, -yout, zout);
