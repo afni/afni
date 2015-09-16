@@ -2088,7 +2088,7 @@ void *SUMA_find_any_object(char *idcode_str, SUMA_DO_Types *do_type)
    if ((PP = SUMA_FindDset_s(idcode_str, SUMAg_CF->DsetList))) {
       if (do_type) {
          if (SUMA_isGraphDset((SUMA_DSET *)PP)) *do_type = GDSET_type;
-	 if (SUMA_isMD_Dset((SUMA_DSET *)PP)) *do_type = MD_DSET_type;
+	 else if (SUMA_isMD_Dset((SUMA_DSET *)PP)) *do_type = MD_DSET_type;
          else *do_type = ANY_DSET_type;
       }
       SUMA_RETURN(PP);
