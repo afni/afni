@@ -492,9 +492,10 @@ g_history = """
         - ANATICOR now works for task analysis, using -regress_reml_exec
     4.51 Sep 02, 2015: if rest with REML, use REML errts
     4.52 Sep 10, 2015: fix resulting aligned SurfVol if input is NIFTI
+    4.53 Sep 17, 2015: clarify incorrect dgrid error for anat follower
 """
 
-g_version = "version 4.52, September 10, 2015"
+g_version = "version 4.53, September 17, 2015"
 
 # version of AFNI required for script execution
 # prev: g_requires_afni =  "1 Apr 2015" # 1d_tool.py uncensor from 1D
@@ -2313,8 +2314,11 @@ class SubjProcSream:
                     % label
               return None
 
-        if dgrid not in ['epi', 'anat', 'self']:
-           print '** invalid dgrid %s for %s' % (dgrid, aname.rel_input())
+        dgridtypes = ['epi', 'anat', 'self']
+        if dgrid not in dgridtypes:
+           print "** error: invalid dgrid '%s' for %s" \
+                 % (dgrid, aname.rel_input())
+           print '   (must be one of: %s)' % ', '.join(dgridtypes)
            return None
 
         vo = VO.VarsObject()
