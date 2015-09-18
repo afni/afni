@@ -49,6 +49,10 @@
 
 
 afni_history_struct dglen_history[] = {
+{ 18, SEP, 2015, DRG, "@DBSproc bug fix",
+    MINOR, TYPE_BUG_FIX,
+    "Left-right coordinate flip in @DBSproc script for Silvina Horovitz"
+},
 { 1, SEP, 2015, DRG, "3dcalc extreme, absextreme",
     MINOR, TYPE_NEW_OPT,
     "New extreme and absextreme operators to find extreme values"
