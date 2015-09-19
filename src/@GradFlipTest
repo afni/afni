@@ -18,24 +18,25 @@
 #    STRING_CMD :is the string command you would use in 1dDW_Grad_o_Mat
 #                to input the gradient vector file, for example:
 #                '-in_grad_cols GRAD_FILE'  (and make sure to put quotes
-#                around the entry).  If you need to include other options,
-#                such as 'in_bvals FILE' or something, you can do that
-#                in this single string command, as well.
+#                around the entry).  If you need to include other 
+#                options, such as 'in_bvals FILE' or something, you can
+#                do that in this single string command, as well.
 #
 #   DWI_FILE    :the name of the DWI set to be processed and possibly
 #                averaged together in parts at the same time as the grad
 #                file.
 #
 # + OUTPUT
-#   Mostly, this code will recommend using either 'No flip', or one of the
-#   {-flip_x|-flip_y|-flip_z}.  It will produce a directory called 
+#   Mostly, this code will recommend using either 'No flip', or one of
+#   the {-flip_x|-flip_y|-flip_z}.  It will produce a directory called 
 #   '_tmp_TESTFLIP/' to store temporary files, of which there are many.
 #   It will also prompt you the user to visually check the tract results
 #   as well with some simple example scripts.
 #
-#########################################################################
+########################################################################
 
 # v2.1, Sep,2015:  linear DTI fits, for speed
+# v2.2, Sep,2015:  echo edu to print commands
 
 set in_CMD = "$1"
 set in_DSET = "$2"
@@ -47,7 +48,7 @@ set dir = "_tmp_TESTFLIP"
 set ALL_ARR =  ( )
 set SUMA_CALL = ""
 
-set min_tr_len = 40
+set min_tr_len = 20
 
 # make a temporary output directory
 if( -d "$dir" ) then
@@ -57,9 +58,9 @@ else
     mkdir $dir
 endif
 
-# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
 #                 Start the looping
-# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
 
 printf "\n\n\n++ Starting to test...\n"
 
@@ -79,6 +80,7 @@ printf "\n\n++ Grad_o_Matting (just needed once).\n\n\n"
 # Only do Grad_o_Mat with no flipping-- only fit tensors once, and
 # then flip eigenvectors individually
 1dDW_Grad_o_Mat                          \
+    -echo_edu                            \
     $in_CMD                              \
     -proc_dset      $in_DSET             \
     -pref_dset      $out_DSET            \
@@ -87,6 +89,7 @@ printf "\n\n++ Grad_o_Matting (just needed once).\n\n\n"
 
 # mask based on 0th brick of 1st set
 3dAutomask                               \
+    -echo_edu                            \
     -overwrite                           \
     -prefix $out_mask                    \
     $out_DSET'[0]'
@@ -95,14 +98,16 @@ printf "\n\n++ Tensor fitting (just needed once).\n\n\n"
 
 # Tensor fitting of non-flipped
 3dDWItoDT                                \
-    -eigs -nonlinear -sep_dsets          \
+    -echo_edu                            \
+    -eigs -linear -sep_dsets             \
     -mask $out_mask                      \
     -prefix $out_DT                      \
     $out_GRAD                            \
     $out_DSET                            \
     -overwrite
 
-set ext = `3dinfo -av_space ${out_DT}_DT*HEAD`
+
+set ext = `3dinfo -av_space ${out_DT}_FA*HEAD`
 
 
 printf "\n\n++ Make the new eigenvectors for each flip.\n\n\n"
@@ -153,6 +158,7 @@ foreach j ( `seq 1 1 4` )
     # long tracts
     set out_TRK   = "$dir/$FNOMS[$j]_WB"
     3dTrackID -mode DET                      \
+        -echo_edu                            \
         -alg_Nseed_X 1                       \
         -alg_Nseed_Y 1                       \
         -alg_Nseed_Z 1                       \
@@ -167,9 +173,9 @@ foreach j ( `seq 1 1 4` )
 end
 
 
-################################################################################
-#                               Summary stuff
-################################################################################
+########################################################################
+#                           Summary stuff
+########################################################################
 
 foreach i ( `seq 1 1 4` )
 
@@ -192,9 +198,9 @@ foreach i ( `seq 1 1 4` )
 
 end
 
-# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
 #                      Find the max of the tracts
-# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
 
 set L = `printf $#ALL_ARR`
 set MaxI = "1"
