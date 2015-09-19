@@ -48,7 +48,7 @@ set dir = "_tmp_TESTFLIP"
 set ALL_ARR =  ( )
 set SUMA_CALL = ""
 
-set min_tr_len = 20
+set min_tr_len = 30
 
 # make a temporary output directory
 if( -d "$dir" ) then
