@@ -2,7 +2,7 @@
 
 #########################################################################
 #
-# Auto grad-flip tester (v2.0, Sep 2015)
+# Auto grad-flip tester (v2.1, Sep 2015)
 #   by PA Taylor (UCT, AIMS)
 #
 # Simple script to test what 'flip', if any, should likely be
@@ -35,9 +35,10 @@
 #
 #########################################################################
 
+# v2.1, Sep,2015:  linear DTI fits, for speed
 
 set in_CMD = "$1"
-set in_DSET = $2
+set in_DSET = "$2"
 
 set FLIPS = ( "NO flip" '-flip_x' "-flip_y" "-flip_z" )
 set FNOMS = ( "F0" "FX" "FY" "FZ" )

@@ -66,6 +66,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 18, Sep , 2015 , PT , "@GradFlipTest" , MICRO , TYPE_MODIFY,
+   "For DWI analysis: just linear fitting of tensor.",
+   "Faster 3dDWItoDT usage, only do linear fit.\n"
+},
+
 { 16, Sep , 2015 , PT , "@GradFlipTest" , MAJOR , TYPE_NEW_PROG,
    "For DWI analysis: test whether grads need to be flipped.",
    "Use a few tracking calls to estimate 'best' grad orientations.\n"
