@@ -120,21 +120,21 @@ foreach j ( `seq 1 1 3` )
     set out_DTx = "$dir/$FNOMS[2]_DT_V${j}"
     3dcalc                                  \
         -a ${out_DT}_V${j}$ext              \
-        -expr 'a*(-equals(l,0)+equals(l,1))+equals(l,2)'  \
+        -expr 'a*(-equals(l,0)+equals(l,1)+equals(l,2))'  \
         -prefix $out_DTx                    \
         -overwrite
         
     set out_DTy = "$dir/$FNOMS[3]_DT_V${j}"
     3dcalc                                  \
         -a ${out_DT}_V${j}$ext              \
-        -expr 'a*(equals(l,0)-equals(l,1))+equals(l,2)'  \
+        -expr 'a*(equals(l,0)-equals(l,1)+equals(l,2))'  \
         -prefix $out_DTy                    \
         -overwrite
 
     set out_DTz = "$dir/$FNOMS[4]_DT_V${j}"
     3dcalc                                  \
         -a ${out_DT}_V${j}$ext              \
-        -expr 'a*(equals(l,0)+equals(l,1))-equals(l,2)'  \
+        -expr 'a*(equals(l,0)+equals(l,1)-equals(l,2))'  \
         -prefix $out_DTz                    \
         -overwrite
 
