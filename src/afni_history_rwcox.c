@@ -43,7 +43,11 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 9 , SEP , 2015 , RWC , "afni clusterize" , MICRO , TYPE_ENHANCE ,
+  { 22 , SEP , 2015 , RWC , "3dDeconvolve" , MICRO , TYPE_NEW_ENV ,
+   "AFNI_USE_ERROR_FILE = NO turns off creation of 3dDeconvolve.err" ,
+   NULL } ,
+
+ { 9 , SEP , 2015 , RWC , "afni clusterize" , MICRO , TYPE_ENHANCE ,
    "Add popup chooser for max number linkRbrain clusters" ,
    NULL } ,
 

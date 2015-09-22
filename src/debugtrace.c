@@ -15,6 +15,10 @@ void SET_message_file( char *fname )
    if( messfp != NULL ){ fclose(messfp); messfp = NULL; }
    if( messfn != NULL ){ free  (messfn); messfn = NULL; }
 
+   { char *eee = getenv("AFNI_USE_ERROR_FILE") ;  /* 22 Sep 2015 */
+     if( eee != NULL && (*eee == 'N' || *eee == 'n') ) return ;
+   }
+
    if( fname != NULL && *fname != '\0' ) messfn = strdup(fname) ;
    return ;
 }
