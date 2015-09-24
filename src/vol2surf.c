@@ -781,7 +781,7 @@ static int segment_imarr( range_3dmm_res *res, range_3dmm *R, v2s_opts_t *sopt,
     THD_fvec3 f3mm;
     THD_ivec3 i3ind;
     float     rat1, ratn;
-    int       nx, ny;
+    int       nx, ny, nvox;
     int       step, vindex, prev_ind;
 
 ENTRY("segment_imarr");
@@ -806,6 +806,7 @@ ENTRY("segment_imarr");
 
     nx = DSET_NX(R->dset);
     ny = DSET_NY(R->dset);
+    nvox = DSET_NVOX(R->dset);
 
     /* if we don't have enough memory for results, (re)allocate some */
     if ( res->ims.nall < sopt->f_steps )
@@ -887,10 +888,21 @@ ENTRY("segment_imarr");
         res->ims.imarr[res->ims.num] = THD_extract_series( vindex, R->dset, 0 );
         res->ims.num++;
 
+        /* print 10 warnings, then wait for a long time
+           (done for PT - failing to process RGB dsets)  21 Sep 2015 [rickr] */
         if ( ! res->ims.imarr[res->ims.num-1] )
         {
+          static int nwarn = 0;
+          if( nwarn < 10 )
             fprintf(stderr,"** failed THD_extract_series, vox %d\n", vindex);
-            RETURN(-1);
+          if( nwarn == 9 )
+            fprintf(stderr,"   (no more 'failed' messages for a while)\n");
+
+          nwarn ++;
+          if( nwarn >= nvox ) nwarn = 0;
+
+          res->ims.num--;   /* maybe we do not want to return a NULL? */
+          RETURN(-1);
         }
 
         if ( R->debug > 2 )
