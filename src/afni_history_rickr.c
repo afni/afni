@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 24,  Sep, 2015, RCR, "afni", MICRO, TYPE_ENHANCE,
+   "restrict THD_extract_series error messages (e.g. for RGB datasets)",
+   "Requested by P Taylor."
+ } ,
+
  { 24,  Sep, 2015, RCR, "afni_proc.py", MICRO, TYPE_ENHANCE,
    "allow 3dD to proceed with only extra_stim_files",
    NULL
