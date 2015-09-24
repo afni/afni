@@ -37,7 +37,7 @@ void mri_genalign_verbose(int v){ mverb = v ; }
 static const unsigned long long MYa=62003 ;
 static const unsigned long long MYb=15485863 ;
 static       unsigned long long MYx=15482917 ;
-INLINE float myunif(void)
+static INLINE float myunif(void)
 {
   MYx = MYa * MYx + MYb ;
   return ( ((unsigned int)MYx) / 4294967296.0f ) ;
