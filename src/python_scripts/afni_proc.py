@@ -492,9 +492,10 @@ g_history = """
         - ANATICOR now works for task analysis, using -regress_reml_exec
     4.51 Sep 02, 2015: if rest with REML, use REML errts
     4.52 Sep 10, 2015: fix resulting aligned SurfVol if input is NIFTI
+    4.53 Sep 24, 2015: allow 3dD to proceed with only extra_stim_files
 """
 
-g_version = "version 4.52, September 10, 2015"
+g_version = "version 4.53, September 24, 2015"
 
 # version of AFNI required for script execution
 # prev: g_requires_afni =  "1 Apr 2015" # 1d_tool.py uncensor from 1D

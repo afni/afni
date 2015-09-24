@@ -3443,8 +3443,9 @@ def db_cmd_regress(proc, block):
             return
 
     # if no stim files, default to using 3dTproject
+    nstim_files = len(proc.stims) + len(proc.extra_stims)
     use_tproj = block.opts.have_yes_opt('-regress_use_tproject',
-                                        default=(len(proc.stims) == 0))
+                                        default=(nstim_files==0))
 
     # create a stim_type list to match the stims
     opt = block.opts.find_opt('-regress_stim_types')
@@ -9753,8 +9754,8 @@ g_help_string = """
 
         -regress_stim_files FILE1 ... : specify TR-locked stim files
 
-                e.g. -regress_stim_times ED_stim_file*.1D
-                e.g. -regress_stim_times stim_A.1D stim_B.1D stim_C.1D
+                e.g. -regress_stim_files ED_stim_file*.1D
+                e.g. -regress_stim_files stim_A.1D stim_B.1D stim_C.1D
 
             Without the -regress_use_stim_files option, 3dDeconvolve will be
             run using '-stim_times', not '-stim_file'.  The user can still
@@ -9783,6 +9784,9 @@ g_help_string = """
             will be run using each stim_file as a regressor.  The order of the
             regressors should match the order of any labels, provided via the
             -regress_stim_labels option.
+
+            Alternately, this can be done via -regress_stim_times, along
+            with -regress_stim_types 'file'.
 
             Please see '3dDeconvolve -help' for more information, or the link:
                 http://afni.nimh.nih.gov/afni/doc/misc/3dDeconvolveSummer2004
