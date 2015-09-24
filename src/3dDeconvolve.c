@@ -1023,6 +1023,10 @@ void display_help_menu(int detail)
     "                      the string '!!' somewhere in their text.         \n"
     "               *N.B.: Error and Warning messages go to stderr and      \n"
     "                      also to file " PROGRAM_NAME ".err.               \n"
+    "                      ++ You can disable the creation of this .err     \n"
+    "                         file by setting environment variable          \n"
+    "                         AFNI_USE_ERROR_FILE to NO before running      \n"
+    "                         this program.                                 \n"
     "               *N.B.: The optional number 'g' that appears is the      \n"
     "                      number of warnings that can be ignored.          \n"
     "                      That is, if you use -GOFORIT 7 and 9 '!!'        \n"
@@ -8865,7 +8869,7 @@ int main
 #ifdef USING_MCW_MALLOC
    enable_mcw_malloc() ;
 #endif
-   mainENTRY(PROGRAM_NAME " main") ; machdep() ;
+   mainENTRY(PROGRAM_NAME " main") ; AFNI_process_environ(NULL) ; machdep() ;
   SET_message_file( PROGRAM_NAME ".err" ) ;
 
   commandline = tross_commandline( PROGRAM_NAME , argc , argv ) ;
