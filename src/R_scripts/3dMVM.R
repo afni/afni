@@ -32,7 +32,7 @@ help.MVM.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
           ================== Welcome to 3dMVM ==================          
     AFNI Group Analysis Program with Multi-Variate Modeling Approach
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 3.6.1, Sept 11, 2015
+Version 3.6.2, Sept 22, 2015
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - http://afni.nimh.nih.gov/sscc/gangc/MVM.html
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -1048,7 +1048,7 @@ runAOV <- function(inData, dataframe, ModelForm) {
                uvfm <- tryCatch(univ(fm$Anova), error=function(e) NULL)
             if(!is.null(uvfm)) {  
                if(is.na(lop$wsVars) & is.na(lop$mVar)) {  # between-subjects factors/variables only
-                  tryCatch(Fvalues <- uvfm[1:lop$nF,3], error=function(e) NULL)
+                  if(lop$afex_new) tryCatch(Fvalues <- unname(uvfm[1:lop$nF,4]), error=function(e) NULL) else tryCatch(Fvalues <- uvfm[1:lop$nF,3], error=function(e) NULL)
                   if(!is.null(Fvalues)) if(!any(is.nan(Fvalues))) out[1:lop$nFu] <- Fvalues
                } else if(lop$mvE5) { # combine 5 tests: assuming only one within-subject factor
                   tryCatch(out[(1:lop$nF)] <-
@@ -1593,7 +1593,7 @@ if(!is.na(lop$wsVars) | !is.na(lop$mVar)) {
 # but no impact on all others (nFu, nFsc, nF_MVT)
 
 # number of F-stat for univariate modeling 
-if(lop$afex_new) lop$nFu <- ifelse(is.na(lop$wsVars) & is.na(lop$mVar), dim(uvfm)[1]-1, dim(uvfm$univariate.test)[1]) else  # contains intercept
+if(lop$afex_new) lop$nFu <- ifelse(is.na(lop$wsVars) & is.na(lop$mVar), dim(uvfm)[1], dim(uvfm$univariate.test)[1]) else  # contains intercept
    lop$nFu <- ifelse(is.na(lop$wsVars) & is.na(lop$mVar), dim(uvfm)[1]-1, dim(uvfm$anova)[1])
 # nFm: number of F-stat for real MVM
 if(!is.na(lop$mVar)) if(is.na(lop$wsVars))
@@ -1605,14 +1605,15 @@ lop$nF <- ifelse(lop$mvE5, lop$nF_mvE5, lop$nFu + lop$nFsc + nF_MVT + lop$nFm + 
                                                 
 NoBrick <-lop$nF + 2*lop$num_glt + lop$num_glf
 
-if(is.na(lop$wsVars) & is.na(lop$mVar)) brickNames <-
-   paste(dimnames(uvfm)[[1]][1:(length(dimnames(uvfm)[[1]])-1)], 'F') else {
+if(is.na(lop$wsVars) & is.na(lop$mVar)) {
+   if(lop$afex_new) brickNames <- paste(dimnames(uvfm)[[1]], 'F') else
+   brickNames <- paste(dimnames(uvfm)[[1]][1:(length(dimnames(uvfm)[[1]])-1)], 'F') } else {
    if(lop$afex_new) brickNames <- paste(dimnames(uvfm$univariate.test)[[1]], 'F') else
       brickNames <- paste(dimnames(uvfm$anova)[[1]], 'F')
    if(lop$SC & (lop$nFsc > 0)) brickNames <- c(brickNames, paste(corTerms, '-SC-', 'F'))
 #   if(lop$wsMVT & (nF_MVT > 0)) brickNames <- c(brickNames, paste(names(fm$Anova$SSPE), '-wsMVT-', 'F'))
    if(lop$wsMVT & (nF_MVT > 0)) brickNames <- c(brickNames, paste(rownames(uvfm$sphericity.correction), '-wsMVT-', 'F'))
-}                                             
+}                                            
 #brickNames <- ifelse(is.na(lop$wsVars) & is.na(lop$mVar),
 #          paste(dimnames(uvfm)[[1]][2:(length(dimnames(uvfm)[[1]])-1)], 'F'),
 #          paste(dimnames(uvfm$anova)[[1]][-1], 'F'))
@@ -1653,8 +1654,9 @@ if(lop$num_glt>0) for(ii in 1:lop$num_glt)
 
 # DFs for F-stat
 F_DF <- vector('list', lop$nF)
-for(ii in 1:lop$nFu) if(is.na(lop$mVar) & is.na(lop$wsVars)) # between-subjects variables only
-   F_DF[[ii]] <- c(uvfm[ii, 'Df'], uvfm[lop$nF+1, 'Df']) else # having within-subject factor
+for(ii in 1:lop$nFu) if(is.na(lop$mVar) & is.na(lop$wsVars)) {# between-subjects variables only
+   if(lop$afex_new) F_DF[[ii]] <- c(uvfm[ii, 'num Df'], uvfm[ii, 'den Df']) else
+   F_DF[[ii]] <- c(uvfm[ii, 'Df'], uvfm[lop$nF+1, 'Df']) } else # having within-subject factor
    if(lop$afex_new) F_DF[[ii]] <- c(unname(uvfm$univariate.test[ii,'num Df']), unname(uvfm$univariate.test[ii,'den Df'])) else # skip the intercept: ii+1
       F_DF[[ii]] <- c(unname(uvfm$anova[ii,'num Df']), unname(uvfm$anova[ii,'den Df']))
 if(lop$nFsc > 0) for(ii in 1:lop$nFsc) F_DF[[lop$nFu+ii]] <- c(lop$numDF[ii], lop$denDF[ii])
