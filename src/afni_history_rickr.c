@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 24,  Sep, 2015, RCR, "afni_proc.py", MICRO, TYPE_ENHANCE,
+   "allow 3dD to proceed with only extra_stim_files",
+   NULL
+ } ,
+
  { 16,  Sep, 2015, RCR, "suma", MICRO, TYPE_MODIFY,
    "w/dglen SUMA_find_any_object: fixed loss of isGraphDset result",
    NULL
