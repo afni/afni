@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 24,  Sep, 2015, RCR, "ccalc", MICRO, TYPE_MODIFY,
+   "make dependency on libmri explicit",
+   "Some of these operations are for building on Fedora 22."
+ } ,
+
  { 24,  Sep, 2015, RCR, "afni-general", MICRO, TYPE_ENHANCE,
    "inline func with static vars should be static",
    "Fails to link in Fedora 22."
