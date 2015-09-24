@@ -49,7 +49,12 @@
 
 afni_history_struct rickr_history[] = {
 
- { 24,  Sep, 2015, RCR, "afni", MICRO, TYPE_ENHANCE,
+ { 24,  Sep, 2015, RCR, "afni-general", MICRO, TYPE_ENHANCE,
+   "inline func with static vars should be static",
+   "Fails to link in Fedora 22."
+ } ,
+
+ { 24,  Sep, 2015, RCR, "vol2surf", MICRO, TYPE_ENHANCE,
    "restrict THD_extract_series error messages (e.g. for RGB datasets)",
    "Requested by P Taylor."
  } ,

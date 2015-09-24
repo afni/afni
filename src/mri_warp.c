@@ -23,7 +23,8 @@
 
 static float sx_scale , sy_scale ;  /* global scaler data */
 
-INLINE void xxMRI_scaler( float xpr, float ypr, float *xx , float *yy )
+/* inline func with static vars should be static    24 Sep 2015 [rickr] */
+static INLINE void xxMRI_scaler( float xpr, float ypr, float *xx , float *yy )
 {
    *xx = sx_scale * xpr ;
    *yy = sy_scale * ypr ;
@@ -338,7 +339,7 @@ MRI_IMAGE *mri_warp_bilinear( MRI_IMAGE *im , int nxnew , int nynew ,
 
 static float rot_dx , rot_dy , rot_cph , rot_sph ;    /* global rotfunc data */
 
-INLINE void xxMRI_rotfunc( float xpr , float ypr , float *xx , float *yy )
+static INLINE void xxMRI_rotfunc(float xpr , float ypr , float *xx , float *yy)
 {
    *xx =  rot_cph * xpr + rot_sph * ypr + rot_dx ;
    *yy = -rot_sph * xpr + rot_cph * ypr + rot_dy ;
