@@ -234,7 +234,7 @@ void DBG_sigfunc(int sig)   /** signal handler for fatal errors **/
    extern char **hist_status ;
    extern int   nhist_status ;
    extern int DBG_hist ;
-   extern DBG_setup_hist_status(void) ;          /* 27 Apr 2015 */
+   extern void DBG_setup_hist_status(void) ;          /* 27 Apr 2015 */
    extern void DBG_dump_hist_status(FILE *hfp) ;
 #endif /* _DEBUGTRACE_MAIN_ */
 
