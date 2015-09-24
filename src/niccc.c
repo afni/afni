@@ -152,13 +152,16 @@ int main( int argc , char *argv[] )
          } 
          ++nn; continue;
       }
-      ERROR_message("Bad option %s. See niccc -help for details.\n", 
+
+      /* not on top of libmri for ERROR_message    24 Sep 2015 [rickr] */
+      fprintf(stderr, "** Bad option %s. See niccc -help for details.\n", 
                argv[nn]);
-      suggest_best_prog_option(argv[0], argv[nn]);
+      /* suggest_best_prog_option(argv[0], argv[nn]); */
       exit(1);
    }
    if( argc < 2 ){
-      ERROR_exit("Too few options");
+      fprintf(stderr,"** ERROR: Too few options");
+      exit(1);
    }
 
    if (nodata) mode = mode&NI_HEADERONLY_FLAG;

@@ -54,7 +54,8 @@ char * afni_fgets( char *buf , int nbuf , FILE *fp )
      }
    } while( nin < nbuf-1 ) ;    /* don't run off the end of the world */
    if (nin >= nbuf -1) {
-      ERROR_message("Line too long for buffer of %d chars.", nbuf);
+      /* no current include for ERROR_message    24 Sep 2015 [rickr] */
+      fprintf(stderr, "**Error: Line too long for buffer of %d chars.", nbuf);
       return NULL;
    }
    if( nin == 0 ) return NULL ; /* nothing was read */
