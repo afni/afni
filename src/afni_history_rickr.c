@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 25,  Sep, 2015, RCR, "suma", MICRO, TYPE_MODIFY,
+   "volume rendering is no longer the default for SUMA_VO_InitSlices",
+   "So Do_06_VISdti_SUMA_visual_ex1.tcsh defaults to showing 3 volume slices."
+ } ,
+
  { 24,  Sep, 2015, RCR, "ccalc", MICRO, TYPE_MODIFY,
    "make dependency on libmri explicit",
    "Some of these operations are for building on Fedora 22."
