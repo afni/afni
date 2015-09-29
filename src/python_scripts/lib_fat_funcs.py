@@ -145,11 +145,11 @@ def Find_POSTHOC(x):
         if len(x[i]) > 0 :
             if (x[i][1] == 'RESULTS:') and (x[i][2] == 'Post') :
                 par = x[i][-1]           # name of DTI/FMRI par
-                nval = int(x[i+1][0])    # where the num of vars is stored
+                nglt = int(x[i+1][0])    # where the num of glts is stored
                 values = []
                 names = []
                 ii = i + 3               # jump ahead to data
-                phrois, phvars = Find_PosthocVars_and_NROI( x[ii:ii+nval] )
+                phrois, phvars = Find_PosthocVars_and_NROI( x[ii:ii+nglt] )
                 Nphrois = len(phrois)
                 Nphvars = len(phvars)
                 tmpv = np.zeros( Nphvars )
@@ -188,7 +188,7 @@ def Find_PosthocVars_and_NROI( x ):
     phvars = []
 
     for y in x:
-        twopiece = y[-1].split('-')
+        twopiece = y[-1].split('--') # Sep,2015: new parser
         if not(phrois.__contains__(twopiece[0])):
             phrois.append(twopiece[0])
 
@@ -762,6 +762,64 @@ def LoadInTable(fname):
     
     return data, header
 
+#----------------------------------------------------------------
+
+# Sep,2015: new function to make table from subnetwork of ROIs
+def MakeSubTable(file_table, pref_subnet, roi_list):
+
+    tab_raw, tab_colvars = LoadInTable(file_table)
+    Ncol = len(tab_colvars)
+    Nrois = len(roi_list)
+    
+    # check for 'ROI' in col heading
+    indroi = Check_EleIn_ROIlist(tab_colvars, ColEnding[0])
+    if indroi < 0:
+        print "** ERROR: can't find 'ROI' in column headings of"
+        print "    the table file:  %s." % file_table
+        sys.exit(543)
+
+    list_count = np.zeros(Nrois, dtype=int)
+    tab_subnet = []
+    # go through row by row and keep those that have the 'right' ROI
+    for x in tab_raw:
+        if roi_list.__contains__(x[indroi]) :
+            tab_subnet.append(x)
+            list_count[roi_list.index(x[indroi])] = 1
+            
+    # check that each chosen ROI was found
+    if not(list_count.all()) :
+        for i in range(Nrois):
+            if not( list_count[i]):
+                print "** ERROR: can't find selected ROI %s in the original table list" % roi_list[list_count[i]]
+        print "** Please select again!"
+        sys.exit(544)
+    else:
+        print "++ Found all %d ROIs in the desired subnet list:" % Nrois
+        for x in roi_list:
+            print "\t  %s" % x
+        
+    Lx, Ly = np.shape(tab_subnet)
+
+    # write output
+    fff = open(pref_subnet, 'w')
+    for x in tab_colvars:
+        fff.write("%s " % x)
+    fff.write("  \\\n")
+    for i in range(Lx-1):
+        for x in tab_subnet[i]:
+            fff.write("%s " % x)
+        fff.write("  \\\n")
+    for x in tab_subnet[Lx-1]:
+        fff.write("%s " % x)
+    fff.write("\n")
+
+    fff.close()
+
+    print "++ New subnetwork table has been made: %s" % pref_subnet
+    
+    return 1
+            
+            
 #----------------------------------------------------------------
 
 def CheckVar_and_FindCategVar(tab_data, tab_colvars, tab_coltypes, par_list):

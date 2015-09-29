@@ -66,6 +66,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 28, Sep , 2015 , PT , "fat_mvm_scripter.py" , MINOR , TYPE_BUG_FIX,
+   "Use list of ROIs to select subnetwork of analysis for 3dMVM.",
+   "Previously, sublist only applied to post hocs, not 3dMVM models.\n"
+},
+   
 { 18, Sep , 2015 , PT , "@GradFlipTest" , MICRO , TYPE_MODIFY,
    "For DWI analysis: just linear fitting of tensor.",
    "Faster 3dDWItoDT usage, only do linear fit.\n"
