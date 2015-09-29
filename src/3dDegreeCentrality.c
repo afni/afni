@@ -542,8 +542,8 @@ int main( int argc , char *argv[] )
           /* print command line statement */
           fprintf(fout1D,"#Text output of:\n#");
           for (ii=0; ii<argc; ++ii) fprintf(fout1D,"%s ", argv[ii]);
-          fprintf(fout1D,"        ");
-          fprintf(fout1D,"Voxel1, Voxel2, Corr\n");
+          fprintf(fout1D,"\n");
+          fprintf(fout1D,"#Voxel1, Voxel2, Corr\n");
          }
     }
 
