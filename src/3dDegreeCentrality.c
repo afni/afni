@@ -196,6 +196,7 @@ int main( int argc , char *argv[] )
    hist_node* hptr=NULL;
    hist_node* pptr=NULL;
    int totNumCor = 0;
+   long totPosCor = 0;
    int ngoal = 0;
    int nretain = 0;
    float binwidth = 0.0;
@@ -421,6 +422,9 @@ int main( int argc , char *argv[] )
    if( method == ETA2 && polort >= 0 )
       WARNING_message("Polort for -eta2 should probably be -1...");
 
+   /* CC calculate the total number of possible correlations, will be 
+       usefule down the road */
+   totPosCor = (.5*((float)nmask))*((float)(nmask-1));
 
    /**  For the case of Pearson correlation, we make sure the  **/
    /**  data time series have their mean removed (polort >= 0) **/
@@ -495,7 +499,7 @@ int main( int argc , char *argv[] )
     {
         /* make sure that there is a bin for correlation values that == 1.0 */
         binwidth = (1.005-thresh)/nhistnodes;
-        ngoal = nretain = (int)(((float)(.5*nmask*(nmask-1)))*((float)sparsity) / 100.0);
+        ngoal = nretain = (int)(((float)totPosCor)*((float)sparsity) / 100.0);
         if(( histogram = (hist_node_head*)malloc(nhistnodes*sizeof(hist_node_head))) == NULL )
         {
             if (imap){ free(imap); imap = NULL; }
@@ -561,7 +565,7 @@ int main( int argc , char *argv[] )
     #endif
 
        vstep = (int)( nmask / (nthr*50.0f) + 0.901f ) ; vii = 0 ;
-       if( ithr == 0 ) fprintf(stderr,"vstep = %d\nLooping:",vstep) ;
+       if( ithr == 0 ) fprintf(stderr,"Looping:") ;
 
     #pragma omp for
        for( lout=0 ; lout < nmask ; lout++ ){  /*----- outer voxel loop -----*/
@@ -637,8 +641,6 @@ int main( int argc , char *argv[] )
                 will handle mutual exclusion */
              #pragma omp critical(dataupdate)
              {
-                hist_node* curr_ptr = NULL ;
-                hist_node* prev_ptr = NULL ;
                 totNumCor += 1;
                
                 if ( dosparsity == 0 )
@@ -667,7 +669,7 @@ int main( int argc , char *argv[] )
     AFNI_OMP_END ;
    fprintf (stderr, "AFNI_OMP finished\n");
    fprintf (stderr, "Found %d (%3.2f%%) correlations above threshold (%f)\n",
-       totNumCor, 100.0*totNumCor/(.5*(nmask-1)*nmask), thresh);
+       totNumCor, 100.0*((float)totNumCor)/((float)totPosCor), thresh);
 
    /*----------  Finish up ---------*/
 
@@ -768,6 +770,10 @@ int main( int argc , char *argv[] )
           bodset[ ii ] = (float)(binaryDC[kout]);
           wodset[ ii ] = (float)(weightedDC[kout]);
        }
+
+       /* we are done with this memory, and can kill it now*/
+       if(binaryDC){free(binaryDC);binaryDC=NULL;}
+       if(weightedDC){free(weightedDC);weightedDC=NULL;}
    }
    else
    {
@@ -969,6 +975,11 @@ int main( int argc , char *argv[] )
                       ngoal, -1*nretain, h2binwidth);
             }
         }
+        if (nretain > 0 )
+        {
+            WARNING_message( "Was not able to meet goal of %d (%3.2f%%) correlations, %d (%3.2f%%) correlations passed the threshold of %3.2f, maybe you need to change the threshold or the desired sparsity?",
+                  ngoal, 100.0*((float)ngoal)/((float)totPosCor), totNumCor, 100.0*((float)totNumCor)/((float)totPosCor),  thresh);
+        }
    }
 
 
@@ -1022,7 +1033,8 @@ int main( int argc , char *argv[] )
    /* finito */
    INFO_message("Writing output dataset to disk [%s bytes]",
                 commaized_integer_string(cset->dblk->total_bytes)) ;
-   THD_set_write_compression(COMPRESS_NONE) ; AFNI_setenv("AFNI_AUTOGZIP=NO") ;
+   /* this will forst compression to be off, I dont think we want this
+   THD_set_write_compression(COMPRESS_NONE) ; AFNI_setenv("AFNI_AUTOGZIP=NO") ;*/
    DSET_write(cset) ;
    WROTE_DSET(cset) ;
 
