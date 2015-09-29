@@ -815,9 +815,8 @@ int main( int argc , char *argv[] )
                bodset[ jj ] += 1.0 ;
                wodset[ jj ] += (float)(hptr->corr);
 
-               
-	       /* add source, dest, correlation to 1D file */
-	       fprintf(fout1D, "%d, %d, %.6f\n", ii, jj, (float)(hptr->corr));
+               /* add source, dest, correlation to 1D file */
+               fprintf(fout1D, "%d, %d, %.6f\n", ii, jj, (float)(hptr->corr));
 
                /* increment node pointers */
                pptr = hptr;
@@ -947,8 +946,8 @@ int main( int argc , char *argv[] )
                     bodset[ jj ] += 1.0 ;
                     wodset[ jj ] += (float)(hptr->corr);
 
-		    /* add source, dest, correlation to 1D file */
-		    fprintf(fout1D, "%d, %d, %.6f\n", ii, jj, (float)(hptr->corr));
+                    /* add source, dest, correlation to 1D file */
+                    fprintf(fout1D, "%d, %d, %.6f\n", ii, jj, (float)(hptr->corr));
 
                     /* increment node pointers */
                     pptr = hptr;
