@@ -170,6 +170,8 @@ int main( int argc , char *argv[] )
    char str[32] , *cpt ;
    int *imap ; MRI_vectim *xvectim ;
    float (*corfun)(int,float *,float*) = NULL ;
+   /* djc - add 1d file output for similarity matrix */
+   FILE *fout1D=NULL;
 
    /* CC - we will have two subbricks: binary and weighted centrality */
    int nsubbriks = 2;
@@ -361,6 +363,14 @@ int main( int argc , char *argv[] )
       if( strcmp(argv[nopt],"-verbose") == 0 ){
          verbose = 1 ; nopt++ ; continue ;
       }
+      /* check for 1d argument */
+      if ( strcmp(argv[nopt],"-out1D") == 0 ){
+          if (!(fout1D = fopen(argv[++nopt], "w"))) {
+             ERROR_message("Failed to open %s for writing", argv[nopt]);
+             exit(1);
+          }
+          nopt++ ; continue ;
+      }
 
       ERROR_exit("Illegal option: %s",argv[nopt]) ;
    }
@@ -368,6 +378,12 @@ int main( int argc , char *argv[] )
    /*-- open dataset, check for legality --*/
 
    if( nopt >= argc ) ERROR_exit("Need a dataset on command line!?") ;
+
+   if(fout1D && !mset) {
+      fclose(fout1D);
+      ERROR_message("Must use -mask and -mask_source with -out1D");
+      exit(1);
+   }
 
    xset = THD_open_dataset(argv[nopt]); CHECK_OPEN_ERROR(xset,argv[nopt]);
    if( DSET_NVALS(xset) < 3 )
@@ -513,6 +529,19 @@ int main( int argc , char *argv[] )
             thresh, sparsity, nretain);
     }
 
+    /* djc - 1d file out init */
+    if (fout1D) {
+       if (fout1D && (!mask)) {
+          ERROR_message("Option -1Dout restricted to commands using"
+                        "mask option.");
+       } else {
+          /* print command line statement */
+          fprintf(fout1D,"#Text output of:\n#");
+          for (ii=0; ii<argc; ++ii) fprintf(fout1D,"%s ", argv[ii]);
+          fprintf(fout1D,"        ");
+          fprintf(fout1D,"Voxel1, Voxel2, Corr\n");
+         }
+    }
 
     AFNI_OMP_START ;
     #pragma omp parallel if( nmask > 999 )
@@ -596,7 +625,8 @@ int main( int argc , char *argv[] )
                      WARNING_message("Could not allocate a new node!");
                      continue;
                  }
-
+                 
+                 /* populate histogram node */
                  new_node->i = lout; 
                  new_node->j = lin;
                  new_node->corr = car;
@@ -615,9 +645,12 @@ int main( int argc , char *argv[] )
                 { 
                     binaryDC[lout] += 1; binaryDC[lin] += 1;
                     weightedDC[lout] += car; weightedDC[lin] += car;
+                    /* add source, dest, correlation to 1D file */
+                    fprintf(fout1D, "%d, %d, %.6f\n", lin, lout, car);
                 }
                 else
-                { 
+                {   
+                    /* populate histogram */
                     new_node->next = histogram[new_node_idx].nodes;
                     histogram[new_node_idx].nodes = new_node;
                     histogram[new_node_idx].nbin++; 
@@ -776,6 +809,10 @@ int main( int argc , char *argv[] )
                bodset[ jj ] += 1.0 ;
                wodset[ jj ] += (float)(hptr->corr);
 
+               
+	       /* add source, dest, correlation to 1D file */
+	       fprintf(fout1D, "%d, %d, %.6f\n", ii, jj, (float)(hptr->corr));
+
                /* increment node pointers */
                pptr = hptr;
                hptr = hptr->next;
@@ -903,6 +940,9 @@ int main( int argc , char *argv[] )
                     wodset[ ii ] += (float)(hptr->corr);
                     bodset[ jj ] += 1.0 ;
                     wodset[ jj ] += (float)(hptr->corr);
+
+		    /* add source, dest, correlation to 1D file */
+		    fprintf(fout1D, "%d, %d, %.6f\n", ii, jj, (float)(hptr->corr));
 
                     /* increment node pointers */
                     pptr = hptr;
