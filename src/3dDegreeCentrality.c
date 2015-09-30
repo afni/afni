@@ -544,7 +544,16 @@ int main( int argc , char *argv[] )
           fprintf(fout1D,"#Text output of:\n#");
           for (ii=0; ii<argc; ++ii) fprintf(fout1D,"%s ", argv[ii]);
           fprintf(fout1D,"\n");
-          fprintf(fout1D,"#Voxel1, Voxel2, Voxel1_ijk, Voxel2_ijk, Corr\n");
+          mat44 ijk_to_dicom44 = cset->daxes->ijk_to_dicom_real;
+          fprintf(fout1D, "# [");
+          for (int mi = 0; mi < 4; mi++) {
+        	  for (int mj = 0; mj <4; mj++) {
+        	  fprintf(fout1D, "%.5f, ", ijk_to_dicom44.m[mi][mj]);
+        	  }
+        	  fprintf(fout1D, "\n#  ");
+          }
+          fprintf(fout1D, "]\n");
+          fprintf(fout1D,"#Voxel1 Voxel2 i1 j1 k1 i2 j2 k2 Corr\n");
          }
     }
 
