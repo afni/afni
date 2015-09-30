@@ -381,12 +381,6 @@ int main( int argc , char *argv[] )
 
    if( nopt >= argc ) ERROR_exit("Need a dataset on command line!?") ;
 
-   if(fout1D && !mset) {
-      fclose(fout1D);
-      ERROR_message("Must use -mask and -mask_source with -out1D");
-      exit(1);
-   }
-
    xset = THD_open_dataset(argv[nopt]); CHECK_OPEN_ERROR(xset,argv[nopt]);
    if( DSET_NVALS(xset) < 3 )
      ERROR_exit("Input dataset %s does not have 3 or more sub-bricks!",argv[nopt]) ;
@@ -535,26 +529,28 @@ int main( int argc , char *argv[] )
     }
 
     /* djc - 1d file out init */
-    if (fout1D) {
-       if (fout1D && (!mask)) {
-          ERROR_message("Option -1Dout restricted to commands using"
-                        "mask option.");
-       } else {
-          /* print command line statement */
-          fprintf(fout1D,"#Text output of:\n#");
-          for (ii=0; ii<argc; ++ii) fprintf(fout1D,"%s ", argv[ii]);
-          fprintf(fout1D,"\n");
-          mat44 ijk_to_dicom44 = cset->daxes->ijk_to_dicom_real;
-          fprintf(fout1D, "# [");
-          for (int mi = 0; mi < 4; mi++) {
-        	  for (int mj = 0; mj <4; mj++) {
-        	  fprintf(fout1D, "%.5f, ", ijk_to_dicom44.m[mi][mj]);
-        	  }
-        	  fprintf(fout1D, "\n#  ");
-          }
-          fprintf(fout1D, "]\n");
-          fprintf(fout1D,"#Voxel1 Voxel2 i1 j1 k1 i2 j2 k2 Corr\n");
-         }
+    if (fout1D != NULL) {
+        mat44 affine_mat = xset->daxes->ijk_to_dicom;
+
+        fprintf(stderr,"starting to print to 1D file\n");
+        /* print command line statement */
+        fprintf(fout1D,"#Text output of:\n#");
+        for(ii=0; ii<argc; ++ii) fprintf(fout1D,"%s ", argv[ii]);
+        fprintf(stderr,"printed header to 1D file\n");
+        fprintf(fout1D,"\n");
+        fprintf(fout1D,"# [");
+        fprintf(stderr,"starting to print values\n");
+        int mi, mj;
+        for(mi = 0; mi < 4; mi++) {
+            fprintf(stderr, "%d %d", mi, mj);
+            for(mj = 0; mj < 4; mj++) {
+                fprintf(fout1D, "%.5f, ", affine_mat.m[mi][mj]);
+            }
+            fprintf(fout1D, "\n#  ");
+        }
+        fprintf(stderr,"finished printing values\n");
+        fprintf(fout1D, "]\n");
+        fprintf(fout1D,"#Voxel1 Voxel2 i1 j1 k1 i2 j2 k2 Corr\n");
     }
 
     AFNI_OMP_START ;
@@ -658,12 +654,12 @@ int main( int argc , char *argv[] )
                     binaryDC[lout] += 1; binaryDC[lin] += 1;
                     weightedDC[lout] += car; weightedDC[lin] += car;
                     /* add source, dest, correlation to 1D file */
-                    ix1 = DSET_index_to_ix(cset,lii) ;
-                    jy1 = DSET_index_to_jy(cset,lii) ;
-                    kz1 = DSET_index_to_kz(cset,lii) ;
-                    ix2 = DSET_index_to_ix(cset,ljj) ;
-                    jy2 = DSET_index_to_jy(cset,ljj) ;
-                    kz2 = DSET_index_to_kz(cset,ljj) ;
+                    ix1 = DSET_index_to_ix(xset,lii) ;
+                    jy1 = DSET_index_to_jy(xset,lii) ;
+                    kz1 = DSET_index_to_kz(xset,lii) ;
+                    ix2 = DSET_index_to_ix(xset,ljj) ;
+                    jy2 = DSET_index_to_jy(xset,ljj) ;
+                    kz2 = DSET_index_to_kz(xset,ljj) ;
                     fprintf(fout1D, "%d, %d, (%d,%d,%d), (%d,%d,%d), %.6f\n",
                             lii, ljj, ix1, jy1, kz1, ix2, jy2, kz2, car);
 //fprintf(fout1D, "%d, %d, %.6f\n", lin, lout, car);
