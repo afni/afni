@@ -203,3 +203,6 @@ afni_install:
 	@if [ -f  3dEigsToDT ]; then mv 3dEigsToDT ${INSTALLDIR}; fi;
 	@if [ -f  3dDTtoNoisyDWI ]; then mv 3dDTtoNoisyDWI ${INSTALLDIR}; fi;
 	@if [ -f  3dTORTOISEtoHere ]; then mv 3dTORTOISEtoHere ${INSTALLDIR}; fi;
+
+clean:
+	@echo clean ...
