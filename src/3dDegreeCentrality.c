@@ -162,7 +162,8 @@ int main( int argc , char *argv[] )
 {
    THD_3dim_dataset *xset , *cset, *mset=NULL ;
    int nopt=1 , method=PEARSON , do_autoclip=0 ;
-   int nvox , nvals , ii, jj, kout, kin, polort=1 , ix,jy,kz ;
+   int nvox , nvals , ii, jj, kout, kin, polort=1 ;
+   int ix1,jy1,kz1, ix2, jy2, kz2 ;
    char *prefix = "degree_centrality" ;
    byte *mask=NULL;
    int   nmask , abuc=1 ;
@@ -543,7 +544,7 @@ int main( int argc , char *argv[] )
           fprintf(fout1D,"#Text output of:\n#");
           for (ii=0; ii<argc; ++ii) fprintf(fout1D,"%s ", argv[ii]);
           fprintf(fout1D,"\n");
-          fprintf(fout1D,"#Voxel1, Voxel2, Corr\n");
+          fprintf(fout1D,"#Voxel1, Voxel2, Voxel1_ijk, Voxel2_ijk, Corr\n");
          }
     }
 
@@ -648,7 +649,15 @@ int main( int argc , char *argv[] )
                     binaryDC[lout] += 1; binaryDC[lin] += 1;
                     weightedDC[lout] += car; weightedDC[lin] += car;
                     /* add source, dest, correlation to 1D file */
-                    fprintf(fout1D, "%d, %d, %.6f\n", lin, lout, car);
+                    ix1 = DSET_index_to_ix(cset,lii) ;
+                    jy1 = DSET_index_to_jy(cset,lii) ;
+                    kz1 = DSET_index_to_kz(cset,lii) ;
+                    ix2 = DSET_index_to_ix(cset,ljj) ;
+                    jy2 = DSET_index_to_jy(cset,ljj) ;
+                    kz2 = DSET_index_to_kz(cset,ljj) ;
+                    fprintf(fout1D, "%d, %d, (%d,%d,%d), (%d,%d,%d), %.6f\n",
+                            lii, ljj, ix1, jy1, kz1, ix2, jy2, kz2, car);
+//fprintf(fout1D, "%d, %d, %.6f\n", lin, lout, car);
                 }
                 else
                 {   
@@ -816,7 +825,14 @@ int main( int argc , char *argv[] )
                wodset[ jj ] += (float)(hptr->corr);
 
                /* add source, dest, correlation to 1D file */
-               fprintf(fout1D, "%d, %d, %.6f\n", ii, jj, (float)(hptr->corr));
+               ix1 = DSET_index_to_ix(cset,ii) ;
+               jy1 = DSET_index_to_jy(cset,ii) ;
+               kz1 = DSET_index_to_kz(cset,ii) ;
+               ix2 = DSET_index_to_ix(cset,jj) ;
+               jy2 = DSET_index_to_jy(cset,jj) ;
+               kz2 = DSET_index_to_kz(cset,jj) ;
+               fprintf(fout1D, "%d, %d, (%d,%d,%d), (%d,%d,%d), %.6f\n",
+                       ii, jj, ix1, jy1, kz1, ix2, jy2, kz2, (float)(hptr->corr));
 
                /* increment node pointers */
                pptr = hptr;
@@ -947,7 +963,14 @@ int main( int argc , char *argv[] )
                     wodset[ jj ] += (float)(hptr->corr);
 
                     /* add source, dest, correlation to 1D file */
-                    fprintf(fout1D, "%d, %d, %.6f\n", ii, jj, (float)(hptr->corr));
+                    ix1 = DSET_index_to_ix(cset,ii) ;
+                    jy1 = DSET_index_to_jy(cset,ii) ;
+                    kz1 = DSET_index_to_kz(cset,ii) ;
+                    ix2 = DSET_index_to_ix(cset,jj) ;
+                    jy2 = DSET_index_to_jy(cset,jj) ;
+                    kz2 = DSET_index_to_kz(cset,jj) ;
+                    fprintf(fout1D, "%d, %d, (%d,%d,%d), (%d,%d,%d), %.6f\n",
+                            ii, jj, ix1, jy1, kz1, ix2, jy2, kz2, (float)(hptr->corr));
 
                     /* increment node pointers */
                     pptr = hptr;
