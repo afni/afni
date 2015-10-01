@@ -675,11 +675,13 @@ ENTRY("AFNI_clus_make_widgets") ;
      XmStringFree(xstr) ;
      XtAddCallback( cwid->linkrbrain_pb, XmNactivateCallback, AFNI_clus_action_CB, im3d );
      MCW_register_hint( cwid->linkrbrain_pb ,
-                         "Write cluster table, then 'whereami -linkrbrain'") ;
+                         "Write cluster table, then run 'whereami -linkrbrain'") ;
      MCW_register_help( cwid->linkrbrain_pb ,
                          "Query linkrbrain.org website for\n"
-                         "correlations of cluster coordinates\n"
-                         "with known tasks or genes"
+                         "correlations of the set of cluster\n"
+                         "coordinates with known tasks or genes.\n"
+                         " * Right click to choose how many *\n"
+                         " * coordinate xyz triples to send *"
                       ) ;
      showlinkr = ((im3d->vinfo->view_type == VIEW_TALAIRACH_TYPE) && show_linkrbrain_link());
      SENSITIZE(cwid->linkrbrain_pb, (showlinkr) ) ;
