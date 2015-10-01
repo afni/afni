@@ -530,26 +530,34 @@ int main( int argc , char *argv[] )
 
     /* djc - 1d file out init */
     if (fout1D != NULL) {
+        /* define affine matrix */
         mat44 affine_mat = xset->daxes->ijk_to_dicom;
 
-        fprintf(stderr,"starting to print to 1D file\n");
         /* print command line statement */
-        fprintf(fout1D,"#Text output of:\n#");
+        fprintf(stderr,"starting to print to 1D file\n");
+        fprintf(fout1D,"#Similarity matrix from command:\n#");
         for(ii=0; ii<argc; ++ii) fprintf(fout1D,"%s ", argv[ii]);
+
+        /* Print affine matrix */
         fprintf(stderr,"printed header to 1D file\n");
         fprintf(fout1D,"\n");
-        fprintf(fout1D,"# [");
-        fprintf(stderr,"starting to print values\n");
+        fprintf(fout1D,"#[ ");
         int mi, mj;
         for(mi = 0; mi < 4; mi++) {
             fprintf(stderr, "%d %d", mi, mj);
             for(mj = 0; mj < 4; mj++) {
-                fprintf(fout1D, "%.5f, ", affine_mat.m[mi][mj]);
+                fprintf(fout1D, "%.6f ", affine_mat.m[mi][mj]);
             }
-            fprintf(fout1D, "\n#  ");
         }
-        fprintf(stderr,"finished printing values\n");
         fprintf(fout1D, "]\n");
+
+        /* Print image extents*/
+        THD_dataxes *xset_daxes = xset->daxes;
+        fprintf(fout1D, "#Image dimensions:\n");
+        fprintf(fout1D, "#[%d, %d, %d]\n",
+                xset_daxes->nxx, xset_daxes->nyy, xset_daxes->nzz);
+
+        /* Similarity matrix headers */
         fprintf(fout1D,"#Voxel1 Voxel2 i1 j1 k1 i2 j2 k2 Corr\n");
     }
 
@@ -660,9 +668,8 @@ int main( int argc , char *argv[] )
                     ix2 = DSET_index_to_ix(xset,ljj) ;
                     jy2 = DSET_index_to_jy(xset,ljj) ;
                     kz2 = DSET_index_to_kz(xset,ljj) ;
-                    fprintf(fout1D, "%d, %d, (%d,%d,%d), (%d,%d,%d), %.6f\n",
+                    fprintf(fout1D, "%d %d %d %d %d %d %d %d %.6f\n",
                             lii, ljj, ix1, jy1, kz1, ix2, jy2, kz2, car);
-//fprintf(fout1D, "%d, %d, %.6f\n", lin, lout, car);
                 }
                 else
                 {   
@@ -836,7 +843,7 @@ int main( int argc , char *argv[] )
                ix2 = DSET_index_to_ix(cset,jj) ;
                jy2 = DSET_index_to_jy(cset,jj) ;
                kz2 = DSET_index_to_kz(cset,jj) ;
-               fprintf(fout1D, "%d, %d, (%d,%d,%d), (%d,%d,%d), %.6f\n",
+               fprintf(fout1D, "%d %d %d %d %d %d %d %d %.6f\n",
                        ii, jj, ix1, jy1, kz1, ix2, jy2, kz2, (float)(hptr->corr));
 
                /* increment node pointers */
@@ -974,7 +981,7 @@ int main( int argc , char *argv[] )
                     ix2 = DSET_index_to_ix(cset,jj) ;
                     jy2 = DSET_index_to_jy(cset,jj) ;
                     kz2 = DSET_index_to_kz(cset,jj) ;
-                    fprintf(fout1D, "%d, %d, (%d,%d,%d), (%d,%d,%d), %.6f\n",
+                    fprintf(fout1D, "%d %d %d %d %d %d %d %d %.6f\n",
                             ii, jj, ix1, jy1, kz1, ix2, jy2, kz2, (float)(hptr->corr));
 
                     /* increment node pointers */
