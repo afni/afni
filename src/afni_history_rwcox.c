@@ -43,7 +43,11 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 22 , SEP , 2015 , RWC , "3dDeconvolve" , MICRO , TYPE_NEW_ENV ,
+  { 1 , OCT , 2015 , RWC , "AFNI clusterize" , MICRO , TYPE_MODIFY ,
+   "Made showing linkRbrain button default now" ,
+   "setenv AFNI_LINKRBRAIN NO to turn this button off" } ,
+
+ { 22 , SEP , 2015 , RWC , "3dDeconvolve" , MICRO , TYPE_NEW_ENV ,
    "AFNI_USE_ERROR_FILE = NO turns off creation of 3dDeconvolve.err" ,
    NULL } ,
 
