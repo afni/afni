@@ -143,6 +143,15 @@ float my_THD_eta_squared( int n, float *x , float *y )
    return (1.0f - num/denom) ;
 }
 
+double print_added_memory(char * new_var, double inc, double nb1)
+{
+    fprintf(stderr, "%s:\nAdded %.3f B to nb1...\nnb1: %f MB\n", new_var, inc, (nb1+inc)/((double)(1024*1024)));
+
+    // return nb1
+    return(inc+nb1);
+}
+
+
 /*----------------------------------------------------------------------------*/
 
 static void vstep_print(void)
@@ -179,6 +188,10 @@ int main( int argc , char *argv[] )
    int subbrik = 0;
    float * bodset;
    float * wodset;
+
+   double nb1 = 0;
+   double inc_size = 0;
+   int nb_ctr = 0;
 
    /* CC - added flags for thresholding correlations */
    float thresh = 0.0;
@@ -306,6 +319,8 @@ int main( int argc , char *argv[] )
 
       if( strcmp(argv[nopt],"-mask") == 0 ){
          mset = THD_open_dataset(argv[++nopt]);
+         inc_size = (double)mset->dblk->total_bytes;
+         nb1 = print_added_memory("mset", inc_size, nb1);
          CHECK_OPEN_ERROR(mset,argv[nopt]);
          nopt++ ; continue ;
       }
@@ -382,6 +397,8 @@ int main( int argc , char *argv[] )
    if( nopt >= argc ) ERROR_exit("Need a dataset on command line!?") ;
 
    xset = THD_open_dataset(argv[nopt]); CHECK_OPEN_ERROR(xset,argv[nopt]);
+   inc_size = (double)xset->dblk->total_bytes;
+   nb1 = print_added_memory("xset", inc_size, nb1);
    if( DSET_NVALS(xset) < 3 )
      ERROR_exit("Input dataset %s does not have 3 or more sub-bricks!",argv[nopt]) ;
    DSET_load(xset) ; CHECK_LOAD_ERROR(xset) ;
@@ -417,117 +434,6 @@ int main( int argc , char *argv[] )
    if( method == ETA2 && polort >= 0 )
       WARNING_message("Polort for -eta2 should probably be -1...");
 
-   /* CC calculate the total number of possible correlations, will be 
-       usefule down the road */
-   totPosCor = (.5*((float)nmask))*((float)(nmask-1));
-
-   /**  For the case of Pearson correlation, we make sure the  **/
-   /**  data time series have their mean removed (polort >= 0) **/
-   /**  and are normalized, so that correlation = dot product, **/
-   /**  and we can use function zm_THD_pearson_corr for speed. **/
-
-   switch( method ){
-     default:
-     case PEARSON: corfun = zm_THD_pearson_corr ; break ;
-     case ETA2:    corfun = my_THD_eta_squared  ; break ;
-   }
-
-   /*-- create vectim from input dataset --*/
-   INFO_message("vectim-izing input dataset") ;
-   xvectim = THD_dset_to_vectim( xset , NULL , 0 ) ;
-   if( xvectim == NULL ) ERROR_exit("Can't create vectim?!") ;
-   DSET_unload(xset) ;
-   if( polort < 0 && method == PEARSON ){
-     polort = 0; WARNING_message("Pearson correlation always uses polort >= 0");
-   }
-   if( polort >= 0 ){
-     for( ii=0 ; ii < nvox ; ii++ ){  /* remove polynomial trend */
-       DETREND_polort(polort,nvals,VECTIM_PTR(xvectim,ii)) ;
-     }
-   }
-
-   /* -- this procedure does not change time series that have zero variance -- */
-   if( method == PEARSON ) THD_vectim_normalize(xvectim) ;  /* L2 norm = 1 */
-
-   /*--- make a mapping to simplify identifying in-mask voxels ---*/
-   if( mask != NULL )
-   {
-       if( (imap = (int *)calloc(sizeof(int),nmask)) == NULL )
-       {
-           ERROR_message( "Could not allocate %d byte array for imap",
-               nmask*sizeof(int)); 
-       }
-       for ( kout = ii = 0; ii < nvox; ii++ )
-       {
-           if( mask != NULL && mask[ii] == 0 ) continue;
-           if ( kout < nmask ){ imap[kout] = ii; kout++;}
-           else WARNING_message("Trying to write past end of imap (%d > %d)",
-               kout,nmask);
-       }
-   }
-
-    /* -- CC create arrays to hold degree and weighted centrality while
-          they are being calculated -- */
-
-    if( dosparsity == 0 )
-    {
-        if( ( binaryDC = (int*)calloc( nmask, sizeof(int) )) == NULL )
-        {
-            if (imap){ free(imap); imap = NULL; }
-            ERROR_message( "Could not allocate %d byte array for binary DC calculation\n",
-                nmask*sizeof(float)); 
-        }
-    
-        if( ( weightedDC = (float*)calloc( nmask, sizeof(float) )) == NULL )
-        {
-            if (imap){ free(imap); imap = NULL; }
-            if (binaryDC){ free(binaryDC); binaryDC = NULL; }
-            ERROR_message( "Could not allocate %d byte array for weighted DC calculation\n",
-                nmask*sizeof(float)); 
-        }
-    }
-
-
-    /* -- CC if we are using a sparsity threshold, build a histogram to calculate the 
-         threshold */
-    if (dosparsity == 1)
-    {
-        /* make sure that there is a bin for correlation values that == 1.0 */
-        binwidth = (1.005-thresh)/nhistnodes;
-        ngoal = nretain = (int)(((float)totPosCor)*((float)sparsity) / 100.0);
-        if(( histogram = (hist_node_head*)malloc(nhistnodes*sizeof(hist_node_head))) == NULL )
-        {
-            if (imap){ free(imap); imap = NULL; }
-            if (binaryDC){ free(binaryDC); binaryDC = NULL; }
-            if (weightedDC){ free(weightedDC); weightedDC = NULL; }
-            ERROR_message( "Could not allocate %d byte array for weighted DC calculation\n",
-                nmask*sizeof(float)); 
-        }
-    
-        for( kout = 0; kout < nhistnodes; kout++ )
-        {
-            histogram[ kout ].bin_low = thresh+kout*binwidth;
-            histogram[ kout ].bin_high = histogram[ kout ].bin_low+binwidth;
-            histogram[ kout ].nbin = 0;
-            histogram[ kout ].nodes = NULL; 
-            /*INFO_message("Hist bin %d [%3.3f, %3.3f) [%d, %p]\n",
-                kout, histogram[ kout ].bin_low, histogram[ kout ].bin_high,
-                histogram[ kout ].nbin, histogram[ kout ].nodes );*/
-        }
-    }
-
-   /*---------- loop over mask voxels, correlate ----------*/
-
-    if (dosparsity == 0 )
-    {
-        INFO_message( "Calculating degree centrality with threshold = %f.\n", thresh);
-    }
-    else
-    {
-        INFO_message( "Calculating degree centrality with threshold = %f and sparsity = %3.2f%% (%d)\n",
-            thresh, sparsity, nretain);
-    }
-
     /* djc - 1d file out init */
     if (fout1D != NULL) {
         /* define affine matrix */
@@ -559,6 +465,131 @@ int main( int argc , char *argv[] )
 
         /* Similarity matrix headers */
         fprintf(fout1D,"#Voxel1 Voxel2 i1 j1 k1 i2 j2 k2 Corr\n");
+    }
+
+
+   /* CC calculate the total number of possible correlations, will be 
+       usefule down the road */
+   totPosCor = (.5*((float)nmask))*((float)(nmask-1));
+
+   /**  For the case of Pearson correlation, we make sure the  **/
+   /**  data time series have their mean removed (polort >= 0) **/
+   /**  and are normalized, so that correlation = dot product, **/
+   /**  and we can use function zm_THD_pearson_corr for speed. **/
+
+   switch( method ){
+     default:
+     case PEARSON: corfun = zm_THD_pearson_corr ; break ;
+     case ETA2:    corfun = my_THD_eta_squared  ; break ;
+   }
+
+   /*-- create vectim from input dataset --*/
+   INFO_message("vectim-izing input dataset") ;
+   xvectim = THD_dset_to_vectim( xset , NULL , 0 ) ;
+   inc_size = (double)sizeof(MRI_vectim);
+   nb1 = print_added_memory("xvectim", inc_size, nb1);
+   if( xvectim == NULL ) ERROR_exit("Can't create vectim?!") ;
+   DSET_unload(xset) ;
+   if( polort < 0 && method == PEARSON ){
+     polort = 0; WARNING_message("Pearson correlation always uses polort >= 0");
+   }
+   if( polort >= 0 ){
+     for( ii=0 ; ii < nvox ; ii++ ){  /* remove polynomial trend */
+       DETREND_polort(polort,nvals,VECTIM_PTR(xvectim,ii)) ;
+     }
+   }
+
+   /* -- this procedure does not change time series that have zero variance -- */
+   if( method == PEARSON ) THD_vectim_normalize(xvectim) ;  /* L2 norm = 1 */
+
+   /*--- make a mapping to simplify identifying in-mask voxels ---*/
+   if( mask != NULL )
+   {
+       if( (imap = (int *)calloc(sizeof(int),nmask)) == NULL )
+       {
+           ERROR_message( "Could not allocate %d byte array for imap",
+               nmask*sizeof(int));
+       }
+       else {
+	   /* add in size of imap */
+           inc_size = (double)(sizeof(int)*nmask);
+           nb1 = print_added_memory("imap", inc_size, nb1);
+       }
+       for ( kout = ii = 0; ii < nvox; ii++ )
+       {
+           if( mask != NULL && mask[ii] == 0 ) continue;
+           if ( kout < nmask ){ imap[kout] = ii; kout++;}
+           else WARNING_message("Trying to write past end of imap (%d > %d)",
+               kout,nmask);
+       }
+   }
+
+    /* -- CC create arrays to hold degree and weighted centrality while
+          they are being calculated -- */
+
+    if( dosparsity == 0 )
+    {
+        if( ( binaryDC = (int*)calloc( nmask, sizeof(int) )) == NULL )
+        {
+            if (imap){ free(imap); imap = NULL; }
+            ERROR_message( "Could not allocate %d byte array for binary DC calculation\n",
+                nmask*sizeof(float)); 
+        }
+    
+        nb1 = print_added_memory("imap", (double)(nmask*sizeof(int)), nb1);
+        if( ( weightedDC = (float*)calloc( nmask, sizeof(float) )) == NULL )
+        {
+            if (imap){ free(imap); imap = NULL; }
+            if (binaryDC){ free(binaryDC); binaryDC = NULL; }
+            ERROR_message( "Could not allocate %d byte array for weighted DC calculation\n",
+                nmask*sizeof(float)); 
+        }
+        nb1 = print_added_memory("imap", (double)(nmask*sizeof(int)), nb1);
+    }
+
+
+    /* -- CC if we are using a sparsity threshold, build a histogram to calculate the 
+         threshold */
+    if (dosparsity == 1)
+    {
+        /* make sure that there is a bin for correlation values that == 1.0 */
+        binwidth = (1.005-thresh)/nhistnodes;
+        ngoal = nretain = (int)(((float)totPosCor)*((float)sparsity) / 100.0);
+        if(( histogram = (hist_node_head*)malloc(nhistnodes*sizeof(hist_node_head))) == NULL )
+        {
+            if (imap){ free(imap); imap = NULL; }
+            if (binaryDC){ free(binaryDC); binaryDC = NULL; }
+            if (weightedDC){ free(weightedDC); weightedDC = NULL; }
+            ERROR_message( "Could not allocate %d byte array for weighted DC calculation\n",
+                nmask*sizeof(float)); 
+        }
+        else {
+	   /* add in size to nb1*/
+           inc_size = (double)(sizeof(hist_node_head)*nhistnodes);
+           nb1 = print_added_memory("initial histogram", inc_size, nb1);
+        }
+        for( kout = 0; kout < nhistnodes; kout++ )
+        {
+            histogram[ kout ].bin_low = thresh+kout*binwidth;
+            histogram[ kout ].bin_high = histogram[ kout ].bin_low+binwidth;
+            histogram[ kout ].nbin = 0;
+            histogram[ kout ].nodes = NULL; 
+            /*INFO_message("Hist bin %d [%3.3f, %3.3f) [%d, %p]\n",
+                kout, histogram[ kout ].bin_low, histogram[ kout ].bin_high,
+                histogram[ kout ].nbin, histogram[ kout ].nodes );*/
+        }
+    }
+
+   /*---------- loop over mask voxels, correlate ----------*/
+
+    if (dosparsity == 0 )
+    {
+        INFO_message( "Calculating degree centrality with threshold = %f.\n", thresh);
+    }
+    else
+    {
+        INFO_message( "Calculating degree centrality with threshold = %f and sparsity = %3.2f%% (%d)\n",
+            thresh, sparsity, nretain);
     }
 
     AFNI_OMP_START ;
@@ -677,6 +708,16 @@ int main( int argc , char *argv[] )
                     new_node->next = histogram[new_node_idx].nodes;
                     histogram[new_node_idx].nodes = new_node;
                     histogram[new_node_idx].nbin++; 
+                    if ((totNumCor % (1024*1024)) == 0){
+    	            /* add in size to nb1*/
+                        nb1 = print_added_memory("new node", (double)sizeof(hist_node), nb1);
+                        if (nb1 >= 512 && nb1 <513) {
+                            fprintf(stderr, "que la fuck");
+                        } 
+                    }
+                    else {
+                        nb1 += (double)sizeof(hist_node);
+                    }
                 }
              }
 
@@ -885,6 +926,9 @@ int main( int argc , char *argv[] )
                 ERROR_message( "Could not allocate %d byte array for histogram2\n",
                     h2nbins*sizeof(hist_node_head)); 
             }
+            else {
+                nb1 += (double)(h2nbins*sizeof(hist_node_head));
+            }
    
             /* initiatize the bins */ 
             for( kin = 0; kin < h2nbins; kin++ )
@@ -1042,10 +1086,10 @@ int main( int argc , char *argv[] )
        double nb = (double)(xset->dblk->total_bytes)
                   +(double)(cset->dblk->total_bytes);
 
-       if(sparsity == 1 )
+       if(dosparsity == 1 )
        {
-           nb = nb + totNumCor*sizeof(hist_node)
-                +nhistnodes*sizeof(hist_node_head);
+           nb = nb + (double)(totNumCor*sizeof(hist_node)
+                +nhistnodes*sizeof(hist_node_head));
        }
        else
        {
@@ -1055,9 +1099,12 @@ int main( int argc , char *argv[] )
 
      if ( imap ) nb += (double)(sizeof(int)*nmask);
 
-     nb /= (1024*1024) ;
+     nb /= (double)(1024*1024) ;
      INFO_message(
        "Memory required = %.1f Mbytes",nb);
+     INFO_message(
+       "Memory required (nb1) = %.3f Mbytes",nb1/((double)1024*1024));
+    
    }
 
    if (imap) free(imap) ; imap = NULL;
