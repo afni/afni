@@ -1,11 +1,18 @@
+/*
+afni/src/3dDegreeCentrality.c
+*/
+
+// Look for OpenMP macro
 #ifdef USE_OMP
 #include <omp.h>
 #endif
 
+// Include libraries
 #include "mrilib.h"
 #include <sys/mman.h>
 #include <sys/types.h>
 
+// Define constants
 #define SPEARMAN 1
 #define QUADRANT 2
 #define PEARSON  3
@@ -14,7 +21,9 @@
 
 /* CC define nodes for histogram data structure
    that we will use for sparsity thresholding */
+// Alias _hist_node declaration type as "hist_node" type via typedef
 typedef struct _hist_node hist_node;
+// Define histogram node structure
 struct _hist_node
 {
     int i;
@@ -23,6 +32,7 @@ struct _hist_node
     hist_node* next;
 };
 
+// Alias _hist_node_head declaration as "hist_node_head" type via typedef
 typedef struct _hist_node_head
 {
     float bin_low;
