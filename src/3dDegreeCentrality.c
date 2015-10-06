@@ -155,7 +155,7 @@ float my_THD_eta_squared( int n, float *x , float *y )
 
 double print_added_memory(char * new_var, double inc, double nb1)
 {
-    fprintf(stderr, "%s:\nAdded %.3f B to nb1...\nnb1: %f MB\n", new_var, inc, (nb1+inc)/((double)(1024*1024)));
+    fprintf(stderr, "%s :: Added %.3f B to nb1... :: nb1: %f MB\n", new_var, inc, (nb1+inc)/((double)(1024*1024)));
 
     // return nb1
     return(inc+nb1);
@@ -406,12 +406,19 @@ int main( int argc , char *argv[] )
 
    if( nopt >= argc ) ERROR_exit("Need a dataset on command line!?") ;
 
+   /* check for thresh if sparsity was specified */
+   if (dosparsity == 1) {
+       if (thresh == 0.0) {
+           ERROR_exit("Threshold > 0.0 should be specified when using the -sparsity option. Try again using -thresh flag");
+       }
+   }
+
    xset = THD_open_dataset(argv[nopt]); CHECK_OPEN_ERROR(xset,argv[nopt]);
    inc_size = (double)xset->dblk->total_bytes;
    nb1 = print_added_memory("xset", inc_size, nb1);
    if( DSET_NVALS(xset) < 3 )
      ERROR_exit("Input dataset %s does not have 3 or more sub-bricks!",argv[nopt]) ;
-   DSET_load(xset) ; CHECK_LOAD_ERROR(xset) ;
+   /*DSET_load(xset) ; CHECK_LOAD_ERROR(xset) ;*/
 
    /*-- compute mask array, if desired --*/
 
@@ -496,7 +503,7 @@ int main( int argc , char *argv[] )
    /*-- create vectim from input dataset --*/
    INFO_message("vectim-izing input dataset") ;
    xvectim = THD_dset_to_vectim( xset , NULL , 0 ) ;
-   inc_size = (double)sizeof(MRI_vectim);
+   inc_size = (double)((xvectim->nvec*sizeof(int)) + ((xvectim->nvec)*(xvectim->nvals))*sizeof(float) + sizeof(MRI_vectim));
    nb1 = print_added_memory("xvectim", inc_size, nb1);
    if( xvectim == NULL ) ERROR_exit("Can't create vectim?!") ;
    DSET_unload(xset) ;
@@ -546,7 +553,7 @@ int main( int argc , char *argv[] )
                 nmask*sizeof(float)); 
         }
     
-        nb1 = print_added_memory("imap", (double)(nmask*sizeof(int)), nb1);
+        nb1 = print_added_memory("binaryDC", (double)(nmask*sizeof(int)), nb1);
         if( ( weightedDC = (float*)calloc( nmask, sizeof(float) )) == NULL )
         {
             if (imap){ free(imap); imap = NULL; }
@@ -554,7 +561,7 @@ int main( int argc , char *argv[] )
             ERROR_message( "Could not allocate %d byte array for weighted DC calculation\n",
                 nmask*sizeof(float)); 
         }
-        nb1 = print_added_memory("imap", (double)(nmask*sizeof(int)), nb1);
+        nb1 = print_added_memory("weightedDC", (double)(nmask*sizeof(int)), nb1);
     }
 
 
@@ -720,10 +727,7 @@ int main( int argc , char *argv[] )
                     histogram[new_node_idx].nbin++; 
                     if ((totNumCor % (1024*1024)) == 0){
     	            /* add in size to nb1*/
-                        nb1 = print_added_memory("new node", (double)sizeof(hist_node), nb1);
-                        if (nb1 >= 512 && nb1 <513) {
-                            fprintf(stderr, "que la fuck");
-                        } 
+                        nb1 = print_added_memory("new nodes added", (double)sizeof(hist_node), nb1);
                     }
                     else {
                         nb1 += (double)sizeof(hist_node);
