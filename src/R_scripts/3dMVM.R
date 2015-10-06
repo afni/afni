@@ -32,7 +32,7 @@ help.MVM.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
           ================== Welcome to 3dMVM ==================          
     AFNI Group Analysis Program with Multi-Variate Modeling Approach
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 3.6.2, Sept 22, 2015
+Version 3.6.3, Oct 6, 2015
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - http://afni.nimh.nih.gov/sscc/gangc/MVM.html
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -132,7 +132,7 @@ within-subject (condition and emotion) variables:
 
    NOTE:  1) Option -wsE2 is used to combine both the univariate testing and the within-subject
           multivariate approach. This option only makes sense if a within-subject factor has
-          more than 3 level.
+          more than 2 levels.
           2) The 3rd GLT is for the 2-way 2 x 2 interaction between sex and condition, which
           is essentially a t-test (or one degree of freedom for the numerator of F-statistic).
           Multiple degrees of freedom for the numerator of F-statistic can be obtained through
