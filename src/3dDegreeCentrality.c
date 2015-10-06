@@ -638,7 +638,7 @@ int main( int argc , char *argv[] )
        vstep = (int)( nmask / (nthr*50.0f) + 0.901f ) ; vii = 0 ;
        if( ithr == 0 ) fprintf(stderr,"Looping:") ;
 
-    #pragma omp for
+    #pragma omp for schedule(static, 1)
        for( lout=0 ; lout < xvectim->nvec ; lout++ ){  /*----- outer voxel loop -----*/
 
           if( ithr == 0 && vstep > 2 ) /* allow small dsets 16 Jun 2011 [rickr] */
@@ -883,7 +883,7 @@ int main( int argc , char *argv[] )
                {
                    ii = imap[hptr->i] ;  /* ii= source voxel (we know that ii is in the mask) */
                }
-               else
+               else 
                {
                    ii = hptr->i ;
                }
