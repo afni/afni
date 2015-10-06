@@ -188,7 +188,7 @@ int main( int argc , char *argv[] )
    int   nmask , abuc=1 ;
    int   all_source=0;        /* output all source voxels  25 Jun 2010 [rickr] */
    char str[32] , *cpt ;
-   int *imap ; MRI_vectim *xvectim ;
+   int *imap = NULL ; MRI_vectim *xvectim ;
    float (*corfun)(int,float *,float*) = NULL ;
    /* djc - add 1d file output for similarity matrix */
    FILE *fout1D=NULL;
@@ -414,8 +414,11 @@ int main( int argc , char *argv[] )
    }
 
    xset = THD_open_dataset(argv[nopt]); CHECK_OPEN_ERROR(xset,argv[nopt]);
+
+   /* update running memory statistics to reflect loading the image */
    inc_size = (double)xset->dblk->total_bytes;
    nb1 = print_added_memory("xset", inc_size, nb1);
+
    if( DSET_NVALS(xset) < 3 )
      ERROR_exit("Input dataset %s does not have 3 or more sub-bricks!",argv[nopt]) ;
    /*DSET_load(xset) ; CHECK_LOAD_ERROR(xset) ;*/
@@ -502,66 +505,63 @@ int main( int argc , char *argv[] )
 
    /*-- create vectim from input dataset --*/
    INFO_message("vectim-izing input dataset") ;
-   xvectim = THD_dset_to_vectim( xset , NULL , 0 ) ;
-   inc_size = (double)((xvectim->nvec*sizeof(int)) + ((xvectim->nvec)*(xvectim->nvals))*sizeof(float) + sizeof(MRI_vectim));
-   nb1 = print_added_memory("xvectim", inc_size, nb1);
+
+   /*-- CC added in mask to reduce the size of xvectim -- */
+   xvectim = THD_dset_to_vectim( xset , mask , 0 ) ;
    if( xvectim == NULL ) ERROR_exit("Can't create vectim?!") ;
+
+   /*-- CC update our memory stats to reflect vectim -- */
+   inc_size = (double)((xvectim->nvec*sizeof(int)) +
+                       ((xvectim->nvec)*(xvectim->nvals))*sizeof(float) +
+                       sizeof(MRI_vectim));
+   nb1 = print_added_memory("xvectim", inc_size, nb1);
+
+   /* -- CC unloading the dataset to reduce memory usage ?? -- */
    DSET_unload(xset) ;
+
+   /* -- CC configure detrending --*/
    if( polort < 0 && method == PEARSON ){
      polort = 0; WARNING_message("Pearson correlation always uses polort >= 0");
    }
    if( polort >= 0 ){
-     for( ii=0 ; ii < nvox ; ii++ ){  /* remove polynomial trend */
+     for( ii=0 ; ii < xvectim->nvec ; ii++ ){  /* remove polynomial trend */
        DETREND_polort(polort,nvals,VECTIM_PTR(xvectim,ii)) ;
      }
    }
 
+
    /* -- this procedure does not change time series that have zero variance -- */
    if( method == PEARSON ) THD_vectim_normalize(xvectim) ;  /* L2 norm = 1 */
 
-   /*--- make a mapping to simplify identifying in-mask voxels ---*/
+   /*--- CC the vectim contains a mapping between voxel index and mask index, 
+         tap into that here to avoid duplicating memory usage ---*/
+
    if( mask != NULL )
    {
-       if( (imap = (int *)calloc(sizeof(int),nmask)) == NULL )
-       {
-           ERROR_message( "Could not allocate %d byte array for imap",
-               nmask*sizeof(int));
-       }
-       else {
-	   /* add in size of imap */
-           inc_size = (double)(sizeof(int)*nmask);
-           nb1 = print_added_memory("imap", inc_size, nb1);
-       }
-       for ( kout = ii = 0; ii < nvox; ii++ )
-       {
-           if( mask != NULL && mask[ii] == 0 ) continue;
-           if ( kout < nmask ){ imap[kout] = ii; kout++;}
-           else WARNING_message("Trying to write past end of imap (%d > %d)",
-               kout,nmask);
-       }
+       imap = xvectim->ivec;
    }
 
     /* -- CC create arrays to hold degree and weighted centrality while
           they are being calculated -- */
-
     if( dosparsity == 0 )
     {
         if( ( binaryDC = (int*)calloc( nmask, sizeof(int) )) == NULL )
         {
-            if (imap){ free(imap); imap = NULL; }
             ERROR_message( "Could not allocate %d byte array for binary DC calculation\n",
                 nmask*sizeof(float)); 
         }
-    
+
+        /* -- update running memory estimate to reflect memory allocation */ 
         nb1 = print_added_memory("binaryDC", (double)(nmask*sizeof(int)), nb1);
+
         if( ( weightedDC = (float*)calloc( nmask, sizeof(float) )) == NULL )
         {
-            if (imap){ free(imap); imap = NULL; }
             if (binaryDC){ free(binaryDC); binaryDC = NULL; }
             ERROR_message( "Could not allocate %d byte array for weighted DC calculation\n",
                 nmask*sizeof(float)); 
         }
-        nb1 = print_added_memory("weightedDC", (double)(nmask*sizeof(int)), nb1);
+        /* -- update running memory estimate to reflect memory allocation */ 
+        nb1 = print_added_memory("weightedDC", (double)(nmask*sizeof(float)), nb1);
     }
 
 
@@ -571,20 +571,26 @@ int main( int argc , char *argv[] )
     {
         /* make sure that there is a bin for correlation values that == 1.0 */
         binwidth = (1.005-thresh)/nhistnodes;
+
+        /* calculate the number of correlations we wish to retain */
         ngoal = nretain = (int)(((float)totPosCor)*((float)sparsity) / 100.0);
+
+        /* allocate memory for the histogram bins */
         if(( histogram = (hist_node_head*)malloc(nhistnodes*sizeof(hist_node_head))) == NULL )
         {
-            if (imap){ free(imap); imap = NULL; }
+            /* if the allocation fails, free all memory and exit */
             if (binaryDC){ free(binaryDC); binaryDC = NULL; }
             if (weightedDC){ free(weightedDC); weightedDC = NULL; }
             ERROR_message( "Could not allocate %d byte array for weighted DC calculation\n",
                 nmask*sizeof(float)); 
         }
         else {
-	   /* add in size to nb1*/
+	   /* update memory stats to reflect allocation*/
            inc_size = (double)(sizeof(hist_node_head)*nhistnodes);
            nb1 = print_added_memory("initial histogram", inc_size, nb1);
         }
+
+        /* initialize history bins */
         for( kout = 0; kout < nhistnodes; kout++ )
         {
             histogram[ kout ].bin_low = thresh+kout*binwidth;
@@ -597,8 +603,7 @@ int main( int argc , char *argv[] )
         }
     }
 
-   /*---------- loop over mask voxels, correlate ----------*/
-
+    /*-- tell the user what we are about to do --*/
     if (dosparsity == 0 )
     {
         INFO_message( "Calculating degree centrality with threshold = %f.\n", thresh);
@@ -609,6 +614,7 @@ int main( int argc , char *argv[] )
             thresh, sparsity, nretain);
     }
 
+    /*---------- loop over mask voxels, correlate ----------*/
     AFNI_OMP_START ;
     #pragma omp parallel if( nmask > 999 )
     {
@@ -618,6 +624,7 @@ int main( int argc , char *argv[] )
        int new_node_idx = 0;
        float car = 0.0 ; 
 
+       /*-- get information about who we are --*/
     #ifdef USE_OMP
        ithr = omp_get_thread_num() ;
        nthr = omp_get_num_threads() ;
@@ -626,45 +633,26 @@ int main( int argc , char *argv[] )
        ithr = 0 ; nthr = 1 ;
     #endif
 
+       /*-- For the progress tracker, we want to print out 50 numbers,
+            figure out a number of loop iterations that will make this easy */
        vstep = (int)( nmask / (nthr*50.0f) + 0.901f ) ; vii = 0 ;
        if( ithr == 0 ) fprintf(stderr,"Looping:") ;
 
     #pragma omp for
-       for( lout=0 ; lout < nmask ; lout++ ){  /*----- outer voxel loop -----*/
-
-          if ( mask != NULL && imap != NULL )
-          {
-              lii = imap[lout] ;  /* lii= source voxel (we know that lii is in the mask) */
-          }
-          else
-          {
-              lii = lout ;
-          }
+       for( lout=0 ; lout < xvectim->nvec ; lout++ ){  /*----- outer voxel loop -----*/
 
           if( ithr == 0 && vstep > 2 ) /* allow small dsets 16 Jun 2011 [rickr] */
           { vii++ ; if( vii%vstep == vstep/2 ) vstep_print(); }
 
           /* get ref time series from this voxel */
-
-          xsar = VECTIM_PTR(xvectim,lii) ;
+          xsar = VECTIM_PTR(xvectim,lout) ;
 
           /* try to make calculation more efficient by only calculating the unique 
              correlations */
-          for( lin=(lout+1) ; lin < nmask ; lin++ ){  /*----- inner loop over voxels -----*/
-
-             /* if we are using a mask, map the index to an in-mask voxel */
-             if ( mask != NULL && imap != NULL )
-             {
-                 ljj = imap[lin] ;  /* lii= source voxel (we know that lii is in the mask) */
-             }
-             /* otherwise just use the voxel */
-             else
-             {
-                 ljj = lin ;
-             }
+          for( lin=(lout+1) ; lin < xvectim->nvec ; lin++ ){  /*----- inner loop over voxels -----*/
 
              /* extract the voxel time series */
-             ysar = VECTIM_PTR(xvectim,ljj) ;
+             ysar = VECTIM_PTR(xvectim,lin) ;
 
              /* now correlate the time series */
              car = (float)(corfun(nvals,xsar,ysar)) ;
@@ -681,6 +669,7 @@ int main( int argc , char *argv[] )
                  new_node_idx = (int)floor((car-thresh)/binwidth);
                  if ((new_node_idx > nhistnodes) || (new_node_idx < 0))
                  {
+                     /* this error should indicate a programming error and should not happen */
                      WARNING_message("Node index %d is out of range (%d)!",new_node_idx,nhistnodes);
                      continue;
                  }
@@ -688,6 +677,8 @@ int main( int argc , char *argv[] )
                  /* create a node to add to the histogram */
                  if(( new_node = (hist_node*)calloc(1,sizeof(hist_node))) == NULL )
                  {
+                     /* allocate memory for this node, rather than fiddling with 
+                        error handling here, lets just move on */
                      WARNING_message("Could not allocate a new node!");
                      continue;
                  }
@@ -709,15 +700,21 @@ int main( int argc , char *argv[] )
                 { 
                     binaryDC[lout] += 1; binaryDC[lin] += 1;
                     weightedDC[lout] += car; weightedDC[lin] += car;
-                    /* add source, dest, correlation to 1D file */
-                    ix1 = DSET_index_to_ix(xset,lii) ;
-                    jy1 = DSET_index_to_jy(xset,lii) ;
-                    kz1 = DSET_index_to_kz(xset,lii) ;
-                    ix2 = DSET_index_to_ix(xset,ljj) ;
-                    jy2 = DSET_index_to_jy(xset,ljj) ;
-                    kz2 = DSET_index_to_kz(xset,ljj) ;
-                    fprintf(fout1D, "%d %d %d %d %d %d %d %d %.6f\n",
+
+                    /* print correlation out to the 1D file */
+                    if ( fout1D != NULL )
+                    {
+                        /* determine the i,j,k coords */
+                        ix1 = DSET_index_to_ix(xset,lii) ;
+                        jy1 = DSET_index_to_jy(xset,lii) ;
+                        kz1 = DSET_index_to_kz(xset,lii) ;
+                        ix2 = DSET_index_to_ix(xset,ljj) ;
+                        jy2 = DSET_index_to_jy(xset,ljj) ;
+                        kz2 = DSET_index_to_kz(xset,ljj) ;
+                        /* add source, dest, correlation to 1D file */
+                        fprintf(fout1D, "%d %d %d %d %d %d %d %d %.6f\n",
                             lii, ljj, ix1, jy1, kz1, ix2, jy2, kz2, car);
+                    }
                 }
                 else
                 {   
@@ -733,7 +730,8 @@ int main( int argc , char *argv[] )
                         nb1 += (double)sizeof(hist_node);
                     }
                 }
-             }
+
+             } /* this is the end of the critical section */
 
           } /* end of inner loop over voxels */
 
@@ -743,8 +741,10 @@ int main( int argc , char *argv[] )
 
     } /* end OpenMP */
     AFNI_OMP_END ;
-   fprintf (stderr, "AFNI_OMP finished\n");
-   fprintf (stderr, "Found %d (%3.2f%%) correlations above threshold (%f)\n",
+
+    /* update the user so that they know what we are up to */
+    fprintf (stderr, "AFNI_OMP finished\n");
+    fprintf (stderr, "Found %d (%3.2f%%) correlations above threshold (%f)\n",
        totNumCor, 100.0*((float)totNumCor)/((float)totPosCor), thresh);
 
    /*----------  Finish up ---------*/
@@ -759,11 +759,13 @@ int main( int argc , char *argv[] )
        }
    }*/
    fprintf (stderr, "Creating output dataset\n");
+
+
    /*-- create output dataset --*/
    cset = EDIT_empty_copy( xset ) ;
-
    fprintf (stderr, "Copied input dataset header for output\n");
 
+   /*-- configure the output dataset */
    if( abuc ){
      EDIT_dset_items( cset ,
                         ADN_prefix    , prefix         ,
@@ -789,13 +791,13 @@ int main( int argc , char *argv[] )
    fprintf (stderr, "Calculating dataset sizes\n");
    if( THD_deathcon() && THD_is_file(DSET_HEADNAME(cset)) )
    {
-       if (imap){ free(imap); imap = NULL; }
        if (binaryDC){ free(binaryDC); binaryDC = NULL; }
        if (weightedDC){ free(weightedDC); weightedDC = NULL; }
        if (histogram){ free(histogram); histogram = NULL; }
        ERROR_exit("Output dataset %s already exists!",DSET_HEADNAME(cset)) ;
    }
 
+   /* add history information to the hearder */
    tross_Make_History( "3dDegreeCentrality" , argc,argv , cset ) ;
 
    ININFO_message("creating output dataset in memory") ;
@@ -830,6 +832,11 @@ int main( int argc , char *argv[] )
    /* copy measure data into the subbrik */
    wodset = DSET_ARRAY(cset,subbrik);
 
+   /* update the memory stats to reflect creating the output datset */
+   inc_size = (double)cset->dblk->total_bytes;
+   nb1 = print_added_memory("cset", inc_size, nb1);
+
+   /* pull the values out of the histogram */
    if( dosparsity == 0 )
    {
        for( kout = 0; kout < nmask; kout++ )
@@ -861,8 +868,12 @@ int main( int argc , char *argv[] )
        kout = nhistnodes - 1;
        while (( histogram[kout].nbin < nretain ) && ( kout >= 0 ))
        {
-           /*INFO_message("Adding %d values from bin %d, total needed = %d",
-               histogram[kout].nbin,kout,nretain);*/
+           if (verbose == 1)
+           {
+               INFO_message("Adding %d values from bin %d, total needed = %d",
+                   histogram[kout].nbin,kout,nretain);
+           }
+
            hptr = pptr = histogram[kout].nodes;
            while( hptr != NULL )
            {
@@ -891,15 +902,18 @@ int main( int argc , char *argv[] )
                bodset[ jj ] += 1.0 ;
                wodset[ jj ] += (float)(hptr->corr);
 
-               /* add source, dest, correlation to 1D file */
-               ix1 = DSET_index_to_ix(cset,ii) ;
-               jy1 = DSET_index_to_jy(cset,ii) ;
-               kz1 = DSET_index_to_kz(cset,ii) ;
-               ix2 = DSET_index_to_ix(cset,jj) ;
-               jy2 = DSET_index_to_jy(cset,jj) ;
-               kz2 = DSET_index_to_kz(cset,jj) ;
-               fprintf(fout1D, "%d %d %d %d %d %d %d %d %.6f\n",
-                       ii, jj, ix1, jy1, kz1, ix2, jy2, kz2, (float)(hptr->corr));
+               if( fout1D != NULL )
+               {
+                   /* add source, dest, correlation to 1D file */
+                   ix1 = DSET_index_to_ix(cset,ii) ;
+                   jy1 = DSET_index_to_jy(cset,ii) ;
+                   kz1 = DSET_index_to_kz(cset,ii) ;
+                   ix2 = DSET_index_to_ix(cset,jj) ;
+                   jy2 = DSET_index_to_jy(cset,jj) ;
+                   kz2 = DSET_index_to_kz(cset,jj) ;
+                   fprintf(fout1D, "%d %d %d %d %d %d %d %d %.6f\n",
+                           ii, jj, ix1, jy1, kz1, ix2, jy2, kz2, (float)(hptr->corr));
+               }
 
                /* increment node pointers */
                pptr = hptr;
@@ -933,7 +947,6 @@ int main( int argc , char *argv[] )
             /* allocate the bins */
             if(( histogram2 = (hist_node_head*)malloc(h2nbins*sizeof(hist_node_head))) == NULL )
             {
-                if (imap){ free(imap); imap = NULL; }
                 if (binaryDC){ free(binaryDC); binaryDC = NULL; }
                 if (weightedDC){ free(weightedDC); weightedDC = NULL; }
                 if (histogram){ histogram = free_histogram(histogram, nhistnodes); }
@@ -1032,15 +1045,18 @@ int main( int argc , char *argv[] )
                     bodset[ jj ] += 1.0 ;
                     wodset[ jj ] += (float)(hptr->corr);
 
-                    /* add source, dest, correlation to 1D file */
-                    ix1 = DSET_index_to_ix(cset,ii) ;
-                    jy1 = DSET_index_to_jy(cset,ii) ;
-                    kz1 = DSET_index_to_kz(cset,ii) ;
-                    ix2 = DSET_index_to_ix(cset,jj) ;
-                    jy2 = DSET_index_to_jy(cset,jj) ;
-                    kz2 = DSET_index_to_kz(cset,jj) ;
-                    fprintf(fout1D, "%d %d %d %d %d %d %d %d %.6f\n",
+                    if( fout1D != NULL )
+                    {
+                        /* add source, dest, correlation to 1D file */
+                        ix1 = DSET_index_to_ix(cset,ii) ;
+                        jy1 = DSET_index_to_jy(cset,ii) ;
+                        kz1 = DSET_index_to_kz(cset,ii) ;
+                        ix2 = DSET_index_to_ix(cset,jj) ;
+                        jy2 = DSET_index_to_jy(cset,jj) ;
+                        kz2 = DSET_index_to_kz(cset,jj) ;
+                        fprintf(fout1D, "%d %d %d %d %d %d %d %d %.6f\n",
                             ii, jj, ix1, jy1, kz1, ix2, jy2, kz2, (float)(hptr->corr));
+                    }
 
                     /* increment node pointers */
                     pptr = hptr;
@@ -1089,10 +1105,6 @@ int main( int argc , char *argv[] )
      }
    }
    
-   /* toss some trash */
-
-   VECTIM_destroy(xvectim) ;
-
    fprintf(stderr,"Done..\n") ;
 
    {
@@ -1111,8 +1123,6 @@ int main( int argc , char *argv[] )
                   +(double)(nmask*sizeof(float));
        }
 
-     if ( imap ) nb += (double)(sizeof(int)*nmask);
-
      nb /= (double)(1024*1024) ;
      INFO_message(
        "Memory required = %.1f Mbytes",nb);
@@ -1121,7 +1131,10 @@ int main( int argc , char *argv[] )
     
    }
 
-   if (imap) free(imap) ; imap = NULL;
+   /* toss some trash */
+   VECTIM_destroy(xvectim) ;
+   DSET_delete(xset) ;
+
    if (weightedDC) free(weightedDC) ; weightedDC = NULL;
    if (binaryDC) free(binaryDC) ; binaryDC = NULL;
    
