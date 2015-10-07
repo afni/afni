@@ -9,6 +9,9 @@ extern SUMA_CommonFields *SUMAg_CF;
 extern SUMA_SurfaceViewer *SUMAg_SVv;
 extern int SUMAg_N_SVv;
 
+/*-----------------------------------------------*/
+void SUMA_freep( void *p ){ free(p) ; return ; }  /* RWC: 07 Oct 2015 */
+/*-----------------------------------------------*/
 
 /*-----------------------------------------------*/
 /*! Flag to tell if NIML things are initialized. */
