@@ -23,10 +23,12 @@ FD_brick ** THD_setup_bricks( THD_3dim_dataset * dset )
    THD_dataxes *daxes ;
    FD_brick **br ;
 
-   if( ! ISVALID_3DIM_DATASET(dset) ) return NULL ;
+ENTRY("THD_setup_bricks") ;
+
+   if( ! ISVALID_3DIM_DATASET(dset) ) RETURN(NULL) ;
 
    daxes = CURRENT_DAXES(dset) ;
-   if( ! ISVALID_DATAXES(daxes) ) return NULL ;
+   if( ! ISVALID_DATAXES(daxes) ) RETURN(NULL) ;
 
    /*----- create FD_bricks for viewing purposes -----*/
 
@@ -86,7 +88,7 @@ FD_brick ** THD_setup_bricks( THD_3dim_dataset * dset )
    MCW_strncpy( br[1]->namecode , "Sagittal" , 32 ) ;
    MCW_strncpy( br[2]->namecode , "Coronal"  , 32 ) ;
 
-   return br ;
+   RETURN(br) ;
 }
 
 /*----------------------------------------------------------------------
@@ -204,7 +206,9 @@ FD_brick * THD_3dim_dataset_to_brick( THD_3dim_dataset *dset ,
 
    /*-- sanity check --*/
 
-   if( ! ISVALID_3DIM_DATASET(dset) ) return NULL ;
+ENTRY("THD_3dim_dataset_to_brick") ;
+
+   if( ! ISVALID_3DIM_DATASET(dset) ) RETURN(NULL) ;
 
    daxes = CURRENT_DAXES(dset) ;
 
@@ -214,7 +218,7 @@ FD_brick * THD_3dim_dataset_to_brick( THD_3dim_dataset *dset ,
 
    if( aax_1 < 1 || aax_1 > 3 ||   /* range checks */
        aax_2 < 1 || aax_2 > 3 ||
-       aax_3 < 1 || aax_3 > 3   ) return NULL ;
+       aax_3 < 1 || aax_3 > 3   ) RETURN(NULL) ;
 
    xyz_dir[1] = xyz_dir[2] = xyz_dir[3] = 0 ;
 
@@ -226,7 +230,7 @@ FD_brick * THD_3dim_dataset_to_brick( THD_3dim_dataset *dset ,
    y_dir = xyz_dir[2] ;  /* then one of these will end  */
    z_dir = xyz_dir[3] ;  /* up as zero --> bad inputs!  */
 
-   if( x_dir == 0 || y_dir == 0 || z_dir == 0 ) return NULL ;
+   if( x_dir == 0 || y_dir == 0 || z_dir == 0 ) RETURN(NULL) ;
 
    /*-- the inputs are good, so create a brick: --*/
 
@@ -292,5 +296,5 @@ FD_brick * THD_3dim_dataset_to_brick( THD_3dim_dataset *dset ,
    br->tmask  = NULL ;
    br->ntmask = -666 ;
 
-   return br ;
+   RETURN(br) ;
 }

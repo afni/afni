@@ -655,7 +655,7 @@ void * mcw_realloc( void *fred , size_t n , char *fnam , int lnum )
 #ifdef USE_TRACING
       if( use_tracking ){
         char buf[1024] ;
-        sprintf(buf,"** realloc() of non-tracked pointer [%s line %d]",fnam,lnum) ;
+        sprintf(buf,"** realloc() of non-tracked pointer [%s line %d] ??",fnam,lnum) ;
         STATUS(buf) ;
       }
 #endif
@@ -714,7 +714,7 @@ int mcw_malloc_OK( void *fred )
     The actual replacment for free()
 -------------------------------------------------------------------*/
 
-void mcw_free( void *fred )
+void mcw_free( void *fred , char *fnam , int lnum )
 {
    mallitem *ip ;
 
@@ -723,7 +723,11 @@ void mcw_free( void *fred )
      free_track( ip ) ;
    else {
 #ifdef USE_TRACING
-     if( use_tracking ) STATUS("** free() of non-tracked pointer [strdup? NIML?]") ;
+      if( use_tracking ){
+        char buf[1024] ;
+        sprintf(buf,"** free() of non-tracked pointer [%s line %d] ??",fnam,lnum) ;
+        STATUS(buf) ;
+      }
 #endif
      free( fred ) ;
    }
@@ -766,7 +770,16 @@ void mcw_XtFree( char *p )
 
    if( p == NULL ) return ;
    if( use_tracking && (ip=shift_tracker(p)) != NULL ) free_track(ip) ;
-   else                                                XtFree(p) ;
+   else {
+#ifdef USE_TRACING
+      if( use_tracking ){
+        char buf[1024] ;
+        sprintf(buf,"** XtFree() of non-tracked pointer ??") ;
+        STATUS(buf) ;
+      }
+#endif
+     XtFree(p) ;
+   }
 }
 
 /*-----------------------------------------------------------------

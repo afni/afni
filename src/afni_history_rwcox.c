@@ -43,7 +43,13 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 1 , OCT , 2015 , RWC , "AFNI clusterize" , MICRO , TYPE_MODIFY ,
+  { 7 , OCT , 2015 , RWC , "afni GUI" , MICRO , TYPE_GENERAL ,
+   "Attempt to fix 'crash on re-open controller' problem" ,
+   "Happened when Clusterize was used in A, then B opened, B closed, B\n"
+   "re-opened -- boom.  Set deleted FD_bricks to NULL seems to help. \n"
+   "Fingers crossed." } ,
+
+ { 1 , OCT , 2015 , RWC , "AFNI clusterize" , MICRO , TYPE_MODIFY ,
    "Made showing linkRbrain button default now" ,
    "setenv AFNI_LINKRBRAIN NO to turn this button off" } ,
 
