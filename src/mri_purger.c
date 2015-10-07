@@ -257,7 +257,7 @@ ENTRY("mri_unpurge") ;
 void mri_killpurge( MRI_IMAGE *im )
 {
 ENTRY("mri_killpurge") ;
-#if 0
+#if 1
    STATUSp("check if im==NULL",im) ; if( im == NULL ) EXRETURN ;
    if( PRINT_TRACING ){
      char str[256] ;

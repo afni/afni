@@ -13368,7 +13368,7 @@ SUMA_STRIP *SUMA_alloc_strip (char *parent_ID)
    dlist_init(strp->Triangles, NULL);
    /* not terribly efficient for storing points!*/
    strp->Points = (DList *)SUMA_malloc(sizeof(DList));
-   dlist_init(strp->Points, SUMA_free);
+   dlist_init(strp->Points, SUMA_freep);
    if (parent_ID) strp->parent_ID = SUMA_copy_string(parent_ID);
       
    SUMA_RETURN(strp);

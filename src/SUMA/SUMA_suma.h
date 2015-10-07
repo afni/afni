@@ -243,7 +243,7 @@
     
 #endif
 
-
+extern void SUMA_freep(void *) ; /* 07 Oct 2015 */
 
 /******************************* BEGIN IGNORE THIS CHUNK ********************************/
 #ifdef USE_SUMA_MALLOC
