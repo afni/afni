@@ -48,12 +48,19 @@ hist_node_head* free_histogram(hist_node_head * histogram, int nhistnodes)
     hist_node *pptr;
     hist_node *hptr;
 
+    /* only try to free the histogram if we have reason
+       to beleive that it exists */
     if (histogram != NULL )
     {
+        /* iterate through the histogram bins */
         for( kout = 0; kout < nhistnodes; kout++ )
         {
+            /* if there is a linked list for this
+               bin, iterate over it and free the list */
             if( histogram[kout].nodes != NULL )
             {
+                /* get the pointer to the linked list
+                   for this histogram bin */
                 pptr = hptr = histogram[kout].nodes;
 
                 while(hptr != NULL )
@@ -65,9 +72,13 @@ hist_node_head* free_histogram(hist_node_head * histogram, int nhistnodes)
                     /* delete the node */
                     if(pptr){free(pptr);pptr=NULL;}
                 }
+                /* indicate that we have freed the memory */
                 histogram[kout].nodes = NULL;
             }
-        }
+        } 
+
+        /* all of the linked lists should be empty,
+           now free the bin array */
         free(histogram);
     }
 
@@ -155,10 +166,11 @@ float my_THD_eta_squared( int n, float *x , float *y )
 
 double print_added_memory(char * new_var, double inc, double nb1)
 {
-    fprintf(stderr, "%s :: Added %.3f B to nb1... :: nb1: %f MB\n", new_var, inc, (nb1+inc)/((double)(1024*1024)));
+    fprintf(stderr, "%s :: Added %.3f B to nb1... :: nb1: %f MB\n",
+        new_var, inc, (nb1+inc)/((double)(1024*1024)));
 
     // return nb1
-    return(inc+nb1);
+    return((double)(inc+nb1));
 }
 
 
@@ -205,6 +217,7 @@ int main( int argc , char *argv[] )
 
    /* CC - added flags for thresholding correlations */
    float thresh = 0.0;
+   int dothresh = 0;
    float sparsity = 0.0;
    int dosparsity = 0;
   
@@ -366,6 +379,7 @@ int main( int argc , char *argv[] )
          if( *cpt != '\0' || val >= 1.0 || val < 0.0 ){
             ERROR_exit("Illegal value (%f) after -thresh!", val) ;
          }
+         dothresh = 1;
          thresh = val ; nopt++ ; continue ;
       }
       if( strcmp(argv[nopt],"-sparsity") == 0 ){
@@ -407,10 +421,8 @@ int main( int argc , char *argv[] )
    if( nopt >= argc ) ERROR_exit("Need a dataset on command line!?") ;
 
    /* check for thresh if sparsity was specified */
-   if (dosparsity == 1) {
-       if (thresh == 0.0) {
-           ERROR_exit("Threshold > 0.0 should be specified when using the -sparsity option. Try again using -thresh flag");
-       }
+   if ((dosparsity == 1) && (dothresh != 1 )) {
+           ERROR_exit("-sparsity requires that a pre-threshold be set using -thresh\n");
    }
 
    xset = THD_open_dataset(argv[nopt]); CHECK_OPEN_ERROR(xset,argv[nopt]);
@@ -424,7 +436,6 @@ int main( int argc , char *argv[] )
    /*DSET_load(xset) ; CHECK_LOAD_ERROR(xset) ;*/
 
    /*-- compute mask array, if desired --*/
-
    nvox = DSET_NVOX(xset) ; nvals = DSET_NVALS(xset) ;
 
 
@@ -616,7 +627,7 @@ int main( int argc , char *argv[] )
 
     /*---------- loop over mask voxels, correlate ----------*/
     AFNI_OMP_START ;
-    #pragma omp parallel if( nmask > 999 )
+#pragma omp parallel if( nmask > 999 )
     {
        int lii,ljj,lin,lout,ithr,nthr,vstep,vii ;
        float *xsar , *ysar ;
@@ -625,20 +636,20 @@ int main( int argc , char *argv[] )
        float car = 0.0 ; 
 
        /*-- get information about who we are --*/
-    #ifdef USE_OMP
+#ifdef USE_OMP
        ithr = omp_get_thread_num() ;
        nthr = omp_get_num_threads() ;
        if( ithr == 0 ) INFO_message("%d OpenMP threads started",nthr) ;
-    #else
+#else
        ithr = 0 ; nthr = 1 ;
-    #endif
+#endif
 
        /*-- For the progress tracker, we want to print out 50 numbers,
             figure out a number of loop iterations that will make this easy */
        vstep = (int)( nmask / (nthr*50.0f) + 0.901f ) ; vii = 0 ;
        if( ithr == 0 ) fprintf(stderr,"Looping:") ;
 
-    #pragma omp for schedule(static, 1)
+#pragma omp for schedule(static, 1)
        for( lout=0 ; lout < xvectim->nvec ; lout++ ){  /*----- outer voxel loop -----*/
 
           if( ithr == 0 && vstep > 2 ) /* allow small dsets 16 Jun 2011 [rickr] */
@@ -675,7 +686,11 @@ int main( int argc , char *argv[] )
                  }
 
                  /* create a node to add to the histogram */
-                 if(( new_node = (hist_node*)calloc(1,sizeof(hist_node))) == NULL )
+
+/* malloc isn't thread safe, make it so*/
+#pragma omp critical(MALLOC)
+                 new_node = (hist_node*)calloc(1,sizeof(hist_node));
+                 if( new_node == NULL )
                  {
                      /* allocate memory for this node, rather than fiddling with 
                         error handling here, lets just move on */
@@ -690,9 +705,9 @@ int main( int argc , char *argv[] )
                  new_node->next = NULL;
 
              }
-             /* update degree centrality values, hopefully the pragma
-                will handle mutual exclusion */
-             #pragma omp critical(dataupdate)
+/* update degree centrality values, hopefully the pragma
+   will handle mutual exclusion */
+#pragma omp critical(dataupdate)
              {
                 totNumCor += 1;
                
