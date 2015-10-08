@@ -217,6 +217,7 @@ int main( int argc , char *argv[] )
 
    /* CC - added flags for thresholding correlations */
    float thresh = 0.0;
+   float othresh = 0.0;
    int dothresh = 0;
    float sparsity = 0.0;
    int dosparsity = 0;
@@ -232,12 +233,13 @@ int main( int argc , char *argv[] )
    hist_node_head* histogram=NULL;
    hist_node* hptr=NULL;
    hist_node* pptr=NULL;
+   int bottom_node_idx = 0;
    int totNumCor = 0;
    long totPosCor = 0;
    int ngoal = 0;
    int nretain = 0;
    float binwidth = 0.0;
-   int nhistnodes = 100;
+   int nhistnodes = 50;
 
    /*----*/
 
@@ -380,7 +382,7 @@ int main( int argc , char *argv[] )
             ERROR_exit("Illegal value (%f) after -thresh!", val) ;
          }
          dothresh = 1;
-         thresh = val ; nopt++ ; continue ;
+         thresh = val ; othresh = val ; nopt++ ; continue ;
       }
       if( strcmp(argv[nopt],"-sparsity") == 0 ){
          float val = (float)strtod(argv[++nopt],&cpt) ;
@@ -632,6 +634,8 @@ int main( int argc , char *argv[] )
        int lii,ljj,lin,lout,ithr,nthr,vstep,vii ;
        float *xsar , *ysar ;
        hist_node* new_node = NULL ;
+       hist_node* tptr = NULL ;
+       hist_node* rptr = NULL ;
        int new_node_idx = 0;
        float car = 0.0 ; 
 
@@ -668,88 +672,110 @@ int main( int argc , char *argv[] )
              /* now correlate the time series */
              car = (float)(corfun(nvals,xsar,ysar)) ;
 
-             /* if the correlation is less than threshold, ignore it */
              if ( car < thresh )
              {
-                 continue;
+                 continue ;
              }
 
-             if ( dosparsity == 1 )
-             {
-                 /* determine the index in the histogram to add the node */
-                 new_node_idx = (int)floor((car-thresh)/binwidth);
-                 if ((new_node_idx > nhistnodes) || (new_node_idx < 0))
-                 {
-                     /* this error should indicate a programming error and should not happen */
-                     WARNING_message("Node index %d is out of range (%d)!",new_node_idx,nhistnodes);
-                     continue;
-                 }
-
-                 /* create a node to add to the histogram */
-
-/* malloc isn't thread safe, make it so*/
-#pragma omp critical(MALLOC)
-                 new_node = (hist_node*)calloc(1,sizeof(hist_node));
-                 if( new_node == NULL )
-                 {
-                     /* allocate memory for this node, rather than fiddling with 
-                        error handling here, lets just move on */
-                     WARNING_message("Could not allocate a new node!");
-                     continue;
-                 }
-                 
-                 /* populate histogram node */
-                 new_node->i = lout; 
-                 new_node->j = lin;
-                 new_node->corr = car;
-                 new_node->next = NULL;
-
-             }
 /* update degree centrality values, hopefully the pragma
    will handle mutual exclusion */
 #pragma omp critical(dataupdate)
              {
-                totNumCor += 1;
+                 /* if the correlation is less than threshold, ignore it */
+                 if ( car >= thresh )
+                 {
+                     totNumCor += 1;
                
-                if ( dosparsity == 0 )
-                { 
-                    binaryDC[lout] += 1; binaryDC[lin] += 1;
-                    weightedDC[lout] += car; weightedDC[lin] += car;
+                     if ( dosparsity == 0 )
+                     { 
+                         binaryDC[lout] += 1; binaryDC[lin] += 1;
+                         weightedDC[lout] += car; weightedDC[lin] += car;
 
-                    /* print correlation out to the 1D file */
-                    if ( fout1D != NULL )
+                         /* print correlation out to the 1D file */
+                         if ( fout1D != NULL )
+                         {
+                             /* determine the i,j,k coords */
+                             ix1 = DSET_index_to_ix(xset,lii) ;
+                             jy1 = DSET_index_to_jy(xset,lii) ;
+                             kz1 = DSET_index_to_kz(xset,lii) ;
+                             ix2 = DSET_index_to_ix(xset,ljj) ;
+                             jy2 = DSET_index_to_jy(xset,ljj) ;
+                             kz2 = DSET_index_to_kz(xset,ljj) ;
+                             /* add source, dest, correlation to 1D file */
+                             fprintf(fout1D, "%d %d %d %d %d %d %d %d %.6f\n",
+                                lii, ljj, ix1, jy1, kz1, ix2, jy2, kz2, car);
+                        }
+                    }
+                    else
                     {
-                        /* determine the i,j,k coords */
-                        ix1 = DSET_index_to_ix(xset,lii) ;
-                        jy1 = DSET_index_to_jy(xset,lii) ;
-                        kz1 = DSET_index_to_kz(xset,lii) ;
-                        ix2 = DSET_index_to_ix(xset,ljj) ;
-                        jy2 = DSET_index_to_jy(xset,ljj) ;
-                        kz2 = DSET_index_to_kz(xset,ljj) ;
-                        /* add source, dest, correlation to 1D file */
-                        fprintf(fout1D, "%d %d %d %d %d %d %d %d %.6f\n",
-                            lii, ljj, ix1, jy1, kz1, ix2, jy2, kz2, car);
-                    }
-                }
-                else
-                {   
-                    /* populate histogram */
-                    new_node->next = histogram[new_node_idx].nodes;
-                    histogram[new_node_idx].nodes = new_node;
-                    histogram[new_node_idx].nbin++; 
-                    if ((totNumCor % (1024*1024)) == 0){
-    	            /* add in size to nb1*/
-                        nb1 = print_added_memory("new nodes added", (double)sizeof(hist_node), nb1);
-                    }
-                    else {
-                        nb1 += (double)sizeof(hist_node);
-                    }
-                }
+                        /* determine the index in the histogram to add the node */
+                        new_node_idx = (int)floor((car-othresh)/binwidth);
+                        if ((new_node_idx > nhistnodes) || (new_node_idx < bottom_node_idx))
+                        {
+                            /* this error should indicate a programming error and should not happen */
+                            WARNING_message("Node index %d is out of range [%d,%d)!",new_node_idx,
+                            bottom_node_idx, nhistnodes);
+                        }
+                        else
+                        {
+                            /* create a node to add to the histogram */
+                            new_node = (hist_node*)calloc(1,sizeof(hist_node));
+                            if( new_node == NULL )
+                            {
+                                /* allocate memory for this node, rather than fiddling with 
+                                   error handling here, lets just move on */
+                                WARNING_message("Could not allocate a new node!");
+                            }
+                            else
+                            {
+                 
+                                /* populate histogram node */
+                                new_node->i = lout; 
+                                new_node->j = lin;
+                                new_node->corr = car;
+                                new_node->next = NULL;
 
+                                /* populate histogram */
+                                new_node->next = histogram[new_node_idx].nodes;
+                                histogram[new_node_idx].nodes = new_node;
+                                histogram[new_node_idx].nbin++; 
+
+                                /* see if there are enough correlations in the histogram
+                                   for the sparsity */
+                                if ((totNumCor - histogram[bottom_node_idx].nbin) > nretain)
+                                { 
+                                    /* delete the list of nodes */
+                                    rptr = histogram[bottom_node_idx].nodes;
+                                    while(rptr != NULL)
+                                    {
+                                        tptr = rptr;
+                                        rptr = rptr->next;
+                                        /* check that the ptr is not null before freeing it*/
+                                        if(tptr!= NULL)free(tptr);
+                                    }
+                                    histogram[bottom_node_idx].nodes = NULL;
+                                    totNumCor -= histogram[bottom_node_idx].nbin;
+                                    histogram[bottom_node_idx].nbin=0;
+ 
+                                    /* get the new threshold */
+                                    thresh = histogram[++bottom_node_idx].bin_low;
+                                    fprintf(stderr, "Increasing threshold to %3.2f (%d)\n",
+                                        thresh,bottom_node_idx); 
+                                }
+
+                                if ((totNumCor % (1024*1024)) == 0){
+    	                            /* add in size to nb1*/
+                                    nb1 = print_added_memory("new nodes added", (double)sizeof(hist_node), nb1);
+                                }
+                                else {
+                                    nb1 += (double)sizeof(hist_node);
+                                }
+                            } /* else, newptr != NULL */
+                        } /* else, new_node_idx in range */
+                    } /* else, do_sparsity == 1 */
+                 } /* car > thresh */
              } /* this is the end of the critical section */
-
           } /* end of inner loop over voxels */
-
        } /* end of outer loop over ref voxels */
 
        if( ithr == 0 ) fprintf(stderr,".\n") ;
