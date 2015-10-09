@@ -18,6 +18,25 @@ afni/src/3dDegreeCentrality.c
 #define PEARSON  3
 #define ETA2     4
 
+/* CC macro for updating mem stats */
+#define INC_MEM_STATS( INC ) \
+    { \
+        total_mem += (long)INC; \
+        running_mem += (long)INC; \
+        if (running_mem > peak_mem) peak_mem = running_mem; \
+    }
+
+#define PRINT_MEM_STATS( TAG, VERB ) \
+        if (VERB == 1) fprintf(stderr, "Mem Stats (%s): Running %3.3fMB, Total %3.3fMB, Peak %3.3fMB\n", \
+            TAG, \
+            (double)(running_mem/(1024.0*1024.0)), \
+            (double)(total_mem/(1024.0*1024.0)), \
+            (double)(peak_mem/(1024.0*1024.0)));
+
+#define DEC_MEM_STATS( DEC ) \
+    { \
+        running_mem -= (long)DEC; \
+    }
 
 /* CC define nodes for histogram data structure
    that we will use for sparsity thresholding */
@@ -211,7 +230,11 @@ int main( int argc , char *argv[] )
    float * bodset;
    float * wodset;
 
-   double nb1 = 0;
+   long nb1 = 0;
+   long total_mem = 0;
+   long running_mem = 0;
+   long peak_mem = 0;
+
    double inc_size = 0;
    int nb_ctr = 0;
 
@@ -223,7 +246,7 @@ int main( int argc , char *argv[] )
    int dosparsity = 0;
   
    /* CC flag to controls verbosity */
-   int verbose = 0;
+   int mem_stat = 0;
  
    /* variables for calculating degree centrality */
    int * binaryDC = NULL;
@@ -344,8 +367,6 @@ int main( int argc , char *argv[] )
 
       if( strcmp(argv[nopt],"-mask") == 0 ){
          mset = THD_open_dataset(argv[++nopt]);
-         inc_size = (double)mset->dblk->total_bytes;
-         nb1 = print_added_memory("mset", inc_size, nb1);
          CHECK_OPEN_ERROR(mset,argv[nopt]);
          nopt++ ; continue ;
       }
@@ -403,8 +424,8 @@ int main( int argc , char *argv[] )
          }
          polort = val ; nopt++ ; continue ;
       }
-      if( strcmp(argv[nopt],"-verbose") == 0 ){
-         verbose = 1 ; nopt++ ; continue ;
+      if( strcmp(argv[nopt],"-mem_stat") == 0 ){
+         mem_stat = 1 ; nopt++ ; continue ;
       }
       /* check for 1d argument */
       if ( strcmp(argv[nopt],"-out1D") == 0 ){
@@ -422,34 +443,40 @@ int main( int argc , char *argv[] )
 
    if( nopt >= argc ) ERROR_exit("Need a dataset on command line!?") ;
 
-   /* check for thresh if sparsity was specified */
-   if ((dosparsity == 1) && (dothresh != 1 )) {
-           ERROR_exit("-sparsity requires that a pre-threshold be set using -thresh\n");
-   }
-
    xset = THD_open_dataset(argv[nopt]); CHECK_OPEN_ERROR(xset,argv[nopt]);
 
-   /* update running memory statistics to reflect loading the image */
-   inc_size = (double)xset->dblk->total_bytes;
-   nb1 = print_added_memory("xset", inc_size, nb1);
 
    if( DSET_NVALS(xset) < 3 )
      ERROR_exit("Input dataset %s does not have 3 or more sub-bricks!",argv[nopt]) ;
-   /*DSET_load(xset) ; CHECK_LOAD_ERROR(xset) ;*/
+   DSET_load(xset) ; CHECK_LOAD_ERROR(xset) ;
 
    /*-- compute mask array, if desired --*/
    nvox = DSET_NVOX(xset) ; nvals = DSET_NVALS(xset) ;
-
+   INC_MEM_STATS((nvox * nvals * sizeof(double)));
+   PRINT_MEM_STATS("inset", mem_stat);
 
    /* if a mask was specified make sure it is appropriate */
    if( mset ){
+
       if( DSET_NVOX(mset) != nvox )
          ERROR_exit("Input and mask dataset differ in number of voxels!") ;
       mask  = THD_makemask(mset, 0, 1.0, 0.0) ;
+
+      /* update running memory statistics to reflect loading the image */
+      INC_MEM_STATS( mset->dblk->total_bytes );
+      PRINT_MEM_STATS( "mset load", mem_stat );
+
       nmask = THD_countmask( nvox , mask ) ;
+      INC_MEM_STATS( nmask * sizeof(byte) );
+      PRINT_MEM_STATS( "mask", mem_stat );
+
       INFO_message("%d voxels in -mask dataset",nmask) ;
       if( nmask < 2 ) ERROR_exit("Only %d voxels in -mask, exiting...",nmask);
       DSET_unload(mset) ;
+
+      /* update running memory statistics to reflect loading the image */
+      DEC_MEM_STATS( mset->dblk->total_bytes );
+      PRINT_MEM_STATS( "mset unload", mem_stat );
    } 
    /* if automasking is requested, handle that now */
    else if( do_autoclip ){
@@ -524,13 +551,28 @@ int main( int argc , char *argv[] )
    if( xvectim == NULL ) ERROR_exit("Can't create vectim?!") ;
 
    /*-- CC update our memory stats to reflect vectim -- */
-   inc_size = (double)((xvectim->nvec*sizeof(int)) +
+   INC_MEM_STATS((xvectim->nvec*sizeof(int)) +
                        ((xvectim->nvec)*(xvectim->nvals))*sizeof(float) +
                        sizeof(MRI_vectim));
-   nb1 = print_added_memory("xvectim", inc_size, nb1);
+   PRINT_MEM_STATS( "vect", mem_stat );
+
+   /*--- CC the vectim contains a mapping between voxel index and mask index, 
+         tap into that here to avoid duplicating memory usage ---*/
+
+   if( mask != NULL )
+   {
+       imap = xvectim->ivec;
+
+       /* --- CC free the mask */
+       free(mask); mask=NULL;
+       DEC_MEM_STATS( nmask*sizeof(byte) );
+       PRINT_MEM_STATS( "mask unload", mem_stat );
+   }
 
    /* -- CC unloading the dataset to reduce memory usage ?? -- */
+   DEC_MEM_STATS((DSET_NVOX(xset) * DSET_NVALS(xset) * sizeof(double)));
    DSET_unload(xset) ;
+   PRINT_MEM_STATS("inset unload", mem_stat);
 
    /* -- CC configure detrending --*/
    if( polort < 0 && method == PEARSON ){
@@ -546,14 +588,6 @@ int main( int argc , char *argv[] )
    /* -- this procedure does not change time series that have zero variance -- */
    if( method == PEARSON ) THD_vectim_normalize(xvectim) ;  /* L2 norm = 1 */
 
-   /*--- CC the vectim contains a mapping between voxel index and mask index, 
-         tap into that here to avoid duplicating memory usage ---*/
-
-   if( mask != NULL )
-   {
-       imap = xvectim->ivec;
-   }
-
     /* -- CC create arrays to hold degree and weighted centrality while
           they are being calculated -- */
     if( dosparsity == 0 )
@@ -565,7 +599,8 @@ int main( int argc , char *argv[] )
         }
 
         /* -- update running memory estimate to reflect memory allocation */ 
-        nb1 = print_added_memory("binaryDC", (double)(nmask*sizeof(int)), nb1);
+        INC_MEM_STATS( nmask*sizeof(int) );
+        PRINT_MEM_STATS( "binaryDC", mem_stat );
 
         if( ( weightedDC = (float*)calloc( nmask, sizeof(float) )) == NULL )
         {
@@ -574,7 +609,8 @@ int main( int argc , char *argv[] )
                 nmask*sizeof(float)); 
         }
         /* -- update running memory estimate to reflect memory allocation */ 
-        nb1 = print_added_memory("weightedDC", (double)(nmask*sizeof(float)), nb1);
+        INC_MEM_STATS( nmask*sizeof(float) );
+        PRINT_MEM_STATS( "weightedDC", mem_stat );
     }
 
 
@@ -598,9 +634,9 @@ int main( int argc , char *argv[] )
                 nmask*sizeof(float)); 
         }
         else {
-	   /* update memory stats to reflect allocation*/
-           inc_size = (double)(sizeof(hist_node_head)*nhistnodes);
-           nb1 = print_added_memory("initial histogram", inc_size, nb1);
+            /* -- update running memory estimate to reflect memory allocation */ 
+            INC_MEM_STATS( nhistnodes*sizeof(hist_node_head) );
+            PRINT_MEM_STATS( "hist1", mem_stat );
         }
 
         /* initialize history bins */
@@ -657,7 +693,7 @@ int main( int argc , char *argv[] )
        for( lout=0 ; lout < xvectim->nvec ; lout++ ){  /*----- outer voxel loop -----*/
 
           if( ithr == 0 && vstep > 2 ) /* allow small dsets 16 Jun 2011 [rickr] */
-          { vii++ ; if( vii%vstep == vstep/2 ) vstep_print(); }
+          { vii++ ; if( vii%vstep == vstep/2 && mem_stat == 0 ) vstep_print(); }
 
           /* get ref time series from this voxel */
           xsar = VECTIM_PTR(xvectim,lout) ;
@@ -735,6 +771,10 @@ int main( int argc , char *argv[] )
                                 new_node->corr = car;
                                 new_node->next = NULL;
 
+                                /* -- update running memory estimate to reflect memory allocation */ 
+                                INC_MEM_STATS( sizeof(hist_node) );
+                                if ((totNumCor % (1024*1024)) == 0) PRINT_MEM_STATS( "hist nodes", mem_stat );
+
                                 /* populate histogram */
                                 new_node->next = histogram[new_node_idx].nodes;
                                 histogram[new_node_idx].nodes = new_node;
@@ -751,25 +791,24 @@ int main( int argc , char *argv[] )
                                         tptr = rptr;
                                         rptr = rptr->next;
                                         /* check that the ptr is not null before freeing it*/
-                                        if(tptr!= NULL)free(tptr);
+                                        if(tptr!= NULL)
+                                        {
+                                            free(tptr);
+                                            DEC_MEM_STATS( sizeof(hist_node) );
+                                        }
                                     }
+                                    PRINT_MEM_STATS( "unloaded hist nodes", mem_stat );
+
                                     histogram[bottom_node_idx].nodes = NULL;
                                     totNumCor -= histogram[bottom_node_idx].nbin;
                                     histogram[bottom_node_idx].nbin=0;
  
                                     /* get the new threshold */
                                     thresh = histogram[++bottom_node_idx].bin_low;
-                                    fprintf(stderr, "Increasing threshold to %3.2f (%d)\n",
+                                    if(mem_stat == 1) fprintf(stderr, "Increasing threshold to %3.2f (%d)\n",
                                         thresh,bottom_node_idx); 
                                 }
 
-                                if ((totNumCor % (1024*1024)) == 0){
-    	                            /* add in size to nb1*/
-                                    nb1 = print_added_memory("new nodes added", (double)sizeof(hist_node), nb1);
-                                }
-                                else {
-                                    nb1 += (double)sizeof(hist_node);
-                                }
                             } /* else, newptr != NULL */
                         } /* else, new_node_idx in range */
                     } /* else, do_sparsity == 1 */
@@ -855,6 +894,7 @@ int main( int argc , char *argv[] )
    EDIT_BRICK_LABEL(cset,subbrik,str) ;
    EDIT_substitute_brick(cset,subbrik,MRI_float,NULL) ;   /* make array   */
 
+
    /* copy measure data into the subbrik */
    bodset = DSET_ARRAY(cset,subbrik);
  
@@ -873,16 +913,16 @@ int main( int argc , char *argv[] )
    /* copy measure data into the subbrik */
    wodset = DSET_ARRAY(cset,subbrik);
 
-   /* update the memory stats to reflect creating the output datset */
-   inc_size = (double)cset->dblk->total_bytes;
-   nb1 = print_added_memory("cset", inc_size, nb1);
+   /* increment memory stats */
+   INC_MEM_STATS( (DSET_NVOX(cset)*DSET_NVALS(cset)*sizeof(float)));
+   PRINT_MEM_STATS( "outset", mem_stat );
 
    /* pull the values out of the histogram */
    if( dosparsity == 0 )
    {
        for( kout = 0; kout < nmask; kout++ )
        {
-          if ( mask != NULL && imap != NULL )
+          if ( imap != NULL )
           {
               ii = imap[kout] ;  /* ii= source voxel (we know that ii is in the mask) */
           }
@@ -896,8 +936,22 @@ int main( int argc , char *argv[] )
        }
 
        /* we are done with this memory, and can kill it now*/
-       if(binaryDC){free(binaryDC);binaryDC=NULL;}
-       if(weightedDC){free(weightedDC);weightedDC=NULL;}
+       if(binaryDC)
+       {
+           free(binaryDC);
+           binaryDC=NULL;
+           /* -- update running memory estimate to reflect memory allocation */ 
+           DEC_MEM_STATS( nmask*sizeof(int) );
+           PRINT_MEM_STATS( "binaryDC", mem_stat );
+       }
+       if(weightedDC)
+       {
+           free(weightedDC);
+           weightedDC=NULL;
+           /* -- update running memory estimate to reflect memory allocation */ 
+           DEC_MEM_STATS( nmask*sizeof(float) );
+           PRINT_MEM_STATS( "weightedDC", mem_stat );
+       }
    }
    else
    {
@@ -909,12 +963,6 @@ int main( int argc , char *argv[] )
        kout = nhistnodes - 1;
        while (( histogram[kout].nbin < nretain ) && ( kout >= 0 ))
        {
-           if (verbose == 1)
-           {
-               INFO_message("Adding %d values from bin %d, total needed = %d",
-                   histogram[kout].nbin,kout,nretain);
-           }
-
            hptr = pptr = histogram[kout].nodes;
            while( hptr != NULL )
            {
@@ -961,9 +1009,14 @@ int main( int argc , char *argv[] )
                hptr = hptr->next;
 
                /* delete the node */
-               if(pptr){free(pptr);pptr=NULL;}
-           }
- 
+               if(pptr)
+               {
+                   free(pptr);
+                   /* -- update running memory estimate to reflect memory allocation */ 
+                   DEC_MEM_STATS(sizeof( hist_node ));
+                   pptr=NULL;
+               }
+           } 
            /* decrement the number of correlations we wish to retain */
            nretain -= histogram[kout].nbin;
            histogram[kout].nodes = NULL;
@@ -971,6 +1024,7 @@ int main( int argc , char *argv[] )
            /* go on to the next bin */
            kout--;
        }
+       PRINT_MEM_STATS( "hist bins free", mem_stat );
 
         /* if we haven't used all of the correlations that are available, go through and 
            add a subset of the voxels from the remaining bin */
@@ -995,7 +1049,9 @@ int main( int argc , char *argv[] )
                     h2nbins*sizeof(hist_node_head)); 
             }
             else {
-                nb1 += (double)(h2nbins*sizeof(hist_node_head));
+                /* -- update running memory estimate to reflect memory allocation */ 
+                INC_MEM_STATS(( h2nbins*sizeof(hist_node_head )));
+                PRINT_MEM_STATS( "hist2", mem_stat );
             }
    
             /* initiatize the bins */ 
@@ -1029,35 +1085,21 @@ int main( int argc , char *argv[] )
                     WARNING_message("h2ndx %d is greater than histogram size %d",h2ndx,h2nbins);
                 }
                
-                if( verbose == 1 )
-                { 
-                    INFO_message ("Adding %d nodes from histogram to histogram2 (%p)",
-                        histogram[kout].nbin,hptr);
-                }
             }
 
             /* free the remainder of histogram */
-            histogram = free_histogram(histogram, nhistnodes);
-
-            /* print the contents of hist2  */
-            if (verbose == 1)
-            { 
-                for( kin = 0; kin < h2nbins; kin++ )
-                {
-                    INFO_message("Hist2 bin %d [%3.3f, %3.3f) [%d, %p]\n",
-                        kin, histogram2[ kin ].bin_low, histogram2[ kin ].bin_high,
-                        histogram2[ kin ].nbin, histogram2[ kin ].nodes );
-                }
+            {
+                int nbins_rem = 0;
+                for(ii = 0; ii < nhistnodes; ii++) nbins_rem+=histogram[ii].nbin;
+                histogram = free_histogram(histogram, nhistnodes);
+                /* -- update running memory estimate to reflect memory allocation */ 
+                DEC_MEM_STATS(( nbins_rem * sizeof(hist_node) + nhistnodes*sizeof(hist_node_head)));
+                PRINT_MEM_STATS( "free hist", mem_stat );
             }
- 
+
             kin = h2nbins - 1;
             while (( nretain > 0 ) && ( kin >= 0 ))
             {
-                if(verbose == 1)
-                {
-                    INFO_message("Adding %d values from bin %d, total needed = %d",
-                        histogram2[kin].nbin,kin,nretain);
-                }
                 hptr = pptr = histogram2[kin].nodes;
                 while( hptr != NULL )
                 {
@@ -1071,7 +1113,7 @@ int main( int argc , char *argv[] )
                     {
                         ii = hptr->i ;
                     }
-                    if ( mask != NULL && imap != NULL )
+                    if ( imap != NULL )
                     {
                         jj = imap[hptr->j] ; 
                     }
@@ -1104,7 +1146,12 @@ int main( int argc , char *argv[] )
                     hptr = hptr->next;
 
                     /* delete the node */
-                    if(pptr){free(pptr);pptr=NULL;}
+                    if(pptr)
+                    {
+                        free(pptr);
+                        DEC_MEM_STATS(( sizeof(hist_node) ));
+                        pptr=NULL;
+                    }
                 }
  
                 /* decrement the number of correlations we wish to retain */
@@ -1114,9 +1161,19 @@ int main( int argc , char *argv[] )
                 /* go on to the next bin */
                 kin--;
             }
+            PRINT_MEM_STATS("hist2 nodes free",mem_stat);
+
 
             /* we are finished with histogram2 */
-            histogram2 = free_histogram(histogram2, h2nbins);
+            {
+                int nbins_rem = 0;
+                for(ii = 0; ii < h2nbins; ii++) nbins_rem+=histogram2[ii].nbin;
+                histogram2 = free_histogram(histogram2, h2nbins);
+                /* -- update running memory estimate to reflect memory allocation */ 
+                DEC_MEM_STATS(( nbins_rem * sizeof(hist_node) + h2nbins*sizeof(hist_node_head)));
+                PRINT_MEM_STATS( "free hist2", mem_stat );
+            }
+
 
             if (nretain < 0 )
             {
@@ -1148,33 +1205,16 @@ int main( int argc , char *argv[] )
    
    fprintf(stderr,"Done..\n") ;
 
-   {
-
-       double nb = (double)(xset->dblk->total_bytes)
-                  +(double)(cset->dblk->total_bytes);
-
-       if(dosparsity == 1 )
-       {
-           nb = nb + (double)(totNumCor*sizeof(hist_node)
-                +nhistnodes*sizeof(hist_node_head));
-       }
-       else
-       {
-           nb = nb +(double)(nmask*sizeof(int))
-                  +(double)(nmask*sizeof(float));
-       }
-
-     nb /= (double)(1024*1024) ;
-     INFO_message(
-       "Memory required = %.1f Mbytes",nb);
-     INFO_message(
-       "Memory required (nb1) = %.3f Mbytes",nb1/((double)1024*1024));
-    
-   }
+   /* update running memory statistics to reflect loading the image */
+   DEC_MEM_STATS((xvectim->nvec*sizeof(int)) +
+                       ((xvectim->nvec)*(xvectim->nvals))*sizeof(float) +
+                       sizeof(MRI_vectim));
 
    /* toss some trash */
    VECTIM_destroy(xvectim) ;
    DSET_delete(xset) ;
+
+   PRINT_MEM_STATS( "vectim unload", mem_stat );
 
    if (weightedDC) free(weightedDC) ; weightedDC = NULL;
    if (binaryDC) free(binaryDC) ; binaryDC = NULL;
@@ -1186,6 +1226,8 @@ int main( int argc , char *argv[] )
    THD_set_write_compression(COMPRESS_NONE) ; AFNI_setenv("AFNI_AUTOGZIP=NO") ;*/
    DSET_write(cset) ;
    WROTE_DSET(cset) ;
+
+   PRINT_MEM_STATS( "Fin", 1 );
 
    exit(0) ;
 }
