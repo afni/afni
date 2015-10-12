@@ -48,7 +48,7 @@ static int MEM_STAT = 0;
             if(( ndx >= mem_num_tags ) && (ndx < MAX_NUM_TAGS)) \
             { \
                 /* adding a new tag */ \
-                strncpy( mem_tags[ ndx ], TAG, MAX_TAG_LEN ); \
+                strncpy( mem_tags[ ndx ], TAG, (MAX_TAG_LEN-1) ); \
                 mem_allocated[ ndx ] = 0; \
                 mem_freed[ ndx ] = 0; \
                 mem_num_tags++; \
@@ -145,6 +145,7 @@ hist_node_head* free_histogram(hist_node_head * histogram, int nhistnodes)
        to beleive that it exists */
     if (histogram != NULL )
     {
+        fprintf(stderr, "Histogram[0] values %p, %ld, %f, %f\n", histogram[0].nodes, histogram[0].nbin, histogram[0].bin_low, histogram[0].bin_high);
         /* iterate through the histogram bins */
         for( kout = 0; kout < nhistnodes; kout++ )
         {
@@ -162,11 +163,16 @@ hist_node_head* free_histogram(hist_node_head * histogram, int nhistnodes)
                     pptr = hptr;
                     hptr = hptr->next;
 
+                    if((void*)pptr == (void*)histogram)
+                    {
+                        fprintf(stderr,"somehow freeing histogram (%p) as though it is a hist node\n",histogram);
+                    }
                     /* delete the node */
-                    if(pptr)
+                    if(pptr != NULL)
                     { 
                         /* -- update running memory estimate to reflect memory allocation */ 
                         DEC_MEM_STATS(( sizeof(hist_node)), "hist nodes");
+#pragma omp critical(malloc)
                         free(pptr);
                         pptr=NULL;
                     }
@@ -178,7 +184,13 @@ hist_node_head* free_histogram(hist_node_head * histogram, int nhistnodes)
 
         /* all of the linked lists should be empty,
            now free the bin array */
-        free(histogram);
+        if (histogram != NULL) {
+            fprintf(stderr, "Freeing histogram %p after clearing out linked lists!\n", histogram);
+            fprintf(stderr, "Histogram values %p, %ld, %f, %f\n", histogram[0].nodes, histogram[0].nbin, histogram[0].bin_low, histogram[0].bin_high);
+#pragma omp critical(malloc)
+            free(histogram);
+            fprintf(stderr, "Just freed it!\n");
+        }
         DEC_MEM_STATS(( nhistnodes * sizeof(hist_node_head)), "hist bins");
     }
 
@@ -314,15 +326,15 @@ int main( int argc , char *argv[] )
    int nb_ctr = 0;
 
    /* CC - added flags for thresholding correlations */
-   float thresh = 0.0;
-   float othresh = 0.0;
+   double thresh = 0.0;
+   double othresh = 0.0;
    int dothresh = 0;
-   float sparsity = 0.0;
+   double sparsity = 0.0;
    int dosparsity = 0;
   
    /* variables for calculating degree centrality */
-   int * binaryDC = NULL;
-   float * weightedDC = NULL;
+   long * binaryDC = NULL;
+   double * weightedDC = NULL;
 
    /* variables for histogram */
    hist_node_head* histogram=NULL;
@@ -585,8 +597,8 @@ int main( int argc , char *argv[] )
         fprintf(fout1D,"#[ ");
         int mi, mj;
         for(mi = 0; mi < 4; mi++) {
-            fprintf(stderr, "%d %d", mi, mj);
             for(mj = 0; mj < 4; mj++) {
+                fprintf(stderr, "%d %d\n", mi, mj);
                 fprintf(fout1D, "%.6f ", affine_mat.m[mi][mj]);
             }
         }
@@ -667,24 +679,24 @@ int main( int argc , char *argv[] )
           they are being calculated -- */
     if( dosparsity == 0 )
     {
-        if( ( binaryDC = (int*)calloc( nmask, sizeof(int) )) == NULL )
+        if( ( binaryDC = (long*)calloc( nmask, sizeof(long) )) == NULL )
         {
             ERROR_message( "Could not allocate %d byte array for binary DC calculation\n",
-                nmask*sizeof(float)); 
+                nmask*sizeof(long)); 
         }
 
         /* -- update running memory estimate to reflect memory allocation */ 
         INC_MEM_STATS( nmask*sizeof(int), "binary DC array" );
         PRINT_MEM_STATS( "binaryDC" );
 
-        if( ( weightedDC = (float*)calloc( nmask, sizeof(float) )) == NULL )
+        if( ( weightedDC = (double*)calloc( nmask, sizeof(double) )) == NULL )
         {
             if (binaryDC){ free(binaryDC); binaryDC = NULL; }
             ERROR_message( "Could not allocate %d byte array for weighted DC calculation\n",
-                nmask*sizeof(float)); 
+                nmask*sizeof(double)); 
         }
         /* -- update running memory estimate to reflect memory allocation */ 
-        INC_MEM_STATS( nmask*sizeof(float), "weighted DC array" );
+        INC_MEM_STATS( nmask*sizeof(double), "weighted DC array" );
         PRINT_MEM_STATS( "weightedDC" );
     }
 
@@ -697,7 +709,7 @@ int main( int argc , char *argv[] )
         binwidth = (1.005-thresh)/nhistnodes;
 
         /* calculate the number of correlations we wish to retain */
-        ngoal = nretain = (int)(((float)totPosCor)*((float)sparsity) / 100.0);
+        ngoal = nretain = (int)(((double)totPosCor)*((double)sparsity) / 100.0);
 
         /* allocate memory for the histogram bins */
         if(( histogram = (hist_node_head*)malloc(nhistnodes*sizeof(hist_node_head))) == NULL )
@@ -705,8 +717,8 @@ int main( int argc , char *argv[] )
             /* if the allocation fails, free all memory and exit */
             if (binaryDC){ free(binaryDC); binaryDC = NULL; }
             if (weightedDC){ free(weightedDC); weightedDC = NULL; }
-            ERROR_message( "Could not allocate %d byte array for weighted DC calculation\n",
-                nmask*sizeof(float)); 
+            ERROR_message( "Could not allocate %d byte array for histogram\n",
+                nhistnodes*sizeof(hist_node_head)); 
         }
         else {
             /* -- update running memory estimate to reflect memory allocation */ 
@@ -748,7 +760,7 @@ int main( int argc , char *argv[] )
        hist_node* tptr = NULL ;
        hist_node* rptr = NULL ;
        int new_node_idx = 0;
-       float car = 0.0 ; 
+       double car = 0.0 ; 
 
        /*-- get information about who we are --*/
 #ifdef USE_OMP
@@ -781,7 +793,7 @@ int main( int argc , char *argv[] )
              ysar = VECTIM_PTR(xvectim,lin) ;
 
              /* now correlate the time series */
-             car = (float)(corfun(nvals,xsar,ysar)) ;
+             car = (double)(corfun(nvals,xsar,ysar)) ;
 
              if ( car < thresh )
              {
@@ -820,10 +832,11 @@ int main( int argc , char *argv[] )
                     else
                     {
                         /* determine the index in the histogram to add the node */
-                        new_node_idx = (int)floor((car-othresh)/binwidth);
+                        new_node_idx = (int)floor((double)(car-othresh)/(double)binwidth);
                         if ((new_node_idx > nhistnodes) || (new_node_idx < bottom_node_idx))
                         {
                             /* this error should indicate a programming error and should not happen */
+                            fprintf(stderr,"Node index %d is out of range [%d,%d)!",new_node_idx, bottom_node_idx,nhistnodes);
                             WARNING_message("Node index %d is out of range [%d,%d)!",new_node_idx,
                             bottom_node_idx, nhistnodes);
                         }
@@ -869,6 +882,7 @@ int main( int argc , char *argv[] )
                                         if(tptr!= NULL)
                                         {
                                             DEC_MEM_STATS( sizeof(hist_node), "hist nodes" );
+#pragma omp critical(malloc)
                                             free(tptr);
                                         }
                                     }
@@ -1005,14 +1019,23 @@ int main( int argc , char *argv[] )
           {
               ii = kout ;
           }
-     
-          bodset[ ii ] = (float)(binaryDC[kout]);
-          wodset[ ii ] = (float)(weightedDC[kout]);
+   
+          if( ii >= DSET_NVOX(cset) )
+          {
+              fprintf(stderr, "avoiding bodset, wodset overflow %d > %d (%s,%d)\n",
+                  ii,DSET_NVOX(cset),__FILE__,__LINE__ );
+          }
+          else
+          {
+              bodset[ ii ] = (float)(binaryDC[kout]);
+              wodset[ ii ] = (float)(weightedDC[kout]);
+          }
        }
 
        /* we are done with this memory, and can kill it now*/
        if(binaryDC)
        {
+#pragma omp critical(malloc)
            free(binaryDC);
            binaryDC=NULL;
            /* -- update running memory estimate to reflect memory allocation */ 
@@ -1021,6 +1044,7 @@ int main( int argc , char *argv[] )
        }
        if(weightedDC)
        {
+#pragma omp critical(malloc)
            free(weightedDC);
            weightedDC=NULL;
            /* -- update running memory estimate to reflect memory allocation */ 
@@ -1061,10 +1085,26 @@ int main( int argc , char *argv[] )
                }
 
                /* add in the values */
-               bodset[ ii ] += 1.0 ;
-               wodset[ ii ] += (float)(hptr->corr);
-               bodset[ jj ] += 1.0 ;
-               wodset[ jj ] += (float)(hptr->corr);
+               if(( ii >= DSET_NVOX(cset) ) || ( jj >= DSET_NVOX(cset)))
+               {
+                   if( ii >= DSET_NVOX(cset))
+                   {
+                       fprintf(stderr, "avoiding bodset, wodset overflow (ii) %d > %d\n (%s,%d)\n",
+                           ii,DSET_NVOX(cset),__FILE__,__LINE__ );
+                   }
+                   if( jj >= DSET_NVOX(cset))
+                   {
+                       fprintf(stderr, "avoinding bodset, wodset overflow (jj) %d > %d\n (%s,%d)\n",
+                           jj,DSET_NVOX(cset),__FILE__,__LINE__ );
+                   }
+               }
+               else
+               {
+                   bodset[ ii ] += 1.0 ;
+                   wodset[ ii ] += (float)(hptr->corr);
+                   bodset[ jj ] += 1.0 ;
+                   wodset[ jj ] += (float)(hptr->corr);
+               }
 
                if( fout1D != NULL )
                {
@@ -1089,6 +1129,7 @@ int main( int argc , char *argv[] )
                    /* -- update running memory estimate to reflect memory allocation */ 
                    DEC_MEM_STATS(sizeof( hist_node ), "hist nodes" );
                    /* free the mem */
+#pragma omp critical(malloc)
                    free(pptr);
                    pptr=NULL;
                }
@@ -1108,6 +1149,7 @@ int main( int argc , char *argv[] )
         {
 
             hist_node_head* histogram2 = NULL; 
+            hist_node_head* histogram2_save = NULL; 
             int h2nbins = 100;
             float h2binwidth = 0.0;
             int h2ndx=0;
@@ -1116,6 +1158,7 @@ int main( int argc , char *argv[] )
                ((float)h2nbins);
 
             /* allocate the bins */
+#pragma omp critical(malloc)
             if(( histogram2 = (hist_node_head*)malloc(h2nbins*sizeof(hist_node_head))) == NULL )
             {
                 if (binaryDC){ free(binaryDC); binaryDC = NULL; }
@@ -1126,6 +1169,8 @@ int main( int argc , char *argv[] )
             }
             else {
                 /* -- update running memory estimate to reflect memory allocation */ 
+                histogram2_save = histogram2;
+                fprintf(stderr, "histogram2 is %p\n", histogram2_save);
                 INC_MEM_STATS(( h2nbins*sizeof(hist_node_head )), "hist bins");
                 PRINT_MEM_STATS( "hist2" );
             }
@@ -1142,13 +1187,19 @@ int main( int argc , char *argv[] )
                     histogram2[ kin ].nbin, histogram2[ kin ].nodes );*/
             }
 
+            if (histogram2_save != histogram2 )
+            {
+                fprintf(stderr, "histogram2 mem corruption detected at line %d (%p != %p)\n",
+                   __LINE__, histogram2_save, histogram2);
+            }
+
             /* move correlations from histogram to histgram2 */
             INFO_message ("Adding %d nodes from histogram to histogram2",histogram[kout].nbin);
             while ( histogram[kout].nodes != NULL )
             {
                 hptr = histogram[kout].nodes;
-                h2ndx = (int)floor((hptr->corr - histogram[kout].bin_low)/h2binwidth);
-                if( h2ndx < h2nbins )
+                h2ndx = (int)floor((double)(hptr->corr - histogram[kout].bin_low)/(double)h2binwidth);
+                if(( h2ndx < h2nbins ) && ( h2ndx >= 0 ))
                 {
                     histogram[kout].nodes = hptr->next;
                     hptr->next = histogram2[h2ndx].nodes;
@@ -1158,11 +1209,17 @@ int main( int argc , char *argv[] )
                 }
                 else
                 {
-                    WARNING_message("h2ndx %d is greater than histogram size %d",h2ndx,h2nbins);
+                    WARNING_message("h2ndx %d is not in range [0,%d) :: %.10f,%.10f\n",h2ndx,h2nbins,hptr->corr, histogram[kout].bin_low);
                 }
                
             }
 
+            if (histogram2_save != histogram2 )
+            {
+                fprintf(stderr, "histogram2 mem corruption detected at line %d (%p != %p)\n",
+                    __LINE__, histogram2_save, histogram2);
+            }
+            fprintf(stderr, "Finished allocating histogram2 bins!\n");
             /* free the remainder of histogram */
             {
                 int nbins_rem = 0;
@@ -1170,6 +1227,7 @@ int main( int argc , char *argv[] )
                 histogram = free_histogram(histogram, nhistnodes);
                 PRINT_MEM_STATS( "free remainder of histogram1" );
             }
+            fprintf(stderr, "Finished freeing histogram bins!\n");
 
             kin = h2nbins - 1;
             while (( nretain > 0 ) && ( kin >= 0 ))
@@ -1197,11 +1255,26 @@ int main( int argc , char *argv[] )
                     }
 
                     /* add in the values */
-                    bodset[ ii ] += 1.0 ;
-                    wodset[ ii ] += (float)(hptr->corr);
-                    bodset[ jj ] += 1.0 ;
-                    wodset[ jj ] += (float)(hptr->corr);
-
+                    if(( ii >= DSET_NVOX(cset) ) || ( jj >= DSET_NVOX(cset)))
+                    {
+                        if( ii >= DSET_NVOX(cset))
+                        {
+                            fprintf(stderr, "avoiding bodset, wodset overflow (ii) %d > %d\n (%s,%d)\n",
+                                ii,DSET_NVOX(cset),__FILE__,__LINE__ );
+                        }
+                        if( jj >= DSET_NVOX(cset))
+                        {
+                            fprintf(stderr, "avoinding bodset, wodset overflow (jj) %d > %d\n (%s,%d)\n",
+                                jj,DSET_NVOX(cset),__FILE__,__LINE__ );
+                        }
+                    }
+                    else
+                    {
+                        bodset[ ii ] += 1.0 ;
+                        wodset[ ii ] += (float)(hptr->corr);
+                        bodset[ jj ] += 1.0 ;
+                        wodset[ jj ] += (float)(hptr->corr);
+                    }
                     if( fout1D != NULL )
                     {
                         /* add source, dest, correlation to 1D file */
@@ -1219,9 +1292,14 @@ int main( int argc , char *argv[] )
                     pptr = hptr;
                     hptr = hptr->next;
 
+                    if((void*)pptr == (void*)histogram2)
+                    {
+                        fprintf(stderr,"somehow freeing histogram (%p) as though it is a hist node\n",histogram2);
+                    }
                     /* delete the node */
                     if(pptr)
                     {
+#pragma omp critical(malloc)
                         free(pptr);
                         DEC_MEM_STATS(( sizeof(hist_node) ), "hist nodes");
                         pptr=NULL;
@@ -1235,18 +1313,19 @@ int main( int argc , char *argv[] )
                 /* go on to the next bin */
                 kin--;
             }
+            fprintf(stderr, "Finished processing histogram2 bins! %d\n", kin);
             PRINT_MEM_STATS("hist2 nodes free - incorporated into output");
+            if (histogram2_save != histogram2 ) fprintf(stderr, "histogram2 mem corruption detected at line %d (%p != %p)\n",__LINE__, histogram2_save, histogram2);
 
 
             /* we are finished with histogram2 */
             {
-                int nbins_rem = 0;
-                for(ii = 0; ii < h2nbins; ii++) nbins_rem+=histogram2[ii].nbin;
                 histogram2 = free_histogram(histogram2, h2nbins);
                 /* -- update running memory estimate to reflect memory allocation */ 
                 PRINT_MEM_STATS( "free hist2" );
             }
 
+            fprintf(stderr, "Finished freeing histogram2 bins! %d\n", kin);
 
             if (nretain < 0 )
             {
@@ -1269,12 +1348,17 @@ int main( int argc , char *argv[] )
                        sizeof(MRI_vectim)), "vectim");
 
    /* toss some trash */
+#pragma omp critical(malloc)
    VECTIM_destroy(xvectim) ;
+#pragma omp critical(malloc)
    DSET_delete(xset) ;
+   if(fout1D!=NULL)fclose(fout1D);
 
    PRINT_MEM_STATS( "vectim unload" );
 
+#pragma omp critical(malloc)
    if (weightedDC) free(weightedDC) ; weightedDC = NULL;
+#pragma omp critical(malloc)
    if (binaryDC) free(binaryDC) ; binaryDC = NULL;
    
    /* finito */
@@ -1284,6 +1368,7 @@ int main( int argc , char *argv[] )
    THD_set_write_compression(COMPRESS_NONE) ; AFNI_setenv("AFNI_AUTOGZIP=NO") ;*/
    DSET_write(cset) ;
    DEC_MEM_STATS( (DSET_NVOX(cset)*DSET_NVALS(cset)*sizeof(float)), "output dset");
+#pragma omp critical(malloc)
    WROTE_DSET(cset) ;
 
    /* force a print */
