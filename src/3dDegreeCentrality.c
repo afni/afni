@@ -1043,7 +1043,7 @@ int main( int argc , char *argv[] )
            {
 
                /* determine the indices corresponding to this node */
-               if ( mask != NULL && imap != NULL )
+               if ( imap != NULL )
                {
                    ii = imap[hptr->i] ;  /* ii= source voxel (we know that ii is in the mask) */
                }
@@ -1051,7 +1051,7 @@ int main( int argc , char *argv[] )
                {
                    ii = hptr->i ;
                }
-               if ( mask != NULL && imap != NULL )
+               if ( imap != NULL )
                {
                    jj = imap[hptr->j] ;  /* ii= source voxel (we know that ii is in the mask) */
                }
@@ -1179,7 +1179,7 @@ int main( int argc , char *argv[] )
                 {
      
                     /* determine the indices corresponding to this node */
-                    if ( mask != NULL && imap != NULL )
+                    if ( imap != NULL )
                     {
                         ii = imap[hptr->i] ;  
                     }
@@ -1261,23 +1261,6 @@ int main( int argc , char *argv[] )
         }
    }
 
-
-   /* CC BROKEN need to fix this, since mask and mset are freed a really long time ago,
-        this information never gets set, we shall figure it out */
-   /* write mask info (if any) to output dataset header */
-   if( mask != NULL ){
-     char *maskstring = mask_to_b64string(nvox,mask) ;
-     THD_set_string_atr( cset->dblk , "AFNI_AUTOTCORR_MASK" , maskstring ) ;
-     free(maskstring) ; free(mask) ;
-     if( ISVALID_DSET(mset) ){
-       THD_set_string_atr( cset->dblk , "AFNI_AUTOCORR_MASK_IDCODE" ,
-                                        DSET_IDCODE_STR(mset)        ) ;
-       THD_set_string_atr( cset->dblk , "AFNI_AUTOCORR_MASK_NAME"   ,
-                                        DSET_HEADNAME(mset)          ) ;
-       DSET_delete(mset) ;
-     }
-   }
-   
    fprintf(stderr,"Done..\n") ;
 
    /* update running memory statistics to reflect freeing the vectim */
