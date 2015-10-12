@@ -2,7 +2,7 @@
 # This is for compiling with OpenMP support on a 64-bit system.
 # It is based on linux_xorg7_64 and is used on a Fedora 10 system.
 
-CPROF = -pg -g
+CPROF = -g
 USE_ZLIB = -DHAVE_ZLIB
 LZLIB    = -lz
 USE_GIFTI = -DHAVE_GIFTI
