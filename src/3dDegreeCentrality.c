@@ -56,9 +56,9 @@ static int MEM_STAT = 0;
             if( ndx < MAX_NUM_TAGS ) \
             { \
                 mem_allocated[ ndx ] += (long)(INC); \
-                if ((long)(INC) > 1024 ) fprintf(stderr, "Incrementing memory for %s by %ldB\n", TAG, (INC)); \
+                if ((long)(INC) > 1024 ) WARNING_message("Incrementing memory for %s by %ldB\n", TAG, (INC)); \
             } \
-            else fprintf(stderr, "No room in mem profiler for %s\n", TAG ); \
+            else WARNING_message("No room in mem profiler for %s\n", TAG ); \
         } \
         total_mem += (long)(INC); \
         running_mem += (long)(INC); \
@@ -80,12 +80,12 @@ static int MEM_STAT = 0;
             } \
             if(( ndx >= mem_num_tags ) && (ndx < MAX_NUM_TAGS)) \
             { \
-                fprintf(stderr, "Could not find tag %s in mem profiler\n", TAG ); \
+                WARNING_message("Could not find tag %s in mem profiler\n", TAG ); \
             } \
             else \
             { \
                 mem_freed[ ndx ] += (long)(DEC); \
-                if ((long)(DEC) > 1024 ) fprintf(stderr, "Free %ldB of memory for %s\n", (DEC), TAG); \
+                if ((long)(DEC) > 1024 ) WARNING_message("Free %ldB of memory for %s\n", (DEC), TAG); \
             } \
         } \
         running_mem -= (long)(DEC); \
@@ -94,7 +94,7 @@ static int MEM_STAT = 0;
 #define PRINT_MEM_STATS( TAG ) \
         if ( MEM_STAT == 1 ) \
         { \
-            fprintf(stderr, "\n======\n== Mem Stats (%s): Running %3.3fMB, Total %3.3fMB, Peak %3.3fMB\n", \
+            INFO_message("\n======\n== Mem Stats (%s): Running %3.3fMB, Total %3.3fMB, Peak %3.3fMB\n", \
             TAG, \
             (double)(running_mem/(1024.0*1024.0)), \
             (double)(total_mem/(1024.0*1024.0)), \
@@ -102,10 +102,10 @@ static int MEM_STAT = 0;
             if( MEM_PROF ==  1 ) \
             { \
                 int ndx = 0; \
-                fprintf(stderr, "== Memory Profile\n"); \
+                INFO_message("== Memory Profile\n"); \
                 for( ndx=0; ndx < mem_num_tags; ndx++ ) \
                 { \
-                    fprintf(stderr, "%s: %ld allocated %ld freed\n", mem_tags[ndx], \
+                    INFO_message("%s: %ld allocated %ld freed\n", mem_tags[ndx], \
                         mem_allocated[ndx], mem_freed[ndx] ); \
                 } \
             } \
@@ -145,7 +145,6 @@ hist_node_head* free_histogram(hist_node_head * histogram, int nhistnodes)
        to beleive that it exists */
     if (histogram != NULL )
     {
-        fprintf(stderr, "Histogram[0] values %p, %ld, %f, %f\n", histogram[0].nodes, histogram[0].nbin, histogram[0].bin_low, histogram[0].bin_high);
         /* iterate through the histogram bins */
         for( kout = 0; kout < nhistnodes; kout++ )
         {
@@ -163,16 +162,11 @@ hist_node_head* free_histogram(hist_node_head * histogram, int nhistnodes)
                     pptr = hptr;
                     hptr = hptr->next;
 
-                    if((void*)pptr == (void*)histogram)
-                    {
-                        fprintf(stderr,"somehow freeing histogram (%p) as though it is a hist node\n",histogram);
-                    }
                     /* delete the node */
                     if(pptr != NULL)
                     { 
                         /* -- update running memory estimate to reflect memory allocation */ 
                         DEC_MEM_STATS(( sizeof(hist_node)), "hist nodes");
-#pragma omp critical(malloc)
                         free(pptr);
                         pptr=NULL;
                     }
@@ -185,11 +179,7 @@ hist_node_head* free_histogram(hist_node_head * histogram, int nhistnodes)
         /* all of the linked lists should be empty,
            now free the bin array */
         if (histogram != NULL) {
-            fprintf(stderr, "Freeing histogram %p after clearing out linked lists!\n", histogram);
-            fprintf(stderr, "Histogram values %p, %ld, %f, %f\n", histogram[0].nodes, histogram[0].nbin, histogram[0].bin_low, histogram[0].bin_high);
-#pragma omp critical(malloc)
             free(histogram);
-            fprintf(stderr, "Just freed it!\n");
         }
         DEC_MEM_STATS(( nhistnodes * sizeof(hist_node_head)), "hist bins");
     }
@@ -276,18 +266,7 @@ float my_THD_eta_squared( int n, float *x , float *y )
    return (1.0f - num/denom) ;
 }
 
-double print_added_memory(char * new_var, double inc, double nb1)
-{
-    fprintf(stderr, "%s :: Added %.3f B to nb1... :: nb1: %f MB\n",
-        new_var, inc, (nb1+inc)/((double)(1024*1024)));
-
-    // return nb1
-    return((double)(inc+nb1));
-}
-
-
 /*----------------------------------------------------------------------------*/
-
 static void vstep_print(void)
 {
    static int nn=0 ;
@@ -587,18 +566,15 @@ int main( int argc , char *argv[] )
         mat44 affine_mat = xset->daxes->ijk_to_dicom;
 
         /* print command line statement */
-        fprintf(stderr,"starting to print to 1D file\n");
         fprintf(fout1D,"#Similarity matrix from command:\n#");
         for(ii=0; ii<argc; ++ii) fprintf(fout1D,"%s ", argv[ii]);
 
         /* Print affine matrix */
-        fprintf(stderr,"printed header to 1D file\n");
         fprintf(fout1D,"\n");
         fprintf(fout1D,"#[ ");
         int mi, mj;
         for(mi = 0; mi < 4; mi++) {
             for(mj = 0; mj < 4; mj++) {
-                fprintf(stderr, "%d %d\n", mi, mj);
                 fprintf(fout1D, "%.6f ", affine_mat.m[mi][mj]);
             }
         }
@@ -836,7 +812,6 @@ int main( int argc , char *argv[] )
                         if ((new_node_idx > nhistnodes) || (new_node_idx < bottom_node_idx))
                         {
                             /* this error should indicate a programming error and should not happen */
-                            fprintf(stderr,"Node index %d is out of range [%d,%d)!",new_node_idx, bottom_node_idx,nhistnodes);
                             WARNING_message("Node index %d is out of range [%d,%d)!",new_node_idx,
                             bottom_node_idx, nhistnodes);
                         }
@@ -882,7 +857,6 @@ int main( int argc , char *argv[] )
                                         if(tptr!= NULL)
                                         {
                                             DEC_MEM_STATS( sizeof(hist_node), "hist nodes" );
-#pragma omp critical(malloc)
                                             free(tptr);
                                         }
                                     }
@@ -894,7 +868,7 @@ int main( int argc , char *argv[] )
  
                                     /* get the new threshold */
                                     thresh = histogram[++bottom_node_idx].bin_low;
-                                    if(MEM_STAT == 1) fprintf(stderr, "Increasing threshold to %3.2f (%d)\n",
+                                    if(MEM_STAT == 1) INFO_message("Increasing threshold to %3.2f (%d)\n",
                                         thresh,bottom_node_idx); 
                                 }
 
@@ -912,8 +886,8 @@ int main( int argc , char *argv[] )
     AFNI_OMP_END ;
 
     /* update the user so that they know what we are up to */
-    fprintf (stderr, "AFNI_OMP finished\n");
-    fprintf (stderr, "Found %d (%3.2f%%) correlations above threshold (%f)\n",
+    INFO_message ("AFNI_OMP finished\n");
+    INFO_message ("Found %d (%3.2f%%) correlations above threshold (%f)\n",
        totNumCor, 100.0*((float)totNumCor)/((float)totPosCor), thresh);
 
    /*----------  Finish up ---------*/
@@ -927,12 +901,9 @@ int main( int argc , char *argv[] )
                 histogram[ kout ].nbin, histogram[ kout ].nodes );
        }
    }*/
-   fprintf (stderr, "Creating output dataset\n");
-
 
    /*-- create output dataset --*/
    cset = EDIT_empty_copy( xset ) ;
-   fprintf (stderr, "Copied input dataset header for output\n");
 
    /*-- configure the output dataset */
    if( abuc ){
@@ -957,7 +928,6 @@ int main( int argc , char *argv[] )
                       ADN_none ) ;
    }
 
-   fprintf (stderr, "Calculating dataset sizes\n");
    if( THD_deathcon() && THD_is_file(DSET_HEADNAME(cset)) )
    {
        if (binaryDC){ free(binaryDC); binaryDC = NULL; }
@@ -1022,7 +992,7 @@ int main( int argc , char *argv[] )
    
           if( ii >= DSET_NVOX(cset) )
           {
-              fprintf(stderr, "avoiding bodset, wodset overflow %d > %d (%s,%d)\n",
+              WARNING_message("Avoiding bodset, wodset overflow %d > %d (%s,%d)\n",
                   ii,DSET_NVOX(cset),__FILE__,__LINE__ );
           }
           else
@@ -1035,7 +1005,6 @@ int main( int argc , char *argv[] )
        /* we are done with this memory, and can kill it now*/
        if(binaryDC)
        {
-#pragma omp critical(malloc)
            free(binaryDC);
            binaryDC=NULL;
            /* -- update running memory estimate to reflect memory allocation */ 
@@ -1044,7 +1013,6 @@ int main( int argc , char *argv[] )
        }
        if(weightedDC)
        {
-#pragma omp critical(malloc)
            free(weightedDC);
            weightedDC=NULL;
            /* -- update running memory estimate to reflect memory allocation */ 
@@ -1089,12 +1057,12 @@ int main( int argc , char *argv[] )
                {
                    if( ii >= DSET_NVOX(cset))
                    {
-                       fprintf(stderr, "avoiding bodset, wodset overflow (ii) %d > %d\n (%s,%d)\n",
+                       WARNING_message("Avoiding bodset, wodset overflow (ii) %d > %d\n (%s,%d)\n",
                            ii,DSET_NVOX(cset),__FILE__,__LINE__ );
                    }
                    if( jj >= DSET_NVOX(cset))
                    {
-                       fprintf(stderr, "avoinding bodset, wodset overflow (jj) %d > %d\n (%s,%d)\n",
+                       WARNING_message("Avoiding bodset, wodset overflow (jj) %d > %d\n (%s,%d)\n",
                            jj,DSET_NVOX(cset),__FILE__,__LINE__ );
                    }
                }
@@ -1129,7 +1097,6 @@ int main( int argc , char *argv[] )
                    /* -- update running memory estimate to reflect memory allocation */ 
                    DEC_MEM_STATS(sizeof( hist_node ), "hist nodes" );
                    /* free the mem */
-#pragma omp critical(malloc)
                    free(pptr);
                    pptr=NULL;
                }
@@ -1158,7 +1125,6 @@ int main( int argc , char *argv[] )
                ((float)h2nbins);
 
             /* allocate the bins */
-#pragma omp critical(malloc)
             if(( histogram2 = (hist_node_head*)malloc(h2nbins*sizeof(hist_node_head))) == NULL )
             {
                 if (binaryDC){ free(binaryDC); binaryDC = NULL; }
@@ -1170,7 +1136,6 @@ int main( int argc , char *argv[] )
             else {
                 /* -- update running memory estimate to reflect memory allocation */ 
                 histogram2_save = histogram2;
-                fprintf(stderr, "histogram2 is %p\n", histogram2_save);
                 INC_MEM_STATS(( h2nbins*sizeof(hist_node_head )), "hist bins");
                 PRINT_MEM_STATS( "hist2" );
             }
@@ -1185,12 +1150,6 @@ int main( int argc , char *argv[] )
                 /*INFO_message("Hist2 bin %d [%3.3f, %3.3f) [%d, %p]\n",
                     kin, histogram2[ kin ].bin_low, histogram2[ kin ].bin_high,
                     histogram2[ kin ].nbin, histogram2[ kin ].nodes );*/
-            }
-
-            if (histogram2_save != histogram2 )
-            {
-                fprintf(stderr, "histogram2 mem corruption detected at line %d (%p != %p)\n",
-                   __LINE__, histogram2_save, histogram2);
             }
 
             /* move correlations from histogram to histgram2 */
@@ -1214,12 +1173,6 @@ int main( int argc , char *argv[] )
                
             }
 
-            if (histogram2_save != histogram2 )
-            {
-                fprintf(stderr, "histogram2 mem corruption detected at line %d (%p != %p)\n",
-                    __LINE__, histogram2_save, histogram2);
-            }
-            fprintf(stderr, "Finished allocating histogram2 bins!\n");
             /* free the remainder of histogram */
             {
                 int nbins_rem = 0;
@@ -1227,7 +1180,6 @@ int main( int argc , char *argv[] )
                 histogram = free_histogram(histogram, nhistnodes);
                 PRINT_MEM_STATS( "free remainder of histogram1" );
             }
-            fprintf(stderr, "Finished freeing histogram bins!\n");
 
             kin = h2nbins - 1;
             while (( nretain > 0 ) && ( kin >= 0 ))
@@ -1259,12 +1211,12 @@ int main( int argc , char *argv[] )
                     {
                         if( ii >= DSET_NVOX(cset))
                         {
-                            fprintf(stderr, "avoiding bodset, wodset overflow (ii) %d > %d\n (%s,%d)\n",
+                            WARNING_message("Avoiding bodset, wodset overflow (ii) %d > %d\n (%s,%d)\n",
                                 ii,DSET_NVOX(cset),__FILE__,__LINE__ );
                         }
                         if( jj >= DSET_NVOX(cset))
                         {
-                            fprintf(stderr, "avoinding bodset, wodset overflow (jj) %d > %d\n (%s,%d)\n",
+                            WARNING_message("Avoiding bodset, wodset overflow (jj) %d > %d\n (%s,%d)\n",
                                 jj,DSET_NVOX(cset),__FILE__,__LINE__ );
                         }
                     }
@@ -1292,14 +1244,9 @@ int main( int argc , char *argv[] )
                     pptr = hptr;
                     hptr = hptr->next;
 
-                    if((void*)pptr == (void*)histogram2)
-                    {
-                        fprintf(stderr,"somehow freeing histogram (%p) as though it is a hist node\n",histogram2);
-                    }
                     /* delete the node */
                     if(pptr)
                     {
-#pragma omp critical(malloc)
                         free(pptr);
                         DEC_MEM_STATS(( sizeof(hist_node) ), "hist nodes");
                         pptr=NULL;
@@ -1313,10 +1260,7 @@ int main( int argc , char *argv[] )
                 /* go on to the next bin */
                 kin--;
             }
-            fprintf(stderr, "Finished processing histogram2 bins! %d\n", kin);
             PRINT_MEM_STATS("hist2 nodes free - incorporated into output");
-            if (histogram2_save != histogram2 ) fprintf(stderr, "histogram2 mem corruption detected at line %d (%p != %p)\n",__LINE__, histogram2_save, histogram2);
-
 
             /* we are finished with histogram2 */
             {
@@ -1324,8 +1268,6 @@ int main( int argc , char *argv[] )
                 /* -- update running memory estimate to reflect memory allocation */ 
                 PRINT_MEM_STATS( "free hist2" );
             }
-
-            fprintf(stderr, "Finished freeing histogram2 bins! %d\n", kin);
 
             if (nretain < 0 )
             {
@@ -1340,7 +1282,7 @@ int main( int argc , char *argv[] )
         }
    }
 
-   fprintf(stderr,"Done..\n") ;
+   INFO_message("Done..\n") ;
 
    /* update running memory statistics to reflect freeing the vectim */
    DEC_MEM_STATS(((xvectim->nvec*sizeof(int)) +
@@ -1348,17 +1290,13 @@ int main( int argc , char *argv[] )
                        sizeof(MRI_vectim)), "vectim");
 
    /* toss some trash */
-#pragma omp critical(malloc)
    VECTIM_destroy(xvectim) ;
-#pragma omp critical(malloc)
    DSET_delete(xset) ;
    if(fout1D!=NULL)fclose(fout1D);
 
    PRINT_MEM_STATS( "vectim unload" );
 
-#pragma omp critical(malloc)
    if (weightedDC) free(weightedDC) ; weightedDC = NULL;
-#pragma omp critical(malloc)
    if (binaryDC) free(binaryDC) ; binaryDC = NULL;
    
    /* finito */
@@ -1368,7 +1306,6 @@ int main( int argc , char *argv[] )
    THD_set_write_compression(COMPRESS_NONE) ; AFNI_setenv("AFNI_AUTOGZIP=NO") ;*/
    DSET_write(cset) ;
    DEC_MEM_STATS( (DSET_NVOX(cset)*DSET_NVALS(cset)*sizeof(float)), "output dset");
-#pragma omp critical(malloc)
    WROTE_DSET(cset) ;
 
    /* force a print */
