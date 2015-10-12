@@ -18,25 +18,99 @@ afni/src/3dDegreeCentrality.c
 #define PEARSON  3
 #define ETA2     4
 
+#define MAX_NUM_TAGS 32
+#define MAX_TAG_LEN 256
+
+static char mem_tags[MAX_NUM_TAGS][MAX_TAG_LEN];
+static long mem_allocated[MAX_NUM_TAGS];
+static long mem_freed[MAX_NUM_TAGS];
+static long mem_num_tags = 0;
+static long running_mem = 0;
+static long peak_mem = 0;
+static long total_mem = 0;
+static int MEM_PROF = 0;
+static int MEM_STAT = 0;
+
 /* CC macro for updating mem stats */
-#define INC_MEM_STATS( INC ) \
+#define INC_MEM_STATS( INC, TAG ) \
     { \
-        total_mem += (long)INC; \
-        running_mem += (long)INC; \
+        if( MEM_PROF == 1 ) \
+        { \
+            int ndx = 0; \
+            while( ndx < mem_num_tags ) \
+            { \
+                if( strncmp( mem_tags[ndx], TAG, MAX_TAG_LEN ) == 0 ) \
+                { \
+                    break; \
+                } \
+                ndx++; \
+            } \
+            if(( ndx >= mem_num_tags ) && (ndx < MAX_NUM_TAGS)) \
+            { \
+                /* adding a new tag */ \
+                strncpy( mem_tags[ ndx ], TAG, MAX_TAG_LEN ); \
+                mem_allocated[ ndx ] = 0; \
+                mem_freed[ ndx ] = 0; \
+                mem_num_tags++; \
+            } \
+            if( ndx < MAX_NUM_TAGS ) \
+            { \
+                mem_allocated[ ndx ] += (long)(INC); \
+                if ((long)(INC) > 1024 ) fprintf(stderr, "Incrementing memory for %s by %ldB\n", TAG, (INC)); \
+            } \
+            else fprintf(stderr, "No room in mem profiler for %s\n", TAG ); \
+        } \
+        total_mem += (long)(INC); \
+        running_mem += (long)(INC); \
         if (running_mem > peak_mem) peak_mem = running_mem; \
     }
 
-#define PRINT_MEM_STATS( TAG, VERB ) \
-        if (VERB == 1) fprintf(stderr, "Mem Stats (%s): Running %3.3fMB, Total %3.3fMB, Peak %3.3fMB\n", \
+#define DEC_MEM_STATS( DEC, TAG ) \
+    { \
+        if( MEM_PROF == 1 ) \
+        { \
+            int ndx = 0; \
+            while( ndx < mem_num_tags ) \
+            { \
+                if( strncmp( mem_tags[ndx], TAG, MAX_TAG_LEN ) == 0 ) \
+                { \
+                    break; \
+                } \
+                else ndx++ ; \
+            } \
+            if(( ndx >= mem_num_tags ) && (ndx < MAX_NUM_TAGS)) \
+            { \
+                fprintf(stderr, "Could not find tag %s in mem profiler\n", TAG ); \
+            } \
+            else \
+            { \
+                mem_freed[ ndx ] += (long)(DEC); \
+                if ((long)(DEC) > 1024 ) fprintf(stderr, "Free %ldB of memory for %s\n", (DEC), TAG); \
+            } \
+        } \
+        running_mem -= (long)(DEC); \
+    }
+
+#define PRINT_MEM_STATS( TAG ) \
+        if ( MEM_STAT == 1 ) \
+        { \
+            fprintf(stderr, "\n======\n== Mem Stats (%s): Running %3.3fMB, Total %3.3fMB, Peak %3.3fMB\n", \
             TAG, \
             (double)(running_mem/(1024.0*1024.0)), \
             (double)(total_mem/(1024.0*1024.0)), \
-            (double)(peak_mem/(1024.0*1024.0)));
+            (double)(peak_mem/(1024.0*1024.0))); \
+            if( MEM_PROF ==  1 ) \
+            { \
+                int ndx = 0; \
+                fprintf(stderr, "== Memory Profile\n"); \
+                for( ndx=0; ndx < mem_num_tags; ndx++ ) \
+                { \
+                    fprintf(stderr, "%s: %ld allocated %ld freed\n", mem_tags[ndx], \
+                        mem_allocated[ndx], mem_freed[ndx] ); \
+                } \
+            } \
+        }
 
-#define DEC_MEM_STATS( DEC ) \
-    { \
-        running_mem -= (long)DEC; \
-    }
 
 /* CC define nodes for histogram data structure
    that we will use for sparsity thresholding */
@@ -45,18 +119,18 @@ typedef struct _hist_node hist_node;
 // Define histogram node structure
 struct _hist_node
 {
-    int i;
-    int j;
-    float corr;
+    long i;
+    long j;
+    double corr;
     hist_node* next;
 };
 
 // Alias _hist_node_head declaration as "hist_node_head" type via typedef
 typedef struct _hist_node_head
 {
-    float bin_low;
-    float bin_high;
-    int nbin;
+    double bin_low;
+    double bin_high;
+    long nbin;
     hist_node* nodes;
 } hist_node_head;
 
@@ -89,7 +163,13 @@ hist_node_head* free_histogram(hist_node_head * histogram, int nhistnodes)
                     hptr = hptr->next;
 
                     /* delete the node */
-                    if(pptr){free(pptr);pptr=NULL;}
+                    if(pptr)
+                    { 
+                        /* -- update running memory estimate to reflect memory allocation */ 
+                        DEC_MEM_STATS(( sizeof(hist_node)), "hist nodes");
+                        free(pptr);
+                        pptr=NULL;
+                    }
                 }
                 /* indicate that we have freed the memory */
                 histogram[kout].nodes = NULL;
@@ -99,6 +179,7 @@ hist_node_head* free_histogram(hist_node_head * histogram, int nhistnodes)
         /* all of the linked lists should be empty,
            now free the bin array */
         free(histogram);
+        DEC_MEM_STATS(( nhistnodes * sizeof(hist_node_head)), "hist bins");
     }
 
     return(NULL);
@@ -230,12 +311,6 @@ int main( int argc , char *argv[] )
    float * bodset;
    float * wodset;
 
-   long nb1 = 0;
-   long total_mem = 0;
-   long running_mem = 0;
-   long peak_mem = 0;
-
-   double inc_size = 0;
    int nb_ctr = 0;
 
    /* CC - added flags for thresholding correlations */
@@ -245,9 +320,6 @@ int main( int argc , char *argv[] )
    float sparsity = 0.0;
    int dosparsity = 0;
   
-   /* CC flag to controls verbosity */
-   int mem_stat = 0;
- 
    /* variables for calculating degree centrality */
    int * binaryDC = NULL;
    float * weightedDC = NULL;
@@ -425,7 +497,10 @@ int main( int argc , char *argv[] )
          polort = val ; nopt++ ; continue ;
       }
       if( strcmp(argv[nopt],"-mem_stat") == 0 ){
-         mem_stat = 1 ; nopt++ ; continue ;
+         MEM_STAT = 1 ; nopt++ ; continue ;
+      }
+      if( strncmp(argv[nopt],"-mem_profile",8) == 0 ){
+         MEM_PROF = 1 ; nopt++ ; continue ;
       }
       /* check for 1d argument */
       if ( strcmp(argv[nopt],"-out1D") == 0 ){
@@ -452,8 +527,8 @@ int main( int argc , char *argv[] )
 
    /*-- compute mask array, if desired --*/
    nvox = DSET_NVOX(xset) ; nvals = DSET_NVALS(xset) ;
-   INC_MEM_STATS((nvox * nvals * sizeof(double)));
-   PRINT_MEM_STATS("inset", mem_stat);
+   INC_MEM_STATS((nvox * nvals * sizeof(double)), "input dset");
+   PRINT_MEM_STATS("inset");
 
    /* if a mask was specified make sure it is appropriate */
    if( mset ){
@@ -463,20 +538,20 @@ int main( int argc , char *argv[] )
       mask  = THD_makemask(mset, 0, 1.0, 0.0) ;
 
       /* update running memory statistics to reflect loading the image */
-      INC_MEM_STATS( mset->dblk->total_bytes );
-      PRINT_MEM_STATS( "mset load", mem_stat );
+      INC_MEM_STATS( mset->dblk->total_bytes, "mask dset" );
+      PRINT_MEM_STATS( "mset load" );
 
       nmask = THD_countmask( nvox , mask ) ;
-      INC_MEM_STATS( nmask * sizeof(byte) );
-      PRINT_MEM_STATS( "mask", mem_stat );
+      INC_MEM_STATS( nmask * sizeof(byte), "mask array" );
+      PRINT_MEM_STATS( "mask" );
 
       INFO_message("%d voxels in -mask dataset",nmask) ;
       if( nmask < 2 ) ERROR_exit("Only %d voxels in -mask, exiting...",nmask);
-      DSET_unload(mset) ;
 
       /* update running memory statistics to reflect loading the image */
-      DEC_MEM_STATS( mset->dblk->total_bytes );
-      PRINT_MEM_STATS( "mset unload", mem_stat );
+      DEC_MEM_STATS( mset->dblk->total_bytes, "mask dset" );
+      DSET_unload(mset) ;
+      PRINT_MEM_STATS( "mset unload" );
    } 
    /* if automasking is requested, handle that now */
    else if( do_autoclip ){
@@ -553,8 +628,8 @@ int main( int argc , char *argv[] )
    /*-- CC update our memory stats to reflect vectim -- */
    INC_MEM_STATS((xvectim->nvec*sizeof(int)) +
                        ((xvectim->nvec)*(xvectim->nvals))*sizeof(float) +
-                       sizeof(MRI_vectim));
-   PRINT_MEM_STATS( "vect", mem_stat );
+                       sizeof(MRI_vectim), "vectim");
+   PRINT_MEM_STATS( "vectim" );
 
    /*--- CC the vectim contains a mapping between voxel index and mask index, 
          tap into that here to avoid duplicating memory usage ---*/
@@ -564,15 +639,15 @@ int main( int argc , char *argv[] )
        imap = xvectim->ivec;
 
        /* --- CC free the mask */
+       DEC_MEM_STATS( nmask*sizeof(byte), "mask array" );
        free(mask); mask=NULL;
-       DEC_MEM_STATS( nmask*sizeof(byte) );
-       PRINT_MEM_STATS( "mask unload", mem_stat );
+       PRINT_MEM_STATS( "mask unload" );
    }
 
    /* -- CC unloading the dataset to reduce memory usage ?? -- */
-   DEC_MEM_STATS((DSET_NVOX(xset) * DSET_NVALS(xset) * sizeof(double)));
+   DEC_MEM_STATS((DSET_NVOX(xset) * DSET_NVALS(xset) * sizeof(double)), "input dset");
    DSET_unload(xset) ;
-   PRINT_MEM_STATS("inset unload", mem_stat);
+   PRINT_MEM_STATS("inset unload");
 
    /* -- CC configure detrending --*/
    if( polort < 0 && method == PEARSON ){
@@ -599,8 +674,8 @@ int main( int argc , char *argv[] )
         }
 
         /* -- update running memory estimate to reflect memory allocation */ 
-        INC_MEM_STATS( nmask*sizeof(int) );
-        PRINT_MEM_STATS( "binaryDC", mem_stat );
+        INC_MEM_STATS( nmask*sizeof(int), "binary DC array" );
+        PRINT_MEM_STATS( "binaryDC" );
 
         if( ( weightedDC = (float*)calloc( nmask, sizeof(float) )) == NULL )
         {
@@ -609,8 +684,8 @@ int main( int argc , char *argv[] )
                 nmask*sizeof(float)); 
         }
         /* -- update running memory estimate to reflect memory allocation */ 
-        INC_MEM_STATS( nmask*sizeof(float) );
-        PRINT_MEM_STATS( "weightedDC", mem_stat );
+        INC_MEM_STATS( nmask*sizeof(float), "weighted DC array" );
+        PRINT_MEM_STATS( "weightedDC" );
     }
 
 
@@ -635,8 +710,8 @@ int main( int argc , char *argv[] )
         }
         else {
             /* -- update running memory estimate to reflect memory allocation */ 
-            INC_MEM_STATS( nhistnodes*sizeof(hist_node_head) );
-            PRINT_MEM_STATS( "hist1", mem_stat );
+            INC_MEM_STATS( nhistnodes*sizeof(hist_node_head), "hist bins" );
+            PRINT_MEM_STATS( "hist1" );
         }
 
         /* initialize history bins */
@@ -687,13 +762,13 @@ int main( int argc , char *argv[] )
        /*-- For the progress tracker, we want to print out 50 numbers,
             figure out a number of loop iterations that will make this easy */
        vstep = (int)( nmask / (nthr*50.0f) + 0.901f ) ; vii = 0 ;
-       if( ithr == 0 ) fprintf(stderr,"Looping:") ;
+       if((MEM_STAT==0) && (ithr == 0 )) fprintf(stderr,"Looping:") ;
 
 #pragma omp for schedule(static, 1)
        for( lout=0 ; lout < xvectim->nvec ; lout++ ){  /*----- outer voxel loop -----*/
 
           if( ithr == 0 && vstep > 2 ) /* allow small dsets 16 Jun 2011 [rickr] */
-          { vii++ ; if( vii%vstep == vstep/2 && mem_stat == 0 ) vstep_print(); }
+          { vii++ ; if( vii%vstep == vstep/2 && MEM_STAT == 0 ) vstep_print(); }
 
           /* get ref time series from this voxel */
           xsar = VECTIM_PTR(xvectim,lout) ;
@@ -772,8 +847,8 @@ int main( int argc , char *argv[] )
                                 new_node->next = NULL;
 
                                 /* -- update running memory estimate to reflect memory allocation */ 
-                                INC_MEM_STATS( sizeof(hist_node) );
-                                if ((totNumCor % (1024*1024)) == 0) PRINT_MEM_STATS( "hist nodes", mem_stat );
+                                INC_MEM_STATS( sizeof(hist_node), "hist nodes" );
+                                if ((totNumCor % (1024*1024)) == 0) PRINT_MEM_STATS( "hist nodes" );
 
                                 /* populate histogram */
                                 new_node->next = histogram[new_node_idx].nodes;
@@ -793,11 +868,11 @@ int main( int argc , char *argv[] )
                                         /* check that the ptr is not null before freeing it*/
                                         if(tptr!= NULL)
                                         {
+                                            DEC_MEM_STATS( sizeof(hist_node), "hist nodes" );
                                             free(tptr);
-                                            DEC_MEM_STATS( sizeof(hist_node) );
                                         }
                                     }
-                                    PRINT_MEM_STATS( "unloaded hist nodes", mem_stat );
+                                    PRINT_MEM_STATS( "unloaded hist nodes - thresh increase" );
 
                                     histogram[bottom_node_idx].nodes = NULL;
                                     totNumCor -= histogram[bottom_node_idx].nbin;
@@ -805,7 +880,7 @@ int main( int argc , char *argv[] )
  
                                     /* get the new threshold */
                                     thresh = histogram[++bottom_node_idx].bin_low;
-                                    if(mem_stat == 1) fprintf(stderr, "Increasing threshold to %3.2f (%d)\n",
+                                    if(MEM_STAT == 1) fprintf(stderr, "Increasing threshold to %3.2f (%d)\n",
                                         thresh,bottom_node_idx); 
                                 }
 
@@ -914,8 +989,8 @@ int main( int argc , char *argv[] )
    wodset = DSET_ARRAY(cset,subbrik);
 
    /* increment memory stats */
-   INC_MEM_STATS( (DSET_NVOX(cset)*DSET_NVALS(cset)*sizeof(float)));
-   PRINT_MEM_STATS( "outset", mem_stat );
+   INC_MEM_STATS( (DSET_NVOX(cset)*DSET_NVALS(cset)*sizeof(float)), "output dset");
+   PRINT_MEM_STATS( "outset" );
 
    /* pull the values out of the histogram */
    if( dosparsity == 0 )
@@ -941,16 +1016,16 @@ int main( int argc , char *argv[] )
            free(binaryDC);
            binaryDC=NULL;
            /* -- update running memory estimate to reflect memory allocation */ 
-           DEC_MEM_STATS( nmask*sizeof(int) );
-           PRINT_MEM_STATS( "binaryDC", mem_stat );
+           DEC_MEM_STATS( nmask*sizeof(int), "binary DC array" );
+           PRINT_MEM_STATS( "binaryDC" );
        }
        if(weightedDC)
        {
            free(weightedDC);
            weightedDC=NULL;
            /* -- update running memory estimate to reflect memory allocation */ 
-           DEC_MEM_STATS( nmask*sizeof(float) );
-           PRINT_MEM_STATS( "weightedDC", mem_stat );
+           DEC_MEM_STATS( nmask*sizeof(float), "weighted DC array" );
+           PRINT_MEM_STATS( "weightedDC" );
        }
    }
    else
@@ -1011,9 +1086,10 @@ int main( int argc , char *argv[] )
                /* delete the node */
                if(pptr)
                {
-                   free(pptr);
                    /* -- update running memory estimate to reflect memory allocation */ 
-                   DEC_MEM_STATS(sizeof( hist_node ));
+                   DEC_MEM_STATS(sizeof( hist_node ), "hist nodes" );
+                   /* free the mem */
+                   free(pptr);
                    pptr=NULL;
                }
            } 
@@ -1024,7 +1100,7 @@ int main( int argc , char *argv[] )
            /* go on to the next bin */
            kout--;
        }
-       PRINT_MEM_STATS( "hist bins free", mem_stat );
+       PRINT_MEM_STATS( "hist1 bins free - inc into output" );
 
         /* if we haven't used all of the correlations that are available, go through and 
            add a subset of the voxels from the remaining bin */
@@ -1050,8 +1126,8 @@ int main( int argc , char *argv[] )
             }
             else {
                 /* -- update running memory estimate to reflect memory allocation */ 
-                INC_MEM_STATS(( h2nbins*sizeof(hist_node_head )));
-                PRINT_MEM_STATS( "hist2", mem_stat );
+                INC_MEM_STATS(( h2nbins*sizeof(hist_node_head )), "hist bins");
+                PRINT_MEM_STATS( "hist2" );
             }
    
             /* initiatize the bins */ 
@@ -1092,9 +1168,7 @@ int main( int argc , char *argv[] )
                 int nbins_rem = 0;
                 for(ii = 0; ii < nhistnodes; ii++) nbins_rem+=histogram[ii].nbin;
                 histogram = free_histogram(histogram, nhistnodes);
-                /* -- update running memory estimate to reflect memory allocation */ 
-                DEC_MEM_STATS(( nbins_rem * sizeof(hist_node) + nhistnodes*sizeof(hist_node_head)));
-                PRINT_MEM_STATS( "free hist", mem_stat );
+                PRINT_MEM_STATS( "free remainder of histogram1" );
             }
 
             kin = h2nbins - 1;
@@ -1149,7 +1223,7 @@ int main( int argc , char *argv[] )
                     if(pptr)
                     {
                         free(pptr);
-                        DEC_MEM_STATS(( sizeof(hist_node) ));
+                        DEC_MEM_STATS(( sizeof(hist_node) ), "hist nodes");
                         pptr=NULL;
                     }
                 }
@@ -1161,7 +1235,7 @@ int main( int argc , char *argv[] )
                 /* go on to the next bin */
                 kin--;
             }
-            PRINT_MEM_STATS("hist2 nodes free",mem_stat);
+            PRINT_MEM_STATS("hist2 nodes free - incorporated into output");
 
 
             /* we are finished with histogram2 */
@@ -1170,8 +1244,7 @@ int main( int argc , char *argv[] )
                 for(ii = 0; ii < h2nbins; ii++) nbins_rem+=histogram2[ii].nbin;
                 histogram2 = free_histogram(histogram2, h2nbins);
                 /* -- update running memory estimate to reflect memory allocation */ 
-                DEC_MEM_STATS(( nbins_rem * sizeof(hist_node) + h2nbins*sizeof(hist_node_head)));
-                PRINT_MEM_STATS( "free hist2", mem_stat );
+                PRINT_MEM_STATS( "free hist2" );
             }
 
 
@@ -1189,6 +1262,8 @@ int main( int argc , char *argv[] )
    }
 
 
+   /* CC BROKEN need to fix this, since mask and mset are freed a really long time ago,
+        this information never gets set, we shall figure it out */
    /* write mask info (if any) to output dataset header */
    if( mask != NULL ){
      char *maskstring = mask_to_b64string(nvox,mask) ;
@@ -1205,16 +1280,16 @@ int main( int argc , char *argv[] )
    
    fprintf(stderr,"Done..\n") ;
 
-   /* update running memory statistics to reflect loading the image */
-   DEC_MEM_STATS((xvectim->nvec*sizeof(int)) +
+   /* update running memory statistics to reflect freeing the vectim */
+   DEC_MEM_STATS(((xvectim->nvec*sizeof(int)) +
                        ((xvectim->nvec)*(xvectim->nvals))*sizeof(float) +
-                       sizeof(MRI_vectim));
+                       sizeof(MRI_vectim)), "vectim");
 
    /* toss some trash */
    VECTIM_destroy(xvectim) ;
    DSET_delete(xset) ;
 
-   PRINT_MEM_STATS( "vectim unload", mem_stat );
+   PRINT_MEM_STATS( "vectim unload" );
 
    if (weightedDC) free(weightedDC) ; weightedDC = NULL;
    if (binaryDC) free(binaryDC) ; binaryDC = NULL;
@@ -1225,9 +1300,12 @@ int main( int argc , char *argv[] )
    /* this will forst compression to be off, I dont think we want this
    THD_set_write_compression(COMPRESS_NONE) ; AFNI_setenv("AFNI_AUTOGZIP=NO") ;*/
    DSET_write(cset) ;
+   DEC_MEM_STATS( (DSET_NVOX(cset)*DSET_NVALS(cset)*sizeof(float)), "output dset");
    WROTE_DSET(cset) ;
 
-   PRINT_MEM_STATS( "Fin", 1 );
+   /* force a print */
+   MEM_STAT = 1;
+   PRINT_MEM_STATS( "Fin" );
 
    exit(0) ;
 }

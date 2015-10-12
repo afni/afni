@@ -1385,7 +1385,7 @@ AlphaSim:AlphaSim.o
 
 3dDegreeCentrality:3dDegreeCentrality.o
 	$(RM) $@
-	$(CCOMP) -o 3dDegreeCentrality 3dDegreeCentrality.o $(LFLAGS) $(LLIBS) -lefence
+	$(CCOMP) -o 3dDegreeCentrality 3dDegreeCentrality.o $(LFLAGS) $(LLIBS) 
 
 3dAutoTcorrelate.o:3dAutoTcorrelate.c
 	$(RM) $@
