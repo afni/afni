@@ -85,7 +85,7 @@ static int MEM_STAT = 0;
             else \
             { \
                 mem_freed[ ndx ] += (long)(DEC); \
-                if ((long)(DEC) > 1024 ) WARNING_message("Free %ldB of memory for %s\n", (DEC), TAG); \
+                if ((long)(DEC) > 1024 ) INFO_message("Free %ldB of memory for %s\n", (DEC), TAG); \
             } \
         } \
         running_mem -= (long)(DEC); \
@@ -376,11 +376,13 @@ int main( int argc , char *argv[] )
 "  -spearman AND -quadrant are disabled at this time :-(\n"
    #endif
 "\n"
-"  -thresh r = exclude correlations < r from calculations\n"
+"  -thresh r = exclude correlations <= r from calculations\n"
 "  -sparsity s = only use top s percent of correlations in calculations\n"
-"                s should be an integer between 0 and 100.\n"
-"                Requires that a first-pass threshold by defined\n"
-"                using -thresh\n"
+"                s should be an integer between 0 and 100. Uses an\n"
+"                an adaptive thresholding procedure to reduce memory.\n"
+"                The speed of determining the adaptive threshold can\n"
+"                be improved by specifying an initial threshold with\n"
+"                the -thresh flag.\n"
 "\n"
 "  -polort m = Remove polynomical trend of order 'm', for m=-1..3.\n"
 "               [default is m=1; removal is by least squares].\n"
@@ -392,11 +394,23 @@ int main( int argc , char *argv[] )
 "               high-intensity (presumably brain) voxels.  The\n"
 "               mask is determined the same way that 3dAutomask works.\n"
 "\n"
-"  -mask mmm = Mask to define 'in-brain' voxels.\n"
+"  -mask mmm = Mask to define 'in-brain' voxels. Reducing the number\n"
+"               the number of voxels included in the calculation will\n"
+"               significantly speedup the calculation. Consider using\n"
+"               a mask to constrain the calculations to the grey matter\n"
+"               rather than the whole brain. This is also preferrable\n"
+"               to using -autoclip or -automask.\n"
 "\n"
 "  -prefix p = Save output into dataset with prefix 'p', this file will\n"
 "               contain bricks for both 'weighted' or 'degree' centrality\n"
 "               [default prefix is 'deg_centrality'].\n"
+"\n"
+"  -out1D f = Save information about the above threshold correlations to\n"
+"              1D file 'f'. Each row of this file will contain:\n"
+"               Voxel1 Voxel2 i1 j1 k1 i2 j2 k2 Corr\n"
+"              Where voxel1 and voxel2 are the 1D indices of the pair of\n"
+"              voxels, i j k correspond to their 3D coordinates, and Corr\n"
+"              is the value of the correlation between the voxel time courses.\n" 
 "\n"
 "Notes:\n"
 " * The output dataset is a bucket type of floats.\n"
@@ -461,7 +475,7 @@ int main( int argc , char *argv[] )
       }
 
       if( strcmp(argv[nopt],"-thresh") == 0 ){
-         float val = (float)strtod(argv[++nopt],&cpt) ;
+         double val = (double)strtod(argv[++nopt],&cpt) ;
          if( *cpt != '\0' || val >= 1.0 || val < 0.0 ){
             ERROR_exit("Illegal value (%f) after -thresh!", val) ;
          }
@@ -469,7 +483,7 @@ int main( int argc , char *argv[] )
          thresh = val ; othresh = val ; nopt++ ; continue ;
       }
       if( strcmp(argv[nopt],"-sparsity") == 0 ){
-         float val = (float)strtod(argv[++nopt],&cpt) ;
+         double val = (double)strtod(argv[++nopt],&cpt) ;
          if( *cpt != '\0' || val > 100 || val <= 0 ){
             ERROR_exit("Illegal value (%f) after -sparsity!", val) ;
          }
@@ -662,7 +676,7 @@ int main( int argc , char *argv[] )
         }
 
         /* -- update running memory estimate to reflect memory allocation */ 
-        INC_MEM_STATS( nmask*sizeof(int), "binary DC array" );
+        INC_MEM_STATS( nmask*sizeof(long), "binary DC array" );
         PRINT_MEM_STATS( "binaryDC" );
 
         if( ( weightedDC = (double*)calloc( nmask, sizeof(double) )) == NULL )
@@ -771,7 +785,7 @@ int main( int argc , char *argv[] )
              /* now correlate the time series */
              car = (double)(corfun(nvals,xsar,ysar)) ;
 
-             if ( car < thresh )
+             if ( car <= thresh )
              {
                  continue ;
              }
@@ -781,7 +795,7 @@ int main( int argc , char *argv[] )
 #pragma omp critical(dataupdate)
              {
                  /* if the correlation is less than threshold, ignore it */
-                 if ( car >= thresh )
+                 if ( car > thresh )
                  {
                      totNumCor += 1;
                
@@ -867,7 +881,7 @@ int main( int argc , char *argv[] )
                                     histogram[bottom_node_idx].nbin=0;
  
                                     /* get the new threshold */
-                                    thresh = histogram[++bottom_node_idx].bin_low;
+                                    thresh = (double)histogram[++bottom_node_idx].bin_low;
                                     if(MEM_STAT == 1) INFO_message("Increasing threshold to %3.2f (%d)\n",
                                         thresh,bottom_node_idx); 
                                 }
@@ -926,14 +940,6 @@ int main( int argc , char *argv[] )
                         ADN_func_type , ANAT_EPI_TYPE  ,
                         ADN_datum_all , MRI_float      ,
                       ADN_none ) ;
-   }
-
-   if( THD_deathcon() && THD_is_file(DSET_HEADNAME(cset)) )
-   {
-       if (binaryDC){ free(binaryDC); binaryDC = NULL; }
-       if (weightedDC){ free(weightedDC); weightedDC = NULL; }
-       if (histogram){ free(histogram); histogram = NULL; }
-       ERROR_exit("Output dataset %s already exists!",DSET_HEADNAME(cset)) ;
    }
 
    /* add history information to the hearder */
@@ -1008,7 +1014,7 @@ int main( int argc , char *argv[] )
            free(binaryDC);
            binaryDC=NULL;
            /* -- update running memory estimate to reflect memory allocation */ 
-           DEC_MEM_STATS( nmask*sizeof(int), "binary DC array" );
+           DEC_MEM_STATS( nmask*sizeof(long), "binary DC array" );
            PRINT_MEM_STATS( "binaryDC" );
        }
        if(weightedDC)
@@ -1016,7 +1022,7 @@ int main( int argc , char *argv[] )
            free(weightedDC);
            weightedDC=NULL;
            /* -- update running memory estimate to reflect memory allocation */ 
-           DEC_MEM_STATS( nmask*sizeof(float), "weighted DC array" );
+           DEC_MEM_STATS( nmask*sizeof(double), "weighted DC array" );
            PRINT_MEM_STATS( "weightedDC" );
        }
    }
@@ -1302,11 +1308,18 @@ int main( int argc , char *argv[] )
    /* finito */
    INFO_message("Writing output dataset to disk [%s bytes]",
                 commaized_integer_string(cset->dblk->total_bytes)) ;
-   /* this will forst compression to be off, I dont think we want this
-   THD_set_write_compression(COMPRESS_NONE) ; AFNI_setenv("AFNI_AUTOGZIP=NO") ;*/
+
+   /* write the dataset */
    DSET_write(cset) ;
-   DEC_MEM_STATS( (DSET_NVOX(cset)*DSET_NVALS(cset)*sizeof(float)), "output dset");
    WROTE_DSET(cset) ;
+
+   /* increment our memory stats, since we are relying on the header for this
+      information, we update the stats before actually freeing the memory */
+   DEC_MEM_STATS( (DSET_NVOX(cset)*DSET_NVALS(cset)*sizeof(float)), "output dset");
+
+   /* free up the output dataset memory */
+   DSET_unload(cset) ;
+   DSET_delete(cset) ;
 
    /* force a print */
    MEM_STAT = 1;
