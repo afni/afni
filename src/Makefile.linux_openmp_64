@@ -2,11 +2,11 @@
 # This is for compiling with OpenMP support on a 64-bit system.
 # It is based on linux_xorg7_64 and is used on a Fedora 10 system.
 
-CPROF = -g
+# CPROF = -pg -g
 USE_ZLIB = -DHAVE_ZLIB
 LZLIB    = -lz
 USE_GIFTI = -DHAVE_GIFTI
-LGIFTI    = /usr/lib/lib64/libexpat.a
+LGIFTI    = /usr/lib64/libexpat.a
 
 # ------------------------------
 # python from C (off for now)
@@ -19,8 +19,7 @@ LGIFTI    = /usr/lib/lib64/libexpat.a
 # uncomment to build using local /usr/local/afniX 'X' tree
 USE_LOCAL_X_TREE = 1
 ifdef USE_LOCAL_X_TREE
-    XROOT = /usr/lib
-    #XROOT = /usr/local/afniX
+    XROOT = /usr/local/afniX
     XROOT_I = -I$(XROOT)/include
 else
     XROOT = /usr
@@ -46,9 +45,8 @@ CEXTRA = -Wcomment -Wformat -DUSE_TRACING -DHAVE_XDBE $(CPROF) -DDONT_USE_XTDEST
 
 CC     = /usr/bin/gcc -O2 -m64 -fPIC -DREAD_WRITE_64 -DLINUX2 $(CEXTRA)
 CCVOL  = /usr/bin/gcc -O2 -m64 -fPIC -DREAD_WRITE_64 -DLINUX2 $(CEXTRA)
-CCFAST = /usr/bin/gcc -m64 -fPIC -DREAD_WRITE_64 -DLINUX2 $(CEXTRA)
-#CCOLD  = /usr/bin/gcc -V 34 -O2 -m64 -fPIC -DREAD_WRITE_64 -DLINUX2 $(CEXTRA)
-CCOLD  = /usr/bin/gcc -O2 -m64 -fPIC -DREAD_WRITE_64 -DLINUX2 $(CEXTRA)
+CCFAST = /usr/bin/gcc -O2 -m64 -fPIC -DREAD_WRITE_64 -DLINUX2 $(CEXTRA)
+CCOLD  = /usr/bin/gcc -V 34 -O2 -m64 -fPIC -DREAD_WRITE_64 -DLINUX2 $(CEXTRA)
 
 # The following line includes compiling for the SSE operations.
 # However, I found that it actually makes things worse in some test code.
@@ -61,14 +59,14 @@ CCMIN  = /usr/bin/gcc -m64 -fPIC $(CPROF)
 CCD    = $(CC) $(CCDEBS)
 
 IFLAGS = -I. $(XROOT_I) -I/usr/include
-LFLAGS = -L. -L/usr/lib64 -L/usr/lib/lib64
+LFLAGS = -L. -L/usr/lib64
 
 CCSVD  = /usr/bin/gcc -O0 -m64 -fPIC
 
 PLUGIN_SUFFIX = so
 PLUGIN_LFLAGS = -shared -fPIC
 PLUGIN_CC     = $(CC)
-PLFLAGS       = -rdynamic -L. -L/usr/lib64 -L/usr/lib/lib64
+PLFLAGS       = -rdynamic -L. -L/usr/lib64
 
 SHOWOFF = -DSHOWOFF=linux_openmp_64
 
