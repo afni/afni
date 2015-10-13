@@ -1379,6 +1379,14 @@ AlphaSim:AlphaSim.o
 	$(RM) $@
 	$(CCOMP) -o 3dRBFdset 3dRBFdset.o $(LFLAGS) $(LLIBS)
 
+3dDegreeCentrality.o:3dDegreeCentrality.c
+	$(RM) $@
+	$(CCOMP) -c 3dDegreeCentrality.c $(INFLAGS)
+
+3dDegreeCentrality:3dDegreeCentrality.o
+	$(RM) $@
+	$(CCOMP) -o 3dDegreeCentrality 3dDegreeCentrality.o $(LFLAGS) $(LLIBS) -lefence
+
 3dAutoTcorrelate.o:3dAutoTcorrelate.c
 	$(RM) $@
 	$(CCOMP) -c 3dAutoTcorrelate.c $(INFLAGS)
