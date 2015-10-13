@@ -43,7 +43,11 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 7 , OCT , 2015 , RWC , "afni GUI" , MICRO , TYPE_GENERAL ,
+  { 13 , OCT , 2015 , RWC , "3dGroupInCorr" , MICRO , TYPE_MODIFY ,
+   "Finally fixed -clust option to correspond to new 3dClustSim output" ,
+   "That is, 9 NIML files instead of 3." } ,
+
+ { 7 , OCT , 2015 , RWC , "afni GUI" , MICRO , TYPE_GENERAL ,
    "Attempt to fix 'crash on re-open controller' problem" ,
    "Happened when Clusterize was used in A, then B opened, B closed, B\n"
    "re-opened -- boom.  Set deleted FD_bricks to NULL seems to help. \n"
