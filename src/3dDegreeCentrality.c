@@ -808,6 +808,8 @@ int main( int argc , char *argv[] )
                          if ( fout1D != NULL )
                          {
                              /* determine the i,j,k coords */
+                             lii = imap[lout];
+                             ljj = imap[lin];
                              ix1 = DSET_index_to_ix(xset,lii) ;
                              jy1 = DSET_index_to_jy(xset,lii) ;
                              kz1 = DSET_index_to_kz(xset,lii) ;
