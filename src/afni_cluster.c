@@ -32,11 +32,11 @@ int find_cluster_thresh( float athr, float pval , CLU_threshtable *ctab ) ;
 CLU_threshtable * CLU_get_thresh_table( Three_D_View *im3d ) ;
 
 #undef  SET_CLUSTERS_LAB
-#define SET_CLUSTERS_LAB(cw,starred)                                      \
- do{ char clab[128] =                                                     \
-       "##: __Size__  __X__  __Y__  __Z__                        Alpha" ; \
-     if( starred ) strcat(clab,"*") ;                                     \
-     MCW_set_widget_label( (cw)->clusters_lab , clab ) ;                  \
+#define SET_CLUSTERS_LAB(cw,starred)                                     \
+ do{ char clab[128] =                                                    \
+       "###: __Size__  __X__  __Y__  __Z__                       Alpha" ; \
+     if( starred ) strcat(clab,"*") ;                                    \
+     MCW_set_widget_label( (cw)->clusters_lab , clab ) ;                 \
  } while(0)
 
 /*****************************************************************************/
@@ -298,7 +298,20 @@ void AFNI_cluster_dispkill( Three_D_View *im3d )
 
 void AFNI_cluster_dispize( Three_D_View *im3d , int force )
 {
+   MCW_cluster_array *clar ; int nclu , ii ;
+   AFNI_clu_widgets *cwid ;
+
    AFNI_cluster_widgize( im3d , force ) ;
+
+   /* 15 Oct 2015: turn all See/Hide boxes to See */
+
+   cwid = im3d->vwid->func->cwid     ; if( cwid == NULL ) return ;
+   clar = im3d->vwid->func->clu_list ; if( clar == NULL ) return ;
+   nclu = clar->num_clu ;              if( nclu == 0    ) return ;
+   for( ii=0 ; ii < nclu ; ii++ )
+     MCW_set_bbox( cwid->clu_see_bbox[ii] , 1 ) ;
+
+   return ;
 }
 
 /*---------------------------------------------------------------------------*/
@@ -345,12 +358,20 @@ static void AFNI_clus_av_CB( MCW_arrowval * , XtPointer ) ;
 static int maxclu_default = -1 ;
 static int scrolling      =  1 ;
 
+#undef  CLUST_SEE
+#define CLUST_SEE(iq,qq)                                           \
+ (  (IM3D_OPEN(iq)                    &&                           \
+     (qq) >= 0                        &&                           \
+     (qq) < (iq)->vwid->func->clu_num &&                           \
+     (iq)->vwid->func->cwid != NULL     )                          \
+   ? MCW_val_bbox((iq)->vwid->func->cwid->clu_see_bbox[qq]) : 0 )
+
 /*! Make the widgets for one row of the cluster display/control panel.
     The row itself will not be managed at this time; that comes later. */
 
 #undef  MAKE_CLUS_ROW
 #define MAKE_CLUS_ROW(ii)                                           \
- do{ Widget rc,lb,mb ; char *str[1]={"abcdefghijklmn: "} ;          \
+ do{ Widget rc,lb,mb ; char *slab ;                                 \
      char *ff = (ii%2==0) ? "menu" : "dialog" ;                     \
      rc = cwid->clu_rc[ii] =                                        \
          XtVaCreateWidget(                                          \
@@ -358,29 +379,40 @@ static int scrolling      =  1 ;
              XmNpacking     , XmPACK_TIGHT ,                        \
              XmNorientation , XmHORIZONTAL ,                        \
              XmNadjustMargin , True ,                               \
-             XmNmarginHeight , 2 , XmNmarginWidth , 0 ,             \
+             XmNmarginHeight , 1 , XmNmarginWidth , 0 ,             \
              XmNtraversalOn , True ,                                \
            NULL ) ;                                                 \
+     slab = (char *)malloc(sizeof(char)*8) ;                        \
+     sprintf(slab,(ii<9)?"%1d:":"%2d",ii+1) ;                       \
+     cwid->clu_see_bbox[ii] = new_MCW_bbox( rc , 1 , &slab ,        \
+            MCW_BB_check , MCW_BB_noframe ,                         \
+            AFNI_clus_action_CB , im3d ) ; free(slab) ;             \
+     XmToggleButtonSetState( cwid->clu_see_bbox[ii]->wbut[0] ,      \
+            True , False ) ;                                        \
      lb = cwid->clu_lab[ii] = XtVaCreateManagedWidget(              \
             ff     , xmLabelWidgetClass , rc ,                      \
-            LABEL_ARG("##:xxxxx vox +xxx.x +xxx.x +xxx.x") ,        \
+            LABEL_ARG("12345678 +xxx.x +xxx.x +xxx.x") ,            \
             XmNalignment , XmALIGNMENT_BEGINNING ,                  \
             XmNrecomputeSize , False ,  XmNtraversalOn , True ,     \
             XmNinitialResourcesPersistent , False , NULL ) ;        \
      cwid->clu_jump_pb[ii] = XtVaCreateManagedWidget(               \
             ff     , xmPushButtonWidgetClass , rc ,                 \
+            XmNmarginWidth , 1 ,                                    \
             LABEL_ARG("Jump") , XmNtraversalOn , True ,             \
             XmNinitialResourcesPersistent , False , NULL ) ;        \
      cwid->clu_flsh_pb[ii] = XtVaCreateManagedWidget(               \
             ff     , xmPushButtonWidgetClass , rc ,                 \
+            XmNmarginWidth , 1 ,                                    \
             LABEL_ARG("Flash") , XmNtraversalOn , True ,            \
             XmNinitialResourcesPersistent , False , NULL ) ;        \
      cwid->clu_plot_pb[ii] = XtVaCreateManagedWidget(               \
             ff     , xmPushButtonWidgetClass , rc ,                 \
+            XmNmarginWidth , 1 ,                                    \
             LABEL_ARG("Plot") , XmNtraversalOn , True ,             \
             XmNinitialResourcesPersistent , False , NULL ) ;        \
      cwid->clu_save_pb[ii] = XtVaCreateManagedWidget(               \
             ff     , xmPushButtonWidgetClass , rc ,                 \
+            XmNmarginWidth , 1 ,                                    \
             LABEL_ARG("Save") , XmNtraversalOn , True ,             \
             XmNinitialResourcesPersistent , False , NULL ) ;        \
      mb = cwid->clu_alph_lab[ii] = XtVaCreateManagedWidget(         \
@@ -1099,9 +1131,12 @@ ENTRY("AFNI_clus_make_widgets") ;
    cwid->clu_save_pb = (Widget *)XtCalloc( num , sizeof(Widget) ) ;
    cwid->clu_flsh_pb = (Widget *)XtCalloc( num , sizeof(Widget) ) ;
    cwid->clu_alph_lab= (Widget *)XtCalloc( num , sizeof(Widget) ) ;
+   cwid->clu_see_bbox= (MCW_bbox**)XtCalloc(num , sizeof(MCW_bbox*));
 
    for( ii=0 ; ii < num ; ii++ ){ MAKE_CLUS_ROW(ii) ; }
    for( ii=0 ; ii < num ; ii++ ){
+     MCW_reghint_children( cwid->clu_see_bbox[ii]->wrowcol ,
+                           "See or Hide this cluster" ) ;
      MCW_register_hint( cwid->clu_lab[ii]     ,
                         "Coordinates of cluster (Peak or CMass)" ) ;
      MCW_register_hint( cwid->clu_jump_pb[ii] ,
@@ -1431,6 +1466,7 @@ ENTRY("AFNI_clus_update_widgets") ;
      cwid->clu_save_pb =(Widget *)XtRealloc((char *)cwid->clu_save_pb ,nclu*sizeof(Widget));
      cwid->clu_flsh_pb =(Widget *)XtRealloc((char *)cwid->clu_flsh_pb ,nclu*sizeof(Widget));
      cwid->clu_alph_lab=(Widget *)XtRealloc((char *)cwid->clu_alph_lab,nclu*sizeof(Widget));
+     cwid->clu_see_bbox=(MCW_bbox **)XtRealloc((char *)cwid->clu_see_bbox,nclu*sizeof(MCW_bbox*)) ;
      for( ii=cwid->nall ; ii < nclu ; ii++ ){ MAKE_CLUS_ROW(ii) ; }
      cwid->nall = nclu ;
    }
@@ -1456,21 +1492,16 @@ ENTRY("AFNI_clus_update_widgets") ;
      px *= GLOBAL_library.cord.xxsign ;
      py *= GLOBAL_library.cord.yysign ;
      pz *= GLOBAL_library.cord.zzsign ;
-     if( cld[ii].nvox <= 99999 )
-       sprintf(line,"%2d:%5d vox %+6.1f %+6.1f %+6.1f",
-               ii+1,cld[ii].nvox , px,py,pz ) ;
+     if( cld[ii].nvox <= 9999 )
+       sprintf(line,"%4d vox %+6.1f %+6.1f %+6.1f", cld[ii].nvox , px,py,pz ) ;
+     else if( cld[ii].nvox <= 99999 )
+       sprintf(line,"%5dvox %+6.1f %+6.1f %+6.1f" , cld[ii].nvox , px,py,pz ) ;
      else if( cld[ii].nvox <= 999999 )
-       sprintf(line,"%2d:%6dvox %+6.1f %+6.1f %+6.1f",
-               ii+1,cld[ii].nvox , px,py,pz ) ;
+       sprintf(line,"%6dvx %+6.1f %+6.1f %+6.1f"  , cld[ii].nvox , px,py,pz ) ;
      else if( cld[ii].nvox <= 9999999 )
-       sprintf(line,"%2d:%7dvx %+6.1f %+6.1f %+6.1f",
-               ii+1,cld[ii].nvox , px,py,pz ) ;
-     else if( cld[ii].nvox <= 99999999 )
-       sprintf(line,"%2d:%8dv %+6.1f %+6.1f %+6.1f",
-               ii+1,cld[ii].nvox , px,py,pz ) ;
+       sprintf(line,"%7dv %+6.1f %+6.1f %+6.1f"   , cld[ii].nvox , px,py,pz ) ;
      else
-       sprintf(line,"%2d:%9d %+6.1f %+6.1f %+6.1f",
-               ii+1,cld[ii].nvox , px,py,pz ) ;
+       sprintf(line,"%8d %+6.1f %+6.1f %+6.1f"    , cld[ii].nvox , px,py,pz ) ;
      MCW_set_widget_label( cwid->clu_lab[ii] , line ) ;
 
      rrr = get_alpha_string( cld[ii].nvox , pval , im3d ) ;
@@ -1783,6 +1814,84 @@ ENTRY("AFNI_clus_action_CB") ;
                         AFNI_histrange_choose_CB , (XtPointer)im3d ) ;
      EXRETURN ;
    }
+
+   /* linkrbrain.org website link ****************************************/
+   if(w == cwid->linkrbrain_pb) {  /* 11 Feb 2014 */
+    char *lb_fnam=NULL;
+    MCW_cluster_array *clar = im3d->vwid->func->clu_list ;
+    int do_linkrbrain = (w == cwid->linkrbrain_pb && wherprog != NULL) ;
+
+    int jtop , etop, coord_colx, coord_coly, coord_colz;
+    char *wout , ct[64] , csuf[128] ; FILE *fp ; int inv ;
+
+    nclu = im3d->vwid->func->clu_num ;
+    cld  = im3d->vwid->func->clu_det ;
+
+    if( nclu == 0 || cld == NULL || do_linkrbrain == 0) EXRETURN ;
+
+    /* write out the coordinates to file first as in SaveTabl function*/
+    lb_fnam = AFNI_cluster_write_coord_table(im3d);
+    if(lb_fnam == NULL) EXRETURN;  /* couldn't create coordinate table */
+#undef  WSIZ
+#define WSIZ 4096
+printf("wrote cluster table to %s\n", lb_fnam);
+     SHOW_AFNI_PAUSE ;
+     MCW_invert_widget(cwid->linkrbrain_pb) ; inv = 1 ;
+     wout = (char *)malloc(sizeof(char)*WSIZ) ;
+     if(cwid->coord_mode == 1){  /* cmass columns */     /*-----------------*/
+         coord_colx = 1; coord_coly = 2; coord_colz = 3; /* RWC: these were */
+     }                                                   /* reversed! Fixed */
+     else{   /* peak columns */                          /* on 09 Sep 2015. */
+         coord_colx = 4; coord_coly = 5; coord_colz = 6; /*-----------------*/
+     }
+
+     jtop = clar->num_clu ;
+     etop = (int)AFNI_numenv("AFNI_CLUSTER_WAMIMAX") ;
+          if( etop <  1   ) etop = 20 ;
+     else if( etop > 99   ) etop = 99 ;
+          if( jtop > etop ) jtop = etop ;
+     if( cwid->linkrbrain_nclu > 0 && jtop > cwid->linkrbrain_nclu )
+       jtop = cwid->linkrbrain_nclu ;                        /* 09 Sep 2015 */
+
+     if( jtop > 0 && jtop < clar->num_clu )                  /* 09 Sep 2015 */
+       sprintf(csuf,"[%d,%d,%d]{0..%d}",coord_colx, coord_coly, coord_colz,jtop-1) ;
+     else
+       sprintf(csuf,"[%d,%d,%d]"       ,coord_colx, coord_coly, coord_colz) ;
+
+     if(cwid->linkrbrain_av->ival == 0)   /* task correlation = default */
+        sprintf(wout,"%s -linkrbrain -coord_file %s'%s' -space %s",
+           wherprog,lb_fnam, csuf ,
+           THD_get_space(im3d->fim_now)) ;
+     else   /* gene correlation */
+        sprintf(wout,"%s -linkrbrain -linkr_type genes -coord_file %s'%s' -space %s",
+           wherprog,lb_fnam, csuf ,
+           THD_get_space(im3d->fim_now)) ;
+
+     if( jtop >= clar->num_clu ) strcpy (ct," ") ;
+     else                        sprintf(ct," [first %d clusters]",jtop) ;
+     INFO_message("Running WamI linkrbrain command:%s",ct) ;
+     ININFO_message("%s",wout) ;
+     fp = popen( wout , "r" ) ;
+     if( fp == NULL ){
+       (void)MCW_popup_message(w," \n*** Can't run whereami command? ***\n ",
+                               MCW_USER_KILL) ;
+     } else {
+       wout[0] = '\0' ;
+       while( afni_fgets(wout+strlen(wout),WSIZ-2,fp) != NULL ){
+         wout = (char *)realloc(wout,sizeof(char)*(strlen(wout)+WSIZ)) ;
+         MCW_invert_widget(cwid->linkrbrain_pb) ; inv = !inv ;
+       }
+       (void)pclose(fp) ;
+       MCW_textwin_setbig(0) ;
+       (void)new_MCW_textwin(w,wout,TEXT_READONLY) ;
+     }
+
+     if(lb_fnam) free(lb_fnam);
+     free(wout) ;
+     if( inv ) MCW_invert_widget(cwid->linkrbrain_pb) ;
+     SHOW_AFNI_READY ;
+     EXRETURN ;
+   } /* end of linkrbrain-ization */
 
    /*------ scan button list, see if widget matches one of them ------*/
 
@@ -2175,9 +2284,52 @@ ENTRY("AFNI_clus_action_CB") ;
        }
        DESTROY_IMARR(imar) ; SHOW_AFNI_READY; EXRETURN ;
 
+     /*----------- See or Hide a single cluster ----------*/
+
+     } else if( w == cwid->clu_see_bbox[ii]->wbut[0] ){  /* 15 Oct 2015 */
+
+       THD_3dim_dataset  *fset = im3d->fim_now ;
+       MCW_cluster_array *clar=im3d->vwid->func->clu_list ; int kk ;
+       STATUS("toggling") ;
+       if( ISVALID_DSET(fset) ){
+         im3d->vedset.ival     = im3d->vinfo->fim_index ;
+         im3d->vedset.param[0] = (float)im3d->vinfo->thr_index ;
+         im3d->vedset.param[1] = get_3Dview_func_thresh(im3d,1);
+         im3d->vedset.param[4] = im3d->vinfo->thr_sign ;
+         im3d->vedset.param[5] = im3d->vinfo->use_posfunc ;
+         im3d->vedset.exinfo   = NULL ;
+         if( fset->dblk->vedim != NULL ){
+           mri_free(fset->dblk->vedim) ; fset->dblk->vedim = NULL ;
+         }
+         (void) AFNI_vedit( fset, im3d->vedset,
+                            (im3d->vednomask) ? NULL : im3d->vwid->func->clu_mask ) ;
+       }
+       if( ISVALID_DSET(fset) && fset->dblk->vedim != NULL && clar != NULL ){
+         MRI_IMAGE *vm = fset->dblk->vedim ;
+         im3d->vedskip = 1 ;
+         for( kk=0 ; kk < nclu ; kk++ ){
+           if( !CLUST_SEE(im3d,kk) ){
+             MCW_vol_to_cluster(vm->nx,vm->ny,vm->nz ,
+                                vm->kind,mri_data_pointer(vm) , clar->clar[kk] );
+           }
+         }
+         AFNI_set_viewpoint( im3d , -1,-1,-1 , REDISPLAY_FLASH ) ;
+         im3d->vedskip = 0 ;
+#if 0
+         for( kk=0 ; kk < nclu ; kk++ ){
+           if( !CLUST_SEE(im3d,kk) ){
+             MCW_cluster_to_vol(vm->nx,vm->ny,vm->nz ,
+                                vm->kind,mri_data_pointer(vm) , clar->clar[kk] );
+           }
+         }
+#endif
+       }
+
+       EXRETURN ;
+
      /*--------- flash the voxels for this cluster ---------*/
 
-     } else if( w == cwid->clu_flsh_pb[ii] ){
+     } else if( w == cwid->clu_flsh_pb[ii] && CLUST_SEE(im3d,ii) ){
 
        THD_3dim_dataset  *fset = im3d->fim_now ;
        MCW_cluster_array *clar = im3d->vwid->func->clu_list ; int jj ;
@@ -2215,85 +2367,6 @@ ENTRY("AFNI_clus_action_CB") ;
        EXRETURN ;
 
      } /* end of flash */
-
-     /* linkrbrain.org website link ****************************************/
-     if(w == cwid->linkrbrain_pb) {  /* 11 Feb 2014 */
-      char *lb_fnam;
-      MCW_cluster_array *clar = im3d->vwid->func->clu_list ;
-      int do_linkrbrain = (w == cwid->linkrbrain_pb && wherprog != NULL) ;
-
-      int jtop , etop, coord_colx, coord_coly, coord_colz;
-      char *wout , ct[64] , csuf[128] ; FILE *fp ; int inv ;
-
-      nclu = im3d->vwid->func->clu_num ;
-      cld  = im3d->vwid->func->clu_det ;
-
-      if( nclu == 0 || cld == NULL || do_linkrbrain == 0) EXRETURN ;
-
-      /* write out the coordinates to file first as in SaveTabl function*/
-      lb_fnam = AFNI_cluster_write_coord_table(im3d);
-      if(lb_fnam == NULL) EXRETURN;  /* couldn't create coordinate table */
-#undef  WSIZ
-#define WSIZ 4096
-printf("wrote cluster table to %s\n", lb_fnam);
-       SHOW_AFNI_PAUSE ;
-       MCW_invert_widget(cwid->linkrbrain_pb) ; inv = 1 ;
-       wout = (char *)malloc(sizeof(char)*WSIZ) ;
-       if(cwid->coord_mode == 1){  /* cmass columns */     /*-----------------*/
-           coord_colx = 1; coord_coly = 2; coord_colz = 3; /* RWC: these were */
-       }                                                   /* reversed! Fixed */
-       else{   /* peak columns */                          /* on 09 Sep 2015. */
-           coord_colx = 4; coord_coly = 5; coord_colz = 6; /*-----------------*/
-       }
-
-       jtop = clar->num_clu ;
-       etop = (int)AFNI_numenv("AFNI_CLUSTER_WAMIMAX") ;
-            if( etop <  1   ) etop = 20 ;
-       else if( etop > 99   ) etop = 99 ;
-            if( jtop > etop ) jtop = etop ;
-       if( cwid->linkrbrain_nclu > 0 && jtop > cwid->linkrbrain_nclu )
-         jtop = cwid->linkrbrain_nclu ;                        /* 09 Sep 2015 */
-
-       if( jtop > 0 && jtop < clar->num_clu )                  /* 09 Sep 2015 */
-         sprintf(csuf,"[%d,%d,%d]{0..%d}",coord_colx, coord_coly, coord_colz,jtop-1) ;
-       else
-         sprintf(csuf,"[%d,%d,%d]"       ,coord_colx, coord_coly, coord_colz) ;
-
-       if(cwid->linkrbrain_av->ival == 0)   /* task correlation = default */
-          sprintf(wout,"%s -linkrbrain -coord_file %s'%s' -space %s",
-             wherprog,lb_fnam, csuf ,
-             THD_get_space(im3d->fim_now)) ;
-       else   /* gene correlation */
-          sprintf(wout,"%s -linkrbrain -linkr_type genes -coord_file %s'%s' -space %s",
-             wherprog,lb_fnam, csuf ,
-             THD_get_space(im3d->fim_now)) ;
-
-       if( jtop >= clar->num_clu ) strcpy (ct," ") ;
-       else                        sprintf(ct," [first %d clusters]",jtop) ;
-       INFO_message("Running WamI linkrbrain command:%s",ct) ;
-       ININFO_message("%s",wout) ;
-       fp = popen( wout , "r" ) ;
-       if( fp == NULL ){
-         (void)MCW_popup_message(w," \n*** Can't run whereami command? ***\n ",
-                                 MCW_USER_KILL) ;
-       } else {
-         wout[0] = '\0' ;
-         while( afni_fgets(wout+strlen(wout),WSIZ-2,fp) != NULL ){
-           wout = (char *)realloc(wout,sizeof(char)*(strlen(wout)+WSIZ)) ;
-           MCW_invert_widget(cwid->linkrbrain_pb) ; inv = !inv ;
-         }
-         (void)pclose(fp) ;
-         MCW_textwin_setbig(0) ;
-         (void)new_MCW_textwin(w,wout,TEXT_READONLY) ;
-
-       if(lb_fnam) free(lb_fnam);
-       free(wout) ;
-       if( inv ) MCW_invert_widget(cwid->linkrbrain_pb) ;
-       SHOW_AFNI_READY ;
-      } /* end of linkrbrain */
-
-     EXRETURN ;
-   }
 
    } /*---------- end of loop over button rows ----------*/
 
