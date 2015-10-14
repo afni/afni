@@ -461,6 +461,7 @@ typedef struct {
   Widget clusters_lab ;     /* label at top of clusters table */
   int nrow, nall, is_open ;
   Widget *clu_rc ;          /* rows of widgets */
+  MCW_bbox **clu_see_bbox ; /* 14 Oct 2015 */
   Widget *clu_lab ;
   Widget *clu_jump_pb ;
   Widget *clu_plot_pb ;
