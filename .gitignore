@@ -27,3 +27,6 @@ ___*
 
 # Matlab temporary files
 *.m~
+
+# Octave workspace
+octave-workspace
