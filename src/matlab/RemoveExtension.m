@@ -11,7 +11,7 @@ function [S, xtr] = RemoveExtension (S, xt)
 %   xt: string of characters to be removed from the end of S
 %      xt can be | delimited strings. Trainling blanks will be removed
 %   	if xt is empty (default) then the characters following and including
-%       the last . will be removed.
+%       the first . will be removed.
 %
 %Output Parameters:
 %   Sx : string, S without the extension
