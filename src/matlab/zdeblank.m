@@ -29,17 +29,10 @@ function [Sd] = zdeblank (S)
 %Define the function name for easy referencing
 FuncName = 'zdeblank';
 
-%Debug Flag
-DBG = 1;
-
-%initailize return variables
-err = 1;
-
-Sd = deblank(S);
-Sd = deblank(fliplr(Sd));
-Sd = fliplr(Sd);
+space_or_null=['[' char(0) ' \t\r\n\f\v]*'];
+Sd_pre=regexprep(S,['^' space_or_null],'');
+Sd=regexprep(Sd_pre,[space_or_null '$'],'');
 
 
-err = 0;
 return;
 
