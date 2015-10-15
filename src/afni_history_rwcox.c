@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
   { 15 , OCT , 2015 , RWC , "afni Clusterize" , MICRO , TYPE_MODIFY ,
+   "Switch F-stat from using 1-sided to 2-sided tables." ,
+   "To keep Chen Gang happy." } ,
+
+ { 15 , OCT , 2015 , RWC , "afni Clusterize" , MICRO , TYPE_MODIFY ,
    "Modify linkRbrain stuff to NOT use unseen clusters" ,
    NULL } ,
 
