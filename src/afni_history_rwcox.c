@@ -43,7 +43,11 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 14 , OCT , 2015 , RWC , "afni Clusterize" , MICRO , TYPE_GENERAL ,
+  { 15 , OCT , 2015 , RWC , "afni Clusterize" , MICRO , TYPE_MODIFY ,
+   "Modify linkRbrain stuff to NOT use unseen clusters" ,
+   NULL } ,
+
+ { 14 , OCT , 2015 , RWC , "afni Clusterize" , MICRO , TYPE_GENERAL ,
    "Add toggle button to turn individual clusters on/off" ,
    "Hope it doesn't interfere with something else!  It's tricky modifying\n"
    "the functional overlay." } ,
