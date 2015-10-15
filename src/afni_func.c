@@ -123,7 +123,7 @@ ENTRY("AFNI_func_autothresh_CB") ;
 
 void AFNI_set_pval( Three_D_View *im3d , float pval )
 {
-   float thresh ; int sig ;
+   float thresh ; int sig , scode ;
 
 ENTRY("AFNI_set_pval") ;
 
@@ -132,8 +132,10 @@ ENTRY("AFNI_set_pval") ;
      TFLASH(im3d) ; EXRETURN ;
    }
 
-   sig = THD_stat_is_2sided( DSET_BRICK_STATCODE(im3d->fim_now,im3d->vinfo->thr_index) , 0 ) ;
-   if( sig > 0 && im3d->vinfo->thr_sign > 0 ) pval *= 2.0f ;  /* Jan 2015 */
+   scode = DSET_BRICK_STATCODE(im3d->fim_now,im3d->vinfo->thr_index) ;
+   sig   = THD_stat_is_2sided( scode , 0 ) ;
+   if( sig > 0 && im3d->vinfo->thr_sign > 0 && scode != FUNC_FT_TYPE )
+     pval *= 2.0f ;  /* Jan 2015 */
 
    thresh = THD_pval_to_stat( pval ,
               DSET_BRICK_STATCODE(im3d->fim_now,im3d->vinfo->thr_index) ,
@@ -593,7 +595,7 @@ float AFNI_thresh_from_percentile( Three_D_View *im3d, float perc)
 void AFNI_set_thr_pval( Three_D_View *im3d )
 {
    float thresh , pval , zval , spval ;
-   char  buf[32] ; int sig ;
+   char  buf[32] ; int sig , scode ;
 
 ENTRY("AFNI_set_thr_pval") ;
 
@@ -609,11 +611,11 @@ ENTRY("AFNI_set_thr_pval") ;
 
    /* modify it if the threshold statistic is 2-sided but we are thresholding 1-sided */
 
-   sig = THD_stat_is_2sided( DSET_BRICK_STATCODE(im3d->fim_now,im3d->vinfo->thr_index) , 0 ) ;
-   if( im3d->vinfo->thr_sign == 0 )
+   scode = DSET_BRICK_STATCODE(im3d->fim_now,im3d->vinfo->thr_index) ;
+   if( im3d->vinfo->thr_sign == 0 || scode == FUNC_FT_TYPE )
      sig = 0 ;
    else
-     sig = THD_stat_is_2sided( DSET_BRICK_STATCODE(im3d->fim_now,im3d->vinfo->thr_index) , 0 ) ;
+     sig = THD_stat_is_2sided( scode , 0 ) ;
    spval = pval ; if( sig > 0 ) spval *= 0.5f ;             /* Jan 2015 */
 
    im3d->vinfo->func_pval = spval ;  /* 06 Feb 2004 -- changed to spval Jan 2015 */

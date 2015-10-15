@@ -51,7 +51,10 @@ static char *clubutlab[] = { " Clear" ,          /* first blank saves */
 void set_vedit_cluster_label( Three_D_View *im3d , int ll )
 {
    char lab[64] ;
-   if( !IM3D_OPEN(im3d) ) return ;
+
+ENTRY("set_vedit_cluster_label") ;
+
+   if( !IM3D_OPEN(im3d) ) EXRETURN ;
 
    strcpy(lab,clubutlab[0]); if( ll==0 ) lab[0] = '*' ;
    MCW_set_widget_label( im3d->vwid->func->clu_clear_pb , lab ) ;
@@ -61,7 +64,7 @@ void set_vedit_cluster_label( Three_D_View *im3d , int ll )
 
    SENSITIZE( im3d->vwid->func->clu_report_pb , (ll==1) ) ;
 
-   return ;
+   EXRETURN ;
 }
 
 /*--------------------------------------------------------------------*/
@@ -100,7 +103,9 @@ void AFNI_clus_relabel_save_buttons( AFNI_clu_widgets *cwid )
 {
    int ii ; char *lab , *hint ;
 
-   if( cwid == NULL ) return ;
+ENTRY("AFNI_clus_relabel_save_buttons") ;
+
+   if( cwid == NULL ) EXRETURN ;
 
    lab  = (cwid->save_as_mask == 0 ) ? "Save" : "Mask" ;
    hint = (cwid->save_as_mask == 0 )
@@ -112,7 +117,7 @@ void AFNI_clus_relabel_save_buttons( AFNI_clu_widgets *cwid )
      MCW_register_hint( cwid->clu_save_pb[ii] , hint ) ;
    }
 
-   return ;
+   EXRETURN ;
 }
 
 /*--------------------------------------------------------------------*/
@@ -293,25 +298,29 @@ ENTRY("AFNI_clu_CB") ;
 
 void AFNI_cluster_dispkill( Three_D_View *im3d )
 {
-   AFNI_cluster_widgkill(im3d) ;
+ENTRY("AFNI_cluster_dispkill") ;
+   AFNI_cluster_widgkill(im3d) ; EXRETURN ;
 }
 
 void AFNI_cluster_dispize( Three_D_View *im3d , int force )
 {
-   MCW_cluster_array *clar ; int nclu , ii ;
+   MCW_cluster_array *clar ; int ii ;
    AFNI_clu_widgets *cwid ;
+
+ENTRY("AFNI_cluster_dispize") ;
 
    AFNI_cluster_widgize( im3d , force ) ;
 
    /* 15 Oct 2015: turn all See/Hide boxes to See */
 
-   cwid = im3d->vwid->func->cwid     ; if( cwid == NULL ) return ;
-   clar = im3d->vwid->func->clu_list ; if( clar == NULL ) return ;
-   nclu = clar->num_clu ;              if( nclu == 0    ) return ;
-   for( ii=0 ; ii < nclu ; ii++ )
+   cwid = im3d->vwid->func->cwid     ; if( cwid == NULL ) EXRETURN ;
+   clar = im3d->vwid->func->clu_list ; if( clar == NULL ) EXRETURN ;
+
+   STATUS("setting clu_see_bbox on") ;
+   for( ii=0 ; ii < cwid->nall ; ii++ )
      MCW_set_bbox( cwid->clu_see_bbox[ii] , 1 ) ;
 
-   return ;
+   EXRETURN ;
 }
 
 /*---------------------------------------------------------------------------*/
@@ -472,9 +481,11 @@ void AFNI_clus_linknum_CB( Widget w , XtPointer cd , MCW_choose_cbs *cbs )
 {
    Three_D_View *im3d = (Three_D_View *)cd ;
    AFNI_clu_widgets *cwid ;
-   if( !IM3D_OPEN(im3d) || cbs == NULL ) return ;
-   cwid = im3d->vwid->func->cwid ; if( cwid == NULL ) return ;
-   cwid->linkrbrain_nclu = cbs->ival ; return ;
+
+ENTRY("AFNI_clus_linknum_CB") ;
+   if( !IM3D_OPEN(im3d) || cbs == NULL ) EXRETURN ;
+   cwid = im3d->vwid->func->cwid ; if( cwid == NULL ) EXRETURN ;
+   cwid->linkrbrain_nclu = cbs->ival ; EXRETURN ;
 }
 
 /*---------------------------------------------------------------------------*/
@@ -1218,11 +1229,12 @@ ENTRY("AFNI_clus_make_widgets") ;
 
 static void AFNI_cluster_widgize( Three_D_View *im3d , int force )
 {
-   if( !IM3D_OPEN(im3d) ) return ;
+ENTRY("AFNI_cluster_widgize") ;
+   if( !IM3D_OPEN(im3d) ) EXRETURN ;
    if( !force ){
-     if( im3d->vwid->func->cwid == NULL ) return ;
-     if( !MCW_widget_visible(im3d->vwid->func->cwid->wtop) ) return ;
-     if( IM3D_SHFT_CTRL_DRAG(im3d) ) return ;
+     if( im3d->vwid->func->cwid == NULL ) EXRETURN ;
+     if( !MCW_widget_visible(im3d->vwid->func->cwid->wtop) ) EXRETURN ;
+     if( IM3D_SHFT_CTRL_DRAG(im3d) ) EXRETURN ;
    }
    AFNI_clus_update_widgets( im3d ) ;
    if( im3d->vwid->func->cwid != NULL ){
@@ -1232,7 +1244,7 @@ static void AFNI_cluster_widgize( Three_D_View *im3d , int force )
      im3d->vwid->func->cwid->is_open = 1 ;
    }
    SENSITIZE(im3d->vwid->imag->pop_jumpto_clus_pb,True) ;
-   return ;
+   EXRETURN ;
 }
 
 /*---------------------------------------------------------------------------*/
@@ -1240,14 +1252,15 @@ static void AFNI_cluster_widgize( Three_D_View *im3d , int force )
 
 static void AFNI_cluster_widgkill( Three_D_View *im3d )
 {
-   if( !IM3D_OPEN(im3d) || im3d->vwid->func->cwid == NULL ) return ;
+ENTRY("AFNI_cluster_widgkill") ;
+   if( !IM3D_OPEN(im3d) || im3d->vwid->func->cwid == NULL ) EXRETURN ;
    im3d->vwid->func->cwid->dset = NULL ;
    AFNI_clus_dsetlabel(im3d) ;
    XtUnmapWidget( im3d->vwid->func->cwid->wtop ) ;
    im3d->vwid->func->cwid->is_open = 0 ;
    DESTROY_CLARR(im3d->vwid->func->clu_list) ;
    SENSITIZE(im3d->vwid->imag->pop_jumpto_clus_pb,False) ;
-   return ;
+   EXRETURN ;
 }
 
 /*---------------------------------------------------------------------------*/
@@ -1258,19 +1271,21 @@ int AFNI_clus_find_xyz( Three_D_View *im3d , float x,float y,float z )
    float xf,yf,zf ; int xi,yi,zi , ii,jj,npt,nclu ;
    MCW_cluster_array *clar ; MCW_cluster *cl ;
 
-   if( !IM3D_OPEN(im3d) || !ISVALID_DSET(im3d->fim_now) ) return -1 ;
-   clar = im3d->vwid->func->clu_list ; if( clar == NULL ) return -1 ;
-   nclu = clar->num_clu ;              if( nclu == 0    ) return -1 ;
+ENTRY("AFNI_clus_find_xyz") ;
+
+   if( !IM3D_OPEN(im3d) || !ISVALID_DSET(im3d->fim_now) ) RETURN(-1) ;
+   clar = im3d->vwid->func->clu_list ; if( clar == NULL ) RETURN(-1) ;
+   nclu = clar->num_clu ;              if( nclu == 0    ) RETURN(-1) ;
 
    MAT44_VEC( im3d->fim_now->daxes->dicom_to_ijk , x,y,z , xf,yf,zf ) ;
    xi = rint(xf) ; yi = rint(yf) ; zi = rint(zf) ;
    for( ii=0 ; ii < nclu ; ii++ ){
      cl = clar->clar[ii] ; npt = cl->num_pt ;
      for( jj=0 ; jj < npt ; jj++ ){
-       if( xi == cl->i[jj] && yi == cl->j[jj] && zi == cl->k[jj] ) return ii;
+       if( xi == cl->i[jj] && yi == cl->j[jj] && zi == cl->k[jj] ) RETURN(ii);
      }
    }
-   return -1 ;
+   RETURN(-1) ;
 }
 
 /*---------------------------------------------------------------------------*/
@@ -1283,8 +1298,10 @@ static void AFNI_clus_viewpoint_CB( int why, int np, void *vp, void *cd )
    AFNI_clu_widgets *cwid ;
    int ncl ; char lab[8] ;
 
-   if( !IM3D_VALID(im3d) ) return;
-   cwid = im3d->vwid->func->cwid ; if( cwid == NULL ) return ;
+ENTRY("AFNI_clus_viewpoint_CB") ;
+
+   if( !IM3D_VALID(im3d) ) EXRETURN;
+   cwid = im3d->vwid->func->cwid ; if( cwid == NULL ) EXRETURN ;
 
    switch( why ){
 
@@ -1315,7 +1332,7 @@ static void AFNI_clus_viewpoint_CB( int why, int np, void *vp, void *cd )
 
    }
 
-   return ;
+   EXRETURN ;
 }
 
 /*---------------------------------------------------------------------------*/
@@ -1574,6 +1591,7 @@ static void AFNI_clus_finalize_dataset_CB( Widget w, XtPointer cd, MCW_choose_cb
    int ival ;
 
 ENTRY("AFNI_clus_finalize_dataset_CB") ;
+
    if( !IM3D_OPEN(im3d) || cbs == NULL ){ POPDOWN_strlist_chooser; EXRETURN; }
    cwid = im3d->vwid->func->cwid ;
    if( cwid == NULL || !cwid->is_open ) { POPDOWN_strlist_chooser; EXRETURN; }
@@ -1595,6 +1613,7 @@ static void AFNI_clus_finalize_scat1D_CB( Widget w, XtPointer cd, MCW_choose_cbs
    int ival ;
 
 ENTRY("AFNI_clus_finalize_scat1D_CB") ;
+
    if( !IM3D_OPEN(im3d) || cbs == NULL ){ POPDOWN_timeseries_chooser; EXRETURN; }
    cwid = im3d->vwid->func->cwid ;
    if( cwid == NULL || !cwid->is_open ) { POPDOWN_timeseries_chooser; EXRETURN; }
@@ -1617,6 +1636,7 @@ void AFNI_clus_action_CB( Widget w , XtPointer cd , XtPointer cbs )
    mri_cluster_detail *cld ;
 
 ENTRY("AFNI_clus_action_CB") ;
+
    if( !IM3D_OPEN(im3d) ) EXRETURN ;
    cwid = im3d->vwid->func->cwid ; if( cwid == NULL ) EXRETURN ;
 
@@ -2349,10 +2369,11 @@ printf("wrote cluster table to %s\n", lb_fnam);
 
      /*--------- flash the voxels for this cluster ---------*/
 
-     } else if( w == cwid->clu_flsh_pb[ii] && CLUST_SEE(im3d,ii) ){
+     } else if( w == cwid->clu_flsh_pb[ii] ){
 
        THD_3dim_dataset  *fset = im3d->fim_now ;
        MCW_cluster_array *clar = im3d->vwid->func->clu_list ; int jj ;
+       if( !CLUST_SEE(im3d,ii) ) EXRETURN ;  /* 16 Oct 2015 */
        STATUS("flashing") ;
        if( ISVALID_DSET(fset) && fset->dblk->vedim == NULL ){
          im3d->vedset.ival     = im3d->vinfo->fim_index ;
@@ -2406,6 +2427,8 @@ char * AFNI_cluster_write_coord_table(Three_D_View *im3d)
      mri_cluster_detail *cld ;
      AFNI_clu_widgets *cwid ;
      char *coord_table;
+
+ENTRY("AFNI_cluster_write_coord_table") ;
 
      cwid = im3d->vwid->func->cwid ;
      nclu = im3d->vwid->func->clu_num ;
@@ -2469,6 +2492,7 @@ static MRI_IMARR * AFNI_cluster_timeseries( Three_D_View *im3d , int ncl )
    int ii,npt , *ind ;
 
 ENTRY("AFNI_cluster_timeseries") ;
+
    if( !IM3D_OPEN(im3d) ) RETURN(NULL) ;
    cwid = im3d->vwid->func->cwid ; if( cwid == NULL ) RETURN(NULL) ;
    dset = im3d->vwid->func->cwid->dset ; if( !ISVALID_DSET(dset) ) RETURN(NULL) ;
@@ -2488,6 +2512,7 @@ ENTRY("AFNI_cluster_timeseries") ;
 /*---------------------------------------------------------------------------*/
 /* Callback for arrowvals on the linkrbrain correlation type (tasks/genes) report panel
    just dummy function for now */
+
 static void AFNI_linkrbrain_av_CB( MCW_arrowval *av , XtPointer cd )
 {
    Three_D_View *im3d = (Three_D_View *)cd ;
@@ -2553,7 +2578,9 @@ static char * AFNI_clus_3dclust( Three_D_View *im3d , char *extraopts )
    float thr,rmm,vmul,thb,tht ;
    int thrsign,posfunc,ithr , ival ;
 
-   if( !IM3D_OPEN(im3d) ) return NULL ;
+ENTRY("AFNI_clus_3dclust") ;
+
+   if( !IM3D_OPEN(im3d) ) RETURN(NULL) ;
 
    vednew = im3d->vedset ;
 
@@ -2597,7 +2624,7 @@ static char * AFNI_clus_3dclust( Three_D_View *im3d , char *extraopts )
    sprintf(cmd+strlen(cmd)," %g %g %s",
            rmm , vmul , DSET_HEADNAME(im3d->fim_now) ) ;
 
-   return cmd ;
+   RETURN(cmd) ;
 }
 
 /*---------------------------------------------------------------------------*/
@@ -3131,21 +3158,23 @@ CLU_threshtable * CLU_get_thresh_table( Three_D_View *im3d )
 {
    CLU_threshtable *ctab ; int sig , scod , bsid , pfun ;
 
-   if( !IM3D_VALID(im3d) ) return NULL ;
+ENTRY("CLU_get_thresh_table") ;
+
+   if( !IM3D_VALID(im3d) ) RETURN(NULL) ;
 
    scod = DSET_BRICK_STATCODE(im3d->fim_now,im3d->vinfo->thr_index) ;
    sig  = THD_stat_is_2sided( scod , im3d->vinfo->thr_sign ) ;
-   if( sig < 0 ) return NULL ;  /* should never transpire */
+   if( sig < 0 ) RETURN(NULL) ;  /* should never transpire */
 
    pfun = (int)im3d->vedset.param[5] ; if( pfun ) sig = 0 ;
    bsid = (int)im3d->vedset.param[6] ;
-   if( sig && bsid ){
+   if( sig && bsid && scod != FUNC_FT_TYPE ){
      switch( im3d->vwid->func->clu_nnlev ){
        default: ctab = im3d->vwid->func->clu_tabNN1_bsid ; /* INFO_message("b-sid NN=1"); */ break ;
        case 2:  ctab = im3d->vwid->func->clu_tabNN2_bsid ; /* INFO_message("b-sid NN=2"); */ break ;
        case 3:  ctab = im3d->vwid->func->clu_tabNN3_bsid ; /* INFO_message("b-sid NN=3"); */ break ;
      }
-     return ctab ;
+     RETURN(ctab) ;
    }
 
    switch( sig ){
@@ -3165,5 +3194,5 @@ CLU_threshtable * CLU_get_thresh_table( Three_D_View *im3d )
        }
      break ;
    }
-   return ctab ;
+   RETURN(ctab) ;
 }
