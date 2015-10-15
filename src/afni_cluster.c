@@ -712,8 +712,8 @@ ENTRY("AFNI_clus_make_widgets") ;
                          "Query linkrbrain.org website for\n"
                          "correlations of the set of cluster\n"
                          "coordinates with known tasks or genes.\n"
-                         " * Right click to choose how many *\n"
-                         " * coordinate xyz triples to send *"
+                         " * Right click to choose how many  *\n"
+                         " * cluster coordinates to transmit *"
                       ) ;
      showlinkr = ((im3d->vinfo->view_type == VIEW_TALAIRACH_TYPE) && show_linkrbrain_link());
      SENSITIZE(cwid->linkrbrain_pb, (showlinkr) ) ;
@@ -1820,18 +1820,26 @@ ENTRY("AFNI_clus_action_CB") ;
     char *lb_fnam=NULL;
     MCW_cluster_array *clar = im3d->vwid->func->clu_list ;
     int do_linkrbrain = (w == cwid->linkrbrain_pb && wherprog != NULL) ;
+    int *slist , qq , ss , nss ;
 
     int jtop , etop, coord_colx, coord_coly, coord_colz;
-    char *wout , ct[64] , csuf[128] ; FILE *fp ; int inv ;
+    char *wout , ct[64] , csuf[4096] ; FILE *fp ; int inv ;
 
     nclu = im3d->vwid->func->clu_num ;
     cld  = im3d->vwid->func->clu_det ;
 
     if( nclu == 0 || cld == NULL || do_linkrbrain == 0) EXRETURN ;
 
+    slist = (int *)malloc(sizeof(int)*nclu) ;   /* 16 Oct 2015 */
+    for( ss=qq=0 ; qq < nclu ; qq++ ){          /* make list of what is seen */
+      if( CLUST_SEE(im3d,qq) ) slist[ss++] = qq ;
+    }
+    nss = ss ;
+    if( nss == 0 ){ free(slist) ; EXRETURN ; }  /* nothing to do */
+
     /* write out the coordinates to file first as in SaveTabl function*/
     lb_fnam = AFNI_cluster_write_coord_table(im3d);
-    if(lb_fnam == NULL) EXRETURN;  /* couldn't create coordinate table */
+    if(lb_fnam == NULL){ free(slist); EXRETURN; }  /* couldn't create coordinate table */
 #undef  WSIZ
 #define WSIZ 4096
 printf("wrote cluster table to %s\n", lb_fnam);
@@ -1853,10 +1861,22 @@ printf("wrote cluster table to %s\n", lb_fnam);
      if( cwid->linkrbrain_nclu > 0 && jtop > cwid->linkrbrain_nclu )
        jtop = cwid->linkrbrain_nclu ;                        /* 09 Sep 2015 */
 
+     if( jtop > 0 && jtop < nss ) nss = jtop ;
+
+     /* make column and row selectors for cluster list file [16 Oct 2015] */
+
+     sprintf(csuf,"[%d,%d,%d]{",coord_colx, coord_coly, coord_colz) ;
+     for( ss=0 ; ss < nss ; ss++ ){
+       sprintf(csuf+strlen(csuf),"%d%c" , slist[ss] , ((ss==nss-1)?'}':',') ) ;
+     }
+     free(slist) ;
+
+#if 0
      if( jtop > 0 && jtop < clar->num_clu )                  /* 09 Sep 2015 */
        sprintf(csuf,"[%d,%d,%d]{0..%d}",coord_colx, coord_coly, coord_colz,jtop-1) ;
      else
        sprintf(csuf,"[%d,%d,%d]"       ,coord_colx, coord_coly, coord_colz) ;
+#endif
 
      if(cwid->linkrbrain_av->ival == 0)   /* task correlation = default */
         sprintf(wout,"%s -linkrbrain -coord_file %s'%s' -space %s",
