@@ -1799,14 +1799,12 @@ int main( int argc , char *argv[] )
 
    /** Check for -version [15 Aug 2003] **/
 
-   if( check_string("-ver",argc,argv) || check_string("--ver",argc,argv) ){
 #ifdef SHSTRING
      printf( "Precompiled binary " SHSTRING ": " __DATE__ " (Version " AVERZHN ")\n" ) ;
 #else
      printf( "Compile date = " __DATE__ " " __TIME__ " (Version " AVERZHN ")\n") ;
 #endif
-     dienow++ ;
-   }
+   if( check_string("-ver",argc,argv) || check_string("--ver",argc,argv) ) dienow++ ;
 
    /** MOTD output **/
 
@@ -7186,7 +7184,9 @@ void AFNI_check_for_multiple_vedits( Three_D_View *im3d )
    static int first=1 ;
    Three_D_View *qq3d ; int qq ;
 
-   if( !first || !IM3D_OPEN(im3d) ) return ;
+ENTRY("AFNI_check_for_multiple_vedits") ;
+
+   if( !first || !IM3D_OPEN(im3d) ) EXRETURN ;
 
    for( qq=0 ; qq < MAX_CONTROLLERS ; qq++ ){
      qq3d = GLOBAL_library.controllers[qq] ;
@@ -7207,7 +7207,7 @@ void AFNI_check_for_multiple_vedits( Three_D_View *im3d )
 #undef MCMESS
      }
    }
-   return ;
+   EXRETURN ;
 }
 
 /*------------------------------------------------------------------------*/
@@ -7308,6 +7308,7 @@ DUMP_IVEC3("  new_id",new_id) ;
        ihave               && im3d->vinfo->func_visible && !doflash ){
      int changed=0 ;
      if( VEDIT_good(im3d->vedset) ){
+       STATUS("starting vedit") ;
        im3d->vedset.ival = im3d->vinfo->fim_index ;
        switch( VEDIT_CODE(im3d->vedset) ){
          case VEDIT_CLUST:  /* params 2,3,6 set in afni_cluster.c */
@@ -7323,9 +7324,11 @@ DUMP_IVEC3("  new_id",new_id) ;
          changed = AFNI_vedit( im3d->fim_now , im3d->vedset , mmm ) ;
        }
        if( !DSET_VEDIT_good(im3d->fim_now) ){
+         STATUS("vedit not completed") ;
          UNCLUSTERIZE(im3d) ;
        } else if( changed ){
          mri_cluster_detail *cld ; int nc ; char *rrr ;
+         STATUS("vedit completed") ;
          VEDIT_cluster_helpize(im3d);
          if( im3d->vwid->func->clu_rep != NULL ){
            free(im3d->vwid->func->clu_rep); im3d->vwid->func->clu_rep = NULL;
@@ -7336,6 +7339,7 @@ DUMP_IVEC3("  new_id",new_id) ;
          im3d->vwid->func->clu_list = mri_clusterize_array(1) ;
          AFNI_cluster_dispize(im3d,0);  /* display the results */
          AFNI_check_for_multiple_vedits(im3d) ;  /* 24 Jul 2014 */
+         STATUS("vedit processed") ;
        }
        IM3D_CLEAR_THRSTAT(im3d) ;  /* 12 Jun 2014 */
      } else {
