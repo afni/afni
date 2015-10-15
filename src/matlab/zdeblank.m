@@ -29,10 +29,15 @@ function [Sd] = zdeblank (S)
 %Define the function name for easy referencing
 FuncName = 'zdeblank';
 
-space_or_null=['[' char(0) ' \t\r\n\f\v]*'];
-Sd_pre=regexprep(S,['^' space_or_null],'');
-Sd=regexprep(Sd_pre,[space_or_null '$'],'');
+blank_chars=sprintf(' \t\r\n\f\v%s',char(0));
 
+non_blank_mask=~any(bsxfun(@eq,blank_chars,S(:)),2);
+first_pos=find(non_blank_mask,1,'first');
+last_pos=find(non_blank_mask,1,'last');
 
-return;
-
+if isempty(first_pos)
+    assert(isempty(last_pos));
+    Sd='';
+else
+    Sd=S(first_pos:last_pos);
+end
