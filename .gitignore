@@ -24,3 +24,6 @@ ___*
 
 #Miscellaneous
 *.BAK
+
+# Matlab temporary files
+*.m~
