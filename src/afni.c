@@ -1520,6 +1520,7 @@ void AFNI_sigfunc_alrm(int sig)
      "If you have tears, prepare to shed them now"                   ,
      "Man, those solar neutrinos are killing me"                     ,
      "Are you ready for the explosion of Eta Carinae?"               ,
+     "He who will deceive will always fin a willing victim"          ,
      "Remember -- AFNI is free, but worth at least 1000 times more"  ,
      "Remember -- Nothing is always absolutely so"                   ,
      "Remember -- 90% of everything is cr*p"                         ,
