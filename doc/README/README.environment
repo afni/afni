@@ -3471,6 +3471,18 @@ being plotted.  The only reason for using this variable is if you
 wish to create a sequence of scatterplots and ensure that the points
 plotted in different graphs have a uniform size of boxes.
 
+-------------------------
+Variable: AFNI_LINKRBRAIN
+-------------------------
+If you do NOT want to see the 'linkRbrain' button in the Clusterize
+GUI, then set this variable to NO.
+
+------------------------------
+Variable: AFNI_LINKRBRAIN_SITE
+------------------------------
+This variable sets the name of the linkRbrain server to use.  The default
+server is 'linkrbrain.eu'.
+
 ----------------------------------------------------------------------
 --- variables specific to NIML I/O
 ----------------------------------------------------------------------
