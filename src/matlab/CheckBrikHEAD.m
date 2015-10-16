@@ -1,13 +1,16 @@
-function [err, ErrMessage, Info] = CheckBrikHEAD (Info)
+function [err, ErrMessage, Info] = CheckBrikHEAD (Info, show_warning_dialogue)
 %
-%   [err, ErrMessage, InfoOut] = CheckBrikHEAD (Info)
+%   [err, ErrMessage, InfoOut] = CheckBrikHEAD (Info [,show_warning_dialogue])
 %
 %Purpose:
 %   Checks to determine if the fields in Info are appropriate AFNI style
 %
 %
 %Input Parameters:
-%   Info is a structure containing all the Header fields,
+%   Info is a structure containing all the Header fields
+%   show_warning_dialogue is an optional boolean (true or false); if true
+%                         it will show a warning in a dialogue box.
+%                         Default: true
 %
 %
 %Output Parameters:
@@ -78,7 +81,7 @@ for (ir = 1:1:N_Rules),
 			%check for type coherence
 			if (ischar(getfield(Info, Rules(ir).Name))),
 				if (Rules(ir).isNum),
-					err = 1; ErrMessage = sprintf('Error %s: Field %s type (string or numerical) is wrong.', FuncName, Rules(ir).Name);warndlg(ErrMessage);return;
+					err = 1; ErrMessage = sprintf('Error %s: Field %s type (string or numerical) is wrong.', FuncName, Rules(ir).Name);show_warning(ErrMessage);return;
 				end
 			else %a number, verify type
 				if (Rules(ir).isNum == 1 && ~isint(getfield(Info, Rules(ir).Name))),
@@ -88,13 +91,13 @@ for (ir = 1:1:N_Rules),
 			%check for length specs
 			if (~isempty(Rules(ir).Length)),
 				if (length(getfield(Info,Rules(ir).Name)) ~= Rules(ir).Length),
-					err = 1; ErrMessage = sprintf('Error %s: Field %s length must be %d.', FuncName, Rules(ir).Name, Rules(ir).Length);warndlg(ErrMessage);return;
+					err = 1; ErrMessage = sprintf('Error %s: Field %s length must be %d.', FuncName, Rules(ir).Name, Rules(ir).Length);show_warning(ErrMessage);return;
 				end
 			end
 			%check for minimum length specs
 			if (~isempty(Rules(ir).minLength)),
 				if (length(getfield(Info,Rules(ir).Name)) < Rules(ir).minLength),
-					err = 1; ErrMessage = sprintf('Error %s: Field %s length must be at least %d.', FuncName, Rules(ir).Name, Rules(ir).minLength);warndlg(ErrMessage);return;
+					err = 1; ErrMessage = sprintf('Error %s: Field %s length must be at least %d.', FuncName, Rules(ir).Name, Rules(ir).minLength);show_warning(ErrMessage);return;
 				end
 			end
 		end
@@ -276,3 +279,10 @@ end
 err = 0;
 return;
 
+
+function show_warning_helper(msg, show_warning_dialogue)
+    if show_warning_dialogue
+        show_warning(msg);
+    else
+        warning(msg);
+    end
