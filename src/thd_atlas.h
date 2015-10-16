@@ -20,7 +20,8 @@
 #define MAXINT 65535
 #define MAX_WAMI_LINE_CHARS  80 
 
-#define LINKRBRAIN_SITE "linkrbrain.eu"
+#define LINKRBRAIN_SITE "linkrbrain.eu"   /* 16 Oct 2015 */
+extern char * get_linkrbrain_site(void) ;
 
 void free_atlas_point_list(ATLAS_POINT_LIST *apl);
 void print_atlas_point_list(ATLAS_POINT_LIST *apl);

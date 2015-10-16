@@ -708,7 +708,7 @@ ENTRY("AFNI_clus_make_widgets") ;
    VLINE(rc) ;
    wherprog = THD_find_executable("whereami") ;
    if( show_linkrbrain_link() && wherprog != NULL ){
-     int  showlinkr;
+     int  showlinkr; static char *lbhelp=NULL ;
      xstr = XmStringCreateLtoR( "linkRbrain" , XmFONTLIST_DEFAULT_TAG ) ;
      cwid->linkrbrain_pb = XtVaCreateManagedWidget(
              "menu" , xmPushButtonWidgetClass , rc ,
@@ -719,13 +719,17 @@ ENTRY("AFNI_clus_make_widgets") ;
      XtAddCallback( cwid->linkrbrain_pb, XmNactivateCallback, AFNI_clus_action_CB, im3d );
      MCW_register_hint( cwid->linkrbrain_pb ,
                          "Write cluster table, then run 'whereami -linkrbrain'") ;
-     MCW_register_help( cwid->linkrbrain_pb ,
-                         "Query " LINKRBRAIN_SITE " website for\n"
-                         "correlations of the set of cluster\n"
-                         "coordinates with known tasks or genes.\n"
-                         " * Right click to choose how many  *\n"
-                         " * cluster coordinates to transmit *"
-                      ) ;
+     if( lbhelp == NULL ){
+       lbhelp = (char *)malloc(sizeof(char)*2048) ;
+       sprintf(lbhelp, 
+                "Query %s website for\n"
+                "correlations of the set of cluster\n"
+                "coordinates with known tasks or genes.\n"
+                " * Right click to choose how many  *\n"
+                " * cluster coordinates to transmit *" ,
+              get_linkrbrain_site() ) ;
+     }
+     MCW_register_help( cwid->linkrbrain_pb , lbhelp ) ;
      showlinkr = ((im3d->vinfo->view_type == VIEW_TALAIRACH_TYPE) && show_linkrbrain_link());
      SENSITIZE(cwid->linkrbrain_pb, (showlinkr) ) ;
 
@@ -738,15 +742,18 @@ ENTRY("AFNI_clus_make_widgets") ;
                           ) ;
 
      { static char *clab[2] = { "Tasks" , "Genes" } ;
+       static char *lbhelp=NULL ;
        cwid->linkrbrain_av = new_MCW_optmenu( rc , "type" , 0,1,0,0 ,
                           AFNI_linkrbrain_av_CB,im3d , MCW_av_substring_CB,clab ) ;
        MCW_reghint_children( cwid->linkrbrain_av->wrowcol ,
                               "Correlate coordinates with tasks or genes" ) ;
-       MCW_reghelp_children( cwid->linkrbrain_av->wrowcol ,
-                              "Choose whether to show the correlation or\n"
-                              "of cluster coordinates with either tasks or\n"
-                              "genes from the " LINKRBRAIN_SITE " database.\n"
-                           ) ;
+       if( lbhelp == NULL ){
+         lbhelp = (char *)malloc(sizeof(char)*1024) ;
+         sprintf(lbhelp, "Choose whether to show the correlation or\n"
+                         "of cluster coordinates with either tasks or\n"
+                         "genes from the %s database.\n" , get_linkrbrain_site() ) ;
+       }
+       MCW_reghelp_children( cwid->linkrbrain_av->wrowcol , lbhelp ) ;
        AV_SENSITIZE(cwid->linkrbrain_av, (showlinkr));
      }
    } else {
@@ -1835,7 +1842,7 @@ ENTRY("AFNI_clus_action_CB") ;
      EXRETURN ;
    }
 
-   /* LINKRBRAIN_SITE website link ****************************************/
+   /****** linkRbrain website link ****************************************/
    if(w == cwid->linkrbrain_pb) {  /* 11 Feb 2014 */
     char *lb_fnam=NULL;
     MCW_cluster_array *clar = im3d->vwid->func->clu_list ;
