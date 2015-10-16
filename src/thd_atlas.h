@@ -20,6 +20,8 @@
 #define MAXINT 65535
 #define MAX_WAMI_LINE_CHARS  80 
 
+#define LINKRBRAIN_SITE "linkrbrain.eu"
+
 void free_atlas_point_list(ATLAS_POINT_LIST *apl);
 void print_atlas_point_list(ATLAS_POINT_LIST *apl);
 ATLAS_POINT_LIST * niml_atlas_label_table_to_atlas_list(NI_group *ngr);
