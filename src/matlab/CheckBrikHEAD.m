@@ -46,20 +46,34 @@ err = 1;
 
 ErrMessage = '';
 
+% set default value for show_warning_dialogue
+if nargin<2
+    show_warning_dialogue=true;
+end
+
+% use helper function that either shows a warning dialogue or a
+% warning in the command window
+show_warning=@(msg) show_warning_helper(msg, show_warning_dialogue);
+
 %Mandatory Fields Specs
 
-MandatoryFieldNames = 'DATASET_RANK~DATASET_DIMENSIONS~TYPESTRING~SCENE_DATA~ORIENT_SPECIFIC~ORIGIN~DELTA';
-N_Mandatory = WordCount(MandatoryFieldNames, '~');
+MandatoryFieldNames = {'DATASET_RANK',...
+                        'DATASET_DIMENSIONS',...
+                        'TYPESTRING',...
+                        'SCENE_DATA',...
+                        'ORIENT_SPECIFIC',...
+                        'ORIGIN',...
+                        'DELTA'};
 
-%check if the mandatory fields are present
-for (im = 1:1:N_Mandatory),
-	%Check that all the Mandatory Fields have been specified.
-	[err, CurName] = GetWord(MandatoryFieldNames, im, '~');
-	if(~isfield(Info, CurName)),
-		err = 1; ErrMessage = sprintf('Error %s: Field %s must be specified for the Header to be proper.', FuncName, CurName);
-		warndlg(ErrMessage);
-		return;
-	end
+missing_fields=setdiff(MandatoryFieldNames, fieldnames(Info));
+if ~isempty(missing_fields)
+    first_missing_field=missing_fields{1};
+    err = 1; ErrMessage = sprintf(['Error %s: Field %s must be '...
+                                    'specified for the Header to '...
+                                    'be proper.'], ...
+                                    FuncName, first_missing_field);
+    show_warning(ErrMessage);
+    return;
 end
 
 %Now Get all the rules
