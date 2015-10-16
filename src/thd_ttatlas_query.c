@@ -1695,6 +1695,16 @@ sumsdb_coords_link(float x, float y, float z)
    return(sumsdbpage);
 }
 
+/*--------------------------------------------------------------------*/
+/* get the name of the linkRbrain web page to use [16 Oct 2015 */
+
+char * get_linkrbrain_site(void)
+{
+   char *eee = getenv("AFNI_LINKRBRAIN_SITE") ;
+   if( eee == NULL ) eee = LINKRBRAIN_SITE ;
+   return eee ;
+}
+/*--------------------------------------------------------------------*/
 
 /* show links out to linkrbrain */
 int
@@ -1710,7 +1720,7 @@ show_linkrbrain_link()
 }
 
 /* make linkrbrain xml query  - remote query */
-/* Prepare input coordinates for transfer to LINKRBRAIN_SITE
+/* Prepare input coordinates for transfer to linkRbrain site
    the input coordinates should be RAI order */
 int
 make_linkrbrain_xml(float *coords, int ncoords, char *srcspace, char *destspace,
@@ -1812,15 +1822,15 @@ make_linkrbrain_xml(float *coords, int ncoords, char *srcspace, char *destspace,
 int
 send_linkrbrain_xml(char *linkrbrain_xml, char *linkrbrain_results)
 {
-   char cmd[1024];
+   char cmd[1234];
    int curl_stat, retry = 0;
 
    while(retry<5) {
-      fprintf(stderr,"Sending " LINKRBRAIN_SITE " request\n");
+      fprintf(stderr,"Sending %s request\n",get_linkrbrain_site());
       sprintf(cmd,
         "curl -y 100 --retry 5 --retry-delay 1 --connect-timeout 5 -m 10"
-        " --retry-max-time 25 -d @%s http://api." LINKRBRAIN_SITE "/ > %s",
-             linkrbrain_xml, linkrbrain_results);
+        " --retry-max-time 25 -d @%s http://api.%s/ > %s",
+             linkrbrain_xml, get_linkrbrain_site(), linkrbrain_results);
       curl_stat = system(cmd);
       if(curl_stat) retry++;
       else return(0);
@@ -9447,13 +9457,13 @@ int linkrbrain_XML_simple_report(char *xml_results_file,
    ENTRY("linkrbrain_XML_simple_report");
    xml_file = fopen(xml_results_file, "r");
    if(!xml_file){
-      printf("No response from " LINKRBRAIN_SITE "\n");
+      printf("No response from %s\n",get_linkrbrain_site());
       RETURN(1);
    }
    /* try to read the first 2048 bytes from the XML file */
    len = fread(tempbuffer,1,2048,xml_file);
    if(len<=0) {
-      printf("Response from " LINKRBRAIN_SITE " is zero length\n");
+      printf("Response from %s is zero length\n",get_linkrbrain_site());
       RETURN(1);   /* take what we can get */
    }
    tempstr = tempbuffer; tempstr[len] = '\0' ;
@@ -9502,8 +9512,8 @@ int linkrbrain_XML_simple_report(char *xml_results_file,
    fclose(xml_file);
 
    if(found_atleast_one==0)
-      printf("Didn't find any matches in " LINKRBRAIN_SITE "'s databases\n");
-   printf("\nFor more information, please visit " LINKRBRAIN_SITE "\n");
+      printf("Didn't find any matches in %s's databases\n",get_linkrbrain_site());
+   printf("\nFor more information, please visit %s\n",get_linkrbrain_site());
 
    RETURN(0);
 }
