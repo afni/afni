@@ -21,7 +21,8 @@ on ongoing studies and, importantly, user suggestions.  Present
 capabilities include:
 
 * calculating resting state functional connectivity (RSFC) parameters
-  such as ReHo, ALFF, fALFF, RSFA, etc. **(3dReHo, 3dRSFC; `-regress_RSFC'** switch in **afni_proc.py)**;
+  such as ReHo, ALFF, fALFF, RSFA, etc. **(3dReHo, 3dRSFC;
+  `-regress_RSFC'** switch in **afni_proc.py)**;
 * calculating correlation matrices among networks of ROIs and/or whole
   brain connectivity maps **(3dNetCorr)**;
 * converting FMRI and other data into networks of target ROIs for
@@ -108,6 +109,8 @@ network properties), run the following in a terminal::
 
 Further online documentation for this is forthcoming...
 
+.. _non_AFNI_conjunctions:
+
 Other: preprocessing and HARDI considerations
 =============================================
 
@@ -127,6 +130,8 @@ though the degree of integrability with FATCAT may vary. One example
 of using `DSI-Studio <http://dsi-studio.labsolver.org/>`_ to perform
 HARDI modeling and converting the output to be 3dTrackID-able is
 provided in the FATCAT demo:  ``FATCAT_DEMO/HARDI/do_dsistudio.tcsh``.
+
+.. _Notations:
 
 Notation Notes
 ==============
@@ -157,5 +162,46 @@ are clear.  Current format choices include:
 * in command line examples, non-literal numerical arguments would be
   held by a single capital letter, such as ``X`` or ``Y``.
 
+.. _FATCAT_citations:
 
+Citation Notes
+==============
+
+Useful papers describing FATCAT (+ AFNI + SUMA) tools are:
+
+* Taylor PA, Saad ZS (2013).  **FATCAT: (An Efficient) Functional And
+  Tractographic Connectivity Analysis Toolbox.** Brain Connectivity
+  3:523-535. `NCBI <http://www.ncbi.nlm.nih.gov/pubmed/23980912>`_
+  `DOI <http://dx.doi.org/10.1089/brain.2013.0154>`_.
+
+  *Introducing diffusion-based tractography tools in AFNI, with
+  particular emphases on complementing FMRI analysis and in performing
+  interactive visualization with SUMA. NB: some names of functions
+  described in this initial paper have changed, for example:*
+  ``3dProbTrackID`` -> ``3dTrackID -mode PROB``.
+
+* Taylor PA, Chen G, Cox RW, Saad ZS (2015).  **Open Environment for
+  Multimodal Interactive Connectivity Visualization and Analysis.**
+  Brain Connectivity (*in press*). `NCBI
+  <http://www.ncbi.nlm.nih.gov/pubmed/26447394>`_ `DOI
+  <http://dx.doi.org/10.1089/brain.2015.0363>`_.
+
+  *Further network-based tools for both FMRI and diffusion-based
+  analyses, as well as their combination.  New tools include: a new
+  tracking methodology (the "mini-probabilistic" approach); more
+  interactive visualization with SUMA+AFNI; and a description of the
+  multivariate framework for statistically modeling network-based
+  features in group analysis (using the existing 3dMVM tool).*
+
+* Taylor PA, Jacobson SW, van der Kouwe A, Molteno CD, Chen G,
+  Wintermark P, Alhamud A, Jacobson JL, Meintjes EM (2015).  **A
+  DTI-based tractography study of effects on brain structure
+  associated with prenatal alcohol exposure in newborns.** Hum Brain
+  Mapp 36(1):170-86. `NCBI
+  <http://www.ncbi.nlm.nih.gov/pubmed/25182535>`_ `DOI
+  <http://dx.doi.org/10.1002/hbm.22620>`_.
+
+  *An applied paper showing examples of FATCAT tracking (including one
+  application of "mini-probabilistic tracking") and group analysis
+  with multivariate statistics.*
 
