@@ -169,8 +169,8 @@ Citation Notes
 
 Useful papers describing FATCAT (+ AFNI + SUMA) tools are:
 
-* Taylor PA, Saad ZS (2013).  **FATCAT: (An Efficient) Functional And
-  Tractographic Connectivity Analysis Toolbox.** Brain Connectivity
+* **FATCAT: (An Efficient) Functional And Tractographic Connectivity
+  Analysis Toolbox.** Taylor PA, Saad ZS (2013). Brain Connectivity
   3:523-535. `NCBI <http://www.ncbi.nlm.nih.gov/pubmed/23980912>`_
   `DOI <http://dx.doi.org/10.1089/brain.2013.0154>`_.
 
@@ -180,9 +180,9 @@ Useful papers describing FATCAT (+ AFNI + SUMA) tools are:
   described in this initial paper have changed, for example:*
   ``3dProbTrackID`` -> ``3dTrackID -mode PROB``.
 
-* Taylor PA, Chen G, Cox RW, Saad ZS (2015).  **Open Environment for
-  Multimodal Interactive Connectivity Visualization and Analysis.**
-  Brain Connectivity (*in press*). `NCBI
+* **Open Environment for Multimodal Interactive Connectivity
+  Visualization and Analysis.** Taylor PA, Chen G, Cox RW, Saad ZS
+  (2015).  Brain Connectivity (*in press*). `NCBI
   <http://www.ncbi.nlm.nih.gov/pubmed/26447394>`_ `DOI
   <http://dx.doi.org/10.1089/brain.2015.0363>`_.
 
@@ -193,13 +193,12 @@ Useful papers describing FATCAT (+ AFNI + SUMA) tools are:
   multivariate framework for statistically modeling network-based
   features in group analysis (using the existing 3dMVM tool).*
 
-* Taylor PA, Jacobson SW, van der Kouwe A, Molteno CD, Chen G,
-  Wintermark P, Alhamud A, Jacobson JL, Meintjes EM (2015).  **A
-  DTI-based tractography study of effects on brain structure
-  associated with prenatal alcohol exposure in newborns.** Hum Brain
-  Mapp 36(1):170-86. `NCBI
-  <http://www.ncbi.nlm.nih.gov/pubmed/25182535>`_ `DOI
-  <http://dx.doi.org/10.1002/hbm.22620>`_.
+* **A DTI-based tractography study of effects on brain structure
+  associated with prenatal alcohol exposure in newborns.** Taylor PA,
+  Jacobson SW, van der Kouwe A, Molteno CD, Chen G, Wintermark P,
+  Alhamud A, Jacobson JL, Meintjes EM (2015).  Hum Brain Mapp
+  36(1):170-86. `NCBI <http://www.ncbi.nlm.nih.gov/pubmed/25182535>`_
+  `DOI <http://dx.doi.org/10.1002/hbm.22620>`_.
 
   *An applied paper showing examples of FATCAT tracking (including one
   application of "mini-probabilistic tracking") and group analysis
