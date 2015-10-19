@@ -44,21 +44,25 @@ capabilities include:
 * selection of rows and viewing/saving of output matrices (\*.grid and
   \*.netcc files) **(fat_roi_row.py, fat_mat_sel.py)**.
 
+|
 
 .. figure:: media/FAT_overview.jpg
    :align: center
-   :width: 70%
+   :figwidth: 70%
    :name: media/FAT_overview.jpg
    :target: ../_images/FAT_overview.jpg
-   
+   :figclass: align-center
+
    *A schematic overview (updated: Oct. 2015) of available FATCAT
-    tools (in bold/italics) and connections with other AFNI and SUMA
-    programs. Red and blue boxes are for FMRI- and diffusion-based
-    data, respectively; purple is for their combination, particularly
-    interactive visualization. Green regions are for processing group
-    characteristic data (such as a spreadsheet/CSV file). Yellow+cyan
-    boxes show steps for combining either FMRI or diffusion data with
-    subject characteristics for group statistical modeling.* :ref:`(link)<media/FAT_overview.jpg>`
+   tools (in bold/italics) and connections with other AFNI and SUMA
+   programs. Red and blue boxes are for FMRI- and diffusion-based
+   data, respectively; purple is for their combination, particularly
+   interactive visualization. Green regions are for processing group
+   characteristic data (such as a spreadsheet/CSV file). Yellow+cyan
+   boxes show steps for combining either FMRI or diffusion data with
+   subject characteristics for group statistical modeling.*
+   :ref:`(link)<media/FAT_overview.jpg>`
+
 
 Announcements of updates, fixes and new programmation are made and
 recorded on the AFNI `Message Board
