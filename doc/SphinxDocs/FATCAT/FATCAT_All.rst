@@ -21,7 +21,7 @@ on ongoing studies and, importantly, user suggestions.  Present
 capabilities include:
 
 * calculating resting state functional connectivity (RSFC) parameters
-  such as ReHo, ALFF, fALFF, RSFA, etc. **(3dReHo, 3dRSFC)**;
+  such as ReHo, ALFF, fALFF, RSFA, etc. **(3dReHo, 3dRSFC; `-regress_RSFC'** switch in **afni_proc.py)**;
 * calculating correlation matrices among networks of ROIs and/or whole
   brain connectivity maps **(3dNetCorr)**;
 * converting FMRI and other data into networks of target ROIs for
@@ -44,13 +44,21 @@ capabilities include:
 * selection of rows and viewing/saving of output matrices (\*.grid and
   \*.netcc files) **(fat_roi_row.py, fat_mat_sel.py)**.
 
+
 .. figure:: media/FAT_overview.jpg
    :align: center
    :width: 70%
    :name: media/FAT_overview.jpg
    :target: ../_images/FAT_overview.jpg
    
-   *A schematic overview of available FATCAT tools (in blue).* :ref:`(link)<media/FAT_overview.jpg>`
+   *A schematic overview (updated: Oct. 2015) of available FATCAT
+    tools (in bold/italics) and connections with other AFNI and SUMA
+    programs. Red and blue boxes are for FMRI- and diffusion-based
+    data, respectively; purple is for their combination, particularly
+    interactive visualization. Green regions are for processing group
+    characteristic data (such as a spreadsheet/CSV file). Yellow+cyan
+    boxes show steps for combining either FMRI or diffusion data with
+    subject characteristics for group statistical modeling.* :ref:`(link)<media/FAT_overview.jpg>`
 
 Announcements of updates, fixes and new programmation are made and
 recorded on the AFNI `Message Board
@@ -59,11 +67,11 @@ resource for checking on previously asked (and hopefully answered)
 questions that come up during analysis.  It is also a good first port
 of call for asking new questions that you yourself might have.
 
-.. note:: This documentation aims to be a complement to the programs'
+.. note:: This documentation aims to be a complement to the program
           helpfiles and demo scripts.  It is written in a different
           style, hopefully taking advantage of the ability to include
-          graphics and images to clarify \{e,al,il\}lusive points and to
-          make examples. If there are any suggestions to increase
+          graphics and images to clarify \{e,al,il\}lusive points and
+          to make examples. If there are any suggestions to increase
           clarity, to include further examples or to fix tyypographic
           errors, please notify the authors.
 
@@ -96,8 +104,8 @@ network properties), run the following in a terminal::
 
 Further online documentation for this is forthcoming...
 
-Other
-=====
+Other: preprocessing and HARDI considerations
+=============================================
 
 Currently, *preprocessing* steps (such as corrections for outliers,
 subject motion, induced eddy currents and magnetic susceptibility) are
