@@ -188,11 +188,11 @@ if (is1D == 1),
    end
    FullName = sprintf('%s%s', Name, Ext);
    [err, UsedName] = wryte3(M, FullName, Opt1D);
-	
+
 	if (isempty(Ext) == 1),
-	   Ext = '.1D.dset';		
-	end		
-	
+	   Ext = '.1D.dset';
+	end
+
    Info.Extension_1D = sprintf('%s', Ext);
    Info.RootName = sprintf('%s', Name);
    return;
@@ -297,7 +297,7 @@ end
          Info = rmfield(Info,'BRICK_STATS');  end
       if (isfield(Info,'BRICK_FLOAT_FACS')),
          Info = rmfield(Info,'BRICK_FLOAT_FACS');  end
-      if (isfield(Info,'DATASET_DIMENSIONS') && ~isVect), 
+      if (isfield(Info,'DATASET_DIMENSIONS') && ~isVect),
          Info = rmfield(Info,'DATASET_DIMENSIONS');  end
       if (isfield(Info,'DATASET_RANK')),
          if (Info.DATASET_RANK(2) ~= N(4)),

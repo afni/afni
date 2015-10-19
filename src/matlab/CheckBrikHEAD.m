@@ -1,13 +1,16 @@
-function [err, ErrMessage, Info] = CheckBrikHEAD (Info)
+function [err, ErrMessage, Info] = CheckBrikHEAD (Info, show_warning_dialogue)
 %
-%   [err, ErrMessage, InfoOut] = CheckBrikHEAD (Info)
+%   [err, ErrMessage, InfoOut] = CheckBrikHEAD (Info [,show_warning_dialogue])
 %
 %Purpose:
 %   Checks to determine if the fields in Info are appropriate AFNI style
 %
 %
 %Input Parameters:
-%   Info is a structure containing all the Header fields,
+%   Info is a structure containing all the Header fields
+%   show_warning_dialogue is an optional boolean (true or false); if true
+%                         it will show a warning in a dialogue box.
+%                         Default: true
 %
 %
 %Output Parameters:
@@ -43,20 +46,34 @@ err = 1;
 
 ErrMessage = '';
 
+% set default value for show_warning_dialogue
+if nargin<2
+    show_warning_dialogue=true;
+end
+
+% use helper function that either shows a warning dialogue or a
+% warning in the command window
+show_warning=@(msg) show_warning_helper(msg, show_warning_dialogue);
+
 %Mandatory Fields Specs
 
-MandatoryFieldNames = 'DATASET_RANK~DATASET_DIMENSIONS~TYPESTRING~SCENE_DATA~ORIENT_SPECIFIC~ORIGIN~DELTA';
-N_Mandatory = WordCount(MandatoryFieldNames, '~');
+MandatoryFieldNames = {'DATASET_RANK',...
+                        'DATASET_DIMENSIONS',...
+                        'TYPESTRING',...
+                        'SCENE_DATA',...
+                        'ORIENT_SPECIFIC',...
+                        'ORIGIN',...
+                        'DELTA'};
 
-%check if the mandatory fields are present
-for (im = 1:1:N_Mandatory),
-	%Check that all the Mandatory Fields have been specified.
-	[err, CurName] = GetWord(MandatoryFieldNames, im, '~');
-	if(~isfield(Info, CurName)),
-		err = 1; ErrMessage = sprintf('Error %s: Field %s must be specified for the Header to be proper.', FuncName, CurName);
-		warndlg(ErrMessage);
-		return;
-	end
+missing_fields=setdiff(MandatoryFieldNames, fieldnames(Info));
+if ~isempty(missing_fields)
+    first_missing_field=missing_fields{1};
+    err = 1; ErrMessage = sprintf(['Error %s: Field %s must be '...
+                                    'specified for the Header to '...
+                                    'be proper.'], ...
+                                    FuncName, first_missing_field);
+    show_warning(ErrMessage);
+    return;
 end
 
 %Now Get all the rules
@@ -78,7 +95,7 @@ for (ir = 1:1:N_Rules),
 			%check for type coherence
 			if (ischar(getfield(Info, Rules(ir).Name))),
 				if (Rules(ir).isNum),
-					err = 1; ErrMessage = sprintf('Error %s: Field %s type (string or numerical) is wrong.', FuncName, Rules(ir).Name);warndlg(ErrMessage);return;
+					err = 1; ErrMessage = sprintf('Error %s: Field %s type (string or numerical) is wrong.', FuncName, Rules(ir).Name);show_warning(ErrMessage);return;
 				end
 			else %a number, verify type
 				if (Rules(ir).isNum == 1 && ~isint(getfield(Info, Rules(ir).Name))),
@@ -88,13 +105,13 @@ for (ir = 1:1:N_Rules),
 			%check for length specs
 			if (~isempty(Rules(ir).Length)),
 				if (length(getfield(Info,Rules(ir).Name)) ~= Rules(ir).Length),
-					err = 1; ErrMessage = sprintf('Error %s: Field %s length must be %d.', FuncName, Rules(ir).Name, Rules(ir).Length);warndlg(ErrMessage);return;
+					err = 1; ErrMessage = sprintf('Error %s: Field %s length must be %d.', FuncName, Rules(ir).Name, Rules(ir).Length);show_warning(ErrMessage);return;
 				end
 			end
 			%check for minimum length specs
 			if (~isempty(Rules(ir).minLength)),
 				if (length(getfield(Info,Rules(ir).Name)) < Rules(ir).minLength),
-					err = 1; ErrMessage = sprintf('Error %s: Field %s length must be at least %d.', FuncName, Rules(ir).Name, Rules(ir).minLength);warndlg(ErrMessage);return;
+					err = 1; ErrMessage = sprintf('Error %s: Field %s length must be at least %d.', FuncName, Rules(ir).Name, Rules(ir).minLength);show_warning(ErrMessage);return;
 				end
 			end
 		end
@@ -276,3 +293,10 @@ end
 err = 0;
 return;
 
+
+function show_warning_helper(msg, show_warning_dialogue)
+    if show_warning_dialogue
+        show_warning(msg);
+    else
+        warning(msg);
+    end
