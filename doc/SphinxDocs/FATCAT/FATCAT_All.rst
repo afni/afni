@@ -37,7 +37,7 @@ capabilities include:
   tractography in a fairly efficient manner and with particular
   interest in networks of target ROIs, such as functional networks or
   connectomes **(3dTrackID, 3dDWUncert)**;
-* user-interactive tracking investigation **(via SUMA and AFNI)**.
+* user-interactive tracking investigation (via **SUMA** and **AFNI**).
 * generating simulations of Rician-noised data **(3dDTtoNoisyDWI)**;
 * statistical analysis on a group level: modeling network connectivity
   (functional or structural) with subject data (e.g., ages, test
@@ -201,6 +201,6 @@ Useful papers describing FATCAT (+ AFNI + SUMA) tools are:
   `DOI <http://dx.doi.org/10.1002/hbm.22620>`_.
 
   *An applied paper showing examples of FATCAT tracking (including one
-  application of "mini-probabilistic tracking") and group analysis
+  application of "mini-probabilistic" tracking) and group analysis
   with multivariate statistics.*
 

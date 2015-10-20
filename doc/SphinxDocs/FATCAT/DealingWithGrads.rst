@@ -15,8 +15,9 @@ In diffusion weighted imaging (DWI), magnetic field gradients are
 applied along various spatial directions to probe relative diffusivity
 along different orientations. In order to estimate the diffusion
 tensor (DT), we need to have a recording of what was the
-directionality of each gradient (**g**, a vector), and what was the
-strength of the extra magnetic field (*b*, a scalar) was used.  
+directionality of each gradient (**g**, a vector of unit length), and
+what was the strength of the extra magnetic field (*b*, a scalar) was
+used.
 
 Many different programs and software, starting from the MRI machines
 themselves, use different notations and methods of reading and writing
@@ -35,7 +36,7 @@ discussed here allow one to semi-automate these averaging processes
 appropriately updating gradient information.
 
 .. note:: Below, when referring to DW factors, the assumed units of
-          the *b*\-values are always: :math:`{\rm s~mm}^{-2}`.
+          the *b*\-values are always:  :math:`{\rm s~mm}^{-2}`.
 
 |
 
@@ -43,7 +44,7 @@ Diffusion gradients
 -------------------
 
 The spatial orientations of the applied diffusion weighting gradients
-are typically recorded as unit normal vectors which can be expressed
+are typically recorded as unit normal vectors, which can be expressed
 as (equivalently):
 
 .. math::
@@ -56,6 +57,14 @@ diffusion gradient applied entirely in the from 'top' to 'bottom' in
 the *z*\-direction (of whatever set of axes the scanner is using)
 might be expressed as (0, 0, 1), and one purely in the *xy*\-plane
 could be (0.707, -0.707, 0) or (-0.950, -0.436, 0), etc. 
+
+.. note:: Sometimes the 'reference' images aren't exactly totally
+          unweighed with *b*\=0. Some data acquisition protocols use a
+          magnetic field gradient with a small DW factor, such as
+          *b*\=5, as a reference volume.  Such data can be processed
+          here, one just needs to include the *b* value information
+          explicitly and specify below what DW factor are reference
+          values.
 
 The gradient information is often saved in a text file as three rows
 of numbers (for example, the ``*.bvecs`` files created by ``dcm2nii``)
