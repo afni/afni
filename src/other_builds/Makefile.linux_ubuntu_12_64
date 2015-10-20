@@ -3,6 +3,8 @@
 # Updated September 2013 (for latest AFNI at end of Aug., 2013).
 # P Taylor
 
+# Oct, 2015:  make 'INSTALL_PREREQ = suma_gts' default
+
 SYSTEM_NAME = linux_ubuntu_12_64
 
 # CPROF = -pg -g
@@ -65,8 +67,8 @@ LINT = /usr/bin/lint -a -b -u -v -x $(IFLAGS) $(CCDEFS)
 INSTALLDIR = ./$(SYSTEM_NAME)
 LIBDIR = $(INSTALLDIR)
 
-INSTALL_PREREQ = suma
-#INSTALL_PREREQ = suma_gts
+#INSTALL_PREREQ = suma
+INSTALL_PREREQ = suma_gts
 # uncomment if the Gnu Scientific Library is installed (libgsl, libgslcblas)
  GSLPROGS = balloon
 EXPROGS = $(GSLPROGS)   # 3dQwarp gifti_tool $(GSLPROGS)
