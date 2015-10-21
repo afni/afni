@@ -3565,9 +3565,19 @@ afni_util.py: not really intended as a main program
             afni_util.py -eval "show_process_stack(verb=2)"
             afni_util.py -eval "show_process_stack(pid=1000)"
 
+      -exec STRING      : execute STRING in the context of afni_util.py
+
+         This option is used to simply execute the code in STRING.
+
+         Examples for exec:
+
+            afni_util.py -exec "y = 3+4 ; print y"
+            afni_util.py -exec "import PyQt4"
+            afni_util.py -exec "show_process_stack()"
+
       -print STRING     : print the result of executing STRING
 
-         Akin to -eval, but print the results of evaluating/executing STRING.
+         Akin to -eval, but print the results of evaluating STRING.
 
       -lprint STRING    : line print: print result list, one element per line
 
@@ -3697,6 +3707,9 @@ def main():
    if len(argv) > 2:
       if argv[1] == '-eval':
          eval(' '.join(argv[2:]))
+         return 0
+      elif argv[1] == '-exec':
+         exec(' '.join(argv[2:]))
          return 0
       elif argv[1] == '-lprint':
          ret = eval(' '.join(argv[2:]))
