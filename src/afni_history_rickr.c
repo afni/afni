@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 21,  Oct, 2015, RCR, "afni_util.py", MICRO, TYPE_NEW_OPT,
+   "added -exec",
+   NULL
+ } ,
+
  { 25,  Sep, 2015, RCR, "suma", MICRO, TYPE_MODIFY,
    "volume rendering is no longer the default for SUMA_VO_InitSlices",
    "So Do_06_VISdti_SUMA_visual_ex1.tcsh defaults to showing 3 volume slices."
