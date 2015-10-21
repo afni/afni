@@ -29,17 +29,15 @@ function [Sd] = zdeblank (S)
 %Define the function name for easy referencing
 FuncName = 'zdeblank';
 
-%Debug Flag
-DBG = 1;
+blank_chars=sprintf(' \t\r\n\f\v%s',char(0));
 
-%initailize return variables
-err = 1;
+non_blank_mask=~any(bsxfun(@eq,blank_chars,S(:)),2);
+first_pos=find(non_blank_mask,1,'first');
+last_pos=find(non_blank_mask,1,'last');
 
-Sd = deblank(S);
-Sd = deblank(fliplr(Sd));
-Sd = fliplr(Sd);
-
-
-err = 0;
-return;
-
+if isempty(first_pos)
+    assert(isempty(last_pos));
+    Sd='';
+else
+    Sd=S(first_pos:last_pos);
+end

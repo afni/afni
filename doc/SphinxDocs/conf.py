@@ -29,9 +29,14 @@ import os
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 # PT: put in the fulltoc line
+
+# PT: Oct, 2015: switching from 'sphinx.ext.pngmath' module to
+# 'mathjax', because I think the former looks muuuch better when
+# rendered online.  Still have to check about the 'make latexpdf', but
+# that has issues of its own at the moment.
 extensions = [
     'sphinxcontrib.fulltoc',
-    'sphinx.ext.pngmath',
+    'sphinx.ext.mathjax',
     'sphinx.ext.todo'
 ]
 
