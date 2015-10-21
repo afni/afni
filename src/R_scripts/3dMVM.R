@@ -1814,9 +1814,8 @@ statsym <- NULL
 #for(ii in 1:nF) statpar <- paste(statpar, " -substatpar ", ii-1, " fift ", F_DF[[ii]][1], F_DF[[ii]][2])
 if(lop$mvE5) for(ii in 1:lop$nF) statsym <- c(statsym, list(list(sb=ii-1, typ="fict", par=1))) else
 if(lop$mvE5a) {
-   for(ii in 1:(lop$nF-lop$nF_mvE5)) statsym <- c(statsym, list(list(sb=ii-1, 
-                typ="fift", par=c(F_DF[[ii]][1], F_DF[[ii]][2]))))
-   for(ii in (lop$nF-lop$nF_mvE5+1):lop$nF) statsym <- c(statsym, list(list(sb=ii, typ="fict", par=1)))
+   for(ii in 1:(lop$nF-lop$nF_mvE5)) statsym <- c(statsym, list(list(sb=ii-1, typ="fift", par=c(F_DF[[ii]][1], F_DF[[ii]][2]))))
+   for(ii in (lop$nF-lop$nF_mvE5+1):lop$nF) statsym <- c(statsym, list(list(sb=ii-1, typ="fict", par=1)))
 } else for(ii in 1:lop$nF) statsym <- c(statsym, list(list(sb=ii-1, 
                 typ="fift", par=c(F_DF[[ii]][1], F_DF[[ii]][2]))))
                        

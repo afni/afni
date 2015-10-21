@@ -24,3 +24,9 @@ ___*
 
 #Miscellaneous
 *.BAK
+
+# Matlab temporary files
+*.m~
+
+# Octave workspace
+octave-workspace
