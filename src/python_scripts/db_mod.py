@@ -4088,9 +4088,11 @@ def db_cmd_reml_exec(proc, block, short=0):
        rv, cmd = db_cmd_regress_anaticor(proc, block)
        if rv: return ''
        aopts = '-dsort %s ' % proc.aic_lset.shortinput()
+       astr = '%s# (include ANATICOR regressors via -dsort)\n' % istr
     else:
        cmd = ''
        aopts = ''
+       astr = ''
 
     # see if the user has provided other 3dREMLfit options
     opt = block.opts.find_opt('-regress_opts_reml')
@@ -4098,7 +4100,8 @@ def db_cmd_reml_exec(proc, block, short=0):
     else: reml_opts = ' '.join(UTIL.quotize_list(opt.parlist, '', 1))
 
     cmd +='%s# -- execute the 3dREMLfit script, written by 3dDeconvolve --\n' \
-          '%stcsh -x stats.REML_cmd %s%s\n' % (istr, istr, aopts, reml_opts)
+          '%s'                                                                \
+          '%stcsh -x stats.REML_cmd %s%s\n' % (istr,astr, istr,aopts, reml_opts)
     if not proc.surf_anat: proc.errts_reml = proc.errts_pre_3dd + '_REML'
 
     # if 3dDeconvolve fails, terminate the script
@@ -4249,7 +4252,8 @@ def db_cmd_regress_anaticor(proc, block):
     if rad <= 0.0: return 1, ''
 
     # init command
-    cmd = '# %sANATICOR: generate local %s time series averages\n' \
+    cmd = '# --------------------------------------------------\n' \
+          '# %sANATICOR: generate local %s time series averages\n' \
           % (fstr, roilab)
 
     # create or note catenated volreg dataset
@@ -4264,7 +4268,8 @@ def db_cmd_regress_anaticor(proc, block):
               '       -expr "a*bool(b)" -datum float -prefix %s\n\n' \
               % (vall, mset.shortinput(), vmask)
 
-       cmd += '3dmerge -1blur_fwhm %g -doall -prefix %s %s%s\n\n'    \
+       cmd += '# generate ANATICOR voxelwise regressors via blur\n'  \
+              '3dmerge -1blur_fwhm %g -doall -prefix %s %s%s\n\n'    \
               % (rad, rset.out_prefix(), vmask, proc.view)
     else:
        cmd += "3dLocalstat -stat mean -nbhd 'SPHERE(%g)' -prefix %s \\\n" \
