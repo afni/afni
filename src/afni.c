@@ -1120,22 +1120,6 @@ ENTRY("AFNI_parse_args") ;
          narg++ ; continue ;  /* go to next arg */
       }
 
-      /* -list_ports list and quit */
-      if( strncmp(argv[narg],"-list_ports", 8) == 0) {
-         show_ports_list(); exit(0);
-      }
-
-      /* -available_npb and quit */
-      if( strcmp(argv[narg],"-available_npb") == 0) {
-         fprintf(stdout,
-                 "\nFirst available npb: %d\n",get_available_npb());
-         exit(0);
-      }
-      if( strncmp(argv[narg],"-available_npb_quiet", 17) == 0) {
-         fprintf(stdout,"%d\n",get_available_npb());
-         exit(0);
-      }
-
       /* -port_number and quit */
       if( strncmp(argv[narg],"-port_number", 8) == 0) {
          int pp = 0;
@@ -1799,11 +1783,7 @@ int main( int argc , char *argv[] )
 
    /** Check for -version [15 Aug 2003] **/
 
-#ifdef SHSTRING
-     printf( "Precompiled binary " SHSTRING ": " __DATE__ " (Version " AVERZHN ")\n" ) ;
-#else
-     printf( "Compile date = " __DATE__ " " __TIME__ " (Version " AVERZHN ")\n") ;
-#endif
+
    if( check_string("-ver",argc,argv) || check_string("--ver",argc,argv) ) dienow++ ;
 
    /** MOTD output **/
@@ -1867,11 +1847,37 @@ int main( int argc , char *argv[] )
      AFNI_list_papers(NULL) ; dienow++ ;
    }
 
+   /* getting text output, should be early      23 Oct 2015 [rickr] */
+
+   if( check_string("-available_npb_quiet", argc, argv) ) {
+      fprintf(stdout,"%d\n",get_available_npb());
+      dienow++ ;
+   } else if( check_string("-available_npb", argc, argv) ) {
+      fprintf(stdout,
+              "\nFirst available npb: %d\n",get_available_npb());
+      dienow++ ;
+   }
+
+   /* -list_ports list and quit */
+   if( check_string("-list_ports", argc, argv) ) {
+      show_ports_list(); dienow++ ;
+   }
+
    /*** if ordered, die right now ***/
 
    if( dienow ) exit(0) ;  /* farewell, cruel world */
 
    /***----- otherwise, perhaps become all detached from reality -----***/
+
+   /* no version until after quick exit checks      23 Oct 2015 [rickr] */
+   if( ! check_string("-q",argc,argv) ) {
+#ifdef SHSTRING
+     printf( "Precompiled binary " SHSTRING ": " __DATE__ " (Version " AVERZHN ")\n" ) ;
+#else
+     printf( "Compile date = " __DATE__ " " __TIME__ " (Version " AVERZHN ")\n") ;
+#endif
+    }
+
 
    /* Since AFNI_DETACH is applied before machdep() or other my_getenv
       calls, -D cannot be used to apply this env var, so add an option.
