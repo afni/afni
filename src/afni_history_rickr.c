@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 23,  Oct, 2015, RCR, "afni", MICRO, TYPE_MODIFY,
+   "move version output after some text requests",
+   NULL
+ } ,
+
  { 21,  Oct, 2015, RCR, "afni_util.py", MICRO, TYPE_NEW_OPT,
    "added -exec",
    NULL
