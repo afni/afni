@@ -985,7 +985,11 @@ mvCom5 <- function(fm, nF_mvE5) {
    #outTerms <- nTerms/2        # half of them
    # UVT p-values
       #if(lop$afex_new) uvP <- uvfm$univariate.test[,'Pr(>F)'] else uvP <- uvfm$anova[,'Pr(>F)'] # p-values for UVT
-      if(lop$afex_new) uvP <- anova(fm, intercept=T)[,'Pr(>F)'] else uvP <- uvfm$anova[,'Pr(>F)'] # p-values for UVT
+      if(lop$afex_new) {
+         uvfm0 <- anova(fm, intercept=T)
+         uvP <- uvfm0[,'Pr(>F)']
+         names(uvP) <- row.names(uvfm0)
+      } else uvP <- uvfm$anova[,'Pr(>F)'] # p-values for UVT
    # within-subject MVT: one set
    #p_wsmvt <- rep(1, nTerms)   # initiation for within-subject MVT
    #   for(ii in 1:nF_mvE4) {
