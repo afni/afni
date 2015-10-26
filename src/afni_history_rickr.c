@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 26,  Oct, 2015, RCR, "afni", MICRO, TYPE_MODIFY,
+   "move version to show_AFNI_version and call on -ver",
+   NULL
+ } ,
+
  { 23,  Oct, 2015, RCR, "afni", MICRO, TYPE_MODIFY,
    "move version output after some text requests",
    NULL
