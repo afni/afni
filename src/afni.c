@@ -146,6 +146,19 @@ static char comsep = ';' ;         /* command separator: 22 Feb 2007 */
 
 static int recursed_ondot = 0 ;  /* 18 Feb 2007 */
 
+/* ---------------------------------------------------------------------- */
+/* just display the AFNI version                      26 Oct 2015 [rickr] */
+/* (since writing to stdout, do not interfere with print-and-exit funcs)  */
+void show_AFNI_version(void) 
+{
+#ifdef SHSTRING
+     printf( "Precompiled binary " SHSTRING ": " __DATE__ " (Version " AVERZHN ")\n" ) ;
+#else
+     printf( "Compile date = " __DATE__ " " __TIME__ " (Version " AVERZHN ")\n") ;
+#endif
+}
+
+
 /********************************************************************
    Print out some help information and then quit quit quit
 *********************************************************************/
@@ -1784,7 +1797,10 @@ int main( int argc , char *argv[] )
    /** Check for -version [15 Aug 2003] **/
 
 
-   if( check_string("-ver",argc,argv) || check_string("--ver",argc,argv) ) dienow++ ;
+   if( check_string("-ver",argc,argv) || check_string("--ver",argc,argv) ) {
+      show_AFNI_version() ;
+      dienow++ ;
+   }
 
    /** MOTD output **/
 
@@ -1870,14 +1886,7 @@ int main( int argc , char *argv[] )
    /***----- otherwise, perhaps become all detached from reality -----***/
 
    /* no version until after quick exit checks      23 Oct 2015 [rickr] */
-   if( ! check_string("-q",argc,argv) ) {
-#ifdef SHSTRING
-     printf( "Precompiled binary " SHSTRING ": " __DATE__ " (Version " AVERZHN ")\n" ) ;
-#else
-     printf( "Compile date = " __DATE__ " " __TIME__ " (Version " AVERZHN ")\n") ;
-#endif
-    }
-
+   if( ! check_string("-q",argc,argv) ) show_AFNI_version() ;
 
    /* Since AFNI_DETACH is applied before machdep() or other my_getenv
       calls, -D cannot be used to apply this env var, so add an option.
@@ -2174,6 +2183,7 @@ STATUS("start XtAppMainLoop") ;
    XtAppMainLoop(MAIN_app) ;  /* never returns */
    AFexit(0) ;                /* should never be reached */
 }
+
 
 #undef HUBERIZE
 #ifdef HUBERIZE
