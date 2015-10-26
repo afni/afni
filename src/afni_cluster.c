@@ -3,7 +3,7 @@
 
 static void AFNI_cluster_widgkill( Three_D_View *im3d ) ;
 static void AFNI_cluster_widgize( Three_D_View *im3d , int force ) ;
-static MRI_IMARR * AFNI_cluster_timeseries( Three_D_View *im3d , int ncl ) ;
+static MRI_IMARR * AFNI_cluster_timeseries( Three_D_View *im3d , int ncl , int ids ) ;
 static void AFNI_clus_viewpoint_CB( int why, int np, void *vp, void *cd ) ;
 static char * AFNI_clus_3dclust( Three_D_View *im3d , char *extraopts ) ;
 static char * AFNI_cluster_write_coord_table(Three_D_View *im3d);
@@ -20,6 +20,14 @@ static void AFNI_linkrbrain_av_CB( MCW_arrowval *av , XtPointer cd );
 
 #undef  MAX_INDEX
 #define MAX_INDEX 99999
+
+#undef  WAY_BIG
+#define WAY_BIG 1.e+10   /* a big number */
+
+static int init_clr[MAX_CLU_AUXDSET] = { 5 , 14 , 8 , 15 } ;
+
+#define myceil(x)   ceil((x)-0.00005)
+#define myfloor(x) floor((x)+0.00005)
 
 static Widget wtemp ;
 
@@ -38,6 +46,21 @@ CLU_threshtable * CLU_get_thresh_table( Three_D_View *im3d ) ;
      if( starred ) strcat(clab,"*") ;                                    \
      MCW_set_widget_label( (cw)->clusters_lab , clab ) ;                 \
  } while(0)
+
+/*---------------------------------------------------------------------*/
+
+char * print_color_string(float r, float g, float b)
+{
+   static char str[32] ; int rr,gg,bb ;
+
+   if( r < 0.0 ) r = 0.0f ; else if( r > 1.0f ) r = 1.0f ;
+   if( g < 0.0 ) g = 0.0f ; else if( g > 1.0f ) g = 1.0f ;
+   if( b < 0.0 ) b = 0.0f ; else if( b > 1.0f ) b = 1.0f ;
+
+   sprintf( str , "\\color:%1x%1x%1x" ,
+            (int)(r*15.9f) , (int)(g*15.9f) , (int)(b*15.9f) ) ;
+   return str ;
+}
 
 /*****************************************************************************/
 /*************  Functions for all actions in the cluster group ***************/
@@ -446,29 +469,39 @@ static int scrolling      =  1 ;
   } while(0)
 
 /*---------------------------------------------------------------------------*/
-/* Set the label for the auxiliary dataset */
+/* Set the labels for the auxiliary dataset (etc) */
 
-static void AFNI_clus_dsetlabel( Three_D_View *im3d )
+static void AFNI_clus_auxdsetlabel( Three_D_View *im3d )
 {
    AFNI_clu_widgets *cwid ;
    char str[THD_MAX_NAME+66] ;
+   int ww , naux ;
 
-ENTRY("AFNI_clus_dsetlabel") ;
+ENTRY("AFNI_clus_auxdsetlabel") ;
 
    if( !IM3D_OPEN(im3d) ) EXRETURN ;
    cwid = im3d->vwid->func->cwid ; if( cwid == NULL ) EXRETURN ;
 
-   if( !ISVALID_DSET(cwid->dset) )
-     strcpy(str," [No Aux Dataset chosen]") ;
-   else
-     sprintf(str,"Aux=%s",THD_trailname(DSET_HEADNAME(cwid->dset),SESSTRAIL)) ;
+   for( naux=ww=0 ; ww < MAX_CLU_AUXDSET ; ww++ ){
+     if( ISVALID_DSET(cwid->auxdset[ww]) ){
+       naux++ ;
+       sprintf(str,"%.17s",DSET_FILECODE(cwid->auxdset[ww])) ;
+       MCW_set_widget_label( cwid->auxdset_namlab[ww] , str ) ;
+     } else {
+       XmToggleButtonSetState( cwid->auxdset_bbox[ww]->wbut[0] , False , False ) ;
+       MCW_set_widget_label( cwid->auxdset_namlab[ww] , "clear") ;
+     }
+     sprintf(str,"Auxiliary Dataset = %s" ,
+             ISVALID_DSET(cwid->auxdset[ww]) ? DSET_FILECODE(cwid->auxdset[ww])
+                                             : "clear" ) ;
+     MCW_register_hint( cwid->auxdset_pb[ww] , str ) ;
+   }
 
-   if( cwid->splotim != NULL )
-     sprintf(str+strlen(str)," Scat.1D=%s",cwid->splotim->name) ;
-   else
-     sprintf(str+strlen(str)," [Scat.1D cleared]") ;
+   sprintf(str,"%1d Aux Dset%s|Scat.1D=%.17s" ,
+               naux , (naux==1) ? "\0" : "s" ,
+               (cwid->splotim!=NULL) ? THD_trailname(cwid->splotim->name,0) : "clear" ) ;
 
-   MCW_set_widget_label( cwid->dset_lab , str ) ;
+   MCW_set_widget_label( cwid->auxdset_lab , str ) ;
    EXRETURN ;
 }
 
@@ -528,7 +561,7 @@ static void AFNI_clus_make_widgets( Three_D_View *im3d, int num )
    AFNI_clu_widgets *cwid ;
    Widget rc ;
    XmString xstr ;
-   char str[32] ;
+   char str[32] , *slab ;
    int ii ;
    Widget shtop , swtop=NULL ;
 
@@ -537,7 +570,8 @@ ENTRY("AFNI_clus_make_widgets") ;
    if( !IM3D_OPEN(im3d) || im3d->vwid->func->cwid != NULL ) EXRETURN ; /* bad */
 
    im3d->vwid->func->cwid = cwid = myXtNew( AFNI_clu_widgets ) ;
-   cwid->dset = NULL ; cwid->coord_mode = 0 ;
+   CLU_CLEAR_AUXDSET(cwid) ;
+   cwid->coord_mode = 0 ;
 
    /* shell to hold it all */
 
@@ -721,7 +755,7 @@ ENTRY("AFNI_clus_make_widgets") ;
                          "Write cluster table, then run 'whereami -linkrbrain'") ;
      if( lbhelp == NULL ){
        lbhelp = (char *)malloc(sizeof(char)*2048) ;
-       sprintf(lbhelp, 
+       sprintf(lbhelp,
                 "Query %s website for\n"
                 "correlations of the set of cluster\n"
                 "coordinates with known tasks or genes.\n"
@@ -777,6 +811,21 @@ ENTRY("AFNI_clus_make_widgets") ;
              XmNadjustMargin , True ,
              XmNtraversalOn  , True ,
           NULL ) ;
+
+   /* row #1: arrow for Aux Dset stuff */
+
+   cwid->auxdset_arrow = XtVaCreateManagedWidget(
+                            "arrow" , xmArrowButtonWidgetClass , rc ,
+                            XmNarrowDirection , XmARROW_RIGHT ,
+                            XmNheight , 15 , XmNwidth , 24 ,
+                            XmNborderWidth , 0 ,
+                            XmNinitialResourcesPersistent , False ,
+                            XmNtraversalOn , True ,
+                          NULL ) ;
+   XtAddCallback( cwid->auxdset_arrow, XmNactivateCallback, AFNI_clus_action_CB, im3d ) ;
+   MCW_register_hint( cwid->auxdset_arrow , "Open/Close Auxiliary Dataset selectors" ) ;
+   MCW_set_widget_fg( cwid->auxdset_arrow , "white" ) ;
+   VLINE(rc) ;
 
    /* row #1: index label */
 
@@ -918,14 +967,14 @@ ENTRY("AFNI_clus_make_widgets") ;
      MCW_register_help( cwid->whermask_pb ,
                          "Write the set of clusters to\n"
                          "a 3D dataset, then run program\n"
-                         "       whereami -omask\n"
+                         "              whereami -omask\n"
                          "to get a report of atlas locations\n"
                          "that overlap each cluster.\n"
                          "* At most the first 20 clusters\n"
-                         "    will be passed to whereami.\n"
+                         "   will be passed to whereami.\n"
                          "* To change this upper limit, set\n"
-                         "    AFNI_CLUSTER_WAMIMAX to a\n"
-                         "    value between 1 and 99.\n"
+                         "   AFNI_CLUSTER_WAMIMAX to a\n"
+                         "   value between 1 and 99.\n"
                          "* Can only be run in Talairach View"
                       ) ;
      SENSITIZE(cwid->whermask_pb,
@@ -955,32 +1004,61 @@ ENTRY("AFNI_clus_make_widgets") ;
                                    "in AFNI by now?!!?"     ) ;
 
    XtManageChild(rc) ;  /* finished with row #1 setup */
+
    HLINE(cwid->rowcol) ;
 
-   /* horiz rowcol for row #2 controls */
+   /*----------- Holds all the auxdset widgets, to be turned on/off ----------*/
 
-   rc = XtVaCreateWidget(
-          "menu" , xmRowColumnWidgetClass , cwid->rowcol ,
-             XmNpacking      , XmPACK_TIGHT ,
-             XmNorientation  , XmHORIZONTAL   ,
-             XmNadjustMargin , True ,
-             XmNtraversalOn , True  ,
-          NULL ) ;
-
-   /* row #2: dataset chooser */
-
-   xstr = XmStringCreateLtoR( "Aux.Dset" , XmFONTLIST_DEFAULT_TAG ) ;
-   cwid->dataset_pb = XtVaCreateManagedWidget(
-           "menu" , xmPushButtonWidgetClass , rc ,
-            XmNlabelString , xstr ,
-            XmNtraversalOn , True  ,
+   cwid->auxdset_master_rowcol =
+      XtVaCreateWidget(
+         "dialog" , xmRowColumnWidgetClass , cwid->rowcol ,
+            XmNpacking      , XmPACK_TIGHT ,
+            XmNorientation  , XmVERTICAL   ,
+            XmNspacing      , 0 ,
+            XmNadjustMargin , True ,
+            XmNtraversalOn  , True ,
          NULL ) ;
-   XmStringFree(xstr) ;
-   XtAddCallback( cwid->dataset_pb, XmNactivateCallback, AFNI_clus_action_CB, im3d );
-   MCW_register_hint( cwid->dataset_pb , "data for Plot/Save from cluster" ) ;
-   MCW_register_help( cwid->dataset_pb ,
+
+   /*--- [19 Oct 2015] Build a row for each possible Aux Dset ---*/
+
+   slab = (char *)malloc(sizeof(char)*8) ;
+   for( ii=0 ; ii < MAX_CLU_AUXDSET ; ii++ ){
+
+     /* horiz rowcol to hold all widgets in this row */
+
+     rc = XtVaCreateWidget(
+            "menu" , xmRowColumnWidgetClass , cwid->auxdset_master_rowcol ,
+               XmNpacking      , XmPACK_TIGHT ,
+               XmNorientation  , XmHORIZONTAL   ,
+               XmNadjustMargin , True ,
+               XmNtraversalOn , True  ,
+            NULL ) ;
+
+     /* toggle button for aux dset */
+
+     sprintf(slab,"%1d",ii+1) ;
+     cwid->auxdset_bbox[ii] = new_MCW_bbox( rc , 1 , &slab ,
+                                            MCW_BB_check, MCW_BB_noframe,
+                                            NULL,NULL ) ;
+     XmToggleButtonSetState( cwid->auxdset_bbox[ii]->wbut[0] , False , False ) ;
+     MCW_reghint_children( cwid->auxdset_bbox[ii]->wrowcol ,
+                           "See or Hide data from this Auxiliary Dataset" ) ;
+
+     /* dataset chooser */
+
+     xstr = XmStringCreateLtoR( "Aux" , XmFONTLIST_DEFAULT_TAG ) ;
+     cwid->auxdset_pb[ii] = XtVaCreateManagedWidget(
+                               "menu" , xmPushButtonWidgetClass , rc ,
+                               XmNmarginHeight , 1 , XmNmarginWidth , 0 ,
+                               XmNlabelString , xstr ,
+                               XmNtraversalOn , True  ,
+                            NULL ) ;
+     XmStringFree(xstr) ;
+     XtAddCallback( cwid->auxdset_pb[ii], XmNactivateCallback, AFNI_clus_action_CB, im3d );
+     MCW_register_hint( cwid->auxdset_pb[ii] , "Auxiliary Dataset = NULL" ) ;
+     MCW_register_help( cwid->auxdset_pb[ii] ,
                        "If you choose an Auxiliary Dataset\n"
-                       "  -- which must have the same grid     --\n"
+                       "  -- which must have the same xyz grid --\n"
                        "  -- dimensions as the Overlay dataset --\n"
                        "then for each cluster, you can extract\n"
                        "the corresponding data from that dataset\n"
@@ -1006,28 +1084,51 @@ ENTRY("AFNI_clus_make_widgets") ;
                        "   (the biweight midvariance)."
                     ) ;
 
-   /* row #2: 'from' and 'to' choosers */
+     /* 'From' and 'To' choosers */
 
-   cwid->from_av = new_MCW_arrowval( rc , "From" , MCW_AV_downup ,
-                                     0,MAX_INDEX,0,MCW_AV_editext,0 ,
-                                     NULL,NULL , NULL,NULL ) ;
-   MCW_reghint_children( cwid->from_av->wrowcol ,
-                         "first sub-brick to use from Aux Dataset" ) ;
-   XtVaSetValues( cwid->from_av->wtext , XmNcolumns , 5 , NULL ) ;
+     cwid->auxdset_from_av[ii] = new_MCW_arrowval( rc , "From" , MCW_AV_downup ,
+                                                   0,MAX_INDEX,0,MCW_AV_editext,0 ,
+                                                   NULL,NULL , NULL,NULL ) ;
+     MCW_reghint_children( cwid->auxdset_from_av[ii]->wrowcol ,
+                           "first sub-brick to use from Aux Dataset" ) ;
+     XtVaSetValues( cwid->auxdset_from_av[ii]->wtext , XmNcolumns , 5 , NULL ) ;
 
-   cwid->to_av = new_MCW_arrowval( rc , "To" , MCW_AV_downup ,
-                                     0,MAX_INDEX,MAX_INDEX,MCW_AV_editext,0 ,
-                                     NULL,NULL , NULL,NULL ) ;
-   MCW_reghint_children( cwid->to_av->wrowcol ,
-                         "last sub-brick to use from Aux Dataset" ) ;
-   XtVaSetValues( cwid->to_av->wtext , XmNcolumns , 5 , NULL ) ;
+     cwid->auxdset_to_av[ii] = new_MCW_arrowval( rc , "To" , MCW_AV_downup ,
+                                                0,MAX_INDEX,MAX_INDEX,MCW_AV_editext,0 ,
+                                                NULL,NULL , NULL,NULL ) ;
+     MCW_reghint_children( cwid->auxdset_to_av[ii]->wrowcol ,
+                           "last sub-brick to use from Aux Dataset" ) ;
+     XtVaSetValues( cwid->auxdset_to_av[ii]->wtext , XmNcolumns , 5 , NULL ) ;
 
-   /* row #2: data processing method */
+     cwid->auxdset_clr_av[ii] = new_MCW_colormenu(
+                                    rc , " " , im3d->dc ,
+                                    1 , im3d->dc->ovc->ncol_ov-1 , init_clr[ii] ,
+                                    NULL , NULL ) ;
 
-   VLINE(rc) ;
+     cwid->auxdset_namlab[ii] = XtVaCreateManagedWidget(
+                                    "dialog" , xmLabelWidgetClass , rc , NULL ) ;
+     MCW_set_widget_label( cwid->auxdset_namlab[ii] , "NULL") ;
+     MCW_set_widget_fg( cwid->auxdset_namlab[ii] , "white" ) ;
+     LABELIZE( cwid->auxdset_namlab[ii] ) ;
+
+     XtManageChild(rc) ;  /* row #ii is finished */
+   }
+   free(slab) ;
+
+   /*--- [19 Oct 2015] Next row = things that control the Aux Dset plotting ---*/
+
+   rc = XtVaCreateWidget(
+          "menu" , xmRowColumnWidgetClass , cwid->auxdset_master_rowcol ,
+             XmNpacking      , XmPACK_TIGHT ,
+             XmNorientation  , XmHORIZONTAL   ,
+             XmNadjustMargin , True ,
+             XmNtraversalOn , True  ,
+          NULL ) ;
+
+   /* data processing method */
 
    { static char *clab[6] = { "Mean", "Median", "PC#1", "Histog", "S:mean", "S:all" } ;
-     cwid->aver_av = new_MCW_optmenu( rc , " " , 0,5,0,0 ,
+     cwid->aver_av = new_MCW_optmenu( rc , "Plot" , 0,5,0,0 ,
                                       NULL,NULL , MCW_av_substring_CB,clab ) ;
      MCW_reghint_children( cwid->aver_av->wrowcol ,
                            "Set data processing method for Plot/Save" ) ;
@@ -1037,31 +1138,32 @@ ENTRY("AFNI_clus_make_widgets") ;
                            "* Mean   = averaged across voxels\n"
                            "* Median = median across voxels\n"
                            "* PC#1   = compute first principal\n"
-                           "         component vector\n"
+                           "            component vector\n"
                            "* Histog = build a histogram across\n"
-                           "           voxels and sub-bricks\n"
+                           "            voxels and sub-bricks\n"
                            "* Error bars will be shown for 'Mean'\n"
-                           "  and 'Median' if environment variable\n"
-                           "  AFNI_CLUSTER_EBAR is set to YES.\n"
+                           "   and 'Median' if environment variable\n"
+                           "   AFNI_CLUSTER_EBAR is set to YES.\n"
                            "* A hidden Button-3 popup menu on the\n"
-                           "  cluster summary report label atop this\n"
-                           "  window will let you choose the range\n"
-                           "  of data to be histogram-ized.\n"
+                           "   cluster summary report label atop this\n"
+                           "   window will let you choose the range\n"
+                           "   of data to be histogram-ized.\n"
                            "* The options 'S:all' and 'S:mean' allow\n"
-                           "  you to scatter plot all the data values\n"
-                           "  from the cluster -- or just the mean from\n"
-                           "  each sub-brick -- vs. an external 1D file,\n"
-                           "  which is chosen with the 'Scat.1D' button."
+                           "   you to scatter plot all the data values\n"
+                           "   from the cluster -- or just the mean from\n"
+                           "   each sub-brick -- vs. an external 1D file,\n"
+                           "   which is chosen with the 'Scat.1D' button."
                          ) ;
    }
 
    VLINE(rc) ;
 
-   /* row #2: splot choosers */
+   /* Scatter plot (splot) choosers */
 
    xstr = XmStringCreateLtoR( "Scat.1D" , XmFONTLIST_DEFAULT_TAG ) ;
    cwid->splot_pb = XtVaCreateManagedWidget(
            "menu" , xmPushButtonWidgetClass , rc ,
+            XmNmarginHeight , 1 , XmNmarginWidth , 0 ,
             XmNlabelString , xstr ,
             XmNtraversalOn , True  ,
          NULL ) ;
@@ -1095,6 +1197,7 @@ ENTRY("AFNI_clus_make_widgets") ;
    xstr = XmStringCreateLtoR( "Clear" , XmFONTLIST_DEFAULT_TAG ) ;
    cwid->splot_clear_pb = XtVaCreateManagedWidget(
            "menu" , xmPushButtonWidgetClass , rc ,
+            XmNmarginHeight , 1 , XmNmarginWidth , 0 ,
             XmNlabelString , xstr ,
             XmNtraversalOn , True  ,
          NULL ) ;
@@ -1109,18 +1212,22 @@ ENTRY("AFNI_clus_make_widgets") ;
                     ) ;
    cwid->splotim = NULL ;
 
-   XtManageChild(rc) ;  /* row #2 is finished */
+   VLINE(rc) ;
 
    /* Time series dataset label */
 
    (void) XtVaCreateManagedWidget( "dialog", xmSeparatorWidgetClass,cwid->rowcol,
                                       XmNseparatorType   , XmSHADOW_ETCHED_IN ,
                                    NULL ) ;
-   cwid->dset_lab = XtVaCreateManagedWidget(
-                      "dialog" , xmLabelWidgetClass , cwid->rowcol , NULL ) ;
-   AFNI_clus_dsetlabel(im3d) ;
-   MCW_set_widget_fg( cwid->dset_lab , "white" ) ;
-   LABELIZE( cwid->dset_lab ) ;
+   cwid->auxdset_lab = XtVaCreateManagedWidget(
+                        "dialog" , xmLabelWidgetClass , rc , NULL ) ;
+   AFNI_clus_auxdsetlabel(im3d) ;
+   MCW_set_widget_fg( cwid->auxdset_lab , "white" ) ;
+   LABELIZE( cwid->auxdset_lab ) ;
+
+   XtManageChild(rc) ;  /* row is finished */
+
+   /*----------- end of auxdset widgets in the master rowcol ----------*/
 
    /* Separator from other widgets */
 
@@ -1136,7 +1243,7 @@ ENTRY("AFNI_clus_make_widgets") ;
    SET_CLUSTERS_LAB(cwid,im3d->vednomask) ;
    MCW_set_widget_fg( cwid->clusters_lab , "white") ;
 
-   /* Now create rows of widgets to display results from clusters */
+   /*------- Now create rows of widgets to display results from clusters -------*/
 
    if( num < 2 ) num = 2 ;
    cwid->nall = num ;
@@ -1212,6 +1319,8 @@ ENTRY("AFNI_clus_make_widgets") ;
 
    XtManageChild( cwid->rowcol ) ;
 
+   /*------- finalize the report panel and make it visible ------*/
+
    if( swtop != NULL ){
      int wx,hy , cmax ;
      MCW_widget_geom( cwid->rowcol  , &wx,&hy,NULL,NULL ) ;
@@ -1261,9 +1370,10 @@ static void AFNI_cluster_widgkill( Three_D_View *im3d )
 {
 ENTRY("AFNI_cluster_widgkill") ;
    if( !IM3D_OPEN(im3d) || im3d->vwid->func->cwid == NULL ) EXRETURN ;
-   im3d->vwid->func->cwid->dset = NULL ;
-   AFNI_clus_dsetlabel(im3d) ;
-   XtUnmapWidget( im3d->vwid->func->cwid->wtop ) ;
+   CLU_CLEAR_AUXDSET(im3d->vwid->func->cwid) ;
+   im3d->vwid->func->cwid->splotim = NULL ;
+   AFNI_clus_auxdsetlabel(im3d) ;
+   XtUnmapWidget( im3d->vwid->func->cwid->wtop ) ;  /* hide, don't destroy */
    im3d->vwid->func->cwid->is_open = 0 ;
    DESTROY_CLARR(im3d->vwid->func->clu_list) ;
    SENSITIZE(im3d->vwid->imag->pop_jumpto_clus_pb,False) ;
@@ -1323,16 +1433,21 @@ ENTRY("AFNI_clus_viewpoint_CB") ;
        MCW_set_widget_label( cwid->index_lab , lab ) ;
      break ;
 
-     case RECEIVE_ALTERATION:
-       if( !ISVALID_DSET(im3d->fim_now) ||
-           !ISVALID_DSET(cwid->dset)    ||
-           DSET_NVOX(im3d->fim_now) != DSET_NVOX(cwid->dset) ){
+     case RECEIVE_ALTERATION:{  /* some dataset changed? */
+       int ww , nch ;
+       for( nch=ww=0 ; ww < MAX_CLU_AUXDSET ; ww++ ){
+         if( !ISVALID_DSET(im3d->fim_now)     ||
+             !ISVALID_DSET(cwid->auxdset[ww]) ||
+             DSET_NVOX(im3d->fim_now) != DSET_NVOX(cwid->auxdset[ww]) ){
 
-           cwid->dset = NULL ; AFNI_clus_dsetlabel(im3d) ;
+             cwid->auxdset[ww] = NULL ; nch++ ;
+         }
        }
+       if( nch > 0 ) AFNI_clus_auxdsetlabel(im3d) ; /* re-label */
+     }
      break ;
 
-     case RECEIVE_CLOSURE:
+     case RECEIVE_CLOSURE:  /* user closed the AFNI controller? */
        AFNI_clus_popdown( im3d ) ;
        cwid->receive_on = 0 ;
      break ;
@@ -1568,7 +1683,8 @@ ENTRY("AFNI_clus_done_CB") ;
    if( !IM3D_VALID(im3d) ) EXRETURN ;
    cwid = im3d->vwid->func->cwid ;
    if( cwid != NULL ){
-     cwid->dset = NULL ; AFNI_clus_dsetlabel(im3d) ;
+     CLU_CLEAR_AUXDSET(cwid) ; cwid->splotim = NULL ;
+     AFNI_clus_auxdsetlabel(im3d) ;
      cwid->hbot = cwid->htop = 0.0f ; MCW_set_bbox( cwid->histsqrt_bbox , 0 ) ;
      XtUnmapWidget(cwid->wtop) ; cwid->is_open = 0 ;
      DESTROY_CLARR(im3d->vwid->func->clu_list) ;
@@ -1588,26 +1704,36 @@ void AFNI_clus_popdown( Three_D_View *im3d )
 /*---------------------------------------------------------------------------*/
 /* Called when the user finally makes up his pitiful little mind. */
 
-static AFNI_dataset_choose_stuff cdds = { 0, NULL, NULL , NULL } ;
+static AFNI_dataset_choose_stuff cdds = { 0,0, NULL, NULL , NULL } ;
 
 static void AFNI_clus_finalize_dataset_CB( Widget w, XtPointer cd, MCW_choose_cbs *cbs )
 {
    Three_D_View *im3d = (Three_D_View *)cd ;
    AFNI_clu_widgets *cwid ;
    THD_3dim_dataset *dset ;
-   int ival ;
+   int ival , ibut ;
 
 ENTRY("AFNI_clus_finalize_dataset_CB") ;
 
-   if( !IM3D_OPEN(im3d) || cbs == NULL ){ POPDOWN_strlist_chooser; EXRETURN; }
+   if( !IM3D_OPEN(im3d) || cbs == NULL )    { POPDOWN_strlist_chooser; EXRETURN; }
+
    cwid = im3d->vwid->func->cwid ;
-   if( cwid == NULL || !cwid->is_open ) { POPDOWN_strlist_chooser; EXRETURN; }
+   if( cwid == NULL || !cwid->is_open )     { POPDOWN_strlist_chooser; EXRETURN; }
+
+   ibut = cdds.ncode ;
+   if( ibut < 0 || ibut >= MAX_CLU_AUXDSET ){ POPDOWN_strlist_chooser; EXRETURN; }
 
    ival = cbs->ival ;
-   if( ival < 0 || ival >= cdds.ndset ) EXRETURN ;
+   if( ival < 0 || ival >= cdds.ndset )     { POPDOWN_strlist_chooser; EXRETURN; }
    dset = cdds.dset[ival] ;
-   cwid->dset = ISVALID_DSET(dset) ? dset : NULL ;
-   AFNI_clus_dsetlabel(im3d) ;
+   if( ISVALID_DSET(dset) ){
+     cwid->auxdset[ibut] = dset ;
+     XmToggleButtonSetState( cwid->auxdset_bbox[ibut]->wbut[0] , True , False ) ;
+   } else {
+     cwid->auxdset[ibut] = NULL ;
+     XmToggleButtonSetState( cwid->auxdset_bbox[ibut]->wbut[0] , False , False ) ;
+   }
+   AFNI_clus_auxdsetlabel(im3d) ;
    EXRETURN ;
 }
 
@@ -1628,7 +1754,7 @@ ENTRY("AFNI_clus_finalize_scat1D_CB") ;
    ival = cbs->ival ;
    if( ival >= 0 && ival < IMARR_COUNT(GLOBAL_library.timeseries) )
      cwid->splotim = IMARR_SUBIMAGE(GLOBAL_library.timeseries,ival) ;
-   AFNI_clus_dsetlabel(im3d) ;
+   AFNI_clus_auxdsetlabel(im3d) ;
    EXRETURN ;
 }
 
@@ -1647,37 +1773,19 @@ ENTRY("AFNI_clus_action_CB") ;
    if( !IM3D_OPEN(im3d) ) EXRETURN ;
    cwid = im3d->vwid->func->cwid ; if( cwid == NULL ) EXRETURN ;
 
-   /*--------- dataset chooser ---------*/
+   /*--------- Aux Dset arrow ----------*/
 
-   if( w == cwid->dataset_pb ){
-     int vv = im3d->vinfo->view_type ;
-     THD_3dim_dataset *dset ;
-
-     if( cdds.dset != NULL ){
-       STATUS("free(cdds.dset)") ; free((void *)cdds.dset) ;
-       if( getenv("AFNI_CLUSTERIZE_AUXCRASH") == NULL ) cdds.dset = NULL ;
+   if( w == cwid->auxdset_arrow ){
+     unsigned char adir ;
+     XtVaGetValues( cwid->auxdset_arrow , XmNarrowDirection , &adir , NULL ) ;
+     if( adir == XmARROW_RIGHT ) adir = XmARROW_DOWN ;
+     else                        adir = XmARROW_RIGHT ;
+     XtVaSetValues( cwid->auxdset_arrow , XmNarrowDirection , adir , NULL ) ;
+     if( adir == XmARROW_DOWN ){
+       XtManageChild  ( cwid->auxdset_master_rowcol  ) ;
+     } else {
+       XtUnmanageChild( cwid->auxdset_master_rowcol  ) ;
      }
-     cdds.ndset = 0 ;
-     STATUS("realloc(cdds.dset)") ;
-     cdds.dset = (THD_3dim_dataset **)realloc(cdds.dset,
-                                              sizeof(THD_3dim_dataset *)
-                                             *im3d->ss_now->num_dsset  ) ;
-     cdds.cb = AFNI_clus_finalize_dataset_CB ;
-     for( ii=0 ; ii < im3d->ss_now->num_dsset ; ii++ ){
-       dset = GET_SESSION_DSET(im3d->ss_now, ii, vv) ;
-       if( ISVALID_DSET(dset)                          &&  /* qualifications */
-           DSET_NVOX(dset) == DSET_NVOX(im3d->fim_now) &&
-           DSET_INMEMORY(dset)                           )
-         cdds.dset[cdds.ndset++] = dset ;
-     }
-     if( cdds.ndset > 0 )
-       AFNI_choose_dataset_CB( cwid->top_lab , im3d , &cdds ) ;
-     else
-       MCW_popup_message( cwid->top_lab , " \n"
-                                          "** No viable datasets **\n"
-                                          "** available to graph **\n " ,
-                          MCW_USER_KILL | MCW_TIMER_KILL ) ;
-
      EXRETURN ;
    }
 
@@ -1700,7 +1808,7 @@ ENTRY("AFNI_clus_action_CB") ;
 
    if( w == cwid->splot_clear_pb ){
      cwid->splotim = NULL ;
-     AFNI_clus_dsetlabel(im3d) ;
+     AFNI_clus_auxdsetlabel(im3d) ;  /* that was easy */
      EXRETURN ;
    }
 
@@ -1940,13 +2048,57 @@ printf("wrote cluster table to %s\n", lb_fnam);
      EXRETURN ;
    } /* end of linkrbrain-ization */
 
+   /*---- scan Aux Dset list of widgets ----*/
+
+   for( ii=0 ; ii < MAX_CLU_AUXDSET ; ii++ ){
+
+     /*- dataset chooser? -*/
+
+     if( w == cwid->auxdset_pb[ii] ){  /* call AFNI_choose_dataset_CB */
+       int vv = im3d->vinfo->view_type ;
+       THD_3dim_dataset *dset ;
+
+       if( cdds.dset != NULL ){
+         STATUS("free(cdds.dset)") ; free((void *)cdds.dset) ; cdds.dset = NULL ;
+       }
+       cdds.ndset = 0 ;
+       STATUS("realloc(cdds.dset)") ;
+       cdds.dset = (THD_3dim_dataset **)realloc(cdds.dset,
+                                                sizeof(THD_3dim_dataset *)
+                                               *im3d->ss_now->num_dsset  ) ;
+       cdds.ncode = ii ;  /* mark which button was used */
+       cdds.cb = AFNI_clus_finalize_dataset_CB ;
+       for( ii=0 ; ii < im3d->ss_now->num_dsset ; ii++ ){ /* list of datasets */
+         dset = GET_SESSION_DSET(im3d->ss_now, ii, vv) ;
+         if( ISVALID_DSET(dset)                          && /* qualifications */
+             DSET_NVOX(dset) == DSET_NVOX(im3d->fim_now) &&
+             DSET_INMEMORY(dset)                           )
+           cdds.dset[cdds.ndset++] = dset ;
+       }
+       if( cdds.ndset > 0 )
+         AFNI_choose_dataset_CB( cwid->top_lab , im3d , &cdds ) ;
+       else
+         MCW_popup_message( cwid->top_lab , " \n"
+                                            "** No viable datasets **\n"
+                                            "** available to graph **\n " ,
+                            MCW_USER_KILL | MCW_TIMER_KILL ) ;
+
+       EXRETURN ;
+     }
+
+     /* there are no actions to take when a Aux Dset toggle is pressed,
+        or when a From/To arrowval is altered -- these things will be
+        read out when the user actuates a Save or Plot cluster button. */
+
+   }  /*-- end of Aux Dset items --*/
+
    /*------ scan button list, see if widget matches one of them ------*/
 
    nclu = im3d->vwid->func->clu_num ;
    cld  = im3d->vwid->func->clu_det ;
    if( nclu == 0 || cld == NULL ) EXRETURN ;
 
-   for( ii=0 ; ii < nclu ; ii++ ){
+   for( ii=0 ; ii < nclu ; ii++ ){  /* ii = cluster button row */
 
      /*-------- Jump to the cluster peak or cmass --------*/
 
@@ -2004,33 +2156,33 @@ printf("wrote cluster table to %s\n", lb_fnam);
        THD_force_ok_overwrite(0) ;
        EXRETURN ;
 
-     /*----------- Process the cluster data -----------*/
+     /*----------- Process the Aux Dset data for cluster #ii -----------*/
 
      } else if( w == cwid->clu_plot_pb[ii] || w == cwid->clu_save_pb[ii] ){
 
-       int dosave = (w == cwid->clu_save_pb[ii]) ;  /* save OR plot */
-       int domean = (cwid->aver_av->ival == 0) ;
+       int dosave = (w == cwid->clu_save_pb[ii]) ;  /* was it save OR plot */
+       int domean = (cwid->aver_av->ival == 0) ;    /* type of processing */
        int domedn = (cwid->aver_av->ival == 1) ;
        int dopc   = (cwid->aver_av->ival == 2) ;
        int dohist = (cwid->aver_av->ival == 3) ;
        int dosmea = (cwid->aver_av->ival == 4) ;
        int dosall = (cwid->aver_av->ival == 5) ;
-       int doscat = (dosall || dosmea) ;
-       MRI_IMARR *imar ; MRI_IMAGE *im=NULL ; int nx,ibot,itop ;
-       MRI_IMAGE *sim=NULL ;
+       int doscat = (dosall || dosmea) ;            /* scatter plot? */
+       MRI_IMARR *imar[MAX_CLU_AUXDSET] , *imaq ;
+       int        nxar[MAX_CLU_AUXDSET] ,
+                  nyar[MAX_CLU_AUXDSET] ,
+                  ibot[MAX_CLU_AUXDSET] ,
+                  itop[MAX_CLU_AUXDSET] ,
+                  inds[MAX_CLU_AUXDSET] ,
+                  nim=0 , nxx=0 , ibx=MAX_INDEX,itx=0 , nysum=0,nxysum=0 , ids,nds ;
+       MRI_IMAGE  *im[MAX_CLU_AUXDSET] , *imq=NULL ;
+       MRI_IMAGE *sim[MAX_CLU_AUXDSET] ;
+       float      ts_rrr[2*MAX_CLU_AUXDSET] ,
+                  ts_ggg[2*MAX_CLU_AUXDSET] , ts_bbb[2*MAX_CLU_AUXDSET] ;
 
        SHOW_AFNI_PAUSE ;
 
-       imar = AFNI_cluster_timeseries(im3d,ii) ;
-       if( imar == NULL || IMARR_COUNT(imar) < 1 ){
-         MCW_popup_message( w , " \n"
-                                "** Can't get data!!! **\n"
-                                "** Need Aux Dataset! **\n " ,
-                            MCW_USER_KILL | MCW_TIMER_KILL ) ;
-         SHOW_AFNI_READY; EXRETURN ;
-       }
-
-       if( doscat && dosave ){
+       if( doscat && dosave ){                      /* really hopeless user */
          MCW_popup_message( w , " \n"
                                 "** Can't use Scatterplot **\n"
                                 "** and Save together :-( **\n " ,
@@ -2038,71 +2190,148 @@ printf("wrote cluster table to %s\n", lb_fnam);
          SHOW_AFNI_READY; EXRETURN ;
        }
 
-       nx = IMARR_SUBIM(imar,0)->nx ;  /* number of voxel time series */
-       ibot = cwid->from_av->ival ; itop = cwid->to_av->ival ;
-       if( ibot >= nx ) ibot = 0 ;
-       if( itop < ibot || itop >= nx ) itop = nx-1 ;
+       /* extract data from the Aux Dsets that are active */
 
-       { static float rrr[3] = { 0.6f , 0.0f , 0.1f } ;
-         static float ggg[3] = { 0.0f , 0.5f , 0.1f } ;
-         static float bbb[3] = { 0.1f , 0.0f , 0.7f } ;
-         plot_ts_setcolors( 3 , rrr,ggg,bbb ) ;
+       for( ids=0 ; ids < MAX_CLU_AUXDSET ; ids++ ){      /* NULL out local */
+         imar[ids] = NULL ; im[ids] = sim[ids] = NULL ;   /* data pointers */
+       }
+
+       for( nds=ids=0 ; ids < MAX_CLU_AUXDSET ; ids++ ){
+         imaq = AFNI_cluster_timeseries(im3d,ii,ids) ;    /* get the data */
+         if( imaq != NULL && IMARR_COUNT(imaq) > 0 ){     /* did we get it? */
+           imar[nds] = imaq ;                             /* data time series */
+           nxar[nds] = IMARR_SUBIM(imaq,0)->nx ;          /* length of data */
+           nyar[nds] = IMARR_COUNT(imaq) ;                /* num time series */
+           inds[nds] = ids ;                              /* dataset index */
+           ibot[nds] = cwid->auxdset_from_av[ids]->ival ; /* From index */
+           itop[nds] = cwid->auxdset_to_av  [ids]->ival ; /* To index */
+           if( ibot[nds] >= nxar[nds] )
+             ibot[nds] = 0 ;
+           if( itop[nds] <  ibot[nds] || itop[nds] >= nxar[nds] )
+             itop[nds] = nxar[nds]-1 ;
+           if( nxar[nds] > nxx ) nxx = nxar[nds] ;  /* longest time series */
+           if( ibot[nds] < ibx ) ibx = ibot[nds] ;  /* smallest From */
+           if( itop[nds] > itx ) itx = itop[nds] ;  /* largest To */
+           nysum  += nyar[nds] ;                    /* total num time series */
+           nxysum += nyar[nds] * (itop[nds]-ibot[nds]+1) ; /* total data pts */
+           nds++ ;                /* add one to the count of active datasets */
+         } else if( MCW_val_bbox(cwid->auxdset_bbox[ids]) != 0 ){
+           XmToggleButtonSetState( cwid->auxdset_bbox[ids]->wbut[0] , False , False ) ;
+         }
+       }
+
+       if( nds == 0 ){                              /* hopeless user */
+         MCW_popup_message( w , " \n"
+                                "** Can't get data!!! **\n"
+                                "** Need Aux Dataset! **\n " ,
+                            MCW_USER_KILL | MCW_TIMER_KILL ) ;
+         SHOW_AFNI_READY; EXRETURN ;
+       }
+
+#if 0
+       if( nds > 1 && doscat ){        /* this is MY problem, not the user's */
+         MCW_popup_message( w , " \n"
+                                "** Scatterplot only uses **\n"
+                                "** first selected AuxD!  **\n" ,
+                            MCW_USER_KILL | MCW_TIMER_KILL ) ;
+         for( ids=1 ; ids < nds ; ids++ ) DESTROY_IMARR(imar[ids]) ;
+         nds = 1 ;
+       }
+#endif
+
+       /*-- set plot colors:      RED  GREEN   BLUE  PURPLE  --*/
+
+       { static float rrr[4] = { 0.7f , 0.0f , 0.1f , 0.7f } ;
+         static float ggg[4] = { 0.0f , 0.5f , 0.1f , 0.0f } ;
+         static float bbb[4] = { 0.1f , 0.0f , 0.7f , 0.7f } ;
+         plot_ts_setcolors( 4 , rrr,ggg,bbb ) ;
        }
 
        /*---------- build histogram ----------*/
 
        if( dohist ){
-         float *far,*hbin, hbot,htop,val,sbin ; int jj,kk,nbin,ih, nval , dosqrt ;
+         float *far,*hbin[MAX_CLU_AUXDSET], hbot,htop,val,sbin ;
+         int jj,kk,nbin,ih, nval , dosqrt ;
          hbot = cwid->hbot ; htop = cwid->htop ;   /* range from user */
          if( hbot >= htop ){            /* scan data for range to use */
-           hbot = 1.e+33 ; htop = -hbot ;
-           for( kk=0 ; kk < IMARR_COUNT(imar) ; kk++ ){
-             far = MRI_FLOAT_PTR( IMARR_SUBIM(imar,kk) ) ;
-             for( jj=ibot ; jj <= itop ; jj++ ){
-               val = far[jj] ;
-               if( hbot > val ) hbot = val ;
-               if( htop < val ) htop = val ;
+           hbot = WAY_BIG ; htop = -hbot ;
+           for( ids=0 ; ids < nds ; ids++ ){
+             imaq = imar[ids] ;
+             for( kk=0 ; kk < nyar[ids] ; kk++ ){
+               far = MRI_FLOAT_PTR( IMARR_SUBIM(imaq,kk) ) ;
+               for( jj=ibot[ids] ; jj <= itop[ids] ; jj++ ){
+                 val = far[jj] ; if( val >= WAY_BIG ) continue ;
+                 if( hbot > val ) hbot = val ;
+                 if( htop < val ) htop = val ;
+               }
              }
            }
            if( hbot >= htop ){
-             DESTROY_IMARR(imar); SHOW_AFNI_READY; EXRETURN;  /* bad */
+             for( ids=0 ; ids < nds ; ids++ ) DESTROY_IMARR(imar[ids]) ;
+             SHOW_AFNI_READY; EXRETURN;  /* bad */
            }
          }
-         if( (int)hbot == hbot && (int)htop == htop ){
+
+         if( (int)hbot == hbot && (int)htop == htop ){     /* integral range */
            nbin = htop - hbot ;
            if( nbin < 8 ){ nbin = 8 ; }
-           else          { while( nbin > 1000 ) nbin /= 2 ; }
+           else          { while( nbin > 1000 ) nbin /= 2 ; }  /* keep small */
          } else {
-           nbin = 100 ;
+           nbin = 100 ;                          /* arbitrary number of bins */
          }
-         kk = (int)sqrt((double)((itop-ibot+1)*IMARR_COUNT(imar))) ;
-         if( nbin > kk ) nbin = MAX(kk,4) ;
+         kk = (int)sqrt((double)nxysum) ;
+         if( nbin > kk ) nbin = MAX(kk,8) ;     /* final setting of num bins */
          sbin = 0.999999f * nbin / (htop-hbot) ;
-         hbin = (float *)calloc(sizeof(float),(nbin+1)) ;
-         for( nval=kk=0 ; kk < IMARR_COUNT(imar) ; kk++ ){
-           far = MRI_FLOAT_PTR( IMARR_SUBIM(imar,kk) ) ;
-           for( jj=ibot ; jj <= itop ; jj++ ){
-             val = far[jj] ; if( val < hbot || val > htop ) continue ;
-             ih = (int)(sbin*(val-hbot)) ; hbin[ih]++ ; nval++ ;
+
+         for( nval=ids=0 ; ids < nds ; ids++ ){          /* build histogram! */
+           hbin[ids] = (float *)calloc(sizeof(float),(nbin+1)) ;
+           imaq = imar[ids] ;
+           for( kk=0 ; kk < nyar[ids] ; kk++ ){
+             far = MRI_FLOAT_PTR( IMARR_SUBIM(imaq,kk) ) ;
+             for( jj=ibot[ids] ; jj <= itop[ids] ; jj++ ){
+               val = far[jj] ; if( val < hbot || val > htop ) continue ;
+               ih = (int)(sbin*(val-hbot)) ; hbin[ids][ih]++ ; nval++ ;
+             }
+           }
+           { int cc = cwid->auxdset_clr_av[inds[ids]]->ival ;  /* set color */
+             ts_rrr[ids] = ts_rrr[ids+nds] = im3d->dc->ovc->r_ov[cc] / 299.0f ;
+             ts_ggg[ids] = ts_ggg[ids+nds] = im3d->dc->ovc->g_ov[cc] / 299.0f ;
+             ts_bbb[ids] = ts_bbb[ids+nds] = im3d->dc->ovc->b_ov[cc] / 299.0f ;
            }
          }
 
          dosqrt = !dosave && (MCW_val_bbox(cwid->histsqrt_bbox)==1) ;
-         if( dosqrt )
-           for( ih=0 ; ih<=nbin ; ih++ ) hbin[ih] = sqrtf(hbin[ih]);
+         if( dosqrt ){
+           for( ids=0 ; ids < nds ; ids++ ){
+             for( ih=0 ; ih<=nbin ; ih++ ) hbin[ids][ih] = sqrtf(hbin[ids][ih]);
+           }
+         }
 
          if( !dosave ){   /*----- plot histogram -----*/
 
-           char xlab[64] , ylab[64] , tlab[THD_MAX_NAME+2] ;
-           sprintf(xlab,"Data Value [%d bins; %d values in range]",nbin,nval) ;
-           sprintf(ylab,"Cluster #%d = %d vox", ii+1 , IMARR_COUNT(imar) ) ;
+           char xlab[64] , ylab[64] , tlab[MAX_CLU_AUXDSET*THD_MAX_NAME+16] ;
+           sprintf(xlab,"Data Value [%d bins; total %d values in range]",nbin,nval) ;
+           sprintf(ylab,"Cluster #%d = %d vox", ii+1 , nyar[0] ) ;
            strcat(ylab,(dosqrt)?" [SqrtHist]" : " [Hist]") ;
-           sprintf(tlab,"\\noesc %s[%d..%d]",
-                   THD_trailname(DSET_HEADNAME(cwid->dset),SESSTRAIL) , ibot,itop ) ;
+           if( nds == 1 )
+             sprintf(tlab,"%s\\noesc %s[%d..%d]" ,
+                     print_color_string(ts_rrr[0],ts_ggg[0],ts_bbb[0]) ,
+                     DSET_FILECODE(cwid->auxdset[inds[0]]) , ibot[0],itop[0] ) ;
+           else{
+             strcpy(tlab,"\\small") ; if( nds > 2 ) strcat(tlab,"\\small") ;
+             for( ids=0 ; ids < nds ; ids++ )
+               sprintf(tlab+strlen(tlab),"\\esc%s\\noesc %s[%d..%d] ",
+                       print_color_string(ts_rrr[ids],ts_ggg[ids],ts_bbb[ids]) ,
+                       DSET_PREFIX(cwid->auxdset[inds[ids]]),ibot[ids],itop[ids] ) ;
+           }
            plot_ts_xypush(0,-1) ; plot_ts_setTHIK(0.004f) ; plot_ts_setthik(0.0015f) ;
-           PLUTO_histoplot_f( nbin,hbot,htop , hbin , xlab,ylab,tlab , 0,NULL ) ;
+           plot_ts_setcolors( 2*nds , ts_rrr,ts_ggg,ts_bbb ) ;  /* colors */
+           if( nds == 1 )
+             PLUTO_histoplot_f( nbin,hbot,htop , hbin[0] , xlab,ylab,tlab , 0,NULL ) ;
+           else
+             PLUTO_histoplot_f( nbin,hbot,htop , hbin[0] , xlab,ylab,tlab , nds-1,hbin+1 ) ;
 
-         } else {         /*----- save histogram -----*/
+         } else {         /*----- save histogram into 1D file -----*/
 
            char fnam[128] , *ppp ; FILE *fp ; int ff ;
 
@@ -2116,185 +2345,274 @@ printf("wrote cluster table to %s\n", lb_fnam);
              fp = stdout ; ff = 0 ;
            }
            if( fp == NULL ){
-             ERROR_message("Can't open file %s for writing",fnam) ;
+             ERROR_message("Can't open file %s for writing",fnam) ;  /* bad */
            } else {
+             for( ids=0 ; ids < nds ; ids++ ){
+               fprintf(fp,"# Histogram of %s[%d..%d]\n",
+                       DSET_FILECODE(cwid->auxdset[inds[ids]]) , ibot[ids], itop[ids] ) ;
+             }
              ppp = AFNI_clus_3dclust(im3d,NULL) ;  /* get the 3dclust command */
-             if( ppp != NULL )
-               fprintf(fp,"# Histogram of %s[%d..%d]\n"
-                          "# over Cluster #%d from\n"
-                          "# %s\n" ,
-                       DSET_HEADNAME(im3d->vwid->func->cwid->dset) ,
-                       ibot , itop , ii+1 , ppp ) ;
+             if( ppp != NULL ){
+               fprintf(fp,"# over Cluster #%d from command\n"   "# %s\n" , ii+1 , ppp ) ;
+             }
              fprintf(fp,"# min data value = %g\n"
                         "# max data value = %g\n" , hbot,htop ) ;
              fprintf(fp,"# num of voxels  = %d\n"
-                        "# num of values  = %d\n" , IMARR_COUNT(imar),nval ) ;
-             for( jj=0 ; jj < nbin ; jj++ ) fprintf(fp,"%7d\n",(int)hbin[jj]) ;
+                        "# num of values  = %d\n" , nyar[0] , nxysum ) ;
+             for( jj=0 ; jj < nbin ; jj++ ){
+               for( ids=0 ; ids < nds ; ids++ ) fprintf(fp," %7d",(int)hbin[ids][jj]) ;
+               fprintf(fp,"\n") ;
+             }
              if( fp != stdout ){
                fclose(fp) ;
                if( ff ) WARNING_message("Over-wrote file %s",fnam) ;
                else     INFO_message   ("Wrote file %s"     ,fnam) ;
              }
            }
+         } /*-- done with save histogram --*/
 
+         /* clean up the histo-trash */
+
+         for( ids=0 ; ids < nds ; ids++ ){
+           free(hbin[ids]) ; DESTROY_IMARR(imar[ids]) ;
          }
-
-         free((void *)hbin); DESTROY_IMARR(imar); SHOW_AFNI_READY; EXRETURN;
+         SHOW_AFNI_READY; EXRETURN;
 
        } /* done with histogram-ification */
 
-       /*------------ time series processing ------------*/
+       /*------------ time series processing [Plot or Save] ------------*/
 
-       if( (domean || dopc || domedn || dosmea) && itop <= ibot ){
+       if( (domean || dopc || domedn || dosmea) && itx <= ibx ){  /* bad */
          MCW_popup_message( w , " \n"
                                 "** Need at least two   **\n"
                                 "** time series indexes **\n"
-                                "** for graphing that!  **\n " ,
+                                "** for graphing data!  **\n " ,
                             MCW_USER_KILL | MCW_TIMER_KILL ) ;
-         DESTROY_IMARR(imar) ; SHOW_AFNI_READY; EXRETURN ;
+         for( ids=0 ; ids < nds ; ids++ ) DESTROY_IMARR(imar[ids]) ;
+         SHOW_AFNI_READY; EXRETURN ;
        }
 
        /* Detrend all (sub)vectors in the data before combining them [14 May 2015] */
 
        if( MCW_val_bbox(cwid->detrend_bbox) == 1 && (domean || dopc || domedn) ){
-         int qq ; float *far ;
-         for( qq=0 ; qq < IMARR_COUNT(imar) ; qq++ ){
-           far = MRI_FLOAT_PTR( IMARR_SUBIMAGE(imar,qq) ) + ibot ;
-           if( domedn )
-             THD_generic_detrend_L1 ( itop-ibot+1 , far , 1 , 0,NULL,NULL ) ;
-           else
-             THD_generic_detrend_LSQ( itop-ibot+1 , far , 1 , 0,NULL,NULL ) ;
+         int qq , pp ; float *far ;
+         STATUS("detrending cluster time series") ;
+         for( ids=0 ; ids < nds ; ids++ ){
+           imaq = imar[ids] ;
+           pp   = itop[ids]-ibot[ids]+1 ;
+           if( pp < 3 ){  /* can't plot this! */
+             DESTROY_IMARR(imar[ids]) ; continue ;
+           }
+           pp = 1 + (int)myfloor(pp/150) ;
+           for( qq=0 ; qq < nyar[ids] ; qq++ ){
+             far = MRI_FLOAT_PTR( IMARR_SUBIMAGE(imaq,qq) ) + ibot[ids] ;
+             if( domedn )
+               THD_generic_detrend_L1 ( itop[ids]-ibot[ids]+1 , far , pp , 0,NULL,NULL ) ;
+             else
+               THD_generic_detrend_LSQ( itop[ids]-ibot[ids]+1 , far , pp , 0,NULL,NULL ) ;
+           }
          }
        }
 
-       /*--- extract single vector for display or save ---*/
+       /*--- extract single vector from each Aux Dset for display or save ---*/
 
-       if( IMARR_COUNT(imar) == 1 ){   /* should not transpire */
-         im = IMARR_SUBIM(imar,0) ;
-       } else if( dopc ){              /*-------- PC#1 --------*/
-         im = mri_pcvector( imar , ibot,itop ) ;
-       } else if( domean ){            /*-------- Mean --------*/
-         im = mri_meanvector( imar , ibot,itop ) ;
-         if( !dosave && AFNI_yesenv("AFNI_CLUSTER_EBAR") )
-           sim = mri_MMBvector( imar,ibot,itop,2 ) ;
-       } else if( domedn ){            /*-------- Median --------*/
-         im = mri_MMBvector( imar , ibot,itop,0 ) ;
-         if( !dosave && AFNI_yesenv("AFNI_CLUSTER_EBAR") )
-           sim = mri_MMBvector( imar,ibot,itop,2 ) ;
-       } else if( doscat ){  /* scatterplot */
-         float *xar=NULL, *yar=NULL ; int nix=0, niy=0, nixy=0, jj,kk ;
-         float a=0,b=0,pcor=0,p025=0,p975=0 ;
-         char xlab[256] , ylab[256] , tlab[THD_MAX_NAME+256] , rlab[4]="?" ;
-         if( dosmea ){
-           im = mri_meanvector( imar , ibot,itop ) ; xar = MRI_FLOAT_PTR(im) ;
-           nix = im->nx ; niy = 1 ; nixy = nix*niy ;
-           yar = (float *)malloc(sizeof(float)*nixy) ;
-           for( jj=0 ; jj < nix ; jj ++ ) yar[jj] = xar[jj] ;
-           mri_free(im) ; im = NULL ;
-         } else if( dosall ){
-           nix = (itop-ibot+1) ; niy = IMARR_COUNT(imar) ; nixy = nix*niy ;
-           yar = (float *)malloc(sizeof(float)*nixy) ;
-           for( kk=0 ; kk < niy ; kk++ ){
-             xar= MRI_FLOAT_PTR(IMARR_SUBIM(imar,kk)) ;
-             for( jj=0 ; jj < nix ; jj++ ) yar[jj+kk*nix] = xar[jj+ibot] ;
+       for( nim=ids=0 ; ids < nds ; ids++ ){
+
+         imaq = imar[ids]; im[ids] = sim[ids] = NULL; if( imaq == NULL ) continue;
+
+         if( nyar[ids] == 1 ){           /* should not transpire */
+           STATUS("extract single data vector??") ;
+           im[ids] = mri_copy(IMARR_SUBIM(imaq,0)) ;
+
+         } else if( dopc ){              /*-------- PC#1 --------*/
+           STATUS("extract PC#1") ;
+           im[ids] = mri_pcvector( imaq , ibot[ids],itop[ids] ) ;
+
+         } else if( domean ){            /*-------- Mean --------*/
+           STATUS("extract mean vector") ;
+           im[ids] = mri_meanvector( imaq , ibot[ids],itop[ids] ) ;
+           if( !dosave && AFNI_yesenv("AFNI_CLUSTER_EBAR") )
+             sim[ids] = mri_MMBvector( imaq,ibot[ids],itop[ids],2 ) ;
+
+         } else if( domedn ){            /*-------- Median --------*/
+           STATUS("extract median vector") ;
+           im[ids] = mri_MMBvector( imaq , ibot[ids],itop[ids],0 ) ;
+           if( !dosave && AFNI_yesenv("AFNI_CLUSTER_EBAR") )
+             sim[ids] = mri_MMBvector( imaq,ibot[ids],itop[ids],2 ) ;
+
+         } else if( doscat ){            /*----- scatterplot NOW NOW NOW -----*/
+           float *xar=NULL, *yar=NULL ; int nix=0, niy=0, nixy=0, jj,kk ;
+           float a=0,b=0,pcor=0,p025=0,p975=0 ;
+           char xlab[256] , ylab[256] , tlab[THD_MAX_NAME+256] , rlab[4]="?" ;
+
+           STATUS("scatterplot NOW") ;
+
+           if( dosmea ){  /* scatterplot mean of cluster */
+             im[ids] = mri_meanvector( imaq , ibot[ids],itop[ids] ) ;
+             xar = MRI_FLOAT_PTR(im[ids]) ;
+             nix = im[ids]->nx ; niy = 1 ; nixy = nix*niy ;
+             yar = (float *)malloc(sizeof(float)*nixy) ;
+             for( jj=0 ; jj < nix ; jj ++ ) yar[jj] = xar[jj] ;
+             mri_free(im[ids]) ; im[ids] = NULL ;
+           } else if( dosall ){
+             nix = (itop[ids]-ibot[ids]+1) ; niy = nyar[ids] ; nixy = nix*niy ;
+             yar = (float *)malloc(sizeof(float)*nixy) ;
+             for( kk=0 ; kk < niy ; kk++ ){
+               xar = MRI_FLOAT_PTR(IMARR_SUBIM(imaq,kk)) ;
+               for( jj=0 ; jj < nix ; jj++ ) yar[jj+kk*nix] = xar[jj+ibot[ids]] ;
+             }
+           }
+           xar = (float *)malloc(sizeof(float)*nixy) ;
+           if( cwid->splotim != NULL && cwid->splotim->nx >= nix ){
+             float *spar = MRI_FLOAT_PTR(cwid->splotim) ; int sbot ; char *eee ;
+             eee = getenv("AFNI_CLUSTER_SCAT1D_START") ;
+             if( eee != NULL && isdigit(*eee) ){
+               sbot = (int)strtod(eee,NULL) ;
+             } else {
+               sbot = (cwid->splotim->nx >= nix+ibot[ids]) ? ibot[ids] : 0 ;
+             }
+             for( kk=0 ; kk < niy ; kk++ ){
+               for( jj=0 ; jj < nix ; jj++ ) xar[jj+kk*nix] = spar[jj+sbot] ;
+             }
+             sprintf(xlab,"\\noesc %.62s[%d..%d]",
+                     THD_trailname(cwid->splotim->name,0),sbot,sbot+nix-1) ;
+           } else {                           /* no Scat.1D file? */
+             for( kk=0 ; kk < niy ; kk++ )
+               for( jj=0 ; jj < nix ; jj++ ) xar[jj+kk*nix] = jj+ibot[ids] ;
+             strcpy(xlab,"Index") ;
+             if( cwid->splotim != NULL )
+               WARNING_message("Scat.1D file [%s] too short [%d] for dataset [%d]",
+                               cwid->splotim->name , cwid->splotim->nx , nix+ibot[ids]  ) ;
+           }
+           if( niy == 1 && nix >= 9 ){  /* do correlations */
+             float_triple aaa,bbb,rrr ;
+             if( MCW_val_bbox(cwid->spearman_bbox) == 0 ){
+               THD_pearson_corr_boot( nix,xar,yar , &rrr,&aaa,&bbb ) ;
+               pcor = rrr.a ; p025 = rrr.b ; p975 = rrr.c ; a = aaa.a ; b = bbb.a ;
+               strcpy(rlab,"R") ;
+             } else {          /* [02 Jan 2013] -- Spearman bootstrap -- for PK */
+               float fit[2]={0.0f,0.0f} ;
+               THD_spearman_corr_boot( nix,xar,yar , &rrr ) ;
+               pcor = rrr.a ; p025 = rrr.b ; p975 = rrr.c ;
+               THD_generic_detrend_L1( -nix , yar , 0 , 1 , &xar , fit ) ;
+               b = fit[0] ; a = fit[1] ; strcpy(rlab,"S") ;
+             }
+           }
+           sprintf(ylab,"Cluster #%d = %d voxels",ii+1,nyar[ids]) ;
+           sprintf(tlab,"\\noesc %s[%d..%d]",
+                   DSET_FILECODE(cwid->auxdset[inds[ids]]), ibot[ids],itop[ids] ) ;
+           if( pcor != 0.0f ){
+             if( p025 < pcor && p975 > pcor ){
+               if( strlen(tlab) > 30 )
+                 sprintf(tlab+strlen(tlab),
+                         "\\esc\\red  %s=%.2f\\in[%.2f..%.2f]_{95%%}",rlab,pcor,p025,p975) ;
+               else
+                 sprintf(tlab+strlen(tlab),
+                         "\\esc\\red  %s=%.3f\\in[%.3f..%.3f]_{95%%}",rlab,pcor,p025,p975) ;
+               if( p025*p975 > 0.0f )
+                 strcat(tlab,"^{*}") ;
+             } else {
+                 sprintf(tlab+strlen(tlab),"\\esc\\red  %s=%.3f\\black",rlab,pcor) ;
+             }
+             strcat(tlab,"\\black") ;
+           }
+           PLUTO_set_xypush( cwid->splotim == NULL , 0 ) ;
+           PLUTO_scatterplot( nixy,xar,yar , xlab,ylab,tlab , a,b ) ;
+           PLUTO_set_xypush(1,1) ;
+           free(xar) ; free(yar) ;
+         }  /*---------- end of scatterplot ----------*/
+
+         if( im[ids] != NULL ){
+           int cc = cwid->auxdset_clr_av[inds[ids]]->ival ;
+           ts_rrr[nim] = im3d->dc->ovc->r_ov[cc] / 299.0f ;  /* color for */
+           ts_ggg[nim] = im3d->dc->ovc->g_ov[cc] / 299.0f ;  /* this data */
+           ts_bbb[nim] = im3d->dc->ovc->b_ov[cc] / 299.0f ;
+           nim++ ; /* count of number of im[] created herein */
+         }
+
+       } /*----- end of loop over Aux Dsets -----*/
+
+       /* if we have saved 1D files in the im[] array, Plot or Save them now */
+
+       if( nim > 0 ){
+         float *yar[MAX_CLU_AUXDSET] ; int numyar ;
+         float *far ; int ib=MAX_INDEX , it=0 , ibt , pp,qq , ids0=-66 ;
+
+         STATUS("have multiple extracted vectors") ;
+
+         for( ids=0 ; ids < nds ; ids++ ){
+           if( im[ids] != NULL ){
+             if( ibot[ids] < ib ) ib = ibot[ids] ;  /* smallest bot */
+             if( itop[ids] > it ) it = itop[ids] ;  /* largest top */
+             if( ids0 < 0 ) ids0 = ids ;
            }
          }
-         xar = (float *)malloc(sizeof(float)*nixy) ;
-         if( cwid->splotim != NULL && cwid->splotim->nx >= nix ){
-           float *spar = MRI_FLOAT_PTR(cwid->splotim) ; int sbot ; char *eee ;
-           eee = getenv("AFNI_CLUSTER_SCAT1D_START") ;
-           if( eee != NULL && isdigit(*eee) ){
-             sbot = (int)strtod(eee,NULL) ;
-           } else {
-#if 0
-             sbot = cwid->splotim->nx - nix ;
-#else
-             sbot = (cwid->splotim->nx >= nix+ibot) ? ibot : 0 ;
-#endif
+         ibt = it-ib+1 ;
+         if( ibt < 3 ){  /* should not happen */
+           STATUS("all vectors are too short to process!") ;
+           for( ids=0 ; ids < nds ; ids++ ){
+             DESTROY_IMARR(imar[ids]) ; if( im[ids] != NULL ) mri_free(im[ids]) ;
            }
-           for( kk=0 ; kk < niy ; kk++ ){
-             for( jj=0 ; jj < nix ; jj++ ) xar[jj+kk*nix] = spar[jj+sbot] ;
-           }
-           sprintf(xlab,"\\noesc %.62s[%d..%d]",cwid->splotim->name,sbot,sbot+nix-1) ;
-         } else {
-           for( kk=0 ; kk < niy ; kk++ )
-             for( jj=0 ; jj < nix ; jj++ ) xar[jj+kk*nix] = jj+ibot ;
-           strcpy(xlab,"Index") ;
-           if( cwid->splotim != NULL )
-             WARNING_message("Scat.1D file [%s] too short [%d] for dataset [%d]",
-                             cwid->splotim->name , cwid->splotim->nx , nix+ibot  ) ;
+           SHOW_AFNI_READY; EXRETURN ;
          }
-         if( niy == 1 && nix >= 9 ){
-           float_triple aaa,bbb,rrr ;
-           if( MCW_val_bbox(cwid->spearman_bbox) == 0 ){
-             THD_pearson_corr_boot( nix,xar,yar , &rrr,&aaa,&bbb ) ;
-             pcor = rrr.a ; p025 = rrr.b ; p975 = rrr.c ; a = aaa.a ; b = bbb.a ;
-             strcpy(rlab,"R") ;
-           } else {          /* [02 Jan 2013] -- Spearman bootstrap -- for PK */
-             float fit[2]={0.0f,0.0f} ;
-             THD_spearman_corr_boot( nix,xar,yar , &rrr ) ;
-             pcor = rrr.a ; p025 = rrr.b ; p975 = rrr.c ;
-             THD_generic_detrend_L1( -nix , yar , 0 , 1 , &xar , fit ) ;
-             b = fit[0] ; a = fit[1] ; strcpy(rlab,"S") ;
+
+         for( numyar=ids=0 ; ids < nds ; ids++ ){          /* y curves to plot/save */
+           if( im[ids] != NULL ){
+             STATUS("extract vector into plotting array") ;
+             far = MRI_FLOAT_PTR(im[ids]) ;
+             yar[numyar] = (float *)malloc(sizeof(float)*ibt) ;
+             for( qq=0 ; qq < ibt ; qq++ ){
+               pp = qq+ib ;
+               if( pp < ibot[ids] || pp > itop[ids] ){
+                 yar[numyar][qq] = WAY_BIG ;
+               } else {
+                 pp -= ibot[ids] ;
+                 yar[numyar][qq] = (pp < im[ids]->nx) ? far[pp] : WAY_BIG ;
+               }
+             }
+             numyar++ ;
            }
          }
-         sprintf(ylab,"Cluster #%d = %d voxels",ii+1,IMARR_COUNT(imar)) ;
-         sprintf(tlab,"\\noesc %s[%d..%d]",
-                 DSET_FILECODE(cwid->dset), ibot,itop ) ;
-         if( pcor != 0.0f ){
-           if( p025 < pcor && p975 > pcor ){
-             if( strlen(tlab) > 30 )
-               sprintf(tlab+strlen(tlab),
-                       "\\esc\\red  %s=%.2f\\in[%.2f..%.2f]_{95%%}",rlab,pcor,p025,p975) ;
-             else
-               sprintf(tlab+strlen(tlab),
-                       "\\esc\\red  %s=%.3f\\in[%.3f..%.3f]_{95%%}",rlab,pcor,p025,p975) ;
-             if( p025*p975 > 0.0f )
-               strcat(tlab,"^{*}") ;
-           } else {
-               sprintf(tlab+strlen(tlab),"\\esc\\red  %s=%.3f\\black",rlab,pcor) ;
-           }
-           strcat(tlab,"\\black") ;
-         }
-         PLUTO_set_xypush( cwid->splotim == NULL , 0 ) ;
-         PLUTO_scatterplot( nixy,xar,yar , xlab,ylab,tlab , a,b ) ;
-         PLUTO_set_xypush(1,1) ;
-         free(xar) ; free(yar) ;
-       }  /* end of scatterplot */
-       if( im != NULL ){
+
          if( !dosave ){                       /* Plotting (to rule the world) */
-           char ylab[64] , tlab[THD_MAX_NAME+2] ;
-           float *far = MRI_FLOAT_PTR(im) , *xax ;
-           int jj ;
+           char ylab[64] , tlab[MAX_CLU_AUXDSET*THD_MAX_NAME+16] ;
+           int jj ; float *xax ;
+
+           STATUS("prepare to plot extracted vectors") ;
+           plot_ts_setcolors( nim , ts_rrr,ts_ggg,ts_bbb ) ;  /* colors */
            sprintf(ylab,"%s: Cluster #%d = %d voxels",
                    (dopc) ? "PC#1" : (domean) ? "Mean" : "Median" ,
-                   ii+1 , IMARR_COUNT(imar) ) ;
-           sprintf(tlab,"\\noesc %s[%d..%d]",
-                   THD_trailname(DSET_HEADNAME(cwid->dset),SESSTRAIL),
-                   ibot,itop) ;
-           plot_ts_xypush(1,0) ; plot_ts_setTHIK(0.006f) ; plot_ts_setthik(0.0015f) ;
-           xax = (float *)malloc(sizeof(float)*im->nx) ;
-           for( jj=0 ; jj < im->nx ; jj++ ) xax[jj] = ibot+jj ;
-           X11_SET_NEW_PLOT ;
-           if( sim == NULL ){
-              plot_ts_lab( im3d->dc->display ,
-                           im->nx , xax , 1 , &far ,
-                           "TR index" , ylab , tlab , NULL , NULL ) ;
-           } else {
-              float *sar= MRI_FLOAT_PTR(sim) , fac=2.0f/sqrtf(IMARR_COUNT(imar));
-              for( jj=0 ; jj < sim->nx ; jj++ ) sar[jj] *= fac ;
-              plot_ts_ebar_win( im3d->dc->display ,
-                                im->nx , xax , far , sar ,
-                                "TR index" , ylab , tlab , NULL ) ;
+                   ii+1 , nyar[ids0] ) ;
+                if( nim > 2 ) strcpy(tlab,"\\small\\small") ;
+           else if( nim > 1 ) strcpy(tlab,"\\small") ;
+           else               tlab[0] = '\0' ;
+           for( ids=0 ; ids < nds ; ids++ ){
+             if( im[ids] != NULL ){
+               sprintf(tlab+strlen(tlab),"\\esc%s\\noesc %s[%d..%d] ",
+                       print_color_string(ts_rrr[ids],ts_ggg[ids],ts_bbb[ids]) ,
+                       DSET_PREFIX(cwid->auxdset[inds[ids]]),ibot[ids],itop[ids]) ;
+             }
            }
-           free((void *)xax) ;
+           xax = (float *)malloc(sizeof(float)*ibt) ;       /* x-axis for plot */
+           for( qq=0 ; qq < ibt ; qq++ ) xax[qq] = ib+qq ;
+           plot_ts_xypush(1,0) ; plot_ts_setTHIK(0.006f) ; plot_ts_setthik(0.0015f) ;
+           X11_SET_NEW_PLOT ;
+           STATUS("call plot_ts_lab") ;
+           plot_ts_lab( im3d->dc->display ,
+                        ibt , xax , numyar , yar ,
+                        "TR index" , ylab , tlab , NULL , NULL ) ;
+           STATUS("free(xax)") ;
+           free((void *)xax) ;  /* end of Plot */
 
-         } else {                                       /* Saving (the world) */
-           char fnam[128] , *ppp ; int jj,kk,nx,ny,ff ; float *far ; FILE *fp ;
+         } else {                             /* Save (the world) [26 Oct 2015] */
+           char fnam[128] , *ppp ;
+           char *typ = (dopc) ? "pc" : (domean) ? "mean" : "median" ;
+           int cc , ff ; FILE *fp ;
+
            ppp = XmTextFieldGetString( cwid->prefix_tf ) ;
            if( !THD_filename_pure(ppp) ) ppp = "Clust" ;
            if( strcmp(ppp,"-") != 0 ){
-             sprintf(fnam,"%s_%02d_%s.1D",ppp,ii+1,(dopc)?"pc":"mean") ;
+             sprintf(fnam,"%s_%02d_%s.1D",ppp,ii+1,typ) ;
              ff = THD_is_file(fnam) ;
              fp = fopen(fnam,"w") ;
            } else {
@@ -2304,32 +2622,44 @@ printf("wrote cluster table to %s\n", lb_fnam);
              ERROR_message("Can't open file %s for writing",fnam) ;
            } else {
              ppp = AFNI_clus_3dclust(im3d,NULL) ;  /* get the 3dclust command */
-             if( ppp != NULL )
-               fprintf(fp,"# %s of %s[%d..%d]\n"
-                          "# over Cluster #%d from\n"
-                          "# %s\n" ,
-                       (dopc)?"pc#1":"mean" ,
-                       DSET_HEADNAME(im3d->vwid->func->cwid->dset) ,
-                       ibot , itop , ii+1 , ppp ) ;
-
-             nx = im->nx ; ny = im->ny ; far = MRI_FLOAT_PTR(im) ;
-             for( jj=0 ; jj < nx ; jj++ ){
-               for( kk=0 ; kk < ny ; kk++ ){
-                 fprintf(fp," %14g",far[jj+kk*ny]) ;
+             if( ppp != NULL ){
+               fprintf(fp,"# %s from Cluster #%d from command\n"
+                          "#  %s\n" ,
+                       typ , ii+1 , ppp ) ;
+             }
+             fprintf(fp , "# From dataset%s\n" , (nim == 1) ? "\0" : "s" ) ;
+             for( ids=0 ; ids < nds ; ids++ ){
+               if( im[ids] != NULL ){
+                 fprintf(fp,"#  %s[%d..%d]\n",
+                         DSET_PREFIX(cwid->auxdset[inds[ids]]),ibot[ids],itop[ids]) ;
                }
+             }
+             for( qq=0 ; qq < ibt ; qq++ ){
+               for( cc=0 ; cc < numyar ; cc++ ) fprintf(fp," %14g",yar[cc][qq]) ;
                fprintf(fp,"\n") ;
              }
+             fflush(fp) ;
              if( fp != stdout ){
                fclose(fp) ;
                if( ff ) WARNING_message("Over-wrote file %s",fnam) ;
                else     INFO_message   ("Wrote file %s"     ,fnam) ;
              }
            }
-         }
-         if( im != IMARR_SUBIM(imar,0) ) mri_free(im) ;
-         if( sim != NULL ) mri_free(sim) ;
+         } /* end of Save */
+
+         STATUS("free(yar)") ;
+         for( ids=0 ; ids < numyar ; ids++ ) free(yar[ids]) ;
+
+       } /*-- end of (nim > 0) --*/
+
+       /*===== end of Plot or Save [except for taking out the trash] =====*/
+
+       STATUS("destroy imar and im") ;
+       for( ids=0 ; ids < nds ; ids++ ){
+         DESTROY_IMARR(imar[ids]) ; if( im[ids] != NULL ) mri_free(im[ids]) ;
        }
-       DESTROY_IMARR(imar) ; SHOW_AFNI_READY; EXRETURN ;
+       STATUS("Plot/Save is finito") ;
+       SHOW_AFNI_READY; EXRETURN ;
 
      /*----------- See or Hide a single cluster ----------*/
 
@@ -2489,7 +2819,7 @@ ENTRY("AFNI_cluster_write_coord_table") ;
 /*---------------------------------------------------------------------------*/
 /* Get the time series from the points in a cluster */
 
-static MRI_IMARR * AFNI_cluster_timeseries( Three_D_View *im3d , int ncl )
+static MRI_IMARR * AFNI_cluster_timeseries( Three_D_View *im3d , int ncl , int ids )
 {
    AFNI_clu_widgets *cwid ;
    MCW_cluster_array *clar ;
@@ -2500,13 +2830,16 @@ static MRI_IMARR * AFNI_cluster_timeseries( Three_D_View *im3d , int ncl )
 
 ENTRY("AFNI_cluster_timeseries") ;
 
-   if( !IM3D_OPEN(im3d) ) RETURN(NULL) ;
-   cwid = im3d->vwid->func->cwid ; if( cwid == NULL ) RETURN(NULL) ;
-   dset = im3d->vwid->func->cwid->dset ; if( !ISVALID_DSET(dset) ) RETURN(NULL) ;
+   if( !IM3D_OPEN(im3d) )                                RETURN(NULL) ; /* bad viewer */
+   if( ids < 0 || ids >= MAX_CLU_AUXDSET )               RETURN(NULL) ; /* bad index */
+   cwid = im3d->vwid->func->cwid ;  if( cwid == NULL )   RETURN(NULL) ; /* bad widgets */
+   if( MCW_val_bbox(cwid->auxdset_bbox[ids]) == 0    )   RETURN(NULL) ; /* don't use */
+   dset = im3d->vwid->func->cwid->auxdset[ids] ;
+   if( !ISVALID_DSET(dset) )                             RETURN(NULL) ; /* bad dataset */
    clar = im3d->vwid->func->clu_list ;
-   if( clar == NULL || ncl < 0 || ncl >= clar->num_clu ) RETURN(NULL) ;
+   if( clar == NULL || ncl < 0 || ncl >= clar->num_clu ) RETURN(NULL) ; /* bad cluster */
    cl = clar->clar[ncl] ;
-   npt = cl->num_pt ; if( npt < 1 ) RETURN(NULL) ;
+   npt = cl->num_pt ;                      if( npt < 1 ) RETURN(NULL) ; /* bad cluster */
    ind = (int *)malloc(sizeof(int)*npt) ;
    for( ii=0 ; ii < npt ; ii++ )
      ind[ii] = DSET_ixyz_to_index(dset,cl->i[ii],cl->j[ii],cl->k[ii]) ;
@@ -2514,7 +2847,6 @@ ENTRY("AFNI_cluster_timeseries") ;
    free((void *)ind) ;
    RETURN(imar) ;
 }
-
 
 /*---------------------------------------------------------------------------*/
 /* Callback for arrowvals on the linkrbrain correlation type (tasks/genes) report panel
