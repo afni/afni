@@ -690,12 +690,26 @@ ENTRY("AFNI_clus_make_widgets") ;
      MCW_set_bbox( cwid->spearman_bbox , sval ) ;
    }
 
+   { char *blab = "Despike??" ; int sval ;
+     cwid->despike_bbox = new_MCW_bbox( cwid->top_menu , 1,&blab ,
+                                        MCW_BB_check , MCW_BB_noframe , NULL,NULL ) ;
+     MCW_reghint_children( cwid->despike_bbox->wrowcol , "Despike before Mean plot?") ;
+     sval = AFNI_yesenv("AFNI_CLUSTER_DESPIKE") ;
+     MCW_set_bbox( cwid->despike_bbox , sval ) ;
+   }
+
    { char *blab = "Detrend??" ; int sval ;
      cwid->detrend_bbox = new_MCW_bbox( cwid->top_menu , 1,&blab ,
                                         MCW_BB_check , MCW_BB_noframe , NULL,NULL ) ;
      MCW_reghint_children( cwid->detrend_bbox->wrowcol , "Detrend before Mean plot?") ;
      sval = AFNI_yesenv("AFNI_CLUSTER_DETREND") ;
      MCW_set_bbox( cwid->detrend_bbox , sval ) ;
+   }
+
+   { char *blab = "Error Bars??" ; int sval ;
+     cwid->ebar_bbox = new_MCW_bbox( cwid->top_menu , 1,&blab ,
+                                     MCW_BB_check , MCW_BB_noframe , NULL,NULL ) ;
+     MCW_reghint_children( cwid->ebar_bbox->wrowcol , "Detrend before Mean plot?") ;
    }
 
    /*---- end of popup menu ----*/
@@ -1078,10 +1092,6 @@ ENTRY("AFNI_clus_make_widgets") ;
                        "** If this text field is just the string '-',\n"
                        "   then 'Save' writes to the terminal window\n"
                        "   (stdout), instead of a file.\n"
-                       "** If you set environment variable\n"
-                       "   AFNI_CLUSTER_EBAR to YES, then the 'Mean'\n"
-                       "   and 'Median' plots will also show error bars\n"
-                       "   (the biweight midvariance)."
                     ) ;
 
      /* 'From' and 'To' choosers */
@@ -1141,9 +1151,6 @@ ENTRY("AFNI_clus_make_widgets") ;
                            "            component vector\n"
                            "* Histog = build a histogram across\n"
                            "            voxels and sub-bricks\n"
-                           "* Error bars will be shown for 'Mean'\n"
-                           "   and 'Median' if environment variable\n"
-                           "   AFNI_CLUSTER_EBAR is set to YES.\n"
                            "* A hidden Button-3 popup menu on the\n"
                            "   cluster summary report label atop this\n"
                            "   window will let you choose the range\n"
@@ -2168,6 +2175,7 @@ printf("wrote cluster table to %s\n", lb_fnam);
        int dosmea = (cwid->aver_av->ival == 4) ;
        int dosall = (cwid->aver_av->ival == 5) ;
        int doscat = (dosall || dosmea) ;            /* scatter plot? */
+       int doebar ;                                 /* error bars? */
        MRI_IMARR *imar[MAX_CLU_AUXDSET] , *imaq ;
        int        nxar[MAX_CLU_AUXDSET] ,
                   nyar[MAX_CLU_AUXDSET] ,
@@ -2227,6 +2235,8 @@ printf("wrote cluster table to %s\n", lb_fnam);
                             MCW_USER_KILL | MCW_TIMER_KILL ) ;
          SHOW_AFNI_READY; EXRETURN ;
        }
+
+       doebar = (nds==1) && MCW_val_bbox(cwid->ebar_bbox) ; /* error bars? */
 
 #if 0
        if( nds > 1 && doscat ){        /* this is MY problem, not the user's */
@@ -2392,13 +2402,31 @@ printf("wrote cluster table to %s\n", lb_fnam);
          SHOW_AFNI_READY; EXRETURN ;
        }
 
+       /* Despike all (sub)vectors in the data before combining them [26 Oct 2015] */
+
+       if( MCW_val_bbox(cwid->despike_bbox) == 1 && (domean || dopc || domedn) ){
+         int qq , pp ; float *far ;
+         STATUS("despiking cluster time series") ;
+         for( ids=0 ; ids < nds ; ids++ ){
+           imaq = imar[ids] ; if( imaq == NULL ) continue ;
+           pp   = itop[ids]-ibot[ids]+1 ;
+           if( pp < 3 ){  /* can't plot this! */
+             DESTROY_IMARR(imar[ids]) ; continue ;
+           }
+           for( qq=0 ; qq < nyar[ids] ; qq++ ){
+             far = MRI_FLOAT_PTR( IMARR_SUBIMAGE(imaq,qq) ) + ibot[ids] ;
+             THD_despike9( itop[ids]-ibot[ids]+1 , far ) ;
+           }
+         }
+       }
+
        /* Detrend all (sub)vectors in the data before combining them [14 May 2015] */
 
        if( MCW_val_bbox(cwid->detrend_bbox) == 1 && (domean || dopc || domedn) ){
          int qq , pp ; float *far ;
          STATUS("detrending cluster time series") ;
          for( ids=0 ; ids < nds ; ids++ ){
-           imaq = imar[ids] ;
+           imaq = imar[ids] ; if( imaq == NULL ) continue ;
            pp   = itop[ids]-ibot[ids]+1 ;
            if( pp < 3 ){  /* can't plot this! */
              DESTROY_IMARR(imar[ids]) ; continue ;
@@ -2431,13 +2459,13 @@ printf("wrote cluster table to %s\n", lb_fnam);
          } else if( domean ){            /*-------- Mean --------*/
            STATUS("extract mean vector") ;
            im[ids] = mri_meanvector( imaq , ibot[ids],itop[ids] ) ;
-           if( !dosave && AFNI_yesenv("AFNI_CLUSTER_EBAR") )
+           if( doebar && !dosave )
              sim[ids] = mri_MMBvector( imaq,ibot[ids],itop[ids],2 ) ;
 
          } else if( domedn ){            /*-------- Median --------*/
            STATUS("extract median vector") ;
            im[ids] = mri_MMBvector( imaq , ibot[ids],itop[ids],0 ) ;
-           if( !dosave && AFNI_yesenv("AFNI_CLUSTER_EBAR") )
+           if( doebar && !dosave )
              sim[ids] = mri_MMBvector( imaq,ibot[ids],itop[ids],2 ) ;
 
          } else if( doscat ){            /*----- scatterplot NOW NOW NOW -----*/
@@ -2551,7 +2579,9 @@ printf("wrote cluster table to %s\n", lb_fnam);
          if( ibt < 3 ){  /* should not happen */
            STATUS("all vectors are too short to process!") ;
            for( ids=0 ; ids < nds ; ids++ ){
-             DESTROY_IMARR(imar[ids]) ; if( im[ids] != NULL ) mri_free(im[ids]) ;
+             DESTROY_IMARR(imar[ids]) ;
+             if(  im[ids] != NULL ) mri_free( im[ids]) ;
+             if( sim[ids] != NULL ) mri_free(sim[ids]) ;
            }
            SHOW_AFNI_READY; EXRETURN ;
          }
@@ -2597,10 +2627,19 @@ printf("wrote cluster table to %s\n", lb_fnam);
            for( qq=0 ; qq < ibt ; qq++ ) xax[qq] = ib+qq ;
            plot_ts_xypush(1,0) ; plot_ts_setTHIK(0.006f) ; plot_ts_setthik(0.0015f) ;
            X11_SET_NEW_PLOT ;
-           STATUS("call plot_ts_lab") ;
-           plot_ts_lab( im3d->dc->display ,
-                        ibt , xax , numyar , yar ,
-                        "TR index" , ylab , tlab , NULL , NULL ) ;
+           if( !doebar || numyar > 1 || sim[0] == NULL ){
+             STATUS("call plot_ts_lab") ;
+             plot_ts_lab( im3d->dc->display ,
+                          ibt , xax , numyar , yar ,
+                          "TR index" , ylab , tlab , NULL , NULL ) ;
+           } else {
+             float *sar = MRI_FLOAT_PTR(sim[0]) , fac=2.0f/sqrtf(nyar[0]) ;
+             for( qq=0 ; qq < sim[0]->nx ; qq++ ) sar[qq] *= fac ;
+             STATUS("call plot_ts_ebar_win") ;
+             plot_ts_ebar_win( im3d->dc->display ,
+                               ibt , xax , yar[0] , sar+ib ,
+                               "TR index" , ylab , tlab , NULL ) ;
+           }
            STATUS("free(xax)") ;
            free((void *)xax) ;  /* end of Plot */
 
@@ -2656,7 +2695,9 @@ printf("wrote cluster table to %s\n", lb_fnam);
 
        STATUS("destroy imar and im") ;
        for( ids=0 ; ids < nds ; ids++ ){
-         DESTROY_IMARR(imar[ids]) ; if( im[ids] != NULL ) mri_free(im[ids]) ;
+         DESTROY_IMARR(imar[ids]) ;
+         if(  im[ids] != NULL ) mri_free( im[ids]) ;
+         if( sim[ids] != NULL ) mri_free(sim[ids]) ;
        }
        STATUS("Plot/Save is finito") ;
        SHOW_AFNI_READY; EXRETURN ;
