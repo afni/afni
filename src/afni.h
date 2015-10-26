@@ -436,6 +436,16 @@ typedef struct {
 
 struct Three_D_View ;  /* incomplete type definition */
 
+#define MAX_CLU_AUXDSET 4   /* 19 Oct 2015 */
+
+#define CLU_CLEAR_AUXDSET(ccww)                   \
+  do{ int ww ;                                    \
+      if( (ccww) != NULL ){                       \
+        for( ww=0 ; ww < MAX_CLU_AUXDSET ; ww++ ) \
+          (ccww)->auxdset[ww] = NULL ;            \
+      }                                           \
+  } while(0)
+
 typedef struct {
   Widget wtop, rowcol;      /* containers */
   Widget top_lab;           /* overall report text */
@@ -445,18 +455,28 @@ typedef struct {
   MCW_bbox *spearman_bbox ; /* 02 Jan 2013 */
   MCW_bbox *detrend_bbox  ; /* 14 May 2015 */
 
-  MCW_bbox *usemask_bbox ;  /* zero-th row of controls [01 Aug 2011] */
+  MCW_bbox *usemask_bbox ;       /* zero-th row of controls [01 Aug 2011] */
+  Widget linkrbrain_pb;          /* 21 Jan 2014 */
+  MCW_arrowval *linkrbrain_av;   /* 31 Mar 2014 */
 
-  MCW_arrowval *cmode_av ;  /* first row of controls */
+  MCW_arrowval *cmode_av ;       /* first row of controls */
   Widget clust3d_pb, savetable_pb, index_lab, prefix_tf, done_pb ;
-  Widget savemask_pb ;      /* 01 May 2008 */
-  Widget whermask_pb ;      /* 04 Aug 2010 */
-  Widget linkrbrain_pb;     /* 21 Jan 2014 */
-  MCW_arrowval *linkrbrain_av;     /* 31 Mar 2014 */
-  Widget dataset_pb ;       /* second row of controls */
-  MCW_arrowval *from_av, *to_av, *aver_av ;
+  Widget savemask_pb ;           /* 01 May 2008 */
+  Widget whermask_pb ;           /* 04 Aug 2010 */
 
-  Widget dset_lab ;         /* label after second row */
+  Widget        auxdset_arrow ;
+  Widget        auxdset_master_rowcol ;
+
+  MCW_bbox     *auxdset_bbox   [MAX_CLU_AUXDSET] ;  /* Aux Dataset rows */
+  Widget        auxdset_pb     [MAX_CLU_AUXDSET] ;
+  MCW_arrowval *auxdset_from_av[MAX_CLU_AUXDSET] ;
+  MCW_arrowval *auxdset_to_av  [MAX_CLU_AUXDSET] ;
+  MCW_arrowval *auxdset_clr_av [MAX_CLU_AUXDSET] ;
+  Widget        auxdset_namlab [MAX_CLU_AUXDSET] ;
+
+  MCW_arrowval *aver_av ;                   /* row after Aux Dataset rows */
+  Widget        splot_pb , splot_clear_pb ;
+  Widget        auxdset_lab ;
 
   Widget clusters_lab ;     /* label at top of clusters table */
   int nrow, nall, is_open ;
@@ -469,7 +489,8 @@ typedef struct {
   Widget *clu_flsh_pb ;
   Widget *clu_alph_lab ;
 
-  THD_3dim_dataset *dset ;  /* selected from dataset_pb */
+  THD_3dim_dataset *auxdset[MAX_CLU_AUXDSET] ;  /* selected from auxdset_pb */
+  MRI_IMAGE *splotim ;                          /* selected from splot_pb */
   int coord_mode ;
   int receive_on ;
   int save_as_mask ;
@@ -477,8 +498,6 @@ typedef struct {
 
   int linkrbrain_nclu ;     /* 09 Sep 2015 */
 
-  Widget     splot_pb , splot_clear_pb ;
-  MRI_IMAGE *splotim ;       /* selected from spplot_pb */
 } AFNI_clu_widgets ;      /** not yet used **/
 
 extern void CLU_free_table( CLU_threshtable *ctab ) ;
@@ -1812,7 +1831,7 @@ extern void AFNI_alter_wami_text(Three_D_View *im3d, char *utlab);
        } } while(0) ;
 
 typedef struct {
-  int ndset ;
+  int ndset , ncode ;
   THD_3dim_dataset **dset ;
   void (*cb)(Widget , XtPointer , MCW_choose_cbs *) ;
   void *parent ;

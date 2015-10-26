@@ -729,13 +729,14 @@ MEM_plotdata * plot_ts_mem( int nx , float *x , int ny , int ymask , float **y ,
            for( ii=0 ; ii < ixtop ; ii++ ){
              if( noline != 2 ||
                  ( xx[ii] >= xbot && xx[ii] <= xtop &&
-                   yy[ii] >= ybot && yy[ii] <= ytop   ) )
-             if( do_sbox ) ADDTO_SBOX (xx[ii],yy[ii],jj) ;
-             else          plot_onebox(xx[ii],yy[ii],jj) ;
+                   yy[ii] >= ybot && yy[ii] <= ytop   ) ){
+               if( do_sbox ) ADDTO_SBOX (xx[ii],yy[ii],jj) ;
+               else          plot_onebox(xx[ii],yy[ii],jj) ;
+             }
            }
            set_thick_memplot( THIK ) ;
          }
-      }
+      } /* end of loop over different curve to plot */
 
       if( do_sbox && nsbox > 0 ){  /* 24 Oct 2013 */
         int qq , ss , ds ;

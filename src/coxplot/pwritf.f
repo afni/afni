@@ -8,7 +8,7 @@ C
       CHARACTER*(*) CH
 C
       PARAMETER ( NSAVE = 69999 )
-      REAL    XSTR(NSAVE) , YSTR(NSAVE)
+      REAL    XSTR(NSAVE) , YSTR(NSAVE) , RGB,RR,GG,BB
       INTEGER LSTR(NSAVE)
 C
       CHARACTER*6666 CHLOC
@@ -103,6 +103,14 @@ C
            YOLD = YR
          ELSE IF( LSTR(I) .GT. 100 .AND. LSTR(I) .LE. 107 )THEN
            CALL COLOR( LSTR(I)-100 )
+         ELSE IF( LSTR(I) .EQ. 110 )THEN
+           RGB = XSTR(I)
+           RR  = INT(RGB/256.0)
+           RGB = RGB - RR*256.0
+           GG  = INT(RGB/16.0)
+           RGB = RGB - GG*16.0
+           BB  = RGB
+           CALL FCOLOR(0.066666*RR,0.066666*GG,0.066666*BB)
          ENDIF
 200   CONTINUE
 C
@@ -160,7 +168,8 @@ C
       INTEGER       LSTR(*)
 C
       INTEGER IS , KST , ICH , IOFF , ISTR , INC
-      REAL    XCUR , YCUR , SCALE
+      REAL    XCUR , YCUR , SCALE , RR,GG,BB
+      CHARACTER*1 CCC
 C.....................................................................
 C  A list of the offsets of the start of the stroke data for each
 C  character.   0 means a control character
@@ -692,7 +701,8 @@ C+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
       YCUR  = 0.0
       SCALE = 0.051
 C
-      DO 900 INC=1,NCH
+      INC = 1
+100   CONTINUE
 C
 C  Load the offset into the stroke table and the number of strokes
 C
@@ -711,6 +721,7 @@ C     4 = end subscript
 C     5,6,7,8,9,10,11 = change color
 C     12 = smaller text  [28 Oct 2013]
 C     13 = larger text
+C     14 = color:R:G:B (consumes 3 extra bytes)
 C
          IF( IOFF .LE. 0 )THEN
             IF( ISTR .EQ. 1 )THEN
@@ -738,6 +749,65 @@ C
                SCALE = 0.8*SCALE
             ELSEIF( ISTR .EQ. 13 )THEN
                SCALE = 1.25 * SCALE
+            ELSEIF( ISTR .EQ. 14 )THEN
+              INC = INC + 1
+              CCC = CH(INC:INC)
+              RR = 0.0
+              IF( CCC .EQ. '1' ) RR = 1.0
+              IF( CCC .EQ. '2' ) RR = 2.0
+              IF( CCC .EQ. '3' ) RR = 3.0
+              IF( CCC .EQ. '4' ) RR = 4.0
+              IF( CCC .EQ. '5' ) RR = 5.0
+              IF( CCC .EQ. '6' ) RR = 6.0
+              IF( CCC .EQ. '7' ) RR = 7.0
+              IF( CCC .EQ. '8' ) RR = 8.0
+              IF( CCC .EQ. '9' ) RR = 9.0
+              IF( CCC .EQ. 'a' .OR. CCC .EQ. 'A' ) RR = 10.0
+              IF( CCC .EQ. 'b' .OR. CCC .EQ. 'B' ) RR = 11.0
+              IF( CCC .EQ. 'c' .OR. CCC .EQ. 'C' ) RR = 12.0
+              IF( CCC .EQ. 'd' .OR. CCC .EQ. 'D' ) RR = 13.0
+              IF( CCC .EQ. 'e' .OR. CCC .EQ. 'E' ) RR = 14.0
+              IF( CCC .EQ. 'f' .OR. CCC .EQ. 'F' ) RR = 15.0
+              INC = INC + 1
+              CCC = CH(INC:INC)
+              GG = 0.0
+              IF( CCC .EQ. '1' ) GG =  1.0
+              IF( CCC .EQ. '2' ) GG =  2.0
+              IF( CCC .EQ. '3' ) GG =  3.0
+              IF( CCC .EQ. '4' ) GG =  4.0
+              IF( CCC .EQ. '5' ) GG =  5.0
+              IF( CCC .EQ. '6' ) GG =  6.0
+              IF( CCC .EQ. '7' ) GG =  7.0
+              IF( CCC .EQ. '8' ) GG =  8.0
+              IF( CCC .EQ. '9' ) GG =  9.0
+              IF( CCC .EQ. 'a' .OR. CCC .EQ. 'A' ) GG = 10.0
+              IF( CCC .EQ. 'b' .OR. CCC .EQ. 'B' ) GG = 11.0
+              IF( CCC .EQ. 'c' .OR. CCC .EQ. 'C' ) GG = 12.0
+              IF( CCC .EQ. 'd' .OR. CCC .EQ. 'D' ) GG = 13.0
+              IF( CCC .EQ. 'e' .OR. CCC .EQ. 'E' ) GG = 14.0
+              IF( CCC .EQ. 'f' .OR. CCC .EQ. 'F' ) GG = 15.0
+              INC = INC + 1
+              CCC = CH(INC:INC)
+              BB = 0.0
+              IF( CCC .EQ. '1' ) BB =  1.0
+              IF( CCC .EQ. '2' ) BB =  2.0
+              IF( CCC .EQ. '3' ) BB =  3.0
+              IF( CCC .EQ. '4' ) BB =  4.0
+              IF( CCC .EQ. '5' ) BB =  5.0
+              IF( CCC .EQ. '6' ) BB =  6.0
+              IF( CCC .EQ. '7' ) BB =  7.0
+              IF( CCC .EQ. '8' ) BB =  8.0
+              IF( CCC .EQ. '9' ) BB =  9.0
+              IF( CCC .EQ. 'a' .OR. CCC .EQ. 'A' ) BB = 10.0
+              IF( CCC .EQ. 'b' .OR. CCC .EQ. 'B' ) BB = 11.0
+              IF( CCC .EQ. 'c' .OR. CCC .EQ. 'C' ) BB = 12.0
+              IF( CCC .EQ. 'd' .OR. CCC .EQ. 'D' ) BB = 13.0
+              IF( CCC .EQ. 'e' .OR. CCC .EQ. 'E' ) BB = 14.0
+              IF( CCC .EQ. 'f' .OR. CCC .EQ. 'F' ) BB = 15.0
+              NSTR       = NSTR+1
+              LSTR(NSTR) = 96+ISTR
+              XSTR(NSTR) = 256.0*RR + 16.0*GG + BB
+              YSTR(NSTR) = YCUR
             ENDIF
 C.....................................................................
 C  Check if this is a newline character
@@ -768,7 +838,12 @@ C
 500         CONTINUE
          ENDIF
 C
+C  Loopback if not done
+C
 900   CONTINUE
+      INC = INC+1
+      IF( INC .LE. NCH )GOTO 100
+      RETURN
       END
 C
 C
@@ -786,6 +861,7 @@ C.......................................................................
       PARAMETER ( NTABLE = 115 )
       INTEGER      ICHEXT(NTABLE)
       CHARACTER*15 CHTEX(NTABLE) , CHCONT , CHESC,CHNESC
+      CHARACTER*15 CHCOLR,CHCOLN,CHCOLX
 C
 C  super/subscript control characters
 C
@@ -810,6 +886,8 @@ C  Table of Tex-like escapes
 C
       DATA CHESC  /'\\esc'/
       DATA CHNESC /'\\noesc'/
+      DATA CHCOLR /'\\color'/
+      DATA CHCOLN /':'/
       DATA CHTEX /'\\Plus' , '\\Cross'  , '\\Diamond', '\\Box'         ,
      X '\\FDiamond','\\FBox','\\FPlus','\\FCross','\\Burst','\\Octagon',
      X '\\alpha','\\beta' ,'\\gamma' , '\\delta', '\\epsilon','\\zeta' ,
@@ -993,6 +1071,19 @@ CCC               WRITE(*,666) ' unknown TeX escape: ' // CHCONT
                LESC = .FALSE.
             ELSEIF( CHCONT .EQ. CHESC )THEN
                LESC = .TRUE.
+            ELSEIF( CHCONT .EQ. CHCOLR .AND. ITOP+4 .LE. NCHIN )THEN
+               CHCOLX = CHIN(ITOP+1:ITOP+1)
+               IF( CHCOLX .EQ. CHCOLN )THEN
+                 NCHOUT = NCHOUT + 1
+                 CHOUT(NCHOUT:NCHOUT) = CHAR( 16#9d )
+                 NCHOUT = NCHOUT + 1
+                 CHOUT(NCHOUT:NCHOUT) = CHIN(ITOP+2:ITOP+2)
+                 NCHOUT = NCHOUT + 1
+                 CHOUT(NCHOUT:NCHOUT) = CHIN(ITOP+3:ITOP+3)
+                 NCHOUT = NCHOUT + 1
+                 CHOUT(NCHOUT:NCHOUT) = CHIN(ITOP+4:ITOP+4)
+                 NUSED = NUSED + 4
+               ENDIF
             ENDIF
       ENDIF
 C.......................................................................
