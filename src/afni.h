@@ -453,7 +453,9 @@ typedef struct {
   MCW_bbox *save_as_mask_bbox ; /* 16 Jun 2014 */
   MCW_bbox *histsqrt_bbox ;
   MCW_bbox *spearman_bbox ; /* 02 Jan 2013 */
+  MCW_bbox *despike_bbox ;  /* 26 Oct 2015 */
   MCW_bbox *detrend_bbox  ; /* 14 May 2015 */
+  MCW_bbox *ebar_bbox ;     /* 26 Oct 2015 */
 
   MCW_bbox *usemask_bbox ;       /* zero-th row of controls [01 Aug 2011] */
   Widget linkrbrain_pb;          /* 21 Jan 2014 */
