@@ -9804,8 +9804,8 @@ ENTRY("IW3D_improve_warp") ;
      default:
      case MRI_CUBIC:
        Hbasis_code   = MRI_CUBIC ;                   /* 3rd order polynomials */
-       Hbasis_parmax = 0.033*Hfactor ;    /* max displacement from 1 function */
-       if( Hopt_ball ) Hbasis_parmax = 0.070*Hfactor ;  /* 13 Jan 2015 */
+       Hbasis_parmax = 0.0333*Hfactor ;   /* max displacement from 1 function */
+       if( Hopt_ball ) Hbasis_parmax = 0.066*Hfactor ;         /* 13 Jan 2015 */
        Hnpar         = 24 ;                /* number of params for local warp */
        prad          = 0.444 ;                       /* NEWUOA initial radius */
        HCwarp_setup_basis( nxh,nyh,nzh, Hgflags ) ;      /* setup HCwarp_load */
@@ -9816,8 +9816,8 @@ ENTRY("IW3D_improve_warp") ;
 
      case MRI_QUINTIC:
        Hbasis_code   = MRI_QUINTIC ;                 /* 5th order polynomials */
-       Hbasis_parmax = 0.007*Hfactor ;
-       if( Hopt_ball ) Hbasis_parmax = 0.054*Hfactor ;  /* 13 Jan 2015 */
+       Hbasis_parmax = 0.0077*Hfactor ;
+       if( Hopt_ball ) Hbasis_parmax = 0.050*Hfactor ;         /* 13 Jan 2015 */
        Hnpar         = 81 ;
        prad          = 0.333 ;
        HQwarp_setup_basis( nxh,nyh,nzh, Hgflags ) ;
