@@ -43,7 +43,13 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 26 , OCT , 2015 , RWC , "afni Clusterize" , MAJOR , TYPE_ENHANCE ,
+  { 28 , OCT , 2015 , RWC , "3dQwarp" , MICRO , TYPE_MODIFY ,
+   "Allow minpatch to go as low as 5." ,
+   "Of course, such a small patch will be VERY slow indeed.  Also, bring out\n"
+   "of hiding the '-ballopt' option, which changes the optimization strategy\n"
+   "somewhat -- allowing for larger displacments in the incremental warps." } ,
+
+ { 26 , OCT , 2015 , RWC , "afni Clusterize" , MAJOR , TYPE_ENHANCE ,
    "Allow user to use multiple (up to 4) Aux datasets for Plot/Save" ,
    NULL } ,
 
