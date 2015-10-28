@@ -13,6 +13,7 @@ double DSET_eta2(THD_3dim_dataset *, THD_3dim_dataset *, byte *, int * ) ;
 double FPTR_cor( float *, float *, int , byte *, int ,
                  double *,double *,double *,double *,double *,int * ) ;
 double FPTR_eta2(float *, float *, int , byte *, int * ) ;
+double FPTR_dice(float *, float *, int , byte *, int * ) ;
 float * get_float_dset_data_pointer( THD_3dim_dataset * , int , int * , int) ;
 
 void usage_3ddot(int detail) {
@@ -46,6 +47,7 @@ void usage_3ddot(int detail) {
 "                 <(x-xbar)^2> <(y-ybar)^2> <(x-xbar)(y-ybar)> \n"
 "                 and the correlation coefficient.\n"
 "  -doeta2      Return eta-squared (Cohen, NeuroImage 2008).\n"
+"  -dodice      Return the Dice coefficient (the Sorensen-Dice index).\n"
 "  -show_labels Print sub-brick labels to help identify what \n"
 "               is being correlated. This option is useful when\n"
 "               you have more than 2 sub-bricks at input.\n"
@@ -115,20 +117,23 @@ int main( int argc , char * argv[] )
       if( strncmp(argv[narg],"-demean",5) == 0 ){
          demean++ ; narg++ ; continue ;
       }
-      if( strncmp(argv[narg],"-dodot",4) == 0 ){
+      if( strcmp(argv[narg],"-dodot") == 0 ){
          mode = 1 ; narg++ ; continue ;
       }
       if( strcmp(argv[narg],"-docor") == 0 ){
          mode = 0 ; narg++ ; continue ;
       }
-      if( strncmp(argv[narg],"-docoef",4) == 0 ){
+      if( strcmp(argv[narg],"-docoef") == 0 ){
          mode = 2 ; narg++ ; continue ;
       }
-      if( strncmp(argv[narg],"-dosums",4) == 0 ){
+      if( strcmp(argv[narg],"-dosums") == 0 ){
          mode = 3 ; narg++ ; continue ;
       }
-      if( strncmp(argv[narg],"-doeta2",4) == 0 ){
+      if( strcmp(argv[narg],"-doeta2") == 0 ){
          mode = 4 ; narg++ ; continue ;
+      }
+      if( strcmp(argv[narg],"-dodice") == 0 ){
+         mode = 5 ; narg++ ; continue ;
       }
       if( strncmp(argv[narg],"-mask",5) == 0 ){
          if( mask_dset != NULL ){
@@ -215,7 +220,7 @@ int main( int argc , char * argv[] )
    /* compute output string lengths */
    switch( mode ){
       default: modelen = 12; modelabel = "correlation"; break;
-      case 1: modelen = 12; modelabel = "dot oroduct"; break;
+      case 1: modelen = 12; modelabel = "dot product"; break;
       case 2: modelen = 12*2; modelabel = "a+by"; break;
       case 3: modelen = 12*6; 
            modelabel = "<x> <y> <(x-<x>)^2> <(y-<y>)^2> <(x-<x>)(y-<y>)> cor";
@@ -284,9 +289,10 @@ int main( int argc , char * argv[] )
    for (jjj=jjj0; jjj<nsub; ++jjj) {
       yar = get_float_dset_data_pointer(cset, jjj, &yar_new, 0);   
       /* mode 4 is special: eta^2                     16 Jun 2011 [rickr] */
-      if ( mode == 4 ) dxy = FPTR_eta2( xar , yar , nvox,  mmm , &nnn ) ;
-      else             dxy = FPTR_cor( xar , yar , nvox,  mmm , demean, 
-                                       &xbar,&ybar,&xxbar,&yybar,&xybar, &nnn ) ;
+      if ( mode == 4 )      dxy = FPTR_eta2( xar , yar , nvox,  mmm , &nnn ) ;
+      else if ( mode == 5 ) dxy = FPTR_dice( xar , yar , nvox,  mmm , &nnn ) ;
+      else                  dxy = FPTR_cor ( xar , yar , nvox,  mmm , demean, 
+                                       &xbar,&ybar,&xxbar,&yybar,&xybar, &nnn );
 
       if( nnn == 0 ) ERROR_exit("Can't compute for some reason!") ;
       if( nnn == 1 ) fprintf(stderr,"** only 1 masked voxel?\n") ;
@@ -309,9 +315,6 @@ int main( int argc , char * argv[] )
          consistent. Help will be updated to match */
           snprintf(val, 255,"%g %g %g %g %g %g",xbar,ybar,xxbar,yybar,xybar,dxy);
           break ; 
-        case 4:
-          snprintf(val, 255, "%g",dxy);
-          break ;
       }
       if (OneD == 0 || OneD == 1) {
          printf(form,val);
@@ -385,6 +388,29 @@ double FPTR_eta2( float *fxar, float *fyar, int nxyz, byte *mmm , int *npt )
 
    /* actual work: get eta^2 */
    e2 = THD_eta_squared_masked(nxyz, fxar, fyar, mmm);
+
+   return e2 ;
+}
+
+/* dice: one word diff from FPTR_eta2    28 Oct, 2015 [rickr] */
+double FPTR_dice( float *fxar, float *fyar, int nxyz, byte *mmm , int *npt )
+{
+   double e2 ;
+   int ii , nnn ;
+
+   ASSIF(npt,0) ;
+   
+   if ( ! fxar || ! fyar ) ERROR_exit("Cannot get float pointers!") ;
+
+   if( npt ) { /* then count applied voxels (masked or all) */
+      if( mmm ) {
+         for( nnn=ii=0 ; ii < nxyz ; ii++ ) if( mmm[ii] ) nnn++;
+      } else nnn = nxyz ;
+      ASSIF(npt, nnn) ;
+   }
+
+   /* actual work: get eta^2 */
+   e2 = THD_dice_coef_f_masked(nxyz, fxar, fyar, mmm);
 
    return e2 ;
 }
