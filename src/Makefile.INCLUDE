@@ -2904,11 +2904,11 @@ qqq.o:qqq.c
 qqq:qqq.o
 	$(CC) -o qqq qqq.o $(INFLAGS) $(LFLAGS) -lmrix -lcoxplot  $(LLIBS)
 
-warping.o:warping.c
-	$(CCFAST) -c warping.c $(INFLAGS)
+warping_test.o:warping_test.c
+	$(CCFAST) -c warping_test.c $(INFLAGS)
 
-warping:warping.o
-	$(CC) -o warping warping.o $(INFLAGS) $(LFLAGS) $(LLIBS)
+warping_test:warping_test.o
+	$(CC) -o warping_test warping_test.o $(INFLAGS) $(LFLAGS) $(LLIBS)
 
 mri_gwarp.o:mri_gwarp.c
 	$(CCFAST) -c mri_gwarp.c $(INFLAGS)
