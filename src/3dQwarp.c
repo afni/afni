@@ -726,7 +726,7 @@ void Qhelp(void)
     "   *OR*        * The value of mm should be an odd integer.\n"
     " -patchmin mm  * The default value of mm is 25.\n"
     "               * For more accurate results than mm=25, try 19 or 13.\n"
-    "               * The smallest allowed value is 9 (which will be VERY slow).\n"
+    "               * The smallest allowed value is " NGMINS " (which will be VERY slow).\n"
 #ifdef USE_SAVER
     "               * If you want to see the warped results at various levels\n"
     "                 of patch size, use the '-qsave' option.\n"
@@ -745,7 +745,7 @@ void Qhelp(void)
     "                you will want to use it in the following form:\n"
     "                  -gridlist '1D: 0 151 101 75 51'\n"
     "                Here, a 0 patch size means the global domain. Patch sizes\n"
-    "                otherwise should be odd integers >= 9.\n"
+    "                otherwise should be odd integers >= " NGMINS ".\n"
     "               * You cannot use -gridlist with -duplo or -plusminus!\n"
     "\n"
     " -allsave     = This option lets you save the output warps from each level\n"
@@ -897,6 +897,16 @@ void Qhelp(void)
     "                 partially outside its original grid, so expanding that grid\n"
     "                 can avoid this problem.\n"
     "               * Note that this option perforce turns off '-nopadWARP'.\n"
+    "\n"
+    " -ballopt     = Normally, the incremental warp parameters are optimized inside\n"
+    "                a rectangular 'box' (24 dimensional for cubic patches, 81 for\n"
+    "                quintic patches), whose limits define the amount of distortion\n"
+    "                allowed at each step.  Using '-ballopt' switches these limits\n"
+    "                to be applied to a 'ball' (interior of a hypersphere), which\n"
+    "                can allow for larger incremental displacements.  Use this\n"
+    "                option if you think things need to be able to move farther.\n"
+    " -boxopt      = Use the 'box' optimization limits instead of the 'ball'\n"
+    "                [this is the default at present].\n"
     "\n"
     " -verb        = Print out very very verbose progress messages (to stderr) :-)\n"
     " -quiet       = Cut out most of the fun fun fun progress messages :-(\n"
@@ -1653,8 +1663,13 @@ int main( int argc , char *argv[] )
 
      /*---------------*/
 
-     if( strcasecmp(argv[nopt],"-ballopt") == 0 ){  /* SECRET option */
-       powell_newuoa_set_con_ball() ;  /* experimental */
+     if( strcasecmp(argv[nopt],"-ballopt") == 0 ){
+       powell_newuoa_set_con_ball() ;
+       Hopt_ball = 1 ;
+       nopt++ ; continue ;
+     }
+     if( strcasecmp(argv[nopt],"-boxopt") == 0 ){
+       powell_newuoa_set_con_ball() ;
        Hopt_ball = 1 ;
        nopt++ ; continue ;
      }
