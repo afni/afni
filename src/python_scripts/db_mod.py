@@ -2702,9 +2702,9 @@ def anat_mask_command(proc, block):
                    % (proc.mask_epi.pv(), proc.mask_anat.pv())
             cmd = cmd + rcmd
 
-            rcmd = "# note Pearson correlation of masks, as well\n"   \
-                   "3ddot -demean %s %s \\\n"                         \
-                   "      |& tee out.mask_ae_corr.txt\n\n"            \
+            rcmd = "# note Dice coefficient of masks, as well\n"      \
+                   "3ddot -dodice %s %s \\\n"                         \
+                   "      |& tee out.mask_ae_dice.txt\n\n"            \
                    % (proc.mask_epi.pv(), proc.mask_anat.pv())
             cmd = cmd + rcmd
 
