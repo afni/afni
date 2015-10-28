@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 28,  Oct, 2015, RCR, "3ddot", MINOR, TYPE_NEW_OPT,
+   "add -dodice, to get the Dice coefficient",
+   NULL
+ } ,
+
  { 26,  Oct, 2015, RCR, "afni_proc.py", MINOR, TYPE_MODIFY,
    "compute TSNR restricted to uncensored TRs",
    NULL
