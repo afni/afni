@@ -240,11 +240,11 @@ double HCwarp_minhexvol( int npar , double *par )
                         ADN_nvals  , 5       ,
                         ADN_ntt    , 0       ,
                       ADN_none ) ;
-     EDIT_substitute_brick( dset , 0 , MRI_float , xar ) ;
-     EDIT_substitute_brick( dset , 1 , MRI_float , yar ) ;
-     EDIT_substitute_brick( dset , 2 , MRI_float , zar ) ;
-     EDIT_substitute_brick( dset , 3 , MRI_float , har ) ;
-     EDIT_substitute_brick( dset , 4 , MRI_float , dar ) ;
+     EDIT_substitute_brick(dset,0,MRI_float,xar) ; EDIT_BRICK_LABEL(dset,0,"xdis") ;
+     EDIT_substitute_brick(dset,1,MRI_float,yar) ; EDIT_BRICK_LABEL(dset,1,"ydis") ;
+     EDIT_substitute_brick(dset,2,MRI_float,zar) ; EDIT_BRICK_LABEL(dset,2,"zdis") ;
+     EDIT_substitute_brick(dset,3,MRI_float,har) ; EDIT_BRICK_LABEL(dset,3,"hex") ;
+     EDIT_substitute_brick(dset,4,MRI_float,dar) ; EDIT_BRICK_LABEL(dset,4,"disp") ;
      DSET_write(dset) ; WROTE_DSET(dset) ; DSET_delete(dset) ;
    }
 
@@ -433,6 +433,7 @@ int main( int argc , char *argv[] )
 
    powell_set_verbose(2) ;
    if( AFNI_yesenv("POWELL_BALL") ) powell_newuoa_set_con_ball() ;  /* experimental */
+   if( AFNI_yesenv("POWELL_L4"  ) ) powell_newuoa_set_con_L4  () ;  /* experimental */
 
    nfunc = powell_newuoa_constrained( npar , beta , &cost , bmin,bmax ,
                                       999  , 33   , 7     ,
