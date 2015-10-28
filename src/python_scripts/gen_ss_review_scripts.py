@@ -575,6 +575,15 @@ if ( -f $mask_corr_dset ) then
 endif
 """
 
+g_basic_mask_dice_str = """
+# ------------------------------------------------------------
+# get anat/EPI mask Dice coefficient
+if ( -f $mask_corr_dset ) then
+    set val = `cat $mask_corr_dset`
+    echo "anat/EPI mask Dice coef   : $val"
+endif
+"""
+
 g_basic_fstat_str = """
 # ------------------------------------------------------------
 # note maximum F-stat
@@ -799,9 +808,10 @@ g_history = """
         - some option vars were over-written
         - add volreg_dset to uvar_dict
    0.45 Sep  3, 2015: change: have stats dset default to REML, if it exists
+   0.46 Oct 28, 2015: look for dice coef file ae_dice, as well ae_corr
 """
 
-g_version = "gen_ss_review_scripts.py version 0.45, Sep 3, 2015"
+g_version = "gen_ss_review_scripts.py version 0.46, Oct 28, 2015"
 
 g_todo_str = """
    - figure out template_space (should we output 3dinfo -space?)
@@ -1789,6 +1799,8 @@ class MyInterface:
          return 0
 
       gstr = 'out.mask_ae_corr.txt'
+      if not os.path.isfile(gstr):
+         gstr = 'out.mask_ae_dice.txt'
 
       if os.path.isfile(gstr):
          self.uvars.mask_corr_dset = gstr
@@ -2038,7 +2050,10 @@ class MyInterface:
          self.text_basic += g_basic_gcor_str
 
       if self.uvars.is_not_empty('mask_corr_dset'):
-         self.text_basic += g_basic_mask_corr_str
+         if self.uvars.val('mask_corr_dset').find('dice') >= 0:
+            self.text_basic += g_basic_mask_dice_str
+         else:
+            self.text_basic += g_basic_mask_corr_str
 
       # maybe use mask for max F-stat
       if self.uvars.is_not_empty('mask_dset'):
