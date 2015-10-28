@@ -49,6 +49,21 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 28,  Oct, 2015, RCR, "gen_ss_review_table.py", MICRO, TYPE_ENHANCE,
+   "make 'a/E mask Dice coef' parent of 'mask correlation'",
+   NULL
+ } ,
+
+ { 28,  Oct, 2015, RCR, "gen_ss_review_scripts.py", MICRO, TYPE_ENHANCE,
+   "look for dice coef file ae_dice, as well ae_corr",
+   NULL
+ } ,
+
+ { 28,  Oct, 2015, RCR, "afni_proc.py", MINOR, TYPE_MODIFY,
+   "output anat/EPI Dice coefficient, rather than correlation",
+   NULL
+ } ,
+
  { 28,  Oct, 2015, RCR, "3ddot", MINOR, TYPE_NEW_OPT,
    "add -dodice, to get the Dice coefficient",
    NULL
