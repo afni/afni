@@ -49,7 +49,12 @@
 /* also is minimum patch size for 3dQwarp funcs */
 
 #undef  NGMIN
-#define NGMIN 9   /* do not reduce this without deep deep thought! */
+#define NGMIN   5   /* if Hngmin goes this small, things become VERY slow!! */
+#undef  NGMINS
+#define NGMINS "5"  /* string version of the above -- must match! */
+
+#undef  NGMIN_Q
+#define NGMIN_Q 7   /* smallest grid allowed for quintic warp */
 
 /* control verbosity of mri_nwarp functions */
 
@@ -9800,6 +9805,8 @@ ENTRY("IW3D_improve_warp") ;
         Hfactor allows the iteration to scale these down at finer levels,
         but that wasn't needed after the introduction of the warp penalty. --*/
 
+   /*-- If Hopt_ball is on, the max displacement scales are larger! --*/
+
    switch( warp_code ){
      default:
      case MRI_CUBIC:
@@ -10258,6 +10265,8 @@ ENTRY("IW3D_warpomatic") ;
 #ifdef ALLOW_QMODE                 /* or just maybe we'll do quintic? */
      if( (levdone && !Hduplo && Hqfinal) || Hqonly ){ qmode = qmode2 = MRI_QUINTIC ; }
      else if( Hqhard && !Hduplo )                   { qmode2 = MRI_QUINTIC ; }
+     if( xwid < NGMIN_Q || ywid < NGMIN_Q || zwid < NGMIN_Q )  /* 28 Oct 2015 */
+       qmode = qmode2 = MRI_CUBIC ;
 #endif
 
      (void)IW3D_load_energy(Haawarp) ;  /* initialize energy field for penalty use */
