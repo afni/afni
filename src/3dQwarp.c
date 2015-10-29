@@ -790,12 +790,16 @@ void Qhelp(void)
     "               * There are 3x3x3x3=81 quintic polynomial parameters per patch.\n"
     "               * With -Qfinal, the final level will have more detail in\n"
     "                 the allowed warps, at the cost of yet more CPU time.\n"
+#if NGMIN < 7
+    "               * However, no patch below 7x7x7 in size will be done with quintic
+    "                 polynomials.\n"
     "               * This option is also not usually needed, and is experimental.\n"
+#endif
     "\n"
     " -Qonly       = Use Hermite quintic polynomials at all levels.\n"
     "               * Very slow (about 4 times longer).  Also experimental.\n"
     "               * Will produce a (discrete representation of a) C2 warp.\n"
-#endif
+#endif /* ALLOW_QMODE */
 #endif
 #ifdef USE_SAVER
     "\n"
