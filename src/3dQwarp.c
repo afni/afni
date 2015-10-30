@@ -34,11 +34,11 @@
 #define ALLOW_QWARP                /* this must be defined, or nothing works! */
 #define ALLOW_QMODE                /* allows -Qfinal and -Qonly options */
 #define ALLOW_PLUSMINUS            /* allows -plusminus option */
-#undef  USE_PLUSMINUS_INITIALWARP  /* don't do this! */
+#undef  USE_PLUSMINUS_INITIALWARP  /* don't do this! doesn't work well! */
 
-#include "mri_nwarp.c"
+#include "mri_nwarp.c"             /* all the real work is done in here */
 
-/** include the Powell NEWUOA functions **/
+/** include the Powell NEWUOA functions for nonlinear optimization **/
 
 #include "powell_int.c"
 #define max MAX
@@ -727,6 +727,12 @@ void Qhelp(void)
     " -patchmin mm  * The default value of mm is 25.\n"
     "               * For more accurate results than mm=25, try 19 or 13.\n"
     "               * The smallest allowed value is " NGMINS " (which will be VERY slow).\n"
+#if (NGMIN < 7) && defined(ALLOW_QMODE)
+    "                 However, you may want stop at a larger patch (say 7 or 9) and use\n"
+    "                 the -Qfinal option to run that final level with quintic warps,\n"
+    "                 which might run faster and provide the same degree of warp detail.\n"
+#endif
+
 #ifdef USE_SAVER
     "               * If you want to see the warped results at various levels\n"
     "                 of patch size, use the '-qsave' option.\n"
@@ -778,7 +784,12 @@ void Qhelp(void)
     "                 -workhard or -superhard.\n"
     "           -->>* The fastest way to register to a template image is via the\n"
     "                 -duplo option, and without the -workhard or -superhard options.\n"
-#if 0
+#ifdef ALLOW_QMODE
+    "           -->>* If you use this option in the form '-Workhard' (first letter\n"
+    "                 in upper case), then the second iteration at each level is\n"
+    "                 done with quintic polynomial warps.\n"
+#endif
+
 #ifdef ALLOW_QMODE
     "\n"
     " -Qfinal      = At the finest patch size (the final level), use Hermite\n"
@@ -791,7 +802,7 @@ void Qhelp(void)
     "               * With -Qfinal, the final level will have more detail in\n"
     "                 the allowed warps, at the cost of yet more CPU time.\n"
 #if NGMIN < 7
-    "               * However, no patch below 7x7x7 in size will be done with quintic
+    "               * However, no patch below 7x7x7 in size will be done with quintic\n"
     "                 polynomials.\n"
     "               * This option is also not usually needed, and is experimental.\n"
 #endif
@@ -800,7 +811,7 @@ void Qhelp(void)
     "               * Very slow (about 4 times longer).  Also experimental.\n"
     "               * Will produce a (discrete representation of a) C2 warp.\n"
 #endif /* ALLOW_QMODE */
-#endif
+
 #ifdef USE_SAVER
     "\n"
     " -qsave       = Save intermediate warped results as well, in a dataset\n"
@@ -1022,11 +1033,13 @@ void Qhelp(void)
 /* Run 3dAllineate; result is stored in Qunstr.nii and Qunstr.aff12.1D */
 /*---------------------------------------------------------------------------*/
 
-static char *Qunstr=NULL ;
+static char *Qunstr=NULL ;  /* will be generated as a random unique string */
 
 void Qallineate( char *basname , char *srcname , char *emkname , char *allopt )
 {
    char *cmd ; int ss ;
+
+   /* make space for the 3dAllineate command string */
 
    ss  = strlen(basname)+strlen(srcname)+2048 ;
    if( allopt  != NULL ) ss += strlen(allopt) ;
@@ -1035,7 +1048,7 @@ void Qallineate( char *basname , char *srcname , char *emkname , char *allopt )
 
    Qunstr = UNIQ_idcode() ;  /* create unique prefix for output filenames */
 
-   /* setup the basic command */
+   /* setup the basic command to do some hard work */
 
    sprintf( cmd , "3dAllineate"
                   " -base %s"
@@ -1047,16 +1060,16 @@ void Qallineate( char *basname , char *srcname , char *emkname , char *allopt )
 
    /* add options to the command string */
 
-   switch( Hverb ){
+   switch( Hverb ){                           /* match 3dQwarp's verbosity */
      case 0: strcat(cmd," -quiet") ; break ;
      case 3:
      case 2: strcat(cmd," -verb" ) ; break ;
    }
 
-   if( emkname != NULL )
+   if( emkname != NULL )                      /* match 3dQwarp's -emask */
      sprintf( cmd+strlen(cmd) , " -emask %s" , emkname) ;
 
-   if( allopt != NULL && *allopt != '\0' )
+   if( allopt != NULL && *allopt != '\0' )    /* user-supplied options */
      sprintf( cmd+strlen(cmd) , " %s"        , allopt) ;
 
    if( allopt == NULL || strstr(allopt,"-fineblur") == NULL )
@@ -1066,6 +1079,8 @@ void Qallineate( char *basname , char *srcname , char *emkname , char *allopt )
    if( allopt == NULL || strstr(allopt,"-onepass") == NULL )
      strcat(cmd," -norefinal") ;
 #endif
+
+   /* and do the (external) work */
 
    INFO_message("Starting 3dAllineate (affine register) command:\n  %s\n ",cmd);
    INFO_message("###########################################################") ;
@@ -1103,9 +1118,13 @@ void Qallin_resample( char *basname , char *srcname )  /* 17 Jul 2013 */
    return ;
 }
 
+/*****************************************************************************/
 /*---------------------------------------------------------------------------*/
-/*** Main program for 3dQwarp!!! ***/
+/*                                                                           */
+/***                Main program for 3dQwarp!!!                            ***/
+/*                                                                           */
 /*---------------------------------------------------------------------------*/
+/*****************************************************************************/
 
 int main( int argc , char *argv[] )
 {
@@ -1452,7 +1471,9 @@ int main( int argc , char *argv[] )
            Hworkhard2 = (int)strtod(++cpt,NULL) ;
          }
        }
+#ifdef ALLOW_QMODE
        if( argv[nopt][1] == 'W' ) Hqhard = 1 ;  /* SECRET */
+#endif
        nopt++ ; continue ;
      }
 
@@ -1482,6 +1503,9 @@ int main( int argc , char *argv[] )
            Hsuperhard2 = (int)strtod(++cpt,NULL) ;
          }
        }
+#ifdef ALLOW_QMODE
+       if( argv[nopt][1] == 'S' ) Hqhard = 1 ;  /* SECRET */
+#endif
        nopt++ ; continue ;
      }
 
