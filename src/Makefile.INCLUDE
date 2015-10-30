@@ -98,6 +98,7 @@ PROGRAMS = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge count   
            column_cat 3dUnifize 3dNwarpCat 3dQwarp 3dLocalHistog 3dNwarpAdjust  \
            3dNwarpFuncs 3dTproject afni_open 3dConformist 3dNwarpXYZ 3dTRfix    \
            3dToyProg 3dRankizer nifti1_tool gifti_tool cifti_tool images_equal  \
+           uniq_images                                                          \
            $(EXTRAS)
 
 PROGRAMS_NOPLUG = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge      \
@@ -134,6 +135,7 @@ PROGRAMS_NOPLUG = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge  
                   3dUnifize 3dNwarpCat 3dQwarp 3dLocalHistog 3dNwarpAdjust 3dTRfix  \
                   3dNwarpFuncs 3dTproject  afni_open   3dConformist 3dNwarpXYZ      \
                   3dToyProg nifti1_tool gifti_tool cifti_tool images_equal          \
+                  uniq_images                                                       \
                   $(EXTRAS)
 
 # For CYGWIN (look for "exe" to find various places below)
@@ -168,7 +170,8 @@ PROGRAMS_EXE = afni.exe to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge 
                1dFlagMotion 3dTsort 1dTsort 3dTfitter afni_history 1dUpsample     \
                3dTcorrMap 3dABoverlap 3dRank 3dFFT 3dTcorr1D 3dClustSim 3dTRfix   \
                3dRetinoPhase 3dMaskToASCII 3dttest++ 3dDTtoDWI niccc 3dXYZcat     \
-               column_cat GLTsymtest nifti1_tool gifti_tool cifti_tool images_equal
+               column_cat GLTsymtest nifti1_tool gifti_tool cifti_tool            \
+               images_equal uniq_images
 
 SCRIPTS = @4Daverage @CommandGlobb @GetAfniOrient @DTI_studio_reposition          \
           @GetAfniPrefix @NoExt @UpdateAfni @RenamePanga @2dwarper                \
@@ -378,6 +381,9 @@ imcat:imcat.c
 
 images_equal:images_equal.c
 	$(CC) -o images_equal images_equal.c $(INFLAGS) $(LFLAGS) $(LLIBS)
+
+uniq_images:uniq_images.c
+	$(CC) -o uniq_images uniq_images.c $(INFLAGS) $(LFLAGS) $(LLIBS)
 
 Vecwarp:Vecwarp.c
 	$(CC) -o Vecwarp Vecwarp.c $(INFLAGS) $(LFLAGS) $(LLIBS)
