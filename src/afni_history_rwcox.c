@@ -43,7 +43,11 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 28 , OCT , 2015 , RWC , "3dQwarp" , MICRO , TYPE_MODIFY ,
+  { 30 , OCT , 2015 , RWC , "images_equal" , MICRO , TYPE_NEW_PROG ,
+   "Tests if 2 input 2D image files are equal." ,
+   NULL } ,
+
+ { 28 , OCT , 2015 , RWC , "3dQwarp" , MICRO , TYPE_MODIFY ,
    "Allow minpatch to go as low as 5." ,
    "Of course, such a small patch will be VERY slow indeed.  Also, bring out\n"
    "of hiding the '-ballopt' option, which changes the optimization strategy\n"
