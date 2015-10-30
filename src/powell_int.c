@@ -247,6 +247,8 @@ static int con_meth = SC_BOX ;
 void powell_newuoa_set_con_box (void){ con_meth = SC_BOX ; }
 void powell_newuoa_set_con_ball(void){ con_meth = SC_BALL; }
 void powell_newuoa_set_con_L4  (void){ con_meth = SC_L4  ; }
+int  powell_newuoa_get_con     (void){ return con_meth ;   }
+void powell_newuoa_set_con     (int c){ con_meth = c ;     }
 
 /*---------------------------------------------------------------------------*/
 /*! Similar to powell_newuoa(), but with constraints on the variables,
