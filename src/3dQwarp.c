@@ -922,6 +922,9 @@ void Qhelp(void)
     "                option if you think things need to be able to move farther.\n"
     " -boxopt      = Use the 'box' optimization limits instead of the 'ball'\n"
     "                [this is the default at present].\n"
+    "               * Note that if '-workhard' is used, then ball and box optimization\n"
+    "                 are alternated in the different iterations at each level, so\n"
+    "                 these two options have not effect in that case.\n"
     "\n"
     " -verb        = Print out very very verbose progress messages (to stderr) :-)\n"
     " -quiet       = Cut out most of the fun fun fun progress messages :-(\n"
@@ -1697,7 +1700,7 @@ int main( int argc , char *argv[] )
        nopt++ ; continue ;
      }
      if( strcasecmp(argv[nopt],"-boxopt") == 0 ){
-       powell_newuoa_set_con_ball() ;
+       powell_newuoa_set_con_box() ;
        Hopt_ball = 1 ;
        nopt++ ; continue ;
      }
