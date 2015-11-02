@@ -258,6 +258,11 @@ typedef struct { float a,b,c ; } float_triple ;
 typedef struct { float a,b,c,d ; } float_quad ;
 #endif
 
+#ifndef TYPEDEF_float_quint
+#define TYPEDEF_float_quint
+typedef struct { float a,b,c,d,e ; } float_quint ;  /* 02 Nov 2015 */
+#endif
+
 #ifndef TYPEDEF_double_pair
 #define TYPEDEF_double_pair
 typedef struct { double a,b ; } double_pair ;
@@ -271,6 +276,11 @@ typedef struct { double a,b,c ; } double_triple ;
 #ifndef TYPEDEF_double_quad
 #define TYPEDEF_double_quad
 typedef struct { double a,b,c,d ; } double_quad ;
+#endif
+
+#ifndef TYPEDEF_double_quint
+#define TYPEDEF_double_quint
+typedef struct { double a,b,c,d,e ; } double_quint ;
 #endif
 
 /*-------*/
