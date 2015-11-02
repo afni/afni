@@ -1614,7 +1614,12 @@ void AFNI_sigfunc_alrm(int sig)
      "He knows not his own strength, that has not met adversity"     ,
      "Weigh the meaning, and look not at the words"                  ,
      "Statistics are no substitute for judgment"                     ,
+     "There's never enough time to do all the nothing you want"      ,
+     "When life gives you lemons, throw them right back at it"       ,
+     "Happiness isn't good enough for me; I demand euphoria"         ,
 
+     "Life's a lot more fun when you aren't responsible for your actions"             ,
+     "I'm not dumb. I just have command of thoroughly useless algorithms"             ,
      "A software's reach should exceed its CPU, or what's a supercomputer for?"       ,
      "There are 2 kinds of statistics: those you compute and those you just make up"  ,
      "It is the mark of a truly intelligent person to be moved by statistics"         ,
