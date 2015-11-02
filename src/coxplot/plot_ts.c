@@ -468,8 +468,8 @@ MEM_plotdata * plot_ts_mem( int nx , float *x , int ny , int ymask , float **y ,
       xx = x ;
       xbot = WAY_BIG ; xtop = -WAY_BIG ;
       for( ii=0 ; ii < nx ; ii++ ){
-         if( xx[ii] < xbot && xx[ii] < WAY_BIG ) xbot = xx[ii] ;
-         if( xx[ii] > xtop && xx[ii] < WAY_BIG ) xtop = xx[ii] ;
+         if( xx[ii] < xbot && fabsf(xx[ii]) < WAY_BIG ) xbot = xx[ii] ;
+         if( xx[ii] > xtop && fabsf(xx[ii]) < WAY_BIG ) xtop = xx[ii] ;
       }
       if( xbot >= xtop ) return NULL ;
    }
@@ -514,8 +514,8 @@ MEM_plotdata * plot_ts_mem( int nx , float *x , int ny , int ymask , float **y ,
    for( jj=0 ; jj < ny ; jj++ ){
       yy  = y[jj] ; yll = WAY_BIG ; yhh = -WAY_BIG ;
       for( ii=0 ; ii < nx ; ii++ ){
-         if( yy[ii] < yll && yy[ii] < WAY_BIG ) yll = yy[ii] ;
-         if( yy[ii] > yhh && yy[ii] < WAY_BIG ) yhh = yy[ii] ;
+         if( yy[ii] < yll && fabsf(yy[ii]) < WAY_BIG ) yll = yy[ii] ;
+         if( yy[ii] > yhh && fabsf(yy[ii]) < WAY_BIG ) yhh = yy[ii] ;
       }
       ylo[jj] = yll ; yhi[jj] = yhh ;
       if( ybot > yll ) ybot = yll ;
@@ -716,8 +716,15 @@ MEM_plotdata * plot_ts_mem( int nx , float *x , int ny , int ymask , float **y ,
              plotpak_line( xp         ,yy[ixtop-1] , xp,yb          ) ;
            } else {
              for( ii=1 ; ii < ixtop ; ii++ ){
-               if( xx[ii-1] < WAY_BIG && xx[ii] < WAY_BIG &&
-                   yy[ii-1] < WAY_BIG && yy[ii] < WAY_BIG   )
+#if 0
+               if( fabsf(xx[ii-1]) < WAY_BIG && fabsf(xx[ii]) < WAY_BIG &&
+                   fabsf(yy[ii-1]) < WAY_BIG && fabsf(yy[ii]) < WAY_BIG   )
+#else
+               if( xx[ii-1] <= xtop && xx[ii] <= xtop &&
+                   yy[ii-1] <= ytop && yy[ii] <= ytop &&
+                   xx[ii-1] >= xbot && xx[ii] >= xbot &&
+                   yy[ii-1] >= ybot && yy[ii] >= ybot   )
+#endif
                plotpak_line( xx[ii-1] , yy[ii-1] , xx[ii] , yy[ii] ) ;
              }
            }
@@ -858,8 +865,15 @@ MEM_plotdata * plot_ts_mem( int nx , float *x , int ny , int ymask , float **y ,
              plotpak_line( xp         ,yy[ixtop-1] , xp,yb          ) ;
            } else {
              for( ii=1 ; ii < ixtop ; ii++ ){
-                if( xx[ii-1] < WAY_BIG && xx[ii] < WAY_BIG &&
-                    yy[ii-1] < WAY_BIG && yy[ii] < WAY_BIG   )
+#if 0
+                if( fabsf(xx[ii-1]) < WAY_BIG && fabsf(xx[ii]) < WAY_BIG &&
+                    fabsf(yy[ii-1]) < WAY_BIG && fabsf(yy[ii]) < WAY_BIG   )
+#else
+               if( xx[ii-1] <= xtop    && xx[ii] <= xtop    &&
+                   yy[ii-1] <= yhi[jj] && yy[ii] <= yhi[jj] &&
+                   xx[ii-1] >= xbot    && xx[ii] >= xbot    &&
+                   yy[ii-1] >= ylo[jj] && yy[ii] >= ylo[jj]   )
+#endif
                   plotpak_line( xx[ii-1] , yy[ii-1] , xx[ii] , yy[ii] ) ;
              }
            }
@@ -1173,8 +1187,8 @@ void plot_ts_addto( MEM_topshell_data * mp ,
 
          yy = y[jj] ;
          for( ii=1 ; ii < nx ; ii++ ){
-            if( xx[ii-1] < WAY_BIG && xx[ii] < WAY_BIG &&
-                yy[ii-1] < WAY_BIG && yy[ii] < WAY_BIG   )
+            if( fabsf(xx[ii-1]) < WAY_BIG && fabsf(xx[ii]) < WAY_BIG &&
+                fabsf(yy[ii-1]) < WAY_BIG && fabsf(yy[ii]) < WAY_BIG   )
 
                plotpak_line( xx[ii-1] , yy[ii-1] , xx[ii] , yy[ii] ) ;
          }
@@ -1196,8 +1210,8 @@ void plot_ts_addto( MEM_topshell_data * mp ,
 
          yy = y[jj] ;
          for( ii=1 ; ii < nx ; ii++ ){
-            if( xx[ii-1] < WAY_BIG && xx[ii] < WAY_BIG &&
-                yy[ii-1] < WAY_BIG && yy[ii] < WAY_BIG   )
+            if( fabsf(xx[ii-1]) < WAY_BIG && fabsf(xx[ii]) < WAY_BIG &&
+                fabsf(yy[ii-1]) < WAY_BIG && fabsf(yy[ii]) < WAY_BIG   )
 
                plotpak_line( xx[ii-1] , yy[ii-1] , xx[ii] , yy[ii] ) ;
          }
@@ -1243,8 +1257,8 @@ MEM_plotdata * plot_ts_ebar( int nx , float *x , float *y , float *ey ,
       xx = x ;
       xbot = WAY_BIG ; xtop = -WAY_BIG ;
       for( ii=0 ; ii < nx ; ii++ ){
-         if( xx[ii] < xbot && xx[ii] < WAY_BIG ) xbot = xx[ii] ;
-         if( xx[ii] > xtop && xx[ii] < WAY_BIG ) xtop = xx[ii] ;
+         if( xx[ii] < xbot && fabsf(xx[ii]) < WAY_BIG ) xbot = xx[ii] ;
+         if( xx[ii] > xtop && fabsf(xx[ii]) < WAY_BIG ) xtop = xx[ii] ;
       }
       if( xbot >= xtop ) return NULL ;
    }
@@ -1387,16 +1401,16 @@ MEM_plotdata * plot_ts_ebar( int nx , float *x , float *y , float *ey ,
    set_color_memplot( ccc[0][0] , ccc[0][1] , ccc[0][2] ) ;
 
    for( ii=1 ; ii < nx ; ii++ ){
-     if( xx[ii-1] < WAY_BIG && xx[ii] < WAY_BIG &&
-         y [ii-1] < WAY_BIG && y [ii] < WAY_BIG   )
+     if( fabsf(xx[ii-1]) < WAY_BIG && fabsf(xx[ii]) < WAY_BIG &&
+         fabsf(y [ii-1]) < WAY_BIG && fabsf(y [ii]) < WAY_BIG   )
        plotpak_line( xx[ii-1] , y[ii-1] , xx[ii] , y[ii] ) ;
    }
 
    set_thick_memplot( 0.0 ) ;
    set_color_memplot( ccc[1][0] , ccc[1][1] , ccc[1][2] ) ;
    for( ii=0 ; ii < nx ; ii++ ){
-     if( xx[ii] < WAY_BIG && y [ii] <  WAY_BIG &&
-         ey[ii] < WAY_BIG && ey[ii] != 0.0       ){
+     if( fabsf(xx[ii]) < WAY_BIG && fabsf(y [ii]) < WAY_BIG &&
+         fabsf(ey[ii]) < WAY_BIG &&       ey[ii] != 0.0       ){
 
        ymm = y[ii] - ey[ii] ; ypp = y[ii] + ey[ii] ;
        xmm = xx[ii] - xdd   ; xpp = xx[ii] + xdd ;
