@@ -19,6 +19,7 @@ int main( int argc , char *argv[] )
        "* This program is meant for use in scripts that deal with DICOM\n"
        "  servers that sometimes deal out multiple copies of the same\n"
        "  image in different filenames :-(\n"
+       "* Also see program uniq_images, which works on multiple inputs.\n"
        "* Author: Zhark the Comparator, October 2015.\n"
      ) ;
      exit(0) ;
