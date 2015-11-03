@@ -178,6 +178,16 @@ R Reynolds    July 2011
 =============================================================================
 """
 
+# howto: if adding a new (input dict) field:
+#   - add field to g_eg_uvar    : example uvar dictionary
+#   - add field to g_uvar_dict  : uvar dict with quick field help
+#   - possibly add guess func   : e.g. guess_final_anat()
+#
+# if new output field:
+#   - add add_field_help() to update_field_help()
+#   - apply to script           : basic and/or drive
+#                                 drive: self.text_drive, self.commands_drive
+
 g_basic_help_fields = []
 def add_field_help(fname, hshort='', hlong=[]):
    global g_basic_help_fields
@@ -188,7 +198,7 @@ def add_field_help(fname, hshort='', hlong=[]):
 
 def disp_field_help(full=1, update=1):
    global g_basic_help_fields
-   if update: update_basic_field_help()
+   if update: update_field_help()
    if full:
       sostr = ' (SO = potential Subject Omission)'
       print ''
@@ -202,7 +212,7 @@ def disp_field_help(full=1, update=1):
          print '%s%s\n' % (jlong, jlong.join(field.hlong))
    if full: print ''
 
-def update_basic_field_help():
+def update_field_help():
    add_field_help('subject ID', 'subject identifier, used in file names')
    add_field_help('TRs removed (per run)',
       'num TRs removed at the start of each run',
@@ -678,6 +688,8 @@ g_eg_uvar.sum_ideal       = 'sum_ideal.1D'
 g_eg_uvar.align_anat      = 'FT_anat_al_junk+orig.HEAD'
 g_eg_uvar.final_anat      = 'anat_final.FT+tlrc.HEAD'
 g_eg_uvar.final_view      = 'tlrc'
+g_eg_uvar.template        = 'TT_N27+tlrc'
+g_eg_uvar.template_warp   = 'affine'
 g_eg_uvar.mask_dset       = 'full_mask.FT+tlrc.HEAD'
 g_eg_uvar.tsnr_dset       = 'TSNR.FT+tlrc.HEAD'
 g_eg_uvar.errts_dset      = 'errts.FT.fanaticor+tlrc.HEAD'
@@ -704,11 +716,12 @@ g_uvar_dict = {
  'align_anat'       :'anat aligned with original EPI',
  'final_anat'       :'anat aligned with stats dataset',
  'final_view'       :'set final view of data (orig/tlrc)',
+ 'template'         :'name of anatomical template',
+ 'template_warp'    :'affine or nonlinear',
  'mask_dset'        :'set EPI mask',
  'tsnr_dset'        :'set temporal signal to noise dataset',
- 'errts_dset'       :'set residual dataset',
+ 'errts_dset'       :'set residual dataset'
  # todo
- 'template_space'   :'set final view of data (orig/tlrc)'
 }
 
 g_cvars_defs = VO.VarsObject('default control vars')
@@ -814,7 +827,6 @@ g_history = """
 g_version = "gen_ss_review_scripts.py version 0.46, Oct 28, 2015"
 
 g_todo_str = """
-   - figure out template_space (should we output 3dinfo -space?)
    - add @epi_review execution as a run-time choice (in the 'drive' script)?
    - execute basic?  save output?
 """
@@ -1076,11 +1088,13 @@ class MyInterface:
       if self.guess_sum_ideal():   return 1
       if self.guess_volreg_dset(): return 1
       if self.guess_final_view():  return 1
+
       if self.guess_enorm_dset():  return 1
       if self.guess_motion_dset(): return 1
       if self.guess_outlier_dset():return 1
       if self.guess_final_anat():  return 1
       if self.guess_align_anat():  return 1
+      if self.guess_template():    return 1
       if self.guess_mask_dset():   return 1
       if self.guess_tsnr_dset():   return 1
       if self.guess_errts_dset():  return 1
@@ -1116,10 +1130,7 @@ class MyInterface:
       verb = self.cvars.verb
 
       # check if already set
-      uname = 'xmat_regress'
-      if self.uvars.is_not_empty(uname):
-         if self.cvars.verb > 3:
-            print '-- already set: %s = %s' % (uname,self.uvars.val(uname))
+      if self.uvar_already_set('xmat_regress'):
          # have cvar, check dsets
          if self.dsets.is_empty('xmat_ad'):
             return self.set_xmat_dset_from_name(self.uvars.xmat_regress)
@@ -1205,10 +1216,7 @@ class MyInterface:
       """set uvars,dsets.xmat_uncensored (if possible)"""
 
       # check if already set
-      if self.uvars.is_not_empty('xmat_uncensored'):
-         if self.cvars.verb > 3: print '-- already set: xmat_uncensored = %s' \
-                                       % self.uvars.xmat_uncensored
-         return 0
+      if self.uvar_already_set('xmat_uncensored'): return 0
 
       # now try to set uncensored dset (cvar and dset)
       ax = self.dsets.val('xmat_ad')
@@ -1276,10 +1284,7 @@ class MyInterface:
       """
 
       # check if already set
-      if self.uvars.is_not_empty('subj'):
-         if self.cvars.verb > 3:
-            print '-- already set: subj = %s' % self.uvars.subj
-         return 0
+      if self.uvar_already_set('subj'): return 0
 
       sid = ''
 
@@ -1323,10 +1328,7 @@ class MyInterface:
       """
 
       # check if already set
-      if self.uvars.is_not_empty('num_stim'):
-         if self.cvars.verb > 3:
-            print '-- already set: num_stim = %s' % self.uvars.num_stim
-         return 0
+      if self.uvar_already_set('num_stim'): return 0
 
       if self.dsets.is_empty('xmat_ad'):
          print '** no xmat_ad to set num_stim from'
@@ -1346,10 +1348,7 @@ class MyInterface:
       """
 
       # check if already set
-      if self.uvars.is_not_empty('rm_trs'):
-         if self.cvars.verb > 3:
-            print '-- already set: rm_trs = %s' % self.uvars.rm_trs
-         return 0
+      if self.uvar_already_set('rm_trs'): return 0
 
       if self.dsets.is_empty('tcat_dset'):
          print '** guess rm_trs: no pb00 dset to detect removed TRs'
@@ -1377,10 +1376,7 @@ class MyInterface:
       """
 
       # check if already set
-      if self.uvars.is_not_empty('final_view'):
-         if self.cvars.verb > 3:
-            print '-- already set: final_view = %s' % self.uvars.final_view
-         return 0
+      if self.uvar_already_set('final_view'): return 0
 
       if self.dsets.is_not_empty('volreg_dset'):
          view = self.dsets.volreg_dset.view
@@ -1440,10 +1436,7 @@ class MyInterface:
       """
 
       # check if already set
-      if self.uvars.is_not_empty('final_anat'):
-         if self.cvars.verb > 3:
-            print '-- already set: final_anat = %s' % self.uvars.final_anat
-         return 0
+      if self.uvar_already_set('final_anat'): return 0
 
       # go after known file
       gstr = 'anat_final.%s+%s.HEAD' % (self.uvars.subj, self.uvars.final_view)
@@ -1528,6 +1521,30 @@ class MyInterface:
 
       return 0
 
+   def guess_template(self):
+      """set uvars.template and uvars.tempate_warp
+         return 0 on sucess
+
+         This variable is non-vital, so return 0 on anything but fatal error.
+
+       * At this point, the variables must be passed to the program.
+      """
+
+      # check if already set
+      if self.uvar_already_set('template'): return 0
+
+      # don't even whine here...
+      # print '** failed to guess template (continuing)'
+
+      return 0
+
+   def uvar_already_set(self, vname):
+      if self.uvars.is_not_empty(vname):
+         if self.cvars.verb > 3:
+            print '-- already set: %s = %s' % (vname, self.uvars.val(vname))
+         return 1
+      return 0
+
    def guess_align_anat(self):
       """set uvars.align_anat
          return 0 on sucess
@@ -1540,10 +1557,7 @@ class MyInterface:
       """
 
       # check if already set
-      if self.uvars.is_not_empty('align_anat'):
-         if self.cvars.verb > 3:
-            print '-- already set: align_anat = %s' % self.uvars.align_anat
-         return 0
+      if self.uvar_already_set('align_anat'): return 0
 
       # go after known files (view should be +orig for anat<-->EPI alignment)
       for suff in ['junk', 'keep']:
@@ -1592,10 +1606,7 @@ class MyInterface:
       """set uvars.enorm_dset"""
 
       # check if already set
-      if self.uvars.is_not_empty('enorm_dset'):
-         if self.cvars.verb > 3:
-            print '-- already set: enorm_dset = %s' % self.uvars.enorm_dset
-         return 0
+      if self.uvar_already_set('enorm_dset'): return 0
 
       gstr = 'motion_%s_enorm.1D' % self.uvars.subj
       if os.path.isfile(gstr):
@@ -1618,10 +1629,7 @@ class MyInterface:
       """set uvars.motion_dset"""
 
       # check if already set
-      if self.uvars.is_not_empty('motion_dset'):
-         if self.cvars.verb > 3:
-            print '-- already set: motion_dset = %s' % self.uvars.motion_dset
-         return 0
+      if self.uvar_already_set('motion_dset'): return 0
 
       gstr = 'dfile_rall.1D'
       if not os.path.isfile(gstr): gstr = 'dfile.rall.1D'
@@ -1647,10 +1655,7 @@ class MyInterface:
       """set uvars.outlier_dset"""
 
       # check if already set
-      if self.uvars.is_not_empty('outlier_dset'):
-         if self.cvars.verb > 3:
-            print '-- already set: outlier_dset = %s' % self.uvars.outlier_dset
-         return 0
+      if self.uvar_already_set('outlier_dset'): return 0
 
       gstr = 'outcount_rall.1D'
       if not os.path.isfile(gstr): gstr = 'outcount.rall.1D'
@@ -1673,10 +1678,7 @@ class MyInterface:
       """set uvars.mask_dset"""
 
       # check if already set
-      if self.uvars.is_not_empty('mask_dset'):
-         if self.cvars.verb > 3:
-            print '-- already set: mask_dset = %s' % self.uvars.mask_dset
-         return 0
+      if self.uvar_already_set('mask_dset'): return 0
 
       gstr = 'full_mask?%s+%s.HEAD' % (self.uvars.subj, self.uvars.final_view)
       glist = glob.glob(gstr)
@@ -1693,10 +1695,7 @@ class MyInterface:
       """set uvars.tsnr_dset"""
 
       # check if already set
-      if self.uvars.is_not_empty('tsnr_dset'):
-         if self.cvars.verb > 3:
-            print '-- already set: tsnr_dset = %s' % self.uvars.tsnr_dset
-         return 0
+      if self.uvar_already_set('tsnr_dset'): return 0
 
       gstr = 'TSNR?%s+%s.HEAD' % (self.uvars.subj, self.uvars.final_view)
       glist = glob.glob(gstr)
@@ -1716,10 +1715,7 @@ class MyInterface:
       """set uvars.errts_dset"""
 
       # check if already set
-      if self.uvars.is_not_empty('errts_dset'):
-         if self.cvars.verb > 3:
-            print '-- already set: errts_dset = %s' % self.uvars.errts_dset
-         return 0
+      if self.uvar_already_set('errts_dset'): return 0
 
       gind = 0
       gstr = 'errts?%s*anaticor+%s.HEAD' \
@@ -1759,10 +1755,7 @@ class MyInterface:
       """set uvars.gcor_dset"""
 
       # check if already set
-      if self.uvars.is_not_empty('gcor_dset'):
-         if self.cvars.verb > 3:
-            print '-- already set: gcor_dset = %s' % self.uvars.gcor_dset
-         return 0
+      if self.uvar_already_set('gcor_dset'): return 0
 
       gstr = 'out.gcor.1D'
 
@@ -1792,11 +1785,7 @@ class MyInterface:
       """set uvars.mask_corr_dset"""
 
       # check if already set
-      uname = 'mask_corr_dset'
-      if self.uvars.is_not_empty(uname):
-         if self.cvars.verb > 3:
-            print '-- already set: %s = %s' % (uname, self.uvars.val(uname))
-         return 0
+      if self.uvar_already_set('mask_corr_dset'): return 0
 
       gstr = 'out.mask_ae_corr.txt'
       if not os.path.isfile(gstr):
@@ -1814,10 +1803,7 @@ class MyInterface:
       """set uvars.volreg_dset"""
 
       # check if already set
-      if self.uvars.is_not_empty('volreg_dset'):
-         if self.cvars.verb > 3:
-            print '-- already set: volreg_dset = %s' % self.uvars.volreg_dset
-         return 0
+      if self.uvar_already_set('volreg_dset'): return 0
 
       glist = self.glob_slist_per_view(                                 \
                 ['pb??.*.r01.volreg+%s.HEAD', 'pb*r001*volreg+%s.HEAD', \
@@ -1849,10 +1835,7 @@ class MyInterface:
       """
 
       # check if already set
-      if self.uvars.is_not_empty('sum_ideal'):
-         if self.cvars.verb > 3:
-            print '-- already set: sum_ideal = %s' % self.uvars.sum_ideal
-         return 0
+      if self.uvar_already_set('sum_ideal'): return 0
 
       gstr = 'sum_ideal.1D'
       if os.path.isfile(gstr):
@@ -1880,9 +1863,7 @@ class MyInterface:
       """
 
       # check if already set
-      if self.uvars.is_not_empty('stats_dset'):
-         if self.cvars.verb > 3:
-            print '-- already set: stats_dset = %s' % self.uvars.stats_dset
+      if self.uvar_already_set('stats_dset'):
          # have cvar, check dset
          if self.dsets.is_empty('stats_dset'):
             return self.set_stats_dset_from_name(self.uvars.stats_dset)
@@ -1968,11 +1949,7 @@ class MyInterface:
       if self.uvars.is_empty('out_limit'): self.uvars.out_limit = 0.1
 
       # check if censor dset already set
-      if self.dsets.is_not_empty('censor_dset'):
-         if self.cvars.verb > 3:
-            print '-- already set: censor_dset = %s' \
-                  % self.dsets.censor_dset.prefix
-         return 0
+      if self.uvar_already_set('censor_dset'): return 0
 
       # if we don't have one, try to figure it out
       if self.uvars.is_empty('censor_dset'):
