@@ -32,7 +32,7 @@ help.MVM.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
           ================== Welcome to 3dMVM ==================          
     AFNI Group Analysis Program with Multi-Variate Modeling Approach
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 3.7.0, Oct 15, 2015
+Version 3.7.1, Nov 3, 2015
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - http://afni.nimh.nih.gov/sscc/gangc/MVM.html
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -984,12 +984,12 @@ mvCom5 <- function(fm, nF_mvE5) {
    #nTerms <- nrow(uvfm$anova)  # totaly number of effect estimates
    #outTerms <- nTerms/2        # half of them
    # UVT p-values
-      #if(lop$afex_new) uvP <- uvfm$univariate.test[,'Pr(>F)'] else uvP <- uvfm$anova[,'Pr(>F)'] # p-values for UVT
-      if(lop$afex_new) {
-         uvfm0 <- anova(fm, intercept=T)
-         uvP <- uvfm0[,'Pr(>F)']
-         names(uvP) <- row.names(uvfm0)
-      } else uvP <- uvfm$anova[,'Pr(>F)'] # p-values for UVT
+      if(lop$afex_new) uvP <- uvfm$univariate.test[,'Pr(>F)'] else uvP <- uvfm$anova[,'Pr(>F)'] # p-values for UVT
+      #if(lop$afex_new) {
+      #   uvfm0 <- anova(fm, intercept=T)
+      #   uvP <- uvfm0[,'Pr(>F)']
+      #   names(uvP) <- row.names(uvfm0)
+      #} else uvP <- uvfm$anova[,'Pr(>F)'] # p-values for UVT
    # within-subject MVT: one set
    #p_wsmvt <- rep(1, nTerms)   # initiation for within-subject MVT
    #   for(ii in 1:nF_mvE4) {
