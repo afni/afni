@@ -8018,7 +8018,7 @@ static INLINE float_quint HCwarp_eval_basis5( float x )
      ee.b = bb * x * 6.75f ;       /* f'(0) = 1 * 6.75 */
      ee.c = bb * (1.0f+2.0f*aa-aa*aa*15.0f) ;
      ee.d = bb * x * (1.0f-aa*aa*5.0f) * 9.75f ;
-     ee.e = bb * x * (1.0f+2.0f*aa-aa*aa*57.0f+aa*aa*aa*84.0f)
+     ee.e = bb * (1.0f+2.0f*aa-aa*aa*57.0f+aa*aa*aa*84.0f) ;
    }
    return ee ;
 }
@@ -10165,8 +10165,9 @@ ENTRY("IW3D_warpomatic") ;
    /* announce the birth of a new warping procedure */
 
    if( Hverb )
-     INFO_message("AFNI warpomatic start: %d x %d x %d volume ; autobbox = %d..%d %d..%d %d..%d",
-                  Hnx,Hny,Hnz, imin,imax,jmin,jmax,kmin,kmax) ;
+     INFO_message("AFNI warpomatic: %d x %d x %d volume ; autobbox = %d..%d %d..%d %d..%d [clock=%s]",
+                  Hnx,Hny,Hnz, imin,imax,jmin,jmax,kmin,kmax,
+                  nice_time_string(NI_clock_time())          ) ;
 
    /* do the top level (global warps) */
 
