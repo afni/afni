@@ -457,7 +457,7 @@ examples (very basic for now):
 
           echo $slice_order > slice_order.1D
           1d_tool.py -set_tr 2 -slice_order_to_times \\
-                     -infile slice_order.1D -prefix slice_times.1D
+                     -infile slice_order.1D -write slice_times.1D
 
        Or as a filter:
 
