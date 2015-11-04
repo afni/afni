@@ -49,6 +49,12 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  4,  Nov, 2015, RCR, "1d_tool.py", MICRO, TYPE_NEW_OPT,
+   "add -slice_order_to_times",
+   "This converts a list of slice indices (sorted by acq time)\n"
+   "to slice times (ordered by index)."
+ } ,
+
  { 28,  Oct, 2015, RCR, "gen_ss_review_table.py", MICRO, TYPE_ENHANCE,
    "make 'a/E mask Dice coef' parent of 'mask correlation'",
    NULL

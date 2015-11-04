@@ -439,11 +439,30 @@ examples (very basic for now):
 
    Example 27. Display length of response curve.
 
-        1d_tool.py -show_trs_to_zero -infile data.1D
+          1d_tool.py -show_trs_to_zero -infile data.1D
 
        Print out the length of the input (in TRs, say) until the data
        values become a constant zero.  Zeros that are followed by non-zero
        values are irrelevant.
+
+   Example 28. convert slice order to slice times.
+
+       A slice order might be the sequence in which silces were acquired.
+       For example, with 33 slices, perhaps the order is:
+
+          set slice_order = ( 0 6 12 18 24 30 1 7 13 19 25 31 2 8 14 20 \\
+                              26 32 3 9 15 21 27 4 10 16 22 28 5 11 17 23 29 )
+
+       Put this in a file:
+
+          echo $slice_order > slice_order.1D
+          1d_tool.py -set_tr 2 -slice_order_to_times \\
+                     -infile slice_order.1D -prefix slice_times.1D
+
+       Or as a filter:
+
+          echo $slice_order | 1d_tool.py -set_tr 2 -slice_order_to_times \\
+                                         -infile - -write -
 
 ---------------------------------------------------------------------------
 basic informational options:
@@ -817,6 +836,30 @@ general options:
                                   1-based run
    -show_trs_to_zero            : display number of TRs before final zero value
                                   (e.g. length of response curve)
+
+   -slice_order_to_times        : convert a list of slice indices to times
+
+        Programs like to3d, 3drefit, 3dTcat and 3dTshift expect slice timing
+        to be a list of slice times over the sequential slices.  But in some
+        cases, people have an ordered list of slices.  So the sorting needs
+        to change.
+
+        If TR=2 and the slice order is:  0  2  4  6  8  1  3  5  7  9
+
+        Then the slices/times ordered by time (as input) are:
+
+           slices: 0    2    4    6    8    1    3    5    7    9
+           times:  0.0  0.2  0.4  0.6  0.8  1.0  1.2  1.4  1.6  1.8
+
+        And the slices/times ordered instead by slice index are:
+
+           slices: 0    1    2    3    4    5    6    7    8    9
+           times:  0.0  1.0  0.2  1.2  0.4  1.4  0.6  1.6  0.8  1.8
+
+        It is this final list of times that is output.
+
+        See example 28.
+
    -sort                        : sort data over time (smallest to largest)
                                   - sorts EVERY vector
                                   - consider the -reverse option
@@ -989,9 +1032,10 @@ g_history = """
    1.23 Jan 20, 2015 - added -show_trs_to_zero
    1.24 Mar 31, 2015 - allow -censor_fill_parent with simple 1D files
    1.25 Apr  1, 2015 - expand simple -censor_fill_parent for 2-D files
+   1.26 Nov  4, 2015 - added -slice_order_to_times
 """
 
-g_version = "1d_tool.py version 1.25, April 1, 2015"
+g_version = "1d_tool.py version 1.26, November 4, 2015"
 
 
 class A1DInterface:
@@ -1065,6 +1109,7 @@ class A1DInterface:
                                # {'', 'comma', 'space', 'encoded', 'verbose'}
       self.show_trs_run    = -1         # restrict 'show_trs' to (0-based) run
       self.show_trs_to_zero= 0          # show iresp length
+      self.slice_order_to_times = 0     # re-sort slices indices to times
       self.sort            = 0          # sort data over time
       self.transpose       = 0          # transpose the input matrix
       self.transpose_w     = 0          # transpose the output matrix
@@ -1346,6 +1391,9 @@ class A1DInterface:
 
       self.valid_opts.add_opt('-show_trs_to_zero', 0, [], 
                    helpstr='show length of data until constant zero')
+
+      self.valid_opts.add_opt('-slice_order_to_times', 0, [], 
+                   helpstr='convert slice indices to slice times')
 
       self.valid_opts.add_opt('-sort', 0, [], 
                       helpstr='sort the data per column (over time)')
@@ -1758,6 +1806,9 @@ class A1DInterface:
          elif opt.name == '-show_trs_to_zero':
             self.show_trs_to_zero = 1
 
+         elif opt.name == '-slice_order_to_times':
+            self.slice_order_to_times = 1
+
          elif opt.name == '-sort':
             self.sort = 1
 
@@ -2006,6 +2057,9 @@ class A1DInterface:
 
       if self.show_trs_to_zero:
          self.adata.show_trs_to_zero(verb=self.verb)
+
+      if self.slice_order_to_times:
+         self.adata.slice_order_to_times(verb=self.verb)
 
       if self.show_num_runs: self.show_nruns()
 
