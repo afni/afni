@@ -32,7 +32,7 @@ help.MVM.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
           ================== Welcome to 3dMVM ==================          
     AFNI Group Analysis Program with Multi-Variate Modeling Approach
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 3.7.1, Nov 3, 2015
+Version 3.7.2, Nov 4, 2015
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - http://afni.nimh.nih.gov/sscc/gangc/MVM.html
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -1743,6 +1743,7 @@ if(dimy == 1 & dimz == 1) {
    pkgLoad('snow')
    cl <- makeCluster(lop$nNodes, type = "SOCK")
    clusterEvalQ(cl, library(afex)); clusterEvalQ(cl, library(phia))
+   clusterEvalQ(cl, options(contrasts = c("contr.sum", "contr.poly")))
    clusterExport(cl, c("mvCom5", "maov", "lop", "assVV"), envir=environment())
    for(kk in 1:nSeg) {
       if(NoBrick > 1) out[,kk,] <- aperm(parApply(cl, inData[,kk,], 1, runAOV, dataframe=lop$dataStr,
@@ -1778,6 +1779,7 @@ if (lop$nNodes>1) {
    pkgLoad('snow')
    cl <- makeCluster(lop$nNodes, type = "SOCK")
    clusterEvalQ(cl, library(afex)); clusterEvalQ(cl, library(phia))
+   clusterEvalQ(cl, options(contrasts = c("contr.sum", "contr.poly")))
    clusterExport(cl, c("mvCom5", "maov", "lop", "assVV"), envir=environment())
    #clusterCall(cl, maov) # let all clusters access to function maov()
    #clusterExport(cl, c("maov"), envir=environment()) # let all clusters access to function maov()
