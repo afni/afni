@@ -7955,6 +7955,75 @@ static INLINE float_pair HCwarp_eval_basis( float x )
 }
 
 /*----------------------------------------------------------------------------*/
+/* The following functions add 3 more functions to the C1 basis set,
+   for 'p' type refinement of the warp -- HCwarp_eval_'basisX' provides
+   X basis functions, for X=3, 4, 5.  These additional functions are chosen
+   to provide more oscillations in the basic [-1..1] interval.
+     function #1 (ee.a) = no internal zero crossings
+     function #2 (ee.b) =  1 internal zero crossing
+     function #3 (ee.c) =  2 internal zero crossings
+     function #4 (ee.d) =  3 internal zero crossings
+     function #5 (ee.e) =  4 internal zero crossings
+   Functions #3-5 integrate to 0 over the interval [0..1] (orthogonal to 1).
+   Function #5 is also orthogonal to x over [0..1].              [02 Nov 2015]
+*//*--------------------------------------------------------------------------*/
+
+static INLINE float_triple HCwarp_eval_basis3( float x )
+{
+   register float aa , bb ; float_triple ee ;
+
+   aa = fabsf(x) ;
+   if( aa >= 1.0f ){               /* outside range ==> 0 */
+     ee.a = ee.b = ee.c = 0.0f ;
+   } else {
+     bb = 1.0f - aa ; bb = bb*bb ;
+     ee.a = bb * (1.0f+2.0f*aa) ;  /* f(0)  = 1 ; */
+     ee.b = bb * x * 6.75f ;       /* f'(0) = 1 * 6.75 */
+     ee.c = bb * (1.0f+2.0f*aa-15.0f*aa*aa) ;
+   }
+   return ee ;
+}
+
+/*............................................................*/
+
+static INLINE float_quad HCwarp_eval_basis4( float x )
+{
+   register float aa , bb ; float_quad ee ;
+
+   aa = fabsf(x) ;
+   if( aa >= 1.0f ){               /* outside range ==> 0 */
+     ee.a = ee.b = ee.c = ee.d = 0.0f ;
+   } else {
+     bb = 1.0f - aa ; bb = bb*bb ;
+     ee.a = bb * (1.0f+2.0f*aa) ;  /* f(0)  = 1 ; */
+     ee.b = bb * x * 6.75f ;       /* f'(0) = 1 * 6.75 */
+     ee.c = bb * (1.0f+2.0f*aa-aa*aa*15.0f) ;
+     ee.d = bb * x * (1.0f-aa*aa*5.0f) * 9.75f ;
+   }
+   return ee ;
+}
+
+/*............................................................*/
+
+static INLINE float_quint HCwarp_eval_basis5( float x )
+{
+   register float aa , bb ; float_quint ee ;
+
+   aa = fabsf(x) ;
+   if( aa >= 1.0f ){               /* outside range ==> 0 */
+     ee.a = ee.b = ee.c = ee.d = ee.e = 0.0f ;
+   } else {
+     bb = 1.0f - aa ; bb = bb*bb ;
+     ee.a = bb * (1.0f+2.0f*aa) ;  /* f(0)  = 1 ; */
+     ee.b = bb * x * 6.75f ;       /* f'(0) = 1 * 6.75 */
+     ee.c = bb * (1.0f+2.0f*aa-aa*aa*15.0f) ;
+     ee.d = bb * x * (1.0f-aa*aa*5.0f) * 9.75f ;
+     ee.e = bb * (1.0f+2.0f*aa-aa*aa*57.0f+aa*aa*aa*84.0f) ;
+   }
+   return ee ;
+}
+
+/*----------------------------------------------------------------------------*/
 /* C2 Hermite quintic basis functions over [-1..1] -- that is, the 3 functions
    and their first 2 derivatives go to 0 at x=1 and x=-1.
      The first function (ee.a) is such that f(0) != 0, and f'(0)=f''(0)=0.
@@ -10096,8 +10165,9 @@ ENTRY("IW3D_warpomatic") ;
    /* announce the birth of a new warping procedure */
 
    if( Hverb )
-     INFO_message("AFNI warpomatic start: %d x %d x %d volume ; autobbox = %d..%d %d..%d %d..%d",
-                  Hnx,Hny,Hnz, imin,imax,jmin,jmax,kmin,kmax) ;
+     INFO_message("AFNI warpomatic: %d x %d x %d volume ; autobbox = %d..%d %d..%d %d..%d [clock=%s]",
+                  Hnx,Hny,Hnz, imin,imax,jmin,jmax,kmin,kmax,
+                  nice_time_string(NI_clock_time())          ) ;
 
    /* do the top level (global warps) */
 
