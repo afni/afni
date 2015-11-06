@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  6,  Nov, 2015, RCR, "@Align_Centers", MICRO, TYPE_NEW_OPT,
+   "add option -cm_no_amask; like -cm but without -automask",
+   NULL
+ } ,
+
  {  4,  Nov, 2015, RCR, "1d_tool.py", MICRO, TYPE_NEW_OPT,
    "add -slice_order_to_times",
    "This converts a list of slice indices (sorted by acq time)\n"
