@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  6,  Nov, 2015, RCR, "to3d", MICRO, TYPE_ENHANCE,
+   "allow for single volumes beyond 2^31-1 bytes",
+   "Done for Z Saad."
+ } ,
+
  {  6,  Nov, 2015, RCR, "@Align_Centers", MICRO, TYPE_NEW_OPT,
    "add option -cm_no_amask; like -cm but without -automask",
    NULL
