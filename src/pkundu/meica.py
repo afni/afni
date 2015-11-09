@@ -85,7 +85,7 @@ def dep_check():
 		fails+=1
 	if numpy_installed:
 		print " + Numpy version: %s" % (numpy.__version__)
-		if map(int, numpy.__version__.split('.')) < (1, 5):
+		if tuple(map(int, numpy.__version__.split('.'))) < (1, 5):
 			fails+=1
 			print "*+ Numpy version is too old! Please upgrade to Numpy >=1.5.x!"
 		import numpy.__config__ as nc
@@ -94,7 +94,7 @@ def dep_check():
 			print "*+ Numpy is not linked to BLAS! Please check Numpy installation."
 	if scipy_installed:
 		print " + Scipy version: %s" % (scipy.__version__)
-		if map(int, scipy.__version__.split('.')) < (0, 11):
+		if tuple(map(int, scipy.__version__.split('.'))) < (0, 11):
 			fails+=1
 			print "*+ Scipy version is too old! Please upgrade to Scipy >=0.11.x!"
 	afnicheck = commands.getstatusoutput("3dinfo")
