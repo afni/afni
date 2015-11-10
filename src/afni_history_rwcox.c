@@ -43,7 +43,11 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 30 , OCT , 2015 , RWC , "images_equal" , MICRO , TYPE_NEW_PROG ,
+  { 10 , NOV , 2015 , RWC , "3dFWHMx" , MAJOR , TYPE_NEW_OPT ,
+   "-ACF option to compute spatial autocorrelation function" ,
+   "For enhancing 3dClustSim, et cetera." } ,
+
+ { 30 , OCT , 2015 , RWC , "images_equal" , MICRO , TYPE_NEW_PROG ,
    "Tests if 2 input 2D image files are equal." ,
    NULL } ,
 
