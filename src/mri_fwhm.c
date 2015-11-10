@@ -1,5 +1,9 @@
 #include "mrilib.h"
 
+#ifdef USE_OMP
+# include <omp.h>
+#endif
+
 #undef  GOOD
 #define GOOD(i) (mask==NULL || mask[i])
 
@@ -745,3 +749,309 @@ THD_fvec3 mri_FWHM_1dif_mom12( MRI_IMAGE *im , byte *mask )
   return fw_xyz ;
 }
 /*========================================================================*/
+
+/*----------------------------------------------------------------------------*/
+/* Estimate the shape of the spatial autocorrelation function   [09 Nov 2015] */
+
+MCW_cluster * mri_estimate_ACF( MRI_IMAGE *im , byte *mask , float radius )
+{
+   MCW_cluster *clout=NULL ;
+   float dx,dy,dz ;
+   MRI_IMAGE *lim ; float *fim ;
+   int nx,ny,nz,nxy,nxyz , ixyz,ip,jp,kp,ppp,qqq , ix,jy,kz ;
+   double fsum, fsq, fbar, fvar , arg ;
+   int count , nclu ;
+   double *acfsqq ;
+   int    *nacf ;
+
+ENTRY("mri_estimate_ACF") ;
+
+   if( im == NULL || mri_allzero(im) || radius <= 0.0f ) RETURN(NULL) ;
+
+   /*-- build the cluster that defines the ball and will hold the results --*/
+
+   dx = fabsf(im->dx) ; if( dx == 0.0f ) dx = 1.0f ;
+   dy = fabsf(im->dy) ; if( dy == 0.0f ) dy = 1.0f ;
+   dz = fabsf(im->dz) ; if( dz == 0.0f ) dz = 1.0f ;
+
+   clout = MCW_spheremask( dx,dx,dz , radius ) ;
+
+   if( clout == NULL ) RETURN(NULL) ;
+   if( clout->num_pt < 5 ){ KILL_CLUSTER(clout) ; RETURN(NULL) ; }
+   for( ppp=0 ; ppp < clout->num_pt ; ppp++ ) clout->mag[ppp] = 0.0f ;
+
+   /*-- setup to process the input image --*/
+
+   lim = (im->kind == MRI_float) ? im : mri_to_float(im) ;
+   fim = MRI_FLOAT_PTR(lim) ;
+   nx = lim->nx; ny = lim->ny; nz = lim->nz; nxy = nx*ny; nxyz = nx*ny*nz;
+
+   /*----- estimate the variance of the data -----*/
+
+   fsum = 0.0; fsq = 0.0; count = 0;
+   for (ixyz = 0;  ixyz < nxyz;  ixyz++){
+     if( GOOD(ixyz) ){ count++; arg = fim[ixyz]; fsum += arg; fsq += arg*arg; }
+   }
+   if( count < 9 || fsq <= 0.0 ){     /* no data? */
+     if( lim != im ) mri_free(lim) ;
+     KILL_CLUSTER(clout) ; RETURN(NULL) ;
+   }
+   fbar = fsum / count ;
+   fvar = (fsq - (fsum * fsum)/count) / (count-1.0);
+   if( fvar == 0.0 ){
+     if( lim != im ) mri_free(lim) ;
+     KILL_CLUSTER(clout) ; RETURN(NULL) ;
+   }
+
+   /*--- space to accumulate results ---*/
+
+   nclu   = clout->num_pt ;
+   acfsqq = (double *)calloc(sizeof(double),nclu) ;
+   nacf   = (int    *)calloc(sizeof(int)   ,nclu) ;
+
+   /*--- loop over voxels, sum up cross products ---*/
+
+   for( ixyz=0 ; ixyz < nxyz ; ixyz++ ){
+
+     if( !GOOD(ixyz) ) continue ;  /* not in mask */
+
+     arg = fim[ixyz] - fbar ;
+     IJK_TO_THREE(ixyz,ix,jy,kz,nx,nxy) ;
+
+     /* loop over offsets */
+
+AFNI_OMP_START;
+#pragma omp parallel if( nclu > 99 )
+     { int ppp , ip,jp,kp,qqq ;
+#pragma omp for
+       for( ppp=1 ; ppp < nclu ; ppp++ ){
+         ip = ix + clout->i[ppp] ; if( ip >= nx || ip < 0 ) continue ;
+         jp = jy + clout->j[ppp] ; if( jp >= ny || jp < 0 ) continue ;
+         kp = kz + clout->k[ppp] ; if( kp >= nz || kp < 0 ) continue ;
+         qqq = THREE_TO_IJK(ip,jp,kp,nx,nxy) ; if( !GOOD(qqq) ) continue ;
+         acfsqq[ppp] += (fim[qqq]-fbar)*arg ; nacf[ppp]++ ;
+       }
+     }
+AFNI_OMP_END;
+   }
+
+   /*--- load results into clout ---*/
+
+   for( ppp=1 ; ppp < nclu ; ppp++ ){
+     if( nacf[ppp] > 8 )
+       clout->mag[ppp] = (float)( acfsqq[ppp] / ( fvar * (nacf[ppp]-1.0) ) ) ;
+   }
+   clout->mag[0] = 1.0f ;
+
+   if( lim != im ) mri_free(lim) ;
+   RETURN(clout) ;
+}
+
+/*----------------------------------------------------------------------------*/
+/*! Get average ACF estimate for all sub-bricks                  [09 Nov 2015]
+*//*--------------------------------------------------------------------------*/
+
+MCW_cluster * THD_estimate_ACF( THD_3dim_dataset *dset,
+                                byte *mask, int demed, int unif, float radius )
+{
+   int iv , nvals , ii,nvox ;
+   MRI_IMAGE *bim=NULL , *medim=NULL , *madim=NULL ;
+   float     *bar=NULL , *medar=NULL , *madar=NULL ;
+   MCW_cluster *clout=NULL , *cltemp ; int nout=0 ;
+
+ENTRY("THD_estimate_ACF") ;
+
+   if( !ISVALID_DSET(dset) ) RETURN(NULL) ;
+   DSET_load(dset) ; if( !DSET_LOADED(dset) ) RETURN(NULL) ;
+
+   nvals = DSET_NVALS(dset) ;
+   nvox  = DSET_NVOX(dset) ;
+
+   if( unif ){
+     MRI_IMARR *imar ;
+     demed = 1 ;
+     imar  = THD_medmad_bricks(dset) ;
+     medim = IMARR_SUBIM(imar,0) ; medar = MRI_FLOAT_PTR(medim) ;
+     madim = IMARR_SUBIM(imar,1) ; madar = MRI_FLOAT_PTR(madim) ;
+     FREE_IMARR(imar) ;
+     for( ii=0 ; ii < nvox ; ii++ )
+       if( madar[ii] > 0.0f ) madar[ii] = 1.0f / madar[ii] ;
+   } else if( demed ){
+     medim = THD_median_brick(dset) ;
+     medar = MRI_FLOAT_PTR(medim) ;
+   }
+
+   for( iv=0 ; iv < nvals ; iv++ ){
+     bim = mri_scale_to_float( DSET_BRICK_FACTOR(dset,iv), DSET_BRICK(dset,iv) );
+     bim->dx = DSET_DX(dset) ; bim->dy = DSET_DY(dset) ; bim->dz = DSET_DZ(dset) ;
+     if( demed ){
+       bar = MRI_FLOAT_PTR(bim) ;
+       for( ii=0 ; ii < nvox ; ii++ ) bar[ii] -= medar[ii] ;
+       if( unif )
+        for( ii=0 ; ii < nvox ; ii++ ) bar[ii] *= madar[ii] ;
+     }
+     cltemp = mri_estimate_ACF( bim , mask , radius ) ;
+
+     if( clout == NULL ){
+       clout = cltemp ; nout = 1 ;
+     } else {
+       for( ii=0 ; ii < clout->num_pt ; ii++ ){
+         clout->mag[ii] += cltemp->mag[ii] ;
+       }
+       KILL_CLUSTER(cltemp) ; nout++ ;
+     }
+   }
+
+   if( demed ) mri_free(medim) ;
+   if( unif  ) mri_free(madim) ;
+
+   if( clout != NULL && nout > 1 ){
+     for( ii=0 ; ii < clout->num_pt ; ii++ )
+       clout->mag[ii] /= nout ;
+   }
+
+   RETURN(clout) ;
+}
+
+/*----------------------------------------------------------------------------*/
+/* Function for Powell minimization for ACF modelE fit. */
+
+static int    nar=0 ;
+static float *aar=NULL , *rar=NULL ;
+
+double ACF_modelE_costfunc( int npar , double *par )
+{
+   double aa=par[0] , bb=par[1]      , cc=par[2] ;
+   double a1=1.0-aa , bq=0.5/(bb*bb) , ci=1.0/cc ;
+   double sum=0.0 , fval ;
+   int ii ;
+
+   for( ii=0 ; ii < nar ; ii++ ){
+     fval = aa * exp(-bq*rar[ii]*rar[ii]) + a1 * exp(-ci*rar[ii]) - aar[ii] ;
+     sum += fval * fval ;
+   }
+
+   return sum ;
+}
+
+/*----------------------------------------------------------------------------*/
+
+static MRI_IMAGE *ACF_im=NULL ;
+MRI_IMAGE * ACF_get_1D(void){ return ACF_im ; }
+
+/*----------------------------------------------------------------------------*/
+/*! Convert ACF cluster output to function vs radius             [09 Nov 2015]
+    Exponential model function vs. radius r is
+      ACF(r) = a*exp(-r*r/(2*b*b)) + (1-a)*exp(-r/c)
+    where a,b,c are the estimated parameters returned in the float_quad.
+    With restrictions that   0 <= a <= 1 ; b > 0 ; c > 0
+    The last parameter return (d) is the FWHM of the curve fit.
+*//*--------------------------------------------------------------------------*/
+
+float_quad ACF_cluster_to_modelE( MCW_cluster *acf, float dx, float dy, float dz )
+{
+   int nclu, nr, pp, qq, ss, dq ;
+   float xx , yy , zz , rmax , dr , vp,rp , vs ;
+   float apar , bpar , cpar , dpar , *acar ;
+   float_quad fqout = { -1.0f , -1.0f , -1.0f , -1.0f } ;
+   double xpar[3] , xbot[3] , xtop[3] ;
+
+ENTRY("ACF_cluster_to_modelE") ;
+
+   if( ACF_im != NULL ){ mri_free(ACF_im) ; ACF_im = NULL ; }
+
+                        if( acf == NULL ) RETURN(fqout) ;
+   nclu = acf->num_pt ; if( nclu < 5    ) RETURN(fqout) ;
+
+   if( dx <= 0.0f ) dx = 1.0f ;
+   if( dy <= 0.0f ) dy = 1.0f ;
+   if( dz <= 0.0f ) dz = 1.0f ;
+
+   /* load rar and aar arrays with radius and ACF values */
+
+#undef  CRAD
+#define CRAD(a) ( xx = dx * abs(acf->i[a]) ,   \
+                  yy = dy * abs(acf->j[a]) ,   \
+                  zz = dz * abs(acf->k[a]) , sqrt(xx*xx+yy*yy+zz*zz) )
+
+   aar = (float *)malloc(sizeof(float)*nclu) ;
+   rar = (float *)malloc(sizeof(float)*nclu) ;
+
+   for( pp=0 ; pp < nclu ; pp++ ){
+     rar[pp] = CRAD(pp) ;
+     aar[pp] = acf->mag[pp] ;
+   }
+
+   qsort_floatfloat( nclu , rar , aar ) ;  /* to ensure increasing rar */
+
+   /* collapse data with very similar rar values */
+
+   for( pp=0 ; pp < nclu-1 ; pp++ ){
+     vp = aar[pp] ; rp = rar[pp]*1.01f ;
+     for( qq=pp+1 ; qq < nclu && rar[qq] <= rp ; qq++ ) ; /*nada*/
+     if( qq > pp+1 ){
+       for( vs=0.0f,ss=pp ; ss < qq ; ss++ ) vs += aar[ss] ;
+       aar[pp] = vs/(qq-pp) ;
+       dq = qq-(pp+1) ;
+       for( ss=qq ; ss < nclu ; ss++ ){
+         aar[ss-dq] = aar[ss]; rar[ss-dq] = rar[ss];
+       }
+       nclu -= dq ;
+     }
+   }
+
+   /* crude estimates for model parameters */
+
+   nar = nclu ;
+
+   for( pp=0 ; pp < nclu && aar[pp] > 0.5f ; pp++ ) ; /*nada*/
+   if( pp == nclu ){
+     ERROR_message("largest ACF found is %g -- too big for model fit!",aar[nclu-1]) ;
+     free(aar) ; free(rar) ; aar = rar = NULL ; nar = 0 ;
+     RETURN(fqout) ;
+   }
+   apar = 1.0 / logf(aar[pp]) ;
+   bpar = sqrtf(-0.5*apar) * rar[pp] ;
+   cpar = -rar[pp] * apar;
+   apar = 0.5f ;
+
+   /* nonlinear optimization of parameters */
+
+   xpar[0] = apar  ; xpar[1] = bpar      ; xpar[2] = cpar      ;
+   xbot[0] = 0.006 ; xbot[1] = 0.05*bpar ; xbot[2] = 0.05*cpar ;
+   xtop[0] = 0.994 ; xtop[1] = 5.55*bpar ; xtop[2] = 5.55*cpar ;
+
+   pp = powell_newuoa_con( 3 , xpar , xbot , xtop ,
+                           99 , 0.05 , 0.0005 , 999 , ACF_modelE_costfunc ) ;
+
+   if( pp < 0 ){
+     ERROR_message("optimization of ACF model fit fails :-(") ;
+     free(aar) ; free(rar) ; aar = rar = NULL ; nar = 0 ;
+     RETURN(fqout) ;
+   }
+
+   ACF_im = mri_new( nar , 3 , MRI_float ) ;
+   acar = MRI_FLOAT_PTR(ACF_im) ;
+   apar = xpar[0] ; bpar = xpar[1] ; cpar = xpar[2] ;
+   for( pp=0 ; pp < nar ; pp++ ){
+     vs =         apar * expf( -0.5f*rar[pp]*rar[pp]/(bpar*bpar) )
+         + (1.0f-apar) * expf( -rar[pp]/cpar ) ;
+     acar[pp]       = rar[pp] ;
+     acar[pp+nar]   = aar[pp] ;
+     acar[pp+2*nar] = vs ;
+   }
+
+   { floatvec *fv ;
+     MAKE_floatvec(fv,nar) ;
+     for( pp=0 ; pp < nar ; pp++ ) fv->ar[pp] = acar[pp+2*nar] ;
+     vs = interp_inverse_floatvec( fv , 0.5f ) ;
+     for( pp=0 ; pp < nar ; pp++ ) fv->ar[pp] = rar[pp] ;
+     dpar = 2.0*interp_floatvec( fv , vs ) ;
+     KILL_floatvec(fv) ;
+   }
+
+   free(aar) ; free(rar) ; aar = rar = NULL ; nar = 0 ;
+
+   fqout.a = xpar[0] ; fqout.b = xpar[1] ; fqout.c = xpar[2] ; fqout.d = dpar ;
+   RETURN(fqout) ;
+}

@@ -66,7 +66,13 @@
 #define NGMIN_PLUS_1 7
 
 #undef  NVOXMAX_PLUS
-#define NVOXMAX_PLUS 9999
+#define NVOXMAX_PLUS 99999
+
+#define WARP_CODE_STRING(wc)                         \
+          (  (wc == MRI_QUINTIC)       ? "quintic"   \
+           : (wc == MRI_CUBIC_PLUS_1 ) ? "cubic+1"   \
+           : (wc == MRI_CUBIC_PLUS_2 ) ? "cubic+2"   \
+           : (wc == MRI_CUBIC_PLUS_3 ) ? "cubic+3" : "  cubic" )
 
 /* control verbosity of mri_nwarp functions */
 
@@ -8316,11 +8322,13 @@ ENTRY("HCwarp_setup_basis5") ;
    if( nx == nbcx      && ny == nbcy      && nz == nbcz       &&
        Hwarp != NULL   && AHwarp != NULL  && nparm == nbbbcar &&
        nx == Hwarp->nx && ny == Hwarp->ny && nz == Hwarp->nz    ){
+STATUS("everything is cool") ;
      IW3D_zero_fill(Hwarp) ; IW3D_zero_fill(AHwarp) ; EXRETURN ;
    }
 
    /* cleanup old stuff (recall that the 'c' arrays are for cubics) */
 
+STATUS("cleanup old stuff") ;
    if(  Hwarp != NULL ){ IW3D_destroy( Hwarp);  Hwarp = NULL; }
    if( AHwarp != NULL ){ IW3D_destroy(AHwarp); AHwarp = NULL; }
 
@@ -8343,17 +8351,27 @@ ENTRY("HCwarp_setup_basis5") ;
    nbcx = nx ;
    bc0x = (float *)malloc(sizeof(float)*nbcx) ;  /* 1D basis arrays */
    bc1x = (float *)malloc(sizeof(float)*nbcx) ;
+   bc2x = (float *)malloc(sizeof(float)*nbcx) ;
+   bc3x = (float *)malloc(sizeof(float)*nbcx) ;
+   bc4x = (float *)malloc(sizeof(float)*nbcx) ;
    nbcy = ny ;
    bc0y = (float *)malloc(sizeof(float)*nbcy) ;
    bc1y = (float *)malloc(sizeof(float)*nbcy) ;
+   bc2y = (float *)malloc(sizeof(float)*nbcy) ;
+   bc3y = (float *)malloc(sizeof(float)*nbcy) ;
+   bc4y = (float *)malloc(sizeof(float)*nbcy) ;
    nbcz = nz ;
    bc0z = (float *)malloc(sizeof(float)*nbcz) ;
    bc1z = (float *)malloc(sizeof(float)*nbcz) ;
+   bc2z = (float *)malloc(sizeof(float)*nbcz) ;
+   bc3z = (float *)malloc(sizeof(float)*nbcz) ;
+   bc4z = (float *)malloc(sizeof(float)*nbcz) ;
 
    nbcxy = nbcx*nbcy ;  /* for indexing */
 
    /* fill arrays for x direction */
 
+STATUS("fill arrays") ;
    if( Hflags & NWARP_NOXDEP_FLAG ){
      dxci = 0.0f ;
      for( ii=0 ; ii < nbcx ; ii++ ){
@@ -8412,6 +8430,7 @@ ENTRY("HCwarp_setup_basis5") ;
    for( ii=0 ; ii < nbbbcar ; ii++ )
      bbbcar[ii] = (float *)malloc(sizeof(float)*nbbcxyz) ;
 
+STATUS("fill bbbcar") ;
    for( hh=kk=0 ; kk < nbcz ; kk++ ){       /* 3 loops over z,y,x */
     for( jj=0 ; jj < nbcy ; jj++ ){
      for( ii=0 ; ii < nbcx ; ii++,hh++ ){
@@ -8425,6 +8444,7 @@ ENTRY("HCwarp_setup_basis5") ;
    /* create empty patch warp, to be populated in HCwarp_load,
       given these basis function arrays and the warp parameters */
 
+STATUS("create empty warps") ;
    Hwarp  = IW3D_create(nbcx,nbcy,nbcz) ; /* incremental patch warp */
    AHwarp = IW3D_create(nbcx,nbcy,nbcz) ; /* global warp(patch warp) in patch */
 
@@ -10501,11 +10521,11 @@ ENTRY("IW3D_improve_warp") ;
          if( Hbmask[qq] ){ wsum += wbfar[qq] ; nwb++ ; }
    }}}
 
-   if( !Hforce && (nwb < 0.333f*Hnval || wsum < 0.222f*Hnval*Hwbar) ){ /* too light for us */
+   if( !Hforce && (nwb < 0.333f*Hnval || wsum < 0.166f*Hnval*Hwbar) ){ /* too light for us */
      if( Hverb > 2 )
        ININFO_message(
          "     %s patch %03d..%03d %03d..%03d %03d..%03d : skipping (%.1f%% inmask %.1f%% weight)" ,
-                       (warp_code == MRI_QUINTIC) ? "quintic" : "  cubic" ,
+                       WARP_CODE_STRING(warp_code) ,
                        ibot,itop, jbot,jtop, kbot,ktop ,
                        (100.0f*nwb)/Hnval , (100.0f*wsum)/(Hnval*Hwbar) ) ;
      Hskipped++ ; RETURN(0) ;
@@ -10553,6 +10573,7 @@ ENTRY("IW3D_improve_warp") ;
        Hbasis_code = MRI_CUBIC_PLUS_1 ;
        Hbasis_parmax = 0.0432*Hfactor ;
        Hnpar         = 81 ;
+       prad          = 0.333 ;
        HCwarp_setup_basis5( nxh,nyh,nzh, Hgflags , 1 ) ;
      break ;
 
@@ -10561,6 +10582,7 @@ ENTRY("IW3D_improve_warp") ;
        Hbasis_code = MRI_CUBIC_PLUS_2 ;
        Hbasis_parmax = 0.0222*Hfactor ;
        Hnpar         = 192 ;
+       prad          = 0.333 ;
        HCwarp_setup_basis5( nxh,nyh,nzh, Hgflags , 2 ) ;
      break ;
 
@@ -10569,6 +10591,7 @@ ENTRY("IW3D_improve_warp") ;
        Hbasis_code = MRI_CUBIC_PLUS_3 ;
        Hbasis_parmax = 0.0155*Hfactor ;
        Hnpar         = 375 ;
+       prad          = 0.333 ;
        HCwarp_setup_basis5( nxh,nyh,nzh, Hgflags , 3 ) ;
      break ;
 #endif
@@ -10635,8 +10658,8 @@ ENTRY("IW3D_improve_warp") ;
      if( is_float_array_constant(Hnval,Hbval) ){ /* can't correlate with this */
        if( Hverb > 2 )
          ININFO_message(
-           "     %s patch %03d..%03d %03d..%03d %03d..%03d : skipping (base=const=%g)" ,
-                         (warp_code == MRI_QUINTIC) ? "quintic" : "  cubic" ,
+           "     %7s patch %03d..%03d %03d..%03d %03d..%03d : skipping (base=const=%g)" ,
+                         WARP_CODE_STRING(warp_code) ,
                          ibot,itop, jbot,jtop, kbot,ktop , Hbval[0] ) ;
        RESTORE_WBFAR ; Hskipped++ ; RETURN(0) ;
      }
@@ -10704,7 +10727,17 @@ ENTRY("IW3D_improve_warp") ;
 
    free(xtop) ; free(xbot) ;
 
-   if( iter <= 0 ){ free(parvec); Hskipped++ ; RETURN(0); }  /* something bad happened */
+   if( iter <= 0 ){  /* something bad happened */
+     ININFO_message(
+       "     %s patch %03d..%03d %03d..%03d %03d..%03d : skipping - powell_newuoa_con() failure code=%d" ,
+                     WARP_CODE_STRING(warp_code) ,
+                     ibot,itop, jbot,jtop, kbot,ktop , iter ) ;
+     ININFO_message(
+      "powell_newuoa_con( ndim=%d  x=%p  xbot=%p  xtop=%p  nrand=%d  rstart=%f  rend=%f  maxcall=%d  ufunc=%p",
+      Hnparmap , (void *)parvec , (void *)xbot , (void *)xtop , 0 , prad , 0.009*prad , itmax ,
+      (void *)IW3D_scalar_costfun ) ;
+     free(parvec); Hskipped++ ; RETURN(0);
+   }
 
    /* load optimized warped image and warp into their patches */
 
@@ -10736,9 +10769,9 @@ ENTRY("IW3D_improve_warp") ;
      if( Hxyzmatch_num > 0 ) sprintf(cbuf,"xyzmatch pen=%g",Hxyzmatch_cost) ;
      else                    strcpy(cbuf,"\0") ;
      ININFO_message(
-       "     %s patch %03d..%03d %03d..%03d %03d..%03d : cost=%.5f iter=%d : energy=%.3f:%.3f pen=%g pure=%g %s",
-                     (Hbasis_code == MRI_QUINTIC) ? "quintic" : "  cubic" ,
-                           ibot,itop, jbot,jtop, kbot,ktop , Hcost  , iter , jt,st , Hpenn , Hcostt , cbuf ) ;
+       "     %7s patch %03d..%03d %03d..%03d %03d..%03d : cost=%.5f iter=%d : energy=%.3f:%.3f pen=%g pure=%g %s",
+                      WARP_CODE_STRING(Hbasis_code) ,
+                      ibot,itop, jbot,jtop, kbot,ktop , Hcost  , iter , jt,st , Hpenn , Hcostt , cbuf ) ;
 
    } else if( Hverb == 1 && (Hlev_now<=2 || lrand48()%(Hlev_now*Hlev_now*Hlev_now/9)==0) ){
      fprintf(stderr,".") ;  /* just a pacifier */
@@ -11019,12 +11052,16 @@ ENTRY("IW3D_warpomatic") ;
 #endif
 #ifdef ALLOW_BASIS5
      if( (levdone && !Hduplo && H5final) && xwid*ywid*zwid < NVOXMAX_PLUS ){
-       if(      xwid*ywid*zwid > NGMIN_PLUS_3*NGMIN_PLUS_3*NGMIN_PLUS_3 )
+       if(        xwid*ywid*zwid >= NGMIN_PLUS_3*NGMIN_PLUS_3*NGMIN_PLUS_3 && H5final >= 3 ){
          qmode = qmode2 = MRI_CUBIC_PLUS_3 ;
-       else if( xwid*ywid*zwid > NGMIN_PLUS_2*NGMIN_PLUS_2*NGMIN_PLUS_2 )
+INFO_message("qmode set to MRI_CUBIC_PLUS_3") ;
+       } else if( xwid*ywid*zwid >= NGMIN_PLUS_2*NGMIN_PLUS_2*NGMIN_PLUS_2 && H5final >= 2 ){
          qmode = qmode2 = MRI_CUBIC_PLUS_2 ;
-       else if( xwid*ywid*zwid > NGMIN_PLUS_1*NGMIN_PLUS_1*NGMIN_PLUS_1 )
+INFO_message("qmode set to MRI_CUBIC_PLUS_2") ;
+       } else if( xwid*ywid*zwid >= NGMIN_PLUS_1*NGMIN_PLUS_1*NGMIN_PLUS_1 && H5final >= 1 ){
          qmode = qmode2 = MRI_CUBIC_PLUS_1 ;
+INFO_message("qmode set to MRI_CUBIC_PLUS_1") ;
+       }
      }
 #endif
 
@@ -11990,8 +12027,8 @@ ENTRY("IW3D_improve_warp_plusminus") ;
    if( !Hforce && (nwb < 0.333f*Hnval || wsum < 0.222f*Hnval*Hwbar) ){ /* too light for us */
      if( Hverb > 2 )
        ININFO_message(
-         "     %s patch %03d..%03d %03d..%03d %03d..%03d : skipping (%.1f%% inmask %.1f%% weight)" ,
-                       (warp_code == MRI_QUINTIC) ? "quintic" : "  cubic" ,
+         "     %7s patch %03d..%03d %03d..%03d %03d..%03d : skipping (%.1f%% inmask %.1f%% weight)" ,
+                       WARP_CODE_STRING(warp_code) ,
                        ibot,itop, jbot,jtop, kbot,ktop ,
                        (100.0f*nwb)/Hnval , (100.0f*wsum)/(Hnval*Hwbar) ) ;
      RETURN(0) ;
@@ -12006,7 +12043,7 @@ ENTRY("IW3D_improve_warp_plusminus") ;
        Hbasis_parmax = 0.033*Hfactor ;    /* max displacement from 1 function */
        if( ballopt ) Hbasis_parmax = 0.066*Hfactor ;           /* 13 Jan 2015 */
        Hnpar         = 24 ;                /* number of params for local warp */
-       prad          = 0.333 ;                       /* NEWUOA initial radius */
+       prad          = 0.444 ;                       /* NEWUOA initial radius */
        HCwarp_setup_basis( nxh,nyh,nzh, Hgflags ) ;      /* setup HCwarp_load */
 #ifdef USE_HLOADER
        Hloader       = HCwarp_load ;   /* func to make local warp from params */
@@ -12018,7 +12055,7 @@ ENTRY("IW3D_improve_warp_plusminus") ;
        Hbasis_parmax = 0.007*Hfactor ;
        if( ballopt ) Hbasis_parmax = 0.050*Hfactor ;           /* 13 Jan 2015 */
        Hnpar         = 81 ;
-       prad          = 0.222 ;
+       prad          = 0.333 ;
        HQwarp_setup_basis( nxh,nyh,nzh, Hgflags ) ;
 #ifdef USE_HLOADER
        Hloader       = HQwarp_load ;
@@ -12031,6 +12068,7 @@ ENTRY("IW3D_improve_warp_plusminus") ;
        Hbasis_code = MRI_CUBIC_PLUS_1 ;
        Hbasis_parmax = 0.0432*Hfactor ;
        Hnpar         = 81 ;
+       prad          = 0.333 ;
        HCwarp_setup_basis5( nxh,nyh,nzh, Hgflags , 1 ) ;
      break ;
 
@@ -12039,6 +12077,7 @@ ENTRY("IW3D_improve_warp_plusminus") ;
        Hbasis_code = MRI_CUBIC_PLUS_2 ;
        Hbasis_parmax = 0.0222*Hfactor ;
        Hnpar         = 192 ;
+       prad          = 0.333 ;
        HCwarp_setup_basis5( nxh,nyh,nzh, Hgflags , 2 ) ;
      break ;
 
@@ -12047,6 +12086,7 @@ ENTRY("IW3D_improve_warp_plusminus") ;
        Hbasis_code = MRI_CUBIC_PLUS_3 ;
        Hbasis_parmax = 0.0155*Hfactor ;
        Hnpar         = 375 ;
+       prad          = 0.333 ;
        HCwarp_setup_basis5( nxh,nyh,nzh, Hgflags , 3 ) ;
      break ;
 #endif
@@ -12154,7 +12194,17 @@ ENTRY("IW3D_improve_warp_plusminus") ;
 
    free(xtop) ; free(xbot) ;
 
-   if( iter <= 0 ){ free(parvec); RETURN(0); }  /* something bad happened */
+   if( iter <= 0 ){  /* something bad happened */
+     ININFO_message(
+       "     %s patch %03d..%03d %03d..%03d %03d..%03d : skipping - powell_newuoa_con() failure code=%d" ,
+                     WARP_CODE_STRING(warp_code) ,
+                     ibot,itop, jbot,jtop, kbot,ktop , iter ) ;
+     ININFO_message(
+      "powell_newuoa_con( ndim=%d  x=%p  xbot=%p  xtop=%p  nrand=%d  rstart=%f  rend=%f  maxcall=%d  ufunc=%p",
+      Hnparmap , (void *)parvec , (void *)xbot , (void *)xtop , 0 , prad , 0.009*prad , itmax ,
+      (void *)IW3D_scalar_costfun ) ;
+     free(parvec); RETURN(0);
+   }
 
    /* load optimized warped image and warp into their patches */
 
@@ -12185,8 +12235,8 @@ ENTRY("IW3D_improve_warp_plusminus") ;
 
    if( Hverb > 1 ){
      ININFO_message(
-       "     %s patch %03d..%03d %03d..%03d %03d..%03d : cost=%.5f iter=%d : energy=%.3f:%.3f pen=%g",
-                     (Hbasis_code == MRI_QUINTIC) ? "quintic" : "  cubic" ,
+       "     %7s patch %03d..%03d %03d..%03d %03d..%03d : cost=%.5f iter=%d : energy=%.3f:%.3f pen=%g",
+                     WARP_CODE_STRING(Hbasis_code) ,
                            ibot,itop, jbot,jtop, kbot,ktop , Hcost  , iter , jt,st , Hpenn ) ;
    } else if( Hverb == 1 && (Hlev_now<=2 || lrand48()%(Hlev_now*Hlev_now*Hlev_now/9)==0) ){
      fprintf(stderr,".") ;
