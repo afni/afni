@@ -8,7 +8,7 @@ extern void THD_estimate_FWHM_moments_all( THD_3dim_dataset *dset,
 
 int main( int argc , char *argv[] )
 {
-   THD_3dim_dataset *inset=NULL ;
+   THD_3dim_dataset *inset=NULL ; char *inset_prefix , *cpp ;
    int iarg=1 , ii , nvals,nvox , ncon ;
    MRI_IMAGE *outim ; float *outar ;
    byte *mask=NULL ; int mask_nx=0,mask_ny=0,mask_nz=0 , automask=0 ;
@@ -16,6 +16,8 @@ int main( int argc , char *argv[] )
    double fx,fy,fz , cx,cy,cz , ccomb ; int nx,ny,nz , ncomb ;
    int geom=1 , demed=0 , unif=0 , corder=0 , combine=0 ;
    char *newprefix=NULL ;
+   int do_acf = 0 ; float acf_rad=0.0f ;
+   char *acf_fname=NULL ; MRI_IMAGE *acf_im=NULL ; float_quad acf_Epar ;
 
    /*---- for the clueless who wish to become clueful ----*/
 
@@ -92,7 +94,41 @@ int main( int argc , char *argv[] )
       "                the mask.  This was an error; now, neighbors must also\n"
       "                be in the mask to be used in the differencing.\n"
       "                Use '-compat' to use the older method.\n"
-      "              **NOT RECOMMENDED except for comparison purposes!\n"
+      "             ** NOT RECOMMENDED except for comparison purposes! **\n"
+      "\n"
+      "  -ACF [anam] = ** new option Nov 2015 **\n"
+      "   *or*         The '-ACF' option computes the spatial autocorrelation\n"
+      "  -acf [anam]   of the data as a function of radius, then fits that\n"
+      "                to a model of the form\n"
+      "                  ACF(r) = a * exp(-r*r/(2*b*b)) + (1-a)*exp(-r/c)\n"
+      "                and outputs the 3 model parameters (a,b,c) to stdout.\n"
+      "              * The model fit assumes spherical symmetry in the ACF.\n"
+      "              * The results shown on stdout are in the format\n"
+      "  # old-style FWHM parameters\n"
+      "   10.4069  10.3441  9.87341     10.2053\n"
+      "  # ACF model parameters for a*exp(-r*r/(2*b*b))+(1-a)*exp(-r/c) plus effective FWHM\n"
+      "   0.578615  6.37267  14.402     16.1453\n"
+      "                The lines that start with '#' are comments.\n"
+      "                The first numeric line contains the 'old style' FWHM estimates,\n"
+      "                  FWHM_x FWHM_y FHWM_z  FWHM_combined\n"
+      "                The second numeric line contains the a,b,c parameters, plus the\n"
+      "                combined estimated FWHM from those parameters.  In this example,\n"
+      "                the fit was about 58%% Gaussian shape, 42%% exponential shape,\n"
+      "                and the effective FWHM from this fit was 16.14mm, versus 10.21mm\n"
+      "                estimated in the 'old way'.\n"
+      "              * If you use '-acf', then the comment #lines in the\n"
+      "                stdout information will be omitted.  This might help\n"
+      "                in parsing the output inside a script.\n"
+      "              * If '-ACF' is followed by a valid filename that does\n"
+      "                not start with the '-' character, then the empirical\n"
+      "                ACF results are also written to that file in 3 columns:\n"
+      "                  radius ACF(r) model(r)\n"
+      "              * In addition, a graph of these functions will be saved\n"
+      "                into file 'anam'.png, for your viewing pleasure.\n"
+      "              * Note that the ACF calculations are much slower than the\n"
+      "                'old style' FWHM calculations.\n"
+      "              * The ACF modeling is intended to enhance 3dClustSim, and\n"
+      "                may or may not be useful for any other purpose!\n"
       "\n"
       "SAMPLE USAGE: (tcsh)\n"
       "  set zork = ( `3dFWHMx -automask -input junque+orig` )\n"
@@ -218,6 +254,18 @@ int main( int argc , char *argv[] )
        FHWM_1dif_dontcheckplus(1) ; iarg++ ; continue ;
      }
 
+     if( strncasecmp(argv[iarg],"-ACF",4) == 0 ){           /* 09 Nov 2015 */
+       do_acf = 1 ; if( argv[iarg][1] == 'a' ) do_acf = -1 ;
+       iarg++ ;
+       if( iarg < argc && argv[iarg][0] != '-' ){
+         acf_fname = strdup(argv[iarg]) ;
+         if( !THD_filename_ok(acf_fname) )
+           ERROR_exit("filename after -ACF is invalid!") ;
+         iarg++ ;
+       }
+       continue ;
+     }
+
      if( strncmp(argv[iarg],"-out",4) == 0 ){
        if( ++iarg >= argc ) ERROR_exit("Need argument after '-out'") ;
        outfile = argv[iarg] ;
@@ -271,6 +319,12 @@ int main( int argc , char *argv[] )
      inset = THD_open_dataset( argv[iarg] ) ;
      CHECK_OPEN_ERROR(inset,argv[iarg]) ;
    }
+
+   inset_prefix = strdup( DSET_PREFIX(inset) ) ;
+   cpp = strstr(inset_prefix,".nii")   ; if( cpp != NULL ) *cpp = '\0' ;
+   cpp = strstr(inset_prefix,"+orig")  ; if( cpp != NULL ) *cpp = '\0' ;
+   cpp = strstr(inset_prefix,"+tlrc")  ; if( cpp != NULL ) *cpp = '\0' ;
+   cpp = THD_trailname(inset_prefix,0) ; if( cpp != NULL ) inset_prefix = cpp ;
 
    if( (demed || unif || corder ) && DSET_NVALS(inset) < 4 ){
      WARNING_message(
@@ -363,7 +417,7 @@ int main( int argc , char *argv[] )
      for(jj=0;jj<nref;jj++) free(ref[jj]) ;
      free(ref); DSET_delete(inset); inset=newset;
      demed = unif = 0 ;
-     INFO_message("detrending done") ;
+     ININFO_message("detrending done") ;
 
      if( newprefix != NULL ){    /** for debugging **/
        EDIT_dset_items(newset,ADN_prefix,newprefix,NULL) ;
@@ -374,6 +428,8 @@ int main( int argc , char *argv[] )
 
    /*-- do the FWHM-izing work --*/
 
+   INFO_message("start FWHM calculations") ;
+
    outim = THD_estimate_FWHM_all( inset , mask , demed,unif ) ;
 
 #if 0
@@ -381,7 +437,7 @@ int main( int argc , char *argv[] )
      THD_estimate_FWHM_moments_all( inset , mask , demed,unif ) ;
 #endif
 
-   DSET_unload(inset) ;
+   if( !do_acf ) DSET_unload(inset) ;
 
    if( outim == NULL ) ERROR_exit("Function THD_estimate_FWHM_all() fails?!") ;
 
@@ -429,8 +485,59 @@ int main( int argc , char *argv[] )
      if( cz > 0.0 ){ ccomb += cz ; ncomb++ ; }
      if( ncomb > 1 ) ccomb /= ncomb ;
    }
-   printf(" %g  %g  %g",cx,cy,cz) ;
-   if( combine ) printf("     %g",ccomb) ;
-   printf("\n") ;
+
+   if( do_acf ){
+     MCW_cluster *acf ; int pp ;
+     acf_rad = 2.777f * ccomb ;
+     INFO_message("start ACF calculations out to radius = %.2f mm",acf_rad) ;
+     acf = THD_estimate_ACF( inset , mask , demed,unif , acf_rad ) ;
+     if( acf == NULL ) ERROR_exit("Error calculating ACF :-(") ;
+#if 0
+     printf("# ACF dx=%g dy=%g dz=%g\n",
+            fabsf(DSET_DX(inset)) , fabsf(DSET_DY(inset)) , fabsf(DSET_DZ(inset)) ) ;
+     printf("dx  dy  dz  ACF\n") ;
+     printf("--- --- --- ------\n") ;
+     for( pp=0 ; pp < acf->num_pt ; pp++ )
+       printf("%3d %3d %3d %.5f\n",
+              acf->i[pp] , acf->j[pp] , acf->k[pp] , acf->mag[pp] ) ;
+#endif
+
+     acf_Epar = ACF_cluster_to_modelE( acf , fabsf(DSET_DX(inset)) ,
+                                            fabsf(DSET_DY(inset)) ,
+                                            fabsf(DSET_DZ(inset)) ) ;
+
+     if( acf_fname != NULL ) acf_im = ACF_get_1D() ;
+
+     if( do_acf > 0 )
+       printf("# old-style FWHM parameters\n") ;
+     printf(" %g  %g  %g     %g",cx,cy,cz,ccomb) ;
+     printf("\n") ;
+
+     if( do_acf > 0 )
+       printf("# ACF model parameters for a*exp(-r*r/(2*b*b))+(1-a)*exp(-r/c) plus effective FWHM\n") ;
+     printf(" %g  %g  %g     %g\n",acf_Epar.a,acf_Epar.b,acf_Epar.c,acf_Epar.d) ;
+
+     if( acf_im != NULL ){
+       char cmd[4096] ;
+       mri_write_1D( acf_fname , acf_im ) ;
+       INFO_message("ACF 1D file [radius ACF model] written to %s",acf_fname) ;
+       sprintf(cmd,
+         "1dplot -one -xlabel 'r (mm)' -ylabel 'Autocorrelation \\small [FWHM=%.2fmm]'"
+         "       -plabel '\\small\\noesc %s\\esc\\red  %.2f*exp[-r^2/2*%.2f^2]+%.2f*exp[-r/%.2f]'"
+         "       -box -png %s.png -x %s'[0]' %s'[1]' %s'[2]'" ,
+         acf_Epar.d ,
+         inset_prefix ,
+         acf_Epar.a , acf_Epar.b , 1.0f-acf_Epar.a , acf_Epar.c ,
+         acf_fname , acf_fname , acf_fname , acf_fname ) ;
+       system(cmd) ;
+       ININFO_message("and 1dplot-ed to file %s.png",acf_fname) ;
+     }
+
+   } else {  /* no ACF -- the OLD way */
+
+     printf(" %g  %g  %g",cx,cy,cz) ;
+     if( combine ) printf("     %g",ccomb) ;
+     printf("\n") ;
+   }
    exit(0) ;
 }
