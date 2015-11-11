@@ -77,6 +77,7 @@ static void xreduce( int n , double *x )
        for( ii=0 ; ii < n ; ii++ ) x[ii] = 0.5 + (x[ii]-0.5)*rad ;
      }
    }
+#if 0
    if( scalx == SC_L4 ){
      double rad=0.0 , xx ;
      for( ii=0 ; ii < n ; ii++ ){ xx = x[ii]-0.5; rad += xx*xx*xx*xx; }
@@ -85,6 +86,7 @@ static void xreduce( int n , double *x )
        for( ii=0 ; ii < n ; ii++ ) x[ii] = 0.5 + (x[ii]-0.5)*rad ;
      }
    }
+#endif
    return ;
    return ;
 }
@@ -129,6 +131,7 @@ int calfun_(integer *n, doublereal *x, doublereal *fun)
 
      val = userfun( (int)(*n) , sx ) ;           /* input = scaled x[] */
 
+#if 0
    } else if( scalx == SC_L4 ){
      int ii ; double rad=0.0 , xx ;
 
@@ -148,6 +151,7 @@ int calfun_(integer *n, doublereal *x, doublereal *fun)
      }
 
      val = userfun( (int)(*n) , sx ) ;           /* input = scaled x[] */
+#endif
 
    } else if( mapx ){      /* in this case, the parameters given as input */
      int ii ;              /* are just a subset of all the parameters, so */
@@ -355,8 +359,8 @@ int powell_newuoa_con( int ndim , double *x , double *xbot , double *xtop ,
      x[ii] = sxmin[ii] + x01[ii] * sxsiz[ii] ;
 
    if( verb ){
-     fprintf(stderr," +   param:") ;
-     for( ii=0 ; ii < ndim ; ii++ ) fprintf(stderr," %.3f",PRED01(x01[ii])) ;
+     fprintf(stderr," +   output param:") ;
+     for( ii=0 ; ii < ndim ; ii++ ) fprintf(stderr," %g",x[ii]) ;
      fprintf(stderr,"\n") ;
    }
 
