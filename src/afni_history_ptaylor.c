@@ -66,6 +66,12 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 10, Nov , 2015 , PT , "3dVec_to_RGBind.c" , MAJOR , TYPE_NEW_PROG,
+   "Take a 3-vec to a single index on RGB color scale, and glue FA brick.",
+   "This will be useful in prob tract result plotting... script to come.\n"
+},
+
+
 { 28, Sep , 2015 , PT , "fat_mvm_scripter.py" , MINOR , TYPE_BUG_FIX,
    "Use list of ROIs to select subnetwork of analysis for 3dMVM.",
    "Previously, sublist only applied to post hocs, not 3dMVM models.\n"
