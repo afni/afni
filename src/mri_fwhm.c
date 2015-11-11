@@ -892,13 +892,15 @@ ENTRY("THD_estimate_ACF") ;
      }
      cltemp = mri_estimate_ACF( bim , mask , radius ) ;
 
-     if( clout == NULL ){
+     if( clout == NULL && cltemp != NULL ){
        clout = cltemp ; nout = 1 ;
-     } else {
+     } else if( cltemp != NULL ){
        for( ii=0 ; ii < clout->num_pt ; ii++ ){
          clout->mag[ii] += cltemp->mag[ii] ;
        }
        KILL_CLUSTER(cltemp) ; nout++ ;
+     } else {
+       WARNING_message("ACF: sub-brick %d (out of %d) estimation fails",iv,nvals) ;
      }
    }
 
@@ -909,6 +911,9 @@ ENTRY("THD_estimate_ACF") ;
      for( ii=0 ; ii < clout->num_pt ; ii++ )
        clout->mag[ii] /= nout ;
    }
+
+   if( clout == NULL )
+     WARNING_message("ACF: overall estimation fails!") ;
 
    RETURN(clout) ;
 }
