@@ -798,7 +798,7 @@ ENTRY("mri_estimate_ACF") ;
    }
    fbar = fsum / count ;
    fvar = (fsq - (fsum * fsum)/count) / (count-1.0);
-   if( fvar == 0.0 ){
+   if( fvar <= 0.0 ){
      if( lim != im ) mri_free(lim) ;
      KILL_CLUSTER(clout) ; RETURN(NULL) ;
    }
