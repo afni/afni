@@ -4088,7 +4088,9 @@ void T3D_read_images(void)
 {
    MRI_IMAGE * im , * shim ;
    char * bar ;
-   int npix , ii , bb , dsize ;
+   int64_t bb;              /* allow for large volumes (Ziad's fault) */
+                            /*                     6 Nov 2015 [rickr] */
+   int npix , ii , dsize ;
    int nx , ny , nz , nim , lf , isfunc , nvals , kz,kim , bsize,ibr ;
    MRI_IMARR * arr ;
    char iname[THD_MAX_NAME] ;
@@ -4501,7 +4503,7 @@ printf("T3D_read_images: putting data into slice %d\n",kz) ;
 
             /**-- copy data from shim into the kz-th slice in bar --**/
 
-            bb = npix * dsize * kz ;
+            bb = (int64_t)npix * dsize * kz ;  /* might exceed 2^31-1 */
             memcpy( bar+bb , mri_data_pointer(shim) , npix*dsize ) ;
          } else {
 

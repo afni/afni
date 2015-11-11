@@ -25,7 +25,7 @@ help.LME.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
           ================== Welcome to 3dLME ==================          
     AFNI Group Analysis Program with Multi-Variate Modeling Approach
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 1.7.6, May 20, 2015
+Version 1.7.7, Nov 4, 2015
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - http://afni.nimh.nih.gov/sscc/gangc/lme.html
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -1483,6 +1483,7 @@ if(lop$ICC) {  # ICC part
       pkgLoad('snow')
       cl <- makeCluster(lop$nNodes, type = "SOCK")
       clusterEvalQ(cl, library(lme4))
+      clusterEvalQ(cl, options(contrasts = c("contr.sum", "contr.poly")))
       for (kk in 1:dimz) {
          Stat[,,kk,] <- aperm(parApply(cl, inData[,,kk,], c(1,2), runREML, fm=fm, nBrk=lop$NoBrick, tag=0), c(2,3,1))
          cat("Z slice #", kk, "done: ", format(Sys.time(), "%D %H:%M:%OS3"), "\n")
@@ -1515,6 +1516,7 @@ if(lop$ICC) {  # ICC part
       cl <- makeCluster(lop$nNodes, type = "SOCK")
       clusterExport(cl, c("ModelForm", "assVV", "lop"), envir=environment())
       clusterEvalQ(cl, library(ROCR))
+      clusterEvalQ(cl, options(contrasts = c("contr.sum", "contr.poly")))
       for (kk in 1:dimz) {
          Stat[,,kk,] <- aperm(parApply(cl, inData[,,kk,], c(1,2), runGLM2, dataframe=lop$dataStr, ModelForm=ModelForm, nBoot=nBoot), c(2,3,1))
          #Stat[,,kk,] <- aperm(parApply(cl, inData[,,kk,], c(1,2), runGLM, dataframe=lop$dataStr, ModelForm=ModelForm), c(2,3,1))
@@ -1564,7 +1566,9 @@ if(lop$ICC) {  # ICC part
       #library(snow)
       pkgLoad('snow')
       cl <- makeCluster(lop$nNodes, type = "SOCK")
-      clusterEvalQ(cl, library(nlme)); clusterEvalQ(cl, library(phia))
+      clusterEvalQ(cl, library(nlme))
+      clusterEvalQ(cl, library(phia))
+      clusterEvalQ(cl, options(contrasts = c("contr.sum", "contr.poly")))
       clusterExport(cl, c("ModelForm", "lop"), envir=environment())
       for(kk in 1:nSeg) {
          if(lop$NoBrick > 1) Stat[,kk,] <- aperm(parApply(cl, inData[,kk,], 1, runLME, dataframe=lop$dataStr,
@@ -1596,7 +1600,9 @@ if(lop$ICC) {  # ICC part
          #library(snow)
          pkgLoad('snow')
          cl <- makeCluster(lop$nNodes, type = "SOCK")
-         clusterEvalQ(cl, library(nlme)); clusterEvalQ(cl, library(phia))
+         clusterEvalQ(cl, library(nlme))
+         clusterEvalQ(cl, library(phia))
+         clusterEvalQ(cl, options(contrasts = c("contr.sum", "contr.poly")))
          clusterExport(cl, c("ModelForm", "lop"), envir=environment())  # for some reason phia needs this for multiple CPUs
          for (kk in 1:dimz) {
             if(lop$NoBrick > 1) Stat[,,kk,] <- aperm(parApply(cl, inData[,,kk,], c(1,2), runLME, 

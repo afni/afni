@@ -49,6 +49,22 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  6,  Nov, 2015, RCR, "to3d", MICRO, TYPE_ENHANCE,
+   "allow for single volumes beyond 2^31-1 bytes",
+   "Done for Z Saad."
+ } ,
+
+ {  6,  Nov, 2015, RCR, "@Align_Centers", MICRO, TYPE_NEW_OPT,
+   "add option -cm_no_amask; like -cm but without -automask",
+   NULL
+ } ,
+
+ {  4,  Nov, 2015, RCR, "1d_tool.py", MICRO, TYPE_NEW_OPT,
+   "add -slice_order_to_times",
+   "This converts a list of slice indices (sorted by acq time)\n"
+   "to slice times (ordered by index)."
+ } ,
+
  { 28,  Oct, 2015, RCR, "gen_ss_review_table.py", MICRO, TYPE_ENHANCE,
    "make 'a/E mask Dice coef' parent of 'mask correlation'",
    NULL
