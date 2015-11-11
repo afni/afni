@@ -19,8 +19,8 @@ PTAYLOR_HDRS = DoTrackit.h TrackIO.h rsfc.h diffusiony.h FuncTrac.h roiing.h Fat
 AFNI_OBJS = ../xutil.o ../LiteClue.o
 AFOBJS  = ../afni.o ../afni_func.o ../afni_widg.o ../afni_warp.o \
             ../afni_fimmer.o \
-				../afni_slice_short.o ../afni_slice_float.o                  		\
-				../afni_slice_byte.o  ../afni_slice_complex.o                		\
+				../afni_slice_short.o ../afni_slice_float.o        	\
+				../afni_slice_byte.o  ../afni_slice_complex.o     		\
 				../afni_pcor.o ../afni_pcor_float.o ../afni_transforms.o        	\
 				../pbar.o ../afni_graph.o ../afni_plugin.o                      	\
 				../parser.o ../parser_int.o ../afni_plugout.o ../afni_fimfunc.o 	\
@@ -212,3 +212,4 @@ afni_install:
 	@if [ -f  3dEigsToDT ]; then mv 3dEigsToDT ${INSTALLDIR}; fi;
 	@if [ -f  3dDTtoNoisyDWI ]; then mv 3dDTtoNoisyDWI ${INSTALLDIR}; fi;
 	@if [ -f  3dTORTOISEtoHere ]; then mv 3dTORTOISEtoHere ${INSTALLDIR}; fi;
+	@if [ -f  3dVec_to_RGBind ]; then mv 3dVec_to_RGBind ${INSTALLDIR}; fi;
