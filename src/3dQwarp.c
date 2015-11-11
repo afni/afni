@@ -1475,7 +1475,7 @@ int main( int argc , char *argv[] )
          }
        }
 #ifdef ALLOW_QMODE
-       if( argv[nopt][1] == 'W' ) Hqhard = 1 ;  /* SECRET */
+       if( argv[nopt][1] == 'W' ) Hqhard = 1 ;
 #endif
        nopt++ ; continue ;
      }
@@ -1507,7 +1507,7 @@ int main( int argc , char *argv[] )
          }
        }
 #ifdef ALLOW_QMODE
-       if( argv[nopt][1] == 'S' ) Hqhard = 1 ;  /* SECRET */
+       if( argv[nopt][1] == 'S' ) Hqhard = 1 ;
 #endif
        nopt++ ; continue ;
      }
@@ -1520,6 +1520,18 @@ int main( int argc , char *argv[] )
      }
      if( strcasecmp(argv[nopt],"-Qonly") == 0 ){      /* 27 Jun 2013 */
        Hqonly = 1 ; nopt++ ; continue ;
+     }
+#endif
+
+#ifdef ALLOW_BASIS5
+     if( strcasecmp(argv[nopt],"-5final") == 0 ){     /* 06 Nov 2015 [SECRET] */
+       H5final = 3 ; nopt++ ; continue ;
+     }
+     if( strcasecmp(argv[nopt],"-4final") == 0 ){     /* 06 Nov 2015 [SECRET] */
+       H5final = 2 ; nopt++ ; continue ;
+     }
+     if( strcasecmp(argv[nopt],"-3final") == 0 ){     /* 06 Nov 2015 [SECRET] */
+       H5final = 1 ; nopt++ ; continue ;
      }
 #endif
 
