@@ -1026,8 +1026,14 @@ ENTRY("ACF_cluster_to_modelE") ;
    xbot[0] = 0.006 ; xbot[1] = 0.05*bpar ; xbot[2] = 0.05*cpar ;
    xtop[0] = 0.994 ; xtop[1] = 5.55*bpar ; xtop[2] = 5.55*cpar ;
 
+#if 0
    pp = powell_newuoa_con( 3 , xpar , xbot , xtop ,
                            99 , 0.05 , 0.0005 , 999 , ACF_modelE_costfunc ) ;
+#else
+   pp = powell_newuoa_constrained( 3 , xpar , NULL , xbot , xtop ,
+                                   333 , 13 , 5 ,
+                                   0.05 , 0.0005 , 999 , ACF_modelE_costfunc ) ;
+#endif
 
    if( pp < 0 ){
      ERROR_message("optimization of ACF model fit fails :-(") ;
