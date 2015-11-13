@@ -1031,7 +1031,7 @@ ENTRY("ACF_cluster_to_modelE") ;
                            99 , 0.05 , 0.0005 , 999 , ACF_modelE_costfunc ) ;
 #else
    pp = powell_newuoa_constrained( 3 , xpar , NULL , xbot , xtop ,
-                                   333 , 13 , 5 ,
+                                   666 , 33 , 7 ,
                                    0.05 , 0.0005 , 999 , ACF_modelE_costfunc ) ;
 #endif
 
