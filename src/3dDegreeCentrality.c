@@ -846,6 +846,10 @@ int main( int argc , char *argv[] )
                             if ( recycled_nodes == NULL )
                             {
                                 new_node = (hist_node*)calloc(1,sizeof(hist_node));
+                                /* -- update running memory estimate to reflect memory allocation */ 
+                                INC_MEM_STATS( sizeof(hist_node), "hist nodes" );
+                                if ((totNumCor % (1024*1024)) == 0) PRINT_MEM_STATS( "hist nodes" );
+
                             }
                             else
                             {
@@ -867,10 +871,6 @@ int main( int argc , char *argv[] )
                                 new_node->j = lin;
                                 new_node->corr = car;
                                 new_node->next = NULL;
-
-                                /* -- update running memory estimate to reflect memory allocation */ 
-                                INC_MEM_STATS( sizeof(hist_node), "hist nodes" );
-                                if ((totNumCor % (1024*1024)) == 0) PRINT_MEM_STATS( "hist nodes" );
 
                                 /* populate histogram */
                                 new_node->next = histogram[new_node_idx].nodes;
