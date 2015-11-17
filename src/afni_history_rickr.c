@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 17,  Nov, 2015, RCR, "afni-general", MICRO, TYPE_GENERAL,
+   "rename g_info to g_dicom_ctrl to avoid FreeBSD build conflict",
+   "Thanks to J Bacon for noting the conflict."
+ } ,
+
  {  6,  Nov, 2015, RCR, "to3d", MICRO, TYPE_ENHANCE,
    "allow for single volumes beyond 2^31-1 bytes",
    "Done for Z Saad."

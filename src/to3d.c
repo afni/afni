@@ -3027,7 +3027,7 @@ printf("decoded %s to give zincode=%d bot=%f top=%f\n",Argv[nopt],
       /*----- -use_last_element -----*/  /* 10 Apr 2009 [rickr] */
 
       if( strncmp(Argv[nopt],"-use_last_elem",14) == 0 ){
-         g_info.use_last_elem = 1 ;  /* global in mri_read_dicom.c */
+         g_dicom_ctrl.use_last_elem = 1 ;  /* global in mri_read_dicom.c */
          nopt++ ; continue ;  /* go to next arg */
       }
 
