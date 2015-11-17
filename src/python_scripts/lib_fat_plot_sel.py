@@ -310,7 +310,8 @@ def Fat_Mat_Plot( X,
                     cmap=MAP_of_COL)
 
     if DO_XTICK_LABS:
-        plt.xticks( np.arange(len(MATTICKS)), MATTICKS, rotation=37, 
+        plt.xticks( np.arange(len(MATTICKS)), MATTICKS, 
+                    rotation=45, ha='right',
                     fontsize=LAB_SIZE_FONT )
     else:
         plt.xticks( np.arange(len(MATTICKS)), len(MATTICKS)*'',
