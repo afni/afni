@@ -21,15 +21,6 @@ afni/src/3dLFCD.c
 #define MAX_NUM_TAGS 32
 #define MAX_TAG_LEN 256
 
-static char mem_tags[MAX_NUM_TAGS][MAX_TAG_LEN];
-static long mem_allocated[MAX_NUM_TAGS];
-static long mem_freed[MAX_NUM_TAGS];
-static long mem_num_tags = 0;
-static long running_mem = 0;
-static long peak_mem = 0;
-static long total_mem = 0;
-static int MEM_PROF = 0;
-static int MEM_STAT = 0;
 
 /* CC macro for updating mem stats */
 #define INC_MEM_STATS( INC, TAG ) \
@@ -120,7 +111,7 @@ typedef struct _list_node list_node;
 // Define list node structure
 struct _list_node
 {
-    long idx;
+    long vox_vol_ndx;
     long ix;
     long jy;
     long kz;
@@ -130,29 +121,86 @@ struct _list_node
 
 
 /* free the list of hist_nodes */
-list_node* free_list( list_node* list )
-{
-    list_node *pptr;
-    list_node *hptr = list;
+#define FREE_LIST( list ) \
+{ \
+    list_node *pptr; \
+    list_node *hptr = list; \
+ \
+    while(hptr != NULL ) \
+    { \
+        /* increment node pointers */ \
+        pptr = hptr; \
+        hptr = hptr->next; \
+ \
+        /* delete the node */ \
+        if(pptr != NULL) \
+        {  \
+            /* -- update running memory estimate to reflect memory allocation */  \
+            DEC_MEM_STATS(( sizeof(list_node)), "list nodes"); \
+            free(pptr); \
+            pptr=NULL; \
+        } \
+    } \
+    list = NULL; \
+}
 
-    while(hptr != NULL )
-    {
-        /* increment node pointers */
-        pptr = hptr;
-        hptr = hptr->next;
+/* freeing all of the allocated mem on an error can get a little messy. instead
+   we can use this macro to check what has been allocated and kill it. this of 
+   course requires strict discipline for initiazing all pointers to NULL and 
+   resetting them to NULL when free'd. i should be able to handle that */
+#define CHECK_AND_FREE_ALL_ALLOCATED_MEM \
+{ \
+    /* eliminate DSETS */ \
+        if ( mset != NULL ) \
+        { \
+            DSET_unload(mset) ; \
+            DSET_delete(mset) ; \
+            mset = NULL ; \
+        } \
+\
+        if ( xset != NULL ) \
+        { \
+            DSET_unload(xset) ; \
+            DSET_delete(xset) ; \
+            xset = NULL ; \
+        } \
+\
+        if ( cset != NULL ) \
+        { \
+            DSET_unload(cset) ; \
+            DSET_delete(cset) ; \
+            cset = NULL ; \
+        } \
+\
+     /* free the xvectim */ \
+        if ( xvectim != NULL ) \
+        { \
+            VECTIM_destroy(xvectim) ; \
+            xvectim = NULL ; \
+        } \
+\
+    /* free allocated mems */ \
+        if( mask != NULL ) \
+        { \
+            free(mask) ; \
+            mask = NULL ; \
+        } \
+        \
+        if( vol_ndx_to_mask_ndx != NULL ) \
+        { \
+            free(vol_ndx_to_mask_ndx) ; \
+            vol_ndx_to_mask_ndx = NULL ; \
+        } \
+}
 
-        /* delete the node */
-        if(pptr != NULL)
-        { 
-            /* -- update running memory estimate to reflect memory allocation */ 
-            DEC_MEM_STATS(( sizeof(list_node)), "list nodes");
-            free(pptr);
-            pptr=NULL;
-        }
+/* being good and cleaning up before erroring out can be a pain, and messy, lets
+   make a variadic macro that does it for us. */
+#define ERROR_EXIT_CC( ... ) \
+    { \
+        CHECK_AND_FREE_ALL_ALLOCATED_MEM; \
+        ERROR_exit( __VA_ARGS__ ); \
     }
 
-    return(NULL);
-}
 
 /* 3dLFCD was created from 3dAutoTCorrelate by
    R. Cameron Craddock */
@@ -248,48 +296,41 @@ static void vstep_print(void)
 
 int main( int argc , char *argv[] )
 {
-   THD_3dim_dataset *xset , *cset, *mset=NULL ;
-   int nopt=1 , method=PEARSON , do_autoclip=0 ;
-   int nvox , nvals , ii, jj, kout, kin, polort=1 ;
-   int ix1,jy1,kz1, ix2, jy2, kz2 ;
-   char *prefix = "degree_centrality" ;
-   byte *mask=NULL;
-   int   nmask , abuc=1 ;
-   int   all_source=0;        /* output all source voxels  25 Jun 2010 [rickr] */
-   char str[32] , *cpt ;
-   int *imap = NULL ; MRI_vectim *xvectim ;
-   float (*corfun)(int,float *,float*) = NULL ;
-   /* djc - add 1d file output for similarity matrix */
-   FILE *fout1D=NULL;
+    THD_3dim_dataset *xset = NULL;
+    THD_3dim_dataset *cset = NULL;
+    THD_3dim_dataset *mset = NULL ;
+    int nopt=1 , method=PEARSON , do_autoclip=0 ;
+    int nvox , nvals , ii, polort=1 ;
+    char *prefix = "degree_centrality" ;
+    byte *mask=NULL;
+    int   nmask , abuc=1 ;
+    char str[32] , *cpt = NULL;
+    int *mask_ndx_to_vol_ndx = NULL;
+    MRI_vectim *xvectim = NULL ;
+    float (*corfun)(int,float *,float*) = NULL ;
 
-   /* CC - we will have two subbricks: binary and weighted centrality */
-   int nsubbriks = 2;
-   int subbrik = 0;
-   float * bodset;
-   float * wodset;
+    /* CC - we will have two subbricks: binary and weighted centrality */
+    int nsubbriks = 2;
+    int subbrik = 0;
+    float * bodset;
+    float * wodset;
 
-   int nb_ctr = 0;
-
-   /* CC - added flags for thresholding correlations */
-   double thresh = 0.0;
-   double othresh = 0.0;
-   int dothresh = 0;
-   double sparsity = 0.0;
-   int dosparsity = 0;
+    /* CC - added flags for thresholding correlations */
+    double thresh = 0.0;
   
-   /* variables for calculating degree centrality */
-   long * binaryDC = NULL;
-   double * weightedDC = NULL;
+    /* CC - variables to assist going back and forth between mask and volume indices */
+    long * vol_ndx_to_mask_ndx = NULL;
 
-   /* variables for histogram */
-   int bottom_node_idx = 0;
-   int totNumCor = 0;
-   long totPosCor = 0;
-   int ngoal = 0;
-   int nretain = 0;
-   float binwidth = 0.0;
-   int nhistnodes = 50;
-
+    /* CC - variables for tracking memory usage stats */
+    char mem_tags[MAX_NUM_TAGS][MAX_TAG_LEN];
+    long mem_allocated[MAX_NUM_TAGS];
+    long mem_freed[MAX_NUM_TAGS];
+    long mem_num_tags = 0;
+    long running_mem = 0;
+    long peak_mem = 0;
+    long total_mem = 0;
+    int MEM_PROF = 0;
+    int MEM_STAT = 0;
    /*----*/
 
    AFNI_SETUP_OMP(0) ;  /* 24 Jun 2013 */
@@ -379,6 +420,7 @@ int main( int argc , char *argv[] )
       }
 
       if( strcmp(argv[nopt],"-mask") == 0 ){
+         /* mset is opened here, but not loaded? */
          mset = THD_open_dataset(argv[++nopt]);
          CHECK_OPEN_ERROR(mset,argv[nopt]);
          nopt++ ; continue ;
@@ -405,7 +447,7 @@ int main( int argc , char *argv[] )
       if( strcmp(argv[nopt],"-prefix") == 0 ){
          prefix = strdup(argv[++nopt]) ;
          if( !THD_filename_ok(prefix) ){
-            ERROR_exit("Illegal value after -prefix!") ;
+            ERROR_EXIT_CC("Illegal value after -prefix!") ;
          }
          nopt++ ; continue ;
       }
@@ -413,15 +455,14 @@ int main( int argc , char *argv[] )
       if( strcmp(argv[nopt],"-thresh") == 0 ){
          double val = (double)strtod(argv[++nopt],&cpt) ;
          if( *cpt != '\0' || val >= 1.0 || val < 0.0 ){
-            ERROR_exit("Illegal value (%f) after -thresh!", val) ;
+            ERROR_EXIT_CC("Illegal value (%f) after -thresh!", val) ;
          }
-         dothresh = 1;
-         thresh = val ; othresh = val ; nopt++ ; continue ;
+         thresh = val ; nopt++ ; continue ;
       }
       if( strcmp(argv[nopt],"-polort") == 0 ){
          int val = (int)strtod(argv[++nopt],&cpt) ;
          if( *cpt != '\0' || val < -1 || val > 3 ){
-            ERROR_exit("Illegal value after -polort!") ;
+            ERROR_EXIT_CC("Illegal value after -polort!") ;
          }
          polort = val ; nopt++ ; continue ;
       }
@@ -432,18 +473,17 @@ int main( int argc , char *argv[] )
          MEM_PROF = 1 ; nopt++ ; continue ;
       }
 
-      ERROR_exit("Illegal option: %s",argv[nopt]) ;
+      ERROR_EXIT_CC("Illegal option: %s",argv[nopt]) ;
    }
 
    /*-- open dataset, check for legality --*/
 
-   if( nopt >= argc ) ERROR_exit("Need a dataset on command line!?") ;
-
-   xset = THD_open_dataset(argv[nopt]); CHECK_OPEN_ERROR(xset,argv[nopt]);
+    if( nopt >= argc ) ERROR_EXIT_CC("Need a dataset on command line!?") ;
+    xset = THD_open_dataset(argv[nopt]); CHECK_OPEN_ERROR(xset,argv[nopt]);
 
 
    if( DSET_NVALS(xset) < 3 )
-     ERROR_exit("Input dataset %s does not have 3 or more sub-bricks!",
+     ERROR_EXIT_CC("Input dataset %s does not have 3 or more sub-bricks!",
         argv[nopt]) ;
    DSET_load(xset) ; CHECK_LOAD_ERROR(xset) ;
 
@@ -456,31 +496,36 @@ int main( int argc , char *argv[] )
    if( mset ){
 
       if( DSET_NVOX(mset) != nvox )
-         ERROR_exit("Input and mask dataset differ in number of voxels!") ;
+         ERROR_EXIT_CC("Input and mask dataset differ in number of voxels!") ;
       mask  = THD_makemask(mset, 0, 1.0, 0.0) ;
 
       /* update running memory statistics to reflect loading the image */
       INC_MEM_STATS( mset->dblk->total_bytes, "mask dset" );
       PRINT_MEM_STATS( "mset load" );
 
+      /* iupdate statistics to reflect creating mask array */
       nmask = THD_countmask( nvox , mask ) ;
       INC_MEM_STATS( nmask * sizeof(byte), "mask array" );
       PRINT_MEM_STATS( "mask" );
 
       INFO_message("%d voxels in -mask dataset",nmask) ;
-      if( nmask < 2 ) ERROR_exit("Only %d voxels in -mask, exiting...",nmask);
+      if( nmask < 2 ) ERROR_EXIT_CC("Only %d voxels in -mask, exiting...",nmask);
 
       /* update running memory statistics to reflect loading the image */
       DEC_MEM_STATS( mset->dblk->total_bytes, "mask dset" );
-      DSET_unload(mset) ;
       PRINT_MEM_STATS( "mset unload" );
+
+      /* free all memory associated with the mask datast */
+      DSET_unload(mset) ;
+      DSET_delete(mset) ;
+      mset = NULL ;
    } 
    /* if automasking is requested, handle that now */
    else if( do_autoclip ){
       mask  = THD_automask( xset ) ;
       nmask = THD_countmask( nvox , mask ) ;
       INFO_message("%d voxels survive -autoclip",nmask) ;
-      if( nmask < 2 ) ERROR_exit("Only %d voxels in -automask!",nmask);
+      if( nmask < 2 ) ERROR_EXIT_CC("Only %d voxels in -automask!",nmask);
    }
    /* otherwise we use all of the voxels in the image */
    else {
@@ -507,7 +552,7 @@ int main( int argc , char *argv[] )
 
     /*-- CC added in mask to reduce the size of xvectim -- */
     xvectim = THD_dset_to_vectim( xset , mask , 0 ) ;
-    if( xvectim == NULL ) ERROR_exit("Can't create vectim?!") ;
+    if( xvectim == NULL ) ERROR_EXIT_CC("Can't create vectim?!") ;
 
     /*-- CC update our memory stats to reflect vectim -- */
     INC_MEM_STATS((xvectim->nvec*sizeof(int)) +
@@ -522,14 +567,12 @@ int main( int argc , char *argv[] )
     if( mask != NULL )
     {
         /* tap into the xvectim mapping */
-        imap = xvectim->ivec;
+        mask_ndx_to_vol_ndx = xvectim->ivec;
 
         /* create a mapping that goes the opposite way */
-        if(( ndx_mask = calloc( nvox * sizeof(long) )) == NULL)
+        if(( vol_ndx_to_mask_ndx = (long*)calloc( nvox, sizeof(long) )) == NULL)
         {
-            /* CC - free allocated memory, maybe make this a macro? */
-            if(mask != NULL ) free(mask);
-            ERROR_message( 
+            ERROR_EXIT_CC( 
                 "Could not allocate %d byte array for mask index mapping\n",
                 nmask*sizeof(long));
         }
@@ -540,7 +583,7 @@ int main( int argc , char *argv[] )
         /* --- create the reverse mapping */
         for ( ii = 0; ii < xvectim->nvec; ii++)
         {
-            ndx_mask[ imap[ ii ] ] = ii;
+            vol_ndx_to_mask_ndx[ mask_ndx_to_vol_ndx[ ii ] ] = ii;
         }
 
         /* --- CC free the mask */
@@ -652,7 +695,14 @@ int main( int argc , char *argv[] )
     AFNI_OMP_START ;
 #pragma omp parallel if( nmask > 999 )
     {
-        int lii,ljj,lin,lout,ithr,nthr,vstep,vii ;
+        int dx = 0;
+        int dy = 0;
+        int dz = 0;
+        int ix = 0;
+        int jy = 0;
+        int kz = 0;
+        int target_mask_ndx = 0;
+        int lout,ithr,nthr,vstep,vii ;
         float *xsar , *ysar ;
         list_node* current_node = NULL ;
         list_node* new_node = NULL ;
@@ -676,13 +726,12 @@ int main( int argc , char *argv[] )
         if((MEM_STAT==0) && (ithr == 0 )) fprintf(stderr,"Looping:") ;
 
         /* allocate a vector to track previously seen voxels */
-        if((seen_voxels = (long*)calloc(xvectim->nvec*sizeof(long)))==NULL)
+        if((seen_voxels = (long*)calloc(xvectim->nvec,sizeof(long)))==NULL)
         {
-            ERROR_message( "Could not allocate memory for seen_voxels!\n");
+            ERROR_EXIT_CC( "Could not allocate memory for seen_voxels!\n");
         }
 
 #pragma omp for schedule(static, 1)
- 
         for( lout=0 ; lout < xvectim->nvec ; lout++ )
         {  /*----- outer voxel loop -----*/
 
@@ -698,8 +747,15 @@ int main( int argc , char *argv[] )
             /* initialize the boundary with the target voxel */
             if( recycled_nodes == NULL)
             {
-#pragma critical(mem_alloc)
-                if(( new_node = (list_node*)malloc(sizeof(list_node))) == NULL)
+                /* this looks like it is redundant, but I want the first if 
+                   statement to run in the critical section and the second
+                   if statement to run after it */
+#pragma omp critical(mem_alloc)
+                if(( new_node = (list_node*)malloc(sizeof(list_node)) ) != NULL )
+                {
+                    INC_MEM_STATS((sizeof(list_node)), "list nodes");
+                }
+                if( new_node == NULL )
                 {
                     WARNING_message( "Could not allocate list node\n");
                     continue;
@@ -712,12 +768,12 @@ int main( int argc , char *argv[] )
             }
 
             /* determine the full ndx for the seed target */
-            new_node->ndx = imap[ lout ];
+            new_node->vox_vol_ndx = mask_ndx_to_vol_ndx[ lout ];
 
             /* add source, dest, correlation to 1D file */
-            new_node->ix = DSET_index_to_ix(cset, new_node->ndx) ;
-            new_node->jy = DSET_index_to_jy(cset, new_node->ndx) ;
-            new_node->kz = DSET_index_to_kz(cset, new_node->ndx) ;
+            new_node->ix = DSET_index_to_ix(cset, new_node->vox_vol_ndx) ;
+            new_node->jy = DSET_index_to_jy(cset, new_node->vox_vol_ndx) ;
+            new_node->kz = DSET_index_to_kz(cset, new_node->vox_vol_ndx) ;
 
             /* push the new node onto the boundary list,
                if the boundary list is empty, there is a problem */
@@ -729,7 +785,7 @@ int main( int argc , char *argv[] )
             boundary_list = new_node;
             
             /* reset the seen_voxels map */
-            bzero(seen_voxels, vectim->nvec);
+            memset(seen_voxels, 0, xvectim->nvec*sizeof(long));
 
             /* iterate over the boundary until it is empty */
             while( boundary_list != NULL )
@@ -740,7 +796,7 @@ int main( int argc , char *argv[] )
                 boundary_list = boundary_list->next;
 
                 /* iterate through a box around the current voxel */
-                for ( int dx = 0; dx < 3; dx++ )
+                for ( dx = 0; dx < 3; dx++ )
                 {
                     ix = ( current_node->ix + (dx-1) );
                     /* make sure that we are in bounds */
@@ -749,7 +805,7 @@ int main( int argc , char *argv[] )
                         continue;
                     }
 
-                    for( int dy = 0; dy < 3; dy++ )
+                    for( dy = 0; dy < 3; dy++ )
                     {
                         jy = ( current_node->jy + (dy-1) );
                         /* make sure that we are in bounds */                        
@@ -758,7 +814,7 @@ int main( int argc , char *argv[] )
                             continue;
                         }
 
-                        for ( int dz = 0; dz < 3; dz++)
+                        for ( dz = 0; dz < 3; dz++)
                         {
                             kz = ( current_node->kz + (dz-1) );
                             /* make sure that we are in bounds */
@@ -768,20 +824,20 @@ int main( int argc , char *argv[] )
                             }
 
                             /* get the index of this voxel */
-                            lndx = 
-                                ndx_mask[ DSET_ixyz_to_index(xset,ix,jy,kz) ];
+                            target_mask_ndx = 
+                                vol_ndx_to_mask_ndx[ DSET_ixyz_to_index(xset,ix,jy,kz) ];
 
                             /* if the voxel is in the mask, and hasn't been
                                seen before, evaluate it for inclusion in the
                                boundary */
-                            if(( lndx != 0) && ( seen_voxels[ lndx ] != 1 ))
+                            if(( target_mask_ndx != 0 ) && ( seen_voxels[ target_mask_ndx ] != 1 ))
                             {
 
                                 /* indicate that we have seen the voxel */
-                                seen_voxels[ lndx ] = 1;
+                                seen_voxels[ target_mask_ndx ] = 1;
 
                                 /* extract the time series */
-                                ysar = VECTIM_PTR(xvectim,lndx) ;
+                                ysar = VECTIM_PTR(xvectim,target_mask_ndx) ;
 
                                 /* calculate the correlation */
                                 car = (double)(corfun(nvals,xsar,ysar)) ;
@@ -793,8 +849,15 @@ int main( int argc , char *argv[] )
 
                                     if( recycled_nodes == NULL)
                                     {
-#pragma critical(mem_alloc)
-                                        if(( new_node = (list_node*)malloc(sizeof(list_node))) == NULL)
+                /* this looks like it is redundant, but I want the first if 
+                   statement to run in the critical section and the second
+                   if statement to run after it */
+#pragma omp critical(mem_alloc)
+                                        if(( new_node = (list_node*)malloc(sizeof(list_node)) ) != NULL )
+                                        {
+                                            INC_MEM_STATS((sizeof(list_node)), "list nodes");
+                                        }
+                                        if( new_node == NULL )
                                         {
                                             WARNING_message( "Could not allocate list node\n");
                                             continue;
@@ -807,7 +870,7 @@ int main( int argc , char *argv[] )
                                     }
 
                                     /* determine the full ndx for the seed target */
-                                    new_node->ndx = imap[ lout ];
+                                    new_node->vox_vol_ndx = mask_ndx_to_vol_ndx[ target_mask_ndx ]; 
 
                                     /* add source, dest, correlation to 1D file */
                                     new_node->ix = ix ;
@@ -822,8 +885,8 @@ int main( int argc , char *argv[] )
                                        done in a critical section */
 #pragma omp critical(dataupdate)
                                     {
-                                        wodset[ imap[ lout ]] += car;
-                                        bodset[ imap[ lout ]] += 1;
+                                        wodset[ mask_ndx_to_vol_ndx[ lout ]] += car;
+                                        bodset[ mask_ndx_to_vol_ndx[ lout ]] += 1;
                                     }                                  
                                 } /* if car > thresh */
                             } /* if vox is in mask and hasn't been seen */
@@ -842,7 +905,9 @@ int main( int argc , char *argv[] )
         if (seen_voxels != NULL) free( seen_voxels );
 
         /* clean out the recycled list */
-        recycled_nodes = free_list( recycled_nodes );
+#pragma omp critical(mem_alloc)
+        FREE_LIST( recycled_nodes )
+        PRINT_MEM_STATS( "Free recycled nodes" );
 
     } /* end OpenMP */
     AFNI_OMP_END ;
@@ -852,6 +917,14 @@ int main( int argc , char *argv[] )
  
     INFO_message("Done..\n") ;
 
+    if( vol_ndx_to_mask_ndx != NULL )
+    {
+        DEC_MEM_STATS(nvox*sizeof(long), "ndx mask array");
+        free(vol_ndx_to_mask_ndx);
+        vol_ndx_to_mask_ndx = NULL;
+        PRINT_MEM_STATS( "Free ndx mask array" );
+    }
+
     /* update running memory statistics to reflect freeing the vectim */
     DEC_MEM_STATS(((xvectim->nvec*sizeof(int)) +
                        ((xvectim->nvec)*(xvectim->nvals))*sizeof(float) +
@@ -860,10 +933,9 @@ int main( int argc , char *argv[] )
     /* toss some trash */
     VECTIM_destroy(xvectim) ;
     DSET_delete(xset) ;
-    if(fout1D!=NULL)fclose(fout1D);
 
+    PRINT_MEM_STATS( "Vectim Unload" );
 
-    PRINT_MEM_STATS( "vectim unload" );
 
     /* finito */
     INFO_message("Writing output dataset to disk [%s bytes]",
@@ -880,6 +952,8 @@ int main( int argc , char *argv[] )
     /* free up the output dataset memory */
     DSET_unload(cset) ;
     DSET_delete(cset) ;
+
+    PRINT_MEM_STATS( "Unload Output Dset" );
 
     /* force a print */
     MEM_STAT = 1;
