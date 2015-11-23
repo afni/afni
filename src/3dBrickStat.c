@@ -698,7 +698,7 @@ static void Max_func(int Minflag, int Maxflag, int Meanflag, int Countflag,
              if( mmm == NULL || ((mmm!=NULL) && mmm[k] != 0 )){   /* masked in voxel? */
 	      voxval = voxval * fac;             /* apply scale factor */
               if(nan_flag!=-1) {       /* check for various not a numbers */
-                test_flag = finite(voxval);
+                test_flag = isfinite(voxval);
                 if((nan_flag==1) && (test_flag==1)) /* only looking for NaNs*/
 		  continue;
                 if((nan_flag==0) && (test_flag==0)) /* only looking for finites */
