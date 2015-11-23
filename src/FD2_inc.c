@@ -3569,7 +3569,7 @@ void swap_eightbytes( int n , void * ar )
    }
 }
 
-#define IS_GOOD_FLOAT(x) finite(x)
+#define IS_GOOD_FLOAT(x) isfinite(x)
 
 /*---------------------------------------------------------------------
    Scan an array of floats for illegal values, replacing them with 0.

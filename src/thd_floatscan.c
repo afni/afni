@@ -13,6 +13,7 @@
 #    define IS_GOOD_FLOAT(x) isfinite(x) /* 28 Aug 2003: use C99 macro if exists */
 #  else
 #    define IS_GOOD_FLOAT(x) finite(x)
+#    define isfinite finite
 #  endif
 #else
 #    define IS_GOOD_FLOAT(x) finite(x)

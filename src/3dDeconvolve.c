@@ -321,6 +321,7 @@
 # define IS_GOOD_FLOAT(x) isfinite(x)
 #else
 # define IS_GOOD_FLOAT(x) finite(x)
+# define isfinite finite
 #endif
 
 /* 01 Feb 2011 -- minor adjustments */
