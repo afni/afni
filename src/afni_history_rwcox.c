@@ -43,7 +43,12 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 10 , NOV , 2015 , RWC , "3dFWHMx" , MAJOR , TYPE_NEW_OPT ,
+  { 23 , NOV , 2015 , RWC , "many" , MICRO , TYPE_GENERAL ,
+   "Tiny edits to eliminate compiler warnings from icc" ,
+   "For example, change format '%ld' to '%lld' for numerous int64_t\n"
+   "printouts in nifti/cifti codes.  Change 'finite()' to 'isfinite()'." } ,
+
+ { 10 , NOV , 2015 , RWC , "3dFWHMx" , MAJOR , TYPE_NEW_OPT ,
    "-ACF option to compute spatial autocorrelation function" ,
    "For enhancing 3dClustSim, et cetera." } ,
 

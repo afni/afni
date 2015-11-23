@@ -231,7 +231,7 @@ int Basic_compare_DSET_dims( THD_3dim_dataset *X, THD_3dim_dataset *Y,
                                Ndim, 
                                prefixY);
 
-   for( i==0 ; i<Ndim ; i++ )
+   for( i=0 ; i<Ndim ; i++ )
       if( DimX[i] != DimY[i] ) {
          ERROR_exit("\n\n Dsets %s %s don't match in [%d] dimension.\n\n",
                     prefixX, prefixY, i);

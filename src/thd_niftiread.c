@@ -85,7 +85,7 @@ ENTRY("THD_open_nifti") ;
       is something AFNI can't handle, then the result will be floats */
 
    /* do not scale if slope is 0 or if slope is 1 and inter is 0 */
-   if( !finite(nim->scl_slope) || !finite(nim->scl_inter) ){
+   if( !isfinite(nim->scl_slope) || !isfinite(nim->scl_inter) ){
       fprintf(stderr,"** bad scl_slope and inter = %f, %f, ignoring...\n",
               nim->scl_slope, nim->scl_inter);
    } else {
@@ -907,10 +907,10 @@ ENTRY("THD_load_nifti") ;
 
    /*-- scale results? ---*/
 
-   /* errors for !finite() have been printed */
-   scale_data = finite(nim->scl_slope) && finite(nim->scl_inter) 
-                    && (nim->scl_slope != 0.0)
-                    && (nim->scl_slope != 1.0 || nim->scl_inter != 0.0) ;
+   /* errors for !isfinite() have been printed */
+   scale_data = isfinite(nim->scl_slope) && isfinite(nim->scl_inter) 
+                     && (nim->scl_slope != 0.0)
+                     && (nim->scl_slope != 1.0 || nim->scl_inter != 0.0) ;
 
    if( scale_data ){
      STATUS("scaling sub-bricks") ;
@@ -919,7 +919,7 @@ ENTRY("THD_load_nifti") ;
          float *far = (float *) DBLK_ARRAY(dblk,ibr) ; int ii ;
          for( ii=0 ; ii < nxyz ; ii++ ){
            far[ii] = nim->scl_slope * far[ii] + nim->scl_inter ;
-           if( !finite(far[ii]) ) far[ii] = 0.0f ;
+           if( !isfinite(far[ii]) ) far[ii] = 0.0f ;
          }
        } else if( DBLK_BRICK_TYPE(dblk,ibr) == MRI_complex ){
          complex *car = (complex *) DBLK_ARRAY(dblk,ibr) ; int ii ;

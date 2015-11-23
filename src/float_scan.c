@@ -29,10 +29,14 @@
 # define IS_NAN(x) isnan(x)
 #endif
 
-#ifdef USE_FINITEF
-# define IS_FINITE(x) finitef(x)
+#ifdef isfinite
+# define IS_FINITE(x) isfinite(x)
 #else
-# define IS_FINITE(x) finite(x)
+# ifdef USE_FINITEF
+#  define IS_FINITE(x) finitef(x)
+# else
+#  define IS_FINITE(x) finite(x)
+# endif
 #endif
 
 #define FSET(nf) do{ fseek(fp,sizeof(float)*(nf),SEEK_SET); fpos=(nf); } while(0)
