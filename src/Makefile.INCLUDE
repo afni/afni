@@ -659,6 +659,10 @@ dsetdup:dsetdup.o
 	$(RM) $@
 	$(CC) -o 3dDFT 3dDFT.o $(LFLAGS) $(LLIBS)
 
+csfft_cache:csfft_cache.o
+	$(RM) $@
+	$(CC) -o csfft_cache csfft_cache.o $(LFLAGS) $(LLIBS)
+
 3dRetinoPhase:3dRetinoPhase.o
 	$(RM) $@
 	$(CC) -o 3dRetinoPhase 3dRetinoPhase.o $(LFLAGS) $(LLIBS)
