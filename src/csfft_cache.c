@@ -43,7 +43,7 @@ int main( int argc , char * argv[] )
       if( strncmp(argv[iarg],"-len",4) == 0 ){
          fft_len = strtol( argv[++iarg] , NULL , 10 ) ;
          if( fft_len < 4 ){fprintf(stderr,"illegal -len\a\n");exit(1);}
-         for( ii=2,kk=4 ; kk < fft_len ; kk *= 2,ii++ ) ; /* nada */
+         kk = csfft_nextup(fft_len) ;
          if( kk != fft_len ){fprintf(stderr,"illegal -len\a\n");exit(1);}
          fft_pow = ii ;
          iarg++ ; continue ;
@@ -93,17 +93,18 @@ int main( int argc , char * argv[] )
       }
       cptime = COX_cpu_time() - cptime ;
       mflops = fft_num * fft_ops / ( 1.e6 * cptime ) ;
-      printf("FFT cache size %6d bytes gives %10.2f Mflops"
+      printf("FFT cache size %6lu bytes gives %10.2f Mflops"
              " (%d FFTs, size %d, %d at a time, in %g sec)\n",
              sizeof(complex)*fft_len*nvec , mflops , fft_num,fft_len,nvec,cptime) ;
    }
 
    exit(0) ;
 }
-
+#if 0
 double COX_cpu_time(void)  /* in seconds */
 {
    struct tms ttt ;
    (void) times( &ttt ) ;
    return (  (double) (ttt.tms_utime) / (double) CLK_TCK ) ;
 }
+#endif
