@@ -2037,7 +2037,6 @@ extern THD_fvec3 mri_estimate_FWHM_12dif_MAD( MRI_IMAGE * , byte * ) ; /* 24 Mar
 
 extern THD_fvec3 mri_FWHM_1dif_mom12( MRI_IMAGE * , byte * ) ; /* 11 Aug 2015 */
 
-extern MCW_cluster * mri_estimate_ACF( MRI_IMAGE *im, byte *mask, float radius ) ; /* 09 Nov 2015 */
 extern MCW_cluster * THD_estimate_ACF( THD_3dim_dataset *dset,
                                        byte *mask, int demed, int unif, float radius ) ;
 extern float_quad ACF_cluster_to_modelE( MCW_cluster *acf, float dx, float dy, float dz ) ;

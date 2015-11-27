@@ -6,6 +6,11 @@ extern void THD_estimate_FWHM_moments_all( THD_3dim_dataset *dset,
                                     byte *mask, int demed , int unif ) ;
 #endif
 
+#ifdef USE_OMP
+# include <omp.h>
+# include "mri_fwhm.c"
+#endif
+
 int main( int argc , char *argv[] )
 {
    THD_3dim_dataset *inset=NULL ; char *inset_prefix , *cpp ;
