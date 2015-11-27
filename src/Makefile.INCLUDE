@@ -1105,10 +1105,6 @@ RSFgen:RSFgen.o
 	$(RM) $@
 	$(CC) -o 3dFWHM 3dFWHM.o $(LFLAGS) $(LLIBS)
 
-3dFWHMx:3dFWHMx.o
-	$(RM) $@
-	$(CC) -o 3dFWHMx 3dFWHMx.o $(LFLAGS) $(LLIBS)
-
 3dMannWhitney:3dMannWhitney.o
 	$(RM) $@
 	$(CC) -o 3dMannWhitney 3dMannWhitney.o $(LFLAGS) $(LLIBS)
@@ -1219,6 +1215,14 @@ qwarp:    libmri.a libf2c.a $(QWARP)
 qwarpobj: $(QWARPOBJ)
 
 ## ------- Things to be compiled or linked with OpenMP -------
+
+3dFWHMx.o: 3dFWHMx.c mri_fwhm.c
+	$(RM) $@
+	$(CCOMP) -c 3dFWHMx.c $(INFLAGS)
+
+3dFWHMx:3dFWHMx.o
+	$(RM) $@
+	$(CCOMP) -o 3dFWHMx 3dFWHMx.o $(LFLAGS) $(LLIBS)
 
 3dUnifize.o: 3dUnifize.c
 	$(RM) $@
