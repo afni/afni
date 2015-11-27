@@ -1,9 +1,5 @@
 #include "mrilib.h"
 
-#ifdef USE_OMP
-# include <omp.h>
-#endif
-
 #undef  GOOD
 #define GOOD(i) (mask==NULL || mask[i])
 
@@ -494,10 +490,9 @@ void mri_fwhm_setfester( THD_fvec3 (*func)(MRI_IMAGE *, byte *) )
 MRI_IMAGE * THD_estimate_FWHM_all( THD_3dim_dataset *dset,
                                    byte *mask, int demed , int unif )
 {
-   int iv , nvals , ii,nvox ;
-   MRI_IMAGE *bim=NULL , *outim=NULL , *medim=NULL , *madim=NULL ;
-   float *outar , fac ,  *medar=NULL , *madar=NULL , *bar=NULL ;
-   THD_fvec3 fw ;
+   int nvals , ii,nvox ;
+   MRI_IMAGE *outim=NULL , *medim=NULL , *madim=NULL ;
+   float     *outar,fac  , *medar=NULL , *madar=NULL ;
 
 ENTRY("THD_estimate_FWHM_all") ;
 
@@ -523,6 +518,10 @@ ENTRY("THD_estimate_FWHM_all") ;
      medar = MRI_FLOAT_PTR(medim) ;
    }
 
+AFNI_OMP_START;
+#pragma omp parallel if( nvals > 4 )
+ { int iv,ii ; MRI_IMAGE *bim ; float *bar ; THD_fvec3 fw ;
+#pragma omp for
    for( iv=0 ; iv < nvals ; iv++ ){
      if( mri_allzero(DSET_BRICK(dset,iv)) ){
        outar[0+3*iv] = outar[1+3*iv] = outar[2+3*iv] = 0.0f ; continue ;
@@ -532,12 +531,13 @@ ENTRY("THD_estimate_FWHM_all") ;
        bar = MRI_FLOAT_PTR(bim) ;
        for( ii=0 ; ii < nvox ; ii++ ) bar[ii] -= medar[ii] ;
        if( unif )
-        for( ii=0 ; ii < nvox ; ii++ ) bar[ii] *= madar[ii] ;
+       for( ii=0 ; ii < nvox ; ii++ ) bar[ii] *= madar[ii] ;
      }
      fw = fester( bim , mask ) ; mri_free(bim) ;
      UNLOAD_FVEC3( fw , outar[0+3*iv] , outar[1+3*iv] , outar[2+3*iv] ) ;
-/* INFO_message("fester: fw = %g %g %g",fw.xyz[0],fw.xyz[1],fw.xyz[2]) ; */
    }
+ }
+AFNI_OMP_END;
 
    if( demed ) mri_free(medim) ;
    if( unif  ) mri_free(madim) ;
@@ -750,12 +750,37 @@ THD_fvec3 mri_FWHM_1dif_mom12( MRI_IMAGE *im , byte *mask )
 }
 /*========================================================================*/
 
+#undef  NCLU_GOAL
+#define NCLU_GOAL 666
+#undef  NCLU_BASE
+#define NCLU_BASE 111
+
+static MCW_cluster * get_ACF_cluster( float dx, float dy, float dz, float radius )
+{
+   MCW_cluster *clout=NULL , *cltemp=NULL ;
+   int pp , dp ;
+
+   cltemp = MCW_spheremask( dx,dy,dz , radius ) ;
+
+   if( cltemp->num_pt < NCLU_GOAL ) return cltemp ;
+
+   INIT_CLUSTER(clout) ;
+   for( pp=0 ; pp < NCLU_BASE ; pp++ )
+     ADDTO_CLUSTER(clout,cltemp->i[pp],cltemp->j[pp],cltemp->k[pp],0.0f) ;
+
+   dp = (int)rintf( (cltemp->num_pt-NCLU_BASE) / (float)(NCLU_GOAL-NCLU_BASE) ) ;
+   for( pp=NCLU_BASE ; pp < cltemp->num_pt ; pp+=dp )
+     ADDTO_CLUSTER(clout,cltemp->i[pp],cltemp->j[pp],cltemp->k[pp],0.0f) ;
+
+   KILL_CLUSTER(cltemp) ;
+   MCW_radsort_cluster(clout,dx,dy,dz) ;
+   return clout ;
+}
 /*----------------------------------------------------------------------------*/
 /* Estimate the shape of the spatial autocorrelation function   [09 Nov 2015] */
 
-MCW_cluster * mri_estimate_ACF( MRI_IMAGE *im , byte *mask , float radius )
+int mri_estimate_ACF( MRI_IMAGE *im , byte *mask , MCW_cluster *clout )
 {
-   MCW_cluster *clout=NULL ;
    float dx,dy,dz ;
    MRI_IMAGE *lim ; float *fim ;
    int nx,ny,nz,nxy,nxyz , ixyz,ip,jp,kp,ppp,qqq , ix,jy,kz ;
@@ -766,18 +791,9 @@ MCW_cluster * mri_estimate_ACF( MRI_IMAGE *im , byte *mask , float radius )
 
 ENTRY("mri_estimate_ACF") ;
 
-   if( im == NULL || mri_allzero(im) || radius <= 0.0f ) RETURN(NULL) ;
+   if( im    == NULL || mri_allzero(im)   ) RETURN(-1) ;
+   if( clout == NULL || clout->num_pt < 5 ) RETURN(-1) ;
 
-   /*-- build the cluster that defines the ball and will hold the results --*/
-
-   dx = fabsf(im->dx) ; if( dx == 0.0f ) dx = 1.0f ;
-   dy = fabsf(im->dy) ; if( dy == 0.0f ) dy = 1.0f ;
-   dz = fabsf(im->dz) ; if( dz == 0.0f ) dz = 1.0f ;
-
-   clout = MCW_spheremask( dx,dx,dz , radius ) ;
-
-   if( clout == NULL ) RETURN(NULL) ;
-   if( clout->num_pt < 5 ){ KILL_CLUSTER(clout) ; RETURN(NULL) ; }
    for( ppp=0 ; ppp < clout->num_pt ; ppp++ ) clout->mag[ppp] = 0.0f ;
 
    /*-- setup to process the input image --*/
@@ -794,13 +810,13 @@ ENTRY("mri_estimate_ACF") ;
    }
    if( count < 9 || fsq <= 0.0 ){     /* no data? */
      if( lim != im ) mri_free(lim) ;
-     KILL_CLUSTER(clout) ; RETURN(NULL) ;
+     RETURN(-1) ;
    }
    fbar = fsum / count ;
    fvar = (fsq - (fsum * fsum)/count) / (count-1.0);
    if( fvar <= 0.0 ){
      if( lim != im ) mri_free(lim) ;
-     KILL_CLUSTER(clout) ; RETURN(NULL) ;
+     RETURN(-1) ;
    }
 
    /*--- space to accumulate results ---*/
@@ -820,10 +836,7 @@ ENTRY("mri_estimate_ACF") ;
 
      /* loop over offsets */
 
-AFNI_OMP_START;
-#pragma omp parallel if( nclu > 99 )
      { int ppp , ip,jp,kp,qqq ;
-#pragma omp for
        for( ppp=1 ; ppp < nclu ; ppp++ ){
          ip = ix + clout->i[ppp] ; if( ip >= nx || ip < 0 ) continue ;
          jp = jy + clout->j[ppp] ; if( jp >= ny || jp < 0 ) continue ;
@@ -832,19 +845,20 @@ AFNI_OMP_START;
          acfsqq[ppp] += (fim[qqq]-fbar)*arg ; nacf[ppp]++ ;
        }
      }
-AFNI_OMP_END;
+
    }
 
    /*--- load results into clout ---*/
 
    for( ppp=1 ; ppp < nclu ; ppp++ ){
-     if( nacf[ppp] > 8 )
+     if( nacf[ppp] > 5 )
        clout->mag[ppp] = (float)( acfsqq[ppp] / ( fvar * (nacf[ppp]-1.0) ) ) ;
    }
    clout->mag[0] = 1.0f ;
 
+   free(acfsqq) ; free(nacf) ;
    if( lim != im ) mri_free(lim) ;
-   RETURN(clout) ;
+   RETURN(0) ;
 }
 
 /*----------------------------------------------------------------------------*/
@@ -854,10 +868,10 @@ AFNI_OMP_END;
 MCW_cluster * THD_estimate_ACF( THD_3dim_dataset *dset,
                                 byte *mask, int demed, int unif, float radius )
 {
-   int iv , nvals , ii,nvox ;
-   MRI_IMAGE *bim=NULL , *medim=NULL , *madim=NULL ;
-   float     *bar=NULL , *medar=NULL , *madar=NULL ;
-   MCW_cluster *clout=NULL , *cltemp ; int nout=0 ;
+   int iv , nvals , ii,nvox , nout ;
+   MRI_IMAGE *medim=NULL , *madim=NULL ;
+   float     *medar=NULL , *madar=NULL ;
+   MCW_cluster *clout=NULL , **cltemp ;
 
 ENTRY("THD_estimate_ACF") ;
 
@@ -881,39 +895,57 @@ ENTRY("THD_estimate_ACF") ;
      medar = MRI_FLOAT_PTR(medim) ;
    }
 
+   clout = get_ACF_cluster( fabsf(DSET_DX(dset)) , fabsf(DSET_DY(dset)) ,
+                            fabsf(DSET_DZ(dset)) , radius ) ;
+   if( clout == NULL ){
+     if( medim != NULL ) mri_free(medim) ;
+     if( madim != NULL ) mri_free(madim) ;
+     RETURN(NULL) ;
+   }
+
+   for( ii=0 ; ii < clout->num_pt ; ii++ ) clout->mag[ii] = 0.0f ;
+   cltemp = (MCW_cluster **)malloc(sizeof(MCW_cluster *)*nvals) ;
+
+AFNI_OMP_START;
+#pragma omp parallel if( nvals > 4 )
+ { int iv,gg ; MRI_IMAGE *bim ;
+#pragma omp for
    for( iv=0 ; iv < nvals ; iv++ ){
      bim = mri_scale_to_float( DSET_BRICK_FACTOR(dset,iv), DSET_BRICK(dset,iv) );
      bim->dx = DSET_DX(dset) ; bim->dy = DSET_DY(dset) ; bim->dz = DSET_DZ(dset) ;
      if( demed ){
-       bar = MRI_FLOAT_PTR(bim) ;
+       float *bar = MRI_FLOAT_PTR(bim) ; int ii ;
        for( ii=0 ; ii < nvox ; ii++ ) bar[ii] -= medar[ii] ;
        if( unif )
         for( ii=0 ; ii < nvox ; ii++ ) bar[ii] *= madar[ii] ;
      }
-     cltemp = mri_estimate_ACF( bim , mask , radius ) ;
-
-     if( clout == NULL && cltemp != NULL ){
-       clout = cltemp ; nout = 1 ;
-     } else if( cltemp != NULL ){
-       for( ii=0 ; ii < clout->num_pt ; ii++ ){
-         clout->mag[ii] += cltemp->mag[ii] ;
-       }
-       KILL_CLUSTER(cltemp) ; nout++ ;
-     } else {
-       WARNING_message("ACF: sub-brick %d (out of %d) estimation fails",iv,nvals) ;
+     COPY_CLUSTER(cltemp[iv],clout) ;
+     gg = mri_estimate_ACF( bim , mask , cltemp[iv] ) ;
+     if( gg < 0 ){
+       KILL_CLUSTER(cltemp[iv]) ; cltemp[iv] = NULL ;
      }
    }
+ }
+AFNI_OMP_END;
 
-   if( demed ) mri_free(medim) ;
-   if( unif  ) mri_free(madim) ;
+   for( nout=iv=0 ; iv < nvals ; iv++ ){
+     if( cltemp[iv] != NULL ){
+       for( ii=0 ; ii < clout->num_pt ; ii++ ) clout->mag[ii] += cltemp[iv]->mag[ii] ;
+       KILL_CLUSTER(cltemp[iv]) ; nout++ ;
+     }
+   }
+   free(cltemp) ;
 
-   if( clout != NULL && nout > 1 ){
+   if( medim != NULL ) mri_free(medim) ;
+   if( madim != NULL ) mri_free(madim) ;
+
+   if( nout > 1 ){
      for( ii=0 ; ii < clout->num_pt ; ii++ )
        clout->mag[ii] /= nout ;
+   } else if( nout == 0 ){
+     ERROR_message("ACF estimation fails :-(") ;
+     KILL_CLUSTER(clout) ; clout = NULL ;
    }
-
-   if( clout == NULL )
-     WARNING_message("ACF: overall estimation fails!") ;
 
    RETURN(clout) ;
 }

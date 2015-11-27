@@ -43,7 +43,12 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 23 , NOV , 2015 , RWC , "many" , MICRO , TYPE_GENERAL ,
+  { 27 , NOV , 2015 , RWC , "3dFHWMx" , MICRO , TYPE_MODIFY ,
+   "OpenMP-ize the FWHM and ACF calculations (across sub-bricks)" ,
+   "Also, working on spherical non-Gaussian convolution by FFTs in\n"
+   "mri_radial_random_field.c" } ,
+
+ { 23 , NOV , 2015 , RWC , "many" , MICRO , TYPE_GENERAL ,
    "Tiny edits to eliminate compiler warnings from icc" ,
    "For example, change format '%ld' to '%lld' for numerous int64_t\n"
    "printouts in nifti/cifti codes.  Change 'finite()' to 'isfinite()'." } ,
