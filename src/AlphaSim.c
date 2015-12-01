@@ -118,10 +118,7 @@ void display_help_menu()
      "producing a cluster of a given size after the noise is thresholded\n"
      "at a given level ('-pthr').\n"
      "\n"
-     " *** You may also be interested in program 3dClustSim, which does a ***\n"
-     " *** similar simulation of the probability of noise-only clusters,  ***\n"
-     " *** but also allows multiple '-pthr' values to be used in one run. ***\n"
-     " *** For most users' purposes, 3dClustSim supersedes AlphaSim now!  ***\n"
+     " *** PLEASE do not use this program any more.  Use 3dClustSim! ***\n"
      "\n"
      "Usage: \n"
      "AlphaSim \n"
@@ -261,6 +258,8 @@ void display_help_menu()
    " where a, b, p are constants. For a pure extreme value distribution, p=1;\n"
    " I've found that allowing p < 1 gives slightly better fits in some cases.\n"
    "\n"
+   "\n"
+   " *** PLEASE do not use this program any more.  Use 3dClustSim! ***\n"
   ) ;
 
   PRINT_AFNI_OMP_USAGE("AlphaSim",
