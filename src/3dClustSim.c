@@ -12,9 +12,11 @@
 #include <omp.h>
 #endif
 
-/*---------------------------------------------------------------------------*/
-#include "zgaussian.c"  /** Ziggurat Gaussian random number generator **/
-/*---------------------------------------------------------------------------*/
+/*----------------------------------------------------------------------------*/
+#include "zgaussian.c"         /** Ziggurat Gaussian random number generator **/
+/*----------------------------------------------------------------------------*/
+#include "mri_radial_random_field.c" /** 3D FFT-based random field generator **/
+/*----------------------------------------------------------------------------*/
 
 #include <time.h>
 #include <sys/types.h>
@@ -54,6 +56,20 @@ static float fwhm_x = 0.0f ;
 static float fwhm_y = 0.0f ;
 static float fwhm_z = 0.0f ;
 static int   niter  = 10000 ;
+
+/*-- global variables for ACF simulation [30 Nov 2015] --*/
+
+static int   do_acf = 0    ;
+static float acf_a  = 0.0f ;
+static float acf_b  = 0.0f ;
+static float acf_c  = 0.0f ;
+static float acf_parm[3] = {0.0f,0.0f,0.0f} ;
+static int   acf_nxx=0 , acf_nyy=0 , acf_nzz=0 ;
+static MRI_IMAGE **acf_aim=NULL , **acf_bim=NULL ;
+static complex   **acf_tar=NULL ; static int acf_ntar=0 ;
+static MRI_IMAGE *acf_wim=NULL ;
+
+static int do_classic = 0 ; /* does nothing (yet) */
 
 static int   ex_pad = 0  ;  /* 12 May 2015 -- allow for padding the volume */
 static int   ey_pad = 0  ;
@@ -114,6 +130,13 @@ static double *athr = NULL ;
 static int verb = 1 ;
 static int nthr = 1 ;
 
+#undef DECLARE_ithr   /* 30 Nov 2015 */
+#ifdef USE_OMP
+# define DECLARE_ithr const int ithr=omp_get_thread_num()
+#else
+# define DECLARE_ithr const int ithr=0
+#endif
+
 static int minmask = 128 ;   /* 29 Mar 2011 */
 
 static char *prefix = NULL ;
@@ -165,6 +188,36 @@ void display_help_menu()
    "slider, the per-voxel p-value (shown below the slider) changes, and then\n"
    "the interpolated alpha values are updated.\n"
    "\n"
+   "************* IMPORTANT NOTE [Dec 2015] ***************************************\n"
+   "A completely new method for estimating and using noise smoothness values is\n"
+   "now available in 3dFWHMx and 3dClustSim. This method is implemented in the\n"
+   "'-acf' options to both programs.  'ACF' stands for (spatial) AutoCorrelation\n"
+   "Function, and it is estimated by calculating moments of differences out to\n"
+   "a larger radius than before.\n"
+   "\n"
+   "Notably, real FMRI data does not actually have a Gaussian-shaped ACF, so the\n"
+   "estimated ACF is then fit (in 3dFWHMx) to a mixed model (Gaussian plus\n"
+   "mono-exponential) of the form\n"
+   "  ACF(r) = a * exp(-r*r/(2*b*b)) + (1-a)*exp(-r/c)\n"
+   "where 'r' is the radius, and 'a', 'b', 'c' are the fitted parameters.\n"
+   "The apparent FWHM from this model is usually somewhat larger in real data\n"
+   "than the FWHM estimated from just the nearest-neighbor differences used\n"
+   "in the 'classic' analysis.\n"
+   "\n"
+   "The longer tails provided by the mono-exponential are also significant.\n"
+   "3dClustSim has also been modified to use the ACF model given above to generate\n"
+   "noise random fields.\n"
+   "\n"
+   "**----------------------------------------------------------------------------**\n"
+   "** The take-away (TL;DR or summary) message is that the 'classic' 3dFWHMx and **\n"
+   "** 3dClustSim analysis, using a pure Gaussian ACF, is not very correct for    **\n"
+   "** FMRI data -- I cannot speak for PET or MEG data.  You should start using   **\n"
+   "** the '-acf' options in your own scripts.  AFNI scripts from afni_proc.py    **\n"
+   "** are moving away from the 'classic' method.  At some point in the future,   **\n"
+   "** '-acf' will become the default in both programs, and you will have to      **\n"
+   "** actively specify '-classic' to get the older method to run.                **\n"
+   "**----------------------------------------------------------------------------**\n"
+   "\n"
    "** ---------------------------------------------------------------------------**\n"
    "** IMPORTANT CHANGES -- February 2015 ******************************************\n"
    "** ---------------------------------------------------------------------------**\n"
@@ -192,7 +245,7 @@ void display_help_menu()
    "** size thresholds tend to be smaller than the 1-sided case, which means that\n"
    "** more clusters tend to be significant than in the past.\n"
    "**\n"
-   "** In addition, the 3 different NN approaches (NN=1, NN=2, NN=3) are all\n"
+   "** In addition, the 3 different NN approaches (NN=1, NN=2, NN=3) are ALL\n"
    "** always computed now.  That is, 9 different tables are produced, each\n"
    "** of which has its proper place when combined with the AFNI Clusterize GUI.\n"
    "** The 3 different NN methods are:\n"
@@ -265,18 +318,32 @@ void display_help_menu()
    "\n"
    "  ---** the remaining options control how the simulation is done **---\n"
    "\n"
-   "-fwhm s        = Gaussian filter width (all 3 dimensions) in mm (non-negative)\n"
-   "                  [default = 0.0 = no smoothing]\n"
-   "                 * If you wish to set different smoothing amounts for each\n"
-   "                   axis, you can instead use option\n"
-   "                     -fwhmxyz sx sy sz\n"
-   "                   to specify the three values separately.\n"
+   "-fwhm s         = Gaussian filter width (all 3 dimensions) in mm (non-negative)\n"
+   "                   [default = 0.0 = no smoothing]\n"
+   "                  * If you wish to set different smoothing amounts for each\n"
+   "                    axis, you can instead use option\n"
+   "                      -fwhmxyz sx sy sz\n"
+   "                    to specify the three values separately.\n"
+   "\n"
+   "-acf a b c      = Alternative to Gaussian filtering: use the spherical\n"
+   "                  autocorrelation function parameters output by 3dFWHMx\n"
+   "                  to do non-Gaussian (long-tailed) filtering.\n"
+   "                  * Using '-acf' will make '-fwhm' pointless!\n"
+   "                  * The 'a' parameter must be between 0 and 1.\n"
+   "                  * The 'b' and 'c' parameters (scale radii) must be positive.\n"
+   "                  * The spatial autocorrelation function is given by\n"
+   "                      ACF(r) = a * exp(-r*r/(2*b*b)) + (1-a)*exp(-r/c)\n"
+   "  >>---------->>*** Combined with 3dFWHMx, the '-acf' method is now the\n"
+   "                    recommended way to generate clustering statistics in AFNI!\n"
    "\n"
    "-nopad          = The program now [12 May 2015] adds 'padding' slices along\n"
    "                   each face to allow for edge effects of the smoothing process.\n"
    "                   If you want to turn this feature off, use the '-nopad' option.\n"
    "                  * For example, if you want to compare the 'old' (un-padded)\n"
    "                    results with the 'new' (padded) results.\n"
+   "                  * '-nopad' has no effect when '-acf' is used, since that option\n"
+   "                    automatically pads the volume when creating it (via FFTs) and\n"
+   "                    then truncates it back to the desired size for clustering.\n"
    "\n"
    "-pthr p1 .. pn = list of uncorrected (per voxel) p-values at which to\n"
    "                  threshold the simulated images prior to clustering.\n"
@@ -624,6 +691,26 @@ void get_options( int argc , char **argv )
       fwhm_y = fwhm_z = fwhm_x ; nopt++; continue;
     }
 
+    if( strncasecmp(argv[nopt],"-classic",6) == 0 ){   /* 01 Dec 2015 */
+      do_classic = 1 ; nopt++ ; continue ;
+    }
+
+    /*-----    -acf a b c   [30 Nov 2015] -----*/
+
+    if( strcasecmp(argv[nopt],"-acf") == 0 ){
+      nopt++; if( nopt+2 >= argc ) ERROR_exit("need 3 arguments after -acf");
+      acf_a = (float)strtod(argv[nopt++],&ep) ;
+      if( acf_a < 0.0f || acf_a > 1.0f || ep == argv[nopt-1] )
+        ERROR_exit("-acf: 'a' value should be between 0 and 1 :-(") ;
+      acf_b = (float)strtod(argv[nopt++],&ep) ;
+      if( acf_b <= 0.0f || ep == argv[nopt-1] )
+        ERROR_exit("-acf: 'b' value should be positive :-(") ;
+      acf_c = (float)strtod(argv[nopt++],&ep) ;
+      if( acf_c <= 0.0f || ep == argv[nopt-1] )
+        ERROR_exit("-acf: 'c' value should be positive :-(") ;
+      do_acf = 1 ; continue ;
+    }
+
     /*-----   -nopad     -----*/
 
     if( strcasecmp(argv[nopt],"-nopad") == 0 ){  /* 12 May 2015 */
@@ -860,6 +947,26 @@ void get_options( int argc , char **argv )
     }
   }
 
+  if( do_acf ){  /* 30 Nov 2015 */
+    float val ; int_triple ijk ;
+    if( fwhm_x > 0.0f )
+      WARNING_message("-acf option mean -fwhm options are ignored!") ;
+    if( nx < 4 || ny < 4 || nz < 4 )
+      ERROR_exit("-acf option: minimum grid is 4x4x4, but you have %dx%dx%d",nx,ny,nz) ;
+    fwhm_x = fwhm_y = fwhm_z = 0.0f ;
+    acf_parm[0] = acf_a ;
+    acf_parm[1] = acf_b ;
+    acf_parm[2] = acf_c ;
+    val = 2.0f * rfunc_inv(0.5f,acf_parm) ;
+    INFO_message("ACF(%.3f,%.3f,%.3f) => FWHM is %.3f",acf_a,acf_b,acf_c,val) ;
+    ijk = get_random_field_size( nx,ny,nz , dx,dy,dz , acf_parm ) ;
+    acf_nxx = ijk.i ; acf_nyy = ijk.j ; acf_nzz = ijk.k ;
+    ININFO_message("                       => %dx%dx%d padded to %dx%dx%d",
+                   nx,ny,nz , acf_nxx,acf_nyy,acf_nzz ) ;
+    acf_wim = make_radial_weight( acf_nxx,acf_nyy,acf_nzz , dx,dy,dz , acf_parm ) ;
+    acf_ntar = acf_nxx+acf_nyy+acf_nzz ;
+  }
+
   if( do_ssave > 0 && ssave_dset == NULL ){        /* 24 Apr 2014 */
     char gstr[128] ; float xorg,yorg,zorg ;
     xorg = -0.5*dx*(nx-1); yorg = -0.5*dy*(ny-1); zorg = -0.5*dz*(nz-1);
@@ -921,19 +1028,28 @@ void get_options( int argc , char **argv )
 
   do_blur = (sigmax > 0.0f || sigmay > 0.0f || sigmaz > 0.0f ) ;
 
-  if( do_blur && allow_padding ){           /* 12 May 2015 */
+  if( do_acf ){                           /* 30 Nov 2015 */
+    ex_pad = (acf_nxx-nx)/2 ;
+    ey_pad = (acf_nyy-ny)/2 ;
+    ez_pad = (acf_nzz-nz)/2 ;
+    nx_pad = acf_nxx ;
+    ny_pad = acf_nyy ;
+    nz_pad = acf_nzz ;
+  } else if( do_blur && allow_padding ){  /* 12 May 2015 */
     ex_pad = (int)rintf(1.666f*fwhm_x/dx) ;
     ey_pad = (int)rintf(1.666f*fwhm_y/dy) ;
     ez_pad = (int)rintf(1.666f*fwhm_z/dz) ;
     do_pad = (ex_pad > 0) || (ey_pad > 0) || (ez_pad > 0) ;
+    nx_pad = nx + 2*ex_pad ;
+    ny_pad = ny + 2*ey_pad ;
+    nz_pad = nz + 2*ez_pad ;
     if( do_pad )
       INFO_message(
        "Padding by %d x %d x %d slices to allow for edge effects of blurring" ,
        ex_pad,ey_pad,ez_pad) ;
+  } else {
+    nx_pad = nx ; ny_pad = ny ; nz_pad = nz ;
   }
-  nx_pad   = 2*ex_pad + nx ;
-  ny_pad   = 2*ey_pad + ny ;
-  nz_pad   = 2*ez_pad + nz ;
   nxy_pad  = nx_pad  * ny_pad ;
   nxyz_pad = nxy_pad * nz_pad ;
 
@@ -955,6 +1071,51 @@ void ssave_dataset( float *fim )  /* 24 Apr 2014 */
      DSET_NULL_ARRAY(ssave_dset,0) ;
    }
    return ;
+}
+
+/*---------------------------------------------------------------------------*/
+/* Create the "functional" image, the ACF way [30 Nov 2015]. */
+
+void generate_fim_acf( float *fim , unsigned short xran[] )
+{
+  DECLARE_ithr ;
+  int ii,jj,kk,pp,qq ;
+  float *afim ; int do_a ;
+
+  /* the function generates images in pairs, but 3dClustSim only
+     consumes them one at a time -- thus the artifice of the 'aim'
+     and 'bim' images, which are created together, then aim is
+     consumed right away and bim is consumed on the next call here. */
+
+  if( acf_aim[ithr] == NULL && acf_bim[ithr] == NULL ){ /* need new aim & bim */
+    MRI_IMARR *imar ;
+    imar = make_radial_random_field( acf_nxx , acf_nyy , acf_nzz ,
+                                     acf_wim , acf_tar[ithr] , xran ) ;
+    acf_aim[ithr] = IMARR_SUBIM(imar,0) ;
+    acf_bim[ithr] = IMARR_SUBIM(imar,1) ;
+    FREE_IMARR(imar) ;
+  }
+
+  do_a = (acf_aim[ithr] != NULL) ;
+  afim = (do_a) ? MRI_FLOAT_PTR(acf_aim[ithr]) : MRI_FLOAT_PTR(acf_bim[ithr]) ;
+
+  /* cut back to smaller unpadded volume */
+
+  for( pp=kk=0 ; kk < nz ; kk++ ){
+   for( jj=0 ; jj < ny ; jj++ ){
+    qq = ex_pad + (jj+ey_pad)*nx_pad + (kk+ez_pad)*nxy_pad ;
+    for( ii=0 ; ii < nx ; ii++ ) fim[pp++] = afim[qq++] ;
+  }}
+
+  /* free and clear whichever image we consumed here */
+
+  if( do_a ){
+    mri_free(acf_aim[ithr]) ; acf_aim[ithr] = NULL ;
+  } else {
+    mri_free(acf_bim[ithr]) ; acf_bim[ithr] = NULL ;
+  }
+
+  return ;
 }
 
 /*---------------------------------------------------------------------------*/
@@ -1012,7 +1173,9 @@ void generate_image( float *fim , float *pfim , unsigned short xran[] )
 
   /* Outsource the creation of the smoothed random field [12 May 2015] */
 
-  if( do_pad )
+  if( do_acf )
+    generate_fim_acf( fim , xran ) ;
+  else if( do_pad )
     generate_fim_padded( fim , pfim , xran ) ;
   else
     generate_fim_unpadded( fim , xran ) ;
@@ -1544,14 +1707,14 @@ int main( int argc , char **argv )
  AFNI_OMP_START ;
 #pragma omp parallel
  {
-   int iter, ithr, ipthr, **mt_1sid[4],**mt_2sid[4],**mt_bsid[4] , nnn ;
+   DECLARE_ithr ;
+   int iter, ipthr, **mt_1sid[4],**mt_2sid[4],**mt_bsid[4] , nnn ;
    float *fim ; byte *bfim ; unsigned short xran[3] ;
    float *pfim ;
    int vstep , vii ;
 
   /* create separate tables for each thread, if using OpenMP */
 #ifdef USE_OMP
-   ithr = omp_get_thread_num() ;
 #pragma omp master  /* only in the master thread */
  {
    nthr = omp_get_num_threads() ;
@@ -1565,6 +1728,11 @@ int main( int argc , char **argv )
    inow_g = (short **)malloc(sizeof(short *)*nthr) ;  /* find_largest_cluster() */
    jnow_g = (short **)malloc(sizeof(short *)*nthr) ;
    know_g = (short **)malloc(sizeof(short *)*nthr) ;
+   if( do_acf ){
+     acf_aim  = (MRI_IMAGE **)calloc(sizeof(MRI_IMAGE *),nthr) ;
+     acf_bim  = (MRI_IMAGE **)calloc(sizeof(MRI_IMAGE *),nthr) ;
+     acf_tar  = (complex **)  malloc(sizeof(complex *)  *nthr) ;
+   }
    if( verb ) INFO_message("Using %d OpenMP threads",nthr) ;
  }
 #pragma omp barrier  /* all threads wait until the above is finished */
@@ -1587,13 +1755,16 @@ int main( int argc , char **argv )
    jnow_g[ithr] = (short *) malloc(sizeof(short)*DALL) ;
    know_g[ithr] = (short *) malloc(sizeof(short)*DALL) ;
 
+   if( do_acf ){
+     acf_tar[ithr] = (complex *)malloc(sizeof(complex)*acf_ntar) ;
+   }
+
    /* initialize random seed array for each thread separately */
    xran[2] = ( gseed        & 0xffff) + (unsigned short)ithr ;
    xran[1] = ((gseed >> 16) & 0xffff) - (unsigned short)ithr ;
    xran[0] = 0x330e                   + (unsigned short)ithr ;
 
 #else /* not OpenMP ==> only one set of tables */
-   ithr = 0 ;
    xran[2] = ( gseed        & 0xffff) ;
    xran[1] = ((gseed >> 16) & 0xffff) ;
    xran[0] = 0x330e ;
@@ -1609,6 +1780,12 @@ int main( int argc , char **argv )
      mt_1sid[nnn] = max_table_1sid[nnn] ;
      mt_2sid[nnn] = max_table_2sid[nnn] ;
      mt_bsid[nnn] = max_table_bsid[nnn] ;
+   }
+   if( do_acf ){
+     acf_aim  = (MRI_IMAGE **)calloc(sizeof(MRI_IMAGE *),nthr) ;
+     acf_bim  = (MRI_IMAGE **)calloc(sizeof(MRI_IMAGE *),nthr) ;
+     acf_tar  = (complex **)  calloc(sizeof(complex *)  ,nthr) ;
+     acf_tar[ithr] = (complex *)malloc(sizeof(complex)*acf_ntar) ;
    }
 #endif
 
@@ -1650,11 +1827,19 @@ int main( int argc , char **argv )
 
   free(fim) ; free(bfim) ; if( pfim != NULL ) free(pfim) ;
   free(inow_g[ithr]) ; free(jnow_g[ithr]) ; free(know_g[ithr]) ;
+  if( do_acf ){
+    free(acf_tar[ithr]) ;
+    if( acf_bim[ithr] != NULL ) mri_free(acf_bim[ithr]) ;
+  }
 
   if( ithr == 0 && verb ) fprintf(stderr,"\n") ;
 
  } /* end OpenMP parallelization */
  AFNI_OMP_END ;
+
+   if( do_acf ){
+     free(acf_aim) ; free(acf_bim) ; free(acf_tar) ;
+   }
 
    if( do_ssave > 0 ) DSET_delete(ssave_dset) ; /* 24 Apr 2014 */
 

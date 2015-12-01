@@ -1,15 +1,28 @@
 #include "mrilib.h"
 
+/*** This file is intended to be #include-d into another source file, in
+     particular into 3dClustSim.c -- for optimization and OpenMP-ization ***/
+
 #include <time.h>
 #include <sys/types.h>
 #include <unistd.h>
+
+#ifdef USE_OMP
+# include <omp.h>
+#endif
+
+/*** Thread-safe FFT functions in csfft_OMP.c are used ***/
+
+#include "csfft_OMP.c"
+#define CFFT csfft_cox_OMP
+#define CFFT_setup csfft_cox_OMP_SETUP()
 
 /*---------------------------------------------------------------------------*/
 #include "zgaussian.c"  /** Ziggurat Gaussian random number generator **/
 /*---------------------------------------------------------------------------*/
 
 /*----------------------------------------------------------------------------*/
-/* Gaussian + Exponential function of radius */
+/* Gaussian + Exponential function of radius; this is the ACF(r) model. */
 
 static INLINE float rfunc( float r , float *parm )
 {
@@ -18,7 +31,7 @@ static INLINE float rfunc( float r , float *parm )
 }
 
 /*----------------------------------------------------------------------------*/
-/* To help find the inverse of rfunc */
+/* To help find the inverse of rfunc; cf. rfunc_inv() */
 
 static float rfunc_falsi_step( float *parm , float val , float rlo , float rhi )
 {
@@ -26,13 +39,18 @@ static float rfunc_falsi_step( float *parm , float val , float rlo , float rhi )
 
    v0 = rfunc(rlo,parm) ;
    v1 = rfunc(rhi,parm) ; dv = v1-v0 ;
+
+   /* not enough variability to continue? */
+
    if( dv == 0.0f || fabsf(dv) < 0.005f*(fabsf(val-v0)+fabsf(val-v1)) ) return rlo ;
+
+   /* regula falsi = linear inverse interpolation */
 
    dv = rlo + (rhi-rlo)/dv * (val-v0) ; return dv ;
 }
 
 /*----------------------------------------------------------------------------*/
-/* Inverse function of rfunc */
+/* Inverse function of rfunc; e.g., FWHM = 2*rfunc_inf(0.5,parm) */
 
 static float rfunc_inv( float val , float *parm )
 {
@@ -40,6 +58,8 @@ static float rfunc_inv( float val , float *parm )
    int ii ;
 
    if( val >= 1.0f ) return 0.0f ;
+
+   /* range for initial search */
 
    rtop = 3.0f*parm[1] + 6.0f*parm[2] ;
    if( val <= 0.0001f ) return rtop ;
@@ -59,7 +79,7 @@ static float rfunc_inv( float val , float *parm )
    }
    if( rlo >= rtop ) return rtop ;
 
-   /* two regula falsi steps are adequate */
+   /* two regula falsi steps are adequate for our purposes */
 
    dr = rfunc_falsi_step( parm , val , rlo,rhi ) ;
    vv = rfunc( dr , parm ) ;
@@ -86,9 +106,12 @@ static void mri_fft3D_inplace( MRI_IMAGE *fim , complex *tar )
 
    /* x FFTs */
 
+   CFFT_setup ;  /* for the OMP version of csfft,
+                    which allows csfft_cox_OMP to be called inside a thread */
+
    for( qar=far,kk=0 ; kk < nz ; kk++ ){
     for( jj=0 ; jj < ny ; jj++ , qar+=nx ){
-      csfft_cox( -1 , nx , qar ) ;
+      CFFT( -1 , nx , qar ) ;
    }}
 
    /* y FFTs */
@@ -103,7 +126,7 @@ static void mri_fft3D_inplace( MRI_IMAGE *fim , complex *tar )
     for( ii=0 ; ii < nx ; ii++ ){
       qq = ii+kk*nxy ;
       for( jj=0 ; jj < ny ; jj++ ) qar[jj] = far[qq+jj*nx] ;
-      csfft_cox( -1 , ny , qar ) ;
+      CFFT( -1 , ny , qar ) ;
       for( jj=0 ; jj < ny ; jj++ ) far[qq+jj*nx] = qar[jj] ;
    }}
 
@@ -113,16 +136,16 @@ static void mri_fft3D_inplace( MRI_IMAGE *fim , complex *tar )
     for( ii=0 ; ii < nx ; ii++ ){
       qq = ii+jj*nx ;
       for( kk=0 ; kk < nz ; kk++ ) qar[kk] = far[qq+kk*nxy] ;
-      csfft_cox( -1 , nz , qar ) ;
+      CFFT( -1 , nz , qar ) ;
       for( kk=0 ; kk < nz ; kk++ ) far[qq+kk*nxy] = qar[kk] ;
    }}
 
-   if( tar == NULL ) free(qar) ;
+   if( tar == NULL ) free(qar) ;  /* did we create this? */
    return ;
 }
 
 /*----------------------------------------------------------------------------*/
-/* Given a field size and the kernel function parameters,
+/* Given a noise field size and the kernel function parameters,
    determine the grid size for the FFTs to perform, including
    some buffering for edge effects of the kernel function.
    Output grid sizes are even and compatible with csfft_cox().
@@ -135,11 +158,11 @@ static int_triple get_random_field_size( int   nx, int   ny, int   nz,
    int_triple ijk ;
    float rr ; int qq , xx,yy,zz ;
 
-   rr = rfunc_inv( 0.04f , parm ) ;  /* radius of kernel function for buffer */
-   xx = nx + 2*(int)ceilf(rr/dx) ;  /* expand */
+   rr = rfunc_inv( 0.04f , parm ) ; /* radius of kernel function for buffer */
+   xx = nx + 2*(int)ceilf(rr/dx) ;  /* expand for this buffer */
    yy = ny + 2*(int)ceilf(rr/dy) ;
    zz = nz + 2*(int)ceilf(rr/dz) ;
-   xx = csfft_nextup_one35(xx) ;    /* expand */
+   xx = csfft_nextup_one35(xx) ;    /* expand for FFT allowable sizes */
    yy = csfft_nextup_one35(yy) ;
    zz = csfft_nextup_one35(zz) ;
 
@@ -147,10 +170,22 @@ static int_triple get_random_field_size( int   nx, int   ny, int   nz,
 }
 
 /*----------------------------------------------------------------------------*/
-/* Create the kernel smoothing function, then FFT it, etc.
+/* Create the kernel smoothing function, then FFT it, and clip/shrink it
+   as far as reasonable.  The basic method for simulating the noise random
+   field is then
+     (1) create an iid N(0,1) Gausian random field in FFT space
+     (2) multiply this field by the radial weight function from here
+     (3) FFT to real space
+     (4) [in 3dClustSim] truncate back to desired 3D grid and normalize
+         the standard deviation
+   This method relies on the fact that the Fourier transform of white
+   noise is also white noise (if this isn't obvious to you, do the algebra).
+
    Note that nx,ny,nz must be compatible with csfft_cox(), which
    will be easiest if get_random_field_size() is used to set them.
 *//*--------------------------------------------------------------------------*/
+
+/* macros for 3D array access */
 
 #undef  WAR
 #define WAR(i,j,k) war[(i)+(j)*nx+(k)*nxy]
@@ -169,10 +204,12 @@ static MRI_IMAGE * make_radial_weight( int   nx , int   ny , int   nz ,
    int itop,jtop,ktop,ijtop ;
    float rr , xx,yy,zz , ftop ;
 
+   /* ACF in real space */
+
    wim = mri_new_vol( nx,ny,nz , MRI_complex ) ;
    war = MRI_COMPLEX_PTR(wim) ;
 
-   /* fill the array in real space */
+   /* fill the array with the ACF in real space */
 
    for( kk=0 ; kk < nz ; kk++ ){
      zz = (kk < nzh) ? kk*dz : (nz-kk)*dz ;
@@ -199,21 +236,24 @@ static MRI_IMAGE * make_radial_weight( int   nx , int   ny , int   nz ,
    qim = mri_new_vol( nxh,nyh,nzh , MRI_float ) ;
    qar = MRI_FLOAT_PTR(qim) ;
 
-   ftop = 0.00001f * fabsf(war[0].r) ;
+   ftop = 0.00001f * fabsf(war[0].r) ;  /* largest value to keep */
 
    /* half size in each direction since is symmetric */
+   /* note we compute sqrt(FFT(wim)) since we are creating the
+      weight for the noise
+      -- which is effectively squared when the ACF is computed/estimated */
 
    for( kk=0 ; kk < nzh ; kk++ ){
     for( jj=0 ; jj < nyh ; jj++ ){
      for( ii=0 ; ii < nxh ; ii++ ){
-       rr = WAR(ii,jj,kk).r ;
-       if( rr < ftop ) rr = 0.0f ; else rr = sqrtf(rr) ;
-       QAR(ii,jj,kk) = rr ;
+       rr = WAR(ii,jj,kk).r ;       /* imag part should be very small */
+       if( rr < ftop ) rr = 0.0f ; else rr = sqrtf(rr) ; /* clip here */
+       QAR(ii,jj,kk) = rr ;                            /* load output */
    }}}
 
-   mri_free(wim) ;
+   mri_free(wim) ;  /* done with this */
 
-   /* clip it */
+   /* shrink it in space, if possible */
 
    MRI_autobbox( qim , NULL,&itop , NULL,&jtop , NULL,&ktop ) ;
 
@@ -244,13 +284,21 @@ static MRI_IMAGE * make_radial_weight( int   nx , int   ny , int   nz ,
      wtim     = weight image in FFT space
      tar      = FFT workspace - at least MAX(ny,nz) long (or NULL)
      xran     = random seed vector
+   Why TWO? It is easiest to just fill the FFT space with the complex random
+   Gaussians, then FFT to real space -- giving us a complex random field
+   with the desired ACF(r).  Then in 3dClustSim, we'll just use this pair
+   of results alternately.
 *//*--------------------------------------------------------------------------*/
+
+/* more macros for 3D array access */
 
 #undef  CXAR
 #define CXAR(i,j,k) cxar[(i)+(j)*nx+(k)*nxy]
 
 #undef  WTAR
 #define WTAR(i,j,k) wtar[(i)+(j)*nxw+(k)*nxyw]
+
+/* macro to fill the complex FFT value with noise * radial weight */
 
 #undef  CXRAN
 #define CXRAN(i,j,k) \
@@ -279,7 +327,7 @@ static MRI_IMARR * make_radial_random_field( int nx, int ny, int nz ,
     for( jj=1 ; jj < nyw ; jj++ ){
      for( ii=1 ; ii < nxw ; ii++ ){
        ww = WTAR(ii,jj,kk) ;
-       if( ww != 0.0f ){
+       if( ww != 0.0f ){  /* fill all 8 reflections */
          CXRAN(ii,   jj,   kk) ; CXRAN(nx-ii,   jj,   kk) ;
          CXRAN(ii,ny-jj,   kk) ; CXRAN(nx-ii,ny-jj,   kk) ;
          CXRAN(ii,   jj,nz-kk) ; CXRAN(nx-ii,   jj,nz-kk) ;
@@ -290,7 +338,7 @@ static MRI_IMARR * make_radial_random_field( int nx, int ny, int nz ,
    for( kk=1 ; kk < nzw ; kk++ ){   /* along ii=0 face */
     for( jj=1 ; jj < nyw ; jj++ ){
       ww = WTAR(0,jj,kk) ;
-      if( ww != 0.0f ){
+      if( ww != 0.0f ){   /* just 4 reflections */
         CXRAN(0,jj,   kk) ; CXRAN(0,ny-jj,   kk) ;
         CXRAN(0,jj,nz-kk) ; CXRAN(0,ny-jj,nz-kk) ;
       }
@@ -299,7 +347,7 @@ static MRI_IMARR * make_radial_random_field( int nx, int ny, int nz ,
    for( jj=1 ; jj < nyw ; jj++ ){   /* along kk=0 face */
     for( ii=1 ; ii < nxw ; ii++ ){
       ww = WTAR(ii,jj,0) ;
-      if( ww != 0.0f ){
+      if( ww != 0.0f ){   /* just 4 reflections */
         CXRAN(ii,   jj,0) ; CXRAN(nx-ii,   jj,0) ;
         CXRAN(ii,ny-jj,0) ; CXRAN(nx-ii,ny-jj,0) ;
       }
@@ -308,7 +356,7 @@ static MRI_IMARR * make_radial_random_field( int nx, int ny, int nz ,
    for( kk=1 ; kk < nzw ; kk++ ){   /* along jj=0 face */
     for( ii=1 ; ii < nxw ; ii++ ){
       ww = WTAR(ii,0,kk) ;
-      if( ww != 0.0f ){
+      if( ww != 0.0f ){   /* just 4 reflections */
         CXRAN(ii,0,   kk) ; CXRAN(nx-ii,0,   kk) ;
         CXRAN(ii,0,nz-kk) ; CXRAN(nx-ii,0,nz-kk) ;
       }
@@ -316,27 +364,27 @@ static MRI_IMARR * make_radial_random_field( int nx, int ny, int nz ,
 
    for( kk=1 ; kk < nzw ; kk++ ){  /* along ii=jj=0 edge */
      ww = WTAR(0,0,kk) ;
-     if( ww != 0.0f ){
+     if( ww != 0.0f ){  /* just 2 reflections */
        CXRAN(0,0,kk) ; CXRAN(0,0,nz-kk) ;
      }
    }
 
    for( jj=1 ; jj < nyw ; jj++ ){  /* along ii=kk=0 edge */
      ww = WTAR(0,jj,0) ;
-     if( ww != 0.0f ){
+     if( ww != 0.0f ){  /* just 2 reflections */
        CXRAN(0,jj,0) ; CXRAN(0,ny-jj,0) ;
      }
    }
 
    for( ii=1 ; ii < nxw ; ii++ ){  /* along jj=kk=0 edge */
      ww = WTAR(ii,0,0) ;
-     if( ww != 0.0f ){
+     if( ww != 0.0f ){  /* just 2 reflections */
        CXRAN(ii,0,0) ; CXRAN(nx-ii,0,0) ;
      }
    }
 
    CXAR(0,0,0) = CMPLX(0.0f,0.0f) ;   /* the origin ii=jj=kk=0 */
-                                      /* set to zero for zero mean output */
+                                      /* set to zero to get zero mean output */
    /* FFT to real space */
 
    mri_fft3D_inplace( cxim , tar ) ;
@@ -349,18 +397,20 @@ static MRI_IMARR * make_radial_random_field( int nx, int ny, int nz ,
    return outar ;
 }
 
+#if 0
 /*----------------------------------------------------------------------------*/
+/* Main program for testing purposes */
 
 int main( int argc , char *argv[] )
 {
    float rr , vv , parm[3] ;
    int_triple ijk ;
-   float dxyz=2.0f ; int nxyz=128 ;
-   MRI_IMAGE *wim , *aim,*bim ;
+   float dxyz=2.0f ; int nxyz=128 ; double ct,wt ;
+   MRI_IMAGE *wim ;
    THD_3dim_dataset *dset=NULL ;
    THD_ivec3 nxyz_vec ; THD_fvec3 fxyz_vec , oxyz_vec ;
-   MRI_IMARR *imar ;
-   unsigned short xran[3] ; unsigned int gseed ; int ithr=1,nbrik=2,ib ;
+   unsigned short xran[3] ; unsigned int gseed ; int ithr=1,nbrik=2 ;
+   int nthr=1 , ith ;
 
    parm[0] = 0.66f ;
    parm[1] = 6.62f ;
@@ -403,16 +453,40 @@ int main( int argc , char *argv[] )
                       ADN_func_type  , ANAT_EPI_TYPE       ,
                     ADN_none ) ;
 
+#ifdef USE_OMP
+#pragma omp parallel
+ { if( omp_get_thread_num() == 0 ){
+     nthr = omp_get_num_threads() ;
+     ININFO_message("number of threads = %d",nthr) ;
+ }}
+#endif
+
+   ct = COX_cpu_time() ; wt = COX_clock_time() ;
+
+AFNI_OMP_START ;
+#pragma omp parallel
+ { int ib ; MRI_IMARR *abar; MRI_IMAGE *aim,*bim; complex *tar;
+   tar = (complex *)malloc(sizeof(complex)*(nxyz+nxyz)) ;
+#pragma omp for
    for( ib=0 ; ib < nbrik ; ib+=2 ){
-     imar = make_radial_random_field( nxyz,nxyz,nxyz , wim , NULL , xran ) ;
-     aim = IMARR_SUBIM(imar,0) ; bim = IMARR_SUBIM(imar,1) ;
-     EDIT_substitute_brick( dset , ib   , MRI_float , MRI_FLOAT_PTR(aim) ) ;
-     EDIT_substitute_brick( dset , ib+1 , MRI_float , MRI_FLOAT_PTR(bim) ) ;
-     FREE_IMARR(imar) ; imar == NULL ;
+     abar = make_radial_random_field( nxyz,nxyz,nxyz , wim , tar , xran ) ;
+     aim = IMARR_SUBIM(abar,0) ; bim = IMARR_SUBIM(abar,1) ;
+#pragma omp critical
+     { EDIT_substitute_brick( dset , ib   , MRI_float , MRI_FLOAT_PTR(aim) ) ;
+       EDIT_substitute_brick( dset , ib+1 , MRI_float , MRI_FLOAT_PTR(bim) ) ;
+     }
+     FREE_IMARR(abar) ; abar = NULL ;
    }
+   free(tar) ;
+ }
+AFNI_OMP_END ;
+
+   ct = COX_cpu_time()-ct ; wt = COX_clock_time()-wt ;
+   ININFO_message("CPU time = %.1f  Clock time = %.1f  Ratio = %.1f",ct,wt,ct/wt) ;
 
    ININFO_message("writing dataset") ;
    DSET_write(dset) ; WROTE_DSET(dset) ; DSET_delete(dset) ; dset = NULL ;
 
    exit(0) ;
 }
+#endif

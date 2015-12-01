@@ -43,7 +43,11 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 27 , NOV , 2015 , RWC , "3dFHWMx" , MICRO , TYPE_MODIFY ,
+  { 30 , NOV , 2015 , RWC , "csfft_OMP" , MICRO , TYPE_GENERAL ,
+   "Thread-safe version of csfft function, for use with OpenMP" ,
+   "Meant to be #include-d into the main source file." } ,
+
+ { 27 , NOV , 2015 , RWC , "3dFHWMx" , MICRO , TYPE_MODIFY ,
    "OpenMP-ize the FWHM and ACF calculations (across sub-bricks)" ,
    "Also, working on spherical non-Gaussian convolution by FFTs in\n"
    "mri_radial_random_field.c" } ,

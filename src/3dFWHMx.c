@@ -21,8 +21,9 @@ int main( int argc , char *argv[] )
    double fx,fy,fz , cx,cy,cz , ccomb ; int nx,ny,nz , ncomb ;
    int geom=1 , demed=0 , unif=0 , corder=0 , combine=0 ;
    char *newprefix=NULL ;
-   int do_acf = 0 ; float acf_rad=0.0f ;
-   char *acf_fname=NULL ; MRI_IMAGE *acf_im=NULL ; float_quad acf_Epar ;
+   int do_acf = 0 ; float acf_rad=0.0f ; int do_classic=0 ;
+   char *acf_fname="3dFWHMx.1D" ; MRI_IMAGE *acf_im=NULL ; float_quad acf_Epar ;
+   double ct ;
 
    /*---- for the clueless who wish to become clueful ----*/
 
@@ -37,10 +38,40 @@ int main( int argc , char *argv[] )
       "output value indicates something bad happened; e.g., FWHM in z is meaningless\n"
       "for a 2D dataset; the estimation method computed incoherent intermediate results.)\n"
       "\n"
-      "METHODS:\n"
+      "(Classic) METHOD:\n"
       " - Calculate ratio of variance of first differences to data variance.\n"
       " - Should be the same as 3dFWHM for a 1-brick dataset.\n"
       "   (But the output format is simpler to use in a script.)\n"
+      "\n"
+      "************* IMPORTANT NOTE [Dec 2015] ***************************************\n"
+      "A completely new method for estimating and using noise smoothness values is\n"
+      "now available in 3dFWHMx and 3dClustSim. This method is implemented in the\n"
+      "'-acf' options to both programs.  'ACF' stands for (spatial) AutoCorrelation\n"
+      "Function, and it is estimated by calculating moments of differences out to\n"
+      "a larger radius than before.\n"
+      "\n"
+      "Notably, real FMRI data does not actually have a Gaussian-shaped ACF, so the\n"
+      "estimated ACF is then fit (in 3dFWHMx) to a mixed model (Gaussian plus\n"
+      "mono-exponential) of the form\n"
+      "  ACF(r) = a * exp(-r*r/(2*b*b)) + (1-a)*exp(-r/c)\n"
+      "where 'r' is the radius, and 'a', 'b', 'c' are the fitted parameters.\n"
+      "The apparent FWHM from this model is usually somewhat larger in real data\n"
+      "than the FWHM estimated from just the nearest-neighbor differences used\n"
+      "in the 'classic' analysis.\n"
+      "\n"
+      "The longer tails provided by the mono-exponential are also significant.\n"
+      "3dClustSim has also been modified to use the ACF model given above to generate\n"
+      "noise random fields.\n"
+      "\n"
+      "**----------------------------------------------------------------------------**\n"
+      "** The take-away (TL;DR or summary) message is that the 'classic' 3dFWHMx and **\n"
+      "** 3dClustSim analysis, using a pure Gaussian ACF, is not very correct for    **\n"
+      "** FMRI data -- I cannot speak for PET or MEG data.  You should start using   **\n"
+      "** the '-acf' options in your own scripts.  AFNI scripts from afni_proc.py    **\n"
+      "** are moving away from the 'classic' method.  At some point in the future,   **\n"
+      "** '-acf' will become the default in both programs, and you will have to      **\n"
+      "** actively specify '-classic' to get the older method to run.                **\n"
+      "**----------------------------------------------------------------------------**\n"
       "\n"
       "OPTIONS:\n"
       "  -mask mmm   = Use only voxels that are nonzero in dataset 'mmm'.\n"
@@ -121,13 +152,15 @@ int main( int argc , char *argv[] )
       "                the fit was about 58%% Gaussian shape, 42%% exponential shape,\n"
       "                and the effective FWHM from this fit was 16.14mm, versus 10.21mm\n"
       "                estimated in the 'old way'.\n"
-      "              * If you use '-acf', then the comment #lines in the\n"
-      "                stdout information will be omitted.  This might help\n"
+      "              * If you use '-acf' instead of '-ACF', then the comment #lines\n"
+      "                in the stdout information will be omitted.  This might help\n"
       "                in parsing the output inside a script.\n"
-      "              * If '-ACF' is followed by a valid filename that does\n"
-      "                not start with the '-' character, then the empirical\n"
-      "                ACF results are also written to that file in 3 columns:\n"
-      "                  radius ACF(r) model(r)\n"
+      "              * The empirical ACF results are also written to the file\n"
+      "                'anam' in 4 columns:\n"
+      "                  radius ACF(r) model(r) gaussian_model(r)\n"
+      "                If 'anam' is not given (that is, another option starting\n"
+      "                with '-' immediately follows '-acf'), then '3dFWHMx.1D' will\n"
+      "                be used for this filename.\n"
       "              * In addition, a graph of these functions will be saved\n"
       "                into file 'anam'.png, for your viewing pleasure.\n"
       "              * Note that the ACF calculations are much slower than the\n"
@@ -167,6 +200,7 @@ int main( int argc , char *argv[] )
       "rather than just first-neighbor differences, and uses the MAD of the differences\n"
       "rather than the standard deviation.  (If you must know the details, read the\n"
       "source code in mri_fwhm.c!)                    [For Jatin Vaidya, March 2010]\n"
+#if 0
       "\n"
       "IF YOU WISH TO ALLOW FOR SPATIAL VARIABILITY IN NOISE SMOOTHNESS:\n"
       "The semi-secret '-1difMOM' option uses moments of the first differences to\n"
@@ -181,6 +215,7 @@ int main( int argc , char *argv[] )
       "   a fraction of its standard deviation.  The default shift is 1.0 times the\n"
       "   standard deviation estimate.  If you want to see the result without this\n"
       "   shift, use '-1difMOM 0.0' (smoothness values will be smaller).\n"
+#endif
       "\n"
       "ALSO SEE:\n"
       "* The older program 3dFWHM is now superseded by 3dFWHMx.\n"
@@ -259,7 +294,7 @@ int main( int argc , char *argv[] )
        FHWM_1dif_dontcheckplus(1) ; iarg++ ; continue ;
      }
 
-     if( strncasecmp(argv[iarg],"-ACF",4) == 0 ){           /* 09 Nov 2015 */
+     if( strncasecmp(argv[iarg],"-ACF",4) == 0 ){       /* 09 Nov 2015 */
        do_acf = 1 ; if( argv[iarg][1] == 'a' ) do_acf = -1 ;
        iarg++ ;
        if( iarg < argc && argv[iarg][0] != '-' ){
@@ -269,6 +304,10 @@ int main( int argc , char *argv[] )
          iarg++ ;
        }
        continue ;
+     }
+
+     if( strncasecmp(argv[iarg],"-classic",6) == 0 ){   /* 01 Dec 2015 */
+       do_classic = 1 ; iarg++ ; continue ;
      }
 
      if( strncmp(argv[iarg],"-out",4) == 0 ){
@@ -406,6 +445,7 @@ int main( int argc , char *argv[] )
 
    /*-- if detrending, do that now --*/
 
+   ct = COX_cpu_time() ;
    if( corder > 0 ){
      int nref=2*corder+3 , jj,iv,kk ;
      float **ref , tm,fac,fq ;
@@ -422,7 +462,7 @@ int main( int argc , char *argv[] )
      for(jj=0;jj<nref;jj++) free(ref[jj]) ;
      free(ref); DSET_delete(inset); inset=newset;
      demed = unif = 0 ;
-     ININFO_message("detrending done") ;
+     ININFO_message("detrending done (%.2f CPU s thus far)",COX_cpu_time()-ct) ;
 
      if( newprefix != NULL ){    /** for debugging **/
        EDIT_dset_items(newset,ADN_prefix,newprefix,NULL) ;
@@ -491,6 +531,8 @@ int main( int argc , char *argv[] )
      if( ncomb > 1 ) ccomb /= ncomb ;
    }
 
+   ININFO_message("FWHM done (%.2f CPU s thus far)",COX_cpu_time()-ct) ;
+
    if( do_acf ){
      MCW_cluster *acf ; int pp ;
      acf_rad = 2.777f * ccomb ;
@@ -513,6 +555,8 @@ int main( int argc , char *argv[] )
 
      if( acf_fname != NULL ) acf_im = ACF_get_1D() ;
 
+     ININFO_message("ACF done (%.2f CPU s thus far)",COX_cpu_time()-ct) ;
+
      if( do_acf > 0 )
        printf("# old-style FWHM parameters\n") ;
      printf(" %g  %g  %g     %g",cx,cy,cz,ccomb) ;
@@ -527,13 +571,14 @@ int main( int argc , char *argv[] )
        mri_write_1D( acf_fname , acf_im ) ;
        INFO_message("ACF 1D file [radius ACF model] written to %s",acf_fname) ;
        sprintf(cmd,
-         "1dplot -one -xlabel 'r (mm)' -ylabel 'Autocorrelation \\small [FWHM=%.2fmm]'"
+         "1dplot -one -xlabel 'r (mm)' -ylabel 'Autocorrelation \\small\\green [FWHM=%.2fmm]'"
+         "       -yaxis 0:1:10:2 -DAFNI_1DPLOT_BOXSIZE=0.004"
          "       -plabel '\\small\\noesc %s\\esc\\red  %.2f*exp[-r^2/2*%.2f^2]+%.2f*exp[-r/%.2f]'"
-         "       -box -png %s.png -x %s'[0]' %s'[1]' %s'[2]'" ,
+         "       -box -png %s.png -x %s'[0]' %s'[1]' %s'[2]' %s'[3]'" ,
          acf_Epar.d ,
          inset_prefix ,
          acf_Epar.a , acf_Epar.b , 1.0f-acf_Epar.a , acf_Epar.c ,
-         acf_fname , acf_fname , acf_fname , acf_fname ) ;
+         acf_fname , acf_fname , acf_fname , acf_fname , acf_fname ) ;
        system(cmd) ;
        ININFO_message("and 1dplot-ed to file %s.png",acf_fname) ;
      }

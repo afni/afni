@@ -1,7 +1,14 @@
 /*****************************************************************************
-   Major portions of this software are copyrighted by the Medical College
-   of Wisconsin, 1994-2000, and are released under the Gnu General Public
-   License, Version 2.  See the file README.Copyright for details.
+  The functions in this file are adaptations of csfft.c that should be
+  thread-safe for use with OpenMP.  As such, this file is intended to be
+  #include-d into a source file that uses OpenMP directives.  In such a case,
+  the following inclusions are not really necessary, but included here for
+  reference.
+
+  When using these functions, csfft_cox_OMP_SETUP() must be called once
+  first, in order to setup some thread specific static storage.  These
+  variable names all start with 'CFO_'.
+                                                          -- RWCox -- Dec 2015
 ******************************************************************************/
 
 #include "mrilib.h"   /* AFNI package library header */
@@ -12,24 +19,22 @@
 /***=====================================================================**
  *** Prototypes for externally callable functions:                       **
  ***    Complex-to-complex FFT in place:                                 **
- ***      mode = -1 or +1 (for inverse scaling, cf. csfft_scale_inverse  **
+ ***      mode = -1 or +1 (for inverse scaling, csfft_scale_inverse_OMP  **
  ***      idim = dimension (power of 2, maybe with factors of 3 and 5)   **
  ***      xc   = input/output array                                      **
  ***    Re-initializes itself only when idim changes from previous call. **
  ***=====================================================================**/
 
 void csfft_cox_OMP( int mode , int idim , complex *xc ) ;
-int  csfft_nextup( int idim ) ;
-int  csfft_nextup_one35( int idim ) ;
-void csfft_scale_inverse( int scl ) ; /* scl=1 ==> force 1/N for mode=+1 **/
-                                      /* scl=0 ==> no 1/N scaling        **/
+void csfft_scale_inverse_OMP( int scl ) ; /* scl=1 ==> force 1/N for mode=+1 **/
+                                          /* scl=0 ==> no 1/N scaling        **/
 
 /*** Aug 1999:                                                           **
  ***   idim can now contain factors of 3 and/or 5, up to and including   **
  ***   3^3 * 5^3.  Some examples:                                        **
  ***       135 144 150 160 180 192 200 216 225 240 250                   **
  ***   The routine csfft_nextup(n) returns the smallest size FFT         **
- ***    >= n that csfft_cox() knows how to do.                           **
+ ***    >= n that csfft_cox_OMP() knows how to do.                        **
  ***   Note that efficiency of the different lengths can be quite        **
  ***   different.  In general, powers of 2 are fastest, but a            **
  ***   single factor of 3 and/or 5 doesn't cause too much slowdown.      **
@@ -38,30 +43,49 @@ void csfft_scale_inverse( int scl ) ; /* scl=1 ==> force 1/N for mode=+1 **/
  ***   of 5, and least one power of 2.  In trials, these are the most    **
  ***   time efficient.                                                   **/
 
-/*-- Aug 1999: routines to do FFTs by decimation by 3 or 5 --*/
+/*-- Aug 1999: internal routines to do FFTs by decimation by 3, 4, 5 --*/
 
 static void fft_3dec_OMP( int , int , complex * ) ;
+static void fft_4dec_OMP( int , int , complex * ) ;
 static void fft_5dec_OMP( int , int , complex * ) ;
 
 #undef  RMAX
-#define RMAX 3   /* maximum levels of recursion for radix-3 and radix-5 */
+#define RMAX 7   /* maximum levels of recursion for decimation by 3, 4, 5 */
 
 #undef  PI
-#define PI (3.141592653589793238462643)
+#define PI (3.141592653589793238462643)  /* that should be good enough */
 
 /*---------------------------------------------------------------------------*/
 /* When using these OpenMP-ized functions,
-   csfft_cox_OMP_SETUP() must be called once first!                [Nov 2015]
+   csfft_cox_OMP_SETUP() must be called once first!                [Dec 2015]
 *//*-------------------------------------------------------------------------*/
 
-static int CFO_nthr = 1 ;
-static complex **csplus=NULL , **csminus=NULL ;
-static int *nold=NULL ;
-static int *sclinv=NULL ;
-static int *CFO_rec2=NULL ;
-static int *CFO_rec3=NULL ;
-static int *CFO_rec4=NULL ;
-static int *CFO_rec5=NULL ;
+static int       CFO_nthr   = 1   ;  /* max number of threads to allow for */
+static complex **CFO_csplus =NULL ;  /* per-thread arrays of trig consts */
+static complex **CFO_csminus=NULL ;
+static int      *CFO_nold   =NULL ;  /* per-thread last dimension used */
+static int      *CFO_sclinv =NULL ;  /* per-thread inverse scaling flag */
+static int      *CFO_recC   =NULL ;  /* per-thread recursion level for csfft_cox_OMP */
+static int      *CFO_recX   =NULL ;  /* per-thread recursion level for decimaion funcs */
+
+static int *CFO_rmold3[RMAX] ;       /* per-thread, per-recursion last M value used */
+static int *CFO_rmold4[RMAX] ;       /* for decimation by 3, 4, 5 functions */
+static int *CFO_rmold5[RMAX] ;
+
+static int     *nCFO_aa[RMAX] ;      /* per-thread, per-recursion temp arrays */
+static int     *nCFO_bb[RMAX] ;      /* nCFO_aa[r][i] is the size of the 'aa' */
+static int     *nCFO_cc[RMAX] ;      /*   array for recursion level r, thread i */
+static int     *nCFO_dd[RMAX] ;      /* CFO_aa[r][i] is the corresponding array */
+static int     *nCFO_ee[RMAX] ;
+static int     *nCFO_cs[RMAX] ;
+static complex **CFO_aa[RMAX] ;
+static complex **CFO_bb[RMAX] ;
+static complex **CFO_cc[RMAX] ;
+static complex **CFO_dd[RMAX] ;
+static complex **CFO_ee[RMAX] ;
+static complex **CFO_cs[RMAX] ;
+
+/* macro to declare and set the ithr = thread number (local variable) */
 
 #undef DECLARE_ithr
 #ifdef USE_OMP
@@ -70,78 +94,137 @@ static int *CFO_rec5=NULL ;
 # define DECLARE_ithr int ithr=0
 #endif
 
+/*----------------------------------------------------------------------------*/
+/* Allocate the CFO arrays, just one time. */
+
 void csfft_cox_OMP_SETUP(void)
 {
-   if( nold != NULL ) return ;
+   int rr ;
+
+   if( CFO_nold != NULL ) return ;  /* was called before! */
 
 #ifdef USE_OMP
    CFO_nthr = omp_get_max_threads() ;
 #endif
 
-#pragma omp critical (MALLOC)
- { nold     = (int *)    calloc(sizeof(int)      ,CFO_nthr) ;
-   sclinv   = (int *)    calloc(sizeof(int)      ,CFO_nthr) ;
-   CFO_rec2 = (int *)    calloc(sizeof(int)      ,CFO_nthr) ;
-   CFO_rec3 = (int *)    calloc(sizeof(int)      ,CFO_nthr) ;
-   CFO_rec4 = (int *)    calloc(sizeof(int)      ,CFO_nthr) ;
-   CFO_rec5 = (int *)    calloc(sizeof(int)      ,CFO_nthr) ;
-   csplus   = (complex *)calloc(sizeof(complex *),CFO_nthr) ;
-   csminus  = (complex *)calloc(sizeof(complex *),CFO_nthr) ;
- }
+   /* arrays that don't depend on recursion level, just thread number */
+
+   CFO_nold    = (int *)     calloc(sizeof(int)      ,CFO_nthr) ;
+   CFO_sclinv  = (int *)     calloc(sizeof(int)      ,CFO_nthr) ;
+   CFO_recC    = (int *)     calloc(sizeof(int)      ,CFO_nthr) ;
+   CFO_recX    = (int *)     calloc(sizeof(int)      ,CFO_nthr) ;
+   CFO_csplus  = (complex **)calloc(sizeof(complex *),CFO_nthr) ;
+   CFO_csminus = (complex **)calloc(sizeof(complex *),CFO_nthr) ;
+
+   /* arrays that depend on recursion level and on thread number;
+      note that we are just allocating pointer space now; the
+      actual arrays are allocated by the CFO_assign macro (infra) */
+
+   for( rr=0 ; rr < RMAX ; rr++ ){
+     nCFO_aa[rr]  = (int *)     calloc(sizeof(int)      ,CFO_nthr) ;
+     nCFO_bb[rr]  = (int *)     calloc(sizeof(int)      ,CFO_nthr) ;
+     nCFO_cc[rr]  = (int *)     calloc(sizeof(int)      ,CFO_nthr) ;
+     nCFO_dd[rr]  = (int *)     calloc(sizeof(int)      ,CFO_nthr) ;
+     nCFO_ee[rr]  = (int *)     calloc(sizeof(int)      ,CFO_nthr) ;
+     nCFO_cs[rr]  = (int *)     calloc(sizeof(int)      ,CFO_nthr) ;
+      CFO_aa[rr]  = (complex **)calloc(sizeof(complex *),CFO_nthr) ;
+      CFO_bb[rr]  = (complex **)calloc(sizeof(complex *),CFO_nthr) ;
+      CFO_cc[rr]  = (complex **)calloc(sizeof(complex *),CFO_nthr) ;
+      CFO_dd[rr]  = (complex **)calloc(sizeof(complex *),CFO_nthr) ;
+      CFO_ee[rr]  = (complex **)calloc(sizeof(complex *),CFO_nthr) ;
+      CFO_cs[rr]  = (complex **)calloc(sizeof(complex *),CFO_nthr) ;
+
+      CFO_rmold3[rr] = (int *)  calloc(sizeof(int)      ,CFO_nthr) ;
+      CFO_rmold4[rr] = (int *)  calloc(sizeof(int)      ,CFO_nthr) ;
+      CFO_rmold5[rr] = (int *)  calloc(sizeof(int)      ,CFO_nthr) ;
+   }
+
    return ;
 }
 
+/** this macro assigns a workspace of length ll (complex), at
+    recursion level rec (0..RMAX-1), to pointer named 'ab', from
+    static array CFO_'ab'[rr][ithr], in thread number ithr.
+    ithr and rec are local to the function whence this is called!
+    The name 'ab' can be one of 'aa' 'bb' 'cc' 'dd' 'ee' 'cs'.
+    The C preprocessor token catenation operator ## is used here. */
+
+#undef  CFO_assign
+#define CFO_assign(ab,ll)                                                \
+   do{ if( nCFO_##ab[rec][ithr] < (ll) ){                                \
+         if( CFO_##ab[rec][ithr] != NULL ) free(CFO_##ab[rec][ithr]) ;   \
+         CFO_##ab[rec][ithr] = (complex *)malloc(sizeof(complex)*(ll)) ; \
+         nCFO_##ab[rec][ithr] = (ll) ;                                   \
+       }                                                                 \
+       ab = CFO_##ab[rec][ithr] ;                                        \
+   } while(0)
+
 /*-------------- To order the 1/N scaling on inversion: Aug 1999 ------------*/
 
-void csfft_scale_inverse( int scl ){
-  DECLARE_ithr ; sclinv[ithr] = scl; return;
+void csfft_scale_inverse_OMP( int scl ){
+  DECLARE_ithr ; CFO_sclinv[ithr] = scl; return;
 }
 
 /*-------------- For the unrolled FFT routines: November 1998 --------------*/
 
-#ifndef DONT_UNROLL_FFTS
-   static void fft8  ( int mode , complex *xc ) ; /* completely */
-   static void fft16 ( int mode , complex *xc ) ; /* unrolled   */
-   static void fft32 ( int mode , complex *xc ) ; /* routines   */
+static void fft8 ( int mode , complex *xc ) ; /* completely */
+static void fft16( int mode , complex *xc ) ; /* unrolled   */
+static void fft32( int mode , complex *xc ) ; /* routines   */
+static void fft64( int mode , complex *xc ) ;
 
-   static void fft64 ( int mode , complex *xc ) ; /* internal 2dec ->  32 */
-   static void fft128( int mode , complex *xc ) ; /* internal 4dec ->  32 */
-   static void fft256( int mode , complex *xc ) ; /* internal 4dec ->  64 */
-   static void fft512( int mode , complex *xc ) ; /* internal 4dec -> 128 */
+/* convenience macros for decimation by 4 */
 
-   static void fft_4dec_OMP( int , int , complex * ) ; /* general 4dec */
-
-#  define fft1024(m,x) fft_4dec_OMP(m,1024,x)          /* 4dec -> 256 */
-#  define fft2048(m,x) fft_4dec_OMP(m,2048,x)          /* 4dec -> 512 */
-
-/*-- do FFTs of size 2 and 4 with macros --*/
-
-#  define fft2(m,x) do{ float a,b,c,d ;                             \
-                        a = x[0].r + x[1].r ; b = x[0].i + x[1].i ; \
-                        c = x[0].r - x[1].r ; d = x[0].i - x[1].i ; \
-                        x[0].r = a ; x[0].i = b ;                   \
-                        x[1].r = c ; x[1].i = d ; } while(0)
-
-# define USE_FFT4_MACRO
-# ifndef USE_FFT4_MACRO
-   static void fft4( int mode , complex *xc ) ; /* unrolled routine */
-# else
-#  define fft4(m,x) do{ float acpr,acmr,bdpr,bdmr, acpi,acmi,bdpi,bdmi; \
-                        acpr = x[0].r + x[2].r; acmr = x[0].r - x[2].r; \
-                        bdpr = x[1].r + x[3].r; bdmr = x[1].r - x[3].r; \
-                        acpi = x[0].i + x[2].i; acmi = x[0].i - x[2].i; \
-                        bdpi = x[1].i + x[3].i; bdmi = x[1].i - x[3].i; \
-                        x[0].r = acpr+bdpr ; x[0].i = acpi+bdpi ;       \
-                        x[2].r = acpr-bdpr ; x[2].i = acpi-bdpi ;       \
-                        if(m > 0){                                      \
-                          x[1].r = acmr-bdmi ; x[1].i = acmi+bdmr ;     \
-                          x[3].r = acmr+bdmi ; x[3].i = acmi-bdmr ;     \
-                        } else {                                        \
-                          x[1].r = acmr+bdmi ; x[1].i = acmi-bdmr ;     \
-                          x[3].r = acmr-bdmi ; x[3].i = acmi+bdmr ;     \
-                        } } while(0)
-# endif
+#undef  DONT_USE_4DEC
+#ifndef DONT_USE_4DEC
+#define fft128(m,x)   fft_4dec_OMP(m,  128,x)  /* via fft32   (non-recursive) */
+#define fft256(m,x)   fft_4dec_OMP(m,  256,x)  /* via fft64   (non-recursive) */
+#define fft512(m,x)   fft_4dec_OMP(m,  512,x)  /* via fft128  (recursive X 1) */
+#define fft1024(m,x)  fft_4dec_OMP(m, 1024,x)  /* via fft256  (recursive X 1) */
+#if 1
+#define fft2048(m,x)  fft_4dec_OMP(m, 2048,x)  /* via fft512  (recursive X 2) */
+#define fft4096(m,x)  fft_4dec_OMP(m, 4096,x)  /* via fft1024 (recursive X 2) */
+#define fft8192(m,x)  fft_4dec_OMP(m, 8192,x)  /* via fft2048 (recursive X 3) */
+#define fft16384(m,x) fft_4dec_OMP(m,16384,x)  /* via fft4096 (recursive X 3) */
+#define fft32768(m,x) fft_4dec_OMP(m,32768,x)  /* via fft8192 (recursive X 4) */
+#define fft65536(m,x) fft_4dec_OMP(m,65536,x)  /* via fft16384 (recursive X 4) */
 #endif
+#else
+#define fft128(m,x)   csfft_cox_OMP(m,  128,x)
+#define fft256(m,x)   csfft_cox_OMP(m,  256,x)
+#define fft512(m,x)   csfft_cox_OMP(m,  512,x)
+#define fft1024(m,x)  csfft_cox_OMP(m, 1024,x)
+#if 1
+#define fft2048(m,x)  csfft_cox_OMP(m, 2048,x)
+#define fft4096(m,x)  csfft_cox_OMP(m, 4096,x)
+#define fft8192(m,x)  csfft_cox_OMP(m, 8192,x)
+#define fft16384(m,x) csfft_cox_OMP(m,16384,x)
+#define fft32768(m,x) csfft_cox_OMP(m,32768,x)
+#define fft65536(m,x) csfft_cox_OMP(m,65536,x)
+#endif
+#endif
+
+/*-- do FFTs of size 2 and 4 with macros, not functions --*/
+
+#define fft2(m,x) do{ float a,b,c,d ;                             \
+                      a = x[0].r + x[1].r ; b = x[0].i + x[1].i ; \
+                      c = x[0].r - x[1].r ; d = x[0].i - x[1].i ; \
+                      x[0].r = a ; x[0].i = b ;                   \
+                      x[1].r = c ; x[1].i = d ; } while(0)
+
+#define fft4(m,x) do{ float acpr,acmr,bdpr,bdmr, acpi,acmi,bdpi,bdmi; \
+                      acpr = x[0].r + x[2].r; acmr = x[0].r - x[2].r; \
+                      bdpr = x[1].r + x[3].r; bdmr = x[1].r - x[3].r; \
+                      acpi = x[0].i + x[2].i; acmi = x[0].i - x[2].i; \
+                      bdpi = x[1].i + x[3].i; bdmi = x[1].i - x[3].i; \
+                      x[0].r = acpr+bdpr ; x[0].i = acpi+bdpi ;       \
+                      x[2].r = acpr-bdpr ; x[2].i = acpi-bdpi ;       \
+                      if(m > 0){                                      \
+                        x[1].r = acmr-bdmi ; x[1].i = acmi+bdmr ;     \
+                        x[3].r = acmr+bdmi ; x[3].i = acmi-bdmr ;     \
+                      } else {                                        \
+                        x[1].r = acmr+bdmi ; x[1].i = acmi-bdmr ;     \
+                        x[3].r = acmr-bdmi ; x[3].i = acmi+bdmr ;     \
+                      } } while(0)
 
 /*----------------------------------------------------------------------
    Speedups with unrolled FFTs [program fftest.c]:
@@ -152,7 +235,7 @@ void csfft_scale_inverse( int scl ){
 
 /*--------------------------------------------------------------------
    Initialize csfft trig constants table.  Adapted from AJ's code.
-   Does both mode=1 and mode=-1 tables.
+   Does both mode=1 and mode=-1 tables.  (mode=+1 == inversion)
 ----------------------------------------------------------------------*/
 
 static void csfft_trigconsts( int idim )  /* internal function */
@@ -164,21 +247,20 @@ static void csfft_trigconsts( int idim )  /* internal function */
    double                 al;
    complex *my_csp , *my_csm ;
 
-   if( idim == nold[ithr] ) return ;
+   if( idim == CFO_nold[ithr] ) return ;
 
-#pragma omp critical (MALLOC)
- { if( idim > nold[ithr] ){
-     if( csplus[ithr] != NULL ){ free(csplus[ithr]) ; free(csminus[ithr]) ; }
-      csplus[ithr]  = (complex *) malloc( sizeof(complex) * idim ) ;
-      csminus[ithr] = (complex *) malloc( sizeof(complex) * idim ) ;
-      if( csplus[ithr] == NULL || csminus[ithr] == NULL ){
-        fprintf(stderr,"\n*** csfft_cox_OMP cannot malloc space! ***\n"); EXIT(1) ;
+ { if( idim > CFO_nold[ithr] ){
+     if( CFO_csplus[ithr] != NULL ){ free(CFO_csplus[ithr]) ; free(CFO_csminus[ithr]) ; }
+      CFO_csplus[ithr]  = (complex *) malloc( sizeof(complex) * idim ) ;
+      CFO_csminus[ithr] = (complex *) malloc( sizeof(complex) * idim ) ;
+      if( CFO_csplus[ithr] == NULL || CFO_csminus[ithr] == NULL ){
+        fprintf(stderr,"\n*** csfft_cox_OMP cannot malloc space idim=%d! ***\n",idim); EXIT(1) ;
       }
   }}
 
-   nold[ithr] = n = idim ;
+   CFO_nold[ithr] = n = idim ;
 
-   my_csp = csplus[ithr] ; my_csm = csminus[ithr] ;
+   my_csp = CFO_csplus[ithr] ; my_csm = CFO_csminus[ithr] ;
 
    f1 = 1.0 ;  /* csplus init */
    m  = 1; k  = 0;
@@ -214,8 +296,8 @@ static void csfft_trigconsts( int idim )  /* internal function */
 
 /*--------------------------------------------------------------------
    Complex-to-complex FFT in place:
-     mode = -1 or +1 (1/idim scaling on inverse [+1] if sclinv
-                      was set in the call to csfft_scale_inverse)
+     mode = -1 or +1 (1/idim scaling on inverse [+1] if CFO_sclinv
+                      was set in the call to csfft_scale_inverse_OMP)
      idim = dimension (power of 2, possibly with a factor
                        of 3^p * 5^q also, for p,q=0..RMAX)
      xc   = input/output array
@@ -229,61 +311,67 @@ static void csfft_trigconsts( int idim )  /* internal function */
       if this is not a recursive call.  -*/
 
 #define SCLINV                                                 \
- if( sclinv[ithr] && mode > 0 && rec == 0 ){                    \
+ if( CFO_sclinv[ithr] && mode > 0 && rec == 0 ){               \
    register int qq ; register float ff = 1.0 / (float) idim ;  \
    for( qq=0 ; qq < idim ; qq++ ){ xc[qq].r *= ff ; xc[qq].i *= ff ; } }
 
-void csfft_cox( int mode , int idim , complex *xc )
+void csfft_cox_OMP( int mode , int idim , complex *xc )
 {
    DECLARE_ithr ;
    register unsigned int  m, n, i0, i1, i2, i3, k;
    register complex       *r0, *r1, *csp;
    register float         co, si, f0, f1, f2, f3, f4;
-   int rec = CFO_rec2[ithr] ;
+   int rec = CFO_recC[ithr] ;
 
    if( idim <= 1 ) return ;  /* stoopid inpoot */
 
    /*-- November 1998: maybe use the unrolled FFT routines --*/
 
-#ifndef DONT_UNROLL_FFTS
-   switch( idim ){                                  /* none of these  */
-      case    1:                           return;  /* routines will  */
-      case    2: fft2   (mode,xc); SCLINV; return;  /* call csfft_cox */
-      case    4: fft4   (mode,xc); SCLINV; return;  /* so don't need  */
-      case    8: fft8   (mode,xc); SCLINV; return;  /* to do rec++/-- */
-      case   16: fft16  (mode,xc); SCLINV; return;
-      case   32: fft32  (mode,xc); SCLINV; return;
-      case   64: fft64  (mode,xc); SCLINV; return;
-      case  128: fft128 (mode,xc); SCLINV; return;
-      case  256: fft256 (mode,xc); SCLINV; return;
-      case  512: fft512 (mode,xc); SCLINV; return;
-      case 1024: fft1024(mode,xc); SCLINV; return;
-      case 2048: fft2048(mode,xc); SCLINV; return;
+/* INFO_message("csfft_cox_OMP(%d)",idim) ; */
 
-      case  4096: fft_4dec_OMP(mode, 4096,xc); SCLINV; return; /* 4dec -> 1024 */
-      case  8192: fft_4dec_OMP(mode, 8192,xc); SCLINV; return; /* 4dec -> 2048 */
-      case 16384: fft_4dec_OMP(mode,16384,xc); SCLINV; return; /* 4dec -> 4096 */
-      case 32768: fft_4dec_OMP(mode,32768,xc); SCLINV; return; /* 4dec -> 8192 */
+   switch( idim ){                                   /* none of these  */
+     case     1:                            return;  /* routines will  */
+     case     2: fft2    (mode,xc); SCLINV; return;  /* call csfft_cox */
+     case     4: fft4    (mode,xc); SCLINV; return;  /* so don't need  */
+     case     8: fft8    (mode,xc); SCLINV; return;  /* to do rec++/-- */
+     case    16: fft16   (mode,xc); SCLINV; return;
+     case    32: fft32   (mode,xc); SCLINV; return;
+     case    64: fft64   (mode,xc); SCLINV; return;
+#ifndef DONT_USE_4DEC
+     case   128: fft128  (mode,xc); SCLINV; return;
+     case   256: fft256  (mode,xc); SCLINV; return;
+     case   512: fft512  (mode,xc); SCLINV; return;
+     case  1024: fft1024 (mode,xc); SCLINV; return;
+#if 1
+     case  2048: fft2048 (mode,xc); SCLINV; return;
+     case  4096: fft4096 (mode,xc); SCLINV; return;
+     case  8192: fft8192 (mode,xc); SCLINV; return;
+     case 16384: fft16384(mode,xc); SCLINV; return;
+     case 32768: fft32768(mode,xc); SCLINV; return;
+     case 65536: fft65536(mode,xc); SCLINV; return;
+#endif
+#endif
    }
-#endif  /* end of unrollificationizing */
 
-   /*-- Aug 1999: deal with factors of 3 or 5 [might call csfft_cox] --*/
+   /* fall thru to here ==> not one of the shorter 2^p cases above! */
 
-   if( idim%3 == 0 ){CFO_rec2[ithr]++; fft_3dec_OMP(mode,idim,xc); CFO_rec2[ithr]--; SCLINV; return;}
-   if( idim%5 == 0 ){CFO_rec2[ithr]++; fft_5dec_OMP(mode,idim,xc); CFO_rec2[ithr]--; SCLINV; return;}
+   /*-- Aug 1999: deal with factors of 3 or 5 [might call csfft_cox_OMP again] --*/
 
-   /*-- below here: the old general power of 2 routine --*/
+   if( idim%3 == 0 ){CFO_recC[ithr]++; fft_3dec_OMP(mode,idim,xc); CFO_recC[ithr]--; SCLINV; return;}
+   if( idim%5 == 0 ){CFO_recC[ithr]++; fft_5dec_OMP(mode,idim,xc); CFO_recC[ithr]--; SCLINV; return;}
 
-   /**-- perhaps initialize --**/
+   /*-- below here: the old general power of 2 routine (i.e., for idim > 65536) --*/
 
-   if( nold[ithr] != idim ) csfft_trigconsts( idim ) ;
+   /**-- perhaps initialize trig consts (for this thread) --**/
+
+   if( CFO_nold[ithr] != idim ) csfft_trigconsts( idim ) ;
 
    /** Main loop starts here **/
 
    n   = idim;
    i2  = idim >> 1;
    i1  = 0;
-   csp = (mode > 0) ? csplus[ithr] : csminus[ithr] ;  /* choose const array */
+   csp = (mode > 0) ? CFO_csplus[ithr] : CFO_csminus[ithr] ;  /* choose const array */
 
    /*-- swap data --*/
 
@@ -323,61 +411,9 @@ void csfft_cox( int mode , int idim , complex *xc )
    SCLINV ; return ;
 }
 
-/****************************************************************************
-   Everything from here on down is for the unrolled FFT routines.
-   They were generated with program fftprint.c.
-*****************************************************************************/
-
-#ifndef DONT_UNROLL_FFTS
-
-#ifndef USE_FFT4_MACRO
-/**************************************/
-/* FFT routine unrolled of length   4 */
-
-static void fft4( int mode , complex *xc )
-{
-   DECLARE_ithr ;
-   register complex *csp , *xcx=xc;
-   register float f1,f2,f3,f4 ;
-
-   /** perhaps initialize **/
-
-   if( nold[ithr] != 4 ) csfft_trigconsts( 4 ) ;
-
-   csp = (mode > 0) ? csplus[ithr] : csminus[ithr] ;  /* choose const array */
-
-   /** data swapping part **/
-
-   f1 = xcx[1].r ; f2 = xcx[1].i ;
-   xcx[1].r = xcx[2].r ; xcx[1].i = xcx[2].i ;
-   xcx[2].r = f1 ; xcx[2].i = f2 ;
-
-   /** butterflying part **/
-
-   f1 = xcx[1].r ; f3 = xcx[1].i ;  /* cos=1 sin=0 */
-   f2 = xcx[0].r ; f4 = xcx[0].i ;
-   xcx[1].r = f2-f1 ; xcx[1].i = f4-f3 ;
-   xcx[0].r = f2+f1 ; xcx[0].i = f4+f3 ;
-
-   f1 = xcx[3].r ; f3 = xcx[3].i ;  /* cos=1 sin=0 */
-   f2 = xcx[2].r ; f4 = xcx[2].i ;
-   xcx[3].r = f2-f1 ; xcx[3].i = f4-f3 ;
-   xcx[2].r = f2+f1 ; xcx[2].i = f4+f3 ;
-
-   f1 = xcx[2].r ; f3 = xcx[2].i ;  /* cos=1 sin=0 */
-   f2 = xcx[0].r ; f4 = xcx[0].i ;
-   xcx[2].r = f2-f1 ; xcx[2].i = f4-f3 ;
-   xcx[0].r = f2+f1 ; xcx[0].i = f4+f3 ;
-
-   f1 = - xcx[3].i * csp[2].i ; /* cos=0 twiddles */
-   f3 = xcx[3].r * csp[2].i ;
-   f2 = xcx[1].r ; f4 = xcx[1].i ;
-   xcx[3].r = f2-f1 ; xcx[3].i = f4-f3 ;
-   xcx[1].r = f2+f1 ; xcx[1].i = f4+f3 ;
-
-   return ;
-}
-#endif /* USE_FFT4_MACRO */
+/******************************************************************************
+  Routines below for unrolled FFT routines; generated with program fftprint.c.
+*******************************************************************************/
 
 /**************************************/
 /* FFT routine unrolled of length   8 */
@@ -388,11 +424,13 @@ static void fft8( int mode , complex *xc )
    register complex *csp , *xcx=xc;
    register float f1,f2,f3,f4 ;
 
+/* ININFO_message("fft8") ; */
+
    /** perhaps initialize **/
 
-   if( nold[ithr] != 8 ) csfft_trigconsts( 8 ) ;
+   if( CFO_nold[ithr] != 8 ) csfft_trigconsts( 8 ) ;
 
-   csp = (mode > 0) ? csplus[ithr] : csminus[ithr] ;  /* choose const array */
+   csp = (mode > 0) ? CFO_csplus[ithr] : CFO_csminus[ithr] ;  /* choose const array */
 
    /** data swapping part **/
 
@@ -483,11 +521,13 @@ static void fft16( int mode , complex *xc )
    register complex *csp , *xcx=xc;
    register float f1,f2,f3,f4 ;
 
+/* ININFO_message("fft16") ; */
+
    /** perhaps initialize **/
 
-   if( nold[ithr] != 16 ) csfft_trigconsts( 16 ) ;
+   if( CFO_nold[ithr] != 16 ) csfft_trigconsts( 16 ) ;
 
-   csp = (mode > 0) ? csplus[ithr] : csminus[ithr] ;  /* choose const array */
+   csp = (mode > 0) ? CFO_csplus[ithr] : CFO_csminus[ithr] ;  /* choose const array */
 
    /** data swapping part **/
 
@@ -706,11 +746,13 @@ static void fft32( int mode , complex *xc )
    register complex *csp , *xcx=xc;
    register float f1,f2,f3,f4 ;
 
+/* ININFO_message("fft32") ; */
+
    /** perhaps initialize **/
 
-   if( nold[ithr] != 32 ) csfft_trigconsts( 32 ) ;
+   if( CFO_nold[ithr] != 32 ) csfft_trigconsts( 32 ) ;
 
-   csp = (mode > 0) ? csplus[ithr] : csminus[ithr] ;  /* choose const array */
+   csp = (mode > 0) ? CFO_csplus[ithr] : CFO_csminus[ithr] ;  /* choose const array */
 
    /** data swapping part **/
 
@@ -1216,464 +1258,1317 @@ static void fft32( int mode , complex *xc )
    return ;
 }
 
-/*----------------------------------------------------------------
-   Do a 64 FFT using fft32 and decimation-by-2
-------------------------------------------------------------------*/
+/**************************************/
+/* FFT routine unrolled of length  64 */
 
-static void fft64( int mode , complex *xc )
+void fft64( int mode , complex * xc )
 {
-   static complex *cs=NULL , *aa , *bb ;
-   register int k , i ;
-   register float akr,aki , bkr,bki , tr,ti , t1,t2 ;
+   DECLARE_ithr ;
+   register complex *csp , *xcx=xc;
+   register float f1,f2,f3,f4 ;
 
-   /*-- initialize cosine/sine table --*/
+/* ININFO_message("fft64") ; */
 
-#pragma omp critical
-   { if( cs == NULL ){
-      double th = (PI/32.0) ;
-      cs = (complex *) malloc(sizeof(complex)*32) ;
-      aa = (complex *) malloc(sizeof(complex)*32) ;
-      bb = (complex *) malloc(sizeof(complex)*32) ;
+   /** perhaps initialize **/
 
-      cs[0].r = 1.0 ; cs[0].i = 0.0 ; /* never used */
-      for( k=1 ; k < 32 ; k++ ){ cs[k].r = cos(k*th); cs[k].i = sin(k*th); }
-   }}
+   if( CFO_nold[ithr] != 64 ) csfft_trigconsts( 64 ) ;
 
-   /*-- load subarrays, and FFT each one --*/
+   csp = (mode > 0) ? CFO_csplus[ithr] : CFO_csminus[ithr] ;  /* choose const array */
 
-   for( i=k=0 ; k < 32 ; k++ ){ aa[k] = xc[i++] ; bb[k] = xc[i++] ; }
+   /** data swapping part **/
 
-   fft32( mode , aa ) ; fft32( mode , bb ) ;
+   f1 = xcx[1].r ; f2 = xcx[1].i ;
+   xcx[1].r = xcx[32].r ; xcx[1].i = xcx[32].i ;
+   xcx[32].r = f1 ; xcx[32].i = f2 ;
 
-   /*-- recombine: 0 and Nyquist --*/
+   f1 = xcx[2].r ; f2 = xcx[2].i ;
+   xcx[2].r = xcx[16].r ; xcx[2].i = xcx[16].i ;
+   xcx[16].r = f1 ; xcx[16].i = f2 ;
 
-   xc[ 0].r = aa[0].r + bb[0].r ; xc[ 0].i = aa[0].i + bb[0].i ;
-   xc[32].r = aa[0].r - bb[0].r ; xc[32].i = aa[0].i - bb[0].i ;
+   f1 = xcx[3].r ; f2 = xcx[3].i ;
+   xcx[3].r = xcx[48].r ; xcx[3].i = xcx[48].i ;
+   xcx[48].r = f1 ; xcx[48].i = f2 ;
 
-   /*-- recombine: all others --*/
+   f1 = xcx[4].r ; f2 = xcx[4].i ;
+   xcx[4].r = xcx[8].r ; xcx[4].i = xcx[8].i ;
+   xcx[8].r = f1 ; xcx[8].i = f2 ;
 
-   if( mode > 0 ){
-      for( k=1 ; k < 32 ; k++ ){
-         bkr = bb[k].r; bki = bb[k].i;
-         tr  = cs[k].r; ti  = cs[k].i;
+   f1 = xcx[5].r ; f2 = xcx[5].i ;
+   xcx[5].r = xcx[40].r ; xcx[5].i = xcx[40].i ;
+   xcx[40].r = f1 ; xcx[40].i = f2 ;
 
-         t1  = tr*bkr - ti*bki ; t2 = tr*bki + ti*bkr ;
+   f1 = xcx[6].r ; f2 = xcx[6].i ;
+   xcx[6].r = xcx[24].r ; xcx[6].i = xcx[24].i ;
+   xcx[24].r = f1 ; xcx[24].i = f2 ;
 
-         akr = aa[k].r; aki = aa[k].i;
+   f1 = xcx[7].r ; f2 = xcx[7].i ;
+   xcx[7].r = xcx[56].r ; xcx[7].i = xcx[56].i ;
+   xcx[56].r = f1 ; xcx[56].i = f2 ;
 
-         xc[k   ].r = akr+t1; xc[k   ].i = aki+t2;
-         xc[k+32].r = akr-t1; xc[k+32].i = aki-t2;
-      }
-   } else {
-      for( k=1 ; k < 32 ; k++ ){
-         bkr = bb[k].r; bki = bb[k].i;
-         tr  = cs[k].r; ti  = cs[k].i;
-                                                         /* only change from */
-         t1  = tr*bkr + ti*bki ; t2 = tr*bki - ti*bkr ;  /* above is with ti */
+   f1 = xcx[9].r ; f2 = xcx[9].i ;
+   xcx[9].r = xcx[36].r ; xcx[9].i = xcx[36].i ;
+   xcx[36].r = f1 ; xcx[36].i = f2 ;
 
-         akr = aa[k].r; aki = aa[k].i;
+   f1 = xcx[10].r ; f2 = xcx[10].i ;
+   xcx[10].r = xcx[20].r ; xcx[10].i = xcx[20].i ;
+   xcx[20].r = f1 ; xcx[20].i = f2 ;
 
-         xc[k   ].r = akr+t1; xc[k   ].i = aki+t2;
-         xc[k+32].r = akr-t1; xc[k+32].i = aki-t2;
-      }
-   }
+   f1 = xcx[11].r ; f2 = xcx[11].i ;
+   xcx[11].r = xcx[52].r ; xcx[11].i = xcx[52].i ;
+   xcx[52].r = f1 ; xcx[52].i = f2 ;
+
+   f1 = xcx[13].r ; f2 = xcx[13].i ;
+   xcx[13].r = xcx[44].r ; xcx[13].i = xcx[44].i ;
+   xcx[44].r = f1 ; xcx[44].i = f2 ;
+
+   f1 = xcx[14].r ; f2 = xcx[14].i ;
+   xcx[14].r = xcx[28].r ; xcx[14].i = xcx[28].i ;
+   xcx[28].r = f1 ; xcx[28].i = f2 ;
+
+   f1 = xcx[15].r ; f2 = xcx[15].i ;
+   xcx[15].r = xcx[60].r ; xcx[15].i = xcx[60].i ;
+   xcx[60].r = f1 ; xcx[60].i = f2 ;
+
+   f1 = xcx[17].r ; f2 = xcx[17].i ;
+   xcx[17].r = xcx[34].r ; xcx[17].i = xcx[34].i ;
+   xcx[34].r = f1 ; xcx[34].i = f2 ;
+
+   f1 = xcx[19].r ; f2 = xcx[19].i ;
+   xcx[19].r = xcx[50].r ; xcx[19].i = xcx[50].i ;
+   xcx[50].r = f1 ; xcx[50].i = f2 ;
+
+   f1 = xcx[21].r ; f2 = xcx[21].i ;
+   xcx[21].r = xcx[42].r ; xcx[21].i = xcx[42].i ;
+   xcx[42].r = f1 ; xcx[42].i = f2 ;
+
+   f1 = xcx[22].r ; f2 = xcx[22].i ;
+   xcx[22].r = xcx[26].r ; xcx[22].i = xcx[26].i ;
+   xcx[26].r = f1 ; xcx[26].i = f2 ;
+
+   f1 = xcx[23].r ; f2 = xcx[23].i ;
+   xcx[23].r = xcx[58].r ; xcx[23].i = xcx[58].i ;
+   xcx[58].r = f1 ; xcx[58].i = f2 ;
+
+   f1 = xcx[25].r ; f2 = xcx[25].i ;
+   xcx[25].r = xcx[38].r ; xcx[25].i = xcx[38].i ;
+   xcx[38].r = f1 ; xcx[38].i = f2 ;
+
+   f1 = xcx[27].r ; f2 = xcx[27].i ;
+   xcx[27].r = xcx[54].r ; xcx[27].i = xcx[54].i ;
+   xcx[54].r = f1 ; xcx[54].i = f2 ;
+
+   f1 = xcx[29].r ; f2 = xcx[29].i ;
+   xcx[29].r = xcx[46].r ; xcx[29].i = xcx[46].i ;
+   xcx[46].r = f1 ; xcx[46].i = f2 ;
+
+   f1 = xcx[31].r ; f2 = xcx[31].i ;
+   xcx[31].r = xcx[62].r ; xcx[31].i = xcx[62].i ;
+   xcx[62].r = f1 ; xcx[62].i = f2 ;
+
+   f1 = xcx[35].r ; f2 = xcx[35].i ;
+   xcx[35].r = xcx[49].r ; xcx[35].i = xcx[49].i ;
+   xcx[49].r = f1 ; xcx[49].i = f2 ;
+
+   f1 = xcx[37].r ; f2 = xcx[37].i ;
+   xcx[37].r = xcx[41].r ; xcx[37].i = xcx[41].i ;
+   xcx[41].r = f1 ; xcx[41].i = f2 ;
+
+   f1 = xcx[39].r ; f2 = xcx[39].i ;
+   xcx[39].r = xcx[57].r ; xcx[39].i = xcx[57].i ;
+   xcx[57].r = f1 ; xcx[57].i = f2 ;
+
+   f1 = xcx[43].r ; f2 = xcx[43].i ;
+   xcx[43].r = xcx[53].r ; xcx[43].i = xcx[53].i ;
+   xcx[53].r = f1 ; xcx[53].i = f2 ;
+
+   f1 = xcx[47].r ; f2 = xcx[47].i ;
+   xcx[47].r = xcx[61].r ; xcx[47].i = xcx[61].i ;
+   xcx[61].r = f1 ; xcx[61].i = f2 ;
+
+   f1 = xcx[55].r ; f2 = xcx[55].i ;
+   xcx[55].r = xcx[59].r ; xcx[55].i = xcx[59].i ;
+   xcx[59].r = f1 ; xcx[59].i = f2 ;
+
+   /** butterflying part **/
+
+   f1 = xcx[1].r ; f3 = xcx[1].i ;  /* cos=1 sin=0 */
+   f2 = xcx[0].r ; f4 = xcx[0].i ;
+   xcx[1].r = f2-f1 ; xcx[1].i = f4-f3 ;
+   xcx[0].r = f2+f1 ; xcx[0].i = f4+f3 ;
+
+   f1 = xcx[3].r ; f3 = xcx[3].i ;  /* cos=1 sin=0 */
+   f2 = xcx[2].r ; f4 = xcx[2].i ;
+   xcx[3].r = f2-f1 ; xcx[3].i = f4-f3 ;
+   xcx[2].r = f2+f1 ; xcx[2].i = f4+f3 ;
+
+   f1 = xcx[5].r ; f3 = xcx[5].i ;  /* cos=1 sin=0 */
+   f2 = xcx[4].r ; f4 = xcx[4].i ;
+   xcx[5].r = f2-f1 ; xcx[5].i = f4-f3 ;
+   xcx[4].r = f2+f1 ; xcx[4].i = f4+f3 ;
+
+   f1 = xcx[7].r ; f3 = xcx[7].i ;  /* cos=1 sin=0 */
+   f2 = xcx[6].r ; f4 = xcx[6].i ;
+   xcx[7].r = f2-f1 ; xcx[7].i = f4-f3 ;
+   xcx[6].r = f2+f1 ; xcx[6].i = f4+f3 ;
+
+   f1 = xcx[9].r ; f3 = xcx[9].i ;  /* cos=1 sin=0 */
+   f2 = xcx[8].r ; f4 = xcx[8].i ;
+   xcx[9].r = f2-f1 ; xcx[9].i = f4-f3 ;
+   xcx[8].r = f2+f1 ; xcx[8].i = f4+f3 ;
+
+   f1 = xcx[11].r ; f3 = xcx[11].i ;  /* cos=1 sin=0 */
+   f2 = xcx[10].r ; f4 = xcx[10].i ;
+   xcx[11].r = f2-f1 ; xcx[11].i = f4-f3 ;
+   xcx[10].r = f2+f1 ; xcx[10].i = f4+f3 ;
+
+   f1 = xcx[13].r ; f3 = xcx[13].i ;  /* cos=1 sin=0 */
+   f2 = xcx[12].r ; f4 = xcx[12].i ;
+   xcx[13].r = f2-f1 ; xcx[13].i = f4-f3 ;
+   xcx[12].r = f2+f1 ; xcx[12].i = f4+f3 ;
+
+   f1 = xcx[15].r ; f3 = xcx[15].i ;  /* cos=1 sin=0 */
+   f2 = xcx[14].r ; f4 = xcx[14].i ;
+   xcx[15].r = f2-f1 ; xcx[15].i = f4-f3 ;
+   xcx[14].r = f2+f1 ; xcx[14].i = f4+f3 ;
+
+   f1 = xcx[17].r ; f3 = xcx[17].i ;  /* cos=1 sin=0 */
+   f2 = xcx[16].r ; f4 = xcx[16].i ;
+   xcx[17].r = f2-f1 ; xcx[17].i = f4-f3 ;
+   xcx[16].r = f2+f1 ; xcx[16].i = f4+f3 ;
+
+   f1 = xcx[19].r ; f3 = xcx[19].i ;  /* cos=1 sin=0 */
+   f2 = xcx[18].r ; f4 = xcx[18].i ;
+   xcx[19].r = f2-f1 ; xcx[19].i = f4-f3 ;
+   xcx[18].r = f2+f1 ; xcx[18].i = f4+f3 ;
+
+   f1 = xcx[21].r ; f3 = xcx[21].i ;  /* cos=1 sin=0 */
+   f2 = xcx[20].r ; f4 = xcx[20].i ;
+   xcx[21].r = f2-f1 ; xcx[21].i = f4-f3 ;
+   xcx[20].r = f2+f1 ; xcx[20].i = f4+f3 ;
+
+   f1 = xcx[23].r ; f3 = xcx[23].i ;  /* cos=1 sin=0 */
+   f2 = xcx[22].r ; f4 = xcx[22].i ;
+   xcx[23].r = f2-f1 ; xcx[23].i = f4-f3 ;
+   xcx[22].r = f2+f1 ; xcx[22].i = f4+f3 ;
+
+   f1 = xcx[25].r ; f3 = xcx[25].i ;  /* cos=1 sin=0 */
+   f2 = xcx[24].r ; f4 = xcx[24].i ;
+   xcx[25].r = f2-f1 ; xcx[25].i = f4-f3 ;
+   xcx[24].r = f2+f1 ; xcx[24].i = f4+f3 ;
+
+   f1 = xcx[27].r ; f3 = xcx[27].i ;  /* cos=1 sin=0 */
+   f2 = xcx[26].r ; f4 = xcx[26].i ;
+   xcx[27].r = f2-f1 ; xcx[27].i = f4-f3 ;
+   xcx[26].r = f2+f1 ; xcx[26].i = f4+f3 ;
+
+   f1 = xcx[29].r ; f3 = xcx[29].i ;  /* cos=1 sin=0 */
+   f2 = xcx[28].r ; f4 = xcx[28].i ;
+   xcx[29].r = f2-f1 ; xcx[29].i = f4-f3 ;
+   xcx[28].r = f2+f1 ; xcx[28].i = f4+f3 ;
+
+   f1 = xcx[31].r ; f3 = xcx[31].i ;  /* cos=1 sin=0 */
+   f2 = xcx[30].r ; f4 = xcx[30].i ;
+   xcx[31].r = f2-f1 ; xcx[31].i = f4-f3 ;
+   xcx[30].r = f2+f1 ; xcx[30].i = f4+f3 ;
+
+   f1 = xcx[33].r ; f3 = xcx[33].i ;  /* cos=1 sin=0 */
+   f2 = xcx[32].r ; f4 = xcx[32].i ;
+   xcx[33].r = f2-f1 ; xcx[33].i = f4-f3 ;
+   xcx[32].r = f2+f1 ; xcx[32].i = f4+f3 ;
+
+   f1 = xcx[35].r ; f3 = xcx[35].i ;  /* cos=1 sin=0 */
+   f2 = xcx[34].r ; f4 = xcx[34].i ;
+   xcx[35].r = f2-f1 ; xcx[35].i = f4-f3 ;
+   xcx[34].r = f2+f1 ; xcx[34].i = f4+f3 ;
+
+   f1 = xcx[37].r ; f3 = xcx[37].i ;  /* cos=1 sin=0 */
+   f2 = xcx[36].r ; f4 = xcx[36].i ;
+   xcx[37].r = f2-f1 ; xcx[37].i = f4-f3 ;
+   xcx[36].r = f2+f1 ; xcx[36].i = f4+f3 ;
+
+   f1 = xcx[39].r ; f3 = xcx[39].i ;  /* cos=1 sin=0 */
+   f2 = xcx[38].r ; f4 = xcx[38].i ;
+   xcx[39].r = f2-f1 ; xcx[39].i = f4-f3 ;
+   xcx[38].r = f2+f1 ; xcx[38].i = f4+f3 ;
+
+   f1 = xcx[41].r ; f3 = xcx[41].i ;  /* cos=1 sin=0 */
+   f2 = xcx[40].r ; f4 = xcx[40].i ;
+   xcx[41].r = f2-f1 ; xcx[41].i = f4-f3 ;
+   xcx[40].r = f2+f1 ; xcx[40].i = f4+f3 ;
+
+   f1 = xcx[43].r ; f3 = xcx[43].i ;  /* cos=1 sin=0 */
+   f2 = xcx[42].r ; f4 = xcx[42].i ;
+   xcx[43].r = f2-f1 ; xcx[43].i = f4-f3 ;
+   xcx[42].r = f2+f1 ; xcx[42].i = f4+f3 ;
+
+   f1 = xcx[45].r ; f3 = xcx[45].i ;  /* cos=1 sin=0 */
+   f2 = xcx[44].r ; f4 = xcx[44].i ;
+   xcx[45].r = f2-f1 ; xcx[45].i = f4-f3 ;
+   xcx[44].r = f2+f1 ; xcx[44].i = f4+f3 ;
+
+   f1 = xcx[47].r ; f3 = xcx[47].i ;  /* cos=1 sin=0 */
+   f2 = xcx[46].r ; f4 = xcx[46].i ;
+   xcx[47].r = f2-f1 ; xcx[47].i = f4-f3 ;
+   xcx[46].r = f2+f1 ; xcx[46].i = f4+f3 ;
+
+   f1 = xcx[49].r ; f3 = xcx[49].i ;  /* cos=1 sin=0 */
+   f2 = xcx[48].r ; f4 = xcx[48].i ;
+   xcx[49].r = f2-f1 ; xcx[49].i = f4-f3 ;
+   xcx[48].r = f2+f1 ; xcx[48].i = f4+f3 ;
+
+   f1 = xcx[51].r ; f3 = xcx[51].i ;  /* cos=1 sin=0 */
+   f2 = xcx[50].r ; f4 = xcx[50].i ;
+   xcx[51].r = f2-f1 ; xcx[51].i = f4-f3 ;
+   xcx[50].r = f2+f1 ; xcx[50].i = f4+f3 ;
+
+   f1 = xcx[53].r ; f3 = xcx[53].i ;  /* cos=1 sin=0 */
+   f2 = xcx[52].r ; f4 = xcx[52].i ;
+   xcx[53].r = f2-f1 ; xcx[53].i = f4-f3 ;
+   xcx[52].r = f2+f1 ; xcx[52].i = f4+f3 ;
+
+   f1 = xcx[55].r ; f3 = xcx[55].i ;  /* cos=1 sin=0 */
+   f2 = xcx[54].r ; f4 = xcx[54].i ;
+   xcx[55].r = f2-f1 ; xcx[55].i = f4-f3 ;
+   xcx[54].r = f2+f1 ; xcx[54].i = f4+f3 ;
+
+   f1 = xcx[57].r ; f3 = xcx[57].i ;  /* cos=1 sin=0 */
+   f2 = xcx[56].r ; f4 = xcx[56].i ;
+   xcx[57].r = f2-f1 ; xcx[57].i = f4-f3 ;
+   xcx[56].r = f2+f1 ; xcx[56].i = f4+f3 ;
+
+   f1 = xcx[59].r ; f3 = xcx[59].i ;  /* cos=1 sin=0 */
+   f2 = xcx[58].r ; f4 = xcx[58].i ;
+   xcx[59].r = f2-f1 ; xcx[59].i = f4-f3 ;
+   xcx[58].r = f2+f1 ; xcx[58].i = f4+f3 ;
+
+   f1 = xcx[61].r ; f3 = xcx[61].i ;  /* cos=1 sin=0 */
+   f2 = xcx[60].r ; f4 = xcx[60].i ;
+   xcx[61].r = f2-f1 ; xcx[61].i = f4-f3 ;
+   xcx[60].r = f2+f1 ; xcx[60].i = f4+f3 ;
+
+   f1 = xcx[63].r ; f3 = xcx[63].i ;  /* cos=1 sin=0 */
+   f2 = xcx[62].r ; f4 = xcx[62].i ;
+   xcx[63].r = f2-f1 ; xcx[63].i = f4-f3 ;
+   xcx[62].r = f2+f1 ; xcx[62].i = f4+f3 ;
+
+   f1 = xcx[2].r ; f3 = xcx[2].i ;  /* cos=1 sin=0 */
+   f2 = xcx[0].r ; f4 = xcx[0].i ;
+   xcx[2].r = f2-f1 ; xcx[2].i = f4-f3 ;
+   xcx[0].r = f2+f1 ; xcx[0].i = f4+f3 ;
+
+   f1 = xcx[6].r ; f3 = xcx[6].i ;  /* cos=1 sin=0 */
+   f2 = xcx[4].r ; f4 = xcx[4].i ;
+   xcx[6].r = f2-f1 ; xcx[6].i = f4-f3 ;
+   xcx[4].r = f2+f1 ; xcx[4].i = f4+f3 ;
+
+   f1 = xcx[10].r ; f3 = xcx[10].i ;  /* cos=1 sin=0 */
+   f2 = xcx[8].r ; f4 = xcx[8].i ;
+   xcx[10].r = f2-f1 ; xcx[10].i = f4-f3 ;
+   xcx[8].r = f2+f1 ; xcx[8].i = f4+f3 ;
+
+   f1 = xcx[14].r ; f3 = xcx[14].i ;  /* cos=1 sin=0 */
+   f2 = xcx[12].r ; f4 = xcx[12].i ;
+   xcx[14].r = f2-f1 ; xcx[14].i = f4-f3 ;
+   xcx[12].r = f2+f1 ; xcx[12].i = f4+f3 ;
+
+   f1 = xcx[18].r ; f3 = xcx[18].i ;  /* cos=1 sin=0 */
+   f2 = xcx[16].r ; f4 = xcx[16].i ;
+   xcx[18].r = f2-f1 ; xcx[18].i = f4-f3 ;
+   xcx[16].r = f2+f1 ; xcx[16].i = f4+f3 ;
+
+   f1 = xcx[22].r ; f3 = xcx[22].i ;  /* cos=1 sin=0 */
+   f2 = xcx[20].r ; f4 = xcx[20].i ;
+   xcx[22].r = f2-f1 ; xcx[22].i = f4-f3 ;
+   xcx[20].r = f2+f1 ; xcx[20].i = f4+f3 ;
+
+   f1 = xcx[26].r ; f3 = xcx[26].i ;  /* cos=1 sin=0 */
+   f2 = xcx[24].r ; f4 = xcx[24].i ;
+   xcx[26].r = f2-f1 ; xcx[26].i = f4-f3 ;
+   xcx[24].r = f2+f1 ; xcx[24].i = f4+f3 ;
+
+   f1 = xcx[30].r ; f3 = xcx[30].i ;  /* cos=1 sin=0 */
+   f2 = xcx[28].r ; f4 = xcx[28].i ;
+   xcx[30].r = f2-f1 ; xcx[30].i = f4-f3 ;
+   xcx[28].r = f2+f1 ; xcx[28].i = f4+f3 ;
+
+   f1 = xcx[34].r ; f3 = xcx[34].i ;  /* cos=1 sin=0 */
+   f2 = xcx[32].r ; f4 = xcx[32].i ;
+   xcx[34].r = f2-f1 ; xcx[34].i = f4-f3 ;
+   xcx[32].r = f2+f1 ; xcx[32].i = f4+f3 ;
+
+   f1 = xcx[38].r ; f3 = xcx[38].i ;  /* cos=1 sin=0 */
+   f2 = xcx[36].r ; f4 = xcx[36].i ;
+   xcx[38].r = f2-f1 ; xcx[38].i = f4-f3 ;
+   xcx[36].r = f2+f1 ; xcx[36].i = f4+f3 ;
+
+   f1 = xcx[42].r ; f3 = xcx[42].i ;  /* cos=1 sin=0 */
+   f2 = xcx[40].r ; f4 = xcx[40].i ;
+   xcx[42].r = f2-f1 ; xcx[42].i = f4-f3 ;
+   xcx[40].r = f2+f1 ; xcx[40].i = f4+f3 ;
+
+   f1 = xcx[46].r ; f3 = xcx[46].i ;  /* cos=1 sin=0 */
+   f2 = xcx[44].r ; f4 = xcx[44].i ;
+   xcx[46].r = f2-f1 ; xcx[46].i = f4-f3 ;
+   xcx[44].r = f2+f1 ; xcx[44].i = f4+f3 ;
+
+   f1 = xcx[50].r ; f3 = xcx[50].i ;  /* cos=1 sin=0 */
+   f2 = xcx[48].r ; f4 = xcx[48].i ;
+   xcx[50].r = f2-f1 ; xcx[50].i = f4-f3 ;
+   xcx[48].r = f2+f1 ; xcx[48].i = f4+f3 ;
+
+   f1 = xcx[54].r ; f3 = xcx[54].i ;  /* cos=1 sin=0 */
+   f2 = xcx[52].r ; f4 = xcx[52].i ;
+   xcx[54].r = f2-f1 ; xcx[54].i = f4-f3 ;
+   xcx[52].r = f2+f1 ; xcx[52].i = f4+f3 ;
+
+   f1 = xcx[58].r ; f3 = xcx[58].i ;  /* cos=1 sin=0 */
+   f2 = xcx[56].r ; f4 = xcx[56].i ;
+   xcx[58].r = f2-f1 ; xcx[58].i = f4-f3 ;
+   xcx[56].r = f2+f1 ; xcx[56].i = f4+f3 ;
+
+   f1 = xcx[62].r ; f3 = xcx[62].i ;  /* cos=1 sin=0 */
+   f2 = xcx[60].r ; f4 = xcx[60].i ;
+   xcx[62].r = f2-f1 ; xcx[62].i = f4-f3 ;
+   xcx[60].r = f2+f1 ; xcx[60].i = f4+f3 ;
+
+   f1 = - xcx[3].i * csp[2].i ; /* cos=0 twiddles */
+   f3 = xcx[3].r * csp[2].i ;
+   f2 = xcx[1].r ; f4 = xcx[1].i ;
+   xcx[3].r = f2-f1 ; xcx[3].i = f4-f3 ;
+   xcx[1].r = f2+f1 ; xcx[1].i = f4+f3 ;
+
+   f1 = - xcx[7].i * csp[2].i ; /* cos=0 twiddles */
+   f3 = xcx[7].r * csp[2].i ;
+   f2 = xcx[5].r ; f4 = xcx[5].i ;
+   xcx[7].r = f2-f1 ; xcx[7].i = f4-f3 ;
+   xcx[5].r = f2+f1 ; xcx[5].i = f4+f3 ;
+
+   f1 = - xcx[11].i * csp[2].i ; /* cos=0 twiddles */
+   f3 = xcx[11].r * csp[2].i ;
+   f2 = xcx[9].r ; f4 = xcx[9].i ;
+   xcx[11].r = f2-f1 ; xcx[11].i = f4-f3 ;
+   xcx[9].r = f2+f1 ; xcx[9].i = f4+f3 ;
+
+   f1 = - xcx[15].i * csp[2].i ; /* cos=0 twiddles */
+   f3 = xcx[15].r * csp[2].i ;
+   f2 = xcx[13].r ; f4 = xcx[13].i ;
+   xcx[15].r = f2-f1 ; xcx[15].i = f4-f3 ;
+   xcx[13].r = f2+f1 ; xcx[13].i = f4+f3 ;
+
+   f1 = - xcx[19].i * csp[2].i ; /* cos=0 twiddles */
+   f3 = xcx[19].r * csp[2].i ;
+   f2 = xcx[17].r ; f4 = xcx[17].i ;
+   xcx[19].r = f2-f1 ; xcx[19].i = f4-f3 ;
+   xcx[17].r = f2+f1 ; xcx[17].i = f4+f3 ;
+
+   f1 = - xcx[23].i * csp[2].i ; /* cos=0 twiddles */
+   f3 = xcx[23].r * csp[2].i ;
+   f2 = xcx[21].r ; f4 = xcx[21].i ;
+   xcx[23].r = f2-f1 ; xcx[23].i = f4-f3 ;
+   xcx[21].r = f2+f1 ; xcx[21].i = f4+f3 ;
+
+   f1 = - xcx[27].i * csp[2].i ; /* cos=0 twiddles */
+   f3 = xcx[27].r * csp[2].i ;
+   f2 = xcx[25].r ; f4 = xcx[25].i ;
+   xcx[27].r = f2-f1 ; xcx[27].i = f4-f3 ;
+   xcx[25].r = f2+f1 ; xcx[25].i = f4+f3 ;
+
+   f1 = - xcx[31].i * csp[2].i ; /* cos=0 twiddles */
+   f3 = xcx[31].r * csp[2].i ;
+   f2 = xcx[29].r ; f4 = xcx[29].i ;
+   xcx[31].r = f2-f1 ; xcx[31].i = f4-f3 ;
+   xcx[29].r = f2+f1 ; xcx[29].i = f4+f3 ;
+
+   f1 = - xcx[35].i * csp[2].i ; /* cos=0 twiddles */
+   f3 = xcx[35].r * csp[2].i ;
+   f2 = xcx[33].r ; f4 = xcx[33].i ;
+   xcx[35].r = f2-f1 ; xcx[35].i = f4-f3 ;
+   xcx[33].r = f2+f1 ; xcx[33].i = f4+f3 ;
+
+   f1 = - xcx[39].i * csp[2].i ; /* cos=0 twiddles */
+   f3 = xcx[39].r * csp[2].i ;
+   f2 = xcx[37].r ; f4 = xcx[37].i ;
+   xcx[39].r = f2-f1 ; xcx[39].i = f4-f3 ;
+   xcx[37].r = f2+f1 ; xcx[37].i = f4+f3 ;
+
+   f1 = - xcx[43].i * csp[2].i ; /* cos=0 twiddles */
+   f3 = xcx[43].r * csp[2].i ;
+   f2 = xcx[41].r ; f4 = xcx[41].i ;
+   xcx[43].r = f2-f1 ; xcx[43].i = f4-f3 ;
+   xcx[41].r = f2+f1 ; xcx[41].i = f4+f3 ;
+
+   f1 = - xcx[47].i * csp[2].i ; /* cos=0 twiddles */
+   f3 = xcx[47].r * csp[2].i ;
+   f2 = xcx[45].r ; f4 = xcx[45].i ;
+   xcx[47].r = f2-f1 ; xcx[47].i = f4-f3 ;
+   xcx[45].r = f2+f1 ; xcx[45].i = f4+f3 ;
+
+   f1 = - xcx[51].i * csp[2].i ; /* cos=0 twiddles */
+   f3 = xcx[51].r * csp[2].i ;
+   f2 = xcx[49].r ; f4 = xcx[49].i ;
+   xcx[51].r = f2-f1 ; xcx[51].i = f4-f3 ;
+   xcx[49].r = f2+f1 ; xcx[49].i = f4+f3 ;
+
+   f1 = - xcx[55].i * csp[2].i ; /* cos=0 twiddles */
+   f3 = xcx[55].r * csp[2].i ;
+   f2 = xcx[53].r ; f4 = xcx[53].i ;
+   xcx[55].r = f2-f1 ; xcx[55].i = f4-f3 ;
+   xcx[53].r = f2+f1 ; xcx[53].i = f4+f3 ;
+
+   f1 = - xcx[59].i * csp[2].i ; /* cos=0 twiddles */
+   f3 = xcx[59].r * csp[2].i ;
+   f2 = xcx[57].r ; f4 = xcx[57].i ;
+   xcx[59].r = f2-f1 ; xcx[59].i = f4-f3 ;
+   xcx[57].r = f2+f1 ; xcx[57].i = f4+f3 ;
+
+   f1 = - xcx[63].i * csp[2].i ; /* cos=0 twiddles */
+   f3 = xcx[63].r * csp[2].i ;
+   f2 = xcx[61].r ; f4 = xcx[61].i ;
+   xcx[63].r = f2-f1 ; xcx[63].i = f4-f3 ;
+   xcx[61].r = f2+f1 ; xcx[61].i = f4+f3 ;
+
+   f1 = xcx[4].r ; f3 = xcx[4].i ;  /* cos=1 sin=0 */
+   f2 = xcx[0].r ; f4 = xcx[0].i ;
+   xcx[4].r = f2-f1 ; xcx[4].i = f4-f3 ;
+   xcx[0].r = f2+f1 ; xcx[0].i = f4+f3 ;
+
+   f1 = xcx[12].r ; f3 = xcx[12].i ;  /* cos=1 sin=0 */
+   f2 = xcx[8].r ; f4 = xcx[8].i ;
+   xcx[12].r = f2-f1 ; xcx[12].i = f4-f3 ;
+   xcx[8].r = f2+f1 ; xcx[8].i = f4+f3 ;
+
+   f1 = xcx[20].r ; f3 = xcx[20].i ;  /* cos=1 sin=0 */
+   f2 = xcx[16].r ; f4 = xcx[16].i ;
+   xcx[20].r = f2-f1 ; xcx[20].i = f4-f3 ;
+   xcx[16].r = f2+f1 ; xcx[16].i = f4+f3 ;
+
+   f1 = xcx[28].r ; f3 = xcx[28].i ;  /* cos=1 sin=0 */
+   f2 = xcx[24].r ; f4 = xcx[24].i ;
+   xcx[28].r = f2-f1 ; xcx[28].i = f4-f3 ;
+   xcx[24].r = f2+f1 ; xcx[24].i = f4+f3 ;
+
+   f1 = xcx[36].r ; f3 = xcx[36].i ;  /* cos=1 sin=0 */
+   f2 = xcx[32].r ; f4 = xcx[32].i ;
+   xcx[36].r = f2-f1 ; xcx[36].i = f4-f3 ;
+   xcx[32].r = f2+f1 ; xcx[32].i = f4+f3 ;
+
+   f1 = xcx[44].r ; f3 = xcx[44].i ;  /* cos=1 sin=0 */
+   f2 = xcx[40].r ; f4 = xcx[40].i ;
+   xcx[44].r = f2-f1 ; xcx[44].i = f4-f3 ;
+   xcx[40].r = f2+f1 ; xcx[40].i = f4+f3 ;
+
+   f1 = xcx[52].r ; f3 = xcx[52].i ;  /* cos=1 sin=0 */
+   f2 = xcx[48].r ; f4 = xcx[48].i ;
+   xcx[52].r = f2-f1 ; xcx[52].i = f4-f3 ;
+   xcx[48].r = f2+f1 ; xcx[48].i = f4+f3 ;
+
+   f1 = xcx[60].r ; f3 = xcx[60].i ;  /* cos=1 sin=0 */
+   f2 = xcx[56].r ; f4 = xcx[56].i ;
+   xcx[60].r = f2-f1 ; xcx[60].i = f4-f3 ;
+   xcx[56].r = f2+f1 ; xcx[56].i = f4+f3 ;
+
+   f1 = xcx[5].r * csp[4].r - xcx[5].i * csp[4].i ; /* twiddles */
+   f3 = xcx[5].r * csp[4].i + xcx[5].i * csp[4].r ;
+   f2 = xcx[1].r ; f4 = xcx[1].i ;
+   xcx[5].r = f2-f1 ; xcx[5].i = f4-f3 ;
+   xcx[1].r = f2+f1 ; xcx[1].i = f4+f3 ;
+
+   f1 = xcx[13].r * csp[4].r - xcx[13].i * csp[4].i ; /* twiddles */
+   f3 = xcx[13].r * csp[4].i + xcx[13].i * csp[4].r ;
+   f2 = xcx[9].r ; f4 = xcx[9].i ;
+   xcx[13].r = f2-f1 ; xcx[13].i = f4-f3 ;
+   xcx[9].r = f2+f1 ; xcx[9].i = f4+f3 ;
+
+   f1 = xcx[21].r * csp[4].r - xcx[21].i * csp[4].i ; /* twiddles */
+   f3 = xcx[21].r * csp[4].i + xcx[21].i * csp[4].r ;
+   f2 = xcx[17].r ; f4 = xcx[17].i ;
+   xcx[21].r = f2-f1 ; xcx[21].i = f4-f3 ;
+   xcx[17].r = f2+f1 ; xcx[17].i = f4+f3 ;
+
+   f1 = xcx[29].r * csp[4].r - xcx[29].i * csp[4].i ; /* twiddles */
+   f3 = xcx[29].r * csp[4].i + xcx[29].i * csp[4].r ;
+   f2 = xcx[25].r ; f4 = xcx[25].i ;
+   xcx[29].r = f2-f1 ; xcx[29].i = f4-f3 ;
+   xcx[25].r = f2+f1 ; xcx[25].i = f4+f3 ;
+
+   f1 = xcx[37].r * csp[4].r - xcx[37].i * csp[4].i ; /* twiddles */
+   f3 = xcx[37].r * csp[4].i + xcx[37].i * csp[4].r ;
+   f2 = xcx[33].r ; f4 = xcx[33].i ;
+   xcx[37].r = f2-f1 ; xcx[37].i = f4-f3 ;
+   xcx[33].r = f2+f1 ; xcx[33].i = f4+f3 ;
+
+   f1 = xcx[45].r * csp[4].r - xcx[45].i * csp[4].i ; /* twiddles */
+   f3 = xcx[45].r * csp[4].i + xcx[45].i * csp[4].r ;
+   f2 = xcx[41].r ; f4 = xcx[41].i ;
+   xcx[45].r = f2-f1 ; xcx[45].i = f4-f3 ;
+   xcx[41].r = f2+f1 ; xcx[41].i = f4+f3 ;
+
+   f1 = xcx[53].r * csp[4].r - xcx[53].i * csp[4].i ; /* twiddles */
+   f3 = xcx[53].r * csp[4].i + xcx[53].i * csp[4].r ;
+   f2 = xcx[49].r ; f4 = xcx[49].i ;
+   xcx[53].r = f2-f1 ; xcx[53].i = f4-f3 ;
+   xcx[49].r = f2+f1 ; xcx[49].i = f4+f3 ;
+
+   f1 = xcx[61].r * csp[4].r - xcx[61].i * csp[4].i ; /* twiddles */
+   f3 = xcx[61].r * csp[4].i + xcx[61].i * csp[4].r ;
+   f2 = xcx[57].r ; f4 = xcx[57].i ;
+   xcx[61].r = f2-f1 ; xcx[61].i = f4-f3 ;
+   xcx[57].r = f2+f1 ; xcx[57].i = f4+f3 ;
+
+   f1 = - xcx[6].i * csp[5].i ; /* cos=0 twiddles */
+   f3 = xcx[6].r * csp[5].i ;
+   f2 = xcx[2].r ; f4 = xcx[2].i ;
+   xcx[6].r = f2-f1 ; xcx[6].i = f4-f3 ;
+   xcx[2].r = f2+f1 ; xcx[2].i = f4+f3 ;
+
+   f1 = - xcx[14].i * csp[5].i ; /* cos=0 twiddles */
+   f3 = xcx[14].r * csp[5].i ;
+   f2 = xcx[10].r ; f4 = xcx[10].i ;
+   xcx[14].r = f2-f1 ; xcx[14].i = f4-f3 ;
+   xcx[10].r = f2+f1 ; xcx[10].i = f4+f3 ;
+
+   f1 = - xcx[22].i * csp[5].i ; /* cos=0 twiddles */
+   f3 = xcx[22].r * csp[5].i ;
+   f2 = xcx[18].r ; f4 = xcx[18].i ;
+   xcx[22].r = f2-f1 ; xcx[22].i = f4-f3 ;
+   xcx[18].r = f2+f1 ; xcx[18].i = f4+f3 ;
+
+   f1 = - xcx[30].i * csp[5].i ; /* cos=0 twiddles */
+   f3 = xcx[30].r * csp[5].i ;
+   f2 = xcx[26].r ; f4 = xcx[26].i ;
+   xcx[30].r = f2-f1 ; xcx[30].i = f4-f3 ;
+   xcx[26].r = f2+f1 ; xcx[26].i = f4+f3 ;
+
+   f1 = - xcx[38].i * csp[5].i ; /* cos=0 twiddles */
+   f3 = xcx[38].r * csp[5].i ;
+   f2 = xcx[34].r ; f4 = xcx[34].i ;
+   xcx[38].r = f2-f1 ; xcx[38].i = f4-f3 ;
+   xcx[34].r = f2+f1 ; xcx[34].i = f4+f3 ;
+
+   f1 = - xcx[46].i * csp[5].i ; /* cos=0 twiddles */
+   f3 = xcx[46].r * csp[5].i ;
+   f2 = xcx[42].r ; f4 = xcx[42].i ;
+   xcx[46].r = f2-f1 ; xcx[46].i = f4-f3 ;
+   xcx[42].r = f2+f1 ; xcx[42].i = f4+f3 ;
+
+   f1 = - xcx[54].i * csp[5].i ; /* cos=0 twiddles */
+   f3 = xcx[54].r * csp[5].i ;
+   f2 = xcx[50].r ; f4 = xcx[50].i ;
+   xcx[54].r = f2-f1 ; xcx[54].i = f4-f3 ;
+   xcx[50].r = f2+f1 ; xcx[50].i = f4+f3 ;
+
+   f1 = - xcx[62].i * csp[5].i ; /* cos=0 twiddles */
+   f3 = xcx[62].r * csp[5].i ;
+   f2 = xcx[58].r ; f4 = xcx[58].i ;
+   xcx[62].r = f2-f1 ; xcx[62].i = f4-f3 ;
+   xcx[58].r = f2+f1 ; xcx[58].i = f4+f3 ;
+
+   f1 = xcx[7].r * csp[6].r - xcx[7].i * csp[6].i ; /* twiddles */
+   f3 = xcx[7].r * csp[6].i + xcx[7].i * csp[6].r ;
+   f2 = xcx[3].r ; f4 = xcx[3].i ;
+   xcx[7].r = f2-f1 ; xcx[7].i = f4-f3 ;
+   xcx[3].r = f2+f1 ; xcx[3].i = f4+f3 ;
+
+   f1 = xcx[15].r * csp[6].r - xcx[15].i * csp[6].i ; /* twiddles */
+   f3 = xcx[15].r * csp[6].i + xcx[15].i * csp[6].r ;
+   f2 = xcx[11].r ; f4 = xcx[11].i ;
+   xcx[15].r = f2-f1 ; xcx[15].i = f4-f3 ;
+   xcx[11].r = f2+f1 ; xcx[11].i = f4+f3 ;
+
+   f1 = xcx[23].r * csp[6].r - xcx[23].i * csp[6].i ; /* twiddles */
+   f3 = xcx[23].r * csp[6].i + xcx[23].i * csp[6].r ;
+   f2 = xcx[19].r ; f4 = xcx[19].i ;
+   xcx[23].r = f2-f1 ; xcx[23].i = f4-f3 ;
+   xcx[19].r = f2+f1 ; xcx[19].i = f4+f3 ;
+
+   f1 = xcx[31].r * csp[6].r - xcx[31].i * csp[6].i ; /* twiddles */
+   f3 = xcx[31].r * csp[6].i + xcx[31].i * csp[6].r ;
+   f2 = xcx[27].r ; f4 = xcx[27].i ;
+   xcx[31].r = f2-f1 ; xcx[31].i = f4-f3 ;
+   xcx[27].r = f2+f1 ; xcx[27].i = f4+f3 ;
+
+   f1 = xcx[39].r * csp[6].r - xcx[39].i * csp[6].i ; /* twiddles */
+   f3 = xcx[39].r * csp[6].i + xcx[39].i * csp[6].r ;
+   f2 = xcx[35].r ; f4 = xcx[35].i ;
+   xcx[39].r = f2-f1 ; xcx[39].i = f4-f3 ;
+   xcx[35].r = f2+f1 ; xcx[35].i = f4+f3 ;
+
+   f1 = xcx[47].r * csp[6].r - xcx[47].i * csp[6].i ; /* twiddles */
+   f3 = xcx[47].r * csp[6].i + xcx[47].i * csp[6].r ;
+   f2 = xcx[43].r ; f4 = xcx[43].i ;
+   xcx[47].r = f2-f1 ; xcx[47].i = f4-f3 ;
+   xcx[43].r = f2+f1 ; xcx[43].i = f4+f3 ;
+
+   f1 = xcx[55].r * csp[6].r - xcx[55].i * csp[6].i ; /* twiddles */
+   f3 = xcx[55].r * csp[6].i + xcx[55].i * csp[6].r ;
+   f2 = xcx[51].r ; f4 = xcx[51].i ;
+   xcx[55].r = f2-f1 ; xcx[55].i = f4-f3 ;
+   xcx[51].r = f2+f1 ; xcx[51].i = f4+f3 ;
+
+   f1 = xcx[63].r * csp[6].r - xcx[63].i * csp[6].i ; /* twiddles */
+   f3 = xcx[63].r * csp[6].i + xcx[63].i * csp[6].r ;
+   f2 = xcx[59].r ; f4 = xcx[59].i ;
+   xcx[63].r = f2-f1 ; xcx[63].i = f4-f3 ;
+   xcx[59].r = f2+f1 ; xcx[59].i = f4+f3 ;
+
+   f1 = xcx[8].r ; f3 = xcx[8].i ;  /* cos=1 sin=0 */
+   f2 = xcx[0].r ; f4 = xcx[0].i ;
+   xcx[8].r = f2-f1 ; xcx[8].i = f4-f3 ;
+   xcx[0].r = f2+f1 ; xcx[0].i = f4+f3 ;
+
+   f1 = xcx[24].r ; f3 = xcx[24].i ;  /* cos=1 sin=0 */
+   f2 = xcx[16].r ; f4 = xcx[16].i ;
+   xcx[24].r = f2-f1 ; xcx[24].i = f4-f3 ;
+   xcx[16].r = f2+f1 ; xcx[16].i = f4+f3 ;
+
+   f1 = xcx[40].r ; f3 = xcx[40].i ;  /* cos=1 sin=0 */
+   f2 = xcx[32].r ; f4 = xcx[32].i ;
+   xcx[40].r = f2-f1 ; xcx[40].i = f4-f3 ;
+   xcx[32].r = f2+f1 ; xcx[32].i = f4+f3 ;
+
+   f1 = xcx[56].r ; f3 = xcx[56].i ;  /* cos=1 sin=0 */
+   f2 = xcx[48].r ; f4 = xcx[48].i ;
+   xcx[56].r = f2-f1 ; xcx[56].i = f4-f3 ;
+   xcx[48].r = f2+f1 ; xcx[48].i = f4+f3 ;
+
+   f1 = xcx[9].r * csp[8].r - xcx[9].i * csp[8].i ; /* twiddles */
+   f3 = xcx[9].r * csp[8].i + xcx[9].i * csp[8].r ;
+   f2 = xcx[1].r ; f4 = xcx[1].i ;
+   xcx[9].r = f2-f1 ; xcx[9].i = f4-f3 ;
+   xcx[1].r = f2+f1 ; xcx[1].i = f4+f3 ;
+
+   f1 = xcx[25].r * csp[8].r - xcx[25].i * csp[8].i ; /* twiddles */
+   f3 = xcx[25].r * csp[8].i + xcx[25].i * csp[8].r ;
+   f2 = xcx[17].r ; f4 = xcx[17].i ;
+   xcx[25].r = f2-f1 ; xcx[25].i = f4-f3 ;
+   xcx[17].r = f2+f1 ; xcx[17].i = f4+f3 ;
+
+   f1 = xcx[41].r * csp[8].r - xcx[41].i * csp[8].i ; /* twiddles */
+   f3 = xcx[41].r * csp[8].i + xcx[41].i * csp[8].r ;
+   f2 = xcx[33].r ; f4 = xcx[33].i ;
+   xcx[41].r = f2-f1 ; xcx[41].i = f4-f3 ;
+   xcx[33].r = f2+f1 ; xcx[33].i = f4+f3 ;
+
+   f1 = xcx[57].r * csp[8].r - xcx[57].i * csp[8].i ; /* twiddles */
+   f3 = xcx[57].r * csp[8].i + xcx[57].i * csp[8].r ;
+   f2 = xcx[49].r ; f4 = xcx[49].i ;
+   xcx[57].r = f2-f1 ; xcx[57].i = f4-f3 ;
+   xcx[49].r = f2+f1 ; xcx[49].i = f4+f3 ;
+
+   f1 = xcx[10].r * csp[9].r - xcx[10].i * csp[9].i ; /* twiddles */
+   f3 = xcx[10].r * csp[9].i + xcx[10].i * csp[9].r ;
+   f2 = xcx[2].r ; f4 = xcx[2].i ;
+   xcx[10].r = f2-f1 ; xcx[10].i = f4-f3 ;
+   xcx[2].r = f2+f1 ; xcx[2].i = f4+f3 ;
+
+   f1 = xcx[26].r * csp[9].r - xcx[26].i * csp[9].i ; /* twiddles */
+   f3 = xcx[26].r * csp[9].i + xcx[26].i * csp[9].r ;
+   f2 = xcx[18].r ; f4 = xcx[18].i ;
+   xcx[26].r = f2-f1 ; xcx[26].i = f4-f3 ;
+   xcx[18].r = f2+f1 ; xcx[18].i = f4+f3 ;
+
+   f1 = xcx[42].r * csp[9].r - xcx[42].i * csp[9].i ; /* twiddles */
+   f3 = xcx[42].r * csp[9].i + xcx[42].i * csp[9].r ;
+   f2 = xcx[34].r ; f4 = xcx[34].i ;
+   xcx[42].r = f2-f1 ; xcx[42].i = f4-f3 ;
+   xcx[34].r = f2+f1 ; xcx[34].i = f4+f3 ;
+
+   f1 = xcx[58].r * csp[9].r - xcx[58].i * csp[9].i ; /* twiddles */
+   f3 = xcx[58].r * csp[9].i + xcx[58].i * csp[9].r ;
+   f2 = xcx[50].r ; f4 = xcx[50].i ;
+   xcx[58].r = f2-f1 ; xcx[58].i = f4-f3 ;
+   xcx[50].r = f2+f1 ; xcx[50].i = f4+f3 ;
+
+   f1 = xcx[11].r * csp[10].r - xcx[11].i * csp[10].i ; /* twiddles */
+   f3 = xcx[11].r * csp[10].i + xcx[11].i * csp[10].r ;
+   f2 = xcx[3].r ; f4 = xcx[3].i ;
+   xcx[11].r = f2-f1 ; xcx[11].i = f4-f3 ;
+   xcx[3].r = f2+f1 ; xcx[3].i = f4+f3 ;
+
+   f1 = xcx[27].r * csp[10].r - xcx[27].i * csp[10].i ; /* twiddles */
+   f3 = xcx[27].r * csp[10].i + xcx[27].i * csp[10].r ;
+   f2 = xcx[19].r ; f4 = xcx[19].i ;
+   xcx[27].r = f2-f1 ; xcx[27].i = f4-f3 ;
+   xcx[19].r = f2+f1 ; xcx[19].i = f4+f3 ;
+
+   f1 = xcx[43].r * csp[10].r - xcx[43].i * csp[10].i ; /* twiddles */
+   f3 = xcx[43].r * csp[10].i + xcx[43].i * csp[10].r ;
+   f2 = xcx[35].r ; f4 = xcx[35].i ;
+   xcx[43].r = f2-f1 ; xcx[43].i = f4-f3 ;
+   xcx[35].r = f2+f1 ; xcx[35].i = f4+f3 ;
+
+   f1 = xcx[59].r * csp[10].r - xcx[59].i * csp[10].i ; /* twiddles */
+   f3 = xcx[59].r * csp[10].i + xcx[59].i * csp[10].r ;
+   f2 = xcx[51].r ; f4 = xcx[51].i ;
+   xcx[59].r = f2-f1 ; xcx[59].i = f4-f3 ;
+   xcx[51].r = f2+f1 ; xcx[51].i = f4+f3 ;
+
+   f1 = - xcx[12].i * csp[11].i ; /* cos=0 twiddles */
+   f3 = xcx[12].r * csp[11].i ;
+   f2 = xcx[4].r ; f4 = xcx[4].i ;
+   xcx[12].r = f2-f1 ; xcx[12].i = f4-f3 ;
+   xcx[4].r = f2+f1 ; xcx[4].i = f4+f3 ;
+
+   f1 = - xcx[28].i * csp[11].i ; /* cos=0 twiddles */
+   f3 = xcx[28].r * csp[11].i ;
+   f2 = xcx[20].r ; f4 = xcx[20].i ;
+   xcx[28].r = f2-f1 ; xcx[28].i = f4-f3 ;
+   xcx[20].r = f2+f1 ; xcx[20].i = f4+f3 ;
+
+   f1 = - xcx[44].i * csp[11].i ; /* cos=0 twiddles */
+   f3 = xcx[44].r * csp[11].i ;
+   f2 = xcx[36].r ; f4 = xcx[36].i ;
+   xcx[44].r = f2-f1 ; xcx[44].i = f4-f3 ;
+   xcx[36].r = f2+f1 ; xcx[36].i = f4+f3 ;
+
+   f1 = - xcx[60].i * csp[11].i ; /* cos=0 twiddles */
+   f3 = xcx[60].r * csp[11].i ;
+   f2 = xcx[52].r ; f4 = xcx[52].i ;
+   xcx[60].r = f2-f1 ; xcx[60].i = f4-f3 ;
+   xcx[52].r = f2+f1 ; xcx[52].i = f4+f3 ;
+
+   f1 = xcx[13].r * csp[12].r - xcx[13].i * csp[12].i ; /* twiddles */
+   f3 = xcx[13].r * csp[12].i + xcx[13].i * csp[12].r ;
+   f2 = xcx[5].r ; f4 = xcx[5].i ;
+   xcx[13].r = f2-f1 ; xcx[13].i = f4-f3 ;
+   xcx[5].r = f2+f1 ; xcx[5].i = f4+f3 ;
+
+   f1 = xcx[29].r * csp[12].r - xcx[29].i * csp[12].i ; /* twiddles */
+   f3 = xcx[29].r * csp[12].i + xcx[29].i * csp[12].r ;
+   f2 = xcx[21].r ; f4 = xcx[21].i ;
+   xcx[29].r = f2-f1 ; xcx[29].i = f4-f3 ;
+   xcx[21].r = f2+f1 ; xcx[21].i = f4+f3 ;
+
+   f1 = xcx[45].r * csp[12].r - xcx[45].i * csp[12].i ; /* twiddles */
+   f3 = xcx[45].r * csp[12].i + xcx[45].i * csp[12].r ;
+   f2 = xcx[37].r ; f4 = xcx[37].i ;
+   xcx[45].r = f2-f1 ; xcx[45].i = f4-f3 ;
+   xcx[37].r = f2+f1 ; xcx[37].i = f4+f3 ;
+
+   f1 = xcx[61].r * csp[12].r - xcx[61].i * csp[12].i ; /* twiddles */
+   f3 = xcx[61].r * csp[12].i + xcx[61].i * csp[12].r ;
+   f2 = xcx[53].r ; f4 = xcx[53].i ;
+   xcx[61].r = f2-f1 ; xcx[61].i = f4-f3 ;
+   xcx[53].r = f2+f1 ; xcx[53].i = f4+f3 ;
+
+   f1 = xcx[14].r * csp[13].r - xcx[14].i * csp[13].i ; /* twiddles */
+   f3 = xcx[14].r * csp[13].i + xcx[14].i * csp[13].r ;
+   f2 = xcx[6].r ; f4 = xcx[6].i ;
+   xcx[14].r = f2-f1 ; xcx[14].i = f4-f3 ;
+   xcx[6].r = f2+f1 ; xcx[6].i = f4+f3 ;
+
+   f1 = xcx[30].r * csp[13].r - xcx[30].i * csp[13].i ; /* twiddles */
+   f3 = xcx[30].r * csp[13].i + xcx[30].i * csp[13].r ;
+   f2 = xcx[22].r ; f4 = xcx[22].i ;
+   xcx[30].r = f2-f1 ; xcx[30].i = f4-f3 ;
+   xcx[22].r = f2+f1 ; xcx[22].i = f4+f3 ;
+
+   f1 = xcx[46].r * csp[13].r - xcx[46].i * csp[13].i ; /* twiddles */
+   f3 = xcx[46].r * csp[13].i + xcx[46].i * csp[13].r ;
+   f2 = xcx[38].r ; f4 = xcx[38].i ;
+   xcx[46].r = f2-f1 ; xcx[46].i = f4-f3 ;
+   xcx[38].r = f2+f1 ; xcx[38].i = f4+f3 ;
+
+   f1 = xcx[62].r * csp[13].r - xcx[62].i * csp[13].i ; /* twiddles */
+   f3 = xcx[62].r * csp[13].i + xcx[62].i * csp[13].r ;
+   f2 = xcx[54].r ; f4 = xcx[54].i ;
+   xcx[62].r = f2-f1 ; xcx[62].i = f4-f3 ;
+   xcx[54].r = f2+f1 ; xcx[54].i = f4+f3 ;
+
+   f1 = xcx[15].r * csp[14].r - xcx[15].i * csp[14].i ; /* twiddles */
+   f3 = xcx[15].r * csp[14].i + xcx[15].i * csp[14].r ;
+   f2 = xcx[7].r ; f4 = xcx[7].i ;
+   xcx[15].r = f2-f1 ; xcx[15].i = f4-f3 ;
+   xcx[7].r = f2+f1 ; xcx[7].i = f4+f3 ;
+
+   f1 = xcx[31].r * csp[14].r - xcx[31].i * csp[14].i ; /* twiddles */
+   f3 = xcx[31].r * csp[14].i + xcx[31].i * csp[14].r ;
+   f2 = xcx[23].r ; f4 = xcx[23].i ;
+   xcx[31].r = f2-f1 ; xcx[31].i = f4-f3 ;
+   xcx[23].r = f2+f1 ; xcx[23].i = f4+f3 ;
+
+   f1 = xcx[47].r * csp[14].r - xcx[47].i * csp[14].i ; /* twiddles */
+   f3 = xcx[47].r * csp[14].i + xcx[47].i * csp[14].r ;
+   f2 = xcx[39].r ; f4 = xcx[39].i ;
+   xcx[47].r = f2-f1 ; xcx[47].i = f4-f3 ;
+   xcx[39].r = f2+f1 ; xcx[39].i = f4+f3 ;
+
+   f1 = xcx[63].r * csp[14].r - xcx[63].i * csp[14].i ; /* twiddles */
+   f3 = xcx[63].r * csp[14].i + xcx[63].i * csp[14].r ;
+   f2 = xcx[55].r ; f4 = xcx[55].i ;
+   xcx[63].r = f2-f1 ; xcx[63].i = f4-f3 ;
+   xcx[55].r = f2+f1 ; xcx[55].i = f4+f3 ;
+
+   f1 = xcx[16].r ; f3 = xcx[16].i ;  /* cos=1 sin=0 */
+   f2 = xcx[0].r ; f4 = xcx[0].i ;
+   xcx[16].r = f2-f1 ; xcx[16].i = f4-f3 ;
+   xcx[0].r = f2+f1 ; xcx[0].i = f4+f3 ;
+
+   f1 = xcx[48].r ; f3 = xcx[48].i ;  /* cos=1 sin=0 */
+   f2 = xcx[32].r ; f4 = xcx[32].i ;
+   xcx[48].r = f2-f1 ; xcx[48].i = f4-f3 ;
+   xcx[32].r = f2+f1 ; xcx[32].i = f4+f3 ;
+
+   f1 = xcx[17].r * csp[16].r - xcx[17].i * csp[16].i ; /* twiddles */
+   f3 = xcx[17].r * csp[16].i + xcx[17].i * csp[16].r ;
+   f2 = xcx[1].r ; f4 = xcx[1].i ;
+   xcx[17].r = f2-f1 ; xcx[17].i = f4-f3 ;
+   xcx[1].r = f2+f1 ; xcx[1].i = f4+f3 ;
+
+   f1 = xcx[49].r * csp[16].r - xcx[49].i * csp[16].i ; /* twiddles */
+   f3 = xcx[49].r * csp[16].i + xcx[49].i * csp[16].r ;
+   f2 = xcx[33].r ; f4 = xcx[33].i ;
+   xcx[49].r = f2-f1 ; xcx[49].i = f4-f3 ;
+   xcx[33].r = f2+f1 ; xcx[33].i = f4+f3 ;
+
+   f1 = xcx[18].r * csp[17].r - xcx[18].i * csp[17].i ; /* twiddles */
+   f3 = xcx[18].r * csp[17].i + xcx[18].i * csp[17].r ;
+   f2 = xcx[2].r ; f4 = xcx[2].i ;
+   xcx[18].r = f2-f1 ; xcx[18].i = f4-f3 ;
+   xcx[2].r = f2+f1 ; xcx[2].i = f4+f3 ;
+
+   f1 = xcx[50].r * csp[17].r - xcx[50].i * csp[17].i ; /* twiddles */
+   f3 = xcx[50].r * csp[17].i + xcx[50].i * csp[17].r ;
+   f2 = xcx[34].r ; f4 = xcx[34].i ;
+   xcx[50].r = f2-f1 ; xcx[50].i = f4-f3 ;
+   xcx[34].r = f2+f1 ; xcx[34].i = f4+f3 ;
+
+   f1 = xcx[19].r * csp[18].r - xcx[19].i * csp[18].i ; /* twiddles */
+   f3 = xcx[19].r * csp[18].i + xcx[19].i * csp[18].r ;
+   f2 = xcx[3].r ; f4 = xcx[3].i ;
+   xcx[19].r = f2-f1 ; xcx[19].i = f4-f3 ;
+   xcx[3].r = f2+f1 ; xcx[3].i = f4+f3 ;
+
+   f1 = xcx[51].r * csp[18].r - xcx[51].i * csp[18].i ; /* twiddles */
+   f3 = xcx[51].r * csp[18].i + xcx[51].i * csp[18].r ;
+   f2 = xcx[35].r ; f4 = xcx[35].i ;
+   xcx[51].r = f2-f1 ; xcx[51].i = f4-f3 ;
+   xcx[35].r = f2+f1 ; xcx[35].i = f4+f3 ;
+
+   f1 = xcx[20].r * csp[19].r - xcx[20].i * csp[19].i ; /* twiddles */
+   f3 = xcx[20].r * csp[19].i + xcx[20].i * csp[19].r ;
+   f2 = xcx[4].r ; f4 = xcx[4].i ;
+   xcx[20].r = f2-f1 ; xcx[20].i = f4-f3 ;
+   xcx[4].r = f2+f1 ; xcx[4].i = f4+f3 ;
+
+   f1 = xcx[52].r * csp[19].r - xcx[52].i * csp[19].i ; /* twiddles */
+   f3 = xcx[52].r * csp[19].i + xcx[52].i * csp[19].r ;
+   f2 = xcx[36].r ; f4 = xcx[36].i ;
+   xcx[52].r = f2-f1 ; xcx[52].i = f4-f3 ;
+   xcx[36].r = f2+f1 ; xcx[36].i = f4+f3 ;
+
+   f1 = xcx[21].r * csp[20].r - xcx[21].i * csp[20].i ; /* twiddles */
+   f3 = xcx[21].r * csp[20].i + xcx[21].i * csp[20].r ;
+   f2 = xcx[5].r ; f4 = xcx[5].i ;
+   xcx[21].r = f2-f1 ; xcx[21].i = f4-f3 ;
+   xcx[5].r = f2+f1 ; xcx[5].i = f4+f3 ;
+
+   f1 = xcx[53].r * csp[20].r - xcx[53].i * csp[20].i ; /* twiddles */
+   f3 = xcx[53].r * csp[20].i + xcx[53].i * csp[20].r ;
+   f2 = xcx[37].r ; f4 = xcx[37].i ;
+   xcx[53].r = f2-f1 ; xcx[53].i = f4-f3 ;
+   xcx[37].r = f2+f1 ; xcx[37].i = f4+f3 ;
+
+   f1 = xcx[22].r * csp[21].r - xcx[22].i * csp[21].i ; /* twiddles */
+   f3 = xcx[22].r * csp[21].i + xcx[22].i * csp[21].r ;
+   f2 = xcx[6].r ; f4 = xcx[6].i ;
+   xcx[22].r = f2-f1 ; xcx[22].i = f4-f3 ;
+   xcx[6].r = f2+f1 ; xcx[6].i = f4+f3 ;
+
+   f1 = xcx[54].r * csp[21].r - xcx[54].i * csp[21].i ; /* twiddles */
+   f3 = xcx[54].r * csp[21].i + xcx[54].i * csp[21].r ;
+   f2 = xcx[38].r ; f4 = xcx[38].i ;
+   xcx[54].r = f2-f1 ; xcx[54].i = f4-f3 ;
+   xcx[38].r = f2+f1 ; xcx[38].i = f4+f3 ;
+
+   f1 = xcx[23].r * csp[22].r - xcx[23].i * csp[22].i ; /* twiddles */
+   f3 = xcx[23].r * csp[22].i + xcx[23].i * csp[22].r ;
+   f2 = xcx[7].r ; f4 = xcx[7].i ;
+   xcx[23].r = f2-f1 ; xcx[23].i = f4-f3 ;
+   xcx[7].r = f2+f1 ; xcx[7].i = f4+f3 ;
+
+   f1 = xcx[55].r * csp[22].r - xcx[55].i * csp[22].i ; /* twiddles */
+   f3 = xcx[55].r * csp[22].i + xcx[55].i * csp[22].r ;
+   f2 = xcx[39].r ; f4 = xcx[39].i ;
+   xcx[55].r = f2-f1 ; xcx[55].i = f4-f3 ;
+   xcx[39].r = f2+f1 ; xcx[39].i = f4+f3 ;
+
+   f1 = - xcx[24].i * csp[23].i ; /* cos=0 twiddles */
+   f3 = xcx[24].r * csp[23].i ;
+   f2 = xcx[8].r ; f4 = xcx[8].i ;
+   xcx[24].r = f2-f1 ; xcx[24].i = f4-f3 ;
+   xcx[8].r = f2+f1 ; xcx[8].i = f4+f3 ;
+
+   f1 = - xcx[56].i * csp[23].i ; /* cos=0 twiddles */
+   f3 = xcx[56].r * csp[23].i ;
+   f2 = xcx[40].r ; f4 = xcx[40].i ;
+   xcx[56].r = f2-f1 ; xcx[56].i = f4-f3 ;
+   xcx[40].r = f2+f1 ; xcx[40].i = f4+f3 ;
+
+   f1 = xcx[25].r * csp[24].r - xcx[25].i * csp[24].i ; /* twiddles */
+   f3 = xcx[25].r * csp[24].i + xcx[25].i * csp[24].r ;
+   f2 = xcx[9].r ; f4 = xcx[9].i ;
+   xcx[25].r = f2-f1 ; xcx[25].i = f4-f3 ;
+   xcx[9].r = f2+f1 ; xcx[9].i = f4+f3 ;
+
+   f1 = xcx[57].r * csp[24].r - xcx[57].i * csp[24].i ; /* twiddles */
+   f3 = xcx[57].r * csp[24].i + xcx[57].i * csp[24].r ;
+   f2 = xcx[41].r ; f4 = xcx[41].i ;
+   xcx[57].r = f2-f1 ; xcx[57].i = f4-f3 ;
+   xcx[41].r = f2+f1 ; xcx[41].i = f4+f3 ;
+
+   f1 = xcx[26].r * csp[25].r - xcx[26].i * csp[25].i ; /* twiddles */
+   f3 = xcx[26].r * csp[25].i + xcx[26].i * csp[25].r ;
+   f2 = xcx[10].r ; f4 = xcx[10].i ;
+   xcx[26].r = f2-f1 ; xcx[26].i = f4-f3 ;
+   xcx[10].r = f2+f1 ; xcx[10].i = f4+f3 ;
+
+   f1 = xcx[58].r * csp[25].r - xcx[58].i * csp[25].i ; /* twiddles */
+   f3 = xcx[58].r * csp[25].i + xcx[58].i * csp[25].r ;
+   f2 = xcx[42].r ; f4 = xcx[42].i ;
+   xcx[58].r = f2-f1 ; xcx[58].i = f4-f3 ;
+   xcx[42].r = f2+f1 ; xcx[42].i = f4+f3 ;
+
+   f1 = xcx[27].r * csp[26].r - xcx[27].i * csp[26].i ; /* twiddles */
+   f3 = xcx[27].r * csp[26].i + xcx[27].i * csp[26].r ;
+   f2 = xcx[11].r ; f4 = xcx[11].i ;
+   xcx[27].r = f2-f1 ; xcx[27].i = f4-f3 ;
+   xcx[11].r = f2+f1 ; xcx[11].i = f4+f3 ;
+
+   f1 = xcx[59].r * csp[26].r - xcx[59].i * csp[26].i ; /* twiddles */
+   f3 = xcx[59].r * csp[26].i + xcx[59].i * csp[26].r ;
+   f2 = xcx[43].r ; f4 = xcx[43].i ;
+   xcx[59].r = f2-f1 ; xcx[59].i = f4-f3 ;
+   xcx[43].r = f2+f1 ; xcx[43].i = f4+f3 ;
+
+   f1 = xcx[28].r * csp[27].r - xcx[28].i * csp[27].i ; /* twiddles */
+   f3 = xcx[28].r * csp[27].i + xcx[28].i * csp[27].r ;
+   f2 = xcx[12].r ; f4 = xcx[12].i ;
+   xcx[28].r = f2-f1 ; xcx[28].i = f4-f3 ;
+   xcx[12].r = f2+f1 ; xcx[12].i = f4+f3 ;
+
+   f1 = xcx[60].r * csp[27].r - xcx[60].i * csp[27].i ; /* twiddles */
+   f3 = xcx[60].r * csp[27].i + xcx[60].i * csp[27].r ;
+   f2 = xcx[44].r ; f4 = xcx[44].i ;
+   xcx[60].r = f2-f1 ; xcx[60].i = f4-f3 ;
+   xcx[44].r = f2+f1 ; xcx[44].i = f4+f3 ;
+
+   f1 = xcx[29].r * csp[28].r - xcx[29].i * csp[28].i ; /* twiddles */
+   f3 = xcx[29].r * csp[28].i + xcx[29].i * csp[28].r ;
+   f2 = xcx[13].r ; f4 = xcx[13].i ;
+   xcx[29].r = f2-f1 ; xcx[29].i = f4-f3 ;
+   xcx[13].r = f2+f1 ; xcx[13].i = f4+f3 ;
+
+   f1 = xcx[61].r * csp[28].r - xcx[61].i * csp[28].i ; /* twiddles */
+   f3 = xcx[61].r * csp[28].i + xcx[61].i * csp[28].r ;
+   f2 = xcx[45].r ; f4 = xcx[45].i ;
+   xcx[61].r = f2-f1 ; xcx[61].i = f4-f3 ;
+   xcx[45].r = f2+f1 ; xcx[45].i = f4+f3 ;
+
+   f1 = xcx[30].r * csp[29].r - xcx[30].i * csp[29].i ; /* twiddles */
+   f3 = xcx[30].r * csp[29].i + xcx[30].i * csp[29].r ;
+   f2 = xcx[14].r ; f4 = xcx[14].i ;
+   xcx[30].r = f2-f1 ; xcx[30].i = f4-f3 ;
+   xcx[14].r = f2+f1 ; xcx[14].i = f4+f3 ;
+
+   f1 = xcx[62].r * csp[29].r - xcx[62].i * csp[29].i ; /* twiddles */
+   f3 = xcx[62].r * csp[29].i + xcx[62].i * csp[29].r ;
+   f2 = xcx[46].r ; f4 = xcx[46].i ;
+   xcx[62].r = f2-f1 ; xcx[62].i = f4-f3 ;
+   xcx[46].r = f2+f1 ; xcx[46].i = f4+f3 ;
+
+   f1 = xcx[31].r * csp[30].r - xcx[31].i * csp[30].i ; /* twiddles */
+   f3 = xcx[31].r * csp[30].i + xcx[31].i * csp[30].r ;
+   f2 = xcx[15].r ; f4 = xcx[15].i ;
+   xcx[31].r = f2-f1 ; xcx[31].i = f4-f3 ;
+   xcx[15].r = f2+f1 ; xcx[15].i = f4+f3 ;
+
+   f1 = xcx[63].r * csp[30].r - xcx[63].i * csp[30].i ; /* twiddles */
+   f3 = xcx[63].r * csp[30].i + xcx[63].i * csp[30].r ;
+   f2 = xcx[47].r ; f4 = xcx[47].i ;
+   xcx[63].r = f2-f1 ; xcx[63].i = f4-f3 ;
+   xcx[47].r = f2+f1 ; xcx[47].i = f4+f3 ;
+
+   f1 = xcx[32].r ; f3 = xcx[32].i ;  /* cos=1 sin=0 */
+   f2 = xcx[0].r ; f4 = xcx[0].i ;
+   xcx[32].r = f2-f1 ; xcx[32].i = f4-f3 ;
+   xcx[0].r = f2+f1 ; xcx[0].i = f4+f3 ;
+
+   f1 = xcx[33].r * csp[32].r - xcx[33].i * csp[32].i ; /* twiddles */
+   f3 = xcx[33].r * csp[32].i + xcx[33].i * csp[32].r ;
+   f2 = xcx[1].r ; f4 = xcx[1].i ;
+   xcx[33].r = f2-f1 ; xcx[33].i = f4-f3 ;
+   xcx[1].r = f2+f1 ; xcx[1].i = f4+f3 ;
+
+   f1 = xcx[34].r * csp[33].r - xcx[34].i * csp[33].i ; /* twiddles */
+   f3 = xcx[34].r * csp[33].i + xcx[34].i * csp[33].r ;
+   f2 = xcx[2].r ; f4 = xcx[2].i ;
+   xcx[34].r = f2-f1 ; xcx[34].i = f4-f3 ;
+   xcx[2].r = f2+f1 ; xcx[2].i = f4+f3 ;
+
+   f1 = xcx[35].r * csp[34].r - xcx[35].i * csp[34].i ; /* twiddles */
+   f3 = xcx[35].r * csp[34].i + xcx[35].i * csp[34].r ;
+   f2 = xcx[3].r ; f4 = xcx[3].i ;
+   xcx[35].r = f2-f1 ; xcx[35].i = f4-f3 ;
+   xcx[3].r = f2+f1 ; xcx[3].i = f4+f3 ;
+
+   f1 = xcx[36].r * csp[35].r - xcx[36].i * csp[35].i ; /* twiddles */
+   f3 = xcx[36].r * csp[35].i + xcx[36].i * csp[35].r ;
+   f2 = xcx[4].r ; f4 = xcx[4].i ;
+   xcx[36].r = f2-f1 ; xcx[36].i = f4-f3 ;
+   xcx[4].r = f2+f1 ; xcx[4].i = f4+f3 ;
+
+   f1 = xcx[37].r * csp[36].r - xcx[37].i * csp[36].i ; /* twiddles */
+   f3 = xcx[37].r * csp[36].i + xcx[37].i * csp[36].r ;
+   f2 = xcx[5].r ; f4 = xcx[5].i ;
+   xcx[37].r = f2-f1 ; xcx[37].i = f4-f3 ;
+   xcx[5].r = f2+f1 ; xcx[5].i = f4+f3 ;
+
+   f1 = xcx[38].r * csp[37].r - xcx[38].i * csp[37].i ; /* twiddles */
+   f3 = xcx[38].r * csp[37].i + xcx[38].i * csp[37].r ;
+   f2 = xcx[6].r ; f4 = xcx[6].i ;
+   xcx[38].r = f2-f1 ; xcx[38].i = f4-f3 ;
+   xcx[6].r = f2+f1 ; xcx[6].i = f4+f3 ;
+
+   f1 = xcx[39].r * csp[38].r - xcx[39].i * csp[38].i ; /* twiddles */
+   f3 = xcx[39].r * csp[38].i + xcx[39].i * csp[38].r ;
+   f2 = xcx[7].r ; f4 = xcx[7].i ;
+   xcx[39].r = f2-f1 ; xcx[39].i = f4-f3 ;
+   xcx[7].r = f2+f1 ; xcx[7].i = f4+f3 ;
+
+   f1 = xcx[40].r * csp[39].r - xcx[40].i * csp[39].i ; /* twiddles */
+   f3 = xcx[40].r * csp[39].i + xcx[40].i * csp[39].r ;
+   f2 = xcx[8].r ; f4 = xcx[8].i ;
+   xcx[40].r = f2-f1 ; xcx[40].i = f4-f3 ;
+   xcx[8].r = f2+f1 ; xcx[8].i = f4+f3 ;
+
+   f1 = xcx[41].r * csp[40].r - xcx[41].i * csp[40].i ; /* twiddles */
+   f3 = xcx[41].r * csp[40].i + xcx[41].i * csp[40].r ;
+   f2 = xcx[9].r ; f4 = xcx[9].i ;
+   xcx[41].r = f2-f1 ; xcx[41].i = f4-f3 ;
+   xcx[9].r = f2+f1 ; xcx[9].i = f4+f3 ;
+
+   f1 = xcx[42].r * csp[41].r - xcx[42].i * csp[41].i ; /* twiddles */
+   f3 = xcx[42].r * csp[41].i + xcx[42].i * csp[41].r ;
+   f2 = xcx[10].r ; f4 = xcx[10].i ;
+   xcx[42].r = f2-f1 ; xcx[42].i = f4-f3 ;
+   xcx[10].r = f2+f1 ; xcx[10].i = f4+f3 ;
+
+   f1 = xcx[43].r * csp[42].r - xcx[43].i * csp[42].i ; /* twiddles */
+   f3 = xcx[43].r * csp[42].i + xcx[43].i * csp[42].r ;
+   f2 = xcx[11].r ; f4 = xcx[11].i ;
+   xcx[43].r = f2-f1 ; xcx[43].i = f4-f3 ;
+   xcx[11].r = f2+f1 ; xcx[11].i = f4+f3 ;
+
+   f1 = xcx[44].r * csp[43].r - xcx[44].i * csp[43].i ; /* twiddles */
+   f3 = xcx[44].r * csp[43].i + xcx[44].i * csp[43].r ;
+   f2 = xcx[12].r ; f4 = xcx[12].i ;
+   xcx[44].r = f2-f1 ; xcx[44].i = f4-f3 ;
+   xcx[12].r = f2+f1 ; xcx[12].i = f4+f3 ;
+
+   f1 = xcx[45].r * csp[44].r - xcx[45].i * csp[44].i ; /* twiddles */
+   f3 = xcx[45].r * csp[44].i + xcx[45].i * csp[44].r ;
+   f2 = xcx[13].r ; f4 = xcx[13].i ;
+   xcx[45].r = f2-f1 ; xcx[45].i = f4-f3 ;
+   xcx[13].r = f2+f1 ; xcx[13].i = f4+f3 ;
+
+   f1 = xcx[46].r * csp[45].r - xcx[46].i * csp[45].i ; /* twiddles */
+   f3 = xcx[46].r * csp[45].i + xcx[46].i * csp[45].r ;
+   f2 = xcx[14].r ; f4 = xcx[14].i ;
+   xcx[46].r = f2-f1 ; xcx[46].i = f4-f3 ;
+   xcx[14].r = f2+f1 ; xcx[14].i = f4+f3 ;
+
+   f1 = xcx[47].r * csp[46].r - xcx[47].i * csp[46].i ; /* twiddles */
+   f3 = xcx[47].r * csp[46].i + xcx[47].i * csp[46].r ;
+   f2 = xcx[15].r ; f4 = xcx[15].i ;
+   xcx[47].r = f2-f1 ; xcx[47].i = f4-f3 ;
+   xcx[15].r = f2+f1 ; xcx[15].i = f4+f3 ;
+
+   f1 = - xcx[48].i * csp[47].i ; /* cos=0 twiddles */
+   f3 = xcx[48].r * csp[47].i ;
+   f2 = xcx[16].r ; f4 = xcx[16].i ;
+   xcx[48].r = f2-f1 ; xcx[48].i = f4-f3 ;
+   xcx[16].r = f2+f1 ; xcx[16].i = f4+f3 ;
+
+   f1 = xcx[49].r * csp[48].r - xcx[49].i * csp[48].i ; /* twiddles */
+   f3 = xcx[49].r * csp[48].i + xcx[49].i * csp[48].r ;
+   f2 = xcx[17].r ; f4 = xcx[17].i ;
+   xcx[49].r = f2-f1 ; xcx[49].i = f4-f3 ;
+   xcx[17].r = f2+f1 ; xcx[17].i = f4+f3 ;
+
+   f1 = xcx[50].r * csp[49].r - xcx[50].i * csp[49].i ; /* twiddles */
+   f3 = xcx[50].r * csp[49].i + xcx[50].i * csp[49].r ;
+   f2 = xcx[18].r ; f4 = xcx[18].i ;
+   xcx[50].r = f2-f1 ; xcx[50].i = f4-f3 ;
+   xcx[18].r = f2+f1 ; xcx[18].i = f4+f3 ;
+
+   f1 = xcx[51].r * csp[50].r - xcx[51].i * csp[50].i ; /* twiddles */
+   f3 = xcx[51].r * csp[50].i + xcx[51].i * csp[50].r ;
+   f2 = xcx[19].r ; f4 = xcx[19].i ;
+   xcx[51].r = f2-f1 ; xcx[51].i = f4-f3 ;
+   xcx[19].r = f2+f1 ; xcx[19].i = f4+f3 ;
+
+   f1 = xcx[52].r * csp[51].r - xcx[52].i * csp[51].i ; /* twiddles */
+   f3 = xcx[52].r * csp[51].i + xcx[52].i * csp[51].r ;
+   f2 = xcx[20].r ; f4 = xcx[20].i ;
+   xcx[52].r = f2-f1 ; xcx[52].i = f4-f3 ;
+   xcx[20].r = f2+f1 ; xcx[20].i = f4+f3 ;
+
+   f1 = xcx[53].r * csp[52].r - xcx[53].i * csp[52].i ; /* twiddles */
+   f3 = xcx[53].r * csp[52].i + xcx[53].i * csp[52].r ;
+   f2 = xcx[21].r ; f4 = xcx[21].i ;
+   xcx[53].r = f2-f1 ; xcx[53].i = f4-f3 ;
+   xcx[21].r = f2+f1 ; xcx[21].i = f4+f3 ;
+
+   f1 = xcx[54].r * csp[53].r - xcx[54].i * csp[53].i ; /* twiddles */
+   f3 = xcx[54].r * csp[53].i + xcx[54].i * csp[53].r ;
+   f2 = xcx[22].r ; f4 = xcx[22].i ;
+   xcx[54].r = f2-f1 ; xcx[54].i = f4-f3 ;
+   xcx[22].r = f2+f1 ; xcx[22].i = f4+f3 ;
+
+   f1 = xcx[55].r * csp[54].r - xcx[55].i * csp[54].i ; /* twiddles */
+   f3 = xcx[55].r * csp[54].i + xcx[55].i * csp[54].r ;
+   f2 = xcx[23].r ; f4 = xcx[23].i ;
+   xcx[55].r = f2-f1 ; xcx[55].i = f4-f3 ;
+   xcx[23].r = f2+f1 ; xcx[23].i = f4+f3 ;
+
+   f1 = xcx[56].r * csp[55].r - xcx[56].i * csp[55].i ; /* twiddles */
+   f3 = xcx[56].r * csp[55].i + xcx[56].i * csp[55].r ;
+   f2 = xcx[24].r ; f4 = xcx[24].i ;
+   xcx[56].r = f2-f1 ; xcx[56].i = f4-f3 ;
+   xcx[24].r = f2+f1 ; xcx[24].i = f4+f3 ;
+
+   f1 = xcx[57].r * csp[56].r - xcx[57].i * csp[56].i ; /* twiddles */
+   f3 = xcx[57].r * csp[56].i + xcx[57].i * csp[56].r ;
+   f2 = xcx[25].r ; f4 = xcx[25].i ;
+   xcx[57].r = f2-f1 ; xcx[57].i = f4-f3 ;
+   xcx[25].r = f2+f1 ; xcx[25].i = f4+f3 ;
+
+   f1 = xcx[58].r * csp[57].r - xcx[58].i * csp[57].i ; /* twiddles */
+   f3 = xcx[58].r * csp[57].i + xcx[58].i * csp[57].r ;
+   f2 = xcx[26].r ; f4 = xcx[26].i ;
+   xcx[58].r = f2-f1 ; xcx[58].i = f4-f3 ;
+   xcx[26].r = f2+f1 ; xcx[26].i = f4+f3 ;
+
+   f1 = xcx[59].r * csp[58].r - xcx[59].i * csp[58].i ; /* twiddles */
+   f3 = xcx[59].r * csp[58].i + xcx[59].i * csp[58].r ;
+   f2 = xcx[27].r ; f4 = xcx[27].i ;
+   xcx[59].r = f2-f1 ; xcx[59].i = f4-f3 ;
+   xcx[27].r = f2+f1 ; xcx[27].i = f4+f3 ;
+
+   f1 = xcx[60].r * csp[59].r - xcx[60].i * csp[59].i ; /* twiddles */
+   f3 = xcx[60].r * csp[59].i + xcx[60].i * csp[59].r ;
+   f2 = xcx[28].r ; f4 = xcx[28].i ;
+   xcx[60].r = f2-f1 ; xcx[60].i = f4-f3 ;
+   xcx[28].r = f2+f1 ; xcx[28].i = f4+f3 ;
+
+   f1 = xcx[61].r * csp[60].r - xcx[61].i * csp[60].i ; /* twiddles */
+   f3 = xcx[61].r * csp[60].i + xcx[61].i * csp[60].r ;
+   f2 = xcx[29].r ; f4 = xcx[29].i ;
+   xcx[61].r = f2-f1 ; xcx[61].i = f4-f3 ;
+   xcx[29].r = f2+f1 ; xcx[29].i = f4+f3 ;
+
+   f1 = xcx[62].r * csp[61].r - xcx[62].i * csp[61].i ; /* twiddles */
+   f3 = xcx[62].r * csp[61].i + xcx[62].i * csp[61].r ;
+   f2 = xcx[30].r ; f4 = xcx[30].i ;
+   xcx[62].r = f2-f1 ; xcx[62].i = f4-f3 ;
+   xcx[30].r = f2+f1 ; xcx[30].i = f4+f3 ;
+
+   f1 = xcx[63].r * csp[62].r - xcx[63].i * csp[62].i ; /* twiddles */
+   f3 = xcx[63].r * csp[62].i + xcx[63].i * csp[62].r ;
+   f2 = xcx[31].r ; f4 = xcx[31].i ;
+   xcx[63].r = f2-f1 ; xcx[63].i = f4-f3 ;
+   xcx[31].r = f2+f1 ; xcx[31].i = f4+f3 ;
 
    return ;
 }
 
-/*================================================================
-  Decimation by 4 routines below from 12 Aug 1999 -- RWCox
-  On a 400 MHz PII, about 8% faster than 2 decimation by 2 steps.
-  Added fft512, fft1024, and fft2048 also, which are 50-80%
-  faster than the unrolled csfft_cox() routine on the PII --
-  somewhat less speedup on SGI R10K, but still worth something.
-==================================================================*/
-
-/*----------------------------------------------------------------
-   Do a 128 FFT using fft32 and decimation by 4
-------------------------------------------------------------------*/
-
-#define N  128
-#define M   32
-#define M2  64
-#define M3  96
-static void fft128( int mode , complex *xc )
-{
-   static complex *cs=NULL , *aa , *bb , *cc , *dd ;
-   register int k , i ;
-   register float aar,aai, tr,ti, bbr,bbi, ccr,cci , ddr,ddi , t1,t2 ,
-                  acpr,acmr , bdpr,bdmr , acpi,acmi , bdpi,bdmi ;
-
-   /*-- initialize cosine/sine table and memory space --*/
-
-#pragma omp critical (MALLOC)
-  { if( cs == NULL ){
-      double th = (2.0*PI/N) ;
-      cs = (complex *) malloc(sizeof(complex)*M3) ;
-      aa = (complex *) malloc(sizeof(complex)*M ) ;
-      bb = (complex *) malloc(sizeof(complex)*M ) ;
-      cc = (complex *) malloc(sizeof(complex)*M ) ;
-      dd = (complex *) malloc(sizeof(complex)*M ) ;
-
-      cs[0].r = 1.0 ; cs[0].i = 0.0 ;
-      for( k=1 ; k < M3 ; k++ ){ cs[k].r = cos(k*th); cs[k].i = sin(k*th); }
-  }}
-
-   /*-- load subarrays, and FFT each one --*/
-
-   for( i=k=0; k < M; k++ ){
-      aa[k]=xc[i++]; bb[k]=xc[i++]; cc[k]=xc[i++]; dd[k]=xc[i++];
-   }
-
-   fft32(mode,aa); fft32(mode,bb); fft32(mode,cc); fft32(mode,dd);
-
-   /*-- recombination --*/
-
-   if( mode > 0 ){
-      for( k=0 ; k < M ; k++ ){
-         t1  = bb[k].r; t2  = bb[k].i;
-         tr  = cs[k].r; ti  = cs[k].i;
-         bbr = tr*t1 - ti*t2  ; bbi = tr*t2 + ti*t1  ;  /* b[k]*exp(+2*Pi*k/N) */
-
-         t1  = cc[  k].r; t2  = cc[  k].i;
-         tr  = cs[2*k].r; ti  = cs[2*k].i;
-         ccr = tr*t1 - ti*t2  ; cci = tr*t2 + ti*t1  ;  /* c[k]*exp(+4*Pi*k/N) */
-
-         t1  = dd[  k].r; t2  = dd[  k].i;
-         tr  = cs[3*k].r; ti  = cs[3*k].i;
-         ddr = tr*t1 - ti*t2  ; ddi = tr*t2 + ti*t1  ;  /* d[k]*exp(+6*Pi*k/N) */
-
-         aar = aa[k].r; aai = aa[k].i;                  /* a[k] */
-
-         acpr = aar + ccr ; acmr = aar - ccr ;
-         bdpr = bbr + ddr ; bdmr = bbr - ddr ;
-         acpi = aai + cci ; acmi = aai - cci ;
-         bdpi = bbi + ddi ; bdmi = bbi - ddi ;
-
-         xc[k   ].r = acpr+bdpr ; xc[k   ].i = acpi+bdpi ;
-         xc[k+M ].r = acmr-bdmi ; xc[k+M ].i = acmi+bdmr ;
-         xc[k+M2].r = acpr-bdpr ; xc[k+M2].i = acpi-bdpi ;
-         xc[k+M3].r = acmr+bdmi ; xc[k+M3].i = acmi-bdmr ;
-      }
-   } else {
-      for( k=0 ; k < M ; k++ ){
-         t1  = bb[k].r; t2  = bb[k].i;
-         tr  = cs[k].r; ti  = cs[k].i;
-         bbr = tr*t1 + ti*t2  ; bbi = tr*t2 - ti*t1  ;  /* b[k]*exp(-2*Pi*k/N) */
-
-         t1  = cc[  k].r; t2  = cc[  k].i;
-         tr  = cs[2*k].r; ti  = cs[2*k].i;
-         ccr = tr*t1 + ti*t2  ; cci = tr*t2 - ti*t1  ;  /* c[k]*exp(-4*Pi*k/N) */
-
-         t1  = dd[  k].r; t2  = dd[  k].i;
-         tr  = cs[3*k].r; ti  = cs[3*k].i;
-         ddr = tr*t1 + ti*t2  ; ddi = tr*t2 - ti*t1  ;  /* d[k]*exp(-6*Pi*k/N) */
-
-         aar = aa[k].r; aai = aa[k].i;                  /* a[k] */
-
-         acpr = aar + ccr ; acmr = aar - ccr ;
-         bdpr = bbr + ddr ; bdmr = bbr - ddr ;
-         acpi = aai + cci ; acmi = aai - cci ;
-         bdpi = bbi + ddi ; bdmi = bbi - ddi ;
-
-         xc[k   ].r = acpr+bdpr ; xc[k   ].i = acpi+bdpi ;
-         xc[k+M ].r = acmr+bdmi ; xc[k+M ].i = acmi-bdmr ;
-         xc[k+M2].r = acpr-bdpr ; xc[k+M2].i = acpi-bdpi ;
-         xc[k+M3].r = acmr-bdmi ; xc[k+M3].i = acmi+bdmr ;
-      }
-   }
-
-   return ;
-}
-#undef N
-#undef M
-#undef M2
-#undef M3
+/*================================================================*/
 
 /*------------------------------------------------------------------
-   Do a 256 FFT using fft64 and decimation by 4
---------------------------------------------------------------------*/
-
-#define N  256
-#define M   64
-#define M2 128
-#define M3 192
-static void fft256( int mode , complex *xc )
-{
-   static complex *cs=NULL , *aa , *bb , *cc , *dd ;
-   register int k , i ;
-   register float aar,aai, tr,ti, bbr,bbi, ccr,cci , ddr,ddi , t1,t2 ,
-                  acpr,acmr , bdpr,bdmr , acpi,acmi , bdpi,bdmi ;
-
-   /*-- initialize cosine/sine table and memory space --*/
-#pragma omp critical (MALLOC)
-  { if( cs == NULL ){
-      double th = (2.0*PI/N) ;
-      cs = (complex *) malloc(sizeof(complex)*M3) ;
-      aa = (complex *) malloc(sizeof(complex)*M ) ;
-      bb = (complex *) malloc(sizeof(complex)*M ) ;
-      cc = (complex *) malloc(sizeof(complex)*M ) ;
-      dd = (complex *) malloc(sizeof(complex)*M ) ;
-
-      cs[0].r = 1.0 ; cs[0].i = 0.0 ;
-      for( k=1 ; k < M3 ; k++ ){ cs[k].r = cos(k*th); cs[k].i = sin(k*th); }
-  }}
-
-   /*-- load subarrays, and FFT each one --*/
-
-   for( i=k=0; k < M; k++ ){
-      aa[k]=xc[i++]; bb[k]=xc[i++]; cc[k]=xc[i++]; dd[k]=xc[i++];
-   }
-
-   fft64(mode,aa); fft64(mode,bb); fft64(mode,cc); fft64(mode,dd);
-
-   /*-- recombination --*/
-
-   if( mode > 0 ){
-      for( k=0 ; k < M ; k++ ){
-         t1  = bb[k].r; t2  = bb[k].i;
-         tr  = cs[k].r; ti  = cs[k].i;
-         bbr = tr*t1 - ti*t2  ; bbi = tr*t2 + ti*t1  ;  /* b[k]*exp(+2*Pi*k/N) */
-
-         t1  = cc[  k].r; t2  = cc[  k].i;
-         tr  = cs[2*k].r; ti  = cs[2*k].i;
-         ccr = tr*t1 - ti*t2  ; cci = tr*t2 + ti*t1  ;  /* c[k]*exp(+4*Pi*k/N) */
-
-         t1  = dd[  k].r; t2  = dd[  k].i;
-         tr  = cs[3*k].r; ti  = cs[3*k].i;
-         ddr = tr*t1 - ti*t2  ; ddi = tr*t2 + ti*t1  ;  /* d[k]*exp(+6*Pi*k/N) */
-
-         aar = aa[k].r; aai = aa[k].i;                  /* a[k] */
-
-         acpr = aar + ccr ; acmr = aar - ccr ;
-         bdpr = bbr + ddr ; bdmr = bbr - ddr ;
-         acpi = aai + cci ; acmi = aai - cci ;
-         bdpi = bbi + ddi ; bdmi = bbi - ddi ;
-
-         xc[k   ].r = acpr+bdpr ; xc[k   ].i = acpi+bdpi ;
-         xc[k+M ].r = acmr-bdmi ; xc[k+M ].i = acmi+bdmr ;
-         xc[k+M2].r = acpr-bdpr ; xc[k+M2].i = acpi-bdpi ;
-         xc[k+M3].r = acmr+bdmi ; xc[k+M3].i = acmi-bdmr ;
-      }
-   } else {
-      for( k=0 ; k < M ; k++ ){
-         t1  = bb[k].r; t2  = bb[k].i;
-         tr  = cs[k].r; ti  = cs[k].i;
-         bbr = tr*t1 + ti*t2  ; bbi = tr*t2 - ti*t1  ;  /* b[k]*exp(-2*Pi*k/N) */
-
-         t1  = cc[  k].r; t2  = cc[  k].i;
-         tr  = cs[2*k].r; ti  = cs[2*k].i;
-         ccr = tr*t1 + ti*t2  ; cci = tr*t2 - ti*t1  ;  /* c[k]*exp(-4*Pi*k/N) */
-
-         t1  = dd[  k].r; t2  = dd[  k].i;
-         tr  = cs[3*k].r; ti  = cs[3*k].i;
-         ddr = tr*t1 + ti*t2  ; ddi = tr*t2 - ti*t1  ;  /* d[k]*exp(-6*Pi*k/N) */
-
-         aar = aa[k].r; aai = aa[k].i;                  /* a[k] */
-
-         acpr = aar + ccr ; acmr = aar - ccr ;
-         bdpr = bbr + ddr ; bdmr = bbr - ddr ;
-         acpi = aai + cci ; acmi = aai - cci ;
-         bdpi = bbi + ddi ; bdmi = bbi - ddi ;
-
-         xc[k   ].r = acpr+bdpr ; xc[k   ].i = acpi+bdpi ;
-         xc[k+M ].r = acmr+bdmi ; xc[k+M ].i = acmi-bdmr ;
-         xc[k+M2].r = acpr-bdpr ; xc[k+M2].i = acpi-bdpi ;
-         xc[k+M3].r = acmr-bdmi ; xc[k+M3].i = acmi+bdmr ;
-      }
-   }
-
-   return ;
-}
-#undef N
-#undef M
-#undef M2
-#undef M3
-
-/*------------------------------------------------------------------
-   Do a 512 FFT using fft128 and decimation by 4
---------------------------------------------------------------------*/
-
-#define N  512
-#define M  128
-#define M2 256
-#define M3 384
-static void fft512( int mode , complex *xc )
-{
-   static complex *cs=NULL , *aa , *bb , *cc , *dd ;
-   register int k , i ;
-   register float aar,aai, tr,ti, bbr,bbi, ccr,cci , ddr,ddi , t1,t2 ,
-                  acpr,acmr , bdpr,bdmr , acpi,acmi , bdpi,bdmi ;
-
-   /*-- initialize cosine/sine table and memory space --*/
-
-#pragma omp critical (MALLOC)
-  { if( cs == NULL ){
-      double th = (2.0*PI/N) ;
-      cs = (complex *) malloc(sizeof(complex)*M3) ;
-      aa = (complex *) malloc(sizeof(complex)*M ) ;
-      bb = (complex *) malloc(sizeof(complex)*M ) ;
-      cc = (complex *) malloc(sizeof(complex)*M ) ;
-      dd = (complex *) malloc(sizeof(complex)*M ) ;
-
-      cs[0].r = 1.0 ; cs[0].i = 0.0 ;
-      for( k=1 ; k < M3 ; k++ ){ cs[k].r = cos(k*th); cs[k].i = sin(k*th); }
-  }}
-
-   /*-- load subarrays, and FFT each one --*/
-
-   for( i=k=0; k < M; k++ ){
-      aa[k]=xc[i++]; bb[k]=xc[i++]; cc[k]=xc[i++]; dd[k]=xc[i++];
-   }
-
-   fft128(mode,aa); fft128(mode,bb); fft128(mode,cc); fft128(mode,dd);
-
-   /*-- recombination --*/
-
-   if( mode > 0 ){
-      for( k=0 ; k < M ; k++ ){
-         t1  = bb[k].r; t2  = bb[k].i;
-         tr  = cs[k].r; ti  = cs[k].i;
-         bbr = tr*t1 - ti*t2  ; bbi = tr*t2 + ti*t1  ;  /* b[k]*exp(+2*Pi*k/N) */
-
-         t1  = cc[  k].r; t2  = cc[  k].i;
-         tr  = cs[2*k].r; ti  = cs[2*k].i;
-         ccr = tr*t1 - ti*t2  ; cci = tr*t2 + ti*t1  ;  /* c[k]*exp(+4*Pi*k/N) */
-
-         t1  = dd[  k].r; t2  = dd[  k].i;
-         tr  = cs[3*k].r; ti  = cs[3*k].i;
-         ddr = tr*t1 - ti*t2  ; ddi = tr*t2 + ti*t1  ;  /* d[k]*exp(+6*Pi*k/N) */
-
-         aar = aa[k].r; aai = aa[k].i;                  /* a[k] */
-
-         acpr = aar + ccr ; acmr = aar - ccr ;
-         bdpr = bbr + ddr ; bdmr = bbr - ddr ;
-         acpi = aai + cci ; acmi = aai - cci ;
-         bdpi = bbi + ddi ; bdmi = bbi - ddi ;
-
-         xc[k   ].r = acpr+bdpr ; xc[k   ].i = acpi+bdpi ;
-         xc[k+M ].r = acmr-bdmi ; xc[k+M ].i = acmi+bdmr ;
-         xc[k+M2].r = acpr-bdpr ; xc[k+M2].i = acpi-bdpi ;
-         xc[k+M3].r = acmr+bdmi ; xc[k+M3].i = acmi-bdmr ;
-      }
-   } else {
-      for( k=0 ; k < M ; k++ ){
-         t1  = bb[k].r; t2  = bb[k].i;
-         tr  = cs[k].r; ti  = cs[k].i;
-         bbr = tr*t1 + ti*t2  ; bbi = tr*t2 - ti*t1  ;  /* b[k]*exp(-2*Pi*k/N) */
-
-         t1  = cc[  k].r; t2  = cc[  k].i;
-         tr  = cs[2*k].r; ti  = cs[2*k].i;
-         ccr = tr*t1 + ti*t2  ; cci = tr*t2 - ti*t1  ;  /* c[k]*exp(-4*Pi*k/N) */
-
-         t1  = dd[  k].r; t2  = dd[  k].i;
-         tr  = cs[3*k].r; ti  = cs[3*k].i;
-         ddr = tr*t1 + ti*t2  ; ddi = tr*t2 - ti*t1  ;  /* d[k]*exp(-6*Pi*k/N) */
-
-         aar = aa[k].r; aai = aa[k].i;                  /* a[k] */
-
-         acpr = aar + ccr ; acmr = aar - ccr ;
-         bdpr = bbr + ddr ; bdmr = bbr - ddr ;
-         acpi = aai + cci ; acmi = aai - cci ;
-         bdpi = bbi + ddi ; bdmi = bbi - ddi ;
-
-         xc[k   ].r = acpr+bdpr ; xc[k   ].i = acpi+bdpi ;
-         xc[k+M ].r = acmr+bdmi ; xc[k+M ].i = acmi-bdmr ;
-         xc[k+M2].r = acpr-bdpr ; xc[k+M2].i = acpi-bdpi ;
-         xc[k+M3].r = acmr-bdmi ; xc[k+M3].i = acmi+bdmr ;
-      }
-   }
-
-   return ;
-}
-#undef N
-#undef M
-#undef M2
-#undef M3
-
-/*------------------------------------------------------------------
-   fft_4dec: do a decimation by 4 for N=1024 and 2048.
+   fft_4dec: do a decimation by 4.
    At most RMAX levels of recursion are allowed.
 --------------------------------------------------------------------*/
 
 static void fft_4dec_OMP( int mode , int idim , complex *xc )
 {
    DECLARE_ithr ;
-   static int rec=0 ;
-   static int rmold[RMAX] = {-1,-1,-1} ;
-   static complex *rcs[RMAX] = {NULL,NULL,NULL} ;
-   static complex *raa[RMAX], *rbb[RMAX], *rcc[RMAX] , *rdd[RMAX] ;
-
+   int rec , mold ;
    int N=idim , M=idim/4 , M2=2*M , M3=3*M ;
-   int mold=-1 ;
    complex *cs , *aa , *bb , *cc , *dd ;
-   register int k , i ;
-   register float aar,aai, tr,ti, bbr,bbi, ccr,cci , ddr,ddi , t1,t2 ,
-                  acpr,acmr , bdpr,bdmr , acpi,acmi , bdpi,bdmi ;
+   int k , i ;
+   float aar,aai, tr,ti, bbr,bbi, ccr,cci , ddr,ddi , t1,t2 ,
+         acpr,acmr , bdpr,bdmr , acpi,acmi , bdpi,bdmi ;
+
+/* ININFO_message("fft_4dec_OMP(%d)",idim) ; */
 
    /*-- initialize cosine/sine table and memory space --*/
 
+   rec = CFO_recX[ithr] ;  /* recursion level (0 .. RMAX-1) */
    if( rec >= RMAX ){
-      fprintf(stderr,"\n*** fft_4dec: too many recursions!\n"); EXIT(1);
+     fprintf(stderr,"\n*** fft_4dec_OMP: too many recursions with idim=%d\n",idim); EXIT(1);
    }
 
-   mold = rmold[rec] ;  /* what was done before at this recursion level */
+   CFO_assign(cs,M3) ;  /* assign workspace of length M3 to cs pointer */
+   CFO_assign(aa,M) ;   /* at this recursion level for this thread (etc) */
+   CFO_assign(bb,M) ;
+   CFO_assign(cc,M) ;
+   CFO_assign(dd,M) ;
 
-#pragma omp critical (MALLOC)
+   mold = CFO_rmold4[rec][ithr] ;  /* what was done before at this recursion level */
+
   { if( M != mold ){
       double th = (2.0*PI/N) ;
-      if( M > mold ){
-         if( rcs[rec] != NULL ){
-            free(rcs[rec]);free(raa[rec]);
-            free(rbb[rec]);free(rcc[rec]);free(rdd[rec]);
-         }
-         rcs[rec] = (complex *) malloc(sizeof(complex)*M3) ;
-         raa[rec] = (complex *) malloc(sizeof(complex)*M ) ;
-         rbb[rec] = (complex *) malloc(sizeof(complex)*M ) ;
-         rcc[rec] = (complex *) malloc(sizeof(complex)*M ) ;
-         rdd[rec] = (complex *) malloc(sizeof(complex)*M ) ;
-      }
-
-      rcs[rec][0].r = 1.0 ; rcs[rec][0].i = 0.0 ;
-      for( k=1 ; k < M3 ; k++ ){
-         rcs[rec][k].r = cos(k*th); rcs[rec][k].i = sin(k*th);
-      }
-      rmold[rec] = M ;
+      cs[0].r = 1.0 ; cs[0].i = 0.0 ;
+      for( k=1 ; k < M3 ; k++ ){ cs[k].r = cos(k*th); cs[k].i = sin(k*th); }
+      CFO_rmold4[rec][ithr] = M ;
   }}
-
-   cs = rcs[rec]; aa = raa[rec]; bb = rbb[rec]; cc = rcc[rec]; dd = rdd[rec];
 
    /*-- load subarrays, and FFT each one --*/
 
    for( i=k=0; k < M; k++ ){
-      aa[k]=xc[i++]; bb[k]=xc[i++]; cc[k]=xc[i++]; dd[k]=xc[i++];
+     aa[k]=xc[i++]; bb[k]=xc[i++]; cc[k]=xc[i++]; dd[k]=xc[i++];
    }
 
-   rec++ ;
+   CFO_recX[ithr]++ ;  /* bump recursion level */
    switch( N ){
 
       default: fprintf(stderr,"\n*** Illegal call to fft_4dec: N=%d\n",N);
                EXIT(1) ;
 
-      case 1024: fft256(mode,aa); fft256(mode,bb);
+      case 128: fft32(mode,aa); fft32(mode,bb);               /* no recursion */
+                fft32(mode,cc); fft32(mode,dd); break;
+
+      case 256: fft64(mode,aa); fft64(mode,bb);               /* no recursion */
+                fft64(mode,cc); fft64(mode,dd); break;
+
+      case 512: fft128(mode,aa); fft128(mode,bb);             /* recurse once */
+                fft128(mode,cc); fft128(mode,dd); break;
+
+      case 1024: fft256(mode,aa); fft256(mode,bb);            /* recurse once */
                  fft256(mode,cc); fft256(mode,dd); break;
 
-      case 2048: fft512(mode,aa); fft512(mode,bb);
+#if 1
+      case 2048: fft512(mode,aa); fft512(mode,bb);            /* recurse twice */
                  fft512(mode,cc); fft512(mode,dd); break;
 
-      case 4096: fft_4dec_OMP(mode,1024,aa); fft_4dec_OMP(mode,1024,bb);         /* recurse once */
-                 fft_4dec_OMP(mode,1024,cc); fft_4dec_OMP(mode,1024,dd); break ;
+      case 4096: fft1024(mode,aa); fft1024(mode,bb);          /* recurse twice */
+                 fft1024(mode,cc); fft1024(mode,dd); break;
 
-      case 8192: fft_4dec_OMP(mode,2048,aa); fft_4dec_OMP(mode,2048,bb);         /* recurse once */
-                 fft_4dec_OMP(mode,2048,cc); fft_4dec_OMP(mode,2048,dd); break ;
+      case 8192: fft2048(mode,aa); fft2048(mode,bb);          /* recurse 3 times */
+                 fft2048(mode,cc); fft2048(mode,dd); break;
 
-      case 16384: fft_4dec_OMP(mode,4096,aa); fft_4dec_OMP(mode,4096,bb);        /* recurse twice */
-                  fft_4dec_OMP(mode,4096,cc); fft_4dec_OMP(mode,4096,dd); break ;
+      case 16384: fft4096(mode,aa); fft4096(mode,bb);         /* recurse 3 times */
+                  fft4096(mode,cc); fft4096(mode,dd); break;
 
-      case 32768: fft_4dec_OMP(mode,8192,aa); fft_4dec_OMP(mode,8192,bb);        /* recurse twice */
-                  fft_4dec_OMP(mode,8192,cc); fft_4dec_OMP(mode,8192,dd); break ;
+      case 32768: fft8192(mode,aa); fft8192(mode,bb);         /* recurse 4 times */
+                  fft8192(mode,cc); fft8192(mode,dd); break;
+
+      case 65536: fft16384(mode,aa); fft16384(mode,bb);       /* recurse 4 times */
+                  fft16384(mode,cc); fft16384(mode,dd); break;
+#endif
    }
-   rec-- ;
+   CFO_recX[ithr]-- ;  /* reduce recursion level */
 
    /*-- recombination --*/
 
@@ -1733,7 +2628,6 @@ static void fft_4dec_OMP( int mode , int idim , complex *xc )
 
    return ;
 }
-#endif /* DONT_UNROLL_FFTS */
 
 /*=======================================================================
   The following radix-3 and radix-5 routines are by RWCox -- Aug 1999.
@@ -1753,53 +2647,43 @@ static void fft_4dec_OMP( int mode , int idim , complex *xc )
 
 static void fft_3dec_OMP( int mode , int idim , complex *xc )
 {
-   static int rec=0 ;
-   static int rmold[RMAX] = {-1,-1,-1} ;
-   static complex *rcs[RMAX] = {NULL,NULL,NULL} ;
-   static complex *raa[RMAX], *rbb[RMAX], *rcc[RMAX] ;
+   DECLARE_ithr ;
+   int rec , mold ;
 
    int N=idim , M=idim/3 , M2=2*M ;
-   int mold ;
    complex *cs=NULL , *aa , *bb , *cc ;
    register int k , i ;
    register float aar,aai, tr,ti, bbr,bbi, ccr,cci,
                   t1,t2,t4,t5,t6,t8 ;
 
+/* ININFO_message("fft_3dec_OMP(%d)",idim) ; */
+
    /*-- initialize cosine/sine table and memory space --*/
 
+   rec = CFO_recX[ithr] ;  /* recursion level (0 .. RMAX-1) */
    if( rec >= RMAX ){
-      fprintf(stderr,"\n*** fft_3dec: too many recursions!\n"); EXIT(1);
+     fprintf(stderr,"\n*** fft_3dec_OMP: too many recursions at idim=%d\n",idim); EXIT(1);
    }
 
-   mold = rmold[rec] ;  /* what was done before at this recursion level */
+   CFO_assign(cs,M2) ;
+   CFO_assign(aa,M) ;
+   CFO_assign(bb,M) ;
+   CFO_assign(cc,M) ;
 
-#pragma omp critical (MALLOC)
+   mold = CFO_rmold3[rec][ithr] ;  /* what was done before at this recursion level */
+
   { if( M != mold ){
       double th = (2.0*PI/N) ;
-      if( M > mold ){
-         if( rcs[rec] != NULL ){
-            free(rcs[rec]);free(raa[rec]);free(rbb[rec]);free(rcc[rec]);
-         }
-         rcs[rec] = (complex *) malloc(sizeof(complex)*M2) ;
-         raa[rec] = (complex *) malloc(sizeof(complex)*M ) ;
-         rbb[rec] = (complex *) malloc(sizeof(complex)*M ) ;
-         rcc[rec] = (complex *) malloc(sizeof(complex)*M ) ;
-      }
-
-      rcs[rec][0].r = 1.0 ; rcs[rec][0].i = 0.0 ;
-      for( k=1 ; k < M2 ; k++ ){
-         rcs[rec][k].r = cos(k*th); rcs[rec][k].i = sin(k*th);
-      }
-      rmold[rec] = M ;
+      cs[0].r = 1.0 ; cs[0].i = 0.0 ;
+      for( k=1 ; k < M2 ; k++ ){ cs[k].r = cos(k*th); cs[k].i = sin(k*th); }
+      CFO_rmold3[rec][ithr] = M ;
    }}
-
-   cs = rcs[rec] ; aa = raa[rec] ; bb = rbb[rec] ; cc = rcc[rec] ;
 
    /*-- load subarrays, and FFT each one --*/
 
    for( i=k=0; k < M; k++ ){ aa[k]=xc[i++]; bb[k]=xc[i++]; cc[k]=xc[i++]; }
 
-#ifndef DONT_UNROLL_FFTS
+   CFO_recX[ithr]++ ;
    switch( M ){
       case   1: break ;
 
@@ -1814,18 +2698,18 @@ static void fft_3dec_OMP( int mode , int idim , complex *xc )
       case 512: fft512(mode,aa) ; fft512(mode,bb) ; fft512(mode,cc) ; break;
 
       case 1024: fft1024(mode,aa) ; fft1024(mode,bb) ; fft1024(mode,cc) ; break;
+#if 1
       case 2048: fft2048(mode,aa) ; fft2048(mode,bb) ; fft2048(mode,cc) ; break;
+      case 4096: fft4096(mode,aa) ; fft4096(mode,bb) ; fft4096(mode,cc) ; break;
+      case 8192: fft8192(mode,aa) ; fft8192(mode,bb) ; fft8192(mode,cc) ; break;
 
-      default:  rec++ ;
-                csfft_cox(mode,M,aa) ;
-                csfft_cox(mode,M,bb) ; csfft_cox(mode,M,cc) ;
-                rec-- ; break ;
-   }
-#else
-      rec++ ;
-      csfft_cox(mode,M,aa) ; csfft_cox(mode,M,bb) ; csfft_cox(mode,M,cc) ;
-      rec-- ;
+      case 16384: fft16384(mode,aa); fft16384(mode,bb); fft16384(mode,cc); break;
 #endif
+
+      default:  csfft_cox_OMP(mode,M,aa); csfft_cox_OMP(mode,M,bb); csfft_cox_OMP(mode,M,cc);
+                break ;
+   }
+   CFO_recX[ithr]-- ;
 
    /*-- recombination --*/
 
@@ -1887,13 +2771,9 @@ static void fft_3dec_OMP( int mode , int idim , complex *xc )
 
 static void fft_5dec_OMP( int mode , int idim , complex *xc )
 {
-   static int rec=0 ;
-   static int rmold[RMAX] = {-1,-1,-1} ;
-   static complex *rcs[RMAX] = {NULL,NULL,NULL} ;
-   static complex *raa[RMAX], *rbb[RMAX], *rcc[RMAX], *rdd[RMAX], *ree[RMAX] ;
-
+   DECLARE_ithr ;
+   int rec , mold ;
    int N=idim , M=idim/5 , M2=2*M , M3=3*M , M4=4*M ;
-   int mold ;
    complex *cs, *aa, *bb, *cc, *dd, *ee ;
    register int k , i ;
    register float aar,aai,bbr,bbi,ccr,cci,ddr,ddi,eer,eei ;
@@ -1902,39 +2782,30 @@ static void fft_5dec_OMP( int mode , int idim , complex *xc )
    float c72 , s72 , c2,s2 ;
    int ss ;
 
+/* ININFO_message("fft_5dec_OMP(%d)",idim) ; */
+
    /*-- initialize cosine/sine table and memory space --*/
 
+   rec = CFO_recX[ithr] ;  /* recursion level (0 .. RMAX-1) */
    if( rec >= RMAX ){
-      fprintf(stderr,"\n*** fft_5dec: too many recursions!\n"); EXIT(1);
+     fprintf(stderr,"\n*** fft_5dec_OMP: too many recursions at idim=%d\n",idim); EXIT(1);
    }
 
-   mold = rmold[rec] ;  /* what was done before at this recursion level */
+   CFO_assign(cs,M4) ;
+   CFO_assign(aa,M) ;
+   CFO_assign(bb,M) ;
+   CFO_assign(cc,M) ;
+   CFO_assign(dd,M) ;
+   CFO_assign(ee,M) ;
 
-#pragma omp critical (MALLOC)
-  { if( M != mold ){     /* new value of M? */
+   mold = CFO_rmold5[rec][ithr] ;  /* what was done before at this recursion level */
+
+  { if( M != mold ){           /* new M? */
       double th = (2.0*PI/N) ;
-      if( M > mold ){             /* need more space */
-         if( rcs[rec] != NULL ){
-            free(rcs[rec]);free(raa[rec]);free(rbb[rec]);
-            free(rcc[rec]);free(rdd[rec]);free(ree[rec]);
-         }
-         rcs[rec] = (complex *) malloc(sizeof(complex)*M4) ;
-         raa[rec] = (complex *) malloc(sizeof(complex)*M ) ;
-         rbb[rec] = (complex *) malloc(sizeof(complex)*M ) ;
-         rcc[rec] = (complex *) malloc(sizeof(complex)*M ) ;
-         rdd[rec] = (complex *) malloc(sizeof(complex)*M ) ;
-         ree[rec] = (complex *) malloc(sizeof(complex)*M ) ;
-      }
-
-      rcs[rec][0].r = 1.0 ; rcs[rec][0].i = 0.0 ;
-      for( k=1 ; k < M4 ; k++ ){
-         rcs[rec][k].r = cos(k*th); rcs[rec][k].i = sin(k*th);
-      }
-      rmold[rec] = M ;  /* you must remember this */
+      cs[0].r = 1.0 ; cs[0].i = 0.0 ;
+      for( k=1 ; k < M4 ; k++ ){ cs[k].r = cos(k*th); cs[k].i = sin(k*th); }
+      CFO_rmold5[rec][ithr] = M ;
    }}
-
-   cs = rcs[rec] ; aa = raa[rec] ; bb = rbb[rec] ;
-                   cc = rcc[rec] ; dd = rdd[rec] ; ee = ree[rec] ;
 
    /*-- load subarrays, and FFT each one --*/
 
@@ -1942,7 +2813,7 @@ static void fft_5dec_OMP( int mode , int idim , complex *xc )
       aa[k]=xc[i++]; bb[k]=xc[i++]; cc[k]=xc[i++]; dd[k]=xc[i++]; ee[k]=xc[i++];
    }
 
-#ifndef DONT_UNROLL_FFTS
+   CFO_recX[ithr]++ ;
    switch( M ){
       case   1: break ;
 
@@ -1974,23 +2845,27 @@ static void fft_5dec_OMP( int mode , int idim , complex *xc )
                 fft512(mode,dd) ; fft512(mode,ee) ;                   break;
 
       case 1024: fft1024(mode,aa) ; fft1024(mode,bb) ; fft1024(mode,cc) ;
-                 fft1024(mode,dd) ; fft1024(mode,ee) ;                   break;
+                 fft1024(mode,dd) ; fft1024(mode,ee) ;                break;
 
+#if 1
       case 2048: fft2048(mode,aa) ; fft2048(mode,bb) ; fft2048(mode,cc) ;
-                 fft2048(mode,dd) ; fft2048(mode,ee) ;                   break;
+                 fft2048(mode,dd) ; fft2048(mode,ee) ;                break;
 
-      default:  rec++ ;
-                csfft_cox(mode,M,aa) ;
-                csfft_cox(mode,M,bb) ; csfft_cox(mode,M,cc) ;
-                csfft_cox(mode,M,dd) ; csfft_cox(mode,M,ee) ;
-                rec-- ; break ;
-   }
-#else
-      rec++ ;
-      csfft_cox(mode,M,aa) ; csfft_cox(mode,M,bb) ; csfft_cox(mode,M,cc) ;
-      csfft_cox(mode,M,dd) ; csfft_cox(mode,M,ee) ;
-      rec-- ;
+      case 4096: fft4096(mode,aa) ; fft4096(mode,bb) ; fft4096(mode,cc) ;
+                 fft4096(mode,dd) ; fft4096(mode,ee) ;                break;
+
+      case 8192: fft8192(mode,aa) ; fft8192(mode,bb) ; fft8192(mode,cc) ;
+                 fft8192(mode,dd) ; fft8192(mode,ee) ;                break;
+
+      case 16384: fft16384(mode,aa) ; fft16384(mode,bb) ; fft16384(mode,cc) ;
+                  fft16384(mode,dd) ; fft16384(mode,ee) ;             break;
 #endif
+
+      default:  csfft_cox_OMP(mode,M,aa) ;
+                csfft_cox_OMP(mode,M,bb) ; csfft_cox_OMP(mode,M,cc) ;
+                csfft_cox_OMP(mode,M,dd) ; csfft_cox_OMP(mode,M,ee) ; break ;
+   }
+   CFO_recX[ithr]-- ;
 
    /*-- recombination --*/
 
