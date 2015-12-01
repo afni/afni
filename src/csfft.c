@@ -75,6 +75,7 @@ void csfft_scale_inverse( int scl ){ sclinv = scl; return; }
 
 /*-------------- For the unrolled FFT routines: November 1998 --------------*/
 
+#undef  DONT_UNROLL_FFTS
 #ifndef DONT_UNROLL_FFTS
    static void fft8  ( int mode , complex *xc ) ; /* completely */
    static void fft16 ( int mode , complex *xc ) ; /* unrolled   */
@@ -281,10 +282,12 @@ void csfft_cox( int mode , int idim , complex *xc )
       case 1024: fft1024(mode,xc); SCLINV; return;
       case 2048: fft2048(mode,xc); SCLINV; return;
 
+#if 1
       case  4096: fft_4dec(mode, 4096,xc); SCLINV; return; /* 4dec -> 1024 */
       case  8192: fft_4dec(mode, 8192,xc); SCLINV; return; /* 4dec -> 2048 */
       case 16384: fft_4dec(mode,16384,xc); SCLINV; return; /* 4dec -> 4096 */
       case 32768: fft_4dec(mode,32768,xc); SCLINV; return; /* 4dec -> 8192 */
+#endif
    }
 #endif  /* end of unrollificationizing */
 
@@ -1776,6 +1779,7 @@ static void fft_4dec( int mode , int idim , complex *xc )
       case 2048: fft512(mode,aa); fft512(mode,bb);
                  fft512(mode,cc); fft512(mode,dd); break;
 
+#if 1
       case 4096: fft_4dec(mode,1024,aa); fft_4dec(mode,1024,bb);         /* recurse once */
                  fft_4dec(mode,1024,cc); fft_4dec(mode,1024,dd); break ;
 
@@ -1787,6 +1791,7 @@ static void fft_4dec( int mode , int idim , complex *xc )
 
       case 32768: fft_4dec(mode,8192,aa); fft_4dec(mode,8192,bb);        /* recurse twice */
                   fft_4dec(mode,8192,cc); fft_4dec(mode,8192,dd); break ;
+#endif
    }
    rec-- ;
 

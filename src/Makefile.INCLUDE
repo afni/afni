@@ -1216,6 +1216,14 @@ qwarpobj: $(QWARPOBJ)
 
 ## ------- Things to be compiled or linked with OpenMP -------
 
+qqqOMP.o: qqqOMP.c
+	$(RM) $@
+	$(CCOMP) -c qqqOMP.c $(INFLAGS)
+
+qqqOMP:qqqOMP.o
+	$(RM) $@
+	$(CCOMP) -o qqqOMP qqqOMP.o $(LFLAGS) $(LLIBS)
+
 3dFWHMx.o: 3dFWHMx.c mri_fwhm.c
 	$(RM) $@
 	$(CCOMP) -c 3dFWHMx.c $(INFLAGS)
@@ -1304,7 +1312,7 @@ AlphaSim:AlphaSim.o
 	$(RM) $@
 	$(CCOMP) -o AlphaSim AlphaSim.o $(LFLAGS) $(LLIBS)
 
-3dClustSim.o:3dClustSim.c zgaussian.c
+3dClustSim.o:3dClustSim.c zgaussian.c mri_radial_random_field.c
 	$(RM) $@
 	$(CCOMP) -c 3dClustSim.c $(INFLAGS)
 
