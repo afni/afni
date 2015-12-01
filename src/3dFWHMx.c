@@ -11,6 +11,8 @@ extern void THD_estimate_FWHM_moments_all( THD_3dim_dataset *dset,
 # include "mri_fwhm.c"
 #endif
 
+#undef ADD_COL5  /* for -acf: add the old Gaussian model column (in blue) */
+
 int main( int argc , char *argv[] )
 {
    THD_3dim_dataset *inset=NULL ; char *inset_prefix , *cpp ;
@@ -26,6 +28,8 @@ int main( int argc , char *argv[] )
    double ct ;
 
    /*---- for the clueless who wish to become clueful ----*/
+
+   AFNI_SETUP_OMP(0) ;
 
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
      printf(
@@ -156,15 +160,29 @@ int main( int argc , char *argv[] )
       "                in the stdout information will be omitted.  This might help\n"
       "                in parsing the output inside a script.\n"
       "              * The empirical ACF results are also written to the file\n"
+#ifdef ADD_COL5
+      "                'anam' in 5 columns:\n"
+      "                   radius ACF(r) model(r) gaussian_model_NEW(r) gaussian_model_OLD(r)\n"
+      "                where 'gaussian_model_NEW' is the Gaussian with the FHWM estimated\n"
+      "                from the ACF, and 'gaussian_model_OLD' is with the FWHM estimated\n"
+      "                via the 'classic' method.\n"
+#else
       "                'anam' in 4 columns:\n"
-      "                  radius ACF(r) model(r) gaussian_model(r)\n"
-      "                If 'anam' is not given (that is, another option starting\n"
+      "                   radius ACF(r) model(r) gaussian_model(r)(r)\n"
+      "                where 'gaussian_model' is the Gaussian with the FWHM estimated\n"
+      "                from the ACF, NOT via the 'classic' method.\n"
+#endif
+      "              * If 'anam' is not given (that is, another option starting\n"
       "                with '-' immediately follows '-acf'), then '3dFWHMx.1D' will\n"
       "                be used for this filename.\n"
       "              * In addition, a graph of these functions will be saved\n"
-      "                into file 'anam'.png, for your viewing pleasure.\n"
-      "              * Note that the ACF calculations are much slower than the\n"
-      "                'old style' FWHM calculations.\n"
+      "                into file 'anam'.png, for your pleasure and elucidation.\n"
+      "              * Note that the ACF calculations are slower than the\n"
+      "                'classic' FWHM calculations.\n"
+      "                To reduce this sloth, 3dFWHMx now uses OpenMP to speed things up.\n"
+#ifndef USE_OMP
+      "                (Unfortunately, this version was NOT compiled to use OpenMP :-)\n"
+#endif
       "              * The ACF modeling is intended to enhance 3dClustSim, and\n"
       "                may or may not be useful for any other purpose!\n"
       "\n"
@@ -229,9 +247,9 @@ int main( int argc , char *argv[] )
       "  given global FWHM.\n"
       "* 3dBlurInMask will blur a dataset inside a mask, but doesn't measure FWHM.\n"
       "\n"
-      "-- Bob Cox - Halloween 2006 --- BOO!\n"
+      "-- Zhark, Ruler of the (Galactic) Cluster!\n"
      ) ;
-     PRINT_COMPILE_DATE ; exit(0) ;
+     PRINT_AFNI_OMP_USAGE("3dFWHMx",NULL) ; PRINT_COMPILE_DATE ; exit(0) ;
    }
 
    /*---- official startup ---*/
@@ -568,17 +586,46 @@ int main( int argc , char *argv[] )
 
      if( acf_im != NULL ){
        char cmd[4096] ;
+
+#ifdef ADD_COL5
+       { MRI_IMAGE *qim,*pim ; float *rar, *qar, sig ; MRI_IMARR *imar ;
+         qim = mri_new( acf_im->nx , 1 , MRI_float ) ;
+         qar = MRI_FLOAT_PTR(qim) ; rar = MRI_FLOAT_PTR(acf_im) ;
+         sig = FWHM_TO_SIGMA(ccomb) ;
+         for( pp=0 ; pp < acf_im->nx ; pp++ )
+           qar[pp] = exp(-0.5*rar[pp]*rar[pp]/(sig*sig)) ;
+         INIT_IMARR(imar) ; ADDTO_IMARR(imar,acf_im) ; ADDTO_IMARR(imar,qim) ;
+         pim = mri_catvol_1D(imar,2) ; DESTROY_IMARR(imar) ; acf_im = pim ;
+       }
+#endif
+
        mri_write_1D( acf_fname , acf_im ) ;
-       INFO_message("ACF 1D file [radius ACF model] written to %s",acf_fname) ;
+
+#ifdef ADD_COL5
+       INFO_message("ACF 1D file [radius ACF model gaussian_NEW gaussian_OLD] written to %s",acf_fname) ;
        sprintf(cmd,
-         "1dplot -one -xlabel 'r (mm)' -ylabel 'Autocorrelation \\small\\green [FWHM=%.2fmm]'"
-         "       -yaxis 0:1:10:2 -DAFNI_1DPLOT_BOXSIZE=0.004"
-         "       -plabel '\\small\\noesc %s\\esc\\red  %.2f*exp[-r^2/2*%.2f^2]+%.2f*exp[-r/%.2f]'"
-         "       -box -png %s.png -x %s'[0]' %s'[1]' %s'[2]' %s'[3]'" ,
+         "1dplot -one -xlabel 'r (mm)'"
+         " -ylabel 'Autocorrelation \\small [FWHM=\\green %.2f\\blue %.2f\\black]'"
+         " -yaxis 0:1:10:2 -DAFNI_1DPLOT_BOXSIZE=0.004"
+         " -plabel '\\small\\noesc %s\\esc\\red  %.2f*exp[-r^2/2*%.2f^2]+%.2f*exp[-r/%.2f]'"
+         " -box -png %s.png -x %s'[0]' %s'[1]' %s'[2]' %s'[3]' %s'[4]'" ,
+         acf_Epar.d , ccomb ,
+         inset_prefix ,
+         acf_Epar.a , acf_Epar.b , 1.0f-acf_Epar.a , acf_Epar.c ,
+         acf_fname, acf_fname, acf_fname, acf_fname, acf_fname, acf_fname ) ;
+#else
+       INFO_message("ACF 1D file [radius ACF model gaussian_model] written to %s",acf_fname) ;
+       sprintf(cmd,
+         "1dplot -one -xlabel 'r (mm)'"
+         " -ylabel 'Autocorrelation \\small [FWHM=\\green %.2f\\black]'"
+         " -yaxis 0:1:10:2 -DAFNI_1DPLOT_BOXSIZE=0.004"
+         " -plabel '\\small\\noesc %s\\esc\\red  %.2f*exp[-r^2/2*%.2f^2]+%.2f*exp[-r/%.2f]'"
+         " -box -png %s.png -x %s'[0]' %s'[1]' %s'[2]' %s'[3]'" ,
          acf_Epar.d ,
          inset_prefix ,
          acf_Epar.a , acf_Epar.b , 1.0f-acf_Epar.a , acf_Epar.c ,
-         acf_fname , acf_fname , acf_fname , acf_fname , acf_fname ) ;
+         acf_fname, acf_fname, acf_fname, acf_fname, acf_fname ) ;
+#endif
        system(cmd) ;
        ININFO_message("and 1dplot-ed to file %s.png",acf_fname) ;
      }
