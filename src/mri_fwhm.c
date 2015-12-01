@@ -989,7 +989,7 @@ float_quad ACF_cluster_to_modelE( MCW_cluster *acf, float dx, float dy, float dz
 {
    int nclu, nr, pp, qq, ss, dq ;
    float xx , yy , zz , rmax , dr , vp,rp , vs ;
-   float apar , bpar , cpar , dpar , *acar ;
+   float apar , bpar , cpar , dpar , sig , *acar ;
    float_quad fqout = { -1.0f , -1.0f , -1.0f , -1.0f } ;
    double xpar[3] , xbot[3] , xtop[3] ;
 
@@ -1073,15 +1073,15 @@ ENTRY("ACF_cluster_to_modelE") ;
      RETURN(fqout) ;
    }
 
-   ACF_im = mri_new( nar , 3 , MRI_float ) ;
+   ACF_im = mri_new( nar , 4 , MRI_float ) ;
    acar = MRI_FLOAT_PTR(ACF_im) ;
    apar = xpar[0] ; bpar = xpar[1] ; cpar = xpar[2] ;
    for( pp=0 ; pp < nar ; pp++ ){
      vs =         apar * expf( -0.5f*rar[pp]*rar[pp]/(bpar*bpar) )
          + (1.0f-apar) * expf( -rar[pp]/cpar ) ;
-     acar[pp]       = rar[pp] ;
-     acar[pp+nar]   = aar[pp] ;
-     acar[pp+2*nar] = vs ;
+     acar[pp]       = rar[pp] ;  /* radius */
+     acar[pp+nar]   = aar[pp] ;  /* empirical ACF */
+     acar[pp+2*nar] = vs ;       /* model ACF */
    }
 
    { floatvec *fv ;
@@ -1089,8 +1089,12 @@ ENTRY("ACF_cluster_to_modelE") ;
      for( pp=0 ; pp < nar ; pp++ ) fv->ar[pp] = acar[pp+2*nar] ;
      vs = interp_inverse_floatvec( fv , 0.5f ) ;
      for( pp=0 ; pp < nar ; pp++ ) fv->ar[pp] = rar[pp] ;
-     dpar = 2.0*interp_floatvec( fv , vs ) ;
+     dpar = 2.0*interp_floatvec( fv , vs ) ; sig = FWHM_TO_SIGMA(dpar) ;
      KILL_floatvec(fv) ;
+   }
+
+   for( pp=0 ; pp < nar ; pp++ ){  /* add in Gaussian ACF for fun */
+     acar[pp+3*nar] = expf(-0.5f*rar[pp]*rar[pp]/(sig*sig)) ;
    }
 
    free(aar) ; free(rar) ; aar = rar = NULL ; nar = 0 ;
