@@ -196,7 +196,7 @@ SCRIPTS = @4Daverage @CommandGlobb @GetAfniOrient @DTI_studio_reposition        
           @Install_TSrestMovieDemo @Install_AfniRetinoDemo                        \
           @Install_FATCAT_DEMO @Install_RSFMRI_Motion_Group_Demo                  \
           @Install_MEICA_Demo @T1scale 3dMVM @compute_gcor 3dLME                  \
-          @Install_ClustScat_Demo @Install_FATMVM_DEMO                            \
+          @Install_ClustScat_Demo @Install_FATMVM_DEMO @GradFlipTest              \
           @move.to.series.dirs @toMNI_Awarp @toMNI_Qwarpar @simulate_motion	    \
           @afni.run.me 3dRprogDemo @ExamineGenFeatDists rPkgsInstall 	         \
           @Install_DBSproc @Install_3dPFM_Demo 3dPFM @diff.files @diff.tree
