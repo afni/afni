@@ -43,7 +43,15 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 30 , NOV , 2015 , RWC , "csfft_OMP" , MICRO , TYPE_GENERAL ,
+  { 1 , DEC , 2015 , RWC , "3dClustSim" , MAJOR , TYPE_NEW_OPT ,
+   "Added -acf option!" ,
+   "Non-Gaussian spherically symmetric AutoCorrelation Function (ACF) for\n"
+   "the noise.  Uses FFTs to create the noise fields, via #include-d file\n"
+   "mri_radial_random_field.c and #include-d csfft_OMP.c (thread-safe FFTs).\n"
+   "This method in 3dFWHMx and 3dClustSim will be the favored cluster\n"
+   "thresholding analysis going forward." } ,
+
+ { 30 , NOV , 2015 , RWC , "csfft_OMP" , MICRO , TYPE_GENERAL ,
    "Thread-safe version of csfft function, for use with OpenMP" ,
    "Meant to be #include-d into the main source file." } ,
 
