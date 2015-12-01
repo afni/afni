@@ -958,11 +958,11 @@ void get_options( int argc , char **argv )
     acf_parm[1] = acf_b ;
     acf_parm[2] = acf_c ;
     val = 2.0f * rfunc_inv(0.5f,acf_parm) ;
-    INFO_message("ACF(%.3f,%.3f,%.3f) => FWHM is %.3f",acf_a,acf_b,acf_c,val) ;
     ijk = get_random_field_size( nx,ny,nz , dx,dy,dz , acf_parm ) ;
     acf_nxx = ijk.i ; acf_nyy = ijk.j ; acf_nzz = ijk.k ;
-    ININFO_message("                       => %dx%dx%d padded to %dx%dx%d",
-                   nx,ny,nz , acf_nxx,acf_nyy,acf_nzz ) ;
+    INFO_message("ACF(%.2f,%.2f,%.2f) => FWHM=%.2f => %dx%dx%d pads to %dx%dx%d",
+                 acf_a,acf_b,acf_c,val,
+                 nx,ny,nz , acf_nxx,acf_nyy,acf_nzz ) ;
     acf_wim = make_radial_weight( acf_nxx,acf_nyy,acf_nzz , dx,dy,dz , acf_parm ) ;
     acf_ntar = acf_nxx+acf_nyy+acf_nzz ;
   }
