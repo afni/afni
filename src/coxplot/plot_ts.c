@@ -23,12 +23,13 @@ static float ccc[NCLR_MAX][3] = {
   { 0.0 , 0.0 , 0.9 } ,
   { 0.8 , 0.0 , 0.9 } ,
   { 0.7 , 0.6 , 0.0 } ,
+  { 0.0 , 0.9 , 0.9 }
 } ;
 
 static int use_ddd = 0 ;
 static int ddd[NCLR_MAX] = { 1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1 } ;
 
-static int NCLR = 6 ;
+static int NCLR = 7 ;
 static int dont_init_colors=0 ;
 
 static int ilab[4] = { 0,2,3,1 } ;  /* whether to plot labels on axes */
@@ -235,6 +236,8 @@ static void init_colors(void)
          ccc[ii][0] = 0.8f; ccc[ii][1] = 0.6f; ccc[ii][2] = 0.0f; NCLR = ii+1;
        } else if( strcasecmp(eee,"pink") == 0 ){
          ccc[ii][0] = 0.9f; ccc[ii][1] = 0.3f; ccc[ii][2] = 0.5f; NCLR = ii+1;
+       } else if( strcasecmp(eee,"cyan") == 0 ){
+         ccc[ii][0] = 0.0f; ccc[ii][1] = 0.8f; ccc[ii][2] = 0.8f; NCLR = ii+1;
        } else if( *eee == '#' && *(eee+1) != '\0' ){
          int le=strlen(eee+1) , val , bas , rr,gg,bb ;
          val = (int)strtol( eee+1 , NULL , 16 ) ;
@@ -245,6 +248,9 @@ static void init_colors(void)
          ccc[ii][0] = rf ; ccc[ii][1] = gf ; ccc[ii][2] = bf ; NCLR = ii+1 ;
        } else {
          fprintf(stderr, "** ERROR: %s = %s is not a recognizable color\n", ename,eee ) ;
+         fprintf(stderr, "   recognizable color names are\n"
+                         "     green red blue black purple gold pink cyan OR #xxxxxx\n"
+                         "   where 'xxxxxx' is 6 hex digits for RGB.\n" ) ;
        }
      }
    }
