@@ -477,6 +477,10 @@ extern void plotpak_getset( float *xo1,float *xo2 , float *yo1,float *yo2 ,
 extern void plotpak_zzphys( float x1 , float y1 , float *x2 , float *y2 ) ;
 extern void plotpak_unphys( float x1 , float y1 , float *x2 , float *y2 ) ;
 
+/* 02 Dec 2015 */
+
+extern int find_color_name( char *cnam, float *rr, float *gg, float *bb ) ;
+
 /*----- Commons from PLOTPAK -----*/
 
 #ifdef PLOTPAK_COMMONS
