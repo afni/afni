@@ -1677,6 +1677,8 @@ int DC_parse_color( MCW_DC *dc, char *str, float *rr, float *gg, float *bb )
      }
    }
 
+   ok = find_color_name(str,rr,bb,gg) ; if( ok >= 0 ) return 0 ; /* 02 Dec 2015 */
+
    /* let X11 try to understand the input string */
 
    ok = XParseColor( dc->display , dc->colormap , str , &cell ) ;
@@ -1686,6 +1688,7 @@ int DC_parse_color( MCW_DC *dc, char *str, float *rr, float *gg, float *bb )
       *bb = cell.blue  / 65535.0f ;
       return 0 ;
    }
+
    return 1 ;
 }
 
@@ -1710,11 +1713,11 @@ int NJ_bigmaps_init(int bigmap_num, char ***bigmap_namep, rgbyte ***bigmapp)
      /* ZSS: The +1 is to stop a a MCW_malloc post-corruption which happens
      under certain compiler/OS combinations. The likely cause is the uneven
      byte size of rgbyte which might be causing misalignment problems at the
-     very end          March 27 2012 */ 
+     very end          March 27 2012 */
 
      /* allocate all RGB arrays */
      for(mm = 0; mm < bigmap_num; mm++ )
-        bigmap[mm] = (rgbyte *) malloc(sizeof(rgbyte)*(NPANE_BIG+1)) ; 
+        bigmap[mm] = (rgbyte *) malloc(sizeof(rgbyte)*(NPANE_BIG+1)) ;
 
      /* fill RGB arrays */
      for( ii=0 ; ii < NPANE_BIG ; ii++ ){
