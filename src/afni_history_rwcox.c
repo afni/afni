@@ -43,7 +43,11 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 1 , DEC , 2015 , RWC , "3dClustSim" , MAJOR , TYPE_NEW_OPT ,
+  { 7 , DEC , 2015 , RWC , "3dttest++" , MINOR , TYPE_NEW_OPT ,
+   "Add -resid option, to save residuals." ,
+   NULL } ,
+
+ { 1 , DEC , 2015 , RWC , "3dClustSim" , MAJOR , TYPE_NEW_OPT ,
    "Added -acf option!" ,
    "Non-Gaussian spherically symmetric AutoCorrelation Function (ACF) for\n"
    "the noise.  Uses FFTs to create the noise fields, via #include-d file\n"
