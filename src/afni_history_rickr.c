@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  7,  Dec, 2015, RCR, "MatAFNI_Demo.m", MICRO, TYPE_BUG_FIX,
+   "merge fix from J. Pfannmoller",
+   "Done with G Chen."
+ } ,
+
  {  7,  Dec, 2015, RCR, "afni_proc.py", MICRO, TYPE_ENHANCE,
    "help update: modify example 11 to use SurfVol and add FREESURFER NOTE",
    NULL
