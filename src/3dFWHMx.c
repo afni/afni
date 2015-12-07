@@ -605,7 +605,7 @@ int main( int argc , char *argv[] )
        mri_write_1D( acf_fname , acf_im ) ;
 
 #ifdef ADD_COL5
-       INFO_message("ACF 1D file [radius ACF model gaussian_NEW gaussian_OLD] written to %s",acf_fname) ;
+       INFO_message("ACF 1D file [radius ACF mixed_model gaussian_NEWmodel] written to %s",acf_fname) ;
        sprintf(cmd,
          "1dplot -one -xlabel 'r (mm)'"
          " -ylabel 'Autocorrelation \\small [FWHM=\\green %.2f\\blue %.2f\\black]'"
