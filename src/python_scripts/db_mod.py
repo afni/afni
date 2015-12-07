@@ -5763,7 +5763,7 @@ g_help_string = """
         DEFAULTS                : basic default operations, per block
         EXAMPLES                : various examples of running this program
         NOTE sections           : details on various topics
-            RESTING STATE NOTE, TIMING FILE NOTE, MASKING NOTE,
+            RESTING STATE NOTE, FREESURFER NOTE, TIMING FILE NOTE, MASKING NOTE,
             ANAT/EPI ALIGNMENT CASES NOTE, ANAT/EPI ALIGNMENT CORRECTIONS NOTE,
             WARP TO TLRC NOTE, RETROICOR NOTE, RUNS OF DIFFERENT LENGTHS NOTE,
             SCRIPT EXECUTION NOTE
@@ -6376,6 +6376,8 @@ g_help_string = """
              - regression of average eroded white matter
              - regression of first 3 principal components of lateral ventricles
              - ANATICOR white matter mask
+         o Input anat is from FreeSurfer (meaning it is aligned with FS masks).
+             - output from FS is usually not quite aligned with input
          o Erode FS white matter and ventricle masks before application.
          o Bring along FreeSurfer parcellation datasets:
              - aaseg : NN interpolated onto the anatomical grid
@@ -6386,7 +6388,7 @@ g_help_string = """
 
                 afni_proc.py -subj_id FT.11.rest                             \\
                   -blocks despike tshift align tlrc volreg blur mask regress \\
-                  -copy_anat FT_anat+orig                                    \\
+                  -copy_anat FT_SurfVol.nii                                  \\
                   -anat_follower_ROI aaseg anat aparc.a2009s+aseg_rank.nii   \\
                   -anat_follower_ROI aeseg epi  aparc.a2009s+aseg_rank.nii   \\
                   -anat_follower_ROI FSvent epi FT_vent.nii                  \\
@@ -6497,6 +6499,10 @@ g_help_string = """
                    10b. apply bandpassing via 3dRSFC
                    soon: extra motion regs via motion simulated time series
                          (either locally or not)
+                   11.  censor, despike, non-linear registration,
+                        no bandpassing, fast ANATICOR regression,
+                        FreeSurfer masks for ventricle/WM regression
+                      * see "FREESURFER NOTE" for more details
 
             processing blocks:
 
@@ -6613,6 +6619,73 @@ g_help_string = """
 
                    (afni GUI, 3dclust, or 3dmerge)
             
+    --------------------------------------------------
+    FREESURFER NOTE:
+
+    FreeSurfer output can be used for a few things in afni_proc.py:
+
+        - simple skull stripping (i.e. instead of 3dSkullStrip)
+        - running a surface-based analysis
+        - using parcellation datasets for:
+           - tissue-based regression
+           - creating group probability maps
+           - creating group atlases (e.g. maximum probability maps)
+
+    This NOTE mainly refers to using FreeSurfer parcellations for tissue-based
+    regression, as is done in Example 11.
+
+
+    First run FreeSurfer, then import to AFNI using @SUMA_Make_Spec_FS, then
+    make ventricle and white matter masks from the Desikan-Killiany atlas based
+    parcellation dataset, aparc+aseg.nii.
+
+    Note that the aparc.a2009s segmentations are based on the Destrieux atlas,
+    which might be nicer for probability maps, though the Desikan-Killiany
+    aparc+aseg segmentation is currently used for segmenting white matter and
+    ventricles.  I have not studied the differences.
+
+
+    Example 11 brings the ranked version of the aparc.a2009s+aseg segmentation
+    along (for viewing or atlas purposes, aligned with the result), though the
+    white matter and ventricle masks are based instead on aparc+aseg.nii.
+
+        # run (complete) FreeSurfer on FT.nii
+        recon-all -all -subject FT -i FT.nii
+
+        # import to AFNI, in NIFTI format
+        @SUMA_Make_Spec_FS -sid FT -NIFTI
+
+        # create ventricle and white matter masks
+        3dcalc -a aparc+aseg.nii -datum byte -prefix FT_vent.nii \
+               -expr 'amongst(a,4,43)'
+        3dcalc -a aparc+aseg.nii -datum byte -prefix FT_WM.nii \
+               -expr 'amongst(a,2,7,16,41,46,251,252,253,254,255)'
+
+    After this, FT_SurfVol.nii, FT_vent.nii and FT_WM.nii (along with the
+    basically unused aparc.a2009s+aseg_rank.nii) are passed to afni_proc.py.
+
+
+  * Be aware that the output from FreeSurfer (e.g. FT_SurfVol.nii) will
+    usually not quite align with the input (e.g. FT.nii).  So parcellation
+    datasets will also not quite align with the input (FT.nii).  Therefore,
+    when passing parcellation volumes to afni_proc.py for tissue-based
+    regression, it is important to use the anatomy output from FreeSurfer
+    as the subject anatomy (input to afni_proc.py).  That way, the anatomy
+    and parcellation datasets will be in register, and therefore the EPI
+    will eventually align with the parcellation datasets.
+
+    If it is important to have the FreeSurfer output align with the input,
+    it might help to pass a modified volume to FreeSurfer.  Use 3dresample
+    and then 3dZeropad (if necessary) to make a volume with 1 mm^3 voxels
+    and an even number voxels in each direction.
+
+    The exact 3dZeropad command depends on the grid output by 3dresample.
+
+        3dresample -inset FT_anat+orig -dxyz 1 1 1 -prefix FT.1 -rmode Cu
+        3dZeropad -L 1 -prefix FT.1.z.nii FT.1+orig
+        recon-all -all -subject FT -i FT.1.z.nii
+        @SUMA_Make_Spec_FS -sid FT -NIFTI
+
     --------------------------------------------------
     TIMING FILE NOTE:
 
