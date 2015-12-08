@@ -43,7 +43,11 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 7 , DEC , 2015 , RWC , "3dttest++" , MINOR , TYPE_NEW_OPT ,
+  { 8 , DEC , 2015 , RWC , "3dttest++" , MICRO , TYPE_MODIFY ,
+   "Allow constant value with -singletonA instead of a dataset" ,
+   "Allows user to test -setB against a nonzero constant." } ,
+
+ { 7 , DEC , 2015 , RWC , "3dttest++" , MINOR , TYPE_NEW_OPT ,
    "Add -resid option, to save residuals." ,
    NULL } ,
 
