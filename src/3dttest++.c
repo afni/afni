@@ -70,6 +70,8 @@ static int brickwise_num = 0 ;
 
 static int singletonA    = 0 ;                 /* 19 Mar 2015 */
 static float singleton_variance_ratio = 1.0f ; /* 20 Mar 2015 */
+static float singleton_fixed_val = 0.0f ;      /* 08 Dec 2015 */
+static int use_singleton_fixed_val = 0 ;
 
 static NI_element         *covnel=NULL ;       /* covariates */
 static NI_str_array       *covlab=NULL ;
@@ -309,14 +311,30 @@ void display_help_menu(void)
       " -singletonA dataset_A\n"
       "   *OR*\n"
       " -singletonA LABL_A dataset_A\n"
+      "   *OR*\n"
+      " -singletonA FIXED_NUMBER\n"
       "\n"
       "* In the first form, just give the 1 sub-brick dataset name after the option.\n"
-      "  In the second form, you can provide a dataset 'label' to be used for\n"
+      "* In the second form, you can provide a dataset 'label' to be used for\n"
       "  covariates extraction.\n"
+      "* In the third form, instead of giving a dataset, you give a fixed number\n"
+      "  (e.g., '0.5'), to test the -setB collection against this 1 number.\n"
+      "  ++ In this form, '-singleton_variance_ratio' is set to a very small number,\n"
+      "     since you presumably aren't testing against an instance of a random\n"
+      "     variable.\n"
+      "  ++ Also, '-BminusA' is turned on, to give the effect of a 1-sample test\n"
+      "     against a constant.  For example, '-singletonA 0.0 -set B x y z' is\n"
+      "     equivalent to the 1-sample test with '-setA x y z'.  The only advantage\n"
+      "     of using '-singletonA FIXED_NUMBER' is that you can test against a\n"
+      "     nonzero constant this way.\n"
+      "  ++ You cannot use covariates with this form of '-singletonA' :-(\n"
       "\n"
       "* The output dataset will have 2 sub-bricks:\n"
       "  ++ The difference (at each voxel) between the dataset_A value and the\n"
       "     mean of the setB dataset values.\n"
+      "  ++ (In the form where 'dataset_A' is replaced by a fixed)\n"
+      "     (number, the output is instead the difference between)\n"
+      "     (the mean of the setB values and the fixed number.   )\n"
       "  ++ The t-statistic corresponding to this difference.\n"
       "\n"
       "* If covariates are used, at each voxel the slopes of the setB data values with\n"
@@ -345,7 +363,8 @@ void display_help_menu(void)
       "     to set the (assumed) variance of dataset_A to be RRR times the variance\n"
       "     of set B. Here, 'RRR' must be a positive number -- it cannot be zero,\n"
       "     so if you really want to test against a voxel-wise constant, use something\n"
-      "     like 0.0001 for RRR.\n"
+      "     like 0.000001 for RRR (this is the choice when 'dataset_A' is replaced\n"
+      "     by a fixed number).\n"
       "\n"
       "* Statistical inference on a single sample (dataset_A values) isn't really\n"
       "  possible.  The purpose of '-singletonA' is to give you some guidance when\n"
@@ -1613,34 +1632,53 @@ int main( int argc , char *argv[] )
        if( HAS_WILDCARD(argv[nopt]) )
          ERROR_exit("Argument after '-singletonA' has wildcard -- this is not allowed!") ;
 
+       /* if the next arg is a number, then we use a fixed value [08 Dec 2015] */
+
+       { float val = (float)strtod(argv[nopt],&cpt) ;
+         if( val != -666.0f && *cpt == '\0' ){
+           singleton_fixed_val = val ;
+           use_singleton_fixed_val = 1 ;
+           singleton_variance_ratio = 0.000001f ;
+           BminusA = 1 ;
+           INFO_message("-singletonA testing against fixed value = %g",val) ;
+           ININFO_message(" ==> option -BminusA is automatically turned on") ;
+         }
+       }
+
        /* if next arg is a dataset, then it is the singleton dataset;
           otherwise, it is the label and the FOLLOWING arg is the dataset */
 
-       qset = THD_open_dataset( argv[nopt] ) ;
+       if( use_singleton_fixed_val ){  /* 08 Dec 2015 */
+         qset = NULL ;
+         lnam = qnam = (char *)malloc(sizeof(char)*32) ;
+         sprintf(qnam,"C=%g",singleton_fixed_val) ; nopt++ ;
+       } else {
+         qset = THD_open_dataset( argv[nopt] ) ;
 
-       if( ISVALID_DSET(qset) ){   /* 1st arg is dataset name (and the label) */
-         lnam = argv[nopt] ;
-         qnam = argv[nopt] ; nopt++ ;
-       } else {                    /* 1st arg is dataset label, second is name */
-         if( strstr(argv[nopt],"+orig") != NULL ||
-             strstr(argv[nopt],"+tlrc") != NULL ||
-             strstr(argv[nopt],".nii" ) != NULL   )
-           WARNING_message("-singletonA: dataset label '%s' looks like a dataset name but isn't -- is this OK ?!?",
-                           argv[nopt] ) ;
-         if( is_possible_filename(argv[nopt]) )
-           WARNING_message("-singletonA: dataset label '%s' looks like it is also a filename on disk -- is this OK ?!?",
-                           argv[nopt] ) ;
+         if( ISVALID_DSET(qset) ){   /* 1st arg is dataset name (and the label) */
+           lnam = argv[nopt] ;
+           qnam = argv[nopt] ; nopt++ ;
+         } else {                    /* 1st arg is dataset label, second is name */
+           if( strstr(argv[nopt],"+orig") != NULL ||
+               strstr(argv[nopt],"+tlrc") != NULL ||
+               strstr(argv[nopt],".nii" ) != NULL   )
+             WARNING_message("-singletonA: dataset label '%s' looks like a dataset name but isn't -- is this OK ?!?",
+                             argv[nopt] ) ;
+           if( is_possible_filename(argv[nopt]) )
+             WARNING_message("-singletonA: dataset label '%s' looks like it is also a filename on disk -- is this OK ?!?",
+                             argv[nopt] ) ;
 
-         qset = THD_open_dataset( argv[nopt+1] ) ;
-         if( !ISVALID_DSET(qset) )
-           ERROR_exit("Option -singletonA: can't open dataset '%s'",argv[nopt+1]) ;
+           qset = THD_open_dataset( argv[nopt+1] ) ;
+           if( !ISVALID_DSET(qset) )
+             ERROR_exit("Option -singletonA: can't open dataset '%s'",argv[nopt+1]) ;
 
-         lnam = argv[nopt] ;
-         qnam = argv[nopt+1] ; nopt += 2 ;
+           lnam = argv[nopt] ;
+           qnam = argv[nopt+1] ; nopt += 2 ;
+         }
+
+         if( DSET_NVALS(qset) > 1 )
+           ERROR_exit("-singletonA dataset '%s' has more than 1 sub-brick -- not allowed!",qnam) ;
        }
-
-       if( DSET_NVALS(qset) > 1 )
-         ERROR_exit("-singletonA dataset '%s' has more than 1 sub-brick -- not allowed!",qnam) ;
 
        nams = (char **)malloc(sizeof(char *)) ;
        labs = (char **)malloc(sizeof(char *)) ;
@@ -1774,7 +1812,11 @@ int main( int argc , char *argv[] )
      ERROR_exit("Can't do '-paired' with unequal set sizes: #A=%d #B=%d",
                 nval_AAA , nval_BBB ) ;
 
-   nvox = DSET_NVOX(dset_AAA[0]) ;
+   if( use_singleton_fixed_val && mcov > 0 )  /* 08 Dec 2015 */
+     ERROR_exit("You can't use a fixed -singletonA constant AND use -covariates!") ;
+
+   if( !use_singleton_fixed_val ) nvox = DSET_NVOX(dset_AAA[0]) ;
+   else                           nvox = DSET_NVOX(dset_BBB[0]) ;
    if( twosam && DSET_NVOX(dset_BBB[0]) != nvox )
      ERROR_exit("-setA and -setB datasets don't match number of voxels") ;
 
@@ -2040,8 +2082,8 @@ int main( int argc , char *argv[] )
 
      if( num_covset_col > 0 ) MEMORY_CHECK ;
 
-     if( twosam && num_covset_col < mcov ){   /* 19 Oct 2010 */
-       int toz_sav = toz ; float pp ;         /* test covariates for equality-ishness */
+     if( twosam && num_covset_col < mcov && !singletonA ){     /* 19 Oct 2010 */
+       int toz_sav = toz ; float pp ; /* test covariates for equality-ishness */
 
        toz = 1 ;
        INFO_message(
@@ -2059,7 +2101,7 @@ int main( int argc , char *argv[] )
          }
        }
        toz = toz_sav ;
-     } else INFO_message("twosam=%d num_covset_col=%d mcov=%d",twosam,num_covset_col,mcov) ;
+     }
 
    }  /*-- end of covariates setup --*/
 
@@ -2072,7 +2114,7 @@ int main( int argc , char *argv[] )
 
    if( !do_means || !do_tests ) nvout /= 2 ; /* no mean or stat sub-bricks? [05 Feb 2014] */
 
-   outset = EDIT_empty_copy( dset_AAA[0] ) ;
+   outset = EDIT_empty_copy( use_singleton_fixed_val ? dset_BBB[0] : dset_AAA[0] ) ;
 
    EDIT_dset_items( outset ,
                       ADN_prefix    , prefix ,
@@ -2276,8 +2318,10 @@ LABELS_ARE_DONE:  /* target for goto above */
 
    if( !brickwise ){    /* load data now if not doing brickwise tests */
      INFO_message("loading input datasets") ;
-     vectim_AAA = THD_dset_list_to_vectim( ndset_AAA , dset_AAA , mask ) ;
-     for( ii=0 ; ii < ndset_AAA ; ii++ ) DSET_unload(dset_AAA[ii]) ;
+     if( !use_singleton_fixed_val ){
+       vectim_AAA = THD_dset_list_to_vectim( ndset_AAA , dset_AAA , mask ) ;
+       for( ii=0 ; ii < ndset_AAA ; ii++ ) DSET_unload(dset_AAA[ii]) ;
+     }
      if( twosam ){
        vectim_BBB = THD_dset_list_to_vectim( ndset_BBB , dset_BBB , mask ) ;
        for( ii=0 ; ii < ndset_BBB ; ii++ ) DSET_unload(dset_BBB[ii]) ;
@@ -2299,15 +2343,11 @@ LABELS_ARE_DONE:  /* target for goto above */
        if( vectim_BBB != NULL ){ VECTIM_destroy(vectim_BBB); vectim_BBB=NULL; }
        vectim_AAA = THD_dset_list_censored_to_vectim( ndset_AAA , dset_AAA ,
                                                       mask , 1 , keep       ) ;
-#if 1
        for( ii=0 ; ii < ndset_AAA ; ii++ ) DSET_unload_one(dset_AAA[ii],bb) ;
-#endif
        if( twosam ){
          vectim_BBB = THD_dset_list_censored_to_vectim( ndset_BBB , dset_BBB ,
                                                         mask , 1 , keep       ) ;
-#if 1
          for( ii=0 ; ii < ndset_BBB ; ii++ ) DSET_unload_one(dset_BBB[ii],bb) ;
-#endif
        }
        if( debug ) MEMORY_CHECK ;
      }
@@ -2326,7 +2366,10 @@ LABELS_ARE_DONE:  /* target for goto above */
 
        if( vstep > 0 && kout%vstep==vstep/2 ) vstep_print() ;
 
-                    datAAA = VECTIM_PTR(vectim_AAA,kout) ;  /* data arrays */
+       if( use_singleton_fixed_val )
+                    datAAA = &singleton_fixed_val ;         /* 08 Dec 2015 */
+       else         datAAA = VECTIM_PTR(vectim_AAA,kout) ;  /* data arrays */
+
        if( twosam ) datBBB = VECTIM_PTR(vectim_BBB,kout) ;
 
        resar = VECTIM_PTR(vimout,kout) ;                    /* results array */
@@ -2372,13 +2415,15 @@ LABELS_ARE_DONE:  /* target for goto above */
          float *zAAA=datAAA, *zBBB=datBBB ; int nAAA=nval_AAA, nBBB=nval_BBB, nz,qq ;
 
          if( do_zskip ){  /* 06 Oct 2010: skip zero values? */
-           for( ii=nz=0 ; ii < nval_AAA ; ii++ ) nz += (datAAA[ii] == 0.0f) ;
-           if( nz > 0 ){            /* copy nonzero vals to a new array */
-             nAAA = nval_AAA - nz ;
-             if( nAAA < zskip_AAA ){ kout++ ; nzskip++ ; continue ; }
-             zAAA = (float *)malloc(sizeof(float)*nAAA) ;
-             for( ii=qq=0 ; ii < nval_AAA ; ii++ )
-               if( datAAA[ii] != 0.0f ) zAAA[qq++] = datAAA[ii] ;
+           if( !singletonA ){
+             for( ii=nz=0 ; ii < nval_AAA ; ii++ ) nz += (datAAA[ii] == 0.0f) ;
+             if( nz > 0 ){            /* copy nonzero vals to a new array */
+               nAAA = nval_AAA - nz ;
+               if( nAAA < zskip_AAA ){ kout++ ; nzskip++ ; continue ; }
+               zAAA = (float *)malloc(sizeof(float)*nAAA) ;
+               for( ii=qq=0 ; ii < nval_AAA ; ii++ )
+                 if( datAAA[ii] != 0.0f ) zAAA[qq++] = datAAA[ii] ;
+             }
            }
            if( twosam ){
              for( ii=nz=0 ; ii < nval_BBB ; ii++ ) nz += (datBBB[ii] == 0.0f) ;
@@ -2413,6 +2458,7 @@ LABELS_ARE_DONE:  /* target for goto above */
              tpair = ttest_toz( nAAA,zAAA , nBBB,zBBB , ttest_opcode , Aresid,Bresid) ; /* 2 sample A-B */
            }
            resar[0] = tpair.a ; resar[1] = tpair.b ;
+           if( BminusA ){ resar[0] = -resar[0] ; resar[1] = -resar[1] ; }
            if( debug > 1 ) fprintf(stderr,"   resar[0]=%g  [1]=%g\n",resar[0],resar[1]) ;
          } else {
            tpair = ttest_toz( nAAA,zAAA , 0 ,NULL   , ttest_opcode , Aresid,NULL ) ; /* 1 sample setA */
@@ -2510,7 +2556,9 @@ LABELS_ARE_DONE:  /* target for goto above */
 
    INFO_message("---------- End of analyses -- freeing workspaces ----------") ;
 
-   for( ii=0 ; ii < ndset_AAA ; ii++ ) DSET_unload(dset_AAA[ii]) ;
+   if( !use_singleton_fixed_val ){
+     for( ii=0 ; ii < ndset_AAA ; ii++ ) DSET_unload(dset_AAA[ii]) ;
+   }
    for( ii=0 ; ii < ndset_BBB ; ii++ ) DSET_unload(dset_BBB[ii]) ;
 
    if( workspace  != NULL ) free(workspace) ;
