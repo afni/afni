@@ -1262,7 +1262,7 @@ static char *FALLback[] =
       "AFNI*font8*fontList:        8x13bold=charset1"    , /* smaller fonts */
       "AFNI*font7*fontList:        7x13=charset1"        ,  /* for various */
       "AFNI*font6*fontList:        6x10=charset1"        ,  /* usages */
-      "AFNI*background:            gray21"               , /* background clr */
+      "AFNI*background:            gray28"               , /* background clr */
       "AFNI*menu*background:       gray4"                , /* bkgd in menus */
       "AFNI*menu*foreground:       #ffdd22"              , /* menu text color */
       "AFNI*borderColor:           gray19"               , /* same as bkgd! */
@@ -1276,8 +1276,16 @@ static char *FALLback[] =
       "AFNI*help*waitPeriod:       1066"                 ,
       "AFNI*help*fontList:         9x15bold=charset1"    ,
       "AFNI*cluefont:              9x15bold"             , /* for popup */
-      "AFNI*bigtext*fontList:      10x20=charset1"       ,  /* hints */
+      "AFNI*bigtext*fontList:      10x20=charset1"       , /* hints */
       "AFNI*help*cancelWaitPeriod: 333"                  ,
+#if 0
+      "AFNI*clustA*fontList:       9x15bold=charset1"    , /* for Clusterize */
+      "AFNI*clustB*fontList:       9x15bold=charset1"    ,
+      "AFNI*clustA*background:     gray28"               ,
+      "AFNI*clustB*background:     gray1"                ,
+      "AFNI*clustA*foreground:     yellow"               ,
+      "AFNI*clustB*foreground:     white"                ,
+#endif
 
       "AFNI*XmList.translations: #augment"                /* 24 Feb 2007 */
            "<Btn4Down>: ListPrevItem()\\n"                /* for scrollwheel */
