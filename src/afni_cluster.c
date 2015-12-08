@@ -40,11 +40,11 @@ int find_cluster_thresh( float athr, float pval , CLU_threshtable *ctab ) ;
 CLU_threshtable * CLU_get_thresh_table( Three_D_View *im3d ) ;
 
 #undef  SET_CLUSTERS_LAB
-#define SET_CLUSTERS_LAB(cw,starred)                                     \
- do{ char clab[128] =                                                    \
-       "###: __Size__  __X__  __Y__  __Z__                       Alpha" ; \
-     if( starred ) strcat(clab,"*") ;                                    \
-     MCW_set_widget_label( (cw)->clusters_lab , clab ) ;                 \
+#define SET_CLUSTERS_LAB(cw,starred)                                          \
+ do{ char clab[128] =                                                         \
+       "###: __Size__  __X__  __Y__  __Z__                           Alpha" ; \
+     if( starred ) strcat(clab,"*") ;                                         \
+     MCW_set_widget_label( (cw)->clusters_lab , clab ) ;                      \
  } while(0)
 
 /*---------------------------------------------------------------------*/
@@ -403,8 +403,8 @@ static int scrolling      =  1 ;
 
 #undef  MAKE_CLUS_ROW
 #define MAKE_CLUS_ROW(ii)                                           \
- do{ Widget rc,lb,mb ; char *slab ;                                 \
-     char *ff = (ii%2==0) ? "menu" : "dialog" ;                     \
+ do{ Widget rc,lb,mb,p1,p2,p3,p4,p5,sb ; char *slab ;               \
+     char *ff = (ii%2==0) ? "dialog" : "menu" ;                     \
      rc = cwid->clu_rc[ii] =                                        \
          XtVaCreateWidget(                                          \
            ff     , xmRowColumnWidgetClass , cwid->rowcol ,         \
@@ -412,6 +412,7 @@ static int scrolling      =  1 ;
              XmNorientation , XmHORIZONTAL ,                        \
              XmNadjustMargin , True ,                               \
              XmNmarginHeight , 1 , XmNmarginWidth , 0 ,             \
+             XmNspacing , 1 ,                                       \
              XmNtraversalOn , True ,                                \
            NULL ) ;                                                 \
      slab = (char *)malloc(sizeof(char)*8) ;                        \
@@ -419,6 +420,7 @@ static int scrolling      =  1 ;
      cwid->clu_see_bbox[ii] = new_MCW_bbox( rc , 1 , &slab ,        \
             MCW_BB_check , MCW_BB_noframe ,                         \
             AFNI_clus_action_CB , im3d ) ; free(slab) ;             \
+     sb = cwid->clu_see_bbox[ii]->wbut[0] ;                         \
      XmToggleButtonSetState( cwid->clu_see_bbox[ii]->wbut[0] ,      \
             True , False ) ;                                        \
      lb = cwid->clu_lab[ii] = XtVaCreateManagedWidget(              \
@@ -427,25 +429,30 @@ static int scrolling      =  1 ;
             XmNalignment , XmALIGNMENT_BEGINNING ,                  \
             XmNrecomputeSize , False ,  XmNtraversalOn , True ,     \
             XmNinitialResourcesPersistent , False , NULL ) ;        \
-     cwid->clu_jump_pb[ii] = XtVaCreateManagedWidget(               \
+     p1 = cwid->clu_jump_pb[ii] = XtVaCreateManagedWidget(          \
             ff     , xmPushButtonWidgetClass , rc ,                 \
-            XmNmarginWidth , 1 ,                                    \
+            XmNmarginWidth , 0 ,                                    \
             LABEL_ARG("Jump") , XmNtraversalOn , True ,             \
             XmNinitialResourcesPersistent , False , NULL ) ;        \
-     cwid->clu_flsh_pb[ii] = XtVaCreateManagedWidget(               \
+     p2 = cwid->clu_flsh_pb[ii] = XtVaCreateManagedWidget(          \
             ff     , xmPushButtonWidgetClass , rc ,                 \
-            XmNmarginWidth , 1 ,                                    \
+            XmNmarginWidth , 0 ,                                    \
             LABEL_ARG("Flash") , XmNtraversalOn , True ,            \
             XmNinitialResourcesPersistent , False , NULL ) ;        \
-     cwid->clu_plot_pb[ii] = XtVaCreateManagedWidget(               \
+     p3 = cwid->clu_plot_pb[ii] = XtVaCreateManagedWidget(          \
             ff     , xmPushButtonWidgetClass , rc ,                 \
-            XmNmarginWidth , 1 ,                                    \
+            XmNmarginWidth , 0 ,                                    \
             LABEL_ARG("Plot") , XmNtraversalOn , True ,             \
             XmNinitialResourcesPersistent , False , NULL ) ;        \
-     cwid->clu_save_pb[ii] = XtVaCreateManagedWidget(               \
+     p4 = cwid->clu_save_pb[ii] = XtVaCreateManagedWidget(          \
             ff     , xmPushButtonWidgetClass , rc ,                 \
-            XmNmarginWidth , 1 ,                                    \
+            XmNmarginWidth , 0 ,                                    \
             LABEL_ARG("Save") , XmNtraversalOn , True ,             \
+            XmNinitialResourcesPersistent , False , NULL ) ;        \
+     p5 = cwid->clu_writ_pb[ii] = XtVaCreateManagedWidget(          \
+            ff     , xmPushButtonWidgetClass , rc ,                 \
+            XmNmarginWidth , 0 ,                                    \
+            LABEL_ARG("Write") , XmNtraversalOn , True ,            \
             XmNinitialResourcesPersistent , False , NULL ) ;        \
      mb = cwid->clu_alph_lab[ii] = XtVaCreateManagedWidget(         \
             ff     , xmLabelWidgetClass , rc ,                      \
@@ -461,10 +468,20 @@ static int scrolling      =  1 ;
                     XmNactivateCallback,AFNI_clus_action_CB,im3d ); \
      XtAddCallback( cwid->clu_flsh_pb[ii],                          \
                     XmNactivateCallback,AFNI_clus_action_CB,im3d ); \
-     if( scrolling && ii%2==1 ){                                    \
-       MCW_set_widget_bg(rc,"black",0);                             \
-       MCW_set_widget_bg(lb,"black",0);                             \
-       MCW_set_widget_bg(mb,"black",0);                             \
+     XtAddCallback( cwid->clu_writ_pb[ii],                          \
+                    XmNactivateCallback,AFNI_clus_action_CB,im3d ); \
+     if( scrolling ){                                               \
+       char *bgclr = (ii%2==1) ? "black" : "gray12" ;               \
+       char *fgclr = (ii%2==1) ? "white" : "yellow" ;               \
+       MCW_set_widget_bg(rc,bgclr,0);                               \
+       MCW_set_widget_bg(lb,bgclr,0); MCW_set_widget_fg(lb,fgclr);  \
+       MCW_set_widget_bg(mb,bgclr,0); MCW_set_widget_fg(mb,fgclr);  \
+                                      MCW_set_widget_fg(p1,fgclr);  \
+                                      MCW_set_widget_fg(p2,fgclr);  \
+                                      MCW_set_widget_fg(p3,fgclr);  \
+                                      MCW_set_widget_fg(p4,fgclr);  \
+                                      MCW_set_widget_fg(p5,fgclr);  \
+                                      MCW_set_widget_fg(sb,fgclr);  \
      }                                                              \
   } while(0)
 
@@ -1245,7 +1262,7 @@ ENTRY("AFNI_clus_make_widgets") ;
    /* Jul 2010: header line */
 
    cwid->clusters_lab =
-     XtVaCreateManagedWidget( "dialog" , xmLabelWidgetClass , cwid->rowcol , NULL ) ;
+     XtVaCreateManagedWidget( "menu" , xmLabelWidgetClass , cwid->rowcol , NULL ) ;
 
    SET_CLUSTERS_LAB(cwid,im3d->vednomask) ;
    MCW_set_widget_fg( cwid->clusters_lab , "white") ;
@@ -1262,6 +1279,7 @@ ENTRY("AFNI_clus_make_widgets") ;
    cwid->clu_plot_pb = (Widget *)XtCalloc( num , sizeof(Widget) ) ;
    cwid->clu_save_pb = (Widget *)XtCalloc( num , sizeof(Widget) ) ;
    cwid->clu_flsh_pb = (Widget *)XtCalloc( num , sizeof(Widget) ) ;
+   cwid->clu_writ_pb = (Widget *)XtCalloc( num , sizeof(Widget) ) ;
    cwid->clu_alph_lab= (Widget *)XtCalloc( num , sizeof(Widget) ) ;
    cwid->clu_see_bbox= (MCW_bbox**)XtCalloc(num , sizeof(MCW_bbox*));
 
@@ -1279,6 +1297,8 @@ ENTRY("AFNI_clus_make_widgets") ;
                         "Save average Aux dataset timeseries to 1D file" ) ;
      MCW_register_hint( cwid->clu_flsh_pb[ii] ,
                         "Flash cluster voxels in image viewers" ) ;
+     MCW_register_hint( cwid->clu_writ_pb[ii] ,
+                        "Write just THIS cluster to a dataset" ) ;
      MCW_register_hint( cwid->clu_alph_lab[ii] ,
                         "Approximate alpha value: use BHelp for more info" ) ;
      MCW_register_help( cwid->clu_alph_lab[ii] ,
@@ -1611,6 +1631,7 @@ ENTRY("AFNI_clus_update_widgets") ;
      cwid->clu_plot_pb =(Widget *)XtRealloc((char *)cwid->clu_plot_pb ,nclu*sizeof(Widget));
      cwid->clu_save_pb =(Widget *)XtRealloc((char *)cwid->clu_save_pb ,nclu*sizeof(Widget));
      cwid->clu_flsh_pb =(Widget *)XtRealloc((char *)cwid->clu_flsh_pb ,nclu*sizeof(Widget));
+     cwid->clu_writ_pb =(Widget *)XtRealloc((char *)cwid->clu_writ_pb ,nclu*sizeof(Widget));
      cwid->clu_alph_lab=(Widget *)XtRealloc((char *)cwid->clu_alph_lab,nclu*sizeof(Widget));
      cwid->clu_see_bbox=(MCW_bbox **)XtRealloc((char *)cwid->clu_see_bbox,nclu*sizeof(MCW_bbox*)) ;
      for( ii=cwid->nall ; ii < nclu ; ii++ ){ MAKE_CLUS_ROW(ii) ; }
@@ -2120,11 +2141,12 @@ printf("wrote cluster table to %s\n", lb_fnam);
        MAT44_VEC( im3d->fim_now->daxes->ijk_to_dicom , xx,yy,zz , px,py,pz ) ;
        if( (intptr_t)666 == (intptr_t)cbs ) AFNI_creepto_dicom( im3d , px,py,pz ) ;
        else                                 AFNI_jumpto_dicom ( im3d , px,py,pz ) ;
-       EXRETURN ;
+       EXRETURN ;  /* end of Jump */
 
      /*----------- Save a single cluster's mask ----------*/
 
-     } else if( w == cwid->clu_save_pb[ii] && cwid->save_as_mask ){ /* 14 Jun 2014 */
+     } else if( (w == cwid->clu_save_pb[ii] && cwid->save_as_mask) ||
+                 w == cwid->clu_writ_pb[ii]                          ){ /* 14 Jun 2014 */
        char pref[128] , *ppp ;
        THD_3dim_dataset  *fset = im3d->fim_now , *mset ;
        MCW_cluster_array *clar = im3d->vwid->func->clu_list ;
@@ -2161,7 +2183,7 @@ printf("wrote cluster table to %s\n", lb_fnam);
        INFO_message("Writing mask dataset %s",DSET_BRIKNAME(mset)) ;
        DSET_write(mset) ; DSET_delete(mset) ;
        THD_force_ok_overwrite(0) ;
-       EXRETURN ;
+       EXRETURN ;   /* end of Mask or Write */
 
      /*----------- Process the Aux Dset data for cluster #ii -----------*/
 
@@ -2700,7 +2722,7 @@ printf("wrote cluster table to %s\n", lb_fnam);
          if( sim[ids] != NULL ) mri_free(sim[ids]) ;
        }
        STATUS("Plot/Save is finito") ;
-       SHOW_AFNI_READY; EXRETURN ;
+       SHOW_AFNI_READY; EXRETURN ;  /* end of Plot/Save */
 
      /*----------- See or Hide a single cluster ----------*/
 
@@ -2743,7 +2765,7 @@ printf("wrote cluster table to %s\n", lb_fnam);
 #endif
        }
 
-       EXRETURN ;
+       EXRETURN ;  /* end of see/hide */
 
      /*--------- flash the voxels for this cluster ---------*/
 
@@ -2783,9 +2805,9 @@ printf("wrote cluster table to %s\n", lb_fnam);
          }
          im3d->vedskip = 0 ;
        }
-       EXRETURN ;
+       EXRETURN ; /* end of Flash */
 
-     } /* end of flash */
+     } /* end of if over which button type we might have hit */
 
    } /*---------- end of loop over button rows ----------*/
 
