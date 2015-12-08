@@ -43,7 +43,11 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 8 , DEC , 2015 , RWC , "3dttest++" , MICRO , TYPE_MODIFY ,
+  { 8 , DEC , 2015 , RWC , "afni Clusterize" , MINOR , TYPE_MODIFY ,
+   "Add Write button to save just one cluster to a dataset" ,
+   NULL } ,
+
+ { 8 , DEC , 2015 , RWC , "3dttest++" , MICRO , TYPE_MODIFY ,
    "Allow constant value with -singletonA instead of a dataset" ,
    "Allows user to test -setB against a nonzero constant." } ,
 
