@@ -178,6 +178,10 @@ int main( int argc , char *argv[] )
       "              * If 'anam' is not given (that is, another option starting\n"
       "                with '-' immediately follows '-acf'), then '3dFWHMx.1D' will\n"
       "                be used for this filename.\n"
+      "              * By default, the ACF is computed out to a radius based on\n"
+      "                a multiple of the 'classic' FWHM estimate.  If you want to\n"
+      "                specify that radius (in mm), you can put that value after\n"
+      "                the 'anam' parameter, as in '-acf something.1D 40.0'.\n"
       "              * In addition, a graph of these functions will be saved\n"
       "                into file 'anam'.png, for your pleasure and elucidation.\n"
       "              * Note that the ACF calculations are slower than the\n"
@@ -323,12 +327,16 @@ int main( int argc , char *argv[] )
          if( !THD_filename_ok(acf_fname) )
            ERROR_exit("filename after -ACF is invalid!") ;
          iarg++ ;
+         if( iarg < argc && isdigit(argv[iarg][0]) ){   /* 07 Dec 2015 */
+           acf_rad = (float)strtod(argv[iarg],NULL) ;
+           iarg++ ;
+         }
        }
        continue ;
      }
 
      if( strncasecmp(argv[iarg],"-classic",6) == 0 ){   /* 01 Dec 2015 */
-       do_classic = 1 ; iarg++ ; continue ;
+       do_classic = 1 ; iarg++ ; continue ;           /* not used yet! */
      }
 
      if( strncmp(argv[iarg],"-out",4) == 0 ){
@@ -556,7 +564,7 @@ int main( int argc , char *argv[] )
 
    if( do_acf ){
      MCW_cluster *acf ; int pp ;
-     acf_rad = 2.777f * ccomb ;
+     if( acf_rad <= 0.0f ) acf_rad = 2.777f * ccomb ;
      INFO_message("start ACF calculations out to radius = %.2f mm",acf_rad) ;
      acf = THD_estimate_ACF( inset , mask , demed,unif , acf_rad ) ;
      if( acf == NULL ) ERROR_exit("Error calculating ACF :-(") ;
