@@ -11,7 +11,7 @@ extern void THD_estimate_FWHM_moments_all( THD_3dim_dataset *dset,
 # include "mri_fwhm.c"
 #endif
 
-#undef ADD_COL5  /* for -acf: add the old Gaussian model column (in blue) */
+#define ADD_COL5  /* for -acf: add the old Gaussian model column (in blue) */
 
 int main( int argc , char *argv[] )
 {
@@ -23,7 +23,7 @@ int main( int argc , char *argv[] )
    double fx,fy,fz , cx,cy,cz , ccomb ; int nx,ny,nz , ncomb ;
    int geom=1 , demed=0 , unif=0 , corder=0 , combine=0 ;
    char *newprefix=NULL ;
-   int do_acf = 0 ; float acf_rad=0.0f ; int do_classic=0 ;
+   int do_acf = 0 ; float acf_rad=0.0f ; int do_classic=0 ; int add_col5=0 ;
    char *acf_fname="3dFWHMx.1D" ; MRI_IMAGE *acf_im=NULL ; float_quad acf_Epar ;
    double ct ;
 
@@ -165,15 +165,15 @@ int main( int argc , char *argv[] )
       "              * The empirical ACF results are also written to the file\n"
 #ifdef ADD_COL5
       "                'anam' in 5 columns:\n"
-      "                   radius ACF(r) model(r) gaussian_model_NEW(r) gaussian_model_OLD(r)\n"
-      "                where 'gaussian_model_NEW' is the Gaussian with the FHWM estimated\n"
-      "                from the ACF, and 'gaussian_model_OLD' is with the FWHM estimated\n"
-      "                via the 'classic' method.\n"
+      "                   radius ACF(r) model(r) gaussian_NEWmodel(r) gaussian_OLDmodel(r)\n"
+      "                where 'gaussian_NEWmodel' is the Gaussian with the FHWM estimated\n"
+      "                from the ACF, and 'gaussian_OLDmodel' is with the FWHM estimated\n"
+      "                via the 'classic' (Forman 1995) method.\n"
 #else
       "                'anam' in 4 columns:\n"
-      "                   radius ACF(r) model(r) gaussian_model(r)(r)\n"
-      "                where 'gaussian_model' is the Gaussian with the FWHM estimated\n"
-      "                from the ACF, NOT via the 'classic' method.\n"
+      "                   radius ACF(r) model(r) gaussian_NEWmodel(r)(r)\n"
+      "                where 'gaussian_NEWmodel' is the Gaussian with the FWHM estimated\n"
+      "                from the ACF, NOT via the 'classic' (Forman 1995) method.\n"
 #endif
       "              * If 'anam' is not given (that is, another option starting\n"
       "                with '-' immediately follows '-acf'), then '3dFWHMx.1D' will\n"
@@ -613,10 +613,10 @@ int main( int argc , char *argv[] )
        mri_write_1D( acf_fname , acf_im ) ;
 
 #ifdef ADD_COL5
-       INFO_message("ACF 1D file [radius ACF mixed_model gaussian_NEWmodel] written to %s",acf_fname) ;
+       INFO_message("ACF 1D file [radius ACF mixed_model gaussian_NEWmodel gaussian_OLDmodel] written to %s",acf_fname) ;
        sprintf(cmd,
          "1dplot -one -xlabel 'r (mm)'"
-         " -ylabel 'Autocorrelation \\small [FWHM=\\green %.2f\\blue %.2f\\black]'"
+         " -ylabel 'Autocorrelation \\small [FWHM=\\green %.2f \\blue %.2f\\black]'"
          " -yaxis 0:1:10:2 -DAFNI_1DPLOT_BOXSIZE=0.004"
          " -plabel '\\small\\noesc %s\\esc\\red  %.2f*exp[-r^2/2*%.2f^2]+%.2f*exp[-r/%.2f]'"
          " -box -png %s.png -x %s'[0]' %s'[1]' %s'[2]' %s'[3]' %s'[4]'" ,
@@ -625,7 +625,7 @@ int main( int argc , char *argv[] )
          acf_Epar.a , acf_Epar.b , 1.0f-acf_Epar.a , acf_Epar.c ,
          acf_fname, acf_fname, acf_fname, acf_fname, acf_fname, acf_fname ) ;
 #else
-       INFO_message("ACF 1D file [radius ACF model gaussian_model] written to %s",acf_fname) ;
+       INFO_message("ACF 1D file [radius ACF mixed_model gaussian_NEWmodel] written to %s",acf_fname) ;
        sprintf(cmd,
          "1dplot -one -xlabel 'r (mm)'"
          " -ylabel 'Autocorrelation \\small [FWHM=\\green %.2f\\black]'"
