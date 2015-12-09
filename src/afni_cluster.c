@@ -471,7 +471,7 @@ static int scrolling      =  1 ;
      XtAddCallback( cwid->clu_writ_pb[ii],                          \
                     XmNactivateCallback,AFNI_clus_action_CB,im3d ); \
      if( scrolling ){                                               \
-       char *bgclr = (ii%2==1) ? "black" : "gray12" ;               \
+       char *bgclr = (ii%2==1) ? "black" : "gray14" ;               \
        char *fgclr = (ii%2==1) ? "white" : "yellow" ;               \
        MCW_set_widget_bg(rc,bgclr,0);                               \
        MCW_set_widget_bg(lb,bgclr,0); MCW_set_widget_fg(lb,fgclr);  \
