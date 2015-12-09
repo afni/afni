@@ -43,7 +43,11 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 8 , DEC , 2015 , RWC , "afni Clusterize" , MINOR , TYPE_MODIFY ,
+  { 9 , DEC , 2015 , RWC , "3dFWHMx" , MICRO , TYPE_ENHANCE ,
+   "Add the 'classic' Gaussian ACF to the '-acf' plot, for comparison." ,
+   NULL } ,
+
+ { 8 , DEC , 2015 , RWC , "afni Clusterize" , MINOR , TYPE_MODIFY ,
    "Add Write button to save just one cluster to a dataset" ,
    NULL } ,
 
