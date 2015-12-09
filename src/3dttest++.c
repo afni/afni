@@ -756,7 +756,7 @@ void display_help_menu(void)
       "\n"
       " -resid q  = Output the residuals into a dataset with prefix 'q'.\n"
       "             ++ The residuals are the difference between the data values\n"
-      "                and their prediction from the set mean and set covariates.\n"
+      "                and their prediction from the set mean (and set covariates).\n"
       "             ++ For use in further analysis of the results (e.g., 3dFWHMx).\n"
       "             ++ Cannot be used with '-brickwise' (sorry).\n"
       "\n"
