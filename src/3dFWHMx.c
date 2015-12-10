@@ -11,7 +11,7 @@ extern void THD_estimate_FWHM_moments_all( THD_3dim_dataset *dset,
 # include "mri_fwhm.c"
 #endif
 
-#define ADD_COL5  /* for -acf: add the old Gaussian model column (in blue) */
+#undef ADD_COL5  /* for -acf: add the old Gaussian model column (in blue) */
 
 int main( int argc , char *argv[] )
 {
