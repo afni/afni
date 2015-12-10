@@ -325,6 +325,8 @@ ENTRY("AFNI_cluster_dispkill") ;
    AFNI_cluster_widgkill(im3d) ; EXRETURN ;
 }
 
+/*---------------------------------------------------------------------------*/
+
 void AFNI_cluster_dispize( Three_D_View *im3d , int force )
 {
    MCW_cluster_array *clar ; int ii ;
@@ -1520,7 +1522,7 @@ void AFNI_clus_update_widgets( Three_D_View *im3d )
    char *rpt , *rrr ;
    mri_cluster_detail *cld ;
    int nclu , ii ;
-   float px,py,pz , xx,yy,zz , pval ;
+   float px,py,pz , xx,yy,zz , pval,qval ;
    char line[128] ;
    MCW_cluster_array *clar ;
    int maxclu ;
@@ -1569,7 +1571,7 @@ ENTRY("AFNI_clus_update_widgets") ;
 
    if( rpt == NULL || *rpt == '\0' ) rpt = " \n --- Cluster Report --- \n " ;
 
-   rrr = malloc(strlen(rpt)+256) ; strcpy(rrr,rpt) ;
+   rrr = malloc(strlen(rpt)+1024) ; strcpy(rrr,rpt) ;
 
    pval = im3d->vinfo->func_pval ;
    ctab = CLU_get_thresh_table( im3d ) ;
@@ -1614,10 +1616,16 @@ ENTRY("AFNI_clus_update_widgets") ;
      csiz = find_cluster_thresh( 0.01f , pval , ctab ) ;
      if( csiz > 0 ) sprintf(ssiz01,"%d",csiz) ; else strcpy(ssiz01,"N/A") ;
      sprintf( rrr+strlen(rrr) ,
-              " Alpha -> Cluster thresh: 0.10->%s : 0.05->%s : 0.01->%s" ,
+              " Alpha -> Cluster thresh: 0.10->%s : 0.05->%s : 0.01->%s\n" ,
               ssiz10 , ssiz05 , ssiz01 ) ;
 #endif
    }
+
+   qval = DSET_BRICK_FDRMIN(im3d->fim_now,im3d->vinfo->thr_index) ;
+   if( qval > 0.1f )
+     sprintf(rrr+strlen(rrr),
+             " Minimum FDR q in threshold = %.2f : True detections are rare!\n",qval) ;
+
    ii = strlen(rrr) ; if( rrr[ii-1] == '\n' ) rrr[ii-1] = '\0' ;
 
    MCW_set_widget_label( cwid->top_lab , rrr ) ; free(rrr) ;
