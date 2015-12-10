@@ -43,7 +43,11 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 9 , DEC , 2015 , RWC , "3dFWHMx" , MICRO , TYPE_ENHANCE ,
+  { 10 , DEC , 2015 , RWC , "afni Clusterize" , MICRO , TYPE_ENHANCE ,
+   "Add 'large FDR q' warning to Clusterize report" ,
+   NULL } ,
+
+ { 9 , DEC , 2015 , RWC , "3dFWHMx" , MICRO , TYPE_ENHANCE ,
    "Add the 'classic' Gaussian ACF to the '-acf' plot, for comparison." ,
    NULL } ,
 
