@@ -742,8 +742,10 @@ void get_options( int argc , char **argv )
       nopt++;
       if( nopt >= argc ) ERROR_exit("need argument after %s",argv[nopt-1]);
       niter = (int)strtod(argv[nopt],NULL) ;
-      if( niter < 2000 ){
+      if( niter < 2000 && !do_ssave ){
         WARNING_message("-iter %d replaced by 2000",niter) ; niter = 2000 ;
+      } else if( niter < 1 ){
+        ERROR_exit("-iter %s is illegal :-(",argv[nopt]) ;
       }
       nopt++; continue;
     }
