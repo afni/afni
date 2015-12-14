@@ -6843,7 +6843,7 @@ ENTRY("calculate_results") ;
     if( AFNI_noenv("AFNI_3dDeconvolve_NIML") &&
         strstr(option_data->x1D_filename,"niml") == NULL ) cd = NULL ;
     ONED_matrix_save( xfull , option_data->x1D_unc , cd , xfull.rows,NULL , &xfull,
-                      num_blocks,block_list , NULL,NULL ) ;
+                      num_blocks,block_list , NULL, (void *)STIMLABEL_stuff ) ;
   }
 
   /*----- 14 Jul 2004: check matrix for bad columns - RWCox -----*/
