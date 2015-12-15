@@ -25,12 +25,25 @@ References
 
     Eventually, we can put links directly to the papers here!
 
-==============    =======================================================
+================  =======================================================
+
+.. [CASLC_2014]   | G Chen, NE Adleman, ZS Saad, E Leibenluft, and RW Cox.
+                  | **Applications of multivariate modeling to
+                    neuroimaging group analysis: A comprehensive
+                    alternative to univariate general linear model.**
+                  | NeuroImage 99:571-588, 2014.
+
 .. [C_1996]       | RW Cox. 
                   | **AFNI: Software for analysis and visualization of
                     functional magnetic resonance neuroimages.**
                   | Computers and Biomedical Research, 29: 162-173, 1996.
                   
+.. [SGCBDC_2012]  | ZS Saad, DR Glen, G Chen, MS Beauchamp, R Desai, RW Cox.
+                  | **A new method for improving
+                    functional-to-structural MRI alignment using local
+                    Pearson correlation.**
+                  | NeuroImage 44: 839-848, 2009.
+
 .. [SR_2012]      | ZS Saad, RC Reynolds. 
                   | **SUMA.** 
                   | Neuroimage. 62: 768-773, 2012.
@@ -44,5 +57,5 @@ References
                   | **Open Environment for Multimodal Interactive
                     Connectivity Visualization and Analysis.**
                   | Brain Connectivity (*in press*).
-==============    =======================================================
+================  =======================================================
 
