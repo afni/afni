@@ -27,31 +27,39 @@ References
 
 ================  =======================================================
 
-.. [CASLC_2014]   | G Chen, NE Adleman, ZS Saad, E Leibenluft, and RW Cox.
+.. [CASLC_2014]   | G Chen, NE Adleman, ZS Saad, E Leibenluft, and RW Cox
+                    (2014).
                   | **Applications of multivariate modeling to
                     neuroimaging group analysis: A comprehensive
                     alternative to univariate general linear model.**
-                  | NeuroImage 99:571-588, 2014.
+                  | NeuroImage 99:571-588.
 
-.. [C_1996]       | RW Cox. 
+.. [C_1996]       | RW Cox (1996). 
                   | **AFNI: Software for analysis and visualization of
                     functional magnetic resonance neuroimages.**
-                  | Computers and Biomedical Research, 29: 162-173, 1996.
+                  | Computers and Biomedical Research 29:162-173.
                   
-.. [SGCBDC_2012]  | ZS Saad, DR Glen, G Chen, MS Beauchamp, R Desai, RW Cox.
+.. [SGCBDC_2009]  | ZS Saad, DR Glen, G Chen, MS Beauchamp, R Desai, 
+                    RW Cox (2009).
                   | **A new method for improving
                     functional-to-structural MRI alignment using local
                     Pearson correlation.**
-                  | NeuroImage 44: 839-848, 2009.
+                  | NeuroImage 44:839-848.
 
-.. [SR_2012]      | ZS Saad, RC Reynolds. 
+.. [SR_2012]      | ZS Saad, RC Reynolds (2012). 
                   | **SUMA.** 
-                  | Neuroimage. 62: 768-773, 2012.
+                  | Neuroimage 62:768-773.
                   
-.. [TS_2013]      | PA Taylor, ZS Saad.  
+.. [S_etal_2013]  | ZS Saad, RC Reynolds, HJ Jo, SJ Gotts, G Chen, A
+                    Martin, and RW Cox (2013). 
+                  | **Correcting Brain-Wide Correlation Differences in
+                    Resting-State FMRI.**
+                  | Brain Connectivity 3(4):339-352.
+
+.. [TS_2013]      | PA Taylor, ZS Saad (2013).  
                   | **FATCAT: (An Efficient) Functional And Tractographic
                     Connectivity Analysis Toolbox.**
-                  | Brain Connectivity 3:523-535, 2013.
+                  | Brain Connectivity 3:523-535.
                   
 .. [TCCS_2015]    | PA Taylor, G Chen, RW Cox, ZS Saad.  
                   | **Open Environment for Multimodal Interactive
