@@ -822,6 +822,7 @@ C
      X       MEAN , STDEV , SEM , POSVAL , ZZMOD
       REAL*8 ARGMAX,ARGNUM , PAIRMX,PAIRMN , AMONGF, WITHINF
       REAL*8 MINABOVE , MAXBELOW, EXTREME, ABSEXTREME
+      REAL*8 CHOOSE
 C
 C  External library functions
 C
@@ -1220,6 +1221,19 @@ C.......................................................................
             NTM   = R8_EVAL(NEVAL)
             NEVAL = NEVAL - NTM
             R8_EVAL(NEVAL) = ABSEXTREME( NTM , R8_EVAL(NEVAL) )
+         ELSEIF( CNCODE .EQ. 'CHOOSE'  )THEN
+            NTM   = R8_EVAL(NEVAL)
+            NEVAL = NEVAL - NTM
+            NTM   = NTM - 1
+            ITM   = R8_EVAL(NEVAL)
+            R8_EVAL(NEVAL) = CHOOSE( ITM,NTM , R8_EVAL(NEVAL+1) )
+         ELSEIF( CNCODE .EQ. 'IFELSE' )THEN
+            NEVAL = NEVAL - 2
+            IF( R8_EVAL(NEVAL) .NE. 0.D+0 )THEN
+                R8_EVAL(NEVAL) = R8_EVAL(NEVAL+1)
+            ELSE
+                R8_EVAL(NEVAL) = R8_EVAL(NEVAL+2)
+            ENDIF
 C.......................................................................
          ELSEIF( CNCODE .EQ. 'FICO_T2P' )THEN
             NEVAL = NEVAL - 3
@@ -1377,6 +1391,7 @@ C
      X       MEAN , STDEV , SEM , POSVAL , ZZMOD
       REAL*8 ARGMAX,ARGNUM , PAIRMX,PAIRMN, AMONGF, WITHINF
       REAL*8 MINABOVE , MAXBELOW, EXTREME, ABSEXTREME
+      REAL*8 CHOOSE
 C
 C  External library functions
 C
@@ -2953,6 +2968,20 @@ C
       ENDDO
       IF( BBB .EQ. 0.0 ) BBB = AAA
       ABSEXTREME = BBB
+      RETURN
+      END
+C
+C
+C
+      FUNCTION CHOOSE(M,N,X)
+      REAL*8  CHOOSE,X(N)
+      INTEGER M,N , I
+C
+      IF( M .LT. 1 .OR. N .LT. M)THEN
+         CHOOSE = 0.D+0
+         RETURN
+      ENDIF
+      CHOOSE = X(M)
       RETURN
       END
 C
