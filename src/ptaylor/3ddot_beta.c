@@ -36,7 +36,7 @@ void usage_dot_beta(int detail)
 "\n"
 "* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n"
 "\n"
-"  + COMMAND: 3dDdot_beta  -input FILE  -doeta2    \\\n"
+"  + COMMAND: 3ddot_beta  -input FILE  -doeta2    \\\n"
 "           {-mask MASK } -prefix PREFIX \n"
 "\n"
 "* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n"
