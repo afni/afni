@@ -1700,6 +1700,10 @@ abut:abut.o
 	$(RM) $@
 	$(CC) -o abut abut.o $(LFLAGS) $(LLIBS)
 
+stimband:stimband.o
+	$(RM) $@
+	$(CC) -o stimband stimband.o $(LFLAGS) $(LLIBS)
+
 siemens_vision:siemens_vision.o
 	$(RM) $@
 	$(CC) -o siemens_vision siemens_vision.o $(LFLAGS) $(LLIBS)
