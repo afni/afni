@@ -39,10 +39,17 @@ foreach aaa ( $argv )
   else
     set matlist = ( $matlist $aaa/X.nocensor.xmat.1D )
   endif
-  if( ! -f $aaa/mask_GM_resam+tlrc.HEAD )then
-    echo "** ERROR: mask $aaa/mask_GM_resam+tlrc.HEAD does not exist" ; @ nbad++
+  unset mmm
+  if( -f $aaa/mask_GM_resam+tlrc.HEAD )then
+    set mmm = $aaa/mask_GM_resam+tlrc.HEAD
+  else if( -f $aaa/mask_group+tlrc.HEAD )then
+    set mmm = $aaa/mask_group+tlrc.HEAD
+  endif
+  if( $?mmm == 0 )then
+    echo "** ERROR: neither mask $aaa/mask_GM_resam+tlrc.HEAD nor $aaa/mask_group+tlrc.HEAD is found"
+    @ nbad++
   else
-    set msklist = ( $msklist $aaa/mask_GM_resam+tlrc.HEAD )
+    set msklist = ( $msklist $mmm )
   endif
   unset eee
   set eee = ( $aaa/$errts_template_WH )
