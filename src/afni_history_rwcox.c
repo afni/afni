@@ -43,7 +43,11 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 10 , DEC , 2015 , RWC , "afni Clusterize" , MICRO , TYPE_ENHANCE ,
+  { 17 , DEC , 2015 , RWC , "stimband" , MICRO , TYPE_NEW_PROG ,
+   "Computes freq band for stimuli extracted from .xmat.1D files" ,
+   "For use in scripting bandwidths for pre- and post-processing." } ,
+
+ { 10 , DEC , 2015 , RWC , "afni Clusterize" , MICRO , TYPE_ENHANCE ,
    "Add 'large FDR q' warning to Clusterize report" ,
    NULL } ,
 

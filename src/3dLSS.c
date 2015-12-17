@@ -531,7 +531,7 @@ int main( int argc , char *argv[] )
      cgl = NI_get_attribute( nelmat , nbuf ) ;
      if( cgl == NULL || strcmp(cgl,"-stim_times_IM") != 0 ) continue ;
      if( nst > 0 )
-       ERROR_exit("More than one -stim_time_IM option was found in the matrix") ;
+       ERROR_exit("More than one -stim_times_IM option was found in the matrix") ;
      nst = jj ;
      sprintf(nbuf,"BasisColumns_%06d",jj) ;
      cgl = NI_get_attribute( nelmat , nbuf ) ;
