@@ -2223,6 +2223,26 @@ C.......................................................................
                ENDDO
                R8_EVAL(IV-IBV,NEVAL) = ABSEXTREME( NTM, SCOP )
             ENDDO
+         ELSEIF( CNCODE .EQ. 'CHOOSE' )THEN
+            NTM   = R8_EVAL(1, NEVAL)
+            NEVAL = NEVAL - NTM
+            NTM   = NTM - 1
+            DO IV=IVBOT,IVTOP
+               ITM = R8_EVAL(IV-IBV,NEVAL)
+               DO JTM=1,NTM
+                  SCOP(JTM) = R8_EVAL(IV-IBV,NEVAL+JTM)
+               ENDDO
+               R8_EVAL(IV-IBV,NEVAL) = CHOOSE( ITM, NTM, SCOP )
+            ENDDO
+         ELSEIF( CNCODE .EQ. 'IFELSE' )THEN
+            NEVAL = NEVAL - 2
+            DO IV=IVBOT,IVTOP
+               IF( R8_EVAL(IV-IBV,NEVAL) .NE. 0.D+0 )THEN
+                  R8_EVAL(IV-IBV,NEVAL) = R8_EVAL(IV-IBV,NEVAL+1)
+               ELSE
+                  R8_EVAL(IV-IBV,NEVAL) = R8_EVAL(IV-IBV,NEVAL+2)
+               ENDIF
+            ENDDO
 
 
 C.......................................................................
