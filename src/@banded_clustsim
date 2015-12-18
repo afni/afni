@@ -14,14 +14,15 @@ if( $dohelp )then
   echo " "
   echo "The input to this script is a list of afni_proc.py results directories."
   echo "The steps followed are:"
-  echo " a) determine the passband for the stimuli from the X.nocensor.xmat.1D"
-  echo "    matrix file in each directory (program stimband)."
-  echo " b) bandpass each pre-whitened residual file, and determine its"
-  echo "    spatial ACF = AutoCorrelation Function (program 3dFWHMx)"
-  echo " c) average the spatial ACF parameters"
+  echo " a) determine the collective passband for the stimuli from the"
+  echo "    X.nocensor.xmat.1D matrix file in each directory (program stimband)."
+  echo " b) bandpass each directory's pre-whitened residual file, and determine"
+  echo "    its spatial ACF = AutoCorrelation Function (program 3dFWHMx)"
+  echo " c) average the spatial ACF parameters across directories"
   echo " d) use the resulting smoothness to estimate the cluster-size"
   echo "    thresholds (program 3dClustSim)"
   echo "The goal is to provide cluster significance levels for group tests."
+  echo " "
   echo "** This script is currently in development and is experimental -- RWCox **"
   exit 0
 endif
@@ -33,20 +34,26 @@ set matlist = ( )
 set errlist = ( ) ; set nerrWH = 0 ; set nerrOT = 0
 set msklist = ( ) ; set nmskGM = 0 ; set nmskGR = 0
 
+## We prefer whitened residuals (from 3dREMLfit -Rwherr), but
+## will process non-whitened residuals if that's all there is
+
 set errts_template_WH    = 'errts.*.WH+tlrc.HEAD'
 set errts_template_OTHER = 'errts.*+tlrc.HEAD'
 
 echo "========== Scanning for input files =========="
 
 foreach aaa ( $argv )
+
   if( ! -d $aaa )then
     echo "** ERROR: directory $aaa does not exist" ; @ nbad++ ; continue
   endif
+
   if( ! -f $aaa/X.nocensor.xmat.1D )then
     echo "** ERROR: matrix $aaa/X.nocensor.xmat.1D does not exist" ; @ nbad++
   else
     set matlist = ( $matlist $aaa/X.nocensor.xmat.1D )
   endif
+
   unset mmm
   if( -f $aaa/mask_GM_resam+tlrc.HEAD )then
     set mmm = $aaa/mask_GM_resam+tlrc.HEAD ; @ nmskGM++
@@ -59,6 +66,7 @@ foreach aaa ( $argv )
   else
     set msklist = ( $msklist $mmm )
   endif
+
   unset eee
   set eee = ( $aaa/$errts_template_WH )
   if( $status == 0 && $?eee == 1 && $#eee > 0 )then
@@ -69,10 +77,12 @@ foreach aaa ( $argv )
     if( $status == 0 && $?eee == 1 && $#eee > 0 )then
       @ nerrOT++
     else
-      echo "** ERROR: no file of form $errts_template_WH or $errts_template_OTHER in directory $aaa" ; @ nbad++
+      echo "** ERROR: no file of form $errts_template_WH or $errts_template_OTHER in directory $aaa"
+      @ nbad++
     endif
   endif
   if( $?eee != 0 && $#eee > 0 ) set errlist = ( $errlist $eee[1] )
+
 end
 
 if( ! -f $argv[1]/mask_group+tlrc.HEAD )then
@@ -84,15 +94,15 @@ if( $nbad > 0 )then
   exit 1
 endif
 
-echo "Using $nerrWH prewhitened errts datasets and $nerrOT other errts datasets"
-echo "Using $nmskGM gray-matter mask datasets  and $nmskGR group mask datasets"
+echo "-- Using $nerrWH prewhitened errts datasets and $nerrOT other errts datasets"
+echo "-- Using $nmskGM gray-matter mask datasets  and $nmskGR group mask datasets"
 
 echo "-- list of errts datasets:"
 echo "   $errlist"
 echo "-- list of mask datasets:"
 echo "   $msklist"
 
-## process all the matrices at once to get the passband
+## process all the matrices at once to get the collective passband
 
 echo "========== Computing stimulus passband =========="
 
@@ -120,6 +130,8 @@ foreach nnn ( `count -dig 1 1 $#errlist` )
 
   3dTproject -input $eee -mask $mmm -prefix BPtemp.$rrr.nii -passband $bbb[1] $bbb[2]
 
+# the 'tail -1' is to keep only the 2nd (ACF) line from 3dFWHMx
+
   3dFWHMx -acf BPtemp.$nnn.$rrr.1D -mask $mmm BPtemp.$rrr.nii | tail -1 >> BPtemp.$rrr.1D
 
   \rm BPtemp.$rrr.nii
@@ -142,5 +154,5 @@ echo "========== Running 3dClustSim =========="
 
 \rm BPtemp*${rrr}*
 
-echo "========== Finished =========="
+echo "========== e Finito =========="
 exit 0
