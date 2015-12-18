@@ -115,8 +115,22 @@ static double pthr_lots[29] = { 0.10,    0.09,    0.08,    0.07,    0.06,
                                 0.0007,  0.0005,  0.0003,  0.0002,  0.00015,  0.0001,
                                 0.00007, 0.00005, 0.00003, 0.00002, 0.000015, 0.00001 } ;
 
-static int   nathr_lots   = 10 ;
-static double athr_lots[] = { 0.10, 0.09, .08, .07, .06, .05, .04, .03, .02, .01 } ;
+static int   npthr_mega     = 38 ;
+static double pthr_mega[38] = { 0.100,   0.090,   0.080,   0.070,   0.060,
+                                0.050,   0.045,   0.040,   0.035,   0.030,
+                                0.025,   0.020,   0.015,   0.010,   0.009,
+                                0.008,   0.007,   0.006,   0.005,   0.004,
+                                0.003,   0.002,   0.001,   0.0009,  0.0008,
+                                0.0007,  0.0006,  0.0005,  0.0004,  0.0003,
+                                0.0002,  0.0001,  0.00007, 0.00005, 0.00003,
+                                0.00002, 0.000015,0.00001 } ;
+
+static int   nathr_lots     = 10 ;
+static double athr_lots[10] = { 0.10, 0.09, .08, .07, .06, .05, .04, .03, .02, .01 } ;
+
+static int   nathr_mega     = 20 ;
+static double athr_mega[20] = { 0.100,0.095,0.090,0.085,0.080,0.075,0.070,0.065,0.060,0.055,
+                                0.050,0.045,0.040,0.035,0.030,0.025,0.020,0.015,0.010,0.005 } ;
 
 static int    npthr = 9 ;
 static double *pthr = NULL ;
@@ -370,6 +384,7 @@ void display_help_menu()
    "         ** (i.e., '-pthr LOTS' and/or '-athr LOTS' are legal options)      **\n"
    "\n"
    "-LOTS          = the same as using '-pthr LOTS -athr LOTS'\n"
+   "-MEGA          = adds even MORE values to the '-pthr' and '-athr' grids.\n"
    "\n"
    "-iter n        = number of Monte Carlo simulations [default = 10000]\n"
    "\n"
@@ -771,6 +786,18 @@ void get_options( int argc , char **argv )
       nathr = nathr_lots ;
       athr = (double *)realloc(athr,sizeof(double)*nathr) ;
       memcpy( athr , athr_lots , sizeof(double)*nathr ) ;
+      nopt++ ; continue ;
+    }
+
+    /*-----   -MEGA     -----*/
+
+    if( strcasecmp(argv[nopt],"-MEGA") == 0 ){
+      npthr = npthr_mega ;
+      pthr = (double *)realloc(pthr,sizeof(double)*npthr) ;
+      memcpy( pthr , pthr_mega , sizeof(double)*npthr ) ;
+      nathr = nathr_mega ;
+      athr = (double *)realloc(athr,sizeof(double)*nathr) ;
+      memcpy( athr , athr_mega , sizeof(double)*nathr ) ;
       nopt++ ; continue ;
     }
 
