@@ -2,7 +2,14 @@
 
 ## help the pitiful luser?
 
-if( $#argv == 0 || $argv[1] == "-help" )then
+set dohelp = 0
+if( $#argv == 0 ) set dohelp = 1
+if( dohelp == 0 )then
+  if( $argv[1] == "-help" ) set dohelp = 1
+endif
+
+if( $dohelp )then
+  echo " "
   echo "Usage: @banded_clustsim list_of_directories"
   echo " "
   echo "The input to this script is a list of afni_proc.py results directories."
@@ -14,7 +21,8 @@ if( $#argv == 0 || $argv[1] == "-help" )then
   echo " c) average the spatial ACF parameters"
   echo " d) use the resulting smoothness to estimate the cluster-size"
   echo "    thresholds (program 3dClustSim)"
-  echo "This script is currently in development and is experimental -- RWCox"
+  echo "The goal is to provide cluster significance levels for group tests."
+  echo "** This script is currently in development and is experimental -- RWCox **"
   exit 0
 endif
 
