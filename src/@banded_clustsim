@@ -22,8 +22,8 @@ endif
 
 set nbad    = 0
 set matlist = ( )
-set errlist = ( )
-set msklist = ( )
+set errlist = ( ) ; set nerrWH = 0 ; set nerrOT = 0
+set msklist = ( ) ; set nmskGM = 0 ; set nmskGR = 0
 
 set errts_template_WH    = 'errts.*.WH+tlrc.HEAD'
 set errts_template_OTHER = 'errts.*+tlrc.HEAD'
@@ -41,9 +41,9 @@ foreach aaa ( $argv )
   endif
   unset mmm
   if( -f $aaa/mask_GM_resam+tlrc.HEAD )then
-    set mmm = $aaa/mask_GM_resam+tlrc.HEAD
+    set mmm = $aaa/mask_GM_resam+tlrc.HEAD ; @ nmskGM++
   else if( -f $aaa/mask_group+tlrc.HEAD )then
-    set mmm = $aaa/mask_group+tlrc.HEAD
+    set mmm = $aaa/mask_group+tlrc.HEAD    ; @ nmskGR++
   endif
   if( $?mmm == 0 )then
     echo "** ERROR: neither mask $aaa/mask_GM_resam+tlrc.HEAD nor $aaa/mask_group+tlrc.HEAD is found"
@@ -53,9 +53,14 @@ foreach aaa ( $argv )
   endif
   unset eee
   set eee = ( $aaa/$errts_template_WH )
-  if( $status != 0 || $?eee == 0 || $#eee == 0 )then
+  if( $status == 0 && $?eee == 1 && $#eee > 0 )then
+    @ nerrWH++
+  else
+    unset eee
     set eee = ( $aaa/$errts_template_OTHER )
-    if( $status != 0 || $?eee == 0 || $#eee == 0 )then
+    if( $status == 0 && $?eee == 1 && $#eee > 0 )then
+      @ nerrOT++
+    else
       echo "** ERROR: no file of form $errts_template_WH or $errts_template_OTHER in directory $aaa" ; @ nbad++
     endif
   endif
@@ -70,6 +75,14 @@ if( $nbad > 0 )then
   echo "** FATAL ERROR: Can't continue after such problems :-("
   exit 1
 endif
+
+echo "Using $nerrWH prewhitened errts datasets and $nerrOT other errts datasets"
+echo "Using $nmskGM gray-matter mask datasets  and $nmskGR group mask datasets"
+
+echo "-- list of errts datasets:"
+echo "   $errlist"
+echo "-- list of mask datasets:"
+echo "   $msklist"
 
 ## process all the matrices at once to get the passband
 
