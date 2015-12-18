@@ -141,6 +141,18 @@ static float  *zthr_2sid = NULL ;
 static int    nathr = 4 ;
 static double *athr = NULL ;
 
+/* the output:
+     2D table of cluster size threshold as function
+     of per-voxel threshold and volumetric alpha
+     (will be interpolated from simulation results) */
+
+static float **clust_thresh_1sid = NULL ;  /* 18 Dec 2015 */
+static float **clust_thresh_2sid = NULL ;  /* 18 Dec 2015 */
+static float **clust_thresh_bsid = NULL ;  /* 18 Dec 2015 */
+
+static int do_athr_sum = 0 ; /* 18 Dec 2015 */
+static int athr_sum_bot=-1 , athr_sum_top=-1 ;
+
 static int verb = 1 ;
 static int nthr = 1 ;
 
@@ -791,18 +803,25 @@ void get_options( int argc , char **argv )
 
     /*-----   -MEGA     -----*/
 
-    if( strcasecmp(argv[nopt],"-MEGA") == 0 ){
+    if( strcasecmp(argv[nopt],"-MEGA") == 0 ){   /* 18 Dec 2015 */
       npthr = npthr_mega ;
       pthr = (double *)realloc(pthr,sizeof(double)*npthr) ;
       memcpy( pthr , pthr_mega , sizeof(double)*npthr ) ;
       nathr = nathr_mega ;
       athr = (double *)realloc(athr,sizeof(double)*nathr) ;
       memcpy( athr , athr_mega , sizeof(double)*nathr ) ;
+      athr_sum_bot = 13 ; athr_sum_top = 31 ;
       nopt++ ; continue ;
     }
 
+    /*-----  -sumup     -----*/
+
+    if( strcasecmp(argv[nopt],"-sumup") == 0 ){  /* 18 Dec 2015 */
+      do_athr_sum = 1 ; nopt++ ; continue ;
+    }
+
 #if 0
-    /*-----   -2sided   ------*/
+    /*-----   -2sided   -----*/
 
     if( strcasecmp(argv[nopt],"-2sided") == 0 ){
       do_2sid = 1 ; nopt++ ; continue ;
@@ -962,6 +981,9 @@ void get_options( int argc , char **argv )
   }
 
   /*------- finalize some simple setup stuff --------*/
+
+  if( do_athr_sum && athr_sum_bot < 0 || athr_sum_top < 0 )  /* 18 Dec 2015 */
+    do_athr_sum = 0 ;
 
   if( mask_dset != NULL ){
     nx = DSET_NX(mask_dset) ;
@@ -1697,6 +1719,155 @@ static char * prob9(float p)   /* format p-value into 9 char */
    return str ;
 }
 
+/*---------------------------------------------------------------------------*/
+
+static int fa_1sid_NN1, fa_1sid_NN2, fa_1sid_NN3 ;
+static int fa_2sid_NN1, fa_2sid_NN2, fa_2sid_NN3 ;
+static int fa_bsid_NN1, fa_bsid_NN2, fa_bsid_NN3 ;
+
+void thresh_tracer_fim( int iathr,
+                        int ipthr_bot, int ipthr_top,
+                        float *fim, byte *bfim )
+{
+   register int ii ; register float thr ;
+   int ipthr , siz ;
+
+   fa_1sid_NN1=0; fa_1sid_NN2=0; fa_1sid_NN3=0;
+   fa_2sid_NN1=0; fa_2sid_NN2=0; fa_2sid_NN3=0;
+   fa_bsid_NN1=0; fa_bsid_NN2=0; fa_bsid_NN3=0;
+
+   for( ipthr=ipthr_bot ; ipthr <= ipthr_top ; ipthr++ ){
+
+     if( !fa_1sid_NN1 ){ /* 1-sided, NN1 */
+       thr = zthr_1sid[ipthr] ;
+       for( ii=0 ; ii < nxyz ; ii++ ) bfim[ii] = (fim[ii] > thr) ;
+       siz = find_largest_cluster_NN1(bfim,0) ;
+       fa_1sid_NN1 = (siz >= clust_thresh_1sid[ipthr][iathr] ) ;
+     }
+
+     if( !fa_1sid_NN2 ){ /* 1-sided, NN2 */
+       thr = zthr_1sid[ipthr] ;
+       for( ii=0 ; ii < nxyz ; ii++ ) bfim[ii] = (fim[ii] > thr) ;
+       siz = find_largest_cluster_NN2(bfim,0) ;
+       fa_1sid_NN2 = (siz >= clust_thresh_1sid[ipthr][iathr] ) ;
+     }
+
+     if( !fa_1sid_NN3 ){ /* 1-sided, NN3 */
+       thr = zthr_1sid[ipthr] ;
+       for( ii=0 ; ii < nxyz ; ii++ ) bfim[ii] = (fim[ii] > thr) ;
+       siz = find_largest_cluster_NN3(bfim,0) ;
+       fa_1sid_NN3 = (siz >= clust_thresh_1sid[ipthr][iathr] ) ;
+     }
+
+     if( !fa_2sid_NN1 ){ /* 2-sided, NN1 */
+       thr = zthr_2sid[ipthr] ;
+       for( ii=0 ; ii < nxyz ; ii++ )
+         bfim[ii] = (fim[ii] > thr) || (fim[ii] < -thr) ;
+       siz = find_largest_cluster_NN1(bfim,0) ;
+       fa_2sid_NN1 = (siz >= clust_thresh_2sid[ipthr][iathr] ) ;
+     }
+
+     if( !fa_2sid_NN2 ){ /* 2-sided, NN2 */
+       thr = zthr_2sid[ipthr] ;
+       for( ii=0 ; ii < nxyz ; ii++ )
+         bfim[ii] = (fim[ii] > thr) || (fim[ii] < -thr) ;
+       siz = find_largest_cluster_NN2(bfim,0) ;
+       fa_2sid_NN2 = (siz >= clust_thresh_2sid[ipthr][iathr] ) ;
+     }
+
+     if( !fa_2sid_NN3 ){ /* 2-sided, NN3 */
+       thr = zthr_2sid[ipthr] ;
+       for( ii=0 ; ii < nxyz ; ii++ )
+         bfim[ii] = (fim[ii] > thr) || (fim[ii] < -thr) ;
+       siz = find_largest_cluster_NN3(bfim,0) ;
+       fa_2sid_NN3 = (siz >= clust_thresh_2sid[ipthr][iathr] ) ;
+     }
+
+     if( !fa_bsid_NN1 ){  /* bi-sided, NN1 */
+       thr = zthr_2sid[ipthr] ;
+       for( ii=0 ; ii < nxyz ; ii++ ) bfim[ii] = (fim[ii] > thr) ;
+       siz = find_largest_cluster_NN1( bfim , 0 ) ;
+       fa_bsid_NN1 = (siz >= clust_thresh_bsid[ipthr][iathr] ) ;
+       if( !fa_bsid_NN1 ){
+         for( ii=0 ; ii < nxyz ; ii++ ) bfim[ii] = (fim[ii] < -thr) ;
+         siz = find_largest_cluster_NN1( bfim , 0 ) ;
+         fa_bsid_NN1 = (siz >= clust_thresh_bsid[ipthr][iathr] ) ;
+       }
+     }
+
+     if( !fa_bsid_NN2 ){  /* bi-sided, NN2 */
+       thr = zthr_2sid[ipthr] ;
+       for( ii=0 ; ii < nxyz ; ii++ ) bfim[ii] = (fim[ii] > thr) ;
+       siz = find_largest_cluster_NN2( bfim , 0 ) ;
+       fa_bsid_NN2 = (siz >= clust_thresh_bsid[ipthr][iathr] ) ;
+       if( !fa_bsid_NN2 ){
+         for( ii=0 ; ii < nxyz ; ii++ ) bfim[ii] = (fim[ii] < -thr) ;
+         siz = find_largest_cluster_NN2( bfim , 0 ) ;
+         fa_bsid_NN2 = (siz >= clust_thresh_bsid[ipthr][iathr] ) ;
+       }
+     }
+
+     if( !fa_bsid_NN3 ){  /* bi-sided, NN3 */
+       thr = zthr_2sid[ipthr] ;
+       for( ii=0 ; ii < nxyz ; ii++ ) bfim[ii] = (fim[ii] > thr) ;
+       siz = find_largest_cluster_NN3( bfim , 0 ) ;
+       fa_bsid_NN3 = (siz >= clust_thresh_bsid[ipthr][iathr] ) ;
+       if( !fa_bsid_NN3 ){
+         for( ii=0 ; ii < nxyz ; ii++ ) bfim[ii] = (fim[ii] < -thr) ;
+         siz = find_largest_cluster_NN3( bfim , 0 ) ;
+         fa_bsid_NN3 = (siz >= clust_thresh_bsid[ipthr][iathr] ) ;
+       }
+     }
+
+   }
+}
+
+/*---------------------------------------------------------------------------*/
+
+static float rfa_1sid_NN1, rfa_1sid_NN2, rfa_1sid_NN3 ;
+static float rfa_2sid_NN1, rfa_2sid_NN2, rfa_2sid_NN3 ;
+static float rfa_bsid_NN1, rfa_bsid_NN2, rfa_bsid_NN3 ;
+
+void thresh_tracer_athr( int iathr, int ipthr_bot, int ipthr_top )
+{
+   float *fim,*pfim; byte *bfim; int iter; unsigned short xran[3];
+   float drfa = 1.0f/niter ;
+
+   fim  = (float *)malloc(sizeof(float)*nxyz) ;  /* image space */
+   bfim = (byte * )malloc(sizeof(byte) *nxyz) ;
+   if( do_pad ) pfim = (float *)malloc(sizeof(float)*nxyz_pad); /* 12 May 2015 */
+   else         pfim = NULL ;
+
+   rfa_1sid_NN1=0; rfa_1sid_NN2=0; rfa_1sid_NN3=0;
+   rfa_2sid_NN1=0; rfa_2sid_NN2=0; rfa_2sid_NN3=0;
+   rfa_bsid_NN1=0; rfa_bsid_NN2=0; rfa_bsid_NN3=0;
+
+#if 0
+   gseed = ((unsigned int)time(NULL)) + 17*(unsigned int)getpid() ;
+#endif
+
+   xran[2] = ( gseed        & 0xffff) + (unsigned short)17 ;
+   xran[1] = ((gseed >> 16) & 0xffff) - (unsigned short)17 ;
+   xran[0] = 0x330e                   + (unsigned short)17 ;
+
+   for( iter=1 ; iter <= niter ; iter++ ){
+
+     generate_image( fim , pfim , xran ) ;
+
+     thresh_tracer_fim( iathr,ipthr_bot,ipthr_top,fim,bfim ) ;
+
+     if( fa_1sid_NN1 ) rfa_1sid_NN1 += drfa ;
+     if( fa_1sid_NN2 ) rfa_1sid_NN2 += drfa ;
+     if( fa_1sid_NN3 ) rfa_1sid_NN3 += drfa ;
+     if( fa_2sid_NN1 ) rfa_2sid_NN1 += drfa ;
+     if( fa_2sid_NN2 ) rfa_2sid_NN2 += drfa ;
+     if( fa_2sid_NN3 ) rfa_2sid_NN3 += drfa ;
+     if( fa_bsid_NN1 ) rfa_bsid_NN1 += drfa ;
+     if( fa_bsid_NN2 ) rfa_bsid_NN2 += drfa ;
+     if( fa_bsid_NN3 ) rfa_bsid_NN3 += drfa ;
+   }
+}
+
 /*===========================================================================*/
 
 int main( int argc , char **argv )
@@ -1858,7 +2029,9 @@ int main( int argc , char **argv )
   } /* end of simulation loop */
 
   free(fim) ; free(bfim) ; if( pfim != NULL ) free(pfim) ;
+#if 0
   free(inow_g[ithr]) ; free(jnow_g[ithr]) ; free(know_g[ithr]) ;
+#endif
   if( do_acf ){
     free(acf_tar[ithr]) ;
     if( acf_bim[ithr] != NULL ) mri_free(acf_bim[ithr]) ;
@@ -1904,25 +2077,31 @@ int main( int argc , char **argv )
   /*---------- compute and print the output tables ----------*/
 
   { double *alpha , aval , ahi,alo ;
-    float **clust_thresh , cmax=0.0f ;
+    float cmax=0.0f , **clust_thresh ;
     int ii , itop , iathr , mmm, ***mtt ;
     char *commandline = tross_commandline("3dClustSim",argc,argv) ;
     char fname[THD_MAX_NAME] , pname[THD_MAX_NAME] ;
     char *amesg = NULL , *mlab = NULL , *mlll = NULL ;
 
-    alpha        = (double *)malloc(sizeof(double)*(max_cluster_size+1)) ;
-    clust_thresh = (float **)malloc(sizeof(float *)*npthr) ;
-    for( ipthr=0 ; ipthr < npthr ; ipthr++ )
-      clust_thresh[ipthr] = (float *)malloc(sizeof(float)*nathr) ;
+    alpha = (double *)malloc(sizeof(double)*(max_cluster_size+1)) ;
 
     for( mmm=1 ; mmm <= 3 ; mmm++ ){
+
+      clust_thresh = (float **)malloc(sizeof(float *)*npthr) ;
+      for( ipthr=0 ; ipthr < npthr ; ipthr++ )
+        clust_thresh[ipthr] = (float *)malloc(sizeof(float)*nathr) ;
+
       if( mmm == 1 ){
         mtt = max_table_1sid ; mlab = "1-sided" ; mlll = "1sided" ;
+        clust_thresh_1sid = clust_thresh ;
       } else if( mmm == 2 ){
         mtt = max_table_2sid ; mlab = "2-sided" ; mlll = "2sided" ;
+        clust_thresh_2sid = clust_thresh ;
       } else {
         mtt = max_table_bsid ; mlab = "bi-sided"; mlll = "bisided";
+        clust_thresh_bsid = clust_thresh ;
       }
+
       amesg = NULL ; cmax = 0.0f ;
       for( nnn=1 ; nnn <= 3 ; nnn++ ){
         for( ipthr=0 ; ipthr < npthr ; ipthr++ ){
@@ -2133,6 +2312,17 @@ MPROBE ;
       }
 
    } /* end of loop over mmm == sidedness */
+
+   if( do_athr_sum ){
+     thresh_tracer_athr(10,athr_sum_bot,athr_sum_top) ;
+     INFO_message("integrated rates for athr=%g",athr[10]) ;
+     ININFO_message("  1sid: NN1=%.3f  NN2=%.3f  NN3=%.3f",
+                    rfa_1sid_NN1, rfa_1sid_NN2, rfa_1sid_NN3) ;
+     ININFO_message("  2sid: NN1=%.3f  NN2=%.3f  NN3=%.3f",
+                    rfa_2sid_NN1, rfa_2sid_NN2, rfa_2sid_NN3) ;
+     ININFO_message("  bsid: NN1=%.3f  NN2=%.3f  NN3=%.3f",
+                    rfa_bsid_NN1, rfa_bsid_NN2, rfa_bsid_NN3) ;
+   }
 
   } /* end of outputizationing */
 
