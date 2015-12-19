@@ -1732,6 +1732,8 @@ void thresh_tracer_fim( int iathr,
    register int ii ; register float thr ;
    int ipthr , siz ;
 
+ENTRY("thresh_tracer_fim") ;
+
    fa_1sid_NN1=0; fa_1sid_NN2=0; fa_1sid_NN3=0;
    fa_2sid_NN1=0; fa_2sid_NN2=0; fa_2sid_NN3=0;
    fa_bsid_NN1=0; fa_bsid_NN2=0; fa_bsid_NN3=0;
@@ -1820,52 +1822,79 @@ void thresh_tracer_fim( int iathr,
      }
 
    }
+
+   EXRETURN ;
 }
 
 /*---------------------------------------------------------------------------*/
 
-static float rfa_1sid_NN1, rfa_1sid_NN2, rfa_1sid_NN3 ;
-static float rfa_2sid_NN1, rfa_2sid_NN2, rfa_2sid_NN3 ;
-static float rfa_bsid_NN1, rfa_bsid_NN2, rfa_bsid_NN3 ;
+static float *rfa_1sid_NN1, *rfa_1sid_NN2, *rfa_1sid_NN3 ;
+static float *rfa_2sid_NN1, *rfa_2sid_NN2, *rfa_2sid_NN3 ;
+static float *rfa_bsid_NN1, *rfa_bsid_NN2, *rfa_bsid_NN3 ;
 
-void thresh_tracer_athr( int iathr, int ipthr_bot, int ipthr_top )
+void thresh_tracer_athr( int iathr_bot, int iathr_top, int ipthr_bot, int ipthr_top )
 {
    float *fim,*pfim; byte *bfim; int iter; unsigned short xran[3];
    float drfa = 1.0f/niter ;
+   int vstep , vii , iathr ;
+
+ENTRY("thresh_tracer_athr") ;
 
    fim  = (float *)malloc(sizeof(float)*nxyz) ;  /* image space */
    bfim = (byte * )malloc(sizeof(byte) *nxyz) ;
    if( do_pad ) pfim = (float *)malloc(sizeof(float)*nxyz_pad); /* 12 May 2015 */
    else         pfim = NULL ;
 
-   rfa_1sid_NN1=0; rfa_1sid_NN2=0; rfa_1sid_NN3=0;
-   rfa_2sid_NN1=0; rfa_2sid_NN2=0; rfa_2sid_NN3=0;
-   rfa_bsid_NN1=0; rfa_bsid_NN2=0; rfa_bsid_NN3=0;
+   rfa_1sid_NN1 = (float *)calloc(sizeof(float),(iathr_top-iathr_bot+1)) ;
+   rfa_2sid_NN1 = (float *)calloc(sizeof(float),(iathr_top-iathr_bot+1)) ;
+   rfa_bsid_NN1 = (float *)calloc(sizeof(float),(iathr_top-iathr_bot+1)) ;
+   rfa_1sid_NN2 = (float *)calloc(sizeof(float),(iathr_top-iathr_bot+1)) ;
+   rfa_2sid_NN2 = (float *)calloc(sizeof(float),(iathr_top-iathr_bot+1)) ;
+   rfa_bsid_NN2 = (float *)calloc(sizeof(float),(iathr_top-iathr_bot+1)) ;
+   rfa_1sid_NN3 = (float *)calloc(sizeof(float),(iathr_top-iathr_bot+1)) ;
+   rfa_2sid_NN3 = (float *)calloc(sizeof(float),(iathr_top-iathr_bot+1)) ;
+   rfa_bsid_NN3 = (float *)calloc(sizeof(float),(iathr_top-iathr_bot+1)) ;
 
 #if 0
    gseed = ((unsigned int)time(NULL)) + 17*(unsigned int)getpid() ;
 #endif
 
    xran[2] = ( gseed        & 0xffff) + (unsigned short)17 ;
-   xran[1] = ((gseed >> 16) & 0xffff) - (unsigned short)17 ;
-   xran[0] = 0x330e                   + (unsigned short)17 ;
+   xran[1] = ((gseed >> 16) & 0xffff) - (unsigned short)13 ;
+   xran[0] = 0x330e                   + (unsigned short)11 ;
+
+   nthr  = 1 ;
+   vstep = (int)( niter / (nthr*50.0f) + 0.901f) ;
+   vii   = 0 ;
+   if( verb ) fprintf(stderr,"Tracing:") ;
 
    for( iter=1 ; iter <= niter ; iter++ ){
 
+     if( verb ){
+       vii++ ; if( vii%vstep == vstep/2 ) vstep_print() ;
+     }
+
      generate_image( fim , pfim , xran ) ;
 
-     thresh_tracer_fim( iathr,ipthr_bot,ipthr_top,fim,bfim ) ;
+     for( iathr=iathr_bot ; iathr <= iathr_top ; iathr++ ){
 
-     if( fa_1sid_NN1 ) rfa_1sid_NN1 += drfa ;
-     if( fa_1sid_NN2 ) rfa_1sid_NN2 += drfa ;
-     if( fa_1sid_NN3 ) rfa_1sid_NN3 += drfa ;
-     if( fa_2sid_NN1 ) rfa_2sid_NN1 += drfa ;
-     if( fa_2sid_NN2 ) rfa_2sid_NN2 += drfa ;
-     if( fa_2sid_NN3 ) rfa_2sid_NN3 += drfa ;
-     if( fa_bsid_NN1 ) rfa_bsid_NN1 += drfa ;
-     if( fa_bsid_NN2 ) rfa_bsid_NN2 += drfa ;
-     if( fa_bsid_NN3 ) rfa_bsid_NN3 += drfa ;
+       thresh_tracer_fim( iathr,ipthr_bot,ipthr_top,fim,bfim ) ;
+
+       if( fa_1sid_NN1 ) rfa_1sid_NN1[iathr-iathr_bot] += drfa ;
+       if( fa_1sid_NN2 ) rfa_1sid_NN2[iathr-iathr_bot] += drfa ;
+       if( fa_1sid_NN3 ) rfa_1sid_NN3[iathr-iathr_bot] += drfa ;
+       if( fa_2sid_NN1 ) rfa_2sid_NN1[iathr-iathr_bot] += drfa ;
+       if( fa_2sid_NN2 ) rfa_2sid_NN2[iathr-iathr_bot] += drfa ;
+       if( fa_2sid_NN3 ) rfa_2sid_NN3[iathr-iathr_bot] += drfa ;
+       if( fa_bsid_NN1 ) rfa_bsid_NN1[iathr-iathr_bot] += drfa ;
+       if( fa_bsid_NN2 ) rfa_bsid_NN2[iathr-iathr_bot] += drfa ;
+       if( fa_bsid_NN3 ) rfa_bsid_NN3[iathr-iathr_bot] += drfa ;
+     }
    }
+
+   if( verb ) fprintf(stderr,"\n") ;
+
+   EXRETURN ;
 }
 
 /*===========================================================================*/
@@ -2031,20 +2060,22 @@ int main( int argc , char **argv )
   free(fim) ; free(bfim) ; if( pfim != NULL ) free(pfim) ;
 #if 0
   free(inow_g[ithr]) ; free(jnow_g[ithr]) ; free(know_g[ithr]) ;
-#endif
   if( do_acf ){
     free(acf_tar[ithr]) ;
     if( acf_bim[ithr] != NULL ) mri_free(acf_bim[ithr]) ;
   }
+#endif
 
   if( ithr == 0 && verb ) fprintf(stderr,"\n") ;
 
  } /* end OpenMP parallelization */
  AFNI_OMP_END ;
 
+#if 0
    if( do_acf ){
      free(acf_aim) ; free(acf_bim) ; free(acf_tar) ;
    }
+#endif
 
    if( do_ssave > 0 ) DSET_delete(ssave_dset) ; /* 24 Apr 2014 */
 
@@ -2314,14 +2345,20 @@ MPROBE ;
    } /* end of loop over mmm == sidedness */
 
    if( do_athr_sum ){
-     thresh_tracer_athr(10,athr_sum_bot,athr_sum_top) ;
-     INFO_message("integrated rates for athr=%g",athr[10]) ;
-     ININFO_message("  1sid: NN1=%.3f  NN2=%.3f  NN3=%.3f",
-                    rfa_1sid_NN1, rfa_1sid_NN2, rfa_1sid_NN3) ;
-     ININFO_message("  2sid: NN1=%.3f  NN2=%.3f  NN3=%.3f",
-                    rfa_2sid_NN1, rfa_2sid_NN2, rfa_2sid_NN3) ;
-     ININFO_message("  bsid: NN1=%.3f  NN2=%.3f  NN3=%.3f",
-                    rfa_bsid_NN1, rfa_bsid_NN2, rfa_bsid_NN3) ;
+     int iathr , iathr_bot=0 , iathr_top=nathr-1 ;
+     thresh_tracer_athr(iathr_bot,iathr_top,athr_sum_bot,athr_sum_top) ;
+     for( iathr=iathr_bot ; iathr <= iathr_top ; iathr++ ){
+       INFO_message("integrated rates for athr=%g",athr[athr]) ;
+       ININFO_message("  1sid: NN1=%.3f  NN2=%.3f  NN3=%.3f",
+                      rfa_1sid_NN1[iathr-iathr_bot],
+                      rfa_1sid_NN2[iathr-iathr_bot], rfa_1sid_NN3[iathr-iathr_bot]) ;
+       ININFO_message("  2sid: NN1=%.3f  NN2=%.3f  NN3=%.3f",
+                      rfa_2sid_NN1[iathr-iathr_bot],
+                      rfa_2sid_NN2[iathr-iathr_bot], rfa_2sid_NN3[iathr-iathr_bot]) ;
+       ININFO_message("  bsid: NN1=%.3f  NN2=%.3f  NN3=%.3f",
+                      rfa_bsid_NN1[iathr-iathr_bot],
+                      rfa_bsid_NN2[iathr-iathr_bot], rfa_bsid_NN3[iathr-iathr_bot]) ;
+     }
    }
 
   } /* end of outputizationing */
