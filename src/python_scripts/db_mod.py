@@ -6313,10 +6313,18 @@ g_help_string = """
 
        Example 10. Resting state analysis, with tissue-based regressors.
 
-           Like example #9, but also regress eroded white matter and CSF
-           averages.  The WMe and CSFe signals come from the Classes dataset,
-           created by 3dSeg via the -mask_segment_anat and -mask_segment_erode
-           options.  Align to minimum outlier volume.
+           Like example #9, but also regress the eroded white matter averages.
+           The WMe mask come from the Classes dataset, created by 3dSeg via the
+           -mask_segment_anat and -mask_segment_erode options.
+
+        ** While -mask_segment_anat also creates a CSF mask, that mask is ALL
+           CSF, not just restrictied to the ventricles, for example.  So it is
+           probably not appropriate for use in tissue-based regresssion.
+
+           CSFe was previously used as an example of what one could do, but as
+           it is not advised, it has been removed.
+
+           Also, align to minimum outlier volume.
 
                 afni_proc.py -subj_id subj123                                \\
                   -dsets epi_run1+orig.HEAD                                  \\
@@ -6332,7 +6340,7 @@ g_help_string = """
                   -regress_censor_outliers 0.1                               \\
                   -regress_bandpass 0.01 0.1                                 \\
                   -regress_apply_mot_types demean deriv                      \\
-                  -regress_ROI WMe CSFe                                      \\
+                  -regress_ROI WMe                                           \\
                   -regress_run_clustsim no                                   \\
                   -regress_est_blur_errts
 
@@ -6359,7 +6367,7 @@ g_help_string = """
                   -mask_segment_erode yes                                    \\
                   -regress_bandpass 0.01 0.1                                 \\
                   -regress_apply_mot_types demean deriv                      \\
-                  -regress_ROI WMe CSFe                                      \\
+                  -regress_ROI WMe                                           \\
                   -regress_RSFC                                              \\
                   -regress_run_clustsim no                                   \\
                   -regress_est_blur_errts
@@ -8721,6 +8729,9 @@ g_help_string = """
 
           * Mask labels created by -mask_segment_anat and -mask_segment_erode
             can be applied with -regress_ROI and -regress_ROI_PC.
+
+          * The CSF mask is of ALL CSF (not just in the ventricles), and is
+            therefore not very appropriate to use with tissue-based regression.
 
             Consider use of -anat_uniform_method along with this option.
 
