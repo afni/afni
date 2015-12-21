@@ -146,12 +146,27 @@ static double *athr = NULL ;
      of per-voxel threshold and volumetric alpha
      (will be interpolated from simulation results) */
 
-static float **clust_thresh_1sid = NULL ;  /* 18 Dec 2015 */
-static float **clust_thresh_2sid = NULL ;  /* 18 Dec 2015 */
-static float **clust_thresh_bsid = NULL ;  /* 18 Dec 2015 */
+static float **clust_thresh_1sid_NN1 = NULL ;
+static float **clust_thresh_2sid_NN1 = NULL ;
+static float **clust_thresh_bsid_NN1 = NULL ;
+
+static float **clust_thresh_1sid_NN2 = NULL ;
+static float **clust_thresh_2sid_NN2 = NULL ;
+static float **clust_thresh_bsid_NN2 = NULL ;
+
+static float **clust_thresh_1sid_NN3 = NULL ;
+static float **clust_thresh_2sid_NN3 = NULL ;
+static float **clust_thresh_bsid_NN3 = NULL ;
 
 static int do_athr_sum = 0 ; /* 18 Dec 2015 */
 static int athr_sum_bot=-1 , athr_sum_top=-1 ;
+
+#define SHAVE_MALLOC 1
+#define SHAVE_MMAP   2
+static int     do_shave =0 ;
+size_t         shave_siz=0 ;
+static int64_t shave_tot=0 ;
+static short  *shave    =NULL ;
 
 static int verb = 1 ;
 static int nthr = 1 ;
@@ -182,13 +197,16 @@ double zthresh( double pval )
 
 /*---------------------------------------------------------------------------*/
 
+static int vsnn=0 ;
+
+static void vstep_reset(void){ vsnn=0; }
+
 static void vstep_print(void)
 {
-   static int nn=0 ;
    static char xx[10] = "0123456789" ;
-   fprintf(stderr , "%c" , xx[nn%10] ) ;
-   if( nn%10 == 9) fprintf(stderr,".") ;
-   nn++ ;
+   fprintf(stderr , "%c" , xx[vsnn%10] ) ;
+   if( vsnn%10 == 9) fprintf(stderr,".") ;
+   vsnn++ ;
 }
 
 /*---------------------------------------------------------------------------*/
@@ -1280,6 +1298,114 @@ void generate_image( float *fim , float *pfim , unsigned short xran[] )
 
 /*---------------------------------------------------------------------------*/
 
+#include <sys/mman.h>
+#if !defined(MAP_ANON) && defined(MAP_ANONYMOUS)
+# define MAP_ANON MAP_ANONYMOUS
+#endif
+
+void setup_shave(void)
+{
+   int64_t twogig = 2ll * 1024ll * 1024ll * 1024ll ;
+
+ENTRY("setup_shave") ;
+
+   shave_siz = (size_t)mask_ngood ;  /* in units of sizeof(short) */
+   shave_tot = shave_siz * (int64_t)niter * sizeof(short) ;
+
+   if( shave_tot >= twogig &&
+       ( sizeof(void *) < 8 || sizeof(size_t) < 8 ) )
+    ERROR_exit("Total space needed for internal save of simulations\n"
+               "     exceeds 2 GB -- cannot proceed on a 32-bit system!") ;
+
+#ifndef MAP_ANON
+   do_shave = SHAVE_MALLOC
+#else
+   do_shave = (shave_tot >= twogig) ? SHAVE_MMAP : SHAVE_MALLOC ;
+#endif
+
+   if( do_shave == SHAVE_MALLOC ){
+     shave = (short *)malloc((size_t)shave_tot) ;
+   } else {
+#ifdef MAP_ANON
+     shave = mmap( (void *)0 , (size_t)shave_tot ,
+                   PROT_READ | PROT_WRITE , MAP_ANON | MAP_SHARED , -1,0 ) ;
+#endif
+   }
+
+   if( shave == NULL )
+     ERROR_exit("Cannot allocate space for internal save of simulations :-(") ;
+
+   if( verb )
+     INFO_message("allocated %s (%s) bytes for internal save",
+                  commaized_integer_string((long long)shave_tot) ,
+                  approximate_number_string((double)shave_tot)    ) ;
+
+   EXRETURN ;
+}
+
+/*---------------------------------------------------------------------------*/
+
+void destroy_shave(void)
+{
+ENTRY("destroy_shave") ;
+
+   if( shave == NULL ) EXRETURN ;
+
+   if( do_shave == SHAVE_MALLOC ) free(shave) ;
+   else                           munmap(shave,(size_t)shave_tot) ;
+   shave = NULL ;
+   EXRETURN ;
+}
+
+/*---------------------------------------------------------------------------*/
+
+#define SHAVE_FAC 4681.0f
+#define SHAVE_INV 0.0002136296f
+
+void fim_to_shave( float *fim , int iter )
+{
+   short *shar = shave + (size_t)(iter * shave_siz) ;
+   int ii , jj ;
+
+#if 0
+#pragma omp critical
+{ fprintf(stderr,"f2s(%d) ",iter); }
+#endif
+
+   if( mask_vol != NULL ){
+     for( jj=ii=0 ; ii < nxyz ; ii++ )
+       if( mask_vol[ii] ) shar[jj++] = (short)(fim[ii]*SHAVE_FAC) ;
+   } else {
+     for( ii=0 ; ii < nxyz ; ii++ ) shar[ii] = (short)(fim[ii]*SHAVE_FAC) ;
+   }
+   return ;
+}
+
+/*---------------------------------------------------------------------------*/
+
+void shave_to_fim( float *fim , int iter )
+{
+   short *shar = shave + (size_t)(iter * shave_siz) ;
+   int ii , jj ;
+
+#if 0
+#pragma omp critical
+{ fprintf(stderr,"s2f(%d) ",iter); }
+#endif
+
+   if( mask_vol != NULL ){
+     for( jj=ii=0 ; ii < nxyz ; ii++ ){
+       if( mask_vol[ii] ) fim[ii] = shar[jj++]*SHAVE_INV ;
+       else               fim[ii] = 0.0f ;
+     }
+   } else {
+     for( ii=0 ; ii < nxyz ; ii++ ) fim[ii] = shar[ii]*SHAVE_INV ;
+   }
+   return ;
+}
+
+/*---------------------------------------------------------------------------*/
+
 #define DALL MAX_CLUSTER_SIZE
 
 /*! Put (i,j,k) into the current cluster, if it is nonzero. */
@@ -1721,109 +1847,107 @@ static char * prob9(float p)   /* format p-value into 9 char */
 
 /*---------------------------------------------------------------------------*/
 
-static int fa_1sid_NN1, fa_1sid_NN2, fa_1sid_NN3 ;
-static int fa_2sid_NN1, fa_2sid_NN2, fa_2sid_NN3 ;
-static int fa_bsid_NN1, fa_bsid_NN2, fa_bsid_NN3 ;
+static int *fa_1sid_NN1, *fa_1sid_NN2, *fa_1sid_NN3 ;
+static int *fa_2sid_NN1, *fa_2sid_NN2, *fa_2sid_NN3 ;
+static int *fa_bsid_NN1, *fa_bsid_NN2, *fa_bsid_NN3 ;
 
-void thresh_tracer_fim( int iathr,
+void thresh_summer_fim( int iathr,
                         int ipthr_bot, int ipthr_top,
-                        float *fim, byte *bfim )
+                        float *fim, byte *bfim , int ithr )
 {
    register int ii ; register float thr ;
    int ipthr , siz ;
 
-ENTRY("thresh_tracer_fim") ;
-
-   fa_1sid_NN1=0; fa_1sid_NN2=0; fa_1sid_NN3=0;
-   fa_2sid_NN1=0; fa_2sid_NN2=0; fa_2sid_NN3=0;
-   fa_bsid_NN1=0; fa_bsid_NN2=0; fa_bsid_NN3=0;
+   fa_1sid_NN1[ithr]=0; fa_1sid_NN2[ithr]=0; fa_1sid_NN3[ithr]=0;
+   fa_2sid_NN1[ithr]=0; fa_2sid_NN2[ithr]=0; fa_2sid_NN3[ithr]=0;
+   fa_bsid_NN1[ithr]=0; fa_bsid_NN2[ithr]=0; fa_bsid_NN3[ithr]=0;
 
    for( ipthr=ipthr_bot ; ipthr <= ipthr_top ; ipthr++ ){
 
-     if( !fa_1sid_NN1 ){ /* 1-sided, NN1 */
+     if( !fa_1sid_NN1[ithr] ){ /* 1-sided, NN1 */
        thr = zthr_1sid[ipthr] ;
        for( ii=0 ; ii < nxyz ; ii++ ) bfim[ii] = (fim[ii] > thr) ;
        siz = find_largest_cluster_NN1(bfim,0) ;
-       fa_1sid_NN1 = (siz >= clust_thresh_1sid[ipthr][iathr] ) ;
+       fa_1sid_NN1[ithr] = (siz >= clust_thresh_1sid_NN1[ipthr][iathr] ) ;
      }
 
-     if( !fa_1sid_NN2 ){ /* 1-sided, NN2 */
+     if( !fa_1sid_NN2[ithr] ){ /* 1-sided, NN2 */
        thr = zthr_1sid[ipthr] ;
        for( ii=0 ; ii < nxyz ; ii++ ) bfim[ii] = (fim[ii] > thr) ;
        siz = find_largest_cluster_NN2(bfim,0) ;
-       fa_1sid_NN2 = (siz >= clust_thresh_1sid[ipthr][iathr] ) ;
+       fa_1sid_NN2[ithr] = (siz >= clust_thresh_1sid_NN2[ipthr][iathr] ) ;
      }
 
-     if( !fa_1sid_NN3 ){ /* 1-sided, NN3 */
+     if( !fa_1sid_NN3[ithr] ){ /* 1-sided, NN3 */
        thr = zthr_1sid[ipthr] ;
        for( ii=0 ; ii < nxyz ; ii++ ) bfim[ii] = (fim[ii] > thr) ;
        siz = find_largest_cluster_NN3(bfim,0) ;
-       fa_1sid_NN3 = (siz >= clust_thresh_1sid[ipthr][iathr] ) ;
+       fa_1sid_NN3[ithr] = (siz >= clust_thresh_1sid_NN3[ipthr][iathr] ) ;
      }
 
-     if( !fa_2sid_NN1 ){ /* 2-sided, NN1 */
+     if( !fa_2sid_NN1[ithr] ){ /* 2-sided, NN1 */
        thr = zthr_2sid[ipthr] ;
        for( ii=0 ; ii < nxyz ; ii++ )
          bfim[ii] = (fim[ii] > thr) || (fim[ii] < -thr) ;
        siz = find_largest_cluster_NN1(bfim,0) ;
-       fa_2sid_NN1 = (siz >= clust_thresh_2sid[ipthr][iathr] ) ;
+       fa_2sid_NN1[ithr] = (siz >= clust_thresh_2sid_NN1[ipthr][iathr] ) ;
      }
 
-     if( !fa_2sid_NN2 ){ /* 2-sided, NN2 */
+     if( !fa_2sid_NN2[ithr] ){ /* 2-sided, NN2 */
        thr = zthr_2sid[ipthr] ;
        for( ii=0 ; ii < nxyz ; ii++ )
          bfim[ii] = (fim[ii] > thr) || (fim[ii] < -thr) ;
        siz = find_largest_cluster_NN2(bfim,0) ;
-       fa_2sid_NN2 = (siz >= clust_thresh_2sid[ipthr][iathr] ) ;
+       fa_2sid_NN2[ithr] = (siz >= clust_thresh_2sid_NN2[ipthr][iathr] ) ;
      }
 
-     if( !fa_2sid_NN3 ){ /* 2-sided, NN3 */
+     if( !fa_2sid_NN3[ithr] ){ /* 2-sided, NN3 */
        thr = zthr_2sid[ipthr] ;
        for( ii=0 ; ii < nxyz ; ii++ )
          bfim[ii] = (fim[ii] > thr) || (fim[ii] < -thr) ;
        siz = find_largest_cluster_NN3(bfim,0) ;
-       fa_2sid_NN3 = (siz >= clust_thresh_2sid[ipthr][iathr] ) ;
+       fa_2sid_NN3[ithr] = (siz >= clust_thresh_2sid_NN3[ipthr][iathr] ) ;
      }
 
-     if( !fa_bsid_NN1 ){  /* bi-sided, NN1 */
+     if( !fa_bsid_NN1[ithr] ){  /* bi-sided, NN1 */
        thr = zthr_2sid[ipthr] ;
        for( ii=0 ; ii < nxyz ; ii++ ) bfim[ii] = (fim[ii] > thr) ;
        siz = find_largest_cluster_NN1( bfim , 0 ) ;
-       fa_bsid_NN1 = (siz >= clust_thresh_bsid[ipthr][iathr] ) ;
-       if( !fa_bsid_NN1 ){
+       fa_bsid_NN1[ithr] = (siz >= clust_thresh_bsid_NN1[ipthr][iathr] ) ;
+       if( !fa_bsid_NN1[ithr] ){
          for( ii=0 ; ii < nxyz ; ii++ ) bfim[ii] = (fim[ii] < -thr) ;
          siz = find_largest_cluster_NN1( bfim , 0 ) ;
-         fa_bsid_NN1 = (siz >= clust_thresh_bsid[ipthr][iathr] ) ;
+         fa_bsid_NN1[ithr] = (siz >= clust_thresh_bsid_NN1[ipthr][iathr] ) ;
        }
      }
 
-     if( !fa_bsid_NN2 ){  /* bi-sided, NN2 */
+     if( !fa_bsid_NN2[ithr] ){  /* bi-sided, NN2 */
        thr = zthr_2sid[ipthr] ;
        for( ii=0 ; ii < nxyz ; ii++ ) bfim[ii] = (fim[ii] > thr) ;
        siz = find_largest_cluster_NN2( bfim , 0 ) ;
-       fa_bsid_NN2 = (siz >= clust_thresh_bsid[ipthr][iathr] ) ;
-       if( !fa_bsid_NN2 ){
+       fa_bsid_NN2[ithr] = (siz >= clust_thresh_bsid_NN2[ipthr][iathr] ) ;
+       if( !fa_bsid_NN2[ithr] ){
          for( ii=0 ; ii < nxyz ; ii++ ) bfim[ii] = (fim[ii] < -thr) ;
          siz = find_largest_cluster_NN2( bfim , 0 ) ;
-         fa_bsid_NN2 = (siz >= clust_thresh_bsid[ipthr][iathr] ) ;
+         fa_bsid_NN2[ithr] = (siz >= clust_thresh_bsid_NN2[ipthr][iathr] ) ;
        }
      }
 
-     if( !fa_bsid_NN3 ){  /* bi-sided, NN3 */
+     if( !fa_bsid_NN3[ithr] ){  /* bi-sided, NN3 */
        thr = zthr_2sid[ipthr] ;
        for( ii=0 ; ii < nxyz ; ii++ ) bfim[ii] = (fim[ii] > thr) ;
        siz = find_largest_cluster_NN3( bfim , 0 ) ;
-       fa_bsid_NN3 = (siz >= clust_thresh_bsid[ipthr][iathr] ) ;
-       if( !fa_bsid_NN3 ){
+       fa_bsid_NN3[ithr] = (siz >= clust_thresh_bsid_NN3[ipthr][iathr] ) ;
+       if( !fa_bsid_NN3[ithr] ){
          for( ii=0 ; ii < nxyz ; ii++ ) bfim[ii] = (fim[ii] < -thr) ;
          siz = find_largest_cluster_NN3( bfim , 0 ) ;
-         fa_bsid_NN3 = (siz >= clust_thresh_bsid[ipthr][iathr] ) ;
+         fa_bsid_NN3[ithr] = (siz >= clust_thresh_bsid_NN3[ipthr][iathr] ) ;
        }
      }
 
    }
 
-   EXRETURN ;
+   return ;
 }
 
 /*---------------------------------------------------------------------------*/
@@ -1832,18 +1956,11 @@ static float *rfa_1sid_NN1, *rfa_1sid_NN2, *rfa_1sid_NN3 ;
 static float *rfa_2sid_NN1, *rfa_2sid_NN2, *rfa_2sid_NN3 ;
 static float *rfa_bsid_NN1, *rfa_bsid_NN2, *rfa_bsid_NN3 ;
 
-void thresh_tracer_athr( int iathr_bot, int iathr_top, int ipthr_bot, int ipthr_top )
+void thresh_summer_athr( int iathr_bot, int iathr_top, int ipthr_bot, int ipthr_top )
 {
-   float *fim,*pfim; byte *bfim; int iter; unsigned short xran[3];
-   float drfa = 1.0f/niter ;
-   int vstep , vii , iathr ;
+   float const drfa = 1.0f/niter ;
 
-ENTRY("thresh_tracer_athr") ;
-
-   fim  = (float *)malloc(sizeof(float)*nxyz) ;  /* image space */
-   bfim = (byte * )malloc(sizeof(byte) *nxyz) ;
-   if( do_pad ) pfim = (float *)malloc(sizeof(float)*nxyz_pad); /* 12 May 2015 */
-   else         pfim = NULL ;
+ENTRY("thresh_summer_athr") ;
 
    rfa_1sid_NN1 = (float *)calloc(sizeof(float),(iathr_top-iathr_bot+1)) ;
    rfa_2sid_NN1 = (float *)calloc(sizeof(float),(iathr_top-iathr_bot+1)) ;
@@ -1855,43 +1972,86 @@ ENTRY("thresh_tracer_athr") ;
    rfa_2sid_NN3 = (float *)calloc(sizeof(float),(iathr_top-iathr_bot+1)) ;
    rfa_bsid_NN3 = (float *)calloc(sizeof(float),(iathr_top-iathr_bot+1)) ;
 
-#if 0
-   gseed = ((unsigned int)time(NULL)) + 17*(unsigned int)getpid() ;
+
+ AFNI_OMP_START;
+#pragma omp parallel
+ { DECLARE_ithr ;
+   int iter , iathr , vstep , vii ;
+   float *fim ; byte *bfim ;
+
+#pragma omp master
+ {
+#ifdef USE_OMP
+   nthr = omp_get_num_threads() ;
+#else
+   nthr = 1 ;
 #endif
+   fa_1sid_NN1 = (int *)malloc(sizeof(int)*nthr) ;
+   fa_2sid_NN1 = (int *)malloc(sizeof(int)*nthr) ;
+   fa_bsid_NN1 = (int *)malloc(sizeof(int)*nthr) ;
+   fa_1sid_NN2 = (int *)malloc(sizeof(int)*nthr) ;
+   fa_2sid_NN2 = (int *)malloc(sizeof(int)*nthr) ;
+   fa_bsid_NN2 = (int *)malloc(sizeof(int)*nthr) ;
+   fa_1sid_NN3 = (int *)malloc(sizeof(int)*nthr) ;
+   fa_2sid_NN3 = (int *)malloc(sizeof(int)*nthr) ;
+   fa_bsid_NN3 = (int *)malloc(sizeof(int)*nthr) ;
+   if( verb ){
+     vstep = (int)( niter / (nthr*50.0f) + 0.901f) ;
+     vii   = 0 ; vstep_reset() ;
+     fprintf(stderr,"Summing up:") ;
+   }
+ }
+#pragma omp barrier
 
-   xran[2] = ( gseed        & 0xffff) + (unsigned short)17 ;
-   xran[1] = ((gseed >> 16) & 0xffff) - (unsigned short)13 ;
-   xran[0] = 0x330e                   + (unsigned short)11 ;
+   fim  = (float *)malloc(sizeof(float)*nxyz) ;
+   bfim = (byte  *)malloc(sizeof(byte) *nxyz) ;
 
-   nthr  = 1 ;
-   vstep = (int)( niter / (nthr*50.0f) + 0.901f) ;
-   vii   = 0 ;
-   if( verb ) fprintf(stderr,"Tracing:") ;
-
+#pragma omp for
    for( iter=1 ; iter <= niter ; iter++ ){
 
-     if( verb ){
+     if( ithr==0 && verb ){
        vii++ ; if( vii%vstep == vstep/2 ) vstep_print() ;
      }
 
-     generate_image( fim , pfim , xran ) ;
+#if 0
+#pragma omp critical
+{ fprintf(stderr,"f(%d) ",iter-1) ; }
+#endif
+
+     shave_to_fim(fim,iter-1) ;
+
+#if 0
+#pragma omp critical
+{ fprintf(stderr,"x(%d) ",iter-1) ; }
+#endif
 
      for( iathr=iathr_bot ; iathr <= iathr_top ; iathr++ ){
 
-       thresh_tracer_fim( iathr,ipthr_bot,ipthr_top,fim,bfim ) ;
+#if 0
+#pragma omp critical
+{ fprintf(stderr,"tsf(%d,%d) ",iter-1,iathr) ; }
+#endif
 
-       if( fa_1sid_NN1 ) rfa_1sid_NN1[iathr-iathr_bot] += drfa ;
-       if( fa_1sid_NN2 ) rfa_1sid_NN2[iathr-iathr_bot] += drfa ;
-       if( fa_1sid_NN3 ) rfa_1sid_NN3[iathr-iathr_bot] += drfa ;
-       if( fa_2sid_NN1 ) rfa_2sid_NN1[iathr-iathr_bot] += drfa ;
-       if( fa_2sid_NN2 ) rfa_2sid_NN2[iathr-iathr_bot] += drfa ;
-       if( fa_2sid_NN3 ) rfa_2sid_NN3[iathr-iathr_bot] += drfa ;
-       if( fa_bsid_NN1 ) rfa_bsid_NN1[iathr-iathr_bot] += drfa ;
-       if( fa_bsid_NN2 ) rfa_bsid_NN2[iathr-iathr_bot] += drfa ;
-       if( fa_bsid_NN3 ) rfa_bsid_NN3[iathr-iathr_bot] += drfa ;
+       thresh_summer_fim( iathr,ipthr_bot,ipthr_top,fim,bfim,ithr ) ;
+
+#pragma omp critical
+      {if( fa_1sid_NN1[ithr] ) rfa_1sid_NN1[iathr-iathr_bot] += drfa ;
+       if( fa_1sid_NN2[ithr] ) rfa_1sid_NN2[iathr-iathr_bot] += drfa ;
+       if( fa_1sid_NN3[ithr] ) rfa_1sid_NN3[iathr-iathr_bot] += drfa ;
+       if( fa_2sid_NN1[ithr] ) rfa_2sid_NN1[iathr-iathr_bot] += drfa ;
+       if( fa_2sid_NN2[ithr] ) rfa_2sid_NN2[iathr-iathr_bot] += drfa ;
+       if( fa_2sid_NN3[ithr] ) rfa_2sid_NN3[iathr-iathr_bot] += drfa ;
+       if( fa_bsid_NN1[ithr] ) rfa_bsid_NN1[iathr-iathr_bot] += drfa ;
+       if( fa_bsid_NN2[ithr] ) rfa_bsid_NN2[iathr-iathr_bot] += drfa ;
+       if( fa_bsid_NN3[ithr] ) rfa_bsid_NN3[iathr-iathr_bot] += drfa ;
+      }
      }
    }
 
+   free(bfim) ; free(fim) ;
+
+ }
+AFNI_OMP_END ;
    if( verb ) fprintf(stderr,"\n") ;
 
    EXRETURN ;
@@ -1904,6 +2064,7 @@ int main( int argc , char **argv )
   int **max_table_1sid[4] , **max_table_2sid[4] , **max_table_bsid[4] ;
   int nnn , ipthr , first_mask=1 ;
   char *refit_cmd = NULL ;
+  double ct ;
 #ifdef USE_OMP
   int ***mtab_1sid[4] , ***mtab_2sid[4] , ***mtab_bsid[4] ;
 #endif
@@ -1935,6 +2096,11 @@ int main( int argc , char **argv )
       max_table_bsid[nnn][ipthr] = (int *)calloc(sizeof(int),(max_cluster_size+1)) ;
     }
   }
+
+  if( do_athr_sum ) setup_shave() ;
+
+  if( verb )
+    INFO_message("Startup clock time = %.1f s",COX_clock_time()) ;
 
  AFNI_OMP_START ;
 #pragma omp parallel
@@ -2041,6 +2207,8 @@ int main( int argc , char **argv )
 
     generate_image( fim , pfim , xran ) ;
 
+    if( do_shave ) fim_to_shave(fim,iter-1) ;
+
     for( ipthr=0 ; ipthr < npthr ; ipthr++ ){
       gather_stats_NN1_1sid( ipthr , fim , bfim , mt_1sid[1][ipthr] , ithr ) ;
       gather_stats_NN2_1sid( ipthr , fim , bfim , mt_1sid[2][ipthr] , ithr ) ;
@@ -2058,24 +2226,26 @@ int main( int argc , char **argv )
   } /* end of simulation loop */
 
   free(fim) ; free(bfim) ; if( pfim != NULL ) free(pfim) ;
-#if 0
-  free(inow_g[ithr]) ; free(jnow_g[ithr]) ; free(know_g[ithr]) ;
-  if( do_acf ){
-    free(acf_tar[ithr]) ;
-    if( acf_bim[ithr] != NULL ) mri_free(acf_bim[ithr]) ;
-  }
-#endif
 
-  if( ithr == 0 && verb ) fprintf(stderr,"\n") ;
+  if( !do_athr_sum ){
+    free(inow_g[ithr]) ; free(jnow_g[ithr]) ; free(know_g[ithr]) ;
+    if( do_acf ){
+      free(acf_tar[ithr]) ;
+      if( acf_bim[ithr] != NULL ) mri_free(acf_bim[ithr]) ;
+    }
+  }
+
+  if( ithr == 0 && verb ) fprintf(stderr,"!\n") ;
 
  } /* end OpenMP parallelization */
  AFNI_OMP_END ;
 
-#if 0
-   if( do_acf ){
+   if( verb )
+     INFO_message("Clock time now = %.1f s",COX_clock_time()) ;
+
+   if( do_acf && !do_athr_sum ){
      free(acf_aim) ; free(acf_bim) ; free(acf_tar) ;
    }
-#endif
 
    if( do_ssave > 0 ) DSET_delete(ssave_dset) ; /* 24 Apr 2014 */
 
@@ -2103,7 +2273,9 @@ int main( int argc , char **argv )
    }
 #endif
 
+#if 0
   enable_mcw_malloc() ;
+#endif
 
   /*---------- compute and print the output tables ----------*/
 
@@ -2116,25 +2288,23 @@ int main( int argc , char **argv )
 
     alpha = (double *)malloc(sizeof(double)*(max_cluster_size+1)) ;
 
-    for( mmm=1 ; mmm <= 3 ; mmm++ ){
-
-      clust_thresh = (float **)malloc(sizeof(float *)*npthr) ;
-      for( ipthr=0 ; ipthr < npthr ; ipthr++ )
-        clust_thresh[ipthr] = (float *)malloc(sizeof(float)*nathr) ;
+    for( mmm=1 ; mmm <= 3 ; mmm++ ){  /* loop over sidedness */
 
       if( mmm == 1 ){
         mtt = max_table_1sid ; mlab = "1-sided" ; mlll = "1sided" ;
-        clust_thresh_1sid = clust_thresh ;
       } else if( mmm == 2 ){
         mtt = max_table_2sid ; mlab = "2-sided" ; mlll = "2sided" ;
-        clust_thresh_2sid = clust_thresh ;
       } else {
         mtt = max_table_bsid ; mlab = "bi-sided"; mlll = "bisided";
-        clust_thresh_bsid = clust_thresh ;
       }
 
       amesg = NULL ; cmax = 0.0f ;
-      for( nnn=1 ; nnn <= 3 ; nnn++ ){
+      for( nnn=1 ; nnn <= 3 ; nnn++ ){  /* loop over NN level */
+
+        clust_thresh = (float **)malloc(sizeof(float *)*npthr) ;
+        for( ipthr=0 ; ipthr < npthr ; ipthr++ )
+          clust_thresh[ipthr] = (float *)malloc(sizeof(float)*nathr) ;
+
         for( ipthr=0 ; ipthr < npthr ; ipthr++ ){
           for( itop=ii=1 ; ii <= max_cluster_size ; ii++ ){
             alpha[ii] = mtt[nnn][ipthr][ii] / (double)niter ;
@@ -2318,6 +2488,33 @@ MPROBE ;
           }
         } /* end of NIML output */
 
+#if 0
+        switch( nnn*10 + mmm ){
+          case 11: clust_thresh_1sid_NN1 = clust_thresh ; break ;
+          case 12: clust_thresh_2sid_NN1 = clust_thresh ; break ;
+          case 13: clust_thresh_bsid_NN1 = clust_thresh ; break ;
+          case 21: clust_thresh_1sid_NN2 = clust_thresh ; break ;
+          case 22: clust_thresh_2sid_NN2 = clust_thresh ; break ;
+          case 23: clust_thresh_bsid_NN2 = clust_thresh ; break ;
+          case 31: clust_thresh_1sid_NN3 = clust_thresh ; break ;
+          case 32: clust_thresh_2sid_NN3 = clust_thresh ; break ;
+          case 33: clust_thresh_bsid_NN3 = clust_thresh ; break ;
+          default:  /* should never transpire */
+            ERROR_exit("nnn=%d mmm=%d :: This should never happen!",nnn,mmm) ;
+          break ;
+        }
+#else
+        if( nnn*10+mmm == 11 ) clust_thresh_1sid_NN1 = clust_thresh ;
+        if( nnn*10+mmm == 12 ) clust_thresh_2sid_NN1 = clust_thresh ;
+        if( nnn*10+mmm == 13 ) clust_thresh_bsid_NN1 = clust_thresh ;
+        if( nnn*10+mmm == 21 ) clust_thresh_1sid_NN2 = clust_thresh ;
+        if( nnn*10+mmm == 22 ) clust_thresh_2sid_NN2 = clust_thresh ;
+        if( nnn*10+mmm == 23 ) clust_thresh_bsid_NN2 = clust_thresh ;
+        if( nnn*10+mmm == 31 ) clust_thresh_1sid_NN3 = clust_thresh ;
+        if( nnn*10+mmm == 32 ) clust_thresh_2sid_NN3 = clust_thresh ;
+        if( nnn*10+mmm == 33 ) clust_thresh_bsid_NN3 = clust_thresh ;
+#endif
+
       } /* end of loop over nnn = NN degree */
 
     if( amesg != NULL ){
@@ -2346,9 +2543,9 @@ MPROBE ;
 
    if( do_athr_sum ){
      int iathr , iathr_bot=0 , iathr_top=nathr-1 ;
-     thresh_tracer_athr(iathr_bot,iathr_top,athr_sum_bot,athr_sum_top) ;
+     thresh_summer_athr(iathr_bot,iathr_top,athr_sum_bot,athr_sum_top) ;
      for( iathr=iathr_bot ; iathr <= iathr_top ; iathr++ ){
-       INFO_message("integrated rates for athr=%g",athr[athr]) ;
+       INFO_message("integrated rates for athr=%g",athr[iathr]) ;
        ININFO_message("  1sid: NN1=%.3f  NN2=%.3f  NN3=%.3f",
                       rfa_1sid_NN1[iathr-iathr_bot],
                       rfa_1sid_NN2[iathr-iathr_bot], rfa_1sid_NN3[iathr-iathr_bot]) ;
@@ -2360,6 +2557,11 @@ MPROBE ;
                       rfa_bsid_NN2[iathr-iathr_bot], rfa_bsid_NN3[iathr-iathr_bot]) ;
      }
    }
+
+   destroy_shave() ;
+
+   if( verb )
+     INFO_message("Clock time now = %.1f s",COX_clock_time()) ;
 
   } /* end of outputizationing */
 
