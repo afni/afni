@@ -128,9 +128,9 @@ static double pthr_mega[38] = { 0.100,   0.090,   0.080,   0.070,   0.060,
 static int   nathr_lots     = 10 ;
 static double athr_lots[10] = { 0.10, 0.09, .08, .07, .06, .05, .04, .03, .02, .01 } ;
 
-static int   nathr_mega     = 20 ;
-static double athr_mega[20] = { 0.100,0.095,0.090,0.085,0.080,0.075,0.070,0.065,0.060,0.055,
-                                0.050,0.045,0.040,0.035,0.030,0.025,0.020,0.015,0.010,0.005 } ;
+static int   nathr_mega     = 22 ;
+static double athr_mega[22] = { 0.100,0.095,0.090,0.085,0.080,0.075,0.070,0.065,0.060,0.055,
+                                0.050,0.045,0.040,0.035,0.030,0.025,0.020,0.015,0.010,0.005,0.004,0.003 } ;
 
 static int    npthr = 9 ;
 static double *pthr = NULL ;
@@ -160,6 +160,8 @@ static float **clust_thresh_bsid_NN3 = NULL ;
 
 static int do_athr_sum = 0 ; /* 18 Dec 2015 */
 static int athr_sum_bot=-1 , athr_sum_top=-1 ;
+
+static int **max_table_1sid[4] , **max_table_2sid[4] , **max_table_bsid[4] ;
 
 #define SHAVE_MALLOC 1
 #define SHAVE_MMAP   2
@@ -829,13 +831,14 @@ void get_options( int argc , char **argv )
       athr = (double *)realloc(athr,sizeof(double)*nathr) ;
       memcpy( athr , athr_mega , sizeof(double)*nathr ) ;
       athr_sum_bot = 13 ; athr_sum_top = 31 ;
+      if( niter < 30000 ) niter = 30000 ;
       nopt++ ; continue ;
     }
 
     /*-----  -sumup     -----*/
 
     if( strcasecmp(argv[nopt],"-sumup") == 0 ){  /* 18 Dec 2015 */
-      do_athr_sum = 1 ; nopt++ ; continue ;
+      do_athr_sum++ ; nopt++ ; continue ;
     }
 
 #if 0
@@ -1297,6 +1300,11 @@ void generate_image( float *fim , float *pfim , unsigned short xran[] )
 }
 
 /*---------------------------------------------------------------------------*/
+/* 'shave' == 'short save' == saving generated images
+   for re-use in the sumup phase of the program.
+   Only the "in-mask" part is saved, and values are scale to shorts.
+   Memory is malloc-ed for small needs, and is mmap-ed for large needs.
+*//*-------------------------------------------------------------------------*/
 
 #include <sys/mman.h>
 #if !defined(MAP_ANON) && defined(MAP_ANONYMOUS)
@@ -1311,6 +1319,8 @@ ENTRY("setup_shave") ;
 
    shave_siz = (size_t)mask_ngood ;  /* in units of sizeof(short) */
    shave_tot = shave_siz * (int64_t)niter * sizeof(short) ;
+
+   /* check is system is 32-bit and memory needed is over 2G */
 
    if( shave_tot >= twogig &&
        ( sizeof(void *) < 8 || sizeof(size_t) < 8 ) )
@@ -1336,7 +1346,7 @@ ENTRY("setup_shave") ;
      ERROR_exit("Cannot allocate space for internal save of simulations :-(") ;
 
    if( verb )
-     INFO_message("allocated %s (%s) bytes for internal save",
+     INFO_message("allocated %s (%s) bytes for sumup re-use",
                   commaized_integer_string((long long)shave_tot) ,
                   approximate_number_string((double)shave_tot)    ) ;
 
@@ -1344,6 +1354,7 @@ ENTRY("setup_shave") ;
 }
 
 /*---------------------------------------------------------------------------*/
+/* Trash the allocated shave space */
 
 void destroy_shave(void)
 {
@@ -1358,9 +1369,10 @@ ENTRY("destroy_shave") ;
 }
 
 /*---------------------------------------------------------------------------*/
+/* Actually save the iter-th image into the allocated space */
 
-#define SHAVE_FAC 4681.0f
-#define SHAVE_INV 0.0002136296f
+#define SHAVE_FAC 4681.0f        /* 32767/7 */
+#define SHAVE_INV 0.0002136296f  /* 7/32767 */
 
 void fim_to_shave( float *fim , int iter )
 {
@@ -1382,6 +1394,7 @@ void fim_to_shave( float *fim , int iter )
 }
 
 /*---------------------------------------------------------------------------*/
+/* Retrieve the iter-th image from the allocated space */
 
 void shave_to_fim( float *fim , int iter )
 {
@@ -1885,6 +1898,8 @@ void thresh_summer_fim( int iathr,
        fa_1sid_NN3[ithr] = (siz >= clust_thresh_1sid_NN3[ipthr][iathr] ) ;
      }
 
+     if( do_athr_sum < 2 ) continue ; /* skip 2-sided and bi-sided */
+
      if( !fa_2sid_NN1[ithr] ){ /* 2-sided, NN1 */
        thr = zthr_2sid[ipthr] ;
        for( ii=0 ; ii < nxyz ; ii++ )
@@ -2013,24 +2028,9 @@ ENTRY("thresh_summer_athr") ;
        vii++ ; if( vii%vstep == vstep/2 ) vstep_print() ;
      }
 
-#if 0
-#pragma omp critical
-{ fprintf(stderr,"f(%d) ",iter-1) ; }
-#endif
-
      shave_to_fim(fim,iter-1) ;
 
-#if 0
-#pragma omp critical
-{ fprintf(stderr,"x(%d) ",iter-1) ; }
-#endif
-
      for( iathr=iathr_bot ; iathr <= iathr_top ; iathr++ ){
-
-#if 0
-#pragma omp critical
-{ fprintf(stderr,"tsf(%d,%d) ",iter-1,iathr) ; }
-#endif
 
        thresh_summer_fim( iathr,ipthr_bot,ipthr_top,fim,bfim,ithr ) ;
 
@@ -2038,12 +2038,14 @@ ENTRY("thresh_summer_athr") ;
       {if( fa_1sid_NN1[ithr] ) rfa_1sid_NN1[iathr-iathr_bot] += drfa ;
        if( fa_1sid_NN2[ithr] ) rfa_1sid_NN2[iathr-iathr_bot] += drfa ;
        if( fa_1sid_NN3[ithr] ) rfa_1sid_NN3[iathr-iathr_bot] += drfa ;
-       if( fa_2sid_NN1[ithr] ) rfa_2sid_NN1[iathr-iathr_bot] += drfa ;
-       if( fa_2sid_NN2[ithr] ) rfa_2sid_NN2[iathr-iathr_bot] += drfa ;
-       if( fa_2sid_NN3[ithr] ) rfa_2sid_NN3[iathr-iathr_bot] += drfa ;
-       if( fa_bsid_NN1[ithr] ) rfa_bsid_NN1[iathr-iathr_bot] += drfa ;
-       if( fa_bsid_NN2[ithr] ) rfa_bsid_NN2[iathr-iathr_bot] += drfa ;
-       if( fa_bsid_NN3[ithr] ) rfa_bsid_NN3[iathr-iathr_bot] += drfa ;
+       if( do_athr_sum > 1 ){
+         if( fa_2sid_NN1[ithr] ) rfa_2sid_NN1[iathr-iathr_bot] += drfa ;
+         if( fa_2sid_NN2[ithr] ) rfa_2sid_NN2[iathr-iathr_bot] += drfa ;
+         if( fa_2sid_NN3[ithr] ) rfa_2sid_NN3[iathr-iathr_bot] += drfa ;
+         if( fa_bsid_NN1[ithr] ) rfa_bsid_NN1[iathr-iathr_bot] += drfa ;
+         if( fa_bsid_NN2[ithr] ) rfa_bsid_NN2[iathr-iathr_bot] += drfa ;
+         if( fa_bsid_NN3[ithr] ) rfa_bsid_NN3[iathr-iathr_bot] += drfa ;
+       }
       }
      }
    }
@@ -2057,11 +2059,69 @@ AFNI_OMP_END ;
    EXRETURN ;
 }
 
+/*---------------------------------------------------------------------------*/
+
+double get_one_clust_thresh( int **mtnn , int ipthr , double aval )
+{
+   static double *alpha=NULL ;
+   double ahi,alo,jj ;
+   float cmax=0.0f , **clust_thresh ;
+   int ii , itop , iathr , mmm ;
+
+   if( alpha == NULL )
+     alpha = (double *)malloc(sizeof(double)*(max_cluster_size+1)) ;
+
+   /* alpha[ii] = prob of getting clusters of exactly size ii */
+
+   for( itop=ii=1 ; ii <= max_cluster_size ; ii++ ){
+     alpha[ii] = mtnn[ipthr][ii] / (double)niter ;
+     if( alpha[ii] > 0.0 ) itop = ii ;
+   }
+
+   /* alpha[ii] = prob of getting clusters of size ii or more */
+
+   for( ii=itop-1 ; ii >= 1 ; ii-- ) alpha[ii] += alpha[ii+1] ;
+
+   /* find ii that brackets the desired aval */
+
+   if( aval > alpha[1] ){  /* unpleasant situation */
+     static int first=2 ;  /* where there is no bracket */
+     ii = 1 ;
+     if( first ){
+       WARNING_message(
+              "pthr=%.6f ; desired alpha=%.6f -- but max simulated alpha=%.6f]\n" ,
+              pthr[ipthr] , aval , alpha[1] ) ;
+       first-- ;
+       if( first == 0 )
+         ININFO_message("       [further messages about alpha are suppressed]") ;
+     }
+   } else {
+     for( ii=1 ; ii < itop ; ii++ ){
+       if( alpha[ii] >= aval && alpha[ii+1] <= aval ) break ;
+     }
+   }
+
+   /* inverse interpolate to find the index jj where alpha[jj]=aval
+      -- except, of course, jj is a floating point value between ii and ii+1 */
+
+   alo=alpha[ii] ; ahi=alpha[ii+1] ;
+
+   if( alo >= 1.0 ) alo = 1.0 - 0.1/niter ;           /* unlikely */
+   if( ahi <= 0.0 ) ahi = 0.1/niter ;   /* should not be possible */
+   if( ahi >= alo ) ahi = 0.1*alo ;     /* should not be possible */
+   jj   = log(-log(1.0-aval)) ;
+   alo  = log(-log(1.0-alo)) ;
+   ahi  = log(-log(1.0-ahi)) ;
+   jj   = ii + (jj-alo)/(ahi-alo) ;
+   if( jj < 1.0 ) jj = 1.0 ;
+
+   return jj ;
+}
+
 /*===========================================================================*/
 
 int main( int argc , char **argv )
 {
-  int **max_table_1sid[4] , **max_table_2sid[4] , **max_table_bsid[4] ;
   int nnn , ipthr , first_mask=1 ;
   char *refit_cmd = NULL ;
   double ct ;
@@ -2072,6 +2132,7 @@ int main( int argc , char **argv )
   /*----- does user request help menu? -----*/
 
   AFNI_SETUP_OMP(0) ;  /* 24 Jun 2013 */
+  (void)COX_clock_time() ;
 
   if( argc < 2 || strcmp(argv[1],"-help") == 0 ) display_help_menu() ;
 
@@ -2281,7 +2342,7 @@ int main( int argc , char **argv )
 
   { double *alpha , aval , ahi,alo ;
     float cmax=0.0f , **clust_thresh ;
-    int ii , itop , iathr , mmm, ***mtt ;
+    int ii , itop , iathr , mmm, ***mtt , **mtnn ;
     char *commandline = tross_commandline("3dClustSim",argc,argv) ;
     char fname[THD_MAX_NAME] , pname[THD_MAX_NAME] ;
     char *amesg = NULL , *mlab = NULL , *mlll = NULL ;
@@ -2305,18 +2366,23 @@ int main( int argc , char **argv )
         for( ipthr=0 ; ipthr < npthr ; ipthr++ )
           clust_thresh[ipthr] = (float *)malloc(sizeof(float)*nathr) ;
 
+        mtnn = mtt[nnn] ;
+
         for( ipthr=0 ; ipthr < npthr ; ipthr++ ){
+#if 0
+          for( iathr=0 ; iathr < nathr ; iathr++ ){
+            clust_thresh[ipthr][iathr] =
+              get_one_clust_thresh( mtnn,ipthr,athr[iathr]) ;
+            if( nodec ) clust_thresh[ipthr][iathr] =
+                          (int)(clust_thresh[ipthr][iathr]+0.951f) ;
+            if( clust_thresh[ipthr][iathr] > cmax ) cmax = clust_thresh[ipthr][iathr] ;
+          }
+#else
           for( itop=ii=1 ; ii <= max_cluster_size ; ii++ ){
             alpha[ii] = mtt[nnn][ipthr][ii] / (double)niter ;
             if( alpha[ii] > 0.0 ) itop = ii ;
           }
           for( ii=itop-1 ; ii >= 1 ; ii-- ) alpha[ii] += alpha[ii+1] ;
-#if 0
-INFO_message("pthr[%d]=%g itop=%d",ipthr,pthr[ipthr],itop) ;
-for( ii=1 ; ii <= itop ; ii++ )
-  fprintf(stderr," %d=%g",ii,alpha[ii]) ;
-fprintf(stderr,"\n") ;
-#endif
           for( iathr=0 ; iathr < nathr ; iathr++ ){
             aval = athr[iathr] ;
             if( aval > alpha[1] ){  /* unpleasant situation */
@@ -2349,7 +2415,8 @@ fprintf(stderr,"\n") ;
 
             if( clust_thresh[ipthr][iathr] > cmax ) cmax = clust_thresh[ipthr][iathr] ;
           }
-        }
+#endif
+        } /* end of loop over ipthr */
 
         if( do_lohi == 0 ){
           /* edit each column to increase as pthr increases [shouldn't be needed] */
@@ -2429,6 +2496,7 @@ MPROBE ;
             }
             fprintf(fp,"\n") ;
           }
+          if( fp != stdout ) fclose(fp) ;
         }
 
         if( do_niml ){ /* output in NIML format */
@@ -2543,25 +2611,39 @@ MPROBE ;
 
    if( do_athr_sum ){
      int iathr , iathr_bot=0 , iathr_top=nathr-1 ; FILE *fp ; char fname[256] ;
+
      thresh_summer_athr(iathr_bot,iathr_top,athr_sum_bot,athr_sum_top) ;
+
      sprintf(fname,"%s.sumup.1D",(prefix!=NULL)?prefix:"ClustSim") ;
      fp = fopen(fname,"w") ;
-     fprintf(fp,"# 3dClustSim -sumup results\n") ;
+     fprintf(fp,"# %s\n",commandline) ;
+     fprintf(fp,"# "
+      "1dplot -one -box -xaxis 0:0.1:10:5 -yaxis 0:0.32:16:2"
+      " -xlabel 'nominal \\alpha  at fixed p'"
+      " -ylabel 'integrated FAR over p\\in[%g,%g]' "
+      " -ynames 1s:NN1 1s:NN2 1s:NN3 2s:NN1 2s:NN2 2s:NN3 bs:NN1 bs:NN2 bs:NN3"
+      " -x %s'[0]' -plabel '\\noesc %s' %s'[1..$]'\n" ,
+      pthr[athr_sum_top] , pthr[athr_sum_top] , fname,fname,fname ) ;
      fprintf(fp,"# alpha ") ;
      fprintf(fp," 1s:NN1 1s:NN2 1s:NN3") ;
-     fprintf(fp," 2s:NN1 2s:NN2 2s:NN3") ;
-     fprintf(fp," bs:NN1 bs:NN2 bs:NN3") ; fprintf(fp,"\n") ;
+     if( do_athr_sum > 1 ){
+       fprintf(fp," 2s:NN1 2s:NN2 2s:NN3") ;
+       fprintf(fp," bs:NN1 bs:NN2 bs:NN3") ;
+     }
+     fprintf(fp,"\n") ;
      for( iathr=iathr_bot ; iathr <= iathr_top ; iathr++ ){
        fprintf(fp," %.4f ",athr[iathr]) ;
        fprintf(fp," %.4f %.4f %.4f",
                       rfa_1sid_NN1[iathr-iathr_bot],
                       rfa_1sid_NN2[iathr-iathr_bot], rfa_1sid_NN3[iathr-iathr_bot]) ;
-       fprintf(fp," %.4f %.4f %.4f",
-                      rfa_2sid_NN1[iathr-iathr_bot],
-                      rfa_2sid_NN2[iathr-iathr_bot], rfa_2sid_NN3[iathr-iathr_bot]) ;
-       fprintf(fp," %.4f %.4f %.4f",
-                      rfa_bsid_NN1[iathr-iathr_bot],
-                      rfa_bsid_NN2[iathr-iathr_bot], rfa_bsid_NN3[iathr-iathr_bot]) ;
+       if( do_athr_sum > 1 ){
+        fprintf(fp," %.4f %.4f %.4f",
+                       rfa_2sid_NN1[iathr-iathr_bot],
+                       rfa_2sid_NN2[iathr-iathr_bot], rfa_2sid_NN3[iathr-iathr_bot]) ;
+        fprintf(fp," %.4f %.4f %.4f",
+                       rfa_bsid_NN1[iathr-iathr_bot],
+                       rfa_bsid_NN2[iathr-iathr_bot], rfa_bsid_NN3[iathr-iathr_bot]) ;
+       }
        fprintf(fp,"\n") ;
      }
      fclose(fp) ;
