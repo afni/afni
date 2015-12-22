@@ -2542,20 +2542,29 @@ MPROBE ;
    } /* end of loop over mmm == sidedness */
 
    if( do_athr_sum ){
-     int iathr , iathr_bot=0 , iathr_top=nathr-1 ;
+     int iathr , iathr_bot=0 , iathr_top=nathr-1 ; FILE *fp ; char fname[256] ;
      thresh_summer_athr(iathr_bot,iathr_top,athr_sum_bot,athr_sum_top) ;
+     sprintf(fname,"%s.sumup.1D",(prefix!=NULL)?prefix:"ClustSim") ;
+     fp = fopen(fname,"w") ;
+     fprintf(fp,"# 3dClustSim -sumup results\n") ;
+     fprintf(fp,"# alpha ") ;
+     fprintf(fp," 1s:NN1 1s:NN2 1s:NN3") ;
+     fprintf(fp," 2s:NN1 2s:NN2 2s:NN3") ;
+     fprintf(fp," bs:NN1 bs:NN2 bs:NN3") ; fprintf(fp,"\n") ;
      for( iathr=iathr_bot ; iathr <= iathr_top ; iathr++ ){
-       INFO_message("integrated rates for athr=%g",athr[iathr]) ;
-       ININFO_message("  1sid: NN1=%.3f  NN2=%.3f  NN3=%.3f",
+       fprintf(fp," %.4f ",athr[iathr]) ;
+       fprintf(fp," %.4f %.4f %.4f",
                       rfa_1sid_NN1[iathr-iathr_bot],
                       rfa_1sid_NN2[iathr-iathr_bot], rfa_1sid_NN3[iathr-iathr_bot]) ;
-       ININFO_message("  2sid: NN1=%.3f  NN2=%.3f  NN3=%.3f",
+       fprintf(fp," %.4f %.4f %.4f",
                       rfa_2sid_NN1[iathr-iathr_bot],
                       rfa_2sid_NN2[iathr-iathr_bot], rfa_2sid_NN3[iathr-iathr_bot]) ;
-       ININFO_message("  bsid: NN1=%.3f  NN2=%.3f  NN3=%.3f",
+       fprintf(fp," %.4f %.4f %.4f",
                       rfa_bsid_NN1[iathr-iathr_bot],
                       rfa_bsid_NN2[iathr-iathr_bot], rfa_bsid_NN3[iathr-iathr_bot]) ;
+       fprintf(fp,"\n") ;
      }
+     fclose(fp) ;
    }
 
    destroy_shave() ;
