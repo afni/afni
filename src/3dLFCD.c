@@ -103,9 +103,8 @@ afni/src/3dLFCD.c
         }
 
 
-/* CC define nodes for histogram data structure
-   that we will use for sparsity thresholding */
-// Alias _hist_node declaration type as "hist_node" type via typedef
+/* CC define nodes for list that will be used
+   for region growing */
 typedef struct _list_node list_node;
 
 // Define list node structure
@@ -120,7 +119,7 @@ struct _list_node
 };
 
 
-/* free the list of hist_nodes */
+/* free the list of list_nodes */
 #define FREE_LIST( list ) \
 { \
     list_node *pptr; \
@@ -301,7 +300,7 @@ int main( int argc , char *argv[] )
     THD_3dim_dataset *mset = NULL ;
     int nopt=1 , method=PEARSON , do_autoclip=0 ;
     int nvox , nvals , ii, polort=1 ;
-    char *prefix = "degree_centrality" ;
+    char *prefix = "LFCD" ;
     byte *mask=NULL;
     int   nmask , abuc=1 ;
     char str[32] , *cpt = NULL;
@@ -347,11 +346,10 @@ int main( int argc , char *argv[] )
 "      1. Calculating the correlation between voxel time series for\n"
 "         every pair of voxels in the brain (as determined by masking)\n"
 "      2. Applying a threshold to the resulting correlations to exclude\n"
-"         those that might have arisen by chance, or to sparsify the\n"
-"         connectivity graph.\n"
+"         those that might have arisen by chance\n"
 "      3. Find the cluster of above-threshold voxels that are spatially\n"
-"         adjacent to the target voxel."
-"      4. Count the number of voxels in the local cluster."
+"         adjacent to the target voxel.\n"
+"      4. Count the number of voxels in the local cluster.\n"
 "   Practically the algorithm is ordered differently to optimize for\n"
 "   computational time and memory usage.\n\n"
 "\n"
@@ -386,8 +384,8 @@ int main( int argc , char *argv[] )
 "               to using -autoclip or -automask.\n"
 "\n"
 "  -prefix p = Save output into dataset with prefix 'p', this file will\n"
-"               contain bricks for both 'weighted' or 'degree' centrality\n"
-"               [default prefix is 'deg_centrality'].\n"
+"               contain bricks for both 'weighted' and 'binarized' lFCD\n"
+"               [default prefix is 'LFCD'].\n"
 "\n"
 "Notes:\n"
 " * The output dataset is a bucket type of floats.\n"
@@ -653,7 +651,7 @@ int main( int argc , char *argv[] )
 
     ININFO_message("creating output dataset in memory") ;
 
-    /* -- Configure the subbriks: Binary Degree Centrality */
+    /* -- Configure the subbriks: Binary LFCD */
     subbrik = 0;
     EDIT_BRICK_TO_NOSTAT(cset,subbrik) ;                     /* stat params  */
     /* CC this sets the subbrik scaling factor, which we will probably want
@@ -668,7 +666,7 @@ int main( int argc , char *argv[] )
     /* copy measure data into the subbrik */
     bodset = DSET_ARRAY(cset,subbrik);
  
-    /* -- Configure the subbriks: Weighted Degree Centrality */
+    /* -- Configure the subbriks: Weighted LFCD */
     subbrik = 1;
     EDIT_BRICK_TO_NOSTAT(cset,subbrik) ;                     /* stat params  */
     /* CC this sets the subbrik scaling factor, which we will probably want
