@@ -161,6 +161,12 @@ static float **clust_thresh_bsid_NN3 = NULL ;
 static int do_athr_sum = 0 ; /* 18 Dec 2015 */
 static int athr_sum_bot=-1 , athr_sum_top=-1 ;
 
+/* max_table_1sid[nnn][ipthr][cc] is the count
+   of how often the maximum cluster had exact size cc voxels
+   (out of niter trials), at the pthr[ipthr] voxel-wise threshold p-value,
+   for the nnn-th NN level (1-3), for 1-sided voxel-wise thresholding.
+   Mutatis mutandis for max_table_2sid and max_table_bsid (bi-sided threshold) */
+
 static int **max_table_1sid[4] , **max_table_2sid[4] , **max_table_bsid[4] ;
 
 #define SHAVE_MALLOC 1
