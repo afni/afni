@@ -203,8 +203,18 @@ float zm_THD_pearson_corr( int n, float *x , float *y ) /* inputs are */
    return xy ;
 }
 
+double cc_pearson_corr( long n, float *x, float*y )
+{
+    int ii;
+    double xy = (double)0.0;
+    for(ii=0; ii<n; ii++)
+    {
+        xy+=x[ii]*y[ii];
+    }
+    return( (double)1.0/((double)(n-1))*xy );
+}
 
-double* calc_wink_power(MRI_vectim *xvectim, double xv_scale, double eps, long max_iter)
+double* calc_fecm_power(MRI_vectim *xvectim, double shift, double scale, double eps, long max_iter)
 {
     /* CC - we need a few arrays for calculating the power method */
     double* v_prev = NULL;
@@ -311,11 +321,11 @@ double* calc_wink_power(MRI_vectim *xvectim, double xv_scale, double eps, long m
             /* get ref time series from this voxel */
             xsar = VECTIM_PTR(xvectim,lout) ;
 
-            v_new[lout] = (xv_scale)*v_prev_sum ;
+            v_new[lout] = scale*shift*v_prev_sum ;
             
             for( lin=0; lin<xvectim->nvals; lin++ )
             {
-                v_new[lout] +=  (xv_scale)*xv_int[lin]*xsar[lin];
+                v_new[lout] +=  scale*xv_int[lin]*xsar[lin];
             }
         }
 
@@ -398,7 +408,7 @@ double* calc_wink_power(MRI_vectim *xvectim, double xv_scale, double eps, long m
     return(v_prev);
 }
 
-double* calc_lohmann_power(MRI_vectim *xvectim, double xv_scale, double eps, long max_iter)
+double* calc_full_power(MRI_vectim *xvectim, double thresh, double shift, double scale, double eps, long max_iter)
 {
     /* CC - we need a few arrays for calculating the power method */
     double* v_prev = NULL;
@@ -406,8 +416,6 @@ double* calc_lohmann_power(MRI_vectim *xvectim, double xv_scale, double eps, lon
     double* v_temp = NULL;
     double  v_err = 0.0;
     long    power_it;
-    float*  xsar=NULL;
-    float*  ysar=NULL;
     double  v_new_sum_sq = 0.0;
     double  v_new_norm = 0.0;
     double  v_prev_sum_sq = 0.0;
@@ -470,6 +478,8 @@ double* calc_lohmann_power(MRI_vectim *xvectim, double xv_scale, double eps, lon
 
             int lout,lin,ithr,nthr,vstep,vii ;
             double car = 0.0; 
+            float *xsar = NULL;
+            float *ysar = NULL;
 
             /*-- get information about who we are --*/
 #ifdef USE_OMP
@@ -497,13 +507,15 @@ double* calc_lohmann_power(MRI_vectim *xvectim, double xv_scale, double eps, lon
                 for( lin=(lout+1); lin<xvectim->nvec; lin++ )
                 {
                     ysar = VECTIM_PTR(xvectim,lin) ;
-                    car = xv_scale*(1.0+
-                        (double)zm_THD_pearson_corr(xvectim->nvals,xsar,ysar));
+                    car = (double)cc_pearson_corr(xvectim->nvals,xsar,ysar);
 
-#pragma omp critical(dataupdate)
+                    if( car >= thresh )
                     {
-                        v_new[lout] += car * v_prev[lin];
-                        v_new[lin] += car * v_prev[lout];
+#pragma omp critical(dataupdate)
+                        {
+                            v_new[lout] += scale*(car+shift)*v_prev[lin];
+                            v_new[lin] += scale*(car+shift)*v_prev[lout];
+                        }
                     }
                 }
             } /* for lout */
@@ -655,10 +667,12 @@ int main( int argc , char *argv[] )
     MRI_vectim *xvectim = NULL ;
 
     /* CC - flags that control options */
-    static const char* method_strings [] = {"Wink","Lohmann"};
-    enum power_methods { WINK=0, LOHMANN };
-    enum power_methods pow_method = WINK;
-    double  xv_scale = 0.5;
+    static const char* method_strings [] = {"FECM","Full"};
+    enum power_methods { FECM=0, FULL };
+    enum power_methods pow_method = FECM;
+    double  scale = 0.5;
+    double  shift = 1.0;
+    double  thresh = -1.2;
 
     /* CC - iteration stopping criteria */
     long max_iter = 1000;
@@ -709,13 +723,20 @@ int main( int argc , char *argv[] )
 "      doi:10.1089/brain.2012.0087\n\n"
 "\n"
 "Options:\n"
-"  -lohmann    = 1 is added to correlation coefficients to force then\n"
-"                to be positive (Lohmann et. al. 2010).\n"
-"  -wink       = 1 is added to correlation coefficients and the\n"
-"                resulting sum is divided by 2. This is equivalent to\n"
-"                to using Euclidean distance that is transformed so\n"
-"                that it measures similarity rather than distances.\n"
-"                (Wink et. al. 2012). [default]\n"
+"  -full       = uses the full power method (Lohmann et. al. 2010).\n"
+"  -FECM       = uses a shortcut that substantially speeds up \n"
+"                computation, but is less flexibile in what can be\n"
+"                done the similarity matrix. i.e. does not allow \n"
+"                thresholding correlation coefficients. based on \n" 
+"                fast eigenvector centrality mapping (Wink et. al\n"
+"                2012). [default]\n"
+"  -thresh r   = exclude connections with correlation < r. only works\n"
+"                for full power iteration\n"
+"  -shift s    = value that should be added to correlation coeffs to\n"
+"                enforce non-negativity, s >= 0 (default = 1.0).\n"
+"  -scale x    = value that correlation coeffs should be multplied by\n"
+"                after shifting, x >= 0 (default = 0.5) (e.g. Wink et\n"
+"                al 2012).\n"
 "  -eps p      = sets the stopping criterion for the power iteration\n"
 "                l2|v_old - v_new| < eps*|v_old|. default = .1 (10%%)\n"
 "  -max_iter i = sets the maximum number of iterations to use in\n"
@@ -757,8 +778,10 @@ int main( int argc , char *argv[] )
    AFNI_logger("3dECM",argc,argv);
 
    /* CC - set the default for ECM methods */
-   pow_method = WINK;
-   xv_scale = 0.5;
+   pow_method = FECM;
+   scale = 0.5;
+   shift = 1.0;
+   thresh = -1.2;
 
    /*-- option processing --*/
 
@@ -781,13 +804,13 @@ int main( int argc , char *argv[] )
          nopt++ ; continue ;
       }
 
-      if( strcmp(argv[nopt],"-lohmann") == 0 ){
-         pow_method = LOHMANN; xv_scale=1.0;
+      if( strcmp(argv[nopt],"-full") == 0 ){
+         pow_method = FULL; 
          nopt++ ; continue ;
       }
 
-      if( strcmp(argv[nopt],"-wink") == 0 ){
-         pow_method = WINK; xv_scale=0.5;
+      if( strcmp(argv[nopt],"-FECM") == 0 ){
+         pow_method = FECM;
          nopt++ ; continue ;
       }
 
@@ -802,9 +825,33 @@ int main( int argc , char *argv[] )
       if( strcmp(argv[nopt],"-eps") == 0 ){
          double val = (double)strtod(argv[++nopt],&cpt) ;
          if( *cpt != '\0' || val < 0 || val > 1 ){
-            ERROR_EXIT_CC("Illegal value after -wps!") ;
+            ERROR_EXIT_CC("Illegal value after -eps!") ;
          }
          eps = val ; nopt++ ; continue ;
+      }
+
+      if( strcmp(argv[nopt],"-thresh") == 0 ){
+         double val = (double)strtod(argv[++nopt],&cpt) ;
+         if( *cpt != '\0' || val < -1.1 || val > 1 ){
+            ERROR_EXIT_CC("Illegal value after -thresh!") ;
+         }
+         thresh = val ; nopt++ ; continue ;
+      }
+
+      if( strcmp(argv[nopt],"-scale") == 0 ){
+         double val = (double)strtod(argv[++nopt],&cpt) ;
+         if( *cpt != '\0' || val < 0 ){
+            ERROR_EXIT_CC("Illegal value after -scale!") ;
+         }
+         scale = val ; nopt++ ; continue ;
+      }
+
+      if( strcmp(argv[nopt],"-shift") == 0 ){
+         double val = (double)strtod(argv[++nopt],&cpt) ;
+         if( *cpt != '\0' || val < 0 ){
+            ERROR_EXIT_CC("Illegal value after -shift!") ;
+         }
+         shift = val ; nopt++ ; continue ;
       }
 
       if( strcmp(argv[nopt],"-prefix") == 0 ){
@@ -940,20 +987,26 @@ int main( int argc , char *argv[] )
           have zero variance -- */
     THD_vectim_normalize(xvectim) ;  /* L2 norm = 1 */
 
-   
+    if (( pow_method == FECM ) && ( thresh > -1.2 ))
+    {
+        WARNING_message( "Cannot use a thresh with FECM, changing to full power iteration\n");
+        pow_method = FULL;
+    }
+
     /* update the user so that they know what we are up to */
     /* -- CC tell the user what we are up to */
-    INFO_message( "Calculating ECM with %s method (%d, %3.3f)\n",
-        method_strings[pow_method], max_iter, eps );
+    INFO_message( "Calculating ECM with %s method (thresh=%3.3f,\n"
+        "  scale=%3.3f, shift=%3.3f, max_iter=%d, eps=%3.3f)\n",
+        method_strings[pow_method], thresh, scale, shift, max_iter, eps );
 
     /* calculate the eigenvector */
-    if ( pow_method == WINK )
+    if ( pow_method == FECM )
     {
-        eigen_vec=calc_wink_power(xvectim, xv_scale, eps, max_iter);
+        eigen_vec=calc_fecm_power(xvectim, shift, scale, eps, max_iter);
     }
     else
     {
-        eigen_vec=calc_lohmann_power(xvectim, xv_scale, eps, max_iter);
+        eigen_vec=calc_full_power(xvectim, thresh, shift, scale, eps, max_iter);
     }
  
     /*-- create output dataset --*/
