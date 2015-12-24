@@ -800,6 +800,10 @@ nsize:nsize.o
 	$(RM) $@
 	$(CC) -o nsize nsize.o $(LFLAGS) $(LLIBS)
 
+3dETC:3dETC.o
+	$(RM) $@
+	$(CC) -o 3dETC 3dETC.o $(LFLAGS) $(LLIBS)
+
 3dclust:3dclust.o parser.o parser_int.o
 	$(RM) $@
 	$(CC) -o 3dclust 3dclust.o parser.o parser_int.o \
