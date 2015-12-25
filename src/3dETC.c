@@ -1,5 +1,10 @@
 #include "mrilib.h"
 
+/* CATIE = Clustering Across Threshold Intervals Equitably */
+/* ETC   = Equitable Threshold Clustering */
+/* CWET  = Clustering With Equitable Thresholding */
+/* TICS  = Threshold Interal Cluster Significance */
+
 MRI_IMAGE * mri_multi_threshold_clusterize(
               MRI_IMAGE *bim , MRI_IMAGE *tim ,
               int nnlev , int thr_signed ,
