@@ -74,9 +74,13 @@ ENTRY("mri_multi_threshold_clusterize") ;
 int main( int argc , char *argv[] )
 {
    THD_3dim_dataset *dset=NULL , *oset=NULL ;
-   MRI_IMAGE *thim=NULL ; float *thar ; int nthar ;
+   MRI_IMAGE *thim=NULL ; float *thar ; int nthar ; byte *mask=NULL ;
+   MRI_IMAGE *datim=NULL, *thrim=NULL ;
    int iarg , dind=0 , tind=1 , ith ;
+   int scode ; float *spar=NULL ;
    char *prefix = "ETC.nii" ;
+
+   /*-- some pitiful help --*/
 
    if( argc < 2 || strcasecmp(argv[1],"-help") == 0 ){
      printf("\n"
@@ -89,6 +93,7 @@ int main( int argc , char *argv[] )
       " -thresh ttt  = 1D file with\n"
       "                 column #1 = p-value\n"
       "                 column #2 = cluster threshold\n"
+      " -mask   mmm  = dataset with mask\n"
       " -1dindex ii  = output comes from sub-brick #ii\n"
       " -1tindex jj  = threshold on sub-brick #jj\n"
       "\n"
@@ -96,6 +101,8 @@ int main( int argc , char *argv[] )
      ) ;
      exit(0) ;
    }
+
+   /*-- scan options --*/
 
    iarg = 1 ;
    while( iarg < argc && argv[iarg][0] == '-' ){
@@ -107,10 +114,28 @@ int main( int argc , char *argv[] )
          ERROR_exit("Option '%s' needs an argument to follow!",argv[iarg-1]) ;
        dset = THD_open_dataset( argv[iarg] ) ;
        CHECK_OPEN_ERROR(dset,argv[iarg]) ;
-       DSET_load(dset) ;
-       CHECK_LOAD_ERROR(dset) ;
+       DSET_load(dset) ; CHECK_LOAD_ERROR(dset) ;
        iarg++ ; continue ;
      }
+
+     if( strcmp(argv[nopt],"-mask") == 0 ){
+       bytevec *bvec ;
+       if( mask != NULL )
+         ERROR_exit("Can't use '-mask' twice!") ;
+       if( ++iarg >= argc )
+         ERROR_exit("Need argument after '%s'",argv[iarg-1]) ;
+       bvec = THD_create_mask_from_string(argv[iarg]) ;
+       if( bvec == NULL )
+         ERROR_exit("Can't create mask from '-mask' option") ;
+       mask = bvec->ar ; nmask = bvec->nar ;
+       nmask_hits = THD_countmask( nmask , mask ) ;
+       if( nmask_hits > 0 )
+         INFO_message("%d voxels in -mask dataset",nmask_hits) ;
+       else
+         ERROR_exit("no nonzero voxels in -mask dataset") ;
+       nopt++ ; continue ;
+     }
+
 
      if( strcasecmp(argv[iarg],"-prefix") == 0 ){
        if( ++iarg >= argc )
@@ -170,6 +195,50 @@ int main( int argc , char *argv[] )
 
      ERROR_exit("Unknown option '%s' :-(",argv[iarg] ) ; exit(1) ;
    }
+
+   /*-- did we get the input dataset yet? --*/
+
+   if( dset == NULL ){
+     if( iarg > = argc ) ERROR_exit("no input dataset?!") ;
+     dset = THD_open_dataset( argv[iarg] ) ;
+     CHECK_OPEN_ERROR(dset,argv[iarg]) ;
+     DSET_load(dset) ; CHECK_LOAD_ERROR(dset) ;
+     iarg++ ;
+   }
+
+   /*-- check things --*/
+
+   if( mset != NULL ){
+     if( DSET_NX(mset) != DSET_NX(dset) ||
+         DSET_NY(mset) != DSET_NY(dset) || DSET_NZ(mset) != DSET_NZ(dset) )
+       ERROR_exit("mask and input datasets don't match in x,y,z grid sizes") ;
+     if( ! EQUIV_GRIDS(mset,dset) )
+       WARNING_message("mask and input datasets don't have same x,y,z coordinate system") ;
+   }
+
+   if( thim == NULL ) ERROR_exit("no -thresh option was given!?") ;
+
+   if( dind >= DSET_NVALS(dset) )
+     ERROR_exit("data index %d is beyond end of input dataset!",dind) ;
+   if( tind >= DSET_NVALS(dset) )
+     ERROR_exit("threshold index %d is beyond end of input dataset!",tind) ;
+
+   /*-- record things for posterity, et cetera --*/
+
+   mainENTRY("3dETC main"); machdep(); AFNI_logger("3dETC",argc,argv);
+   PRINT_VERSION("3dETC") ; AUTHOR("Bob the Equable") ;
+
+   /*-- get the data and threshold volumes --*/
+
+   datim = THD_extract_float_brick( dind , dset ) ;
+   thrim = THD_extract_float_brick( tind , dset ) ;
+   if( datim == NULL || thrim == NULL )  /* should be impossible */
+     ERROR_exit("Can't get data and/or thresh data from input dataset???") ;
+
+   scode = DSET_BRICK_STATCODE(dset,tind) ;
+   if( scode < 0 )
+     ERROR_exit("thresh sub-brick index %d is NOT a statistical volume!?",tind) ;
+   spar = DSET_BRICK_STATAUX(dset,tind) ;
 
    exit(0) ;
 }
