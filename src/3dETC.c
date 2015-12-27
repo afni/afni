@@ -6,9 +6,11 @@
 /* TICS  = Threshold Interal Cluster Significance */
 
 MRI_IMAGE * mri_multi_threshold_clusterize(
-              MRI_IMAGE *bim , MRI_IMAGE *tim ,
-              int nnlev , int thr_signed ,
-              int nthresh , float *thr , float *cthr , byte *mask )
+              MRI_IMAGE *bim ,
+              int statcode , float *statpar , MRI_IMAGE *tim ,
+              byte *mask ,
+              int nthresh , float *thr , float *cthr ,
+              int nnlev , int thr_signed              )
 {
    int nx,ny,nz , ith,iclu,ptmin ; float rmm ; size_t ndar ;
    MRI_IMAGE *cim ; float *car ;
