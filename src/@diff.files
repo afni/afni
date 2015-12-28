@@ -134,15 +134,14 @@ endif
 # check for diffs
 set count = 0
 foreach file ( $files )
-    if ( $showdiffs ) then
-        echo --------------------- $file --------------------- 
-        diff $file $odir/$file
-        set result = $status
-    else
-        diff $file $odir/$file >& /dev/null
-        set result = $status
-    endif
+    cmp -s $file $odir/$file
+    set result = $status
     if ( $result ) then
+        if ( $showdiffs ) then
+            echo --------------------- $file --------------------- 
+            diff $file $odir/$file
+        endif
+
         if ( $longlist ) then
            ls -l $file $odir/$file
            echo ""
