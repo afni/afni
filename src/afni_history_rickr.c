@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 28,  Dec, 2015, RCR, "@diff_files", MICRO, TYPE_ENHANCE,
+   "allow diffs to include existence of directories",
+   NULL
+ } ,
+
  {  7,  Dec, 2015, RCR, "MatAFNI_Demo.m", MICRO, TYPE_BUG_FIX,
    "merge fix from J. Pfannmoller",
    "Done with G Chen."

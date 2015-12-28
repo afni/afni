@@ -69,48 +69,53 @@ if ( ! -d $odir ) then
 endif
 
 # see if all of the files exist
-set errs = 0
+set missA = 0
+set missB = 0
 foreach file ( $files )
-    if ( ! -f $file ) then
+    if ( ! -e $file ) then
         echo missing A: $file
-        @ errs ++
+        @ missA ++
     endif
 end
 foreach file ( $files )
-    if ( ! -f $odir/$file ) then
+    if ( ! -e $odir/$file ) then
         echo missing B: $odir/$file
-        @ errs ++
+        @ missB ++
     endif
 end
-if ( $errs ) then
+
+if ( $missA || $missB ) then
    if ( $exit_on_missing ) exit
 
    # ls missing files
-   echo "==== missing files ===="
    if ( $list_missing ) then
+      echo "==== missing files ($missA and $missB) ===="
       foreach file ( $files )
-          if ( -f $file && ! -f $odir/$file ) then
-              ls -l $file
+          if ( -e $file && ! -e $odir/$file ) then
+              ls -ld $file
           endif
       end
       foreach file ( $files )
-          if ( ! -f $file && -f $odir/$file ) then
-              ls -l $odir/$file
+          if ( ! -e $file && -e $odir/$file ) then
+              ls -ld $odir/$file
           endif
       end
    endif
 
    echo ""
 
-   set newfiles = ()
-   foreach file ( $files )
-       if ( -f $file && -f $odir/$file ) then
-           set newfiles = ( $newfiles $file )
-       endif
-   end
-   
-   set files = ( $newfiles )
 endif
+
+# remove directories and missing files
+set newfiles = ()
+foreach file ( $files )
+    if ( -f $file && -f $odir/$file ) then
+        set newfiles = ( $newfiles $file )
+    endif
+end
+
+set files = ( $newfiles )
+
 
 # prepare diffs directory
 if ( $savediffs ) then
