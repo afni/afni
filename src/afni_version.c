@@ -9,7 +9,6 @@
 
 static int disabled = 0 ;
 
-#define VERSION_URL "http://afni.nimh.nih.gov/pub/dist/AFNI.version"
 #define STR_CHILD   "tcp:localhost:20279"
 #define AFNI_HOST   "http://afni.nimh.nih.gov/pub/dist/"
 #define VSIZE       1024
@@ -52,7 +51,7 @@ static void vc_exit(void){ iochan_close(vc_ioc) ; }  /* 12 Dec 2002 */
 
 void AFNI_start_version_check(void)
 {
-   AFNI_start_fetching_url( VERSION_URL ) ;
+   AFNI_start_fetching_url( AFNI_VERSION_URL ) ;
    return ;
 }
 
@@ -590,7 +589,7 @@ ENTRY("AFNI_display_motd") ;
 
    if( GLOBAL_motd == NULL || *GLOBAL_motd == '\0' ){ /* fetch motd name */
      char *vbuf=NULL , *vvbuf ;                       /* from AFNI server */
-     nbuf = read_URL( VERSION_URL , &vbuf ) ;
+     nbuf = read_URL( AFNI_VERSION_URL , &vbuf ) ;
      if( nbuf <= 0 || vbuf == NULL ){ MOTD_fails; EXRETURN; }
      vvbuf = strstr(vbuf,"motd=") ;
      if( vvbuf == NULL ){ free(vbuf); MOTD_fails; EXRETURN; }

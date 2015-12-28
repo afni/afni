@@ -58,6 +58,7 @@
 #endif
 /*------------------------------------------------------*/
 
+#if 0  /* ANNOUNCEMENT IS NOT USED  28 Dec 2015 [rickr] */
 #ifdef SHSTRING
 
 #define ANNOUNCEMENT                                                           \
@@ -102,6 +103,7 @@
  "    Macro to Nano 2, 1510-1513, 2004.\n\n"
 
 #endif /* SHSTRING */
+#endif /* if 0 - for SHSTRING and ANNOUNCEMENT */
 
 /*------------------------------------------------------*/
 
@@ -2900,14 +2902,15 @@ ENTRY("AFNI_startup_timeout_CB") ;
 
    vv = AFNI_compile_date_check() ;  /* 17 Jun 2014 */
    if( vv >= 93 ){
+     /* fixed %31 to /31   28 Dec 2015 [rickr] */
      WARNING_message(
        "Your copy of AFNI is over %d months old -- please update it (if practicable)." ,
-       vv % 31 ) ;
+       vv / 31 ) ;
      if( im3d->vwid->tips_pb != NULL ){
        char msg[1024] ;
        sprintf( msg, " \n"
                      " Your copy of AFNI is over %d months old.\n"
-                     "   Please update it (if practicable).\n "  , vv % 31 ) ;
+                     "   Please update it (if practicable).\n "  , vv / 31 ) ;
        (void) MCW_popup_message( im3d->vwid->tips_pb , msg ,
                                  MCW_USER_KILL | MCW_TIMER_KILL ) ;
      }
