@@ -489,6 +489,7 @@ typedef struct {
   Widget *clu_plot_pb ;
   Widget *clu_save_pb ;
   Widget *clu_flsh_pb ;
+  Widget *clu_writ_pb ;   /* 08 Dec 2015 */
   Widget *clu_alph_lab ;
 
   THD_3dim_dataset *auxdset[MAX_CLU_AUXDSET] ;  /* selected from auxdset_pb */

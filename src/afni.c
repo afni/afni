@@ -1262,7 +1262,7 @@ static char *FALLback[] =
       "AFNI*font8*fontList:        8x13bold=charset1"    , /* smaller fonts */
       "AFNI*font7*fontList:        7x13=charset1"        ,  /* for various */
       "AFNI*font6*fontList:        6x10=charset1"        ,  /* usages */
-      "AFNI*background:            gray21"               , /* background clr */
+      "AFNI*background:            gray28"               , /* background clr */
       "AFNI*menu*background:       gray4"                , /* bkgd in menus */
       "AFNI*menu*foreground:       #ffdd22"              , /* menu text color */
       "AFNI*borderColor:           gray19"               , /* same as bkgd! */
@@ -1276,8 +1276,16 @@ static char *FALLback[] =
       "AFNI*help*waitPeriod:       1066"                 ,
       "AFNI*help*fontList:         9x15bold=charset1"    ,
       "AFNI*cluefont:              9x15bold"             , /* for popup */
-      "AFNI*bigtext*fontList:      10x20=charset1"       ,  /* hints */
+      "AFNI*bigtext*fontList:      10x20=charset1"       , /* hints */
       "AFNI*help*cancelWaitPeriod: 333"                  ,
+#if 0
+      "AFNI*clustA*fontList:       9x15bold=charset1"    , /* for Clusterize */
+      "AFNI*clustB*fontList:       9x15bold=charset1"    ,
+      "AFNI*clustA*background:     gray28"               ,
+      "AFNI*clustB*background:     gray1"                ,
+      "AFNI*clustA*foreground:     yellow"               ,
+      "AFNI*clustB*foreground:     white"                ,
+#endif
 
       "AFNI*XmList.translations: #augment"                /* 24 Feb 2007 */
            "<Btn4Down>: ListPrevItem()\\n"                /* for scrollwheel */
@@ -1472,6 +1480,13 @@ void AFNI_sigfunc_alrm(int sig)
      "Go to Heaven for the climate, Hell for the company"            ,
      "Am I the crazy one, or is it everyone else on Earth?"          ,
      "Everyone's crazy but you and me (and I'm not sure about you)"  ,
+     "We live in crazy times"                                        ,
+     "There are no facts, only interpretations (at p < 0.05 level)"  ,
+     "The best weapon against an enemy is another enemy"             ,
+     "Paris is always a good idea"                                   ,
+     "A good decision is based on knowledge, not on numbers"         ,
+     "If you can't get good results, at least make them LOOK good"   ,
+     "If everyone is thinking alike, then somebody isn't thinking"   ,
      "Be sure to put your feet in the right place, then stand firm"  ,
      "May your cupcakes always have lots of rich creamy frosting"    ,
      "Never take a chocolate cupcake from an eel"                    ,
@@ -1482,11 +1497,13 @@ void AFNI_sigfunc_alrm(int sig)
      "Let's blow this place and grab us some vino"                   ,
      "Let's blow this place and grab some brewskis"                  ,
      "Are you ready for a coffee break? I am"                        ,
+     "I'd like a strong cup of Lapsang Souchong about now"           ,
      "Make mine a tall skinny Earl Grey vanilla latte, if you please",
      "What's your favorite ice cream? I like French vanilla"         ,
-     "I'd like a strong cup of Lapsang Souchong about now"           ,
      "What's your favorite kind of bagel? I like pumpernickel"       ,
      "What's your favorite kind of cookie? I like white chocolate"   ,
+     "What's your favorite kind of cake? I like chocolate"           ,
+     "Do you like chardonnay? I do"                                  ,
      "Step slowly away from the keyboard, and remain calm"           ,
      "Put your computer's mouse down slowly, and breathe deeply"     ,
      "Time for a nice walk, don't you think?"                        ,
@@ -1532,6 +1549,17 @@ void AFNI_sigfunc_alrm(int sig)
      "Remember -- He who laughs, lasts"                              ,
      "Remember -- The innocent have everything to fear"              ,
      "Remember -- Memory is long but time is tricky"                 ,
+     "Remember -- Men are always willing to believe what they wish"  ,
+     "Think of all the beauty around you, and be happy"              ,
+     "Experience is a hard teacher, but fools will have no other"    ,
+     "By failing to prepare, you are preparing to fail"              ,
+     "We are all born ignorant, but must work hard to remain stupid" ,
+     "Whatever is begun in anger ends in shame"                      ,
+     "Life's tragedy is that we get old too soon and wise too late"  ,
+     "I didn't fail the test, I just found 100 ways to do it wrong"  ,
+     "Wise men don't need advice; fools won't take it"               ,
+     "Half a truth is often a great lie"                             ,
+     "If I can find the man calling me ruthless, I'll destroy him"   ,
      "'It remains to be seen' == 'When pigs fly'"                    ,
      "Do not scorn pity that is the gift of a gentle heart"          ,
      "The best laid statistics of mice and men gang aft agley"       ,
@@ -1617,7 +1645,9 @@ void AFNI_sigfunc_alrm(int sig)
      "There's never enough time to do all the nothing you want"      ,
      "When life gives you lemons, throw them right back at it"       ,
      "Happiness isn't good enough for me; I demand euphoria"         ,
+     "Judge a person by her questions, rather than her answers"      ,
 
+     "Some ideas are so wrong that only an intelligent person could believe them"     ,
      "Life's a lot more fun when you aren't responsible for your actions"             ,
      "I'm not dumb. I just have command of thoroughly useless algorithms"             ,
      "A software's reach should exceed its CPU, or what's a supercomputer for?"       ,

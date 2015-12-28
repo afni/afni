@@ -496,9 +496,13 @@ g_history = """
     4.54 Sep 24, 2015: allow 3dD to proceed with only extra_stim_files
     4.55 Oct 26, 2015: avoid censored TRs in TSNR computation
     4.56 Oct 28, 2015: output anat/epi mask Dice coef, rather than corr
+    4.57 Dec 07, 2015: 
+        - modified Example 11 to use FT_SurfVol.nii as the anat, not FT.nii
+          (FT.nii was not perfectly aligned with parcellation)
+        - added FREESURFER NOTE
 """
 
-g_version = "version 4.56, October 28, 2015"
+g_version = "version 4.57, December 7, 2015"
 
 # version of AFNI required for script execution
 # prev: g_requires_afni =  "1 Apr 2015" # 1d_tool.py uncensor from 1D
