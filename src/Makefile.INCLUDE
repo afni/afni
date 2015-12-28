@@ -83,7 +83,7 @@ PROGRAMS = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge count   
            nifti_tool 3dAllineate nifti1_test whereami plugout_drive 3dLSS      \
            3dMedianFilter 3dretroicor 3dAFNItoNIML 3dAFNItoRaw im2niml 3dedge3  \
            DTIStudioFibertoSegments Dimon1 Dimon 3dLocalstat 3danisosmooth      \
-           3dmaxima GLTsymtest 3dPval                                           \
+           3dmaxima GLTsymtest 3dPval stimband                                  \
            3dTwotoComplex 3dInvFMRI 3dmatcalc 3dAcost 3dLocalBistat 3dFWHMx     \
            3dBlurToFWHM 1dSEM 3dDFT 3dSynthesize 1dMarry 3dEmpty 3dsvm          \
            1dFlagMotion 3dTsort 1dTsort 3dTfitter afni_history 1dUpsample       \
@@ -135,7 +135,7 @@ PROGRAMS_NOPLUG = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge  
                   3dUnifize 3dNwarpCat 3dQwarp 3dLocalHistog 3dNwarpAdjust 3dTRfix  \
                   3dNwarpFuncs 3dTproject  afni_open   3dConformist 3dNwarpXYZ      \
                   3dToyProg nifti1_tool gifti_tool cifti_tool images_equal          \
-                  uniq_images                                                       \
+                  uniq_images stimband                                              \
                   $(EXTRAS)
 
 # For CYGWIN (look for "exe" to find various places below)
@@ -171,7 +171,7 @@ PROGRAMS_EXE = afni.exe to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge 
                3dTcorrMap 3dABoverlap 3dRank 3dFFT 3dTcorr1D 3dClustSim 3dTRfix   \
                3dRetinoPhase 3dMaskToASCII 3dttest++ 3dDTtoDWI niccc 3dXYZcat     \
                column_cat GLTsymtest nifti1_tool gifti_tool cifti_tool            \
-               images_equal uniq_images
+               images_equal uniq_images stimband
 
 SCRIPTS = @4Daverage @CommandGlobb @GetAfniOrient @DTI_studio_reposition          \
           @GetAfniPrefix @NoExt @UpdateAfni @RenamePanga @2dwarper                \
@@ -196,7 +196,7 @@ SCRIPTS = @4Daverage @CommandGlobb @GetAfniOrient @DTI_studio_reposition        
           @Install_TSrestMovieDemo @Install_AfniRetinoDemo                        \
           @Install_FATCAT_DEMO @Install_RSFMRI_Motion_Group_Demo                  \
           @Install_MEICA_Demo @T1scale 3dMVM @compute_gcor 3dLME                  \
-          @Install_ClustScat_Demo @Install_FATMVM_DEMO                            \
+          @Install_ClustScat_Demo @Install_FATMVM_DEMO @GradFlipTest              \
           @move.to.series.dirs @toMNI_Awarp @toMNI_Qwarpar @simulate_motion	    \
           @afni.run.me 3dRprogDemo @ExamineGenFeatDists rPkgsInstall 	         \
           @Install_DBSproc @Install_3dPFM_Demo 3dPFM @diff.files @diff.tree
@@ -800,6 +800,10 @@ nsize:nsize.o
 	$(RM) $@
 	$(CC) -o nsize nsize.o $(LFLAGS) $(LLIBS)
 
+3dETC:3dETC.o
+	$(RM) $@
+	$(CC) -o 3dETC 3dETC.o $(LFLAGS) $(LLIBS)
+
 3dclust:3dclust.o parser.o parser_int.o
 	$(RM) $@
 	$(CC) -o 3dclust 3dclust.o parser.o parser_int.o \
@@ -1216,6 +1220,14 @@ qwarpobj: $(QWARPOBJ)
 
 ## ------- Things to be compiled or linked with OpenMP -------
 
+qqqOMP.o: qqqOMP.c
+	$(RM) $@
+	$(CCOMP) -c qqqOMP.c $(INFLAGS)
+
+qqqOMP:qqqOMP.o
+	$(RM) $@
+	$(CCOMP) -o qqqOMP qqqOMP.o $(LFLAGS) $(LLIBS)
+
 3dFWHMx.o: 3dFWHMx.c mri_fwhm.c
 	$(RM) $@
 	$(CCOMP) -c 3dFWHMx.c $(INFLAGS)
@@ -1304,7 +1316,7 @@ AlphaSim:AlphaSim.o
 	$(RM) $@
 	$(CCOMP) -o AlphaSim AlphaSim.o $(LFLAGS) $(LLIBS)
 
-3dClustSim.o:3dClustSim.c zgaussian.c
+3dClustSim.o:3dClustSim.c zgaussian.c mri_radial_random_field.c
 	$(RM) $@
 	$(CCOMP) -c 3dClustSim.c $(INFLAGS)
 
@@ -1691,6 +1703,10 @@ qtest:thd_bstrap_corr.o
 abut:abut.o
 	$(RM) $@
 	$(CC) -o abut abut.o $(LFLAGS) $(LLIBS)
+
+stimband:stimband.o
+	$(RM) $@
+	$(CC) -o stimband stimband.o $(LFLAGS) $(LLIBS)
 
 siemens_vision:siemens_vision.o
 	$(RM) $@

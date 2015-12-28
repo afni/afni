@@ -43,7 +43,47 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 27 , NOV , 2015 , RWC , "3dFHWMx" , MICRO , TYPE_MODIFY ,
+  { 22 , DEC , 2015 , RWC , "3dvolreg" , MICRO , TYPE_MODIFY ,
+   "Make '-final linear' work, and put it in the help output." ,
+   "For Daniel Handwerker.  Don't say I never gave you a Christmas present!" } ,
+
+ { 17 , DEC , 2015 , RWC , "stimband" , MICRO , TYPE_NEW_PROG ,
+   "Computes freq band for stimuli extracted from .xmat.1D files" ,
+   "For use in scripting bandwidths for pre- and post-processing." } ,
+
+ { 10 , DEC , 2015 , RWC , "afni Clusterize" , MICRO , TYPE_ENHANCE ,
+   "Add 'large FDR q' warning to Clusterize report" ,
+   NULL } ,
+
+ { 9 , DEC , 2015 , RWC , "3dFWHMx" , MICRO , TYPE_ENHANCE ,
+   "Add the 'classic' Gaussian ACF to the '-acf' plot, for comparison." ,
+   NULL } ,
+
+ { 8 , DEC , 2015 , RWC , "afni Clusterize" , MINOR , TYPE_MODIFY ,
+   "Add Write button to save just one cluster to a dataset" ,
+   NULL } ,
+
+ { 8 , DEC , 2015 , RWC , "3dttest++" , MICRO , TYPE_MODIFY ,
+   "Allow constant value with -singletonA instead of a dataset" ,
+   "Allows user to test -setB against a nonzero constant." } ,
+
+ { 7 , DEC , 2015 , RWC , "3dttest++" , MINOR , TYPE_NEW_OPT ,
+   "Add -resid option, to save residuals." ,
+   NULL } ,
+
+ { 1 , DEC , 2015 , RWC , "3dClustSim" , MAJOR , TYPE_NEW_OPT ,
+   "Added -acf option!" ,
+   "Non-Gaussian spherically symmetric AutoCorrelation Function (ACF) for\n"
+   "the noise.  Uses FFTs to create the noise fields, via #include-d file\n"
+   "mri_radial_random_field.c and #include-d csfft_OMP.c (thread-safe FFTs).\n"
+   "This method in 3dFWHMx and 3dClustSim will be the favored cluster\n"
+   "thresholding analysis going forward." } ,
+
+ { 30 , NOV , 2015 , RWC , "csfft_OMP" , MICRO , TYPE_GENERAL ,
+   "Thread-safe version of csfft function, for use with OpenMP" ,
+   "Meant to be #include-d into the main source file." } ,
+
+ { 27 , NOV , 2015 , RWC , "3dFHWMx" , MICRO , TYPE_MODIFY ,
    "OpenMP-ize the FWHM and ACF calculations (across sub-bricks)" ,
    "Also, working on spherical non-Gaussian convolution by FFTs in\n"
    "mri_radial_random_field.c" } ,

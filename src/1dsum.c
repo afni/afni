@@ -6,12 +6,12 @@
 
 int main( int argc , char * argv[] )
 {
-   int nim , ii , jj , kk , nx ;
+   int nim , ii,nii , jj , kk , nx ;
    MRI_IMAGE ** inim ;
    float * far ;
    int ncol , ic ;
    float * csum ;
-   int nn_ignore=0 , mm_use=0 , iarg=1 ;
+   int nn_ignore=0 , mm_use=0 , iarg=1 , do_mean=0 ;
 
    /*-- help? --*/
 
@@ -23,6 +23,7 @@ int main( int argc , char * argv[] )
             "Options:\n"
             "  -ignore nn = skip the first nn rows of each file\n"
             "  -use    mm = use only mm rows from each file\n"
+            "  -mean      = compute the average instead of the sum\n"
            ) ;
       PRINT_COMPILE_DATE ; exit(0) ;
    }
@@ -43,6 +44,10 @@ int main( int argc , char * argv[] )
          mm_use = (int) strtod(argv[++iarg],NULL) ;
          if( mm_use < 0 ){fprintf(stderr,"** Illegal -use value!\n");exit(1);}
          iarg++ ; continue ;
+      }
+
+      if( strcmp(argv[iarg],"-mean") == 0 ){  /* 17 Dec 2015 */
+        do_mean = 1 ; iarg++ ; continue ;
       }
 
       fprintf(stderr,"** Unknown option: %s\n",argv[iarg]) ; exit(1) ;
@@ -80,11 +85,15 @@ int main( int argc , char * argv[] )
    for( ic=0 ; ic < ncol ; ic++ ) csum[ic] = 0.0 ;
 
    nx = inim[0]->nx ;
-   for( ii=nn_ignore ; ii < nn_ignore+mm_use ; ii++ ){
+   for( nii=0,ii=nn_ignore ; ii < nn_ignore+mm_use ; ii++,nii++ ){
       for( ic=jj=0 ; jj < nim ; jj++ ){
          far = MRI_FLOAT_PTR(inim[jj]) ;
          for( kk=0 ; kk < inim[jj]->ny ; kk++ ) csum[ic++] += far[ii+kk*nx] ;
       }
+   }
+
+   if( do_mean ){
+     for( ic=0 ; ic < ncol ; ic++ ) csum[ic] /= nii ;
    }
 
    for( ic=0 ; ic < ncol ; ic++ ) printf("%g ",csum[ic]) ;

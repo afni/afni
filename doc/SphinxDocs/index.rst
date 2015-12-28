@@ -15,6 +15,7 @@ Welcome to AFNI's documentation!
    .. afnitoc1
    sumatoc1
    fatcattoc1
+   statisticstoc1
    tutorialstoc1
    installationstoc1
    programstoc1

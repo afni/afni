@@ -1396,6 +1396,7 @@ void VL_syntax(void)
     "  -heptic         Use heptic polynomial interpolation.\n"
     "  -quintic        Use quintic polynomical interpolation.\n"
     "  -cubic          Use cubic polynomial interpolation.\n"
+    "  -linear         Use linear interpolation.\n"
     "                    Default = Fourier [slowest and most accurate interpolator]\n"
     "  -clipit         Clips the values in each output sub-brick to be in the same\n"
     "                    range as the corresponding input volume.\n"
@@ -1596,7 +1597,7 @@ void VL_syntax(void)
     "                -final   mode = Do the final interpolation using the method\n"
     "                                  defined by 'mode', which is one of the\n"
     "                                  strings 'NN', 'cubic', 'quintic', 'heptic',\n"
-    "                                  or 'Fourier'\n"
+    "                                  or 'Fourier' or 'linear'\n"
     "                                  [default=mode used to estimate parameters].\n"
     "            -weight 'wset[n]' = Set the weighting applied to each voxel\n"
     "                                  proportional to the brick specified here\n"
@@ -1836,7 +1837,8 @@ void VL_command_line(void)
          else if( strcmp(str,"quintic") == 0 ) VL_final = MRI_QUINTIC ;
          else if( strcmp(str,"heptic")  == 0 ) VL_final = MRI_HEPTIC ;
          else if( strcmp(str,"Fourier") == 0 ) VL_final = MRI_FOURIER ;
-         else if( strcmp(str,"NN") == 0 )      VL_final = MRI_NN ; /* 02 Apr 2003 */
+         else if( strcmp(str,"NN")      == 0 ) VL_final = MRI_NN ;     /* 02 Apr 2003 */
+         else if( strcmp(str,"linear")  == 0 ) VL_final = MRI_LINEAR ; /* 22 Dec 2015 */
          else {
            fprintf(stderr,"** Illegal mode after -final\n"); exit(1);
          }

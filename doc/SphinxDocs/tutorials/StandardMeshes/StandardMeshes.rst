@@ -10,7 +10,7 @@ In volume-based as well as surface-based cross-subject analysis typically requir
 
 This allows for a voxel to voxel correspondence across volumes from different subjects
 
-This section describes the process that allows us to establish node to node correspondence across surfaces from different subjects. Much of this has been lifted from [Saad_2011]_.
+This section describes the process that allows us to establish node to node correspondence across surfaces from different subjects. Much of this has been lifted from [SR_2012]_.
 
 Here is the process by which we take a set of surfaces and re-create them with a new standard mesh that is shared by all subjects in a group study. A standard-mesh version of a surface is virtually identical in 3D shape to the original one; however, each node of the new mesh encodes the same cortical location across subjects, within the accuracy of the warping-to-template step. We detail this procedure, which is particular to SUMA, because this simple process greatly facilitates the handling of group statistics when multiple subject surfaces are not created to be topologically isomorphic, as is the case with FreeSurfer and Caret (for example).
 
