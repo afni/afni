@@ -162,9 +162,12 @@ static int_triple get_random_field_size( int   nx, int   ny, int   nz,
    xx = nx + 2*(int)ceilf(rr/dx) ;  /* expand for this buffer */
    yy = ny + 2*(int)ceilf(rr/dy) ;
    zz = nz + 2*(int)ceilf(rr/dz) ;
+   if( xx < 16 ) xx = 16 ;
+   if( yy < 16 ) yy = 16 ;
+   if( zz < 16 ) zz = 16 ;
    xx = csfft_nextup_one35(xx) ;    /* expand for FFT allowable sizes */
-   yy = csfft_nextup_one35(yy) ;
-   zz = csfft_nextup_one35(zz) ;
+   yy = csfft_nextup_one35(yy) ;    /* (even with at most one) */
+   zz = csfft_nextup_one35(zz) ;    /* (factor of 3 and/or 5.) */
 
    ijk.i = xx ; ijk.j = yy ; ijk.k = zz ; return ijk ;
 }

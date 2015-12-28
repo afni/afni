@@ -66,6 +66,12 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+
+{ 16, Dec , 2015 , PT , "3ddot_beta" , MAJOR , TYPE_NEW_PROG,
+   "Copy calc of 3ddot-- uses same functions-- just faster.",
+   "Right now, can only calculate eta2; was asked for by user.\n"
+},
+
 { 16, Nov , 2015 , PT , "fat_mat_sel.py" , MINOR , TYPE_MODIFY,
    "New default for x-axis labels: rot=45 deg, horiz align=right.",
    "Better than previous defaults (rot=37 deg, horiz align=center).\n"
