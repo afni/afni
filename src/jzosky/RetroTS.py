@@ -226,7 +226,7 @@ def retro_ts(respiration_file, cardiac_file, phys_fs, number_of_slices, volume_t
         n_r_p = size(respiration_info['phase_slice_reg'],1)
         n_r_v = size(respiration_info['rvtrs_slc'], 0)
 
-    if cardiac_info: # must have cardiac_info
+    if cardiac_info:  # must have cardiac_info
         n_n = len(cardiac_phased['time_series_time'])  # ok to overwrite len(respiration_info.tst), should be same.
         n_e = size(cardiac_phased['phase_slice_reg'], 1)
 
@@ -234,9 +234,10 @@ def retro_ts(respiration_file, cardiac_file, phys_fs, number_of_slices, volume_t
         print 'Options cardiac_out, respiration_out, and RVT_out all 0.\nNo output required.\n'
         return
 
-    temp_y_axis = main_info['number_of_slices'] * ((main_info['rvt_out']) * n_r_v
-                                                   + (main_info['respiration_out']) * n_r_p
-                                                   + (main_info['cardiac_out']) * n_e)
+    temp_y_axis = main_info['number_of_slices'] * \
+        ((main_info['rvt_out']) * int(n_r_v) +
+         (main_info['respiration_out']) * int(n_r_p) +
+         (main_info['cardiac_out']) * int(n_e))
     main_info['reml_out'] = zeros((n_n, temp_y_axis))
     cnt = 0
     head = '<RetroTSout\n' \
@@ -322,77 +323,97 @@ if __name__ == "__main__":
 
     import sys
 
-    opt_dict = {"-help":"""This function creates slice-based regressors for regressing out
-components of heart rate, respiration and respiration volume per time.
+    opt_dict = {"-help":"""
+This function creates slice-based regressors for regressing out components of
+    heart rate, respiration and respiration volume per time.
 
 Windows Example:
 C:\\afni\\python RetroTS.py -r resp_file.dat -c card_file.dat -p 50 -n 20 -v 2
+
 Mac/Linux Example:
 /usr/afni/python RetroTS.py -r resp_file.dat -c card_file.dat -p 50 -n 20 -v 2
 
-Following are the mandatory and optional parameters that can be entered after RetroTS.py,
- each separated by a space.
+Input
+================================================================================
+    Following are the mandatory and optional parameters that can be entered
+    after RetroTS.py, each separated by a space.
 
     Mandatory:
     ----------
     :param -r: (respiration_file) Respiration data file
     :param -c: (cardiac_file) Cardiac data file
-    :param -p: (phys_fs) Physioliogical signal sampling frequency in Hz.
+    :param -p: (phys_fs) Physiological signal sampling frequency in Hz.
     :param -n: (number_of_slices) Number of slices
     :param -v: (volume_tr) Volume TR in seconds
-    Note:   These parameters are the only single-letter parameters, as they are mandatory and frequently typed.
-            The following optional parameters must be fully spelled out.
+    Note:   These parameters are the only single-letter parameters, as they are
+            mandatory and frequently typed. The following optional parameters
+            must be fully spelled out.
 
-     Optional:
-     ---------
-     Prefix: Prefix of output file
-     SliceOffset: Vector of slice acquisition time offsets in seconds.
-                  (default is equivalent of alt+z)
-     RVTshifts: Vector of shifts in seconds of RVT signal.
-                (default is [0:5:20])
-     RespCutoffFreq: Cut off frequency in Hz for respiratory lowpass filter
-                     (default 3 Hz)
-     CardCutoffFreq: Cut off frequency in Hz for cardiac lowpass filter
-                     (default 3 Hz)
-     ResamKernel: Resampling kernel.
-                 (default is 'linear', see help interp1 for more options)
-     FIROrder: Order of FIR filter. (default is 40)
-     Quiet: [1]/0  flag. (defaut is 1) Show talkative progress as the program runs
-     Demo: [1]/0 flag. (default is 0)
-     RVT_out: [1]/0 flag for writing RVT regressors
-     Card_out: [1]/0 flag for writing Card regressors
-     Resp_out: [1]/0 flag for writing Resp regressors
-     SliceOrder: ['alt+z']/'alt-z'/'seq+z'/'seq-z'/'Custom'/filename.1D
-                 Slice timing information in seconds. The default is
-                 alt+z. See 3dTshift help for more info. 'Custom' allows
-                 the program to use the values stored in the
-                 Opt.SliceOffset array. If a value is placed into the
-                 SliceOrder field other than these, it is assumed to be
-                 the name of a 1D / text file containing the times for
-                 each slice (also in seconds).
+    Optional:
+    ---------
+    :param -prefix: Prefix of output file
+    ============================================================================
+    :param -rvt_shifts: Vector of shifts in seconds of RVT signal.
+            (default is [0:5:20])
+    :param -rvt_out: Flag for writing RVT regressors
+            (default is 1)
+    ============================================================================
+    :param -respiration_cutoff_frequency: Cut off frequency in Hz for
+            respiratory lowpass filter
+            (default 3 Hz)
+    :param -cardiac_cutoff_frequency: Cut off frequency in Hz for
+            cardiac lowpass filter
+            (default 3 Hz)
+    :param -cardiac_out: Flag for writing Cardiac regressors
+            (default is 1)
+    :param -respiration_out: Flag for writing Respiratory regressors
+            (default is 1)
+    ============================================================================
+    :param -interpolation_style: Resampling kernel.
+            (default is 'linear', see help interp1 for more options)
+    :param -fir_order: Order of FIR filter.
+            (default is 40)
+    ============================================================================
+    :param -quiet: Show talkative progress as the program runs
+            (default is 1)
+    :param -demo: Run demonstration of RetroTS
+            (default is 0)
+    :param -show_graphs:
+    ============================================================================
+    :param -slice_offset: Vector of slice acquisition time offsets in seconds.
+            (default is equivalent of alt+z)
+    :param -slice_major: ? (default is 1)
+    :param -slice_order: Slice timing information in seconds. The default is
+           alt+z. See 3dTshift help for more info.
+               alt+z    = alternating in the plus direction
+               alt-z    = alternating in the minus direction
+               seq+z    = sequential in the plus direction
+               seq-z    = sequential in the minus direction
+               custom   = allows the program to use the values stored in the
+                            -slice_offset list
+               filename = read temporal offsets from 'filename', including file
+                            extension; e.g. slice_file.dat
+                            (expecting a 1D / text file containing the times for
+                            each slice in seconds)
+    ============================================================================
+    :param -zero_phase_offset:
 
-Example:
+Output:
+================================================================================
+    Files saved to same folder based on selection for "-respiration_out" and
+    "-cardiac_out". If these options are enabled, than the data will be written
+    to a single output file based on the filename assigned to the
+    option "-prefix".
 
-  Opt.Respfile = 'Resp_epiRT_scan_14.dat'
-  Opt.Cardfile = 'ECG_epiRT_scan_14.dat'
-  Opt.VolTR = 2
-  Opt.Nslices = 20;
-  Opt.PhysFS = 1./0.02;   20 msec sampling period, 50 samples per second
-  RetroTS(Opt);
+    Example:
+    C:\\afni\\python RetroTS.py -r resp_file.dat -c card_file.dat -p 50 -n 20
+        -v 2 -prefix subject12_regressors -respiration_out 1 -cardiac_out 1
 
+        Output:
+        The file "subject12_regressors.slibase.1D" will be saved to current
+        directory, including respiratory regressors and cardiac regressors.
 
- Input Mode 2 (for testing purposes only):
-  Opt: Scan number for file triplet to be processed.
-      Files called Resp*SN*, ECG*SN*, and scan*SN* are presumed to
-      exist in the directory from which RetroTS is called.
-      Many parameters' value are hard coded to defaults
-
- Output:
-  Opt: Structure of options including default settings.
-
-
- This option is not to be used because window width calculations do not use it
-     ResampFS: Frequency of resampled signal (default is same as PhysFS)""",
+        """,
                 "-r": None,
                 "-c": None,
                 "-p": None,
@@ -416,8 +437,9 @@ Example:
                 "-zero_phase_offset": 0}
 
     if len(sys.argv) < 2:
-        print 'You need to provide parameters. If you need help, rerun the program using the "-help" argument:\
-                \n"python RetroTS.py -help"'
+        print 'You need to provide parameters. If you need help, rerun the' \
+              'program using the "-help" argument:' \
+              '\n"python RetroTS.py -help"'
         quit()
     else:
         opts = sys.argv[1:]
@@ -440,19 +462,19 @@ Example:
              phys_fs=int(opt_dict['-p']),
              number_of_slices=int(opt_dict['-n']),
              volume_tr=int(opt_dict['-v']),
-             prefix=opt_dict['prefix'],
-             slice_offset=opt_dict['slice_offset'],
-             slice_major=opt_dict['slice_major'],
-             rvt_shifts=opt_dict['rvt_shifts'],
-             respiration_cutoff_frequency=opt_dict['respiration_cutoff_frequency'],
-             cardiac_cutoff_frequency=opt_dict['cardiac_cutoff_frequency'],
-             interpolation_style=opt_dict['interpolation_style'],
-             fir_order=opt_dict['fir_order'],
-             quiet=opt_dict['quiet'],
-             demo=opt_dict['demo'],
-             rvt_out=opt_dict['rvt_out'],
-             cardiac_out=opt_dict['cardiac_out'],
-             respiration_out=opt_dict['respiration_out'],
-             slice_order=opt_dict['slice_order'],
-             show_graphs=opt_dict['show_graphs'],
-             zero_phase_offset=opt_dict['zero_phase_offset'])
+             prefix=opt_dict['-prefix'],
+             slice_offset=opt_dict['-slice_offset'],
+             slice_major=opt_dict['-slice_major'],
+             rvt_shifts=opt_dict['-rvt_shifts'],
+             respiration_cutoff_frequency=opt_dict['-respiration_cutoff_frequency'],
+             cardiac_cutoff_frequency=opt_dict['-cardiac_cutoff_frequency'],
+             interpolation_style=opt_dict['-interpolation_style'],
+             fir_order=opt_dict['-fir_order'],
+             quiet=opt_dict['-quiet'],
+             demo=opt_dict['-demo'],
+             rvt_out=opt_dict['-rvt_out'],
+             cardiac_out=int(opt_dict['-cardiac_out']),
+             respiration_out=int(opt_dict['-respiration_out']),
+             slice_order=opt_dict['-slice_order'],
+             show_graphs=opt_dict['-show_graphs'],
+             zero_phase_offset=opt_dict['-zero_phase_offset'])
