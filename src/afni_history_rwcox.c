@@ -43,7 +43,15 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 10 , DEC , 2015 , RWC , "afni Clusterize" , MICRO , TYPE_ENHANCE ,
+  { 22 , DEC , 2015 , RWC , "3dvolreg" , MICRO , TYPE_MODIFY ,
+   "Make '-final linear' work, and put it in the help output." ,
+   "For Daniel Handwerker.  Don't say I never gave you a Christmas present!" } ,
+
+ { 17 , DEC , 2015 , RWC , "stimband" , MICRO , TYPE_NEW_PROG ,
+   "Computes freq band for stimuli extracted from .xmat.1D files" ,
+   "For use in scripting bandwidths for pre- and post-processing." } ,
+
+ { 10 , DEC , 2015 , RWC , "afni Clusterize" , MICRO , TYPE_ENHANCE ,
    "Add 'large FDR q' warning to Clusterize report" ,
    NULL } ,
 

@@ -1,0 +1,158 @@
+#!/bin/tcsh
+
+## help the pitiful luser?
+
+set dohelp = 0
+if( $#argv == 0 ) set dohelp = 1
+if( dohelp == 0 )then
+  if( $argv[1] == "-help" ) set dohelp = 1
+endif
+
+if( $dohelp )then
+  echo " "
+  echo "Usage: @banded_clustsim list_of_directories"
+  echo " "
+  echo "The input to this script is a list of afni_proc.py results directories."
+  echo "The steps followed are:"
+  echo " a) determine the collective passband for the stimuli from the"
+  echo "    X.nocensor.xmat.1D matrix file in each directory (program stimband)."
+  echo " b) bandpass each directory's pre-whitened residual file, and determine"
+  echo "    its spatial ACF = AutoCorrelation Function (program 3dFWHMx)"
+  echo " c) average the spatial ACF parameters across directories"
+  echo " d) use the resulting smoothness to estimate the cluster-size"
+  echo "    thresholds (program 3dClustSim)"
+  echo "The goal is to provide cluster significance levels for group tests."
+  echo " "
+  echo "** This script is currently in development and is experimental -- RWCox **"
+  exit 0
+endif
+
+## scan inputs and assemble the lists of files to process
+
+set nbad    = 0
+set matlist = ( )
+set errlist = ( ) ; set nerrWH = 0 ; set nerrOT = 0
+set msklist = ( ) ; set nmskGM = 0 ; set nmskGR = 0
+
+## We prefer whitened residuals (from 3dREMLfit -Rwherr), but
+## will process non-whitened residuals if that's all there is
+
+set errts_template_WH    = 'errts.*.WH+tlrc.HEAD'
+set errts_template_OTHER = 'errts.*+tlrc.HEAD'
+
+echo "========== Scanning for input files =========="
+
+foreach aaa ( $argv )
+
+  if( ! -d $aaa )then
+    echo "** ERROR: directory $aaa does not exist" ; @ nbad++ ; continue
+  endif
+
+  if( ! -f $aaa/X.nocensor.xmat.1D )then
+    echo "** ERROR: matrix $aaa/X.nocensor.xmat.1D does not exist" ; @ nbad++
+  else
+    set matlist = ( $matlist $aaa/X.nocensor.xmat.1D )
+  endif
+
+  unset mmm
+  if( -f $aaa/mask_GM_resam+tlrc.HEAD )then
+    set mmm = $aaa/mask_GM_resam+tlrc.HEAD ; @ nmskGM++
+  else if( -f $aaa/mask_group+tlrc.HEAD )then
+    set mmm = $aaa/mask_group+tlrc.HEAD    ; @ nmskGR++
+  endif
+  if( $?mmm == 0 )then
+    echo "** ERROR: neither mask $aaa/mask_GM_resam+tlrc.HEAD nor $aaa/mask_group+tlrc.HEAD is found"
+    @ nbad++
+  else
+    set msklist = ( $msklist $mmm )
+  endif
+
+  unset eee
+  set eee = ( $aaa/$errts_template_WH )
+  if( $status == 0 && $?eee == 1 && $#eee > 0 )then
+    @ nerrWH++
+  else
+    unset eee
+    set eee = ( $aaa/$errts_template_OTHER )
+    if( $status == 0 && $?eee == 1 && $#eee > 0 )then
+      @ nerrOT++
+    else
+      echo "** ERROR: no file of form $errts_template_WH or $errts_template_OTHER in directory $aaa"
+      @ nbad++
+    endif
+  endif
+  if( $?eee != 0 && $#eee > 0 ) set errlist = ( $errlist $eee[1] )
+
+end
+
+if( ! -f $argv[1]/mask_group+tlrc.HEAD )then
+  echo "** ERROR: mask file $argv[1]/mask_group+tlrc.HEAD does not exist" ; nbad++
+endif
+
+if( $nbad > 0 )then
+  echo "** FATAL ERROR: Can't continue after such problems :-("
+  exit 1
+endif
+
+echo "-- Using $nerrWH prewhitened errts datasets and $nerrOT other errts datasets"
+echo "-- Using $nmskGM gray-matter mask datasets  and $nmskGR group mask datasets"
+
+echo "-- list of errts datasets:"
+echo "   $errlist"
+echo "-- list of mask datasets:"
+echo "   $msklist"
+
+## process all the matrices at once to get the collective passband
+
+echo "========== Computing stimulus passband =========="
+
+set bbb = ( `stimband $matlist` )
+
+if( $#bbb < 2 || "$bbb[1]" == "$bbb[2]" )then
+  echo "program stimband failed on the matrices for some reason :-("
+  exit 1
+endif
+
+echo "Stimulus passband = $bbb[1] to $bbb[2] Hz"
+
+## bandpass and 3dFWHMx each noise file separately
+
+set rrr = `3dnewid -fun`
+
+echo "========== Bandpassing and computing ACF smoothness =========="
+
+echo "# 3dFWHMx output" > BPtemp.$rrr.1D
+
+foreach nnn ( `count -dig 1 1 $#errlist` )
+
+  set eee = $errlist[$nnn]
+  set mmm = $msklist[$nnn]
+
+  3dTproject -input $eee -mask $mmm -prefix BPtemp.$rrr.nii -passband $bbb[1] $bbb[2]
+
+# the 'tail -1' is to keep only the 2nd (ACF) line from 3dFWHMx
+
+  3dFWHMx -acf BPtemp.$nnn.$rrr.1D -mask $mmm BPtemp.$rrr.nii | tail -1 >> BPtemp.$rrr.1D
+
+  \rm BPtemp.$rrr.nii
+
+end
+
+## compute the average of the ACF outputs
+
+set bbb = ( `1dsum -mean BPtemp.$rrr.1D` )
+
+echo "Average ACF FWHM = $bbb[4] mm"
+
+## run 3dClustSim
+
+echo "========== Running 3dClustSim =========="
+
+3dClustSim -acf $bbb[1] $bbb[2] $bbb[3]        \
+           -mask $argv[1]/mask_group+tlrc.HEAD \
+           -both -prefix BPclust
+
+\rm BPtemp*${rrr}*
+
+echo "========== e Finito =========="
+exit 0

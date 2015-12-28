@@ -330,7 +330,7 @@ int * MCW_get_intlist( int nvals , char *str )
 
       /** otherwise, must have '..' or '-' as next inputs **/
 
-      if( str[ipos] == '-' ){
+      if( str[ipos] == '-' || str[ipos] == ':' ){
          ipos++ ;
       } else if( str[ipos] == '.' && str[ipos+1] == '.' ){
          ipos++ ; ipos++ ;
@@ -611,7 +611,7 @@ int * MCW_get_labels_intlist (char **labels, int nvals, char *str)
 
       /** otherwise, must have '..' or '-' as next inputs **/
 
-      if( str[ipos] == '-' ){
+      if( str[ipos] == '-' || str[ipos] == ':' ){
          ipos++ ;
       } else if( str[ipos] == '.' && str[ipos+1] == '.' ){
          ipos++ ; ipos++ ;

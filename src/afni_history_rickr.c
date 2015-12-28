@@ -54,6 +54,11 @@ afni_history_struct rickr_history[] = {
    NULL
  } ,
 
+ { 19,  Dec, 2015, RCR, "afni_proc.py", MICRO, TYPE_MODIFY,
+   "removed CSFe from Example 10 of the help, to not lead people to use it",
+   NULL
+ } ,
+
  {  7,  Dec, 2015, RCR, "MatAFNI_Demo.m", MICRO, TYPE_BUG_FIX,
    "merge fix from J. Pfannmoller",
    "Done with G Chen."
