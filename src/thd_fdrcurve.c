@@ -88,14 +88,24 @@ ENTRY("THD_create_one_fdrcurve") ;
 
 int THD_create_all_fdrcurves( THD_3dim_dataset *dset )
 {
-   int iv , nfdr ;
+   int iv , nfdr , kk ; float qmin ;
 
 ENTRY("THD_create_all_fdrcurves") ;
 
    if( !ISVALID_DSET(dset) ) RETURN(0) ;
 
-   for( nfdr=iv=0 ; iv < dset->dblk->nvals ; iv++ )
-     nfdr += THD_create_one_fdrcurve( dset , iv ) ;
+   for( nfdr=iv=0 ; iv < dset->dblk->nvals ; iv++ ){
+     kk = THD_create_one_fdrcurve( dset , iv ) ; nfdr += kk ;
+
+     if( kk ){     /* print warning message for 'best' q that is big */
+       qmin = DSET_BRICK_FDRMIN(dset,iv) ;
+       if( qmin > 0.1f )
+         WARNING_message(
+          "Smallest FDR q [%d %s] = %g ==> very few (if any) true detections" ,
+          iv , DSET_BRICK_LABEL(dset,iv) , qmin ) ;
+     }
+
+   }
 
    RETURN(nfdr) ;
 }

@@ -7,7 +7,8 @@ ALLO = color.o curve.o frame.o frstpt.o labmod.o memplt.o    \
        zzperi.o zzphph.o zzphys.o                            \
        ppak_perim.o ppak_pwrit.o ppak_pwritf.o ppak_srface.o \
        plot_cox.o plot_ps.o plot_ps2.o plot_x11.o            \
-       plot_motif.o plot_ts.o ppak_commons.o plot_strip.o
+       plot_motif.o plot_ts.o ppak_commons.o plot_strip.o    \
+       find_color_name.o
 
 #IFLAGS = -I. -I..
 

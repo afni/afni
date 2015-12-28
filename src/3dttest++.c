@@ -11,7 +11,8 @@ void regress_toz( int numA , float *zA ,
                   float *xB , float *psinvB , float *xtxinvB ,
                   float *outvec , float *workspace             ) ;
 
-float_pair ttest_toz( int numx, float *xar, int numy, float *yar, int opcode ) ;
+float_pair ttest_toz( int numx, float *xar, int numy, float *yar, int opcode,
+                      float *xres, float *yres ) ;
 
 /* similar funcs for the case of -singletonA */
 
@@ -22,7 +23,7 @@ void regress_toz_singletonA( float zA ,
                              float *xB , float *psinvB , float *xtxinvB ,
                              float *outvec , float *workspace             ) ;
 
-float_pair ttest_toz_singletonA( float xar , int numy, float *yar ) ;
+float_pair ttest_toz_singletonA( float xar, int numy, float *yar, float *xres, float *yres ) ;
 
 /* convert t-stat to z-score */
 
@@ -69,6 +70,8 @@ static int brickwise_num = 0 ;
 
 static int singletonA    = 0 ;                 /* 19 Mar 2015 */
 static float singleton_variance_ratio = 1.0f ; /* 20 Mar 2015 */
+static float singleton_fixed_val = 0.0f ;      /* 08 Dec 2015 */
+static int use_singleton_fixed_val = 0 ;
 
 static NI_element         *covnel=NULL ;       /* covariates */
 static NI_str_array       *covlab=NULL ;
@@ -108,6 +111,10 @@ static int center_meth = CMETH_MEAN ;    /* 26 Mar 2013 */
 MRI_IMAGE *Axxim=NULL , *Bxxim=NULL ;
 static float *Axx=NULL , *Axx_psinv=NULL , *Axx_xtxinv=NULL ;
 static float *Bxx=NULL , *Bxx_psinv=NULL , *Bxx_xtxinv=NULL ;
+
+static char *prefix_resid = NULL ;
+static int  do_resid=0 ;
+static float *ABresid=NULL , *Aresid=NULL , *Bresid=NULL ; /* 07 Dec 2015 */
 
 #undef  AXX
 #define AXX(i,j) Axx[(i)+(j)*(nval_AAA)]    /* i=0..nval_AAA-1 , j=0..mcov */
@@ -304,14 +311,30 @@ void display_help_menu(void)
       " -singletonA dataset_A\n"
       "   *OR*\n"
       " -singletonA LABL_A dataset_A\n"
+      "   *OR*\n"
+      " -singletonA FIXED_NUMBER\n"
       "\n"
       "* In the first form, just give the 1 sub-brick dataset name after the option.\n"
-      "  In the second form, you can provide a dataset 'label' to be used for\n"
+      "* In the second form, you can provide a dataset 'label' to be used for\n"
       "  covariates extraction.\n"
+      "* In the third form, instead of giving a dataset, you give a fixed number\n"
+      "  (e.g., '0.5'), to test the -setB collection against this 1 number.\n"
+      "  ++ In this form, '-singleton_variance_ratio' is set to a very small number,\n"
+      "     since you presumably aren't testing against an instance of a random\n"
+      "     variable.\n"
+      "  ++ Also, '-BminusA' is turned on, to give the effect of a 1-sample test\n"
+      "     against a constant.  For example, '-singletonA 0.0 -set B x y z' is\n"
+      "     equivalent to the 1-sample test with '-setA x y z'.  The only advantage\n"
+      "     of using '-singletonA FIXED_NUMBER' is that you can test against a\n"
+      "     nonzero constant this way.\n"
+      "  ++ You cannot use covariates with this form of '-singletonA' :-(\n"
       "\n"
       "* The output dataset will have 2 sub-bricks:\n"
       "  ++ The difference (at each voxel) between the dataset_A value and the\n"
       "     mean of the setB dataset values.\n"
+      "  ++ (In the form where 'dataset_A' is replaced by a fixed)\n"
+      "     (number, the output is instead the difference between)\n"
+      "     (the mean of the setB values and the fixed number.   )\n"
       "  ++ The t-statistic corresponding to this difference.\n"
       "\n"
       "* If covariates are used, at each voxel the slopes of the setB data values with\n"
@@ -340,7 +363,8 @@ void display_help_menu(void)
       "     to set the (assumed) variance of dataset_A to be RRR times the variance\n"
       "     of set B. Here, 'RRR' must be a positive number -- it cannot be zero,\n"
       "     so if you really want to test against a voxel-wise constant, use something\n"
-      "     like 0.0001 for RRR.\n"
+      "     like 0.000001 for RRR (this is the choice when 'dataset_A' is replaced\n"
+      "     by a fixed number).\n"
       "\n"
       "* Statistical inference on a single sample (dataset_A values) isn't really\n"
       "  possible.  The purpose of '-singletonA' is to give you some guidance when\n"
@@ -730,10 +754,15 @@ void display_help_menu(void)
       "                Otherwise you may end up files containing numbers but\n"
       "                not a full set of header information.\n"
       "\n"
+      " -resid q  = Output the residuals into a dataset with prefix 'q'.\n"
+      "             ++ The residuals are the difference between the data values\n"
+      "                and their prediction from the set mean (and set covariates).\n"
+      "             ++ For use in further analysis of the results (e.g., 3dFWHMx).\n"
+      "             ++ Cannot be used with '-brickwise' (sorry).\n"
+      "\n"
       " -dupe_ok  = Duplicate dataset labels are OK.  Do not generate warnings\n"
       "             for dataset pairs.\n"
-      "\n"
-      "             * This option must preceed corresponding -setX options.\n"
+      "            ** This option must preceed corresponding -setX options.\n"
       "\n"
       " -debug    = Prints out information about the analysis, which can\n"
       "              be VERY lengthy -- not for general usage (or even for colonels).\n"
@@ -1184,10 +1213,10 @@ int main( int argc , char *argv[] )
 {
    int nopt, nbad, ii,jj,kk, kout,ivox, vstep, dconst, nconst=0, nzskip=0,nzred=0  ;
    int bb , bbase , ss ;  char *abbfmt ; /* for -brickwise -- 28 Jan 2014 */
-   MRI_vectim *vimout ;
+   MRI_vectim *vimout=NULL , *rimout=NULL ;
    float *workspace=NULL , *datAAA , *datBBB=NULL , *resar ; size_t nws=0 ;
    float_pair tpair ;
-   THD_3dim_dataset *outset , *bbset=NULL ;
+   THD_3dim_dataset *outset , *bbset=NULL , *rrset=NULL ;
    char blab[64] , *stnam ;
    float dof_AB=0.0f , dof_A=0.0f , dof_B=0.0f ;
    int BminusA=-1 , ntwosam=0 ;  /* 05 Nov 2010 */
@@ -1573,6 +1602,18 @@ int main( int argc , char *argv[] )
 
      } /*----- end of '-set' -----*/
 
+     /*----- -resid prefix [07 Dec 2015] -----*/
+
+     if( strcmp(argv[nopt],"-resid") == 0 ){
+       do_resid = 1 ;
+       if( ++nopt >= argc )
+         ERROR_exit("Need argument after '%s'",argv[nopt-1]) ;
+       prefix_resid = strdup(argv[nopt]) ;
+       if( !THD_filename_ok(prefix_resid) )
+         ERROR_exit("-resid prefix '%s' is not acceptable",prefix_resid) ;
+       nopt++ ; continue ;
+     }
+
      /*----- -singletonA [19 Mar 2015] -----*/
 
      if( strcmp(argv[nopt],"-singletonA") == 0 ){
@@ -1591,34 +1632,53 @@ int main( int argc , char *argv[] )
        if( HAS_WILDCARD(argv[nopt]) )
          ERROR_exit("Argument after '-singletonA' has wildcard -- this is not allowed!") ;
 
-       /* if next arg is a dataset, then it is the singleton dataset;
-          otherwise, it is the label and the NEXT arg is the dataset */
+       /* if the next arg is a number, then we use a fixed value [08 Dec 2015] */
 
-       qset = THD_open_dataset( argv[nopt] ) ;
-
-       if( ISVALID_DSET(qset) ){   /* 1st arg is dataset name (and the label) */
-         lnam = argv[nopt] ;
-         qnam = argv[nopt] ; nopt++ ;
-       } else {                    /* 1st arg is dataset label, second is name */
-         if( strstr(argv[nopt],"+orig") != NULL ||
-             strstr(argv[nopt],"+tlrc") != NULL ||
-             strstr(argv[nopt],".nii" ) != NULL   )
-           WARNING_message("-singletonA: dataset label '%s' looks like a dataset name but isn't -- is this OK ?!?",
-                           argv[nopt] ) ;
-         if( is_possible_filename(argv[nopt]) )
-           WARNING_message("-singletonA: dataset label '%s' looks like it is also a filename on disk -- is this OK ?!?",
-                           argv[nopt] ) ;
-
-         qset = THD_open_dataset( argv[nopt+1] ) ;
-         if( !ISVALID_DSET(qset) )
-           ERROR_exit("Option -singletonA: can't open dataset '%s'",argv[nopt+1]) ;
-
-         lnam = argv[nopt] ;
-         qnam = argv[nopt+1] ; nopt += 2 ;
+       { float val = (float)strtod(argv[nopt],&cpt) ;
+         if( val != -666.0f && *cpt == '\0' ){
+           singleton_fixed_val = val ;
+           use_singleton_fixed_val = 1 ;
+           singleton_variance_ratio = 0.000001f ;
+           BminusA = 1 ;
+           INFO_message("-singletonA testing against fixed value = %g",val) ;
+           ININFO_message(" ==> option -BminusA is automatically turned on") ;
+         }
        }
 
-       if( DSET_NVALS(qset) > 1 )
-         ERROR_exit("-singletonA dataset '%s' has more than 1 sub-brick -- not allowed!",qnam) ;
+       /* if next arg is a dataset, then it is the singleton dataset;
+          otherwise, it is the label and the FOLLOWING arg is the dataset */
+
+       if( use_singleton_fixed_val ){  /* 08 Dec 2015 */
+         qset = NULL ;
+         lnam = qnam = (char *)malloc(sizeof(char)*32) ;
+         sprintf(qnam,"C=%g",singleton_fixed_val) ; nopt++ ;
+       } else {
+         qset = THD_open_dataset( argv[nopt] ) ;
+
+         if( ISVALID_DSET(qset) ){   /* 1st arg is dataset name (and the label) */
+           lnam = argv[nopt] ;
+           qnam = argv[nopt] ; nopt++ ;
+         } else {                    /* 1st arg is dataset label, second is name */
+           if( strstr(argv[nopt],"+orig") != NULL ||
+               strstr(argv[nopt],"+tlrc") != NULL ||
+               strstr(argv[nopt],".nii" ) != NULL   )
+             WARNING_message("-singletonA: dataset label '%s' looks like a dataset name but isn't -- is this OK ?!?",
+                             argv[nopt] ) ;
+           if( is_possible_filename(argv[nopt]) )
+             WARNING_message("-singletonA: dataset label '%s' looks like it is also a filename on disk -- is this OK ?!?",
+                             argv[nopt] ) ;
+
+           qset = THD_open_dataset( argv[nopt+1] ) ;
+           if( !ISVALID_DSET(qset) )
+             ERROR_exit("Option -singletonA: can't open dataset '%s'",argv[nopt+1]) ;
+
+           lnam = argv[nopt] ;
+           qnam = argv[nopt+1] ; nopt += 2 ;
+         }
+
+         if( DSET_NVALS(qset) > 1 )
+           ERROR_exit("-singletonA dataset '%s' has more than 1 sub-brick -- not allowed!",qnam) ;
+       }
 
        nams = (char **)malloc(sizeof(char *)) ;
        labs = (char **)malloc(sizeof(char *)) ;
@@ -1745,13 +1805,18 @@ int main( int argc , char *argv[] )
    }
 
    if( nval_AAA <= 0 )
-     ERROR_exit("No '-setA' option?  Please please read the -help instructions again!") ;
+     ERROR_exit("No '-setA' or '-singletonA' option?\n"
+               "********* Please please read the -help instructions again!") ;
 
    if( nval_AAA != nval_BBB && ttest_opcode == 2 )
      ERROR_exit("Can't do '-paired' with unequal set sizes: #A=%d #B=%d",
                 nval_AAA , nval_BBB ) ;
 
-   nvox = DSET_NVOX(dset_AAA[0]) ;
+   if( use_singleton_fixed_val && mcov > 0 )  /* 08 Dec 2015 */
+     ERROR_exit("You can't use a fixed -singletonA constant AND use -covariates!") ;
+
+   if( !use_singleton_fixed_val ) nvox = DSET_NVOX(dset_AAA[0]) ;
+   else                           nvox = DSET_NVOX(dset_BBB[0]) ;
    if( twosam && DSET_NVOX(dset_BBB[0]) != nvox )
      ERROR_exit("-setA and -setB datasets don't match number of voxels") ;
 
@@ -1862,6 +1927,9 @@ int main( int argc , char *argv[] )
        INFO_message("%s test: results will be %s - %s",
                     ttest_opcode == 2 ? "paired":"2-sample", snam_PPP,snam_MMM) ;
    }
+
+   if( brickwise && do_resid ) /* 07 Dec 2015 */
+     ERROR_exit("You can't use -brickwise and -resid together :-(") ;
 
    /*----- set up covariates in a very lengthy aside now -----*/
 
@@ -2014,8 +2082,8 @@ int main( int argc , char *argv[] )
 
      if( num_covset_col > 0 ) MEMORY_CHECK ;
 
-     if( twosam && num_covset_col < mcov ){   /* 19 Oct 2010 */
-       int toz_sav = toz ; float pp ;         /* test covariates for equality-ishness */
+     if( twosam && num_covset_col < mcov && !singletonA ){     /* 19 Oct 2010 */
+       int toz_sav = toz ; float pp ; /* test covariates for equality-ishness */
 
        toz = 1 ;
        INFO_message(
@@ -2026,14 +2094,14 @@ int main( int argc , char *argv[] )
                           covlab->str[jj+1] ) ;
          } else {
            tpair = ttest_toz( ndset_AAA , covvec_AAA[jj]->ar ,
-                              ndset_BBB , covvec_BBB[jj]->ar , 0 ) ;
+                              ndset_BBB , covvec_BBB[jj]->ar , 0 , NULL,NULL ) ;
            pp = normal_t2p( fabs((double)tpair.b) ) ;
            ININFO_message(" %s: mean of setA-setB=%s ; 2-sided p-value=%.4f" ,
                           covlab->str[jj+1] , MV_format_fval(tpair.a) , pp ) ;
          }
        }
        toz = toz_sav ;
-     } else INFO_message("twosam=%d num_covset_col=%d mcov=%d",twosam,num_covset_col,mcov) ;
+     }
 
    }  /*-- end of covariates setup --*/
 
@@ -2046,7 +2114,7 @@ int main( int argc , char *argv[] )
 
    if( !do_means || !do_tests ) nvout /= 2 ; /* no mean or stat sub-bricks? [05 Feb 2014] */
 
-   outset = EDIT_empty_copy( dset_AAA[0] ) ;
+   outset = EDIT_empty_copy( use_singleton_fixed_val ? dset_BBB[0] : dset_AAA[0] ) ;
 
    EDIT_dset_items( outset ,
                       ADN_prefix    , prefix ,
@@ -2064,8 +2132,8 @@ int main( int argc , char *argv[] )
 
    /* temp dataset for 1 set of outputs [28 Jan 2014] */
 
-   bbset = EDIT_empty_copy( dset_AAA[0] ) ;
-   EDIT_dset_items( bbset, ADN_nvals,nvout, ADN_brick_fac,NULL, ADN_none ) ;
+   bbset = EDIT_empty_copy(outset) ;
+   EDIT_dset_items( bbset, ADN_nvals,nvout, ADN_none ) ;
 
    /*** make up some brick labels [[[man, this is tediously boring work]]] ***/
 
@@ -2227,14 +2295,33 @@ LABELS_ARE_DONE:  /* target for goto above */
 
    MAKE_VECTIM(vimout,nmask_hits,nvres) ; vimout->ignore = 0 ;
 
+   /* make residual dataset [07 Dec 2015] */
+
+   if( do_resid ){
+     rrset = EDIT_empty_copy(outset) ;
+     EDIT_dset_items( rrset,
+                        ADN_nvals  , nval_AAA+nval_BBB ,
+                        ADN_prefix , prefix_resid ,
+                      ADN_none ) ;
+     for( jj=0 ; jj < nval_AAA ; jj++ ){
+       sprintf(blab,"Ares%04d",jj) ; EDIT_BRICK_LABEL(rrset,jj,blab) ;
+     }
+     for( jj=0 ; jj < nval_BBB ; jj++ ){
+       sprintf(blab,"Bres%04d",jj) ; EDIT_BRICK_LABEL(rrset,jj+nval_AAA,blab) ;
+     }
+     MAKE_VECTIM(rimout,nmask_hits,nval_AAA+nval_BBB) ; rimout->ignore = 0 ;
+   }
+
    /**********==========---------- process data ----------==========**********/
 
    /*----- convert each input set of datasets to a vectim -----*/
 
    if( !brickwise ){    /* load data now if not doing brickwise tests */
      INFO_message("loading input datasets") ;
-     vectim_AAA = THD_dset_list_to_vectim( ndset_AAA , dset_AAA , mask ) ;
-     for( ii=0 ; ii < ndset_AAA ; ii++ ) DSET_unload(dset_AAA[ii]) ;
+     if( !use_singleton_fixed_val ){
+       vectim_AAA = THD_dset_list_to_vectim( ndset_AAA , dset_AAA , mask ) ;
+       for( ii=0 ; ii < ndset_AAA ; ii++ ) DSET_unload(dset_AAA[ii]) ;
+     }
      if( twosam ){
        vectim_BBB = THD_dset_list_to_vectim( ndset_BBB , dset_BBB , mask ) ;
        for( ii=0 ; ii < ndset_BBB ; ii++ ) DSET_unload(dset_BBB[ii]) ;
@@ -2256,15 +2343,11 @@ LABELS_ARE_DONE:  /* target for goto above */
        if( vectim_BBB != NULL ){ VECTIM_destroy(vectim_BBB); vectim_BBB=NULL; }
        vectim_AAA = THD_dset_list_censored_to_vectim( ndset_AAA , dset_AAA ,
                                                       mask , 1 , keep       ) ;
-#if 1
        for( ii=0 ; ii < ndset_AAA ; ii++ ) DSET_unload_one(dset_AAA[ii],bb) ;
-#endif
        if( twosam ){
          vectim_BBB = THD_dset_list_censored_to_vectim( ndset_BBB , dset_BBB ,
                                                         mask , 1 , keep       ) ;
-#if 1
          for( ii=0 ; ii < ndset_BBB ; ii++ ) DSET_unload_one(dset_BBB[ii],bb) ;
-#endif
        }
        if( debug ) MEMORY_CHECK ;
      }
@@ -2283,11 +2366,22 @@ LABELS_ARE_DONE:  /* target for goto above */
 
        if( vstep > 0 && kout%vstep==vstep/2 ) vstep_print() ;
 
-                    datAAA = VECTIM_PTR(vectim_AAA,kout) ;  /* data arrays */
+       if( use_singleton_fixed_val )
+                    datAAA = &singleton_fixed_val ;         /* 08 Dec 2015 */
+       else         datAAA = VECTIM_PTR(vectim_AAA,kout) ;  /* data arrays */
+
        if( twosam ) datBBB = VECTIM_PTR(vectim_BBB,kout) ;
 
        resar = VECTIM_PTR(vimout,kout) ;                    /* results array */
        memset( resar , 0 , sizeof(float)*nvres ) ;          /* (set to zero) */
+
+       if( do_resid ){
+         if( bb == 0 ) rimout->ivec[kout] = ivox ;
+         ABresid = VECTIM_PTR(rimout,kout) ;
+         memset( ABresid , 0 , sizeof(float)*(nval_AAA+nval_BBB) ) ;
+         Aresid = ABresid ;
+         if( nval_BBB > 0 ) Bresid = ABresid + nval_AAA ;
+       }
 
        if( debug > 1 ){
          INFO_message("voxel#%d data:",kout) ;
@@ -2321,13 +2415,15 @@ LABELS_ARE_DONE:  /* target for goto above */
          float *zAAA=datAAA, *zBBB=datBBB ; int nAAA=nval_AAA, nBBB=nval_BBB, nz,qq ;
 
          if( do_zskip ){  /* 06 Oct 2010: skip zero values? */
-           for( ii=nz=0 ; ii < nval_AAA ; ii++ ) nz += (datAAA[ii] == 0.0f) ;
-           if( nz > 0 ){            /* copy nonzero vals to a new array */
-             nAAA = nval_AAA - nz ;
-             if( nAAA < zskip_AAA ){ kout++ ; nzskip++ ; continue ; }
-             zAAA = (float *)malloc(sizeof(float)*nAAA) ;
-             for( ii=qq=0 ; ii < nval_AAA ; ii++ )
-               if( datAAA[ii] != 0.0f ) zAAA[qq++] = datAAA[ii] ;
+           if( !singletonA ){
+             for( ii=nz=0 ; ii < nval_AAA ; ii++ ) nz += (datAAA[ii] == 0.0f) ;
+             if( nz > 0 ){            /* copy nonzero vals to a new array */
+               nAAA = nval_AAA - nz ;
+               if( nAAA < zskip_AAA ){ kout++ ; nzskip++ ; continue ; }
+               zAAA = (float *)malloc(sizeof(float)*nAAA) ;
+               for( ii=qq=0 ; ii < nval_AAA ; ii++ )
+                 if( datAAA[ii] != 0.0f ) zAAA[qq++] = datAAA[ii] ;
+             }
            }
            if( twosam ){
              for( ii=nz=0 ; ii < nval_BBB ; ii++ ) nz += (datBBB[ii] == 0.0f) ;
@@ -2348,23 +2444,24 @@ LABELS_ARE_DONE:  /* target for goto above */
 
          if( twosam ){
            if( do_1sam ){
-             tpair = ttest_toz( nAAA,zAAA , 0 ,NULL   , 0 ) ; /* 1 sample setA */
+             tpair = ttest_toz( nAAA,zAAA , 0 ,NULL   , 0 , NULL,NULL ) ; /* 1 sample setA */
              resar[2] = tpair.a ; resar[3] = tpair.b ;
-             tpair = ttest_toz( nBBB,zBBB , 0 ,NULL   , 0 ) ; /* 1 sample setB */
+             tpair = ttest_toz( nBBB,zBBB , 0 ,NULL   , 0 , NULL,NULL ) ; /* 1 sample setB */
              resar[4] = tpair.a ; resar[5] = tpair.b ;
            }
 #ifdef ALLOW_RANK
            if( do_ranks ) rank_order_2floats( nAAA,zAAA , nBBB,zBBB ) ;
 #endif
            if( singletonA ){
-             tpair = ttest_toz_singletonA( zAAA[0] , nBBB,zBBB ) ;
+             tpair = ttest_toz_singletonA( zAAA[0] , nBBB,zBBB , Aresid,Bresid ) ;
            } else {
-             tpair = ttest_toz( nAAA,zAAA , nBBB,zBBB , ttest_opcode ) ; /* 2 sample A-B */
+             tpair = ttest_toz( nAAA,zAAA , nBBB,zBBB , ttest_opcode , Aresid,Bresid) ; /* 2 sample A-B */
            }
            resar[0] = tpair.a ; resar[1] = tpair.b ;
+           if( BminusA ){ resar[0] = -resar[0] ; resar[1] = -resar[1] ; }
            if( debug > 1 ) fprintf(stderr,"   resar[0]=%g  [1]=%g\n",resar[0],resar[1]) ;
          } else {
-           tpair = ttest_toz( nAAA,zAAA , 0 ,NULL   , ttest_opcode ) ; /* 1 sample setA */
+           tpair = ttest_toz( nAAA,zAAA , 0 ,NULL   , ttest_opcode , Aresid,NULL ) ; /* 1 sample setA */
            resar[0] = tpair.a ; resar[1] = tpair.b ;
            if( debug > 1 ) fprintf(stderr,"   resar[0]=%g  [1]=%g\n",resar[0],resar[1]) ;
          }
@@ -2445,13 +2542,23 @@ LABELS_ARE_DONE:  /* target for goto above */
        DSET_NULL_ARRAY(bbset,kk) ;
      }
 
+     /* and load residual dataset [07 Dec 2015] */
+
+     if( do_resid ){
+       for( kk=0 ; kk < nval_AAA+nval_BBB ; kk++ )        /* load dataset with 0s */
+         EDIT_substitute_brick( rrset , kk , MRI_float , NULL ) ;
+       THD_vectim_to_dset( rimout , rrset ) ;
+     }
+
    } /*----- end of brickwise loop -----*/
 
    /*-------- get rid of the input data and workspaces now --------*/
 
    INFO_message("---------- End of analyses -- freeing workspaces ----------") ;
 
-   for( ii=0 ; ii < ndset_AAA ; ii++ ) DSET_unload(dset_AAA[ii]) ;
+   if( !use_singleton_fixed_val ){
+     for( ii=0 ; ii < ndset_AAA ; ii++ ) DSET_unload(dset_AAA[ii]) ;
+   }
    for( ii=0 ; ii < ndset_BBB ; ii++ ) DSET_unload(dset_BBB[ii]) ;
 
    if( workspace  != NULL ) free(workspace) ;
@@ -2459,6 +2566,7 @@ LABELS_ARE_DONE:  /* target for goto above */
    if( vectim_BBB != NULL ) VECTIM_destroy(vectim_BBB) ;
    if( vimout     != NULL ) VECTIM_destroy(vimout) ;
    if( bbset      != NULL ) DSET_delete(bbset) ;
+   if( rimout     != NULL ) VECTIM_destroy(rimout) ;
 
    if( covvim_AAA != NULL ){
      for( jj=0 ; jj < mcov ; jj++ )
@@ -2490,13 +2598,18 @@ LABELS_ARE_DONE:  /* target for goto above */
      INFO_message("Creating FDR curves in output dataset") ;
      mri_fdr_setmask(mask) ;
      kk = THD_create_all_fdrcurves(outset) ;
-     if( kk > 0 )
+     if( kk > 0 ){
        ININFO_message("Added %d FDR curve%s to dataset",kk,(kk==1)?"\0":"s");
-     else
+     } else {
        WARNING_message("Failed to add FDR curves to dataset?!") ;
+     }
    }
 
    DSET_write(outset) ; WROTE_DSET(outset) ; DSET_unload(outset) ;
+
+   if( rrset != NULL ){
+     DSET_write(rrset) ; WROTE_DSET(rrset) ; DSET_unload(rrset) ;
+   }
 
    if( singletonA )
      ININFO_message("results are %s - %s", snam_PPP,snam_MMM) ;
@@ -2594,7 +2707,7 @@ ENTRY("regress_toz") ;
      for( jj=0 ; jj < nA ; jj++ ){  /* residuals */
        val = -zA[jj] ;
        for( ii=0 ; ii < mm ; ii++ ) val += XA(jj,ii)*betA[ii] ;
-       zdifA[jj] = val ; ssqA += val*val ;
+       zdifA[jj] = val ; ssqA += val*val ; if( Aresid ) Aresid[jj] = -val ;
      }
      if( testA ){ varA = ssqA / (nA-mm) ; if( varA <= 0.0f ) varA = VBIG ; }
 #if 0
@@ -2626,7 +2739,7 @@ ENTRY("regress_toz") ;
      for( jj=0 ; jj < nB ; jj++ ){
        val = -zB[jj] ;
        for( ii=0 ; ii < mm ; ii++ ) val += XB(jj,ii)*betB[ii] ;
-       zdifB[jj] = val ; ssqB += val*val ;
+       zdifB[jj] = val ; ssqB += val*val ; if( Bresid ) Bresid[jj] = -val ;
      }
      if( testB ){ varB = ssqB / (nB-mm) ; if( varB <= 0.0f ) varB = VBIG ; }
 #if 0
@@ -2746,7 +2859,7 @@ ENTRY("regress_toz_singletonA") ;
    for( jj=0 ; jj < nB ; jj++ ){
      val = -zB[jj] ;
      for( ii=0 ; ii < mm ; ii++ ) val += XB(jj,ii)*betB[ii] ;
-     zdifB[jj] = val ; ssqB += val*val ;
+     zdifB[jj] = val ; ssqB += val*val ; if( Bresid ) Bresid[jj] = -val ;
    }
    varB = ssqB / (nB-mm) ; if( varB <= 0.0f ) varB = VBIG ;
 
@@ -2754,6 +2867,7 @@ ENTRY("regress_toz_singletonA") ;
 
    zdifA = zA ;
    for( ii=0 ; ii < mm ; ii++ ) zdifA -= XA(0,ii)*betB[ii] ;
+   if( Aresid ) Aresid[0] = zdifA ;
 
    /* Below is the denominator to adjust the t-statistic, which
       basically allows for the variance of zA and the variance
@@ -2797,6 +2911,7 @@ ENTRY("regress_toz_singletonA") ;
    - opcode = 0 for unpaired test with pooled variance
    - opcode = 1 for unpaired test with unpooled variance
    - opcode = 2 for paired test (numx == numy is required)
+   - xres, yres = space for residuals (data-mean), if not NULL [07 Dec 2015]
    - The return value is the Z-score of the t-statistic.
 
    A simple 2-sample test of this function:
@@ -2818,7 +2933,8 @@ ENTRY("regress_toz_singletonA") ;
    (see http://en.wikipedia.org/wiki/Noncentral_t-distribution).
 *//*--------------------------------------------------------------------------*/
 
-float_pair ttest_toz( int numx, float *xar, int numy, float *yar, int opcode )
+float_pair ttest_toz( int numx, float *xar, int numy, float *yar, int opcode,
+                      float *xres, float *yres )
 {
    float_pair result = {0.0f,0.0f} ;
    register int ii ; register float val ;
@@ -2850,6 +2966,15 @@ ENTRY("ttest_toz") ;
      else                  tstat =   0.0f ;
      dof = numx-1.0f ; delta = avx ;  /* delta = diff in means */
 
+     if( xres != NULL ){
+       avx = 0.0f ; for( ii=0 ; ii < numx ; ii++ ) avx += xar[ii] ;
+       avx /= numx; for( ii=0 ; ii < numx ; ii++ ) xres[ii] = xar[ii]-avx ;
+     }
+     if( yres != NULL ){
+       avy = 0.0f ; for( ii=0 ; ii < numy ; ii++ ) avy += yar[ii] ;
+       avy /= numy; for( ii=0 ; ii < numy ; ii++ ) yres[ii] = yar[ii]-avy ;
+     }
+
    } else if( numy == 0 ){  /* Case 2: 1 sample test against mean==0 */
 
      avx = 0.0f ;
@@ -2861,6 +2986,7 @@ ENTRY("ttest_toz") ;
      else if( avx < 0.0f ) tstat = -19.0f ;
      else                  tstat =   0.0f ;
      dof = numx-1.0f ; delta = avx ; /* delta = mean */
+     if( xres != NULL ) for( ii=0 ; ii < numx ; ii++ ) xres[ii] = xar[ii]-avx ;
 
    } else {  /* Case 3: 2 sample test (pooled or unpooled) */
 
@@ -2868,11 +2994,13 @@ ENTRY("ttest_toz") ;
      for( ii=0 ; ii < numx ; ii++ ) avx += xar[ii] ;
      avx /= numx ; sdx = 0.0f ;
      for( ii=0 ; ii < numx ; ii++ ){ val = xar[ii] - avx ; sdx += val*val ; }
+     if( xres != NULL ) for( ii=0 ; ii < numx ; ii++ ) xres[ii] = xar[ii]-avx ;
 
      avy = 0.0f ;
      for( ii=0 ; ii < numy ; ii++ ) avy += yar[ii] ;
      avy /= numy ; sdy = 0.0f ;
      for( ii=0 ; ii < numy ; ii++ ){ val = yar[ii] - avy ; sdy += val*val ; }
+     if( yres != NULL ) for( ii=0 ; ii < numy ; ii++ ) yres[ii] = yar[ii]-avy ;
 
      delta = avx - avy ; /* difference in means */
 
@@ -2914,7 +3042,8 @@ ENTRY("ttest_toz") ;
    however, xar is assumed to have the same variance as yar[]
 *//*--------------------------------------------------------------------------*/
 
-float_pair ttest_toz_singletonA( float xar , int numy, float *yar )
+float_pair ttest_toz_singletonA( float xar , int numy, float *yar,
+                                 float *xres , float *yres )
 {
    float_pair result = {0.0f,0.0f} ;
    int ii ;
@@ -2927,6 +3056,7 @@ ENTRY("ttest_toz_singletonA") ;
    avy /= numy ; sdy = 0.0f ;
    for( ii=0 ; ii < numy ; ii++ ) sdy += (yar[ii]-avy)*(yar[ii]-avy) ;
    sdy /= (numy-1.0f) ;  /* variance (estimate) for yar */
+   if( yres != NULL ) for( ii=0 ; ii < numy ; ii++ ) yres[ii] = yar[ii]-avy ;
 
    /* Normally, the tstat of yar against a constant would have
       the denominator sqrt(sdy/numy) but in this case, the
@@ -2940,6 +3070,7 @@ ENTRY("ttest_toz_singletonA") ;
    tstat    = (xar-avy) / sqrtf(sdy) ;
    result.b = (toz) ? (float)(float)GIC_student_t2z( (double)tstat , (double)(numy-1.0f) )
                     : TCLIP(tstat) ;
+   if( xres != NULL ) xres[0] = result.a ;
 
    RETURN(result) ;
 }

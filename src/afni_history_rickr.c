@@ -49,6 +49,21 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 19,  Dec, 2015, RCR, "afni_proc.py", MICRO, TYPE_MODIFY,
+   "removed CSFe from Example 10 of the help, to not lead people to use it",
+   NULL
+ } ,
+
+ {  7,  Dec, 2015, RCR, "MatAFNI_Demo.m", MICRO, TYPE_BUG_FIX,
+   "merge fix from J. Pfannmoller",
+   "Done with G Chen."
+ } ,
+
+ {  7,  Dec, 2015, RCR, "afni_proc.py", MICRO, TYPE_ENHANCE,
+   "help update: modify example 11 to use SurfVol and add FREESURFER NOTE",
+   NULL
+ } ,
+
  { 17,  Nov, 2015, RCR, "afni-general", MICRO, TYPE_GENERAL,
    "rename g_info to g_dicom_ctrl to avoid FreeBSD build conflict",
    "Thanks to J Bacon for noting the conflict."

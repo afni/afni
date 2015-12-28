@@ -345,7 +345,6 @@ typedef enum { TFORM_NOT_SET, NO_FORMAT, TXT, SPX , ASPX, WEB } TFORM;
    else if( strcmp(argv[iarg],"-h") == 0 ){  \
          fun(TXT,0); RETURN(0);} \
 }
-      
 
 #define  sphinx_printf(targ, ...) (sphinx_offprintf( targ, 0, NULL, __VA_ARGS__))
 #define sphinx_fprintf(targ, fout, ...) \
@@ -3595,6 +3594,13 @@ extern int    THD_deconflict_prefix( THD_3dim_dataset * ) ;          /* 23 Mar 2
 
 #define DSET_BRICK_FDRCURVE(ds,ii) DBLK_BRICK_FDRCURVE((ds)->dblk,(ii))
 
+/* smallest FDR q in the curve for sub-brick #ii [09 Dec 2015] */
+
+#define DSET_BRICK_FDRMIN(ds,ii)                                                \
+ ( ( (ds)->dblk->brick_fdrcurve==NULL || (ds)->dblk->brick_fdrcurve[ii]==NULL ) \
+  ? 0.0                                                                         \
+  : 2.0*qg((ds)->dblk->brick_fdrcurve[ii]->ar[(ds)->dblk->brick_fdrcurve[ii]->nar-1]) )
+
 #define DBLK_BRICK_FDRCURVE_KILL(db,ii)                                      \
  do{ if( (db)->brick_fdrcurve != NULL ){                                     \
        floatvec *fv = (db)->brick_fdrcurve[ii] ;                             \
@@ -4327,7 +4333,7 @@ char *form_C_progopt_string(char *prog, char **ws, int N_ws);
 char *phelp(char *prog, TFORM targ, int verb);
 char *sphelp(char *prog, char **str, TFORM targ, int verb);
 int phelp_cmd(char *prog, TFORM targ, char cmd[512], char fout[128], int verb );
-int program_supports(char *prog, char *opt, char *oval, int verb); 
+int program_supports(char *prog, char *opt, char *oval, int verb);
 char *find_popt(char *sh, char *opt, int *nb);
 int prog_complete_command (char *prog, char *ofile, int shtp);
 void view_prog_help(char *prog);
