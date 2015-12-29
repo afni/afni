@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "mcw_malloc.h"
-#include "AFNI_label.h"
+#include "AFNI_version.h"
 #include "debugtrace.h"  /* contains 1 function */
 
 /*--------------------------------------------------------------------------*/
