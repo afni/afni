@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 29,  Dec, 2015, RCR, "afni-general", MICRO, TYPE_ENHANCE,
+   "updated gitignore.src.txt and main 2 .gitignore files",
+   NULL
+ } ,
+
  { 28,  Dec, 2015, RCR, "@diff_files", MICRO, TYPE_ENHANCE,
    "allow diffs to include existence of directories",
    NULL
