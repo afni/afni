@@ -41,7 +41,8 @@ CP = /bin/cp -f
 
 LINT = /usr/bin/lint -b -u -v -x -Aa $(IFLAGS) $(CCDEFS)
 
-SHOWOFF = -DSHOWOFF=solaris29_suncc_64
+SYSTEM_NAME = solaris29_suncc_64
+SHOWOFF = -DSHOWOFF=$(SYSTEM_NAME)
 EXPROGS = 3dDeconvolve_n 3dNLfim_n
 
 INSTALL_PREREQ = suma
