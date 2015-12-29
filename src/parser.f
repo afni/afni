@@ -822,6 +822,7 @@ C
      X       MEAN , STDEV , SEM , POSVAL , ZZMOD
       REAL*8 ARGMAX,ARGNUM , PAIRMX,PAIRMN , AMONGF, WITHINF
       REAL*8 MINABOVE , MAXBELOW, EXTREME, ABSEXTREME
+      REAL*8 CHOOSE
 C
 C  External library functions
 C
@@ -1220,6 +1221,19 @@ C.......................................................................
             NTM   = R8_EVAL(NEVAL)
             NEVAL = NEVAL - NTM
             R8_EVAL(NEVAL) = ABSEXTREME( NTM , R8_EVAL(NEVAL) )
+         ELSEIF( CNCODE .EQ. 'CHOOSE'  )THEN
+            NTM   = R8_EVAL(NEVAL)
+            NEVAL = NEVAL - NTM
+            NTM   = NTM - 1
+            ITM   = R8_EVAL(NEVAL)
+            R8_EVAL(NEVAL) = CHOOSE( ITM,NTM , R8_EVAL(NEVAL+1) )
+         ELSEIF( CNCODE .EQ. 'IFELSE' )THEN
+            NEVAL = NEVAL - 2
+            IF( R8_EVAL(NEVAL) .NE. 0.D+0 )THEN
+                R8_EVAL(NEVAL) = R8_EVAL(NEVAL+1)
+            ELSE
+                R8_EVAL(NEVAL) = R8_EVAL(NEVAL+2)
+            ENDIF
 C.......................................................................
          ELSEIF( CNCODE .EQ. 'FICO_T2P' )THEN
             NEVAL = NEVAL - 3
@@ -1377,6 +1391,7 @@ C
      X       MEAN , STDEV , SEM , POSVAL , ZZMOD
       REAL*8 ARGMAX,ARGNUM , PAIRMX,PAIRMN, AMONGF, WITHINF
       REAL*8 MINABOVE , MAXBELOW, EXTREME, ABSEXTREME
+      REAL*8 CHOOSE
 C
 C  External library functions
 C
@@ -2208,6 +2223,26 @@ C.......................................................................
                ENDDO
                R8_EVAL(IV-IBV,NEVAL) = ABSEXTREME( NTM, SCOP )
             ENDDO
+         ELSEIF( CNCODE .EQ. 'CHOOSE' )THEN
+            NTM   = R8_EVAL(1, NEVAL)
+            NEVAL = NEVAL - NTM
+            NTM   = NTM - 1
+            DO IV=IVBOT,IVTOP
+               ITM = R8_EVAL(IV-IBV,NEVAL)
+               DO JTM=1,NTM
+                  SCOP(JTM) = R8_EVAL(IV-IBV,NEVAL+JTM)
+               ENDDO
+               R8_EVAL(IV-IBV,NEVAL) = CHOOSE( ITM, NTM, SCOP )
+            ENDDO
+         ELSEIF( CNCODE .EQ. 'IFELSE' )THEN
+            NEVAL = NEVAL - 2
+            DO IV=IVBOT,IVTOP
+               IF( R8_EVAL(IV-IBV,NEVAL) .NE. 0.D+0 )THEN
+                  R8_EVAL(IV-IBV,NEVAL) = R8_EVAL(IV-IBV,NEVAL+1)
+               ELSE
+                  R8_EVAL(IV-IBV,NEVAL) = R8_EVAL(IV-IBV,NEVAL+2)
+               ENDIF
+            ENDDO
 
 
 C.......................................................................
@@ -2953,6 +2988,20 @@ C
       ENDDO
       IF( BBB .EQ. 0.0 ) BBB = AAA
       ABSEXTREME = BBB
+      RETURN
+      END
+C
+C
+C
+      FUNCTION CHOOSE(M,N,X)
+      REAL*8  CHOOSE,X(N)
+      INTEGER M,N , I
+C
+      IF( M .LT. 1 .OR. N .LT. M)THEN
+         CHOOSE = 0.D+0
+         RETURN
+      ENDIF
+      CHOOSE = X(M)
       RETURN
       END
 C

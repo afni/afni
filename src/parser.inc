@@ -45,7 +45,7 @@ C.......................................................................
 C  Define Function names, etc.
 C
       INTEGER     NUM_FUNC
-      PARAMETER ( NUM_FUNC = 116 )
+      PARAMETER ( NUM_FUNC = 118 )
 C
       CHARACTER*32 C_FUNCNAME(NUM_FUNC+1)
       INTEGER      N_FUNCARGS(NUM_FUNC)
@@ -85,7 +85,9 @@ C
      X
      X 'HRFBK4'  , 'HRFBK5' , 'POSVAL' , 'NOT' , 'MOD' , 'WITHIN',
      X
-     X 'MINABOVE' , 'MAXBELOW' ,"EXTREME", "ABSEXTREME",
+     X 'MINABOVE' , 'MAXBELOW' ,'EXTREME', 'ABSEXTREME',
+     X
+     X 'CHOOSE', 'IFELSE',
      X
      X 'DUMMY' /
 C
@@ -93,5 +95,5 @@ C
      X                 3*4, 3*2, 3*3, 3*1, 3*2, 3*3, 3*3, 3*3, 3*2 ,
      X   1 , -1,-1 , 2 , 1 , 1 , 1 , 1 , -1 ,1 , -1  ,
      X  -1,-1, 1,1,2,1,1, -1,-1,-1, 2, 5,5, -1,-1,-1,1,3, 2,2,1,1,2,
-     X  -1, -1,-1, -1, -1 /
+     X  -1, -1,-1, -1, -1, -1, 3 /
 C-----------------------------------------------------------------------
