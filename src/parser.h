@@ -109,7 +109,7 @@ extern "C" {                    /* care of Greg Balls    7 Aug 2006 [rickr] */
   "    sind , cosd , tand , median, lmode , hmode , mad  ,       \n"           \
   "    gran , uran , iran , eran  , lran  , orstat, mod  ,       \n"           \
   "    mean , stdev, sem  , Pleg  , cbrt  , rhddc2, hrfbk4,hrfbk5\n"           \
-  "    minbelow, maxabove\n"                                                   \
+  "    minbelow, maxabove, extreme, absextreme\n"                              \
   "\n"                                                                         \
   " where some of the less obvious funcions are:\n"                            \
   " * qg(x)    = reversed cdf of a standard normal distribution\n"             \
@@ -141,7 +141,7 @@ extern "C" {                    /* care of Greg Balls    7 Aug 2006 [rickr] */
   "    of their arguments - lmode breaks ties by choosing the\n"               \
   "    smallest value with the maximal count, hmode breaks ties by\n"          \
   "    choosing the largest value with the maximal count\n"                    \
-  "    [median,lmode,hmode take a variable number of arguments]\n"             \
+  "    [\"a,b,c,...\" indicates a variable number of arguments]\n"             \
   " * gran(m,s) returns a Gaussian deviate with mean=m, stdev=s\n"             \
   " * uran(r)   returns a uniform deviate in the range [0,r]\n"                \
   " * iran(t)   returns a random integer in the range [0..t]\n"                \
@@ -176,9 +176,10 @@ extern "C" {                    /* care of Greg Balls    7 Aug 2006 [rickr] */
   "     equals(x,y)  = 1-bool(x-y) = { 1 if x == y , 0 if x != y },\n"         \
   "   ispositive(x)  = { 1 if x > 0; 0 if x <= 0 },\n"                         \
   "   isnegative(x)  = { 1 if x < 0; 0 if x >= 0 },\n"                         \
+  "   ifelse(x,t,f)  = { t if x != 0; f if x == 0 },\n"                        \
+  "        not(x)    = same as iszero(x) = Boolean negation\n"                 \
   "   and(a,b,...,c) = {1 if all arguments are nonzero, 0 if any are zero}\n"  \
   "    or(a,b,...,c) = {1 if any arguments are nonzero, 0 if all are zero}\n"  \
-  "        not(x)    = same as iszero(x) = Boolean negation\n"                 \
   "  mofn(m,a,...,c) = {1 if at least 'm' arguments are nonzero, else 0 }\n"   \
   "  argmax(a,b,...) = index of largest argument; = 0 if all args are 0\n"     \
   "  argnum(a,b,...) = number of nonzero arguments\n"                          \
@@ -194,8 +195,10 @@ extern "C" {                    /* care of Greg Balls    7 Aug 2006 [rickr] */
   "                    (The 'pair' functions are Lukas Pezawas specials!)\n"   \
   "  amongst(a,b,...)= Return value is 1 if any of the b,c,... values\n"       \
   "                    equals the a value; otherwise, return value is 0.\n"    \
+  " choose(n,a,b,...)= chooses the n-th value from the a,b,... values.\n"      \
+  "                    (e.g., choose(2,a,b,c) is b)\n"                         \
   "\n"                                                                         \
-  "  [These last 8 functions take a variable number of arguments.]\n"          \
+  "  [These last 9 functions take a variable number of arguments.]\n"          \
   "\n"                                                                         \
   " The following 27 functions are used for statistical conversions,\n"        \
   " as in the program 'cdf':\n"                                                \
