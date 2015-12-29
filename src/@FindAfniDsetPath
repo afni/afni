@@ -4,7 +4,12 @@
 # Change log:
 
 # separate length check
-if ( $#argv != 1 ) goto HELP
+set retval = 0
+if ( $#argv != 1 ) then
+   # bad usage sets error status        29 Dec 2015 [rickr]
+   set retval = 1
+   goto HELP
+endif
 if ( "$argv[1]" == "-help") goto HELP
 
 set ref_in = $1
@@ -82,4 +87,5 @@ Sep 27, 2006
 EOF
 
 # be explicit
-exit 0
+exit $retval
+
