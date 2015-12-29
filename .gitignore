@@ -9,6 +9,7 @@ ___*
 *.dSYM
 *junk*
 *.swp
+.*.swp
 
 #Datasets
 *.nii*
