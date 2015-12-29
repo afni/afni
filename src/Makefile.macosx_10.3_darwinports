@@ -39,7 +39,8 @@ LINT = /usr/bin/lint -a -b -u -v -x $(IFLAGS) $(CCDEFS)
 
 INSTALLDIR = ./macosx_10.3_darwinports
 LIBDIR = $(INSTALLDIR)
-SHOWOFF = -DSHOWOFF=macosx_10.3
+SYSTEM_NAME = macosx_10.3_darwinports
+SHOWOFF = -DSHOWOFF=$(SYSTEM_NAME)
 
 INSTALL_PREREQ = suma
 

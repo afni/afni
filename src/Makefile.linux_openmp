@@ -69,7 +69,8 @@ PLUGIN_LFLAGS = -shared -fPIC -m32
 PLUGIN_CC     = $(CC)
 PLFLAGS       = -rdynamic -L. -L/usr/lib
 
-SHOWOFF = -DSHOWOFF=linux_openmp
+SYSTEM_NAME = linux_openmp
+SHOWOFF = -DSHOWOFF=$(SYSTEM_NAME)
 
 AR     = /usr/bin/ar
 RANLIB = /usr/bin/ranlib
