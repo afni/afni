@@ -29,7 +29,8 @@ MKDIR  = /bin/mkdir
 LD     = /bin/ld
 GZIP   = /usr/local/bin/gzip
 
-SHOWOFF = -DSHOWOFF=sgi10k_6.5_gcc
+SYSTEM_NAME = sgi10k_6.5_gcc
+SHOWOFF = -DSHOWOFF=$(SYSTEM_NAME)
 
 RM = /bin/rm -f
 MV = /bin/mv -f
