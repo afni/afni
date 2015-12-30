@@ -951,6 +951,99 @@ AFNI_OMP_END;
 }
 
 /*----------------------------------------------------------------------------*/
+/*! Get average ACF FWHM estimate for all images in the array    [30 Dec 2015]
+*//*--------------------------------------------------------------------------*/
+
+float mriarr_estimate_FWHM_acf( MRI_IMARR *imar, byte *mask, int unif, float radius )
+{
+   int iv , nvals , ii,nvox , nout , demed=0 ;
+   MRI_IMAGE *medim=NULL , *madim=NULL ;
+   float     *medar=NULL , *madar=NULL , dx,dy,dz , fwhm_out=0.0f ;
+   MCW_cluster *clout=NULL , **cltemp ;
+
+ENTRY("mriarr_estimate_FWHM_acf") ;
+
+   if( imar == NULL ) RETURN(0.0f) ;
+
+   nvals = IMARR_COUNT(imar) ; if( nvals < 2 ) unif = 0 ;
+   nvox  = IMARR_SUBIM(imar,0)->nvox ;
+   dx    = IMARR_SUBIM(imar,0)->dx ;
+   dy    = IMARR_SUBIM(imar,0)->dy ;
+   dz    = IMARR_SUBIM(imar,0)->dz ;
+
+   if( unif ){
+     MRI_IMARR *qmar ;
+     demed = 1 ;
+     qmar  = IMARR_medmad_bricks(imar) ;
+     medim = IMARR_SUBIM(qmar,0) ; medar = MRI_FLOAT_PTR(medim) ;
+     madim = IMARR_SUBIM(qmar,1) ; madar = MRI_FLOAT_PTR(madim) ;
+     FREE_IMARR(qmar) ;
+     for( ii=0 ; ii < nvox ; ii++ )
+       if( madar[ii] > 0.0f ) madar[ii] = 1.0f / madar[ii] ;
+   }
+
+   clout = get_ACF_cluster( dx,dy,dz, radius ) ;
+   if( clout == NULL ){
+     if( medim != NULL ) mri_free(medim) ;
+     if( madim != NULL ) mri_free(madim) ;
+     RETURN(0.0f) ;
+   }
+
+   for( ii=0 ; ii < clout->num_pt ; ii++ ) clout->mag[ii] = 0.0f ;
+   cltemp = (MCW_cluster **)malloc(sizeof(MCW_cluster *)*nvals) ;
+
+AFNI_OMP_START;
+#pragma omp parallel if( nvals > 4 )
+ { int iv,gg ; MRI_IMAGE *bim ;
+#pragma omp for
+   for( iv=0 ; iv < nvals ; iv++ ){
+     bim = mri_to_float( IMARR_SUBIM(imar,iv) ) ;
+     bim->dx = dx ; bim->dy = dy ; bim->dz = dz ;
+     if( demed ){
+       float *bar = MRI_FLOAT_PTR(bim) ; int ii ;
+       for( ii=0 ; ii < nvox ; ii++ ) bar[ii] -= medar[ii] ;
+       if( unif )
+        for( ii=0 ; ii < nvox ; ii++ ) bar[ii] *= madar[ii] ;
+     }
+     COPY_CLUSTER(cltemp[iv],clout) ;
+     gg = mri_estimate_ACF( bim , mask , cltemp[iv] ) ;
+     if( gg < 0 ){
+       KILL_CLUSTER(cltemp[iv]) ; cltemp[iv] = NULL ;
+     }
+   }
+ }
+AFNI_OMP_END;
+
+   for( nout=iv=0 ; iv < nvals ; iv++ ){
+     if( cltemp[iv] != NULL ){
+       for( ii=0 ; ii < clout->num_pt ; ii++ ) clout->mag[ii] += cltemp[iv]->mag[ii] ;
+       KILL_CLUSTER(cltemp[iv]) ; nout++ ;
+     }
+   }
+   free(cltemp) ;
+
+   if( medim != NULL ) mri_free(medim) ;
+   if( madim != NULL ) mri_free(madim) ;
+
+   if( nout > 1 ){
+     for( ii=0 ; ii < clout->num_pt ; ii++ )
+       clout->mag[ii] /= nout ;
+   } else if( nout == 0 ){
+     ERROR_message("ACF estimation fails :-(") ;
+     KILL_CLUSTER(clout) ; clout = NULL ;
+   }
+
+   if( clout != NULL ){
+     float_quad acf_Epar ;
+     acf_Epar = ACF_cluster_to_modelE( clout , dx,dy,dz ) ;
+     fwhm_out = acf_Epar.d ;
+     KILL_CLUSTER(clout) ; clout = NULL ;
+   }
+
+   RETURN(fwhm_out) ;
+}
+
+/*----------------------------------------------------------------------------*/
 /* Function for Powell minimization for ACF modelE fit. */
 
 static int    nar=0 ;
@@ -1063,7 +1156,7 @@ ENTRY("ACF_cluster_to_modelE") ;
                            99 , 0.05 , 0.0005 , 999 , ACF_modelE_costfunc ) ;
 #else
    pp = powell_newuoa_constrained( 3 , xpar , NULL , xbot , xtop ,
-                                   666 , 33 , 7 ,
+                                   666 , 44 , 9 ,
                                    0.05 , 0.0005 , 999 , ACF_modelE_costfunc ) ;
 #endif
 

@@ -37,8 +37,9 @@ set msklist = ( ) ; set nmskGM = 0 ; set nmskGR = 0
 ## We prefer whitened residuals (from 3dREMLfit -Rwherr), but
 ## will process non-whitened residuals if that's all there is
 
-set errts_template_WH    = 'errts.*.WH+tlrc.HEAD'
-set errts_template_OTHER = 'errts.*+tlrc.HEAD'
+set errts_template_WH1   = 'errts.\*.WH+tlrc.HEAD'
+set errts_template_WH2   = 'errts_whitened.\*+tlrc.HEAD'
+set errts_template_OTHER = 'errts.\*+tlrc.HEAD'
 
 echo "========== Scanning for input files =========="
 
@@ -67,21 +68,37 @@ foreach aaa ( $argv )
     set msklist = ( $msklist $mmm )
   endif
 
-  unset eee
-  set eee = ( $aaa/$errts_template_WH )
-  if( $status == 0 && $?eee == 1 && $#eee > 0 )then
-    @ nerrWH++
-  else
-    unset eee
-    set eee = ( $aaa/$errts_template_OTHER )
-    if( $status == 0 && $?eee == 1 && $#eee > 0 )then
-      @ nerrOT++
-    else
-      echo "** ERROR: no file of form $errts_template_WH or $errts_template_OTHER in directory $aaa"
-      @ nbad++
+  unset fff
+  if( $?fff == 0 )then
+    set eee = ( `find $aaa -name errts\*WH\*+tlrc.HEAD` )
+    if( $#eee > 0 )then
+      set fff = $eee[1]
+      @ nerrWH++
     endif
   endif
-  if( $?eee != 0 && $#eee > 0 ) set errlist = ( $errlist $eee[1] )
+ 
+  if( $?fff == 0 )then
+    set eee = ( `find $aaa -name errts\*whitened\*+tlrc.HEAD` )
+    if( $#eee > 0 )then
+      set fff = $eee[1]
+      @ nerrWH++
+    endif
+  endif
+
+  if( $?fff == 0 )then
+    set eee = ( `find $aaa -name errts\*+tlrc.HEAD` )
+    if( $#eee > 0 )
+      set fff = $eee[1]
+      @ nerrOT++
+    endif
+  endif
+
+  if( $?fff == 0 )then
+    echo "** ERROR: no file of form $errts'*'+tlrc.HEAD in directory $aaa"
+    @ nbad++
+  else
+    set errlist = ( $errlist $fff )
+  endif
 
 end
 
@@ -97,10 +114,10 @@ endif
 echo "-- Using $nerrWH prewhitened errts datasets and $nerrOT other errts datasets"
 echo "-- Using $nmskGM gray-matter mask datasets  and $nmskGR group mask datasets"
 
-echo "-- list of errts datasets:"
-echo "   $errlist"
-echo "-- list of mask datasets:"
-echo "   $msklist"
+## echo "-- list of errts datasets:"
+## echo "   $errlist"
+## echo "-- list of mask datasets:"
+## echo "   $msklist"
 
 ## process all the matrices at once to get the collective passband
 
@@ -113,7 +130,9 @@ if( $#bbb < 2 || "$bbb[1]" == "$bbb[2]" )then
   exit 1
 endif
 
+echo "="
 echo "Stimulus passband = $bbb[1] to $bbb[2] Hz"
+echo "="
 
 ## bandpass and 3dFWHMx each noise file separately
 
@@ -142,6 +161,8 @@ end
 
 set bbb = ( `1dsum -mean BPtemp.$rrr.1D` )
 
+cp BPtemp.$rrr.1D BPacf.1D
+
 echo "Average ACF FWHM = $bbb[4] mm"
 
 ## run 3dClustSim
@@ -150,7 +171,7 @@ echo "========== Running 3dClustSim =========="
 
 3dClustSim -acf $bbb[1] $bbb[2] $bbb[3]        \
            -mask $argv[1]/mask_group+tlrc.HEAD \
-           -both -prefix BPclust
+           -both -MEGA -sumup -sumup -prefix BPclust
 
 \rm BPtemp*${rrr}*
 

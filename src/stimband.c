@@ -172,11 +172,6 @@ int main( int argc , char *argv[] )
      if( nt < 16 ) ERROR_exit("Matrix %s has NRowFull=%d -- too small to use!",matnam[mm],nt) ;
      col = (float *)realloc(col,sizeof(float)*nt) ;
 
-     cgl = NI_get_attribute( nel , "Nstim" ) ;
-     if( cgl == NULL ) ERROR_exit("Matrix %s is missing 'NStim' attribute!",matnam[mm]) ;
-     nstim = (int)strtod(cgl,NULL) ;
-     if( nstim <= 0 ) ERROR_exit("Matrix %s has NStim=%d -- doesn't make sense!",matnam[mm],nstim) ;
-
      cgl = NI_get_attribute( nel , "RowTR") ;
      if( cgl == NULL ){
        WARNING_message("Matrix %s is missing 'RowTR' attribute! Assuming TR=1.",matnam[mm]) ;
@@ -186,19 +181,52 @@ int main( int argc , char *argv[] )
        if( tr <= 0.0f ) ERROR_exit("Matrix %s has RowTR=%g -- illegal value!",matnam[mm],tr) ;
      }
 
-     cgl = NI_get_attribute( nel , "StimBots" ) ;
-     if( cgl == NULL ) ERROR_exit("Matrix %s is missing 'StimBots' attribute!",matnam[mm]) ;
-     giar = NI_decode_int_list( cgl , ";," ) ;
-     if( giar == NULL || giar->num < nstim )
-       ERROR_exit("Matrix %s attribute 'StimBots' badly formatted?!",matnam[mm]) ;
-     stim_bot = giar->ar ;
 
-     cgl = NI_get_attribute( nel , "StimTops" ) ;
-     if( cgl == NULL ) ERROR_exit("Matrix %s is missing 'StimTops' attribute!",matnam[mm]) ;
-     giar = NI_decode_int_list( cgl , ";," ) ;
-     if( giar == NULL || giar->num < nstim )
-       ERROR_exit("Matrix %s attribute 'StimTops' badly formatted?!",matnam[mm]) ;
-     stim_top = giar->ar ;
+     /* setup the columns to process, via attributes
+          NStim, StimBots, StimTops (first choice)
+        or via
+          BasisNstim, BasisColumns (the backup procedure) */
+
+     cgl = NI_get_attribute( nel , "Nstim" ) ;
+     if( cgl != NULL ){
+       nstim = (int)strtod(cgl,NULL) ;
+       if( nstim <= 0 ) ERROR_exit("Matrix %s has NStim=%d -- doesn't make sense!",matnam[mm],nstim) ;
+
+       cgl = NI_get_attribute( nel , "StimBots" ) ;
+       if( cgl == NULL ) ERROR_exit("Matrix %s is missing 'StimBots' attribute!",matnam[mm]) ;
+       giar = NI_decode_int_list( cgl , ";," ) ;
+       if( giar == NULL || giar->num < nstim )
+         ERROR_exit("Matrix %s attribute 'StimBots' badly formatted?!",matnam[mm]) ;
+       stim_bot = giar->ar ;
+
+       cgl = NI_get_attribute( nel , "StimTops" ) ;
+       if( cgl == NULL ) ERROR_exit("Matrix %s is missing 'StimTops' attribute!",matnam[mm]) ;
+       giar = NI_decode_int_list( cgl , ";," ) ;
+       if( giar == NULL || giar->num < nstim )
+         ERROR_exit("Matrix %s attribute 'StimTops' badly formatted?!",matnam[mm]) ;
+       stim_top = giar->ar ;
+     } else {
+       char anam[256] ; int *sb , *st , nfail=0 ;
+       cgl = NI_get_attribute( nel , "BasisNstim" ) ;
+       if( cgl == NULL )
+         ERROR_exit("Matrix %s is missing NStim *and* BasisNstim attributes?!",matnam[mm]) ;
+       nstim = (int)strtod(cgl,NULL) ;
+       if( nstim <= 0 ) ERROR_exit("Matrix %s has BasisNStim=%d -- doesn't make sense!",matnam[mm],nstim) ;
+       sb = (int *)malloc(sizeof(int)*nstim) ;
+       st = (int *)malloc(sizeof(int)*nstim) ;
+       for( ss=0 ; ss < nstim ; ss++ ){
+         sprintf(anam,"BasisColumns_%06d",ss+1) ;
+         cgl = NI_get_attribute( nel , anam ) ;
+         if( cgl == NULL ){
+           sb[ss] = 666 ; st[ss] = -666 ; nfail++ ;
+         } else {
+           sscanf(cgl,"%d:%d",sb+ss,st+ss) ;
+         }
+       }
+       if( nfail == nstim )
+         ERROR_exit("Matrix %s is missing all info about which columns are stimuli!",matnam[mm]) ;
+       stim_bot = sb ; stim_top = st ;
+     }
 
      for( ss=0 ; ss < nstim ; ss++ ){
        for( kk=stim_bot[ss] ; kk <= stim_top[ss] ; kk++ ){

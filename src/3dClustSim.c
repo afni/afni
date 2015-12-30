@@ -854,7 +854,7 @@ void get_options( int argc , char **argv )
       nathr = nathr_mega ;
       athr = (double *)realloc(athr,sizeof(double)*nathr) ;
       memcpy( athr , athr_mega , sizeof(double)*nathr ) ;
-#if 1
+#if 0
       athr_sum_bot =  5 ; athr_sum_top = 31 ;
 #else
       athr_sum_bot = 13 ; athr_sum_top = 31 ;
@@ -1031,8 +1031,10 @@ void get_options( int argc , char **argv )
 
   /*------- finalize some simple setup stuff --------*/
 
-  if( do_athr_sum && athr_sum_bot < 0 || athr_sum_top < 0 )  /* 18 Dec 2015 */
+  if( do_athr_sum && athr_sum_bot < 0 || athr_sum_top < 0 ){  /* 18 Dec 2015 */
     do_athr_sum = 0 ;
+    WARNING_message("-sumup canceled") ;
+  }
 
   if( mask_dset != NULL ){
     nx = DSET_NX(mask_dset) ;

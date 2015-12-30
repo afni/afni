@@ -232,9 +232,13 @@ int main( int argc , char *argv[] )
 
    /*--- deal with input ---*/
 
-   if( inset == NULL && ++nopt < argc ){
-     inset = THD_open_dataset(argv[nopt]) ;
-     CHECK_OPEN_ERROR(inset,argv[nopt]) ;
+   if( inset == NULL ){
+     if( nopt < argc ){
+       inset = THD_open_dataset(argv[nopt]) ;
+       CHECK_OPEN_ERROR(inset,argv[nopt]) ;
+     } else {
+       ERROR_exit("No input dataset???") ;
+     }
    }
    nvals = DSET_NVALS(inset) ;
    nvox  = DSET_NVOX(inset) ;

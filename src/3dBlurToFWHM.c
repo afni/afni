@@ -14,6 +14,12 @@ static int verb = 1 ;
 void estimate_blur_map( MRI_IMARR *bmar , byte *mask  , MCW_cluster *nbhd ,
                         float *fxar     , float *fyar , float *fzar        ) ;
 
+#ifdef USE_OMP
+# include <omp.h>
+# include "mri_fwhm.c"
+# include "mri_blur3d_variable.c"
+#endif
+
 /*----------------------------------------------------------------------------*/
 
 int main( int argc , char *argv[] )
@@ -37,7 +43,7 @@ int main( int argc , char *argv[] )
    float last_fwx=0.0f , last_fwy=0.0f , last_fwz=0.0f ;
    float delt_fwx      , delt_fwy      , delt_fwz      ;
    char *bsave_prefix=NULL ;
-   THD_fvec3 fw ;
+   THD_fvec3 fw ; int do_acf=0 ;
    int nbail=0 , xalmost,yalmost,zalmost , xstopped=0,ystopped=0,zstopped=0 ;
    float blurfac , blurmax=BLURMAX ;
    float xrat,yrat,zrat , dmin ;
@@ -57,12 +63,13 @@ int main( int argc , char *argv[] )
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
      printf(
       "Usage: 3dBlurToFWHM [options]\n"
+      "\n"
       "Blurs a 'master' dataset until it reaches a specified FWHM\n"
       "smoothness (approximately).  The same blurring schedule is\n"
       "applied to the input dataset to produce the output.  The goal\n"
       "is to make the output dataset have the given smoothness, no\n"
       "matter what smoothness it had on input (however, the program\n"
-      "cannot 'unsmooth' a dataset!).  See below for the method used.\n"
+      "cannot 'unsmooth' a dataset!).  See below for the METHOD used.\n"
       "\n"
       "OPTIONS\n"
       "-------\n"
@@ -79,8 +86,8 @@ int main( int argc , char *argv[] )
       "                   occur only within the mask.  Voxels NOT in\n"
       "                   the mask will be set to zero in the output.\n"
       " -automask       = Create an automask from the input dataset.\n"
-      "                  **N.B.: Not useful if the input dataset has\n"
-      "                          been detrended before input!\n"
+      "                  **N.B.: Not useful if the input dataset has been\n"
+      "                          detrended or otherwise regressed before input!\n"
       " -FWHM       f   = Blur until the 3D FWHM is 'f'.\n"
       " -FWHMxy     f   = Blur until the 2D (x,y)-plane FWHM is 'f'.\n"
       "                   No blurring is done along the z-axis.\n"
@@ -108,16 +115,18 @@ int main( int argc , char *argv[] )
       "  that the -blurmaster dataset should not have anatomical structure.  One\n"
       "  good form of input is the output of '3dDeconvolve -errts', which is\n"
       "  the residuals left over after the GLM fitted signal model is subtracted\n"
-      "  out from each voxel's time series.\n"
+      "  out from each voxel's time series.  You can also use the output of\n"
+      "  '3dREMLfit -Rerrts' or '3dREMLfit -Rwherr' for this purpose.\n"
       "You CAN give a multi-brick EPI dataset as the -blurmaster dataset; the\n"
       "  dataset will be detrended in time (like the -detrend option in 3dFWHMx)\n"
       "  which will tend to remove the spatial structure.  This makes it\n"
       "  practicable to make the input and blurmaster datasets be the same,\n"
       "  without having to create a detrended or residual dataset beforehand.\n"
       "  Considering the accuracy of blurring estimates, this is probably good\n"
-      "  enough for government work [that is an insider's joke]. \n"
-      "  N.B.: Do not use catenated runs as blurmasters. There \n"
-      "  should be no discontinuities in the time axis of blurmaster.\n"
+      "  enough for government work [that is an insider's joke :-]. \n"
+      "  N.B.: Do not use catenated runs as blurmasters. There should\n"
+      "  be no discontinuities in the time axis of blurmaster, which would\n"
+      "  make the simple regression detrending do peculiar things.\n"
       "\n"
       "ALSO SEE:\n"
       " * 3dFWHMx, which estimates smoothness globally\n"
@@ -175,6 +184,11 @@ int main( int argc , char *argv[] )
       "                        is really a circle in the xy-plane.\n"
       "               ** N.B.: If you do NOT want to estimate local\n"
       "                        smoothness, use '-nbhd NULL'.\n"
+      " -ACF or -acf = Use the 'ACF' method (from 3dFWHMx) to estimate\n"
+      "                the global smoothness, rather than the 'classic'\n"
+      "                Forman 1995 method. This option will be somewhat\n"
+      "                slower.  It will also set '-nbhd NULL', since there\n"
+      "                is no local ACF estimation method implemented.\n"
       " -bsave   bbb = Save the local smoothness estimates at each iteration\n"
       "                with dataset prefix 'bbb' [for debugging purposes].\n"
       " -bmall       = Use all blurmaster sub-bricks.\n"
@@ -305,6 +319,10 @@ int main( int argc , char *argv[] )
        automask = 1 ; iarg++ ; continue ;
      }
 
+     if( strcasecmp(argv[iarg],"-acf") == 0 ){  /* 30 Dec 2015 */
+       do_acf++ ; iarg++ ; continue ;
+     }
+
      if( strcmp(argv[iarg],"-nbhd") == 0 ){
        char *cpt ;
        if( ntype  >  0    ) ERROR_exit("Can't have 2 '-nbhd' options") ;
@@ -351,6 +369,8 @@ int main( int argc , char *argv[] )
    } /*--- end of loop over options ---*/
 
    /*----- check for stupid inputs, load datasets, et cetera -----*/
+
+   if( do_acf ) ntype = NTYPE_NULL ;  /* 30 Dec 2015 */
 
    if( fwhm_goal == 0.0f )
      ERROR_exit("No -FWHM option given! What do you want?") ;
@@ -409,7 +429,8 @@ int main( int argc , char *argv[] )
      if( mask == NULL )
        ERROR_message("Can't create -automask from input dataset?") ;
      nmask = THD_countmask( DSET_NVOX(inset) , mask ) ;
-     if( verb ) INFO_message("Number of voxels in automask = %d",nmask);
+     if( verb ) INFO_message("Number of voxels in automask = %d (out of %d total)",
+                             nmask,DSET_NVOX(inset));
      if( nmask < 333 ) ERROR_exit("Automask is too small to process") ;
 
    } else {
@@ -582,6 +603,12 @@ int main( int argc , char *argv[] )
        ERROR_exit("Can't create blurmaster subset collection? Help me, Mr. Wizard!") ;
    }
 
+   { MRI_IMAGE *bbim = IMARR_SUBIM(bmar,0) ;   /* 30 Dec 2015 */
+     bbim->dx = fabsf(DSET_DX(bmset)) ;
+     bbim->dy = fabsf(DSET_DY(bmset)) ;
+     bbim->dz = fabsf(DSET_DZ(bmset)) ;
+   }
+
    if( !bmeqin ) DSET_unload(bmset) ;
    for( ibm=0 ; ibm < IMARR_COUNT(bmar) ; ibm++ ){
      IMARR_SUBIM(bmar,ibm)->dx = dx ;
@@ -704,22 +731,32 @@ int main( int argc , char *argv[] )
 
      /*--- global smoothness estimation into bx,by,bz ---*/
 
-     fw = mriarr_estimate_FWHM_1dif( bmar , mask , do_unif ) ;
+     if( !do_acf ){  /* the old way */
+       fw = mriarr_estimate_FWHM_1dif( bmar , mask , do_unif ) ;
+       UNLOAD_FVEC3(fw,bx,by,bz) ;
+     } else {        /* the ACF way [30 Dec 2015] */
+       bx = mriarr_estimate_FWHM_acf( bmar, mask, do_unif, 3.0f*fwhm_goal ) ;
+       by = bz = bx ;  /* spherical assumption */
+     }
 
-     UNLOAD_FVEC3(fw,bx,by,bz) ;
      if( bx <= 0.0f ) bx = dx ;  /* should not happen */
      if( by <= 0.0f ) by = dy ;
      if( bz <= 0.0f ) bz = dz ;
 
      /*--- test for progress towards our goal ---*/
 
-     if( fwhm_2D ){
+     if( fwhm_2D ){                 /*-- 2D work --*/
        val = (float)sqrt(bx*by) ;
        if( verb )
          INFO_message("-- Iteration #%d: 2D FWHMx=%.4f FWHMy=%.4f sqrt()=%.4f",
                       nite,bx,by,val) ;
        if( val >= fwhm_goal ){
-         if( verb ) INFO_message("** Passes 2D threshold sqrt(FWHMx*FWHMy) ==> done!");
+         if( verb ){
+           if( !do_acf )
+             INFO_message("** Passes 2D threshold sqrt(FWHMx*FWHMy) ==> done!");
+           else
+             INFO_message("** Passes 2D threshold for ACF FWHM ==> done!");
+         }
          break;
        }
        if( nite > 3 && bx < last_fwx && by < last_fwy ){  /* negative progress? */
@@ -740,14 +777,23 @@ int main( int argc , char *argv[] )
        xstall  = (!xdone && (bx < last_fwx && nbail==BAILOUT)) ;  /* is x going backwards? */
        ystall  = (!ydone && (by < last_fwy && nbail==BAILOUT)) ;  /* is y going backwards? */
        zstall  = 1 ;
-     } else {
+     } else {                       /*--- 3D work ---*/
        val = (float)cbrt(bx*by*bz) ;
-       if( verb )
-         INFO_message("-- Iteration #%d: 3D FWHMx=%.4f FWHMy=%.4f FWHMz=%.4f cbrt()=%.4f",
-                      nite,bx,by,bz,val) ;
+       if( verb ){
+         if( !do_acf )
+           INFO_message("-- Iteration #%d: 3D FWHMx=%.4f FWHMy=%.4f FWHMz=%.4f cbrt()=%.4f",
+                        nite,bx,by,bz,val) ;
+         else
+           INFO_message("-- Iteration #%d: 3D ACF FWHM=%.4f",nite,val) ;
+       }
        if( val >= fwhm_goal ){
-         if( verb )
-           INFO_message("** Passes 3D threshold cbrt(FWHMx*FWHMy*FWHMz) ==> done!");
+         if( verb ){
+           if( !do_acf ){
+             INFO_message("** Passes 3D threshold cbrt(FWHMx*FWHMy*FWHMz) ==> done!");
+           } else {
+             INFO_message("** Passes 3D threshold for ACF FWHM ==> done!") ;
+           }
+         }
          break;
        }
        if( nite > 3 && bx < last_fwx && by < last_fwy && bz < last_fwz ){  /* negative progress? */
@@ -1026,20 +1072,28 @@ int main( int argc , char *argv[] )
      /*--- blur the master and the input ---*/
 
      if( verb ) ININFO_message(" Blurring %d voxels in master",nblur) ;
+ AFNI_OMP_START ;
+#pragma omp parallel if( IMARR_COUNT(bmar) > 2 )
+ { int ii ;
+#pragma omp for
      for( ii=0 ; ii < IMARR_COUNT(bmar) ; ii++ )
        mri_blur3D_variable( IMARR_SUBIM(bmar,ii) , mask , fxim,fyim,fzim ) ;
+ }
+ AFNI_OMP_END ;
 
      if( verb ) ININFO_message(" Blurring input") ;
+ AFNI_OMP_START ;
+#pragma omp parallel if( IMARR_COUNT(dsar) > 2 )
+ { int ii ;
+#pragma omp for
      for( ii=0 ; ii < IMARR_COUNT(dsar) ; ii++ )
        mri_blur3D_variable( IMARR_SUBIM(dsar,ii) , mask , fxim,fyim,fzim ) ;
+ }
+ AFNI_OMP_END ;
 
-#if 0
-     (void)mriarr_estimate_FWHM_1dif( dsar , mask , do_unif ) ;
-#endif
+   } /*-- loop back to estimate smoothness, check done-ness, smooth, etc --*/
 
-   } /*-- loop back to estimate smoothness, etc --*/
-
-   /*----- toss some trash ---*/
+   /*----- tossolo some trashola ---*/
 
    DESTROY_IMARR(bmar) ;
 
@@ -1067,14 +1121,15 @@ int main( int argc , char *argv[] )
    DSET_write(outset) ;
    WROTE_DSET(outset) ;
 
-   /*--- 3dFWHMx ---*/
+   /*--- run 3dFWHMx for fun and profit(?) ---*/
 
    if( verb ){
      char *buf , *pg ;
      pg  = THD_find_executable("3dFWHMx") ;
      buf = malloc(     ((pg != NULL) ? strlen(pg)+999 : 999      ) ) ;
      sprintf(buf,"%s", ((pg != NULL) ? pg             : "3dFWHMx") ) ;
-     sprintf(buf+strlen(buf)," -arith") ;
+     if( !do_acf ) sprintf(buf+strlen(buf)," -arith") ;
+     else          sprintf(buf+strlen(buf)," -acf %s.1D",prefix ) ;
      if( do_unif )
        sprintf(buf+strlen(buf)," -unif") ;
      else if( corder_bm > 0 )
@@ -1083,14 +1138,18 @@ int main( int argc , char *argv[] )
        sprintf(buf+strlen(buf)," -automask") ;
      else if( mset != NULL )
        sprintf(buf+strlen(buf)," -mask %s",DSET_BRIKNAME(mset)) ;
-     sprintf(buf+strlen(buf)," %s",DSET_BRIKNAME(outset)) ;
+     sprintf(buf+strlen(buf)," -input %s",DSET_BRIKNAME(outset)) ;
      if( pg != NULL ){
-         INFO_message("Checking results by running command below:") ;
+         INFO_message("-------------------------------------------------------") ;
+       ININFO_message("Checking results by running command below:") ;
        ININFO_message(" %s",buf) ;
        (void)system(buf) ;
+         INFO_message("-------------------------------------------------------") ;
      } else {
-         INFO_message("To check results, run the command below:") ;
+         INFO_message("-------------------------------------------------------") ;
+       ININFO_message("To check results, run the command below:") ;
        ININFO_message(" %s",buf) ;
+         INFO_message("-------------------------------------------------------") ;
      }
      free(buf) ;
    }
