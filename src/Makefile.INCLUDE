@@ -651,10 +651,6 @@ dsetdup:dsetdup.o
 	$(RM) $@
 	$(CC) -o 3dmaskSVD 3dmaskSVD.o $(LFLAGS) $(LLIBS)
 
-3dBlurToFWHM:3dBlurToFWHM.o
-	$(RM) $@
-	$(CCFAST) -o 3dBlurToFWHM 3dBlurToFWHM.o $(LFLAGS) $(LLIBS)
-
 3dDFT:3dDFT.o
 	$(RM) $@
 	$(CC) -o 3dDFT 3dDFT.o $(LFLAGS) $(LLIBS)
@@ -1227,6 +1223,14 @@ qqqOMP.o: qqqOMP.c
 qqqOMP:qqqOMP.o
 	$(RM) $@
 	$(CCOMP) -o qqqOMP qqqOMP.o $(LFLAGS) $(LLIBS)
+
+3dBlurToFWHM.o: 3dBlurToFWHM.c mri_fwhm.c
+	$(RM) $@
+	$(CCOMP) -c 3dBlurToFWHM.c $(INFLAGS)
+
+3dBlurToFWHM:3dBlurToFWHM.o
+	$(RM) $@
+	$(CCOMP) -o 3dBlurToFWHM 3dBlurToFWHM.o $(LFLAGS) $(LLIBS)
 
 3dFWHMx.o: 3dFWHMx.c mri_fwhm.c
 	$(RM) $@

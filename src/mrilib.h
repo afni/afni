@@ -853,6 +853,7 @@ extern char *      mri_dicom_hdrinfo( char *fname, int natt, char **att , int np
    memset(mri_data_pointer(iq),0,(iq)->nvox*(iq)->pixel_size)
 
 extern int mri_allzero( MRI_IMAGE *im ) ;  /* check if all pixels are 0 */
+extern int mri_nonzero_count( MRI_IMAGE *im ) ; /* 28 Dec 2015 */
 
 extern MRI_IMAGE * mri_zeropad_3D( int,int,int,int,int,int , MRI_IMAGE * ) ;
 extern MRI_IMAGE * mri_valpad_2D( int,int,int,int, MRI_IMAGE *, byte val ) ;
@@ -2032,6 +2033,7 @@ extern MRI_IMAGE * THD_estimate_FWHM_all( THD_3dim_dataset *, byte *, int,int ) 
 extern void FHWM_1dif_dontcheckplus( int ) ;
 extern THD_fvec3 mriarr_estimate_FWHM_1dif( MRI_IMARR *, byte * , int ) ;
 
+
 extern THD_fvec3 mri_estimate_FWHM_12dif( MRI_IMAGE * , byte * ) ;
 extern THD_fvec3 mri_estimate_FWHM_12dif_MAD( MRI_IMAGE * , byte * ) ; /* 24 Mar 2010 */
 
@@ -2041,6 +2043,7 @@ extern MCW_cluster * THD_estimate_ACF( THD_3dim_dataset *dset,
                                        byte *mask, int demed, int unif, float radius ) ;
 extern float_quad ACF_cluster_to_modelE( MCW_cluster *acf, float dx, float dy, float dz ) ;
 extern MRI_IMAGE * ACF_get_1D(void) ;
+extern float mriarr_estimate_FWHM_acf( MRI_IMARR *imar, byte *mask, int unif, float radius ) ;
 
 void mri_fwhm_setfester( THD_fvec3 (*func)(MRI_IMAGE *, byte *) ) ;
 
