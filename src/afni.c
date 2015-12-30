@@ -46,6 +46,8 @@
 /* if the compiler wants to 'show off' the name of this
    edition of AFNI, then turn that macro into a string. */
 
+/* SHSTRING comes from mrilib.h via debugtrace.h */
+
 #ifdef SHOWOFF
 # undef  SHSH
 # undef  SHSHSH
@@ -1972,7 +1974,7 @@ int main( int argc , char *argv[] )
    GLOBAL_argopt.allow_rt = check_string("-rt",argc,argv) ;
 
    if( !GLOBAL_argopt.quiet && !ALLOW_realtime )
-#if 0
+#if 1 /* 30 Dec 2015 */
      AFNI_start_version_check() ;               /* 21 Nov 2002 */
 #else
      AFNI_start_compile_date_check() ;          /* 17 Jun 2014 */
@@ -2848,55 +2850,13 @@ ENTRY("AFNI_startup_timeout_CB") ;
 
    /* 21 Nov 2002: check the AFNI version */
 
-#if 0
-   vv = AFNI_version_check() ; /* nada if AFNI_start_version_check() inactive */
+/* changed if 0 to if 1 to revert to version_check()   30 Dec 2015 */
+#if 1
+   /* do nothing if AFNI_start_version_check() says inactive */
+   vv = AFNI_version_check() ;
 
    if( vv && vers_pixmap != XmUNSPECIFIED_PIXMAP )     /* 08 Aug 2005 */
      AFNI_vcheck_flasher(im3d) ;
-
-#ifdef SHSTRING
-   if( vv ){  /* 20 Nov 2003: if version check shows a mismatch */
-     char *sname = AFNI_make_update_script() ;
-
-     if( sname != NULL ){
-       char *cpt , *ddd ; int nn ;
-       ddd = strdup(sname) ; cpt = THD_trailname(ddd,0) ; *cpt = '\0' ;
-       cpt = THD_trailname(sname,0) ;
-       fprintf(stderr,
-               "\n"
-               "*===================================================\n"
-               "* A script to update AFNI binaries has been created.\n"
-               "* To use it, quit AFNI now, then try the commands\n"
-               "pushd %s\n"
-               "source %s\n"
-               "popd\n"
-               "*===================================================\n" ,
-               ddd , cpt ) ;
-       free((void *)ddd) ;
-       nn = THD_freemegabytes(sname) ;
-       if( nn >= 0 && nn <= 300 ){
-         fprintf(stderr,
-               "* HOWEVER: you only have %d Mbytes free, which won't\n"
-               "*          won't be enough to download and install\n"
-               "*          the updated set of AFNI binaries!\n"
-               "*===================================================\n" ,
-               nn ) ;
-       }
-     } else {
-       fprintf(stderr,
-               "\n"
-               "*==================================================\n"
-               "* Can't create script for updating AFNI\n"
-               "*   binaries in your AFNI directory.\n"
-               "* You'll have to get your sysadmin to help, or\n"
-               "*   do it yourself.  AFNI can be downloaded from\n"
-               "*     http://afni.nimh.nih.gov/afni/download   *OR*\n"
-               "*     ftp://afni.nimh.nih.gov/tgz\n"
-               "*   You want file " SHSTRING ".tgz\n"
-               "*==================================================\n" ) ;
-     }
-   }
-#endif /* SHSTRING */
 
 #else
 

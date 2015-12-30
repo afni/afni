@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 30,  Dec, 2015, RCR, "afni-general", MAJOR, TYPE_ENHANCE,
+   "w/DRG implement new version system",
+   "See http://afni.nimh.nih.gov/pub/dist/MOTD/MOTD_2015_12_30.txt ."
+ } ,
+
  { 29,  Dec, 2015, RCR, "afni_system_check.py", MICRO, TYPE_BUG_FIX,
    "catch any empty directory listing from @FindAfniDsetPath",
    NULL
