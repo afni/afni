@@ -716,8 +716,8 @@ int main( int argc , char *argv[] )
      hz   = 0.8f*gz ; qz = 1.0f/(gz-hz) ;
    }
    maxfxyz    = blurfac / numfxyz ;  /* maximum lambda */
-#if 0
-   fwhm_goal *= 0.995f ;            /* fudge factor */
+#if 1
+   if( do_acf ) fwhm_goal *= 0.985f ;  /* fudge factor */
 #endif
 
    /*----------- Do the work:
@@ -1129,7 +1129,7 @@ int main( int argc , char *argv[] )
      buf = malloc(     ((pg != NULL) ? strlen(pg)+999 : 999      ) ) ;
      sprintf(buf,"%s", ((pg != NULL) ? pg             : "3dFWHMx") ) ;
      if( !do_acf ) sprintf(buf+strlen(buf)," -arith") ;
-     else          sprintf(buf+strlen(buf)," -acf %s.1D",prefix ) ;
+     else          sprintf(buf+strlen(buf)," -acf %s.1D %.3g",prefix,3.0*fwhm_goal ) ;
      if( do_unif )
        sprintf(buf+strlen(buf)," -unif") ;
      else if( corder_bm > 0 )
