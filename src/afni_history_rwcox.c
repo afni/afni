@@ -43,7 +43,11 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 22 , DEC , 2015 , RWC , "3dvolreg" , MICRO , TYPE_MODIFY ,
+  { 30 , DEC , 2015 , RWC , "3dBlurToFWHM" , MINOR , TYPE_NEW_OPT ,
+   "add -acf option, to estimate FWHM via the ACF method" ,
+   NULL } ,
+
+ { 22 , DEC , 2015 , RWC , "3dvolreg" , MICRO , TYPE_MODIFY ,
    "Make '-final linear' work, and put it in the help output." ,
    "For Daniel Handwerker.  Don't say I never gave you a Christmas present!" } ,
 

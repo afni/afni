@@ -179,7 +179,8 @@ int main( int argc , char *argv[] )
 #endif
       "              * If 'anam' is not given (that is, another option starting\n"
       "                with '-' immediately follows '-acf'), then '3dFWHMx.1D' will\n"
-      "                be used for this filename.\n"
+      "                be used for this filename. If 'anam' is set to 'NULL', then\n"
+      "                the corresponding output files will not be saved.\n"
       "              * By default, the ACF is computed out to a radius based on\n"
       "                a multiple of the 'classic' FWHM estimate.  If you want to\n"
       "                specify that radius (in mm), you can put that value after\n"
@@ -566,7 +567,7 @@ int main( int argc , char *argv[] )
 
    if( do_acf ){
      MCW_cluster *acf ; int pp ;
-     if( acf_rad <= 0.0f ) acf_rad = 2.777f * ccomb ;
+     if( acf_rad <= 0.0f ) acf_rad = 2.999f * ccomb ;
      INFO_message("start ACF calculations out to radius = %.2f mm",acf_rad) ;
      acf = THD_estimate_ACF( inset , mask , demed,unif , acf_rad ) ;
      if( acf == NULL ) ERROR_exit("Error calculating ACF :-(") ;
@@ -580,11 +581,11 @@ int main( int argc , char *argv[] )
               acf->i[pp] , acf->j[pp] , acf->k[pp] , acf->mag[pp] ) ;
 #endif
 
-     acf_Epar = ACF_cluster_to_modelE( acf , fabsf(DSET_DX(inset)) ,
+     acf_Epar = ACF_cluster_to_modelE( acf, fabsf(DSET_DX(inset)) ,
                                             fabsf(DSET_DY(inset)) ,
                                             fabsf(DSET_DZ(inset)) ) ;
 
-     if( acf_fname != NULL ) acf_im = ACF_get_1D() ;
+     if( acf_fname != NULL && strcmp(acf_fname,"NULL") != 0 ) acf_im = ACF_get_1D() ;
 
      ININFO_message("ACF done (%.2f CPU s thus far)",COX_cpu_time()-ct) ;
 

@@ -64,6 +64,10 @@ float THD_stat_to_pval( float thr , int statcode , float *stataux )
 }
 
 /****************************************************************/
+/* pval is 2-sided tail probability for
+     FUNC_COR_TYPE  FUNC_TT_TYPE  FUNC_ZT_TYPE
+   is 1-sided (upper) tail probability for the others
+*//**************************************************************/
 
 float THD_pval_to_stat( float pval , int statcode , float *stataux )
 {

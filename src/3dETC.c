@@ -2,17 +2,38 @@
 
 /* CATIE = Clustering Across Threshold Intervals Equitably */
 /* ETC   = Equitable Threshold Clustering */
+/* ETIC  = Equitable Threshold Interval Clustering */
 /* CWET  = Clustering With Equitable Thresholding */
-/* TICS  = Threshold Interal Cluster Significance */
+/* TICS  = Threshold Interval Cluster Significance */
+/* SETIC = Significance of Equitable Threshold Interval Clustering */
+/* CITES = Cluster Interval Thresholding with Equitable Significance */
+
+/*----------------------------------------------------------------------------*/
+/* bim      = image to clusterize
+   statcode = statistical code for tim
+   statpar  = statistical parameters for tim
+   tim      = threshold image
+   mask     = mask (or NULL)
+   nthresh  = number of thresholds
+   pthr     = p-value of thresholds [nthresh of them]
+   cthr     = cluster size of thresholds [nthresh]
+   nnlev    = NN level (1 or 2 or 3)
+   signmeth = sign method:
+                0 = normal method
+                1 = keep only positive values from tim
+               -1 = keep only negative values from tim
+               66 = bi-sided clustering
+*//*--------------------------------------------------------------------------*/
 
 MRI_IMAGE * mri_multi_threshold_clusterize(
               MRI_IMAGE *bim ,
               int statcode , float *statpar , MRI_IMAGE *tim ,
               byte *mask ,
-              int nthresh , float *thr , float *cthr ,
-              int nnlev , int thr_signed              )
+              int nthresh , float *pthr , float *cthr ,
+              int nnlev , int signmeth                 )
 {
-   int nx,ny,nz , ith,iclu,ptmin ; float rmm ; size_t ndar ;
+   int nx,ny,nz , ith,iclu,ptmin,ngood,nadd ; size_t ndar ;
+   float rmm,pval,thr ;
    MRI_IMAGE *cim ; float *car ;
    MRI_IMAGE *uim ; float *uar ;
    MRI_IMAGE *dim ; float *dar ;
@@ -21,8 +42,8 @@ MRI_IMAGE * mri_multi_threshold_clusterize(
 
 ENTRY("mri_multi_threshold_clusterize") ;
 
-   if( bim == NULL || tim == NULL                 ) RETURN(NULL) ;
-   if( nthresh < 1 || thr == NULL || cthr == NULL ) RETURN(NULL) ;
+   if( bim == NULL || tim  == NULL                 ) RETURN(NULL) ;
+   if( nthresh < 1 || pthr == NULL || cthr == NULL ) RETURN(NULL) ;
 
    nx = bim->nx ; ny = bim->ny ; nz = bim->nz ;
    if( tim->nx != nx || tim->ny != ny || tim->nz != nz ) RETURN(NULL) ;
@@ -30,12 +51,12 @@ ENTRY("mri_multi_threshold_clusterize") ;
    /* float copy of input volumes */
 
    cim = mri_to_float(bim) ; car = MRI_FLOAT_PTR(cim) ;
-   uim = mri_to_float(bim) ; uar = MRI_FLOAT_PTR(cim) ;
+   uim = mri_to_float(tim) ; uar = MRI_FLOAT_PTR(uim) ;
 
    /* edit the input volumes as ordered */
 
-        if( thr_signed > 0 ) mri_threshold( -1.e22 , 0.0 , uim , uim ) ;
-   else if( thr_signed < 0 ) mri_threshold(  0.0 , 1.e22 , uim , uim ) ;
+        if( signmeth ==  1 ) mri_threshold( -1.e33 , 0.0 , uim , uim ) ;
+   else if( signmeth == -1 ) mri_threshold(  0.0 , 1.e33 , uim , uim ) ;
    mri_maskify( uim , mask ) ; mri_maskify( cim , mask ) ;
 
    switch( nnlev ){
@@ -53,18 +74,40 @@ ENTRY("mri_multi_threshold_clusterize") ;
 
    for( ith=0 ; ith < nthresh ; ith++ ){
      memcpy( dar , car , ndar ) ;
-     mri_threshold( -thr[ith] , thr[ith] , uim , dim ) ;
+     pval = pthr[ith] ;
+#if 0
+     if( statcode != FUNC_FT_TYPE &&
+         THD_stat_is_2sided(statcode,signmeth) ) pval *= 2.0f ;
+#endif
+     thr = THD_pval_to_stat(pval,statcode,statpar) ;
+     mri_threshold( -thr , thr , uim , dim ) ;
 
-     clar = MCW_find_clusters( nx,ny,nz , 1.0f,1.0f,1.0f , MRI_float,dar , rmm ) ;
+     if( signmeth != 66 )
+       clar = MCW_find_clusters( nx,ny,nz, 1.0f,1.0f,1.0f, MRI_float,dar,rmm ) ;
+     else
+       ERROR_exit("bi_clusterize not implemented yet :-(") ;
 
-     if( clar == NULL ) break ;
+     if( clar == NULL ){
+#if 1
+ININFO_message("ith=%d pthr=%g thr=%g cthr=%g nclu=0 nclu_good=0 nvox_add=0" ,
+  ith,pval,thr,cthr[ith] ) ;
+#endif
+       continue ; /* pval threshold so high that we got nuthin */
+     }
 
      ptmin = (int)(cthr[ith]+0.951f) ;
-     for( iclu=0 ; iclu < clar->num_clu ; iclu++ ){
+     for( nadd=ngood=iclu=0 ; iclu < clar->num_clu ; iclu++ ){
        cl = clar->clar[iclu] ;
-       if( cl->num_pt >= ptmin )
+       if( cl->num_pt >= ptmin ){
          MCW_cluster_to_vol( nx,ny,nz , MRI_float,ear , cl ) ;
+         ngood++ ; nadd += cl->num_pt ;
+       }
      }
+
+#if 1
+ININFO_message("ith=%d pthr=%g thr=%g cthr=%g nclu=%d nclu_good=%d nvox_add=%d" ,
+  ith,pval,thr,cthr[ith],(clar==NULL)?0:clar->num_clu,ngood,nadd ) ;
+#endif
    }
 
    mri_free(dim) ; mri_free(uim) ; mri_free(cim) ;
@@ -76,9 +119,10 @@ ENTRY("mri_multi_threshold_clusterize") ;
 int main( int argc , char *argv[] )
 {
    THD_3dim_dataset *dset=NULL , *oset=NULL ;
-   MRI_IMAGE *thim=NULL ; float *thar ; int nthar ; byte *mask=NULL ;
-   MRI_IMAGE *datim=NULL, *thrim=NULL ;
-   int iarg , dind=0 , tind=1 , ith ;
+   MRI_IMAGE *thim=NULL ; float *thar ; int nthar ;
+   byte *mask=NULL ; int nmask=0 ;
+   MRI_IMAGE *datim=NULL, *thrim=NULL , *outim=NULL ;
+   int iarg , dind=0 , tind=1 , ith , nnlev=1 ;
    int scode ; float *spar=NULL ;
    char *prefix = "ETC.nii" ;
 
@@ -98,6 +142,7 @@ int main( int argc , char *argv[] )
       " -mask   mmm  = dataset with mask\n"
       " -1dindex ii  = output comes from sub-brick #ii\n"
       " -1tindex jj  = threshold on sub-brick #jj\n"
+      " -NN      nn  = nn is 1 or 2 or 3 [default 1]\n"
       "\n"
       "-- Experimental - RWCox - 24 Dec 2015\n"
      ) ;
@@ -120,8 +165,8 @@ int main( int argc , char *argv[] )
        iarg++ ; continue ;
      }
 
-     if( strcmp(argv[nopt],"-mask") == 0 ){
-       bytevec *bvec ;
+     if( strcasecmp(argv[iarg],"-mask") == 0 ){
+       bytevec *bvec ; int nmask_hits ;
        if( mask != NULL )
          ERROR_exit("Can't use '-mask' twice!") ;
        if( ++iarg >= argc )
@@ -132,10 +177,11 @@ int main( int argc , char *argv[] )
        mask = bvec->ar ; nmask = bvec->nar ;
        nmask_hits = THD_countmask( nmask , mask ) ;
        if( nmask_hits > 0 )
-         INFO_message("%d voxels in -mask dataset",nmask_hits) ;
+         INFO_message("%d voxels in -mask definition (out of %d total)",
+                      nmask_hits,nmask) ;
        else
          ERROR_exit("no nonzero voxels in -mask dataset") ;
-       nopt++ ; continue ;
+       iarg++ ; continue ;
      }
 
 
@@ -166,12 +212,30 @@ int main( int argc , char *argv[] )
        iarg++ ; continue ;
      }
 
+     if( strcasecmp(argv[iarg],"-NN") == 0 ){
+       if( ++iarg >= argc )
+         ERROR_exit("Option '%s' needs an argument to follow!",argv[iarg-1]) ;
+       nnlev = (int)strtod(argv[iarg],NULL) ;
+       if( nnlev < 1 || nnlev > 3 )
+         ERROR_exit("-nnlev '%s' is illegal!",argv[iarg]) ;
+       iarg++ ; continue ;
+     }
+
+     if( strcasecmp(argv[iarg],"-NN1") == 0 ){
+       nnlev = 1 ; iarg++ ; continue ;
+     }
+     if( strcasecmp(argv[iarg],"-NN2") == 0 ){
+       nnlev = 2 ; iarg++ ; continue ;
+     }
+     if( strcasecmp(argv[iarg],"-NN3") == 0 ){
+       nnlev = 3 ; iarg++ ; continue ;
+     }
+
      if( strcasecmp(argv[iarg],"-thresh") == 0 ){
        int nbad=0 ;
        if( thim != NULL )
          ERROR_exit("You can't use option '%s' twice!",argv[iarg]) ;
-       if( ++iarg >= argc )
-         ERROR_exit("Option '%s' needs an argument to follow!",argv[iarg-1]) ;
+       if( ++iarg >= argc ) ERROR_exit("Option '%s' needs an argument to follow!",argv[iarg-1]) ;
        thim = mri_read_1D( argv[iarg] ) ;
        if( thim == NULL )
          ERROR_exit("Cannot read file from option -thresh '%s'",argv[iarg]) ;
@@ -192,7 +256,8 @@ int main( int argc , char *argv[] )
          ERROR_exit("Some value%s in -thresh '%s' Column #2 %s less than 1 :-(",
                     (nbad==1)?"\0":"s" , argv[iarg] ,
                     (nbad==1)?"is":"are" ) ;
-       iarg++ ;
+       INFO_message("-thresh table has %d levels of thresholding",nthar) ;
+       iarg++ ; continue ;
      }
 
      ERROR_exit("Unknown option '%s' :-(",argv[iarg] ) ; exit(1) ;
@@ -201,7 +266,7 @@ int main( int argc , char *argv[] )
    /*-- did we get the input dataset yet? --*/
 
    if( dset == NULL ){
-     if( iarg > = argc ) ERROR_exit("no input dataset?!") ;
+     if( iarg >= argc ) ERROR_exit("no input dataset?!") ;
      dset = THD_open_dataset( argv[iarg] ) ;
      CHECK_OPEN_ERROR(dset,argv[iarg]) ;
      DSET_load(dset) ; CHECK_LOAD_ERROR(dset) ;
@@ -210,13 +275,8 @@ int main( int argc , char *argv[] )
 
    /*-- check things --*/
 
-   if( mset != NULL ){
-     if( DSET_NX(mset) != DSET_NX(dset) ||
-         DSET_NY(mset) != DSET_NY(dset) || DSET_NZ(mset) != DSET_NZ(dset) )
-       ERROR_exit("mask and input datasets don't match in x,y,z grid sizes") ;
-     if( ! EQUIV_GRIDS(mset,dset) )
-       WARNING_message("mask and input datasets don't have same x,y,z coordinate system") ;
-   }
+   if( nmask > 0 && DSET_NVOX(dset) != nmask )
+     ERROR_exit("mask and input datasets don't match in number of voxels") ;
 
    if( thim == NULL ) ERROR_exit("no -thresh option was given!?") ;
 
@@ -236,11 +296,34 @@ int main( int argc , char *argv[] )
    thrim = THD_extract_float_brick( tind , dset ) ;
    if( datim == NULL || thrim == NULL )  /* should be impossible */
      ERROR_exit("Can't get data and/or thresh data from input dataset???") ;
+   DSET_unload(dset) ;
 
    scode = DSET_BRICK_STATCODE(dset,tind) ;
    if( scode < 0 )
      ERROR_exit("thresh sub-brick index %d is NOT a statistical volume!?",tind) ;
    spar = DSET_BRICK_STATAUX(dset,tind) ;
+
+#if 1
+INFO_message("value range in thrim = %g .. %g",mri_min(thrim),mri_max(thrim)) ;
+#endif
+
+   outim = mri_multi_threshold_clusterize(
+             datim , scode,spar,thrim , mask ,
+             nthar , thar , thar+nthar , nnlev , 0 ) ;
+
+   oset = EDIT_empty_copy(dset) ;
+   EDIT_dset_items( oset ,
+                      ADN_prefix    , prefix ,
+                      ADN_nvals     , 1 ,
+                      ADN_ntt       , 0 ,
+                      ADN_brick_fac , NULL ,
+                      ADN_type      , HEAD_FUNC_TYPE ,
+                      ADN_func_type , FUNC_BUCK_TYPE ,
+                    ADN_none ) ;
+   EDIT_substitute_brick( oset , 0 , MRI_float , MRI_FLOAT_PTR(outim) ) ;
+   DSET_write(oset) ; WROTE_DSET(oset) ;
+
+   INFO_message("# nonzero voxels = %d",mri_nonzero_count(outim)) ;
 
    exit(0) ;
 }
