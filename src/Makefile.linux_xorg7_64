@@ -46,7 +46,6 @@ CC     = /usr/bin/gcc -O2 -m64 -fPIC -DREAD_WRITE_64 -DLINUX2 -DXORG7 $(CEXTRA)
 CCVOL  = /usr/bin/gcc -O2 -m64 -fPIC -DREAD_WRITE_64 -DLINUX2 -DXORG7 $(CEXTRA)
 CCFAST = /usr/bin/gcc -O2 -m64 -fPIC -DREAD_WRITE_64 -DLINUX2 -DXORG7 $(CEXTRA)
 # apply compiler version 3.2 (consider also 3.4)      19 May 2010 [rickr]
-CCOLD  = /usr/bin/gcc -V 32 -O2 -m64 -fPIC -ffast-math -mmmx -DREAD_WRITE_64 -DLINUX2 -DXORG7 $(CEXTRA)
 
 # The following line includes compiling for the SSE operations.
 # However, I found that it actually makes things worse in some test code.

@@ -10,7 +10,6 @@ CCVOL  = cc -O2  -DDARWIN -DNO_GAMMA $(CEXTRA)
 CCFAST = cc -O2  -DDARWIN -DNO_GAMMA $(CEXTRA)
 CCMIN  = cc
 CCD    = $(CC) $(CCDEBS)
-CCOLD  = $(CC)
 
 IFLAGS = -I. -I/usr/include -I/usr/include/sys -I/usr/X11R6/include
 LFLAGS = -L. -L/usr/X11R6/lib

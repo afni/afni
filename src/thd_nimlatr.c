@@ -1,6 +1,6 @@
 #include "mrilib.h"
 #include "thd.h"
-#include "niml.h"
+#include "niml/niml.h"
 
 /*---------------------------------------------------------------------*/
 /*! Write all the attributes for a datablock into a set of NIML data

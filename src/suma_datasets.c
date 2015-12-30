@@ -11,7 +11,7 @@ See SUMA_Makefile_NoDev
 #include <sys/time.h>
 #include <math.h>
 #include "mrilib.h"
-#include "niml.h"
+#include "niml/niml.h"
 #include "../niml/niml_private.h"
 #include "xutil.h"
 

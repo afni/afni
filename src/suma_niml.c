@@ -1,4 +1,4 @@
-#include "niml.h"
+#include "niml/niml.h"
 #include "suma_types.h"
 
 /*------------------------------------------------------------------*/

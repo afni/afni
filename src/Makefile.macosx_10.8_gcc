@@ -48,7 +48,6 @@ CCVOL  = /usr/local/bin/gcc -O2 -DDARWIN $(CEXTRA)
 CCFAST = /usr/local/bin/gcc -O2 -DDARWIN $(CEXTRA)
 CCMIN  = /usr/local/bin/gcc -m64
 CCD    = $(CC) $(CCDEBS)
-CCOLD  = $(CC)
 
 OMPFLAG = -fopenmp -DUSE_OMP
 

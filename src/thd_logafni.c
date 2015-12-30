@@ -1,4 +1,4 @@
-#include "niml.h"
+#include "niml/niml.h"
 #include "afni_environ.h"
 
 #undef  AFNI_SERVER

@@ -45,7 +45,6 @@ CCVOL  = cc -O2  -DDARWIN $(CEXTRA)
 CCFAST = cc -O2  -DDARWIN $(CEXTRA)
 CCMIN  = cc -m64
 CCD    = $(CC) $(CCDEBS)
-CCOLD  = $(CC)
 
 OMPFLAG = -fopenmp -DUSE_OMP
 

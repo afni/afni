@@ -62,7 +62,7 @@
 
 struct THD_3dim_dataset ;  /* incomplete definition */
 
-#include "niml.h"          /* NIML */
+#include "niml/niml.h"          /* NIML */
 #include "afni_suma.h"     /* SUrface MApper */
 
 #ifdef  __cplusplus

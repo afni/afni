@@ -1,4 +1,4 @@
-#include "niml.h"
+#include "niml/niml.h"
 
 /*--- Copy stdin to a NI_stream ---*/
 
