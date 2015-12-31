@@ -1672,7 +1672,7 @@ extern float mri_scaled_diff( MRI_IMAGE *bim, MRI_IMAGE *nim, MRI_IMAGE *msk ) ;
 
 /*------------------------------------------------------------------*/
 
-#include "AFNI_label.h"
+#include "AFNI_version.h"
 #undef  PRINT_VERSION
 #define PRINT_VERSION(pp)                                             \
  do{ if( !machdep_be_quiet() )                                        \
