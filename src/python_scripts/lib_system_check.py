@@ -129,7 +129,7 @@ class SysInfo:
       cmd = '@FindAfniDsetPath %s' % atlas
       s, so, se = UTIL.limited_shell_exec(cmd, nlines=1)
       if s: tryenv = 1  # failed
-      else: glist.append(so[0])
+      elif len(so) > 0: glist.append(so[0])
 
       for ddir in ['/usr/share/afni/atlases', '/usr/local/afni/atlases']:
          if os.path.isfile('%s/%s.HEAD'%(ddir,atlas)):

@@ -74,7 +74,8 @@ LINT = /usr/bin/lint -a -b -u -v -x $(IFLAGS) $(CCDEFS)
 
 INSTALLDIR = ./macosx_10.5_Intel_64icc
 LIBDIR = $(INSTALLDIR)
-SHOWOFF = -DSHOWOFF=macosx_10.5_Intel_64icc
+SYSTEM_NAME = macosx_10.5_Intel_64icc
+SHOWOFF = -DSHOWOFF=$(SYSTEM_NAME)
 
 INSTALL_PREREQ = suma
 #INSTALL_PREREQ = suma

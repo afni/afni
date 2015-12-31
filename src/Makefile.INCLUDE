@@ -240,7 +240,7 @@ vastness:all plugins install install_plugins install_lib
 ### Make many things
 
 all:$(LIBDL) libmri.a libmrix.a libcoxplot.a libvolpack.a libtracktools.a \
-             R_io.so programs ptaylor_all
+             R_io.so programs ptaylor_all AFNI_version
 
 ### Make afni binaries
 
@@ -1838,16 +1838,16 @@ testdsetio: SUMA/SUMA_TestDsetIO.c suma_datasets.o suma_algorithms.o suma_utils.
 
 ### Sort of clean
 
-clean:
+clean: clean_version
 	$(RM) `find . -name \*.o -print`
 
-cleann:
+cleann: clean_version
 	$(RM) `find . -name \*.o -print`
 
 cleaner:clean
 	$(RM) *.a $(PROGRAMS)
 
-cleanest:
+cleanest:clean_version
 	$(RM) `find . -name \*.o -print`
 	$(RM) `find . -name \*.so -print`
 	$(RM) `find . -name \*.a -print`
@@ -1856,6 +1856,9 @@ cleanest:
 
 clean_progs:
 	$(RM) $(PROGRAMS)
+
+clean_version:
+	$(RM) AFNI_version.txt AFNI_version.h
 
 # CYGWIN: remove the fixed plugins as well
 
@@ -1919,6 +1922,7 @@ install: $(INSTALLDIR) $(INSTALL_PREREQ) ptaylor_install pkundu_install
 	if [ -f AFNI.sumarc        ]; then $(CP) AFNI.sumarc $(INSTALLDIR); fi;
 	if [ -f R_io.so            ]; then $(CP) R_io.so     $(INSTALLDIR); fi;
 	if [ -f AFNI_atlas_spaces.niml ]; then $(CP) AFNI_atlas_spaces.niml $(INSTALLDIR); fi;
+	if [ -f AFNI_version.txt ]; then $(CP) AFNI_version.txt $(INSTALLDIR); fi;
 	$(EXINCOM)
 	echo "===== AFNI install finished (fondly do we hope, fervently we do pray) ====="
 
@@ -1945,7 +1949,7 @@ install_exe: $(INSTALLDIR)
 afni.o:imseq.h 3ddata.h xutil.h pbar.h afni.h bbox.h afni_warp.h \
        afni_graph.h afni_setup.h machdep.h
 
-debugtrace.o:debugtrace.h debugtrace.c
+debugtrace.o:debugtrace.h debugtrace.c AFNI_version.h
 	$(RM) $@
 	$(CC) -c debugtrace.c $(INFLAGS) $(SHOWOFF)
 
@@ -2276,9 +2280,10 @@ MISC_OBJS  = afni_suma.o vol2surf.o nifti2_io.o znzlib.o list_struct.o  \
 	     nifti_statlib.o nifticdf.o r_new_resam_dset.o r_idisp.o    \
 	     r_misc.o matrix.o gifti_choice.o misc_math.o
 
-libmri.a:$(NIML_OBJS) $(MRI_OBJS) $(THD_OBJS) thd_selenium.o   \
-         $(EDT_OBJS)  $(CS_OBJS)  $(EIS_OBJS) $(NETCDF_OBJS) \
-         $(SUMA_OBJS) $(MISC_OBJS) niml.h mrilib.h Aomp.h 3ddata.h $(SOMEAFOBJS)
+libmri.a: niml.h mrilib.h Aomp.h 3ddata.h                       \
+	$(NIML_OBJS) $(MRI_OBJS) $(THD_OBJS) thd_selenium.o     \
+         $(EDT_OBJS)  $(CS_OBJS)  $(EIS_OBJS) $(NETCDF_OBJS)   \
+         $(SUMA_OBJS) $(MISC_OBJS) $(SOMEAFOBJS)
 	$(RM) $@
 	$(AR) q libmri.a $(MRI_OBJS) $(THD_OBJS) $(EDT_OBJS)        \
 		$(NIML_OBJS) $(CS_OBJS) $(EIS_OBJS) $(NETCDF_OBJS)  \
@@ -3551,3 +3556,31 @@ R_io.so:R_io.c libmri.a
 	R CMD SHLIB R_io.c ; \
 	else echo WARNING: Cannot build R_io.so because R is not installed;\
 	fi ; )
+
+#### 
+# version system:
+#    AFNI_version_base.txt: updated by build scripts (dist_src)
+#    libmri.h depends on AFNI_version.h, which depends on AFNI_version_base.txt
+#
+#    AFNI_version.txt: depends on AFNI_version_base.txt and programs
+#             - this is just an install file
+#    all:     depends on AFNI_version.txt
+#    install: installs AFNI_version.txt
+
+mrilib.h: AFNI_version.h
+
+AFNI_version.h: AFNI_version_base.txt
+	echo "#undef  AFNI_VERSION_LABEL" > AFNI_version.h ;                 \
+	echo '#define AFNI_VERSION_LABEL    "'`cat AFNI_version_base.txt`'"' \
+             >> AFNI_version.h ;                                             \
+	echo "#undef  AFNI_VERSION_PLATFORM" >> AFNI_version.h ;             \
+	echo '#define AFNI_VERSION_PLATFORM "'$(SYSTEM_NAME)'"'              \
+             >> AFNI_version.h ;
+
+# no .txt in target, so that it always updates the file when invoked
+AFNI_version:
+	( $(CP) AFNI_version_base.txt AFNI_version.txt ; \
+	echo $(SYSTEM_NAME) >> AFNI_version.txt ;        \
+	date +'%b %d %Y' >> AFNI_version.txt ;           \
+	)
+
