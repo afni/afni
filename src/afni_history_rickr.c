@@ -49,6 +49,31 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 30,  Dec, 2015, RCR, "afni-general", MAJOR, TYPE_ENHANCE,
+   "w/DRG implement new version system",
+   "See http://afni.nimh.nih.gov/pub/dist/MOTD/MOTD_2015_12_30.txt ."
+ } ,
+
+ { 29,  Dec, 2015, RCR, "afni_system_check.py", MICRO, TYPE_BUG_FIX,
+   "catch any empty directory listing from @FindAfniDsetPath",
+   NULL
+ } ,
+
+ { 29,  Dec, 2015, RCR, "@FindAfniDsetPath", MICRO, TYPE_MODIFY,
+   "0 or bad # args returns 1 rather than 0",
+   NULL
+ } ,
+
+ { 29,  Dec, 2015, RCR, "afni-general", MICRO, TYPE_ENHANCE,
+   "updated gitignore.src.txt and main 2 .gitignore files",
+   NULL
+ } ,
+
+ { 28,  Dec, 2015, RCR, "@diff_files", MICRO, TYPE_ENHANCE,
+   "allow diffs to include existence of directories",
+   NULL
+ } ,
+
  { 19,  Dec, 2015, RCR, "afni_proc.py", MICRO, TYPE_MODIFY,
    "removed CSFe from Example 10 of the help, to not lead people to use it",
    NULL

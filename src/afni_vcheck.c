@@ -6,9 +6,6 @@
 
 #include "afni.h"
 
-#define VERSION_URL "http://afni.nimh.nih.gov/pub/dist/AFNI.version"
-
-#define VERSION_FILE "/Volumes/afni/var/www/html/pub/dist/AFNI.version"
 
 /*------------------------------------------------------------------------
    Program to check (or write) the AFNI version information.
@@ -23,7 +20,17 @@ int main( int argc , char *argv[] )
    /*-- for my use only: write out the new version file --*/
 
    if( argc > 1 && strcmp(argv[1],"-write") == 0 ){
-     FILE *fp = fopen(VERSION_FILE,"w") ;
+     FILE *fp ;
+
+     /* removed -write option     28 Dec 2015 [rickr] */
+     fprintf(stderr,"** -write functionality was moved to dist scripts\n");
+     return 1;
+
+#if 0
+     /* was: #define VERSION_FILE \
+             "/Volumes/afni/var/www/html/pub/dist/AFNI.version" */
+
+     fp = fopen(VERSION_FILE,"w") ;
      if( fp == NULL ){
        fprintf(stderr,"** Failed to open %s!\n",VERSION_FILE); EXIT(1);
      }
@@ -31,6 +38,7 @@ int main( int argc , char *argv[] )
      fclose(fp) ;
      fprintf(stderr,"Wrote out %s\n",VERSION_FILE) ;
      exit(0) ;
+#endif
    }
 
    machdep() ;
@@ -54,15 +62,15 @@ int main( int argc , char *argv[] )
    if( verb ) printf("This program was compiled with the following settings:\n"
                      "  Version ID   = %s\n" , AVERZHN ) ;
 
-   if( verb ) fprintf(stderr,"++ now fetching %s",VERSION_URL) ;
+   if( verb ) fprintf(stderr,"++ now fetching %s",AFNI_VERSION_URL) ;
 
    /*-- get information from the master computer --*/
 
-   nbuf = read_URL( VERSION_URL , &vbuf ) ;  /* see thd_http.c */
+   nbuf = read_URL( AFNI_VERSION_URL , &vbuf ) ;  /* see thd_http.c */
    if( verb ) fprintf(stderr,"\n") ;
 
    if( nbuf <= 0 || vbuf == NULL || vbuf[0] == '\0' ){
-     if( verb ) printf("** Error fetching %s!\n",VERSION_URL);
+     if( verb ) printf("** Error fetching %s!\n",AFNI_VERSION_URL);
      exit(0);
    }
 
