@@ -18,6 +18,8 @@ ___*
 *.a
 *.dSYM
 *junk*
+*.swp
+.*.swp
 
 #Datasets
 *.nii*
@@ -34,6 +36,12 @@ ___*
 #Miscellaneous
 *.BAK
 
+# Matlab temporary files
+*.m~
+
+# Octave workspace
+octave-workspace
+
 ##Contents of gitignore.src.txt
 #Things to ignore that are typically created from an AFNI make
 #This list also assumes the content of .gitignore file under AFNI/
@@ -49,6 +57,8 @@ Makefile
 Makevars
 Makefile.R.INCLUDE
 Makefile.R.INCLUDE.BACK
+AFNI_version.txt
+AFNI_version.h
 
 #Python
 *.pyc
@@ -192,9 +202,11 @@ netcdf-3.5.0/src/libsrc/putget.c
 3dNwarpXYZ
 3dOverlap
 3dPAR2AFNI.pl
+3dPFM
 3dPeriodogram
 3dPolyfit
 3dProbTrackID
+3dPval
 3dQwarp
 3dREMLfit
 3dROIMaker
@@ -241,6 +253,7 @@ netcdf-3.5.0/src/libsrc/putget.c
 3dUnifize
 3dUniformize
 3dUpsample
+3dVec_to_RGBind
 3dVol2Surf
 3dWarp
 3dWarpDrive
@@ -261,6 +274,7 @@ netcdf-3.5.0/src/libsrc/putget.c
 3dcopy
 3ddelay
 3ddot
+3ddot_beta
 3ddup
 3dedge3
 3dfim
@@ -327,8 +341,11 @@ netcdf-3.5.0/src/libsrc/putget.c
 @GetAfniPrefix
 @GetAfniRes
 @GetAfniView
+@GradFlipTest
+@Install_3dPFM_Demo
 @Install_AfniRetinoDemo
 @Install_ClustScat_Demo
+@Install_DBSproc
 @Install_FATCAT_DEMO
 @Install_FATMVM_DEMO
 @Install_InstaCorr_Demo
@@ -372,6 +389,8 @@ netcdf-3.5.0/src/libsrc/putget.c
 @clip_volume
 @compute_gcor
 @demo_prompt
+@diff.files
+@diff.tree
 @escape-
 @fast_roi
 @fix_FSsphere
@@ -408,6 +427,7 @@ ExamineXmat
 FD2
 FIRdesign
 FSread_annot
+GLTsymtest
 HalloSuma
 Ifile
 InstaTract
@@ -457,10 +477,12 @@ aiv
 align_epi_anat.py
 apsearch
 auto_warp.py
+balloon
 byteorder
 cat_matvec
 ccalc
 cdf
+cifti_tool
 cjpeg
 column_cat
 count
@@ -494,6 +516,7 @@ gen_ss_review_table.py
 gifti_tool
 help_format
 im2niml
+images_equal
 imand
 imaver
 imcalc
@@ -521,6 +544,7 @@ neuro_deconvolve.py
 nicat
 niccc
 nifti1_test
+nifti1_tool
 nifti_tool
 niml_feedme
 niprobe
@@ -548,6 +572,7 @@ sfim
 siemens_vision
 slow_surf_clustsim.py
 sqwave
+stimband
 strblast
 suma
 suma_change_spec
@@ -560,6 +585,7 @@ uber_proc.py
 uber_skel.py
 uber_subject.py
 uber_ttest.py
+uniq_images
 waver
 whereami
 whirlgif

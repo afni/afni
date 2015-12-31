@@ -49,7 +49,8 @@ LINT = /usr/bin/lint -b -u -v -x -Aa $(IFLAGS) $(CCDEFS)
 
 INSTALLDIR = ./solaris28_gcc
 LIBDIR = $(INSTALLDIR)
-SHOWOFF = -DSHOWOFF=solaris28_gcc
+SYSTEM_NAME = solaris28_gcc
+SHOWOFF = -DSHOWOFF=$(SYSTEM_NAME)
 
 INSTALL_PREREQ = suma
 
