@@ -465,9 +465,11 @@ int AFNI_version_check(void)
                    " set environment variable AFNI_VERSION_CHECK to NO\n"
                    "****************************************************\n",
           (vdiff-1)*3, AVERZHN, AFNI_HOST , vv ) ;
+
+      return 1 ;
    }
 
-   return 1 ;
+   return 0 ;
 
 #endif /* CYGWIN */
 }
