@@ -128,8 +128,13 @@ static char * UNDERLAY_typestr[] =
 
 #define TOPSIZE 2048
 
-#include "AFNI_label.h"
+/* #include "AFNI_label.h"   from mrilib.h      29 Dec 2015 [rickr] */
 #define AVERZHN AFNI_VERSION_LABEL    /* 21 chars long */
+
+/* moved from .c files, and prepended w/AFNI_   28 Dec 2015 [rickr] */
+
+#define AFNI_VERSION_URL  "http://afni.nimh.nih.gov/pub/dist/AFNI.version"
+
 
 #ifdef  __cplusplus
 extern "C" {

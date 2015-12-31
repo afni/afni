@@ -38,7 +38,8 @@ LINT = /usr/bin/lint -a -b -u -v -x $(IFLAGS) $(CCDEFS)
 
 INSTALLDIR = ./sgi10k_6.5
 LIBDIR = $(INSTALLDIR)
-SHOWOFF = -DSHOWOFF=sgi10k_6.5
+SYSTEM_NAME = sgi10k_6.5
+SHOWOFF = -DSHOWOFF=$(SYSTEM_NAME)
 
 LLIBS  = -lmri -lf2c -lXm -lXt -lXext -lX11 $(LZLIB) -lm -lc
 
