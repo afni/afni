@@ -1535,6 +1535,7 @@ void AFNI_sigfunc_alrm(int sig)
      "Man, those solar neutrinos are killing me"                     ,
      "Are you ready for the explosion of Eta Carinae?"               ,
      "He who will deceive will always fin a willing victim"          ,
+     "How quick come the reasons for approving what we like"         ,
      "Remember -- AFNI is free, but worth at least 1000 times more"  ,
      "Remember -- Nothing is always absolutely so"                   ,
      "Remember -- 90% of everything is cr*p"                         ,
@@ -1647,6 +1648,7 @@ void AFNI_sigfunc_alrm(int sig)
      "Happiness isn't good enough for me; I demand euphoria"         ,
      "Judge a person by her questions, rather than her answers"      ,
 
+     "One mans' way may be as good as another's, but we all like our own best"        ,
      "Some ideas are so wrong that only an intelligent person could believe them"     ,
      "Life's a lot more fun when you aren't responsible for your actions"             ,
      "I'm not dumb. I just have command of thoroughly useless algorithms"             ,

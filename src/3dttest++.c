@@ -145,6 +145,10 @@ static MRI_vectim      *vectim_BBB=NULL ;
 
 static int debug = 0 ;
 
+static int do_randomsign   = 0 ;     /* 31 Dec 2015 */
+static int *randomsign_AAA = NULL ;
+static int *randomsign_BBB = NULL ;
+
 /*--------------------------------------------------------------------------*/
 
 static int string_search( char *targ , int nstr , char **str )
@@ -758,7 +762,12 @@ void display_help_menu(void)
       "             ++ The residuals are the difference between the data values\n"
       "                and their prediction from the set mean (and set covariates).\n"
       "             ++ For use in further analysis of the results (e.g., 3dFWHMx).\n"
-      "             ++ Cannot be used with '-brickwise' (sorry).\n"
+      "             ++ Cannot be used with '-brickwise' or '-zskip' (sorry).\n"
+      "\n"
+      " -randomsign = Randomize the signs of the datasets.  Intended to be used\n"
+      "               with the output of '-resid' to generate null hypothesis\n"
+      "               statistics in a second run of the program (probably using\n"
+      "               '-nomeans' and '-toz').  Cannot be used with '-singletonA'.\n"
       "\n"
       " -dupe_ok  = Duplicate dataset labels are OK.  Do not generate warnings\n"
       "             for dataset pairs.\n"
@@ -1319,6 +1328,12 @@ int main( int argc , char *argv[] )
 
      if( strcmp(argv[nopt],"-debug") == 0 ){  /* 22 Sep 2010 */
        debug++ ; nopt++ ; continue ;
+     }
+
+     /*----- randomsign -----*/
+
+     if( strcmp(argv[nopt],"-randomsign") == 0 ){  /* 31 Dec 2015 */
+       do_randomsign++ ; nopt++ ; continue ;
      }
 
      /*----- dupe_ok -----*/
@@ -1884,6 +1899,17 @@ int main( int argc , char *argv[] )
      do_1sam = 1 ;
    }
 
+   if( brickwise && do_resid ) /* 07 Dec 2015 */
+     ERROR_exit("You can't use -brickwise and -resid together :-(") ;
+
+   if( do_zskip && do_resid )  /* 31 Dec 2015 */
+     ERROR_exit("You can't use -resid and -zskip together :-(") ;
+
+   if( do_randomsign && nval_AAA < 7 )
+     ERROR_exit("You can't use -randomsign with nval_AAA < 7") ;
+   if( do_randomsign && nval_BBB > 0 && nval_BBB < 7 )
+     ERROR_exit("You can't use -randomsign with nval_BBB < 7") ;
+
 #ifdef ALLOW_RANK
    if( do_ranks && !twosam ){
      WARNING_message("-rankize only works with two-sample tests ==> ignoring") ;
@@ -1927,9 +1953,6 @@ int main( int argc , char *argv[] )
        INFO_message("%s test: results will be %s - %s",
                     ttest_opcode == 2 ? "paired":"2-sample", snam_PPP,snam_MMM) ;
    }
-
-   if( brickwise && do_resid ) /* 07 Dec 2015 */
-     ERROR_exit("You can't use -brickwise and -resid together :-(") ;
 
    /*----- set up covariates in a very lengthy aside now -----*/
 
@@ -2312,6 +2335,38 @@ LABELS_ARE_DONE:  /* target for goto above */
      MAKE_VECTIM(rimout,nmask_hits,nval_AAA+nval_BBB) ; rimout->ignore = 0 ;
    }
 
+   if( do_randomsign ){  /* 31 Dec 2015 */
+     int nflip , nb,nt ;
+
+     randomsign_AAA = (int *)malloc(sizeof(int)*nval_AAA) ;
+     nb = (int)rintf(0.345f*nval_AAA) ; nt = nval_AAA - nb ;
+     do{
+       for( nflip=jj=0 ; jj < nval_AAA ; jj++ ){
+         randomsign_AAA[jj] = (lrand48()>>3) % 2 ;
+         if( randomsign_AAA[jj] ) nflip++ ;
+       }
+     } while( nflip < nb || nflip > nt ) ;
+     fprintf(stderr,"++ randomsign for setA:") ;
+     for( jj=0 ; jj < nval_AAA ; jj++ )
+       fprintf(stderr,"%c" , randomsign_AAA[jj] ? '-' : '+' ) ;
+     fprintf(stderr,"\n") ;
+
+     if( nval_BBB > 0 ){
+       randomsign_BBB = (int *)malloc(sizeof(int)*nval_BBB) ;
+       nb = (int)rintf(0.345f*nval_BBB) ; nt = nval_BBB - nb ;
+       do{
+         for( nflip=jj=0 ; jj < nval_BBB ; jj++ ){
+           randomsign_BBB[jj] = (lrand48()>>3) % 2 ;
+           if( randomsign_BBB[jj] ) nflip++ ;
+         }
+       } while( nflip < nb || nflip > nt ) ;
+       fprintf(stderr,"++ randomsign for setB:") ;
+       for( jj=0 ; jj < nval_BBB ; jj++ )
+         fprintf(stderr,"%c" , randomsign_BBB[jj] ? '-' : '+' ) ;
+       fprintf(stderr,"\n") ;
+     }
+   }
+
    /**********==========---------- process data ----------==========**********/
 
    /*----- convert each input set of datasets to a vectim -----*/
@@ -2367,13 +2422,22 @@ LABELS_ARE_DONE:  /* target for goto above */
        if( vstep > 0 && kout%vstep==vstep/2 ) vstep_print() ;
 
        if( use_singleton_fixed_val )
-                    datAAA = &singleton_fixed_val ;         /* 08 Dec 2015 */
-       else         datAAA = VECTIM_PTR(vectim_AAA,kout) ;  /* data arrays */
+                    datAAA = &singleton_fixed_val ;           /* 08 Dec 2015 */
+       else         datAAA = VECTIM_PTR(vectim_AAA,kout) ;    /* data arrays */
 
        if( twosam ) datBBB = VECTIM_PTR(vectim_BBB,kout) ;
 
        resar = VECTIM_PTR(vimout,kout) ;                    /* results array */
        memset( resar , 0 , sizeof(float)*nvres ) ;          /* (set to zero) */
+
+       if( randomsign_AAA != NULL ){        /* randomize signs [31 Dec 2015] */
+         for( ii=0 ; ii < nval_AAA ; ii++ )
+           if( randomsign_AAA[ii] ) datAAA[ii] = -datAAA[ii] ;
+       }
+       if( randomsign_BBB != NULL ){
+         for( ii=0 ; ii < nval_BBB ; ii++ )
+           if( randomsign_BBB[ii] ) datBBB[ii] = -datBBB[ii] ;
+       }
 
        if( do_resid ){
          if( bb == 0 ) rimout->ivec[kout] = ivox ;
