@@ -47,7 +47,8 @@ LINT = /usr/bin/lint -a -b -u -v -x $(IFLAGS) $(CCDEFS)
 
 INSTALLDIR = ./linux_glibc22
 LIBDIR = $(INSTALLDIR)
-SHOWOFF = -DSHOWOFF=linux_glibc22
+SYSTEM_NAME = linux_glibc22
+SHOWOFF = -DSHOWOFF=$(SYSTEM_NAME)
 
 INSTALL_PREREQ = suma
 # uncomment if the Gnu Scientific Library is installed (libgsl, libgslcblas)

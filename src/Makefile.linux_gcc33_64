@@ -42,7 +42,8 @@ PLUGIN_CC     = $(CC)
 # PLFLAGS       = -rdynamic -L. -L/usr/X11R6/lib
 PLFLAGS       = -rdynamic -L. -L/usr/X11R6/lib64
 
-SHOWOFF = -DSHOWOFF=linux_gcc33_64
+SYSTEM_NAME = linux_gcc33_64
+SHOWOFF = -DSHOWOFF=$(SYSTEM_NAME)
 
 AR     = /usr/bin/ar
 RANLIB = /usr/bin/ranlib

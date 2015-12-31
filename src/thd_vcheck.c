@@ -42,9 +42,6 @@ void THD_death_setup( int msec )
 
 /*------------------------------------------------------------------------*/
 
-#define VERSION_URL  "http://afni.nimh.nih.gov/pub/dist/AFNI.version"
-#define VERSION_FILE "/Volumes/afni/var/www/html/pub/dist/AFNI.version"
-
 #undef  VSIZE
 #define VSIZE  1066
 #undef  VDELAY
@@ -64,6 +61,14 @@ void THD_check_AFNI_version( char *pname )
    char *home , mname[VSIZE]="file:" ;
    char *motd=NULL ;
    NI_stream ns ;
+
+
+   /* This function breaks MOTD usage.
+      Ponder, do we use a new .afni.vctime.cmdline file?
+                                   30 Dec 2015 [RCR/DRG] */
+   return ;
+
+
 
    if( AFNI_noenv("AFNI_VERSION_CHECK") || machdep_be_quiet() ) return ;
 
@@ -156,7 +161,7 @@ void THD_check_AFNI_version( char *pname )
 
    /*-- NOW, fetch information from the AFNI master computer --*/
 
-   nbuf = read_URL( VERSION_URL , &vbuf ) ;  /* see thd_http.c */
+   nbuf = read_URL( AFNI_VERSION_URL , &vbuf ) ;  /* see thd_http.c */
 
 #ifdef USE_HTTP_10
    set_HTTP_10( 0 ) ;

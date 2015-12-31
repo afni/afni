@@ -82,7 +82,8 @@ LINT = /usr/bin/lint -a -b -u -v -x $(IFLAGS) $(CCDEFS)
 
 INSTALLDIR = ./macosx_10.10_icc
 LIBDIR = $(INSTALLDIR)
-SHOWOFF = -DSHOWOFF=macosx_10.10_icc
+SYSTEM_NAME = macosx_10.10_icc
+SHOWOFF = -DSHOWOFF=$(SYSTEM_NAME)
 
 INSTALL_PREREQ = suma_gts
 #INSTALL_PREREQ = suma
