@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 31,  Dec, 2015, RCR, "afni-general", MICRO, TYPE_BUG_FIX,
+   "include AFNI_version_base.txt in build of afni_src.tgz",
+   NULL
+ } ,
+
  { 30,  Dec, 2015, RCR, "afni-general", MAJOR, TYPE_ENHANCE,
    "w/DRG implement new version system",
    "See http://afni.nimh.nih.gov/pub/dist/MOTD/MOTD_2015_12_30.txt ."
