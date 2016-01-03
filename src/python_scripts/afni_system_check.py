@@ -109,9 +109,10 @@ g_history = """
    0.12 Aug 27, 2015 - run rPkgsInstall -pkgs ALL -check
    0.13 Sep 09, 2015 - fix sequence of program check from exec dir
    0.14 Dec 29, 2015 - catch empty atlas dir list
+   0.15 Jan 03, 2016 - truncate 'top history' text
 """
 
-g_version = "afni_system_check.py version 0.14, December 29, 2015"
+g_version = "afni_system_check.py version 0.15, January 3, 2015"
 
 
 class CmdInterface:

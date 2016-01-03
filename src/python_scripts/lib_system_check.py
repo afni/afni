@@ -72,10 +72,13 @@ class SysInfo:
       print 'apparent login shell: %s%s' % (logshell, note)
       print
 
-   def show_top_line(self, fname, prefix=''):
+   def show_top_line(self, fname, prefix='', last=0):
       htxt = UTIL.read_top_lines(fname, nlines=1, strip=1, verb=0)
       if len(htxt) == 0: htxt = 'NONE FOUND'
       else:              htxt = htxt[0]
+      # possibly truncate to '...' and final 'last' characters
+      if last > 0 and len(htxt) > last:
+         htxt = '...' + htxt[-last:]
       print '%s%s' % (prefix, htxt)
 
    def show_data_dir_info(self, ddir, histfile=''):
@@ -97,7 +100,7 @@ class SysInfo:
 
       prefix = '           top history: '
       hname = '%s/%s/%s' % (droot, ddir, histfile)
-      self.show_top_line(hname, prefix=prefix)
+      self.show_top_line(hname, prefix=prefix, last=76-len(prefix))
 
    def show_data_info(self, header=1):
       """checks that are specific to data
