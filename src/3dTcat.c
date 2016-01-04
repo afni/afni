@@ -362,7 +362,7 @@ int * TCAT_get_subv( int nvals , char *str )
 
    /* do we have a count string in there ? */
    if (strstr(str,"count ")) {
-      return(get_count_intlist ( str, &ii));
+      return(get_count_intlist (str, &ii, nvals-1));
    }
 
 

@@ -4469,8 +4469,9 @@ extern MRI_IMAGE *        THD_fetch_1D           (char *) ; /* 26 Mar 2001 */
 
 extern void THD_set_storage_mode( THD_3dim_dataset *,int ); /* 21 Mar 2003 */
 
-extern int * get_count_intlist ( char *str , int *nret);
-int * get_1dcat_intlist ( char *str , int *nret);     /* May 15 2012 ZSS */
+extern int * get_count_intlist ( char *str , int *nret , int maxval );
+/* get_1dcat_intlist: May 15 2012 ZSS    ; added maxval 4 Jan 2016 [rickr] */
+int * get_1dcat_intlist ( char *str , int *nret, int maxval);
 
 extern int * MCW_get_intlist( int , char * ) ;
 extern int * MCW_get_labels_intlist( char ** , int,  char * ); /* ZSS Dec 09 */
