@@ -208,7 +208,7 @@ int * get_1dcat_intlist ( char *sin , int *nret, int maxval)
       /* was #if 0: leave error handling for elsewhere, 4 Jan 2016 [rickr] */
       if ( (!allow_negative && ret[ii+1]<0) ||
            (maxval >= 0 && ret[ii+1] > maxval) ) {
-         ERROR_message( "Bad brick selection value in 1D file '%s'\n"
+         ERROR_message( "Bad 1dcat brick selection value in 1D file '%s'\n"
                         "   value %d is %g (max=%d)\n",
                         str+ipos, ii, far[ii], maxval);
          mri_free(aim); aim = NULL; far=NULL;
