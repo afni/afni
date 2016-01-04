@@ -56,6 +56,11 @@ afni_history_struct rickr_history[] = {
    "Thanks to W Graves for reporting the problem."
  } ,
 
+ {  3,  Jan, 2016, RCR, "afni_system_check.py", MICRO, TYPE_MODIFY,
+   "truncate 'top history' text for data trees",
+   NULL
+ } ,
+
  { 31,  Dec, 2015, RCR, "afni-general", MICRO, TYPE_BUG_FIX,
    "include AFNI_version_base.txt in build of afni_src.tgz",
    NULL
