@@ -26,7 +26,7 @@ void usage_Vec_to_RGBind(int detail)
 {
 	printf(
 "\n"
-"  ******************************************************************\n"
+"  ******************** beta testing **************************************\n"
 "\n"
 "    Tractographic Connectivity Analysis Toolbox. Brain Connectivity.\n\n");
 	return;
@@ -57,7 +57,7 @@ int main(int argc, char *argv[]) {
    float **RGB=NULL;
    float **HSL=NULL;
    
-   float *outarr=NULL;  // 2xN: Hues + intens values (e.g., FA)
+   float *outarr=NULL;  // will hold intens values (e.g., FA)
 
    THD_3dim_dataset *OUT=NULL;
 
@@ -242,21 +242,27 @@ int main(int argc, char *argv[]) {
 
    OUT = EDIT_empty_copy( VEC ); 
    
-	EDIT_dset_items(OUT,
-						 ADN_datum_all, MRI_float , 
-                   ADN_prefix, prefix,
-						 ADN_none );
+	EDIT_dset_items( OUT,
+                    ADN_datum_all, MRI_float , 
+                    ADN_prefix, prefix,
+                    ADN_none );                   // 3 for HSL 
+
+   EDIT_add_bricklist( OUT,
+                       1, NULL , NULL , NULL );   // one more for FA
 
    EDIT_substitute_brick(OUT, 0, MRI_float, HSL[0]);
-   EDIT_substitute_brick(OUT, 1, MRI_float, outarr);
-   EDIT_substitute_brick(OUT, 2, MRI_float, HSL[1]); // just for here now!
+   EDIT_substitute_brick(OUT, 1, MRI_float, HSL[1]); 
+   EDIT_substitute_brick(OUT, 2, MRI_float, HSL[2]); 
+   EDIT_substitute_brick(OUT, 3, MRI_float, outarr);
    outarr=NULL;
    
    for( i=0 ; i<3 ; i++ )
       HSL[i]=NULL;
    
 	EDIT_BRICK_LABEL(OUT,0,"Hue");      
-	EDIT_BRICK_LABEL(OUT,1,"Int");      
+	EDIT_BRICK_LABEL(OUT,1,"Sat");      
+	EDIT_BRICK_LABEL(OUT,2,"Lum");      
+	EDIT_BRICK_LABEL(OUT,3,"Int");      
 
 	THD_load_statistics( OUT );
 	if( !THD_ok_overwrite() && THD_is_ondisk(DSET_HEADNAME(OUT)) )
