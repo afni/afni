@@ -43,7 +43,12 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 30 , DEC , 2015 , RWC , "3dBlurToFWHM" , MINOR , TYPE_NEW_OPT ,
+  { 31 , DEC , 2015 , RWC , "3dttest++" , MICRO , TYPE_BUG_FIX ,
+   "Don't allow -resid and -zskip at the same time" ,
+   "Because sorting out the residuals back to their proper places would\n"
+   "be hard, if some inputs were skipped." } ,
+
+ { 30 , DEC , 2015 , RWC , "3dBlurToFWHM" , MINOR , TYPE_NEW_OPT ,
    "add -acf option, to estimate FWHM via the ACF method" ,
    NULL } ,
 
