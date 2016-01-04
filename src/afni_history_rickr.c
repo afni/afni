@@ -49,9 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
- {  3,  Jan, 2016, RCR, "afni_system_check.py", MICRO, TYPE_MODIFY,
-   "truncate 'top history' text for data trees",
-   NULL
+ {  4,  Dec, 2015, RCR, "afni-general", MINOR, TYPE_BUG_FIX,
+   "add boundardy checks in get_1dcat_intlist and get_count_intlist",
+   "Without the checks, using count or 1dcat as sub-brick selector method\n"
+   "would lead to confusing crashes (if values exceedded #vols).\n"
+   "Thanks to W Graves for reporting the problem."
  } ,
 
  { 31,  Dec, 2015, RCR, "afni-general", MICRO, TYPE_BUG_FIX,
