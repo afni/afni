@@ -31,7 +31,7 @@ if( $hhh == 1 )then
   echo "slightly in advance of the latest build version)."
   echo "At that point, you can"
   echo " (a) accept this source code; or,"
-  echo " (b) delete the output with '\rm -rf AFNI_YY.Q.MM' and try again; or,"
+  echo " (b) delete the output with '/bin/rm -rf AFNI_YY.Q.MM' and try again; or,"
   echo " (c) 'cd AFNI_YY.Q.MM/AFNI' and then type 'git tag' to see"
   echo "     what version numbers are available, then 'cd ../..', remove"
   echo "     the current output as in (b), and try again; or,"
