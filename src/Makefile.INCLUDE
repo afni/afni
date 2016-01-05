@@ -193,7 +193,7 @@ SCRIPTS = @4Daverage @CommandGlobb @GetAfniOrient @DTI_studio_reposition        
           @2dwarper.Allin @Shift_Volume  @help.AFNI @1dDiffMag @FSlabel2dset      \
           @Install_InstaCorr_Demo @Quiet_Talkers @radial_correlate                \
           @DeblankFileNames @clean_help_dir @global_parse @AfniEnv @Atlasize      \
-          @Install_TSrestMovieDemo @Install_AfniRetinoDemo                        \
+          @Install_TSrestMovieDemo @Install_AfniRetinoDemo @get.afni.version      \
           @Install_FATCAT_DEMO @Install_RSFMRI_Motion_Group_Demo                  \
           @Install_MEICA_Demo @T1scale 3dMVM @compute_gcor 3dLME                  \
           @Install_ClustScat_Demo @Install_FATMVM_DEMO @GradFlipTest              \
