@@ -22,7 +22,7 @@
 #include <colorbasic.h>
 
 
-void usage_Vec_to_RGBind(int detail) 
+void usage_VecRGB_to_HSL(int detail) 
 {
 	printf(
 "\n"
@@ -65,14 +65,14 @@ int main(int argc, char *argv[]) {
    // #########################  load  ##################################
    // ###################################################################
 
-   mainENTRY("3dVec_to_RGBind"); machdep(); 
-	if (argc == 1) { usage_Vec_to_RGBind(1); exit(0); }
+   mainENTRY("3dVecRGB_to_HSL"); machdep(); 
+	if (argc == 1) { usage_VecRGB_to_HSL(1); exit(0); }
    
    iarg = 1;
 	while( iarg < argc && argv[iarg][0] == '-' ){
 		if( strcmp(argv[iarg],"-help") == 0 || 
 			 strcmp(argv[iarg],"-h") == 0 ) {
-			usage_Vec_to_RGBind(strlen(argv[iarg])>3 ? 2:1);
+			usage_VecRGB_to_HSL(strlen(argv[iarg])>3 ? 2:1);
 			exit(0);
 		}
      
@@ -84,6 +84,7 @@ int main(int argc, char *argv[]) {
          iarg++ ; continue ;
       }
       
+      // make this an optional argument; specifically for DTI stuff
       if( strcmp(argv[iarg],"-in_scal") == 0) {
          iarg++ ; if( iarg >= argc ) 
                      ERROR_exit("Need argument after '-in_scal'");
@@ -237,23 +238,21 @@ int main(int argc, char *argv[]) {
 
    // ----------------------- start output------------------------------
 
-
-
-
    OUT = EDIT_empty_copy( VEC ); 
    
 	EDIT_dset_items( OUT,
                     ADN_datum_all, MRI_float , 
                     ADN_prefix, prefix,
                     ADN_none );                   // 3 for HSL 
-
-   EDIT_add_bricklist( OUT,
-                       1, NULL , NULL , NULL );   // one more for FA
-
+   
    EDIT_substitute_brick(OUT, 0, MRI_float, HSL[0]);
    EDIT_substitute_brick(OUT, 1, MRI_float, HSL[1]); 
    EDIT_substitute_brick(OUT, 2, MRI_float, HSL[2]); 
-   EDIT_substitute_brick(OUT, 3, MRI_float, outarr);
+   if(inscal) { // one more from scalar input, e.g., for FA in DTI case
+      EDIT_add_bricklist( OUT,
+                          1, NULL , NULL , NULL );   
+      EDIT_substitute_brick(OUT, 3, MRI_float, outarr);
+   }
    outarr=NULL;
    
    for( i=0 ; i<3 ; i++ )
@@ -262,13 +261,14 @@ int main(int argc, char *argv[]) {
 	EDIT_BRICK_LABEL(OUT,0,"Hue");      
 	EDIT_BRICK_LABEL(OUT,1,"Sat");      
 	EDIT_BRICK_LABEL(OUT,2,"Lum");      
-	EDIT_BRICK_LABEL(OUT,3,"Int");      
+	if(inscal)
+      EDIT_BRICK_LABEL(OUT,3,"Bri_extra"); 
 
 	THD_load_statistics( OUT );
 	if( !THD_ok_overwrite() && THD_is_ondisk(DSET_HEADNAME(OUT)) )
 		ERROR_exit("Can't overwrite existing dataset '%s'",
 					  DSET_HEADNAME(OUT));
-	tross_Make_History("3dVec_to_RGBind", argc, argv, OUT);
+	tross_Make_History("3dVecRGB_to_HSL", argc, argv, OUT);
 	THD_write_3dim_dataset(NULL, NULL, OUT, True);
 	DSET_delete(OUT); 
   	free(OUT); 
