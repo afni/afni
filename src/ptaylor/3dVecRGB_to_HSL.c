@@ -1,4 +1,3 @@
-
 /* 
    For viewing 3vec or RGB colors easily in SUMA:
    for particular use with AJJ coloring
@@ -26,9 +25,57 @@ void usage_VecRGB_to_HSL(int detail)
 {
 	printf(
 "\n"
-"  ******************** beta testing **************************************\n"
+"  Convert a 3-brick RGB (red, green, blue) data set to an HSL (hue,\n"
+"  saturation, luminance) one.\n"
 "\n"
-"    Tractographic Connectivity Analysis Toolbox. Brain Connectivity.\n\n");
+"  Written by PA Taylor (Jan 2016), as part of FATCAT.\n"
+"\n"
+"* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n"
+"\n"
+"  + USAGE: \n"
+"    Convert an RGB (red, green, blue) vector set to an HSL (hue, saturation,\n"
+"    luminance) one. The input brick must have 3 bricks, one per component.\n"
+"    The output HSL data set will have 3 (or 4, see below) bricks.\n"
+"\n"
+"    For viewing the HSL set, one might want to use the AFNI/SUMA colorbar\n"
+"    'Color_circle_AJJ' with the [0]th (Hue) brick. In SUMA, one might also\n"
+"    set the brightness 'B' to be the [2]nd (Lum) brick.  Additionally, one\n"
+"    can concatenate a fourth brick to the HSL output, and use *that* for\n"
+"    setting the brightness value;  this feature was specifically added for\n"
+"    the DTI tract volume viewing in SUMA, with the through of appending the\n"
+"    FA values to the HSL information (see the ***to-be-named*** tract volume\n"
+"    colorization script for more details).\n"
+"\n"
+"* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n"
+"\n"
+"  + COMMAND:\n"
+"      3dVecRGBtoHSL -prefix PREFIX -in_vec FILE_V {-mask MASK}    \\\n"
+"            {-in_scal FILE_S}\n"
+"\n"
+"* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n"
+"\n"
+"  + RUNNING, need to provide:\n"
+"    -prefix  PREFIX  :output file name part.\n"
+"    -in_vec  FILE_V  :input RGB vector file of three bricks, presumably each\n"
+"                      having values in the interval [0,1].\n"
+"    -mask    MASK    :can include a whole brain mask within which to\n"
+"                      calculate things. Otherwise, data should be masked\n"
+"                      already.\n"
+"    -in_scal FILE_S  :can input scalar a file (single brick), which will be\n"
+"                      appended to the output file, with the utility of\n"
+"                      being an extra set of 'brightness' values (mainly\n"
+"                      aimed at loading in an FA data set for tract volume\n"
+"                      coloration).  This input is not required.\n"
+"\n"
+"* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n"
+"\n"
+"  + EXAMPLE (such as prepping for tract volume viewing):\n"
+"\n"
+"    3dVecRGB_to_HSL  -in_vec DT_V1+orig.  -in_scal DT_FA+orig     \\\n"
+"                     -mask mask+orig.  -prefix HSL\n"
+"\n"
+"____________________________________________________________________________\n"
+"\n\n");
 	return;
 }
 
