@@ -67,6 +67,11 @@ afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
 
+{ 4, Jan , 2016 , PT , "1dDW_Grad_o_Mat" , MICRO , TYPE_BUG_FIX,
+   "Fixed backwards output messages.",
+   "Should now be easier to see what went bad in a case of mistaken input.\n"
+},
+
 { 16, Dec , 2015 , PT , "3ddot_beta" , MAJOR , TYPE_NEW_PROG,
    "Copy calc of 3ddot-- uses same functions-- just faster.",
    "Right now, can only calculate eta2; was asked for by user.\n"
