@@ -43,7 +43,11 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 5 , JAN , 2016 , RWC , "@get.afni.version" , MICRO , TYPE_NEW_PROG ,
+  { 6 , JAN , 2016 , RWC , "1dplot" , MICRO , TYPE_NEW_OPT ,
+   "new -pnm option, to save to PNM image format" ,
+   "To make it easier to manipulate results in scripts (e.g., pnmcat)." } ,
+
+ { 5 , JAN , 2016 , RWC , "@get.afni.version" , MICRO , TYPE_NEW_PROG ,
    "Script to fetch source for a particular AFNI version tag" ,
    NULL } ,
 
