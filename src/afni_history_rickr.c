@@ -264,9 +264,9 @@ afni_history_struct rickr_history[] = {
    NULL
  } ,
 
- { 21,  Aug, 2015, RCR, "cifti_tool", MICRO, TYPE_ENHANCE,
-   "updated help and added -hist",
-   NULL
+ { 21,  Aug, 2015, RCR, "cifti_tool", MAJOR, TYPE_NEW_PROG,
+   "initial release: updated help and added -hist",
+   "New program to evaluate CIFTI datasets."
  } ,
 
  { 21,  Aug, 2015, RCR, "timing_tool.py", MICRO, TYPE_BUG_FIX,
@@ -841,7 +841,7 @@ afni_history_struct rickr_history[] = {
    NULL
  } ,
 
- {  9,  Feb, 2015, RCR, "file_tool.c", MINOR, TYPE_ENHANCE,
+ {  9,  Feb, 2015, RCR, "file_tool", MINOR, TYPE_ENHANCE,
    "warn on '\\' without preceding space",
    "Gang and J Rajendra ran into a problem on OS X 10.9.5."
  } ,
