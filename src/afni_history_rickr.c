@@ -86,7 +86,7 @@ afni_history_struct rickr_history[] = {
    NULL
  } ,
 
- { 28,  Dec, 2015, RCR, "@diff_files", MICRO, TYPE_ENHANCE,
+ { 28,  Dec, 2015, RCR, "@diff.files", MICRO, TYPE_ENHANCE,
    "allow diffs to include existence of directories",
    NULL
  } ,
