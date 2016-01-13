@@ -47,6 +47,9 @@ void startup_timeout_CB( XtPointer client_data , XtIntervalId *id ) ;
 #define JPEG_MODE     3
 #define PNG_MODE      4
 
+#undef  PNM_MODE
+#define PNM_MODE      5  /* 06 Jan 2016 */
+
 /*-----------------------------------------------------------------*/
 /* Stuff for censor color overlay boxes (cf. 3dDeconvolve.c) */
 
@@ -179,7 +182,7 @@ void usage_1dplot(int detail)
      "        echo 2 4.5 -1 | 1dplot -plabel 'test_underscore' -stdin\n"
      "              versus\n"
      "        echo 2 4.5 -1 | 1dplot -plabel 'test\\_underscore' -stdin\n"
-     " -title pp = Same as -plabel, but only works with -ps/-png/-jpg options.\n"
+     " -title pp = Same as -plabel, but only works with -ps/-png/-jpg/-pnm options.\n"
      " -wintitle pp = Set string 'pp' as the title of the frame \n"
      "                containing the plot. Default is based on input.\n"
      #if 0
@@ -203,9 +206,9 @@ void usage_1dplot(int detail)
      "             gs -r100 -sOutputFile=fred.bmp -sDEVICE=bmp256 -q -dBATCH -\n"
      "\n"
      " -jpg fname  } = Render plot to an image and save to a file named\n"
-     " -jpeg fname } = 'fname', in JPEG mode or in PNG mode.\n"
+     " -jpeg fname } = 'fname', in JPEG mode or in PNG mode or in PNM mode.\n"
      " -png fname  } = The default image width is 1024 pixels; to change\n"
-     "                 this value to 2000 pixels (say), do\n"
+     " -pnm fname  } = this value to 2000 pixels (say), do\n"
      "                   setenv AFNI_1DPLOT_IMSIZE 2000\n"
      "                 before running 1dplot.  Widths over 2000 may start\n"
      "                 to look odd, and will run more slowly.\n"
@@ -213,10 +216,13 @@ void usage_1dplot(int detail)
      "                 compressed without loss.\n"
      "               * PNG output requires that the netpbm program\n"
      "                 pnmtopng be installed somewhere in your PATH.\n"
+     "               * PNM output files are not compress, and are manipulable\n"
+     "                 by the netpbm package: http://netpbm.sourceforge.net/\n"
      "\n"
      " -pngs SIZE fname } = a convenience function equivalent to\n"
      " -jpgs SIZE fname } = setenv AFNI_1DPLOT_IMSIZE SIZE and \n"
-     " -jpegs SIZE fname} = -png (or -jpg) fname\n"
+     " -jpegs SIZE fname} = -png (or -jpg or -pnm) fname\n"
+     " -pnms SIZE fname }\n"
      "\n"
      " -ytran 'expr'   = Transform the data along the y-axis by\n"
      "                   applying the expression to each input value.\n"
@@ -320,7 +326,7 @@ void usage_1dplot(int detail)
      "rendering method, set environment variable AFNI_1DPLOT_RENDEROLD to YES.\n"
      "\n"
      "The program always uses the new rendering method when drawing to a JPEG\n"
-     "or PNG file (which is not and never has been just a screen capture).\n"
+     "or PNG or PNM file (which is not and never has been just a screen capture).\n"
      "There is no way to disable the new rendering method for image-file saves.\n"
      "\n"
      "------\n"
@@ -496,6 +502,8 @@ int main( int argc , char *argv[] )
      if( strcasecmp(argv[ii],"-png")  == 0 ){ skip_x11 = 1; break; }
      if( strcasecmp(argv[ii],"-pngs") == 0 ){ skip_x11 = 1; break; }
      if( strcasecmp(argv[ii],"-help") == 0 ){ skip_x11 = 1; break; }
+     if( strcasecmp(argv[ii],"-pnm")  == 0 ){ skip_x11 = 1; break; }
+     if( strcasecmp(argv[ii],"-pnms") == 0 ){ skip_x11 = 1; break; }
    }
    if( argc == 1 ) skip_x11 = 1 ; /*-- this is because Ziad is trouble --*/
 
@@ -712,6 +720,42 @@ int main( int argc , char *argv[] )
         strcpy(imfile,argv[iarg]) ;
         if( !STRING_HAS_SUFFIX(imfile,".png") && !STRING_HAS_SUFFIX(imfile,".PNG") )
           strcat(imfile,".png") ;
+        iarg++ ; continue ;
+     }
+
+      /*----------*/
+
+     if( strcasecmp(argv[iarg],"-pnm") == 0 ){  /* 06 Jan 2016 */
+        out_ps = 0 ; imsave = PNM_MODE ;
+        iarg++ ; if( iarg >= argc ) ERROR_exit("need argument after '%s'",argv[iarg-1]) ;
+        imfile = (char *)malloc(strlen(argv[iarg])+8) ; strcpy(imfile,argv[iarg]) ;
+        if( !STRING_HAS_SUFFIX(imfile,".pnm") && !STRING_HAS_SUFFIX(imfile,".PNM") &&
+            !STRING_HAS_SUFFIX(imfile,".ppm") && !STRING_HAS_SUFFIX(imfile,".PPM")   )
+          strcat(imfile,".pnm") ;
+        iarg++ ; continue ;
+     }
+
+      /*----------*/
+
+     if( strcasecmp(argv[iarg],"-pnms") == 0 ){  /* 06 Jan 2016 */
+        int isize; static char sss[256]={""} ;
+        out_ps = 0 ; imsave = PNM_MODE ;
+        iarg++ ;
+        if( iarg+1 >= argc )
+          ERROR_exit("need 2 arguments after '%s'",argv[iarg-1]) ;
+        isize = (int) strtod(argv[iarg], NULL);
+        if (isize < 100 || isize > 9999) {
+          ERROR_exit("SIZE value of %d is rather fishy. \n"
+                     "Allowed range is between 100 and 9999", isize);
+        }
+        sprintf(sss,"AFNI_1DPLOT_IMSIZE=%d", isize);
+        putenv(sss) ;
+        iarg++ ;
+        imfile = (char *)malloc(strlen(argv[iarg])+8) ;
+        strcpy(imfile,argv[iarg]) ;
+        if( !STRING_HAS_SUFFIX(imfile,".pnm") && !STRING_HAS_SUFFIX(imfile,".PNM") &&
+            !STRING_HAS_SUFFIX(imfile,".ppm") && !STRING_HAS_SUFFIX(imfile,".PPM")   )
+          strcat(imfile,".pnm") ;
         iarg++ ; continue ;
      }
 
@@ -1430,6 +1474,7 @@ STATUS("xtran sepx") ;
           if( out_ps )              memplot_to_postscript( "-" , mp ) ;
      else if( imsave == JPEG_MODE ) memplot_to_jpg( imfile , mp ) ;
      else if( imsave == PNG_MODE  ) memplot_to_png( imfile , mp ) ;
+     else if( imsave == PNM_MODE  ) memplot_to_pnm( imfile , mp ) ;  /* 06 Jan 2016 */
      else                           ERROR_message("You shouldn't see this message!") ;
    }
 
@@ -1454,6 +1499,7 @@ void startup_timeout_CB( XtPointer client_data , XtIntervalId *id )
 
    memplot_topshell_setsaver( ".jpg" , memplot_to_jpg ) ; /* 05 Dec 2007 */
    memplot_topshell_setsaver( ".png" , memplot_to_png ) ;
+   memplot_topshell_setsaver( ".pnm" , memplot_to_pnm ) ; /* 06 Jan 2016 */
 
    ng = (sep) ? (-nts) : (nts) ;
    ngx = (sepscl) ? (-nx) : (nx) ;

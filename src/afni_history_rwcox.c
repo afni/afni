@@ -43,7 +43,15 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 31 , DEC , 2015 , RWC , "3dttest++" , MICRO , TYPE_BUG_FIX ,
+  { 6 , JAN , 2016 , RWC , "1dplot" , MICRO , TYPE_NEW_OPT ,
+   "new -pnm option, to save to PNM image format" ,
+   "To make it easier to manipulate results in scripts (e.g., pnmcat)." } ,
+
+ { 5 , JAN , 2016 , RWC , "@get.afni.version" , MICRO , TYPE_NEW_PROG ,
+   "Script to fetch source for a particular AFNI version tag" ,
+   NULL } ,
+
+ { 31 , DEC , 2015 , RWC , "3dttest++" , MICRO , TYPE_BUG_FIX ,
    "Don't allow -resid and -zskip at the same time" ,
    "Because sorting out the residuals back to their proper places would\n"
    "be hard, if some inputs were skipped." } ,
