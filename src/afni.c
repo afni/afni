@@ -1652,6 +1652,7 @@ void AFNI_sigfunc_alrm(int sig)
      "Happiness isn't good enough for me; I demand euphoria"         ,
      "Judge a person by her questions, rather than her answers"      ,
 
+     "Data which passes through so many steps can hardly have much truth left"        ,
      "One mans' way may be as good as another's, but we all like our own best"        ,
      "Some ideas are so wrong that only an intelligent person could believe them"     ,
      "Life's a lot more fun when you aren't responsible for your actions"             ,

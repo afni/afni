@@ -1296,6 +1296,7 @@ extern void memplot_to_RGB_sef( MRI_IMAGE *im , MEM_plotdata *mp ,
 
 extern void memplot_to_jpg( char * , MEM_plotdata * ) ; /* 05 Dec 2007 */
 extern void memplot_to_png( char * , MEM_plotdata * ) ;
+extern void memplot_to_pnm( char * , MEM_plotdata * ) ; /* 06 Jan 2015 */
 
 extern void memplot_to_mri_set_dothick( int ) ;         /* 30 Apr 2012 */
 extern void memplot_to_mri_set_dofreee( int ) ;         /* 30 Apr 2012 */
