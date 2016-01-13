@@ -1,4 +1,3 @@
-
 /* 
    For viewing 3vec or RGB colors easily in SUMA:
    for particular use with AJJ coloring
@@ -22,13 +21,61 @@
 #include <colorbasic.h>
 
 
-void usage_Vec_to_RGBind(int detail) 
+void usage_VecRGB_to_HSL(int detail) 
 {
 	printf(
 "\n"
-"  ******************************************************************\n"
+"  Convert a 3-brick RGB (red, green, blue) data set to an HSL (hue,\n"
+"  saturation, luminance) one.\n"
 "\n"
-"    Tractographic Connectivity Analysis Toolbox. Brain Connectivity.\n\n");
+"  Written by PA Taylor (Jan 2016), as part of FATCAT.\n"
+"\n"
+"* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n"
+"\n"
+"  + USAGE: \n"
+"    Convert an RGB (red, green, blue) vector set to an HSL (hue, saturation,\n"
+"    luminance) one. The input brick must have 3 bricks, one per component.\n"
+"    The output HSL data set will have 3 (or 4, see below) bricks.\n"
+"\n"
+"    For viewing the HSL set, one might want to use the AFNI/SUMA colorbar\n"
+"    'Color_circle_AJJ' with the [0]th (Hue) brick. In SUMA, one might also\n"
+"    set the brightness 'B' to be the [2]nd (Lum) brick.  Additionally, one\n"
+"    can concatenate a fourth brick to the HSL output, and use *that* for\n"
+"    setting the brightness value;  this feature was specifically added for\n"
+"    the DTI tract volume viewing in SUMA, with the through of appending the\n"
+"    FA values to the HSL information (see the ***to-be-named*** tract volume\n"
+"    colorization script for more details).\n"
+"\n"
+"* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n"
+"\n"
+"  + COMMAND:\n"
+"      3dVecRGBtoHSL -prefix PREFIX -in_vec FILE_V {-mask MASK}    \\\n"
+"            {-in_scal FILE_S}\n"
+"\n"
+"* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n"
+"\n"
+"  + RUNNING, need to provide:\n"
+"    -prefix  PREFIX  :output file name part.\n"
+"    -in_vec  FILE_V  :input RGB vector file of three bricks, presumably each\n"
+"                      having values in the interval [0,1].\n"
+"    -mask    MASK    :can include a whole brain mask within which to\n"
+"                      calculate things. Otherwise, data should be masked\n"
+"                      already.\n"
+"    -in_scal FILE_S  :can input scalar a file (single brick), which will be\n"
+"                      appended to the output file, with the utility of\n"
+"                      being an extra set of 'brightness' values (mainly\n"
+"                      aimed at loading in an FA data set for tract volume\n"
+"                      coloration).  This input is not required.\n"
+"\n"
+"* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n"
+"\n"
+"  + EXAMPLE (such as prepping for tract volume viewing):\n"
+"\n"
+"    3dVecRGB_to_HSL  -in_vec DT_V1+orig.  -in_scal DT_FA+orig     \\\n"
+"                     -mask mask+orig.  -prefix HSL\n"
+"\n"
+"____________________________________________________________________________\n"
+"\n\n");
 	return;
 }
 
@@ -57,7 +104,7 @@ int main(int argc, char *argv[]) {
    float **RGB=NULL;
    float **HSL=NULL;
    
-   float *outarr=NULL;  // 2xN: Hues + intens values (e.g., FA)
+   float *outarr=NULL;  // will hold intens values (e.g., FA)
 
    THD_3dim_dataset *OUT=NULL;
 
@@ -65,14 +112,14 @@ int main(int argc, char *argv[]) {
    // #########################  load  ##################################
    // ###################################################################
 
-   mainENTRY("3dVec_to_RGBind"); machdep(); 
-	if (argc == 1) { usage_Vec_to_RGBind(1); exit(0); }
+   mainENTRY("3dVecRGB_to_HSL"); machdep(); 
+	if (argc == 1) { usage_VecRGB_to_HSL(1); exit(0); }
    
    iarg = 1;
 	while( iarg < argc && argv[iarg][0] == '-' ){
 		if( strcmp(argv[iarg],"-help") == 0 || 
 			 strcmp(argv[iarg],"-h") == 0 ) {
-			usage_Vec_to_RGBind(strlen(argv[iarg])>3 ? 2:1);
+			usage_VecRGB_to_HSL(strlen(argv[iarg])>3 ? 2:1);
 			exit(0);
 		}
      
@@ -84,6 +131,7 @@ int main(int argc, char *argv[]) {
          iarg++ ; continue ;
       }
       
+      // make this an optional argument; specifically for DTI stuff
       if( strcmp(argv[iarg],"-in_scal") == 0) {
          iarg++ ; if( iarg >= argc ) 
                      ERROR_exit("Need argument after '-in_scal'");
@@ -237,32 +285,37 @@ int main(int argc, char *argv[]) {
 
    // ----------------------- start output------------------------------
 
-
-
-
    OUT = EDIT_empty_copy( VEC ); 
    
-	EDIT_dset_items(OUT,
-						 ADN_datum_all, MRI_float , 
-                   ADN_prefix, prefix,
-						 ADN_none );
-
+	EDIT_dset_items( OUT,
+                    ADN_datum_all, MRI_float , 
+                    ADN_prefix, prefix,
+                    ADN_none );                   // 3 for HSL 
+   
    EDIT_substitute_brick(OUT, 0, MRI_float, HSL[0]);
-   EDIT_substitute_brick(OUT, 1, MRI_float, outarr);
-   EDIT_substitute_brick(OUT, 2, MRI_float, HSL[1]); // just for here now!
+   EDIT_substitute_brick(OUT, 1, MRI_float, HSL[1]); 
+   EDIT_substitute_brick(OUT, 2, MRI_float, HSL[2]); 
+   if(inscal) { // one more from scalar input, e.g., for FA in DTI case
+      EDIT_add_bricklist( OUT,
+                          1, NULL , NULL , NULL );   
+      EDIT_substitute_brick(OUT, 3, MRI_float, outarr);
+   }
    outarr=NULL;
    
    for( i=0 ; i<3 ; i++ )
       HSL[i]=NULL;
    
 	EDIT_BRICK_LABEL(OUT,0,"Hue");      
-	EDIT_BRICK_LABEL(OUT,1,"Int");      
+	EDIT_BRICK_LABEL(OUT,1,"Sat");      
+	EDIT_BRICK_LABEL(OUT,2,"Lum");      
+	if(inscal)
+      EDIT_BRICK_LABEL(OUT,3,"Bri_extra"); 
 
 	THD_load_statistics( OUT );
 	if( !THD_ok_overwrite() && THD_is_ondisk(DSET_HEADNAME(OUT)) )
 		ERROR_exit("Can't overwrite existing dataset '%s'",
 					  DSET_HEADNAME(OUT));
-	tross_Make_History("3dVec_to_RGBind", argc, argv, OUT);
+	tross_Make_History("3dVecRGB_to_HSL", argc, argv, OUT);
 	THD_write_3dim_dataset(NULL, NULL, OUT, True);
 	DSET_delete(OUT); 
   	free(OUT); 

@@ -319,3 +319,16 @@ void memplot_to_png( char *fname , MEM_plotdata *mp )  /* 05 Dec 2007 */
    mri_write_png(fname,im) ; mri_free(im) ;
    return ;
 }
+
+/*-----------------------------------------------------------------------*/
+
+void memplot_to_pnm( char *fname , MEM_plotdata *mp )  /* 06 Jan 2015 */
+{
+   MRI_IMAGE *im ;
+
+   if( fname == NULL || *fname == '\0' ) return ;
+
+   im = memplot_to_mri( mp ) ; if( im == NULL ) return ;
+   mri_write_pnm(fname,im) ; mri_free(im) ;
+   return ;
+}
