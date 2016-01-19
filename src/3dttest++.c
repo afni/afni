@@ -148,6 +148,7 @@ static int debug = 0 ;
 static int do_randomsign   = 0 ;     /* 31 Dec 2015 */
 static int *randomsign_AAA = NULL ;
 static int *randomsign_BBB = NULL ;
+static int dofsub          = 0    ;  /* 19 Jan 2016 */
 
 /*--------------------------------------------------------------------------*/
 
@@ -768,6 +769,16 @@ void display_help_menu(void)
       "               with the output of '-resid' to generate null hypothesis\n"
       "               statistics in a second run of the program (probably using\n"
       "               '-nomeans' and '-toz').  Cannot be used with '-singletonA'.\n"
+      "             ++ You will never get an 'all positive' or 'all negative' sign\n"
+      "                flipping case -- each sign will be present at least 35%%\n"
+      "                of the time.\n"
+      "             ++ There must be at least 7 samples in each input set to\n"
+      "                use this option.\n"
+#if 0 /*** hidden from user ***/
+      "\n"
+      " -dofsub ss  = Subtract 'ss' from the normal degrees of freedom used.\n"
+      "               (This option is for special scripting purposes.)\n"
+#endif
       "\n"
       " -dupe_ok  = Duplicate dataset labels are OK.  Do not generate warnings\n"
       "             for dataset pairs.\n"
@@ -1334,6 +1345,17 @@ int main( int argc , char *argv[] )
 
      if( strcmp(argv[nopt],"-randomsign") == 0 ){  /* 31 Dec 2015 */
        do_randomsign++ ; nopt++ ; continue ;
+     }
+
+     /*----- dofsub -----*/
+
+     if( strcmp(argv[nopt],"-dofsub") == 0 ){  /* 19 Jan 2016 [hidden option] */
+       if( ++nopt >= argc )
+         ERROR_exit("Need argument after '%s'",argv[nopt-1]) ;
+       if( !isdigit(argv[nopt][0]) )
+         ERROR_exit("Value after '%s' must be a number",argv[nopt-1]) ;
+       dofsub = (int)strtod(argv[nopt],NULL) ;
+       nopt++ ; continue ;
      }
 
      /*----- dupe_ok -----*/
@@ -2184,6 +2206,14 @@ int main( int argc , char *argv[] )
      }
    }
 
+   /* dofsub hack [19 Jan 2016] */
+
+   dof_A = (dof_A > dofsub) ? dof_A-dofsub : 2 ;
+   if( twosam ){
+     dof_B  = (dof_B  > dofsub) ? dof_B -dofsub : 2 ;
+     dof_AB = (dof_AB > dofsub) ? dof_AB-dofsub : 2 ;
+   }
+
 /*-:-:-:-:-:-:-:-:-:-:-:-:-:-:-:-:-:-:-:-:-:-:-:-:-:-:-:-:-:-:-:-:-:-:-:-:-:*/
 /*--------- macros for adding sub-brick labels and statistics codes --------*/
 
@@ -2322,6 +2352,7 @@ LABELS_ARE_DONE:  /* target for goto above */
 
    if( do_resid ){
      rrset = EDIT_empty_copy(outset) ;
+     tross_Make_History( "3dttest++" , argc,argv , rrset ) ;
      EDIT_dset_items( rrset,
                         ADN_nvals  , nval_AAA+nval_BBB ,
                         ADN_prefix , prefix_resid ,
@@ -2339,7 +2370,7 @@ LABELS_ARE_DONE:  /* target for goto above */
      int nflip , nb,nt ;
 
      randomsign_AAA = (int *)malloc(sizeof(int)*nval_AAA) ;
-     nb = (int)rintf(0.345f*nval_AAA) ; nt = nval_AAA - nb ;
+     nb = (int)rintf(0.35f*nval_AAA) ; nt = nval_AAA - nb ;
      do{
        for( nflip=jj=0 ; jj < nval_AAA ; jj++ ){
          randomsign_AAA[jj] = (lrand48()>>3) % 2 ;
@@ -2824,6 +2855,7 @@ ENTRY("regress_toz") ;
        varAB /= (nA-mm) ; if( varAB <= 0.0f ) varAB = VBIG ;
 
        dof = nA - mm ;
+       dof = (dof > dofsub) ? dof-dofsub : 2 ;
        for( tt=0 ; tt < mm ; tt++ ){
          if( (testAB & (1 << tt)) == 0 ) continue ;  /* bitwase AND */
          outvec[kt++] = betA[tt] - betB[tt] ;
@@ -2838,6 +2870,7 @@ ENTRY("regress_toz") ;
        varAB = (ssqA+ssqB)/(nA+nB-2*mm) ; if( varAB <= 0.0f ) varAB = VBIG ;
 
        dof = nA + nB - 2*mm ;
+       dof = (dof > dofsub) ? dof-dofsub : 2 ;
        for( tt=0 ; tt < mm ; tt++ ){
          if( (testAB & (1 << tt)) == 0 ) continue ;  /* bitwase AND */
          outvec[kt++] = betA[tt] - betB[tt] ;
@@ -2853,6 +2886,7 @@ ENTRY("regress_toz") ;
 
    if( testA ){
      dof = nA - mm ;
+     dof = (dof > dofsub) ? dof-dofsub : 2 ;
      for( tt=0 ; tt < mm ; tt++ ){
        if( (testA & (1 << tt)) == 0 ) continue ;  /* bitwise AND */
        outvec[kt++] = betA[tt] ;
@@ -2867,6 +2901,7 @@ ENTRY("regress_toz") ;
 
    if( testB ){
      dof = nB - mm ;
+     dof = (dof > dofsub) ? dof-dofsub : 2 ;
      for( tt=0 ; tt < mm ; tt++ ){
        if( (testB & (1 << tt)) == 0 ) continue ;  /* bitwise AND */
        outvec[kt++] = betB[tt] ;
@@ -3095,6 +3130,8 @@ ENTRY("ttest_toz") ;
 
    } /* end of all possible cases */
 
+   dof = (dof > dofsub) ? dof-dofsub : 2 ;
+
    result.a = delta ;
    result.b = (toz) ? (float)GIC_student_t2z( (double)tstat , (double)dof )
                     : TCLIP(tstat) ;
@@ -3111,7 +3148,7 @@ float_pair ttest_toz_singletonA( float xar , int numy, float *yar,
 {
    float_pair result = {0.0f,0.0f} ;
    int ii ;
-   float avy , sdy , tstat ;
+   float avy , sdy , tstat , dof ;
 
 ENTRY("ttest_toz_singletonA") ;
 
@@ -3132,7 +3169,9 @@ ENTRY("ttest_toz_singletonA") ;
 
    result.a = (xar-avy) ;
    tstat    = (xar-avy) / sqrtf(sdy) ;
-   result.b = (toz) ? (float)(float)GIC_student_t2z( (double)tstat , (double)(numy-1.0f) )
+   dof      = numy-1.0f ;
+   dof      = (dof > dofsub) ? dof-dofsub : 2 ;
+   result.b = (toz) ? (float)(float)GIC_student_t2z( (double)tstat , (double)dof )
                     : TCLIP(tstat) ;
    if( xres != NULL ) xres[0] = result.a ;
 
