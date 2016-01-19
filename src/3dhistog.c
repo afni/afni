@@ -102,9 +102,11 @@ void usage_3dhistog(int detail)
     "\n"
     "The histogram options are:\n"
     "  -nbin #   Means to use '#' bins [default=100]\n"
+#if 0
     "            Special Case: for short or byte dataset bricks,\n"
     "                          set '#' to zero to have the number\n"
     "                          of bins set by the brick range.\n"
+#endif
     "  -dind i   Means to take data from sub-brick #i, rather than #0\n"
     "  -omit x   Means to omit the value 'x' from the count;\n"
     "              -omit can be used more than once to skip multiple values.\n"
@@ -315,11 +317,12 @@ int main( int argc , char * argv[] )
       case MRI_byte:
       case MRI_short:
         /* 10 Jun 2011 */
-/*        if((HI_nbin==NBIN_SPECIAL) && use_ceil && ((ftop-fbot)<100)) */
+#if 0
+        if((HI_nbin==NBIN_SPECIAL) && use_ceil && ((ftop-fbot)<100))
         /* integral data, calculate the default number of bins differently */
-/*        if((HI_nbin<0) && (use_ceil)) 
+        if((HI_nbin<0) && (use_ceil))
                nbin = ftop-fbot+1;
-        */
+#endif
       break ;
 
       case MRI_float:
