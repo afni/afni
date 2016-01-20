@@ -1440,6 +1440,22 @@ typedef struct { int nvec ; intvec *ivar ; } intvecvec ;
       memcpy( (iv)->ar+ni, (jv)->ar, sizeof(int)*(jv)->nar ) ; \
   } while(0)
 
+/*----------*/  /* 20 Jan 2016 */
+
+typedef struct { int nar ; int64_t *ar ; } int64vec ;
+#define KILL_int64vec(iv)                      \
+  do{ if( (iv) != NULL ){                      \
+        if( (iv)->ar != NULL ) free((iv)->ar); \
+        free(iv); (iv) = NULL;                 \
+  } } while(0)
+
+
+#define MAKE_int64vec(iv,n)                                \
+  do{ (iv) = (int64vec *)malloc(sizeof(int64vec)) ;        \
+      (iv)->nar = (n) ;                                    \
+      (iv)->ar  = (int64_t *)calloc(sizeof(int64_t),(n)) ; \
+  } while(0)
+
 /*----------*/
 
 typedef struct { int nar ; short *ar ; } shortvec ;
