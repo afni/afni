@@ -862,6 +862,10 @@ d3dmerge:3dmerge.c
 	$(CC) -o 3dedge3 3dedge3.o -I3DEdge/src            \
               $(LFLAGS) -l3DEdge $(LLIBS)
 
+3dNormalizer:3dNormalizer.o
+	$(RM) $@
+	$(CC) -o 3dNormalizer 3dNormalizer.o $(LFLAGS) $(LLIBS)
+
 ### From Stephen LaConte
 3dsvm:
 	( cd svm/   ;  							\

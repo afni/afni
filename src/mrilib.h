@@ -1406,6 +1406,7 @@ typedef struct { int nar ; double *ar , dx,x0 ; } doublevec ;
 
 extern float  interp_floatvec ( floatvec  *fv , float  x ) ;
 extern double interp_doublevec( doublevec *dv , double x ) ;
+extern void mri_write_floatvec( char *fname , floatvec *fv ) ; /* 21 Jan 2016 */
 
 extern float interp_inverse_floatvec( floatvec *fv , float y ) ;
 
