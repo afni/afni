@@ -49,6 +49,10 @@
 
 
 afni_history_struct dglen_history[] = {
+{ 22, JAN, 2016 , DRG , "auto_warp.py" , 
+    MICRO , TYPE_BUG_FIX, 
+    "skip_affine option previously skipped"
+},
 { 22, JAN, 2016 , DRG , "align_epi_anat.py" , 
     MINOR , TYPE_NEW_OPT, 
     "rigid_body alignment option and better handling of user allineate options"
