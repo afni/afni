@@ -20,6 +20,8 @@ int main( int argc , char * argv[] )
    MRI_IMAGE *dindex_im = NULL;
    float     *dindex = NULL;
    char abet[] = "abcdefghijklmnopqrstuvwxyz" ;
+   int         isfix[26] ;  /* 22 Jan 2016 */
+   double      azfix[26] ;  /* for fixed (constant) variables */
 
    /*-- help? --*/
 
@@ -43,34 +45,45 @@ int main( int argc , char * argv[] )
              "\n"
              "Options:\n"
              "--------\n"
-             "  -del d   = Use 'd' as the step for a single undetermined variable\n"
-             "               in the expression [default = 1.0]\n"
-             "               SYNONYMS: '-dx' and '-dt'\n"
-             "  -start s = Start at value 's' for a single undetermined variable\n"
-             "               in the expression [default = 0.0]\n"
-             "               That is, for the indeterminate variable in the expression\n"
-             "               (if any), the i-th value will be s+i*d for i=0, 1, ....\n"
-             "               SYNONYMS: '-xzero' and '-tzero'\n"
-             "  -num n   = Evaluate the expression 'n' times.\n"
-             "               If -num is not used, then the length of an\n"
-             "               input time series is used.  If there are no\n"
-             "               time series input, then -num is required.\n"
-             "  -a q.1D  = Read time series file q.1D and assign it\n"
-             "               to the symbol 'a' (as in 3dcalc).\n"
-             "             * Letters 'a' to 'z' may be used as symbols.\n"
-             "             * You can use the filename 'stdin:' to indicate that\n"
+             "  -del d     = Use 'd' as the step for a single undetermined variable\n"
+             "                 in the expression [default = 1.0]\n"
+             "                 SYNONYMS: '-dx' and '-dt'\n"
+             "\n"
+             "  -start s   = Start at value 's' for a single undetermined variable\n"
+             "                 in the expression [default = 0.0]\n"
+             "                 That is, for the indeterminate variable in the expression\n"
+             "                 (if any), the i-th value will be s+i*d for i=0, 1, ....\n"
+             "                 SYNONYMS: '-xzero' and '-tzero'\n"
+             "\n"
+             "  -num n     = Evaluate the expression 'n' times.\n"
+             "                 If -num is not used, then the length of an\n"
+             "                 input time series is used.  If there are no\n"
+             "                 time series input, then -num is required.\n"
+             "\n"
+             "  -a q.1D    = Read time series file q.1D and assign it\n"
+             "                 to the symbol 'a' (as in 3dcalc).\n"
+             "               * Letters 'a' to 'z' may be used as symbols.\n"
+             "               * You can use the filename 'stdin:' to indicate that\n"
              "               the data for 1 symbol comes from standard input:\n"
              "     1dTsort q.1D stdout: | 1deval -a stdin: -expr 'sqrt(a)' | 1dplot stdin:\n"
+             "\n"
+             "  -a=NUMBER   = set the symbol 'a' to a fixed numerical value\n"
+             "                rather than a variable value from a 1D file.\n"
+             "             * Letters 'a' to 'z' may be used as symbols.\n"
+             "             * You can't assign the same symbol twice!\n"
+             "\n"
              "  -index i.1D = Read index column from file i.1D and\n"
              "                 write it out as 1st column of output.\n"
              "                 This option is useful when working with\n"
              "                 surface data.\n"
-             "  -1D:     = Write output in the form of a single '1D:'\n"
-             "               string suitable for input on the command\n"
-             "               line of another program.\n"
-             "               [-1D: is incompatible with the -index option!]\n"
-             "               [This won't work if the output string is very long,]\n"
-             "               [since the maximum command line length is limited. ]\n"
+             "\n"
+             "  -1D:       = Write output in the form of a single '1D:'\n"
+             "                 string suitable for input on the command\n"
+             "                 line of another program.\n"
+             "                 [-1D: is incompatible with the -index option!]\n"
+             "                 [This won't work if the output string is very long,]\n"
+             "                 [since the maximum command line length is limited. ]\n"
+             "\n"
              "Examples:\n"
              "---------\n"
              " * 't' is the indeterminate variable in the expression below:\n"
@@ -86,6 +99,12 @@ int main( int argc , char * argv[] )
              "\n"
              "Examples using '-1D:' as the output format:\n"
              "-------------------------------------------\n"
+             "The examples use the shell backquote `xxx` operation, where the\n"
+             "command inside the backquotes is executed, its stdout is captured\n"
+             "into a string, and placed back on the command line. When you have\n"
+             "mastered this idea, you have taken another step towards becoming\n"
+             "a Jedi AFNI Master!\n"
+             "\n"
              " 1dplot `1deval -1D: -num 71 -expr 'cos(t/2)*exp(-t/19)'`\n"
              " 1dcat `1deval -1D: -num 100 -expr 'cos(t/5)'` \\\n"
              "       `1deval -1D: -num 100 -expr 'sin(t/5)'` > sincos.1D\n"
@@ -97,11 +116,16 @@ int main( int argc , char * argv[] )
              "Notes:\n"
              "------\n"
              "* Program 3dcalc operates on 3D and 3D+time datasets in a similar way.\n"
+             "\n"
              "* Program ccalc can be used to evaluate a single numeric expression.\n"
+             "\n"
              "* If I had any sense, THIS program would have been called 1dcalc!\n"
+             "\n"
              "* For generic 1D file usage help, see '1dplot -help'\n"
+             "\n"
              "* For help with expression format, see '3dcalc -help', or type\n"
              "   'help' when using ccalc in interactive mode.\n"
+             "\n"
              "* 1deval only produces a single column of output.  3dcalc can be\n"
              "   tricked into doing multi-column 1D format output by treating\n"
              "   a 1D file as a 3D dataset and auto-transposing it with \\'\n"
@@ -116,7 +140,7 @@ int main( int argc , char * argv[] )
              "   column direction corresponds to the voxel direction.\n"
              "\n"
              "A Dastardly Trick:\n"
-             "-----------------\n"
+             "------------------\n"
              "If you use some other letter than 'z' as the indeterminate variable\n"
              "in the calculation, and if 'z' is not assigned to any input 1D file,\n"
              "then 'z' in the expression will be the previous value computed.\n"
@@ -138,13 +162,14 @@ int main( int argc , char * argv[] )
 
    mainENTRY("1deval") ; machdep() ; AFNI_logger("1deval",argc,argv) ;
 
-   /*-- initialize --*/
+   /*----- initialize -----*/
 
    for( ii=0 ; ii < 26 ; ii++ ){
       atoz[ii] = 0.0 ; inim[ii] = NULL ; inar[ii] = NULL ;
+      isfix[ii] = 0 ; azfix[ii] = 0.0 ;  /* 22 Jan 2016 */
    }
 
-   /*-- read options --*/
+   /*----- read options -----*/
 
    nopt = 1 ;
    while( nopt < argc ){
@@ -154,7 +179,23 @@ int main( int argc , char * argv[] )
       }
 
       if( strcmp(argv[nopt],"-verb") == 0 ){
-         verbose++ ;
+         verbose++ ; nopt++ ; continue ;
+      }
+
+      if( strlen(argv[nopt]) > 3    && argv[nopt][0] == '-' &&
+          argv[nopt][1]      >= 'a' && argv[nopt][1] <= 'z' &&
+          argv[nopt][2]      == '='                           ){ /* 22 Jan 2016 = Snowghazi! */
+
+         int ival = argv[nopt][1] - 'a' ; double val ; char *cpt ;
+
+         if( inim[ival] != NULL || isfix[ival] != 0 )
+           ERROR_exit("Can't define symbol %c twice!\n",argv[nopt][1]);
+
+         val = strtod(argv[nopt]+3,&cpt) ;
+         if( val == 0.0 && cpt == argv[nopt]+3 )
+           ERROR_exit("Can't interpret fixed value in '%s'",argv[nopt]) ;
+
+         azfix[ival] = val ; isfix[ival] = 1 ;
          nopt++ ; continue ;
       }
 
@@ -163,7 +204,7 @@ int main( int argc , char * argv[] )
 
          int ival = argv[nopt][1] - 'a' ;
 
-         if( inim[ival] != NULL ){
+         if( inim[ival] != NULL || isfix[ival] != 0 ){
             fprintf(stderr,"** Can't define symbol %c twice!\n",argv[nopt][1]);
             exit(1) ;
          }
@@ -262,6 +303,8 @@ int main( int argc , char * argv[] )
       exit(1) ;
    }
 
+   /*---------------*/
+
    if( num <= 0 ){
       for( ii=0 ; ii < 26 ; ii++ ){
          if( inim[ii] != NULL ){ num = inim[ii]->nx ; break ; }
@@ -283,7 +326,9 @@ int main( int argc , char * argv[] )
 
    if (dindex) {
       if ( dindex_im->nx != num) {
-         fprintf(stderr,"** Number of values in index column (%d) \n   not equal to number of values in data (%d)\n", dindex_im->nx, num );
+         fprintf(stderr,
+                 "** Number of values in index column (%d) \n"
+                 "   not equal to number of values in data (%d)\n", dindex_im->nx, num );
          exit(1) ;
       }
    }
@@ -298,11 +343,11 @@ int main( int argc , char * argv[] )
    for( ii=0 ; ii < 26 ; ii++ ){
       sym[0] = 'A' + ii ; sym[1] = '\0' ;
       if( PARSER_has_symbol(sym,pcode) ){
-         if( inim[ii] == NULL ){
+         if( inim[ii] == NULL && isfix[ii] == 0 ){       /* unbound variable */
             qvar++ ; if( kvar < 0 ) kvar = ii ;
          }
-      } else if( inim[ii] != NULL ){
-         fprintf(stderr,"++ Symbol %c defined but not used!\n",abet[ii]) ;
+      } else if( inim[ii] != NULL || isfix[ii] != 0 ){ /* bound, not in expr */
+         WARNING_message("Symbol %c defined but not used!\n",abet[ii]) ;
       }
    }
    if( qvar > 1 ){
@@ -322,10 +367,12 @@ int main( int argc , char * argv[] )
    }
    if( do_1Dc ) printf("1D:") ;
    for( ii=0 ; ii < num ; ii++ ){
-      for( jj=0 ; jj < 26 ; jj++ )
-         if( inar[jj] != NULL ) atoz[jj] = inar[jj][ii] ;  /* assign input values */
-      if( kvar >= 0                      ) atoz[kvar] = ii * del + dzero ;
-      if( kvar != 25 && inar[25] == NULL ) atoz[25]   = value; /* z = last output */
+      for( jj=0 ; jj < 26 ; jj++ ){
+         if( inar[jj]  != NULL ) atoz[jj] = inar[jj][ii] ;  /* assign input values */
+         if( isfix[jj] != 0    ) atoz[jj] = azfix[jj] ;     /* 22 Jan 2016 */
+      }
+      if( kvar >= 0                                        ) atoz[kvar] = ii * del + dzero ;
+      if( kvar != 25 && inar[25] == NULL && isfix[25] == 0 ) atoz[25]   = value; /* z = last output */
       value = PARSER_evaluate_one( pcode , atoz ) ;
       if (dindex)       printf(" %d\t%g\n", (int)dindex[ii], value) ;
       else if( do_1Dc ) printf("%g,",value) ;
