@@ -43,7 +43,11 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 6 , JAN , 2016 , RWC , "1dplot" , MICRO , TYPE_NEW_OPT ,
+  { 22 , JAN , 2016 , RWC , "1deval" , MICRO , TYPE_NEW_OPT ,
+   "Fixed value assignments, as in '-a=3.7'" ,
+   "For my convenience" } ,
+
+ { 6 , JAN , 2016 , RWC , "1dplot" , MICRO , TYPE_NEW_OPT ,
    "new -pnm option, to save to PNM image format" ,
    "To make it easier to manipulate results in scripts (e.g., pnmcat)." } ,
 
