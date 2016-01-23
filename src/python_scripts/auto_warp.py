@@ -102,7 +102,9 @@ class RegWrap:
                helpstr="save executed script in given file" )
 
       self.valid_opts.add_opt('-skip_affine', 1, ['no'], ['yes', 'no'],  \
-               helpstr="Skip the affine registration process\n")
+               helpstr="Skip the affine registration process\n" \
+                 "Equivalent to -affine_input_xmat ID \n" \
+                 "(apply identity transformation)\n")
                
       self.valid_opts.add_opt('-skull_strip_base', 1, ['no'], ['yes', 'no'],\
                helpstr="Do not skullstrip base/template dataset")
@@ -257,9 +259,15 @@ class RegWrap:
    
       opt = opt_list.find_opt('-unifize_input')
       self.unifize_input = opt_is_yes(opt)
-      
+ 
+      # any affine transform supplied (defaults to auto_tlrc call)     
       opt = opt_list.find_opt('-affine_input_xmat')
       self.affine_input_xmat = opt.parlist[0]
+
+      # skip_affine is same as input of IDentity matrix
+      opt = opt_list.find_opt('-skip_affine')
+      if opt_is_yes(opt):
+         self.affine_input_xmat = "ID"
       
       opt = opt_list.find_opt('-followers')
       if (opt == None):
