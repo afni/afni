@@ -207,8 +207,8 @@ int main( int argc , char *argv[] )
      printf("\n") ;
      printf("Options:\n"
             "--------\n"
-            " -npure P  = number of pure copies of each image [18]\n"
-            " -nfade F  = number of transition fades between pairs [6]\n"
+            " -npure P  = number of pure copies of each image [18] (1 or more)\n"
+            " -nfade F  = number of transition fades between pairs [6] (0 or more)\n"
             " -loop     = output a final set of fade images between the\n"
             "             last input image and the first one, so that the\n"
             "             video can be played in an endless loop\n"
@@ -252,7 +252,7 @@ int main( int argc , char *argv[] )
      if( strcasecmp(argv[iarg],"-nfade") == 0 ){
        if( ++iarg >= argc ) ERROR_exit("Need arg after -nfade") ;
        nfade = (int)strtod(argv[iarg],NULL) ;
-       if( nfade < 1 ) ERROR_exit("Illegal value after -nfade") ;
+       if( nfade < 0 ) ERROR_exit("Illegal value after -nfade") ;
        iarg++ ; continue ;
      }
 
@@ -363,7 +363,7 @@ int main( int argc , char *argv[] )
        for( jj=0 ; jj < nfade ; jj++ ){  /* interpolate for fade */
          qim = mri_rgb_scladd( 1.0f-(jj+1)*fac , inim , (jj+1)*fac , jnim ) ;
          sprintf(outname,"%s_%06d.jpg",prefix,kk) ; kk++ ;
-         mri_write_jpg(outname,qim) ;
+         mri_write_jpg(outname,qim) ; mri_free(qim) ;
        }
        mri_free(inim) ;
        fprintf(stderr,".") ;
@@ -391,7 +391,7 @@ int main( int argc , char *argv[] )
        for( jj=0 ; jj < nfade ; jj++ ){  /* interpolate for fade */
          qim = mri_rgb_scladd( 1.0f-(jj+1)*fac , jnim , (jj+1)*fac , im0 ) ;
          sprintf(outname,"%s_%06d.jpg",prefix,kk) ; kk++ ;
-         mri_write_jpg(outname,qim) ;
+         mri_write_jpg(outname,qim) ; mri_free(qim) ;
        }
        mri_free(im0) ;
      }
@@ -432,7 +432,7 @@ int main( int argc , char *argv[] )
        for( jj=0 ; jj < nfade ; jj++ ){  /* interpolate for fade */
          qim = mri_rgb_scladd( 1.0f-(jj+1)*fac , inim , (jj+1)*fac , jnim ) ;
          sprintf(outname,"%s_%06d.ppm",prefix,kk) ; kk++ ;
-         mri_write_pnm(outname,qim) ;
+         mri_write_pnm(outname,qim) ; mri_free(qim) ;
        }
        mri_free(inim) ;
        fprintf(stderr,".") ;
@@ -460,7 +460,7 @@ int main( int argc , char *argv[] )
        for( jj=0 ; jj < nfade ; jj++ ){  /* interpolate for fade */
          qim = mri_rgb_scladd( 1.0f-(jj+1)*fac , jnim , (jj+1)*fac , im0 ) ;
          sprintf(outname,"%s_%06d.ppm",prefix,kk) ; kk++ ;
-         mri_write_pnm(outname,qim) ;
+         mri_write_pnm(outname,qim) ; mri_free(qim) ;
        }
        mri_free(im0) ;
      }
@@ -486,10 +486,14 @@ int main( int argc , char *argv[] )
        sprintf(oof,"%s.mpg",prefix) ;
        qscale="5" ;
        frate ="24" ;
-       pattrn = calloc(sizeof(char),(npure+nfade+16)) ;
-       pattrn[0] = 'I' ;
-       memset( pattrn+1 , 'P' , npure-1 ) ;
-       memset( pattrn+npure , 'I' , nfade ) ;
+       pattrn = calloc(sizeof(char),(npure+nfade+24)) ;
+       if( npure+nfade == 1 ){
+         strcpy(pattrn,"IBBPBBPBBPBBPBBPBBPBBPBB") ;
+       } else {
+         pattrn[0] = 'I' ;
+         if( npure > 1 ) memset( pattrn+1     , 'P' , npure-1 ) ;
+         if( nfade > 0 ) memset( pattrn+npure , 'I' , nfade   ) ;
+       }
        fprintf(fpar,
                   "OUTPUT %s\n"             /* oof */
                   "GOP_SIZE          %d\n"  /* npure+nfade */
