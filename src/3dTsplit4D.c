@@ -13,7 +13,6 @@ January 5, 2016 - Initial Version
 
 
 #include "mrilib.h"
-#include <string.h>
 
 int help_3dTsplit4D( )
 {
