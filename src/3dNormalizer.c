@@ -1,7 +1,7 @@
 #include "mrilib.h"
 
-floatvec * symmetric_semi_rCDF( THD_3dim_dataset *dset ,
-                                byte *mask , float top , int nbin ) ;
+floatvecvec * symmetric_semi_rCDF( THD_3dim_dataset *dset ,
+                                   byte *mask , float top , int nbin ) ;
 
 int main( int argc , char *argv[] )
 {
@@ -118,10 +118,15 @@ int main( int argc , char *argv[] )
 
    /*-----------------------------------------------------------------------*/
 
-   { floatvec *fv ;
-     fv = symmetric_semi_rCDF( samset , mask , 5.0f , 100 ) ;
-     mri_write_floatvec( "Normalizer.1D" , fv ) ;
+   { floatvecvec *ovv ; floatvec *rfv , *pfv ;
+     ovv = symmetric_semi_rCDF( samset , mask , 5.0f , 100 ) ;
+     rfv = ovv->fvar + 0 ;
+     pfv = ovv->fvar + 1 ;
+     mri_write_floatvec( modify_afni_prefix(prefix,NULL,".cdf.1D") , rfv ) ;
+     mri_write_floatvec( modify_afni_prefix(prefix,NULL,".pdf.1D") , pfv ) ;
    }
+
+   /*-----------------------------------------------------------------------*/
 
    exit(0) ;
 }
@@ -129,10 +134,10 @@ int main( int argc , char *argv[] )
 
 /*--------------------------------------------------------------------------*/
 
-floatvec * symmetric_semi_rCDF( THD_3dim_dataset *dset ,
-                                byte *mask , float top , int nbin )
+floatvecvec * symmetric_semi_rCDF( THD_3dim_dataset *dset ,
+                                   byte *mask , float top , int nbin )
 {
-   floatvec *rfv=NULL ;
+   floatvec *rfv=NULL , *pfv=NULL ; floatvecvec *ovv=NULL ;
    int64vec *riv=NULL ;
    float dx=top/nbin , dxinv=nbin/top , val , scl ;
    int ival , ii,jj , nvox,nval ; int64_t ntot , nsum ;
@@ -163,14 +168,23 @@ ENTRY("symmetric_semi_rCDF") ;
 
    scl = 1.0f / ntot ;
 
-   MAKE_floatvec( rfv , nbin+1 ) ; rfv->dx = dx ; rfv->x0 = 0.0f ;
+   ovv = (floatvecvec *)malloc(sizeof(floatvecvec)) ;
+   ovv->nvec = 2 ;
+   ovv->fvar = (floatvec *)malloc(sizeof(floatvec)*2) ;
+   ovv->fvar[0].nar = nbin+1 ;
+   ovv->fvar[0].ar  = (float *)calloc(sizeof(float),(nbin+1)) ;
+   ovv->fvar[1].nar = nbin+1 ;
+   ovv->fvar[1].ar  = (float *)calloc(sizeof(float),(nbin+1)) ;
+   rfv = ovv->fvar + 0 ; rfv->dx = dx ; rfv->x0 = 0.0f ;
+   pfv = ovv->fvar + 1 ; pfv->dx = dx ; pfv->x0 = 0.0f ;
 
    nsum = 0 ;
    for( jj=nbin ; jj >=0 ; jj-- ){
      nsum += riv->ar[jj] ;
      rfv->ar[jj] = scl * nsum ;
+     pfv->ar[jj] = riv->ar[jj] * scl ;
    }
 
-
-   KILL_int64vec(riv) ; RETURN(rfv) ;
+   KILL_int64vec(riv) ;
+   RETURN(ovv) ;
 }
