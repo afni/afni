@@ -39,7 +39,7 @@ g_help_string = """
 ## BEGIN common functions across scripts (loosely of course)
 class RegWrap:
    def __init__(self, label):
-      self.align_version = "0.02" # software version (update for changes)
+      self.align_version = "0.03" # software version (update for changes)
       self.label = label
       self.valid_opts = None
       self.user_opts = None
