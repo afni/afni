@@ -642,9 +642,9 @@ int powell_newuoa_constrained( int ndim, double *x, double *cost ,
 /*---------------------------------------------------------------------------*/
 
 #undef  NCUT
-#define NCUT 17
+#define NCUT 37
 #undef  MLEV
-#define MLEV 5
+#define MLEV 3
 
 double minimize_in_1D( double xin, double xbot, double xtop,
                        double (*ufunc)(int,double *)        )
