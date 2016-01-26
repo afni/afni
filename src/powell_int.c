@@ -639,6 +639,43 @@ int powell_newuoa_constrained( int ndim, double *x, double *cost ,
    return ntot ;
 }
 
+/*---------------------------------------------------------------------------*/
+
+#undef  NCUT
+#define NCUT 17
+#undef  MLEV
+#define MLEV 5
+
+double minimize_in_1D( double xin, double xbot, double xtop,
+                       double (*ufunc)(int,double *)        )
+{
+  double x1, x2, dx ;
+  double xv, val, vmin ; int imin, nlev, ii;
+
+  if( ufunc == NULL || xbot >= xtop ) return -666.0f ;
+
+  x1 = xbot ; x2 = xtop ;
+
+  for( nlev=0 ; nlev < MLEV ; nlev++ ){
+    dx = (x2-x1)/NCUT ; vmin = 1.0e+38 ;
+    for( ii=0 ; ii <= NCUT ; ii++ ){
+      xv  = x1 + ii*dx ;
+      val = ufunc(1,&xv) ;
+      if( ii == 0 || val < vmin ){ imin = ii ; vmin = val ; }
+    }
+
+    if( imin == 0 ){
+      x2 = x1 + 1.5*dx ;
+    } else if( imin == 20 ){
+      x1 = x2 - 1.5*dx ;
+    } else {
+      x1 = x1 + imin*dx ; x2 = x1 + 2.0*dx ;
+    }
+  }
+
+  return (0.5*(x1+x2)) ;
+}
+
 #if 0
 /*---------------------------------------------------------------------------*/
 
