@@ -64,6 +64,7 @@ void print_1dNLfit_help(void)
     "               'a' to 'z' which is marked as the independent variable by\n"
     "               option '-indvar', and at least one more symbol which is\n"
     "               a parameter to be estimated.\n"
+    "               ++ Note: expressions and symbols are not case sensitive.\n"
     "\n"
     " -indvar c d = Indicates which variable in '-expr' is the independent\n"
     "               variable.  All other symbols are parameters, which are\n"
@@ -87,7 +88,7 @@ void print_1dNLfit_help(void)
     "                  two constant expressions separated by a ':', as in\n"
     "                  'q=-sqrt(2):sqrt(2)'.\n"
     "               ++ All symbols in '-expr' must have a corresponding '-param'\n"
-    "                 option, except for the '-indvar' symbol.\n"
+    "                  option, except for the '-indvar' symbol.\n"
     "\n"
     " -depdata v  = Read the values of the dependent variable (to be fitted to\n"
     "               '-expr') from 1D file 'v'.\n"
@@ -97,6 +98,22 @@ void print_1dNLfit_help(void)
     " -meth m     = Set the method for fitting: '1' for L1, '2' for L2.\n"
     "               (The default method is L2.)\n"
     "\n"
+    "Example:\n"
+    "--------\n"
+    "Create a sine wave corrupted by logistic noise, to file ss.1D.\n"
+    "Fit it to a 2 parameter model and write the fit to file ff.1D.\n"
+    "Plot the data and the fit together, for fun and profit(?).\n"
+    "\n"
+    "1deval -expr 'sin(2*x)+lran(0.3)' -del 0.1 -num 100 > ss.1D\n"
+    "1dNLfit -depdata ss.1D -indvar x '1D: 100%0:0.1' -expr 'a*sin(b*x)' \\\n"
+    "        -param a=0.5:2.1 -param b=1:3.3             > ff.1D\n"
+    "1dplot -one -del 0.1 ss.1D ff.1D\n"
+    "\n"
+    "Notes:\n"
+    "------\n"
+    "* This program is a work-in-progress at this moment.\n"
+    "* Which means it may change, and also means to PLOT YOUR RESULTS!\n"
+    "* By Zhark the Well-Fitted - during Snowzilla 2016.\n"
    ) ;
    exit(0) ;
 }
@@ -111,7 +128,7 @@ int main( int argc , char *argv[] )
    MRI_IMAGE *indvar_im , *depvar_im ;;
    int  nfree=0   , nfix=0 ;
    char cfree[26] , cfix[26] ;
-   float vbot[26] , vtop[26] ;
+   float vbot[26] , vtop[26] , vout[26] , *tsout ;
 
    if( argc < 5 || strcasecmp(argv[1],"-help") == 0 )
      print_1dNLfit_help() ;
@@ -183,7 +200,8 @@ int main( int argc , char *argv[] )
        int jpar , npe ; char cpar ; float_pair fp ;
        if( ++nopt >= argc )
          ERROR_exit("Need an argument after '%s'",argv[nopt-1]) ;
-       nopt++ ; continue ;
+       if( strlen(argv[nopt]) < 3 )
+         ERROR_exit("'%s %s' argument is too short",argv[nopt-1],argv[nopt]) ;
        cpar = toupper(argv[nopt][0]) ;
        jpar = cpar - 'A' ;
        if( jpar < 0 || jpar >= 26 )
@@ -226,6 +244,10 @@ int main( int argc , char *argv[] )
    if( indvar_im == NULL )
      ERROR_exit("No -indvar option?!") ;
 
+   if( indvar_im->nx != depvar_im->nx )
+     ERROR_exit("-indvar and -depdata lengths (%d and %d) do not match",
+                indvar_im->nx , depvar_im->nx ) ;
+
    if( nfree == 0 )
      ERROR_exit("No -param option with a range of allowed values?!") ;
 
@@ -237,4 +259,35 @@ int main( int argc , char *argv[] )
      if( cind == cfree[jj] )
        ERROR_exit("Independent variable '%' is also marked as a variable parameter (to estimate)!",cind) ;
    }
+
+   if( ! PARSER_has_symbol(&cind,pcode) )
+     ERROR_exit("-expr does not contain the independent variable symbol '%c'",cind) ;
+   for( jj=0 ; jj < nfree ; jj++ ){
+     if( ! PARSER_has_symbol(cfree+jj,pcode) )
+       ERROR_exit("-expr does not contain the variable parameter '%c'",cfree[jj]) ;
+   }
+   for( jj=0 ; jj < nfix ; jj++ ){
+     if( ! PARSER_has_symbol(cfix+jj,pcode) )
+       WARNING_message("-expr does not contain the fixed parameter '%c'",cfix[jj]) ;
+   }
+
+   /*--- do the fitting ---*/
+
+   tsout = PARSER_fitter( depvar_im->nx ,
+                          MRI_FLOAT_PTR(indvar_im) ,
+                          MRI_FLOAT_PTR(depvar_im) ,
+                          expr , &cind ,
+                          vbot , vtop , vout , meth ) ;
+
+   if( tsout == NULL )
+     ERROR_exit("PARSER_fitter didn't do good work") ;
+
+   printf("# 1dNLfit output\n") ;
+   printf("# %s\n",expr) ;
+   for( jj=0 ; jj < nfree ; jj++ )
+     printf("#  %c = %g\n",cfree[jj],vout[jj]) ;
+   for( jj=0 ; jj < depvar_im->nx ; jj++ )
+     printf(" %g\n",tsout[jj]) ;
+
+   exit(0) ;
 }
