@@ -802,8 +802,8 @@ static pfit_allocate_atoz( int nval , float *depar )
      atoz[jj] = (double *)realloc( atoz[jj] , sizeof(double)*natoz ) ;
      memset( atoz[jj] , 0 , sizeof(double)*natoz ) ;
    }
-   dval = (double *)realloc( dval , sizeof(double)*natoz) ;
-   eval = (double *)realloc( dval , sizeof(double)*natoz) ;
+   dval = (double *)realloc( dval , sizeof(double)*natoz ) ;
+   eval = (double *)realloc( eval , sizeof(double)*natoz ) ;
    for( jj=0 ; jj < natoz ; jj++ ) dval[jj] = (double)depar[jj] ;
    return ;
 }
@@ -816,8 +816,8 @@ static pfit_free_atoz(void)
    for( jj=0 ; jj < 26 ; jj++ ){
      if( atoz[jj] != NULL ){ free(atoz[jj]) ; atoz[jj] = NULL ; }
    }
-   if( dval != NULL ){ free(dval) ; dval == NULL ; }
-   if( eval != NULL ){ free(eval) ; eval == NULL ; }
+   if( dval != NULL ){ free(dval) ; dval = NULL ; }
+   if( eval != NULL ){ free(eval) ; eval = NULL ; }
    natoz = 0 ;
    return ;
 }
