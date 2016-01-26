@@ -764,3 +764,266 @@ doublereal hrfbk5_( doublereal *ttp , doublereal *TTp )
    }
    return (doublereal)w ;
 }
+
+/*===========================================================================*/
+/* Stuff for fitting an expression to a time series: PARSER_fitter().        */
+/*---------------------------------------------------------------------------*/
+
+static int    natoz     = 0 ;
+static double *atoz[26] = { NULL , NULL , NULL , NULL , NULL ,
+                            NULL , NULL , NULL , NULL , NULL ,
+                            NULL , NULL , NULL , NULL , NULL ,
+                            NULL , NULL , NULL , NULL , NULL ,
+                            NULL , NULL , NULL , NULL , NULL , NULL } ;
+
+static double *dval = NULL ;
+static double *eval = NULL ;
+
+static PARSER_code *pcode = NULL ;
+static int          mcode = 2 ;
+
+static int    nfree = 0 ;
+static int    jfree[26] ;
+static double bfree[26] ;
+static double tfree[26] ;
+
+static int    nfix  = 0 ;
+static int    jfix[26] ;
+static double vfix[26] ;
+
+/*----------*/
+
+static pfit_allocate_atoz( int nval , float *depar )
+{
+   int jj ;
+
+   natoz = nval ;
+   for( jj=0 ; jj < 26 ; jj++ ){
+     atoz[jj] = (double *)realloc( atoz[jj] , sizeof(double)*natoz ) ;
+     memset( atoz[jj] , 0 , sizeof(double)*natoz ) ;
+   }
+   dval = (double *)realloc( dval , sizeof(double)*natoz) ;
+   eval = (double *)realloc( dval , sizeof(double)*natoz) ;
+   for( jj=0 ; jj < natoz ; jj++ ) dval[jj] = (double)depar[jj] ;
+   return ;
+}
+
+/*----------*/
+
+static pfit_free_atoz(void)
+{
+   int jj ;
+   for( jj=0 ; jj < 26 ; jj++ ){
+     if( atoz[jj] != NULL ){ free(atoz[jj]) ; atoz[jj] = NULL ; }
+   }
+   if( dval != NULL ){ free(dval) ; dval == NULL ; }
+   if( eval != NULL ){ free(eval) ; eval == NULL ; }
+   natoz = 0 ;
+   return ;
+}
+
+/*----------*/
+
+static pfit_fill_atoz( int jj , double val )
+{
+   int tt ;
+   for( tt=0 ; tt < natoz ; tt++ ) atoz[jj][tt] = val ;
+   return ;
+}
+
+/*----------*/
+
+static pfit_load_atoz( int jj , float *val )
+{
+   int tt ;
+   for( tt=0 ; tt < natoz ; tt++ ) atoz[jj][tt] = (double)val[tt] ;
+   return ;
+}
+
+/*----------*/
+
+static void pfit_eval_model( double *par , double *fitts )
+{
+   int aa ;
+   for( aa=0 ; aa < nfree ; aa++ )
+     pfit_fill_atoz( jfree[aa] , par[aa] ) ;
+
+   PARSER_evaluate_vector( pcode , atoz , natoz , fitts ) ;
+   return ;
+}
+
+/*----------*/
+
+static double pfit_ufunc( int nnn , double *par )
+{
+   double sum=0.0 , rrr ; int tt ;
+   pfit_eval_model( par , eval ) ;
+   for( tt=0 ; tt < natoz ; tt++ ){
+     rrr = dval[tt] - eval[tt] ;
+     if( mcode == 1 ) sum += fabsf(rrr) ;
+     else             sum += rrr*rrr ;
+   }
+   return sum ;
+}
+
+/*---------------------------------------------------------------------------*/
+/* Nonlinear fit of an expression to a time series:
+     nval    = number of time series points
+     indval  = array of independent values [nval]
+     depval  = array of dependent (to be fit) values [nval]
+     expr    = expression to be fit
+     indet   = single character indicating which variable name
+               in expr corresponds to indval
+     parbot  = Array of length [26]; parbot[j] indicates the
+               smallest allowed value for the j-th variable
+               ("a" is j=0, etc).
+     partop  = Array of length [26]; partop[j] indicates the
+               largest allowed value for the j-th variable.
+               ++ If the j-th variable is not used in expr, then
+                  parbot[j] and partop[j] are ignored.
+               ++ parbot[j] and partop[j] are also ignored for
+                  the 'indet' variable.
+               ++ Otherwise, if parbot[j] >= partop[j], then
+                  the j-th variable value is fixed at parbot[j].
+               ++ If parbot[j] < partop[j], then this is the
+                  range of values that will be searched for the
+                  j-th parameter.
+     parout  = Array of length [26]; gets the output values
+               of all estimated parameters.
+     meth    = 1 for L1 fitting, 2 for L2 fitting
+
+     The return value is a malloc()-ed float array of the fitted
+     time series (e.g., for plotting on top of the data depval[]).
+
+     float xar[100] , yar[100] ,
+           parbot[26] , partop[26] , parout[26] , *yfit ;
+     parbot[0] = 0.0f ; partop[0] = 30.0f ;
+     parbot[1] = partop[1] = 0.7f ;
+     partop[2] = -5.0f ; partop[2] = 5.0f ;
+     yfit = PARSER_fitter( 100 , xar , yar ,
+                           "c*sin(a*x+b)" , "x" ,
+                           parbot , partop , parout , 2 ) ;
+
+     Here, "c" and "a" are to be fit, "b" is a constant parameter.
+*//*-------------------------------------------------------------------------*/
+
+float * PARSER_fitter( int nval, float *indval, float *depval,
+                       char *expr, char *indet,
+                       float *parbot, float *partop, float *parout, int meth )
+{
+   int jind ; char cind ;
+   int jj,aa ; char cjj ;
+   int nbad=0 ;
+   double pval[26] , pcost ;
+   float *fitts ;
+
+   mcode = (meth == 1) ? 1 : 2 ;  /* L2 default */
+
+   /*--- check for errors on input ---*/
+
+   if( nval < 3 ){
+     ERROR_message("PARSER_fitter: nval=%d",nval) ; nbad++ ;
+   }
+   if( indval == NULL ){
+     ERROR_message("PARSER_fitter: indval=NULL"); nbad++ ;
+   }
+   if( depval == NULL ){
+     ERROR_message("PARSER_fitter: depval=NULL"); nbad++ ;
+   }
+   if( expr == NULL ){
+     ERROR_message("PARSER_fitter: expr=NULL"); nbad++ ;
+   }
+   if( indet == NULL ){
+     ERROR_message("PARSER_fitter: indet=NULL"); nbad++ ;
+   } else {
+     cind = toupper(indet[0]) ;
+     jind = cind - 'A' ;
+     if( jind < 0 || jind >= 26 ){
+       ERROR_message("PARSER_fitter: indet is invalid") ; nbad++ ;
+     }
+   }
+   if( parbot == NULL ){
+     ERROR_message("PARSER_fitter: parbot=NULL"); nbad++ ;
+   }
+   if( partop == NULL ){
+     ERROR_message("PARSER_fitter: partop=NULL"); nbad++ ;
+   }
+   if( parout == NULL ){
+     ERROR_message("PARSER_fitter: parout=NULL"); nbad++ ;
+   }
+   if( nbad > 0 ) return (NULL) ;
+
+   /*--- parse expression ---*/
+
+   PARSER_set_printout(1) ;
+   pcode = PARSER_generate_code(expr) ;
+   if( pcode == NULL ){
+     ERROR_message("PARSER_fitter: invalid expression") ; return (NULL) ;
+   }
+
+   /*--- check for further errors ---*/
+
+   if( ! PARSER_has_symbol(&cind,pcode) ){
+     ERROR_message("PARSER_fitter: expr doesn't use indet symbol '%c'",indet[0]) ;
+     nbad++ ;
+   }
+
+   nfree = nfix = 0 ;
+   for( jj=0 ; jj < 26 ; jj++ ){
+     if( jj == jind ) continue ;
+     cjj = 'A' + jj ;
+     if( ! PARSER_has_symbol(&cjj,pcode) ) continue ;
+     if( parbot[jj] < partop[jj] ){
+       jfree[nfree] = jj ;               /* add to list of free parameters */
+       bfree[nfree] = (double)parbot[jj] ;
+       tfree[nfree] = (double)partop[jj] ;
+       pval [nfree] = 0.5 * ( bfree[nfree] + tfree[nfree] ) ; nfree++ ;
+     } else {
+       jfix[nfix] = jj ; vfix[nfix] = parbot[jj] ; nfix++ ; /* fixed param */
+     }
+   }
+   if( nfree == 0 ){
+     ERROR_message("PARSER_fitter: expr has no free parameters to fit") ; nbad++ ;
+   }
+   if( nbad > 0 ) return (NULL) ;
+
+   /*--- setup for evaluation ---*/
+
+   pfit_allocate_atoz(nval,depval) ;
+
+   for( aa=0 ; aa < nfix ; aa++ ) pfit_fill_atoz( jfix[aa] , vfix[aa] ) ;
+
+   pfit_load_atoz( jind , indval ) ;
+
+   /*--- optimize ---*/
+
+   if( nfree > 1 ){
+     jj = powell_newuoa_constrained( nfree , pval , &pcost ,
+                                     bfree , tfree ,
+                                     66*nfree+666 , 33 , 9 ,
+                                     0.111 , 0.0001 , 666*nfree , pfit_ufunc ) ;
+
+     if( jj < 0 ){
+       ERROR_message("PARSER_fitter: fitting failed!") ;
+       pfit_free_atoz() ;
+       return (NULL) ;
+     }
+   } else {
+     double xout ;
+     xout = minimize_in_1D( pval[0] , bfree[0] , tfree[0] , pfit_ufunc ) ;
+     pval[0] = xout ;
+   }
+
+   /*--- output results ---*/
+
+   for( jj=0 ; jj < 26    ; jj++ ) parout[jj]        = 0.0f ;
+   for( aa=0 ; aa < nfix  ; aa++ ) parout[jfix[aa]]  = vfix[aa] ;
+   for( aa=0 ; aa < nfree ; aa++ ) parout[jfree[aa]] = pval[aa] ;
+
+   pfit_eval_model( pval , eval ) ;
+   fitts = (float *)malloc(sizeof(float)*nval) ;
+   for( aa=0 ; aa < nval ; aa++ ) fitts[aa] = (float)eval[aa] ;
+
+   pfit_free_atoz() ;
+   return (fitts) ;
+}
