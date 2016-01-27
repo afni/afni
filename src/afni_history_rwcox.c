@@ -43,6 +43,12 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
+
+ { 26, JAN , 2016 , RWC , "1dNLfit" , MINOR , TYPE_NEW_PROG ,
+   "1D file nonlinear fitting" ,
+   "Uses the 'calc' parser to define the function to fit.\n"
+   "Mostly for the convenience of The Bob." } ,
+
   { 22 , JAN , 2016 , RWC , "1deval" , MICRO , TYPE_NEW_OPT ,
    "Fixed value assignments, as in '-a=3.7'" ,
    "For my convenience" } ,
