@@ -793,6 +793,8 @@ static int    nfix  = 0 ;
 static int    jfix[26] ;
 static double vfix[26] ;
 
+static double *wtard=NULL ;
+
 /*----------*/
 
 static pfit_allocate_atoz( int nval , float *depar )
@@ -862,8 +864,10 @@ static double pfit_ufunc( int nnn , double *par )
    pfit_eval_model( par , eval ) ;
    for( tt=0 ; tt < natoz ; tt++ ){
      rrr = dval[tt] - eval[tt] ;
-     if( mcode == 1 ) sum += fabsf(rrr) ;
-     else             sum += rrr*rrr ;
+     if( mcode == 1 )    rrr  = fabsf(rrr) ;
+     else                rrr *= rrr ;
+     if( wtard != NULL ) rrr *= wtard[tt] ;
+     sum += rrr ;
    }
    return sum ;
 }
@@ -893,6 +897,7 @@ static double pfit_ufunc( int nnn , double *par )
      parout  = Array of length [26]; gets the output values
                of all estimated parameters.
      meth    = 1 for L1 fitting, 2 for L2 fitting
+     wtar    = weight array [nval] -- can be NULL
 
      The return value is a malloc()-ed float array of the fitted
      time series (e.g., for plotting on top of the data depval[]).
@@ -904,14 +909,15 @@ static double pfit_ufunc( int nnn , double *par )
      partop[2] = -5.0f ; partop[2] = 5.0f ;
      yfit = PARSER_fitter( 100 , xar , yar ,
                            "c*sin(a*x+b)" , "x" ,
-                           parbot , partop , parout , 2 ) ;
+                           parbot , partop , parout , 2 , NULL ) ;
 
      Here, "c" and "a" are to be fit, "b" is a constant parameter.
 *//*-------------------------------------------------------------------------*/
 
 float * PARSER_fitter( int nval, float *indval, float *depval,
                        char *expr, char *indet,
-                       float *parbot, float *partop, float *parout, int meth )
+                       float *parbot, float *partop, float *parout,
+                       int meth , float *wtar )
 {
    int jind ; char cind ;
    int jj,aa ; char cjj ;
@@ -997,6 +1003,11 @@ float * PARSER_fitter( int nval, float *indval, float *depval,
 
    pfit_load_atoz( jind , indval ) ;
 
+   if( wtar != NULL ){
+     wtard = (double *)malloc(sizeof(double)*nval) ;
+     for( aa=0 ; aa < nval ; aa++ ) wtard[aa] = (double)wtar[aa] ;
+   }
+
    /*--- optimize ---*/
 
    if( nfree > 1 ){
@@ -1012,7 +1023,7 @@ float * PARSER_fitter( int nval, float *indval, float *depval,
      }
    } else {
      double xout ;
-     xout = minimize_in_1D( pval[0] , bfree[0] , tfree[0] , pfit_ufunc ) ;
+     xout = minimize_in_1D( bfree[0] , tfree[0] , pfit_ufunc ) ;
      pval[0] = xout ;
    }
 
@@ -1026,6 +1037,6 @@ float * PARSER_fitter( int nval, float *indval, float *depval,
    fitts = (float *)malloc(sizeof(float)*nval) ;
    for( aa=0 ; aa < nval ; aa++ ) fitts[aa] = (float)eval[aa] ;
 
-   pfit_free_atoz() ;
+   pfit_free_atoz() ; if( wtard != NULL ) free(wtard) ;
    return (fitts) ;
 }
