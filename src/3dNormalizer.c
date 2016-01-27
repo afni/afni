@@ -1,4 +1,5 @@
 #include "mrilib.h"
+#include "parser.h"
 
 floatvecvec * symmetric_semi_rCDF( THD_3dim_dataset *dset ,
                                    byte *mask , float top , int nbin ) ;
@@ -9,6 +10,8 @@ int main( int argc , char *argv[] )
    char *prefix="Normalizer" ;
    THD_3dim_dataset *samset=NULL, *inset=NULL, *outset=NULL ;
    byte *mask=NULL ; int nmask,nmask_hits ;
+   float apar,bpar,cpar,dpar ;
+   floatvec *rfv , *pfv ;
 
    /*-----------------------------------------------------------------------*/
 
@@ -118,12 +121,48 @@ int main( int argc , char *argv[] )
 
    /*-----------------------------------------------------------------------*/
 
-   { floatvecvec *ovv ; floatvec *rfv , *pfv ;
+   { floatvecvec *ovv ;
      ovv = symmetric_semi_rCDF( samset , mask , 5.0f , 100 ) ;
      rfv = ovv->fvar + 0 ;
      pfv = ovv->fvar + 1 ;
+#if 1
      mri_write_floatvec( modify_afni_prefix(prefix,NULL,".cdf.1D") , rfv ) ;
      mri_write_floatvec( modify_afni_prefix(prefix,NULL,".pdf.1D") , pfv ) ;
+#endif
+   }
+
+#undef  HFUNC
+#define HFUNC(x) (bpar*(x)+apar*logf(coshf(dpar*(x)-cpar)/coshf(cpar)))
+
+   { float *qv, *wv, *xv , *fitv, parbot[26],partop[26],parout[26] ;
+     int ii, nval=rfv->nar ; float dx=rfv->dx ;
+     qv = (float *)malloc(sizeof(float)*nval) ;
+     wv = (float *)malloc(sizeof(float)*nval) ;
+     xv = (float *)malloc(sizeof(float)*nval) ;
+     for( ii=0 ; ii < nval ; ii++ ){
+       qv[ii] = qginv(0.5*rfv->ar[ii]) ;
+       wv[ii] = (qv[ii] < 3.0f ) ? 1.0f
+               :(qv[ii] < 4.0f ) ? 0.5f : 0.0f ;
+       xv[ii] = ii*dx ;
+       qv[ii] = qv[ii] - xv[ii] ;
+     }
+     parbot[0] =  0.0f ; partop[0] = 2.0f ; /* limits on a */
+     parbot[1] = -0.5f ; partop[1] = 0.5f ; /* limits on b */
+     parbot[2] =  0.1f ; partop[2] = 2.9f ; /* limits on c */
+     parbot[3] =  0.2f ; partop[3] = 2.2f ; /* limits on c */
+     fitv = PARSER_fitter( nval , xv , qv ,
+                           "b*x+a*log(cosh(d*x-c)/cosh(c))" , "x" ,
+                           parbot , partop , parout , 1 , wv ) ;
+     if( fitv == NULL )
+       ERROR_exit("PARSER_fitter() fails :-(") ;
+     free(fitv) ;
+     apar = parout[0] ;
+     bpar = parout[1] ;
+     cpar = parout[2] ;
+     dpar = parout[3] ;
+#if 1
+     INFO_message("apar=%g  bpar=%g  cpar=%g  dpar=%g",apar,bpar,cpar,dpar) ;
+#endif
    }
 
    /*-----------------------------------------------------------------------*/
