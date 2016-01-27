@@ -13,9 +13,9 @@
 MRI_IMAGE * mri_1D_fromstring( char *str )
 {
    int ii,nnn,count , ntot=0 ;
-   float *far , value=0.0 ;
+   float *far , value=0.0 , cstep=0.0 ;
    NI_str_array *sar ;
-   char sep ;
+   char sep , sepx ;
    MRI_IMAGE *flim ;
    int col_num , *col_len ;
 
@@ -32,6 +32,8 @@ ENTRY("mri_1D_fromstring") ;
    far = (float *)malloc(sizeof(float)) ;
    for( ii=0 ; ii < sar->num ; ii++ ){
 
+     cstep = 0.0f ;
+
      if( strstr(sar->str[ii],"@") != NULL ||    /* if has one of the    */
          strstr(sar->str[ii],"x") != NULL ||    /* allowed separator    */
          strstr(sar->str[ii],"X") != NULL ||    /* characters, then     */
@@ -42,6 +44,13 @@ ENTRY("mri_1D_fromstring") ;
           ERROR_message("Illegal 1D: value '%s'",sar->str[ii]) ;
           free(col_len); free(far); NI_delete_str_array(sar); RETURN(NULL);
         }
+
+     } else if( strstr(sar->str[ii],"%") != NULL ){  /* 26 Jan 2016 */
+       nnn = sscanf( sar->str[ii] , "%d%c%f%c%f" , &count , &sep , &value , &sepx , &cstep ) ;
+       if( nnn != 5 || count < 1 ){
+          ERROR_message("Illegal 1D: value '%s'",sar->str[ii]) ;
+          free(col_len); free(far); NI_delete_str_array(sar); RETURN(NULL);
+       }
 
      } else if( IS_COLSEP(sar->str[ii]) ){ /* a col separator */
        col_num++ ;
@@ -60,7 +69,7 @@ ENTRY("mri_1D_fromstring") ;
 
      if( count > 0 ){
        far = (float *) realloc( far , sizeof(float)*(ntot+count) ) ;
-       for( nnn=0 ; nnn < count ; nnn++ ) far[nnn+ntot] = value ;
+       for( nnn=0 ; nnn < count ; nnn++ ) far[nnn+ntot] = value + nnn*cstep ;
        ntot += count ; col_len[col_num-1] += count ;
      }
 
