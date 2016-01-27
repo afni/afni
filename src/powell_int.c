@@ -646,8 +646,8 @@ int powell_newuoa_constrained( int ndim, double *x, double *cost ,
 #undef  MLEV
 #define MLEV 4
 
-double minimize_in_1D( double xin, double xbot, double xtop,
-                       double (*ufunc)(int,double *)        )
+double minimize_in_1D( double xbot, double xtop,
+                       double (*ufunc)(int,double *) )
 {
   double x1, x2, dx ;
   double xv, val, vmin ; int imin, nlev, ii;
