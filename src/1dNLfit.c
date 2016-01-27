@@ -13,6 +13,8 @@ static float_pair parse_parameter( char *parg )
    char *expr , *cpt ;
    float_pair fp = {0.0f,0.0f} ;
 
+ENTRY("parse_parameter") ;
+
                      cpt = strchr(parg,':') ;
    if( cpt == NULL ) cpt = strchr(parg,';') ;
    if( cpt == NULL ){
@@ -44,7 +46,7 @@ static float_pair parse_parameter( char *parg )
        free(pcode) ;
      }
    }
-   return fp ;
+   RETURN(fp) ;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -104,34 +106,42 @@ void print_1dNLfit_help(void)
     "\n"
     "Example:\n"
     "--------\n"
-    "Create a sine wave corrupted by logistic noise, to file ss.1D.\n"
-    "Fit it to a 3 parameter model and write the fit to file ff.1D.\n"
+    "Create a sin wave corrupted by logistic noise, to file ss.1D.\n"
+    "Create a cos wave similarly, to file cc.1D.\n"
+    "Put these files together into a 2 column file sc.1D.\n"
+    "Fit both columns to a 3 parameter model and write the fits to file ff.1D.\n"
     "Plot the data and the fit together, for fun and profit(?).\n"
     "\n"
     "1deval -expr 'sin(2*x)+lran(0.3)' -del 0.1 -num 100 > ss.1D\n"
-    "1dNLfit -depdata ss.1D -indvar x '1D: 100%%0:0.1' -expr 'a*sin(b*x)+c*cos(b*x)' \\\n"
-    "        -param a=0.5:2.1 -param b=1:3.3 -param c=-1:1  > ff.1D\n"
-    "1dplot -one -del 0.1 ss.1D ff.1D\n"
+    "1deval -expr 'cos(2*x)+lran(0.3)' -del 0.1 -num 100 > cc.1D\n"
+    "1dcat ss.1D cc.1D > sc.1D ; \\rm ss.1D cc.1D\n"
+    "1dNLfit -depdata sc.1D -indvar x '1D: 100%%0:0.1' -expr 'a*sin(b*x)+c*cos(b*x)' \\\n"
+    "        -param a=-2:2 -param b=1:3 -param c=-2:2  > ff.1D\n"
+    "1dplot -one -del 0.1 -ynames sin:data cos:data sin:fit cos:fit - sc.1D ff.1D\n"
     "\n"
     "Notes:\n"
     "------\n"
     "* This program is a work-in-progress at this moment.\n"
+    "\n"
     "* Which means it may change, and also means to PLOT YOUR RESULTS!\n"
+    "\n"
     "* This program is not particularly efficient, so using it on a large\n"
     "  scale (e.g., for lots of columns, or in a shell loop) will be slow.\n"
+    "\n"
     "* The results (fitted time series models) are written to stdout,\n"
     "  and should be saved by '>' redirection (as in the example).\n"
     "  The first few lines of the output from the example are:\n"
     "   # 1dNLfit output (meth=L2)\n"
     "   # expr = a*sin(b*x)+c*cos(b*x)\n"
     "   # Fitted parameters:\n"
-    "   # A =     0.91199\n"
-    "   # B =      2.0109\n"
-    "   # C =    0.056278\n"
-    "   #     -----------\n"
-    "            0.056278\n"
-    "              0.2373\n"
-    "             0.40877\n"
+    "   # A =      1.0828     0.12786\n"
+    "   # B =      1.9681      2.0208\n"
+    "   # C =     0.16905      1.0102\n"
+    "   #     ----------- -----------\n"
+    "             0.16905      1.0102\n"
+    "             0.37753      1.0153\n"
+    "             0.57142     0.97907\n"
+    "\n"
     "* Coded by Zhark the Well-Fitted - during Snowzilla 2016.\n"
     "\n"
    ) ;
@@ -152,16 +162,24 @@ int main( int argc , char *argv[] )
    int  jfree[26] , jfix[26] ;
    float vbot[26] , vtop[26] , **vout , **tsout ;
 
+   /*--- help me? ---*/
+
    if( argc < 5 || strcasecmp(argv[1],"-help") == 0 )
      print_1dNLfit_help() ;
 
-   PARSER_set_printout(1) ;
+   /*--- initializations ---*/
+
+   PARSER_set_printout(1) ;  /* if expr is bad, will print diagnosis */
    for( jj=0 ; jj < 26 ; jj++ ){
      atoz[jj] = vbot[jj] = vtop[jj] = 0.0 ;
      jfree[jj] = jfix[jj] = -1 ;
    }
 
-   /*--- scan option ---*/
+   /*---------- AFNI startup bureaucracy ----------*/
+
+   mainENTRY("1dNLfit main"); machdep(); PRINT_VERSION("1dNLfit");
+
+   /*--- scan options, set variables ---*/
 
    while( nopt < argc ){
 
@@ -246,7 +264,7 @@ int main( int argc , char *argv[] )
        npe = nparse_err ;
        fp = parse_parameter( argv[nopt]+2 ) ;
        if( nparse_err > npe )
-         ERROR_exit("Can't parse expressions in '-param %s'",argv[nopt]) ;
+         ERROR_message("Can't parse expressions in '-param %s'",argv[nopt]) ;
        atoz[jpar] = 0.5f * ( fp.a + fp.b ) ;
        vbot[jpar] = fp.a ;
        vtop[jpar] = fp.b ;
@@ -260,16 +278,22 @@ int main( int argc , char *argv[] )
      ERROR_exit("Unknown option '%s'",argv[nopt]) ;
    }
 
-   /*--- check for errors ---*/
+   /*--- check options for errors ---*/
 
-   if( pcode == NULL )
-     ERROR_exit("No -expr option?!?") ;
+   if( pcode == NULL ){
+     ERROR_message("No -expr option?!?") ; nbad++ ;
+   }
 
-   if( depvar_im == NULL )
-     ERROR_exit("No -depdata option?!") ;
+   if( depvar_im == NULL ){
+     ERROR_message("No -depdata option?!") ; nbad++ ;
+   }
 
-   if( indvar_im == NULL )
-     ERROR_exit("No -indvar option?!") ;
+   if( indvar_im == NULL ){
+     ERROR_message("No -indvar option?!") ; nbad++ ;
+   }
+
+   if( nbad > 0 || nparse_err > 0 )
+     ERROR_exit("Cannot continue after errors") ;
 
    nx = indvar_im->nx ;
    ny = depvar_im->ny ;
@@ -279,6 +303,8 @@ int main( int argc , char *argv[] )
 
    if( nfree == 0 )
      ERROR_exit("No -param option with a range of allowed values?!") ;
+
+   /* check for various mis-uses of symbol names */
 
    for( jj=0 ; jj < nfix ; jj++ ){
      if( cind == cfix[jj] )
