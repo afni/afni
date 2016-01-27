@@ -70,10 +70,10 @@ void print_1dNLfit_help(void)
     "               variable.  All other symbols are parameters, which are\n"
     "               either fixed (constants) or variables to be estimated.\n"
     "               Then, read the values of the independent variable from\n"
-    "               1D file 'd' (first column only)\n"
+    "               1D file 'd' (only the first column will be used)\n"
     "               ++ If the independent variable has a constant step size,\n"
     "                  you can input it via with 'd' replaced by a string like\n"
-    "                    '1D: 100%0:2.1'\n"
+    "                    '1D: 100%%0:2.1'\n"
     "                  which creates an array with 100 value, starting at 0,\n"
     "                  then adding 2.1 for each step:\n"
     "                    0 2.1 4.2 6.3 8.4 ...\n"
@@ -88,32 +88,50 @@ void print_1dNLfit_help(void)
     "                  two constant expressions separated by a ':', as in\n"
     "                  'q=-sqrt(2):sqrt(2)'.\n"
     "               ++ All symbols in '-expr' must have a corresponding '-param'\n"
-    "                  option, except for the '-indvar' symbol.\n"
+    "                  option, EXCEPT for the '-indvar' symbol.\n"
     "\n"
     " -depdata v  = Read the values of the dependent variable (to be fitted to\n"
     "               '-expr') from 1D file 'v'.\n"
     "               ++ File 'v' must have the same number of rows as file 'd'\n"
     "                  from the '-indvar' option!\n"
+    "               ++ File 'v' can have more than one column; each will be fitted\n"
+    "                  separately to the expression.\n"
     "\n"
     " -meth m     = Set the method for fitting: '1' for L1, '2' for L2.\n"
-    "               (The default method is L2.)\n"
+    "               (The default method is L2, which is usually better.)\n"
     "\n"
     "Example:\n"
     "--------\n"
     "Create a sine wave corrupted by logistic noise, to file ss.1D.\n"
-    "Fit it to a 2 parameter model and write the fit to file ff.1D.\n"
+    "Fit it to a 3 parameter model and write the fit to file ff.1D.\n"
     "Plot the data and the fit together, for fun and profit(?).\n"
     "\n"
     "1deval -expr 'sin(2*x)+lran(0.3)' -del 0.1 -num 100 > ss.1D\n"
-    "1dNLfit -depdata ss.1D -indvar x '1D: 100%0:0.1' -expr 'a*sin(b*x)' \\\n"
-    "        -param a=0.5:2.1 -param b=1:3.3             > ff.1D\n"
+    "1dNLfit -depdata ss.1D -indvar x '1D: 100%%0:0.1' -expr 'a*sin(b*x)+c*cos(b*x)' \\\n"
+    "        -param a=0.5:2.1 -param b=1:3.3 -param c=-1:1  > ff.1D\n"
     "1dplot -one -del 0.1 ss.1D ff.1D\n"
     "\n"
     "Notes:\n"
     "------\n"
     "* This program is a work-in-progress at this moment.\n"
     "* Which means it may change, and also means to PLOT YOUR RESULTS!\n"
-    "* By Zhark the Well-Fitted - during Snowzilla 2016.\n"
+    "* This program is not particularly efficient, so using it on a large\n"
+    "  scale (e.g., for lots of columns, or in a shell loop) will be slow.\n"
+    "* The results (fitted time series models) are written to stdout,\n"
+    "  and should be saved by '>' redirection (as in the example).\n"
+    "  The first few lines of the output from the example are:\n"
+    "   # 1dNLfit output (meth=L2)\n"
+    "   # expr = a*sin(b*x)+c*cos(b*x)\n"
+    "   # Fitted parameters:\n"
+    "   # A =     0.91199\n"
+    "   # B =      2.0109\n"
+    "   # C =    0.056278\n"
+    "   #     -----------\n"
+    "            0.056278\n"
+    "              0.2373\n"
+    "             0.40877\n"
+    "* Coded by Zhark the Well-Fitted - during Snowzilla 2016.\n"
+    "\n"
    ) ;
    exit(0) ;
 }
@@ -122,19 +140,24 @@ void print_1dNLfit_help(void)
 
 int main( int argc , char *argv[] )
 {
-   int nopt=1 ;
+   int nopt=1 , nbad=0 ;
    char *expr=NULL ; PARSER_code *pcode ;
-   char cind='\0' ; int jind=-1 , meth=2 , jj,kk ;
-   MRI_IMAGE *indvar_im , *depvar_im ;;
+   char cind='\0' , ccc ; int jind=-1 , meth=2 , jj,kk ;
+   MRI_IMAGE *indvar_im , *depvar_im ; int nx,ny,qq ;
+   float     *indvar    , *depvar , *dv ;
    int  nfree=0   , nfix=0 ;
    char cfree[26] , cfix[26] ;
-   float vbot[26] , vtop[26] , vout[26] , *tsout ;
+   int  jfree[26] , jfix[26] ;
+   float vbot[26] , vtop[26] , **vout , **tsout ;
 
    if( argc < 5 || strcasecmp(argv[1],"-help") == 0 )
      print_1dNLfit_help() ;
 
    PARSER_set_printout(1) ;
-   for( jj=0 ; jj < 26 ; jj++ ) atoz[jj] = vbot[jj] = vtop[jj] = 0.0 ;
+   for( jj=0 ; jj < 26 ; jj++ ){
+     atoz[jj] = vbot[jj] = vtop[jj] = 0.0 ;
+     jfree[jj] = jfix[jj] = -1 ;
+   }
 
    /*--- scan option ---*/
 
@@ -178,6 +201,7 @@ int main( int argc , char *argv[] )
        indvar_im = mri_read_1D(argv[nopt]) ;
        if( indvar_im == NULL )
          ERROR_exit("Can't read 1D file after '-indvar' ('%s')\n",argv[nopt]) ;
+       indvar = MRI_FLOAT_PTR(indvar_im) ;
        nopt++ ; continue ;
      }
 
@@ -191,6 +215,7 @@ int main( int argc , char *argv[] )
        depvar_im = mri_read_1D(argv[nopt]) ;
        if( depvar_im == NULL )
          ERROR_exit("Can't read 1D file after '-depdata' ('%s')\n",argv[nopt]) ;
+       depvar = MRI_FLOAT_PTR(depvar_im) ;
        nopt++ ; continue ;
      }
 
@@ -223,8 +248,8 @@ int main( int argc , char *argv[] )
        atoz[jpar] = 0.5f * ( fp.a + fp.b ) ;
        vbot[jpar] = fp.a ;
        vtop[jpar] = fp.b ;
-       if( fp.a >= fp.b ) cfix [nfix++]  = cpar ;
-       else               cfree[nfree++] = cpar ;
+       if( fp.a >= fp.b ){ cfix [nfix]  = cpar; jfix [nfix++]  = jpar; }
+       else              { cfree[nfree] = cpar; jfree[nfree++] = jpar; }
        nopt++ ; continue ;
      }
 
@@ -244,7 +269,9 @@ int main( int argc , char *argv[] )
    if( indvar_im == NULL )
      ERROR_exit("No -indvar option?!") ;
 
-   if( indvar_im->nx != depvar_im->nx )
+   nx = indvar_im->nx ;
+   ny = depvar_im->ny ;
+   if( nx != depvar_im->nx )
      ERROR_exit("-indvar and -depdata lengths (%d and %d) do not match",
                 indvar_im->nx , depvar_im->nx ) ;
 
@@ -270,24 +297,59 @@ int main( int argc , char *argv[] )
      if( ! PARSER_has_symbol(cfix+jj,pcode) )
        WARNING_message("-expr does not contain the fixed parameter '%c'",cfix[jj]) ;
    }
+   for( jj=0 ; jj < 26 ; jj++ ){
+     if( jj == jind ) continue ;
+     for( kk=0 ; kk < nfree && jj != jfree[kk] ; kk++ ) ; /*nada*/
+     if( kk < nfree ) continue ;
+     if( nfix > 0 ){
+       for( kk=0 ; kk < nfix && jj != jfix[kk] ; kk++ ) ; /*nada*/
+       if( kk < nfix ) continue ;
+     }
+     ccc = 'A'+jj ;
+     if( PARSER_has_symbol(&ccc,pcode) ){
+       ERROR_message("-expr uses symbol '%c' but there is no '-param' for it",ccc) ;
+       nbad++ ;
+     }
+   }
+   if( nbad > 0 ) ERROR_exit("Cannot carry out fitting process :-(") ;
+
 
    /*--- do the fitting ---*/
 
-   tsout = PARSER_fitter( depvar_im->nx ,
-                          MRI_FLOAT_PTR(indvar_im) ,
-                          MRI_FLOAT_PTR(depvar_im) ,
-                          expr , &cind ,
-                          vbot , vtop , vout , meth ) ;
+   tsout = (float **)malloc(sizeof(float *)*ny) ;
+   vout  = (float **)malloc(sizeof(float *)*ny) ;
 
-   if( tsout == NULL )
-     ERROR_exit("PARSER_fitter didn't do good work") ;
+   for( qq=0 ; qq < ny ; qq++ ){
+     vout[qq]  = (float *)malloc(sizeof(float)*26) ;
+     tsout[qq] = PARSER_fitter( nx , indvar , depvar+qq*nx ,
+                                expr , &cind ,
+                                vbot , vtop , vout[qq] , meth ) ;
 
-   printf("# 1dNLfit output\n") ;
-   printf("# %s\n",expr) ;
-   for( jj=0 ; jj < nfree ; jj++ )
-     printf("#  %c = %g\n",cfree[jj],vout[jj]) ;
-   for( jj=0 ; jj < depvar_im->nx ; jj++ )
-     printf(" %g\n",tsout[jj]) ;
+     if( tsout[qq] == NULL )
+       ERROR_exit("PARSER_fitter didn't work on -depdata column #%d",qq) ;
+   }
+
+   printf("# 1dNLfit output (meth=L%d)\n",meth) ;
+   printf("# expr = %s\n",expr) ;
+   if( nfix > 0 ){
+     printf("# Fixed parameters:\n") ;
+     for( jj=0 ; jj < nfix ; jj++ ) printf("# %c = %11.5g\n",cfix[jj],vout[0][jfix[jj]]) ;
+   }
+
+   printf("# Fitted parameters:\n") ;
+   for( jj=0 ; jj < nfree ; jj++ ){
+     printf("# %c =",cfree[jj]) ;
+     for( qq=0 ; qq < ny ; qq++ ) printf(" %11.5g",vout[qq][jfree[jj]]) ;
+     printf("\n") ;
+   }
+   printf("#    ") ;
+   for( qq=0 ; qq < ny ; qq++ ) printf(" -----------") ;
+   printf("\n") ;
+   for( jj=0 ; jj < nx ; jj++ ){
+     printf("     ") ;
+     for( qq=0 ; qq < ny ; qq++ ) printf(" %11.5g",tsout[qq][jj]) ;
+     printf("\n") ;
+   }
 
    exit(0) ;
 }
