@@ -490,3 +490,19 @@ int mri_write_filtered( char *fname , MRI_IMAGE *im )  /* 15 Dec 2006 */
    (void) pclose(fp) ;
    return 1 ;
 }
+
+/*---------------------------------------------------------------*/
+
+void mri_write_floatvec( char *fname , floatvec *fv ) /* 21 Jan 2016 */
+{
+   MRI_IMAGE *fim ;
+
+   if( fname == NULL || fv == NULL ) return ;
+
+   fim = mri_new_vol_empty( fv->nar,1,1, MRI_float ) ;
+   mri_set_data_pointer( fim , fv->ar ) ;
+   mri_write_1D( fname , fim ) ;
+   mri_clear_data_pointer( fim ) ;
+   mri_free( fim ) ;
+   return ;
+}

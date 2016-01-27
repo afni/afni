@@ -18,6 +18,7 @@ ___*
 *.gii*
 *.dset*
 *.niml
+*.1D
 
 #R Hidden files
 *.Rout

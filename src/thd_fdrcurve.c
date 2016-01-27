@@ -103,6 +103,10 @@ ENTRY("THD_create_all_fdrcurves") ;
          WARNING_message(
           "Smallest FDR q [%d %s] = %g ==> very few (if any) true detections" ,
           iv , DSET_BRICK_LABEL(dset,iv) , qmin ) ;
+       else
+         INFO_message(
+          "Smallest FDR q [%d %s] = %g" ,
+          iv , DSET_BRICK_LABEL(dset,iv) , qmin ) ;
      }
 
    }

@@ -83,7 +83,7 @@ PROGRAMS = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge count   
            nifti_tool 3dAllineate nifti1_test whereami plugout_drive 3dLSS      \
            3dMedianFilter 3dretroicor 3dAFNItoNIML 3dAFNItoRaw im2niml 3dedge3  \
            DTIStudioFibertoSegments Dimon1 Dimon 3dLocalstat 3danisosmooth      \
-           3dmaxima GLTsymtest 3dPval stimband                                  \
+           3dmaxima GLTsymtest 3dPval stimband 1dNLfit                          \
            3dTwotoComplex 3dInvFMRI 3dmatcalc 3dAcost 3dLocalBistat 3dFWHMx     \
            3dBlurToFWHM 1dSEM 3dDFT 3dSynthesize 1dMarry 3dEmpty 3dsvm          \
            1dFlagMotion 3dTsort 1dTsort 3dTfitter afni_history 1dUpsample       \
@@ -135,7 +135,7 @@ PROGRAMS_NOPLUG = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge  
                   3dUnifize 3dNwarpCat 3dQwarp 3dLocalHistog 3dNwarpAdjust 3dTRfix  \
                   3dNwarpFuncs 3dTproject  afni_open   3dConformist 3dNwarpXYZ      \
                   3dToyProg nifti1_tool gifti_tool cifti_tool images_equal          \
-                  uniq_images stimband                                              \
+                  uniq_images stimband 1dNLfit                                      \
                   $(EXTRAS)
 
 # For CYGWIN (look for "exe" to find various places below)
@@ -171,7 +171,7 @@ PROGRAMS_EXE = afni.exe to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge 
                3dTcorrMap 3dABoverlap 3dRank 3dFFT 3dTcorr1D 3dClustSim 3dTRfix   \
                3dRetinoPhase 3dMaskToASCII 3dttest++ 3dDTtoDWI niccc 3dXYZcat     \
                column_cat GLTsymtest nifti1_tool gifti_tool cifti_tool            \
-               images_equal uniq_images stimband
+               images_equal uniq_images stimband 1dNLfit
 
 SCRIPTS = @4Daverage @CommandGlobb @GetAfniOrient @DTI_studio_reposition          \
           @GetAfniPrefix @NoExt @UpdateAfni @RenamePanga @2dwarper                \
@@ -861,6 +861,10 @@ d3dmerge:3dmerge.c
 	$(RM) $@
 	$(CC) -o 3dedge3 3dedge3.o -I3DEdge/src            \
               $(LFLAGS) -l3DEdge $(LLIBS)
+
+3dNormalizer:3dNormalizer.o
+	$(RM) $@
+	$(CC) -o 3dNormalizer 3dNormalizer.o $(LFLAGS) $(LLIBS)
 
 ### From Stephen LaConte
 3dsvm:
@@ -2825,6 +2829,10 @@ ccalc:parser.o parser_int.o ccalc.o
 1deval:parser.o parser_int.o 1deval.o
 	$(RM) $@
 	$(CC) -o 1deval 1deval.o parser.o parser_int.o $(LFLAGS) $(LLIBS)
+
+1dNLfit:parser.o parser_int.o 1dNLfit.o
+	$(RM) $@
+	$(CC) -o 1dNLfit 1dNLfit.o parser.o parser_int.o $(LFLAGS) $(LLIBS)
 
 1dmatcalc:parser.o parser_int.o 1dmatcalc.o mri_matrix.o
 	$(RM) $@
