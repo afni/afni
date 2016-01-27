@@ -49,7 +49,12 @@
 
 afni_history_struct rickr_history[] = {
 
- {  4,  Dec, 2015, RCR, "afni-general", MINOR, TYPE_BUG_FIX,
+ { 27,  Jan, 2016, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,
+   "allow for tissue based regression with only regress block",
+   NULL
+ } ,
+
+ {  4,  Jan, 2016, RCR, "afni-general", MINOR, TYPE_BUG_FIX,
    "add boundardy checks in get_1dcat_intlist and get_count_intlist",
    "Without the checks, using count or 1dcat as sub-brick selector method\n"
    "would lead to confusing crashes (if values exceedded #vols).\n"
