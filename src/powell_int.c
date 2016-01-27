@@ -644,7 +644,7 @@ int powell_newuoa_constrained( int ndim, double *x, double *cost ,
 #undef  NCUT
 #define NCUT 37
 #undef  MLEV
-#define MLEV 3
+#define MLEV 4
 
 double minimize_in_1D( double xin, double xbot, double xtop,
                        double (*ufunc)(int,double *)        )
@@ -663,6 +663,10 @@ double minimize_in_1D( double xin, double xbot, double xtop,
       val = ufunc(1,&xv) ;
       if( ii == 0 || val < vmin ){ imin = ii ; vmin = val ; }
     }
+#if 0
+INFO_message("x1=%g x2=%g imin=%d xmin=%g vmin=%g",x1,x2,imin,x1+imin*dx,vmin) ;
+#endif
+    if( nlev == MLEV-1 ) return (x1+imin*dx) ;
 
     if( imin == 0 ){
       x2 = x1 + 1.5*dx ;
@@ -673,7 +677,7 @@ double minimize_in_1D( double xin, double xbot, double xtop,
     }
   }
 
-  return (0.5*(x1+x2)) ;
+  return (0.5*(x1+x2)) ; /* should never be reached */
 }
 
 #if 0

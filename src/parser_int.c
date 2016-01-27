@@ -769,6 +769,8 @@ doublereal hrfbk5_( doublereal *ttp , doublereal *TTp )
 /* Stuff for fitting an expression to a time series: PARSER_fitter().        */
 /*---------------------------------------------------------------------------*/
 
+#include "cs.h"
+
 static int    natoz     = 0 ;
 static double *atoz[26] = { NULL , NULL , NULL , NULL , NULL ,
                             NULL , NULL , NULL , NULL , NULL ,
@@ -1000,8 +1002,8 @@ float * PARSER_fitter( int nval, float *indval, float *depval,
    if( nfree > 1 ){
      jj = powell_newuoa_constrained( nfree , pval , &pcost ,
                                      bfree , tfree ,
-                                     66*nfree+666 , 33 , 9 ,
-                                     0.111 , 0.0001 , 666*nfree , pfit_ufunc ) ;
+                                     66*nfree+666 , 33 , 11 ,
+                                     0.111 , 0.0000333 , 666*nfree , pfit_ufunc ) ;
 
      if( jj < 0 ){
        ERROR_message("PARSER_fitter: fitting failed!") ;
