@@ -126,8 +126,8 @@ extern int powell_newuoa_constrained(
                                double rstart , double rend ,
                                int maxcall , double (*ufunc)(int,double *) ) ;
 
-extern double minimize_in_1D( double xin, double xbot, double xtop,
-                              double (*ufunc)(int,double *)        ) ; /* 26 Jan 2016 */
+extern double minimize_in_1D( double xbot, double xtop,
+                              double (*ufunc)(int,double *) ) ; /* 26 Jan 2016 */
 
 
 extern char * approximate_number_string( double ) ;   /* 16 Jan 2004 */
