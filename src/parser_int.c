@@ -1048,7 +1048,7 @@ float * PARSER_fitter( int nval, float *indval, float *depval,
    if( nfree > 1 ){
      jj = powell_newuoa_constrained( nfree , pval , &pcost ,
                                      bfree , tfree ,
-                                     333*nfree+111 , 33*nfree+22 , 33 ,
+                                     666*nfree+111 , 66*nfree+11 , 11*nfree+1 ,
                                      0.111 , 0.0000333 , 666*nfree , pfit_ufunc ) ;
 
      if( jj < 0 ){
