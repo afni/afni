@@ -141,8 +141,11 @@ int main( int argc , char *argv[] )
      xv = (float *)malloc(sizeof(float)*nval) ;
      for( ii=0 ; ii < nval ; ii++ ){
        qv[ii] = qginv(0.5*rfv->ar[ii]) ;
-       wv[ii] = (qv[ii] < 3.0f ) ? 1.0f
-               :(qv[ii] < 4.0f ) ? 0.5f : 0.0f ;
+#if 0
+       wv[ii] = (qv[ii] <= 4.0f ) ? (1.0f-0.03f*xv[ii]*xv[ii]) : 0.0f ;
+#else
+       wv[ii] = (qv[ii] <= 4.0f ) ? 1.0f : 0.01f ;
+#endif
        xv[ii] = ii*dx ;
        qv[ii] = qv[ii] - xv[ii] ;
      }
@@ -150,18 +153,28 @@ int main( int argc , char *argv[] )
      parbot[1] = -0.5f ; partop[1] = 0.5f ; /* limits on b */
      parbot[2] =  0.1f ; partop[2] = 2.9f ; /* limits on c */
      parbot[3] =  0.2f ; partop[3] = 2.2f ; /* limits on c */
+#if 0
+     powell_set_verbose(2) ;
+#endif
      fitv = PARSER_fitter( nval , xv , qv ,
-                           "b*x+a*log(cosh(d*x-c)/cosh(c))" , "x" ,
+                           "b*x+a*logcosh(d*x-c)-logcosh(c)" , "x" ,
                            parbot , partop , parout , 1 , wv ) ;
      if( fitv == NULL )
        ERROR_exit("PARSER_fitter() fails :-(") ;
-     free(fitv) ;
      apar = parout[0] ;
      bpar = parout[1] ;
      cpar = parout[2] ;
      dpar = parout[3] ;
 #if 1
      INFO_message("apar=%g  bpar=%g  cpar=%g  dpar=%g",apar,bpar,cpar,dpar) ;
+     { MRI_IMAGE *qim = mri_new(nval,2,MRI_float) ;
+       float *qar = MRI_FLOAT_PTR(qim) ;
+       for( ii=0 ; ii < nval ; ii++ ){
+         qar[ii] = qv[ii] ; qar[ii+nval] = fitv[ii] ;
+       }
+       mri_write_1D( modify_afni_prefix(prefix,NULL,".qfit.1D") , qim ) ;
+       mri_free(qim) ;
+     }
 #endif
    }
 
