@@ -351,7 +351,7 @@ int main( int argc , char *argv[] )
      vout[qq]  = (float *)malloc(sizeof(float)*26) ;
      tsout[qq] = PARSER_fitter( nx , indvar , depvar+qq*nx ,
                                 expr , &cind ,
-                                vbot , vtop , vout[qq] , meth ) ;
+                                vbot , vtop , vout[qq] , meth , NULL ) ;
 
      if( tsout[qq] == NULL )
        ERROR_exit("PARSER_fitter didn't work on -depdata column #%d",qq) ;
