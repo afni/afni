@@ -211,7 +211,7 @@ void LSS_help(void)
      "               * If '-input' is used, the number of time points in the dataset\n"
      "                 must match the number of time points in the matrix.\n"
      "\n"
-     " -mask kkk   = Read dataset 'kkk' as a mask for the input; voxels outside\n"
+     " -mask MMM   = Read dataset 'MMM' as a mask for the input; voxels outside\n"
      "                the mask will not be fit by the regression model.\n"
      " -automask   = If you don't know what this does by now, please don't use\n"
      "                this program.\n"

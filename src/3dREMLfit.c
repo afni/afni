@@ -686,7 +686,7 @@ int main( int argc , char *argv[] )
 
      printf(
       "\n"
-      " -mask kkk   = Read dataset 'kkk' as a mask for the input; voxels outside\n"
+      " -mask MMM   = Read dataset 'MMM' as a mask for the input; voxels outside\n"
       "                 the mask will not be fit by the regression model.\n"
       " -automask   = If you don't know what this does by now, I'm not telling.\n"
       "            *** If you don't specify ANY mask, the program will\n"
