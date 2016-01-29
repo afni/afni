@@ -926,7 +926,7 @@ float * PARSER_fitter( int nval, float *indval, float *depval,
    int jind ; char cind ;
    int jj,aa ; char cjj ;
    int nbad=0 ;
-   double pval[26] , pcost ;
+   double pval[26] ;
    float *fitts ;
 
    mcode = (meth == 1) ? 1 : 2 ;  /* L2 default */
@@ -1046,15 +1046,24 @@ float * PARSER_fitter( int nval, float *indval, float *depval,
    /*--- optimize ---*/
 
    if( nfree > 1 ){
-     jj = powell_newuoa_constrained( nfree , pval , &pcost ,
+     double pcost1=1.e+38 , pcost2=1.e+38 , pval2[26] ; int j1,j2 ;
+     j1 = powell_newuoa_constrained( nfree , pval , &pcost1 ,
                                      bfree , tfree ,
-                                     666*nfree+111 , 66*nfree+11 , 11*nfree+1 ,
+                                     666*nfree+111 , 77*nfree+11 , 33*nfree+7 ,
+                                     0.111 , 0.0000333 , 666*nfree , pfit_ufunc ) ;
+     memcpy( pval2 , pval , sizeof(double)*26 ) ;
+     j2 = powell_newuoa_constrained( nfree , pval2 , &pcost2 ,
+                                     bfree , tfree ,
+                                     66*nfree+33 , 11*nfree+7 , 7*nfree+5 ,
                                      0.111 , 0.0000333 , 666*nfree , pfit_ufunc ) ;
 
-     if( jj < 0 ){
+     if( j1 < 0 && j2 < 0 ){
        ERROR_message("PARSER_fitter: fitting failed!") ;
        pfit_free_atoz() ;
        return (NULL) ;
+     }
+     if( j1 < 0 || (j2 > 0 && pcost2 < pcost1) ){
+       memcpy( pval , pval2 , sizeof(double)*26 ) ;
      }
    } else {
      double xout ;
