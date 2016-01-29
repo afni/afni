@@ -436,7 +436,7 @@ int powell_newuoa_constrained( int ndim, double *x, double *cost ,
                                int maxcall , double (*ufunc)(int,double *) )
 {
    integer n , npt , icode , maxfun ;
-   doublereal rhobeg , rhoend , *w ;
+   doublereal rhobeg , rhoend , *w , rb,re ;
    int ii,tt , tbest , ntot=0 , nx01 ;
    double **x01 , *x01val , vbest ;
 
@@ -530,7 +530,7 @@ int powell_newuoa_constrained( int ndim, double *x, double *cost ,
    /*-- do a random search for the best starting vector? --*/
 
    if( nrand > 0 ){
-     double *xtest , *qpar,*cpar , ftest , rb,re , dist ;
+     double *xtest , *qpar,*cpar , ftest , dist ;
      int qq,jj ; integer mf ;
      static int seed=1 ;
 
@@ -644,9 +644,17 @@ int powell_newuoa_constrained( int ndim, double *x, double *cost ,
        ININFO_message("%2d: cost = %g %c  nfunc=%d",tt,x01val[tt],(tbest==tt)?'*':' ',icode) ;
    }
 
+   /*-- re-optimize the bestest one again --*/
+
+   rb = 20.0 * rhoend ; if( rb > rhobeg ) rb = rhobeg ;
+   (void)newuoa_( &n , &npt , (doublereal *)x01[tbest] ,
+                  &rb , &rhoend , &maxfun , w , &icode ) ;
+   for( ii=0 ; ii < ndim ; ii++ ) x01[tbest][ii] = PRED01(x01[tbest][ii]) ;
+   if( scalx != SC_BOX ) xreduce(ndim,x01[tbest]) ;
+   (void)calfun_(&n,x01[tbest],&vbest) ; ntot += icode+1 ;
+
    /*-- Rescale bestest output vector back to 'true' range --*/
 
-   if( scalx != SC_BOX ) xreduce(ndim,x01[tbest]) ;
    for( ii=0 ; ii < ndim ; ii++ )
      x[ii] = sxmin[ii] + x01[tbest][ii] * sxsiz[ii] ;
    if( cost != NULL ) *cost = vbest ;    /* save cost func */
