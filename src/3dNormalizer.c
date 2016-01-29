@@ -144,7 +144,9 @@ int main( int argc , char *argv[] )
 #if 0
        wv[ii] = (qv[ii] <= 4.0f ) ? (1.0f-0.03f*xv[ii]*xv[ii]) : 0.0f ;
 #else
-       wv[ii] = (qv[ii] <= 4.0f ) ? 1.0f : 0.01f ;
+            if( qv[ii] <  1.5f ) wv[ii] = 0.7f ;
+       else if( qv[ii] <= 4.0f ) wv[ii] = 1.0f ;
+       else                      wv[ii] = 0.02f ;
 #endif
        xv[ii] = ii*dx ;
        qv[ii] = qv[ii] - xv[ii] ;
@@ -157,7 +159,7 @@ int main( int argc , char *argv[] )
      powell_set_verbose(2) ;
 #endif
      fitv = PARSER_fitter( nval , xv , qv ,
-                           "b*x+a*logcosh(d*x-c)-logcosh(c)" , "x" ,
+                           "b*x+a*(logcosh(d*x-c)-logcosh(c))" , "x" ,
                            parbot , partop , parout , 1 , wv ) ;
      if( fitv == NULL )
        ERROR_exit("PARSER_fitter() fails :-(") ;
