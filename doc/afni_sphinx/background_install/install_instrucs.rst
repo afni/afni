@@ -1,5 +1,5 @@
 
-.. _Making_ROIs:
+.. _install_page:
 
 *******************************************
 The Authoritative HowTo for Installing AFNI

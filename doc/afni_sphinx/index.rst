@@ -8,8 +8,8 @@ Welcome to AFNI's documentation!
 ================================
 
 .. toctree::
-   :maxdepth: 2
-   :numbered: 2
+   :maxdepth: 3
+   :numbered: 3
    :includehidden:
 
    background_install/main_toc
