@@ -8,4 +8,4 @@ Installation and Background
 .. toctree::
    :maxdepth: 2
 
-   index.rst
+   unix_tutorial/index.rst
