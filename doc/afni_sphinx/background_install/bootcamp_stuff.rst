@@ -1,8 +1,8 @@
 
-.. _Making_ROIs:
+.. _Bootcamping:
 
 *****************************************
-Making (networks of) ROIs: **3dROIMaker**
+IN **PROGRESS**
 *****************************************
 
 .. contents::
@@ -11,5 +11,22 @@ Making (networks of) ROIs: **3dROIMaker**
 Overview
 ========
 
-There are many contexts for making one or more regions of interest
-(ROIs) in MRI:
+(starting)
+
+|
+
+|
+
+|
+
+|
+
+|
+
+|
+
+|
+
+|
+
+
