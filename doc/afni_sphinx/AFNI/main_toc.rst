@@ -9,5 +9,5 @@ AFNI
 .. toctree::
    :maxdepth: 2
 
-   AFNI/cover
-   AFNI/Controllers
+   cover
+   Controllers

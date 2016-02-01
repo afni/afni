@@ -7,5 +7,5 @@ Programs
 .. toctree::
    :maxdepth: 2
    
-   programs/programs.rst
+   programs.rst
    

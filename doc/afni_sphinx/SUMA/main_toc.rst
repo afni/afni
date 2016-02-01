@@ -9,7 +9,7 @@ SUMA
 .. toctree::
    :maxdepth: 2
 
-   SUMA/cover
-   SUMA/Viewer
-   SUMA/Controllers
-   SUMA/Code
+   cover
+   Viewer
+   Controllers
+   Code
