@@ -31,20 +31,20 @@ number on your own system by simply typing::
 
 This version number should *always* be provided when posting questions on the 
 `Message Board
-<https://afni.nimh.nih.gov/afni/community/board/>`_.
+<httpss://afni.nimh.nih.gov/afni/community/board/>`_.
 
 .. note:: The record of changes (new options, new programs, bug fixes,
           et al.) is maintained for all the see in the online `AFNI
           History
-          <https://afni.nimh.nih.gov/pub/dist/doc/misc/history/index.html>`_.
+          <httpss://afni.nimh.nih.gov/pub/dist/doc/misc/history/index.html>`_.
 
 |
 
 Choosing an AFNI that's right for *you*
 =======================================
 
-A. Updating an already-installed AFNI (Linux/Unix or Mac)
----------------------------------------------------------
+A. Updating existing AFNI binaries to the newest version (Linux/Unix or Mac)
+----------------------------------------------------------------------------
 
 If you have already have a working set of AFNI binaries on your
 computer that you are wishing to update, this can be done most simply
@@ -61,30 +61,44 @@ just in case you want it.)
 
 |
 
-B. Downloading a new set of precompiled AFNI binaries (Linux/Unix or Mac)
--------------------------------------------------------------------------
+B. Downloading a set of the newest precompiled AFNI binaries
+------------------------------------------------------------
 
-If you don't have AFNI on your computer already, or you want to
-manually download a set of binaries, then you can click on a link
-below to get the selected AFNI code for your desired system. For help
-with installing various prerequisite tools that AFNI depends on,
-please see the :ref:`install_page`.
+If you don't have AFNI on your computer already, or if you just want
+to download particular a set of binaries, then you can click on a link
+below to get the code for your desired system. For help installing the
+various prerequisite tools on which AFNI depends (and for seeing handy
+command line tools to check if things are OK), please see the
+:ref:`install_page`.  After that set-up, then these precompiled codes
+should be ready-to-run.
+
+.. note:: Those with only Windows systems have entered a world of
+          pain, with respect to using AFNI. The best options are
+          likely to procure a computer with a Unix/Linux/Mac operating
+          system or to make a dual boot computer (for example, with
+          Linux) rather than to install a virtual machine.  It's worth
+          it, for a league game.
+
+.. _afni_bin_unix:
 
 - **Recommended binaries for (most) Linux/Unix: Ubuntu, Fedora, etc.**
 
    \| `OpenMP, 64 bit
-   <http://afni.nimh.nih.gov/pub/dist/tgz/linux_openmp_64.tgz>`_ |
+   <https://afni.nimh.nih.gov/pub/dist/tgz/linux_openmp_64.tgz>`_ |
 
    The strongly recommended starting point for most any Linux/Unix
    system.
 
    If you particularly know that this will not work for you, please
-   look in the list of :ref:`Binaries for other systems <other_afni_bin>`, below.
+   look in the list of :ref:`Binaries for other systems
+   <afni_bin_other>`, below.
+
+   .. _afni_bin_mac:
 
 - **Recommended binaries for (most) Mac OS: 10.7+.**
 
    \| `Mac OS X Lion (10.7 Intel), 64 bit
-   <http://afni.nimh.nih.gov/pub/dist/tgz/macosx_10.7_Intel_64.tgz>`_ |
+   <https://afni.nimh.nih.gov/pub/dist/tgz/macosx_10.7_Intel_64.tgz>`_ |
 
    The strongly recommended starting point for most modern Mac systems
    (10.7 and higher).
@@ -92,55 +106,81 @@ please see the :ref:`install_page`.
    For Mac OS 10.11 (El Capitan) users, some additional modifications
    to your computer settings are required for smooth sailing.  These
    are currently documented `here
-   <https://afni.nimh.nih.gov/afni/community/board/read.php?1,149775,149775#msg-149775>`_.
+   <httpss://afni.nimh.nih.gov/afni/community/board/read.php?1,149775,149775#msg-149775>`_.
 
-   .. _other_afni_bin:
+   .. _afni_bin_other:
 
 - **Binaries for other systems: the rest.**
 
    * for `Mac OS X Mountain Lion (10.8 Intel), 64 bit
-     <http://afni.nimh.nih.gov/pub/dist/tgz/macosx_10.7_Intel_64.tgz>`_.
+     <https://afni.nimh.nih.gov/pub/dist/tgz/macosx_10.7_Intel_64.tgz>`_.
  
    * for `Mac OS X Snow Leopard (10.6 Intel), 64 bit
-     <http://afni.nimh.nih.gov/pub/dist/tgz/macosx_10.6_Intel_64.tgz>`_.
+     <https://afni.nimh.nih.gov/pub/dist/tgz/macosx_10.6_Intel_64.tgz>`_.
 
    * for `Mac OS X Snow Leopard (10.6 Intel), 64bit, no fink
-     <http://afni.nimh.nih.gov/pub/dist/tgz/macosx_10.6_Intel_64.no.fink.tgz>`_.
+     <https://afni.nimh.nih.gov/pub/dist/tgz/macosx_10.6_Intel_64.no.fink.tgz>`_.
    
    * for `Linux xorg7, 64 bit
-     <http://afni.nimh.nih.gov/pub/dist/tgz/linux_xorg7_64.tgz>`_.
+     <https://afni.nimh.nih.gov/pub/dist/tgz/linux_xorg7_64.tgz>`_.
 
    * for `Linux xorg7, 32 bit
-     <http://afni.nimh.nih.gov/pub/dist/tgz/linux_xorg7.tgz>`_.
+     <https://afni.nimh.nih.gov/pub/dist/tgz/linux_xorg7.tgz>`_.
 
    * for `Linux gcc32, 32 bit
-     <http://afni.nimh.nih.gov/pub/dist/tgz/linux_gcc32.tgzK>`_.
+     <https://afni.nimh.nih.gov/pub/dist/tgz/linux_gcc32.tgzK>`_.
 
    * for `FreeBSD with ports (github)
-     <https://github.com/outpaddling/freebsd-ports-wip>`_.
+     <httpss://github.com/outpaddling/freebsd-ports-wip>`_.
 
    * for `Solaris 2.9 suncc
-     <http://afni.nimh.nih.gov/pub/dist/tgz/solaris29_suncc.tgz>`_.
+     <https://afni.nimh.nih.gov/pub/dist/tgz/solaris29_suncc.tgz>`_.
 
    * for `Windows Cygwin (not recommended!) 
-     <http://afni.nimh.nih.gov/pub/dist/tgz/cygwin.tgz>`_.
+     <https://afni.nimh.nih.gov/pub/dist/tgz/cygwin.tgz>`_.
    
 |
 
-C. Downloading AFNI source code
--------------------------------
+C. Downloading the newest AFNI source code
+------------------------------------------
 
 Another way to get AFNI working on your computer is to compile from
 the source itself: 
 
 \| `AFNI Source Code
-<http://afni.nimh.nih.gov/pub/dist/tgz/afni_src.tgz>`_ |
+<https://afni.nimh.nih.gov/pub/dist/tgz/afni_src.tgz>`_ |
 
 There are several usable, example ``Makefile``\s included in the main
 ``afni_src/`` directory, as well as a couple (mainly for Linux
 systems) in ``afni_src/other_builds/``.
 
+In all likelihood this option is pretty much only useful if you are
+writing or contributing code yourself, or if your system is
+particularly finicky.  Otherwise, it is likely far easier to grab a
+set of recommended precompiled binaries of the :ref:`Linux/Unix
+<afni_bin_unix>` or :ref:`Mac <afni_bin_mac>` variety (again, sorrry,
+Windowers...).
 
+|
+
+D. Browsing all AFNI packages, with bonus files
+-----------------------------------------------
+
+The following is a browsable page that contains a tarball for each of
+the precompiled platform versions:
+
+`AFNI Software Packages <https://afni.nimh.nih.gov/pub/dist/tgz/>`_
+
+It also contains several standard reference brains and demo data
+sets. All files are downloadable by clicking on the links on the above
+page, and also by using command line functions such as ``curl`` or
+``wget``, such as::
+  
+  curl -O https://afni.nimh.nih.gov/pub/dist/tgz/TTatlas+tlrc.*
+  wget https://afni.nimh.nih.gov/pub/dist/tgz/TTatlas+tlrc.*
+
+NB: for most demo sets, there is an ``@Install_*`` command to procure
+and open the directory.
 
 |
 
