@@ -2,7 +2,7 @@
 .. _Bootcamping:
 
 *****************************************
-IN **PROGRESS**
+Bootcamp-related info... someday
 *****************************************
 
 .. contents::

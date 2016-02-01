@@ -65,12 +65,12 @@ B. Downloading a new set of precompiled AFNI binaries (Linux/Unix or Mac)
 -------------------------------------------------------------------------
 
 If you don't have AFNI on your computer already, or you want to
-manually download a set of binaries, then click on a link below to get
-the selected AFNI code for your desired system. For help with
-installing various prerequisite tools that AFNI depends on, please see
-the :ref:`install_page`.
+manually download a set of binaries, then you can click on a link
+below to get the selected AFNI code for your desired system. For help
+with installing various prerequisite tools that AFNI depends on,
+please see the :ref:`install_page`.
 
-#. **Recommended binaries for (most) Linux/Unix: Ubuntu, Fedora, etc.**
+- **Recommended binaries for (most) Linux/Unix: Ubuntu, Fedora, etc.**
 
    \| `OpenMP, 64 bit
    <http://afni.nimh.nih.gov/pub/dist/tgz/linux_openmp_64.tgz>`_ |
@@ -81,7 +81,7 @@ the :ref:`install_page`.
    If you particularly know that this will not work for you, please
    look in the list of :ref:`Binaries for other systems <other_afni_bin>`, below.
 
-#. **Recommended binaries for (most) Mac OS: 10.7+.**
+- **Recommended binaries for (most) Mac OS: 10.7+.**
 
    \| `Mac OS X Lion (10.7 Intel), 64 bit
    <http://afni.nimh.nih.gov/pub/dist/tgz/macosx_10.7_Intel_64.tgz>`_ |
@@ -90,13 +90,13 @@ the :ref:`install_page`.
    (10.7 and higher).
 
    For Mac OS 10.11 (El Capitan) users, some additional modifications
-   to your computer settings are required.  These are currently
-   documented `here
+   to your computer settings are required for smooth sailing.  These
+   are currently documented `here
    <https://afni.nimh.nih.gov/afni/community/board/read.php?1,149775,149775#msg-149775>`_.
 
    .. _other_afni_bin:
 
-#. **Binaries for other systems: the rest.**
+- **Binaries for other systems: the rest.**
 
    * for `Mac OS X Mountain Lion (10.8 Intel), 64 bit
      <http://afni.nimh.nih.gov/pub/dist/tgz/macosx_10.7_Intel_64.tgz>`_.
@@ -113,16 +113,32 @@ the :ref:`install_page`.
    * for `Linux xorg7, 32 bit
      <http://afni.nimh.nih.gov/pub/dist/tgz/linux_xorg7.tgz>`_.
 
+   * for `Linux gcc32, 32 bit
+     <http://afni.nimh.nih.gov/pub/dist/tgz/linux_gcc32.tgzK>`_.
+
    * for `FreeBSD with ports (github)
      <https://github.com/outpaddling/freebsd-ports-wip>`_.
 
    * for `Solaris 2.9 suncc
      <http://afni.nimh.nih.gov/pub/dist/tgz/solaris29_suncc.tgz>`_.
+
+   * for `Windows Cygwin (not recommended!) 
+     <http://afni.nimh.nih.gov/pub/dist/tgz/cygwin.tgz>`_.
    
 |
 
 C. Downloading AFNI source code
--------------------------------------------------------------------------
+-------------------------------
+
+Another way to get AFNI working on your computer is to compile from
+the source itself: 
+
+\| `AFNI Source Code
+<http://afni.nimh.nih.gov/pub/dist/tgz/afni_src.tgz>`_ |
+
+There are several usable, example ``Makefile``\s included in the main
+``afni_src/`` directory, as well as a couple (mainly for Linux
+systems) in ``afni_src/other_builds/``.
 
 
 
