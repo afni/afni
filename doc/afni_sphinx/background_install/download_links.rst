@@ -38,7 +38,12 @@ This version number should *always* be provided when posting questions on the
           History
           <httpss://afni.nimh.nih.gov/pub/dist/doc/misc/history/index.html>`_.
 
+Some additional introductory reading is available `here
+<https://afni.nimh.nih.gov/afni/doc/first>`_.  ***Question: keep
+this?***
+
 |
+
 
 Choosing an AFNI that's right for *you*
 =======================================
