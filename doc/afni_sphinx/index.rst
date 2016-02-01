@@ -12,7 +12,8 @@ Welcome to AFNI's documentation!
    :numbered: 2
    :includehidden:
 
-   .. afnitoc1
+   .. background_install/main_toc
+   afnitoc1
    sumatoc1
    fatcattoc1
    statisticstoc1

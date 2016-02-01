@@ -12,20 +12,28 @@ RETURN_PARSE:
 
 if ( -f ___build.log) \rm ___build.log
 if ( ! -d SUMA/auto_inc ) mkdir SUMA/auto_inc
-if ($noafni == 0) then
-   sed 's/   .. afnitoc1/   afnitoc1/' index.rst > __tmp
-   diff -q __tmp index.rst
-   if ($status) then
-      if ( -f __tmp ) then
-         \mv __tmp index.rst
-      endif 
-   endif
-   if ( -f __tmp ) \rm -f __tmp
+
+# the .. afnitoc1 question should be moot now, since backround comes first
+#                                                               1 Feb 2016
+if ( $noafni == 0 ) then
+   # sed 's/   .. afnitoc1/   afnitoc1/' index.rst > __tmp
+   # diff -q __tmp index.rst
+   # if ($status) then
+   #    if ( -f __tmp ) then
+   #       \mv __tmp index.rst
+   #    endif 
+   # endif
+   # if ( -f __tmp ) \rm -f __tmp
+
+   # so if AFNI, do just this:
+
    afni  -no_detach \
          -com 'WRITE_CONT_SPX_HELP AFNI/auto_inc/AfniCont_help.inc' \
          -com 'SNAP_CONT AFNI/media/AfniCont.auto.jpg' \
          -com 'QUIT'
-else
+
+# but never add the dots 
+else if ( 0 )
    sed 's/   afnitoc1/   .. afnitoc1/' index.rst > __tmp
    diff -q __tmp index.rst
    if ($status) then
