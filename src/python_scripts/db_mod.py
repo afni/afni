@@ -6373,9 +6373,8 @@ g_help_string = """
          o No bandpassing.
          o Use fast ANATICOR method (slightly different from default ANATICOR).
          o Use FreeSurfer segmentation for:
-             - regression of average eroded white matter
              - regression of first 3 principal components of lateral ventricles
-             - ANATICOR white matter mask
+             - ANATICOR white matter mask (for local white matter regression)
          o Input anat is from FreeSurfer (meaning it is aligned with FS masks).
              - output from FS is usually not quite aligned with input
          o Erode FS white matter and ventricle masks before application.
@@ -6402,7 +6401,6 @@ g_help_string = """
                   -volreg_align_e2a                                          \\
                   -volreg_tlrc_warp                                          \\
                   -regress_ROI_PC FSvent 3                                   \\
-                  -regress_ROI FSWe                                          \\
                   -regress_make_corr_vols aeseg FSvent                       \\
                   -regress_anaticor_fast                                     \\
                   -regress_anaticor_label FSWe                               \\
