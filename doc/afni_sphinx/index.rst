@@ -8,17 +8,18 @@ Welcome to AFNI's documentation!
 ================================
 
 .. toctree::
-   :maxdepth: 2
-   :numbered: 2
+   :maxdepth: 3
+   :numbered: 3
    :includehidden:
 
-   .. afnitoc1
-   sumatoc1
-   fatcattoc1
-   statisticstoc1
-   tutorialstoc1
-   installationstoc1
-   programstoc1
+   background_install/main_toc
+   .. AFNI/main_toc
+   SUMA/main_toc
+   FATCAT/main_toc
+   STATISTICS/main_toc
+   tutorials/main_toc
+   installations/main_toc
+   programs/main_toc
    glossary
    references
 

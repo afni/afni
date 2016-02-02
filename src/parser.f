@@ -822,7 +822,7 @@ C
      X       MEAN , STDEV , SEM , POSVAL , ZZMOD
       REAL*8 ARGMAX,ARGNUM , PAIRMX,PAIRMN , AMONGF, WITHINF
       REAL*8 MINABOVE , MAXBELOW, EXTREME, ABSEXTREME
-      REAL*8 CHOOSE
+      REAL*8 CHOOSE , LNCOSH
 C
 C  External library functions
 C
@@ -1012,6 +1012,10 @@ C.......................................................................
          ELSEIF( CNCODE .EQ. 'COSH' )THEN
             IF( ABS(R8_EVAL(NEVAL)) .LT. 87.5 )
      X        R8_EVAL(NEVAL) = COSH( R8_EVAL(NEVAL) )
+C.......................................................................
+         ELSEIF( CNCODE .EQ. 'LOGCOSH' )THEN
+            IF( ABS(R8_EVAL(NEVAL)) .LT. 87.5 )
+     X        R8_EVAL(NEVAL) = LNCOSH( R8_EVAL(NEVAL) )
 C.......................................................................
          ELSEIF( CNCODE .EQ. 'TANH' )THEN
             R8_EVAL(NEVAL) = TANH( R8_EVAL(NEVAL) )
@@ -1391,7 +1395,7 @@ C
      X       MEAN , STDEV , SEM , POSVAL , ZZMOD
       REAL*8 ARGMAX,ARGNUM , PAIRMX,PAIRMN, AMONGF, WITHINF
       REAL*8 MINABOVE , MAXBELOW, EXTREME, ABSEXTREME
-      REAL*8 CHOOSE
+      REAL*8 CHOOSE , LNCOSH
 C
 C  External library functions
 C
@@ -1838,6 +1842,12 @@ C.......................................................................
             DO IV=IVBOT,IVTOP
               IF( ABS(R8_EVAL(IV-IBV,NEVAL)) .LT. 87.5 )
      X           R8_EVAL(IV-IBV,NEVAL) = COSH( R8_EVAL(IV-IBV,NEVAL) )
+            ENDDO
+C.......................................................................
+         ELSEIF( CNCODE .EQ. 'LOGCOSH' )THEN
+            DO IV=IVBOT,IVTOP
+              IF( ABS(R8_EVAL(IV-IBV,NEVAL)) .LT. 87.5 )
+     X           R8_EVAL(IV-IBV,NEVAL) = LNCOSH( R8_EVAL(IV-IBV,NEVAL) )
             ENDDO
 C.......................................................................
          ELSEIF( CNCODE .EQ. 'TANH' )THEN
@@ -2890,7 +2900,7 @@ C
       IF( X(1) .GT. X(3) )THEN
          WITHINF = 0.0D+00
         RETURN
-      ENDIF    
+      ENDIF
       WITHINF = 1.0D+00
       RETURN
       END
@@ -3257,6 +3267,15 @@ C
       ELSE
          LMOFN = 0.D+0
       ENDIF
+      RETURN
+      END
+C
+C
+C
+      FUNCTION LNCOSH(X)
+      REAL*8 LNCOSH , X , AX
+      AX = ABS(X)
+      LNCOSH = AX + LOG(0.5D+0 + 0.5D+0*EXP(-2.D+0*AX))
       RETURN
       END
 C
