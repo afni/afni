@@ -863,6 +863,10 @@ static double pfit_ufunc( int nnn , double *par )
    double sum=0.0 , rrr ; int tt ;
    pfit_eval_model( par , eval ) ;
    for( tt=0 ; tt < natoz ; tt++ ){
+#if 0
+if( !isfinite(dval[tt]) ) ERROR_message("pfit_ufunc: dval[%d] = %g",tt,dval[tt]) ;
+if( !isfinite(eval[tt]) ) ERROR_message("pfit_ufunc: eval[%d] = %g",tt,eval[tt]) ;
+#endif
      rrr = dval[tt] - eval[tt] ;
      if( mcode == 1 )    rrr  = fabsf(rrr) ;
      else                rrr *= rrr ;
@@ -922,7 +926,7 @@ float * PARSER_fitter( int nval, float *indval, float *depval,
    int jind ; char cind ;
    int jj,aa ; char cjj ;
    int nbad=0 ;
-   double pval[26] , pcost ;
+   double pval[26] ;
    float *fitts ;
 
    mcode = (meth == 1) ? 1 : 2 ;  /* L2 default */
@@ -959,6 +963,20 @@ float * PARSER_fitter( int nval, float *indval, float *depval,
    if( parout == NULL ){
      ERROR_message("PARSER_fitter: parout=NULL"); nbad++ ;
    }
+   if( indval != NULL ){
+     for( jj=0 ; jj < nval ; jj++ ){
+       if( !isfinite(indval[jj]) ){
+         ERROR_message("PARSER_fitter: indval[%d] = %g",jj,indval[jj]) ; nbad++ ;
+       }
+     }
+   }
+   if( depval != NULL ){
+     for( jj=0 ; jj < nval ; jj++ ){
+       if( !isfinite(depval[jj]) ){
+         ERROR_message("PARSER_fitter: depval[%d] = %g",jj,depval[jj]) ; nbad++ ;
+       }
+     }
+   }
    if( nbad > 0 ) return (NULL) ;
 
    /*--- parse expression ---*/
@@ -986,8 +1004,16 @@ float * PARSER_fitter( int nval, float *indval, float *depval,
        bfree[nfree] = (double)parbot[jj] ;
        tfree[nfree] = (double)partop[jj] ;
        pval [nfree] = 0.5 * ( bfree[nfree] + tfree[nfree] ) ; nfree++ ;
+       if( !isfinite(parbot[jj]) || !isfinite(partop[jj]) ){
+         ERROR_message("PARSER_fitter: parbot[%d] = %g  partop = %g",jj,parbot[jj],partop[jj]) ;
+         nbad++ ;
+       }
      } else {
        jfix[nfix] = jj ; vfix[nfix] = parbot[jj] ; nfix++ ; /* fixed param */
+       if( !isfinite(parbot[jj]) ){
+         ERROR_message("PARSER_fitter: parbot[%d] = %g",jj,parbot[jj]) ;
+         nbad++ ;
+       }
      }
    }
    if( nfree == 0 ){
@@ -1004,22 +1030,40 @@ float * PARSER_fitter( int nval, float *indval, float *depval,
    pfit_load_atoz( jind , indval ) ;
 
    if( wtar != NULL ){
-     wtard = (double *)malloc(sizeof(double)*nval) ;
-     for( aa=0 ; aa < nval ; aa++ ) wtard[aa] = (double)wtar[aa] ;
+     int ngood=0 ;
+     wtard = (double *)calloc(sizeof(double),nval) ;
+     for( aa=0 ; aa < nval ; aa++ ){
+       if( wtar[aa] > 0.0 && isfinite(wtar[aa]) ){
+         wtard[aa] = (double)wtar[aa] ; ngood++ ;
+       }
+       if( ngood == 0 ){
+         WARNING_message("PARSER_fitter: wtar has no positive values ==> ignoring it!") ;
+         free(wtard) ; wtard = NULL ;
+       }
+     }
    }
 
    /*--- optimize ---*/
 
    if( nfree > 1 ){
-     jj = powell_newuoa_constrained( nfree , pval , &pcost ,
+     double pcost1=1.e+38 , pcost2=1.e+38 , pval2[26] ; int j1,j2 ;
+     j1 = powell_newuoa_constrained( nfree , pval , &pcost1 ,
                                      bfree , tfree ,
-                                     66*nfree+666 , 33 , 11 ,
+                                     666*nfree+111 , 77*nfree+11 , 33*nfree+7 ,
+                                     0.111 , 0.0000333 , 666*nfree , pfit_ufunc ) ;
+     memcpy( pval2 , pval , sizeof(double)*26 ) ;
+     j2 = powell_newuoa_constrained( nfree , pval2 , &pcost2 ,
+                                     bfree , tfree ,
+                                     66*nfree+33 , 11*nfree+7 , 7*nfree+5 ,
                                      0.111 , 0.0000333 , 666*nfree , pfit_ufunc ) ;
 
-     if( jj < 0 ){
+     if( j1 < 0 && j2 < 0 ){
        ERROR_message("PARSER_fitter: fitting failed!") ;
        pfit_free_atoz() ;
        return (NULL) ;
+     }
+     if( j1 < 0 || (j2 > 0 && pcost2 < pcost1) ){
+       memcpy( pval , pval2 , sizeof(double)*26 ) ;
      }
    } else {
      double xout ;
