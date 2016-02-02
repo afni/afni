@@ -1,6 +1,27 @@
 
 .. _install_page:
 
+
+.. warning::  DEAR AFNI GURUS: some questions for the instruction pages:
+
+   **!! do we mention what can go wrong?** 
+
+   **Do we want to keep doing R this this way (home library), or use
+    sudo to put in the the standard /usr/ path?**
+
+   **For Ubuntu, what about setting the r-cran repo in the sources
+    list?  I think that might be necessary still**
+
+   **For Fedora, it is really necessary to do this package, even
+     though we say that users should mostly use OpenMP64 elsewhere? 
+    ``tcsh @update.afni.binaries -package linux_fedora_21_64``
+
+     We should be consistent in what we say**
+
+   **Should we mention things for ~/.bashrc?  I would think so...**
+
+
+
 *******************************************
 The Authoritative HowTo for Installing AFNI
 *******************************************
@@ -27,16 +48,19 @@ great, since there is a lot of well-tested and powerful computational
 functionality out there, which doesn't have to be written from
 scratch.  However, it also means that there are several requirements
 for a computer system to be able to run AFNI in full, many of which
-might change over time as the other packages develop.
+might change over time as the other packages develop. 
 
-Hopefully the present documentation, available scripts, and helpful
-`Message Board polylogues
-<https://afni.nimh.nih.gov/afni/community/board/>`_ facilitate the
-installation process. This document is fully intended to be enhanced
-and improved over time.  If you would like to help us by recommending
-additional sections or details wherever they might be useful, please
-post a request to the AFNI `Message Board
+Basically, there's a lotta ins, a lotta outs, a lotta what-have-yous,
+a lot of strands to keep in one's head.  Hopefully the present
+documentation, available scripts, and helpful `Message Board
+polylogues <https://afni.nimh.nih.gov/afni/community/board/>`_
+facilitate the installation process. This document is fully intended
+to be enhanced and improved over time.  If you would like to help us
+by recommending additional sections or details wherever they might be
+useful, please post a request to the AFNI `Message Board
 <https://afni.nimh.nih.gov/afni/community/board/>`_.
+
+.. _install_tech_notes:
 
 Technical notes
 ---------------
@@ -90,10 +114,12 @@ Technical notes
   <http://afni.nimh.nih.gov/pub/dist/doc/program_help/README.environment.html>`_.
 
 - Many profile and system variables are referenced with a dollar sign
-  ``$`` preceding their name, e.g., ``$shell``, ``$HOME``, ``$path``.
-  However, note that when defining a variable, it doesn't have a ``$``
-  in its name (but it can be defined in terms of variables being
-  referenced with a ``$``).
+  ``$`` preceding their name, e.g., ``$shell``, ``$path``, ``$HOME``
+  (which is also represented by the symbol ``~``, and used
+  interchangeably below in many situations), etc.  However, note that
+  when defining a variable, it doesn't have a ``$`` in its name (but
+  it can be defined in terms of variables being referenced with a
+  ``$``).
 
 - Some installation features require having root or administrator
   security privileges.  These commands are typically prefaced by the
@@ -118,9 +144,11 @@ Several of the following steps are system dependent, for example due
 to having different package managers, so we list parallel instructions
 for each.
 
-1. Install packages that are needed to run the shell and afni
-   programs.  Note that ``tcsh`` might not be on the system yet, so we
-   install it also:
+1. **Install supplementary packages.**
+
+   There are several packages and libraries that are needed to run the
+    afni and shell programs. Note that ``tcsh`` might not be on the
+    system yet, so we install it also:
         
    * for Fedora 21 (and higher)::
       
@@ -135,7 +163,15 @@ for each.
                               gsl-bin netpbm gnome-tweak-tool libjpeg62
       sudo apt-get update
       
-#. Now that ``tcsh`` is installed, set it as the default shell (if
+   Each command basically goes through a list of known
+   packages/functionalities to install.  By default, the package
+   manager will often ask the user yes/no questions to verify
+   continuing, and the ``-y`` option will automatically answer "yes"
+   to pretty much every prompt, to simplify the user's life.
+
+#. **Set ``tcsh`` to be the default shell (optional).**
+
+   Now that ``tcsh`` is installed, set it as the default shell (if
    desired). Some subsequent instructions assume this shell.  Also,
    many Message Board postings and scripts in demos, which may be
    useful for reference, are written in ``tcsh``.  So, the choice is
@@ -143,7 +179,7 @@ for each.
 
       chsh -s /usr/bin/tcsh
 
-#. Install AFNI.
+#. **Install AFNI.**
 
    Assuming there is nothing yet on the system, the following command
    will create a directory called ``$HOME/abin/`` and install the AFNI
@@ -168,12 +204,16 @@ for each.
 
        tcsh @update.afni.binaries -package linux_openmp_64
 
-#. Reboot.  Consider a 'reboot' at this point.  That would deal with
+#. **Reboot.**
+
+   Consider a 'reboot' at this point.  That would deal with
    system updates, the change in login shell, and an updated path::
 
       reboot
 
-#. Do a quick test to see that afni works::
+#. **Quick test.**
+
+   Do a quick test to see that afni works::
 
       afni -ver
 
@@ -195,7 +235,116 @@ for each.
 
      cat ~/.cshrc
 
-!!!! CONTINUE with STEP 5 from the HOWTO !!!!!!! 
+   .. am inverting steps 5 and 6 from the original documentation,
+      under the idea that hte Bootcamp material is secondary to a
+      general install, which I feel should include R.
+
+
+#. **Get R setup.**
+
+   Install current R libraries for the group analysis programs.  This
+   relies on the environment variable ``$R_LIBS``, which refers to a
+   directory that will contain the R packages.  That variable should
+   always be set, both to specify where to install the packages and
+   where to read them from later (when running R programs).  For
+   setting this variable in ``tcsh``, the following commands would be
+   run::
+      
+      setenv R_LIBS $HOME/R
+      mkdir $R_LIBS
+      echo 'setenv R_LIBS ~/R' >> ~/.cshrc
+      rPkgsInstall -pkgs ALL
+      
+   In order, this has: set (i.e., defined) an environment variable
+   called ``R_LIBS`` to be a path of the user's home and a
+   subdirectory called "R"; then made this directory; then stored this
+   information in the user's profile; and finally run an AFNI command
+   to (hopefully) get all the necessary R libraries for the modern
+   package.
+
+#. **Setting up AFNI/SUMA profiles.**
+
+   As noted in the `<install_tech_notes>` above, AFNI and SUMA have a
+   lot of default settings, controlled using *environment variables*.
+   It's useful to have a lot of the default settings in explicit
+   profiles on the system.  AFNI and SUMA will look for these files
+   each time they are run, and each profile is installed pretty simply
+   (with default values):
+
+   - for AFNI, copy it from the main directory of binaries (here, this
+     is assumed to be in ``$HOME/abin/`` as the default binary
+     installation described; otherwise, you can change the path in the
+     first term accordingly)::
+
+       cp $HOME/abin/AFNI.afnirc $HOME/.afnirc
+
+   - for SUMA, just call the option to make the profile in the right
+     place and to automatically copy default values there::
+
+       suma -update_env
+
+     This makes and populates a profile called ``$HOME/.sumarc``.
+
+
+   .. _install_bootcamp:
+
+#. **Install AFNI Bootcamp class data (optional).**
+
+   This step may be required if you are about to attend a Bootcamp, or
+   merely just useful (thar be lots of scripts and demos, accompanied
+   by didactic reading material).  The Bootcamp and material in the
+   data directory is discussed separately on the :ref:`Bootcamp page
+   <Bootcamping>`, but we mention how it can be downloaded and
+   unpacked (which is all "installation" entails) here.  By default,
+   we described is installing the class data in the ``$HOME``
+   directory, so that it is easy to access during a class::
+
+      curl -O https://afni.nimh.nih.gov/pub/dist/edu/data/CD.tgz
+      tar xvzf CD.tgz
+      cd CD
+      tcsh s2.cp.files . ~
+      cd ..
+      
+   In order, these commands: get the tarred+zipped directory that
+   contains the class data (and is hence named "CD"), downloading it
+   to the current location in the terminal; untars/unzips it (=opens
+   it up); goes into the newly opened directory; executes a script to
+   copy the files to '`$HOME/CD/`'; and finally exits the directory.
+
+   At this point, if there have been no errors, you can delete/remove
+   the tarred/zipped package, using "``rm CD.tgz``".  If you are
+   *really* confident, you can also deleted the CD tree in the present
+   location (but leaving it in ``$HOME/CD/``).
+
+#. **EVALUATE THE SETUP: an important and useful step in this
+   process!**
+
+   There is a very useful script to check on your installed AFNI and
+   lots of its dependencies, such as looking for the installed R
+   libraries, profiles, Python stuff, etc. You can run it
+
+   - outputting to the screen::
+
+      afni_system_check.py -check_all
+
+   - outputting to a text file::
+
+       afni_system_check.py -check_all > out.afni_system_check.txt
+
+     which might be useful to email to your local AFNI Guru if there
+     are any problems.
+      
+So, at this point, if your "system check" doesn't really give any
+errors, you're all set to go. If it did give some errors, please:
+
+- check this list of **known setup issues !!ADD!!**;
+
+- search on the `Message Board
+  <https://afni.nimh.nih.gov/afni/community/board/>`_, and/or put the
+  error into google;
+
+- email any questions.
+
 
 |
 
