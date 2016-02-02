@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 28,  Jan, 2016, RCR, "3dMean", MICRO, TYPE_MODIFY,
+   "fix help to correctly report -stdev as sqrt(var)   {was var/(n-1)}",
+   "Thanks to K Kerr (MB) for pointing out the mistake."
+ } ,
+
  { 27,  Jan, 2016, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,
    "allow for tissue based regression with only regress block",
    NULL
@@ -1101,8 +1106,8 @@ afni_history_struct rickr_history[] = {
 
  {  8, Sep, 2014, RCR, "afni_proc.py", MICRO, TYPE_MODIFY,
    "round min dimension to 6 sig bits, then truncate to 3",
-   "This help catch cases where the dimension is just under\n"
-   "fairly 'round' number."
+   "This helps catch cases where the dimension is just under\n"
+   "some fairly 'round' number."
  } ,
 
  {  8, Sep, 2014, RCR, "Dimon", MICRO, TYPE_BUG_FIX,
