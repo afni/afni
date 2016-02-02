@@ -72,7 +72,7 @@ Technical notes
   Occasionally, the use of multiple package managers may be required
   on a system, but this is generally avoided.  For example:
 
-  * Fedora has ``yum``;
+  * Fedora has ``yum`` or ``dnf``;
 
   * Ubuntu has ``aptitude`` (so most commands have an ``apt-get`` in
     them);
@@ -163,11 +163,10 @@ for each.
                               gsl-bin netpbm gnome-tweak-tool libjpeg62
       sudo apt-get update
       
-   Each command basically goes through a list of known
-   packages/functionalities to install.  By default, the package
-   manager will often ask the user yes/no questions to verify
-   continuing, and the ``-y`` option will automatically answer "yes"
-   to pretty much every prompt, to simplify the user's life.
+   Each command basically goes through a list of known packages to install,
+   along with any dependencies.  By default, the package manager will ask the
+   user to verify steps with yes/no questions, and the ``-y`` option will
+   automatically answer "yes" to every prompt, to simplify the user's life.
 
 #. **Set ``tcsh`` to be the default shell (optional).**
 
@@ -182,7 +181,7 @@ for each.
 #. **Install AFNI.**
 
    Assuming there is nothing yet on the system, the following command
-   will create a directory called ``$HOME/abin/`` and install the AFNI
+   will create a directory called ``$HOME/abin`` and install the AFNI
    binaries there.  It will also update the ``$path`` variable in the
    shell profile (e.g., ``$HOME/.cshrc`` for ``tcsh``), so that the
    system knows to look there for commands to execute, and it will set
