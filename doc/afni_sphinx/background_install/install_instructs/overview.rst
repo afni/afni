@@ -105,3 +105,17 @@ Technical notes
 
 |
 
+Setting up systems
+------------------
+
+Instructions for setting up a system for AFNI are provided:
+
+- for :ref:`Linux <install_steps_ubuntu>`;
+
+- for :ref:`Mac OS <install_steps_mac>`;
+
+Methods for checking each setup are also described on those pages.
+
+A page of **Frequently Asked Questions (FAQs)** and suggestions for
+commonly-seen error messages also exists :ref:`here
+<install_error_msgs>`.

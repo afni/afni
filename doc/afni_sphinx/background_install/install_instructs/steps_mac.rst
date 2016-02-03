@@ -1,5 +1,5 @@
 
-.. _install_page:
+.. _install_steps_mac:
 
 **Complete system setup for:  (modern) Mac OS**
 ===============================================
