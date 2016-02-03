@@ -6,9 +6,9 @@ Installation and Background
 
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 3
 
-   install_instrucs.rst
+   install_instructs/index.rst
    download_links.rst
    unix_tutorial/index.rst
    bootcamp_stuff.rst
