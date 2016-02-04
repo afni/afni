@@ -207,6 +207,10 @@ static int minmask = 128 ;   /* 29 Mar 2011 */
 
 static char *prefix = NULL ;
 
+static THD_3dim_dataset **inset = NULL ; /* 02 Feb 2016 */
+static int           num_inset  = 0 ;
+static int          *nval_inset = NULL ;
+
 #undef  PSMALL
 #define PSMALL 1.e-15
 
@@ -671,6 +675,8 @@ void get_options( int argc , char **argv )
   char * ep;
   int nopt=1 , ii , have_pthr=0;
 
+ENTRY("get_options") ;
+
   /*----- add to program log -----*/
 
   pthr = (double *)malloc(sizeof(double)*npthr) ;
@@ -687,6 +693,39 @@ void get_options( int argc , char **argv )
   }
 
   while( nopt < argc ){
+
+    /*-----  -inset iii  -----*/
+
+    if( strcmp(argv[nopt],"-inset") == 0 ){  /* 02 Feb 2016 [currently HIDDEN] */
+      int ii,nbad=0 ; THD_3dim_dataset *qset ;
+      if( num_inset > 0 )
+        ERROR_exit("You can't use '-inset' more than once!") ;
+      if( ++nopt >= argc )
+        ERROR_exit("You need at least 1 argument after option '-inset'") ;
+      for( ; nopt < argc && argv[nopt][0] != '-' ; nopt++ ){
+        qset = THD_open_dataset(argv[nopt]) ;
+        if( qset == NULL ){
+          ERROR_message("-inset '%s': failure to open dataset",argv[nopt]) ;
+          nbad++ ; continue ;
+        }
+        for( ii=0 ; ii < DSET_NVALS(qset) ; ii++ ){
+          if( DSET_BRICK_TYPE(qset,ii) != MRI_float ){
+            ERROR_message("-inset '%s': all sub-bricks must be float :-(",argv[nopt]) ;
+            nbad++ ; break ;
+          }
+        }
+        if( num_inset > 0 && DSET_NVOX(qset) != DSET_NVOX(inset[0]) ){
+          ERROR_message("-inset '%s': grid size doesn't match other datasets",argv[nopt]) ;
+          nbad++ ;
+        }
+        inset      = (THD_3dim_dataset **)realloc( inset     , sizeof(THD_3dim_dataset *)*(num_inset+1)) ;
+        nval_inset = (int *)              realloc( nval_inset, sizeof(int)               *(num_inset+1)) ;
+        inset[num_inset] = qset ; nval_inset[num_inset] = DSET_NVALS(qset) ; num_inset++ ;
+      }
+      if( num_inset == 0 ) ERROR_exit("no valid datasets opened after -inset :-(") ;
+      if( nbad      >  0 ) ERROR_exit("can't continue after above -inset problems") ;
+      continue ;
+    }
 
     /*-----  -nxyz n1 n2 n3 -----*/
 
@@ -1036,7 +1075,40 @@ void get_options( int argc , char **argv )
     WARNING_message("-sumup canceled") ;
   }
 
-  if( mask_dset != NULL ){
+  if( num_inset > 0 ){      /* 02 Feb 2016 */
+    int qq,nbad=0 ;
+    nx = DSET_NX(inset[0]) ;
+    ny = DSET_NY(inset[0]) ;
+    nz = DSET_NZ(inset[0]) ;
+    dx = fabsf(DSET_DX(inset[0])) ;
+    dy = fabsf(DSET_DY(inset[0])) ;
+    dz = fabsf(DSET_DZ(inset[0])) ;
+    for( niter=qq=0 ; qq < num_inset ; qq++ ){
+      niter += nval_inset[qq] ;
+      DSET_load(inset[qq]) ;
+      if( !DSET_LOADED(inset[qq]) ){
+        ERROR_message("Can't load dataset -inset '%s'",DSET_HEADNAME(inset[qq])) ;
+        nbad ++ ;
+      }
+    }
+    if( nbad > 0 ) ERROR_exit("Can't continue without all -inset datasets :-(") ;
+    if( niter < 100 )
+      WARNING_message("-inset has only %d volumes (= new '-niter' value)",niter) ;
+    else if( verb )
+      INFO_message("-inset had %d volumes = new '-niter' value",niter) ;
+    if( mask_dset != NULL ){
+      if( nx != DSET_NX(mask_dset) ||
+          ny != DSET_NY(mask_dset) ||
+          nz != DSET_NZ(mask_dset)   )
+        ERROR_exit("-mask and -inset don't match in grid dimensions :-(") ;
+    }
+    if( do_ssave ){
+      WARNING_message("-inset turns off -ssave") ; do_ssave = 0 ;
+    }
+    if( do_acf ){
+      WARNING_message("-inset turns off -acf") ; do_acf = 0 ;
+    }
+  } else if( mask_dset != NULL ){
     nx = DSET_NX(mask_dset) ;
     ny = DSET_NY(mask_dset) ;
     nz = DSET_NZ(mask_dset) ;
@@ -1055,7 +1127,7 @@ void get_options( int argc , char **argv )
   if( do_acf ){  /* 30 Nov 2015 */
     float val ; int_triple ijk ;
     if( fwhm_x > 0.0f )
-      WARNING_message("-acf option mean -fwhm options are ignored!") ;
+      WARNING_message("-acf option ==> -fwhm options are ignored!") ;
     if( nx < 4 || ny < 4 || nz < 4 )
       ERROR_exit("-acf option: minimum grid is 4x4x4, but you have %dx%dx%d",nx,ny,nz) ;
     fwhm_x = fwhm_y = fwhm_z = 0.0f ;
@@ -1133,32 +1205,33 @@ void get_options( int argc , char **argv )
 
   do_blur = (sigmax > 0.0f || sigmay > 0.0f || sigmaz > 0.0f ) ;
 
-  if( do_acf ){                           /* 30 Nov 2015 */
-    ex_pad = (acf_nxx-nx)/2 ;
-    ey_pad = (acf_nyy-ny)/2 ;
-    ez_pad = (acf_nzz-nz)/2 ;
-    nx_pad = acf_nxx ;
-    ny_pad = acf_nyy ;
-    nz_pad = acf_nzz ;
-  } else if( do_blur && allow_padding ){  /* 12 May 2015 */
-    ex_pad = (int)rintf(1.666f*fwhm_x/dx) ;
-    ey_pad = (int)rintf(1.666f*fwhm_y/dy) ;
-    ez_pad = (int)rintf(1.666f*fwhm_z/dz) ;
-    do_pad = (ex_pad > 0) || (ey_pad > 0) || (ez_pad > 0) ;
-    nx_pad = nx + 2*ex_pad ;
-    ny_pad = ny + 2*ey_pad ;
-    nz_pad = nz + 2*ez_pad ;
-    if( do_pad )
-      INFO_message(
-       "Padding by %d x %d x %d slices to allow for edge effects of blurring" ,
-       ex_pad,ey_pad,ez_pad) ;
-  } else {
-    nx_pad = nx ; ny_pad = ny ; nz_pad = nz ;
+  nx_pad = nx ; ny_pad = ny ; nz_pad = nz ;
+  if( num_inset == 0 ){
+    if( do_acf ){                           /* 30 Nov 2015 */
+      ex_pad = (acf_nxx-nx)/2 ;
+      ey_pad = (acf_nyy-ny)/2 ;
+      ez_pad = (acf_nzz-nz)/2 ;
+      nx_pad = acf_nxx ;
+      ny_pad = acf_nyy ;
+      nz_pad = acf_nzz ;
+    } else if( do_blur && allow_padding ){  /* 12 May 2015 */
+      ex_pad = (int)rintf(1.666f*fwhm_x/dx) ;
+      ey_pad = (int)rintf(1.666f*fwhm_y/dy) ;
+      ez_pad = (int)rintf(1.666f*fwhm_z/dz) ;
+      do_pad = (ex_pad > 0) || (ey_pad > 0) || (ez_pad > 0) ;
+      nx_pad = nx + 2*ex_pad ;
+      ny_pad = ny + 2*ey_pad ;
+      nz_pad = nz + 2*ez_pad ;
+      if( do_pad )
+        INFO_message(
+         "Padding by %d x %d x %d slices to allow for edge effects of blurring" ,
+         ex_pad,ey_pad,ez_pad) ;
+    }
   }
   nxy_pad  = nx_pad  * ny_pad ;
   nxyz_pad = nxy_pad * nz_pad ;
 
-  return ;
+  EXRETURN ;
 }
 
 /*---------------------------------------------------------------------------*/
@@ -1176,6 +1249,35 @@ void ssave_dataset( float *fim )  /* 24 Apr 2014 */
      DSET_NULL_ARRAY(ssave_dset,0) ;
    }
    return ;
+}
+
+/*---------------------------------------------------------------------------*/
+/* Create the "functional" image, from the inset dataset [02 Feb 2016] */
+
+void generate_fim_inset( float *fim , int ival )
+{
+   if( ival < 0 || ival >= niter ){            /* should not be possible */
+     ERROR_message("inset[%d] == out of range!",ival) ;
+     memset( fim , 0 , sizeof(float)*nxyz ) ;
+   } else {
+     float *bar=NULL ; int ii,qq,qval ;
+     for( qval=ival,qq=0 ; qq < num_inset ; qq++ ){  /* find which */
+       if( qval < nval_inset[qq] ) break ;           /* inset[qq] to use */
+       qval -= nval_inset[qq] ;
+     }
+     if( qq == num_inset ){                    /* should not be possible */
+       ERROR_message("inset[%d] == array overflow !!",ival) ;
+     } else {
+       bar = DSET_ARRAY(inset[qq],qval) ;
+     }
+     if( bar != NULL ){
+       for( ii=0 ; ii < nxyz ; ii++ ) fim[ii] = bar[ii] ;   /* copy data */
+       DSET_unload_one(inset[qq],qval) ;
+     } else {
+       ERROR_message("inset[%d] == NULL :-(",ival) ;
+       memset( fim , 0 , sizeof(float)*nxyz ) ;
+     }
+   }
 }
 
 /*---------------------------------------------------------------------------*/
@@ -1272,13 +1374,15 @@ void generate_fim_unpadded( float *fim , unsigned short xran[] )
 /*---------------------------------------------------------------------------*/
 /* Generate random smoothed masked image, with stdev=1. */
 
-void generate_image( float *fim , float *pfim , unsigned short xran[] )
+void generate_image( float *fim , float *pfim , unsigned short xran[] , int iter )
 {
   register int ii ; register float sum ;
 
   /* Outsource the creation of the smoothed random field [12 May 2015] */
 
-  if( do_acf )
+  if( inset != NULL )
+    generate_fim_inset( fim , iter-1 ) ;
+  else if( do_acf )
     generate_fim_acf( fim , xran ) ;
   else if( do_pad )
     generate_fim_padded( fim , pfim , xran ) ;
@@ -1287,9 +1391,11 @@ void generate_image( float *fim , float *pfim , unsigned short xran[] )
 
   /* normalizing */
 
-  for( sum=0.0f,ii=0 ; ii < nxyz ; ii++ ) sum += fim[ii]*fim[ii] ;
-  sum = sqrtf( nxyz / sum ) ;  /* fix stdev back to 1 */
-  for( ii=0 ; ii < nxyz ; ii++ ) fim[ii] *= sum ;
+  if( num_inset == 0 ){
+    for( sum=0.0f,ii=0 ; ii < nxyz ; ii++ ) sum += fim[ii]*fim[ii] ;
+    sum = sqrtf( nxyz / sum ) ;  /* fix stdev back to 1 */
+    for( ii=0 ; ii < nxyz ; ii++ ) fim[ii] *= sum ;
+  }
 
   /* save this volume? */
 
@@ -1301,7 +1407,7 @@ void generate_image( float *fim , float *pfim , unsigned short xran[] )
     for( ii=0 ; ii < nxyz ; ii++ ) if( !mask_vol[ii] ) fim[ii] = 0.0f ;
   }
 
-  if( tdof > 0.0f ){  /* 26 May 2015: secret stuff */
+  if( num_inset == 0 && tdof > 0.0f ){  /* 26 May 2015: secret stuff */
     float zfac = 1.0f/(1.0f-0.25f/tdof) ;
     float tfac = 0.5f/tdof ;
     float zhat , denom ;
@@ -2441,7 +2547,7 @@ int main( int argc , char **argv )
       vii++ ; if( vii%vstep == vstep/2 ) vstep_print() ;
     }
 
-    generate_image( fim , pfim , xran ) ;
+    generate_image( fim , pfim , xran , iter ) ;
 
 #ifdef USE_SHAVE
     if( do_shave ) fim_to_shave(fim,iter-1) ;
