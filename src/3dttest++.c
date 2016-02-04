@@ -148,6 +148,8 @@ static int debug = 0 ;
 static int do_randomsign   = 0 ;     /* 31 Dec 2015 */
 static int *randomsign_AAA = NULL ;
 static int *randomsign_BBB = NULL ;
+static int num_randomsign  = 0 ;     /* 02 Feb 2016 */
+
 static int dofsub          = 0    ;  /* 19 Jan 2016 */
 
 /*--------------------------------------------------------------------------*/
@@ -171,6 +173,47 @@ static void vstep_print(void)   /* pacifier */
    static char xx[10] = "0123456789" ; static int vn=0 ;
    fprintf(stderr , "%c" , xx[vn%10] ) ;
    if( vn%10 == 9) fprintf(stderr,".") ; vn++ ;
+}
+
+/*----------------------------------------------------------------------------*/
+
+static void setup_randomsign(void)  /* moved here 02 Feb 2016 */
+{
+   int nflip , nb,nt , jj ;
+
+   if( randomsign_AAA == NULL )
+     randomsign_AAA = (int *)malloc(sizeof(int)*nval_AAA) ;
+   nb = (int)rintf(0.35f*nval_AAA) ; nt = nval_AAA - nb ;
+   do{
+     for( nflip=jj=0 ; jj < nval_AAA ; jj++ ){
+       randomsign_AAA[jj] = (lrand48()>>3) % 2 ;
+       if( randomsign_AAA[jj] ) nflip++ ;
+     }
+   } while( nflip < nb || nflip > nt ) ;
+#if 0
+   fprintf(stderr,"++ randomsign for setA:") ;
+   for( jj=0 ; jj < nval_AAA ; jj++ )
+     fprintf(stderr,"%c" , randomsign_AAA[jj] ? '-' : '+' ) ;
+   fprintf(stderr,"\n") ;
+#endif
+
+   if( nval_BBB > 0 ){
+     if( randomsign_BBB == NULL )
+       randomsign_BBB = (int *)malloc(sizeof(int)*nval_BBB) ;
+     nb = (int)rintf(0.345f*nval_BBB) ; nt = nval_BBB - nb ;
+     do{
+       for( nflip=jj=0 ; jj < nval_BBB ; jj++ ){
+         randomsign_BBB[jj] = (lrand48()>>3) % 2 ;
+         if( randomsign_BBB[jj] ) nflip++ ;
+       }
+     } while( nflip < nb || nflip > nt ) ;
+#if 0
+     fprintf(stderr,"++ randomsign for setB:") ;
+     for( jj=0 ; jj < nval_BBB ; jj++ )
+       fprintf(stderr,"%c" , randomsign_BBB[jj] ? '-' : '+' ) ;
+     fprintf(stderr,"\n") ;
+#endif
+   }
 }
 
 /*--------------------------------------------------------------------------*/
@@ -1231,7 +1274,7 @@ int is_possible_filename( char * fname )
 
 int main( int argc , char *argv[] )
 {
-   int nopt, nbad, ii,jj,kk, kout,ivox, vstep, dconst, nconst=0, nzskip=0,nzred=0  ;
+   int nopt, nbad, ii,jj,kk, kout,ivox, vstep,bstep, dconst, nconst=0, nzskip=0,nzred=0  ;
    int bb , bbase , ss ;  char *abbfmt ; /* for -brickwise -- 28 Jan 2014 */
    MRI_vectim *vimout=NULL , *rimout=NULL ;
    float *workspace=NULL , *datAAA , *datBBB=NULL , *resar ; size_t nws=0 ;
@@ -1344,7 +1387,14 @@ int main( int argc , char *argv[] )
      /*----- randomsign -----*/
 
      if( strcmp(argv[nopt],"-randomsign") == 0 ){  /* 31 Dec 2015 */
-       do_randomsign++ ; nopt++ ; continue ;
+       do_randomsign++ ;
+       nopt++ ;
+       if( isdigit(argv[nopt][0]) ){
+         num_randomsign = (int)strtod(argv[nopt],NULL) ; nopt++ ;
+       } else {
+         num_randomsign = 1 ;
+       }
+       continue ;
      }
 
      /*----- dofsub -----*/
@@ -1821,7 +1871,16 @@ int main( int argc , char *argv[] )
 
    /*----- check some stuff -----*/
 
-   if( !brickwise ) brickwise_num = 1 ;  /* 28 Jan 2014 */
+   if( !brickwise ) brickwise_num = 1 ;      /* 28 Jan 2014 */
+
+   if( brickwise && do_randomsign )          /* 02 Feb 2016 */
+     ERROR_exit("You can't use -brickwise and -randomsign together!") ;
+
+   if( do_randomsign && num_randomsign > 1 ) /* 02 Feb 2016 */
+     brickwise_num = num_randomsign ;
+
+   if( do_randomsign && do_resid )           /* 02 Feb 2016 */
+     ERROR_exit("You can't do -resid and -randomsign together!") ;
 
    if( do_tests+do_means == 0 )
      ERROR_exit("You can't use -nomeans and -notests together! (Duh)") ;
@@ -1928,9 +1987,9 @@ int main( int argc , char *argv[] )
      ERROR_exit("You can't use -resid and -zskip together :-(") ;
 
    if( do_randomsign && nval_AAA < 7 )
-     ERROR_exit("You can't use -randomsign with nval_AAA < 7") ;
+     ERROR_exit("You can't use -randomsign with nval_AAA=%d < 7",nval_AAA) ;
    if( do_randomsign && nval_BBB > 0 && nval_BBB < 7 )
-     ERROR_exit("You can't use -randomsign with nval_BBB < 7") ;
+     ERROR_exit("You can't use -randomsign with nval_BBB=%d < 7",nval_BBB) ;
 
 #ifdef ALLOW_RANK
    if( do_ranks && !twosam ){
@@ -2219,16 +2278,17 @@ int main( int argc , char *argv[] )
 
    /* format for sub-brick index (good up to 99,999 sub-bricks) */
 
-        if( brickwise_num <=    10 ) abbfmt = "#%d"   ;
-   else if( brickwise_num <=   100 ) abbfmt = "#%02d" ;
-   else if( brickwise_num <=  1000 ) abbfmt = "#%03d" ;
-   else if( brickwise_num <= 10000 ) abbfmt = "#%04d" ;
-   else                              abbfmt = "#%05d" ;
+        if( brickwise_num <=     10 ) abbfmt = "#%d"   ;
+   else if( brickwise_num <=    100 ) abbfmt = "#%02d" ;
+   else if( brickwise_num <=   1000 ) abbfmt = "#%03d" ;
+   else if( brickwise_num <=  10000 ) abbfmt = "#%04d" ;
+   else if( brickwise_num <= 100000 ) abbfmt = "#%05d" ;
+   else                               abbfmt = "#%06d" ;
 
   /* add sub-brick index if doing multiple tests (using abbfmt from above) */
 
 #undef  ADD_BRICK_INDEX
-#define ADD_BRICK_INDEX if(brickwise)sprintf(blab+strlen(blab),abbfmt,bb)
+#define ADD_BRICK_INDEX if(brickwise_num>1)sprintf(blab+strlen(blab),abbfmt,bb)
 
   /* mean (effect size) label for 2 sample results */
 
@@ -2366,38 +2426,6 @@ LABELS_ARE_DONE:  /* target for goto above */
      MAKE_VECTIM(rimout,nmask_hits,nval_AAA+nval_BBB) ; rimout->ignore = 0 ;
    }
 
-   if( do_randomsign ){  /* 31 Dec 2015 */
-     int nflip , nb,nt ;
-
-     randomsign_AAA = (int *)malloc(sizeof(int)*nval_AAA) ;
-     nb = (int)rintf(0.35f*nval_AAA) ; nt = nval_AAA - nb ;
-     do{
-       for( nflip=jj=0 ; jj < nval_AAA ; jj++ ){
-         randomsign_AAA[jj] = (lrand48()>>3) % 2 ;
-         if( randomsign_AAA[jj] ) nflip++ ;
-       }
-     } while( nflip < nb || nflip > nt ) ;
-     fprintf(stderr,"++ randomsign for setA:") ;
-     for( jj=0 ; jj < nval_AAA ; jj++ )
-       fprintf(stderr,"%c" , randomsign_AAA[jj] ? '-' : '+' ) ;
-     fprintf(stderr,"\n") ;
-
-     if( nval_BBB > 0 ){
-       randomsign_BBB = (int *)malloc(sizeof(int)*nval_BBB) ;
-       nb = (int)rintf(0.345f*nval_BBB) ; nt = nval_BBB - nb ;
-       do{
-         for( nflip=jj=0 ; jj < nval_BBB ; jj++ ){
-           randomsign_BBB[jj] = (lrand48()>>3) % 2 ;
-           if( randomsign_BBB[jj] ) nflip++ ;
-         }
-       } while( nflip < nb || nflip > nt ) ;
-       fprintf(stderr,"++ randomsign for setB:") ;
-       for( jj=0 ; jj < nval_BBB ; jj++ )
-         fprintf(stderr,"%c" , randomsign_BBB[jj] ? '-' : '+' ) ;
-       fprintf(stderr,"\n") ;
-     }
-   }
-
    /**********==========---------- process data ----------==========**********/
 
    /*----- convert each input set of datasets to a vectim -----*/
@@ -2418,9 +2446,19 @@ LABELS_ARE_DONE:  /* target for goto above */
    /*--- loop and process ---*/
 
    vstep = (nmask_hits > 6666) ? nmask_hits/50 : 0 ;
+   if( brickwise_num > 1 ){
+     vstep = 0 ; bstep = brickwise_num/50 ; if( bstep == 0 ) bstep = 1 ;
+     fprintf(stderr,"++ t-test group:") ;
+   } else {
+     bstep =0 ;
+   }
 
    for( bb=0 ; bb < brickwise_num ; bb++ ){  /* for each 'brick' to process */
      bbase = bb*nvout ;
+
+     if( do_randomsign ) setup_randomsign() ; /* moved here 02 Feb 2016 */
+
+     if( bstep > 0 && bb%bstep==bstep/2 ) vstep_print() ;
 
      if( brickwise ){           /* need to load data for this sub-brick now */
        int keep[1] ; keep[0] = bb ;
@@ -2604,17 +2642,19 @@ LABELS_ARE_DONE:  /* target for goto above */
 
      if( vstep > 0 ) fprintf(stderr,"!\n") ;
 
-     if( nconst > 0 )
-       ININFO_message("skipped %d voxel%s completely for having constant data" ,
-                      nconst , (nconst==1) ? "\0" : "s" ) ;
+     if( brickwise_num == 1 ){
+       if( nconst > 0 )
+         ININFO_message("skipped %d voxel%s completely for having constant data" ,
+                        nconst , (nconst==1) ? "\0" : "s" ) ;
 
-     if( nzred > 0 )
-       ININFO_message("-zskip: %d voxel%s had some values skipped in their t-tests",
-                      nzred , (nzred==1) ? "\0" : "s" ) ;
+       if( nzred > 0 )
+         ININFO_message("-zskip: %d voxel%s had some values skipped in their t-tests",
+                        nzred , (nzred==1) ? "\0" : "s" ) ;
 
-     if( nzskip > 0 )
-       ININFO_message("-zskip: skipped %d voxel%s completely for having too few nonzero values" ,
-                      nzskip , (nzskip==1) ? "\0" : "s" ) ;
+       if( nzskip > 0 )
+         ININFO_message("-zskip: skipped %d voxel%s completely for having too few nonzero values" ,
+                        nzskip , (nzskip==1) ? "\0" : "s" ) ;
+     }
 
      /*--- load results from vimout into output dataset ---*/
 
@@ -2646,6 +2686,8 @@ LABELS_ARE_DONE:  /* target for goto above */
      }
 
    } /*----- end of brickwise loop -----*/
+
+   if( brickwise_num > 1 ) fprintf(stderr,"!\n") ;
 
    /*-------- get rid of the input data and workspaces now --------*/
 
