@@ -461,7 +461,9 @@ ENTRY("THD_open_nifti") ;
                         (ORIENT_sign[orixyz.ijk[1]]=='+') ? dytmp : -dytmp ,
                         (ORIENT_sign[orixyz.ijk[2]]=='+') ? dztmp : -dztmp ) ;
 
-     iview = NIFTI_default_view();
+     /* no qform/sform should default to orig */
+     /* use VIEW_ORIGINAL_TYPE, not NIFTI_default_view()  5 Feb 2016 [rickr] */
+     iview = VIEW_ORIGINAL_TYPE;
 
      /* set origin to 0,0,0   */
 
