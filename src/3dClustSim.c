@@ -392,6 +392,17 @@ void display_help_menu()
    "\n"
    "    ** '-mask' means that '-nxyz' & '-dxyz' & '-BALL' will be ignored. **\n"
    "\n"
+   "  -----** OR: (c) Specify the spatial domain by directly giving simulated volumes **-----\n"
+   "\n"
+   "-inset iset [iset ...] = Read the 'iset' dataset(s) and use THESE volumes\n"
+   "                          as the simulations to threshold and clusterize,\n"
+   " [Feb 2016]               rather than create the simulations internally.\n"
+   "                         * For example, these datasets could come from\n"
+   "                           3dttest++ -toz -randomsign 1000 -setA ...\n"
+   "                         * This can be combined with '-mask'.\n"
+   "                         * Using '-inset' means that '-fwhm', '-acf', '-nopad',\n"
+   "                           '-niter', and '-ssave' are ignored as meaningless.\n"
+   "\n"
    "  ---** the remaining options control how the simulation is done **---\n"
    "\n"
    "-fwhm s         = Gaussian filter width (all 3 dimensions) in mm (non-negative)\n"
@@ -696,7 +707,7 @@ ENTRY("get_options") ;
 
     /*-----  -inset iii  -----*/
 
-    if( strcmp(argv[nopt],"-inset") == 0 ){  /* 02 Feb 2016 [currently HIDDEN] */
+    if( strcmp(argv[nopt],"-inset") == 0 ){  /* 02 Feb 2016 */
       int ii,nbad=0 ; THD_3dim_dataset *qset ;
       if( num_inset > 0 )
         ERROR_exit("You can't use '-inset' more than once!") ;
