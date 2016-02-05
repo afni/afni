@@ -44,6 +44,17 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 5 , FEB , 2016 , RWC , "3dClustSim" , MAJOR , TYPE_NEW_OPT ,
+   "New -inset option" ,
+   "Directly give the simulations, rather than generate them internally. \n"
+   "Intended for use with '3dttest++ -randomsign N -toz' and '3dttest++\n"
+   "-resid' to get the cluster thresholds directly from the data rather than\n"
+   "assumptions of Gaussianity." } ,
+
+ { 5 , FEB , 2016 , RWC , "3dttest++" , MICRO , TYPE_MODIFY ,
+   "Add number of iterations to -randomsign option" ,
+   "For use with 3dClustSim -inset" } ,
+
  { 26, JAN , 2016 , RWC , "1dNLfit" , MINOR , TYPE_NEW_PROG ,
    "1D file nonlinear fitting" ,
    "Uses the 'calc' parser to define the function to fit.\n"
