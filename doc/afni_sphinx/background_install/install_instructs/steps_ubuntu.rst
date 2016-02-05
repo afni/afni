@@ -1,13 +1,11 @@
+.. from: https://afni.nimh.nih.gov/pub/dist/HOWTO/howto/ht00_inst/html/linux_inst_current.html
 
 .. _install_steps_ubuntu:
+
 
 **Complete system setup for:  (current) Linux**
 ===============================================
 
-.. contents::
-   :depth: 3
-
-.. from: https://afni.nimh.nih.gov/pub/dist/HOWTO/howto/ht00_inst/html/linux_inst_current.html
 
 Here we describe installation and system setup for mainstream Linux
 versions that are reasonably modern, such as:
@@ -19,48 +17,34 @@ Several of the following steps are system dependent, for example due
 to having different package managers, so we list parallel instructions
 for each.
 
-1. **Install supplementary packages.**
+#. **Install supplementary packages.**
 
    There are several packages and libraries that are needed to run the
-    afni and shell programs. Note that ``tcsh`` might not be on the
-    system yet, so we install it also:
+   afni and shell programs. Note that ``tcsh`` might not be on the
+   system yet, so we install it also:
         
-   * for Fedora 21 (and higher)::
+   * *for Fedora 21 (and higher)*::
       
-      sudo yum install -y tcsh libXp openmotif gsl xorg-x11-fonts-misc   \
-                          PyQt4 R-devel netpbm-progs gnome-tweak-tool ed
-      sudo yum update -y
+       sudo yum install -y tcsh libXp openmotif gsl xorg-x11-fonts-misc       \
+                           PyQt4 R-devel netpbm-progs gnome-tweak-tool ed
+       sudo yum update -y
       
-   * for Ubuntu 14.04 (and higher)::
+   * *for Ubuntu 14.04 (and higher)*::
       
       sudo apt-get install -y tcsh libxp6 xfonts-base python-qt4              \
                               r-base-dev libmotif4 libmotif-dev motif-clients \
                               gsl-bin netpbm gnome-tweak-tool libjpeg62
       sudo apt-get update
       
-   Each command basically goes through a list of known packages to install,
-   along with any dependencies.  By default, the package manager will ask the
-   user to verify steps with yes/no questions, and the ``-y`` option will
-   automatically answer "yes" to every prompt, to simplify the user's life.
-
-#. **Set ``tcsh`` to be the default shell (optional).**
-
-   Now that ``tcsh`` is installed, set it as the default shell (if
-   desired). Some subsequent instructions assume this shell.  Also,
-   many Message Board postings and scripts in demos, which may be
-   useful for reference, are written in ``tcsh``.  So, the choice is
-   yours, but choose wisely...::
+   .. _setup_tcsh:
+#. **Set "tcsh" to be the default shell (optional, but recommended).**
 
       chsh -s /usr/bin/tcsh
 
 #. **Install AFNI.**
 
-   Assuming there is nothing yet on the system, the following command
-   will create a directory called ``$HOME/abin`` and install the AFNI
-   binaries there.  It will also update the ``$path`` variable in the
-   shell profile (e.g., ``$HOME/.cshrc`` for ``tcsh``), so that the
-   system knows to look there for commands to execute, and it will set
-   up AFNI command tabbing.
+   The following will create a directory called ``$HOME/abin`` and
+   install the AFNI binaries there.
 
    First, get the install script (*this* command actually works for both
    Fedora and Ubuntu systems)::
@@ -70,11 +54,11 @@ for each.
    Then install the appropriate AFNI package.  Note that most other
    Linux systems will probably work with linux_openmp_64:
 
-   * for Fedora 21 (and higher)::
+   * *for Fedora 21 (and higher)*::
 
        tcsh @update.afni.binaries -package linux_fedora_21_64
 
-   * for Ubuntu 14.04 (and higher)::
+   * *for Ubuntu 14.04 (and higher)*::
 
        tcsh @update.afni.binaries -package linux_openmp_64
 
@@ -130,30 +114,24 @@ for each.
       rPkgsInstall -pkgs ALL
       
    In order, this has: set (i.e., defined) an environment variable
-   called ``R_LIBS`` to be a path of the user's home and a
-   subdirectory called "R"; then made this directory; then stored this
-   information in the user's profile; and finally run an AFNI command
-   to (hopefully) get all the necessary R libraries for the modern
-   package.
+   called ``$R_LIBS`` to be a subdirectory called "R/" in the user's
+   home directory; then made this directory; then written this
+   information into the user's ``tcsh`` profile; and finally run an
+   AFNI command to (hopefully) get all the necessary R libraries for
+   the modern package.
 
-#. **Setting up AFNI/SUMA profiles.**
+#. **Automatically set up AFNI/SUMA profiles.**
 
-   As noted in the :ref:`Technical notes <install_tech_notes>`, AFNI
+   As noted in the :ref:`Technical notes <tech_notes_ENV>`, AFNI
    and SUMA have a lot of default settings, controlled using
-   *environment variables*.  It's useful to have a lot of the default
-   settings in explicit profiles on the system.  AFNI and SUMA will
-   look for these files each time they are run, and each profile is
-   installed pretty simply (with default values):
+   *environment variables*.  Vanilla-mode profiles with default values
+   are easiliy installed:
 
-   - for AFNI, copy it from the main directory of binaries (here, this
-     is assumed to be in ``$HOME/abin/`` as the default binary
-     installation described; otherwise, you can change the path in the
-     first term accordingly)::
+   - for AFNI, copy it from the main directory of binaries::
 
        cp $HOME/abin/AFNI.afnirc $HOME/.afnirc
 
-   - for SUMA, just call the option to make the profile in the right
-     place and to automatically copy default values there::
+   - for SUMA, run the command::
 
        suma -update_env
 
@@ -164,14 +142,8 @@ for each.
 
 #. **Install AFNI Bootcamp class data (optional).**
 
-   This step may be required if you are about to attend a Bootcamp, or
-   merely just useful (thar be lots of scripts and demos, accompanied
-   by didactic reading material).  The Bootcamp and material in the
-   data directory is discussed separately on the :ref:`Bootcamp page
-   <Bootcamping>`, but we mention how it can be downloaded and
-   unpacked (which is all "installation" entails) here.  By default,
-   we described is installing the class data in the ``$HOME``
-   directory, so that it is easy to access during a class::
+   This step is required if you are about to attend a :ref:`Bootcamp
+   <Bootcamping>`::
 
       curl -O https://afni.nimh.nih.gov/pub/dist/edu/data/CD.tgz
       tar xvzf CD.tgz
@@ -183,7 +155,7 @@ for each.
    contains the class data (and is hence named "CD"), downloading it
    to the current location in the terminal; untars/unzips it (=opens
    it up); goes into the newly opened directory; executes a script to
-   copy the files to '`$HOME/CD/`'; and finally exits the directory.
+   copy the files to ``$HOME/CD/``; and finally exits the directory.
 
    At this point, if there have been no errors, you can delete/remove
    the tarred/zipped package, using "``rm CD.tgz``".  If you are
@@ -207,7 +179,8 @@ for each.
 
      which might be useful to email to your local AFNI Guru if there
      are any problems.
-      
+|      
+
 So, at this point, if your "system check" doesn't really give any
 errors, you're all set to go. If it did give some errors, please:
 
