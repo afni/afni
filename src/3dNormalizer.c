@@ -117,11 +117,13 @@ int main( int argc , char *argv[] )
      mask = (byte *)malloc(sizeof(byte)*nvox) ;
      memset( mask , 1 , sizeof(byte)*nvox ) ;
      nmask = nmask_hits = nvox ;
+     INFO_message("no -mask option ==> using all %d voxels",nmask) ;
    }
 
    /*-----------------------------------------------------------------------*/
 
    { floatvecvec *ovv ;
+     DSET_load(samset) ; CHECK_LOAD_ERROR(samset) ;
      ovv = symmetric_semi_rCDF( samset , mask , 5.0f , 100 ) ;
      rfv = ovv->fvar + 0 ;
      pfv = ovv->fvar + 1 ;
@@ -129,10 +131,13 @@ int main( int argc , char *argv[] )
      mri_write_floatvec( modify_afni_prefix(prefix,NULL,".cdf.1D") , rfv ) ;
      mri_write_floatvec( modify_afni_prefix(prefix,NULL,".pdf.1D") , pfv ) ;
 #endif
+     DSET_unload(samset) ;
    }
 
+#undef  LNCOSH
+#define LNCOSH(x) (fabsf(x)+logf(0.5f+0.5f*expf(-2.0f*fabsf(x))))
 #undef  HFUNC
-#define HFUNC(x) (bpar*(x)+apar*logf(coshf(dpar*(x)-cpar)/coshf(cpar)))
+#define HFUNC(x)  (bpar*(x)+apar*(LNCOSH(dpar*(x)-cpar)-LNCOSH(cpar)))
 
    { float *qv, *wv, *xv , *fitv, parbot[26],partop[26],parout[26] ;
      int ii, nval=rfv->nar ; float dx=rfv->dx ;
@@ -141,13 +146,9 @@ int main( int argc , char *argv[] )
      xv = (float *)malloc(sizeof(float)*nval) ;
      for( ii=0 ; ii < nval ; ii++ ){
        qv[ii] = qginv(0.5*rfv->ar[ii]) ;
-#if 0
-       wv[ii] = (qv[ii] <= 4.0f ) ? (1.0f-0.03f*xv[ii]*xv[ii]) : 0.0f ;
-#else
             if( qv[ii] <  1.5f ) wv[ii] = 0.7f ;
        else if( qv[ii] <= 4.0f ) wv[ii] = 1.0f ;
        else                      wv[ii] = 0.02f ;
-#endif
        xv[ii] = ii*dx ;
        qv[ii] = qv[ii] - xv[ii] ;
      }
@@ -181,6 +182,32 @@ int main( int argc , char *argv[] )
    }
 
    /*-----------------------------------------------------------------------*/
+
+   { MRI_IMAGE *bim ; int nv=DSET_NVALS(inset),iv,jj ; float *bar ;
+
+     DSET_load(inset) ; CHECK_LOAD_ERROR(inset) ;
+     bpar = bpar + 1.0f ;
+
+     outset = EDIT_empty_copy(inset) ;
+     EDIT_dset_items( outset ,
+                        ADN_prefix    , prefix ,
+                        ADN_datum_all , MRI_float ,
+                      ADN_none ) ;
+     tross_Copy_History(inset,outset) ;
+     tross_Make_History("3dNormalizer",argc,argv,outset) ;
+
+     for( iv=0 ; iv < nv ; iv++ ){
+       bim = THD_extract_float_brick(iv,inset) ; bar = MRI_FLOAT_PTR(bim) ;
+       if( DSET_BRICK_STATCODE(inset,iv) == FUNC_ZT_TYPE ){
+         for( jj=0 ; jj < nvox ; jj++ ){
+           bar[jj] = HFUNC(bar[jj]) ;
+         }
+       }
+       EDIT_substitute_brick( outset , iv , MRI_float , bar ) ;
+     }
+
+     DSET_write(outset) ; WROTE_DSET(outset) ;
+   }
 
    exit(0) ;
 }

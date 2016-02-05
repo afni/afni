@@ -604,6 +604,7 @@ int main( int argc , char * argv[] )
 
       if( clar == NULL || clar->num_clu == 0 ){
          printf("%s** NO CLUSTERS FOUND ***\n", c1d) ;
+         if( AFNI_yesenv("AFNI_3dclust_report_zero") ) printf(" 0\n") ;
          if( clar != NULL ) DESTROY_CLARR(clar) ;
          continue ;                               /* next dataset */
       }
