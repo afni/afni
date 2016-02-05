@@ -151,7 +151,7 @@ operating system) to a link to install XQuartz.
     4f. Get sample data and review AFNI handouts.
 
 
-
+?? getting R?  `R for Mac OS X <https://cran.r-project.org/bin/macosx>`_
 
 
 
