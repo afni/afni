@@ -125,7 +125,7 @@ for each.
    As noted in the :ref:`Technical notes <tech_notes_ENV>`, AFNI
    and SUMA have a lot of default settings, controlled using
    *environment variables*.  Vanilla-mode profiles with default values
-   are easiliy installed:
+   are easily installed:
 
    - for AFNI, copy it from the main directory of binaries::
 

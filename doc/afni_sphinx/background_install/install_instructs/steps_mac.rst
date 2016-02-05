@@ -54,18 +54,18 @@ operating system) to a link to install XQuartz.
    Xcode is needed for the gcc compiler and related tools. It is best
    to start with the most recent version from the Apple website:
 
-   * Go to http://developer.apple.com
+   a. Go to http://developer.apple.com
 
-     + Sign up for a login account (necessary for downloading) 
+      * Sign up for a login account (necessary for downloading) 
 
-     + Sign up via "Register as an Apple Developer" (it is free)
+      * Sign up via "Register as an Apple Developer" (it is free)
 
-   * Get the current "Command Line Tools" package (part of Developer
-     Tools) and install
+   #. Get the current "Command Line Tools" package (part of Developer
+      Tools) and install
 
-     + current version is 4.6.2
+      * current version is 4.6.2
 
-     + installation defaults are good, to complete installation
+      * installation defaults are good, to complete installation
    |
 
 #. **Homebrew installation**
@@ -73,32 +73,82 @@ operating system) to a link to install XQuartz.
    At this point, we will install the :ref:`package manager
    <tech_notes_PacMan>` Homebrew:
 
-   * Install HomeBrew and Python
+   a. Install HomeBrew and Python
  
-     + Type this command to run the Homebrew installation script,
-       choosing one of these :ref:`shell <tech_notes_PacMan>`
-       syntaxes:
+      * Type this command to run the Homebrew installation script,
+        choosing one of these :ref:`shell <tech_notes_PacMan>`
+        syntaxes:
 
-       - *using tcsh syntax*::
+        - *for tcsh*::
 
            curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install | ruby
 
-       - *using bash syntax*::
+        - *for bash*::
 
            ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
                     
 
-   * Make sure the Homebrew installation succeeded with no errors by
-     typing this command::
+   #. Make sure the Homebrew installation succeeded with no errors by
+      typing this command::
 
-       brew doctor
+        brew doctor
 
-   * Install PyQt4, enabling use of the uber_*.py programs::
+   #. Install PyQt4, enabling use of the uber_*.py programs::
 
-       brew install pyqt
+        brew install pyqt
 
 
 
+#. **AFNI installation**
+
+   a. Download and unpack the current binaries into your ``$HOME``
+      directory, changing the directory name to ``$HOME/abin/``::
+
+        cd
+        curl -O http://afni.nimh.nih.gov/pub/dist/tgz/macosx_10.7_Intel_64.tgz
+        tar -xzf macosx_10.7_Intel_64.tgz
+        mv macosx_10.7_Intel_64 abin
+        rm macosx_10.7_Intel_64.tgz
+
+   #. Update the path and library path.
+
+      * *for tcsh*::
+
+          echo 'set path = (/usr/local/bin $path $HOME/abin )' >> .cshrc
+          echo 'setenv DYLD_FALLBACK_LIBRARY_PATH $HOME/abin' >> .cshrc
+          echo 'setenv PYTHONPATH /usr/local/lib/python2.7/site-packages' >> .cshrc
+          source .cshrc
+          rehash
+
+      * *for bash*::
+
+          echo 'export PATH=/usr/local/bin:$PATH:$HOME/abin' >> .profile
+          echo 'export DYLD_FALLBACK_LIBRARY_PATH=$HOME/abin' >> .profile
+          echo 'export PYTHONPATH=/usr/local/lib/python2.7/site-packages' >> .profile
+          . .profile
+
+#. **AFNI verification**
+   
+   a. Try it out!  If these start, you should be in good shape::
+
+          afni
+          suma
+          
+      .. note:: For 10.8 users, when prompted, follow the instructions
+                to install XQuartz.
+
+   #. ...?? profiles... ... system check ...   R??
+
+   #. The following is quite useful to be set up help files for
+      tab-autocompletion of options as you type AFNI commands.  Run
+      this command::
+
+          apsearch -update_all_afni_help
+      
+      and then follow the brief instructions.
+
+
+    4f. Get sample data and review AFNI handouts.
 
 
 
