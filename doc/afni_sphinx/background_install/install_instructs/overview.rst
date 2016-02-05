@@ -72,6 +72,7 @@ independently.
 
 **Notes:**
 
+.. _tech_notes_PacMan:
 - For most Unix/Linux/Mac systems, **package managers** are used to
   facilitate the downloading and installation of most software from
   standard repositories.  Having a central authority performing this
@@ -96,6 +97,8 @@ independently.
   By default, the package manager will ask the user to verify steps
   with yes/no questions, and the ``-y`` option will automatically
   answer "yes" to every prompt, to simplify the user's life.
+
+  .. _tech_notes_Shell:
 
 - AFNI runs mainly in terminal commands, which means that we are
   constantly interacting with a **shell**.  The two main types (or
