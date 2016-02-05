@@ -138,61 +138,53 @@ for each.
      This makes and populates a profile called ``$HOME/.sumarc``.
 
 
-   .. _install_bootcamp:
-
-#. **Install AFNI Bootcamp class data (optional).**
-
-   This step is required if you are about to attend a :ref:`Bootcamp
-   <Bootcamping>`::
-
-      curl -O https://afni.nimh.nih.gov/pub/dist/edu/data/CD.tgz
-      tar xvzf CD.tgz
-      cd CD
-      tcsh s2.cp.files . ~
-      cd ..
-      
-   In order, these commands: get the tarred+zipped directory that
-   contains the class data (and is hence named "CD"), downloading it
-   to the current location in the terminal; untars/unzips it (=opens
-   it up); goes into the newly opened directory; executes a script to
-   copy the files to ``$HOME/CD/``; and finally exits the directory.
-
-   At this point, if there have been no errors, you can delete/remove
-   the tarred/zipped package, using "``rm CD.tgz``".  If you are
-   *really* confident, you can also deleted the CD tree in the present
-   location (but leaving it in ``$HOME/CD/``).
+   .. ---------- HERE/BELOW: copy for all installs --------------
 
 #. **EVALUATE THE SETUP: an important and useful step in this
    process!**
 
-   There is a very useful script to check on your installed AFNI and
-   lots of its dependencies, such as looking for the installed R
-   libraries, profiles, Python stuff, etc. You can run it
+   a. There is a very useful script to check on your installed AFNI
+      and lots of its dependencies, such as looking for the installed
+      R libraries, profiles, Python stuff, etc. You can run it
 
-   - outputting to the screen::
+      - outputting to the screen::
+       
+          afni_system_check.py -check_all
 
-      afni_system_check.py -check_all
+      - outputting to a text file::
+       
+          afni_system_check.py -check_all > out.afni_system_check.txt
 
-   - outputting to a text file::
+      which might be useful to email to your local AFNI Guru if there
+      are any problems. 
 
-       afni_system_check.py -check_all > out.afni_system_check.txt
+   #. So, at this point, if your "system check" doesn't really give
+      any errors, you're all set to go. If it *did* give some errors,
+      please:
 
-     which might be useful to email to your local AFNI Guru if there
-     are any problems.
-|      
+      - check the list of :ref:`known setup issues <install_error_msgs>`;
 
-So, at this point, if your "system check" doesn't really give any
-errors, you're all set to go. If it did give some errors, please:
+      - search on the `Message Board
+        <https://afni.nimh.nih.gov/afni/community/board/>`_, and/or
+        put the error into google;
 
-- check the list of :ref:`known setup issues <install_error_msgs>`.
+      - post a question on the aforementioned `Message Board
+        <https://afni.nimh.nih.gov/afni/community/board/>`_.
 
-- search on the `Message Board
-  <https://afni.nimh.nih.gov/afni/community/board/>`_, and/or put the
-  error into google;
+#. **Setting up autoprompts for command line options.**
 
-- email any questions.
+   The following is quite useful to be set up help files for
+   tab-autocompletion of options as you type AFNI commands.  Run this
+   command::
+
+     apsearch -update_all_afni_help
+      
+   and then follow the brief instructions.
+
+------------ 
+
+If you are preparing for an AFNI Bootcamp, then please see the
+:ref:`Bootcamp prep <install_bootcamp>` instructions on downloading
+the class data.  And have a nice day.
 
 
-|
-
-:Date: |today|

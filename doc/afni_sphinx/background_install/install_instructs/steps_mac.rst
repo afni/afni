@@ -75,7 +75,7 @@ operating system) to a link to install XQuartz.
 
    a. Install HomeBrew and Python
  
-      * Type this command to run the Homebrew installation script,
+      * Run this command to run the Homebrew installation script,
         choosing one of these :ref:`shell <tech_notes_PacMan>`
         syntaxes:
 
@@ -105,10 +105,14 @@ operating system) to a link to install XQuartz.
       directory, changing the directory name to ``$HOME/abin/``::
 
         cd
-        curl -O http://afni.nimh.nih.gov/pub/dist/tgz/macosx_10.7_Intel_64.tgz
-        tar -xzf macosx_10.7_Intel_64.tgz
-        mv macosx_10.7_Intel_64 abin
-        rm macosx_10.7_Intel_64.tgz
+        curl -O http://afni.nimh.nih.gov/pub/dist/bin/macosx_10.7_Intel_64/@update.afni.binaries
+        tcsh @update.afni.binaries -defaults
+
+   #. Since abin should already be in your path from above, just let your
+      shell know about the new programs (or log out and back in)::
+
+        rehash
+
 
    #. Update the path and library path.
 
@@ -120,6 +124,11 @@ operating system) to a link to install XQuartz.
           source .cshrc
           rehash
 
+          ???
+          echo 'setenv DYLD_FALLBACK_LIBRARY_PATH $HOME/abin' >> .cshrc
+          echo 'setenv PYTHONPATH /usr/local/lib/python2.7/site-packages' >> .cshrc
+	       source .cshrc
+
       * *for bash*::
 
           echo 'export PATH=/usr/local/bin:$PATH:$HOME/abin' >> .profile
@@ -127,38 +136,96 @@ operating system) to a link to install XQuartz.
           echo 'export PYTHONPATH=/usr/local/lib/python2.7/site-packages' >> .profile
           . .profile
 
-#. **AFNI verification**
+
+#. **Quick AFNI verification**
    
    a. Try it out!  If these start, you should be in good shape::
 
           afni
           suma
+          uber_subject.py
           
       .. note:: For 10.8 users, when prompted, follow the instructions
                 to install XQuartz.
 
-   #. ...?? profiles... ... system check ...   R??
+#. **R installation**
 
-   #. The following is quite useful to be set up help files for
-      tab-autocompletion of options as you type AFNI commands.  Run
-      this command::
+    a. Download and install from the main R website:
 
-          apsearch -update_all_afni_help
+       * Go to `the R page for Mac OS X
+         <https://cran.r-project.org/bin/macosx>`_
+
+       * Click on the latest package (probably R-3.2.3.pkg), and
+         download/install it.
+
+    #. Install extra packages needed by AFNI.
+
+       + The easy way is to run the following AFNI command::
+
+           rPkgsInstall -pkgs ALL
+
+       + Or, the harder way is to do the following:
+
+         - start R from the command line
+         - execute the following commands to install the packages::
+
+             install.packages("afex")
+             install.packages("phia")
+             install.packages("snow")
+             install.packages("nlme")
+             install.packages("lme4")
+             install.packages("contrast")
+
+         - exit R by entering the command::
+
+             q()
+
+   .. ---------- HERE/BELOW: copy for all installs --------------
+
+#. **EVALUATE THE SETUP: an important and useful step in this
+   process!**
+
+   a. There is a very useful script to check on your installed AFNI
+      and lots of its dependencies, such as looking for the installed
+      R libraries, profiles, Python stuff, etc. You can run it
+
+      - outputting to the screen::
+       
+          afni_system_check.py -check_all
+
+      - outputting to a text file::
+       
+          afni_system_check.py -check_all > out.afni_system_check.txt
+
+      which might be useful to email to your local AFNI Guru if there
+      are any problems. 
+
+   #. So, at this point, if your "system check" doesn't really give
+      any errors, you're all set to go. If it *did* give some errors,
+      please:
+
+      - check the list of :ref:`known setup issues <install_error_msgs>`;
+
+      - search on the `Message Board
+        <https://afni.nimh.nih.gov/afni/community/board/>`_, and/or
+        put the error into google;
+
+      - post a question on the aforementioned `Message Board
+        <https://afni.nimh.nih.gov/afni/community/board/>`_.
+
+#. **Setting up autoprompts for command line options.**
+
+   The following is quite useful to be set up help files for
+   tab-autocompletion of options as you type AFNI commands.  Run this
+   command::
+
+     apsearch -update_all_afni_help
       
-      and then follow the brief instructions.
+   and then follow the brief instructions.
 
+------------ 
 
-    4f. Get sample data and review AFNI handouts.
+If you are preparing for an AFNI Bootcamp, then please see the
+:ref:`Bootcamp page <Bootcamping>` for instructions on downloading the
+class data.  And have a nice day.
 
-
-?? getting R?  `R for Mac OS X <https://cran.r-project.org/bin/macosx>`_
-
-
-
-
-
-|
-
-|
-
-:Date: |today|

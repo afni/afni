@@ -146,6 +146,8 @@ should be ready-to-run.
    
 |
 
+.. _download_SRC:
+
 C. Downloading the newest AFNI source code
 ------------------------------------------
 
