@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  5,  Feb, 2016, RCR, "thd_niftiread", MICRO, TYPE_BUG_FIX,
+   "NIFTI files with no *form_codes should default to +orig, not NIFTI_default",
+   NULL
+ } ,
+
  { 28,  Jan, 2016, RCR, "3dMean", MICRO, TYPE_MODIFY,
    "fix help to correctly report -stdev as sqrt(var)   {was var/(n-1)}",
    "Thanks to K Kerr (MB) for pointing out the mistake."
