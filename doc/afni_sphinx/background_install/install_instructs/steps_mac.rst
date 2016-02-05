@@ -108,33 +108,21 @@ operating system) to a link to install XQuartz.
         curl -O http://afni.nimh.nih.gov/pub/dist/bin/macosx_10.7_Intel_64/@update.afni.binaries
         tcsh @update.afni.binaries -defaults
 
-   #. Since abin should already be in your path from above, just let your
-      shell know about the new programs (or log out and back in)::
-
-        rehash
-
-
    #. Update the path and library path.
 
-      * *for tcsh*::
+      * *for tcsh* (``$PATH`` in ``~/.cshrc`` was set by ``@update.afni.binaries``)::
 
-          echo 'set path = (/usr/local/bin $path $HOME/abin )' >> .cshrc
-          echo 'setenv DYLD_FALLBACK_LIBRARY_PATH $HOME/abin' >> .cshrc
-          echo 'setenv PYTHONPATH /usr/local/lib/python2.7/site-packages' >> .cshrc
-          source .cshrc
+          echo 'setenv DYLD_FALLBACK_LIBRARY_PATH $HOME/abin' >> ~/.cshrc
+          echo 'setenv PYTHONPATH /usr/local/lib/python2.7/site-packages' >> ~/.cshrc
+          source ~/.cshrc
           rehash
-
-          ???
-          echo 'setenv DYLD_FALLBACK_LIBRARY_PATH $HOME/abin' >> .cshrc
-          echo 'setenv PYTHONPATH /usr/local/lib/python2.7/site-packages' >> .cshrc
-	       source .cshrc
 
       * *for bash*::
 
-          echo 'export PATH=/usr/local/bin:$PATH:$HOME/abin' >> .profile
-          echo 'export DYLD_FALLBACK_LIBRARY_PATH=$HOME/abin' >> .profile
-          echo 'export PYTHONPATH=/usr/local/lib/python2.7/site-packages' >> .profile
-          . .profile
+          echo 'export PATH=/usr/local/bin:$PATH:$HOME/abin' >> ~/.bashrc
+          echo 'export DYLD_FALLBACK_LIBRARY_PATH=$HOME/abin' >> ~/.bashrc
+          echo 'export PYTHONPATH=/usr/local/lib/python2.7/site-packages' >> ~/.bashrc
+          . ~/.bashrc
 
 
 #. **Quick AFNI verification**
@@ -160,25 +148,9 @@ operating system) to a link to install XQuartz.
 
     #. Install extra packages needed by AFNI.
 
-       + The easy way is to run the following AFNI command::
+       Run the following AFNI command::
 
-           rPkgsInstall -pkgs ALL
-
-       + Or, the harder way is to do the following:
-
-         - start R from the command line
-         - execute the following commands to install the packages::
-
-             install.packages("afex")
-             install.packages("phia")
-             install.packages("snow")
-             install.packages("nlme")
-             install.packages("lme4")
-             install.packages("contrast")
-
-         - exit R by entering the command::
-
-             q()
+           sudo rPkgsInstall -pkgs ALL
 
    .. ---------- HERE/BELOW: copy for all installs --------------
 

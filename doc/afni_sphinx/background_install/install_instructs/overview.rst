@@ -109,8 +109,6 @@ independently.
 
     which $SHELL
 
-  Note that ``bash`` is sensitive to spaces, while ``tcsh`` is not.
-
   By default, most AFNI command line instructions assume that ``tcsh``
   is the chosen shell for a terminal.  Also, many Message Board
   postings and scripts in demos, which may be useful for reference,

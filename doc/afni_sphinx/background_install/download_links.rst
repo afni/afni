@@ -86,36 +86,31 @@ should be ready-to-run.
 
 .. _afni_bin_unix:
 
-- **Recommended binaries for (most) Linux/Unix: Ubuntu, Fedora, etc.**
+- **Recommended binaries for (most) Linux/Unix:**
 
-   \| `OpenMP, 64 bit
-   <https://afni.nimh.nih.gov/pub/dist/tgz/linux_openmp_64.tgz>`_ |
+  * `OpenMP, 64 bit <https://afni.nimh.nih.gov/pub/dist/tgz/linux_openmp_64.tgz>`_  (Ubuntu, Fedora (< 21), Red Hat, etc.)
 
-   The strongly recommended starting point for most any Linux/Unix
-   system.
 
-   If you particularly know that this will not work for you, please
-   look in the list of :ref:`Binaries for other systems
-   <afni_bin_other>`, below.
+  * `Fedora21, 64 bit <https://afni.nimh.nih.gov/pub/dist/tgz/linux_fedora_21_64.tgz>`_ (Fedora 21+)
 
-   .. _afni_bin_mac:
+  .. _afni_bin_mac:
 
 - **Recommended binaries for (most) Mac OS: 10.7+.**
 
-   \| `Mac OS X Lion (10.7 Intel), 64 bit
-   <https://afni.nimh.nih.gov/pub/dist/tgz/macosx_10.7_Intel_64.tgz>`_ |
+  \| `Mac OS X Lion (10.7 Intel), 64 bit
+  <https://afni.nimh.nih.gov/pub/dist/tgz/macosx_10.7_Intel_64.tgz>`_ |
 
-   The strongly recommended starting point for most modern Mac systems
-   (10.7 and higher).
+  The strongly recommended starting point for most modern Mac systems
+  (10.7 and higher).
 
-   For Mac OS 10.11 (El Capitan) users, some additional modifications
-   to your computer settings are required for smooth sailing.  These
-   are currently documented `here
-   <httpss://afni.nimh.nih.gov/afni/community/board/read.php?1,149775,149775#msg-149775>`_.
+  For Mac OS 10.11 (El Capitan) users, some additional modifications
+  to your computer settings are required for smooth sailing.  These
+  are currently documented `here
+  <httpss://afni.nimh.nih.gov/afni/community/board/read.php?1,149775,149775#msg-149775>`_.
 
-   .. _afni_bin_other:
+  .. _afni_bin_other:
 
-- **Binaries for other systems: the rest.**
+-  **Binaries for other systems: the rest.**
 
    * for `Mac OS X Mountain Lion (10.8 Intel), 64 bit
      <https://afni.nimh.nih.gov/pub/dist/tgz/macosx_10.7_Intel_64.tgz>`_.
@@ -141,9 +136,6 @@ should be ready-to-run.
    * for `Solaris 2.9 suncc
      <https://afni.nimh.nih.gov/pub/dist/tgz/solaris29_suncc.tgz>`_.
 
-   * for `Windows Cygwin (not recommended!) 
-     <https://afni.nimh.nih.gov/pub/dist/tgz/cygwin.tgz>`_.
-   
 |
 
 .. _download_SRC:

@@ -1,9 +1,9 @@
 
 .. _Bootcamping:
 
-***********************************************
-Basic Bootcamp Prep: having AFNI and class data
-***********************************************
+*******************
+Basic Bootcamp Prep
+*******************
 
 .. note:: This is a very preliminary guide for preparing for a
           Bootcamp.  But it is accurate!
@@ -23,8 +23,8 @@ Basic Bootcamp Prep: having AFNI and class data
      those pages.  PLEASE make sure you have verified that all is well
      with AFNI on your computer.
 
-   * **ELSE IF** you have AFNI set up on your computer, but you are
-     not 1000% certain that it is the most up-to-date version, please
+   * **ELSE** (you have AFNI set up on your computer, but you are
+     not 1000% certain that it is the most up-to-date version), please
      do the following:
 
      + *if you have installed pre-compiled binaries on your computer (the
