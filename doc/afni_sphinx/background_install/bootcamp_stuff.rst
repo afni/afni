@@ -13,7 +13,7 @@ Basic Bootcamp Prep
    * **IF** you do *not* have AFNI set up on your computer system, then
      please see the step-by-step instructions:
 
-     - for :ref:`Linux <install_steps_ubuntu>`
+     - for :ref:`Linux <install_steps_linux>`
        
      - for :ref:`Mac OS <install_steps_mac>`
 

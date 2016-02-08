@@ -42,7 +42,7 @@ Setting up systems
 
 Step-by-step instructions for setting up AFNI on a system are provided:
 
-- for :ref:`Linux <install_steps_ubuntu>`
+- for :ref:`Linux <install_steps_linux>`
 
 - for :ref:`Mac OS <install_steps_mac>`
 

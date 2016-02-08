@@ -1,6 +1,6 @@
 .. from: https://afni.nimh.nih.gov/pub/dist/HOWTO/howto/ht00_inst/html/linux_inst_current.html
 
-.. _install_steps_ubuntu:
+.. _install_steps_linux:
 
 
 **Complete system setup for:  (current) Linux**

@@ -10,7 +10,7 @@ The Authoritative HowTo for Installing AFNI
    :maxdepth: 3
 
    overview
-   steps_ubuntu
+   steps_linux
    steps_mac
    error_msgs
 
