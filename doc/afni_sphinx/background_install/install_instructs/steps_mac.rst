@@ -32,7 +32,7 @@ operating system) to a link to install XQuartz.
 
       Under System Preferences : System : Accounts menu, right-click
       on the user to get the Advanced Options menu and change the
-      Login shell to ``/bin/tcsh`.
+      Login shell to ``/bin/tcsh``.
 
    #. (optional) Under System Preferences : Sharing : Services, enable
       "Remote Login" to allow ``ssh`` access.
@@ -75,17 +75,16 @@ operating system) to a link to install XQuartz.
 
    a. Install HomeBrew and Python
  
-      * Run this command to run the Homebrew installation script,
-        choosing one of these :ref:`shell <tech_notes_PacMan>`
-        syntaxes:
+      Run this command to run the Homebrew installation script,
+      choosing one of these :ref:`shell <tech_notes_PacMan>` syntaxes:
 
-        - *for tcsh*::
+      - *for tcsh*::
 
-           curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install | ruby
+         curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install | ruby
 
-        - *for bash*::
+      - *for bash*::
 
-           ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
+         ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
                     
 
    #. Make sure the Homebrew installation succeeded with no errors by
@@ -93,10 +92,14 @@ operating system) to a link to install XQuartz.
 
         brew doctor
 
-   #. Install PyQt4, enabling use of the uber_*.py programs::
+   #. Install PyQt4, enabling use of the AFNI uber_*.py programs::
 
         brew install pyqt
 
+   #. (only for OS X 10.11, El Capitan) Install gcc with OpenMP support::
+
+        brew install gcc --with-all-languages --without-multilib
+        ln -s /usr/local/Cellar/gcc/5.3.0/lib/gcc/5/libgomp.1.dylib /usr/local/lib/libgomp.1.dylib
 
 
 #. **AFNI installation**
@@ -109,6 +112,8 @@ operating system) to a link to install XQuartz.
         tcsh @update.afni.binaries -defaults
 
    #. Update the path and library path.
+
+      .. note:: ``DYLD_FALLBACK_LIBRARY_PATH`` does not apply to OS X 10.11, El Capitan
 
       * *for tcsh* (``$PATH`` in ``~/.cshrc`` was set by ``@update.afni.binaries``)::
 
@@ -192,12 +197,13 @@ operating system) to a link to install XQuartz.
    command::
 
      apsearch -update_all_afni_help
-      
+
    and then follow the brief instructions.
 
------------- 
+#. **(optional) Prepare for an AFNI Bootcamp.**
 
-If you are preparing for an AFNI Bootcamp, then please see the
-:ref:`Bootcamp page <Bootcamping>` for instructions on downloading the
-class data.  And have a nice day.
+   .. warning::
+      If you are preparing for an AFNI Bootcamp, then please see the
+      :ref:`Bootcamp prep <install_bootcamp>` instructions on downloading
+      the class data.  And have a nice day.
 

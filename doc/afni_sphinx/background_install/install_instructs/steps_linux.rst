@@ -17,7 +17,7 @@ Several of the following steps are system dependent, for example due
 to having different package managers, so we list parallel instructions
 for each.
 
-#. **Install supplementary packages.**
+#. **Install prerequisite packages.**
 
    There are several packages and libraries that are needed to run the
    afni and shell programs. Note that ``tcsh`` might not be on the
@@ -181,10 +181,11 @@ for each.
       
    and then follow the brief instructions.
 
------------- 
+#. **(optional) Prepare for an AFNI Bootcamp.**
 
-If you are preparing for an AFNI Bootcamp, then please see the
-:ref:`Bootcamp prep <install_bootcamp>` instructions on downloading
-the class data.  And have a nice day.
+   .. warning::
+      If you are preparing for an AFNI Bootcamp, then please see the
+      :ref:`Bootcamp prep <install_bootcamp>` instructions on downloading
+      the class data.  And have a nice day.
 
 
