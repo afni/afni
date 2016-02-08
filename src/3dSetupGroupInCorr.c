@@ -734,15 +734,25 @@ int main( int argc , char * argv[] )
 
         THD_delete_3dim_dataset( inset[ids] , (Boolean)do_delete ) ;
         inset[ids] = NULL ;
-
-        THD_vectim_applyfunc( mv , prepfunc ) ;  /* prep each time series */
-#if 0
+#if 1
         /* find largest absolute value over all vectors */
         nvv = (int64_t)mv->nvec * (int64_t)mv->nvals ; top = 0.0f ; fv = mv->fvec ;
         for( kvv=0 ; kvv < nvv ; kvv++ ){
           val = fabsf(fv[kvv]) ; if( val > top ) top = val ;
         }
-        fprintf(stderr,"[post top=%g]",top) ;
+        fprintf(stderr," [input max=%g]",top) ;
+#endif
+
+        THD_vectim_applyfunc( mv , prepfunc ) ;  /* prep each time series */
+#if 1
+        if( prepfunc != NULL ){
+          /* find largest absolute value over all vectors */
+          nvv = (int64_t)mv->nvec * (int64_t)mv->nvals ; top = 0.0f ; fv = mv->fvec ;
+          for( kvv=0 ; kvv < nvv ; kvv++ ){
+            val = fabsf(fv[kvv]) ; if( val > top ) top = val ;
+          }
+          fprintf(stderr," [processed max=%g]",top) ;
+        }
 #endif
         THD_vectim_normalize( mv ) ;     /* L2 normalize each time series */
 
@@ -756,14 +766,14 @@ int main( int argc , char * argv[] )
         }
 #endif
 
+#if 1
         /* find largest absolute value over all vectors */
 
         nvv = (int64_t)mv->nvec * (int64_t)mv->nvals ; top = 0.0f ; fv = mv->fvec ;
         for( kvv=0 ; kvv < nvv ; kvv++ ){
           val = fabsf(fv[kvv]) ; if( val > top ) top = val ;
         }
-#if 0
-        fprintf(stderr,"[post top=%g]",top) ;
+        fprintf(stderr," [output max=%g]",top) ;
 #endif
 
         if( top == 0.0f ){
