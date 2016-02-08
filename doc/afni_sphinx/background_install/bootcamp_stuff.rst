@@ -8,7 +8,7 @@ Basic Bootcamp Prep
 .. note:: This is a very preliminary guide for preparing for a
           Bootcamp.  But it is accurate!
 
-#. **Having AFNI on your computer**
+#. **Get AFNI on your computer**
 
    * **IF** you do *not* have AFNI set up on your computer system, then
      please see the step-by-step instructions:
@@ -24,7 +24,7 @@ Basic Bootcamp Prep
      with AFNI on your computer.
 
    * **ELSE** (you have AFNI set up on your computer, but you are
-     not 1000% certain that it is the most up-to-date version), please
+     not certain that it is the most up-to-date version), please
      do the following:
 
      + *if you have installed pre-compiled binaries on your computer (the

@@ -97,6 +97,11 @@ operating system) to a link to install XQuartz.
 
         brew install pyqt
 
+   #. (only for OS X 10.11, El Capitan) Install gcc with OpenMP support::
+
+        brew install gcc --with-all-languages --without-multilib
+        cd /usr/local/lib
+        ln -s /usr/local/Cellar/gcc/5.3.0/lib/gcc/5/libgomp.1.dylib
 
 
 #. **AFNI installation**
@@ -109,6 +114,8 @@ operating system) to a link to install XQuartz.
         tcsh @update.afni.binaries -defaults
 
    #. Update the path and library path.
+
+      .. note:: ``DYLD_FALLBACK_LIBRARY_PATH`` does not apply to OS X 10.11, El Capitan
 
       * *for tcsh* (``$PATH`` in ``~/.cshrc`` was set by ``@update.afni.binaries``)::
 
@@ -192,12 +199,13 @@ operating system) to a link to install XQuartz.
    command::
 
      apsearch -update_all_afni_help
-      
+
    and then follow the brief instructions.
 
------------- 
+#. **(optional) Prepare for an AFNI Bootcamp.**
 
-If you are preparing for an AFNI Bootcamp, then please see the
-:ref:`Bootcamp page <Bootcamping>` for instructions on downloading the
-class data.  And have a nice day.
+   .. warning::
+      If you are preparing for an AFNI Bootcamp, then please see the
+      :ref:`Bootcamp prep <install_bootcamp>` instructions on downloading
+      the class data.  And have a nice day.
 

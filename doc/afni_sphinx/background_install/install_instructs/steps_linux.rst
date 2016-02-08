@@ -181,10 +181,11 @@ for each.
       
    and then follow the brief instructions.
 
------------- 
+#. **(optional) Prepare for an AFNI Bootcamp.**
 
-If you are preparing for an AFNI Bootcamp, then please see the
-:ref:`Bootcamp prep <install_bootcamp>` instructions on downloading
-the class data.  And have a nice day.
+   .. warning::
+      If you are preparing for an AFNI Bootcamp, then please see the
+      :ref:`Bootcamp prep <install_bootcamp>` instructions on downloading
+      the class data.  And have a nice day.
 
 
