@@ -17,7 +17,7 @@ Several of the following steps are system dependent, for example due
 to having different package managers, so we list parallel instructions
 for each.
 
-#. **Install supplementary packages.**
+#. **Install prerequisite packages.**
 
    There are several packages and libraries that are needed to run the
    afni and shell programs. Note that ``tcsh`` might not be on the

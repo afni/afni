@@ -61,23 +61,24 @@ Basic Bootcamp Prep
    location (but leaving it in ``$HOME/CD/``).
 
 
+#. **Verify the setup.**
 
+   Please use ``afni_system_check.py`` to verify the installation
+   (of AFNI binaries, libraries and class data). ::
+
+      afni_system_check.py -check_all
+
+   If there are any questions about your setup, you will be asked
+   to send the output of that command via email.  To do so, please
+   run the same command, but save the output to a text file called
+   ``output.afni.sys.check.txt``. ::
+
+      afni_system_check.py -check_all > output.afni.sys.check.txt
+
+   That file can then be attached to an email message.
 
 
 |
 
 |
-
-|
-
-|
-
-|
-
-|
-
-|
-
-|
-
 
