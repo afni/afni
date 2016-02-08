@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  8,  Feb, 2016, RCR, "@update.afni.binaries", MICRO, TYPE_MODIFY,
+   "access afni site via https protocol",
+   NULL
+ } ,
+
  {  5,  Feb, 2016, RCR, "thd_niftiread", MICRO, TYPE_BUG_FIX,
    "NIFTI files with no *form_codes should default to +orig, not NIFTI_default",
    NULL
