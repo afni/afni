@@ -74,6 +74,8 @@ void GRINCOR_many_spearman( int nvec, int numx, float **xxar,
 
 static int do_atanh = 1 ;  /* 15 May 2012 */
 
+static int do_read = 0 ;   /* 09 Feb 2016 */
+
 #undef  MYatanh
 #define MYatanh(x) ( ((x)<-0.999329f) ? -4.0f                \
                     :((x)>+0.999329f) ? +4.0f : atanhf(x) )
@@ -171,7 +173,9 @@ typedef struct {
 
   char **dslab ;  /* dslab[i] = label string for i-th dataset [23 May 2010] */
 
-  long long nbytes ;  /* number of bytes in the data array */
+  int64_t nbytes ;  /* number of bytes in the data array */
+
+  int did_read ;
 
   /* Surface stuff  ZSS Jan 09 2010 */
 
@@ -216,7 +220,7 @@ int GRINCOR_output_dataset( GICOR_setup *, NI_element *, char * ) ;
 
 /*--------------------------------------------------------------------------*/
 
-static const long long twogig = 2ll * 1024ll * 1024ll * 1024ll ;  /* 2 GB */
+static const int64_t twogig = 2ll * 1024ll * 1024ll * 1024ll ;  /* 2 GB */
 
 /*----- read a PREFIX.grpincorr.niml file into a struct -----*/
 
@@ -226,7 +230,7 @@ MRI_shindss * GRINCOR_read_input( char *fname )
    char *dfname=NULL , *atr ;
    NI_float_array *facar ; NI_int_array *nvar, *nnode=NULL, *ninmask=NULL;
    MRI_shindss *shd ;
-   long long nbytes_needed , nbytes_dfname=0 ; int fdes ;
+   int64_t nbytes_needed , nbytes_dfname=0 ; int fdes ;
    void *var ; int ids , nvmax , nvtot ;
    int datum , datum_size ;
 
@@ -309,7 +313,7 @@ MRI_shindss * GRINCOR_read_input( char *fname )
 
    nbytes_needed = 0 ;
    for( ids=0 ; ids < ndset ; ids++ ) nbytes_needed += nvals[ids] ;
-   nbytes_needed *= ((long long)nvec) * datum_size ;
+   nbytes_needed *= ((int64_t)nvec) * datum_size ;
 
    if( nbytes_needed >= twogig &&
        ( sizeof(void *) < 8 || sizeof(size_t) < 8 ) ) /* too much for 32-bit */
@@ -438,15 +442,30 @@ MRI_shindss * GRINCOR_read_input( char *fname )
    shd->dslab = (slabar != NULL) ? slabar->str : NULL ;  /* 23 May 2010 */
 
    /*--- now have to map data from disk ---*/
+   /*((( or read it - 09 Feb 2016 - RWC )))*/
 
-   var = mmap( 0 , (size_t)nbytes_needed ,
-                   PROT_READ , THD_MMAP_FLAG , fdes , 0 ) ;
-   close(fdes) ;  /* close file descriptor does not unmap data */
-
-   if( var == (void *)(-1) ){ /* this is bad */
-     ERROR_message(
-       "GIC: file %s: can't mmap() datafile -- memory space exhausted?" , dfname ) ;
-     free(shd) ; return NULL ;
+   if( do_read ){   /* the newen way, via malloc() and read() */
+     size_t nnn ;
+     var = malloc( (size_t)nbytes_needed ) ;
+     if( var == NULL ){
+       ERROR_message("GIC: file %s: can't allocate enough memory",dfname) ;
+       free(shd) ; return NULL ;
+     }
+     fprintf(stderr,"Reading file %s ",dfname) ;
+     nnn = read(fdes,var,(size_t)nbytes_needed) ; close(fdes) ;
+     if( nnn < (size_t)nbytes_needed ){
+       fprintf(stderr,"-- failed :(\n"); free(var); free(shd); return NULL;
+     }
+     fprintf(stderr,"-- finished :)\n") ; shd->did_read = 1 ;
+   } else {         /* the olden way, via mmap() */
+     var = mmap( 0, (size_t)nbytes_needed, PROT_READ, THD_MMAP_FLAG, fdes, 0 ) ;
+     close(fdes) ;  /* close file descriptor does not unmap data */
+     if( var == (void *)(-1) ){ /* this is bad */
+       ERROR_message(
+         "GIC: file %s: can't mmap() datafile -- memory space exhausted?" , dfname ) ;
+       free(shd) ; return NULL ;
+     }
+     shd->did_read = 0 ;
    }
 
    /*-- create array of pointers to each dataset's data array --*/
@@ -1177,10 +1196,10 @@ int main( int argc , char *argv[] )
       " ++ If your computer DOESN'T have enough RAM to hold all the data,\n"
       "    then this program will be painfully slow -- buy more memory!\n"
       " ++ Note that the .data file(s) are mapped directly into memory (mmap),\n"
-      "    rather than being read with standard file input methods (fread).\n"
+      "    rather than being read with standard file input methods (read function).\n"
       " ++ This memory-mapping operation may not work well on network-mounted\n"
       "    drives, in which case you will have to run 3dGroupInCorr on the same\n"
-      "    computer with the data files.\n"
+      "    computer with the data files [Feb 2016 -- but see the new '-read' option].\n"
       " ++ However, 3dGroupInCorr does NOT need to be run on the same computer\n"
       "    as AFNI or SUMA: see the '-ah' option (described far below).\n"
       "\n"
@@ -1522,6 +1541,17 @@ int main( int argc , char *argv[] )
       "         -->>++ This option only applies to AFNI usage, not to SUMA.\n"
       "             ++ See the Clusterize notes, far below, for more information on\n"
       "                using the interactive clustering GUI in AFNI with 3dGroupInCorr.\n"
+      "\n"
+      " -read    = Normally, the '.data' files are 'memory mapped' rather than read\n"
+      "            into memory.  However, if your files are on a remotely mounted\n"
+      "            server (e.g., a remote RAID), then memory mapping may not work.\n"
+      "            Or worse, it may seem to work, but return 'data' that is all zero.\n"
+      "            Use this '-read' option to force the program to read the data into\n"
+      "            allocated memory.\n"
+      "           ++ Using read-only memory mapping is a way to avoid over-filling\n"
+      "              the system's swap file, when the .data files are huge.\n"
+      "           ++ You must give '-read' BEFORE '-setA' or '-setB', so that the\n"
+      "              program knows what to do when it reaches those options!\n"
       "\n"
       " -ah host = Connect to AFNI/SUMA on the computer named 'host', rather than\n"
       "            on the current computer system 'localhost'.\n"
@@ -1996,6 +2026,14 @@ int main( int argc , char *argv[] )
        nopt++ ; continue ;
      }
 #endif
+
+     if( strcasecmp(argv[nopt],"-read") == 0 ){ /* 09 Feb 2016 */
+       if( shd_AAA != NULL )
+         WARNING_message("Option '-read' given AFTER '-setA' => '-read' is ignored for '-setA'") ;
+       if( shd_BBB != NULL )
+         WARNING_message("Option '-read' given AFTER '-setB' => '-read' is ignored for '-setB'") ;
+       do_read++ ; nopt++ ; continue ;
+     }
 
      if( strcasecmp(argv[nopt],"-ah") == 0 ){
        if( ++nopt >= argc ) ERROR_exit("GIC: need 1 argument after option '%s'",argv[nopt-1]) ;
@@ -2734,19 +2772,22 @@ int main( int argc , char *argv[] )
 
 #undef  BSTEP
 #define BSTEP 64
-   { long long pp , vstep=9 ; char *qv ; float sum=0.0f ;
+   if( !shd_AAA->did_read || (shd_BBB != NULL && !shd_BBB->did_read) ){
+     int64_t pp , vstep=9 ; char *qv ; float sum=0.0f ;
      if( verb ) INFO_message("GIC: page faulting (reading) data into memory") ;
-     if( shd_AAA->datum == 1 ) qv = (char *)shd_AAA->bv[0] ;
-     else                      qv = (char *)shd_AAA->sv[0] ;
-     if( verb ){
-       vstep = (shd_AAA->nbytes / BSTEP) / 50 ; fprintf(stderr," + setA:") ;
+     if( !shd_AAA->did_read ){
+       if( shd_AAA->datum == 1 ) qv = (char *)shd_AAA->bv[0] ;
+       else                      qv = (char *)shd_AAA->sv[0] ;
+       if( verb ){
+         vstep = (shd_AAA->nbytes / BSTEP) / 50 ; fprintf(stderr," + setA:") ;
+       }
+       for( pp=0 ; pp < shd_AAA->nbytes ; pp+=BSTEP,qv+=BSTEP ){
+         sum += *qv ;
+         if( verb && (pp/BSTEP)%vstep == vstep-1 ) vstep_print() ;
+       }
+       if( verb ){ fprintf(stderr,"!\n") ; vstep_n = 0 ; }
      }
-     for( pp=0 ; pp < shd_AAA->nbytes ; pp+=BSTEP,qv+=BSTEP ){
-       sum += *qv ;
-       if( verb && (pp/BSTEP)%vstep == vstep-1 ) vstep_print() ;
-     }
-     if( verb ){ fprintf(stderr,"!\n") ; vstep_n = 0 ; }
-     if( shd_BBB != NULL && !do_apair ){
+     if( shd_BBB != NULL && !do_apair && !shd_BBB->did_read ){
        if( shd_BBB->datum == 1 ) qv = (char *)shd_BBB->bv[0] ;
        else                      qv = (char *)shd_BBB->sv[0] ;
        if( verb ){
@@ -2763,9 +2804,9 @@ int main( int argc , char *argv[] )
 #undef BSTEP
 
    if( verb ){
-     long long nbtot = shd_AAA->nbytes ;
+     int64_t nbtot = shd_AAA->nbytes ;
      if( shd_BBB != NULL && !do_apair ) nbtot += shd_BBB->nbytes ;
-     INFO_message("GIC: total bytes input = %s (about %s)" ,
+     INFO_message("GIC: total .data bytes input = %s (about %s)" ,
                    commaized_integer_string(nbtot) ,
                    approximate_number_string((double)nbtot) ) ;
    }
