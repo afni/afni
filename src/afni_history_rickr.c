@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  9,  Feb, 2016, RCR, "afni-general", MICRO, TYPE_BUG_FIX,
+   "be sure isfinite is defined in FD2_inc.c, parser_int.c",
+   NULL
+ } ,
+
  {  8,  Feb, 2016, RCR, "@update.afni.binaries", MICRO, TYPE_MODIFY,
    "access afni site via https protocol",
    NULL
