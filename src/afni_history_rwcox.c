@@ -44,6 +44,15 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 9 , FEB , 2016 , RWC , "3dQwarp" , MICRO , TYPE_GENERAL ,
+   "Tested on 2D images (single-slice datasets)" ,
+   "It actually worked.  Added a comment to that effect in the help output." } ,
+
+ { 9 , FEB , 2016 , RWC , "3dGroupInCorr" , MICRO , TYPE_NEW_OPT ,
+   "-read option" ,
+   "To 'read()' data in, instead of 'mmap()' -- for network mounted data\n"
+   "where 'mmap()' fails to work.  For Cesar Caballero." } ,
+
  { 5 , FEB , 2016 , RWC , "3dClustSim" , MAJOR , TYPE_NEW_OPT ,
    "New -inset option" ,
    "Directly give the simulations, rather than generate them internally. \n"
