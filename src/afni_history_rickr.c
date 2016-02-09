@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  9,  Feb, 2016, RCR, "@GradFlipTest", MICRO, TYPE_MODIFY,
+   "trap for missing inputs (e.g. used with just -help)",
+   NULL
+ } ,
+
  {  9,  Feb, 2016, RCR, "afni-general", MICRO, TYPE_BUG_FIX,
    "be sure isfinite is defined in FD2_inc.c, parser_int.c",
    NULL
