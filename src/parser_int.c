@@ -5,6 +5,7 @@
 ******************************************************************************/
 
 #define  NEED_PARSER_INTERNALS
+#include "mrilib.h"     /* to deal with isfinite(x)  9 Feb 2016 [rickr] */
 #include "parser.h"
 #include "Amalloc.h"
 #include <time.h>
