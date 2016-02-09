@@ -256,6 +256,8 @@ void Qhelp(void)
     " ++ OR, you can use the '-resample' option in 3dQwarp to resample the\n"
     "    source dataset to the base grid before doing the nonlinear stuff,\n"
     "    without doing any preliminary affine alignment.\n"
+    " ++ 3dQwarp CAN be used on 2D images -- that is, datasets with a single\n"
+    "    slice.  How well it works on such datasets has not been investigated.\n"
     "\n"
     "* Input datasets should be reasonably well aligned already\n"
     "  (e.g., as from an affine warping via 3dAllineate).\n"
