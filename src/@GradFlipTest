@@ -38,6 +38,12 @@
 # v2.1, Sep,2015:  linear DTI fits, for speed
 # v2.2, Sep,2015:  echo edu to print commands
 
+# trap for help or bad input   9 Feb 2015 [rickr]
+if ( $#argv != 2 ) then
+   echo "usage `basename $0` 'STRING_CMD' DWI_FILE"
+   exit
+endif
+
 set in_CMD = "$1"
 set in_DSET = "$2"
 
