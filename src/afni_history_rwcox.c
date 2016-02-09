@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 9 , FEB , 2016 , RWC , "3dQwarp" , MICRO , TYPE_GENERAL ,
+   "Tested on 2D images (single-slice datasets)" ,
+   "It actually worked.  Added a comment to that effect in the help output." } ,
+
  { 9 , FEB , 2016 , RWC , "3dGroupInCorr" , MICRO , TYPE_NEW_OPT ,
    "-read option" ,
    "To 'read()' data in, instead of 'mmap()' -- for network mounted data\n"
