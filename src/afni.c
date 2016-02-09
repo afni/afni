@@ -1555,6 +1555,7 @@ void AFNI_sigfunc_alrm(int sig)
      "Remember -- The innocent have everything to fear"              ,
      "Remember -- Memory is long but time is tricky"                 ,
      "Remember -- Men are always willing to believe what they wish"  ,
+     "Remember -- What I tell you three times is true"               ,
      "Think of all the beauty around you, and be happy"              ,
      "Experience is a hard teacher, but fools will have no other"    ,
      "By failing to prepare, you are preparing to fail"              ,
