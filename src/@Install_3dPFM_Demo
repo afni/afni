@@ -22,9 +22,9 @@ goto END
 
 which curl
 if ($status) then
-   wget http://afni.nimh.nih.gov/pub/dist/data/${dname}.tgz
+   wget https://afni.nimh.nih.gov/pub/dist/data/${dname}.tgz
 else
-   curl -O http://afni.nimh.nih.gov/pub/dist/data/${dname}.tgz
+   curl -O https://afni.nimh.nih.gov/pub/dist/data/${dname}.tgz
 endif
 tar xvzf ${dname}.tgz
 cd ${dname}

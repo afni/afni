@@ -1643,7 +1643,7 @@ SANITY:
 DEMO:
    if ( ! -f AfniRetinoDemo.tgz) then
       echo "Fetching afni.nimh.nih.gov/pub/dist/tgz/AfniRetinoDemo.tgz ..."
-      curl -O http://afni.nimh.nih.gov/pub/dist/tgz/AfniRetinoDemo.tgz
+      curl -O https://afni.nimh.nih.gov/pub/dist/tgz/AfniRetinoDemo.tgz
       if ($status) then
          echo "Bad flag from download."
          goto BEND
@@ -1927,7 +1927,7 @@ echo ""
 echo "Kvetching:"
 echo "============"
 echo "Questions and Comments are best posted to AFNI's message board:"
-echo "   http://afni.nimh.nih.gov/afni/community/board/"
+echo "   https://afni.nimh.nih.gov/afni/community/board/"
 echo ""
 echo "      Ziad S. Saad      Aug. 2010 "
 echo ""
