@@ -285,7 +285,7 @@ static int Hverb = 1 ;
    the lengthy computations.  This makes the source code somewhat more
    complicated and less transparent than it could otherwise be.  If you
    need some tutorial on OpenMP, start with
-     http://afni.nimh.nih.gov/pub/dist/doc/misc/OpenMP.html
+     https://afni.nimh.nih.gov/pub/dist/doc/misc/OpenMP.html
 
 -----------------------------------------------------------------------------*/
 /*===========================================================================*/
