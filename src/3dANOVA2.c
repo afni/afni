@@ -265,7 +265,7 @@ void display_help_menu(int detail)
     (
  "\n"
  "Also see HowTo #5: Group Analysis on the AFNI website:\n"
- " http://afni.nimh.nih.gov/pub/dist/HOWTO/howto/ht05_group/html/index.shtml\n"
+ " https://afni.nimh.nih.gov/pub/dist/HOWTO/howto/ht05_group/html/index.shtml\n"
  "\n"
     );
 
