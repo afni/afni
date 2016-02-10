@@ -201,7 +201,7 @@ else if ($fromcvs == "no") then
    if (-d b.$tDdir) rm -rf b.$tDdir >& /dev/null
    mkdir -p $tdir/AFNI
    \rm -f afni_src.tgz
-   wget http://afni/pub/dist/tgz/afni_src.tgz
+   wget https://afni.nimh.nih.gov/pub/dist/tgz/afni_src.tgz
    tar xvzf afni_src.tgz
    mv afni_src $tdir/src
 else if ($fromcvs == "git") then
