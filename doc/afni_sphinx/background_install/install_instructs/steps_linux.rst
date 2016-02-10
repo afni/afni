@@ -8,10 +8,8 @@
 
 
 Here we describe installation and system setup for mainstream Linux
-versions that are reasonably modern, such as:
-
-* Fedora 21+
-* Ubuntu 14.04+
+versions that are reasonably modern, such as **Fedora 21+ and Ubuntu
+14.04+**.
 
 Several of the following steps are system dependent, for example due
 to having different package managers, so we list parallel instructions
@@ -170,6 +168,7 @@ for each.
 
       - post a question on the aforementioned `Message Board
         <https://afni.nimh.nih.gov/afni/community/board/>`_.
+      |
 
 #. **Setting up autoprompts for command line options.**
 
@@ -180,6 +179,22 @@ for each.
      apsearch -update_all_afni_help
       
    and then follow the brief instructions.
+
+#. **Keeping up-to-date.**
+
+   From this point onward, you can easily keep your AFNI uptodate just
+   by running a single command::
+
+     @update.afni.binaries -d
+
+   That's it!! It will automatically download the correct latest
+   version to your computer, replacing your old binaries.  You can
+   always check your version by typing::
+
+     afni -ver
+
+   (And you should always check and report your version if you have
+   questions/comments/etc.)
 
 #. **(optional) Prepare for an AFNI Bootcamp.**
 

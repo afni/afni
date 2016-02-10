@@ -5,6 +5,10 @@
 Downloading the latest and greatest AFNI/SUMA software
 ******************************************************
 
+
+.. note:: **The current (min 1) version of AFNI is:**  |version|
+
+
 Overview
 ========
 
@@ -35,8 +39,6 @@ Some additional introductory reading is available `here
 <https://afni.nimh.nih.gov/afni/doc/first>`_.  
 
 .. ***Question: keep this above link?***
-
-|
 
 
 Choosing an AFNI that's right for *you*
@@ -82,20 +84,34 @@ should be ready-to-run.
 
 - **Recommended binaries for (most) Linux/Unix:**
 
-  * `OpenMP, 64 bit <https://afni.nimh.nih.gov/pub/dist/tgz/linux_openmp_64.tgz>`_  (Ubuntu, Fedora (< 21), Red Hat, etc.)
+  .. table:: 
+     :widths: 1 2
+     :column-alignment: left  center
+     :column-wrapping:  false true
+     :column-dividers:  double single double 
 
-
-  * `Fedora21, 64 bit <https://afni.nimh.nih.gov/pub/dist/tgz/linux_fedora_21_64.tgz>`_ (Fedora 21+)
+     =================================================================================== ====================================   
+     `OpenMP, 64 bit <https://afni.nimh.nih.gov/pub/dist/tgz/linux_openmp_64.tgz>`_      Ubuntu, Fedora (< 21), Red Hat, etc. 
+                                                                                        
+                                                                                        
+     `Fedora21, 64 bit <https://afni.nimh.nih.gov/pub/dist/tgz/linux_fedora_21_64.tgz>`_ Fedora 21+                            
+     =================================================================================== ====================================   
+|
 
   .. _afni_bin_mac:
 
 - **Recommended binaries for (most) Mac OS: 10.7+.**
 
-  \| `Mac OS X Lion (10.7 Intel), 64 bit
-  <https://afni.nimh.nih.gov/pub/dist/tgz/macosx_10.7_Intel_64.tgz>`_ |
+  .. table:: 
+     :widths: 1 2
+     :column-alignment: left  center
+     :column-wrapping:  false true
+     :column-dividers:  double single double 
 
-  The strongly recommended starting point for most modern Mac systems
-  (10.7 and higher).
+     ================================================================================================== ====================================   
+     `Mac OS X (10.7 Intel), 64 bit <https://afni.nimh.nih.gov/pub/dist/tgz/macosx_10.7_Intel_64.tgz>`_                                                Mac 10.7 (Lion) and higher
+   
+     ================================================================================================== ====================================   
 
   For Mac OS 10.11 (El Capitan) users, some additional modifications
   to your computer settings are required for smooth sailing.  These
@@ -130,18 +146,25 @@ should be ready-to-run.
    * for `Solaris 2.9 suncc
      <https://afni.nimh.nih.gov/pub/dist/tgz/solaris29_suncc.tgz>`_.
 
-|
 
 .. _download_SRC:
 
 C. Downloading the newest AFNI source code
 ------------------------------------------
 
-Another way to get AFNI working on your computer is to compile from
-the source itself: 
+Another way to get AFNI working on your computer (requiring a bit more
+work) is to compile from the source itself:
 
-\| `AFNI Source Code
-<https://afni.nimh.nih.gov/pub/dist/tgz/afni_src.tgz>`_ |
+  .. table:: 
+     :widths: 1 2
+     :column-alignment: left  center
+     :column-wrapping:  false true
+     :column-dividers:  double single double 
+
+     ================================================================================================== ====================================
+     `AFNI Source Code <https://afni.nimh.nih.gov/pub/dist/tgz/afni_src.tgz>`_                          Compilable source (can be built on most Linux/Unix/Mac)
+   
+     ================================================================================================== ====================================
 
 There are several usable, example ``Makefile``\s included in the main
 ``afni_src/`` directory, as well as a couple (mainly for Linux
@@ -156,8 +179,8 @@ Windowers...).
 
 |
 
-D. Browsing all AFNI packages, with bonus files
------------------------------------------------
+D. Browsing all AFNI packages (and atlases)
+-------------------------------------------
 
 The following is a browsable page that contains a tarball for each of
 the precompiled platform versions:
@@ -176,7 +199,3 @@ NB: for most demo sets, there is an ``@Install_*`` command to procure
 and open the directory.
 
 |
-
-|
-
-:Date: |today|
