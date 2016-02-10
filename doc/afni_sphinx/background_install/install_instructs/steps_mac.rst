@@ -6,11 +6,8 @@
 
 
 Here we describe a complete AFNI installation and system setup for Mac
-versions that are reasonably modern, such as:
-
-* Mac OS 10.7+
-
-The full set of steps applies to a "clean" (i.e., empty) 10.7+ system.
+versions that are reasonably modern, such as **Mac OS 10.7+**.  The
+full set of steps applies to a "clean" (i.e., empty) 10.7+ system.
 There is a special step at the end for 10.11 (El Capitan) users,
 because life is hard sometimes.
 
@@ -189,6 +186,7 @@ operating system) to a link to install XQuartz.
 
       - post a question on the aforementioned `Message Board
         <https://afni.nimh.nih.gov/afni/community/board/>`_.
+   |
 
 #. **Setting up autoprompts for command line options.**
 
@@ -199,6 +197,22 @@ operating system) to a link to install XQuartz.
      apsearch -update_all_afni_help
 
    and then follow the brief instructions.
+
+#. **Keeping up-to-date.**
+
+   From this point onward, you can easily keep your AFNI uptodate just
+   by running a single command::
+
+     @update.afni.binaries -d
+
+   That's it!! It will automatically download the correct latest
+   version to your computer, replacing your old binaries.  You can
+   always check your version by typing::
+
+     afni -ver
+
+   (And you should always check and report your version if you have
+   questions/comments/etc.)
 
 #. **(optional) Prepare for an AFNI Bootcamp.**
 
