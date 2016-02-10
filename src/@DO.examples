@@ -253,7 +253,7 @@ echo ""
 echo "See also @DriveSuma, and @DriveAfni"
 echo ""
 echo "Questions or comments are welcome on AFNI's message board:"
-echo ' http://afni.nimh.nih.gov/afni/community/board/list.php?f=1 '
+echo ' https://afni.nimh.nih.gov/afni/community/board/list.php?f=1 '
 echo ""
 echo "-auto_test: Run this script in test mode where user prompts are"
 echo "timed out at 2 seconds, and the command output log is preserved"

@@ -933,7 +933,7 @@ L_HELP_END:
     echo ""
     echo "  notes:"
     echo ""
-    echo "    0. More help may be found at http://afni.nimh.nih.gov/ssc/ziad/SUMA/SUMA_doc.htm"
+    echo "    0. More help may be found at https://afni.nimh.nih.gov/ssc/ziad/SUMA/SUMA_doc.htm"
     echo "    1. Surface file names should look like the standard names used by Caret:"
 	 echo "       Human.3dAnatomy.LR.Fiducial.2006-05-09.54773.coord"
     echo "       Human.3dAnatomy.LR.CLOSED.2006-05-09.54773.topo"

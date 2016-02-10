@@ -26,7 +26,7 @@ greeting.RprogDemo <- function ()
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 Version 0.0.0, Apr. 15th 2014
 Author: Ziad S. Saad (saadz@mail.nih.gov)
-Website - http://afni.nimh.nih.gov
+Website - https://afni.nimh.nih.gov
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
       )
