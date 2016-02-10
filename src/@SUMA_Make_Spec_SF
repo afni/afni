@@ -706,7 +706,7 @@ L_HELP_END:
     echo ""
     echo "  notes:"
     echo ""
-    echo "    0. More help may be found at http://afni.nimh.nih.gov/ssc/ziad/SUMA/SUMA_doc.htm"
+    echo "    0. More help may be found at https://afni.nimh.nih.gov/ssc/ziad/SUMA/SUMA_doc.htm"
     echo "    1. Surface file names should look like the standard names used by SureFit:"
 	 echo "       rw_1mmLPI.L.full.segment_vent_corr.fiducial.58064.coord"
 	 echo "       Otherwise the script cannot detect them. You will need to decide which"

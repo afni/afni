@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 10,  Feb, 2016, RCR, "afni-general", MICRO, TYPE_MODIFY,
+   "full update to use https://afni.nimh.nih.gov (no longer http)",
+   NULL
+ } ,
+
  {  9,  Feb, 2016, RCR, "@GradFlipTest", MICRO, TYPE_MODIFY,
    "trap for missing inputs (e.g. used with just -help)",
    NULL
@@ -98,7 +103,7 @@ afni_history_struct rickr_history[] = {
 
  { 30,  Dec, 2015, RCR, "afni-general", MAJOR, TYPE_ENHANCE,
    "w/DRG implement new version system",
-   "See http://afni.nimh.nih.gov/pub/dist/MOTD/MOTD_2015_12_30.txt ."
+   "See https://afni.nimh.nih.gov/pub/dist/MOTD/MOTD_2015_12_30.txt ."
  } ,
 
  { 29,  Dec, 2015, RCR, "afni_system_check.py", MICRO, TYPE_BUG_FIX,
@@ -6513,7 +6518,7 @@ afni_history_struct rickr_history[] = {
 
  {   2, DEC, 2005, RCR, "ANOVA", SUPERDUPER, TYPE_MODIFY,
    "changed variance computations in 3dANOVA programs to not assume sphericity",
-   "For details, see http://afni.nimh.nih.gov/sscc/gangc/ANOVA_Mod.html ."
+   "For details, see https://afni.nimh.nih.gov/sscc/gangc/ANOVA_Mod.html ."
  } ,
 
  {  11, OCT, 2005, RCR, "3dmaxima", MAJOR, TYPE_NEW_PROG,

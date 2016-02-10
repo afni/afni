@@ -110,7 +110,7 @@ old_g_help_string = """
     ourselves.
     
     Our abstract describing the alignment tools is available here:
-      http://afni.nimh.nih.gov/sscc/rwcox/abstracts/file.2008-02-21.4176173435   
+      https://afni.nimh.nih.gov/sscc/rwcox/abstracts/file.2008-02-21.4176173435   
     
     ===========================================================================      
 """
