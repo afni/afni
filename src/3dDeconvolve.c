@@ -7215,7 +7215,7 @@ STATUS("computing message from esum") ;
                   ERROR_message("Killing fork-ed job %d (pid=%u)",
                                 qq , (unsigned int)proc_pid[qq]   ) ;
                   kill(    proc_pid[qq] ,SIGTERM   ) ; iochan_sleep(10) ;
-                  waitpid( proc_pid[pp] , NULL , 0 ) ;
+                  waitpid( proc_pid[qq] , NULL , 0 ) ;
                 }
               }
               ERROR_exit("3dDeconvolve main process now stopping -- SORRY") ;
