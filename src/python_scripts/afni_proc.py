@@ -523,7 +523,7 @@ g_todo_str = """todo:
   - add -volreg_align_base_to_ext_dset (probably a small displacement)
     (to match volreg_base to -align_epi_ext_dset)
   - if no align/tlrc blocks, but -mask_segment_anat, run 3dSkullStrip
-    see http://afni.nimh.nih.gov/afni/community/board/read.php?1,145004
+    see https://afni.nimh.nih.gov/afni/community/board/read.php?1,145004
   - add anaticor in surface analysis
   - update surface examples to use standard mesh surfaces
 
