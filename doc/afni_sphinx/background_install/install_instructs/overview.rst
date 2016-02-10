@@ -133,7 +133,7 @@ independently.
   and SUMA run, called ``~/.afnirc`` and ``~/.sumarc``, respectively.
   A large list of malleable environment variables (and their default
   values) are `here for AFNI
-  <http://afni.nimh.nih.gov/pub/dist/doc/program_help/README.environment.html>`_.
+  <https://afni.nimh.nih.gov/pub/dist/doc/program_help/README.environment.html>`_.
 
 - Many profile and system variables are referenced with a dollar sign
   ``$`` preceding their name, e.g., ``$SHELL``, ``$path``, ``$HOME``

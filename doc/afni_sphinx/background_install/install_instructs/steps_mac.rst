@@ -108,7 +108,7 @@ operating system) to a link to install XQuartz.
       directory, changing the directory name to ``$HOME/abin/``::
 
         cd
-        curl -O http://afni.nimh.nih.gov/pub/dist/bin/macosx_10.7_Intel_64/@update.afni.binaries
+        curl -O https://afni.nimh.nih.gov/pub/dist/bin/macosx_10.7_Intel_64/@update.afni.binaries
         tcsh @update.afni.binaries -defaults
 
    #. Update the path and library path.

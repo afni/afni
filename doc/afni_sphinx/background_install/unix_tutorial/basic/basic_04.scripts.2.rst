@@ -15,7 +15,7 @@ in a shell script, the single quote and backslash characters.
    - :ref:`pound characters <U_mcc_pound>`
    - :ref:`U_mc_cat` : display a text file in the terminal window
    - :ref:`U_mc_gedit` : a graphical editor
-   - `3dDeconvolve -help <http://afni.nimh.nih.gov/pub/dist/doc/program_help/3dDeconvolve.html>`_
+   - `3dDeconvolve -help <https://afni.nimh.nih.gov/pub/dist/doc/program_help/3dDeconvolve.html>`_
 
 
 Starting from the ``AFNI_data6/afni`` directory, look at the contents of one
@@ -119,7 +119,7 @@ parameters.
 
       What that option implies is saved for a class on 3dDeconvolve.
 
-.. seealso:: `3dDeconvolve -help <http://afni.nimh.nih.gov/pub/dist/doc/program_help/3dDeconvolve.html>`_
+.. seealso:: `3dDeconvolve -help <https://afni.nimh.nih.gov/pub/dist/doc/program_help/3dDeconvolve.html>`_
 
 
 .. _U_basic_4_quotes:
