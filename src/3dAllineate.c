@@ -1410,7 +1410,7 @@ int main( int argc , char *argv[] )
               "       MRI alignment using local Pearson correlation.\n"
               "       NeuroImage 44: 839-848, 2009.\n"
               "     http://dx.doi.org/10.1016/j.neuroimage.2008.09.037\n"
-              "     http://afni.nimh.nih.gov/sscc/rwcox/papers/LocalPearson2009.pdf\n"
+              "     https://afni.nimh.nih.gov/sscc/rwcox/papers/LocalPearson2009.pdf\n"
               "   The '-blok' option can be used to control the regions\n"
               "   (size and shape) used to compute the local correlations.\n");
        printf(" *** Using the 'lpc' functional wisely requires the use of\n"

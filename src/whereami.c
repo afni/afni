@@ -430,9 +430,9 @@ printf(
 
 " \n---------------\n"
 " More information about Atlases in AFNI can be found here:\n"
-"      http://afni.nimh.nih.gov/sscc/dglen/AFNIAtlases\n"
+"      https://afni.nimh.nih.gov/sscc/dglen/AFNIAtlases\n"
 " Class document illustrating whereami usage:\n"
-"      http://afni.nimh.nih.gov/pub/dist/edu/latest/afni11_roi/afni11_roi.pdf\n"
+"      https://afni.nimh.nih.gov/pub/dist/edu/latest/afni11_roi/afni11_roi.pdf\n"
 "---------------\n"
 );
 

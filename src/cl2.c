@@ -1,6 +1,6 @@
 /***** This code is part of the AFNI software package, which is   *****
  ***** partly in the public domain and partly covered by the GPL. *****
- ***** See http://afni.nimh.nih.gov/afni for more information.    *****/
+ ***** See https://afni.nimh.nih.gov/afni for more information.    *****/
 
 #include <math.h>
 #include <stddef.h>
