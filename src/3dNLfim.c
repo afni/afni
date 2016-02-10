@@ -342,7 +342,7 @@ void display_help_menu()
             "             J=1 is normal (single process) operation.\n"
             "             The maximum allowed value of J is %d.\n"
             "         * For more information on parallelizing, see\n"
-            "             http://afni.nimh.nih.gov/afni/doc/misc/parallize.html\n"
+            "             https://afni.nimh.nih.gov/afni/doc/misc/parallize.html\n"
             "         * Use -mask to get more speed; cf. 3dAutomask.\n"
           , PROC_MAX ) ;
 #endif
@@ -1896,7 +1896,7 @@ void proc_finalize_shm_volumes(void)
                    "** POSSIBLY USEFUL ADVICE:\n"
                    "** Current max shared memory size = %u bytes.\n"
                    "** For information on how to change this, see\n"
-                   "**   http://afni.nimh.nih.gov/afni/parallize.htm\n"
+                   "**   https://afni.nimh.nih.gov/afni/parallize.htm\n"
                    "** and also contact your system administrator.\n"
                    , smax ) ;
         }

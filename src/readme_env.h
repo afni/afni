@@ -729,7 +729,7 @@ static char *readme_env[] = {
    "dataset in the directory that has Talairach transformation markers\n" ,
    "attached.  If you wish to enable this warning, set this YES/NO variable\n" ,
    "to NO.  For more information on this subject, please see\n" ,
-   "  http://afni.nimh.nih.gov/afni/afni_faq.shtml#AnatParent .\n" ,
+   "  https://afni.nimh.nih.gov/afni/afni_faq.shtml#AnatParent .\n" ,
    "\n" ,
    "-----------------------------------\n" ,
    "Variable: AFNI_NO_NEGATIVES_WARNING\n" ,
