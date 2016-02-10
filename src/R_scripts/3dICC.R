@@ -3,7 +3,7 @@
 #-----------------------------------------------------------
 #Version 0.0.1,  Dec. 22, 2008
 #Author: Gang Chen (gangchen@mail.nih.gov)
-#Website: http://afni.nimh.nih.gov/sscc/gangc/icc.html
+#Website: https://afni.nimh.nih.gov/sscc/gangc/icc.html
 #SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
 #-----------------------------------------------------------
 
