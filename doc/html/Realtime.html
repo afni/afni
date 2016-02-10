@@ -65,7 +65,7 @@ how trusting do you really want to be?) You can also use hostnames
 environment variable, but the IP address method is surer to work.
 <p>A number of other environment variables can control how the
 realtime plugin operates. See the text file <a href=
-"http://afni.nimh.nih.gov/pub/dist/src/README.environment">README.environment</a> for the
+"https://afni.nimh.nih.gov/pub/dist/src/README.environment">README.environment</a> for the
 details.</p>
 <hr noshade="noshade" />
 <h2>Structure of a Realtime Image Source</h2>
@@ -240,7 +240,7 @@ segment.)</li>
 </ul>
 <p>For <i>AFNI</i>, you can set <tt>IOCHAN_DELAY_RMID</tt> in your
 <tt>.afnirc</tt> file (cf. <a href=
-"http://afni.nimh.nih.gov/pub/dist/src/README.environment">README.environment</a>).
+"https://afni.nimh.nih.gov/pub/dist/src/README.environment">README.environment</a>).
 However, this won't affect the image source program, so you should
 probably set it explicitly in your <tt>.cshrc</tt> file (or
 equivalent), if needed.</p>
@@ -283,9 +283,9 @@ Until the other process (<i>AFNI</i> in this case) attaches to the
 IOCHAN, no data can be sent. A number of functions are available to
 check if an IOCHAN is in a usable state. They are documented in the
 comments at the head of <a href=
-"http://afni.nimh.nih.gov/pub/dist/src/thd_iochan.c"><tt>thd_iochan.c</tt></a>, and examples of their
+"https://afni.nimh.nih.gov/pub/dist/src/thd_iochan.c"><tt>thd_iochan.c</tt></a>, and examples of their
 use can be found in <a href=
-"http://afni.nimh.nih.gov/pub/dist/src/rtfeedme.c"><tt>rtfeedme.c</tt></a>.
+"https://afni.nimh.nih.gov/pub/dist/src/rtfeedme.c"><tt>rtfeedme.c</tt></a>.
 <p><font color="#BB0000"><u><b>The Structure of
 <tt>rtfeedme.c</tt></b></u></font><br />
 This program initiates the conversation with <i>AFNI</i> with the
@@ -377,7 +377,7 @@ at the <b>old MCW 3 Tesla Bruker system</b>, the image acquisition program does 
 know the orientation or dimensions of the data. This information
 must be obtained by querying the MRI console software after the
 acquisition actually starts. The program <a href=
-"http://afni.nimh.nih.gov/pub/dist/src/3T_toafni.c"><tt>3T_toafni.c</tt></a> is the medium by which
+"https://afni.nimh.nih.gov/pub/dist/src/3T_toafni.c"><tt>3T_toafni.c</tt></a> is the medium by which
 this query is made. The response from the MRI console is parsed and
 converted to <i>AFNI</i> image metadata, and written to
 <tt>stdout</tt>. Thus, in the MCW realtime acquisition system, the
@@ -413,7 +413,7 @@ to properly construct a dataset from the images. This information
 is sent to <i>AFNI</i> as a series of command strings. A sample set
 of command strings is given below:
 [Also see the file
-<a href="http://afni.nimh.nih.gov/pub/dist/src/README.realtime">README.realtime</a>
+<a href="https://afni.nimh.nih.gov/pub/dist/src/README.realtime">README.realtime</a>
 for full details on the Realtime plugin's metadata (AKA prolog or header).]
 <pre>
 <b> ACQUISITION_TYPE 2D+zt
@@ -640,7 +640,7 @@ is 1.</li>
 <li><b><tt>DRIVE_AFNI command</tt></b><br />
 You can also pass commands to control <i>AFNI</i> (e.g., open
 windows) in the image prolog. See <a href=
-"http://afni.nimh.nih.gov/pub/dist/src/README.driver">README.driver</a> for the list of
+"https://afni.nimh.nih.gov/pub/dist/src/README.driver">README.driver</a> for the list of
 command strings. More than one <b><tt>DRIVE_AFNI</tt></b> command
 can be used in the realtime prolog. Each command is executed in
 sequence. For example, if you wish to put new datasets into a new
