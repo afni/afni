@@ -3,7 +3,7 @@
 /* 3dsvm.c                                                                   */
 /*                                                                           */
 /* Integrate the functionality of SMV-Light (http://svmlight.joachims.org/)  */
-/* with AFNI (http://afni.nimh.nih.gov)                                      */
+/* with AFNI (https://afni.nimh.nih.gov)                                      */
 /*                                                                           */
 /* Copyright 2007 Stephen LaConte                                            */
 /*                                                                           */
