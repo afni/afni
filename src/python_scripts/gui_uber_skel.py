@@ -693,13 +693,13 @@ class MainWindow(QtGui.QMainWindow):
    def cb_help_browse(self):
       obj = self.sender()
       if   obj == self.gvars.act_browse_all_progs:
-         self.open_web_site('http://afni.nimh.nih.gov/pub/dist/doc'     \
+         self.open_web_site('https://afni.nimh.nih.gov/pub/dist/doc'     \
                             '/program_help/index.html')
       elif obj == self.gvars.act_browse_AP_help:
-         self.open_web_site('http://afni.nimh.nih.gov/pub/dist/doc'     \
+         self.open_web_site('https://afni.nimh.nih.gov/pub/dist/doc'     \
                             '/program_help/afni_proc.py.html')
       elif obj == self.gvars.act_browse_MB:
-         self.open_web_site('http://afni.nimh.nih.gov/afni/community/board')
+         self.open_web_site('https://afni.nimh.nih.gov/afni/community/board')
       else: print '** cb_help_browse: invalid sender'
 
    def update_uvars_from_gui(self, warn=0):

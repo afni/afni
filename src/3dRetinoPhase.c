@@ -1031,7 +1031,7 @@ int main( int argc , char * argv[] )
 "       an output identical to that of -ref_ts. \n"
 "\n"        
 "  See usage in @RetinoProc and demo data in\n"
-"  http://afni.nimh.nih.gov/pub/dist/tgz/AfniRetinoDemo.tgz \n"
+"  https://afni.nimh.nih.gov/pub/dist/tgz/AfniRetinoDemo.tgz \n"
 "\n"
 "References for this program:\n"
 "   [1] RW Cox.  AFNI: Software for analysis and visualization of functional\n"

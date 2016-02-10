@@ -9025,7 +9025,7 @@ g_help_string = """
             to use 'NONE' for the corresponding basis function.
 
             Please see '3dDeconvolve -help' for more information, or the link:
-                http://afni.nimh.nih.gov/afni/doc/misc/3dDeconvolveSummer2004
+                https://afni.nimh.nih.gov/afni/doc/misc/3dDeconvolveSummer2004
             See also -regress_basis_normall, -regress_stim_times,
                      -regress_stim_types.
 
@@ -9617,7 +9617,7 @@ g_help_string = """
             which may be used for multiple 3dDeconvolve options.
 
             Please see '3dDeconvolve -help' for more information, or the link:
-                http://afni.nimh.nih.gov/afni/doc/misc/3dDeconvolveSummer2004
+                https://afni.nimh.nih.gov/afni/doc/misc/3dDeconvolveSummer2004
 
         -regress_opts_reml OPTS ...  : specify extra options for 3dREMLfit
 
@@ -9828,7 +9828,7 @@ g_help_string = """
                                 *
 
             Please see '3dDeconvolve -help' for more information, or the link:
-                http://afni.nimh.nih.gov/afni/doc/misc/3dDeconvolveSummer2004
+                https://afni.nimh.nih.gov/afni/doc/misc/3dDeconvolveSummer2004
             See also -regress_stim_files, -regress_stim_labels, -regress_basis,
                      -regress_basis_normall, -regress_polort.
 
@@ -9869,7 +9869,7 @@ g_help_string = """
             with -regress_stim_types 'file'.
 
             Please see '3dDeconvolve -help' for more information, or the link:
-                http://afni.nimh.nih.gov/afni/doc/misc/3dDeconvolveSummer2004
+                https://afni.nimh.nih.gov/afni/doc/misc/3dDeconvolveSummer2004
             See also -regress_stim_times, -regress_stim_labels, -regress_basis,
                      -regress_basis_normall, -regress_polort,
                      -regress_stim_times_offset, -regress_use_stim_files.
