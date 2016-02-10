@@ -65,7 +65,7 @@
 static int disabled = 0 ;
 
 #define STR_CHILD   "tcp:localhost:20279"
-#define AFNI_HOST   "http://afni.nimh.nih.gov/pub/dist/"
+#define AFNI_HOST   "https://afni.nimh.nih.gov/pub/dist/"
 #define VSIZE       1024
 
 #define COMPILE_URL "http://afni.nimh.nih.gov/pub/dist/AFNI.compile_date"
