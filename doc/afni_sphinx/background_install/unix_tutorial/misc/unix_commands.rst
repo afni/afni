@@ -595,8 +595,8 @@ clear.
    - :ref:`double quotes <U_mcc_dquote>`
    - :ref:`single quotes <U_mcc_squote>`
    - :command:`man tcsh`
-   - `afni -help <http://afni.nimh.nih.gov/pub/dist/doc/program_help/afni.html>`_
-   - `count -help <http://afni.nimh.nih.gov/pub/dist/doc/program_help/count.html>`_
+   - `afni -help <https://afni.nimh.nih.gov/pub/dist/doc/program_help/afni.html>`_
+   - `count -help <https://afni.nimh.nih.gov/pub/dist/doc/program_help/count.html>`_
 
 .. _U_mcc_ctrl_c:
 
@@ -620,7 +620,7 @@ This might be useful when running a shell script that would take a while to comp
 .. seealso::
 
    - :ref:`U_mcc_ctrl_z`
-   - `ccalc -help <http://afni.nimh.nih.gov/pub/dist/doc/program_help/ccalc.html>`_
+   - `ccalc -help <https://afni.nimh.nih.gov/pub/dist/doc/program_help/ccalc.html>`_
 
 
 .. _U_mcc_ctrl_z:
@@ -651,7 +651,7 @@ This keystroke is often followed by ``bg`` (background: a built-in shell command
 .. seealso::
 
    - :ref:`U_mc_jobs`
-   - `ccalc -help <http://afni.nimh.nih.gov/pub/dist/doc/program_help/ccalc.html>`_
+   - `ccalc -help <https://afni.nimh.nih.gov/pub/dist/doc/program_help/ccalc.html>`_
 
 
 todo::

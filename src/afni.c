@@ -180,7 +180,7 @@ void AFNI_syntax(void)
    else
      printf(
       " **** Help for all AFNI programs can be found at the Web page\n"
-      "    http://afni.nimh.nih.gov/afni/doc/program_help/index.html\n"
+      "    https://afni.nimh.nih.gov/afni/doc/program_help/index.html\n"
       "\n"
      ) ;
 
@@ -452,16 +452,16 @@ void AFNI_syntax(void)
     "--------------------------------------\n"
     "* The presentations used in our AFNI teaching classes at the NIH can\n"
     "   all be found at\n"
-    " http://afni.nimh.nih.gov/pub/dist/edu/latest/      (PowerPoint directories)\n"
-    " http://afni.nimh.nih.gov/pub/dist/edu/latest/afni_handouts/ (PDF directory)\n"
+    " https://afni.nimh.nih.gov/pub/dist/edu/latest/      (PowerPoint directories)\n"
+    " https://afni.nimh.nih.gov/pub/dist/edu/latest/afni_handouts/ (PDF directory)\n"
     "* And for the interactive AFNI program in particular, see\n"
-    " http://afni.nimh.nih.gov/pub/dist/edu/latest/afni01_intro/afni01_intro.pdf\n"
-    " http://afni.nimh.nih.gov/pub/dist/edu/latest/afni03_interactive/afni03_interactive.pdf\n"
+    " https://afni.nimh.nih.gov/pub/dist/edu/latest/afni01_intro/afni01_intro.pdf\n"
+    " https://afni.nimh.nih.gov/pub/dist/edu/latest/afni03_interactive/afni03_interactive.pdf\n"
     "* For the -help on all AFNI programs, plus the README files, and more, please see\n"
-    " http://afni.nimh.nih.gov/afni/doc/program_help/index.html\n"
+    " https://afni.nimh.nih.gov/afni/doc/program_help/index.html\n"
     "* For indvidualized help with AFNI problems, and to keep up with AFNI news, please\n"
     "   use the AFNI Message Board:\n"
-    " http://afni.nimh.nih.gov/afni/community/board/\n"
+    " https://afni.nimh.nih.gov/afni/community/board/\n"
     "* If an AFNI program crashes, please include the EXACT error messages it outputs\n"
     "   in your message board posting, as well as any other information needed to\n"
     "   reproduce the problem.  Just saying 'program X crashed, what's the issue?'\n"
@@ -473,7 +473,7 @@ void AFNI_syntax(void)
 #if 0
     "\n"
     "* For some fun, see this image:\n"
-    " http://afni.nimh.nih.gov/pub/dist/doc/program_help/images/afni_splashes.gif\n"
+    " https://afni.nimh.nih.gov/pub/dist/doc/program_help/images/afni_splashes.gif\n"
 #endif
    ) ;
 
@@ -481,7 +481,7 @@ void AFNI_syntax(void)
    printf(
     "\n"
     "POSTERS on varied subjects from the AFNI development group can be found at\n"
-    "  * http://afni.nimh.nih.gov/sscc/posters\n"
+    "  * https://afni.nimh.nih.gov/sscc/posters\n"
    ) ;
 
    /*........................................................................*/
@@ -492,19 +492,19 @@ void AFNI_syntax(void)
      printf("\n"
             "------------------------------------------------------------------------------------\n"
             "                  SLIDE IMAGES to help with learning the AFNI GUI\n"
-            "           http://afni.nimh.nih.gov/pub/dist/doc/program_help/images/afni03/\n"
+            "           https://afni.nimh.nih.gov/pub/dist/doc/program_help/images/afni03/\n"
             "------------------------------------------------------------------------------------\n"
      ) ;
      for( ii=1 ; ii <= NSLIDE ; ii++ ){
        printf(
-        "http://afni.nimh.nih.gov/pub/dist/doc/program_help/images/afni03/Slide%02d.png\n"
+        "https://afni.nimh.nih.gov/pub/dist/doc/program_help/images/afni03/Slide%02d.png\n"
         "------------------------------------------------------------------------------------\n"
         , ii ) ;
      }
    } else {
      printf("\n"
             "SLIDE IMAGES to help with learning the AFNI GUI can be found at\n"
-            "  * http://afni.nimh.nih.gov/pub/dist/doc/program_help/images/afni03/\n"
+            "  * https://afni.nimh.nih.gov/pub/dist/doc/program_help/images/afni03/\n"
      ) ;
    }
    printf("\n") ;
@@ -2827,7 +2827,7 @@ ENTRY("AFNI_startup_timeout_CB") ;
              "                                                               \n"
              "++ For general AFNI program help, see the Web page           ++\n"
              "\n"
-             "   http://afni.nimh.nih.gov/afni/doc/program_help/index.html   \n"
+             "   https://afni.nimh.nih.gov/afni/doc/program_help/index.html   \n"
              "%s"
              "\n"
              "++ [To close this message window, left-click inside of it.]  ++\n"
@@ -2941,7 +2941,7 @@ ENTRY("AFNI_startup_timeout_CB") ;
      fprintf(stderr,
        "++ NOTE: you may want to consider creating a '.afnirc' file in your home\n"
        "         directory, to control AFNI's setup.  For more details, see\n"
-       "   http://afni.nimh.nih.gov/pub/dist/doc/program_help/README.environment.html\n") ;
+       "   https://afni.nimh.nih.gov/pub/dist/doc/program_help/README.environment.html\n") ;
 
 
    /* splash window down -- moved here 29 May 2013 */

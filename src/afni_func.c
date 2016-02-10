@@ -4281,7 +4281,7 @@ ENTRY("AFNI_read_Web_CB") ;
    MCW_choose_string( w ,
     "Complete http:// or ftp:// address of dataset (.HEAD or .mnc or .mnc.gz):\n"
     "Examples: ftp://afni.nimh.nih.gov/AFNI/data/astrip+orig.HEAD\n"
-    "          http://afni.nimh.nih.gov/afni/norm305.mnc.gz"
+    "          https://afni.nimh.nih.gov/afni/norm305.mnc.gz"
      , NULL , AFNI_finalize_read_Web_CB , (XtPointer) im3d ) ;
 
    EXRETURN ;
@@ -7465,11 +7465,11 @@ ENTRY("AFNI_hidden_CB") ;
 
    else if( w == im3d->vwid->prog->hidden_browser_pb && w != NULL &&
             GLOBAL_browser != NULL ){
-     whereami_browser("http://afni.nimh.nih.gov/afni/doc/program_help/index.html");
+     whereami_browser("https://afni.nimh.nih.gov/afni/doc/program_help/index.html");
 #if 0
      char cmd[2345] ;
      sprintf(cmd ,
-             "%s http://afni.nimh.nih.gov/afni/doc/program_help/index.html &" ,
+             "%s https://afni.nimh.nih.gov/afni/doc/program_help/index.html &" ,
              GLOBAL_browser ) ;
      system(cmd) ;
 #endif

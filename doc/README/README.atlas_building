@@ -39,7 +39,7 @@ Minor bug in order of min and max in script. Note one can expect minor differenc
       + If all looks hunky dori, you can now copy the new TT dsets to your abin directory for your viewing pleasure.
       + cp TT_N27_CA_EZ_MPM+tlrc.* TT_N27_CA_EZ_PMaps+tlrc* TT_N27_EZ_LR+tlrc* TT_N27_EZ_ML+tlrc* ~/abin
       + No need to copy TT_N27+tlrc* because that should not change.
-   6- To distribute the atlases, run @DistArchives (after editing zdir) from  eomer:/Users/ziad/AFNI_Templates_Atlases/ an archive named: /Volumes/elrond0/var/www/html/pub/dist/tgz/CA_EZ_v1.3b.tgz (for version 1.3b) is put on AFNI's site (http://afni.nimh.nih.gov/pub/dist/tgz/CA_EZ_v1.3b.tgz)
+   6- To distribute the atlases, run @DistArchives (after editing zdir) from  eomer:/Users/ziad/AFNI_Templates_Atlases/ an archive named: /Volumes/elrond0/var/www/html/pub/dist/tgz/CA_EZ_v1.3b.tgz (for version 1.3b) is put on AFNI's site (https://afni.nimh.nih.gov/pub/dist/tgz/CA_EZ_v1.3b.tgz)
 
 Update @Create_ca_ez_tlrc.tgz script to point to the right src_path for the Atlases (/Users/dglen/AFNI_Templates_Atlases) and the right target for distribution (Web_dir = /Volumes/elrond0/var/www/html/pub/dist/tgz) depending on the naming of the mount point on your system.
 

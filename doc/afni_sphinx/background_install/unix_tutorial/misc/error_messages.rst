@@ -61,7 +61,7 @@ does not know of a command or program by the given name.
 
          file_tool -test -infile my_script.txt
 
-      .. seealso:: `file_tool -help <http://afni.nimh.nih.gov/pub/dist/doc/program_help/file_tool.html>`_
+      .. seealso:: `file_tool -help <https://afni.nimh.nih.gov/pub/dist/doc/program_help/file_tool.html>`_
 
 .. _U_MU_err_undefined_var:
 

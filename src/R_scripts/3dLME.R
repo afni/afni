@@ -27,7 +27,7 @@ help.LME.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 Version 1.7.8, Feb 5, 2016
 Author: Gang Chen (gangchen@mail.nih.gov)
-Website - http://afni.nimh.nih.gov/sscc/gangc/lme.html
+Website - https://afni.nimh.nih.gov/sscc/gangc/lme.html
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
@@ -68,7 +68,7 @@ Usage:
  install.packages("snow")
  
  More details about 3dLME can be found at 
- http://afni.nimh.nih.gov/sscc/gangc/LME.html
+ https://afni.nimh.nih.gov/sscc/gangc/LME.html
 
  Once the 3dLME command script is constructed, it can be run by copying and
  pasting to the terminal. Alternatively (and probably better) you save the 

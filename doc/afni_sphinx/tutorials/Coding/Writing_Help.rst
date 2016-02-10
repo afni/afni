@@ -219,7 +219,7 @@ C-Shell Scripts
          See also DriveSuma -help and @DO.examples
 
          Questions or comments are welcome on AFNI's message board:
-         echo ' http://afni.nimh.nih.gov/afni/community/board/list.php?f=1 '
+         echo ' https://afni.nimh.nih.gov/afni/community/board/list.php?f=1 '
          :SPX:
 
             .. note::

@@ -3,7 +3,7 @@
 @global_parse `basename $0` "$*" ; if ($status) exit 0
 
 set afscp = afni.nimh.nih.gov:/var/www/html/pub/dist/doc/htmldoc
-set afwpg = http://afni.nimh.nih.gov/pub/dist/doc/htmldoc
+set afwpg = https://afni.nimh.nih.gov/pub/dist/doc/htmldoc
 set SUMA_DEMO = ~/.afni/data/suma_demo
 
 goto PARSE

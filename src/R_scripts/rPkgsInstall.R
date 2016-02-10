@@ -42,7 +42,7 @@ help.rPkgsInstall.opts <- function (params, alpha = TRUE, itspace='   ', adieu=F
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 Version 0.0.1, Nov 3, 2014
 Author: Gang Chen (gangchen@mail.nih.gov)
-Website - http://afni.nimh.nih.gov/sscc/gangc
+Website - https://afni.nimh.nih.gov/sscc/gangc
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 

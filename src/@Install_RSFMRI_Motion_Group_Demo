@@ -66,7 +66,7 @@ endif
 
 if ( $state == 0 ) then
    if ( ! -f $demo_dir.tgz) then
-      set site = http://afni.nimh.nih.gov/pub/dist/data
+      set site = https://afni.nimh.nih.gov/pub/dist/data
       set link = $site/$demo_dir.tgz
       which curl > /dev/null
       if ($status) then
