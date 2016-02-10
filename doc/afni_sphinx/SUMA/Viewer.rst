@@ -1009,7 +1009,7 @@ Displayable Objects
          
       ..
          
-         2. This AFNI message board `posting <http://afni.nimh.nih.gov/afni/community/board/read.php?1,146351,146380#msg-146380>`_  explaining how to show principal orientations in a volume.
+         2. This AFNI message board `posting <https://afni.nimh.nih.gov/afni/community/board/read.php?1,146351,146380#msg-146380>`_  explaining how to show principal orientations in a volume.
          
       .. figure:: media/directions.jpg
          :align: center
@@ -1202,7 +1202,7 @@ Playing with color plane order
       The plane displayed would be the one whose label is shown in the surface controller.
       
    Test!
-      Find a way to flip between the mapping from AFNI and the mapping done with `3dVol2Surf <http://afni.nimh.nih.gov/pub/dist/doc/program_help/3dVol2Surf.html>`_ on the command line with script :file:`run_3dVol2Surf`.
+      Find a way to flip between the mapping from AFNI and the mapping done with `3dVol2Surf <https://afni.nimh.nih.gov/pub/dist/doc/program_help/3dVol2Surf.html>`_ on the command line with script :file:`run_3dVol2Surf`.
          Appreciate the differences between the two mappings.
          
 
