@@ -550,7 +550,7 @@ int Hallo_niml_workproc( void *thereiselvis )
    the element to stdout.             
    Look at the NIML API documentation to 
    learn how to unpack the data from a NIML element 
-   http://afni.nimh.nih.gov/afni/doc/misc/NIML_documentation/NIML_manual/document_view
+   https://afni.nimh.nih.gov/afni/doc/misc/NIML_documentation/NIML_manual/document_view
 */
 int Hallo_process_NIML_data(NI_element *nini)
 {

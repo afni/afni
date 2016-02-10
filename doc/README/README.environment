@@ -727,7 +727,7 @@ file (either via to3d or 3drefit), and there is more than one anatomical
 dataset in the directory that has Talairach transformation markers
 attached.  If you wish to enable this warning, set this YES/NO variable
 to NO.  For more information on this subject, please see
-  http://afni.nimh.nih.gov/afni/afni_faq.shtml#AnatParent .
+  https://afni.nimh.nih.gov/afni/afni_faq.shtml#AnatParent .
 
 -----------------------------------
 Variable: AFNI_NO_NEGATIVES_WARNING

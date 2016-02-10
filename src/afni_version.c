@@ -65,10 +65,10 @@
 static int disabled = 0 ;
 
 #define STR_CHILD   "tcp:localhost:20279"
-#define AFNI_HOST   "http://afni.nimh.nih.gov/pub/dist/"
+#define AFNI_HOST   "https://afni.nimh.nih.gov/pub/dist/"
 #define VSIZE       1024
 
-#define COMPILE_URL "http://afni.nimh.nih.gov/pub/dist/AFNI.compile_date"
+#define COMPILE_URL "https://afni.nimh.nih.gov/pub/dist/AFNI.compile_date"
 
 static pid_t vc_child_pid = (pid_t)(-1) ;
 static IOCHAN *vc_ioc     = NULL ;

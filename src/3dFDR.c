@@ -314,7 +314,7 @@ printf(
 "* cf. http://dx.doi.org/10.1093/bioinformatics/bti448   [False Negative Rate]\n"
 "* cf. http://dx.doi.org/10.1093/biomet/93.3.491         [m0 adjustment idea]\n"
 "* cf. C implementation in mri_fdrize.c                  [trust in the Source]\n"
-"* cf. http://afni.nimh.nih.gov/pub/dist/doc/misc/FDR/FDR_Jan2008.pdf\n"
+"* cf. https://afni.nimh.nih.gov/pub/dist/doc/misc/FDR/FDR_Jan2008.pdf\n"
 ) ;
 
    PRINT_COMPILE_DATE ;

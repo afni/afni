@@ -67,7 +67,7 @@ static INLINE void AAmemset( void *ooo , int c , size_t nnn )
     "* OpenMP is NOT like MPI -- it does not work with CPUs connected only\n"      \
     "   by a network (e.g., OpenMP doesn't work with 'cluster' setups).\n"         \
     "* For implementation and compilation details, please see\n"                   \
-    "   http://afni.nimh.nih.gov/pub/dist/doc/misc/OpenMP.html\n"                  \
+    "   https://afni.nimh.nih.gov/pub/dist/doc/misc/OpenMP.html\n"                  \
     "* The number of CPU threads used will default to the maximum number on\n"     \
     "   your system.  You can control this value by setting environment variable\n"\
     "   OMP_NUM_THREADS to some smaller value (including 1).\n"                    \
@@ -103,7 +103,7 @@ static INLINE void AAmemset( void *ooo , int c , size_t nnn )
     "   Sun Studio.\n"                                                             \
     "* If you wish to compile this program with OpenMP, see the man page for\n"    \
     "   your C compiler, and (if needed) consult the AFNI message board, and\n"    \
-    "   http://afni.nimh.nih.gov/pub/dist/doc/misc/OpenMP.html\n"                  \
+    "   https://afni.nimh.nih.gov/pub/dist/doc/misc/OpenMP.html\n"                  \
     , (pnam)                                                                       \
   )
 #endif

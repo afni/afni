@@ -67,7 +67,7 @@ capabilities include:
 
 Announcements of updates, fixes and new programmation are made and
 recorded on the AFNI `Message Board
-<http://afni.nimh.nih.gov/afni/community/board/>`_. This is a useful
+<https://afni.nimh.nih.gov/afni/community/board/>`_. This is a useful
 resource for checking on previously asked (and hopefully answered)
 questions that come up during analysis.  It is also a good first port
 of call for asking new questions that you yourself might have.

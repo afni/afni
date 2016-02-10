@@ -15,7 +15,7 @@ A foreground process is one that occupies your shell (terminal window), meaning 
 
    Commands and descriptions:
 
-   - `suma <http://afni.nimh.nih.gov/pub/dist/doc/program_help/suma.html>`_ : the main AFNI GUI for viewing surface data
+   - `suma <https://afni.nimh.nih.gov/pub/dist/doc/program_help/suma.html>`_ : the main AFNI GUI for viewing surface data
    - :ref:`U_mcc_ctrl_z` : keystroke: suspend the foreground process
    - :ref:`U_mc_bg` : put the recently suspended process in the background
    - :ref:`U_mc_fg` : put the recently suspended process in the foreground
@@ -40,7 +40,7 @@ To see that :command:`suma` is active, use the left mouse button (press and hold
    :width: 80%
 ..
 
-.. seealso:: `suma -help <http://afni.nimh.nih.gov/pub/dist/doc/program_help/suma.html>`_
+.. seealso:: `suma -help <https://afni.nimh.nih.gov/pub/dist/doc/program_help/suma.html>`_
 
 
 fail to do anything
