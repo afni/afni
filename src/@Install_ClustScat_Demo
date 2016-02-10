@@ -30,9 +30,9 @@ endif
 if ( ! -f AFNI_ClustScatDemo.tgz) then
    which curl
    if ($status) then
-      wget http://afni.nimh.nih.gov/pub/dist/data/AFNI_ClustScatDemo.tgz
+      wget https://afni.nimh.nih.gov/pub/dist/data/AFNI_ClustScatDemo.tgz
    else
-      curl -O http://afni.nimh.nih.gov/pub/dist/data/AFNI_ClustScatDemo.tgz
+      curl -O https://afni.nimh.nih.gov/pub/dist/data/AFNI_ClustScatDemo.tgz
    endif
    tar xvzf AFNI_ClustScatDemo.tgz
 else
