@@ -28,12 +28,12 @@ number on your own system by simply typing::
 
 This version number should *always* be provided when posting questions on the 
 `Message Board
-<httpss://afni.nimh.nih.gov/afni/community/board/>`_.
+<https://afni.nimh.nih.gov/afni/community/board/>`_.
 
 .. note:: The record of changes (new options, new programs, bug fixes,
           et al.) is maintained for all the see in the online `AFNI
           History
-          <httpss://afni.nimh.nih.gov/pub/dist/doc/misc/history/index.html>`_.
+          <https://afni.nimh.nih.gov/pub/dist/doc/misc/history/index.html>`_.
 
 Some additional introductory reading is available `here
 <https://afni.nimh.nih.gov/afni/doc/first>`_.  
@@ -116,7 +116,7 @@ should be ready-to-run.
   For Mac OS 10.11 (El Capitan) users, some additional modifications
   to your computer settings are required for smooth sailing.  These
   are currently documented `here
-  <httpss://afni.nimh.nih.gov/afni/community/board/read.php?1,149775,149775#msg-149775>`_.
+  <https://afni.nimh.nih.gov/afni/community/board/read.php?1,149775,149775#msg-149775>`_.
 
   .. _afni_bin_other:
 
@@ -141,7 +141,7 @@ should be ready-to-run.
      <https://afni.nimh.nih.gov/pub/dist/tgz/linux_gcc32.tgzK>`_.
 
    * for `FreeBSD with ports (github)
-     <httpss://github.com/outpaddling/freebsd-ports-wip>`_.
+     <https://github.com/outpaddling/freebsd-ports-wip>`_.
 
    * for `Solaris 2.9 suncc
      <https://afni.nimh.nih.gov/pub/dist/tgz/solaris29_suncc.tgz>`_.
