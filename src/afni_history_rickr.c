@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 10,  Feb, 2016, RCR, "afni-general", MICRO, TYPE_BUG_FIX,
+   "initial afni_vcheck fix: use https://afni.nimh.nih.gov (no longer http)",
+   NULL
+ } ,
+
  {  9,  Feb, 2016, RCR, "@GradFlipTest", MICRO, TYPE_MODIFY,
    "trap for missing inputs (e.g. used with just -help)",
    NULL
