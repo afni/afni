@@ -5,11 +5,11 @@ PARSE:
    set Narg = $#
    set srch = ()
    set viewer = 'less'
-   set url = http://afni.nimh.nih.gov/pub/dist/doc/program_help/all-of-them.html
-   set urlclasspdf = http://afni.nimh.nih.gov/pub/dist/edu/latest
+   set url = https://afni.nimh.nih.gov/pub/dist/doc/program_help/all-of-them.html
+   set urlclasspdf = https://afni.nimh.nih.gov/pub/dist/edu/latest
    #You can use something like: 
    #wget -r -l2 --no-parent -nd -A ".pdf" \ 
-   #         http://afni.nimh.nih.gov/pub/dist/edu/latest/
+   #         https://afni.nimh.nih.gov/pub/dist/edu/latest/
    #to download all pdfs, say. Think about it....
    set cnt = 1
    while ($cnt <= $Narg)
