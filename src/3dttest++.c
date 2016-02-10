@@ -2,7 +2,7 @@
 
 /*------------------------------- prototypes, etc. ---------------------------*/
 
-/* funcs to do the t-tests on sets of numbers */
+/*----- funcs to do the t-tests on sets of numbers -----*/
 
 void regress_toz( int numA , float *zA ,
                   int numB , float *zB , int opcode ,
@@ -11,10 +11,12 @@ void regress_toz( int numA , float *zA ,
                   float *xB , float *psinvB , float *xtxinvB ,
                   float *outvec , float *workspace             ) ;
 
+/*-----*/
+
 float_pair ttest_toz( int numx, float *xar, int numy, float *yar, int opcode,
                       float *xres, float *yres ) ;
 
-/* similar funcs for the case of -singletonA */
+/*----- similar funcs for the case of -singletonA -----*/
 
 void regress_toz_singletonA( float zA ,
                              int numB , float *zB ,
@@ -23,17 +25,19 @@ void regress_toz_singletonA( float zA ,
                              float *xB , float *psinvB , float *xtxinvB ,
                              float *outvec , float *workspace             ) ;
 
+/*-----*/
+
 float_pair ttest_toz_singletonA( float xar, int numy, float *yar, float *xres, float *yres ) ;
 
-/* convert t-stat to z-score */
+/*----- convert t-stat to z-score -----*/
 
 double GIC_student_t2z( double tt , double dof ) ;
 
-/* setup the covariates matrices */
+/*----- setup the covariates matrices -----*/
 
 void TT_matrix_setup( int kout ) ;  /* 30 Jul 2010 */
 
-/* macro to truncate labels */
+/*----- macro to truncate labels -----*/
 
 #undef  MAX_LABEL_SIZE
 #define MAX_LABEL_SIZE 12
@@ -42,7 +46,7 @@ void TT_matrix_setup( int kout ) ;  /* 30 Jul 2010 */
 #define LTRUNC(ss) \
  do{ if( strlen(ss) > MAX_LABEL_SIZE ){(ss)[MAX_LABEL_SIZE] = '\0'; }} while(0)
 
-/* macro for some memory usage info */
+/*----- macro for some memory usage info -----*/
 
 #undef MEMORY_CHECK
 #ifdef USING_MCW_MALLOC
@@ -126,12 +130,13 @@ static byte *mask   = NULL ;
 static int  nmask   = 0 ;
 static int  nvox    = 0 ;
 static int  nmask_hits = 0 ;
+static char *name_mask = NULL ; /* 10 Feb 2016 */
 
 static int ttest_opcode = 0 ;  /* 0=pooled, 1=unpooled, 2=paired */
 
 static int               ndset_AAA=0 , nval_AAA=0 ;
 static char              *snam_AAA=NULL , *lnam_AAA=NULL ;
-static char             **name_AAA=NULL ;
+static char             **name_AAA=NULL ;  /* argv names for input datasets */
 static char             **labl_AAA=NULL ;
 static THD_3dim_dataset **dset_AAA=NULL ;
 static MRI_vectim      *vectim_AAA=NULL ;
@@ -149,6 +154,10 @@ static int do_randomsign   = 0 ;     /* 31 Dec 2015 */
 static int *randomsign_AAA = NULL ;
 static int *randomsign_BBB = NULL ;
 static int num_randomsign  = 0 ;     /* 02 Feb 2016 */
+
+static int       do_clustsim = 0 ;   /* 10 Feb 2016 */
+static int      num_clustsim = 0 ;
+static char *prefix_clustsim = NULL ;
 
 static int dofsub          = 0    ;  /* 19 Jan 2016 */
 
@@ -1277,6 +1286,62 @@ int is_possible_filename( char * fname )
 }
 
 /*----------------------------------------------------------------------------*/
+/* Start a job in a thread.  Save process id for later use. */
+
+static int   njob   = 0 ;
+static pid_t *jobid = NULL ;
+
+void start_job( char *cmd )   /* 10 Feb 2016 */
+{
+   pid_t newid ;
+
+   if( cmd == NULL || *cmd == '\0' ) return ;
+
+   newid = fork() ;
+
+   if( newid == (pid_t)-1 ){  /*--- fork failed -- should never happen ---*/
+
+     int qq ;
+     ERROR_message("----- Failure to fork for cmd = '%s'") ;
+     for( qq=0 ; qq < njob ; qq++ ){
+       ERROR_message("  Killing fork-ed job %d (pid=%u)",
+                        qq , (unsigned int)jobid[qq]   ) ;
+       kill( jobid[qq] ,SIGTERM   ) ; NI_sleep(10) ;
+       waitpid( jobid[qq] , NULL , 0 ) ;
+     }
+     ERROR_exit("Program exits -- sorry :-(") ;
+
+   } else if( newid > 0 ){    /*--- fork worked -- we are the original ---*/
+
+     jobid = (pid_t *)realloc( jobid , sizeof(pid_t)*(njob+1) ) ;
+     jobid[njob++] = newid ;
+     return ;
+
+   }
+
+   /*--- we are the child -- run the command, then die die die ---*/
+
+   system(cmd) ;
+   _exit(0) ;
+}
+
+/*----------------------------------------------------------------------------*/
+/* Wait for all started jobs to finish. */
+
+void wait_for_jobs(void)     /* 10 Feb 2016 */
+{
+   int qq ;
+
+   if( njob <= 0 || jobid == NULL ) return ;
+   for( qq=0 ; qq < njob ; qq++ )
+     waitpid( jobid[qq] , NULL , 0 ) ;
+
+   free(jobid) ; jobid = NULL ; njob = 0 ;
+   return ;
+}
+
+/*----------------------------------------------------------------------------*/
+/* Dis is de mayne porgam */
 
 int main( int argc , char *argv[] )
 {
@@ -1403,6 +1468,30 @@ int main( int argc , char *argv[] )
        continue ;
      }
 
+     /*----- -clustsim njob [10 Feb 2016] -----*/
+
+     if( strcmp(argv[nopt],"-clustsim") == 0 ){
+       char *uuu ;
+       if( do_clustsim )
+         ERROR_message("Why do you use -clustsim more than once?!") ;
+       do_clustsim++ ; nopt++ ;
+       if( isdigit(argv[nopt][0]) ){
+         num_clustsim = (int)strtod(argv[nopt],NULL) ; nopt++ ;
+         if( num_clustsim > 99 ){
+           ERROR_message("value after -clustsim is > 99") ; num_clustsim = 99 ;
+         } else if( num_clustsim < 1 ){
+           ERROR_message("value after -clustsim is < 1" ) ; num_clustsim = 1 ;
+         }
+       } else {
+         num_clustsim = 1 ;
+       }
+       INFO_message("Number of -clustsim threads set to %d",num_clustsim) ;
+       uuu = UNIQ_idcode_11() ;
+       prefix_clustsim = (char *)malloc(sizeof(char)*32) ;
+       sprintf(prefix_clustsim,"TT.%s",uuu) ; free(uuu) ;
+       continue ;
+     }
+
      /*----- dofsub -----*/
 
      if( strcmp(argv[nopt],"-dofsub") == 0 ){  /* 19 Jan 2016 [hidden option] */
@@ -1470,6 +1559,7 @@ int main( int argc , char *argv[] )
        if( ++nopt >= argc )
          ERROR_exit("Need argument after '%s'",argv[nopt-1]) ;
        bvec = THD_create_mask_from_string(argv[nopt]) ;
+       name_mask = strdup(argv[nopt]) ;  /* 10 Feb 2016 */
        if( bvec == NULL )
          ERROR_exit("Can't create mask from '-mask' option") ;
        mask = bvec->ar ; nmask = bvec->nar ;
@@ -1882,8 +1972,17 @@ int main( int argc , char *argv[] )
    if( brickwise && do_randomsign )          /* 02 Feb 2016 */
      ERROR_exit("You can't use -brickwise and -randomsign together!") ;
 
+   if( brickwise && do_clustsim )            /* 10 Feb 2016 */
+     ERROR_exit("You can't use -brickwise and -clustsim together!") ;
+
+   if( do_randomsign && do_clustsim )        /* 10 Feb 2016 */
+     ERROR_exit("You can't use -randomsign and -clustsim together!") ;
+
    if( do_randomsign && num_randomsign > 1 ) /* 02 Feb 2016 */
      brickwise_num = num_randomsign ;
+
+   if( do_clustsim && do_resid )             /* 10 Feb 2016 */
+     ERROR_exit("You can't do -resid and -clustsim together!") ;
 
    if( do_randomsign && do_resid )           /* 02 Feb 2016 */
      ERROR_exit("You can't do -resid and -randomsign together!") ;
@@ -1892,6 +1991,15 @@ int main( int argc , char *argv[] )
      ERROR_exit("You can't use -nomeans and -notests together! (Duh)") ;
 
    if( debug ) INFO_message("brickwise_num set to %d",brickwise_num) ;
+
+   if( do_clustsim && do_resid )
+     WARNING_message("-clustsim will override -resid with its own temporary prefix") ;
+
+   if( do_clustsim ){
+     do_resid = 1 ;
+     prefix_resid = (char *)malloc(sizeof(char)*(strlen(prefix_clustsim)+32)) ;
+     sprintf(prefix_resid,"%s.resid.nii",prefix_clustsim) ;
+   }
 
    twosam = (nval_BBB > 1) ; /* 2 sample test? */
 
@@ -1996,6 +2104,11 @@ int main( int argc , char *argv[] )
      ERROR_exit("You can't use -randomsign with nval_AAA=%d < 7",nval_AAA) ;
    if( do_randomsign && nval_BBB > 0 && nval_BBB < 7 )
      ERROR_exit("You can't use -randomsign with nval_BBB=%d < 7",nval_BBB) ;
+
+   if( do_clustsim && nval_AAA < 7 )
+     ERROR_exit("You can't use -clustsim with nval_AAA=%d < 7",nval_AAA) ;
+   if( do_clustsim && nval_BBB > 0 && nval_BBB < 7 )
+     ERROR_exit("You can't use -clustsim with nval_BBB=%d < 7",nval_BBB) ;
 
 #ifdef ALLOW_RANK
    if( do_ranks && !twosam ){
@@ -2760,11 +2873,61 @@ LABELS_ARE_DONE:  /* target for goto above */
      ININFO_message("%s test: results are %s - %s",
                     ttest_opcode == 2 ? "paired":"2-sample", snam_PPP,snam_MMM) ;
 
+   /*--------------------------------------------------------------*/
+   /*------------ Cluster Simulation now [10 Feb 2016] ------------*/
+
+   if( do_clustsim ){
+     char fname[64] , *cmd ; int qq,pp , nper ; double ct1,ct2 ;
+
+     cmd = (char *)malloc(sizeof(char)*2048) ;
+     nper = 10000 / num_clustsim + 1 ;
+
+     /* loop to start jobs */
+
+     INFO_message("starting %d -randomsign job%s (%d iterations per job)",
+                  num_clustsim , (num_clustsim > 1)?"s":"\0" , nper ) ;
+     ct1 = COX_clock_time() ;
+
+     for( pp=0 ; pp < num_clustsim ; pp++ ){
+       sprintf( cmd , "3dttest++ -DAFNI_AUTOMATIC_FDR=NO"
+                      " -randomsign %d -no1sam -nomeans -toz" , nper ) ;
+       if( name_mask != NULL )
+         sprintf( cmd+strlen(cmd) , " -mask %s",name_mask) ;
+
+       if( nval_BBB == 0 ){  /* only -setA */
+         sprintf( cmd+strlen(cmd) , " -setA %s" , prefix_resid ) ;
+       } else {
+         sprintf( cmd+strlen(cmd) , " -setA %s'[0..%d]' -setB %s'[%d..$]'" ,
+                                    prefix_resid , nval_AAA-1 ,
+                                    prefix_resid , nval_AAA    ) ;
+       }
+
+       sprintf( cmd+strlen(cmd) , " -prefix %s.%03d.nii >& /dev/null" , prefix_clustsim , pp ) ;
+
+       start_job( cmd ) ; NI_sleep(1) ;
+     }
+     ININFO_message(" -- waiting for job%s to finish",(num_clustsim > 1)?"s":"\0") ;
+     wait_for_jobs() ;
+     ct2 = COX_clock_time() ;
+     ININFO_message(" -- jobs have finished (%.2f s elapsed)",ct2-ct1) ;
+     ct1 = ct2 ;
+
+     sprintf( cmd , "3dClustSim -inset %s.???.nii -prefix %s.CSim -LOTS -both" ,
+                    prefix_clustsim , prefix_clustsim ) ;
+     if( name_mask != NULL )
+       sprintf( cmd+strlen(cmd) , " -mask %s",name_mask) ;
+
+     ININFO_message(" -- starting 3dClustSim") ;
+     system(cmd) ;
+
+   }
+
    exit(0) ;
 
 } /* end of main program */
 
 /*---------------------------------------------------------------------------*/
+/*----- macros for regression matrix elements -----*/
 
 #undef  PA
 #undef  PB
@@ -2779,6 +2942,8 @@ LABELS_ARE_DONE:  /* target for goto above */
 #undef  xtxB
 #define xtxA(i) xtxinvA[(i)+(i)*mm] /* diagonal elements */
 #define xtxB(i) xtxinvB[(i)+(i)*mm]
+
+/*----- Macros for the t-test functions -----*/
 
 #undef  VBIG
 #define VBIG 1.0e+24f
@@ -2973,10 +3138,12 @@ ENTRY("regress_toz") ;
     xtxinvB = (mcov+1) X (mcov+1) matrix = inv[xB'xB]
 *//*-------------------------------------------------------------------------*/
 
-        /* off diagonal elements */
+        /*----- off diagonal elements -----*/
+
 #define xtxBij(i,j) xtxinvB[(i)+(j)*mm]
 
-        /* variance(singleton) / variance(group) */
+        /*----- variance(singleton) / variance(group) -----*/
+
 #define SINGLETON_VARIANCE_RATIO singleton_variance_ratio
 
 void regress_toz_singletonA( float zA ,
@@ -3048,7 +3215,7 @@ ENTRY("regress_toz_singletonA") ;
 }
 
 /*----------------------------------------------------------------------------*/
-/*! Various sorts of t-tests; output = Z-score.
+/*! Various sorts of simple t-tests; output = Z-score.
    - numx = number of points in the first sample (must be > 1)
    - xar  = array with first sample
    - numy = number of points in the second sample
@@ -3386,7 +3553,7 @@ lab5:
 /*----------------------------------------------------------------------*/
 
 #undef  ZMAX
-#define ZMAX 13.0
+#define ZMAX 13.0  /* largest allowed z-score == 1 sided p=6e-36 */
 
 double GIC_student_t2z( double tt , double dof )
 {
@@ -3406,6 +3573,7 @@ double GIC_student_t2z( double tt , double dof )
 }
 
 /*===========================================================================*/
+/* center covariates in the regression matrices */
 
 void TT_centerize(void)
 {
@@ -3460,6 +3628,7 @@ ENTRY("TT_centerize") ;
 }
 
 /*===========================================================================*/
+/* make the regression matrices for covariates */
 
 void TT_matrix_setup( int kout )
 {
