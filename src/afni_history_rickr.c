@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 10,  Feb, 2016, RCR, "@ANATICOR", MICRO, TYPE_BUG_FIX,
+   "fixed -radius option parsing",
+   "Thanks to A Frithsen for noting the problem."
+ } ,
+
  { 10,  Feb, 2016, RCR, "afni-general", MICRO, TYPE_MODIFY,
    "full update to use https://afni.nimh.nih.gov (no longer http)",
    NULL
