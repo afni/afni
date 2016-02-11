@@ -133,7 +133,7 @@ static char * UNDERLAY_typestr[] =
 
 /* moved from .c files, and prepended w/AFNI_   28 Dec 2015 [rickr] */
 
-#define AFNI_VERSION_URL  "http://afni.nimh.nih.gov/pub/dist/AFNI.version"
+#define AFNI_VERSION_URL  "https://afni.nimh.nih.gov/pub/dist/AFNI.version"
 
 
 #ifdef  __cplusplus

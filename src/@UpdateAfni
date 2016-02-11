@@ -13,7 +13,7 @@ if ("$1" == "-h" || $1 =~ "-help") then
 	goto USAGE
 endif
 
-set RemoteServer = 'http://afni.nimh.nih.gov/'
+set RemoteServer = 'https://afni.nimh.nih.gov/'
 set RemoteSRC = $RemoteServer'AFNI/src'
 set RemoteDOC = $RemoteServer'AFNI/doc'
 set MacName = `hostname -s`
@@ -180,7 +180,7 @@ USAGE:
 		  echo "Before the update begins, executables from the current version"
 		  echo 'are copied into $localBIN.bak directory'
 		  echo "For more info, see:"
-		  echo "http://afni.nimh.nih.gov/~cox/afni_wget.html"
+		  echo "https://afni.nimh.nih.gov/~cox/afni_wget.html"
 		  echo "Ziad Saad (saadz@mail.nih.gov) SSCC/NIMH/NIH, Bethesda MD USA"
     	  goto END
 

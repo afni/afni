@@ -419,7 +419,7 @@ void cmp_surf_usage ()
     printf ("\n\t[-dev]: This option will give access to options that are not well polished for consumption.\n");
     printf ("\n\t        \n");
   */
-  printf ("\n\n\tFor more help: http://afni.nimh.nih.gov/ssc/ziad/SUMA/SUMA_doc.htm\n");
+  printf ("\n\n\tFor more help: https://afni.nimh.nih.gov/ssc/ziad/SUMA/SUMA_doc.htm\n");
   printf ("\n\n\tIf you can't get help here, please get help somewhere.\n");
   SUMA_Version(NULL);
   

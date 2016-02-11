@@ -25,9 +25,9 @@ help.LME.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
           ================== Welcome to 3dLME ==================          
     AFNI Group Analysis Program with Multi-Variate Modeling Approach
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 1.7.7, Nov 4, 2015
+Version 1.7.8, Feb 5, 2016
 Author: Gang Chen (gangchen@mail.nih.gov)
-Website - http://afni.nimh.nih.gov/sscc/gangc/lme.html
+Website - https://afni.nimh.nih.gov/sscc/gangc/lme.html
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
@@ -68,7 +68,7 @@ Usage:
  install.packages("snow")
  
  More details about 3dLME can be found at 
- http://afni.nimh.nih.gov/sscc/gangc/LME.html
+ https://afni.nimh.nih.gov/sscc/gangc/LME.html
 
  Once the 3dLME command script is constructed, it can be run by copying and
  pasting to the terminal. Alternatively (and probably better) you save the 
@@ -1474,8 +1474,11 @@ print(format(Sys.time(), "%D %H:%M:%OS3"))
 # test runLME(inData[20,20,20,], dataframe=lop$dataStr, ModelForm=ModelForm, pars=pars)      
 
 if(lop$ICC) {  # ICC part
+   if(dimy==1 & dimz==1) Stat <- array(0, dim=c(dimx, lop$NoBrick)) else
    Stat <- array(0, dim=c(dimx, dimy, dimz, lop$NoBrick))
    if (lop$nNodes==1) for (kk in 1:dimz) {
+      # 2/9/2016: for 1D input files. Should do this for other scenarios
+      if(dimy==1 & dimz==1) Stat <- aperm(apply(drop(inData[,,kk,]), 1, runREML, fm=fm, nBrk=lop$NoBrick, tag=0), c(2,1)) else
       Stat[,,kk,] <- aperm(apply(inData[,,kk,], c(1,2), runREML, fm=fm, nBrk=lop$NoBrick, tag=0), c(2,3,1))
       cat("Z slice #", kk, "done: ", format(Sys.time(), "%D %H:%M:%OS3"), "\n")
    }         

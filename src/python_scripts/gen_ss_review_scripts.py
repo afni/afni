@@ -132,7 +132,7 @@ gen_ss_review_scripts.py - generate single subject analysis review scripts
       -final_anat DSET          : final anatomical dataset
       -final_view VIEW          : final view of data (e.g. 'orig' or 'tlrc')
 
-      -uvar VAR PARAMS ...      : generic option form for control variables
+      -cvar VAR PARAMS ...      : generic option form for control variables
       -uvar VAR PARAMS ...      : generic option form for user variables
 
 

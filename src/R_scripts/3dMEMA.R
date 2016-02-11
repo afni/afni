@@ -509,7 +509,7 @@ greeting.MEMA <- function ()
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 Version 0.2.7, Aug 18, 2015
 Author: Gang Chen (gangchen@mail.nih.gov)
-Website - http://afni.nimh.nih.gov/sscc/gangc/MEMA.html
+Website - https://afni.nimh.nih.gov/sscc/gangc/MEMA.html
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
       )
@@ -522,7 +522,7 @@ Please consider citing the following if this program is useful for you:
    Chen et al., 2012. FMRI Group Analysis Combining Effect Estimates
    and Their Variances. NeuroImage. NeuroImage 60: 747-765.
    
-   http://afni.nimh.nih.gov/sscc/gangc/MEMA.html
+   https://afni.nimh.nih.gov/sscc/gangc/MEMA.html
    
 #######################################################################"
    )
@@ -565,7 +565,7 @@ Usage:
  measures ANOVA) can be analyzed; or 1) there is only one within-subject (or 
  repeated-measures) factor and it contains two levels only. See more details at
  
- http://afni.nimh.nih.gov/sscc/gangc/MEMA.html
+ https://afni.nimh.nih.gov/sscc/gangc/MEMA.html
 
  Notice:  When comparing two groups, option "-groups groupA groupB" has to be
  present, and the output includes the difference of groupB - groupA, which is

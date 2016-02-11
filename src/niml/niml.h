@@ -735,6 +735,7 @@ extern char * MD5_B64_file(char * filename) ;
 extern void   MD5_set_xor_use(int) ;  /* 09 Apr 2015 */
 
 extern char * UNIQ_idcode(void) ;
+extern char * UNIQ_idcode_11(void) ;             /* 10 Feb 2016 */
 extern void   UNIQ_idcode_fill( char * ) ;
 extern char * UNIQ_hashcode( char * ) ;
 extern void UNIQ_hashprefix_fill( char *idc ) ;  /* 30 Apr 2013 */

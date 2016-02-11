@@ -1005,7 +1005,7 @@ STATUS("making imag->rowcol") ;
           first = 0 ;
           fprintf(stderr,
            "\n++ WARNING: Can't find TTatlas+tlrc or TTatlas.nii.gz dataset for 'whereami'!\n"
-             "++--------- See http://afni.nimh.nih.gov/pub/dist/data/\n" ) ;
+             "++--------- See https://afni.nimh.nih.gov/pub/dist/data/\n" ) ;
         }
       }
       imag->pop_whereami_twin = NULL ;

@@ -119,13 +119,16 @@ extern void powell_newuoa_set_con_ball(void) ;
 extern int  powell_newuoa_get_con     (void) ;  /* 30 Oct 2015 */
 extern void powell_newuoa_set_con     (int)  ;
 
-
 extern int powell_newuoa_constrained(
                                int ndim, double *x, double *cost ,
                                double *xbot, double *xtop ,
                                int nrand, int nkeep, int ntry ,
                                double rstart , double rend ,
                                int maxcall , double (*ufunc)(int,double *) ) ;
+
+extern double minimize_in_1D( double xbot, double xtop,
+                              double (*ufunc)(int,double *) ) ; /* 26 Jan 2016 */
+
 
 extern char * approximate_number_string( double ) ;   /* 16 Jan 2004 */
 extern char * commaized_integer_string( long long );  /* 18 Mar 2010 */

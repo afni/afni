@@ -289,7 +289,7 @@ char * SUMA_gsf_eng(char *uwname, TFORM target, char **hintout, char **helpout)
                found=YUP;
             }
          }
-         snprintf(s,511,"http://afni.nimh.nih.gov/pub/dist/doc/htmldoc");
+         snprintf(s,511,"https://afni.nimh.nih.gov/pub/dist/doc/htmldoc");
          if (found) {
             SUMA_Sphinx_Widget_Name_2_Link(lnm);
             SUMA_strncat(s,"/SUMA/Controllers.html#", 511);

@@ -35,34 +35,34 @@ static char * file_extension_list[] = {
     ".gii", ".gii.dset", ".niml.tract"
 };
 
-/* 
-   Return a plausible path to a pathless filename, 
-   returns NULL if no file was found. 
+/*
+   Return a plausible path to a pathless filename,
+   returns NULL if no file was found.
 */
-char * Add_plausible_path(char *fname) 
+char * Add_plausible_path(char *fname)
 {
-   char dname[THD_MAX_NAME], ename[THD_MAX_NAME], 
+   char dname[THD_MAX_NAME], ename[THD_MAX_NAME],
          *elocal=NULL, *eee=NULL, *pp=NULL, *epath=NULL;
    int epos=0, ll=0, ii=0, id = 0, kk=0;
    FILE *fp=NULL;
-   
+
    ENTRY("Add_plausible_path");
-   
+
    if (!fname) RETURN(NULL);
-   
+
    /* If file exists as is, go back */
-   if ((fp = fopen( fname , "r"))) { 
+   if ((fp = fopen( fname , "r"))) {
       pp = (char *)malloc(sizeof(char)*(strlen(fname)+1));
       pp = strcpy(pp, fname);
       fclose(fp);
       RETURN(pp);
    }
-   
+
    ii = strlen(fname);
    while (ii >=0) {
-      if (fname[ii] == '/') { /* Have path in name, return whole thing, 
+      if (fname[ii] == '/') { /* Have path in name, return whole thing,
                                  if file exists! */
-         if ((fp = fopen( fname , "r"))) { 
+         if ((fp = fopen( fname , "r"))) {
             pp = (char *)malloc(sizeof(char)*(strlen(fname)+1));
             pp = strcpy(pp, fname);
             fclose(fp);
@@ -73,15 +73,15 @@ char * Add_plausible_path(char *fname)
       }
       --ii;
    }
-   
+
    /* have name, try different paths */
                        epath = getenv("AFNI_R_PATH") ;
    if( epath == NULL ) epath = getenv("AFNI_PLUGINPATH") ;
    if( epath == NULL ) epath = getenv("AFNI_PLUGIN_PATH") ;
    if( epath == NULL ) epath = getenv("PATH") ;
-   
-      
-   /* Next block is based on one in thd_ttatlas_query.c */   
+
+
+   /* Next block is based on one in thd_ttatlas_query.c */
    /*----- copy path list into local memory -----*/
 
    ll = strlen(epath) ;
@@ -114,16 +114,16 @@ char * Add_plausible_path(char *fname)
       strcpy(dname,ename) ;
       strcat(dname,fname) ;               /* add file name */
 
-      if ((fp = fopen( dname , "r"))) { 
-         pp = (char *)malloc(sizeof(char)*(strlen(dname)+1));   
+      if ((fp = fopen( dname , "r"))) {
+         pp = (char *)malloc(sizeof(char)*(strlen(dname)+1));
          pp = strcpy(pp, dname);
          fclose(fp);
          RETURN(pp);
       }
 
    } while( epos < ll ) ;  /* scan until 'epos' is after end of epath */
-   
-   
+
+
    RETURN(pp);
 }
 
@@ -585,7 +585,7 @@ ENTRY("is_surface_storage_mode");
          smode == STORAGE_BY_3D           ||
          smode == STORAGE_BY_NIML         ||
          smode == STORAGE_BY_NI_SURF_DSET ||
-         smode == STORAGE_BY_GIFTI 
+         smode == STORAGE_BY_GIFTI
        ) RETURN(1);
 
     RETURN(0);
@@ -595,14 +595,14 @@ ENTRY("is_surface_storage_mode");
 int storage_mode_from_prefix( char * fname )
 {
    int sm=STORAGE_UNDEFINED;
-   
+
 ENTRY("storage_mode_from_prefix");
-   
+
    if( !fname || !*fname )                     RETURN(STORAGE_UNDEFINED);
    sm = storage_mode_from_filename(fname);
    if( sm != STORAGE_UNDEFINED ) RETURN(sm);
-   
-   if (fname[strlen(fname)-1] == '.') { 
+
+   if (fname[strlen(fname)-1] == '.') {
       if( STRING_HAS_SUFFIX(fname, "+orig.") ||
           STRING_HAS_SUFFIX(fname, "+acpc.") ||
           STRING_HAS_SUFFIX(fname, "+tlrc.") ) sm = STORAGE_BY_BRICK;
@@ -725,7 +725,7 @@ ENTRY("has_writable_extension");
 }
 
 /* ---------------------------------------------------- */
-/* given a filename, return a string excluding known 
+/* given a filename, return a string excluding known
    afni extensions (from file_extension_list)
    DO NOT FREE output.
                                    06 Feb 2012 [ZSS] */
@@ -738,12 +738,12 @@ char * without_afni_filename_extension( char * fname )
     int c, flen, num_ext;
 
     ENTRY("without_afni_filename_extension");
-    
+
     if( !fname || !*fname ) RETURN(NULL);
     ++icall;
     if (icall > 4) icall = 0;
     onames[icall][0]='\0';
-    
+
     if (strlen(fname) >= THD_MAX_NAME) {
       WARNING_message("Filename too long for without_afni_filename_extension()"
                       "Returing fname");
@@ -771,42 +771,43 @@ char * without_afni_filename_view_and_extension( char * fname )
     int flen;
 
 ENTRY("without_afni_filename_view_and_extension");
-    
+
     if( !fname || !*fname ) RETURN(NULL);
     ++icall;
     if (icall > 4) icall = 0;
     onames[icall][0]='\0';
-    
+
     if ((noext = without_afni_filename_extension(fname))) {
       flen = strlen(noext);
-      if (fname[strlen(noext)-1] == '.') { 
+      if (fname[strlen(noext)-1] == '.') {
          if( STRING_HAS_SUFFIX(noext, "+orig.") ||
              STRING_HAS_SUFFIX(noext, "+acpc.") ||
              STRING_HAS_SUFFIX(noext, "+tlrc.") ) {
-            flen = flen - 6;   
+            flen = flen - 6;
             strncpy(onames[icall], noext, flen);
             onames[icall][flen]='\0';
-         } 
+         }
       } else if( STRING_HAS_SUFFIX(noext, "+orig") ||
                  STRING_HAS_SUFFIX(noext, "+acpc") ||
                  STRING_HAS_SUFFIX(noext, "+tlrc") ) {
-         flen = flen - 5;   
+         flen = flen - 5;
          strncpy(onames[icall], noext, flen);
          onames[icall][flen]='\0';
       } else {
          strncpy(onames[icall], noext, flen);
          onames[icall][flen]='\0';
       }
-      
+
       RETURN(onames[icall]);
     }
-    
+
     RETURN(fname);   /* not found */
 }
 
-
+/*--------------------------------------------------------------*/
 /* Add prefix and/or suffix to filename fname taking care
    to leave the path undisturbed and known extensions preserved */
+
 char * modify_afni_prefix( char * fname , char *pref, char *suf)
 {
     char ** eptr;
@@ -815,18 +816,18 @@ char * modify_afni_prefix( char * fname , char *pref, char *suf)
     int c, isl, icp, flen, num_ext;
 
 ENTRY("modify_afni_prefix");
-    
+
     if( !fname || !*fname ) RETURN(NULL);
     ++icall;
     if (icall > 8) icall = 0;
     onames[icall][0]='\0';
-    
-    
+
+
     if (!suf && !pref) {
       /* nothing to do */
       RETURN(fname);
     }
-    
+
     if (pref && strlen(pref)) {
       flen = strlen(fname);
       if (flen+strlen(pref) >= THD_MAX_NAME) {
@@ -834,7 +835,7 @@ ENTRY("modify_afni_prefix");
                          "Returing fname");
          RETURN(fname);
       }
-      
+
       /* find last '/' */
       isl=flen-1;
       while(isl>=0) {
@@ -844,13 +845,13 @@ ENTRY("modify_afni_prefix");
       for (icp=0; icp<=isl; ++icp) onames[icall][icp]=fname[icp];
       onames[icall][icp]='\0';
       strcat(onames[icall], pref);
-      strcat(onames[icall],fname+isl+1); 
-      
-      fname = onames[icall]; 
+      strcat(onames[icall],fname+isl+1);
+
+      fname = onames[icall];
       ++icall; if (icall > 8) icall = 0;
       onames[icall][0]='\0';
     }
-    
+
     if (suf && strlen(suf)) {
       flen = strlen(fname);
       if (flen+strlen(suf) >= THD_MAX_NAME) {
@@ -858,7 +859,7 @@ ENTRY("modify_afni_prefix");
                          "Returing fname");
          RETURN(fname);
       }
-      
+
       /* remove the extension */
       num_ext = sizeof(file_extension_list)/sizeof(char *);
       for( c = 0, eptr = file_extension_list; c < num_ext; c++, eptr++ ) {
@@ -875,10 +876,10 @@ ENTRY("modify_afni_prefix");
          strcat(onames[icall],fname);
          strcat(onames[icall], suf);
       }
-      
+
       RETURN(onames[icall]);
    }
-   
+
    /* should not get here, but be nice anyway */
    RETURN(fname);   /* not found */
 

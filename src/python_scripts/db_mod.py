@@ -2257,7 +2257,7 @@ def db_cmd_blur(proc, block):
 
        # if we have an extents mask, apply it if no scale block
        do_mask = proc.mask_extents != None and \
-                 proc.find_block('scale',block.index) == None
+                 proc.find_block('scale',mn=block.index) == None
 
        if do_mask: tprefix = 'rm.%s' % prefix
        else:       tprefix = prefix
@@ -4194,7 +4194,7 @@ def db_cmd_regress_gcor(proc, block, errts_pre):
     return cmd
 
 
-def set_proc_vr_vall(proc, parset=None, newpre='rm.all_runs.volreg'):
+def set_proc_vr_vall(proc, block, parset=None, newpre='rm.all_runs.volreg'):
    """if proc.vr_vall is set, do nothing
       else return string to create it
 
@@ -4204,8 +4204,14 @@ def set_proc_vr_vall(proc, parset=None, newpre='rm.all_runs.volreg'):
    # create or not catenated volreg dataset
    if proc.vr_vall != None: return ''
 
+   vblock = proc.find_block_or_prev('volreg', block)
+   if vblock == None:
+      print '** SPVV: failed to find corresponding volreg block'
+      return ''
+
    cmd = '# create catenated volreg dataset\n' \
-         '3dTcat -prefix %s %s\n' % (newpre, proc.dset_form_wild('volreg'))
+         '3dTcat -prefix %s %s\n'              \
+         % (newpre, proc.dset_form_wild(vblock.label))
 
    proc.vr_vall = parset.new(newpre)
 
@@ -4262,7 +4268,7 @@ def db_cmd_regress_anaticor(proc, block):
           % (fstr, roilab)
 
     # create or note catenated volreg dataset
-    cmd += set_proc_vr_vall(proc, parset=rset)
+    cmd += set_proc_vr_vall(proc, block, parset=rset)
     vall = proc.vr_vall.shortinput()
 
     # generate main command string
@@ -4696,7 +4702,7 @@ def db_cmd_regress_pc_followers(proc, block):
     # if there is no volreg prefix, get a more recent one
     vr_prefix = proc.volreg_prefix
     if not vr_prefix:
-       vblock = get_possible_volreg_block(proc, block)
+       vblock = proc.find_block_or_prev('volreg', block)
        vr_prefix = proc.prefix_form_run(vblock)
 
     tpre = 'rm.det_pcin'
@@ -4806,7 +4812,7 @@ def db_cmd_regress_ROI(proc, block):
     # if there is no volreg prefix, get a more recent one
     vr_prefix = proc.volreg_prefix
     if not vr_prefix:
-       vblock = get_possible_volreg_block(proc, block)
+       vblock = proc.find_block_or_prev('volreg', block)
        vr_prefix = proc.prefix_form_run(vblock)
 
     cmd += 'foreach run ( $runs )\n'
@@ -4838,20 +4844,6 @@ def db_cmd_regress_ROI(proc, block):
     print '-- have %d ROIs to regress: %s' % (len(rois), ', '.join(rois))
 
     return 0, cmd
-
-def get_possible_volreg_block(proc, block):
-    """find volreg block, or pre surf/blur/scale/current block
-       require that it is no later than current
-    """
-    rblock = proc.find_block('volreg')
-    if rblock: return rblock
-
-    rblock = proc.find_block('surf')
-    if not rblock: rblock = proc.find_block('blur')
-    if not rblock: rblock = proc.find_block('scale')
-    if not rblock: rblock = block
-
-    return proc.find_block(proc.prev_lab(rblock))
 
 def db_cmd_regress_bandpass(proc, block):
     """apply bandpass filtering in 3dDeconvolve
@@ -6318,8 +6310,8 @@ g_help_string = """
            -mask_segment_anat and -mask_segment_erode options.
 
         ** While -mask_segment_anat also creates a CSF mask, that mask is ALL
-           CSF, not just restrictied to the ventricles, for example.  So it is
-           probably not appropriate for use in tissue-based regresssion.
+           CSF, not just restricted to the ventricles, for example.  So it is
+           probably not appropriate for use in tissue-based regression.
 
            CSFe was previously used as an example of what one could do, but as
            it is not advised, it has been removed.
@@ -6381,9 +6373,8 @@ g_help_string = """
          o No bandpassing.
          o Use fast ANATICOR method (slightly different from default ANATICOR).
          o Use FreeSurfer segmentation for:
-             - regression of average eroded white matter
              - regression of first 3 principal components of lateral ventricles
-             - ANATICOR white matter mask
+             - ANATICOR white matter mask (for local white matter regression)
          o Input anat is from FreeSurfer (meaning it is aligned with FS masks).
              - output from FS is usually not quite aligned with input
          o Erode FS white matter and ventricle masks before application.
@@ -6410,7 +6401,6 @@ g_help_string = """
                   -volreg_align_e2a                                          \\
                   -volreg_tlrc_warp                                          \\
                   -regress_ROI_PC FSvent 3                                   \\
-                  -regress_ROI FSWe                                          \\
                   -regress_make_corr_vols aeseg FSvent                       \\
                   -regress_anaticor_fast                                     \\
                   -regress_anaticor_label FSWe                               \\
@@ -9035,7 +9025,7 @@ g_help_string = """
             to use 'NONE' for the corresponding basis function.
 
             Please see '3dDeconvolve -help' for more information, or the link:
-                http://afni.nimh.nih.gov/afni/doc/misc/3dDeconvolveSummer2004
+                https://afni.nimh.nih.gov/afni/doc/misc/3dDeconvolveSummer2004
             See also -regress_basis_normall, -regress_stim_times,
                      -regress_stim_types.
 
@@ -9627,7 +9617,7 @@ g_help_string = """
             which may be used for multiple 3dDeconvolve options.
 
             Please see '3dDeconvolve -help' for more information, or the link:
-                http://afni.nimh.nih.gov/afni/doc/misc/3dDeconvolveSummer2004
+                https://afni.nimh.nih.gov/afni/doc/misc/3dDeconvolveSummer2004
 
         -regress_opts_reml OPTS ...  : specify extra options for 3dREMLfit
 
@@ -9838,7 +9828,7 @@ g_help_string = """
                                 *
 
             Please see '3dDeconvolve -help' for more information, or the link:
-                http://afni.nimh.nih.gov/afni/doc/misc/3dDeconvolveSummer2004
+                https://afni.nimh.nih.gov/afni/doc/misc/3dDeconvolveSummer2004
             See also -regress_stim_files, -regress_stim_labels, -regress_basis,
                      -regress_basis_normall, -regress_polort.
 
@@ -9879,7 +9869,7 @@ g_help_string = """
             with -regress_stim_types 'file'.
 
             Please see '3dDeconvolve -help' for more information, or the link:
-                http://afni.nimh.nih.gov/afni/doc/misc/3dDeconvolveSummer2004
+                https://afni.nimh.nih.gov/afni/doc/misc/3dDeconvolveSummer2004
             See also -regress_stim_times, -regress_stim_labels, -regress_basis,
                      -regress_basis_normall, -regress_polort,
                      -regress_stim_times_offset, -regress_use_stim_files.

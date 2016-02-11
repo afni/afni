@@ -604,7 +604,7 @@ int    nifti_valid_header_size(int ni_ver, int whine);
 #define NIFTI_ECODE_DICOM            2  /* intended for raw DICOM attributes  */
 
 #define NIFTI_ECODE_AFNI             4  /* Robert W Cox: rwcox@nih.gov
-                                           http://afni.nimh.nih.gov/afni      */
+                                           https://afni.nimh.nih.gov/afni     */
 
 #define NIFTI_ECODE_COMMENT          6  /* plain ASCII text only              */
 

@@ -295,7 +295,7 @@ void SUMA_usage (SUMA_GENERIC_ARGV_PARSE *ps, int detail)
 "\n"
 "   For help on interacting with SUMA, press 'ctrl+h' with the mouse \n"
 "   pointer inside SUMA's window.\n"     
-"   For more help: http://afni.nimh.nih.gov/pub/dist/edu/latest/suma/suma.pdf\n"
+"   For more help: https://afni.nimh.nih.gov/pub/dist/edu/latest/suma/suma.pdf\n"
 "\n"     
 "   If you can't get help here, please get help somewhere.\n"
       ); } 
