@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 11 , FEB , 2016 , RWC , "3dGroupInCorr" , MICRO , TYPE_NEW_OPT ,
+   "Add -ztest option == test inputs if they are all zero" ,
+   "For Cesar." } ,
+
  { 11 , FEB , 2016 , RWC , "afni version check" , MICRO , TYPE_GENERAL ,
    "add https support to thd_http.c" ,
    "Via wget or curl, plus popen+fread+pclose.  Cheap, but works." } ,
