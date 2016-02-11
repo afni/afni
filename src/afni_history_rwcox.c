@@ -44,6 +44,13 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 11 , FEB , 2016 , RWC , "3dttest++" , MAJOR , TYPE_NEW_OPT ,
+   "-clustsim option" ,
+   "This option runs 3dttest++ with -randomize and then 3dClustSim with\n"
+   "-inset, to produce cluster-threshold tables for inclusion in the output.\n"
+   " It is my intention that this method will replace the use of 3dFWHMx and\n"
+   "3dClustSim.  Knock wood, and help Make AFNI Great Again!" } ,
+
  { 9 , FEB , 2016 , RWC , "3dQwarp" , MICRO , TYPE_GENERAL ,
    "Tested on 2D images (single-slice datasets)" ,
    "It actually worked.  Added a comment to that effect in the help output." } ,
