@@ -1102,6 +1102,8 @@ int main( int argc , char *argv[] )
    int voxindB=-666 , voxijkB=-666 , redoB=1 ; /* Apr 2013 */
    int do_apair=0 ;
 
+   int do_ztest=0 ; /* 11 Feb 2016 */
+
 #ifdef COVTEST
    float *ctarA=NULL , *ctarB=NULL ; char *ctnam ;  /* debugging covariates */
 #endif
@@ -1552,6 +1554,9 @@ int main( int argc , char *argv[] )
       "              the system's swap file, when the .data files are huge.\n"
       "           ++ You must give '-read' BEFORE '-setA' or '-setB', so that the\n"
       "              program knows what to do when it reaches those options!\n"
+      "\n"
+      " -ztest   = Test the input to see if it is all zero.  This option is for\n"
+      "            debugging, not for general use all the time.\n"
       "\n"
       " -ah host = Connect to AFNI/SUMA on the computer named 'host', rather than\n"
       "            on the current computer system 'localhost'.\n"
@@ -2033,6 +2038,10 @@ int main( int argc , char *argv[] )
        if( shd_BBB != NULL )
          WARNING_message("Option '-read' given AFTER '-setB' => '-read' is ignored for '-setB'") ;
        do_read++ ; nopt++ ; continue ;
+     }
+
+     if( strcasecmp(argv[nopt],"-ztest") == 0 ){ /* 11 Feb 2016 */
+       do_ztest++ ; nopt++ ; continue ;
      }
 
      if( strcasecmp(argv[nopt],"-ah") == 0 ){
@@ -2802,6 +2811,40 @@ int main( int argc , char *argv[] )
      if( verb == 666 ) INFO_message(" data sum = %g",sum) ; /* e.g., never */
    }
 #undef BSTEP
+
+   if( do_ztest ){  /* 11 Feb 2016 */
+     byte *bv ; short *sv ; int pp,nzz=0 ; int64_t nqq,qq ;
+     INFO_message("Running -ztest now") ;
+     if( shd_AAA->datum == 1 ){
+       for( pp=0 ; pp < shd_AAA->ndset ; pp++ ){
+         bv = shd_AAA->bv[pp] ; nqq = shd_AAA->nvec * (int64_t)shd_AAA->nvals[pp] ;
+         for( qq=0 ; qq < nqq && bv[qq]==0 ; qq++ ) ; /*nada*/
+         if( qq==nqq ){ WARNING_message("-setA dataset #%d is all zero :-(",pp) ; nzz++ ; }
+       }
+     } else {
+       for( pp=0 ; pp < shd_AAA->ndset ; pp++ ){
+         sv = shd_AAA->sv[pp] ; nqq = shd_AAA->nvec * (int64_t)shd_AAA->nvals[pp] ;
+         for( qq=0 ; qq < nqq && sv[qq]==0 ; qq++ ) ; /*nada*/
+         if( qq==nqq ){ WARNING_message("-setA dataset #%d is all zero :-(",pp) ; nzz++ ; }
+       }
+     }
+     if( shd_BBB != NULL && !do_apair ){
+       if( shd_BBB->datum == 1 ){
+         for( pp=0 ; pp < shd_BBB->ndset ; pp++ ){
+           bv = shd_BBB->bv[pp] ; nqq = shd_BBB->nvec * (int64_t)shd_BBB->nvals[pp] ;
+           for( qq=0 ; qq < nqq && bv[qq]==0 ; qq++ ) ; /*nada*/
+           if( qq==nqq ){ WARNING_message("-setB dataset #%d is all zero :-(",pp) ; nzz++ ; }
+         }
+       } else {
+         for( pp=0 ; pp < shd_BBB->ndset ; pp++ ){
+           sv = shd_BBB->sv[pp] ; nqq = shd_BBB->nvec * (int64_t)shd_BBB->nvals[pp] ;
+           for( qq=0 ; qq < nqq && sv[qq]==0 ; qq++ ) ; /*nada*/
+           if( qq==nqq ){ WARNING_message("-setB dataset #%d is all zero :-(",pp) ; nzz++ ; }
+         }
+       }
+     }
+     ININFO_message("total of %d dataset%s tested as all zero",nzz,(nzz!=1)?"s":"\0") ;
+   }
 
    if( verb ){
      int64_t nbtot = shd_AAA->nbytes ;
