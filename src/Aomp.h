@@ -46,7 +46,7 @@ static INLINE void AAmemset( void *ooo , int c , size_t nnn )
   do{ int mm=omp_get_max_threads() , nn=thn , ee;       \
       ee = (int)AFNI_numenv("OMP_NUM_THREADS") ;        \
       if( ee <= 0 ){                                    \
-        if( nn < 1 ) nn = 12 ; if( mm > nn ) mm = nn ;  \
+        if( nn < 1 ) nn = 15 ; if( mm > nn ) mm = nn ;  \
         omp_set_num_threads(mm) ;                       \
       }                                                 \
   } while(0)

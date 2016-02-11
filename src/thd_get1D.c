@@ -134,6 +134,7 @@ MRI_IMARR * THD_get_all_timeseries( char * dname )
 
    max_fsize = (unsigned long) AFNI_numenv( "AFNI_MAX_1DSIZE" ) ;
    if( max_fsize == 0 ) max_fsize = 123*1024 ;
+   if( max_fsize == 1 ) return NULL ;
 
    /*----- sanity check and initialize -----*/
 
