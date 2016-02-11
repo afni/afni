@@ -49,6 +49,10 @@
 
 
 afni_history_struct dglen_history[] = {
+{ 10, FEB, 2016 , DRG , "afni" , 
+    MICRO , TYPE_BUG_FIX, 
+    "fixed ignoring of -no1D option, and 1D files are not read on input"
+},
 { 22, JAN, 2016 , DRG , "auto_warp.py" , 
     MICRO , TYPE_BUG_FIX, 
     "skip_affine option previously skipped"
