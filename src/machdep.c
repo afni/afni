@@ -53,6 +53,33 @@ void machdep()
 
 /*-------------------------------------------------------------------*/
 
+#include <unistd.h>
+#ifdef USE_SYSCTL
+# include <sys/types.h>
+# include <sys/sysctl.h>
+#endif
+
+int AFNI_get_ncpu(void)  /* 11 Feb 2016 */
+{
+   int32_t nnn ;
+
+   nnn = sysconf(_SC_NPROCESSORS_CONF) ;
+
+#ifdef USE_SYSCTL
+   if( nnn < 1 )
+     sysctlbyname( "hw.logicalcpu" , &nnn , sizeof(int32_t) , NULL,0 ) ;
+
+   if( nnn < 1 )
+     sysctlbyname( "hw.ncpu" , &nnn , sizeof(int32_t) , NULL,0 ) ;
+#endif
+
+   if( nnn < 1 ) nnn = 1 ;
+
+   return (int)nnn ;
+}
+
+/*-------------------------------------------------------------------*/
+
 char * GetAfniWebBrowser(void)
 {
    static char *awb=NULL;

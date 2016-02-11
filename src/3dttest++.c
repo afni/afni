@@ -832,6 +832,33 @@ void display_help_menu(void)
       "                of random sign flipping, so you will get 1000 times the\n"
       "                as many output sub-bricks as usual. This is intended for\n"
       "                for use with simulations such as '3dClustSim -inset'.\n"
+      "\n"
+      " -clustsim   = With this option, after the commanded t-tests are done, then:\n"
+      "                (a) the residuals from '-resid' are used with '-randomsign' to\n"
+      "                    simulate about 10000 null 3D results, and then\n"
+      "                (b) 3dClustSim is run with those to generate cluster-threshold\n"
+      "                    tables, and then\n"
+      "                (c) 3drefit is used to pack those tables into the main output\n"
+      "                    dataset, and then\n"
+      "                (d) the temporary files created in this process are deleted.\n"
+      "               The goal is to provide a method for cluster-level statistical\n"
+      "               inference in the output dataset, to be used with the AFNI GUI\n"
+      "               Clusterize controls.\n"
+      "              ++ If you want to keep the 3dClustSim table .1D files, use this\n"
+      "                 option in the form '-Clustsim'.\n"
+      "              ++ Since the simulations are done with '-toz' active, it would\n"
+      "                 make sense for you to use '-toz' when you use '-clustsim'.\n"
+      "              ++ '-clustsim' will not work with less than 7 datasets in each\n"
+      "                 input set -- in particular, it doesn't work with '-singletonA'.\n"
+      "\n"
+      " -prefix_clustsim cc = Use 'cc' for the prefix for the '-clustsim' temporary\n"
+      "                       files, rather than a randomly generated prefix.\n"
+      "                       You might find this useful if scripting.  This option\n"
+      "                       must be used AFTER '-clustsim'.\n"
+      "                      ++ The default randomly generated prefix will start with\n"
+      "                         'TT.' and be followed by 11 alphanumeric characters,\n"
+      "                         as in 'TT.Sv0Ghrn4uVg'.  To mimic this, you might\n"
+      "                         use '-prefix_clustsim TT.Zhark'.\n"
 #if 0 /*** hidden from user ***/
       "\n"
       " -dofsub ss  = Subtract 'ss' from the normal degrees of freedom used.\n"
@@ -1341,7 +1368,7 @@ void wait_for_jobs(void)     /* 10 Feb 2016 */
 }
 
 /*----------------------------------------------------------------------------*/
-/* Dis is de mayne porgam */
+/* Dis is de mayne porgam - RW Xoc */
 
 int main( int argc , char *argv[] )
 {
@@ -1367,7 +1394,7 @@ int main( int argc , char *argv[] )
    /*--- record things for posterity, et cetera ---*/
 
    mainENTRY("3dttest++ main"); machdep(); AFNI_logger("3dttest++",argc,argv);
-   PRINT_VERSION("3dttest++") ; AUTHOR("The Bob++") ;
+   PRINT_VERSION("3dttest++") ; AUTHOR("Zhark++") ;
 
 #if defined(USING_MCW_MALLOC) && !defined(USE_OMP)
    enable_mcw_malloc() ;
@@ -1460,7 +1487,7 @@ int main( int argc , char *argv[] )
      if( strcmp(argv[nopt],"-randomsign") == 0 ){  /* 31 Dec 2015 */
        do_randomsign++ ;
        nopt++ ;
-       if( isdigit(argv[nopt][0]) ){
+       if( nopt < argc && isdigit(argv[nopt][0]) ){
          num_randomsign = (int)strtod(argv[nopt],NULL) ; nopt++ ;
        } else {
          num_randomsign = 1 ;
@@ -1470,12 +1497,13 @@ int main( int argc , char *argv[] )
 
      /*----- -clustsim njob [10 Feb 2016] -----*/
 
-     if( strcmp(argv[nopt],"-clustsim") == 0 ){
+     if( strcasecmp(argv[nopt],"-clustsim") == 0 ){
        char *uuu ;
        if( do_clustsim )
          ERROR_message("Why do you use -clustsim more than once?!") ;
-       do_clustsim++ ; nopt++ ;
-       if( isdigit(argv[nopt][0]) ){
+       do_clustsim = 1 ; if( argv[nopt][1] == 'C' ) do_clustsim = 2 ;
+       nopt++ ;
+       if( nopt < argc && isdigit(argv[nopt][0]) ){
          num_clustsim = (int)strtod(argv[nopt],NULL) ; nopt++ ;
          if( num_clustsim > 99 ){
            ERROR_message("value after -clustsim is > 99") ; num_clustsim = 99 ;
@@ -1483,13 +1511,26 @@ int main( int argc , char *argv[] )
            ERROR_message("value after -clustsim is < 1" ) ; num_clustsim = 1 ;
          }
        } else {
-         num_clustsim = 1 ;
+         num_clustsim = AFNI_get_ncpu() ;
        }
        INFO_message("Number of -clustsim threads set to %d",num_clustsim) ;
        uuu = UNIQ_idcode_11() ;
        prefix_clustsim = (char *)malloc(sizeof(char)*32) ;
        sprintf(prefix_clustsim,"TT.%s",uuu) ; free(uuu) ;
        continue ;
+     }
+
+     /*----- -prefixclustim cc [11 Feb 2016] -----*/
+
+     if( strcasecmp(argv[nopt],"-prefix_clustsim") == 0 ){
+       if( ! do_clustsim )
+         ERROR_message("-prefix_clustsim comes before -clustsim??") ;
+       if( ++nopt >= argc )
+         ERROR_exit("Need argument after '%s'",argv[nopt-1]) ;
+       prefix_clustsim = strdup(argv[nopt]) ;
+       if( !THD_filename_ok(prefix_clustsim) )
+         ERROR_exit("-prefix_clustsim '%s' is not acceptable",prefix_clustsim) ;
+       nopt++ ; continue ;
      }
 
      /*----- dofsub -----*/
@@ -1981,9 +2022,6 @@ int main( int argc , char *argv[] )
    if( do_randomsign && num_randomsign > 1 ) /* 02 Feb 2016 */
      brickwise_num = num_randomsign ;
 
-   if( do_clustsim && do_resid )             /* 10 Feb 2016 */
-     ERROR_exit("You can't do -resid and -clustsim together!") ;
-
    if( do_randomsign && do_resid )           /* 02 Feb 2016 */
      ERROR_exit("You can't do -resid and -randomsign together!") ;
 
@@ -1992,13 +2030,12 @@ int main( int argc , char *argv[] )
 
    if( debug ) INFO_message("brickwise_num set to %d",brickwise_num) ;
 
-   if( do_clustsim && do_resid )
-     WARNING_message("-clustsim will override -resid with its own temporary prefix") ;
-
    if( do_clustsim ){
      do_resid = 1 ;
-     prefix_resid = (char *)malloc(sizeof(char)*(strlen(prefix_clustsim)+32)) ;
-     sprintf(prefix_resid,"%s.resid.nii",prefix_clustsim) ;
+     if( prefix_resid == NULL ){
+       prefix_resid = (char *)malloc(sizeof(char)*(strlen(prefix_clustsim)+32)) ;
+       sprintf(prefix_resid,"%s.resid.nii",prefix_clustsim) ;
+     }
    }
 
    twosam = (nval_BBB > 1) ; /* 2 sample test? */
@@ -2567,7 +2604,10 @@ LABELS_ARE_DONE:  /* target for goto above */
    vstep = (nmask_hits > 6666) ? nmask_hits/50 : 0 ;
    if( brickwise_num > 1 ){
      vstep = 0 ; bstep = brickwise_num/50 ; if( bstep == 0 ) bstep = 1 ;
-     fprintf(stderr,"++ t-test group:") ;
+     if( do_randomsign )
+       fprintf(stderr,"++ t-test randomsign:") ;
+     else
+       fprintf(stderr,"++ t-test brickwise:") ;
    } else {
      bstep =0 ;
    }
@@ -2877,19 +2917,24 @@ LABELS_ARE_DONE:  /* target for goto above */
    /*------------ Cluster Simulation now [10 Feb 2016] ------------*/
 
    if( do_clustsim ){
-     char fname[64] , *cmd ; int qq,pp , nper ; double ct1,ct2 ;
+     char fname[128] , *cmd , *ccc ; int qq,pp , nper ; double ct1,ct2 ;
 
-     cmd = (char *)malloc(sizeof(char)*2048) ;
+     cmd = (char *)malloc(sizeof(char)*8192) ;
      nper = 10000 / num_clustsim + 1 ;
 
      /* loop to start jobs */
 
-     INFO_message("starting %d -randomsign job%s (%d iterations per job)",
-                  num_clustsim , (num_clustsim > 1)?"s":"\0" , nper ) ;
+     INFO_message("================ Starting -clustsim calculations ================") ;
+     ININFO_message("===== temporary files will have prefix %s =====",prefix_clustsim) ;
+     ININFO_message("===== running %d -randomsign job%s (%d iterations per job) =====",
+                    num_clustsim , (num_clustsim > 1)?"s":"\0" , nper ) ;
      ct1 = COX_clock_time() ;
 
      for( pp=0 ; pp < num_clustsim ; pp++ ){
-       sprintf( cmd , "3dttest++ -DAFNI_AUTOMATIC_FDR=NO"
+
+       /* run 3dttest++ with the residuals as input */
+
+       sprintf( cmd , "3dttest++ -DAFNI_AUTOMATIC_FDR=NO -DAFNI_DONT_LOGFILE=YES"
                       " -randomsign %d -no1sam -nomeans -toz" , nper ) ;
        if( name_mask != NULL )
          sprintf( cmd+strlen(cmd) , " -mask %s",name_mask) ;
@@ -2902,31 +2947,73 @@ LABELS_ARE_DONE:  /* target for goto above */
                                     prefix_resid , nval_AAA    ) ;
        }
 
-       sprintf( cmd+strlen(cmd) , " -prefix %s.%03d.nii >& /dev/null" , prefix_clustsim , pp ) ;
+       /* let only job #0 print progress to the screen */
 
-       start_job( cmd ) ; NI_sleep(1) ;
+       sprintf( cmd+strlen(cmd) , " -prefix %s.%03d.nii" , prefix_clustsim , pp ) ;
+       if( pp > 0 ) strcat(cmd," >& /dev/null") ;
+
+       start_job( cmd ) ; if( pp > 0 ) NI_sleep(66) ;
      }
-     ININFO_message(" -- waiting for job%s to finish",(num_clustsim > 1)?"s":"\0") ;
+
+     /* wait until all jobs stop */
+
      wait_for_jobs() ;
+
      ct2 = COX_clock_time() ;
-     ININFO_message(" -- jobs have finished (%.2f s elapsed)",ct2-ct1) ;
+     ININFO_message("===== jobs have finished (%.2f s elapsed) =====",ct2-ct1) ;
      ct1 = ct2 ;
 
-     sprintf( cmd , "3dClustSim -inset %s.???.nii -prefix %s.CSim -LOTS -both -cmd %s.CSim.cmd" ,
-                    prefix_clustsim , prefix_clustsim , prefix_clustsim ) ;
+     /* run 3dClustSim using the outputs from the above as the simulations */
+
+     sprintf(fname,"%s.CSim.cmd",prefix_clustsim) ;
+     sprintf( cmd , "3dClustSim -DAFNI_DONT_LOGFILE=YES"
+                    " -inset %s.???.nii -prefix %s.CSim -LOTS -both -cmd %s" ,
+                    prefix_clustsim , prefix_clustsim , fname ) ;
      if( name_mask != NULL )
        sprintf( cmd+strlen(cmd) , " -mask %s",name_mask) ;
 
-     ININFO_message(" -- starting 3dClustSim") ;
+     ININFO_message("===== starting 3dClustSim =====") ;
      system(cmd) ;
 
+     /* load the 3drefit command from 3dClustSim */
+
+     ccc = AFNI_suck_file(fname) ;
+     if( ccc == NULL )
+       ERROR_exit("===== 3dClustSim command failed :-((( =====") ;
+
+     /* crop whitespace off the end */
+
+     for( qq=strlen(ccc)-1 ; qq > 0 && isspace(ccc[qq]) ; qq-- ) ccc[qq] = '\0' ;
+     if( strlen(ccc) > 8190 ) cmd = (char *)realloc(cmd,strlen(ccc)+2048) ;
+
+     /* and run 3drefit */
+
+     ININFO_message("===== 3drefit-ing 3dClustSim results into %s =====",DSET_HEADNAME(outset)) ;
+     sprintf(cmd,"%s %s",ccc,DSET_HEADNAME(outset)) ;
+     system(cmd) ;
+
+     if( do_clustsim == 1 ){
+       ININFO_message("===== deleting temp files %s.* =====",prefix_clustsim) ;
+       sprintf(cmd,"\\rm %s.*",prefix_clustsim) ;
+     } else {
+       ININFO_message("===== deleting temp files %s.*.nii %s.*.niml =====",prefix_clustsim,prefix_clustsim) ;
+       sprintf(cmd,"\\rm %s.*.nii %s.*.niml",prefix_clustsim,prefix_clustsim) ;
+     }
+     system(cmd) ;
+
+     /* et viola */
+
+     free(ccc) ; free(cmd) ;
+     ININFO_message("=============== -clustsim work is finished :-) ===============") ;
    }
+
+   /*--- e finito ------------------------------------------------------------*/
 
    exit(0) ;
 
-} /* end of main program */
+} /*---------- end of main program -------------------------------------------*/
 
-/*---------------------------------------------------------------------------*/
+/*----------------------------------------------------------------------------*/
 /*----- macros for regression matrix elements -----*/
 
 #undef  PA

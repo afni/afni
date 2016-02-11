@@ -2751,7 +2751,8 @@ Variable: AFNI_MAX_1DSIZE
 Sets the maximum size (in bytes) of each 1D file that will be automatically
 loaded when AFNI starts.  The default is 123 Kbytes.  The intention is to
 prevent loading of very large files that are not intended to be used for
-graphing/FIMming purposes.
+graphing/FIMming purposes.  If you set this to 0, you get the default size.
+If you set this to 1, no 1D files will be read at the AFNI GUI startup.
 
 ---------------------------
 Variable: AFNI_TITLE_LABEL2 (editable)
