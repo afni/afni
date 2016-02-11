@@ -1,9 +1,9 @@
 
 .. _Bootcamping:
 
-*******************
-Basic Bootcamp Prep
-*******************
+***********************
+**Basic Bootcamp Prep**
+***********************
 
 .. note:: This is a very preliminary guide for preparing for a
           Bootcamp.  But it is accurate!

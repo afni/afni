@@ -1,8 +1,8 @@
 .. _Code:
 
-**********************
-SUMA Programming Notes
-**********************
+**************************
+**SUMA Programming Notes**
+**************************
 
 A pitiful set of tips to trick you into venturing down the SUMA code maze.
 

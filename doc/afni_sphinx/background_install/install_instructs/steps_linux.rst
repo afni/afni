@@ -3,8 +3,8 @@
 .. _install_steps_linux:
 
 
-**Complete system setup for:  (current) Linux**
-===============================================
+*Complete system setup for:  (current) Linux*
+=============================================
 
 
 Here we describe installation and system setup for mainstream Linux

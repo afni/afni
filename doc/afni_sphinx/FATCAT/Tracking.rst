@@ -2,7 +2,7 @@
 .. _Tracking:
 
 ****************************
-Making Tracts: **3dTrackID**
+**Making tracts: 3dTrackID**
 ****************************
 
 .. contents::

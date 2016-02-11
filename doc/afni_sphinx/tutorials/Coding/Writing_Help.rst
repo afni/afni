@@ -1,8 +1,8 @@
 .. _help_functions:
 
-==========================
-How to Format Help Strings
-==========================
+==============================
+**How to Format Help Strings**
+==============================
 
    This section explains how to go about writing the help section for command-line programs in a manner that is consistent with the AFNI standard of trickery. The process is somewhat different for the different types of programs as detailed below. But first a quick recap of the trickeries.
    

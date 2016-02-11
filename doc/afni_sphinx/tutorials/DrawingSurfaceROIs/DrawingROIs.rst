@@ -1,8 +1,8 @@
 .. _drawing_ROIs:
 
-============
-Drawing ROIs
-============
+================
+**Drawing ROIs**
+================
 
 You can draw Regions Of Interest (ROIs) directly on the surface models. To do so, you must first open the Draw ROI GUI with :kbd:`control-d` or :menuselection:`Tools --> Draw ROI`. An ROI can be a single :index:`node`, a curve (formed by connected nodes), a loop (or a closed curve or contour) and a filled loop. We begin with a small demo followed by a description of the GUI.
 

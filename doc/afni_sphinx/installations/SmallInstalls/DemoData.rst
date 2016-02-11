@@ -1,8 +1,8 @@
 .. _DemoData:
 
-==========
-Demo Data:
-==========
+==============
+**Demo Data:**
+==============
 
 .. _SUMA_demo_install:
 

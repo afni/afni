@@ -1,8 +1,8 @@
 .. _cover:
 
-*****
-Intro
-*****
+*********
+**Intro**
+*********
 
 .. _surface-based:
 

@@ -1,8 +1,8 @@
 .. _Controllers:
 
-***********
-Controllers
-***********
+***************
+**Controllers**
+***************
 
 GUI controllers make up three groups:
 

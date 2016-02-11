@@ -1,9 +1,9 @@
 .. _FATCAT_All:
 
 
-***************
-FATCAT Commands
-***************
+*******************
+**FATCAT Commands**
+*******************
 
 .. contents::
    :depth: 3

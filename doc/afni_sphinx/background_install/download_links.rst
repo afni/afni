@@ -1,12 +1,13 @@
 
 .. _Download_AFNI:
 
-******************************************************
-Downloading the latest and greatest AFNI/SUMA software
-******************************************************
+**********************************
+**Downloading AFNI/SUMA software**
+**********************************
 
 
-.. note:: **The current (min 1) version of AFNI is:**  |version|
+.. note:: **The current latest and greatest version of AFNI is:**
+          |version|
 
 
 Overview

@@ -1,7 +1,8 @@
 .. _FATCAT_Demo:
 
-FATCAT Demo
-===========
+===============
+**FATCAT Demo**
+===============
 
 .. note::
    

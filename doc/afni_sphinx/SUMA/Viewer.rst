@@ -1,8 +1,8 @@
 .. _viewer:
 
-***********
-SUMA Viewer
-***********
+***************
+**SUMA Viewer**
+***************
 
 .. _Surface_Viewing:
 

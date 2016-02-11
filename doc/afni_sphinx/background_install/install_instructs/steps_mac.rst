@@ -1,8 +1,8 @@
 
 .. _install_steps_mac:
 
-**Complete system setup for:  (modern) Mac OS**
-===============================================
+*Complete system setup for:  (modern) Mac OS*
+=============================================
 
 
 Here we describe a complete AFNI installation and system setup for Mac

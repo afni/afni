@@ -2,7 +2,7 @@
 .. _Making_ROIs:
 
 *****************************************
-Making (networks of) ROIs: **3dROIMaker**
+**Making (networks of) ROIs: 3dROIMaker**
 *****************************************
 
 .. contents::

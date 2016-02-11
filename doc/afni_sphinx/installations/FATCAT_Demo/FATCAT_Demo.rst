@@ -1,8 +1,8 @@
 .. _FATCAT_Demo_install:
 
-===================
-FATCAT Demo Install
-===================
+=======================
+**FATCAT Demo Install**
+=======================
 
 FATCAT Demo contains a set of diffusion weighted data and scripts to analyze them. The scripts are intended to illustrate the various tools of the FATCAT toolbox and some of the ways to visualize the results. 
 
