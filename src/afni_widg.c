@@ -288,7 +288,7 @@ static char *AFNI_funcmode_bbox_label[2] =
    "(cubical) voxel dimensions for the\n"   \
    "data resampling"
 
-#define PVALUE_COLOR "#0088dd"
+#define PVALUE_COLOR "#002244"
 
 /************* data for all widget create sub-functions ***************/
 
