@@ -31,9 +31,9 @@ if ($use_curl == -1) then
 endif
 
 if ($use_curl == 0) then
-   wget http://afni.nimh.nih.gov/pub/dist/data/$demo.tgz
+   wget https://afni.nimh.nih.gov/pub/dist/data/$demo.tgz
 else
-   curl -O http://afni.nimh.nih.gov/pub/dist/data/$demo.tgz
+   curl -O https://afni.nimh.nih.gov/pub/dist/data/$demo.tgz
 endif
 tar xvzf $demo.tgz
 cd $demo

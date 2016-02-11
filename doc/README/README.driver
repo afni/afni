@@ -46,7 +46,7 @@ ready for user interaction after the image file was saved.
 N.B.: If you are adroit, you could use the virtual X11 server program Xvfb
 to create images as indicated above with no need for an actual X11 display.
 For an example of how this can work, see the AFNI message board:
- http://afni.nimh.nih.gov/afni/community/board/read.php?f=1&i=20001&t=19993&v=f
+ https://afni.nimh.nih.gov/afni/community/board/read.php?f=1&i=20001&t=19993&v=f
 
 ==============================================================================
 Advanced AFNI Programming: Extending the AFNI Driver Functionality
@@ -152,7 +152,7 @@ DEFINE_COLORSCALE name number=color number=color ...
 or DEFINE_COLORSCALE name color color color
   Defines a new colorscale with the given name.  The format of the following
   arguments is either like "1.0=#ffff00" or like "#ff00ff" (all must be in the
-  same format).  See http://afni.nimh.nih.gov/afni/afni_colorscale.html for
+  same format).  See https://afni.nimh.nih.gov/afni/afni_colorscale.html for
   more information about the format of color names and about how the colorscale
   definition works.
   ++ You can also use "DEFINE_COLOR_SCALE" for the command name.

@@ -13,6 +13,7 @@
 # ----------------------------------------------------------------------
 
 set prog = `basename $0`
+set afnisite = https://afni.nimh.nih.gov
 
 # ----------------------------------------------------------------------
 # history section
@@ -36,6 +37,7 @@ history for $prog :
   15 Jan 2015 : if bad option and current version, fail after version check
   08 Apr 2015 : added -revert (zsaad and rickr)
   25 Aug 2015 : update path and AFNI tab completion on initial install
+  08 Feb 2016 : access afni site via https protocol
 -------------------------------------------------------------------------------
 EOF
 exit
@@ -341,7 +343,7 @@ if ( $missing_wget && $missing_curl ) then
     echo ""
     echo "** programs wget and curl are missing, please install *either*,"
     echo "   or look it up on the AFNI message board:"
-    echo "       http://afni.nimh.nih.gov/afni/community/board"
+    echo "       $afnisite/afni/community/board"
     echo ""
     exit 1
 endif
@@ -456,7 +458,7 @@ if ( $do_recur ) then
    set temp_prog = tmp.$prog         # temp name to run with
    set retry = 0                     # use multiple attempts to get this
 
-   set bin_root = http://afni.nimh.nih.gov/pub/dist/bin
+   set bin_root = $afnisite/pub/dist/bin
    set get_package = $bin_root/$package/$prog
    echo "++ getting install prog $package/$prog ..."
    $get_prog $get_package
@@ -567,7 +569,7 @@ if ( $#prog_list > 0 ) then
 else
   set pp = afni
 endif
-set get_package = http://afni.nimh.nih.gov/pub/dist/bin/$package/$pp
+set get_package = $afnisite/pub/dist/bin/$package/$pp
 echo "++ downloading test file $package/$pp ..."
 $get_prog $get_package
 cmp -s $pp ../$pp
@@ -601,7 +603,7 @@ sleep 1
 # download the full binary set or list of programs
 if ( $#prog_list == 0 ) then
    echo "++ downloading full $package.tgz package..."
-   set get_package = http://afni.nimh.nih.gov/pub/dist/tgz/$package.tgz
+   set get_package = $afnisite/pub/dist/tgz/$package.tgz
    $get_prog $get_package
    if ( $status ) then
        echo "** failed to download package $get_package"
@@ -612,7 +614,7 @@ else
    if ( $#prog_list > 1 ) echo "++ downloading remaining files ..."
    foreach pp ( $prog_list[2-] )
       set prog = $pp:t
-      set get_package = http://afni.nimh.nih.gov/pub/dist/bin/$package/$prog
+      set get_package = $afnisite/pub/dist/bin/$package/$prog
       $get_prog $get_package
       set ss = $status
       if ( $ss ) then

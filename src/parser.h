@@ -41,6 +41,10 @@ extern int PARSER_1dtran( char *, int, float * ) ;               /* 16 Jun 2009 
 
 extern double PARSER_strtod( char *expr ) ;
 
+extern float * PARSER_fitter( int nval, float *indval, float *depval,   /* 26 Jan 2016 */
+                       char *expr, char *indet,
+                       float *parbot, float *partop, float *parout, int meth, float *wtar ) ;
+
 #ifdef  __cplusplus
 }
 #endif

@@ -686,7 +686,7 @@ int main( int argc , char *argv[] )
 
      printf(
       "\n"
-      " -mask kkk   = Read dataset 'kkk' as a mask for the input; voxels outside\n"
+      " -mask MMM   = Read dataset 'MMM' as a mask for the input; voxels outside\n"
       "                 the mask will not be fit by the regression model.\n"
       " -automask   = If you don't know what this does by now, I'm not telling.\n"
       "            *** If you don't specify ANY mask, the program will\n"
@@ -1326,7 +1326,7 @@ int main( int argc , char *argv[] )
       "\n"
       "----------------------------------------------------------\n"
       "* For more information, see the contents of\n"
-      "    http://afni.nimh.nih.gov/pub/dist/doc/misc/3dREMLfit/\n"
+      "    https://afni.nimh.nih.gov/pub/dist/doc/misc/3dREMLfit/\n"
       "  which includes comparisons of 3dDeconvolve and 3dREMLfit\n"
       "  activations (individual subject and group maps), and an\n"
       "  outline of the mathematics implemented in this program.\n"
@@ -1471,7 +1471,7 @@ int main( int argc , char *argv[] )
              ERROR_exit("Label ordering of -slibase dataset is slice-major,\n"
                  "   for which -slibase_sm is more appropriate.  If this is\n"
                  "   not clear, search for it on the AFNI Message Board:\n"
-                 "        http://afni.nimh.nih.gov/afni/community/board");
+                 "        https://afni.nimh.nih.gov/afni/community/board");
            } else { /* order is unknown */
              WARNING_message("Unknown regressor ordering.  If the regressors\n"
                  "   were made via 'RetroTS', perhaps -slibase_sm is more\n"
@@ -1507,7 +1507,7 @@ int main( int argc , char *argv[] )
              ERROR_exit("Label order of -slibase_sm dataset is slice-minor,\n"
                  "   for which -slibase is more appropriate.  If this is\n"
                  "   not clear, search for it on the AFNI Message Board:\n"
-                 "        http://afni.nimh.nih.gov/afni/community/board");
+                 "        https://afni.nimh.nih.gov/afni/community/board");
            } else { /* order is unknown */
              WARNING_message("Unknown regressor ordering.  If the regressors\n"
                  "   were made via 'RetroTS' you are probably okay.");

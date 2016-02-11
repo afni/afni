@@ -95,16 +95,20 @@ static void xreduce( int n , double *x )
 /*! Function called by newuoa_();
     goal is to minimize this as a function of x[0..n-1] */
 
+static int calfun_err=0 ;
+
 int calfun_(integer *n, doublereal *x, doublereal *fun)
 {
    double val ;
+
+   calfun_err = 0 ;
 
    if( scalx == SC_BOX ){  /* in this case, inputs x[] are in range 0..1,  */
      int ii ;              /* and need to be scaled to their 'true' values */
 
      for( ii=0 ; ii < *n ; ii++ ){
        if( !isfinite(x[ii]) || x[ii] < -9.9 || x[ii] > 9.9 ){
-         fprintf(stderr,"** ERROR: calfun[%d]=%g --> 0\n",ii,x[ii]) ; x[ii] = 0.5 ;
+         fprintf(stderr,"** ERROR: calfun[%d]=%g --> 0\n",ii,x[ii]) ; x[ii] = 0.5 ; calfun_err++ ;
        }
        sx[ii] = sxmin[ii] + sxsiz[ii]*PRED01(x[ii]);
      }
@@ -116,7 +120,7 @@ int calfun_(integer *n, doublereal *x, doublereal *fun)
 
      for( ii=0 ; ii < *n ; ii++ ){
        if( !isfinite(x[ii]) || x[ii] < -9.9 || x[ii] > 9.9 ){
-         fprintf(stderr,"** ERROR: calfun[%d]=%g --> 0\n",ii,x[ii]) ; x[ii] = 0.5 ;
+         fprintf(stderr,"** ERROR: calfun[%d]=%g --> 0\n",ii,x[ii]) ; x[ii] = 0.5 ; calfun_err++ ;
        }
        rad += (x[ii]-0.5)*(x[ii]-0.5) ;
      }
@@ -137,7 +141,7 @@ int calfun_(integer *n, doublereal *x, doublereal *fun)
 
      for( ii=0 ; ii < *n ; ii++ ){
        if( !isfinite(x[ii]) || x[ii] < -9.9 || x[ii] > 9.9 ){
-         fprintf(stderr,"** ERROR: calfun[%d]=%g --> 0\n",ii,x[ii]) ; x[ii] = 0.5 ;
+         fprintf(stderr,"** ERROR: calfun[%d]=%g --> 0\n",ii,x[ii]) ; x[ii] = 0.5 ; calfun_err++ ;
        }
        xx = x[ii]-0.5 ; rad += xx*xx*xx*xx ;
      }
@@ -163,6 +167,7 @@ int calfun_(integer *n, doublereal *x, doublereal *fun)
      val = userfun( (int)(*n) , (double *)x ) ;  /* input = unscaled x[] */
    }
 
+   if( !isfinite(val) ){ calfun_err++ ; val = BIGVAL ; } /* 28 Jan 2016 */
    *fun = (doublereal)val ;
    return 0 ;
 }
@@ -416,7 +421,7 @@ int powell_newuoa_con( int ndim , double *x , double *xbot , double *xtop ,
     Return value is number of function calls to ufunc actually done.
     If return is negative, something bad happened.
 
-    The best vector round in the second round of optimization is returned
+    The best vector found in the second round of optimization is returned
     in the x[] array.
 
     MJD Powell, "The NEWUOA software for unconstrained optimization without
@@ -431,7 +436,7 @@ int powell_newuoa_constrained( int ndim, double *x, double *cost ,
                                int maxcall , double (*ufunc)(int,double *) )
 {
    integer n , npt , icode , maxfun ;
-   doublereal rhobeg , rhoend , *w ;
+   doublereal rhobeg , rhoend , *w , rb,re ;
    int ii,tt , tbest , ntot=0 , nx01 ;
    double **x01 , *x01val , vbest ;
 
@@ -501,6 +506,18 @@ int powell_newuoa_constrained( int ndim, double *x, double *cost ,
 
    /* copy x[] into x01[0], scaling to 0..1 range */
 
+#undef  CALFUN_ERROR
+#define CALFUN_ERROR(xxx)                                      \
+ do{ if( calfun_err ){                                         \
+       int aa ;                                                \
+       fprintf(stderr,"** calfun error:") ;                    \
+       for( aa=0 ; aa < ndim ; aa++ )                          \
+         fprintf(stderr," %g",sxmin[aa]+xxx[aa]*sxsiz[aa]) ;   \
+       fprintf(stderr,"\n") ;                                  \
+   } } while(0)
+
+   if( verb )
+     INFO_message("Powell: evaluation at initial guess") ;
    for( ii=0 ; ii < ndim ; ii++ ){
      x01[0][ii] = (x[ii] - sxmin[ii]) / sxsiz[ii] ;
      x01[0][ii] = PRED01(x01[0][ii]) ;  /* make sure is in range 0..1 */
@@ -508,11 +525,12 @@ int powell_newuoa_constrained( int ndim, double *x, double *cost ,
    if( scalx != SC_BOX ) xreduce( ndim, x01[0] ) ;
    (void)calfun_(&n,x01[0],x01val+0) ;  /* value of keeper #0 = input vector */
    ntot++ ;                           /* number of times calfun_() is called */
+   CALFUN_ERROR(x01[0]) ; if( !isfinite(x01val[0]) ) x01val[0] = BIGVAL ;
 
    /*-- do a random search for the best starting vector? --*/
 
    if( nrand > 0 ){
-     double *xtest , *qpar,*cpar , ftest , rb,re , dist ;
+     double *xtest , *qpar,*cpar , ftest , dist ;
      int qq,jj ; integer mf ;
      static int seed=1 ;
 
@@ -531,6 +549,7 @@ int powell_newuoa_constrained( int ndim, double *x, double *cost ,
        for( ii=0 ; ii < ndim ; ii++ ) xtest[ii] = drand48() ;    /* random pt */
        if( scalx != SC_BOX ) xreduce( ndim, xtest ) ;
        (void)calfun_(&n,xtest,&ftest) ; ntot++ ;            /* eval cost func */
+       CALFUN_ERROR(xtest) ; if( !isfinite(ftest) ) ftest = BIGVAL ;
        for( tt=1 ; tt <= nkeep ; tt++ ){          /* is this better than what */
          if( ftest < x01val[tt] ){                    /* we've seen thus far? */
            for( jj=nkeep-1 ; jj >= tt ; jj-- ){    /* push those above #tt up */
@@ -561,6 +580,7 @@ int powell_newuoa_constrained( int ndim, double *x, double *cost ,
        for( ii=0 ; ii < ndim ; ii++ ) x01[tt][ii] = PRED01(x01[tt][ii]) ;
        if( scalx != SC_BOX ) xreduce(ndim,x01[tt]) ;
        (void)calfun_(&n,x01[tt],x01val+tt) ; ntot += icode+1 ;
+       CALFUN_ERROR(x01[tt]) ; if( !isfinite(x01val[tt]) ) x01val[tt] = BIGVAL ;
        if( x01val[tt] < vbest ){ vbest = x01val[tt]; tbest = tt; }
        if( verb > 1 )
          ININFO_message("%2d: cost = %g %c nfunc=%d",tt,x01val[tt],(tbest==tt)?'*':' ',icode) ;
@@ -596,6 +616,7 @@ int powell_newuoa_constrained( int ndim, double *x, double *cost ,
 
      for( tt=0 ; tt <= nkeep && x01val[tt] < BIGVAL ; tt++ ) ; /* nada */
      nkeep = tt ;  /* number of keepers that weren't rejected above */
+     if( nkeep == 0 ) ERROR_message("Powell: nothing survived 1st round :-(") ;
 
      if( ntry > nkeep ) ntry = nkeep ;
 
@@ -617,14 +638,23 @@ int powell_newuoa_constrained( int ndim, double *x, double *cost ,
      for( ii=0 ; ii < ndim ; ii++ ) x01[tt][ii] = PRED01(x01[tt][ii]) ;
      if( scalx != SC_BOX ) xreduce(ndim,x01[tt]) ;
      (void)calfun_(&n,x01[tt],x01val+tt) ; ntot += icode+1 ;
+     CALFUN_ERROR(x01[tt]) ; if( !isfinite(x01val[tt]) ) x01val[tt] = BIGVAL ;
      if( x01val[tt] < vbest ){ vbest = x01val[tt]; tbest = tt; }
      if( verb > 1 )
        ININFO_message("%2d: cost = %g %c  nfunc=%d",tt,x01val[tt],(tbest==tt)?'*':' ',icode) ;
    }
 
+   /*-- re-optimize the bestest one again --*/
+
+   rb = 20.0 * rhoend ; if( rb > rhobeg ) rb = rhobeg ;
+   (void)newuoa_( &n , &npt , (doublereal *)x01[tbest] ,
+                  &rb , &rhoend , &maxfun , w , &icode ) ;
+   for( ii=0 ; ii < ndim ; ii++ ) x01[tbest][ii] = PRED01(x01[tbest][ii]) ;
+   if( scalx != SC_BOX ) xreduce(ndim,x01[tbest]) ;
+   (void)calfun_(&n,x01[tbest],&vbest) ; ntot += icode+1 ;
+
    /*-- Rescale bestest output vector back to 'true' range --*/
 
-   if( scalx != SC_BOX ) xreduce(ndim,x01[tbest]) ;
    for( ii=0 ; ii < ndim ; ii++ )
      x[ii] = sxmin[ii] + x01[tbest][ii] * sxsiz[ii] ;
    if( cost != NULL ) *cost = vbest ;    /* save cost func */
@@ -637,6 +667,47 @@ int powell_newuoa_constrained( int ndim, double *x, double *cost ,
    free((void *)x01val); free((void *)x01); free((void *)w) ;
 
    return ntot ;
+}
+
+/*---------------------------------------------------------------------------*/
+
+#undef  NCUT
+#define NCUT 37
+#undef  MLEV
+#define MLEV 4
+
+double minimize_in_1D( double xbot, double xtop,
+                       double (*ufunc)(int,double *) )
+{
+  double x1, x2, dx ;
+  double xv, val, vmin ; int imin, nlev, ii;
+
+  if( ufunc == NULL || xbot >= xtop ) return -666.0f ;
+
+  x1 = xbot ; x2 = xtop ;
+
+  for( nlev=0 ; nlev < MLEV ; nlev++ ){
+    dx = (x2-x1)/NCUT ; vmin = 1.0e+38 ;
+    for( ii=0 ; ii <= NCUT ; ii++ ){
+      xv  = x1 + ii*dx ;
+      val = ufunc(1,&xv) ;
+      if( ii == 0 || val < vmin ){ imin = ii ; vmin = val ; }
+    }
+#if 0
+INFO_message("x1=%g x2=%g imin=%d xmin=%g vmin=%g",x1,x2,imin,x1+imin*dx,vmin) ;
+#endif
+    if( nlev == MLEV-1 ) return (x1+imin*dx) ;
+
+    if( imin == 0 ){
+      x2 = x1 + 1.5*dx ;
+    } else if( imin == 20 ){
+      x1 = x2 - 1.5*dx ;
+    } else {
+      x1 = x1 + imin*dx ; x2 = x1 + 2.0*dx ;
+    }
+  }
+
+  return (0.5*(x1+x2)) ; /* should never be reached */
 }
 
 #if 0

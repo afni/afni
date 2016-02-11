@@ -6,7 +6,7 @@ print("AFNI Bivariate Auto-Regressive Modeling Package!")
 print("#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
 print("Version 0.0.8, Oct 1, 2010")
 print("Author: Gang Chen (gangchen@mail.nih.gov)")
-print("Website: http://afni.nimh.nih.gov/sscc/gangc/3dGC.html")
+print("Website: https://afni.nimh.nih.gov/sscc/gangc/3dGC.html")
 print("SSCC/NIMH, National Institutes of Health, Bethesda MD 20892")
 print("#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
 
@@ -23,7 +23,7 @@ source(first.in.path('AFNIio.R'))
 #libLoad('tcltk')    # for graphics
 
 print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
-print("Visit http://afni.nimh.nih.gov/sscc/gangc/3dGC.html and makse sure")
+print("Visit https://afni.nimh.nih.gov/sscc/gangc/3dGC.html and makse sure")
 print("you've acquired the data for the analysis in desirable data format.")
 print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
 print("################################################################")

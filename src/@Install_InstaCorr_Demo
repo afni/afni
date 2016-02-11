@@ -84,9 +84,9 @@ if ( ! -f ${trgdir}.tgz) then
    endif
 
    if ($use_curl == 0) then
-      wget http://afni.nimh.nih.gov/pub/dist/data/${trgdir}.tgz
+      wget https://afni.nimh.nih.gov/pub/dist/data/${trgdir}.tgz
    else
-      curl -O http://afni.nimh.nih.gov/pub/dist/data/${trgdir}.tgz
+      curl -O https://afni.nimh.nih.gov/pub/dist/data/${trgdir}.tgz
    endif
    tar xvzf ${trgdir}.tgz
 else
