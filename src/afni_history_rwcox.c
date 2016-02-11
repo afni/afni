@@ -43,6 +43,32 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
+
+ { 9 , FEB , 2016 , RWC , "3dQwarp" , MICRO , TYPE_GENERAL ,
+   "Tested on 2D images (single-slice datasets)" ,
+   "It actually worked.  Added a comment to that effect in the help output." } ,
+
+ { 9 , FEB , 2016 , RWC , "3dGroupInCorr" , MICRO , TYPE_NEW_OPT ,
+   "-read option" ,
+   "To 'read()' data in, instead of 'mmap()' -- for network mounted data\n"
+   "where 'mmap()' fails to work.  For Cesar Caballero." } ,
+
+ { 5 , FEB , 2016 , RWC , "3dClustSim" , MAJOR , TYPE_NEW_OPT ,
+   "New -inset option" ,
+   "Directly give the simulations, rather than generate them internally. \n"
+   "Intended for use with '3dttest++ -randomsign N -toz' and '3dttest++\n"
+   "-resid' to get the cluster thresholds directly from the data rather than\n"
+   "assumptions of Gaussianity." } ,
+
+ { 5 , FEB , 2016 , RWC , "3dttest++" , MICRO , TYPE_MODIFY ,
+   "Add number of iterations to -randomsign option" ,
+   "For use with 3dClustSim -inset" } ,
+
+ { 26, JAN , 2016 , RWC , "1dNLfit" , MINOR , TYPE_NEW_PROG ,
+   "1D file nonlinear fitting" ,
+   "Uses the 'calc' parser to define the function to fit.\n"
+   "Mostly for the convenience of The Bob." } ,
+
   { 22 , JAN , 2016 , RWC , "1deval" , MICRO , TYPE_NEW_OPT ,
    "Fixed value assignments, as in '-a=3.7'" ,
    "For my convenience" } ,

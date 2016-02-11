@@ -488,7 +488,7 @@ int main( int argc , char *argv[] )
        frate ="24" ;
        pattrn = calloc(sizeof(char),(npure+nfade+24)) ;
        if( npure+nfade == 1 ){
-         strcpy(pattrn,"IBBPBBPBBPBBPBBPBBPBBPBB") ;
+         strcpy(pattrn,"IPPPPP") ;
        } else {
          pattrn[0] = 'I' ;
          if( npure > 1 ) memset( pattrn+1     , 'P' , npure-1 ) ;

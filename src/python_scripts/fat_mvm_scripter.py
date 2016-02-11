@@ -243,7 +243,7 @@ def main(argv):
     Applications of Multivariate Modeling to Neuroimaging Group Analysis:
     A Comprehensive Alternative to Univariate General Linear Model. 
     NeuroImage 99:571-588.
-    http://afni.nimh.nih.gov/pub/dist/HBM2014/Chen_in_press.pdf
+    https://afni.nimh.nih.gov/pub/dist/HBM2014/Chen_in_press.pdf
 
    The first application of this network-based statistical approach is
     given in the following:

@@ -517,7 +517,7 @@ g_help_string = """
 
 
     Our HBM 2008 abstract describing the alignment tools is available here:
-      http://afni.nimh.nih.gov/sscc/rwcox/abstracts
+      https://afni.nimh.nih.gov/sscc/rwcox/abstracts
     
     Reference:
        If you find the EPI to Anat alignment capability useful, the paper to

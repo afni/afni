@@ -500,9 +500,10 @@ g_history = """
         - modified Example 11 to use FT_SurfVol.nii as the anat, not FT.nii
           (FT.nii was not perfectly aligned with parcellation)
         - added FREESURFER NOTE
+    4.58 Jan 27, 2016: allow for tissue PC regression with only regress block
 """
 
-g_version = "version 4.57, December 7, 2015"
+g_version = "version 4.58, January 27, 2016"
 
 # version of AFNI required for script execution
 # prev: g_requires_afni =  "1 Apr 2015" # 1d_tool.py uncensor from 1D
@@ -522,7 +523,7 @@ g_todo_str = """todo:
   - add -volreg_align_base_to_ext_dset (probably a small displacement)
     (to match volreg_base to -align_epi_ext_dset)
   - if no align/tlrc blocks, but -mask_segment_anat, run 3dSkullStrip
-    see http://afni.nimh.nih.gov/afni/community/board/read.php?1,145004
+    see https://afni.nimh.nih.gov/afni/community/board/read.php?1,145004
   - add anaticor in surface analysis
   - update surface examples to use standard mesh surfaces
 
@@ -1766,10 +1767,19 @@ class SubjProcSream:
         if self.verb > 3: block.show('+d post init block: ')
         self.blocks.append(block)
 
-    def find_block(self, label, sind=0):
-        for bind in range(0, len(self.blocks)):
-            block = self.blocks[bind]
-            if block.label == label: return block
+    def find_block(self, label, mn=0, mx=-1):
+        """mn = min index, mx = max index"""
+
+        for block in self.blocks:
+            if mn > 0 and block.index < mn:
+               continue         # skip early blocks
+
+            if block.label == label:
+               return block     # found
+
+            if mx >= 0 and block.index > mx:
+               return None      # index too big, fail
+
         return None
 
     def find_block_opt(self, label, opt_name):
@@ -1782,6 +1792,43 @@ class SubjProcSream:
         block = self.find_block(label)
         if block: return self.blocks.index(block)
         return None
+
+    def find_block_or_prev(self, blabel, cblock):
+       """find block of given label, or some prior block
+
+          blabel = block label to search for
+          cblock = current block
+
+          - possibly use a search list
+             - if volreg: fall back to surf/blur/scale/current block
+          - fall back to previous block
+
+          return labeled block or some prior block
+       """
+
+       # attempt a simple find, restricting index to current
+       bind = cblock.index
+       rblock = self.find_block(blabel, mx=bind)
+       if rblock: return rblock
+
+       if self.verb > 2:
+          print '== FBOP: no block %s, searching before %d (%s)' \
+                % (blabel, bind, cblock.label)
+
+       # ** not found, search for a block and return the prior one **
+
+       # if we know how to, search through a list
+       slist = []
+       if blabel == 'volreg': slist = ['surf', 'blur', 'scale']
+
+       for sname in slist:
+          rblock = self.find_block(sname, mx=bind)
+          if rblock: break
+
+       # if nothing found, return prior to current block
+       if not rblock: rblock = cblock
+
+       return self.find_block(self.prev_lab(rblock), mx=bind)
 
     def blocks_are_unique(self, blocks, exclude_list=['empty'], whine=1):
         """return whether the blocs are unique
@@ -2624,6 +2671,7 @@ class SubjProcSream:
         if not block:
             print "** DFW: failed to find block for label '%s'" % blabel
             return ''
+
         bind = block.index
         # if surface, change view to hemisphere and dataset suffix
         if surf_names == -1: surf_names = self.surf_names

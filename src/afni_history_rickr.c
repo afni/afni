@@ -49,7 +49,47 @@
 
 afni_history_struct rickr_history[] = {
 
- {  4,  Dec, 2015, RCR, "afni-general", MINOR, TYPE_BUG_FIX,
+ { 10,  Feb, 2016, RCR, "@ANATICOR", MICRO, TYPE_BUG_FIX,
+   "fixed -radius option parsing",
+   "Thanks to A Frithsen for noting the problem."
+ } ,
+
+ { 10,  Feb, 2016, RCR, "afni-general", MICRO, TYPE_MODIFY,
+   "full update to use https://afni.nimh.nih.gov (no longer http)",
+   NULL
+ } ,
+
+ {  9,  Feb, 2016, RCR, "@GradFlipTest", MICRO, TYPE_MODIFY,
+   "trap for missing inputs (e.g. used with just -help)",
+   NULL
+ } ,
+
+ {  9,  Feb, 2016, RCR, "afni-general", MICRO, TYPE_BUG_FIX,
+   "be sure isfinite is defined in FD2_inc.c, parser_int.c",
+   NULL
+ } ,
+
+ {  8,  Feb, 2016, RCR, "@update.afni.binaries", MICRO, TYPE_MODIFY,
+   "access afni site via https protocol",
+   NULL
+ } ,
+
+ {  5,  Feb, 2016, RCR, "thd_niftiread", MICRO, TYPE_BUG_FIX,
+   "NIFTI files with no *form_codes should default to +orig, not NIFTI_default",
+   NULL
+ } ,
+
+ { 28,  Jan, 2016, RCR, "3dMean", MICRO, TYPE_MODIFY,
+   "fix help to correctly report -stdev as sqrt(var)   {was var/(n-1)}",
+   "Thanks to K Kerr (MB) for pointing out the mistake."
+ } ,
+
+ { 27,  Jan, 2016, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,
+   "allow for tissue based regression with only regress block",
+   NULL
+ } ,
+
+ {  4,  Jan, 2016, RCR, "afni-general", MINOR, TYPE_BUG_FIX,
    "add boundardy checks in get_1dcat_intlist and get_count_intlist",
    "Without the checks, using count or 1dcat as sub-brick selector method\n"
    "would lead to confusing crashes (if values exceedded #vols).\n"
@@ -68,7 +108,7 @@ afni_history_struct rickr_history[] = {
 
  { 30,  Dec, 2015, RCR, "afni-general", MAJOR, TYPE_ENHANCE,
    "w/DRG implement new version system",
-   "See http://afni.nimh.nih.gov/pub/dist/MOTD/MOTD_2015_12_30.txt ."
+   "See https://afni.nimh.nih.gov/pub/dist/MOTD/MOTD_2015_12_30.txt ."
  } ,
 
  { 29,  Dec, 2015, RCR, "afni_system_check.py", MICRO, TYPE_BUG_FIX,
@@ -1096,8 +1136,8 @@ afni_history_struct rickr_history[] = {
 
  {  8, Sep, 2014, RCR, "afni_proc.py", MICRO, TYPE_MODIFY,
    "round min dimension to 6 sig bits, then truncate to 3",
-   "This help catch cases where the dimension is just under\n"
-   "fairly 'round' number."
+   "This helps catch cases where the dimension is just under\n"
+   "some fairly 'round' number."
  } ,
 
  {  8, Sep, 2014, RCR, "Dimon", MICRO, TYPE_BUG_FIX,
@@ -6483,7 +6523,7 @@ afni_history_struct rickr_history[] = {
 
  {   2, DEC, 2005, RCR, "ANOVA", SUPERDUPER, TYPE_MODIFY,
    "changed variance computations in 3dANOVA programs to not assume sphericity",
-   "For details, see http://afni.nimh.nih.gov/sscc/gangc/ANOVA_Mod.html ."
+   "For details, see https://afni.nimh.nih.gov/sscc/gangc/ANOVA_Mod.html ."
  } ,
 
  {  11, OCT, 2005, RCR, "3dmaxima", MAJOR, TYPE_NEW_PROG,

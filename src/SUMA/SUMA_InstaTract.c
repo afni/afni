@@ -600,7 +600,7 @@ NI_group *InstaTract_MiniProbTrack(NI_group *niniel, INSTA_TRACT_OPTS *opt)
    
    Look at the NIML API documentation to 
    learn how to unpack the data from a NIML element 
-   http://afni.nimh.nih.gov/afni/doc/misc/NIML_documentation/NIML_manual/document_view
+   https://afni.nimh.nih.gov/afni/doc/misc/NIML_documentation/NIML_manual/document_view
 */
 int InstaTract_process_NIML_data(NI_group *nini, COMM_STRUCT *cs, 
                                  INSTA_TRACT_OPTS *opt)
