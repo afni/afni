@@ -2912,8 +2912,8 @@ LABELS_ARE_DONE:  /* target for goto above */
      ININFO_message(" -- jobs have finished (%.2f s elapsed)",ct2-ct1) ;
      ct1 = ct2 ;
 
-     sprintf( cmd , "3dClustSim -inset %s.???.nii -prefix %s.CSim -LOTS -both" ,
-                    prefix_clustsim , prefix_clustsim ) ;
+     sprintf( cmd , "3dClustSim -inset %s.???.nii -prefix %s.CSim -LOTS -both -cmd %s.CSim.cmd" ,
+                    prefix_clustsim , prefix_clustsim , prefix_clustsim ) ;
      if( name_mask != NULL )
        sprintf( cmd+strlen(cmd) , " -mask %s",name_mask) ;
 

@@ -214,6 +214,8 @@ static int          *nval_inset = NULL ;
 #undef  PSMALL
 #define PSMALL 1.e-15
 
+static char *cmd_fname = "3dClustSim.cmd" ;
+
 /*----------------------------------------------------------------------------*/
 /*! Threshold for upper tail probability of N(0,1) */
 
@@ -497,6 +499,9 @@ void display_help_menu()
    "                    header, then the Clusterize GUI will try to find the original\n"
    "                    mask dataset and use that instead.  If that fails, then masking\n"
    "                    won't be done in the Clusterize process.\n"
+   "\n"
+   " -cmd ccc      = Write command for putting results into a file's header to a file\n"
+   "                 named 'ccc' instead of '3dClustSim.cmd'.\n"
    "\n"
    "-quiet         = Don't print out the progress reports, etc.\n"
    "                  * Put this option first to silence most informational messages.\n"
@@ -1048,6 +1053,15 @@ ENTRY("get_options") ;
       nopt++ ; if( nopt >= argc ) ERROR_exit("need argument after -prefix!") ;
       prefix = strdup(argv[nopt]) ;
       if( !THD_filename_ok(prefix) ) ERROR_exit("bad -prefix option!") ;
+      nopt++ ; continue ;
+    }
+
+    /*-----  -prefix -----*/
+
+    if( strcmp(argv[nopt],"-cmd") == 0 ){
+      nopt++ ; if( nopt >= argc ) ERROR_exit("need argument after -cmd!") ;
+      cmd_fname = strdup(argv[nopt]) ;
+      if( !THD_filename_ok(cmd_fname) ) ERROR_exit("bad -cmd option!") ;
       nopt++ ; continue ;
     }
 
@@ -2976,12 +2990,12 @@ MPROBE ;
   if( refit_cmd != NULL ){
     FILE *fp ;
     INFO_message("Command fragment to put cluster results into a dataset header;\n"
-                 " + (also echoed to file 3dClustSim.cmd for your scripting pleasure)\n"
+                 " + (also echoed to file %s for your scripting pleasure)\n"
                  " + Append the name of the datasets to be patched to this command:\n"
-                 " %s" , refit_cmd ) ;
-    fp = fopen("3dClustSim.cmd","w") ;
+                 " %s" , cmd_fname , refit_cmd ) ;
+    fp = fopen(cmd_fname,"w") ;
     if( fp == NULL ){
-      ERROR_message("Can't write 3drefit command fragment to file 3dClustSim.cmd :-(") ;
+      ERROR_message("Can't write 3drefit command fragment to file %s :-(",cmd_fname) ;
     } else {
       fprintf(fp,"%s\n",refit_cmd) ; fclose(fp) ;
     }
