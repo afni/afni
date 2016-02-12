@@ -11,6 +11,7 @@ afni/src/3dECM.c
 #include "mrilib.h"
 #include <sys/mman.h>
 #include <sys/types.h>
+#include "sparse_array.h"
 
 // Define constants
 #define SPEARMAN 1
@@ -205,13 +206,13 @@ float zm_THD_pearson_corr( int n, float *x , float *y ) /* inputs are */
 
 double cc_pearson_corr( long n, float *x, float*y )
 {
-    int ii;
-    double xy = (double)0.0;
+    register int ii;
+    register double xy = (double)0.0;
     for(ii=0; ii<n; ii++)
     {
         xy+=x[ii]*y[ii];
     }
-    return( (double)1.0/((double)(n-1))*xy );
+    return( xy );
 }
 
 double* calc_fecm_power(MRI_vectim *xvectim, double shift, double scale, double eps, long max_iter)
@@ -229,7 +230,7 @@ double* calc_fecm_power(MRI_vectim *xvectim, double shift, double scale, double 
     double  v_prev_sum_sq = 0.0;
     double  v_prev_norm = 0.0;
     double  v_prev_sum = 0.0;
-    int lout,lin,ithr,nthr,vstep,vii ;
+    long    lout,lin,ithr,nthr,vstep,vii ;
 
     /* -- CC initialize memory for power iteration */
     /* -- v_new will hold the new vector as it is being calculated */
@@ -354,7 +355,7 @@ double* calc_fecm_power(MRI_vectim *xvectim, double shift, double scale, double 
             v_prev_sum += v_new[lout];
             v_new_sum_sq += v_new[lout]*v_new[lout];
 
-            /* calcualte the differences */
+            /* calculate the differences */
             vdiff = v_prev[lout] - v_new[lout];
             v_err += (vdiff * vdiff);
         }
@@ -408,12 +409,25 @@ double* calc_fecm_power(MRI_vectim *xvectim, double shift, double scale, double 
     return(v_prev);
 }
 
-double* calc_full_power(MRI_vectim *xvectim, double thresh, double shift, double scale, double eps, long max_iter)
+double* calc_full_power_sparse(MRI_vectim *xvectim, double thresh, double shift, double scale, double eps, long max_iter)
+{
+    sparse_array_node* sparse_array;
+
+    sparse_array = create_sparse_corr_array(xvectim, 5.0, thresh, cc_pearson_corr, (long)(4294967296));
+
+    free_sparse_array( sparse_array );
+
+    return( NULL );
+}
+
+double* calc_full_power_max_mem(MRI_vectim *xvectim, double thresh, double shift, double scale, double eps, long max_iter)
 {
     /* CC - we need a few arrays for calculating the power method */
     double* v_prev = NULL;
     double* v_new = NULL;
     double* v_temp = NULL;
+    double* weight_matrix = NULL;
+    long*   ndx_vec = NULL;
     double  v_err = 0.0;
     long    power_it;
     double  v_new_sum_sq = 0.0;
@@ -421,7 +435,9 @@ double* calc_full_power(MRI_vectim *xvectim, double thresh, double shift, double
     double  v_prev_sum_sq = 0.0;
     double  v_prev_norm = 0.0;
     double  v_prev_sum = 0.0;
-    long ii =0;
+    long    ii = 0;
+    long    nvals = 0;
+    long    wsize = 0;
 
     /* -- CC initialize memory for power iteration */
     /* -- v_new will hold the new vector as it is being calculated */
@@ -451,6 +467,31 @@ double* calc_full_power(MRI_vectim *xvectim, double thresh, double shift, double
     INC_MEM_STATS(xvectim->nvec*sizeof(double), "v_prev");
     PRINT_MEM_STATS( "v_prev" );
 
+
+    /* we will use another array to help us quickly calculate iterator
+       so that we only need to store the unique part of the array */
+    ndx_vec = (long*)malloc(xvectim->nvec*sizeof(long));
+
+    if( ndx_vec == NULL )
+    {
+        if( v_new != NULL ){ free(v_new); v_new=NULL;}
+        if( v_prev != NULL ){ free(v_prev); v_prev=NULL;}
+        WARNING_message("Cannot allocate %d bytes for ndx_vec",xvectim->nvec*sizeof(long));
+        return( NULL );
+    }
+
+    /*-- CC update our memory stats to reflect ndx_vec -- */
+    INC_MEM_STATS(xvectim->nvec*sizeof(double), "ndx_vec");
+    PRINT_MEM_STATS( "ndx_vec" );
+
+    /* also use this opportunity to set the ndx_vec */
+    /*ndx_vec[0] = xvectim->nvec - 1;*/
+    ndx_vec[0] = 0;
+    for( ii=1; ii<xvectim->nvec; ii++ )
+    {
+        ndx_vec[ii] = ndx_vec[ii-1]+xvectim->nvec-(ii+1);
+    }
+
     /*---------- loop over mask voxels, correlate ----------*/
 
     /*  set the initial vector to the first vector */
@@ -464,63 +505,214 @@ double* calc_full_power(MRI_vectim *xvectim, double thresh, double shift, double
     v_prev_norm = sqrt(v_prev_sum_sq);
     v_err = v_prev_norm;
 
+    /* set the size of the weight matrix we will include the diagonal */
+    wsize = 0.5*(xvectim->nvec-1)*(xvectim->nvec);
+
     power_it = 0;
 
-    while( (v_err > eps) && (power_it < max_iter))
+    while( (v_err > eps) && (power_it < max_iter) )
     {
 
         /* zero out the new vector */
         bzero(v_new, xvectim->nvec*sizeof(double));
+   
+        /* reset the number of superthreshold values to 0 */
+        nvals = 0;
 
-        AFNI_OMP_START ;
-#pragma omp parallel if( xvectim->nvec > 999 )
+        if ( weight_matrix == NULL )
         {
 
-            int lout,lin,ithr,nthr,vstep,vii ;
-            double car = 0.0; 
-            float *xsar = NULL;
-            float *ysar = NULL;
+            /* Allocate memory for the matrix */
+            weight_matrix = (double*)calloc(wsize,sizeof(double));
 
-            /*-- get information about who we are --*/
+            if( weight_matrix == NULL )
+            {
+                if( v_new != NULL ) free(v_new);
+                if( v_prev != NULL ) free(v_prev);
+                if( ndx_vec != NULL ) free(ndx_vec);
+                WARNING_message("Cannot allocate %d bytes for weight_mat",wsize*sizeof(double));
+                return( NULL );
+            }
+
+            /*-- CC update our memory stats to reflect weight_matrix -- */
+            INC_MEM_STATS(wsize*sizeof(double), "weight_mat");
+            PRINT_MEM_STATS( "weight_mat" );
+
+            AFNI_OMP_START ;
+#pragma omp parallel if( xvectim->nvec > 999 )
+            {
+
+                long thr_lout,thr_lin,ithr,nthr,vstep,vii,vndx ;
+                double car = 0.0; 
+                double max_val = -10.0; 
+                float *xsar = NULL;
+                float *ysar = NULL;
+
+                /*-- get information about who we are --*/
 #ifdef USE_OMP
-            ithr = omp_get_thread_num() ;
-            nthr = omp_get_num_threads() ;
-            if( ithr == 0 ) INFO_message("%d OpenMP threads started",nthr) ;
+                ithr = omp_get_thread_num() ;
+                nthr = omp_get_num_threads() ;
+                if( ithr == 0 ) INFO_message("%d OpenMP threads started",nthr) ;
 #else
-            ithr = 0 ; nthr = 1 ;
+                ithr = 0 ; nthr = 1 ;
 #endif
 
+                vstep = (int)( xvectim->nvec / (nthr*50.0f) + 0.901f ); vii = 0;
+                if((MEM_STAT==0) && (ithr==0)) fprintf(stderr,"Looping:");
 
-            vstep = (int)( xvectim->nvec / (nthr*50.0f) + 0.901f ); vii = 0;
-            if((MEM_STAT==0) && (ithr==0)) fprintf(stderr,"Looping:");
-
+                /* iterate through and build the correlation matrix, this can be done at
+                   the same time as the first iteration of the power method, so lets
+                   do it! */
 #pragma omp for schedule(static, 1)
-            for( lout=0 ; lout < xvectim->nvec ; lout++ )
-            {  /*----- outer voxel loop -----*/
+                for( thr_lout=(xvectim->nvec-1) ; thr_lout >= 0 ; thr_lout-- )
+                {  /*----- outer voxel loop -----*/
 
-                if( ithr == 0 && vstep > 2 )
-                { vii++; if( vii%vstep == vstep/2 && MEM_STAT == 0) vstep_print(); }
-
-                /* get ref time series from this voxel */
-                xsar = VECTIM_PTR(xvectim,lout) ;
-
-                for( lin=(lout+1); lin<xvectim->nvec; lin++ )
-                {
-                    ysar = VECTIM_PTR(xvectim,lin) ;
-                    car = (double)cc_pearson_corr(xvectim->nvals,xsar,ysar);
-
-                    if( car >= thresh )
+                    if( ithr == 0 && vstep > 2 )
                     {
-#pragma omp critical(dataupdate)
+                        vii++;
+                        if( vii%vstep == vstep/2 && MEM_STAT == 0)
                         {
-                            v_new[lout] += scale*(car+shift)*v_prev[lin];
-                            v_new[lin] += scale*(car+shift)*v_prev[lout];
+                            vstep_print(); 
                         }
                     }
-                }
-            } /* for lout */
-        } /* AFNI_OMP */
-        AFNI_OMP_END;
+
+                    /* begin by adding in the correlation for the diagonal element
+                       (i.e. 1.0) */
+#pragma omp critical(dataupdate)
+                    {
+                        v_new[thr_lout] += scale*(1.0+shift)*v_prev[thr_lout];
+                    }
+
+                    /* get ref time series from this voxel */
+                    xsar = VECTIM_PTR(xvectim,thr_lout) ;
+
+                    /* iterate over the inner voxels */
+                    for( thr_lin=0; thr_lin<thr_lout; thr_lin++ )
+                    {
+                        /* extract the time series for the target voxel */
+                        ysar = VECTIM_PTR(xvectim,thr_lin) ;
+
+                        /* calculate the correlation coefficient, and transform it */
+                        car = (double)cc_pearson_corr(xvectim->nvals,xsar,ysar);
+
+                        /* only need to add in non-zero values, this hopefully will
+                           reduce some of the competition for the critical section */
+                        if( car >= thresh )
+                        {
+                            /* use a critical section to make sure that the values 
+                               do not get corrupted */
+#pragma omp critical(dataupdate)
+                            {
+                                nvals = nvals+1;
+                                v_new[thr_lout] += scale*(car+shift)*v_prev[thr_lin];
+                                v_new[thr_lin] += scale*(car+shift)*v_prev[thr_lout];
+                            }
+
+                            /* incorporate the correlation in the weight_matrix, since
+                               each value is only calculated once, we don't need a 
+                               critical sections */
+                            vndx = ndx_vec[(xvectim->nvec-(thr_lout+1))] + thr_lin;
+                            if(( vndx >= 0 ) && ( vndx < wsize ))
+                            { 
+                                weight_matrix[ vndx ]=scale*(car+shift);
+                            }
+                            else
+                            {
+                                fprintf(stderr, "Index A (%ld >= %ld) out of bounds %ld %ld\n", vndx,
+                                    wsize, thr_lout, thr_lin);
+                            }
+                        
+                        }
+                    }
+                } /* for lout */
+            } /* AFNI_OMP */
+            AFNI_OMP_END;
+
+            /* end the looping print */
+            fprintf(stderr, "\n");
+        } /* end if weight_matrix == NULL */
+        else
+        {
+            /* now use precomputed matrix */
+            AFNI_OMP_START ;
+#pragma omp parallel if( xvectim->nvec > 999 )
+            {
+
+                long thrb_lout,thrb_lin,ithr,nthr,vstep,vii,vndx ;
+                double car = 0.0; 
+                float *xsar = NULL;
+                float *ysar = NULL;
+
+                /*-- get information about who we are --*/
+#ifdef USE_OMP
+                ithr = omp_get_thread_num() ;
+                nthr = omp_get_num_threads() ;
+                if( ithr == 0 ) INFO_message("%d OpenMP threads started",nthr) ;
+#else
+                ithr = 0 ; nthr = 1 ;
+#endif
+
+                vstep = (int)( xvectim->nvec / (nthr*50.0f) + 0.901f ); vii = 0;
+                if((MEM_STAT==0) && (ithr==0)) fprintf(stderr,"Looping:");
+
+                /* iterate through and build the correlation matrix, this can be done at
+                   the same time as the first iteration of the power method, so lets
+                   do it! */
+#pragma omp for schedule(static, 1)
+                for( thrb_lout=(xvectim->nvec-1) ; thrb_lout >= 0 ; thrb_lout-- )
+                {  /*----- outer voxel loop -----*/
+
+                    if( ithr == 0 && vstep > 2 )
+                    { vii++; if( vii%vstep == vstep/2 && MEM_STAT == 0) vstep_print(); }
+
+                    /* begin by adding in the correlation for the diagonal element
+                       (i.e. 1.0) */
+#pragma omp critical(dataupdate)
+                    {
+                        v_new[thrb_lout] += scale*(1.0+shift)*v_prev[thrb_lout];
+                    }
+
+                    /* iterate over the inner voxels */
+                    /*for( thrb_lin=(thrb_lout+1); thrb_lin<xvectim->nvec; thrb_lin++ )*/
+                    for( thrb_lin=0; thrb_lin<thrb_lout; thrb_lin++ )
+                    {
+
+                        /* get the correlation */
+                        vndx = ndx_vec[(xvectim->nvec-(thrb_lout+1))] + thrb_lin;
+                        if((vndx >= 0 ) && (vndx < wsize ))
+                        { 
+                            car = weight_matrix[vndx];
+                        }
+                        else
+                        {
+                            fprintf(stderr, "Index B (%ld > %ld) out of bounds %ld %ld\n", vndx,
+                                wsize,thrb_lout, thrb_lin);
+                        }
+
+                        /* only need to add in non-zero values, this hopefully will
+                           reduce some of the competition for the critical section */
+                        if( car != 0.0 )
+                        {
+                            /* use a critical section to make sure that the values 
+                               do not get corrupted */
+#pragma omp critical(dataupdate)
+                            {
+                                nvals=nvals+1;
+                                v_new[thrb_lout] += car*v_prev[thrb_lin];
+                                v_new[thrb_lin] += car*v_prev[thrb_lout];
+                            }
+                        }
+                    }
+                } /* for thrb_lout */
+            } /* AFNI_OMP */
+            AFNI_OMP_END;
+
+            /* end the looping print */
+            fprintf(stderr, "\n");
+        }
+
+        /* if none of the correlations were above threshold, stop and error */
+        if( nvals == 0 ) break;
 
         /* calculate the error, norms, and sums for the next
            iteration */
@@ -567,7 +759,254 @@ double* calc_full_power(MRI_vectim *xvectim, double thresh, double shift, double
             power_it, v_err, v_prev_norm);
     } 
 
-    if ((v_err >= eps) && (power_it >= max_iter))
+    if ( nvals == 0 )
+    {
+        WARNING_message("None of the correlations were above the threshold,"
+            "the output will be empty\n");
+    }
+    else
+    {
+        INFO_message ("Found %ld values above the threshold (> %lf).",nvals,thresh);
+
+        if ((v_err >= eps) && (power_it >= max_iter))
+        {
+            WARNING_message("Power iteration did not converge (%3.3f >= %3.3f)\n"
+                "in %d iterations. You might consider increase max_iters, or\n"
+                "epsilon. For now we are writing out the obtained solution,\n"
+                "which may or may not be good enough.\n",
+                (v_err), (eps), (power_it));
+        }
+    }
+
+    printf( "finished with calculation! now freeing mem\n" );
+    /* the eigenvector that we are interested in should now be in v_prev,
+       free all other power iteration temporary vectors */
+    if( v_new != NULL ) 
+    {
+        free(v_new);
+        v_new = NULL;
+
+        /* update running memory statistics to reflect freeing the vectim */
+        DEC_MEM_STATS(xvectim->nvec*sizeof(double), "v_new");
+    }
+ 
+    /* free the weight matrix */
+    if( weight_matrix != NULL )
+    {
+        free(weight_matrix);
+        weight_matrix = NULL;
+
+        /* update running memory statistics to reflect freeing the vectim */
+        DEC_MEM_STATS(wsize*sizeof(double), "weight_matrix");
+    }
+
+    /* free the ndx vector */
+    if( ndx_vec != NULL )
+    {
+        free(ndx_vec);
+        ndx_vec = NULL;
+
+        /* update running memory statistics to reflect freeing the vectim */
+        DEC_MEM_STATS(xvectim->nvec*sizeof(long), "ndx_vec");
+    }
+
+
+    /* return the result */
+    return(v_prev);
+}
+
+double* calc_full_power_min_mem(MRI_vectim *xvectim, double thresh, double shift, double scale, double eps, long max_iter)
+{
+    /* CC - we need a few arrays for calculating the power method */
+    double* v_prev = NULL;
+    double* v_new = NULL;
+    double* v_temp = NULL;
+    double  v_err = 0.0;
+    long    power_it;
+    double  v_new_sum_sq = 0.0;
+    double  v_new_norm = 0.0;
+    double  v_prev_sum_sq = 0.0;
+    double  v_prev_norm = 0.0;
+    double  v_prev_sum = 0.0;
+    long    ii = 0;
+    long    nvals = 0;
+
+    /* -- CC initialize memory for power iteration */
+    /* -- v_new will hold the new vector as it is being calculated */
+    v_new = (double*)calloc(xvectim->nvec,sizeof(double));
+
+    if( v_new == NULL )
+    {
+        WARNING_message("Cannot allocate %d bytes for v_new",xvectim->nvec*sizeof(double));
+        return( NULL );
+    }
+
+    /*-- CC update our memory stats to reflect v_new -- */
+    INC_MEM_STATS(xvectim->nvec*sizeof(double), "v_new");
+    PRINT_MEM_STATS( "v_new" );
+
+    /* -- v_prev will hold the vector from the previous calculation */
+    v_prev = (double*)calloc(xvectim->nvec,sizeof(double));
+
+    if( v_prev == NULL )
+    {
+        if( v_new != NULL ) free(v_new);
+        WARNING_message("Cannot allocate %d bytes for v_prev",xvectim->nvec*sizeof(double));
+        return( NULL );
+    }
+
+    /*-- CC update our memory stats to reflect v_new -- */
+    INC_MEM_STATS(xvectim->nvec*sizeof(double), "v_prev");
+    PRINT_MEM_STATS( "v_prev" );
+
+    /*---------- loop over mask voxels, correlate ----------*/
+
+    /*  set the initial vector to the first vector */
+    for ( ii=0; ii<xvectim->nvec; ii++ )
+    {
+        v_prev[ii]=1.0 / sqrt((double)xvectim->nvec);
+        v_prev_sum += v_prev[ii];
+        v_prev_sum_sq += v_prev[ii] * v_prev[ii];
+    }
+
+    v_prev_norm = sqrt(v_prev_sum_sq);
+    v_err = v_prev_norm;
+
+    power_it = 0;
+
+    while( (v_err > eps) && (power_it < max_iter) )
+    {
+
+        /* zero out the new vector */
+        bzero(v_new, xvectim->nvec*sizeof(double));
+   
+        /* reset the number of superthreshold values to 0 */
+        nvals = 0;
+
+        AFNI_OMP_START ;
+#pragma omp parallel if( xvectim->nvec > 999 )
+        {
+
+            int lout,lin,ithr,nthr,vstep,vii ;
+            double car = 0.0; 
+            float *xsar = NULL;
+            float *ysar = NULL;
+
+            /*-- get information about who we are --*/
+#ifdef USE_OMP
+            ithr = omp_get_thread_num() ;
+            nthr = omp_get_num_threads() ;
+            if( ithr == 0 ) INFO_message("%d OpenMP threads started",nthr) ;
+#else
+            ithr = 0 ; nthr = 1 ;
+#endif
+
+
+            vstep = (int)( xvectim->nvec / (nthr*50.0f) + 0.901f ); vii = 0;
+            if((MEM_STAT==0) && (ithr==0)) fprintf(stderr,"Looping:");
+
+            /* calculate the power method */
+#pragma omp for schedule(static, 1)
+            for( lout=0 ; lout < xvectim->nvec ; lout++ )
+            {  /*----- outer voxel loop -----*/
+
+                if( ithr == 0 && vstep > 2 )
+                { vii++; if( vii%vstep == vstep/2 && MEM_STAT == 0) vstep_print(); }
+
+                /* get ref time series from this voxel */
+                xsar = VECTIM_PTR(xvectim,lout) ;
+
+                /* iterate over the inner voxels */
+                for( lin=lout; lin<xvectim->nvec; lin++ )
+                {
+                    if(lin == lout)
+                    {
+                        car = 1.0;
+                    }
+                    else
+                    {
+                        /* extract the time series for the target voxel */
+                        ysar = VECTIM_PTR(xvectim,lin) ;
+
+                        /* calculate the correlation coefficient */
+                        car = (double)cc_pearson_corr(xvectim->nvals,xsar,ysar);
+                    }
+
+                    /* if above threshold then add in the value */
+                    if( car >= thresh )
+                    {
+                        /* use a critical section to make sure that the values 
+                           do not get corrupted */
+#pragma omp critical(dataupdate)
+                        {
+                            nvals = nvals+1;
+                            v_new[lout] += scale*(car+shift)*v_prev[lin];
+                            v_new[lin] += scale*(car+shift)*v_prev[lout];
+                        }
+                    }
+                }
+            } /* for lout */
+        } /* AFNI_OMP */
+        AFNI_OMP_END;
+
+        /* end the looping print */
+        fprintf(stderr, "\n");
+
+
+        /* if none of the correlations were above threshold, stop and error */
+        if( nvals == 0 ) break;
+
+        /* calculate the error, norms, and sums for the next
+           iteration */
+        v_prev_sum = 0.0;
+        v_new_norm = 0.0;
+        v_new_sum_sq = 0.0;
+        v_err = 0.0;
+
+        /* calculate the norm of the new vector */
+        for( ii=0 ; ii < xvectim->nvec ; ii++ )
+        {  /*----- outer voxel loop -----*/
+            v_new_sum_sq += v_new[ii]*v_new[ii];
+        }
+        v_new_norm = sqrt(v_new_sum_sq);
+
+        /* normalize the new vector, calculate the 
+           error between this vector and the previous,
+           and get the sum */
+        v_new_sum_sq = 0.0;
+        for( ii=0; ii < xvectim->nvec; ii++ )
+        {
+            double vdiff = 0;
+            v_new[ii] = v_new[ii] / v_new_norm;
+            v_new_sum_sq += v_new[ii]*v_new[ii];
+
+            /* calcualte the differences */
+            vdiff = v_prev[ii] - v_new[ii];
+            v_err += (vdiff * vdiff);
+        }
+
+        v_err = sqrt(v_err) / v_prev_norm;
+        v_prev_norm = sqrt(v_new_sum_sq);
+
+        /* now set the new vec to the previous */
+        v_temp = v_prev;
+        v_prev = v_new;
+        v_new = v_temp;
+
+        /* increment iteration counter */
+        power_it++;
+
+        /* tell the user what has happened */
+        INFO_message ("Finished iter %d: Verr %3.3f, Vnorm %3.3f\n",
+            power_it, v_err, v_prev_norm);
+    } 
+
+    if ( nvals == 0 )
+    {
+        WARNING_message("None of the correlations were above the threshold,"
+            "the output will be empty\n");
+    }
+    else if ((v_err >= eps) && (power_it >= max_iter))
     {
         WARNING_message("Power iteration did not converge (%3.3f >= %3.3f)\n"
             "in %d iterations. You might consider increase max_iters, or\n"
@@ -1006,7 +1445,14 @@ int main( int argc , char *argv[] )
     }
     else
     {
-        eigen_vec=calc_full_power(xvectim, thresh, shift, scale, eps, max_iter);
+        /*eigen_vec=calc_full_power_min_mem(xvectim, thresh, shift, scale, eps, max_iter);
+        eigen_vec=calc_full_power_max_mem(xvectim, thresh, shift, scale, eps, max_iter); */
+        eigen_vec=calc_full_power_sparse(xvectim, thresh, shift, scale, eps, max_iter);
+    }
+
+    if( eigen_vec == NULL )
+    {
+        ERROR_EXIT_CC( "Eigen vector calculation failed!\n" );
     }
  
     /*-- create output dataset --*/

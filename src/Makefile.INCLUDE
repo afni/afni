@@ -1439,17 +1439,21 @@ AlphaSim:AlphaSim.o
 	$(RM) $@
 	$(CCOMP) -c 3dLFCD.c $(INFLAGS)
 
-3dLFCD:3dLFCD.o
+3dLFCD:3dLFCD.o 
 	$(RM) $@
-	$(CCOMP) -o 3dLFCD 3dLFCD.o $(LFLAGS) $(LLIBS)
+	$(CCOMP) -o 3dLFCD 3dLFCD.o sparse_array.o $(LFLAGS) $(LLIBS)
+
+sparse_array.o:sparse_array.c sparse_array.h
+	$(RM) $@
+	$(CCOMP) -c sparse_array.c $(INFLAGS)
 
 3dECM.o:3dECM.c
 	$(RM) $@
 	$(CCOMP) -c 3dECM.c $(INFLAGS)
 
-3dECM:3dECM.o
+3dECM:3dECM.o sparse_array.o
 	$(RM) $@
-	$(CCOMP) -o 3dECM 3dECM.o $(LFLAGS) $(LLIBS)
+	$(CCOMP) -o 3dECM 3dECM.o sparse_array.o $(LFLAGS) $(LLIBS)
 
 3dAutoTcorrelate.o:3dAutoTcorrelate.c
 	$(RM) $@
