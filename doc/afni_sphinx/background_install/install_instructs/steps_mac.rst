@@ -46,10 +46,18 @@ operating system) to a link to install XQuartz.
         defaults write com.apple.Terminal FocusFollowsMouse -string YES
       |
 
-#. **Xcode installation**
+#. **Xcode and XQuartz installation**
 
-   Xcode is needed for the gcc compiler and related tools. It is best
-   to start with the most recent version from the Apple website:
+   Xcode is needed for the gcc compiler and related tools.  XQuartz is
+   the desktop manager needed to run X11 programs (such as afni).
+
+   For OS X 10.9 and later, simply run the 2 commands::
+
+      xcode-select --install
+      /Applications/Utilities/X11.app
+
+   Otherwise (for OS X versions up through 10.8), it is best to start
+   with the most recent version from the Apple website:
 
    a. Go to http://developer.apple.com
 
