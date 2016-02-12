@@ -845,11 +845,18 @@ void display_help_menu(void)
       "               inference in the output dataset, to be used with the AFNI GUI\n"
       "               Clusterize controls.\n"
       "              ++ If you want to keep the 3dClustSim table .1D files, use this\n"
-      "                 option in the form '-Clustsim'.\n"
+      "                 option in the form '-Clustsim'.  If you want to keep ALL the\n"
+      "                 temp files, use '-CLUSTSIM'.\n"
       "              ++ Since the simulations are done with '-toz' active, it would\n"
       "                 make sense for you to use '-toz' when you use '-clustsim'.\n"
       "              ++ '-clustsim' will not work with less than 7 datasets in each\n"
       "                 input set -- in particular, it doesn't work with '-singletonA'.\n"
+      "              ++ '-clustsim' runs step (a) in multiple jobs, for speed.  By\n"
+      "                 default, it tries to auto-detect the number of CPUs on the system\n"
+      "                 and uses that many separate jobs.  If you put a positive integer\n"
+      "                 immediately following the option, as in '-clustsim 12', it will\n"
+      "                 instead use that many jobs (e.g., 12).  This capability is to\n"
+      "                 be used when the CPU count is not auto-detected correctly.\n"
       "\n"
       " -prefix_clustsim cc = Use 'cc' for the prefix for the '-clustsim' temporary\n"
       "                       files, rather than a randomly generated prefix.\n"
@@ -1500,8 +1507,10 @@ int main( int argc , char *argv[] )
      if( strcasecmp(argv[nopt],"-clustsim") == 0 ){
        char *uuu ;
        if( do_clustsim )
-         ERROR_message("Why do you use -clustsim more than once?!") ;
-       do_clustsim = 1 ; if( argv[nopt][1] == 'C' ) do_clustsim = 2 ;
+         WARNING_message("Why do you use -clustsim more than once?!") ;
+       do_clustsim = 1 ;
+       if( argv[nopt][1] == 'C' ) do_clustsim = 2 ;
+       if( argv[nopt][2] == 'L' ) do_clustsim = 3 ;
        nopt++ ;
        if( nopt < argc && isdigit(argv[nopt][0]) ){
          num_clustsim = (int)strtod(argv[nopt],NULL) ; nopt++ ;
@@ -2995,11 +3004,14 @@ LABELS_ARE_DONE:  /* target for goto above */
      if( do_clustsim == 1 ){
        ININFO_message("===== deleting temp files %s.* =====",prefix_clustsim) ;
        sprintf(cmd,"\\rm %s.*",prefix_clustsim) ;
-     } else {
+       system(cmd) ;
+     } else if( do_clustsim == 2 ){
        ININFO_message("===== deleting temp files %s.*.nii %s.*.niml =====",prefix_clustsim,prefix_clustsim) ;
        sprintf(cmd,"\\rm %s.*.nii %s.*.niml",prefix_clustsim,prefix_clustsim) ;
+       system(cmd) ;
+     } else {
+       ININFO_message("===== NOT deleting any temp files %s.* =====",prefix_clustsim) ;
      }
-     system(cmd) ;
 
      /* et viola */
 
