@@ -411,14 +411,200 @@ double* calc_fecm_power(MRI_vectim *xvectim, double shift, double scale, double 
 
 double* calc_full_power_sparse(MRI_vectim *xvectim, double thresh, double shift, double scale, double eps, long max_iter)
 {
-    sparse_array_node* sparse_array;
+    /* CC - we need a few arrays for calculating the power method */
+    double* v_prev = NULL;
+    double* v_new = NULL;
+    double* v_temp = NULL;
+    double* weight_matrix = NULL;
+    long*   ndx_vec = NULL;
+    double  v_err = 0.0;
+    long    power_it;
+    double  v_new_sum_sq = 0.0;
+    double  v_new_norm = 0.0;
+    double  v_prev_sum_sq = 0.0;
+    double  v_prev_norm = 0.0;
+    double  v_prev_sum = 0.0;
+    long    ii = 0;
+    long    nvals = 0;
+    long    wsize = 0;
 
-    sparse_array = create_sparse_corr_array(xvectim, 5.0, thresh, cc_pearson_corr, (long)(4294967296));
+    /* sparse array for the weight vector */
+    sparse_array_head_node* sparse_array = NULL;
+    sparse_array_node* tptr;
 
-    free_sparse_array( sparse_array );
+    /* -- CC initialize memory for power iteration */
+    /* -- v_new will hold the new vector as it is being calculated */
+    v_new = (double*)calloc(xvectim->nvec,sizeof(double));
 
-    return( NULL );
+    if( v_new == NULL )
+    {
+        WARNING_message("Cannot allocate %d bytes for v_new",xvectim->nvec*sizeof(double));
+        return( NULL );
+    }
+
+    /*-- CC update our memory stats to reflect v_new -- */
+    INC_MEM_STATS(xvectim->nvec*sizeof(double), "v_new");
+    PRINT_MEM_STATS( "v_new" );
+
+    /* -- v_prev will hold the vector from the previous calculation */
+    v_prev = (double*)calloc(xvectim->nvec,sizeof(double));
+
+    if( v_prev == NULL )
+    {
+        if( v_new != NULL ) free(v_new);
+        WARNING_message("Cannot allocate %d bytes for v_prev",xvectim->nvec*sizeof(double));
+        return( NULL );
+    }
+
+    /*-- CC update our memory stats to reflect v_new -- */
+    INC_MEM_STATS(xvectim->nvec*sizeof(double), "v_prev");
+    PRINT_MEM_STATS( "v_prev" );
+
+
+    /*---------- loop over mask voxels, correlate ----------*/
+
+    /*  set the initial vector to the first vector */
+    for ( ii=0; ii<xvectim->nvec; ii++ )
+    {
+        v_prev[ii]=1.0 / sqrt((double)xvectim->nvec);
+        v_prev_sum += v_prev[ii];
+        v_prev_sum_sq += v_prev[ii] * v_prev[ii];
+    }
+
+    v_prev_norm = sqrt(v_prev_sum_sq);
+    v_err = v_prev_norm;
+
+    /* get a sparse array */
+    sparse_array = create_sparse_corr_array(xvectim, 100.0, thresh, cc_pearson_corr, (long)(4294967296));
+
+    if( sparse_array == NULL )
+    {
+        if( v_new != NULL ) free(v_new);
+        if( v_prev != NULL ) free(v_prev);
+        WARNING_message("Error getting sparse weight array.");
+        return( NULL );
+    }
+
+    /*-- CC update our memory stats to reflect v_new -- */
+    INC_MEM_STATS(sizeof(sparse_array_head_node)+sparse_array->num_nodes*sizeof(sparse_array_node), "sparse array");
+    PRINT_MEM_STATS( "sparse array" );
+
+    /* power iterator */
+    power_it = 0;
+
+    while( (v_err > eps) && (power_it < max_iter) )
+    {
+
+        /* zero out the new vector */
+        bzero(v_new, xvectim->nvec*sizeof(double));
+   
+        /* reset the number of superthreshold values to 0 */
+        nvals = 0;
+
+        /* begin by adding in the correlation for the diagonal element
+           (i.e. 1.0) */
+        for( ii = 0; ii < xvectim->nvec; ii++ )
+        {
+            v_new[ii] += scale*(1.0+shift)*v_prev[ii];
+        }
+
+        /* iterate through sparse array and calculate the matrix product */
+        tptr = sparse_array->nodes;
+        while( tptr != NULL )
+        {
+            v_new[tptr->row] += scale*(tptr->weight+shift)*v_prev[tptr->column];
+            v_new[tptr->column] += scale*(tptr->weight+shift)*v_prev[tptr->row];
+            tptr = tptr->next;
+        }
+
+        /* calculate the error, norms, and sums for the next
+           iteration */
+        v_prev_sum = 0.0;
+        v_new_norm = 0.0;
+        v_new_sum_sq = 0.0;
+        v_err = 0.0;
+
+        /* calculate the norm of the new vector */
+        for( ii=0 ; ii < xvectim->nvec ; ii++ )
+        {  /*----- outer voxel loop -----*/
+            v_new_sum_sq += v_new[ii]*v_new[ii];
+        }
+        v_new_norm = sqrt(v_new_sum_sq);
+
+        /* normalize the new vector, calculate the 
+           error between this vector and the previous,
+           and get the sum */
+        v_new_sum_sq = 0.0;
+        for( ii=0; ii < xvectim->nvec; ii++ )
+        {
+            double vdiff = 0;
+            v_new[ii] = v_new[ii] / v_new_norm;
+            v_new_sum_sq += v_new[ii]*v_new[ii];
+
+            /* calcualte the differences */
+            vdiff = v_prev[ii] - v_new[ii];
+            v_err += (vdiff * vdiff);
+        }
+
+        v_err = sqrt(v_err) / v_prev_norm;
+        v_prev_norm = sqrt(v_new_sum_sq);
+
+        /* now set the new vec to the previous */
+        v_temp = v_prev;
+        v_prev = v_new;
+        v_new = v_temp;
+
+        /* increment iteration counter */
+        power_it++;
+
+        /* tell the user what has happened */
+        INFO_message ("Finished iter %d: Verr %3.3f, Vnorm %3.3f\n",
+            power_it, v_err, v_prev_norm);
+    } 
+
+    if ((v_err >= eps) && (power_it >= max_iter))
+    {
+        WARNING_message("Power iteration did not converge (%3.3f >= %3.3f)\n"
+            "in %d iterations. You might consider increase max_iters, or\n"
+            "epsilon. For now we are writing out the obtained solution,\n"
+            "which may or may not be good enough.\n",
+            (v_err), (eps), (power_it));
+    }
+
+    printf( "finished with calculation! now freeing mem\n" );
+
+    /* the eigenvector that we are interested in should now be in v_prev,
+       free all other power iteration temporary vectors */
+    if( v_new != NULL ) 
+    {
+        free(v_new);
+        v_new = NULL;
+
+        /* update running memory statistics to reflect freeing the vectim */
+        DEC_MEM_STATS(xvectim->nvec*sizeof(double), "v_new");
+    }
+ 
+    printf( "freed v_new\n" );
+
+    /* free the weight matrix */
+    if( sparse_array != NULL )
+    {
+        /* update running memory statistics to reflect freeing the vectim */
+        DEC_MEM_STATS(sizeof(sparse_array_head_node)+sparse_array->num_nodes*
+            sizeof(sparse_array_node), "sparse array");
+
+        sparse_array = free_sparse_array(sparse_array);
+    }
+
+    printf( "freed sparse_array\n" );
+
+    /* return the result */
+    return(v_prev);
 }
+
+
+
+
 
 double* calc_full_power_max_mem(MRI_vectim *xvectim, double thresh, double shift, double scale, double eps, long max_iter)
 {

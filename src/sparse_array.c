@@ -24,18 +24,38 @@ static void vstep_print(void)
 }
 
 
-/* function for freeing a sparse array */
-sparse_array_node* free_sparse_array( sparse_array_node* sparray )
+sparse_array_node* free_sparse_list( sparse_array_node* list )
 {
-    sparse_array_node* tptr;
-
-    while( sparray != NULL )
+    sparse_array_node* tptr = NULL;
+    while( list != NULL )
     {
-        tptr = sparray;
-        sparray = sparray->next;
-        if( tptr != NULL) free(tptr);
+       tptr = list;
+       list = list->next;
+       free(tptr); 
     }
+    return( NULL );
+}
 
+/* function for freeing a sparse array */
+sparse_array_head_node* free_sparse_array( sparse_array_head_node* sparray )
+{
+    sparse_array_node* tptr = NULL;
+    sparse_array_node* sptr = NULL;
+
+    if( sparray != NULL )
+    {
+        sptr = sparray->nodes;
+
+        while( sptr != NULL )
+        {
+            tptr = sptr;
+            sptr = sptr->next;
+            if( tptr != NULL) free(tptr);
+        }
+
+        /* now free the head node */
+        free(sparray);
+    }
     return(NULL);
 }
 
@@ -66,7 +86,7 @@ hist_node_head* free_histogram(hist_node_head * histogram, int nhistbins)
             if( histogram[kout].nodes != NULL )
             {
                 /* free the list of hist_nodes */
-                free_sparse_array( histogram[kout].nodes );
+                free_sparse_list( histogram[kout].nodes );
                 histogram[kout].nodes = NULL; 
             }
         } 
@@ -103,7 +123,7 @@ hist_node_head* free_histogram(hist_node_head * histogram, int nhistbins)
 
         this function can use a _lot_ of memory if you the sparsity is too high, we tell
         the user how much memory we anticipate using, but this doesn't work for threshold only!*/
-sparse_array_node* create_sparse_corr_array( MRI_vectim* xvectim, double sparsity, double thresh,
+sparse_array_head_node* create_sparse_corr_array( MRI_vectim* xvectim, double sparsity, double thresh,
      double (*corfun)(long,float*,float*), long mem_allowance  )
 {
 
@@ -112,11 +132,10 @@ sparse_array_node* create_sparse_corr_array( MRI_vectim* xvectim, double sparsit
 
     /* variables for histogram */
     hist_node_head* histogram=NULL;
-    sparse_array_node* sparse_array=NULL;
+    sparse_array_head_node* sparse_array=NULL;
     sparse_array_node* recycled_nodes=NULL;
     long bottom_node_idx = 0;
     long totNumCor = 0;
-    long totNumAry = 0;
     long totPosCor = 0;
     long ngoal = 0;
     long nretain = 0;
@@ -134,6 +153,18 @@ sparse_array_node* create_sparse_corr_array( MRI_vectim* xvectim, double sparsit
  
     /* calculate the total number of possible correlations */
     totPosCor = .5 * ( xvectim->nvec -1 ) * ( xvectim->nvec );
+
+    /* create a head node for the sparse array */
+    sparse_array = (sparse_array_head_node*)calloc(1,sizeof(sparse_array_head_node));
+
+    if( sparse_array == NULL )
+    {
+        ERROR_message( "Could not allocate header for sparse array\n" );
+        return(NULL);
+    }
+
+    /* decrement the memory budget to account for the sparse array header */
+    mem_budget = mem_budget - sizeof(sparse_array_head_node);
 
     /* check if we can do what is asked of us with the budget provided */
     if( sparsity < 100.0 )
@@ -171,8 +202,8 @@ sparse_array_node* create_sparse_corr_array( MRI_vectim* xvectim, double sparsit
                          " will be aborted.");
     }
 
-    INFO_message( "Extracting sparse correlation array with threshold = %f and sparsity = %3.2f%% (%d)\n",
-            thresh, sparsity, nretain);
+    INFO_message( "Extracting sparse correlation array with threshold = %f and"
+                  " sparsity = %3.2f%% (%d)\n", thresh, sparsity, nretain);
 
     /* if we are using a sparsity threshold, setup the histogram to sort the values */
     if ( sparsity < 100.0 )
@@ -302,12 +333,17 @@ sparse_array_node* create_sparse_corr_array( MRI_vectim* xvectim, double sparsit
                                 }
                                 else
                                 {
+                                    new_node->weight = car;
+                                    new_node->row = lout;
+                                    new_node->column = lin;
+
                                     totNumCor += 1;
                
                                     if ( sparsity >= 100.0 )
                                     {
-                                        new_node->next = sparse_array;
-                                        sparse_array = new_node;
+                                        new_node->next = sparse_array->nodes;
+                                        sparse_array->nodes = new_node;
+                                        sparse_array->num_nodes = sparse_array->num_nodes + 1;
                                         new_node = NULL; 
                                     }
                                     else
@@ -317,9 +353,10 @@ sparse_array_node* create_sparse_corr_array( MRI_vectim* xvectim, double sparsit
                                         if ((new_node_idx > nhistbins) || (new_node_idx < bottom_node_idx))
                                         {
                                             /* this error should indicate a programming error and should not happen */
-                                            WARNING_message("Node index %d (%3.4lf >= %3.4lf) is out of range [%d,%d) {[%3.4lf, %3.4lf)}!",new_node_idx,
-                                            car, thresh,
-                                            bottom_node_idx, nhistbins, histogram[bottom_node_idx].bin_low, histogram[bottom_node_idx].bin_high );
+                                            WARNING_message("Node index %d (%3.4lf >= %3.4lf) is out of range [%d,%d)"
+                                                " {[%3.4lf, %3.4lf)}!",new_node_idx, car, thresh, bottom_node_idx,
+                                                nhistbins, histogram[bottom_node_idx].bin_low,
+                                                histogram[bottom_node_idx].bin_high );
                                         }
                                         else
                                         {
@@ -353,7 +390,9 @@ sparse_array_node* create_sparse_corr_array( MRI_vectim* xvectim, double sparsit
                                                 {
                                                     if( histogram[bottom_node_idx].nbin != 0 )
                                                     {
-                                                         WARNING_message("Trying to remove histogram bin that contains %d values, but whose tail pointer is NULL\n", histogram[bottom_node_idx].nbin);
+                                                         WARNING_message("Trying to remove histogram bin that contains"
+                                                                         " %d values, but whose tail pointer is NULL\n",
+                                                                         histogram[bottom_node_idx].nbin);
                                                     }
                                                 }
         
@@ -384,41 +423,48 @@ sparse_array_node* create_sparse_corr_array( MRI_vectim* xvectim, double sparsit
     AFNI_OMP_END ;
 
 
-    /* check to see if we exceeded memory or didn't get any correlations > threshold */
+    /* check to see if we exceeded memory or didn't get any
+       correlations > threshold */
     if (( mem_budget < 0 ) || ( totNumCor == 0 ))
     {
         if ( mem_budget < 0 )
         {
-            ERROR_message( "Memory budget (%lf MB) exceeded, consider using a higher correlation or lower sparsity threshold", ((double)mem_allowance/(1024.0*1024.0)));
+            ERROR_message( "Memory budget (%lf MB) exceeded, consider using a"
+                "higher correlation or lower sparsity threshold",
+                ((double)mem_allowance/(1024.0*1024.0)));
         }
         else
         {
-            ERROR_message( "No correlations exceeded threshold, consider using a lower correlation threshold");
+            ERROR_message( "No correlations exceeded threshold, consider using"
+                           " a lower correlation threshold");
         }
         sparse_array = free_sparse_array( sparse_array ); 
     }
     else
     {
-        printf("bottom %ld, num cor %ld, histbins %ld\n", bottom_node_idx, totNumCor, nhistbins);
-        /* if using sparsity threshold, construct sparse array from the histogram */
+        /* if using sparsity threshold, construct sparse array from
+           the histogram */
         if ( sparsity < 100.0 )
         {
 
             /* pull the requested number of nodes off of the histogram */
             for ( kout = (nhistbins-1); kout >= bottom_node_idx; kout-- )
             { 
-                if((histogram[ kout ].nodes != NULL ) && (histogram[ kout ].nbin > 0))
+                if((histogram[ kout ].nodes != NULL ) &&
+                   (histogram[ kout ].nbin > 0))
                 {
                     if( histogram[ kout ].tail == NULL )
                     {
-                        ERROR_message("Head is not null, but tail is?? (%ld)\n",kout);
+                        ERROR_message("Head is not null, but tail is?? (%ld)\n",
+                            kout);
                     }
                     /* push the list onto sparse array */
-                    histogram[ kout ].tail->next = sparse_array;
-                    sparse_array = histogram[ kout ].nodes;
+                    histogram[ kout ].tail->next = sparse_array->nodes;
+                    sparse_array->nodes = histogram[ kout ].nodes;
 
                     /* increment the number of nodes */
-                    totNumAry = totNumAry + histogram[ kout ].nbin;
+                    sparse_array->num_nodes = sparse_array->num_nodes +
+                        histogram[ kout ].nbin;
       
                     /* remove the references from the histogram,
                        this is super important considering we don't want
@@ -429,27 +475,34 @@ sparse_array_node* create_sparse_corr_array( MRI_vectim* xvectim, double sparsit
                     histogram[ kout ].nbin = 0;
                 } 
                 /* dont take more than we want */
-                if ( totNumAry > nretain ) break;
+                if ( sparse_array->num_nodes > nretain ) break;
             }
 
-            INFO_message( "Sparsity requested %ld and received %ld correlations (%3.2lf%% sparsity) final threshold = %3.4lf.\n",
-                nretain, totNumAry, 100.0*((double)totNumAry)/((double)totPosCor), thresh);
-            if( totNumAry < nretain )
+            INFO_message( "Sparsity requested %ld and received %ld correlations"
+                          " (%3.2lf%% sparsity) final threshold = %3.4lf.\n",
+                nretain, sparse_array->num_nodes,
+                100.0*((double)sparse_array->num_nodes)/((double)totPosCor),
+                thresh);
+
+            if( sparse_array->num_nodes < nretain )
             {
-                INFO_message( "Consider lowering the initial correlation threshold (%3.2lf) to retain more correlations.\n",
+                INFO_message( "Consider lowering the initial correlation"
+                    "threshold (%3.2lf) to retain more correlations.\n",
                     othresh);
             }
         }
         else
         {
-            INFO_message( "Correlation threshold (%3.2lf) resulted in  %ld correlations (%3.2lf%% sparsity).\n",
-                thresh,100.0*((double)totNumCor)/((double)totPosCor));
+            INFO_message( "Correlation threshold (%3.2lf) resulted in %ld"
+                " correlations (%3.2lf%% sparsity).\n", thresh, 
+                sparse_array->num_nodes,
+                100.0*((double)sparse_array->num_nodes)/((double)totPosCor));
         }
     }
 
     /* free residual mem */
     histogram = free_histogram( histogram, nhistbins );
-    recycled_nodes = free_sparse_array( recycled_nodes );    
+    recycled_nodes = free_sparse_list( recycled_nodes );    
 
     return( sparse_array );
 }
