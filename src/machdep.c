@@ -61,9 +61,11 @@ void machdep()
 
 int AFNI_get_ncpu(void)  /* 11 Feb 2016 */
 {
-   int32_t nnn ;
+   int32_t nnn=0 ;
 
+#ifdef _SC_NPROCESSORS_CONF
    nnn = sysconf(_SC_NPROCESSORS_CONF) ;
+#endif
 
 #ifdef USE_SYSCTL
    if( nnn < 1 )
