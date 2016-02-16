@@ -14,30 +14,34 @@
 
 set prog = `basename $0`
 set afnisite = https://afni.nimh.nih.gov
+set aub_version = "2.1, February 16, 2016"
 
 # ----------------------------------------------------------------------
 # history section
+
 goto POST_HIST
 SHOW_HIST:
 cat << EOF
 -------------------------------------------------------------------------------
 history for $prog :
 
-  ...         : a few updates
-  07 Mar 2012 : existing package and install dir no longer required for -d
-  13 Sep 2012 : download and run the current version on the website
-              - added option -no_recur
-  21 Dec 2012 : do rehash before apsearch
-              - check download by looking for string in this file
-  01 Nov 2013 : Darwin defaults to 10.7 package
-  01 Dec 2013 : added -prog_list for Ziad
-  18 Dec 2013 : added check for system programs, -sys_ok and -help_system_progs
-  14 Jan 2014 : added more system programs
-  01 May 2014 : added -quick option; fixed sync of backup, was nesting
-  15 Jan 2015 : if bad option and current version, fail after version check
-  08 Apr 2015 : added -revert (zsaad and rickr)
-  25 Aug 2015 : update path and AFNI tab completion on initial install
-  08 Feb 2016 : access afni site via https protocol
+  ...              : a few updates
+  1.0  07 Mar 2012 : existing package and install dir no longer required for -d
+       13 Sep 2012 : download and run the current version on the website
+                   - added option -no_recur
+       21 Dec 2012 : do rehash before apsearch
+                   - check download by looking for string in this file
+       01 Nov 2013 : Darwin defaults to 10.7 package
+       01 Dec 2013 : added -prog_list for Ziad
+       18 Dec 2013 : added check for system programs, -sys_ok and
+                     -help_system_progs
+       14 Jan 2014 : added more system programs
+       01 May 2014 : added -quick option; fixed sync of backup, was nesting
+       15 Jan 2015 : if bad option and current version, fail after version check
+       08 Apr 2015 : added -revert (zsaad and rickr)
+       25 Aug 2015 : update path and AFNI tab completion on initial install
+  2.0  08 Feb 2016 : access afni site via https protocol
+  2.1  16 Feb 2016 : added -ver and initial statement of version
 -------------------------------------------------------------------------------
 EOF
 exit
@@ -136,6 +140,9 @@ while ( $ac <= $#argv )
         set quick = 1
     else if ( "$argv[$ac]" == "-sys_ok" ) then
         set sys_ok = 1
+    else if ( "$argv[$ac]" == "-ver" ) then
+        echo $aub_version
+        exit 0
     else if ( "$argv[$ac]" == "-test" ) then
         set testing = 1
     else
@@ -257,6 +264,9 @@ if ( $help ) then
     echo ""
     exit
 endif
+
+
+echo "-- running $prog version $aub_version"
 
 # note any current AFNI location
 which afni >& /dev/null
