@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 16,  Feb, 2016, RCR, "@update.afni.binaries", MICRO, TYPE_ENHANCE,
+   "add -ver and initial version reporting",
+   NULL
+ } ,
+
  { 10,  Feb, 2016, RCR, "@ANATICOR", MICRO, TYPE_BUG_FIX,
    "fixed -radius option parsing",
    "Thanks to A Frithsen for noting the problem."
