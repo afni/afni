@@ -8,8 +8,8 @@
 
 
 Here we describe installation and system setup for mainstream Linux
-versions that are reasonably modern, such as **Fedora 21+ and Ubuntu
-14.04+**.
+versions that are reasonably modern, such as **Fedora 21+, RHEL 7 and
+Ubuntu 14.04+**.
 
 Several of the following steps are system dependent, for example due
 to having different package managers, so we list parallel instructions
@@ -18,13 +18,19 @@ for each.
 #. **Install prerequisite packages.**
 
    There are several packages and libraries that are needed to run the
-   afni and shell programs. Note that ``tcsh`` might not be on the
-   system yet, so we install it also:
+   afni and shell programs, often even including ``tcsh``.:
         
    * *for Fedora 21 (and higher)*::
       
        sudo yum install -y tcsh libXp openmotif gsl xorg-x11-fonts-misc       \
                            PyQt4 R-devel netpbm-progs gnome-tweak-tool ed
+       sudo yum update -y
+      
+   * *for RHEL 7*::
+      
+       sudo yum install -y tcsh libXp openmotif gsl xorg-x11-fonts-misc       \
+                           PyQt4 R-devel netpbm-progs gnome-tweak-tool ed     \
+                           libpng12
        sudo yum update -y
       
    * *for Ubuntu 14.04 (and higher)*::
@@ -56,7 +62,7 @@ for each.
 
        tcsh @update.afni.binaries -package linux_fedora_21_64
 
-   * *for Ubuntu 14.04 (and higher)*::
+   * *for Ubuntu 14.04 (and higher), as well as RHEL 7*::
 
        tcsh @update.afni.binaries -package linux_openmp_64
 
