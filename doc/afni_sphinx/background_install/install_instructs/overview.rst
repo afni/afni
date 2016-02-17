@@ -44,7 +44,7 @@ Step-by-step instructions for setting up AFNI on a system are provided:
 
 - for :ref:`Linux <install_steps_linux>`
 
-- for :ref:`Mac OS <install_steps_mac>`
+- for :ref:`Mac OS X <install_steps_mac>`
 
 Methods for checking/evaluating each setup are also described on those
 pages.
