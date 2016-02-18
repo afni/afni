@@ -173,7 +173,7 @@ char * GetAfniImageViewer(void)
 
 void init_rand_seed( long int seed )
 {
-   if( seed == 0 ) seed = (long)time(NULL)+(long)getpid() ;
+   if( seed == 0 ) seed = (long)time(NULL)+37*(long)getpid() ;
    srand48(seed) ;
 }
 
