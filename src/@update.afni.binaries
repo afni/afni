@@ -42,7 +42,7 @@ history for $prog :
        25 Aug 2015 : update path and AFNI tab completion on initial install
   2.0  08 Feb 2016 : access afni site via https protocol
   2.1  16 Feb 2016 : added -ver and initial statement of version
-  2.2  19 Feb 2016 : minor text changes to appease dglen
+  2.2  19 Feb 2016 : minor text changes (note get_prog and appease dglen)
 -------------------------------------------------------------------------------
 EOF
 exit
@@ -471,7 +471,7 @@ if ( $do_recur ) then
 
    set bin_root = $afnisite/pub/dist/bin
    set get_package = $bin_root/$package/$prog
-   echo "++ getting install prog $package/$prog ..."
+   echo "++ getting install prog: $get_prog $package/$prog ..."
    $get_prog $get_package
 
    # ----- might not exist: try twice and skip if fail       26 Sep 2012
@@ -581,7 +581,7 @@ else
   set pp = afni
 endif
 set get_package = $afnisite/pub/dist/bin/$package/$pp
-echo "++ downloading test file $package/$pp ..."
+echo "++ downloading test file: $get_prog $package/$pp ..."
 $get_prog $get_package
 cmp -s $pp ../$pp
 if ( ! $status ) then
@@ -613,7 +613,7 @@ sleep 1
 
 # download the full binary set or list of programs
 if ( $#prog_list == 0 ) then
-   echo "++ downloading full $package.tgz package..."
+   echo "++ downloading full package: $get_prog $package.tgz ..."
    set get_package = $afnisite/pub/dist/tgz/$package.tgz
    $get_prog $get_package
    if ( $status ) then
