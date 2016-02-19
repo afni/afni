@@ -14,7 +14,7 @@
 
 set prog = `basename $0`
 set afnisite = https://afni.nimh.nih.gov
-set aub_version = "2.1, February 16, 2016"
+set aub_version = "2.2, February 19, 2016"
 
 # ----------------------------------------------------------------------
 # history section
@@ -42,6 +42,7 @@ history for $prog :
        25 Aug 2015 : update path and AFNI tab completion on initial install
   2.0  08 Feb 2016 : access afni site via https protocol
   2.1  16 Feb 2016 : added -ver and initial statement of version
+  2.2  19 Feb 2016 : minor text changes (note get_prog and appease dglen)
 -------------------------------------------------------------------------------
 EOF
 exit
@@ -287,7 +288,7 @@ if ( $abin == "" ) then
        echo "-- install dir: using default ~/abin"
        set abin = ~/abin
     else
-       # have program, nuke trailing 'afni' to get directory
+       # have program, remove trailing 'afni' to get directory
        set abin = $cur_afni
        echo "-- install dir: using existing $abin"
     endif
@@ -435,7 +436,7 @@ endif
 # ----------------------------------------------------------------------
 # remove any old package
 if ( ! $revert && ( -f $package.tgz || -d $package ) ) then
-    echo nuking old package...
+    echo deleting old package $package.tgz ...
     \rm -fr $package $package.tgz
     if ( $status ) then
         echo "** failed to remove old package $package"
@@ -445,7 +446,7 @@ endif
 
 # remove any temp install directory
 if ( -d $tmp_dir ) then
-    echo nuking old temporary directory...
+    echo deleting old temporary directory...
     \rm -fr $tmp_dir
 endif
 
@@ -470,7 +471,7 @@ if ( $do_recur ) then
 
    set bin_root = $afnisite/pub/dist/bin
    set get_package = $bin_root/$package/$prog
-   echo "++ getting install prog $package/$prog ..."
+   echo "++ getting install prog: $get_prog $package/$prog ..."
    $get_prog $get_package
 
    # ----- might not exist: try twice and skip if fail       26 Sep 2012
@@ -580,7 +581,7 @@ else
   set pp = afni
 endif
 set get_package = $afnisite/pub/dist/bin/$package/$pp
-echo "++ downloading test file $package/$pp ..."
+echo "++ downloading test file: $get_prog $package/$pp ..."
 $get_prog $get_package
 cmp -s $pp ../$pp
 if ( ! $status ) then
@@ -612,7 +613,7 @@ sleep 1
 
 # download the full binary set or list of programs
 if ( $#prog_list == 0 ) then
-   echo "++ downloading full $package.tgz package..."
+   echo "++ downloading full package: $get_prog $package.tgz ..."
    set get_package = $afnisite/pub/dist/tgz/$package.tgz
    $get_prog $get_package
    if ( $status ) then
@@ -679,12 +680,12 @@ else if ( $make_backup ) then
        \mv ../* $backup_dir
     endif
 
-    # nuke previous auto-backup directory
+    # delete previous auto-backup directory
     if ( -d ../$backup_dir ) then
-        echo nuking old backup directory, $backup_dir ...
+        echo deleting old backup directory, $backup_dir ...
         \rm -fr ../$backup_dir
     else if ( -d $backup_dir/$backup_dir ) then
-        echo nuking previous backup directory, $backup_dir ...
+        echo deleting previous backup directory, $backup_dir ...
         \rm -fr $backup_dir/$backup_dir
     endif
 
@@ -782,7 +783,7 @@ if ( $package == macosx_10.7_Intel_64 && $#prog_list > 0 ) then
    echo ""
 endif
 
-# finally nuke any leftovers
+# finally remove any leftovers
 cd ..
 \rm -fr $tmp_dir
 

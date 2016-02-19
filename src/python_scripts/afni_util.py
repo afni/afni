@@ -107,6 +107,23 @@ def read_top_lines(fname='stdin', nlines=1, strip=0, verb=1):
    if nlines != 0: tdata = tdata[0:nlines]
    return tdata
 
+def read_AFNI_version_file(vdir='', vfile='AFNI_version.txt', delim=', '):
+   """read AFNI_version.txt from vdir (else executable_dir)
+      return comma-delimited form
+   """
+
+   if vdir == '': vdir = executable_dir()
+   if vdir == '': return ''
+
+   vpath = '%s/%s' % (vdir, vfile)
+
+   if not os.path.isfile(vpath): return ''
+
+   vdata = read_text_file(vpath, verb=0)
+   if vdata == '': return ''
+
+   return delim.join(vdata)
+
 def write_to_timing_file(data, fname='', nplaces=-1, verb=1):
    """write the data in stim_times format, over rows
       (this is not for use with married timing, but for simple times)"""

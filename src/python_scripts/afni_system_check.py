@@ -72,13 +72,16 @@ R Reynolds    July, 2013
 g_todo = """
 todo: afni_system_check.py
 
-   - mac: check for gcc?  can we tell whether openMP is supported?
-          fink?  homebrew?  macports?
-
-   - check for .afnirc/.sumarc .afni/help
    - check for data under any passed -data_root
         - this was started
    - check disk space
+   - report RAM
+   - if R failures and no R_LIBS: check 'find ~ -maxdepth 3 -name afex'
+   - fail if python3?  show output from "ls -ld `which python`*"
+      - consider setting VERSIONER_PYTHON_VERSION to 2.7
+      - make permanent: defaults write com.apple.versioner.python Version 2.7
+   - warn on old python version?
+   - warn on old AFNI version
 """
 
 g_history = """
@@ -110,6 +113,11 @@ g_history = """
    0.13 Sep 09, 2015 - fix sequence of program check from exec dir
    0.14 Dec 29, 2015 - catch empty atlas dir list
    0.15 Jan 03, 2016 - truncate 'top history' text
+   0.16 Feb 16, 2016 - many new checks
+        - have 'summary comments' describe issues that may require attention
+        - see whether homebrew is installed
+        - whine if OS X version is pre-10.7
+        - report contents of AFNI_version.txt
 """
 
 g_version = "afni_system_check.py version 0.15, January 3, 2015"
