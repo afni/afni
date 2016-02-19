@@ -272,6 +272,9 @@ class SysInfo:
       nfound = self.check_for_progs(['brew', 'port', 'fink'], repos=1)
       if nfound == 0:
          self.comments.append('consider installing homebrew')
+      self.hunt_for_homebrew()
+      if self.get_osx_ver() < 7:
+         self.comments.append('OS X version might be old')
 
       # add PyQt4 comment, if missing (check for brew and fink packages)
       if not self.have_pyqt4:
@@ -290,6 +293,20 @@ class SysInfo:
 
       # in 10.11, check for gcc under homebrew
       self.check_for_10_11_gomp()
+
+   def hunt_for_homebrew(self):
+      """assuming it was not found, just look for the file"""
+      # if already found, do not bother
+      if self.repo_prog == 'brew': return 0 
+
+      bdir = '/usr/local/bin'
+      bfile = 'brew'
+      bpath = '%s/%s' % (bdir,bfile)
+      if os.path.isfile(bpath):
+         print "++ found '%s' at %s" % (bfile, bpath)
+         return 1
+
+      return 0
             
    def check_for_10_11_gomp(self):
       """in 10.11, check for openmp/gcc under homebrew
@@ -335,6 +352,16 @@ class SysInfo:
       # check for programs
       nfound = 0
       for prog in plist:
+         # the version file is treated specially here
+         if prog == 'AFNI_version.txt':
+            vinfo = UTIL.read_AFNI_version_file()
+            if vinfo != '':
+               nfound += 1
+            else:
+               self.comments.append('missing %s, maybe package is old'%prog)
+            print '%-20s : %s' % (prog, vinfo)
+            continue
+
          cmd = 'which %s' % prog
          s, so, se = BASE.simple_shell_exec(cmd, capture=1)
          if not s: # found one
@@ -349,6 +376,7 @@ class SysInfo:
             nfound += 1
          elif show_missing:
             print '%-20s : %s' % (cmd, se)
+
       print
 
       return nfound
@@ -382,7 +410,12 @@ class SysInfo:
 
    def show_general_afni_info(self, header=1):
       print UTIL.section_divider('AFNI and related program tests', hchar='-')
-      self.check_for_progs(['afni', 'python', 'R', 'tcsh'], show_missing=1)
+
+      self.afni_dir = self.get_afni_dir()
+      check_list = ['afni', 'AFNI_version.txt', 'python', 'R', 'tcsh']
+      nfound = self.check_for_progs(check_list, show_missing=1)
+      if nfound < len(check_list):
+         self.comments.append('missing main software component')
 
       # make generic but pretty
       print "instances of various programs found in PATH:"
@@ -396,8 +429,11 @@ class SysInfo:
             else:                fstr = ''
             print '    %-*s : %d %s' % (ml, prog, len(files), fstr)
 
-            if prog == 'afni' and len(files) > 1:
-               self.comments.append("consider only 1 version of AFNI in PATH")
+            if prog == 'afni':
+               if len(files) > 1:
+                  self.comments.append("have multiple versions of AFNI in PATH")
+               if os.stat(files[0]).st_uid == 0:
+                  self.comments.append("'afni' executable is owned by root")
       print
 
       # try select AFNI programs
@@ -420,10 +456,10 @@ class SysInfo:
             if prog == '3dAllineate': self.ok_openmp = 1
       print
       pfailure = fcount == len(proglist)
+      if fcount > 0: self.comments.append('AFNI programs show FAILURE')
 
       # if complete failure, retry from exec dir
       ascdir = UTIL.executable_dir()
-      self.afni_dir = self.get_afni_dir()
       if pfailure and self.afni_dir != ascdir:
          fcount = 0
          print 'none working, testing programs under implied %s...' % ascdir
@@ -457,6 +493,7 @@ class SysInfo:
       else:
          print '    %-20s : FAILURE' % cmd
          print ind + indn.join(se)
+         self.comments.append('missing R packages (see rPkgsInstall)')
       print
 
       print 'checking for $HOME files...'
