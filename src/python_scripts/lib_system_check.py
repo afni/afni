@@ -432,8 +432,9 @@ class SysInfo:
             if prog == 'afni':
                if len(files) > 1:
                   self.comments.append("have multiple versions of AFNI in PATH")
-               if os.stat(files[0]).st_uid == 0:
-                  self.comments.append("'afni' executable is owned by root")
+               if len(files) > 0:
+                  if os.stat(files[0]).st_uid == 0:
+                     self.comments.append("'afni' executable is owned by root")
       print
 
       # try select AFNI programs
