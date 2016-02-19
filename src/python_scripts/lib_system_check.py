@@ -111,7 +111,7 @@ class SysInfo:
       print 'data dir : found %-12s under %s' % (ddir, dhome)
 
       # possibly show histfile
-      if histfile == '': return
+      if histfile == '': return 0
 
       prefix = '           top history: '
       hname = '%s/%s/%s' % (droot, ddir, histfile)
