@@ -101,10 +101,12 @@ operating system) to a link to install XQuartz.
 
         brew install pyqt
 
-   #. (only for OS X 10.11, El Capitan) Install gcc with OpenMP support::
+   #. (only for OS X 10.11, El Capitan) Install gcc with OpenMP support,
+      along with glib::
 
         brew install gcc --with-all-languages --without-multilib
         ln -s /usr/local/Cellar/gcc/5.3.0/lib/gcc/5/libgomp.1.dylib /usr/local/lib/libgomp.1.dylib
+        brew install glib
 
 
 #. **AFNI installation**
