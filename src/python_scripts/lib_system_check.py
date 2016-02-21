@@ -285,7 +285,7 @@ class SysInfo:
             gdir = glist[-1]
             ghead = os.path.dirname(gdir)
             print '++ found PyQt4 under %s' % ghead
-            self.comments.append('consider adding %s to PYTHONPATH')
+            self.comments.append('consider adding %s to PYTHONPATH' % ghead)
          elif self.repo_prog == 'brew':
             self.comments.append('consider running: brew install pyqt')
          else:
