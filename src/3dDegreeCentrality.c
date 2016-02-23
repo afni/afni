@@ -56,7 +56,8 @@ static int MEM_STAT = 0;
             if( ndx < MAX_NUM_TAGS ) \
             { \
                 mem_allocated[ ndx ] += (long)(INC); \
-                if ((long)(INC) > 1024 ) WARNING_message("Incrementing memory for %s by %ldB\n", TAG, (INC)); \
+                if ((long)(INC) > 1024 ) WARNING_message("Incrementing memory for %s by %sB\n", TAG, \
+                    commaized_integer_string(INC)); \
             } \
             else WARNING_message("No room in mem profiler for %s\n", TAG ); \
         } \
@@ -85,28 +86,35 @@ static int MEM_STAT = 0;
             else \
             { \
                 mem_freed[ ndx ] += (long)(DEC); \
-                if ((long)(DEC) > 1024 ) INFO_message("Free %ldB of memory for %s\n", (DEC), TAG); \
+                if ((long)(DEC) > 1024 ) INFO_message("Free %sB of memory for %s\n", \
+                    commaized_integer_string(DEC), TAG); \
             } \
         } \
         running_mem -= (long)(DEC); \
+        if (running_mem < 0 ) \
+        { \
+            WARNING_message("Removing %sB for %s forced running_mem negative\n", \
+                    commaized_integer_string(DEC), TAG); \
+        } \
     }
 
 #define PRINT_MEM_STATS( TAG ) \
         if ( MEM_STAT == 1 ) \
         { \
-            INFO_message("\n======\n== Mem Stats (%s): Running %3.3fMB, Total %3.3fMB, Peak %3.3fMB\n", \
+            INFO_message("\n======\n== Mem Stats (%s): Running %sB, Total %sB, Peak %sB\n", \
             TAG, \
-            (double)(running_mem/(1024.0*1024.0)), \
-            (double)(total_mem/(1024.0*1024.0)), \
-            (double)(peak_mem/(1024.0*1024.0))); \
+            commaized_integer_string(running_mem), \
+            commaized_integer_string(total_mem), \
+            commaized_integer_string(peak_mem)); \
             if( MEM_PROF ==  1 ) \
             { \
                 int ndx = 0; \
                 INFO_message("== Memory Profile\n"); \
                 for( ndx=0; ndx < mem_num_tags; ndx++ ) \
                 { \
-                    INFO_message("%s: %ld allocated %ld freed\n", mem_tags[ndx], \
-                        mem_allocated[ndx], mem_freed[ndx] ); \
+                    INFO_message("%s: %sB allocated %sB freed\n", mem_tags[ndx], \
+                       commaized_integer_string(mem_allocated[ndx]), \
+                       commaized_integer_string(mem_freed[ndx])); \
                 } \
             } \
         }
@@ -140,6 +148,7 @@ hist_node* free_hist_list( hist_node* hist_list )
 {
     hist_node *pptr;
     hist_node *hptr = hist_list;
+    long free_mem_amount = 0;
 
     while(hptr != NULL )
     {
@@ -152,11 +161,14 @@ hist_node* free_hist_list( hist_node* hist_list )
         { 
             /* -- update running memory estimate to reflect memory allocation */ 
             DEC_MEM_STATS(( sizeof(hist_node)), "hist nodes");
+            free_mem_amount = free_mem_amount + sizeof(hist_node);
             free(pptr);
             pptr=NULL;
         }
     }
 
+    /*printf("free_hist_list freed %sB memory\n", commaized_integer_string(free_mem_amount));
+    PRINT_MEM_STATS("free_hist_list");*/
     return(NULL);
 }
 
@@ -183,12 +195,14 @@ hist_node_head* free_histogram(hist_node_head * histogram, int nhistnodes)
 
         /* all of the linked lists should be empty,
            now free the bin array */
-        if (histogram != NULL) {
+        if (histogram != NULL)
+        {
             free(histogram);
+            DEC_MEM_STATS(( nhistnodes * sizeof(hist_node_head)), "hist bins");
         }
-        DEC_MEM_STATS(( nhistnodes * sizeof(hist_node_head)), "hist bins");
     }
 
+    /*PRINT_MEM_STATS("free_histogram");*/
     return(NULL);
 }
 
@@ -562,6 +576,8 @@ int main( int argc , char *argv[] )
    else if( do_autoclip ){
       mask  = THD_automask( xset ) ;
       nmask = THD_countmask( nvox , mask ) ;
+      INC_MEM_STATS( nmask * sizeof(byte), "mask array" );
+      PRINT_MEM_STATS( "mask" );
       INFO_message("%d voxels survive -autoclip",nmask) ;
       if( nmask < 2 ) ERROR_exit("Only %d voxels in -automask!",nmask);
    }
@@ -710,7 +726,8 @@ int main( int argc , char *argv[] )
             ERROR_message( "Could not allocate %d byte array for histogram\n",
                 nhistnodes*sizeof(hist_node_head)); 
         }
-        else {
+        else 
+        {
             /* -- update running memory estimate to reflect memory allocation */ 
             INC_MEM_STATS( nhistnodes*sizeof(hist_node_head), "hist bins" );
             PRINT_MEM_STATS( "hist1" );
@@ -845,8 +862,8 @@ int main( int argc , char *argv[] )
                             else
                             {
                                 new_node = recycled_nodes;
-                                new_node->next = NULL;
                                 recycled_nodes = recycled_nodes->next;
+                                new_node->next = NULL;
                             }
                             if( new_node == NULL )
                             {
@@ -878,7 +895,8 @@ int main( int argc , char *argv[] )
                                 { 
                                     /* push the histogram nodes onto the list of recycled nodes, it could be
                                        that this hist bin is empty, in which case we have nothing to add */
-                                    if( histogram[bottom_node_idx].tail != NULL )
+                                    if(( histogram[bottom_node_idx].tail != NULL ) && 
+                                       ( histogram[bottom_node_idx].nodes != NULL ))
                                     {
                                         histogram[bottom_node_idx].tail->next = recycled_nodes;
                                         recycled_nodes = histogram[bottom_node_idx].nodes;
@@ -887,7 +905,7 @@ int main( int argc , char *argv[] )
                                     {
                                         if( histogram[bottom_node_idx].nbin != 0 )
                                         {
-                                             WARNING_message("Trying to remove histogram bin that contains %d values, but whose tail pointer is NULL\n", histogram[bottom_node_idx].nbin);
+                                             WARNING_message("Trying to remove histogram bin that contains %d values, but whose head or tail pointer is NULL\n", histogram[bottom_node_idx].nbin);
                                         }
                                     }
 
@@ -917,7 +935,9 @@ int main( int argc , char *argv[] )
     AFNI_OMP_END ;
 
     /* update the user so that they know what we are up to */
+#ifdef USE_OMP
     INFO_message ("AFNI_OMP finished\n");
+#endif
     INFO_message ("Found %d (%3.2f%%) correlations above threshold (%f)\n",
        totNumCor, 100.0*((float)totNumCor)/((float)totPosCor), thresh);
 
@@ -1200,10 +1220,16 @@ int main( int argc , char *argv[] )
             {
                 int nbins_rem = 0;
                 for(ii = 0; ii < nhistnodes; ii++) nbins_rem+=histogram[ii].nbin;
-                histogram = free_histogram(histogram, nhistnodes);
-                PRINT_MEM_STATS( "free remainder of histogram1" );
-                if( recycled_nodes != NULL ) recycled_nodes = free_hist_list (recycled_nodes);
-                PRINT_MEM_STATS( "free recycled nodes!" );
+                if( histogram != NULL )
+                {
+                    histogram = free_histogram(histogram, nhistnodes);
+                    PRINT_MEM_STATS( "freed remainder of histogram1" );
+                }
+                if( recycled_nodes != NULL )
+                {
+                    recycled_nodes = free_hist_list(recycled_nodes);
+                    PRINT_MEM_STATS( "freed recycled nodes!" );
+                }
             }
 
             kin = h2nbins - 1;
@@ -1324,8 +1350,13 @@ int main( int argc , char *argv[] )
 
    if (weightedDC) free(weightedDC) ; weightedDC = NULL;
    if (binaryDC) free(binaryDC) ; binaryDC = NULL;
+
    /* check one more time and delete recycled_nodes if they are still around */
-   if( recycled_nodes != NULL ) recycled_nodes = free_hist_list (recycled_nodes);
+   if( recycled_nodes != NULL )
+   { 
+       recycled_nodes = free_hist_list(recycled_nodes);
+       PRINT_MEM_STATS( "Recycled Nodes" );
+   }
    
    /* finito */
    INFO_message("Writing output dataset to disk [%s bytes]",
