@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 22 , FEB , 2016 , RWC , "debugtrace.c" , MICRO , TYPE_NEW_OPT ,
+   "Colorize WARNING and ERROR message prefixes." ,
+   "Can turn off by setting AFNI_MESSAGE_COLORIZE to NO. For Javier." } ,
+
  { 11 , FEB , 2016 , RWC , "3dGroupInCorr" , MICRO , TYPE_NEW_OPT ,
    "Add -ztest option == test inputs if they are all zero" ,
    "For Cesar." } ,
