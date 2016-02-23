@@ -450,7 +450,9 @@ int main( int argc , char *argv[] )
     AFNI_OMP_END ;
 
     /* update the user so that they know what we are up to */
+#ifdef USE_OMP
     INFO_message ("AFNI_OMP finished\n");
+#endif
 
    /*----------  Finish up ---------*/
 
