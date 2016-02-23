@@ -111,16 +111,16 @@ void SET_message_outbuf( int use_outbuf )
    If ump != 0, also write it to the message file pointer, if it is open.
 *//*-------------------------------------------------------------------------*/
 
-static int colorize_prefix = 0 ;
+static int colorize_prefix = 0 ;  /* use ANSI codes to change prefix colors? */
 
 static void output_message( int ump, char *prefix, char *fmt, va_list vararg_ptr )
 {
-   char *ifmt , *cfmt=NULL,*cmsg=NULL , *msg , *epr ; int ll ;
+   char *ifmt=NULL,*imsg=NULL , *cfmt=NULL,*cmsg=NULL , *epr ; int ll ;
 #ifdef va_copy
    va_list vararg_cpy ;
-   va_copy(vararg_cpy,vararg_ptr) ;
+   va_copy(vararg_cpy,vararg_ptr) ;        /* for re-use with cfmt and cmsg */
 #else
-   colorize_prefix = 0 ;
+   colorize_prefix = 0 ;     /* can't do this without va_copy (C99 feature) */
 #endif
 
    if( fmt == NULL || *fmt == '\0' ) return ;  /* makes no sense */
@@ -138,20 +138,26 @@ static void output_message( int ump, char *prefix, char *fmt, va_list vararg_ptr
      strcat(ifmt,fmt) ;
      if( colorize_prefix && !mess_use_outbuf ){         /* 22 Feb 2016 */
        cfmt = malloc( strlen(prefix)+strlen(fmt)+64 ) ;
-       strcpy(cfmt,"\033[34;1m\033[43;1m") ;
+#if 0
+       strcpy(cfmt,"\033[34;1m\033[43;1m") ;  /* blue text on yellow bkgd */
+#else
+       strcpy(cfmt,"\033[7m") ;               /* inverse colors */
+#endif
        strcat(cfmt,prefix) ;
-       strcat(cfmt,"\033[0m") ;
+       strcat(cfmt,"\033[0m ") ;              /* special formatting off */
        strcat(cfmt,fmt) ;
      }
    }
 
-   ll = strlen(ifmt) ; if( ll < 1024 ) ll = 1024 ;
-   epr = getenv("AFNI_MESSAGE_PREFIX") ;
-   if( epr != NULL ) ll += strlen(epr)+1 ;
-   msg = malloc(sizeof(char)*16*ll+1) ; msg[0] = '\0' ;
-   if( epr != NULL ){ strcpy(msg,epr); strcat(msg,"::"); }
-   vsprintf(msg+strlen(msg),ifmt,vararg_ptr) ; ll = strlen(msg) ;
-   if( msg[ll-1] != '\n' ){ msg[ll] = '\n' ; msg[ll+1] = '\0' ; }
+   if( mess_use_outbuf || cfmt == NULL || ump ){
+     ll = strlen(ifmt) ; if( ll < 1024 ) ll = 1024 ;
+     epr = getenv("AFNI_MESSAGE_PREFIX") ;
+     if( epr != NULL ) ll += strlen(epr)+1 ;
+     imsg = malloc(sizeof(char)*16*ll+1) ; imsg[0] = '\0' ;
+     if( epr != NULL ){ strcpy(imsg,epr); strcat(imsg,"::"); }
+     vsprintf(imsg+strlen(imsg),ifmt,vararg_ptr) ; ll = strlen(imsg) ;
+     if( imsg[ll-1] != '\n' ){ imsg[ll] = '\n' ; imsg[ll+1] = '\0' ; }
+   }
 
 #ifdef va_copy
    if( cfmt != NULL ){
@@ -164,20 +170,26 @@ static void output_message( int ump, char *prefix, char *fmt, va_list vararg_ptr
    }
 #endif
 
+   if( imsg == NULL && cmsg == NULL ){ /* should never happen */
+     if( ifmt != NULL ) free(ifmt) ;
+     if( cfmt != NULL ) free(cfmt) ;
+     colorize_prefix = 0 ; return ;
+   }
+
    if( !mess_use_outbuf ){
      if( cmsg != NULL ) fputs(cmsg,stderr) ;
-     else               fputs( msg,stderr) ;
+     else               fputs(imsg,stderr) ;
      fflush(stderr) ; /* nugatory */
    } else {
-     mess_outbuf = THD_zzprintf(mess_outbuf,"%s",msg) ;  /* 01 May 2015 */
+     mess_outbuf = THD_zzprintf(mess_outbuf,"%s",imsg) ;  /* 01 May 2015 */
    }
-   if( ump ) fputs_messfp(msg) ;  /* 12 Mar 2007 */
+   if( ump ) fputs_messfp(imsg) ;  /* 12 Mar 2007 */
 
-   if( msg  != NULL ) free(msg)  ;  /* 03 Mar 2006: forgot the free! */
+   if( imsg != NULL ) free(imsg) ;  /* 03 Mar 2006: forgot the free! */
    if( ifmt != fmt  ) free(ifmt) ;
    if( cfmt != NULL ) free(cfmt) ;
    if( cmsg != NULL ) free(cmsg) ;
-   return ;
+   colorize_prefix = 0 ; return ;
 }
 
 /*--------------------------------------------------------------------------*/
@@ -210,7 +222,6 @@ void WARNING_message( char *fmt , ... )
    va_start( vararg_ptr , fmt ) ;
    colorize_prefix = 1 ;
    output_message( 1 , "*+ WARNING: " , fmt , vararg_ptr ) ;
-   colorize_prefix = 0 ;
    va_end( vararg_ptr ) ;
    return ;
 }
@@ -223,7 +234,6 @@ void ERROR_message( char *fmt , ... )
    va_start( vararg_ptr , fmt ) ;
    colorize_prefix = 1 ;
    output_message( 1 , "** ERROR: " , fmt , vararg_ptr ) ;
-   colorize_prefix = 0 ;
    va_end( vararg_ptr ) ;
    return ;
 }
@@ -236,7 +246,6 @@ void ERROR_exit( char *fmt , ... )
    va_start( vararg_ptr , fmt ) ;
    colorize_prefix = 1 ;
    output_message( 1 , "** FATAL ERROR: " , fmt , vararg_ptr ) ;
-   colorize_prefix = 0 ;
    va_end( vararg_ptr ) ;
    fprintf(stderr,"** Program compile date = %s\n",__DATE__) ;
    exit(1) ;
