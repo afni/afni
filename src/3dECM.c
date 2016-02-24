@@ -409,7 +409,9 @@ double* calc_fecm_power(MRI_vectim *xvectim, double shift, double scale, double 
     return(v_prev);
 }
 
-double* calc_full_power_sparse(MRI_vectim *xvectim, double thresh, double shift, double scale, double eps, long max_iter)
+double* calc_full_power_sparse(MRI_vectim *xvectim, double thresh,
+    double sparsity, double shift, double scale, double eps, long max_iter,
+    long binary, long mem_bytes)
 {
     /* CC - we need a few arrays for calculating the power method */
     double* v_prev = NULL;
@@ -438,7 +440,8 @@ double* calc_full_power_sparse(MRI_vectim *xvectim, double thresh, double shift,
 
     if( v_new == NULL )
     {
-        WARNING_message("Cannot allocate %d bytes for v_new",xvectim->nvec*sizeof(double));
+        WARNING_message("Cannot allocate %d bytes for v_new",
+           xvectim->nvec*sizeof(double));
         return( NULL );
     }
 
@@ -452,7 +455,8 @@ double* calc_full_power_sparse(MRI_vectim *xvectim, double thresh, double shift,
     if( v_prev == NULL )
     {
         if( v_new != NULL ) free(v_new);
-        WARNING_message("Cannot allocate %d bytes for v_prev",xvectim->nvec*sizeof(double));
+        WARNING_message("Cannot allocate %d bytes for v_prev",
+            xvectim->nvec*sizeof(double));
         return( NULL );
     }
 
@@ -475,7 +479,8 @@ double* calc_full_power_sparse(MRI_vectim *xvectim, double thresh, double shift,
     v_err = v_prev_norm;
 
     /* get a sparse array */
-    sparse_array = create_sparse_corr_array(xvectim, 100.0, thresh, cc_pearson_corr, (long)(4294967296));
+    sparse_array = create_sparse_corr_array(xvectim, sparsity, thresh,
+        cc_pearson_corr, (long)mem_bytes);
 
     if( sparse_array == NULL )
     {
@@ -486,7 +491,8 @@ double* calc_full_power_sparse(MRI_vectim *xvectim, double thresh, double shift,
     }
 
     /*-- CC update our memory stats to reflect v_new -- */
-    INC_MEM_STATS(sizeof(sparse_array_head_node)+sparse_array->num_nodes*sizeof(sparse_array_node), "sparse array");
+    INC_MEM_STATS(sizeof(sparse_array_head_node)+sparse_array->num_nodes*
+        sizeof(sparse_array_node), "sparse array");
     PRINT_MEM_STATS( "sparse array" );
 
     /* power iterator */
@@ -512,8 +518,18 @@ double* calc_full_power_sparse(MRI_vectim *xvectim, double thresh, double shift,
         tptr = sparse_array->nodes;
         while( tptr != NULL )
         {
-            v_new[tptr->row] += scale*(tptr->weight+shift)*v_prev[tptr->column];
-            v_new[tptr->column] += scale*(tptr->weight+shift)*v_prev[tptr->row];
+            if( binary == 1 )
+            {
+                v_new[tptr->row] += scale*(1.0+shift)*v_prev[tptr->column];
+                v_new[tptr->column] += scale*(1.0+shift)*v_prev[tptr->row];
+            }
+            else
+            {
+                v_new[tptr->row] += scale*(tptr->weight+shift)*
+                    v_prev[tptr->column];
+                v_new[tptr->column] += scale*(tptr->weight+shift)*
+                    v_prev[tptr->row];
+            }
             tptr = tptr->next;
         }
 
@@ -571,8 +587,6 @@ double* calc_full_power_sparse(MRI_vectim *xvectim, double thresh, double shift,
             (v_err), (eps), (power_it));
     }
 
-    printf( "finished with calculation! now freeing mem\n" );
-
     /* the eigenvector that we are interested in should now be in v_prev,
        free all other power iteration temporary vectors */
     if( v_new != NULL ) 
@@ -584,8 +598,6 @@ double* calc_full_power_sparse(MRI_vectim *xvectim, double thresh, double shift,
         DEC_MEM_STATS(xvectim->nvec*sizeof(double), "v_new");
     }
  
-    printf( "freed v_new\n" );
-
     /* free the weight matrix */
     if( sparse_array != NULL )
     {
@@ -596,17 +608,13 @@ double* calc_full_power_sparse(MRI_vectim *xvectim, double thresh, double shift,
         sparse_array = free_sparse_array(sparse_array);
     }
 
-    printf( "freed sparse_array\n" );
-
     /* return the result */
     return(v_prev);
 }
 
 
-
-
-
-double* calc_full_power_max_mem(MRI_vectim *xvectim, double thresh, double shift, double scale, double eps, long max_iter)
+double* calc_full_power_max_mem(MRI_vectim *xvectim, double thresh, double shift,
+     double scale, double eps, long max_iter, long binary)
 {
     /* CC - we need a few arrays for calculating the power method */
     double* v_prev = NULL;
@@ -790,8 +798,17 @@ double* calc_full_power_max_mem(MRI_vectim *xvectim, double thresh, double shift
 #pragma omp critical(dataupdate)
                             {
                                 nvals = nvals+1;
-                                v_new[thr_lout] += scale*(car+shift)*v_prev[thr_lin];
-                                v_new[thr_lin] += scale*(car+shift)*v_prev[thr_lout];
+
+                                if( binary == 1 )
+                                {
+                                    v_new[thr_lout] += scale*(1.0+shift)*v_prev[thr_lin];
+                                    v_new[thr_lin] += scale*(1.0+shift)*v_prev[thr_lout];
+                                }
+                                else
+                                {
+                                    v_new[thr_lout] += scale*(car+shift)*v_prev[thr_lin];
+                                    v_new[thr_lin] += scale*(car+shift)*v_prev[thr_lout];
+                                }
                             }
 
                             /* incorporate the correlation in the weight_matrix, since
@@ -799,8 +816,15 @@ double* calc_full_power_max_mem(MRI_vectim *xvectim, double thresh, double shift
                                critical sections */
                             vndx = ndx_vec[(xvectim->nvec-(thr_lout+1))] + thr_lin;
                             if(( vndx >= 0 ) && ( vndx < wsize ))
-                            { 
-                                weight_matrix[ vndx ]=scale*(car+shift);
+                            {
+                                if( binary == 1 )
+                                { 
+                                    weight_matrix[ vndx ]=scale*(1.0+shift);
+                                }
+                                else
+                                {
+                                    weight_matrix[ vndx ]=scale*(car+shift);
+                                }
                             }
                             else
                             {
@@ -1001,7 +1025,7 @@ double* calc_full_power_max_mem(MRI_vectim *xvectim, double thresh, double shift
     return(v_prev);
 }
 
-double* calc_full_power_min_mem(MRI_vectim *xvectim, double thresh, double shift, double scale, double eps, long max_iter)
+double* calc_full_power_min_mem(MRI_vectim *xvectim, double thresh, double shift, double scale, double eps, long max_iter, long binary)
 {
     /* CC - we need a few arrays for calculating the power method */
     double* v_prev = NULL;
@@ -1126,8 +1150,16 @@ double* calc_full_power_min_mem(MRI_vectim *xvectim, double thresh, double shift
 #pragma omp critical(dataupdate)
                         {
                             nvals = nvals+1;
-                            v_new[lout] += scale*(car+shift)*v_prev[lin];
-                            v_new[lin] += scale*(car+shift)*v_prev[lout];
+                            if( binary == 1 )
+                            {
+                                v_new[lout] += scale*(1.0+shift)*v_prev[lin];
+                                v_new[lin] += scale*(1.0+shift)*v_prev[lout];
+                            }
+                            else
+                            {
+                                v_new[lout] += scale*(car+shift)*v_prev[lin];
+                                v_new[lin] += scale*(car+shift)*v_prev[lout];
+                            }
                         }
                     }
                 }
@@ -1292,12 +1324,20 @@ int main( int argc , char *argv[] )
     MRI_vectim *xvectim = NULL ;
 
     /* CC - flags that control options */
-    static const char* method_strings [] = {"FECM","Full"};
-    enum power_methods { FECM=0, FULL };
-    enum power_methods pow_method = FECM;
-    double  scale = 0.5;
-    double  shift = 1.0;
+    double  scale = 1.0;
+    double  shift = 0.0;
     double  thresh = -1.2;
+    double  sparsity = 100.0;
+    long    mem_bytes = (long)2147483648;
+
+    /* CC - flags to control behaviour */
+    long do_scale = 0;
+    long do_shift = 0;
+    long do_sparsity = 0;
+    long do_thresh = 0;
+    long do_binary = 0;
+    long do_full = 0;
+    long do_fecm = 0;
 
     /* CC - iteration stopping criteria */
     long max_iter = 1000;
@@ -1349,19 +1389,33 @@ int main( int argc , char *argv[] )
 "\n"
 "Options:\n"
 "  -full       = uses the full power method (Lohmann et. al. 2010).\n"
-"  -FECM       = uses a shortcut that substantially speeds up \n"
+"                Enables the use of thresholding and calculating\n"
+"                binary centrality. Uses sparse array to reduce \n"
+"                memory requirement. Automatically selected if \n"
+"                -binary, -thresh, or -sparsity are used.\n"
+"  -fecm       = uses a shortcut that substantially speeds up \n"
 "                computation, but is less flexibile in what can be\n"
 "                done the similarity matrix. i.e. does not allow \n"
 "                thresholding correlation coefficients. based on \n" 
 "                fast eigenvector centrality mapping (Wink et. al\n"
-"                2012). [default]\n"
-"  -thresh r   = exclude connections with correlation < r. only works\n"
-"                for full power iteration\n"
+"                2012). Default when -binary, -thresh, or -sparsity\n"
+"                are NOT used.\n"
+"  -binary     = calculate binarized centrality rather than weighted\n"
+"                this requires a threshold of some sort (-thresh or \n"
+"                -sparsity) cannot be used with FECM. forces scale = 1.0\n"
+"                and shift = 0.0\n"
+"  -thresh r   = exclude connections with correlation < r. cannot be\n"
+"                used with FECM\n"
+"  -sparsity p = only include the top p%% connectoins in the calculation\n"
+"                cannot be used with FECM method. (default = 100)\n"
 "  -shift s    = value that should be added to correlation coeffs to\n"
-"                enforce non-negativity, s >= 0 (default = 1.0).\n"
+"                enforce non-negativity, s >= 0. [default = 0.0, unless\n"
+"                -fecm is specified in which case the default is 1.0\n"
+"                (e.g. Wink et al 2012)].\n"
 "  -scale x    = value that correlation coeffs should be multplied by\n"
-"                after shifting, x >= 0 (default = 0.5) (e.g. Wink et\n"
-"                al 2012).\n"
+"                after shifting, x >= 0 [default = 1.0, unless -fecm is\n"
+"                specified in which case the default is 0.5 (e.g. Wink et\n"
+"                al 2012)].\n"
 "  -eps p      = sets the stopping criterion for the power iteration\n"
 "                l2|v_old - v_new| < eps*|v_old|. default = .1 (10%%)\n"
 "  -max_iter i = sets the maximum number of iterations to use in\n"
@@ -1386,6 +1440,12 @@ int main( int argc , char *argv[] )
 "  -prefix p   = Save output into dataset with prefix 'p'\n"
 "                [default prefix is 'ecm'].\n"
 "\n"
+"  -memory G   = Calculating eignevector centrality can consume alot\n"
+"                of memory. If unchecked this can crash a computer\n"
+"                or cause it to hang. If the memory hits this limit\n"
+"                the tool will error out, rather than affecting the\n"
+"                system [default is 2G].\n"
+"\n"
 "Notes:\n"
 " * The output dataset is a bucket type of floats.\n"
 " * The program prints out an estimate of its memory used\n"
@@ -1403,9 +1463,8 @@ int main( int argc , char *argv[] )
    AFNI_logger("3dECM",argc,argv);
 
    /* CC - set the default for ECM methods */
-   pow_method = FECM;
-   scale = 0.5;
-   shift = 1.0;
+   scale = 1.0;
+   shift = 0.0;
    thresh = -1.2;
 
    /*-- option processing --*/
@@ -1430,12 +1489,12 @@ int main( int argc , char *argv[] )
       }
 
       if( strcmp(argv[nopt],"-full") == 0 ){
-         pow_method = FULL; 
+         do_full = 1; 
          nopt++ ; continue ;
       }
 
-      if( strcmp(argv[nopt],"-FECM") == 0 ){
-         pow_method = FECM;
+      if( strcmp(argv[nopt],"-fecm") == 0 ){
+         do_fecm = 1;
          nopt++ ; continue ;
       }
 
@@ -1455,12 +1514,33 @@ int main( int argc , char *argv[] )
          eps = val ; nopt++ ; continue ;
       }
 
+      if( strcmp(argv[nopt],"-binary") == 0 ){
+         do_binary = 1; nopt++ ; continue ;
+      }
+
+      if( strcmp(argv[nopt],"-sparsity") == 0 ){
+         double val = (double)strtod(argv[++nopt],&cpt) ;
+         if( *cpt != '\0' || val < 0 || val > 100 ){
+            ERROR_EXIT_CC("Illegal value after -sparsity!") ;
+         }
+         sparsity = val ; do_sparsity = 1; nopt++ ; continue ;
+      }
+
       if( strcmp(argv[nopt],"-thresh") == 0 ){
          double val = (double)strtod(argv[++nopt],&cpt) ;
          if( *cpt != '\0' || val < -1.1 || val > 1 ){
             ERROR_EXIT_CC("Illegal value after -thresh!") ;
          }
-         thresh = val ; nopt++ ; continue ;
+         thresh = val ; do_thresh = 1; nopt++ ; continue ;
+      }
+
+      if( strcmp(argv[nopt],"-memory") == 0 ){
+         double val = (double)strtod(argv[++nopt],&cpt) ;
+         if( *cpt != '\0' || val < 0 ){
+            ERROR_EXIT_CC("Illegal value after -memory!") ;
+         }
+         mem_bytes = (long)(ceil(val * (double)1024)*1024*1024);
+         nopt++ ; continue ;
       }
 
       if( strcmp(argv[nopt],"-scale") == 0 ){
@@ -1468,7 +1548,7 @@ int main( int argc , char *argv[] )
          if( *cpt != '\0' || val < 0 ){
             ERROR_EXIT_CC("Illegal value after -scale!") ;
          }
-         scale = val ; nopt++ ; continue ;
+         scale = val ; do_scale = 1; nopt++ ; continue ;
       }
 
       if( strcmp(argv[nopt],"-shift") == 0 ){
@@ -1476,7 +1556,7 @@ int main( int argc , char *argv[] )
          if( *cpt != '\0' || val < 0 ){
             ERROR_EXIT_CC("Illegal value after -shift!") ;
          }
-         shift = val ; nopt++ ; continue ;
+         shift = val ; do_shift = 1; nopt++ ; continue ;
       }
 
       if( strcmp(argv[nopt],"-prefix") == 0 ){
@@ -1510,14 +1590,46 @@ int main( int argc , char *argv[] )
     if( nopt >= argc ) ERROR_EXIT_CC("Need a dataset on command line!?") ;
     xset = THD_open_dataset(argv[nopt]); CHECK_OPEN_ERROR(xset,argv[nopt]);
 
+    if (( do_fecm == 1 ) && ((do_sparsity == 1) || (do_thresh == 1) || 
+        (do_binary == 1) || (do_full == 1)))
+    {
+        WARNING_message( "Cannot use FECM, with -sparsity, -thresh, -binary,"
+            " or -full, changing to full power iteration\n");
+        do_fecm = 0;
+   }
 
-   if( DSET_NVALS(xset) < 3 )
+   /* if fecm is specified default to scale = 0.5, shift = 1.0 to be
+      consistent with Wink et. al. */
+   if ( do_fecm == 1 )
+   {
+       scale = ( do_scale == 0 ) ? 0.5 : scale;
+       shift = ( do_shift == 0 ) ? 1.0 : shift;
+   }
+
+   if ( do_binary == 1 )
+   {
+       scale = 1.0;
+       shift = 0.0;
+   }
+
+   /* -- Load in the input dataset and make sure it is suitable -- */
+   nvox = DSET_NVOX(xset) ; nvals = DSET_NVALS(xset) ;
+
+   if( nvox * nvals * sizeof(float) > mem_bytes )
+   {
+     ERROR_EXIT_CC("Size of input dataset %s ( %s Bytes) exceeds the"
+         " memory budget ( %s Bytes ). Either increase memory budget\n"
+         "or use a smaller dataset.", argv[nopt],
+         commaized_integer_string(nvox*nvals*sizeof(float)),
+         commaized_integer_string(mem_bytes)) ;
+   }
+
+   if( nvals < 3 )
      ERROR_EXIT_CC("Input dataset %s does not have 3 or more sub-bricks!",
         argv[nopt]) ;
+
    DSET_load(xset) ; CHECK_LOAD_ERROR(xset) ;
 
-   /*-- compute mask array, if desired --*/
-   nvox = DSET_NVOX(xset) ; nvals = DSET_NVALS(xset) ;
    INC_MEM_STATS((nvox * nvals * sizeof(double)), "input dset");
    PRINT_MEM_STATS("inset");
 
@@ -1553,6 +1665,10 @@ int main( int argc , char *argv[] )
    else if( do_autoclip ){
       mask  = THD_automask( xset ) ;
       nmask = THD_countmask( nvox , mask ) ;
+
+      INC_MEM_STATS( nmask * sizeof(byte), "mask array" );
+      PRINT_MEM_STATS( "mask" );
+
       INFO_message("%d voxels survive -autoclip",nmask) ;
       if( nmask < 2 ) ERROR_EXIT_CC("Only %d voxels in -automask!",nmask);
    }
@@ -1612,28 +1728,27 @@ int main( int argc , char *argv[] )
           have zero variance -- */
     THD_vectim_normalize(xvectim) ;  /* L2 norm = 1 */
 
-    if (( pow_method == FECM ) && ( thresh > -1.2 ))
-    {
-        WARNING_message( "Cannot use a thresh with FECM, changing to full power iteration\n");
-        pow_method = FULL;
-    }
-
     /* update the user so that they know what we are up to */
-    /* -- CC tell the user what we are up to */
-    INFO_message( "Calculating ECM with %s method (thresh=%3.3f,\n"
-        "  scale=%3.3f, shift=%3.3f, max_iter=%d, eps=%3.3f)\n",
-        method_strings[pow_method], thresh, scale, shift, max_iter, eps );
 
     /* calculate the eigenvector */
-    if ( pow_method == FECM )
+    if ((do_full == 1) || (do_sparsity == 1) || (do_thresh == 1) ||
+        (do_binary == 1))
     {
-        eigen_vec=calc_fecm_power(xvectim, shift, scale, eps, max_iter);
+        /* -- CC tell the user what we are up to */
+        INFO_message( "Calculating ECM with full method (sparsity=%3.3f%%,"
+            " thresh=%3.3f, scale=%3.3f, shift=%3.3f,\nmax_iter=%d, eps=%3.3f,"
+            " binary=%d, mem=%ld)\n", sparsity, thresh, scale, shift, max_iter,
+            eps, do_binary, mem_bytes - running_mem);
+
+        eigen_vec=calc_full_power_sparse(xvectim, thresh, sparsity, shift,
+            scale, eps, max_iter, do_binary, (mem_bytes - running_mem));
     }
     else
     {
-        /*eigen_vec=calc_full_power_min_mem(xvectim, thresh, shift, scale, eps, max_iter);
-        eigen_vec=calc_full_power_max_mem(xvectim, thresh, shift, scale, eps, max_iter); */
-        eigen_vec=calc_full_power_sparse(xvectim, thresh, shift, scale, eps, max_iter);
+        INFO_message( "Calculating ECM with FECM (sparsity=%3.3f%%,thresh=%3.3f,\n"
+            "  scale=%3.3f, shift=%3.3f, max_iter=%d, eps=%3.3f, binary=%d)\n",
+            sparsity, thresh, scale, shift, max_iter, eps, do_binary);
+        eigen_vec=calc_fecm_power(xvectim, shift, scale, eps, max_iter);
     }
 
     if( eigen_vec == NULL )
@@ -1683,7 +1798,14 @@ int main( int argc , char *argv[] )
        to do again after we calculate the voxel values */
     EDIT_BRICK_FACTOR(cset,subbrik,1.0) ;                 /* scale factor */
 
-    sprintf(str,"Weighted ECM") ;
+    if( do_binary == 1 )
+    {
+        sprintf(str,"Binary ECM");
+    }
+    else
+    {
+        sprintf(str,"Weighted ECM");
+    }
 
     EDIT_BRICK_LABEL(cset,subbrik,str) ;
     EDIT_substitute_brick(cset,subbrik,MRI_float,NULL) ;   /* make array   */
@@ -1735,16 +1857,16 @@ int main( int argc , char *argv[] )
                 commaized_integer_string(cset->dblk->total_bytes)) ;
 
     /* write the dataset */
-    DSET_write(cset) ;
-    WROTE_DSET(cset) ;
+    DSET_write(cset);
+    WROTE_DSET(cset);
 
     /* increment our memory stats, since we are relying on the header for this
        information, we update the stats before actually freeing the memory */
     DEC_MEM_STATS( (DSET_NVOX(cset)*DSET_NVALS(cset)*sizeof(float)), "output dset");
 
     /* free up the output dataset memory */
-    DSET_unload(cset) ;
-    DSET_delete(cset) ;
+    DSET_unload(cset);
+    DSET_delete(cset);
 
     PRINT_MEM_STATS( "Unload Output Dset" );
 

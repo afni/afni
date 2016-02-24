@@ -140,7 +140,7 @@ sparse_array_head_node* create_sparse_corr_array( MRI_vectim* xvectim, double sp
     long ngoal = 0;
     long nretain = 0;
     float binwidth = 0.0;
-    long nhistbins = 100;
+    long nhistbins = 1000;
     long mem_budget = 0;
 
     /* retain the original threshold*/
@@ -353,10 +353,10 @@ sparse_array_head_node* create_sparse_corr_array( MRI_vectim* xvectim, double sp
                                         if ((new_node_idx > nhistbins) || (new_node_idx < bottom_node_idx))
                                         {
                                             /* this error should indicate a programming error and should not happen */
-                                            WARNING_message("Node index %d (%3.4lf >= %3.4lf) is out of range [%d,%d)"
+                                            /*WARNING_message("Node index %d (%3.4lf >= %3.4lf) is out of range [%d,%d)"
                                                 " {[%3.4lf, %3.4lf)}!",new_node_idx, car, thresh, bottom_node_idx,
                                                 nhistbins, histogram[bottom_node_idx].bin_low,
-                                                histogram[bottom_node_idx].bin_high );
+                                                histogram[bottom_node_idx].bin_high ); */
                                         }
                                         else
                                         {
