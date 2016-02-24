@@ -144,6 +144,8 @@ static void output_message( int ump, char *prefix, char *fmt, va_list vararg_ptr
        strcpy(cfmt,"\033[7m") ;               /* inverse colors */
 #endif
        strcat(cfmt,prefix) ;
+       if( prefix[strlen(prefix)-1] == ' ' )
+         cfmt[strlen(cfmt)-1] = '\0' ;
        strcat(cfmt,"\033[0m ") ;              /* special formatting off */
        strcat(cfmt,fmt) ;
      }
