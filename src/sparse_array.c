@@ -322,8 +322,8 @@ sparse_array_head_node* create_sparse_corr_array( MRI_vectim* xvectim, double sp
                                 else
                                 {
                                     new_node = recycled_nodes;
-                                    new_node->next = NULL;
                                     recycled_nodes = recycled_nodes->next;
+                                    new_node->next = NULL;
                                 }
                                 if( new_node == NULL )
                                 {
