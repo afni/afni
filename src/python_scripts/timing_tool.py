@@ -977,9 +977,10 @@ g_history = """
    2.11 Jan 20, 2015 - allow ',' as married timing separator (with '*')
    2.12 Jun 05, 2015 - added -per_run_file
    2.13 Aug 21, 2015 - start-of-run fix to -multi_timing_to_event_list offsets
+   2.14 Feb 24, 2016 - fix crash in -warn_tr_stats if no timing events
 """
 
-g_version = "timing_tool.py version 2.13, August 21, 2015"
+g_version = "timing_tool.py version 2.14, February 24, 2015"
 
 
 

@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 24,  Feb, 2016, RCR, "timing_tool.py", MINOR, TYPE_BUG_FIX,
+   "fix -warn_tr_stats crash on empty timing file",
+   "Thanks to Z Reagh for noting the problem."
+ } ,
+
  { 19,  Feb, 2016, RCR, "afni_system_check.py", MINOR, TYPE_ENHANCE,
    "add many tests and summarize potential issues",
    NULL
