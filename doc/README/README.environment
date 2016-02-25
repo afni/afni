@@ -153,6 +153,14 @@ terminal stream.  For example, a csh script might look like so:
   end
   wait
 
+-------------------------------
+Variable: AFNI_MESSAGE_COLORIZE   [22 Feb 2016]
+-------------------------------
+When AFNI programs print WARNING or ERROR messages, they normally print the
+'WARNING' or 'ERROR' label using inverted colors, to aid in picking out these
+messages from other text on the screen.  To turn this feature off, set this
+environment variable to 'NO'.
+
 ------------------------------------
 Variable: AFNI_DONT_SORT_ENVIRONMENT
 ------------------------------------
