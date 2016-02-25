@@ -372,8 +372,9 @@ double* calc_fecm_power(MRI_vectim *xvectim, double shift, double scale, double 
         power_it++;
 
         /* tell the user what has happened */
-        INFO_message ("Finished iter %d: Verr %3.3f, Vnorm %3.3f\n",
-            power_it, v_err, v_prev_norm);
+        if((power_it % 10) == 0)
+            INFO_message ("Finished iter %d: Verr %3.3f, Vnorm %3.3f\n",
+                power_it, v_err, v_prev_norm);
     } 
 
     if ((v_err >= eps) && (power_it >= max_iter))
@@ -574,8 +575,9 @@ double* calc_full_power_sparse(MRI_vectim *xvectim, double thresh,
         power_it++;
 
         /* tell the user what has happened */
-        INFO_message ("Finished iter %d: Verr %3.3f, Vnorm %3.3f\n",
-            power_it, v_err, v_prev_norm);
+        if((power_it % 10) == 0)
+            INFO_message ("Finished iter %d: Verr %3.3f, Vnorm %3.3f\n",
+                power_it, v_err, v_prev_norm);
     } 
 
     if ((v_err >= eps) && (power_it >= max_iter))
@@ -965,8 +967,9 @@ double* calc_full_power_max_mem(MRI_vectim *xvectim, double thresh, double shift
         power_it++;
 
         /* tell the user what has happened */
-        INFO_message ("Finished iter %d: Verr %3.3f, Vnorm %3.3f\n",
-            power_it, v_err, v_prev_norm);
+        if ((power_it % 10) == 0)
+            INFO_message ("Finished iter %d: Verr %3.3f, Vnorm %3.3f\n",
+                power_it, v_err, v_prev_norm);
     } 
 
     if ( nvals == 0 )
@@ -1215,8 +1218,9 @@ double* calc_full_power_min_mem(MRI_vectim *xvectim, double thresh, double shift
         power_it++;
 
         /* tell the user what has happened */
-        INFO_message ("Finished iter %d: Verr %3.3f, Vnorm %3.3f\n",
-            power_it, v_err, v_prev_norm);
+        if ((power_it % 10) == 0 )
+            INFO_message ("Finished iter %d: Verr %3.3f, Vnorm %3.3f\n",
+                power_it, v_err, v_prev_norm);
     } 
 
     if ( nvals == 0 )
@@ -1341,7 +1345,7 @@ int main( int argc , char *argv[] )
 
     /* CC - iteration stopping criteria */
     long max_iter = 1000;
-    double eps = 0.01;
+    double eps = 0.0001;
 
     /* CC - vector to hold the result */
     double* eigen_vec;
