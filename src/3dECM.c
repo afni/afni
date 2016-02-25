@@ -1341,7 +1341,7 @@ int main( int argc , char *argv[] )
 
     /* CC - iteration stopping criteria */
     long max_iter = 1000;
-    double eps = 0.1;
+    double eps = 0.01;
 
     /* CC - vector to hold the result */
     double* eigen_vec;
