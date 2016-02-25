@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 24,  Feb, 2016, RCR, "uber_subject.py", MINOR, TYPE_ENHANCE,
+   "replace tlrc_no_ss with anat_has_skull toggle",
+   "This should really be moved to the anat box, hmmm..."
+ } ,
+
  { 24,  Feb, 2016, RCR, "timing_tool.py", MINOR, TYPE_BUG_FIX,
    "fix -warn_tr_stats crash on empty timing file",
    "Thanks to Z Reagh for noting the problem."
