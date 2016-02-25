@@ -614,15 +614,15 @@ class SingleSubjectWindow(QtGui.QMainWindow):
 
       # --------------------------------------------------
       # checkbox: anat_has_skull
-      cbox = QtGui.QCheckBox("anat has skull")
-      cbox.setStatusTip("check if input anat has skull, clear if not")
-      cbox.setChecked(self.svars.anat_has_skull=='yes')
+      #cbox = QtGui.QCheckBox("anat has skull")
+      #cbox.setStatusTip("check if input anat has skull, clear if not")
+      #cbox.setChecked(self.svars.anat_has_skull=='yes')
       # cbox.clicked.connect(self.CB_checkbox)
-      self.connect(cbox, QtCore.SIGNAL('clicked()'), self.CB_checkbox)
+      #self.connect(cbox, QtCore.SIGNAL('clicked()'), self.CB_checkbox)
 
-      layout.addWidget(cbox, voffset, 0)
-      gbox.checkBox_anat_has_skull = cbox
-      voffset += 1
+      #layout.addWidget(cbox, voffset, 0)
+      #gbox.checkBox_anat_has_skull = cbox
+      #voffset += 1
 
       # --------------------------------------------------
       # checkbox: OK maxite
@@ -894,13 +894,27 @@ class SingleSubjectWindow(QtGui.QMainWindow):
                    QtCore.SIGNAL('editingFinished()'), self.CB_line_text)
       layout.addWidget(self.gvars.Line_anat)
 
-      # add a checkbox for including tlrc, init with get_tlrc
-      gbox.checkBox = QtGui.QCheckBox("include copy of anat+tlrc")
-      gbox.checkBox.setChecked(self.svars.get_tlrc=='yes')
-      # gbox.checkBox.clicked.connect(self.CB_checkbox)
-      self.connect(gbox.checkBox, QtCore.SIGNAL('clicked()'), self.CB_checkbox)
-      layout.addWidget(gbox.checkBox)
+      # --------------------------------------------------
+      # checkbox: anat_has_skull
+      cbox = QtGui.QCheckBox("anat has skull")
+      cbox.setStatusTip("check if input anat has skull, clear if not")
+      cbox.setChecked(self.svars.anat_has_skull=='yes')
+      # cbox.clicked.connect(self.CB_checkbox)
+      self.connect(cbox, QtCore.SIGNAL('clicked()'), self.CB_checkbox)
 
+      layout.addWidget(cbox)
+      gbox.checkBox_anat_has_skull = cbox
+
+      # --------------------------------------------------
+      # add a checkbox for including tlrc, init with get_tlrc
+      cbox = QtGui.QCheckBox("include copy of anat+tlrc")
+      cbox.setChecked(self.svars.get_tlrc=='yes')
+      # gbox.checkBox.clicked.connect(self.CB_checkbox)
+      self.connect(cbox, QtCore.SIGNAL('clicked()'), self.CB_checkbox)
+      layout.addWidget(cbox)
+      gbox.checkBox = cbox
+
+      # --------------------------------------------------
       layout.setMargin(g_spacing)
       layout.setSpacing(g_spacing)
       frame.setLayout(layout)
@@ -1628,6 +1642,9 @@ class SingleSubjectWindow(QtGui.QMainWindow):
       if   obj == self.gvars.gbox_anat.checkBox:
          if obj.isChecked(): self.set_svar('get_tlrc', 'yes')
          else:               self.set_svar('get_tlrc', 'no')
+      elif obj == self.gvars.gbox_anat.checkBox_anat_has_skull:
+         if obj.isChecked(): self.set_svar('anat_has_skull', 'yes')
+         else:               self.set_svar('anat_has_skull', 'no')
       elif obj == self.gvars.gbox_epi.checkBox_wildcard:
          if obj.isChecked(): self.set_svar('epi_wildcard', 'yes')
          else:               self.set_svar('epi_wildcard', 'no')
@@ -1649,9 +1666,6 @@ class SingleSubjectWindow(QtGui.QMainWindow):
       elif obj == self.gvars.gbox_align.checkBox_align_giant_move:
          if obj.isChecked(): self.set_svar('align_giant_move', 'yes')
          else:               self.set_svar('align_giant_move', 'no')
-      elif obj == self.gvars.gbox_tlrc.checkBox_anat_has_skull:
-         if obj.isChecked(): self.set_svar('anat_has_skull', 'yes')
-         else:               self.set_svar('anat_has_skull', 'no')
       elif obj == self.gvars.gbox_tlrc.checkBox_tlrc_ok_maxite:
          if obj.isChecked(): self.set_svar('tlrc_ok_maxite', 'yes')
          else:               self.set_svar('tlrc_ok_maxite', 'no')
@@ -2871,7 +2885,7 @@ class SingleSubjectWindow(QtGui.QMainWindow):
                           obj.checkBox_align_giant_move.setChecked(var=='yes')
       elif svar == 'anat_has_skull':        
                           var = self.svars.anat_has_skull
-                          obj = self.gvars.gbox_tlrc
+                          obj = self.gvars.gbox_anat
                           obj.checkBox_anat_has_skull.setChecked(var=='yes')
       elif svar == 'tlrc_ok_maxite':        
                           var = self.svars.tlrc_ok_maxite
