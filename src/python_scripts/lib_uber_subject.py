@@ -845,9 +845,6 @@ class AP_Subject(object):
          rstr += self.script_ap_apply_svar_1('tlrc_base', vtype=str,
                         defval=g_subj_defs.tlrc_base)
 
-      if self.svars.val('anat_has_skull') == 'no':
-         rstr += '%s-anat_has_skull no \\\n' % self.LV.istr
-                 
       # now fill any -tlrc_opts_at options (put a space before each)
       topts = ''
       if self.svars.val('tlrc_ok_maxite') == 'yes':
@@ -1005,7 +1002,12 @@ class AP_Subject(object):
 
       if self.cvars.verb > 2: print '-- anat dset = %s' % file
 
-      return '%s-copy_anat %s \\\n' % (self.LV.istr, file)
+      rstr = '%s-copy_anat %s \\\n' % (self.LV.istr, file)
+      if self.svars.val('anat_has_skull') == 'no':
+         rstr += '%s-anat_has_skull no \\\n' % self.LV.istr
+
+      return rstr
+                 
 
    def check_wildcard_errors(self, name, flist):
       """if any error, report the error and return
