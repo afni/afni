@@ -1160,12 +1160,12 @@ int main( int argc , char *argv[] )
      /*......................................................................*/
 
      if( argc > 1 &&
-        ( strcmp(argv[1],"-HELP") ==0 ||
-          strcmp(argv[1],"-POMOC")==0 || AFNI_yesenv("AFNI_POMOC") ) ){
+        ( strcasecmp(argv[1],"-HELP") ==0 ||
+          strcmp(argv[1],"-POMOC")==0     || AFNI_yesenv("AFNI_POMOC") ) ){
        printf(
         "\n"
         "===========================================================================\n"
-        "                TOP SECRET HIDDEN OPTIONS (-HELP or -POMOC)\n"
+        "                       FORMERLY SECRET HIDDEN OPTIONS\n"
         "---------------------------------------------------------------------------\n"
         "        ** N.B.: Most of these are experimental! [permanent beta] **\n"
         "===========================================================================\n"
