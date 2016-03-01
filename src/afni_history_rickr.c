@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  1,  Mar, 2016, RCR, "GIFTI", MICRO, TYPE_BUG_FIX,
+   "applied R Vincent fix for GIFTI datasets with Windows-style newlines",
+   NULL
+ } ,
+
  {  1,  Mar, 2016, RCR, "tokens", MINOR, TYPE_NEW_PROG,
    "program to extract valid text entries from a file",
    NULL
