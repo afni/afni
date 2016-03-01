@@ -1610,7 +1610,12 @@ static void XMLCALL cb_char(void *udata, const char * cdata, int length)
         case GXML_ETYPE_XFORMSPACE :
             if( xd->verb > 4 )
                 fprintf(stderr,"++ append cdata, parent %s\n",enames[parent]);
-            (void)append_to_cdata(xd, cdata, length);
+            if( xd->cdata == NULL ) {
+                if ( xd->verb > 4 )
+                    fprintf(stderr, "   excess data.\n");
+            }
+            else
+                (void)append_to_cdata(xd, cdata, length);
             break;
 
         case GXML_ETYPE_CDATA      :
