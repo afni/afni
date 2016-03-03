@@ -1,6 +1,15 @@
 #!/bin/tcsh
 
-# Build and push AFNI et al. documentation. Run with sudo
+#######################################################################
+#
+#   Build and push AFNI et al. documentation. Umcomment/comment as you
+#   desire, and run using: 
+#
+#     $  sudo do_doc_build_and_copy.tcsh
+#
+#   A backup doc dir from the server can be removed later.
+#
+#######################################################################
 
 set here = $PWD
 set thedate = `date +%Y_%m_%d`
