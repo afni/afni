@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 7 , MAR , 2016 , RWC , "3dDeconvolve" , MICRO , TYPE_MODIFY ,
+   "Double default size of Xmat JPEG file" ,
+   "To avoid losing resolution when looking at TENT designs." } ,
+
  { 22 , FEB , 2016 , RWC , "debugtrace.c" , MICRO , TYPE_NEW_OPT ,
    "Colorize WARNING and ERROR message prefixes." ,
    "Can turn off by setting AFNI_MESSAGE_COLORIZE to NO. For Javier." } ,
