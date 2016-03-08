@@ -145,9 +145,11 @@ g_history = """
     0.35 Feb 13, 2012: let user know of subj_dir when writing AP command
     0.36 Apr  5, 2013: added help web link for class handouts
     0.37 Apr 14, 2015: added MIN_OUTLIER to volreg base list
+    0.38 Feb 22, 2016: replace tlrc_no_ss with anat_has_skull
+         - to pass -anat_has_skull yes or no to afni_proc.py
 """
 
-g_version = '0.37 (April 14, 2015)'
+g_version = '0.38 (February 22, 2016)'
 
 # ----------------------------------------------------------------------
 # global definition of default processing blocks
@@ -228,7 +230,7 @@ g_subj_defs.compute_fitts    = 'no'     # only 'yes' or 'no'
 g_subj_defs.align_cost       = g_def_align_cost # -cost in align_opts_aea
 g_subj_defs.tlrc_base        = g_def_tlrc_base  # template base for -tlrc_base
 g_subj_defs.align_giant_move = 'no'     # y/n: -giant_move in align_opts_aea
-g_subj_defs.tlrc_ss          = 'yes'    # y/n : 'no' implies -tlrc_no_ss
+g_subj_defs.anat_has_skull   = 'yes'    # y/n : passed similarly if no
 g_subj_defs.tlrc_ok_maxite   = 'no'     # pass -OK_maxite to @auto_tlrc
 
 # ...
@@ -273,7 +275,7 @@ g_svar_dict = {
    'align_cost'         : 'specify cost function for anat/EPI alignment',
    'tlrc_base'          : 'specify anat for standard space alignment',
    'align_giant_move'   : 'yes/no: use -giant_move in AEA.py',
-   'tlrc_ss'            : 'yes/no: whether anat has skull',
+   'anat_has_skull'     : 'yes/no: whether anat has skull',
    'tlrc_ok_maxite'     : 'yes/no: pass -OK_maxite to @auto_tlrc',
 
    'regress_opts_3dD'   : 'specify extra options for 3dDeconvolve',
@@ -843,9 +845,6 @@ class AP_Subject(object):
          rstr += self.script_ap_apply_svar_1('tlrc_base', vtype=str,
                         defval=g_subj_defs.tlrc_base)
 
-      if self.svars.val('tlrc_ss') == 'no':
-         rstr += '%s-tlrc_no_ss \\\n' % self.LV.istr
-                 
       # now fill any -tlrc_opts_at options (put a space before each)
       topts = ''
       if self.svars.val('tlrc_ok_maxite') == 'yes':
@@ -1003,7 +1002,12 @@ class AP_Subject(object):
 
       if self.cvars.verb > 2: print '-- anat dset = %s' % file
 
-      return '%s-copy_anat %s \\\n' % (self.LV.istr, file)
+      rstr = '%s-copy_anat %s \\\n' % (self.LV.istr, file)
+      if self.svars.val('anat_has_skull') == 'no':
+         rstr += '%s-anat_has_skull no \\\n' % self.LV.istr
+
+      return rstr
+                 
 
    def check_wildcard_errors(self, name, flist):
       """if any error, report the error and return

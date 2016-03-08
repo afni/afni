@@ -7626,7 +7626,8 @@ g_help_string = """
         -outlier_polort POLORT  : specify polynomial baseline for 3dToutcount
 
                 e.g. -outlier_polort 3
-                default: same degree that 3dDeconvolve would use: 1+time/150
+                default: same degree that 3dDeconvolve would use:
+                         1 + floor(run_length/150)
 
             Outlier counts come after detrending the data, where the degree
             of the polynomial trend defaults to the same that 3dDeconvolve

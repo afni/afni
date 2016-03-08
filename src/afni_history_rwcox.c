@@ -44,6 +44,38 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 8 , MAR , 2016 , RWC , "afni GUI" , MICRO , TYPE_MODIFY ,
+   "Turn Auto-scaling on in graph windows by default" , NULL } ,
+
+ { 8 , MAR , 2016 , RWC , "3dTproject" , MICRO , TYPE_MODIFY ,
+   "Add STATUS calls to 3dTproject for debugging" , NULL } ,
+
+ { 8 , MAR , 2016 , RWC , "3dvolreg" , MICRO , TYPE_MODIFY ,
+   "Default resampling now heptic, not Fourier." , NULL } ,
+
+ { 7 , MAR , 2016 , RWC , "3dDeconvolve" , MICRO , TYPE_MODIFY ,
+   "Double default size of Xmat JPEG file" ,
+   "To avoid losing resolution when looking at TENT designs." } ,
+
+ { 22 , FEB , 2016 , RWC , "debugtrace.c" , MICRO , TYPE_NEW_OPT ,
+   "Colorize WARNING and ERROR message prefixes." ,
+   "Can turn off by setting AFNI_MESSAGE_COLORIZE to NO. For Javier." } ,
+
+ { 11 , FEB , 2016 , RWC , "3dGroupInCorr" , MICRO , TYPE_NEW_OPT ,
+   "Add -ztest option == test inputs if they are all zero" ,
+   "For Cesar." } ,
+
+ { 11 , FEB , 2016 , RWC , "afni version check" , MICRO , TYPE_GENERAL ,
+   "add https support to thd_http.c" ,
+   "Via wget or curl, plus popen+fread+pclose.  Cheap, but works." } ,
+
+ { 11 , FEB , 2016 , RWC , "3dttest++" , MAJOR , TYPE_NEW_OPT ,
+   "-clustsim option" ,
+   "This option runs 3dttest++ with -randomize and then 3dClustSim with\n"
+   "-inset, to produce cluster-threshold tables for inclusion in the output.\n"
+   " It is my intention that this method will replace the use of 3dFWHMx and\n"
+   "3dClustSim.  Knock wood, and help Make AFNI Great Again!" } ,
+
  { 9 , FEB , 2016 , RWC , "3dQwarp" , MICRO , TYPE_GENERAL ,
    "Tested on 2D images (single-slice datasets)" ,
    "It actually worked.  Added a comment to that effect in the help output." } ,

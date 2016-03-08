@@ -433,4 +433,6 @@ extern char * AFNI_strcasestr(const char *s1, const char *s2);
 
 extern void AFNI_do_nothing(void) ;
 
+extern int  AFNI_get_ncpu(void) ;  /* 11 Feb 2016 */
+
 #endif /* _MCW_MACHDEP_ */
