@@ -107,6 +107,23 @@ def read_top_lines(fname='stdin', nlines=1, strip=0, verb=1):
    if nlines != 0: tdata = tdata[0:nlines]
    return tdata
 
+def read_AFNI_version_file(vdir='', vfile='AFNI_version.txt', delim=', '):
+   """read AFNI_version.txt from vdir (else executable_dir)
+      return comma-delimited form
+   """
+
+   if vdir == '': vdir = executable_dir()
+   if vdir == '': return ''
+
+   vpath = '%s/%s' % (vdir, vfile)
+
+   if not os.path.isfile(vpath): return ''
+
+   vdata = read_text_file(vpath, verb=0)
+   if vdata == '': return ''
+
+   return delim.join(vdata)
+
 def write_to_timing_file(data, fname='', nplaces=-1, verb=1):
    """write the data in stim_times format, over rows
       (this is not for use with married timing, but for simple times)"""
@@ -2744,6 +2761,34 @@ def dotprod(v1,v2):
       print '** cannot take dotprod() of these elements'
       dsum = 0
    return dsum
+
+def affine_to_params_6(avec, verb=1):
+   """convert rotation/shift affine "matrix" to 6 parameters
+      (e.g. as in 3dvolreg 1Dmatrix format to 1Dfile format)
+
+      matvec: length 12+ vector (row major order)
+      return: length 6 param vector:
+        roll, pitch, yaw, dx, dy, dz
+   """
+
+   rvec = [0.0]*6
+
+   if len(avec) < 12:
+      print '** affine_to_params_6: requires length 12+ vector, have %d' \
+            % len(avec)
+      return rvec
+
+   # rotations
+   rvec[0] = 180.0/math.pi * math.atan2(avec[9], avec[10])
+   rvec[1] = 180.0/math.pi *-math.asin (avec[8])
+   rvec[2] = 180.0/math.pi * math.atan2(avec[4], avec[0])
+
+   # deltas
+   rvec[3] = avec[3]
+   rvec[4] = avec[7]
+   rvec[5] = avec[11]
+
+   return rvec
 
 def maxabs(vals):
    """convenience function for the maximum of the absolute values"""
