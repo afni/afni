@@ -44,6 +44,12 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 8 , MAR , 2016 , RWC , "3dTproject" , MICRO , TYPE_MODIFY ,
+   "Add STATUS calls to 3dTproject for debugging" , NULL } ,
+
+ { 8 , MAR , 2016 , RWC , "3dvolreg" , MICRO , TYPE_MODIFY ,
+   "Default resampling now heptic, not Fourier." , NULL } ,
+
  { 7 , MAR , 2016 , RWC , "3dDeconvolve" , MICRO , TYPE_MODIFY ,
    "Double default size of Xmat JPEG file" ,
    "To avoid losing resolution when looking at TENT designs." } ,
