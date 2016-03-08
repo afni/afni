@@ -2365,7 +2365,7 @@ class RegWrap:
 
          com = shell_com(                                                  \
                          "3dLocalstat -overwrite -mask %s_edge_mask%s " \
-                         "-nbhd 'RECT(-1,-1,-1)'"                           \
+                         "-nbhd 'RECT(-2,-2,-1)'"                           \
                          " -stat cvar -prefix %s %s" %                     \
                          (prefix, o.view, lprefix, e.input()), ps.oexec)
          com.run();
