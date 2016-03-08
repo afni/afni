@@ -26,13 +26,20 @@ class SysInfo:
       self.verb            = verb
 
       self.afni_ver        = ''
+      self.afni_dir        = ''
       self.os_dist         = ''
       self.comments        = [] # comments to print at the end
+
+      self.repo_prog       = '' # e.g. yum or brew
+      self.have_pyqt4      = 0
+      self.ok_openmp       = 0  # does 3dAllineate work, for example?
 
    def get_afni_dir(self):
       s, so, se = BASE.simple_shell_exec('which afni', capture=1)
       if s: return ''
-      return so.strip()
+      adir = so.strip()
+      if adir[-5:] == '/afni': return adir[0:-5]
+      else:                    return ''
 
    def show_general_sys_info(self, header=1):
       if header: print UTIL.section_divider('general', hchar='-')
@@ -69,6 +76,12 @@ class SysInfo:
       if logshell == curshell: note = ''
       else:                    note = '  (current shell is %s)' % curshell
 
+      if logshell not in ['csh', 'tcsh']:
+         self.comments.append("using shell '%s', trusting user to translate" \
+                              " from 'tcsh'" % logshell)
+      if logshell == 'sh':
+         self.comments.append("note: shell 'sh' references .profile by default")
+
       print 'apparent login shell: %s%s' % (logshell, note)
       print
 
@@ -84,23 +97,27 @@ class SysInfo:
    def show_data_dir_info(self, ddir, histfile=''):
       """try to locate and display the given data directory
          if histfile, display the top line
+
+         return 0 if found, else 1
       """
 
       status, droot = self.find_data_root(ddir, hvar=0)
       if status:
          print 'data dir : missing %s' % ddir
-         return
+         return 1
 
       # have a directory, show it
       dhome = droot.replace(self.home_dir, '$HOME')
       print 'data dir : found %-12s under %s' % (ddir, dhome)
 
       # possibly show histfile
-      if histfile == '': return
+      if histfile == '': return 0
 
       prefix = '           top history: '
       hname = '%s/%s/%s' % (droot, ddir, histfile)
       self.show_top_line(hname, prefix=prefix, last=76-len(prefix))
+
+      return 0
 
    def show_data_info(self, header=1):
       """checks that are specific to data
@@ -114,9 +131,13 @@ class SysInfo:
       if header: print UTIL.section_divider('data checks', hchar='-')
 
       # locate various data trees, and possibly show recent history
-      self.show_data_dir_info('AFNI_data6', 'history.txt')
-      self.show_data_dir_info('suma_demo', 'README.archive_creation')
-      self.show_data_dir_info('FATCAT_DEMO', 'README.timestamp')
+      rv = 0
+      rv += self.show_data_dir_info('AFNI_data6', 'history.txt')
+      rv += self.show_data_dir_info('suma_demo', 'README.archive_creation')
+      rv += self.show_data_dir_info('FATCAT_DEMO', 'README.timestamp')
+      rv += self.show_data_dir_info('afni_handouts')
+
+      if rv: self.comments.append('insufficient data for AFNI bootcamp')
 
       evar = 'AFNI_ATLAS_DIR'
       tryenv = 0                        # might suggest setting evar
@@ -145,6 +166,7 @@ class SysInfo:
 
       if len(glist) == 0:
          print 'atlas    : did not find %s' % atlas
+         self.comments.append('possibly missing atlases')
       else:
          for ddir in glist:
             print 'atlas    : found %-12s under %s' % (atlas, ddir)
@@ -211,7 +233,7 @@ class SysInfo:
       if header: print UTIL.section_divider('OS specific', hchar='-')
 
       if   self.system == 'Linux':  self.show_spec_linux()
-      elif self.system == 'Darwin': self.show_spec_mac()
+      elif self.system == 'Darwin': self.show_spec_osx()
 
       print
 
@@ -222,16 +244,40 @@ class SysInfo:
                - atlas directory
       """
 
-      if self.os_dist.find('buntu') < 0: return
+      # check for repositories
+      self.check_for_progs(['dnf', 'yum', 'apt-get'], repos=1)
 
-      print 'have Ubuntu system: %s' % self.os_dist
-      if self.afni_ver.find('buntu') >= 0:
-         print 'have Ubuntu afni  : %s' % self.afni_ver
+      if self.os_dist.find('buntu') >= 0:
+         print 'have Ubuntu system: %s' % self.os_dist
+         if self.afni_ver.find('buntu') >= 0:
+            print 'have Ubuntu afni  : %s' % self.afni_ver
 
-   def show_spec_mac(self):
-      """look for fink, macports, homebrew"""
-      # if no pyqt4, check for brew and fink packages
-      if MT.test_import('PyQt4', verb=0):
+      # add PyQt4 comment, if missing
+      if not self.have_pyqt4:
+         repo = self.repo_prog
+         package = ''
+         if repo in ['yum', 'dnf']: package = 'PyQt4'
+         elif repo == 'apt-get': package = 'python-qt4'
+         
+         if package != '':
+            self.comments.append('consider running: %s install %s' \
+                                 % (repo, package))
+         else:
+            self.comments.append('consider installing PyQt4')
+
+   def show_spec_osx(self):
+      """look for fink, macports, homebrew, PyQt4"""
+
+      # check for repositories
+      nfound = self.check_for_progs(['brew', 'port', 'fink'], repos=1)
+      if nfound == 0:
+         self.comments.append('consider installing homebrew')
+      self.hunt_for_homebrew()
+      if self.get_osx_ver() < 7:
+         self.comments.append('OS X version might be old')
+
+      # add PyQt4 comment, if missing (check for brew and fink packages)
+      if not self.have_pyqt4:
          glist = glob.glob('/usr/local/lib/python2*/site-packages/PyQt4')
          if len(glist) == 0:
             glist = glob.glob('/sw/lib/qt4*/lib/python2*/site-packages/PyQt4')
@@ -239,11 +285,107 @@ class SysInfo:
             gdir = glist[-1]
             ghead = os.path.dirname(gdir)
             print '++ found PyQt4 under %s' % ghead
-            print '   (consider adding %s to PYTHONPATH)' % ghead
+            self.comments.append('consider adding %s to PYTHONPATH' % ghead)
+         elif self.repo_prog == 'brew':
+            self.comments.append('consider running: brew install pyqt')
+         else:
+            self.comments.append('consider installing PyQt4')
+
+      # in 10.11, check for gcc under homebrew
+      self.check_for_10_11_gomp()
+
+   def hunt_for_homebrew(self):
+      """assuming it was not found, just look for the file"""
+      # if already found, do not bother
+      if self.repo_prog == 'brew': return 0 
+
+      bdir = '/usr/local/bin'
+      bfile = 'brew'
+      bpath = '%s/%s' % (bdir,bfile)
+      if os.path.isfile(bpath):
+         print "++ found '%s' at %s" % (bfile, bpath)
+         return 1
+
+      return 0
+            
+   def check_for_10_11_gomp(self):
+      """in 10.11, check for openmp/gcc under homebrew
+
+         return 0 if no issue was detected
+      """
+      if self.get_osx_ver() < 11:  return 0
+      if self.repo_prog != 'brew': return 0
+      if self.ok_openmp:           return 0
+
+      clibs = glob.glob('/usr/local/Cellar/gcc/*/lib/gcc/*/libgomp.*dylib')
+      # first check for nothing found
+      if len(clibs) == 0:
+         self.comments.append('consider installing gcc under homebrew')
+         return 1
+
+      # then check for a link under /usr/local/lib
+      llibs = glob.glob('/usr/local/lib/libgomp.*.dylib')
+      if len(llibs) == 0:
+         self.comments.append('consider linking %s under /usr/local/lib'\
+                              % clibs[0])
+         return 1
+
+      return 0
+
+   def get_osx_ver(self):
+      if self.system != "Darwin": return 0
+      verlist = self.os_dist.split('.')
+      if len(verlist) < 2: return 0
+      if verlist[0] != '10': return 0
+      try: vint = int(verlist[1])
+      except: return 0
+
+      # have something useful
+      return vint
+
+   def check_for_progs(self, plist, repos=0, show_missing=0):
+      """see whether the programs seem to be found, and show version
+
+         repos:        if set, append any found to self.repo_prog list
+         show_missing: if set, show empty prog line to indicate failed test
+      """
+      # check for programs
+      nfound = 0
+      for prog in plist:
+         # the version file is treated specially here
+         if prog == 'AFNI_version.txt':
+            vinfo = UTIL.read_AFNI_version_file()
+            if vinfo != '':
+               nfound += 1
+            else:
+               self.comments.append('missing %s, maybe package is old'%prog)
+            print '%-20s : %s' % (prog, vinfo)
+            continue
+
+         cmd = 'which %s' % prog
+         s, so, se = BASE.simple_shell_exec(cmd, capture=1)
+         if not s: # found one
+            # if we do not yet know of a repo program, mark as this one
+            if repos and self.repo_prog == '': self.repo_prog = prog
+
+            print '%-20s : %s' % (cmd, so.strip())
+            s, v = self.get_prog_version(prog)
+            if s: print '%-20s : %s' % ('%s version'%prog, v)
+
+            if prog == 'afni': self.afni_ver = v # save result
+            nfound += 1
+         elif show_missing:
+            print '%-20s : %s' % (cmd, se)
+
+      print
+
+      return nfound
 
    def show_python_lib_info(self, plibs, header=1, verb=2):
       if header: print UTIL.section_divider('python libs', hchar='-')
       for lib in plibs: MT.test_import(lib, verb=verb)
+      # explicitly note whether we have PyQt4
+      if not MT.test_import('PyQt4', verb=0): self.have_pyqt4 = 1
       print
 
       pdirs = glob.glob('/sw/bin/python*')
@@ -268,17 +410,12 @@ class SysInfo:
 
    def show_general_afni_info(self, header=1):
       print UTIL.section_divider('AFNI and related program tests', hchar='-')
-      for prog in ['afni', 'python', 'R', 'tcsh']:
-         cmd = 'which %s' % prog
-         s, so, se = BASE.simple_shell_exec(cmd, capture=1)
-         if s: print '%-20s : %s' % (cmd, se)
-         else:
-            print '%-20s : %s' % (cmd, so.strip())
-            s, v = self.get_prog_version(prog)
-            if s:
-                print '%-20s : %s' % ('%s version'%prog, v)
-                if prog == 'afni': self.afni_ver = v # save result
-      print
+
+      self.afni_dir = self.get_afni_dir()
+      check_list = ['afni', 'AFNI_version.txt', 'python', 'R', 'tcsh']
+      nfound = self.check_for_progs(check_list, show_missing=1)
+      if nfound < len(check_list):
+         self.comments.append('missing main software component')
 
       # make generic but pretty
       print "instances of various programs found in PATH:"
@@ -292,8 +429,12 @@ class SysInfo:
             else:                fstr = ''
             print '    %-*s : %d %s' % (ml, prog, len(files), fstr)
 
-            if prog == 'afni' and len(files) > 1:
-               self.comments.append("consider only 1 version of AFNI in PATH")
+            if prog == 'afni':
+               if len(files) > 1:
+                  self.comments.append("have multiple versions of AFNI in PATH")
+               if len(files) > 0:
+                  if os.stat(files[0]).st_uid == 0:
+                     self.comments.append("'afni' executable is owned by root")
       print
 
       # try select AFNI programs
@@ -309,13 +450,18 @@ class SysInfo:
             print '    %-20s : FAILURE' % prog
             print ind + indn.join(se)
             fcount += 1
-         else: print '    %-20s : success' % prog
+         else:
+            print '    %-20s : success' % prog
+
+            # no OpenMP problem
+            if prog == '3dAllineate': self.ok_openmp = 1
       print
       pfailure = fcount == len(proglist)
+      if fcount > 0: self.comments.append('AFNI programs show FAILURE')
 
       # if complete failure, retry from exec dir
       ascdir = UTIL.executable_dir()
-      if pfailure and self.get_afni_dir() != ascdir:
+      if pfailure and self.afni_dir != ascdir:
          fcount = 0
          print 'none working, testing programs under implied %s...' % ascdir
          for prog in proglist:
@@ -328,6 +474,8 @@ class SysInfo:
          print
          if fcount < len(proglist):
             self.comments.append('consider adding %s to your PATH' % ascdir)
+      # if afni_dir is not set, use ascdir
+      if self.afni_dir == '': self.afni_dir = ascdir
 
       print 'checking for R packages...'
       cmd = 'rPkgsInstall -pkgs ALL -check'
@@ -346,6 +494,7 @@ class SysInfo:
       else:
          print '    %-20s : FAILURE' % cmd
          print ind + indn.join(se)
+         self.comments.append('missing R packages (see rPkgsInstall)')
       print
 
       print 'checking for $HOME files...'
@@ -356,16 +505,22 @@ class SysInfo:
          print '    %-25s : %s' % (ff, fstr)
 
       # add to comments
-      self.add_file_comment(None, '.afnirc',
-                            'consider copying AFNI.afnirc to ~/.afnirc')
+      if self.afni_dir:
+         ccc = 'running: cp %s/AFNI.afnirc ~/.afnirc' % self.afni_dir
+      else:
+         ccc = 'copying AFNI.afnirc to ~/.afnirc'
+      self.add_file_comment(None, '.afnirc', 'consider %s' % ccc)
+
       self.add_file_comment(None, '.sumarc',
                             'consider running "suma -update_env" for .sumarc')
       self.add_file_comment(None, '.afni/help/all_progs.COMP',
-                            'consider running "apsearch -update_all_afni_help"')
+                            'consider running: apsearch -update_all_afni_help')
 
       print
 
    def add_file_comment(self, fdir, fname, comment):
+      """if fname is not found in 'pre' dir, add comment
+      """
       if   fdir == None: pre = '%s/' % self.home_dir
       elif fdir:         pre = '%s/' % fdir
       else:              pre = ''
@@ -377,6 +532,7 @@ class SysInfo:
       """return a simple string with program version
 
          each program might be handled a little differently
+         ** but a common method might be PROG --version
 
          return status and string
             - status > 0 means to use, == 0 means not, < 0 means error
@@ -400,14 +556,14 @@ class SysInfo:
       elif prog == 'python':
          return 1, platform.python_version()
 
-      elif prog == 'R':
-         cmd = 'R --version'
+      elif prog == 'tcsh':      # no version
+         return 0, ''
+
+      elif prog in ['dnf', 'yum', 'apt-get', 'brew', 'port', 'fink', 'R']:
+         cmd = '%s --version' % prog
          s, so, se = UTIL.limited_shell_exec(cmd, nlines=1)
          if s: return 1, se[0]
          else: return 1, so[0]
-
-      elif prog == 'tcsh':      # no version
-         return 0, ''
 
       else:
          print '** no version method for prog : %s' % prog
@@ -506,7 +662,7 @@ class SysInfo:
        return 1
 
    def show_comments(self):
-      print UTIL.section_divider('general comments', hchar='-')
+      print UTIL.section_divider('summary comments', hchar='=')
       for cc in self.comments: print '*  %s' % cc
       print ''
 

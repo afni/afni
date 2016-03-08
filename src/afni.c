@@ -1556,6 +1556,15 @@ void AFNI_sigfunc_alrm(int sig)
      "Remember -- Memory is long but time is tricky"                 ,
      "Remember -- Men are always willing to believe what they wish"  ,
      "Remember -- What I tell you three times is true"               ,
+     "Fools give you reasons, wise men never try"                    ,
+     "People willingly the statistics they wish to believe"          ,
+     "Heaven's last best gift, my ever new delight"                  ,
+     "Long is the way and hard, that out of Data leads to Light"     ,
+     "They also serve, who only stand and process data"              ,
+     "Farewell happy software, where joy forever dwells"             ,
+     "He who destroys a good book, destroys reason itself"           ,
+     "Wild above rule or art, enormous bliss"                        ,
+     "Yet from those flames no light, but rather darkness visible"   ,
      "Think of all the beauty around you, and be happy"              ,
      "Experience is a hard teacher, but fools will have no other"    ,
      "By failing to prepare, you are preparing to fail"              ,
@@ -1653,6 +1662,9 @@ void AFNI_sigfunc_alrm(int sig)
      "When life gives you lemons, throw them right back at it"       ,
      "Happiness isn't good enough for me; I demand euphoria"         ,
      "Judge a person by her questions, rather than her answers"      ,
+     "Be yourself; everyone else is already taken"                   ,
+     "I have not failed; I've just found 10,000 ways that don't work",
+     "Statistics are good, but dark chocolate is better"             ,
 
      "Remember -- Screaming is the next best thing to solving a problem"              ,
      "Data which passes through so many steps can hardly have much truth left"        ,
@@ -1708,9 +1720,14 @@ void AFNI_sigfunc_alrm(int sig)
      "Let us therefore study the incidents of this as philosophy to learn wisdom from",
      "Analyze your data rigorously -- you can fake the conclusions all you want later",
      "O wad some Pow'r the giftie gie us, To see oursels as ithers see us"            ,
+     "One half the world cannot understand the statistics of the other"               ,
 
      "My name is AFNImandias, Brain of Brains; Look on my Statistics, ye Clever, and despair" ,
-     "Statistically Significant is NOT the same as Significant -- they're not even close"     ,
+
+     "Statistically Significant is NOT the same as Significant -- they're not even similar"   ,
+
+     "\n  It is a truth universally acknowledged, that a single scientist\n"
+     "  in possession of a large data collection, is in need of an AFNI."                     ,
 
      "\n  The great thing about the human condition:\n"
      "  No matter how bad it is, it can always get worse"                                     ,

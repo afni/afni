@@ -49,6 +49,46 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  1,  Mar, 2016, RCR, "GIFTI", MICRO, TYPE_BUG_FIX,
+   "applied R Vincent fix for GIFTI datasets with Windows-style newlines",
+   NULL
+ } ,
+
+ {  1,  Mar, 2016, RCR, "tokens", MINOR, TYPE_NEW_PROG,
+   "program to extract valid text entries from a file",
+   NULL
+ } ,
+
+ { 29,  Feb, 2016, RCR, "3dANOVA3", MICRO, TYPE_ENHANCE,
+   "show prior options to any 'Unrecognized command line option'",
+   "Added disp_strings() to libmri.a."
+ } ,
+
+ { 24,  Feb, 2016, RCR, "uber_subject.py", MINOR, TYPE_ENHANCE,
+   "replace tlrc_no_ss with anat_has_skull toggle and move to anat block",
+   NULL
+ } ,
+
+ { 24,  Feb, 2016, RCR, "timing_tool.py", MINOR, TYPE_BUG_FIX,
+   "fix -warn_tr_stats crash on empty timing file",
+   "Thanks to Z Reagh for noting the problem."
+ } ,
+
+ { 19,  Feb, 2016, RCR, "afni_system_check.py", MINOR, TYPE_ENHANCE,
+   "add many tests and summarize potential issues",
+   NULL
+ } ,
+
+ { 17,  Feb, 2016, RCR, "afni_util.py", MICRO, TYPE_ENHANCE,
+   "add function affine_to_params_6: where input is 12 element sub-matrix",
+   NULL
+ } ,
+
+ { 16,  Feb, 2016, RCR, "@update.afni.binaries", MICRO, TYPE_ENHANCE,
+   "add -ver and initial version reporting",
+   NULL
+ } ,
+
  { 10,  Feb, 2016, RCR, "@ANATICOR", MICRO, TYPE_BUG_FIX,
    "fixed -radius option parsing",
    "Thanks to A Frithsen for noting the problem."
