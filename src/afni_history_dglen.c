@@ -49,6 +49,10 @@
 
 
 afni_history_struct dglen_history[] = {
+{ 7, MAR, 2016 , DRG , "align_epi_anat.py" , 
+    MINOR , TYPE_BUG_FIX, 
+    "fixed edge option change using too small neighborhood size"
+},
 { 10, FEB, 2016 , DRG , "afni" , 
     MICRO , TYPE_BUG_FIX, 
     "fixed ignoring of -no1D option, and 1D files are not read on input"
