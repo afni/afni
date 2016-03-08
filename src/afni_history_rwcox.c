@@ -44,6 +44,9 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 8 , MAR , 2016 , RWC , "afni GUI" , MICRO , TYPE_MODIFY ,
+   "Turn Auto-scaling on in graph windows by default" , NULL } ,
+
  { 8 , MAR , 2016 , RWC , "3dTproject" , MICRO , TYPE_MODIFY ,
    "Add STATUS calls to 3dTproject for debugging" , NULL } ,
 
