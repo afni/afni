@@ -44,6 +44,9 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 10 , MAR , 2016 , RWC , "debugtrace.h" , MICRO , TYPE_MODIFY ,
+   "Output command line, if available, in crash report" , NULL } ,
+
  { 8 , MAR , 2016 , RWC , "afni GUI" , MICRO , TYPE_MODIFY ,
    "Turn Auto-scaling on in graph windows by default" , NULL } ,
 
