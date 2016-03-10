@@ -1557,7 +1557,7 @@ void AFNI_sigfunc_alrm(int sig)
      "Remember -- Men are always willing to believe what they wish"  ,
      "Remember -- What I tell you three times is true"               ,
      "Fools give you reasons, wise men never try"                    ,
-     "People willingly the statistics they wish to believe"          ,
+     "People willingly trust the statistics they wish to believe"    ,
      "Heaven's last best gift, my ever new delight"                  ,
      "Long is the way and hard, that out of Data leads to Light"     ,
      "They also serve, who only stand and process data"              ,
