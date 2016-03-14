@@ -206,6 +206,7 @@ float zm_THD_pearson_corr( int n, float *x , float *y ) /* inputs are */
 
 double cc_pearson_corr( long n, float *x, float*y )
 {
+    // index and corr value in processor register for faster access
     register int ii;
     register double xy = (double)0.0;
     for(ii=0; ii<n; ii++)
@@ -1347,11 +1348,11 @@ int main( int argc , char *argv[] )
     long max_iter = 1000;
     double eps = 0.0001;
 
-    /* CC - vector to hold the result */
-    double* eigen_vec;
+    /* CC - vectors to hold the results (bin/wght) */
+    double* eigen_vec[2];
 
-    /* CC - we will have one subbricks: eigenvector centrality is always weighted*/
-    int nsubbriks = 1;
+    /* CC - we will have two subbricks: binarized and weighted */
+    int nsubbriks = 2;
     int subbrik = 0;
     float * wodset;
  
@@ -1366,7 +1367,7 @@ int main( int argc , char *argv[] )
 "  stores the result in a new 3D bucket dataset as floats to\n"
 "  preserve their values. ECM reflects the strength and\n"
 "  extent of a voxel's global connectivity as well as the\n"
-"  importance of the voxels tht it is directly connected to.\n\n"
+"  importance of the voxels that it is directly connected to.\n\n"
 "  Conceptually the process involves: \n"
 "      1. Calculating the correlation between voxel time series for\n"
 "         every pair of voxels in the brain (as determined by masking)\n"
@@ -1402,12 +1403,8 @@ int main( int argc , char *argv[] )
 "                done the similarity matrix. i.e. does not allow \n"
 "                thresholding correlation coefficients. based on \n" 
 "                fast eigenvector centrality mapping (Wink et. al\n"
-"                2012). Default when -binary, -thresh, or -sparsity\n"
+"                2012). Default when -thresh, or -sparsity\n"
 "                are NOT used.\n"
-"  -binary     = calculate binarized centrality rather than weighted\n"
-"                this requires a threshold of some sort (-thresh or \n"
-"                -sparsity) cannot be used with FECM. forces scale = 1.0\n"
-"                and shift = 0.0\n"
 "  -thresh r   = exclude connections with correlation < r. cannot be\n"
 "                used with FECM\n"
 "  -sparsity p = only include the top p%% connectoins in the calculation\n"
@@ -1458,6 +1455,7 @@ int main( int argc , char *argv[] )
 "\n"
 "-- RWCox - 31 Jan 2002 and 16 Jul 2010\n"
 "-- Cameron Craddock - 13 Nov 2015 \n"
+"-- Daniel Clark - 14 March 2016\n"
             ) ;
       PRINT_AFNI_OMP_USAGE("3dECM",NULL) ;
       PRINT_COMPILE_DATE ; exit(0) ;
@@ -1467,9 +1465,9 @@ int main( int argc , char *argv[] )
    AFNI_logger("3dECM",argc,argv);
 
    /* CC - set the default for ECM methods */
-   scale = 1.0;
-   shift = 0.0;
-   thresh = -1.2;
+//   scale = 1.0;
+//   shift = 0.0;
+//   thresh = -1.2;
 
    /*-- option processing --*/
 
@@ -1517,10 +1515,9 @@ int main( int argc , char *argv[] )
          }
          eps = val ; nopt++ ; continue ;
       }
-
-      if( strcmp(argv[nopt],"-binary") == 0 ){
-         do_binary = 1; nopt++ ; continue ;
-      }
+//      if( strcmp(argv[nopt],"-binary") == 0 ){
+//         do_binary = 1; nopt++ ; continue ;
+//      }
 
       if( strcmp(argv[nopt],"-sparsity") == 0 ){
          double val = (double)strtod(argv[++nopt],&cpt) ;
@@ -1594,13 +1591,13 @@ int main( int argc , char *argv[] )
     if( nopt >= argc ) ERROR_EXIT_CC("Need a dataset on command line!?") ;
     xset = THD_open_dataset(argv[nopt]); CHECK_OPEN_ERROR(xset,argv[nopt]);
 
-    if (( do_fecm == 1 ) && ((do_sparsity == 1) || (do_thresh == 1) || 
-        (do_binary == 1) || (do_full == 1)))
+    // Check fast method isnt enabled with non-compatible options
+    if (( do_fecm == 1 ) && ((do_sparsity == 1) || (do_thresh == 1) || (do_full == 1)))
     {
-        WARNING_message( "Cannot use FECM, with -sparsity, -thresh, -binary,"
+        WARNING_message( "Cannot use FECM, with -sparsity, -thresh,"
             " or -full, changing to full power iteration\n");
         do_fecm = 0;
-   }
+    }
 
    /* if fecm is specified default to scale = 0.5, shift = 1.0 to be
       consistent with Wink et. al. */
@@ -1610,11 +1607,11 @@ int main( int argc , char *argv[] )
        shift = ( do_shift == 0 ) ? 1.0 : shift;
    }
 
-   if ( do_binary == 1 )
-   {
-       scale = 1.0;
-       shift = 0.0;
-   }
+//   if ( do_binary == 1 )
+//   {
+//       scale = 1.0;
+//       shift = 0.0;
+//   }
 
    /* -- Load in the input dataset and make sure it is suitable -- */
    nvox = DSET_NVOX(xset) ; nvals = DSET_NVALS(xset) ;
@@ -1648,7 +1645,7 @@ int main( int argc , char *argv[] )
       INC_MEM_STATS( mset->dblk->total_bytes, "mask dset" );
       PRINT_MEM_STATS( "mset load" );
 
-      /* iupdate statistics to reflect creating mask array */
+      /* update statistics to reflect creating mask array */
       nmask = THD_countmask( nvox , mask ) ;
       INC_MEM_STATS( nmask * sizeof(byte), "mask array" );
       PRINT_MEM_STATS( "mask" );
@@ -1681,7 +1678,7 @@ int main( int argc , char *argv[] )
       nmask = nvox ;
       INFO_message("computing for all %d voxels",nmask) ;
    }
-   
+
     /*-- create vectim from input dataset --*/
     INFO_message("vectim-izing input dataset") ;
 
@@ -1735,24 +1732,25 @@ int main( int argc , char *argv[] )
     /* update the user so that they know what we are up to */
 
     /* calculate the eigenvector */
-    if ((do_full == 1) || (do_sparsity == 1) || (do_thresh == 1) ||
-        (do_binary == 1))
+    if ((do_full == 1) || (do_sparsity == 1) || (do_thresh == 1))
     {
-        /* -- CC tell the user what we are up to */
-        INFO_message( "Calculating ECM with full method (sparsity=%3.3f%%,"
-            " thresh=%3.3f, scale=%3.3f, shift=%3.3f,\nmax_iter=%d, eps=%3.3f,"
-            " binary=%d, mem=%ld)\n", sparsity, thresh, scale, shift, max_iter,
-            eps, do_binary, mem_bytes - running_mem);
+        for (do_binary = 0; do_binary < 2; do_binary++) {
+            /* -- CC tell the user what we are up to */
+            INFO_message( "Calculating ECM with full method (sparsity=%3.3f%%,"
+                " thresh=%3.3f, scale=%3.3f, shift=%3.3f,\nmax_iter=%d, eps=%3.3f,"
+                " binary=%d, mem=%ld)\n", sparsity, thresh, scale, shift, max_iter,
+                eps, do_binary, mem_bytes - running_mem);
 
-        eigen_vec=calc_full_power_sparse(xvectim, thresh, sparsity, shift,
-            scale, eps, max_iter, do_binary, (mem_bytes - running_mem));
+            eigen_vec[do_binary]=calc_full_power_sparse(xvectim, thresh, sparsity, shift,
+                scale, eps, max_iter, do_binary, (mem_bytes - running_mem));
+        }
     }
     else
     {
         INFO_message( "Calculating ECM with FECM (sparsity=%3.3f%%,thresh=%3.3f,\n"
             "  scale=%3.3f, shift=%3.3f, max_iter=%d, eps=%3.3f, binary=%d)\n",
             sparsity, thresh, scale, shift, max_iter, eps, do_binary);
-        eigen_vec=calc_fecm_power(xvectim, shift, scale, eps, max_iter);
+        eigen_vec[0]=calc_fecm_power(xvectim, shift, scale, eps, max_iter);
     }
 
     if( eigen_vec == NULL )
@@ -1795,52 +1793,53 @@ int main( int argc , char *argv[] )
 
     ININFO_message("creating output dataset in memory") ;
 
-    /* -- Configure the subbriks: Eigenvector centrality is only weighted */
-    subbrik = 0;
-    EDIT_BRICK_TO_NOSTAT(cset,subbrik) ;                     /* stat params  */
-    /* CC this sets the subbrik scaling factor, which we will probably want
-       to do again after we calculate the voxel values */
-    EDIT_BRICK_FACTOR(cset,subbrik,1.0) ;                 /* scale factor */
+    for (subbrik = 0; subbrik < 2; subbrik++) {
+        /* -- Configure the subbriks -- */
 
-    if( do_binary == 1 )
-    {
-        sprintf(str,"Binary ECM");
+        EDIT_BRICK_TO_NOSTAT(cset,subbrik) ;                     /* stat params  */
+        /* CC this sets the subbrik scaling factor, which we will probably want
+           to do again after we calculate the voxel values */
+        EDIT_BRICK_FACTOR(cset,subbrik,1.0) ;                 /* scale factor */
+//
+//        if( do_binary == 1 )
+//        {
+//            sprintf(str,"Binary ECM");
+//        }
+//        else
+//        {
+//            sprintf(str,"Weighted ECM");
+//        }
+
+        EDIT_BRICK_LABEL(cset,subbrik,str) ;
+        EDIT_substitute_brick(cset,subbrik,MRI_float,NULL) ;   /* make array   */
+
+        /* copy measure data into the subbrik */
+        wodset = DSET_ARRAY(cset,subbrik);
+
+        /* increment memory stats */
+        INC_MEM_STATS( (DSET_NVOX(cset)*DSET_NVALS(cset)*sizeof(float)),
+            "output dset");
+        PRINT_MEM_STATS( "outset" );
+
+        /* set all of the voxels in the output image to zero */
+        bzero(wodset, DSET_NVOX(cset)*sizeof(float));
+
+        /* output the eigenvector, scaling it by sqrt(2) */
+        for (ii = 0; ii < xvectim->nvec; ii++ )
+        {
+           wodset[ mask_ndx_to_vol_ndx[ ii ] ] = (float)(SQRT_2 * eigen_vec[subbrik][ ii ]);
+        }
+
+        /* we have copied out v_prev, now we can kill it */
+        if( eigen_vec[subbrik] != NULL )
+        {
+            free(eigen_vec[subbrik]);
+            eigen_vec[subbrik] = NULL;
+
+            /* update running memory statistics to reflect freeing the vectim */
+            DEC_MEM_STATS(xvectim->nvec*sizeof(double), "eigen_vec");
+        }
     }
-    else
-    {
-        sprintf(str,"Weighted ECM");
-    }
-
-    EDIT_BRICK_LABEL(cset,subbrik,str) ;
-    EDIT_substitute_brick(cset,subbrik,MRI_float,NULL) ;   /* make array   */
-
-    /* copy measure data into the subbrik */
-    wodset = DSET_ARRAY(cset,subbrik);
-
-    /* increment memory stats */
-    INC_MEM_STATS( (DSET_NVOX(cset)*DSET_NVALS(cset)*sizeof(float)),
-        "output dset");
-    PRINT_MEM_STATS( "outset" );    
-
-    /* set all of the voxels in the output image to zero */
-    bzero(wodset, DSET_NVOX(cset)*sizeof(float));
-
-    /* output the eigenvector, scaling it by sqrt(2) */
-    for (ii = 0; ii < xvectim->nvec; ii++ )
-    {
-       wodset[ mask_ndx_to_vol_ndx[ ii ] ] = (float)(SQRT_2 * eigen_vec[ ii ]);
-    }
-
-    /* we have copied out v_prev, now we can kill it */
-    if( eigen_vec != NULL ) 
-    {
-        free(eigen_vec);
-        eigen_vec = NULL;
-
-        /* update running memory statistics to reflect freeing the vectim */
-        DEC_MEM_STATS(xvectim->nvec*sizeof(double), "eigen_vec");
-    }
-   
 
     /*-- tell the user what we are about to do --*/
     INFO_message("Done..\n") ;
