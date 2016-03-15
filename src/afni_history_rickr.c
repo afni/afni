@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 15,  Mar, 2016, RCR, "timing_tool.py", MICRO, TYPE_BUG_FIX,
+   "-help_basis update: max convolved BLOCK() is ~5.1, not ~5.4",
+   NULL
+ } ,
+
  {  1,  Mar, 2016, RCR, "GIFTI", MICRO, TYPE_BUG_FIX,
    "applied R Vincent fix for GIFTI datasets with Windows-style newlines",
    NULL
