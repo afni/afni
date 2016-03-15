@@ -44,6 +44,22 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 10 , MAR , 2016 , RWC , "debugtrace.h" , MICRO , TYPE_MODIFY ,
+   "Output command line, if available, in crash report" , NULL } ,
+
+ { 8 , MAR , 2016 , RWC , "afni GUI" , MICRO , TYPE_MODIFY ,
+   "Turn Auto-scaling on in graph windows by default" , NULL } ,
+
+ { 8 , MAR , 2016 , RWC , "3dTproject" , MICRO , TYPE_MODIFY ,
+   "Add STATUS calls to 3dTproject for debugging" , NULL } ,
+
+ { 8 , MAR , 2016 , RWC , "3dvolreg" , MICRO , TYPE_MODIFY ,
+   "Default resampling now heptic, not Fourier." , NULL } ,
+
+ { 7 , MAR , 2016 , RWC , "3dDeconvolve" , MICRO , TYPE_MODIFY ,
+   "Double default size of Xmat JPEG file" ,
+   "To avoid losing resolution when looking at TENT designs." } ,
+
  { 22 , FEB , 2016 , RWC , "debugtrace.c" , MICRO , TYPE_NEW_OPT ,
    "Colorize WARNING and ERROR message prefixes." ,
    "Can turn off by setting AFNI_MESSAGE_COLORIZE to NO. For Javier." } ,
