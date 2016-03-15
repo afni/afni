@@ -29,7 +29,7 @@
 
 static int show_grapher_pixmap = 1 ;
 static void fd_line( MCW_grapher *, int,int,int,int ) ;
-static byte PLOT_FORCE_AUTOSCALE = 0;
+static byte PLOT_FORCE_AUTOSCALE = 1;  /* change to 1 [08 Mar 2016 - Okazaki] */
 static Widget wtemp ;
 
 #ifdef BE_AFNI_AWARE
@@ -1608,7 +1608,7 @@ ENTRY("redraw_graph") ;
    if (code == 0 && PLOT_FORCE_AUTOSCALE)
       code = PLOTCODE_AUTOSCALE; /* Daniel Glen
                                     July 14th Allons enfants de la patrie,
-                                    la guillottine est arrivee */
+                                    la guillottine est arrivee! */
 
    plot_graphs( grapher , code ) ;
 

@@ -564,7 +564,7 @@ g_help_string = """
 ## BEGIN common functions across scripts (loosely of course)
 class RegWrap:
    def __init__(self, label):
-      self.align_version = "1.51" # software version (update for changes)
+      self.align_version = "1.52" # software version (update for changes)
       self.label = label
       self.valid_opts = None
       self.user_opts = None
@@ -2365,7 +2365,7 @@ class RegWrap:
 
          com = shell_com(                                                  \
                          "3dLocalstat -overwrite -mask %s_edge_mask%s " \
-                         "-nbhd 'RECT(-1,-1,0)'"                           \
+                         "-nbhd 'RECT(-2,-2,-1)'"                           \
                          " -stat cvar -prefix %s %s" %                     \
                          (prefix, o.view, lprefix, e.input()), ps.oexec)
          com.run();
