@@ -160,8 +160,10 @@ static long total_mem = 0;
 \
         if( eigen_vec != NULL ) \
         { \
-            free(eigen_vec) ; \
-            eigen_vec = NULL ; \
+            free(eigen_vec[0]) ; \
+            free(eigen_vec[1]) ; \
+            eigen_vec[0] = NULL ; \
+            eigen_vec[1] = NULL ; \
         } \
 }
 
@@ -184,7 +186,7 @@ static void vstep_print(void)
 }
 
 /*----------------------------------------------------------------*/
-/**** Include these hesre for potential optimization for OpenMP ****/
+/**** Include these here for potential optimization for OpenMP ****/
 /*----------------------------------------------------------------*/
 /*! Pearson correlation of x[] and y[] (x and y are NOT modified.
     And we know ahead of time that the time series have 0 mean
