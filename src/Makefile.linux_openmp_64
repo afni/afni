@@ -6,7 +6,8 @@
 USE_ZLIB = -DHAVE_ZLIB
 LZLIB    = -lz
 USE_GIFTI = -DHAVE_GIFTI
-LGIFTI    = /usr/lib64/libexpat.a
+#LGIFTI    = /usr/lib64/libexpat.a
+LGIFTI = -lexpat
 
 # ------------------------------
 # python from C (off for now)
@@ -37,7 +38,7 @@ else
 endif
 
 # in case user wants to override with system dynamic libs
-# XLIBS = -lXm -lXt
+XLIBS = -lXm -lXt
 # ----------------------------------------------------------------------
 
 CCDEBS = -DAFNI_DEBUG -DIMSEQ_DEBUG -DDISPLAY_DEBUG -DTHD_DEBUG
@@ -46,7 +47,7 @@ CEXTRA = -Wcomment -Wformat -DUSE_TRACING -DHAVE_XDBE $(CPROF) -DDONT_USE_XTDEST
 CC     = /usr/bin/gcc -O2 -m64 -fPIC -DREAD_WRITE_64 -DLINUX2 $(CEXTRA)
 CCVOL  = /usr/bin/gcc -O2 -m64 -fPIC -DREAD_WRITE_64 -DLINUX2 $(CEXTRA)
 CCFAST = /usr/bin/gcc -O2 -m64 -fPIC -DREAD_WRITE_64 -DLINUX2 $(CEXTRA)
-CCOLD  = /usr/bin/gcc -V 34 -O2 -m64 -fPIC -DREAD_WRITE_64 -DLINUX2 $(CEXTRA)
+CCOLD  = /usr/bin/gcc -O2 -m64 -fPIC -DREAD_WRITE_64 -DLINUX2 $(CEXTRA)
 
 # The following line includes compiling for the SSE operations.
 # However, I found that it actually makes things worse in some test code.
