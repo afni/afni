@@ -1073,6 +1073,16 @@ int main( int argc , char *argv[] )
    if( argc < 2 || strcasecmp(argv[1],"-help") == 0 )
      TPR_help_the_pitiful_user() ;
 
+   /*----- bureaucracy -----*/
+
+   mainENTRY("3dTproject"); machdep();
+   AFNI_logger("3dTproject",argc,argv);
+   PRINT_VERSION("3dTproject"); AUTHOR("Cox the Algebraic (Linear)") ;
+   ct = NI_clock_time() ;
+#ifdef USING_MCW_MALLOC
+   enable_mcw_malloc() ;
+#endif
+
    /*----- scan options -----*/
 
    while( iarg < argc && argv[iarg][0] == '-' ){
@@ -1430,13 +1440,6 @@ int main( int argc , char *argv[] )
    if( tinp->num_CENSOR > 0   ) nact++ ;
    if( nact == 0 )
      ERROR_exit("Don't you want to DO something?") ;
-
-   /*----- bureaucracy -----*/
-
-   mainENTRY("3dTproject"); machdep();
-   AFNI_logger("3dTproject",argc,argv);
-   PRINT_VERSION("3dTproject"); AUTHOR("Cox the Algebraic (Linear)") ;
-   ct = NI_clock_time() ;
 
    /*----- process the data -----*/
 
