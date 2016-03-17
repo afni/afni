@@ -44,6 +44,16 @@ ENTRY("THD_open_dataset") ;
      }
    }
 
+   /*-- 16 Mar 2016: jRandomDataset:nx,ny,nz,nt --*/
+
+   if( strncmp(pathname,"jRandomDataset:",15) == 0 && isdigit(pathname[15]) ){
+     int nx=0,ny=0,nz=0,nt=0 ;
+     sscanf( pathname+15 , "%d,%d,%d,%d" , &nx,&ny,&nz,&nt ) ;
+     dset = jRandomDataset(nx,ny,nz,nt) ;
+     THD_patch_brickim(dset) ;
+     RETURN(dset) ;
+   }
+
    /*-- 23 Mar 2001: perhaps get from across the Web --*/
 
    if( strncmp(pathname,"http://",7) == 0 ||
@@ -81,9 +91,9 @@ ENTRY("THD_open_dataset") ;
    /*-- 04 Aug 2004: allow input of a list of datasets, separated by spaces --*/
    /*  unless a count command is used inside the brackets 9 May 2007 drg*/
    /* allow use of spaces with AFNI_PATH_SPACES_OK        2 May 2012 [rickr]  */
-   if( ! AFNI_yesenv("AFNI_PATH_SPACES_OK") && 
-         (strchr(pathname,' ') != NULL )    && 
-         (strstr(pathname,"[count ")==NULL) && 
+   if( ! AFNI_yesenv("AFNI_PATH_SPACES_OK") &&
+         (strchr(pathname,' ') != NULL )    &&
+         (strstr(pathname,"[count ")==NULL) &&
          (strstr(pathname,"[1dcat ")==NULL) ) {
      dset = THD_open_tcat( pathname ) ;
      if( ISVALID_DSET(dset) &&
@@ -94,7 +104,7 @@ ENTRY("THD_open_dataset") ;
 
    /*-- 04 Mar 2003: allow input of .1D files     --*/
    /*--              which deals with [] itself   --*/
-   /*-- 19 May 2012: moved after check for spaces 
+   /*-- 19 May 2012: moved after check for spaces
     *        [rickr] (to allow space cat of 1D)   --*/
 
    if( strstr(pathname,".1D") != NULL || strncmp(pathname,"1D:",3) == 0 ){
