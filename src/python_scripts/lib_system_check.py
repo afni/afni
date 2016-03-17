@@ -79,8 +79,17 @@ class SysInfo:
       if logshell not in ['csh', 'tcsh']:
          self.comments.append("using shell '%s', trusting user to translate" \
                               " from 'tcsh'" % logshell)
-      if logshell == 'sh':
-         self.comments.append("note: shell 'sh' references .profile by default")
+      # if logshell == 'sh':
+      #  self.comments.append("note: shell 'sh' references .profile by default")
+
+      slist = [logshell, curshell]
+      if 'sh' in slist:
+         self.comments.append("shell sh: non-login shell ref: NONE")
+         self.comments.append("shell sh: login shell ref: .profile")
+      if 'bash' in slist:
+         self.comments.append("shell bash: non-login shell ref: .bashrc")
+         self.comments.append("shell bash: login shell ref, first of:")
+         self.comments.append(" .bash_profile, .bash_login, .profile")
 
       print 'apparent login shell: %s%s' % (logshell, note)
       print
@@ -663,7 +672,11 @@ class SysInfo:
 
    def show_comments(self):
       print UTIL.section_divider('summary comments', hchar='=')
-      for cc in self.comments: print '*  %s' % cc
+      for cc in self.comments: 
+         if len(cc) == 0: print ''
+         else:
+            if cc[0] == ' ': print '  %s' % cc
+            else:            print '*  %s' % cc
       print ''
 
    def show_all_sys_info(self):

@@ -69,6 +69,54 @@ R Reynolds    July, 2013
 =============================================================================
 """
 
+g_help_rc_files = """
+rc (run commands) files applied at start up:
+
+   0. login shells:
+
+      Login shells happen when a user first logs in on a machine, possibly
+      just once at a console or when login is via ssh.
+
+   1a. csh/tcsh non-login shell (e.g. opening a new terminal):
+      
+      /etc/csh.cshrc
+      ~/.tcshrc (else .cshrc)
+
+   1b. csh/tcsh login shell (e.g. ssh login):
+
+      /etc/csh.cshrc
+      /etc/csh.login
+      ~/.tcshrc (else .cshrc)
+      ~/.history
+      ~/.login
+      ~/.cshdirs
+
+    * alternate orders may be compiled in
+
+
+   2a. bash non-login shell (e.g. opening a new terminal):
+      
+      ~/.bashrc
+
+    * BASH_ENV can be used to specify which file to process.
+
+
+   2b. bash login shell (e.g. ssh login):
+
+      /etc/profile
+      ~/.bash_profile (else ~/.bash_login) (else ~/.profile)
+
+   3a. sh (bash as sh) non-login shell:
+
+    * nothing is read
+
+   3b. sh (bash as sh) login shell:
+
+      /etc/profile (else ~/.profile)
+
+"""
+
+
 g_todo = """
 todo: afni_system_check.py
 
@@ -154,6 +202,8 @@ class CmdInterface:
       # terminal options
       self.valid_opts.add_opt('-help', 0, [],           \
                       helpstr='display program help')
+      self.valid_opts.add_opt('-help_rc_files', 0, [],  \
+                      helpstr='display program help')
       self.valid_opts.add_opt('-hist', 0, [],           \
                       helpstr='display the modification history')
       self.valid_opts.add_opt('-show_valid_opts', 0, [],\
@@ -192,6 +242,10 @@ class CmdInterface:
       # if no arguments are given, apply -help
       if '-help' in argv or len(argv) < 2:
          print g_help_string
+         return 0
+
+      if '-help_rc_files' in argv:
+         print g_help_rc_files
          return 0
 
       if '-hist' in argv:
