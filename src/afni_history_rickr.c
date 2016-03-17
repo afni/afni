@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 17,  Mar, 2016, RCR, "afni-general", MICRO, TYPE_BUG_FIX,
+   "bail on NULL in old Atlas_Dset_Name_to_Atlas_Code()",
+   NULL
+ } ,
+
  { 15,  Mar, 2016, RCR, "timing_tool.py", MICRO, TYPE_BUG_FIX,
    "-help_basis update: max convolved BLOCK() is ~5.1, not ~5.4",
    NULL
