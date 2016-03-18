@@ -84,8 +84,8 @@ class SysInfo:
       print 'apparent login shell: %s%s' % (logshell, note)
 
       self.set_shell_rc_file([logshell, curshell])
-      if os.path.isfile(self.rc_file): fstr = 'exists'
-      else:                            fstr = 'does not exist'
+      if self.home_file_exists(self.rc_file): fstr = 'exists'
+      else:                                   fstr = 'does not exist'
       print 'shell RC file:        %s (%s)' % (self.rc_file, fstr)
       print
 

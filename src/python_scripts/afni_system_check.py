@@ -170,7 +170,7 @@ g_history = """
         - make comments about shell RC files, given login shell
 """
 
-g_version = "afni_system_check.py version 0.15, January 3, 2015"
+g_version = "afni_system_check.py version 0.17, March 18, 2016"
 
 
 class CmdInterface:
@@ -205,7 +205,7 @@ class CmdInterface:
       self.valid_opts.add_opt('-help', 0, [],           \
                       helpstr='display program help')
       self.valid_opts.add_opt('-help_rc_files', 0, [],  \
-                      helpstr='display program help')
+                      helpstr='display help on shell setup files')
       self.valid_opts.add_opt('-hist', 0, [],           \
                       helpstr='display the modification history')
       self.valid_opts.add_opt('-show_valid_opts', 0, [],\
