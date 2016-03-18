@@ -26,6 +26,7 @@ examples
 terminal options:
 
    -help                : show this help
+   -help_rc_files       : show help on shell setup files
    -hist                : show program history
    -show_valid_opts     : show valid options for program
    -todo                : show current todo list
@@ -74,22 +75,23 @@ rc (run commands) files applied at start up:
 
    0. login shells:
 
-      Login shells happen when a user first logs in on a machine, possibly
-      just once at a console or when login is via ssh.
+      Login shells happen when a user first logs in on a machine, e.g.,
+
+         - at a console login
+         - when login is via ssh
+
+      This help section focuses on commonly used user control files,
+      omitting files like /etc/csh.cshrc and .history.
+
 
    1a. csh/tcsh non-login shell (e.g. opening a new terminal):
       
-      /etc/csh.cshrc
       ~/.tcshrc (else .cshrc)
 
    1b. csh/tcsh login shell (e.g. ssh login):
 
-      /etc/csh.cshrc
-      /etc/csh.login
       ~/.tcshrc (else .cshrc)
-      ~/.history
       ~/.login
-      ~/.cshdirs
 
     * alternate orders may be compiled in
 
@@ -98,13 +100,10 @@ rc (run commands) files applied at start up:
       
       ~/.bashrc
 
-    * BASH_ENV can be used to specify which file to process.
-
-
    2b. bash login shell (e.g. ssh login):
 
-      /etc/profile
       ~/.bash_profile (else ~/.bash_login) (else ~/.profile)
+
 
    3a. sh (bash as sh) non-login shell:
 
@@ -112,7 +111,7 @@ rc (run commands) files applied at start up:
 
    3b. sh (bash as sh) login shell:
 
-      /etc/profile (else ~/.profile)
+      ~/.profile
 
 """
 
@@ -166,6 +165,9 @@ g_history = """
         - see whether homebrew is installed
         - whine if OS X version is pre-10.7
         - report contents of AFNI_version.txt
+   0.17 Mar 18, 2016 - new checks
+        - added -help_rc_files
+        - make comments about shell RC files, given login shell
 """
 
 g_version = "afni_system_check.py version 0.15, January 3, 2015"

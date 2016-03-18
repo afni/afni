@@ -28,6 +28,7 @@ class SysInfo:
       self.afni_ver        = ''
       self.afni_dir        = ''
       self.os_dist         = ''
+      self.rc_file         = ''
       self.comments        = [] # comments to print at the end
 
       self.repo_prog       = '' # e.g. yum or brew
@@ -77,22 +78,81 @@ class SysInfo:
       else:                    note = '  (current shell is %s)' % curshell
 
       if logshell not in ['csh', 'tcsh']:
-         self.comments.append("using shell '%s', trusting user to translate" \
+         self.comments.append("login shell '%s', trusting user to translate" \
                               " from 'tcsh'" % logshell)
-      # if logshell == 'sh':
-      #  self.comments.append("note: shell 'sh' references .profile by default")
-
-      slist = [logshell, curshell]
-      if 'sh' in slist:
-         self.comments.append("shell sh: non-login shell ref: NONE")
-         self.comments.append("shell sh: login shell ref: .profile")
-      if 'bash' in slist:
-         self.comments.append("shell bash: non-login shell ref: .bashrc")
-         self.comments.append("shell bash: login shell ref, first of:")
-         self.comments.append(" .bash_profile, .bash_login, .profile")
 
       print 'apparent login shell: %s%s' % (logshell, note)
+
+      self.set_shell_rc_file([logshell, curshell])
+      if os.path.isfile(self.rc_file): fstr = 'exists'
+      else:                            fstr = 'does not exist'
+      print 'shell RC file:        %s (%s)' % (self.rc_file, fstr)
       print
+
+   def set_shell_rc_file(self, slist):
+      """and many any useful comments"""
+
+      cc = []
+      self.rc_file = 'NONE'
+
+      if 'sh' in slist:
+         # non-login shell ref: NONE
+         # login shell ref: .profile"
+         fname = '.profile'
+         self.rc_file = fname
+         if os.path.isfile('%s/%s' % (self.home_dir,fname)):
+            cc.append("shell sh  : found login shell setup file %s" % fname)
+         else: 
+            cc.append("shell sh  : MISSING login shell setup file %s" % fname)
+         
+      if 'bash' in slist:
+         # non-login shell ref: .bashrc
+         # login shell ref, first of: .bash_profile, .bash_login, .profile
+         f1name = '.bash_profile'
+         f2name = '.bashrc'
+         self.rc_file = f2name
+         f1found = 1
+         f2found = 1
+         if not self.home_file_exists(f1name):
+            f1name = '.bash_login'
+         if not self.home_file_exists(f1name):
+            f1name = '.profile'
+         if not self.home_file_exists(f1name):
+            f1name = '.bash_profile' # call this the default
+            cc.append("shell bash: MISSING login setup file, e.g. %s" % f1name)
+            f1found = 0
+
+         if not self.home_file_exists(f2name):
+            cc.append("shell bash: MISSING non-login setup file %s" % f2name)
+            f2found = 0
+
+         gfound = 0
+         if f1found and f2found:
+            # does f1name reference f2name?
+            st, so, se = UTIL.limited_shell_exec("\grep %s %s"%(f2name,f1name))
+            if not st: gfound = 1
+
+         if not f1found or not f2found or not gfound:
+            ss="shell bash: consider sourcing (non-login) %s from (login) %s" \
+               % (f2name, f1name)
+            cc.append(ss)
+
+      # choose between tcsh and csh, if either is used
+      sname = ''
+      if 'tcsh' in slist: sname = 'tcsh'
+      if sname == '' and 'csh' in slist: sname = 'csh'
+      if sname != '':
+         f1name = '.tcshrc'
+         if not self.home_file_exists(f1name): f1name = '.cshrc'
+         self.rc_file = f1name
+
+         if not self.home_file_exists(f1name):
+            cc.append('shell %-4s: missing setup file %s' % (sname, f1name))
+
+      self.comments.extend(cc)
+
+   def home_file_exists(self, fname):
+      return(os.path.isfile('%s/%s' % (self.home_dir, fname)))
 
    def show_top_line(self, fname, prefix='', last=0):
       htxt = UTIL.read_top_lines(fname, nlines=1, strip=1, verb=0)
