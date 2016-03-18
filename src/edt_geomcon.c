@@ -181,7 +181,9 @@ THD_3dim_dataset * jRandomDataset( int nx, int ny, int nz, int nt )
    char gstr[128] ;
    int iv,jj,nvox; float *far , zz=0.0f ;
 
-   if( nx < 2 || ny < 2 || nz < 1 ) return NULL ;
+   if( nx < 2 ) return NULL ;
+   if( ny < 1 ) ny = nx ;
+   if( nz < 1 ) nz = 1 ;
    if( nt < 1 ) nt = 1 ;
 
    sprintf(gstr,"RAI:%d,0,1.0,%d,0,1.0,%d,0,1.0",nx,ny,nz) ;
@@ -202,8 +204,8 @@ THD_3dim_dataset * jRandomDataset( int nx, int ny, int nz, int nt )
      EDIT_substitute_brick( dset , iv , MRI_float , NULL ) ;
      far = DSET_ARRAY( dset , iv ) ;
      for( jj=0 ; jj < nvox ; jj++ ) far[jj] = 2.0f*(float)(drand48())-1.0f ;
-     if( nvox%32 == 0 ){
-       for( jj=0 ; jj < 17 ; jj++ ) zz += drand48() ;
+     if( nvox%32 == 0 && iv < nt-1 ){
+       for( jj=0 ; jj < 17 ; jj++ ) zz += drand48() ; /* avoid artifacts */
      }
    }
 
@@ -226,7 +228,7 @@ MRI_IMAGE * jRandom1D( int nx , int ny )
    for( kk=jj=0 ; jj < ny ; jj++ ){
      for( ii=0 ; ii < nx ; ii++,kk++ )
        far[kk] = 2.0f*(float)(drand48())-1.0f ;
-     if( nx%8 == 0 ){
+     if( nx%8 == 0 && jj < ny-1 ){
        int qq ; for( qq=0 ; qq < 11 ; qq++ ) zz += drand48() ;
      }
    }
