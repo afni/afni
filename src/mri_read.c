@@ -2968,7 +2968,7 @@ ENTRY("mri_read_1D") ;
      RETURN(inim) ;
    }
 
-   if( strncmp(fname,"jRandom1D:",10) == 0 ){  /* 17 Mar 2016 */
+   if( strncasecmp(fname,"jRandom1D:",10) == 0 ){  /* 17 Mar 2016 */
      int nx=0 , ny=0 ;
      sscanf( fname+10 , "%d,%d" , &nx,&ny ) ;
      inim = jRandom1D(nx,ny) ;
