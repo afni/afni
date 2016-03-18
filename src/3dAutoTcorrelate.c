@@ -161,6 +161,8 @@ int main( int argc , char *argv[] )
    char str[32] , *cpt ;
    int *imap ; MRI_vectim *xvectim ;
    float (*corfun)(int,float *,float*) = NULL ;
+   int (*corfu)(int)= NULL;
+
    FILE *fout1D=NULL;
    
    /*----*/
