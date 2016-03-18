@@ -445,6 +445,9 @@ extern char * EDIT_geometry_string_pad( char *gsin , int npad ) ; /* Halloween 2
 extern char * EDIT_geomstring_from_collection( int nstr , char **gsin ) ;
 extern float_triple EDIT_geometry_string_to_delxyz( char *gstr ) ;
 
+extern THD_3dim_dataset * jRandomDataset(int,int,int,int) ; /* 16 Mar 2016 */
+extern MRI_IMAGE *        jRandom1D(int,int) ;              /* 17 Mar 2016 */
+
 #define ISVALID_GEOMETRY_STRING(ggg)                      \
  ( (ggg) != NULL && strncasecmp((ggg),"matrix(",7) == 0 )
 

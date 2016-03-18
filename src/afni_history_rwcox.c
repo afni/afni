@@ -44,6 +44,20 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 17 , MAR , 2016 , RWC , "dataset input" , MICRO , TYPE_ENHANCE ,
+   "Input random dataset or 1D file on command line" ,
+   "jRandomDataset:64,64,32,22 creates a random dataset with nx=64, ny=64,\n"
+   "nz=32, and 22 time points.\n"
+   "jRandom1D:128,16 creates a random 1D file with 128 rows and 16 columns.\n"
+   "These are shortcuts for testing programs, which avoid having to create\n"
+   "temporary files via 3dcalc (say).  In other words, these 'inputs' are\n"
+   "testaments to my preference to write C code than do actual work." } ,
+
+ { 17 , MAR , 2016 , RWC , "3dTproject" , MINOR , TYPE_BUG_FIX ,
+   "Fix problem in setting count of bandpass regressors" ,
+   "Typo meant that Nyquist frequency might not be counted properly,\n"
+   "resulting in bad stuff (memory corruption)." } ,
+
  { 10 , MAR , 2016 , RWC , "debugtrace.h" , MICRO , TYPE_MODIFY ,
    "Output command line, if available, in crash report" , NULL } ,
 
