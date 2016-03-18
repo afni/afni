@@ -259,7 +259,7 @@ double* calc_fecm_power(MRI_vectim *xvectim, double shift, double scale, double 
         return( NULL );
     }
 
-    /*-- CC update our memory stats to reflect v_new -- */
+    /*-- CC update our memory stats to reflect v_prev -- */
     INC_MEM_STATS(xvectim->nvec*sizeof(double), "v_prev");
     PRINT_MEM_STATS( "v_prev" );
 
@@ -276,7 +276,7 @@ double* calc_fecm_power(MRI_vectim *xvectim, double shift, double scale, double 
         return( NULL );
     }
 
-    /*-- CC update our memory stats to reflect v_new -- */
+    /*-- CC update our memory stats to reflect xv_int -- */
     INC_MEM_STATS(xvectim->nvals*sizeof(double), "xv_int");
     PRINT_MEM_STATS( "xv_int" );
 
@@ -284,13 +284,15 @@ double* calc_fecm_power(MRI_vectim *xvectim, double shift, double scale, double 
     /*--- Initiatilize power method ---*/
 
     /*  set the initial vector to the first vector */
-    for ( lout=0; lout<xvectim->nvec; lout++ )
+    for ( lout=0; lout < xvectim->nvec; lout++ )
     {
+        // ||v_prev|| = 1
         v_prev[lout]=1.0 / sqrt((double)xvectim->nvec);
         v_prev_sum += v_prev[lout];
         v_prev_sum_sq += v_prev[lout] * v_prev[lout];
     }
 
+    // Init error
     v_prev_norm = sqrt(v_prev_sum_sq);
     v_err = v_prev_norm;
 
@@ -472,9 +474,9 @@ double* calc_full_power_sparse(MRI_vectim *xvectim, double thresh,
     /*---------- loop over mask voxels, correlate ----------*/
 
     /*  set the initial vector to the first vector */
-    for ( ii=0; ii<xvectim->nvec; ii++ )
+    for ( ii=0; ii < xvectim->nvec; ii++ )
     {
-        v_prev[ii]=1.0 / sqrt((double)xvectim->nvec);
+        v_prev[ii] = 1.0 / sqrt((double)xvectim->nvec);
         v_prev_sum += v_prev[ii];
         v_prev_sum_sq += v_prev[ii] * v_prev[ii];
     }
@@ -485,7 +487,7 @@ double* calc_full_power_sparse(MRI_vectim *xvectim, double thresh,
     /* get a sparse array */
     sparse_array = create_sparse_corr_array(xvectim, sparsity, thresh,
         cc_pearson_corr, (long)mem_bytes);
-
+    // validate success in creating sparse array
     if( sparse_array == NULL )
     {
         if( v_new != NULL ) free(v_new);
@@ -493,6 +495,24 @@ double* calc_full_power_sparse(MRI_vectim *xvectim, double thresh,
         WARNING_message("Error getting sparse weight array.");
         return( NULL );
     }
+
+    // DEBUG
+    sparse_array_node* test_node = sparse_array->nodes;
+    FILE* test_out_1d;
+    long i, j;
+    double w;
+    test_out_1d = fopen("/home/dclark/tests/centrality/sim_mat.1D", "w");
+    fprintf(test_out_1d, "i, j, w\n");
+    while (test_node != NULL)
+    {
+        i = test_node->row;
+        j = test_node->column;
+        w = test_node->weight;
+        fprintf(test_out_1d, "%ld, %ld, %.6f\n", i, j, w);
+        test_node = test_node->next;
+    }
+    fclose(test_out_1d);
+    // DEBUG
 
     /*-- CC update our memory stats to reflect v_new -- */
     INC_MEM_STATS(sizeof(sparse_array_head_node)+sparse_array->num_nodes*
@@ -1609,12 +1629,6 @@ int main( int argc , char *argv[] )
        shift = ( do_shift == 0 ) ? 1.0 : shift;
    }
 
-//   if ( do_binary == 1 )
-//   {
-//       scale = 1.0;
-//       shift = 0.0;
-//   }
-
    /* -- Load in the input dataset and make sure it is suitable -- */
    nvox = DSET_NVOX(xset) ; nvals = DSET_NVALS(xset) ;
 
@@ -1744,7 +1758,7 @@ int main( int argc , char *argv[] )
                 eps, do_binary, mem_bytes - running_mem);
 
             eigen_vec[do_binary]=calc_full_power_sparse(xvectim, thresh, sparsity, shift,
-                scale, eps, max_iter, do_binary, (mem_bytes - running_mem));
+                scale, eps, max_iter, 1-do_binary, (mem_bytes - running_mem));
         }
     }
     else

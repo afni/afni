@@ -9,15 +9,19 @@ typedef struct _sparse_array_node sparse_array_node;
 
 struct _sparse_array_node
 {
+   // define i, j, w
    long row;
    long column;
    double weight;
-   sparse_array_node* next; 
+   // and next node pointer
+   sparse_array_node* next;
 };
 
 typedef struct _sparse_array_head_node
 {
+   // size of sparse array
    long num_nodes;
+   // and pointer to nodes for access
    sparse_array_node* nodes; 
 } sparse_array_head_node;
 
