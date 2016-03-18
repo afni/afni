@@ -352,6 +352,19 @@ void DBG_sigfunc(int sig)   /** signal handler for fatal errors **/
       if(!DBG_stoff){strncpy(last_status,qss,1023); last_status[1023]='\0';}        \
   } while(0)
 
+#define STATUSi(str,i)                                                              \
+  do{ char qss[768] ;                                                               \
+      sprintf(qss,"%s int=%d",(str),(i)) ;                                          \
+      if( TRACK_TRACING ){                                                          \
+        char sbuf[1024] ;                                                           \
+        if( DBG_fp==NULL ) DBG_fp=stdout;                                           \
+        sprintf(sbuf,"%*.*s%s -- %s",DBG_num,DBG_num," ",DBROUT,qss);               \
+        if( PRINT_TRACING ){ fprintf(DBG_fp,"%s\n",sbuf); fflush(DBG_fp); MCHECK;}  \
+        DBG_set_hist_status(sbuf) ;                                                 \
+      }                                                                             \
+      if(!DBG_stoff){strncpy(last_status,qss,1023); last_status[1023]='\0';}        \
+  } while(0)
+
 /*********************************************************************/
 #else /* don't USE_TRACING */
 
@@ -366,6 +379,7 @@ void DBG_sigfunc(int sig)   /** signal handler for fatal errors **/
 #  define PRINT_TRACING 0
 #  define DBG_trace     0          /* 09 Dec 1999 */
 #  define STATUSp(str,p) /* nada */
+#  define STATUSi(str,i) /* nada */
 
 #  ifdef _DEBUGTRACE_MAIN_
       void DBG_sigfunc(int sig){} /* does nada */
