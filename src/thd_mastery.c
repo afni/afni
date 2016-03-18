@@ -46,7 +46,7 @@ ENTRY("THD_open_dataset") ;
 
    /*-- 16 Mar 2016: jRandomDataset:nx,ny,nz,nt --*/
 
-   if( strncmp(pathname,"jRandomDataset:",15) == 0 && isdigit(pathname[15]) ){
+   if( strncasecmp(pathname,"jRandomDataset:",15) == 0 && isdigit(pathname[15]) ){
      int nx=0,ny=0,nz=0,nt=0 ;
      sscanf( pathname+15 , "%d,%d,%d,%d" , &nx,&ny,&nz,&nt ) ;
      dset = jRandomDataset(nx,ny,nz,nt) ;
