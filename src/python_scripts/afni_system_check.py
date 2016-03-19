@@ -26,6 +26,7 @@ examples
 terminal options:
 
    -help                : show this help
+   -help_rc_files       : show help on shell setup files
    -hist                : show program history
    -show_valid_opts     : show valid options for program
    -todo                : show current todo list
@@ -68,6 +69,52 @@ details displayed via -check_all (just run to see):
 R Reynolds    July, 2013
 =============================================================================
 """
+
+g_help_rc_files = """
+rc (run commands) files applied at start up:
+
+   0. login shells:
+
+      Login shells happen when a user first logs in on a machine, e.g.,
+
+         - at a console login
+         - when login is via ssh
+
+      This help section focuses on commonly used user control files,
+      omitting files like /etc/csh.cshrc and .history.
+
+
+   1a. csh/tcsh non-login shell (e.g. opening a new terminal):
+      
+      ~/.tcshrc (else .cshrc)
+
+   1b. csh/tcsh login shell (e.g. ssh login):
+
+      ~/.tcshrc (else .cshrc)
+      ~/.login
+
+    * alternate orders may be compiled in
+
+
+   2a. bash non-login shell (e.g. opening a new terminal):
+      
+      ~/.bashrc
+
+   2b. bash login shell (e.g. ssh login):
+
+      ~/.bash_profile (else ~/.bash_login) (else ~/.profile)
+
+
+   3a. sh (bash as sh) non-login shell:
+
+    * nothing is read
+
+   3b. sh (bash as sh) login shell:
+
+      ~/.profile
+
+"""
+
 
 g_todo = """
 todo: afni_system_check.py
@@ -118,9 +165,12 @@ g_history = """
         - see whether homebrew is installed
         - whine if OS X version is pre-10.7
         - report contents of AFNI_version.txt
+   0.17 Mar 18, 2016 - new checks
+        - added -help_rc_files
+        - make comments about shell RC files, given login shell
 """
 
-g_version = "afni_system_check.py version 0.15, January 3, 2015"
+g_version = "afni_system_check.py version 0.17, March 18, 2016"
 
 
 class CmdInterface:
@@ -154,6 +204,8 @@ class CmdInterface:
       # terminal options
       self.valid_opts.add_opt('-help', 0, [],           \
                       helpstr='display program help')
+      self.valid_opts.add_opt('-help_rc_files', 0, [],  \
+                      helpstr='display help on shell setup files')
       self.valid_opts.add_opt('-hist', 0, [],           \
                       helpstr='display the modification history')
       self.valid_opts.add_opt('-show_valid_opts', 0, [],\
@@ -192,6 +244,10 @@ class CmdInterface:
       # if no arguments are given, apply -help
       if '-help' in argv or len(argv) < 2:
          print g_help_string
+         return 0
+
+      if '-help_rc_files' in argv:
+         print g_help_rc_files
          return 0
 
       if '-hist' in argv:
