@@ -49,8 +49,8 @@
 
 afni_history_struct rickr_history[] = {
 
- { 17,  Mar, 2016, RCR, "afni-general", MICRO, TYPE_BUG_FIX,
-   "bail on NULL in old Atlas_Dset_Name_to_Atlas_Code()",
+ { 21,  Mar, 2016, RCR, "uber_subject.py", MICRO, TYPE_ENHANCE,
+   "run GLTsymtest on specified GLTs",
    NULL
  } ,
 
