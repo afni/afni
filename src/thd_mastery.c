@@ -53,7 +53,10 @@ ENTRY("THD_open_dataset") ;
      else
        sscanf( pathname+15 , "%d,%d,%d,%d" , &nx,&ny,&nz,&nt ) ;
      dset = jRandomDataset(nx,ny,nz,nt) ;
-     THD_patch_brickim(dset) ;
+     if( dset == NULL )
+       WARNING_message("can't decode %s",pathname) ;
+     else
+       THD_patch_brickim(dset) ;
      RETURN(dset) ;
    }
 
