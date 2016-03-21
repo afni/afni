@@ -2502,10 +2502,37 @@ class SingleSubjectWindow(QtGui.QMainWindow):
          QLIB.guiError('GLT Errors', err, self)
          return 1
 
+      rv, rstr = self.run_GLTsymtest(dlist)
+      if rv:
+         QLIB.guiError('GLTsymtest errors', rstr, self)
+         return 1
+
       self.svars.gltsym_label = llist
       self.svars.gltsym = dlist
 
       return 0
+
+   def run_GLTsymtest(self, glist):
+      """run GLTsymtest, returning status and any text"""
+
+      llist = self.svars.stim_label
+
+      if len(llist) == 0 and len(glist) == 0: return 0, ''
+
+      cmd = "GLTsymtest '%s'" % ' '.join(llist)
+
+      for glt in glist:
+         cmd += " '%s'" % glt
+
+      if self.verb > 1: print "++ executing GLTsymtest command:\n   %s" % cmd
+
+      st, so, se = UTIL.limited_shell_exec(cmd)
+
+      so = '   ' + '\n   '.join(so)
+
+      if self.verb > 1: print "\n%s" % so
+
+      return st, so
 
    def init_analysis_defaults(self):
       """initialize the svar default based on anal_type and anal_domain
