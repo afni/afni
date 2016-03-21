@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 21,  Mar, 2016, RCR, "gen_ss_review_scripts.py", MICRO, TYPE_BUG_FIX,
+   "get slightly more accurate motion ave via 3dTstat -nzmean",
+   NULL
+ } ,
+
  { 21,  Mar, 2016, RCR, "3dANOVA", MICRO, TYPE_ENHANCE,
    "allow for up to 666 observations",
    "Consider changing this to use a string_list or something similar."
