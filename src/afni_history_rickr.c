@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 21,  Mar, 2016, RCR, "GLTsymtest", MICRO, TYPE_NEW_OPT,
+   "added -badonly, to avoid screen clutter from many good GLTs",
+   NULL
+ } ,
+
  { 21,  Mar, 2016, RCR, "uber_subject.py", MICRO, TYPE_ENHANCE,
    "run GLTsymtest on specified GLTs",
    NULL
