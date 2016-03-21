@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 21,  Mar, 2016, RCR, "3dANOVA", MICRO, TYPE_ENHANCE,
+   "allow for up to 666 observations",
+   "Consider changing this to use a string_list or something similar."
+ } ,
+
  { 21,  Mar, 2016, RCR, "GLTsymtest", MICRO, TYPE_NEW_OPT,
    "added -badonly, to avoid screen clutter from many good GLTs",
    NULL
