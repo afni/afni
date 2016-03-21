@@ -366,7 +366,7 @@ set mcount = `1deval -a $enorm_dset -expr "step(a-$mot_limit)"      \\
                         | awk '$1 != 0 {print}' | wc -l`
 echo "num TRs above mot limit   : $mcount"
 
-set mmean = `3dTstat -prefix - -mean $enorm_dset\\' | & tail -n 1`
+set mmean = `3dTstat -prefix - -nzmean $enorm_dset\\' | & tail -n 1`
 echo "average motion (per TR)   : $mmean"
 
 if ( $?motion_dset ) then
@@ -821,9 +821,10 @@ g_history = """
         - add volreg_dset to uvar_dict
    0.45 Sep  3, 2015: change: have stats dset default to REML, if it exists
    0.46 Oct 28, 2015: look for dice coef file ae_dice, as well ae_corr
+   0.47 Mar 21, 2016: use nzmean for motion ave
 """
 
-g_version = "gen_ss_review_scripts.py version 0.46, Oct 28, 2015"
+g_version = "gen_ss_review_scripts.py version 0.47, Mar 21, 2016"
 
 g_todo_str = """
    - add @epi_review execution as a run-time choice (in the 'drive' script)?
