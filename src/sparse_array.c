@@ -140,7 +140,7 @@ sparse_array_head_node* create_sparse_corr_array( MRI_vectim* xvectim, double sp
     long ngoal = 0;
     long nretain = 0;
     float binwidth = 0.0;
-    long nhistbins = 1000;
+    long nhistbins = 10000;
     long mem_budget = 0;
 
     /* retain the original threshold*/
@@ -441,7 +441,7 @@ sparse_array_head_node* create_sparse_corr_array( MRI_vectim* xvectim, double sp
             ERROR_message( "No correlations exceeded threshold, consider using"
                            " a lower correlation threshold");
         }
-        sparse_array = free_sparse_array( sparse_array ); 
+        sparse_array = free_sparse_array( sparse_array );
     }
     else
     {
