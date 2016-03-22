@@ -2975,6 +2975,8 @@ ENTRY("mri_read_1D") ;
      else
        sscanf( fname+10 , "%d,%d" , &nx,&ny ) ;
      inim = jRandom1D(nx,ny) ;
+     if( inim == NULL )
+       WARNING_message("Can't decode %s",fname) ;
      RETURN(inim) ;
    }
 
