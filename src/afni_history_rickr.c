@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 22,  Mar, 2016, RCR, "afni-general", MINOR, TYPE_ENHANCE,
+   "modularize version checking",
+   "Update .afni.vctime even if URL read fails, to not flood server."
+ } ,
+
  { 21,  Mar, 2016, RCR, "gen_ss_review_scripts.py", MICRO, TYPE_BUG_FIX,
    "get slightly more accurate motion ave via 3dTstat -nzmean",
    NULL
