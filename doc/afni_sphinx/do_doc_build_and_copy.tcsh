@@ -22,17 +22,17 @@ echo "Backup directory called: $backup_dir"
 #@gen_all -phelp -suma -afni
 
 ### Build Sphinx.
-#make html
+make html
 
 ### move old documentation to a backupdir
 #mv  /mnt/afni/var/www/html/pub/dist/doc/htmldoc     \
 #    /mnt/afni/var/www/html/pub/dist/doc/$backup_dir
 
 ### new documentation ----> slow to RSYNC!
-#rsync -av _build/html/                              \
-#    /mnt/afni/var/www/html/pub/dist/doc/htmldoc
+rsync -av --delete _build/html/                              \
+    /mnt/afni/var/www/html/pub/dist/doc/htmldoc
 
-
+exit
 ### make a tarball for the new documentation?  Is this really so much
 ### faster than rsync?
 echo "++ Make tarball of directory"

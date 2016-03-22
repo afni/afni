@@ -2502,10 +2502,53 @@ class SingleSubjectWindow(QtGui.QMainWindow):
          QLIB.guiError('GLT Errors', err, self)
          return 1
 
+      rv, rstr = self.run_GLTsymtest(dlist)
+      if rv:
+         QLIB.guiError('GLTsymtest errors', rstr, self)
+         return 1
+
       self.svars.gltsym_label = llist
       self.svars.gltsym = dlist
 
       return 0
+
+   def run_GLTsymtest(self, glist):
+      """run GLTsymtest, returning the number of errors and a display string"""
+
+      llist = self.svars.stim_label
+
+      if len(llist) == 0 and len(glist) == 0: return 0, ''
+
+      lstr = "'%s'" % ' '.join(llist)
+      cmd = "GLTsymtest -badonly %s" % lstr
+
+      elist = []
+      for gind, glt in enumerate(glist):
+         cstr = "%s '%s'" % (cmd, glt)
+
+         st, so, se = UTIL.limited_shell_exec(cstr)
+         if self.verb > 1:
+            print "++ GLTsymtest command (stat %d):\n   %s" % (st, cstr)
+         if len(so) > 0 and self.verb > 2:
+            print "\n%s" % ('   ' + '\n   '.join(so))
+
+         # if no errors, continue on
+         if st == 0: continue
+
+         emesg = "** GLT ERROR for -gltsym %d: '%s'\n" % (gind+1, glt)
+         for soline in so:
+            if soline.startswith('** ERROR:'):
+               emesg += ('%s\n' % soline[3:])
+
+         elist.append('%s' % emesg)
+
+      if len(elist) > 0:
+         emesg = "valid GLT labels are: %s\n\n%s" % (lstr, '\n'.join(elist))
+         if self.verb > 3: print 'failure emesg: %s' % emesg
+      else:
+         emesg = ''
+
+      return len(elist), emesg
 
    def init_analysis_defaults(self):
       """initialize the svar default based on anal_type and anal_domain

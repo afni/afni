@@ -147,9 +147,10 @@ g_history = """
     0.37 Apr 14, 2015: added MIN_OUTLIER to volreg base list
     0.38 Feb 22, 2016: replace tlrc_no_ss with anat_has_skull
          - to pass -anat_has_skull yes or no to afni_proc.py
+    0.39 Mar 21, 2016: run GLTsymtest on GLTs
 """
 
-g_version = '0.38 (February 22, 2016)'
+g_version = '0.39 (March 21, 2016)'
 
 # ----------------------------------------------------------------------
 # global definition of default processing blocks
