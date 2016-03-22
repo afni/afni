@@ -5895,6 +5895,8 @@ AFNI_ATLAS_CODES Atlas_Dset_Name_to_Atlas_Code (char *dset_name)
 
    ENTRY("Atlas_Dset_Name_to_Atlas_Code");
 
+   if( ! dset_name ) RETURN(UNKNOWN_ATLAS);
+
    INFO_message("OBsoLETE, do NOT use anymore");
 
    if (LocalHead)
