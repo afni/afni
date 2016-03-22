@@ -49,6 +49,36 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 22,  Mar, 2016, RCR, "afni-general", MINOR, TYPE_ENHANCE,
+   "modularize version checking",
+   "Update .afni.vctime even if URL read fails, to not flood server."
+ } ,
+
+ { 21,  Mar, 2016, RCR, "gen_ss_review_scripts.py", MICRO, TYPE_BUG_FIX,
+   "get slightly more accurate motion ave via 3dTstat -nzmean",
+   NULL
+ } ,
+
+ { 21,  Mar, 2016, RCR, "3dANOVA", MICRO, TYPE_ENHANCE,
+   "allow for up to 666 observations",
+   "Consider changing this to use a string_list or something similar."
+ } ,
+
+ { 21,  Mar, 2016, RCR, "GLTsymtest", MICRO, TYPE_NEW_OPT,
+   "added -badonly, to avoid screen clutter from many good GLTs",
+   NULL
+ } ,
+
+ { 21,  Mar, 2016, RCR, "uber_subject.py", MICRO, TYPE_ENHANCE,
+   "run GLTsymtest on specified GLTs",
+   NULL
+ } ,
+
+ { 15,  Mar, 2016, RCR, "timing_tool.py", MICRO, TYPE_BUG_FIX,
+   "-help_basis update: max convolved BLOCK() is ~5.1, not ~5.4",
+   NULL
+ } ,
+
  {  1,  Mar, 2016, RCR, "GIFTI", MICRO, TYPE_BUG_FIX,
    "applied R Vincent fix for GIFTI datasets with Windows-style newlines",
    NULL
