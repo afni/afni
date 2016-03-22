@@ -186,66 +186,66 @@ Quick Tour
    
       * :ref:`Shift+button 1 double click<Shift+Button_1-DoubleClick>`: Undo Z rotation
       
-   * Translating surfaces
+#. Translating surfaces
    
-      * :ref:`Button-2 drag <Button_2-Motion>`: keep it down while
-        moving the mouse to translate surface along screen X and Y
-        axes or any combinations of the two.
+   * :ref:`Button-2 drag <Button_2-Motion>`: keep it down while moving
+     the mouse to translate surface along screen X and Y axes or any
+     combinations of the two.
       
-      * Also try :ref:`Shift+arrow <Shift+L-R_arrows>` keys.
+   * Also try :ref:`Shift+arrow <Shift+L-R_arrows>` keys.
       
-   * Zooming in/out
+#. Zooming in/out
    
-      * Both :ref:`Buttons 1&2 or Shift+button2
-        <Shift+Button2-Motion>`: while pressing buttons, move mouse
-        down or up to zoom in and out, respectively.
+   * Both :ref:`Buttons 1&2 or Shift+button2 <Shift+Button2-Motion>`:
+     while pressing buttons, move mouse down or up to zoom in and out,
+     respectively.
       
-      * Also try keyboard buttons :ref:`Z<UC_Z>` and :ref:`z<LC_z>`
-        for zooming in and out, respectively.
+   * Also try keyboard buttons :ref:`Z<UC_Z>` and :ref:`z<LC_z>` for
+     zooming in and out, respectively.
 
-      .. _Picking_Node:
-      .. _Picking_Faceset:
-   * Picking a Node or a Facet:
+   .. _Picking_Node:
+   .. _Picking_Faceset:
+#. Picking a Node or a Facet:
    
-      * :ref:`Button 3 <Button_3-Press>`: press over a location on a
-        surface to pick the closest facet and node to the location of
-        the pointer.
+   * :ref:`Button 3 <Button_3-Press>`: press over a location on a
+     surface to pick the closest facet and node to the location of the
+     pointer.
 
-          *   The closest node is highlighted with a blue sphere
+   * The closest node is highlighted with a blue sphere
           
-          *   The closest facet is highlighted with a gray triangle
+   * The closest facet is highlighted with a gray triangle
       
-         .. figure:: media/surfview.0010.jpg
-            :align: right
-            :figwidth: 20%
-            :target: ../_images/surfview.0010.jpg
-            :name: media/surfview.0010.jpg
+     .. figure:: media/surfview.0010.jpg
+        :align: right
+        :figwidth: 20%
+        :target: ../_images/surfview.0010.jpg
+        :name: media/surfview.0010.jpg
+        
+        :ref:`The little crosshair that could<media/surfview.0010.jpg>`
             
-            :ref:`The little crosshair that could<media/surfview.0010.jpg>`
-            
-      * Note the information written to the shell regarding the
-        properties of the picked Node and Facet.
+   * Note the information written to the shell regarding the
+     properties of the picked Node and Facet.
       
-      * When connected to *AFNI* (after having pressed :ref:`t
-        <LC_t>`), watch the AFNI crosshair jump to the corresponding
-        location in the volume.
+   * When connected to *AFNI* (after having pressed :ref:`t <LC_t>`),
+     watch the AFNI crosshair jump to the corresponding location in
+     the volume.
       
-      * Conversely, position the crosshair in AFNI (a left click
-        there) at a position close to the surface and watch the
-        crosshari relocate in SUMA.
+   * Conversely, position the crosshair in AFNI (a left click there)
+     at a position close to the surface and watch the crosshari
+     relocate in SUMA.
       
-      * You can swap buttons 1 & 3's functions using the environment
-        variable :ref:`SUMA_SwapButtons_1_3<SUMA_SwapButtons_1_3>`
+   * You can swap buttons 1 & 3's functions using the environment
+     variable :ref:`SUMA_SwapButtons_1_3<SUMA_SwapButtons_1_3>`
    
-   * Cardinal views (along coordinate directions)
+#. Cardinal views (along coordinate directions)
    
-      * :ref:`Ctrl+Left/Right <Ctrl+L-R_arrows>`: Views along LR axis
+   * :ref:`Ctrl+Left/Right <Ctrl+L-R_arrows>`: Views along LR axis
       
-      * :ref:`Ctrl+Up/Down <Ctrl+U-D_arrows>`: Views along SI axis
+   * :ref:`Ctrl+Up/Down <Ctrl+U-D_arrows>`: Views along SI axis
       
-      * :ref:`Ctrl+shift+Up/Down <Ctrl+Shift+U-D_arrows>`: Views along AP axis
+   * :ref:`Ctrl+shift+Up/Down <Ctrl+Shift+U-D_arrows>`: Views along AP axis
       
-      .. figure:: media/surfview_card.jpg
+     .. figure:: media/surfview_card.jpg
          :align: right
          :figwidth: 20%
          :target: ../_images/surfview_card.jpg
@@ -261,21 +261,21 @@ Quick Tour
       * :ref:`view->save <Save_View>` and :ref:`view->load
         <Load_View>` to save load views
       
-   * Momentum feature
+#. Momentum feature
    
-      * Press :ref:`m<LC_m>` to toggle momentum on. Click the left
-        mouse button and release it as you are dragging the mouse. It
-        should feel like you're throwing the surface.
+   * Press :ref:`m<LC_m>` to toggle momentum on. Click the left mouse
+     button and release it as you are dragging the mouse. It should
+     feel like you're throwing the surface.
       
-   * Lots more
+#. **Lots more!**
    
-      * Function keys modify various aspects of the display
+   * Function keys modify various aspects of the display
       
-         * Those may be usurped by OS X, see Keyboard Setup or try key
-           modifiers to get them to work.
+     * Those may be usurped by OS X, see Keyboard Setup or try key
+       modifiers to get them to work.
          
-      * See *SUMA*\ 's :ref:`help<LC_Ctrl+h>` or :ref:`Keyboard
-        Controls <KeyboardControls>` for all interactive options.
+     * See *SUMA*\ 's :ref:`help<LC_Ctrl+h>` or :ref:`Keyboard
+       Controls <KeyboardControls>` for all interactive options.
       
 
    .. _Recording_Images:
@@ -335,7 +335,7 @@ Quick Tour
      View<Load_View>`
    
       
-* Viewing a group of surfaces
+#. Viewing a group of surfaces
    
    * Use :ref:`. (period)<LC_.>` to switch to the next viewing
      :term:`state` (pial then inflated, ...)
@@ -350,7 +350,7 @@ Quick Tour
      the state of the :ref:`Local Domain
      Parent<Spec_LocalDomainParent>`
    
-* Viewing multiple surfaces concurrently
+#. Viewing multiple surfaces concurrently
    
    * :ref:`Ctrl+n<LC_Ctrl+n>` opens a new SUMA controller (up to 10
      allowed, more possible, but ridiculous).
@@ -359,10 +359,10 @@ Quick Tour
    
    * all viewers are still connected to AFNI (if any are)
    
-* See the :ref:`SUMA controller <SumaCont>` for controlling the link
-  between viewers.
+   * See the :ref:`SUMA controller <SumaCont>` for controlling the
+     link between viewers.
 
-* Viewing datasets
+#. Viewing datasets
 
    * Open the :ref:`surface controller<SurfCont>`
      (:ref:`Ctrl+s<LC_Ctrl+s>` if you forgot), and press :ref:`Load
@@ -385,12 +385,12 @@ Quick Tour
         hemisphere.
       
       * To graph the time series, at the cross hair press
-        :ref:`g<LC_g>` in SUMA.The graph window is wedded to the
+        :ref:`g<LC_g>` in SUMA. The graph window is wedded to the
         hemisphere in focus. You will need to press :ref:`g<LC_g>` on
-        the contralateral hemisphere to get a graph for that
-        hemisphere too.
+        the contralateral hemisphere to get a graph for that hemisphere
+        too.
       
-      * Select other nodes or :ref:`Righ-Click+Drag<Button_3-Motion>` 
+      * Select other nodes or :ref:`Right-Click+Drag<Button_3-Motion>`
       
       * Press :menuselection:`Freeze` on graph window to preserve
         current graph. Clicking on other nodes will start a new graph
@@ -401,9 +401,9 @@ Quick Tour
            :target: ../_images/ts.jpg
            :name: media/ts.jpg
               
-           For more help on graph window usage, including for instance
-           how to save the time series, type **ctrl+h** with the
-           graphing window in focus. :ref:`(link)<media/ts.jpg>`
+        For more help on graph window usage, including for instance
+        how to save the time series, type **ctrl+h** with the graphing
+        window in focus. :ref:`(link)<media/ts.jpg>`
             
       * Now let's look at a delay dataset (computed with
         :ref:`3ddelay<3ddelay>`). Press :ref:`Load
@@ -413,112 +413,109 @@ Quick Tour
         plane for it, and will display it on the top of the
         pre-existing :term:`color planes`.
       
-         * We begin by describing the right side block :ref:`Dset
-           Mapping<SurfCont->Dset_Mapping>` which is used to colorize
-           a dataset. Many of the options mimic those in AFNI's
-           **Define Overlay** controls.
+      * We begin by describing the right side block :ref:`Dset
+        Mapping<SurfCont->Dset_Mapping>` which is used to colorize a
+        dataset. Many of the options mimic those in AFNI's **Define
+        Overlay** controls.
          
-         * Many features are not mentioned here, use :ref:`BHelp
-           <GL_CN_BHelp>` or :ref:`WHelp <GL_CN_WHelp>` interactively
-           or the online help for the controller you are using, here
-           the :ref:`surface controller <SurfCont>`.
+        .. note:: Many features are not mentioned here, use
+                  :ref:`BHelp <GL_CN_BHelp>` or :ref:`WHelp
+                  <GL_CN_WHelp>` interactively or the online help for
+                  the controller you are using, here the :ref:`surface
+                  controller <SurfCont>`.
          
-         * From the :ref:`Dset Mapping <SurfCont->Dset_Mapping>` block
-           on the right side of the interface
+      * From the :ref:`Dset Mapping <SurfCont->Dset_Mapping>` block
+        on the right side of the interface
          
-           ..
+        ..
               changed from media/SurfCont.auto.QT.DEL.Dset_Mapping.jpg
 
-         .. figure:: media/SurfCont.auto.Dset_Mapping.jpg
-            :align: right
-            :target: ../_images/SurfCont.auto.Dset_Mapping.jpg
-            :name: media/SurfCont.auto.Dset_Mapping.jpg
+        .. figure:: media/SurfCont.auto.Dset_Mapping.jpg
+             :align: right
+             :target: ../_images/SurfCont.auto.Dset_Mapping.jpg
+             :name: media/SurfCont.auto.Dset_Mapping.jpg
             
-            :ref:`Dset colormapping
-            GUI. <media/SurfCont.auto.Dset_Mapping.jpg>`
+             :ref:`Dset colormapping
+             GUI. <media/SurfCont.auto.Dset_Mapping.jpg>`
 
-            Should it look different, consider the more updated
-            documentation :ref:`here<SurfCont>`
+        Should it look different, consider the more updated
+        documentation :ref:`here<SurfCont>`
                
-         .. container:: clearer
+        .. container:: clearer
 
-             .. image:: media/blank.jpg
+           .. image:: media/blank.jpg
             
-             ..
-             
                 
-               * Select column **Corr. Coef.** for the
-                 :ref:`Threshold<SurfCont->Dset_Mapping->T>`
+      * Select column **Corr. Coef.** for the
+        :ref:`Threshold<SurfCont->Dset_Mapping->T>`
                   
-                  * Press :ref:`v button
-                    <SurfCont->Dset_Mapping->T->v>` to apply
-                    thresholding.
+      * Press :ref:`v button <SurfCont->Dset_Mapping->T->v>` to apply
+        thresholding.
                      
-                  * Use the
-                    :ref:`scale<SurfCont->Dset_Mapping->Cmap->scale>`
-                    to set the threshold. Nodes whose cross
-                    correlation value does not pass the threshold will
-                    not get colored.
+      * Use the :ref:`scale<SurfCont->Dset_Mapping->Cmap->scale>` to
+        set the threshold. Nodes whose cross correlation value does
+        not pass the threshold will not get colored.
                      
-                  * Note *p* (uncorrected), and *q* values (FDR) below
-                    the slider. ** FDR values are per-hemisphere **
+      * Note *p* (uncorrected), and *q* values (FDR) below the
+        slider. **FDR values are per-hemisphere**
                      
-            .. note::
+        .. note::
                
-               * For simplicity, we mapped a statistical dataset onto
-                 the surface (see script **run_3dVol2Surf** under
-                 :ref:`suma_demo/afni<suma_demo>`). This resulted in
-                 statistical parameters being averaged with being
-                 normalized.
+           * For simplicity, we mapped a statistical dataset onto the
+             surface (see script **run_3dVol2Surf** under
+             :ref:`suma_demo/afni<suma_demo>`). This resulted in
+             statistical parameters being averaged with being
+             normalized.
                
-               * A better approach would be to map the time series,
-                 and then perform the statistical computation. See
-                 script **run_3dVol2Surf** for examples.
+           * A better approach would be to map the time series, and
+             then perform the statistical computation. See script
+             **run_3dVol2Surf** for examples.
             
-            * Mapping Parameters Table (below the I, T, B selectors):
+#. Mapping Parameters Table (below the I, T, B selectors):
                
-               * Used for setting the clipping ranges.
+   * Used for setting the clipping ranges.
 
-               * Clipping is only done for color mapping. Actual data
-                 values do not change.
+   * Clipping is only done for color mapping. Actual data values do
+     not change.
                
-               * See detailed help
-                 :ref:`here<SurfCont->Dset_Mapping->SetRangeTable.c00>`. Note
-                 that a Left click on the
-                 :ref:`'I'<SurfCont->Dset_Mapping->SetRangeTable.r01>`
-                 locks ranges from automatic resetting when you choose
-                 a different dataset column for **I**. A right click
-                 on
-                 :ref:`'I'<SurfCont->Dset_Mapping->SetRangeTable.r01>`
-                 resets values to full range in data.
+   * See detailed help
+     :ref:`here<SurfCont->Dset_Mapping->SetRangeTable.c00>`. 
+
+   * Note that a Left click on the
+     :ref:`'I'<SurfCont->Dset_Mapping->SetRangeTable.r01>` locks ranges
+     from automatic resetting when you choose a different dataset column
+     for **I**. A right click on
+     :ref:`'I'<SurfCont->Dset_Mapping->SetRangeTable.r01>` resets values
+     to full range in data.
             
-            * For color mapping controls see
-              :ref:`Col<SurfCont->Dset_Mapping->Col>`,
-              :ref:`New<SurfCont->Dset_Mapping->Cmp->New>`,
-              :ref:`Cmp<SurfCont->Dset_Mapping->Cmp>`, etc.
+   * For color mapping controls see
+     :ref:`Col<SurfCont->Dset_Mapping->Col>`,
+     :ref:`New<SurfCont->Dset_Mapping->Cmp->New>`,
+     :ref:`Cmp<SurfCont->Dset_Mapping->Cmp>`, etc.
             
-            * Bored? Try :ref:`Bias<SurfCont->Dset_Mapping->Bias>` for a change.
+   * Bored? Try :ref:`Bias<SurfCont->Dset_Mapping->Bias>` for
+     a change.
             
-         * The colormap is rendered as a surface, and shares some of
-           the functions of SUMA's viewer. You have keyboard controls
-           when the mouse is over the colorbar. More info
-           :ref:`here<Colormap_Keyboard_Controls>` and
-           :ref:`there<SurfCont->Dset_Mapping->Cmap->bar>`.
+     The colormap is rendered as a surface, and shares some of the
+     functions of SUMA's viewer. You have keyboard controls when the
+     mouse is over the colorbar. More info
+     :ref:`here<Colormap_Keyboard_Controls>` and
+     :ref:`there<SurfCont->Dset_Mapping->Cmap->bar>`.
          
-         * Interactive clustering:
+#. Interactive clustering:
             
-            * Left click on
-              :ref:`Clst<SurfCont->Dset_Mapping->Clst.c00>` to
-              activate/deactivate clustering. Cluster table is output
-              to the shell. Clicking on a node shows its cluster label
-              in the viewer.
+   * Left click on
+     :ref:`Clst<SurfCont->Dset_Mapping->Clst.c00>` to
+     activate/deactivate clustering. Cluster table is output
+     to the shell. Clicking on a node shows its cluster label
+     in the viewer.
             
-         * For more information, resort to the help for the
-           :ref:`Surface Controller<SurfCont>` and :ref:`Plane
-           Layering<Plane_Layering>`.
+   * For more information, resort to the help for the
+     :ref:`Surface Controller<SurfCont>` and :ref:`Plane
+     Layering<Plane_Layering>`.
          
-   .. note:: Most of what was done for surface-based dataset applies
-             to volumetric and connectivity data.
+.. note:: Most of what was done for surface-based dataset applies to
+          volumetric and connectivity data.
 
 .. _Volume_Viewing:
 
