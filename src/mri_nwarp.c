@@ -10792,20 +10792,6 @@ ENTRY("IW3D_improve_warp") ;
 static IndexWarp3D *WO_iwarp = NULL ;
 static int         *WO_ilev  = 0 ;
 
-void (*iterfun)(char *,MRI_IMAGE *) = NULL ;
-
-#define ITEROUT(lll)                                                                    \
- do{ if( iterfun != NULL ){                                                              \
-       MRI_IMAGE *outim = IW3D_warp_floatim(Haawarp,Hsrcim,MRI_WSINC5,1.0f) ;             \
-       char str[256]; sprintf(str,"lev=%d",lll) ;                                          \
-       iterfun(str,outim) ; mri_free(outim) ;                                               \
-       ININFO_message("  ---QSAVE(%s) -- %s",str,nice_time_string(NI_clock_time())) ;        \
-       if( lll == 0 || nlevr < 2 )                                                            \
-         ININFO_message("   --(%s)-- final cost = %g",str,Hcostend) ;                          \
-       else                                                                                     \
-         ININFO_message("   --(%s)-- middle cost = %g  final cost = %g",str,Hcostmid,Hcostend) ; \
-   } } while(0)
-
 /*----------------------------------------------------------------------------*/
 /* Optimize the warp over a sequence of ever smaller patches;
      bim      = base image
@@ -10922,8 +10908,6 @@ ENTRY("IW3D_warpomatic") ;
 
    Hforce = 0 ; Hlev_final = 0 ; Hpen_use = (Hpen_fac > 0.0f) ;
    Hcostmid = Hcostend = Hcostbeg = Hcost ;
-
-   if( !Hduplo ) ITEROUT(0) ;
 
    if( !HAVE_HGRID ){
      if( Hngmin > 0 ){  /* is min patch size set from user? */
@@ -11202,8 +11186,6 @@ INFO_message("qmode set to MRI_CUBIC_PLUS_1") ;
          fprintf(stderr," done [cost:%.5f ; all patches skipped]\n",Hcost) ;
      }
      Hcostbeg = Hcost ;
-
-     if( !Hduplo ) ITEROUT(lev) ;
 
      if( Hsave_allwarps ){           /* 02 Jan 2015 */
        sprintf(warplab,"%04dx%04dx%04d",xwid,ywid,zwid) ;
@@ -12610,8 +12592,6 @@ ENTRY("IW3D_warpomatic_plusminus") ;
    Hforce = 0 ; Hlev_final = 0 ; Hpen_use = (Hpen_fac > 0.0f) ;
    Hcostmid = Hcostend = Hcost ;
 
-   if( !Hduplo ) ITEROUT(0) ;
-
    if( Hngmin > 0 ){
      ngmin = Hngmin ;
      if( Hduplo ){ ngmin = ngmin/2 + 1 ; if( ngmin < 11 ) ngmin = 11 ; }
@@ -12813,8 +12793,6 @@ ENTRY("IW3D_warpomatic_plusminus") ;
      }
 
      if( Hverb == 1 ) fprintf(stderr," done [cost=%.5f]\n",Hcost) ;
-
-     if( !Hduplo ) ITEROUT(lev) ;
 
    } /*-- end of loop over levels of refinement --*/
 
