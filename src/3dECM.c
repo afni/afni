@@ -1417,9 +1417,9 @@ int main( int argc , char *argv[] )
 "Options:\n"
 "  -full       = uses the full power method (Lohmann et. al. 2010).\n"
 "                Enables the use of thresholding and calculating\n"
-"                binary centrality. Uses sparse array to reduce \n"
+"                thresholded centrality. Uses sparse array to reduce \n"
 "                memory requirement. Automatically selected if \n"
-"                -binary, -thresh, or -sparsity are used.\n"
+"                -thresh, or -sparsity are used.\n"
 "  -fecm       = uses a shortcut that substantially speeds up \n"
 "                computation, but is less flexibile in what can be\n"
 "                done the similarity matrix. i.e. does not allow \n"
@@ -1435,12 +1435,12 @@ int main( int argc , char *argv[] )
 "                enforce non-negativity, s >= 0. [default = 0.0, unless\n"
 "                -fecm is specified in which case the default is 1.0\n"
 "                (e.g. Wink et al 2012)].\n"
-"  -scale x    = value that correlation coeffs should be multplied by\n"
+"  -scale x    = value that correlation coeffs should be multiplied by\n"
 "                after shifting, x >= 0 [default = 1.0, unless -fecm is\n"
 "                specified in which case the default is 0.5 (e.g. Wink et\n"
 "                al 2012)].\n"
 "  -eps p      = sets the stopping criterion for the power iteration\n"
-"                l2|v_old - v_new| < eps*|v_old|. default = .1 (10%%)\n"
+"                l2|v_old - v_new| < eps*|v_old|. default = .001 (0.1%%)\n"
 "  -max_iter i = sets the maximum number of iterations to use in\n"
 "                in the power iteration. default = 1000\n"
 "\n"
@@ -1485,11 +1485,6 @@ int main( int argc , char *argv[] )
 
    mainENTRY("3dECM main"); machdep(); PRINT_VERSION("3dECM");
    AFNI_logger("3dECM",argc,argv);
-
-   /* CC - set the default for ECM methods */
-//   scale = 1.0;
-//   shift = 0.0;
-//   thresh = -1.2;
 
    /*-- option processing --*/
 
@@ -1537,9 +1532,6 @@ int main( int argc , char *argv[] )
          }
          eps = val ; nopt++ ; continue ;
       }
-//      if( strcmp(argv[nopt],"-binary") == 0 ){
-//         do_binary = 1; nopt++ ; continue ;
-//      }
 
       if( strcmp(argv[nopt],"-sparsity") == 0 ){
          double val = (double)strtod(argv[++nopt],&cpt) ;
