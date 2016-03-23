@@ -214,26 +214,6 @@ MRI_IMAGE * mri_weightize( MRI_IMAGE *im, int acod, int ndil, float aclip, float
 
 static THD_3dim_dataset *qset = NULL ;
 
-#undef USE_SAVER  /* was for ITEROUT (mri_nwarp.c) but doesn't work any more */
-#ifdef USE_SAVER
-void Qsaver(char *lab, MRI_IMAGE *im)
-{
-   static int first=1 ;
-
-   if( im == NULL || qset == NULL ) return ;
-
-   if( first ){
-     EDIT_substitute_brick( qset, 0, MRI_float,  MRI_FLOAT_PTR(im) ) ; first = 0 ;
-   } else {
-     EDIT_add_brick( qset, MRI_float, 0.0f, MRI_FLOAT_PTR(im) ) ;
-   }
-   if( lab != NULL && *lab != '\0' )
-     EDIT_BRICK_LABEL(qset,DSET_NVALS(qset)-1,lab) ;
-
-   mri_clear_data_pointer(im) ; return ;
-}
-#endif
-
 /*---------------------------------------------------------------------------*/
 /* Help me if you can, I'm feeling down down down */
 /*---------------------------------------------------------------------------*/
@@ -301,7 +281,7 @@ void Qhelp(void)
     "  the source dataset (presumably not blurry) will be Gaussian blurred\n"
     "  with a FWHM of 5 mm.\n"
     "\n"
-    "* Matching by default is the 'clipped Pearson' method, and\n"
+    "* Matching uses the 'clipped Pearson' method by default, and\n"
     "  can be changed to 'pure Pearson' with the '-pear' option.\n"
     " ++ The purpose of 'clipping' is to reduce the impact of outlier values\n"
     "    (small or large) on the correlation.\n"
@@ -317,7 +297,7 @@ void Qhelp(void)
     "    These options also have not been extensively tested.\n"
     " ** If you use '-lpc', then '-maxlev 0' is automatically set.  If you want\n"
     "    to go to more refined levels, you can set '-maxlev' AFTER '-lpc' on the\n"
-    "    command line.  Using maxlev > 0 is not recommended to EPI-T1 alignment.\n"
+    "    command line.  Using maxlev > 1 is not recommended for EPI-T1 alignment.\n"
     " ** For aligning EPI to T1, the '-lpc' option can be used; my advice\n"
     "    would be to do something like the following:\n"
     "      3dSkullStrip -input SUBJ_anat+orig -prefix SUBJ_anatSS\n"
@@ -338,7 +318,7 @@ void Qhelp(void)
     "    * First, the EPI is aligned to the T1 using the affine 3dAllineate, and\n"
     "      at the same time resampled to the T1 grid (via align_epi_anat.py).\n"
     "    * Second, it is nonlinearly aligned ONLY using the global warping -- it is\n"
-    "      futile to try to align such dissimilar image types more precisely.\n"
+    "      futile to try to align such dissimilar image types precisely.\n"
     "    * The EPI is used as the base in 3dQwarp so that it provides the weighting,\n"
     "      and so partial brain coverage (as long as it covers MOST of the brain)\n"
     "      should not cause a problem (we hope).\n"
@@ -346,7 +326,7 @@ void Qhelp(void)
     "      transform the EPI to the T1 space, since 3dQwarp transformed the T1 to\n"
     "      EPI space.  This inverse warp was output by 3dQwarp using '-iwarp'.\n"
     "    * Someday, this procedure may be incorporated into align_epi_anat.py :-)\n"
-    "  ** It is vitally important to visually look at the results of this process! **\n"
+    " *** It is vitally important to visually look at the results of this process! **\n"
 #if defined(USE_OMP) && defined(__GNU_C__)
     " ++ Note that these 'adventurous' matching options may cause trouble with\n"
     "    OpenMP compiled with GNU gcc, due to a bug in gcc's OpenMP library\n"
@@ -509,6 +489,8 @@ void Qhelp(void)
     "                 space to source space, if you need to do such an operation.\n"
     "               * You can easily compute the inverse later, say by a command like\n"
     "                   3dNwarpCat -prefix Z_WARPINV 'INV(Z_WARP+tlrc)'\n"
+    "                 or the inverse can be computed as needed in 3dNwarpApply, like\n"
+    "                   3dNwarpApply -nwarp 'INV(Z_WARP+tlrc)' -source Dataset.nii ...\n"
     "\n"
     " -allineate   = This option will make 3dQwarp run 3dAllineate first, to align\n"
     "   *OR*         the source dataset to the base with an affine transformation.\n"
@@ -521,7 +503,9 @@ void Qhelp(void)
     "               * If the datasets overlap reasonably already, you can use the\n"
     "                 option '-allinfast' (instead of '-allineate') to add the\n"
     "                 options '-onepass -norefinal' to the 3dAllineate command\n"
-    "                 line, to make it run faster.\n"
+    "                 line, to make it run faster (by avoiding the time-consuming\n"
+    "                 coarse pass step of trying lots of shifts and rotations to\n"
+    "                 get an idea of how to start).\n"
     "          -->>** The final output warp dataset is the warp directly between\n"
     "                 the original source dataset and the base (i.e., the catenation\n"
     "                 of the affine matrix from 3dAllineate and the nonlinear warp\n"
@@ -766,11 +750,13 @@ void Qhelp(void)
     "                 the -Qfinal option to run that final level with quintic warps,\n"
     "                 which might run faster and provide the same degree of warp detail.\n"
 #endif
-
-#ifdef USE_SAVER
-    "               * If you want to see the warped results at various levels\n"
-    "                 of patch size, use the '-qsave' option.\n"
-#endif
+    "               * Trying to make two different brain volumes match in fine detail\n"
+    "                 is usually a waste of time, especially in humans.  There is too\n"
+    "                 much variability in anatomy to match gyrus to gyrus accurately.\n"
+    "                 For this reason, the default minimum patch size is 25 voxels.\n"
+    "                 Using a smaller '-minpatch' might try to force the warp to\n"
+    "                 match features that do not match, and the result can be useless\n"
+    "                 image distortions -- another reason to LOOK AT THE RESULTS.\n"
     "\n"
     " -maxlev lv   = Here, 'lv' is the maximum refinement 'level' to use.  This\n"
     "                is an alternate way to specify when the program should stop.\n"
@@ -846,15 +832,6 @@ void Qhelp(void)
     "               * Will produce a (discrete representation of a) C2 warp.\n"
 #endif /* ALLOW_QMODE */
 
-#ifdef USE_SAVER
-    "\n"
-    " -qsave       = Save intermediate warped results as well, in a dataset\n"
-    "                with '_SAVE' appended to the '-prefix' value.\n"
-    "               * This allows you to see the amount of improvement at\n"
-    "                 each patch refinement level, and may help you decide\n"
-    "                 the size for '-minpatch' for future work.\n"
-    "               * Otherwise, this option is mostly for debugging.\n"
-#endif
 #ifdef ALLOW_PLUSMINUS
     "\n"
     " -plusminus   = Normally, the warp displacements dis(x) are defined to match\n"
@@ -932,10 +909,6 @@ void Qhelp(void)
     "                 that are defined over grids that are larger than the datasets\n"
     "                 to which they are applied; this is why Zhark says above that\n"
     "                 a padded warp 'is normally not an issue'.\n"
-#ifdef USE_SAVER
-    "               * Zero-padding turns off the -qsave option, since implementing\n"
-    "                this combination seemed too much like work for Zhark.\n"
-#endif
     "\n"
     " -expad EE    = This option instructs the program to pad the warp by an extra\n"
     "                'EE' voxels (and then 3dQwarp starts optimizing it).\n"
@@ -1475,7 +1448,6 @@ int main( int argc , char *argv[] )
      /*---------------*/
 
      if( strcasecmp(argv[nopt],"-weight") == 0 ){  /* 17 Oct 2013 - Open Up Day */
-       THD_3dim_dataset *qset ;
        if( wbim != NULL )   ERROR_exit("Cannot use -weight twice :-(") ;
        if( ++nopt >= argc ) ERROR_exit("need arg after %s",argv[nopt-1]) ;
        qset = THD_open_dataset(argv[nopt]) ;
@@ -1573,11 +1545,7 @@ int main( int argc , char *argv[] )
      /*---------------*/
 
      if( strcasecmp(argv[nopt],"-qsave") == 0 ){
-#ifndef USE_SAVER
-       WARNING_message("-qsave option is not compiled into this copy of 3dQwarp :-(") ;
-#else
-       qsave = 1 ;
-#endif
+       WARNING_message("-qsave option no longer works in 3dQwarp :-(") ;
        nopt++ ; continue ;
      }
 
@@ -2295,13 +2263,6 @@ STATUS("load datasets") ; /*--------------------------------------------------*/
      zeropad = (pad_xm > 0 || pad_xp > 0 ||
                 pad_ym > 0 || pad_yp > 0 || pad_zm > 0 || pad_zp > 0) ;
 
-#ifdef USE_SAVER
-     if( zeropad && qsave ){  /* too much trouble to do both */
-       INFO_message("-qsave is turned off because zero-padding is happening!") ;
-       qsave = 0 ;
-     }
-#endif
-
      if( zeropad ){  /*----- print a report and actually do it -----*/
        if( Hverb )
          INFO_message("Dataset zero-pad: xbot=%d xtop=%d  ybot=%d ytop=%d  zbot=%d ztop=%d voxels",
@@ -2421,22 +2382,6 @@ STATUS("load datasets") ; /*--------------------------------------------------*/
      ININFO_message(" smallest size allowed for -duplo is    %d x %d x %d",3*Hngmin,3*Hngmin,3*Hngmin) ;
      ININFO_message(" ['small' is relative to the minimum patch size you set = %d]",Hngmin) ;
    }
-
-#ifdef USE_SAVER  /* doesn't work, don't do this! */
-   if( qsave ){
-     qset = EDIT_empty_copy(bset) ;
-     EDIT_dset_items( qset ,
-                        ADN_prefix    , modify_afni_prefix(prefix,NULL,"_SAVE") ,
-                        ADN_nvals     , 1 ,
-                        ADN_ntt       , 0 ,
-                        ADN_datum_all , MRI_float ,
-                      ADN_none ) ;
-     EDIT_BRICK_FACTOR(qset,0,0.0) ;
-     iterfun = Qsaver ;
-     tross_Copy_History( bset , qset ) ;
-     tross_Make_History( "3dQwarp" , argc,argv , qset ) ;
-   }
-#endif
 
    /*-------------------- create weight volume -------------------------------*/
 
@@ -2710,13 +2655,6 @@ STATUS("output warped dataset") ;
      }
 
    } /* end of writing warped datasets */
-
-#ifdef USE_SAVER
-   if( qset != NULL && DSET_NVALS(qset) > 1 ){
-     EDIT_dset_items( qset , ADN_ntt , DSET_NVALS(qset) , ADN_ttdel , 1.0f , ADN_none ) ;
-     DSET_write(qset) ; WROTE_DSET(qset) ; DSET_delete(qset) ;
-   }
-#endif
 
    if( !nowarp ){                 /*----- output the warp itself -----*/
      char *qprefix ;
