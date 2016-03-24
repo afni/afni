@@ -136,10 +136,11 @@ static char * g_history[] =
     " 4.12 Aug  3, 2015 [rickr]: \n",
     "      - lost timing info in change to 3D+t (version 4.04, above)\n"
     "      - add it back via new sequence type 3D+timing\n"
+    " 4.13 Mar 24, 2016 [rickr]: run to3d via 'tcsh -x' to see the command\n"
     "----------------------------------------------------------------------\n"
 };
 
-#define DIMON_VERSION "version 4.12 (August 3, 2015)"
+#define DIMON_VERSION "version 4.13 (March 24, 2016)"
 
 /*----------------------------------------------------------------------
  * Dimon - monitor real-time aquisition of Dicom or I-files
@@ -5848,7 +5849,7 @@ static int create_gert_dicom( stats_t * s, param_t * p )
 
     /* and maybe the user wants to actually execute it */
     if( opts->gert_exec ) {
-        sprintf(command, "./%s", sfile);
+        sprintf(command, "tcsh -x %s", sfile);
         system(command);
     }
 
@@ -6194,7 +6195,7 @@ static int create_gert_reco( stats_t * s, opts_t * opts )
 
     /* and maybe the user wants to actually execute it */
     if( opts->gert_exec ) {
-        sprintf(command, "./%s", IFM_GERT_SCRIPT);
+        sprintf(command, "tcsh -x %s", IFM_GERT_SCRIPT);
         system(command);
     }
 
