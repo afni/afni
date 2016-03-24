@@ -93,6 +93,7 @@ typedef struct  /* user options */
     int              no_wait;       /* never wait for more data         */
     int              use_last_elem; /* use last element in DICOM images */
     int              use_slice_loc; /* use Slice Loc for zoff           */
+    int              use_obl_origin;/* maybe apply to3d -oblique_origin */
     int              show_sorted_list; /* display sorted list and quit  */
 
     /* GERT_Reco options */

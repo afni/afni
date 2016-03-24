@@ -49,9 +49,9 @@
 
 afni_history_struct rickr_history[] = {
 
- { 24,  Mar, 2016, RCR, "Dimon", MICRO, TYPE_ENHANCE,
-   "run any to3d script via 'tcsh -x' so the users get to see",
-   NULL
+ { 24,  Mar, 2016, RCR, "Dimon", MICRO, TYPE_NEW_OPT,
+   "add option -use_obl_origin, to apply -oblique_origin to to3d command",
+   "Also, run any to3d script via 'tcsh -x' so the users get to see."
  } ,
 
  { 22,  Mar, 2016, RCR, "afni-general", MINOR, TYPE_ENHANCE,
