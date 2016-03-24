@@ -2126,8 +2126,8 @@ int main( int argc , char *argv[] )
    }
 
    if( new_FALLback != NULL ){  /* if found any -XXX options, merge them */
+#if 0
      int qq,pp ;
-
      for( qq=0 ; FALLback[qq] != NULL ; qq++ ){
        for( pp=0 ; new_FALLback[pp] != NULL ; pp++ ){
          if( equiv_FALLback( new_FALLback[pp] , FALLback[qq] ) ) break ;
@@ -2135,9 +2135,24 @@ int main( int argc , char *argv[] )
        if( new_FALLback[pp] == NULL )
          ADDTO_FALLback_one(FALLback[qq]) ;
      }
-
      for( qq=0 ; new_FALLback[qq] != NULL ; qq++ )
        ININFO_message("new_FALLback[%d] = \"%s\"",qq,new_FALLback[qq]) ;
+#else
+     int pp ; char *xrdb,*xpg ; FILE *fp ;
+     xrdb = THD_find_executable("xrdb") ;
+     if( xrdb != NULL ){
+       xpg = malloc(strlen(xrdb)+32) ;
+       sprintf(xpg,"%s -override -",xrdb) ;
+       fp = popen( xpg , "w" ) ;
+       if( fp != NULL ){
+         for( pp=0 ; new_FALLback[pp] != NULL ; pp++ )
+           fprintf(fp,"%s\n",new_FALLback[pp]) ;
+         (void)pclose(fp) ;
+       }
+     }
+     for( pp=0 ; new_FALLback[pp] != NULL ; pp++ ) free(new_FALLback[pp]) ;
+     free(new_FALLback) ; new_FALLback = NULL ;
+#endif
    }
 
    /*--- now ready to start X11 for true --*/
