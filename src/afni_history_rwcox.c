@@ -44,6 +44,12 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 24 , MAR , 2016 , RWC , "afni GUI" , MICRO , TYPE_NEW_OPT ,
+   "Add -XXX option" ,
+   "Moving towards letting user set X11 things (fonts, colors) on the\n"
+   "command line.  Still needs work, but has some functionality now for the\n"
+   "true Jedi AFNI Master." } ,
+
  { 17 , MAR , 2016 , RWC , "dataset input" , MICRO , TYPE_ENHANCE ,
    "Input random dataset or 1D file on command line" ,
    "jRandomDataset:64,64,32,22 creates a random dataset with nx=64, ny=64,\n"

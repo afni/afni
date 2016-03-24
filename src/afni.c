@@ -126,11 +126,100 @@
 #define USE_SIDES  /* 01 Dec 1999: replace "left is xxx" */
                    /* labels with "sides" labels.        */
 
-/*----------------------------------------------------------------
+/*-----------------------------------------------------------------------
+   Fallback resources for AFNI.  May be overridden by the user's
+   .Xdefaults file, or other resource sources.  AFNI does not come
+   with an "app-defaults" file, since that would be too much like work.
+   (And would require sysadmin privileges to install.)
+-------------------------------------------------------------------------*/
+
+static char *FALLback[] =
+  {   "AFNI*fontList:              9x15bold=charset1"    , /* normal font */
+      "AFNI*pbar*fontList:         6x10=charset1"        , /* next to pbar */
+      "AFNI*imseq*fontList:        7x13=charset1"        , /* on imseq */
+      "AFNI*font8*fontList:        8x13bold=charset1"    , /* smaller fonts */
+      "AFNI*font7*fontList:        7x13=charset1"        ,  /* for various */
+      "AFNI*font6*fontList:        6x10=charset1"        ,  /* usages */
+      "AFNI*background:            gray28"               , /* background clr */
+      "AFNI*menu*background:       gray4"                , /* bkgd in menus */
+      "AFNI*menu*foreground:       #ffdd22"              , /* menu text color */
+      "AFNI*borderColor:           gray19"               , /* same as bkgd! */
+      "AFNI*foreground:            yellow"               , /* normal text */
+      "AFNI*borderWidth:           0"                    , /* don't change! */
+      "AFNI*troughColor:           blue3"                , /* in sliders */
+      "AFNI*XmLabel.translations:  #override<Btn2Down>:" , /* Motif 2.0 bug */
+      "AFNI*help*background:       black"                , /* for help */
+      "AFNI*help*foreground:       #ffffff"              ,
+      "AFNI*help*helpborder:       False"                ,
+      "AFNI*help*waitPeriod:       1066"                 ,
+      "AFNI*help*fontList:         9x15bold=charset1"    ,
+      "AFNI*cluefont:              9x15bold"             , /* for popup */
+      "AFNI*bigtext*fontList:      10x20=charset1"       , /* hints */
+      "AFNI*help*cancelWaitPeriod: 333"                  ,
+#if 0
+      "AFNI*clustA*fontList:       9x15bold=charset1"    , /* for Clusterize */
+      "AFNI*clustB*fontList:       9x15bold=charset1"    ,
+      "AFNI*clustA*background:     gray28"               ,
+      "AFNI*clustB*background:     gray1"                ,
+      "AFNI*clustA*foreground:     yellow"               ,
+      "AFNI*clustB*foreground:     white"                ,
+#endif
+
+      "AFNI*XmList.translations: #augment"                /* 24 Feb 2007 */
+           "<Btn4Down>: ListPrevItem()\\n"                /* for scrollwheel */
+           "<Btn5Down>: ListNextItem()"                  ,
+
+      "AFNI*XmText.translations: #augment"
+           "<Btn4Down>: previous-line() scroll-one-line-down()\\n"
+           "<Btn5Down>: next-line() scroll-one-line-up()"          ,
+#if 0
+      "AFNI*XmScrollBar.translations: #augment"
+           "<Btn4Down>: IncrementUpOrLeft(0) IncrementUpOrLeft(1)\\n"
+           "<Btn5Down>: IncrementDownOrRight(1) IncrementDownOrRight(0)" ,
+#endif
+
+   NULL } ;
+
+/* The trick to using multiple Xt translations in the fallback resources
+   above is to separate them not with '\n' but with '\\n'.  Ugghhhhhhh.  */
+
+/*-----------------------------------------------------------------------*/
+static int    new_FALLback_num = 0 ;    /* for -XXX option [24 Mar 2016] */
+static char **new_FALLback     = NULL ;
+
+static int equiv_FALLback( char *n1 , char *n2 ) /* check if 2 strings */
+{                                                /* start the same */
+   char *c1,*c2 , *d1,*d2 ; int ee ;
+   if( n1 == NULL || *n1 == '\0' ) return 1 ;
+   if( n2 == NULL || *n2 == '\0' ) return 1 ;
+   if( strcmp(n1,n2) == 0        ) return 1 ;
+   d1 = strdup(n1) ; c1 = strchr(d1,':') ;
+   d2 = strdup(n2) ; c2 = strchr(d2,':') ;
+   if( c1 == NULL || c2 == NULL  ){ free(d1); free(d2); return 1; }
+   *c1 = '\0' ; *c2 = '\0' ;
+   ee = strcmp(d1,d2) ; free(d1) ; free(d2) ;
+   return (ee==0) ;
+}
+
+#define ADDTO_FALLback_one(nameval)                                            \
+ do{ int nf ;                                                                  \
+     nf = new_FALLback_num ;                                                   \
+     new_FALLback = (char **)realloc( new_FALLback , sizeof(char *)*(nf+2) ) ; \
+     new_FALLback[nf]   = strdup(nameval) ;                                    \
+     new_FALLback[nf+1] = NULL ; new_FALLback_num = nf+1 ;                     \
+ } while(0)
+
+#define ADDTO_FALLback_pair(name,val)                                          \
+ do{ char *str=malloc(strlen(name)+strlen(val)+16) ;                           \
+     strcpy(str,name) ; strcat(str,":   ") ; strcat(str,val) ;                 \
+     ADDTO_FALLback_one(str) ;                                                 \
+ } while(0)
+
+/*----------------------------------------------------------------------------
    Global variables that used to be local variables in main(),
    but since the advent of the splash screen and startup code
-   in MAIN_workprocess().
-------------------------------------------------------------------*/
+   in MAIN_workprocess() are needed in more than one place.
+------------------------------------------------------------------------------*/
 
 static XtAppContext   MAIN_app ;
 static XtErrorHandler MAIN_old_handler ;   /* no longer used */
@@ -153,7 +242,7 @@ static int recursed_ondot = 0 ;  /* 18 Feb 2007 */
 /* ---------------------------------------------------------------------- */
 /* just display the AFNI version                      26 Oct 2015 [rickr] */
 /* (since writing to stdout, do not interfere with print-and-exit funcs)  */
-void show_AFNI_version(void) 
+void show_AFNI_version(void)
 {
 #ifdef SHSTRING
      printf( "Precompiled binary " SHSTRING ": " __DATE__ " (Version " AVERZHN ")\n" ) ;
@@ -821,6 +910,12 @@ ENTRY("AFNI_parse_args") ;
          narg++ ; continue ;  /* go to next arg */
       }
 
+      /*----- -XXX [24 Mar 2016] -----*/
+
+      if( strcasecmp(argv[narg],"-XXX") == 0 ){
+        narg += 2 ; continue ;
+      }
+
       /*----- -destruct option -----*/
 
       if( strncmp(argv[narg],"-destruct",6) == 0 ){   /** has no effect at present **/
@@ -1251,63 +1346,6 @@ int AFNI_xerrhandler( Display *d , XErrorEvent *x ){
   }
   return 0 ;
 }
-
-/*-----------------------------------------------------------------------
-   Fallback resources for AFNI.  May be overridden by the user's
-   .Xdefaults file, or other resource sources.  AFNI does not come
-   with an "app-defaults" file, since that would be too much like work.
-   (And would require sysadmin privileges to install.)
--------------------------------------------------------------------------*/
-
-static char *FALLback[] =
-  {   "AFNI*fontList:              9x15bold=charset1"    , /* normal font */
-      "AFNI*pbar*fontList:         6x10=charset1"        , /* next to pbar */
-      "AFNI*imseq*fontList:        7x13=charset1"        , /* on imseq */
-      "AFNI*font8*fontList:        8x13bold=charset1"    , /* smaller fonts */
-      "AFNI*font7*fontList:        7x13=charset1"        ,  /* for various */
-      "AFNI*font6*fontList:        6x10=charset1"        ,  /* usages */
-      "AFNI*background:            gray28"               , /* background clr */
-      "AFNI*menu*background:       gray4"                , /* bkgd in menus */
-      "AFNI*menu*foreground:       #ffdd22"              , /* menu text color */
-      "AFNI*borderColor:           gray19"               , /* same as bkgd! */
-      "AFNI*foreground:            yellow"               , /* normal text */
-      "AFNI*borderWidth:           0"                    , /* don't change! */
-      "AFNI*troughColor:           blue3"                , /* in sliders */
-      "AFNI*XmLabel.translations:  #override<Btn2Down>:" , /* Motif 2.0 bug */
-      "AFNI*help*background:       black"                , /* for help */
-      "AFNI*help*foreground:       #ffffff"              ,
-      "AFNI*help*helpborder:       False"                ,
-      "AFNI*help*waitPeriod:       1066"                 ,
-      "AFNI*help*fontList:         9x15bold=charset1"    ,
-      "AFNI*cluefont:              9x15bold"             , /* for popup */
-      "AFNI*bigtext*fontList:      10x20=charset1"       , /* hints */
-      "AFNI*help*cancelWaitPeriod: 333"                  ,
-#if 0
-      "AFNI*clustA*fontList:       9x15bold=charset1"    , /* for Clusterize */
-      "AFNI*clustB*fontList:       9x15bold=charset1"    ,
-      "AFNI*clustA*background:     gray28"               ,
-      "AFNI*clustB*background:     gray1"                ,
-      "AFNI*clustA*foreground:     yellow"               ,
-      "AFNI*clustB*foreground:     white"                ,
-#endif
-
-      "AFNI*XmList.translations: #augment"                /* 24 Feb 2007 */
-           "<Btn4Down>: ListPrevItem()\\n"                /* for scrollwheel */
-           "<Btn5Down>: ListNextItem()"                  ,
-
-      "AFNI*XmText.translations: #augment"
-           "<Btn4Down>: previous-line() scroll-one-line-down()\\n"
-           "<Btn5Down>: next-line() scroll-one-line-up()"          ,
-#if 0
-      "AFNI*XmScrollBar.translations: #augment"
-           "<Btn4Down>: IncrementUpOrLeft(0) IncrementUpOrLeft(1)\\n"
-           "<Btn5Down>: IncrementDownOrRight(1) IncrementDownOrRight(0)" ,
-#endif
-
-   NULL } ;
-
-/* The trick to using multiple Xt translations in the fallback resources
-   above is to separate them not with '\n' but with '\\n'.  Ugghhhhhhh.  */
 
 /*-----------------------------------------------------------------------*/
 /* Signal handler for fatal errors; prints out some info before death. */
@@ -2081,9 +2119,49 @@ int main( int argc , char *argv[] )
 
    REPORT_PROGRESS("Initializing: X11");
 
+   /*--- look for -XXX option before starting X11 [24 Mar 2016] ---*/
+
+   for( ii=1 ; ii < argc-1 ; ii++ ){
+     if( strcasecmp(argv[ii],"-XXX") == 0 ) ADDTO_FALLback_one(argv[++ii]) ;
+   }
+
+   if( new_FALLback != NULL ){  /* if found any -XXX options, merge them */
+#if 0
+     int qq,pp ;
+     for( qq=0 ; FALLback[qq] != NULL ; qq++ ){
+       for( pp=0 ; new_FALLback[pp] != NULL ; pp++ ){
+         if( equiv_FALLback( new_FALLback[pp] , FALLback[qq] ) ) break ;
+       }
+       if( new_FALLback[pp] == NULL )
+         ADDTO_FALLback_one(FALLback[qq]) ;
+     }
+     for( qq=0 ; new_FALLback[qq] != NULL ; qq++ )
+       ININFO_message("new_FALLback[%d] = \"%s\"",qq,new_FALLback[qq]) ;
+#else
+     int pp ; char *xrdb,*xpg ; FILE *fp ;
+     xrdb = THD_find_executable("xrdb") ;
+     if( xrdb != NULL ){
+       xpg = malloc(strlen(xrdb)+32) ;
+       sprintf(xpg,"%s -override -",xrdb) ;
+       fp = popen( xpg , "w" ) ;
+       if( fp != NULL ){
+         for( pp=0 ; new_FALLback[pp] != NULL ; pp++ )
+           fprintf(fp,"%s\n",new_FALLback[pp]) ;
+         (void)pclose(fp) ;
+       }
+     }
+     for( pp=0 ; new_FALLback[pp] != NULL ; pp++ ) free(new_FALLback[pp]) ;
+     free(new_FALLback) ; new_FALLback = NULL ;
+#endif
+   }
+
+   /*--- now ready to start X11 for true --*/
+
    memset(&MAIN_app, 0, sizeof(MAIN_app)) ;  /* 11 Feb 2009 [lesstif patrol] */
    MAIN_shell = XtVaAppInitialize( &MAIN_app , "AFNI" , NULL , 0 ,
-                                   &argc , argv , FALLback , NULL ) ;
+                                   &argc , argv ,
+                                   (new_FALLback!=NULL)?new_FALLback:FALLback ,
+                                   NULL ) ;
 
    if( MAIN_shell == NULL ) ERROR_exit("Cannot initialize X11") ;
 
@@ -5728,7 +5806,7 @@ STATUS("reading timeseries files") ;
       /* 10 Feb 2016:broke sometime - allow skipping */
       if(GLOBAL_argopt.read_1D)
          GLOBAL_library.timeseries = THD_get_many_timeseries(qlist);
-      else 
+      else
          GLOBAL_library.timeseries = NULL;
 
 /*      THD_get_many_timeseries( (GLOBAL_argopt.read_1D) ? qlist : NULL ) ;*/
