@@ -775,8 +775,22 @@ void Qhelp(void)
     "               * You cannot use -gridlist with -duplo or -plusminus!\n"
     "\n"
     " -allsave     = This option lets you save the output warps from each level\n"
-    "                of the refinement process.  Mostly used for experimenting.\n"
-    "               * Cannot be used with -nopadWARP, -duplo, or -plusminus.\n"
+    "   *OR*         of the refinement process.  Mostly used for experimenting.\n"
+    " -saveall      * Cannot be used with -nopadWARP, -duplo, or -plusminus.\n"
+#if defined(USE_OMP) && defined(__GNU_C__)
+    "               * This version of 3dQwarp is compiled with OpenMP and gcc.\n"
+    "                 It sometimes happens that this combination will 'freeze',\n"
+    "                 apparently due to a 'race condition' bug in GNU's OpenMP\n"
+    "                 library.  If this happens to you, the use of '-allsave'\n"
+    "                 will let you kill the offending process and re-start the\n"
+    "                 warping process from the last saved warp -- using '-inilev'\n"
+    "                 and '-iniwarp'.\n"
+    "               * Also, the use of '-verb' will cause 3dQwarp to print a\n"
+    "                 report for every patch, which will usually make it obvious\n"
+    "                 when the program freezes up.\n"
+    "               * Unfortunately, Emperor Zhark doesn't know how to get around\n"
+    "                 this problem with gcc (except to use the Intel icc compiler).\n"
+#endif
     "\n"
     " -duplo       = Start off with 1/2 scale versions of the volumes,\n"
     "                for getting a speedy coarse first alignment.\n"
@@ -1775,7 +1789,8 @@ int main( int argc , char *argv[] )
 
      /*---------------*/
 
-     if( strcasecmp(argv[nopt],"-allsave") == 0 ){   /* 02 Jan 2015 */
+     if( strcasecmp(argv[nopt],"-allsave") == 0 ||
+         strcasecmp(argv[nopt],"-saveall")        ){   /* 02 Jan 2015 */
        Hsave_allwarps = 1 ; nopt++ ; continue ;
      }
 
@@ -1802,8 +1817,9 @@ int main( int argc , char *argv[] )
          if( Hgridlist[gg] > 0 && Hgridlist[gg]%2 == 0 ){ Hgridlist[gg]++ ; nbad++ ; }
        }
        if( nbad > 0 ){
-         WARNING_message("-gridlist file '%s' -- %d value%s even and incremented" ,
-                         argv[nopt] , nbad , (nbad==1) ? " is" : "s are" ) ;
+         WARNING_message("-gridlist file '%s' -- %d value%s even and %s incremented to make them odd" ,
+                         argv[nopt] , nbad , (nbad==1) ? " is" : "s are" ,
+                                             (nbad==1) ? "was" : "were"    ) ;
        }
        nopt++ ; continue ;
      }
