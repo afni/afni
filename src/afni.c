@@ -186,6 +186,8 @@ static char *FALLback[] =
 /*-----------------------------------------------------------------------*/
 static int    new_FALLback_num = 0 ;    /* for -XXX option [24 Mar 2016] */
 static char **new_FALLback     = NULL ;
+static char  *xrdb_old         = NULL ;
+static char  *xrdb_pg          = NULL ;
 
 static int equiv_FALLback( char *n1 , char *n2 ) /* check if 2 strings */
 {                                                /* start the same */
@@ -2126,33 +2128,42 @@ int main( int argc , char *argv[] )
    }
 
    if( new_FALLback != NULL ){  /* if found any -XXX options, merge them */
-#if 0
      int qq,pp ;
-     for( qq=0 ; FALLback[qq] != NULL ; qq++ ){
-       for( pp=0 ; new_FALLback[pp] != NULL ; pp++ ){
-         if( equiv_FALLback( new_FALLback[pp] , FALLback[qq] ) ) break ;
+     xrdb_pg = THD_find_executable("xrdb") ;
+     if( xrdb_pg == NULL ){
+       for( qq=0 ; FALLback[qq] != NULL ; qq++ ){
+         for( pp=0 ; new_FALLback[pp] != NULL ; pp++ ){
+           if( equiv_FALLback( new_FALLback[pp] , FALLback[qq] ) ) break ;
+         }
+         if( new_FALLback[pp] == NULL )
+           ADDTO_FALLback_one(FALLback[qq]) ;
        }
-       if( new_FALLback[pp] == NULL )
-         ADDTO_FALLback_one(FALLback[qq]) ;
-     }
-     for( qq=0 ; new_FALLback[qq] != NULL ; qq++ )
-       ININFO_message("new_FALLback[%d] = \"%s\"",qq,new_FALLback[qq]) ;
-#else
-     int pp ; char *xrdb,*xpg ; FILE *fp ;
-     xrdb = THD_find_executable("xrdb") ;
-     if( xrdb != NULL ){
-       xpg = malloc(strlen(xrdb)+32) ;
-       sprintf(xpg,"%s -override -",xrdb) ;
+       for( qq=0 ; new_FALLback[qq] != NULL ; qq++ )
+         ININFO_message("new_FALLback[%d] = \"%s\"",qq,new_FALLback[qq]) ;
+     } else {
+#define XXXSIZ 4096
+       char *xpg , *xout=NULL ; FILE *fp ;
+       xpg = malloc(strlen(xrdb_pg)+64) ;
+       sprintf(xpg,"%s -query",xrdb_pg) ;
+       fp = popen(xpg,"r") ;
+       if( fp != NULL ){
+         xout = (char *)malloc(sizeof(char)*XXXSIZ) ; xout[0] = '\0' ;
+         while( fgets(xout+strlen(xout),XXXSIZ-2,fp) != NULL ){
+           xout = (char *)realloc(xout,sizeof(char)*(strlen(xout)+XXXSIZ)) ;
+         }
+         (void)pclose(fp) ;
+         if( *xout != '\0' ) xrdb_old = xout ;
+       }
+       sprintf(xpg,"%s -override -",xrdb_pg) ;
        fp = popen( xpg , "w" ) ;
        if( fp != NULL ){
          for( pp=0 ; new_FALLback[pp] != NULL ; pp++ )
            fprintf(fp,"%s\n",new_FALLback[pp]) ;
          (void)pclose(fp) ;
        }
+       for( pp=0 ; new_FALLback[pp] != NULL ; pp++ ) free(new_FALLback[pp]) ;
+       free(new_FALLback) ; new_FALLback = NULL ; free(xpg) ;
      }
-     for( pp=0 ; new_FALLback[pp] != NULL ; pp++ ) free(new_FALLback[pp]) ;
-     free(new_FALLback) ; new_FALLback = NULL ;
-#endif
    }
 
    /*--- now ready to start X11 for true --*/
@@ -2164,6 +2175,18 @@ int main( int argc , char *argv[] )
                                    NULL ) ;
 
    if( MAIN_shell == NULL ) ERROR_exit("Cannot initialize X11") ;
+
+   if( xrdb_old != NULL ){  /* 24 Mar 2016 */
+     FILE *fp ; char *xpg ;
+     xpg = malloc(strlen(xrdb_pg)+64) ;
+     sprintf(xpg,"%s -override -",xrdb_pg) ;
+     fp = popen( xpg , "w" ) ;
+     if( fp != NULL ){
+       fprintf(fp,"%s",xrdb_old) ;
+       (void)pclose(fp) ;
+     }
+     free(xpg) ;
+   }
 
    if( DBG_trace == 2 ){                           /* 01 Dec 1999 */
      XSynchronize(XtDisplay(MAIN_shell),TRUE) ;
