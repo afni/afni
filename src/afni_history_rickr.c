@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 24,  Mar, 2016, RCR, "Dimon", MICRO, TYPE_ENHANCE,
+   "run any to3d script via 'tcsh -x' so the users get to see",
+   NULL
+ } ,
+
  { 22,  Mar, 2016, RCR, "afni-general", MINOR, TYPE_ENHANCE,
    "modularize version checking",
    "Update .afni.vctime even if URL read fails, to not flood server."
