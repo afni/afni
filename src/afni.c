@@ -217,6 +217,101 @@ static int equiv_FALLback( char *n1 , char *n2 ) /* check if 2 strings */
      ADDTO_FALLback_one(str) ;                                                 \
  } while(0)
 
+static void process_XXX_options( int argc , char *argv[] )
+{
+   int nopt=1 ;
+
+   while( nopt < argc && argv[nopt][0] == '-' ){
+
+     if( strcasecmp(argv[nopt],"-XXX") == 0 ){
+       if( ++nopt >= argc ){
+         WARNING_message("no argument after '%s' :-(",argv[nopt-1]) ;
+         break ;
+       }
+       ADDTO_FALLback_one(argv[nopt]) ;
+       nopt++ ; continue ;
+     }
+
+     if( strcasecmp(argv[nopt],"-XXXbgcolor") == 0 ){
+       if( ++nopt >= argc ){
+         WARNING_message("no argument after '%s' :-(",argv[nopt-1]) ;
+         break ;
+       }
+       ADDTO_FALLback_pair("AFNI*background"     ,argv[nopt]) ;
+       ADDTO_FALLback_pair("AFNI*menu*background",argv[nopt]) ;
+       ADDTO_FALLback_pair("AFNI*help*background",argv[nopt]) ;
+       nopt++ ; continue ;
+     }
+
+     if( strcasecmp(argv[nopt],"-XXXfgcolor") == 0 ){
+       if( ++nopt >= argc ){
+         WARNING_message("no argument after '%s' :-(",argv[nopt-1]) ;
+         break ;
+       }
+       ADDTO_FALLback_pair("AFNI*foreground"     ,argv[nopt]) ;
+       ADDTO_FALLback_pair("AFNI*menu*foreground",argv[nopt]) ;
+       ADDTO_FALLback_pair("AFNI*help*foreground",argv[nopt]) ;
+       nopt++ ; continue ;
+     }
+
+     if( strcasecmp(argv[nopt],"-XXXfontA") == 0 ){
+       char *fn ;
+       if( ++nopt >= argc ){
+         WARNING_message("no argument after '%s' :-(",argv[nopt-1]) ;
+         break ;
+       }
+       fn = (char *)malloc(sizeof(char)*(strlen(argv[nopt])+32)) ;
+       sprintf(fn,"%s=charset1",argv[nopt]) ;
+       ADDTO_FALLback_pair("AFNI*fontList"        ,fn) ;
+       ADDTO_FALLback_pair("AFNI*help*fontList"   ,fn) ;
+       ADDTO_FALLback_pair("AFNI*bigtext*fontList",fn) ;
+       ADDTO_FALLback_pair("AFNI*cluefont"        ,fn) ;
+       free(fn) ; nopt++ ; continue ;
+     }
+
+     if( strcasecmp(argv[nopt],"-XXXfontB") == 0 ){
+       char *fn ;
+       if( ++nopt >= argc ){
+         WARNING_message("no argument after '%s' :-(",argv[nopt-1]) ;
+         break ;
+       }
+       fn = (char *)malloc(sizeof(char)*(strlen(argv[nopt])+32)) ;
+       sprintf(fn,"%s=charset1",argv[nopt]) ;
+       ADDTO_FALLback_pair("AFNI*font8*fontList",fn) ;
+       free(fn) ; nopt++ ; continue ;
+     }
+
+     if( strcasecmp(argv[nopt],"-XXXfontC") == 0 ){
+       char *fn ;
+       if( ++nopt >= argc ){
+         WARNING_message("no argument after '%s' :-(",argv[nopt-1]) ;
+         break ;
+       }
+       fn = (char *)malloc(sizeof(char)*(strlen(argv[nopt])+32)) ;
+       sprintf(fn,"%s=charset1",argv[nopt]) ;
+       ADDTO_FALLback_pair("AFNI*imseq*fontList",fn) ;
+       ADDTO_FALLback_pair("AFNI*font7*fontList",fn) ;
+       free(fn) ; nopt++ ; continue ;
+     }
+
+     if( strcasecmp(argv[nopt],"-XXXfontD") == 0 ){
+       char *fn ;
+       if( ++nopt >= argc ){
+         WARNING_message("no argument after '%s' :-(",argv[nopt-1]) ;
+         break ;
+       }
+       fn = (char *)malloc(sizeof(char)*(strlen(argv[nopt])+32)) ;
+       sprintf(fn,"%s=charset1",argv[nopt]) ;
+       ADDTO_FALLback_pair("AFNI*font6*fontList",fn) ;
+       ADDTO_FALLback_pair("AFNI*pbar*fontList" ,fn) ;
+       free(fn) ; nopt++ ; continue ;
+     }
+
+   }
+
+   return ;
+}
+
 /*----------------------------------------------------------------------------
    Global variables that used to be local variables in main(),
    but since the advent of the splash screen and startup code
@@ -535,6 +630,69 @@ void AFNI_syntax(void)
      "      and examples.\n"
 
      , DEFAULT_NGRAY
+   ) ;
+
+   printf("\n"
+    "-----------------------------------------------------------\n"
+    "Options that affect X11 Display properties: '-XXXsomething'\n"
+    "-----------------------------------------------------------\n"
+    "\n"
+    "My intent with these options is that you use them in aliases\n"
+    " or shell scripts, to let you setup specific appearances for\n"
+    " multiple copies of AFNI.  For example, put the following\n"
+    " command in your shell startup file (e.g., ~/.cshrc)\n"
+    "    alias ablue afni -XXXfgcolor white -XXXbgcolor navyblue\n"
+	 " Then the command 'ablue' will start AFNI with a blue background\n"
+    " and using white for the default text color.\n"
+    "\n"
+    " -XXXfgcolor colorname = set the 'foreground' color (text color)\n"
+    "                         to 'colorname'\n"
+    "                         [default = yellow]\n"
+    "                         ++ This should be a bright color, to contrast\n"
+    "                            the background color.\n"
+    "                         ++ You can find a list of X11 color names at\n"
+    "                              https://en.wikipedia.org/wiki/X11_color_names\n"
+    "                            However, if you use a name like Dark Cyan\n"
+    "                            (with a space inside the name), you must\n"
+    "                            put the name in quotes: 'Dark Cyan', or remove\n"
+    "                            the space: DarkCyan.\n"
+    "\n"
+    " -XXXbgcolor colorname = set the 'background' color to 'colorname'\n"
+    "                         [default = gray28]\n"
+    "                         ++ This should be a somewhat dark color,\n"
+    "                            or parts of the interface may be hard\n"
+    "                            to read.\n"
+    "\n"
+    " -XXXfontA fontname    = set the X11 font name for the main AFNI\n"
+    "                         controller\n"
+    "                         [default = 9x15bold]\n"
+    "                         ++ To see a list of all X11 font names,\n"
+    "                            type the command 'xlsfonts | more'\n"
+    "                         ++ It is best to use a fixed width font\n"
+    "                            (e.g., not Helvetica), or the AFNI buttons\n"
+    "                            won't line up nicely!\n"
+    "                         ++ If you use an illegal font name here, you\n"
+    "                            might make it hard to use the AFNI GUI!\n"
+    "                         ++ The default fonts are chosen for 'normal'\n"
+    "                            screen resolutions (72-100 dots per inch).\n"
+    "                            For higher resolutions ('Retina'), you might\n"
+    "                            want to use larger fonts.  Adding these\n"
+    "                            '-XXXfont?' options is one way to address this\n"
+    "                            problem.\n"
+    "                         ++ An example of a quite large font on my computer:\n"
+    "              -adobe-courier-bold-r-normal--34-240-100-100-m-200-iso8859-1\n"
+    "                         ++ When setting the fonts, it is usually helpful\n"
+    "                            to set the colors as well.\n"
+    "\n"
+    " -XXXfontB fontname    = set the X11 font name for somewhat smaller text\n"
+    "                         [default = 8x13bold]\n"
+    "\n"
+    " -XXXfontC fontname    = set the X11 font name for even smaller text\n"
+    "                         [default = 7x13]\n"
+    "\n"
+    " -XXXfontD fontname    = set the X11 font name for the smallest text\n"
+    "                         [default = 6x10]\n"
+    "\n"
    ) ;
 
    printf("\n"
@@ -914,7 +1072,7 @@ ENTRY("AFNI_parse_args") ;
 
       /*----- -XXX [24 Mar 2016] -----*/
 
-      if( strcasecmp(argv[narg],"-XXX") == 0 ){
+      if( strncasecmp(argv[narg],"-XXX",4) == 0 ){
         narg += 2 ; continue ;
       }
 
@@ -2121,15 +2279,16 @@ int main( int argc , char *argv[] )
 
    REPORT_PROGRESS("Initializing: X11");
 
-   /*--- look for -XXX option before starting X11 [24 Mar 2016] ---*/
+   /*--- look for -XXX options before starting X11 [24 Mar 2016] ---*/
 
-   for( ii=1 ; ii < argc-1 ; ii++ ){
-     if( strcasecmp(argv[ii],"-XXX") == 0 ) ADDTO_FALLback_one(argv[++ii]) ;
-   }
+   process_XXX_options( argc , argv ) ;  /* will set new_FALLback */
 
    if( new_FALLback != NULL ){  /* if found any -XXX options, merge them */
      int qq,pp ;
      xrdb_pg = THD_find_executable("xrdb") ;
+
+     /* can't find xrdb executable ==> merge FALLback strings */
+
      if( xrdb_pg == NULL ){
        for( qq=0 ; FALLback[qq] != NULL ; qq++ ){
          for( pp=0 ; new_FALLback[pp] != NULL ; pp++ ){
@@ -2140,10 +2299,15 @@ int main( int argc , char *argv[] )
        }
        for( qq=0 ; new_FALLback[qq] != NULL ; qq++ )
          ININFO_message("new_FALLback[%d] = \"%s\"",qq,new_FALLback[qq]) ;
-     } else {
+
+     } else {  /* use xrdb to merge X11 resources */
+
 #define XXXSIZ 4096
        char *xpg , *xout=NULL ; FILE *fp ;
        xpg = malloc(strlen(xrdb_pg)+64) ;
+
+       /* get the current resources settings */
+
        sprintf(xpg,"%s -query",xrdb_pg) ;
        fp = popen(xpg,"r") ;
        if( fp != NULL ){
@@ -2154,6 +2318,9 @@ int main( int argc , char *argv[] )
          (void)pclose(fp) ;
          if( *xout != '\0' ) xrdb_old = xout ;
        }
+
+       /* set the new ones */
+
        sprintf(xpg,"%s -override -",xrdb_pg) ;
        fp = popen( xpg , "w" ) ;
        if( fp != NULL ){
@@ -2161,8 +2328,12 @@ int main( int argc , char *argv[] )
            fprintf(fp,"%s\n",new_FALLback[pp]) ;
          (void)pclose(fp) ;
        }
+
+       /* don't need new_FALLback any more */
+
        for( pp=0 ; new_FALLback[pp] != NULL ; pp++ ) free(new_FALLback[pp]) ;
        free(new_FALLback) ; new_FALLback = NULL ; free(xpg) ;
+#undef XXXSIZ
      }
    }
 
@@ -2175,6 +2346,9 @@ int main( int argc , char *argv[] )
                                    NULL ) ;
 
    if( MAIN_shell == NULL ) ERROR_exit("Cannot initialize X11") ;
+
+   /* if we used xrdb to set X11 resources, re-set them back to their old
+      state so that other AFNIs don't use these new settings by default   */
 
    if( xrdb_old != NULL ){  /* 24 Mar 2016 */
      FILE *fp ; char *xpg ;
