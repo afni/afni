@@ -71,7 +71,7 @@ R Reynolds    July, 2013
 """
 
 g_help_rc_files = """
-rc (run commands) files applied at start up:
+RC (run commands) files applied at start up:
 
    0. login shells:
 
@@ -83,35 +83,43 @@ rc (run commands) files applied at start up:
       This help section focuses on commonly used user control files,
       omitting files like /etc/csh.cshrc and .history.
 
-
-   1a. csh/tcsh non-login shell (e.g. opening a new terminal):
-      
-      ~/.tcshrc (else .cshrc)
-
-   1b. csh/tcsh login shell (e.g. ssh login):
-
-      ~/.tcshrc (else .cshrc)
-      ~/.login
-
-    * alternate orders may be compiled in
+      The noted RC files all belong under a user's $HOME directory.
 
 
-   2a. bash non-login shell (e.g. opening a new terminal):
-      
-      ~/.bashrc
+   1.  csh/tcsh RC files: .tcshrc .cshrc
 
-   2b. bash login shell (e.g. ssh login):
+      1a. csh/tcsh non-login shell (e.g. opening a new terminal):
+         
+         .tcshrc (else .cshrc)
 
-      ~/.bash_profile (else ~/.bash_login) (else ~/.profile)
+      1b. csh/tcsh login shell (e.g. ssh login):
+
+         .tcshrc (else .cshrc)
+         .login
+
+       * alternate orders may be compiled in
 
 
-   3a. sh (bash as sh) non-login shell:
+   2.  bash RC files: .bashrc .bash_profile 
 
-    * nothing is read
+      2a. bash non-login shell (e.g. opening a new terminal):
+         
+         .bashrc
 
-   3b. sh (bash as sh) login shell:
+      2b. bash login shell (e.g. ssh login):
 
-      ~/.profile
+         .bash_profile (else .bash_login) (else .profile)
+
+
+   3.  sh RC files: .profile
+
+      3a. sh (bash as sh) non-login shell:
+
+       * nothing is read
+
+      3b. sh (bash as sh) login shell:
+
+         .profile
 
 """
 
@@ -168,9 +176,10 @@ g_history = """
    0.17 Mar 18, 2016 - new checks
         - added -help_rc_files
         - make comments about shell RC files, given login shell
+   0.18 Mar 25, 2016 - tiny update
 """
 
-g_version = "afni_system_check.py version 0.17, March 18, 2016"
+g_version = "afni_system_check.py version 0.18, March 25, 2016"
 
 
 class CmdInterface:
