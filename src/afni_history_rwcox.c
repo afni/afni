@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 25 , MAR , 2016 , RWC , "afni GUI" , MINOR , TYPE_NEW_OPT ,
+   "A bunch of '-XXX' options to control colors and fonts" ,
+   NULL } ,
+
  { 24 , MAR , 2016 , RWC , "afni GUI" , MICRO , TYPE_NEW_OPT ,
    "Add -XXX option" ,
    "Moving towards letting user set X11 things (fonts, colors) on the\n"
