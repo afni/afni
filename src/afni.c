@@ -221,7 +221,9 @@ static void process_XXX_options( int argc , char *argv[] )
 {
    int nopt=1 ;
 
-   while( nopt < argc && argv[nopt][0] == '-' ){
+   while( nopt < argc ){
+
+     if( strncasecmp(argv[nopt],"-XXX",4) != 0 ){ nopt++; continue; }
 
      if( strcasecmp(argv[nopt],"-XXX") == 0 ){
        if( ++nopt >= argc ){
