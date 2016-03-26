@@ -100,7 +100,7 @@ void THD_load_statistics( THD_3dim_dataset *dset )
 
 THD_brick_stats THD_get_brick_stats( MRI_IMAGE *im )
 {
-   register int ii , nvox ;
+   int64_t ii , nvox ;  /* allow for big volumes    26 Mar 2016 [rickr] */
    register float bot , top ;
    void *br ;
    THD_brick_stats bst ;
