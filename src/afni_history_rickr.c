@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 26,  Mar, 2016, RCR, "to3d", MICRO, TYPE_BUG_FIX,
+   "another allowance for datasets exceeding 2 GB",
+   "Thanks to SS Kim for noting the problem."
+ } ,
+
  { 24,  Mar, 2016, RCR, "Dimon", MICRO, TYPE_NEW_OPT,
    "add option -use_obl_origin, to apply -oblique_origin to to3d command",
    "Also, run any to3d script via 'tcsh -x' so the users get to see."
