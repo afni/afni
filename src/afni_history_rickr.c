@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 29,  Mar, 2016, RCR, "afni_restproc.py", MICRO, TYPE_MODIFY,
+   "suggest that users consider afni_proc.py",
+   "This was requested by Rayus."
+ } ,
+
  { 26,  Mar, 2016, RCR, "to3d", MICRO, TYPE_BUG_FIX,
    "another allowance for datasets exceeding 2 GB",
    "Thanks to SS Kim for noting the problem."
