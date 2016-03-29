@@ -49,8 +49,8 @@
 
 afni_history_struct rickr_history[] = {
 
- { 29,  Mar, 2016, RCR, "@update.afni.binaries", MICRO, TYPE_GENERAL,
-   "mention download site in initial text output",
+ { 29,  Mar, 2016, RCR, "@update.afni.binaries", MICRO, TYPE_NEW_OPT,
+   "add option -no_cert_verify, to skip server certificate verification",
    NULL
  } ,
 
