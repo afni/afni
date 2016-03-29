@@ -14,7 +14,7 @@
 
 set prog = `basename $0`
 set afnisite = https://afni.nimh.nih.gov
-set aub_version = "2.2, February 19, 2016"
+set aub_version = "2.3, March 29, 2016"
 
 # ----------------------------------------------------------------------
 # history section
@@ -43,6 +43,7 @@ history for $prog :
   2.0  08 Feb 2016 : access afni site via https protocol
   2.1  16 Feb 2016 : added -ver and initial statement of version
   2.2  19 Feb 2016 : minor text changes (note get_prog and appease dglen)
+  2.3  29 Feb 2016 : and mention download site
 -------------------------------------------------------------------------------
 EOF
 exit
@@ -268,6 +269,8 @@ endif
 
 
 echo "-- running $prog version $aub_version"
+echo "-- will download from $afnisite"
+echo ""
 
 # note any current AFNI location
 which afni >& /dev/null

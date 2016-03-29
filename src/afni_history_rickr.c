@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 29,  Mar, 2016, RCR, "@update.afni.binaries", MICRO, TYPE_GENERAL,
+   "mention download site in initial text output",
+   NULL
+ } ,
+
  { 29,  Mar, 2016, RCR, "gen_group_command.py", MICRO, TYPE_MODIFY,
    "3dMEMA no longer allows for a paied test",
    "One must now input contrast/stat from original regression."
