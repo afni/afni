@@ -33,7 +33,7 @@ static byte PLOT_FORCE_AUTOSCALE = 0;
 static Widget wtemp ;
 
 #ifdef BE_AFNI_AWARE
-static AFNI_dataset_choose_stuff cdds = { 0, NULL, NULL, NULL } ;
+static AFNI_dataset_choose_stuff cdds = { 0,0, NULL, NULL, NULL } ;
 static void GRA_finalize_xaxis_dset_CB( Widget w, XtPointer cd, MCW_choose_cbs *cbs ) ;
 extern void AFNI_choose_dataset_CB    ( Widget , XtPointer , XtPointer ) ;
 extern FD_brick * THD_3dim_dataset_to_brick( THD_3dim_dataset *dset ,
@@ -1224,7 +1224,7 @@ STATUS("freeing cen_tsim") ;
    mri_free( grapher->ave_tsim ) ;  /* 27 Jan 2004 */
    mri_free( grapher->xax_cen  ) ;  /* 12 Feb 2015 */
    grapher->xax_dset = NULL ;       /* 09 Feb 2015 */
-   DESTROY_FD_BRICK(((FD_brick*)grapher->xax_fdbr)) ; grapher->xax_fdbr = NULL ;
+   DESTROY_FD_BRICK(grapher->xax_fdbr) ; grapher->xax_fdbr = NULL ;
 
 STATUS("freeing tuser") ;
    GRA_CLEAR_tuser( grapher ) ;  /* 22 Apr 1997 */
@@ -4184,7 +4184,7 @@ STATUS("User pressed Done button: starting timeout") ;
      mri_free( grapher->xax_tsim ) ; grapher->xax_tsim = NULL ;
      mri_free( grapher->xax_cen  ) ; grapher->xax_cen  = NULL ; /* 12 Feb 2015 */
      grapher->xax_dset = NULL ;  /* 10 Feb 2015 */
-     DESTROY_FD_BRICK(((FD_brick *)grapher->xax_fdbr)) ; grapher->xax_fdbr = NULL ;
+     DESTROY_FD_BRICK(grapher->xax_fdbr) ; grapher->xax_fdbr = NULL ;
      GRA_timer_stop(grapher) ;   /* 04 Dec 2003 */
      redraw_graph( grapher , 0 ) ;
      EXRETURN ;
@@ -4253,7 +4253,7 @@ STATUS("User pressed Done button: starting timeout") ;
        mri_free( grapher->xax_tsim ) ;
        grapher->xax_tsim = mri_to_float( grapher->cen_tsim ) ;
        grapher->xax_dset = NULL ;  /* 10 Feb 2015 */
-       DESTROY_FD_BRICK(((FD_brick *)grapher->xax_fdbr)) ; grapher->xax_fdbr = NULL ;
+       DESTROY_FD_BRICK(grapher->xax_fdbr) ; grapher->xax_fdbr = NULL ;
        mri_free(grapher->xax_cen) ; grapher->xax_cen = NULL ; /* 12 Feb 2015 */
        redraw_graph(grapher,0) ;
      } else {
@@ -4345,7 +4345,7 @@ ENTRY("GRA_pick_xaxis_CB") ;
      mri_free( grapher->xax_tsim ) ;
      grapher->xax_tsim = mri_to_float(tsim) ;  /* a copy */
      grapher->xax_dset = NULL ;  /* 10 Feb 2015 */
-     DESTROY_FD_BRICK(((FD_brick *)grapher->xax_fdbr)) ; grapher->xax_fdbr = NULL ;
+     DESTROY_FD_BRICK(grapher->xax_fdbr) ; grapher->xax_fdbr = NULL ;
      mri_free(grapher->xax_cen) ; grapher->xax_cen = NULL ; /* 12 Feb 2015 */
    } else {
      mri_free( grapher->xax_tsim ) ; grapher->xax_tsim = NULL ;
@@ -4386,7 +4386,7 @@ ENTRY("GRA_finalize_xaxis_dset_CB") ;
 
    /* make FD_brick corresponding to the one being viewed in this grapher */
 
-   DESTROY_FD_BRICK(((FD_brick *)grapher->xax_fdbr)) ; grapher->xax_fdbr = NULL ;
+   DESTROY_FD_BRICK(grapher->xax_fdbr) ; grapher->xax_fdbr = NULL ;
    if( grapher->xax_dset != NULL ){
      FD_brick *br = (FD_brick *)grapher->getaux ;
      grapher->xax_fdbr = THD_3dim_dataset_to_brick( dset , br->a123.ijk[0] ,

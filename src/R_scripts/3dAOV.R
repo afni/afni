@@ -3,7 +3,7 @@
 #-----------------------------------------------------------
 #Version 0.0.1,  Sept 28, 2012
 #Author: Gang Chen (gangchen@mail.nih.gov)
-#Website: http://afni.nimh.nih.gov/sscc/gangc/aov.html
+#Website: https://afni.nimh.nih.gov/sscc/gangc/aov.html
 #SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
 #-----------------------------------------------------------
 

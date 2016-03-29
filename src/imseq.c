@@ -6368,7 +6368,7 @@ ENTRY("ISQ_but_disp_CB") ;
        SENSITIZE( seq->wbut_bot[ib] , False ) ;  /* use seq->dialog   */
 
    seq->dialog = XtVaCreatePopupShell(
-                    "menu" , xmDialogShellWidgetClass , seq->wtop ,
+                    "font8" , xmDialogShellWidgetClass , seq->wtop ,
                        XmNtitle , "Display Options" ,
                        XmNdeleteResponse , XmDO_NOTHING ,
                        XmNinitialResourcesPersistent , False ,

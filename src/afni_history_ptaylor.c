@@ -66,6 +66,37 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+
+{ 5, Jan , 2016 , PT , "3dVecRGB_to_HSL" , MAJOR , TYPE_NEW_PROG,
+   "Take a 3-vec to a single index on RGB color scale, and glue FA brick.",
+   "Replaces earlier version, 3dVec_to_RGBind.\n"
+},
+
+{ 4, Jan , 2016 , PT , "1dDW_Grad_o_Mat" , MICRO , TYPE_BUG_FIX,
+   "Fixed backwards output messages.",
+   "Should now be easier to see what went bad in a case of mistaken input.\n"
+},
+
+{ 16, Dec , 2015 , PT , "3ddot_beta" , MAJOR , TYPE_NEW_PROG,
+   "Copy calc of 3ddot-- uses same functions-- just faster.",
+   "Right now, can only calculate eta2; was asked for by user.\n"
+},
+
+{ 16, Nov , 2015 , PT , "fat_mat_sel.py" , MINOR , TYPE_MODIFY,
+   "New default for x-axis labels: rot=45 deg, horiz align=right.",
+   "Better than previous defaults (rot=37 deg, horiz align=center).\n"
+},
+
+{ 10, Nov , 2015 , PT , "3dVec_to_RGBind.c" , MAJOR , TYPE_NEW_PROG,
+   "Take a 3-vec to a single index on RGB color scale, and glue FA brick.",
+   "This will be useful in prob tract result plotting... script to come.\n"
+},
+
+{ 28, Sep , 2015 , PT , "fat_mvm_scripter.py" , MINOR , TYPE_BUG_FIX,
+   "Use list of ROIs to select subnetwork of analysis for 3dMVM.",
+   "Previously, sublist only applied to post hocs, not 3dMVM models.\n"
+},
+   
 { 18, Sep , 2015 , PT , "@GradFlipTest" , MICRO , TYPE_MODIFY,
    "For DWI analysis: just linear fitting of tensor.",
    "Faster 3dDWItoDT usage, only do linear fit.\n"

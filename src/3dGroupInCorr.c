@@ -74,6 +74,8 @@ void GRINCOR_many_spearman( int nvec, int numx, float **xxar,
 
 static int do_atanh = 1 ;  /* 15 May 2012 */
 
+static int do_read = 0 ;   /* 09 Feb 2016 */
+
 #undef  MYatanh
 #define MYatanh(x) ( ((x)<-0.999329f) ? -4.0f                \
                     :((x)>+0.999329f) ? +4.0f : atanhf(x) )
@@ -171,7 +173,9 @@ typedef struct {
 
   char **dslab ;  /* dslab[i] = label string for i-th dataset [23 May 2010] */
 
-  long long nbytes ;  /* number of bytes in the data array */
+  int64_t nbytes ;  /* number of bytes in the data array */
+
+  int did_read ;
 
   /* Surface stuff  ZSS Jan 09 2010 */
 
@@ -216,7 +220,7 @@ int GRINCOR_output_dataset( GICOR_setup *, NI_element *, char * ) ;
 
 /*--------------------------------------------------------------------------*/
 
-static const long long twogig = 2ll * 1024ll * 1024ll * 1024ll ;  /* 2 GB */
+static const int64_t twogig = 2ll * 1024ll * 1024ll * 1024ll ;  /* 2 GB */
 
 /*----- read a PREFIX.grpincorr.niml file into a struct -----*/
 
@@ -226,7 +230,7 @@ MRI_shindss * GRINCOR_read_input( char *fname )
    char *dfname=NULL , *atr ;
    NI_float_array *facar ; NI_int_array *nvar, *nnode=NULL, *ninmask=NULL;
    MRI_shindss *shd ;
-   long long nbytes_needed , nbytes_dfname=0 ; int fdes ;
+   int64_t nbytes_needed , nbytes_dfname=0 ; int fdes ;
    void *var ; int ids , nvmax , nvtot ;
    int datum , datum_size ;
 
@@ -309,7 +313,7 @@ MRI_shindss * GRINCOR_read_input( char *fname )
 
    nbytes_needed = 0 ;
    for( ids=0 ; ids < ndset ; ids++ ) nbytes_needed += nvals[ids] ;
-   nbytes_needed *= ((long long)nvec) * datum_size ;
+   nbytes_needed *= ((int64_t)nvec) * datum_size ;
 
    if( nbytes_needed >= twogig &&
        ( sizeof(void *) < 8 || sizeof(size_t) < 8 ) ) /* too much for 32-bit */
@@ -438,15 +442,30 @@ MRI_shindss * GRINCOR_read_input( char *fname )
    shd->dslab = (slabar != NULL) ? slabar->str : NULL ;  /* 23 May 2010 */
 
    /*--- now have to map data from disk ---*/
+   /*((( or read it - 09 Feb 2016 - RWC )))*/
 
-   var = mmap( 0 , (size_t)nbytes_needed ,
-                   PROT_READ , THD_MMAP_FLAG , fdes , 0 ) ;
-   close(fdes) ;  /* close file descriptor does not unmap data */
-
-   if( var == (void *)(-1) ){ /* this is bad */
-     ERROR_message(
-       "GIC: file %s: can't mmap() datafile -- memory space exhausted?" , dfname ) ;
-     free(shd) ; return NULL ;
+   if( do_read ){   /* the newen way, via malloc() and read() */
+     size_t nnn ;
+     var = malloc( (size_t)nbytes_needed ) ;
+     if( var == NULL ){
+       ERROR_message("GIC: file %s: can't allocate enough memory",dfname) ;
+       free(shd) ; return NULL ;
+     }
+     fprintf(stderr,"Reading file %s ",dfname) ;
+     nnn = read(fdes,var,(size_t)nbytes_needed) ; close(fdes) ;
+     if( nnn < (size_t)nbytes_needed ){
+       fprintf(stderr,"-- failed :(\n"); free(var); free(shd); return NULL;
+     }
+     fprintf(stderr,"-- finished :)\n") ; shd->did_read = 1 ;
+   } else {         /* the olden way, via mmap() */
+     var = mmap( 0, (size_t)nbytes_needed, PROT_READ, THD_MMAP_FLAG, fdes, 0 ) ;
+     close(fdes) ;  /* close file descriptor does not unmap data */
+     if( var == (void *)(-1) ){ /* this is bad */
+       ERROR_message(
+         "GIC: file %s: can't mmap() datafile -- memory space exhausted?" , dfname ) ;
+       free(shd) ; return NULL ;
+     }
+     shd->did_read = 0 ;
    }
 
    /*-- create array of pointers to each dataset's data array --*/
@@ -1072,11 +1091,18 @@ int main( int argc , char *argv[] )
    char *blist_prefix=NULL ;
    GICOR_setup *giset=NULL ;
 
-   char *clust_NN1=NULL, *clust_NN2=NULL, *clust_NN3=NULL, *clust_mask=NULL ;
-   char *clatr[4] = { NULL , NULL , NULL , NULL } ;
+   /* -clust attributes [patched 13 Oct 2015] */
+
+   char *clust_NN1_1sided=NULL , *clust_NN1_2sided=NULL , *clust_NN1_bisided=NULL ;
+   char *clust_NN2_1sided=NULL , *clust_NN2_2sided=NULL , *clust_NN2_bisided=NULL ;
+   char *clust_NN3_1sided=NULL , *clust_NN3_2sided=NULL , *clust_NN3_bisided=NULL ;
+   char *clust_mask=NULL ;
+   char *clatr[10] = { NULL,NULL,NULL,NULL,NULL , NULL,NULL,NULL,NULL,NULL } ;
 
    int voxindB=-666 , voxijkB=-666 , redoB=1 ; /* Apr 2013 */
    int do_apair=0 ;
+
+   int do_ztest=0 ; /* 11 Feb 2016 */
 
 #ifdef COVTEST
    float *ctarA=NULL , *ctarB=NULL ; char *ctnam ;  /* debugging covariates */
@@ -1091,7 +1117,7 @@ int main( int argc , char *argv[] )
       "Usage: 3dGroupInCorr [options]\n"
       "\n"
       "* Also see\n"
-      "  http://afni.nimh.nih.gov/pub/dist/edu/latest/afni_handouts/instastuff.pdf\n"
+      "  https://afni.nimh.nih.gov/pub/dist/edu/latest/afni_handouts/instastuff.pdf\n"
       "\n"
       "* This program operates as a server for AFNI or SUMA.  It reads in dataset\n"
       "  collections that have been prepared by 3dSetupGroupInCorr, and then\n"
@@ -1172,10 +1198,10 @@ int main( int argc , char *argv[] )
       " ++ If your computer DOESN'T have enough RAM to hold all the data,\n"
       "    then this program will be painfully slow -- buy more memory!\n"
       " ++ Note that the .data file(s) are mapped directly into memory (mmap),\n"
-      "    rather than being read with standard file input methods (fread).\n"
+      "    rather than being read with standard file input methods (read function).\n"
       " ++ This memory-mapping operation may not work well on network-mounted\n"
       "    drives, in which case you will have to run 3dGroupInCorr on the same\n"
-      "    computer with the data files.\n"
+      "    computer with the data files [Feb 2016 -- but see the new '-read' option].\n"
       " ++ However, 3dGroupInCorr does NOT need to be run on the same computer\n"
       "    as AFNI or SUMA: see the '-ah' option (described far below).\n"
       "\n"
@@ -1502,18 +1528,35 @@ int main( int argc , char *argv[] )
       " -clust PP  = This option lets you input the results from a 3dClustSim run,\n"
       "              to be transmitted to AFNI to aid with the interactive Clusterize.\n"
       "              3dGroupInCorr will look for files named\n"
-      "                PP.NN1.niml  PP.NN2.niml  PP.NN3.niml  PP.mask\n"
+      "                PP.NN1_1sided.niml  PP.NN1_2sided.niml  PP.NN1_bisided.niml\n"
+      "                (and similarly for NN2 and NN3 clustering), plus PP.mask\n"
       "              and if at least one of these .niml files is found, will send\n"
       "              it to AFNI to be incorporated into the dataset.  For example,\n"
       "              if the datasets' average smoothness is 8 mm, you could do\n"
       "                3dClustSim -fwhm 8 -mask Amask+orig -niml -prefix Gclus\n"
       "                3dGroupInCorr ... -clust Gclus\n"
-      "              Presumably the mask would be the same as used when you ran\n"
+      "         -->> Presumably the mask would be the same as used when you ran\n"
       "              3dSetupGroupInCorr, and the smoothness you would have estimated\n"
       "              via 3dFWHMx, via sacred divination, or via random guesswork.\n"
-      "             ++ This option only applies to AFNI usage, not to SUMA.\n"
+      "              It is your responsibility to make sure that the 3dClustSim files\n"
+      "              correspond properly to the 3dGroupInCorr setup!\n"
+      "         -->>++ This option only applies to AFNI usage, not to SUMA.\n"
       "             ++ See the Clusterize notes, far below, for more information on\n"
       "                using the interactive clustering GUI in AFNI with 3dGroupInCorr.\n"
+      "\n"
+      " -read    = Normally, the '.data' files are 'memory mapped' rather than read\n"
+      "            into memory.  However, if your files are on a remotely mounted\n"
+      "            server (e.g., a remote RAID), then memory mapping may not work.\n"
+      "            Or worse, it may seem to work, but return 'data' that is all zero.\n"
+      "            Use this '-read' option to force the program to read the data into\n"
+      "            allocated memory.\n"
+      "           ++ Using read-only memory mapping is a way to avoid over-filling\n"
+      "              the system's swap file, when the .data files are huge.\n"
+      "           ++ You must give '-read' BEFORE '-setA' or '-setB', so that the\n"
+      "              program knows what to do when it reaches those options!\n"
+      "\n"
+      " -ztest   = Test the input to see if it is all zero.  This option is for\n"
+      "            debugging, not for general use all the time.\n"
       "\n"
       " -ah host = Connect to AFNI/SUMA on the computer named 'host', rather than\n"
       "            on the current computer system 'localhost'.\n"
@@ -1592,47 +1635,13 @@ int main( int argc , char *argv[] )
       "\n"
       "-----------*** Group InstaCorr and AFNI's Clusterize function ***-----------\n"
       "\n"
-#if 1
       "In the past, you could not use Clusterize in the AFNI A controller at the\n"
       "same time that 3dGroupInCorr was actively connected.\n"
       "           ***** This situation is no longer the case:   *****\n"
       "          ****** Clusterize is available with InstaCorr! ******\n"
       "In particular, the 'Rpt' (report) button is very useful with 3dGroupInCorr.\n"
-#else
-      "At this moment in history, you can't use Clusterize in the AFNI A controller at\n"
-      "the same time that 3dGroupInCorr is actively connected.  If you also want to\n"
-      "Clusterize the maps from this program, there are 2 slightly clumsy methods\n"
-      "that work reasonably well:\n"
       "\n"
-      "(1) In the A controller, you can switch between 'Clusters' and 'GrpInCorr':\n"
-      "   -- When 'Clusters' is active, you can Clusterize, but you can't do a\n"
-      "      new 'InstaCorr Set' operation\n"
-      "   -- When 'GrpInCorr' is active, then you can do 'InstaCorr Set', but\n"
-      "      the new result won't be Clusterize-d, until you switch back to\n"
-      "      'Clusters' and then press 'Clusterize' again.\n"
-      "   -- This is clumsy because you have to keep switching between GrpInCorr\n"
-      "      and Clusterize, which quickly becomes very annoying.\n"
-      "\n"
-      "(2) Alternatively, you can open up the B controller (with the 'New' button),\n"
-      "    and then view the A_GRP_ICORR dataset as the Overlay in a separate\n"
-      "    set of image viewers, which you can Clusterize.\n"
-      "   -- However, since you also have to view the un-Clusterize-d A_GRP_ICORR\n"
-      "      dataset in the AFNI A controller, it is necessary to un-Lock the\n"
-      "      viewing controls of the two controllers.  Otherwise, the 2 controllers\n"
-      "     'fight' for who controls the way the dataset is edited for presentation,\n"
-      "      and the Clusterize-ation in controller B can appear and disappear\n"
-      "      as you scroll around.\n"
-      "   -- To turn off the Lock between the A and B controllers, use the\n"
-      "      Datamode->Lock menu and select 'Clear All'.  Or start AFNI with\n"
-      "      the command line option '-DAFNI_ALWAYS_LOCK=NO' (to override the\n"
-      "      default where all controllers are locked together at startup).\n"
-      "   -- This is clumsy because you have to use two controllers, and set\n"
-      "      your GrpInCorr seed in the A image viewers but view the results\n"
-      "      you want to see in the B image viewers.  And scrolling around in\n"
-      "      the unlocked image viewers can also be annoying.\n"
-#endif
-      "\n"
-      "If you use '-covariates' and '-sendall', 3dGroupInCorr will send to AFNI\n"
+      "If you use '-covariates' AND '-sendall', 3dGroupInCorr will send to AFNI\n"
       "a set of 1D files containing the covariates.  You can use one of these\n"
       "as a 'Scat.1D' file in the Clusterize GUI to plot the individual subject\n"
       "correlations (averaged across a cluster) vs. the covariate values -- this\n"
@@ -1658,7 +1667,7 @@ int main( int argc , char *argv[] )
       "               multiplied by 42.1 before being put into the t-test analysis.\n"
       "             * All values reported and computed by 3dGroupInCorr will reflect\n"
       "               this scaling (e.g., the results from '-sendall').\n"
-      "             * This option is for the international man of mystery, PK.\n"
+      "             * This option is for the International Man Of Mystery, PK.\n"
       "               -- And just for PK, if you use this option in the form '-SCALE',\n"
       "                  then each value X in the 'sf' file is replaced by sqrt(X-3).\n"
       ) ;
@@ -1869,37 +1878,80 @@ int main( int argc , char *argv[] )
        nosix = 1 ; nopt++ ; continue ;
      }
 
-     if( strcasecmp(argv[nopt],"-clust") == 0 ){    /* 23 May 2012 */
-       char *cpref , *cname ;
-       if( clust_NN1 != NULL || clust_NN2 != NULL || clust_NN3 != NULL )
-         ERROR_exit("GIC: can't use '%s' twice!",argv[nopt]) ;
+     if( strcasecmp(argv[nopt],"-clust") == 0 ){    /* 23 May 2012 [patched 13 Oct 2015] */
+       char *cpref , *cname ; int qq ;
+       for( qq=0 ; qq < 10 ; qq++ ){
+         if( clatr[qq] != NULL ) ERROR_exit("GIC: can't use '%s' twice!",argv[nopt]) ;
+       }
        if( ++nopt >= argc ) ERROR_exit("GIC: need an argument after option '%s'",argv[nopt-1]) ;
        cpref = argv[nopt] ;
        if( *cpref == '\0' ) ERROR_exit("Illegal prefix after option '%s'",argv[nopt-1]) ;
-       cname = (char *)malloc(sizeof(char)*(strlen(cpref)+16)) ;
-       sprintf(cname,"%s.NN1.niml",cpref) ; clust_NN1  = AFNI_suck_file(cname) ;
-       sprintf(cname,"%s.NN2.niml",cpref) ; clust_NN2  = AFNI_suck_file(cname) ;
-       sprintf(cname,"%s.NN3.niml",cpref) ; clust_NN3  = AFNI_suck_file(cname) ;
-       sprintf(cname,"%s.mask"    ,cpref) ; clust_mask = AFNI_suck_file(cname) ;
-       if( clust_NN1 == NULL && clust_NN2 == NULL && clust_NN3 == NULL )
-         WARNING_message("Can't read any -clust files, such as %s.NN1.niml",cpref) ;
-
-       kk = 0 ;
-       if( clust_NN1 != NULL ){
-         clatr[kk] = (char *)malloc(sizeof(char)*(strlen(clust_NN1)+128)) ;
-         strcpy(clatr[kk],"AFNI_CLUSTSIM_NN1 ==> ") ; strcat(clatr[kk],clust_NN1) ; kk++ ;
-       }
-       if( clust_NN2 != NULL ){
-         clatr[kk] = (char *)malloc(sizeof(char)*(strlen(clust_NN2)+128)) ;
-         strcpy(clatr[kk],"AFNI_CLUSTSIM_NN2 ==> ") ; strcat(clatr[kk],clust_NN2) ; kk++ ;
-       }
-       if( clust_NN3 != NULL ){
-         clatr[kk] = (char *)malloc(sizeof(char)*(strlen(clust_NN3)+128)) ;
-         strcpy(clatr[kk],"AFNI_CLUSTSIM_NN3 ==> ") ; strcat(clatr[kk],clust_NN3) ; kk++ ;
-       }
-       if( kk > 0 && clust_mask != NULL ){
-         clatr[kk] = (char *)malloc(sizeof(char)*(strlen(clust_mask)+128)) ;
-         strcpy(clatr[kk],"AFNI_CLUSTSIM_MASK ==> ") ; strcat(clatr[kk],clust_mask) ; kk++ ;
+       cname = (char *)malloc(sizeof(char)*(strlen(cpref)+32)) ; qq = 0 ;
+       sprintf(cname,"%s.NN1_1sided.niml" ,cpref); clust_NN1_1sided  = AFNI_suck_file(cname); if( clust_NN1_1sided  != NULL ) qq++;
+       sprintf(cname,"%s.NN1_2sided.niml" ,cpref); clust_NN1_2sided  = AFNI_suck_file(cname); if( clust_NN1_2sided  != NULL ) qq++;
+       sprintf(cname,"%s.NN1_bisided.niml",cpref); clust_NN1_bisided = AFNI_suck_file(cname); if( clust_NN1_bisided != NULL ) qq++;
+       sprintf(cname,"%s.NN2_1sided.niml" ,cpref); clust_NN2_1sided  = AFNI_suck_file(cname); if( clust_NN2_1sided  != NULL ) qq++;
+       sprintf(cname,"%s.NN2_2sided.niml" ,cpref); clust_NN2_2sided  = AFNI_suck_file(cname); if( clust_NN2_2sided  != NULL ) qq++;
+       sprintf(cname,"%s.NN2_bisided.niml",cpref); clust_NN2_bisided = AFNI_suck_file(cname); if( clust_NN2_bisided != NULL ) qq++;
+       sprintf(cname,"%s.NN3_1sided.niml" ,cpref); clust_NN3_1sided  = AFNI_suck_file(cname); if( clust_NN3_1sided  != NULL ) qq++;
+       sprintf(cname,"%s.NN3_2sided.niml" ,cpref); clust_NN3_2sided  = AFNI_suck_file(cname); if( clust_NN3_2sided  != NULL ) qq++;
+       sprintf(cname,"%s.NN3_bisided.niml",cpref); clust_NN3_bisided = AFNI_suck_file(cname); if( clust_NN3_bisided != NULL ) qq++;
+       sprintf(cname,"%s.mask"            ,cpref); clust_mask        = AFNI_suck_file(cname);
+       if( qq == 0 ){
+         WARNING_message("Can't read any -clust files, such as %s.NN1_1sided.niml",cpref) ;
+       } else {
+         qq = 0 ;
+         if( clust_NN1_1sided != NULL ){
+           clatr[qq] = (char *)malloc(sizeof(char)*(strlen(clust_NN1_1sided)+128)) ;
+           strcpy(clatr[qq],"AFNI_CLUSTSIM_NN1_1sided ==> ") ; strcat(clatr[qq],clust_NN1_1sided) ; qq++ ;
+           free(clust_NN1_1sided) ;
+         }
+         if( clust_NN1_2sided != NULL ){
+           clatr[qq] = (char *)malloc(sizeof(char)*(strlen(clust_NN1_2sided)+128)) ;
+           strcpy(clatr[qq],"AFNI_CLUSTSIM_NN1_2sided ==> ") ; strcat(clatr[qq],clust_NN1_2sided) ; qq++ ;
+           free(clust_NN1_2sided) ;
+         }
+         if( clust_NN1_bisided != NULL ){
+           clatr[qq] = (char *)malloc(sizeof(char)*(strlen(clust_NN1_bisided)+128)) ;
+           strcpy(clatr[qq],"AFNI_CLUSTSIM_NN1_bisided ==> ") ; strcat(clatr[qq],clust_NN1_bisided) ; qq++ ;
+           free(clust_NN1_bisided) ;
+         }
+         if( clust_NN2_1sided != NULL ){
+           clatr[qq] = (char *)malloc(sizeof(char)*(strlen(clust_NN2_1sided)+128)) ;
+           strcpy(clatr[qq],"AFNI_CLUSTSIM_NN2_1sided ==> ") ; strcat(clatr[qq],clust_NN2_1sided) ; qq++ ;
+           free(clust_NN2_1sided) ;
+         }
+         if( clust_NN2_2sided != NULL ){
+           clatr[qq] = (char *)malloc(sizeof(char)*(strlen(clust_NN2_2sided)+128)) ;
+           strcpy(clatr[qq],"AFNI_CLUSTSIM_NN2_2sided ==> ") ; strcat(clatr[qq],clust_NN2_2sided) ; qq++ ;
+           free(clust_NN2_2sided) ;
+         }
+         if( clust_NN2_bisided != NULL ){
+           clatr[qq] = (char *)malloc(sizeof(char)*(strlen(clust_NN2_bisided)+128)) ;
+           strcpy(clatr[qq],"AFNI_CLUSTSIM_NN2_bisided ==> ") ; strcat(clatr[qq],clust_NN2_bisided) ; qq++ ;
+           free(clust_NN2_bisided) ;
+         }
+         if( clust_NN3_1sided != NULL ){
+           clatr[qq] = (char *)malloc(sizeof(char)*(strlen(clust_NN3_1sided)+128)) ;
+           strcpy(clatr[qq],"AFNI_CLUSTSIM_NN3_1sided ==> ") ; strcat(clatr[qq],clust_NN3_1sided) ; qq++ ;
+           free(clust_NN3_1sided) ;
+         }
+         if( clust_NN3_2sided != NULL ){
+           clatr[qq] = (char *)malloc(sizeof(char)*(strlen(clust_NN3_2sided)+128)) ;
+           strcpy(clatr[qq],"AFNI_CLUSTSIM_NN3_2sided ==> ") ; strcat(clatr[qq],clust_NN3_2sided) ; qq++ ;
+           free(clust_NN3_2sided) ;
+         }
+         if( clust_NN3_bisided != NULL ){
+           clatr[qq] = (char *)malloc(sizeof(char)*(strlen(clust_NN3_bisided)+128)) ;
+           strcpy(clatr[qq],"AFNI_CLUSTSIM_NN3_bisided ==> ") ; strcat(clatr[qq],clust_NN3_bisided) ; qq++ ;
+           free(clust_NN3_bisided) ;
+         }
+         if( qq > 0 && clust_mask != NULL ){
+           clatr[qq] = (char *)malloc(sizeof(char)*(strlen(clust_mask)+128)) ;
+           strcpy(clatr[qq],"AFNI_CLUSTSIM_MASK ==> ") ; strcat(clatr[qq],clust_mask) ; qq++ ;
+           free(clust_mask) ;
+         }
+         if( verb ) INFO_message("%d -clust attributes read for use in AFNI",qq) ;
        }
        nopt++ ; continue ;
      }
@@ -1979,6 +2031,18 @@ int main( int argc , char *argv[] )
        nopt++ ; continue ;
      }
 #endif
+
+     if( strcasecmp(argv[nopt],"-read") == 0 ){ /* 09 Feb 2016 */
+       if( shd_AAA != NULL )
+         WARNING_message("Option '-read' given AFTER '-setA' => '-read' is ignored for '-setA'") ;
+       if( shd_BBB != NULL )
+         WARNING_message("Option '-read' given AFTER '-setB' => '-read' is ignored for '-setB'") ;
+       do_read++ ; nopt++ ; continue ;
+     }
+
+     if( strcasecmp(argv[nopt],"-ztest") == 0 ){ /* 11 Feb 2016 */
+       do_ztest++ ; nopt++ ; continue ;
+     }
 
      if( strcasecmp(argv[nopt],"-ah") == 0 ){
        if( ++nopt >= argc ) ERROR_exit("GIC: need 1 argument after option '%s'",argv[nopt-1]) ;
@@ -2717,19 +2781,22 @@ int main( int argc , char *argv[] )
 
 #undef  BSTEP
 #define BSTEP 64
-   { long long pp , vstep=9 ; char *qv ; float sum=0.0f ;
+   if( !shd_AAA->did_read || (shd_BBB != NULL && !shd_BBB->did_read) ){
+     int64_t pp , vstep=9 ; char *qv ; float sum=0.0f ;
      if( verb ) INFO_message("GIC: page faulting (reading) data into memory") ;
-     if( shd_AAA->datum == 1 ) qv = (char *)shd_AAA->bv[0] ;
-     else                      qv = (char *)shd_AAA->sv[0] ;
-     if( verb ){
-       vstep = (shd_AAA->nbytes / BSTEP) / 50 ; fprintf(stderr," + setA:") ;
+     if( !shd_AAA->did_read ){
+       if( shd_AAA->datum == 1 ) qv = (char *)shd_AAA->bv[0] ;
+       else                      qv = (char *)shd_AAA->sv[0] ;
+       if( verb ){
+         vstep = (shd_AAA->nbytes / BSTEP) / 50 ; fprintf(stderr," + setA:") ;
+       }
+       for( pp=0 ; pp < shd_AAA->nbytes ; pp+=BSTEP,qv+=BSTEP ){
+         sum += *qv ;
+         if( verb && (pp/BSTEP)%vstep == vstep-1 ) vstep_print() ;
+       }
+       if( verb ){ fprintf(stderr,"!\n") ; vstep_n = 0 ; }
      }
-     for( pp=0 ; pp < shd_AAA->nbytes ; pp+=BSTEP,qv+=BSTEP ){
-       sum += *qv ;
-       if( verb && (pp/BSTEP)%vstep == vstep-1 ) vstep_print() ;
-     }
-     if( verb ){ fprintf(stderr,"!\n") ; vstep_n = 0 ; }
-     if( shd_BBB != NULL && !do_apair ){
+     if( shd_BBB != NULL && !do_apair && !shd_BBB->did_read ){
        if( shd_BBB->datum == 1 ) qv = (char *)shd_BBB->bv[0] ;
        else                      qv = (char *)shd_BBB->sv[0] ;
        if( verb ){
@@ -2745,10 +2812,44 @@ int main( int argc , char *argv[] )
    }
 #undef BSTEP
 
+   if( do_ztest ){  /* 11 Feb 2016 */
+     byte *bv ; short *sv ; int pp,nzz=0 ; int64_t nqq,qq ;
+     INFO_message("Running -ztest now") ;
+     if( shd_AAA->datum == 1 ){
+       for( pp=0 ; pp < shd_AAA->ndset ; pp++ ){
+         bv = shd_AAA->bv[pp] ; nqq = shd_AAA->nvec * (int64_t)shd_AAA->nvals[pp] ;
+         for( qq=0 ; qq < nqq && bv[qq]==0 ; qq++ ) ; /*nada*/
+         if( qq==nqq ){ WARNING_message("-setA dataset #%d is all zero :-(",pp) ; nzz++ ; }
+       }
+     } else {
+       for( pp=0 ; pp < shd_AAA->ndset ; pp++ ){
+         sv = shd_AAA->sv[pp] ; nqq = shd_AAA->nvec * (int64_t)shd_AAA->nvals[pp] ;
+         for( qq=0 ; qq < nqq && sv[qq]==0 ; qq++ ) ; /*nada*/
+         if( qq==nqq ){ WARNING_message("-setA dataset #%d is all zero :-(",pp) ; nzz++ ; }
+       }
+     }
+     if( shd_BBB != NULL && !do_apair ){
+       if( shd_BBB->datum == 1 ){
+         for( pp=0 ; pp < shd_BBB->ndset ; pp++ ){
+           bv = shd_BBB->bv[pp] ; nqq = shd_BBB->nvec * (int64_t)shd_BBB->nvals[pp] ;
+           for( qq=0 ; qq < nqq && bv[qq]==0 ; qq++ ) ; /*nada*/
+           if( qq==nqq ){ WARNING_message("-setB dataset #%d is all zero :-(",pp) ; nzz++ ; }
+         }
+       } else {
+         for( pp=0 ; pp < shd_BBB->ndset ; pp++ ){
+           sv = shd_BBB->sv[pp] ; nqq = shd_BBB->nvec * (int64_t)shd_BBB->nvals[pp] ;
+           for( qq=0 ; qq < nqq && sv[qq]==0 ; qq++ ) ; /*nada*/
+           if( qq==nqq ){ WARNING_message("-setB dataset #%d is all zero :-(",pp) ; nzz++ ; }
+         }
+       }
+     }
+     ININFO_message("total of %d dataset%s tested as all zero",nzz,(nzz!=1)?"s":"\0") ;
+   }
+
    if( verb ){
-     long long nbtot = shd_AAA->nbytes ;
+     int64_t nbtot = shd_AAA->nbytes ;
      if( shd_BBB != NULL && !do_apair ) nbtot += shd_BBB->nbytes ;
-     INFO_message("GIC: total bytes input = %s (about %s)" ,
+     INFO_message("GIC: total .data bytes input = %s (about %s)" ,
                    commaized_integer_string(nbtot) ,
                    approximate_number_string((double)nbtot) ) ;
    }
@@ -3007,25 +3108,17 @@ int main( int argc , char *argv[] )
    NI_set_attribute( nelcmd , "target_labels" , bricklabels ) ;
    free(bricklabels) ;
 
-   /* 23 May 2012: set the ClustStim attributes? */
+   /* 23 May 2012: set the ClustStim attributes? [patched 13 Oct 2015] */
 
    if( TalkToAfni ){
-     if( clatr[0] != NULL ){
-       NI_set_attribute( nelcmd, "string_attribute_000000", clatr[0] ); free(clatr[0]);
+     int qq ; char sname[32] ;
+     for( qq=0 ; qq < 10 ; qq++ ){
+       if( clatr[qq] != NULL ){
+         sprintf(sname,"string_attribute_%06d",qq) ;
+         NI_set_attribute( nelcmd , sname , clatr[qq] ) ;
+         free(clatr[qq]) ;
+       }
      }
-     if( clatr[1] != NULL ){
-       NI_set_attribute( nelcmd, "string_attribute_000001", clatr[1] ); free(clatr[1]);
-     }
-     if( clatr[2] != NULL ){
-       NI_set_attribute( nelcmd, "string_attribute_000002", clatr[2] ); free(clatr[2]);
-     }
-     if( clatr[3] != NULL ){
-       NI_set_attribute( nelcmd, "string_attribute_000003", clatr[3] ); free(clatr[3]);
-     }
-     if( clust_NN1  != NULL ) free(clust_NN1 ) ;
-     if( clust_NN2  != NULL ) free(clust_NN2 ) ;
-     if( clust_NN3  != NULL ) free(clust_NN3 ) ;
-     if( clust_mask != NULL ) free(clust_mask) ;
    }
 
    if( do_apair )      /* Apr 2013 */

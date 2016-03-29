@@ -228,13 +228,13 @@ for (ir=1:1:Nfields),
         Rules(ir).Length = Length;
         Rules(ir).minLength = minLength;
     else
-        err = 1; ErrMessage = sprintf('Error %s: Empty String in Field Name List', FuncName); errordlg(ErrMessage); return;    
+        err = 1; ErrMessage = sprintf('Error %s: Empty String in Field Name List', FuncName); errordlg(ErrMessage); return;
     end %isempty(CurName)
 end %for cnt
 
 
 
-    
+
 
 
 

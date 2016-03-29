@@ -47,7 +47,7 @@ extern "C" {
 #define mcw_calloc  calloc
 
 #undef  mcw_free
-#define mcw_free    free
+#define mcw_free(a,b,c)  free(a)
 
 #undef  mcw_strdup
 #define mcw_strdup  strdup
@@ -67,7 +67,7 @@ extern "C" {
 #define malloc(a)     mcw_malloc((a),__FILE__,__LINE__)
 #define realloc(a,b)  mcw_realloc((a),(b),__FILE__,__LINE__)
 #define calloc(a,b)   mcw_calloc((a),(b),__FILE__,__LINE__)
-#define free          mcw_free
+#define free(a)       mcw_free((a),__FILE__,__LINE__)
 
 #undef  strdup
 #define strdup(a)     mcw_strdup((a),__FILE__,__LINE__)
@@ -78,7 +78,7 @@ extern void   enable_mcw_malloc() ;
 extern void * mcw_malloc( size_t , char * , int ) ;
 extern void * mcw_realloc( void * , size_t , char * , int ) ;
 extern void * mcw_calloc( size_t , size_t , char * , int ) ;
-extern void   mcw_free( void * ) ;
+extern void   mcw_free( void * , char * , int ) ;
 extern char * mcw_strdup( char *, char * , int ) ; /* 06 May 2015 */
 
 extern char * mcw_malloc_status(const char *,int) ;

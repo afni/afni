@@ -2745,6 +2745,34 @@ def dotprod(v1,v2):
       dsum = 0
    return dsum
 
+def affine_to_params_6(avec, verb=1):
+   """convert rotation/shift affine "matrix" to 6 parameters
+      (e.g. as in 3dvolreg 1Dmatrix format to 1Dfile format)
+
+      matvec: length 12+ vector (row major order)
+      return: length 6 param vector:
+        roll, pitch, yaw, dx, dy, dz
+   """
+
+   rvec = [0.0]*6
+
+   if len(avec) < 12:
+      print '** affine_to_params_6: requires length 12+ vector, have %d' \
+            % len(avec)
+      return rvec
+
+   # rotations
+   rvec[0] = 180.0/math.pi * math.atan2(avec[9], avec[10])
+   rvec[1] = 180.0/math.pi *-math.asin (avec[8])
+   rvec[2] = 180.0/math.pi * math.atan2(avec[4], avec[0])
+
+   # deltas
+   rvec[3] = avec[3]
+   rvec[4] = avec[7]
+   rvec[5] = avec[11]
+
+   return rvec
+
 def maxabs(vals):
    """convenience function for the maximum of the absolute values"""
    if len(vals) == 0: return 0
@@ -3565,9 +3593,19 @@ afni_util.py: not really intended as a main program
             afni_util.py -eval "show_process_stack(verb=2)"
             afni_util.py -eval "show_process_stack(pid=1000)"
 
+      -exec STRING      : execute STRING in the context of afni_util.py
+
+         This option is used to simply execute the code in STRING.
+
+         Examples for exec:
+
+            afni_util.py -exec "y = 3+4 ; print y"
+            afni_util.py -exec "import PyQt4"
+            afni_util.py -exec "show_process_stack()"
+
       -print STRING     : print the result of executing STRING
 
-         Akin to -eval, but print the results of evaluating/executing STRING.
+         Akin to -eval, but print the results of evaluating STRING.
 
       -lprint STRING    : line print: print result list, one element per line
 
@@ -3697,6 +3735,9 @@ def main():
    if len(argv) > 2:
       if argv[1] == '-eval':
          eval(' '.join(argv[2:]))
+         return 0
+      elif argv[1] == '-exec':
+         exec(' '.join(argv[2:]))
          return 0
       elif argv[1] == '-lprint':
          ret = eval(' '.join(argv[2:]))

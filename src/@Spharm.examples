@@ -3,7 +3,7 @@
 
 INIT_VARS:
 set stat = 0
-set demoarch = http://afni.nimh.nih.gov/pub/dist/tgz/suma_tlrc.tgz
+set demoarch = https://afni.nimh.nih.gov/pub/dist/tgz/suma_tlrc.tgz
 set surf1 = lh.pial.tlrc.ply
 set sph1 = lh.sphere.asc
 set surf2 = lh.smoothwm.tlrc.ply

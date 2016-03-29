@@ -109,10 +109,10 @@ hist_node_head* free_histogram(hist_node_head * histogram, int nhistbins)
 
    inputs:
        xvectim: the input time courses that will be correlated
-       sparsity: the fraction of the top correlations that should be retained
+       sparsity: the percentage of the top correlations that should be retained
        threshold: a threshold that should be applied to determine if a correlation 
            should be retained. For sparsity thresholding this value will be used
-           as an inititial guess to speed calculation and a higher threshold may
+           as an initial guess to speed calculation and a higher threshold may
            ultimately be calculated through the adaptive process.
 
     output:
@@ -124,7 +124,7 @@ hist_node_head* free_histogram(hist_node_head * histogram, int nhistbins)
         this function can use a _lot_ of memory if you the sparsity is too high, we tell
         the user how much memory we anticipate using, but this doesn't work for threshold only!*/
 sparse_array_head_node* create_sparse_corr_array( MRI_vectim* xvectim, double sparsity, double thresh,
-     double (*corfun)(long,float*,float*), long mem_allowance  )
+     double (*corfun)(long,float*,float*), long mem_allowance )
 {
 
     /* random counters etc... */
@@ -140,7 +140,7 @@ sparse_array_head_node* create_sparse_corr_array( MRI_vectim* xvectim, double sp
     long ngoal = 0;
     long nretain = 0;
     float binwidth = 0.0;
-    long nhistbins = 1000;
+    long nhistbins = 10000;
     long mem_budget = 0;
 
     /* retain the original threshold*/
@@ -208,7 +208,6 @@ sparse_array_head_node* create_sparse_corr_array( MRI_vectim* xvectim, double sp
     /* if we are using a sparsity threshold, setup the histogram to sort the values */
     if ( sparsity < 100.0 )
     {
-
         /* make sure that there is a bin for correlation values that == 1.0 */
         binwidth = (1.005-thresh)/nhistbins;
 
@@ -338,7 +337,8 @@ sparse_array_head_node* create_sparse_corr_array( MRI_vectim* xvectim, double sp
                                     new_node->column = lin;
 
                                     totNumCor += 1;
-               
+
+                                    // if keeping all connections, just add to linked list
                                     if ( sparsity >= 100.0 )
                                     {
                                         new_node->next = sparse_array->nodes;
@@ -346,6 +346,7 @@ sparse_array_head_node* create_sparse_corr_array( MRI_vectim* xvectim, double sp
                                         sparse_array->num_nodes = sparse_array->num_nodes + 1;
                                         new_node = NULL; 
                                     }
+                                    // otherwise, populate to proper bin of histogram
                                     else
                                     {
                                         /* determine the index in the histogram to add the node */
@@ -365,18 +366,20 @@ sparse_array_head_node* create_sparse_corr_array( MRI_vectim* xvectim, double sp
                                             new_node->column = lin;
                                             new_node->weight = car;
                                             new_node->next = NULL;
-        
-                                            /* populate histogram */
+
+                                            // update histogram bin linked-list
                                             new_node->next = histogram[new_node_idx].nodes;
                                             histogram[new_node_idx].nodes = new_node;
+                                            // if first node in bin, point tail to node
                                             if (histogram[new_node_idx].tail == NULL)
                                             {
                                                 histogram[new_node_idx].tail = new_node;
                                             }
+                                            // increment bin count
                                             histogram[new_node_idx].nbin++; 
-                
+
                                             /* see if there are enough correlations in the histogram
-                                               for the sparsity */
+                                               for the sparsity - prune un-needed hist bins*/
                                             while ((totNumCor - histogram[bottom_node_idx].nbin) > nretain)
                                             { 
                                                 /* push the histogram nodes onto the list of recycled nodes, it could be
@@ -438,7 +441,7 @@ sparse_array_head_node* create_sparse_corr_array( MRI_vectim* xvectim, double sp
             ERROR_message( "No correlations exceeded threshold, consider using"
                            " a lower correlation threshold");
         }
-        sparse_array = free_sparse_array( sparse_array ); 
+        sparse_array = free_sparse_array( sparse_array );
     }
     else
     {
@@ -502,7 +505,7 @@ sparse_array_head_node* create_sparse_corr_array( MRI_vectim* xvectim, double sp
 
     /* free residual mem */
     histogram = free_histogram( histogram, nhistbins );
-    recycled_nodes = free_sparse_list( recycled_nodes );    
+    recycled_nodes = free_sparse_list( recycled_nodes );
 
     return( sparse_array );
 }

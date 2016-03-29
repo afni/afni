@@ -125,7 +125,7 @@ void whereami_usage(ATLAS_LIST *atlas_alist, int detail)
 "           whereami -coord_file out.1D'[1,2,3]' -tab\n"
 "               NOTE: You cannot use -coord_file AND specify x,y,z on\n"
 "                     command line.\n" 
-" -linkrbrain: get report from linkrbrain.org from list of coordinates\n"
+" -linkrbrain: get report from linkRbrain from list of coordinates\n"
 "           only with -coord_file and -space or -dset_space\n"
 " -linkr_type tasks/genes: report for correlation with tasks or genes\n"
 "           Default is tasks\n"
@@ -430,9 +430,9 @@ printf(
 
 " \n---------------\n"
 " More information about Atlases in AFNI can be found here:\n"
-"      http://afni.nimh.nih.gov/sscc/dglen/AFNIAtlases\n"
+"      https://afni.nimh.nih.gov/sscc/dglen/AFNIAtlases\n"
 " Class document illustrating whereami usage:\n"
-"      http://afni.nimh.nih.gov/pub/dist/edu/latest/afni11_roi/afni11_roi.pdf\n"
+"      https://afni.nimh.nih.gov/pub/dist/edu/latest/afni11_roi/afni11_roi.pdf\n"
 "---------------\n"
 );
 
@@ -1359,7 +1359,7 @@ int main(int argc, char **argv)
       return(1) ;
    }
    
-   /* linkrbrain.org output */
+   /* linkRbrain output */
    if (linkrbrain_output){
      /* if just testing parsing linkrbrain output, just parse and exit*/
      /* for debugging only really */
@@ -1385,14 +1385,14 @@ int main(int argc, char **argv)
      else {
         int lll = send_linkrbrain_xml(linkrbrain_xml, temp_linkrbrain_results) ;
         if( lll != 0 ){
-           fprintf(stderr,"** Error: could not link to linkrbrain.org."
-                        "   Check web connections\n");
+           fprintf(stderr,"** Error: could not link to %s"
+                        " -- Check web connections\n",get_linkrbrain_site());
            exit(1);
         }
         else {
         /* parse the output here. For now just say it's there */
            printf(
-        "Query of coordinates to linkrbrain.org correlations\n\n");
+        "Query of coordinates to %s correlations\n\n",get_linkrbrain_site());
            linkrbrain_XML_simple_report(temp_linkrbrain_results,
               linkr_corr_type);
 /*           linkrbrain_str = parse_linkrbrain("linkrbrain.xml");*/

@@ -5,7 +5,7 @@ oblique_info obl_info;  /* oblique info struct (from mri_read_dicom.c) */
 
 /* persistent and image only global dicom vars */
 /* (init to 0 except for read_data and verb) */
-dicom_globals_t g_info = { 0, 1, 1, 0, 0, 0 };
+dicom_globals_t g_dicom_ctrl = { 0, 1, 1, 0, 0, 0 };
 dicom_image_globals_t g_image_info;     /* clear on mri_read_dicom() */
 
 /*--------------------------------------------------------------------------*/
@@ -360,8 +360,8 @@ int disp_dicom_globals(char * mesg)
                   "   window          = %d\n"
                   "   use_last_elem   = %d\n",
           mesg ? mesg : "",
-          g_info.init, g_info.read_data, g_info.verb, g_info.rescale,
-          g_info.window, g_info.use_last_elem);
+          g_dicom_ctrl.init, g_dicom_ctrl.read_data, g_dicom_ctrl.verb,
+          g_dicom_ctrl.rescale, g_dicom_ctrl.window,g_dicom_ctrl.use_last_elem);
 
    return 0;
 }

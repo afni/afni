@@ -1239,7 +1239,7 @@ THD_3dim_dataset * THD_autobbox( THD_3dim_dataset *dset ,
 
 ENTRY("THD_autobbox") ;
    
-   medim = THD_median_brick(dset) ; if( medim == NULL ) EXRETURN ;
+   medim = THD_median_brick(dset) ; if( medim == NULL ) RETURN(NULL) ;
 
    mar  = MRI_FLOAT_PTR(medim) ;
    nvox = medim->nvox ;

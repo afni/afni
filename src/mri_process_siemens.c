@@ -37,7 +37,7 @@ int process_siemens_mosaic(
    char * s_start=NULL, * s_start2=NULL, * s_end=NULL; /* KRH 25 Jul 2003 */
    int    mos_nx=0, mos_ny=0 , mos_ix=0, mos_iy=0;
    int    len=0,loc=0 , aa,bb , ii ;
-   int    verb = g_info.verb;   /* just a convenience */
+   int    verb = g_dicom_ctrl.verb;   /* just a convenience */
 
    ENTRY("process_siemens_mosaic") ;
    
@@ -269,7 +269,7 @@ int read_mosaic_data( FILE *fp, MRI_IMAGE *im, MRI_IMARR *imar,
    char * dar=NULL, * iar ;
    int    nvox, yy, xx, nxx, ii, jj, slice ;
    int    mos_nx, mos_ny, mos_nz, mos_ix, mos_iy, mosaic_num;
-   int    verb = g_info.verb;  /* typing ease, default level is 1 */
+   int    verb = g_dicom_ctrl.verb;  /* typing ease, default level is 1 */
 
    ENTRY("read_mosaic_data");
 
@@ -295,7 +295,7 @@ int read_mosaic_data( FILE *fp, MRI_IMAGE *im, MRI_IMARR *imar,
 
    nvox = mos_nx*mos_ny*mos_nz ;         /* total number of voxels */
 
-   if( g_info.read_data ) {
+   if( g_dicom_ctrl.read_data ) {
       dar = (char*)calloc(bpp,nvox) ; /* make space for super-image */
       if(dar==NULL)  {  /* exit if can't allocate memory */
          ERROR_message("Could not allocate memory for mosaic volume");
@@ -324,7 +324,8 @@ int read_mosaic_data( FILE *fp, MRI_IMAGE *im, MRI_IMARR *imar,
       xx = slice % mos_ix; /* xx,yy are indices for position in mosaic matrix */
       yy = slice / mos_iy;
       /* im = mri_new( mos_nx , mos_ny , datum ) ; */
-      im = mri_new_7D_generic(mos_nx,mos_ny, 1,1,1,1,1, datum,g_info.read_data);
+      im = mri_new_7D_generic(mos_nx,mos_ny, 1,1,1,1,1, datum,
+                              g_dicom_ctrl.read_data);
       if( !im ) {
          fprintf(stderr,"** RMD: failed to allocate %d voxel image\n",
                  mos_nx * mos_ny);
@@ -332,7 +333,7 @@ int read_mosaic_data( FILE *fp, MRI_IMAGE *im, MRI_IMARR *imar,
       }
 
       /* if reading data, actually copy data into MRI image */
-      if( g_info.read_data ) {
+      if( g_dicom_ctrl.read_data ) {
          iar = mri_data_pointer( im ) ;             /* sub-image array */
 
          for( jj=0 ; jj < mos_ny ; jj++ )  /* loop over rows inside sub-image */
@@ -373,7 +374,7 @@ int flip_slices_mosaic (Siemens_extra_info *mi, int kor)
   /*       where 1=L-R, 2=P-A, 3=I-S */
   ENTRY("flip_slices_mosaic");
 
-  if( g_info.verb > 1 ) {
+  if( g_dicom_ctrl.verb > 1 ) {
      printf("flip_slices_mosaic kor = %d\n", kor);
      printf("ImageNumbSag,Cor,Tra= %d,%d,%d\n",
             mi->ImageNumbSag, mi->ImageNumbCor, mi->ImageNumbTra);
@@ -420,19 +421,20 @@ int apply_z_orient(Siemens_extra_info * Sinfo, char * orients, int * kor,
 
    /* validate the inputs */
    if( !Sinfo || !orients || !zoff || !kor) {
-      if( g_info.verb )
+      if( g_dicom_ctrl.verb )
          fprintf(stderr,"** apply_z_orient, bad params (%p,%p,%p,%p)\n",
                  Sinfo, orients, zoff, kor);
       RETURN(1);
    }
 
    if( !Sinfo->good ) {
-      if( g_info.verb ) fprintf(stderr,"** apply_z_orient but not mosaic");
+      if(g_dicom_ctrl.verb) fprintf(stderr,"** apply_z_orient but not mosaic");
       RETURN(1);
    }
 
    if( *kor > 3 || *kor < 1 ) {
-      if(g_info.verb )fprintf(stderr,"** apply_z_orient, bad kor = %d\n",*kor);
+      if(g_dicom_ctrl.verb )
+         fprintf(stderr,"** apply_z_orient, bad kor = %d\n",*kor);
       RETURN(1);
    }
 
@@ -470,7 +472,7 @@ int apply_z_orient(Siemens_extra_info * Sinfo, char * orients, int * kor,
    if( *kor > 0 ) *zoff = -z0;
    else           *zoff =  z0;
 
-   if( g_info.verb > 1 )
+   if( g_dicom_ctrl.verb > 1 )
       fprintf(stderr,"-- apply_z_orient: z0,z1=(%f,%f), kor=%d, orients=%s\n",
               z0, z1, *kor, orients);
 
@@ -494,7 +496,7 @@ int get_siemens_extra_info(char *str, Siemens_extra_info *mi)
    int have_x[2] = {0,0},
        have_y[2] = {0,0},
        have_z[2] = {0,0};
-   int verb = g_info.verb;  /* typing convenience */
+   int verb = g_dicom_ctrl.verb;  /* typing convenience */
    float val ;
    char name[1024] ;
   

@@ -113,16 +113,17 @@ g_todo = """
 g_history = """
    gen_ss_review_table.py history:
 
-   0.0  Apr 07, 2014    - initial version: does the basic job
-   0.1  Apr 08, 2014    - try to parse SID/GID from input file names
-   0.2  Apr 09, 2014    - help update, separators, parents
-   0.3  Jun 26, 2014    - label typos: track 'degress of freedom' as 'degrees'
-   0.4  Aug 25, 2014    - defined oind
-   0.5  May 19, 2014    - mention gen_ss_review_scripts.py -help_fields
-   0.6  Aug 19, 2015    - added -show_missing, to display missing keys
+   0.0  Apr 07, 2014   - initial version: does the basic job
+   0.1  Apr 08, 2014   - try to parse SID/GID from input file names
+   0.2  Apr 09, 2014   - help update, separators, parents
+   0.3  Jun 26, 2014   - label typos: track 'degress of freedom' as 'degrees'
+   0.4  Aug 25, 2014   - defined oind
+   0.5  May 19, 2014   - mention gen_ss_review_scripts.py -help_fields
+   0.6  Aug 19, 2015   - added -show_missing, to display missing keys
+   0.7  Oct 28, 2015   - make 'a/E mask Dice coef' parent of 'mask correlation'
 """
 
-g_version = "gen_ss_review_table.py version 0.6, Aug 19, 2015"
+g_version = "gen_ss_review_table.py version 0.7, Oct 28, 2015"
 
 
 class MyInterface:
@@ -380,6 +381,8 @@ class MyInterface:
          return 'degrees of freedom left'
       if label == 'degress of freedom used':    # typo (fixed 6/25/14)
          return 'degrees of freedom used'
+      if label == 'anat/EPI mask correlation':
+         return 'anat/EPI mask Dice coef'
 
       return label
 

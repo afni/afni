@@ -3064,7 +3064,7 @@ dset.gridmatch <- function(mdset, idset) {
    return(TRUE);
 }
 
-write.c.AFNI <- function( filename, dset=NULL, label=NULL, 
+write.c.AFNI <- function( filename, dset=NULL, label=NULL, space=NULL,
                         note=NULL, origin=NULL, delta=NULL,
                         orient=NULL, 
                         idcode=NULL, defhead=NULL,
@@ -3189,6 +3189,12 @@ write.c.AFNI <- function( filename, dset=NULL, label=NULL,
    if (!is.null(label)) dset$NI_head <- 
                            dset.attr(dset$NI_head, "BRICK_LABS",
                                     val = label);
+
+   if (is.null(space) && !is.null(defhead)) 
+      space <- dset.attr(defhead,"TEMPLATE_SPACE")
+   if (!is.null(space)) dset$NI_head <- 
+                           dset.attr(dset$NI_head, "TEMPLATE_SPACE",
+                                    val = space);  
    
    if (is.null(type) && !is.null(defhead)) {
       tps = dset.attr(defhead,"BRICK_TYPES");
@@ -3226,7 +3232,7 @@ write.c.AFNI <- function( filename, dset=NULL, label=NULL,
    invisible(dset);
 }
 
-write.AFNI <- function( filename, brk=NULL, label=NULL, 
+write.AFNI <- function( filename, brk=NULL, label=NULL, space=NULL,
                         note=NULL, origin=NULL, delta=NULL,
                         orient=NULL, 
                         idcode=NULL, defhead=NULL,
@@ -3259,7 +3265,7 @@ write.AFNI <- function( filename, brk=NULL, label=NULL,
   }
   
   if (meth == 'clib' || an$type == 'NIML' || class(brk) == "AFNI_c_dataset") {
-    return(write.c.AFNI(filename, dset=brk, label=label, 
+    return(write.c.AFNI(filename, dset=brk, label=label, space=space,
                         note=note, origin=origin, delta=delta,
                         orient=orient, 
                         idcode=idcode, defhead=defhead,
@@ -3285,7 +3291,7 @@ write.AFNI <- function( filename, brk=NULL, label=NULL,
   }
   #Call with brk if dset is sent in
   if (class(brk) == "AFNI_R_dataset") {
-     return(write.AFNI( filename, brk$brk, label, note, origin, delta, 
+     return(write.AFNI( filename, brk$brk, label, space, note, origin, delta, 
                         orient, idcode, defhead, verb, maskinf, scale)) 
   }
   
@@ -3303,6 +3309,7 @@ write.AFNI <- function( filename, brk=NULL, label=NULL,
   if (is.null(defhead)) { # No default header
      if (verb) note.AFNI("Have no default header");
      if (is.null(label)) label <- paste(c(1:ddb[4]),collapse='~');
+     if (is.null(space)) space <-'TLRC';
      if (is.null(origin)) origin <- c(0,0,0)
      if (is.null(delta)) delta <- c(4,4,4)
      if (is.null(orient)) orient <- 'RAI'
@@ -3315,6 +3322,14 @@ write.AFNI <- function( filename, brk=NULL, label=NULL,
          label <- paste(c(1:ddb[4]),collapse='~');
       }
      }
+     if (is.null(space)) {
+      if (!is.null(defhead$NI_head$TEMPLATE_SPACE$dat)) {
+         space <- defheadTEMPLATE_SPACE$dat;
+      } else {
+         space <- 'TLRC';
+      }
+     }
+     
      if (is.null(origin)) {
       if (!is.null(defhead$ORIGIN)) {
          origin <- defhead$ORIGIN;
@@ -3346,6 +3361,8 @@ write.AFNI <- function( filename, brk=NULL, label=NULL,
    note.AFNI("Writing header")
   }
   conhead <- file(head.AFNI.name(an), "w")
+  writeChar(AFNIheaderpart("string-attribute","TEMPLATE_SPACE",space),
+            conhead,eos=NULL)
   writeChar(AFNIheaderpart("string-attribute","HISTORY_NOTE",note),
             conhead,eos=NULL)
   writeChar(AFNIheaderpart("string-attribute","TYPESTRING","3DIM_HEAD_FUNC"),
@@ -3368,7 +3385,7 @@ write.AFNI <- function( filename, brk=NULL, label=NULL,
   writeChar(AFNIheaderpart("float-attribute","ORIGIN",origin),
             conhead,eos=NULL)  
   writeChar(AFNIheaderpart("float-attribute","DELTA",delta),
-            conhead,eos=NULL)  
+            conhead,eos=NULL)
   
   if (maskinf) {
    if (verb) note.AFNI("Masking infs");

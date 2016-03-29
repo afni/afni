@@ -22,7 +22,7 @@ function [err] = writeSPMmat (matin, matout)
 %
 %More Info :
 %   3dWarp -help
-%   http://afni.nimh.nih.gov/ssc/ziad/SUMA/SUMA_doc.htm
+%   https://afni.nimh.nih.gov/ssc/ziad/SUMA/SUMA_doc.htm
 %   (search for SPM)
 %
 %     Author : Ziad Saad

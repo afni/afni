@@ -13,6 +13,7 @@ PARSE:
    set xmat_only_meanit = 0  # really don't make new dsets
  
    set mode = 'grid'
+   set cm_amask = '-automask' # -automask or ''     6 Nov 2015 [rickr]
    set overw = 0
    set overf = ''
    if ("$1" == '') goto HELP
@@ -49,6 +50,11 @@ PARSE:
       
       if ($donext && "$argv[$cnt]" == "-cm") then
          set mode = 'cm'
+         set donext = 0   
+      endif
+      if ($donext && "$argv[$cnt]" == "-cm_no_amask") then
+         set mode = 'cm'
+         set cm_amask = ''
          set donext = 0   
       endif
       if ($donext && "$argv[$cnt]" == "-grid") then
@@ -203,7 +209,7 @@ if ($mode == 'grid') then
 else
    
    #get the center of mass of the base and apply delta
-   set v2_center_RAI = `3dCM -automask $v2i`
+   set v2_center_RAI = `3dCM $cm_amask $v2i`
    if ($usecp == 1) then
       if ( $overw == 0 && `@CheckForAfniDset $v1_pth/$oname` != 0 ) then
          echo ""
@@ -216,12 +222,12 @@ else
 
       if ($xmat_only_meanit != 1) then
          3dcopy $overf $v1  $v1_pth/$oname
-         set v1_center_RAI = `3dCM -automask -set $v2_center_RAI \
+         set v1_center_RAI = `3dCM $cm_amask -set $v2_center_RAI \
                               $v1_pth/$oname`
       endif
    else
       if ($xmat_only_meanit != 1) then
-         set v1_center_RAI = `3dCM -automask -set $v2_center_RAI $v1`
+         set v1_center_RAI = `3dCM $cm_amask -set $v2_center_RAI $v1`
       endif
    endif
    
@@ -355,6 +361,7 @@ HELP:
    echo " Center options:"
    echo "   -grid: (default) Center is that of the volume's grid"
    echo "   -cm : Center is the center of mass of the volume."
+   echo "   -cm_no_amask : Implies -cm, but with no -automask."
    echo "" 
    echo ""
    echo "   See also @Center_Distance"

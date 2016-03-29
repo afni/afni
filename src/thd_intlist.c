@@ -21,7 +21,7 @@ void MCW_intlist_allow_negative( int iii )   /* 22 Nov 1999 */
 
 #define ISEND(c) ( (c)==']' || (c)=='}' || (c)=='#' || (c)=='\0' )
 
-int * get_count_intlist ( char *str , int *nret)
+int * get_count_intlist ( char *str , int *nret, int maxval )
 {
    int *subv = NULL, *ret = NULL ;
    int ii , ipos , nout , slen, shuffle, step, itmp;
@@ -53,8 +53,13 @@ int * get_count_intlist ( char *str , int *nret)
    if( ISEND(str[ipos]) ) return NULL ;         /* bad */
    ibot = strtol( str+ipos , &cpt , 10 ) ;
    if( ibot < 0 && !allow_negative ){
-     fprintf(stderr,"** ERROR: selector index %d cannot be < 0\n",
+     fprintf(stderr,"** ERROR: bot selector index %d cannot be < 0\n",
              ibot) ;
+     return NULL ;  /* added return     4 Jan 2016 [rickr] */
+   } else if( maxval >= 0 && ibot > maxval ){       /* 4 Jan 2016 [rickr] */
+     fprintf(stderr,"** ERROR: count selector index %d exceeds max %d\n",
+             ibot, maxval) ;
+     return NULL ;
    }
    nused = (cpt-(str+ipos)) ;
    if( ibot == 0 && nused == 0 ){
@@ -67,8 +72,12 @@ int * get_count_intlist ( char *str , int *nret)
    if( ISEND(str[ipos]) ) return NULL  ;         /* Bad */
    itop = strtol( str+ipos , &cpt , 10 ) ;
    if( itop < 0 && !allow_negative ){
-     fprintf(stderr,"** ERROR: selector index %d cannot be < 0\n",
+     fprintf(stderr,"** ERROR: top selector index %d cannot be < 0\n",
              itop) ;
+     return NULL ;
+   } else if( maxval >= 0 && itop > maxval ){       /* 4 Jan 2016 [rickr] */
+     fprintf(stderr,"** ERROR: count top selector index %d exceeds max %d\n",
+             itop, maxval) ;
      return NULL ;
    }
    if( itop == 0 && nused == 0 ){
@@ -153,7 +162,8 @@ int * get_count_intlist ( char *str , int *nret)
 }
 
 
-int * get_1dcat_intlist ( char *sin , int *nret)
+/* if maxval >= 0, values may not exceed it */
+int * get_1dcat_intlist ( char *sin , int *nret, int maxval)
 {
    int ipos , slen, *ret=NULL, ii=0;
    MRI_IMAGE *aim = NULL;
@@ -195,16 +205,17 @@ int * get_1dcat_intlist ( char *sin , int *nret)
    ret[0] = *nret;
    for (ii=0; ii<*nret; ++ii) {
       ret[ii+1] = (int)far[ii];
-      #if 0
-      if (ret[ii]<0) { /* leave error handling for elsewhere */
-         ERROR_message( "Bad brick selection value in 1D file '%s' "
-                        "where value %d is %f\n", str+ipos, ii, far[ii]);
+      /* was #if 0: leave error handling for elsewhere, 4 Jan 2016 [rickr] */
+      if ( (!allow_negative && ret[ii+1]<0) ||
+           (maxval >= 0 && ret[ii+1] > maxval) ) {
+         ERROR_message( "Bad 1dcat brick selection value in 1D file '%s'\n"
+                        "   value %d is %g (max=%d)\n",
+                        str+ipos, ii, far[ii], maxval);
          mri_free(aim); aim = NULL; far=NULL;
          free(str); str=NULL;
          free(ret); ret=NULL;
          return(NULL); 
       }
-      #endif
    }
    
    mri_free(aim); aim = NULL; far=NULL;
@@ -279,7 +290,7 @@ int * MCW_get_intlist( int nvals , char *str )
 
    /* do we have a count string in there ZSS ? */
    if (strstr(str,"count ")) {
-      return(get_count_intlist ( str, &ii));
+      return(get_count_intlist ( str, &ii, nvals-1));
    }
      
    /*** loop through each sub-selector until end of input ***/
@@ -330,7 +341,7 @@ int * MCW_get_intlist( int nvals , char *str )
 
       /** otherwise, must have '..' or '-' as next inputs **/
 
-      if( str[ipos] == '-' ){
+      if( str[ipos] == '-' || str[ipos] == ':' ){
          ipos++ ;
       } else if( str[ipos] == '.' && str[ipos+1] == '.' ){
          ipos++ ; ipos++ ;
@@ -549,11 +560,11 @@ int * MCW_get_labels_intlist (char **labels, int nvals, char *str)
 
    /* do we have a 1dcat string in there ZSS ? */
    if (strstr(str,"1dcat ")) {
-      return(get_1dcat_intlist ( str, &ii));
+      return(get_1dcat_intlist ( str, &ii, nvals-1 ));
    }
    /* do we have a count string in there ZSS ? */
    if (strstr(str,"count ")) {
-      return(get_count_intlist ( str, &ii));
+      return(get_count_intlist ( str, &ii, nvals-1 ));
    }
      
    /*** loop through each sub-selector until end of input ***/
@@ -611,7 +622,7 @@ int * MCW_get_labels_intlist (char **labels, int nvals, char *str)
 
       /** otherwise, must have '..' or '-' as next inputs **/
 
-      if( str[ipos] == '-' ){
+      if( str[ipos] == '-' || str[ipos] == ':' ){
          ipos++ ;
       } else if( str[ipos] == '.' && str[ipos+1] == '.' ){
          ipos++ ; ipos++ ;

@@ -631,7 +631,7 @@ ENTRY("GA_scalar_costfun") ;
     break ;
   }
 
-  if( !finite(val) ) val = BIGVAL ;
+  if( !isfinite(val) ) val = BIGVAL ;
   RETURN( val );
 }
 

@@ -63,7 +63,10 @@ def dep_check():
 	global grayweight_ok
 	grayweight_ok = 0
 	print " + Python version: %s" % ('.'.join([str(v) for v in sys.version_info[0:3]]))
-	if sys.version_info < (2,6) or sys.version_info > (3,0):
+	if sys.version_info >= (3,0):
+		print "*+ meica.py requires Python 2.x, not 3.x!"
+		fails+=1
+	elif sys.version_info < (2,6):
 		print "*+ Python 2.x is <2.6, please upgrade to Python 2.x >= 2.6 & Numpy >= 1.5.x."
 		fails+=1
 	else:
@@ -82,7 +85,7 @@ def dep_check():
 		fails+=1
 	if numpy_installed:
 		print " + Numpy version: %s" % (numpy.__version__)
-		if float('.'.join(numpy.__version__.split('.')[0:2]))<1.5:
+		if tuple(map(int, numpy.__version__.split('.'))) < (1, 5):
 			fails+=1
 			print "*+ Numpy version is too old! Please upgrade to Numpy >=1.5.x!"
 		import numpy.__config__ as nc
@@ -91,7 +94,7 @@ def dep_check():
 			print "*+ Numpy is not linked to BLAS! Please check Numpy installation."
 	if scipy_installed:
 		print " + Scipy version: %s" % (scipy.__version__)
-		if float('.'.join(scipy.__version__.split('.')[0:2]))<0.11:
+		if tuple(map(int, scipy.__version__.split('.'))) < (0, 11):
 			fails+=1
 			print "*+ Scipy version is too old! Please upgrade to Scipy >=0.11.x!"
 	afnicheck = commands.getstatusoutput("3dinfo")
