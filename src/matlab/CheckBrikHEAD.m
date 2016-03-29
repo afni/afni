@@ -1,13 +1,16 @@
-function [err, ErrMessage, Info] = CheckBrikHEAD (Info)
+function [err, ErrMessage, Info] = CheckBrikHEAD (Info, show_warning_dialogue)
 %
-%   [err, ErrMessage, InfoOut] = CheckBrikHEAD (Info)
+%   [err, ErrMessage, InfoOut] = CheckBrikHEAD (Info [,show_warning_dialogue])
 %
 %Purpose:
 %   Checks to determine if the fields in Info are appropriate AFNI style
 %
 %
 %Input Parameters:
-%   Info is a structure containing all the Header fields,
+%   Info is a structure containing all the Header fields
+%   show_warning_dialogue is an optional boolean (true or false); if true
+%                         it will show a warning in a dialogue box.
+%                         Default: true
 %
 %
 %Output Parameters:
@@ -43,20 +46,34 @@ err = 1;
 
 ErrMessage = '';
 
+% set default value for show_warning_dialogue
+if nargin<2
+    show_warning_dialogue=true;
+end
+
+% use helper function that either shows a warning dialogue or a
+% warning in the command window
+show_warning=@(msg) show_warning_helper(msg, show_warning_dialogue);
+
 %Mandatory Fields Specs
 
-MandatoryFieldNames = 'DATASET_RANK~DATASET_DIMENSIONS~TYPESTRING~SCENE_DATA~ORIENT_SPECIFIC~ORIGIN~DELTA';
-N_Mandatory = WordCount(MandatoryFieldNames, '~');
+MandatoryFieldNames = {'DATASET_RANK',...
+                        'DATASET_DIMENSIONS',...
+                        'TYPESTRING',...
+                        'SCENE_DATA',...
+                        'ORIENT_SPECIFIC',...
+                        'ORIGIN',...
+                        'DELTA'};
 
-%check if the mandatory fields are present
-for (im = 1:1:N_Mandatory),
-	%Check that all the Mandatory Fields have been specified.
-	[err, CurName] = GetWord(MandatoryFieldNames, im, '~');
-	if(~isfield(Info, CurName)),
-		err = 1; ErrMessage = sprintf('Error %s: Field %s must be specified for the Header to be proper.', FuncName, CurName);
-		warndlg(ErrMessage);
-		return;
-	end
+missing_fields=setdiff(MandatoryFieldNames, fieldnames(Info));
+if ~isempty(missing_fields)
+    first_missing_field=missing_fields{1};
+    err = 1; ErrMessage = sprintf(['Error %s: Field %s must be '...
+                                    'specified for the Header to '...
+                                    'be proper.'], ...
+                                    FuncName, first_missing_field);
+    show_warning(ErrMessage);
+    return;
 end
 
 %Now Get all the rules
@@ -78,23 +95,23 @@ for (ir = 1:1:N_Rules),
 			%check for type coherence
 			if (ischar(getfield(Info, Rules(ir).Name))),
 				if (Rules(ir).isNum),
-					err = 1; ErrMessage = sprintf('Error %s: Field %s type (string or numerical) is wrong.', FuncName, Rules(ir).Name);warndlg(ErrMessage);return;
+					err = 1; ErrMessage = sprintf('Error %s: Field %s type (string or numerical) is wrong.', FuncName, Rules(ir).Name);show_warning(ErrMessage);return;
 				end
 			else %a number, verify type
-				if (Rules(ir).isNum == 1 & ~isint(getfield(Info, Rules(ir).Name))),
+				if (Rules(ir).isNum == 1 && ~isint(getfield(Info, Rules(ir).Name))),
 					err = 1; ErrMessage = sprintf('Error %s: Field %s type must be an integer.', FuncName, Rules(ir).Name);
 				end
 			end
 			%check for length specs
 			if (~isempty(Rules(ir).Length)),
 				if (length(getfield(Info,Rules(ir).Name)) ~= Rules(ir).Length),
-					err = 1; ErrMessage = sprintf('Error %s: Field %s length must be %d.', FuncName, Rules(ir).Name, Rules(ir).Length);warndlg(ErrMessage);return;
+					err = 1; ErrMessage = sprintf('Error %s: Field %s length must be %d.', FuncName, Rules(ir).Name, Rules(ir).Length);show_warning(ErrMessage);return;
 				end
 			end
 			%check for minimum length specs
 			if (~isempty(Rules(ir).minLength)),
 				if (length(getfield(Info,Rules(ir).Name)) < Rules(ir).minLength),
-					err = 1; ErrMessage = sprintf('Error %s: Field %s length must be at least %d.', FuncName, Rules(ir).Name, Rules(ir).minLength);warndlg(ErrMessage);return;
+					err = 1; ErrMessage = sprintf('Error %s: Field %s length must be at least %d.', FuncName, Rules(ir).Name, Rules(ir).minLength);show_warning(ErrMessage);return;
 				end
 			end
 		end
@@ -130,17 +147,17 @@ end
 			err = 1; ErrMessage = sprintf('Error %s: TYPESTRING must be one of \n3DIM_HEAD_ANAT, 3DIM_HEAD_FUNC, 3DIM_GEN_ANAT or 3DIM_GEN_FUNC', FuncName); errordlg(ErrMessage); return;	
 		end
 
-		if (Info.SCENE_DATA(1) < 0 |  Info.SCENE_DATA(1) > 2),
+		if (Info.SCENE_DATA(1) < 0 ||  Info.SCENE_DATA(1) > 2),
 			err = 1; ErrMessage = sprintf('Error %s: SCENE_DATA(1) must be between 0 and 2', FuncName); errordlg(ErrMessage); return;
 		end
-		if (Info.SCENE_DATA(2) < 0 |  Info.SCENE_DATA(2) > 11),
+		if (Info.SCENE_DATA(2) < 0 ||  Info.SCENE_DATA(2) > 11),
 			err = 1; ErrMessage = sprintf('Error %s: SCENE_DATA(2) must be between 0 and 11', FuncName); errordlg(ErrMessage); return;
 		end
-		if (Info.SCENE_DATA(3) < 0 |  Info.SCENE_DATA(3) > 3),
+		if (Info.SCENE_DATA(3) < 0 ||  Info.SCENE_DATA(3) > 3),
 			err = 1; ErrMessage = sprintf('Error %s: SCENE_DATA(3) must be between 0 and 3', FuncName); errordlg(ErrMessage); return;
 		end
 
-		if (Info.ORIENT_SPECIFIC(1) < 0 |  Info.ORIENT_SPECIFIC(1) > 5),
+		if (Info.ORIENT_SPECIFIC(1) < 0 ||  Info.ORIENT_SPECIFIC(1) > 5),
 			err = 1; ErrMessage = sprintf('Error %s: ORIENT_SPECIFIC(1) must be between 0 and 5', FuncName); errordlg(ErrMessage); return;
 		end
 
@@ -173,7 +190,7 @@ end
 				err = 1; ErrMessage = sprintf('Error %s: TAXIS_NUMS(1) must be equal to DATASET_RANK(2)', FuncName); errordlg(ErrMessage); return;
 			end
 
-			if (Info.TAXIS_NUMS(2) & (~isfield(Info,'TAXIS_OFFSETS') | isempty(Info.TAXIS_OFFSETS))),
+			if (Info.TAXIS_NUMS(2) && (~isfield(Info,'TAXIS_OFFSETS') || isempty(Info.TAXIS_OFFSETS))),
 				err = 1; ErrMessage = sprintf('Error %s: TAXIS_OFFSETS must have a value if TAXIS_NUMS(2) is != 0', FuncName); errordlg(ErrMessage); return;
 			end
 		end
@@ -185,7 +202,7 @@ end
 		end
 
 		if (isfield(Info, 'BYTEORDER_STRING')),
-			if (~strcmp(Info.BYTEORDER_STRING, 'LSB_FIRST') & ~strcmp(Info.BYTEORDER_STRING, 'MSB_FIRST')),
+			if (~strcmp(Info.BYTEORDER_STRING, 'LSB_FIRST') && ~strcmp(Info.BYTEORDER_STRING, 'MSB_FIRST')),
 				err = 1; ErrMessage = sprintf('Error %s: BYTEORDER_STRING must be either MSB_FIRST or LSB_FIRST', FuncName); errordlg(ErrMessage); return;
 			end
 		end
@@ -200,11 +217,11 @@ end
          end	
       end
 
-		if (isfield(Info, 'NOTES_COUNT') & (Info.NOTES_COUNT < 0 | Info.NOTES_COUNT > 999)),
+		if (isfield(Info, 'NOTES_COUNT') && (Info.NOTES_COUNT < 0 || Info.NOTES_COUNT > 999)),
 			err = 1; ErrMessage = sprintf('Error %s: NOTES_COUNT must be between 0 and 999.', FuncName); errordlg(ErrMessage); return;
 		end
 
-		if (isfield(Info, 'WARP_TYPE') & (Info.WARP_TYPE(1) ~= 0 & Info.WARP_TYPE(1) ~= 1)),
+		if (isfield(Info, 'WARP_TYPE') && (Info.WARP_TYPE(1) ~= 0 && Info.WARP_TYPE(1) ~= 1)),
 			err = 1; ErrMessage = sprintf('Error %s: WARP_TYPE(1) must be 0 or 1.', FuncName); errordlg(ErrMessage); return;
 		end
 
@@ -215,7 +232,7 @@ end
 		end
 
 		if (isfield(Info, 'MARKS_FLAGS')),
-			if (Info.MARKS_FLAGS(1) ~= 1 & Info.MARKS_FLAGS(1) ~= 2),
+			if (Info.MARKS_FLAGS(1) ~= 1 && Info.MARKS_FLAGS(1) ~= 2),
 				err = 1; ErrMessage = sprintf('Error %s: MARKS_FLAGS(1) must be 0 or 1.', FuncName); errordlg(ErrMessage); return;	
 			end
 			if (Info.MARKS_FLAGS(2) ~= 1),
@@ -229,13 +246,13 @@ end
 			end
 		end
 
-		if (isfield(Info, 'TAGSET_NUM') & isfield(Info, 'TAGSET_FLOATS')),
+		if (isfield(Info, 'TAGSET_NUM') && isfield(Info, 'TAGSET_FLOATS')),
 			if (length(Info.TAGSET_FLOATS) ~= (Info.TAGSET_NUM(1) .* Info.TAGSET_NUM(2)) ),   % Ask Ziad about this later
 				err = 1; ErrMessage = sprintf('Error %s: Length of TAGSET_FLOATS must equal TAGSET_NUM(1) * TAGSET_NUM(2).', FuncName); errordlg(ErrMessage); return;	
 			end
 		end
 
-		if (isfield(Info, 'TAGSET_NUM') & isfield(Info, 'TAGSET_LABELS')),
+		if (isfield(Info, 'TAGSET_NUM') && isfield(Info, 'TAGSET_LABELS')),
 			if (WordCount(Info.TAGSET_LABELS, '~') ~= Info.TAGSET_NUM(1)),   % Ask Ziad later
 				err = 1; ErrMessage = sprintf('Error %s: TAGSET_LABELS must contain TAGSET_NUM(1) ~ delimited strings.', FuncName); errordlg(ErrMessage); return;	
 			end
@@ -259,7 +276,7 @@ end
 		end
 
 		%check on the NOT_NUMBER_... fields
-		if (~isfield(Info, 'NOTES_COUNT') & isfield(Info, 'NOTE_NUMBER_001')),
+		if (~isfield(Info, 'NOTES_COUNT') && isfield(Info, 'NOTE_NUMBER_001')),
 			Info = rmfield(Info, 'NOTE_NUMBER_001');
 		end
 
@@ -276,3 +293,10 @@ end
 err = 0;
 return;
 
+
+function show_warning_helper(msg, show_warning_dialogue)
+    if show_warning_dialogue
+        show_warning(msg);
+    else
+        warning(msg);
+    end

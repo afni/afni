@@ -49,6 +49,22 @@
 
 
 afni_history_struct dglen_history[] = {
+{ 10, FEB, 2016 , DRG , "afni" , 
+    MICRO , TYPE_BUG_FIX, 
+    "fixed ignoring of -no1D option, and 1D files are not read on input"
+},
+{ 22, JAN, 2016 , DRG , "auto_warp.py" , 
+    MICRO , TYPE_BUG_FIX, 
+    "skip_affine option previously skipped"
+},
+{ 22, JAN, 2016 , DRG , "align_epi_anat.py" , 
+    MINOR , TYPE_NEW_OPT, 
+    "rigid_body alignment option and better handling of user allineate options"
+},
+{ 22, JAN, 2016 , DRG , "align_epi_anat.py" , 
+    MICRO , TYPE_BUG_FIX, 
+    "Incorrect check for file output existence for oblique data"
+},
 { 18, SEP, 2015, DRG, "@DBSproc bug fix",
     MINOR, TYPE_BUG_FIX,
     "Left-right coordinate flip in @DBSproc script for Silvina Horovitz"

@@ -44,7 +44,7 @@ SOMEAFOBJS = parser_int.o afni_warp.o afni_slice_byte.o afni_slice_short.o \
 T3OBJS  = to3d.o
 
 MISC    = AFNI_atlas_spaces.niml AFNI.Xdefaults AFNI.afnirc AFNI.sumarc \
-          3d*.lib gmovie* afni_papers.txt
+          3d*.lib gmovie* afni_papers.txt AFNI_version_base.txt
 
 ## The following programs are "extras" not really part of the
 ## AFNI package, but included because they are useful.  Some of
@@ -83,7 +83,7 @@ PROGRAMS = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge count   
            nifti_tool 3dAllineate nifti1_test whereami plugout_drive 3dLSS      \
            3dMedianFilter 3dretroicor 3dAFNItoNIML 3dAFNItoRaw im2niml 3dedge3  \
            DTIStudioFibertoSegments Dimon1 Dimon 3dLocalstat 3danisosmooth      \
-           3dmaxima GLTsymtest 3dPval                                           \
+           3dmaxima GLTsymtest 3dPval stimband 1dNLfit                          \
            3dTwotoComplex 3dInvFMRI 3dmatcalc 3dAcost 3dLocalBistat 3dFWHMx     \
            3dBlurToFWHM 1dSEM 3dDFT 3dSynthesize 1dMarry 3dEmpty 3dsvm          \
            1dFlagMotion 3dTsort 1dTsort 3dTfitter afni_history 1dUpsample       \
@@ -193,10 +193,10 @@ SCRIPTS = @4Daverage @CommandGlobb @GetAfniOrient @DTI_studio_reposition        
           @2dwarper.Allin @Shift_Volume  @help.AFNI @1dDiffMag @FSlabel2dset      \
           @Install_InstaCorr_Demo @Quiet_Talkers @radial_correlate                \
           @DeblankFileNames @clean_help_dir @global_parse @AfniEnv @Atlasize      \
-          @Install_TSrestMovieDemo @Install_AfniRetinoDemo                        \
+          @Install_TSrestMovieDemo @Install_AfniRetinoDemo @get.afni.version      \
           @Install_FATCAT_DEMO @Install_RSFMRI_Motion_Group_Demo                  \
           @Install_MEICA_Demo @T1scale 3dMVM @compute_gcor 3dLME                  \
-          @Install_ClustScat_Demo @Install_FATMVM_DEMO                            \
+          @Install_ClustScat_Demo @Install_FATMVM_DEMO @GradFlipTest              \
           @move.to.series.dirs @toMNI_Awarp @toMNI_Qwarpar @simulate_motion	    \
           @afni.run.me 3dRprogDemo @ExamineGenFeatDists rPkgsInstall 	         \
           @Install_DBSproc @Install_3dPFM_Demo 3dPFM @diff.files @diff.tree
@@ -240,7 +240,7 @@ vastness:all plugins install install_plugins install_lib
 ### Make many things
 
 all:$(LIBDL) libmri.a libmrix.a libcoxplot.a libvolpack.a libtracktools.a \
-             R_io.so programs ptaylor_all
+             R_io.so programs ptaylor_all AFNI_version
 
 ### Make afni binaries
 
@@ -378,6 +378,12 @@ imcutup:imcutup.c
 
 imcat:imcat.c
 	$(CC) -o imcat imcat.c $(INFLAGS) $(LFLAGS) $(LLIBS)
+
+images_equal:images_equal.c
+	$(CC) -o images_equal images_equal.c $(INFLAGS) $(LFLAGS) $(LLIBS)
+
+uniq_images:uniq_images.c
+	$(CC) -o uniq_images uniq_images.c $(INFLAGS) $(LFLAGS) $(LLIBS)
 
 Vecwarp:Vecwarp.c
 	$(CC) -o Vecwarp Vecwarp.c $(INFLAGS) $(LFLAGS) $(LLIBS)
@@ -645,13 +651,13 @@ dsetdup:dsetdup.o
 	$(RM) $@
 	$(CC) -o 3dmaskSVD 3dmaskSVD.o $(LFLAGS) $(LLIBS)
 
-3dBlurToFWHM:3dBlurToFWHM.o
-	$(RM) $@
-	$(CCFAST) -o 3dBlurToFWHM 3dBlurToFWHM.o $(LFLAGS) $(LLIBS)
-
 3dDFT:3dDFT.o
 	$(RM) $@
 	$(CC) -o 3dDFT 3dDFT.o $(LFLAGS) $(LLIBS)
+
+csfft_cache:csfft_cache.o
+	$(RM) $@
+	$(CC) -o csfft_cache csfft_cache.o $(LFLAGS) $(LLIBS)
 
 3dRetinoPhase:3dRetinoPhase.o
 	$(RM) $@
@@ -790,6 +796,10 @@ nsize:nsize.o
 	$(RM) $@
 	$(CC) -o nsize nsize.o $(LFLAGS) $(LLIBS)
 
+3dETC:3dETC.o
+	$(RM) $@
+	$(CC) -o 3dETC 3dETC.o $(LFLAGS) $(LLIBS)
+
 3dclust:3dclust.o parser.o parser_int.o
 	$(RM) $@
 	$(CC) -o 3dclust 3dclust.o parser.o parser_int.o \
@@ -851,6 +861,10 @@ d3dmerge:3dmerge.c
 	$(RM) $@
 	$(CC) -o 3dedge3 3dedge3.o -I3DEdge/src            \
               $(LFLAGS) -l3DEdge $(LLIBS)
+
+3dNormalizer:3dNormalizer.o
+	$(RM) $@
+	$(CC) -o 3dNormalizer 3dNormalizer.o $(LFLAGS) $(LLIBS)
 
 ### From Stephen LaConte
 3dsvm:
@@ -1095,10 +1109,6 @@ RSFgen:RSFgen.o
 	$(RM) $@
 	$(CC) -o 3dFWHM 3dFWHM.o $(LFLAGS) $(LLIBS)
 
-3dFWHMx:3dFWHMx.o
-	$(RM) $@
-	$(CC) -o 3dFWHMx 3dFWHMx.o $(LFLAGS) $(LLIBS)
-
 3dMannWhitney:3dMannWhitney.o
 	$(RM) $@
 	$(CC) -o 3dMannWhitney 3dMannWhitney.o $(LFLAGS) $(LLIBS)
@@ -1210,6 +1220,30 @@ qwarpobj: $(QWARPOBJ)
 
 ## ------- Things to be compiled or linked with OpenMP -------
 
+qqqOMP.o: qqqOMP.c
+	$(RM) $@
+	$(CCOMP) -c qqqOMP.c $(INFLAGS)
+
+qqqOMP:qqqOMP.o
+	$(RM) $@
+	$(CCOMP) -o qqqOMP qqqOMP.o $(LFLAGS) $(LLIBS)
+
+3dBlurToFWHM.o: 3dBlurToFWHM.c mri_fwhm.c
+	$(RM) $@
+	$(CCOMP) -c 3dBlurToFWHM.c $(INFLAGS)
+
+3dBlurToFWHM:3dBlurToFWHM.o
+	$(RM) $@
+	$(CCOMP) -o 3dBlurToFWHM 3dBlurToFWHM.o $(LFLAGS) $(LLIBS)
+
+3dFWHMx.o: 3dFWHMx.c mri_fwhm.c
+	$(RM) $@
+	$(CCOMP) -c 3dFWHMx.c $(INFLAGS)
+
+3dFWHMx:3dFWHMx.o
+	$(RM) $@
+	$(CCOMP) -o 3dFWHMx 3dFWHMx.o $(LFLAGS) $(LLIBS)
+
 3dUnifize.o: 3dUnifize.c
 	$(RM) $@
 	$(CCOMP) -c 3dUnifize.c $(INFLAGS)
@@ -1290,7 +1324,7 @@ AlphaSim:AlphaSim.o
 	$(RM) $@
 	$(CCOMP) -o AlphaSim AlphaSim.o $(LFLAGS) $(LLIBS)
 
-3dClustSim.o:3dClustSim.c zgaussian.c
+3dClustSim.o:3dClustSim.c zgaussian.c mri_radial_random_field.c
 	$(RM) $@
 	$(CCOMP) -c 3dClustSim.c $(INFLAGS)
 
@@ -1706,6 +1740,10 @@ abut:abut.o
 	$(RM) $@
 	$(CC) -o abut abut.o $(LFLAGS) $(LLIBS)
 
+stimband:stimband.o
+	$(RM) $@
+	$(CC) -o stimband stimband.o $(LFLAGS) $(LLIBS)
+
 siemens_vision:siemens_vision.o
 	$(RM) $@
 	$(CC) -o siemens_vision siemens_vision.o $(LFLAGS) $(LLIBS)
@@ -1832,16 +1870,16 @@ testdsetio: SUMA/SUMA_TestDsetIO.c suma_datasets.o suma_algorithms.o suma_utils.
 
 ### Sort of clean
 
-clean:
+clean: clean_version
 	$(RM) `find . -name \*.o -print`
 
-cleann:
+cleann: clean_version
 	$(RM) `find . -name \*.o -print`
 
 cleaner:clean
 	$(RM) *.a $(PROGRAMS)
 
-cleanest:
+cleanest:clean_version
 	$(RM) `find . -name \*.o -print`
 	$(RM) `find . -name \*.so -print`
 	$(RM) `find . -name \*.a -print`
@@ -1850,6 +1888,9 @@ cleanest:
 
 clean_progs:
 	$(RM) $(PROGRAMS)
+
+clean_version:
+	$(RM) AFNI_version.txt AFNI_version.h
 
 # CYGWIN: remove the fixed plugins as well
 
@@ -1913,6 +1954,7 @@ install: $(INSTALLDIR) $(INSTALL_PREREQ) ptaylor_install pkundu_install
 	if [ -f AFNI.sumarc        ]; then $(CP) AFNI.sumarc $(INSTALLDIR); fi;
 	if [ -f R_io.so            ]; then $(CP) R_io.so     $(INSTALLDIR); fi;
 	if [ -f AFNI_atlas_spaces.niml ]; then $(CP) AFNI_atlas_spaces.niml $(INSTALLDIR); fi;
+	if [ -f AFNI_version.txt ]; then $(CP) AFNI_version.txt $(INSTALLDIR); fi;
 	$(EXINCOM)
 	echo "===== AFNI install finished (fondly do we hope, fervently we do pray) ====="
 
@@ -1939,7 +1981,7 @@ install_exe: $(INSTALLDIR)
 afni.o:imseq.h 3ddata.h xutil.h pbar.h afni.h bbox.h afni_warp.h \
        afni_graph.h afni_setup.h machdep.h
 
-debugtrace.o:debugtrace.h debugtrace.c
+debugtrace.o:debugtrace.h debugtrace.c AFNI_version.h
 	$(RM) $@
 	$(CC) -c debugtrace.c $(INFLAGS) $(SHOWOFF)
 
@@ -2270,9 +2312,10 @@ MISC_OBJS  = afni_suma.o vol2surf.o nifti2_io.o znzlib.o list_struct.o  \
 	     nifti_statlib.o nifticdf.o r_new_resam_dset.o r_idisp.o    \
 	     r_misc.o matrix.o gifti_choice.o misc_math.o
 
-libmri.a:$(NIML_OBJS) $(MRI_OBJS) $(THD_OBJS) thd_selenium.o   \
-         $(EDT_OBJS)  $(CS_OBJS)  $(EIS_OBJS) $(NETCDF_OBJS) \
-         $(SUMA_OBJS) $(MISC_OBJS) niml.h mrilib.h Aomp.h 3ddata.h $(SOMEAFOBJS)
+libmri.a: niml.h mrilib.h Aomp.h 3ddata.h                       \
+	$(NIML_OBJS) $(MRI_OBJS) $(THD_OBJS) thd_selenium.o     \
+         $(EDT_OBJS)  $(CS_OBJS)  $(EIS_OBJS) $(NETCDF_OBJS)   \
+         $(SUMA_OBJS) $(MISC_OBJS) $(SOMEAFOBJS)
 	$(RM) $@
 	$(AR) q libmri.a $(MRI_OBJS) $(THD_OBJS) $(EDT_OBJS)        \
 		$(NIML_OBJS) $(CS_OBJS) $(EIS_OBJS) $(NETCDF_OBJS)  \
@@ -2815,6 +2858,10 @@ ccalc:parser.o parser_int.o ccalc.o
 	$(RM) $@
 	$(CC) -o 1deval 1deval.o parser.o parser_int.o $(LFLAGS) $(LLIBS)
 
+1dNLfit:parser.o parser_int.o 1dNLfit.o
+	$(RM) $@
+	$(CC) -o 1dNLfit 1dNLfit.o parser.o parser_int.o $(LFLAGS) $(LLIBS)
+
 1dmatcalc:parser.o parser_int.o 1dmatcalc.o mri_matrix.o
 	$(RM) $@
 	$(CC) -o 1dmatcalc 1dmatcalc.o parser.o parser_int.o $(LFLAGS) $(LLIBS)
@@ -2935,11 +2982,11 @@ qqq.o:qqq.c
 qqq:qqq.o
 	$(CC) -o qqq qqq.o $(INFLAGS) $(LFLAGS) -lmrix -lcoxplot  $(LLIBS)
 
-warping.o:warping.c
-	$(CCFAST) -c warping.c $(INFLAGS)
+warping_test.o:warping_test.c
+	$(CCFAST) -c warping_test.c $(INFLAGS)
 
-warping:warping.o
-	$(CC) -o warping warping.o $(INFLAGS) $(LFLAGS) $(LLIBS)
+warping_test:warping_test.o
+	$(CC) -o warping_test warping_test.o $(INFLAGS) $(LFLAGS) $(LLIBS)
 
 mri_gwarp.o:mri_gwarp.c
 	$(CCFAST) -c mri_gwarp.c $(INFLAGS)
@@ -3545,3 +3592,31 @@ R_io.so:R_io.c libmri.a
 	R CMD SHLIB R_io.c ; \
 	else echo WARNING: Cannot build R_io.so because R is not installed;\
 	fi ; )
+
+#### 
+# version system:
+#    AFNI_version_base.txt: updated by build scripts (dist_src)
+#    libmri.h depends on AFNI_version.h, which depends on AFNI_version_base.txt
+#
+#    AFNI_version.txt: depends on AFNI_version_base.txt and programs
+#             - this is just an install file
+#    all:     depends on AFNI_version.txt
+#    install: installs AFNI_version.txt
+
+mrilib.h: AFNI_version.h
+
+AFNI_version.h: AFNI_version_base.txt
+	echo "#undef  AFNI_VERSION_LABEL" > AFNI_version.h ;                 \
+	echo '#define AFNI_VERSION_LABEL    "'`cat AFNI_version_base.txt`'"' \
+             >> AFNI_version.h ;                                             \
+	echo "#undef  AFNI_VERSION_PLATFORM" >> AFNI_version.h ;             \
+	echo '#define AFNI_VERSION_PLATFORM "'$(SYSTEM_NAME)'"'              \
+             >> AFNI_version.h ;
+
+# no .txt in target, so that it always updates the file when invoked
+AFNI_version:
+	( $(CP) AFNI_version_base.txt AFNI_version.txt ; \
+	echo $(SYSTEM_NAME) >> AFNI_version.txt ;        \
+	date +'%b %d %Y' >> AFNI_version.txt ;           \
+	)
+

@@ -6280,7 +6280,14 @@ int test_classification (ASLoptions *options, MODEL *model, AFNI_MODEL *afniMode
             "classAssignment = %d\n", j, classList[classAssignment]);
 
         /* write class assignment to prediction file */
-        fprintf(fp,"%d\n", classList[classAssignment]);  
+        if ( options->testLabelFile[0] && options->noPredCensor ) {
+          if ( (int)rint(testLabels.cnsrs[j]) )  {
+            fprintf(fp,"%d\n", classList[classAssignment]);  
+          }
+        }
+        else {
+          fprintf(fp,"%d\n", classList[classAssignment]);  
+        }
 
 
         /* compare result with label file */
@@ -6402,7 +6409,14 @@ int test_classification (ASLoptions *options, MODEL *model, AFNI_MODEL *afniMode
             classList[classAssignment]);
 
         /* write result to prediction file */
-        fprintf(fp,"%d\n", classList[classAssignment]);  
+        if ( options->testLabelFile[0] && options->noPredCensor ) {
+          if ( (int)rint(testLabels.cnsrs[j]) )  {
+            fprintf(fp,"%d\n", classList[classAssignment]);  
+          }
+        }
+        else {
+          fprintf(fp,"%d\n", classList[classAssignment]);  
+        }
 
         /* compare result with label file */
         if((options->testLabelFile[0]) && ((int)(testLabels.lbls_cont[j] != 9999))) {

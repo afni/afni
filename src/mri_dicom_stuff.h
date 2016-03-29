@@ -77,7 +77,7 @@ typedef struct {
    int     window;              /* AFNI_DICOM_WINDOW              */
    int     use_last_elem;       /* AFNI_DICOM_USE_LAST_ELEMENT   */
 } dicom_globals_t;
-extern dicom_globals_t g_info;
+extern dicom_globals_t g_dicom_ctrl;
 
 /*-- extra_info from Siemens --*/
 

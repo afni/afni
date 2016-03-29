@@ -56,7 +56,7 @@ int main( int argc , char *argv[] )
        "    Uses the 'count' program to input a sequence of values, and then\n"
        "    pipes into the 1dplot program to make a graph of F vs. q.\n"
        "* See the link below for information on how AFNI computes FDR curves:\n"
-       "      http://afni.nimh.nih.gov/pub/dist/doc/misc/FDR/FDR_Jan2008.pdf\n"
+       "      https://afni.nimh.nih.gov/pub/dist/doc/misc/FDR/FDR_Jan2008.pdf\n"
        "* Also see the output of '3dFDR -help'\n"
        "\n"
        "-- A quick hack by RWCox -- 15 Oct 2008 -- PG Wodehouse's birthday!\n"

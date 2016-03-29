@@ -880,6 +880,7 @@ ININFO_message("MCW_MALLOC_status = %s",MCW_MALLOC_status) ;
 # define IS_GOOD_FLOAT(x) isfinite(x)
 #else
 # define IS_GOOD_FLOAT(x) finite(x)
+# define isfinite finite
 #endif
 
 /*--------------------------------------------------------------------*/

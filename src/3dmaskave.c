@@ -82,7 +82,7 @@ void usage_3dmaskave(int detail) {
 "  -xball x y z r  } locations.  See the output of\n"
 "  -dball x y z r  }   3dmaskdump -help\n"
 "  -nball x y z r  } for the gruesome and tedious details.\n"
-"   http://afni.nimh.nih.gov/pub/dist/doc/program_help/3dmaskdump.html\n"
+"   https://afni.nimh.nih.gov/pub/dist/doc/program_help/3dmaskdump.html\n"
 "\n"
 "  -dindex div  Means to use sub-brick #'div' from the inputdataset.\n"
 "                 If not given, all sub-bricks will be processed.\n"

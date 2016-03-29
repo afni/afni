@@ -2117,6 +2117,44 @@ class Afni1D:
          else:    print "%d" % mind,
       print
 
+   def slice_order_to_times(self, verb=1):
+      """given a slice order, resort index list to slice times
+
+         e.g. If TR=2 and the slice order is:  0  2  4  6  8  1  3  5  7  9
+                      Then the slices/times ordered by time (as input) are:
+
+           slices: 0    2    4    6    8    1    3    5    7    9
+           times:  0.0  0.2  0.4  0.6  0.8  1.0  1.2  1.4  1.6  1.8
+
+        And the slices/times ordered instead by slice index are:
+
+           slices: 0    1    2    3    4    5    6    7    8    9
+           times:  0.0  1.0  0.2  1.2  0.4  1.4  0.6  1.6  0.8  1.8
+
+        It is this final list of times that is output.
+      """
+
+      # maybe we need to transpose
+      trans = 0
+      if self.nt == 1 and self.nvec > 1:
+         self.transpose()
+         trans = 1
+
+      # create a matrix of index/slice time pairs
+      data = [[val,0] for val in self.mat[0]]
+      for ind, val in enumerate(data):
+         val[1] = self.tr * ind * 1.0 / self.nt
+
+      # sort on the indices
+      data.sort()
+
+      # and return the times
+      self.mat[0] = [val[1] for val in data]
+
+      if trans: self.transpose()
+
+      return 0
+
    def add_offset(self, offset):
       """add offset value to every value in matrix"""
 

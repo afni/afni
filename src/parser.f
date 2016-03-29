@@ -822,6 +822,7 @@ C
      X       MEAN , STDEV , SEM , POSVAL , ZZMOD
       REAL*8 ARGMAX,ARGNUM , PAIRMX,PAIRMN , AMONGF, WITHINF
       REAL*8 MINABOVE , MAXBELOW, EXTREME, ABSEXTREME
+      REAL*8 CHOOSE , LNCOSH
 C
 C  External library functions
 C
@@ -1011,6 +1012,10 @@ C.......................................................................
          ELSEIF( CNCODE .EQ. 'COSH' )THEN
             IF( ABS(R8_EVAL(NEVAL)) .LT. 87.5 )
      X        R8_EVAL(NEVAL) = COSH( R8_EVAL(NEVAL) )
+C.......................................................................
+         ELSEIF( CNCODE .EQ. 'LOGCOSH' )THEN
+            IF( ABS(R8_EVAL(NEVAL)) .LT. 87.5 )
+     X        R8_EVAL(NEVAL) = LNCOSH( R8_EVAL(NEVAL) )
 C.......................................................................
          ELSEIF( CNCODE .EQ. 'TANH' )THEN
             R8_EVAL(NEVAL) = TANH( R8_EVAL(NEVAL) )
@@ -1220,6 +1225,19 @@ C.......................................................................
             NTM   = R8_EVAL(NEVAL)
             NEVAL = NEVAL - NTM
             R8_EVAL(NEVAL) = ABSEXTREME( NTM , R8_EVAL(NEVAL) )
+         ELSEIF( CNCODE .EQ. 'CHOOSE'  )THEN
+            NTM   = R8_EVAL(NEVAL)
+            NEVAL = NEVAL - NTM
+            NTM   = NTM - 1
+            ITM   = R8_EVAL(NEVAL)
+            R8_EVAL(NEVAL) = CHOOSE( ITM,NTM , R8_EVAL(NEVAL+1) )
+         ELSEIF( CNCODE .EQ. 'IFELSE' )THEN
+            NEVAL = NEVAL - 2
+            IF( R8_EVAL(NEVAL) .NE. 0.D+0 )THEN
+                R8_EVAL(NEVAL) = R8_EVAL(NEVAL+1)
+            ELSE
+                R8_EVAL(NEVAL) = R8_EVAL(NEVAL+2)
+            ENDIF
 C.......................................................................
          ELSEIF( CNCODE .EQ. 'FICO_T2P' )THEN
             NEVAL = NEVAL - 3
@@ -1377,6 +1395,7 @@ C
      X       MEAN , STDEV , SEM , POSVAL , ZZMOD
       REAL*8 ARGMAX,ARGNUM , PAIRMX,PAIRMN, AMONGF, WITHINF
       REAL*8 MINABOVE , MAXBELOW, EXTREME, ABSEXTREME
+      REAL*8 CHOOSE , LNCOSH
 C
 C  External library functions
 C
@@ -1825,6 +1844,12 @@ C.......................................................................
      X           R8_EVAL(IV-IBV,NEVAL) = COSH( R8_EVAL(IV-IBV,NEVAL) )
             ENDDO
 C.......................................................................
+         ELSEIF( CNCODE .EQ. 'LOGCOSH' )THEN
+            DO IV=IVBOT,IVTOP
+              IF( ABS(R8_EVAL(IV-IBV,NEVAL)) .LT. 87.5 )
+     X           R8_EVAL(IV-IBV,NEVAL) = LNCOSH( R8_EVAL(IV-IBV,NEVAL) )
+            ENDDO
+C.......................................................................
          ELSEIF( CNCODE .EQ. 'TANH' )THEN
             DO IV=IVBOT,IVTOP
                R8_EVAL(IV-IBV,NEVAL) = TANH( R8_EVAL(IV-IBV,NEVAL) )
@@ -2207,6 +2232,26 @@ C.......................................................................
                   SCOP(JTM) = R8_EVAL(IV-IBV,NEVAL+JTM-1)
                ENDDO
                R8_EVAL(IV-IBV,NEVAL) = ABSEXTREME( NTM, SCOP )
+            ENDDO
+         ELSEIF( CNCODE .EQ. 'CHOOSE' )THEN
+            NTM   = R8_EVAL(1, NEVAL)
+            NEVAL = NEVAL - NTM
+            NTM   = NTM - 1
+            DO IV=IVBOT,IVTOP
+               ITM = R8_EVAL(IV-IBV,NEVAL)
+               DO JTM=1,NTM
+                  SCOP(JTM) = R8_EVAL(IV-IBV,NEVAL+JTM)
+               ENDDO
+               R8_EVAL(IV-IBV,NEVAL) = CHOOSE( ITM, NTM, SCOP )
+            ENDDO
+         ELSEIF( CNCODE .EQ. 'IFELSE' )THEN
+            NEVAL = NEVAL - 2
+            DO IV=IVBOT,IVTOP
+               IF( R8_EVAL(IV-IBV,NEVAL) .NE. 0.D+0 )THEN
+                  R8_EVAL(IV-IBV,NEVAL) = R8_EVAL(IV-IBV,NEVAL+1)
+               ELSE
+                  R8_EVAL(IV-IBV,NEVAL) = R8_EVAL(IV-IBV,NEVAL+2)
+               ENDIF
             ENDDO
 
 
@@ -2855,7 +2900,7 @@ C
       IF( X(1) .GT. X(3) )THEN
          WITHINF = 0.0D+00
         RETURN
-      ENDIF    
+      ENDIF
       WITHINF = 1.0D+00
       RETURN
       END
@@ -2953,6 +2998,20 @@ C
       ENDDO
       IF( BBB .EQ. 0.0 ) BBB = AAA
       ABSEXTREME = BBB
+      RETURN
+      END
+C
+C
+C
+      FUNCTION CHOOSE(M,N,X)
+      REAL*8  CHOOSE,X(N)
+      INTEGER M,N , I
+C
+      IF( M .LT. 1 .OR. N .LT. M)THEN
+         CHOOSE = 0.D+0
+         RETURN
+      ENDIF
+      CHOOSE = X(M)
       RETURN
       END
 C
@@ -3208,6 +3267,15 @@ C
       ELSE
          LMOFN = 0.D+0
       ENDIF
+      RETURN
+      END
+C
+C
+C
+      FUNCTION LNCOSH(X)
+      REAL*8 LNCOSH , X , AX
+      AX = ABS(X)
+      LNCOSH = AX + LOG(0.5D+0 + 0.5D+0*EXP(-2.D+0*AX))
       RETURN
       END
 C

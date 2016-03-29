@@ -4,7 +4,7 @@ print("AFNI Structural Vector Auto-Regressive (SVAR) Modeling Package!")
 print("#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
 print("Version 0.0.3,  June 21, 2011")
 print("Author: Gang Chen (gangchen@mail.nih.gov)")
-print("Website: http://afni.nimh.nih.gov/sscc/gangc/SVAR.html")
+print("Website: https://afni.nimh.nih.gov/sscc/gangc/SVAR.html")
 print("SSCC/NIMH, National Institutes of Health, Bethesda MD 20892")
 print("#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
 
@@ -378,7 +378,7 @@ rma <- function(yi, vi, mods=NULL, method="REML", addint=TRUE, ci=95, digits=4, 
 pkgLoad('network')
 
 print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
-print("Visit http://afni.nimh.nih.gov/sscc/gangc/SVAR.html and makse sure")
+print("Visit https://afni.nimh.nih.gov/sscc/gangc/SVAR.html and makse sure")
 print("you've acquired the data for the analysis in desirable data format.")
 print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
 

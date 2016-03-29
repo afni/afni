@@ -2087,7 +2087,7 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
     memset( &gD, 0, sizeof(gD)  );      /* debug struct     */
     memset( &gS, 0, sizeof(gS)  );      /* stats struct     */
     memset(  A,  0, sizeof(gAC) );      /* afni comm struct */
-    memset( &g_info, 0, sizeof(g_info) );   /* from mri_dicom_stuff.c */
+    memset( &g_dicom_ctrl, 0,sizeof(g_dicom_ctrl) );/* from mri_dicom_stuff.c */
 
     ART_init_AC_struct( A );            /* init for no real-time comm */
     A->param = p;                       /* store the param_t pointer  */
@@ -2558,7 +2558,7 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
         else if ( ! strncmp( argv[ac], "-use_last_elem", 11 ) )
         {
             p->opts.use_last_elem = 1;
-            g_info.use_last_elem = 1;        /* for external function */
+            g_dicom_ctrl.use_last_elem = 1;        /* for external function */
         }
         else if ( ! strncmp( argv[ac], "-use_slice_loc", 12 ) )
         {
@@ -2925,13 +2925,13 @@ static int read_dicom_image( char * pathname, finfo_t * fp, int get_data )
                               get_data ? &fp->image : NULL);            */
 
     /* init globals to be used in mri_read_dicom.c           4 Jan 2011 */
-    if( ! g_info.init ) {
-        g_info.init    = 1;
-        g_info.verb    = gD.level - 1; /* be quieter at the DICOM level */
-        g_info.rescale = 1;
+    if( ! g_dicom_ctrl.init ) {
+        g_dicom_ctrl.init    = 1;
+        g_dicom_ctrl.verb    = gD.level - 1; /* be quieter at the DICOM level */
+        g_dicom_ctrl.rescale = 1;
     }
 
-    g_info.read_data = get_data;        /* do we actually want data?    */
+    g_dicom_ctrl.read_data = get_data;        /* do we actually want data?    */
 
     if( check_timing && gD.level > 2 ) {    /* set verb for timing info */
        tverb = mri_sst_get_verb();
@@ -3162,7 +3162,7 @@ static int copy_image_data(finfo_t * fp, MRI_IMARR * imarr)
 
     if( gD.level > 3) {
         fprintf(stderr,"-- CID: have imarr @ %p, im @ %p\n", imarr, im);
-        fprintf(stderr,"   num, nvox, pix_size = %d, %ld, %d (prod %ld)\n",
+        fprintf(stderr,"   num, nvox, pix_size = %d, %lld, %d (prod %lld)\n",
                 imarr->num, im->nvox, im->pixel_size, arrbytes );
     }
 
@@ -3174,7 +3174,7 @@ static int copy_image_data(finfo_t * fp, MRI_IMARR * imarr)
     if( fp->image ) {
         /* no allocation, but verify num bytes */
         if( arrbytes != fp->bytes ) {
-            fprintf(stderr,"** CID: bytes mismatch, %ld != %d\n",
+            fprintf(stderr,"** CID: bytes mismatch, %lld != %d\n",
                     arrbytes,fp->bytes);
             return 1;
         }

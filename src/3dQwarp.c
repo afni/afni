@@ -34,11 +34,11 @@
 #define ALLOW_QWARP                /* this must be defined, or nothing works! */
 #define ALLOW_QMODE                /* allows -Qfinal and -Qonly options */
 #define ALLOW_PLUSMINUS            /* allows -plusminus option */
-#undef  USE_PLUSMINUS_INITIALWARP  /* don't do this! */
+#undef  USE_PLUSMINUS_INITIALWARP  /* don't do this! doesn't work well! */
 
-#include "mri_nwarp.c"
+#include "mri_nwarp.c"             /* all the real work is done in here */
 
-/** include the Powell NEWUOA functions **/
+/** include the Powell NEWUOA functions for nonlinear optimization **/
 
 #include "powell_int.c"
 #define max MAX
@@ -256,6 +256,8 @@ void Qhelp(void)
     " ++ OR, you can use the '-resample' option in 3dQwarp to resample the\n"
     "    source dataset to the base grid before doing the nonlinear stuff,\n"
     "    without doing any preliminary affine alignment.\n"
+    " ++ 3dQwarp CAN be used on 2D images -- that is, datasets with a single\n"
+    "    slice.  How well it works on such datasets has not been investigated.\n"
     "\n"
     "* Input datasets should be reasonably well aligned already\n"
     "  (e.g., as from an affine warping via 3dAllineate).\n"
@@ -726,7 +728,13 @@ void Qhelp(void)
     "   *OR*        * The value of mm should be an odd integer.\n"
     " -patchmin mm  * The default value of mm is 25.\n"
     "               * For more accurate results than mm=25, try 19 or 13.\n"
-    "               * The smallest allowed value is 9 (which will be VERY slow).\n"
+    "               * The smallest allowed value is " NGMINS " (which will be VERY slow).\n"
+#if (NGMIN < 7) && defined(ALLOW_QMODE)
+    "                 However, you may want stop at a larger patch (say 7 or 9) and use\n"
+    "                 the -Qfinal option to run that final level with quintic warps,\n"
+    "                 which might run faster and provide the same degree of warp detail.\n"
+#endif
+
 #ifdef USE_SAVER
     "               * If you want to see the warped results at various levels\n"
     "                 of patch size, use the '-qsave' option.\n"
@@ -745,7 +753,7 @@ void Qhelp(void)
     "                you will want to use it in the following form:\n"
     "                  -gridlist '1D: 0 151 101 75 51'\n"
     "                Here, a 0 patch size means the global domain. Patch sizes\n"
-    "                otherwise should be odd integers >= 9.\n"
+    "                otherwise should be odd integers >= " NGMINS ".\n"
     "               * You cannot use -gridlist with -duplo or -plusminus!\n"
     "\n"
     " -allsave     = This option lets you save the output warps from each level\n"
@@ -778,7 +786,12 @@ void Qhelp(void)
     "                 -workhard or -superhard.\n"
     "           -->>* The fastest way to register to a template image is via the\n"
     "                 -duplo option, and without the -workhard or -superhard options.\n"
-#if 0
+#ifdef ALLOW_QMODE
+    "           -->>* If you use this option in the form '-Workhard' (first letter\n"
+    "                 in upper case), then the second iteration at each level is\n"
+    "                 done with quintic polynomial warps.\n"
+#endif
+
 #ifdef ALLOW_QMODE
     "\n"
     " -Qfinal      = At the finest patch size (the final level), use Hermite\n"
@@ -790,13 +803,17 @@ void Qhelp(void)
     "               * There are 3x3x3x3=81 quintic polynomial parameters per patch.\n"
     "               * With -Qfinal, the final level will have more detail in\n"
     "                 the allowed warps, at the cost of yet more CPU time.\n"
+#if NGMIN < 7
+    "               * However, no patch below 7x7x7 in size will be done with quintic\n"
+    "                 polynomials.\n"
     "               * This option is also not usually needed, and is experimental.\n"
+#endif
     "\n"
     " -Qonly       = Use Hermite quintic polynomials at all levels.\n"
     "               * Very slow (about 4 times longer).  Also experimental.\n"
     "               * Will produce a (discrete representation of a) C2 warp.\n"
-#endif
-#endif
+#endif /* ALLOW_QMODE */
+
 #ifdef USE_SAVER
     "\n"
     " -qsave       = Save intermediate warped results as well, in a dataset\n"
@@ -897,6 +914,19 @@ void Qhelp(void)
     "                 partially outside its original grid, so expanding that grid\n"
     "                 can avoid this problem.\n"
     "               * Note that this option perforce turns off '-nopadWARP'.\n"
+    "\n"
+    " -ballopt     = Normally, the incremental warp parameters are optimized inside\n"
+    "                a rectangular 'box' (24 dimensional for cubic patches, 81 for\n"
+    "                quintic patches), whose limits define the amount of distortion\n"
+    "                allowed at each step.  Using '-ballopt' switches these limits\n"
+    "                to be applied to a 'ball' (interior of a hypersphere), which\n"
+    "                can allow for larger incremental displacements.  Use this\n"
+    "                option if you think things need to be able to move farther.\n"
+    " -boxopt      = Use the 'box' optimization limits instead of the 'ball'\n"
+    "                [this is the default at present].\n"
+    "               * Note that if '-workhard' is used, then ball and box optimization\n"
+    "                 are alternated in the different iterations at each level, so\n"
+    "                 these two options have not effect in that case.\n"
     "\n"
     " -verb        = Print out very very verbose progress messages (to stderr) :-)\n"
     " -quiet       = Cut out most of the fun fun fun progress messages :-(\n"
@@ -1008,11 +1038,13 @@ void Qhelp(void)
 /* Run 3dAllineate; result is stored in Qunstr.nii and Qunstr.aff12.1D */
 /*---------------------------------------------------------------------------*/
 
-static char *Qunstr=NULL ;
+static char *Qunstr=NULL ;  /* will be generated as a random unique string */
 
 void Qallineate( char *basname , char *srcname , char *emkname , char *allopt )
 {
    char *cmd ; int ss ;
+
+   /* make space for the 3dAllineate command string */
 
    ss  = strlen(basname)+strlen(srcname)+2048 ;
    if( allopt  != NULL ) ss += strlen(allopt) ;
@@ -1021,7 +1053,7 @@ void Qallineate( char *basname , char *srcname , char *emkname , char *allopt )
 
    Qunstr = UNIQ_idcode() ;  /* create unique prefix for output filenames */
 
-   /* setup the basic command */
+   /* setup the basic command to do some hard work */
 
    sprintf( cmd , "3dAllineate"
                   " -base %s"
@@ -1033,16 +1065,16 @@ void Qallineate( char *basname , char *srcname , char *emkname , char *allopt )
 
    /* add options to the command string */
 
-   switch( Hverb ){
+   switch( Hverb ){                           /* match 3dQwarp's verbosity */
      case 0: strcat(cmd," -quiet") ; break ;
      case 3:
      case 2: strcat(cmd," -verb" ) ; break ;
    }
 
-   if( emkname != NULL )
+   if( emkname != NULL )                      /* match 3dQwarp's -emask */
      sprintf( cmd+strlen(cmd) , " -emask %s" , emkname) ;
 
-   if( allopt != NULL && *allopt != '\0' )
+   if( allopt != NULL && *allopt != '\0' )    /* user-supplied options */
      sprintf( cmd+strlen(cmd) , " %s"        , allopt) ;
 
    if( allopt == NULL || strstr(allopt,"-fineblur") == NULL )
@@ -1052,6 +1084,8 @@ void Qallineate( char *basname , char *srcname , char *emkname , char *allopt )
    if( allopt == NULL || strstr(allopt,"-onepass") == NULL )
      strcat(cmd," -norefinal") ;
 #endif
+
+   /* and do the (external) work */
 
    INFO_message("Starting 3dAllineate (affine register) command:\n  %s\n ",cmd);
    INFO_message("###########################################################") ;
@@ -1089,9 +1123,13 @@ void Qallin_resample( char *basname , char *srcname )  /* 17 Jul 2013 */
    return ;
 }
 
+/*****************************************************************************/
 /*---------------------------------------------------------------------------*/
-/*** Main program for 3dQwarp!!! ***/
+/*                                                                           */
+/***                Main program for 3dQwarp!!!                            ***/
+/*                                                                           */
 /*---------------------------------------------------------------------------*/
+/*****************************************************************************/
 
 int main( int argc , char *argv[] )
 {
@@ -1438,7 +1476,9 @@ int main( int argc , char *argv[] )
            Hworkhard2 = (int)strtod(++cpt,NULL) ;
          }
        }
-       if( argv[nopt][1] == 'W' ) Hqhard = 1 ;  /* SECRET */
+#ifdef ALLOW_QMODE
+       if( argv[nopt][1] == 'W' ) Hqhard = 1 ;
+#endif
        nopt++ ; continue ;
      }
 
@@ -1468,6 +1508,9 @@ int main( int argc , char *argv[] )
            Hsuperhard2 = (int)strtod(++cpt,NULL) ;
          }
        }
+#ifdef ALLOW_QMODE
+       if( argv[nopt][1] == 'S' ) Hqhard = 1 ;
+#endif
        nopt++ ; continue ;
      }
 
@@ -1479,6 +1522,18 @@ int main( int argc , char *argv[] )
      }
      if( strcasecmp(argv[nopt],"-Qonly") == 0 ){      /* 27 Jun 2013 */
        Hqonly = 1 ; nopt++ ; continue ;
+     }
+#endif
+
+#ifdef ALLOW_BASIS5
+     if( strcasecmp(argv[nopt],"-5final") == 0 ){     /* 06 Nov 2015 [SECRET] */
+       H5final = 3 ; nopt++ ; continue ;
+     }
+     if( strcasecmp(argv[nopt],"-4final") == 0 ){     /* 06 Nov 2015 [SECRET] */
+       H5final = 2 ; nopt++ ; continue ;
+     }
+     if( strcasecmp(argv[nopt],"-3final") == 0 ){     /* 06 Nov 2015 [SECRET] */
+       H5final = 1 ; nopt++ ; continue ;
      }
 #endif
 
@@ -1653,8 +1708,13 @@ int main( int argc , char *argv[] )
 
      /*---------------*/
 
-     if( strcasecmp(argv[nopt],"-ballopt") == 0 ){  /* SECRET option */
-       powell_newuoa_set_con_ball() ;  /* experimental */
+     if( strcasecmp(argv[nopt],"-ballopt") == 0 ){
+       powell_newuoa_set_con_ball() ;
+       Hopt_ball = 1 ;
+       nopt++ ; continue ;
+     }
+     if( strcasecmp(argv[nopt],"-boxopt") == 0 ){
+       powell_newuoa_set_con_box() ;
        Hopt_ball = 1 ;
        nopt++ ; continue ;
      }

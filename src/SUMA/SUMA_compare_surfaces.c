@@ -500,7 +500,7 @@ void cmp_surf_usage ()
           "              for debugging runs.\n"
           "\n"
           "%s"
-          "\n   For more help: http://afni.nimh.nih.gov/ssc/ziad/SUMA/SUMA_doc.htm\n"
+          "\n   For more help: https://afni.nimh.nih.gov/ssc/ziad/SUMA/SUMA_doc.htm\n"
           "\n"
           "\n   If you can't get help here, please get help somewhere.\n", s);
   SUMA_free(s); s = NULL;

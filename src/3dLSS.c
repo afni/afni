@@ -211,7 +211,7 @@ void LSS_help(void)
      "               * If '-input' is used, the number of time points in the dataset\n"
      "                 must match the number of time points in the matrix.\n"
      "\n"
-     " -mask kkk   = Read dataset 'kkk' as a mask for the input; voxels outside\n"
+     " -mask MMM   = Read dataset 'MMM' as a mask for the input; voxels outside\n"
      "                the mask will not be fit by the regression model.\n"
      " -automask   = If you don't know what this does by now, please don't use\n"
      "                this program.\n"
@@ -241,7 +241,7 @@ void LSS_help(void)
      " the estimator for each separate stimulus regressor from the fixed part of\n"
      " the matrix, then applies these estimators to each time series in the input\n"
      " dataset by a simple dot product.  If you wish to peruse the equations, see\n"
-     "   http://afni.nimh.nih.gov/pub/dist/doc/misc/3dLSS/3dLSS_mathnotes.pdf \n"
+     "   https://afni.nimh.nih.gov/pub/dist/doc/misc/3dLSS/3dLSS_mathnotes.pdf \n"
      " The estimator for each separate beta (as described at '-save1D') is the\n"
      " N-vector which, when dotted into the N-vector of a voxel's time series,\n"
      " gives the LSS beta estimate for that voxel.\n"
@@ -531,7 +531,7 @@ int main( int argc , char *argv[] )
      cgl = NI_get_attribute( nelmat , nbuf ) ;
      if( cgl == NULL || strcmp(cgl,"-stim_times_IM") != 0 ) continue ;
      if( nst > 0 )
-       ERROR_exit("More than one -stim_time_IM option was found in the matrix") ;
+       ERROR_exit("More than one -stim_times_IM option was found in the matrix") ;
      nst = jj ;
      sprintf(nbuf,"BasisColumns_%06d",jj) ;
      cgl = NI_get_attribute( nelmat , nbuf ) ;

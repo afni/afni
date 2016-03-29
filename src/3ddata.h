@@ -345,7 +345,6 @@ typedef enum { TFORM_NOT_SET, NO_FORMAT, TXT, SPX , ASPX, WEB } TFORM;
    else if( strcmp(argv[iarg],"-h") == 0 ){  \
          fun(TXT,0); RETURN(0);} \
 }
-      
 
 #define  sphinx_printf(targ, ...) (sphinx_offprintf( targ, 0, NULL, __VA_ARGS__))
 #define sphinx_fprintf(targ, fout, ...) \
@@ -3595,6 +3594,13 @@ extern int    THD_deconflict_prefix( THD_3dim_dataset * ) ;          /* 23 Mar 2
 
 #define DSET_BRICK_FDRCURVE(ds,ii) DBLK_BRICK_FDRCURVE((ds)->dblk,(ii))
 
+/* smallest FDR q in the curve for sub-brick #ii [09 Dec 2015] */
+
+#define DSET_BRICK_FDRMIN(ds,ii)                                                \
+ ( ( (ds)->dblk->brick_fdrcurve==NULL || (ds)->dblk->brick_fdrcurve[ii]==NULL ) \
+  ? 0.0                                                                         \
+  : 2.0*qg((ds)->dblk->brick_fdrcurve[ii]->ar[(ds)->dblk->brick_fdrcurve[ii]->nar-1]) )
+
 #define DBLK_BRICK_FDRCURVE_KILL(db,ii)                                      \
  do{ if( (db)->brick_fdrcurve != NULL ){                                     \
        floatvec *fv = (db)->brick_fdrcurve[ii] ;                             \
@@ -4327,7 +4333,7 @@ char *form_C_progopt_string(char *prog, char **ws, int N_ws);
 char *phelp(char *prog, TFORM targ, int verb);
 char *sphelp(char *prog, char **str, TFORM targ, int verb);
 int phelp_cmd(char *prog, TFORM targ, char cmd[512], char fout[128], int verb );
-int program_supports(char *prog, char *opt, char *oval, int verb); 
+int program_supports(char *prog, char *opt, char *oval, int verb);
 char *find_popt(char *sh, char *opt, int *nb);
 int prog_complete_command (char *prog, char *ofile, int shtp);
 void view_prog_help(char *prog);
@@ -4463,8 +4469,9 @@ extern MRI_IMAGE *        THD_fetch_1D           (char *) ; /* 26 Mar 2001 */
 
 extern void THD_set_storage_mode( THD_3dim_dataset *,int ); /* 21 Mar 2003 */
 
-extern int * get_count_intlist ( char *str , int *nret);
-int * get_1dcat_intlist ( char *str , int *nret);     /* May 15 2012 ZSS */
+extern int * get_count_intlist ( char *str , int *nret , int maxval );
+/* get_1dcat_intlist: May 15 2012 ZSS    ; added maxval 4 Jan 2016 [rickr] */
+int * get_1dcat_intlist ( char *str , int *nret, int maxval);
 
 extern int * MCW_get_intlist( int , char * ) ;
 extern int * MCW_get_labels_intlist( char ** , int,  char * ); /* ZSS Dec 09 */
@@ -4809,8 +4816,9 @@ typedef struct FD_brick {
 #define STATUS_TMASK(sss,fdb)                                   \
  do{ if( fdb != NULL ) STATUSp(sss,fdb->tmask) ; } while(0)
 
-#define DESTROY_FD_BRICK(fdb) \
- do{ FD_brick *_jj=fdb; if( _jj != NULL ){ mri_free(_jj->tmask); myXtFree(_jj); } } while(0)
+#define DESTROY_FD_BRICK(fdb)       \
+ do{ FD_brick *_jj=(FD_brick *)fdb; \
+     if( _jj != NULL ){ mri_free(_jj->tmask); myXtFree(_jj); fdb=NULL; } } while(0)
 
 /*! rotate the three numbers (a,b,c) to (b,c,a) into (na,nb,nc) */
 
@@ -5684,6 +5692,7 @@ extern float THD_covariance( int n, float *x , float *y );
 extern float THD_ktaub_corr   ( int,float *,float *) ;  /* 29 Apr 2010 */
 extern float THD_eta_squared  ( int,float *,float *) ;  /* 25 Jun 2010 */
 extern double THD_eta_squared_masked(int,float *,float *,byte *);/* 16 Jun'11 */
+extern float THD_dice_coef_f_masked(int,float *,float *,byte *);/* 28 Jul'15 */
 extern THD_3dim_dataset * THD_Tcorr1D(THD_3dim_dataset *xset,
                               byte *mask, int nmask,
                               MRI_IMAGE *ysim,

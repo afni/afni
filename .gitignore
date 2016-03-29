@@ -9,6 +9,7 @@ ___*
 *.dSYM
 *junk*
 *.swp
+.*.swp
 
 #Datasets
 *.nii*
@@ -17,6 +18,7 @@ ___*
 *.gii*
 *.dset*
 *.niml
+*.1D
 
 #R Hidden files
 *.Rout
@@ -24,3 +26,10 @@ ___*
 
 #Miscellaneous
 *.BAK
+
+# Matlab temporary files
+*.m~
+
+# Octave workspace
+octave-workspace
+/Debug/

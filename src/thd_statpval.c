@@ -64,6 +64,10 @@ float THD_stat_to_pval( float thr , int statcode , float *stataux )
 }
 
 /****************************************************************/
+/* pval is 2-sided tail probability for
+     FUNC_COR_TYPE  FUNC_TT_TYPE  FUNC_ZT_TYPE
+   is 1-sided (upper) tail probability for the others
+*//**************************************************************/
 
 float THD_pval_to_stat( float pval , int statcode , float *stataux )
 {
@@ -179,12 +183,13 @@ int THD_stat_is_2sided( int statcode , int thrsign )
       case FUNC_TT_TYPE:
       case FUNC_ZT_TYPE: return (thrsign == 0) ? 1 : 0 ;
 
+      case FUNC_FT_TYPE: return 1 ;  /* always 2-sided [16 Oct 2015] */
+
       case FUNC_PT_TYPE:
       case FUNC_GT_TYPE:
       case FUNC_BN_TYPE:
       case FUNC_BT_TYPE:
-      case FUNC_CT_TYPE:
-      case FUNC_FT_TYPE: return 0 ;  /* always 1-sided */
+      case FUNC_CT_TYPE: return 0 ;  /* always 1-sided */
    }
 
    return -1 ;

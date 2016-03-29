@@ -59,7 +59,7 @@ switch tmp
 	case 'Wrn'
 		Decis = 0;
 	otherwise
-		fprintf (2,'\nError in ErrEval, prefix %s from %s is ambiguous.\nReturning a 1 decision.\n\n\a',tmp, ErrCode);
+		warning ('Error in ErrEval, prefix %s from %s is ambiguous.\nReturning a 1 decision.\n\n\a',tmp, ErrCode);
 		Decis = 1;
 		return;
 end
@@ -104,9 +104,9 @@ end
 
 %For the error message
 if (Decis),
-	fprintf (2,'\a\nError in %s : %s\n\n',FuncName,s);
+	warning('\a\nError in %s : %s\n\n',FuncName,s);
 else
-	fprintf (2,'\nWarning from %s : %s\n\n',FuncName,s);
+	warning('\nWarning from %s : %s\n\n',FuncName,s);
 end
 
 return;

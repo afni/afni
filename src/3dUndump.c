@@ -39,7 +39,7 @@ void Syntax(int detail)
     "          ** N.B.: Exactly one of -master or -dimen must be given.\n"
     "              ==>> Unless -ROImask is used!\n"
     "\n"
-    "  -mask kkk    = This option specifies a mask dataset 'kkk', which\n"
+    "  -mask MMM    = This option specifies a mask dataset 'MMM', which\n"
     "                   will control which voxels are allowed to get\n"
     "                   values set.  If the mask is present, only\n"
     "                   voxels that are nonzero in the mask can be\n"
