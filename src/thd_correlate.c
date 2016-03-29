@@ -742,6 +742,32 @@ double THD_eta_squared_masked( int n, float *x , float *y, byte *mask )
    return 1.0 - num/denom ;
 }
 
+/*----------------------------------------------------------------*/
+/*! dice coefficient (allow for mask)          27 Oct 2015 [rickr]
+ *  (float input)
+ *
+ *  dice = 2 * size(interection) / ( size(A) + size(B) )
+ *
+ *  Simply count voxels for the 3 cases.
+ -----------------------------------------------------------------*/
+float THD_dice_coef_f_masked( int n, float *x , float *y, byte *mask )
+{
+   int nA=0, nB=0, nAB=0;
+   int  ii;
+
+   for( ii=0 ; ii < n ; ii++ ) {
+      if( mask && !mask[ii] ) continue;
+      if( x[ii] ) {
+         nA++;
+         if( y[ii] ) { nB++; nAB++; }
+      } else
+         if ( y[ii] ) nB++;
+   }
+
+   if( (nA+nB) > 0 ) return 2.0*nAB/(nA+nB);
+   return 0.0;
+}
+
 /****************************************************************************/
 /*** Histogram-based measurements of dependence between two float arrays. ***/
 /****************************************************************************/

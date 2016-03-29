@@ -46,6 +46,8 @@
 /* if the compiler wants to 'show off' the name of this
    edition of AFNI, then turn that macro into a string. */
 
+/* SHSTRING comes from mrilib.h via debugtrace.h */
+
 #ifdef SHOWOFF
 # undef  SHSH
 # undef  SHSHSH
@@ -58,6 +60,7 @@
 #endif
 /*------------------------------------------------------*/
 
+#if 0  /* ANNOUNCEMENT IS NOT USED  28 Dec 2015 [rickr] */
 #ifdef SHSTRING
 
 #define ANNOUNCEMENT                                                           \
@@ -102,6 +105,7 @@
  "    Macro to Nano 2, 1510-1513, 2004.\n\n"
 
 #endif /* SHSTRING */
+#endif /* if 0 - for SHSTRING and ANNOUNCEMENT */
 
 /*------------------------------------------------------*/
 
@@ -146,6 +150,19 @@ static char comsep = ';' ;         /* command separator: 22 Feb 2007 */
 
 static int recursed_ondot = 0 ;  /* 18 Feb 2007 */
 
+/* ---------------------------------------------------------------------- */
+/* just display the AFNI version                      26 Oct 2015 [rickr] */
+/* (since writing to stdout, do not interfere with print-and-exit funcs)  */
+void show_AFNI_version(void) 
+{
+#ifdef SHSTRING
+     printf( "Precompiled binary " SHSTRING ": " __DATE__ " (Version " AVERZHN ")\n" ) ;
+#else
+     printf( "Compile date = " __DATE__ " " __TIME__ " (Version " AVERZHN ")\n") ;
+#endif
+}
+
+
 /********************************************************************
    Print out some help information and then quit quit quit
 *********************************************************************/
@@ -163,7 +180,7 @@ void AFNI_syntax(void)
    else
      printf(
       " **** Help for all AFNI programs can be found at the Web page\n"
-      "    http://afni.nimh.nih.gov/afni/doc/program_help/index.html\n"
+      "    https://afni.nimh.nih.gov/afni/doc/program_help/index.html\n"
       "\n"
      ) ;
 
@@ -435,16 +452,16 @@ void AFNI_syntax(void)
     "--------------------------------------\n"
     "* The presentations used in our AFNI teaching classes at the NIH can\n"
     "   all be found at\n"
-    " http://afni.nimh.nih.gov/pub/dist/edu/latest/      (PowerPoint directories)\n"
-    " http://afni.nimh.nih.gov/pub/dist/edu/latest/afni_handouts/ (PDF directory)\n"
+    " https://afni.nimh.nih.gov/pub/dist/edu/latest/      (PowerPoint directories)\n"
+    " https://afni.nimh.nih.gov/pub/dist/edu/latest/afni_handouts/ (PDF directory)\n"
     "* And for the interactive AFNI program in particular, see\n"
-    " http://afni.nimh.nih.gov/pub/dist/edu/latest/afni01_intro/afni01_intro.pdf\n"
-    " http://afni.nimh.nih.gov/pub/dist/edu/latest/afni03_interactive/afni03_interactive.pdf\n"
+    " https://afni.nimh.nih.gov/pub/dist/edu/latest/afni01_intro/afni01_intro.pdf\n"
+    " https://afni.nimh.nih.gov/pub/dist/edu/latest/afni03_interactive/afni03_interactive.pdf\n"
     "* For the -help on all AFNI programs, plus the README files, and more, please see\n"
-    " http://afni.nimh.nih.gov/afni/doc/program_help/index.html\n"
+    " https://afni.nimh.nih.gov/afni/doc/program_help/index.html\n"
     "* For indvidualized help with AFNI problems, and to keep up with AFNI news, please\n"
     "   use the AFNI Message Board:\n"
-    " http://afni.nimh.nih.gov/afni/community/board/\n"
+    " https://afni.nimh.nih.gov/afni/community/board/\n"
     "* If an AFNI program crashes, please include the EXACT error messages it outputs\n"
     "   in your message board posting, as well as any other information needed to\n"
     "   reproduce the problem.  Just saying 'program X crashed, what's the issue?'\n"
@@ -456,7 +473,7 @@ void AFNI_syntax(void)
 #if 0
     "\n"
     "* For some fun, see this image:\n"
-    " http://afni.nimh.nih.gov/pub/dist/doc/program_help/images/afni_splashes.gif\n"
+    " https://afni.nimh.nih.gov/pub/dist/doc/program_help/images/afni_splashes.gif\n"
 #endif
    ) ;
 
@@ -464,7 +481,7 @@ void AFNI_syntax(void)
    printf(
     "\n"
     "POSTERS on varied subjects from the AFNI development group can be found at\n"
-    "  * http://afni.nimh.nih.gov/sscc/posters\n"
+    "  * https://afni.nimh.nih.gov/sscc/posters\n"
    ) ;
 
    /*........................................................................*/
@@ -475,19 +492,19 @@ void AFNI_syntax(void)
      printf("\n"
             "------------------------------------------------------------------------------------\n"
             "                  SLIDE IMAGES to help with learning the AFNI GUI\n"
-            "           http://afni.nimh.nih.gov/pub/dist/doc/program_help/images/afni03/\n"
+            "           https://afni.nimh.nih.gov/pub/dist/doc/program_help/images/afni03/\n"
             "------------------------------------------------------------------------------------\n"
      ) ;
      for( ii=1 ; ii <= NSLIDE ; ii++ ){
        printf(
-        "http://afni.nimh.nih.gov/pub/dist/doc/program_help/images/afni03/Slide%02d.png\n"
+        "https://afni.nimh.nih.gov/pub/dist/doc/program_help/images/afni03/Slide%02d.png\n"
         "------------------------------------------------------------------------------------\n"
         , ii ) ;
      }
    } else {
      printf("\n"
             "SLIDE IMAGES to help with learning the AFNI GUI can be found at\n"
-            "  * http://afni.nimh.nih.gov/pub/dist/doc/program_help/images/afni03/\n"
+            "  * https://afni.nimh.nih.gov/pub/dist/doc/program_help/images/afni03/\n"
      ) ;
    }
    printf("\n") ;
@@ -1120,22 +1137,6 @@ ENTRY("AFNI_parse_args") ;
          narg++ ; continue ;  /* go to next arg */
       }
 
-      /* -list_ports list and quit */
-      if( strncmp(argv[narg],"-list_ports", 8) == 0) {
-         show_ports_list(); exit(0);
-      }
-
-      /* -available_npb and quit */
-      if( strcmp(argv[narg],"-available_npb") == 0) {
-         fprintf(stdout,
-                 "\nFirst available npb: %d\n",get_available_npb());
-         exit(0);
-      }
-      if( strncmp(argv[narg],"-available_npb_quiet", 17) == 0) {
-         fprintf(stdout,"%d\n",get_available_npb());
-         exit(0);
-      }
-
       /* -port_number and quit */
       if( strncmp(argv[narg],"-port_number", 8) == 0) {
          int pp = 0;
@@ -1265,7 +1266,7 @@ static char *FALLback[] =
       "AFNI*font8*fontList:        8x13bold=charset1"    , /* smaller fonts */
       "AFNI*font7*fontList:        7x13=charset1"        ,  /* for various */
       "AFNI*font6*fontList:        6x10=charset1"        ,  /* usages */
-      "AFNI*background:            gray21"               , /* background clr */
+      "AFNI*background:            gray28"               , /* background clr */
       "AFNI*menu*background:       gray4"                , /* bkgd in menus */
       "AFNI*menu*foreground:       #ffdd22"              , /* menu text color */
       "AFNI*borderColor:           gray19"               , /* same as bkgd! */
@@ -1279,8 +1280,16 @@ static char *FALLback[] =
       "AFNI*help*waitPeriod:       1066"                 ,
       "AFNI*help*fontList:         9x15bold=charset1"    ,
       "AFNI*cluefont:              9x15bold"             , /* for popup */
-      "AFNI*bigtext*fontList:      10x20=charset1"       ,  /* hints */
+      "AFNI*bigtext*fontList:      10x20=charset1"       , /* hints */
       "AFNI*help*cancelWaitPeriod: 333"                  ,
+#if 0
+      "AFNI*clustA*fontList:       9x15bold=charset1"    , /* for Clusterize */
+      "AFNI*clustB*fontList:       9x15bold=charset1"    ,
+      "AFNI*clustA*background:     gray28"               ,
+      "AFNI*clustB*background:     gray1"                ,
+      "AFNI*clustA*foreground:     yellow"               ,
+      "AFNI*clustB*foreground:     white"                ,
+#endif
 
       "AFNI*XmList.translations: #augment"                /* 24 Feb 2007 */
            "<Btn4Down>: ListPrevItem()\\n"                /* for scrollwheel */
@@ -1475,6 +1484,13 @@ void AFNI_sigfunc_alrm(int sig)
      "Go to Heaven for the climate, Hell for the company"            ,
      "Am I the crazy one, or is it everyone else on Earth?"          ,
      "Everyone's crazy but you and me (and I'm not sure about you)"  ,
+     "We live in crazy times"                                        ,
+     "There are no facts, only interpretations (at p < 0.05 level)"  ,
+     "The best weapon against an enemy is another enemy"             ,
+     "Paris is always a good idea"                                   ,
+     "A good decision is based on knowledge, not on numbers"         ,
+     "If you can't get good results, at least make them LOOK good"   ,
+     "If everyone is thinking alike, then somebody isn't thinking"   ,
      "Be sure to put your feet in the right place, then stand firm"  ,
      "May your cupcakes always have lots of rich creamy frosting"    ,
      "Never take a chocolate cupcake from an eel"                    ,
@@ -1485,11 +1501,13 @@ void AFNI_sigfunc_alrm(int sig)
      "Let's blow this place and grab us some vino"                   ,
      "Let's blow this place and grab some brewskis"                  ,
      "Are you ready for a coffee break? I am"                        ,
+     "I'd like a strong cup of Lapsang Souchong about now"           ,
      "Make mine a tall skinny Earl Grey vanilla latte, if you please",
      "What's your favorite ice cream? I like French vanilla"         ,
-     "I'd like a strong cup of Lapsang Souchong about now"           ,
      "What's your favorite kind of bagel? I like pumpernickel"       ,
      "What's your favorite kind of cookie? I like white chocolate"   ,
+     "What's your favorite kind of cake? I like chocolate"           ,
+     "Do you like chardonnay? I do"                                  ,
      "Step slowly away from the keyboard, and remain calm"           ,
      "Put your computer's mouse down slowly, and breathe deeply"     ,
      "Time for a nice walk, don't you think?"                        ,
@@ -1520,6 +1538,8 @@ void AFNI_sigfunc_alrm(int sig)
      "If you have tears, prepare to shed them now"                   ,
      "Man, those solar neutrinos are killing me"                     ,
      "Are you ready for the explosion of Eta Carinae?"               ,
+     "He who will deceive will always fin a willing victim"          ,
+     "How quick come the reasons for approving what we like"         ,
      "Remember -- AFNI is free, but worth at least 1000 times more"  ,
      "Remember -- Nothing is always absolutely so"                   ,
      "Remember -- 90% of everything is cr*p"                         ,
@@ -1534,6 +1554,19 @@ void AFNI_sigfunc_alrm(int sig)
      "Remember -- He who laughs, lasts"                              ,
      "Remember -- The innocent have everything to fear"              ,
      "Remember -- Memory is long but time is tricky"                 ,
+     "Remember -- Men are always willing to believe what they wish"  ,
+     "Remember -- What I tell you three times is true"               ,
+     "Think of all the beauty around you, and be happy"              ,
+     "Experience is a hard teacher, but fools will have no other"    ,
+     "By failing to prepare, you are preparing to fail"              ,
+     "We are all born ignorant, but must work hard to remain stupid" ,
+     "Whatever is begun in anger ends in shame"                      ,
+     "Life's tragedy is that we get old too soon and wise too late"  ,
+     "I didn't fail the test, I just found 100 ways to do it wrong"  ,
+     "Wise men don't need advice; fools won't take it"               ,
+     "Half a truth is often a great lie"                             ,
+     "Will you help 'Make AFNI Great Again'?"                        ,
+     "If I can find the man calling me ruthless, I'll destroy him"   ,
      "'It remains to be seen' == 'When pigs fly'"                    ,
      "Do not scorn pity that is the gift of a gentle heart"          ,
      "The best laid statistics of mice and men gang aft agley"       ,
@@ -1616,12 +1649,22 @@ void AFNI_sigfunc_alrm(int sig)
      "He knows not his own strength, that has not met adversity"     ,
      "Weigh the meaning, and look not at the words"                  ,
      "Statistics are no substitute for judgment"                     ,
+     "There's never enough time to do all the nothing you want"      ,
+     "When life gives you lemons, throw them right back at it"       ,
+     "Happiness isn't good enough for me; I demand euphoria"         ,
+     "Judge a person by her questions, rather than her answers"      ,
 
+     "Remember -- Screaming is the next best thing to solving a problem"              ,
+     "Data which passes through so many steps can hardly have much truth left"        ,
+     "One mans' way may be as good as another's, but we all like our own best"        ,
+     "Some ideas are so wrong that only an intelligent person could believe them"     ,
+     "Life's a lot more fun when you aren't responsible for your actions"             ,
+     "I'm not dumb. I just have command of thoroughly useless algorithms"             ,
      "A software's reach should exceed its CPU, or what's a supercomputer for?"       ,
      "There are 2 kinds of statistics: those you compute and those you just make up"  ,
      "It is the mark of a truly intelligent person to be moved by statistics"         ,
      "Dreams are true while they last, and do we not live in dreams?"                 ,
-     "Have you made your long term (trillion year) research plan yet? Get busy"       ,
+     "Have you made your long term (trillion year) research plan yet? Get busy now"   ,
      "Why is 'Gold Standard' used in science? Gold is pretty but almost useless"      ,
      "Oh well, you can always end your paper with 'Further research needed'"          ,
      "It's not true my youth was wild and crazy -- only half of that is true"         ,
@@ -1638,7 +1681,7 @@ void AFNI_sigfunc_alrm(int sig)
      "Money can't buy happiness -- but I'm willing to give it a fair chance"          ,
      "In ancient times, there were no statistics, so they just had to lie"            ,
      "If your experiment needs statistics, you need a better experiment"              ,
-     "Wirth's law -- software gets slower faster than hardware gets faster"           ,
+     "Wirth's law -- software gets slower quicker than hardware gets faster"          ,
      "How wouldst thou worst, I wonder, than thou dost, defeat, thwart me?"           ,
      "O the mind, mind has mountains, cliffs of fall frightful"                       ,
      "All life death does end and each day dies with sleep"                           ,
@@ -1694,7 +1737,7 @@ void AFNI_sigfunc_alrm(int sig)
      "  They mean:         I am implacably opposed to your proposal"                          ,
 
      "\n  If 2 reasonable priors lead to different conclusions, then it's time to\n"
-     "  look for more data, think harder, mumble inaudibly, or take a wild guess"             ,
+     "  look for more data, think harder, mumble inaudibly, or have a strong drink"           ,
 
      "\n  To be stupid, selfish, and have good health are three requirements\n"
      "   for happiness; though if stupidity is lacking, all is lost.\n"
@@ -1798,13 +1841,10 @@ int main( int argc , char *argv[] )
 
    /** Check for -version [15 Aug 2003] **/
 
-   if( check_string("-ver",argc,argv) || check_string("--ver",argc,argv) ){
-#ifdef SHSTRING
-     printf( "Precompiled binary " SHSTRING ": " __DATE__ " (Version " AVERZHN ")\n" ) ;
-#else
-     printf( "Compile date = " __DATE__ " " __TIME__ " (Version " AVERZHN ")\n") ;
-#endif
-     dienow++ ;
+
+   if( check_string("-ver",argc,argv) || check_string("--ver",argc,argv) ) {
+      show_AFNI_version() ;
+      dienow++ ;
    }
 
    /** MOTD output **/
@@ -1868,11 +1908,30 @@ int main( int argc , char *argv[] )
      AFNI_list_papers(NULL) ; dienow++ ;
    }
 
+   /* getting text output, should be early      23 Oct 2015 [rickr] */
+
+   if( check_string("-available_npb_quiet", argc, argv) ) {
+      fprintf(stdout,"%d\n",get_available_npb());
+      dienow++ ;
+   } else if( check_string("-available_npb", argc, argv) ) {
+      fprintf(stdout,
+              "\nFirst available npb: %d\n",get_available_npb());
+      dienow++ ;
+   }
+
+   /* -list_ports list and quit */
+   if( check_string("-list_ports", argc, argv) ) {
+      show_ports_list(); dienow++ ;
+   }
+
    /*** if ordered, die right now ***/
 
    if( dienow ) exit(0) ;  /* farewell, cruel world */
 
    /***----- otherwise, perhaps become all detached from reality -----***/
+
+   /* no version until after quick exit checks      23 Oct 2015 [rickr] */
+   if( ! check_string("-q",argc,argv) ) show_AFNI_version() ;
 
    /* Since AFNI_DETACH is applied before machdep() or other my_getenv
       calls, -D cannot be used to apply this env var, so add an option.
@@ -1921,7 +1980,7 @@ int main( int argc , char *argv[] )
    GLOBAL_argopt.allow_rt = check_string("-rt",argc,argv) ;
 
    if( !GLOBAL_argopt.quiet && !ALLOW_realtime )
-#if 0
+#if 1 /* 30 Dec 2015 */
      AFNI_start_version_check() ;               /* 21 Nov 2002 */
 #else
      AFNI_start_compile_date_check() ;          /* 17 Jun 2014 */
@@ -2169,6 +2228,7 @@ STATUS("start XtAppMainLoop") ;
    XtAppMainLoop(MAIN_app) ;  /* never returns */
    AFexit(0) ;                /* should never be reached */
 }
+
 
 #undef HUBERIZE
 #ifdef HUBERIZE
@@ -2767,7 +2827,7 @@ ENTRY("AFNI_startup_timeout_CB") ;
              "                                                               \n"
              "++ For general AFNI program help, see the Web page           ++\n"
              "\n"
-             "   http://afni.nimh.nih.gov/afni/doc/program_help/index.html   \n"
+             "   https://afni.nimh.nih.gov/afni/doc/program_help/index.html   \n"
              "%s"
              "\n"
              "++ [To close this message window, left-click inside of it.]  ++\n"
@@ -2796,68 +2856,27 @@ ENTRY("AFNI_startup_timeout_CB") ;
 
    /* 21 Nov 2002: check the AFNI version */
 
-#if 0
-   vv = AFNI_version_check() ; /* nada if AFNI_start_version_check() inactive */
+/* changed if 0 to if 1 to revert to version_check()   30 Dec 2015 */
+#if 1
+   /* do nothing if AFNI_start_version_check() says inactive */
+   vv = AFNI_version_check() ;
 
    if( vv && vers_pixmap != XmUNSPECIFIED_PIXMAP )     /* 08 Aug 2005 */
      AFNI_vcheck_flasher(im3d) ;
-
-#ifdef SHSTRING
-   if( vv ){  /* 20 Nov 2003: if version check shows a mismatch */
-     char *sname = AFNI_make_update_script() ;
-
-     if( sname != NULL ){
-       char *cpt , *ddd ; int nn ;
-       ddd = strdup(sname) ; cpt = THD_trailname(ddd,0) ; *cpt = '\0' ;
-       cpt = THD_trailname(sname,0) ;
-       fprintf(stderr,
-               "\n"
-               "*===================================================\n"
-               "* A script to update AFNI binaries has been created.\n"
-               "* To use it, quit AFNI now, then try the commands\n"
-               "pushd %s\n"
-               "source %s\n"
-               "popd\n"
-               "*===================================================\n" ,
-               ddd , cpt ) ;
-       free((void *)ddd) ;
-       nn = THD_freemegabytes(sname) ;
-       if( nn >= 0 && nn <= 300 ){
-         fprintf(stderr,
-               "* HOWEVER: you only have %d Mbytes free, which won't\n"
-               "*          won't be enough to download and install\n"
-               "*          the updated set of AFNI binaries!\n"
-               "*===================================================\n" ,
-               nn ) ;
-       }
-     } else {
-       fprintf(stderr,
-               "\n"
-               "*==================================================\n"
-               "* Can't create script for updating AFNI\n"
-               "*   binaries in your AFNI directory.\n"
-               "* You'll have to get your sysadmin to help, or\n"
-               "*   do it yourself.  AFNI can be downloaded from\n"
-               "*     http://afni.nimh.nih.gov/afni/download   *OR*\n"
-               "*     ftp://afni.nimh.nih.gov/tgz\n"
-               "*   You want file " SHSTRING ".tgz\n"
-               "*==================================================\n" ) ;
-     }
-   }
-#endif /* SHSTRING */
 
 #else
 
    vv = AFNI_compile_date_check() ;  /* 17 Jun 2014 */
    if( vv >= 93 ){
+     /* fixed %31 to /31   28 Dec 2015 [rickr] */
      WARNING_message(
        "Your copy of AFNI is over %d months old -- please update it (if practicable)." ,
-       vv % 31 ) ;
+       vv / 31 ) ;
      if( im3d->vwid->tips_pb != NULL ){
        char msg[1024] ;
        sprintf( msg, " \n"
                      " Your copy of AFNI is over %d months old.\n"
-                     "   Please update it (if practicable).\n "  , vv % 31 ) ;
+                     "   Please update it (if practicable).\n "  , vv / 31 ) ;
        (void) MCW_popup_message( im3d->vwid->tips_pb , msg ,
                                  MCW_USER_KILL | MCW_TIMER_KILL ) ;
      }
@@ -2922,7 +2941,7 @@ ENTRY("AFNI_startup_timeout_CB") ;
      fprintf(stderr,
        "++ NOTE: you may want to consider creating a '.afnirc' file in your home\n"
        "         directory, to control AFNI's setup.  For more details, see\n"
-       "   http://afni.nimh.nih.gov/pub/dist/doc/program_help/README.environment.html\n") ;
+       "   https://afni.nimh.nih.gov/pub/dist/doc/program_help/README.environment.html\n") ;
 
 
    /* splash window down -- moved here 29 May 2013 */
@@ -5689,9 +5708,13 @@ if(PRINT_TRACING)
 STATUS("reading timeseries files") ;
 
       /* 27 Jan 2000: allow skipping *.1D files from dataset directories */
+      /* 10 Feb 2016:broke sometime - allow skipping */
+      if(GLOBAL_argopt.read_1D)
+         GLOBAL_library.timeseries = THD_get_many_timeseries(qlist);
+      else 
+         GLOBAL_library.timeseries = NULL;
 
-      GLOBAL_library.timeseries =
-        THD_get_many_timeseries( (GLOBAL_argopt.read_1D) ? qlist : NULL ) ;
+/*      THD_get_many_timeseries( (GLOBAL_argopt.read_1D) ? qlist : NULL ) ;*/
 
       REFRESH ;
 
@@ -7185,7 +7208,9 @@ void AFNI_check_for_multiple_vedits( Three_D_View *im3d )
    static int first=1 ;
    Three_D_View *qq3d ; int qq ;
 
-   if( !first || !IM3D_OPEN(im3d) ) return ;
+ENTRY("AFNI_check_for_multiple_vedits") ;
+
+   if( !first || !IM3D_OPEN(im3d) ) EXRETURN ;
 
    for( qq=0 ; qq < MAX_CONTROLLERS ; qq++ ){
      qq3d = GLOBAL_library.controllers[qq] ;
@@ -7206,7 +7231,7 @@ void AFNI_check_for_multiple_vedits( Three_D_View *im3d )
 #undef MCMESS
      }
    }
-   return ;
+   EXRETURN ;
 }
 
 /*------------------------------------------------------------------------*/
@@ -7307,6 +7332,7 @@ DUMP_IVEC3("  new_id",new_id) ;
        ihave               && im3d->vinfo->func_visible && !doflash ){
      int changed=0 ;
      if( VEDIT_good(im3d->vedset) ){
+       STATUS("starting vedit") ;
        im3d->vedset.ival = im3d->vinfo->fim_index ;
        switch( VEDIT_CODE(im3d->vedset) ){
          case VEDIT_CLUST:  /* params 2,3,6 set in afni_cluster.c */
@@ -7322,9 +7348,11 @@ DUMP_IVEC3("  new_id",new_id) ;
          changed = AFNI_vedit( im3d->fim_now , im3d->vedset , mmm ) ;
        }
        if( !DSET_VEDIT_good(im3d->fim_now) ){
+         STATUS("vedit not completed") ;
          UNCLUSTERIZE(im3d) ;
        } else if( changed ){
          mri_cluster_detail *cld ; int nc ; char *rrr ;
+         STATUS("vedit completed") ;
          VEDIT_cluster_helpize(im3d);
          if( im3d->vwid->func->clu_rep != NULL ){
            free(im3d->vwid->func->clu_rep); im3d->vwid->func->clu_rep = NULL;
@@ -7335,6 +7363,7 @@ DUMP_IVEC3("  new_id",new_id) ;
          im3d->vwid->func->clu_list = mri_clusterize_array(1) ;
          AFNI_cluster_dispize(im3d,0);  /* display the results */
          AFNI_check_for_multiple_vedits(im3d) ;  /* 24 Jul 2014 */
+         STATUS("vedit processed") ;
        }
        IM3D_CLEAR_THRSTAT(im3d) ;  /* 12 Jun 2014 */
      } else {

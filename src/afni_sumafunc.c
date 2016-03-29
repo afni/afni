@@ -544,7 +544,7 @@ static void AFNI_surf_bbox_CB( Widget,XtPointer,XtPointer ) ; /* 19 Feb 2003 */
 
 #undef  MAKE_SURF_ROW
 #define MAKE_SURF_ROW(ii)                                          \
- do{ Widget rc ; char *str[1]={"abcdefghijklmn: "} ;               \
+ do{ Widget rc ; char *str[1]={"abcdefghijklmn: "} ; int bs=0 ;    \
      rc = swid->surf_rc[ii] =                                      \
          XtVaCreateWidget(                                         \
            "dialog" , xmRowColumnWidgetClass , swid->rowcol ,      \
@@ -555,7 +555,8 @@ static void AFNI_surf_bbox_CB( Widget,XtPointer,XtPointer ) ; /* 19 Feb 2003 */
      swid->surf_bbox[ii] = new_MCW_bbox( rc , 1 , str ,            \
                              MCW_BB_check, MCW_BB_noframe,         \
                              AFNI_surf_bbox_CB , im3d ) ;          \
-     MCW_set_bbox( swid->surf_bbox[ii] , 1 ) ;                     \
+     bs = ! AFNI_noenv("AFNI_SUMA_START_ON") ;                     \
+     MCW_set_bbox( swid->surf_bbox[ii] , bs ) ;                    \
      MCW_reghelp_children( swid->surf_bbox[ii]->wrowcol ,          \
                            "Use this toggle to turn the\n"         \
                            "overlay drawing for this surface\n"    \
@@ -759,11 +760,14 @@ ENTRY("AFNI_make_surface_widgets") ;
    box_col = DC_find_closest_overlay_color( im3d->dc, eee ) ;
    if( box_col < 0 ) box_col = 0 ;
 
+   if( AFNI_noenv("AFNI_SUMA_START_ON") ) line_col = box_col = 0 ;
+
    lincol_default = line_col ; boxcol_default = box_col ;  /* 06 Sep 2006 */
 
    for( ii=0 ; ii < num ; ii++ ){
      if( ii < swid_ncol ){ line_col = swid_lincol[ii]; box_col = swid_boxcol[ii]; }
      else                { line_col = lincol_default ; box_col = boxcol_default ; }
+     if( AFNI_noenv("AFNI_SUMA_START_ON") ) line_col = box_col = 0 ;
      MAKE_SURF_ROW(ii) ;
    }
 

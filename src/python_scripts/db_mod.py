@@ -2257,7 +2257,7 @@ def db_cmd_blur(proc, block):
 
        # if we have an extents mask, apply it if no scale block
        do_mask = proc.mask_extents != None and \
-                 proc.find_block('scale',block.index) == None
+                 proc.find_block('scale',mn=block.index) == None
 
        if do_mask: tprefix = 'rm.%s' % prefix
        else:       tprefix = prefix
@@ -2702,9 +2702,9 @@ def anat_mask_command(proc, block):
                    % (proc.mask_epi.pv(), proc.mask_anat.pv())
             cmd = cmd + rcmd
 
-            rcmd = "# note Pearson correlation of masks, as well\n"   \
-                   "3ddot -demean %s %s \\\n"                         \
-                   "      |& tee out.mask_ae_corr.txt\n\n"            \
+            rcmd = "# note Dice coefficient of masks, as well\n"      \
+                   "3ddot -dodice %s %s \\\n"                         \
+                   "      |& tee out.mask_ae_dice.txt\n\n"            \
                    % (proc.mask_epi.pv(), proc.mask_anat.pv())
             cmd = cmd + rcmd
 
@@ -3486,6 +3486,11 @@ def db_cmd_regress(proc, block):
         if newcmd: cmd = cmd + newcmd
 
     # ----------------------------------------
+    # last censoring is done, so possibly generate keep_trs as $ktrs
+    newcmd = get_keep_trs_cmd(proc)
+    if newcmd: cmd += newcmd
+
+    # ----------------------------------------
     # regress anything from anat_followers.
     if block.opts.find_opt('-regress_ROI_PC'):
         err, newcmd = db_cmd_regress_pc_followers(proc, block)
@@ -4088,9 +4093,11 @@ def db_cmd_reml_exec(proc, block, short=0):
        rv, cmd = db_cmd_regress_anaticor(proc, block)
        if rv: return ''
        aopts = '-dsort %s ' % proc.aic_lset.shortinput()
+       astr = '%s# (include ANATICOR regressors via -dsort)\n' % istr
     else:
        cmd = ''
        aopts = ''
+       astr = ''
 
     # see if the user has provided other 3dREMLfit options
     opt = block.opts.find_opt('-regress_opts_reml')
@@ -4098,7 +4105,8 @@ def db_cmd_reml_exec(proc, block, short=0):
     else: reml_opts = ' '.join(UTIL.quotize_list(opt.parlist, '', 1))
 
     cmd +='%s# -- execute the 3dREMLfit script, written by 3dDeconvolve --\n' \
-          '%stcsh -x stats.REML_cmd %s%s\n' % (istr, istr, aopts, reml_opts)
+          '%s'                                                                \
+          '%stcsh -x stats.REML_cmd %s%s\n' % (istr,astr, istr,aopts, reml_opts)
     if not proc.surf_anat: proc.errts_reml = proc.errts_pre_3dd + '_REML'
 
     # if 3dDeconvolve fails, terminate the script
@@ -4186,7 +4194,7 @@ def db_cmd_regress_gcor(proc, block, errts_pre):
     return cmd
 
 
-def set_proc_vr_vall(proc, parset=None, newpre='rm.all_runs.volreg'):
+def set_proc_vr_vall(proc, block, parset=None, newpre='rm.all_runs.volreg'):
    """if proc.vr_vall is set, do nothing
       else return string to create it
 
@@ -4196,8 +4204,14 @@ def set_proc_vr_vall(proc, parset=None, newpre='rm.all_runs.volreg'):
    # create or not catenated volreg dataset
    if proc.vr_vall != None: return ''
 
+   vblock = proc.find_block_or_prev('volreg', block)
+   if vblock == None:
+      print '** SPVV: failed to find corresponding volreg block'
+      return ''
+
    cmd = '# create catenated volreg dataset\n' \
-         '3dTcat -prefix %s %s\n' % (newpre, proc.dset_form_wild('volreg'))
+         '3dTcat -prefix %s %s\n'              \
+         % (newpre, proc.dset_form_wild(vblock.label))
 
    proc.vr_vall = parset.new(newpre)
 
@@ -4249,11 +4263,12 @@ def db_cmd_regress_anaticor(proc, block):
     if rad <= 0.0: return 1, ''
 
     # init command
-    cmd = '# %sANATICOR: generate local %s time series averages\n' \
+    cmd = '# --------------------------------------------------\n' \
+          '# %sANATICOR: generate local %s time series averages\n' \
           % (fstr, roilab)
 
     # create or note catenated volreg dataset
-    cmd += set_proc_vr_vall(proc, parset=rset)
+    cmd += set_proc_vr_vall(proc, block, parset=rset)
     vall = proc.vr_vall.shortinput()
 
     # generate main command string
@@ -4264,7 +4279,8 @@ def db_cmd_regress_anaticor(proc, block):
               '       -expr "a*bool(b)" -datum float -prefix %s\n\n' \
               % (vall, mset.shortinput(), vmask)
 
-       cmd += '3dmerge -1blur_fwhm %g -doall -prefix %s %s%s\n\n'    \
+       cmd += '# generate ANATICOR voxelwise regressors via blur\n'  \
+              '3dmerge -1blur_fwhm %g -doall -prefix %s %s%s\n\n'    \
               % (rad, rset.out_prefix(), vmask, proc.view)
     else:
        cmd += "3dLocalstat -stat mean -nbhd 'SPHERE(%g)' -prefix %s \\\n" \
@@ -4289,11 +4305,13 @@ def db_cmd_regress_anaticor(proc, block):
 
 def get_keep_trs_cmd(proc):
     # sub-brick selection, in case of censoring
-    if proc.censor_file:
+    # (only return this once)
+    if proc.censor_file and proc.keep_trs == '':
+       c1 = '1d_tool.py -infile %s \\\n'                        \
+            '%22s -show_trs_uncensored encoded' % (proc.censor_file, ' ')
        cs = '# note TRs that were not censored\n'               \
-            'set keep_trs = `1d_tool.py -infile %s %s`\n\n'     \
-            % (proc.xmat, '-show_trs_uncensored encoded')
-       proc.keep_trs = '"[$keep_trs]"'
+            'set ktrs = `%s`\n\n' % c1
+       proc.keep_trs = '"[$ktrs]"'
     else:
        cs = ''
 
@@ -4446,10 +4464,11 @@ def db_cmd_tsnr(proc, comment, signal, noise, view,
     else:               suff = name_qual + suff
 
     cmd  = comment + feh_str
-    cmd += "%s3dTstat -mean -prefix rm.signal%s %s%s\n"           \
-           "%s"                                                   \
-           "%s3dTstat -stdev -prefix rm.noise%s %s%s\n"           \
-           % (istr, suff, signal, vsuff, detcmd, istr, suff, noise, vsuff)
+    cmd += "%s3dTstat -mean -prefix rm.signal%s %s%s%s\n"       \
+           "%s"                                                 \
+           "%s3dTstat -stdev -prefix rm.noise%s %s%s%s\n"       \
+           % (istr, suff, signal, vsuff, proc.keep_trs, detcmd,
+              istr, suff, noise,  vsuff, proc.keep_trs)
 
     cmd += "%s3dcalc -a rm.signal%s%s \\\n"     \
            "%s       -b rm.noise%s%s %s \\\n"   \
@@ -4683,7 +4702,7 @@ def db_cmd_regress_pc_followers(proc, block):
     # if there is no volreg prefix, get a more recent one
     vr_prefix = proc.volreg_prefix
     if not vr_prefix:
-       vblock = get_possible_volreg_block(proc, block)
+       vblock = proc.find_block_or_prev('volreg', block)
        vr_prefix = proc.prefix_form_run(vblock)
 
     tpre = 'rm.det_pcin'
@@ -4702,17 +4721,10 @@ def db_cmd_regress_pc_followers(proc, block):
     else:                c1str = ''
  
     clist.append('# catenate runs%s\n' % c1str)
-    clist.append('3dTcat -prefix %s_rall %s_r*%s.HEAD\n'%(tpre,tpre,proc.view))
+    clist.append('3dTcat -prefix %s_rall %s_r*%s.HEAD\n\n' \
+                 % (tpre,tpre,proc.view) )
     tpre += '_rall'
 
-    if proc.censor_file:
-       c1 = '1d_tool.py -infile %s \\\n' \
-            '%22s -show_trs_uncensored encoded' % (proc.censor_file, ' ')
-       clist.append('set ktrs = `%s`\n' % c1)
-       select = '"[$ktrs]"'
-    else: select = ''
-
-    clist.append('\n')
     for pcind, pcentry in enumerate(roipcs):
        label = pcentry[0]
        num_pc = pcentry[1]
@@ -4732,7 +4744,7 @@ def db_cmd_regress_pc_followers(proc, block):
               '3dpc -mask %s -pcsave %d -prefix %s \\\n' \
               '     %s%s%s\n'                            \
               % (c1str, label, cname.shortinput(),
-                 num_pc, pcpref, tpre, proc.view, select))
+                 num_pc, pcpref, tpre, proc.view, proc.keep_trs))
        pcname = '%s_vec.1D' % pcpref
 
        # append pcfiles to orts list
@@ -4800,7 +4812,7 @@ def db_cmd_regress_ROI(proc, block):
     # if there is no volreg prefix, get a more recent one
     vr_prefix = proc.volreg_prefix
     if not vr_prefix:
-       vblock = get_possible_volreg_block(proc, block)
+       vblock = proc.find_block_or_prev('volreg', block)
        vr_prefix = proc.prefix_form_run(vblock)
 
     cmd += 'foreach run ( $runs )\n'
@@ -4832,20 +4844,6 @@ def db_cmd_regress_ROI(proc, block):
     print '-- have %d ROIs to regress: %s' % (len(rois), ', '.join(rois))
 
     return 0, cmd
-
-def get_possible_volreg_block(proc, block):
-    """find volreg block, or pre surf/blur/scale/current block
-       require that it is no later than current
-    """
-    rblock = proc.find_block('volreg')
-    if rblock: return rblock
-
-    rblock = proc.find_block('surf')
-    if not rblock: rblock = proc.find_block('blur')
-    if not rblock: rblock = proc.find_block('scale')
-    if not rblock: rblock = block
-
-    return proc.find_block(proc.prev_lab(rblock))
 
 def db_cmd_regress_bandpass(proc, block):
     """apply bandpass filtering in 3dDeconvolve
@@ -5757,7 +5755,7 @@ g_help_string = """
         DEFAULTS                : basic default operations, per block
         EXAMPLES                : various examples of running this program
         NOTE sections           : details on various topics
-            RESTING STATE NOTE, TIMING FILE NOTE, MASKING NOTE,
+            RESTING STATE NOTE, FREESURFER NOTE, TIMING FILE NOTE, MASKING NOTE,
             ANAT/EPI ALIGNMENT CASES NOTE, ANAT/EPI ALIGNMENT CORRECTIONS NOTE,
             WARP TO TLRC NOTE, RETROICOR NOTE, RUNS OF DIFFERENT LENGTHS NOTE,
             SCRIPT EXECUTION NOTE
@@ -6307,10 +6305,18 @@ g_help_string = """
 
        Example 10. Resting state analysis, with tissue-based regressors.
 
-           Like example #9, but also regress eroded white matter and CSF
-           averages.  The WMe and CSFe signals come from the Classes dataset,
-           created by 3dSeg via the -mask_segment_anat and -mask_segment_erode
-           options.  Align to minimum outlier volume.
+           Like example #9, but also regress the eroded white matter averages.
+           The WMe mask come from the Classes dataset, created by 3dSeg via the
+           -mask_segment_anat and -mask_segment_erode options.
+
+        ** While -mask_segment_anat also creates a CSF mask, that mask is ALL
+           CSF, not just restricted to the ventricles, for example.  So it is
+           probably not appropriate for use in tissue-based regression.
+
+           CSFe was previously used as an example of what one could do, but as
+           it is not advised, it has been removed.
+
+           Also, align to minimum outlier volume.
 
                 afni_proc.py -subj_id subj123                                \\
                   -dsets epi_run1+orig.HEAD                                  \\
@@ -6326,7 +6332,7 @@ g_help_string = """
                   -regress_censor_outliers 0.1                               \\
                   -regress_bandpass 0.01 0.1                                 \\
                   -regress_apply_mot_types demean deriv                      \\
-                  -regress_ROI WMe CSFe                                      \\
+                  -regress_ROI WMe                                           \\
                   -regress_run_clustsim no                                   \\
                   -regress_est_blur_errts
 
@@ -6353,7 +6359,7 @@ g_help_string = """
                   -mask_segment_erode yes                                    \\
                   -regress_bandpass 0.01 0.1                                 \\
                   -regress_apply_mot_types demean deriv                      \\
-                  -regress_ROI WMe CSFe                                      \\
+                  -regress_ROI WMe                                           \\
                   -regress_RSFC                                              \\
                   -regress_run_clustsim no                                   \\
                   -regress_est_blur_errts
@@ -6367,9 +6373,10 @@ g_help_string = """
          o No bandpassing.
          o Use fast ANATICOR method (slightly different from default ANATICOR).
          o Use FreeSurfer segmentation for:
-             - regression of average eroded white matter
              - regression of first 3 principal components of lateral ventricles
-             - ANATICOR white matter mask
+             - ANATICOR white matter mask (for local white matter regression)
+         o Input anat is from FreeSurfer (meaning it is aligned with FS masks).
+             - output from FS is usually not quite aligned with input
          o Erode FS white matter and ventricle masks before application.
          o Bring along FreeSurfer parcellation datasets:
              - aaseg : NN interpolated onto the anatomical grid
@@ -6380,7 +6387,7 @@ g_help_string = """
 
                 afni_proc.py -subj_id FT.11.rest                             \\
                   -blocks despike tshift align tlrc volreg blur mask regress \\
-                  -copy_anat FT_anat+orig                                    \\
+                  -copy_anat FT_SurfVol.nii                                  \\
                   -anat_follower_ROI aaseg anat aparc.a2009s+aseg_rank.nii   \\
                   -anat_follower_ROI aeseg epi  aparc.a2009s+aseg_rank.nii   \\
                   -anat_follower_ROI FSvent epi FT_vent.nii                  \\
@@ -6394,7 +6401,6 @@ g_help_string = """
                   -volreg_align_e2a                                          \\
                   -volreg_tlrc_warp                                          \\
                   -regress_ROI_PC FSvent 3                                   \\
-                  -regress_ROI FSWe                                          \\
                   -regress_make_corr_vols aeseg FSvent                       \\
                   -regress_anaticor_fast                                     \\
                   -regress_anaticor_label FSWe                               \\
@@ -6491,6 +6497,10 @@ g_help_string = """
                    10b. apply bandpassing via 3dRSFC
                    soon: extra motion regs via motion simulated time series
                          (either locally or not)
+                   11.  censor, despike, non-linear registration,
+                        no bandpassing, fast ANATICOR regression,
+                        FreeSurfer masks for ventricle/WM regression
+                      * see "FREESURFER NOTE" for more details
 
             processing blocks:
 
@@ -6607,6 +6617,73 @@ g_help_string = """
 
                    (afni GUI, 3dclust, or 3dmerge)
             
+    --------------------------------------------------
+    FREESURFER NOTE:
+
+    FreeSurfer output can be used for a few things in afni_proc.py:
+
+        - simple skull stripping (i.e. instead of 3dSkullStrip)
+        - running a surface-based analysis
+        - using parcellation datasets for:
+           - tissue-based regression
+           - creating group probability maps
+           - creating group atlases (e.g. maximum probability maps)
+
+    This NOTE mainly refers to using FreeSurfer parcellations for tissue-based
+    regression, as is done in Example 11.
+
+
+    First run FreeSurfer, then import to AFNI using @SUMA_Make_Spec_FS, then
+    make ventricle and white matter masks from the Desikan-Killiany atlas based
+    parcellation dataset, aparc+aseg.nii.
+
+    Note that the aparc.a2009s segmentations are based on the Destrieux atlas,
+    which might be nicer for probability maps, though the Desikan-Killiany
+    aparc+aseg segmentation is currently used for segmenting white matter and
+    ventricles.  I have not studied the differences.
+
+
+    Example 11 brings the ranked version of the aparc.a2009s+aseg segmentation
+    along (for viewing or atlas purposes, aligned with the result), though the
+    white matter and ventricle masks are based instead on aparc+aseg.nii.
+
+        # run (complete) FreeSurfer on FT.nii
+        recon-all -all -subject FT -i FT.nii
+
+        # import to AFNI, in NIFTI format
+        @SUMA_Make_Spec_FS -sid FT -NIFTI
+
+        # create ventricle and white matter masks
+        3dcalc -a aparc+aseg.nii -datum byte -prefix FT_vent.nii \
+               -expr 'amongst(a,4,43)'
+        3dcalc -a aparc+aseg.nii -datum byte -prefix FT_WM.nii \
+               -expr 'amongst(a,2,7,16,41,46,251,252,253,254,255)'
+
+    After this, FT_SurfVol.nii, FT_vent.nii and FT_WM.nii (along with the
+    basically unused aparc.a2009s+aseg_rank.nii) are passed to afni_proc.py.
+
+
+  * Be aware that the output from FreeSurfer (e.g. FT_SurfVol.nii) will
+    usually not quite align with the input (e.g. FT.nii).  So parcellation
+    datasets will also not quite align with the input (FT.nii).  Therefore,
+    when passing parcellation volumes to afni_proc.py for tissue-based
+    regression, it is important to use the anatomy output from FreeSurfer
+    as the subject anatomy (input to afni_proc.py).  That way, the anatomy
+    and parcellation datasets will be in register, and therefore the EPI
+    will eventually align with the parcellation datasets.
+
+    If it is important to have the FreeSurfer output align with the input,
+    it might help to pass a modified volume to FreeSurfer.  Use 3dresample
+    and then 3dZeropad (if necessary) to make a volume with 1 mm^3 voxels
+    and an even number voxels in each direction.
+
+    The exact 3dZeropad command depends on the grid output by 3dresample.
+
+        3dresample -inset FT_anat+orig -dxyz 1 1 1 -prefix FT.1 -rmode Cu
+        3dZeropad -L 1 -prefix FT.1.z.nii FT.1+orig
+        recon-all -all -subject FT -i FT.1.z.nii
+        @SUMA_Make_Spec_FS -sid FT -NIFTI
+
     --------------------------------------------------
     TIMING FILE NOTE:
 
@@ -7549,7 +7626,8 @@ g_help_string = """
         -outlier_polort POLORT  : specify polynomial baseline for 3dToutcount
 
                 e.g. -outlier_polort 3
-                default: same degree that 3dDeconvolve would use: 1+time/150
+                default: same degree that 3dDeconvolve would use:
+                         1 + floor(run_length/150)
 
             Outlier counts come after detrending the data, where the degree
             of the polynomial trend defaults to the same that 3dDeconvolve
@@ -8643,6 +8721,9 @@ g_help_string = """
           * Mask labels created by -mask_segment_anat and -mask_segment_erode
             can be applied with -regress_ROI and -regress_ROI_PC.
 
+          * The CSF mask is of ALL CSF (not just in the ventricles), and is
+            therefore not very appropriate to use with tissue-based regression.
+
             Consider use of -anat_uniform_method along with this option.
 
             Please see '3dSeg -help' for more information.
@@ -8945,7 +9026,7 @@ g_help_string = """
             to use 'NONE' for the corresponding basis function.
 
             Please see '3dDeconvolve -help' for more information, or the link:
-                http://afni.nimh.nih.gov/afni/doc/misc/3dDeconvolveSummer2004
+                https://afni.nimh.nih.gov/afni/doc/misc/3dDeconvolveSummer2004
             See also -regress_basis_normall, -regress_stim_times,
                      -regress_stim_types.
 
@@ -9537,7 +9618,7 @@ g_help_string = """
             which may be used for multiple 3dDeconvolve options.
 
             Please see '3dDeconvolve -help' for more information, or the link:
-                http://afni.nimh.nih.gov/afni/doc/misc/3dDeconvolveSummer2004
+                https://afni.nimh.nih.gov/afni/doc/misc/3dDeconvolveSummer2004
 
         -regress_opts_reml OPTS ...  : specify extra options for 3dREMLfit
 
@@ -9748,7 +9829,7 @@ g_help_string = """
                                 *
 
             Please see '3dDeconvolve -help' for more information, or the link:
-                http://afni.nimh.nih.gov/afni/doc/misc/3dDeconvolveSummer2004
+                https://afni.nimh.nih.gov/afni/doc/misc/3dDeconvolveSummer2004
             See also -regress_stim_files, -regress_stim_labels, -regress_basis,
                      -regress_basis_normall, -regress_polort.
 
@@ -9789,7 +9870,7 @@ g_help_string = """
             with -regress_stim_types 'file'.
 
             Please see '3dDeconvolve -help' for more information, or the link:
-                http://afni.nimh.nih.gov/afni/doc/misc/3dDeconvolveSummer2004
+                https://afni.nimh.nih.gov/afni/doc/misc/3dDeconvolveSummer2004
             See also -regress_stim_times, -regress_stim_labels, -regress_basis,
                      -regress_basis_normall, -regress_polort,
                      -regress_stim_times_offset, -regress_use_stim_files.

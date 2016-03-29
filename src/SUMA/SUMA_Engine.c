@@ -1353,7 +1353,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                   SUMAg_CF->X->Help_TextShell =  SUMA_CreateTextShellStruct (
                                     SUMA_Help_open, NULL, NULL,
                                     SUMA_Help_destroyed, NULL,
-                        "http://afni.nimh.nih.gov/pub/dist/doc/htmldoc/"
+                        "https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/"
                                     "SUMA/Viewer.html#mouse-keyboard");
                   if (!SUMAg_CF->X->Help_TextShell) {
                      fprintf (SUMA_STDERR, 
@@ -1461,7 +1461,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                                                    NULL, NULL,
                                                    SUMA_Help_Cmap_destroyed,
                                                    NULL,
-                              "http://afni.nimh.nih.gov/pub/dist/doc/htmldoc/"
+                              "https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/"
                               "SUMA/Viewer.html#colormap-keyboard-controls");
                   if (!TextShell) {
                      fprintf (SUMA_STDERR, 

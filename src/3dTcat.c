@@ -362,7 +362,7 @@ int * TCAT_get_subv( int nvals , char *str )
 
    /* do we have a count string in there ? */
    if (strstr(str,"count ")) {
-      return(get_count_intlist ( str, &ii));
+      return(get_count_intlist (str, &ii, nvals-1));
    }
 
 
@@ -644,6 +644,7 @@ int main( int argc , char *argv[] )
 
    mainENTRY("3dTcat main"); machdep() ; PRINT_VERSION("3dTcat") ;
    set_obliquity_report(0); /* silence obliquity */
+   (void)COX_clock_time() ;
    
    { int new_argc ; char ** new_argv ;
      addto_args( argc , argv , &new_argc , &new_argv ) ;
@@ -1080,6 +1081,7 @@ int main( int argc , char *argv[] )
       THD_write_3dim_dataset( NULL,NULL , new_dset , True ) ;
       if( TCAT_verb ) INFO_message("-verb: Wrote output to %s",
                               DSET_BRIKNAME(new_dset) ) ;
+      INFO_message("elapsed time = %.1f s",COX_clock_time()) ;
    }
 
    exit(0) ;

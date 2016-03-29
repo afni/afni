@@ -779,31 +779,31 @@ int WriteIndivProbFiles(int N_nets, int Ndata, int Nvox, int **Prob_grid,
                   if( ROI_STR_LAB && NameLabelsOut ) {
                      if( NIFTI_OUT )
                         snprintf(prefix_netmap[hh][count], 300,
-                                 "%s/NET_%03d_ROI_%s_%s.nii.gz", prefix, hh,
+                                 "%s/NET_%03d_ROI_%s__%s.nii.gz", prefix, hh,
                                  ROI_STR_LAB[hh][i+1], ROI_STR_LAB[hh][j+1]); 
                      else
                         snprintf(prefix_netmap[hh][count], 300,
-                                 "%s/NET_%03d_ROI_%s_%s", prefix, hh,
+                                 "%s/NET_%03d_ROI_%s__%s", prefix, hh,
                                  ROI_STR_LAB[hh][i+1], ROI_STR_LAB[hh][j+1]); 
                   }
 						else if(!DUMP_ORIG_LABS) {
                      if( NIFTI_OUT )
                         snprintf(prefix_netmap[hh][count], 300,
-                                 "%s/NET_%03d_ROI_%03d_%03d.nii.gz",
+                                 "%s/NET_%03d_ROI_%03d__%03d.nii.gz",
                                  prefix,hh,i+1,j+1); 
                      else
                         snprintf(prefix_netmap[hh][count], 300,
-                                 "%s/NET_%03d_ROI_%03d_%03d",
+                                 "%s/NET_%03d_ROI_%03d__%03d",
                                  prefix,hh,i+1,j+1); 
                   }
                   else{
                      if( NIFTI_OUT )
                         snprintf(prefix_netmap[hh][count], 300,
-                                 "%s/NET_%03d_ROI_%03d_%03d.nii.gz",prefix,hh,
+                                 "%s/NET_%03d_ROI_%03d__%03d.nii.gz",prefix,hh,
                                  ROI_LABELS[hh][i+1],ROI_LABELS[hh][j+1]); 
                      else
                         snprintf(prefix_netmap[hh][count], 300,
-                                 "%s/NET_%03d_ROI_%03d_%03d",prefix,hh,
+                                 "%s/NET_%03d_ROI_%03d__%03d",prefix,hh,
                                  ROI_LABELS[hh][i+1],ROI_LABELS[hh][j+1]); 
                   }
 
@@ -817,7 +817,7 @@ int WriteIndivProbFiles(int N_nets, int Ndata, int Nvox, int **Prob_grid,
 											 ADN_none ) ;
 						
 						sprintf(prefix_dump[hh][count],
-								  "%s/NET_%03d_ROI_%03d_%03d.dump",
+								  "%s/NET_%03d_ROI_%03d__%03d.dump",
 								  prefix,hh,i+1,j+1); 
 
                   float *temp_arr_FL=NULL;

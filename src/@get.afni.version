@@ -1,0 +1,88 @@
+#!/bin/tcsh
+
+set hhh = 0
+
+if( $#argv < 1 ) set hhh = 1
+
+if( $hhh == 0 )then
+  if( $argv[1] == "-help" ) set hhh = 1
+endif
+
+if( $hhh == 1 )then
+  echo
+  echo "This script downloads the source code for a particular AFNI version."
+  echo
+  echo "To use this script requires that you have the 'git' software"
+  echo "package installed, since the AFNI source code is maintained"
+  echo "at https://github.com/afni/AFNI"
+  echo
+  echo "Usage: @get.afni.version YY.Q.MM"
+  echo
+  echo "where YY.Q.MM is the version number to get (e.g., 16.0.01)"
+  echo
+  echo "Note that the final part of the version number always has 2"
+  echo "digits -- 16.0.1 is NOT a valid AFNI version number."
+  echo
+  echo "If you enter an invalid version number, the latest source code"
+  echo "version will be fetched, and then an error message of the form"
+  echo "  error: pathspec 'AFNI_16.0.1' did not match any file(s) known to git."
+  echo "will appear.  At that point, the output directory will contain"
+  echo "the latest AFNI source code available on github (which may be"
+  echo "slightly in advance of the latest build version)."
+  echo "At that point, you can"
+  echo " (a) accept this source code; or,"
+  echo " (b) delete the output with '/bin/rm -rf AFNI_YY.Q.MM' and try again; or,"
+  echo " (c) 'cd AFNI_YY.Q.MM/AFNI' and then type 'git tag' to see"
+  echo "     what version numbers are available, then 'cd ../..', remove"
+  echo "     the current output as in (b), and try again; or,"
+  echo " (d) give up and ask for help on the AFNI message board."
+  echo
+  echo "The results are put into directory AFNI_YY.Q.MM/AFNI/src"
+  echo
+  echo "To compile the corresponding binaries, 'cd' to that directory,"
+  echo "choose a Makefile from the output of 'ls Makefile.*', perhaps"
+  echo "edit it to change the INSTALLDIR macro, then 'make vastness'."
+  echo
+  echo "To see how a particular source file differs from the current version,"
+  echo "a command of the form"
+  echo "  git diff master 3dDeconvolve.c"
+  echo "can be used (once you have cd-ed to the src directory)."
+  echo
+  echo "-- RWCox -- Jan 2016"
+  exit 0
+endif
+
+set vers = $argv[1]
+set odir = AFNI_$vers
+
+# create a directory in which to keep the AFNI source code
+
+echo
+echo "=== creating directory $odir"
+echo
+mkdir -p $odir ; cd $odir
+
+# get the current version of AFNI from github
+
+echo
+echo "=== cloning AFNI source code from github"
+echo
+git clone https://github.com/afni/AFNI
+cd AFNI
+
+# switch it to the desired version (here 15.3.01)
+
+echo
+echo "=== switching AFNI source code to version $vers"
+echo
+git checkout AFNI_$vers
+
+echo
+echo "==="
+echo "=== If all went well, AFNI_$vers is now in directory $odir/AFNI/src"
+echo "=== At this point, you can cd to that directory, choose a Makefile,"
+echo "=== and compile the desired binaries."
+echo "==="
+echo
+
+exit 0

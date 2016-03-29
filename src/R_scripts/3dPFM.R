@@ -89,7 +89,7 @@ Brief summary:
 
 * IMPORTANT. This program is written in R. Please follow the guidelines in 
     
-      http://afni.nimh.nih.gov/sscc/gangc/Rinstall.html
+      https://afni.nimh.nih.gov/sscc/gangc/Rinstall.html
 
   to install R and make AFNI compatible with R. In addition, you need to install 
   the following libraries with dependencies:
@@ -483,7 +483,7 @@ read.RprogDemo.opts.batch <- function (args=NULL, verb = 0) {
       '-hrf' = apl(n=1,d = 1, h=paste(
    "-hrf fhrf:   haemodynamic response function used for deconvolution       \n",
    "     *  Since July 2015, fhrf can be any of the HRF models available in 3dDeconvolve. \n",
-   "        Check http://afni.nimh.nih.gov/pub/dist/doc/program_help/3dDeconvolve.html \n",
+   "        Check https://afni.nimh.nih.gov/pub/dist/doc/program_help/3dDeconvolve.html \n",
    "     *  I.e. 3dPFM calls 3dDeconvolve with the -x1D_stop and -nodata options \n", 
    "        to create the HRF with onset at 0 (i.e. -stim_time 1 '1D:0' fhrf )   \n",
    "     *  [Default] fhrf == 'GAM', the 1 parameter gamma variate  \n",    

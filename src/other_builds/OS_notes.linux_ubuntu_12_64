@@ -29,29 +29,29 @@
 # you are running this script in the first place; that is, unless you 
 # are about some specific dependency problem elsewhere on the machine).
 
-sudo apt-get install libnifti-dev
-sudo apt-get install libnifti2
-sudo apt-get install zlib1g
-sudo apt-get install zlib1g-dev
-sudo apt-get install libxt-dev
-sudo apt-get install apt-file
-sudo apt-get install libmotif4
-sudo apt-get install libxt6
-sudo apt-get install x11proto-print-dev
-sudo apt-get install libmotif-dev
-sudo apt-get install libxmu-headers
-sudo apt-get install libglu1-mesa-dev
-sudo apt-get install libxmu-dev
-sudo apt-get install libexpat1-dev 
-sudo apt-get install xmhtml1-dev
-sudo apt-get install libxpm-dev
-sudo apt-get install libmotif-dev
-sudo apt-get install motif-clients
-sudo apt-get install freeglut3-dev
-sudo apt-get install libxi-dev 
-sudo apt-get install libglw1-mesa-dev
-sudo apt-get install libglib2.0-dev
-sudo apt-get install libglib2.0
-sudo apt-get install libgsl0-dev
-sudo apt-get install libxp-dev
-sudo apt-get install tcsh
+sudo apt-get install -y libnifti-dev
+sudo apt-get install -y libnifti2
+sudo apt-get install -y zlib1g
+sudo apt-get install -y zlib1g-dev
+sudo apt-get install -y libxt-dev
+sudo apt-get install -y apt-file
+sudo apt-get install -y libmotif4
+sudo apt-get install -y libxt6
+sudo apt-get install -y x11proto-print-dev
+sudo apt-get install -y libmotif-dev
+sudo apt-get install -y libxmu-headers
+sudo apt-get install -y libglu1-mesa-dev
+sudo apt-get install -y libxmu-dev
+sudo apt-get install -y libexpat1-dev 
+sudo apt-get install -y xmhtml1-dev
+sudo apt-get install -y libxpm-dev
+sudo apt-get install -y libmotif-dev
+sudo apt-get install -y motif-clients
+sudo apt-get install -y freeglut3-dev
+sudo apt-get install -y libxi-dev 
+sudo apt-get install -y libglw1-mesa-dev
+sudo apt-get install -y libglib2.0-dev
+sudo apt-get install -y libglib2.0
+sudo apt-get install -y libgsl0-dev
+sudo apt-get install -y libxp-dev
+sudo apt-get install -y tcsh

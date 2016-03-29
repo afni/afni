@@ -36,7 +36,7 @@ struct {
 {
     /* System generated locals */
     integer i__1, i__2;
-    real r__1, r__2;
+    real r__1, r__2, r__3;
 
     /* Builtin functions */
     double cos(doublereal), sin(doublereal);
@@ -50,15 +50,15 @@ struct {
     static integer nchar;
     extern /* Subroutine */ int color_(integer *);
     static integer isize;
-    static real ct;
+    static real bb, gg, ct, rr;
     static integer nchloc;
     static real st, xr, yr, xx, yy;
     extern integer lastnb_(char *, ftnlen);
-    extern /* Subroutine */ int zzline_(real *, real *, real *, real *), 
-	    zzconv_(char *, integer *, char *, integer *, ftnlen, ftnlen), 
-	    zzphys_(real *, real *), zzstro_(char *, integer *, integer *, 
-	    real *, real *, integer *, ftnlen);
-    static real orr;
+    extern /* Subroutine */ int fcolor_(real *, real *, real *), zzline_(real 
+	    *, real *, real *, real *), zzconv_(char *, integer *, char *, 
+	    integer *, ftnlen, ftnlen), zzphys_(real *, real *), zzstro_(char 
+	    *, integer *, integer *, real *, real *, integer *, ftnlen);
+    static real rgb, orr;
 
 
 
@@ -183,6 +183,17 @@ L20:
 	} else if (lstr[i__ - 1] > 100 && lstr[i__ - 1] <= 107) {
 	    i__2 = lstr[i__ - 1] - 100;
 	    color_(&i__2);
+	} else if (lstr[i__ - 1] == 110) {
+	    rgb = xstr[i__ - 1];
+	    rr = (real) ((integer) (rgb / 256.f));
+	    rgb -= rr * 256.f;
+	    gg = (real) ((integer) (rgb / 16.f));
+	    rgb -= gg * 16.f;
+	    bb = rgb;
+	    r__1 = rr * .066666f;
+	    r__2 = gg * .066666f;
+	    r__3 = bb * .066666f;
+	    fcolor_(&r__1, &r__2, &r__3);
 	}
 /* L200: */
     }
@@ -709,13 +720,15 @@ L200:
 
 
     /* System generated locals */
-    integer i__1, i__2;
+    integer i__1;
 
     /* Local variables */
     static integer ioff, istr;
-    static real xcur, ycur, scale;
+    static real xcur, ycur, scale, bb, gg;
     static integer is;
+    static real rr;
 #define nstrok ((integer *)&equiv_38)
+    static char ccc[1];
     static integer ich, inc;
 #define ns01 ((integer *)&equiv_38)
 #define ns02 ((integer *)&equiv_38 + 100)
@@ -794,20 +807,20 @@ L200:
     ycur = 0.f;
     scale = .051f;
 
-    i__1 = *nch;
-    for (inc = 1; inc <= i__1; ++inc) {
+    inc = 1;
+L100:
 
 /*  Load the offset into the stroke table and the number of strokes */
 
-	ich = *(unsigned char *)&ch[inc - 1];
-	if (ich <= 0) {
-	    ich += 256;
-	}
+    ich = *(unsigned char *)&ch[inc - 1];
+    if (ich <= 0) {
+	ich += 256;
+    }
 
-	ioff = noff[ich];
-	istr = numstr[ich];
-/* ...................................................................
-.. */
+    ioff = noff[ich];
+    istr = numstr[ich];
+/* ..................................................................... 
+*/
 /*  If the offset is 0, this is a control character, so treat it */
 /*  specially -- ISTR is the control code in this case: */
 /*     1 = start superscript */
@@ -817,70 +830,243 @@ L200:
 /*     5,6,7,8,9,10,11 = change color */
 /*     12 = smaller text  [28 Oct 2013] */
 /*     13 = larger text */
+/*     14 = color:R:G:B (consumes 3 extra bytes) */
 
-	if (ioff <= 0) {
-	    if (istr == 1) {
-		xcur -= scale * 2.666667f;
-		ycur += scale * 12.f;
-		scale *= .6666667f;
-	    } else if (istr == 2) {
-		scale *= 1.5f;
-		xcur += scale * 4.f;
-		ycur -= scale * 12.f;
-	    } else if (istr == 3) {
-		xcur -= scale * 2.666667f;
-		ycur -= scale * 12.f;
-		scale *= .6666667f;
-	    } else if (istr == 4) {
-		scale *= 1.5f;
-		xcur += scale * 4.f;
-		ycur += scale * 12.f;
-	    } else if (istr >= 5 && istr <= 11) {
-		++(*nstr);
-		lstr[*nstr] = istr + 96;
-		xstr[*nstr] = xcur;
-		ystr[*nstr] = ycur;
-	    } else if (istr == 12) {
-		scale *= .8f;
-	    } else if (istr == 13) {
-		scale *= 1.25f;
+    if (ioff <= 0) {
+	if (istr == 1) {
+	    xcur -= scale * 2.666667f;
+	    ycur += scale * 12.f;
+	    scale *= .6666667f;
+	} else if (istr == 2) {
+	    scale *= 1.5f;
+	    xcur += scale * 4.f;
+	    ycur -= scale * 12.f;
+	} else if (istr == 3) {
+	    xcur -= scale * 2.666667f;
+	    ycur -= scale * 12.f;
+	    scale *= .6666667f;
+	} else if (istr == 4) {
+	    scale *= 1.5f;
+	    xcur += scale * 4.f;
+	    ycur += scale * 12.f;
+	} else if (istr >= 5 && istr <= 11) {
+	    ++(*nstr);
+	    lstr[*nstr] = istr + 96;
+	    xstr[*nstr] = xcur;
+	    ystr[*nstr] = ycur;
+	} else if (istr == 12) {
+	    scale *= .8f;
+	} else if (istr == 13) {
+	    scale *= 1.25f;
+	} else if (istr == 14) {
+	    ++inc;
+	    *(unsigned char *)ccc = *(unsigned char *)&ch[inc - 1];
+	    rr = 0.f;
+	    if (*(unsigned char *)ccc == '1') {
+		rr = 1.f;
 	    }
-/* ...............................................................
-...... */
+	    if (*(unsigned char *)ccc == '2') {
+		rr = 2.f;
+	    }
+	    if (*(unsigned char *)ccc == '3') {
+		rr = 3.f;
+	    }
+	    if (*(unsigned char *)ccc == '4') {
+		rr = 4.f;
+	    }
+	    if (*(unsigned char *)ccc == '5') {
+		rr = 5.f;
+	    }
+	    if (*(unsigned char *)ccc == '6') {
+		rr = 6.f;
+	    }
+	    if (*(unsigned char *)ccc == '7') {
+		rr = 7.f;
+	    }
+	    if (*(unsigned char *)ccc == '8') {
+		rr = 8.f;
+	    }
+	    if (*(unsigned char *)ccc == '9') {
+		rr = 9.f;
+	    }
+	    if (*(unsigned char *)ccc == 'a' || *(unsigned char *)ccc == 'A') 
+		    {
+		rr = 10.f;
+	    }
+	    if (*(unsigned char *)ccc == 'b' || *(unsigned char *)ccc == 'B') 
+		    {
+		rr = 11.f;
+	    }
+	    if (*(unsigned char *)ccc == 'c' || *(unsigned char *)ccc == 'C') 
+		    {
+		rr = 12.f;
+	    }
+	    if (*(unsigned char *)ccc == 'd' || *(unsigned char *)ccc == 'D') 
+		    {
+		rr = 13.f;
+	    }
+	    if (*(unsigned char *)ccc == 'e' || *(unsigned char *)ccc == 'E') 
+		    {
+		rr = 14.f;
+	    }
+	    if (*(unsigned char *)ccc == 'f' || *(unsigned char *)ccc == 'F') 
+		    {
+		rr = 15.f;
+	    }
+	    ++inc;
+	    *(unsigned char *)ccc = *(unsigned char *)&ch[inc - 1];
+	    gg = 0.f;
+	    if (*(unsigned char *)ccc == '1') {
+		gg = 1.f;
+	    }
+	    if (*(unsigned char *)ccc == '2') {
+		gg = 2.f;
+	    }
+	    if (*(unsigned char *)ccc == '3') {
+		gg = 3.f;
+	    }
+	    if (*(unsigned char *)ccc == '4') {
+		gg = 4.f;
+	    }
+	    if (*(unsigned char *)ccc == '5') {
+		gg = 5.f;
+	    }
+	    if (*(unsigned char *)ccc == '6') {
+		gg = 6.f;
+	    }
+	    if (*(unsigned char *)ccc == '7') {
+		gg = 7.f;
+	    }
+	    if (*(unsigned char *)ccc == '8') {
+		gg = 8.f;
+	    }
+	    if (*(unsigned char *)ccc == '9') {
+		gg = 9.f;
+	    }
+	    if (*(unsigned char *)ccc == 'a' || *(unsigned char *)ccc == 'A') 
+		    {
+		gg = 10.f;
+	    }
+	    if (*(unsigned char *)ccc == 'b' || *(unsigned char *)ccc == 'B') 
+		    {
+		gg = 11.f;
+	    }
+	    if (*(unsigned char *)ccc == 'c' || *(unsigned char *)ccc == 'C') 
+		    {
+		gg = 12.f;
+	    }
+	    if (*(unsigned char *)ccc == 'd' || *(unsigned char *)ccc == 'D') 
+		    {
+		gg = 13.f;
+	    }
+	    if (*(unsigned char *)ccc == 'e' || *(unsigned char *)ccc == 'E') 
+		    {
+		gg = 14.f;
+	    }
+	    if (*(unsigned char *)ccc == 'f' || *(unsigned char *)ccc == 'F') 
+		    {
+		gg = 15.f;
+	    }
+	    ++inc;
+	    *(unsigned char *)ccc = *(unsigned char *)&ch[inc - 1];
+	    bb = 0.f;
+	    if (*(unsigned char *)ccc == '1') {
+		bb = 1.f;
+	    }
+	    if (*(unsigned char *)ccc == '2') {
+		bb = 2.f;
+	    }
+	    if (*(unsigned char *)ccc == '3') {
+		bb = 3.f;
+	    }
+	    if (*(unsigned char *)ccc == '4') {
+		bb = 4.f;
+	    }
+	    if (*(unsigned char *)ccc == '5') {
+		bb = 5.f;
+	    }
+	    if (*(unsigned char *)ccc == '6') {
+		bb = 6.f;
+	    }
+	    if (*(unsigned char *)ccc == '7') {
+		bb = 7.f;
+	    }
+	    if (*(unsigned char *)ccc == '8') {
+		bb = 8.f;
+	    }
+	    if (*(unsigned char *)ccc == '9') {
+		bb = 9.f;
+	    }
+	    if (*(unsigned char *)ccc == 'a' || *(unsigned char *)ccc == 'A') 
+		    {
+		bb = 10.f;
+	    }
+	    if (*(unsigned char *)ccc == 'b' || *(unsigned char *)ccc == 'B') 
+		    {
+		bb = 11.f;
+	    }
+	    if (*(unsigned char *)ccc == 'c' || *(unsigned char *)ccc == 'C') 
+		    {
+		bb = 12.f;
+	    }
+	    if (*(unsigned char *)ccc == 'd' || *(unsigned char *)ccc == 'D') 
+		    {
+		bb = 13.f;
+	    }
+	    if (*(unsigned char *)ccc == 'e' || *(unsigned char *)ccc == 'E') 
+		    {
+		bb = 14.f;
+	    }
+	    if (*(unsigned char *)ccc == 'f' || *(unsigned char *)ccc == 'F') 
+		    {
+		bb = 15.f;
+	    }
+	    ++(*nstr);
+	    lstr[*nstr] = istr + 96;
+	    xstr[*nstr] = rr * 256.f + gg * 16.f + bb;
+	    ystr[*nstr] = ycur;
+	}
+/* ...................................................................
+.. */
 /*  Check if this is a newline character */
 
-	} else if (ich == 10) {
-	    xcur = 0.f;
-	    ycur += -1.1f;
-/* ...............................................................
-...... */
+    } else if (ich == 10) {
+	xcur = 0.f;
+	ycur += -1.1f;
+/* ...................................................................
+.. */
 /*  Otherwise, this is a real character with real strokes */
 
-	} else {
-	    i__2 = istr - 1;
-	    for (is = 0; is <= i__2; ++is) {
-		++(*nstr);
-		kst = nstrok[ioff + is - 1];
+    } else {
+	i__1 = istr - 1;
+	for (is = 0; is <= i__1; ++is) {
+	    ++(*nstr);
+	    kst = nstrok[ioff + is - 1];
 
-		lstr[*nstr] = 0;
-		if (kst >= 16384) {
-		    lstr[*nstr] = 1;
-		    kst += -16384;
-		}
-
-		xcur += scale * (real) (kst / 128 - 64);
-		ycur += scale * (real) (kst % 128 - 64);
-		if (is == istr - 1) {
-		    xcur += scale * 24.f;
-		}
-
-		xstr[*nstr] = xcur;
-		ystr[*nstr] = ycur;
-/* L500: */
+	    lstr[*nstr] = 0;
+	    if (kst >= 16384) {
+		lstr[*nstr] = 1;
+		kst += -16384;
 	    }
+
+	    xcur += scale * (real) (kst / 128 - 64);
+	    ycur += scale * (real) (kst % 128 - 64);
+	    if (is == istr - 1) {
+		xcur += scale * 24.f;
+	    }
+
+	    xstr[*nstr] = xcur;
+	    ystr[*nstr] = ycur;
+/* L500: */
 	}
+    }
+
+/*  Loopback if not done */
 
 /* L900: */
+    ++inc;
+    if (inc <= *nch) {
+	goto L100;
     }
     return 0;
 } /* zzstro_ */
@@ -937,6 +1123,8 @@ L200:
 
     static char chesc[15] = "\\esc           ";
     static char chnesc[15] = "\\noesc         ";
+    static char chcolr[15] = "\\color         ";
+    static char chcoln[15] = ":              ";
     static char chtex[15*115] = "\\Plus          " "\\Cross         " "\\Dia"
 	    "mond       " "\\Box           " "\\FDiamond      " "\\FBox      "
 	    "    " "\\FPlus         " "\\FCross        " "\\Burst         " 
@@ -993,7 +1181,7 @@ L200:
     static integer itop;
     static logical lout;
     static integer i__, nused, nsupb;
-    static char chcont[15];
+    static char chcont[15], chcolx[15];
     static integer ntsupb[10], inc;
 
 
@@ -1191,6 +1379,27 @@ L410:
 	    lesc = FALSE_;
 	} else if (s_cmp(chcont, chesc, 15L, 15L) == 0) {
 	    lesc = TRUE_;
+	} else if (s_cmp(chcont, chcolr, 15L, 15L) == 0 && itop + 4 <= *nchin)
+		 {
+	    i__1 = itop;
+	    s_copy(chcolx, chin + i__1, 15L, itop + 1 - i__1);
+	    if (s_cmp(chcolx, chcoln, 15L, 15L) == 0) {
+		++(*nchout);
+		*(unsigned char *)&chout[*nchout - 1] = 157;
+		++(*nchout);
+		i__1 = itop + 1;
+		s_copy(chout + (*nchout - 1), chin + i__1, 1L, itop + 2 - 
+			i__1);
+		++(*nchout);
+		i__1 = itop + 2;
+		s_copy(chout + (*nchout - 1), chin + i__1, 1L, itop + 3 - 
+			i__1);
+		++(*nchout);
+		i__1 = itop + 3;
+		s_copy(chout + (*nchout - 1), chin + i__1, 1L, itop + 4 - 
+			i__1);
+		nused += 4;
+	    }
 	}
     }
 /* .......................................................................

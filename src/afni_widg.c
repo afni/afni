@@ -288,7 +288,7 @@ static char *AFNI_funcmode_bbox_label[2] =
    "(cubical) voxel dimensions for the\n"   \
    "data resampling"
 
-#define PVALUE_COLOR "#0088dd"
+#define PVALUE_COLOR "#002244"
 
 /************* data for all widget create sub-functions ***************/
 
@@ -324,7 +324,7 @@ static char jumpstring[128];                  /* 13 Jun 2014 */
 void AFNI_make_widgets( Three_D_View *im3d )
 {
    char *s=NULL;
-   
+
 ENTRY("AFNI_make_widgets") ;
 
    /*---- initialize -----*/
@@ -361,7 +361,7 @@ STATUS("creating top_form") ;
             XmNinitialResourcesPersistent , False ,
          NULL ) ;
 
-   s = SUMA_append_string(AFNI_tophelp, 
+   s = SUMA_append_string(AFNI_tophelp,
          ":SPX:\n\n"
          "   .. figure:: media/AfniCont.auto.jpg\n"
          "      :name: media/AfniCont.auto.jpg\n"
@@ -369,7 +369,7 @@ STATUS("creating top_form") ;
          "      :ref: `(link)<media/AfniCont.auto.jpg>`\n"
          "\n"
          ":SPX:") ;
-   SUMA_Register_Widget_Help( vwid->top_form, 0, "AfniCont", 
+   SUMA_Register_Widget_Help( vwid->top_form, 0, "AfniCont",
                               NULL, s); s = NULL; /* Do not free s */
    vwid->file_dialog = NULL ; /* Mar 1997 */
 
@@ -404,6 +404,7 @@ STATUS("WANT_LOGO_BITMAP") ;
 
 #define RGB_TO_PIXMAP(data,pnam)                                           \
  do{ mri_fix_data_pointer( data , bim ) ;                                  \
+     STATUS("RGB_TO_PIXMAP") ;                                             \
      pnam = XCreatePixmap( im3d->dc->display ,                             \
                            RootWindowOfScreen(im3d->dc->screen) ,          \
                            lll_width , lll_height , im3d->dc->planes ) ;   \
@@ -538,6 +539,7 @@ STATUS("WANT_AFNI_BITMAP") ;
                 afni16_pixmap[num_entry-1] = XCreatePixmap( im3d->dc->display ,
                                                  RootWindowOfScreen(im3d->dc->screen) ,
                                                  bim->nx , bim->ny , im3d->dc->planes ) ;
+                STATUS("XPutImage(background pixmap [LOGO16])") ;
                 XPutImage( im3d->dc->display , afni16_pixmap[num_entry-1] ,
                            im3d->dc->origGC , xim , 0,0 , 0,0 , bim->nx , bim->ny ) ;
                 MCW_kill_XImage( xim ) ;
@@ -562,6 +564,7 @@ STATUS("WANT_AFNI_BITMAP") ;
         afni16_pixmap[num_entry-1] = XCreatePixmap( im3d->dc->display ,
                                       RootWindowOfScreen(im3d->dc->screen) ,
                                       bim->nx , bim->ny , im3d->dc->planes ) ;
+        STATUS("XPutImage(background pixmap [RAINBOW])") ;
         XPutImage( im3d->dc->display , afni16_pixmap[num_entry-1] ,
                    im3d->dc->origGC , xim , 0,0 , 0,0 , bim->nx , bim->ny ) ;
         MCW_kill_XImage( xim ) ;
@@ -1002,7 +1005,7 @@ STATUS("making imag->rowcol") ;
           first = 0 ;
           fprintf(stderr,
            "\n++ WARNING: Can't find TTatlas+tlrc or TTatlas.nii.gz dataset for 'whereami'!\n"
-             "++--------- See http://afni.nimh.nih.gov/pub/dist/data/\n" ) ;
+             "++--------- See https://afni.nimh.nih.gov/pub/dist/data/\n" ) ;
         }
       }
       imag->pop_whereami_twin = NULL ;
@@ -5106,8 +5109,8 @@ STATUS("making dmode->rowcol") ;
    /*----- rowcol to hold all program controls stuff -----*/
 
 STATUS("making prog->rowcol") ;
-   SUMA_Register_Widget_Help( prog->frame, 0, "AfniCont->ProgCont", 
-                             "rowcol to hold all program controls stuff", 
+   SUMA_Register_Widget_Help( prog->frame, 0, "AfniCont->ProgCont",
+                             "rowcol to hold all program controls stuff",
                              "Here is where the help would go."
 ":SPX:\n\n"
 "Although this image is in the string used by BHelp, it only seen "
@@ -5246,7 +5249,7 @@ STATUS("making prog->rowcol") ;
    MCW_register_help( prog->quit_pb , AFNI_quit_help ) ;
    MCW_register_hint( prog->quit_pb , "Click twice to close window" ) ;
    #else
-   SUMA_Register_Widget_Help(prog->quit_pb, 1, "AfniCont->ProgCont->done", 
+   SUMA_Register_Widget_Help(prog->quit_pb, 1, "AfniCont->ProgCont->done",
                              "Click twice to close window", AFNI_quit_help);
    #endif
    prog->quit_first = True ;  /* mark this button as not pressed yet */

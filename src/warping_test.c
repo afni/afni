@@ -63,6 +63,25 @@ static INLINE double_pair HCwarp_eval_basis( double x )
    return ee ;
 }
 
+/*............................................................*/
+
+static INLINE double_quint HCwarp_eval_basis5( double x )
+{
+   register double aa , bb ; double_quint ee ;
+
+   aa = fabs(x) ;
+   if( aa >= 1.0f ){               /* outside range ==> 0 */
+     ee.a = ee.b = ee.c = ee.d = ee.e = 0.0 ;
+   } else {
+     bb = 1.0 - aa ; bb = bb*bb ;
+     ee.a = bb * (1.0+2.0*aa) ;    /* f(0)  = 1 ; */
+     ee.b = bb * x * 6.75 ;        /* f'(0) = 1 * 6.75 */
+     ee.c = bb * (1.0+2.0*aa-aa*aa*15.0) ;
+     ee.d = bb * x * (1.0-aa*aa*5.0) * 9.75 ;
+     ee.e = bb * (1.0+2.0*aa-aa*aa*57.0+aa*aa*aa*84.0) ;
+   }
+   return ee ;
+}
 
 /*----------------------------------------------------------------------------*/
 /* C2 Hermite quintics over [-1..1] */
@@ -88,6 +107,10 @@ static INLINE double_triple HQwarp_eval_basis( double x )
 static int nb=0 ;
 static double *b0=NULL , *b1=NULL , *b2=NULL , *cc=NULL , del=0.0 ;
 static double *xx=NULL , *yy=NULL , *zz=NULL ;
+static double *b3=NULL , *b4=NULL ;
+static double *bar[5] ;
+
+/*----------------------------------------------------------------------------*/
 
 void HCwarp_setup_warp_basis( int ng )
 {
@@ -97,19 +120,57 @@ void HCwarp_setup_warp_basis( int ng )
    if( b0 != NULL ){
      free(b0); free(b1); free(b2); free(cc); b0=b1=b2=cc=NULL ;
      free(xx); free(yy); free(zz); xx=yy=zz=NULL ; nb=0 ;
+     free(b3); free(b4); b3=b4=NULL ;
    }
    if( ng < 9 ) return ;
 
    nb = ng ;
-   b0 = (double *)malloc(sizeof(double)*nb) ;
-   b1 = (double *)malloc(sizeof(double)*nb) ;
-   b2 = (double *)malloc(sizeof(double)*nb) ;
+   bar[0] = b0 = (double *)malloc(sizeof(double)*nb) ;
+   bar[1] = b1 = (double *)malloc(sizeof(double)*nb) ;
+   bar[2] = b2 = (double *)malloc(sizeof(double)*nb) ;
+   bar[3] = b3 = (double *)malloc(sizeof(double)*nb) ;
+   bar[4] = b4 = (double *)malloc(sizeof(double)*nb) ;
    cc = (double *)malloc(sizeof(double)*nb) ;
 
    del = di = 2.0 / (nb-1.0) ;
    for( ii=0 ; ii < nb ; ii++ ){
      cc[ii] = -1.0 + ii*di ; ee = HCwarp_eval_basis(cc[ii]) ;
-     b0[ii] = ee.a ; b1[ii] = ee.b ; b2[ii] = 0.0 ;
+     b0[ii] = ee.a ; b1[ii] = ee.b ; b2[ii] = b3[ii] = b4[ii] = 0.0 ;
+   }
+
+   xx = (double *)malloc(sizeof(double)*nb*nb*nb) ;
+   yy = (double *)malloc(sizeof(double)*nb*nb*nb) ;
+   zz = (double *)malloc(sizeof(double)*nb*nb*nb) ;
+
+   return ;
+}
+
+/*----------------------------------------------------------------------------*/
+
+void HCwarp_setup_warp_basis5( int ng )
+{
+   double_quint ee ;
+   int ii ; double di ;
+
+   if( b0 != NULL ){
+     free(b0); free(b1); free(b2); free(cc); b0=b1=b2=cc=NULL ;
+     free(xx); free(yy); free(zz); xx=yy=zz=NULL ; nb=0 ;
+     free(b3); free(b4); b3=b4=NULL ;
+   }
+   if( ng < 9 ) return ;
+
+   nb = ng ;
+   bar[0] = b0 = (double *)malloc(sizeof(double)*nb) ;
+   bar[1] = b1 = (double *)malloc(sizeof(double)*nb) ;
+   bar[2] = b2 = (double *)malloc(sizeof(double)*nb) ;
+   bar[3] = b3 = (double *)malloc(sizeof(double)*nb) ;
+   bar[4] = b4 = (double *)malloc(sizeof(double)*nb) ;
+   cc = (double *)malloc(sizeof(double)*nb) ;
+
+   del = di = 2.0 / (nb-1.0) ;
+   for( ii=0 ; ii < nb ; ii++ ){
+     cc[ii] = -1.0 + ii*di ; ee = HCwarp_eval_basis5(cc[ii]) ;
+     b0[ii] = ee.a; b1[ii] = ee.b; b2[ii] = ee.c; b3[ii] = ee.d; b4[ii] = ee.e;
    }
 
    xx = (double *)malloc(sizeof(double)*nb*nb*nb) ;
@@ -129,19 +190,22 @@ void HQwarp_setup_warp_basis( int ng )
    if( b0 != NULL ){
      free(b0); free(b1); free(b2); free(cc); b0=b1=b2=cc=NULL ;
      free(xx); free(yy); free(zz); xx=yy=zz=NULL ; nb=0 ;
+     free(b3); free(b4); b3=b4=NULL ;
    }
    if( ng < 9 ) return ;
 
    nb = ng ;
-   b0 = (double *)malloc(sizeof(double)*nb) ;
-   b1 = (double *)malloc(sizeof(double)*nb) ;
-   b2 = (double *)malloc(sizeof(double)*nb) ;
+   bar[0] = b0 = (double *)malloc(sizeof(double)*nb) ;
+   bar[1] = b1 = (double *)malloc(sizeof(double)*nb) ;
+   bar[2] = b2 = (double *)malloc(sizeof(double)*nb) ;
+   bar[3] = b3 = (double *)malloc(sizeof(double)*nb) ;
+   bar[4] = b4 = (double *)malloc(sizeof(double)*nb) ;
    cc = (double *)malloc(sizeof(double)*nb) ;
 
    del = di = 2.0 / (nb-1.0) ;
    for( ii=0 ; ii < nb ; ii++ ){
      cc[ii] = -1.0 + ii*di ; ee = HQwarp_eval_basis(cc[ii]) ;
-     b0[ii] = ee.a ; b1[ii] = ee.b ; b2[ii] = ee.c ;
+     b0[ii] = ee.a ; b1[ii] = ee.b ; b2[ii] = ee.c ; b3[ii] = b4[ii] = 0.0 ;
    }
 
    xx = (double *)malloc(sizeof(double)*nb*nb*nb) ;
@@ -240,11 +304,11 @@ double HCwarp_minhexvol( int npar , double *par )
                         ADN_nvals  , 5       ,
                         ADN_ntt    , 0       ,
                       ADN_none ) ;
-     EDIT_substitute_brick( dset , 0 , MRI_float , xar ) ;
-     EDIT_substitute_brick( dset , 1 , MRI_float , yar ) ;
-     EDIT_substitute_brick( dset , 2 , MRI_float , zar ) ;
-     EDIT_substitute_brick( dset , 3 , MRI_float , har ) ;
-     EDIT_substitute_brick( dset , 4 , MRI_float , dar ) ;
+     EDIT_substitute_brick(dset,0,MRI_float,xar) ; EDIT_BRICK_LABEL(dset,0,"xdis") ;
+     EDIT_substitute_brick(dset,1,MRI_float,yar) ; EDIT_BRICK_LABEL(dset,1,"ydis") ;
+     EDIT_substitute_brick(dset,2,MRI_float,zar) ; EDIT_BRICK_LABEL(dset,2,"zdis") ;
+     EDIT_substitute_brick(dset,3,MRI_float,har) ; EDIT_BRICK_LABEL(dset,3,"hex") ;
+     EDIT_substitute_brick(dset,4,MRI_float,dar) ; EDIT_BRICK_LABEL(dset,4,"disp") ;
      DSET_write(dset) ; WROTE_DSET(dset) ; DSET_delete(dset) ;
    }
 
@@ -377,8 +441,102 @@ double HQwarp_minhexvol( int npar , double *par )
 }
 
 /*----------------------------------------------------------------------------*/
+static int nb5 = 3 ;  /* should be 2 or 3 or 4 or 5 */
+/*----------------------------------------------------------------------------*/
+/* npar is 3*nb5*nb5*nb5 = 24 or 81 or 192 or 375 */
 
-#define MPAR 81
+double HCwarp_minhexvol5( int npar , double *par )
+{
+   double hv , mhv , ddd ;
+   double *xpar , *ypar , *zpar ;
+   int ii,jj,kk,hh , nbq , pp,qq,rr,ss ;
+   double_triple x0,x1,x2,x3,x4,x5,x6,x7 ;
+   MRI_IMAGE *him ; float *har=NULL ;
+   int mpar = nb5*nb5*nb5 ;
+
+   if( npar < 3*mpar ) return 0.0 ;         /* something bad */
+
+   if( nb < 9 ) HCwarp_setup_warp_basis5(51) ;
+
+   ddd  = del*del*del ;
+   xpar = par ;
+   ypar = par + mpar ;
+   zpar = par + 2*mpar ;
+
+   for( hh=kk=0 ; kk < nb ; kk++ ){
+    for( jj=0 ; jj < nb ; jj++ ){
+     for( ii=0 ; ii < nb ; ii++,hh++ ){
+      xx[hh] = cc[ii] ; yy[hh] = cc[jj] ; zz[hh] = cc[kk] ;
+      for( ss=rr=0 ; rr < nb5 ; rr++ ){
+       for( qq=0 ; qq < nb5 ; qq++ ){
+        for( pp=0 ; pp < nb5 ; pp++,ss++ ){
+          xx[hh] += bar[pp][kk] * bar[qq][jj] * bar[rr][ii] * xpar[ss] ;
+          yy[hh] += bar[pp][kk] * bar[qq][jj] * bar[rr][ii] * ypar[ss] ;
+          zz[hh] += bar[pp][kk] * bar[qq][jj] * bar[rr][ii] * zpar[ss] ;
+      }}}
+   }}}
+
+#undef  IJK
+#undef  TOT
+#define IJK(p,q,r) ( (p) + (q)*nb + (r)*nbq )
+#define TOT(tt,p)  ( tt.a = xx[p] , tt.b = yy[p] , tt.c = zz[p] )
+
+   mhv = 666.666 ; nbq = nb*nb ;
+
+   if( fname != NULL ){
+     him = mri_new_vol( nb,nb,nb , MRI_float ) ; har = MRI_FLOAT_PTR(him) ;
+   }
+
+   for( kk=0 ; kk < nb-1 ; kk++ ){
+    for( jj=0 ; jj < nb-1 ; jj++ ){
+      for( ii=0 ; ii < nb-1 ; ii++ ){
+        hh = IJK(ii,jj,kk) ;
+        TOT(x0,hh) ; TOT(x1,hh+1) ; TOT(x2,hh+nb) ; TOT(x3,hh+nb+1) ;
+        hh += nbq ;
+        TOT(x4,hh) ; TOT(x5,hh+1) ; TOT(x6,hh+nb) ; TOT(x7,hh+nb+1) ;
+        hv = hexahedron_volume(x0,x1,x2,x3,x4,x5,x6,x7) / ddd ;
+        if( hv < mhv ) mhv = hv ;
+        if( har != NULL ) har[ii+jj*nb+kk*nbq] = hv ;
+   }}}
+
+   if( fname != NULL ){
+     MRI_IMAGE *xim,*yim,*zim,*dim ; float *xar,*yar,*zar,*dar ;
+     THD_3dim_dataset *dset ; THD_ivec3 iv_nxyz ;
+     xim = mri_new_vol( nb,nb,nb , MRI_float ) ; xar = MRI_FLOAT_PTR(xim) ;
+     yim = mri_new_vol( nb,nb,nb , MRI_float ) ; yar = MRI_FLOAT_PTR(yim) ;
+     zim = mri_new_vol( nb,nb,nb , MRI_float ) ; zar = MRI_FLOAT_PTR(zim) ;
+     dim = mri_new_vol( nb,nb,nb , MRI_float ) ; dar = MRI_FLOAT_PTR(dim) ;
+     for( hh=kk=0 ; kk < nb ; kk++ ){
+      for( jj=0 ; jj < nb ; jj++ ){
+       for( ii=0 ; ii < nb ; ii++,hh++ ){
+         xar[hh] = (float)(xx[hh]-cc[ii]) ;
+         yar[hh] = (float)(yy[hh]-cc[jj]) ;
+         zar[hh] = (float)(zz[hh]-cc[kk]) ;
+         dar[hh] = sqrtf(xar[hh]*xar[hh]+yar[hh]*yar[hh]+zar[hh]*zar[hh]) ;
+         if( har[hh] < mhv ) har[hh] = mhv ;
+     }}}
+     dset = EDIT_empty_copy(NULL) ;
+     LOAD_IVEC3( iv_nxyz , nb,nb,nb ) ;
+     EDIT_dset_items( dset ,
+                        ADN_nxyz   , iv_nxyz ,
+                        ADN_prefix , fname   ,
+                        ADN_nvals  , 5       ,
+                        ADN_ntt    , 0       ,
+                      ADN_none ) ;
+     EDIT_substitute_brick( dset , 0 , MRI_float , xar ) ;
+     EDIT_substitute_brick( dset , 1 , MRI_float , yar ) ;
+     EDIT_substitute_brick( dset , 2 , MRI_float , zar ) ;
+     EDIT_substitute_brick( dset , 3 , MRI_float , har ) ;
+     EDIT_substitute_brick( dset , 4 , MRI_float , dar ) ;
+     DSET_write(dset) ; WROTE_DSET(dset) ; DSET_delete(dset) ;
+   }
+
+   return mhv ;
+}
+
+/*----------------------------------------------------------------------------*/
+
+#define MPAR 375
 
 int main( int argc , char *argv[] )
 {
@@ -393,7 +551,7 @@ int main( int argc , char *argv[] )
      printf("\n"
             "Program to test warping functions and find maximum volume distortions.\n"
             "For use by Emperor Zhark only!!\n"
-            "  order = 3 or 5\n"
+            "  order = 3 or 5 [cubic or quintic] or -3,-4,-5 [expanded cubic]\n"
             "  btop  = max value for warp coefficient\n"
             "  ngrid = grid size (default=51)\n"
             "  fname = prefix for output dataset (default=no output)\n"
@@ -410,6 +568,22 @@ int main( int argc , char *argv[] )
      npar = 81 ;
      setup_warp_basis = HQwarp_setup_warp_basis ;
      minhexvol        = HQwarp_minhexvol ;
+   } else if( nord == -2 ){
+     npar = 24 ; nb5 = 2 ;
+     setup_warp_basis = HCwarp_setup_warp_basis5 ;
+     minhexvol        = HCwarp_minhexvol5 ;
+   } else if( nord == -3 ){
+     npar = 81 ; nb5 = 3 ;
+     setup_warp_basis = HCwarp_setup_warp_basis5 ;
+     minhexvol        = HCwarp_minhexvol5 ;
+   } else if( nord == -4 ){
+     npar = 192 ; nb5 = 4 ;
+     setup_warp_basis = HCwarp_setup_warp_basis5 ;
+     minhexvol        = HCwarp_minhexvol5 ;
+   } else if( nord == -5 ){
+     npar = 375 ; nb5 = 5 ;
+     setup_warp_basis = HCwarp_setup_warp_basis5 ;
+     minhexvol        = HCwarp_minhexvol5 ;
    } else {
      ERROR_exit("Illegal order value %d -- must be 3 or 5",nord) ;
    }
@@ -432,7 +606,7 @@ int main( int argc , char *argv[] )
    INFO_message("minhexvol(0) = %g",cost) ;
 
    powell_set_verbose(2) ;
-   if( AFNI_yesenv("POWELL_BALL") ) powell_newuoa_set_con_ball() ;  /* experimental */
+   if( AFNI_yesenv("POWELL_BALL") ) powell_newuoa_set_con_ball() ;
 
    nfunc = powell_newuoa_constrained( npar , beta , &cost , bmin,bmax ,
                                       999  , 33   , 7     ,

@@ -321,6 +321,7 @@
 # define IS_GOOD_FLOAT(x) isfinite(x)
 #else
 # define IS_GOOD_FLOAT(x) finite(x)
+# define isfinite finite
 #endif
 
 /* 01 Feb 2011 -- minor adjustments */
@@ -785,15 +786,15 @@ void display_help_menu(int detail)
    "* Program 3dREMLfit can be used to do Generalized Least Squares (GLSQ)  \n"
    "  regression (AKA 'pre-whitened' least squares) combined with REML      \n"
    "  estimation of an ARMA(1,1) temporal correlation structure:            \n"
-   "    http://afni.nimh.nih.gov/pub/dist/doc/program_help/3dREMLfit.html   \n"
+   "    https://afni.nimh.nih.gov/pub/dist/doc/program_help/3dREMLfit.html   \n"
    "* The input to 3dREMLfit is the .xmat.1D matrix file output by          \n"
    "  3dDeconvolve, which also writes a 3dREMLfit command line to a file    \n"
    "  to make it relatively easy to use the latter program.                 \n"
    "* Nonlinear time series model fitting can be done with program 3dNLfim: \n"
-   "    http://afni.nimh.nih.gov/pub/dist/doc/program_help/3dNLfim.html     \n"
+   "    https://afni.nimh.nih.gov/pub/dist/doc/program_help/3dNLfim.html     \n"
    "* Preprocessing of the time series input can be done with various AFNI  \n"
    "  programs, or with the 'uber-script' afni_proc.py:                     \n"
-   "    http://afni.nimh.nih.gov/pub/dist/doc/program_help/afni_proc.py.html\n"
+   "    https://afni.nimh.nih.gov/pub/dist/doc/program_help/afni_proc.py.html\n"
    "------------------------------------------------------------------------\n"
    "------------------------------------------------------------------------\n"
    "****  The recommended way to use 3dDeconvolve is via afni_proc.py,  ****\n"
@@ -819,7 +820,7 @@ void display_help_menu(int detail)
    "a deconvolution problem (in either direction) with L1 or L2 regression, \n"
    "and with sign constraints on the computed values (e.g., requiring that  \n"
    "the output S(t) or K(t) be non-negative):                               \n"
-   "  http://afni.nimh.nih.gov/pub/dist/doc/program_help/3dTfitter.html     \n"
+   "  https://afni.nimh.nih.gov/pub/dist/doc/program_help/3dTfitter.html     \n"
    "------------------------------------------------------------------------\n"
    "The 'baseline model' in 3dDeconvolve (and 3dREMLfit) does not mean just \n"
    "a constant (mean) level of the signal, or even just the slow drifts that\n"
@@ -1372,11 +1373,11 @@ void display_help_menu(int detail)
     "      | 1dplot -thick -one -stdin -xlabel Time -ynames WAV BLOCK4 SPMG1\n"
     "                                                                       \n"
     " * For the format of the 'tname' file, see the last part of            \n"
-    " http://afni.nimh.nih.gov/pub/dist/doc/misc/Decon/DeconSummer2004.html \n"
+    " https://afni.nimh.nih.gov/pub/dist/doc/misc/Decon/DeconSummer2004.html \n"
     "   and also see the other documents stored in the directory below:     \n"
-    " http://afni.nimh.nih.gov/pub/dist/doc/misc/Decon/                     \n"
+    " https://afni.nimh.nih.gov/pub/dist/doc/misc/Decon/                     \n"
     "   and also read the presentation below:                               \n"
-    " http://afni.nimh.nih.gov/pub/dist/edu/latest/afni_handouts/afni05_regression.pdf\n"
+    " https://afni.nimh.nih.gov/pub/dist/edu/latest/afni_handouts/afni05_regression.pdf\n"
     "  ** Note Well:                                                        \n"
     "   * The contents of the 'tname' file are NOT just 0s and 1s,          \n"
     "     but are the actual times of the stimulus events IN SECONDS.       \n"
@@ -1455,7 +1456,7 @@ void display_help_menu(int detail)
     "   and 1 scaled by each of the amplitude sets.                         \n"
     "   ** Please don't carried away and use too many parameters!! **       \n"
     " For more information on modulated regression, see                     \n"
-    "   http://afni.nimh.nih.gov/pub/dist/doc/misc/Decon/AMregression.pdf   \n"
+    "   https://afni.nimh.nih.gov/pub/dist/doc/misc/Decon/AMregression.pdf   \n"
     "                                                                       \n"
     "** NOTE [08 Dec 2008] **                                               \n"
     " -stim_times_AM1 and -stim_times_AM2 now have 1 extra response model   \n"
@@ -1507,7 +1508,7 @@ void display_help_menu(int detail)
     "        gets large.  If p > 0, 'dmUBLOCK(p)' and 'dmBLOCK(p)' are      \n"
     "        identical                                                      \n"
     " For some graphs of what dmBLOCK regressors look like, see             \n"
-    "   http://afni.nimh.nih.gov/pub/dist/doc/misc/Decon/AMregression.pdf   \n"
+    "   https://afni.nimh.nih.gov/pub/dist/doc/misc/Decon/AMregression.pdf   \n"
     " and/or try the following command:                                     \n"
     "    3dDeconvolve -nodata 350 1 -polort -1 -num_stimts 1 \\\n"
     "                 -stim_times_AM1 1 q.1D 'dmBLOCK'       \\\n"
@@ -1702,7 +1703,7 @@ void display_help_menu(int detail)
     "[-glt_label k glabel]  glabel = label for kth general linear test      \n"
     "[-gltsym gltname]    Read the GLT with symbolic names from the file    \n"
     "                       'gltname'; see the document below for details:  \n"
-    "  http://afni.nimh.nih.gov/pub/dist/doc/misc/Decon/DeconSummer2004.html\n"
+    "  https://afni.nimh.nih.gov/pub/dist/doc/misc/Decon/DeconSummer2004.html\n"
 #if 0
     "[-TR_irc dt]                                                           \n"
     "   Use 'dt' as the stepsize for computation of integrals in -IRC_times \n"
@@ -1839,7 +1840,7 @@ void display_help_menu(int detail)
             "             does not use OpenMP; it directly uses fork()\n"
             "             and shared memory to run multiple processes.\n"
             "         * For more information on parallelizing, see\n"
-            "           http://afni.nimh.nih.gov/afni/doc/misc/afni_parallelize\n"
+            "           https://afni.nimh.nih.gov/afni/doc/misc/afni_parallelize\n"
             "         * Also use -mask or -automask to get more speed; cf. 3dAutomask.\n"
           , PROC_MAX ) ;
 
@@ -5653,7 +5654,7 @@ void proc_finalize_shm_volumes(void)
                "** POSSIBLY USEFUL ADVICE:\n"
                "** Current max shared memory size = %lld bytes.\n"
                "** For information on how to change this, see\n"
-               "** http://afni.nimh.nih.gov/afni/doc/misc/afni_parallelize\n"
+               "** https://afni.nimh.nih.gov/afni/doc/misc/afni_parallelize\n"
                "** and also contact your Unix system administrator.\n"
                , smax ) ;
         }
@@ -6842,7 +6843,7 @@ ENTRY("calculate_results") ;
     if( AFNI_noenv("AFNI_3dDeconvolve_NIML") &&
         strstr(option_data->x1D_filename,"niml") == NULL ) cd = NULL ;
     ONED_matrix_save( xfull , option_data->x1D_unc , cd , xfull.rows,NULL , &xfull,
-                      num_blocks,block_list , NULL,NULL ) ;
+                      num_blocks,block_list , NULL, (void *)STIMLABEL_stuff ) ;
   }
 
   /*----- 14 Jul 2004: check matrix for bad columns - RWCox -----*/
@@ -7214,7 +7215,7 @@ STATUS("computing message from esum") ;
                   ERROR_message("Killing fork-ed job %d (pid=%u)",
                                 qq , (unsigned int)proc_pid[qq]   ) ;
                   kill(    proc_pid[qq] ,SIGTERM   ) ; iochan_sleep(10) ;
-                  waitpid( proc_pid[pp] , NULL , 0 ) ;
+                  waitpid( proc_pid[qq] , NULL , 0 ) ;
                 }
               }
               ERROR_exit("3dDeconvolve main process now stopping -- SORRY") ;

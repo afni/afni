@@ -2263,7 +2263,7 @@ char * SUMA_help_message_Info(TFORM targ)
    if (targ == TXT) {
       SS = SUMA_StringAppend (SS, 
          "    More help at \n"
-         "    http://afni.nimh.nih.gov/pub/dist/edu/latest/suma/suma.pdf\n");
+         "    https://afni.nimh.nih.gov/pub/dist/edu/latest/suma/suma.pdf\n");
       SS = SUMA_StringAppend (SS, 
          "\n");
    }

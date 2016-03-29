@@ -13,3 +13,21 @@ int mri_allzero( MRI_IMAGE *im )
    for( ii=0 ; ii < nch ; ii++ ) if( ar[ii] != 0 ) return 0 ;
    return 1 ;
 }
+
+/*! Return count of nonzero voxels. */
+
+int mri_nonzero_count( MRI_IMAGE *im )
+{
+   MRI_IMAGE *fim ; float *far ;
+   int ii , nvox , nnz ;
+
+   if( mri_allzero(im) ) return 0 ;
+
+   if( im->kind == MRI_float ) fim = im ;
+   else                        fim = mri_to_float(im) ;
+   far = MRI_FLOAT_PTR(fim) ;
+   nvox = fim->nvox ;
+   for( nnz=ii=0 ; ii < nvox ; ii++ ) if( far[ii] != 0.0f ) nnz++ ;
+   if( fim != im ) mri_free(fim) ;
+   return nnz ;
+}

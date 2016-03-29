@@ -49,6 +49,174 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 17,  Feb, 2016, RCR, "afni_util.py", MICRO, TYPE_ENHANCE,
+   "add function affine_to_params_6: where input is 12 element sub-matrix",
+   NULL
+ } ,
+
+ { 16,  Feb, 2016, RCR, "@update.afni.binaries", MICRO, TYPE_ENHANCE,
+   "add -ver and initial version reporting",
+   NULL
+ } ,
+
+ { 10,  Feb, 2016, RCR, "@ANATICOR", MICRO, TYPE_BUG_FIX,
+   "fixed -radius option parsing",
+   "Thanks to A Frithsen for noting the problem."
+ } ,
+
+ { 10,  Feb, 2016, RCR, "afni-general", MICRO, TYPE_MODIFY,
+   "full update to use https://afni.nimh.nih.gov (no longer http)",
+   NULL
+ } ,
+
+ {  9,  Feb, 2016, RCR, "@GradFlipTest", MICRO, TYPE_MODIFY,
+   "trap for missing inputs (e.g. used with just -help)",
+   NULL
+ } ,
+
+ {  9,  Feb, 2016, RCR, "afni-general", MICRO, TYPE_BUG_FIX,
+   "be sure isfinite is defined in FD2_inc.c, parser_int.c",
+   NULL
+ } ,
+
+ {  8,  Feb, 2016, RCR, "@update.afni.binaries", MICRO, TYPE_MODIFY,
+   "access afni site via https protocol",
+   NULL
+ } ,
+
+ {  5,  Feb, 2016, RCR, "thd_niftiread", MICRO, TYPE_BUG_FIX,
+   "NIFTI files with no *form_codes should default to +orig, not NIFTI_default",
+   NULL
+ } ,
+
+ { 28,  Jan, 2016, RCR, "3dMean", MICRO, TYPE_MODIFY,
+   "fix help to correctly report -stdev as sqrt(var)   {was var/(n-1)}",
+   "Thanks to K Kerr (MB) for pointing out the mistake."
+ } ,
+
+ { 27,  Jan, 2016, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,
+   "allow for tissue based regression with only regress block",
+   NULL
+ } ,
+
+ {  4,  Jan, 2016, RCR, "afni-general", MINOR, TYPE_BUG_FIX,
+   "add boundardy checks in get_1dcat_intlist and get_count_intlist",
+   "Without the checks, using count or 1dcat as sub-brick selector method\n"
+   "would lead to confusing crashes (if values exceedded #vols).\n"
+   "Thanks to W Graves for reporting the problem."
+ } ,
+
+ {  3,  Jan, 2016, RCR, "afni_system_check.py", MICRO, TYPE_MODIFY,
+   "truncate 'top history' text for data trees",
+   NULL
+ } ,
+
+ { 31,  Dec, 2015, RCR, "afni-general", MICRO, TYPE_BUG_FIX,
+   "include AFNI_version_base.txt in build of afni_src.tgz",
+   NULL
+ } ,
+
+ { 30,  Dec, 2015, RCR, "afni-general", MAJOR, TYPE_ENHANCE,
+   "w/DRG implement new version system",
+   "See https://afni.nimh.nih.gov/pub/dist/MOTD/MOTD_2015_12_30.txt ."
+ } ,
+
+ { 29,  Dec, 2015, RCR, "afni_system_check.py", MICRO, TYPE_BUG_FIX,
+   "catch any empty directory listing from @FindAfniDsetPath",
+   NULL
+ } ,
+
+ { 29,  Dec, 2015, RCR, "@FindAfniDsetPath", MICRO, TYPE_MODIFY,
+   "0 or bad # args returns 1 rather than 0",
+   NULL
+ } ,
+
+ { 29,  Dec, 2015, RCR, "afni-general", MICRO, TYPE_ENHANCE,
+   "updated gitignore.src.txt and main 2 .gitignore files",
+   NULL
+ } ,
+
+ { 28,  Dec, 2015, RCR, "@diff.files", MICRO, TYPE_ENHANCE,
+   "allow diffs to include existence of directories",
+   NULL
+ } ,
+
+ { 19,  Dec, 2015, RCR, "afni_proc.py", MICRO, TYPE_MODIFY,
+   "removed CSFe from Example 10 of the help, to not lead people to use it",
+   NULL
+ } ,
+
+ {  7,  Dec, 2015, RCR, "MatAFNI_Demo.m", MICRO, TYPE_BUG_FIX,
+   "merge fix from J. Pfannmoller",
+   "Done with G Chen."
+ } ,
+
+ {  7,  Dec, 2015, RCR, "afni_proc.py", MICRO, TYPE_ENHANCE,
+   "help update: modify example 11 to use SurfVol and add FREESURFER NOTE",
+   NULL
+ } ,
+
+ { 17,  Nov, 2015, RCR, "afni-general", MICRO, TYPE_GENERAL,
+   "rename g_info to g_dicom_ctrl to avoid FreeBSD build conflict",
+   "Thanks to J Bacon for noting the conflict."
+ } ,
+
+ {  6,  Nov, 2015, RCR, "to3d", MICRO, TYPE_ENHANCE,
+   "allow for single volumes beyond 2^31-1 bytes",
+   "Done for Z Saad."
+ } ,
+
+ {  6,  Nov, 2015, RCR, "@Align_Centers", MICRO, TYPE_NEW_OPT,
+   "add option -cm_no_amask; like -cm but without -automask",
+   NULL
+ } ,
+
+ {  4,  Nov, 2015, RCR, "1d_tool.py", MICRO, TYPE_NEW_OPT,
+   "add -slice_order_to_times",
+   "This converts a list of slice indices (sorted by acq time)\n"
+   "to slice times (ordered by index)."
+ } ,
+
+ { 28,  Oct, 2015, RCR, "gen_ss_review_table.py", MICRO, TYPE_ENHANCE,
+   "make 'a/E mask Dice coef' parent of 'mask correlation'",
+   NULL
+ } ,
+
+ { 28,  Oct, 2015, RCR, "gen_ss_review_scripts.py", MICRO, TYPE_ENHANCE,
+   "look for dice coef file ae_dice, as well ae_corr",
+   NULL
+ } ,
+
+ { 28,  Oct, 2015, RCR, "afni_proc.py", MINOR, TYPE_MODIFY,
+   "output anat/EPI Dice coefficient, rather than correlation",
+   NULL
+ } ,
+
+ { 28,  Oct, 2015, RCR, "3ddot", MINOR, TYPE_NEW_OPT,
+   "add -dodice, to get the Dice coefficient",
+   NULL
+ } ,
+
+ { 26,  Oct, 2015, RCR, "afni_proc.py", MINOR, TYPE_MODIFY,
+   "compute TSNR restricted to uncensored TRs",
+   NULL
+ } ,
+
+ { 26,  Oct, 2015, RCR, "afni", MICRO, TYPE_MODIFY,
+   "move version to show_AFNI_version and call on -ver",
+   NULL
+ } ,
+
+ { 23,  Oct, 2015, RCR, "afni", MICRO, TYPE_MODIFY,
+   "move version output after some text requests",
+   NULL
+ } ,
+
+ { 21,  Oct, 2015, RCR, "afni_util.py", MICRO, TYPE_NEW_OPT,
+   "added -exec",
+   NULL
+ } ,
+
  { 25,  Sep, 2015, RCR, "suma", MICRO, TYPE_MODIFY,
    "volume rendering is no longer the default for SUMA_VO_InitSlices",
    "So Do_06_VISdti_SUMA_visual_ex1.tcsh defaults to showing 3 volume slices."
@@ -146,9 +314,9 @@ afni_history_struct rickr_history[] = {
    NULL
  } ,
 
- { 21,  Aug, 2015, RCR, "cifti_tool", MICRO, TYPE_ENHANCE,
-   "updated help and added -hist",
-   NULL
+ { 21,  Aug, 2015, RCR, "cifti_tool", MAJOR, TYPE_NEW_PROG,
+   "initial release: updated help and added -hist",
+   "New program to evaluate CIFTI datasets."
  } ,
 
  { 21,  Aug, 2015, RCR, "timing_tool.py", MICRO, TYPE_BUG_FIX,
@@ -723,7 +891,7 @@ afni_history_struct rickr_history[] = {
    NULL
  } ,
 
- {  9,  Feb, 2015, RCR, "file_tool.c", MINOR, TYPE_ENHANCE,
+ {  9,  Feb, 2015, RCR, "file_tool", MINOR, TYPE_ENHANCE,
    "warn on '\\' without preceding space",
    "Gang and J Rajendra ran into a problem on OS X 10.9.5."
  } ,
@@ -978,8 +1146,8 @@ afni_history_struct rickr_history[] = {
 
  {  8, Sep, 2014, RCR, "afni_proc.py", MICRO, TYPE_MODIFY,
    "round min dimension to 6 sig bits, then truncate to 3",
-   "This help catch cases where the dimension is just under\n"
-   "fairly 'round' number."
+   "This helps catch cases where the dimension is just under\n"
+   "some fairly 'round' number."
  } ,
 
  {  8, Sep, 2014, RCR, "Dimon", MICRO, TYPE_BUG_FIX,
@@ -6365,7 +6533,7 @@ afni_history_struct rickr_history[] = {
 
  {   2, DEC, 2005, RCR, "ANOVA", SUPERDUPER, TYPE_MODIFY,
    "changed variance computations in 3dANOVA programs to not assume sphericity",
-   "For details, see http://afni.nimh.nih.gov/sscc/gangc/ANOVA_Mod.html ."
+   "For details, see https://afni.nimh.nih.gov/sscc/gangc/ANOVA_Mod.html ."
  } ,
 
  {  11, OCT, 2005, RCR, "3dmaxima", MAJOR, TYPE_NEW_PROG,

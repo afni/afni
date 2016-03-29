@@ -603,10 +603,10 @@ int main(int argc, char *argv[])
                CHECK++;
       }
       if(CHECK > 0)
-         INFO_message("Warning: you *said* you input a mat'T',"
+         INFO_message("Warning: you *said* you input a mat'A',"
                       " but the matr diagonals don't appear to be uniformly"
                       " positive. If input cols 0, 3 and 5 are positive,"
-                      " then you might have meant mat'A'?");
+                      " then you might have meant mat'T'?");
    }
    else if ( (IN_FORM ==2 ) || (IN_FORM ==4 ) ) { // row matr
       CHECK = 0;
@@ -623,10 +623,10 @@ int main(int argc, char *argv[])
             if(OUT_MATR[i][j] < 0 )
                CHECK++;
       if(CHECK > 0)
-         INFO_message("Warning: you *said* you input a mat'A',"
+         INFO_message("Warning: you *said* you input a mat'T',"
                       " but the matr diagonals don't appear to be uniformly"
                       " positive. If input cols 0, 1 and 2 are positive,"
-                      " then you might have meant mat'T'?");
+                      " then you might have meant mat'A'?");
    }
    else{
       fprintf(stderr, "Coding error with format number (%d), not allowed.\n",

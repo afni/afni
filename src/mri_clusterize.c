@@ -40,7 +40,7 @@ MRI_IMAGE * mri_clusterize( float rmm , float vmul , MRI_IMAGE *bim ,
 
 ENTRY("mri_clusterize") ;
 
-   if( report  != NULL ){ free((void *)report);  report  = NULL; }
+   if( report  != NULL ){ free((void *)report);  report = NULL; }
    if( clarout != NULL ){ DESTROY_CLARR(clarout); }
 
    if( bim == NULL || mri_data_pointer(bim) == NULL ) RETURN(NULL) ;

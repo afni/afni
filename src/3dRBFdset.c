@@ -22,7 +22,7 @@ void Syntax(void)
     "  -master mmm  = 'mmm' is the master dataset, whose geometry\n"
     "                   will determine the geometry of the output.\n"
     "                ** This is a MANDATORY option.\n"
-    "  -mask kkk    = This option specifies a mask dataset 'kkk', which\n"
+    "  -mask MMM    = This option specifies a mask dataset 'MMM', which\n"
     "                   will control which voxels are allowed to get\n"
     "                   values set.  If the mask is present, only\n"
     "                   voxels that are nonzero in the mask will be\n"

@@ -24,11 +24,11 @@ if ( ! -d $pdd ) then
    else
       set arch = $pdd.tar.gz
       echo "Getting archive $arch"
-      wget http://afni.nimh.nih.gov/pub/dist/tgz/$arch
+      wget https://afni.nimh.nih.gov/pub/dist/tgz/$arch
       if ($status) then
          set arch = $pdd.tgz
          echo "Trying archive $arch"
-         wget http://afni.nimh.nih.gov/pub/dist/tgz/$arch
+         wget https://afni.nimh.nih.gov/pub/dist/tgz/$arch
          if ($status) then
             echo "Failed to get archive"
             goto END

@@ -258,6 +258,11 @@ typedef struct { float a,b,c ; } float_triple ;
 typedef struct { float a,b,c,d ; } float_quad ;
 #endif
 
+#ifndef TYPEDEF_float_quint
+#define TYPEDEF_float_quint
+typedef struct { float a,b,c,d,e ; } float_quint ;  /* 02 Nov 2015 */
+#endif
+
 #ifndef TYPEDEF_double_pair
 #define TYPEDEF_double_pair
 typedef struct { double a,b ; } double_pair ;
@@ -271,6 +276,11 @@ typedef struct { double a,b,c ; } double_triple ;
 #ifndef TYPEDEF_double_quad
 #define TYPEDEF_double_quad
 typedef struct { double a,b,c,d ; } double_quad ;
+#endif
+
+#ifndef TYPEDEF_double_quint
+#define TYPEDEF_double_quint
+typedef struct { double a,b,c,d,e ; } double_quint ;
 #endif
 
 /*-------*/
@@ -843,6 +853,7 @@ extern char *      mri_dicom_hdrinfo( char *fname, int natt, char **att , int np
    memset(mri_data_pointer(iq),0,(iq)->nvox*(iq)->pixel_size)
 
 extern int mri_allzero( MRI_IMAGE *im ) ;  /* check if all pixels are 0 */
+extern int mri_nonzero_count( MRI_IMAGE *im ) ; /* 28 Dec 2015 */
 
 extern MRI_IMAGE * mri_zeropad_3D( int,int,int,int,int,int , MRI_IMAGE * ) ;
 extern MRI_IMAGE * mri_valpad_2D( int,int,int,int, MRI_IMAGE *, byte val ) ;
@@ -1285,6 +1296,7 @@ extern void memplot_to_RGB_sef( MRI_IMAGE *im , MEM_plotdata *mp ,
 
 extern void memplot_to_jpg( char * , MEM_plotdata * ) ; /* 05 Dec 2007 */
 extern void memplot_to_png( char * , MEM_plotdata * ) ;
+extern void memplot_to_pnm( char * , MEM_plotdata * ) ; /* 06 Jan 2015 */
 
 extern void memplot_to_mri_set_dothick( int ) ;         /* 30 Apr 2012 */
 extern void memplot_to_mri_set_dofreee( int ) ;         /* 30 Apr 2012 */
@@ -1394,6 +1406,7 @@ typedef struct { int nar ; double *ar , dx,x0 ; } doublevec ;
 
 extern float  interp_floatvec ( floatvec  *fv , float  x ) ;
 extern double interp_doublevec( doublevec *dv , double x ) ;
+extern void mri_write_floatvec( char *fname , floatvec *fv ) ; /* 21 Jan 2016 */
 
 extern float interp_inverse_floatvec( floatvec *fv , float y ) ;
 
@@ -1426,6 +1439,22 @@ typedef struct { int nvec ; intvec *ivar ; } intvecvec ;
   do{ int ni = (iv)->nar ;                                     \
       RESIZE_intvec((iv),ni+(jv)->nar) ;                       \
       memcpy( (iv)->ar+ni, (jv)->ar, sizeof(int)*(jv)->nar ) ; \
+  } while(0)
+
+/*----------*/  /* 20 Jan 2016 */
+
+typedef struct { int nar ; int64_t *ar ; } int64vec ;
+#define KILL_int64vec(iv)                      \
+  do{ if( (iv) != NULL ){                      \
+        if( (iv)->ar != NULL ) free((iv)->ar); \
+        free(iv); (iv) = NULL;                 \
+  } } while(0)
+
+
+#define MAKE_int64vec(iv,n)                                \
+  do{ (iv) = (int64vec *)malloc(sizeof(int64vec)) ;        \
+      (iv)->nar = (n) ;                                    \
+      (iv)->ar  = (int64_t *)calloc(sizeof(int64_t),(n)) ; \
   } while(0)
 
 /*----------*/
@@ -1661,7 +1690,7 @@ extern float mri_scaled_diff( MRI_IMAGE *bim, MRI_IMAGE *nim, MRI_IMAGE *msk ) ;
 
 /*------------------------------------------------------------------*/
 
-#include "AFNI_label.h"
+#include "AFNI_version.h"
 #undef  PRINT_VERSION
 #define PRINT_VERSION(pp)                                             \
  do{ if( !machdep_be_quiet() )                                        \
@@ -2022,10 +2051,17 @@ extern MRI_IMAGE * THD_estimate_FWHM_all( THD_3dim_dataset *, byte *, int,int ) 
 extern void FHWM_1dif_dontcheckplus( int ) ;
 extern THD_fvec3 mriarr_estimate_FWHM_1dif( MRI_IMARR *, byte * , int ) ;
 
+
 extern THD_fvec3 mri_estimate_FWHM_12dif( MRI_IMAGE * , byte * ) ;
 extern THD_fvec3 mri_estimate_FWHM_12dif_MAD( MRI_IMAGE * , byte * ) ; /* 24 Mar 2010 */
 
 extern THD_fvec3 mri_FWHM_1dif_mom12( MRI_IMAGE * , byte * ) ; /* 11 Aug 2015 */
+
+extern MCW_cluster * THD_estimate_ACF( THD_3dim_dataset *dset,
+                                       byte *mask, int demed, int unif, float radius ) ;
+extern float_quad ACF_cluster_to_modelE( MCW_cluster *acf, float dx, float dy, float dz ) ;
+extern MRI_IMAGE * ACF_get_1D(void) ;
+extern float mriarr_estimate_FWHM_acf( MRI_IMARR *imar, byte *mask, int unif, float radius ) ;
 
 void mri_fwhm_setfester( THD_fvec3 (*func)(MRI_IMAGE *, byte *) ) ;
 

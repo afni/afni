@@ -1,0 +1,397 @@
+#!/bin/tcsh -f
+
+@global_parse `basename $0` "$*" ; if ($status) exit 0
+
+set afscp = afni.nimh.nih.gov:/var/www/html/pub/dist/doc/htmldoc
+set afwpg = https://afni.nimh.nih.gov/pub/dist/doc/htmldoc
+set SUMA_DEMO = ~/.afni/data/suma_demo
+
+goto PARSE
+RETURN_PARSE:
+
+
+if ( -f ___build.log) \rm ___build.log
+if ( ! -d SUMA/auto_inc ) mkdir SUMA/auto_inc
+
+# the .. afnitoc1 question should be moot now, since backround comes first
+#                                                               1 Feb 2016
+if ( $noafni == 0 ) then
+   # sed 's/   .. afnitoc1/   afnitoc1/' index.rst > __tmp
+   # diff -q __tmp index.rst
+   # if ($status) then
+   #    if ( -f __tmp ) then
+   #       \mv __tmp index.rst
+   #    endif 
+   # endif
+   # if ( -f __tmp ) \rm -f __tmp
+
+   # so if AFNI, do just this:
+
+   afni  -no_detach \
+         -com 'WRITE_CONT_SPX_HELP AFNI/auto_inc/AfniCont_help.inc' \
+         -com 'SNAP_CONT AFNI/media/AfniCont.auto.jpg' \
+         -com 'QUIT'
+
+# but never add the dots 
+else if ( 0 )
+   sed 's/   afnitoc1/   .. afnitoc1/' index.rst > __tmp
+   diff -q __tmp index.rst
+   if ($status) then
+      if ( -f __tmp ) then
+         \mv __tmp index.rst
+      endif 
+   endif
+   if ( -f __tmp ) \rm -f __tmp
+endif
+
+if ($nosuma == 0) then
+   @Quiet_Talkers 
+   \rm SUMA/auto_inc/SurfCont_help.inc \
+       SUMA/auto_inc/Mouse_Key_help.inc \
+       SUMA/auto_inc/TractCont_help.inc \
+       SUMA/auto_inc/VolCont_help.inc   \
+       SUMA/auto_inc/GraphCont_help.inc \
+       SUMA/auto_inc/ROICont_help.inc
+
+   suma -fake_cmap                                             \
+        -drive_com '-com surf_cont -view_surf_cont y'          \
+        -drive_com '-com viewer_cont -key:v2 j'                \
+        -drive_com                                             \
+           '-com surf_cont -write_mouse_keyb_sphinx_help       \
+                        SUMA/auto_inc/Mouse_Keyb_help.inc'     \
+        -drive_com                                             \
+           '-com surf_cont -write_mouse_cmap_keyb_sphinx_help  \
+                        SUMA/auto_inc/Mouse_Cmap_Keyb_help.inc'\
+        -drive_com                                             \
+           '-com surf_cont -write_surf_cont_sphinx_help        \
+                        SUMA/auto_inc/SurfCont_help.inc'       \
+        -drive_com                                             \
+           '-com surf_cont -snap_surf_cont_widgets             \
+                        SUMA/media/SurfCont.auto'              \
+        -drive_com '-com viewer_cont -key ctrl+d'              \
+        -drive_com                                             \
+           '-com surf_cont -write_roi_cont_sphinx_help         \
+                        SUMA/auto_inc/ROICont_help.inc'        \
+        -drive_com                                             \
+           '-com surf_cont -snap_roi_cont_widgets              \
+                        SUMA/media/ROICont.auto'               \
+        -drive_com '-com viewer_cont -key ctrl+u'              \
+        -drive_com                                             \
+           '-com surf_cont -write_suma_cont_sphinx_help        \
+                        SUMA/auto_inc/SumaCont_help.inc'       \
+        -drive_com                                             \
+           '-com surf_cont -snap_suma_cont_widgets             \
+                        SUMA/media/SumaCont.auto'              \
+        -drive_com '-com kill_suma' |& tee -a ___build.log
+        
+   suma -fake_cmap                                             \
+        -tract ~/.afni/data/samples/o.NETS_OR_000.niml.tract   \
+        -drive_com '-com surf_cont -view_surf_cont y'          \
+        -drive_com '-com surf_cont -2xmasks'                   \
+        -drive_com                                             \
+           '-com surf_cont -write_tract_cont_sphinx_help       \
+                        SUMA/auto_inc/TractCont_help.inc'      \
+        -drive_com                                             \
+           '-com surf_cont -write_mask_cont_sphinx_help       \
+                        SUMA/auto_inc/MaskCont_help.inc'      \
+        -drive_com                                             \
+           '-com surf_cont -snap_tract_cont_widgets            \
+                        SUMA/media/TractCont.auto'             \
+        -drive_com                                             \
+           '-com surf_cont -snap_mask_cont_widgets            \
+                        SUMA/media/MaskCont.auto'             \
+        -drive_com '-com kill_suma' |& tee -a ___build.log
+
+   suma -fake_cmap                                             \
+        -vol ~/.afni/data/suma_MNI_N27/MNI_N27_SurfVol.nii     \
+        -drive_com '-com viewer_cont -key:v6455128 j'          \
+        -drive_com '-com surf_cont -view_surf_cont y'          \
+        -drive_com                                             \
+           '-com surf_cont -write_vol_cont_sphinx_help         \
+                        SUMA/auto_inc/VolCont_help.inc'        \
+        -drive_com                                             \
+           '-com surf_cont -snap_vol_cont_widgets              \
+                        SUMA/media/VolCont.auto'               \
+        -drive_com '-com kill_suma' |& tee -a ___build.log
+
+   suma -fake_cmap                                             \
+        -gdset ~/.afni/data/samples/o.NETS_OR_000.niml.dset    \
+        -drive_com '-com surf_cont -view_surf_cont y'          \
+        -drive_com                                             \
+           '-com surf_cont -write_graph_cont_sphinx_help       \
+                        SUMA/auto_inc/GraphCont_help.inc'      \
+        -drive_com                                             \
+           '-com surf_cont -snap_graph_cont_widgets            \
+                        SUMA/media/GraphCont.auto'             \
+        -drive_com '-com kill_suma' |& tee -a ___build.log
+
+   if ( -d $SUMA_DEMO ) then
+      cd $SUMA_DEMO/afni
+      afni -niml -yesplugouts -npb 12 
+      suma  -spec ../SurfData/SUMA/std.DemoSubj_both.spec      \
+            -sv DemoSubj_SurfVol_Alnd_Exp+orig                 \
+            -npb 12 -fake_cmap                                 \
+            -drive_com '-com surf_cont -view_surf_cont y'          \
+            -drive_com                                             \
+               '-com viewer_cont -surf_label lh.smoothwm' \
+            -drive_com '-com surf_cont -load_dset v2s.lh.TS.niml.dset'\
+            -drive_com '-com viewer_cont -key:v121144 j -key g' \
+            -drive_com '-com surf_cont -switch_cmap byr64'  \
+            -drive_com '-com surf_cont -snap_surf_cont_widgets             \
+                        SurfCont.auto.QT'              \
+            -drive_com '-com surf_cont -load_dset v2s.lh.DEL.niml.dset'\
+            -drive_com '-com surf_cont -I_sb 0 -T_sb 2 -T_val 0.27 \
+                        -I_range 0 30'\
+            -drive_com '-com surf_cont -snap_surf_cont_widgets             \
+                        SurfCont.auto.QT.DEL'              \
+         -drive_com '-com kill_suma' |& tee -a ___build.log
+       cd -
+       mv $SUMA_DEMO/afni/SurfCont.auto.QT.ALL.jpg SUMA/media/
+       mv $SUMA_DEMO/afni/SurfCont.auto.QT.DEL.Dset_Mapping.jpg SUMA/media/
+       plugout_drive -npb 12 -com 'QUIT'
+   endif
+   
+endif
+
+AUTO_HELP:
+if ( ! -d tutorials/___auto_help ) mkdir -p tutorials/___auto_help
+if ( ! -d programs/___auto_help ) mkdir -p programs/___auto_help
+if ($do_thelp) then
+   foreach pp (@DriveSuma @DriveAfni @DO.examples @Install_InstaCorr_Demo)
+      $pp -help > tutorials/___auto_help/_${pp}.help.inc
+   end
+endif
+
+APSEARCH:
+if ( ! -d tutorials/Coding/auto_inc ) mkdir -p tutorials/Coding/auto_inc
+if ( $do_markup_demo ) then
+   cd tutorials/Coding/auto_inc
+   printf "which outputs this help message (need to beautify at some point)::\n\n" > apsearch_txt.inc
+   apsearch -doc_markup_sample_web >& ___m
+   #sed 's/^/   /' ___m >>& apsearch_txt.inc
+   \rm -f ___m
+endif
+
+if ($do_phelp) then
+   set plist = (`apsearch -list_all_afni_progs`)
+   #set plist = (3dinfo @SUMA_Make_Spec_FS suma afni)
+   set cnt = 1
+   \cp programs/programs.head programs/programs.rst
+   foreach pp ($plist)
+      if ($cnt < $help_max_cnt) then
+         set skip = 0
+         set ppat = `echo $pp | sed 's/^@/AT_/'`
+         if ( ! -f programs/___auto_help/_${ppat}.help.rst) then
+            echo "###Help for $pp -- @ `date`"
+            apsearch -asphinx_phelp $pp > programs/___auto_help/_${ppat}.help.rst
+            if ( $status ) set skip = 1
+         else
+            echo "Reusing programs/___auto_help/_${ppat}.help.rst"
+         endif
+         #Make sure have decent filesize
+         set nlns = `\wc -l programs/___auto_help/_${ppat}.help.rst`
+         if ($status || $nlns[1] < 1) then
+            \rm programs/___auto_help/_${ppat}.help.rst
+            set skip = 1
+         endif
+         
+         if ( $skip == 0 ) then
+            \grep -qw $ppat.help.rst programs/programs.rst
+            if ( $status > 0) then
+               echo "   ___auto_help/_${ppat}.help.rst" >>   \
+                                 programs/programs.rst
+            endif
+         endif
+      endif
+      @ cnt ++
+   end
+endif
+
+if ( ! -d _static) mkdir _static
+if ($clean_html == 1) make clean |& tee -a ___build.log
+if ($do_html == 1) then
+   make html |& tee -a ___build.log
+endif
+
+UPLOAD:
+if ($webupdate == 1) then
+   echo "Enter 'y' to send _build/html to $afwpg y/[N]:"
+   set kk = $<
+   if ("$kk" == 'y' || "$kk" == 'Y') then
+      rsync -rv _build/html/ $afscp
+      echo "Content updated for $afwpg"
+   else
+      echo "Update canceled"
+   endif
+endif
+
+if ($webupdate == 2) then
+   echo "Enter 'y' to send _build/html/SUMA to $afwpg y/[N]:"
+   set kk = $<
+   if ("$kk" == 'y' || "$kk" == 'Y') then
+      rsync -rv _build/html/SUMA $afscp
+      rsync -rv _build/html/suma*html $afscp
+      echo "Content updated for $afwpg/sumatoc1.html"
+   else
+      echo "Update of SUMA web docs canceled"
+   endif
+endif
+
+
+goto END
+
+PARSE:
+	set Narg = $#
+	set cnt = 1
+   set nosuma = 1
+   set noafni = 1
+   set do_html = 0
+   set clean_html = 0
+   set do_thelp = 0
+   set do_phelp = 0
+   set help_max_cnt = 1000
+   set do_markup_demo = 0
+   set webupdate = 0
+   while ($cnt <= $Narg)
+      if ("$argv[$cnt]" == "-d" || "$argv[$cnt]" == "-echo") then
+         set verb = 1
+         set echo
+         goto CONTINUE
+      endif
+     
+      if ("$argv[$cnt]" == '-h' || "$argv[$cnt]" == '-help') then
+         goto HELP
+      endif
+      
+      if ("$argv[$cnt]" == "-no_markup_demo") then
+         set do_markup_demo = 0
+         goto CONTINUE
+      endif
+
+      if ("$argv[$cnt]" == "-markup_demo") then
+         set do_markup_demo = 1
+         goto CONTINUE
+      endif
+
+      if ("$argv[$cnt]" == "-no_html") then
+         set do_html = 0
+         goto CONTINUE
+      endif
+
+      if ("$argv[$cnt]" == "-html") then
+         set do_html = 1
+         goto CONTINUE
+      endif
+
+      if ("$argv[$cnt]" == "-clean_html") then
+         set do_html = 1
+         set clean_html = 1
+         goto CONTINUE
+      endif
+
+       if ("$argv[$cnt]" == "-no_thelp") then
+         set do_thelp = 0
+         goto CONTINUE
+      endif
+
+      if ("$argv[$cnt]" == "-thelp") then
+         set do_thelp = 1
+         goto CONTINUE
+      endif
+
+     if ("$argv[$cnt]" == "-no_phelp") then
+         set do_phelp = 0
+         goto CONTINUE
+      endif
+
+      if ("$argv[$cnt]" == "-phelp") then
+         set do_phelp = 1
+         goto CONTINUE
+      endif
+
+      if ("$argv[$cnt]" == "-phelp_test_only") then
+         set do_phelp = 1
+         set help_max_cnt = 10
+         goto CONTINUE
+      endif
+
+      if ("$argv[$cnt]" == "-no_suma") then
+         set nosuma = 1
+         goto CONTINUE
+      endif
+
+      if ("$argv[$cnt]" == "-suma") then
+         set nosuma = 0
+         goto CONTINUE
+      endif
+
+      if ("$argv[$cnt]" == "-no_afni") then
+         set noafni = 1
+         goto CONTINUE
+      endif
+
+      if ("$argv[$cnt]" == "-afni") then
+         set noafni = 0
+         goto CONTINUE
+      endif
+
+
+      if ("$argv[$cnt]" == "-web_upload") then
+         set webupdate = 1
+         goto CONTINUE
+      endif
+      
+      if ("$argv[$cnt]" == "-web_suma_upload") then
+         set webupdate = 2
+         goto CONTINUE
+      endif
+      
+      echo "Error: Option or parameter '$argv[$cnt]' not understood"
+      apsearch -popt `basename $0` -word $argv[$cnt]
+      goto BEND
+      
+      CONTINUE:		
+		@ cnt ++
+	end
+   
+   goto RETURN_PARSE
+
+HELP:
+   echo ""
+   echo "A script to recreate GUI help files that go under SUMA/auto_inc"
+   echo "Don't run this script unless you know you need to do so."
+   echo ""
+   echo "Normally, you just need to run:"
+   echo "" 
+   echo "      make html"
+   echo "or"
+   echo "      make clean html"
+   echo ""
+   echo "Options:"
+   echo "-h: This message"
+   echo "-html: Run make html."
+   echo "-no_html: Do not run make html. (default)"
+   echo "-clean_html: Run make clean html"
+   echo "-no_suma: Do not regenerate SUMA's auto docs. (default)"
+   echo "-suma: Do regenerate SUMA's auto docs."
+   echo "-no_afni: Do not regenerate AFNI's auto docs. (default)"
+   echo "-afni: Do regenerate AFNI's auto docs."
+   echo "       For now, without an explicit -afni, no AFNI docs"
+   echo "       will be included in the build. This restriction will"
+   echo "       be removed once enough help is created."
+   echo "-phelp: Generate help pages for all programs."
+   echo "-no_phelp: Don't -phelp. (default)"
+   echo "-thelp: Generate help pages for all tutorial scripts."
+   echo "-no_thelp: Don't -thelp. (default)"
+   echo "-web_upload: Send new build to $afwpg"
+   echo "-no_web_upload: Don't -web_upload. (default)"
+   echo "-web_suma_upload: Send only SUMA's docs to the webpage"
+   echo "-echo: Yap yap"
+   echo ""
+   goto END
+
+BEND:
+   echo "Berror!"
+   goto END
+
+END:

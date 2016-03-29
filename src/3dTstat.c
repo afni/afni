@@ -1264,7 +1264,7 @@ static void STATS_tsfunc( double tzero, double tdelta ,
         /* populate the appropriate BRIKs with the data.    */
         for( ii = 0; ii < numVals; ii++) {
           val[out_index + ii] = y[ii];
-          if (!finite(y[ii])){
+          if (!isfinite(y[ii])){
             WARNING_message("BAD FLOAT y[%d]=%f; Call#%d\n",ii,y[ii],ncall);
             val[out_index + ii] = 0.0f ;
           }

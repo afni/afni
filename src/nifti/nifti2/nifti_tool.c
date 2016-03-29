@@ -3423,7 +3423,7 @@ int modify_field(void * basep, field_s * field, char * data)
             int64_t v64;
             for( fc = 0; fc < field->len; fc++ )
             {
-               if( sscanf(posn, " %ld%n", &v64, &nchars) != 1 )
+               if( sscanf(posn, " %lld%n", &v64, &nchars) != 1 )
                {
                   fprintf(stderr,"** found %d of %d modify values\n",
                           fc,field->len);
@@ -3431,7 +3431,7 @@ int modify_field(void * basep, field_s * field, char * data)
                }
                ((int64_t *)((char *)basep + field->offset))[fc] = v64;
                if( g_debug > 1 )
-                  fprintf(stderr,"+d setting posn %d of '%s' to %ld\n",
+                  fprintf(stderr,"+d setting posn %d of '%s' to %lld\n",
                           fc, field->name, v64);
                posn += nchars;
             }
@@ -4543,7 +4543,7 @@ int act_disp_ci( nt_opts * opts )
 
    if( g_debug > 2 && opts->dts )
    {
-      fprintf(stderr,"-d displaying time series at (i,j,k) = (%ld,%ld,%ld)\n"
+      fprintf(stderr,"-d displaying time series at (i,j,k) = (%lld,%lld,%lld)\n"
                      "      for %d nifti datasets...\n\n", opts->ci_dims[1],
               opts->ci_dims[2], opts->ci_dims[3], opts->infiles.len);
    }
@@ -4637,7 +4637,7 @@ int disp_raw_data( void * data, int type, int nvals, char space, int newline )
                printf("%d", *(int *)dp);
                break;
          case DT_INT64:
-               printf("%ld", *(int64_t *)dp);
+               printf("%lld", *(int64_t *)dp);
                break;
          case DT_UINT8:
                printf("%u", *(unsigned char *)dp);
@@ -5079,20 +5079,20 @@ nifti_image * nt_read_bricks(nt_opts * opts, char * fname, int len,
     NBL->bsize = nim->nbyper * nim->nx * nim->ny * nim->nz;
     NBL->bricks = (void **)calloc(NBL->nbricks, sizeof(void *));
     if( !NBL->bricks ){
-        fprintf(stderr,"** NRB: failed to alloc %ld pointers\n",NBL->nbricks);
+        fprintf(stderr,"** NRB: failed to alloc %lld pointers\n",NBL->nbricks);
         nifti_image_free(nim);
         return NULL;
     }
 
     if(g_debug > 1)
-        fprintf(stderr,"+d NRB, allocating %ld bricks of %ld bytes...\n",
+        fprintf(stderr,"+d NRB, allocating %lld bricks of %lld bytes...\n",
                 NBL->nbricks, NBL->bsize);
 
     /* now allocate the data pointers */
     for( c = 0; c < len; c++ ) {
         NBL->bricks[c] = calloc(1, NBL->bsize);
         if( !NBL->bricks[c] ){
-            fprintf(stderr,"** NRB: failed to alloc brick %d of %ld bytes\n",
+            fprintf(stderr,"** NRB: failed to alloc brick %d of %lld bytes\n",
                     c, NBL->bsize);
             nifti_free_NBL(NBL); nifti_image_free(nim); return NULL;
         }

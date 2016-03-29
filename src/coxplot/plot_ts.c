@@ -15,7 +15,7 @@
 static float p10( float x ) ;  /* prototype */
 
 #undef  NCLR_MAX
-#define NCLR_MAX 19
+#define NCLR_MAX 29
 static float ccc[NCLR_MAX][3] = {
   { 0.0 , 0.0 , 0.0 } ,
   { 0.9 , 0.0 , 0.0 } ,
@@ -23,12 +23,13 @@ static float ccc[NCLR_MAX][3] = {
   { 0.0 , 0.0 , 0.9 } ,
   { 0.8 , 0.0 , 0.9 } ,
   { 0.7 , 0.6 , 0.0 } ,
+  { 0.0 , 0.7 , 0.7 }
 } ;
 
 static int use_ddd = 0 ;
-static int ddd[NCLR_MAX] = { 1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1 } ;
+static int ddd[NCLR_MAX] = { 1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1 } ;
 
-static int NCLR = 6 ;
+static int NCLR = 7 ;
 static int dont_init_colors=0 ;
 
 static int ilab[4] = { 0,2,3,1 } ;  /* whether to plot labels on axes */
@@ -235,6 +236,8 @@ static void init_colors(void)
          ccc[ii][0] = 0.8f; ccc[ii][1] = 0.6f; ccc[ii][2] = 0.0f; NCLR = ii+1;
        } else if( strcasecmp(eee,"pink") == 0 ){
          ccc[ii][0] = 0.9f; ccc[ii][1] = 0.3f; ccc[ii][2] = 0.5f; NCLR = ii+1;
+       } else if( strcasecmp(eee,"cyan") == 0 ){
+         ccc[ii][0] = 0.0f; ccc[ii][1] = 0.7f; ccc[ii][2] = 0.7f; NCLR = ii+1;
        } else if( *eee == '#' && *(eee+1) != '\0' ){
          int le=strlen(eee+1) , val , bas , rr,gg,bb ;
          val = (int)strtol( eee+1 , NULL , 16 ) ;
@@ -244,7 +247,15 @@ static void init_colors(void)
          rr  = val % bas ;                   rf  = rr / ((float)bas) ;
          ccc[ii][0] = rf ; ccc[ii][1] = gf ; ccc[ii][2] = bf ; NCLR = ii+1 ;
        } else {
-         fprintf(stderr, "** ERROR: %s = %s is not a recognizable color\n", ename,eee ) ;
+         int jj = find_color_name(eee,&rf,&gf,&bf) ;
+         if( jj >= 0 ){
+           ccc[ii][0] = rf ; ccc[ii][1] = gf ; ccc[ii][2] = bf ; NCLR = ii+1 ;
+         } else {
+           fprintf(stderr, "** ERROR: %s = %s is not a recognizable color\n", ename,eee ) ;
+           fprintf(stderr, "   Recognizable color names include\n"
+                           "     green red blue black purple gold pink cyan OR #xxxxxx\n"
+                           "   where 'xxxxxx' is 6 hex digits for RGB.\n" ) ;
+         }
        }
      }
    }
@@ -468,8 +479,8 @@ MEM_plotdata * plot_ts_mem( int nx , float *x , int ny , int ymask , float **y ,
       xx = x ;
       xbot = WAY_BIG ; xtop = -WAY_BIG ;
       for( ii=0 ; ii < nx ; ii++ ){
-         if( xx[ii] < xbot && xx[ii] < WAY_BIG ) xbot = xx[ii] ;
-         if( xx[ii] > xtop && xx[ii] < WAY_BIG ) xtop = xx[ii] ;
+         if( xx[ii] < xbot && fabsf(xx[ii]) < WAY_BIG ) xbot = xx[ii] ;
+         if( xx[ii] > xtop && fabsf(xx[ii]) < WAY_BIG ) xtop = xx[ii] ;
       }
       if( xbot >= xtop ) return NULL ;
    }
@@ -514,8 +525,8 @@ MEM_plotdata * plot_ts_mem( int nx , float *x , int ny , int ymask , float **y ,
    for( jj=0 ; jj < ny ; jj++ ){
       yy  = y[jj] ; yll = WAY_BIG ; yhh = -WAY_BIG ;
       for( ii=0 ; ii < nx ; ii++ ){
-         if( yy[ii] < yll && yy[ii] < WAY_BIG ) yll = yy[ii] ;
-         if( yy[ii] > yhh && yy[ii] < WAY_BIG ) yhh = yy[ii] ;
+         if( yy[ii] < yll && fabsf(yy[ii]) < WAY_BIG ) yll = yy[ii] ;
+         if( yy[ii] > yhh && fabsf(yy[ii]) < WAY_BIG ) yhh = yy[ii] ;
       }
       ylo[jj] = yll ; yhi[jj] = yhh ;
       if( ybot > yll ) ybot = yll ;
@@ -716,8 +727,15 @@ MEM_plotdata * plot_ts_mem( int nx , float *x , int ny , int ymask , float **y ,
              plotpak_line( xp         ,yy[ixtop-1] , xp,yb          ) ;
            } else {
              for( ii=1 ; ii < ixtop ; ii++ ){
-               if( xx[ii-1] < WAY_BIG && xx[ii] < WAY_BIG &&
-                   yy[ii-1] < WAY_BIG && yy[ii] < WAY_BIG   )
+#if 0
+               if( fabsf(xx[ii-1]) < WAY_BIG && fabsf(xx[ii]) < WAY_BIG &&
+                   fabsf(yy[ii-1]) < WAY_BIG && fabsf(yy[ii]) < WAY_BIG   )
+#else
+               if( xx[ii-1] <= xtop && xx[ii] <= xtop &&
+                   yy[ii-1] <= ytop && yy[ii] <= ytop &&
+                   xx[ii-1] >= xbot && xx[ii] >= xbot &&
+                   yy[ii-1] >= ybot && yy[ii] >= ybot   )
+#endif
                plotpak_line( xx[ii-1] , yy[ii-1] , xx[ii] , yy[ii] ) ;
              }
            }
@@ -729,13 +747,14 @@ MEM_plotdata * plot_ts_mem( int nx , float *x , int ny , int ymask , float **y ,
            for( ii=0 ; ii < ixtop ; ii++ ){
              if( noline != 2 ||
                  ( xx[ii] >= xbot && xx[ii] <= xtop &&
-                   yy[ii] >= ybot && yy[ii] <= ytop   ) )
-             if( do_sbox ) ADDTO_SBOX (xx[ii],yy[ii],jj) ;
-             else          plot_onebox(xx[ii],yy[ii],jj) ;
+                   yy[ii] >= ybot && yy[ii] <= ytop   ) ){
+               if( do_sbox ) ADDTO_SBOX (xx[ii],yy[ii],jj) ;
+               else          plot_onebox(xx[ii],yy[ii],jj) ;
+             }
            }
            set_thick_memplot( THIK ) ;
          }
-      }
+      } /* end of loop over different curve to plot */
 
       if( do_sbox && nsbox > 0 ){  /* 24 Oct 2013 */
         int qq , ss , ds ;
@@ -857,8 +876,15 @@ MEM_plotdata * plot_ts_mem( int nx , float *x , int ny , int ymask , float **y ,
              plotpak_line( xp         ,yy[ixtop-1] , xp,yb          ) ;
            } else {
              for( ii=1 ; ii < ixtop ; ii++ ){
-                if( xx[ii-1] < WAY_BIG && xx[ii] < WAY_BIG &&
-                    yy[ii-1] < WAY_BIG && yy[ii] < WAY_BIG   )
+#if 0
+                if( fabsf(xx[ii-1]) < WAY_BIG && fabsf(xx[ii]) < WAY_BIG &&
+                    fabsf(yy[ii-1]) < WAY_BIG && fabsf(yy[ii]) < WAY_BIG   )
+#else
+               if( xx[ii-1] <= xtop    && xx[ii] <= xtop    &&
+                   yy[ii-1] <= yhi[jj] && yy[ii] <= yhi[jj] &&
+                   xx[ii-1] >= xbot    && xx[ii] >= xbot    &&
+                   yy[ii-1] >= ylo[jj] && yy[ii] >= ylo[jj]   )
+#endif
                   plotpak_line( xx[ii-1] , yy[ii-1] , xx[ii] , yy[ii] ) ;
              }
            }
@@ -1172,8 +1198,8 @@ void plot_ts_addto( MEM_topshell_data * mp ,
 
          yy = y[jj] ;
          for( ii=1 ; ii < nx ; ii++ ){
-            if( xx[ii-1] < WAY_BIG && xx[ii] < WAY_BIG &&
-                yy[ii-1] < WAY_BIG && yy[ii] < WAY_BIG   )
+            if( fabsf(xx[ii-1]) < WAY_BIG && fabsf(xx[ii]) < WAY_BIG &&
+                fabsf(yy[ii-1]) < WAY_BIG && fabsf(yy[ii]) < WAY_BIG   )
 
                plotpak_line( xx[ii-1] , yy[ii-1] , xx[ii] , yy[ii] ) ;
          }
@@ -1195,8 +1221,8 @@ void plot_ts_addto( MEM_topshell_data * mp ,
 
          yy = y[jj] ;
          for( ii=1 ; ii < nx ; ii++ ){
-            if( xx[ii-1] < WAY_BIG && xx[ii] < WAY_BIG &&
-                yy[ii-1] < WAY_BIG && yy[ii] < WAY_BIG   )
+            if( fabsf(xx[ii-1]) < WAY_BIG && fabsf(xx[ii]) < WAY_BIG &&
+                fabsf(yy[ii-1]) < WAY_BIG && fabsf(yy[ii]) < WAY_BIG   )
 
                plotpak_line( xx[ii-1] , yy[ii-1] , xx[ii] , yy[ii] ) ;
          }
@@ -1242,8 +1268,8 @@ MEM_plotdata * plot_ts_ebar( int nx , float *x , float *y , float *ey ,
       xx = x ;
       xbot = WAY_BIG ; xtop = -WAY_BIG ;
       for( ii=0 ; ii < nx ; ii++ ){
-         if( xx[ii] < xbot && xx[ii] < WAY_BIG ) xbot = xx[ii] ;
-         if( xx[ii] > xtop && xx[ii] < WAY_BIG ) xtop = xx[ii] ;
+         if( xx[ii] < xbot && fabsf(xx[ii]) < WAY_BIG ) xbot = xx[ii] ;
+         if( xx[ii] > xtop && fabsf(xx[ii]) < WAY_BIG ) xtop = xx[ii] ;
       }
       if( xbot >= xtop ) return NULL ;
    }
@@ -1386,16 +1412,16 @@ MEM_plotdata * plot_ts_ebar( int nx , float *x , float *y , float *ey ,
    set_color_memplot( ccc[0][0] , ccc[0][1] , ccc[0][2] ) ;
 
    for( ii=1 ; ii < nx ; ii++ ){
-     if( xx[ii-1] < WAY_BIG && xx[ii] < WAY_BIG &&
-         y [ii-1] < WAY_BIG && y [ii] < WAY_BIG   )
+     if( fabsf(xx[ii-1]) < WAY_BIG && fabsf(xx[ii]) < WAY_BIG &&
+         fabsf(y [ii-1]) < WAY_BIG && fabsf(y [ii]) < WAY_BIG   )
        plotpak_line( xx[ii-1] , y[ii-1] , xx[ii] , y[ii] ) ;
    }
 
    set_thick_memplot( 0.0 ) ;
    set_color_memplot( ccc[1][0] , ccc[1][1] , ccc[1][2] ) ;
    for( ii=0 ; ii < nx ; ii++ ){
-     if( xx[ii] < WAY_BIG && y [ii] <  WAY_BIG &&
-         ey[ii] < WAY_BIG && ey[ii] != 0.0       ){
+     if( fabsf(xx[ii]) < WAY_BIG && fabsf(y [ii]) < WAY_BIG &&
+         fabsf(ey[ii]) < WAY_BIG &&       ey[ii] != 0.0       ){
 
        ymm = y[ii] - ey[ii] ; ypp = y[ii] + ey[ii] ;
        xmm = xx[ii] - xdd   ; xpp = xx[ii] + xdd ;

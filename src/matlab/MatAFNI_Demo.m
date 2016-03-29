@@ -121,10 +121,20 @@ clear all
 		
 		DM = AFNI_SliceDispManip (Infofunc);
 		OptDispFunc.iSlc = [31 32 6];
-		OptDispFunc.index = 1;
+		OptDispFunc.index = 2;
 		[err, slc] = GetAfniSliceTriplet (Vfunc, Infofunc, DM, OptDispFunc);
-		figure(3); clf
-		subplot 321; imagesc (slc(1).M(:,:)); title (sprintf('Ax #%g, As In Brick', OptDispFunc.iSlc(1)));
+
+		%mask voxels less than 0.5 . NOT EFFICIENT AT ALL, better do this for the entire sub-brick
+                %for demo purposes only                             
+                imsk = find (slc(1).M < 0.5); slc(1).M(imsk) = 0;
+                imsk = find (slc(2).M < 0.5); slc(2).M(imsk) = 0;
+                imsk = find (slc(3).M < 0.5); slc(3).M(imsk) = 0;
+                imsk = find (slc(1).Mdisp < 0.5); slc(1).Mdisp(imsk) = 0;
+                imsk = find (slc(2).Mdisp < 0.5); slc(2).Mdisp(imsk) = 0;
+                imsk = find (slc(3).Mdisp < 0.5); slc(3).Mdisp(imsk) = 0;
+                figure(3); clf
+
+		subplot 321; imagesc (slc(1).M(:,:)); title (sprintf('Ax #%g, As In Brick', OptDispFunc.iSlc(1))); 
 		subplot 322; imagesc (slc(1).Mdisp(:,:)); title (sprintf('Ax #%g, As Displayed', OptDispFunc.iSlc(1)));
 		subplot 323; imagesc (slc(2).M(:,:));title (sprintf('Sa #%g, As In Brick', OptDispFunc.iSlc(2)));
 		subplot 324; imagesc (slc(2).Mdisp(:,:));	title (sprintf('Sa #%g, As Displayed', OptDispFunc.iSlc(2)));
@@ -134,8 +144,8 @@ clear all
 		plotsign2(3);
 		
 		drawnow
-		msgbox(sprintf('Showing Slice Triplet from Functional Brick %s.\nFrom AFNI''s axial viewer, use slider to view slices %g, %g and %g that are displayed in the right column of the figure.\nSet Func underlay and set Func sub-brick to #%g',...
-		 BrikNameFunc, OptDispFunc.iSlc(1),OptDispFunc.iSlc(2), OptDispFunc.iSlc(3), OptDispFunc.index));
+		msgbox(sprintf('Showing Slice Triplet from Functional Brick %s.\nFrom AFNI''s axial viewer, use slider to view slices %g, %g and %g that are displayed in the right column of the figure.\nSet Func underlay and set Func sub-brick to #%g\nSet Thr sub-brick to #%g and set threshold slider to 0.5\nIgnore color mismatch as color maps are different',...
+		 BrikNameFunc, OptDispFunc.iSlc(1),OptDispFunc.iSlc(2), OptDispFunc.iSlc(3), OptDispFunc.index, OptDispFunc.index)); 
 		fprintf (1,'\nHit Enter to Proceed with Demo (ctrl+c to abort)...\n'); pause
 
 
@@ -201,9 +211,17 @@ clear all
 	OptDelOut.Scale = 1;
 	OptDelOut.Prefix = 'Demo1_func';
 	OptDelOut.verbose = 0;
+
 	!rm Demo1_func*
+
 	%To write the two sub-bricks, I placed them in an Nx2 matrix [Vdel(:) Vxcor(:)]
-	[err, ErrMessage, InfoDelOut] = WriteBrik ([Vdel(:) Vxcor(:)], InfoDelOut, OptDelOut);
+%     sizes = size([Vdel(:) Vxcor(:)]);
+%     M = zeros(1, sizes(1), sizes(2));
+%     M(1,:,:) = [Vdel(:) Vxcor(:)];
+
+        InfoDelOut.DATASET_DIMENSIONS = [64 64 18]; %size([Vdel(:) Vxcor(:)]);
+        OptDelOut.AdjustHeader = 'x';
+	[err, ErrMessage, InfoDelOut] = WriteBrik([Vdel(:) Vxcor(:)], InfoDelOut, OptDelOut);
 
 	if (err),
 		errordlg(sprintf('%s\nAbort now (ctrl+c).', ErrMessage));
@@ -235,7 +253,10 @@ clear all
 	InfoNewTSOut.BRICK_STATS = []; %automatically set
 	InfoNewTSOut.BRICK_FLOAT_FACS = []; %automatically set
 	InfoNewTSOut.IDCODE_STRING = '';%automatically set
-	 			
+        InfoDelOut.DATASET_DIMENSIONS = [64 64 18]; %size([Vdel(:) Vxcor(:)]);
+        OptTSOut.AdjustHeader = 'x';
+
+
 	OptTSOut.Scale = 1;
 	OptTSOut.Prefix = 'Demo1_TS';
 	OptTSOut.verbose = 1;

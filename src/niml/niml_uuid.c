@@ -18,7 +18,7 @@ static char *get_MAC_addr(void) ;  /* prototype */
           and should be free()-ed when no longer needed.
 
   20 Aug 2002 -- RWCox: break string and hashing into separate functions.
--------------------------------------------------------------------------*/
+*//*---------------------------------------------------------------------*/
 
 static char * get_UNIQ_string(void)
 {
@@ -116,7 +116,7 @@ URR_DONE: ;
           of environment variable IDCODE_PREFIX plus '_').
 
   Sample output: "XYZ_VdfGpfzy_NlY-2d7tA8Q1w"
--------------------------------------------------------------------------*/
+*//*---------------------------------------------------------------------*/
 
 char * UNIQ_idcode(void)
 {
@@ -137,7 +137,7 @@ char * UNIQ_idcode(void)
 
 /*----------------------------------------------------------------------*/
 /*! Fill the 3 character idcode prefix and cap with '\0' for safety
-------------------------------------------------------------------------*/
+*//*--------------------------------------------------------------------*/
 
 void UNIQ_hashprefix_fill( char *idc )
 {
@@ -161,7 +161,7 @@ void UNIQ_hashprefix_fill( char *idc )
 /*! Return the 3 character idcode prefix and cap with '\0',
     environment variable IDCODE_PREFIX is not expected to change
     within a session.
-------------------------------------------------------------------------*/
+*//*--------------------------------------------------------------------*/
 char * UNIQ_hashprefix( void )
 {
    static char idr[4]={""};
@@ -173,7 +173,7 @@ char * UNIQ_hashprefix( void )
 /*! Make an idcode-formatted malloc-ed string from an input string.
     Unlike UNIQ_idcode(), this will always return the same value,
     given the same input.
-------------------------------------------------------------------------*/
+*//*--------------------------------------------------------------------*/
 
 char * UNIQ_hashcode( char *str )
 {
@@ -198,7 +198,7 @@ char * UNIQ_hashcode( char *str )
 /*----------------------------------------------------------------------*/
 /*! Fill a user-supplied buffer (length at least 32) with an idcode.
     That is, idc should point to a char array of length 32 (or more).
-------------------------------------------------------------------------*/
+*//*--------------------------------------------------------------------*/
 
 void UNIQ_idcode_fill( char *idc )
 {
@@ -209,9 +209,27 @@ void UNIQ_idcode_fill( char *idc )
 }
 
 /*----------------------------------------------------------------------*/
+/*! Produce a shorter idcode, purely alphanumeric.
+*//*--------------------------------------------------------------------*/
+
+char * UNIQ_idcode_11(void)
+{
+   static char *abc
+          = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789." ;
+   char *bbb , *uuu ; unsigned int ii , ss ;
+   bbb = UNIQ_idcode() ;
+   uuu = (char *)malloc(sizeof(char)*12) ;
+   for( ii=0 ; ii < 11 ; ii++ ){
+     ss = ((unsigned int)(bbb[2*ii+4]) + (unsigned int)(bbb[2*ii+5]))%62 ;
+     uuu[ii] = abc[ss] ;
+   }
+   uuu[11] = '\0' ; free(bbb) ; return uuu ;
+}
+
+/*----------------------------------------------------------------------*/
 /*! Hash a string and return a malloc()-ed string (36+1 bytes) in
     the "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" format.
-------------------------------------------------------------------------*/
+*//*--------------------------------------------------------------------*/
 
 char *UUID_hashcode( char *str )
 {
@@ -242,7 +260,7 @@ char *UUID_hashcode( char *str )
 /*! Hash a unique string and return a malloc()-ed string (36+1 bytes) in
     the "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" format.
     The result should be unique worldwide, for all time.
-------------------------------------------------------------------------*/
+*//*--------------------------------------------------------------------*/
 
 char * UUID_idcode(void)
 {

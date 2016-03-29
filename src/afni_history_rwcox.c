@@ -43,7 +43,164 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 22 , SEP , 2015 , RWC , "3dDeconvolve" , MICRO , TYPE_NEW_ENV ,
+
+ { 11 , FEB , 2016 , RWC , "3dGroupInCorr" , MICRO , TYPE_NEW_OPT ,
+   "Add -ztest option == test inputs if they are all zero" ,
+   "For Cesar." } ,
+
+ { 11 , FEB , 2016 , RWC , "afni version check" , MICRO , TYPE_GENERAL ,
+   "add https support to thd_http.c" ,
+   "Via wget or curl, plus popen+fread+pclose.  Cheap, but works." } ,
+
+ { 11 , FEB , 2016 , RWC , "3dttest++" , MAJOR , TYPE_NEW_OPT ,
+   "-clustsim option" ,
+   "This option runs 3dttest++ with -randomize and then 3dClustSim with\n"
+   "-inset, to produce cluster-threshold tables for inclusion in the output.\n"
+   " It is my intention that this method will replace the use of 3dFWHMx and\n"
+   "3dClustSim.  Knock wood, and help Make AFNI Great Again!" } ,
+
+ { 9 , FEB , 2016 , RWC , "3dQwarp" , MICRO , TYPE_GENERAL ,
+   "Tested on 2D images (single-slice datasets)" ,
+   "It actually worked.  Added a comment to that effect in the help output." } ,
+
+ { 9 , FEB , 2016 , RWC , "3dGroupInCorr" , MICRO , TYPE_NEW_OPT ,
+   "-read option" ,
+   "To 'read()' data in, instead of 'mmap()' -- for network mounted data\n"
+   "where 'mmap()' fails to work.  For Cesar Caballero." } ,
+
+ { 5 , FEB , 2016 , RWC , "3dClustSim" , MAJOR , TYPE_NEW_OPT ,
+   "New -inset option" ,
+   "Directly give the simulations, rather than generate them internally. \n"
+   "Intended for use with '3dttest++ -randomsign N -toz' and '3dttest++\n"
+   "-resid' to get the cluster thresholds directly from the data rather than\n"
+   "assumptions of Gaussianity." } ,
+
+ { 5 , FEB , 2016 , RWC , "3dttest++" , MICRO , TYPE_MODIFY ,
+   "Add number of iterations to -randomsign option" ,
+   "For use with 3dClustSim -inset" } ,
+
+ { 26, JAN , 2016 , RWC , "1dNLfit" , MINOR , TYPE_NEW_PROG ,
+   "1D file nonlinear fitting" ,
+   "Uses the 'calc' parser to define the function to fit.\n"
+   "Mostly for the convenience of The Bob." } ,
+
+  { 22 , JAN , 2016 , RWC , "1deval" , MICRO , TYPE_NEW_OPT ,
+   "Fixed value assignments, as in '-a=3.7'" ,
+   "For my convenience" } ,
+
+ { 6 , JAN , 2016 , RWC , "1dplot" , MICRO , TYPE_NEW_OPT ,
+   "new -pnm option, to save to PNM image format" ,
+   "To make it easier to manipulate results in scripts (e.g., pnmcat)." } ,
+
+ { 5 , JAN , 2016 , RWC , "@get.afni.version" , MICRO , TYPE_NEW_PROG ,
+   "Script to fetch source for a particular AFNI version tag" ,
+   NULL } ,
+
+ { 31 , DEC , 2015 , RWC , "3dttest++" , MICRO , TYPE_BUG_FIX ,
+   "Don't allow -resid and -zskip at the same time" ,
+   "Because sorting out the residuals back to their proper places would\n"
+   "be hard, if some inputs were skipped." } ,
+
+ { 30 , DEC , 2015 , RWC , "3dBlurToFWHM" , MINOR , TYPE_NEW_OPT ,
+   "add -acf option, to estimate FWHM via the ACF method" ,
+   NULL } ,
+
+ { 22 , DEC , 2015 , RWC , "3dvolreg" , MICRO , TYPE_MODIFY ,
+   "Make '-final linear' work, and put it in the help output." ,
+   "For Daniel Handwerker.  Don't say I never gave you a Christmas present!" } ,
+
+ { 17 , DEC , 2015 , RWC , "stimband" , MICRO , TYPE_NEW_PROG ,
+   "Computes freq band for stimuli extracted from .xmat.1D files" ,
+   "For use in scripting bandwidths for pre- and post-processing." } ,
+
+ { 10 , DEC , 2015 , RWC , "afni Clusterize" , MICRO , TYPE_ENHANCE ,
+   "Add 'large FDR q' warning to Clusterize report" ,
+   NULL } ,
+
+ { 9 , DEC , 2015 , RWC , "3dFWHMx" , MICRO , TYPE_ENHANCE ,
+   "Add the 'classic' Gaussian ACF to the '-acf' plot, for comparison." ,
+   NULL } ,
+
+ { 8 , DEC , 2015 , RWC , "afni Clusterize" , MINOR , TYPE_MODIFY ,
+   "Add Write button to save just one cluster to a dataset" ,
+   NULL } ,
+
+ { 8 , DEC , 2015 , RWC , "3dttest++" , MICRO , TYPE_MODIFY ,
+   "Allow constant value with -singletonA instead of a dataset" ,
+   "Allows user to test -setB against a nonzero constant." } ,
+
+ { 7 , DEC , 2015 , RWC , "3dttest++" , MINOR , TYPE_NEW_OPT ,
+   "Add -resid option, to save residuals." ,
+   NULL } ,
+
+ { 1 , DEC , 2015 , RWC , "3dClustSim" , MAJOR , TYPE_NEW_OPT ,
+   "Added -acf option!" ,
+   "Non-Gaussian spherically symmetric AutoCorrelation Function (ACF) for\n"
+   "the noise.  Uses FFTs to create the noise fields, via #include-d file\n"
+   "mri_radial_random_field.c and #include-d csfft_OMP.c (thread-safe FFTs).\n"
+   "This method in 3dFWHMx and 3dClustSim will be the favored cluster\n"
+   "thresholding analysis going forward." } ,
+
+ { 30 , NOV , 2015 , RWC , "csfft_OMP" , MICRO , TYPE_GENERAL ,
+   "Thread-safe version of csfft function, for use with OpenMP" ,
+   "Meant to be #include-d into the main source file." } ,
+
+ { 27 , NOV , 2015 , RWC , "3dFHWMx" , MICRO , TYPE_MODIFY ,
+   "OpenMP-ize the FWHM and ACF calculations (across sub-bricks)" ,
+   "Also, working on spherical non-Gaussian convolution by FFTs in\n"
+   "mri_radial_random_field.c" } ,
+
+ { 23 , NOV , 2015 , RWC , "many" , MICRO , TYPE_GENERAL ,
+   "Tiny edits to eliminate compiler warnings from icc" ,
+   "For example, change format '%ld' to '%lld' for numerous int64_t\n"
+   "printouts in nifti/cifti codes.  Change 'finite()' to 'isfinite()'." } ,
+
+ { 10 , NOV , 2015 , RWC , "3dFWHMx" , MAJOR , TYPE_NEW_OPT ,
+   "-ACF option to compute spatial autocorrelation function" ,
+   "For enhancing 3dClustSim, et cetera." } ,
+
+ { 30 , OCT , 2015 , RWC , "images_equal" , MICRO , TYPE_NEW_PROG ,
+   "Tests if 2 input 2D image files are equal." ,
+   NULL } ,
+
+ { 28 , OCT , 2015 , RWC , "3dQwarp" , MICRO , TYPE_MODIFY ,
+   "Allow minpatch to go as low as 5." ,
+   "Of course, such a small patch will be VERY slow indeed.  Also, bring out\n"
+   "of hiding the '-ballopt' option, which changes the optimization strategy\n"
+   "somewhat -- allowing for larger displacments in the incremental warps." } ,
+
+ { 26 , OCT , 2015 , RWC , "afni Clusterize" , MAJOR , TYPE_ENHANCE ,
+   "Allow user to use multiple (up to 4) Aux datasets for Plot/Save" ,
+   NULL } ,
+
+ { 15 , OCT , 2015 , RWC , "afni Clusterize" , MICRO , TYPE_MODIFY ,
+   "Switch F-stat from using 1-sided to 2-sided tables." ,
+   "To keep Chen Gang happy." } ,
+
+ { 15 , OCT , 2015 , RWC , "afni Clusterize" , MICRO , TYPE_MODIFY ,
+   "Modify linkRbrain stuff to NOT use unseen clusters" ,
+   NULL } ,
+
+ { 14 , OCT , 2015 , RWC , "afni Clusterize" , MICRO , TYPE_GENERAL ,
+   "Add toggle button to turn individual clusters on/off" ,
+   "Hope it doesn't interfere with something else!  It's tricky modifying\n"
+   "the functional overlay." } ,
+
+ { 13 , OCT , 2015 , RWC , "3dGroupInCorr" , MICRO , TYPE_MODIFY ,
+   "Finally fixed -clust option to correspond to new 3dClustSim output" ,
+   "That is, 9 NIML files instead of 3." } ,
+
+ { 7 , OCT , 2015 , RWC , "afni GUI" , MICRO , TYPE_GENERAL ,
+   "Attempt to fix 'crash on re-open controller' problem" ,
+   "Happened when Clusterize was used in A, then B opened, B closed, B\n"
+   "re-opened -- boom.  Set deleted FD_bricks to NULL seems to help. \n"
+   "Fingers crossed." } ,
+
+ { 1 , OCT , 2015 , RWC , "AFNI clusterize" , MICRO , TYPE_MODIFY ,
+   "Made showing linkRbrain button default now" ,
+   "setenv AFNI_LINKRBRAIN NO to turn this button off" } ,
+
+ { 22 , SEP , 2015 , RWC , "3dDeconvolve" , MICRO , TYPE_NEW_ENV ,
    "AFNI_USE_ERROR_FILE = NO turns off creation of 3dDeconvolve.err" ,
    NULL } ,
 

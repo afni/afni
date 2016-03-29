@@ -517,7 +517,7 @@ g_help_string = """
 
 
     Our HBM 2008 abstract describing the alignment tools is available here:
-      http://afni.nimh.nih.gov/sscc/rwcox/abstracts
+      https://afni.nimh.nih.gov/sscc/rwcox/abstracts
     
     Reference:
        If you find the EPI to Anat alignment capability useful, the paper to
@@ -564,7 +564,7 @@ g_help_string = """
 ## BEGIN common functions across scripts (loosely of course)
 class RegWrap:
    def __init__(self, label):
-      self.align_version = "1.50" # software version (update for changes)
+      self.align_version = "1.51" # software version (update for changes)
       self.label = label
       self.valid_opts = None
       self.user_opts = None
@@ -691,6 +691,8 @@ class RegWrap:
                        "cmass options and wide angles and shifts")
       self.valid_opts.add_opt('-ginormous_move', 0, [], \
                helpstr="Adds align_centers to giant_move")
+      self.valid_opts.add_opt('-rigid_body', 0, [], \
+               helpstr="Do only rigid body alignment - shifts and rotates")
 
       self.valid_opts.add_opt('-partial_coverage', 0, [],                  \
                helpstr="partial_xxxx options control center of mass adjustment")
@@ -704,6 +706,8 @@ class RegWrap:
                              ["-weight_frac 1.0 -maxrot 6 -maxshf 10 -VERB"\
                               " -warp aff -source_automask+4 "],\
                                helpstr="Options passed to 3dAllineate.")
+
+
       self.valid_opts.add_opt('-perc', 1, ['90'])
 #      self.valid_opts.add_opt('-fresh', 0, [])
       self.valid_opts.add_opt('-suffix', 1,['_al'])
@@ -1274,6 +1278,11 @@ class RegWrap:
       else:
          ps.AlOpt = ''
 
+      # rigid body alignment
+      opt = self.user_opts.find_opt('-rigid_body')
+      if opt != None:
+         ps.AlOpt = ps.AlOpt.replace('-warp aff', '-warp shift_rotate')
+
       opt = self.user_opts.find_opt('-feature_size')
       if opt != None:
          featuresize = float(opt.parlist[0])
@@ -1316,8 +1325,8 @@ class RegWrap:
             fsize = featuresize
             
          ps.AlOpt =  \
-         "-twobest 11 -twopass -VERB -maxrot 45 -maxshf 40 " \
-         "-fineblur %s -source_automask+2" %  fsize
+         "%s -twobest 11 -twopass -VERB -maxrot 45 -maxshf 40 " \
+         "-fineblur %s -source_automask+2" % (ps.AlOpt, fsize)
          ps.cmass = "cmass"
          giant_move = 1
       else :
@@ -1943,7 +1952,6 @@ class RegWrap:
             # save the permanent data
             o = afni_name("%s%s%s%s" % \
                (ps.anat_dir, ps.anat0.out_prefix(), suf,ps.anat0.view)) 
-            o.view = anatview     # ps.anat0.view
             if (not o.exist() or ps.rewrite or ps.dry_run()):
                o.delete(ps.oexec)
             else:
@@ -1982,12 +1990,6 @@ class RegWrap:
             com.run()
       else:
          self.exists_msg(o.input())
-
-      if (not o.exist() and not ps.dry_run()):
-         self.error_msg( "Could not square a circle " \
-                         "(3dAllineate could not align anat to epi)")
-         return None
-
       # process the children
       if ps.child_anats != None: 
          if (ps.anat2epi):
@@ -2347,46 +2349,46 @@ class RegWrap:
    # create edge dataset of internal brain structure edges
    def edge_dset(self, e=None, prefix = "temp_edge", binarize=0,erodelevel=2):
       o = afni_name(prefix)
-      prefix = o.prefix
+
       o.view = e.view
       if (not o.exist() or ps.rewrite or ps.dry_run()):
          o.delete(ps.oexec)
          self.info_msg("Creating edge dataset")
-         com = shell_com("3dAutomask -overwrite -erode %s -prefix %s_mask %s" \
+         com = shell_com("3dAutomask -overwrite -erode %s -prefix %s_edge_mask %s" \
                          % (erodelevel, prefix, e.input()), ps.oexec)
          com.run()
 
          if(binarize):
-            lprefix = "%s_cvar" % prefix
+            lprefix = "%s_edge_cvar" % prefix
          else:
             lprefix = prefix
 
          com = shell_com(                                                  \
-                         "3dLocalstat -overwrite -mask %s_mask%s " \
-                         "-nbhd 'RECT(-1,-1,-1)'"                           \
+                         "3dLocalstat -overwrite -mask %s_edge_mask%s " \
+                         "-nbhd 'RECT(-1,-1,0)'"                           \
                          " -stat cvar -prefix %s %s" %                     \
                          (prefix, o.view, lprefix, e.input()), ps.oexec)
          com.run();
 
          if(binarize):
             com = shell_com( \
-              "3dhistog -omit 0 -max 1 -nbins 1000 %s_cvar%s "     \
-                            " > %s_histo.1D" % (prefix, o.view, prefix), ps.oexec)
+              "3dhistog -omit 0 -max 1 -nbins 1000 %s_edge_cvar%s "     \
+                            " > %s_edge_histo.1D" % (prefix, o.view, prefix), ps.oexec)
             com.run()
 
-            com = shell_com("3dTstat -argmax -prefix %s_histomax "    \
-                            "%s_histo.1D'[1]'\\' " %                  \
+            com = shell_com("3dTstat -argmax -prefix %s_edge_histomax "    \
+                            "%s_edge_histo.1D'[1]'\\' " %                  \
                             (prefix, prefix), ps.oexec)
             com.run()
 
-            com = shell_com("1dcat %s_histomax.1D" %                  \
+            com = shell_com("1dcat %s_edge_histomax.1D" %                  \
                              prefix, ps.oexec, capture=1)
             com.run()
 
             if(ps.dry_run()): edgeindex = 123
             else:  edgeindex = int(com.val(0,0))
 
-            com = shell_com("1dcat %s_histo.1D'[0]{%d}'" %            \
+            com = shell_com("1dcat %s_edge_histo.1D'[0]{%d}'" %            \
                   (prefix, edgeindex), ps.oexec, capture=1)
             com.run()
 
@@ -2396,7 +2398,7 @@ class RegWrap:
             # threshold anatomical and EPI edge data
             self.info_msg("Thresholding edges at %f" % edgevalue)
             com = shell_com( \
-                '3dcalc -a %s_cvar%s -overwrite -expr "step(a-%f)"' \
+                '3dcalc -a %s_edge_cvar%s -overwrite -expr "step(a-%f)"' \
                 ' -prefix %s' % (prefix, o.view, edgevalue, o.out_prefix()), ps.oexec)
             com.run()
 
@@ -3066,6 +3068,7 @@ class RegWrap:
       if (aae):
          # save aligned anatomy
          o = afni_name("%s%s%s%s" % (aae.p(),ain.prefix, suf,aae.view))
+         o.view = aae.view
          self.copy_dset( aae, o, 
           "Creating final output: %s data aligned to %s" % \
                (self.dset1_generic_name, self.dset2_generic_name) , ps.oexec)
