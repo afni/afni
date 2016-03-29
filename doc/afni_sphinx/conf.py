@@ -52,6 +52,7 @@ extensions = [
     'cloud_sptheme.ext.table_styling',
     'sphinxcontrib.programoutput'
 ]
+mathjax_path = 'https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS_CHTML' # http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML'
 
 todo_include_todos = True
 
