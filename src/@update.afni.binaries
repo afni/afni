@@ -43,7 +43,7 @@ history for $prog :
   2.0  08 Feb 2016 : access afni site via https protocol
   2.1  16 Feb 2016 : added -ver and initial statement of version
   2.2  19 Feb 2016 : minor text changes (note get_prog and appease dglen)
-  2.3  29 Feb 2016 : and mention download site
+  2.3  29 Mar 2016 : added -no_cert_verify to omit certificate verification
 -------------------------------------------------------------------------------
 EOF
 exit
@@ -78,6 +78,8 @@ set do_apsearch = 1     # run apserach -update_all_afni_help
 set do_recur    = 1     # download a new version of @uab, first
 set quick       = 0     # no fancies (recur, apsearch)
 set revert      = 0     # revert binaries to those in backup directory
+set cert_verify = 1     # whether to verify CA certificate via SSL/TLS
+set use_curl    = 0
 
 set bad_opt     = ''    # if bad_opt and do_recur, see if we continue
 
@@ -136,6 +138,9 @@ while ( $ac <= $#argv )
         endif
         # decide on increment here, and continue
         continue
+    else if ( "$argv[$ac]" == "-no_cert_verify" ) then
+        # add options to turn verification off
+        set cert_verify = 0
     else if ( "$argv[$ac]" == "-no_recur" ) then
         set do_recur = 0
     else if ( "$argv[$ac]" == "-quick" ) then
@@ -212,6 +217,21 @@ if ( $help ) then
     echo "        26 Sep 2012 : -update_apsearch is applied by default"
     echo "                      (if installed afni is in PATH)"
     echo ""
+    echo "    -no_cert_verify       : do not verify the server CA certificate"
+    echo ""
+    echo "        This option is regarding SSL/TLS Certificate Verification"
+    echo "        via some CA (certificate authority) list.  It may be needed"
+    echo "        if the client CA list does not recognize the certificate"
+    echo "        provided by the afni server."
+    echo ""
+    echo "        For curl, this appends the '--insecure' option."
+    echo "        For wget, this appends the '--no-check-certificate' option."
+    echo ""
+    echo "        To check whether curl requires this, look for WinSSL in the"
+    echo "        output from: curl -V"
+    echo ""
+    echo "        See https://curl.haxx.se/docs/sslcerts.html for details."
+    echo ""
     echo "    -no_recur             : do not download and run new @uab script"
     echo "    -package PACKAGE      : install distribution package PACKAGE"
     echo "    -prog_list PROGRAMS   : install given programs, not whole PACKAGE"
@@ -269,8 +289,6 @@ endif
 
 
 echo "-- running $prog version $aub_version"
-echo "-- will download from $afnisite"
-echo ""
 
 # note any current AFNI location
 which afni >& /dev/null
@@ -365,6 +383,21 @@ endif
 # default to wget, else use curl
 set get_prog = ( "wget" )
 if ( $use_curl || $missing_wget ) set get_prog = ( curl -O -f )
+
+# do we verify certificates via CA list?  if not, speicify
+if ( ! $cert_verify ) then
+   if ( $get_prog[1] == "wget" ) then
+      set get_prog = ( $get_prog --no-check-certificate )
+   else if ( $get_prog[1] == "curl" ) then
+      set get_prog = ( $get_prog --insecure )
+   else
+      echo "** cert_verify: confused about get_prog: $get_prog"
+      exit 1
+   endif
+endif
+
+echo "-- will download from $afnisite via $get_prog"
+echo ""
 
 # make sure package is set to the base name
 if ( $package =~ *.tgz ) set package = $package:r
