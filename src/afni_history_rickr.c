@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 29,  Mar, 2016, RCR, "gen_group_command.py", MICRO, TYPE_MODIFY,
+   "3dMEMA no longer allows for a paied test",
+   "One must now input contrast/stat from original regression."
+ } ,
+
  { 29,  Mar, 2016, RCR, "afni_restproc.py", MICRO, TYPE_MODIFY,
    "suggest that users consider afni_proc.py",
    "This was requested by Rayus."
