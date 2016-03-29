@@ -1,19 +1,22 @@
-/*
-afni/src/sparse_array.c
-*/
+/**
+ * afni/src/sparse_array.c
+ * Sparse array implementations
+ */
 
 
-// Look for OpenMP macro
+/* Look for OpenMP macro */
 #ifdef USE_OMP
 #include <omp.h>
 #endif
 
-// Include libraries
+/* Include libraries */
 #include "mrilib.h"
 #include "sparse_array.h"
 #include <sys/mman.h>
 #include <sys/types.h>
 
+
+/* Print progress */
 static void vstep_print(void)
 {
    static int nn=0 ;
@@ -24,6 +27,7 @@ static void vstep_print(void)
 }
 
 
+/* Free memory of sparse array node list */
 sparse_array_node* free_sparse_list( sparse_array_node* list )
 {
     sparse_array_node* tptr = NULL;
@@ -35,6 +39,7 @@ sparse_array_node* free_sparse_list( sparse_array_node* list )
     }
     return( NULL );
 }
+
 
 /* function for freeing a sparse array */
 sparse_array_head_node* free_sparse_array( sparse_array_head_node* sparray )
@@ -59,6 +64,7 @@ sparse_array_head_node* free_sparse_array( sparse_array_head_node* sparray )
     return(NULL);
 }
 
+
 /* we will use a histogram to sort the values, define that here*/
 typedef struct _hist_node_head
 {
@@ -68,6 +74,7 @@ typedef struct _hist_node_head
     sparse_array_node* nodes;
     sparse_array_node* tail;
 } hist_node_head;
+
 
 /* function to simplify free histogram */
 hist_node_head* free_histogram(hist_node_head * histogram, int nhistbins)
@@ -234,7 +241,6 @@ sparse_array_head_node* create_sparse_corr_array( MRI_vectim* xvectim, double sp
                     histogram[ kout ].nbin, histogram[ kout ].nodes );
             */
         }
-
     }
 
     /*---------- loop over mask voxels, correlate ----------*/
@@ -338,7 +344,7 @@ sparse_array_head_node* create_sparse_corr_array( MRI_vectim* xvectim, double sp
 
                                     totNumCor += 1;
 
-                                    // if keeping all connections, just add to linked list
+                                    /* if keeping all connections, just add to linked list */
                                     if ( sparsity >= 100.0 )
                                     {
                                         new_node->next = sparse_array->nodes;
@@ -346,7 +352,7 @@ sparse_array_head_node* create_sparse_corr_array( MRI_vectim* xvectim, double sp
                                         sparse_array->num_nodes = sparse_array->num_nodes + 1;
                                         new_node = NULL; 
                                     }
-                                    // otherwise, populate to proper bin of histogram
+                                    /* otherwise, populate to proper bin of histogram */
                                     else
                                     {
                                         /* determine the index in the histogram to add the node */
@@ -367,15 +373,15 @@ sparse_array_head_node* create_sparse_corr_array( MRI_vectim* xvectim, double sp
                                             new_node->weight = car;
                                             new_node->next = NULL;
 
-                                            // update histogram bin linked-list
+                                            /* update histogram bin linked-list */
                                             new_node->next = histogram[new_node_idx].nodes;
                                             histogram[new_node_idx].nodes = new_node;
-                                            // if first node in bin, point tail to node
+                                            /* if first node in bin, point tail to node */
                                             if (histogram[new_node_idx].tail == NULL)
                                             {
                                                 histogram[new_node_idx].tail = new_node;
                                             }
-                                            // increment bin count
+                                            /* increment bin count */
                                             histogram[new_node_idx].nbin++; 
 
                                             /* see if there are enough correlations in the histogram
