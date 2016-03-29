@@ -8,6 +8,13 @@ from afni_base import *
 from db_mod import *
 from math import pow
 
+rickr_note = """
+  ** As of Dec 18, 2012, afni_restproc.py is (essentially) no longer being
+     supported (by its author, Rayus Kuplicki of the University of Tulsa).
+
+     Consider using afni_proc.py (written by Rick Reynolds of the NIH).
+"""
+     
 
 help_string = """
 afni_restproc.py 
@@ -653,11 +660,13 @@ class RestInterface:
 
    def process_options(self):
       if len(sys.argv) <= 1:
+         print rickr_note
          print help_string
          return 0
       if '-help' in sys.argv:
          if '-changelog' in sys.argv:
             print change_string
+         print rickr_note
          print help_string
          return 0
       if '-changelog' in sys.argv:
