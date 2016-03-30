@@ -1,6 +1,8 @@
 
 .. _Bootcamping:
 
+.. _install_bootcamp:
+
 This step is required if you are about to attend a Bootcamp::
 
   curl -O https://afni.nimh.nih.gov/pub/dist/edu/data/CD.tgz
