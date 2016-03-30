@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 30,  Mar, 2016, RCR, "@update.afni.binaries", MICRO, TYPE_ENHANCE,
+   "possibly update .bashrc if .cshrc is updated",
+   NULL
+ } ,
+
  { 29,  Mar, 2016, RCR, "@update.afni.binaries", MICRO, TYPE_NEW_OPT,
    "add option -no_cert_verify, to skip server certificate verification",
    NULL
