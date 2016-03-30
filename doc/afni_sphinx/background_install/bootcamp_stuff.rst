@@ -35,7 +35,6 @@
      + *if you compile AFNI from source*, then go :ref:`here
        <download_SRC>` and download the latest source.
 
-
    .. _install_bootcamp:
 
 #. **Install AFNI Bootcamp class data.**
@@ -59,7 +58,6 @@
    the tarred/zipped package, using "``rm CD.tgz``".  If you are
    *really* confident, you can also deleted the CD tree in the present
    location (but leaving it in ``$HOME/CD/``).
-
 
 #. **Verify the setup.**
 
