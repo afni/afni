@@ -14,7 +14,7 @@
 
 set prog = `basename $0`
 set afnisite = https://afni.nimh.nih.gov
-set aub_version = "2.3, March 29, 2016"
+set aub_version = "2.4, March 30, 2016"
 
 # ----------------------------------------------------------------------
 # history section
@@ -44,6 +44,7 @@ history for $prog :
   2.1  16 Feb 2016 : added -ver and initial statement of version
   2.2  19 Feb 2016 : minor text changes (note get_prog and appease dglen)
   2.3  29 Mar 2016 : added -no_cert_verify to omit certificate verification
+  2.4  30 Mar 2016 : possibly udpate .bashrc after .cshrc
 -------------------------------------------------------------------------------
 EOF
 exit
@@ -563,7 +564,7 @@ if ( $do_recur ) then
       tcsh $temp_prog -no_recur $argv
       set ss = $status
       if ( ! $ss ) then
-         echo "\n...finished, removing temp version, $temp_prog"
+         echo "...finished, removing temp version, $temp_prog"
          \rm -f $temp_prog
       endif
       exit $ss  # exit with status of called program
@@ -787,6 +788,21 @@ if ( $new_install && -d $abin && $?USER ) then
       rehash
       set cur_afni = `which afni`
       set cur_afni = $cur_afni:h
+
+      # ---------------------------
+      # do this for .bashrc, too...
+      set brcfile = ~/.bashrc
+      # to simplify, make sure the file exists
+      if ( ! -f $brcfile ) touch $brcfile
+
+      # and possibly edit
+      grep $abin:t $brcfile >& /dev/null
+      if ( $status ) then
+         # not found, so append to file
+         echo "++ updating PATH in $brcfile ..."
+         echo 'export PATH=$PATH:'$abin >> $brcfile
+      endif
+
    endif
 endif
 
@@ -801,9 +817,8 @@ if ( $do_apsearch && $cur_afni == $abin && $#prog_list == 0 ) then
    if ( $status && -f $rcfile ) then
       cat << EOF >> $rcfile
 
-set ahdir = \`apsearch -afni_help_dir\`
-if ( -f \$ahdir/all_progs.COMP ) then
-   source \$ahdir/all_progs.COMP
+if ( -f \$HOME/.afni/help/all_progs.COMP ) then
+   source \$HOME/.afni/help/all_progs.COMP
 endif
 
 EOF
