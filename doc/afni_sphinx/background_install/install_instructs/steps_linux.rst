@@ -41,7 +41,7 @@ for each.
        sudo yum update -y
             
    .. _setup_tcsh:
-#. **Set "tcsh" to be the default shell (optional, but recommended).**
+#. **(optional, but recommended) Set "tcsh" to be the default shell.**
 
    ::
 
@@ -74,38 +74,6 @@ for each.
    system updates, the change in login shell, and an updated path::
 
       reboot
-
-#. **Quick test.**
-
-   Do a quick test to see that afni works::
-
-      afni -ver
-
-   If this doesn't produce anything constructive immediately, or if
-   ``reboot`` was skipped, try starting a new ``tcsh`` shell (e.g., by
-   opening a new terminal) and updating the path (again, specifically
-   for ``tcsh``)::
-      
-      tcsh
-      set path = ( $path ~/abin )
-      rehash
-      afni -ver
-      
-   | The final command should show something useful, like:
-   | ``Precompiled binary linux_ubuntu_12_64: 
-     Feb 29 2016 (Version AFNI_16.0.10)``
-
-
-   NB: ``@update.afni.binaries`` should have set the path in
-   ``$HOME/.cshrc``.  Verify this by visually checking that the same
-   'set path' line, above, in the (``tcsh``) profile::
-
-     cat ~/.cshrc
-
-   .. am inverting steps 5 and 6 from the original documentation,
-      under the idea that hte Bootcamp material is secondary to a
-      general install, which I feel should include R.
-
 
 #. **Get R setup.**
 
@@ -154,7 +122,7 @@ for each.
 
 
 
-.. comment
+.. commented out-- older steps, unnecessary here.
 
    #. **Setting up autoprompts for command line options.**
 
@@ -165,3 +133,37 @@ for each.
      apsearch -update_all_afni_help
       
    and then follow the brief instructions.
+
+
+
+    #. **Quick test.**
+
+       Do a quick test to see that afni works::
+
+          afni -ver
+
+       If this doesn't produce anything constructive immediately, or if
+       ``reboot`` was skipped, try starting a new ``tcsh`` shell (e.g., by
+       opening a new terminal) and updating the path (again, specifically
+       for ``tcsh``)::
+
+          tcsh
+          set path = ( $path ~/abin )
+          rehash
+          afni -ver
+
+       | The final command should show something useful, like:
+       | ``Precompiled binary linux_ubuntu_12_64: 
+         Feb 29 2016 (Version AFNI_16.0.10)``
+
+
+       NB: ``@update.afni.binaries`` should have set the path in
+       ``$HOME/.cshrc``.  Verify this by visually checking that the same
+       'set path' line, above, in the (``tcsh``) profile::
+
+         cat ~/.cshrc
+
+       .. am inverting steps 5 and 6 from the original documentation,
+          under the idea that hte Bootcamp material is secondary to a
+          general install, which I feel should include R.
+

@@ -24,8 +24,8 @@ operating system) to a link to install XQuartz.
 
       .. note:: Admin privileges are needed for package management.
 
-   #. (optional) Set the shell to ``/bin/tcsh``.  This no longer works
-      using the ``chsh ...`` command.
+   #. (optional) Set the shell to ``/bin/tcsh``.  NB: this no longer
+      works using the ``chsh ...`` command.
 
       Under System Preferences : System : Accounts menu, right-click
       on the user to get the Advanced Options menu and change the

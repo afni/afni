@@ -11,4 +11,4 @@ Installation and Background
    install_instructs/index.rst
    download_links.rst
    unix_tutorial/index.rst
-   .. bootcamp_stuff.rst
+   bootcamp_stuff.rst
