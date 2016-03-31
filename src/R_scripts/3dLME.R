@@ -1140,7 +1140,10 @@ read.LME.opts.from.file <- function (modFile='model.txt', verb = 0) {
    if(!exists('.DBG_args')) { 
       args = (commandArgs(TRUE))  
       rfile <- first.in.path(sprintf('%s.R',ExecName))  
-      try(save(args, rfile, file=".3dLME.dbg.AFNI.args", ascii = TRUE), silent=TRUE)
+      # do not save these log files on -help    31 Mar 2016 [rickr]
+      if ( ! '-help' %in% args ) {
+         try(save(args, rfile, file=".3dLME.dbg.AFNI.args", ascii = TRUE), silent=TRUE)
+      }
    } else {
       note.AFNI("Using .DBG_args resident in workspace")
       args <- .DBG_args
