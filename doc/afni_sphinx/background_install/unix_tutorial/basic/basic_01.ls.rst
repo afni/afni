@@ -130,6 +130,7 @@ The complete output might look like this.
 go :command:`$HOME`
 -------------------
 Go to the :envvar:`$HOME` directory in various ways.  Each `cd` command would take on to their :envvar:`$HOME` directory.
+Note that the :envvar:`$HOME` direcotry might be something like /home/rickr or /Users/rickr, depending on the operating system.
 
    commands (type these in the terminal window)::
 
@@ -143,13 +144,19 @@ Go to the :envvar:`$HOME` directory in various ways.  Each `cd` command would ta
 
 The :command:`pwd` commands are just to verify where we are each time.  But any of the :command:`cd` will go to the home directory.
 
-   =========   ===============================================================
-   command     description
-   =========   ===============================================================
-   cd          without any options, cd goes to the home directory
-   cd $HOME    $HOME means our home directory, e.g. /home/rickr or /Users/rickr
-   cd ~        the '~' character also means our home directory
-   =========   ===============================================================
+   .. list-table::
+      :widths: 20 40
+      :header-rows: 1
+
+      * - command
+        - description
+      * - ``cd``
+        - without any options, cd goes to the home directory
+      * - ``cd $HOME``
+        - $HOME means our home directory, e.g. /home/rickr
+      * - ``cd ~``
+        - the ``~`` character also means our home directory
+
 
 The output might look like this.  Each time `pwd` shows `/home/rickr` (since that is my :envvar:`$HOME` directory).
 

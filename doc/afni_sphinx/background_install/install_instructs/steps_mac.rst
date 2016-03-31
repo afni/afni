@@ -164,70 +164,40 @@ operating system) to a link to install XQuartz.
 
            sudo rPkgsInstall -pkgs ALL
 
+
    .. ---------- HERE/BELOW: copy for all installs --------------
+
+#. **Automatically set up AFNI/SUMA profiles.**
+
+   .. include:: substep_profiles.rst
+
+
+#. **(optional) Prepare for an AFNI Bootcamp.**
+
+   .. include:: substep_bootcamp.rst
+
 
 #. **EVALUATE THE SETUP: an important and useful step in this
    process!**
 
-   a. There is a very useful script to check on your installed AFNI
-      and lots of its dependencies, such as looking for the installed
-      R libraries, profiles, Python stuff, etc. You can run it
+   .. include:: substep_evaluate.rst
 
-      - outputting to the screen::
-       
-          afni_system_check.py -check_all
 
-      - outputting to a text file::
-       
-          afni_system_check.py -check_all > out.afni_system_check.txt
+#. **Keeping up-to-date (remember).**
 
-      which might be useful to email to your local AFNI Guru if there
-      are any problems. 
+   .. include:: substep_update.rst
 
-   #. So, at this point, if your "system check" doesn't really give
-      any errors, you're all set to go. If it *did* give some errors,
-      please:
 
-      - check the list of :ref:`known setup issues <install_error_msgs>`;
 
-      - search on the `Message Board
-        <https://afni.nimh.nih.gov/afni/community/board/>`_, and/or
-        put the error into google;
 
-      - post a question on the aforementioned `Message Board
-        <https://afni.nimh.nih.gov/afni/community/board/>`_.
-   |
+.. comment
 
-#. **Setting up autoprompts for command line options.**
+   #. **Setting up autoprompts for command line options.**
 
    The following is quite useful to be set up help files for
    tab-autocompletion of options as you type AFNI commands.  Run this
    command::
 
      apsearch -update_all_afni_help
-
+      
    and then follow the brief instructions.
-
-#. **Keeping up-to-date.**
-
-   From this point onward, you can easily keep your AFNI uptodate just
-   by running a single command::
-
-     @update.afni.binaries -d
-
-   That's it!! It will automatically download the correct latest
-   version to your computer, replacing your old binaries.  You can
-   always check your version by typing::
-
-     afni -ver
-
-   (And you should always check and report your version if you have
-   questions/comments/etc.)
-
-#. **(optional) Prepare for an AFNI Bootcamp.**
-
-   .. warning::
-      If you are preparing for an AFNI Bootcamp, then please see the
-      :ref:`Bootcamp prep <install_bootcamp>` instructions on downloading
-      the class data.  And have a nice day.
-
