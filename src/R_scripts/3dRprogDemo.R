@@ -261,7 +261,10 @@ RprogDemo.Scale <- function( idset=NULL, mdset = NULL, scale = 2) {
 if (!exists('.DBG_args')) { 
    args = (commandArgs(TRUE))  
    rfile <- first.in.path(sprintf('%s.R',ExecName))  
-   save(args, rfile, file=sprintf(".%s.dbg.AFNI.args", ExecName), ascii = TRUE) 
+   # do not save these log files on -help    31 Mar 2016 [rickr]
+   if ( ! '-help' %in% args ) {
+      save(args, rfile, file=sprintf(".%s.dbg.AFNI.args", ExecName), ascii = TRUE) 
+   }
 } else {
    note.AFNI("Using .DBG_args resident in workspace");
    args <- .DBG_args

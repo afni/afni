@@ -49,6 +49,12 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 31,  Mar, 2016, RCR, "3dMVM.R", MICRO, TYPE_MODIFY,
+   "do not create .dbg.AFNI.args files on -help usage",
+   "Modified 1dRplot.R, 3dLME.R, 3dMEMA.R, 3dMVM.R, 3dPFM.R, 3dRprogDemo.R,\n"
+   "         3dSignatures.R, ExamineXmat.R and rPkgsInstall.R."
+ } ,
+
  { 30,  Mar, 2016, RCR, "@update.afni.binaries", MICRO, TYPE_ENHANCE,
    "possibly update .bashrc if .cshrc is updated",
    NULL
