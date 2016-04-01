@@ -51,26 +51,30 @@ operating system) to a link to install XQuartz.
    Xcode is needed for the gcc compiler and related tools.  XQuartz is
    the desktop manager needed to run X11 programs (such as afni).
 
-   For OS X 10.9 and later, simply run the 2 commands::
+   *  *For OS X 10.9 and later*, simply run the 2 commands::
 
-      xcode-select --install
-      /Applications/Utilities/X11.app
+         xcode-select --install
+         /Applications/Utilities/X11.app
 
-   Otherwise (for OS X versions up through 10.8), it is best to start
-   with the most recent version from the Apple website:
+   *  *Otherwise (for OS X versions up through 10.8)*, it is best to start
+      with the most recent version from the Apple website:
 
-   a. Go to http://developer.apple.com
+      a. Go to http://developer.apple.com
 
-      * Sign up for a login account (necessary for downloading) 
+         * Sign up for a login account (necessary for downloading) 
 
-      * Sign up via "Register as an Apple Developer" (it is free)
+         * Sign up via "Register as an Apple Developer" (it is free)
 
-   #. Get the current "Command Line Tools" package (part of Developer
-      Tools) and install
+      #. Get the current "Command Line Tools" package (part of Developer
+         Tools) and install it
 
-      * current version is 4.6.2
+         * the current version is 4.6.2
 
-      * installation defaults are good, to complete installation
+         * installation defaults are good, to complete installation
+
+      #. For OS X 10.8 users, install XQuartz using the "Quick
+         Download" of the DMG file located at http://www.xquartz.org
+
    |
 
 #. **Homebrew installation**
@@ -136,17 +140,6 @@ operating system) to a link to install XQuartz.
           echo 'export PYTHONPATH=/usr/local/lib/python2.7/site-packages' >> ~/.bashrc
           . ~/.bashrc
 
-
-#. **Quick AFNI verification**
-   
-   a. Try it out!  If these start, you should be in good shape::
-
-          afni
-          suma
-          uber_subject.py
-          
-      .. note:: For 10.8 users, when prompted, follow the instructions
-                to install XQuartz.
 
 #. **R installation**
 
