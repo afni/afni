@@ -72,8 +72,8 @@ operating system) to a link to install XQuartz.
 
          * installation defaults are good, to complete installation
 
-      #. For OS X 10.8 users, install XQuartz using the "Quick
-         Download" of the DMG file located at http://www.xquartz.org
+      #. Install XQuartz using the "Quick Download" of the DMG file
+         located at http://www.xquartz.org
 
    |
 
