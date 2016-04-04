@@ -269,12 +269,15 @@ void TCAT_read_opts( int argc , char *argv[] )
           }
 
           dset = THD_open_one_dataset( dname ) ;
+          /* rather than failing, try new-fangled open   4 Apr 2016 [rickr] */
+          if( dset == NULL ) dset = THD_open_dataset( dname ) ;
           if( dset == NULL ) ERROR_exit("Can't open dataset %s",dname) ;
           THD_force_malloc_type( dset->dblk , DATABLOCK_MEM_MALLOC ) ;
 
           if( TCAT_type < 0 ) TCAT_type = dset->type ;
 
-          TCAT_ccode = COMPRESS_filecode(dset->dblk->diskptr->brick_name) ; /* 16 Mar 2010 */
+          /* 16 Mar 2010 */
+          TCAT_ccode = COMPRESS_filecode(dset->dblk->diskptr->brick_name) ;
 
           /* check if voxel counts match */
 
