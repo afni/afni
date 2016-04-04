@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  4,  Apr, 2016, RCR, "THD_load_tcat", MINOR, TYPE_BUG_FIX,
+   "set factors and labels at open time, not at load time",
+   "This fixes use with 3dcalc and 3dinfo, though stats are not yet loaded."
+ } ,
+
  { 31,  Mar, 2016, RCR, "3dMVM.R", MICRO, TYPE_MODIFY,
    "do not create .dbg.AFNI.args files on -help usage",
    "Modified 1dRplot.R, 3dLME.R, 3dMEMA.R, 3dMVM.R, 3dPFM.R, 3dRprogDemo.R,\n"
