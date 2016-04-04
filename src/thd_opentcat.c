@@ -7,7 +7,7 @@
 THD_3dim_dataset * THD_open_tcat( char *dlist )
 {
    THD_3dim_dataset *dset_out , **dset_in ;
-   int ndset_in , dd , nerr , new_nvals, sb=0 ;
+   int ndset_in , dd , nerr , new_nvals, sb=0 , ivout;
    NI_str_array *sar ;
    double angle=0.0;
    char *dp, *dlocal = dlist;   /* local dlist, in case it is altered */
@@ -144,6 +144,16 @@ ENTRY("THD_open_tcat") ;
                     ADN_none ) ;
    DSET_mallocize( dset_out ) ;
 
+   /* get factors and labels here, not at load time   4 Apr 2016 [rickr] */
+   ivout = 0;
+   for( dd=0 ; dd < ndset_in ; dd++ ) {
+      for (sb=0; sb < DSET_NVALS(dset_in[dd]); ++sb) {
+         EDIT_BRICK_FACTOR(dset_out, ivout, DSET_BRICK_FACTOR(dset_in[dd],sb));
+         EDIT_BRICK_LABEL (dset_out, ivout, DSET_BRICK_LABEL (dset_in[dd],sb));
+         ivout++;
+      }
+   }
+
    /* check if we have a valid time axis; if not, make one up */
 
    if( DSET_TIMESTEP(dset_out) <= 0.0f ){
@@ -212,9 +222,6 @@ ENTRY("THD_load_tcat") ;
        EDIT_substitute_brick( dset_out , ivout ,
                               DSET_BRICK_TYPE(dset_in,iv), DSET_ARRAY(dset_in,iv) );
        mri_fix_data_pointer( NULL , DSET_BRICK(dset_in,iv) ) ;
-       EDIT_BRICK_FACTOR( dset_out , ivout , DSET_BRICK_FACTOR(dset_in,iv) ) ;
-       EDIT_BRICK_LABEL(dset_out, ivout, 
-                        DSET_BRICK_LABEL(dset_in, iv)); /* ZSS Aug. 27 2012 */
        ivout++ ;
      }
      DSET_delete(dset_in) ;
