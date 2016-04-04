@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  4,  Apr, 2016, RCR, "3dTcat", MICRO, TYPE_ENHANCE,
+   "if THD_open_one_dataset fails, fall back to THD_open_dataset",
+   "Fall back rather than failing outright."
+ } ,
+
  {  4,  Apr, 2016, RCR, "THD_load_tcat", MINOR, TYPE_BUG_FIX,
    "set factors and labels at open time, not at load time",
    "This fixes use with 3dcalc and 3dinfo, though stats are not yet loaded."
