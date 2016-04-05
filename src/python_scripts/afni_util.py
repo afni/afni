@@ -3658,6 +3658,8 @@ afni_util.py: not really intended as a main program
             afni_util.py -listfunc -join shuffle `count -digits 4 1 124`
             count -digits 4 1 124 | afni_util.py -listfunc -join shuffle -
 
+            afni_util.py -listfunc -join list_minus_glob_form *HEAD
+
             afni_util.py -listfunc -join -float linear_fit 2 3 5 4 8 5 8 9
 
 
