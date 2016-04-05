@@ -251,6 +251,10 @@ void TCAT_read_opts( int argc , char *argv[] )
         if( nexp == 0 ){ ebad = nexp = 1 ; fexp = argv+nopt ; }
         nopt++ ;
 
+        if( TCAT_verb )
+           INFO_message("3dTcat, file_expand nexp = %d, fexp[0] = %s\n", 
+                        nexp, *fexp);
+
         for( ee=0 ; ee < nexp ; ee++ ){ 
 
           /**** read dataset ****/
@@ -268,9 +272,19 @@ void TCAT_read_opts( int argc , char *argv[] )
             subv = cpt;   /* no length limit    17 Jun 2010 [rickr] */
           }
 
+          if( TCAT_verb > 1 )
+             INFO_message("opening one tcat dset #%d, %s", ee, dname);
+
           dset = THD_open_one_dataset( dname ) ;
           /* rather than failing, try new-fangled open   4 Apr 2016 [rickr] */
-          if( dset == NULL ) dset = THD_open_dataset( dname ) ;
+          /* NOTE: let THD_open_dataset parse sub-brick selectors */
+          if( dset == NULL ) {
+             if( TCAT_verb > 1 )
+                INFO_message("opening tcat dset #%d, %s", ee, fexp[ee]);
+
+             dset = THD_open_dataset( fexp[ee] ) ;
+             subv = NULL;
+          }
           if( dset == NULL ) ERROR_exit("Can't open dataset %s",dname) ;
           THD_force_malloc_type( dset->dblk , DATABLOCK_MEM_MALLOC ) ;
 
