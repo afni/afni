@@ -43,6 +43,23 @@ ENTRY("THD_open_tcat") ;
    if( ! AFNI_noenv("AFNI_TCAT_SELECTORS") ) {
       for( dd=0; dd < strlen(dlocal); dd++ ) {
          if( dlocal[dd] == '[' || dlocal[dd] == '<' || dlocal[dd] == '{' ) {
+            char * cp = strchr(dlocal+dd, ' ');
+            int    dcp;
+            if( cp ) {
+               /* if something besides white space follows, then this is
+                  not considered to be a general selector */
+               for( dcp=1; cp[dcp] && isspace(cp[dcp]); dcp++ )
+                  ;
+
+               /* if we are not at the end of the string, skip selectors */
+               if( cp[dcp] ) {
+                 if( tcat_open_verb )
+                   INFO_message("THD_open_tcat: skip general tcat selector\n");
+                 break;
+               }
+            }
+
+            /* we have selectors! */
             sel = strdup(dlocal+dd);
             nsel = strlen(sel);
 
