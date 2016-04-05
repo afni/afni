@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  5,  Apr, 2016, RCR, "afni-general", MINOR, TYPE_ENHANCE,
+   "THD_open_tcat works as wildcard - can apply sub-brick selectors",
+   NULL
+ } ,
+
  {  4,  Apr, 2016, RCR, "3dTcat", MICRO, TYPE_ENHANCE,
    "if THD_open_one_dataset fails, fall back to THD_open_dataset",
    "Fall back rather than failing outright."
