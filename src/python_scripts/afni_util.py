@@ -3658,7 +3658,7 @@ afni_util.py: not really intended as a main program
             afni_util.py -listfunc -join shuffle `count -digits 4 1 124`
             count -digits 4 1 124 | afni_util.py -listfunc -join shuffle -
 
-            afni_util.py -listfunc -join list_minus_glob_form *HEAD
+            afni_util.py -listfunc -joinc list_minus_glob_form *HEAD
 
             afni_util.py -listfunc -join -float linear_fit 2 3 5 4 8 5 8 9
 
@@ -3690,13 +3690,17 @@ def process_listfunc(argv):
       return 1
 
    do_join = 0
+   do_joinc = 0 # join with commas
    do_float = 0
    do_print = 0
    argbase = 2
 
-   while argv[argbase] in ['-join', '-print', '-float']:
+   while argv[argbase] in ['-join', '-joinc', '-print', '-float']:
       if argv[argbase] == '-join':
          do_join = 1
+         argbase += 1
+      elif argv[argbase] == '-joinc':
+         do_joinc = 1
          argbase += 1
       elif argv[argbase] == '-print':
          do_print = 1
@@ -3740,7 +3744,8 @@ def process_listfunc(argv):
    if len(vals2) > 0: ret = func(vals1, vals2)
    else:              ret = func(vals1)
    
-   if do_join: print ' '.join(str(v) for v in ret)
+   if   do_join:  print ' '.join(str(v) for v in ret)
+   elif do_joinc: print ','.join(str(v) for v in ret)
    elif do_print: print  ret
    # else do nothing special
    return 0
