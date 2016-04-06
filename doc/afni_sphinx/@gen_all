@@ -1,9 +1,17 @@
 #!/bin/tcsh -f
 
+#  HEY!  There need to be a lot of special subdirectories in the
+#  ~/.afni/data directory of whomever is building this stuff!!!:
+#  ptaylor@Eomer:~/.afni/data $ ls
+#  samples  suma_demo  suma_MNI_N27  suma_TT_N27  
+#  ptaylor@Eomer:~/.afni/data $ ls samples/
+#  o.NETS_OR_000.niml.dset  o.NETS_OR_000.niml.tract
+#
+
 @global_parse `basename $0` "$*" ; if ($status) exit 0
 
 set afscp = afni.nimh.nih.gov:/var/www/html/pub/dist/doc/htmldoc
-set afwpg = http://afni.nimh.nih.gov/pub/dist/doc/htmldoc
+set afwpg = https://afni.nimh.nih.gov/pub/dist/doc/htmldoc
 set SUMA_DEMO = ~/.afni/data/suma_demo
 
 goto PARSE

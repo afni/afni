@@ -2,7 +2,7 @@
 .. _DealingWithGrads:
 
 **********************************************
-Dealing with DW gradients: **1dDW_Grad_o_Mat**
+**Dealing with DW gradients: 1dDW_Grad_o_Mat**
 **********************************************
 
 .. contents::

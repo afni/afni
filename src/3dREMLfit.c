@@ -1326,7 +1326,7 @@ int main( int argc , char *argv[] )
       "\n"
       "----------------------------------------------------------\n"
       "* For more information, see the contents of\n"
-      "    http://afni.nimh.nih.gov/pub/dist/doc/misc/3dREMLfit/\n"
+      "    https://afni.nimh.nih.gov/pub/dist/doc/misc/3dREMLfit/\n"
       "  which includes comparisons of 3dDeconvolve and 3dREMLfit\n"
       "  activations (individual subject and group maps), and an\n"
       "  outline of the mathematics implemented in this program.\n"
@@ -1360,6 +1360,7 @@ int main( int argc , char *argv[] )
 
    PRINT_VERSION("3dREMLfit"); mainENTRY("3dREMLfit main"); machdep();
    AFNI_logger("3dREMLfit",argc,argv); AUTHOR("RWCox");
+   SET_message_file("3dREMLfit.err") ;
    (void)COX_clock_time() ;
    THD_check_AFNI_version("3dREMLfit");
 
@@ -1471,7 +1472,7 @@ int main( int argc , char *argv[] )
              ERROR_exit("Label ordering of -slibase dataset is slice-major,\n"
                  "   for which -slibase_sm is more appropriate.  If this is\n"
                  "   not clear, search for it on the AFNI Message Board:\n"
-                 "        http://afni.nimh.nih.gov/afni/community/board");
+                 "        https://afni.nimh.nih.gov/afni/community/board");
            } else { /* order is unknown */
              WARNING_message("Unknown regressor ordering.  If the regressors\n"
                  "   were made via 'RetroTS', perhaps -slibase_sm is more\n"
@@ -1507,7 +1508,7 @@ int main( int argc , char *argv[] )
              ERROR_exit("Label order of -slibase_sm dataset is slice-minor,\n"
                  "   for which -slibase is more appropriate.  If this is\n"
                  "   not clear, search for it on the AFNI Message Board:\n"
-                 "        http://afni.nimh.nih.gov/afni/community/board");
+                 "        https://afni.nimh.nih.gov/afni/community/board");
            } else { /* order is unknown */
              WARNING_message("Unknown regressor ordering.  If the regressors\n"
                  "   were made via 'RetroTS' you are probably okay.");

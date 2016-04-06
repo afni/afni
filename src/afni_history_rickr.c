@@ -49,6 +49,137 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  5,  Apr, 2016, RCR, "afni-general", MINOR, TYPE_ENHANCE,
+   "THD_open_tcat works as wildcard - can apply sub-brick selectors",
+   NULL
+ } ,
+
+ {  4,  Apr, 2016, RCR, "3dTcat", MICRO, TYPE_ENHANCE,
+   "if THD_open_one_dataset fails, fall back to THD_open_dataset",
+   "Fall back rather than failing outright."
+ } ,
+
+ {  4,  Apr, 2016, RCR, "THD_load_tcat", MINOR, TYPE_BUG_FIX,
+   "set factors and labels at open time, not at load time",
+   "This fixes use with 3dcalc and 3dinfo, though stats are not yet loaded."
+ } ,
+
+ { 31,  Mar, 2016, RCR, "3dMVM.R", MICRO, TYPE_MODIFY,
+   "do not create .dbg.AFNI.args files on -help usage",
+   "Modified 1dRplot.R, 3dLME.R, 3dMEMA.R, 3dMVM.R, 3dPFM.R, 3dRprogDemo.R,\n"
+   "         3dSignatures.R, ExamineXmat.R and rPkgsInstall.R."
+ } ,
+
+ { 30,  Mar, 2016, RCR, "@update.afni.binaries", MICRO, TYPE_ENHANCE,
+   "possibly update .bashrc if .cshrc is updated",
+   NULL
+ } ,
+
+ { 29,  Mar, 2016, RCR, "@update.afni.binaries", MICRO, TYPE_NEW_OPT,
+   "add option -no_cert_verify, to skip server certificate verification",
+   NULL
+ } ,
+
+ { 29,  Mar, 2016, RCR, "gen_group_command.py", MICRO, TYPE_MODIFY,
+   "3dMEMA no longer allows for a paied test",
+   "One must now input contrast/stat from original regression."
+ } ,
+
+ { 29,  Mar, 2016, RCR, "afni_restproc.py", MICRO, TYPE_MODIFY,
+   "suggest that users consider afni_proc.py",
+   "This was requested by Rayus."
+ } ,
+
+ { 26,  Mar, 2016, RCR, "to3d", MICRO, TYPE_BUG_FIX,
+   "another allowance for datasets exceeding 2 GB",
+   "Thanks to SS Kim for noting the problem."
+ } ,
+
+ { 24,  Mar, 2016, RCR, "Dimon", MICRO, TYPE_NEW_OPT,
+   "add option -use_obl_origin, to apply -oblique_origin to to3d command",
+   "Also, run any to3d script via 'tcsh -x' so the users get to see."
+ } ,
+
+ { 22,  Mar, 2016, RCR, "afni-general", MINOR, TYPE_ENHANCE,
+   "modularize version checking",
+   "Update .afni.vctime even if URL read fails, to not flood server."
+ } ,
+
+ { 21,  Mar, 2016, RCR, "gen_ss_review_scripts.py", MICRO, TYPE_BUG_FIX,
+   "get slightly more accurate motion ave via 3dTstat -nzmean",
+   NULL
+ } ,
+
+ { 21,  Mar, 2016, RCR, "3dANOVA", MICRO, TYPE_ENHANCE,
+   "allow for up to 666 observations",
+   "Consider changing this to use a string_list or something similar."
+ } ,
+
+ { 21,  Mar, 2016, RCR, "GLTsymtest", MICRO, TYPE_NEW_OPT,
+   "added -badonly, to avoid screen clutter from many good GLTs",
+   NULL
+ } ,
+
+ { 21,  Mar, 2016, RCR, "uber_subject.py", MICRO, TYPE_ENHANCE,
+   "run GLTsymtest on specified GLTs",
+   NULL
+ } ,
+
+ { 15,  Mar, 2016, RCR, "timing_tool.py", MICRO, TYPE_BUG_FIX,
+   "-help_basis update: max convolved BLOCK() is ~5.1, not ~5.4",
+   NULL
+ } ,
+
+ {  1,  Mar, 2016, RCR, "GIFTI", MICRO, TYPE_BUG_FIX,
+   "applied R Vincent fix for GIFTI datasets with Windows-style newlines",
+   NULL
+ } ,
+
+ {  1,  Mar, 2016, RCR, "tokens", MINOR, TYPE_NEW_PROG,
+   "program to extract valid text entries from a file",
+   NULL
+ } ,
+
+ { 29,  Feb, 2016, RCR, "3dANOVA3", MICRO, TYPE_ENHANCE,
+   "show prior options to any 'Unrecognized command line option'",
+   "Added disp_strings() to libmri.a."
+ } ,
+
+ { 24,  Feb, 2016, RCR, "uber_subject.py", MINOR, TYPE_ENHANCE,
+   "replace tlrc_no_ss with anat_has_skull toggle and move to anat block",
+   NULL
+ } ,
+
+ { 24,  Feb, 2016, RCR, "timing_tool.py", MINOR, TYPE_BUG_FIX,
+   "fix -warn_tr_stats crash on empty timing file",
+   "Thanks to Z Reagh for noting the problem."
+ } ,
+
+ { 19,  Feb, 2016, RCR, "afni_system_check.py", MINOR, TYPE_ENHANCE,
+   "add many tests and summarize potential issues",
+   NULL
+ } ,
+
+ { 17,  Feb, 2016, RCR, "afni_util.py", MICRO, TYPE_ENHANCE,
+   "add function affine_to_params_6: where input is 12 element sub-matrix",
+   NULL
+ } ,
+
+ { 16,  Feb, 2016, RCR, "@update.afni.binaries", MICRO, TYPE_ENHANCE,
+   "add -ver and initial version reporting",
+   NULL
+ } ,
+
+ { 10,  Feb, 2016, RCR, "@ANATICOR", MICRO, TYPE_BUG_FIX,
+   "fixed -radius option parsing",
+   "Thanks to A Frithsen for noting the problem."
+ } ,
+
+ { 10,  Feb, 2016, RCR, "afni-general", MICRO, TYPE_MODIFY,
+   "full update to use https://afni.nimh.nih.gov (no longer http)",
+   NULL
+ } ,
+
  {  9,  Feb, 2016, RCR, "@GradFlipTest", MICRO, TYPE_MODIFY,
    "trap for missing inputs (e.g. used with just -help)",
    NULL
@@ -98,7 +229,7 @@ afni_history_struct rickr_history[] = {
 
  { 30,  Dec, 2015, RCR, "afni-general", MAJOR, TYPE_ENHANCE,
    "w/DRG implement new version system",
-   "See http://afni.nimh.nih.gov/pub/dist/MOTD/MOTD_2015_12_30.txt ."
+   "See https://afni.nimh.nih.gov/pub/dist/MOTD/MOTD_2015_12_30.txt ."
  } ,
 
  { 29,  Dec, 2015, RCR, "afni_system_check.py", MICRO, TYPE_BUG_FIX,
@@ -6513,7 +6644,7 @@ afni_history_struct rickr_history[] = {
 
  {   2, DEC, 2005, RCR, "ANOVA", SUPERDUPER, TYPE_MODIFY,
    "changed variance computations in 3dANOVA programs to not assume sphericity",
-   "For details, see http://afni.nimh.nih.gov/sscc/gangc/ANOVA_Mod.html ."
+   "For details, see https://afni.nimh.nih.gov/sscc/gangc/ANOVA_Mod.html ."
  } ,
 
  {  11, OCT, 2005, RCR, "3dmaxima", MAJOR, TYPE_NEW_PROG,

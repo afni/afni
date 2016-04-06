@@ -1,8 +1,8 @@
 .. _self_guided_scripts:
 
-************************
-Self Guided Demo Scripts
-************************
+****************************
+**Self Guided Demo Scripts**
+****************************
 
 @DriveSuma
 ==========

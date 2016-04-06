@@ -2,7 +2,7 @@
 .. _Making_ROIs:
 
 *****************************************
-Making (networks of) ROIs: **3dROIMaker**
+**Making (networks of) ROIs: 3dROIMaker**
 *****************************************
 
 .. contents::
@@ -106,7 +106,7 @@ further analysis programs, such as ``3dNetCorr`` and ``3dTrackID``.
     brick, rather than individually.  This should hopefully lead to
     both greater time-saving, as well as consistency within the
     output. If the below notes, examples or existing `Message Board
-    <http://afni.nimh.nih.gov/afni/community/board/>`_ posts don't
+    <https://afni.nimh.nih.gov/afni/community/board/>`_ posts don't
     help to keep analysis scripts short, then please enquire before
     spending ages on complicated pipelines.
 

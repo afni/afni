@@ -6,7 +6,7 @@ Intro
 
 .. _voxel-based:
 
-AFNI (Analysis of Functional NeuroImages) is a suite of programs that will bring joy to your data http://afni.nimh.nih.gov whether at the single level or group level. 
+AFNI (Analysis of Functional NeuroImages) is a suite of programs that will bring joy to your data https://afni.nimh.nih.gov whether at the single level or group level. 
 
 .. _cover-figure:
 
@@ -83,6 +83,6 @@ etc.
 Automation of GUI behavior
 --------------------------
 
-You can automate the majority of tasks normally performed interactively... See demo scripts **@DriveSuma**, **@DriveAfni**, and **@DO.examples** available in the AFNI `distribution <http://afni.nimh.nih.gov/afni/download/afni/releases/latest>`_.
+You can automate the majority of tasks normally performed interactively... See demo scripts **@DriveSuma**, **@DriveAfni**, and **@DO.examples** available in the AFNI `distribution <https://afni.nimh.nih.gov/afni/download/afni/releases/latest>`_.
    
     

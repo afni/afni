@@ -26,7 +26,7 @@ greeting.RprogDemo <- function ()
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 Version 0.0.0, Apr. 15th 2014
 Author: Ziad S. Saad (saadz@mail.nih.gov)
-Website - http://afni.nimh.nih.gov
+Website - https://afni.nimh.nih.gov
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
       )
@@ -261,7 +261,10 @@ RprogDemo.Scale <- function( idset=NULL, mdset = NULL, scale = 2) {
 if (!exists('.DBG_args')) { 
    args = (commandArgs(TRUE))  
    rfile <- first.in.path(sprintf('%s.R',ExecName))  
-   save(args, rfile, file=sprintf(".%s.dbg.AFNI.args", ExecName), ascii = TRUE) 
+   # do not save these log files on -help    31 Mar 2016 [rickr]
+   if ( ! '-help' %in% args ) {
+      save(args, rfile, file=sprintf(".%s.dbg.AFNI.args", ExecName), ascii = TRUE) 
+   }
 } else {
    note.AFNI("Using .DBG_args resident in workspace");
    args <- .DBG_args

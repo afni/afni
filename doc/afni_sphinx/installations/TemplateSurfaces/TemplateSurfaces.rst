@@ -1,8 +1,8 @@
 .. _TemplateSurfaces:
 
-==================
-Template Surfaces:
-==================
+======================
+**Template Surfaces:**
+======================
 
 .. _MNI_N27:
 

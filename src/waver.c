@@ -439,7 +439,7 @@ void Syntax(int detail)
     "--------\n"
     "  -WAV = Sets waveform to Cox special                    [default]\n"
     "           cf. AFNI FAQ list for formulas:\n"
-    "           http://afni.nimh.nih.gov/afni/doc/faq/17\n"
+    "           https://afni.nimh.nih.gov/afni/doc/faq/17\n"
     "  -GAM = Sets waveform to form t^b * exp(-t/c)\n"
     "           (cf. Mark Cohen)\n"
     "\n"

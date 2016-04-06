@@ -186,36 +186,9 @@ examples (by program)
                                  -dsets groupA/REML*.HEAD  \\
                                  -dsets groupB/REML*.HEAD
 
-      3. Specify the sub-bricks, to compare Vrel vs. Arel.
-
-            gen_group_command.py -command 3dMEMA           \\
-                                 -write_script cmd.mema.3  \\
-                                 -dsets REML*.HEAD         \\
-                                 -set_labels Arel Vrel     \\
-                                 -subs_betas 2 0           \\
-                                 -subs_tstats 3 1
-
-      4. Similar to 3, but complete.  This basically generates the sample
-         command AFNI_data6/group_results/s4.3dMEMA.V-A.
-
-         Specify sub-bricks using the labels, request a paired test, and add
-         some extra 3dMEMA options.
-
-            gen_group_command.py -command 3dMEMA                            \\
-                                 -write_script cmd.mema.4                   \\
-                                 -prefix mema_V-A_paired                    \\
-                                 -type paired                               \\
-                                 -dsets REML*.HEAD                          \\
-                                 -set_labels Arel Vrel                      \\
-                                 -subs_betas  'Arel#0_Coef'  'Vrel#0_Coef'  \\
-                                 -subs_tstats 'Arel#0_Tstat' 'Vrel#0_Tstat' \\
-                                 -options                                   \\
-                                    -mask mask+tlrc -max_zeros 0.25         \\
-                                    -model_outliers -HKtest -jobs 2
-
-      5. Make a paired test across 2 groups, but restrict the subjects to
-         partial lists of all within a group.  This applies -dset_index0_list
-         (or the sister -dset_index1_list).
+      3. Run 3dMEMA, but restrict the subjects to partial lists from within
+         an entire list.  This applies -dset_index0_list (or the sister
+         -dset_index1_list).
 
             # assume these 9 subjects represent all under the 'data' dir
             set subjects = ( AA BB CC DD EE FF GG HH II )
@@ -225,22 +198,20 @@ examples (by program)
                1-based: 1, 8, 9, 6 (AA=1, ..., II=9)
 
             gen_group_command.py -command 3dMEMA              \\
-                                 -write_script cmd.mema.5a    \\
+                                 -write_script cmd.mema.3a    \\
                                  -dsets data/REML*.HEAD       \\
                                  -dset_index0_list '0,7,8,5'
 
-         b. Do a paired test on those same subjects between betas with labels
-            Arel and Vrel (and corresponding t-stats).
+         b. Do a test on sub-lists of subjects.
 
             gen_group_command.py -command 3dMEMA                            \\
-                                 -write_script cmd.mema.5b                  \\
+                                 -write_script cmd.mema.3b                  \\
                                  -dsets data/REML*.HEAD                     \\
                                  -dset_index0_list '0,7,8,5'                \\
                                  -dsets data/REML*.HEAD                     \\
-                                 -dset_index0_list '0,7,8,5'                \\
-                                 -subs_betas  'Arel#0_Coef'  'Vrel#0_Coef'  \\
-                                 -subs_tstats 'Arel#0_Tstat' 'Vrel#0_Tstat' \\
-                                 -type paired
+                                 -dset_index0_list '3,4,6,9'                \\
+                                 -subs_betas  'Arel#0_Coef'                 \\
+                                 -subs_tstats 'Arel#0_Tstat'
 
          See "3dMEMA -help" for details on the extra options.
 
@@ -625,9 +596,10 @@ g_history = """
    0.10 Oct 30, 2013 - added -keep_dirent_pre
    0.11 Apr 24, 2015 - tiny help update (example)
    0.12 Aug 12, 2015 - allow generic (unknown) commands (via -command)
+   0.13 Mar 29, 2016 - 3dMEMA now requires paired test to be via input contrast
 """
 
-g_version = "gen_group_command.py version 0.12, August 12, 2015"
+g_version = "gen_group_command.py version 0.13, March 29, 2016"
 
 
 class CmdInterface:

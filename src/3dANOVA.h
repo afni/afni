@@ -72,7 +72,7 @@
 static char * commandline = NULL ;         /* command line for history notes */
 
 /* documentation about modifications to ANOVA computations */
-#define ANOVA_MODS_LINK "http://afni.nimh.nih.gov/sscc/gangc/ANOVA_Mod.html"
+#define ANOVA_MODS_LINK "https://afni.nimh.nih.gov/sscc/gangc/ANOVA_Mod.html"
 
 /*** HP-UX ***/
 #ifdef HP
@@ -110,7 +110,7 @@ static char * commandline = NULL ;         /* command line for history notes */
 
 
 #define MAX_LEVELS 300           /* max. number of factor levels */
-#define MAX_OBSERVATIONS 300     /* max. number of observations per cell */
+#define MAX_OBSERVATIONS 666     /* max. number of observations per cell */
 #define MAX_MEANS 50             /* max. number of user requested means */
 #define MAX_DIFFS 50             /* max. number of user requested diffs. */
 #define MAX_CONTR 75             /* max. number of user requested contrasts */
@@ -492,7 +492,7 @@ int contrasts_are_valid (anova_options * option_data, int show_errs, int level);
    "on the command line, as in\n"                                                   \
    "  3dANOVA -DAFNI_FLOATIZE=YES ... other options ... \n"                         \
    "Also see the following links:\n"                                                \
-   " http://afni.nimh.nih.gov/pub/dist/doc/program_help/common_options.html\n"      \
-   " http://afni.nimh.nih.gov/pub/dist/doc/program_help/README.environment.html\n"
+   " https://afni.nimh.nih.gov/pub/dist/doc/program_help/common_options.html\n"      \
+   " https://afni.nimh.nih.gov/pub/dist/doc/program_help/README.environment.html\n"
 
 /*---------------------------------------------------------------------------*/

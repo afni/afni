@@ -8,7 +8,7 @@ Welcome to AFNI's documentation!
 ================================
 
 .. toctree::
-   :maxdepth: 3
+   :maxdepth: 2
    :numbered: 3
    :includehidden:
 
@@ -30,4 +30,3 @@ Indices and tables
 * :ref:`genindex`
 * :ref:`modindex`
 * :ref:`search`
-

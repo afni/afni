@@ -1,8 +1,8 @@
 :tocdepth: 2
 
-########
-Programs
-########
+#########################
+Each program's "Help"
+#########################
 
 .. toctree::
    :maxdepth: 2

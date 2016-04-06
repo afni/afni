@@ -1,12 +1,12 @@
 .. _cover:
 
-*****
-Intro
-*****
+*********
+**Intro**
+*********
 
 .. _surface-based:
 
-SUMA is a program that adds cortical surface based functional imaging analysis to the AFNI suite of programs http://afni.nimh.nih.gov . SUMA allows 3D cortical surface renderings, the mapping of volumetric data onto them and, surface based computations and statistical inferences. In addition allows rendering and manipulation of tractography results, connectivity graphs/matrices, and volumes. 
+SUMA is a program that adds cortical surface based functional imaging analysis to the AFNI suite of programs https://afni.nimh.nih.gov . SUMA allows 3D cortical surface renderings, the mapping of volumetric data onto them and, surface based computations and statistical inferences. In addition allows rendering and manipulation of tractography results, connectivity graphs/matrices, and volumes. 
 
 .. _cover-figure:
 
@@ -202,7 +202,7 @@ Rendered images can be :ref:`captured <LC_r>` by an AFNI-esque image viewers and
 Automation of GUI behavior
 --------------------------
 
-You can automate the majority of tasks normally performed interactively. See demo scripts **@DriveSuma**, **@DriveAfni**, and **@DO.examples** available in the AFNI `distribution <http://afni.nimh.nih.gov/afni/download/afni/releases/latest>`_.
+You can automate the majority of tasks normally performed interactively. See demo scripts **@DriveSuma**, **@DriveAfni**, and **@DO.examples** available in the AFNI `distribution <https://afni.nimh.nih.gov/afni/download/afni/releases/latest>`_.
 
 .. figure:: media/Drive_S+R_F3.jpg
    :figwidth: 90%
@@ -212,7 +212,7 @@ You can automate the majority of tasks normally performed interactively. See dem
    
    :ref:`(link)<media/Drive_S+R_F3.jpg>`
 
-   Illustration for driving SUMA's GUI from the command line with DriveSuma. The example here illustrates the functioning of a script that automatically generates a movie of MEG SAM data from 0 to 600 ms after stimulus delivery. (Data and script to generate this movie are courtesy of Chunmao Wang, and available `here <http://afni.nimh.nih.gov/pub/dist/tgz/SumaMovieDemo.tgz>`_.
+   Illustration for driving SUMA's GUI from the command line with DriveSuma. The example here illustrates the functioning of a script that automatically generates a movie of MEG SAM data from 0 to 600 ms after stimulus delivery. (Data and script to generate this movie are courtesy of Chunmao Wang, and available `here <https://afni.nimh.nih.gov/pub/dist/tgz/SumaMovieDemo.tgz>`_.
 
 .. container:: clearer
    

@@ -81,6 +81,14 @@ int main( int argc , char * argv[] )
         }
       }
       exit(0) ;
+   } else if ( strcmp(argv[1],"-fun11") == 0 ){ /* 10 Feb 2016 */
+     int nid=0 , ii ; char *eee ;
+     if( argc > 2 ) nid = strtol(argv[2],NULL,10) ;
+     if( nid <= 0 ) nid = 1 ;
+     for( ii=0 ; ii < nid ; ii++ ){
+       eee = UNIQ_idcode_11(); printf("%s\n",eee); free(eee);
+     }
+     exit(0) ;
    } else if ( strcmp(argv[1],"-hash") == 0 ){ /* Oct. 2011:for repeatable fun */
       if( argc != 3 ) {
          ERROR_message("You need a string following -hash");

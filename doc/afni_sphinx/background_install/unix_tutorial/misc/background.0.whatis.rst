@@ -157,6 +157,6 @@ Getting help
       afni_proc.py -h_view
 
 
-   - this output is also available at: `help: all AFNI programs <http://afni.nimh.nih.gov/pub/dist/doc/program_help>`_
-   - course material is available at: `help: course handouts <http://afni.nimh.nih.gov/pub/dist/edu/latest/afni_handouts>`_
-   - class data is available at: `AFNI data packages <http://afni.nimh.nih.gov/pub/dist/edu/data>`_
+   - this output is also available at: `help: all AFNI programs <https://afni.nimh.nih.gov/pub/dist/doc/program_help>`_
+   - course material is available at: `help: course handouts <https://afni.nimh.nih.gov/pub/dist/edu/latest/afni_handouts>`_
+   - class data is available at: `AFNI data packages <https://afni.nimh.nih.gov/pub/dist/edu/data>`_

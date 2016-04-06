@@ -42,7 +42,7 @@ help.rPkgsInstall.opts <- function (params, alpha = TRUE, itspace='   ', adieu=F
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 Version 0.0.1, Nov 3, 2014
 Author: Gang Chen (gangchen@mail.nih.gov)
-Website - http://afni.nimh.nih.gov/sscc/gangc
+Website - https://afni.nimh.nih.gov/sscc/gangc
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
@@ -227,7 +227,10 @@ getPkgs <- function(PKGS, check=0, update=0, remove=0, site='http://cran.mtu.edu
    if (!exists('.DBG_args')) { 
       args = (commandArgs(TRUE))  
       rfile <- first.in.path(sprintf('%s.R',ExecName))  
-      save(args, rfile, file=".rPkgsInstall.dbg.AFNI.args", ascii = TRUE) 
+      # do not save these log files on -help    31 Mar 2016 [rickr]
+      if ( ! '-help' %in% args ) {
+         save(args, rfile, file=".rPkgsInstall.dbg.AFNI.args", ascii = TRUE) 
+      }
    } else {
       note.AFNI("Using .DBG_args resident in workspace");
       args <- .DBG_args

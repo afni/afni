@@ -1,8 +1,8 @@
 .. _standard_meshes:
 
-========================================
-Standard Meshes For Group-Level Analysis
-========================================
+============================================
+**Standard Meshes For Group-Level Analysis**
+============================================
 
 In volume-based as well as surface-based cross-subject analysis typically requires two processing steps prior to performing group statistics:
    #. Reduce anatomical variability with smoothing and volume-based alignment to standard (MNI or Talairach) space.

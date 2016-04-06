@@ -44,7 +44,7 @@ Step-by-step instructions for setting up AFNI on a system are provided:
 
 - for :ref:`Linux <install_steps_linux>`
 
-- for :ref:`Mac OS <install_steps_mac>`
+- for :ref:`Mac OS X <install_steps_mac>`
 
 Methods for checking/evaluating each setup are also described on those
 pages.
@@ -133,7 +133,7 @@ independently.
   and SUMA run, called ``~/.afnirc`` and ``~/.sumarc``, respectively.
   A large list of malleable environment variables (and their default
   values) are `here for AFNI
-  <http://afni.nimh.nih.gov/pub/dist/doc/program_help/README.environment.html>`_.
+  <https://afni.nimh.nih.gov/pub/dist/doc/program_help/README.environment.html>`_.
 
 - Many profile and system variables are referenced with a dollar sign
   ``$`` preceding their name, e.g., ``$SHELL``, ``$path``, ``$HOME``

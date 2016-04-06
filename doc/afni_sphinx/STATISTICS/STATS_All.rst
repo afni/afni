@@ -1,9 +1,9 @@
 .. _STATS_All:
 
 
-******************
-Statistics in AFNI
-******************
+**********************
+**Statistics in AFNI**
+**********************
 
 .. contents::
    :depth: 3

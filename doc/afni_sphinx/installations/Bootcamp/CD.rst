@@ -1,8 +1,8 @@
 .. _CD:
 
-=================
-Bootcamp Material
-=================
+=====================
+**Bootcamp Material**
+=====================
 
    Much of the demo material is part of the bootcamp installation. You could go about installing the whole package as follows::
    

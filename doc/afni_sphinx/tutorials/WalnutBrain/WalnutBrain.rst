@@ -1,8 +1,8 @@
 .. _WalnutBrain:
 
-============
-Walnut Brain
-============
+================
+**Walnut Brain**
+================
 
 .. _Prying_Brains_Apart:
 

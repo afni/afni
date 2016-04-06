@@ -13,7 +13,7 @@
 %Input:
 %
 %   Needs the datasets distributed with AFNI's matlab library
-%   http://afni.nimh.nih.gov/pub/dist/data/afni_matlab_data.tgz
+%   https://afni.nimh.nih.gov/pub/dist/data/afni_matlab_data.tgz
 %
 %Output:
 %

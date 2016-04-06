@@ -13,19 +13,23 @@ static int debug = 0 ;
 #define DMESS(s,t) if(debug)fprintf(stderr,s,t)
 
 extern long long THD_filesize( char * pathname ) ;
+extern char * THD_find_executable( char * ) ;
 
 /*---------------------------------------------------------------------*/
 static int   use_http_ver     = 0          ; /* defaults to HTTP 0.9 */
 static char *http_user_agent = "read_URL" ;
 
 void set_HTTP_10( int n ){          /* 24 Mar 2005; ZSS Apr. 2011*/
-   if (n) use_http_ver = 10; 
+   if (n) use_http_ver = 10;
    else use_http_ver = 0;
-}  
+}
+
 void set_HTTP_11( int n ){          /* 24 Mar 2005; ZSS Apr. 2011*/
-   if (n) use_http_ver = 11; 
+   if (n) use_http_ver = 11;
    else use_http_ver = 0;
-}  
+}
+
+/*---------------------------------------------------------------------*/
 
 extern void set_HTTP_user_agent( char *ua )
 {
@@ -110,6 +114,9 @@ IOCHAN * open_URL_hpf( char * host , int port , char * file , int msec )
 #define HTTP     "http://"
 #define HTTPLEN  7
 
+#define HTTPS    "https://"
+#define HTTPSLEN 8
+
 #define FTP      "ftp://"
 #define FTPLEN   6
 
@@ -152,56 +159,61 @@ IOCHAN * open_URL_http( char * url , int msec )
 static int prog=0 ;
 void set_URL_progress( int p ){ prog=p; }  /* 20 Mar 2003 */
 
+/*---------------------------------------------------------------------*/
 /*!
-   strnstr is not standard 
+   strnstr is not standard
 */
-char *af_strnstr(char *s1, char *s2, size_t n) 
+char *af_strnstr(char *s1, char *s2, size_t n)
 {
    int n1=0, n2=0;
    char c1 = '\0', c2 = '\0', *cout=NULL;
-   
+
    if (s1 && (n1 = strlen(s1)) > n) {c1=s1[n]; s1[n]='\0'; }
    if (s2 && (n2 = strlen(s2)) > n) {c2=s2[n]; s2[n]='\0'; }
-   
+
    cout = strstr(s1, s2);
-   
-   if (n1 > n) s1[n] = c1; 
+
+   if (n1 > n) s1[n] = c1;
    if (n2 > n) s2[n] = c2;
-   
+
    return(cout);
 }
 
-/* 
+/*---------------------------------------------------------------------*/
+/*
 A very simple parsing of HTTP1.1 header fields.
 Assumes buf and hname are all upper case.
-Function does not know to avoid searching beyond 
-end of headers             ZSS Mar. 2011 
+Function does not know to avoid searching beyond
+end of headers             ZSS Mar. 2011
 */
+
 char *HTTP_header_val(char *head, char *hname, size_t max_head)
 {
    int n_hname = 0;
    char *cpt = NULL;
-   
+
    if (!hname || !head) return(NULL);
-   
+
    if (!af_strnstr(head,"HTTP/1.1", 36)) return(NULL);
    if (max_head <= 0) {
-      if (strlen(head)<1024) max_head = strlen(head); 
+      if (strlen(head)<1024) max_head = strlen(head);
       else max_head = 1024;
    }
    n_hname = strlen(hname);
    cpt = af_strnstr(head,hname, max_head);
-   
+
    if (cpt) return(cpt+n_hname);
 
    return(NULL);
 }
-   
-long HTTP_header_long_val(char *head, char *hname, size_t max_head, long errval) 
+
+/*---------------------------------------------------------------------*/
+
+long HTTP_header_long_val(char *head, char *hname, size_t max_head, long errval)
 {
    char *cpt = NULL;
-   long val=errval;   
-      
+   long val=errval;
+
    if ((cpt = HTTP_header_val(head, hname, max_head))) {
       val = strtol(cpt, NULL, 10);
    }
@@ -219,8 +231,8 @@ long HTTP_header_long_val(char *head, char *hname, size_t max_head, long errval)
   /tmp, which must have space to hold the compressed and
   uncompressed file.  If the file is not compressed, then input
   is directly to memory and no temporary files are used.
-  
-  read_URL_http11 is a new version that is meant to handle 
+
+  read_URL_http11 is a new version that is meant to handle
   HTTP1.1 header and return as soon as entity body is read
 -----------------------------------------------------------------*/
 
@@ -239,7 +251,9 @@ typedef struct {
    char *data;
 } URL_PAGE;
 
-int page_append(char *buf, int n_buf, URL_PAGE *up, int null_term) 
+/*---------------------------------------------------------------------*/
+
+int page_append(char *buf, int n_buf, URL_PAGE *up, int null_term)
 {
    if (up->N_page+n_buf > up->N_alloc) {
       do { up->N_alloc += QBUF; } while (up->N_alloc <= up->N_page+n_buf);
@@ -249,17 +263,19 @@ int page_append(char *buf, int n_buf, URL_PAGE *up, int null_term)
    up->N_page += n_buf;
    if (null_term) {
       /* make sure we've got a plug */
-      if (up->page[up->N_page-1] != '\0') up->page[up->N_page]='\0'; 
+      if (up->page[up->N_page-1] != '\0') up->page[up->N_page]='\0';
    }
-   
+
    ++up->N_chunks;
    return(1);
 }
 
+/*---------------------------------------------------------------------*/
+
 int page_parse_status(URL_PAGE *up) {
    char *ttt=NULL, *cpt=NULL;
    int i, j;
-   
+
    if (up->status > 0) return(1); /* done */
    if (!up->page || up->N_page < 1) return(0);
    i = 0;
@@ -268,15 +284,15 @@ int page_parse_status(URL_PAGE *up) {
    ttt = (char *)calloc(i+1, sizeof(char));
    for (j=0; j< i; ++j) ttt[j] = toupper(up->page[j]);
    ttt[j] = '\0';
-   
+
    /* parse status */
-   up->http_ver = 0.0; up->status = 0; 
+   up->http_ver = 0.0; up->status = 0;
    if ((cpt = strstr(ttt,"HTTP/"))) {
-      up->http_ver = (float)strtod(cpt+5, NULL); 
-         /* a more proper parsing should be as 1*DIGIT "." 1*DIGIT */   
+      up->http_ver = (float)strtod(cpt+5, NULL);
+         /* a more proper parsing should be as 1*DIGIT "." 1*DIGIT */
       j = 0;
       while (!isblank(cpt[j])) ++j;
-      up->status = (int)strtol(cpt+j, NULL, 10);    
+      up->status = (int)strtol(cpt+j, NULL, 10);
    } else { /* older stuff */
       up->http_ver = 0.9;
       /* search more than 1st line for NOT FOUND */
@@ -288,46 +304,50 @@ int page_parse_status(URL_PAGE *up) {
       }
       up->status = 200; /* fake it */
    }
-   
+
    free(ttt); ttt=NULL;
    return(1);
 }
+
+/*---------------------------------------------------------------------*/
 
 int page_not_found(URL_PAGE *up) {
    return(up->status >= 400 ? 1:0);
 }
 
+/*---------------------------------------------------------------------*/
 
 int page_scan_head(URL_PAGE *up) {
    int i=0, nl=0;
-   
+
    if (up->head_complete) return(1);
-   
+
    /* start a couple of characters before the last stop */
    i = up->N_head-5; if (i<1) i = 1;
-  
+
    /* search for sequential new lines*/
    nl = 0;
    while (i<up->N_page && nl<2) {
            if( up->page[i] == '\r' ) ++nl;
-      else if( up->page[i] != '\n' ) nl = 0; /* not blank */ 
+      else if( up->page[i] != '\n' ) nl = 0; /* not blank */
       ++i;
    }
    if (nl == 2) {
       up->head_complete = 1;
-   } 
+   }
    up->N_head += i;
-   
+
    /* make header all upper case */
    for (i=0; i<up->N_head; ++i) up->page[i] = toupper(up->page[i]);
-   
+
    /* move till next non new line */
-   while (up->page[up->N_head] == '\n' || up->page[up->N_head] == '\r') 
+   while (up->page[up->N_head] == '\n' || up->page[up->N_head] == '\r')
       ++up->N_head;
    return(1);
 }
 
-/* return a copy of the header. 
+/*---------------------------------------------------------------------*/
+/* return a copy of the header.
 Caller must free pointer */
 char *page_header_copy(URL_PAGE *up)
 {
@@ -339,38 +359,43 @@ char *page_header_copy(URL_PAGE *up)
    return(hcp);
 }
 
-/* return a pointer to the beginning of the 
+/*---------------------------------------------------------------------*/
+/* return a pointer to the beginning of the
 content. Do not free this pointer */
-char *page_content(URL_PAGE *up) 
+char *page_content(URL_PAGE *up)
 {
    if (up->http_ver < 1.1) return(up->page);
    if (!up->page || !up->head_complete) return(NULL);
    return(up->page+up->N_head);
 }
 
-int page_init(URL_PAGE *up, char *url) 
+/*---------------------------------------------------------------------*/
+
+int page_init(URL_PAGE *up, char *url)
 {
-   int ii; 
+   int ii;
    char *cpt=NULL, qname[256] ;
-   
+
    memset(up, 0, sizeof(URL_PAGE));
    if (!url) return(0);
-   
+
    ii = strlen(url) ;
    if( ii > 3 ){
       cpt = url + (ii-3) ; up->cflag = (strcmp(cpt,".gz") == 0) ;
    } else {
       up->cflag = 0 ;
    }
-   
+
    return(1);
 }
+
+/*---------------------------------------------------------------------*/
 
 int page_dump(URL_PAGE *up, FILE *out, char *head)
 {
    char cct={'\0'};
    if (out==NULL) out = stderr;
-   
+
    if (head) fprintf(out,"%s",head);
    fprintf(out,"<page:%zu>%s<\\page:%zu>\n",
                up->N_page, up->page ? up->page:"NULL", up->N_page);
@@ -379,7 +404,7 @@ int page_dump(URL_PAGE *up, FILE *out, char *head)
    }
    fprintf(out,"<head:%zu-%s>%s<\\head:%zu-%s>\n",
                up->N_head, up->head_complete ? "complete":"incomplete",
-               up->page ? up->page:"NULL", 
+               up->page ? up->page:"NULL",
                up->N_head, up->head_complete ? "complete":"incomplete");
    if (up->page && up->N_head) up->page[up->N_head] = cct;
    fprintf(out,"<ver>%f<\\ver><status>%d<\\status>\n"
@@ -389,27 +414,31 @@ int page_dump(URL_PAGE *up, FILE *out, char *head)
                "<data>%s<\\data>\n",
                up->http_ver, up->status, up->N_chunks, up->N_cont,
                up->cflag,
-               up->data ? up->data:"NULL"); 
+               up->data ? up->data:"NULL");
    return(1);
 }
 
-int page_delete(URL_PAGE *up) 
+/*---------------------------------------------------------------------*/
+
+int page_delete(URL_PAGE *up)
 {
    if (up->page) free(up->page);
    if (up->data) free(up->data);
    memset(up, 0, sizeof(URL_PAGE));
-   
+
    return(1);
 }
 
-int page_set_data(URL_PAGE *up) 
+/*---------------------------------------------------------------------*/
+
+int page_set_data(URL_PAGE *up)
 {
    char qname[256], sbuf[512];
    int ii, nuse=0;
    FILE *cfile=NULL;
-   
+
    if (up->data) return(1);
-   
+
    if( up->cflag ){ /* uncompress via temp file */
       setup_tmpdir() ;
       strcpy(qname,tmpdir) ; strcat(qname,"gosiaXXXXXX") ;
@@ -422,21 +451,21 @@ int page_set_data(URL_PAGE *up)
       }
 
       if( up->cflag == 0 ){
-         DMESS(" **Temp file %s FAILS\n",qname); 
+         DMESS(" **Temp file %s FAILS\n",qname);
          up->cflag = -1;
          return(-1);
       }
       DMESS(" ++Temp file=%s",qname);
-      
+
       /* dump to file */
-      if( fwrite( up->page+up->N_head , 1 , up->N_cont , cfile )  
+      if( fwrite( up->page+up->N_head , 1 , up->N_cont , cfile )
                      != up->N_page-up->N_head ){           /* write failed? */
             DMESS("\n** Write to temp file %s FAILED!\n",qname);
             page_delete(up);
             return( -1 );
       }
       fclose(cfile); cfile = NULL;
-      
+
       /* uncompress and bring back */
       sprintf( sbuf , "gzip -dq %s" , qname ) ;     /* execute gzip */
       ii = system(sbuf) ;
@@ -452,10 +481,10 @@ int page_set_data(URL_PAGE *up)
                            unlink(qname) ; return( -1 );   }
       up->data = AFMALL(char, nuse) ;
       fread( up->data , 1 , nuse , cfile ) ;             /* read file in */
-      fclose(cfile) ; unlink(qname) ;      
+      fclose(cfile) ; unlink(qname) ;
    } else {
       up->data = AFMALL(char, up->N_page - up->N_head+1);
-      memcpy(up->data, up->page+up->N_head, 
+      memcpy(up->data, up->page+up->N_head,
                   sizeof(char)*(up->N_page-up->N_head));
       up->data[up->N_page-up->N_head] = '\0';
       nuse = up->N_page-up->N_head;
@@ -463,27 +492,30 @@ int page_set_data(URL_PAGE *up)
    return(nuse);
 }
 
+/*---------------------------------------------------------------------*/
+
 int page_received(URL_PAGE *up) {
    if (up->http_ver < 1.1) return(0);
    if (up->head_complete) {
       /* get content length */
-      up->N_cont = HTTP_header_long_val(up->page, "CONTENT-LENGTH:", 
+      up->N_cont = HTTP_header_long_val(up->page, "CONTENT-LENGTH:",
                                         up->N_head, -1);
       if (up->N_cont >=0 && up->N_page >= up->N_head+up->N_cont) return(1);
    }
    return(0);
 }
 
+/*---------------------------------------------------------------------*/
 /*!
    Read an HTTP/1.1 url
    url: The URL
    msec: Number of msec to wait before abandoning all hope
-   data: A non null pointer to a null char *pointer that will hold the 
+   data: A non null pointer to a null char *pointer that will hold the
          content of the response. At call time, data != NULL and *data = NULL
    head: If not null, *head will contain all the headers in the response
-   
+
    returns -1 in failure, total number of characters in data otherwise
-*/ 
+*/
 int read_URL_http11( char * url , int msec , char ** data, char **head )
 {
    IOCHAN * ioc ;
@@ -491,14 +523,14 @@ int read_URL_http11( char * url , int msec , char ** data, char **head )
    int ii,jj , nuse , nget=0, nmeg=0 ;
    size_t con_len = -1;
    URL_PAGE up;
-   
+
    /* sanity check */
-   
-   if( url == NULL || data == NULL || *data || (head && *head) || msec < 0 ) 
+
+   if( url == NULL || data == NULL || *data || (head && *head) || msec < 0 )
       return( -1 );
 
    /* open http channel to get url */
-   
+
    ioc = open_URL_http( url , msec ) ;
    if( ioc == NULL ){ DMESS("%s","\n"); return( -1 ); }
 
@@ -506,7 +538,7 @@ int read_URL_http11( char * url , int msec , char ** data, char **head )
    page_init(&up, url);
 
    /* read all of url */
-   nuse = 0 ;  
+   nuse = 0 ;
    do{
       if(debug)fprintf(stderr,".");
       ii = iochan_readcheck( ioc , msec ) ;  /* wait for data to be ready */
@@ -525,15 +557,15 @@ int read_URL_http11( char * url , int msec , char ** data, char **head )
          page_delete(&up);
          DMESS("%s"," **NOT FOUND\n");
          IOCHAN_CLOSE(ioc) ; return( -1 );
-      }      
+      }
       page_scan_head(&up); /* scan for header, if needed */
-      
+
       if (debug) page_dump(&up, NULL, NULL );
-      
+
       nuse += ii ;                           /* how many bytes so far */
-   
+
    } while(!page_received(&up)) ;
-   
+
    IOCHAN_CLOSE(ioc) ;
 
    if( prog && nmeg > 0 ) fprintf(stderr,"!\n") ;
@@ -545,11 +577,11 @@ int read_URL_http11( char * url , int msec , char ** data, char **head )
       FAILED; return(-1);
    }
    if(debug) fprintf(stderr,"!\n");
-   
+
    /* Set data */
    nuse = page_set_data(&up);
    DMESS("%s","\n"); *data = up.data ; up.data=NULL;
-   
+
    /* want header ? */
    if (head) {
       *head = (char *)realloc(up.page, (up.N_head+1)*sizeof(char));
@@ -560,6 +592,7 @@ int read_URL_http11( char * url , int msec , char ** data, char **head )
    return(nuse);
 }
 
+/*---------------------------------------------------------------------*/
 
 int read_URL_http( char * url , int msec , char ** data )
 {
@@ -570,7 +603,7 @@ int read_URL_http( char * url , int msec , char ** data )
    FILE *cfile=NULL ;
 
    if (use_http_ver == 11) return(read_URL_http11( url , msec , data, NULL ));
-   
+
    /* sanity check */
 
    if( url == NULL || data == NULL || msec < 0 ) return( -1 );
@@ -691,6 +724,60 @@ int read_URL_http( char * url , int msec , char ** data )
    /* data is in buf, nuse bytes of it */
 
    DMESS("%s","\n"); *data = buf ; return( nuse );
+}
+
+/*---------------------------------------------------------------------*/
+
+int read_URL_https( char *url , char **data )  /* 11 Feb 2016 */
+{
+   FILE *fp ;
+   char *cmd , *getprog=NULL , *buf=NULL , qbuf[QBUF] ;
+   size_t nbuf=0 , nnn ;
+
+   if( url == NULL || *url == '\0' || data == NULL ) return(-1) ;
+
+   if( getprog == NULL ){
+     getprog = THD_find_executable("wget") ;
+     if( getprog != NULL ){
+       cmd = (char *)malloc(sizeof(char)*(strlen(getprog)+strlen(url)+64)) ;
+       sprintf( cmd , "%s -o /dev/null -O - %s",getprog,url) ;
+     }
+   }
+
+   if( getprog == NULL ){
+     getprog = THD_find_executable("curl") ;
+     if( getprog != NULL ){
+       cmd = (char *)malloc(sizeof(char)*(strlen(getprog)+strlen(url)+64)) ;
+       sprintf( cmd , "%s --silent -f -o - %s",getprog,url) ;
+     }
+   }
+
+   if( getprog == NULL ) return(-1) ;
+
+   fp = popen( cmd , "r" ) ;
+   if( fp == NULL ) return(-1) ;
+
+   iochan_sleep(10) ;
+   while(1){
+     nnn = fread( qbuf , 1,QBUF-1 , fp ) ;
+     if( nnn == 0 ) break ;
+     if( nnn > 10 ){
+       qbuf[nnn] = '\0' ;
+       if( strcasestr(qbuf,"404 Not Found") != NULL ){
+         pclose(fp) ; if( buf != NULL ) free(buf) ;
+         return(-1) ;
+       }
+     }
+     buf = (char *)realloc( buf , nbuf+nnn+1 ) ;
+     memcpy( buf+nbuf , qbuf , nnn ) ;
+     nbuf += nnn ;
+     iochan_sleep(1) ;
+   }
+
+   pclose(fp) ;
+   if( buf == NULL || nbuf == 0 ) return(-1) ;
+
+   *data = buf ; return((int)nbuf) ;
 }
 
 /*---------------------------------------------------------------------*/
@@ -831,6 +918,10 @@ int read_URL( char * url , char ** data )
    if( url == NULL || data == NULL ) return( -1 );
 
    if( getenv("AFNI_WWW_DEBUG") != NULL ) debug = 1 ;
+
+   if( strstr(url,HTTPS) == url ){      /* 11 Feb 2016 */
+      nn = read_URL_https( url , data ) ; return(nn) ;
+   }
 
    if( strstr(url,HTTP) == url ){
       nn = read_URL_http( url , 4000 , data ) ; return(nn) ;
