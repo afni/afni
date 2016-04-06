@@ -46,13 +46,22 @@ ENTRY("THD_open_tcat") ;
             char * cp = strchr(dlocal+dd, ' ');
             int    dcp;
             if( cp ) {
-               /* if something besides white space follows, then this is
-                  not considered to be a general selector */
+               /* whitespace follows selector...
+
+                  If we are looking at:  [count  OR  [1dcat
+                  then require that this is a global selector,
+                  i.e. proceed and set 'sel'.
+
+                  Otherwise, if something besides white space follows,
+                  then this is not considered to be a general selector.
+               */
                for( dcp=1; cp[dcp] && isspace(cp[dcp]); dcp++ )
                   ;
 
-               /* if we are not at the end of the string, skip selectors */
-               if( cp[dcp] ) {
+               /* So if non-nul after space and not [count and not [1deval,
+                  do not use global tcat selector. */
+               if( cp[dcp] && strncmp(cp, "[count", strlen("[count")) &&
+                              strncmp(cp, "[1deval", strlen("[1deval"))) {
                  if( tcat_open_verb )
                    INFO_message("THD_open_tcat: skip general tcat selector\n");
                  break;
