@@ -67,6 +67,16 @@ afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
 
+{ 5, Apr , 2016 , PT , "3dDWUncert" , MINOR , TYPE_NEW_OPT,
+   "New inp format option-- for dealing with TORT export/import.",
+   "-bmatrix_Z for reading in bmat in AFNI format; byebye -bmatr opt.\n"
+},
+
+{ 5, Apr , 2016 , PT , "1dDW_Grad_o_Mat" , MINOR , TYPE_NEW_OPT,
+   "New I/O options-- for dealing with TORT export.",
+   "Now have I/O of grad columns weighted by bvalues.\n"
+},
+
 { 5, Jan , 2016 , PT , "3dVecRGB_to_HSL" , MAJOR , TYPE_NEW_PROG,
    "Take a 3-vec to a single index on RGB color scale, and glue FA brick.",
    "Replaces earlier version, 3dVec_to_RGBind.\n"
