@@ -929,8 +929,11 @@ Test.SigsClassify <- function (lvols, ltrain=NULL, verb = 1,
       args = (commandArgs(TRUE))
       rfile <- first.in.path(sprintf('%s.R',ExecName))  
       farg <- sprintf(".%s.dbg.AFNI.args", ExecName)
-      save(args, rfile, file=farg, ascii = TRUE) 
-      note.AFNI(paste("Saved command line arguments in ", farg))
+      # do not save these log files on -help    31 Mar 2016 [rickr]
+      if ( ! '-help' %in% args ) {
+         save(args, rfile, file=farg, ascii = TRUE) 
+         note.AFNI(paste("Saved command line arguments in ", farg))
+      }
    } else {
       note.AFNI("Using .DBG_args resident in workspace");
       args <- .DBG_args

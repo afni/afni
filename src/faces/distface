@@ -51,7 +51,7 @@ echo '</td></tr></table>'                                 >>   afni_faces.html
 echo '<hr /><b>This page generated on'                    >>   afni_faces.html
 date                                                      >>   afni_faces.html
 echo '</b><p>'                                            >>   afni_faces.html
-echo '<a href="http://afni.nimh.nih.gov/afni">'           >>   afni_faces.html
+echo '<a href="https://afni.nimh.nih.gov/afni">'          >>   afni_faces.html
 echo '<i>AFNI</i> main page</a>'                          >>   afni_faces.html
 echo '</center></body></html>'                            >>   afni_faces.html
 

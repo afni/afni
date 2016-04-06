@@ -517,7 +517,7 @@ g_help_string = """
 
 
     Our HBM 2008 abstract describing the alignment tools is available here:
-      http://afni.nimh.nih.gov/sscc/rwcox/abstracts
+      https://afni.nimh.nih.gov/sscc/rwcox/abstracts
     
     Reference:
        If you find the EPI to Anat alignment capability useful, the paper to
@@ -564,7 +564,7 @@ g_help_string = """
 ## BEGIN common functions across scripts (loosely of course)
 class RegWrap:
    def __init__(self, label):
-      self.align_version = "1.51" # software version (update for changes)
+      self.align_version = "1.52" # software version (update for changes)
       self.label = label
       self.valid_opts = None
       self.user_opts = None
@@ -2349,25 +2349,27 @@ class RegWrap:
    # create edge dataset of internal brain structure edges
    def edge_dset(self, e=None, prefix = "temp_edge", binarize=0,erodelevel=2):
       o = afni_name(prefix)
-
       o.view = e.view
-      if (not o.exist() or ps.rewrite or ps.dry_run()):
-         o.delete(ps.oexec)
+      m = afni_name("%s_edge_mask" % o.prefix)
+      m.view = e.view
+      
+      if (not m.exist() or ps.rewrite or ps.dry_run()):
+         m.delete(ps.oexec)
          self.info_msg("Creating edge dataset")
-         com = shell_com("3dAutomask -overwrite -erode %s -prefix %s_edge_mask %s" \
-                         % (erodelevel, prefix, e.input()), ps.oexec)
+         com = shell_com("3dAutomask -overwrite -erode %s -prefix %s %s" \
+                         % (erodelevel, m.prefix, e.input()), ps.oexec)
          com.run()
 
          if(binarize):
-            lprefix = "%s_edge_cvar" % prefix
+            lprefix = "%s_edge_cvar" % o.prefix
          else:
-            lprefix = prefix
+            lprefix = o.prefix
 
          com = shell_com(                                                  \
-                         "3dLocalstat -overwrite -mask %s_edge_mask%s " \
-                         "-nbhd 'RECT(-1,-1,0)'"                           \
+                         "3dLocalstat -overwrite -mask %s"                 \
+                         " -nbhd 'RECT(-2,-2,-1)'"                          \
                          " -stat cvar -prefix %s %s" %                     \
-                         (prefix, o.view, lprefix, e.input()), ps.oexec)
+                         (m.ppv(), lprefix, e.input()), ps.oexec)
          com.run();
 
          if(binarize):
@@ -2403,7 +2405,7 @@ class RegWrap:
             com.run()
 
          if (not o.exist() and not ps.dry_run()):
-            print "** ERROR: Could not create edge dataset"
+            print("** ERROR: Could not create edge dataset %s" % o.ppv())
             return None
       else:
          self.exists_msg(o.input())

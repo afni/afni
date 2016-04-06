@@ -1357,12 +1357,12 @@ char *web_prog_help_link(char *prog, int style)
    if (!strcmp(prog,"ALL")) {
       if (style == 0) {
          snprintf(weblink,1020*sizeof(char),
-               "http://afni.nimh.nih.gov/pub/dist/doc/program_help/%s.html",
+               "https://afni.nimh.nih.gov/pub/dist/doc/program_help/%s.html",
                "all-of-them");
       } else {
          /* Nothing yet, return old */
          snprintf(weblink,1020*sizeof(char),
-               "http://afni.nimh.nih.gov/pub/dist/doc/program_help/%s.html",
+               "https://afni.nimh.nih.gov/pub/dist/doc/program_help/%s.html",
                "all-of-them");
       }
    } else {
@@ -1374,12 +1374,12 @@ char *web_prog_help_link(char *prog, int style)
 
       if (style == 0) {
          snprintf(weblink,1020*sizeof(char),
-               "http://afni.nimh.nih.gov/pub/dist/doc/program_help/%s.html",
+               "https://afni.nimh.nih.gov/pub/dist/doc/program_help/%s.html",
                THD_trailname(progname,0));
       } else {
          /* Nothing yet, return old */
          snprintf(weblink,1020*sizeof(char),
-               "http://afni.nimh.nih.gov/pub/dist/doc/program_help/%s.html",
+               "https://afni.nimh.nih.gov/pub/dist/doc/program_help/%s.html",
                THD_trailname(progname,0));
       }
    }
@@ -1415,7 +1415,7 @@ void web_class_docs(char *prog)
       return;
    } else {
       snprintf(weblink,1020*sizeof(char),
-               "http://afni.nimh.nih.gov/pub/dist/edu/latest");
+               "https://afni.nimh.nih.gov/pub/dist/edu/latest");
    }
    
    if (!(view_web_link(weblink,NULL))) {

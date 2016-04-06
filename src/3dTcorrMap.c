@@ -364,10 +364,12 @@ int main( int argc , char *argv[] )
 #if defined(USING_MCW_MALLOC) && !defined(USE_OMP)
    enable_mcw_malloc() ;
 #endif
-   mainENTRY("3dTcorrMap main"); machdep(); PRINT_VERSION("3dTcorrMap");
-   AFNI_logger("3dTcorrMap",argc,argv);
-   THD_check_AFNI_version("3dTcorrMap") ;
-   AFNI_SETUP_OMP(0) ;  /* 24 Jun 2013 */
+   if( argc > 2 ){
+     mainENTRY("3dTcorrMap main"); machdep(); PRINT_VERSION("3dTcorrMap");
+     AFNI_logger("3dTcorrMap",argc,argv);
+     THD_check_AFNI_version("3dTcorrMap") ;
+     AFNI_SETUP_OMP(0) ;  /* 24 Jun 2013 */
+   }
 
    /*-- option processing --*/
 

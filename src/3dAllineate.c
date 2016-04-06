@@ -1160,12 +1160,12 @@ int main( int argc , char *argv[] )
      /*......................................................................*/
 
      if( argc > 1 &&
-        ( strcmp(argv[1],"-HELP") ==0 ||
-          strcmp(argv[1],"-POMOC")==0 || AFNI_yesenv("AFNI_POMOC") ) ){
+        ( strcasecmp(argv[1],"-HELP") ==0 ||
+          strcmp(argv[1],"-POMOC")==0     || AFNI_yesenv("AFNI_POMOC") ) ){
        printf(
         "\n"
         "===========================================================================\n"
-        "                TOP SECRET HIDDEN OPTIONS (-HELP or -POMOC)\n"
+        "                       FORMERLY SECRET HIDDEN OPTIONS\n"
         "---------------------------------------------------------------------------\n"
         "        ** N.B.: Most of these are experimental! [permanent beta] **\n"
         "===========================================================================\n"
@@ -1410,7 +1410,7 @@ int main( int argc , char *argv[] )
               "       MRI alignment using local Pearson correlation.\n"
               "       NeuroImage 44: 839-848, 2009.\n"
               "     http://dx.doi.org/10.1016/j.neuroimage.2008.09.037\n"
-              "     http://afni.nimh.nih.gov/sscc/rwcox/papers/LocalPearson2009.pdf\n"
+              "     https://afni.nimh.nih.gov/sscc/rwcox/papers/LocalPearson2009.pdf\n"
               "   The '-blok' option can be used to control the regions\n"
               "   (size and shape) used to compute the local correlations.\n");
        printf(" *** Using the 'lpc' functional wisely requires the use of\n"

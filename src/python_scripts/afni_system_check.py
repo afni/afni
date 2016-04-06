@@ -26,6 +26,7 @@ examples
 terminal options:
 
    -help                : show this help
+   -help_rc_files       : show help on shell setup files
    -hist                : show program history
    -show_valid_opts     : show valid options for program
    -todo                : show current todo list
@@ -69,16 +70,73 @@ R Reynolds    July, 2013
 =============================================================================
 """
 
+g_help_rc_files = """
+RC (run commands) files applied at start up:
+
+   0. login shells:
+
+      Login shells happen when a user first logs in on a machine, e.g.,
+
+         - at a console login
+         - when login is via ssh
+
+      This help section focuses on commonly used user control files,
+      omitting files like /etc/csh.cshrc and .history.
+
+      The noted RC files all belong under a user's $HOME directory.
+
+
+   1.  csh/tcsh RC files: .tcshrc .cshrc
+
+      1a. csh/tcsh non-login shell (e.g. opening a new terminal):
+         
+         .tcshrc (else .cshrc)
+
+      1b. csh/tcsh login shell (e.g. ssh login):
+
+         .tcshrc (else .cshrc)
+         .login
+
+       * alternate orders may be compiled in
+
+
+   2.  bash RC files: .bashrc .bash_profile 
+
+      2a. bash non-login shell (e.g. opening a new terminal):
+         
+         .bashrc
+
+      2b. bash login shell (e.g. ssh login):
+
+         .bash_profile (else .bash_login) (else .profile)
+
+
+   3.  sh RC files: .profile
+
+      3a. sh (bash as sh) non-login shell:
+
+       * nothing is read
+
+      3b. sh (bash as sh) login shell:
+
+         .profile
+
+"""
+
+
 g_todo = """
 todo: afni_system_check.py
 
-   - mac: check for gcc?  can we tell whether openMP is supported?
-          fink?  homebrew?  macports?
-
-   - check for .afnirc/.sumarc .afni/help
    - check for data under any passed -data_root
         - this was started
    - check disk space
+   - report RAM
+   - if R failures and no R_LIBS: check 'find ~ -maxdepth 3 -name afex'
+   - fail if python3?  show output from "ls -ld `which python`*"
+      - consider setting VERSIONER_PYTHON_VERSION to 2.7
+      - make permanent: defaults write com.apple.versioner.python Version 2.7
+   - warn on old python version?
+   - warn on old AFNI version
 """
 
 g_history = """
@@ -110,9 +168,18 @@ g_history = """
    0.13 Sep 09, 2015 - fix sequence of program check from exec dir
    0.14 Dec 29, 2015 - catch empty atlas dir list
    0.15 Jan 03, 2016 - truncate 'top history' text
+   0.16 Feb 16, 2016 - many new checks
+        - have 'summary comments' describe issues that may require attention
+        - see whether homebrew is installed
+        - whine if OS X version is pre-10.7
+        - report contents of AFNI_version.txt
+   0.17 Mar 18, 2016 - new checks
+        - added -help_rc_files
+        - make comments about shell RC files, given login shell
+   0.18 Mar 25, 2016 - tiny update
 """
 
-g_version = "afni_system_check.py version 0.15, January 3, 2015"
+g_version = "afni_system_check.py version 0.18, March 25, 2016"
 
 
 class CmdInterface:
@@ -146,6 +213,8 @@ class CmdInterface:
       # terminal options
       self.valid_opts.add_opt('-help', 0, [],           \
                       helpstr='display program help')
+      self.valid_opts.add_opt('-help_rc_files', 0, [],  \
+                      helpstr='display help on shell setup files')
       self.valid_opts.add_opt('-hist', 0, [],           \
                       helpstr='display the modification history')
       self.valid_opts.add_opt('-show_valid_opts', 0, [],\
@@ -184,6 +253,10 @@ class CmdInterface:
       # if no arguments are given, apply -help
       if '-help' in argv or len(argv) < 2:
          print g_help_string
+         return 0
+
+      if '-help_rc_files' in argv:
+         print g_help_rc_files
          return 0
 
       if '-hist' in argv:

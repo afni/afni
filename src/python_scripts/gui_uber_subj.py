@@ -518,7 +518,7 @@ class SingleSubjectWindow(QtGui.QMainWindow):
    def group_box_align(self):
       """create a group box with a VBox layout:
             align_giant_move, align_cost,
-            tlrc_ss, tlrc_base, tlrc_ok_maxite
+            anat_has_skull, tlrc_base, tlrc_ok_maxite
             (rcr - later: maybe general align_opts_aea, tlrc_opts_at)
       """
 
@@ -613,16 +613,16 @@ class SingleSubjectWindow(QtGui.QMainWindow):
       voffset += 1
 
       # --------------------------------------------------
-      # checkbox: tlrc_ss
-      cbox = QtGui.QCheckBox("tlrc: strip anat skull")
-      cbox.setStatusTip("if not, use -tlrc_no_ss for @auto_tlrc")
-      cbox.setChecked(self.svars.tlrc_ss=='yes')
+      # checkbox: anat_has_skull
+      #cbox = QtGui.QCheckBox("anat has skull")
+      #cbox.setStatusTip("check if input anat has skull, clear if not")
+      #cbox.setChecked(self.svars.anat_has_skull=='yes')
       # cbox.clicked.connect(self.CB_checkbox)
-      self.connect(cbox, QtCore.SIGNAL('clicked()'), self.CB_checkbox)
+      #self.connect(cbox, QtCore.SIGNAL('clicked()'), self.CB_checkbox)
 
-      layout.addWidget(cbox, voffset, 0)
-      gbox.checkBox_tlrc_ss = cbox
-      voffset += 1
+      #layout.addWidget(cbox, voffset, 0)
+      #gbox.checkBox_anat_has_skull = cbox
+      #voffset += 1
 
       # --------------------------------------------------
       # checkbox: OK maxite
@@ -894,13 +894,27 @@ class SingleSubjectWindow(QtGui.QMainWindow):
                    QtCore.SIGNAL('editingFinished()'), self.CB_line_text)
       layout.addWidget(self.gvars.Line_anat)
 
-      # add a checkbox for including tlrc, init with get_tlrc
-      gbox.checkBox = QtGui.QCheckBox("include copy of anat+tlrc")
-      gbox.checkBox.setChecked(self.svars.get_tlrc=='yes')
-      # gbox.checkBox.clicked.connect(self.CB_checkbox)
-      self.connect(gbox.checkBox, QtCore.SIGNAL('clicked()'), self.CB_checkbox)
-      layout.addWidget(gbox.checkBox)
+      # --------------------------------------------------
+      # checkbox: anat_has_skull
+      cbox = QtGui.QCheckBox("anat has skull")
+      cbox.setStatusTip("check if input anat has skull, clear if not")
+      cbox.setChecked(self.svars.anat_has_skull=='yes')
+      # cbox.clicked.connect(self.CB_checkbox)
+      self.connect(cbox, QtCore.SIGNAL('clicked()'), self.CB_checkbox)
 
+      layout.addWidget(cbox)
+      gbox.checkBox_anat_has_skull = cbox
+
+      # --------------------------------------------------
+      # add a checkbox for including tlrc, init with get_tlrc
+      cbox = QtGui.QCheckBox("include copy of anat+tlrc")
+      cbox.setChecked(self.svars.get_tlrc=='yes')
+      # gbox.checkBox.clicked.connect(self.CB_checkbox)
+      self.connect(cbox, QtCore.SIGNAL('clicked()'), self.CB_checkbox)
+      layout.addWidget(cbox)
+      gbox.checkBox = cbox
+
+      # --------------------------------------------------
       layout.setMargin(g_spacing)
       layout.setSpacing(g_spacing)
       frame.setLayout(layout)
@@ -1628,6 +1642,9 @@ class SingleSubjectWindow(QtGui.QMainWindow):
       if   obj == self.gvars.gbox_anat.checkBox:
          if obj.isChecked(): self.set_svar('get_tlrc', 'yes')
          else:               self.set_svar('get_tlrc', 'no')
+      elif obj == self.gvars.gbox_anat.checkBox_anat_has_skull:
+         if obj.isChecked(): self.set_svar('anat_has_skull', 'yes')
+         else:               self.set_svar('anat_has_skull', 'no')
       elif obj == self.gvars.gbox_epi.checkBox_wildcard:
          if obj.isChecked(): self.set_svar('epi_wildcard', 'yes')
          else:               self.set_svar('epi_wildcard', 'no')
@@ -1649,9 +1666,6 @@ class SingleSubjectWindow(QtGui.QMainWindow):
       elif obj == self.gvars.gbox_align.checkBox_align_giant_move:
          if obj.isChecked(): self.set_svar('align_giant_move', 'yes')
          else:               self.set_svar('align_giant_move', 'no')
-      elif obj == self.gvars.gbox_tlrc.checkBox_tlrc_ss:
-         if obj.isChecked(): self.set_svar('tlrc_ss', 'yes')
-         else:               self.set_svar('tlrc_ss', 'no')
       elif obj == self.gvars.gbox_tlrc.checkBox_tlrc_ok_maxite:
          if obj.isChecked(): self.set_svar('tlrc_ok_maxite', 'yes')
          else:               self.set_svar('tlrc_ok_maxite', 'no')
@@ -2297,21 +2311,21 @@ class SingleSubjectWindow(QtGui.QMainWindow):
    def cb_help_browse(self):
       obj = self.sender()
       if   obj == self.gvars.act_browse_all_progs:
-         self.open_web_site('http://afni.nimh.nih.gov/pub/dist/doc'     \
+         self.open_web_site('https://afni.nimh.nih.gov/pub/dist/doc'     \
                             '/program_help/index.html')
       elif obj == self.gvars.act_browse_AP_help:
-         self.open_web_site('http://afni.nimh.nih.gov/pub/dist/doc'     \
+         self.open_web_site('https://afni.nimh.nih.gov/pub/dist/doc'     \
                             '/program_help/afni_proc.py.html')
       elif obj == self.gvars.act_browse_SS_tutor:
-         self.open_web_site('http://afni.nimh.nih.gov/pub/dist/edu/data' \
+         self.open_web_site('https://afni.nimh.nih.gov/pub/dist/edu/data' \
                             '/CD.expanded/AFNI_data6/FT_analysis/tutorial')
       elif obj == self.gvars.act_browse_class_notes:
-         self.open_web_site('http://afni.nimh.nih.gov/pub/dist/edu' \
+         self.open_web_site('https://afni.nimh.nih.gov/pub/dist/edu' \
                             '/latest/afni_handouts')
       elif obj == self.gvars.act_browse_MB:
-         self.open_web_site('http://afni.nimh.nih.gov/afni/community/board')
+         self.open_web_site('https://afni.nimh.nih.gov/afni/community/board')
       elif obj == self.gvars.act_browse_D2004_glt:
-         self.open_web_site('http://afni.nimh.nih.gov/pub/dist/doc'     \
+         self.open_web_site('https://afni.nimh.nih.gov/pub/dist/doc'     \
                             '/misc/Decon/DeconSummer2004.html')
       else: print '** cb_help_browse: invalid sender'
 
@@ -2488,10 +2502,53 @@ class SingleSubjectWindow(QtGui.QMainWindow):
          QLIB.guiError('GLT Errors', err, self)
          return 1
 
+      rv, rstr = self.run_GLTsymtest(dlist)
+      if rv:
+         QLIB.guiError('GLTsymtest errors', rstr, self)
+         return 1
+
       self.svars.gltsym_label = llist
       self.svars.gltsym = dlist
 
       return 0
+
+   def run_GLTsymtest(self, glist):
+      """run GLTsymtest, returning the number of errors and a display string"""
+
+      llist = self.svars.stim_label
+
+      if len(llist) == 0 and len(glist) == 0: return 0, ''
+
+      lstr = "'%s'" % ' '.join(llist)
+      cmd = "GLTsymtest -badonly %s" % lstr
+
+      elist = []
+      for gind, glt in enumerate(glist):
+         cstr = "%s '%s'" % (cmd, glt)
+
+         st, so, se = UTIL.limited_shell_exec(cstr)
+         if self.verb > 1:
+            print "++ GLTsymtest command (stat %d):\n   %s" % (st, cstr)
+         if len(so) > 0 and self.verb > 2:
+            print "\n%s" % ('   ' + '\n   '.join(so))
+
+         # if no errors, continue on
+         if st == 0: continue
+
+         emesg = "** GLT ERROR for -gltsym %d: '%s'\n" % (gind+1, glt)
+         for soline in so:
+            if soline.startswith('** ERROR:'):
+               emesg += ('%s\n' % soline[3:])
+
+         elist.append('%s' % emesg)
+
+      if len(elist) > 0:
+         emesg = "valid GLT labels are: %s\n\n%s" % (lstr, '\n'.join(elist))
+         if self.verb > 3: print 'failure emesg: %s' % emesg
+      else:
+         emesg = ''
+
+      return len(elist), emesg
 
    def init_analysis_defaults(self):
       """initialize the svar default based on anal_type and anal_domain
@@ -2869,10 +2926,10 @@ class SingleSubjectWindow(QtGui.QMainWindow):
                           var = self.svars.align_giant_move
                           obj = self.gvars.gbox_align
                           obj.checkBox_align_giant_move.setChecked(var=='yes')
-      elif svar == 'tlrc_ss':        
-                          var = self.svars.tlrc_ss
-                          obj = self.gvars.gbox_tlrc
-                          obj.checkBox_tlrc_ss.setChecked(var=='yes')
+      elif svar == 'anat_has_skull':        
+                          var = self.svars.anat_has_skull
+                          obj = self.gvars.gbox_anat
+                          obj.checkBox_anat_has_skull.setChecked(var=='yes')
       elif svar == 'tlrc_ok_maxite':        
                           var = self.svars.tlrc_ok_maxite
                           obj = self.gvars.gbox_tlrc

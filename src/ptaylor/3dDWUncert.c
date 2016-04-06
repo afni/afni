@@ -21,6 +21,9 @@
          vox in order to save mucho computational time (well, hopefully)
        + debug: several iarg++ probs, affected order of calling things
 
+   Apr, 2016:
+       + use AFNI style bmatrix for inputting now...
+
 */
 
 #include <stdio.h>
@@ -84,7 +87,7 @@ void usage_DWUncert(int detail)
 "\n"
 "\n"
 "  COMMAND: 3dDWUncert -inset FILE -input [base of FA/MD/etc.] \\\n"
-"           {-grads | -bmatr} FILE -prefix NAME -iters NUMBER \n"
+"           {-grads | -bmatrix_Z} FILE -prefix NAME -iters NUMBER \n"
 "\n\n"
 "  + OUTPUT:\n"
 "     1) AFNI-format file with 6 subbricks, containing uncertainty\n"
@@ -116,17 +119,18 @@ void usage_DWUncert(int detail)
 "                      subbrick has a b=0 image (i.e., all averaging of\n"
 "                      multiple b=0 images has been done already); if such\n"
 "                      is not the case, then you should convert your grads to\n"
-"                      the bmatrix format and use `-bmatr'.\n"
+"                      the bmatrix format and use `-bmatrix_Z'.\n"
 "  OR\n"
-"    -bmatr  FILE     :using this means that file with gradient info\n"
+"    -bmatrix_Z  FILE :using this means that file with gradient info\n"
 "                      is in b-matrix format, with 6 columns representing:\n"
-"                      b_xx 2b_xy 2b_xz b_yy 2b_yz b_zz.\n"
+"                      b_xx b_yy b_zz b_xy b_xz b_yz.\n"
 "                      NB: here, bvalue per image is the trace of the bmatr,\n"
 "                      bval = b_xx+b_yy+b_zz, such as 1000 s/mm^2. This\n"
 "                      option might be used, for example, if multiple \n"
-"                      b-values were used to measure DWI data; if TORTOISE\n"
-"                      preprocessing has been employed, then its *.bmtxt\n"
-"                      file can be used directly.\n"
+"                      b-values were used to measure DWI data; this is an\n"
+"                      AFNI-style bmatrix that needs to be input.\n"
+"    -bmatr  FILE     :**deprecated input option-- no longer used**: move\n"
+"                      along, folks, nothin' to see here!\n"
 "    -mask   MASK     :can include a mask within which to calculate uncert.\n"
 "                      Otherwise, data should be masked already.\n"
 "    -iters  NUMBER   :number of jackknife resample iterations,\n"
@@ -381,18 +385,30 @@ int main(int argc, char *argv[]) {
 
 			iarg++ ; continue ;
 		}
-		else if( strcmp(argv[iarg],"-bmatr") == 0 ){ 
+		else if( strcmp(argv[iarg],"-bmatrix_Z") == 0 ){ 
 			if( ++iarg >= argc ) 
-				ERROR_exit("Need argument after '-bmatr'");
-			 
+				ERROR_exit("Need argument after '-bmatrix_Z'");
+         
 			// if b-matrix is being used as input,
 			// have to find out still which one(s) are b=0.
 			BMAT = 1;
          gradmat_in = strdup(argv[iarg]) ;
-
+         
 			iarg++ ; continue ;
 		}
 		
+      if( strcmp(argv[iarg],"-bmatr") == 0 ){ 
+         
+         ERROR_exit("'Tis not long for this world-- "
+                    "nor for this option! This '-bmatr'\n"
+                    "\toption of which you type no longer exists! "
+                    "You might seek '-bmatrix_Z ...' instead.\n"
+                    "\tPlease see the help for more description.");
+         
+			iarg++ ; continue ;
+		}
+      
+
 		if( strcmp(argv[iarg],"-mask") == 0 ){
 			if( ++iarg >= argc ) 
 							ERROR_exit("Need argument after '-mask'");
@@ -771,7 +787,7 @@ int main(int argc, char *argv[]) {
          grads_dyad[i][5] = 2.*grads[i][2]*grads[i][1];
       }
    }
-   else if( BMAT==1) {
+   else if( BMAT==1) { // apr,2016: now for AFNI format!
       Min = DSET_NVALS(dwset1); 
 		
       DWcheck = (int *)calloc(Min,sizeof(int)); 
@@ -796,7 +812,7 @@ int main(int argc, char *argv[]) {
             fscanf(fin4, "%f",&grads[i][j]);
          }
          // trace of bmatr is DWval
-         DWval = grads[i][0]+grads[i][3]+grads[i][5];
+         DWval = grads[i][0]+grads[i][1]+grads[i][2];
          if( DWval<EPS_MASK ) {
             DWcheck[i] = 1; // flag b=0 ones
             Nb0+=1;
@@ -844,11 +860,11 @@ int main(int argc, char *argv[]) {
       for( j=0 ; j<Min ; j++) 
          if(DWcheck[j] == 0) {// is not a b=0
             grads_dyad[M][0] = grads[j][0];
-            grads_dyad[M][1] = grads[j][3];
-            grads_dyad[M][2] = grads[j][5];
-            grads_dyad[M][3] = grads[j][1];
-            grads_dyad[M][4] = grads[j][2];
-            grads_dyad[M][5] = grads[j][4];
+            grads_dyad[M][1] = grads[j][1];
+            grads_dyad[M][2] = grads[j][2];
+            grads_dyad[M][3] = 2*grads[j][3];
+            grads_dyad[M][4] = 2*grads[j][4];
+            grads_dyad[M][5] = 2*grads[j][5];
             M+=1; 
             for(i=0 ; i<Nvox ; i++)
                if( THD_get_voxel(insetPARS[2],i,0)>EPS_V)  // as below
@@ -1808,3 +1824,98 @@ void piksr2(int n, unsigned int arr[], int brr[])
 	}
 }
 
+/*  OLD section for reading in bmatrix values-- switch now to use AFNI
+format, for consistency:
+
+{ Min = DSET_NVALS(dwset1);
+		
+      DWcheck = (int *)calloc(Min,sizeof(int)); 
+      DWs = (float *)calloc(Min,sizeof(float)); //DWs
+      // just use this to read in all
+      grads = calloc(Min,sizeof(grads)); 
+      for(i=0 ; i<Min ; i++) 
+         grads[i] = calloc(6,sizeof(float)); 
+      
+      if( (grads == NULL) || (DWs == NULL) || (DWcheck == NULL) ) {
+         fprintf(stderr, "\n\n MemAlloc failure.\n\n");
+         exit(1254);
+      }
+      // Opening/Reading in FACT params
+      if( (fin4 = fopen(gradmat_in, "r")) == NULL) {
+         fprintf(stderr, "Error opening file %s.",gradmat_in);
+         exit(19);
+      }
+      
+      for(i=0 ; i<Min ; i++) {
+         for(j=0 ; j<6 ; j++) {
+            fscanf(fin4, "%f",&grads[i][j]);
+         }
+         // trace of bmatr is DWval
+         DWval = grads[i][0]+grads[i][3]+grads[i][5];
+         if( DWval<EPS_MASK ) {
+            DWcheck[i] = 1; // flag b=0 ones
+            Nb0+=1;
+         }
+         else {
+            DWs[M] = DWval;
+            if(DWval>DWmax)
+               DWmax = DWval;// check for max DW, in case mult DWval
+            M+=1;
+         }			
+      }
+		  			
+      fclose(fin4);
+      if(Nb0<1)
+         ERROR_exit("There appear to be no b=0 bricks!");
+
+      Mj = (int) floor(jknife_val*M);
+      if(Mj<7) 
+         Mj=7;
+      INFO_message("Input format: bmatrs. Number of DWI in inset=%d."
+                   " Jackknife sample size=%d", M, Mj);
+      MAXBAD = (int) (0.125*M);
+      // for some really large numbers of gradients, >100, the number is 
+      // just too big; Jan, 2014
+      if( MAXBAD>10)
+         MAXBAD = 10; 
+      if(Mj-MAXBAD<6)
+         MAXBAD=Mj-6;
+			
+      grads_dyad = calloc(M,sizeof(grads_dyad)); 
+      for(i=0 ; i<M ; i++) 
+         grads_dyad[i] = calloc(6,sizeof(float)); 
+      // start to restructure DWIs in a copy, 
+      // averaging all b=0 bricks together
+      rearr_dwi = calloc(Nvox,sizeof(rearr_dwi)); 
+      for(i=0 ; i<Nvox ; i++) 
+         rearr_dwi[i] = calloc(M+1,sizeof(float)); 
+			
+      if( (grads_dyad == NULL) || (rearr_dwi == NULL) ) {
+         fprintf(stderr, "\n\n MemAlloc failure.\n\n");
+         exit(125);
+      }
+			
+      M=0;
+      for( j=0 ; j<Min ; j++) 
+         if(DWcheck[j] == 0) {// is not a b=0
+            grads_dyad[M][0] = grads[j][0];
+            grads_dyad[M][1] = grads[j][3];
+            grads_dyad[M][2] = grads[j][5];
+            grads_dyad[M][3] = grads[j][1];
+            grads_dyad[M][4] = grads[j][2];
+            grads_dyad[M][5] = grads[j][4];
+            M+=1; 
+            for(i=0 ; i<Nvox ; i++)
+               if( THD_get_voxel(insetPARS[2],i,0)>EPS_V)  // as below
+                  rearr_dwi[i][M] = THD_get_voxel(dwset1,i,j);
+         }
+         else 
+            for(i=0 ; i<Nvox ; i++)
+               if( THD_get_voxel(insetPARS[2],i,0)>EPS_V) 
+                  rearr_dwi[i][0]+= THD_get_voxel(dwset1,i,j);
+			
+      // because this was an average
+      for(i=0 ; i<Nvox ; i++)
+         rearr_dwi[i][0]/= 1.0*Nb0;
+   }
+ */
