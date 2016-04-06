@@ -14,15 +14,22 @@
   May 2015
   + minor new option for outputting bval file: -out_bval_row_sep
 
+  Apr 2016
+  + new import/export with b-value weighted gradients
+  + minor new option for outputting bval file: -out_bval_col_sep
+
+
 */
 
-// 3dDWItoDT: Bxx, Byy, Bzz, Bxy, Bxz, Byz
-// TORTOISE:  b_xx 2b_xy 2b_xz b_yy 2b_yz b_zz
+// 3dDWItoDT and BMTXT_AFNI.txt: Bxx, Byy, Bzz, Bxy, Bxz, Byz
+// TORTOISE:  B_xx 2B_xy 2B_xz B_yy 2B_yz B_zz
+// BMTXT.txt from TORT's "afni export: Bxx, Byy, Bzz, 2Bxy, 2Bxz, 2Byz
 
 /* G_{ij} = diffusion weighting matrix (dyadic form)
-/       GxGx GxGy GxGz
+        GxGx GxGy GxGz
         GxGy GyGy GyGz
-        GxGz GyGz GzGz */
+        GxGz GyGz GzGz 
+*/
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -87,20 +94,26 @@ void usage_1dDW_Grad_o_Mat(int detail)
 "\n"
 " + RUNNING:\n"
 "    1dDW_GradOrMat                                                  \\\n"
-"         { -in_grad_rows | -in_grad_cols | -in_gmatT_cols |         \\\n"
-"           -in_gmatA_cols | -in_bmatT_cols | -in_bmatA_cols} INFILE \\\n"
-"         { -flip_x -flip_y -flip_z }                                \\\n"
+"         { -in_grad_cols  | -in_grad_cols_bwt |                     \\\n"
+"           -in_gmatT_cols | -in_gmatA_cols |                        \\\n"
+"           -in_bmatT_cols | -in_gmatA_cols |                        \\\n"
+"           -in_grad_rows }  INFILE                                  \\\n"
+"         { -flip_x  -flip_y  -flip_z }                              \\\n"
 "         { -keep_b0s -put_zeros_top -out_bval_col }                 \\\n"
 "         { -in_bvals BVAL_IN }                                      \\\n"
 "         { -bmax_ref THRESH }                                       \\\n"
-"         { -out_grad_cols | -out_gmatT_cols | -out_gmatA_cols |     \\\n"
-"           -out_bmatT_cols | -out_gmatA_cols | -out_grad_rows } OUTFILE \\\n"
-"         { -out_bval_row_sep BB }                                   \n\n"
+"         { -out_grad_cols  | -out_grad_cols_bwt |                   \\\n"
+"           -out_gmatT_cols | -out_gmatA_cols |                      \\\n"
+"           -out_bmatT_cols | -out_gmatA_cols |                      \\\n"
+"           -out_grad_rows }  OUTFILE                                \\\n"
+"         { -out_bval_row_sep | -out_bval_col_sep BB }               \n\n"
 "    where:\n"
 "        (one of the following six formats of input must be given):\n"
 "    -in_grad_rows  INFILE :input file of 3 rows of gradients (e.g., dcm2nii-\n"
 "                           format output).\n"
 "    -in_grad_cols  INFILE :input file of 3 columns of gradients.  \n"
+"  -in_grad_cols_bwt INFILE :input file of 3 columns of gradients, each  \n"
+"                           weighted by the b-value.\n"
 "    -in_gmatA_cols INFILE :input file of 6 columns of g-matrix in 'A(FNI)'\n"
 "                           `diagonal first'-format. (See above.)\n"
 "    -in_gmatT_cols INFILE :input file of 6 columns of g-matr in 'T(ORTOISE)'\n"
@@ -111,6 +124,8 @@ void usage_1dDW_Grad_o_Mat(int detail)
 "                           `row first'-format. (See above.)\n"
 "        (one of the following five formats of output must be given):\n"
 "  -out_grad_cols  OUTFILE :output file of 3 columns of gradients.  \n"
+"  -out_grad_cols_bwt OUTFILE :output file of 3 columns of gradients, each  \n"
+"                           weighted by the b-value.\n"
 "  -out_gmatA_cols OUTFILE :output file of 6 columns of g-matrix in 'A(FNI)'\n"
 "                           `diagonal first'-format. (See above.)\n"
 "  -out_gmatT_cols OUTFILE :output file of 6 cols of g-matr in 'T(ORTOISE)'\n"
@@ -164,6 +179,7 @@ void usage_1dDW_Grad_o_Mat(int detail)
 "    -out_bval_col         :switch to put a column of the bvalues as the\n"
 "                           first column in the output data.\n"
 "    -out_bval_row_sep BB  :output a file BB of bvalues in a single row.\n"
+"    -out_bval_col_sep BB  :output a file BB of bvalues in a single row.\n"
 "\n"
 "* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n"
 "\n"
@@ -205,6 +221,9 @@ int main(int argc, char *argv[])
    int YES_B = 0;
    int EXTRA_ZEROS=0;
    int HAVE_BVAL = 0;
+   int HAVE_BVAL_EFF = 0; // can calc bval from input, not sep file
+   int USE_BWT = 0; // output grad cols weighted by b-value
+   float MAX_BVAL = 0.; // calc max. bval for possible use scaling
    int BVAL_OUT = 0; 
    int BVAL_OUT_SEP = 0; 
    float BMAX_REF = 1; // i.e., essentially zero
@@ -275,6 +294,19 @@ int main(int argc, char *argv[])
 
          iarg++ ; continue ;
 		}
+
+      if( strcmp(argv[iarg],"-in_grad_cols_bwt") == 0 ){
+			if( ++iarg >= argc ) 
+				ERROR_exit("Need argument after '-in_grad_cols_bwt'\n") ;
+
+         Fname_input = argv[iarg];
+         count_in++;
+         IN_FORM = 1;
+         HAVE_BVAL_EFF = 1;
+
+         iarg++ ; continue ;
+		}
+
       if( strcmp(argv[iarg],"-in_gmatT_cols") == 0 ){
 			if( ++iarg >= argc ) 
 				ERROR_exit("Need argument after '-in_matT_cols'\n") ;
@@ -285,6 +317,7 @@ int main(int argc, char *argv[])
          
          iarg++ ; continue ;
 		} 
+
       if( strcmp(argv[iarg],"-in_gmatA_cols") == 0 ){
 			if( ++iarg >= argc ) 
 				ERROR_exit("Need argument after '-in_matA_cols'\n") ;
@@ -302,6 +335,7 @@ int main(int argc, char *argv[])
          Fname_input = argv[iarg];
          count_in++;
          IN_FORM = 4;
+         HAVE_BVAL_EFF = 1;
          
          iarg++ ; continue ;
 		}
@@ -312,7 +346,8 @@ int main(int argc, char *argv[])
          Fname_input = argv[iarg];
          count_in++;
          IN_FORM = 5;
-         
+         HAVE_BVAL_EFF = 1;
+
          iarg++ ; continue ;
 		}
 
@@ -379,6 +414,18 @@ int main(int argc, char *argv[])
          iarg++ ; continue ;
 		}
 
+      if( strcmp(argv[iarg],"-out_grad_cols_bwt") == 0 ){
+			if( ++iarg >= argc ) 
+				ERROR_exit("Need argument after '-out_grad_cols_bwt'\n") ;
+
+         Fname_output = argv[iarg];
+         count_out++;
+         OUT_FORM = 1;
+         USE_BWT = 1;
+         
+         iarg++ ; continue ;
+		}
+
       if( strcmp(argv[iarg],"-in_bvals") == 0 ){
 			if( ++iarg >= argc ) 
 				ERROR_exit("Need argument after '-in_bvals'\n") ;
@@ -414,7 +461,17 @@ int main(int argc, char *argv[])
          
          iarg++ ; continue ;
 		}
-      
+
+      if( strcmp(argv[iarg],"-out_bval_col_sep") == 0) {
+         if( ++iarg >= argc ) 
+				ERROR_exit("Need argument after '-out_bval_col_sep'\n") ;
+         
+         Fname_outputBV = argv[iarg];
+         BVAL_OUT_SEP = 2;
+         
+         iarg++ ; continue ;
+		}
+
 		if( strcmp(argv[iarg],"-proc_dset") == 0 ){ // in DWIs
 			if( ++iarg >= argc ) 
 				ERROR_exit("Need argument after '-proc_dset'") ;
@@ -499,10 +556,12 @@ int main(int argc, char *argv[])
    }
    
 
-   if(!HAVE_BVAL && (BVAL_OUT || BVAL_OUT_SEP)) {
+   if((!HAVE_BVAL_EFF && !HAVE_BVAL) && (BVAL_OUT || BVAL_OUT_SEP)) {
       fprintf(stderr,
               "\n** Bad Command-lining! "
-              "Can't have ask for outputting bvals with no '-in_bvals FILE'.\n");
+              "\n\t Can't have ask for outputting bvals with no '-in_bvals FILE'"
+              "\n\t or without using one of the '-in_bmat* FILE' options"
+              "\n\t or without using the '-in_grad_cols_bwt FILE' option.\n");
       exit(8);
    }
 
@@ -598,7 +657,7 @@ int main(int argc, char *argv[])
             OUT_MATR[i][3+j+1] = *(READIN+6*i+3+j);
          }
 
-         for( j=0; j<3 ; j++ ) 
+         for( j=1; j<4 ; j++ ) 
             if(OUT_MATR[i][j] < 0 )
                CHECK++;
       }
@@ -619,7 +678,7 @@ int main(int argc, char *argv[])
          OUT_MATR[i][6] = *(READIN +6*i+4)/2.;
       }
       for( i=0; i<idx ; i++ ) 
-         for( j=0; j<3 ; j++ ) 
+         for( j=1; j<4 ; j++ ) 
             if(OUT_MATR[i][j] < 0 )
                CHECK++;
       if(CHECK > 0)
@@ -634,8 +693,8 @@ int main(int argc, char *argv[])
       exit(2);
    }
    
-   // get bval info
-   if( ( (IN_FORM ==4 ) || (IN_FORM ==5 ) ) ) { //bval
+   // get bval info: this 'if' is the cases where HAVE_BVAL_EFF==1
+   if( ( IN_FORM==4 ) || (IN_FORM==5 ) ) { //bval
       for( i=0; i<idx ; i++ ) {
          OUT_MATR[i][0] = OUT_GRAD[i][0] =
             OUT_MATR[i][1] + OUT_MATR[i][2] + OUT_MATR[i][3];
@@ -644,11 +703,23 @@ int main(int argc, char *argv[])
                OUT_MATR[i][j]/= OUT_MATR[i][0];
       }
    }
+   else if ( IN_FORM==1 && HAVE_BVAL_EFF ) { //apr,2016: bval
+      for( i=0; i<idx ; i++ ) {
+         OUT_MATR[i][0] = OUT_GRAD[i][0] =
+            sqrt( OUT_GRAD[i][1]*OUT_GRAD[i][1] + 
+                  OUT_GRAD[i][2]*OUT_GRAD[i][2] + 
+                  OUT_GRAD[i][3]*OUT_GRAD[i][3] );
+         if( OUT_GRAD[i][0] > 0.000001)
+            for( j=1 ; j<4 ; j++ )
+               OUT_GRAD[i][j]/= OUT_GRAD[i][0];
+      }
+   }
    else if ( HAVE_BVAL )
       for( i=0; i<idx ; i++ ) {
-         OUT_MATR[i][0] = OUT_GRAD[i][0] =  *(READBVAL + i);
+         OUT_MATR[i][0] = OUT_GRAD[i][0] = *(READBVAL + i);
       }
-   else if ( OUT_FORM > 3 || BVAL_OUT ||  BVAL_OUT_SEP || HAVE_BMAX_REF ) {
+   else if ( OUT_FORM > 3 || BVAL_OUT ||  BVAL_OUT_SEP || HAVE_BMAX_REF 
+             || USE_BWT) {
       fprintf(stderr, "ERROR:  you asked for b-value dependent output, "
               "but gave me no bvals to work with.\n");
       exit(2);
@@ -660,6 +731,15 @@ int main(int argc, char *argv[])
    //    + matr[0] has bval
    //    + matr file normalized and in diagonal form
    // * * *  ** * * * * * * * * ** ** * * ** * * ** * ** * ** * * *
+
+   // in case we want max bval: should be able to get from either
+   // OUT_* array.
+   for( i=0 ; i<idx ; i++) 
+      if( MAX_BVAL < OUT_GRAD[i][0] )
+         MAX_BVAL = OUT_GRAD[i][0];
+
+   if( USE_BWT || HAVE_BVAL || HAVE_BVAL_EFF )
+      INFO_message("Maximum bvalue input is: %.0f\n",MAX_BVAL);
 
    for( i=0; i<idx ; i++ ) 
       if( IN_FORM > 1)
@@ -752,8 +832,10 @@ int main(int argc, char *argv[])
       if( EXTRA_ZEROS ) {
          if( BVAL_OUT )
             fprintf(fout,"%8d  ", 0);
-         if( BVAL_OUT_SEP )
+         if( BVAL_OUT_SEP==1 )
             fprintf(foutBV,"%8d  ", 0);
+         else if( BVAL_OUT_SEP==2 )
+            fprintf(foutBV,"%8d\n", 0);
 
          if( OUT_FORM == 1 )
             for( k=1 ; k<4 ; k++ )
@@ -770,17 +852,22 @@ int main(int argc, char *argv[])
             
             if( BVAL_OUT )
                fprintf(fout,"%8d  ", (int) OUT_GRAD[i][0]);
-            if( BVAL_OUT_SEP )
+            if( BVAL_OUT_SEP==1 )
                fprintf(foutBV,"%8d  ", (int) OUT_GRAD[i][0]);
+            if( BVAL_OUT_SEP==2 )
+               fprintf(foutBV,"%8d\n", (int) OUT_GRAD[i][0]);
 
             if( (OUT_FORM == 4) || (OUT_FORM ==5) )
                for( k=1 ; k<7 ; k++ )
                   OUT_MATR[i][k]*= OUT_MATR[i][0];
             
             if( OUT_FORM == 1 ) // grad col
-               for( k=1 ; k<4 ; k++ )
-                  fprintf(fout,"%11.5f  ", OUT_GRAD[i][k]);
-            
+               for( k=1 ; k<4 ; k++ ){
+                  if( !USE_BWT )
+                     fprintf(fout,"%11.5f  ", OUT_GRAD[i][k]);
+                  else
+                     fprintf(fout,"%11.5f  ", OUT_GRAD[i][k]*OUT_GRAD[i][0]);
+               }
             else if( (OUT_FORM == 3) || (OUT_FORM == 5) ) { // gmat
                for( k=1 ; k<6 ; k++ )
                   fprintf(fout,"%11.5f  ", OUT_MATR[i][k]);
@@ -805,7 +892,7 @@ int main(int argc, char *argv[])
          }
       }
    }
-   else if(OUT_FORM ==0) {
+   else if( OUT_FORM==0 ) {
       if(BVAL_OUT)
          WARNING_message("Ignoring '-out_bval_col' option, since "
                          " you are outputting in rows.");
@@ -813,15 +900,23 @@ int main(int argc, char *argv[])
       for( k=1 ; k<4 ; k++ ) {
          if(EXTRA_ZEROS){
             fprintf(fout,"% -11.5f  ", 0.0);
-            if( (k==1) && BVAL_OUT_SEP ) // only output 1 zeroin bval file
-               fprintf(foutBV,"%8d  ", 0);
+            if( k==1) {
+               if (BVAL_OUT_SEP==1 ) // only output 1 zeroin bval file
+                  fprintf(foutBV,"%8d  ", 0);
+               else if (BVAL_OUT_SEP==2 ) // only output 1 zeroin bval file
+                  fprintf(foutBV,"%8d\n", 0);
+            }
          }
          ct_dwi = 0;
          for(i=0 ; i<idx ; i++) {
             if(FLAG[i]) {
                fprintf(fout,"% -11.5f  ", OUT_GRAD[i][k]);
-               if( (k==1) && BVAL_OUT_SEP )// only output 1 zeroin bval file
-                  fprintf(foutBV,"%8d  ", (int) OUT_GRAD[i][0]);
+               if( k==1 ) {
+                  if( BVAL_OUT_SEP==1 )// only output 1 zeroin bval file
+                     fprintf(foutBV,"%8d  ", (int) OUT_GRAD[i][0]);
+                  else if ( BVAL_OUT_SEP==2 )// only output 1 zeroin bval file
+                     fprintf(foutBV,"%8d\n", (int) OUT_GRAD[i][0]);
+               }
                ct_dwi++;
             }
             if( (ct_dwi == Ndwi_final) && DWI_COMP_FAC ) {
@@ -956,7 +1051,7 @@ int main(int argc, char *argv[])
       printf("\n\t-> as well as the data_set '%s'",DSET_FILECODE(dwout));
    }
    if(BVAL_OUT_SEP)
-      printf("\n\t-> and even the b-value rows '%s'",Fname_outputBV);
+      printf("\n\t-> and even the b-value file '%s'",Fname_outputBV);
    printf("\n\n");
 
    exit(0);   
@@ -994,7 +1089,7 @@ int GradConv_Gsign_from_BmatA( float *grad, float *matr )
 int GradConv_BmatA_from_Gsign( float *matr, float *grad )
 {
    int i;
-   
+
    for( i=0 ; i<3 ; i++)
       matr[i] =  grad[i]*grad[i];
    matr[3] = grad[0]*grad[1];
