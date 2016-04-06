@@ -1214,7 +1214,7 @@ echo "       meant to get -surf_anat to have a comparable orientation."
 echo ""
 @global_parse -gopts_help
 echo ""
-echo "More help may be found at http://afni.nimh.nih.gov/ssc/ziad/SUMA/SUMA_doc.htm"
+echo "More help may be found at https://afni.nimh.nih.gov/ssc/ziad/SUMA/SUMA_doc.htm"
 echo ""
 echo "Ziad Saad (saadz@mail.nih.gov)"
 echo "SSCC/NIMH/ National Institutes of Health, Bethesda Maryland"

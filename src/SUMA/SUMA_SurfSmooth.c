@@ -315,7 +315,7 @@ void usage_SUMA_SurfSmooth (SUMA_GENERIC_ARGV_PARSE *ps, int detail)
 "                the results then your choice is fine (smoothing has\n"
 "                converged).\n"
 "                For an example of the artifact caused by small Niter see:\n"
-"          http://afni.nimh.nih.gov/sscc/staff/ziad/SUMA/SuSmArt/DSart.html\n"
+"          https://afni.nimh.nih.gov/sscc/staff/ziad/SUMA/SuSmArt/DSart.html\n"
 "                To avoid this problem altogether, it is better that you use \n"
 "                the newer method HEAT which does not suffer from this\n"
 "                problem.\n"

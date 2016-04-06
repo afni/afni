@@ -352,10 +352,10 @@ xmat_tool.py: GUI help
       0. Download the X-matrix and sample time series from the AFNI_data4
          class data (from the "Soup to Nuts" hands-on class).
 
-         from:     http://afni.nimh.nih.gov/pub/dist/edu/data/CD.expanded
+         from:     https://afni.nimh.nih.gov/pub/dist/edu/data/CD.expanded
          download: AFNI_data4/misc_files/X.AD4.xmat.1D
 
-         from:     http://afni.nimh.nih.gov/pub/dist/edu/data/CD.expanded
+         from:     https://afni.nimh.nih.gov/pub/dist/edu/data/CD.expanded
          download  AFNI_data4/misc_files/norm.022_043_012.1D
 
          Note that norm.022_043_012.1D file was created from the all_runs

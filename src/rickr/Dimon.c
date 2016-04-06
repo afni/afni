@@ -136,10 +136,13 @@ static char * g_history[] =
     " 4.12 Aug  3, 2015 [rickr]: \n",
     "      - lost timing info in change to 3D+t (version 4.04, above)\n"
     "      - add it back via new sequence type 3D+timing\n"
+    " 4.13 Mar 24, 2016 [rickr]: \n",
+    "      - added option -use_obl_origin for oblique data\n"
+    "      - run to3d via 'tcsh -x' to see the command\n"
     "----------------------------------------------------------------------\n"
 };
 
-#define DIMON_VERSION "version 4.12 (August 3, 2015)"
+#define DIMON_VERSION "version 4.13 (March 24, 2016)"
 
 /*----------------------------------------------------------------------
  * Dimon - monitor real-time aquisition of Dicom or I-files
@@ -3153,6 +3156,10 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
         {
             p->opts.use_slice_loc = 1;
         }
+        else if ( ! strncmp( argv[ac], "-use_obl_origin", 12 ) )
+        {
+            p->opts.use_obl_origin = 1;
+        }
         else if ( ! strncmp( argv[ac], "-zorder", 6 ) )
         {
             if ( ++ac >= argc )
@@ -4161,6 +4168,7 @@ static int idisp_opts_t( char * info, opts_t * opt )
             "   quit, no_wait      = %d, %d\n"
             "   use_last_elem      = %d\n"
             "   use_slice_loc      = %d\n"
+            "   use_obl_origin     = %d\n"
             "   show_sorted_list   = %d\n"
             "   gert_reco          = %d\n"
             "   gert_filename      = %s\n"
@@ -4196,7 +4204,7 @@ static int idisp_opts_t( char * info, opts_t * opt )
             opt->max_quiet_trs, opt->nice, opt->pause,
             opt->sleep_frac, opt->sleep_init, opt->sleep_vol,
             opt->debug, opt->quit, opt->no_wait,
-            opt->use_last_elem, opt->use_slice_loc,
+            opt->use_last_elem, opt->use_slice_loc, opt->use_obl_origin,
             opt->show_sorted_list, opt->gert_reco,
             CHECK_NULL_STR(opt->gert_filename),
             CHECK_NULL_STR(opt->gert_prefix),
@@ -5498,6 +5506,12 @@ printf(
     "                        which has the effect of causing to3d to \n"
     "                        fail rather than come up in interactive\n"
     "                        mode if the input has an error.\n"
+    "\n"
+    "    -use_obl_origin    : if oblique, pass -oblique_origin to to3d\n"
+    "\n"
+    "        This will usually apply a more accurate origin to the volume.\n"
+    "        Maybe this will become the default operation in the future.\n"
+    "\n"
     "  ---------------------------------------------------------------\n"
     "\n"
     "  Author: R. Reynolds - %s\n"
@@ -5825,6 +5839,15 @@ static int create_gert_dicom( stats_t * s, param_t * p )
         if( want_ushort2float )
            fprintf(fp, "%*s     -ushort2float                 \\\n",indent,"");
 
+        /* check -use_obl_origin against oblique   24 Mar 2016 */
+        if( s->oblique ) {
+          if( opts->use_obl_origin ) {
+            fprintf(stderr,"++ oblique data: applying to3d -oblique_origin\n");
+            fprintf(fp,"%*s     -oblique_origin               \\\n",indent,"");
+          } else fprintf(stderr,
+                       "** warning: oblique data, consider -use_obl_origin\n");
+        }
+
         fprintf(fp, "%*s     -@ < %s\n\n", indent, "", outfile);
         if( opts->num_chan > 1 ) fprintf(fp, "end\n\n");
 
@@ -5848,7 +5871,7 @@ static int create_gert_dicom( stats_t * s, param_t * p )
 
     /* and maybe the user wants to actually execute it */
     if( opts->gert_exec ) {
-        sprintf(command, "./%s", sfile);
+        sprintf(command, "tcsh -x %s", sfile);
         system(command);
     }
 
@@ -6194,7 +6217,7 @@ static int create_gert_reco( stats_t * s, opts_t * opts )
 
     /* and maybe the user wants to actually execute it */
     if( opts->gert_exec ) {
-        sprintf(command, "./%s", IFM_GERT_SCRIPT);
+        sprintf(command, "tcsh -x %s", IFM_GERT_SCRIPT);
         system(command);
     }
 

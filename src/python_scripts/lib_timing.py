@@ -905,6 +905,11 @@ class AfniTiming(LD.AfniData):
          off_means.append(m1)
          off_stdev.append(s)
 
+      # if no events ere found, we're outta here
+      if len(off_means) == 0:
+         print 'file %s: no events?' % self.name
+         return 0, ''
+
       # and get overall stats (absolute and fractional)
       offs = self.get_TR_offset_stats(tr)
 

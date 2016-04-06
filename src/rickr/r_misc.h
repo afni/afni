@@ -9,6 +9,8 @@ int r_sprintf_long_to_hex ( char * dest, unsigned long lsrc,
 unsigned long r_hex_str_to_long ( char * src, int hex_digits );
 
 char * cat_strings        (char * slist[], int nstr, char * sepstr);
+int disp_strings(FILE * fp, char * mesg, int nstr, char * slist[],
+                 int bot, int top, char * sepstr, int newline);
 
 /* -------------------------------------------------------------- */
 

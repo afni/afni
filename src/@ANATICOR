@@ -237,15 +237,15 @@ HELP:
    goto END
    
 PARSE:
-	set Narg = $#
-	
-	#find the locations of -ts and -roi, etc
+   set Narg = $#
+   
+   #find the locations of -ts and -roi, etc
   set verb = 0
   set cnt = 1
-	set fn_epi = ''
-	set fn_aseg = ''
-	set fn_mo = ''
-	set fn_nuisance = ''
+   set fn_epi = ''
+   set fn_aseg = ''
+   set fn_mo = ''
+   set fn_nuisance = ''
   set outfile = ''
   set r = 15
   set DoNuisance = 0
@@ -256,18 +256,18 @@ PARSE:
   set view = +orig
   set polort = -1
    while ($cnt <= $Narg)
-		if ("$argv[$cnt]" == "-echo") then
+      if ("$argv[$cnt]" == "-echo") then
          set echo
-         set SubLoc = $cnt	
+         set SubLoc = $cnt 
       endif
       if ("$argv[$cnt]" == "-prefix") then
-         set SubLoc = $cnt		
-		   if ($SubLoc == $Narg) then
-				echo "Need option after -prefix"
+         set SubLoc = $cnt    
+         if ($SubLoc == $Narg) then
+            echo "Need option after -prefix"
             goto END
-			else
-				@ cnt ++
-				set outfile = "$argv[$cnt]"
+         else
+            @ cnt ++
+            set outfile = "$argv[$cnt]"
             set ee = `@CheckForAfniDset ${init_path}/${outfile}${view}`
             if ( $ee > 0 ) then
                echo "Output dset ${init_path}/${outfile}${view} exists"
@@ -275,144 +275,144 @@ PARSE:
                goto END
             endif
             set NxtInd = $cnt
-			endif
+         endif
       endif
-		
+      
       if ("$argv[$cnt]" == "-aseg") then
-         set SubLoc = $cnt		
+         set SubLoc = $cnt    
       if ($SubLoc == $Narg) then
-				echo "Need option after -aseg"
+            echo "Need option after -aseg"
             goto END
-			else
-				@ cnt ++
-				set fn_aseg = "$argv[$cnt]"
+         else
+            @ cnt ++
+            set fn_aseg = "$argv[$cnt]"
         set NxtInd = $cnt
-			endif
+         endif
       endif
 
       if ("$argv[$cnt]" == "-view") then
-         set SubLoc = $cnt		
-      if ($SubLoc == $Narg) then
-				echo "Need option after -view"
+         set SubLoc = $cnt    
+         if ($SubLoc == $Narg) then
+            echo "Need option after -view"
             goto END
-			else
-				@ cnt ++
-				set view = "$argv[$cnt]"
+         else
+            @ cnt ++
+            set view = "$argv[$cnt]"
             if (  $view != "+orig" &&  \
                   $view != "+acpc" &&  \
                   $view != "+tlrc" ) then
                echo "Bad -view value of $view"
                goto END
             endif
-        set NxtInd = $cnt
-			endif
+            set NxtInd = $cnt
+         endif
       endif
       
       if ("$argv[$cnt]" == "-polort") then
-         set SubLoc = $cnt		
-      if ($SubLoc == $Narg) then
-				echo "Need option after -polort"
+         set SubLoc = $cnt    
+         if ($SubLoc == $Narg) then
+            echo "Need option after -polort"
             goto END
-			else
-				@ cnt ++
-				set polort = `printf %d $argv[$cnt]`
-        set NxtInd = $cnt
-			endif
+         else
+            @ cnt ++
+            set polort = `printf %d $argv[$cnt]`
+           set NxtInd = $cnt
+         endif
       endif
-	  	
+      
       if ("$argv[$cnt]" == "-ts") then
-        set SufLoc = $cnt		
-		  if ($SufLoc == $Narg) then
-				echo "Need option after -ts"
+        set SufLoc = $cnt     
+        if ($SufLoc == $Narg) then
+            echo "Need option after -ts"
             goto END
-			else
-				@ cnt ++
+         else
+            @ cnt ++
             set fn_epi = "$argv[$cnt]"
             set NxtInd = $cnt
-			endif
+         endif
       endif
 
       if ("$argv[$cnt]" == "-motion") then
-         set SubLoc = $cnt		
-		   if ($SubLoc == $Narg) then
-				echo "Need option after -motion"
+         set SubLoc = $cnt    
+         if ($SubLoc == $Narg) then
+            echo "Need option after -motion"
             goto END
-			else
-				@ cnt ++
-				set fn_mo = "$argv[$cnt]"
+         else
+            @ cnt ++
+            set fn_mo = "$argv[$cnt]"
             if ("${fn_mo:r}.1D" != "$fn_mo") then
                echo "motion must have a .1D extension"
             endif
             set NxtInd = $cnt
-			endif
+         endif
       endif
       
 
       if ("$argv[$cnt]" == "-nuisance") then
-         set SubLoc = $cnt		
-		   if ($SubLoc == $Narg) then
-				echo "Need option after -nuisance"
+         set SubLoc = $cnt    
+         if ($SubLoc == $Narg) then
+            echo "Need option after -nuisance"
             goto END
-			else
-				@ cnt ++
-				set fn_nuisance = "$argv[$cnt]"
-				set DoNuisance = 1
+         else
+            @ cnt ++
+            set fn_nuisance = "$argv[$cnt]"
+            set DoNuisance = 1
             if ("${fn_nuisance:r}.1D" != "$fn_nuisance") then
                echo "nuisance must have a .1D extension"
             endif
             set NxtInd = $cnt
-			endif
+         endif
       endif
       
       if ("$argv[$cnt]" == "-radius") then
-         set SubLoc = $cnt		
-		     if ($SubLoc == $Narg) then
-				    echo "Need option after -radius"
+         set SubLoc = $cnt    
+         if ($SubLoc == $Narg) then
+            echo "Need option after -radius"
             goto END
-			   else
-				    @ cnt ++
-				    set r = "$argv[$cnt]"
-			   endif
+         else
+            @ cnt ++
+            set r = "$argv[$cnt]"
+            set NxtInd = $cnt   # 10 Feb 2016 [rickr]
+         endif
       endif
       
-      
       if ("$argv[$cnt]" == "-no_ventricles") then
-         set SufLoc = $cnt		
+         set SufLoc = $cnt    
          set NxtInd = $cnt
-		   
+         
          set DoLVe = 0
       endif
       
       if ("$argv[$cnt]" == "-Rsq_WMe") then
-         set SufLoc = $cnt		
+         set SufLoc = $cnt    
          set NxtInd = $cnt
-		   
+         
          set DoRsq = 1
       endif
       
       if ("$argv[$cnt]" == "-coverage") then
-         set SufLoc = $cnt		
+         set SufLoc = $cnt    
          set NxtInd = $cnt
-		   
+         
          set DoCover = 1
       endif
       
       if ("$argv[$cnt]" == "-dirty") then
-         set SufLoc = $cnt		
+         set SufLoc = $cnt    
          set NxtInd = $cnt
-		   
+         
          set cleanup = 0
       endif
       
       if ("$argv[$cnt]" == "-verb") then
-         set SufLoc = $cnt		
+         set SufLoc = $cnt    
          set NxtInd = $cnt
-		   
+         
          set verb = 1
       endif
-		
-		@ cnt ++
-	end
+      
+      @ cnt ++
+   end   # end while
 
 @ NxtInd ++
 set others_list = ( $argv[$NxtInd-$#argv] )

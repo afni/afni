@@ -165,3 +165,49 @@ char * cat_strings(char * slist[], int nstr, char * sepstr)
    return newstr;
 }
 
+/* display sequence of slist strings to FILE stream, from bot to top
+ * (follow with newline)
+ * 
+ * example: disp_strings(stderr, "-- prior args: ",
+ *                       argc, argv, nopt-3, nopt-1, " ", 1);
+ *
+ *      fp      : FILE pointer to write to
+ *      nstr    : total number of strings in list, just for checking
+ *      slist   : array of strings
+ *      bot     : bottom index to display
+ *      top     : top index to display
+ *      sepstr  : separation string, e.g. " ", "\n", "\n   "
+ *
+ * - require bot >= 0, bot <= top and top < nstr
+ *
+ */
+int disp_strings(FILE * fp, char * mesg, int nstr, char * slist[],
+                 int bot, int top, char * sepstr, int newline)
+{
+   char ** sptr;
+   int     first=bot, last=top, ind;
+
+   /* check inputs */
+   if( !fp || nstr <= 0 || !slist ) return 1;
+
+   if( mesg ) fputs(mesg, fp);
+
+   /* limit bounds */
+   if( first < 0 ) first = 0;
+   if( last >= nstr ) last = nstr-1;
+   if( first > last ) return 1;
+
+   /* print first, then rest with sepstr */
+   ind = first;
+   sptr = slist + ind;
+   fputs(*sptr ? *sptr : "<NULL>", fp);
+
+   for( ind+=1, sptr+=1; ind <= last; ind++, sptr++ ) {
+      if( sepstr ) fputs(sepstr, fp);
+      fputs(*sptr ? *sptr : "<NULL>", fp);
+   }
+
+   if( newline ) fputc('\n', fp);
+
+   return 0;
+}

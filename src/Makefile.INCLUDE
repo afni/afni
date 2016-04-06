@@ -98,7 +98,7 @@ PROGRAMS = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge count   
            column_cat 3dUnifize 3dNwarpCat 3dQwarp 3dLocalHistog 3dNwarpAdjust  \
            3dNwarpFuncs 3dTproject afni_open 3dConformist 3dNwarpXYZ 3dTRfix    \
            3dToyProg 3dRankizer nifti1_tool gifti_tool cifti_tool images_equal  \
-           uniq_images                                                          \
+           uniq_images tokens                                                   \
            $(EXTRAS)
 
 PROGRAMS_NOPLUG = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge      \
@@ -135,7 +135,7 @@ PROGRAMS_NOPLUG = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge  
                   3dUnifize 3dNwarpCat 3dQwarp 3dLocalHistog 3dNwarpAdjust 3dTRfix  \
                   3dNwarpFuncs 3dTproject  afni_open   3dConformist 3dNwarpXYZ      \
                   3dToyProg nifti1_tool gifti_tool cifti_tool images_equal          \
-                  uniq_images stimband 1dNLfit                                      \
+                  uniq_images stimband 1dNLfit tokens                               \
                   $(EXTRAS)
 
 # For CYGWIN (look for "exe" to find various places below)
@@ -2643,6 +2643,13 @@ column_cat: rickr/column_cat.c
 3dexample1: 3dexample1.o libmri.a
 	$(RM) $@
 	$(CC) -o 3dexample1 3dexample1.o $(LFLAGS) $(LLIBS)
+
+tokens: rickr/tokens.c
+	( cd rickr ;                                                    \
+	$(MAKE) tokens 'RM=$(RM)' 'CC=$(CC)' 'IFLAGS=$(ISFLAGS)'      	\
+			'LFLAGS=$(LFLAGS)' 'LLIBS=$(LLIBS)' ;           \
+	$(MV) tokens .. ; )
+
 
 selenium_test: selenium_test.o
 	$(RM) $@

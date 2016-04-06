@@ -14,30 +14,37 @@
 
 set prog = `basename $0`
 set afnisite = https://afni.nimh.nih.gov
+set aub_version = "2.4, March 30, 2016"
 
 # ----------------------------------------------------------------------
 # history section
+
 goto POST_HIST
 SHOW_HIST:
 cat << EOF
 -------------------------------------------------------------------------------
 history for $prog :
 
-  ...         : a few updates
-  07 Mar 2012 : existing package and install dir no longer required for -d
-  13 Sep 2012 : download and run the current version on the website
-              - added option -no_recur
-  21 Dec 2012 : do rehash before apsearch
-              - check download by looking for string in this file
-  01 Nov 2013 : Darwin defaults to 10.7 package
-  01 Dec 2013 : added -prog_list for Ziad
-  18 Dec 2013 : added check for system programs, -sys_ok and -help_system_progs
-  14 Jan 2014 : added more system programs
-  01 May 2014 : added -quick option; fixed sync of backup, was nesting
-  15 Jan 2015 : if bad option and current version, fail after version check
-  08 Apr 2015 : added -revert (zsaad and rickr)
-  25 Aug 2015 : update path and AFNI tab completion on initial install
-  08 Feb 2016 : access afni site via https protocol
+  ...              : a few updates
+  1.0  07 Mar 2012 : existing package and install dir no longer required for -d
+       13 Sep 2012 : download and run the current version on the website
+                   - added option -no_recur
+       21 Dec 2012 : do rehash before apsearch
+                   - check download by looking for string in this file
+       01 Nov 2013 : Darwin defaults to 10.7 package
+       01 Dec 2013 : added -prog_list for Ziad
+       18 Dec 2013 : added check for system programs, -sys_ok and
+                     -help_system_progs
+       14 Jan 2014 : added more system programs
+       01 May 2014 : added -quick option; fixed sync of backup, was nesting
+       15 Jan 2015 : if bad option and current version, fail after version check
+       08 Apr 2015 : added -revert (zsaad and rickr)
+       25 Aug 2015 : update path and AFNI tab completion on initial install
+  2.0  08 Feb 2016 : access afni site via https protocol
+  2.1  16 Feb 2016 : added -ver and initial statement of version
+  2.2  19 Feb 2016 : minor text changes (note get_prog and appease dglen)
+  2.3  29 Mar 2016 : added -no_cert_verify to omit certificate verification
+  2.4  30 Mar 2016 : possibly udpate .bashrc after .cshrc
 -------------------------------------------------------------------------------
 EOF
 exit
@@ -72,6 +79,8 @@ set do_apsearch = 1     # run apserach -update_all_afni_help
 set do_recur    = 1     # download a new version of @uab, first
 set quick       = 0     # no fancies (recur, apsearch)
 set revert      = 0     # revert binaries to those in backup directory
+set cert_verify = 1     # whether to verify CA certificate via SSL/TLS
+set use_curl    = 0
 
 set bad_opt     = ''    # if bad_opt and do_recur, see if we continue
 
@@ -130,12 +139,18 @@ while ( $ac <= $#argv )
         endif
         # decide on increment here, and continue
         continue
+    else if ( "$argv[$ac]" == "-no_cert_verify" ) then
+        # add options to turn verification off
+        set cert_verify = 0
     else if ( "$argv[$ac]" == "-no_recur" ) then
         set do_recur = 0
     else if ( "$argv[$ac]" == "-quick" ) then
         set quick = 1
     else if ( "$argv[$ac]" == "-sys_ok" ) then
         set sys_ok = 1
+    else if ( "$argv[$ac]" == "-ver" ) then
+        echo $aub_version
+        exit 0
     else if ( "$argv[$ac]" == "-test" ) then
         set testing = 1
     else
@@ -203,6 +218,21 @@ if ( $help ) then
     echo "        26 Sep 2012 : -update_apsearch is applied by default"
     echo "                      (if installed afni is in PATH)"
     echo ""
+    echo "    -no_cert_verify       : do not verify the server CA certificate"
+    echo ""
+    echo "        This option is regarding SSL/TLS Certificate Verification"
+    echo "        via some CA (certificate authority) list.  It may be needed"
+    echo "        if the client CA list does not recognize the certificate"
+    echo "        provided by the afni server."
+    echo ""
+    echo "        For curl, this appends the '--insecure' option."
+    echo "        For wget, this appends the '--no-check-certificate' option."
+    echo ""
+    echo "        To check whether curl requires this, look for WinSSL in the"
+    echo "        output from: curl -V"
+    echo ""
+    echo "        See https://curl.haxx.se/docs/sslcerts.html for details."
+    echo ""
     echo "    -no_recur             : do not download and run new @uab script"
     echo "    -package PACKAGE      : install distribution package PACKAGE"
     echo "    -prog_list PROGRAMS   : install given programs, not whole PACKAGE"
@@ -258,6 +288,9 @@ if ( $help ) then
     exit
 endif
 
+
+echo "-- running $prog version $aub_version"
+
 # note any current AFNI location
 which afni >& /dev/null
 if ( $status ) then
@@ -277,7 +310,7 @@ if ( $abin == "" ) then
        echo "-- install dir: using default ~/abin"
        set abin = ~/abin
     else
-       # have program, nuke trailing 'afni' to get directory
+       # have program, remove trailing 'afni' to get directory
        set abin = $cur_afni
        echo "-- install dir: using existing $abin"
     endif
@@ -352,6 +385,21 @@ endif
 set get_prog = ( "wget" )
 if ( $use_curl || $missing_wget ) set get_prog = ( curl -O -f )
 
+# do we verify certificates via CA list?  if not, speicify
+if ( ! $cert_verify ) then
+   if ( $get_prog[1] == "wget" ) then
+      set get_prog = ( $get_prog --no-check-certificate )
+   else if ( $get_prog[1] == "curl" ) then
+      set get_prog = ( $get_prog --insecure )
+   else
+      echo "** cert_verify: confused about get_prog: $get_prog"
+      exit 1
+   endif
+endif
+
+echo "-- will download from $afnisite via $get_prog"
+echo ""
+
 # make sure package is set to the base name
 if ( $package =~ *.tgz ) set package = $package:r
 
@@ -425,7 +473,7 @@ endif
 # ----------------------------------------------------------------------
 # remove any old package
 if ( ! $revert && ( -f $package.tgz || -d $package ) ) then
-    echo nuking old package...
+    echo deleting old package $package.tgz ...
     \rm -fr $package $package.tgz
     if ( $status ) then
         echo "** failed to remove old package $package"
@@ -435,7 +483,7 @@ endif
 
 # remove any temp install directory
 if ( -d $tmp_dir ) then
-    echo nuking old temporary directory...
+    echo deleting old temporary directory...
     \rm -fr $tmp_dir
 endif
 
@@ -460,7 +508,7 @@ if ( $do_recur ) then
 
    set bin_root = $afnisite/pub/dist/bin
    set get_package = $bin_root/$package/$prog
-   echo "++ getting install prog $package/$prog ..."
+   echo "++ getting install prog: $get_prog $package/$prog ..."
    $get_prog $get_package
 
    # ----- might not exist: try twice and skip if fail       26 Sep 2012
@@ -516,7 +564,7 @@ if ( $do_recur ) then
       tcsh $temp_prog -no_recur $argv
       set ss = $status
       if ( ! $ss ) then
-         echo "\n...finished, removing temp version, $temp_prog"
+         echo "...finished, removing temp version, $temp_prog"
          \rm -f $temp_prog
       endif
       exit $ss  # exit with status of called program
@@ -570,7 +618,7 @@ else
   set pp = afni
 endif
 set get_package = $afnisite/pub/dist/bin/$package/$pp
-echo "++ downloading test file $package/$pp ..."
+echo "++ downloading test file: $get_prog $package/$pp ..."
 $get_prog $get_package
 cmp -s $pp ../$pp
 if ( ! $status ) then
@@ -602,7 +650,7 @@ sleep 1
 
 # download the full binary set or list of programs
 if ( $#prog_list == 0 ) then
-   echo "++ downloading full $package.tgz package..."
+   echo "++ downloading full package: $get_prog $package.tgz ..."
    set get_package = $afnisite/pub/dist/tgz/$package.tgz
    $get_prog $get_package
    if ( $status ) then
@@ -669,12 +717,12 @@ else if ( $make_backup ) then
        \mv ../* $backup_dir
     endif
 
-    # nuke previous auto-backup directory
+    # delete previous auto-backup directory
     if ( -d ../$backup_dir ) then
-        echo nuking old backup directory, $backup_dir ...
+        echo deleting old backup directory, $backup_dir ...
         \rm -fr ../$backup_dir
     else if ( -d $backup_dir/$backup_dir ) then
-        echo nuking previous backup directory, $backup_dir ...
+        echo deleting previous backup directory, $backup_dir ...
         \rm -fr $backup_dir/$backup_dir
     endif
 
@@ -740,6 +788,21 @@ if ( $new_install && -d $abin && $?USER ) then
       rehash
       set cur_afni = `which afni`
       set cur_afni = $cur_afni:h
+
+      # ---------------------------
+      # do this for .bashrc, too...
+      set brcfile = ~/.bashrc
+      # to simplify, make sure the file exists
+      if ( ! -f $brcfile ) touch $brcfile
+
+      # and possibly edit
+      grep $abin:t $brcfile >& /dev/null
+      if ( $status ) then
+         # not found, so append to file
+         echo "++ updating PATH in $brcfile ..."
+         echo 'export PATH=$PATH:'$abin >> $brcfile
+      endif
+
    endif
 endif
 
@@ -754,9 +817,8 @@ if ( $do_apsearch && $cur_afni == $abin && $#prog_list == 0 ) then
    if ( $status && -f $rcfile ) then
       cat << EOF >> $rcfile
 
-set ahdir = \`apsearch -afni_help_dir\`
-if ( -f \$ahdir/all_progs.COMP ) then
-   source \$ahdir/all_progs.COMP
+if ( -f \$HOME/.afni/help/all_progs.COMP ) then
+   source \$HOME/.afni/help/all_progs.COMP
 endif
 
 EOF
@@ -772,7 +834,7 @@ if ( $package == macosx_10.7_Intel_64 && $#prog_list > 0 ) then
    echo ""
 endif
 
-# finally nuke any leftovers
+# finally remove any leftovers
 cd ..
 \rm -fr $tmp_dir
 

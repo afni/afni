@@ -34,7 +34,7 @@ help.MVM.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 Version 3.8.0, April 6, 2016
 Author: Gang Chen (gangchen@mail.nih.gov)
-Website - http://afni.nimh.nih.gov/sscc/gangc/MVM.html
+Website - https://afni.nimh.nih.gov/sscc/gangc/MVM.html
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
@@ -63,7 +63,7 @@ Usage:
  Applications of Multivariate Modeling to Neuroimaging Group Analysis: A
  Comprehensive Alternative to Univariate General Linear Model. NeuroImage 99,
  571-588. 10.1016/j.neuroimage.2014.06.027
- http://afni.nimh.nih.gov/pub/dist/HBM2014/Chen_in_press.pdf
+ https://afni.nimh.nih.gov/pub/dist/HBM2014/Chen_in_press.pdf
 
 For group analyis with effect estimates from multiple basis funcitons, cite:
 
@@ -86,7 +86,7 @@ Chen, G., Saad, Z.S., Adleman, N.E., Leibenluft, E., Cox, R.W. (2015).
  install.packages("snow")
 
  More details about 3dMVM can be found at 
- http://afni.nimh.nih.gov/sscc/gangc/MVM.html
+ https://afni.nimh.nih.gov/sscc/gangc/MVM.html
  
  Once the 3dMVM command script is constructed, it can be run by copying and
  pasting to the terminal. Alternatively (and probably better) you save the 
@@ -475,7 +475,7 @@ read.MVM.opts.batch <- function (args=NULL, verb = 0) {
    "         while type 3 is marginal. Type 2 is more powerful if all the",
    "         relevant higher-oder interactions do not exist. The default",
    "         is 3. The controversy surrounding the different types can be",
-   "         found at http://afni.nimh.nih.gov/sscc/gangc/SS.html\n", sep = '\n'
+   "         found at https://afni.nimh.nih.gov/sscc/gangc/SS.html\n", sep = '\n'
              ) ),
 
      '-num_glt' = apl(n=1, d=0, h = paste(
@@ -1266,7 +1266,10 @@ read.MVM.opts.from.file <- function (modFile='model.txt', verb = 0) {
    if(!exists('.DBG_args')) { 
       args = (commandArgs(TRUE))  
       rfile <- first.in.path(sprintf('%s.R',ExecName))  
-      try(save(args, rfile, file=".3dMVM.dbg.AFNI.args", ascii = TRUE), silent=TRUE) 
+      # do not save these log files on -help    31 Mar 2016 [rickr]
+      if ( ! '-help' %in% args ) {
+         try(save(args, rfile, file=".3dMVM.dbg.AFNI.args", ascii = TRUE), silent=TRUE) 
+      }
    } else {
       note.AFNI("Using .DBG_args resident in workspace")
       args <- .DBG_args

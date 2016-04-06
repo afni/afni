@@ -92,6 +92,8 @@ extern "C" {
    int   nhist_status = 0 ;         /* next place to be written */
    int   DBG_hist     = 1 ;         /* whether to track history */
 
+   char *DBG_commandline = NULL ;   /* 10 Mar 2016 */
+
 /*------------------------------------------------------*/
 #ifdef SHOWOFF
 # undef  SHSH
@@ -129,6 +131,10 @@ void DBG_dump_hist_status(FILE *hfp)
   for( ii=0 ; ii < nhist_status ; ii++ )
     if( hist_status[ii][0] != '\0' ) fprintf(hfp,"%s\n",hist_status[ii]) ;
   fprintf(hfp,"............................................................................\n") ;
+  if( DBG_commandline != NULL ){
+    fprintf(hfp,"** Command line was:\n%s\n",DBG_commandline) ;
+    fprintf(hfp,"............................................................................\n") ;
+  }
   return ;
 }
 
@@ -142,6 +148,8 @@ void DBG_traceback(void)
     fprintf(DBG_tfp,"Last STATUS: %s\n",last_status) ;
   for( tt=DBG_num-1; tt >= 1 ; tt-- )
     fprintf(DBG_tfp,"%*.*s%s\n",tt+1,tt+1," ",DBG_rout[tt]) ;
+  if( DBG_commandline != NULL )
+    fprintf(DBG_tfp,"** Command line was:\n%s\n",DBG_commandline) ;
 }
 
 /*------------------------------------------------------*/
@@ -166,8 +174,12 @@ void DBG_sigfunc(int sig)   /** signal handler for fatal errors **/
    if( DBG_num >= 0 ){
      for( ii=DBG_num-1; ii >= 0 ; ii-- )
        fprintf(stderr,"%*.*s%s\n",ii+1,ii+1," ",DBG_rout[ii]) ;
+     if( DBG_commandline != NULL )
+       fprintf(stderr,"** Command line was:\n%s\n",DBG_commandline) ;
    } else {
      fprintf(stderr,"[No debug tracing stack: DBG_num=%d]\n",DBG_num) ;
+     if( DBG_commandline != NULL )
+       fprintf(stderr,"** Command line was:\n%s\n",DBG_commandline) ;
    }
 #ifdef AFNI_VERSION_LABEL
    fprintf(stderr,"** AFNI version = " AFNI_VERSION_LABEL
@@ -236,6 +248,7 @@ void DBG_sigfunc(int sig)   /** signal handler for fatal errors **/
    extern int DBG_hist ;
    extern void DBG_setup_hist_status(void) ;          /* 27 Apr 2015 */
    extern void DBG_dump_hist_status(FILE *hfp) ;
+   extern char *DBG_commandline ;
 #endif /* _DEBUGTRACE_MAIN_ */
 
 #define DBG_SIGNALS ( signal(SIGPIPE,DBG_sigfunc) , \
@@ -339,6 +352,19 @@ void DBG_sigfunc(int sig)   /** signal handler for fatal errors **/
       if(!DBG_stoff){strncpy(last_status,qss,1023); last_status[1023]='\0';}        \
   } while(0)
 
+#define STATUSi(str,i)                                                              \
+  do{ char qss[768] ;                                                               \
+      sprintf(qss,"%s int=%d",(str),(i)) ;                                          \
+      if( TRACK_TRACING ){                                                          \
+        char sbuf[1024] ;                                                           \
+        if( DBG_fp==NULL ) DBG_fp=stdout;                                           \
+        sprintf(sbuf,"%*.*s%s -- %s",DBG_num,DBG_num," ",DBROUT,qss);               \
+        if( PRINT_TRACING ){ fprintf(DBG_fp,"%s\n",sbuf); fflush(DBG_fp); MCHECK;}  \
+        DBG_set_hist_status(sbuf) ;                                                 \
+      }                                                                             \
+      if(!DBG_stoff){strncpy(last_status,qss,1023); last_status[1023]='\0';}        \
+  } while(0)
+
 /*********************************************************************/
 #else /* don't USE_TRACING */
 
@@ -353,6 +379,7 @@ void DBG_sigfunc(int sig)   /** signal handler for fatal errors **/
 #  define PRINT_TRACING 0
 #  define DBG_trace     0          /* 09 Dec 1999 */
 #  define STATUSp(str,p) /* nada */
+#  define STATUSi(str,i) /* nada */
 
 #  ifdef _DEBUGTRACE_MAIN_
       void DBG_sigfunc(int sig){} /* does nada */

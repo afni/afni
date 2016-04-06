@@ -17,6 +17,8 @@ void FILLIN_censored_time_series( int nt, int ntkeep, int *keep, float *xar )
    int ii , id,iu , qq , ntk1=ntkeep-1 ;
    float vd,vu ;
 
+ ENTRY("FILLIN_censored_time_series") ;
+
    /* if 0 is not a kept point, then fill in from 0 up to the first keeper */
 
    iu = keep[0] ; vu = xar[iu] ;
@@ -41,7 +43,7 @@ void FILLIN_censored_time_series( int nt, int ntkeep, int *keep, float *xar )
    id = keep[ntk1] ; vd = xar[id] ;
    for( ii=id+1 ; ii < nt ; ii++ ) xar[ii] = xar[id] ;
 
-   return ;
+   EXRETURN ;
 }
 
 /*----------------------------------------------------------------------------*/
@@ -211,8 +213,12 @@ void TPR_help_the_pitiful_user(void)
    "                       squares = 1. This is the LAST operation.\n"
    "\n"
    " -quiet              = Hide the super-fun and thrilling progress messages.\n"
+   "\n"
    " -verb               = The program will save the fixed ort matrix and its\n"
    "                       singular values into .1D files, for post-mortems.\n"
+   "                       It will also print out more progress messages, which\n"
+   "                       might help with figuring out what's happening when\n"
+   "                       problems occur.\n"
    "\n"
    "------\n"
    "NOTES:\n"
@@ -283,6 +289,8 @@ static char * get_psinv_wsp( int m , int n , int extra )
 {
    char *wsp ;
 
+ENTRY("get_psinv_wsp") ;
+
 #if 0
    amat = (double *)calloc( sizeof(double),m*n ) ;  /* input matrix */
    xfac = (double *)calloc( sizeof(double),n   ) ;  /* column norms of [a] */
@@ -293,7 +301,7 @@ static char * get_psinv_wsp( int m , int n , int extra )
 
    if( extra < 0 ) extra = 0 ;
    wsp = (char *)malloc( sizeof(double) * (2*m*n + 2*n + n*n + extra) ) ;
-   return wsp ;
+   RETURN(wsp) ;
 }
 
 /*----------------------------------------------------------------------------*/
@@ -549,6 +557,7 @@ ENTRY("TPR_process_data") ;
    /*----- make censor array -----*/
 
    if( tp->censar != NULL){
+STATUS("make censor array") ;
      if( tp->ncensar < nt ){
        ERROR_message("-censor file is too short (%d) for dataset (%d)",tp->ncensar,nt) ;
        nbad++ ;
@@ -564,6 +573,7 @@ ENTRY("TPR_process_data") ;
 
    if( tp->num_CENSOR > 0 ){
      int cc , r,a,b , bbot,btop ;
+STATUS("apply -CENSORTR commands") ;
      if( TPR_verb > 1 ) INFO_message("-CENSORTR commands:") ;
      for( cc=0 ; cc < tp->num_CENSOR ; cc++ ){
        r = tp->abc_CENSOR[cc].i; a = tp->abc_CENSOR[cc].j; b = tp->abc_CENSOR[cc].k;
@@ -574,6 +584,8 @@ ENTRY("TPR_process_data") ;
          for( r=1 ; r <= nbl ; r++ ){
            rab.i = r ; rab.j = a ; rab.k = b ; tp->abc_CENSOR[tp->num_CENSOR++] = rab ;
          }
+         if( TPR_verb > 1 )
+           ININFO_message(" expand wildcard for %d..%d",a,b) ;
          continue ;  /* skip to next triple in newly expanded list */
        }
        if( nbl > 1 && r != 0 ){  /* convert local indexes to global */
@@ -588,18 +600,27 @@ ENTRY("TPR_process_data") ;
              WARNING_message("-CENSORTR %d:%d-%d has start index past end of run (%d)",
                              r,a,b,btop-bbot) ;
            }
+           if( TPR_verb > 1 )
+             ININFO_message(" run #%d: alter local %d..%d to global %d..%d",
+                            r , a,b , a+bbot,MIN(b+bbot,btop) ) ;
            a += bbot ; b += bbot ; if( b > btop ) b = btop ;
          }
        }
-       if( a < 0 || a >= nt || b < a ) continue ;
+       if( a < 0 || a >= nt || b < a ){
+         if( TPR_verb > 1 )
+           ININFO_message(" -- skip %d..%d as it is out of data range or means nothing",a,b) ;
+         continue ;
+       }
        if( b >= nt ) b = nt-1 ;
-       if( TPR_verb > 1 ) ININFO_message("  from %d..%d",a,b) ;
+       if( TPR_verb > 1 )
+         ININFO_message(" -- mark %d..%d as censored",a,b) ;
        for( jj=a ; jj <= b ; jj++ ) tp->censar[jj] = 0.0f ;
      }
    }
 
    /*-- count number of time points that are kept (NOT censored) --*/
 
+STATUS("count un-censored points") ;
    for( jj=ntkeep=0 ; jj < nt ; jj++ ) if( tp->censar[jj] != 0.0f ) ntkeep++ ;
 
    if( ntkeep < nt )
@@ -617,6 +638,7 @@ ENTRY("TPR_process_data") ;
 
    if( nbl > 1 ){
      int aa,bb, nnk , nerr=0 ;
+STATUS("count un-censored points in each run") ;
      for( tt=0 ; tt < nbl ; tt++ ){
        aa = bla[tt] ; bb = blb[tt] ;
        for( nnk=0,jj=aa ; jj <= bb ; jj++ ) if( tp->censar[jj] != 0.0f ) nnk++ ;
@@ -630,35 +652,50 @@ ENTRY("TPR_process_data") ;
 
    /*-- make list of time indexes to keep --*/
 
+STATUS("making list of keepers") ;
    keep = (int *)malloc( sizeof(int) * ntkeep ) ;
    for( qq=jj=0 ; jj < nt ; jj++ ) if( tp->censar[jj] != 0.0f ) keep[qq++] = jj ;
+
+   (void)mcw_malloc_status("3dTproject.c",__LINE__) ;
 
    INFO_message("Setting up regressors") ;
 
    /*----- make stopband frequency mask, count number of stopband regressors -----*/
 
    if( tp->nstopband > 0 ){
-     int ib , jbot,jtop , ntt , nbb ; float fbot,ftop , dff ;
+     int ib , jbot,jtop , ntt , nbb ; float fbot,ftop , dff,qtop ;
+
+STATUS("making stopband frequency mask") ;
 
      fmask = (int **) malloc(sizeof(int *)*nbl) ;
      nf    = (int *)  malloc(sizeof(int)  *nbl) ;
      df    = (float *)malloc(sizeof(float)*nbl) ;
 
+     INFO_message("setting up stopband frequency mask") ;
+
      for( tt=0 ; tt < nbl ; tt++ ){    /* each run (block) is filtered separately */
-       ntt = blb[tt] - bla[tt] + 1 ;  nbb = 0 ;
+       ntt = blb[tt] - bla[tt] + 1 ;
        dff = (tp->dt > 0.0f ) ? tp->dt : DSET_TR(tp->inset) ;
        if( dff <= 0.0f ) dff = 1.0f ;
        df[tt] = 1.0f / (ntt*dff) ; dff = 0.1666666f * df[tt] ;
 
-       nf[tt] = ntt/2 ; fmask[tt] = (int *)calloc(sizeof(int),(nf[tt]+1)) ;
+       if( TPR_verb > 1 ) ININFO_message("run #%d has %d time points",tt,ntt) ;
+
+       nf[tt] = ntt/2 ; fmask[tt] = (int *)malloc(sizeof(int)*(nf[tt]+2)) ;
+       for( jj=0 ; jj <= nf[tt] ; jj++ ) fmask[tt][jj] = 0 ;
+       qtop = (nf[tt]+0.1f)*df[tt] ;
 
        /* mark the frequencies to regress out */
+STATUS("marking frequencies to delete") ;
 
        for( ib=0 ; ib < tp->nstopband ; ib++ ){
-         fbot = tp->stopband[ib].a ;
-         ftop = tp->stopband[ib].b ;
+         fbot = tp->stopband[ib].a; if(fbot<0.0f) fbot=0.0f; else if(fbot>qtop) fbot=qtop;
+         ftop = tp->stopband[ib].b; if(ftop<0.0f) ftop=0.0f; else if(ftop>qtop) ftop=qtop;
          jbot = (int)rintf((fbot+dff)/df[tt]); if( jbot < 0      ) jbot = 0     ;
          jtop = (int)rintf((ftop-dff)/df[tt]); if( jtop > nf[tt] ) jtop = nf[tt];
+         if( TPR_verb > 1 )
+           ININFO_message(" stopband %.4f..%.4f = indexes %d..%d = %.4f..%.4f",
+                          fbot,ftop,jbot,jtop,jbot*df[tt],jtop*df[tt]) ;
          for( jj=jbot ; jj <= jtop ; jj++ ) fmask[tt][jj] = 1 ;
        }
        if( fmask[tt][0] ){                    /* always do freq=0 via polort */
@@ -668,20 +705,29 @@ ENTRY("TPR_process_data") ;
 
        /* count the stopband regressors */
 
+STATUS("counting stopband regressors") ;
+       nbb = 0 ;
        for( jj=1 ; jj < nf[tt] ; jj++ ){
          if( fmask[tt][jj] ){ nort_fixed += 2 ; nbb += 2 ; }
        }
 
        /* even nt ==> top is Nyquist frequency (cosine only) */
 
-       if( fmask[nf[tt]] ){
+       if( fmask[tt][nf[tt]] ){
          jj = (ntt%2==0) ? 1 : 2 ;
          nort_fixed += jj ; nbb += jj ;
        }
 
        ININFO_message("Block #%d: %d time points -- %d stopband regressors",
                       tt , ntt , nbb ) ;
+#if 0
+fprintf(stderr,"fmask: ") ;
+for( jj=0 ; jj <= nf[tt] ; jj++ ) fprintf(stderr," %d",fmask[tt][jj]) ;
+fprintf(stderr,"\n") ;
+#endif
      }
+
+     (void)mcw_malloc_status("3dTproject.c",__LINE__) ;
 
      if( nort_fixed >= nt ){
        ERROR_message(
@@ -699,15 +745,17 @@ ENTRY("TPR_process_data") ;
    /*-- count polort regressors (N.B.: freq=0 and const polynomial don't BOTH occur) */
 
    if( tp->polort >= 0 ){
+STATUS("counting polort regressors") ;
      nort_fixed += (tp->polort+1) * nbl ;  /* one set for each run */
-     ININFO_message("%d Blocks * %d polynomials -- %d polort regressors",
-                    nbl , tp->polort+1 , (tp->polort+1)*nbl ) ;
+     INFO_message("%d Blocks * %d polynomials -- %d polort regressors",
+                  nbl , tp->polort+1 , (tp->polort+1)*nbl ) ;
    }
 
    /*-- check ortar for good-ositiness --*/
 
    if( tp->ortar != NULL ){
      MRI_IMAGE *qim ; int nbb=0 ;
+STATUS("checking ortar for goodness") ;
      for( qq=0 ; qq < IMARR_COUNT(tp->ortar) ; qq++ ){
        qim = IMARR_SUBIM(tp->ortar,qq) ;
        nort_fixed += qim->ny ; nbb += qim->ny ;
@@ -730,6 +778,7 @@ ENTRY("TPR_process_data") ;
    /*-- check dsortar for reasonabilitiness --*/
 
    if( tp->dsortar != NULL ){
+STATUS("checking dsortar for goodness") ;
      for( jj=0 ; jj < tp->dsortar->num ; jj++ ){
        if( DSET_NVALS(tp->dsortar->ar[jj]) != nt ){
          ERROR_message("-dsort file #%d (%s) is %d long, but input dataset is %d",
@@ -765,6 +814,8 @@ ENTRY("TPR_process_data") ;
 
    if( tp->maskset != NULL ){  /*** explicit mask ***/
 
+STATUS("making explicit mask") ;
+
      vmask = THD_makemask( tp->maskset , 0 , 1.0f,0.0f ) ;
      DSET_unload(tp->maskset) ;
      if( vmask == NULL )
@@ -776,6 +827,7 @@ ENTRY("TPR_process_data") ;
 
    } else if( tp->automask ){  /*** AUTO mask ***/
 
+STATUS("making automask") ;
      vmask = THD_automask( tp->inset ) ;
      if( vmask == NULL )
        ERROR_exit("Can't mask automask for some reason :-( !!") ;
@@ -786,7 +838,8 @@ ENTRY("TPR_process_data") ;
 
    } else {   /*** all voxels */
 
-     vmask = (byte *)malloc(sizeof(byte)*nvox) ; nvmask = nvox ;
+STATUS("making all-voxels mask") ;
+     vmask = (byte *)malloc(sizeof(byte)*(nvox+2)) ; nvmask = nvox ;
      for( jj=0 ; jj < nvox ; jj++ ) vmask[jj] = 1 ;
      INFO_message("no -mask option ==> processing all %d voxels in dataset",nvox) ;
 
@@ -795,7 +848,8 @@ ENTRY("TPR_process_data") ;
    /*----- create array to hold all fixed orts (at this point, un-censored) -----*/
 
    if( nort_fixed > 0 )
-     ort_fixed_unc = (float *)calloc( sizeof(float) , nt * nort_fixed ) ;
+     ort_fixed_unc = (float *)malloc( sizeof(float) * (nt * nort_fixed + 2 ) ) ;
+     for( jj=0 ; jj < nt*nort_fixed ; jj++ ) ort_fixed_unc[jj] = 0.0f ;
 
    /*-- load the polort part of ort_fixed_unc ;
         note that the all 1s regressor will be first among equals --*/
@@ -803,6 +857,7 @@ ENTRY("TPR_process_data") ;
    qort = 0 ;
    if( tp->polort >= 0 ){
      int ntt ; double fac ; float *opp ; int pp ;
+STATUS("loading polort vectors") ;
      for( tt=0 ; tt < nbl ; tt++ ){
        ntt = blb[tt] - bla[tt] + 1 ;
        fac = 2.0/(ntt-1.0) ;
@@ -812,20 +867,24 @@ ENTRY("TPR_process_data") ;
            opp[jj] = Plegendre( fac*(jj-bla[tt])-1.0 , pp ) ;
        }
      }
+     (void)mcw_malloc_status("3dTproject.c",__LINE__) ;
    }
 
    /*-- load cosine/sine (stopbands) part of ort_fixed_unc --*/
 
    if( fmask != NULL ){
      int pp , ntt ; float *opp , fq ;
+STATUS("loading cos/sin vectors") ;
      for( tt=0 ; tt < nbl ; tt++ ){
        ntt = blb[tt] - bla[tt] + 1 ;
        for( pp=1 ; pp <= nf[tt] ; pp++ ){
          if( fmask[tt][pp] == 0 ) continue ;              /** keep this frequency! **/
+STATUSi("cos qort",qort) ;
          opp = ort_fixed_unc + qort*nt ; qort++ ;
          fq = (2.0f * PI * pp) / (float)ntt ;
          for( jj=bla[tt] ; jj <= blb[tt] ; jj++ ) opp[jj] = cosf(fq*(jj-bla[tt])) ;
          if( pp < nf[tt] || ntt%2==1 ){  /* skip the Nyquist freq for sin() */
+STATUSi("sin qort",qort) ;
            opp = ort_fixed_unc + qort*nt ; qort++ ;
            for( jj=bla[tt] ; jj <= blb[tt] ; jj++ ) opp[jj] = sinf(fq*(jj-bla[tt])) ;
          }
@@ -834,12 +893,14 @@ ENTRY("TPR_process_data") ;
      }
      free(fmask) ; free(nf) ; free(df) ;
      fmask = NULL ; nf = NULL ; df = NULL ;
+     (void)mcw_malloc_status("3dTproject.c",__LINE__) ;
    }
 
    /*-- load ortar part of ort_fixed_unc --*/
 
    if( tp->ortar != NULL ){
      MRI_IMAGE *qim ; float *qar , *opp , *qpp ; int pp ;
+STATUS("loading ortar") ;
      for( qq=0 ; qq < IMARR_COUNT(tp->ortar) ; qq++ ){
        qim = IMARR_SUBIM(tp->ortar,qq) ; qar = MRI_FLOAT_PTR(qim) ;
        for( pp=0 ; pp < qim->ny ; pp++ ){
@@ -849,6 +910,7 @@ ENTRY("TPR_process_data") ;
          vector_demean( nt , opp ) ;
        }
      }
+     (void)mcw_malloc_status("3dTproject.c",__LINE__) ;
    }
 
    /*---- censor ort_fixed_unc into ort_fixed ----*/
@@ -859,7 +921,8 @@ ENTRY("TPR_process_data") ;
      ort_fixed = ort_fixed_unc ; ort_fixed_unc = NULL ;   /* no censoring */
    } else {
      int pp,qort=0 ; float *opp , *upp ;
-     ort_fixed = (float *)malloc(sizeof(float)*ntkeep*nort_fixed) ;
+STATUS("censoring orts") ;
+     ort_fixed = (float *)malloc(sizeof(float)*(ntkeep*nort_fixed+2)) ;
      for( pp=0 ; pp < nort_fixed ; pp++ ){
        upp = ort_fixed_unc + pp*nt ;
        opp = ort_fixed     + qort*ntkeep ; qort++ ;
@@ -873,6 +936,7 @@ ENTRY("TPR_process_data") ;
      if( nort_fixed == 0 )
        ERROR_exit("Censoring results in no nonzero fixed orts!") ;
      free(ort_fixed_unc) ; ort_fixed_unc = NULL ;
+     (void)mcw_malloc_status("3dTproject.c",__LINE__) ;
    }
 
    if( TPR_verb > 1 && nort_fixed > 0 ){
@@ -887,8 +951,9 @@ ENTRY("TPR_process_data") ;
 
    if( nort_fixed > 0 ){
      MRI_IMAGE *qim ; char fname[256] ;
+STATUS("pseudo-inverse of fixed orts") ;
      if( tp->verb ) INFO_message("Compute pseudo-inverse of fixed orts") ;
-     ort_fixed_psinv = (float *)malloc(sizeof(float)*ntuse*nort_fixed) ;
+     ort_fixed_psinv = (float *)malloc(sizeof(float)*(ntuse*nort_fixed+2)) ;
      TPR_prefix = tp->prefix ;
      compute_psinv( ntuse, nort_fixed, ort_fixed, ort_fixed_psinv, NULL ) ;
      TPR_prefix = NULL ;
@@ -899,6 +964,7 @@ ENTRY("TPR_process_data") ;
        sprintf(fname,"%s.ort_psinv.1D",tp->prefix) ;
        mri_write_1D(fname,qim) ; mri_clear_and_free(qim) ;
      }
+     (void)mcw_malloc_status("3dTproject.c",__LINE__) ;
    } else {
      ort_fixed_psinv = NULL ;
    }
@@ -907,17 +973,20 @@ ENTRY("TPR_process_data") ;
 
    if( tp->verb ) INFO_message("Loading dataset%s",(tp->dsortar != NULL) ? "s" : "\0") ;
    if( ntuse == nt ){
+STATUS("loading uncensored input datasets") ;
      inset_mrv = THD_dset_to_vectim( tp->inset , vmask , 0 ) ;
      if( ntkeep < ntuse ){               /* do the NTRP stuff now [06 Dec 2013] */
        for( jj=0 ; jj < inset_mrv->nvec ; jj++ )
          FILLIN_censored_time_series( nt,ntkeep,keep, VECTIM_PTR(inset_mrv,jj) ) ;
      }
    } else {
+STATUS("loading censored datasets") ;
      inset_mrv = THD_dset_censored_to_vectim( tp->inset, vmask, ntkeep, keep ) ;
    }
    DSET_unload(tp->inset) ;
 
    if( tp->dsortar != NULL ){
+STATUS("loading dsortar") ;
      dsort_mrv = (MRI_vectim **)malloc(sizeof(MRI_vectim *)*nort_dsort) ;
      for( jj=0 ; jj < nort_dsort ; jj++ ){
        if( ntuse == nt )
@@ -932,6 +1001,7 @@ ENTRY("TPR_process_data") ;
 
    /*----- do the actual work: filter time series !! -----*/
 
+STATUS("start projection work") ;
    if( tp->verb ) INFO_message("Starting project-orization") ;
 
 AFNI_OMP_START ;
@@ -941,8 +1011,8 @@ AFNI_OMP_START ;
 
 #pragma omp critical
    { wsp  = (double *)get_psinv_wsp( ntuse , nds , ntuse*2 ) ;
-     dsar = (float *)malloc(sizeof(float)*nds*ntuse) ;
-     pdar = (float *)malloc(sizeof(float)*nds*ntuse) ;
+     dsar = (float *)malloc(sizeof(float)*(nds*ntuse+2)) ;
+     pdar = (float *)malloc(sizeof(float)*(nds*ntuse+2)) ;
    }
 
 #pragma omp for
@@ -971,9 +1041,12 @@ AFNI_OMP_START ;
 }
 AFNI_OMP_END ;
 
+STATUS("projections done") ;
+
    /*-- get rid of some no-longer-needed stuff here --*/
 
    if( nort_dsort > 0 ){
+STATUS("freeing dsortar data") ;
      for( jj=0 ; jj < nort_dsort ; jj++ ) VECTIM_destroy(dsort_mrv[jj]) ;
      free(dsort_mrv) ; dsort_mrv = NULL ;
    }
@@ -983,17 +1056,22 @@ AFNI_OMP_END ;
 
    /*----- blurring -----*/
 
+STATUS("blurring?") ;
+
    MRILIB_verb = tp->verb ;
    mri_blur3D_vectim( inset_mrv , tp->blur ) ;
 
    /*----- norming -----*/
 
    if( tp->do_norm ){
+STATUS("norming") ;
      if( tp->verb ) INFO_message("normalizing time series") ;
      THD_vectim_normalize(inset_mrv) ;
    }
 
    /*----- convert output time series into dataset -----*/
+
+STATUS("convert results to output dataset") ;
 
    if( tp->verb ) INFO_message("Convert results to output dataset") ;
 
@@ -1016,6 +1094,8 @@ AFNI_OMP_END ;
 
    /*----- clean up whatever trash is still left -----*/
 
+STATUS("all the work is done -- pour the Chablis") ;
+
    free(keep) ; VECTIM_destroy(inset_mrv) ;
    EXRETURN ;
 }
@@ -1033,6 +1113,16 @@ int main( int argc , char *argv[] )
    AFNI_SETUP_OMP(0) ;
    if( argc < 2 || strcasecmp(argv[1],"-help") == 0 )
      TPR_help_the_pitiful_user() ;
+
+   /*----- bureaucracy -----*/
+
+   mainENTRY("3dTproject"); machdep();
+   AFNI_logger("3dTproject",argc,argv);
+   PRINT_VERSION("3dTproject"); AUTHOR("Cox the Algebraic (Linear)") ;
+   ct = NI_clock_time() ;
+#ifdef USING_MCW_MALLOC
+   enable_mcw_malloc() ;
+#endif
 
    /*----- scan options -----*/
 
@@ -1066,7 +1156,7 @@ int main( int argc , char *argv[] )
          nbl = 0 ; blist = NULL ; mri_free(cim) ;
        } else {
          car   = MRI_FLOAT_PTR(cim) ;
-         blist = (int *)malloc(sizeof(int)*nbl) ;
+         blist = (int *)malloc(sizeof(int)*(nbl+1)) ;
          for( tt=0 ; tt < nbl ; tt++ ) blist[tt] = (int)rintf(car[tt]) ;
          mri_free(cim) ;
          if( blist[0] != 0 ){
@@ -1190,7 +1280,7 @@ int main( int argc , char *argv[] )
        if( fbot <  0.0f ) fbot = 0.0f ;
        if( ftop <= fbot ) ERROR_exit("-stopband: range %.5f %.5f is illegal :-(",fbot,ftop) ;
        ADD_STOPBAND(tinp,0.0f,fbot-0.0001f) ;
-       ADD_STOPBAND(tinp,ftop+0.0001f,666666.6f) ;
+       ADD_STOPBAND(tinp,ftop+0.0001f,999999.9f) ;
        continue ;
      }
 
@@ -1248,13 +1338,13 @@ int main( int argc , char *argv[] )
 
      if( strcasecmp(argv[iarg],"-censorTR") == 0 ){
         NI_str_array *nsar ;
-        char *src=malloc(1), *cpt, *dpt ;
+        char *src=malloc(4), *cpt, *dpt ;
         int ns, r,a,b, nerr=0 ; int_triple rab ;
 
         *src = '\0' ;   /* cat all following options until starts with '-' */
         for( iarg++ ; iarg < argc && argv[iarg][0] != '-' ; iarg++ ){
           ns = strlen(argv[iarg]) ; if( ns == 0 ) continue ;
-          src = realloc(src,strlen(src)+ns+2) ;
+          src = realloc(src,strlen(src)+ns+4) ;
           strcat(src," ") ; strcat(src,argv[iarg]) ;
         }
         if( *src == '\0' ) ERROR_exit("Bad (or no) argument after -CENSORTR") ;
@@ -1339,7 +1429,7 @@ int main( int argc , char *argv[] )
      }
      if( !noblock ){
        nbl      = tinp->inset->tcat_num ;
-       blist    = (int *)malloc(sizeof(int)*nbl) ;
+       blist    = (int *)malloc(sizeof(int)*(nbl+1)) ;
        blist[0] = 0 ;
        for( tt=1 ; tt < nbl ; tt++ ){
          if( tinp->inset->tcat_len[tt-1] < MIN_RUN ) nerr++ ;
@@ -1353,7 +1443,7 @@ int main( int argc , char *argv[] )
    }
 
    if( nbl == 0 ){
-     nbl = 1 ; blist = (int *)malloc(sizeof(int)) ; blist[0] = 0 ;
+     nbl = 1 ; blist = (int *)malloc(sizeof(int)*2) ; blist[0] = 0 ;
    }
 
    /* load nbl and blist into tinp */
@@ -1391,13 +1481,6 @@ int main( int argc , char *argv[] )
    if( tinp->num_CENSOR > 0   ) nact++ ;
    if( nact == 0 )
      ERROR_exit("Don't you want to DO something?") ;
-
-   /*----- bureaucracy -----*/
-
-   mainENTRY("3dTproject"); machdep();
-   AFNI_logger("3dTproject",argc,argv);
-   PRINT_VERSION("3dTproject"); AUTHOR("Cox the Algebraic (Linear)") ;
-   ct = NI_clock_time() ;
 
    /*----- process the data -----*/
 

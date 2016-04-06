@@ -126,11 +126,199 @@
 #define USE_SIDES  /* 01 Dec 1999: replace "left is xxx" */
                    /* labels with "sides" labels.        */
 
-/*----------------------------------------------------------------
+/*-----------------------------------------------------------------------
+   Fallback resources for AFNI.  May be overridden by the user's
+   .Xdefaults file, or other resource sources.  AFNI does not come
+   with an "app-defaults" file, since that would be too much like work.
+   (And would require sysadmin privileges to install.)
+-------------------------------------------------------------------------*/
+
+static char *FALLback[] =
+  {   "AFNI*fontList:              9x15bold=charset1"    , /* normal font */
+      "AFNI*pbar*fontList:         6x10=charset1"        , /* next to pbar */
+      "AFNI*imseq*fontList:        7x13=charset1"        , /* on imseq */
+      "AFNI*font8*fontList:        8x13bold=charset1"    , /* smaller fonts */
+      "AFNI*font7*fontList:        7x13=charset1"        ,  /* for various */
+      "AFNI*font6*fontList:        6x10=charset1"        ,  /* usages */
+      "AFNI*background:            gray28"               , /* background clr */
+      "AFNI*menu*background:       gray4"                , /* bkgd in menus */
+      "AFNI*menu*foreground:       #ffdd22"              , /* menu text color */
+      "AFNI*borderColor:           gray19"               , /* same as bkgd! */
+      "AFNI*foreground:            yellow"               , /* normal text */
+      "AFNI*borderWidth:           0"                    , /* don't change! */
+      "AFNI*troughColor:           blue3"                , /* in sliders */
+      "AFNI*XmLabel.translations:  #override<Btn2Down>:" , /* Motif 2.0 bug */
+      "AFNI*help*background:       black"                , /* for help */
+      "AFNI*help*foreground:       #ffffff"              ,
+      "AFNI*help*helpborder:       False"                ,
+      "AFNI*help*waitPeriod:       1066"                 ,
+      "AFNI*help*fontList:         9x15bold=charset1"    ,
+      "AFNI*cluefont:              9x15bold"             , /* for popup */
+      "AFNI*bigtext*fontList:      10x20=charset1"       , /* hints */
+      "AFNI*help*cancelWaitPeriod: 333"                  ,
+#if 0
+      "AFNI*clustA*fontList:       9x15bold=charset1"    , /* for Clusterize */
+      "AFNI*clustB*fontList:       9x15bold=charset1"    ,
+      "AFNI*clustA*background:     gray28"               ,
+      "AFNI*clustB*background:     gray1"                ,
+      "AFNI*clustA*foreground:     yellow"               ,
+      "AFNI*clustB*foreground:     white"                ,
+#endif
+
+      "AFNI*XmList.translations: #augment"                /* 24 Feb 2007 */
+           "<Btn4Down>: ListPrevItem()\\n"                /* for scrollwheel */
+           "<Btn5Down>: ListNextItem()"                  ,
+
+      "AFNI*XmText.translations: #augment"
+           "<Btn4Down>: previous-line() scroll-one-line-down()\\n"
+           "<Btn5Down>: next-line() scroll-one-line-up()"          ,
+#if 0
+      "AFNI*XmScrollBar.translations: #augment"
+           "<Btn4Down>: IncrementUpOrLeft(0) IncrementUpOrLeft(1)\\n"
+           "<Btn5Down>: IncrementDownOrRight(1) IncrementDownOrRight(0)" ,
+#endif
+
+   NULL } ;
+
+/* The trick to using multiple Xt translations in the fallback resources
+   above is to separate them not with '\n' but with '\\n'.  Ugghhhhhhh.  */
+
+/*-----------------------------------------------------------------------*/
+static int    new_FALLback_num = 0 ;    /* for -XXX option [24 Mar 2016] */
+static char **new_FALLback     = NULL ;
+static char  *xrdb_old         = NULL ;
+static char  *xrdb_pg          = NULL ;
+
+static int equiv_FALLback( char *n1 , char *n2 ) /* check if 2 strings */
+{                                                /* start the same */
+   char *c1,*c2 , *d1,*d2 ; int ee ;
+   if( n1 == NULL || *n1 == '\0' ) return 1 ;
+   if( n2 == NULL || *n2 == '\0' ) return 1 ;
+   if( strcmp(n1,n2) == 0        ) return 1 ;
+   d1 = strdup(n1) ; c1 = strchr(d1,':') ;
+   d2 = strdup(n2) ; c2 = strchr(d2,':') ;
+   if( c1 == NULL || c2 == NULL  ){ free(d1); free(d2); return 1; }
+   *c1 = '\0' ; *c2 = '\0' ;
+   ee = strcmp(d1,d2) ; free(d1) ; free(d2) ;
+   return (ee==0) ;
+}
+
+#define ADDTO_FALLback_one(nameval)                                            \
+ do{ int nf ;                                                                  \
+     nf = new_FALLback_num ;                                                   \
+     new_FALLback = (char **)realloc( new_FALLback , sizeof(char *)*(nf+2) ) ; \
+     new_FALLback[nf]   = strdup(nameval) ;                                    \
+     new_FALLback[nf+1] = NULL ; new_FALLback_num = nf+1 ;                     \
+ } while(0)
+
+#define ADDTO_FALLback_pair(name,val)                                          \
+ do{ char *str=malloc(strlen(name)+strlen(val)+16) ;                           \
+     strcpy(str,name) ; strcat(str,":   ") ; strcat(str,val) ;                 \
+     ADDTO_FALLback_one(str) ;                                                 \
+ } while(0)
+
+static void process_XXX_options( int argc , char *argv[] )
+{
+   int nopt=1 ;
+
+   while( nopt < argc ){
+
+     if( strncasecmp(argv[nopt],"-XXX",4) != 0 ){ nopt++; continue; }
+
+     if( strcasecmp(argv[nopt],"-XXX") == 0 ){
+       if( ++nopt >= argc ){
+         WARNING_message("no argument after '%s' :-(",argv[nopt-1]) ;
+         break ;
+       }
+       ADDTO_FALLback_one(argv[nopt]) ;
+       nopt++ ; continue ;
+     }
+
+     if( strcasecmp(argv[nopt],"-XXXbgcolor") == 0 ){
+       if( ++nopt >= argc ){
+         WARNING_message("no argument after '%s' :-(",argv[nopt-1]) ;
+         break ;
+       }
+       ADDTO_FALLback_pair("AFNI*background"     ,argv[nopt]) ;
+       ADDTO_FALLback_pair("AFNI*menu*background",argv[nopt]) ;
+       ADDTO_FALLback_pair("AFNI*help*background",argv[nopt]) ;
+       nopt++ ; continue ;
+     }
+
+     if( strcasecmp(argv[nopt],"-XXXfgcolor") == 0 ){
+       if( ++nopt >= argc ){
+         WARNING_message("no argument after '%s' :-(",argv[nopt-1]) ;
+         break ;
+       }
+       ADDTO_FALLback_pair("AFNI*foreground"     ,argv[nopt]) ;
+       ADDTO_FALLback_pair("AFNI*menu*foreground",argv[nopt]) ;
+       ADDTO_FALLback_pair("AFNI*help*foreground",argv[nopt]) ;
+       nopt++ ; continue ;
+     }
+
+     if( strcasecmp(argv[nopt],"-XXXfontA") == 0 ){
+       char *fn ;
+       if( ++nopt >= argc ){
+         WARNING_message("no argument after '%s' :-(",argv[nopt-1]) ;
+         break ;
+       }
+       fn = (char *)malloc(sizeof(char)*(strlen(argv[nopt])+32)) ;
+       sprintf(fn,"%s=charset1",argv[nopt]) ;
+       ADDTO_FALLback_pair("AFNI*fontList"        ,fn) ;
+       ADDTO_FALLback_pair("AFNI*help*fontList"   ,fn) ;
+       ADDTO_FALLback_pair("AFNI*bigtext*fontList",fn) ;
+       ADDTO_FALLback_pair("AFNI*cluefont"        ,fn) ;
+       free(fn) ; nopt++ ; continue ;
+     }
+
+     if( strcasecmp(argv[nopt],"-XXXfontB") == 0 ){
+       char *fn ;
+       if( ++nopt >= argc ){
+         WARNING_message("no argument after '%s' :-(",argv[nopt-1]) ;
+         break ;
+       }
+       fn = (char *)malloc(sizeof(char)*(strlen(argv[nopt])+32)) ;
+       sprintf(fn,"%s=charset1",argv[nopt]) ;
+       ADDTO_FALLback_pair("AFNI*font8*fontList",fn) ;
+       free(fn) ; nopt++ ; continue ;
+     }
+
+     if( strcasecmp(argv[nopt],"-XXXfontC") == 0 ){
+       char *fn ;
+       if( ++nopt >= argc ){
+         WARNING_message("no argument after '%s' :-(",argv[nopt-1]) ;
+         break ;
+       }
+       fn = (char *)malloc(sizeof(char)*(strlen(argv[nopt])+32)) ;
+       sprintf(fn,"%s=charset1",argv[nopt]) ;
+       ADDTO_FALLback_pair("AFNI*imseq*fontList",fn) ;
+       ADDTO_FALLback_pair("AFNI*font7*fontList",fn) ;
+       free(fn) ; nopt++ ; continue ;
+     }
+
+     if( strcasecmp(argv[nopt],"-XXXfontD") == 0 ){
+       char *fn ;
+       if( ++nopt >= argc ){
+         WARNING_message("no argument after '%s' :-(",argv[nopt-1]) ;
+         break ;
+       }
+       fn = (char *)malloc(sizeof(char)*(strlen(argv[nopt])+32)) ;
+       sprintf(fn,"%s=charset1",argv[nopt]) ;
+       ADDTO_FALLback_pair("AFNI*font6*fontList",fn) ;
+       ADDTO_FALLback_pair("AFNI*pbar*fontList" ,fn) ;
+       free(fn) ; nopt++ ; continue ;
+     }
+
+   }
+
+   return ;
+}
+
+/*----------------------------------------------------------------------------
    Global variables that used to be local variables in main(),
    but since the advent of the splash screen and startup code
-   in MAIN_workprocess().
-------------------------------------------------------------------*/
+   in MAIN_workprocess() are needed in more than one place.
+------------------------------------------------------------------------------*/
 
 static XtAppContext   MAIN_app ;
 static XtErrorHandler MAIN_old_handler ;   /* no longer used */
@@ -153,7 +341,7 @@ static int recursed_ondot = 0 ;  /* 18 Feb 2007 */
 /* ---------------------------------------------------------------------- */
 /* just display the AFNI version                      26 Oct 2015 [rickr] */
 /* (since writing to stdout, do not interfere with print-and-exit funcs)  */
-void show_AFNI_version(void) 
+void show_AFNI_version(void)
 {
 #ifdef SHSTRING
      printf( "Precompiled binary " SHSTRING ": " __DATE__ " (Version " AVERZHN ")\n" ) ;
@@ -180,7 +368,7 @@ void AFNI_syntax(void)
    else
      printf(
       " **** Help for all AFNI programs can be found at the Web page\n"
-      "    http://afni.nimh.nih.gov/afni/doc/program_help/index.html\n"
+      "    https://afni.nimh.nih.gov/afni/doc/program_help/index.html\n"
       "\n"
      ) ;
 
@@ -447,21 +635,84 @@ void AFNI_syntax(void)
    ) ;
 
    printf("\n"
+    "-----------------------------------------------------------\n"
+    "Options that affect X11 Display properties: '-XXXsomething'\n"
+    "-----------------------------------------------------------\n"
+    "\n"
+    "My intent with these options is that you use them in aliases\n"
+    " or shell scripts, to let you setup specific appearances for\n"
+    " multiple copies of AFNI.  For example, put the following\n"
+    " command in your shell startup file (e.g., ~/.cshrc)\n"
+    "    alias ablue afni -XXXfgcolor white -XXXbgcolor navyblue\n"
+	 " Then the command 'ablue' will start AFNI with a blue background\n"
+    " and using white for the default text color.\n"
+    "\n"
+    " -XXXfgcolor colorname = set the 'foreground' color (text color)\n"
+    "                         to 'colorname'\n"
+    "                         [default = yellow]\n"
+    "                         ++ This should be a bright color, to contrast\n"
+    "                            the background color.\n"
+    "                         ++ You can find a list of X11 color names at\n"
+    "                              https://en.wikipedia.org/wiki/X11_color_names\n"
+    "                            However, if you use a name like Dark Cyan\n"
+    "                            (with a space inside the name), you must\n"
+    "                            put the name in quotes: 'Dark Cyan', or remove\n"
+    "                            the space: DarkCyan.\n"
+    "\n"
+    " -XXXbgcolor colorname = set the 'background' color to 'colorname'\n"
+    "                         [default = gray28]\n"
+    "                         ++ This should be a somewhat dark color,\n"
+    "                            or parts of the interface may be hard\n"
+    "                            to read.\n"
+    "\n"
+    " -XXXfontA fontname    = set the X11 font name for the main AFNI\n"
+    "                         controller\n"
+    "                         [default = 9x15bold]\n"
+    "                         ++ To see a list of all X11 font names,\n"
+    "                            type the command 'xlsfonts | more'\n"
+    "                         ++ It is best to use a fixed width font\n"
+    "                            (e.g., not Helvetica), or the AFNI buttons\n"
+    "                            won't line up nicely!\n"
+    "                         ++ If you use an illegal font name here, you\n"
+    "                            might make it hard to use the AFNI GUI!\n"
+    "                         ++ The default fonts are chosen for 'normal'\n"
+    "                            screen resolutions (72-100 dots per inch).\n"
+    "                            For higher resolutions ('Retina'), you might\n"
+    "                            want to use larger fonts.  Adding these\n"
+    "                            '-XXXfont?' options is one way to address this\n"
+    "                            problem.\n"
+    "                         ++ An example of a quite large font on my computer:\n"
+    "              -adobe-courier-bold-r-normal--34-240-100-100-m-200-iso8859-1\n"
+    "                         ++ When setting the fonts, it is usually helpful\n"
+    "                            to set the colors as well.\n"
+    "\n"
+    " -XXXfontB fontname    = set the X11 font name for somewhat smaller text\n"
+    "                         [default = 8x13bold]\n"
+    "\n"
+    " -XXXfontC fontname    = set the X11 font name for even smaller text\n"
+    "                         [default = 7x13]\n"
+    "\n"
+    " -XXXfontD fontname    = set the X11 font name for the smallest text\n"
+    "                         [default = 6x10]\n"
+    "\n"
+   ) ;
+
+   printf("\n"
     "--------------------------------------\n"
     "Educational and Informational Material\n"
     "--------------------------------------\n"
     "* The presentations used in our AFNI teaching classes at the NIH can\n"
     "   all be found at\n"
-    " http://afni.nimh.nih.gov/pub/dist/edu/latest/      (PowerPoint directories)\n"
-    " http://afni.nimh.nih.gov/pub/dist/edu/latest/afni_handouts/ (PDF directory)\n"
+    " https://afni.nimh.nih.gov/pub/dist/edu/latest/      (PowerPoint directories)\n"
+    " https://afni.nimh.nih.gov/pub/dist/edu/latest/afni_handouts/ (PDF directory)\n"
     "* And for the interactive AFNI program in particular, see\n"
-    " http://afni.nimh.nih.gov/pub/dist/edu/latest/afni01_intro/afni01_intro.pdf\n"
-    " http://afni.nimh.nih.gov/pub/dist/edu/latest/afni03_interactive/afni03_interactive.pdf\n"
+    " https://afni.nimh.nih.gov/pub/dist/edu/latest/afni01_intro/afni01_intro.pdf\n"
+    " https://afni.nimh.nih.gov/pub/dist/edu/latest/afni03_interactive/afni03_interactive.pdf\n"
     "* For the -help on all AFNI programs, plus the README files, and more, please see\n"
-    " http://afni.nimh.nih.gov/afni/doc/program_help/index.html\n"
+    " https://afni.nimh.nih.gov/afni/doc/program_help/index.html\n"
     "* For indvidualized help with AFNI problems, and to keep up with AFNI news, please\n"
     "   use the AFNI Message Board:\n"
-    " http://afni.nimh.nih.gov/afni/community/board/\n"
+    " https://afni.nimh.nih.gov/afni/community/board/\n"
     "* If an AFNI program crashes, please include the EXACT error messages it outputs\n"
     "   in your message board posting, as well as any other information needed to\n"
     "   reproduce the problem.  Just saying 'program X crashed, what's the issue?'\n"
@@ -473,7 +724,7 @@ void AFNI_syntax(void)
 #if 0
     "\n"
     "* For some fun, see this image:\n"
-    " http://afni.nimh.nih.gov/pub/dist/doc/program_help/images/afni_splashes.gif\n"
+    " https://afni.nimh.nih.gov/pub/dist/doc/program_help/images/afni_splashes.gif\n"
 #endif
    ) ;
 
@@ -481,7 +732,7 @@ void AFNI_syntax(void)
    printf(
     "\n"
     "POSTERS on varied subjects from the AFNI development group can be found at\n"
-    "  * http://afni.nimh.nih.gov/sscc/posters\n"
+    "  * https://afni.nimh.nih.gov/sscc/posters\n"
    ) ;
 
    /*........................................................................*/
@@ -492,19 +743,19 @@ void AFNI_syntax(void)
      printf("\n"
             "------------------------------------------------------------------------------------\n"
             "                  SLIDE IMAGES to help with learning the AFNI GUI\n"
-            "           http://afni.nimh.nih.gov/pub/dist/doc/program_help/images/afni03/\n"
+            "           https://afni.nimh.nih.gov/pub/dist/doc/program_help/images/afni03/\n"
             "------------------------------------------------------------------------------------\n"
      ) ;
      for( ii=1 ; ii <= NSLIDE ; ii++ ){
        printf(
-        "http://afni.nimh.nih.gov/pub/dist/doc/program_help/images/afni03/Slide%02d.png\n"
+        "https://afni.nimh.nih.gov/pub/dist/doc/program_help/images/afni03/Slide%02d.png\n"
         "------------------------------------------------------------------------------------\n"
         , ii ) ;
      }
    } else {
      printf("\n"
             "SLIDE IMAGES to help with learning the AFNI GUI can be found at\n"
-            "  * http://afni.nimh.nih.gov/pub/dist/doc/program_help/images/afni03/\n"
+            "  * https://afni.nimh.nih.gov/pub/dist/doc/program_help/images/afni03/\n"
      ) ;
    }
    printf("\n") ;
@@ -819,6 +1070,12 @@ ENTRY("AFNI_parse_args") ;
       if( strncmp(argv[narg],"-XTWARNS",6) == 0 ){
          GLOBAL_argopt.xtwarns = 2 ;
          narg++ ; continue ;  /* go to next arg */
+      }
+
+      /*----- -XXX [24 Mar 2016] -----*/
+
+      if( strncasecmp(argv[narg],"-XXX",4) == 0 ){
+        narg += 2 ; continue ;
       }
 
       /*----- -destruct option -----*/
@@ -1252,63 +1509,6 @@ int AFNI_xerrhandler( Display *d , XErrorEvent *x ){
   return 0 ;
 }
 
-/*-----------------------------------------------------------------------
-   Fallback resources for AFNI.  May be overridden by the user's
-   .Xdefaults file, or other resource sources.  AFNI does not come
-   with an "app-defaults" file, since that would be too much like work.
-   (And would require sysadmin privileges to install.)
--------------------------------------------------------------------------*/
-
-static char *FALLback[] =
-  {   "AFNI*fontList:              9x15bold=charset1"    , /* normal font */
-      "AFNI*pbar*fontList:         6x10=charset1"        , /* next to pbar */
-      "AFNI*imseq*fontList:        7x13=charset1"        , /* on imseq */
-      "AFNI*font8*fontList:        8x13bold=charset1"    , /* smaller fonts */
-      "AFNI*font7*fontList:        7x13=charset1"        ,  /* for various */
-      "AFNI*font6*fontList:        6x10=charset1"        ,  /* usages */
-      "AFNI*background:            gray28"               , /* background clr */
-      "AFNI*menu*background:       gray4"                , /* bkgd in menus */
-      "AFNI*menu*foreground:       #ffdd22"              , /* menu text color */
-      "AFNI*borderColor:           gray19"               , /* same as bkgd! */
-      "AFNI*foreground:            yellow"               , /* normal text */
-      "AFNI*borderWidth:           0"                    , /* don't change! */
-      "AFNI*troughColor:           blue3"                , /* in sliders */
-      "AFNI*XmLabel.translations:  #override<Btn2Down>:" , /* Motif 2.0 bug */
-      "AFNI*help*background:       black"                , /* for help */
-      "AFNI*help*foreground:       #ffffff"              ,
-      "AFNI*help*helpborder:       False"                ,
-      "AFNI*help*waitPeriod:       1066"                 ,
-      "AFNI*help*fontList:         9x15bold=charset1"    ,
-      "AFNI*cluefont:              9x15bold"             , /* for popup */
-      "AFNI*bigtext*fontList:      10x20=charset1"       , /* hints */
-      "AFNI*help*cancelWaitPeriod: 333"                  ,
-#if 0
-      "AFNI*clustA*fontList:       9x15bold=charset1"    , /* for Clusterize */
-      "AFNI*clustB*fontList:       9x15bold=charset1"    ,
-      "AFNI*clustA*background:     gray28"               ,
-      "AFNI*clustB*background:     gray1"                ,
-      "AFNI*clustA*foreground:     yellow"               ,
-      "AFNI*clustB*foreground:     white"                ,
-#endif
-
-      "AFNI*XmList.translations: #augment"                /* 24 Feb 2007 */
-           "<Btn4Down>: ListPrevItem()\\n"                /* for scrollwheel */
-           "<Btn5Down>: ListNextItem()"                  ,
-
-      "AFNI*XmText.translations: #augment"
-           "<Btn4Down>: previous-line() scroll-one-line-down()\\n"
-           "<Btn5Down>: next-line() scroll-one-line-up()"          ,
-#if 0
-      "AFNI*XmScrollBar.translations: #augment"
-           "<Btn4Down>: IncrementUpOrLeft(0) IncrementUpOrLeft(1)\\n"
-           "<Btn5Down>: IncrementDownOrRight(1) IncrementDownOrRight(0)" ,
-#endif
-
-   NULL } ;
-
-/* The trick to using multiple Xt translations in the fallback resources
-   above is to separate them not with '\n' but with '\\n'.  Ugghhhhhhh.  */
-
 /*-----------------------------------------------------------------------*/
 /* Signal handler for fatal errors; prints out some info before death. */
 
@@ -1538,7 +1738,7 @@ void AFNI_sigfunc_alrm(int sig)
      "If you have tears, prepare to shed them now"                   ,
      "Man, those solar neutrinos are killing me"                     ,
      "Are you ready for the explosion of Eta Carinae?"               ,
-     "He who will deceive will always fin a willing victim"          ,
+     "He who will deceive will always find a willing victim"         ,
      "How quick come the reasons for approving what we like"         ,
      "Remember -- AFNI is free, but worth at least 1000 times more"  ,
      "Remember -- Nothing is always absolutely so"                   ,
@@ -1556,6 +1756,15 @@ void AFNI_sigfunc_alrm(int sig)
      "Remember -- Memory is long but time is tricky"                 ,
      "Remember -- Men are always willing to believe what they wish"  ,
      "Remember -- What I tell you three times is true"               ,
+     "Fools give you reasons, wise men never try"                    ,
+     "People willingly trust the statistics they wish to believe"    ,
+     "Heaven's last best gift, my ever new delight"                  ,
+     "Long is the way and hard, that out of Data leads to Light"     ,
+     "They also serve, who only stand and process data"              ,
+     "Farewell happy software, where joy forever dwells"             ,
+     "He who destroys a good book, destroys reason itself"           ,
+     "Wild above rule or art, enormous bliss"                        ,
+     "Yet from those flames no light, but rather darkness visible"   ,
      "Think of all the beauty around you, and be happy"              ,
      "Experience is a hard teacher, but fools will have no other"    ,
      "By failing to prepare, you are preparing to fail"              ,
@@ -1653,6 +1862,9 @@ void AFNI_sigfunc_alrm(int sig)
      "When life gives you lemons, throw them right back at it"       ,
      "Happiness isn't good enough for me; I demand euphoria"         ,
      "Judge a person by her questions, rather than her answers"      ,
+     "Be yourself; everyone else is already taken"                   ,
+     "I have not failed; I've just found 10,000 ways that don't work",
+     "Statistics are good, but dark chocolate is better"             ,
 
      "Remember -- Screaming is the next best thing to solving a problem"              ,
      "Data which passes through so many steps can hardly have much truth left"        ,
@@ -1708,9 +1920,14 @@ void AFNI_sigfunc_alrm(int sig)
      "Let us therefore study the incidents of this as philosophy to learn wisdom from",
      "Analyze your data rigorously -- you can fake the conclusions all you want later",
      "O wad some Pow'r the giftie gie us, To see oursels as ithers see us"            ,
+     "One half the world cannot understand the statistics of the other"               ,
 
      "My name is AFNImandias, Brain of Brains; Look on my Statistics, ye Clever, and despair" ,
-     "Statistically Significant is NOT the same as Significant -- they're not even close"     ,
+
+     "Statistically Significant is NOT the same as Significant -- they're not even similar"   ,
+
+     "\n  It is a truth universally acknowledged, that a single scientist\n"
+     "  in possession of a large data collection, is in need of an AFNI."                     ,
 
      "\n  The great thing about the human condition:\n"
      "  No matter how bad it is, it can always get worse"                                     ,
@@ -2064,11 +2281,88 @@ int main( int argc , char *argv[] )
 
    REPORT_PROGRESS("Initializing: X11");
 
+   /*--- look for -XXX options before starting X11 [24 Mar 2016] ---*/
+
+   process_XXX_options( argc , argv ) ;  /* will set new_FALLback */
+
+   if( new_FALLback != NULL ){  /* if found any -XXX options, merge them */
+     int qq,pp ;
+     xrdb_pg = THD_find_executable("xrdb") ;
+
+     /* can't find xrdb executable ==> merge FALLback strings */
+
+     if( xrdb_pg == NULL ){
+       for( qq=0 ; FALLback[qq] != NULL ; qq++ ){
+         for( pp=0 ; new_FALLback[pp] != NULL ; pp++ ){
+           if( equiv_FALLback( new_FALLback[pp] , FALLback[qq] ) ) break ;
+         }
+         if( new_FALLback[pp] == NULL )
+           ADDTO_FALLback_one(FALLback[qq]) ;
+       }
+       for( qq=0 ; new_FALLback[qq] != NULL ; qq++ )
+         ININFO_message("new_FALLback[%d] = \"%s\"",qq,new_FALLback[qq]) ;
+
+     } else {  /* use xrdb to merge X11 resources */
+
+#define XXXSIZ 4096
+       char *xpg , *xout=NULL ; FILE *fp ;
+       xpg = malloc(strlen(xrdb_pg)+64) ;
+
+       /* get the current resources settings */
+
+       sprintf(xpg,"%s -query",xrdb_pg) ;
+       fp = popen(xpg,"r") ;
+       if( fp != NULL ){
+         xout = (char *)malloc(sizeof(char)*XXXSIZ) ; xout[0] = '\0' ;
+         while( fgets(xout+strlen(xout),XXXSIZ-2,fp) != NULL ){
+           xout = (char *)realloc(xout,sizeof(char)*(strlen(xout)+XXXSIZ)) ;
+         }
+         (void)pclose(fp) ;
+         if( *xout != '\0' ) xrdb_old = xout ;
+       }
+
+       /* set the new ones */
+
+       sprintf(xpg,"%s -override -",xrdb_pg) ;
+       fp = popen( xpg , "w" ) ;
+       if( fp != NULL ){
+         for( pp=0 ; new_FALLback[pp] != NULL ; pp++ )
+           fprintf(fp,"%s\n",new_FALLback[pp]) ;
+         (void)pclose(fp) ;
+       }
+
+       /* don't need new_FALLback any more */
+
+       for( pp=0 ; new_FALLback[pp] != NULL ; pp++ ) free(new_FALLback[pp]) ;
+       free(new_FALLback) ; new_FALLback = NULL ; free(xpg) ;
+#undef XXXSIZ
+     }
+   }
+
+   /*--- now ready to start X11 for true --*/
+
    memset(&MAIN_app, 0, sizeof(MAIN_app)) ;  /* 11 Feb 2009 [lesstif patrol] */
    MAIN_shell = XtVaAppInitialize( &MAIN_app , "AFNI" , NULL , 0 ,
-                                   &argc , argv , FALLback , NULL ) ;
+                                   &argc , argv ,
+                                   (new_FALLback!=NULL)?new_FALLback:FALLback ,
+                                   NULL ) ;
 
    if( MAIN_shell == NULL ) ERROR_exit("Cannot initialize X11") ;
+
+   /* if we used xrdb to set X11 resources, re-set them back to their old
+      state so that other AFNIs don't use these new settings by default   */
+
+   if( xrdb_old != NULL ){  /* 24 Mar 2016 */
+     FILE *fp ; char *xpg ;
+     xpg = malloc(strlen(xrdb_pg)+64) ;
+     sprintf(xpg,"%s -override -",xrdb_pg) ;
+     fp = popen( xpg , "w" ) ;
+     if( fp != NULL ){
+       fprintf(fp,"%s",xrdb_old) ;
+       (void)pclose(fp) ;
+     }
+     free(xpg) ;
+   }
 
    if( DBG_trace == 2 ){                           /* 01 Dec 1999 */
      XSynchronize(XtDisplay(MAIN_shell),TRUE) ;
@@ -2827,7 +3121,7 @@ ENTRY("AFNI_startup_timeout_CB") ;
              "                                                               \n"
              "++ For general AFNI program help, see the Web page           ++\n"
              "\n"
-             "   http://afni.nimh.nih.gov/afni/doc/program_help/index.html   \n"
+             "   https://afni.nimh.nih.gov/afni/doc/program_help/index.html   \n"
              "%s"
              "\n"
              "++ [To close this message window, left-click inside of it.]  ++\n"
@@ -2941,7 +3235,7 @@ ENTRY("AFNI_startup_timeout_CB") ;
      fprintf(stderr,
        "++ NOTE: you may want to consider creating a '.afnirc' file in your home\n"
        "         directory, to control AFNI's setup.  For more details, see\n"
-       "   http://afni.nimh.nih.gov/pub/dist/doc/program_help/README.environment.html\n") ;
+       "   https://afni.nimh.nih.gov/pub/dist/doc/program_help/README.environment.html\n") ;
 
 
    /* splash window down -- moved here 29 May 2013 */
@@ -5708,9 +6002,13 @@ if(PRINT_TRACING)
 STATUS("reading timeseries files") ;
 
       /* 27 Jan 2000: allow skipping *.1D files from dataset directories */
+      /* 10 Feb 2016:broke sometime - allow skipping */
+      if(GLOBAL_argopt.read_1D)
+         GLOBAL_library.timeseries = THD_get_many_timeseries(qlist);
+      else
+         GLOBAL_library.timeseries = NULL;
 
-      GLOBAL_library.timeseries =
-        THD_get_many_timeseries( (GLOBAL_argopt.read_1D) ? qlist : NULL ) ;
+/*      THD_get_many_timeseries( (GLOBAL_argopt.read_1D) ? qlist : NULL ) ;*/
 
       REFRESH ;
 

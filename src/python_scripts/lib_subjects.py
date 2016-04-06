@@ -857,9 +857,10 @@ class SubjectList(object):
             subjlist2      - second subject list for 2-sample test (want if the
                              datasets differ across sets)
             prefix         - prefix for 3dMEMA output
-            'ttype'        - used for a 2-sample test, to distinguish between
+            ttype          - used for a 2-sample test, to distinguish between
                              paired and unpaired  (results is using either
                              -conditions (paired) or -group (un-))
+                             ** ttype == paired is no longer valid
             options        - other options added to the 3dMEMA command
             verb           - verbose level
 
@@ -928,8 +929,11 @@ class SubjectList(object):
          if ttype not in g_mema_tests:
             print "** invalid 3dMEMA test %s, not in %s" % (ttype,g_mema_tests)
             return None
-         if ttype == 'paired': opt = '-conditions'
-         else:                 opt = '-groups'
+         if ttype == 'paired':
+            print '** 3dMEMA -type paired: no longer valid\n' \
+                  '   (input contrast and t-stat from original regression)'
+            return None
+         else: opt = '-groups'
          cmd += '%7s%s %s %s \\\n' % ('', opt, set_labs[0], set_labs[1])
 
       if len(options) > 0: cmd += '%7s%s' % ('', ' '.join(options))
