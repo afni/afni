@@ -755,9 +755,14 @@ void Qhelp(void)
     "   *OR*        * The value of mm should be an odd integer.\n"
     " -patchmin mm  * The default value of mm is 25.\n"
     "               * For more accurate results than mm=25, try 19 or 13.\n"
-    "               * The smallest allowed value is " NGMINS " (which will be VERY slow).\n"
+    "               * The smallest allowed patch size is " NGMINS ".\n"
+#ifdef USE_OMP
+    "               * OpenMP parallelization becomes inefficient for patch sizes\n"
+    "                 smaller than about 15x15x15 -- which is why running 3dQwarp down\n"
+    "                 to the minimum patch level of " NGMINS " can be very slow.\n"
+#endif
 #if (NGMIN < 7) && defined(ALLOW_QMODE)
-    "                 However, you may want stop at a larger patch (say 7 or 9) and use\n"
+    "               * You may want stop at a larger patch size (say 7 or 9) and use\n"
     "                 the -Qfinal option to run that final level with quintic warps,\n"
     "                 which might run faster and provide the same degree of warp detail.\n"
 #endif
@@ -768,6 +773,7 @@ void Qhelp(void)
     "                 Using a smaller '-minpatch' might try to force the warp to\n"
     "                 match features that do not match, and the result can be useless\n"
     "                 image distortions -- another reason to LOOK AT THE RESULTS.\n"
+    "                                                        -------------------\n"
     "\n"
     " -maxlev lv   = Here, 'lv' is the maximum refinement 'level' to use.  This\n"
     "                is an alternate way to specify when the program should stop.\n"
@@ -842,11 +848,27 @@ void Qhelp(void)
     "                 polynomials.\n"
     "               * This option is also not usually needed, and is experimental.\n"
 #endif
+#endif /* ALLOW_QMODE */
+
+#if 0                /* Don't let the user know about this option! [Apr 2016] */
+#ifdef ALLOW_BASIS5
+    "\n"
+    " -5final      = At the finest patch size (the last level), use 'cubic+3'\n"
+    "                polynomials -- 5 parameters in each direction.\n"
+    "               * This option only works for final patch size between 13 and 23\n"
+    "                 (inclusive), and should be considered experimental for now.\n"
+    "               * The idea is to allow finer scale optimization at larger final\n"
+    "                 patch sizes, in the hopes that this choice will give results\n"
+    "                 similar to '-minpatch 7' but with more efficient use of\n"
+    "                 OpenMP threads.\n"
+    "               * For now [Apr 2016], this option is still being benchmarked\n"
+    "                 and otherwise tested.  Be careful out there!\n"
+#endif
+#endif
     "\n"
     " -Qonly       = Use Hermite quintic polynomials at all levels.\n"
     "               * Very slow (about 4 times longer).  Also experimental.\n"
     "               * Will produce a (discrete representation of a) C2 warp.\n"
-#endif /* ALLOW_QMODE */
 
 #ifdef ALLOW_PLUSMINUS
     "\n"
@@ -1048,11 +1070,13 @@ void Qhelp(void)
     "----- AUTHOR = Zhark the Grotesquely Warped -- Fall/Winter/Spring 2012-13 -----\n"
   ) ;
 
-  PRINT_AFNI_OMP_USAGE("3dQwarp",
-                       "* Tests show that using more 10-12 CPUs with 3dQwarp doesn't help.\n"
-                       "  If you have more CPUs on one system, it's faster to run two or three\n"
-                       "  separate registration jobs in parallel than to use all the CPUs on\n"
-                       "  one 3dQwarp task.\n" ) ;
+  PRINT_AFNI_OMP_USAGE(
+   "3dQwarp",
+   "* Tests show that using more 10-12 CPUs with 3dQwarp doesn't help much.\n"
+   "  If you have more CPUs on one system, it's faster to run two or three\n"
+   "  separate registration jobs in parallel than to use all the CPUs on\n"
+   "  one 3dQwarp task.\n"
+  ) ;
   exit(0) ;
 }
 
@@ -1504,15 +1528,17 @@ int main( int argc , char *argv[] )
      }
 
      /*---------------*/
+     /* take it easy at the 0 level? */
 
      if( strcasecmp(argv[nopt],"-zeasy") == 0 ){     /* 26 Jun 2014 */
-       Hzeasy = 1 ; nopt++ ; continue ;
+       Hzeasy = 1 ; nopt++ ; continue ;              /* not in -help */
      }
 
      /*---------------*/
+     /* don't do quintic at the 0 level? */
 
      if( strcasecmp(argv[nopt],"-noQ") == 0 ){       /* 01 Jul 2014 */
-       Hznoq = 1 ; nopt++ ; continue ;
+       Hznoq = 1 ; nopt++ ; continue ;               /* not in -help */
      }
 
      /*---------------*/
@@ -1539,23 +1565,25 @@ int main( int argc , char *argv[] )
 
 #ifdef ALLOW_QMODE
      if( strcasecmp(argv[nopt],"-Qfinal") == 0 ){     /* 07 May 2013 */
-       Hqfinal = 1 ; nopt++ ; continue ;
+       Hqfinal = 1 ; H5final = 0 ; nopt++ ; continue ;
      }
      if( strcasecmp(argv[nopt],"-Qonly") == 0 ){      /* 27 Jun 2013 */
-       Hqonly = 1 ; nopt++ ; continue ;
+       Hqonly = 1 ; H5final = 0 ; nopt++ ; continue ;
      }
 #endif
 
 #ifdef ALLOW_BASIS5
      if( strcasecmp(argv[nopt],"-5final") == 0 ){     /* 06 Nov 2015 [SECRET] */
-       H5final = 3 ; nopt++ ; continue ;
+       H5final = 3 ; Hqfinal = 0 ; nopt++ ; continue ;
      }
+#if 1
      if( strcasecmp(argv[nopt],"-4final") == 0 ){     /* 06 Nov 2015 [SECRET] */
-       H5final = 2 ; nopt++ ; continue ;
+       H5final = 2 ; Hqfinal = 0 ; nopt++ ; continue ;
      }
      if( strcasecmp(argv[nopt],"-3final") == 0 ){     /* 06 Nov 2015 [SECRET] */
-       H5final = 1 ; nopt++ ; continue ;
+       H5final = 1 ; Hqfinal = 0 ; nopt++ ; continue ;
      }
+#endif
 #endif
 
      /*---------------*/
@@ -1937,6 +1965,40 @@ STATUS("check for errors") ;
      Hznoq = 0 ;
      WARNING_message("-znoQ and -Qfinal cannot be combined: turning off -znoQ") ;
    }
+
+#ifdef ALLOW_BASIS5
+   if( Hqfinal && H5final ){
+     WARNING_message("-Qfinal and -5final conflict: using -5final") ;
+     Hqfinal = 0 ;
+   }
+   if( H5final==3 && minpatch < NGMIN_PLUS_3 ){
+     WARNING_message("-5final resets -minpatch to %d",NGMIN_PLUS_3) ;
+     minpatch = NGMIN_PLUS_3 ; mlev = 99 ;
+   }
+   if( H5final==2 && minpatch < NGMIN_PLUS_2 ){
+     WARNING_message("-4final resets -minpatch to %d",NGMIN_PLUS_2) ;
+     minpatch = NGMIN_PLUS_2 ; mlev = 99 ;
+   }
+   if( H5final==1 && minpatch < NGMIN_PLUS_1 ){
+     WARNING_message("-3final resets -minpatch to %d",NGMIN_PLUS_1) ;
+     minpatch = NGMIN_PLUS_1 ; mlev = 99 ;
+   }
+   if( H5final==3 && minpatch > NGMAX_PLUS_3 ){
+     WARNING_message("-minpatch %d is too big for -5final [max=%d]: using -Qfinal instead",
+                     minpatch, NGMAX_PLUS_3 ) ;
+     H5final = 0 ; Hqfinal = 1 ;
+   }
+   if( H5final==2 && minpatch > NGMAX_PLUS_2 ){
+     WARNING_message("-minpatch %d is too big for -4final [max=%d]: using -Qfinal instead",
+                     minpatch, NGMAX_PLUS_2 ) ;
+     H5final = 0 ; Hqfinal = 1 ;
+   }
+   if( H5final==1 && minpatch > NGMAX_PLUS_1 ){
+     WARNING_message("-minpatch %d is too big for -3final [max=%d]: using -Qfinal instead",
+                     minpatch, NGMAX_PLUS_1 ) ;
+     H5final = 0 ; Hqfinal = 1 ;
+   }
+#endif
 
 #if 0
    if( Hlocalstat && meth != GA_MATCH_PEARCLP_SCALAR && meth != GA_MATCH_PEARSON_SCALAR ){

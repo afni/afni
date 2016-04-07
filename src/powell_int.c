@@ -15,13 +15,21 @@
 #undef MAX
 #define MAX(a,b) (((a)<(b)) ? (b) : (a))    /* not von Sydow, not Mad */
 
-
 /****************************/
 /** cf. powell_newuoa.[fc] **/
 
 extern int newuoa_(integer *n, integer *npt, doublereal *x,
                    doublereal *rhobeg, doublereal *rhoend, integer *maxfun,
                    doublereal *w, integer *icode) ;
+
+/*---------------------------------------------------------------------------*/
+
+static int verb = 0 ;
+void powell_set_verbose( int v )
+{  if( verb == v ) return ;
+   verb = v; /** INFO_message("powell_set_verbose(%d)",verb) ; **/
+   return ;
+}
 
 /*---------------------------------------------------------------------------*/
 /* Macro to periodically reduce a variable into the range 0..1:
@@ -115,6 +123,16 @@ int calfun_(integer *n, doublereal *x, doublereal *fun)
 
      val = userfun( (int)(*n) , sx ) ;           /* input = scaled x[] */
 
+#if 0
+if( verb > 2 ){
+  fprintf(stderr," + calfun(") ;
+  for( ii=0 ; ii < *n ; ii++ ){
+    fprintf(stderr,"%7.4f",sx[ii]) ; if( ii+1 < *n ) fprintf(stderr,",") ;
+  }
+  fprintf(stderr,") = %14.7g\n",val) ;
+}
+#endif
+
    } else if( scalx == SC_BALL ){  /* scale into a ball, not a box [08 Jan 2015] */
      int ii ; double rad=0.0 ;
 
@@ -134,6 +152,16 @@ int calfun_(integer *n, doublereal *x, doublereal *fun)
      }
 
      val = userfun( (int)(*n) , sx ) ;           /* input = scaled x[] */
+
+#if 0
+if( verb > 2 ){
+  fprintf(stderr," + calfun(") ;
+  for( ii=0 ; ii < *n ; ii++ ){
+    fprintf(stderr,"%7.4f",sx[ii]) ; if( ii+1 < *n ) fprintf(stderr,",") ;
+  }
+  fprintf(stderr,") = %14.7g\n",val) ;
+}
+#endif
 
 #if 0
    } else if( scalx == SC_L4 ){
@@ -182,11 +210,6 @@ void powell_set_mfac( float mm , float aa )
   if( mm >= 1.0f ){ mfac = mm   ; afac = aa   ; }  /* set */
   else            { mfac = 2.0f ; afac = 3.0f ; }  /* reset */
 }
-
-/*---------------------------------------------------------------------------*/
-
-static int verb = 0 ;
-void powell_set_verbose( int v ){ verb = v; }
 
 /*---------------------------------------------------------------------------*/
 /*! Driver for Powell's general purpose minimization newuoa function:
