@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 5 , APR , 2016 , RWC , "3dQwarp" , MINOR , TYPE_NEW_OPT ,
+   "fix bug with -5final -- but still hide from user" ,
+   NULL } ,
+
  { 25 , MAR , 2016 , RWC , "afni GUI" , MINOR , TYPE_NEW_OPT ,
    "A bunch of '-XXX' options to control colors and fonts" ,
    NULL } ,

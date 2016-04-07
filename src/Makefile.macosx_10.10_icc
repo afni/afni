@@ -50,7 +50,7 @@ CCMIN  = icc -O0 -m64
 CCD    = $(CC) $(CCDEBS)
 CCOLD  = $(CC)
 
-OMPFLAG = -openmp -openmp-link static -DUSE_OMP
+OMPFLAG = -qopenmp -qopenmp-link static -DUSE_OMP
 
 IFLAGS = -I. $(XROOT_I) -I/usr/local/include -I/usr/X11R6/include -I/sw/include 
 LFLAGS = -L/opt/intel/Compiler/11.0/059/lib -L. $(XROOT_L) -L/usr/lib -L/usr/local/lib  \
