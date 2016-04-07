@@ -1243,10 +1243,13 @@ void GICOR_process_dataset( NI_element *nel , int ct_start )
    float *nelar , *dsdar ;
    int nvec,nn,vv , vmul , ic ; float thr ;
 
+   int verb ;
+   if( AFNI_yesenv("AFNI_GIC_DEBUG") ) verb = 9 ;  /* 07 Apr 2016 */
+
 ENTRY("GICOR_process_dataset") ;
 
    if( nel == NULL || nel->vec_num < 2 ){  /* should never happen */
-     ERROR_message("badly formatted dataset from 3dGroupInCorr!") ;
+     ERROR_message("AFNI GIC badly formatted dataset from 3dGroupInCorr!") ;
      EXRETURN ;
    }
 
@@ -1275,21 +1278,19 @@ ENTRY("GICOR_process_dataset") ;
 
    /* copy NIML data into dataset */
 
-#if 0
-INFO_message("AFNI received %d vectors, length=%d",nel->vec_num,nvec) ;
-#endif
+   if( verb > 8 )
+     INFO_message("AFNI GIC: received %d vectors, length=%d",nel->vec_num,nvec) ;
 
    for( vv=0 ; vv < DSET_NVALS(giset->dset) ; vv++ ){
      nelar = (float *)nel->vec[vv] ;                /* NIML array */
      dsdar = (float *)DSET_ARRAY(giset->dset,vv) ;  /* dataset array */
 
-#if 0
-     { float mm,ss ; int nf ;
+     if( verb > 8 ){
+       float mm,ss ; int nf ;
        nf = thd_floatscan( nvec , nelar ) ;
        meansigma_float( nvec , nelar , &mm,&ss ) ;
-       ININFO_message("  #%02d nf=%d mean=%g sigma=%g",vv,nf,mm,ss) ;
+       ININFO_message("  vec#%02d nf=%d mean=%g sigma=%g",vv,nf,mm,ss) ;
      }
-#endif
 
      if( giset->ivec == NULL ){               /* all voxels */
        nn = MIN( giset->nvox , nvec ) ;
@@ -1454,6 +1455,9 @@ int AFNI_gicor_setref_xyz( Three_D_View *im3d , float xx,float yy,float zz )
    GICOR_setup *giset = im3d->giset ;
    THD_fvec3 iv,jv; THD_ivec3 kv; int ijk,ii ;
 
+   int verb ;
+   if( AFNI_yesenv("AFNI_GIC_DEBUG") ) verb = 9 ;  /* 07 Apr 2016 */
+
 ENTRY("AFNI_gicor_setref_xyz") ;
 
    if( !IM3D_OPEN(im3d) ||
@@ -1461,6 +1465,7 @@ ENTRY("AFNI_gicor_setref_xyz") ;
        !giset->ready      ){   /* should not happen */
 
 STATUS("something wrong in the setup") ;
+     if( verb > 8 ) WARNING_message("AFNI GIC: something wrong in the setup") ;
 
      GRPINCORR_LABEL_OFF(im3d) ; SENSITIZE_INSTACORR(im3d,False) ;
      if( giset != NULL ) giset->ready = giset->busy = 0 ;
@@ -1476,6 +1481,7 @@ STATUS("check socket to 3dGroupInCorr") ;
      GRPINCORR_LABEL_OFF(im3d) ; SENSITIZE_INSTACORR(im3d,False) ;
      if( giset != NULL ) giset->ready = giset->busy = 0 ;
      AFNI_misc_CB(im3d->vwid->func->gicor_pb,(XtPointer)im3d,NULL) ;
+     if( verb > 8 ) WARNING_message("AFNI GIC: connection to 3dGroupInCorr is broken") ;
      RETURN(-1) ;
    }
 
@@ -1485,6 +1491,7 @@ STATUS("check if already busy") ;
 #if 0
      MCW_flash_widget( 2 , im3d->vwid->func->gicor_label ) ; /* 07 Apr 2010 */
 #endif
+     if( verb > 8 ) WARNING_message("AFNI GIC: already waiting for 3dGroupInCorr results") ;
      RETURN(0) ;
    }
 
@@ -1492,7 +1499,7 @@ STATUS("check if already busy") ;
       !GICOR_apair_ready_bit(giset) &&
       !GICOR_apair_mirror_bit(giset)  ){
 
-     ERROR_message("AFNI: can't set InstaCorr seed before Set Apair") ;
+     ERROR_message("AFNI GIC: can't set InstaCorr seed before Set Apair") ;
      RETURN(0) ;
    }
 
@@ -1510,7 +1517,7 @@ STATUS("check coordinates") ;
        jv.xyz[2] < giset->dset->daxes->zzmin ||
        jv.xyz[2] > giset->dset->daxes->zzmax   ){
 
-     WARNING_message("GrpInCorr set point outside dataset box") ;
+     WARNING_message("AFNI GIC: seed point is outside dataset box") ;
      RETURN(-1) ;
    }
 
@@ -1523,13 +1530,14 @@ STATUS("transform coords to index" ) ;
 #endif
    ijk = DSET_ixyz_to_index( giset->dset, kv.ijk[0],kv.ijk[1],kv.ijk[2] ) ;
 
-   /** INFO_message("DEBUG: AFNI_gicor_setref called: ijk=%d",ijk) ; **/
+   if( verb > 8 )
+     INFO_message("AFNI GIC: AFNI_gicor_setref called --> ijk=%d",ijk) ;
 
    if( giset->ivec != NULL ){
 STATUS("search for index in mask") ;
      ii = bsearch_int( ijk , giset->nvec , giset->ivec ) ;
      if( ii < 0 ){
-       WARNING_message("GrpInCorr set point not in mask from 3dGroupInCorr") ;
+       WARNING_message("AFNI GIC: seed point not in mask from 3dGroupInCorr") ;
        RETURN(-1) ;
      }
    }
@@ -1560,10 +1568,15 @@ STATUS("create NIML element to send info") ;
 
 STATUS("send NIML element") ;
 
+   if( verb > 8 ){
+    INFO_message("AFNI GIC: sending command to 3dGroupInCorr") ;
+    NI_sleep(1) ;
+   }
+
    ii = NI_write_element( giset->ns , nel , NI_TEXT_MODE ) ;
    NI_free_element( nel ) ;
    if( ii <= 0 ){
-     ERROR_message("3dGroupInCorr connection has failed?!") ;
+     ERROR_message("AFNI GIC: 3dGroupInCorr connection has failed :(") ;
      RETURN(-1) ;
    }
 
@@ -1577,11 +1590,10 @@ STATUS("This is my only chance at building a disreputable past.") ;
    kv = THD_3dmm_to_3dind ( im3d->anat_now , jv ) ;
    UNLOAD_IVEC3( kv , im3d->vinfo->i1_icor ,
                       im3d->vinfo->j2_icor , im3d->vinfo->k3_icor ) ;
-#if 0
-   INFO_message("Called GICOR from %.2f %.2f %.2f (RAI), "
-                "seed radius %g",
-                xx, yy, zz, giset->seedrad) ;
-#endif
+   if( verb > 8 )
+     INFO_message("AFNI GIC: called from xyz = %.2f %.2f %.2f (DICOM), "
+                  "seed radius %g",
+                  xx, yy, zz, giset->seedrad) ;
 
 STATUS("mark that we're busy for now") ;
 
