@@ -2761,11 +2761,11 @@ mpegtoppm:
 #######
 # 11 Sep 2002 - for fun
 
-djpeg:cjpeg
+djpeg:libjpeg.a
 
-libjpeg.a:cjpeg
+cjpeg:libjpeg.a
 
-cjpeg:
+libjpeg.a:
 	( cd jpeg-6b ; $(RM) Makefile jconfig.h ;                    \
           chmod ugo+x ./configure ; ./configure 'CC=$(CCMIN)' ; \
           $(MAKE) ; $(MV) cjpeg djpeg libjpeg.a .. ;            \
