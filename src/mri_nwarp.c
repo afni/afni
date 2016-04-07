@@ -9215,6 +9215,8 @@ static void HCwarp_eval_B_basis4( int qq , float *xx , float *yy , float *zz )
          b2zb1yb3x, b3zb1yb3x, b0zb2yb3x, b1zb2yb3x, b2zb2yb3x, b3zb2yb3x,
          b0zb3yb3x, b1zb3yb3x, b2zb3yb3x, b3zb3yb3x ;
 
+   float t1,t2,t3,t4,t5,t6,t7 ;
+
    b0zb0yb0x = bbbcar[ 0][qq] ; b1zb0yb0x = bbbcar[ 1][qq] ;
    b2zb0yb0x = bbbcar[ 2][qq] ; b3zb0yb0x = bbbcar[ 3][qq] ;
    b0zb1yb0x = bbbcar[ 4][qq] ; b1zb1yb0x = bbbcar[ 5][qq] ;
@@ -9248,77 +9250,90 @@ static void HCwarp_eval_B_basis4( int qq , float *xx , float *yy , float *zz )
    b0zb3yb3x = bbbcar[60][qq] ; b1zb3yb3x = bbbcar[61][qq] ;
    b2zb3yb3x = bbbcar[62][qq] ; b3zb3yb3x = bbbcar[63][qq] ;
 
-   if( Hdox ) *xx = dxci *
-          (  b0zb0yb0x*Hxpar[ 0] + b1zb0yb0x*Hxpar[ 1] + b2zb0yb0x*Hxpar[ 2]
-           + b3zb0yb0x*Hxpar[ 3] + b0zb1yb0x*Hxpar[ 4] + b1zb1yb0x*Hxpar[ 5]
-           + b2zb1yb0x*Hxpar[ 6] + b3zb1yb0x*Hxpar[ 7] + b0zb2yb0x*Hxpar[ 8]
-           + b1zb2yb0x*Hxpar[ 9] + b2zb2yb0x*Hxpar[10] + b3zb2yb0x*Hxpar[11]
-           + b0zb3yb0x*Hxpar[12] + b1zb3yb0x*Hxpar[13] + b2zb3yb0x*Hxpar[14]
-           + b3zb3yb0x*Hxpar[15] + b0zb0yb1x*Hxpar[16] + b1zb0yb1x*Hxpar[17]
-           + b2zb0yb1x*Hxpar[18] + b3zb0yb1x*Hxpar[19] + b0zb1yb1x*Hxpar[20]
-           + b1zb1yb1x*Hxpar[21] + b2zb1yb1x*Hxpar[22] + b3zb1yb1x*Hxpar[23]
-           + b0zb2yb1x*Hxpar[24] + b1zb2yb1x*Hxpar[25] + b2zb2yb1x*Hxpar[26]
-           + b3zb2yb1x*Hxpar[27] + b0zb3yb1x*Hxpar[28] + b1zb3yb1x*Hxpar[29]
-           + b2zb3yb1x*Hxpar[30] + b3zb3yb1x*Hxpar[31] + b0zb0yb2x*Hxpar[32]
-           + b1zb0yb2x*Hxpar[33] + b2zb0yb2x*Hxpar[34] + b3zb0yb2x*Hxpar[35]
-           + b0zb1yb2x*Hxpar[36] + b1zb1yb2x*Hxpar[37] + b2zb1yb2x*Hxpar[38]
-           + b3zb1yb2x*Hxpar[39] + b0zb2yb2x*Hxpar[40] + b1zb2yb2x*Hxpar[41]
-           + b2zb2yb2x*Hxpar[42] + b3zb2yb2x*Hxpar[43] + b0zb3yb2x*Hxpar[44]
-           + b1zb3yb2x*Hxpar[45] + b2zb3yb2x*Hxpar[46] + b3zb3yb2x*Hxpar[47]
-           + b0zb0yb3x*Hxpar[48] + b1zb0yb3x*Hxpar[49] + b2zb0yb3x*Hxpar[50]
-           + b3zb0yb3x*Hxpar[51] + b0zb1yb3x*Hxpar[52] + b1zb1yb3x*Hxpar[53]
-           + b2zb1yb3x*Hxpar[54] + b3zb1yb3x*Hxpar[55] + b0zb2yb3x*Hxpar[56]
-           + b1zb2yb3x*Hxpar[57] + b2zb2yb3x*Hxpar[58] + b3zb2yb3x*Hxpar[59]
-           + b0zb3yb3x*Hxpar[60] + b1zb3yb3x*Hxpar[61] + b2zb3yb3x*Hxpar[62]
-           + b3zb3yb3x*Hxpar[63]                                            ) ; else *xx = 0.0f ;
+   if( Hdox ){
+     t1 =  b0zb0yb0x*Hxpar[ 0] + b1zb0yb0x*Hxpar[ 1] + b2zb0yb0x*Hxpar[ 2]
+         + b3zb0yb0x*Hxpar[ 3] + b0zb1yb0x*Hxpar[ 4] + b1zb1yb0x*Hxpar[ 5]
+         + b2zb1yb0x*Hxpar[ 6] + b3zb1yb0x*Hxpar[ 7] + b0zb2yb0x*Hxpar[ 8] ;
+     t2 =  b1zb2yb0x*Hxpar[ 9] + b2zb2yb0x*Hxpar[10] + b3zb2yb0x*Hxpar[11]
+         + b0zb3yb0x*Hxpar[12] + b1zb3yb0x*Hxpar[13] + b2zb3yb0x*Hxpar[14]
+         + b3zb3yb0x*Hxpar[15] + b0zb0yb1x*Hxpar[16] + b1zb0yb1x*Hxpar[17] ;
+     t3 =  b2zb0yb1x*Hxpar[18] + b3zb0yb1x*Hxpar[19] + b0zb1yb1x*Hxpar[20]
+         + b1zb1yb1x*Hxpar[21] + b2zb1yb1x*Hxpar[22] + b3zb1yb1x*Hxpar[23]
+         + b0zb2yb1x*Hxpar[24] + b1zb2yb1x*Hxpar[25] + b2zb2yb1x*Hxpar[26] ;
+     t4 =  b3zb2yb1x*Hxpar[27] + b0zb3yb1x*Hxpar[28] + b1zb3yb1x*Hxpar[29]
+         + b2zb3yb1x*Hxpar[30] + b3zb3yb1x*Hxpar[31] + b0zb0yb2x*Hxpar[32]
+         + b1zb0yb2x*Hxpar[33] + b2zb0yb2x*Hxpar[34] + b3zb0yb2x*Hxpar[35] ;
+     t5 =  b0zb1yb2x*Hxpar[36] + b1zb1yb2x*Hxpar[37] + b2zb1yb2x*Hxpar[38]
+         + b3zb1yb2x*Hxpar[39] + b0zb2yb2x*Hxpar[40] + b1zb2yb2x*Hxpar[41]
+         + b2zb2yb2x*Hxpar[42] + b3zb2yb2x*Hxpar[43] + b0zb3yb2x*Hxpar[44] ;
+     t6 =  b1zb3yb2x*Hxpar[45] + b2zb3yb2x*Hxpar[46] + b3zb3yb2x*Hxpar[47]
+         + b0zb0yb3x*Hxpar[48] + b1zb0yb3x*Hxpar[49] + b2zb0yb3x*Hxpar[50]
+         + b3zb0yb3x*Hxpar[51] + b0zb1yb3x*Hxpar[52] + b1zb1yb3x*Hxpar[53] ;
+     t7 =  b2zb1yb3x*Hxpar[54] + b3zb1yb3x*Hxpar[55] + b0zb2yb3x*Hxpar[56]
+         + b1zb2yb3x*Hxpar[57] + b2zb2yb3x*Hxpar[58] + b3zb2yb3x*Hxpar[59]
+         + b0zb3yb3x*Hxpar[60] + b1zb3yb3x*Hxpar[61] + b2zb3yb3x*Hxpar[62]
+         + b3zb3yb3x*Hxpar[63]                                             ;
+     *xx = dxci * (t1+t2+t3+t4+t5+t6+t7) ;
+   } else {
+     *xx = 0.0f ;
+   }
 
-   if( Hdoy ) *yy = dyci *
-          (  b0zb0yb0x*Hypar[ 0] + b1zb0yb0x*Hypar[ 1] + b2zb0yb0x*Hypar[ 2]
-           + b3zb0yb0x*Hypar[ 3] + b0zb1yb0x*Hypar[ 4] + b1zb1yb0x*Hypar[ 5]
-           + b2zb1yb0x*Hypar[ 6] + b3zb1yb0x*Hypar[ 7] + b0zb2yb0x*Hypar[ 8]
-           + b1zb2yb0x*Hypar[ 9] + b2zb2yb0x*Hypar[10] + b3zb2yb0x*Hypar[11]
-           + b0zb3yb0x*Hypar[12] + b1zb3yb0x*Hypar[13] + b2zb3yb0x*Hypar[14]
-           + b3zb3yb0x*Hypar[15] + b0zb0yb1x*Hypar[16] + b1zb0yb1x*Hypar[17]
-           + b2zb0yb1x*Hypar[18] + b3zb0yb1x*Hypar[19] + b0zb1yb1x*Hypar[20]
-           + b1zb1yb1x*Hypar[21] + b2zb1yb1x*Hypar[22] + b3zb1yb1x*Hypar[23]
-           + b0zb2yb1x*Hypar[24] + b1zb2yb1x*Hypar[25] + b2zb2yb1x*Hypar[26]
-           + b3zb2yb1x*Hypar[27] + b0zb3yb1x*Hypar[28] + b1zb3yb1x*Hypar[29]
-           + b2zb3yb1x*Hypar[30] + b3zb3yb1x*Hypar[31] + b0zb0yb2x*Hypar[32]
-           + b1zb0yb2x*Hypar[33] + b2zb0yb2x*Hypar[34] + b3zb0yb2x*Hypar[35]
-           + b0zb1yb2x*Hypar[36] + b1zb1yb2x*Hypar[37] + b2zb1yb2x*Hypar[38]
-           + b3zb1yb2x*Hypar[39] + b0zb2yb2x*Hypar[40] + b1zb2yb2x*Hypar[41]
-           + b2zb2yb2x*Hypar[42] + b3zb2yb2x*Hypar[43] + b0zb3yb2x*Hypar[44]
-           + b1zb3yb2x*Hypar[45] + b2zb3yb2x*Hypar[46] + b3zb3yb2x*Hypar[47]
-           + b0zb0yb3x*Hypar[48] + b1zb0yb3x*Hypar[49] + b2zb0yb3x*Hypar[50]
-           + b3zb0yb3x*Hypar[51] + b0zb1yb3x*Hypar[52] + b1zb1yb3x*Hypar[53]
-           + b2zb1yb3x*Hypar[54] + b3zb1yb3x*Hypar[55] + b0zb2yb3x*Hypar[56]
-           + b1zb2yb3x*Hypar[57] + b2zb2yb3x*Hypar[58] + b3zb2yb3x*Hypar[59]
-           + b0zb3yb3x*Hypar[60] + b1zb3yb3x*Hypar[61] + b2zb3yb3x*Hypar[62]
-           + b3zb3yb3x*Hypar[63]                                            ) ; else *yy = 0.0f ;
+   if( Hdoy ){
+     t1 =  b0zb0yb0x*Hypar[ 0] + b1zb0yb0x*Hypar[ 1] + b2zb0yb0x*Hypar[ 2]
+         + b3zb0yb0x*Hypar[ 3] + b0zb1yb0x*Hypar[ 4] + b1zb1yb0x*Hypar[ 5]
+         + b2zb1yb0x*Hypar[ 6] + b3zb1yb0x*Hypar[ 7] + b0zb2yb0x*Hypar[ 8] ;
+     t2 =  b1zb2yb0x*Hypar[ 9] + b2zb2yb0x*Hypar[10] + b3zb2yb0x*Hypar[11]
+         + b0zb3yb0x*Hypar[12] + b1zb3yb0x*Hypar[13] + b2zb3yb0x*Hypar[14]
+         + b3zb3yb0x*Hypar[15] + b0zb0yb1x*Hypar[16] + b1zb0yb1x*Hypar[17] ;
+     t3 =  b2zb0yb1x*Hypar[18] + b3zb0yb1x*Hypar[19] + b0zb1yb1x*Hypar[20]
+         + b1zb1yb1x*Hypar[21] + b2zb1yb1x*Hypar[22] + b3zb1yb1x*Hypar[23]
+         + b0zb2yb1x*Hypar[24] + b1zb2yb1x*Hypar[25] + b2zb2yb1x*Hypar[26] ;
+     t4 =  b3zb2yb1x*Hypar[27] + b0zb3yb1x*Hypar[28] + b1zb3yb1x*Hypar[29]
+         + b2zb3yb1x*Hypar[30] + b3zb3yb1x*Hypar[31] + b0zb0yb2x*Hypar[32]
+         + b1zb0yb2x*Hypar[33] + b2zb0yb2x*Hypar[34] + b3zb0yb2x*Hypar[35] ;
+     t5 =  b0zb1yb2x*Hypar[36] + b1zb1yb2x*Hypar[37] + b2zb1yb2x*Hypar[38]
+         + b3zb1yb2x*Hypar[39] + b0zb2yb2x*Hypar[40] + b1zb2yb2x*Hypar[41]
+         + b2zb2yb2x*Hypar[42] + b3zb2yb2x*Hypar[43] + b0zb3yb2x*Hypar[44] ;
+     t6 =  b1zb3yb2x*Hypar[45] + b2zb3yb2x*Hypar[46] + b3zb3yb2x*Hypar[47]
+         + b0zb0yb3x*Hypar[48] + b1zb0yb3x*Hypar[49] + b2zb0yb3x*Hypar[50]
+         + b3zb0yb3x*Hypar[51] + b0zb1yb3x*Hypar[52] + b1zb1yb3x*Hypar[53] ;
+     t7 =  b2zb1yb3x*Hypar[54] + b3zb1yb3x*Hypar[55] + b0zb2yb3x*Hypar[56]
+         + b1zb2yb3x*Hypar[57] + b2zb2yb3x*Hypar[58] + b3zb2yb3x*Hypar[59]
+         + b0zb3yb3x*Hypar[60] + b1zb3yb3x*Hypar[61] + b2zb3yb3x*Hypar[62]
+         + b3zb3yb3x*Hypar[63]                                             ;
+     *yy = dyci * (t1+t2+t3+t4+t5+t6+t7) ;
+   } else {
+     *yy = 0.0f ;
+   }
 
-   if( Hdoz ) *zz = dzci *
-          (  b0zb0yb0x*Hzpar[ 0] + b1zb0yb0x*Hzpar[ 1] + b2zb0yb0x*Hzpar[ 2]
-           + b3zb0yb0x*Hzpar[ 3] + b0zb1yb0x*Hzpar[ 4] + b1zb1yb0x*Hzpar[ 5]
-           + b2zb1yb0x*Hzpar[ 6] + b3zb1yb0x*Hzpar[ 7] + b0zb2yb0x*Hzpar[ 8]
-           + b1zb2yb0x*Hzpar[ 9] + b2zb2yb0x*Hzpar[10] + b3zb2yb0x*Hzpar[11]
-           + b0zb3yb0x*Hzpar[12] + b1zb3yb0x*Hzpar[13] + b2zb3yb0x*Hzpar[14]
-           + b3zb3yb0x*Hzpar[15] + b0zb0yb1x*Hzpar[16] + b1zb0yb1x*Hzpar[17]
-           + b2zb0yb1x*Hzpar[18] + b3zb0yb1x*Hzpar[19] + b0zb1yb1x*Hzpar[20]
-           + b1zb1yb1x*Hzpar[21] + b2zb1yb1x*Hzpar[22] + b3zb1yb1x*Hzpar[23]
-           + b0zb2yb1x*Hzpar[24] + b1zb2yb1x*Hzpar[25] + b2zb2yb1x*Hzpar[26]
-           + b3zb2yb1x*Hzpar[27] + b0zb3yb1x*Hzpar[28] + b1zb3yb1x*Hzpar[29]
-           + b2zb3yb1x*Hzpar[30] + b3zb3yb1x*Hzpar[31] + b0zb0yb2x*Hzpar[32]
-           + b1zb0yb2x*Hzpar[33] + b2zb0yb2x*Hzpar[34] + b3zb0yb2x*Hzpar[35]
-           + b0zb1yb2x*Hzpar[36] + b1zb1yb2x*Hzpar[37] + b2zb1yb2x*Hzpar[38]
-           + b3zb1yb2x*Hzpar[39] + b0zb2yb2x*Hzpar[40] + b1zb2yb2x*Hzpar[41]
-           + b2zb2yb2x*Hzpar[42] + b3zb2yb2x*Hzpar[43] + b0zb3yb2x*Hzpar[44]
-           + b1zb3yb2x*Hzpar[45] + b2zb3yb2x*Hzpar[46] + b3zb3yb2x*Hzpar[47]
-           + b0zb0yb3x*Hzpar[48] + b1zb0yb3x*Hzpar[49] + b2zb0yb3x*Hzpar[50]
-           + b3zb0yb3x*Hzpar[51] + b0zb1yb3x*Hzpar[52] + b1zb1yb3x*Hzpar[53]
-           + b2zb1yb3x*Hzpar[54] + b3zb1yb3x*Hzpar[55] + b0zb2yb3x*Hzpar[56]
-           + b1zb2yb3x*Hzpar[57] + b2zb2yb3x*Hzpar[58] + b3zb2yb3x*Hzpar[59]
-           + b0zb3yb3x*Hzpar[60] + b1zb3yb3x*Hzpar[61] + b2zb3yb3x*Hzpar[62]
-           + b3zb3yb3x*Hzpar[63]                                            ) ; else *zz = 0.0f ;
+   if( Hdoz ){
+     t1 =  b0zb0yb0x*Hzpar[ 0] + b1zb0yb0x*Hzpar[ 1] + b2zb0yb0x*Hzpar[ 2]
+         + b3zb0yb0x*Hzpar[ 3] + b0zb1yb0x*Hzpar[ 4] + b1zb1yb0x*Hzpar[ 5]
+         + b2zb1yb0x*Hzpar[ 6] + b3zb1yb0x*Hzpar[ 7] + b0zb2yb0x*Hzpar[ 8] ;
+     t2 =  b1zb2yb0x*Hzpar[ 9] + b2zb2yb0x*Hzpar[10] + b3zb2yb0x*Hzpar[11]
+         + b0zb3yb0x*Hzpar[12] + b1zb3yb0x*Hzpar[13] + b2zb3yb0x*Hzpar[14]
+         + b3zb3yb0x*Hzpar[15] + b0zb0yb1x*Hzpar[16] + b1zb0yb1x*Hzpar[17] ;
+     t3 =  b2zb0yb1x*Hzpar[18] + b3zb0yb1x*Hzpar[19] + b0zb1yb1x*Hzpar[20]
+         + b1zb1yb1x*Hzpar[21] + b2zb1yb1x*Hzpar[22] + b3zb1yb1x*Hzpar[23]
+         + b0zb2yb1x*Hzpar[24] + b1zb2yb1x*Hzpar[25] + b2zb2yb1x*Hzpar[26] ;
+     t4 =  b3zb2yb1x*Hzpar[27] + b0zb3yb1x*Hzpar[28] + b1zb3yb1x*Hzpar[29]
+         + b2zb3yb1x*Hzpar[30] + b3zb3yb1x*Hzpar[31] + b0zb0yb2x*Hzpar[32]
+         + b1zb0yb2x*Hzpar[33] + b2zb0yb2x*Hzpar[34] + b3zb0yb2x*Hzpar[35] ;
+     t5 =  b0zb1yb2x*Hzpar[36] + b1zb1yb2x*Hzpar[37] + b2zb1yb2x*Hzpar[38]
+         + b3zb1yb2x*Hzpar[39] + b0zb2yb2x*Hzpar[40] + b1zb2yb2x*Hzpar[41]
+         + b2zb2yb2x*Hzpar[42] + b3zb2yb2x*Hzpar[43] + b0zb3yb2x*Hzpar[44] ;
+     t6 =  b1zb3yb2x*Hzpar[45] + b2zb3yb2x*Hzpar[46] + b3zb3yb2x*Hzpar[47]
+         + b0zb0yb3x*Hzpar[48] + b1zb0yb3x*Hzpar[49] + b2zb0yb3x*Hzpar[50]
+         + b3zb0yb3x*Hzpar[51] + b0zb1yb3x*Hzpar[52] + b1zb1yb3x*Hzpar[53] ;
+     t7 =  b2zb1yb3x*Hzpar[54] + b3zb1yb3x*Hzpar[55] + b0zb2yb3x*Hzpar[56]
+         + b1zb2yb3x*Hzpar[57] + b2zb2yb3x*Hzpar[58] + b3zb2yb3x*Hzpar[59]
+         + b0zb3yb3x*Hzpar[60] + b1zb3yb3x*Hzpar[61] + b2zb3yb3x*Hzpar[62]
+         + b3zb3yb3x*Hzpar[63]                                             ;
+     *zz = dzci * (t1+t2+t3+t4+t5+t6+t7) ;
+   } else {
+     *zz = 0.0f ;
+   }
+
    return ;
 }
 

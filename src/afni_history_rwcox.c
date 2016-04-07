@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 7 , APR , 2016 , RWC , "3dGroupInCorr" , MICRO , TYPE_NEW_ENV ,
+   "AFNI_GIC_DEBUG=YES will cause lots of debugging printouts" ,
+   "For Sharyn and Cesar." } ,
+
  { 5 , APR , 2016 , RWC , "3dQwarp" , MINOR , TYPE_NEW_OPT ,
    "fix bug with -5final -- but still hide from user" ,
    NULL } ,

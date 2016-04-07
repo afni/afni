@@ -675,14 +675,14 @@ void GRINCOR_many_dotprod( MRI_shindss *shd , float **vv , float **ddp )
  AFNI_OMP_END ;
 
 #ifdef isfinite
-   if( debug ){
+   if( debug || verb > 8 ){
      int nvec=shd->nvec , nbad , iv , ids ;
      for( ids=0 ; ids < shd->ndset ; ids++ ){
        for( nbad=iv=0 ; iv < nvec ; iv++ ){
          if( !isfinite(ddp[ids][iv]) ){ ddp[ids][iv] = 0.0f; nbad++; }
        }
        if( nbad > 0 )
-         WARNING_message("GIC: %d bad correlations in dataset #%d",nbad,ids) ;
+         WARNING_message("GIC: %d non-finite correlations in dataset #%d",nbad,ids) ;
      }
    }
 #endif
@@ -764,6 +764,15 @@ int GRINCOR_extract_ijknbhd( MRI_shindss *shd , int dd ,
 
 /*----------------------------------------------------------------------------*/
 
+static float GIC_L2norm( int nv , float *vv )
+{
+   int ii ; float ss = 0.0f ;
+   for( ii=0 ; ii < nv ; ii++ ) ss += vv[ii]*vv[ii] ;
+   return sqrtf(ss) ;
+}
+
+/*----------------------------------------------------------------------------*/
+
 void GRINCOR_average_ijknbhd( MRI_shindss *shd , int dd ,
                               MCW_cluster *nbhd , int voxijk , float *avar )
 {
@@ -783,6 +792,11 @@ void GRINCOR_average_ijknbhd( MRI_shindss *shd , int dd ,
    }
 
    (void)THD_normalize( nvals , avar ) ;
+
+   if( verb > 8 )
+     ININFO_message("GIC:  file=%s[%d] aver[%d] seedvec L2=%g",
+                    shd->dfname , dd , nvec , GIC_L2norm(nvals,avar) ) ;
+
    free(tsar) ; return ;
 }
 
@@ -808,6 +822,11 @@ void GRINCOR_prinvec_ijknbhd( MRI_shindss *shd , int dd ,
 
    (void)principal_vector( nvals , nvec , 0 , tsar ,
                            pvar , avar , NULL , xran ) ;
+
+   if( verb > 8 )
+     ININFO_message("GIC:  file=%s[%d] pv[%d] seedvec L2=%g",
+                    shd->dfname , dd , nvec , GIC_L2norm(nvals,pvar) ) ;
+
    free(avar) ; free(tsar) ; return ;
 }
 
@@ -822,6 +841,7 @@ void GRINCOR_seedvec_ijk_aver( MRI_shindss *shd , MCW_cluster *nbhd ,
    int kk ;
    for( kk=0 ; kk < shd->ndset ; kk++ )
      GRINCOR_average_ijknbhd( shd , kk , nbhd , voxijk , seedvec[kk] ) ;
+
    return ;
 }
 /*----------------------------------------------------------------------------*/
@@ -1003,116 +1023,10 @@ void GI_sigfunc(int sig)   /** signal handler for fatal errors **/
    exit(1) ;
 }
 
-/*--------------------------------------------------------------------------*/
+/*----------------------------------------------------------------------------*/
 
-static char *afnihost       = "localhost" ;
-static MRI_shindss *shd_AAA = NULL ;
-static MRI_shindss *shd_BBB = NULL ;
-static int ttest_opcode     = -1   ;  /* 0=pooled, 1=unpooled, 2=paired */
-static int ttest_opcode_max =  2   ;
-
-static UINT32 testA, testB, testAB ;  /* 23 May 2010 */
-static int mcov = 0 ;
-static int nout = 0 , nout_mcov = 0 ;
-static float *axx , *axx_psinv , *axx_xtxinv ;
-static float *bxx , *bxx_psinv , *bxx_xtxinv ;
-
- /* Jun 2012: for voxel-wise covariates */
-
-static float **axxM=NULL , **axxM_psinv=NULL , **axxM_xtxinv=NULL ;
-static float **bxxM=NULL , **bxxM_psinv=NULL , **bxxM_xtxinv=NULL ;
-
-static int   oform = SUMA_NO_DSET_FORMAT; /* output format for surface-based */
-
-#define MAX_LABEL_SIZE 12
-#define NSEND_LIMIT     9
-
-#undef COVTEST  /* this is for Cox ONLY -- for debugging */
-
-#define IJK_MODE     1  /* for -batch */
-#define XYZ_MODE     2
-#define IJKPV_MODE   3
-#define XYZPV_MODE   4
-#define MASKAVE_MODE 5
-#define MASKPV_MODE  6
-#define VECTORS_MODE 7
-#define NODE_MODE    8
-
-#define LIST_MODE    9  /* 01 Aug 2012 */
-#define LIST_RAND  666
-#define LIST_GRID  667
-
-int main( int argc , char *argv[] )
+void GIC_help(int junque )   /* Dispense the Wisdom of the Ages [07 Apr 2016] */
 {
-   int nopt , kk , nn , ii,jj, TalkToAfni=1 , do_nocov=0 ;
-   char nsname[2048]  ;      /* NIML socket name */
-   NI_element *nelset=NULL ; /* NIML element with dataset to send to AFNI */
-   NI_element *nelcmd=NULL ; /* NIML element with command from AFNI */
-   float *neldar=NULL     , *nelzar=NULL          ;
-   float *neldar_AAA=NULL , *nelzar_AAA=NULL ;
-   float *neldar_BBB=NULL , *nelzar_BBB=NULL ; int dosix=0 , nosix=0 ;
-   char buf[1024] ;
-   float seedrad=0.0f , dx,dy,dz , dmin ; int nx,ny,nz,nxy ;
-   MCW_cluster *nbhd=NULL ;
-   int voxijk , voxind , aa,bb,cc , xx,yy,zz , qijk,qind ; char *atr ;
-   int nvec , ndset_AAA=0,ndset_BBB=0 , *nvals_AAA=NULL,*nvals_BBB=NULL ;
-   int nvals_AAA_tot=0 , nvals_BBB_tot=0 , nvals_tot=0 , ndset_tot=0 ;
-   int nvals_AAA_max=0 , nvals_BBB_max=0 , nvals_max=0 ;
-   float **seedvec_AAA=NULL , **dotprod_AAA=NULL ;
-   float **seedvec_BBB=NULL , **dotprod_BBB=NULL ;
-   int ctim=0,btim=0,atim=0 , do_shm=2 , nsend=0 , shm_active=0 ;
-   char label_AAA[MAX_LABEL_SIZE]="AAA" , label_BBB[MAX_LABEL_SIZE]="BBB" ;
-   char *qlab_AAA=NULL , *qlab_BBB=NULL ;
-   int   lset_AAA=0    ,  lset_BBB=0 ;
-   int   *use_AAA=NULL ,  *use_BBB=NULL ;  /* lists of subjects to use */
-
-   NI_element   *covnel=NULL ;       /* covariates */
-   NI_str_array *covlab=NULL ;
-   MRI_IMAGE *axxim=NULL , *axxim_psinv=NULL , *axxim_xtxinv=NULL ;
-   MRI_IMAGE *bxxim=NULL , *bxxim_psinv=NULL , *bxxim_xtxinv=NULL ;
-   MRI_IMARR *covimar=NULL ;  /* 14 May 2012 */
-   float **dtar=NULL ;
-   int no_ttest=0 ;  /* 02 Nov 2010 */
-   int do_spcov=0 , nspcov=0 ; float **spcov=NULL ;
-
-   NI_element *sclnel=NULL ;         /* scale factors [19 Sep 2012] */
-   float *scl_AAA=NULL , *scl_BBB=NULL ;
-
-   int do_sendall=0 , nsaar=0 ; /* 22 Jan 2011 */
-   char *bricklabels=NULL ;
-   float **saar=NULL ;
-
-   int   bmode=0 , do_lpi=0;    /* 05 Feb 2011 -- stuff for batch mode */
-   char *bname=NULL ;
-   char *bfile=NULL , *bprefix=NULL ;
-   FILE *bfp=NULL ;
-   int   blist_type=0, blist_num=0, blist_index=0 ; /* 01 Aug 2012 -- batch list */
-   int  *blist=NULL;
-   char *blist_prefix=NULL ;
-   GICOR_setup *giset=NULL ;
-
-   /* -clust attributes [patched 13 Oct 2015] */
-
-   char *clust_NN1_1sided=NULL , *clust_NN1_2sided=NULL , *clust_NN1_bisided=NULL ;
-   char *clust_NN2_1sided=NULL , *clust_NN2_2sided=NULL , *clust_NN2_bisided=NULL ;
-   char *clust_NN3_1sided=NULL , *clust_NN3_2sided=NULL , *clust_NN3_bisided=NULL ;
-   char *clust_mask=NULL ;
-   char *clatr[10] = { NULL,NULL,NULL,NULL,NULL , NULL,NULL,NULL,NULL,NULL } ;
-
-   int voxindB=-666 , voxijkB=-666 , redoB=1 ; /* Apr 2013 */
-   int do_apair=0 ;
-
-   int do_ztest=0 ; /* 11 Feb 2016 */
-
-#ifdef COVTEST
-   float *ctarA=NULL , *ctarB=NULL ; char *ctnam ;  /* debugging covariates */
-#endif
-
-   /*-- enlighten the ignorant and brutish sauvages with our wisdom? --*/
-
-   AFNI_SETUP_OMP(0) ;  /* 24 Jun 2013 */
-
-   if( argc < 2 || strcasecmp(argv[1],"-help") == 0 ){
      printf(
       "Usage: 3dGroupInCorr [options]\n"
       "\n"
@@ -1808,16 +1722,129 @@ int main( int argc , char *argv[] )
      PRINT_AFNI_OMP_USAGE("3dGroupInCorr",NULL) ;
      printf("++ Authors: Bob Cox and Ziad Saad\n") ;
      PRINT_COMPILE_DATE ; exit(0) ;
+}
 
-   }  /*-- end of the enlightenment --*/
+/*--------------------------------------------------------------------------*/
+
+static char *afnihost       = "localhost" ;
+static MRI_shindss *shd_AAA = NULL ;
+static MRI_shindss *shd_BBB = NULL ;
+static int ttest_opcode     = -1   ;  /* 0=pooled, 1=unpooled, 2=paired */
+static int ttest_opcode_max =  2   ;
+
+static UINT32 testA, testB, testAB ;  /* 23 May 2010 */
+static int mcov = 0 ;
+static int nout = 0 , nout_mcov = 0 ;
+static float *axx , *axx_psinv , *axx_xtxinv ;
+static float *bxx , *bxx_psinv , *bxx_xtxinv ;
+
+ /* Jun 2012: for voxel-wise covariates */
+
+static float **axxM=NULL , **axxM_psinv=NULL , **axxM_xtxinv=NULL ;
+static float **bxxM=NULL , **bxxM_psinv=NULL , **bxxM_xtxinv=NULL ;
+
+static int   oform = SUMA_NO_DSET_FORMAT; /* output format for surface-based */
+
+#define MAX_LABEL_SIZE 12
+#define NSEND_LIMIT     9
+
+#undef COVTEST  /* this is for Cox ONLY -- for debugging */
+
+#define IJK_MODE     1  /* for -batch */
+#define XYZ_MODE     2
+#define IJKPV_MODE   3
+#define XYZPV_MODE   4
+#define MASKAVE_MODE 5
+#define MASKPV_MODE  6
+#define VECTORS_MODE 7
+#define NODE_MODE    8
+
+#define LIST_MODE    9  /* 01 Aug 2012 */
+#define LIST_RAND  666
+#define LIST_GRID  667
+
+int main( int argc , char *argv[] )
+{
+   int nopt , kk , nn , ii,jj, TalkToAfni=1 , do_nocov=0 ;
+   char nsname[2048]  ;      /* NIML socket name */
+   NI_element *nelset=NULL ; /* NIML element with dataset to send to AFNI */
+   NI_element *nelcmd=NULL ; /* NIML element with command from AFNI */
+   float *neldar=NULL     , *nelzar=NULL          ;
+   float *neldar_AAA=NULL , *nelzar_AAA=NULL ;
+   float *neldar_BBB=NULL , *nelzar_BBB=NULL ; int dosix=0 , nosix=0 ;
+   char buf[1024] ;
+   float seedrad=0.0f , dx,dy,dz , dmin ; int nx,ny,nz,nxy ;
+   MCW_cluster *nbhd=NULL ;
+   int voxijk , voxind , aa,bb,cc , xx,yy,zz , qijk,qind ; char *atr ;
+   int nvec , ndset_AAA=0,ndset_BBB=0 , *nvals_AAA=NULL,*nvals_BBB=NULL ;
+   int nvals_AAA_tot=0 , nvals_BBB_tot=0 , nvals_tot=0 , ndset_tot=0 ;
+   int nvals_AAA_max=0 , nvals_BBB_max=0 , nvals_max=0 ;
+   float **seedvec_AAA=NULL , **dotprod_AAA=NULL ;
+   float **seedvec_BBB=NULL , **dotprod_BBB=NULL ;
+   int ctim=0,btim=0,atim=0 , do_shm=2 , nsend=0 , shm_active=0 ;
+   char label_AAA[MAX_LABEL_SIZE]="AAA" , label_BBB[MAX_LABEL_SIZE]="BBB" ;
+   char *qlab_AAA=NULL , *qlab_BBB=NULL ;
+   int   lset_AAA=0    ,  lset_BBB=0 ;
+   int   *use_AAA=NULL ,  *use_BBB=NULL ;  /* lists of subjects to use */
+
+   NI_element   *covnel=NULL ;       /* covariates */
+   NI_str_array *covlab=NULL ;
+   MRI_IMAGE *axxim=NULL , *axxim_psinv=NULL , *axxim_xtxinv=NULL ;
+   MRI_IMAGE *bxxim=NULL , *bxxim_psinv=NULL , *bxxim_xtxinv=NULL ;
+   MRI_IMARR *covimar=NULL ;  /* 14 May 2012 */
+   float **dtar=NULL ;
+   int no_ttest=0 ;  /* 02 Nov 2010 */
+   int do_spcov=0 , nspcov=0 ; float **spcov=NULL ;
+
+   NI_element *sclnel=NULL ;         /* scale factors [19 Sep 2012] */
+   float *scl_AAA=NULL , *scl_BBB=NULL ;
+
+   int do_sendall=0 , nsaar=0 ; /* 22 Jan 2011 */
+   char *bricklabels=NULL ;
+   float **saar=NULL ;
+
+   int   bmode=0 , do_lpi=0;    /* 05 Feb 2011 -- stuff for batch mode */
+   char *bname=NULL ;
+   char *bfile=NULL , *bprefix=NULL ;
+   FILE *bfp=NULL ;
+   int   blist_type=0, blist_num=0, blist_index=0 ; /* 01 Aug 2012 -- batch list */
+   int  *blist=NULL;
+   char *blist_prefix=NULL ;
+   GICOR_setup *giset=NULL ;
+
+   /* -clust attributes [patched 13 Oct 2015] */
+
+   char *clust_NN1_1sided=NULL , *clust_NN1_2sided=NULL , *clust_NN1_bisided=NULL ;
+   char *clust_NN2_1sided=NULL , *clust_NN2_2sided=NULL , *clust_NN2_bisided=NULL ;
+   char *clust_NN3_1sided=NULL , *clust_NN3_2sided=NULL , *clust_NN3_bisided=NULL ;
+   char *clust_mask=NULL ;
+   char *clatr[10] = { NULL,NULL,NULL,NULL,NULL , NULL,NULL,NULL,NULL,NULL } ;
+
+   int voxindB=-666 , voxijkB=-666 , redoB=1 ; /* Apr 2013 */
+   int do_apair=0 ;
+
+   int do_ztest=0 ; /* 11 Feb 2016 */
+
+#ifdef COVTEST
+   float *ctarA=NULL , *ctarB=NULL ; char *ctnam ;  /* debugging covariates */
+#endif
+
+   /*-- enlighten the ignorant and brutish sauvages with our wisdom? --*/
+
+   if( argc < 2 || strcasecmp(argv[1],"-help") == 0 ){
+     GIC_help(0) ; exit(0) ;
+   }
 
    /*--- startup bureaucracy ---*/
 
+   AFNI_SETUP_OMP(0) ;  /* 24 Jun 2013 */
    mainENTRY("3dGroupInCorr"); machdep();
    AFNI_logger("3dGroupInCorr",argc,argv);
    PRINT_VERSION("3dGroupInCorr"); AUTHOR("Cox, the Mad Correlator");
 
-   /*-- process command line options --*/
+   if( AFNI_yesenv("AFNI_GIC_DEBUG") ) verb = 9 ;  /* 07 Apr 2016 */
+
+   /*-- process command line options -----------------------------------------*/
 
    nopt = 1 ;
    while( nopt < argc ){
@@ -2275,7 +2302,7 @@ int main( int argc , char *argv[] )
      suggest_best_prog_option(argv[0], argv[nopt]);
      exit(1);
 
-   } /*--- end of processing options ---*/
+   } /*--- end of processing options -----------------------------------------*/
 
    /*-- check for the worst possible news (i.e., clueless user) --*/
 
@@ -2812,7 +2839,7 @@ int main( int argc , char *argv[] )
    }
 #undef BSTEP
 
-   if( do_ztest ){  /* 11 Feb 2016 */
+   if( do_ztest || verb > 8 ){  /* 11 Feb 2016 */
      byte *bv ; short *sv ; int pp,nzz=0 ; int64_t nqq,qq ;
      INFO_message("Running -ztest now") ;
      if( shd_AAA->datum == 1 ){
@@ -3277,9 +3304,12 @@ int main( int argc , char *argv[] )
            }
          }
          continue ; /* loop back */
+
+       } else if( verb > 8 ){
+         INFO_message("GIC: incoming command = '%s'",nelcmd->name) ;
        }
 
-     } else {   /*-- create command internally in batch mode [Feb 2011] --*/
+     } else {   /*-- create command internally in batch mode [Feb 2011] ------*/
 
        char cline[6666], buf[666] , *cpt ; static int nbatch=0 ;
        static NI_str_array *bsar=NULL ;
@@ -3484,7 +3514,7 @@ BatchFinalize:
 
        if( verb > 2 ) INFO_message("GIC: generated %s command",nelcmd->name) ;
 
-     } /*-- end of batch mode creating the command --*/
+     } /*-- end of batch mode creating the command ---------------------------*/
 
      /*-- the following should never happen --*/
 
@@ -3784,7 +3814,7 @@ BatchFinalize:
        }
      }
 
-#if 0
+#if 1
      if( verb > 4 ){
        float mm,ss ; int nf ;
        INFO_message("GIC: dotprod_AAA statistics") ;
@@ -3830,6 +3860,16 @@ BatchFinalize:
 
        GRINCOR_many_ttest( nvec , ndset_AAA , dotprod_AAA ,
                                   ndset_BBB , dotprod_BBB , neldar,nelzar ) ;
+
+       if( verb > 8 ){
+         int zdar=0, zzar=0 ;
+         for( ii=0 ; ii < nvec ; ii++ ){
+           if( neldar[ii] == 0.0f ) zdar++ ;
+           if( nelzar[ii] == 0.0f ) zzar++ ;
+         }
+         INFO_message("GIC: out of %d vectors, %d have mean=0 and %d have z=0",
+                      nvec , zdar , zzar ) ;
+       }
 
        /* 1-sample results for the 2-sample case? */
 
@@ -3917,7 +3957,7 @@ BatchFinalize:
 
      /*** send the result to AFNI ***/
 
-#if 0
+#if 1
      if( verb > 4 ){
        float mm,ss ; int nf ;
        INFO_message("dotprod_AAA statistics") ;
