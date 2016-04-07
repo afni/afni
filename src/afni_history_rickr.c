@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  7,  Apr, 2016, RCR, "Makefile.INCLUDE", MICRO, TYPE_MODIFY,
+   "switch to have cjpeg depend on libjpeg.a, so it does not get rebuilt",
+   NULL
+ } ,
+
  {  7,  Apr, 2016, RCR, "@update.afni.binaries", MINOR, TYPE_NEW_OPT,
    "add options -proto and -test_proto",
    "One can specify the download protocol as http, https or NONE."
