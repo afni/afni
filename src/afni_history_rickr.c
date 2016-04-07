@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  7,  Apr, 2016, RCR, "@update.afni.binaries", MINOR, TYPE_NEW_OPT,
+   "add options -proto and -test_proto",
+   "One can specify the download protocol as http, https or NONE."
+ } ,
+
  {  5,  Apr, 2016, RCR, "afni-general", MINOR, TYPE_ENHANCE,
    "THD_open_tcat works as wildcard - can apply sub-brick selectors",
    NULL

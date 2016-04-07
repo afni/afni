@@ -13,7 +13,9 @@
 # ----------------------------------------------------------------------
 
 set prog = `basename $0`
-set afnisite = https://afni.nimh.nih.gov
+set hostname = afni.nimh.nih.gov
+set hostproto = https://
+set hostsite = $hostproto$hostname
 set aub_version = "2.4, March 30, 2016"
 
 # ----------------------------------------------------------------------
@@ -45,6 +47,7 @@ history for $prog :
   2.2  19 Feb 2016 : minor text changes (note get_prog and appease dglen)
   2.3  29 Mar 2016 : added -no_cert_verify to omit certificate verification
   2.4  30 Mar 2016 : possibly udpate .bashrc after .cshrc
+  2.5  07 Apr 2016 : added -proto and -test_protos options
 -------------------------------------------------------------------------------
 EOF
 exit
@@ -74,6 +77,7 @@ else
 endif
 
 set testing     = 0
+set test_protos = 0     # test download protocols
 set use_curl    = 0
 set do_apsearch = 1     # run apserach -update_all_afni_help
 set do_recur    = 1     # download a new version of @uab, first
@@ -139,6 +143,20 @@ while ( $ac <= $#argv )
         endif
         # decide on increment here, and continue
         continue
+    else if ( "$argv[$ac]" == "-proto" ) then
+        @ ac ++
+        if ( $ac > $#argv ) then
+            echo "** missing parameter for option '-proto'"
+            exit 1
+        endif
+        if ( $argv[$ac] == http || $argv[$ac] == https ) then
+           set hostproto = $argv[$ac]://
+        else if ( $argv[$ac] == NONE ) then
+           set hostproto = ''
+        else
+           # use as is
+           set hostproto = $argv[$ac]
+        endif
     else if ( "$argv[$ac]" == "-no_cert_verify" ) then
         # add options to turn verification off
         set cert_verify = 0
@@ -153,6 +171,8 @@ while ( $ac <= $#argv )
         exit 0
     else if ( "$argv[$ac]" == "-test" ) then
         set testing = 1
+    else if ( "$argv[$ac]" == "-test_protos" ) then
+        set test_protos = 1
     else
         # allow unknown options if $do_recur, but THEY MUST BE LAST
         if ( $do_recur ) then
@@ -166,6 +186,12 @@ while ( $ac <= $#argv )
     endif
     @ ac ++
 end
+
+set tmpsite = $hostproto$hostname
+if ( $tmpsite != $hostsite ) then
+   set hostsite = $tmpsite
+   echo "-- updating hostsite to $hostsite"
+endif
 
 # in quick mode, turn off fancies, even if requested    1 May, 2014 [rickr]
 if ( $quick ) then
@@ -249,6 +275,14 @@ if ( $help ) then
     echo "        In this case, suma and the individual python files would all"
     echo "        end up in abin, with no directories."
     echo ""
+    echo "    -proto PROTOCOL       : access afni host via this PROTOCOL"
+    echo ""
+    echo "        e.g. -proto http"
+    echo "        default: https"
+    echo ""
+    echo "        Use this option to specify the download protocol.  PROTOCOL may"
+    echo "        https, http or NONE (meaning not to prefix siteaname with any)."
+    echo ""
     echo "    -quick                : quick mode, no fancies"
     echo ""
     echo "        This option blocks unwanted or unneeded actions, mostly for"
@@ -269,6 +303,8 @@ if ( $help ) then
     echo "        See -help_sys_progs for a list of checked system programs."
     echo ""
     echo "    -test                 : just attempt the download and quit"
+    echo ""
+    echo "    -test_protos          : test download protocols and exit"
     echo ""
     echo "    -revert               : revert binaries to previous version"
     echo ""
@@ -319,7 +355,7 @@ endif
 # possibly apply default package
 if ( $package == "" ) then
    if ( $cur_afni != "" ) then
-      set package = `afni -ver | grep binary | awk '{print $3}' | sed 's/://g'`
+      set package = `afni -ver | \grep binary | awk '{print $3}' | sed 's/://g'`
       if ( $status || "$package" == "" ) then
           echo "** failed setting package from 'afni -ver'"
           exit 1
@@ -376,7 +412,7 @@ if ( $missing_wget && $missing_curl ) then
     echo ""
     echo "** programs wget and curl are missing, please install *either*,"
     echo "   or look it up on the AFNI message board:"
-    echo "       $afnisite/afni/community/board"
+    echo "       $hostsite/afni/community/board"
     echo ""
     exit 1
 endif
@@ -397,7 +433,7 @@ if ( ! $cert_verify ) then
    endif
 endif
 
-echo "-- will download from $afnisite via $get_prog"
+echo "-- will download from $hostsite via $get_prog"
 echo ""
 
 # make sure package is set to the base name
@@ -506,9 +542,10 @@ if ( $do_recur ) then
    set temp_prog = tmp.$prog         # temp name to run with
    set retry = 0                     # use multiple attempts to get this
 
-   set bin_root = $afnisite/pub/dist/bin
+   set bin_root = $hostsite/pub/dist/bin
    set get_package = $bin_root/$package/$prog
    echo "++ getting install prog: $get_prog $package/$prog ..."
+   echo $get_prog $get_package
    $get_prog $get_package
 
    # ----- might not exist: try twice and skip if fail       26 Sep 2012
@@ -581,6 +618,59 @@ endif
 SKIP_RECUR:
 
 # ----------------------------------------------------------------------
+# maybe we want to test protocols and exit
+if ( $test_protos ) then
+   echo ""
+   echo "++ testing protocols from temp dir, `pwd`"
+
+   set plist = ( http:// https:// '' )  # protocols
+   set slist = ()                       # status values
+   set ind = 1
+   while ( $ind <= $#plist )
+      set proto = $plist[$ind]
+      set tmpsite = $proto$hostname
+      set tmpprog = $tmpsite/pub/dist/bin/$package/$prog
+
+      echo $get_prog $tmpprog
+      $get_prog $tmpprog
+      set st = $status
+
+      # make sure we have a good download, even if $status is okay
+      if ( ! $st ) then
+         grep 'upgrade the AFNI binaries' $prog > /dev/null
+         set st = $status
+         if ( $st ) then
+            echo "** okay status but bad download"
+         endif
+      endif
+
+      echo ""
+
+      # get rid of the old one
+      if ( -f $prog ) \rm -f $prog
+
+      set slist = ( $slist $st )
+      @ ind += 1
+   end
+
+   echo ""
+   set ind = 1
+   while ( $ind <= $#plist )
+      if ( $slist[$ind] ) then
+         echo "failure ($slist[$ind]) for proto '$plist[$ind]'"
+      else
+         echo "success     for proto '$plist[$ind]'"
+      endif
+      @ ind += 1
+   end
+
+   echo ""
+   
+
+   exit 0
+endif
+
+# ----------------------------------------------------------------------
 # revert to previous version, if requrested
 if ( $revert ) then
    # revert to backup
@@ -617,7 +707,7 @@ if ( $#prog_list > 0 ) then
 else
   set pp = afni
 endif
-set get_package = $afnisite/pub/dist/bin/$package/$pp
+set get_package = $hostsite/pub/dist/bin/$package/$pp
 echo "++ downloading test file: $get_prog $package/$pp ..."
 $get_prog $get_package
 cmp -s $pp ../$pp
@@ -651,7 +741,7 @@ sleep 1
 # download the full binary set or list of programs
 if ( $#prog_list == 0 ) then
    echo "++ downloading full package: $get_prog $package.tgz ..."
-   set get_package = $afnisite/pub/dist/tgz/$package.tgz
+   set get_package = $hostsite/pub/dist/tgz/$package.tgz
    $get_prog $get_package
    if ( $status ) then
        echo "** failed to download package $get_package"
@@ -662,7 +752,7 @@ else
    if ( $#prog_list > 1 ) echo "++ downloading remaining files ..."
    foreach pp ( $prog_list[2-] )
       set prog = $pp:t
-      set get_package = $afnisite/pub/dist/bin/$package/$prog
+      set get_package = $hostsite/pub/dist/bin/$package/$prog
       $get_prog $get_package
       set ss = $status
       if ( $ss ) then
