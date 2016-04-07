@@ -10637,7 +10637,7 @@ ENTRY("IW3D_improve_warp") ;
    if( nwb < 2*Hnparmap ){  /* Hnparmap was set in a *setup_basis* just above */
      if( Hverb > 2 )
        ININFO_message(
-         "     %s patch %03d..%03d %03d..%03d %03d..%03d : skipping (%d inmask vs %d parameters)" ,
+         "     %s patch %03d..%03d %03d..%03d %03d..%03d : skipping (%d voxels inmask vs %d parameters)" ,
                        WARP_CODE_STRING(warp_code) ,
                        ibot,itop, jbot,jtop, kbot,ktop ,
                        nwb , Hnparmap ) ;
@@ -12126,7 +12126,7 @@ ENTRY("IW3D_improve_warp_plusminus") ;
    if( nwb < 2*Hnparmap ){  /* Hnparmap was set in a *setup_basis* just above */
      if( Hverb > 2 )
        ININFO_message(
-         "     %s patch %03d..%03d %03d..%03d %03d..%03d : skipping (%d inmask vs %d parameters)" ,
+         "     %s patch %03d..%03d %03d..%03d %03d..%03d : skipping (%d voxels inmask vs %d parameters)" ,
                        WARP_CODE_STRING(warp_code) ,
                        ibot,itop, jbot,jtop, kbot,ktop ,
                        nwb , Hnparmap ) ;
