@@ -1740,6 +1740,7 @@ void AFNI_sigfunc_alrm(int sig)
      "Are you ready for the explosion of Eta Carinae?"               ,
      "He who will deceive will always find a willing victim"         ,
      "How quick come the reasons for approving what we like"         ,
+     "This is your only chance at building a disreputable past"      ,
      "Remember -- AFNI is free, but worth at least 1000 times more"  ,
      "Remember -- Nothing is always absolutely so"                   ,
      "Remember -- 90% of everything is cr*p"                         ,
