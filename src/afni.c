@@ -189,6 +189,8 @@ static char **new_FALLback     = NULL ;
 static char  *xrdb_old         = NULL ;
 static char  *xrdb_pg          = NULL ;
 
+/*-----------------------------------------------------------------------*/
+
 static int equiv_FALLback( char *n1 , char *n2 ) /* check if 2 strings */
 {                                                /* start the same */
    char *c1,*c2 , *d1,*d2 ; int ee ;
@@ -202,6 +204,8 @@ static int equiv_FALLback( char *n1 , char *n2 ) /* check if 2 strings */
    ee = strcmp(d1,d2) ; free(d1) ; free(d2) ;
    return (ee==0) ;
 }
+
+/*-----------------------------------------------------------------------*/
 
 #define ADDTO_FALLback_one(nameval)                                            \
  do{ int nf ;                                                                  \
@@ -217,6 +221,10 @@ static int equiv_FALLback( char *n1 , char *n2 ) /* check if 2 strings */
      ADDTO_FALLback_one(str) ;                                                 \
  } while(0)
 
+/*-----------------------------------------------------------------------*/
+
+static int XXX_set_default = 0 ; /* 08 Apr 2016 */
+
 static void process_XXX_options( int argc , char *argv[] )
 {
    int nopt=1 ;
@@ -230,7 +238,16 @@ static void process_XXX_options( int argc , char *argv[] )
          WARNING_message("no argument after '%s' :-(",argv[nopt-1]) ;
          break ;
        }
-       ADDTO_FALLback_one(argv[nopt]) ;
+       if( strncasecmp(argv[nopt],"default",7) == 0 ){ /* 08 Apr 2016 */
+         if( THD_find_executable("xrdb") != NULL ){
+           int qq ;
+           XXX_set_default = 1 ;
+           for( qq=0 ; FALLback[qq] != NULL ; qq++ )
+             ADDTO_FALLback_one(FALLback[qq]) ;
+         }
+       } else if( strchr(argv[nopt],':') != NULL ){
+         ADDTO_FALLback_one(argv[nopt]) ;
+       }
        nopt++ ; continue ;
      }
 
@@ -642,10 +659,15 @@ void AFNI_syntax(void)
     "My intent with these options is that you use them in aliases\n"
     " or shell scripts, to let you setup specific appearances for\n"
     " multiple copies of AFNI.  For example, put the following\n"
-    " command in your shell startup file (e.g., ~/.cshrc)\n"
+    " command in your shell startup file (e.g., ~/.cshrc or ~/.bashrc)\n"
     "    alias ablue afni -XXXfgcolor white -XXXbgcolor navyblue\n"
 	 " Then the command 'ablue' will start AFNI with a blue background\n"
     " and using white for the default text color.\n"
+    "\n"
+    " Note that these options set 'properties' on the X11 server.\n"
+    " If for some reason these settings cause trouble after AFNI\n"
+    " exits, use the option '-XXX defaults' to reset the X11\n"
+    " properties for AFNI back to their default values.\n"
     "\n"
     " -XXXfgcolor colorname = set the 'foreground' color (text color)\n"
     "                         to 'colorname'\n"
@@ -695,6 +717,10 @@ void AFNI_syntax(void)
     " -XXXfontD fontname    = set the X11 font name for the smallest text\n"
     "                         [default = 6x10]\n"
     "\n"
+    " -XXX defaults         = set the X11 properties to the AFNI defaults\n"
+    "                         (the purpose of this is to restore things )\n"
+    "                         (to normal if the X11 settings get mangled)\n"
+    "\n"
    ) ;
 
    printf("\n"
@@ -715,8 +741,9 @@ void AFNI_syntax(void)
     " https://afni.nimh.nih.gov/afni/community/board/\n"
     "* If an AFNI program crashes, please include the EXACT error messages it outputs\n"
     "   in your message board posting, as well as any other information needed to\n"
-    "   reproduce the problem.  Just saying 'program X crashed, what's the issue?'\n"
-    "   is not helpful at all!  In all message board postings, detail is relevant.\n"
+    "   reproduce the problem.  Just saying 'program X crashed, what's the problem?'\n"
+    "   is not helpful at all!  In all message board postings, detail and context\n"
+    "   are highly relevant.\n"
     "* Also, be sure your AFNI distribution is up-to-date.  You can check the date\n"
     "   on your copy with the command 'afni -ver'.  If it is more than a few months\n"
     "   old, you should update your AFNI binaries and try the problematic command\n"
@@ -1074,8 +1101,8 @@ ENTRY("AFNI_parse_args") ;
 
       /*----- -XXX [24 Mar 2016] -----*/
 
-      if( strncasecmp(argv[narg],"-XXX",4) == 0 ){
-        narg += 2 ; continue ;
+      if( strncasecmp(argv[narg],"-XXX",4) == 0 ){  /* all -XXX options are */
+        narg += 2 ; continue ;                      /* followed by one arg */
       }
 
       /*----- -destruct option -----*/
@@ -1868,8 +1895,9 @@ void AFNI_sigfunc_alrm(int sig)
      "Statistics are good, but dark chocolate is better"             ,
 
      "Remember -- Screaming is the next best thing to solving a problem"              ,
+     "Remember -- Swearing is almost as good as solving a problem"                    ,
      "Data which passes through so many steps can hardly have much truth left"        ,
-     "One mans' way may be as good as another's, but we all like our own best"        ,
+     "One man's way may be as good as another's, but we all like our own best"        ,
      "Some ideas are so wrong that only an intelligent person could believe them"     ,
      "Life's a lot more fun when you aren't responsible for your actions"             ,
      "I'm not dumb. I just have command of thoroughly useless algorithms"             ,
@@ -2353,7 +2381,7 @@ int main( int argc , char *argv[] )
    /* if we used xrdb to set X11 resources, re-set them back to their old
       state so that other AFNIs don't use these new settings by default   */
 
-   if( xrdb_old != NULL ){  /* 24 Mar 2016 */
+   if( xrdb_old != NULL && !XXX_set_default ){  /* 24 Mar 2016 */
      FILE *fp ; char *xpg ;
      xpg = malloc(strlen(xrdb_pg)+64) ;
      sprintf(xpg,"%s -override -",xrdb_pg) ;
