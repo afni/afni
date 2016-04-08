@@ -140,7 +140,7 @@ static char *FALLback[] =
       "AFNI*font8*fontList:        8x13bold=charset1"    , /* smaller fonts */
       "AFNI*font7*fontList:        7x13=charset1"        ,  /* for various */
       "AFNI*font6*fontList:        6x10=charset1"        ,  /* usages */
-      "AFNI*background:            gray28"               , /* background clr */
+      "AFNI*background:            gray22"               , /* background clr */
       "AFNI*menu*background:       gray4"                , /* bkgd in menus */
       "AFNI*menu*foreground:       #ffdd22"              , /* menu text color */
       "AFNI*borderColor:           gray19"               , /* same as bkgd! */
@@ -159,7 +159,7 @@ static char *FALLback[] =
 #if 0
       "AFNI*clustA*fontList:       9x15bold=charset1"    , /* for Clusterize */
       "AFNI*clustB*fontList:       9x15bold=charset1"    ,
-      "AFNI*clustA*background:     gray28"               ,
+      "AFNI*clustA*background:     gray22"               ,
       "AFNI*clustB*background:     gray1"                ,
       "AFNI*clustA*foreground:     yellow"               ,
       "AFNI*clustB*foreground:     white"                ,
@@ -270,6 +270,35 @@ static void process_XXX_options( int argc , char *argv[] )
        ADDTO_FALLback_pair("AFNI*foreground"     ,argv[nopt]) ;
        ADDTO_FALLback_pair("AFNI*menu*foreground",argv[nopt]) ;
        ADDTO_FALLback_pair("AFNI*help*foreground",argv[nopt]) ;
+       nopt++ ; continue ;
+     }
+
+     if( strcasecmp(argv[nopt],"-XXXfontsize") == 0 ){
+       if( ++nopt >= argc ){
+         WARNING_message("no argument after '%s' :-(",argv[nopt-1]) ;
+         break ;
+       }
+       if( strcasecmp(argv[nopt],"plus") == 0 || strcmp(argv[nopt],"+") == 0 ){
+         ADDTO_FALLback_pair("AFNI*fontList"        , "10x20") ;
+         ADDTO_FALLback_pair("AFNI*help*fontList"   , "10x20") ;
+         ADDTO_FALLback_pair("AFNI*bigtext*fontList", "10x20") ;
+         ADDTO_FALLback_pair("AFNI*cluefont"        , "10x20") ;
+         ADDTO_FALLback_pair("AFNI*font8*fontList"  ,  "9x15") ;
+         ADDTO_FALLback_pair("AFNI*imseq*fontList"  ,  "8x13") ;
+         ADDTO_FALLback_pair("AFNI*font7*fontList"  ,  "8x13") ;
+         ADDTO_FALLback_pair("AFNI*font6*fontList"  ,  "7x13") ;
+         ADDTO_FALLback_pair("AFNI*pbar*fontList"   ,  "7x13") ;
+       } else if( strcasecmp(argv[nopt],"minus") == 0 || strcmp(argv[nopt],"-") == 0 ){
+         ADDTO_FALLback_pair("AFNI*fontList"        , "8x13bold") ;
+         ADDTO_FALLback_pair("AFNI*help*fontList"   , "8x13bold") ;
+         ADDTO_FALLback_pair("AFNI*bigtext*fontList", "8x13bold") ;
+         ADDTO_FALLback_pair("AFNI*cluefont"        , "8x13bold") ;
+         ADDTO_FALLback_pair("AFNI*font8*fontList"  , "7x13") ;
+         ADDTO_FALLback_pair("AFNI*imseq*fontList"  , "6x10") ;
+         ADDTO_FALLback_pair("AFNI*font7*fontList"  , "6x10") ;
+         ADDTO_FALLback_pair("AFNI*font6*fontList"  , "5x8" ) ;
+         ADDTO_FALLback_pair("AFNI*pbar*fontList"   , "5x8" ) ;
+       }
        nopt++ ; continue ;
      }
 
@@ -657,17 +686,21 @@ void AFNI_syntax(void)
     "-----------------------------------------------------------\n"
     "\n"
     "My intent with these options is that you use them in aliases\n"
-    " or shell scripts, to let you setup specific appearances for\n"
-    " multiple copies of AFNI.  For example, put the following\n"
-    " command in your shell startup file (e.g., ~/.cshrc or ~/.bashrc)\n"
-    "    alias ablue afni -XXXfgcolor white -XXXbgcolor navyblue\n"
-	 " Then the command 'ablue' will start AFNI with a blue background\n"
-    " and using white for the default text color.\n"
+    "or shell scripts, to let you setup specific appearances for\n"
+    "multiple copies of AFNI.  For example, put the following\n"
+    "command in your shell startup file (e.g., ~/.cshrc or ~/.bashrc)\n"
+    "   alias ablue afni -XXXfgcolor white -XXXbgcolor navyblue\n"
+	 "Then the command 'ablue' will start AFNI with a blue background\n"
+    "and using white for the default text color.\n"
     "\n"
-    " Note that these options set 'properties' on the X11 server.\n"
-    " If for some reason these settings cause trouble after AFNI\n"
-    " exits, use the option '-XXX defaults' to reset the X11\n"
-    " properties for AFNI back to their default values.\n"
+    "Note that these options set 'properties' on the X11 server,\n"
+    "which might survive after AFNI exits (especially if AFNI crashes).\n"
+    "If for some reason these settings cause trouble after AFNI\n"
+    "exits, use the option '-XXX defaults' to reset the X11\n"
+    "properties for AFNI back to their default values.\n"
+    "\n"
+    "Also note that each option is of the form '-XXXsomething', followed\n"
+    "by a single argument.\n"
     "\n"
     " -XXXfgcolor colorname = set the 'foreground' color (text color)\n"
     "                         to 'colorname'\n"
@@ -680,12 +713,28 @@ void AFNI_syntax(void)
     "                            (with a space inside the name), you must\n"
     "                            put the name in quotes: 'Dark Cyan', or remove\n"
     "                            the space: DarkCyan.\n"
+    "                         ++ Another way to specify X11 colors is in hexadecimal,\n"
+    "                            as in '#rgb' or '#rrggbb', where the letters shown\n"
+    "                            are replaced by hex values from 0 to f.  For example,\n"
+    "                            '#ffcc00' is an orange-yellow mixture.\n"
     "\n"
     " -XXXbgcolor colorname = set the 'background' color to 'colorname'\n"
-    "                         [default = gray28]\n"
+    "                         [default = gray22]\n"
     "                         ++ This should be a somewhat dark color,\n"
     "                            or parts of the interface may be hard\n"
     "                            to read.\n"
+    "\n"
+    " -XXXfontsize plus     = set all the X11 fonts used by AFNI to be one\n"
+    "   *OR*                  size larger ('plus') or to be one size smaller\n"
+    " -XXXfontsize minus      ('minus').  The 'plus' version I find useful for\n"
+    "                         a screen resolution of about 100 dots per inch\n"
+    "                         (39 dots per cm) -- you can find what the system\n"
+    "                         thinks your screen resolution is by the command\n"
+    "                           xdpyinfo | grep -i resolution\n"
+    "                         ++ Applying 'plus' twice does NOT make the fonts\n"
+    "                            bigger twice!\n"
+    "                         ++ Alternatively, you can control each of the 4 fonts\n"
+    "                         ++ that AFNI uses, via the 4 following options ...\n"
     "\n"
     " -XXXfontA fontname    = set the X11 font name for the main AFNI\n"
     "                         controller\n"
@@ -697,8 +746,8 @@ void AFNI_syntax(void)
     "                            won't line up nicely!\n"
     "                         ++ If you use an illegal font name here, you\n"
     "                            might make it hard to use the AFNI GUI!\n"
-    "                         ++ The default fonts are chosen for 'normal'\n"
-    "                            screen resolutions (72-100 dots per inch).\n"
+    "                         ++ The default fonts are chosen for 'normal' screen\n"
+    "                            resolutions (about 72 dots per inch = 28 dots per cm).\n"
     "                            For higher resolutions ('Retina'), you might\n"
     "                            want to use larger fonts.  Adding these\n"
     "                            '-XXXfont?' options is one way to address this\n"
