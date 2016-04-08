@@ -5,6 +5,9 @@
    For some simulation-based work, take DTs and gradients and make
    some noisy DWIs.
 
+   update: April, 2016
+   + allow for b-value weighted grads to be input
+
 */
 
 #include <stdio.h>
