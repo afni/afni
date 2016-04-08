@@ -7,6 +7,9 @@
    TORTOISE v2.0.1, there is an 'AFNI output' format as well, which
    would not need to be converted.
 
+   NB: this program is likely no longer necessary if using 'AFNI
+   export' from TORTOISE!
+
 */
 
 #include <stdio.h>
@@ -37,6 +40,9 @@ void usage_TORTOISEtoHere(int detail)
 "  would not need to be converted.\n"
 "\n"
 "  Part of FATCAT (Taylor & Saad, 2013) in AFNI.\n"
+"\n"
+"  *** NB: this program is likely no longer necessary if using 'AFNI\n"
+"  ***     export' from TORTOISE!\n"
 "\n"
 "* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n"
 "\n"

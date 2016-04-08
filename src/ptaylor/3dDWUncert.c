@@ -216,8 +216,6 @@ int main(int argc, char *argv[]) {
 	int Nvox=-1;   // tot number vox
 	int Dim[3]={0,0,0}; // dim in each dir
 	int M=0;
-	// like 3dDWtoDTI, we don't need bval--
-	// just leave this here in case we ever want it later.
 	float bval=1.0; 
    int Ndata = 0,ni=0,nprog=0;
    time_t t_start;
@@ -247,6 +245,8 @@ int main(int argc, char *argv[]) {
 	int BADNESS;
 	float randmagn;
 	float CSF_FA = 0.012345678; // afni-set version
+   float csf_val = 1.;
+   float gscale = 1;
 
    float jknife_val = 0.7; // default jackknife fraction
    int Njkout = 0, count_jkout = 0, CI_val=0;  // just options for testing
@@ -780,11 +780,18 @@ int main(int argc, char *argv[]) {
       // these are what go into the fitting matrices
       // diagonals and then UHT
       for(i=0 ; i<M ; i++) {
+         // apr,2016: grads may not be unit magnitude, but be
+         // bvalue-weighted.  So, we'll account for that.
+         gscale = sqrt( grads[i][0]*grads[i][0] +
+                        grads[i][1]*grads[i][1] +
+                        grads[i][2]*grads[i][2] );
+         if( gscale < 0.00001)
+            gscale = 1.;
          for(j=0 ; j<3 ; j++)
-            grads_dyad[i][j] = grads[i][j]*grads[i][j];
-         grads_dyad[i][3] = 2.*grads[i][0]*grads[i][1];
-         grads_dyad[i][4] = 2.*grads[i][0]*grads[i][2];
-         grads_dyad[i][5] = 2.*grads[i][2]*grads[i][1];
+            grads_dyad[i][j] = grads[i][j]*grads[i][j]/gscale;
+         grads_dyad[i][3] = 2.*grads[i][0]*grads[i][1]/gscale;
+         grads_dyad[i][4] = 2.*grads[i][0]*grads[i][2]/gscale;
+         grads_dyad[i][5] = 2.*grads[i][2]*grads[i][1]/gscale;
       }
    }
    else if( BMAT==1) { // apr,2016: now for AFNI format!
@@ -985,16 +992,6 @@ int main(int argc, char *argv[]) {
    if( Njkout > Ndata)
       WARNING_message("Resetting number of output jackknife examples "
                       " from %d to %d", Njkout, Ndata);
-
-   /*   for( i=0 ; i<Nvox ; i++ ) 
-      if( ( HAVE_MASK && !(THD_get_voxel(MASK,i,0)>0) ) ||
-			 ( (HAVE_MASK==0) && (THD_get_voxel(insetPARS[2],i,0)<EPS_V) ) ) 
-         continue;
-      else{
-         nprog++;
-         if (nprog % ni == 0)
-            fprintf(stderr,"%s %.0f%% %s","[", nprog *10./ni,"]");
-      }*/
 
    fprintf(stderr,"++ Nvox progress count: start ...\n");
    t_start = time(NULL);

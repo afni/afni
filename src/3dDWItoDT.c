@@ -28,6 +28,10 @@
 //   bmatrix input with no zeros in top row, and for '@@' for potential
 //   bug fix for original `-bmatrix' options.
 
+// Apr, 2016 (PT):
+// + allow for non-unit gradient magnitudes, so that gradients can be
+//   weighted by b-values- affects Form_R_Matrix() and computebmatrix(). 
+//   search for 'apt,2016' to see changes.
 
 
 #include "thd_shear3d.h"
@@ -88,13 +92,17 @@ static float *Powell_ts;        /* pointer to time-wise voxel data for Powell op
 static double Powell_J;
 static double backoff_factor = 0.2; /* minimum allowable factor for lambda2,3 relative to
                                  lambda1 eigenvalues*/
-static float csf_val = 3.0;  /* a default value for diffusivity for CSF at 37C */
+static float csf_val = 1.0;  /* a default value for diffusivity for CSF at 37C; apr,2016: now set to '1' */
 static float csf_fa = 0.012345678; /* default FA value where there is CSF */
+static float MAX_BVAL = 1.;        /* use in scaling csf_val for MD and such, *if* user doesn't enter one */
+int USER_CSF_VAL = 0;              // flag so we know if the user entered his/her own scaling
 
 static NI_stream_type * DWIstreamid = 0;     /* NIML stream ID */
 
 static void Form_R_Matrix (MRI_IMAGE * grad1Dptr);
-static void DWItoDT_tsfunc (double tzero, double tdelta, int npts, float ts[], double ts_mean, double ts_slope, void *ud, int nbriks, float *val);
+static void DWItoDT_tsfunc (double tzero, double tdelta, int npts, 
+                            float ts[], double ts_mean, double ts_slope, 
+                            void *ud, int nbriks, float *val);
 static void EIG_func (void);
 static float Calc_FA(float *val);
 static float Calc_MD(float *val);
@@ -206,8 +214,10 @@ main (int argc, char *argv[])
          "   -sep_dsets = save tensor, eigenvalues,vectors,FA,MD in separate datasets\n\n"
          "   -csf_val n.nnn = assign diffusivity value to DWI data where the mean values\n"
          "    for B=0 volumes is less than the mean of the remaining volumes at each\n"
-         "    voxel. The default value is 3.0. The assumption is that there are flow\n"
-         "    artifacts in CSF and blood vessels that give rise to lower B=0 voxels.\n\n"
+         "    voxel. The default value is '1.0 divided by the maximum bvalue in the \n"
+         "    grads/bmatrices'.  The assumption is that there are flow\n"
+         "    artifacts in CSF and blood vessels that give rise to lower b=0 voxels.\n"
+         "    NB: the MD, L1, L2, L3, Dxx, Dyy, etc. values are all scaled in the same way.\n\n"
          "   -csf_fa n.nnn = assign a specific FA value to those voxels described above\n"
          "    The default is 0.012345678 for use in tractography programs that may\n"
          "    make special use of these voxels\n\n"
@@ -486,6 +496,7 @@ main (int argc, char *argv[])
 	      if(++nopt >=argc )
             ERROR_exit("Error - need an argument after -csf_val!");
          csf_val = (float) strtod(argv[nopt], NULL);
+         USER_CSF_VAL = 1;
          nopt++;
   	      continue;
       }
@@ -573,7 +584,8 @@ main (int argc, char *argv[])
   if ((grad1Dptr->ny != 3 && !(bmatrix_given || BMAT_NZ) ) 
       || (grad1Dptr->ny != 6 && (bmatrix_given || BMAT_NZ ) )) // BMAT_NZ optioning
     {
-      ERROR_message("Error - Only 3 columns of gradient vectors (or 6 columns for b matrices) allowed: %d columns found", grad1Dptr->ny);
+      ERROR_message("Error - Only 3 columns of gradient vectors (or 6 columns for b matrices) "
+                    "allowed: %d columns found", grad1Dptr->ny);
       mri_free (grad1Dptr);
       exit (1);
     }
@@ -616,18 +628,30 @@ main (int argc, char *argv[])
    else { // $$same: can leave same, because BMAT_NZ will have `nx+1'
      InitGlobals (grad1Dptr->nx + 1);	/* initialize all the matrices and vectors */
    }
-
+   
    Computebmatrix (grad1Dptr, BMAT_NZ);	/* compute bij=GiGj */
+   // after this, the MAX_BVAL is known, as well; apply it to the CSF
+   // val *if* the user didn't set his/her own scale.  apr,2016
 
-  if (automask)
-    {
-      DSET_mallocize (old_dset);
-      DSET_load (old_dset);	/* get B0 (anatomical image) from dataset */
-      /*anat_im = THD_extract_float_brick( 0, old_dset ); */
-      anat_im = DSET_BRICK (old_dset, 0);	/* set pointer to the 0th sub-brik of the dataset */
-      maskptr = mri_automask_image (anat_im);	/* maskptr is a byte pointer for volume */
-    }
+   if (!bmatrix_given) 
+      INFO_message("The maximum magnitude of the gradients appears to be: %.2f", MAX_BVAL);
+   else
+      INFO_message("The maximum magnitude of the bmatrix appears to be: %.2f", MAX_BVAL);
+   if(!USER_CSF_VAL) {
+      csf_val/= MAX_BVAL;
+      INFO_message("-> and the scaling to make "
+                   "the 'CSF value' for unfit voxels be: %.8f", csf_val);
+   }
 
+   if (automask)
+      {
+         DSET_mallocize (old_dset);
+         DSET_load (old_dset);	/* get B0 (anatomical image) from dataset */
+         /*anat_im = THD_extract_float_brick( 0, old_dset ); */
+         anat_im = DSET_BRICK (old_dset, 0);	/* set pointer to the 0th sub-brik of the dataset */
+         maskptr = mri_automask_image (anat_im);	/* maskptr is a byte pointer for volume */
+      }
+   
   /* temporarily set artificial timing to 1 second interval */
   EDIT_dset_items (old_dset,
 		   ADN_ntt, DSET_NVALS (old_dset),
@@ -870,6 +894,7 @@ Form_R_Matrix (MRI_IMAGE * grad1Dptr)
   register float *Bxxptr, *Byyptr, *Bzzptr, *Bxyptr, *Bxzptr, *Byzptr;
   matrix *nullptr = NULL;
   register double Gx, Gy, Gz, Bxx, Byy, Bzz, Bxy, Bxz, Byz;
+  double gscale;
 
   ENTRY ("Form_R_Matrix");
   sf2 = sf + sf;		/* 2 * scale factor for minor speed improvement */
@@ -933,15 +958,18 @@ Form_R_Matrix (MRI_IMAGE * grad1Dptr)
 
     for (i = 0; i < nrows; i++)
       {
-	Gx = *Gxptr++;
-	Gy = *Gyptr++;
-	Gz = *Gzptr++;
-	Rmat.elts[i][0] = sf * Gx * Gx;	/* bxx = Gx*Gx*scalefactor */
-	Rmat.elts[i][1] = sf2 * Gx * Gy;	/* 2bxy = 2GxGy*scalefactor */
-	Rmat.elts[i][2] = sf2 * Gx * Gz;	/* 2bxz = 2GxGz*scalefactor */
-	Rmat.elts[i][3] = sf * Gy * Gy;	/* byy = Gy*Gy*scalefactor */
-	Rmat.elts[i][4] = sf2 * Gy * Gz;	/* 2byz = 2GyGz*scalefactor */
-	Rmat.elts[i][5] = sf * Gz * Gz;	/* bzz = Gz*Gz*scalefactor */
+         Gx = *Gxptr++;
+         Gy = *Gyptr++;
+         Gz = *Gzptr++;
+         gscale = sqrt(Gx*Gx + Gy*Gy + Gz*Gz); // apr,2016: scale by this
+         if ( gscale < TINYNUMBER) // for b=0
+            gscale = 1.;
+         Rmat.elts[i][0] = sf * Gx * Gx / gscale;	/* bxx = Gx*Gx*scalefactor */
+         Rmat.elts[i][1] = sf2 * Gx * Gy / gscale;	/* 2bxy = 2GxGy*scalefactor */
+         Rmat.elts[i][2] = sf2 * Gx * Gz / gscale;	/* 2bxz = 2GxGz*scalefactor */
+         Rmat.elts[i][3] = sf * Gy * Gy / gscale;	/* byy = Gy*Gy*scalefactor */
+         Rmat.elts[i][4] = sf2 * Gy * Gz / gscale;	/* 2byz = 2GyGz*scalefactor */
+         Rmat.elts[i][5] = sf * Gz * Gz / gscale;	/* bzz = Gz*Gz*scalefactor */
       }
   }
   matrix_initialize (&Rtmat);
@@ -1397,15 +1425,19 @@ static void
 Assign_CSF_values(float *val)
 {
    /* assign default CSF values to tensor */
+   // apr,2016: lots of '1.0' values changed to 'csf_val' for
+   // consistency, and to not cause visualization issues anywhere.
+   // Hopefully.  Maybe.  It still doesn't match technically with the
+   // csf_fa, but at least that is *almost* zero.
    val[0] = val[3] = val[5] = csf_val;
    val[1] = val[2] = val[4] = 0.0;
   if(eigs_flag) {                            /* if user wants eigenvalues in output dataset */
-     val[6] = 1.0;
-     val[7] = 1.0;
-     val[8] = 1.0;
-     val[9] = 1.0;val[10] = 0.0;val[11] = 0.0;
-     val[12] = 0.0;val[13] = 1.0;val[14] = 0.0;
-     val[15] = 0.0;val[16] = 0.0;val[17] = 1.0;
+     val[6] = csf_val;
+     val[7] = csf_val;
+     val[8] = csf_val;
+     val[9] =  1.0;  val[10] = 0.0;  val[11] = 0.0; // eigenvectors 
+     val[12] = 0.0;  val[13] = 1.0;  val[14] = 0.0;
+     val[15] = 0.0;  val[16] = 0.0;  val[17] = 1.0;
      val[18] = csf_fa;                /* calculate fractional anisotropy */
      val[19] = csf_val;               /* calculate average (mean) diffusivity */
   }
@@ -1705,6 +1737,9 @@ ComputeD0 ()
         GxGz GyGz GzGz */
 /* b0 is 0 for all 9 elements */
 /* bmatrix is really stored as 6 x npts array */
+// -----> !! if you change anything here, probably should copy/paste
+// -----> !! the function into 3dDTtoDWI, for consistency across
+// -----> !! functions (as of apr,2016)!
 static void
 Computebmatrix (MRI_IMAGE * grad1Dptr, int NO_ZERO_ROW1) 
 // flag to differentiate bmatrix cases that include a zero row or not
@@ -1714,6 +1749,7 @@ Computebmatrix (MRI_IMAGE * grad1Dptr, int NO_ZERO_ROW1)
   register float *Gxptr, *Gyptr, *Gzptr;
   register float *Bxxptr, *Byyptr, *Bzzptr, *Bxyptr, *Bxzptr, *Byzptr;
   double Gx, Gy, Gz, Bxx, Byy, Bzz, Bxy, Bxz, Byz;
+  double gscale;
 
   ENTRY ("Computebmatrix");
   n = grad1Dptr->nx;		/* number of gradients other than I0 */
@@ -1746,10 +1782,15 @@ Computebmatrix (MRI_IMAGE * grad1Dptr, int NO_ZERO_ROW1)
 	    *bptr++ = Bzz;
        if(Bxx==0.0 && Byy==0.0 && Bzz==0.0)  /* is this a zero gradient volume also? */
           B0list[i] = 1;
-       else
+       else{
           B0list[i] = 0;
-      }
+          // apr,2016: need the MAX_BVAL for scaling
+          gscale = Bxx + Byy + Bzz;
+          if(gscale > MAX_BVAL)
+             MAX_BVAL = gscale;
+       }
 
+    }
   } 
   else if( (grad1Dptr->ny == 6)  && NO_ZERO_ROW1 ) { //  very similar to old bmatrix option
     /* just read in b matrix */
@@ -1783,11 +1824,15 @@ Computebmatrix (MRI_IMAGE * grad1Dptr, int NO_ZERO_ROW1)
 	    *bptr++ = Bzz;
        if(Bxx==0.0 && Byy==0.0 && Bzz==0.0)  /* is this a zero gradient volume also? */
           B0list[i+1] = 1; 
-       else
+       else{
           B0list[i+1] = 0; 
+          // apr,2016: need the MAX_BVAL for scaling
+          gscale = Bxx + Byy + Bzz;
+          if(gscale > MAX_BVAL)
+             MAX_BVAL = gscale;
+       }
 
-      }
-    
+    }
   }
   else {
     Gxptr = MRI_FLOAT_PTR (grad1Dptr);	/* use simple floating point pointers to get values */
@@ -1802,19 +1847,25 @@ Computebmatrix (MRI_IMAGE * grad1Dptr, int NO_ZERO_ROW1)
 
     for (i = 0; i < n; i++)
       {
-	Gx = *Gxptr++;
-	Gy = *Gyptr++;
-	Gz = *Gzptr++;
-	*bptr++ = Gx * Gx;
-	*bptr++ = Gx * Gy;
-	*bptr++ = Gx * Gz;
-	*bptr++ = Gy * Gy;
-	*bptr++ = Gy * Gz;
-	*bptr++ = Gz * Gz;
-	if((Gx==0.0) && (Gy==0.0) && (Gz==0.0))
-	  B0list[i+1] = 1;   /* no gradient applied*/
-	else
-	  B0list[i+1] = 0;
+         gscale = 1.;  // apr,2016: allow for non-unit gradient magnitudes
+         Gx = *Gxptr++;
+         Gy = *Gyptr++;
+         Gz = *Gzptr++;
+         if((Gx==0.0) && (Gy==0.0) && (Gz==0.0))
+            B0list[i+1] = 1;   /* no gradient applied*/
+         else{
+            B0list[i+1] = 0;
+            gscale = sqrt(Gx*Gx + Gy*Gy + Gz*Gz);
+            if(gscale > MAX_BVAL)
+               MAX_BVAL = gscale; // apr,2016
+         }
+
+         *bptr++ = Gx * Gx / gscale; // apr,2016: allow for non-unit gradient magnitudes
+         *bptr++ = Gx * Gy / gscale;
+         *bptr++ = Gx * Gz / gscale;
+         *bptr++ = Gy * Gy / gscale;
+         *bptr++ = Gy * Gz / gscale;
+         *bptr++ = Gz * Gz / gscale;
       }
   }
   EXRETURN;

@@ -1,5 +1,10 @@
 /*********************** 3dDTeig.c **********************************************/
 /* Author: Daniel Glen, 15 Nov 2004 */
+
+
+// updated: apr,2016: make sure scaled grads can be used (i.e., be
+// consistent with 3dDWItoDT
+
 #include "mrilib.h"
 #include "thd_shear3d.h"
 
@@ -8,8 +13,8 @@
 static char prefix[THD_MAX_PREFIX] = "eig" ;
 static int datum                   = MRI_float ;
 static void EIG_tsfunc( double tzero , double tdelta ,
-                         int npts , float ts[] , double ts_mean ,
-                         double ts_slope , void * ud , int nbriks, float * val ) ;
+                        int npts , float ts[] , double ts_mean ,
+                        double ts_slope , void *ud , int nbriks, float *val );
 static void Save_Sep_eigdata(THD_3dim_dataset *, char *, int);
 static void Copy_dset_array(THD_3dim_dataset *, int,int,char *, int);
 
@@ -39,7 +44,8 @@ int main( int argc , char * argv[] )
       	     "  -datum type = Coerce the output data to be stored as the given type\n"
 	     "    which may be byte, short or float. [default=float]\n\n"
              "  -sep_dsets = save eigenvalues,vectors,FA,MD in separate datasets\n\n"
-             "  -uddata = tensor data is stored as upper diagonal instead of lower diagonal\n\n"
+             "  -uddata = tensor data is stored as upper diagonal \n"
+             "            instead of lower diagonal\n\n"
              " Mean diffusivity (MD) calculated as simple average of eigenvalues.\n"
 	     " Fractional Anisotropy (FA) calculated according to Pierpaoli C, Basser PJ.\n"
              " Microstructural and physiological features of tissues elucidated by\n"
@@ -260,7 +266,8 @@ int output_datum;
       dataptr = mri_data_pointer(fim);
       fbuf[i] = whole_dset->dblk->brick_fac[startbrick+i];
       /* copy labels here too.....*/  
-      EDIT_dset_items (out_dset, ADN_brick_label_one + i, whole_dset->dblk->brick_lab[startbrick+i], ADN_none);
+      EDIT_dset_items (out_dset, ADN_brick_label_one + i, 
+                       whole_dset->dblk->brick_lab[startbrick+i], ADN_none);
       /*----- attach mri_image pointer to to be sub-brick #i -----*/
       EDIT_substitute_brick(out_dset, i, output_datum, dataptr);
    }
@@ -369,7 +376,8 @@ static void EIG_tsfunc( double tzero, double tdelta ,
   
                                  /* start filling in eigenvector values */
      astart=sortvector[i]*3;    /* start index of double eigenvector */    
-     vstart=(i+1)*3;                 /* start index of float val vector to copy eigenvector */
+     vstart=(i+1)*3;            /* start index of float val vector to 
+                                   copy eigenvector */
 
      for(j=0;j<3;j++){
         val[vstart+j] = a[astart+j];
@@ -382,8 +390,10 @@ static void EIG_tsfunc( double tzero, double tdelta ,
   }
 
   /* calculate the Fractional Anisotropy, FA */
-  /*   reference, Pierpaoli C, Basser PJ. Microstructural and physiological features 
-       of tissues elucidated by quantitative-diffusion tensor MRI,J Magn Reson B 1996; 111:209-19 */
+  /*   reference, Pierpaoli C, Basser PJ. Microstructural and
+       physiological features of tissues elucidated by
+       quantitative-diffusion tensor MRI,J Magn Reson B 1996;
+       111:209-19 */
   if((val[0]<=0.0)||(val[1]<0.0)||(val[2]<0.0)) {   /* any negative eigenvalues?*/
     val[12]=0.0;                                      /* set FA to 0 */  
     val[13]=0.0;                                      /* set MD to 0 */
