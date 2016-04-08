@@ -639,8 +639,8 @@ main (int argc, char *argv[])
       INFO_message("The maximum magnitude of the bmatrix appears to be: %.2f", MAX_BVAL);
    if(!USER_CSF_VAL) {
       csf_val/= MAX_BVAL;
-      INFO_message("-> and the scaling to make "
-                   "the 'CSF value' for unfit voxels be: %.8f", csf_val);
+      INFO_message("-> and the 'CSF value' (e.g., MD) for any unfit voxels "
+                   "will be: %.8f", csf_val);
    }
 
    if (automask)
