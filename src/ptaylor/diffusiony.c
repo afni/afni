@@ -57,6 +57,8 @@ int Dyadize(float **DT,
 /*
   ORDER: 
   [0] Dxx, [1] Dxy, [2] Dyy, [3] Dxz, [4] Dyz, [5] Dzz
+
+  apr,2016: updating to allow for bvalue weighted grads
 */
 int RicianNoiseDWIs( float **dwi,
                      int N,
@@ -75,6 +77,7 @@ int RicianNoiseDWIs( float **dwi,
    double sig;
    double sval;
    double riced;
+   double gscale;
 
    grad = MRI_FLOAT_PTR(g);
 
@@ -85,6 +88,11 @@ int RicianNoiseDWIs( float **dwi,
          dwi[0][k] = S0 * sqrt(sval*sval + riced*riced);
 
          for( i=0 ; i<Ngrad ; i++) {
+            gscale = sqrt( grad[3*i]*grad[3*i] +
+                           grad[3*i+1]*grad[3*i+1] +
+                           grad[3*i+2]*grad[3*i+2] ); //bval;  apr,2016
+            if( gscale < 0.00001 ) // if b~0
+               gscale = 1.;
             sig = 0;
             sig+= THD_get_voxel(D,k,0)*grad[3*i]*grad[3*i];
             sig+= THD_get_voxel(D,k,2)*grad[3*i+1]*grad[3*i+1];
@@ -92,6 +100,7 @@ int RicianNoiseDWIs( float **dwi,
             sig+= 2*THD_get_voxel(D,k,1)*grad[3*i]*grad[3*i+1];
             sig+= 2*THD_get_voxel(D,k,3)*grad[3*i]*grad[3*i+2];
             sig+= 2*THD_get_voxel(D,k,4)*grad[3*i+1]*grad[3*i+2];
+            sig/= gscale; // apr,2016
 
             sval = exp(-bval*sig);
             sval+= gsl_ran_gaussian_ziggurat(r,1.0) * NOISE_DWI;

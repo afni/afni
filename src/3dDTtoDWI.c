@@ -15,12 +15,22 @@ static char prefix[THD_MAX_PREFIX] = "DWI";
 static int datum = MRI_float;
 
 static double *bmatrix;		/* b matrix = GiGj for gradient intensities */
+static int BMAT_NZ = 0;    /* non-zero bmatrix supplied: apr,2016: not
+                              doing anything here at the moment, just
+                              in case we want to start using bmatrices
+                              as input instead of grads, such as in
+                              3dDWItoDT. */
+static float MAX_BVAL = 1.;
+static double *B0list = NULL;
 
 static float *I0_ptr;           /* I0 matrix */
 static int automask = 0;        /* automasking flag - user option */
 
-static void DTtoDWI_tsfunc (double tzero, double tdelta, int npts, float ts[], double ts_mean, double ts_slope, void *ud, int nbriks, float *val);
-static void Computebmatrix (MRI_IMAGE * grad1Dptr);
+static void DTtoDWI_tsfunc (double tzero, double tdelta, int npts, float ts[],
+                            double ts_mean, double ts_slope, void *ud, 
+                            int nbriks, float *val);
+// apr,2016: copying/pasting this function now from 3dDWItoDT
+static void Computebmatrix (MRI_IMAGE * grad1Dptr, int NO_ZERO_ROW1); 
 static void InitGlobals (int npts);
 static void FreeGlobals (void);
 
@@ -214,7 +224,8 @@ main (int argc, char *argv[])
 
 
   InitGlobals (grad1Dptr->nx + 1);	/* initialize all the matrices and vectors */
-  Computebmatrix (grad1Dptr);	/* compute bij=GiGj */
+  Computebmatrix (grad1Dptr, BMAT_NZ);	/* compute bij=GiGj */
+  INFO_message("The maximum magnitude of the bmatrix appears to be: %.2f", MAX_BVAL);
 
   if (automask)
     {
@@ -374,8 +385,139 @@ DTtoDWI_tsfunc (double tzero, double tdelta,
         GxGz GyGz GzGz */
 /* b0 is 0 for all 9 elements */
 /* bmatrix is really stored as 6 x npts array */
+// ----> apr,2016: now copying the Computebmatrix(...) from 3dDWItoDT,
+// ----> to have the scale stuff
 static void
-Computebmatrix (MRI_IMAGE * grad1Dptr)
+Computebmatrix (MRI_IMAGE * grad1Dptr, int NO_ZERO_ROW1) 
+{
+  int i, n;
+  register double *bptr;
+  register float *Gxptr, *Gyptr, *Gzptr;
+  register float *Bxxptr, *Byyptr, *Bzzptr, *Bxyptr, *Bxzptr, *Byzptr;
+  double Gx, Gy, Gz, Bxx, Byy, Bzz, Bxy, Bxz, Byz;
+  double gscale;
+
+  ENTRY ("Computebmatrix");
+  n = grad1Dptr->nx;		/* number of gradients other than I0 */
+
+  if ( (grad1Dptr->ny == 6)  && !NO_ZERO_ROW1 ) { // extra switch to keep OLD, zero-row version
+    /* just read in b matrix */
+    Bxxptr = MRI_FLOAT_PTR (grad1Dptr);	/* use simple floating point pointers to get values */
+    Byyptr = Bxxptr + n;
+    Bzzptr = Byyptr + n;
+    Bxyptr = Bzzptr + n;
+    Bxzptr = Bxyptr + n;
+    Byzptr = Bxzptr + n;
+
+    bptr = bmatrix;
+
+/*    B0list[0]= 1;*/  /* keep a record of which volumes have no gradient: first one always assumed */
+
+    for (i = 0; i < n; i++){
+	    Bxx = *Bxxptr++;
+	    Byy = *Byyptr++;
+	    Bzz = *Bzzptr++;
+	    Bxy = *Bxyptr++;
+	    Bxz = *Bxzptr++;
+	    Byz = *Byzptr++;
+	    *bptr++ = Bxx;
+	    *bptr++ = Bxy;
+	    *bptr++ = Bxz;
+	    *bptr++ = Byy;
+	    *bptr++ = Byz;
+	    *bptr++ = Bzz;
+       if(Bxx==0.0 && Byy==0.0 && Bzz==0.0)  /* is this a zero gradient volume also? */
+          B0list[i] = 1;
+       else{
+          B0list[i] = 0;
+          // apr,2016: need the MAX_BVAL for scaling
+          gscale = Bxx + Byy + Bzz;
+          if(gscale > MAX_BVAL)
+             MAX_BVAL = gscale;
+       }
+
+    }
+  } 
+  else if( (grad1Dptr->ny == 6)  && NO_ZERO_ROW1 ) { //  very similar to old bmatrix option
+    /* just read in b matrix */
+    Bxxptr = MRI_FLOAT_PTR (grad1Dptr);	/* use simple floating point pointers to get values */
+    Byyptr = Bxxptr + n;
+    Bzzptr = Byyptr + n;
+    Bxyptr = Bzzptr + n;
+    Bxzptr = Bxyptr + n;
+    Byzptr = Bxzptr + n;
+
+    bptr = bmatrix;
+    
+    // do as grads below
+    for (i = 0; i < 6; i++)
+       *bptr++ = 0.0;		/* initialize first 6 elements to 0.0 for the I0 gradient */
+    B0list[0]= 1;      /* keep a record of which volumes have no gradient */
+
+
+    for (i = 0; i < n; i++){ 
+	    Bxx = *Bxxptr++;
+	    Byy = *Byyptr++;
+	    Bzz = *Bzzptr++;
+	    Bxy = *Bxyptr++;
+	    Bxz = *Bxzptr++;
+	    Byz = *Byzptr++;
+	    *bptr++ = Bxx;
+	    *bptr++ = Bxy;
+	    *bptr++ = Bxz;
+	    *bptr++ = Byy;
+	    *bptr++ = Byz;
+	    *bptr++ = Bzz;
+       if(Bxx==0.0 && Byy==0.0 && Bzz==0.0)  /* is this a zero gradient volume also? */
+          B0list[i+1] = 1; 
+       else{
+          B0list[i+1] = 0; 
+          // apr,2016: need the MAX_BVAL for scaling
+          gscale = Bxx + Byy + Bzz;
+          if(gscale > MAX_BVAL)
+             MAX_BVAL = gscale;
+       }
+
+    }
+  }
+  else {
+    Gxptr = MRI_FLOAT_PTR (grad1Dptr);	/* use simple floating point pointers to get values */
+    Gyptr = Gxptr + n;
+    Gzptr = Gyptr + n;
+
+    bptr = bmatrix;
+    for (i = 0; i < 6; i++)
+      *bptr++ = 0.0;		/* initialize first 6 elements to 0.0 for the I0 gradient */
+
+    B0list[0]= 1;      /* keep a record of which volumes have no gradient */
+
+    for (i = 0; i < n; i++)
+      {
+         gscale = 1.;  // apr,2016: allow for non-unit gradient magnitudes
+         Gx = *Gxptr++;
+         Gy = *Gyptr++;
+         Gz = *Gzptr++;
+         if((Gx==0.0) && (Gy==0.0) && (Gz==0.0))
+            B0list[i+1] = 1;   /* no gradient applied*/
+         else{
+            B0list[i+1] = 0;
+            gscale = sqrt(Gx*Gx + Gy*Gy + Gz*Gz);
+            if(gscale > MAX_BVAL)
+               MAX_BVAL = gscale; // apr,2016
+         }
+
+         *bptr++ = Gx * Gx / gscale; // apr,2016: allow for non-unit gradient magnitudes
+         *bptr++ = Gx * Gy / gscale;
+         *bptr++ = Gx * Gz / gscale;
+         *bptr++ = Gy * Gy / gscale;
+         *bptr++ = Gy * Gz / gscale;
+         *bptr++ = Gz * Gz / gscale;
+      }
+  }
+  EXRETURN;
+}
+/* --->apr,2016: This is the **original** function for this program-- now using 
+   the one from 3dDWItoDT, for each of duplicity.  Or something. 
 {
   int i, j, n;
   register double *bptr;
@@ -383,14 +525,14 @@ Computebmatrix (MRI_IMAGE * grad1Dptr)
   double Gx, Gy, Gz;
 
   ENTRY ("Computebmatrix");
-  n = grad1Dptr->nx;		/* number of gradients other than I0 */
-  Gxptr = MRI_FLOAT_PTR (grad1Dptr);	/* use simple floating point pointers to get values */
+  n = grad1Dptr->nx;		// number of gradients other than I0 
+  Gxptr = MRI_FLOAT_PTR (grad1Dptr);	// use simple floating point pointers to get values 
   Gyptr = Gxptr + n;
   Gzptr = Gyptr + n;
 
   bptr = bmatrix;
   for (i = 0; i < 6; i++)
-    *bptr++ = 0.0;		/* initialize first 6 elements to 0.0 for the I0 gradient */
+     *bptr++ = 0.0;		// initialize first 6 elements to 0.0 for the I0 gradient 
 
   for (i = 0; i < n; i++)
     {
@@ -410,7 +552,7 @@ Computebmatrix (MRI_IMAGE * grad1Dptr)
 
 
   EXRETURN;
-}
+  }*/
 
 /*! allocate all the global matrices and arrays once */
 static void
@@ -420,6 +562,7 @@ InitGlobals (int npts)
   ENTRY ("InitGlobals");
 
   bmatrix = malloc (npts * 6 * sizeof (double));
+  B0list = malloc (npts * sizeof (double));
 
   EXRETURN;
 }
@@ -432,5 +575,10 @@ FreeGlobals ()
   ENTRY ("FreeGlobals");
   free (bmatrix);
   bmatrix = NULL;
+
+  free(B0list);
+  B0list = NULL;
+
+
   EXRETURN;
 }

@@ -67,6 +67,11 @@ afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
 
+{ 8, Apr , 2016 , PT , "3dDWItoDT" , MINOR , TYPE_MODIFY,
+   "Work to deal with bvalue-weighted grads and bmatrices.",
+   "This is useful esp. for new TORTOISE outputs.\n"
+},
+
 { 5, Apr , 2016 , PT , "3dDWUncert" , MINOR , TYPE_NEW_OPT,
    "New inp format option-- for dealing with TORT export/import.",
    "-bmatrix_Z for reading in bmat in AFNI format; byebye -bmatr opt.\n"
