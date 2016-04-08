@@ -9203,8 +9203,20 @@ static void HCwarp_eval_B_basis3( int qq , float *xx , float *yy , float *zz )
 
 static void HCwarp_eval_B_basis4( int qin , float *xx , float *yy , float *zz )
 {
-   float t1,t2,t3,t4,t5,t6,t7 ; int qq=qin ;
+   float t1,t2,t3,t4,t5,t6,t7 ; int qq=qin , jj ;
 
+#if 1
+   t1 = t2 = t3 = 0.0f ;
+   for( jj=0 ; jj < 64 ; jj+=2 ){
+     t1 += bbbcar[jj][qq]*Hxpar[jj] + bbbcar[jj+1][qq]*Hxpar[jj+1] ;
+     t2 += bbbcar[jj][qq]*Hypar[jj] + bbbcar[jj+1][qq]*Hypar[jj+1] ;
+     t3 += bbbcar[jj][qq]*Hzpar[jj] + bbbcar[jj+1][qq]*Hzpar[jj+1] ;
+   }
+   *xx = (Hdox) ? t1 : 0.0f ;
+   *yy = (Hdoy) ? t2 : 0.0f ;
+   *zz = (Hdoz) ? t3 : 0.0f ;
+
+#else
    if( Hdox ){
      t1 =  bbbcar[ 0][qq]*Hxpar[ 0] + bbbcar[ 1][qq]*Hxpar[ 1] + bbbcar[ 2][qq]*Hxpar[ 2]
          + bbbcar[ 3][qq]*Hxpar[ 3] + bbbcar[ 4][qq]*Hxpar[ 4] + bbbcar[ 5][qq]*Hxpar[ 5]
@@ -9288,6 +9300,7 @@ static void HCwarp_eval_B_basis4( int qin , float *xx , float *yy , float *zz )
    } else {
      *zz = 0.0f ;
    }
+#endif
 
    return ;
 }
