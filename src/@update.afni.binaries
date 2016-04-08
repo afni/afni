@@ -16,7 +16,6 @@ set prog = `basename $0`
 set hostname = afni.nimh.nih.gov
 set hostproto = https://
 set hostsite = $hostproto$hostname
-set aub_version = "2.4, March 30, 2016"
 
 # ----------------------------------------------------------------------
 # history section
@@ -55,6 +54,7 @@ POST_HIST:
 # end history section
 # ----------------------------------------------------------------------
 
+set aub_version = "2.5, April 7, 2016"
 
 # ----------------------------------------------------------------------
 # apply any options
