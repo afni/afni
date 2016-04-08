@@ -46,7 +46,7 @@ history for $prog :
   2.2  19 Feb 2016 : minor text changes (note get_prog and appease dglen)
   2.3  29 Mar 2016 : added -no_cert_verify to omit certificate verification
   2.4  30 Mar 2016 : possibly udpate .bashrc after .cshrc
-  2.5  07 Apr 2016 : added -proto and -test_protos options
+  2.5a 07 Apr 2016 : added -proto and -test_protos options
 -------------------------------------------------------------------------------
 EOF
 exit
@@ -54,7 +54,7 @@ POST_HIST:
 # end history section
 # ----------------------------------------------------------------------
 
-set aub_version = "2.5, April 7, 2016"
+set aub_version = "2.5a, April 7, 2016"
 
 # ----------------------------------------------------------------------
 # apply any options
@@ -150,7 +150,7 @@ while ( $ac <= $#argv )
             exit 1
         endif
         if ( $argv[$ac] == http || $argv[$ac] == https ) then
-           set hostproto = $argv[$ac]://
+           set hostproto = ${argv[$ac]}://
         else if ( $argv[$ac] == NONE ) then
            set hostproto = ''
         else
