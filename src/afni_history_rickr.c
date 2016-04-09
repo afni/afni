@@ -49,6 +49,14 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  8,  Apr, 2016, RCR, "afni-general", MINOR, TYPE_ENHANCE,
+   "auto-tcat inputs with spaces, wildcards and global selectors",
+   "For example, input of 'DA*.HEAD DB*.HEAD DC*.HEAD[3,4]' would create\n"
+   "a dataset with sub-bricks 3 and 4 from all D[ABC]*.HEAD datasets.\n"
+   "If sub-brick selectors appear only at the end, they are global,\n"
+   "otherwise they can be per input, as in 'DA*.HEAD[0,1] DB*.HEAD[2,3]'."
+ } ,
+
  {  7,  Apr, 2016, RCR, "Makefile.INCLUDE", MICRO, TYPE_MODIFY,
    "switch to have cjpeg depend on libjpeg.a, so it does not get rebuilt",
    NULL
