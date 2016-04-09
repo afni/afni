@@ -46,7 +46,8 @@ history for $prog :
   2.2  19 Feb 2016 : minor text changes (note get_prog and appease dglen)
   2.3  29 Mar 2016 : added -no_cert_verify to omit certificate verification
   2.4  30 Mar 2016 : possibly udpate .bashrc after .cshrc
-  2.5a 07 Apr 2016 : added -proto and -test_protos options
+  2.5  07 Apr 2016 : added -proto and -test_protos options
+  2.6  08 Apr 2016 : save -test_protos results
 -------------------------------------------------------------------------------
 EOF
 exit
@@ -54,7 +55,7 @@ POST_HIST:
 # end history section
 # ----------------------------------------------------------------------
 
-set aub_version = "2.5a, April 7, 2016"
+set aub_version = "2.6, April 8, 2016"
 
 # ----------------------------------------------------------------------
 # apply any options
@@ -623,11 +624,16 @@ if ( $test_protos ) then
    echo ""
    echo "++ testing protocols from temp dir, `pwd`"
 
-   set plist = ( http:// https:// '' )  # protocols
-   set slist = ()                       # status values
+   set plist = ( http https '' )  # protocols
+   set slist = ()                 # status values
    set ind = 1
    while ( $ind <= $#plist )
-      set proto = $plist[$ind]
+      set pshort = $plist[$ind]
+      if ( $pshort == '' ) then
+         set proto = ''
+      else
+         set proto = ${pshort}://
+      endif
       set tmpsite = $proto$hostname
       set tmpprog = $tmpsite/pub/dist/bin/$package/$prog
 
@@ -646,8 +652,8 @@ if ( $test_protos ) then
 
       echo ""
 
-      # get rid of the old one
-      if ( -f $prog ) \rm -f $prog
+      # rename old one
+      if ( -f $prog ) \mv $prog save.$prog.$pshort
 
       set slist = ( $slist $st )
       @ ind += 1
