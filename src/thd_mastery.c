@@ -108,6 +108,14 @@ ENTRY("THD_open_dataset") ;
      THD_patch_brickim(dset); RETURN(dset) ;
    }
 
+   /*-- 7 Apr 2016 [rickr]: allow wildcards --*/
+   if( HAS_WILDCARD(pathname) ) {
+     dset = THD_open_tcat( pathname ) ;
+     if( ISVALID_DSET(dset) && !ISVALID_MAT44(dset->daxes->ijk_to_dicom) )
+        THD_daxes_to_mat44(dset->daxes) ;
+     THD_patch_brickim(dset); RETURN(dset) ;
+   }
+
    /*-- 04 Mar 2003: allow input of .1D files     --*/
    /*--              which deals with [] itself   --*/
    /*-- 19 May 2012: moved after check for spaces
