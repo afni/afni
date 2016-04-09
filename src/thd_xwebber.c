@@ -472,6 +472,13 @@ ENTRY("MCW_htmlwinkill_CB") ;
                           (str)[7] != '*'                  &&              \
                           (str)[7] != '.'                     )
 
+#define HTTPS_check(str) ( strncmp((str),"https://",8) == 0  &&            \
+                           !isspace((str)[8])                &&            \
+                           !iscntrl((str)[8])                &&            \
+                           (str)[8] != '\0'                  &&            \
+                           (str)[8] != '*'                   &&            \
+                           (str)[8] != '.'                     )
+
 #define CHK4(abcd)                                                         \
   ( tolower(buf[hend-4])==abcd[0] && tolower(buf[hend-3])==abcd[1] &&      \
     tolower(buf[hend-2])==abcd[2] && tolower(buf[hend-1])==abcd[3]   )
@@ -537,6 +544,26 @@ ENTRY("convert_text_to_html") ;
        /* scan forward to get to end of 'http://something' string at hend */
 
        for( hend=7 ; tin[hend] != '\0' && !isspace(tin[hend]) ; hend++ ) ; /*nada*/
+
+       /* insert hyperlink here*/
+
+       EMIT_string("<a href=\"") ;
+       for( ii=0 ; ii < hend ; ii++ )  EMIT_char(tin[ii]);
+       EMIT_string("\">") ;
+       for( ii=0 ; ii < hend ; ii++ )  EMIT_char(tin[ii]);
+       EMIT_string("</a>") ;
+
+       tin += hend ; continue ;
+     }
+
+     /* link to a web page? "https://something" [08 Apr 2016] */
+
+     if( HTTPS_check(tin) ){
+       int hend , ii ;
+
+       /* scan forward to get to end of 'https://something' string at hend */
+
+       for( hend=8 ; tin[hend] != '\0' && !isspace(tin[hend]) ; hend++ ) ; /*nada*/
 
        /* insert hyperlink here*/
 

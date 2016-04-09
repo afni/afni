@@ -9201,138 +9201,106 @@ static void HCwarp_eval_B_basis3( int qq , float *xx , float *yy , float *zz )
 /*............................................................................*/
 /* evaluate basis4 warp the faster way (from 3D basis arrays) */
 
-static void HCwarp_eval_B_basis4( int qq , float *xx , float *yy , float *zz )
+static void HCwarp_eval_B_basis4( int qin , float *xx , float *yy , float *zz )
 {
-   float b0zb0yb0x, b1zb0yb0x, b2zb0yb0x, b3zb0yb0x, b0zb1yb0x, b1zb1yb0x,
-         b2zb1yb0x, b3zb1yb0x, b0zb2yb0x, b1zb2yb0x, b2zb2yb0x, b3zb2yb0x,
-         b0zb3yb0x, b1zb3yb0x, b2zb3yb0x, b3zb3yb0x, b0zb0yb1x, b1zb0yb1x,
-         b2zb0yb1x, b3zb0yb1x, b0zb1yb1x, b1zb1yb1x, b2zb1yb1x, b3zb1yb1x,
-         b0zb2yb1x, b1zb2yb1x, b2zb2yb1x, b3zb2yb1x, b0zb3yb1x, b1zb3yb1x,
-         b2zb3yb1x, b3zb3yb1x, b0zb0yb2x, b1zb0yb2x, b2zb0yb2x, b3zb0yb2x,
-         b0zb1yb2x, b1zb1yb2x, b2zb1yb2x, b3zb1yb2x, b0zb2yb2x, b1zb2yb2x,
-         b2zb2yb2x, b3zb2yb2x, b0zb3yb2x, b1zb3yb2x, b2zb3yb2x, b3zb3yb2x,
-         b0zb0yb3x, b1zb0yb3x, b2zb0yb3x, b3zb0yb3x, b0zb1yb3x, b1zb1yb3x,
-         b2zb1yb3x, b3zb1yb3x, b0zb2yb3x, b1zb2yb3x, b2zb2yb3x, b3zb2yb3x,
-         b0zb3yb3x, b1zb3yb3x, b2zb3yb3x, b3zb3yb3x ;
+   float t1,t2,t3,t4,t5,t6,t7 ; int qq=qin , jj ;
 
-   float t1,t2,t3,t4,t5,t6,t7 ;
+#if 1
+   t1 = t2 = t3 = 0.0f ;
+   for( jj=0 ; jj < 64 ; jj+=2 ){
+     t1 += bbbcar[jj][qq]*Hxpar[jj] + bbbcar[jj+1][qq]*Hxpar[jj+1] ;
+     t2 += bbbcar[jj][qq]*Hypar[jj] + bbbcar[jj+1][qq]*Hypar[jj+1] ;
+     t3 += bbbcar[jj][qq]*Hzpar[jj] + bbbcar[jj+1][qq]*Hzpar[jj+1] ;
+   }
+   *xx = (Hdox) ? t1 : 0.0f ;
+   *yy = (Hdoy) ? t2 : 0.0f ;
+   *zz = (Hdoz) ? t3 : 0.0f ;
 
-   b0zb0yb0x = bbbcar[ 0][qq] ; b1zb0yb0x = bbbcar[ 1][qq] ;
-   b2zb0yb0x = bbbcar[ 2][qq] ; b3zb0yb0x = bbbcar[ 3][qq] ;
-   b0zb1yb0x = bbbcar[ 4][qq] ; b1zb1yb0x = bbbcar[ 5][qq] ;
-   b2zb1yb0x = bbbcar[ 6][qq] ; b3zb1yb0x = bbbcar[ 7][qq] ;
-   b0zb2yb0x = bbbcar[ 8][qq] ; b1zb2yb0x = bbbcar[ 9][qq] ;
-   b2zb2yb0x = bbbcar[10][qq] ; b3zb2yb0x = bbbcar[11][qq] ;
-   b0zb3yb0x = bbbcar[12][qq] ; b1zb3yb0x = bbbcar[13][qq] ;
-   b2zb3yb0x = bbbcar[14][qq] ; b3zb3yb0x = bbbcar[15][qq] ;
-   b0zb0yb1x = bbbcar[16][qq] ; b1zb0yb1x = bbbcar[17][qq] ;
-   b2zb0yb1x = bbbcar[18][qq] ; b3zb0yb1x = bbbcar[19][qq] ;
-   b0zb1yb1x = bbbcar[20][qq] ; b1zb1yb1x = bbbcar[21][qq] ;
-   b2zb1yb1x = bbbcar[22][qq] ; b3zb1yb1x = bbbcar[23][qq] ;
-   b0zb2yb1x = bbbcar[24][qq] ; b1zb2yb1x = bbbcar[25][qq] ;
-   b2zb2yb1x = bbbcar[26][qq] ; b3zb2yb1x = bbbcar[27][qq] ;
-   b0zb3yb1x = bbbcar[28][qq] ; b1zb3yb1x = bbbcar[29][qq] ;
-   b2zb3yb1x = bbbcar[30][qq] ; b3zb3yb1x = bbbcar[31][qq] ;
-   b0zb0yb2x = bbbcar[32][qq] ; b1zb0yb2x = bbbcar[33][qq] ;
-   b2zb0yb2x = bbbcar[34][qq] ; b3zb0yb2x = bbbcar[35][qq] ;
-   b0zb1yb2x = bbbcar[36][qq] ; b1zb1yb2x = bbbcar[37][qq] ;
-   b2zb1yb2x = bbbcar[38][qq] ; b3zb1yb2x = bbbcar[39][qq] ;
-   b0zb2yb2x = bbbcar[40][qq] ; b1zb2yb2x = bbbcar[41][qq] ;
-   b2zb2yb2x = bbbcar[42][qq] ; b3zb2yb2x = bbbcar[43][qq] ;
-   b0zb3yb2x = bbbcar[44][qq] ; b1zb3yb2x = bbbcar[45][qq] ;
-   b2zb3yb2x = bbbcar[46][qq] ; b3zb3yb2x = bbbcar[47][qq] ;
-   b0zb0yb3x = bbbcar[48][qq] ; b1zb0yb3x = bbbcar[49][qq] ;
-   b2zb0yb3x = bbbcar[50][qq] ; b3zb0yb3x = bbbcar[51][qq] ;
-   b0zb1yb3x = bbbcar[52][qq] ; b1zb1yb3x = bbbcar[53][qq] ;
-   b2zb1yb3x = bbbcar[54][qq] ; b3zb1yb3x = bbbcar[55][qq] ;
-   b0zb2yb3x = bbbcar[56][qq] ; b1zb2yb3x = bbbcar[57][qq] ;
-   b2zb2yb3x = bbbcar[58][qq] ; b3zb2yb3x = bbbcar[59][qq] ;
-   b0zb3yb3x = bbbcar[60][qq] ; b1zb3yb3x = bbbcar[61][qq] ;
-   b2zb3yb3x = bbbcar[62][qq] ; b3zb3yb3x = bbbcar[63][qq] ;
-
+#else
    if( Hdox ){
-     t1 =  b0zb0yb0x*Hxpar[ 0] + b1zb0yb0x*Hxpar[ 1] + b2zb0yb0x*Hxpar[ 2]
-         + b3zb0yb0x*Hxpar[ 3] + b0zb1yb0x*Hxpar[ 4] + b1zb1yb0x*Hxpar[ 5]
-         + b2zb1yb0x*Hxpar[ 6] + b3zb1yb0x*Hxpar[ 7] + b0zb2yb0x*Hxpar[ 8] ;
-     t2 =  b1zb2yb0x*Hxpar[ 9] + b2zb2yb0x*Hxpar[10] + b3zb2yb0x*Hxpar[11]
-         + b0zb3yb0x*Hxpar[12] + b1zb3yb0x*Hxpar[13] + b2zb3yb0x*Hxpar[14]
-         + b3zb3yb0x*Hxpar[15] + b0zb0yb1x*Hxpar[16] + b1zb0yb1x*Hxpar[17] ;
-     t3 =  b2zb0yb1x*Hxpar[18] + b3zb0yb1x*Hxpar[19] + b0zb1yb1x*Hxpar[20]
-         + b1zb1yb1x*Hxpar[21] + b2zb1yb1x*Hxpar[22] + b3zb1yb1x*Hxpar[23]
-         + b0zb2yb1x*Hxpar[24] + b1zb2yb1x*Hxpar[25] + b2zb2yb1x*Hxpar[26] ;
-     t4 =  b3zb2yb1x*Hxpar[27] + b0zb3yb1x*Hxpar[28] + b1zb3yb1x*Hxpar[29]
-         + b2zb3yb1x*Hxpar[30] + b3zb3yb1x*Hxpar[31] + b0zb0yb2x*Hxpar[32]
-         + b1zb0yb2x*Hxpar[33] + b2zb0yb2x*Hxpar[34] + b3zb0yb2x*Hxpar[35] ;
-     t5 =  b0zb1yb2x*Hxpar[36] + b1zb1yb2x*Hxpar[37] + b2zb1yb2x*Hxpar[38]
-         + b3zb1yb2x*Hxpar[39] + b0zb2yb2x*Hxpar[40] + b1zb2yb2x*Hxpar[41]
-         + b2zb2yb2x*Hxpar[42] + b3zb2yb2x*Hxpar[43] + b0zb3yb2x*Hxpar[44] ;
-     t6 =  b1zb3yb2x*Hxpar[45] + b2zb3yb2x*Hxpar[46] + b3zb3yb2x*Hxpar[47]
-         + b0zb0yb3x*Hxpar[48] + b1zb0yb3x*Hxpar[49] + b2zb0yb3x*Hxpar[50]
-         + b3zb0yb3x*Hxpar[51] + b0zb1yb3x*Hxpar[52] + b1zb1yb3x*Hxpar[53] ;
-     t7 =  b2zb1yb3x*Hxpar[54] + b3zb1yb3x*Hxpar[55] + b0zb2yb3x*Hxpar[56]
-         + b1zb2yb3x*Hxpar[57] + b2zb2yb3x*Hxpar[58] + b3zb2yb3x*Hxpar[59]
-         + b0zb3yb3x*Hxpar[60] + b1zb3yb3x*Hxpar[61] + b2zb3yb3x*Hxpar[62]
-         + b3zb3yb3x*Hxpar[63]                                             ;
+     t1 =  bbbcar[ 0][qq]*Hxpar[ 0] + bbbcar[ 1][qq]*Hxpar[ 1] + bbbcar[ 2][qq]*Hxpar[ 2]
+         + bbbcar[ 3][qq]*Hxpar[ 3] + bbbcar[ 4][qq]*Hxpar[ 4] + bbbcar[ 5][qq]*Hxpar[ 5]
+         + bbbcar[ 6][qq]*Hxpar[ 6] + bbbcar[ 7][qq]*Hxpar[ 7] + bbbcar[ 8][qq]*Hxpar[ 8] ;
+     t2 =  bbbcar[ 9][qq]*Hxpar[ 9] + bbbcar[10][qq]*Hxpar[10] + bbbcar[11][qq]*Hxpar[11]
+         + bbbcar[12][qq]*Hxpar[12] + bbbcar[13][qq]*Hxpar[13] + bbbcar[14][qq]*Hxpar[14]
+         + bbbcar[15][qq]*Hxpar[15] + bbbcar[16][qq]*Hxpar[16] + bbbcar[17][qq]*Hxpar[17] ;
+     t3 =  bbbcar[18][qq]*Hxpar[18] + bbbcar[19][qq]*Hxpar[19] + bbbcar[20][qq]*Hxpar[20]
+         + bbbcar[21][qq]*Hxpar[21] + bbbcar[22][qq]*Hxpar[22] + bbbcar[23][qq]*Hxpar[23]
+         + bbbcar[24][qq]*Hxpar[24] + bbbcar[25][qq]*Hxpar[25] + bbbcar[26][qq]*Hxpar[26] ;
+     t4 =  bbbcar[27][qq]*Hxpar[27] + bbbcar[28][qq]*Hxpar[28] + bbbcar[29][qq]*Hxpar[29]
+         + bbbcar[30][qq]*Hxpar[30] + bbbcar[31][qq]*Hxpar[31] + bbbcar[32][qq]*Hxpar[32]
+         + bbbcar[33][qq]*Hxpar[33] + bbbcar[34][qq]*Hxpar[34] + bbbcar[35][qq]*Hxpar[35] ;
+     t5 =  bbbcar[36][qq]*Hxpar[36] + bbbcar[37][qq]*Hxpar[37] + bbbcar[38][qq]*Hxpar[38]
+         + bbbcar[39][qq]*Hxpar[39] + bbbcar[40][qq]*Hxpar[40] + bbbcar[41][qq]*Hxpar[41]
+         + bbbcar[42][qq]*Hxpar[42] + bbbcar[43][qq]*Hxpar[43] + bbbcar[44][qq]*Hxpar[44] ;
+     t6 =  bbbcar[45][qq]*Hxpar[45] + bbbcar[46][qq]*Hxpar[46] + bbbcar[47][qq]*Hxpar[47]
+         + bbbcar[48][qq]*Hxpar[48] + bbbcar[49][qq]*Hxpar[49] + bbbcar[50][qq]*Hxpar[50]
+         + bbbcar[51][qq]*Hxpar[51] + bbbcar[52][qq]*Hxpar[52] + bbbcar[53][qq]*Hxpar[53] ;
+     t7 =  bbbcar[54][qq]*Hxpar[54] + bbbcar[55][qq]*Hxpar[55] + bbbcar[56][qq]*Hxpar[56]
+         + bbbcar[57][qq]*Hxpar[57] + bbbcar[58][qq]*Hxpar[58] + bbbcar[59][qq]*Hxpar[59]
+         + bbbcar[60][qq]*Hxpar[60] + bbbcar[61][qq]*Hxpar[61] + bbbcar[62][qq]*Hxpar[62]
+         + bbbcar[63][qq]*Hxpar[63]                                                       ;
      *xx = dxci * (t1+t2+t3+t4+t5+t6+t7) ;
    } else {
      *xx = 0.0f ;
    }
 
    if( Hdoy ){
-     t1 =  b0zb0yb0x*Hypar[ 0] + b1zb0yb0x*Hypar[ 1] + b2zb0yb0x*Hypar[ 2]
-         + b3zb0yb0x*Hypar[ 3] + b0zb1yb0x*Hypar[ 4] + b1zb1yb0x*Hypar[ 5]
-         + b2zb1yb0x*Hypar[ 6] + b3zb1yb0x*Hypar[ 7] + b0zb2yb0x*Hypar[ 8] ;
-     t2 =  b1zb2yb0x*Hypar[ 9] + b2zb2yb0x*Hypar[10] + b3zb2yb0x*Hypar[11]
-         + b0zb3yb0x*Hypar[12] + b1zb3yb0x*Hypar[13] + b2zb3yb0x*Hypar[14]
-         + b3zb3yb0x*Hypar[15] + b0zb0yb1x*Hypar[16] + b1zb0yb1x*Hypar[17] ;
-     t3 =  b2zb0yb1x*Hypar[18] + b3zb0yb1x*Hypar[19] + b0zb1yb1x*Hypar[20]
-         + b1zb1yb1x*Hypar[21] + b2zb1yb1x*Hypar[22] + b3zb1yb1x*Hypar[23]
-         + b0zb2yb1x*Hypar[24] + b1zb2yb1x*Hypar[25] + b2zb2yb1x*Hypar[26] ;
-     t4 =  b3zb2yb1x*Hypar[27] + b0zb3yb1x*Hypar[28] + b1zb3yb1x*Hypar[29]
-         + b2zb3yb1x*Hypar[30] + b3zb3yb1x*Hypar[31] + b0zb0yb2x*Hypar[32]
-         + b1zb0yb2x*Hypar[33] + b2zb0yb2x*Hypar[34] + b3zb0yb2x*Hypar[35] ;
-     t5 =  b0zb1yb2x*Hypar[36] + b1zb1yb2x*Hypar[37] + b2zb1yb2x*Hypar[38]
-         + b3zb1yb2x*Hypar[39] + b0zb2yb2x*Hypar[40] + b1zb2yb2x*Hypar[41]
-         + b2zb2yb2x*Hypar[42] + b3zb2yb2x*Hypar[43] + b0zb3yb2x*Hypar[44] ;
-     t6 =  b1zb3yb2x*Hypar[45] + b2zb3yb2x*Hypar[46] + b3zb3yb2x*Hypar[47]
-         + b0zb0yb3x*Hypar[48] + b1zb0yb3x*Hypar[49] + b2zb0yb3x*Hypar[50]
-         + b3zb0yb3x*Hypar[51] + b0zb1yb3x*Hypar[52] + b1zb1yb3x*Hypar[53] ;
-     t7 =  b2zb1yb3x*Hypar[54] + b3zb1yb3x*Hypar[55] + b0zb2yb3x*Hypar[56]
-         + b1zb2yb3x*Hypar[57] + b2zb2yb3x*Hypar[58] + b3zb2yb3x*Hypar[59]
-         + b0zb3yb3x*Hypar[60] + b1zb3yb3x*Hypar[61] + b2zb3yb3x*Hypar[62]
-         + b3zb3yb3x*Hypar[63]                                             ;
+     t1 =  bbbcar[ 0][qq]*Hypar[ 0] + bbbcar[ 1][qq]*Hypar[ 1] + bbbcar[ 2][qq]*Hypar[ 2]
+         + bbbcar[ 3][qq]*Hypar[ 3] + bbbcar[ 4][qq]*Hypar[ 4] + bbbcar[ 5][qq]*Hypar[ 5]
+         + bbbcar[ 6][qq]*Hypar[ 6] + bbbcar[ 7][qq]*Hypar[ 7] + bbbcar[ 8][qq]*Hypar[ 8] ;
+     t2 =  bbbcar[ 9][qq]*Hypar[ 9] + bbbcar[10][qq]*Hypar[10] + bbbcar[11][qq]*Hypar[11]
+         + bbbcar[12][qq]*Hypar[12] + bbbcar[13][qq]*Hypar[13] + bbbcar[14][qq]*Hypar[14]
+         + bbbcar[15][qq]*Hypar[15] + bbbcar[16][qq]*Hypar[16] + bbbcar[17][qq]*Hypar[17] ;
+     t3 =  bbbcar[18][qq]*Hypar[18] + bbbcar[19][qq]*Hypar[19] + bbbcar[20][qq]*Hypar[20]
+         + bbbcar[21][qq]*Hypar[21] + bbbcar[22][qq]*Hypar[22] + bbbcar[23][qq]*Hypar[23]
+         + bbbcar[24][qq]*Hypar[24] + bbbcar[25][qq]*Hypar[25] + bbbcar[26][qq]*Hypar[26] ;
+     t4 =  bbbcar[27][qq]*Hypar[27] + bbbcar[28][qq]*Hypar[28] + bbbcar[29][qq]*Hypar[29]
+         + bbbcar[30][qq]*Hypar[30] + bbbcar[31][qq]*Hypar[31] + bbbcar[32][qq]*Hypar[32]
+         + bbbcar[33][qq]*Hypar[33] + bbbcar[34][qq]*Hypar[34] + bbbcar[35][qq]*Hypar[35] ;
+     t5 =  bbbcar[36][qq]*Hypar[36] + bbbcar[37][qq]*Hypar[37] + bbbcar[38][qq]*Hypar[38]
+         + bbbcar[39][qq]*Hypar[39] + bbbcar[40][qq]*Hypar[40] + bbbcar[41][qq]*Hypar[41]
+         + bbbcar[42][qq]*Hypar[42] + bbbcar[43][qq]*Hypar[43] + bbbcar[44][qq]*Hypar[44] ;
+     t6 =  bbbcar[45][qq]*Hypar[45] + bbbcar[46][qq]*Hypar[46] + bbbcar[47][qq]*Hypar[47]
+         + bbbcar[48][qq]*Hypar[48] + bbbcar[49][qq]*Hypar[49] + bbbcar[50][qq]*Hypar[50]
+         + bbbcar[51][qq]*Hypar[51] + bbbcar[52][qq]*Hypar[52] + bbbcar[53][qq]*Hypar[53] ;
+     t7 =  bbbcar[54][qq]*Hypar[54] + bbbcar[55][qq]*Hypar[55] + bbbcar[56][qq]*Hypar[56]
+         + bbbcar[57][qq]*Hypar[57] + bbbcar[58][qq]*Hypar[58] + bbbcar[59][qq]*Hypar[59]
+         + bbbcar[60][qq]*Hypar[60] + bbbcar[61][qq]*Hypar[61] + bbbcar[62][qq]*Hypar[62]
+         + bbbcar[63][qq]*Hypar[63]                                                       ;
      *yy = dyci * (t1+t2+t3+t4+t5+t6+t7) ;
    } else {
      *yy = 0.0f ;
    }
 
    if( Hdoz ){
-     t1 =  b0zb0yb0x*Hzpar[ 0] + b1zb0yb0x*Hzpar[ 1] + b2zb0yb0x*Hzpar[ 2]
-         + b3zb0yb0x*Hzpar[ 3] + b0zb1yb0x*Hzpar[ 4] + b1zb1yb0x*Hzpar[ 5]
-         + b2zb1yb0x*Hzpar[ 6] + b3zb1yb0x*Hzpar[ 7] + b0zb2yb0x*Hzpar[ 8] ;
-     t2 =  b1zb2yb0x*Hzpar[ 9] + b2zb2yb0x*Hzpar[10] + b3zb2yb0x*Hzpar[11]
-         + b0zb3yb0x*Hzpar[12] + b1zb3yb0x*Hzpar[13] + b2zb3yb0x*Hzpar[14]
-         + b3zb3yb0x*Hzpar[15] + b0zb0yb1x*Hzpar[16] + b1zb0yb1x*Hzpar[17] ;
-     t3 =  b2zb0yb1x*Hzpar[18] + b3zb0yb1x*Hzpar[19] + b0zb1yb1x*Hzpar[20]
-         + b1zb1yb1x*Hzpar[21] + b2zb1yb1x*Hzpar[22] + b3zb1yb1x*Hzpar[23]
-         + b0zb2yb1x*Hzpar[24] + b1zb2yb1x*Hzpar[25] + b2zb2yb1x*Hzpar[26] ;
-     t4 =  b3zb2yb1x*Hzpar[27] + b0zb3yb1x*Hzpar[28] + b1zb3yb1x*Hzpar[29]
-         + b2zb3yb1x*Hzpar[30] + b3zb3yb1x*Hzpar[31] + b0zb0yb2x*Hzpar[32]
-         + b1zb0yb2x*Hzpar[33] + b2zb0yb2x*Hzpar[34] + b3zb0yb2x*Hzpar[35] ;
-     t5 =  b0zb1yb2x*Hzpar[36] + b1zb1yb2x*Hzpar[37] + b2zb1yb2x*Hzpar[38]
-         + b3zb1yb2x*Hzpar[39] + b0zb2yb2x*Hzpar[40] + b1zb2yb2x*Hzpar[41]
-         + b2zb2yb2x*Hzpar[42] + b3zb2yb2x*Hzpar[43] + b0zb3yb2x*Hzpar[44] ;
-     t6 =  b1zb3yb2x*Hzpar[45] + b2zb3yb2x*Hzpar[46] + b3zb3yb2x*Hzpar[47]
-         + b0zb0yb3x*Hzpar[48] + b1zb0yb3x*Hzpar[49] + b2zb0yb3x*Hzpar[50]
-         + b3zb0yb3x*Hzpar[51] + b0zb1yb3x*Hzpar[52] + b1zb1yb3x*Hzpar[53] ;
-     t7 =  b2zb1yb3x*Hzpar[54] + b3zb1yb3x*Hzpar[55] + b0zb2yb3x*Hzpar[56]
-         + b1zb2yb3x*Hzpar[57] + b2zb2yb3x*Hzpar[58] + b3zb2yb3x*Hzpar[59]
-         + b0zb3yb3x*Hzpar[60] + b1zb3yb3x*Hzpar[61] + b2zb3yb3x*Hzpar[62]
-         + b3zb3yb3x*Hzpar[63]                                             ;
+     t1 =  bbbcar[ 0][qq]*Hzpar[ 0] + bbbcar[ 1][qq]*Hzpar[ 1] + bbbcar[ 2][qq]*Hzpar[ 2]
+         + bbbcar[ 3][qq]*Hzpar[ 3] + bbbcar[ 4][qq]*Hzpar[ 4] + bbbcar[ 5][qq]*Hzpar[ 5]
+         + bbbcar[ 6][qq]*Hzpar[ 6] + bbbcar[ 7][qq]*Hzpar[ 7] + bbbcar[ 8][qq]*Hzpar[ 8] ;
+     t2 =  bbbcar[ 9][qq]*Hzpar[ 9] + bbbcar[10][qq]*Hzpar[10] + bbbcar[11][qq]*Hzpar[11]
+         + bbbcar[12][qq]*Hzpar[12] + bbbcar[13][qq]*Hzpar[13] + bbbcar[14][qq]*Hzpar[14]
+         + bbbcar[15][qq]*Hzpar[15] + bbbcar[16][qq]*Hzpar[16] + bbbcar[17][qq]*Hzpar[17] ;
+     t3 =  bbbcar[18][qq]*Hzpar[18] + bbbcar[19][qq]*Hzpar[19] + bbbcar[20][qq]*Hzpar[20]
+         + bbbcar[21][qq]*Hzpar[21] + bbbcar[22][qq]*Hzpar[22] + bbbcar[23][qq]*Hzpar[23]
+         + bbbcar[24][qq]*Hzpar[24] + bbbcar[25][qq]*Hzpar[25] + bbbcar[26][qq]*Hzpar[26] ;
+     t4 =  bbbcar[27][qq]*Hzpar[27] + bbbcar[28][qq]*Hzpar[28] + bbbcar[29][qq]*Hzpar[29]
+         + bbbcar[30][qq]*Hzpar[30] + bbbcar[31][qq]*Hzpar[31] + bbbcar[32][qq]*Hzpar[32]
+         + bbbcar[33][qq]*Hzpar[33] + bbbcar[34][qq]*Hzpar[34] + bbbcar[35][qq]*Hzpar[35] ;
+     t5 =  bbbcar[36][qq]*Hzpar[36] + bbbcar[37][qq]*Hzpar[37] + bbbcar[38][qq]*Hzpar[38]
+         + bbbcar[39][qq]*Hzpar[39] + bbbcar[40][qq]*Hzpar[40] + bbbcar[41][qq]*Hzpar[41]
+         + bbbcar[42][qq]*Hzpar[42] + bbbcar[43][qq]*Hzpar[43] + bbbcar[44][qq]*Hzpar[44] ;
+     t6 =  bbbcar[45][qq]*Hzpar[45] + bbbcar[46][qq]*Hzpar[46] + bbbcar[47][qq]*Hzpar[47]
+         + bbbcar[48][qq]*Hzpar[48] + bbbcar[49][qq]*Hzpar[49] + bbbcar[50][qq]*Hzpar[50]
+         + bbbcar[51][qq]*Hzpar[51] + bbbcar[52][qq]*Hzpar[52] + bbbcar[53][qq]*Hzpar[53] ;
+     t7 =  bbbcar[54][qq]*Hzpar[54] + bbbcar[55][qq]*Hzpar[55] + bbbcar[56][qq]*Hzpar[56]
+         + bbbcar[57][qq]*Hzpar[57] + bbbcar[58][qq]*Hzpar[58] + bbbcar[59][qq]*Hzpar[59]
+         + bbbcar[60][qq]*Hzpar[60] + bbbcar[61][qq]*Hzpar[61] + bbbcar[62][qq]*Hzpar[62]
+         + bbbcar[63][qq]*Hzpar[63]                                                       ;
      *zz = dzci * (t1+t2+t3+t4+t5+t6+t7) ;
    } else {
      *zz = 0.0f ;
    }
+#endif
 
    return ;
 }

@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 8 , APR , 2016 , RWC , "afni GUI" , MICRO , TYPE_NEW_OPT ,
+   "Add '-XXX defaults'" ,
+   NULL } ,
+
  { 7 , APR , 2016 , RWC , "3dGroupInCorr" , MICRO , TYPE_NEW_ENV ,
    "AFNI_GIC_DEBUG=YES will cause lots of debugging printouts" ,
    "For Sharyn and Cesar." } ,
