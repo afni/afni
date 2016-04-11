@@ -32,7 +32,7 @@ help.MVM.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
           ================== Welcome to 3dMVM ==================          
     AFNI Group Analysis Program with Multi-Variate Modeling Approach
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 3.8.0, April 6, 2016
+Version 3.8.1, April 11, 2016
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - https://afni.nimh.nih.gov/sscc/gangc/MVM.html
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -1061,8 +1061,10 @@ runAOV <- function(inData, dataframe, ModelForm) {
          suppressMessages(try(fm <- lmrob(lop$ModelForm, data=dataframe), silent=TRUE))
          if(fm$converged) {
             rlm_run <- TRUE; uvfm <- NULL 
-            tryCatch(uvfm <- Anova(fm, type=lop$SS_type), error=function(e) NULL)
-            if(!is.null(uvfm)) out[1:lop$nFu] <- qf(uvfm[1:lop$nFu,3], uvfm[1:lop$nFu, 1], fm$degree.freedom, lower.tail = FALSE)
+            #tryCatch(uvfm <- Anova(fm, type=lop$SS_type), error=function(e) NULL)
+            #if(!is.null(uvfm)) out[1:lop$nFu] <- qf(uvfm[1:lop$nFu,3], uvfm[1:lop$nFu, 1], fm$degree.freedom, lower.tail = FALSE)
+            tryCatch(uvfm <- Anova(fm, test.statistic="F", type=3) , error=function(e) NULL)
+            if(!is.null(uvfm)) out[1:lop$nFu] <- uvfm$F[1:lop$nF]
             if((lop$num_glt > 0) | (lop$num_glf > 0)) {
                gltIn <- fm; iData <- NULL
             }
@@ -1518,7 +1520,7 @@ while(is.null(fm)) {
    suppressMessages(try(fm <- aov.car(ModelForm, data=lop$dataStr, factorize=FALSE, type=lop$SS_type, return='full'), silent=TRUE)) }
 
    if(!is.null(fm)) {
-      if(lop$robust) uvfm <- Anova(fm, type=lop$SS_type) else {
+      if(lop$robust) uvfm <- Anova(fm, test.statistic="F", type=3) else {
          if(lop$afex_new) {
             uvfm  <- summary(fm)
             uvfm0 <- anova(fm, intercept=T) # contains intercept when no within-subject factors involved, and provides GES
@@ -1623,7 +1625,7 @@ if(!is.na(lop$wsVars) | !is.na(lop$mVar)) {
 
 # number of F-stat for univariate modeling 
 #if(lop$afex_new) lop$nFu <- ifelse(is.na(lop$wsVars) & is.na(lop$mVar), dim(uvfm)[1], dim(uvfm$univariate.test)[1]) else  # contains intercept
-if(lop$robust) lop$nFu <- dim(uvfm)[1] else {
+if(lop$robust) lop$nFu <- dim(uvfm)[1]-1 else {
    if(lop$afex_new) lop$nFu <- dim(uvfm0)[1] else  # contains intercept
    lop$nFu <- ifelse(is.na(lop$wsVars) & is.na(lop$mVar), dim(uvfm)[1]-1, dim(uvfm$anova)[1])
 }
@@ -1674,7 +1676,7 @@ if(lop$num_glf>0) for(ii in 1:lop$num_glf)
 
 if(lop$robust) {
       F_DF <- vector('list', lop$nF)
-      for(ii in 1:lop$nFu) F_DF[[ii]] <- c(uvfm[ii, 'Df'], fm$degree.freedom)
+      for(ii in 1:lop$nFu) F_DF[[ii]] <- c(uvfm[ii, 'Df'], uvfm[lop$nFu+1, 'Df'])
       t_DF <- NULL   
       if(lop$num_glt>0) for(ii in 1:lop$num_glt)
          t_DF <- c(t_DF, ifelse(is.na(lop$wsVars) & is.na(lop$mVar), gltRes[[ii]][2,2], gltRes[[ii]][,6]))
