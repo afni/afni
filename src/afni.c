@@ -414,7 +414,7 @@ void AFNI_syntax(void)
    else
      printf(
       " **** Help for all AFNI programs can be found at the Web page\n"
-      "    https://afni.nimh.nih.gov/afni/doc/program_help/index.html\n"
+      "    https://afni.nimh.nih.gov/pub/dist/doc/program_help/index.html\n"
       "\n"
      ) ;
 
@@ -786,7 +786,7 @@ void AFNI_syntax(void)
     " https://afni.nimh.nih.gov/pub/dist/edu/latest/afni01_intro/afni01_intro.pdf\n"
     " https://afni.nimh.nih.gov/pub/dist/edu/latest/afni03_interactive/afni03_interactive.pdf\n"
     "* For the -help on all AFNI programs, plus the README files, and more, please see\n"
-    " https://afni.nimh.nih.gov/afni/doc/program_help/index.html\n"
+    " https://afni.nimh.nih.gov/pub/dist/doc/program_help/index.html\n"
     "* For indvidualized help with AFNI problems, and to keep up with AFNI news, please\n"
     "   use the AFNI Message Board:\n"
     " https://afni.nimh.nih.gov/afni/community/board/\n"
@@ -3201,7 +3201,7 @@ ENTRY("AFNI_startup_timeout_CB") ;
              "                                                               \n"
              "++ For general AFNI program help, see the Web page           ++\n"
              "\n"
-             "   https://afni.nimh.nih.gov/afni/doc/program_help/index.html   \n"
+             "   https://afni.nimh.nih.gov/pub/dist/doc/program_help/index.html   \n"
              "%s"
              "\n"
              "++ [To close this message window, left-click inside of it.]  ++\n"
