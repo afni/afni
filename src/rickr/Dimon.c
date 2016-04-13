@@ -1548,7 +1548,7 @@ static int make_sorted_fim_list(param_t  * p)
 
    /* apply requested sorting method            15 Aug 2014 [rickr] */
    switch( method ) {
-      default: return; /* UNKNOWN, UNSPEC or NONE: no sorting */
+      default: return -1; /* UNKNOWN, UNSPEC or NONE: no sorting */
 
       case IFM_SORT_ACQ_TIME: {
          g_sort_by_atime = 1;
