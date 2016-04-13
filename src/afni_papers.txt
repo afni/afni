@@ -245,3 +245,11 @@ G Chen, NE Adleman, ZS Saad, E Leibenluft, and RW Cox.
   * http://dx.doi.org/10.1016/j.neuroimage.2014.06.027
   * https://afni.nimh.nih.gov/pub/dist/doc/papers/3dMVM_2014.pdf
 ----------------------------------------------------------------------------
+Taylor PA, Chen G, Cox RW, Saad ZS. 
+  Open Environment for Multimodal Interactive Connectivity
+  Visualization and Analysis. Brain Connectivity 6(2):109-21, 2016.
+
+  * Visualization and MVM stats tools using tracking (or even functional
+    connectivity).
+  * http://dx.doi.org/10.1089/brain.2015.0363
+  * https://afni.nimh.nih.gov/pub/dist/papers/ASF_2015_draft_BCinpress.pdf
