@@ -7757,6 +7757,8 @@ static int Hbasis_code  = 0 ;  /* quintic or cubic patches? */
 
 static int H5final = 0 ;       /* Use basis5 at final level (1 or 2 or 3) */
 
+static int H4zero  = 0 ;       /* 12 Apr 2016 */
+
 static double Hbasis_parmax = 0.0 ;  /* max warp parameter allowed */
 
 static floatvec *Hmpar = NULL ;      /* parameters for 'correlation' match */
@@ -9051,6 +9053,20 @@ static void HQwarp_eval_A( int qq , float *xx , float *yy , float *zz )
 
 static void HQwarp_eval_B( int qq , float *xx , float *yy , float *zz )
 {
+
+#if 1
+   float t1,t2,t3 ; int jj ;
+
+   t1 = t2 = t3 = 0.0f ;
+   for( jj=0 ; jj < 27 ; jj+=3 ){
+     t1 += bbbqar[jj][qq]*Hxpar[jj] + bbbqar[jj+1][qq]*Hxpar[jj+1] + bbbqar[jj+2][qq]*Hxpar[jj+2] ;
+     t2 += bbbqar[jj][qq]*Hypar[jj] + bbbqar[jj+1][qq]*Hypar[jj+1] + bbbqar[jj+2][qq]*Hypar[jj+2] ;
+     t3 += bbbqar[jj][qq]*Hzpar[jj] + bbbqar[jj+1][qq]*Hzpar[jj+1] + bbbqar[jj+2][qq]*Hzpar[jj+2] ;
+   }
+   *xx = (Hdox) ? t1 : 0.0f ;
+   *yy = (Hdoy) ? t2 : 0.0f ;
+   *zz = (Hdoz) ? t3 : 0.0f ;
+#else
    float b0zb0yb0x,b1zb0yb0x, b2zb0yb0x,b0zb1yb0x, b1zb1yb0x,b2zb1yb0x,
          b0zb2yb0x,b1zb2yb0x, b2zb2yb0x,b0zb0yb1x, b1zb0yb1x,b2zb0yb1x,
          b0zb1yb1x,b1zb1yb1x, b2zb1yb1x,b0zb2yb1x, b1zb2yb1x,b2zb2yb1x,
@@ -9097,6 +9113,8 @@ static void HQwarp_eval_B( int qq , float *xx , float *yy , float *zz )
            + b0zb0yb2x*Hzpar[18] + b1zb0yb2x*Hzpar[19] + b2zb0yb2x*Hzpar[20]
            + b0zb1yb2x*Hzpar[21] + b1zb1yb2x*Hzpar[22] + b2zb1yb2x*Hzpar[23]
            + b0zb2yb2x*Hzpar[24] + b1zb2yb2x*Hzpar[25] + b2zb2yb2x*Hzpar[26] ) ; else *zz = 0.0f ;
+#endif
+
    return ;
 }
 
@@ -10895,7 +10913,7 @@ ENTRY("IW3D_warpomatic") ;
 
    if( Hlev_start == 0 || HGRID(0) == 0 ){
      /* number of times to try the global quintic patch */
-     nlevr = ( WORKHARD(0) || Hduplo ) ? 4 : 2 ; if( SUPERHARD(0) ) nlevr++ ;
+     nlevr = ( WORKHARD(0) || Hduplo ) ? 3 : 2 ; if( SUPERHARD(0) ) nlevr++ ;
      /* force the warp to happen, but don't use any penalty */
      Hforce = 1 ; Hfactor = 1.0f ; Hpen_use = 0 ; Hlev_now = 0 ;
      PBLUR_BASE  (ibbb,ittt,jbbb,jttt,kbbb,kttt) ;  /* progressive blur, if ordered */
@@ -10925,6 +10943,10 @@ ENTRY("IW3D_warpomatic") ;
            ININFO_message("       --> too little improvement: breaking out of lev=0 iterates") ;
          break ;
        }
+     }
+     if( H4zero || WORKHARD(0) || SUPERHARD(0) ){
+       powell_newuoa_set_con_ball() ;
+       (void)IW3D_improve_warp( MRI_CUBIC_PLUS_2, ibbb,ittt,jbbb,jttt,kbbb,kttt );
      }
      if( Hsave_allwarps ){           /* 02 Jan 2015 */
        sprintf(warplab,"%04dx%04dx%04d",ittt-ibbb+1,jttt-jbbb+1,kttt-kbbb+1) ;
