@@ -207,6 +207,8 @@ static int equiv_FALLback( char *n1 , char *n2 ) /* check if 2 strings */
 
 /*-----------------------------------------------------------------------*/
 
+/*-----------------------------------------------------------------------*/
+
 #define ADDTO_FALLback_one(nameval)                                            \
  do{ int nf ;                                                                  \
      nf = new_FALLback_num ;                                                   \
@@ -740,8 +742,11 @@ void AFNI_syntax(void)
     " -XXXfontA fontname    = set the X11 font name for the main AFNI\n"
     "                         controller\n"
     "                         [default = 9x15bold]\n"
-    "                         ++ To see a list of all X11 font names,\n"
-    "                            type the command 'xlsfonts | more'\n"
+    "                         ++ To see a list of all X11 font names, type the command\n"
+    "  xlsfonts | more\n"
+    "                            *or* more elaborately (to show only fixed width fonts):\n"
+    "  xlsfonts | grep -e '-[cm]-' | grep -e '-iso8859-1$' | grep -e '-medium-' \\\n"
+    "           | grep -e '-r-normal-' | grep -v -e '-0-0-' | sort -t '-' -k 8 -n | uniq\n"
     "                         ++ It is best to use a fixed width font\n"
     "                            (e.g., not Helvetica), or the AFNI buttons\n"
     "                            won't line up nicely!\n"
@@ -753,10 +758,16 @@ void AFNI_syntax(void)
     "                            want to use larger fonts.  Adding these\n"
     "                            '-XXXfont?' options is one way to address this\n"
     "                            problem.\n"
-    "                         ++ An example of a quite large font on my computer\n"
+    "                         ++ An example of two quite large fonts on my computer\n"
     "                            (which at this time has a 96 dot per inch display):\n"
-    "              -adobe-courier-bold-r-normal--34-240-100-100-m-200-iso8859-1\n"
-    "                         ++ When setting the fonts, it is usually helpful\n"
+    "       '-adobe-courier-bold-r-normal--34-240-100-100-m-200-iso8859-1\n"
+    "       '-b&h-lucidatypewriter-medium-r-normal-sans-34-240-100-100-m-200-iso8859-1'\n"
+    "                            Note that to use the latter font on the command line,\n"
+    "                            you have to enclose the name in quotes, as shown above,\n"
+    "                            since the 'foundry name' includes the character '&'.\n"
+    "                            To use it in an alias, you need to do something like\n"
+    "  alias abig -XXXfontA '-b\\&h-lucidatypewriter-medium-r-normal-sans-34-240-100-100-m-200-iso8859-1'\n"
+    "                         ++ When setting the fonts, it is often helpful\n"
     "                            to set the colors as well.\n"
     "\n"
     " -XXXfontB fontname    = set the X11 font name for somewhat smaller text\n"
