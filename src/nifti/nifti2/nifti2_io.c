@@ -5638,7 +5638,7 @@ void * nifti_read_header( const char *hname, int *nver, int check )
    /* find out what type of header we have */
    ni_ver = nifti_header_version((char *)&n1hdr, h1size);
    if( g_opts.debug > 2 )
-      fprintf(stderr,"-- %s: NIFTI version = %d", fname, ni_ver);
+      fprintf(stderr,"-- %s: NIFTI version = %d\n", fname, ni_ver);
 
    /* maybe set return NIFTI version */
    if( nver ) *nver = ni_ver;
@@ -5646,7 +5646,7 @@ void * nifti_read_header( const char *hname, int *nver, int check )
    /* if NIFTI-2, copy and finish reading header */
    if ( ni_ver == 2 ) {
       if( g_opts.debug > 2 )
-         fprintf(stderr,"-- %s: copying and filling NIFTI-2 header...", fname);
+         fprintf(stderr,"-- %s: copying and filling NIFTI-2 header...\n",fname);
       memcpy(&n2hdr, &n1hdr, h1size);   /* copy first part */
       remain = h2size - h1size;
       posn = (char *)&n2hdr + h1size;
@@ -5787,7 +5787,7 @@ nifti_image *nifti_image_read( const char *hname , int read_data )
    /* find out what type of header we have */
    ni_ver = nifti_header_version((char *)&n1hdr, h1size);
    if( g_opts.debug > 2 )
-      fprintf(stderr,"-- %s: NIFTI version = %d", fname, ni_ver);
+      fprintf(stderr,"-- %s: NIFTI version = %d\n", fname, ni_ver);
 
    if( ni_ver == 0 || ni_ver == 1 ) {
       nim = nifti_convert_n1hdr2nim(n1hdr,hfile);
@@ -5795,7 +5795,7 @@ nifti_image *nifti_image_read( const char *hname , int read_data )
    } else if ( ni_ver == 2 ) {
       /* fill nifti-2 header and convert */
       if( g_opts.debug > 2 )
-         fprintf(stderr,"-- %s: copying and filling NIFTI-2 header...", fname);
+         fprintf(stderr,"-- %s: copying and filling NIFTI-2 header...\n",fname);
       memcpy(&n2hdr, &n1hdr, h1size);   /* copy first part */
       remain = h2size - h1size;
       posn = (char *)&n2hdr + h1size;
