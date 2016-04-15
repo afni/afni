@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 14 , APR , 2016 , RWC , "afni GUI" , MICRO , TYPE_MODIFY ,
+   "Make AFNI_FLASH_VIEWSWITCH turn off all obnoxious stuff" ,
+   "For Mr Neon" } ,
+
  { 8 , APR , 2016 , RWC , "afni GUI" , MICRO , TYPE_NEW_OPT ,
    "Add '-XXX defaults'" ,
    NULL } ,
