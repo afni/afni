@@ -10938,6 +10938,7 @@ ENTRY("IW3D_warpomatic") ;
 #else
      nlevr = ( WORKHARD(0) || SUPERHARD(0) || Hduplo ) ? 3 : 2 ;
 #endif
+     if( SUPERHARD(0) ) nlevr++ ;
      /* force the warp to happen, but don't use any penalty */
      Hforce = 1 ; Hfactor = 1.0f ; Hpen_use = 0 ; Hlev_now = 0 ;
      PBLUR_BASE  (ibbb,ittt,jbbb,jttt,kbbb,kttt) ;  /* progressive blur, if ordered */
@@ -10953,7 +10954,7 @@ ENTRY("IW3D_warpomatic") ;
      (void)IW3D_improve_warp( MRI_CUBIC  , ibbb,ittt,jbbb,jttt,kbbb,kttt );
      powell_newuoa_set_con_ball() ;
      (void)IW3D_improve_warp( MRI_CUBIC  , ibbb,ittt,jbbb,jttt,kbbb,kttt );
-     if( WORKHARD(0) || SUPERHARD(0) )
+     if( SUPERHARD(0) )
        (void)IW3D_improve_warp( MRI_CUBIC  , ibbb,ittt,jbbb,jttt,kbbb,kttt );
      if( Hquitting ) goto DoneDoneDone ;  /* signal to quit was sent */
           if( Hznoq  ) nlevr = 0 ;
@@ -10973,10 +10974,7 @@ ENTRY("IW3D_warpomatic") ;
 #ifdef ALLOW_BASIS5
      if( (!Hznoq && !Hzeasy) && (H4zero || WORKHARD(0) || SUPERHARD(0)) ){
        powell_newuoa_set_con_ball() ;
-       if( SUPERHARD(0) )
-         (void)IW3D_improve_warp( MRI_CUBIC_PLUS_3, ibbb,ittt,jbbb,jttt,kbbb,kttt );
-       else
-         (void)IW3D_improve_warp( MRI_CUBIC_PLUS_2, ibbb,ittt,jbbb,jttt,kbbb,kttt );
+       (void)IW3D_improve_warp( MRI_CUBIC_PLUS_2, ibbb,ittt,jbbb,jttt,kbbb,kttt );
      }
      if( Hquitting ) goto DoneDoneDone ;  /* signal to quit was sent */
 #endif
@@ -11027,7 +11025,10 @@ ENTRY("IW3D_warpomatic") ;
      xwid = (Hnx+1)*0.75f ; if( xwid%2 == 0 ) xwid++ ;
      ywid = (Hny+1)*0.75f ; if( ywid%2 == 0 ) ywid++ ;
      zwid = (Hnz+1)*0.75f ; if( zwid%2 == 0 ) zwid++ ;
-     hgzero = MIN(xwid,ywid) ; hgzero = MIN(hgzero,zwid) ;
+     if( xwid > ngmin                  ) hgzero = xwid ;
+     if( ywid > ngmin && ywid < hgzero ) hgzero = ywid ;
+     if( zwid > ngmin && zwid < hgzero ) hgzero = zwid ;
+     if( hgzero == 0 ) hgzero = ngmin ; /* should not happen */
    }
 
    for( lev=levs ; lev <= leve && !levdone ; lev++ ){
