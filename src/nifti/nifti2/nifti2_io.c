@@ -8762,9 +8762,9 @@ int64_t nifti_read_collapsed_image( nifti_image * nim, const int64_t dims [8],
 
    if( g_opts.debug > 2 ){
       fprintf(stderr,"-d read_collapsed_image:\n        dims =");
-      for(c = 0; c < 8; c++) fprintf(stderr," %3lld", dims[c]);
+      for(c = 0; c < 8; c++) fprintf(stderr," %3" PRId64 "", dims[c]);
       fprintf(stderr,"\n   nim->dims =");
-      for(c = 0; c < 8; c++) fprintf(stderr," %3lld", nim->dim[c]);
+      for(c = 0; c < 8; c++) fprintf(stderr," %3" PRId64 "", nim->dim[c]);
       fputc('\n', stderr);
    }
 

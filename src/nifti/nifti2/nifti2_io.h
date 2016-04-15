@@ -12,6 +12,7 @@
 #include <math.h>
 #include <limits.h>
 #include <ctype.h>
+#include <inttypes.h>
 
 #ifndef DONT_INCLUDE_ANALYZE_STRUCT
 #define DONT_INCLUDE_ANALYZE_STRUCT  /*** not needed herein ***/
