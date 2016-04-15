@@ -1955,6 +1955,19 @@ void AFNI_sigfunc_alrm(int sig)
      "I have not failed; I've just found 10,000 ways that don't work",
      "Statistics are good, but dark chocolate is better"             ,
 
+     /* This set of quotes is from Paradise Lost */
+
+     "With hideous ruin and combustion, down to bottomless perdition"                    ,
+     "The thought both of lost happiness and lasting pain"                               ,
+     "Clothed with transcendent brightness"                                              ,
+     "All is not lost: the unconquerable will, and courage never to submit or yield"     ,
+     "Too well I see and rue the dire event that hath lost us Heaven"                    ,
+     "Happy state here swallowed up in endless misery"                                   ,
+     "What reinforcement we may gain from hope, if now what resolution from despair"     ,
+     "Farewell happy fields where Joy for ever dwells"                                   ,
+     "The mind is its own place, and itself can make a Heaven of Hell, a Hell of Heaven" ,
+     "No light, but rather darkness visible"                                             ,
+
      "Remember -- Screaming is the next best thing to solving a problem"              ,
      "Remember -- Swearing is almost as good as solving a problem"                    ,
      "Data which passes through so many steps can hardly have much truth left"        ,
