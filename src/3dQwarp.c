@@ -513,10 +513,10 @@ void Qhelp(void)
     "                 as the base.\n"
     "               * If the datasets overlap reasonably already, you can use the\n"
     "                 option '-allinfast' (instead of '-allineate') to add the\n"
-    "                 options '-onepass -norefinal' to the 3dAllineate command\n"
-    "                 line, to make it run faster (by avoiding the time-consuming\n"
-    "                 coarse pass step of trying lots of shifts and rotations to\n"
-    "                 get an idea of how to start).\n"
+    "                 option '-onepass' to the 3dAllineate command line, to make\n"
+    "                 it run faster (by avoiding the time-consuming coarse pass\n"
+    "                 step of trying lots of shifts and rotations to find an idea\n"
+    "                 of how to start).\n"
     "          -->>** The final output warp dataset is the warp directly between\n"
     "                 the original source dataset and the base (i.e., the catenation\n"
     "                 of the affine matrix from 3dAllineate and the nonlinear warp\n"
@@ -1576,14 +1576,15 @@ int main( int argc , char *argv[] )
      if( strcasecmp(argv[nopt],"-5final") == 0 ){     /* 06 Nov 2015 [SECRET] */
        H5final = 3 ; Hqfinal = 0 ; nopt++ ; continue ;
      }
-#if 1
      if( strcasecmp(argv[nopt],"-4final") == 0 ){     /* 06 Nov 2015 [SECRET] */
        H5final = 2 ; Hqfinal = 0 ; nopt++ ; continue ;
      }
      if( strcasecmp(argv[nopt],"-3final") == 0 ){     /* 06 Nov 2015 [SECRET] */
        H5final = 1 ; Hqfinal = 0 ; nopt++ ; continue ;
      }
-#endif
+     if( strcasecmp(argv[nopt],"-4zero") == 0 ){      /* 12 Apr 2016 [SECRET] */
+       H4zero = 1 ; nopt++ ; continue ;
+     }
 #endif
 
      /*---------------*/
@@ -2074,7 +2075,7 @@ STATUS("3dAllineate coming up next") ;
      if( do_allin == 2 ){  /* the 'fast' way */
        if( allopt != NULL ) allopt = (char *)realloc(allopt,strlen(allopt)+64);
        else                 allopt = (char *)calloc(64,1) ;
-       strcat(allopt," -norefinal -onepass -conv 1.0") ;
+       strcat(allopt," -onepass -conv 0.2") ;
      }
 
      DSET_unload(sstrue) ;                /* de-allocate orig source dataset */
