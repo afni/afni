@@ -759,7 +759,7 @@ void AFNI_syntax(void)
     "                            '-XXXfont?' options is one way to address this\n"
     "                            problem.\n"
     "                         ++ An example of two quite large fonts on my computer\n"
-    "                            (which at this time has a 96 dot per inch display):\n"
+    "                            (which at this time has a 108 dot per inch display):\n"
     "       '-adobe-courier-bold-r-normal--34-240-100-100-m-200-iso8859-1\n"
     "       '-b&h-lucidatypewriter-medium-r-normal-sans-34-240-100-100-m-200-iso8859-1'\n"
     "                            Note that to use the latter font on the command line,\n"
@@ -2476,6 +2476,7 @@ int main( int argc , char *argv[] )
    PUTENV("AFNI_VIDEO_DELAY","66") ;       /* 20 Aug 2009 */
    PUTENV("AFNI_GRAPH_FADE","YES") ;          /* Apr 2013 */
    PUTENV("AFNI_MPEG_DATASETS","NO") ;        /* Feb 2015 */
+   PUTENV("AFNI_FLASH_VIEWSWITCH","NO") ;  /* 14 Apr 2016 */
 #if 0
    PUTENV("AFNI_PBAR_FULLRANGE","YES") ;   /* 03 Jun 2014 */
 #endif

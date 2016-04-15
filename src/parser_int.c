@@ -798,7 +798,7 @@ static double *wtard=NULL ;
 
 /*----------*/
 
-static pfit_allocate_atoz( int nval , float *depar )
+static void pfit_allocate_atoz( int nval , float *depar )
 {
    int jj ;
 
@@ -815,7 +815,7 @@ static pfit_allocate_atoz( int nval , float *depar )
 
 /*----------*/
 
-static pfit_free_atoz(void)
+static void pfit_free_atoz(void)
 {
    int jj ;
    for( jj=0 ; jj < 26 ; jj++ ){
@@ -829,7 +829,7 @@ static pfit_free_atoz(void)
 
 /*----------*/
 
-static pfit_fill_atoz( int jj , double val )
+static void pfit_fill_atoz( int jj , double val )
 {
    int tt ;
    for( tt=0 ; tt < natoz ; tt++ ) atoz[jj][tt] = val ;
@@ -838,7 +838,7 @@ static pfit_fill_atoz( int jj , double val )
 
 /*----------*/
 
-static pfit_load_atoz( int jj , float *val )
+static void pfit_load_atoz( int jj , float *val )
 {
    int tt ;
    for( tt=0 ; tt < natoz ; tt++ ) atoz[jj][tt] = (double)val[tt] ;
