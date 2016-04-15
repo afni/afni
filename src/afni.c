@@ -622,11 +622,10 @@ void AFNI_syntax(void)
      "  using the \\' transpose syntax, as in\n"
      "     afni Fred.1D\\'\n"
      "  However, this isn't very useful (IMHO).\n"
-     "\n"
-    MASTER_HELP_STRING
-     "\n"
-    CALC_HELP_STRING
-   ) ;
+     "\n");
+    printf(MASTER_HELP_STRING);   putchar('\n');
+    printf(CATENATE_HELP_STRING); putchar('\n');
+    printf(CALC_HELP_STRING);     putchar('\n');
 
    printf(
      "\n"
