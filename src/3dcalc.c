@@ -1303,10 +1303,11 @@ void CALC_Syntax(void)
     " serve as the template for the output; that is, '-b fred+tlrc' takes    \n"
     " precedence over '-c wilma+tlrc'.  (The program 3drefit can be used to  \n"
     " alter the .HEAD parameters of the output dataset, if desired.)         \n"
-
     "                                                                        \n"
     "------------------------------------------------------------------------\n"
     MASTER_HELP_STRING
+    "                                                                        \n"
+    CATENATE_HELP_STRING
 
 #ifdef SHOW_B3
     "                                                                        \n"

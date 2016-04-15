@@ -49,6 +49,12 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 15,  Apr, 2016, RCR, "afni-general", MICRO, TYPE_ENHANCE,
+   "added help macro CATENATE_HELP_STRING",
+   "This displays a 'CATENATED AND WILDCARD DATASET NAMES' section in the\n"
+   "help output from afni and 3dcalc (following 'INPUT DATASET NAMES')."
+ } ,
+
  { 15,  Apr, 2016, RCR, "NIFTI-2", MICRO, TYPE_MODIFY,
    "print int64_t using PRId64 macro, which looks ugly, but avoids warnings",
    NULL
