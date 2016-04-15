@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 15,  Apr, 2016, RCR, "NIFTI-2", MICRO, TYPE_MODIFY,
+   "print int64_t using PRId64 macro, which looks ugly, but avoids warnings",
+   NULL
+ } ,
+
  {  8,  Apr, 2016, RCR, "afni-general", MINOR, TYPE_ENHANCE,
    "auto-tcat inputs with spaces, wildcards and global selectors",
    "For example, input of 'DA*.HEAD DB*.HEAD DC*.HEAD[3,4]' would create\n"
