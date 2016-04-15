@@ -376,11 +376,13 @@ static char const * const gni2_history[] =
   "   - possibly alter dimensions on CIFTI read\n"
   "   - return N-1 headers in unknown version cases\n",
   "2.04 05 Aug, 2015 [rickr]\n"
-  "   - have writing try NIFTI-2 if NIFTI-1 seesm insufficient\n"
+  "   - have writing try NIFTI-2 if NIFTI-1 seems insufficient\n"
+  "2.05 15 Apr, 2016 [rickr]\n"
+  "   - print int64_t using PRId64 macro, (ugly, but no warnings)\n"
 };
 
 static const char gni_version[]
-        = "nifti-2 library version 2.04 (5 August, 2015)";
+        = "nifti-2 library version 2.05 (15 April, 2016)";
 
 /*! global nifti options structure - init with defaults */
 /*  see 'option accessor functions'                     */
