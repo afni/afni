@@ -49,6 +49,16 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 18,  Apr, 2016, RCR, "3dbucket", MICRO, TYPE_ENHANCE,
+   "if THD_open_one_dataset fails, fall back to THD_open_dataset",
+   "As with 3dTcat, fall back rather than failing outright."
+ } ,
+
+ { 18,  Apr, 2016, RCR, "afni-general", MICRO, TYPE_BUG_FIX,
+   "THD_open_tcat: fix wilcard input lacking sub-brick selectors",
+   "Forgot to regenerate catenated list, dlocal."
+ } ,
+
  { 15,  Apr, 2016, RCR, "afni-general", MICRO, TYPE_ENHANCE,
    "added help macro CATENATE_HELP_STRING",
    "This displays a 'CATENATED AND WILDCARD DATASET NAMES' section in the\n"
