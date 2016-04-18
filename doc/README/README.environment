@@ -1228,6 +1228,14 @@ If "-zpad" is used on the to3d command line, it overrides this value.
 If neither is present, no zero padding is used.  Note well that this
 padding is only in the z-direction, unlike that of AFNI_ROTA_ZPAD.
 
+---------------------------
+Variable: AFNI_OPEN_CORONAL
+---------------------------
+When the AFNI GUI starts, by default it opens up an axial and a sagittal
+image viewer.  If you set this variable to YES, it will also open up
+a coronal image viewer.  For finer control over AFNI startup, see the
+AFNI_STARTUP_SCRIPT variable and README.driver.   [18 Apr 2016]
+
 ----------------------------
 Variable: AFNI_IMAGE_MINFRAC (editable)
 ----------------------------
@@ -1959,8 +1967,8 @@ of a Layout file (cf. AFNI_LAYOUT_FILE above), you'll get a Script file
 if you leave the filename blank or enter any filename with the string
 "script" included (e.g., "coolstuff.script").
 
-The capabilities of Script files are being expanded.  Not all features of
-the AFNI window setup are currently save-able this way.
+The capabilities of Script files are expanded from time to time.  Not all
+features of the AFNI window setup are currently save-able this way.
 
 You can load a Script file interactively during an AFNI run by using the
 button "Datamode->Misc->Run Script".  As a 'secret' option, if you enter

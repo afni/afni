@@ -1230,6 +1230,14 @@ static char *readme_env[] = {
    "If neither is present, no zero padding is used.  Note well that this\n" ,
    "padding is only in the z-direction, unlike that of AFNI_ROTA_ZPAD.\n" ,
    "\n" ,
+   "---------------------------\n" ,
+   "Variable: AFNI_OPEN_CORONAL\n" ,
+   "---------------------------\n" ,
+   "When the AFNI GUI starts, by default it opens up an axial and a sagittal\n" ,
+   "image viewer.  If you set this variable to YES, it will also open up\n" ,
+   "a coronal image viewer.  For finer control over AFNI startup, see the\n" ,
+   "AFNI_STARTUP_SCRIPT variable and README.driver.   [18 Apr 2016]\n" ,
+   "\n" ,
    "----------------------------\n" ,
    "Variable: AFNI_IMAGE_MINFRAC (editable)\n" ,
    "----------------------------\n" ,
@@ -1961,8 +1969,8 @@ static char *readme_env[] = {
    "if you leave the filename blank or enter any filename with the string\n" ,
    "\"script\" included (e.g., \"coolstuff.script\").\n" ,
    "\n" ,
-   "The capabilities of Script files are being expanded.  Not all features of\n" ,
-   "the AFNI window setup are currently save-able this way.\n" ,
+   "The capabilities of Script files are expanded from time to time.  Not all\n" ,
+   "features of the AFNI window setup are currently save-able this way.\n" ,
    "\n" ,
    "You can load a Script file interactively during an AFNI run by using the\n" ,
    "button \"Datamode->Misc->Run Script\".  As a 'secret' option, if you enter\n" ,
@@ -4005,4 +4013,4 @@ static char *readme_env[] = {
    "If set to YES, enable distance measures that are not ready for prime time in\n" ,
    "the instacorr interface.\n" ,
    NULL } ;
-#define NUM_readme_env 4004
+#define NUM_readme_env 4012
