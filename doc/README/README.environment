@@ -1228,13 +1228,15 @@ If "-zpad" is used on the to3d command line, it overrides this value.
 If neither is present, no zero padding is used.  Note well that this
 padding is only in the z-direction, unlike that of AFNI_ROTA_ZPAD.
 
----------------------------
+----------------------------
+Variable: AFNI_OPEN_AXIAL
+Variable: AFNI_OPEN_SAGITTAL
 Variable: AFNI_OPEN_CORONAL
----------------------------
-When the AFNI GUI starts, by default it opens up an axial and a sagittal
-image viewer.  If you set this variable to YES, it will also open up
-a coronal image viewer.  For finer control over AFNI startup, see the
-AFNI_STARTUP_SCRIPT variable and README.driver.   [18 Apr 2016]
+----------------------------
+When the AFNI GUI starts, by default it opens all 3 image viewer
+windows. If you do NOT want a particular one of these, set the
+corresponding variable named above to NO.  For finer control over
+AFNI startup, see the AFNI_STARTUP_SCRIPT variable and README.driver.
 
 ----------------------------
 Variable: AFNI_IMAGE_MINFRAC (editable)

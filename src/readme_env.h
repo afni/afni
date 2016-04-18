@@ -1230,13 +1230,15 @@ static char *readme_env[] = {
    "If neither is present, no zero padding is used.  Note well that this\n" ,
    "padding is only in the z-direction, unlike that of AFNI_ROTA_ZPAD.\n" ,
    "\n" ,
-   "---------------------------\n" ,
+   "----------------------------\n" ,
+   "Variable: AFNI_OPEN_AXIAL\n" ,
+   "Variable: AFNI_OPEN_SAGITTAL\n" ,
    "Variable: AFNI_OPEN_CORONAL\n" ,
-   "---------------------------\n" ,
-   "When the AFNI GUI starts, by default it opens up an axial and a sagittal\n" ,
-   "image viewer.  If you set this variable to YES, it will also open up\n" ,
-   "a coronal image viewer.  For finer control over AFNI startup, see the\n" ,
-   "AFNI_STARTUP_SCRIPT variable and README.driver.   [18 Apr 2016]\n" ,
+   "----------------------------\n" ,
+   "When the AFNI GUI starts, by default it opens all 3 image viewer\n" ,
+   "windows. If you do NOT want a particular one of these, set the\n" ,
+   "corresponding variable named above to NO.  For finer control over\n" ,
+   "AFNI startup, see the AFNI_STARTUP_SCRIPT variable and README.driver.\n" ,
    "\n" ,
    "----------------------------\n" ,
    "Variable: AFNI_IMAGE_MINFRAC (editable)\n" ,
@@ -4013,4 +4015,4 @@ static char *readme_env[] = {
    "If set to YES, enable distance measures that are not ready for prime time in\n" ,
    "the instacorr interface.\n" ,
    NULL } ;
-#define NUM_readme_env 4012
+#define NUM_readme_env 4014
