@@ -1141,7 +1141,7 @@ void AFNI_startup_layout_CB( XtPointer client_data , XtIntervalId *id )
                       "  A geom=+0+44\n"
                       "  A.axialimage geom=+3+455 ifrac=0.8\n"
                       "  A.sagittalimage geom=+311+455 ifrac=0.8\n"
-                      "\n"};
+                     };
    Three_D_View *im3d         = GLOBAL_library.controllers[0] ; /* already open */
 
 #ifdef ALLOW_PLUGINS
@@ -1159,9 +1159,12 @@ ENTRY("AFNI_startup_layout_CB") ;
       fbuf = AFNI_suck_file(fname);
    } else if ( ALLOW_realtime ) {
       AFNI_splashdown(); EXRETURN;  /* no default in RT   4 Jan 2011 [rickr] */
-   } else {    /* ZSS Dec 2010. */
-      fbuf = (char *)malloc(strlen(def_layout)+1);
+   } else {    /* ZSS Dec 2010 */
+      fbuf = (char *)malloc(strlen(def_layout)+256);
       strcpy(fbuf, def_layout);
+      if( AFNI_yesenv("AFNI_OPEN_CORONAL") )   /* 18 Apr 2016 */
+        strcat(fbuf,"  A.coronalimage geom=+611+455 ifrac=0.8\n") ;
+      strcat(fbuf,"\n") ;
    }
    if( fbuf == NULL ){ AFNI_splashdown(); EXRETURN; }
    nbuf = strlen(fbuf) ;         if( nbuf == 0    ){ AFNI_splashdown(); EXRETURN; }
