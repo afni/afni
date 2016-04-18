@@ -329,6 +329,14 @@ void BUCK_read_opts( int argc , char * argv[] )
       nopt++ ;
 
       dset = THD_open_one_dataset( dname ) ;
+      /* akin to 3dTcat, handle failure in open_one
+         (todo: remove open_one from these programs)    18 Apr 2016 [rickr] */
+      if ( dset == NULL ) {
+         dset = THD_open_dataset( argv[nopt-1] ) ;
+         subv[0] = '\0'; /* use selectors via THD_O_D */
+         if( dset && BUCK_verb )
+            INFO_message("failure w/open_one_dset, success w/open_dset");
+      }
       if( dset == NULL ){
          fprintf(stderr,"can't open dataset %s\n",dname) ; exit(1) ;
       }
