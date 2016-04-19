@@ -44,6 +44,11 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 18 , APR , 2016 , RWC , "afni GUI" , MICRO , TYPE_NEW_ENV ,
+   "Add AFNI_OPEN_CORONAL" ,
+   "If YES, will open a coronal image window at startup, along"
+   "with the default axial and sagittal viewers.  For LIBR." } ,
+
  { 14 , APR , 2016 , RWC , "afni GUI" , MICRO , TYPE_MODIFY ,
    "Make AFNI_FLASH_VIEWSWITCH turn off all obnoxious stuff" ,
    "For Mr Neon" } ,

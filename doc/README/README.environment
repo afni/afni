@@ -1229,6 +1229,16 @@ If neither is present, no zero padding is used.  Note well that this
 padding is only in the z-direction, unlike that of AFNI_ROTA_ZPAD.
 
 ----------------------------
+Variable: AFNI_OPEN_AXIAL
+Variable: AFNI_OPEN_SAGITTAL
+Variable: AFNI_OPEN_CORONAL
+----------------------------
+When the AFNI GUI starts, by default it opens all 3 image viewer
+windows. If you do NOT want a particular one of these, set the
+corresponding variable named above to NO.  For finer control over
+AFNI startup, see the AFNI_STARTUP_SCRIPT variable and README.driver.
+
+----------------------------
 Variable: AFNI_IMAGE_MINFRAC (editable)
 ----------------------------
 This variable sets the minimum size of an image window when it is first
@@ -1959,8 +1969,8 @@ of a Layout file (cf. AFNI_LAYOUT_FILE above), you'll get a Script file
 if you leave the filename blank or enter any filename with the string
 "script" included (e.g., "coolstuff.script").
 
-The capabilities of Script files are being expanded.  Not all features of
-the AFNI window setup are currently save-able this way.
+The capabilities of Script files are expanded from time to time.  Not all
+features of the AFNI window setup are currently save-able this way.
 
 You can load a Script file interactively during an AFNI run by using the
 button "Datamode->Misc->Run Script".  As a 'secret' option, if you enter
