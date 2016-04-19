@@ -3574,25 +3574,30 @@ ENTRY("AFNI_finalize_dataset_CB") ;
      /* this stuff is for Adam Thomas -- 18 Oct 2006 */
 
      if( nwarn < 3 )
-       WARNING_message("Forced switch from '%s' to '%s'\a",
-                       VIEW_typestr[old_view] , VIEW_typestr[new_view] ) ;
-     if( nwarn==0 && wcall != NULL ){
-       char str[256] ;
-       sprintf(str," \nForced switch from\n  '%s'\nto\n  '%s'\n ",
-                   VIEW_typestr[old_view] , VIEW_typestr[new_view] ) ;
-       (void)MCW_popup_message( wcall, str, MCW_USER_KILL | MCW_TIMER_KILL ) ;
-     }
+       WARNING_message("Forced switch from '%s' to '%s' [#%d]",
+                       VIEW_typestr[old_view] , VIEW_typestr[new_view] , nwarn+1 ) ;
 
-     if( wcall != NULL && AFNI_yesenv("AFNI_FLASH_VIEWSWITCH") ){
-       for( ii=0 ; ii < 6 ; ii++ ){
-         MCW_invert_widget(im3d->vwid->view->view_bbox->wframe ); RWC_sleep(32);
-         MCW_invert_widget(im3d->vwid->view->view_bbox->wrowcol); RWC_sleep(32);
-         MCW_invert_widget(wcall) ;
-         MCW_invert_widget(im3d->vwid->view->view_bbox->wframe ); RWC_sleep(32);
-         MCW_invert_widget(im3d->vwid->view->view_bbox->wrowcol); RWC_sleep(32);
-         MCW_invert_widget(wcall) ;
+     if( AFNI_yesenv("AFNI_FLASH_VIEWSWITCH") ){
+
+       if( nwarn==0 && wcall != NULL ){
+         char str[256] ;
+         sprintf(str," \nForced switch from\n  '%s'\nto\n  '%s'\n ",
+                     VIEW_typestr[old_view] , VIEW_typestr[new_view] ) ;
+         (void)MCW_popup_message( wcall, str, MCW_USER_KILL | MCW_TIMER_KILL ) ;
+       }
+
+       if( wcall != NULL ){
+         for( ii=0 ; ii < 3 ; ii++ ){
+           MCW_invert_widget(im3d->vwid->view->view_bbox->wframe ); RWC_sleep(16);
+           MCW_invert_widget(im3d->vwid->view->view_bbox->wrowcol); RWC_sleep(16);
+           MCW_invert_widget(wcall) ;
+           MCW_invert_widget(im3d->vwid->view->view_bbox->wframe ); RWC_sleep(16);
+           MCW_invert_widget(im3d->vwid->view->view_bbox->wrowcol); RWC_sleep(16);
+           MCW_invert_widget(wcall) ;
+         }
        }
      }
+
      nwarn++ ;  /* 16 Sep 2009 */
    }
 
@@ -3611,9 +3616,9 @@ ENTRY("AFNI_finalize_dataset_CB") ;
    SHOW_AFNI_READY ;
    FIX_SCALE_SIZE(im3d) ;
 
-   if( old_view != new_view ){            /* ending flash */
+   if( AFNI_yesenv("AFNI_FLASH_VIEWSWITCH") && old_view != new_view ){ /* ending flash */
      BEEPIT ;
-     for( ii=0 ; ii < 8 ; ii++ ){
+     for( ii=0 ; ii < 3 ; ii++ ){
        MCW_invert_widget( im3d->vwid->view->view_bbox->wframe ); RWC_sleep(16);
        MCW_invert_widget( im3d->vwid->view->view_bbox->wrowcol); RWC_sleep(16);
        MCW_invert_widget(wcall) ;
@@ -4609,7 +4614,7 @@ STATUS(old_ss->sessname) ;
    new_ss = THD_init_session( old_ss->sessname ) ;
 
    if( new_ss == NULL || new_ss->num_dsset <= 0 ){
-      fprintf(stderr,"\n*** Fatal error: Rescan of session %s finds nothing!\a\n",
+      fprintf(stderr,"\n*** Fatal error: Rescan of session %s finds nothing!\n",
               old_ss->sessname ) ;
       EXIT(1) ;
    }

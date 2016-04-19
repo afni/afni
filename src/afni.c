@@ -622,11 +622,10 @@ void AFNI_syntax(void)
      "  using the \\' transpose syntax, as in\n"
      "     afni Fred.1D\\'\n"
      "  However, this isn't very useful (IMHO).\n"
-     "\n"
-    MASTER_HELP_STRING
-     "\n"
-    CALC_HELP_STRING
-   ) ;
+     "\n");
+    printf(MASTER_HELP_STRING);   putchar('\n');
+    printf(CATENATE_HELP_STRING); putchar('\n');
+    printf(CALC_HELP_STRING);     putchar('\n');
 
    printf(
      "\n"
@@ -759,7 +758,7 @@ void AFNI_syntax(void)
     "                            '-XXXfont?' options is one way to address this\n"
     "                            problem.\n"
     "                         ++ An example of two quite large fonts on my computer\n"
-    "                            (which at this time has a 96 dot per inch display):\n"
+    "                            (which at this time has a 108 dot per inch display):\n"
     "       '-adobe-courier-bold-r-normal--34-240-100-100-m-200-iso8859-1\n"
     "       '-b&h-lucidatypewriter-medium-r-normal-sans-34-240-100-100-m-200-iso8859-1'\n"
     "                            Note that to use the latter font on the command line,\n"
@@ -1956,6 +1955,19 @@ void AFNI_sigfunc_alrm(int sig)
      "I have not failed; I've just found 10,000 ways that don't work",
      "Statistics are good, but dark chocolate is better"             ,
 
+     /* This set of quotes is from Paradise Lost */
+
+     "With hideous ruin and combustion, down to bottomless perdition"                    ,
+     "The thought both of lost happiness and lasting pain"                               ,
+     "Clothed with transcendent brightness"                                              ,
+     "All is not lost: the unconquerable will, and courage never to submit or yield"     ,
+     "Too well I see and rue the dire event that hath lost us Heaven"                    ,
+     "Happy state here swallowed up in endless misery"                                   ,
+     "What reinforcement we may gain from hope, if now what resolution from despair"     ,
+     "Farewell happy fields where Joy for ever dwells"                                   ,
+     "The mind is its own place, and itself can make a Heaven of Hell, a Hell of Heaven" ,
+     "No light, but rather darkness visible"                                             ,
+
      "Remember -- Screaming is the next best thing to solving a problem"              ,
      "Remember -- Swearing is almost as good as solving a problem"                    ,
      "Data which passes through so many steps can hardly have much truth left"        ,
@@ -2476,6 +2488,7 @@ int main( int argc , char *argv[] )
    PUTENV("AFNI_VIDEO_DELAY","66") ;       /* 20 Aug 2009 */
    PUTENV("AFNI_GRAPH_FADE","YES") ;          /* Apr 2013 */
    PUTENV("AFNI_MPEG_DATASETS","NO") ;        /* Feb 2015 */
+   PUTENV("AFNI_FLASH_VIEWSWITCH","NO") ;  /* 14 Apr 2016 */
 #if 0
    PUTENV("AFNI_PBAR_FULLRANGE","YES") ;   /* 03 Jun 2014 */
 #endif
