@@ -513,10 +513,10 @@ void Qhelp(void)
     "                 as the base.\n"
     "               * If the datasets overlap reasonably already, you can use the\n"
     "                 option '-allinfast' (instead of '-allineate') to add the\n"
-    "                 options '-onepass -norefinal' to the 3dAllineate command\n"
-    "                 line, to make it run faster (by avoiding the time-consuming\n"
-    "                 coarse pass step of trying lots of shifts and rotations to\n"
-    "                 get an idea of how to start).\n"
+    "                 option '-onepass' to the 3dAllineate command line, to make\n"
+    "                 it run faster (by avoiding the time-consuming coarse pass\n"
+    "                 step of trying lots of shifts and rotations to find an idea\n"
+    "                 of how to start).\n"
     "          -->>** The final output warp dataset is the warp directly between\n"
     "                 the original source dataset and the base (i.e., the catenation\n"
     "                 of the affine matrix from 3dAllineate and the nonlinear warp\n"
@@ -787,8 +787,13 @@ void Qhelp(void)
     "                a 1D file with a list of patches to use -- in most cases,\n"
     "                you will want to use it in the following form:\n"
     "                  -gridlist '1D: 0 151 101 75 51'\n"
-    "                Here, a 0 patch size means the global domain. Patch sizes\n"
-    "                otherwise should be odd integers >= " NGMINS ".\n"
+    "               * Here, a 0 patch size means the global domain. Patch sizes\n"
+    "                 otherwise should be odd integers >= " NGMINS ".\n"
+    "               * If you use the '0' patch size again after the first position,\n"
+    "                 you will actually get an iteration at the size of the\n"
+    "                 default patch level 1, where the patch sizes are 75%% of\n"
+    "                 the volume dimension.  There is no way to force the program\n"
+    "                 to literally repeat the sui generis step of lev=0.\n"
     "               * You cannot use -gridlist with -duplo or -plusminus!\n"
     "\n"
     " -allsave     = This option lets you save the output warps from each level\n"
@@ -1576,14 +1581,15 @@ int main( int argc , char *argv[] )
      if( strcasecmp(argv[nopt],"-5final") == 0 ){     /* 06 Nov 2015 [SECRET] */
        H5final = 3 ; Hqfinal = 0 ; nopt++ ; continue ;
      }
-#if 1
      if( strcasecmp(argv[nopt],"-4final") == 0 ){     /* 06 Nov 2015 [SECRET] */
        H5final = 2 ; Hqfinal = 0 ; nopt++ ; continue ;
      }
      if( strcasecmp(argv[nopt],"-3final") == 0 ){     /* 06 Nov 2015 [SECRET] */
        H5final = 1 ; Hqfinal = 0 ; nopt++ ; continue ;
      }
-#endif
+     if( strcasecmp(argv[nopt],"-4zero") == 0 ){      /* 12 Apr 2016 [SECRET] */
+       H4zero = 1 ; nopt++ ; continue ;
+     }
 #endif
 
      /*---------------*/
@@ -2074,7 +2080,7 @@ STATUS("3dAllineate coming up next") ;
      if( do_allin == 2 ){  /* the 'fast' way */
        if( allopt != NULL ) allopt = (char *)realloc(allopt,strlen(allopt)+64);
        else                 allopt = (char *)calloc(64,1) ;
-       strcat(allopt," -norefinal -onepass -conv 1.0") ;
+       strcat(allopt," -onepass -conv 0.2") ;
      }
 
      DSET_unload(sstrue) ;                /* de-allocate orig source dataset */

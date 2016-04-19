@@ -49,6 +49,32 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 19,  Apr, 2016, RCR, "Dimon", MICRO, TYPE_BUG_FIX,
+   "incorrectly reported 'IFM:RIF fatal error' for the case of no sorting",
+   "Thanks to I Groen for reporting the problem."
+ } ,
+
+ { 18,  Apr, 2016, RCR, "3dbucket", MICRO, TYPE_ENHANCE,
+   "if THD_open_one_dataset fails, fall back to THD_open_dataset",
+   "As with 3dTcat, fall back rather than failing outright."
+ } ,
+
+ { 18,  Apr, 2016, RCR, "afni-general", MICRO, TYPE_BUG_FIX,
+   "THD_open_tcat: fix wilcard input lacking sub-brick selectors",
+   "Forgot to regenerate catenated list, dlocal."
+ } ,
+
+ { 15,  Apr, 2016, RCR, "afni-general", MICRO, TYPE_ENHANCE,
+   "added help macro CATENATE_HELP_STRING",
+   "This displays a 'CATENATED AND WILDCARD DATASET NAMES' section in the\n"
+   "help output from afni and 3dcalc (following 'INPUT DATASET NAMES')."
+ } ,
+
+ { 15,  Apr, 2016, RCR, "NIFTI-2", MICRO, TYPE_MODIFY,
+   "print int64_t using PRId64 macro, which looks ugly, but avoids warnings",
+   NULL
+ } ,
+
  {  8,  Apr, 2016, RCR, "afni-general", MINOR, TYPE_ENHANCE,
    "auto-tcat inputs with spaces, wildcards and global selectors",
    "For example, input of 'DA*.HEAD DB*.HEAD DC*.HEAD[3,4]' would create\n"

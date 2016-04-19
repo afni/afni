@@ -139,10 +139,12 @@ static char * g_history[] =
     " 4.13 Mar 24, 2016 [rickr]: \n",
     "      - added option -use_obl_origin for oblique data\n"
     "      - run to3d via 'tcsh -x' to see the command\n"
+    " 4.14 Apr 19, 2016 [rickr]: \n",
+    "      - no sorting was incorrectly returning an error\n"
     "----------------------------------------------------------------------\n"
 };
 
-#define DIMON_VERSION "version 4.13 (March 24, 2016)"
+#define DIMON_VERSION "version 4.14 (April 19, 2016)"
 
 /*----------------------------------------------------------------------
  * Dimon - monitor real-time aquisition of Dicom or I-files
@@ -1548,7 +1550,8 @@ static int make_sorted_fim_list(param_t  * p)
 
    /* apply requested sorting method            15 Aug 2014 [rickr] */
    switch( method ) {
-      default: return -1; /* UNKNOWN, UNSPEC or NONE: no sorting */
+      /* return SUCCESS on no sort              19 Apr 2016 [rickr] */
+      default: return 0; /* UNKNOWN, UNSPEC or NONE: no sorting */
 
       case IFM_SORT_ACQ_TIME: {
          g_sort_by_atime = 1;

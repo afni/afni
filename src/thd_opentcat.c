@@ -86,15 +86,15 @@ ENTRY("THD_open_tcat") ;
       RETURN(NULL) ;
    }
 
-   /* if selectors, append to sar elements and create new 'dlocal' string */
-   /*                                                  5 Apr 2016 [rickr] */
-   if( sel ) {
+   /* if selectors and/or WILDCARD, append to sar elements and create new */
+   /* 'dlocal' string                                  5 Apr 2016 [rickr] */
+   if( sel || HAS_WILDCARD(dlocal) ) {
       if( dlocal != dlist ) free(dlocal);    /* free if locally allocated */
       dlocal = update_sar_with_selectors(sar, sel);
       if(tcat_open_verb>1) INFO_message("THD_open_tcat: new dlocal %s",dlocal);
 
-      free(sel);
-      sel = NULL;
+      /* free selectors (if they exist)  18 Apr 2016 [rickr] */
+      if( sel ) { free(sel); sel = NULL; }
    }
 
    /* open all of the input datasets, possibly with selectors */
@@ -236,11 +236,16 @@ ENTRY("THD_open_tcat") ;
    if( dlocal == dlist ) dset_out->tcat_list = strdup( dlocal ) ;
    else                  dset_out->tcat_list = dlocal;
 
+   if( tcat_open_verb > 2 )
+      INFO_message("setting tcat_list[%d] = %s", ndset_in, dlocal);
+
    dset_out->tcat_num  = ndset_in ;
    dset_out->tcat_len  = (int *)malloc(sizeof(int)*ndset_in) ;
    for( dd=0 ; dd < ndset_in ; dd++ ){
      dset_out->tcat_len[dd] = DSET_NVALS(dset_in[dd]) ;
      DSET_delete(dset_in[dd]) ;
+      if( tcat_open_verb > 2 )
+         INFO_message("  tcat: including %d volumes", dset_out->tcat_len[dd]);
    }
    free((void *)dset_in) ;
    NI_delete_str_array(sar) ;
@@ -261,9 +266,9 @@ fprintf(stderr,"\n");
 static char * update_sar_with_selectors(NI_str_array * sar, char * sel)
 {
    char * lptr, * dlist;
-   int    dd, len, fulllen, nsel;
+   int    dd, len, fulllen, nsel=0;
 
-   nsel = strlen(sel);
+   if( sel ) nsel = strlen(sel);
 
    /* first allocate for catenation string with repeated selectors */
    fulllen = 1; /* for trailing nul */
@@ -278,7 +283,7 @@ static char * update_sar_with_selectors(NI_str_array * sar, char * sel)
    for( dd=0 ; dd < sar->num ; dd++ ) {
       len = strlen(sar->str[dd]) + nsel;
       sar->str[dd] = NI_realloc(sar->str[dd], char, (len+1)*sizeof(char));
-      strcat(sar->str[dd], sel);
+      if( sel ) strcat(sar->str[dd], sel);
 
       /* and append to new dlist string */
       strcpy(lptr, sar->str[dd]);
@@ -294,7 +299,8 @@ static char * update_sar_with_selectors(NI_str_array * sar, char * sel)
 /*! Expand the wildcard selection and populate a NI_str_array struct.        */
 /*  - a wildcard version of NI_decode_string_list         7 Apr 2016 [rickr] */
 /*---------------------------------------------------------------------------*/
-static NI_str_array * NI_get_wildcard_list(char * pattern) {
+static NI_str_array * NI_get_wildcard_list(char * pattern)
+{
    NI_str_array * sar=NULL;
    int            nexp=0, ind;
    char        ** fexp=NULL;
