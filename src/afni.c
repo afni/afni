@@ -1968,6 +1968,14 @@ void AFNI_sigfunc_alrm(int sig)
      "The mind is its own place, and itself can make a Heaven of Hell, a Hell of Heaven" ,
      "No light, but rather darkness visible"                                             ,
 
+     /* These are to make it clear that Cox is not to be blamed for ANYTHING */
+
+     "If you have any problems with AFNI, blame goes to ... Mike Beauchamp ;)" ,
+     "If you have any problems with AFNI, blame goes to ... Ziad Saad ;)"      ,
+     "If you have any problems with AFNI, blame goes to ... Pat Bellgowan ;)"  ,
+     "If you have any problems with AFNI, blame goes to ... Hang Joon Jo ;)"   ,
+     "If you have any problems with AFNI, blame goes to ... Kyle Simmons ;)"   ,
+
      "Remember -- Screaming is the next best thing to solving a problem"              ,
      "Remember -- Swearing is almost as good as solving a problem"                    ,
      "Data which passes through so many steps can hardly have much truth left"        ,
@@ -1981,6 +1989,7 @@ void AFNI_sigfunc_alrm(int sig)
      "Dreams are true while they last, and do we not live in dreams?"                 ,
      "Have you made your long term (trillion year) research plan yet? Get busy now"   ,
      "Why is 'Gold Standard' used in science? Gold is pretty but almost useless"      ,
+     "The 'Lead Standard' for neuroimaging since 1994"                                ,
      "Oh well, you can always end your paper with 'Further research needed'"          ,
      "It's not true my youth was wild and crazy -- only half of that is true"         ,
      "Not yet quite as powerful as the totalized and integrated mind of Arisia"       ,
