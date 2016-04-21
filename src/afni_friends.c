@@ -346,6 +346,7 @@ static mday holiday[] = {
    {APR,21,"Birthday of Napoleon III"                                } ,
    {APR,21,"Anniversary of the founding of Rome"                     } ,
    {APR,22,"Earth Day"                                               } ,
+   {APR,22,"Queen Isabella's birthday"                               } ,
    {APR,22,"Sir Michael Atiyah's birthday"                           } ,
    {APR,23,"Saint George's Day"                                      } ,
    {APR,24,"Henri Philippe Petain's birthday"                        } ,
