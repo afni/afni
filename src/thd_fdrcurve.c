@@ -101,7 +101,7 @@ ENTRY("THD_create_all_fdrcurves") ;
        qmin = DSET_BRICK_FDRMIN(dset,iv) ;
        if( qmin > 0.1f )
          WARNING_message(
-          "Smallest FDR q [%d %s] = %g ==> very few (if any) true detections" ,
+          "Smallest FDR q [%d %s] = %g ==> few true single voxel detections" ,
           iv , DSET_BRICK_LABEL(dset,iv) , qmin ) ;
        else
          INFO_message(
