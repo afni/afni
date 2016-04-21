@@ -529,7 +529,7 @@ void EDIT_set_misfit_mask( byte *mmm ){ mfmask = mmm ; return ; }
 
 float EDIT_scale_misfit( int nxyz , float fac , short *sar , float *far )
 {
-   float sf , ff , sum=0.0f ;
+   float sf , ff , sum=0.0f , df ;
    int ii , nf=0 ;
 
 ENTRY("EDIT_scale_misfit") ;
@@ -537,13 +537,15 @@ ENTRY("EDIT_scale_misfit") ;
    if( nxyz <= 0 || sar == NULL || far == NULL ) RETURN(0.0f) ;
 
    if( fac == 0.0f ) fac = 1.0f ;
+   df = 1.0f / fac ;
 
    for( ii=0 ; ii < nxyz ; ii++ ){
      if( BAD(ii) ) continue ;
      ff = far[ii] ; if( ff == 0.0f ) continue ;
-     sf = fac*sar[ii] ;
+     sf = (short)rintf(fac*sar[ii]) ;
      if( sf == 0.0f ){
-       sum += 1.0f ;
+       if( fabsf(ff) < df ) sum += fabsf(ff)*fac ;
+       else                 sum += 1.0f ;
      } else {
        sf = fabsf((sf-ff)/ff) ; if( sf > 1.0f ) sf = 1.0f ; sum += sf ;
      }
@@ -566,12 +568,12 @@ void EDIT_misfit_report( char *name, int ib,
    static int first=1 ;
 
    mf = 100.0f * EDIT_scale_misfit( nxyz , fac , sar , far ) ;
-        if( mf <  5.0f ) return ;  /* OK */
-        if( mf <  9.0f ) im = 0 ;
-   else if( mf < 13.0f ) im = 1 ;
-   else if( mf < 17.0f ) im = 2 ;
-   else if( mf < 21.0f ) im = 3 ;
-   else                  im = 4 ;
+        if( mf <=  9.0f ) return ;  /* OK */
+        if( mf <= 13.0f ) im = 0 ;
+   else if( mf <= 19.0f ) im = 1 ;
+   else if( mf <= 27.0f ) im = 2 ;
+   else if( mf <= 39.0f ) im = 3 ;
+   else                   im = 4 ;
    if( first )
      WARNING_message("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++");
 
