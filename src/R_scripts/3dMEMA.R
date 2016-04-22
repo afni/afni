@@ -509,7 +509,7 @@ greeting.MEMA <- function ()
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 Version 0.2.7, Aug 18, 2015
 Author: Gang Chen (gangchen@mail.nih.gov)
-Website - http://afni.nimh.nih.gov/sscc/gangc/MEMA.html
+Website - https://afni.nimh.nih.gov/sscc/gangc/MEMA.html
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
       )
@@ -522,7 +522,7 @@ Please consider citing the following if this program is useful for you:
    Chen et al., 2012. FMRI Group Analysis Combining Effect Estimates
    and Their Variances. NeuroImage. NeuroImage 60: 747-765.
    
-   http://afni.nimh.nih.gov/sscc/gangc/MEMA.html
+   https://afni.nimh.nih.gov/sscc/gangc/MEMA.html
    
 #######################################################################"
    )
@@ -539,7 +539,7 @@ Usage:
  that models both within- and across- subjects variability, thereby requiring
  both regression coefficients, or general linear contrasts among them, and the 
  corresponding t-statistics from each subject as input. It\'s required to install 
- R (http://www.r-project.org/), plus \'snow\' package if parallel computing is
+ R (https://www.r-project.org/), plus \'snow\' package if parallel computing is
  desirable. Version 0.2.7, Aug 18, 2015. If you want to cite the analysis
  approach, use the following at this moment:
 
@@ -565,7 +565,7 @@ Usage:
  measures ANOVA) can be analyzed; or 1) there is only one within-subject (or 
  repeated-measures) factor and it contains two levels only. See more details at
  
- http://afni.nimh.nih.gov/sscc/gangc/MEMA.html
+ https://afni.nimh.nih.gov/sscc/gangc/MEMA.html
 
  Notice:  When comparing two groups, option "-groups groupA groupB" has to be
  present, and the output includes the difference of groupB - groupA, which is
@@ -2115,7 +2115,10 @@ tTop <- 100   # upper bound for t-statistic
    if (!exists('.DBG_args')) { 
       args = (commandArgs(TRUE))  
       rfile <- first.in.path(sprintf('%s.R',ExecName))  
-      try(save(args, rfile, file=".3dMEMA.dbg.AFNI.args", ascii = TRUE), silent=TRUE)
+      # do not save these log files on -help    31 Mar 2016 [rickr]
+      if ( ! '-help' %in% args ) {
+         try(save(args, rfile, file=".3dMEMA.dbg.AFNI.args", ascii = TRUE), silent=TRUE)
+      }
    } else {
       note.AFNI("Using .DBG_args resident in workspace");
       args <- .DBG_args
