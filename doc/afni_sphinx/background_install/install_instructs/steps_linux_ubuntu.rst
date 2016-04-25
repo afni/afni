@@ -3,8 +3,8 @@
 .. _install_steps_linux_ubuntu:
 
 
-*The essential system setup for:  (current) Ubuntu Linux*
-=========================================================
+*The essential system setup for:*  **Ubuntu Linux**
+===================================================
 
 Here we describe installation and system setup for reasonably modern
 Ubuntu Linux versions (e.g., 14.04+, though it might very well work
@@ -69,22 +69,36 @@ list parallel instructions for each.
    relies on the environment variable ``$R_LIBS``, which refers to a
    directory that will contain the R packages.  That variable should
    always be set, both to specify where to install the packages and
-   where to read them from later (when running R programs).  For
-   setting this variable in ``tcsh``, the following commands would be
-   run::
+   where to read them from later (when running R programs).  The file
+   obtained using ``curl`` contains instructions to add a more
+   uptodate set of R libraries to the source list.  
+
+   * For setting this variable in ``tcsh``::
       
-      setenv R_LIBS $HOME/R
-      mkdir $R_LIBS
-      echo 'setenv R_LIBS ~/R' >> ~/.cshrc
-      curl -O https://afni.nimh.nih.gov/pub/dist/bi/n
-      rPkgsInstall -pkgs ALL
+       setenv R_LIBS $HOME/R
+       mkdir $R_LIBS
+       echo 'setenv R_LIBS ~/R' >> ~/.cshrc
+       curl -O https://afni.nimh.nih.gov/pub/dist/src/misc_scripts/@add_rcran_ubuntu.tcsh
+       sudo tcsh @add_rcran_ubuntu.tcsh
+       rPkgsInstall -pkgs ALL
       
-   In order, this has: set (i.e., defined) an environment variable
-   called ``$R_LIBS`` to be a subdirectory called "R/" in the user's
-   home directory; then made this directory; then written this
-   information into the user's ``tcsh`` profile; and finally run an
-   AFNI command to (hopefully) get all the necessary R libraries for
-   the modern package.
+   * For setting this variable in ``bash``::
+      
+       export R_LIBS $HOME/R
+       mkdir $R_LIBS
+       echo 'export R_LIBS=$HOME/R' >> ~/.bashrc
+       curl -O https://afni.nimh.nih.gov/pub/dist/src/misc_scripts/@add_rcran_ubuntu.tcsh
+       sudo tcsh @add_rcran_ubuntu.tcsh
+       rPkgsInstall -pkgs ALL
+      
+   ..  
+      In order, this has: set (i.e., defined) an environment variable
+      called ``$R_LIBS`` to be a subdirectory called "R/" in the user's
+      home directory; then made this directory; then written this
+      information into the user's ``tcsh`` profile; gotten a file to
+      update the rpository list; run that script; and finally run an
+      AFNI command to (hopefully) get all the necessary R libraries for
+      the modern package.
 
 
    .. ---------- HERE/BELOW: copy for all installs --------------
@@ -107,8 +121,6 @@ list parallel instructions for each.
 #. **Keeping up-to-date (remember).**
 
    .. include:: substep_update.rst
-
-
 
 
 .. commented out-- older steps, unnecessary here.
