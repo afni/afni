@@ -9853,6 +9853,19 @@ STATUS(" -- turning time index control off") ;
    else
      old_func_nvals = -1 ;
 
+   /* DRG 25 Apr 2016  */
+   /*   extra fix for percentile flag not working with warp-on-demand switch views */
+   if(DSET_ONDISK(im3d->fim_now)) {
+     MCW_set_bbox( im3d->vwid->func->perc_bbox ,
+                 (im3d->cont_perc_thr) ? (1) : (0) ) ;
+      SENSITIZE( im3d->vwid->func->perc_bbox->wbut[PERC_AUTOBUT] , TRUE ) ;
+   }
+   else {
+      MCW_set_bbox( im3d->vwid->func->perc_bbox , 0 ) ;
+      im3d->cont_perc_thr = 0;
+      SENSITIZE( im3d->vwid->func->perc_bbox->wbut[PERC_AUTOBUT] , False ) ;
+   }
+
    IM3D_CLEAR_THRSTAT(im3d) ;  /* 12 Jun 2014 */
 
    AFNI_sleep(13) ;             /* 18 Oct 2005: for luck */
