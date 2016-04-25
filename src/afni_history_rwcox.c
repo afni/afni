@@ -44,10 +44,14 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 20 , APR , 2016 , RWC , "afni GUI" , MICRO , TYPE_MODIFY ,
+   "new Jumpto IJK for Overlay button" ,
+   "For someone in the Tulsa class." } ,
+
  { 18 , APR , 2016 , RWC , "afni GUI" , MICRO , TYPE_NEW_ENV ,
-   "Add AFNI_OPEN_CORONAL" ,
-   "If YES, will open a coronal image window at startup, along"
-   "with the default axial and sagittal viewers.  For LIBR." } ,
+   "Open all 3 image viewers by default" ,
+   "New variables AFNI_OPEN_AXIAL (etc.) will turn off axial"
+   "image viwer (etc.) if set to NO -- for LIBR and Tulsa." } ,
 
  { 14 , APR , 2016 , RWC , "afni GUI" , MICRO , TYPE_MODIFY ,
    "Make AFNI_FLASH_VIEWSWITCH turn off all obnoxious stuff" ,

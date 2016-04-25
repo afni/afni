@@ -539,7 +539,7 @@ Usage:
  that models both within- and across- subjects variability, thereby requiring
  both regression coefficients, or general linear contrasts among them, and the 
  corresponding t-statistics from each subject as input. It\'s required to install 
- R (http://www.r-project.org/), plus \'snow\' package if parallel computing is
+ R (https://www.r-project.org/), plus \'snow\' package if parallel computing is
  desirable. Version 0.2.7, Aug 18, 2015. If you want to cite the analysis
  approach, use the following at this moment:
 
@@ -950,7 +950,7 @@ read.MEMA.opts.batch <- function (args=NULL, verb = 0) {
       lop$centerType2 <- 0
       lop$contrastName <- NULL
       lop$verb <- 0
-      lop$iometh <- 'Rlib'
+      lop$iometh <- 'clib'
    #Get user's input
    for (i in 1:length(ops)) {
       opname <- strsplit(names(ops)[i],'^-')[[1]];
