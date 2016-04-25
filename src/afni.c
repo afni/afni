@@ -9844,6 +9844,19 @@ STATUS(" -- turning time index control off") ;
    else
      old_func_nvals = -1 ;
 
+   if(DSET_ONDISK(im3d->fim_now)) {
+printf("dataset is on disk, so can make percentile available - perc currently set to %d\n", im3d->cont_perc_thr);
+      MCW_set_bbox( im3d->vwid->func->perc_bbox ,
+                 (im3d->cont_perc_thr) ? (1) : (0) ) ;
+      SENSITIZE( im3d->vwid->func->perc_bbox->wbut[PERC_AUTOBUT] , TRUE ) ;
+   }
+   else {
+printf("dataset is NOT on disk, so will not make percentile available - perc currently set to %d\n", im3d->cont_perc_thr);
+      MCW_set_bbox( im3d->vwid->func->perc_bbox , 0 ) ;
+      im3d->cont_perc_thr = 0;
+      SENSITIZE( im3d->vwid->func->perc_bbox->wbut[PERC_AUTOBUT] , False ) ;
+   }
+
    IM3D_CLEAR_THRSTAT(im3d) ;  /* 12 Jun 2014 */
 
    AFNI_sleep(13) ;             /* 18 Oct 2005: for luck */
