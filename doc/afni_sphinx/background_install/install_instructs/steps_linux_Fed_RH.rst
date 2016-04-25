@@ -3,8 +3,8 @@
 .. _install_steps_linux_Fed_RH:
 
 
-*The essential system setup for:  (current) Fedora and Red Hat Linux*
-=====================================================================
+*The essential system setup for:* **Fedora and Red Hat Linux**
+==============================================================
 
 
 Here we describe installation and system setup for reasonably modern
@@ -32,7 +32,7 @@ for each.
                            libpng12
        sudo yum update -y
             
-   .. _setup_tcsh:
+   .. _setup_FRH_tcsh:
 #. **(optional, but recommended) Set "tcsh" to be the default shell.**
 
    ::
@@ -73,21 +73,31 @@ for each.
    relies on the environment variable ``$R_LIBS``, which refers to a
    directory that will contain the R packages.  That variable should
    always be set, both to specify where to install the packages and
-   where to read them from later (when running R programs).  For
-   setting this variable in ``tcsh``, the following commands would be
-   run::
+   where to read them from later (when running R programs).
+   Therefore:
       
+   * *for setting this variable in* ``tcsh`` 
+     *(i.e., if you did* :ref:`tcsh setup, above <setup_FRH_tcsh>`\ *)*::
+
       setenv R_LIBS $HOME/R
       mkdir $R_LIBS
       echo 'setenv R_LIBS ~/R' >> ~/.cshrc
       rPkgsInstall -pkgs ALL
       
-   In order, this has: set (i.e., defined) an environment variable
-   called ``$R_LIBS`` to be a subdirectory called "R/" in the user's
-   home directory; then made this directory; then written this
-   information into the user's ``tcsh`` profile; and finally run an
-   AFNI command to (hopefully) get all the necessary R libraries for
-   the modern package.
+   * *for setting this variable in* ``bash``::
+      
+       export R_LIBS=$HOME/R
+       mkdir $R_LIBS
+       echo 'export R_LIBS=$HOME/R' >> ~/.bashrc
+       rPkgsInstall -pkgs ALL
+
+   ..
+     In order, this has: set (i.e., defined) an environment variable
+     called ``$R_LIBS`` to be a subdirectory called "R/" in the user's
+     home directory; then made this directory; then written this
+     information into the user's ``tcsh`` profile; and finally run an
+     AFNI command to (hopefully) get all the necessary R libraries for
+     the modern package.
 
 
    .. ---------- HERE/BELOW: copy for all installs --------------
