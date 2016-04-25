@@ -119,6 +119,11 @@ list parallel instructions for each.
    .. include:: substep_evaluate.rst
 
 
+#. **(optional) Niceifying interfaces: it's a magical terminal.**
+
+   .. include:: substep_rcfiles.rst
+
+
 #. **Keeping up-to-date (remember).**
 
    .. include:: substep_update.rst

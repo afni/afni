@@ -15,16 +15,13 @@ Note that 10.8 does not come with X11 (or XQuartz) installed.  When
 afni is started for the first time, you should be directed (by the
 operating system) to a link to install XQuartz.
 
-0. **Account setup**
+0. **(optional) Account setup: niceifying.**
 
    Assuming a user account exists, these steps are all optional:
 
-   a. Create a user account with ``su`` (Administrator) privileges
-      (via "System Preferences", under "Accounts").
+   .. note:: Admin privileges are needed for package management.
 
-      .. note:: Admin privileges are needed for package management.
-
-   #. (optional) Set the shell to ``/bin/tcsh``.  NB: this no longer
+   a. (optional) Set the shell to ``/bin/tcsh``.  NB: this no longer
       works using the ``chsh ...`` command.
 
       Under System Preferences : System : Accounts menu, right-click
@@ -174,6 +171,11 @@ operating system) to a link to install XQuartz.
    process!**
 
    .. include:: substep_evaluate.rst
+
+
+#. **(optional) Niceifying interfaces: it's a magical terminal.**
+
+   .. include:: substep_rcfiles.rst
 
 
 #. **Keeping up-to-date (remember).**
