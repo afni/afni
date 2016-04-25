@@ -11,14 +11,18 @@ Ubuntu Linux versions (e.g., 14.04+, though it might very well work
 even for 12.\* and higher).
 
 Several of the following steps are version number dependent, so we
-list parallel instructions for each.
+list parallel instructions when relevant.  If you need to doublecheck
+what Ubuntu version you have, you can see the release number and fun
+"codename" using::
+  
+  lsb_release --release --codename
 
 #. **Install prerequisite packages.**
 
    There are several packages and libraries that are needed to run the
    afni and shell programs, often even including ``tcsh``:
         
-   * *for versions upto and including 15.04*::
+   * *for versions up to and including 15.04*::
       
        sudo apt-get install -y tcsh libxp6 xfonts-base python-qt4             \
                                libmotif4 libmotif-dev motif-clients           \
