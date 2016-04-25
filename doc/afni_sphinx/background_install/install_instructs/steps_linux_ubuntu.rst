@@ -35,7 +35,7 @@ list parallel instructions for each.
        sudo dpkg -i http://mirrors.kernel.org/ubuntu/pool/main/libx/libxp/libxp6_1.0.2-2_amd64.deb
        sudo apt-get install -f
 
-   .. _setup_tcsh:
+   .. _setup_Ubu_tcsh:
 #. **(optional, but recommended) Set "tcsh" to be the default shell.**
 
    ::
@@ -71,9 +71,10 @@ list parallel instructions for each.
    always be set, both to specify where to install the packages and
    where to read them from later (when running R programs).  The file
    obtained using ``curl`` contains instructions to add a more
-   uptodate set of R libraries to the source list.  
+   uptodate set of R libraries to the source list.  Therefore:
 
-   * For setting this variable in ``tcsh``::
+   * *for setting this variable in* ``tcsh`` 
+     *(i.e., if you did* :ref:`tcsh setup, above <setup_Ubu_tcsh>`\ *)*::
       
        setenv R_LIBS $HOME/R
        mkdir $R_LIBS
@@ -82,9 +83,9 @@ list parallel instructions for each.
        sudo tcsh @add_rcran_ubuntu.tcsh
        rPkgsInstall -pkgs ALL
       
-   * For setting this variable in ``bash``::
+   * *for setting this variable in* ``bash``::
       
-       export R_LIBS $HOME/R
+       export R_LIBS=$HOME/R
        mkdir $R_LIBS
        echo 'export R_LIBS=$HOME/R' >> ~/.bashrc
        curl -O https://afni.nimh.nih.gov/pub/dist/src/misc_scripts/@add_rcran_ubuntu.tcsh
