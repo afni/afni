@@ -17,6 +17,8 @@ what Ubuntu version you have, you can see the release number and fun
   
   lsb_release --release --codename
 
+|
+
 #. **Install prerequisite packages.**
 
    There are several packages and libraries that are needed to run the
