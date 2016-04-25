@@ -1,15 +1,14 @@
 .. from: https://afni.nimh.nih.gov/pub/dist/HOWTO/howto/ht00_inst/html/linux_inst_current.html
 
-.. _install_steps_linux:
+.. _install_steps_linux_Fed_RH:
 
 
-*Complete system setup for:  (current) Linux*
-=============================================
+*The essential system setup for:  (current) Fedora and Red Hat Linux*
+=====================================================================
 
 
-Here we describe installation and system setup for mainstream Linux
-versions that are reasonably modern, such as **Fedora 21+, Red Hat
-(RHEL) 7 and Ubuntu 14.04+**.
+Here we describe installation and system setup for reasonably modern
+Linux versions of Fedora (21+) and Red Hat (RHEL) 7.
 
 Several of the following steps are system dependent, for example due
 to having different package managers, so we list parallel instructions
@@ -19,13 +18,6 @@ for each.
 
    There are several packages and libraries that are needed to run the
    afni and shell programs, often even including ``tcsh``:
-        
-   * *for Ubuntu 14.04 (and higher)*::
-      
-      sudo apt-get install -y tcsh libxp6 xfonts-base python-qt4              \
-                              r-base-dev libmotif4 libmotif-dev motif-clients \
-                              gsl-bin netpbm gnome-tweak-tool libjpeg62
-      sudo apt-get update
 
    * *for Fedora 21 (and higher)*::
       
@@ -53,14 +45,14 @@ for each.
    install the AFNI binaries there.
 
    First, get the install script (*this* command actually works for both
-   Fedora and Ubuntu systems)::
+   Fedora and RHEL systems)::
       
       curl -O https://afni.nimh.nih.gov/pub/dist/bin/linux_fedora_21_64/@update.afni.binaries
       
    Then install the appropriate AFNI package.  Note that most other
    Linux systems will probably work with linux_openmp_64:
 
-   * *for Ubuntu 14.04 (and higher), as well as RHEL 7*::
+   * *for RHEL 7*::
 
        tcsh @update.afni.binaries -package linux_openmp_64
 

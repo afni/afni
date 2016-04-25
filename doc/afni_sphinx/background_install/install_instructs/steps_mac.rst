@@ -1,7 +1,7 @@
 
 .. _install_steps_mac:
 
-*Complete system setup for:  (modern) Mac OS*
+*The essential system setup for:  (modern) Mac OS*
 =============================================
 
 
