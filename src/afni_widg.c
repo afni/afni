@@ -7341,8 +7341,14 @@ int AFNI_reset_func_range_cont(XtPointer *vp_im3d)
    AFNI_inten_bbox_CB( im3d->vwid->func->inten_bbox->wbut[PBAR_MODEBUT] ,
                        (XtPointer)im3d , NULL ) ;
 
-   /* reset perc only */
-   MCW_set_bbox( im3d->vwid->func->perc_bbox , im3d->cont_perc_thr ) ;
+   /* reset perc only  - only allow for dataset on disk, not warp on demand */
+   if(DSET_ONDISK(im3d->fim_now)) {
+      MCW_set_bbox( im3d->vwid->func->perc_bbox ,
+                 (im3d->cont_perc_thr) ? (1) : (0) ) ;
+   }
+   else
+      MCW_set_bbox( im3d->vwid->func->perc_bbox , 0 ) ;
+
    AFNI_inten_bbox_CB( im3d->vwid->func->perc_bbox->wbut[PERC_AUTOBUT] ,
                        (XtPointer)im3d , NULL ) ;
 
@@ -7648,7 +7654,7 @@ ENTRY("get_3Dview_func_thresh") ;
    if( ! IM3D_VALID(im3d) || ! ISVALID_3DIM_DATASET(im3d->fim_now) )
       RETURN(thresh) ;
 
-   if (im3d->cont_perc_thr) {
+   if ((im3d->cont_perc_thr) && DSET_ONDISK(im3d->fim_now)) {
       thresh = AFNI_thresh_from_percentile(im3d, im3d->vinfo->func_threshold);
       /* INFO_message("In percentile mode %p %d\n"
                       "Still need to put flush action when 'pos' is toggled,\n"
