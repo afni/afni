@@ -897,15 +897,27 @@ STATUS("making imag->rowcol") ;
       imag->pop_jumpto_ijk_pb =
          XtVaCreateManagedWidget(
             "dialog" , xmPushButtonWidgetClass , imag->popmenu ,
-               LABEL_ARG("Jump to (ijk)") ,
+               LABEL_ARG("Jump to (ijk UL)") ,
                XmNmarginHeight , 0 ,
                XmNtraversalOn , True  ,
                XmNinitialResourcesPersistent , False ,
             NULL ) ;
       XtAddCallback( imag->pop_jumpto_ijk_pb , XmNactivateCallback ,
                      AFNI_imag_pop_CB , im3d ) ;
+
+      imag->pop_jumpto_ijk_olay_pb =  /* 20 Apr 2016 */
+         XtVaCreateManagedWidget(
+            "dialog" , xmPushButtonWidgetClass , imag->popmenu ,
+               LABEL_ARG("Jump to (ijk OL)") ,
+               XmNmarginHeight , 0 ,
+               XmNtraversalOn , True  ,
+               XmNinitialResourcesPersistent , False ,
+            NULL ) ;
+      XtAddCallback( imag->pop_jumpto_ijk_olay_pb , XmNactivateCallback ,
+                     AFNI_imag_pop_CB , im3d ) ;
    } else {
-      imag->pop_jumpto_ijk_pb = NULL ;
+      imag->pop_jumpto_ijk_pb      = NULL ;
+      imag->pop_jumpto_ijk_olay_pb = NULL ;
    }
 
    /*--- mnito button in menu [01 May 2002] ---*/
@@ -1148,6 +1160,8 @@ STATUS("making imag->rowcol") ;
           NULL ) ;
     XtAddCallback( imag->crosshair_dicom_pb , XmNactivateCallback ,
                    AFNI_crosshair_pop_CB , im3d ) ;
+    MCW_register_hint( imag->crosshair_dicom_pb ,
+                       "Show xyz coordinates in DICOM order" ) ;
 
     imag->crosshair_spm_pb =
        XtVaCreateManagedWidget(
@@ -1159,6 +1173,8 @@ STATUS("making imag->rowcol") ;
           NULL ) ;
     XtAddCallback( imag->crosshair_spm_pb , XmNactivateCallback ,
                    AFNI_crosshair_pop_CB , im3d ) ;
+    MCW_register_hint( imag->crosshair_spm_pb ,
+                       "Show xyz coordinates in SPM/FSL order" ) ;
 
     imag->crosshair_ijk_pb =      /* 04 Oct 2010 */
        XtVaCreateManagedWidget(
@@ -1170,6 +1186,8 @@ STATUS("making imag->rowcol") ;
           NULL ) ;
     XtAddCallback( imag->crosshair_ijk_pb , XmNactivateCallback ,
                    AFNI_crosshair_pop_CB , im3d ) ;
+    MCW_register_hint( imag->crosshair_ijk_pb ,
+                       "Show 3D voxel indexes (ijk) instead of xyz" ) ;
 
     imag->crosshair_jtxyz_pb =      /* 01 Aug 2011 */
        XtVaCreateManagedWidget(
@@ -1181,17 +1199,34 @@ STATUS("making imag->rowcol") ;
           NULL ) ;
     XtAddCallback( imag->crosshair_jtxyz_pb , XmNactivateCallback ,
                    AFNI_crosshair_pop_CB , im3d ) ;
+    MCW_register_hint( imag->crosshair_jtxyz_pb ,
+                       "Jump crosshairs to these xyz coordinates" ) ;
 
     imag->crosshair_jtijk_pb =      /* 01 Aug 2011 */
        XtVaCreateManagedWidget(
           "menu" , xmPushButtonWidgetClass , imag->crosshair_menu ,
-             LABEL_ARG("Jump to (ijk)") ,
+             LABEL_ARG("Jump to (ijk UL)") ,
              XmNmarginHeight , 0 ,
              XmNtraversalOn , True  ,
              XmNinitialResourcesPersistent , False ,
           NULL ) ;
     XtAddCallback( imag->crosshair_jtijk_pb , XmNactivateCallback ,
                    AFNI_crosshair_pop_CB , im3d ) ;
+    MCW_register_hint( imag->crosshair_jtijk_pb ,
+                       "Jump to 3D ijk index (UnderLay)" ) ;
+
+    imag->crosshair_jtijk_olay_pb =  /* 20 Apr 2016 */
+       XtVaCreateManagedWidget(
+          "menu" , xmPushButtonWidgetClass , imag->crosshair_menu ,
+             LABEL_ARG("Jump to (ijk OL)") ,
+             XmNmarginHeight , 0 ,
+             XmNtraversalOn , True  ,
+             XmNinitialResourcesPersistent , False ,
+          NULL ) ;
+    XtAddCallback( imag->crosshair_jtijk_olay_pb , XmNactivateCallback ,
+                   AFNI_crosshair_pop_CB , im3d ) ;
+    MCW_register_hint( imag->crosshair_jtijk_olay_pb ,
+                       "Jump to 3D ijk index (OverLay)" ) ;
 
    } /*- end of crosshair_label popup menu -*/
 

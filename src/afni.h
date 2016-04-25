@@ -382,13 +382,15 @@ typedef struct {
       Widget topper , popmenu , pop_bkgd_lab ,
              pop_jumpback_pb , pop_imageonly_pb , pop_jumpto_pb , pop_talto_pb ;
       Widget pop_jumpto_ijk_pb ;
-      Widget pop_jumpto_clus_pb ;                                   /* 19 Oct 2012*/
+      Widget pop_jumpto_ijk_olay_pb ;                               /* 20 Apr 2016 */
+      Widget pop_jumpto_clus_pb ;                                   /* 19 Oct 2012 */
 
       Widget crosshair_frame , crosshair_rowcol , crosshair_label ;
 
       Widget crosshair_menu, crosshair_dicom_pb, crosshair_spm_pb ; /* 12 Mar 2004 */
       Widget crosshair_ijk_pb ;                                     /* 04 Oct 2010 */
       Widget crosshair_jtxyz_pb , crosshair_jtijk_pb ;              /* 01 Aug 2011 */
+      Widget crosshair_jtijk_olay_pb ;                              /* 20 Apr 2016 */
 
       Widget        xhair_rowcol ;
       MCW_arrowval *crosshair_av ;
@@ -1872,8 +1874,10 @@ extern void AFNI_jumpto_CB           ( Widget , XtPointer , MCW_choose_cbs * ) ;
 extern int  AFNI_jumpto_dicom        ( Three_D_View * , float, float, float  ) ;
 extern int  AFNI_jump_and_seed       ( Three_D_View * , float, float, float  ) ;
 extern int  AFNI_creepto_dicom       ( Three_D_View * , float, float, float  ) ;
-extern int  AFNI_jumpto_ijk          ( Three_D_View * , int, int, int  ) ;
+extern int  AFNI_jumpto_ijk          ( Three_D_View * , int, int, int ) ;
 extern void AFNI_jumpto_ijk_CB       ( Widget , XtPointer , MCW_choose_cbs * ) ;
+extern int  AFNI_jumpto_ijk_olay     ( Three_D_View * , int, int, int ) ; /* 20 Apr 2016 */
+extern void AFNI_jumpto_ijk_olay_CB  ( Widget , XtPointer , MCW_choose_cbs * ) ;
 extern void AFNI_sumato_CB           ( Widget , XtPointer , MCW_choose_cbs * ) ;
 extern void AFNI_mnito_CB            ( Widget , XtPointer , MCW_choose_cbs * ) ;
 extern void AFNI_check_obliquity     ( Widget , THD_3dim_dataset * ,

@@ -1968,6 +1968,14 @@ void AFNI_sigfunc_alrm(int sig)
      "The mind is its own place, and itself can make a Heaven of Hell, a Hell of Heaven" ,
      "No light, but rather darkness visible"                                             ,
 
+     /* These are to make it clear that Cox is not to be blamed for ANYTHING */
+
+     "If you have any problems with AFNI, blame goes to ... Mike Beauchamp ;)" ,
+     "If you have any problems with AFNI, blame goes to ... Ziad Saad ;)"      ,
+     "If you have any problems with AFNI, blame goes to ... Pat Bellgowan ;)"  ,
+     "If you have any problems with AFNI, blame goes to ... Hang Joon Jo ;)"   ,
+     "If you have any problems with AFNI, blame goes to ... Kyle Simmons ;)"   ,
+
      "Remember -- Screaming is the next best thing to solving a problem"              ,
      "Remember -- Swearing is almost as good as solving a problem"                    ,
      "Data which passes through so many steps can hardly have much truth left"        ,
@@ -1981,6 +1989,7 @@ void AFNI_sigfunc_alrm(int sig)
      "Dreams are true while they last, and do we not live in dreams?"                 ,
      "Have you made your long term (trillion year) research plan yet? Get busy now"   ,
      "Why is 'Gold Standard' used in science? Gold is pretty but almost useless"      ,
+     "The 'Lead Standard' for neuroimaging since 1994"                                ,
      "Oh well, you can always end your paper with 'Further research needed'"          ,
      "It's not true my youth was wild and crazy -- only half of that is true"         ,
      "Not yet quite as powerful as the totalized and integrated mind of Arisia"       ,
@@ -10373,6 +10382,8 @@ static char *last_mnito_string      = NULL ;
 static char *last_sumato_string     = NULL ;
 static char jumpstring[128];                  /* 13 Jun 2014 */
 
+static char *last_jumpto_ijk_olay_string = NULL ;  /* 20 Apr 2016 */
+
 void AFNI_crosshair_pop_CB( Widget w ,
                             XtPointer client_data , XtPointer call_data )
 {
@@ -10395,9 +10406,14 @@ ENTRY("AFNI_crosshair_pop_CB") ;
                         AFNI_jumpto_CB, (XtPointer) im3d ) ;
      EXRETURN ;
    } else if ( w == im3d->vwid->imag->crosshair_jtijk_pb ){
-     MCW_choose_string( im3d->vwid->imag->crosshair_label , "Enter new i j k:" ,
+     MCW_choose_string( im3d->vwid->imag->crosshair_label , "Enter new i j k (UnderLay):" ,
                         last_jumpto_ijk_string ,
                         AFNI_jumpto_ijk_CB , (XtPointer) im3d ) ;
+     EXRETURN ;
+   } else if ( w == im3d->vwid->imag->crosshair_jtijk_olay_pb ){  /* 20 Apr 2016 */
+     MCW_choose_string( im3d->vwid->imag->crosshair_label , "Enter new i j k (OverLay):" ,
+                        last_jumpto_ijk_olay_string ,
+                        AFNI_jumpto_ijk_olay_CB , (XtPointer) im3d ) ;
      EXRETURN ;
    }
 
@@ -10482,8 +10498,17 @@ ENTRY("AFNI_imag_pop_CB") ;
             im3d->type == AFNI_3DDATA_VIEW             ){
 
       if( ISQ_REALZ(seq) ){
-         MCW_choose_string( seq->wbar , "Enter new i j k:" , last_jumpto_ijk_string ,
+         MCW_choose_string( seq->wbar , "Enter new i j k (UnderLay):" , last_jumpto_ijk_string ,
                             AFNI_jumpto_ijk_CB , (XtPointer) im3d ) ;
+      }
+   }
+
+   else if( w == im3d->vwid->imag->pop_jumpto_ijk_olay_pb &&
+            im3d->type == AFNI_3DDATA_VIEW                  ){  /* 20 Apr 2016 */
+
+      if( ISQ_REALZ(seq) ){
+         MCW_choose_string( seq->wbar , "Enter new i j k (OverLay):" , last_jumpto_ijk_olay_string ,
+                            AFNI_jumpto_ijk_olay_CB , (XtPointer) im3d ) ;
       }
    }
 
@@ -11202,6 +11227,33 @@ ENTRY("AFNI_jumpto_thminmax_CB") ;
 }
 
 /*---------------------------------------------------------------------*/
+/* Jump to ijk in Overlay [20 Apr 2016] */
+
+int AFNI_jumpto_ijk_olay( Three_D_View *im3d , int ii, int jj, int kk )
+{
+   THD_dataxes *daxes ;
+
+ENTRY("AFNI_jumpto_ijk_olay") ;
+
+   if( !ISVALID_DSET(im3d->fim_now) ){ BEEPIT; RETURN(-1); }
+
+   daxes = im3d->fim_now->daxes ;
+
+   if( ii >= 0 && ii < daxes->nxx &&
+       jj >= 0 && jj < daxes->nyy && kk >= 0 && kk < daxes->nzz ){
+
+      THD_fvec3 fv ;
+      SAVE_VPT(im3d) ;
+
+      fv = THD_3dind_to_dicomm_no_wod( im3d->fim_now , TEMP_IVEC3(ii,jj,kk) ) ;
+      RETURN( AFNI_jumpto_dicom_OLD( im3d , fv.xyz[0], fv.xyz[1], fv.xyz[2] ) ) ;
+   }
+
+   BEEPIT ; WARNING_message("Jumpto IJK (OL) failed -- bad indexes?!") ;
+   RETURN(-1) ;
+}
+
+/*---------------------------------------------------------------------*/
 
 void AFNI_jumpto_ijk_CB( Widget w , XtPointer cd , MCW_choose_cbs *cbs )
 {
@@ -11227,6 +11279,38 @@ ENTRY("AFNI_jumpto_ijk_CB") ;
    } else if( nn != 5 ){ BEEPIT; WARNING_message("Jumpto IJK failed -- bad entries?!"); EXRETURN; }
 
    nn = AFNI_jumpto_ijk( im3d , ii,jj,kk ) ;
+   if( nn < 0 ) BEEPIT ;
+
+   RESET_AFNI_QUIT(im3d) ;
+   EXRETURN ;
+}
+
+/*---------------------------------------------------------------------*/
+
+void AFNI_jumpto_ijk_olay_CB( Widget w , XtPointer cd , MCW_choose_cbs *cbs )
+{
+   Three_D_View *im3d = (Three_D_View *) cd ;
+   int ii=-1,jj=-1,kk=-1 ;
+   int nn ;
+   char dum1[32],dum2[32];
+
+ENTRY("AFNI_jumpto_ijk_olay_CB") ;
+
+   if( ! IM3D_VALID(im3d) || im3d->type != AFNI_3DDATA_VIEW ) EXRETURN ;
+   if( cbs->reason != mcwCR_string ) EXRETURN ;  /* error */
+
+   if( last_jumpto_ijk_olay_string != NULL ) free(last_jumpto_ijk_olay_string) ;
+   last_jumpto_ijk_olay_string = strdup(cbs->cval) ;
+
+   nn = sscanf( cbs->cval , "%d%[ ,]%d%[ ,]%d" , &ii,dum1,&jj,dum2,&kk ) ;
+   if( nn > 0 && nn < 3 && ii >= 0 ){
+     nn = ii ;
+     ii = DSET_index_to_ix(im3d->fim_now,nn) ;
+     jj = DSET_index_to_jy(im3d->fim_now,nn) ;
+     kk = DSET_index_to_kz(im3d->fim_now,nn) ;
+   } else if( nn != 5 ){ BEEPIT; WARNING_message("Jumpto IJK failed -- bad entries?!"); EXRETURN; }
+
+   nn = AFNI_jumpto_ijk_olay( im3d , ii,jj,kk ) ;
    if( nn < 0 ) BEEPIT ;
 
    RESET_AFNI_QUIT(im3d) ;
