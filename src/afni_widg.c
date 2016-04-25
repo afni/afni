@@ -7376,6 +7376,8 @@ int AFNI_reset_func_range_cont(XtPointer *vp_im3d)
    AFNI_inten_bbox_CB( im3d->vwid->func->inten_bbox->wbut[PBAR_MODEBUT] ,
                        (XtPointer)im3d , NULL ) ;
 
+   /* DRG 25 Apr 2016  */
+   /*   extra fix for percentile flag not working with warp-on-demand switch views */
    /* reset perc only  - only allow for dataset on disk, not warp on demand */
    if(DSET_ONDISK(im3d->fim_now)) {
       MCW_set_bbox( im3d->vwid->func->perc_bbox ,
