@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 26,  Apr, 2016, RCR, "tokens", MICRO, TYPE_ENHANCE,
+   "handle arbitrarily long tokens",
+   NULL
+ } ,
+
  { 19,  Apr, 2016, RCR, "Dimon", MICRO, TYPE_BUG_FIX,
    "incorrectly reported 'IFM:RIF fatal error' for the case of no sorting",
    "Thanks to I Groen for reporting the problem."
