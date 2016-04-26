@@ -1,15 +1,14 @@
 .. from: https://afni.nimh.nih.gov/pub/dist/HOWTO/howto/ht00_inst/html/linux_inst_current.html
 
-.. _install_steps_linux:
+.. _install_steps_linux_Fed_RH:
 
 
-*Complete system setup for:  (current) Linux*
-=============================================
+*The essential system setup for:* **Fedora and Red Hat Linux**
+==============================================================
 
 
-Here we describe installation and system setup for mainstream Linux
-versions that are reasonably modern, such as **Fedora 21+, Red Hat
-(RHEL) 7 and Ubuntu 14.04+**.
+Here we describe installation and system setup for reasonably modern
+Linux versions of Fedora (21+) and Red Hat (RHEL) 7.
 
 Several of the following steps are system dependent, for example due
 to having different package managers, so we list parallel instructions
@@ -19,13 +18,6 @@ for each.
 
    There are several packages and libraries that are needed to run the
    afni and shell programs, often even including ``tcsh``:
-        
-   * *for Ubuntu 14.04 (and higher)*::
-      
-      sudo apt-get install -y tcsh libxp6 xfonts-base python-qt4              \
-                              r-base-dev libmotif4 libmotif-dev motif-clients \
-                              gsl-bin netpbm gnome-tweak-tool libjpeg62
-      sudo apt-get update
 
    * *for Fedora 21 (and higher)*::
       
@@ -40,7 +32,7 @@ for each.
                            libpng12
        sudo yum update -y
             
-   .. _setup_tcsh:
+   .. _setup_FRH_tcsh:
 #. **(optional, but recommended) Set "tcsh" to be the default shell.**
 
    ::
@@ -53,14 +45,14 @@ for each.
    install the AFNI binaries there.
 
    First, get the install script (*this* command actually works for both
-   Fedora and Ubuntu systems)::
+   Fedora and RHEL systems)::
       
       curl -O https://afni.nimh.nih.gov/pub/dist/bin/linux_fedora_21_64/@update.afni.binaries
       
    Then install the appropriate AFNI package.  Note that most other
    Linux systems will probably work with linux_openmp_64:
 
-   * *for Ubuntu 14.04 (and higher), as well as RHEL 7*::
+   * *for RHEL 7*::
 
        tcsh @update.afni.binaries -package linux_openmp_64
 
@@ -81,21 +73,31 @@ for each.
    relies on the environment variable ``$R_LIBS``, which refers to a
    directory that will contain the R packages.  That variable should
    always be set, both to specify where to install the packages and
-   where to read them from later (when running R programs).  For
-   setting this variable in ``tcsh``, the following commands would be
-   run::
+   where to read them from later (when running R programs).
+   Therefore:
       
+   * *for setting this variable in* ``tcsh`` 
+     *(i.e., if you did* :ref:`tcsh setup, above <setup_FRH_tcsh>`\ *)*::
+
       setenv R_LIBS $HOME/R
       mkdir $R_LIBS
       echo 'setenv R_LIBS ~/R' >> ~/.cshrc
       rPkgsInstall -pkgs ALL
       
-   In order, this has: set (i.e., defined) an environment variable
-   called ``$R_LIBS`` to be a subdirectory called "R/" in the user's
-   home directory; then made this directory; then written this
-   information into the user's ``tcsh`` profile; and finally run an
-   AFNI command to (hopefully) get all the necessary R libraries for
-   the modern package.
+   * *for setting this variable in* ``bash``::
+      
+       export R_LIBS=$HOME/R
+       mkdir $R_LIBS
+       echo 'export R_LIBS=$HOME/R' >> ~/.bashrc
+       rPkgsInstall -pkgs ALL
+
+   ..
+     In order, this has: set (i.e., defined) an environment variable
+     called ``$R_LIBS`` to be a subdirectory called "R/" in the user's
+     home directory; then made this directory; then written this
+     information into the user's ``tcsh`` profile; and finally run an
+     AFNI command to (hopefully) get all the necessary R libraries for
+     the modern package.
 
 
    .. ---------- HERE/BELOW: copy for all installs --------------
@@ -113,6 +115,11 @@ for each.
    process!**
 
    .. include:: substep_evaluate.rst
+
+
+#. **(optional) Niceifying interfaces: it's a magical terminal.**
+
+   .. include:: substep_rcfiles.rst
 
 
 #. **Keeping up-to-date (remember).**

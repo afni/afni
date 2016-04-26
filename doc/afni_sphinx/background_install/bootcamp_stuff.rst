@@ -13,7 +13,9 @@
      optionally include installing the Bootcamp data, so then you will
      be all set):
 
-     - for :ref:`Linux <install_steps_linux>`
+     - for :ref:`Linux <install_steps_linux_ubuntu>`
+
+     - for :ref:`Linux <install_steps_linux_Fed_RH>`
 
      - for :ref:`Mac OS <install_steps_mac>`
 
