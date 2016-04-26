@@ -1243,7 +1243,7 @@ void GICOR_process_dataset( NI_element *nel , int ct_start )
    float *nelar , *dsdar ;
    int nvec,nn,vv , vmul , ic ; float thr ;
 
-   int verb ;
+   int verb=0 ;
    if( AFNI_yesenv("AFNI_GIC_DEBUG") ) verb = 9 ;  /* 07 Apr 2016 */
 
 ENTRY("GICOR_process_dataset") ;
@@ -1294,11 +1294,20 @@ ENTRY("GICOR_process_dataset") ;
 
      if( giset->ivec == NULL ){               /* all voxels */
        nn = MIN( giset->nvox , nvec ) ;
+       if( verb > 8 ) ININFO_message("  memcpy-ing %d values into dataset",nn) ;
        memcpy(dsdar,nelar,sizeof(float)*nn) ;
      } else {                                 /* some voxels */
        int *ivec=giset->ivec , kk ;
        nn = MIN( giset->nivec , nvec ) ;
-       for( kk=0 ; kk < nn ; kk++ ) dsdar[ivec[kk]] = nelar[kk] ;
+       if( verb > 8 ){
+         ININFO_message("  copying %d values into dataset",nn) ;
+         for( kk=0 ; kk < nn ; kk++ ){
+           ININFO_message("   dsdar[%d] = %g",ivec[kk],nelar[kk]) ;
+           dsdar[ivec[kk]] = nelar[kk] ;
+         }
+       } else {
+         for( kk=0 ; kk < nn ; kk++ ) dsdar[ivec[kk]] = nelar[kk] ;
+       }
      }
    }
 
@@ -1308,17 +1317,25 @@ ENTRY("GICOR_process_dataset") ;
 
    /* switch to this dataset as overlay */
 
-   if( im3d->fim_now != giset->dset ){
+   if( !EQUIV_DSETS(im3d->fim_now,giset->dset) ){
      MCW_choose_cbs cbs ; char cmd[32] , *cpt=AFNI_controller_label(im3d) ;
+     if( verb > 8 ) ININFO_message("  switching controller %c to GIC dataset",cpt[1]) ;
+     ININFO_message("  fim_now=%s;%s and giset=%s;%s",
+                    DSET_PREFIX(im3d->fim_now) , DSET_IDCODE_STR(im3d->fim_now) ,
+                    DSET_PREFIX(giset->dset)   , DSET_IDCODE_STR(giset->dset)    ) ;
      cbs.ival = giset->nds ;
      AFNI_finalize_dataset_CB( im3d->vwid->view->choose_func_pb ,
                                (XtPointer)im3d ,  &cbs           ) ;
      AFNI_set_fim_index(im3d,0) ;
      AFNI_set_thr_index(im3d,1) ;
 #if 1
-     sprintf(cmd,"SET_FUNC_RANGE %c 0.6" , cpt[1]) ; AFNI_driver(cmd) ;
+     sprintf(cmd,"SET_FUNC_RANGE %c 0.4" , cpt[1]) ; AFNI_driver(cmd) ;
      sprintf(cmd,"SET_THRESHNEW %c  0.0" , cpt[1]) ; AFNI_driver(cmd) ;
 #endif
+   } else if( verb > 8 ){
+     ININFO_message("  not switching: fim_now=%s;%s and giset=%s;%s",
+                    DSET_PREFIX(im3d->fim_now) , DSET_IDCODE_STR(im3d->fim_now) ,
+                    DSET_PREFIX(giset->dset)   , DSET_IDCODE_STR(giset->dset)    ) ;
    }
 
    /* self-threshold and clusterize? */
@@ -1356,6 +1373,8 @@ ENTRY("GICOR_process_dataset") ;
 
    /* redisplay overlay */
 
+   if( verb > 8 ) ININFO_message("  redisplay functional overlay") ;
+
    if( called_before[ic] ) AFNI_ignore_pbar_top(1) ;  /* 03 Jun 2014 */
    IM3D_CLEAR_TMASK(im3d) ;      /* Mar 2013 */
    IM3D_CLEAR_THRSTAT(im3d) ; /* 12 Jun 2014 */
@@ -1371,7 +1390,7 @@ ENTRY("GICOR_process_dataset") ;
 
    for( vv=1 ; vv < MAX_CONTROLLERS ; vv++ ){  /* other controllers need redisplay? */
      qq3d = GLOBAL_library.controllers[vv] ;
-     if( !IM3D_OPEN(qq3d) ) continue ;
+     if( !IM3D_OPEN(qq3d) && qq3d != im3d ) continue ;
      if( qq3d->fim_now == giset->dset && MCW_val_bbox(qq3d->vwid->view->see_func_bbox) ){
        if( VEDIT_good(qq3d->vedset) ) qq3d->vedset.flags = 1 ;  /* 18 Jun 2014 */
        AFNI_reset_func_range(qq3d) ; AFNI_redisplay_func(qq3d) ;
@@ -1383,6 +1402,8 @@ ENTRY("GICOR_process_dataset") ;
      AV_assign_ival( im3d->vwid->func->options_vedit_av , VEDIT_GRINCORR ) ;
      AFNI_vedit_CB( im3d->vwid->func->options_vedit_av , im3d ) ;
    }
+
+   if( verb > 8 ) ININFO_message("  DONE with this data from 3dGIC") ;
 
    giset->busy = 0 ; /* Not busy waiting anymore [18 Mar 2010] */
    GRPINCORR_LABEL_ON(im3d) ;                  /* 07 Apr 2010 */
