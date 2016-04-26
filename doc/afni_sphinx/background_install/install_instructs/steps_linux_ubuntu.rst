@@ -34,11 +34,14 @@ what Ubuntu version you have, you can see the release number and fun
    * *for versions 15.10 and higher*::
       
        sudo apt-get install -y tcsh xfonts-base python-qt4                    \
-                               libmotif4 libmotif-dev motif-clients           \
-                               gsl-bin netpbm gnome-tweak-tool libjpeg62
+                               libxm4 libmotif-dev motif-clients              \
+                               gsl-bin netpbm gnome-tweak-tool libjpeg62      \
+                               libglu1-mesa-dev
        sudo apt-get update
+       sudo ln -s ./x86_64-linux-gnu/libgsl.so /usr/lib/libgsl.so.0
 
-       sudo dpkg -i http://mirrors.kernel.org/ubuntu/pool/main/libx/libxp/libxp6_1.0.2-2_amd64.deb
+       curl -O http://mirrors.kernel.org/ubuntu/pool/main/libx/libxp/libxp6_1.0.2-2_amd64.deb
+       sudo dpkg -i libxp6_1.0.2-2_amd64.deb
        sudo apt-get install -f
 
    .. _setup_Ubu_tcsh:
