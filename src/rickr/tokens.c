@@ -51,7 +51,11 @@ int main ( int argc, char * argv[] )
 
 int cleanup( control_s * C )
 {
-    fclose( C->fpin );
+    if( C->fpin != stdin )
+       fclose( C->fpin );
+
+    if( C->extra )
+       free( C->extra );
 
     return 0;
 }
@@ -59,8 +63,7 @@ int cleanup( control_s * C )
 int print_list( control_s * C )
 {
     int  done = 0, wcount = 0;
-    int  c, posn;
-    char word[50];
+    int  c;
 
     while ( ! done )
     {
@@ -73,15 +76,12 @@ int print_list( control_s * C )
 	    break;
 
 	/* we have a word */
-	posn = 0;
 	while ( !feof( C->fpin ) && is_C_word_char(c) )
 	{
-	    word[posn] = c;
+            putchar(c);
 	    c = fgetc( C->fpin );
-	    posn ++;
 	}
-	word[posn] = '\0';
-        printf( "%s\n", word );
+        putchar('\n');
 	
 	wcount++;
     }
