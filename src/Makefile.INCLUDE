@@ -3507,7 +3507,7 @@ suma_install:
    SUMA/3dHist SUMA/HalloSuma SUMA/InstaTract SUMA/niprobe SUMA/BrainSkin \
    ${INSTALLDIR} ; \
 	if [ -f SUMA/SurfMesh ]; then $(CP) SUMA/SurfMesh ${INSTALLDIR} ; fi; \
-	$(CP) @SUMA_* ${INSTALLDIR} ;)
+	$(CP) scripts_install/@SUMA_* ${INSTALLDIR} ;)
 	
 suma: suma_clean suma_exec suma_install
 suma_gts: suma_clean suma_exec suma_gts_progs suma_install
