@@ -198,7 +198,7 @@ SCRIPTS = @4Daverage @CommandGlobb @GetAfniOrient @DTI_studio_reposition        
           @Install_MEICA_Demo @T1scale 3dMVM @compute_gcor 3dLME                  \
           @Install_ClustScat_Demo @Install_FATMVM_DEMO @GradFlipTest              \
           @move.to.series.dirs @toMNI_Awarp @toMNI_Qwarpar @simulate_motion	    \
-          @afni.run.me 3dRprogDemo @ExamineGenFeatDists rPkgsInstall 	         \
+          @afni.run.me 3dRprogDemo @ExamineGenFeatDists rPkgsInstall 	          \
           @Install_DBSproc @Install_3dPFM_Demo 3dPFM @diff.files @diff.tree
 
 
@@ -216,6 +216,8 @@ PY_SCRIPTS = 1d_tool.py afni_proc.py afni_restproc.py afni_system_check.py   \
              uber_align_test.py uber_proc.py uber_skel.py uber_subject.py    \
              uber_ttest.py xmat_tool.py read_matlab_files.py afni_skeleton.py
 R_DIR = R_scripts
+
+MS_DIR = misc_scripts
 
 LIBHEADERS = mrilib.h mcw_glob.h 3ddata.h thd_maker.h thd_iochan.h            \
              editvol.h cs.h eispack.h killer.h vecmat.h machdep.h tagset.h    \
@@ -1883,8 +1885,8 @@ afni_src.tgz:
 	$(MKDIR) afni_src
 	$(CP) -p *.c *.f *.inc *.h *.hhh Makefile.* *.xbm $(MINDOCS) $(MISC)     ./afni_src
 	$(CP) -pr coxplot volpack moveup moveAFNI* eispack                       ./afni_src
-	$(CP) -pr avovk ptaylor pkundu misc_scripts                              ./afni_src
-	$(CP) -pr $(SCRIPTS) $(PY_DIR) $(R_DIR)                                  ./afni_src
+	$(CP) -pr avovk ptaylor pkundu                                           ./afni_src
+	$(CP) -pr $(SCRIPTS) $(PY_DIR) $(R_DIR) $(MS_DIR)                        ./afni_src
 	$(CP) -pr gifsicledir qhulldir f2cdir mpeg_encodedir                     ./afni_src
 	$(CP) -pr 3DEdge netcdf-3.5.0 jpeg-6b niml Makefile_* nifti dlcompat     ./afni_src
 	$(CP) -pr SUMA svm matlab rickr faces poems gifti ni_test_? README.*     ./afni_src
@@ -1917,10 +1919,10 @@ afni_doc.tgz:
 ### Put things in their places
 
 install: $(INSTALLDIR) $(INSTALL_PREREQ) ptaylor_install pkundu_install 
-	$(MV) $(PROGRAMS) $(INSTALLDIR)
-	$(CP) $(SCRIPTS)  $(INSTALLDIR)
-	$(CP) $(PY_DIR)/*.py  $(R_DIR)/*.R $(INSTALLDIR)
-	$(CP) html/??*.* $(EXTRA_INSTALL_FILES) $(INSTALLDIR)
+	$(MV) $(PROGRAMS)                                    $(INSTALLDIR)
+	$(CP) $(SCRIPTS)                                     $(INSTALLDIR)
+	$(CP) $(PY_DIR)/*.py  $(R_DIR)/*.R $(MS_DIR)/*       $(INSTALLDIR)
+	$(CP) html/??*.* $(EXTRA_INSTALL_FILES)              $(INSTALLDIR)
 	if [ -f README.environment ]; then $(CP) README.*    $(INSTALLDIR); fi;
 	if [ -f AFNI.afnirc        ]; then $(CP) AFNI.afnirc $(INSTALLDIR); fi;
 	if [ -f AFNI.sumarc        ]; then $(CP) AFNI.sumarc $(INSTALLDIR); fi;
