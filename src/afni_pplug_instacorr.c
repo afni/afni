@@ -1317,18 +1317,25 @@ ENTRY("GICOR_process_dataset") ;
 
    /* switch to this dataset as overlay */
 
-   if( im3d->fim_now != giset->dset ){
+   if( !EQUIV_DSETS(im3d->fim_now,giset->dset) ){
      MCW_choose_cbs cbs ; char cmd[32] , *cpt=AFNI_controller_label(im3d) ;
      if( verb > 8 ) ININFO_message("  switching controller %c to GIC dataset",cpt[1]) ;
+     ININFO_message("  fim_now=%s;%s and giset=%s;%s",
+                    DSET_PREFIX(im3d->fim_now) , DSET_IDCODE_STR(im3d->fim_now) ,
+                    DSET_PREFIX(giset->dset)   , DSET_IDCODE_STR(giset->dset)    ) ;
      cbs.ival = giset->nds ;
      AFNI_finalize_dataset_CB( im3d->vwid->view->choose_func_pb ,
                                (XtPointer)im3d ,  &cbs           ) ;
      AFNI_set_fim_index(im3d,0) ;
      AFNI_set_thr_index(im3d,1) ;
 #if 1
-     sprintf(cmd,"SET_FUNC_RANGE %c 0.6" , cpt[1]) ; AFNI_driver(cmd) ;
+     sprintf(cmd,"SET_FUNC_RANGE %c 0.4" , cpt[1]) ; AFNI_driver(cmd) ;
      sprintf(cmd,"SET_THRESHNEW %c  0.0" , cpt[1]) ; AFNI_driver(cmd) ;
 #endif
+   } else if( verb > 8 ){
+     ININFO_message("  not switching: fim_now=%s;%s and giset=%s;%s",
+                    DSET_PREFIX(im3d->fim_now) , DSET_IDCODE_STR(im3d->fim_now) ,
+                    DSET_PREFIX(giset->dset)   , DSET_IDCODE_STR(giset->dset)    ) ;
    }
 
    /* self-threshold and clusterize? */
