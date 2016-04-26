@@ -85,7 +85,7 @@ what Ubuntu version you have, you can see the release number and fun
        setenv R_LIBS $HOME/R
        mkdir $R_LIBS
        echo 'setenv R_LIBS ~/R' >> ~/.cshrc
-       curl -O https://afni.nimh.nih.gov/pub/dist/src/misc_scripts/@add_rcran_ubuntu.tcsh
+       curl -O https://afni.nimh.nih.gov/pub/dist/src/scripts_src/@add_rcran_ubuntu.tcsh
        sudo tcsh @add_rcran_ubuntu.tcsh
        rPkgsInstall -pkgs ALL
       
@@ -94,7 +94,7 @@ what Ubuntu version you have, you can see the release number and fun
        export R_LIBS=$HOME/R
        mkdir $R_LIBS
        echo 'export R_LIBS=$HOME/R' >> ~/.bashrc
-       curl -O https://afni.nimh.nih.gov/pub/dist/src/misc_scripts/@add_rcran_ubuntu.tcsh
+       curl -O https://afni.nimh.nih.gov/pub/dist/src/scripts_src/@add_rcran_ubuntu.tcsh
        sudo tcsh @add_rcran_ubuntu.tcsh
        rPkgsInstall -pkgs ALL
       
