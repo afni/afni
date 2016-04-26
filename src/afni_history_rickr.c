@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 26,  Apr, 2016, RCR, "afni-general", MICRO, TYPE_MODIFY,
+   "Makefile.INCLUDE: moved SCRIPTS into scripts_install",
+   NULL
+ } ,
+
  { 26,  Apr, 2016, RCR, "tokens", MICRO, TYPE_ENHANCE,
    "handle arbitrarily long tokens",
    NULL
