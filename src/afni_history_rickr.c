@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 27,  Apr, 2016, RCR, "afni_proc.py", MINOR, TYPE_MODIFY,
+   "prep for later: always extract volreg base, as vr_base*",
+   NULL
+ } ,
+
  { 26,  Apr, 2016, RCR, "afni-general", MICRO, TYPE_MODIFY,
    "Makefile.INCLUDE: moved SCRIPTS into scripts_install",
    NULL
