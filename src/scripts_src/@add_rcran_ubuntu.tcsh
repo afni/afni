@@ -25,5 +25,5 @@ apt-key adv --keyserver keyserver.ubuntu.com --recv-keys E084DAB9
 printf "++ Going to install new R now, removing any old one first.\n"
 apt-get remove -y r-base r-base-dev
 apt-get update
-apt-get install -y r-base-dev
+apt-get install -y r-base-dev r-cran-rmpi
 
