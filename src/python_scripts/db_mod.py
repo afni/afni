@@ -174,7 +174,46 @@ def db_cmd_tcat(proc, block):
 
     if proc.verb > 0: print "-- %s: reps is now %d" % (block.label, proc.reps)
 
+    tcat_extract_vr_base(proc)
+
     return cmd
+
+def tcat_extract_vr_base(proc):
+    """find volreb block
+       get block.opts.find_opt('-volreg_base_ind') and indices
+       if necessary,
+    """
+
+    # everything should exist, if the volreg block does
+    block = proc.find_block('volreg')
+    if not block: return
+
+    # if we have an external base, nothing to do
+    if proc.vr_ext_base: return
+
+    # rcr - delete
+    if proc.vr_int_name != '':
+       extract_registration_base(block, proc)
+    return
+
+    if proc.vr_int_name == '':
+       bopt = block.opts.find_opt('-volreg_base_ind')
+       if not bopt: return
+
+       run = bopt.parlist[0]+1
+       ind = bopt.parlist[1]
+
+       if run < 0 or ind < 0:
+          print '** TEVB: bad run = %d, ind = %d\n' % (run, ind)
+
+       print '== setting vr indices, %d, %d' % (run, ind)
+
+       set_vr_int_name(block, proc, 'vr_base',
+                       '%02d'%(bopt.parlist[0]+1), '"[$%d]"'%bopt.parlist[1])
+
+    # if we are extracting an internal volreg base (min outlier or index),
+    extract_registration_base(block, proc)
+
 
 # --------------- post-data ---------------
 
@@ -1188,8 +1227,12 @@ def db_mod_volreg(block, proc, user_opts):
             bopt.parlist[0] = 0
             bopt.parlist[1] = 2
         elif aopt.parlist[0] == 'last':
-            # if we don't know runs/reps yet, will have -1, which is okay
+            # for this we need to know #trs and first and last to remove,
+            # so if we don't know runs/reps yet, will have -1, which is okay
             # (if reps_vary is set, we should use reps_all)
+            #
+            # note: since we might not know the vr_base, it must be extracted
+            # after we do, which is in db_cmd_tcat()
             if proc.reps_vary: reps = proc.reps_all[-1]
             else:              reps = proc.reps
             bopt.parlist[0] = proc.runs - 1     # index of last dset
@@ -1201,14 +1244,17 @@ def db_mod_volreg(block, proc, user_opts):
                   % aopt.parlist[0]
             return 1
 
+    # rcr - here : remove next 7 lines
+    #print '== setting vr indices, %d, %d' % (bopt.parlist[0], bopt.parlist[1])
+
     # set names to extract index-based volume
     #if bopt and proc.vr_int_name == '':
     #   set_vr_int_name(block, proc, 'vr_base',
     #                   '%02d'%(bopt.parlist[0]+1), '"[$%d]"'%bopt.parlist[1])
 
     # if we are extracting an internal volreg base (min outlier or index),
-    if proc.vr_int_name:
-       extract_registration_base(block, proc)
+    #if proc.vr_int_name:
+    #   extract_registration_base(block, proc)
 
 
     apply_uopt_to_block('-volreg_interp', user_opts, block)
