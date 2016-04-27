@@ -23,7 +23,7 @@ apt-key adv --keyserver keyserver.ubuntu.com --recv-keys E084DAB9
 # included in case you already have installed an older R version; it is
 # likely not a problem if that fails):
 printf "++ Going to install new R now, removing any old one first.\n"
-apt-get remove -y r-base r-base-dev
+apt-get remove -y r-base r-base-core r-base-dev
 apt-get update
-apt-get install -y r-base-dev
-
+apt-get install -y r-base-dev r-cran-rmpi
+apt-get -f install
