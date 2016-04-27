@@ -501,9 +501,10 @@ g_history = """
           (FT.nii was not perfectly aligned with parcellation)
         - added FREESURFER NOTE
     4.58 Jan 27, 2016: allow for tissue PC regression with only regress block
+    4.59 Apr 27, 2016: always extract volreg base image vr_base*
 """
 
-g_version = "version 4.58, January 27, 2016"
+g_version = "version 4.59, April 27, 2016"
 
 # version of AFNI required for script execution
 # prev: g_requires_afni =  "1 Apr 2015" # 1d_tool.py uncensor from 1D
