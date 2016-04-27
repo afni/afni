@@ -191,28 +191,54 @@ def tcat_extract_vr_base(proc):
     # if we have an external base, nothing to do
     if proc.vr_ext_base: return
 
-    # rcr - delete
-    if proc.vr_int_name != '':
-       extract_registration_base(block, proc)
-    return
-
+    # already set if MIN_OUTLIER
     if proc.vr_int_name == '':
        bopt = block.opts.find_opt('-volreg_base_ind')
-       if not bopt: return
+       if not bopt:
+          print '** TEVB: no vr_int_name, no volreg_base_ind'
+          return
 
        run = bopt.parlist[0]+1
        ind = bopt.parlist[1]
 
-       if run < 0 or ind < 0:
-          print '** TEVB: bad run = %d, ind = %d\n' % (run, ind)
+       # if negative, then 'last', and we need to re-extract run and index
+       if run <= 0 or ind < 0:
+          run = proc.runs
+          if proc.reps_vary: ind = proc.reps_all[-1] - 1
+          else:              ind = proc.reps - 1
+          if proc.verb > 2:
+             print '++ TEVB: updating run/index to %d, %d' % (run, ind)
 
-       print '== setting vr indices, %d, %d' % (run, ind)
-
-       set_vr_int_name(block, proc, 'vr_base',
-                       '%02d'%(bopt.parlist[0]+1), '"[$%d]"'%bopt.parlist[1])
+       set_vr_int_name(block, proc, 'vr_base', '%02d'%run, '"[%d]"'%ind)
 
     # if we are extracting an internal volreg base (min outlier or index),
     extract_registration_base(block, proc)
+
+
+def extract_registration_base(block, proc, prefix=''):
+   """at the end of previous (to volreg) block, extract vr_int_name
+      (min outlier or other) into vr_ext_pre
+   """
+
+   if proc.vr_int_name == '':
+      print '** ERB: no vr_int_name'
+      return 1
+
+   # if a prefix was passed use it
+   if prefix != '':
+      proc.vr_ext_pre = prefix
+
+   if proc.vr_ext_pre == '':
+      print '** ERB: no vr_ext_pre'
+      return 1
+
+   prev_block = proc.find_block(proc.prev_lab(block))
+   prev_block.post_cstr += \
+      '# --------------------------------\n' \
+      '# extract volreg registration base\n' \
+      '3dbucket -prefix %s %s\n\n' % (proc.vr_ext_pre, proc.vr_int_name)
+
+   return 0
 
 
 # --------------- post-data ---------------
@@ -1140,30 +1166,6 @@ def set_vr_int_name(block, proc, prefix='', runstr='', trstr=''):
 
    return 0
 
-def extract_registration_base(block, proc, prefix=''):
-   """at the end of previous (to volreg) block, extract vr_int_name
-      (min outlier or other) into vr_ext_pre
-   """
-
-   if proc.vr_int_name == '':
-      print '** ERB: no vr_int_name'
-      return 1
-
-   # if a prefix was passed use it
-   if prefix != '':
-      proc.vr_ext_pre = prefix
-
-   if proc.vr_ext_pre == '':
-      print '** ERB: no vr_ext_pre'
-      return 1
-
-   prev_block = proc.find_block(proc.prev_lab(block))
-   prev_block.post_cstr += \
-      '# copy min outlier volume as registration base\n' \
-      '3dbucket -prefix %s %s\n\n' % (proc.vr_ext_pre, proc.vr_int_name)
-
-   return 0
-
 def db_mod_volreg(block, proc, user_opts):
     if len(block.opts.olist) == 0:   # init dset/brick indices to defaults
         block.opts.add_opt('-volreg_base_ind', 2, [0, 2], setpar=1)
@@ -1243,19 +1245,6 @@ def db_mod_volreg(block, proc, user_opts):
             print "** unknown '%s' param with -volreg_base_ind option" \
                   % aopt.parlist[0]
             return 1
-
-    # rcr - here : remove next 7 lines
-    #print '== setting vr indices, %d, %d' % (bopt.parlist[0], bopt.parlist[1])
-
-    # set names to extract index-based volume
-    #if bopt and proc.vr_int_name == '':
-    #   set_vr_int_name(block, proc, 'vr_base',
-    #                   '%02d'%(bopt.parlist[0]+1), '"[$%d]"'%bopt.parlist[1])
-
-    # if we are extracting an internal volreg base (min outlier or index),
-    #if proc.vr_int_name:
-    #   extract_registration_base(block, proc)
-
 
     apply_uopt_to_block('-volreg_interp', user_opts, block)
     apply_uopt_to_block('-volreg_motsim', user_opts, block)
@@ -1517,11 +1506,6 @@ def db_cmd_volreg(proc, block):
                                      dim, all1_input, cstr)
         if wcmd == None: return
         cmd += wcmd
-
-    # if there is a base_dset option, check for failure in 3dvolreg
-    if basevol:
-        cmd = cmd + '\n    # if there was an error, exit so user can see'     \
-                    '\n    if ( $status ) exit\n\n'
 
     proc.mot_default = 'dfile_rall.1D'
     cmd = cmd + "end\n\n"                                                     \
