@@ -1628,7 +1628,7 @@ class SubjProcSream:
                 if block.post_cstr != '':
                    if self.verb > 2:
                       print '++ adding post_cstr to block %s:\n%s=======' \
-                            (block.label, block.post_cstr)
+                            % (block.label, block.post_cstr)
                    cmd_str += block.post_cstr
                 self.write_text(add_line_wrappers(cmd_str))
                 if self.verb>3: block.show('+d post command creation: ')
