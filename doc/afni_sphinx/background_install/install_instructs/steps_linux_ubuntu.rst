@@ -38,7 +38,7 @@ what Ubuntu version you have, you can see the release number and fun
                                gsl-bin netpbm gnome-tweak-tool libjpeg62      \
                                libglu1-mesa-dev
        sudo apt-get update
-       sudo ln -s ./x86_64-linux-gnu/libgsl.so /usr/lib/libgsl.so.0
+       sudo ln -s /usr/lib/x86_64-linux-gnu/libgsl.so /usr/lib/libgsl.so.0
 
        curl -O http://mirrors.kernel.org/ubuntu/pool/main/libx/libxp/libxp6_1.0.2-2_amd64.deb
        sudo dpkg -i libxp6_1.0.2-2_amd64.deb
