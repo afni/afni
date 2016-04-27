@@ -1217,6 +1217,16 @@ ENTRY("GICOR_setup_func") ;
      AFNI_vedit_CB( im3d->vwid->func->options_vedit_av , im3d ) ;
    }
 
+   /* message for newbie users! [26 Apr 2016] */
+
+   MCW_popup_message( im3d->vwid->imag->topper ,
+                        "3dGroupInCorr is ready!\n"
+                        "* Use InstaCorr Set to\n"
+                        "  choose a seed voxel.\n"
+                        "* Or press Ctrl+Shift\n"
+                        "  and mouse left-click. " ,
+                      MCW_USER_KILL | MCW_TIMER_KILL ) ;
+
    EXRETURN ;
 }
 
@@ -1319,10 +1329,12 @@ ENTRY("GICOR_process_dataset") ;
 
    if( !EQUIV_DSETS(im3d->fim_now,giset->dset) ){
      MCW_choose_cbs cbs ; char cmd[32] , *cpt=AFNI_controller_label(im3d) ;
-     if( verb > 8 ) ININFO_message("  switching controller %c to GIC dataset",cpt[1]) ;
-     ININFO_message("  fim_now=%s;%s and giset=%s;%s",
-                    DSET_PREFIX(im3d->fim_now) , DSET_IDCODE_STR(im3d->fim_now) ,
-                    DSET_PREFIX(giset->dset)   , DSET_IDCODE_STR(giset->dset)    ) ;
+     if( verb > 8 )
+       ININFO_message("  switching controller %c to GIC dataset",cpt[1]) ;
+     if( verb > 8 )
+       ININFO_message("  fim_now=%s;%s and giset=%s;%s",
+                      DSET_PREFIX(im3d->fim_now) , DSET_IDCODE_STR(im3d->fim_now) ,
+                      DSET_PREFIX(giset->dset)   , DSET_IDCODE_STR(giset->dset)    ) ;
      cbs.ival = giset->nds ;
      AFNI_finalize_dataset_CB( im3d->vwid->view->choose_func_pb ,
                                (XtPointer)im3d ,  &cbs           ) ;
