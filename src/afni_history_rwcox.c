@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 27 , APR , 2016 , RWC , "afni + 3dGroupInCorr" , MICRO , TYPE_GENERAL ,
+   "Remind user of what to do after 3dGIC connects to afni GUI" ,
+   "This is the Caballero-Rossi popup reminder." } ,
+
  { 20 , APR , 2016 , RWC , "afni GUI" , MICRO , TYPE_MODIFY ,
    "new Jumpto IJK for Overlay button" ,
    "For someone in the Tulsa class." } ,
