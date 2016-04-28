@@ -1,5 +1,9 @@
 What the H*** is AFNI?
 ----------------------
+
+.. image:: https://travis-ci.org/afni/afni.svg?branch=master
+    :target: https://travis-ci.org/afni/afni
+
 AFNI is a suite of programs for looking at and analyzing 3D brain
 images.  The emphasis is on FMRI, but AFNI can be used for other
 purposes as well.  See https://afni.nimh.nih.gov/afni for more fun.
@@ -90,9 +94,3 @@ The command::
     make cleanest
     
 will remove all the *.o files, etc.
-
-Current status
---------------
-
-.. image:: https://travis-ci.org/afni/afni.svg?branch=master
-    :target: https://travis-ci.org/afni/afni
