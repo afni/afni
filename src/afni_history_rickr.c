@@ -52,8 +52,9 @@ afni_history_struct rickr_history[] = {
  { 28,  Apr, 2016, RCR, "3dMVM.R", MICRO, TYPE_MODIFY,
    "prevent any unexpected writing of dbg.AFNI.args files",
    "Only write such files given -dbg_args.\n"
-   "Affects 1dRplot.R, 3dLME.R, 3dMEMA.R, 3dMVM.R, 3dPFM.R, 3dRprogDemo.R\n"
-   "3dSignatures.R, AFNIio.R, ExamineXmat.R, rPkgsInstall.R."
+   "Affects 1dRplot, 3dLME, 3dMEMA, 3dMVM, 3dPFM, 3dRprogDemo\n"
+   "        3dSignatures, AFNIio, ExamineXmat, rPkgsInstall.\n"
+   "The dbg files no longer start with '.'."
  } ,
 
  { 28,  Apr, 2016, RCR, "afni-general", MICRO, TYPE_MODIFY,
