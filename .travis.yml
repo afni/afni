@@ -1,0 +1,9 @@
+language: c
+cache:
+    - apt
+    - ccache
+before_install:
+    # install build-dependencies as the doc says
+    - sh src/other_builds/OS_notes.linux_ubuntu_12_64
+install:
+    - make -C src -f Makefile.linux_openmp_64 vastness
