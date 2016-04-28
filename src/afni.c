@@ -6801,7 +6801,7 @@ ENTRY("AFNI_time_index_EV") ;
                                                  "\n wouldn't do that! \n "
                                               :  " \n   Why do you "
                                                  "\n torment me so? \n "
-                 , MCW_USER_KILL | MCW_TIMER_KILL ) ;
+                 , MCW_USER_KILL | MCW_QUICK_KILL ) ;
        }
      }
      break ;
