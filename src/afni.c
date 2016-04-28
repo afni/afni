@@ -1829,6 +1829,7 @@ void AFNI_sigfunc_alrm(int sig)
      "He who will deceive will always find a willing victim"         ,
      "How quick come the reasons for approving what we like"         ,
      "This is your only chance at building a disreputable past"      ,
+     "O Brave New World, that has such software in it"               ,
      "Remember -- AFNI is free, but worth at least 1000 times more"  ,
      "Remember -- Nothing is always absolutely so"                   ,
      "Remember -- 90% of everything is cr*p"                         ,
@@ -1954,6 +1955,7 @@ void AFNI_sigfunc_alrm(int sig)
      "Be yourself; everyone else is already taken"                   ,
      "I have not failed; I've just found 10,000 ways that don't work",
      "Statistics are good, but dark chocolate is better"             ,
+     "After every tempest comes the calm"                            ,
 
      /* This set of quotes is from Paradise Lost */
 
@@ -1973,9 +1975,9 @@ void AFNI_sigfunc_alrm(int sig)
      "If you have any problems with AFNI, blame goes to ... Mike Beauchamp ;)" ,
      "If you have any problems with AFNI, blame goes to ... Ziad Saad ;)"      ,
      "If you have any problems with AFNI, blame goes to ... Pat Bellgowan ;)"  ,
-     "If you have any problems with AFNI, blame goes to ... Hang Joon Jo ;)"   ,
      "If you have any problems with AFNI, blame goes to ... Kyle Simmons ;)"   ,
 
+     "Will all great Neptune's ocean wash this modeling error from my hands?"         ,
      "Remember -- Screaming is the next best thing to solving a problem"              ,
      "Remember -- Swearing is almost as good as solving a problem"                    ,
      "Data which passes through so many steps can hardly have much truth left"        ,
