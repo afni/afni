@@ -9,3 +9,6 @@ install:
     - cd src
     - cp other_builds/Makefile.linux_fedora_19_64 Makefile
     - make vastness
+script:
+    - echo "that is where we would test, so let's do it for now by running a sample executable"
+    - linux_fedora_19_64/3dinfo
