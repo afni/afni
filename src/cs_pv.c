@@ -66,6 +66,16 @@ float mean_vector( int n , int m , int xtyp , void *xp , float *uvec )
 }
 
 /*----------------------------------------------------------------------------*/
+
+int is_allzero( int nf , float *ff )
+{
+   int ii ;
+   if( nf == 0 || ff == NULL ) return 1 ;
+   for( ii=0 ; ii < nf ; ii++ ) if( ff[ii] != 0.0f ) return 0 ;
+   return 1 ;
+}
+
+/*----------------------------------------------------------------------------*/
 /*! Compute the principal singular vector of a set of m columns, each
     of length n.
    * If xtyp <=0, the columns are stored in one big array:
@@ -78,8 +88,8 @@ float mean_vector( int n , int m , int xtyp , void *xp , float *uvec )
 *//*--------------------------------------------------------------------------*/
 
 float principal_vector( int n , int m , int xtyp , void *xp ,
-                               float *uvec , float *tvec ,
-                               float *ws , unsigned short xran[] )
+                                float *uvec , float *tvec ,
+                                float *ws , unsigned short xran[] )
 {
    int nn=n , mm=m , nsym , jj,kk,qq ;
    float *asym ;
@@ -159,6 +169,11 @@ float principal_vector( int n , int m , int xtyp , void *xp ,
        }
      }
 
+   }
+
+   if( is_allzero(nsym*nsym,asym) ){
+     for( jj=0 ; jj < nn ; jj++ ) uvec[jj] = 0.0f ;
+     return 0.0f ;
    }
 
    /** SVD is [X] = [U] [S] [V]', where [U] = desired output vectors
@@ -450,7 +465,7 @@ float_pair principal_vector_pair( int n , int m , int xtyp , void *xp ,
 
    if( nsym == 1 ){  /*----- trivial case -----*/
 
-     for( ii=0 ; ii < nn ; ii++ ) vvec[ii] = 0.0f ; /* nothing to do */
+     for( ii=0 ; ii < nn ; ii++ ) vvec[ii] = 0.0f ; /* nothing to do here */
 
      if( mm == 1 ){  /* really trivial: only 1 vector */
        xj = XPT(0) ; qsum = sum = 0.0f ;
@@ -516,6 +531,12 @@ float_pair principal_vector_pair( int n , int m , int xtyp , void *xp ,
        }
      }
 
+   }
+
+   if( is_allzero(nsym*nsym,asym) ){
+     for( jj=0 ; jj < nn ; jj++ ) uvec[jj] = vvec[jj] = 0.0f ;
+     svout.a = svout.b = 0.0f ;
+     return svout ;
    }
 
    /** SVD is [X] = [U] [S] [V]', where [U] = desired output vectors

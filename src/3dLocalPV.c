@@ -17,7 +17,6 @@ static int myTHD_extract_nbhd( THD_3dim_dataset *dset, byte *mask,
 
 /*------------------------------------------------------------------------*/
 
-#ifndef USE_OMP
 static void vstep_print(void)
 {
    static char xx[10] = "0123456789" ; static int vn=0 ;
@@ -25,17 +24,17 @@ static void vstep_print(void)
    if( vn%10 == 9) fprintf(stderr,".") ;
    vn++ ;
 }
-#endif
 
 /*------------------------------------------------------------------------*/
 /* Adapted from 3dLocalSVD, to be more efficient when #evals=1 */
 
 int main( int argc , char *argv[] )
 {
-   THD_3dim_dataset *inset=NULL , *outset=NULL , *evset=NULL ;
+   THD_3dim_dataset *inset=NULL , *outset=NULL , *evset=NULL , *outset2=NULL ;
    MCW_cluster *nbhd=NULL ;
    byte *mask=NULL ; int mask_nx=0,mask_ny=0,mask_nz=0 , automask=0 ;
-   char *prefix="./LocalPV" ;
+   char *prefix ="./LocalPV" ;
+   char *prefix2=NULL ;
    char *evprefix=NULL ; int nev ;
    int iarg=1 , verb=1 , ntype=0 , kk,nx,ny,nz,nxy,nxyz,nt , vstep=0 ;
    float na,nb,nc , dx,dy,dz ;
@@ -65,6 +64,8 @@ int main( int argc , char *argv[] )
        " -automask           = create a mask from time series dataset\n"
        " -prefix ppp         = save SVD vector result into this new dataset\n"
        "                        [default = 'LocalPV']\n"
+       " -prefix2 qqq        = save second principal vector into this new dataset\n"
+       "                        [default = don't save it]\n"
        " -evprefix ppp       = save singular value at each voxel into this dataset\n"
        "                        [default = don't save]\n"
        " -input inputdataset = input time series dataset\n"
@@ -78,7 +79,7 @@ int main( int argc , char *argv[] )
        "                        spanned by the first 2 principal SVD vectors.\n"
        "                        [default: just output principal singular vector]\n"
        "                        [for 'smoothing' purposes, '-vnorm -vproj' is an idea]\n"
-#if 0
+#if 0  /* this option not actually implemented */
        "\n"
        " -use_nonmask         = Allow the computation of the local SVD time series\n"
        "                         even from voxels that are NOT in the mask, provided\n"
@@ -154,6 +155,16 @@ int main( int argc , char *argv[] )
      if( strcmp(argv[iarg],"-prefix") == 0 ){
        if( ++iarg >= argc ) ERROR_exit("Need argument after '-prefix'") ;
        prefix = strdup(argv[iarg]) ;
+       if( ! THD_filename_ok(prefix) )
+         ERROR_exit("-prefix '%s' is illegal",prefix) ;
+       iarg++ ; continue ;
+     }
+
+     if( strcmp(argv[iarg],"-prefix2") == 0 ){
+       if( ++iarg >= argc ) ERROR_exit("Need argument after '-prefix2'") ;
+       prefix2 = strdup(argv[iarg]) ;
+       if( ! THD_filename_ok(prefix2) )
+         ERROR_exit("-prefix '%s' is illegal",prefix2) ;
        iarg++ ; continue ;
      }
 
@@ -325,12 +336,23 @@ int main( int argc , char *argv[] )
 
    /** create output dataset **/
 
-   outset = EDIT_empty_copy(inset) ;
-   EDIT_dset_items( outset, ADN_prefix,prefix, ADN_brick_fac,NULL, ADN_none );
-   tross_Copy_History( inset , outset ) ;
-   tross_Make_History( "3dLocalPV" , argc,argv , outset ) ;
-   for( kk=0 ; kk < nt ; kk++ )                         /* create bricks */
-     EDIT_substitute_brick( outset , kk , MRI_float , NULL ) ;
+   if( prefix != NULL && strcmp(prefix,"NULL") != 0 ){
+     outset = EDIT_empty_copy(inset) ;
+     EDIT_dset_items( outset, ADN_prefix,prefix, ADN_brick_fac,NULL, ADN_none );
+     tross_Copy_History( inset , outset ) ;
+     tross_Make_History( "3dLocalPV" , argc,argv , outset ) ;
+     for( kk=0 ; kk < nt ; kk++ )                         /* create bricks */
+       EDIT_substitute_brick( outset , kk , MRI_float , NULL ) ;
+   }
+
+   if( prefix2 != NULL && strcmp(prefix2,"NULL") != 0 ){   /* 27 Apr 2016 */
+     outset2 = EDIT_empty_copy(inset) ;
+     EDIT_dset_items( outset2, ADN_prefix,prefix2, ADN_brick_fac,NULL, ADN_none );
+     tross_Copy_History( inset , outset2 ) ;
+     tross_Make_History( "3dLocalPV" , argc,argv , outset2 ) ;
+     for( kk=0 ; kk < nt ; kk++ )                         /* create bricks */
+       EDIT_substitute_brick( outset2 , kk , MRI_float , NULL ) ;
+   }
 
    if( evprefix != NULL ){
      evset = EDIT_empty_copy(inset) ;
@@ -389,7 +411,7 @@ int main( int argc , char *argv[] )
      ws   = pv_get_workspace(nt,nbhd->num_pt) ;
      nbar = (float *)malloc(sizeof(float)*nt*nbhd->num_pt) ;
      ivar = (int *)malloc(sizeof(int)*nbhd->num_pt) ;
-     if( do_vproj == 2 )
+     if( do_vproj == 2 || outset2 != NULL )
        vvec = (float *)malloc(sizeof(float)*nt) ;
      if( do_vproj )
        zar = (float *)malloc(sizeof(float)*nt) ;
@@ -401,9 +423,12 @@ int main( int argc , char *argv[] )
 
 #pragma omp for
    for( kk=0 ; kk < nxyz ; kk++ ){
-#ifndef USE_OMP
-     if( vstep && kk%vstep==vstep-1 ) vstep_print() ;
+
+#if 0
+#pragma omp critical
+     { if( vstep && kk%vstep==vstep-1 ) vstep_print() ; }
 #endif
+
      if( !INMASK(kk) ) continue ;
      IJK_TO_THREE( kk , xx,yy,zz , nx,nxy ) ;
 
@@ -423,7 +448,7 @@ int main( int argc , char *argv[] )
        }
      }
      tsar = nbar ;
-     if( do_vproj <= 1 ){
+     if( do_vproj <= 1 && outset2 == NULL ){
        sval = principal_vector( nt, mm, 0,nbar, uvec, (do_vproj) ? NULL : tsar, ws,xran ) ;
      } else {
        float_pair spair ;
@@ -446,7 +471,10 @@ int main( int argc , char *argv[] )
          for( ii=0 ; ii < nt ; ii++ ) uvec[ii] += sum*vvec[ii] ;
        }
      }
-     THD_insert_series( kk, outset, nt, MRI_float, uvec, 0 ) ;
+     if( outset != NULL )
+       THD_insert_series( kk, outset , nt, MRI_float, uvec, 0 ) ;
+     if( outset2 != NULL )
+       THD_insert_series( kk, outset2, nt, MRI_float, vvec, 0 ) ;
      if( evar != NULL ) evar[kk] = sval ;
      if( fvar != NULL ) fvar[kk] = tval ;
    }
@@ -467,7 +495,13 @@ int main( int argc , char *argv[] )
    /*** cleanup and exit ***/
 
    DSET_delete(inset) ;
-   DSET_write(outset) ; WROTE_DSET(outset) ; DSET_delete(outset) ;
+
+   if( outset != NULL ){
+     DSET_write(outset) ; WROTE_DSET(outset) ; DSET_delete(outset) ;
+   }
+   if( outset2 != NULL ){
+     DSET_write(outset2) ; WROTE_DSET(outset2) ; DSET_delete(outset2) ;
+   }
 
    if( evset != NULL ){
      DSET_write(evset) ; WROTE_DSET(evset) ; DSET_delete(evset) ;
