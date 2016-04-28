@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 28,  Apr, 2016, RCR, "@update.afni_binaries", MINOR, TYPE_NEW_OPT,
+   "add -local_package, to use an already downloaded package",
+   "Requested by P Taylor."
+ } ,
+
  { 28,  Apr, 2016, RCR, "3dMVM.R", MICRO, TYPE_MODIFY,
    "prevent any unexpected writing of dbg.AFNI.args files",
    "Only write such files given -dbg_args.\n"
