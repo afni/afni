@@ -49,6 +49,18 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 28,  Apr, 2016, RCR, "3dMVM.R", MICRO, TYPE_MODIFY,
+   "prevent any unexpected writing of dbg.AFNI.args files",
+   "Only write such files given -dbg_args.\n"
+   "Affects 1dRplot.R, 3dLME.R, 3dMEMA.R, 3dMVM.R, 3dPFM.R, 3dRprogDemo.R\n"
+   "3dSignatures.R, AFNIio.R, ExamineXmat.R, rPkgsInstall.R."
+ } ,
+
+ { 28,  Apr, 2016, RCR, "afni-general", MICRO, TYPE_MODIFY,
+   "add initial #!prog to tops of some meica programs, and bricks_test.sh",
+   "This corresponds with -x permission clearing by yarikoptic."
+ } ,
+
  { 27,  Apr, 2016, RCR, "afni_proc.py", MINOR, TYPE_MODIFY,
    "prep for later: always extract volreg base, as vr_base*",
    NULL
