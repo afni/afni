@@ -6,4 +6,6 @@ before_install:
     # install build-dependencies as the doc says
     - sudo sh src/other_builds/OS_notes.linux_ubuntu_12_64
 install:
-    - make -C src -f other_builds/Makefile.linux_fedora_19_64 vastness
+    - cd src
+    - cp other_builds/Makefile.linux_fedora_19_64 Makefile
+    - make vastness
