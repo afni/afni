@@ -227,9 +227,9 @@ getPkgs <- function(PKGS, check=0, update=0, remove=0, site='http://cran.mtu.edu
    if (!exists('.DBG_args')) { 
       args = (commandArgs(TRUE))  
       rfile <- first.in.path(sprintf('%s.R',ExecName))  
-      # do not save these log files on -help    31 Mar 2016 [rickr]
-      if ( ! '-help' %in% args ) {
-         save(args, rfile, file=".rPkgsInstall.dbg.AFNI.args", ascii = TRUE) 
+      # save only on -dbg_args          28 Apr 2016 [rickr]
+      if ( '-dbg_args' %in% args ) {
+         save(args, rfile, file="rPkgsInstall.dbg.AFNI.args", ascii = TRUE) 
       }
    } else {
       note.AFNI("Using .DBG_args resident in workspace");
