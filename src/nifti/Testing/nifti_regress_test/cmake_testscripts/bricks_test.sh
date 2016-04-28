@@ -1,3 +1,4 @@
+#!/usr/bin/env bash
 
 # - copy some of the sub-bricks of the default stat file,
 #   storing the history (command), and writing to a new 'f4.nii'
