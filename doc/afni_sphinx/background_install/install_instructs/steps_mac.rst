@@ -110,7 +110,7 @@ operating system) to a link to install XQuartz.
         brew install glib
 
 
-#. **AFNI installation**
+#. **Install AFNI**
 
    a. Download and unpack the current binaries into your ``$HOME``
       directory, changing the directory name to ``$HOME/abin/``::
