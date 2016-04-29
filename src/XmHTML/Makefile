@@ -180,6 +180,9 @@ LOADLIBES = $(LIBDIR) $(LIBS) $(IMAGELIBS)
 
 ### End of User configurable section ###
 
+# To guarantee robust "set -x" operation
+export PS4=+
+
 pass_flags = SHELL='$(SHELL)' \
 	VERSION='$(VERSION)' \
 	CC='$(CC)' \
