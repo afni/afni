@@ -31,6 +31,10 @@ list parallel instructions for each.
                                libmotif4 libmotif-dev motif-clients           \
                                gsl-bin netpbm gnome-tweak-tool libjpeg62
        sudo apt-get update
+<<<<<<< HEAD
+=======
+       sudo ln -s /usr/lib/x86_64-linux-gnu/libgsl.so /usr/lib/libgsl.so.0
+>>>>>>> 31d43c483a998f37b1db449973bf51b52eab8650
 
        sudo dpkg -i http://mirrors.kernel.org/ubuntu/pool/main/libx/libxp/libxp6_1.0.2-2_amd64.deb
        sudo apt-get install -f
