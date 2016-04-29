@@ -10,5 +10,8 @@ OPTION(AFNI_BUILD_TESTS
        "Enable testing and build available tests"
        OFF)
 
-ADD_SUBDIRECTORY(tests)
+IF(AFNI_BUILD_TESTS)
+  ENABLE_TESTING()
+  ADD_SUBDIRECTORY(tests)
+ENDIF(AFNI_BUILD_TESTS)
 
