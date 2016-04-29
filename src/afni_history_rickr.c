@@ -49,6 +49,29 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 28,  Apr, 2016, RCR, "@update.afni_binaries", MINOR, TYPE_NEW_OPT,
+   "add -local_package, to use an already downloaded package",
+   "Requested by P Taylor."
+ } ,
+
+ { 28,  Apr, 2016, RCR, "3dMVM.R", MICRO, TYPE_MODIFY,
+   "prevent any unexpected writing of dbg.AFNI.args files",
+   "Only write such files given -dbg_args.\n"
+   "Affects 1dRplot, 3dLME, 3dMEMA, 3dMVM, 3dPFM, 3dRprogDemo\n"
+   "        3dSignatures, AFNIio, ExamineXmat, rPkgsInstall.\n"
+   "The dbg files no longer start with '.'."
+ } ,
+
+ { 28,  Apr, 2016, RCR, "afni-general", MICRO, TYPE_MODIFY,
+   "add initial #!prog to tops of some meica programs, and bricks_test.sh",
+   "This corresponds with -x permission clearing by yarikoptic."
+ } ,
+
+ { 27,  Apr, 2016, RCR, "afni_proc.py", MINOR, TYPE_MODIFY,
+   "prep for later: always extract volreg base, as vr_base*",
+   NULL
+ } ,
+
  { 26,  Apr, 2016, RCR, "afni-general", MICRO, TYPE_MODIFY,
    "Makefile.INCLUDE: moved SCRIPTS into scripts_install",
    NULL
