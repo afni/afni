@@ -60,6 +60,9 @@ for each.
 
        tcsh @update.afni.binaries -package linux_fedora_21_64
 
+   .. note:: if the binary package has already be downloaded, use -local_package
+      e.g. tcsh @update.afni.binaries -local_package linux_openmp_64.tgz
+
 #. **Reboot.**
 
    Consider a 'reboot' at this point.  That would deal with
