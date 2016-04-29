@@ -281,7 +281,9 @@ int main( int argc , char *argv[] )
       dset[ii] = THD_open_one_dataset( dname ) ;
       if( dset[ii] == NULL ){
         /* changed from error to warning       3 Jun 2009 [rickr] */
-        WARNING_message("missing view dataset: %s - SKIPPING\n",dname) ;
+        /* make this warning show up only if verb 27 Apr 2016 [drg] */
+        if (verb)
+           WARNING_message("missing view dataset: %s - SKIPPING\n",dname) ;
         continue ;
       }
       nfound ++;                   /* found some dataset */
