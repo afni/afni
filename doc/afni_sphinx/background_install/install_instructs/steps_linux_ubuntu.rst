@@ -11,20 +11,14 @@ Ubuntu Linux versions (e.g., 14.04+, though it might very well work
 even for 12.\* and higher).
 
 Several of the following steps are version number dependent, so we
-list parallel instructions when relevant.  If you need to doublecheck
-what Ubuntu version you have, you can see the release number and fun
-"codename" using::
-  
-  lsb_release --release --codename
-
-|
+list parallel instructions for each.
 
 #. **Install prerequisite packages.**
 
    There are several packages and libraries that are needed to run the
    afni and shell programs, often even including ``tcsh``:
         
-   * *for versions up to and including 15.04*::
+   * *for versions upto and including 15.04*::
       
        sudo apt-get install -y tcsh libxp6 xfonts-base python-qt4             \
                                libmotif4 libmotif-dev motif-clients           \
@@ -34,14 +28,11 @@ what Ubuntu version you have, you can see the release number and fun
    * *for versions 15.10 and higher*::
       
        sudo apt-get install -y tcsh xfonts-base python-qt4                    \
-                               libxm4 libmotif-dev motif-clients              \
-                               gsl-bin netpbm gnome-tweak-tool libjpeg62      \
-                               libglu1-mesa-dev
+                               libmotif4 libmotif-dev motif-clients           \
+                               gsl-bin netpbm gnome-tweak-tool libjpeg62
        sudo apt-get update
-       sudo ln -s ./x86_64-linux-gnu/libgsl.so /usr/lib/libgsl.so.0
 
-       curl -O http://mirrors.kernel.org/ubuntu/pool/main/libx/libxp/libxp6_1.0.2-2_amd64.deb
-       sudo dpkg -i libxp6_1.0.2-2_amd64.deb
+       sudo dpkg -i http://mirrors.kernel.org/ubuntu/pool/main/libx/libxp/libxp6_1.0.2-2_amd64.deb
        sudo apt-get install -f
 
    .. _setup_Ubu_tcsh:
@@ -64,6 +55,10 @@ what Ubuntu version you have, you can see the release number and fun
    Linux systems will probably work with linux_openmp_64::
 
      tcsh @update.afni.binaries -package linux_openmp_64
+
+   .. note:: if the binary package has already been downloaded, one can use ``-local_package``, e.g.
+
+      tcsh @update.afni.binaries -local_package linux_openmp_64.tgz
 
 #. **Reboot.**
 
@@ -88,7 +83,7 @@ what Ubuntu version you have, you can see the release number and fun
        setenv R_LIBS $HOME/R
        mkdir $R_LIBS
        echo 'setenv R_LIBS ~/R' >> ~/.cshrc
-       curl -O https://afni.nimh.nih.gov/pub/dist/src/scripts_src/@add_rcran_ubuntu.tcsh
+       curl -O https://afni.nimh.nih.gov/pub/dist/src/misc_scripts/@add_rcran_ubuntu.tcsh
        sudo tcsh @add_rcran_ubuntu.tcsh
        rPkgsInstall -pkgs ALL
       
@@ -97,7 +92,7 @@ what Ubuntu version you have, you can see the release number and fun
        export R_LIBS=$HOME/R
        mkdir $R_LIBS
        echo 'export R_LIBS=$HOME/R' >> ~/.bashrc
-       curl -O https://afni.nimh.nih.gov/pub/dist/src/scripts_src/@add_rcran_ubuntu.tcsh
+       curl -O https://afni.nimh.nih.gov/pub/dist/src/misc_scripts/@add_rcran_ubuntu.tcsh
        sudo tcsh @add_rcran_ubuntu.tcsh
        rPkgsInstall -pkgs ALL
       
@@ -126,11 +121,6 @@ what Ubuntu version you have, you can see the release number and fun
    process!**
 
    .. include:: substep_evaluate.rst
-
-
-#. **(optional) Niceifying interfaces: it's a magical terminal.**
-
-   .. include:: substep_rcfiles.rst
 
 
 #. **Keeping up-to-date (remember).**
