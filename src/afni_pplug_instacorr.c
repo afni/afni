@@ -1206,7 +1206,8 @@ ENTRY("GICOR_setup_func") ;
    ININFO_message("%d datasets in set A",giset->ndset_A) ;
    if( giset->ndset_B > 0 )
      ININFO_message("%d datasets in set B",giset->ndset_B) ;
-   ININFO_message("----- AFNI is connnected to 3dGroupInCorr -----") ;
+   ININFO_message("----- AFNI is now connnected to 3dGroupInCorr! -----") ;
+   ININFO_message("..... Use 'InstaCorr Set' to pick a seed voxel .....") ;
 
    IM3D_CLEAR_TMASK(im3d) ;      /* Mar 2013 */
    IM3D_CLEAR_THRSTAT(im3d) ; /* 12 Jun 2014 */
