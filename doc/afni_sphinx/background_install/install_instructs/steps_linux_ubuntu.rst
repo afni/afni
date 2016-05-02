@@ -56,7 +56,7 @@ list parallel instructions for each.
 
      tcsh @update.afni.binaries -package linux_openmp_64
 
-   .. note:: if the binary package has already been downloaded, one can use ``-local_package``, e.g.
+   .. note:: If the binary package has already been downloaded, one can use ``-local_package``, followed by the location+name of the binary file, e.g.:
 
       tcsh @update.afni.binaries -local_package linux_openmp_64.tgz
 
