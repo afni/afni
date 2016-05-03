@@ -34,9 +34,14 @@
 #   as well with some simple example scripts.
 #
 ########################################################################
-
+#
 # v2.1, Sep,2015:  linear DTI fits, for speed
 # v2.2, Sep,2015:  echo edu to print commands
+# v2.3, May,2016:  use '-out_grad_cols_bwt' to allow for non-constant
+#                  DW factors.
+#
+########################################################################
+
 
 # trap for help or bad input   9 Feb 2015 [rickr]
 if ( $#argv != 2 ) then
@@ -55,6 +60,7 @@ set ALL_ARR =  ( )
 set SUMA_CALL = ""
 
 set min_tr_len = 30
+set min_fa     = 0.2
 
 # make a temporary output directory
 if( -d "$dir" ) then
@@ -90,7 +96,7 @@ printf "\n\n++ Grad_o_Matting (just needed once).\n\n\n"
     $in_CMD                              \
     -proc_dset      $in_DSET             \
     -pref_dset      $out_DSET            \
-    -out_grad_cols  $out_GRAD            \
+    -out_grad_cols_bwt  $out_GRAD        \
     -overwrite
 
 # mask based on 0th brick of 1st set
@@ -169,6 +175,7 @@ foreach j ( `seq 1 1 4` )
         -alg_Nseed_Y 1                       \
         -alg_Nseed_Z 1                       \
         -alg_Thresh_Len $min_tr_len          \
+        -alg_Thresh_FA $min_fa               \
         -no_indipair_out                     \
         -logic OR                            \
         -dti_list $out_DTx_niml              \
