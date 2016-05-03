@@ -1206,7 +1206,12 @@ ENTRY("GICOR_setup_func") ;
    ININFO_message("%d datasets in set A",giset->ndset_A) ;
    if( giset->ndset_B > 0 )
      ININFO_message("%d datasets in set B",giset->ndset_B) ;
-   ININFO_message("----- AFNI is connnected to 3dGroupInCorr -----") ;
+
+   ININFO_message("----------------------------------------------------") ;
+   ININFO_message("----- AFNI is now connnected to 3dGroupInCorr! -----") ;
+   ININFO_message("..... Use 'InstaCorr Set' to pick a seed voxel .....") ;
+   ININFO_message("..... (Mouse-right-click menu in image viewer) .....") ;
+   ININFO_message("----------------------------------------------------") ;
 
    IM3D_CLEAR_TMASK(im3d) ;      /* Mar 2013 */
    IM3D_CLEAR_THRSTAT(im3d) ; /* 12 Jun 2014 */
@@ -1222,9 +1227,13 @@ ENTRY("GICOR_setup_func") ;
    MCW_popup_message( im3d->vwid->imag->topper ,
                         "3dGroupInCorr is ready!\n"
                         "* Use InstaCorr Set to\n"
-                        "  choose a seed voxel.\n"
-                        "* Or press Ctrl+Shift\n"
-                        "  and mouse left-click. " ,
+                        "  choose a seed voxel\n"
+                        "   (Mouse-right-click )\n"
+                        "   (in an image viewer)\n"
+                        "* Or press Ctrl+Shift+\n"
+                        "  Mouse-left-click in\n"
+                        "  an image viewer. " 
+ ,
                       MCW_USER_KILL | MCW_TIMER_KILL ) ;
 
    EXRETURN ;

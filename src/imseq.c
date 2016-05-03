@@ -2601,11 +2601,11 @@ void ISQ_butdisp_EV( Widget w , XtPointer client_data ,
          cbs.reason = isqCR_raiseupthedead ; SEND(seq,cbs) ;
        } else if( event->button == Button2 ){
          XBell(XtDisplay(w),100) ;
-         MCW_popup_message( w, " \n Don't! \n "        , MCW_USER_KILL|MCW_TIMER_KILL );
+         MCW_popup_message( w, " \n Don't! \n "        , MCW_USER_KILL|MCW_QUICK_KILL );
        } else if( event->button == Button4 ){
-         MCW_popup_message( w, " \n That tickles! \n " , MCW_USER_KILL|MCW_TIMER_KILL ) ;
+         MCW_popup_message( w, " \n That tickles! \n " , MCW_USER_KILL|MCW_QUICK_KILL ) ;
        } else if( event->button == Button5 ){
-         MCW_popup_message( w, " \n Please stop \n "   , MCW_USER_KILL|MCW_TIMER_KILL ) ;
+         MCW_popup_message( w, " \n Please stop \n "   , MCW_USER_KILL|MCW_QUICK_KILL ) ;
        }
      }
      break ;
@@ -2657,7 +2657,7 @@ void ISQ_butcrop_EV( Widget w , XtPointer client_data ,
             MCW_popup_message( w,
                                lrand48()%2 == 0 ? " \n Ooch! \n "
                                                 : "Don't\n DO\nthat!" ,
-                               MCW_USER_KILL|MCW_TIMER_KILL );
+                               MCW_USER_KILL|MCW_QUICK_KILL );
             /** AFNI_speak( "Ouch!" , 0 ) ; **/
          }
       }
@@ -11374,7 +11374,7 @@ void ISQ_butsave_EV( Widget w , XtPointer client_data ,
             free(strlist) ;
          } else if( event->button == Button2 ){
             XBell(XtDisplay(w),100) ;
-            MCW_popup_message( w, " \n Ouch! \n ", MCW_USER_KILL|MCW_TIMER_KILL );
+            MCW_popup_message( w, " \n Ouch! \n ", MCW_USER_KILL|MCW_QUICK_KILL );
             /** AFNI_speak( "Ouch!" , 0 ) ; **/
          }
       }
@@ -12783,7 +12783,7 @@ ENTRY("ISQ_handle_keypress") ;
        case XK_F12:
 #if 0
          XBell(seq->dc->display,100) ;
-         MCW_popup_message( seq->wimage, " \n Ouch! \n ", MCW_USER_KILL|MCW_TIMER_KILL );
+         MCW_popup_message( seq->wimage, " \n Ouch! \n ", MCW_USER_KILL|MCW_QUICK_KILL );
          AFNI_speak( "Ouch!" , 0 ) ;
 #endif
        break ;

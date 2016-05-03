@@ -1,0 +1,18 @@
+language: c
+cache:
+    - apt
+    - ccache
+env:
+ global:
+    - FLAVOR=linux_ubuntu_12_64
+before_install:
+    # install build-dependencies as the doc says
+    - sudo sh src/other_builds/OS_notes.linux_ubuntu_12_64
+install:
+    - cd src
+    - cp other_builds/Makefile.$FLAVOR Makefile
+    - make vastness
+script:
+    - echo "that is where we would test, so let's do it for now by running a sample executable"
+    - export PATH=$PATH:$PWD/$FLAVOR
+    - 3dinfo
