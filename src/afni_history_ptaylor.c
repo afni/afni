@@ -67,9 +67,9 @@ afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
 
-{ 8, Apr , 2016 , PT , "3dDWItoDT" , MINOR , TYPE_MODIFY,
-   "Work to deal with bvalue-weighted grads and bmatrices.",
-   "This is useful esp. for new TORTOISE outputs.\n"
+{ 2, May , 2016 , PT , "3dDWItoDT" , MINOR , TYPE_NEW_OPT,
+   "Have a new '-min_bad_md' option: use to threshold badness.",
+   "Also now detect bad DT fits if MD is crazy big.  Whoa.\n"
 },
 
 { 8, Apr , 2016 , PT , "3dDTtoDWI" , MINOR , TYPE_MODIFY,
