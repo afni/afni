@@ -3532,7 +3532,7 @@ AFNI_ATLAS_REGION * Atlas_Chunk_Label(char *lbli, int id, char *atlas_name)
 {
    AFNI_ATLAS_REGION *aar = NULL;
    char lachunk[500], sd, *lbl = NULL;
-   int ic = 0, nc = 0, k = 0, block = 0, isnum=0;
+   int ic = 0, nc = 0, k = 0, block = 0;
    int LocalHead = wami_lh();
 
    ENTRY("Atlas_Chunk_Label") ;
@@ -3559,15 +3559,21 @@ AFNI_ATLAS_REGION * Atlas_Chunk_Label(char *lbli, int id, char *atlas_name)
    aar->N_chnks = 0;
    aar->chnks = NULL;
 
+#if 0 
+took out number checking and processing for D99 macaque atlas
+not sure why it was there in the first place!
+   int  isnum=0;
    /* is this all numbers ? */
    isnum = 1;
    for (k=0; k<nc; ++k) {
       if (!IS_NUMBER(lbl[k])) isnum = 0;
    }
-   /* it is an integer, stop the machines */
+  /* it is an integer, stop the machines */
    if (isnum) {
-      isnum = atoi(lbl);
-      free(lbl); lbl = NULL;  /* no need no more */
+/* printf("atlas is all numbers %s, %d\n", lbl,aar->id);*/
+
+/*       isnum = atoi(lbl);
+      free(lbl); lbl = NULL; 
       if (aar->id && isnum != aar->id) {
          ERROR_message("Information conflict!");
          RETURN(Free_Atlas_Region(aar)) ;
@@ -3575,7 +3581,8 @@ AFNI_ATLAS_REGION * Atlas_Chunk_Label(char *lbli, int id, char *atlas_name)
       aar->id = isnum;
       if (LocalHead) fprintf(stderr,"Have number (%d), will travel\n", aar->id);
       RETURN(aar);
-   }
+  */
+  }
 
    /* change any '.' surrounded by digits to a 0 */
    for (k=1; k<nc-1; ++k) {
@@ -3583,6 +3590,7 @@ AFNI_ATLAS_REGION * Atlas_Chunk_Label(char *lbli, int id, char *atlas_name)
             IS_NUMBER(lbl[k+1]) &&
             IS_NUMBER(lbl[k-1]) ) lbl[k] = '0';
    }
+#endif
 
    ic = 0;
    k = 0;
