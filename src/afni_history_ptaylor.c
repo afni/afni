@@ -67,6 +67,11 @@ afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
 
+{ 3, May , 2016 , PT , "@GradFlipTest" , MINOR , TYPE_MODIFY,
+   "Using '-out_grad_cols_bwt' for grad stuff now-- use weights.",
+   "Can deal well with multiple DW factors in gradient list now.\n"
+},
+
 { 2, May , 2016 , PT , "3dDWItoDT" , MINOR , TYPE_NEW_OPT,
    "Have a new '-min_bad_md' option: use to threshold badness.",
    "Also now detect bad DT fits if MD is crazy big.  Whoa.\n"
