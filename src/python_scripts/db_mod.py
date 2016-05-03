@@ -6111,6 +6111,7 @@ g_help_string = """
                         -regress_bandpass 0.01 0.1              \\
                         -regress_apply_mot_types demean deriv   \\
                         -regress_run_clustsim no                \\
+                        -regress_est_blur_epits                 \\
                         -regress_est_blur_errts
                         
         Example 6. A modern example.  GOOD TO CONSIDER.
@@ -6338,6 +6339,10 @@ g_help_string = """
                  time series before the blur step, or remove blur from the list
                  of blocks (and apply any desired blur after the regression).
 
+           Note: it might be reasonable to estimate the blur using epits rather
+                 than errts in the case of bandpassing.  Both options are
+                 included here.
+
            Other options to consider: -tlrc_NL_warp, -anat_uniform_method
 
                 afni_proc.py -subj_id subj123                                \\
@@ -6352,6 +6357,7 @@ g_help_string = """
                   -regress_bandpass 0.01 0.1                                 \\
                   -regress_apply_mot_types demean deriv                      \\
                   -regress_run_clustsim no                                   \\
+                  -regress_est_blur_epits                                    \\
                   -regress_est_blur_errts
 
        Example 9b. Resting state analysis with ANATICOR.
@@ -6376,6 +6382,7 @@ g_help_string = """
                   -regress_bandpass 0.01 0.1                                 \\
                   -regress_apply_mot_types demean deriv                      \\
                   -regress_run_clustsim no                                   \\
+                  -regress_est_blur_epits                                    \\
                   -regress_est_blur_errts
 
        Example 10. Resting state analysis, with tissue-based regressors.
@@ -6393,6 +6400,10 @@ g_help_string = """
 
            Also, align to minimum outlier volume.
 
+           Note: it might be reasonable to estimate the blur using epits rather
+                 than errts in the case of bandpassing.  Both options are
+                 included here.
+
                 afni_proc.py -subj_id subj123                                \\
                   -dsets epi_run1+orig.HEAD                                  \\
                   -copy_anat anat+orig                                       \\
@@ -6409,6 +6420,7 @@ g_help_string = """
                   -regress_apply_mot_types demean deriv                      \\
                   -regress_ROI WMe                                           \\
                   -regress_run_clustsim no                                   \\
+                  -regress_est_blur_epits                                    \\
                   -regress_est_blur_errts
 
        Example 10b. Resting state analysis, with tissue-based regressors and
@@ -6460,6 +6472,15 @@ g_help_string = """
          o Compute average correlation volumes of the errts against the
            the gray matter (aeseg) and ventricle (FSVent) masks.
 
+           Note: it might be reasonable to use either set of blur estimates
+                 here (from epits or errts).  The epits (uncleaned) dataset
+                 has all of the noise (though what should be considered noise
+                 in this context is not clear), while the errts is motion
+                 censored.  For consistency in resting state, it would be
+                 reasonable to stick with epits.  They will likely be almost
+                 identical.
+
+
                 afni_proc.py -subj_id FT.11.rest                             \\
                   -blocks despike tshift align tlrc volreg blur mask regress \\
                   -copy_anat FT_SurfVol.nii                                  \\
@@ -6482,6 +6503,7 @@ g_help_string = """
                   -regress_censor_motion 0.2                                 \\
                   -regress_censor_outliers 0.1                               \\
                   -regress_apply_mot_types demean deriv                      \\
+                  -regress_est_blur_epits                                    \\
                   -regress_est_blur_errts                                    \\
                   -regress_run_clustsim no
 

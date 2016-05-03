@@ -502,9 +502,10 @@ g_history = """
         - added FREESURFER NOTE
     4.58 Jan 27, 2016: allow for tissue PC regression with only regress block
     4.59 Apr 27, 2016: always extract volreg base image vr_base*
+    4.60 May  3, 2016: suggest -regress_est_blur_epits for resting state
 """
 
-g_version = "version 4.59, April 27, 2016"
+g_version = "version 4.60, May 3, 2016"
 
 # version of AFNI required for script execution
 # prev: g_requires_afni =  "1 Apr 2015" # 1d_tool.py uncensor from 1D

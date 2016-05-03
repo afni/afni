@@ -15,13 +15,16 @@ Note that 10.8 does not come with X11 (or XQuartz) installed.  When
 afni is started for the first time, you should be directed (by the
 operating system) to a link to install XQuartz.
 
-0. **(optional) Account setup: niceifying.**
+0. **Account setup**
 
    Assuming a user account exists, these steps are all optional:
 
-   .. note:: Admin privileges are needed for package management.
+   a. Create a user account with ``su`` (Administrator) privileges
+      (via "System Preferences", under "Accounts").
 
-   a. (optional) Set the shell to ``/bin/tcsh``.  NB: this no longer
+      .. note:: Admin privileges are needed for package management.
+
+   #. (optional) Set the shell to ``/bin/tcsh``.  NB: this no longer
       works using the ``chsh ...`` command.
 
       Under System Preferences : System : Accounts menu, right-click
@@ -110,7 +113,7 @@ operating system) to a link to install XQuartz.
         brew install glib
 
 
-#. **AFNI installation**
+#. **Install AFNI**
 
    a. Download and unpack the current binaries into your ``$HOME``
       directory, changing the directory name to ``$HOME/abin/``::
@@ -118,6 +121,10 @@ operating system) to a link to install XQuartz.
         cd
         curl -O https://afni.nimh.nih.gov/pub/dist/bin/macosx_10.7_Intel_64/@update.afni.binaries
         tcsh @update.afni.binaries -defaults
+
+     .. note:: if the binary package has already been downloaded, one can use ``-local_package``, followed by the location+name of the binary file, e.g.:
+
+      tcsh @update.afni.binaries -local_package macosx_10.7_Intel_64.tgz
 
    #. Update the path and library path.
 

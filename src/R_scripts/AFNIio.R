@@ -830,7 +830,7 @@ apl <- function ( n = 0, d=NA, h=NULL, dup=FALSE ) {
 
 load.debug.AFNI.args <- function ( fnm = NULL) {
    if (is.null(fnm)) {
-      fnm <- system('ls .*.dbg.AFNI.args', ignore.stderr = TRUE, intern=TRUE)
+      fnm <- system('ls *.dbg.AFNI.args .*.dbg.AFNI.args', ignore.stderr = TRUE, intern=TRUE)
    }
    if (length(fnm) > 1) {
       err.AFNI(paste("More than one argument file found:", 
