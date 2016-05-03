@@ -2,8 +2,8 @@
 
 #########################################################################
 #
-# Auto grad-flip tester (v2.1, Sep 2015)
-#   by PA Taylor (UCT, AIMS)
+# Auto grad-flip tester (v2.3, May, 2016)
+#   by PA Taylor (NIH, UCT, AIMS)
 #
 # Simple script to test what 'flip', if any, should likely be
 # performed for a data set when using '1dDW_Grad_o_Mat.
