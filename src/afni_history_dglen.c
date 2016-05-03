@@ -49,6 +49,11 @@
 
 
 afni_history_struct dglen_history[] = {
+{ 3, MAY, 2016 , DRG , "@Atlasize no voxel regions" , 
+    MICRO , TYPE_NEW_OPT, 
+    "Skip structures with no voxels",
+    "New -skip_novoxels option in @Atlasize and @MakeLabelTable"
+},
 { 25, APR, 2016 , DRG , "afni GUI perc threshold flag" , 
     MICRO , TYPE_BUG_FIX, 
     "percentile thresholding didn't work properly with warp-on-demand between views"
