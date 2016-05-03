@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  3,  May, 2016, RCR, "afni_proc.py", MICRO, TYPE_MODIFY,
+   "suggest -regress_est_blur_epits for resting state",
+   "Thanks to S Torrisi for bringing up the question."
+ } ,
+
  { 28,  Apr, 2016, RCR, "@update.afni_binaries", MINOR, TYPE_NEW_OPT,
    "add -local_package, to use an already downloaded package",
    "Requested by P Taylor."
