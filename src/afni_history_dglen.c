@@ -49,6 +49,11 @@
 
 
 afni_history_struct dglen_history[] = {
+{ 3, MAY, 2016 , DRG , "whereami - atlas queries" , 
+    MICRO , TYPE_BUG_FIX, 
+    "Removing structures that are all numbers was breaking atlas label queries"
+},
+
 { 3, MAY, 2016 , DRG , "@Atlasize no voxel regions" , 
     MICRO , TYPE_NEW_OPT, 
     "Skip structures with no voxels",
