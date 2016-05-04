@@ -49,6 +49,25 @@
 
 
 afni_history_struct dglen_history[] = {
+{ 3, MAY, 2016 , DRG , "whereami - atlas queries" , 
+    MICRO , TYPE_BUG_FIX, 
+    "Removing structures that are all numbers was breaking atlas label queries"
+},
+
+{ 3, MAY, 2016 , DRG , "@Atlasize no voxel regions" , 
+    MICRO , TYPE_NEW_OPT, 
+    "Skip structures with no voxels",
+    "New -skip_novoxels option in @Atlasize and @MakeLabelTable"
+},
+{ 25, APR, 2016 , DRG , "afni GUI perc threshold flag" , 
+    MICRO , TYPE_BUG_FIX, 
+    "percentile thresholding didn't work properly with warp-on-demand between views"
+},
+
+{ 19, APR, 2016 , DRG , "unWarpEPI.py" , 
+    MINOR , TYPE_NEW_PROG, 
+    "blip-up/down distortion correction script"
+},
 { 7, MAR, 2016 , DRG , "align_epi_anat.py" , 
     MINOR , TYPE_BUG_FIX, 
     "fixed edge option change using too small neighborhood size"
