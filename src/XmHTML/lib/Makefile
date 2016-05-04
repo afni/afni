@@ -33,6 +33,9 @@ TARGET=$(LIBRARY)
 # Subdirectories to visit
 SUBDIRS= common $(PLATFORM)
 
+# To guarantee robust "set -x" operation
+export PS4=+
+
 # Target rules
 all:: $(TARGET)
 

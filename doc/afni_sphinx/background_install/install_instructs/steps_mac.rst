@@ -1,8 +1,8 @@
 
 .. _install_steps_mac:
 
-*Complete system setup for:  (modern) Mac OS*
-=============================================
+*The essential system setup for:* **Mac OS**
+============================================
 
 
 Here we describe a complete AFNI installation and system setup for Mac
@@ -113,7 +113,7 @@ operating system) to a link to install XQuartz.
         brew install glib
 
 
-#. **AFNI installation**
+#. **Install AFNI**
 
    a. Download and unpack the current binaries into your ``$HOME``
       directory, changing the directory name to ``$HOME/abin/``::
@@ -121,6 +121,10 @@ operating system) to a link to install XQuartz.
         cd
         curl -O https://afni.nimh.nih.gov/pub/dist/bin/macosx_10.7_Intel_64/@update.afni.binaries
         tcsh @update.afni.binaries -defaults
+
+     .. note:: if the binary package has already been downloaded, one can use ``-local_package``, followed by the location+name of the binary file, e.g.:
+
+      tcsh @update.afni.binaries -local_package macosx_10.7_Intel_64.tgz
 
    #. Update the path and library path.
 
@@ -174,6 +178,11 @@ operating system) to a link to install XQuartz.
    process!**
 
    .. include:: substep_evaluate.rst
+
+
+#. **(optional) Niceifying interfaces: it's a magical terminal.**
+
+   .. include:: substep_rcfiles.rst
 
 
 #. **Keeping up-to-date (remember).**
