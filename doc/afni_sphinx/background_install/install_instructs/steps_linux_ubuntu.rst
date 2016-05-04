@@ -54,11 +54,11 @@ list parallel instructions for each.
    Then install the appropriate AFNI package.  Note that most other
    Linux systems will probably work with linux_openmp_64::
 
-     tcsh @update.afni.binaries -package linux_openmp_64
+     tcsh @update.afni.binaries -package linux_openmp_64 -do_extras
 
    .. note:: If the binary package has already been downloaded, one can use ``-local_package``, followed by the location+name of the binary file, e.g.:
 
-      tcsh @update.afni.binaries -local_package linux_openmp_64.tgz
+      tcsh @update.afni.binaries -local_package linux_openmp_64.tgz -do_extras
 
 #. **Reboot.**
 
@@ -169,8 +169,9 @@ list parallel instructions for each.
 
 
        NB: ``@update.afni.binaries`` should have set the path in
-       ``$HOME/.cshrc``.  Verify this by visually checking that the same
-       'set path' line, above, in the (``tcsh``) profile::
+       ``$HOME/.cshrc`` (when using ``-do_extras``).  Verify this by
+       visually checking that the same 'set path' line, above, in the
+       (``tcsh``) profile::
 
          cat ~/.cshrc
 
