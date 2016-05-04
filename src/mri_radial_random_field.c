@@ -158,7 +158,8 @@ static int_triple get_random_field_size( int   nx, int   ny, int   nz,
    int_triple ijk ;
    float rr ; int qq , xx,yy,zz ;
 
-   rr = rfunc_inv( 0.04f , parm ) ; /* radius of kernel function for buffer */
+   rr = rfunc_inv( 0.02f , parm ) ; /* radius of kernel function for buffer */
+   INFO_message("Kernel function radius = %.2f mm",rr) ;
    xx = nx + 2*(int)ceilf(rr/dx) ;  /* expand for this buffer */
    yy = ny + 2*(int)ceilf(rr/dy) ;
    zz = nz + 2*(int)ceilf(rr/dz) ;
@@ -167,7 +168,8 @@ static int_triple get_random_field_size( int   nx, int   ny, int   nz,
    if( zz < 16 ) zz = 16 ;
    xx = csfft_nextup_one35(xx) ;    /* expand for FFT allowable sizes */
    yy = csfft_nextup_one35(yy) ;    /* (even with at most one) */
-   zz = csfft_nextup_one35(zz) ;    /* (factor of 3 and/or 5.) */
+   zz = csfft_nextup_one35(zz) ;    /* (factor of 3 and/or 5,) */
+                                    /* (for efficient FFT-ing) */
 
    ijk.i = xx ; ijk.j = yy ; ijk.k = zz ; return ijk ;
 }
@@ -266,6 +268,7 @@ static MRI_IMAGE * make_radial_weight( int   nx , int   ny , int   nz ,
    ijtop = itop*jtop ;
    fim = mri_new_vol( itop , jtop , ktop , MRI_float ) ;
    far = MRI_FLOAT_PTR(fim) ;
+   ININFO_message("Kernel image dimensions %d x %d x%d",itop,jtop,ktop) ;
 
    for( kk=0 ; kk < ktop ; kk++ ){
     for( jj=0 ; jj < jtop ; jj++ ){
