@@ -174,7 +174,72 @@ def db_cmd_tcat(proc, block):
 
     if proc.verb > 0: print "-- %s: reps is now %d" % (block.label, proc.reps)
 
+    tcat_extract_vr_base(proc)
+
     return cmd
+
+def tcat_extract_vr_base(proc):
+    """find volreb block
+       get block.opts.find_opt('-volreg_base_ind') and indices
+       if necessary,
+    """
+
+    # everything should exist, if the volreg block does
+    block = proc.find_block('volreg')
+    if not block: return
+
+    # if we have an external base, nothing to do
+    if proc.vr_ext_base: return
+
+    # already set if MIN_OUTLIER
+    if proc.vr_int_name == '':
+       bopt = block.opts.find_opt('-volreg_base_ind')
+       if not bopt:
+          print '** TEVB: no vr_int_name, no volreg_base_ind'
+          return
+
+       run = bopt.parlist[0]+1
+       ind = bopt.parlist[1]
+
+       # if negative, then 'last', and we need to re-extract run and index
+       if run <= 0 or ind < 0:
+          run = proc.runs
+          if proc.reps_vary: ind = proc.reps_all[-1] - 1
+          else:              ind = proc.reps - 1
+          if proc.verb > 2:
+             print '++ TEVB: updating run/index to %d, %d' % (run, ind)
+
+       set_vr_int_name(block, proc, 'vr_base', '%02d'%run, '"[%d]"'%ind)
+
+    # if we are extracting an internal volreg base (min outlier or index),
+    extract_registration_base(block, proc)
+
+
+def extract_registration_base(block, proc, prefix=''):
+   """at the end of previous (to volreg) block, extract vr_int_name
+      (min outlier or other) into vr_ext_pre
+   """
+
+   if proc.vr_int_name == '':
+      print '** ERB: no vr_int_name'
+      return 1
+
+   # if a prefix was passed use it
+   if prefix != '':
+      proc.vr_ext_pre = prefix
+
+   if proc.vr_ext_pre == '':
+      print '** ERB: no vr_ext_pre'
+      return 1
+
+   prev_block = proc.find_block(proc.prev_lab(block))
+   prev_block.post_cstr += \
+      '# --------------------------------\n' \
+      '# extract volreg registration base\n' \
+      '3dbucket -prefix %s %s\n\n' % (proc.vr_ext_pre, proc.vr_int_name)
+
+   return 0
+
 
 # --------------- post-data ---------------
 
@@ -1053,10 +1118,9 @@ def db_cmd_tshift(proc, block):
 
 def vr_do_min_outlier(block, proc, user_opts):
    # set up use of min outlier volume as volreg base
-   # 1. if not computing doing outliers, whine and return
+   # 1. if not computing outliers, whine and return
    # 2. after outlier command: set $minoutrun, $minouttr
-   # 3. after previous (to volreg) block command: extract 'min_outlier_volume'
-   #    --> set that as vr_ext_pre
+   # this volume will now be extracted elsewhere  26 Apr 2016
 
    # 1. are we computing outliers?
    if not proc.user_opts.have_yes_opt('outlier_count', default=1):
@@ -1066,9 +1130,8 @@ def vr_do_min_outlier(block, proc, user_opts):
 
    # let the user know, and init vr vars
    if proc.verb: print "-- will use min outlier volume as motion base"
-   proc.vr_int_name = 'pb%02d.$subj.r$minoutrun.%s%s"[$minouttr]"' \
-                      % (block.index-1, proc.prev_lab(block), proc.view)
-   proc.vr_ext_pre = 'min_outlier_volume'
+   set_vr_int_name(block, proc, 'vr_base_min_outlier', '$minoutrun',
+                                                       '"[$minouttr]"')
 
    # 2. assign $minout{run,tr}
    pblock = proc.find_block('postdata')
@@ -1087,12 +1150,21 @@ def vr_do_min_outlier(block, proc, user_opts):
       'echo "min outlier: run $minoutrun, TR $minouttr" | tee %s\n\n'   \
       % (proc.vr_ext_pre, outtxt)
 
-   # 3. extract registration base
-   
-   prev_block = proc.find_block(proc.prev_lab(block))
-   prev_block.post_cstr += \
-      '# copy min outlier volume as registration base\n' \
-      '3dbucket -prefix %s %s\n\n' % (proc.vr_ext_pre, proc.vr_int_name)
+def set_vr_int_name(block, proc, prefix='', runstr='', trstr=''):
+   """common usage: svin(b,p, 'vr_base_min_outlier',
+                         '$minoutrun', '"[$minouttr]"')
+   """
+
+   if runstr == '' or prefix == '':
+      print '** SVIN: bad run = %s, prefix = %s' % (runstr, prefix)
+      return 1
+
+   proc.vr_int_name = 'pb%02d.$subj.r%s.%s%s%s' \
+                      % (block.index-1, runstr, proc.prev_lab(block),
+                         proc.view, trstr)
+   proc.vr_ext_pre = prefix
+
+   return 0
 
 def db_mod_volreg(block, proc, user_opts):
     if len(block.opts.olist) == 0:   # init dset/brick indices to defaults
@@ -1114,7 +1186,9 @@ def db_mod_volreg(block, proc, user_opts):
               '   (please use -regress_motion_per_run, instead)'
         return 1
 
-    # check base_dset (do not allow with selector options)
+    # Option -volreg_base_dset sets vr_ext_base dset, which will be copied
+    # locally as vr_ext_pre.
+    # MIN_OUTLIERS will be extracted via vr_int_name into vr_ext_pre.
     if baseopt:
         if uopt or aopt:
             print "** cannot use -volreg_base_ind or _align_to with _base_dset"
@@ -1127,7 +1201,9 @@ def db_mod_volreg(block, proc, user_opts):
            # min outlier setup is actually applied in other blocks,
            # done via block.post_cstr commands
            if vr_do_min_outlier(block, proc, user_opts): return 1
-        else: proc.vr_ext_base = baseopt.parlist[0]
+        else:
+           # note: vr_ext_base means vr_ext_pre+view will exist
+           proc.vr_ext_base = baseopt.parlist[0]
 
     if uopt and bopt:
         # copy new params as ints
@@ -1153,8 +1229,12 @@ def db_mod_volreg(block, proc, user_opts):
             bopt.parlist[0] = 0
             bopt.parlist[1] = 2
         elif aopt.parlist[0] == 'last':
-            # if we don't know runs/reps yet, will have -1, which is okay
+            # for this we need to know #trs and first and last to remove,
+            # so if we don't know runs/reps yet, will have -1, which is okay
             # (if reps_vary is set, we should use reps_all)
+            #
+            # note: since we might not know the vr_base, it must be extracted
+            # after we do, which is in db_cmd_tcat()
             if proc.reps_vary: reps = proc.reps_all[-1]
             else:              reps = proc.reps
             bopt.parlist[0] = proc.runs - 1     # index of last dset
@@ -1426,11 +1506,6 @@ def db_cmd_volreg(proc, block):
                                      dim, all1_input, cstr)
         if wcmd == None: return
         cmd += wcmd
-
-    # if there is a base_dset option, check for failure in 3dvolreg
-    if basevol:
-        cmd = cmd + '\n    # if there was an error, exit so user can see'     \
-                    '\n    if ( $status ) exit\n\n'
 
     proc.mot_default = 'dfile_rall.1D'
     cmd = cmd + "end\n\n"                                                     \
@@ -6036,6 +6111,7 @@ g_help_string = """
                         -regress_bandpass 0.01 0.1              \\
                         -regress_apply_mot_types demean deriv   \\
                         -regress_run_clustsim no                \\
+                        -regress_est_blur_epits                 \\
                         -regress_est_blur_errts
                         
         Example 6. A modern example.  GOOD TO CONSIDER.
@@ -6263,6 +6339,10 @@ g_help_string = """
                  time series before the blur step, or remove blur from the list
                  of blocks (and apply any desired blur after the regression).
 
+           Note: it might be reasonable to estimate the blur using epits rather
+                 than errts in the case of bandpassing.  Both options are
+                 included here.
+
            Other options to consider: -tlrc_NL_warp, -anat_uniform_method
 
                 afni_proc.py -subj_id subj123                                \\
@@ -6277,6 +6357,7 @@ g_help_string = """
                   -regress_bandpass 0.01 0.1                                 \\
                   -regress_apply_mot_types demean deriv                      \\
                   -regress_run_clustsim no                                   \\
+                  -regress_est_blur_epits                                    \\
                   -regress_est_blur_errts
 
        Example 9b. Resting state analysis with ANATICOR.
@@ -6301,6 +6382,7 @@ g_help_string = """
                   -regress_bandpass 0.01 0.1                                 \\
                   -regress_apply_mot_types demean deriv                      \\
                   -regress_run_clustsim no                                   \\
+                  -regress_est_blur_epits                                    \\
                   -regress_est_blur_errts
 
        Example 10. Resting state analysis, with tissue-based regressors.
@@ -6318,6 +6400,10 @@ g_help_string = """
 
            Also, align to minimum outlier volume.
 
+           Note: it might be reasonable to estimate the blur using epits rather
+                 than errts in the case of bandpassing.  Both options are
+                 included here.
+
                 afni_proc.py -subj_id subj123                                \\
                   -dsets epi_run1+orig.HEAD                                  \\
                   -copy_anat anat+orig                                       \\
@@ -6334,6 +6420,7 @@ g_help_string = """
                   -regress_apply_mot_types demean deriv                      \\
                   -regress_ROI WMe                                           \\
                   -regress_run_clustsim no                                   \\
+                  -regress_est_blur_epits                                    \\
                   -regress_est_blur_errts
 
        Example 10b. Resting state analysis, with tissue-based regressors and
@@ -6385,6 +6472,15 @@ g_help_string = """
          o Compute average correlation volumes of the errts against the
            the gray matter (aeseg) and ventricle (FSVent) masks.
 
+           Note: it might be reasonable to use either set of blur estimates
+                 here (from epits or errts).  The epits (uncleaned) dataset
+                 has all of the noise (though what should be considered noise
+                 in this context is not clear), while the errts is motion
+                 censored.  For consistency in resting state, it would be
+                 reasonable to stick with epits.  They will likely be almost
+                 identical.
+
+
                 afni_proc.py -subj_id FT.11.rest                             \\
                   -blocks despike tshift align tlrc volreg blur mask regress \\
                   -copy_anat FT_SurfVol.nii                                  \\
@@ -6407,6 +6503,7 @@ g_help_string = """
                   -regress_censor_motion 0.2                                 \\
                   -regress_censor_outliers 0.1                               \\
                   -regress_apply_mot_types demean deriv                      \\
+                  -regress_est_blur_epits                                    \\
                   -regress_est_blur_errts                                    \\
                   -regress_run_clustsim no
 

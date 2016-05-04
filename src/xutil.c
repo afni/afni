@@ -504,7 +504,8 @@ Widget MCW_action_area( Widget parent, MCW_action_item *action, int num_act )
                   the widget to kill it.
 
       msg_type may also be OR-ed with MCW_TIMER_KILL to have the
-      message automatically killed after 22 seconds.
+      message automatically killed after 22 seconds --
+      OR with MCW_QUICK_KILL to be auto-killed after 7 seconds.
 --------------------------------------------------------------------*/
 
 Widget MCW_popup_message( Widget wparent , char *msg , int msg_type )
@@ -624,11 +625,12 @@ ENTRY("MCW_popup_message") ;
 
 #define ALLOW_TIMER_KILL
 #ifdef ALLOW_TIMER_KILL
-   if( (msg_type & MCW_TIMER_KILL) != 0 ){
+   if( (msg_type & (MCW_TIMER_KILL|MCW_QUICK_KILL)) ){
       XtIntervalId tid ;
+      unsigned long dtime = (msg_type & MCW_TIMER_KILL) ? 22111 : 7111 ;
 
       tid = XtAppAddTimeOut( XtWidgetToApplicationContext( wmsg ) ,
-                             22222 , MCW_message_timer_CB , wmsg   ) ;
+                             dtime , MCW_message_timer_CB , wmsg   ) ;
 
       XtVaSetValues( wlab , XmNuserData ,  tid , NULL ); /* put tid on wlab, */
    } else {                                            /* since shells don't */

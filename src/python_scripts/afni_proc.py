@@ -501,9 +501,11 @@ g_history = """
           (FT.nii was not perfectly aligned with parcellation)
         - added FREESURFER NOTE
     4.58 Jan 27, 2016: allow for tissue PC regression with only regress block
+    4.59 Apr 27, 2016: always extract volreg base image vr_base*
+    4.60 May  3, 2016: suggest -regress_est_blur_epits for resting state
 """
 
-g_version = "version 4.58, January 27, 2016"
+g_version = "version 4.60, May 3, 2016"
 
 # version of AFNI required for script execution
 # prev: g_requires_afni =  "1 Apr 2015" # 1d_tool.py uncensor from 1D
@@ -1628,7 +1630,7 @@ class SubjProcSream:
                 if block.post_cstr != '':
                    if self.verb > 2:
                       print '++ adding post_cstr to block %s:\n%s=======' \
-                            (block.label, block.post_cstr)
+                            % (block.label, block.post_cstr)
                    cmd_str += block.post_cstr
                 self.write_text(add_line_wrappers(cmd_str))
                 if self.verb>3: block.show('+d post command creation: ')

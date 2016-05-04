@@ -48,6 +48,7 @@ history for $prog :
   2.4  30 Mar 2016 : possibly udpate .bashrc after .cshrc
   2.5  07 Apr 2016 : added -proto and -test_protos options
   2.6  08 Apr 2016 : save -test_protos results
+  2.7  28 Apr 2016 : added -local_package option
 -------------------------------------------------------------------------------
 EOF
 exit
@@ -55,7 +56,7 @@ POST_HIST:
 # end history section
 # ----------------------------------------------------------------------
 
-set aub_version = "2.6, April 8, 2016"
+set aub_version = "2.7, April 28, 2016"
 
 # ----------------------------------------------------------------------
 # apply any options
@@ -63,6 +64,7 @@ set aub_version = "2.6, April 8, 2016"
 # initialize options to 'unset'
 set abin = ""
 set package = ""
+set local_package = ""          # existing .tgz package to use (no download)
 set prog_list = ()              # update programs or entire package
 set tmp_dir = ".tmp.install"    # should start with '.'
 set make_backup = 1             # backup previous binaires
@@ -120,8 +122,23 @@ while ( $ac <= $#argv )
         exit 0
     else if ( "$argv[$ac]" == "-hist" ) then
         goto SHOW_HIST
-    else if ( "$argv[$ac]" == "-revert" ) then
-        set revert = 1
+    else if ( "$argv[$ac]" == "-local_package" ) then
+        @ ac ++
+        if ( $ac > $#argv ) then
+            echo "** missing parameter for option '-local_package'"
+            exit 1
+        endif
+        set local_package = $argv[$ac]
+
+        # allow missing .tgz
+        if ( ! -f $local_package && -f $local_package.tgz ) then
+           set local_package = $local_package.tgz
+        endif
+
+        if ( ! -f $local_package ) then
+           echo "** missing -local_package file '$local_package'"
+           exit 1
+        endif
     else if ( "$argv[$ac]" == "-package" ) then
         @ ac ++
         if ( $ac > $#argv ) then
@@ -158,6 +175,8 @@ while ( $ac <= $#argv )
            # use as is
            set hostproto = $argv[$ac]
         endif
+    else if ( "$argv[$ac]" == "-revert" ) then
+        set revert = 1
     else if ( "$argv[$ac]" == "-no_cert_verify" ) then
         # add options to turn verification off
         set cert_verify = 0
@@ -203,125 +222,143 @@ endif
 
 # if requested, show help and exit
 if ( $help ) then
-    echo "------------------------------------------------------------"
-    echo "$prog   - upgrade AFNI binaries"
-    echo ""
-    echo "Update the AFNI binaries, either via '-defaults' or by the"
-    echo "'-bindir' and/or '-package' options."
-    echo ""
-    echo "examples:"
-    echo ""
-    echo "    $prog -defaults"
-    echo "    $prog -package linux_xorg7"
-    echo "    $prog -package linux_xorg7 -bindir ~/abin"
-    echo "    $prog -package linux_openmp_64 \\"
-    echo "                          -programs file_tool python_scripts/*.py"
-    echo ""
-    echo "options:"
-    echo ""
-    echo "    -help                 : show this help"
-    echo "    -help_sys_progs       : list system programs that block update"
-    echo ""
-    echo "       See -sys_ok for details."
-    echo ""
-    echo "    -apsearch yes/no      : specify getting apsearch updates"
-    echo "    -bindir ABIN          : set AFNI binary directory to ABIN"
-    echo "    -curl                 : default to curl instead of wget"
-    echo "    -defaults             : install current package into abin"
-    echo "    -d                    : (short for -defaults)"
-    echo ""
-    echo "        This would be the method to 'update the package that I"
-    echo "        am currently using'."
-    echo ""
-    echo "        The package would be decided by 'afni -ver' and the"
-    echo "        directory would come from 'which afni'.  If either of"
-    echo "        these is not appropriate, the package would be determined"
-    echo "        by the OS (Linux or OSX allowed, 32 or 64-bits), and the"
-    echo "        install dir would be ~/abin."
-    echo ""
-    echo "        If -bindir or -package cannot be determined, it must be"
-    echo "        supplied by the user."
-    echo ""
-    echo "        26 Sep 2012 : -update_apsearch is applied by default"
-    echo "                      (if installed afni is in PATH)"
-    echo ""
-    echo "    -no_cert_verify       : do not verify the server CA certificate"
-    echo ""
-    echo "        This option is regarding SSL/TLS Certificate Verification"
-    echo "        via some CA (certificate authority) list.  It may be needed"
-    echo "        if the client CA list does not recognize the certificate"
-    echo "        provided by the afni server."
-    echo ""
-    echo "        For curl, this appends the '--insecure' option."
-    echo "        For wget, this appends the '--no-check-certificate' option."
-    echo ""
-    echo "        To check whether curl requires this, look for WinSSL in the"
-    echo "        output from: curl -V"
-    echo ""
-    echo "        See https://curl.haxx.se/docs/sslcerts.html for details."
-    echo ""
-    echo "    -no_recur             : do not download and run new @uab script"
-    echo "    -package PACKAGE      : install distribution package PACKAGE"
-    echo "    -prog_list PROGRAMS   : install given programs, not whole PACKAGE"
-    echo ""
-    echo "        With this option, the listed programs would be installed,"
-    echo "        rather than the entire PACKAGE."
-    echo ""
-    echo "        Note: directories are not allowed (e.g. meica.libs)"
-    echo ""
-    echo "        For example, consider:"
-    echo ""
-    echo "          -prog_list suma python_scripts/*.py"
-    echo ""
-    echo "        In this case, suma and the individual python files would all"
-    echo "        end up in abin, with no directories."
-    echo ""
-    echo "    -proto PROTOCOL       : access afni host via this PROTOCOL"
-    echo ""
-    echo "        e.g. -proto http"
-    echo "        default: https"
-    echo ""
-    echo "        Use this option to specify the download protocol.  PROTOCOL may"
-    echo "        https, http or NONE (meaning not to prefix siteaname with any)."
-    echo ""
-    echo "    -quick                : quick mode, no fancies"
-    echo ""
-    echo "        This option blocks unwanted or unneeded actions, mostly for"
-    echo "        testing.  It basically applies:"
-    echo ""
-    echo "           -no_recur"
-    echo "           -apsearch no"
-    echo ""
-    echo "    -sys_ok               : OK to update, even if system progs found"
-    echo ""
-    echo "        If any system program (e.g. man, sudo, xterm, yum) is found,"
-    echo "        the default behavior is not to continue the update.  Note"
-    echo "        that if 'afni -ver' shows a Debian package, then updates"
-    echo "        should be done via apt-get, not this program."
-    echo ""
-    echo "        Use -sys_ok to all the update to proceed."
-    echo ""
-    echo "        See -help_sys_progs for a list of checked system programs."
-    echo ""
-    echo "    -test                 : just attempt the download and quit"
-    echo ""
-    echo "    -test_protos          : test download protocols and exit"
-    echo ""
-    echo "    -revert               : revert binaries to previous version"
-    echo ""
-    echo "        Revert the AFNI binaries to those in directory"
-    echo "        ABIN/auto_backup.PACKAGE, where ABIN would otherwise be"
-    echo "        considered the installation directory."
-    echo ""
-    echo "        Use this option if the last update of the binaries got"
-    echo "        you a lump of coal." 
-    echo ""
-    echo "        There should be only 1 backup to revert to.  One cannot"
-    echo "        revert back 2 levels, say."
-    echo ""
-    echo "Note that the user must have write permissions in the ABIN"
-    echo "directory."
-    echo ""
+cat << EOF
+------------------------------------------------------------
+$prog   - upgrade AFNI binaries
+
+Update the AFNI binaries, either via '-defaults' or by the
+'-bindir' and/or '-package' options.
+
+examples:
+
+    $prog -defaults
+    $prog -package linux_xorg7
+    $prog -package linux_xorg7 -bindir ~/abin
+    $prog -package linux_openmp_64 -programs suma 3dRSFC
+    $prog -package linux_openmp_64 -programs file_tool python_scripts/*.py
+    $prog -local_package linux_openmp_64.tgz
+
+options:
+
+    -help                 : show this help
+    -help_sys_progs       : list system programs that block update
+
+       See -sys_ok for details.
+
+    -apsearch yes/no      : specify getting apsearch updates
+    -bindir ABIN          : set AFNI binary directory to ABIN
+    -curl                 : default to curl instead of wget
+    -defaults             : install current package into abin
+    -d                    : (short for -defaults)
+
+        This would be the method to 'update the package that I
+        am currently using'.
+
+        The package would be decided by 'afni -ver' and the
+        directory would come from 'which afni'.  If either of
+        these is not appropriate, the package would be determined
+        by the OS (Linux or OSX allowed, 32 or 64-bits), and the
+        install dir would be ~/abin.
+
+        If -bindir or -package cannot be determined, it must be
+        supplied by the user.
+
+        26 Sep 2012 : -update_apsearch is applied by default
+                      (if installed afni is in PATH)
+
+    -no_cert_verify       : do not verify the server CA certificate
+
+        This option is regarding SSL/TLS Certificate Verification
+        via some CA (certificate authority) list.  It may be needed
+        if the client CA list does not recognize the certificate
+        provided by the afni server.
+
+        For curl, this appends the '--insecure' option.
+        For wget, this appends the '--no-check-certificate' option.
+
+        To check whether curl requires this, look for WinSSL in the
+        output from: curl -V
+
+        See https://curl.haxx.se/docs/sslcerts.html for details.
+
+    -no_recur             : do not download and run new @uab script
+
+    -local_package PACKAGE : install local PACKAGE.tgz package
+
+        This is a way to install an existing tgz file without needed
+        to download it.
+
+    -prog_list PROGRAMS   : install given programs, not whole PACKAGE
+
+        With this option, the listed programs would be installed,
+        rather than the entire PACKAGE.
+
+        Note: directories are not allowed (e.g. meica.libs)
+
+    -package PACKAGE      : install distribution package PACKAGE
+                            (see also -local_package)
+
+    -prog_list PROGRAMS   : install given programs, not whole PACKAGE
+
+        With this option, the listed programs would be installed,
+        rather than the entire PACKAGE.
+
+        Note: directories are not allowed (e.g. meica.libs)
+
+        For example, consider:
+
+          -prog_list suma python_scripts/*.py
+
+        In this case, suma and the individual python files would all
+        end up in abin, with no directories.
+
+    -proto PROTOCOL       : access afni host via this PROTOCOL
+
+        e.g. -proto http
+        default: https
+
+        Use this option to specify the download protocol.  PROTOCOL may
+        https, http or NONE (meaning not to prefix siteaname with any).
+
+    -quick                : quick mode, no fancies
+
+        This option blocks unwanted or unneeded actions, mostly for
+        testing.  It basically applies:
+
+           -no_recur
+           -apsearch no
+
+    -sys_ok               : OK to update, even if system progs found
+
+        If any system program (e.g. man, sudo, xterm, yum) is found,
+        the default behavior is not to continue the update.  Note
+        that if 'afni -ver' shows a Debian package, then updates
+        should be done via apt-get, not this program.
+
+        Use -sys_ok to all the update to proceed.
+
+        See -help_sys_progs for a list of checked system programs.
+
+    -test                 : just attempt the download and quit
+
+    -test_protos          : test download protocols and exit
+
+    -revert               : revert binaries to previous version
+
+        Revert the AFNI binaries to those in directory
+        ABIN/auto_backup.PACKAGE, where ABIN would otherwise be
+        considered the installation directory.
+
+        Use this option if the last update of the binaries got
+        you a lump of coal.
+
+        There should be only 1 backup to revert to.  One cannot
+        revert back 2 levels, say.
+
+Note that the user must have write permissions in the ABIN
+directory.
+EOF
+
     exit
 endif
 
@@ -351,6 +388,39 @@ if ( $abin == "" ) then
        set abin = $cur_afni
        echo "-- install dir: using existing $abin"
     endif
+endif
+
+# check on -local_package (require $package == "")
+# file will be at: $local_package_dir/$local_package
+if ( $local_package != "" ) then
+   if ( $package != "" ) then
+      echo "** cannot use -local_package with -package"
+      exit 1
+   endif
+
+   if ( ! -f $local_package ) then
+      echo "** -local_package file does not seem to exist: $local_package"
+      exit 1
+   endif
+
+   # get the directory of the file
+   if ( $local_package == $local_package:h ) then
+      set local_package_dir = `pwd`
+   else if ( -d $local_package:h ) then
+      # path to file
+      cd $local_package:h
+      set local_package_dir = `pwd`
+      cd -
+
+      # and clear the path
+      set local_package = $local_package:t
+   else
+      echo "** cannot determine path to -local_package file, $local_package"
+      exit 1
+   endif
+
+   # use package for extensionless name
+   set package = $local_package:r
 endif
 
 # possibly apply default package
@@ -598,8 +668,20 @@ if ( $do_recur ) then
       \mv $prog ../$temp_prog
       cd ..     # so we don't sit in deleted directory
 
-      echo "++ running: tcsh $temp_prog -no_recur $argv"
-      tcsh $temp_prog -no_recur $argv
+      # if local_package, we need to change the path to the file
+      set args = ( $argv )
+      if ( $local_package != "" ) then
+         set ind = 1
+         while ( $ind < $#args )
+            if ( $args[$ind] == "-local_package" ) then
+               set args[$ind+1] = $local_package_dir/$local_package
+               break
+            endif
+         end
+      endif
+
+      echo "++ running: tcsh $temp_prog -no_recur $args"
+      tcsh $temp_prog -no_recur $args
       set ss = $status
       if ( ! $ss ) then
          echo "...finished, removing temp version, $temp_prog"
@@ -700,41 +782,43 @@ endif
 # ----------------------------------------------------------------------
 # just download single afni binary and compare
 # (if prog_list, use first prog in list)
-if ( $#prog_list > 0 ) then
-  set pp = $prog_list[1]:t
-  # directories are not allowed (harder to download)
-  foreach ppp ( $prog_list )
-     set prog = $ppp:t
-     if ( -d ../$prog ) then
-        echo "** error: $prog is a directory"
-        exit
-     endif
-  end
-else
-  set pp = afni
-endif
-set get_package = $hostsite/pub/dist/bin/$package/$pp
-echo "++ downloading test file: $get_prog $package/$pp ..."
-$get_prog $get_package
-cmp -s $pp ../$pp
-if ( ! $status ) then
-    echo "++ no update needed"
-    cd ..
-    \rm -fr $tmp_dir
-    exit
-else if ( $#prog_list > 0 ) then
-    echo "-- overwriting test update file, $pp"
-    chmod a+x $pp
-else
-    \rm $pp
-endif
+if ( $local_package == "" ) then
+   if ( $#prog_list > 0 ) then
+     set pp = $prog_list[1]:t
+     # directories are not allowed (harder to download)
+     foreach ppp ( $prog_list )
+        set prog = $ppp:t
+        if ( -d ../$prog ) then
+           echo "** error: $prog is a directory"
+           exit
+        endif
+     end
+   else
+     set pp = afni
+   endif
+   set get_package = $hostsite/pub/dist/bin/$package/$pp
+   echo "++ downloading test file: $get_prog $package/$pp ..."
+   $get_prog $get_package
+   cmp -s $pp ../$pp
+   if ( ! $status ) then
+       echo "++ no update needed"
+       cd ..
+       \rm -fr $tmp_dir
+       exit
+   else if ( $#prog_list > 0 ) then
+       echo "-- overwriting test update file, $pp"
+       chmod a+x $pp
+   else
+       \rm $pp
+   endif
 
-# if just testing, we are done
-if ( $testing ) then
-    echo "++ install needed, but just testing download via '$get_prog', done"
-    echo "(temp download in `pwd`)"
-    exit
-endif
+   # if just testing, we are done
+   if ( $testing ) then
+       echo "++ install needed, but just testing download via '$get_prog', done"
+       echo "(temp download in `pwd`)"
+       exit
+   endif
+endif # no local_package
 
 echo ""
 echo "++ update needed, installing..."
@@ -746,12 +830,15 @@ sleep 1
 
 # download the full binary set or list of programs
 if ( $#prog_list == 0 ) then
-   echo "++ downloading full package: $get_prog $package.tgz ..."
-   set get_package = $hostsite/pub/dist/tgz/$package.tgz
-   $get_prog $get_package
-   if ( $status ) then
-       echo "** failed to download package $get_package"
-       exit 1
+   # if local, nothing to download
+   if ( $local_package == "" ) then
+      echo "++ downloading full package: $get_prog $package.tgz ..."
+      set get_package = $hostsite/pub/dist/tgz/$package.tgz
+      $get_prog $get_package
+      if ( $status ) then
+          echo "** failed to download package $get_package"
+          exit 1
+      endif
    endif
 else
    # prog_list, get each file
@@ -772,10 +859,17 @@ endif
 
 # if no prog_list, extract package
 if ( $#prog_list == 0 ) then
-   echo "++ extracting package $package..."
-   tar xfz $package.tgz
+   if ( $local_package != "" ) then
+      set pfile = $local_package_dir/$local_package
+      echo "++ extracting local package $package from $pfile..."
+   else
+      set pfile = $package.tgz
+      echo "++ extracting package $pfile..."
+   endif
+
+   tar xfz $pfile
    if ( $status ) then
-       echo "** failed to extract package $package.tgz"
+       echo "** failed to extract package $pfile"
        exit 1
    endif
 endif
