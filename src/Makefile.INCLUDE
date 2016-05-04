@@ -98,7 +98,7 @@ PROGRAMS = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge count   
            column_cat 3dUnifize 3dNwarpCat 3dQwarp 3dLocalHistog 3dNwarpAdjust  \
            3dNwarpFuncs 3dTproject afni_open 3dConformist 3dNwarpXYZ 3dTRfix    \
            3dToyProg 3dRankizer nifti1_tool gifti_tool cifti_tool  \
-           3dECM 3dMSE 3dLFCD 3dDegreeCentrality 3dCWAS \
+           3dECM 3dMSE 3dLFCD 3dDegreeCentrality 3dsvm_linpredict 3dCWAS \
            $(EXTRAS)
 
 PROGRAMS_NOPLUG = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge      \
@@ -135,7 +135,11 @@ PROGRAMS_NOPLUG = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge  
                   3dUnifize 3dNwarpCat 3dQwarp 3dLocalHistog 3dNwarpAdjust 3dTRfix  \
                   3dNwarpFuncs 3dTproject  afni_open   3dConformist 3dNwarpXYZ      \
                   3dToyProg nifti1_tool gifti_tool cifti_tool    \
+<<<<<<< HEAD
                   3dDegreeCentrality 3dECM 3dMSE 3dLFCD 3dCWAS \
+=======
+                  3dDegreeCentrality 3dECM 3dMSE 3dLFCD  3dsvm_linpredict \
+>>>>>>> 09eb43387dd3181d07bc2148f6e617d4420d8fc7
                   $(EXTRAS)
 
 # For CYGWIN (look for "exe" to find various places below)
@@ -910,6 +914,10 @@ afni_open:afni_open.c
 3duuu2:3duuu2.o uuu2.c
 	$(RM) $@
 	$(CC) -o 3duuu2 3duuu2.o $(LFLAGS) $(LLIBS)
+
+3dsvm_linpredict:3dsvm_linpredict.o
+	$(RM) $@
+	$(CC) -o 3dsvm_linpredict 3dsvm_linpredict.o $(LFLAGS) $(LLIBS)
 
 3ddot:3ddot.o
 	$(RM) $@
