@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 4 , MAY , 2016 , RWC , "3dREMLfit" , MICRO , TYPE_BUG_FIX ,
+   "-dsort always produced the _nods dataset; now, only if -nods is used" ,
+   NULL } ,
+
  { 27 , APR , 2016 , RWC , "afni + 3dGroupInCorr" , MICRO , TYPE_GENERAL ,
    "Remind user of what to do after 3dGIC connects to afni GUI" ,
    "This is the Caballero-Rossi popup reminder." } ,
