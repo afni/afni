@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  4,  May, 2016, RCR, "@update.afni.binaries", MICRO, TYPE_MODIFY,
+   "add -do_dotfiles and -do_extras",
+   "Running apsearch and possibly editing dot files is only on request."
+ } ,
+
  {  3,  May, 2016, RCR, "afni_proc.py", MICRO, TYPE_MODIFY,
    "suggest -regress_est_blur_epits for resting state",
    "Thanks to S Torrisi for bringing up the question."
