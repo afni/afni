@@ -132,7 +132,7 @@ operating system) to a link to install XQuartz.
 
       .. note:: ``$PATH`` in ``~/.cshrc`` and ``~/.bashrc`` was set by ``@update.afni.binaries -do_extras``
 
-      * *for tcsh* 
+      * *for tcsh* ::
 
           echo 'setenv DYLD_FALLBACK_LIBRARY_PATH $HOME/abin' >> ~/.cshrc
           echo 'setenv PYTHONPATH /usr/local/lib/python2.7/site-packages' >> ~/.cshrc
