@@ -49,6 +49,8 @@ history for $prog :
   2.5  07 Apr 2016 : added -proto and -test_protos options
   2.6  08 Apr 2016 : save -test_protos results
   2.7  28 Apr 2016 : added -local_package option
+  2.8  04 May 2016 : added -do_dotfiles and -do_extras
+                     (dot files and apsearch are now only done on request)
 -------------------------------------------------------------------------------
 EOF
 exit
@@ -82,7 +84,9 @@ endif
 set testing     = 0
 set test_protos = 0     # test download protocols
 set use_curl    = 0
-set do_apsearch = 1     # run apserach -update_all_afni_help
+set do_extras   = 0     # possibly include apearch and dotfiles
+set do_apsearch = 0     # run apserach -update_all_afni_help
+set do_dotfiles = 0     # if needed, initialize dotfiles
 set do_recur    = 1     # download a new version of @uab, first
 set quick       = 0     # no fancies (recur, apsearch)
 set revert      = 0     # revert binaries to those in backup directory
@@ -100,7 +104,11 @@ while ( $ac <= $#argv )
             exit 1
         endif
         set resp = `echo $argv[$ac] | cut -b1`
-        if ( $resp == 'N' || $resp == 'n' ) set do_apsearch = 0
+        if ( $resp == 'N' || $resp == 'n' ) then
+           set do_apsearch = 0
+        else
+           set do_apsearch = 1
+        endif
     else if ( "$argv[$ac]" == "-bindir" ) then
         @ ac ++
         if ( $ac > $#argv ) then
@@ -112,6 +120,11 @@ while ( $ac <= $#argv )
         set use_curl = 1
     else if ( "$argv[$ac]" == "-d" || "$argv[$ac]" == "-defaults" ) then
         set defaults = 1
+    else if ( "$argv[$ac]" == "-do_dotfiles" ) then
+        set do_dotfiles = 1
+    else if ( "$argv[$ac]" == "-do_extras" ) then
+        set do_apsearch = 1
+        set do_dotfiles = 1
     else if ( "$argv[$ac]" == "-help" ) then
         set help = 1
     else if ( "$argv[$ac]" == "-help_sys_progs" ) then
@@ -217,6 +230,7 @@ endif
 if ( $quick ) then
    set do_recur = 0
    set do_apsearch = 0
+   set do_dotfiles = 0
 endif
 
 
@@ -231,12 +245,29 @@ Update the AFNI binaries, either via '-defaults' or by the
 
 examples:
 
-    $prog -defaults
-    $prog -package linux_xorg7
-    $prog -package linux_xorg7 -bindir ~/abin
-    $prog -package linux_openmp_64 -programs suma 3dRSFC
-    $prog -package linux_openmp_64 -programs file_tool python_scripts/*.py
-    $prog -local_package linux_openmp_64.tgz
+    individual user: initial install or udpate
+
+       The default package is linux_openmp_64 (Linux) or macosx_10.7_Intel_64
+       (OS X).  The default binary directory is ~/abin.
+
+       $prog -defaults -do_extras
+
+
+    root user: initial install or udpate
+
+       $prog -package linux_openmp_64 -bindir /usr/local/AFNIbin
+       $prog -local_package linux_openmp_64.tgz -bindir /usr/local/AFNIbin
+
+
+    other examples:
+
+       $prog -defaults
+       $prog -package linux_openmp_64
+       $prog -package linux_openmp_64 -bindir ~/abin
+       $prog -package linux_openmp_64 -programs suma 3dRSFC
+       $prog -package linux_openmp_64 -programs file_tool python_scripts/*.py
+
+       $prog -local_package macosx_10.7_Intel_64.tgz
 
 options:
 
@@ -248,6 +279,7 @@ options:
     -apsearch yes/no      : specify getting apsearch updates
     -bindir ABIN          : set AFNI binary directory to ABIN
     -curl                 : default to curl instead of wget
+
     -defaults             : install current package into abin
     -d                    : (short for -defaults)
 
@@ -265,6 +297,23 @@ options:
 
         26 Sep 2012 : -update_apsearch is applied by default
                       (if installed afni is in PATH)
+
+    -do_dotfiles          : if needed, try to initialize dot files
+
+        If .cshrc (or maybe .tcshrc) or .bashrc do not have the
+        AFNI binary directory in the file (grep), add a line to
+        update the PATH in each file.
+
+        Both files are updated (if need be).
+
+      * This option has no effect for the root user.
+
+    -do_extras            : do extra niceties (beyond simple install)
+
+        This is a convenience option that implies:
+
+           -apsearch yes
+           -do_dotfiles
 
     -no_cert_verify       : do not verify the server CA certificate
 
@@ -318,7 +367,7 @@ options:
         default: https
 
         Use this option to specify the download protocol.  PROTOCOL may
-        https, http or NONE (meaning not to prefix siteaname with any).
+        https, http or NONE (meaning not to prefix site name with any).
 
     -quick                : quick mode, no fancies
 
@@ -357,6 +406,7 @@ options:
 
 Note that the user must have write permissions in the ABIN
 directory.
+
 EOF
 
     exit
@@ -370,11 +420,9 @@ which afni >& /dev/null
 if ( $status ) then
    echo "-- no current AFNI package..."
    set cur_afni = ""
-   set new_install = 1
 else
    set cur_afni = `which afni`
    set cur_afni = $cur_afni:h
-   set new_install = 0
    echo "-- have AFNI binaries under $cur_afni"
 endif
 
@@ -955,7 +1003,7 @@ endif
 
 # if this is a new install and we are not root, update .cshrc
 set rcfile = ~/.cshrc
-if ( $new_install && -d $abin && $?USER ) then
+if ( $do_dotfiles && -d $abin && $?USER ) then
    if ( $USER != root ) then
       if ( -f ~/.tcshrc ) then
          set rcfile = ~/.tcshrc
@@ -964,7 +1012,7 @@ if ( $new_install && -d $abin && $?USER ) then
       else
          set rcfile = ~/.cshrc
          echo ++ creating empty $rcfile
-         echo "" > $rcfile
+         touch $rcfile
       endif
 
       grep $abin:t $rcfile >& /dev/null
