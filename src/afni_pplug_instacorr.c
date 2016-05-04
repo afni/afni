@@ -573,7 +573,10 @@ static char * ICOR_main( PLUGIN_interface *plint )
    INSTACORR_LABEL_ON(im3d) ;
 
    etim = PLUTO_elapsed_time() - etim ;
-   INFO_message("InstaCorr setup: %d voxels ready for work: %.2f sec",qq,etim) ;
+
+     INFO_message("InstaCorr setup: %d voxels ready for work: %.2f sec",qq,etim) ;
+   ININFO_message("..... Use 'InstaCorr Set' to pick a seed voxel .....") ;
+   ININFO_message("..... (Mouse-right-click menu in image viewer) .....") ;
 
    im3d->iset = iset ;
 
