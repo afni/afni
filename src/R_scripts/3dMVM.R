@@ -1268,8 +1268,8 @@ read.MVM.opts.from.file <- function (modFile='model.txt', verb = 0) {
    if(!exists('.DBG_args')) { 
       args = (commandArgs(TRUE))  
       rfile <- first.in.path(sprintf('%s.R',ExecName))
-      # do not save these log files on -help    31 Mar 2016 [rickr]
-      if (! '-help' %in% args) try(save(args, rfile, file=".3dMVM.dbg.AFNI.args", ascii = TRUE), silent=TRUE) 
+       # save only on -dbg_args          28 Apr 2016 [rickr]
+       if ('-dbg_args' %in% args) try(save(args, rfile, file="3dMVM.dbg.AFNI.args", ascii = TRUE), silent=TRUE) 
    } else {
       note.AFNI("Using .DBG_args resident in workspace")
       args <- .DBG_args
@@ -1425,8 +1425,8 @@ dimz <- inData$dim[3]
 head <- inData
 
 # Read in all input files
-inData <- unlist(lapply(lapply(lop$dataStr[,FileCol], read.AFNI, verb=lop$verb, meth=lop$iometh, forcedset = TRUE), '[[', 1))
-tryCatch(dim(inData) <- c(dimx, dimy, dimz, lop$NoFile), error=function(e)
+ inData <- unlist(lapply(lapply(lop$dataStr[,FileCol], read.AFNI, verb=lop$verb, meth=lop$iometh, forcedset = TRUE), '[[', 1))
+ tryCatch(dim(inData) <- c(dimx, dimy, dimz, lop$NoFile), error=function(e)
     errex.AFNI(c("Problem with input files! Two possibilities: 1) There is a specification error\n",
    "with either file path or file name. Use shell command \'ls\' on the last column in the\n",
    "data table to find out the problem. 2) At least one of the input files has different\n",
@@ -1583,7 +1583,7 @@ while(is.null(fm)) {
       cat('3) Mistakes in data table. Check the data structure shown above, and verify\n')
       cat('whether there are any inconsistencies.\n\n')
       cat('4) Inconsistent variable names which are case sensitive. For example, factor\n')
-      cat('named Group in model specification and then listed as group in the table hader\n')
+      cat('named Group in model specification and then listed as group in the table header\n')
       cat('would cause grief for 3dMVM.\n\n')
       cat('5) Not enough number of subjects. This may happen when there are two or more\n')
       cat('withi-subject factors. For example, a model with two within-subject factors with\n')
