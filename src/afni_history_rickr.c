@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  5,  May, 2016, RCR, "@update.afni.binaries", MICRO, TYPE_MODIFY,
+   "-defaults similarly implies -do_dotfiles and apsearch yes",
+   NULL
+ } ,
+
  {  4,  May, 2016, RCR, "@update.afni.binaries", MICRO, TYPE_MODIFY,
    "add -do_dotfiles and -do_extras",
    "Running apsearch and possibly editing dot files is only on request."
