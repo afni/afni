@@ -44,6 +44,11 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 5 , MAY , 2016 , RWC , "3dTstat" , MICRO , TYPE_NEW_OPT ,
+   "Option -percentile P" ,
+   "Computes the Pth percentile 0 <= P <= 100 of the data in each voxel. \n"
+   "Can only be used once per run!" } ,
+
  { 4 , MAY , 2016 , RWC , "3dREMLfit" , MICRO , TYPE_BUG_FIX ,
    "-dsort always produced the _nods dataset; now, only if -nods is used" ,
    NULL } ,
