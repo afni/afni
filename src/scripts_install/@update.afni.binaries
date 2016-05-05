@@ -51,6 +51,7 @@ history for $prog :
   2.7  28 Apr 2016 : added -local_package option
   2.8  04 May 2016 : added -do_dotfiles and -do_extras
                      (dot files and apsearch are now only done on request)
+  2.9  05 May 2016 : -defaults implies -do_dotfiles and -apsearch yes
 -------------------------------------------------------------------------------
 EOF
 exit
@@ -58,7 +59,7 @@ POST_HIST:
 # end history section
 # ----------------------------------------------------------------------
 
-set aub_version = "2.7, April 28, 2016"
+set aub_version = "2.9, May 5, 2016"
 
 # ----------------------------------------------------------------------
 # apply any options
@@ -120,6 +121,8 @@ while ( $ac <= $#argv )
         set use_curl = 1
     else if ( "$argv[$ac]" == "-d" || "$argv[$ac]" == "-defaults" ) then
         set defaults = 1
+        set do_apsearch = 1
+        set do_dotfiles = 1
     else if ( "$argv[$ac]" == "-do_dotfiles" ) then
         set do_dotfiles = 1
     else if ( "$argv[$ac]" == "-do_extras" ) then
@@ -285,6 +288,8 @@ options:
 
         This would be the method to 'update the package that I
         am currently using'.
+
+        This option implies -do_dotfiles and -apsearch yes.
 
         The package would be decided by 'afni -ver' and the
         directory would come from 'which afni'.  If either of
