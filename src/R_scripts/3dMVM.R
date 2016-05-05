@@ -32,7 +32,7 @@ help.MVM.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
           ================== Welcome to 3dMVM ==================          
     AFNI Group Analysis Program with Multi-Variate Modeling Approach
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 3.8.1, April 11, 2016
+Version 3.8.1, May 4, 2016
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - https://afni.nimh.nih.gov/sscc/gangc/MVM.html
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -1268,8 +1268,8 @@ read.MVM.opts.from.file <- function (modFile='model.txt', verb = 0) {
    if(!exists('.DBG_args')) { 
       args = (commandArgs(TRUE))  
       rfile <- first.in.path(sprintf('%s.R',ExecName))
-      # save only on -dbg_args          28 Apr 2016 [rickr]
-      if ('-dbg_args' %in% args) try(save(args, rfile, file="3dMVM.dbg.AFNI.args", ascii = TRUE), silent=TRUE) 
+       # save only on -dbg_args          28 Apr 2016 [rickr]
+       if ('-dbg_args' %in% args) try(save(args, rfile, file="3dMVM.dbg.AFNI.args", ascii = TRUE), silent=TRUE) 
    } else {
       note.AFNI("Using .DBG_args resident in workspace")
       args <- .DBG_args
@@ -1640,7 +1640,7 @@ lop$nF <- ifelse(lop$mvE5, lop$nF_mvE5, lop$nFu + lop$nFsc + nF_MVT + lop$nFm + 
                                                 
 NoBrick <- lop$nF + lop$GES*lop$nF + 2*lop$num_glt + lop$num_glf
 
-if(lop$robust) brickNames <- paste(dimnames(uvfm)[[1]][1:(length(dimnames(uvfm)[[1]]))], 'F') else {
+if(lop$robust) brickNames <- paste(dimnames(uvfm)[[1]][1:lop$nFu], 'F') else {
    if(is.na(lop$wsVars) & is.na(lop$mVar)) {
       if(lop$afex_new) brickNames <- paste(dimnames(uvfm0)[[1]], 'F') else
       brickNames <- paste(dimnames(uvfm)[[1]][1:(length(dimnames(uvfm)[[1]])-1)], 'F') } else {
