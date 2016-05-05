@@ -3,11 +3,11 @@
 From this point onward, you can easily keep your AFNI uptodate just
 by running a single command::
 
-  @update.afni.binaries -d -do_extras
+  @update.afni.binaries -d
 
 That's it!! It will automatically download the correct latest version
 to your computer, replacing your old binaries.  It will also update
-the apearch help information if ``-do_extras`` is included.
+the apearch help information.
 
 | *Q: When should you update?*
 | *A: Often! You don't want to be left behind, do you?*
