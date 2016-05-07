@@ -253,6 +253,23 @@ static void process_XXX_options( int argc , char *argv[] )
        nopt++ ; continue ;
      }
 
+     if( strcasecmp(argv[nopt],"-XXXnpane") == 0 ){  /* 06 May 2016 */
+       int np ;
+       if( ++nopt >= argc ){
+         WARNING_message("no argument after '%s' :-(",argv[nopt-1]) ;
+         break ;
+       }
+       np = (int)strtod(argv[nopt],NULL) ;
+       if( np < 256 || np > NPANE_BIGGEST ){
+         WARNING_message("value '%s' after '%s' is illegal -- ignoring",argv[nopt],argv[nopt-1]) ;
+       } else {
+         if( np%2 == 1 ) np++ ;
+         if( np > NPANE_BIGGEST ) np = NPANE_BIGGEST ;
+         npane_big = np ;
+       }
+       nopt++ ; continue ;
+     }
+
      if( strcasecmp(argv[nopt],"-XXXbgcolor") == 0 ){
        if( ++nopt >= argc ){
          WARNING_message("no argument after '%s' :-(",argv[nopt-1]) ;
@@ -781,6 +798,13 @@ void AFNI_syntax(void)
     " -XXX defaults         = set the X11 properties to the AFNI defaults\n"
     "                         (the purpose of this is to restore things )\n"
     "                         (to normal if the X11 settings get mangled)\n"
+    "\n"
+    " -XXXnpane P           = set the number of 'panes' in the continuous\n"
+    "                         colorscale to the value 'P', where P is an\n"
+    "                         even integer between 256 and 2048 (inclusive).\n"
+    "                         Probably will work best if P is an integral\n"
+    "                         multiple of 256 (i.e., 256, 512, 1024, 2048).\n"
+    "                         [This option is for the mysterious Dr ZXu.]\n"
     "\n"
    ) ;
 
@@ -1969,6 +1993,9 @@ void AFNI_sigfunc_alrm(int sig)
      "Farewell happy fields where Joy for ever dwells"                                   ,
      "The mind is its own place, and itself can make a Heaven of Hell, a Hell of Heaven" ,
      "No light, but rather darkness visible"                                             ,
+     "Find yourself not lost in loss itself"                                             ,
+     "Through the gloom were seen ten thousand banners rise in the air"                  ,
+     "Let tears such as angels weep burst forth"                                         ,
 
      /* These are to make it clear that Cox is not to be blamed for ANYTHING */
 
