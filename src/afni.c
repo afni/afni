@@ -1687,7 +1687,6 @@ void AFNI_sigfunc_alrm(int sig)
 #undef  NMSG
 #define NMSG (sizeof(msg)/sizeof(char *))
    static char *msg[] = {
-     "All suspicion points to a Frost-Bellgowan conspiracy"          ,
      "Farewell, my friend"                                           ,
      "Farewell?  A long farewell to all my greatness"                ,
      "Sweet is the memory of distant friends"                        ,
@@ -1925,7 +1924,6 @@ void AFNI_sigfunc_alrm(int sig)
      "I hereby declare the Null Hypothesis to be ..... Falsified"    ,
      "I'm sick of thinking about p-values -- how about you?"         ,
      "Did you fail to negate the opposite of the null hypothesis?"   ,
-     "All suspicion points to a Frost-Bellgowan plot"                ,
      "I'd like to live as a poor man with lots of money"             ,
      "Wine is proof that God loves us and wants to see us happy"     ,
      "If two wrongs don't make a right, then try three; then four"   ,
@@ -1981,9 +1979,11 @@ void AFNI_sigfunc_alrm(int sig)
      "Statistics are good, but dark chocolate is better"             ,
      "After every tempest comes the calm"                            ,
 
-     /* This set of quotes is from Paradise Lost */
+     /* This set of quotes is from Paradise Lost,
+        by John Milton (a very veray early AFNI user) */
 
      "With hideous ruin and combustion, down to bottomless perdition"                    ,
+     "The mind and spirit remains invincible"                                            ,
      "The thought both of lost happiness and lasting pain"                               ,
      "Clothed with transcendent brightness"                                              ,
      "All is not lost: the unconquerable will, and courage never to submit or yield"     ,
@@ -1996,6 +1996,12 @@ void AFNI_sigfunc_alrm(int sig)
      "Find yourself not lost in loss itself"                                             ,
      "Through the gloom were seen ten thousand banners rise in the air"                  ,
      "Let tears such as angels weep burst forth"                                         ,
+     "To set itself in glory above its peers"                                            ,
+     "Hurled headlong flaming from the ethereal sky"                                     ,
+     "Here in the heart of Hell to work in fire"                                         ,
+     "Ceases now to bellow through the vast and boundless deep"                          ,
+     "The seat of desolation, void of light"                                             ,
+
 
      /* These are to make it clear that Cox is not to be blamed for ANYTHING */
 
@@ -2003,6 +2009,8 @@ void AFNI_sigfunc_alrm(int sig)
      "If you have any problems with AFNI, blame goes to ... Ziad Saad ;)"      ,
      "If you have any problems with AFNI, blame goes to ... Pat Bellgowan ;)"  ,
      "If you have any problems with AFNI, blame goes to ... Kyle Simmons ;)"   ,
+     "All suspicion points to a Frost-Bellgowan plot"                          ,
+     "All signs points to a Frost-Bellgowan conspiracy"                        ,
 
      "Will all great Neptune's ocean wash this modeling error from my hands?"         ,
      "Remember -- Screaming is the next best thing to solving a problem"              ,
