@@ -2001,6 +2001,9 @@ void AFNI_sigfunc_alrm(int sig)
      "Here in the heart of Hell to work in fire"                                         ,
      "Ceases now to bellow through the vast and boundless deep"                          ,
      "The seat of desolation, void of light"                                             ,
+     "Left at large to its own dark designs"                                             ,
+     "Whom reason has equalled, force has made supreme above his equals"                 ,
+     "Resume new courage and revive"                                                     ,
 
 
      /* These are to make it clear that Cox is not to be blamed for ANYTHING */
@@ -2106,7 +2109,7 @@ void AFNI_sigfunc_alrm(int sig)
      "  look for more data, think harder, mumble inaudibly, or have a strong drink"           ,
 
      "\n  To be stupid, selfish, and have good health are three requirements\n"
-     "   for happiness; though if stupidity is lacking, all is lost.\n"
+     "  for happiness; though if stupidity is lacking, all is lost"
    } ;
 #undef NTOP
 #ifdef USE_SONNETS
