@@ -1291,14 +1291,45 @@ THD_3dim_dataset * THD_nwarp_extend( THD_3dim_dataset *dset_nwarp ,
 
 ENTRY("THD_nwarp_extend") ;
 
-   if( dset_nwarp == NULL || DSET_NVALS(dset_nwarp) < 3 ) RETURN(NULL) ;
-   DSET_load(dset_nwarp) ; if( !DSET_LOADED(dset_nwarp) ) RETURN(NULL) ;
+   if( dset_nwarp == NULL || DSET_NVALS(dset_nwarp) < 3 ){
+     ERROR_message("Warp extend(%d,%d,%d,%d,%d,%d) fails: input warp %s invalid",
+                    nxbot,nxtop,nybot,nytop,nzbot,nztop ,
+                    ISVALID_DSET(dset_nwarp) ? DSET_BRIKNAME(dset_nwarp) : "NULL" ) ;
+     RETURN(NULL) ;
+   }
+   DSET_load(dset_nwarp) ;
+   if( !DSET_LOADED(dset_nwarp) ){
+     ERROR_message("Warp extend(%d,%d,%d,%d,%d,%d) fails: can't load warp dataset %s from disk",
+                    nxbot,nxtop,nybot,nytop,nzbot,nztop ,
+                    DSET_BRIKNAME(dset_nwarp) ) ;
+     RETURN(NULL) ;
+   }
 
    AA = IW3D_from_dataset( dset_nwarp , 0 , 0 ) ;
+   DSET_unload(dset_nwarp) ;
+   if( AA == NULL ){
+     ERROR_message("Warp extend(%d,%d,%d,%d,%d,%d) fails: can't convert dataset %s to IW3D format",
+                    nxbot,nxtop,nybot,nytop,nzbot,nztop ,
+                    DSET_BRIKNAME(dset_nwarp) ) ;
+     RETURN(NULL) ;
+   }
+
    BB = IW3D_extend( AA , nxbot,nxtop,nybot,nytop,nzbot,nztop , 0 ) ;
+   IW3D_destroy(AA) ;
+   if( BB == NULL ){
+     ERROR_message("Warp extend(%d,%d,%d,%d,%d,%d) fails: can't extend IW3D format of dataset %s" ,
+                    nxbot,nxtop,nybot,nytop,nzbot,nztop ,
+                    DSET_BRIKNAME(dset_nwarp) ) ;
+     RETURN(NULL) ;
+   }
 
    qset = IW3D_to_dataset( BB , "ExtendedWarp" ) ;
-   IW3D_destroy(AA) ; IW3D_destroy(BB) ; DSET_unload(dset_nwarp) ;
+   IW3D_destroy(BB) ;
+   if( qset == NULL ){
+     ERROR_message("Warp extend(%d,%d,%d,%d,%d,%d) fails: can't convert IW3D format of %s back to dataset" ,
+                    nxbot,nxtop,nybot,nytop,nzbot,nztop ,
+                    DSET_BRIKNAME(dset_nwarp) ) ;
+   }
    RETURN(qset) ;
 }
 
@@ -3463,7 +3494,7 @@ THD_3dim_dataset * THD_nwarp_invert( THD_3dim_dataset *dset_nwarp )
    IndexWarp3D *AA , *BB ;
    THD_3dim_dataset *qset ;
 
-ENTRY("THD_nwarp_extend") ;
+ENTRY("THD_nwarp_invert") ;
 
    if( dset_nwarp == NULL || DSET_NVALS(dset_nwarp) < 3 ) RETURN(NULL) ;
    DSET_load(dset_nwarp) ; if( !DSET_LOADED(dset_nwarp) ) RETURN(NULL) ;
@@ -5716,13 +5747,14 @@ if( verb_nww > 1 ) fprintf(stderr,"b") ;
 #ifdef DEBUG_CATLIST
 if( verb_nww > 1 ) fprintf(stderr,"'") ;
 #endif
-       if( next > 0 )
+       if( next > 0 ){
          dset_qwarp = THD_nwarp_extend( dset_nwarp , next,next,next,next,next,next ) ;
-       else
+         ERROR_message("Can't extend nwarp dataset #%d ?!?",iv) ; RETURN(NULL) ;
+       } else {
          dset_qwarp = EDIT_full_copy( dset_nwarp , "ZharksRevenge" ) ;
-       if( dset_qwarp == NULL ){  /* should never happen */
-         ERROR_message("Can't copy+extend nwarp dataset #%d ?!?",iv) ; RETURN(NULL) ;
+         ERROR_message("Can't copy nwarp dataset #%d ?!?",iv) ; RETURN(NULL) ;
        }
+
        if( !ISVALID_MAT44(dset_qwarp->daxes->ijk_to_dicom) )
          THD_daxes_to_mat44(dset_qwarp->daxes) ;
        nwarp_cmat = dset_qwarp->daxes->ijk_to_dicom ; /* coordinates of warp */
