@@ -27,6 +27,8 @@ static void PBAR_show_bigmode( MCW_pbar *pbar ) ;
 
 static MCW_DC *myfirst_dc = NULL ;  /* 04 Feb 2003 */
 
+extern int npane_big ;  /* 06 May 2016 */
+
 #undef  PBAR_callback
 #define PBAR_callback(pb,vv)                                            \
  do{ void (*pf)(MCW_pbar *,XtPointer,int) =                             \
@@ -407,7 +409,7 @@ ENTRY("PBAR_add_bigmap") ;
      bigmap_num  = kk ;
      bigmap_name = (char **) realloc(bigmap_name,sizeof(char *)*kk);
      bigmap      = (rgbyte **) realloc(bigmap,sizeof(rgbyte *)*kk);
-     bigmap[nn]  = (rgbyte *) malloc(sizeof(rgbyte)*NPANE_BIG) ;
+     bigmap[nn]  = (rgbyte *) malloc(sizeof(rgbyte)*(NPANE_BIG+1)) ;
    } else {                  /* is a replacement */
      free(bigmap_name[nn]) ; /* so just free old name string */
    }
@@ -427,7 +429,7 @@ void PBAR_make_bigmap( char *name,
 {
    int ii,jj ;
    float fr,fg,top,bot,del,vv ;
-   rgbyte map[NPANE_BIG] ;
+   rgbyte map[NPANE_BIGGEST] ;
 
 ENTRY("PBAR_make_bigmap") ;
 
@@ -477,8 +479,8 @@ int PBAR_define_bigmap( char *cmd )
 {
   int ii , neq=0 , nonum=0 ;
   char name[NSBUF], eqn[NSBUF] , rhs[NSBUF] ;
-  float  val[NPANE_BIG+1] , fr,fg,fb ;
-  rgbyte col[NPANE_BIG+1] ;
+  float  val[NPANE_BIGGEST+2] , fr,fg,fb ;
+  rgbyte col[NPANE_BIGGEST+2] ;
 
 ENTRY("PBAR_define_bigmap") ;
 
@@ -488,7 +490,7 @@ ENTRY("PBAR_define_bigmap") ;
   sscanf(cmd,"%127s%n",name,&ii) ;
   if(debugprint)
        printf("%s %d\n",name,ii);
-  if( *name == '\0' || ii == 0 ) RETURN(-1) ;
+  if( *name == '\0' || ii == 0 ) RETURN(-1);
   cmd += ii ;
   /* get lines of form "value=colordef" */
 
@@ -503,11 +505,11 @@ ENTRY("PBAR_define_bigmap") ;
     rhs[0] = '\0' ; ii = 0 ;
     if( !nonum ) sscanf(eqn,"%f=%s%n",val+neq,rhs,&ii) ;
     else         sscanf(eqn,"%s%n"           ,rhs,&ii) ;
-    if( *rhs == '\0' || ii == 0 ) RETURN(-1);               /* bad */
+    if( *rhs == '\0' || ii == 0 ) RETURN(-1);
       ii = DC_parse_color( myfirst_dc , rhs, &fr,&fg,&fb ) ;
       if(debugprint)
          printf("%s %f %f %f\n",rhs,fr,fg,fb);
-      if( ii ) RETURN(-1);                                    /* bad */
+      if( ii ) RETURN(-1); /* bad */
       col[neq].r = (byte)(255.0f*fr+0.5f) ;
       col[neq].g = (byte)(255.0f*fg+0.5f) ;
       col[neq].b = (byte)(255.0f*fb+0.5f) ; neq++ ;
@@ -522,7 +524,8 @@ ENTRY("PBAR_define_bigmap") ;
      for(ii=0;ii<neq;ii++)
        printf("%f %x %x %x\n", val[ii], col[ii].r, col[ii].g, col[ii].b);
   }
-  PBAR_make_bigmap( name , neq, val, col, myfirst_dc ); RETURN(0);
+  PBAR_make_bigmap( name , neq, val, col, myfirst_dc );
+  RETURN(0) ;
 }
 
 /*-----------------------------------------------------------------------*/
@@ -531,8 +534,8 @@ void PBAR_read_bigmap( char *fname , MCW_DC *dc )
 {
   int ii , neq=0 , nonum=0 , yeseq=0 ;
   char name[NSBUF], lhs[NSBUF],rhs[NSBUF],mid[NSBUF],line[2*NSBUF] , *cpt ;
-  float  val[NPANE_BIG] , fr,fg,fb , top,bot,del,vv ;
-  rgbyte col[NPANE_BIG] ;
+  float  val[NPANE_BIGGEST+2] , fr,fg,fb , top,bot,del,vv ;
+  rgbyte col[NPANE_BIGGEST+2] ;
   FILE *fp ;
 
 ENTRY("PBAR_read_bigmap") ;
@@ -1366,8 +1369,9 @@ ENTRY("rotate_MCW_pbar") ;
    if( pbar == NULL || n == 0 ) EXRETURN ;
 
    if( pbar->bigmode ){             /* 30 Jan 2003: rotate the spectrum */
-     rgbyte oldcolor[NPANE_BIG] ;
+     rgbyte *oldcolor ;
 
+     oldcolor = (rgbyte *)malloc(sizeof(rgbyte)*(NPANE_BIG+1)) ;
      memcpy(oldcolor,pbar->bigcolor,sizeof(rgbyte)*NPANE_BIG) ;
 
      while( n < 0 ) n += NPANE_BIG ;  /* make n positive */
@@ -1378,6 +1382,7 @@ ENTRY("rotate_MCW_pbar") ;
      PBAR_bigexpose_CB( NULL , pbar , NULL ) ;
 
      pbar->bigrota += (pbar->bigflip) ? -n : n ;  /* 07 Feb 2004 */
+     free(oldcolor) ;
 
    } else {                         /* the older way */
      dc = pbar->dc ;
