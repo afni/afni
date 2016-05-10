@@ -1980,7 +1980,7 @@ void AFNI_sigfunc_alrm(int sig)
      "After every tempest comes the calm"                            ,
 
      /* This set of quotes is from Paradise Lost,
-        by John Milton (a very veray early AFNI user) */
+        by John Milton (a very very early AFNI user) */
 
      "With hideous ruin and combustion, down to bottomless perdition"                    ,
      "The mind and spirit remains invincible"                                            ,
@@ -2004,6 +2004,11 @@ void AFNI_sigfunc_alrm(int sig)
      "Left at large to its own dark designs"                                             ,
      "Whom reason has equalled, force has made supreme above his equals"                 ,
      "Resume new courage and revive"                                                     ,
+     "After the toil of battle, repose your wearied virtue"                              ,
+     "From eternal splendours flung"                                                     ,
+     "Long is the way and hard, that out of Hell leads up to light"                      ,
+     "Wild above rule or art, enormous bliss"                                            ,
+
 
 
      /* These are to make it clear that Cox is not to be blamed for ANYTHING */
