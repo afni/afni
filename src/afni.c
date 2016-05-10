@@ -803,7 +803,7 @@ void AFNI_syntax(void)
     "                         colorscale to the value 'P', where P is an\n"
     "                         even integer between 256 and 2048 (inclusive).\n"
     "                         Probably will work best if P is an integral\n"
-    "                         multiple of 256 (i.e., 256, 512, 1024, 2048).\n"
+    "                         multiple of 256 (e.g., 256, 512, 1024, 2048).\n"
     "                         [This option is for the mysterious Dr ZXu.]\n"
     "\n"
    ) ;
