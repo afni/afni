@@ -2008,8 +2008,16 @@ void AFNI_sigfunc_alrm(int sig)
      "From eternal splendours flung"                                                     ,
      "Long is the way and hard, that out of Hell leads up to light"                      ,
      "Wild above rule or art, enormous bliss"                                            ,
-
-
+     "Of what darkness do we dread?"                                                     ,
+     "Free and to none accountable"                                                      ,
+     "Designing or exhorting glorious statisticks"                                       ,
+     "Those thoughts that wander through eternity"                                       ,
+     "Now fiercer by despair"                                                            ,
+     "Celestial Virtues rising will appear"                                              ,
+     "Fit to bear the weight of mightiest monarchies"                                    ,
+     "This horror will grow mild, this darkness will light"                              ,
+     "Whose eye views all things at one view"                                            ,
+     "Thus uplifted high beyond hope"                                                    ,
 
      /* These are to make it clear that Cox is not to be blamed for ANYTHING */
 
