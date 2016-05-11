@@ -5753,10 +5753,14 @@ if( verb_nww > 1 ) fprintf(stderr,"'") ;
 #endif
        if( next > 0 ){
          dset_qwarp = THD_nwarp_extend( dset_nwarp , next,next,next,next,next,next ) ;
-         ERROR_message("Can't extend nwarp dataset #%d ?!?",iv) ; RETURN(NULL) ;
+         if( dset_qwarp == NULL ){
+           ERROR_message("Can't extend nwarp dataset #%d ?!?",iv) ; RETURN(NULL) ;
+         }
        } else {
          dset_qwarp = EDIT_full_copy( dset_nwarp , "ZharksRevenge" ) ;
-         ERROR_message("Can't copy nwarp dataset #%d ?!?",iv) ; RETURN(NULL) ;
+         if( dset_qwarp == NULL ){
+           ERROR_message("Can't copy nwarp dataset #%d ?!?",iv) ; RETURN(NULL) ;
+         }
        }
 
        if( !ISVALID_MAT44(dset_qwarp->daxes->ijk_to_dicom) )
