@@ -67,6 +67,11 @@ afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
 
+{ 12, May , 2016 , PT , "3dLombScargle" , MAJOR , TYPE_NEW_PROG,
+   "New function for calculating LS (normalized) periodogram from time series.",
+   "Calculate magnitude spectrum from non-equisampled data.\n"
+},
+
 { 3, May , 2016 , PT , "@GradFlipTest" , MINOR , TYPE_MODIFY,
    "Using '-out_grad_cols_bwt' for grad stuff now-- use weights.",
    "Can deal well with multiple DW factors in gradient list now.\n"
