@@ -904,7 +904,11 @@ ENTRY("IW3D_adopt_dataset") ;
    /* check for grid mismatch error */
 
    if( DSET_NX(dset) != AA->nx || DSET_NY(dset) != AA->ny || DSET_NZ(dset) != AA->nz ){
-     ERROR_message("IW3D_adopt_dataset: grid mismatch") ; EXRETURN ;
+     ERROR_message("IW3D_adopt_dataset: grid mismatch\n"
+                   "     AA(%d,%d,%d) doesn't match dataset %s(%d,%d,%d)" ,
+                   AA->nx , AA->ny , AA->nz ,
+                   DSET_NX(dset) , DSET_NY(dset) , DSET_NZ(dset) ) ;
+     EXRETURN ;
    }
 
    if( !ISVALID_MAT44(dset->daxes->ijk_to_dicom) )  /* get this matrix */
@@ -5619,7 +5623,7 @@ ENTRY("THD_nwarp_dataset_array") ;
      } else {            /* check later datasets to see if they match */
        hs = EDIT_get_geometry_string(dset_sss) ;
        if( EDIT_geometry_string_diff(gs,hs) > 0.01f ){
-         ERROR_message("Can't warp multiple datasets with different grids!") ;
+         ERROR_message("Can't warp multiple datasets because they have different grids!") ;
          free(hs) ; free(gs) ; RETURN(NULL) ;
        }
        free(hs) ;  /* don't need this any more */
@@ -5742,17 +5746,21 @@ if( verb_nww > 1 ) fprintf(stderr,"b") ;
 #endif
        dset_nwarp = IW3D_from_nwarp_catlist( nwc , iv ) ; /* get the iv-th warp */
        if( dset_nwarp == NULL ){  /* should never happen */
-         ERROR_message("Can't acquire nwarp dataset #%d ?!?",iv); RETURN(NULL) ;
+         ERROR_message("Can't acquire/compute nwarp dataset #%d ?!?",iv); RETURN(NULL) ;
        }
 #ifdef DEBUG_CATLIST
 if( verb_nww > 1 ) fprintf(stderr,"'") ;
 #endif
        if( next > 0 ){
          dset_qwarp = THD_nwarp_extend( dset_nwarp , next,next,next,next,next,next ) ;
-         ERROR_message("Can't extend nwarp dataset #%d ?!?",iv) ; RETURN(NULL) ;
+         if( dset_qwarp == NULL ){
+           ERROR_message("Can't extend nwarp dataset #%d ?!?",iv) ; RETURN(NULL) ;
+         }
        } else {
          dset_qwarp = EDIT_full_copy( dset_nwarp , "ZharksRevenge" ) ;
-         ERROR_message("Can't copy nwarp dataset #%d ?!?",iv) ; RETURN(NULL) ;
+         if( dset_qwarp == NULL ){
+           ERROR_message("Can't copy nwarp dataset #%d ?!?",iv) ; RETURN(NULL) ;
+         }
        }
 
        if( !ISVALID_MAT44(dset_qwarp->daxes->ijk_to_dicom) )
@@ -6684,7 +6692,7 @@ static void CW_load_one_warp( int nn , char *cp )
 ENTRY("CW_load_one_warp") ;
 
    if( nn <= 0 || nn > CW_NMAX || cp == NULL || *cp == '\0' ){
-     ERROR_message("bad inputs to CW_load_one_warp") ; EXRETURN ;
+     ERROR_message("bad inputs to CW_load_one_warp: nn=%d cp=%s",nn,cp) ; EXRETURN ;
    }
 
    if( nn > CW_nwtop ) CW_nwtop = nn ;  /* CW_nwtop = largest index thus far */
@@ -6923,7 +6931,7 @@ ENTRY("IW3D_read_catenated_warp") ;
    /*--- create output dataset ---*/
 
    if( warp == NULL ){
-     ERROR_message("This message should never appear!") ;
+     ERROR_message("This message should never appear!!") ;
      CW_clear_data() ; RETURN(NULL) ;
    }
 
@@ -7426,7 +7434,7 @@ if( verb_nww > 1 ) fprintf(stderr,"}") ;
    /*--- create output dataset ---*/
 
    if( warp == NULL ){
-     ERROR_message("IW3D_from_nwarp_catlist: this message should never appear!") ;
+     ERROR_message("IW3D_from_nwarp_catlist: this message should never appear!!") ;
      RETURN(NULL) ;
    }
 
@@ -10143,7 +10151,7 @@ double IW3D_scalar_costfun( int npar , double *dpar )
    if( Hnegate ) cost = -cost ;  /* change the sign? (for minimization) */
 
    if( !isfinite(cost) ){  /* bad bad Leroy Brown */
-     ERROR_message("Warpomatic cost = %g -- input parameters:",cost) ;
+     ERROR_message("bad Warpomatic cost = %g -- input parameters:",cost) ;
      for( ii=0 ; ii < npar ; ii++ ) fprintf(stderr," %g",dpar[ii]) ;
      fprintf(stderr,"\n") ;
    }
@@ -12064,7 +12072,7 @@ double IW3D_scalar_costfun_plusminus( int npar , double *dpar )
    if( Hnegate ) cost = -cost ;
 
    if( !isfinite(cost) ){
-     ERROR_message("Warpomatic cost = %g -- input parameters:",cost) ;
+     ERROR_message("bad Warpomatic cost = %g -- input parameters:",cost) ;
      for( ii=0 ; ii < npar ; ii++ ) fprintf(stderr," %g",dpar[ii]) ;
      fprintf(stderr,"\n") ;
    }
