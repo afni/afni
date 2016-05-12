@@ -803,7 +803,7 @@ void AFNI_syntax(void)
     "                         colorscale to the value 'P', where P is an\n"
     "                         even integer between 256 and 2048 (inclusive).\n"
     "                         Probably will work best if P is an integral\n"
-    "                         multiple of 256 (i.e., 256, 512, 1024, 2048).\n"
+    "                         multiple of 256 (e.g., 256, 512, 1024, 2048).\n"
     "                         [This option is for the mysterious Dr ZXu.]\n"
     "\n"
    ) ;
@@ -1980,7 +1980,7 @@ void AFNI_sigfunc_alrm(int sig)
      "After every tempest comes the calm"                            ,
 
      /* This set of quotes is from Paradise Lost,
-        by John Milton (a very veray early AFNI user) */
+        by John Milton (a very very early AFNI user) */
 
      "With hideous ruin and combustion, down to bottomless perdition"                    ,
      "The mind and spirit remains invincible"                                            ,
@@ -2004,7 +2004,20 @@ void AFNI_sigfunc_alrm(int sig)
      "Left at large to its own dark designs"                                             ,
      "Whom reason has equalled, force has made supreme above his equals"                 ,
      "Resume new courage and revive"                                                     ,
-
+     "After the toil of battle, repose your wearied virtue"                              ,
+     "From eternal splendours flung"                                                     ,
+     "Long is the way and hard, that out of Hell leads up to light"                      ,
+     "Wild above rule or art, enormous bliss"                                            ,
+     "Of what darkness do we dread?"                                                     ,
+     "Free and to none accountable"                                                      ,
+     "Designing or exhorting glorious statisticks"                                       ,
+     "Those thoughts that wander through eternity"                                       ,
+     "Now fiercer by despair"                                                            ,
+     "Celestial Virtues rising will appear"                                              ,
+     "Fit to bear the weight of mightiest monarchies"                                    ,
+     "This horror will grow mild, this darkness will light"                              ,
+     "Whose eye views all things at one view"                                            ,
+     "Thus uplifted high beyond hope"                                                    ,
 
      /* These are to make it clear that Cox is not to be blamed for ANYTHING */
 
