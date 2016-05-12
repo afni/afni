@@ -8160,7 +8160,10 @@ g_help_string = """
             to transform (non-linear) to standard space, those datasets can
             be input to save re-processing time.
 
-            In such a case, the 'tlrc' block will be empty of actions.
+            They are the same 3 files that would be otherwise created by
+            running auto_warp_py from the proc script.
+
+            When using this option, the 'tlrc' block will be empty of actions.
 
         -tlrc_NL_awpy_rm Y/N    : specify whether to remove awpy directory
 
