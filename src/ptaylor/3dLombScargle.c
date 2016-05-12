@@ -37,7 +37,7 @@ void usage_LombScargle(int detail)
 "     Resource for Complex Physiologic Signals. \n"
 "     Circulation 101(23):e215-e220 \n"
 "  with the specific Lomb-Scargle (LS) implementation based on algorithms\n"
-"  by Press et al. (1992).\n"
+"  by Press & Rybicki (1989) and Press et al. (1992).\n"
 "\n"
 "  It has been adapted with *very* minimal changes here by PA Taylor (v1.0,\n"
 "  2016).\n"
