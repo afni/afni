@@ -157,11 +157,15 @@ def db_cmd_tcat(proc, block):
                      proc.dsets[run].rel_input(), flist[run], final)
 
     proc.reps   -= first+rmlast # update reps to account for removed TRs
+    if proc.verb > 0: print "-- %s: reps is now %d" % (block.label, proc.reps)
 
     for run in range(len(proc.reps_all)):
        proc.reps_all[run] -= (flist[run] + rmlast)
     if not UTIL.vals_are_constant(proc.reps_all):
        proc.reps_vary = 1
+
+    # now we are ready to set polort for the analysis
+    if set_proc_polort(proc): return
 
     cmd = cmd + '\n'                                                    \
                 '# and make note of repetitions (TRs) per run\n'        \
@@ -172,11 +176,34 @@ def db_cmd_tcat(proc, block):
                 '# enter the results directory (can begin processing data)\n' \
                 'cd %s\n\n\n' % proc.od_var
 
-    if proc.verb > 0: print "-- %s: reps is now %d" % (block.label, proc.reps)
-
     tcat_extract_vr_base(proc)
 
     return cmd
+
+def set_proc_polort(proc):
+    """set proc.polort from -regress_polort or get_default_polort
+       return 0 on success
+    """
+    rblock = proc.find_block('regress')
+    if rblock:
+       opt = rblock.opts.find_opt('-regress_polort')
+       if opt:
+          # try to set it and return
+          try: proc.regress_polort = int(opt.parlist[0])
+          except:
+             print "** -regress_polort requires int for degree (have '%s')\n" \
+                   % opt.parlist[0]
+             return 1
+          return 0
+
+    # no option, figure it out
+
+    proc.regress_polort = UTIL.get_default_polort(proc.tr, proc.reps)
+    if proc.verb > 0:
+        print "++ updating polort to %d, from run len %.1f s" %  \
+              (proc.regress_polort, proc.tr*proc.reps)
+
+    return 0
 
 def tcat_extract_vr_base(proc):
     """find volreb block
@@ -3472,20 +3499,7 @@ def db_cmd_regress(proc, block):
         istr = ''
         vstr = proc.view
 
-    opt = block.opts.find_opt('-regress_polort')
-    if not opt:
-        polort = UTIL.get_default_polort(proc.tr, proc.reps)
-        if proc.verb > 0:
-            print "++ updating polort to %d, from run len %.1f s" %  \
-                  (polort, proc.tr*proc.reps)
-    else:
-        try: polort = int(opt.parlist[0])
-        except:
-            print "** -regress_polort requires int for degree (have '%s')\n" \
-                  % opt.parlist[0]
-            return
-
-    proc.regress_polort = polort
+    # set polort in db_cmd_tcat (section moved)
 
     # ---- allow no stims
     # if len(proc.stims) <= 0:   # be sure we have some stim files
@@ -3658,7 +3672,7 @@ def db_cmd_regress(proc, block):
     O3dd = ['%s3dDeconvolve -input %s'%(istr, proc.prev_dset_form_wild(block)),
             mask, censor_str]
     O3dd.extend(reg_orts)
-    O3dd.extend([ '    -polort %d%s' % (polort, datum),
+    O3dd.extend([ '    -polort %d%s' % (proc.regress_polort, datum),
                   normall, times_type,
                   '    -num_stimts %d' % total_nstim])
 
@@ -4077,7 +4091,7 @@ def db_cmd_regress(proc, block):
         # (so no ideal after failure)
         if UTIL.basis_has_one_reg(basis[0], st=stim_types[0]):
             cmd = cmd + "# create ideal files for fixed response stim types\n"
-            first = (polort+1) * proc.runs
+            first = (proc.regress_polort+1) * proc.runs
             for ind in range(len(labels)):
                 # once unknown or multiple regs, quit
                 if not UTIL.basis_has_one_reg(basis[ind], st=stim_types[ind]):
