@@ -49,6 +49,16 @@
 
 
 afni_history_struct dglen_history[] = {
+{ 16, MAY, 2016 , DRG , "align_epi_anat.py - left/right test" , 
+    MINOR , TYPE_NEW_OPT, 
+    "left/right checking using align_epi_anat.py\n"
+    "flipped datasets go unnoticed even in major publicly available\n"
+    "databases (initially noted by Brad Buchsbaum with FCON1000).\n"
+    "Now automatically determine mismatch in L/R with simple test\n"
+    "New -check_flip and -giant_flip options check alignment against\n"
+    "flipped data."
+},
+
 { 3, MAY, 2016 , DRG , "whereami - atlas queries" , 
     MICRO , TYPE_BUG_FIX, 
     "Removing structures that are all numbers was breaking atlas label queries"
