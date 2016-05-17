@@ -1,19 +1,19 @@
-/*
-afni/src/3dECM.c
-*/
+/**
+ * afni/src/3dECM.c
+ */
 
-// Look for OpenMP macro
+/* Look for OpenMP macro */
 #ifdef USE_OMP
 #include <omp.h>
 #endif
 
-// Include libraries
+/* Include libraries */
 #include "mrilib.h"
 #include <sys/mman.h>
 #include <sys/types.h>
 #include "sparse_array.h"
 
-// Define constants
+/* Define constants */
 #define SPEARMAN 1
 #define QUADRANT 2
 #define PEARSON  3
@@ -208,7 +208,7 @@ float zm_THD_pearson_corr( int n, float *x , float *y ) /* inputs are */
 
 double cc_pearson_corr( long n, float *x, float*y )
 {
-    // index and corr value in processor register for faster access
+    /* index and corr value in processor register for faster access */
     register int ii;
     register double xy = (double)0.0;
     for(ii=0; ii<n; ii++)
@@ -281,18 +281,18 @@ double* calc_fecm_power(MRI_vectim *xvectim, double shift, double scale, double 
     PRINT_MEM_STATS( "xv_int" );
 
 
-    /*--- Initiatilize power method ---*/
+    /*--- Initialize power method ---*/
 
     /*  set the initial vector to the first vector */
     for ( lout=0; lout < xvectim->nvec; lout++ )
     {
-        // ||v_prev|| = 1
+        /* ||v_prev|| = 1 */
         v_prev[lout]=1.0 / sqrt((double)xvectim->nvec);
         v_prev_sum += v_prev[lout];
         v_prev_sum_sq += v_prev[lout] * v_prev[lout];
     }
 
-    // Init error
+    /* Init error */
     v_prev_norm = sqrt(v_prev_sum_sq);
     v_err = v_prev_norm;
 
@@ -487,7 +487,7 @@ double* calc_full_power_sparse(MRI_vectim *xvectim, double thresh,
     /* get a sparse array */
     sparse_array = create_sparse_corr_array(xvectim, sparsity, thresh,
         cc_pearson_corr, (long)mem_bytes);
-    // validate success in creating sparse array
+    /* validate success in creating sparse array */
     if( sparse_array == NULL )
     {
         if( v_new != NULL ) free(v_new);
@@ -495,24 +495,6 @@ double* calc_full_power_sparse(MRI_vectim *xvectim, double thresh,
         WARNING_message("Error getting sparse weight array.");
         return( NULL );
     }
-
-    // DEBUG
-    sparse_array_node* test_node = sparse_array->nodes;
-    FILE* test_out_1d;
-    long i, j;
-    double w;
-    test_out_1d = fopen("/home/dclark/tests/centrality/sim_mat.1D", "w");
-    fprintf(test_out_1d, "i, j, w\n");
-    while (test_node != NULL)
-    {
-        i = test_node->row;
-        j = test_node->column;
-        w = test_node->weight;
-        fprintf(test_out_1d, "%ld, %ld, %.6f\n", i, j, w);
-        test_node = test_node->next;
-    }
-    fclose(test_out_1d);
-    // DEBUG
 
     /*-- CC update our memory stats to reflect v_new -- */
     INC_MEM_STATS(sizeof(sparse_array_head_node)+sparse_array->num_nodes*
@@ -1367,8 +1349,8 @@ int main( int argc , char *argv[] )
     long do_fecm = 0;
 
     /* CC - iteration stopping criteria */
-    long max_iter = 1000;
-    double eps = 0.0001;
+    long max_iter = 10000;
+    double eps = 0.00001;
 
     /* CC - vectors to hold the results (bin/wght) */
     double* eigen_vec[2];
@@ -1605,7 +1587,7 @@ int main( int argc , char *argv[] )
     if( nopt >= argc ) ERROR_EXIT_CC("Need a dataset on command line!?") ;
     xset = THD_open_dataset(argv[nopt]); CHECK_OPEN_ERROR(xset,argv[nopt]);
 
-    // Check fast method isnt enabled with non-compatible options
+    /* Check fast method isnt enabled with non-compatible options */
     if (( do_fecm == 1 ) && ((do_sparsity == 1) || (do_thresh == 1) || (do_full == 1)))
     {
         WARNING_message( "Cannot use FECM, with -sparsity, -thresh,"
@@ -1808,15 +1790,6 @@ int main( int argc , char *argv[] )
         /* CC this sets the subbrik scaling factor, which we will probably want
            to do again after we calculate the voxel values */
         EDIT_BRICK_FACTOR(cset,subbrik,1.0) ;                 /* scale factor */
-//
-//        if( do_binary == 1 )
-//        {
-//            sprintf(str,"Binary ECM");
-//        }
-//        else
-//        {
-//            sprintf(str,"Weighted ECM");
-//        }
 
         EDIT_BRICK_LABEL(cset,subbrik,str) ;
         EDIT_substitute_brick(cset,subbrik,MRI_float,NULL) ;   /* make array   */

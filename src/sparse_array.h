@@ -1,27 +1,36 @@
-#ifndef _sparse_array_h
+/**
+ * afni/src/sparse_array.h
+ * Header interface for sparse array data structures
+ */
 
+/* Include guard */
+#ifndef _sparse_array_h
 #define _sparse_array_h
 
+/* Include headers */
 #include "mrilib.h"
+
 
 /* define sparse array node data structure */
 typedef struct _sparse_array_node sparse_array_node;
 
+
 struct _sparse_array_node
 {
-   // define i, j, w
+   /* define i, j, w */
    long row;
    long column;
    double weight;
-   // and next node pointer
+   /* and next node pointer */
    sparse_array_node* next;
 };
 
+
 typedef struct _sparse_array_head_node
 {
-   // size of sparse array
+   /* size of sparse array */
    long num_nodes;
-   // and pointer to nodes for access
+   /* and pointer to nodes for access */
    sparse_array_node* nodes; 
 } sparse_array_head_node;
 
@@ -40,7 +49,7 @@ sparse_array_head_node* free_sparse_array( sparse_array_head_node* sparray );
        sparsity: the fraction of the top correlations that should be retained
        threshold: a threshold that should be applied to determine if a
            correlation should be retained. For sparsity thresholding this value
-           will be used as an inititial guess to speed calculation and a higher
+           will be used as an initial guess to speed calculation and a higher
            threshold may ultimately be calculated through the adaptive process.
 
     output:
@@ -54,4 +63,5 @@ sparse_array_head_node* free_sparse_array( sparse_array_head_node* sparray );
 sparse_array_head_node* create_sparse_corr_array( MRI_vectim* xvectim,
     double sparsity, double threshold, double (*corfun)(long,float*,float*),
     long memory_allowance  );
-#endif
+
+#endif /* _sparse_array_h */
