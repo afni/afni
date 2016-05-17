@@ -9303,20 +9303,20 @@ g_help_string = """
                 default: yes
 
             By default, a temporal signal to noise (TSNR) dataset is created at
-            the end of the regress block.  The "signal" is the mean of the
-            all_runs dataset (input to 3dDeconvolve), and the "noise" is the
-            errts dataset (residuals from 3dDeconvolve).
+            the end of the regress block.  The "signal" is the all_runs dataset
+            (input to 3dDeconvolve), and the "noise" is the errts dataset (the
+            residuals from 3dDeconvolve).  TSNR is computed (per voxel) as the
+            mean signal divided by the standard deviation of the noise.
+
+               TSNR = average(signal) / stdev(noise)
 
             The main difference between the TSNR datasets from the volreg and
             regress blocks is that the data in the regress block has been
-            smoothed (plus it has been "completely" detrended, according to
-            the regression model - this includes polort, motion and even stim
-            responses).
+            smoothed and "completely" detrended (detrended according to the
+            regression model: including polort, motion and stim responses).
 
             Use this option to prevent the TSNR dataset computation in the
             'regress' block.
-
-            TSNR = average(signal) / stdev(noise)
 
             See also -volreg_compute_tsnr.
 
