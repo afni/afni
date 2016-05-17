@@ -12,6 +12,16 @@ import option_list as OL
 import lib_afni1D as LD
 import lib_vars_object as VO
 
+# types of motion simulated datasets that can be created
+#    motion     : simulated motion time series - volreg base warped
+#                 by inverse motion transformations (forward motion)
+#    aligned    : 'motion' corrected by original volreg parameters
+#    warped     : 'motion' fully warped as original volreg results
+#                 note: any pre-warp (blip) would not apply
+#    volreg     : 'motion' corrected by new 3dvolreg command
+#    warped_vr  : ?? maybe allow a volreg version to be fully warped
+motsim_types = ['motion','aligned', 'volreg', 'warped']
+
 
 WARP_EPI_TLRC_ADWARP    = 1
 WARP_EPI_TLRC_WARP      = 2
@@ -1367,15 +1377,18 @@ def db_cmd_volreg(proc, block):
         print '** have external align EPI volume, but seem to be\n'     \
               '   aligning EPI to end the runs, this looks fishy...'
 
-    # get any base_vol option
+    # volreg base should now either be external or locally created
     if proc.vr_ext_base != None or proc.vr_int_name != '':
-       basevol = "%s%s" % (proc.vr_ext_pre,proc.view)
-    else: basevol = None
+       proc.vr_base_dset = BASE.afni_name("%s%s" % (proc.vr_ext_pre,proc.view))
+       basevol = proc.vr_base_dset.rel_input()
+    else:
+       print "** warning: basevol should always be set now"
+       return
 
     if proc.verb > 0:
         if basevol: print "-- %s: using base dset %s" % (block.label,basevol)
-        else:       print "-- %s: base/sub indices are %d, %d" % \
-                          (block.label,dset_ind,sub)
+        else: 
+           print "-- %s: base/sub indices are %d, %d"%(block.label,dset_ind,sub)
 
     # get base prefix (run is index+1)
     base = proc.prev_prefix_form(dset_ind+1, block, view=1)
@@ -1933,6 +1946,61 @@ def db_cmd_volreg_tsnr(proc, block, emask=''):
            "# create a TSNR dataset, just from run 1\n",
            signal, signal, proc.view, mask=emask,
            name_qual='.vreg.r01',detrend=1)
+
+# --------------- motsim block ---------------
+
+def db_mod_motsim(block, proc, user_opts):
+   """init proc.motsim_dsets keys to any found labels
+      (rather than translating options)
+      note: there are currently no -motsim options
+   """
+
+   # check for updates to -tshift_align_to option
+   errs = 0
+   oname = '-volreg_motsim_create'
+   mdsets = proc.motsim_dsets   # dict of afni_name's (use None for now)
+   optlist = user_opts.find_all_opts(oname)
+   for opt in optlist:
+      for par in opt.parlist:
+         if par not in motsim_types:
+            print '** invalid %s type %s, not in %s' \
+                  % (oname, par, ', '.join(motsim_types))
+            errs += 1
+         if not mdsets.has_key(par):
+            mdsets[par] = None
+
+   oname = '-regress_motsim_PC'
+   optlist = user_opts.find_all_opts(oname)
+   for opt in optlist:
+      # parlist is of form: TYPE #PCs
+      par = opt.parlist[0]
+      if par not in motsim_types:
+         print '** invalid %s type %s, not in %s' \
+               % (oname, par, ', '.join(motsim_types))
+         errs += 1
+      if not mdsets.has_key(par):
+         mdsets[par] = None
+
+   if errs: return 1
+
+   # #PCs will be added to the afni_name object before db_cmd_regress
+
+   if proc.verb > 2:
+      print '-- will create motsim dset types: %s' % ', '.join(mdsets.keys())
+   
+   block.valid = 1
+
+def db_cmd_motsim(proc, block):
+
+   mdsets = proc.motsim_dsets
+   mdkeys = proc.motsim_dsets.keys()
+   if proc.verb>0: print '-- creating motsim dset types: %s'%', '.join(mdkeys)
+
+   # first create afni_names for MS dsets
+   # (view from proc.vr_base_dset, or proc.view for warped)
+   
+   return
+
 
 # check all -surf options
 def db_mod_surf(block, proc, user_opts):
@@ -3682,7 +3750,8 @@ def db_cmd_regress(proc, block):
         labels = []
         for ind in range(len(proc.stims)):
             labels.append('stim%02d' % (ind+1))
-        if proc.verb > 0: print ('++ adding labels: %s' % labels)
+        if proc.verb > 0 and len(labels) > 0:
+            print ('++ creating new stim labels: %s' % labels)
     elif len(proc.stims) != len(opt.parlist):
         print "** cmd_regress: have %d stims but %d labels" % \
               (len(proc.stims), len(opt.parlist))
