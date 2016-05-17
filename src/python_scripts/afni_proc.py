@@ -539,12 +539,13 @@ g_todo_str = """todo:
 # dictionary of block types and modification functions
 
 BlockLabels  = ['tcat', 'postdata', 'despike', 'ricor', 'tshift', 'align',
-                'volreg', 'surf', 'blur', 'mask', 'scale', 'regress', 'tlrc',
-                'empty']
+                'volreg', 'motsim', 'surf', 'blur', 'mask', 'scale', 'regress',
+                'tlrc', 'empty']
 BlockModFunc  = {'tcat'   : db_mod_tcat,     'postdata' : db_mod_postdata,
                  'despike': db_mod_despike,
                  'ricor'  : db_mod_ricor,    'tshift' : db_mod_tshift,
                  'align'  : db_mod_align,    'volreg' : db_mod_volreg,
+                 'motsim' : db_mod_motsim,
                  'surf'   : db_mod_surf,     'blur'   : db_mod_blur,
                  'mask'   : db_mod_mask,     'scale'  : db_mod_scale,
                  'regress': db_mod_regress,  'tlrc'   : db_mod_tlrc,
@@ -553,6 +554,7 @@ BlockCmdFunc  = {'tcat'   : db_cmd_tcat,     'postdata' : db_cmd_postdata,
                  'despike': db_cmd_despike,
                  'ricor'  : db_cmd_ricor,    'tshift' : db_cmd_tshift,
                  'align'  : db_cmd_align,    'volreg' : db_cmd_volreg,
+                 'motsim' : db_cmd_motsim,
                  'surf'   : db_cmd_surf,     'blur'   : db_cmd_blur,
                  'mask'   : db_cmd_mask,     'scale'  : db_cmd_scale,
                  'regress': db_cmd_regress,  'tlrc'   : db_cmd_tlrc,
@@ -597,6 +599,7 @@ class SubjProcSream:
         self.vr_ext_base= None          # name of external volreg base 
         self.vr_ext_pre = 'external_volreg_base' # copied volreg base prefix
         self.vr_int_name= ''            # other internal volreg dset name
+        self.vr_base_dset  = None       # afni_name for applied volreg base
         self.volreg_prefix = ''         # prefix for volreg dataset ($run)
                                         #   (using $subj and $run)
         self.vr_vall    = None          # all runs from volreg block
@@ -613,7 +616,8 @@ class SubjProcSream:
         self.mot_demean = ''            # from demeaned motion file
         self.mot_deriv  = ''            # motion derivatives
         self.mot_enorm  = ''            # euclidean norm of derivatives
-        self.mot_simset = None          # motion simulation dset (afni_name)
+        self.mot_simset = None          # motion simulation dset (afni_name) ANTIQUATE
+        self.motsim_dsets = {}          # dictionary of mstype:afni_name
 
         self.mot_cen_lim= 0             # motion censor limit, if applied
         self.out_cen_lim= 0             # outlier censor limit, if applied
@@ -965,12 +969,21 @@ class SubjProcSream:
                         helpstr='compute TSNR datasets (yes/no) of volreg run1')
         self.valid_opts.add_opt('-volreg_interp', 1, [],
                         helpstr='interpolation method used in volreg')
+        # rcr - antiquate old motsim options
         self.valid_opts.add_opt('-volreg_motsim', 0, [],
                         helpstr='create a motion simulated time series')
-        self.valid_opts.add_opt('-volreg_no_extent_mask', 0, [],
-                        helpstr='do not restrict warped EPI to extents')
         self.valid_opts.add_opt('-volreg_opts_ms', -1, [],
                         helpstr='add options directly to @simulate_motion')
+        # new motsim option
+        self.valid_opts.add_opt('-volreg_motsim_create', -1, [],
+                        acplist=motsim_types,
+                        helpstr='create motion simulated dsets of given types')
+        # rcr - move this
+        self.valid_opts.add_opt('-regress_motsim_PC', 2, [],
+                        helpstr='regress given number of PCs from given TYPE')
+
+        self.valid_opts.add_opt('-volreg_no_extent_mask', 0, [],
+                        helpstr='do not restrict warped EPI to extents')
         self.valid_opts.add_opt('-volreg_opts_vr', -1, [],
                         helpstr='additional options directly for 3dvolreg')
         self.valid_opts.add_opt('-volreg_regress_per_run', 0, [],
@@ -1433,6 +1446,11 @@ class SubjProcSream:
             else: err, blocks = self.add_block_to_list(blocks, 'tlrc')
             if err: return 1
 
+        # do we need motsim block?
+        if self.need_motsim_block(blocks):
+           err, blocks = self.add_block_after_label(blocks, 'motsim', 'volreg')
+           if err: return 1
+
         # if user has supplied options for blocks that are not used, fail
         if self.opts_include_unused_blocks(blocks, 1): return 1
 
@@ -1479,6 +1497,18 @@ class SubjProcSream:
         # no errors, just warn the user (for J Britton)   25 May 2011
         uniq_list_as_dsets(self.dsets, 1)
         self.check_block_order()
+
+    def need_motsim_block(self, blocks):
+        """want motsim if there are any -volreg_motsim_create options
+              or -regress_motsim options
+           but do not add duplicate block
+        """
+        if 'motsim' in blocks: return 0
+
+        if self.user_opts.find_opt('-volreg_motsim_create'): return 1
+        if self.user_opts.find_opt('-regress_motsim_PC'): return 1
+
+        return 0
 
     def add_block_to_list(self, blocks, bname, adj=None, dir=0):
         """given current block list, add a block for bname after that
