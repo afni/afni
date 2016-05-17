@@ -1349,8 +1349,8 @@ int main( int argc , char *argv[] )
     long do_fecm = 0;
 
     /* CC - iteration stopping criteria */
-    long max_iter = 1000;
-    double eps = 0.0001;
+    long max_iter = 10000;
+    double eps = 0.00001;
 
     /* CC - vectors to hold the results (bin/wght) */
     double* eigen_vec[2];
