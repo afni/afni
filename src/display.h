@@ -104,12 +104,20 @@ typedef struct {
 #define MAX_COLORS 256
 #undef  NSBUF
 #define NSBUF 128    /* Place here because SUMA needs that baby too */
+
+#if 0
 #define NPANE_BIG    256    /* 30 Jan 2003: # colors in "big" mode , ZSS. Jan 06, Up from 128, Bigger, immer.*/
+#else
+extern int npane_big ;
+#define NPANE_BIG     npane_big
+#define NPANE_BIGGEST 2048  /* don't let npane_big be bigger than this! */
+#endif
+
 #define NPANE_BIG1   (NPANE_BIG-1)
 /* to add a big colormap: update NBIGMAP_INIT and BIGMAP_NAMES,
  * and initialize that bigmap index in NJ_bigmaps_init */
 #define NBIGMAP_INIT 9      /* # of initial colorscales */
-#define NBIG_GAP     6
+#define NBIG_GAP     (NPANE_BIG/32)
 #define NBIG_MBOT    (NPANE_BIG/2-NBIG_GAP)
 #define NBIG_MTOP    (NPANE_BIG/2+NBIG_GAP)
 #define AJJ_RED        0.0

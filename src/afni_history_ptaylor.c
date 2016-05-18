@@ -67,9 +67,19 @@ afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
 
-{ 8, Apr , 2016 , PT , "3dDWItoDT" , MINOR , TYPE_MODIFY,
-   "Work to deal with bvalue-weighted grads and bmatrices.",
-   "This is useful esp. for new TORTOISE outputs.\n"
+{ 12, May , 2016 , PT , "3dLombScargle" , MAJOR , TYPE_NEW_PROG,
+   "New function for calculating LS (normalized) periodogram from time series.",
+   "Calculate magnitude spectrum from non-equisampled data.\n"
+},
+
+{ 3, May , 2016 , PT , "@GradFlipTest" , MINOR , TYPE_MODIFY,
+   "Using '-out_grad_cols_bwt' for grad stuff now-- use weights.",
+   "Can deal well with multiple DW factors in gradient list now.\n"
+},
+
+{ 2, May , 2016 , PT , "3dDWItoDT" , MINOR , TYPE_NEW_OPT,
+   "Have a new '-min_bad_md' option: use to threshold badness.",
+   "Also now detect bad DT fits if MD is crazy big.  Whoa.\n"
 },
 
 { 8, Apr , 2016 , PT , "3dDTtoDWI" , MINOR , TYPE_MODIFY,

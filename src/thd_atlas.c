@@ -1326,7 +1326,7 @@ void print_atlas_table(ATLAS_LIST *xal)
    INFO_message("__________________________________________________________");
    for(i=0;i<xal->natlases;i++) {
       xa = xal->atlas+i;
-      INFO_message("%-16.16s %-8.8s %-20.20s %-33s",
+      INFO_message("%-25.25s %-15.15s %s %-60s",
                    xa->name, xa->space,
                    xa->dset_name,
                    ATL_DESCRIPTION_S(xa));
@@ -1394,7 +1394,7 @@ void print_point_lists(ATLAS_LIST *xal)
 
    for(i=0;i<xal->natlases;i++) {
       xa = xal->atlas+i;
-      INFO_message("Atlas name : %-16.16s, Dataset: %-20.20s",
+      INFO_message("Atlas name : %-25.25s, Dataset: %-54.54s",
                    xa->name,xa->dset_name);
       apl = atlas_point_list(xa->name);
       if(apl)

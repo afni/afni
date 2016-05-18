@@ -2,13 +2,22 @@ language: c
 cache:
     - apt
     - ccache
+env:
+ global:
+    - FLAVOR=linux_ubuntu_12_64
 before_install:
     # install build-dependencies as the doc says
     - sudo sh src/other_builds/OS_notes.linux_ubuntu_12_64
+    # install packages needed for testing
+    - sudo apt-get install xvfb xauth libgl1-mesa-dri mesa-utils tcsh libjpeg-progs
 install:
     - cd src
-    - cp other_builds/Makefile.linux_fedora_19_64 Makefile
+    - cp other_builds/Makefile.$FLAVOR Makefile
     - make vastness
 script:
-    - echo "that is where we would test, so let's do it for now by running a sample executable"
-    - linux_fedora_19_64/3dinfo
+    - export PATH=$PATH:$PWD/$FLAVOR  # to gain access to built binaries
+    - mkdir ../testing; cd ../testing # from here will run tests
+    - cmake -DAFNI_BUILD_TESTS:BOOL=ON ..
+    - ctest
+    # Smoke tests for some additional commands
+    - 3dinfo
