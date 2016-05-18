@@ -904,7 +904,11 @@ ENTRY("IW3D_adopt_dataset") ;
    /* check for grid mismatch error */
 
    if( DSET_NX(dset) != AA->nx || DSET_NY(dset) != AA->ny || DSET_NZ(dset) != AA->nz ){
-     ERROR_message("IW3D_adopt_dataset: grid mismatch") ; EXRETURN ;
+     ERROR_message("IW3D_adopt_dataset: grid mismatch\n"
+                   "     AA(%d,%d,%d) doesn't match dataset %s(%d,%d,%d)" ,
+                   AA->nx , AA->ny , AA->nz ,
+                   DSET_NX(dset) , DSET_NY(dset) , DSET_NZ(dset) ) ;
+     EXRETURN ;
    }
 
    if( !ISVALID_MAT44(dset->daxes->ijk_to_dicom) )  /* get this matrix */
@@ -1291,14 +1295,45 @@ THD_3dim_dataset * THD_nwarp_extend( THD_3dim_dataset *dset_nwarp ,
 
 ENTRY("THD_nwarp_extend") ;
 
-   if( dset_nwarp == NULL || DSET_NVALS(dset_nwarp) < 3 ) RETURN(NULL) ;
-   DSET_load(dset_nwarp) ; if( !DSET_LOADED(dset_nwarp) ) RETURN(NULL) ;
+   if( dset_nwarp == NULL || DSET_NVALS(dset_nwarp) < 3 ){
+     ERROR_message("Warp extend(%d,%d,%d,%d,%d,%d) fails: input warp %s invalid",
+                    nxbot,nxtop,nybot,nytop,nzbot,nztop ,
+                    ISVALID_DSET(dset_nwarp) ? DSET_BRIKNAME(dset_nwarp) : "NULL" ) ;
+     RETURN(NULL) ;
+   }
+   DSET_load(dset_nwarp) ;
+   if( !DSET_LOADED(dset_nwarp) ){
+     ERROR_message("Warp extend(%d,%d,%d,%d,%d,%d) fails: can't load warp dataset %s from disk",
+                    nxbot,nxtop,nybot,nytop,nzbot,nztop ,
+                    DSET_BRIKNAME(dset_nwarp) ) ;
+     RETURN(NULL) ;
+   }
 
    AA = IW3D_from_dataset( dset_nwarp , 0 , 0 ) ;
+   DSET_unload(dset_nwarp) ;
+   if( AA == NULL ){
+     ERROR_message("Warp extend(%d,%d,%d,%d,%d,%d) fails: can't convert dataset %s to IW3D format",
+                    nxbot,nxtop,nybot,nytop,nzbot,nztop ,
+                    DSET_BRIKNAME(dset_nwarp) ) ;
+     RETURN(NULL) ;
+   }
+
    BB = IW3D_extend( AA , nxbot,nxtop,nybot,nytop,nzbot,nztop , 0 ) ;
+   IW3D_destroy(AA) ;
+   if( BB == NULL ){
+     ERROR_message("Warp extend(%d,%d,%d,%d,%d,%d) fails: can't extend IW3D format of dataset %s" ,
+                    nxbot,nxtop,nybot,nytop,nzbot,nztop ,
+                    DSET_BRIKNAME(dset_nwarp) ) ;
+     RETURN(NULL) ;
+   }
 
    qset = IW3D_to_dataset( BB , "ExtendedWarp" ) ;
-   IW3D_destroy(AA) ; IW3D_destroy(BB) ; DSET_unload(dset_nwarp) ;
+   IW3D_destroy(BB) ;
+   if( qset == NULL ){
+     ERROR_message("Warp extend(%d,%d,%d,%d,%d,%d) fails: can't convert IW3D format of %s back to dataset" ,
+                    nxbot,nxtop,nybot,nytop,nzbot,nztop ,
+                    DSET_BRIKNAME(dset_nwarp) ) ;
+   }
    RETURN(qset) ;
 }
 
@@ -3463,7 +3498,7 @@ THD_3dim_dataset * THD_nwarp_invert( THD_3dim_dataset *dset_nwarp )
    IndexWarp3D *AA , *BB ;
    THD_3dim_dataset *qset ;
 
-ENTRY("THD_nwarp_extend") ;
+ENTRY("THD_nwarp_invert") ;
 
    if( dset_nwarp == NULL || DSET_NVALS(dset_nwarp) < 3 ) RETURN(NULL) ;
    DSET_load(dset_nwarp) ; if( !DSET_LOADED(dset_nwarp) ) RETURN(NULL) ;
@@ -5588,7 +5623,7 @@ ENTRY("THD_nwarp_dataset_array") ;
      } else {            /* check later datasets to see if they match */
        hs = EDIT_get_geometry_string(dset_sss) ;
        if( EDIT_geometry_string_diff(gs,hs) > 0.01f ){
-         ERROR_message("Can't warp multiple datasets with different grids!") ;
+         ERROR_message("Can't warp multiple datasets because they have different grids!") ;
          free(hs) ; free(gs) ; RETURN(NULL) ;
        }
        free(hs) ;  /* don't need this any more */
@@ -5711,18 +5746,23 @@ if( verb_nww > 1 ) fprintf(stderr,"b") ;
 #endif
        dset_nwarp = IW3D_from_nwarp_catlist( nwc , iv ) ; /* get the iv-th warp */
        if( dset_nwarp == NULL ){  /* should never happen */
-         ERROR_message("Can't acquire nwarp dataset #%d ?!?",iv); RETURN(NULL) ;
+         ERROR_message("Can't acquire/compute nwarp dataset #%d ?!?",iv); RETURN(NULL) ;
        }
 #ifdef DEBUG_CATLIST
 if( verb_nww > 1 ) fprintf(stderr,"'") ;
 #endif
-       if( next > 0 )
+       if( next > 0 ){
          dset_qwarp = THD_nwarp_extend( dset_nwarp , next,next,next,next,next,next ) ;
-       else
+         if( dset_qwarp == NULL ){
+           ERROR_message("Can't extend nwarp dataset #%d ?!?",iv) ; RETURN(NULL) ;
+         }
+       } else {
          dset_qwarp = EDIT_full_copy( dset_nwarp , "ZharksRevenge" ) ;
-       if( dset_qwarp == NULL ){  /* should never happen */
-         ERROR_message("Can't copy+extend nwarp dataset #%d ?!?",iv) ; RETURN(NULL) ;
+         if( dset_qwarp == NULL ){
+           ERROR_message("Can't copy nwarp dataset #%d ?!?",iv) ; RETURN(NULL) ;
+         }
        }
+
        if( !ISVALID_MAT44(dset_qwarp->daxes->ijk_to_dicom) )
          THD_daxes_to_mat44(dset_qwarp->daxes) ;
        nwarp_cmat = dset_qwarp->daxes->ijk_to_dicom ; /* coordinates of warp */
@@ -6652,7 +6692,7 @@ static void CW_load_one_warp( int nn , char *cp )
 ENTRY("CW_load_one_warp") ;
 
    if( nn <= 0 || nn > CW_NMAX || cp == NULL || *cp == '\0' ){
-     ERROR_message("bad inputs to CW_load_one_warp") ; EXRETURN ;
+     ERROR_message("bad inputs to CW_load_one_warp: nn=%d cp=%s",nn,cp) ; EXRETURN ;
    }
 
    if( nn > CW_nwtop ) CW_nwtop = nn ;  /* CW_nwtop = largest index thus far */
@@ -6891,7 +6931,7 @@ ENTRY("IW3D_read_catenated_warp") ;
    /*--- create output dataset ---*/
 
    if( warp == NULL ){
-     ERROR_message("This message should never appear!") ;
+     ERROR_message("This message should never appear!!") ;
      CW_clear_data() ; RETURN(NULL) ;
    }
 
@@ -7394,7 +7434,7 @@ if( verb_nww > 1 ) fprintf(stderr,"}") ;
    /*--- create output dataset ---*/
 
    if( warp == NULL ){
-     ERROR_message("IW3D_from_nwarp_catlist: this message should never appear!") ;
+     ERROR_message("IW3D_from_nwarp_catlist: this message should never appear!!") ;
      RETURN(NULL) ;
    }
 
@@ -10111,7 +10151,7 @@ double IW3D_scalar_costfun( int npar , double *dpar )
    if( Hnegate ) cost = -cost ;  /* change the sign? (for minimization) */
 
    if( !isfinite(cost) ){  /* bad bad Leroy Brown */
-     ERROR_message("Warpomatic cost = %g -- input parameters:",cost) ;
+     ERROR_message("bad Warpomatic cost = %g -- input parameters:",cost) ;
      for( ii=0 ; ii < npar ; ii++ ) fprintf(stderr," %g",dpar[ii]) ;
      fprintf(stderr,"\n") ;
    }
@@ -12032,7 +12072,7 @@ double IW3D_scalar_costfun_plusminus( int npar , double *dpar )
    if( Hnegate ) cost = -cost ;
 
    if( !isfinite(cost) ){
-     ERROR_message("Warpomatic cost = %g -- input parameters:",cost) ;
+     ERROR_message("bad Warpomatic cost = %g -- input parameters:",cost) ;
      for( ii=0 ; ii < npar ; ii++ ) fprintf(stderr," %g",dpar[ii]) ;
      fprintf(stderr,"\n") ;
    }

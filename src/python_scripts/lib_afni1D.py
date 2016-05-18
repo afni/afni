@@ -1622,6 +1622,16 @@ class Afni1D:
          if rlen * nruns == self.nt:
              self.nruns = nruns
              self.run_len = [rlen for run in range(nruns)]
+
+             # update non-censored version
+             if self.run_len_nc[0] == 0:
+                self.run_len_nc = [0 for ll in self.run_len]
+             elif self.run_len_nc[0] < self.nt:
+                print '** cannot reset nruns in face of censored TRs'
+                return 1
+             else:
+                self.run_len_nc = self.run_len[:]
+
              if self.verb > 1: print '++ set_nruns: nruns = %d' % nruns
          else:
              print '** nvalid nruns = %d (does not divide nt = %d)'  \
@@ -1908,12 +1918,12 @@ class Afni1D:
 
       if len(self.run_len) != nr:
          if verb: print '** bad run lists: len(run_len) = %d, nruns = %d' \
-                        % (len(self.run_len), nruns)
+                        % (len(self.run_len), self.nruns)
          return 1
 
       if len(self.run_len_nc) != nr:
          if verb: print '** bad run lists: len(run_len_nc) = %d, nruns = %d' \
-                        % (len(self.run_len_nc), nruns)
+                        % (len(self.run_len_nc), self.nruns)
          return 1
 
       ntr = UTIL.loc_sum(self.run_len)
@@ -1924,8 +1934,8 @@ class Afni1D:
 
       ntr = UTIL.loc_sum(self.run_len_nc)
       if ntr != self.nrowfull:
-         if verb: print '** bad run lists: sum(run_len_nc) = %d, nt = %d' \
-                        % (ntr, self.nt)
+         if verb: print '** bad run lists: sum(run_len_nc) = %d, nrf = %d' \
+                        % (ntr, self.nrowfull)
          return 1
 
       return 0
@@ -2565,7 +2575,8 @@ class AfniData(object):
          if self.init_from_filename(self.fname): return None
 
    # some accessor functions to match Afni1D
-   def set_nruns(nruns): self.nruns = nruns
+   def set_nruns(nruns):
+      self.nruns = nruns
 
    def set_run_lengths(run_lengths):
       self.row_lens = run_lengths

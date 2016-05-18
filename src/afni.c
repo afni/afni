@@ -253,6 +253,23 @@ static void process_XXX_options( int argc , char *argv[] )
        nopt++ ; continue ;
      }
 
+     if( strcasecmp(argv[nopt],"-XXXnpane") == 0 ){  /* 06 May 2016 */
+       int np ;
+       if( ++nopt >= argc ){
+         WARNING_message("no argument after '%s' :-(",argv[nopt-1]) ;
+         break ;
+       }
+       np = (int)strtod(argv[nopt],NULL) ;
+       if( np < 256 || np > NPANE_BIGGEST ){
+         WARNING_message("value '%s' after '%s' is illegal -- ignoring",argv[nopt],argv[nopt-1]) ;
+       } else {
+         if( np%2 == 1 ) np++ ;
+         if( np > NPANE_BIGGEST ) np = NPANE_BIGGEST ;
+         npane_big = np ;
+       }
+       nopt++ ; continue ;
+     }
+
      if( strcasecmp(argv[nopt],"-XXXbgcolor") == 0 ){
        if( ++nopt >= argc ){
          WARNING_message("no argument after '%s' :-(",argv[nopt-1]) ;
@@ -781,6 +798,13 @@ void AFNI_syntax(void)
     " -XXX defaults         = set the X11 properties to the AFNI defaults\n"
     "                         (the purpose of this is to restore things )\n"
     "                         (to normal if the X11 settings get mangled)\n"
+    "\n"
+    " -XXXnpane P           = set the number of 'panes' in the continuous\n"
+    "                         colorscale to the value 'P', where P is an\n"
+    "                         even integer between 256 and 2048 (inclusive).\n"
+    "                         Probably will work best if P is an integral\n"
+    "                         multiple of 256 (e.g., 256, 512, 1024, 2048).\n"
+    "                         [This option is for the mysterious Dr ZXu.]\n"
     "\n"
    ) ;
 
@@ -1663,7 +1687,6 @@ void AFNI_sigfunc_alrm(int sig)
 #undef  NMSG
 #define NMSG (sizeof(msg)/sizeof(char *))
    static char *msg[] = {
-     "All suspicion points to a Frost-Bellgowan conspiracy"          ,
      "Farewell, my friend"                                           ,
      "Farewell?  A long farewell to all my greatness"                ,
      "Sweet is the memory of distant friends"                        ,
@@ -1901,7 +1924,6 @@ void AFNI_sigfunc_alrm(int sig)
      "I hereby declare the Null Hypothesis to be ..... Falsified"    ,
      "I'm sick of thinking about p-values -- how about you?"         ,
      "Did you fail to negate the opposite of the null hypothesis?"   ,
-     "All suspicion points to a Frost-Bellgowan plot"                ,
      "I'd like to live as a poor man with lots of money"             ,
      "Wine is proof that God loves us and wants to see us happy"     ,
      "If two wrongs don't make a right, then try three; then four"   ,
@@ -1957,9 +1979,11 @@ void AFNI_sigfunc_alrm(int sig)
      "Statistics are good, but dark chocolate is better"             ,
      "After every tempest comes the calm"                            ,
 
-     /* This set of quotes is from Paradise Lost */
+     /* This set of quotes is from Paradise Lost,
+        by John Milton (a very very early AFNI user) */
 
      "With hideous ruin and combustion, down to bottomless perdition"                    ,
+     "The mind and spirit remains invincible"                                            ,
      "The thought both of lost happiness and lasting pain"                               ,
      "Clothed with transcendent brightness"                                              ,
      "All is not lost: the unconquerable will, and courage never to submit or yield"     ,
@@ -1969,6 +1993,31 @@ void AFNI_sigfunc_alrm(int sig)
      "Farewell happy fields where Joy for ever dwells"                                   ,
      "The mind is its own place, and itself can make a Heaven of Hell, a Hell of Heaven" ,
      "No light, but rather darkness visible"                                             ,
+     "Find yourself not lost in loss itself"                                             ,
+     "Through the gloom were seen ten thousand banners rise in the air"                  ,
+     "Let tears such as angels weep burst forth"                                         ,
+     "To set itself in glory above its peers"                                            ,
+     "Hurled headlong flaming from the ethereal sky"                                     ,
+     "Here in the heart of Hell to work in fire"                                         ,
+     "Ceases now to bellow through the vast and boundless deep"                          ,
+     "The seat of desolation, void of light"                                             ,
+     "Left at large to its own dark designs"                                             ,
+     "Whom reason has equalled, force has made supreme above his equals"                 ,
+     "Resume new courage and revive"                                                     ,
+     "After the toil of battle, repose your wearied virtue"                              ,
+     "From eternal splendours flung"                                                     ,
+     "Long is the way and hard, that out of Hell leads up to light"                      ,
+     "Wild above rule or art, enormous bliss"                                            ,
+     "Of what darkness do we dread?"                                                     ,
+     "Free and to none accountable"                                                      ,
+     "Designing or exhorting glorious statisticks"                                       ,
+     "Those thoughts that wander through eternity"                                       ,
+     "Now fiercer by despair"                                                            ,
+     "Celestial Virtues rising will appear"                                              ,
+     "Fit to bear the weight of mightiest monarchies"                                    ,
+     "This horror will grow mild, this darkness will light"                              ,
+     "Whose eye views all things at one view"                                            ,
+     "Thus uplifted high beyond hope"                                                    ,
 
      /* These are to make it clear that Cox is not to be blamed for ANYTHING */
 
@@ -1976,6 +2025,8 @@ void AFNI_sigfunc_alrm(int sig)
      "If you have any problems with AFNI, blame goes to ... Ziad Saad ;)"      ,
      "If you have any problems with AFNI, blame goes to ... Pat Bellgowan ;)"  ,
      "If you have any problems with AFNI, blame goes to ... Kyle Simmons ;)"   ,
+     "All suspicion points to a Frost-Bellgowan plot"                          ,
+     "All signs points to a Frost-Bellgowan conspiracy"                        ,
 
      "Will all great Neptune's ocean wash this modeling error from my hands?"         ,
      "Remember -- Screaming is the next best thing to solving a problem"              ,
@@ -2071,7 +2122,7 @@ void AFNI_sigfunc_alrm(int sig)
      "  look for more data, think harder, mumble inaudibly, or have a strong drink"           ,
 
      "\n  To be stupid, selfish, and have good health are three requirements\n"
-     "   for happiness; though if stupidity is lacking, all is lost.\n"
+     "  for happiness; though if stupidity is lacking, all is lost"
    } ;
 #undef NTOP
 #ifdef USE_SONNETS

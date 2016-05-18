@@ -12,6 +12,7 @@
 #include <omp.h>
 #endif
 
+/**** C source codes to include, for compilation efficency (we hope & pray) ***/
 /*----------------------------------------------------------------------------*/
 #include "zgaussian.c"         /** Ziggurat Gaussian random number generator **/
 /*----------------------------------------------------------------------------*/

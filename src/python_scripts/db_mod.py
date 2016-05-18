@@ -12,6 +12,16 @@ import option_list as OL
 import lib_afni1D as LD
 import lib_vars_object as VO
 
+# types of motion simulated datasets that can be created
+#    motion     : simulated motion time series - volreg base warped
+#                 by inverse motion transformations (forward motion)
+#    aligned    : 'motion' corrected by original volreg parameters
+#    warped     : 'motion' fully warped as original volreg results
+#                 note: any pre-warp (blip) would not apply
+#    volreg     : 'motion' corrected by new 3dvolreg command
+#    warped_vr  : ?? maybe allow a volreg version to be fully warped
+motsim_types = ['motion','aligned', 'volreg', 'warped']
+
 
 WARP_EPI_TLRC_ADWARP    = 1
 WARP_EPI_TLRC_WARP      = 2
@@ -157,11 +167,15 @@ def db_cmd_tcat(proc, block):
                      proc.dsets[run].rel_input(), flist[run], final)
 
     proc.reps   -= first+rmlast # update reps to account for removed TRs
+    if proc.verb > 0: print "-- %s: reps is now %d" % (block.label, proc.reps)
 
     for run in range(len(proc.reps_all)):
        proc.reps_all[run] -= (flist[run] + rmlast)
     if not UTIL.vals_are_constant(proc.reps_all):
        proc.reps_vary = 1
+
+    # now we are ready to set polort for the analysis
+    if set_proc_polort(proc): return
 
     cmd = cmd + '\n'                                                    \
                 '# and make note of repetitions (TRs) per run\n'        \
@@ -172,11 +186,34 @@ def db_cmd_tcat(proc, block):
                 '# enter the results directory (can begin processing data)\n' \
                 'cd %s\n\n\n' % proc.od_var
 
-    if proc.verb > 0: print "-- %s: reps is now %d" % (block.label, proc.reps)
-
     tcat_extract_vr_base(proc)
 
     return cmd
+
+def set_proc_polort(proc):
+    """set proc.polort from -regress_polort or get_default_polort
+       return 0 on success
+    """
+    rblock = proc.find_block('regress')
+    if rblock:
+       opt = rblock.opts.find_opt('-regress_polort')
+       if opt:
+          # try to set it and return
+          try: proc.regress_polort = int(opt.parlist[0])
+          except:
+             print "** -regress_polort requires int for degree (have '%s')\n" \
+                   % opt.parlist[0]
+             return 1
+          return 0
+
+    # no option, figure it out
+
+    proc.regress_polort = UTIL.get_default_polort(proc.tr, proc.reps)
+    if proc.verb > 0:
+        print "++ updating polort to %d, from run len %.1f s" %  \
+              (proc.regress_polort, proc.tr*proc.reps)
+
+    return 0
 
 def tcat_extract_vr_base(proc):
     """find volreb block
@@ -1340,15 +1377,18 @@ def db_cmd_volreg(proc, block):
         print '** have external align EPI volume, but seem to be\n'     \
               '   aligning EPI to end the runs, this looks fishy...'
 
-    # get any base_vol option
+    # volreg base should now either be external or locally created
     if proc.vr_ext_base != None or proc.vr_int_name != '':
-       basevol = "%s%s" % (proc.vr_ext_pre,proc.view)
-    else: basevol = None
+       proc.vr_base_dset = BASE.afni_name("%s%s" % (proc.vr_ext_pre,proc.view))
+       basevol = proc.vr_base_dset.rel_input()
+    else:
+       print "** warning: basevol should always be set now"
+       return
 
     if proc.verb > 0:
         if basevol: print "-- %s: using base dset %s" % (block.label,basevol)
-        else:       print "-- %s: base/sub indices are %d, %d" % \
-                          (block.label,dset_ind,sub)
+        else: 
+           print "-- %s: base/sub indices are %d, %d"%(block.label,dset_ind,sub)
 
     # get base prefix (run is index+1)
     base = proc.prev_prefix_form(dset_ind+1, block, view=1)
@@ -1906,6 +1946,61 @@ def db_cmd_volreg_tsnr(proc, block, emask=''):
            "# create a TSNR dataset, just from run 1\n",
            signal, signal, proc.view, mask=emask,
            name_qual='.vreg.r01',detrend=1)
+
+# --------------- motsim block ---------------
+
+def db_mod_motsim(block, proc, user_opts):
+   """init proc.motsim_dsets keys to any found labels
+      (rather than translating options)
+      note: there are currently no -motsim options
+   """
+
+   # check for updates to -tshift_align_to option
+   errs = 0
+   oname = '-volreg_motsim_create'
+   mdsets = proc.motsim_dsets   # dict of afni_name's (use None for now)
+   optlist = user_opts.find_all_opts(oname)
+   for opt in optlist:
+      for par in opt.parlist:
+         if par not in motsim_types:
+            print '** invalid %s type %s, not in %s' \
+                  % (oname, par, ', '.join(motsim_types))
+            errs += 1
+         if not mdsets.has_key(par):
+            mdsets[par] = None
+
+   oname = '-regress_motsim_PC'
+   optlist = user_opts.find_all_opts(oname)
+   for opt in optlist:
+      # parlist is of form: TYPE #PCs
+      par = opt.parlist[0]
+      if par not in motsim_types:
+         print '** invalid %s type %s, not in %s' \
+               % (oname, par, ', '.join(motsim_types))
+         errs += 1
+      if not mdsets.has_key(par):
+         mdsets[par] = None
+
+   if errs: return 1
+
+   # #PCs will be added to the afni_name object before db_cmd_regress
+
+   if proc.verb > 2:
+      print '-- will create motsim dset types: %s' % ', '.join(mdsets.keys())
+   
+   block.valid = 1
+
+def db_cmd_motsim(proc, block):
+
+   mdsets = proc.motsim_dsets
+   mdkeys = proc.motsim_dsets.keys()
+   if proc.verb>0: print '-- creating motsim dset types: %s'%', '.join(mdkeys)
+
+   # first create afni_names for MS dsets
+   # (view from proc.vr_base_dset, or proc.view for warped)
+   
+   return
+
 
 # check all -surf options
 def db_mod_surf(block, proc, user_opts):
@@ -3472,20 +3567,7 @@ def db_cmd_regress(proc, block):
         istr = ''
         vstr = proc.view
 
-    opt = block.opts.find_opt('-regress_polort')
-    if not opt:
-        polort = UTIL.get_default_polort(proc.tr, proc.reps)
-        if proc.verb > 0:
-            print "++ updating polort to %d, from run len %.1f s" %  \
-                  (polort, proc.tr*proc.reps)
-    else:
-        try: polort = int(opt.parlist[0])
-        except:
-            print "** -regress_polort requires int for degree (have '%s')\n" \
-                  % opt.parlist[0]
-            return
-
-    proc.regress_polort = polort
+    # set polort in db_cmd_tcat (section moved)
 
     # ---- allow no stims
     # if len(proc.stims) <= 0:   # be sure we have some stim files
@@ -3658,7 +3740,7 @@ def db_cmd_regress(proc, block):
     O3dd = ['%s3dDeconvolve -input %s'%(istr, proc.prev_dset_form_wild(block)),
             mask, censor_str]
     O3dd.extend(reg_orts)
-    O3dd.extend([ '    -polort %d%s' % (polort, datum),
+    O3dd.extend([ '    -polort %d%s' % (proc.regress_polort, datum),
                   normall, times_type,
                   '    -num_stimts %d' % total_nstim])
 
@@ -3668,7 +3750,8 @@ def db_cmd_regress(proc, block):
         labels = []
         for ind in range(len(proc.stims)):
             labels.append('stim%02d' % (ind+1))
-        if proc.verb > 0: print ('++ adding labels: %s' % labels)
+        if proc.verb > 0 and len(labels) > 0:
+            print ('++ creating new stim labels: %s' % labels)
     elif len(proc.stims) != len(opt.parlist):
         print "** cmd_regress: have %d stims but %d labels" % \
               (len(proc.stims), len(opt.parlist))
@@ -4077,7 +4160,7 @@ def db_cmd_regress(proc, block):
         # (so no ideal after failure)
         if UTIL.basis_has_one_reg(basis[0], st=stim_types[0]):
             cmd = cmd + "# create ideal files for fixed response stim types\n"
-            first = (polort+1) * proc.runs
+            first = (proc.regress_polort+1) * proc.runs
             for ind in range(len(labels)):
                 # once unknown or multiple regs, quit
                 if not UTIL.basis_has_one_reg(basis[ind], st=stim_types[ind]):
@@ -6111,6 +6194,7 @@ g_help_string = """
                         -regress_bandpass 0.01 0.1              \\
                         -regress_apply_mot_types demean deriv   \\
                         -regress_run_clustsim no                \\
+                        -regress_est_blur_epits                 \\
                         -regress_est_blur_errts
                         
         Example 6. A modern example.  GOOD TO CONSIDER.
@@ -6338,6 +6422,10 @@ g_help_string = """
                  time series before the blur step, or remove blur from the list
                  of blocks (and apply any desired blur after the regression).
 
+           Note: it might be reasonable to estimate the blur using epits rather
+                 than errts in the case of bandpassing.  Both options are
+                 included here.
+
            Other options to consider: -tlrc_NL_warp, -anat_uniform_method
 
                 afni_proc.py -subj_id subj123                                \\
@@ -6352,6 +6440,7 @@ g_help_string = """
                   -regress_bandpass 0.01 0.1                                 \\
                   -regress_apply_mot_types demean deriv                      \\
                   -regress_run_clustsim no                                   \\
+                  -regress_est_blur_epits                                    \\
                   -regress_est_blur_errts
 
        Example 9b. Resting state analysis with ANATICOR.
@@ -6376,6 +6465,7 @@ g_help_string = """
                   -regress_bandpass 0.01 0.1                                 \\
                   -regress_apply_mot_types demean deriv                      \\
                   -regress_run_clustsim no                                   \\
+                  -regress_est_blur_epits                                    \\
                   -regress_est_blur_errts
 
        Example 10. Resting state analysis, with tissue-based regressors.
@@ -6393,6 +6483,10 @@ g_help_string = """
 
            Also, align to minimum outlier volume.
 
+           Note: it might be reasonable to estimate the blur using epits rather
+                 than errts in the case of bandpassing.  Both options are
+                 included here.
+
                 afni_proc.py -subj_id subj123                                \\
                   -dsets epi_run1+orig.HEAD                                  \\
                   -copy_anat anat+orig                                       \\
@@ -6409,6 +6503,7 @@ g_help_string = """
                   -regress_apply_mot_types demean deriv                      \\
                   -regress_ROI WMe                                           \\
                   -regress_run_clustsim no                                   \\
+                  -regress_est_blur_epits                                    \\
                   -regress_est_blur_errts
 
        Example 10b. Resting state analysis, with tissue-based regressors and
@@ -6460,6 +6555,15 @@ g_help_string = """
          o Compute average correlation volumes of the errts against the
            the gray matter (aeseg) and ventricle (FSVent) masks.
 
+           Note: it might be reasonable to use either set of blur estimates
+                 here (from epits or errts).  The epits (uncleaned) dataset
+                 has all of the noise (though what should be considered noise
+                 in this context is not clear), while the errts is motion
+                 censored.  For consistency in resting state, it would be
+                 reasonable to stick with epits.  They will likely be almost
+                 identical.
+
+
                 afni_proc.py -subj_id FT.11.rest                             \\
                   -blocks despike tshift align tlrc volreg blur mask regress \\
                   -copy_anat FT_SurfVol.nii                                  \\
@@ -6482,6 +6586,7 @@ g_help_string = """
                   -regress_censor_motion 0.2                                 \\
                   -regress_censor_outliers 0.1                               \\
                   -regress_apply_mot_types demean deriv                      \\
+                  -regress_est_blur_epits                                    \\
                   -regress_est_blur_errts                                    \\
                   -regress_run_clustsim no
 
@@ -6729,9 +6834,13 @@ g_help_string = """
         @SUMA_Make_Spec_FS -sid FT -NIFTI
 
         # create ventricle and white matter masks
-        3dcalc -a aparc+aseg.nii -datum byte -prefix FT_vent.nii \
+        #
+        # ** warning: it would be good to convert these indices to labels
+        #             in case the output from FreeSurfer is changed
+
+        3dcalc -a aparc+aseg.nii -datum byte -prefix FT_vent.nii \\
                -expr 'amongst(a,4,43)'
-        3dcalc -a aparc+aseg.nii -datum byte -prefix FT_WM.nii \
+        3dcalc -a aparc+aseg.nii -datum byte -prefix FT_WM.nii \\
                -expr 'amongst(a,2,7,16,41,46,251,252,253,254,255)'
 
     After this, FT_SurfVol.nii, FT_vent.nii and FT_WM.nii (along with the
@@ -8138,7 +8247,10 @@ g_help_string = """
             to transform (non-linear) to standard space, those datasets can
             be input to save re-processing time.
 
-            In such a case, the 'tlrc' block will be empty of actions.
+            They are the same 3 files that would be otherwise created by
+            running auto_warp_py from the proc script.
+
+            When using this option, the 'tlrc' block will be empty of actions.
 
         -tlrc_NL_awpy_rm Y/N    : specify whether to remove awpy directory
 
@@ -9264,20 +9376,20 @@ g_help_string = """
                 default: yes
 
             By default, a temporal signal to noise (TSNR) dataset is created at
-            the end of the regress block.  The "signal" is the mean of the
-            all_runs dataset (input to 3dDeconvolve), and the "noise" is the
-            errts dataset (residuals from 3dDeconvolve).
+            the end of the regress block.  The "signal" is the all_runs dataset
+            (input to 3dDeconvolve), and the "noise" is the errts dataset (the
+            residuals from 3dDeconvolve).  TSNR is computed (per voxel) as the
+            mean signal divided by the standard deviation of the noise.
+
+               TSNR = average(signal) / stdev(noise)
 
             The main difference between the TSNR datasets from the volreg and
             regress blocks is that the data in the regress block has been
-            smoothed (plus it has been "completely" detrended, according to
-            the regression model - this includes polort, motion and even stim
-            responses).
+            smoothed and "completely" detrended (detrended according to the
+            regression model: including polort, motion and stim responses).
 
             Use this option to prevent the TSNR dataset computation in the
             'regress' block.
-
-            TSNR = average(signal) / stdev(noise)
 
             See also -volreg_compute_tsnr.
 

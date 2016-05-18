@@ -1025,7 +1025,7 @@ void GI_sigfunc(int sig)   /** signal handler for fatal errors **/
 
 /*----------------------------------------------------------------------------*/
 
-void GIC_help(int junque )   /* Dispense the Wisdom of the Ages [07 Apr 2016] */
+void GIC_help(int junque)    /* Dispense the Wisdom of the Ages [07 Apr 2016] */
 {
      printf(
       "Usage: 3dGroupInCorr [options]\n"
@@ -1038,9 +1038,14 @@ void GIC_help(int junque )   /* Dispense the Wisdom of the Ages [07 Apr 2016] */
       "  connects to the AFNI or SUMA GUI program (via TCP/IP).  Then it waits\n"
       "  for a command to be sent from AFNI/SUMA before it actually does anything.\n"
       "\n"
-      " (-: However,  the new [Feb 2011] '-batch' option,  described far below, :-)\n"
-      " (-: lets you run 3dGroupInCorr by itself, without AFNI or SUMA, writing :-)\n"
-      " (-: results to disk instead of transmitting them to the client program. :-)\n"
+      "* The command from AFNI is sent when the user (you) clicks the 'InstaCorr Set' *\n"
+      "* button in the [A] controller image viewer right-mouse-click popup menu; or,  *\n"
+      "* when you hold down the Shift and Control (Ctrl) keys on the keyboard at the  *\n"
+      "* same time you left-mouse-click in the image viewer.                          *\n"
+      "\n"
+      "  (-: However,  the new [Feb 2011] '-batch' option,  described far below, :-)\n"
+      "  (-: lets you run 3dGroupInCorr by itself, without AFNI or SUMA, writing :-)\n"
+      "  (-: results to disk instead of transmitting them to the client program. :-)\n"
       "\n"
       "* At the same time as you run 3dGroupInCorr, you also have to run the\n"
       "  AFNI GUI program, with a command like 'afni -niml'.  3dGroupInCorr\n"
