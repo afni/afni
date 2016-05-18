@@ -6834,9 +6834,13 @@ g_help_string = """
         @SUMA_Make_Spec_FS -sid FT -NIFTI
 
         # create ventricle and white matter masks
-        3dcalc -a aparc+aseg.nii -datum byte -prefix FT_vent.nii \
+        #
+        # ** warning: it would be good to convert these indices to labels
+        #             in case the output from FreeSurfer is changed
+
+        3dcalc -a aparc+aseg.nii -datum byte -prefix FT_vent.nii \\
                -expr 'amongst(a,4,43)'
-        3dcalc -a aparc+aseg.nii -datum byte -prefix FT_WM.nii \
+        3dcalc -a aparc+aseg.nii -datum byte -prefix FT_WM.nii \\
                -expr 'amongst(a,2,7,16,41,46,251,252,253,254,255)'
 
     After this, FT_SurfVol.nii, FT_vent.nii and FT_WM.nii (along with the
