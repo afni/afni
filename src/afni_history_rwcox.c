@@ -44,6 +44,19 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 6 , MAY , 2016 , RWC , "afni GUI" , MICRO , TYPE_NEW_OPT ,
+   "-XXXnpane to set number of panes in pbar" ,
+   "For the elusive ZXu." } ,
+
+ { 5 , MAY , 2016 , RWC , "3dTstat" , MICRO , TYPE_NEW_OPT ,
+   "Option -percentile P" ,
+   "Computes the Pth percentile 0 <= P <= 100 of the data in each voxel. \n"
+   "Can only be used once per run!" } ,
+
+ { 4 , MAY , 2016 , RWC , "3dREMLfit" , MICRO , TYPE_BUG_FIX ,
+   "-dsort always produced the _nods dataset; now, only if -nods is used" ,
+   NULL } ,
+
  { 27 , APR , 2016 , RWC , "afni + 3dGroupInCorr" , MICRO , TYPE_GENERAL ,
    "Remind user of what to do after 3dGIC connects to afni GUI" ,
    "This is the Caballero-Rossi popup reminder." } ,

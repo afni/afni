@@ -54,11 +54,15 @@ for each.
 
    * *for RHEL 7*::
 
-       tcsh @update.afni.binaries -package linux_openmp_64
+       tcsh @update.afni.binaries -package linux_openmp_64 -do_extras
 
    * *for Fedora 21 (and higher)*::
 
-       tcsh @update.afni.binaries -package linux_fedora_21_64
+       tcsh @update.afni.binaries -package linux_fedora_21_64 -do_extras
+
+   .. note:: if the binary package has already been downloaded, one can use ``-local_package``, followed by the location+name of the binary file, e.g.:
+
+      tcsh @update.afni.binaries -local_package linux_openmp_64.tgz -do_extras
 
 #. **Reboot.**
 
@@ -165,8 +169,9 @@ for each.
 
 
        NB: ``@update.afni.binaries`` should have set the path in
-       ``$HOME/.cshrc``.  Verify this by visually checking that the same
-       'set path' line, above, in the (``tcsh``) profile::
+       ``$HOME/.cshrc`` (when using ``-do_extras``).  Verify this by
+       visually checking that the same 'set path' line, above, in the
+       (``tcsh``) profile::
 
          cat ~/.cshrc
 

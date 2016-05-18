@@ -83,10 +83,10 @@ Examples of similar shell programs::
 .. note:: regarding :command:`tcsh`
 
    - it is just one of many common Unix programs
-   - the actual program (a file on disk) is generally /bin/tcsh
+   - the actual program (a file on disk) is generally /bin/tcsh (or /usr/bin/tcsh)
    - it has its own syntax
    - it has its own sub-commands (cd, echo, set, ...)
-   - it is not has powerful as bash, but is more simple and readable
+   - it is not as powerful as bash (e.g. no functions), but is more simple and readable
 
 Sample commands
 ---------------

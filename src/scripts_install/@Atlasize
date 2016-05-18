@@ -7,6 +7,7 @@ set RNS = `3dnewid -fun`
 set log = /tmp/${RNS}.MLT.log
 set ds = `date '+%y%m%d_%H%M'`
 set centeropt = ""
+set skipnovoxopt = ""
 
 if ("$1" == "" || "$1" == '-h' || "$1" == '-help') then
    goto HELP
@@ -59,7 +60,7 @@ if ("$flab" != "IS_ATLAS") then
    @MakeLabelTable -lab_file_delim "$delim"  \
                    -lab_file $flab $iL $iV \
                    -atlas_pointlist keys_${RNS}_ \
-                   -dset $target_dset  $replace $centeropt \
+                   -dset $target_dset  $replace $centeropt $skipnovoxopt\
                    -atlas_file $atlas_file $aname \
                    -atlas_description "$adesc"
    if ($status) then
@@ -242,6 +243,11 @@ PARSE:
          set centeropt = "-centers"
          goto CONTINUE
       endif
+
+      if ("$argv[$cnt]" == "-skip_novoxels") then
+         set skipnovoxopt = "-skip_novoxels"
+         goto CONTINUE
+      endif
       
       echo "Error: Option or parameter '$argv[$cnt]' not understood"
       apsearch -popt `basename $0` -word $argv[$cnt]
@@ -350,6 +356,7 @@ echo "                 and allow an overwrite. You could endup with a lot of"
 echo "                 backed volumes and niml files, so you might want to"
 echo "                 to cleanup now and then."
 echo "   -centers:    Add center of mass coordinates to atlas"
+echo "   -skip_novoxels:  Skip regions without any voxels in the dataset"
 echo ""
    @global_parse -gopts_help
 echo ""

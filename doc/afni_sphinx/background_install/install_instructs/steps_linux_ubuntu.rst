@@ -11,20 +11,14 @@ Ubuntu Linux versions (e.g., 14.04+, though it might very well work
 even for 12.\* and higher).
 
 Several of the following steps are version number dependent, so we
-list parallel instructions when relevant.  If you need to doublecheck
-what Ubuntu version you have, you can see the release number and fun
-"codename" using::
-  
-  lsb_release --release --codename
-
-|
+list parallel instructions for each.
 
 #. **Install prerequisite packages.**
 
    There are several packages and libraries that are needed to run the
    afni and shell programs, often even including ``tcsh``:
         
-   * *for versions up to and including 15.04*::
+   * *for versions upto and including 15.04*::
       
        sudo apt-get install -y tcsh libxp6 xfonts-base python-qt4             \
                                libmotif4 libmotif-dev motif-clients           \
@@ -34,14 +28,11 @@ what Ubuntu version you have, you can see the release number and fun
    * *for versions 15.10 and higher*::
       
        sudo apt-get install -y tcsh xfonts-base python-qt4                    \
-                               libxm4 libmotif-dev motif-clients              \
-                               gsl-bin netpbm gnome-tweak-tool libjpeg62      \
-                               libglu1-mesa-dev
+                               libmotif4 libmotif-dev motif-clients           \
+                               gsl-bin netpbm gnome-tweak-tool libjpeg62
        sudo apt-get update
        sudo ln -s /usr/lib/x86_64-linux-gnu/libgsl.so /usr/lib/libgsl.so.0
-
-       curl -O http://mirrors.kernel.org/ubuntu/pool/main/libx/libxp/libxp6_1.0.2-2_amd64.deb
-       sudo dpkg -i libxp6_1.0.2-2_amd64.deb
+       sudo dpkg -i http://mirrors.kernel.org/ubuntu/pool/main/libx/libxp/libxp6_1.0.2-2_amd64.deb
        sudo apt-get install -f
 
    .. _setup_Ubu_tcsh:
@@ -63,7 +54,11 @@ what Ubuntu version you have, you can see the release number and fun
    Then install the appropriate AFNI package.  Note that most other
    Linux systems will probably work with linux_openmp_64::
 
-     tcsh @update.afni.binaries -package linux_openmp_64
+     tcsh @update.afni.binaries -package linux_openmp_64 -do_extras
+
+   .. note:: If the binary package has already been downloaded, one can use ``-local_package``, followed by the location+name of the binary file, e.g.:
+
+      tcsh @update.afni.binaries -local_package linux_openmp_64.tgz -do_extras
 
 #. **Reboot.**
 
@@ -174,8 +169,9 @@ what Ubuntu version you have, you can see the release number and fun
 
 
        NB: ``@update.afni.binaries`` should have set the path in
-       ``$HOME/.cshrc``.  Verify this by visually checking that the same
-       'set path' line, above, in the (``tcsh``) profile::
+       ``$HOME/.cshrc`` (when using ``-do_extras``).  Verify this by
+       visually checking that the same 'set path' line, above, in the
+       (``tcsh``) profile::
 
          cat ~/.cshrc
 
