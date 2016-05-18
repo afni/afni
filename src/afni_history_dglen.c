@@ -55,7 +55,7 @@ afni_history_struct dglen_history[] = {
     "flipped datasets go unnoticed even in major publicly available\n"
     "databases (initially noted by Brad Buchsbaum with FCON1000).\n"
     "Now automatically determine mismatch in L/R with simple test\n"
-    "New -check_flip and -giant_flip options check alignment against\n"
+    "New -check_flip and -flip_giant options check alignment against\n"
     "flipped data."
 },
 
