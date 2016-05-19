@@ -44,6 +44,19 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 19, MAY , 2016 , RWC , "3dQwarp" , MICRO , TYPE_NEW_OPT ,
+   "-wball = emphasize some region in the weighting" ,
+   "Written in Hangzhou China" } ,
+
+ { 17, MAY , 2016 , RWC , "3dUnifize" , MICRO , TYPE_BUG_FIX ,
+   "-ssave option caused a crash :-(" , NULL } ,
+
+ { 17, MAY , 2016 , RWC , "3dTshift" , MICRO , TYPE_MODIFY ,
+   "Update error messages to be more informative" , NULL } ,
+
+ { 15, MAY, 2016 , RWC , "3dNwarpApply" , MICRO , TYPE_MODIFY ,
+   "Update error messages yet again" , NULL } ,
+
  { 6 , MAY , 2016 , RWC , "afni GUI" , MICRO , TYPE_NEW_OPT ,
    "-XXXnpane to set number of panes in pbar" ,
    "For the elusive ZXu." } ,
