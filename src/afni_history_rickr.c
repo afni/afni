@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 19,  May, 2016, RCR, "dicom_hdr", MICRO, TYPE_BUG_FIX,
+   "do not crash on missing input",
+   NULL
+ } ,
+
  {  5,  May, 2016, RCR, "@update.afni.binaries", MICRO, TYPE_MODIFY,
    "-defaults similarly implies -do_dotfiles and apsearch yes",
    NULL
