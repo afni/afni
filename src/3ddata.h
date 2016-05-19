@@ -5253,6 +5253,7 @@ extern short *THD_mask_depth (int nx, int ny, int nz, byte *mask,
 extern float THD_cliplevel( MRI_IMAGE * , float ) ;          /* 12 Aug 2001 */
 extern float THD_cliplevel_abs( MRI_IMAGE * , float ) ;      /* 05 Mar 2007 */
 extern float mri_topclip( MRI_IMAGE * ) ;                    /* 28 Sep 2006 */
+extern float THD_cliplevel_search( MRI_IMAGE *im ) ;         /* 17 May 2017 */
 extern MRI_IMAGE * THD_median_brick( THD_3dim_dataset * ) ;  /* 12 Aug 2001 */
 extern MRI_IMAGE * THD_mad_brick   ( THD_3dim_dataset * ) ;  /* 07 Dec 2006 */
 extern MRI_IMAGE * THD_mean_brick  ( THD_3dim_dataset * ) ;  /* 15 Apr 2005 */
