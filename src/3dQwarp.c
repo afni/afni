@@ -644,11 +644,13 @@ void Qhelp(void)
     "                better in a specific part of the brain.\n"
     "               * Example:  -wball 0 14 6 25 5\n"
     "                 to emphasize the thalamic area (in MNI/Talairach space).\n"
-    "               * The 'r' and 'f' parameters must be positive!\n"
+    "               * The 'r' parameter must be positive!\n"
+    "               * The 'f' parameter must be between 1 and 100 (inclusive).\n"
     "               * '-wball' does nothing if you input your own weight\n"
     "                 with the '-weight' option.\n"
     "               * '-wball' does change the binary weight created by\n"
     "                 the '-noweight' option.\n"
+    "               * You can only use '-wball' once in a run of 3dQwarp.\n"
     "\n"
     " -blur bb     = Gaussian blur the input images by 'bb' (FWHM) voxels before\n"
     "                doing the alignment (the output dataset will not be blurred).\n"
@@ -1728,6 +1730,8 @@ int main( int argc , char *argv[] )
 
      if( strcasecmp(argv[nopt],"-wball") == 0 ){
        if( ++nopt >= argc-4 ) ERROR_exit("need 5 args after -wball") ;
+       if( wball_r > 0.0f && wball_f > 0.0f )
+         WARNING_message("repeated use of -wball erases earlier use") ;
        wball_x = (float)strtod(argv[nopt++],NULL) ;  /* center */
        wball_y = (float)strtod(argv[nopt++],NULL) ;
        wball_z = (float)strtod(argv[nopt++],NULL) ;
@@ -1736,7 +1740,7 @@ int main( int argc , char *argv[] )
        if( wball_r <= 0.0f ){
          WARNING_message("-wball r=%g is illegal ==> ignoring this option") ;
          wball_r = wball_f = 0.0f ;
-       } else if( wball_f <= 0.0f || wball_f > 100.0f ){
+       } else if( wball_f < 1.0f || wball_f > 100.0f ){
          WARNING_message("-wball f=%g is illegal ==> ignoring this option") ;
          wball_r = wball_f = 0.0f ;
        }
@@ -2562,17 +2566,21 @@ STATUS("construct weight/mask volume") ;
           if( xd <= rqq ){
             fff = wball_f * expf( -xd*sig ) + 1.0f ;
             wbar[ii+jj*nx+kk*nx*ny] *= fff ;
-            nwb++ ;
+            if( fff >= 1.333f ) nwb++ ;
           }
        }}}
 
+       /* a wball message for the user? */
+
        if( nwb == 0 )
          WARNING_message(
-           "-wball option did not change the weight! Check the parameters.") ;
+           "-wball did not change any weights significantly. Check parameters.");
        else if( nwb < 100 )
          WARNING_message(
-           "-wball option affected the weight in only %d voxel%s",
+           "-wball significantly affected the weight in only %d voxel%s",
            nwb , (nwb>1) ? "s" : "\0" ) ;
+       else if( Hverb > 1 )
+         INFO_message("-wball significantly affected the weight in %d voxels",nwb);
 
        if( qset != bset ) DSET_delete(qset) ;  /* trash */
      } /* end of wball-ification */
