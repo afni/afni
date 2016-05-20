@@ -3387,6 +3387,7 @@ STATUS("making func->rowcol") ;
                   AFNI_jumpto_thminmax_CB , im3d ) ;
    MCW_register_hint( func->pbar_jumpto_thmax_pb , "Jumpto OLay thresholded maximum" ) ;
    XtSetSensitive( func->pbar_jumpto_thmax_pb , False ) ;
+   MCW_set_widget_bg( func->pbar_jumpto_thmax_pb , "black" , 0 ) ;
 
    func->pbar_jumpto_thmin_pb =
       XtVaCreateManagedWidget(
@@ -3400,6 +3401,7 @@ STATUS("making func->rowcol") ;
                   AFNI_jumpto_thminmax_CB , im3d ) ;
    MCW_register_hint( func->pbar_jumpto_thmin_pb , "Jumpto OLay thresholded minimum" ) ;
    XtSetSensitive( func->pbar_jumpto_thmin_pb , False ) ;
+   MCW_set_widget_bg( func->pbar_jumpto_thmin_pb , "black" , 0 ) ;
 
    (void) XtVaCreateManagedWidget(
             "dialog" , xmSeparatorWidgetClass , func->pbar_menu ,
