@@ -649,6 +649,7 @@ void Qhelp(void)
     "                 with the '-weight' option.\n"
     "               * '-wball' does change the binary weight created by\n"
     "                 the '-noweight' option.\n"
+    "               * You can only use '-wball' once in a run of 3dQwarp.\n"
     "\n"
     " -blur bb     = Gaussian blur the input images by 'bb' (FWHM) voxels before\n"
     "                doing the alignment (the output dataset will not be blurred).\n"
@@ -1728,6 +1729,8 @@ int main( int argc , char *argv[] )
 
      if( strcasecmp(argv[nopt],"-wball") == 0 ){
        if( ++nopt >= argc-4 ) ERROR_exit("need 5 args after -wball") ;
+       if( wball_r > 0.0f && wball_f > 0.0f )
+         WARNING_message("repeated use of -wball erases earlier use") ;
        wball_x = (float)strtod(argv[nopt++],NULL) ;  /* center */
        wball_y = (float)strtod(argv[nopt++],NULL) ;
        wball_z = (float)strtod(argv[nopt++],NULL) ;
