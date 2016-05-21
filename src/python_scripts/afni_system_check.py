@@ -27,7 +27,8 @@ examples
 terminal options:
 
    -help                : show this help
-   -help_rc_files       : show help on shell setup files
+   -help_dot_files      : show help on shell setup files
+   -help_rc_files       : SAME
    -hist                : show program history
    -show_valid_opts     : show valid options for program
    -todo                : show current todo list
@@ -39,7 +40,9 @@ action options:
 
    -check_all           : perform all system checks
                           - see section, "details displayed via -check_all"
-   -data_root DDIR      : search for class data under DDIR
+   -dot_file_list       : list all found dot files (startup files)
+   -dot_file_show       : display contents of all found dot files
+   -dot_file_pack NAME  : create a NAME.tgz packge containing dot files
    -find_prog PROG      : search PATH for PROG
                           - default is *PROG*, case-insensitive
                           - see also -casematch, -exact
@@ -47,6 +50,7 @@ action options:
 other options:
 
    -casematch yes/no    : match case in -find_prog
+   -data_root DDIR      : search for class data under DDIR
    -exact yes/no        : search for PROG without wildcards in -find_prog
 
 -----------------------------------------------------------------------------
@@ -178,9 +182,10 @@ g_history = """
         - added -help_rc_files
         - make comments about shell RC files, given login shell
    0.18 Mar 25, 2016 - tiny update
+   0.19 May 20, 2016 - added -dot_file_list/_pack/_show
 """
 
-g_version = "afni_system_check.py version 0.18, March 25, 2016"
+g_version = "afni_system_check.py version 0.19, May 20, 2016"
 
 
 class CmdInterface:
@@ -197,6 +202,7 @@ class CmdInterface:
       # action variables
       self.find_prog       = ''         # program name to find
       self.sys_check       = 0
+      self.dot_file_list   = 0          # list found dot files
       self.dot_file_pack   = ''         # package dot files
       self.dot_file_show   = 0          # display dot files
 
@@ -237,7 +243,9 @@ class CmdInterface:
                       helpstr='perform all system checks')
       self.valid_opts.add_opt('-data_root', 1, [],
                       helpstr='directory to check for class data')
-      self.valid_opts.add_opt('-dot_file_package', 1, [],
+      self.valid_opts.add_opt('-dot_file_list', 0, [],
+                      helpstr='list found dot files')
+      self.valid_opts.add_opt('-dot_file_pack', 1, [],
                       helpstr='package dot files into given tgz package')
       self.valid_opts.add_opt('-dot_file_show', 0, [],
                       helpstr='display contents of dot files')
@@ -312,7 +320,12 @@ class CmdInterface:
             self.data_root = opt.parlist[0]
             continue
 
-         if opt.name == '-dot_file_package':
+         if opt.name == '-dot_file_list':
+            self.dot_file_list = 1
+            self.act = 1
+            continue
+
+         if opt.name == '-dot_file_pack':
             self.dot_file_pack = opt.parlist[0]
             self.act = 1
             continue
@@ -369,8 +382,35 @@ class CmdInterface:
 
       if show:
          for dfile in dfound:
-            print UTIL.section_divider(dfile, hchar='-')
+            print UTIL.section_divider(dfile, hchar='=')
             print '%s\n' % UTIL.read_text_file('%s/%s' % (home, dfile), lines=0)
+
+      if pack:
+         import shutil
+         package = self.dot_file_pack
+         pgz = '%s.tgz' % package
+         # maybe user included the extension
+         ext = package.find('.tgz')
+         if ext >= 0:
+            pgz = package
+            package = package[0:ext]
+         if os.path.exists(package) or os.path.exists('%s.tgz'%package):
+            print "** error: package dir '%s' or file '%s' already exists"\
+                  % (package, pgz)
+            return 1
+
+         try: os.mkdir(package)
+         except:
+            print "** failed to make dot file package dir '%s'"  % package
+            return 1
+         for dfile in dfound:
+            shutil.copy2('%s/%s' % (home, dfile), package)
+         os.system("tar cfz %s %s" % (pgz, package))
+         shutil.rmtree(package)
+         if os.path.exists(pgz): print '++ dot file package is in %s' % pgz
+         else: print '** failed to make dot file packge %s' % pgz
+
+      return 0
 
    def execute(self):
 
@@ -380,8 +420,10 @@ class CmdInterface:
          cm = self.casematch
          if cm < 0: cm = 0
          UTIL.show_found_in_path(self.find_prog, mtype=self.exact, casematch=cm)
-      if self.dot_file_show: self.check_dotfiles(show=1)
-      if self.dot_file_pack: self.check_dotfiles(pack=1)
+      if self.dot_file_list or self.dot_file_show or self.dot_file_pack:
+         show = self.dot_file_show
+         pack = self.dot_file_pack != ''
+         self.check_dotfiles(show=show, pack=pack)
 
 def main():
    me = CmdInterface()
