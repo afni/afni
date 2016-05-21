@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 20,  May, 2016, RCR, "afni_system_check.py", MINOR, TYPE_NEW_OPT,
+   "add options -dot_file_list/_pack/_show",
+   "List, package (tgz) or show the contents of found 'dot' files."
+ } ,
+
  { 19,  May, 2016, RCR, "dicom_hdr", MICRO, TYPE_BUG_FIX,
    "do not crash on missing input",
    NULL
