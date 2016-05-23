@@ -189,7 +189,9 @@ PY_SCRIPTS = 1d_tool.py afni_proc.py afni_restproc.py afni_system_check.py   \
              python_module_test.py quick.alpha.vals.py realtime_receiver.py  \
              slow_surf_clustsim.py timing_tool.py                            \
              uber_align_test.py uber_proc.py uber_skel.py uber_subject.py    \
-             uber_ttest.py xmat_tool.py read_matlab_files.py afni_skeleton.py
+             uber_ttest.py xmat_tool.py read_matlab_files.py afni_skeleton.py\
+	     parse_fs_lt_log.py
+
 R_DIR = R_scripts
 
 LIBHEADERS = mrilib.h mcw_glob.h 3ddata.h thd_maker.h thd_iochan.h            \
