@@ -251,7 +251,7 @@ class MyInterface:
          elif opt.name == '-show_rank':
             self.show_vals = SHOW_RANK
 
-      if '-show_all_orig' in self.user_opts.olist:
+      if self.user_opts.find_opt('-show_all_orig'):
          if not (self.show_vals & SHOW_ORIG):
             print "** -show_all_orig requires showing orig"
             errs += 1
@@ -311,11 +311,13 @@ class MyInterface:
          try: vv = int(origstr)
          except: continue
 
+         # rankstring might be an integer, else not_found and finally None
          try: vv = int(rankstr)
          except: rankstr = 'not_found'
 
          if self.verb: print '%-35s  %-5s -> %s' % (label, origstr, rankstr)
 
+         if rankstr == 'not_found': rankstr = None
          llist.append([label, origstr, rankstr])
 
       if self.verb: print
