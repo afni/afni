@@ -23,17 +23,17 @@ parse_fs_lt_log.py      - parse FreeSurfer labeltable log file
    usage: parse_fs_lt_log.py -logfile aparc+aseg_rank.niml.lt.log  \\
                              -labels CC_Posterior CC_Mid_Posterior
 
-------------------------------------------
 """
 g_help_examples = """
+------------------------------------------
 examples:
 
-   list labels:
+   Example 0: common usage - simply get original indices for aparc+aseg.nii
 
-      parse_fs_lt_log.py -logfile aparc+aseg_rank.niml.lt.log  \\
-                         -labels CC_Posterior CC_Mid_Posterior
+      parse_fs_lt_log.py -logfile aparc+aseg_rank.niml.lt.log \\
+                         -labels FS_white_matter -verb 0 -show_orig
 
-   get known FreeSurfer labels:
+   Example 1: get known FreeSurfer labels
 
       parse_fs_lt_log.py -logfile aparc+aseg_rank.niml.lt.log  \\
                          -labels FS_white_matter
@@ -41,16 +41,16 @@ examples:
       parse_fs_lt_log.py -logfile aparc+aseg_rank.niml.lt.log  \\
                          -labels FS_ventricles
 
-   extra labels:
+   Example 2: get a specific list of list labels
+
+      parse_fs_lt_log.py -logfile aparc+aseg_rank.niml.lt.log  \\
+                         -labels CC_Posterior CC_Mid_Posterior
+
+   Example 3: get known plus extra labels
 
       parse_fs_lt_log.py -logfile aparc+aseg_rank.niml.lt.log             \\
                          -labels FS_white_matter Left-Cerebellum-Exterior \\
                          -show_all_orig
-
-   good example to simply get orig indices (for aparc+aseg.nii):
-
-      parse_fs_lt_log.py -logfile aparc+aseg_rank.niml.lt.log \\
-                         -labels FS_white_matter -verb 0
 
 """
 g_help_02 = """
@@ -98,9 +98,7 @@ R Reynolds    May, 2016
 """
 
 def show_help():
-   print g_help_01
-   print g_help_examples
-   print g_help_02
+   print g_help_01 + g_help_examples + g_help_02
 
 g_todo = """
    todo list:
@@ -157,6 +155,7 @@ class MyInterface:
 
       # short, terminal arguments
       vopts.add_opt('-help', 0, [], helpstr='display program help')
+      vopts.add_opt('-help_examples', 0, [], helpstr='display program examples')
       vopts.add_opt('-hist', 0, [], helpstr='display the modification history')
       vopts.add_opt('-ver', 0, [], helpstr='display the current version number')
 
@@ -194,6 +193,10 @@ class MyInterface:
       # if no arguments are given, do default processing
       if '-help' in argv or len(argv) < 2:
          show_help()
+         return 1
+
+      if '-help_examples' in argv:
+         print g_help_examples
          return 1
 
       if '-hist' in argv:
