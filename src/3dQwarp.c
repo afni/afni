@@ -14,6 +14,11 @@
 
     - symmetric mapping,                                         [very hard]
       with Src(W(x)) = Bas(INV(W(x))) instead of Src(W(x))=B(x)
+      -- plusminus is nearly the same, and simpler!
+
+    - for patches with more than (say) 41^3=68921 'good' voxels, [not hard]
+      extract a pseudorandom subset of them for the correlation
+      calculation when penfac=0; also, keep penfac=0 to lev=2
 
     - vector-valued images                                       [medium]
 
