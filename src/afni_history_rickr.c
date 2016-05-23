@@ -49,9 +49,9 @@
 
 afni_history_struct rickr_history[] = {
 
- { 20,  May, 2016, RCR, "afni_system_check.py", MINOR, TYPE_NEW_OPT,
-   "add options -dot_file_list/_pack/_show",
-   "List, package (tgz) or show the contents of found 'dot' files."
+ { 23,  May, 2016, RCR, "parse_fs_lt_log.py", MINOR, TYPE_NEW_PROG,
+   "get an index list from a FreeSurfer labletable log file",
+   NULL
  } ,
 
  { 19,  May, 2016, RCR, "dicom_hdr", MICRO, TYPE_BUG_FIX,
