@@ -44,9 +44,28 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 20, MAY , 2016 , RWC , "afni GUI" , MICRO , TYPE_MODIFY ,
+   "alter 'Jumpto OLay Max/Min @Thr' menu button backgrounds to black" ,
+   "Because I find them hard to find; from Hangzhou China - Ni Hao!" } ,
+
+ { 19, MAY , 2016 , RWC , "3dQwarp" , MINOR , TYPE_NEW_OPT ,
+   "-wball = emphasize some (spherical) region in the weighting" ,
+   "Written in Hangzhou China -- for Peng" } ,
+
+ { 17, MAY , 2016 , RWC , "3dUnifize" , MICRO , TYPE_BUG_FIX ,
+   "-ssave option caused a crash :-(" ,
+   "fixed in Hangzhou China" } ,
+
+ { 17, MAY , 2016 , RWC , "3dTshift" , MICRO , TYPE_MODIFY ,
+   "Update error messages to be more informative" ,
+   "To find problem in unWarpEPI.py script - from Hangzhou China" } ,
+
+ { 15, MAY, 2016 , RWC , "3dNwarpApply" , MICRO , TYPE_MODIFY ,
+   "Update error messages yet again (a little)" , NULL } ,
+
  { 6 , MAY , 2016 , RWC , "afni GUI" , MICRO , TYPE_NEW_OPT ,
    "-XXXnpane to set number of panes in pbar" ,
-   "For the elusive ZXu." } ,
+   "For the elusive ZXu, man of many nations." } ,
 
  { 5 , MAY , 2016 , RWC , "3dTstat" , MICRO , TYPE_NEW_OPT ,
    "Option -percentile P" ,
@@ -63,7 +82,7 @@ afni_history_struct rwcox_history[] = {
 
  { 20 , APR , 2016 , RWC , "afni GUI" , MICRO , TYPE_MODIFY ,
    "new Jumpto IJK for Overlay button" ,
-   "For someone in the Tulsa class." } ,
+   "For someone in the Tulsa class :)" } ,
 
  { 18 , APR , 2016 , RWC , "afni GUI" , MICRO , TYPE_NEW_ENV ,
    "Open all 3 image viewers by default" ,
@@ -72,7 +91,7 @@ afni_history_struct rwcox_history[] = {
 
  { 14 , APR , 2016 , RWC , "afni GUI" , MICRO , TYPE_MODIFY ,
    "Make AFNI_FLASH_VIEWSWITCH turn off all obnoxious stuff" ,
-   "For Mr Neon" } ,
+   "For Mr Neon (or is that Dr Neon?)" } ,
 
  { 8 , APR , 2016 , RWC , "afni GUI" , MICRO , TYPE_NEW_OPT ,
    "Add '-XXX defaults'" ,

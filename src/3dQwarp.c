@@ -14,6 +14,11 @@
 
     - symmetric mapping,                                         [very hard]
       with Src(W(x)) = Bas(INV(W(x))) instead of Src(W(x))=B(x)
+      -- plusminus is nearly the same, and simpler!
+
+    - for patches with more than (say) 41^3=68921 'good' voxels, [not hard]
+      extract a pseudorandom subset of them for the correlation
+      calculation when penfac=0; also, keep penfac=0 to lev=2
 
     - vector-valued images                                       [medium]
 
@@ -55,6 +60,12 @@ static float auto_wpow    = 1.0f ;   /* raise weight to this power */
 static int auto_dilation  = 5 ;      /* dilation of binarized mask */
 static float wt_medsmooth = 2.25f ;  /* median radius for weight smooth */
 static float wt_gausmooth = 4.50f ;  /* Gaussian radius for weight smooth */
+
+static float wball_x = 0.0f ;  /* for -wball option [May 2016] */
+static float wball_y = 0.0f ;
+static float wball_z = 0.0f ;
+static float wball_r = 0.0f ;  /* FWHM, actually */
+static float wball_f = 0.0f ;
 
 /*---------------------------------------------------------------------------*/
 /*! Turn an input image into a weighting factor.
@@ -629,6 +640,22 @@ void Qhelp(void)
     "                directly input the weight volume from dataset 'www'.\n"
     "               * Useful if you know what over parts of the base image you\n"
     "                 want to emphasize or de-emphasize the matching functional.\n"
+    "\n"
+    " -wball x y z r f =\n"
+    "                Enhance automatic weight from '-useweight' by a factor\n"
+    "                of 1+f*Gaussian(FWHM=r) centered in the base image at\n"
+    "                DICOM coordinates (x,y,z) and with radius 'r'. The\n"
+    "                goal of this option is to try and make the alignment\n"
+    "                better in a specific part of the brain.\n"
+    "               * Example:  -wball 0 14 6 25 5\n"
+    "                 to emphasize the thalamic area (in MNI/Talairach space).\n"
+    "               * The 'r' parameter must be positive!\n"
+    "               * The 'f' parameter must be between 1 and 100 (inclusive).\n"
+    "               * '-wball' does nothing if you input your own weight\n"
+    "                 with the '-weight' option.\n"
+    "               * '-wball' does change the binary weight created by\n"
+    "                 the '-noweight' option.\n"
+    "               * You can only use '-wball' once in a run of 3dQwarp.\n"
     "\n"
     " -blur bb     = Gaussian blur the input images by 'bb' (FWHM) voxels before\n"
     "                doing the alignment (the output dataset will not be blurred).\n"
@@ -1706,6 +1733,30 @@ int main( int argc , char *argv[] )
 
      /*---------------*/
 
+     if( strcasecmp(argv[nopt],"-wball") == 0 ){
+       if( ++nopt >= argc-4 ) ERROR_exit("need 5 args after -wball") ;
+       if( wball_r > 0.0f && wball_f > 0.0f )
+         WARNING_message("repeated use of -wball erases earlier use") ;
+       wball_x = (float)strtod(argv[nopt++],NULL) ;  /* center */
+       wball_y = (float)strtod(argv[nopt++],NULL) ;
+       wball_z = (float)strtod(argv[nopt++],NULL) ;
+       wball_r = (float)strtod(argv[nopt++],NULL) ;  /* FWHM */
+       wball_f = (float)strtod(argv[nopt++],NULL) ;  /* factor */
+       if( wball_r <= 0.0f ){
+         WARNING_message("-wball r=%g is illegal ==> ignoring this option") ;
+         wball_r = wball_f = 0.0f ;
+       } else if( wball_f < 1.0f || wball_f > 100.0f ){
+         WARNING_message("-wball f=%g is illegal ==> ignoring this option") ;
+         wball_r = wball_f = 0.0f ;
+       }
+       if( Hverb > 1 )
+         INFO_message("-wball option: x=%g y=%g z=%g r=%g f=%g",
+                      wball_x,wball_y,wball_z,wball_r,wball_f) ;
+       continue ;
+     }
+
+     /*---------------*/
+
      if( strncasecmp(argv[nopt],"-useweight",10) == 0 ||
          strcasecmp (argv[nopt],"-use_weight"  ) == 0   ){
        auto_weight = 1 ;
@@ -1970,6 +2021,11 @@ STATUS("check for errors") ;
    } else if( Hznoq && Hqfinal ){
      Hznoq = 0 ;
      WARNING_message("-znoQ and -Qfinal cannot be combined: turning off -znoQ") ;
+   }
+
+   if( wbim != NULL && wball_r > 0.0f && wball_f > 0.0f ){  /* May 2016 */
+     WARNING_message("-weight option means -wball option is ignored!") ;
+     wball_r = wball_f = 0.0f ;
    }
 
 #ifdef ALLOW_BASIS5
@@ -2293,7 +2349,7 @@ STATUS("load datasets") ; /*--------------------------------------------------*/
      if( do_allin ){                              /* extend pad size for */
        float dm = MIN(dx,dy) ; dm = MIN(dm,dz) ;  /* 3dAllineate shifts? */
        dxal /= dm ; dyal /= dm ; dzal /= dm ;
-       dm = MAX(dxal,dyal) ; dm = MAX(dm,dzal) ; mpad_min += (int)rintf(1.0111f*dm) ;
+       dm = MAX(dxal,dyal); dm = MAX(dm,dzal); mpad_min += (int)rintf(1.0111f*dm);
      }
 
      /* define minimum padding for each direction */
@@ -2341,7 +2397,7 @@ STATUS("load datasets") ; /*--------------------------------------------------*/
      if( bim->nz == 1 ){     /* but no z-padding for 2D image! */
        pad_zm = pad_zp = 0 ;
        if( iwpad_zm > 0 || iwpad_zp > 0 )
-         ERROR_exit("-iniwarp required padding in 3D but base dataset is 2D ?!?") ;
+         ERROR_exit("-iniwarp required padding in 3D but base dataset is 2D ?!?");
      }
 
      /* flag to mark if any zero padding is done */
@@ -2351,7 +2407,8 @@ STATUS("load datasets") ; /*--------------------------------------------------*/
 
      if( zeropad ){  /*----- print a report and actually do it -----*/
        if( Hverb )
-         INFO_message("Dataset zero-pad: xbot=%d xtop=%d  ybot=%d ytop=%d  zbot=%d ztop=%d voxels",
+         INFO_message("Dataset zero-pad:"
+                      " xbot=%d xtop=%d  ybot=%d ytop=%d  zbot=%d ztop=%d voxels",
                        pad_xm,pad_xp , pad_ym,pad_yp , pad_zm,pad_zp ) ;
 
        /*-- replace base image --*/
@@ -2477,7 +2534,63 @@ STATUS("construct weight/mask volume") ;
 
      wbim = mri_weightize(bim,auto_weight,auto_dilation,auto_wclip,auto_wpow) ;
 
-   } else {             /* just read user input */
+     if( wball_r > 0.0f && wball_f > 0.0f ){  /* wball stuff [May 2016] */
+       THD_3dim_dataset *qset ;
+       float xx,yy,zz, xd,yd,zd, sig,rqq,fff, *wbar=MRI_FLOAT_PTR(wbim) ;
+       int ixx,iyy,izz , rxx,ryy,rzz , ii,jj,kk , nwb=0 ;
+       if( zeropad )
+         qset = THD_zeropad( bset ,
+                            pad_xm,pad_xp , pad_ym,pad_yp , pad_zm,pad_zp ,
+                            "BSET_zeropadded" , ZPAD_IJK | ZPAD_EMPTY ) ;
+       else
+         qset = bset ;
+
+       MAT44_VEC(qset->daxes->dicom_to_ijk,
+                 wball_x,wball_y,wball_z , xx,yy,zz ) ;
+       ixx = (int)rintf(xx) ; rxx = (int)rintf(2.0f*wball_r/dx) ;
+       iyy = (int)rintf(yy) ; ryy = (int)rintf(2.0f*wball_r/dy) ;
+       izz = (int)rintf(zz) ; rzz = (int)rintf(2.0f*wball_r/dz) ;
+       if( nz == 1 ){ izz = 0 ; rzz = 0.0f ; }
+
+       sig = FWHM_TO_SIGMA(wball_r) ; sig = 0.5/(sig*sig) ;
+       rqq = wball_r * wball_r ;
+
+       if( Hverb > 1 )
+         INFO_message("-wball: center i,j,k=%d,%d,%d  ri,rj,rk=%d,%d,%d",
+                      ixx,iyy,izz , rxx,ryy,rzz ) ;
+
+       for( kk=izz-rzz ; kk <= izz+rzz ; kk++ ){
+        if( kk < 0 || kk >= nz ) continue ;
+        zd = dz*(kk-izz) ; zd *= zd ;
+        for( jj=iyy-ryy ; jj <= iyy+ryy ; jj++ ){
+         if( jj < 0 || jj >= ny ) continue ;
+         yd = dy*(jj-iyy) ; yd *= yd ;
+         for( ii=ixx-rxx ; ii <= ixx+rxx ; ii++ ){
+          if( ii < 0 || ii >= nx ) continue ;
+          xd = dx*(ii-ixx) ; xd = xd*xd + yd +zd ;
+          if( xd <= rqq ){
+            fff = wball_f * expf( -xd*sig ) + 1.0f ;
+            wbar[ii+jj*nx+kk*nx*ny] *= fff ;
+            if( fff >= 1.333f ) nwb++ ;
+          }
+       }}}
+
+       /* a wball message for the user? */
+
+       if( nwb == 0 )
+         WARNING_message(
+           "-wball did not change any weights significantly. Check parameters.");
+       else if( nwb < 100 )
+         WARNING_message(
+           "-wball significantly affected the weight in only %d voxel%s",
+           nwb , (nwb>1) ? "s" : "\0" ) ;
+       else if( Hverb > 1 )
+         INFO_message("-wball significantly affected the weight in %d voxels",nwb);
+
+       if( qset != bset ) DSET_delete(qset) ;  /* trash */
+     } /* end of wball-ification */
+
+   } else {             /* just use -weight input image */
 
      if( zeropad ){
        MRI_IMAGE *qim ;
@@ -2578,37 +2691,45 @@ STATUS("construct weight/mask volume") ;
 
      /* crop the output image (maybe) */
      if( oiw->im->nx > nxold || oiw->im->ny > nyold || oiw->im->nz > nzold ){
-       if( Hverb > 1 ) INFO_message("un-zero-padding output volume back to original base grid") ;
-       qim = mri_zeropad_3D( -pad_xm,-pad_xp, -pad_ym,-pad_yp, -pad_zm,-pad_zp, oiw->im ) ;
+       if( Hverb > 1 )
+         INFO_message("un-zero-padding output volume back to original base grid");
+       qim = mri_zeropad_3D( -pad_xm,-pad_xp,
+                             -pad_ym,-pad_yp, -pad_zm,-pad_zp, oiw->im ) ;
        mri_free(oiw->im) ; oiw->im = qim ;
      }
 
      /* crop the output warp (maybe) */
      if( !zeropad_warp ){
-       if( Hverb > 1 ) ININFO_message("un-zero-padding warp back to original base grid") ;
-       QQ = IW3D_extend( oiw->warp, -pad_xm,-pad_xp, -pad_ym,-pad_yp, -pad_zm,-pad_zp , 0 ) ;
+       if( Hverb > 1 )
+         ININFO_message("un-zero-padding warp back to original base grid") ;
+       QQ = IW3D_extend( oiw->warp, -pad_xm,-pad_xp,
+                                    -pad_ym,-pad_yp, -pad_zm,-pad_zp , 0 ) ;
        IW3D_destroy(oiw->warp) ; oiw->warp = QQ ;
      }
 
      /* same stuff for the plusminus warp results as well */
      if( qiw != NULL ){
        if( qiw->im->nx > nxold || qiw->im->ny > nyold || qiw->im->nz > nzold ){
-         qim = mri_zeropad_3D( -pad_xm,-pad_xp, -pad_ym,-pad_yp, -pad_zm,-pad_zp, qiw->im ) ;
+         qim = mri_zeropad_3D( -pad_xm,-pad_xp,
+                               -pad_ym,-pad_yp, -pad_zm,-pad_zp, qiw->im ) ;
          mri_free(qiw->im) ; qiw->im = qim ;
        }
        if( !zeropad_warp ){
-         QQ = IW3D_extend( qiw->warp, -pad_xm,-pad_xp, -pad_ym,-pad_yp, -pad_zm,-pad_zp , 0 ) ;
+         QQ = IW3D_extend( qiw->warp, -pad_xm,-pad_xp,
+                                      -pad_ym,-pad_yp, -pad_zm,-pad_zp , 0 ) ;
          IW3D_destroy(qiw->warp) ; qiw->warp = QQ ;
        }
      }
 
      if( pmbase_imag != NULL ){  /* 12 Aug 2014 */
        if( pmbase_imag->nx > nxold || pmbase_imag->ny > nyold || pmbase_imag->nz > nzold ){
-         qim = mri_zeropad_3D( -pad_xm,-pad_xp, -pad_ym,-pad_yp, -pad_zm,-pad_zp, pmbase_imag ) ;
+         qim = mri_zeropad_3D( -pad_xm,-pad_xp,
+                               -pad_ym,-pad_yp, -pad_zm,-pad_zp, pmbase_imag ) ;
          mri_free(pmbase_imag) ; pmbase_imag = qim ;
        }
        if( pmbase_warp != NULL && !zeropad_warp ){
-         QQ = IW3D_extend( pmbase_warp, -pad_xm,-pad_xp, -pad_ym,-pad_yp, -pad_zm,-pad_zp , 0 ) ;
+         QQ = IW3D_extend( pmbase_warp, -pad_xm,-pad_xp,
+                                        -pad_ym,-pad_yp, -pad_zm,-pad_zp , 0 ) ;
          IW3D_destroy(pmbase_warp) ; pmbase_warp = QQ ;
        }
      }
