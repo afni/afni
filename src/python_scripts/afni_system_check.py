@@ -8,6 +8,7 @@ import option_list as OL
 import afni_util as UTIL        # not actually used, but probably will be
 import lib_system_check as SC
 
+g_dotfiles = ['.profile', '.bash_profile', '.bashrc', '.cshrc', '.tcshrc']
 
 g_help_string = """
 =============================================================================
@@ -26,7 +27,8 @@ examples
 terminal options:
 
    -help                : show this help
-   -help_rc_files       : show help on shell setup files
+   -help_dot_files      : show help on shell setup files
+   -help_rc_files       : SAME
    -hist                : show program history
    -show_valid_opts     : show valid options for program
    -todo                : show current todo list
@@ -38,7 +40,9 @@ action options:
 
    -check_all           : perform all system checks
                           - see section, "details displayed via -check_all"
-   -data_root DDIR      : search for class data under DDIR
+   -dot_file_list       : list all found dot files (startup files)
+   -dot_file_show       : display contents of all found dot files
+   -dot_file_pack NAME  : create a NAME.tgz packge containing dot files
    -find_prog PROG      : search PATH for PROG
                           - default is *PROG*, case-insensitive
                           - see also -casematch, -exact
@@ -46,6 +50,7 @@ action options:
 other options:
 
    -casematch yes/no    : match case in -find_prog
+   -data_root DDIR      : search for class data under DDIR
    -exact yes/no        : search for PROG without wildcards in -find_prog
 
 -----------------------------------------------------------------------------
@@ -177,9 +182,10 @@ g_history = """
         - added -help_rc_files
         - make comments about shell RC files, given login shell
    0.18 Mar 25, 2016 - tiny update
+   0.19 May 20, 2016 - added -dot_file_list/_pack/_show
 """
 
-g_version = "afni_system_check.py version 0.18, March 25, 2016"
+g_version = "afni_system_check.py version 0.19, May 20, 2016"
 
 
 class CmdInterface:
@@ -196,6 +202,9 @@ class CmdInterface:
       # action variables
       self.find_prog       = ''         # program name to find
       self.sys_check       = 0
+      self.dot_file_list   = 0          # list found dot files
+      self.dot_file_pack   = ''         # package dot files
+      self.dot_file_show   = 0          # display dot files
 
       # general variables
       self.act             = 0          # perform SOME action
@@ -211,33 +220,41 @@ class CmdInterface:
       self.valid_opts = OL.OptionList('valid opts')
 
       # terminal options
-      self.valid_opts.add_opt('-help', 0, [],           \
+      self.valid_opts.add_opt('-help', 0, [],
                       helpstr='display program help')
-      self.valid_opts.add_opt('-help_rc_files', 0, [],  \
+      self.valid_opts.add_opt('-help_dot_files', 0, [],
                       helpstr='display help on shell setup files')
-      self.valid_opts.add_opt('-hist', 0, [],           \
+      self.valid_opts.add_opt('-help_rc_files', 0, [],
+                      helpstr='display help on shell setup files')
+      self.valid_opts.add_opt('-hist', 0, [],
                       helpstr='display the modification history')
-      self.valid_opts.add_opt('-show_valid_opts', 0, [],\
+      self.valid_opts.add_opt('-show_valid_opts', 0, [],
                       helpstr='display all valid options')
-      self.valid_opts.add_opt('-todo', 0, [],            \
+      self.valid_opts.add_opt('-todo', 0, [],
                       helpstr='display the current "todo list"')
-      self.valid_opts.add_opt('-ver', 0, [],            \
+      self.valid_opts.add_opt('-ver', 0, [],
                       helpstr='display the current version number')
 
       # action options
-      self.valid_opts.add_opt('-casematch', 1, [],      \
+      self.valid_opts.add_opt('-casematch', 1, [],
                       acplist=['yes','no'],
                       helpstr='yes/no: specify case sensitivity in -find_prog')
-      self.valid_opts.add_opt('-check_all', 0, [],      \
+      self.valid_opts.add_opt('-check_all', 0, [],
                       helpstr='perform all system checks')
-      self.valid_opts.add_opt('-data_root', 1, [],      \
+      self.valid_opts.add_opt('-data_root', 1, [],
                       helpstr='directory to check for class data')
-      self.valid_opts.add_opt('-exact', 1, [],          \
+      self.valid_opts.add_opt('-dot_file_list', 0, [],
+                      helpstr='list found dot files')
+      self.valid_opts.add_opt('-dot_file_pack', 1, [],
+                      helpstr='package dot files into given tgz package')
+      self.valid_opts.add_opt('-dot_file_show', 0, [],
+                      helpstr='display contents of dot files')
+      self.valid_opts.add_opt('-exact', 1, [],
                       acplist=['yes','no'],
                       helpstr='yes/no: use exact matching in -find_prog')
-      self.valid_opts.add_opt('-find_prog', 1, [],      \
+      self.valid_opts.add_opt('-find_prog', 1, [],
                       helpstr='search path for *PROG*')
-      self.valid_opts.add_opt('-verb', 1, [],            \
+      self.valid_opts.add_opt('-verb', 1, [],
                       helpstr='set verbosity level (default=1)')
 
       return 0
@@ -255,7 +272,7 @@ class CmdInterface:
          print g_help_string
          return 0
 
-      if '-help_rc_files' in argv:
+      if '-help_rc_files' in argv or '-help_dot_files' in argv:
          print g_help_rc_files
          return 0
 
@@ -303,6 +320,21 @@ class CmdInterface:
             self.data_root = opt.parlist[0]
             continue
 
+         if opt.name == '-dot_file_list':
+            self.dot_file_list = 1
+            self.act = 1
+            continue
+
+         if opt.name == '-dot_file_pack':
+            self.dot_file_pack = opt.parlist[0]
+            self.act = 1
+            continue
+
+         if opt.name == '-dot_file_show':
+            self.dot_file_show = 1
+            self.act = 1
+            continue
+
          if opt.name == '-exact':
             if OL.opt_is_yes(opt):
                self.exact = 1
@@ -336,6 +368,50 @@ class CmdInterface:
 
       self.sinfo.show_all_sys_info()
 
+   def check_dotfiles(self, show=0, pack=0):
+      global g_dotfiles
+
+      home = os.environ['HOME']
+
+      # get list of existing files
+      dfound = []
+      for dfile in g_dotfiles:
+         if os.path.isfile('%s/%s' % (home, dfile)):
+            dfound.append(dfile)
+            print 'found under $HOME : %s' % dfile
+
+      if show:
+         for dfile in dfound:
+            print UTIL.section_divider(dfile, hchar='=')
+            print '%s\n' % UTIL.read_text_file('%s/%s' % (home, dfile), lines=0)
+
+      if pack:
+         import shutil
+         package = self.dot_file_pack
+         pgz = '%s.tgz' % package
+         # maybe user included the extension
+         ext = package.find('.tgz')
+         if ext >= 0:
+            pgz = package
+            package = package[0:ext]
+         if os.path.exists(package) or os.path.exists('%s.tgz'%package):
+            print "** error: package dir '%s' or file '%s' already exists"\
+                  % (package, pgz)
+            return 1
+
+         try: os.mkdir(package)
+         except:
+            print "** failed to make dot file package dir '%s'"  % package
+            return 1
+         for dfile in dfound:
+            shutil.copy2('%s/%s' % (home, dfile), package)
+         os.system("tar cfz %s %s" % (pgz, package))
+         shutil.rmtree(package)
+         if os.path.exists(pgz): print '++ dot file package is in %s' % pgz
+         else: print '** failed to make dot file packge %s' % pgz
+
+      return 0
+
    def execute(self):
 
       if self.sys_check: self.show_system_info()
@@ -344,6 +420,10 @@ class CmdInterface:
          cm = self.casematch
          if cm < 0: cm = 0
          UTIL.show_found_in_path(self.find_prog, mtype=self.exact, casematch=cm)
+      if self.dot_file_list or self.dot_file_show or self.dot_file_pack:
+         show = self.dot_file_show
+         pack = self.dot_file_pack != ''
+         self.check_dotfiles(show=show, pack=pack)
 
 def main():
    me = CmdInterface()

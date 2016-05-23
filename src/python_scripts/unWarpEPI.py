@@ -379,14 +379,14 @@ class unWarpWithBlipUpBlipDownEPI:
          # and striping between slices in 1st sub-brick.
 
          # Fix/amend to unifize to the corrected/unwarped EPI data set
-         subprocess.call  (['3dUnifize', "-GM",
+         subprocess.call  (['3dUnifize', "-GM", "-clfrac" , "0.22" ,
                             "-prefix", "07_" + dataToCorrectName + "_unif.nii" \
                             + self.compress ,
                             "06_" + processedData05 + "V.nii" \
                             + self.compress + "[1]"])
 
          # remove bias from (unifize/uniformize/bias correction) anatomical dataset
-         subprocess.call  (['3dUnifize', "-GM",
+         subprocess.call  (['3dUnifize', "-GM", "-clfrac" , "0.22" ,
                             "-prefix", ("08_" + self.subjectID + "_anat"
                             + "_unif" + ".nii" + self.compress),
                             "-input",  self.subjectID + "_anat.nii" \
@@ -453,7 +453,7 @@ def main():
    parser = OptionParser(usage=usage, description=description, epilog=epilog)
 
    parser.add_option ("-f", "--forward",  action="store",
-                                          help="calibration matching data to be corrected")
+                                          help="calibration matching data to be corrected -- all dataset names must end in +orig, except for the '-d' option!")
 
    parser.add_option ("-r", "--reverse",  action="store",
                                           help="calibration with opposing polarity to data to be corrected")
@@ -462,7 +462,7 @@ def main():
                                           help="reference anatomical data set")
 
    parser.add_option ("-d", "--data",     action="store",
-                                          help="data to be corrected (same polarity as forward calibration data). Separate with commas if specifying multiple datasets.")
+                                          help="data to be corrected (same polarity as forward calibration data). Separate with commas if specifying multiple datasets. Do NOT put +orig at the end of these dataset names, or the script will fail!")
 
    parser.add_option ("-s", "--subjID",   action="store",
                                           help="ID of subject to be corrected")

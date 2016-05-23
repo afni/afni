@@ -1,0 +1,62 @@
+#!/bin/bash
+set -u
+
+# Parse cmdline
+
+CLOPTS=`getopt -o e:,f: --long errors:,failures: -n 'xvfb-driver' -- "$@"`
+if [ $? != 0 ] ; then
+    echo "Terminating..." >&2
+    exit 1
+fi
+eval set -- "$CLOPTS"
+
+# Defaults
+errors=0						# # of errors expected
+failures=0						# # of reported failures expected
+
+while true ; do
+    case "$1" in
+        -e|--errors) shift; errors=$1; shift;;
+        -f|--failures) shift; failures=$1; shift;;
+        --) shift ; break ;;
+        *) echo "Internal error! ($1)"; exit 1;;
+    esac
+done
+
+# Deduce paths
+
+srcdir=$(readlink -f `dirname $0`/..)
+builddir=$(readlink -f $PWD/..)
+tempdir=`mktemp -d`
+
+cleanup() { rm -r "$tempdir"; }
+trap 'cleanup' EXIT HUP
+
+echo "I: builddir=$builddir  srcdir=$srcdir tempdir=$tempdir"
+cd $tempdir
+ln -s $srcdir/faces pics
+
+AFNI_DETACH=NO AFNI_SYSTEM_AFNIRC=/dev/null \
+AFNI_PLUGINPATH=$builddir PATH=$builddir:$builddir/SUMA:$srcdir:$PATH \
+	xvfb-run --auto-servernum --server-num=20 -s "-screen 0 1024x768x24 -ac +extension GLX +render -noreset" \
+	"$@" 2>&1 | tee __outputlog.txt
+code=${PIPESTATUS[0]}
+
+if [ "$code" != "0" ]; then
+	echo "E: Testing $@ failed. Exit code was $code"
+	exit 1
+fi
+
+cmd="$@"
+errors_=`grep Error __*log.txt| grep -v -e "Out of Cheese Error" -e SUMA_PositionWindowRelative_current | wc -l`
+if [ $errors -lt $errors_ ]; then
+	echo "E: Testing '$cmd' failed due to presence of $errors_ Error messages when up to $errors were expected" >&2
+	exit 1
+fi
+
+failures_=`grep '^Failed to' __*log.txt| grep -v -e "window attributes" | wc -l`
+if [ $failures -lt $failures_ ]; then
+	echo "E: Testing '$cmd' failed due to presence of $failures_ 'Failed to ...' messages when up to $failures were expected" >&2
+	exit 1
+fi
+
