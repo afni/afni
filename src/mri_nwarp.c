@@ -10972,13 +10972,13 @@ ENTRY("IW3D_warpomatic") ;
    pcon = powell_newuoa_get_con() ;  /* 30 Oct 2015 */
 
    if( Hlev_start == 0 || HGRID(0) == 0 ){
-     /* number of times to try the global quintic patch */
+     /* nlevr = number of times to try the global quintic patch */
+     /* [reduced by 1 on 24 May 2016, since repetition had little effect] */
 #ifdef ALLOW_BASIS5
-     nlevr = 2 ;
+     nlevr = 1 ;
 #else
-     nlevr = ( WORKHARD(0) || SUPERHARD(0) || Hduplo ) ? 3 : 2 ;
+     nlevr = ( WORKHARD(0) || SUPERHARD(0) || Hduplo ) ? 2 : 1 ;
 #endif
-     if( SUPERHARD(0) ) nlevr++ ;
      /* force the warp to happen, but don't use any penalty */
      Hforce = 1 ; Hfactor = 1.0f ; Hpen_use = 0 ; Hlev_now = 0 ;
      PBLUR_BASE  (ibbb,ittt,jbbb,jttt,kbbb,kttt) ;  /* progressive blur, if ordered */
@@ -10992,8 +10992,10 @@ ENTRY("IW3D_warpomatic") ;
      /* always start with 2 cubic steps */
      powell_newuoa_set_con_box() ;
      (void)IW3D_improve_warp( MRI_CUBIC  , ibbb,ittt,jbbb,jttt,kbbb,kttt );
+#if 0
      powell_newuoa_set_con_ball() ;
      (void)IW3D_improve_warp( MRI_CUBIC  , ibbb,ittt,jbbb,jttt,kbbb,kttt );
+#endif
      if( SUPERHARD(0) )
        (void)IW3D_improve_warp( MRI_CUBIC  , ibbb,ittt,jbbb,jttt,kbbb,kttt );
      if( Hquitting ) goto DoneDoneDone ;  /* signal to quit was sent */
@@ -11031,7 +11033,7 @@ ENTRY("IW3D_warpomatic") ;
 
    /* for further steps, don't force things, and use the penalty */
 
-   Hforce = 0 ; Hlev_final = 0 ; Hpen_use = (Hpen_fac > 0.0f) ;
+   Hforce = 0 ; Hlev_final = 0 ;
    Hcostmid = Hcostend = Hcostbeg = Hcost ;
 
    if( !HAVE_HGRID ){
@@ -11077,6 +11079,8 @@ ENTRY("IW3D_warpomatic") ;
 
      flev = (Hpen_old) ? 1.0f : powf( (float)(lev-levs+1) , 0.333f ) ; ;
      Hpen_fff = Hpen_fac * MIN(2.22f,flev) ;  /* 20 Sep 2013 */
+
+     Hpen_use = (Hpen_fff > 0.0f) ;
 
      /* compute width of rectangles at this level */
 

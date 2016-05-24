@@ -2,7 +2,10 @@
 
 static int verb = 1 ;
 
-static int use_all_vals = 1 ;  /* 17 May 2016 [disabled] */
+#define USE_ALL_VALS 1
+#ifndef USE_ALL_VALS
+static int USE_ALL_VALS = 0 ;  /* 17 May 2016 */
+#endif
 
 #ifdef USE_OMP
 # include <omp.h>
@@ -363,8 +366,8 @@ ENTRY("mri_local_percmean") ;
    bms = (byte *)malloc(sizeof(byte)*bim->nvox) ;
    for( ii=0 ; ii < bim->nvox ; ii++ ) bms[ii] = (bar[ii] != 0.0f) ;
 
-   if( !use_all_vals ){
-     vbot = 0.0111f * mri_max(bim) ;
+   if( !USE_ALL_VALS ){
+     vbot = 0.00666f * mri_max(bim) ;
    }
 
    /* create neighborhood mask (1/2 radius in the shrunken copy) */
@@ -398,7 +401,7 @@ ENTRY("mri_local_percmean") ;
              val = nbar[0] ;
            } else {             /* average values from p1 to p2 percentiles */
              int q1,q2,qq , qb;
-             if( !use_all_vals ){ /* Ignore tiny values [17 May 2016] */
+             if( !USE_ALL_VALS ){ /* Ignore tiny values [17 May 2016] */
                for( qb=0 ; qb < nbar_num && nbar[qb] <= vbot ; qb++ ) ; /*nada*/
                if( qb == nbar_num ){
                  val = 0.0f ;
@@ -410,7 +413,7 @@ ENTRY("mri_local_percmean") ;
                  for( qq=q1,val=0.0f ; qq <= q2 ; qq++ ) val += nbar[qq] ;
                  val /= (q2-q1+1.0f) ;
                }
-             }                    /* Use all values [the olden way] */
+             } else {             /* Use all values [the olden way] */
                q1 = (int)( 0.01f*p1*(nbar_num-1) ) ;  /* p1 location */
                q2 = (int)( 0.01f*p2*(nbar_num-1) ) ;  /* p2 location */
                for( qq=q1,val=0.0f ; qq <= q2 ; qq++ ) val += nbar[qq] ;
@@ -440,11 +443,25 @@ ENTRY("mri_local_percmean") ;
        if( nbar_num == 1 ){           /* stoopid case */
          val = nbar[0] ;
        } else {             /* average values from p1 to p2 percentiles */
-         int q1,q2,qq ;
-         q1 = (int)( 0.01f*p1*(nbar_num-1) ) ;  /* p1 location */
-         q2 = (int)( 0.01f*p2*(nbar_num-1) ) ;  /* p2 location */
-         for( qq=q1,val=0.0f ; qq <= q2 ; qq++ ) val += nbar[qq] ;
-         val /= (q2-q1+1.0f) ;
+         int q1,q2,qq , qb;
+         if( !USE_ALL_VALS ){ /* Ignore tiny values [17 May 2016] */
+           for( qb=0 ; qb < nbar_num && nbar[qb] <= vbot ; qb++ ) ; /*nada*/
+           if( qb == nbar_num ){
+             val = 0.0f ;
+           } else if( qb == nbar_num-1 ){
+             val = nbar[qb] ;
+           } else {
+             q1 = (int)( 0.01f*p1*(nbar_num-1-qb)) + qb; if( q1 > nbar_num-1 ) q1 = nbar_num-1;
+             q2 = (int)( 0.01f*p2*(nbar_num-1-qb)) + qb; if( q2 > nbar_num-1 ) q2 = nbar_num-1;
+             for( qq=q1,val=0.0f ; qq <= q2 ; qq++ ) val += nbar[qq] ;
+             val /= (q2-q1+1.0f) ;
+           }
+         } else {             /* Use all values [the olden way] */
+           q1 = (int)( 0.01f*p1*(nbar_num-1) ) ;  /* p1 location */
+           q2 = (int)( 0.01f*p2*(nbar_num-1) ) ;  /* p2 location */
+           for( qq=q1,val=0.0f ; qq <= q2 ; qq++ ) val += nbar[qq] ;
+           val /= (q2-q1+1.0f) ;
+         }
          if( verb && vvv%66666==0 ) fprintf(stderr,".") ;
        }
      }
@@ -585,7 +602,7 @@ int main( int argc , char *argv[] )
    char *prefix = "Unifized" ;
    THD_3dim_dataset *inset=NULL , *outset=NULL ;
    MRI_IMAGE *imin , *imout ;
-   float clfrac=0.1f ;
+   float clfrac=0.2f ;
 
    AFNI_SETUP_OMP(0) ;  /* 24 Jun 2013 */
 
@@ -687,9 +704,14 @@ int main( int argc , char *argv[] )
             "                  clip level fraction of 0.5, which proved to be too large\n"
             "                  for some users, who had images with very strong shading issues.\n"
             "                  Thus, the default value for this parameter was lowered to 0.1.\n"
+            "               ++ [24 May 2016] The default value for this parameter was\n"
+            "                  raised to 0.2, since the lower value often left a lot of\n"
+            "                  noise outside the head on non-3dSkullStrip-ed datasets.\n"
+            "                  You can still manually set -clfrac to 0.1 if you need to\n"
+            "                  correct for very large shading artifacts.\n"
             "               ++ If the results of 3dUnifize have a lot of noise outside the head,\n"
             "                  then using '-clfrac 0.5' value will probably help.\n"
-#if 0
+#ifndef USE_ALL_VALS
             "\n"
             "  -useall    = The 'old' way of operating was to use all dataset values\n"
             "               in the local WM histogram.  The 'new' way [May 2016] is to\n"
@@ -822,9 +844,14 @@ int main( int argc , char *argv[] )
        iarg++ ; continue ;
      }
 
-#if 0
+#ifndef USE_ALL_VALS
      if( strcmp(argv[iarg],"-useall") == 0 ){   /* 17 May 2016 */
-       use_all_vals = 1 ; iarg++ ; continue ;
+       USE_ALL_VALS = 1 ; iarg++ ; continue ;
+     }
+#else
+     if( strcmp(argv[iarg],"-useall") == 0 ){
+       WARNING_message("-useall option is disabled in this version") ;
+       iarg++ ; continue ;
      }
 #endif
 
@@ -888,7 +915,7 @@ int main( int argc , char *argv[] )
    if( imin == NULL ) ERROR_exit("Can't copy input dataset brick?!") ;
 
 #if 0
-THD_cliplevel_search(imin) ;
+THD_cliplevel_search(imin) ; exit(0) ;  /* experimentation only */
 #endif
 
    THD_automask_set_clipfrac(clfrac) ;
