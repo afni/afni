@@ -44,6 +44,17 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 24 , MAY , 2016 , RWC , "3dQwarp" , MICRO , TYPE_MODIFY ,
+   "Remove second cubic and quintic iterations at lev=0" ,
+   "Repeating these iterations almost never does any good, and takes up a\n"
+   "fair amount of time." } ,
+
+ { 24 , MAY , 2016 , RWC , "3dUnifize" , MINOR , TYPE_MODIFY ,
+   "Alter default -clfrac value to 0.2" ,
+   "Because old 0.1 default would often have too much noise outside the head\n"
+   "when used with non-skull-stripped datasets.  User can still set '-clfrac\n"
+   "0.1' if needed." } ,
+
  { 20, MAY , 2016 , RWC , "afni GUI" , MICRO , TYPE_MODIFY ,
    "alter 'Jumpto OLay Max/Min @Thr' menu button backgrounds to black" ,
    "Because I find them hard to find; from Hangzhou China - Ni Hao!" } ,
