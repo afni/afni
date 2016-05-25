@@ -3,7 +3,7 @@
 PTAYLORLIB = libtracktools.a
 
 PTAYLOR_SRCS = DoTrackit.c TrackIO.c rsfc.c diffusiony.c FuncTrac.c \
-               roiing.c Fat_Labels.c colorbasic.c LS_moody.c
+               roiing.c Fat_Labels.c colorbasic.c LS_funcs.c
        
 PTAYLOR_OBJS = ${PTAYLOR_SRCS:.c=.o}
 
@@ -16,7 +16,7 @@ PTAYLOR_LINK_PATH = -L.. ${LFLAGS} -L/usr/lib -L/usr/local/lib
 PTAYLOR_LINK_LIB = ${LLIBS} -lmri
 
 PTAYLOR_HDRS = DoTrackit.h TrackIO.h rsfc.h diffusiony.h FuncTrac.h \
-               roiing.h Fat_Labels.h colorbasic.h LS_moody.h
+               roiing.h Fat_Labels.h colorbasic.h LS_funcs.h
 
 AFNI_OBJS = ../xutil.o ../LiteClue.o
 AFOBJS  = ../afni.o ../afni_func.o ../afni_widg.o ../afni_warp.o \
