@@ -67,6 +67,11 @@ afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
 
+{ 24, May , 2016 , PT , "3dLombScargle" , MAJOR , TYPE_MODIFY,
+   "Revamped LS program-- new implementation, directly from PR89.",
+   "Several new options added (normalize, amplitudeize, etc.).\n"
+},
+
 { 12, May , 2016 , PT , "3dLombScargle" , MAJOR , TYPE_NEW_PROG,
    "New function for calculating LS (normalized) periodogram from time series.",
    "Calculate magnitude spectrum from non-equisampled data.\n"
