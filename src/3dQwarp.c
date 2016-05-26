@@ -1542,21 +1542,29 @@ int main( int argc , char *argv[] )
      /*---------------*/
 
      if( strncasecmp(argv[nopt],"-workhard",9) == 0 ){
-       char *wpt = argv[nopt]+9 ;
+       char *wpt = argv[nopt]+9 , *cpt=NULL ; int addone=0 ;
        Hworkhard1 = 0 ; Hworkhard2 = 66 ;
        if( *wpt == ':' && isdigit(*(wpt+1)) ){
-         char *cpt ;
          Hworkhard2 = (int)strtod(++wpt,NULL) ;
          cpt = strchr(wpt,':') ;
          if( cpt != NULL && isdigit(*(cpt+1)) ){
            Hworkhard1 = Hworkhard2 ;
-           Hworkhard2 = (int)strtod(++cpt,NULL) ;
+           Hworkhard2 = (int)strtod(cpt+1,NULL) ;
          }
+       } else if( nopt+1 < argc                          &&
+                  isdigit(argv[nopt+1][0])               &&
+                  (cpt=strchr(argv[nopt+1],':')) != NULL &&
+                  isdigit(*(cpt+1))                         ){
+         Hworkhard1 = (int)strtod(argv[nopt+1],NULL) ;
+         Hworkhard2 = (int)strtod(cpt+1,NULL) ;
+         addone = 1 ;
        }
 #ifdef ALLOW_QMODE
        if( argv[nopt][1] == 'W' ) Hqhard = 1 ;
 #endif
-       nopt++ ; continue ;
+       nopt++ ; if( addone ) nopt++ ;
+
+       continue ;
      }
 
      /*---------------*/
@@ -1575,21 +1583,28 @@ int main( int argc , char *argv[] )
 
      /*---------------*/
 
-     if( strcasecmp(argv[nopt],"-superhard") == 0 ){  /* 30 Apr 2013 */
-       char *wpt = argv[nopt]+9 ;
+     if( strncasecmp(argv[nopt],"-superhard",10) == 0 ){  /* 30 Apr 2013 */
+       char *wpt = argv[nopt]+10 , *cpt=NULL ; int addone=0 ;
        Hsuperhard1 = 0 ; Hsuperhard2 = 66 ;
        if( *wpt == ':' && isdigit(*(wpt+1)) ){
-         char *cpt ;
          Hsuperhard2 = (int)strtod(++wpt,NULL) ;
          cpt = strchr(wpt,':') ;
          if( cpt != NULL && isdigit(*(cpt+1)) ){
            Hsuperhard1 = Hsuperhard2 ;
            Hsuperhard2 = (int)strtod(++cpt,NULL) ;
          }
+       } else if( nopt+1 < argc                          &&
+                  isdigit(argv[nopt+1][0])               &&
+                  (cpt=strchr(argv[nopt+1],':')) != NULL &&
+                  isdigit(*(cpt+1))                         ){
+         Hsuperhard1 = (int)strtod(argv[nopt+1],NULL) ;
+         Hsuperhard2 = (int)strtod(cpt+1,NULL) ;
+         addone = 1 ;
        }
 #ifdef ALLOW_QMODE
        if( argv[nopt][1] == 'S' ) Hqhard = 1 ;
 #endif
+       if( addone ) nopt++ ;
        nopt++ ; continue ;
      }
 
@@ -1643,7 +1658,8 @@ int main( int argc , char *argv[] )
      if( strcasecmp(argv[nopt],"-base") == 0 ){
        if( bset   != NULL ) ERROR_exit("Can't use -base twice!") ;
        if( ++nopt >= argc ) ERROR_exit("need arg after -base") ;
-       bset = THD_open_dataset(argv[nopt]) ; if( bset == NULL ) ERROR_exit("Can't open -base") ;
+       bset = THD_open_dataset(argv[nopt]) ;
+       if( bset == NULL ) ERROR_exit("Can't open -base '%s'",argv[nopt]) ;
        bsname = strdup(argv[nopt]) ; DSET_COPYOVER_REAL(bset) ;
        nopt++ ; continue ;
      }
@@ -1653,7 +1669,8 @@ int main( int argc , char *argv[] )
      if( strcasecmp(argv[nopt],"-source") == 0 ){
        if( sset   != NULL ) ERROR_exit("Can't use -source twice!") ;
        if( ++nopt >= argc ) ERROR_exit("need arg after -source") ;
-       sset = THD_open_dataset(argv[nopt]) ; if( sset == NULL ) ERROR_exit("Can't open -source") ;
+       sset = THD_open_dataset(argv[nopt]) ;
+       if( sset == NULL ) ERROR_exit("Can't open -source '%s'",argv[nopt]) ;
        ssname = strdup(argv[nopt]) ; sstrue = sset ; DSET_COPYOVER_REAL(sset) ;
        nopt++ ; continue ;
      }
@@ -1664,7 +1681,8 @@ int main( int argc , char *argv[] )
        THD_3dim_dataset *eset ;
        if( Hemask != NULL ) ERROR_exit("Can't use -emask twice!") ;
        if( ++nopt >= argc ) ERROR_exit("need arg after -emask") ;
-       eset = THD_open_dataset(argv[nopt]) ; if( eset == NULL ) ERROR_exit("Can't open -emask") ;
+       eset = THD_open_dataset(argv[nopt]) ;
+       if( eset == NULL ) ERROR_exit("Can't open -emask '%s'",argv[nopt]) ;
        DSET_load(eset) ; CHECK_LOAD_ERROR(eset) ;
        Hemask = THD_makemask( eset , 0 , 1.0f , -1.0f ) ;
        if( Hemask == NULL ) ERROR_exit("Can't make -emask for some reason :-(") ;
@@ -2077,7 +2095,7 @@ STATUS("read inputs") ;
 
    if( bset == NULL ){
      bset = THD_open_dataset(argv[nopt++]) ; DSET_COPYOVER_REAL(bset) ;
-     if( bset == NULL ) ERROR_exit("Can't open base dataset") ;
+     if( bset == NULL ) ERROR_exit("Can't open base dataset '%s'",argv[nopt-1]) ;
      bsname = strdup(argv[nopt-1]) ;
 STATUS("base dataset opened") ;
    }
@@ -2088,7 +2106,7 @@ STATUS("base dataset opened") ;
 
    if( sset == NULL ){
      sset = THD_open_dataset(argv[nopt++]) ; DSET_COPYOVER_REAL(sset) ;
-     if( sset == NULL ) ERROR_exit("Can't open source dataset") ;
+     if( sset == NULL ) ERROR_exit("Can't open source dataset '%s'",argv[nopt-1]) ;
      ssname = strdup(argv[nopt-1]) ; sstrue = sset ;
 STATUS("source dataset opened") ;
    }
@@ -2182,7 +2200,7 @@ STATUS("3dAllineate coming up next") ;
        sprintf(qs,"%s.aff12.1D",Qunstr) ;
        zim = mri_read_1D(qs) ;           /* get the 3dAllineate output matrix */
        if( zim == NULL )
-         ERROR_exit("Can't open 3dAllineate's .aff12.1D file??") ;
+         ERROR_exit("Can't open 3dAllineate's matrix file '%s'",qs) ;
        if( zim->nvox < 12 )
          ERROR_exit("3dAllineate's .aff12.1D file has incorrect format??") ;
        qar = MRI_FLOAT_PTR(zim) ;
