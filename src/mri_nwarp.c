@@ -10971,6 +10971,11 @@ ENTRY("IW3D_warpomatic") ;
 
    pcon = powell_newuoa_get_con() ;  /* 30 Oct 2015 */
 
+   if( Hverb > 1 && Hworkhard2 >= Hworkhard1 )
+     INFO_message("WORKHARD from %d to %d",Hworkhard1,Hworkhard2) ;
+   if( Hverb > 1 && Hsuperhard2 >= Hsuperhard1 )
+     INFO_message("SUPERHARD from %d to %d",Hsuperhard1,Hsuperhard2) ;
+
    if( Hlev_start == 0 || HGRID(0) == 0 ){
      /* nlevr = number of times to try the global quintic patch */
      /* [reduced by 1 on 24 May 2016, since repetition had little effect] */
