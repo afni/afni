@@ -67,6 +67,11 @@ afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
 
+{ 27, May , 2016 , PT , "3dDWItoDT" , MINOR , TYPE_NEW_OPT,
+   "Have a new '-scale_out_1000' option: rescale output, if desired.",
+   "Effectively: change output diff units of mm^2/s -> x10^{-3} mm^2/s.\n"
+},
+
 { 24, May , 2016 , PT , "3dLombScargle" , MAJOR , TYPE_MODIFY,
    "Revamped LS program-- new implementation, directly from PR89.",
    "Several new options added (normalize, amplitudeize, etc.).\n"
