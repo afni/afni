@@ -38,7 +38,12 @@
 //   data is missing.  By default, will censor when values are >100*(MD_0), 
 //   where MD_0 is the default 'CSF value' based on the b_max.
 
-
+// (end of) May, 2016 (PT):
+// + allow user to scaled DT/MD/L? values by 1000 internally. If
+//   bweighted matrix/gradient values have been input, this may be
+//   nicer than having 0.0007 (mm^2/s), etc., values, changing them to
+//   ~0.7 (x10^{-3} mm^2/s), etc., which is more the style propounded in
+//   reported literature.
 
 #include "thd_shear3d.h"
 /*#ifndef FLOATIZE*/
@@ -71,41 +76,73 @@ static matrix tempHplusmatrix[2], tempHminusmatrix[2];
 static byte *maskptr = NULL;
 static double eigs[12];
 static double deltatau;
-static double *wtfactor;	/* weight factors for time points at each voxel */
-static double *bmatrix;		/* b matrix = GiGj for gradient intensities */
-static double *cumulativewt;    /* overall wt. factor for each gradient */
+static double *wtfactor;	     /* weight factors for time points at
+                                   each voxel */
+static double *bmatrix;		     /* b matrix = GiGj for gradient
+                                   intensities */
+static double *cumulativewt;    /* overall wt. factor for each
+                                   gradient */
 static long rewtvoxels;         /* how many voxels were reweighted */ 
-static double sigma;		/* std.deviation */
-static double ED;		/* error for each iteration - cost function result */
+static double sigma;		        /* std.deviation */
+static double ED;		           /* error for each iteration - cost
+                                   function result */
 static int automask = 0;        /* automasking flag - user option */
-static int reweight_flag = 0;   /* reweight computation flag - user option */
-static int method = -1;         /* linear or non-linear method - user option */
-static int max_iter = -2;       /* maximum #convergence iteration steps - user option */
-static int max_iter_rw = -2;    /* maximum #convergence iteration steps - user option */
-static int eigs_flag = 0;       /* eigenvalue calculation in output - user option */
-static int cumulative_flag = 0; /* calculate, display cumulative wts for gradients - user option */ 
-static int debug_briks = 0;     /* put Ed, Ed0 and Converge step sub-briks in output - user option */
-static int verbose = 0;         /* print out info every verbose number of voxels - user option */
-static int afnitalk_flag = 0;   /* show convergence in AFNI graph - user option */
-static int bmatrix_given = 0;   /* user input file is b matrix (instead of gradient direction matrix) 
-                                   with 6 columns: Bxx, Byy, Bzz, Bxy, Bxz, Byz */
+static int reweight_flag = 0;   /* reweight computation flag - user
+                                   option */
+static int method = -1;         /* linear or non-linear method - user
+                                   option */
+static int max_iter = -2;       /* maximum #convergence iteration
+                                   steps - user option */
+static int max_iter_rw = -2;    /* maximum #convergence iteration
+                                   steps - user option */
+static int eigs_flag = 0;       /* eigenvalue calculation in output -
+                                   user option */
+static int cumulative_flag = 0; /* calculate, display cumulative wts
+                                   for gradients - user option */ 
+static int debug_briks = 0;     /* put Ed, Ed0 and Converge step
+                                   sub-briks in output - user
+                                   option */
+static int verbose = 0;         /* print out info every verbose number
+                                   of voxels - user option */
+static int afnitalk_flag = 0;   /* show convergence in AFNI graph -
+                                   user option */
+static int bmatrix_given = 0;   /* user input file is b matrix
+                                   (instead of gradient direction
+                                   matrix) with 6 columns: Bxx, Byy,
+                                   Bzz, Bxy, Bxz, Byz */
 static int BMAT_NZ = 0;         /* non-zero bmatrix supplied */
-static int use_mean_b0 = 0;     /* compute initial linear estimate with first b=0 volume rather than mean
-                                   of all b=0 volumes */
-static int opt_method = 2;      /* use gradient descent instead of Powell's new optimize method*/
-static int voxel_opt_method = 0; /* hybridize optimization between Powell and gradient descent */
-static int Powell_npts = 1;     /* number of points in input dataset for Powell optimization function */
-static float *Powell_ts;        /* pointer to time-wise voxel data for Powell optimization function */
+static int use_mean_b0 = 0;     /* compute initial linear estimate
+                                   with first b=0 volume rather than
+                                   mean of all b=0 volumes */
+static int opt_method = 2;      /* use gradient descent instead of
+                                   Powell's new optimize method*/
+static int voxel_opt_method = 0;/* hybridize optimization between
+                                    Powell and gradient descent */
+static int Powell_npts = 1;     /* number of points in input dataset
+                                   for Powell optimization function */
+static float *Powell_ts;        /* pointer to time-wise voxel data for
+                                   Powell optimization function */
 static double Powell_J;
-static double backoff_factor = 0.2; /* minimum allowable factor for lambda2,3 relative to
-                                       lambda1 eigenvalues*/
-static float csf_val = 1.0;  /* a default value for diffusivity for CSF at 37C; apr,2016: now set to '1' */
-static float csf_fa = 0.012345678; /* default FA value where there is CSF */
-static float MAX_BVAL = 1.;        /* use in scaling csf_val for MD and such, *if* user doesn't enter one */
-int USER_CSF_VAL = 0;              // flag so we know if the user entered his/her own scaling
+static double backoff_factor = 0.2; /* minimum allowable factor for
+                                       lambda2,3 relative to lambda1
+                                       eigenvalues*/
+static float csf_val = 1.0;     /* a default value for diffusivity for
+                                   CSF at 37C; apr,2016: now set to
+                                   '1' */
+static float csf_fa = 0.012345678; /* default FA value where there is
+                                      CSF */
+static float MAX_BVAL = -1.;     /* use in scaling csf_val for MD and
+                                   such, *if* user doesn't enter
+                                   one */
+int USER_CSF_VAL = 0;           // flag so we know if the user entered
+                                // his/her own scaling
 static float MIN_BAD_SCALE_MD = 100.; // May,2016: mult this number
                                       // times csf_val to detect some
                                       // baaadness
+float SCALE_VAL_OUT = -1.0 ;         // allow users to scaled physical
+                                     // values by 1000 easily; will be
+                                     // set to 1 if negative after
+                                     // reading in inputs
 
 static NI_stream_type * DWIstreamid = 0;     /* NIML stream ID */
 
@@ -174,88 +211,108 @@ main (int argc, char *argv[])
    if (argc < 2 || strcmp (argv[1], "-help") == 0)
       {
          printf ("Usage: 3dDWItoDT [options] gradient-file dataset\n"
-                 "Computes 6 principle direction tensors from multiple gradient vectors\n"
-                 " and corresponding DTI image volumes.\n"
-                 " The program takes two parameters as input :  \n"
-                 "    a 1D file of the gradient vectors with lines of ASCII floats Gxi,Gyi,Gzi.\n"
-                 "    Only the non-zero gradient vectors are included in this file (no G0 line).\n"
-                 "    a 3D bucket dataset with Np+1 sub-briks where the first sub-brik is the\n"
-                 "    volume acquired with no diffusion weighting.\n"
-                 " Options:\n"
-                 "   -prefix pname = Use 'pname' for the output dataset prefix name.\n"
-                 "                   [default='DT']\n\n"
-                 "   -automask = mask dataset so that the tensors are computed only for\n"
-                 "               high-intensity (presumably brain) voxels.  The intensity level is\n"
-                 "               determined the same way that 3dClipLevel works.\n\n"
-                 "   -mask dset = use dset as mask to include/exclude voxels\n\n"
-                 "   -bmatrix_NZ = input dataset is b-matrix, not gradient directions, and\n"
-                 "               there is *no* row of zeros at the top of the file,\n"
-                 "               similar to the format for the grad input.\n"
-                 "               There must be 6 columns of data, representing either elements\n"
-                 "               of G_{ij} = g_i*g_j (i.e., dyad of gradients, without b-value\n"
-                 "               included) or of the DW scaled version, B_{ij} = b*g_i*g_j.\n"
-                 "               The order of components is: G_xx G_yy G_zz G_xy G_xz G_yz.\n"
-                 "   -bmatrix_Z = similar to '-bmatrix_NZ' above, but assumes that first row of the\n"
-                 "               file is all zeros, i.e. the bmatrix includes a B=0 volume as the first\n"
-                 "               volume. Note that the first row is ignored, so that if you do have\n"
-                 "               a non-zero gradient as the first volume, then that would be ignored\n"
-                 "               and treated as a B=0, no gradient volume\n\n"
-                 "    *****NOTE: The former bmatrix option is no longer available!!!!\n"
-                 "               That option produced an error or incorrect results\n\n"
-                 "   -nonlinear = compute iterative solution to avoid negative eigenvalues.\n"
-                 "                This is the default method.\n\n"
-                 "   -linear = compute simple linear solution.\n\n"
-                 "   -reweight = recompute weight factors at end of iterations and restart\n\n"
-                 "   -max_iter n = maximum number of iterations for convergence (Default=10).\n"
-                 "                 Values can range from -1 to any positive integer less than 101.\n"
-                 "                 A value of -1 is equivalent to the linear solution.\n"
-                 "                 A value of 0 results in only the initial estimate of the diffusion\n"
-                 "                 tensor solution adjusted to avoid negative eigenvalues.\n\n"
-                 "   -max_iter_rw n = max number of iterations after reweighting (Default=5)\n"
-                 "                    values can range from 1 to any positive integer less than 101.\n\n"
-                 "   -eigs = compute eigenvalues, eigenvectors, fractional anisotropy and mean\n"
-                 "           diffusivity in sub-briks 6-19. Computed as in 3dDTeig\n\n"
-                 "   -debug_briks = add sub-briks with Ed (error functional), Ed0 (orig. error),\n"
-                 "                  number of steps to convergence and I0 (modeled B0 volume)\n\n"
-                 "   -cumulative_wts = show overall weight factors for each gradient level\n"
-                 "                     May be useful as a quality control\n\n"
-                 "   -verbose nnnnn = print convergence steps every nnnnn voxels that survive to\n"
-                 "                    convergence loops (can be quite lengthy).\n\n"
-                 "   -drive_afni nnnnn = show convergence graphs every nnnnn voxels that survive\n"
-                 "                       to convergence loops. AFNI must have NIML communications\n"
-                 "                       on (afni -niml)\n\n"
-                 "   -sep_dsets = save tensor, eigenvalues,vectors,FA,MD in separate datasets\n\n"
-                 "   -csf_val n.nnn = assign diffusivity value to DWI data where the mean values\n"
-                 "                    for B=0 volumes is less than the mean of the remaining volumes\n"
-                 "                    at each voxel. The default value is '1.0 divided by the maximum\n"
-                 "                    bvalue in the grads/bmatrices'.  The assumption is that there\n"
-                 "                    are flow artifacts in CSF and blood vessels that give rise to \n"
-                 "                    lower b=0 voxels.  NB: the MD, L1, L2, L3, Dxx, Dyy, etc. values\n"
-                 "                    are all scaled in the same way.\n\n"
-                 "   -min_bad_md N  = change the minimum MD value used as a 'badness check' for tensor\n"
-                 "                    fits that have veeery (-> unreasonably) large MD values.\n"
-                 "                    Voxels where MD > N*(csf_val) will be treated like CSF and \n"
-                 "                    turned into spheres with radius csf_val (default N=100).\n"
-                 "   -csf_fa n.nnn  = assign a specific FA value to those voxels described above\n"
-                 "                    The default is 0.012345678 for use in tractography programs \n"
-                 "                    that may make special use of these voxels\n\n"
-                 "   -opt mname =  if mname is 'powell', use Powell's 2004 method for optimization\n"
-                 "                 If mname is 'gradient' use gradient descent method. If mname is \n"
-                 "                 'hybrid', use combination of methods.\n"
-                 "                 MJD Powell, \"The NEWUOA software for unconstrained optimization\n"
-                 "                 without derivatives\", Technical report DAMTP 2004/NA08, Cambridge \n"
-                 "                 University Numerical Analysis Group -- \n"
-                 "                 http://www.damtp.cam.ac.uk/user/na/reports.html\n\n"
-                 "   -mean_b0 = use mean of all b=0 volumes for linear computation and initial linear\n"
-                 "              for nonlinear method\n\n"
-                 " Example:\n"
-                 "  3dDWItoDT -prefix rw01 -automask -reweight -max_iter 10 \\\n"
-                 "            -max_iter_rw 10 tensor25.1D grad02+orig.\n\n"
-                 " The output is a 6 sub-brick bucket dataset containing Dxx,Dxy,Dyy,Dxz,Dyz,Dzz\n"
-                 " (the lower triangular, row-wise elements of the tensor in symmetric matrix form)\n"
-                 " Additional sub-briks may be appended with the -eigs and -debug_briks options.\n"
-                 " These results are appropriate as the input to the 3dDTeig program.\n"
-                 "\n");
+"Computes 6 principle direction tensors from multiple gradient vectors\n"
+" and corresponding DTI image volumes.\n"
+" The program takes two parameters as input :  \n"
+"    a 1D file of the gradient vectors with lines of ASCII floats:\n"
+"            Gxi, Gyi, Gzi.\n"
+"    Only the non-zero gradient vectors are included in this file (no G0 \n"
+"    line). \n"
+"    A 3D bucket dataset with Np+1 sub-briks where the first sub-brik is the\n"
+"    volume acquired with no diffusion weighting.\n"
+" Options:\n"
+"   -prefix pname = Use 'pname' for the output dataset prefix name.\n"
+"                   [default='DT']\n\n"
+"   -automask = mask dataset so that the tensors are computed only for\n"
+"               high-intensity (presumably brain) voxels.  The intensity \n"
+"               level is determined the same way that 3dClipLevel works.\n\n"
+"   -mask dset = use dset as mask to include/exclude voxels\n\n"
+"   -bmatrix_NZ = input dataset is b-matrix, not gradient directions, and\n"
+"               there is *no* row of zeros at the top of the file,\n"
+"               similar to the format for the grad input.\n"
+"               There must be 6 columns of data, representing either elements\n"
+"               of G_{ij} = g_i*g_j (i.e., dyad of gradients, without b-value\n"
+"               included) or of the DW scaled version, B_{ij} = b*g_i*g_j.\n"
+"               The order of components is: G_xx G_yy G_zz G_xy G_xz G_yz.\n"
+"   -bmatrix_Z = similar to '-bmatrix_NZ' above, but assumes that first row\n"
+"               of the file is all zeros, i.e. the bmatrix includes a b=0 \n"
+"               volume as the first volume. Note that the first row is \n"
+"               ignored, so that if you do have a non-zero gradient as the \n"
+"               first volume, then that would be ignored and treated as a \n"
+"               B=0, no gradient volume.\n\n"
+"   -scale_out_1000 = increase output parameters that have physical units\n"
+"               (DT, MD, L1, L2 and L3) by multiplying them by 1000.  This\n"
+"               might be convenient, as the input bmatrix/gradient values \n"
+"               can have their physical magnitudes of ~1000 s/mm^2, for\n"
+"               which typical adult WM has diffusion values of MD~0.0007\n"
+"               (in physical units of mm^2/s), and people might not like so\n"
+"               many decimal points output; using this option rescales the\n"
+"               input b-values and would lead to having a typical MD~0.7\n"
+"               (now in units of x10^{-3} mm^2/s).  If you are not using\n"
+"               bmatrix/gradient values that have their physical scalings,\n"
+"               then using this switch probably wouldn't make much sense.\n"
+"               FA, V1, V2 and V3 are unchanged.\n\n" 
+"   -nonlinear = compute iterative solution to avoid negative eigenvalues.\n"
+"                This is the default method.\n\n"
+"   -linear = compute simple linear solution.\n\n"
+"   -reweight = recompute weight factors at end of iterations and restart\n\n"
+"   -max_iter n = maximum number of iterations for convergence (Default=10).\n"
+"                 Values can range from -1 to any positive integer less than\n"
+"                 101. A value of -1 is equivalent to the linear solution.\n"
+"                 A value of 0 results in only the initial estimate of the\n"
+"                 diffusion tensor solution adjusted to avoid negative\n"
+"                 eigenvalues.\n\n"
+"   -max_iter_rw n = max number of iterations after reweighting (Default=5)\n"
+"                    values can range from 1 to any positive integer less\n"
+"                    than 101.\n\n"
+"   -eigs = compute eigenvalues, eigenvectors, fractional anisotropy and mean\n"
+"           diffusivity in sub-briks 6-19. Computed as in 3dDTeig\n\n"
+"   -debug_briks = add sub-briks with Ed (error functional), Ed0 (orig.\n"
+"                  error), number of steps to convergence and I0 (modeled B0\n"
+"                  volume)\n\n"
+"   -cumulative_wts = show overall weight factors for each gradient level\n"
+"                     May be useful as a quality control\n\n"
+"   -verbose nnnnn = print convergence steps every nnnnn voxels that survive\n"
+"                    to convergence loops (can be quite lengthy).\n\n"
+"   -drive_afni nnnnn = show convergence graphs every nnnnn voxels that\n"
+"                       survive to convergence loops. AFNI must have NIML\n"
+"                       communications on (afni -niml)\n\n"
+"   -sep_dsets = save tensor, eigenvalues, vectors, FA, MD in separate\n"
+"                datasets\n\n"
+"   -csf_val n.nnn = assign diffusivity value to DWI data where the mean\n"
+"                    values for b=0 volumes is less than the mean of the\n"
+"                    remaining volumes at each voxel. The default value is\n"
+"                    '1.0 divided by the max bvalue in the grads/bmatrices'.\n"
+"                    The assumption is that there are flow artifacts in CSF\n"
+"                    and blood vessels that give rise to lower b=0 voxels.\n"
+"                    NB: MD, L1, L2, L3, Dxx, Dyy, etc. values are all scaled\n"
+"                    in the same way.\n\n"
+"   -min_bad_md N  = change the min MD value used as a 'badness check' for\n"
+"                    tensor fits that have veeery (-> unreasonably) large MD\n"
+"                    values. Voxels where MD > N*(csf_val) will be treated\n"
+"                    like CSF and turned into spheres with radius csf_val \n"
+"                    (default N=100).\n"
+"   -csf_fa n.nnn  = assign a specific FA value to those voxels described\n"
+"                    above The default is 0.012345678 for use in tractography\n"
+"                    programs that may make special use of these voxels\n\n"
+"   -opt mname =  if mname is 'powell', use Powell's 2004 method for \n"
+"                 optimization. If mname is 'gradient' use gradient descent\n"
+"                 method. If mname is 'hybrid', use combination of methods.\n"
+"                 MJD Powell, \"The NEWUOA software for unconstrained \n"
+"                 optimization without derivatives\", Technical report DAMTP\n"
+"                 2004/NA08, Cambridge University Numerical Analysis Group --\n"
+"                 http://www.damtp.cam.ac.uk/user/na/reports.html\n\n"
+"   -mean_b0 = use mean of all b=0 volumes for linear computation and initial\n"
+"              linear for nonlinear method\n\n"
+" Example:\n"
+"  3dDWItoDT -prefix rw01 -automask -reweight -max_iter 10 \\\n"
+"            -max_iter_rw 10 tensor25.1D grad02+orig.\n\n"
+" The output is a 6 sub-brick bucket dataset containing \n"
+"     Dxx, Dxy, Dyy, Dxz, Dyz, Dzz\n"
+" (the lower triangular, row-wise elements of the tensor in symmetric matrix\n"
+" form). Additional sub-briks may be appended with the -eigs and -debug_briks\n"
+" options.  These results are appropriate as the input to 3dDTeig.\n"
+"\n");
          printf ("\n" MASTER_SHORTHELP_STRING);
          exit (0);
       }
@@ -283,8 +340,10 @@ main (int argc, char *argv[])
                   {
                      ERROR_exit("Error - prefix needs an argument!");
                   }
-               MCW_strncpy (prefix, argv[nopt], THD_MAX_PREFIX);	/* change name from default prefix */
-               /* check file name to be sure not to overwrite - mod drg 12/9/2004 */
+               /* change name from default prefix */
+               MCW_strncpy (prefix, argv[nopt], THD_MAX_PREFIX);	
+               /* check file name to be sure not to overwrite - mod
+                  drg 12/9/2004 */
                if (!THD_filename_ok (prefix))
                   {
                      ERROR_exit("Error - %s is not a valid prefix!", prefix);
@@ -346,21 +405,31 @@ main (int argc, char *argv[])
 
             DSET_delete(mask_dset) ; nopt++ ; continue ;
          }
-
-         if (strcmp(argv[nopt], "-bmatrix_Z") == 0) {  // input bmatrix with initial B=0 line
+         
+         // input bmatrix with initial B=0 line
+         if (strcmp(argv[nopt], "-bmatrix_Z") == 0) {  
             bmatrix_given = 1;
             nopt++;
             continue;
          }
 
-         if (strcmp(argv[nopt], "-bmatrix_NZ") == 0) { // input bmatrix without first B=0 line
+         // input bmatrix without first B=0 line
+         if (strcmp(argv[nopt], "-bmatrix_NZ") == 0) { 
             BMAT_NZ = 1;
             nopt++;
             continue;
          }
 
-         if (strcmp(argv[nopt], "-mean_b0") == 0) {   //  compute mean across b=0 vols for init. linear 
+         //  compute mean across b=0 vols for init. linear 
+         if (strcmp(argv[nopt], "-mean_b0") == 0) {   
             use_mean_b0 = 1;
+            nopt++;
+            continue;
+         }
+         
+         //  can mult output diff values by 1000 
+         if (strcmp(argv[nopt], "-scale_out_1000") == 0) {   
+            SCALE_VAL_OUT = 1000.;
             nopt++;
             continue;
          }
@@ -370,9 +439,10 @@ main (int argc, char *argv[])
          if (strcmp (argv[nopt], "-min_bad_md") == 0){
             if(++nopt >=argc )
                ERROR_exit("Error - need an argument after -min_bad_md!");
-            MIN_BAD_SCALE_MD = (float) strtod(argv[nopt], NULL); //atof(argv[nopt]); //
+            MIN_BAD_SCALE_MD = (float) strtod(argv[nopt], NULL); 
             if(MIN_BAD_SCALE_MD < 0.00001)
-               ERROR_exit("Bad MD scale! Needs to be >0.00001-- and probably much more so!");
+               ERROR_exit("Bad MD scale! Needs to be >0.00001-- "
+                          " and probably much more so!");
             nopt++;
             continue;
          }
@@ -382,18 +452,21 @@ main (int argc, char *argv[])
             {
                if(method==1)
                   {
-                     ERROR_exit("Error - cannot select both linear and non-linear methods at the same time");
+                     ERROR_exit("Error - cannot select both linear and "
+                                "non-linear methods at the same time");
                   }
                method = 0;
                nopt++;
                continue;
             }
 
-         if ((strcmp (argv[nopt], "-nonlinear") == 0) || (strcmp (argv[nopt], "-non-linear") == 0))
+         if ((strcmp (argv[nopt], "-nonlinear") == 0) || 
+             (strcmp (argv[nopt], "-non-linear") == 0))
             {
                if(method==0)
                   {
-                     ERROR_exit("Error - cannot select both linear and non-linear methods at the same time");
+                     ERROR_exit("Error - cannot select both linear "
+                                "and non-linear methods at the same time");
                      exit(1);
                   }
                method = 1;
@@ -462,7 +535,7 @@ main (int argc, char *argv[])
                }
                verbose = strtol(argv[nopt], NULL, 10);
                if (verbose<=0) {
-                  ERROR_exit("Error - verbose steps must be a positive number !");
+                  ERROR_exit("Error- verbose steps must be a positive number!");
                }
                nopt++;
                continue;
@@ -475,7 +548,8 @@ main (int argc, char *argv[])
                }
                afnitalk_flag = strtol(argv[nopt], NULL, 10);
                if (afnitalk_flag<=0) {
-                  ERROR_exit("Error - drive_afni steps must be a positive number !");
+                  ERROR_exit("Error - drive_afni steps must be "
+                             "a positive number!");
                }
                nopt++;
                continue;
@@ -492,7 +566,8 @@ main (int argc, char *argv[])
             {
                if (++nopt >= argc)
                   {
-                     ERROR_exit("Error - opt should be followed by gradient or powell!");
+                     ERROR_exit("Error - opt should be followed by "
+                                "gradient or powell!");
                   }
                if (strcmp(argv[nopt], "gradient") == 0)
                   {
@@ -548,20 +623,23 @@ main (int argc, char *argv[])
       }
 
    if(method==-1)
-      method = 1;        /* if not selected, choose non-linear method for now */
+      method = 1;    /* if not selected, choose non-linear method for now */
 
    if(max_iter>=-1){
       if(method==0)
-         WARNING_message("Warning - max_iter will be ignored for linear methods");
+         WARNING_message("Warning - max_iter will be ignored "
+                         "for linear methods");
    }
    else
       max_iter = MAX_CONVERGE_STEPS;
 
    if(max_iter_rw>=0) {
       if(method==0)
-         WARNING_message("Warning - max_iter_rw will be ignored for linear methods");
+         WARNING_message("Warning - max_iter_rw will be ignored "
+                         "for linear methods");
       if(reweight_flag==0)
-         WARNING_message("Warning - max_iter_rw will be ignored when not reweighting");
+         WARNING_message("Warning - max_iter_rw will be ignored "
+                         "when not reweighting");
    }
    else
       max_iter_rw = MAX_RWCONVERGE_STEPS;
@@ -573,22 +651,26 @@ main (int argc, char *argv[])
 
    if(cumulative_flag==1) {
       if(method==0) {
-         WARNING_message("Warning - can not compute cumulative weights for linear method");
+         WARNING_message("Warning - can not compute cumulative weights "
+                         "for linear method");
          cumulative_flag = 0;
       }
       if(reweight_flag == 0) {
-         WARNING_message("Warning - can not compute cumulative weights if not reweighting");
+         WARNING_message("Warning - can not compute cumulative weights "
+                         "if not reweighting");
          cumulative_flag = 0;
       }
    }
 
    if((method==0)&&(debug_briks==1)) {
-      WARNING_message("Warning - can not compute debug sub-briks for linear method");
+      WARNING_message("Warning - can not compute debug sub-briks "
+                      "for linear method");
       debug_briks = 0;
    }
 
    if((method==0)&&(afnitalk_flag>0)) {
-      WARNING_message("Warning - can not graph convergence in AFNI for linear method");
+      WARNING_message("Warning - can not graph convergence in AFNI "
+                      "for linear method");
       afnitalk_flag = 0;
    }
 
@@ -606,7 +688,8 @@ main (int argc, char *argv[])
          ERROR_exit("Error - No input dataset!?");
       }
 
-   /* first input dataset - should be gradient vector file of ascii floats Gx,Gy,Gz */
+   /* first input dataset - should be gradient vector file of ascii
+      floats Gx,Gy,Gz */
 
    /* read gradient vector 1D file */
    grad1Dptr = mri_read_1D (argv[nopt]);
@@ -615,11 +698,13 @@ main (int argc, char *argv[])
          ERROR_exit("Error reading gradient vector file");
       }
 
-   // if ((grad1Dptr->ny != 3 && !bmatrix_given) || (grad1Dptr->ny != 6 && bmatrix_given)) // $$old
+   // if ((grad1Dptr->ny != 3 && !bmatrix_given) || (grad1Dptr->ny !=
+   // 6 && bmatrix_given)) // $$old
    if ((grad1Dptr->ny != 3 && !(bmatrix_given || BMAT_NZ) ) 
-       || (grad1Dptr->ny != 6 && (bmatrix_given || BMAT_NZ ) )) // BMAT_NZ optioning
+       || (grad1Dptr->ny != 6 && (bmatrix_given || BMAT_NZ ) )) // BMAT_NZ opts
       {
-         ERROR_message("Error - Only 3 columns of gradient vectors (or 6 columns for b matrices) "
+         ERROR_message("Error - Only 3 columns of gradient vectors "
+                       "(or 6 columns for b matrices) "
                        "allowed: %d columns found", grad1Dptr->ny);
          mri_free (grad1Dptr);
          exit (1);
@@ -631,7 +716,31 @@ main (int argc, char *argv[])
          ERROR_message("Error - Must have at least 6 gradient vectors");
          ERROR_exit("%d columns found", grad1Dptr->nx);
       }
+   
+   // -----------------------------------------------------------------
+   // apply 1/SCALE_VAL_OUT to the bvalue as a way to scale;
+   // shamelessly pillaging format of mri_histog.c; later might allow
+   // users to choose other values
+   if( SCALE_VAL_OUT < 0 )
+      SCALE_VAL_OUT = 1.;
+   else
+      INFO_message("Implementing user-selected scaling of diffusion values by %.0f",
+                   SCALE_VAL_OUT);
+   
+   if( grad1Dptr->kind != MRI_float )
+      ERROR_exit("How are the gradients not floats?");
 
+   int npix;
+   register float *flar=mri_data_pointer(grad1Dptr);
+   npix = grad1Dptr->nvox; 
+   for( i=0 ; i<npix ; i++ ){
+      flar[i]/= SCALE_VAL_OUT;
+   }
+
+   //fprintf(stderr,"\n\n nyx=%d; npix=%d\n",grad1Dptr->nxy, npix);
+   //for( i=0 ; i<npix ; i++)
+   //   fprintf(stderr,"\n %f", flar[i]);
+   // -----------------------------------------------------------------
 
    Form_R_Matrix (grad1Dptr);	/* use grad1Dptr to compute R matrix */
 
@@ -648,7 +757,8 @@ main (int argc, char *argv[])
        && !((BMAT_NZ && DSET_NVALS (old_dset) == (grad1Dptr->nx))) ) 
       {
          mri_free (grad1Dptr);
-         ERROR_message("Error - Dataset must have number of sub-briks equal to one more than number");
+         ERROR_message("Error - Dataset must have number of sub-briks "
+                       "equal to one more than number");
          ERROR_exit("  of gradient vectors (B0+Bi)!");
       }
    nxyz = DSET_NVOX(old_dset) ;
@@ -656,37 +766,47 @@ main (int argc, char *argv[])
       ERROR_exit("Mask and input datasets not the same size!") ;
    }
 
-
    if (bmatrix_given) {
-      InitGlobals (grad1Dptr->nx);  /* initialize all the matrices and vectors */
+      InitGlobals (grad1Dptr->nx);  /* initialize all the matrs and vecs */
    }
    else { // $$same: can leave same, because BMAT_NZ will have `nx+1'
-      InitGlobals (grad1Dptr->nx + 1);	/* initialize all the matrices and vectors */
+      InitGlobals (grad1Dptr->nx + 1);	/* initialize all the matrs and vecs */
    }
 
    Computebmatrix (grad1Dptr, BMAT_NZ);	/* compute bij=GiGj */
    // after this, the MAX_BVAL is known, as well; apply it to the CSF
    // val *if* the user didn't set his/her own scale.  apr,2016
 
+   if(MAX_BVAL<=0)
+      ERROR_exit("Whooa! How did the max bval get to look like %f??", MAX_BVAL);
+
    if (!bmatrix_given) 
-      INFO_message("The maximum magnitude of the gradients appears to be: %.2f", MAX_BVAL);
+      INFO_message("The maximum magnitude of the gradients "
+                   "appears to be: %.5f", MAX_BVAL);
    else
-      INFO_message("The maximum magnitude of the bmatrix appears to be: %.2f", MAX_BVAL);
+      INFO_message("The maximum magnitude of the bmatrix "
+                   "appears to be: %.2f", MAX_BVAL);
    if(!USER_CSF_VAL) {
       csf_val/= MAX_BVAL;
-      INFO_message("-> and, by scale, the 'CSF value' (e.g., MD) for any unfit voxels "
-                   "will be: %.8f", csf_val);
+      INFO_message("-> and, by scale, the 'CSF value' (e.g., MD)"
+                   " for any unfit voxels will be: %.8f", csf_val);
    }
-   INFO_message("Voxels with MD>%f will be deemed unfit for fitting and given 'CSF' status",
+   INFO_message("Voxels with MD>%f will be deemed unfit for "
+                "fitting and given 'CSF' status",
                 MIN_BAD_SCALE_MD*csf_val);
 
    if (automask)
       {
          DSET_mallocize (old_dset);
-         DSET_load (old_dset);	/* get B0 (anatomical image) from dataset */
+         DSET_load (old_dset);	/* get B0 (anatomical image) from
+                                    dataset */
          /*anat_im = THD_extract_float_brick( 0, old_dset ); */
-         anat_im = DSET_BRICK (old_dset, 0);	/* set pointer to the 0th sub-brik of the dataset */
-         maskptr = mri_automask_image (anat_im);	/* maskptr is a byte pointer for volume */
+         anat_im = DSET_BRICK (old_dset, 0);	/* set pointer to the 0th
+                                                sub-brik of the
+                                                dataset */
+         maskptr = mri_automask_image (anat_im);	/* maskptr is a
+                                                      byte pointer for
+                                                      volume */
       }
 
    /* temporarily set artificial timing to 1 second interval */
@@ -717,7 +837,8 @@ main (int argc, char *argv[])
                                       prefix,	/* output prefix */
                                       datum,	/* output datum  */
                                       0,	/* ignore count  */
-                                      0,	/* can't detrend in maker function  KRH 12/02 */
+                                      0,	/* can't detrend in maker
+                                             function KRH 12/02 */
                                       nbriks,	/* number of briks */
                                       DWItoDT_tsfunc,	/* timeseries processor */
                                       NULL,	/* data for tsfunc */
@@ -784,10 +905,14 @@ main (int argc, char *argv[])
          }
 
          if(debug_briks) {
-            EDIT_dset_items (new_dset, ADN_brick_label_one + nbriks - 4, "Converge Step", ADN_none);
-            EDIT_dset_items (new_dset, ADN_brick_label_one + nbriks - 3, "ED", ADN_none);
-            EDIT_dset_items (new_dset, ADN_brick_label_one + nbriks - 2, "EDorig", ADN_none);
-            EDIT_dset_items (new_dset, ADN_brick_label_one + nbriks - 1, "I0", ADN_none);
+            EDIT_dset_items (new_dset, ADN_brick_label_one + nbriks - 4, 
+                             "Converge Step", ADN_none);
+            EDIT_dset_items (new_dset, ADN_brick_label_one + nbriks - 3, 
+                             "ED", ADN_none);
+            EDIT_dset_items (new_dset, ADN_brick_label_one + nbriks - 2, 
+                             "EDorig", ADN_none);
+            EDIT_dset_items (new_dset, ADN_brick_label_one + nbriks - 1, 
+                             "I0", ADN_none);
          }
 
          tross_Make_History ("3dDWItoDT", argc, argv, new_dset);
@@ -813,17 +938,20 @@ Save_Sep_DTdata(whole_dset, prefix, output_datum)
      char *prefix;
      int output_datum;
 {
-   /* takes base prefix and appends to it for DT, eigvalues, eigvectors, FA, MD,
-      debug bricks */
+   /* takes base prefix and appends to it for DT, eigvalues,
+      eigvectors, FA, MD, debug bricks */
    int nbriks;
    char nprefix[THD_MAX_PREFIX], tprefix[THD_MAX_PREFIX];
    char *ext, nullch; 
 
    ENTRY("Save_Sep_DTdata");
    sprintf(tprefix,"%s",prefix);
-   if(has_known_non_afni_extension(prefix)){   /* for NIFTI, 3D, Niml, Analyze,...*/
+   if(has_known_non_afni_extension(prefix)){   /* for NIFTI, 3D, Niml,
+                                                  Analyze,...*/
       ext = find_filename_extension(prefix);
-      tprefix[strlen(prefix) - strlen(ext)] = '\0';  /* remove non-afni-extension for now*/
+      tprefix[strlen(prefix) - strlen(ext)] = '\0';  /* remove
+                                                        non-afni-extension
+                                                        for now*/
    }
    else {
       nullch = '\0';
@@ -881,25 +1009,28 @@ Copy_dset_array(whole_dset,startbrick,nbriks,prefix,output_datum)
 
    tross_Copy_History (whole_dset, out_dset);
    ierror = EDIT_dset_items( out_dset ,
-                             ADN_malloc_type , DATABLOCK_MEM_MALLOC , /* store in memory */
-                             ADN_prefix , prefix ,
-                             ADN_datum_all, output_datum,
-                             ADN_nvals, nbriks,
-                             ADN_ntt, 0,
-                             ADN_type        , ISHEAD(whole_dset)       /* dataset type */
-                             ? HEAD_FUNC_TYPE
-                             : GEN_FUNC_TYPE ,
-                             ADN_func_type   , FUNC_BUCK_TYPE ,        /* function type */
-                             ADN_none ) ;
+            ADN_malloc_type , DATABLOCK_MEM_MALLOC , /* store in memory */
+            ADN_prefix , prefix ,
+            ADN_datum_all, output_datum,
+            ADN_nvals, nbriks,
+            ADN_ntt, 0,
+            ADN_type        , ISHEAD(whole_dset)       /* dataset type */
+            ? HEAD_FUNC_TYPE
+            : GEN_FUNC_TYPE ,
+            ADN_func_type   , FUNC_BUCK_TYPE ,        /* function type */
+            ADN_none ) ;
 
    if(ierror>0) 
       ERROR_exit("*** Error - Unable to edit dataset!");
 
    THD_init_datablock_keywords( out_dset->dblk ) ;
-   THD_init_datablock_stataux( out_dset->dblk ) ; /* for some reason, need to do this for 
-                                                     single brick NIFTI files */
+   THD_init_datablock_stataux( out_dset->dblk ) ; /* for some reason,
+                                                     need to do this
+                                                     for single brick
+                                                     NIFTI files */
 
-   /* attach brick, factors and labels to new dataset using existing brick pointers */
+   /* attach brick, factors and labels to new dataset using existing
+      brick pointers */
    for(i=0;i<nbriks;i++) {
       fim = DSET_BRICK(whole_dset,startbrick+i);
       dataptr = mri_data_pointer(fim);
@@ -962,7 +1093,7 @@ Form_R_Matrix (MRI_IMAGE * grad1Dptr)
          imptr+= 1;
       }
 
-      Byyptr = imptr + noff; // @@new:  needed to iterate by dimension of array
+      Byyptr = imptr + noff; // @@new:  needed to iterate by dim of array
       Bzzptr = Byyptr + noff;
       Bxyptr = Bzzptr + noff;
       Bxzptr = Bxyptr + noff;
@@ -994,7 +1125,8 @@ Form_R_Matrix (MRI_IMAGE * grad1Dptr)
             EXRETURN;
          }
 
-      Gxptr = imptr = MRI_FLOAT_PTR (grad1Dptr);	/* use simple floating point pointers to get values */
+      /* use simple floating point pointers to get values */
+      Gxptr = imptr = MRI_FLOAT_PTR (grad1Dptr);	
       Gyptr = imptr + nrows;
       Gzptr = Gyptr + nrows;
 
@@ -1006,16 +1138,36 @@ Form_R_Matrix (MRI_IMAGE * grad1Dptr)
             gscale = sqrt(Gx*Gx + Gy*Gy + Gz*Gz); // apr,2016: scale by this
             if ( gscale < TINYNUMBER) // for b=0
                gscale = 1.;
-            Rmat.elts[i][0] = sf * Gx * Gx / gscale;	/* bxx = Gx*Gx*scalefactor */
-            Rmat.elts[i][1] = sf2 * Gx * Gy / gscale;	/* 2bxy = 2GxGy*scalefactor */
-            Rmat.elts[i][2] = sf2 * Gx * Gz / gscale;	/* 2bxz = 2GxGz*scalefactor */
-            Rmat.elts[i][3] = sf * Gy * Gy / gscale;	/* byy = Gy*Gy*scalefactor */
-            Rmat.elts[i][4] = sf2 * Gy * Gz / gscale;	/* 2byz = 2GyGz*scalefactor */
-            Rmat.elts[i][5] = sf * Gz * Gz / gscale;	/* bzz = Gz*Gz*scalefactor */
+            /* bxx = Gx*Gx*scalefactor */
+            Rmat.elts[i][0] = sf * Gx * Gx / gscale;	
+            /* 2bxy = 2GxGy*scalefactor */
+            Rmat.elts[i][1] = sf2 * Gx * Gy / gscale;	
+            /* 2bxz = 2GxGz*scalefactor */
+            Rmat.elts[i][2] = sf2 * Gx * Gz / gscale;	
+            /* byy = Gy*Gy*scalefactor */
+            Rmat.elts[i][3] = sf * Gy * Gy / gscale;	
+            /* 2byz = 2GyGz*scalefactor */
+            Rmat.elts[i][4] = sf2 * Gy * Gz / gscale;	
+            /* bzz = Gz*Gz*scalefactor */
+            Rmat.elts[i][5] = sf * Gz * Gz / gscale;	
          }
    }
+
+   /*
+   fprintf(stderr,"\n\n TESTING: Bmatrix values...\n");
+   for (i = 0; i < nrows; i++)
+      INFO_message("%f  %f  %f  %f  %f  %f", 
+                   Rmat.elts[i][0],
+                   Rmat.elts[i][1],
+                   Rmat.elts[i][2],
+                   Rmat.elts[i][3],
+                   Rmat.elts[i][4],
+                   Rmat.elts[i][5]);
+   */
+
    matrix_initialize (&Rtmat);
-   matrix_psinv (Rmat, nullptr, &Rtmat);	/* compute pseudo-inverse of Rmat=Rtmat */
+   /* compute pseudo-inverse of Rmat=Rtmat */
+   matrix_psinv (Rmat, nullptr, &Rtmat);
    matrix_destroy (&Rmat);	/*  from the other two matrices */
    EXRETURN;
 }
@@ -1112,7 +1264,7 @@ DWItoDT_tsfunc (double tzero, double tdelta,
       {
          dv = ts[i + 1];
          if ((dv > 0.0) && (dv0 > 0.0))
-            lnvector.elts[i] = i0 - log (dv);	/* ln I0/Ip = ln I0 - ln Ip */
+            lnvector.elts[i] = i0 - log (dv); /* ln I0/Ip = ln I0 - ln Ip */
          else
             lnvector.elts[i] = 0.0;
       }
@@ -1231,7 +1383,7 @@ DWItoDT_tsfunc (double tzero, double tdelta,
    wtflag = reweight_flag;
 
    /* trial step */
-   J = ComputeJ (ts, npts); 	          /* Ed (error) computed here */
+   J = ComputeJ (ts, npts); 	           /* Ed (error) computed here */
    Store_Computations (0, npts, wtflag); /* Store 1st adjusted
                                             computations */
    matrix_copy (Dmatrix, &OldD);         /* store first Dmatrix in OldD
@@ -1242,23 +1394,25 @@ DWItoDT_tsfunc (double tzero, double tdelta,
 
    EDold = ED;
    ComputeDeltaTau ();
-   if(deltatau<=TINYNUMBER) {         /* deltatau too small, exit */
+   if(deltatau<=TINYNUMBER) {            /* deltatau too small, exit */
       for(i=0;i<nbriks;i++)
          val[i] = 0.0;
       if(debug_briks) {
-         val[nbriks-4] = -1.0;          /* use -1 as flag for number of
-                                           converge steps to mean exited
-                                           for insignificant deltatau
-                                           value */
+         val[nbriks-4] = -1.0;           /* use -1 as flag for number
+                                            of converge steps to mean
+                                            exited for insignificant
+                                            deltatau value */
          val[nbriks-1] = J;
       }
-      vals_to_NIFTI(val);   /* swap D tensor values for NIFTI standard */
+      vals_to_NIFTI(val);                /* swap D tensor values for
+                                            NIFTI standard */
       EXRETURN;
    }
 
    ntrial = 0;
 
-   while ((converge_step < max_converge_step) && (converge!=1) && (ntrial < 10) )
+   while ( (converge_step < max_converge_step) && 
+           (converge!=1) && (ntrial < 10) )
       {
          /* find trial step */
          /* first do trial step to find acceptable delta tau */
@@ -1276,7 +1430,9 @@ DWItoDT_tsfunc (double tzero, double tdelta,
                ComputeHpHm (deltatau);
                ComputeNewD ();
                J = ComputeJ (ts, npts);	/* Ed (error) computed here */
-               if (ED < EDold)          /* is error less than error of trial step or previous step? */
+               if (ED < EDold)            /* is error less than error
+                                             of trial step or previous
+                                             step? */
                   {
                      /* found acceptable step size of DeltaTau */
                      if(recordflag==1)
@@ -1291,11 +1447,17 @@ DWItoDT_tsfunc (double tzero, double tdelta,
                      EDold = ED;
                      best_deltatau = deltatau;
                      trialstep = 0;    /* leave trial stepping */
-                     Store_Computations (1, npts, wtflag);	/* Store current computations */
+                     Store_Computations (1, npts, wtflag);	/* Store
+                                                               current
+                                                               computations */
                   }
                else {
-                  Restore_Computations (0, npts, wtflag);	/* Restore trial 0 computations */
-                  deltatau = deltatau / 2;    /* find first DeltaTau step with less error than 1st guess */
+                  Restore_Computations (0, npts, wtflag);	/* Restore
+                                                               trial 0
+                                                               computations */
+                  deltatau = deltatau / 2;    /* find first DeltaTau
+                                                 step with less error
+                                                 than 1st guess */
                   /* by trying smaller step sizes */
                   ntrial++;
                }
@@ -1304,8 +1466,9 @@ DWItoDT_tsfunc (double tzero, double tdelta,
          deltatau = best_deltatau;
 
          /* end of finding trial step size */
-         /* in trial step stage, already have result of deltatau step and may have
-            already tried deltatau*2 if halved (ntrial>=1) */
+         /* in trial step stage, already have result of deltatau step
+            and may have already tried deltatau*2 if halved
+            (ntrial>=1) */
          if(ntrial <10) {
             orig_deltatau = best_deltatau = deltatau;
             adjuststep = 1;
@@ -1319,15 +1482,23 @@ DWItoDT_tsfunc (double tzero, double tdelta,
                if((adjuststep==1) && ((i!=0) || (ntrial<2))) {   
                   /* if didn't shrink in initial deltatau step above */
 
-                  Restore_Computations (1, npts, wtflag);	/* Restore previous Tau step computations */
+                  Restore_Computations (1, npts, wtflag);	/* Restore
+                                                               previous
+                                                               Tau
+                                                               step
+                                                               computations */
                   ComputeHpHm (deltatau);
                   ComputeNewD ();
-                  J = ComputeJ (ts, npts);	/* computes Intensity without noise,*/
+                  J = ComputeJ (ts, npts);	/* computes Intensity
+                                                without noise,*/
                   /*   Ed, Residuals */
                   if(ED<EDold){
                      best_deltatau = deltatau;
                      adjuststep = 0;
-                     Store_Computations(0, npts, wtflag);	/* Store Tau+dtau step computations */
+                     Store_Computations(0, npts, wtflag); /* Store
+                                                             Tau+dtau
+                                                             step
+                                                             computations */
                      EDold = ED;
 
                      if(recordflag==1) {
@@ -1349,11 +1520,17 @@ DWItoDT_tsfunc (double tzero, double tdelta,
 
             deltatau = best_deltatau;
 
-            if(adjuststep!=0){            /* best choice was first Delta Tau */
+            if(adjuststep!=0){            /* best choice was first
+                                             Delta Tau */
                ED = EDold;
-               Restore_Computations (1,  npts, wtflag);	/* restore old computed matrices*/
+               Restore_Computations (1,  npts, wtflag);	/* restore
+                                                            old
+                                                            computed
+                                                            matrices*/
                /*   D,Hp,Hm,F,R */
-               Store_Computations(0, npts, wtflag);	/* Store Tau+dtau step computations */
+               Store_Computations(0, npts, wtflag);	/* Store
+                                                         Tau+dtau step
+                                                         computations */
                if(recordflag==1)
                   INFO_message("ncall= %d, converge_step=%d, deltatau=%f, ED=%f dt best", 
                                ncall, converge_step, deltatau, ED);
@@ -1365,7 +1542,8 @@ DWItoDT_tsfunc (double tzero, double tdelta,
                graphpoint++;
             }
 
-            if (converge_step != 0) {	/* first time through recalculate*/
+            if (converge_step != 0) {	/* first time through
+                                          recalculate*/
                /* now see if converged yet */
                converge = TestConvergence(Dmatrix, OldD);
             }
@@ -1385,7 +1563,11 @@ DWItoDT_tsfunc (double tzero, double tdelta,
                if(recordflag==1)
                   INFO_message("ncall= %d, converge_step=%d, deltatau=%f, ED=%f Exiting time evolution", 
                                ncall, converge_step, deltatau, ED);
-               Restore_Computations(0, npts, wtflag);       /* Exit with original step calculation */
+               Restore_Computations(0, npts, wtflag);       /* Exit
+                                                               with
+                                                               original
+                                                               step
+                                                               calculation */
                ED = EDold;
             }
 
@@ -2641,7 +2823,8 @@ static int DWI_NIML_create_graph()
    nel = NI_new_data_element("ni_do", 0);
    NI_set_attribute ( nel, "ni_verb", "DRIVE_AFNI");
    NI_set_attribute ( nel, "ni_object", 
-                      "OPEN_GRAPH_1D DWIConvEd 'DWI Convergence' 25 1 'converge step' 1 0 300000 Ed");
+                      "OPEN_GRAPH_1D DWIConvEd 'DWI Convergence' "
+                      "25 1 'converge step' 1 0 300000 Ed");
    if (NI_write_element( DWIstreamid, nel, NI_BINARY_MODE ) < 0) {
       WARNING_message("Failed to send data to AFNI");
       NI_free_element(nel) ; nel = NULL;
@@ -2675,11 +2858,15 @@ static int DWI_NIML_create_newgraph(npts, max1, max2)
       RETURN(1);
    }
 
-   if((nx==-1) || (nx<npts)) {             /* update the graph only first time or if x-axis not big enough */
+   if((nx==-1) || (nx<npts)) {             /* update the graph only
+                                              first time or if x-axis
+                                              not big enough */
       nx = max_iter * 4  + 10;
       if(reweight_flag==1)
          nx += max_iter_rw * 4 + 10;
-      if(nx<npts)                          /* fix graph to include largest number of steps */
+      if(nx<npts)                          /* fix graph to include
+                                              largest number of
+                                              steps */
          nx = npts;
       sprintf(stmp,"OPEN_GRAPH_1D DWIConvEd 'DWI Convergence' %d 1 'converge step' 2 0 100 %%Maximum Ed \\Delta\\tau\n",nx  );
       NI_set_attribute ( nel, "ni_object", stmp);
@@ -2688,7 +2875,8 @@ static int DWI_NIML_create_newgraph(npts, max1, max2)
          NI_free_element(nel) ; nel = NULL;
          RETURN(1);
       }
-      NI_set_attribute ( nel, "ni_object", "SET_GRAPH_GEOM DWIConvEd geom=700x400+100+400\n");
+      NI_set_attribute ( nel, "ni_object", 
+                         "SET_GRAPH_GEOM DWIConvEd geom=700x400+100+400\n");
       if (NI_write_element( DWIstreamid, nel, NI_BINARY_MODE ) < 0) {
          WARNING_message("Failed to send data to AFNI");
          NI_free_element(nel) ; nel = NULL;
@@ -2763,7 +2951,8 @@ static void vals_to_NIFTI(float *val)
 {
    float temp;
 
-   temp = val[2];              /* D tensor as lower triangular for NIFTI standard */
+   /* D tensor as lower triangular for NIFTI standard */
+   temp = val[2];              
    val[2] = val[3];
    val[3] = temp;
 }
@@ -2798,7 +2987,8 @@ double DT_Powell_optimize_fun(int n, double *x)
          /* compute bq.D */
          /* bq.D is large dot product of b and D at qth gradient */
          /* large dot product for Hilbert algebra */
-         /* regular dot product is for Hilbert space (vectors only)- who knew? */
+         /* regular dot product is for Hilbert space (vectors only)-
+            who knew? */
          /* calculate explicitly rather than loop to save time */
          b1D1 = *(bptr + 1) * D1;
          b1D1 += b1D1;
@@ -2807,7 +2997,7 @@ double DT_Powell_optimize_fun(int n, double *x)
          b4D4 = *(bptr + 4) * D4;
          b4D4 += b4D4;
 
-         sumbD = *bptr * D0 + b1D1 + b2D2 +	/* bxxDxx + 2bxyDxy +  2bxzDxz + */
+         sumbD = *bptr * D0 + b1D1 + b2D2 +	/* bxxDxx + 2bxyDxy + 2bxzDxz + */
             (*(bptr + 3) * D3) +	/* byyDyy + */
             b4D4 +			/* 2byzDyz + */
             (*(bptr + 5) * D5);	/* bzzDzz */
@@ -2823,19 +3013,22 @@ double DT_Powell_optimize_fun(int n, double *x)
       }
 
    Powell_J = sum0 / sum1;
-   /* Now compute error functional,E(D,J) and gradient of E with respect to D ,Ed or F in notes */
+   /* Now compute error functional,E(D,J) and gradient of E with
+      respect to D ,Ed or F in notes */
    /* E(D,J)= 1/2 Sum[wq (J exp(-bq.D) - Iq)^2] */
    sum0 = 0.0;
    sigma = 0.0;			/* standard deviation of noise for weight factors */
    expbDptr = expbD;
    wtfactorptr = wtfactor;
-   Rptr = Rvector;		/* residuals calculated here - used in Wt.factor calculations */
+   Rptr = Rvector;		/* residuals calculated here - used in
+                           Wt.factor calculations */
    for (i = 0; i < Powell_npts; i++)
       {
          *Rptr = tempcalc = (Powell_J * *expbDptr) - Powell_ts[i];
          tempcalc = tempcalc * tempcalc;
          sum0 += *wtfactorptr * tempcalc;	/* E(D,J) = Sum (wq temp^2) */
-         sigma += tempcalc;	/* standard deviation of noise for weight factors */
+         sigma += tempcalc;	/* standard deviation of noise for
+                                 weight factors */
          expbDptr++;
          wtfactorptr++;
          Rptr++;
@@ -2850,10 +3043,13 @@ double DT_Powell_optimize_fun(int n, double *x)
 
 
 /*! compute using optimization method by Powell, 2004*/
-static int ComputeDwithPowell(float *ts, float *val, int npts, int nbriks) /*compute D tensor */
-/* ts is input time-wise voxel data, val is output tensor data, npts is number of time points */
+static int ComputeDwithPowell(float *ts, float *val, int npts, int nbriks) 
+/* compute D tensor */
+/* ts is input time-wise voxel data, val is output tensor data, npts
+   is number of time points */
 {
-   /* assumes initial estimate for Dtensor already store in Dvector and Dmatrix above*/
+   /* assumes initial estimate for Dtensor already store in Dvector
+      and Dmatrix above*/
    double *x, tx;
    int i, icalls;
 
@@ -2881,17 +3077,18 @@ static int ComputeDwithPowell(float *ts, float *val, int npts, int nbriks) /*com
    }
 
    tx = TINYNUMBER;
-   for(i=0;i<6;i++) {          /* find the largest element of the initial D tensor */
+   for(i=0;i<6;i++) {  /* find the largest element of the initial D tensor */
       if(x[i]>tx) tx = x[i];
    }
 
-   icalls = powell_newuoa( 6 , x , 0.1*tx , 0.000001 * tx , 99999 , DT_Powell_optimize_fun ) ;
+   icalls = powell_newuoa( 6 , x , 0.1*tx , 0.000001 * tx , 99999 , 
+                           DT_Powell_optimize_fun ) ;
 
 
    if(reweight_flag) {
       ComputeWtfactors (npts);       /* compute new weight factors */
       tx = TINYNUMBER;
-      for(i=0;i<6;i++) {          /* find the largest element of the initial D tensor */
+      for(i=0;i<6;i++) { /* find the largest element of the initial D tensor */
          if(x[i]>tx) tx = x[i];
       }
       /* parameters to powell_newuoa (not constrained)s
@@ -2902,7 +3099,8 @@ static int ComputeDwithPowell(float *ts, float *val, int npts, int nbriks) /*com
          maxcall = 99999 maximum number times to call cost functin
          ufunc = DT_Powell_optimize_fun cost function 
       */
-      i = powell_newuoa( 6 , x , 0.1*tx , 0.001 * tx , 99999 , DT_Powell_optimize_fun ) ;
+      i = powell_newuoa( 6 , x , 0.1*tx , 0.001 * tx , 
+                         99999 , DT_Powell_optimize_fun ) ;
    }
 
    val[0] = x[0]*x[0];   /* D is used as upper triangular */
@@ -2920,7 +3118,8 @@ static int ComputeDwithPowell(float *ts, float *val, int npts, int nbriks) /*com
       if(icalls<1) { 
          printf("x values %12.9g %12.9g %12.9g %12.9g %12.9g %12.9g   tx %g\n", \
                 x[0],x[1],x[2],x[3],x[4],x[5],tx );
-         DT_Powell_optimize_fun(6, x);     /* compute J value if not already computed */
+         DT_Powell_optimize_fun(6, x);     /* compute J value if not
+                                              already computed */
       }
       val[nbriks-3] = ED;
       val[nbriks-1] = Powell_J;            /* compute J value */;
