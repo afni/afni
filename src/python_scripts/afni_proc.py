@@ -503,9 +503,10 @@ g_history = """
     4.58 Jan 27, 2016: allow for tissue PC regression with only regress block
     4.59 Apr 27, 2016: always extract volreg base image vr_base*
     4.60 May  3, 2016: suggest -regress_est_blur_epits for resting state
+    4.61 May 31, 2016: better -regress_anaticor warnings if no label
 """
 
-g_version = "version 4.60, May 3, 2016"
+g_version = "version 4.61, May 31, 2016"
 
 # version of AFNI required for script execution
 # prev: g_requires_afni =  "1 Apr 2015" # 1d_tool.py uncensor from 1D
@@ -1284,6 +1285,10 @@ class SubjProcSream:
         if opt_list.find_opt('-regress_anaticor') \
            or opt_list.find_opt('-regress_anaticor_fast'):
            if not opt_list.find_opt('-regress_anaticor_label'):
+              if opt_list.find_opt('-anat_follower_ROI'):
+                 print '** applying anaticor without label, using 3dSeg mask'
+              elif self.verb:
+                 print '++ applying anaticor without label, using 3dSeg mask'
               opt_list.add_opt("-mask_segment_anat", 1, ["yes"], setpar=1)
               opt_list.add_opt("-mask_segment_erode", 1, ["yes"], setpar=1)
 
@@ -2562,25 +2567,26 @@ class SubjProcSream:
        """set roi_dict[key], but check for existence
           return non-zero on error
        """
-       if isinstance(aname, afni_name): newset = aname.shortinput()
-       else: newset = 'NOT_YET_SET'
+       if isinstance(aname, afni_name): newname = aname.shortinput()
+       else: newname = 'NOT_YET_SET'
 
        if self.roi_dict.has_key(key):
           oname = self.roi_dict[key]
-          if isinstance(oname, afni_name): oldset = oname.shortinput()
-          else: oldset = 'NOT_YET_SET'
+          if isinstance(oname, afni_name): oldname = oname.shortinput()
+          else: oldname = 'NOT_YET_SET'
 
           if self.verb > 1 or not overwrite:
              print "** trying to overwrite roi_dict['%s'] = %s with %s" \
-                   % (key, oldset, newset)
+                   % (key, oldname, newname)
 
           if not overwrite:
-             if label in self.def_roi_keys: 
-                print "** ROI key '%s' in default list, consider renaming"%label
+             if key in self.def_roi_keys: 
+                print "** ROI key '%s' in default list, consider renaming"%key
+                print "   (default list comea from 3dSeg result)"
              return 1
 
        elif self.verb > 1:
-            print "++ setting roi_dict['%s'] = %s" % (key, newset)
+            print "++ setting roi_dict['%s'] = %s" % (key, newname)
 
        self.roi_dict[key] = aname
 

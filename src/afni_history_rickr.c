@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 31,  May, 2016, RCR, "afni_proc.py", MICRO, TYPE_ENHANCE,
+   "better -regress_anaticor warnings if no label",
+   NULL
+ } ,
+
  { 23,  May, 2016, RCR, "parse_fs_lt_log.py", MINOR, TYPE_NEW_PROG,
    "get an index list from a FreeSurfer labletable log file",
    NULL
