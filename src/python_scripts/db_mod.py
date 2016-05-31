@@ -2706,11 +2706,10 @@ def mask_segment_anat(proc, block):
     erode = not OL.opt_is_no(block.opts.find_opt('-mask_segment_erode'))
 
     # list ROI labels for comments
-    baseliststr = '%s' % ' '.join(sclasses)
+    baseliststr = ' '.join(sclasses)
     if erode:
        eclasses = ['%se' % sc for sc in sclasses]
-       eliststr = '%s' % ' '.join(eclasses)
-       commentstr = '(%s and %s)' % (baseliststr, eliststr)
+       commentstr = '(%s and %s)' % (baseliststr, ' '.join(eclasses))
     else:
        commentstr = '(%s)' % baseliststr
 
@@ -4993,7 +4992,8 @@ def db_cmd_regress_ROI(proc, block):
     cmd += 'foreach run ( $runs )\n'
     for roi in rois:
         mset = proc.get_roi_dset(roi)
-        if mset == None:
+        # if mset == None:
+        if not isinstance(mset, BASE.afni_name):
            print "** regress_ROI: missing ROI dset for '%s'" % roi
            return 1, ''
         # -- no more label table, masks are now unit            22 Apr 2013
