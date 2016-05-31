@@ -2643,7 +2643,9 @@ def db_cmd_mask(proc, block):
             print "** ERROR: cannot apply %s mask" % mtype
             return
 
-    cmd += mask_segment_anat(proc, block)
+    scmd = mask_segment_anat(proc, block)
+    if scmd == None: return
+    cmd += scmd
 
     # do not increment block index or set 'previous' block label,
     # as there are no datasets created here
@@ -2659,6 +2661,8 @@ def mask_segment_anat(proc, block):
           - anat_final
           - ! (-mask_segment_anat == no)
           - either requested (-mask_segment_anat) or already skull-stripped
+
+       return None on failure, else string
     """
 
     # ----------------------------------------------------------------------
@@ -2703,13 +2707,17 @@ def mask_segment_anat(proc, block):
 
     # list ROI labels for comments
     baseliststr = '%s' % ' '.join(sclasses)
-    if erode: liststr = '(%s and %s)' % (baseliststr, 'e '.join(sclasses))
-    else:     liststr = '(%s)' % baseliststr
+    if erode:
+       eclasses = ['%se' % sc for sc in sclasses]
+       eliststr = '%s' % ' '.join(eclasses)
+       commentstr = '(%s and %s)' % (baseliststr, eliststr)
+    else:
+       commentstr = '(%s)' % baseliststr
 
     # make ROIs per class, and erode them by default
     roiprefix = 'mask_${class}'
     cc = '# make individual ROI masks for regression %s\n' \
-         'foreach class ( %s )\n' % (liststr, baseliststr)
+         'foreach class ( %s )\n' % (commentstr, baseliststr)
 
     # make non-eroded masks in either case
     cc += '   # unitize and resample individual class mask from composite\n' \
@@ -2732,6 +2740,15 @@ def mask_segment_anat(proc, block):
     cc += 'end\n\n'
 
     cmd += cc
+
+    # to generalize: -mask_autoROI_w_extern old_roi new_roi mask_dset
+    #          e.g.: -mask_autoROI_w_extern CSFe Vent /my/vent/vmask+tlrc
+    # if mask_autoclass_w_extern and have ROI label:
+    #    resample extern to same master
+    #       - note: extern comes via 3dcopy to proc.ext_automask_dict
+    #               to check proc.ext_automask_dict.has_key(new_label)
+    #    intersect with 3dmask_tool
+    #    proc.add_roi_dict_key()
 
     proc.mask_classes = cres    # store, just in case
     
