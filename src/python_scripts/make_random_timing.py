@@ -817,9 +817,10 @@ g_history = """
     1.8  Nov 14, 2012: fixed checks for random space in -max_consec case
     1.9  Aug 21, 2015: added help for understanding the distribution of ISI
                        see: NOTE: distribution of ISI
+    1.10 Jun 01, 2016: minor updates to verbose output
 """
 
-g_version = "version 1.8, Nov 14, 2012"
+g_version = "version 1.10, June 1, 2016"
 
 gDEF_VERB       = 1      # default verbose level
 gDEF_T_GRAN     = 0.1    # default time granularity, in seconds
@@ -2180,9 +2181,18 @@ class RandTiming:
             elif rlist[ind][1] < maxnrest:
                 elist.append(ind)
 
-        if self.verb > 4:
+        if self.verb > 3:
+            print '-- maxnrest = %d (%s/%s = %s)' \
+                      % (maxnrest, max_rest, self.t_gran, max_rest/self.t_gran)
             print '-- maxrest extendable lists:', elist
             print '-- maxrest fix lists:', flist
+            fl = [rlist[flist[i]][1]-maxnrest for i in range(len(flist))]
+            el = [maxnrest-rlist[elist[i]][1] for i in range(len(elist))]
+            print '==========================================================='
+            print 'fix : %s' % ' '.join(['%s' % v for v in fl])
+            print '==========================================================='
+            print 'ext : %s' % ' '.join(['%s' % v for v in el])
+            print '==========================================================='
 
         # maybe there is nothing to do
         if len(flist) < 1:
@@ -2195,12 +2205,12 @@ class RandTiming:
                                 for i in range(len(elist))])
 
         if self.verb > 1:
-            print '-- shifting %g seconds of excessive rest' \
-                  % (ftotal*self.t_gran)
+            print '-- shifting %g seconds of excessive rest (%g available)' \
+                  % (ftotal*self.t_gran, etotal*self.t_gran)
             if self.verb > 3:
                 print '== excessive rest exeeds %d events...' % maxnrest
-                print '-- elist:', elist
-                print '-- flist:', flist
+                print '   (%s/%s = %s)' % (max_rest, self.t_gran,
+                                           max_rest/self.t_gran)
 
         if etotal < ftotal:
             print "** max_rest too small to adjust (%g < %g)" % (etotal, ftotal)

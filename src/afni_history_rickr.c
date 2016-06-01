@@ -49,8 +49,8 @@
 
 afni_history_struct rickr_history[] = {
 
- { 31,  May, 2016, RCR, "afni_proc.py", MICRO, TYPE_ENHANCE,
-   "better -regress_anaticor warnings if no label",
+ {  1,  Jun, 2016, RCR, "make_random_timing.py", MICRO, TYPE_ENHANCE,
+   "minor updates to verbose output",
    NULL
  } ,
 
