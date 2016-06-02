@@ -5993,6 +5993,10 @@ STATUS("normalizing directory list") ;
       qlist = THD_normalize_flist( dlist ) ;
       if( qlist != NULL ){ DESTROY_SARR(dlist); dlist = qlist; }
 
+      if( dlist->num == 1 & css != NULL && gss == NULL ){ /* 02 Jun 2016 */
+        myXtFree(css) ; do_css = 0 ; num_css = 0 ;
+      }
+
       REFRESH ;
 
       /*----- read each session, set parents, put into session list -----*/
@@ -6150,7 +6154,7 @@ if(PRINT_TRACING)
                 num_css , css->sessname , css->num_dsset ) ;
         REPORT_PROGRESS(str) ;
       } else {
-        free(css) ;
+        myXtFree(css) ;
       }
 
       /** if nothing read at all, make up a dummy **/
