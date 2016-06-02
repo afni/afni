@@ -44,6 +44,13 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 2 , JUN , 2016 , RWC , "afni GUI" , MINOR , TYPE_ENHANCE ,
+   "Creation of All_Datasets session" ,
+   "If more than one session is input or created, then the All_Datasets\n"
+   "session is created as the catenation of all of them.  This will help\n"
+   "people who want to look at data in multiple directories without moving\n"
+   "them together." } ,
+
  { 24 , MAY , 2016 , RWC , "3dQwarp" , MICRO , TYPE_MODIFY ,
    "Remove second cubic and quintic iterations at lev=0" ,
    "Repeating these iterations almost never does any good, and takes up a\n"

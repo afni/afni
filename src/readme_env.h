@@ -2951,6 +2951,16 @@ static char *readme_env[] = {
    "you to avoid pressing the 'Rescan' buttons.  (Unlike with AFNI_AUTO_RESCAN,\n" ,
    "the AFNI_RESCAN_METHOD settings are respected.)\n" ,
    "\n" ,
+   "---------------------------\n" ,
+   "Variable: AFNI_ALL_DATASETS  [02 Jun 2016]\n" ,
+   "---------------------------\n" ,
+   "By default, AFNI creates a session (internal the the program) that\n" ,
+   "contains all the input datasets -- if you input more than one session\n" ,
+   "directory, that is.  This session is called 'All_Datasets' in the\n" ,
+   "'DataDir Switch' popup chooser, and should be the last session listed\n" ,
+   "in that list.  If you do NOT want this session created, then set\n" ,
+   "AFNI_ALL_DATASETS to NO.\n" ,
+   "\n" ,
    "--------------------------\n" ,
    "Variable: AFNI_WEB_BROWSER\n" ,
    "--------------------------\n" ,
@@ -4015,4 +4025,4 @@ static char *readme_env[] = {
    "If set to YES, enable distance measures that are not ready for prime time in\n" ,
    "the instacorr interface.\n" ,
    NULL } ;
-#define NUM_readme_env 4014
+#define NUM_readme_env 4024

@@ -3357,6 +3357,7 @@ ENTRY("AFNI_finalize_dataset_CB") ;
       ss_new = GLOBAL_library.sslist->ssar[new_sess] ;
 
       /* find an anat in new session to match current anat */
+
       temp_dset = GET_SESSION_DSET(ss_new, old_anat, old_view);
       if( ISVALID_3DIM_DATASET(temp_dset) ){  /* are OK */
         new_anat = old_anat ;
@@ -3370,6 +3371,7 @@ ENTRY("AFNI_finalize_dataset_CB") ;
       if( new_anat < 0 ) new_anat = 0 ;  /* use 1st if no match */
 
       /* find a view to fit this chosen anat */
+
       temp_dset = GET_SESSION_DSET(ss_new, new_anat, old_view);
       if( ISVALID_3DIM_DATASET(temp_dset )) { /* are OK */
          new_view = old_view ;
@@ -3908,8 +3910,8 @@ void AFNI_append_sessions( THD_session *ssa , THD_session *ssb )
 
 ENTRY("AFNI_append_sessions") ;
 
-   if( !ISVALID_SESSION(ssa) || !ISVALID_SESSION(ssb) ) EXRETURN ;
-   if( THD_equiv_files(ssa->sessname,ssb->sessname)   ) EXRETURN ;
+   if( !ISVALID_SESSION(ssa) || !ISVALID_SESSION(ssb)  ) EXRETURN ;
+   if( THD_equiv_files(ssa->sessname,ssb->sessname)==1 ) EXRETURN ;
 
    qs = ssa->num_dsset ;
    for( qd=0; qd < ssb->num_dsset && qd+qs < THD_MAX_SESSION_SIZE ; qd++ )
@@ -4553,6 +4555,8 @@ fprintf(stderr,"Enter AFNI_rescan_session_OLD on session index %d\n",sss) ;
 
    if( old_ss == GLOBAL_library.session ) RETURN(0) ;  /* 21 Dec 2001 */
 
+   if( ! THD_is_directory(old_ss->sessname) ) RETURN(0) ; /* 02 Jun 2016 */
+
    /*--- Make sure that the dataset choosers are closed.
          Since these are just instances of the generic strlist
          chooser, and we can't tell what is being chosen just now,
@@ -4781,6 +4785,8 @@ fprintf(stderr,"Enter AFNI_rescan_session_NEW on session index %d\n",sss) ;
 
                                      /* can't rescan global session */
    if( old_ss == GLOBAL_library.session ) RETURN(0); /* 21 Dec 2001 */
+
+   if( ! THD_is_directory(old_ss->sessname) ) RETURN(0) ; /* 02 Jun 2016 */
 
    /*--- read in the session again, into a new THD_session struct ---*/
 
