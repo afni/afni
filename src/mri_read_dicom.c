@@ -491,7 +491,7 @@ ENTRY("mri_read_dicom") ;
      /* 25 Feb 03 Initialize new member KRH */
      for(ii = 0; ii < 3; ii++) sexinfo.have_data[ii] = 0;
 
-     get_siemens_extra_info( str_sexinfo , &sexinfo ) ;
+     get_siemens_extra_info( str_sexinfo , &sexinfo , epos ) ;
 
      if( sexinfo.good ){                                 /* if data is good */
        if((        epos[E_ID_IMAGE_TYPE]              != NULL &&
@@ -1617,7 +1617,7 @@ ENTRY("mri_imcount_dicom") ;
      /* end KRH 25 Jul 2003 change */
 
      sexinfo.good = 0 ;  /* start by marking it as bad */
-     get_siemens_extra_info( str_sexinfo , &sexinfo ) ;
+     get_siemens_extra_info( str_sexinfo , &sexinfo , epos ) ;
 
      if( sexinfo.good ){                                   /* if data is good */
 
