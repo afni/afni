@@ -75,6 +75,8 @@ typedef struct {
                /* int port_niml ;         10 Dec 2002 */
 
       char *script_fname ;    /* 21 Jan 2003 */
+
+      int cat_sess ;          /* 02 Jun 2016 */
 } AF_options ;
 
 #ifdef MAIN

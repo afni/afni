@@ -129,11 +129,11 @@ extern "C" {
 
 /*! Max num datasets per session. */
 
-#define THD_MAX_SESSION_SIZE  4096
+#define THD_MAX_SESSION_SIZE  8192
 
 /*! Max number of directories. */
 
-#define THD_MAX_NUM_SESSION    80
+#define THD_MAX_NUM_SESSION    99
 
 #define THD_MAX_CHOICES THD_MAX_SESSION_SIZE
 
