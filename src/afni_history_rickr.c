@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  2,  Jun, 2016, RCR, "afni-general", MINOR, TYPE_ENHANCE,
+   "w/dglen: read num slices from Siemens 3D acquisition DICOM image files",
+   NULL
+ } ,
+
  {  1,  Jun, 2016, RCR, "make_random_timing.py", MICRO, TYPE_ENHANCE,
    "minor updates to verbose output",
    NULL
