@@ -1012,6 +1012,8 @@ ENTRY("AFNI_parse_args") ;
 
    GLOBAL_argopt.read_tim = 0 ;   /* 19 Oct 1999 */
 
+   GLOBAL_argopt.cat_sess = !AFNI_noenv("AFNI_ALL_DATASETS") ; /* 02 Jun 2016 */
+
    while( narg < argc ){
 
       if( argv[narg][0] != '-' ) break ;   /* no - ==> quit */
@@ -5877,7 +5879,7 @@ ENTRY("AFNI_read_inputs") ;
 
    /*--- sessions of 3D datasets (from to3d or other AFNI programs) ---*/
 
-   else if( GLOBAL_argopt.read_sessions ){
+   else if( GLOBAL_argopt.read_sessions ){   /*--- the usual method ---*/
 
       char str[256] ;
       Boolean good ;
@@ -5887,8 +5889,12 @@ ENTRY("AFNI_read_inputs") ;
       THD_session *new_ss ;
       int num_dsets=0 ;       /* 04 Jan 2000 */
       THD_session *gss=NULL ; /* 11 May 2002: global session */
-      THD_session *dss ;      /* 28 Aug 2003: session for command-line datasets */
+      THD_session *dss=NULL ; /* 28 Aug 2003: session for command-line datasets */
       THD_3dim_dataset *temp_dset; /* 16 Jul 2010 place holder dummy datasets*/
+
+      THD_session *css=NULL ; /* 02 Jun 2016: catenated sessions */
+      int       do_css=GLOBAL_argopt.cat_sess ;
+      int      num_css=0 ;
 
       /*-- 20 Dec 2001: Try to read a "global" session --*/
       /*-- 11 May 2002: Move read global session up here --*/
@@ -5925,10 +5931,21 @@ ENTRY("AFNI_read_inputs") ;
       dss->type   = SESSION_TYPE ;
       dss->parent = NULL ;
       dss->ndsets = 0;
-      dss->dsrow = NULL;
+      dss->dsrow  = NULL;
       BLANK_SESSION(dss) ;
       MCW_strncpy( dss->sessname , "fromCLI" , THD_MAX_NAME ) ;
       MCW_strncpy( dss->lastname , "fromCLI" , THD_MAX_NAME ) ;
+
+      if( do_css ){  /* catenated sessions [02 Jun 2016] */
+        css         = myXtNew( THD_session ) ;
+        css->type   = SESSION_TYPE ;
+        css->parent = NULL ;
+        css->ndsets = 0;
+        css->dsrow  = NULL;
+        BLANK_SESSION(css) ;
+        MCW_strncpy( css->sessname , "All_Datasets" , THD_MAX_NAME ) ;
+        MCW_strncpy( css->lastname , "All_Datasets" , THD_MAX_NAME ) ;
+      }
 
       /* now get the list of strings to read as directories */
 
@@ -6054,6 +6071,12 @@ if(PRINT_TRACING)
              new_ss->warptable = NULL ;
            }
 
+           /* 02 Jun 2016: catenate this session with the css (all datasets) */
+
+           if( do_css ){
+             AFNI_append_sessions( css , new_ss ) ; num_css++ ;
+           }
+
            /* 11 May 2002: put global datasets into session now */
 
            if( new_ss != NULL && gss != NULL )
@@ -6079,10 +6102,13 @@ if(PRINT_TRACING)
 
       }  /*----- end of id loop (over input directory names) -----*/
 
-      /* 28 Aug 2003: if have dataset in session dss, use it */
+      /* 28 Aug 2003: if have datasets in session dss, use it */
 
       if( dss->num_dsset > 0 ){
         if( GLOBAL_library.sslist->num_sess < THD_MAX_NUM_SESSION ){
+          if( do_css ){ /* 02 Jun 2016 */
+            AFNI_append_sessions(css,dss); num_css++;
+          }
           GLOBAL_library.sslist->ssar[(GLOBAL_library.sslist->num_sess)++] = dss ;
           num_dsets += dss->num_dsset ;
           sprintf(str,"\n session #%3d  = %s ==> %d dataset%s" ,
@@ -6098,6 +6124,10 @@ if(PRINT_TRACING)
         free(dss) ;
       }
 
+      if( gss != NULL && do_css ){
+        AFNI_append_sessions(css,gss); num_css++;
+      }
+
       /* 11 May 2002: if have global session but no others, use it */
 
       if( gss != NULL && GLOBAL_library.sslist->num_sess == 0 ){
@@ -6110,6 +6140,17 @@ if(PRINT_TRACING)
         num_dsets += gss->num_dsset ;
 
         REPORT_PROGRESS(str) ;
+      }
+
+      /* add the catenated session list, if nontrivial */
+
+      if( num_css > 1 && GLOBAL_library.sslist->num_sess < THD_MAX_NUM_SESSION ){
+        GLOBAL_library.sslist->ssar[(GLOBAL_library.sslist->num_sess)++] = css ;
+        sprintf(str,"\n Catenated %d sessions = %s has %d datasets" ,
+                num_css , css->sessname , css->num_dsset ) ;
+        REPORT_PROGRESS(str) ;
+      } else {
+        free(css) ;
       }
 
       /** if nothing read at all, make up a dummy **/

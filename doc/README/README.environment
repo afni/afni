@@ -2949,6 +2949,16 @@ will rescan all session directories everytime you click on either of the
 you to avoid pressing the 'Rescan' buttons.  (Unlike with AFNI_AUTO_RESCAN,
 the AFNI_RESCAN_METHOD settings are respected.)
 
+---------------------------
+Variable: AFNI_ALL_DATASETS  [02 Jun 2016]
+---------------------------
+By default, AFNI creates a session (internal the the program) that
+contains all the input datasets -- if you input more than one session
+directory, that is.  This session is called 'All_Datasets' in the
+'DataDir Switch' popup chooser, and should be the last session listed
+in that list.  If you do NOT want this session created, then set
+AFNI_ALL_DATASETS to NO.
+
 --------------------------
 Variable: AFNI_WEB_BROWSER
 --------------------------
