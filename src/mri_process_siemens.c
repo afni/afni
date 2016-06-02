@@ -8,6 +8,7 @@
 
 static char * extract_bytes_from_file(FILE *fp, off_t start, size_t len,
                                       int strize);
+static int check_for_3D_acquisition( char ** epos, int * slices);
 
 /* global noting whether to use this functionality */
 int use_new_mosaic_code = 1;  /* 1 means use mri_process_siemens.c  [rickr] */
@@ -136,7 +137,7 @@ int process_siemens_mosaic(
    for(ii = 0; ii < 3; ii++)
         Sinfo->have_data[ii] = 0; /* 25 Feb 03 Initialize new member KRH */
 
-   get_siemens_extra_info( *Sstr , Sinfo );
+   get_siemens_extra_info( *Sstr , Sinfo, epos );
    
    if( ! Sinfo->good ){
       static int nwarn=0 ;
@@ -489,7 +490,7 @@ int apply_z_orient(Siemens_extra_info * Sinfo, char * orients, int * kor,
 
     return 0 on success, 1 on error
 -----------------------------------------------------------------------------*/
-int get_siemens_extra_info(char *str, Siemens_extra_info *mi)
+int get_siemens_extra_info(char *str, Siemens_extra_info *mi, char ** epos)
 {
    char *cpt=NULL , *dpt, *ept ;
    int nn , mm , snum , last_snum=-1 ;
@@ -600,6 +601,9 @@ int get_siemens_extra_info(char *str, Siemens_extra_info *mi)
      mi->mosaic_num = last_snum+1 ;
    }
 
+   /* maybe it is a 3D acquisition     2 Jun 2016 [rickr,DRG] */
+   if( check_for_3D_acquisition(epos, &mi->mosaic_num) ) RETURN(1);
+
    ept = str;
    if( (cpt = strstr(str,"\nsSliceArray.ucImageNumbSag")) ){
       sscanf(cpt, "%1022s = %x", name, &mi->ImageNumbSag);
@@ -621,3 +625,51 @@ int get_siemens_extra_info(char *str, Siemens_extra_info *mi)
 
    RETURN(0);
 }
+
+/* adjust mi data if 3D volume acquisition
+ * return 0 on success                          2 Jun 2016 [rickr,DRG] */
+static int check_for_3D_acquisition(char ** epos, int * nslices)
+{
+   char * cp;
+   int    nread=0, lslices=0;  /* local slices */
+
+   ENTRY("check_for_3D_acquisition");
+   
+   if( ! nslices ) RETURN(0);
+
+   /* maybe we already know what is here */ 
+   if( *nslices > 1 ) RETURN(0);
+
+   /* --------------- check that E_MR_ACQ_TYPE shows 3D --------------- */
+   if( ! epos[E_MR_ACQ_TYPE] ) RETURN(0);
+
+   cp = af_strnstr(epos[E_MR_ACQ_TYPE], "//", 60);
+   if( ! cp ) RETURN(0);
+
+   if( strncmp(cp+2, "3D", 2) ) RETURN(0);
+
+   /* --------------- have 3D, check E_SIEMENS_3D_NSLICES --------------- */
+
+   if( ! epos[E_SIEMENS_3D_NSLICES] ) RETURN(0);
+
+   cp = af_strnstr(epos[E_SIEMENS_3D_NSLICES], "//", 60);
+   if( ! cp ) RETURN(0);
+
+   nread = sscanf(cp+2,"%d" , &lslices);
+   if( nread == 0 ) {
+      if( g_dicom_ctrl.verb > 1 )
+         ERROR_message("** CF3DM: failed to read DICOM 3D nslices from:\n"
+                       "   '%.60s'\n", epos[E_SIEMENS_3D_NSLICES]);
+      RETURN(1);
+   }
+
+   if( lslices <= 1 ) RETURN(0);
+
+   if( g_dicom_ctrl.verb > 1 )
+      INFO_message("++ CF3DM: found %d slices in DICOM 3D\n", lslices);
+
+   *nslices = lslices;
+
+   RETURN(0);
+}
+
