@@ -3033,7 +3033,8 @@ static char *dset_choice[] = { "Session" , "Underlay" , "Overlay" , "Dataset" } 
 
 /** max size of strings in the list **/
 
-#define STRLIST_SIZE (THD_MAX_PREFIX+64)
+#define STRLIST_SIZE      (THD_MAX_PREFIX+256)
+#define MAX_SESSTRAIL_LEN 48
 
 void AFNI_choose_dataset_CB( Widget w , XtPointer cd , XtPointer cb )
 {
@@ -3049,6 +3050,9 @@ void AFNI_choose_dataset_CB( Widget w , XtPointer cd , XtPointer cb )
    int is_other = 0 ;       /* 18 Dec 2007 */
    void (*cbfun)(Widget,XtPointer,MCW_choose_cbs *)=AFNI_finalize_dataset_CB;
    THD_3dim_dataset *temp_dset=NULL;
+   int sesstrail = (SESSTRAIL > 0) &&
+                   (strcmp(im3d->ss_now->sessname,"All_Datasets")==0) ;
+   char *st=NULL , sst[STRLIST_SIZE+1] ;
 
 ENTRY("AFNI_choose_dataset_CB") ;
 
@@ -3132,7 +3136,15 @@ ENTRY("AFNI_choose_dataset_CB") ;
 
          if( vv <= LAST_VIEW_TYPE ){
             llen = strlen( temp_dset->dblk->diskptr->prefix ) ;
-            ltop = MAX( ltop , llen ) ;
+            if( sesstrail ){
+              st = THD_trailname(temp_dset->dblk->diskptr->directory_name,sesstrail) ;
+              if( st != NULL ){
+                if( strlen(st) > MAX_SESSTRAIL_LEN )
+                  st += (strlen(st)-MAX_SESSTRAIL_LEN) ;
+                llen += strlen(st) ;
+              }
+            }
+            if( llen > ltop ) ltop = llen ;
          }
       }
       ltop = MIN(ltop,STRLIST_SIZE-24) ;  /* 06 Aug 2002 */
@@ -3144,8 +3156,17 @@ ENTRY("AFNI_choose_dataset_CB") ;
          }
 
          if( vv <= LAST_VIEW_TYPE ){
-              sprintf( strlist[ii] , "%-*s" ,
-                  ltop,temp_dset->dblk->diskptr->prefix ) ;
+            if( sesstrail ){
+              st = THD_trailname(temp_dset->dblk->diskptr->directory_name,sesstrail) ;
+              if( st != NULL ){
+                if( strlen(st) > MAX_SESSTRAIL_LEN )
+                  st += (strlen(st)-MAX_SESSTRAIL_LEN) ;
+              }
+            } else {
+              st = "\0" ;
+            }
+            strcpy(sst,st) ; strcat(sst,temp_dset->dblk->diskptr->prefix) ;
+            sprintf( strlist[ii] , "%-*s" , ltop,sst ) ;
 
             strcat( strlist[ii] , " [" ) ;
             strcat( strlist[ii] , DSET_PREFIXSTR(temp_dset) ) ;
@@ -3172,6 +3193,7 @@ ENTRY("AFNI_choose_dataset_CB") ;
 
             if( DSET_in_global_session(temp_dset) )
               strcat( strlist[ii] , "G" ) ;
+
 
          } else {
 #if 1
@@ -3212,6 +3234,7 @@ if( first ){
         dset_list = cs->dset ; if( dset_list == NULL ) EXRETURN ;
         cbfun = cs->cb ; if( cbfun == NULL ) EXRETURN ;
         wpar = w ;
+        sesstrail = 0 ;
       } else {
         if( AFNI_yesenv("AFNI_DATASET_BROWSE") ) browse_select = 1 ;
         wpar = im3d->vwid->view->choose_func_pb ;
@@ -3230,7 +3253,15 @@ if( first ){
         }
         if( ISVALID_DSET(dset) ){
           llen = strlen( dset->dblk->diskptr->prefix ) ;
-          ltop = MAX( ltop , llen ) ;
+          if( sesstrail ){
+            st = THD_trailname(dset->dblk->diskptr->directory_name,sesstrail) ;
+            if( st != NULL ){
+              if( strlen(st) > MAX_SESSTRAIL_LEN )
+                st += (strlen(st)-MAX_SESSTRAIL_LEN) ;
+              llen += strlen(st) ;
+            }
+          }
+          if( llen > ltop ) ltop = llen ;
         }
       }
       ltop = MIN(ltop,STRLIST_SIZE-24) ;  /* 06 Aug 2002 */
@@ -3247,8 +3278,17 @@ if( first ){
          }
 
          if( ISVALID_DSET(dset) ){
-           sprintf( strlist[nn] , "%-*s" ,
-                    ltop , dset->dblk->diskptr->prefix ) ;
+           if( sesstrail ){
+             st = THD_trailname(dset->dblk->diskptr->directory_name,sesstrail) ;
+             if( st != NULL ){
+               if( strlen(st) > MAX_SESSTRAIL_LEN )
+                 st += (strlen(st)-MAX_SESSTRAIL_LEN) ;
+             }
+           } else {
+             st = "\0" ;
+           }
+           strcpy(sst,st) ; strcat(sst,dset->dblk->diskptr->prefix) ;
+           sprintf( strlist[nn] , "%-*s" , ltop,sst ) ;
 
            strcat( strlist[nn] , " [" ) ;
            strcat( strlist[nn] , DSET_PREFIXSTR(dset) ) ;

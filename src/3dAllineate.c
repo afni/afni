@@ -2200,7 +2200,8 @@ int main( int argc , char *argv[] )
 
      if( strncmp(argv[iarg],"-source",6) == 0 ||
          strncmp(argv[iarg],"-input" ,5) == 0 ||
-         strncmp(argv[iarg],"-target",7) == 0   ){
+         strncmp(argv[iarg],"-target",7) == 0 ||
+         strncmp(argv[iarg],"-src"   ,4) == 0   ){
        if( dset_targ != NULL ) ERROR_exit("Can't have multiple %s options :-(",argv[iarg]) ;
        if( ++iarg >= argc ) ERROR_exit("no argument after '%s' :-(",argv[iarg-1]) ;
        dset_targ = THD_open_dataset( argv[iarg] ) ;
