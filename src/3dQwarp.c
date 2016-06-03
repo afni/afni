@@ -254,7 +254,7 @@ void Qhelp(void)
     "\n"
     "* 3dQwarp CAN be used on 2D images -- that is, datasets with a single\n"
     "  slice.  How well it works on such datasets has not been investigated\n"
-    "  much, but it DOES work (and quickly since the amount of data is small).\n"
+    "  much, but it DOES work (and quickly, since the amount of data is small).\n"
     "\n"
     "* Input datasets should be reasonably well aligned already\n"
     "  (e.g., as from an affine warping via 3dAllineate).\n"
@@ -262,6 +262,13 @@ void Qhelp(void)
     "    aligned dataset to the same 3D grid as the -base dataset, so this\n"
     "    new dataset will be ready to run in 3dQwarp against the same base.\n"
     " ++ Again, the '-allineate' option can now do this for you, inside 3dQwarp.\n"
+    "\n"
+    "* Input datasets should be 'alike'.\n"
+    " ++ For example, if the '-base' dataset is skull stripped, then the '-source'\n"
+    "    dataset should be skull stripped also -- e.g., via 3dSkullStrip.\n"
+    " ++ If the datasets have markedly different contrasts (e.g., T1 and T2), then\n"
+    "    using a non-standard matching function such as '-nmi' or '-hel' or '-lpa'\n"
+    "    might work better than the default Pearson correlation matching function.\n"
     "\n"
     "******************************************************************************\n"
     "* If the input datasets do NOT overlap reasonably well (please look at them  *\n"
@@ -276,7 +283,7 @@ void Qhelp(void)
     "* will fail.  This is why Zhark urges you to LOOK at the overlap in AFNI,    *\n"
     "* which uses coordinates for display matching, not voxel indexes.  Or use    *\n"
     "* the '-allineate' option to get 3dAllineate to line up the dataset by       *\n"
-    "* brute force, just to be safe.                                              *\n"
+    "* brute force, just to be safe (at the cost of a little extra CPU time).     *\n"
     "******************************************************************************\n"
     "\n"
     "* Outputs of 3dQwarp are the warped dataset and the warp that did it.\n"
@@ -666,9 +673,11 @@ void Qhelp(void)
     "                 results from 3dQwarp for each subject, to see if the\n"
     "                 alignments are good enough for your purposes.\n"
     "\n"
-    " -wtprefix p  = Saves the computed weight volume to a dataset with prefix 'p'.\n"
+    " -wtprefix p  = Saves the auto-computed weight volume to a dataset with prefix 'p'.\n"
     "                If you are sufficiently dedicated, you could manually edit\n"
-    "                this volume, in the AFNI GUI, in 3dcalc, et cetera.\n"
+    "                this volume, in the AFNI GUI, in 3dcalc, et cetera.  And then\n"
+    "                use it, instead of the auto-computed default weight, via the\n"
+    "                '-weight' option.\n"
     "               * If you use the '-emask' option, the effects of the exclusion\n"
     "                 mask are NOT shown in this output dataset!\n"
     "\n"
@@ -1681,11 +1690,12 @@ int main( int argc , char *argv[] )
 
      /*---------------*/
 
-     if( strcasecmp(argv[nopt],"-source") == 0 ){
-       if( sset   != NULL ) ERROR_exit("Can't use -source twice!") ;
-       if( ++nopt >= argc ) ERROR_exit("need arg after -source") ;
+     if( strcasecmp(argv[nopt],"-source") == 0 ||
+         strcasecmp(argv[nopt],"-src")    == 0   ){
+       if( sset   != NULL ) ERROR_exit("Can't use %s twice!",argv[nopt]) ;
+       if( ++nopt >= argc ) ERROR_exit("need arg after %s"  ,argv[nopt-1]) ;
        sset = THD_open_dataset(argv[nopt]) ;
-       if( sset == NULL ) ERROR_exit("Can't open -source '%s'",argv[nopt]) ;
+       if( sset == NULL ) ERROR_exit("Can't open %s '%s'",argv[nopt-1],argv[nopt]) ;
        ssname = strdup(argv[nopt]) ; sstrue = sset ; DSET_COPYOVER_REAL(sset) ;
        nopt++ ; continue ;
      }
