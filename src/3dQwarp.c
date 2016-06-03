@@ -1231,7 +1231,7 @@ int main( int argc , char *argv[] )
    MRI_IMAGE *bim=NULL , *wbim=NULL , *sim=NULL , *oim=NULL ; float bmin,smin ;
    IndexWarp3D *oww=NULL , *owwi=NULL ; Image_plus_Warp *oiw=NULL ;
    char *prefix="Qwarp" , *prefix_clean=NULL ; int nopt , nevox=0 ;
-   char *wtprefix=NULL  , *wtprefix_clean=NULL ;
+   char *wtprefix="Qwarp_wt"  , *wtprefix_clean=NULL ;
    int meth=GA_MATCH_PEARCLP_SCALAR ; int meth_is_lpc=0 ;
    int ilev=0 , nowarp=0 , nowarpi=1 , mlev=666 , nodset=0 ;
    int duplo=0 , qsave=0 , minpatch=0 , nx,ny,nz , ct , nnn , noneg=0 ;
@@ -1297,7 +1297,6 @@ int main( int argc , char *argv[] )
 
    nopt = 1 ;
    Hblur_b = Hblur_s = 2.345f ;  /* arbitrary initializations */
-
    while( nopt < argc && argv[nopt][0] == '-' ){   /* loop over cmd line args */
 
      /*---------------*/
@@ -1875,6 +1874,7 @@ int main( int argc , char *argv[] )
        nopt++ ; continue ;
      }
 
+
      /*---------------*/
 
      if( strcasecmp(argv[nopt],"-hel") == 0 ){
@@ -1921,11 +1921,20 @@ int main( int argc , char *argv[] )
      /*---------------*/
 
      if( strcasecmp(argv[nopt],"-allsave") == 0 ||
-         strcasecmp(argv[nopt],"-saveall")        ){   /* 02 Jan 2015 */
+         strcasecmp(argv[nopt],"-saveall") == 0       ){   /* 02 Jan 2015 */
        Hsave_allwarps = 1 ; nopt++ ; continue ;
      }
 
+
+
      /*---------------*/
+
+#if 0  /* this should NOT be enabled! */
+     if( strcasecmp(argv[nopt],"-localstat") == 0 ){  /* 09 Sep 2013 */
+       Hlocalstat = 1 ; nopt++ ; continue ;
+     }
+#endif
+
 
      if( strcasecmp(argv[nopt],"-gridlist") == 0 ){  /* 31 Dec 2014 */
        MRI_IMAGE *gim ; float *gar ; int gg , nbad ;
@@ -1952,16 +1961,11 @@ int main( int argc , char *argv[] )
                          argv[nopt] , nbad , (nbad==1) ? " is" : "s are" ,
                                              (nbad==1) ? "was" : "were"    ) ;
        }
-       nopt++ ; continue ;
+       nopt++ ;
+       continue ;
      }
 
      /*---------------*/
-
-#if 0  /* this should NOT be enabled! */
-     if( strcasecmp(argv[nopt],"-localstat") == 0 ){  /* 09 Sep 2013 */
-       Hlocalstat = 1 ; nopt++ ; continue ;
-     }
-#endif
 
      /*---------- maybe we should just tell them to use SPM? ----------*/
 
@@ -1970,7 +1974,6 @@ int main( int argc , char *argv[] )
      exit(1) ;
 
    } /*--------------- end of loop over command line args --------------------*/
-
    if( argc < 3 )
      ERROR_exit("Too few options, use -help for details");
 
