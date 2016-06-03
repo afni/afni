@@ -49,6 +49,11 @@
 
 
 afni_history_struct dglen_history[] = {
+{ 3, JUN, 2016 , DRG , "3dQwarp bug" , 
+    MINOR , TYPE_BUG_FIX, 
+    "bug fix in option processing\n"
+    "Fixed wtprefix handling and gridlist option handling (with RCR)"
+},
 { 16, MAY, 2016 , DRG , "align_epi_anat.py - left/right test" , 
     MINOR , TYPE_NEW_OPT, 
     "left/right checking using align_epi_anat.py\n"
