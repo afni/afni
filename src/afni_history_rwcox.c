@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 3 , JUN , 2016 , RWC , "3dQwarp" , MICRO , TYPE_NEW_OPT ,
+   "-wtprefix to save computed weight to dataset" ,
+   NULL } ,
+
  { 2 , JUN , 2016 , RWC , "afni GUI" , MINOR , TYPE_ENHANCE ,
    "Creation of All_Datasets session" ,
    "If more than one session is input or created, then the All_Datasets\n"
