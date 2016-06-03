@@ -658,6 +658,19 @@ void Qhelp(void)
     "               * '-wball' does change the binary weight created by\n"
     "                 the '-noweight' option.\n"
     "               * You can only use '-wball' once in a run of 3dQwarp.\n"
+    "             *** The effect of '-wball' is not dramatic.  The example\n"
+    "                 above makes the average brain image across a collection\n"
+    "                 of subjects a little sharper in the thalamic area, which\n"
+    "                 might have some small value.  If you care enough about\n"
+    "                 alignment to use '-wball', then you should examine the\n"
+    "                 results from 3dQwarp for each subject, to see if the\n"
+    "                 alignments are good enough for your purposes.\n"
+    "\n"
+    " -wtprefix p  = Saves the computed weight volume to a dataset with prefix 'p'.\n"
+    "                If you are sufficiently dedicated, you could manually edit\n"
+    "                this volume, in the AFNI GUI, in 3dcalc, et cetera.\n"
+    "               * If you use the '-emask' option, the effects of the exclusion\n"
+    "                 mask are NOT shown in this output dataset!\n"
     "\n"
     " -blur bb     = Gaussian blur the input images by 'bb' (FWHM) voxels before\n"
     "                doing the alignment (the output dataset will not be blurred).\n"
@@ -1218,6 +1231,7 @@ int main( int argc , char *argv[] )
    MRI_IMAGE *bim=NULL , *wbim=NULL , *sim=NULL , *oim=NULL ; float bmin,smin ;
    IndexWarp3D *oww=NULL , *owwi=NULL ; Image_plus_Warp *oiw=NULL ;
    char *prefix="Qwarp" , *prefix_clean=NULL ; int nopt , nevox=0 ;
+   char *wtprefix=NULL  , *wtprefix_clean=NULL ;
    int meth=GA_MATCH_PEARCLP_SCALAR ; int meth_is_lpc=0 ;
    int ilev=0 , nowarp=0 , nowarpi=1 , mlev=666 , nodset=0 ;
    int duplo=0 , qsave=0 , minpatch=0 , nx,ny,nz , ct , nnn , noneg=0 ;
@@ -1853,6 +1867,16 @@ int main( int argc , char *argv[] )
 
      /*---------------*/
 
+     if( strcasecmp(argv[nopt],"-wtprefix") == 0 ){   /* 03 Jun 2016 */
+       if( ++nopt >= argc ) ERROR_exit("need arg after -wtprefix") ;
+       wtprefix = strdup(argv[nopt]) ;
+       if( !THD_filename_ok(wtprefix) )
+         ERROR_exit("Illegal string after '-wtprefix'") ;
+       nopt++ ; continue ;
+     }
+
+     /*---------------*/
+
      if( strcasecmp(argv[nopt],"-hel") == 0 ){
        meth = GA_MATCH_HELLINGER_SCALAR ; nopt++ ; continue ;
      }
@@ -1960,6 +1984,14 @@ int main( int argc , char *argv[] )
      ns = strstr(prefix_clean,"+tlrc") ; if( ns != NULL ) *ns = '\0' ;
    }
 
+   { char *ns ;
+     wtprefix_clean = strdup(wtprefix) ;
+     ns = strstr(wtprefix_clean,".nii" ) ; if( ns != NULL ) *ns = '\0' ;
+     ns = strstr(wtprefix_clean,"+orig") ; if( ns != NULL ) *ns = '\0' ;
+     ns = strstr(wtprefix_clean,"+acpc") ; if( ns != NULL ) *ns = '\0' ;
+     ns = strstr(wtprefix_clean,"+tlrc") ; if( ns != NULL ) *ns = '\0' ;
+   }
+
    /*----- check for errorororors --------------------------------------------*/
 
 STATUS("check for errors") ;
@@ -2044,8 +2076,13 @@ STATUS("check for errors") ;
    }
 
    if( wbim != NULL && wball_r > 0.0f && wball_f > 0.0f ){  /* May 2016 */
-     WARNING_message("-weight option means -wball option is ignored!") ;
+     WARNING_message("-weight option means -wball option is ignored :-(") ;
      wball_r = wball_f = 0.0f ;
+   }
+
+   if( wbim != NULL && wtprefix != NULL ){                  /* 03 Jun 2016 */
+     WARNING_message("-weight option means -wtprefix option is ignored :-(") ;
+     wtprefix = wtprefix_clean = NULL ;
    }
 
 #ifdef ALLOW_BASIS5
@@ -2621,6 +2658,26 @@ STATUS("construct weight/mask volume") ;
      if( wbim->nx != nx || wbim->ny != ny || wbim->nz != nz )
        ERROR_exit("-weight image doesn't match -base image grid") ;
 
+   }
+
+   /*--- write weight image to dataset? [03 Jun 2016] ---*/
+
+   if( wtprefix != NULL ){
+     MRI_IMAGE *qim ; THD_3dim_dataset *qset ;
+     qim = mri_zeropad_3D( -pad_xm,-pad_xp,
+                           -pad_ym,-pad_yp, -pad_zm,-pad_zp, wbim ) ;
+     qset = EDIT_empty_copy(bset) ;
+     tross_Copy_History( bset , qset ) ;
+     tross_Make_History( "3dQwarp" , argc,argv , qset ) ;
+     EDIT_dset_items( qset ,
+                        ADN_prefix    , wtprefix ,
+                        ADN_nvals     , 1 ,
+                        ADN_ntt       , 0 ,
+                        ADN_datum_all , MRI_float ,
+                      ADN_none ) ;
+     EDIT_BRICK_FACTOR(qset,0,0.0) ;
+     EDIT_substitute_brick( qset, 0, MRI_float, MRI_FLOAT_PTR(qim) ) ;
+     DSET_write(qset) ; WROTE_DSET(qset) ; DSET_delete(qset) ;
    }
 
    /*--- scale weight volume so max value is 1 (and is all non-negative) ---*/
