@@ -1240,7 +1240,7 @@ int main( int argc , char *argv[] )
    MRI_IMAGE *bim=NULL , *wbim=NULL , *sim=NULL , *oim=NULL ; float bmin,smin ;
    IndexWarp3D *oww=NULL , *owwi=NULL ; Image_plus_Warp *oiw=NULL ;
    char *prefix="Qwarp" , *prefix_clean=NULL ; int nopt , nevox=0 ;
-   char *wtprefix="Qwarp_wt"  , *wtprefix_clean=NULL ;
+   char *wtprefix=NULL  , *wtprefix_clean=NULL ;
    int meth=GA_MATCH_PEARCLP_SCALAR ; int meth_is_lpc=0 ;
    int ilev=0 , nowarp=0 , nowarpi=1 , mlev=666 , nodset=0 ;
    int duplo=0 , qsave=0 , minpatch=0 , nx,ny,nz , ct , nnn , noneg=0 ;
@@ -1997,6 +1997,7 @@ int main( int argc , char *argv[] )
      ns = strstr(prefix_clean,"+tlrc") ; if( ns != NULL ) *ns = '\0' ;
    }
 
+   if(wtprefix!=NULL)
    { char *ns ;
      wtprefix_clean = strdup(wtprefix) ;
      ns = strstr(wtprefix_clean,".nii" ) ; if( ns != NULL ) *ns = '\0' ;
