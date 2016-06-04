@@ -2943,6 +2943,8 @@ STATUS("call 14") ;
 
         /*--- Other small and quick startup stuff before AFNI can go ---*/
 
+STATUS("initialize help") ;
+
         MCW_help_CB( MAIN_im3d->vwid->top_shell,NULL,NULL ); /* initialize help */
 
 #if 0
@@ -2954,6 +2956,8 @@ STATUS("call 14") ;
 
         /* initialize hints */
 
+STATUS("initialize hints") ;
+
         GLOBAL_library.hints_on = !AFNI_noenv("AFNI_HINTS") ;
         if( !GLOBAL_library.hints_on ) MCW_hint_toggle() ;
 
@@ -2963,6 +2967,8 @@ STATUS("call 14") ;
 
         /* Feb 1998: setup write compression from environment */
         /*           (read de-compression always works)       */
+
+STATUS("initialize compression mode (if any)") ;
 
         ii = THD_enviro_write_compression() ;
         if( ii >= 0 && ii <= COMPRESS_LASTCODE ){
@@ -2980,10 +2986,14 @@ STATUS("call 14") ;
         if( GLOBAL_argopt.layout_fname != NULL &&
             MAIN_im3d->type == AFNI_3DDATA_VIEW   ){
 
+STATUS("start user's layout timer") ;
+
           (void) XtAppAddTimeOut( MAIN_app , 123 ,
                                   AFNI_startup_layout_CB , GLOBAL_argopt.layout_fname ) ;
 
         } else if (MAIN_im3d->type == AFNI_3DDATA_VIEW){ /* ZSS Dec 02 2010. */
+
+STATUS("start default layout timer") ;
 
           (void) XtAppAddTimeOut( MAIN_app , 123 ,
                                   AFNI_startup_layout_CB ,
@@ -2996,12 +3006,16 @@ STATUS("call 14") ;
         if( GLOBAL_argopt.script_fname != NULL &&
             MAIN_im3d->type == AFNI_3DDATA_VIEW   ){
 
+STATUS("start script timeout") ;
+
           (void) XtAppAddTimeOut( MAIN_app , 246 ,
                                   AFNI_startup_script_CB , GLOBAL_argopt.script_fname ) ;
         }
 
         /* this function will be called 1.666 seconds from now to finalize
            anything else that needs fixing up once AFNI is fully started   */
+
+STATUS("start startup timeout") ;
 
         PICTURE_ON(MAIN_im3d) ;
         (void) XtAppAddTimeOut( MAIN_app, 1666, AFNI_startup_timeout_CB, MAIN_im3d ) ;
@@ -3031,7 +3045,7 @@ STATUS("call 14") ;
         }
 
         PUTENV("AFNI_DECONFLICT","OVERWRITE") ; /* 24 Sep 2007 */
-        putenv("AFNI_IS_RUNNING=YES") ;       /* 08 Jun 2007 */
+        putenv("AFNI_IS_RUNNING=YES") ;         /* 08 Jun 2007 */
 
         memplot_topshell_setsaver( ".jpg" , memplot_to_jpg ) ; /* 05 Dec 2007 */
         memplot_topshell_setsaver( ".png" , memplot_to_png ) ;
@@ -3048,6 +3062,8 @@ STATUS("call 14") ;
             REPORT_PROGRESS(msg) ;
           }
         }
+
+STATUS("exit call 14") ;
 
       }
       break ;  /* end of 14th entry case */
@@ -3198,6 +3214,10 @@ void AFNI_startup_timeout_CB( XtPointer client_data , XtIntervalId *id )
 ENTRY("AFNI_startup_timeout_CB") ;
 
    /* make sure help window is popped down */
+
+#if 0
+   MCW_help_CB( MAIN_im3d->vwid->top_shell,NULL,NULL ); /* initialize help */
+#endif
 
    MCW_help_CB(NULL,NULL,NULL) ;
 
