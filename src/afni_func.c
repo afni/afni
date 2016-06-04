@@ -3050,8 +3050,7 @@ void AFNI_choose_dataset_CB( Widget w , XtPointer cd , XtPointer cb )
    int is_other = 0 ;       /* 18 Dec 2007 */
    void (*cbfun)(Widget,XtPointer,MCW_choose_cbs *)=AFNI_finalize_dataset_CB;
    THD_3dim_dataset *temp_dset=NULL;
-   int sesstrail = (SESSTRAIL > 0) &&
-                   (strcmp(im3d->ss_now->sessname,"All_Datasets")==0) ;
+   int sesstrail = (strcmp(im3d->ss_now->sessname,"All_Datasets")==0) ;
    char *st=NULL , sst[STRLIST_SIZE+1] ;
 
 ENTRY("AFNI_choose_dataset_CB") ;
@@ -3137,7 +3136,7 @@ ENTRY("AFNI_choose_dataset_CB") ;
          if( vv <= LAST_VIEW_TYPE ){
             llen = strlen( temp_dset->dblk->diskptr->prefix ) ;
             if( sesstrail ){
-              st = THD_trailname(temp_dset->dblk->diskptr->directory_name,sesstrail) ;
+              st = THD_trailname(temp_dset->dblk->diskptr->directory_name,1) ;
               if( st != NULL ){
                 if( strlen(st) > MAX_SESSTRAIL_LEN )
                   st += (strlen(st)-MAX_SESSTRAIL_LEN) ;
@@ -3157,7 +3156,7 @@ ENTRY("AFNI_choose_dataset_CB") ;
 
          if( vv <= LAST_VIEW_TYPE ){
             if( sesstrail ){
-              st = THD_trailname(temp_dset->dblk->diskptr->directory_name,sesstrail) ;
+              st = THD_trailname(temp_dset->dblk->diskptr->directory_name,1) ;
               if( st != NULL ){
                 if( strlen(st) > MAX_SESSTRAIL_LEN )
                   st += (strlen(st)-MAX_SESSTRAIL_LEN) ;
@@ -3234,7 +3233,7 @@ if( first ){
         dset_list = cs->dset ; if( dset_list == NULL ) EXRETURN ;
         cbfun = cs->cb ; if( cbfun == NULL ) EXRETURN ;
         wpar = w ;
-        sesstrail = 0 ;
+        /*** sesstrail = 0 ; ***/
       } else {
         if( AFNI_yesenv("AFNI_DATASET_BROWSE") ) browse_select = 1 ;
         wpar = im3d->vwid->view->choose_func_pb ;
@@ -3254,7 +3253,7 @@ if( first ){
         if( ISVALID_DSET(dset) ){
           llen = strlen( dset->dblk->diskptr->prefix ) ;
           if( sesstrail ){
-            st = THD_trailname(dset->dblk->diskptr->directory_name,sesstrail) ;
+            st = THD_trailname(dset->dblk->diskptr->directory_name,1) ;
             if( st != NULL ){
               if( strlen(st) > MAX_SESSTRAIL_LEN )
                 st += (strlen(st)-MAX_SESSTRAIL_LEN) ;
@@ -3279,7 +3278,7 @@ if( first ){
 
          if( ISVALID_DSET(dset) ){
            if( sesstrail ){
-             st = THD_trailname(dset->dblk->diskptr->directory_name,sesstrail) ;
+             st = THD_trailname(dset->dblk->diskptr->directory_name,1) ;
              if( st != NULL ){
                if( strlen(st) > MAX_SESSTRAIL_LEN )
                  st += (strlen(st)-MAX_SESSTRAIL_LEN) ;
