@@ -1072,26 +1072,33 @@ void MCW_reghelp_children( Widget w , char *msg )
 void MCW_help_CB( Widget w , XtPointer client_data , XtPointer call_data )
 {
    char *msg          = (char *) client_data ;
-   static Widget wpop = NULL , wbut ;
+   static Widget wpop = NULL , wbut = NULL ;
    Position xx,yy ;
    XmString xstr ;
    int ww,hh , sw,sh ;
    char *def ;
+
+ENTRY("MCW_help_CB") ;
 
 #ifndef USE_LOCATE
    XmAnyCallbackStruct *cbs = (XmAnyCallbackStruct *) call_data ;
 #endif
 
    if( w == NULL ){
+STATUS("popdown call") ;
       if( wpop != NULL ) XtUnmapWidget(wpop) ;
-      return ;
+      EXRETURN ;
    }
 
    if( wpop == NULL || ! XtIsWidget(wpop) ){
 
       Widget wpar = w ;
 
+STATUS("create help widget") ;
+
       while( XtParent(wpar) != NULL ) wpar = XtParent(wpar) ;  /* find top */
+
+STATUS("  create wpop") ;
 
       wpop = XtVaCreatePopupShell(
               "help" , xmDialogShellWidgetClass , wpar ,
@@ -1100,6 +1107,8 @@ void MCW_help_CB( Widget w , XtPointer client_data , XtPointer call_data )
                  XmNdeleteResponse , XmDO_NOTHING ,
                  XmNinitialResourcesPersistent , False ,
               NULL ) ;
+
+      if( wpop == NULL ){ ERROR_message("can't create help popup!"); EXRETURN; }
 
 #if 0
       def = XGetDefault(XtDisplay(wpar),"AFNI","helpborder") ;
@@ -1117,26 +1126,37 @@ void MCW_help_CB( Widget w , XtPointer client_data , XtPointer call_data )
                         NULL ) ;
       }
 
+STATUS("  create wbut") ;
+
       wbut = XtVaCreateManagedWidget(
                 "help" , xmPushButtonWidgetClass , wpop ,
                    XmNalignment , XmALIGNMENT_BEGINNING ,
                    XmNinitialResourcesPersistent , False ,
                 NULL ) ;
 
+STATUS("  add unhelp_CB") ;
+
       XtAddCallback( wbut , XmNactivateCallback , MCW_unhelp_CB , wpop ) ;
 
+STATUS("  update display") ;
+
       XmUpdateDisplay( wpar ) ;
+
+STATUS("  popdown wpop") ;
+
       RWC_XtPopdown( wpop ) ;
+
+STATUS("  add kill protocol") ;
 
       XmAddWMProtocolCallback(
            wpop ,
            XmInternAtom( XtDisplay(wpop) , "WM_DELETE_WINDOW" , False ) ,
            MCW_unhelp_CB , wpop ) ;
 
-      if( ! XtIsRealized(wpar) ) return ;
+      if( ! XtIsRealized(wpar) ) EXRETURN ;
    }
 
-   if( msg == NULL || strlen(msg) == 0 ) return ; /* no popup if no message */
+   if( msg == NULL || strlen(msg) == 0 ) EXRETURN ; /* no popup if no message */
 
    xstr = XmStringCreateLtoR( msg , XmFONTLIST_DEFAULT_TAG ) ;
    XtVaSetValues( wbut , XmNlabelString , xstr , NULL ) ;
@@ -1163,7 +1183,7 @@ void MCW_help_CB( Widget w , XtPointer client_data , XtPointer call_data )
    XtPopup( wpop , XtGrabNone ) ; RWC_sleep(1);
    RWC_visibilize(wpop) ;  /* 27 Sep 2000 */
    NORMAL_cursorize(wpop) ;
-   return ;
+   EXRETURN ;
 }
 
 /*---------------------------------------------------------------------*/
