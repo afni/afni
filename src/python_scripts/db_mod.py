@@ -516,6 +516,46 @@ def combine_censor_files(proc, cfile, newfile=''):
 
     return 0, cstr
 
+# --------------- blip block ---------------
+
+def db_mod_blip(block, proc, user_opts):
+   """start simple, consider: -blip_aligned_dsets,
+
+      set proc.blip_rev_dset for copying
+   """
+   apply_uopt_to_block('-blip_reverse_dset', user_opts, block)
+
+   # note blip reverse input dset
+   bopt = block.opts.find_opt('-blip_reverse_dset')
+   if bopt:
+      proc.blip_rev_dset = BASE.afni_name(bopt.parlist[0])
+      if 1 or proc.verb > 2:
+         print '-- will compute blip up/down warp via %s' \
+               % proc.blip_rev_dset.shortinput(sel=1)
+         print '-- or %s' % proc.blip_rev_dset.initname
+   else:
+      print '** have blip block without -blip_reverse_dset'
+      return
+
+   # set any, if possible
+   # proc.blip_rev_dset  = None
+   # proc.blip_med_dset  = None
+   # proc.blip_warp_dset = None
+
+   # #PCs will be added to the afni_name object before db_cmd_regress
+
+   block.valid = 1
+
+def db_cmd_blip(proc, block):
+   """align median datasets for -blip_reverse_dset and current
+      compute proc.blip_med_dset, proc.blip_warp_dset
+      
+   """
+
+   
+   return
+
+
 # --------------- align (anat2epi) ---------------
 
 def db_mod_align(block, proc, user_opts):
