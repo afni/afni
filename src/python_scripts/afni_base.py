@@ -178,30 +178,30 @@ class afni_name:
       return dset_dims(self.ppves(quotes=quotes))
    def exist(self):
       """return whether the dataset seems to exist on disk"""
+      locppv = self.ppv()
       if (self.type == 'NIFTI'):
-         if (     os.path.isfile("%s" % self.ppv()) or \
-                  os.path.isfile("%s.gz" % self.ppv()) \
+         if (     os.path.isfile("%s" % locppv) or \
+                  os.path.isfile("%s.gz" % locppv) \
             ):
             return 1
          else: return 0
       elif (self.type == 'BRIK'):
-         #  print "dataset ppv is %s" % self.ppv()
-         if (     os.path.isfile("%s.HEAD" % self.ppv()) \
-               and  \
-               (  os.path.isfile("%s.BRIK" % self.ppv()) or \
-                  os.path.isfile("%s.BRIK.gz" % self.ppv()) or \
-                  os.path.isfile("%s.BRIK.bz2" % self.ppv()) or \
-                  os.path.isfile("%s.BRIK.Z" % self.ppv()) )   \
+         if (     os.path.isfile("%s.HEAD" % locppv)        \
+               and                                          \
+               (  os.path.isfile("%s.BRIK" % locppv) or     \
+                  os.path.isfile("%s.BRIK.gz" % locppv) or  \
+                  os.path.isfile("%s.BRIK.bz2" % locppv) or \
+                  os.path.isfile("%s.BRIK.Z" % locppv) )    \
             ):
             return 1
          else: return 0
       elif (self.type == 'NIML'):
-         if (     os.path.isfile("%s.niml.dset" % self.ppv()) \
+         if (     os.path.isfile("%s.niml.dset" % locppv) \
             ):
             return 1
          else: return 0
       else:
-         if (     os.path.isfile(self.ppve()) ):
+         if (     os.path.isfile(locppv) ):
             return 1
          else: return 0
    
