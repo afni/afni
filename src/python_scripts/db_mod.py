@@ -518,6 +518,9 @@ def combine_censor_files(proc, cfile, newfile=''):
 
 # --------------- blip block ---------------
 
+# The blip processing must be done as a separate block (from volreg), since
+# its output might be used as the input to either the anat or tlrc blocks.
+
 def db_mod_blip(block, proc, user_opts):
    """start simple, consider: -blip_aligned_dsets,
 
@@ -537,7 +540,7 @@ def db_mod_blip(block, proc, user_opts):
       print '** have blip block without -blip_reverse_dset'
       return
 
-   # set any, if possible
+   # set any, if possible, since they might all come from options
    # proc.blip_rev_dset  = None
    # proc.blip_med_dset  = None
    # proc.blip_warp_dset = None
@@ -552,8 +555,28 @@ def db_cmd_blip(proc, block):
       
    """
 
+   if proc.blip_dset_rev == None and proc.blip_dset_warp == None:
+      return ''
+
+   cmd = "# %s\n" % block_header('blip')
+
+   if proc.blip_dset_med != None and proc.blip_dset_warp != None:
+      cmd += '\n'                                               \
+          '# nothing to do: have external -blip_align_dsets\n'  \
+          '#\n'                                                 \
+          '# blip NL warp             : %s\n'                   \
+          '# blip align base (unused) : %s\n\n'                 \
+          % (proc.blip_dset_warp.shortinput(), proc.blip_dset_med.shortinput())
+      return cmd
+
+   # NT: if using sub-brick selectors, 3dtAttribute 
+   revinput = proc.blip_dset_rev.rel_input()
+   rv, nt, tr = UTIL.get_dset_reps_tr(revinput, verb=proc.verb)
+   if rv: return None
+
+   # compute the blip transformation
    
-   return
+   return cmd
 
 
 # --------------- align (anat2epi) ---------------
