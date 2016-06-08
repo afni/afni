@@ -599,9 +599,13 @@ class SubjProcSream:
         self.extra_stims      = []      # extra -stim_file list
         self.extra_labs       = []      # labels for extra -stim_file list
 
-        self.blip_rev_dset  = None      # afni_name: reverse blip input
-        self.blip_med_dset  = None      # afni_name: blip align median result
-        self.blip_warp_dset = None      # afni_name: blip NL warp dset
+        self.blip_in_rev  = None        # afni_name: input: reverse blip
+        self.blip_in_med  = None        # afni_name: input: blip align median
+        self.blip_in_warp = None        # afni_name: input: blip NL warp dset
+
+        self.blip_dset_rev  = None      # afni_name: local: reverse blip input
+        self.blip_dset_med  = None      # afni_name: local: blip align median
+        self.blip_dset_warp = None      # afni_name: local: blip NL warp dset
 
         self.vr_ext_base= None          # name of external volreg base 
         self.vr_ext_pre = 'external_volreg_base' # copied volreg base prefix
@@ -1466,7 +1470,7 @@ class SubjProcSream:
            if err: return 1
 
         # do we want the blip block?
-        # rcr - also check -blip_aligned_dsets
+        # rcr - also check -blip_align_dsets
         if self.user_opts.find_opt('-blip_reverse_dset'):
            err, blocks = self.add_block_to_list(blocks, 'blip')
            if err: return 1
@@ -1779,14 +1783,14 @@ class SubjProcSream:
         # (use rpve to include NIfTI, etc.)
         dset = self.dsets[0].rpve()
 
-        err, self.reps, self.tr = get_dset_reps_tr(dset, self.verb)
+        err, self.reps, self.tr = get_dset_reps_tr(dset, verb=self.verb)
         if err: return 1   # check for failure
 
         # set reps in each run
         self.reps_all = []
         self.reps_vary = 0
         for dr in self.dsets:
-            err, reps, tr = get_dset_reps_tr(dr.rpve(), self.verb)
+            err, reps, tr = get_dset_reps_tr(dr.rpve(), verb=self.verb)
             if err: return 1
             self.reps_all.append(reps)
             if reps != self.reps: self.reps_vary = 1
@@ -2210,27 +2214,41 @@ class SubjProcSream:
 
         # ------------------------------------------------------------------
         # copy any -blip datasets (convert to AFNI)
+        #
+        # input  datasets are blip_in_*
+        # output datasets are blip_dset_*
 
-        if isinstance(self.blip_rev_dset, afni_name):
-           bd = self.blip_rev_dset
+        bstr = ''
+        if isinstance(self.blip_in_rev, afni_name):
+           bd = self.blip_in_rev
            tstr = '# copy external -blip_reverse_dset dataset\n' \
                   '3dTcat -prefix %s/%s %s\n' %                  \
                   (self.od_var, bd.prefix, bd.rel_input())
-           self.blip_rev_dset = afni_name(bd.prefix)
+           self.blip_dset_rev = afni_name(bd.prefix)
+           bstr += tstr
 
-        if isinstance(self.blip_med_dset, afni_name):
-           bd = self.blip_med_dset
-           tstr = '# copy external blip median warped dataset\n' \
-                  '3dcopy %s %s/%s\n' %                          \
-                  (bd.rel_input(), self.od_var, bd.prefix)
-           self.blip_med_dset = afni_name(bd.prefix)
+        if isinstance(self.blip_in_med, afni_name):
+           bd = self.blip_in_med
+           if bd.prefix == 'NONE':
+              tstr = "# median dset is 'NONE', skipping...\n"
+           else:
+              tstr = '# copy external blip median warped dataset\n' \
+                     '3dcopy %s %s/%s\n' %                          \
+                     (bd.rel_input(), self.od_var, bd.prefix)
+           self.blip_dset_med = afni_name(bd.prefix)
+           bstr += tstr
 
-        if isinstance(self.blip_warp_dset, afni_name):
-           bd = self.blip_warp_dset
+        if isinstance(self.blip_in_warp, afni_name):
+           bd = self.blip_in_warp
            tstr = '# copy external blip NL warp (transformation) dataset\n' \
                   '3dcopy %s %s/%s\n' %                                     \
                   (bd.rel_input(), self.od_var, bd.prefix)
-           self.blip_warp_dset = afni_name(bd.prefix)
+           self.blip_dset_warp = afni_name(bd.prefix)
+           bstr += tstr
+
+        if bstr != '':
+           self.write_text(add_line_wrappers(bstr))
+           self.write_text("%s\n" % stat_inc)
 
         # ------------------------------------------------------------------
 

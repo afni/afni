@@ -22,7 +22,9 @@ class afni_name:
       self.nodesel = res['node']
       self.rowsel = res['row']
       self.rangesel = res['range']
+      self.selquote = '"'       # selector quote
       return
+
    def p(self):   #Full path 
       """show path only, no dataset name"""
       pp = "%s/" % os.path.abspath('./')  #full path at this location
@@ -31,6 +33,7 @@ class afni_name:
          return pp
       else:
          return "%s/" % os.path.abspath(self.path)
+
    def realp(self):   #Full path following symbolic links 
       """show path only, no dataset name"""
       pp = "%s/" % os.path.realpath('./')  #full path at this location
@@ -39,19 +42,19 @@ class afni_name:
          return pp
       else:
          return "%s/" % os.path.realpath(self.path)
-   def ppve(self):
+
+   def ppve(self, sel=0):
       """show path, prefix, view and extension"""
-      s = "%s%s%s%s" % (self.p(), self.prefix, \
-                         self.view, self.extension)
-      return s
-      
-   def rppve(self):
-      """show path, prefix, view and extension"""
-      s = "%s%s%s%s" % (self.realp(), self.prefix, \
-                         self.view, self.extension)
+      s = "%s%s" % (self.p(), self.pve(sel=sel))
       return s
 
-   def selectors(self, quote='"'):
+   def rppve(self, sel=0):
+      """show path, prefix, view and extension"""
+      s = "%s%s" % (self.realp(), self.pve(sel=sel))
+      return s
+
+   # selectors, along with many sel=0 function parameters  7 Jun 2016 [rickr]
+   def selectors(self):
       """return all selectors, usually in double quotes
          (colsel, rowsel, nodesel, rangesel)"""
 
@@ -60,19 +63,28 @@ class afni_name:
 
       if sstuff == '': return sstuff
     
-      return "%s%s%s" % (quote, sstuff, quote)
+      return "%s%s%s" % (self.selquote, sstuff, self.selquote)
       
    def ppves(self, quotes=1):
       """show path, prefix, view, extension and all selectors
-         (colsel, rowsel, nodesel, rangesel)"""
+         (colsel, rowsel, nodesel, rangesel)
 
+         this is identically ppve(sel=1), but maybe without quotes
+      """
+      
       # if no selectors, do not incude quotes    7 Apr 2015 [rickr]
-      pstuff = "%s%s%s%s" % (self.p(), self.prefix, self.view, self.extension)
-      if quotes: qstr = "'"
-      else:      qstr = ''
-      sstuff = self.selectors(quote=qstr)
 
-      return "%s%s" % (pstuff, sstuff)
+      # if no quotes, clear and reset internal selqute
+      if not quotes:
+         qstr = self.selquote
+         self.selquote = ''
+
+      pstuff = self.ppve(sel=1)
+
+      if not quotes:
+         self.selquote = qstr
+
+      return pstuff
 
       # s = "%s%s%s%s'%s%s%s%s'" % (self.p(), self.prefix, \
       #                    self.view, self.extension,\
@@ -105,11 +117,12 @@ class afni_name:
          e.g. +orig, but no .HEAD
          e.g. would include .nii"""
       if self.type == 'BRIK':
+         # separate selectors for HEAD case
          if sel: sstr = self.selectors()
          else:   sstr = ''
          name = self.rpv()
          if head: return '%s%s%s' % (name, '.HEAD', sstr)
-         else:    return name
+         else:    return '%s%s' % (name, sstr)
       else:
          return self.rpve(sel=sel) 
 
@@ -121,11 +134,12 @@ class afni_name:
          - if sel: include selectors
       """
       if self.type == 'BRIK':
+         # separate selectors for HEAD case
          if sel: sstr = self.selectors()
          else:   sstr = ''
          name = self.pv()
          if head: return '%s%s%s' % (name, '.HEAD', sstr)
-         else:    return name
+         else:    return '%s%s' % (name, sstr)
       else:
          return self.pve(sel=sel) 
 
