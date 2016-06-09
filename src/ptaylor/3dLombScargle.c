@@ -399,7 +399,7 @@ int main(int argc, char *argv[]) {
 
    if( (WinInfo == NULL) || (WinDelT == NULL) ) {
       fprintf(stderr, "\n\n MemAlloc failure (time point arrays).\n\n");
-      exit(34);
+      exit(334);
    }
 
 
@@ -749,12 +749,16 @@ int main(int argc, char *argv[]) {
 
    // for output data set
    outset_LS = EDIT_empty_copy( inset0 ) ; 
+   sprintf(outset_name,"%s_LS",prefix); 
    EDIT_add_bricklist( outset_LS,
                        Npts_out-1, NULL , NULL , NULL );
 
    EDIT_dset_items( outset_LS,
                     ADN_datum_all , MRI_float , 
-                    ADN_prefix    , prefix ,
+                    ADN_ntt   , Npts_out, 
+                    ADN_ttdel , delF ,
+                    ADN_tunits, UNITS_HZ_TYPE,
+                    ADN_prefix    , outset_name ,
                     ADN_none ) ;
    if( !THD_ok_overwrite() && THD_is_ondisk(DSET_HEADNAME(outset_LS)) )
       ERROR_exit("Can't overwrite existing dataset '%s'",
