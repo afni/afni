@@ -603,9 +603,9 @@ class SubjProcSream:
         self.blip_in_med  = None        # afni_name: input: blip align median
         self.blip_in_warp = None        # afni_name: input: blip NL warp dset
 
-        self.blip_dset_rev  = None      # afni_name: local: reverse blip input
-        self.blip_dset_med  = None      # afni_name: local: blip align median
-        self.blip_dset_warp = None      # afni_name: local: blip NL warp dset
+        self.blip_dset_rev  = None      # afni_name: local blip_in_rev dset
+        self.blip_dset_med  = None      # afni_name: result: blip align median
+        self.blip_dset_warp = None      # afni_name: result: blip NL warp dset
 
         self.vr_ext_base= None          # name of external volreg base 
         self.vr_ext_pre = 'external_volreg_base' # copied volreg base prefix
@@ -2220,30 +2220,30 @@ class SubjProcSream:
 
         bstr = ''
         if isinstance(self.blip_in_rev, afni_name):
-           bd = self.blip_in_rev
+           self.blip_dset_rev = afni_name('blip_reverse')
            tstr = '# copy external -blip_reverse_dset dataset\n' \
                   '3dTcat -prefix %s/%s %s\n' %                  \
-                  (self.od_var, bd.prefix, bd.rel_input())
-           self.blip_dset_rev = afni_name(bd.prefix)
+                  (self.od_var, self.blip_dset_rev.prefix,
+                  self.blip_in_rev.rel_input(sel=1))
            bstr += tstr
 
         if isinstance(self.blip_in_med, afni_name):
-           bd = self.blip_in_med
-           if bd.prefix == 'NONE':
+           if self.blip_in_med.prefix == 'NONE':
               tstr = "# median dset is 'NONE', skipping...\n"
            else:
+              self.blip_dset_med = afni_name('blip_median_base')
               tstr = '# copy external blip median warped dataset\n' \
                      '3dcopy %s %s/%s\n' %                          \
-                     (bd.rel_input(), self.od_var, bd.prefix)
-           self.blip_dset_med = afni_name(bd.prefix)
+                     (self.blip_in_med.rel_input(), self.od_var,
+                     self.blip_dset_med.prefix)
            bstr += tstr
 
         if isinstance(self.blip_in_warp, afni_name):
-           bd = self.blip_in_warp
+           self.blip_dset_warp = afni_name('blip_NLwarp')
            tstr = '# copy external blip NL warp (transformation) dataset\n' \
                   '3dcopy %s %s/%s\n' %                                     \
-                  (bd.rel_input(), self.od_var, bd.prefix)
-           self.blip_dset_warp = afni_name(bd.prefix)
+                  (self.blip_in_warp.rel_input(), self.od_var,
+                  self.blip_dset_warp.prefix)
            bstr += tstr
 
         if bstr != '':
