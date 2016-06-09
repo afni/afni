@@ -399,7 +399,7 @@ int main(int argc, char *argv[]) {
 
    if( (WinInfo == NULL) || (WinDelT == NULL) ) {
       fprintf(stderr, "\n\n MemAlloc failure (time point arrays).\n\n");
-      exit(334);
+      exit(34);
    }
 
 
