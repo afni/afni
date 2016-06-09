@@ -121,9 +121,7 @@ void print_1dNLfit_help(void)
     "\n"
     "Notes:\n"
     "------\n"
-    "* This program is a work-in-progress at this moment.\n"
-    "\n"
-    "* Which means it may change, and also means to PLOT YOUR RESULTS!\n"
+    "* PLOT YOUR RESULTS!  There is no guarantee that you'll get a good fit.\n"
     "\n"
     "* This program is not particularly efficient, so using it on a large\n"
     "  scale (e.g., for lots of columns, or in a shell loop) will be slow.\n"
@@ -155,8 +153,8 @@ int main( int argc , char *argv[] )
    int nopt=1 , nbad=0 ;
    char *expr=NULL ; PARSER_code *pcode ;
    char cind='\0' , ccc ; int jind=-1 , meth=2 , jj,kk ;
-   MRI_IMAGE *indvar_im , *depvar_im ; int nx,ny,qq ;
-   float     *indvar    , *depvar , *dv ;
+   MRI_IMAGE *indvar_im=NULL , *depvar_im=NULL ; int nx,ny,qq ;
+   float     *indvar=NULL    , *depvar=NULL , *dv ;
    int  nfree=0   , nfix=0 ;
    char cfree[26] , cfix[26] ;
    int  jfree[26] , jfix[26] ;
@@ -173,6 +171,7 @@ int main( int argc , char *argv[] )
    for( jj=0 ; jj < 26 ; jj++ ){
      atoz[jj] = vbot[jj] = vtop[jj] = 0.0 ;
      jfree[jj] = jfix[jj] = -1 ;
+     cfree[jj] = cfix[jj] = '\0' ;
    }
 
    /*---------- AFNI startup bureaucracy ----------*/
