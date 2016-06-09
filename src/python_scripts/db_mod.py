@@ -531,11 +531,10 @@ def db_mod_blip(block, proc, user_opts):
    # note blip reverse input dset
    bopt = block.opts.find_opt('-blip_reverse_dset')
    if bopt:
-      proc.blip_rev_dset = BASE.afni_name(bopt.parlist[0])
-      if 1 or proc.verb > 2:
+      proc.blip_in_rev = BASE.afni_name(bopt.parlist[0])
+      if proc.verb > 2:
          print '-- will compute blip up/down warp via %s' \
-               % proc.blip_rev_dset.shortinput(sel=1)
-         print '-- or %s' % proc.blip_rev_dset.initname
+               % proc.blip_in_rev.shortinput(sel=1)
    else:
       print '** have blip block without -blip_reverse_dset'
       return
@@ -553,6 +552,10 @@ def db_cmd_blip(proc, block):
    """align median datasets for -blip_reverse_dset and current
       compute proc.blip_med_dset, proc.blip_warp_dset
       
+      - get blip_NT from -blip_reverse_dset
+      - extract that many from first current dset
+      - get median dsets
+      - align them
    """
 
    if proc.blip_dset_rev == None and proc.blip_dset_warp == None:
@@ -569,12 +572,22 @@ def db_cmd_blip(proc, block):
           % (proc.blip_dset_warp.shortinput(), proc.blip_dset_med.shortinput())
       return cmd
 
-   # NT: if using sub-brick selectors, 3dtAttribute 
-   revinput = proc.blip_dset_rev.rel_input()
-   rv, nt, tr = UTIL.get_dset_reps_tr(revinput, verb=proc.verb)
+   # get NT from original input
+   # note: sub-brick selectors should be okay, if used
+   revinput = proc.blip_in_rev.rel_input(sel=1)
+   rv, nt, tr = UTIL.get_dset_reps_tr(revinput, notr=1, verb=proc.verb)
    if rv: return None
 
    # compute the blip transformation
+
+   medf = proc.blip_dset_rev.new(new_pref='rm.blip.med.fwd')
+   medr = proc.blip_dset_rev.new(new_pref='rm.blip.med.rev')
+   forwdset = proc.prev_prefix_form(1, block, view=1)
+   cmd += '# create median datasets from forward and reverse time series\n' \
+          '3dTstat -median -prefix %s %s"[0..%s]"\n'                        \
+          '3dTstat -median -prefix %s %s\n\n'                               \
+          % (medf.out_prefix(), forwdset, nt-1,
+             medr.out_prefix(), proc.blip_dset_rev.shortinput())
    
    return cmd
 
