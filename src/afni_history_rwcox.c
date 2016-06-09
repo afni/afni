@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 9 , JUN , 2016 , RWC , "3dLocalACF" , MINOR , TYPE_NEW_PROG ,
+   "Estimate ACF parameters locally.  Slow and experimental." ,
+   NULL } ,
+
  { 3 , JUN , 2016 , RWC , "3dQwarp" , MICRO , TYPE_NEW_OPT ,
    "-wtprefix to save computed weight to dataset" ,
    NULL } ,
