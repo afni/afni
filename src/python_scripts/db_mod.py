@@ -548,20 +548,35 @@ def db_mod_blip(block, proc, user_opts):
 
    block.valid = 1
 
+# note: the input to 3dvolreg     should be the output from this
+#       the input to 3dNwarpApply should be the input    to this
+#       i.e. prev_prefix = proc.prev_prefix_form_run(block, view=1)
 def db_cmd_blip(proc, block):
    """align median datasets for -blip_reverse_dset and current
       compute proc.blip_med_dset, proc.blip_warp_dset
       
       - get blip_NT from -blip_reverse_dset
       - extract that many from first current dset
-      - get median dsets
-      - align them
+
+      - compute forward and reverse median datasets
+      - automask
+      - compute warp
+      - apply warp to each median masked vol, plus median forward unmasked vol
+      - apply warp to EPI time series
+         => INPUT to 3dNwarpApply in volreg block should be INPUT to blip block
+            bblock = find_block('blip')
+            inform = proc.prev_prefix_form_run(bblock, view=1)
+            warp = proc.blip_dset_warp
+      ** copy any obliquity information to results
    """
 
    if proc.blip_dset_rev == None and proc.blip_dset_warp == None:
       return ''
 
-   cmd = "# %s\n" % block_header('blip')
+   blip_interp = '-quintic'
+
+   cmd =  "# %s\n" % block_header('blip')
+   cmd += '# apply blip up/down non-linear alignment to EPI\n\n'
 
    if proc.blip_dset_med != None and proc.blip_dset_warp != None:
       cmd += '\n'                                               \
@@ -598,7 +613,9 @@ def db_cmd_blip(proc, block):
              mmedr.out_prefix(), medf.shortinput())
 
    # -source is reverse, -base is forward (but does not matter, of course)
-   proc.blip_dset_warp = mmedf.new(new_pref='blip_warp')
+   # current prefix: simply blip_warp
+   # rcr: todo add options to control Qwarp inputs
+   warp_prefix = 'blip_warp'
    cmd += '# compute the midpoint warp between the median datasets\n' \
           '3dQwarp -plusminus -pmNAMES Rev For  \\\n'   \
           '        -pblur 0.05 0.05 -blur -1 -1 \\\n'   \
@@ -606,8 +623,51 @@ def db_cmd_blip(proc, block):
           '        -source %s                   \\\n'   \
           '        -base   %s                   \\\n'   \
           '        -prefix %s\n\n'                      \
-          % (mmedr.shortinput(), mmedf.shortinput(),
-             proc.blip_dset_warp.out_prefix())
+          % (mmedr.shortinput(), mmedf.shortinput(), warp_prefix)
+
+   # store forward warp dataset name, and note reverse warp dataset name
+   warp_for = mmedf.new(new_pref=('%s_For_WARP'%warp_prefix))
+   warp_rev = mmedf.new(new_pref=('%s_Rev_WARP'%warp_prefix))
+   proc.blip_dset_warp = warp_for  # store for volreg block
+
+   # apply mid-warp to forward median
+   for_prefix = 'blip_med_for'
+   rev_prefix = 'blip_med_rev'
+   cmd += '# warp median datasets (forward and each masked) for QC checks\n' \
+          '3dNwarpApply %s -nwarp %s \\\n' \
+          '             -source %s \\\n'   \
+          '             -prefix %s\n'      \
+          % (blip_interp, warp_for.shortinput(), medf.shortinput(), for_prefix)
+   proc.blip_dset_med = proc.blip_dset_warp.new(new_pref=for_prefix)
+
+   # to forward masked median
+   cmd += '3dNwarpApply %s -nwarp %s \\\n' \
+          '             -source %s \\\n'   \
+          '             -prefix %s\n'      \
+          % (blip_interp, warp_for.shortinput(), mmedf.shortinput(),
+             '%s_masked'%for_prefix)
+
+   # to reverse masked median
+   cmd += '3dNwarpApply %s -nwarp %s \\\n' \
+          '             -source %s \\\n'   \
+          '             -prefix %s\n'      \
+          % (blip_interp, warp_rev.shortinput(), mmedr.shortinput(),
+             '%s_masked'%rev_prefix)
+
+   cmd += '\n'
+
+   # apply forward mid-warp to EPI
+   inform = proc.prev_prefix_form_run(block, view=1)
+   outform = proc.prefix_form_run(block)
+   cmd += '# warp EPI time series data\n'       \
+          'foreach run ( $runs )\n'             \
+          '    3dNwarpApply %s -nwarp %s \\\n'  \
+          '                 -source %s \\\n'    \
+          '                 -prefix %s\n'       \
+          'end\n\n'                             \
+          % (blip_interp, warp_for.shortinput(), inform, outform)
+
+   # rcr - deal with obliquity
 
    return cmd
 
@@ -1603,7 +1663,7 @@ def db_cmd_volreg(proc, block):
             print 'warp and align to isotropic %g mm tlrc voxels'%dim
             cstr = 'volreg, epi2anat and tlrc'
         elif doe2a:
-            print 'aligning to isotropic %g mm voxels' % dim
+            print 'align to isotropic %g mm voxels' % dim
             cstr = 'volreg and epi2anat'
         else:
             cstr = 'volreg and tlrc'

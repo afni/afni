@@ -599,10 +599,10 @@ class SubjProcSream:
         self.extra_stims      = []      # extra -stim_file list
         self.extra_labs       = []      # labels for extra -stim_file list
 
+        # blip variables
         self.blip_in_rev  = None        # afni_name: input: reverse blip
         self.blip_in_med  = None        # afni_name: input: blip align median
         self.blip_in_warp = None        # afni_name: input: blip NL warp dset
-
         self.blip_dset_rev  = None      # afni_name: local blip_in_rev dset
         self.blip_dset_med  = None      # afni_name: result: blip align median
         self.blip_dset_warp = None      # afni_name: result: blip NL warp dset
@@ -2217,9 +2217,6 @@ class SubjProcSream:
         #
         # input  datasets are blip_in_*
         # output datasets are blip_dset_*
-
-        # rcr: note that the input to 3dvolreg should be the output from this,
-        #      but the input to 3dNwarpApply, should be the input to this
 
         bstr = ''
         if isinstance(self.blip_in_rev, afni_name):
