@@ -8367,6 +8367,20 @@ g_help_string = """
 
             Please see '3dTshift -help' for more information.
 
+        -blip_reverse_dset      : specify a dataset for blip up/down correction
+
+                e.g. -blip_reverse_dset epi_reverse_blip+orig
+                e.g. -blip_reverse_dset epi_reverse_blip+orig'[0..9]'
+
+            EPI distortion correction can be applied via blip up/blip down
+            acquisitions.  Unless specified otherwise, the first TRs of the
+            first run of typical EPI data specified via -dsets is considered
+            to be the forward direction (blip up, say).  So only the reverse
+            direction data needs separate input.
+
+            Please see '3dQwarp -help' for more information, and the -plusminus
+            option in particular.
+
         -tlrc_anat              : run @auto_tlrc on '-copy_anat' dataset
 
                 e.g. -tlrc_anat
