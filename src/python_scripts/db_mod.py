@@ -595,6 +595,7 @@ def db_cmd_blip(proc, block):
 
    # compute the blip transformation
 
+   proc.have_rm = 1            # rm.* files exist
    medf = proc.blip_dset_rev.new(new_pref='rm.blip.med.fwd')
    medr = proc.blip_dset_rev.new(new_pref='rm.blip.med.rev')
    forwdset = proc.prev_prefix_form(1, block, view=1)
@@ -1571,6 +1572,7 @@ def db_cmd_volreg(proc, block):
     doadwarp = block.opts.find_opt('-volreg_tlrc_adwarp') != None
     dowarp = block.opts.find_opt('-volreg_tlrc_warp') != None
     doe2a = block.opts.find_opt('-volreg_align_e2a') != None
+    doblip = isinstance(proc.blip_dset_warp, BASE.afni_name)
 
     # store these flags for other processing blocks
     if dowarp: proc.warp_epi |= WARP_EPI_TLRC_WARP
@@ -1587,7 +1589,7 @@ def db_cmd_volreg(proc, block):
     cur_prefix = proc.prefix_form_run(block)
     proc.volreg_prefix = cur_prefix
     cstr   = '' # appended to comment string
-    if dowarp or doe2a:
+    if dowarp or doe2a or doblip:
         # verify that we have someplace to warp to
         if dowarp and not proc.tlrcanat:
             print '** cannot warp, need -tlrc_anat or -copy_anat with tlrc'
@@ -1598,6 +1600,7 @@ def db_cmd_volreg(proc, block):
         prefix = 'rm.epi.volreg.r$run'
         proc.have_rm = 1            # rm.* files exist
         matstr = '%*s-1Dmatrix_save mat.r$run.vr.aff12.1D \\\n' % (13,' ')
+        if doblip: cstr = cstr + ', blip warp'
         if doe2a:  cstr = cstr + ', align to anat'
         if dowarp: cstr = cstr + ', warp to tlrc space'
     else:
@@ -1606,6 +1609,7 @@ def db_cmd_volreg(proc, block):
         matstr = ''
     prev_prefix = proc.prev_prefix_form_run(block, view=1)
 
+    if doblip: cstr += '\n# (final warp input is same as blip input)'
     cmd = cmd + "# %s\n" \
                 "# align each dset to base volume%s\n" \
                 % (block_header('volreg'), cstr)
@@ -1656,22 +1660,36 @@ def db_cmd_volreg(proc, block):
 
     # if warping, multiply matrices and apply
     # (store cat_matvec entries in case of later use)
-    if dowarp or doe2a:
+    if dowarp or doe2a or doblip:
         # warn the user of output grid change
-        print '++ volreg:',
-        if doe2a and dowarp:
-            print 'warp and align to isotropic %g mm tlrc voxels'%dim
-            cstr = 'volreg, epi2anat and tlrc'
-        elif doe2a:
-            print 'align to isotropic %g mm voxels' % dim
-            cstr = 'volreg and epi2anat'
-        else:
-            cstr = 'volreg and tlrc'
-            print 'warping to isotropic %g mm tlrc voxels' % dim
+        pstr = '++ volreg: applying '
+        cary = []
+        cstr = ''
+        if doblip: cary.append('blip')
+        cary.append('volreg')
+        if doe2a: cary.appen('epi2anat')
+        if dowarp: cary.appen('tlrc')
+        cstr = '/'.join(cary)
+
+        pstr += (cstr + ' transformations')
+        if dowarp or doe2a: pstr += (' to isotropic %g mm' % dim)
+        if dowarp: pstr += ' tlrc'
+        pstr += ' voxels'
+
+        #if doe2a and dowarp:
+        #    print 'warp and align to isotropic %g mm tlrc voxels'%dim
+        #    cstr = 'volreg, epi2anat and tlrc'
+        #elif doe2a:
+        #    print 'align to isotropic %g mm voxels' % dim
+        #    cstr = 'volreg and epi2anat'
+        #elif dowarp:
+        #    cstr = 'volreg and tlrc'
+        #    print 'warping to isotropic %g mm tlrc voxels' % dim
 
         cmd = cmd + '\n'                                \
             '    # catenate %s transformations\n'       \
             '    cat_matvec -ONELINE \\\n' % cstr
+        print '%s' % pstr
 
         if dowarp:
             # either non-linear or affing warp
