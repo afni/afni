@@ -2526,7 +2526,7 @@ STATUS("load datasets") ; /*--------------------------------------------------*/
      DSET_load(iwset) ; CHECK_LOAD_ERROR(iwset) ;
 
      /* Compute how much iwset must be padded to fit bset [11 Apr 2014] */
-     /* Remember, at this point, bset might be zeropaded to be bigger.  */
+     /* Remember, at this point, bset might be zeropadded to be bigger. */
      /* By construction above, iwpad_?? <= pad_?? for all 6 ?? values,  */
      /* so we need to pad the initial warp by pad_?? - iwpad_??         */
 
