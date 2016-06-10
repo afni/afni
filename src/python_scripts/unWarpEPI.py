@@ -456,10 +456,10 @@ def main():
    parser = OptionParser(usage=usage, description=description, epilog=epilog)
 
    parser.add_option ("-f", "--forward",  action="store",
-                                          help="calibration matching data to be corrected -- all dataset names must end in +orig, except for the '-d' option!")
+                                          help="calibration matching data to be corrected")
 
    parser.add_option ("-r", "--reverse",  action="store",
-                                          help="calibration with opposing polarity to data to be corrected")
+                   help="calibration with opposing polarity to data to be corrected")
 
    parser.add_option ("-a", "--anat4warp",action="store",
                                           help="reference anatomical data set")
