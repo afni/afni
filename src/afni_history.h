@@ -42,14 +42,14 @@
 #define November 11
 #define December 12
 
-#define RWC "RW Cox"
-#define ZSS "ZS Saad"
-#define PT  "P Taylor"
-#define DRG "DR Glen"
-#define RCR "RC Reynolds"
+#define RWC "RW Cox"         /* AKA Zhark */
+#define ZSS "ZS Saad"        /* alas poor ZSS, we knew him well */
+#define PT  "P Taylor"       /* also NMI -- very suspicious */
+#define DRG "DR Glen"        /* AKA Mr Electricity */
+#define RCR "RC Reynolds"    /* AKA The Walker */
 #define GC  "G Chen"         /* no middle initial (clearly evil) */
-#define PPC "PP Christidis"
-#define BGP "BG Pittman"
+#define PPC "PP Christidis"  /* gone but not forgotten */
+#define BGP "BG Pittman"     /* AKA Brien (not Brienne) */
 
 /* importance levels */
 #define MIN_PROG_LEVEL  1  /* min in list */
