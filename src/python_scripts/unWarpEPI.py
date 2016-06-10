@@ -1,4 +1,4 @@
-#!/bin/env python
+#!usr/bin/env python
 
 import time, sys, os
 from   optparse  import  OptionParser
