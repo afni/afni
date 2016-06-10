@@ -2218,9 +2218,12 @@ class SubjProcSream:
         # input  datasets are blip_in_*
         # output datasets are blip_dset_*
 
+        # rcr: note that the input to 3dvolreg should be the output from this,
+        #      but the input to 3dNwarpApply, should be the input to this
+
         bstr = ''
         if isinstance(self.blip_in_rev, afni_name):
-           self.blip_dset_rev = afni_name('blip_reverse')
+           self.blip_dset_rev = afni_name('blip_reverse', view=self.view)
            tstr = '# copy external -blip_reverse_dset dataset\n' \
                   '3dTcat -prefix %s/%s %s\n' %                  \
                   (self.od_var, self.blip_dset_rev.prefix,
@@ -2231,7 +2234,7 @@ class SubjProcSream:
            if self.blip_in_med.prefix == 'NONE':
               tstr = "# median dset is 'NONE', skipping...\n"
            else:
-              self.blip_dset_med = afni_name('blip_median_base')
+              self.blip_dset_med = afni_name('blip_median_base',view=self.view)
               tstr = '# copy external blip median warped dataset\n' \
                      '3dcopy %s %s/%s\n' %                          \
                      (self.blip_in_med.rel_input(), self.od_var,
@@ -2239,7 +2242,7 @@ class SubjProcSream:
            bstr += tstr
 
         if isinstance(self.blip_in_warp, afni_name):
-           self.blip_dset_warp = afni_name('blip_NLwarp')
+           self.blip_dset_warp = afni_name('blip_NLwarp', view=self.view)
            tstr = '# copy external blip NL warp (transformation) dataset\n' \
                   '3dcopy %s %s/%s\n' %                                     \
                   (self.blip_in_warp.rel_input(), self.od_var,

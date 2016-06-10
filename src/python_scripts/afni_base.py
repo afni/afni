@@ -2,13 +2,14 @@
 import os, sys, glob, operator, string, re, afni_base
 
 valid_afni_views = ['+orig', '+acpc', '+tlrc']
+valid_new_views  = ['+orig', '+acpc', '+tlrc', '']
 
 # limits for shell_com history
 SAVE_SHELL_HISTORY = 400
 MAX_SHELL_HISTORY  = 600
 
 class afni_name:
-   def __init__(self, name="", do_sel=1):
+   def __init__(self, name="", do_sel=1, view=None):
       """do_sel : apply selectors (col, row, range)"""
       self.initname = name
       self.do_sel = do_sel
@@ -23,6 +24,7 @@ class afni_name:
       self.rowsel = res['row']
       self.rangesel = res['range']
       self.selquote = '"'       # selector quote
+      if view in valid_new_views: self.new_view(view)
       return
 
    def p(self):   #Full path 
