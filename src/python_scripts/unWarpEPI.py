@@ -50,7 +50,7 @@ Daniel Glen, Vinai Roopchansingh
 
 class unWarpWithBlipUpBlipDownEPI:
 
-   def __init__ (self, options):
+   def __init__ (self, options,parser):
 
       print "Unwarp function initialized"
 
@@ -87,6 +87,7 @@ class unWarpWithBlipUpBlipDownEPI:
       # Get data sets required to do unwarping
       if not options.forward:
          print "!!! Required forward calibration data missing - exiting !!!"
+         parser.print_usage()
          sys.exit (-1)
       else:
          self.forwardCalibrationData = options.forward
@@ -94,6 +95,7 @@ class unWarpWithBlipUpBlipDownEPI:
 
       if not options.reverse:
          print "!!! Required reverse calibration data missing - exiting !!!"
+         parser.print_usage()
          sys.exit (-1)
       else:
          self.reverseCalibrationData = options.reverse
@@ -101,6 +103,7 @@ class unWarpWithBlipUpBlipDownEPI:
 
       if not options.data:
          print "!!! Required data to be corrected missing - exiting !!!"
+         parser.print_usage()
          sys.exit (-1)
       else:
          self.dataToCorrect = list(dataSet for dataSet in string.split (options.data, ','))
@@ -436,7 +439,7 @@ class unWarpWithBlipUpBlipDownEPI:
 
       # If we're all happy, then exit that way!
       #   but who's ever "all happy" anyway?
-      sys.exit (1)
+      sys.exit (0)
 
 
 
@@ -473,7 +476,7 @@ def main():
    options, args = parser.parse_args()
 
 
-   unwarpJob = unWarpWithBlipUpBlipDownEPI(options)
+   unwarpJob = unWarpWithBlipUpBlipDownEPI(options,parser)
 
    unwarpJob.unWarpData()
 
