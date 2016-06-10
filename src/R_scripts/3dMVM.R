@@ -1101,12 +1101,12 @@ runAOV <- function(inData, dataframe, ModelForm) {
                            getGG <- uvfm$pval.adjustments[,'HF eps'] < lop$crit
                            GG    <- uvfm$pval.adjustments[,'Pr(>F[GG])']; HF <- uvfm$pval.adjustments[,'Pr(>F[HF])']
                            #Fsc  <- ifelse(getGG, GG, HF)
-                           Fsc  <- ifelse(uvfm$sphericity.tests[, 'p-value'] < 0.05, ifelse(getGG, GG, HF), uvfm$univariate.tests[, 'Pr(>F)'])
+                           Fsc  <- ifelse(uvfm$sphericity.tests[, 'p-value'] < 0.05, ifelse(getGG, GG, HF), uvfm$univariate.tests[dimnames(uvfm$sphericity.tests)[[1]], 'Pr(>F)'])
                         } else { # old version of afex
                            getGG <- uvfm$sphericity.correction[,'HF eps'] < lop$crit
                            GG    <- uvfm$sphericity.correction[,'Pr(>F[GG])']; HF <- uvfm$sphericity.correction[,'Pr(>F[HF])']
                            #Fsc  <- ifelse(getGG, GG, HF)
-                           Fsc  <- ifelse(uvfm$mauchly[, 'p-value'] < 0.05, ifelse(getGG, GG, HF), uvfm$anova[, 'Pr(>F)'])
+                           Fsc  <- ifelse(uvfm$mauchly[, 'p-value'] < 0.05, ifelse(getGG, GG, HF), uvfm$anova[dimnames(uvfm$mauchly)[[1]], 'Pr(>F)'])
                         }
                         tryCatch(out[(lop$nFu+1):(lop$nFu+lop$GES*lop$nFu+lop$nFsc)] <-
                               qf(Fsc, lop$numDF, lop$denDF, lower.tail = FALSE), error=function(e) NULL)

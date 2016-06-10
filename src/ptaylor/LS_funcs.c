@@ -1,8 +1,100 @@
 #include <stdio.h>
 #include <math.h>
 #include <stdlib.h>
+#include "mrilib.h"
 #include "LS_funcs.h"
 
+#define MIN_WID_PTS (16)  // don't want tiny tiny windows
+#define PI_here  (3.141592653589793)
+
+// 0-based counting in this section
+
+
+// choosing the Welch window at the moment
+void MakeWindowVec( float *V, int N)
+{
+   int i;
+   float temp;
+   float allwt=0;
+
+   for( i=0 ; i<N ; i++ ) {
+      // WELCH
+      //temp = (N-1.)/2.;
+      //V[i] = 1 - pow( (i-temp)/temp, 2);
+
+      // Hann
+      temp = (2.*PI_here * i)/N;
+      V[i] = 0.5*(1-cos(temp));
+   }
+
+
+   // normalize area under weight curve, for any weights:
+   for( i=0 ; i<N ; i++ )
+      allwt+= V[i]*V[i];
+   allwt/= N;
+   allwt = sqrt(allwt);
+   
+   for( i=0 ; i<N ; i++ )
+      V[i]/= allwt;
+}
+
+
+// For getting initial length of time series for welch windows.  This
+// will be based on numbers of points.  Will need Welch windows of
+// constant Npts (so elsewhere we use ofac to maintain a constant
+// delta f); conceivably, we could make another function to have
+// nonconstant winwids, which is why we do this this way-> for
+// generalizability later.
+void WelchWindowInfo( float *xpts, int Nx, int Nseg, 
+                      int **WInfo, float *WDt, int Nwin )
+{
+   int i,ii;
+   int winwid, Nx_eff;
+   int hwin0;                       // starting point of the
+                                    // half-offset windows
+   INFO_message("Window calculator:");
+
+   winwid = (Nx + Nseg - 1) / Nseg; // *want* int div here! segments
+                                    // share one point
+   if( winwid < MIN_WID_PTS )
+      ERROR_exit("Hey! Make fewer/larger windows! "
+                 "Too few points in the Welch win (only %d pts)", 
+                 winwid);
+
+   hwin0 = winwid / 2;              // again, int div
+   INFO_message("Window width = %d; half-offset = %d", 
+                winwid, hwin0);
+   //Nx_eff = winwid * Nseg;
+
+   for( i=0 ; i<Nseg ; i++ ) {
+      ii = 2*i;
+      WInfo[ii][0] = i*(winwid-1);
+      WInfo[ii][1] = winwid;            // total number of points in wid,
+      if(i < Nseg-1) { // all but last
+         WInfo[ii+1][0] = hwin0  + i*(winwid-1);
+         WInfo[ii+1][1] = winwid;
+      }
+   }
+   for( i=0 ; i<Nwin ; i++ ) {
+      WDt[i] = xpts[WInfo[i][0]+WInfo[i][1]-1] - xpts[WInfo[i][0]];
+      INFO_message("[%d, %d] \t-> [%.2f, %.2f] \t-> delta t = %.2f",
+                   WInfo[i][0],
+                   WInfo[i][0]+WInfo[i][1]-1, 
+                   xpts[WInfo[i][0]],
+                   xpts[WInfo[i][0]+WInfo[i][1]-1],
+                   i,
+                   WDt[i]);
+   }
+   //INFO_message("CHECK!\n\n Nwin = %d,  Nseg = %d", 
+   //             Nwin, Nseg);
+   INFO_message("Total number of points = %d"
+                "\n\t -> goes to %d when assigning windows", 
+                Nx, WInfo[Nwin-1][0]+WInfo[Nwin-1][1]);
+}
+
+
+
+// -------------------->------------->---------->------------>--------
 
 // FFT using GSL's "Radix-2 FFT routines for real data."  This assumes
 // that wk1[] and wk2[] are 2^m (m in int) arrays.  Works in place.
@@ -13,7 +105,7 @@
   Fortran description in Press & Rybicki (1989)...
 
   ... except with the FFT implementation: for this, using GSL's
-  "Radix-2 FFT routines for real data."  This assumes // that wk1[]
+  "Radix-2 FFT routines for real data."  This assumes that wk1[]
   and wk2[] are 2^m (m in int) arrays.  Works in place.
 */
 
@@ -49,8 +141,11 @@ void PR89_suppl_calc_Ns( int N, float ofac, float hifac,
 // GSL for the FFT.  Other differences from PR89, due to different
 // functions being used, are noted below.  Some extra features are
 // added to control output format (normalizing and/or amplitudizing).
-void PR89_fasper( float *x, float *y, int N,
-                  float ofac, float hifac,
+// if winvec==NULL, then don't window; else, window
+void PR89_fasper( float *x, 
+                  float *y, int N,
+                  float *ywin, float *winvec,
+                  float ofac, 
                   double *wk1, double *wk2, int Nwk, 
                   int Nout, int *jmax, float *prob,
                   int DO_NORM, int DO_AMP)
@@ -76,6 +171,13 @@ void PR89_fasper( float *x, float *y, int N,
 
    PR89_suppl_avevar(y, N, &AVE, &VAR);
   
+   for( j=1 ; j<=N ; j++ ) 
+      ywin[j] = y[j] - AVE; // demean
+   // ! windowing
+   if(winvec)
+      for( j=1 ; j<=N ; j++ ) 
+         ywin[j]*=winvec[j];
+
    xmin = x[1];
    xmax = xmin;
 
@@ -90,13 +192,13 @@ void PR89_fasper( float *x, float *y, int N,
    // empty the workspaces
    for( j=1 ; j<=Ndim ; j++ ) 
       wk1[j] = wk2[j] = 0.;
-  
+
    FAC = Ndim/(xdif*ofac);
    FNDIM = Ndim;
    for( j=1 ; j<=N ; j++ ) {
       Ck = 1. + PR89_AMOD((x[j]-xmin)*FAC, FNDIM);
       Ckk = 1. + PR89_AMOD(2.*(Ck-1.), FNDIM);
-      PR89_spread(y[j]-AVE, wk1, Ndim, Ck, MACC);
+      PR89_spread(ywin[j], wk1, Ndim, Ck, MACC); 
       PR89_spread(1., wk2, Ndim, Ckk, MACC);
    }
 
@@ -106,6 +208,7 @@ void PR89_fasper( float *x, float *y, int N,
    mm = gsl_fft_real_radix2_transform(wk2+1, 1, Ndim);
 
    DF = 1./(xdif*ofac);
+   //INFO_message("DF: %f     Nout = %d",DF,Nout);
 
    for( j=1 ; j<=Nout ; j++ ) {
       // for imag parts-- different criterion than in PR89, because
@@ -183,7 +286,7 @@ void PR89_suppl_avevar(float *x, int N, float *AVE, float *VAR)
   
    if( N < 2 ) {
       ERROR_exit("Too few points in the time series! Need at *least* 2!");
-      exit(984);
+      exit(211);
    }
 
    for( i=1 ; i<=N ; i++ ) {
@@ -210,7 +313,7 @@ void PR89_spread(float y, double *YY, int N, float x, int M)
 
    if(M>10) {
       ERROR_exit("factorial table is too small in PR89_spread.");
-      exit(518);
+      exit(18);
    }
 
    ix = (int) x;
