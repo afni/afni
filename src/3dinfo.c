@@ -909,7 +909,11 @@ int main( int argc , char *argv[] )
                break;
             }
          case TR:
+#if 0
             fprintf(stdout,"%f", DSET_TR_SEC(dset));
+#else
+            fprintf(stdout,"%f", DSET_TR(dset));
+#endif
             break;
          case ORIENT:
             {
