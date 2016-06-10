@@ -66,17 +66,18 @@ void usage_LombScargle(int detail)
 "      2) PREFIX_freq.1D  :a 1D file of the frequency sample points (in units\n"
 "                          of 1/seconds) of the output periodogram/spectrum\n"
 "                          data set.\n"
-"      3) PREFIX+orig     :volumetric data set containing a LS periodogram\n"
+"      3) PREFIX_LS+orig  :volumetric data set containing a LS periodogram\n"
 "                          (normalized magnitude spectrum), one per voxel;\n"
 "                          you can also output the spectrum of amplitudes,\n"
-"                          instead, if desired.\n"
+"                          instead, if desired (see '-out_spectr_amp',\n"
+"                          below).\n"
 "\n"
 "* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n"
 "\n"
 "  + COMMAND:  3dLombScargle -prefix PREFIX -inset FILE {-in_censor1D CC}\\\n"
-"                  {-mask MASK} {-do_no_normize} {-out_spectr_amp} \n"
+"                  {-mask MASK} {-do_normize} {-out_spectr_amp} \n"
 "                  {-in_upsamp N1} {-in_mult_nyq N2} {-welch_win NW} \n"
-"                  {-taper_off } \n"
+"                  {-taper_off } {-nifti}\n"
 "\n"
 "* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n"
 "\n"
@@ -95,21 +96,23 @@ void usage_LombScargle(int detail)
 "                    produce a zero-spectrum.\n"
 "  -welch_win NW    :use Welch windowing method to estimate the spectrum; the\n"
 "                    frequency output is essentially smoothed, but the peaks\n"
-"                    should be better estimates (smaller variance). The actual\n"
-"                    number of windows used is 2*NW - 1, as the windows will\n"
-"                    overlap by ~50%%. By default, NW=1; also by default, each\n"
-"                    window (even if NW=1) is tapered, currently using a Hann\n"
-"                    function.\n" 
+"                    should be better estimates (smaller variance). The \n"
+"                    actual number of windows used is 2*NW - 1, as the \n"
+"                    windows will overlap by ~50%%. By default, NW=1; also \n"
+"                    by default, each window (even if NW=1) is tapered, \n"
+"                    currently using a Hann function.\n" 
 "  -taper_off       :turn off tapering (for any number of windows, >=1). In \n"
 "                    general, the tapering should/does reduce aliasing and\n"
 "                    possibly spurious higher frequencies (or so they say!),\n"
 "                    so turn this off at your own imminent peril.\n"
 "\n"
-"  -do_not_normize  :switch to output the non-variance-normalized periodogram\n"
-"                    or amplitude spectrum (default is to normalize).\n"
-"                    For a time series with variance V, a normalized\n"
-"                    periodogram value Pn is related to a non-normalized\n"
-"                    value P0 as:\n"
+"  -do_normize      :switch to output the variance-normalized periodogram\n"
+"                    or amplitude spectrum (default is *not* to normalize,\n"
+"                    because you should probably have processed/afni_proc'ed\n"
+"                    your FMRI data to be nice units of percent-signal change\n"
+"                    already...). For a time series with variance V, a \n"
+"                    normalized periodogram value Pn is related to a non-\n"
+"                    normalized value P0 as:\n"
 "                    Pn = P0/V.\n"
 "  -out_spectr_amp  :switch to output the amplitude spectrum of the freqs\n"
 "                    instead of the periodogram.  In the formulation used\n"
@@ -128,11 +131,16 @@ void usage_LombScargle(int detail)
 "                    occured. (This makes it easier to compare L-S spectra\n"
 "                    across a group with the same scan protocol, even if\n"
 "                    there are slight differences in censoring, per subject.)\n"
-"                    Acceptable values are >0.\n"
+"                    Acceptable values are >0. (For those reading the \n"
+"                    algorithm papers, this sets the 'hifac' parameter.)\n"
 "  -in_upsamp N1    :During the extirpolation process, one can upsample\n"
 "                    a bit.  If you are really interested in changing this,\n"
 "                    check out the above-cited works for more info. Default\n"
-"                    is N1=1.\n"
+"                    is N1=1. (For those reading the algorithm papers, this\n"
+"                    sets the 'ofac' parameter.)\n"
+"  -nifti           :switch to output *.nii.gz volume file\n"
+"                    (default format is BRIK/HEAD).\n"
+
 "\n"
 "* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n"
 "\n"
@@ -199,7 +207,7 @@ int main(int argc, char *argv[]) {
    //int DEMEAN_TS = 0;
    //float ts_mean;
 
-   int DO_NORMALIZE = 1;      // default is to normalize spectrum
+   int DO_NORMALIZE = 0;      // default is to normalize spectrum
                               // output
    int DO_AMPLITUDEIZE = 0;   // default is to output periodogram
 
@@ -212,6 +220,7 @@ int main(int argc, char *argv[]) {
    int **WinInfo=NULL;
    float *WinDelT=NULL, *WinVec=NULL;
    int DO_TAPER = 1;
+   int NIFTI_OUT=0;
    //   int mk_info=1;
 
    mainENTRY("3dLombScargle"); machdep(); 
@@ -262,7 +271,7 @@ int main(int argc, char *argv[]) {
          Nvox = DSET_NVOX(insetTIME) ;
          Dim[0] = DSET_NX(insetTIME); Dim[1] = DSET_NY(insetTIME); 
          Dim[2] = DSET_NZ(insetTIME); Dim[3]= DSET_NVALS(insetTIME); 
-         sampleTR = DSET_TR_SEC(insetTIME);
+         sampleTR = DSET_TR(insetTIME);
       
          INFO_message("TR in MR volume appears to be: %f s", sampleTR);
 
@@ -330,9 +339,9 @@ int main(int argc, char *argv[]) {
          iarg++ ; continue ;
       }
 
-      if( strcmp(argv[iarg],"-do_not_normize") == 0) {
+      if( strcmp(argv[iarg],"-do_normize") == 0) {
          INFO_message("Will normalize output");
-			DO_NORMALIZE=0;
+			DO_NORMALIZE=1;
 			iarg++ ; continue ;
 		}
 
@@ -348,11 +357,18 @@ int main(int argc, char *argv[]) {
 			iarg++ ; continue ;
 		}
 
+      if( strcmp(argv[iarg],"-nifti") == 0) {
+         NIFTI_OUT=1;
+         iarg++ ; continue ;
+      }
+
       ERROR_message("Bad option '%s'\n",argv[iarg]) ;
       suggest_best_prog_option(argv[0], argv[iarg]);
       exit(1);
    }
-	
+
+   // -------------------------------------------------------------
+
    // TEST BASIC INPUT PROPERTIES
    if (iarg < 3) {
       ERROR_message("Too few options. Try -help for details.\n");
@@ -545,7 +561,7 @@ int main(int argc, char *argv[]) {
    }
    delF = 1.0/((Dim[3]-1)*sampleTR*my_ofac);  // want this const across
                                           // group and across windows
-   INFO_message("Total Ntpts=%d,  TR=%.3f, my_ofac=%.3f", 
+   INFO_message("Total Ntpts=%d,  TR=%.4f, my_ofac=%.4f", 
                 Dim[3], sampleTR, my_ofac);
    INFO_message("Frequency unit: Delta f = %e", delF);
 
@@ -749,16 +765,21 @@ int main(int argc, char *argv[]) {
 
    // for output data set
    outset_LS = EDIT_empty_copy( inset0 ) ; 
-   sprintf(outset_name,"%s_LS",prefix); 
+   if( NIFTI_OUT )
+      sprintf(outset_name,"%s_LS.nii.gz",prefix); 
+   else
+      sprintf(outset_name,"%s_LS",prefix); 
+
    EDIT_add_bricklist( outset_LS,
                        Npts_out-1, NULL , NULL , NULL );
 
    EDIT_dset_items( outset_LS,
                     ADN_datum_all , MRI_float , 
                     ADN_ntt   , Npts_out, 
+                    ADN_ttorg , delF ,
                     ADN_ttdel , delF ,
                     ADN_tunits, UNITS_HZ_TYPE,
-                    ADN_prefix    , outset_name ,
+                    ADN_prefix, outset_name ,
                     ADN_none ) ;
    if( !THD_ok_overwrite() && THD_is_ondisk(DSET_HEADNAME(outset_LS)) )
       ERROR_exit("Can't overwrite existing dataset '%s'",
@@ -774,7 +795,7 @@ int main(int argc, char *argv[]) {
    tross_Make_History("3dLombScargle", argc, argv, outset_LS);
    THD_write_3dim_dataset(NULL, NULL, outset_LS, True);
   
-   INFO_message("Done writing data file, prefix: %s", prefix);
+   INFO_message("Done writing spectral vol file: %s", outset_name);
 
 
    // ************************************************************
