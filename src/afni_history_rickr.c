@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 10,  Jun, 2016, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
+   "add -blip_reverse_dset for blip up/blip down distortion correction",
+   NULL
+ } ,
+
  {  2,  Jun, 2016, RCR, "afni-general", MINOR, TYPE_ENHANCE,
    "w/dglen: read num slices from Siemens 3D acquisition DICOM image files",
    NULL
