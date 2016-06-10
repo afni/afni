@@ -29,6 +29,19 @@
 #define Nov 11
 #define Dec 12
 
+#define January   1
+#define February  2
+#define March     3
+#define April     4
+#define June      6
+#define July      7
+#define August    8
+#define Sept      9
+#define September 9
+#define October  10
+#define November 11
+#define December 12
+
 #define RWC "RW Cox"
 #define ZSS "ZS Saad"
 #define PT  "P Taylor"
