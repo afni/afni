@@ -2124,7 +2124,23 @@ void AFNI_sigfunc_alrm(int sig)
      "  look for more data, think harder, mumble inaudibly, or have a strong drink"           ,
 
      "\n  To be stupid, selfish, and have good health are three requirements\n"
-     "  for happiness; though if stupidity is lacking, all is lost"
+     "  for happiness; though if stupidity is lacking, all is lost"                           ,
+
+     "\n xkcd's translation of p-values into words:\n"
+     "     0.001  = Highly significant\n"
+     "     0.01   = Highly significant\n"
+     "     0.02   = Highly significant\n"
+     "     0.03   = Highly significant\n"
+     "     0.04   = Significant\n"
+     "     0.049  = Significant\n"
+     "     0.050  = Oh cr*p, redo calculations\n"
+     "     0.051  = On the edge of significance\n"
+     "     0.06   = On the edge of significance\n"
+     "     0.07   = Highly suggestive\n"
+     "     0.08   = Highly suggestive\n"
+     "     0.09   = Significant at the p < 0.1 level\n"
+     "     0.099  = Significant at the p < 0.1 level\n"
+     "     > 0.1  = Hey! Look at this interesting subgroup analysis"
    } ;
 #undef NTOP
 #ifdef USE_SONNETS
