@@ -100,7 +100,7 @@ void usage_LombScargle(int detail)
 "                    actual number of windows used is 2*NW - 1, as the \n"
 "                    windows will overlap by ~50%%. By default, NW=1; also \n"
 "                    by default, each window (even if NW=1) is tapered, \n"
-"                    currently using a Hann function.\n" 
+"                    currently using a (L2-normed) Hann function.\n" 
 "  -taper_off       :turn off tapering (for any number of windows, >=1). In \n"
 "                    general, the tapering should/does reduce aliasing and\n"
 "                    possibly spurious higher frequencies (or so they say!),\n"
