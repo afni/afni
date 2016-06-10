@@ -66,9 +66,9 @@ ENTRY("mri_medianfilter") ;
    nx = imin->nx ; ny = imin->ny ; nz = imin->nz ; nxy = nx*ny ;
 
    if( verb ){
-     fprintf(stderr," + median filter mask=%d",nd) ;
+     ININFO_message(" Median filter mask has %d voxels",nd) ;
      if( mask != NULL )
-       fprintf(stderr," Data mask=%d",THD_countmask(nxy*nz,mask)) ;
+       ININFO_message(" Data mask has %d voxels",THD_countmask(nxy*nz,mask)) ;
    }
 
    imout = mri_new_conforming( imin , MRI_float ) ;
@@ -82,7 +82,10 @@ ENTRY("mri_medianfilter") ;
      case MRI_byte :  bin = (byte  *)vin ; break ;
    }
 
-   if( verb ){ kd = (int)rint(0.03*nz); if( kd < 1 ) kd = 1; }
+   if( verb ){
+     kd = (int)rint(0.03*nz); if( kd < 1 ) kd = 1;
+     fprintf(stderr," + Median filter loop") ;
+   }
 
    for( kk=0 ; kk < nz ; kk++ ){
     if( verb && kk%kd == 0 ) fprintf(stderr,".") ;

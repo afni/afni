@@ -98,7 +98,7 @@ PROGRAMS = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge count   
            column_cat 3dUnifize 3dNwarpCat 3dQwarp 3dLocalHistog 3dNwarpAdjust  \
            3dNwarpFuncs 3dTproject afni_open 3dConformist 3dNwarpXYZ 3dTRfix    \
            3dToyProg 3dRankizer nifti1_tool gifti_tool cifti_tool images_equal  \
-           uniq_images tokens                                                   \
+           uniq_images tokens 3dLocalACF                                        \
            $(EXTRAS)
 
 PROGRAMS_NOPLUG = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge      \
@@ -135,7 +135,7 @@ PROGRAMS_NOPLUG = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge  
                   3dUnifize 3dNwarpCat 3dQwarp 3dLocalHistog 3dNwarpAdjust 3dTRfix  \
                   3dNwarpFuncs 3dTproject  afni_open   3dConformist 3dNwarpXYZ      \
                   3dToyProg nifti1_tool gifti_tool cifti_tool images_equal          \
-                  uniq_images stimband 1dNLfit tokens                               \
+                  uniq_images stimband 1dNLfit tokens 3dLocalACF                    \
                   $(EXTRAS)
 
 # For CYGWIN (look for "exe" to find various places below)
@@ -1349,11 +1349,11 @@ AlphaSim:AlphaSim.o
 	$(RM) $@
 	$(CCOMP) -o 3dAllineate 3dAllineate.o $(LFLAGS) $(LLIBS)
 
-3dQwarp:3dQwarp.o mri_genalign.c mri_genalign_util.c mri_nwarp.c thd_incorrelate.c
+3dQwarp:3dQwarp.o
 	$(RM) $@
 	$(CCOMP) -o 3dQwarp 3dQwarp.o $(LFLAGS) $(LLIBS)
 
-3dQwarp.o:3dQwarp.c mri_genalign.c mri_genalign_util.c thd_incorrelate.c mri_nwarp.c
+3dQwarp.o:3dQwarp.c mri_genalign.c mri_genalign_util.c thd_incorrelate.c mri_nwarp.c powell_int.c powell_newuoa.c
 	$(RM) $@
 	$(CCOMP) -c 3dQwarp.c $(INFLAGS)
 
@@ -1388,6 +1388,14 @@ AlphaSim:AlphaSim.o
 3dNwarpCalc:3dNwarpCalc.o
 	$(RM) $@
 	$(CCOMP) -o 3dNwarpCalc 3dNwarpCalc.o $(LFLAGS) $(LLIBS)
+
+3dLocalACF.o:3dLocalACF.c powell_int.c powell_newuoa.c
+	$(RM) $@
+	$(CCOMP) -c 3dLocalACF.c $(INFLAGS)
+
+3dLocalACF:3dLocalACF.o
+	$(RM) $@
+	$(CCOMP) -o 3dLocalACF 3dLocalACF.o $(LFLAGS) $(LLIBS)
 
 3dRBFdset:3dRBFdset.o mri_rbfinterp.o
 	$(RM) $@
