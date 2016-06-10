@@ -975,12 +975,15 @@ def test_truncation(top=10.0, bot=0.1, bits=3, e=0.0000001):
         print val, ' -> ', trunc
         val = trunc - e
     
-def get_dset_reps_tr(dset, verb=1):
+def get_dset_reps_tr(dset, notr=0, verb=1):
     """given an AFNI dataset, return err, reps, tr
+
+       if notr: do not worry about any TR failure
 
        err  = error code (0 = success, else failure)
        reps = number of TRs in the dataset
-       tr   = length of TR, in seconds"""
+       tr   = length of TR, in seconds
+    """
 
     # store timing info in a list (to get reps and timing units)
     tinfo = BASE.read_attribute(dset, 'TAXIS_NUMS')
@@ -1005,11 +1008,16 @@ def get_dset_reps_tr(dset, verb=1):
     # now read the TR (and apply previous units)
     tinfo = BASE.read_attribute(dset, 'TAXIS_FLOATS')
     if tinfo == None:
-        print "** failed to find the TR length from dset '%s'" % dset
-        return 1, None, None
+        # if we do not care, return tr == 1.0
+        if notr:
+           if verb > 1: print "** setting missing TR to 1 for '%s'" % dset
+           tinfo = [0, 1]
+        else:
+           print "** failed to find the TR length from dset '%s'" % dset
+           return 1, None, None
     try: tr = float(tinfo[1])
     except:
-        print "** TR '%s' is not a float?" % tinfo[0]
+        print "** TR '%s' is not a float?" % tinfo[1]
         return 1, None, None
 
     if verb > 1:
