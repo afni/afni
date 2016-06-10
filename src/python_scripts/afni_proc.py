@@ -504,9 +504,10 @@ g_history = """
     4.59 Apr 27, 2016: always extract volreg base image vr_base*
     4.60 May  3, 2016: suggest -regress_est_blur_epits for resting state
     4.61 May 31, 2016: better -regress_anaticor warnings if no label
+    4.62 Jun 10, 2016: added -blip_reverse_dset for blip up/down correction
 """
 
-g_version = "version 4.61, May 31, 2016"
+g_version = "version 4.62, June 10, 2016"
 
 # version of AFNI required for script execution
 # prev: g_requires_afni =  "1 Apr 2015" # 1d_tool.py uncensor from 1D
@@ -515,6 +516,10 @@ g_version = "version 4.61, May 31, 2016"
 g_requires_afni = "28 Oct 2015" # 3ddot -dodice
 
 g_todo_str = """todo:
+  - blip correction:
+     - pass warp result dset(s)
+     - pass alternate forward warp data
+     - option to use forward warped median as volreg base
   - add option to block anat from anat followers?
   - add AP test for varying remove_first_trs
   - add -4095_check and -4095_ok options?
