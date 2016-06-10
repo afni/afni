@@ -67,7 +67,7 @@ afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
 
-{ 9, June , 2016 , PT , "3dLombScargle" , MAJOR , TYPE_MODIFY,
+{ 9, Jun , 2016 , PT , "3dLombScargle" , MAJOR , TYPE_MODIFY,
    "Revamped LS program-- AGAIN-- now has Welch windows+tapers.",
    "Several new options added (related to windows/tapers).\n"
 },
