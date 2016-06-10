@@ -425,7 +425,7 @@ g_history = """
           when run lengths vary
     4.21 Sep 08, 2014: grid dimensions are now rounded to 6 significant
           bits before being truncated to 3
-    4.22 Nov 07, 2014: shift -affter warp to -warp for -tlrc_NLwarp
+    4.22 Nov 07, 2014: shift -affter warp to -warp for -tlrc_NL_warp
         - requires 3dNwarpApply from Nov 7 or later
     4.23 Nov 21, 2014:
         - changed -anat_uniform_method none to mean no correction at all
@@ -961,7 +961,7 @@ class SubjProcSream:
         self.valid_opts.add_opt('-tlrc_NL_warp', 0, [],
                         helpstr='use non-linear warping to template')
         self.valid_opts.add_opt('-tlrc_NL_warped_dsets', 3, [],
-                        helpstr='pass dsets that have already been NLwarped')
+                        helpstr='pass dsets that have already been NL_warped')
         self.valid_opts.add_opt('-tlrc_no_ss', 0, [],
                         helpstr='do not skull-strip during @auto_tlrc')
         self.valid_opts.add_opt('-tlrc_rmode', 1, [],
@@ -2239,7 +2239,7 @@ class SubjProcSream:
            bstr += tstr
 
         if isinstance(self.blip_in_warp, afni_name):
-           self.blip_dset_warp = afni_name('blip_NLwarp', view=self.view)
+           self.blip_dset_warp = afni_name('blip_NL_warp', view=self.view)
            tstr = '# copy external blip NL warp (transformation) dataset\n' \
                   '3dcopy %s %s/%s\n' %                                     \
                   (self.blip_in_warp.rel_input(), self.od_var,
