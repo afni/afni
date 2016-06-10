@@ -425,7 +425,7 @@ g_history = """
           when run lengths vary
     4.21 Sep 08, 2014: grid dimensions are now rounded to 6 significant
           bits before being truncated to 3
-    4.22 Nov 07, 2014: shift -affter warp to -warp for -tlrc_NLwarp
+    4.22 Nov 07, 2014: shift -affter warp to -warp for -tlrc_NL_warp
         - requires 3dNwarpApply from Nov 7 or later
     4.23 Nov 21, 2014:
         - changed -anat_uniform_method none to mean no correction at all
@@ -539,12 +539,13 @@ g_todo_str = """todo:
 # ----------------------------------------------------------------------
 # dictionary of block types and modification functions
 
-BlockLabels  = ['tcat', 'postdata', 'despike', 'ricor', 'tshift', 'align',
-                'volreg', 'motsim', 'surf', 'blur', 'mask', 'scale', 'regress',
-                'tlrc', 'empty']
+BlockLabels  = ['tcat', 'postdata', 'despike', 'ricor', 'tshift', 'blip',
+                'align', 'volreg', 'motsim', 'surf', 'blur', 'mask', 'scale',
+                'regress', 'tlrc', 'empty']
 BlockModFunc  = {'tcat'   : db_mod_tcat,     'postdata' : db_mod_postdata,
                  'despike': db_mod_despike,
                  'ricor'  : db_mod_ricor,    'tshift' : db_mod_tshift,
+                 'blip'   : db_mod_blip,
                  'align'  : db_mod_align,    'volreg' : db_mod_volreg,
                  'motsim' : db_mod_motsim,
                  'surf'   : db_mod_surf,     'blur'   : db_mod_blur,
@@ -554,6 +555,7 @@ BlockModFunc  = {'tcat'   : db_mod_tcat,     'postdata' : db_mod_postdata,
 BlockCmdFunc  = {'tcat'   : db_cmd_tcat,     'postdata' : db_cmd_postdata,
                  'despike': db_cmd_despike,
                  'ricor'  : db_cmd_ricor,    'tshift' : db_cmd_tshift,
+                 'blip'   : db_cmd_blip,
                  'align'  : db_cmd_align,    'volreg' : db_cmd_volreg,
                  'motsim' : db_cmd_motsim,
                  'surf'   : db_cmd_surf,     'blur'   : db_cmd_blur,
@@ -597,6 +599,14 @@ class SubjProcSream:
         self.extra_stims      = []      # extra -stim_file list
         self.extra_labs       = []      # labels for extra -stim_file list
 
+        # blip variables
+        self.blip_in_rev  = None        # afni_name: input: reverse blip
+        self.blip_in_med  = None        # afni_name: input: blip align median
+        self.blip_in_warp = None        # afni_name: input: blip NL warp dset
+        self.blip_dset_rev  = None      # afni_name: local blip_in_rev dset
+        self.blip_dset_med  = None      # afni_name: result: blip align median
+        self.blip_dset_warp = None      # afni_name: result: blip NL warp dset
+
         self.vr_ext_base= None          # name of external volreg base 
         self.vr_ext_pre = 'external_volreg_base' # copied volreg base prefix
         self.vr_int_name= ''            # other internal volreg dset name
@@ -617,7 +627,7 @@ class SubjProcSream:
         self.mot_demean = ''            # from demeaned motion file
         self.mot_deriv  = ''            # motion derivatives
         self.mot_enorm  = ''            # euclidean norm of derivatives
-        self.mot_simset = None          # motion simulation dset (afni_name) ANTIQUATE
+        self.mot_simset = None  # ANTIQUATE: motion simulation dset (afni_name)
         self.motsim_dsets = {}          # dictionary of mstype:afni_name
 
         self.mot_cen_lim= 0             # motion censor limit, if applied
@@ -928,6 +938,9 @@ class SubjProcSream:
         self.valid_opts.add_opt('-tshift_opts_ts', -1, [],
                         helpstr='additional options directly for 3dTshift')
 
+        self.valid_opts.add_opt('-blip_reverse_dset', 1, [],
+                        helpstr='input dataset for blip up/down corretion')
+
         self.valid_opts.add_opt('-align_epi_ext_dset', 1, [],
                         helpstr='external EPI volume for align_epi_anat.py')
         self.valid_opts.add_opt('-align_opts_aea', -1, [],
@@ -948,7 +961,7 @@ class SubjProcSream:
         self.valid_opts.add_opt('-tlrc_NL_warp', 0, [],
                         helpstr='use non-linear warping to template')
         self.valid_opts.add_opt('-tlrc_NL_warped_dsets', 3, [],
-                        helpstr='pass dsets that have already been NLwarped')
+                        helpstr='pass dsets that have already been NL_warped')
         self.valid_opts.add_opt('-tlrc_no_ss', 0, [],
                         helpstr='do not skull-strip during @auto_tlrc')
         self.valid_opts.add_opt('-tlrc_rmode', 1, [],
@@ -1456,6 +1469,12 @@ class SubjProcSream:
            err, blocks = self.add_block_after_label(blocks, 'motsim', 'volreg')
            if err: return 1
 
+        # do we want the blip block?
+        # rcr - also check -blip_align_dsets
+        if self.user_opts.find_opt('-blip_reverse_dset'):
+           err, blocks = self.add_block_to_list(blocks, 'blip')
+           if err: return 1
+
         # if user has supplied options for blocks that are not used, fail
         if self.opts_include_unused_blocks(blocks, 1): return 1
 
@@ -1515,29 +1534,29 @@ class SubjProcSream:
 
         return 0
 
-    def add_block_to_list(self, blocks, bname, adj=None, dir=0):
+    def add_block_to_list(self, blocks, bname, adj=None, direct=0):
         """given current block list, add a block for bname after that
            of prevlab or from OtherDefLabels if None
 
                 blocks : current list of block labels
                 bname  : label of block to insert
                 adj    : name of adjacent block (if None, try to decide)
-                dir    : if adj, dir is direction of bname to adj
+                direct : if adj, direct is direction of bname to adj
                          (-1 : bname is before, 1: bname is after)
            
            return error code and new list"""
 
         # if we are not given an adjacent block, try to find one
         if not adj:
-            dir, adj = self.find_best_block_posn(blocks, bname)
-            if not dir: return 1, blocks
+            direct, adj = self.find_best_block_posn(blocks, bname)
+            if not direct: return 1, blocks
 
         # good cases
-        if dir < 0: return self.add_block_before_label(blocks, bname, adj)
-        if dir > 0: return self.add_block_after_label(blocks, bname, adj)
+        if direct < 0: return self.add_block_before_label(blocks, bname, adj)
+        if direct > 0: return self.add_block_after_label(blocks, bname, adj)
 
         # failure
-        print "** ABTL: have adj=%s but no dir" % adj
+        print "** ABTL: have adj=%s but no direct" % adj
         return 1, blocks
 
 
@@ -1576,6 +1595,33 @@ class SubjProcSream:
             if ind >= 0: return 1, 'align'      # after align
             return 1, blocks[-1]                # stick it at the end
 
+        if bname == 'blip':
+            try: vind = blocks.index('volreg')
+            except: vind = -1
+            try: aind = blocks.index('align')
+            except: aind = -1
+            try: tind = blocks.index('tlrc')
+            except: tind = -1
+
+            # if volreg, put before first of align, tlrc, volreg
+            if vind >= 0:
+               if aind >= 0:
+                  if vind > aind: return -1, 'align'    # before align
+                  else:           return -1, 'volreg'   # before volreg
+               if tind >= 0 and vind > tind: return -1, 'tlrc' 
+               return -1, 'volreg'                      # before volreg
+
+            # so no volreg
+
+            if aind >= 0: return -1, 'align'    # before align
+            if tind >= 0: return -1, 'tlrc'     # before tlrc
+
+            # work our way back
+            if self.find.block('tshift'):  return 1, 'tshift'
+            if self.find.block('ricor'):   return 1, 'ricor'
+            if self.find.block('despike'): return 1, 'despike'
+
+            return 1, 'tcat'
 
         # if those didn't apply, go with the OtherDefLabels array
 
@@ -1737,14 +1783,14 @@ class SubjProcSream:
         # (use rpve to include NIfTI, etc.)
         dset = self.dsets[0].rpve()
 
-        err, self.reps, self.tr = get_dset_reps_tr(dset, self.verb)
+        err, self.reps, self.tr = get_dset_reps_tr(dset, verb=self.verb)
         if err: return 1   # check for failure
 
         # set reps in each run
         self.reps_all = []
         self.reps_vary = 0
         for dr in self.dsets:
-            err, reps, tr = get_dset_reps_tr(dr.rpve(), self.verb)
+            err, reps, tr = get_dset_reps_tr(dr.rpve(), verb=self.verb)
             if err: return 1
             self.reps_all.append(reps)
             if reps != self.reps: self.reps_vary = 1
@@ -2145,7 +2191,7 @@ class SubjProcSream:
            self.write_text(add_line_wrappers(tstr))
            self.write_text("%s\n" % stat_inc)
 
-        # copy and -tlrc_NL_warped_dsets files (self.nlw_priors dsets)
+        # copy any -tlrc_NL_warped_dsets files (self.nlw_priors dsets)
         if len(self.nlw_priors) == 3:
            tstr = '# copy external -tlrc_NL_warped_dsets datasets\n'
 
@@ -2165,6 +2211,46 @@ class SubjProcSream:
 
            self.write_text(add_line_wrappers(tstr))
            self.write_text("%s\n" % stat_inc)
+
+        # ------------------------------------------------------------------
+        # copy any -blip datasets (convert to AFNI)
+        #
+        # input  datasets are blip_in_*
+        # output datasets are blip_dset_*
+
+        bstr = ''
+        if isinstance(self.blip_in_rev, afni_name):
+           self.blip_dset_rev = afni_name('blip_reverse', view=self.view)
+           tstr = '# copy external -blip_reverse_dset dataset\n' \
+                  '3dTcat -prefix %s/%s %s\n' %                  \
+                  (self.od_var, self.blip_dset_rev.prefix,
+                  self.blip_in_rev.rel_input(sel=1))
+           bstr += tstr
+
+        if isinstance(self.blip_in_med, afni_name):
+           if self.blip_in_med.prefix == 'NONE':
+              tstr = "# median dset is 'NONE', skipping...\n"
+           else:
+              self.blip_dset_med = afni_name('blip_median_base',view=self.view)
+              tstr = '# copy external blip median warped dataset\n' \
+                     '3dcopy %s %s/%s\n' %                          \
+                     (self.blip_in_med.rel_input(), self.od_var,
+                     self.blip_dset_med.prefix)
+           bstr += tstr
+
+        if isinstance(self.blip_in_warp, afni_name):
+           self.blip_dset_warp = afni_name('blip_NL_warp', view=self.view)
+           tstr = '# copy external blip NL warp (transformation) dataset\n' \
+                  '3dcopy %s %s/%s\n' %                                     \
+                  (self.blip_in_warp.rel_input(), self.od_var,
+                  self.blip_dset_warp.prefix)
+           bstr += tstr
+
+        if bstr != '':
+           self.write_text(add_line_wrappers(bstr))
+           self.write_text("%s\n" % stat_inc)
+
+        # ------------------------------------------------------------------
 
         opt = self.user_opts.find_opt('-copy_files')
         if opt and len(opt.parlist) > 0:
