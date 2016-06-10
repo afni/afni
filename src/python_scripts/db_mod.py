@@ -589,6 +589,26 @@ def db_cmd_blip(proc, block):
           % (medf.out_prefix(), forwdset, nt-1,
              medr.out_prefix(), proc.blip_dset_rev.shortinput())
    
+   mmedf = medf.new(new_pref='rm.blip.med.masked.fwd')
+   mmedr = medr.new(new_pref='rm.blip.med.masked.rev')
+   cmd += '# automask the median datasets \n'           \
+          '3dAutomask -apply_prefix %s %s\n'            \
+          '3dAutomask -apply_prefix %s %s\n\n'          \
+          % (mmedf.out_prefix(), medf.shortinput(),
+             mmedr.out_prefix(), medf.shortinput())
+
+   # -source is reverse, -base is forward (but does not matter, of course)
+   proc.blip_dset_warp = mmedf.new(new_pref='blip_warp')
+   cmd += '# compute the midpoint warp between the median datasets\n' \
+          '3dQwarp -plusminus -pmNAMES Rev For  \\\n'   \
+          '        -pblur 0.05 0.05 -blur -1 -1 \\\n'   \
+          '        -noweight -minpatch 9        \\\n'   \
+          '        -source %s                   \\\n'   \
+          '        -base   %s                   \\\n'   \
+          '        -prefix %s\n\n'                      \
+          % (mmedr.shortinput(), mmedf.shortinput(),
+             proc.blip_dset_warp.out_prefix())
+
    return cmd
 
 
