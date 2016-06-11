@@ -505,9 +505,10 @@ g_history = """
     4.60 May  3, 2016: suggest -regress_est_blur_epits for resting state
     4.61 May 31, 2016: better -regress_anaticor warnings if no label
     4.62 Jun 10, 2016: added -blip_reverse_dset for blip up/down correction
+    4.63 Jun 11, 2016: fixed blip order vs. view update
 """
 
-g_version = "version 4.62, June 10, 2016"
+g_version = "version 4.63, June 11, 2016"
 
 # version of AFNI required for script execution
 # prev: g_requires_afni =  "1 Apr 2015" # 1d_tool.py uncensor from 1D
