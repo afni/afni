@@ -508,9 +508,10 @@ g_history = """
     4.63 Jun 11, 2016: fixed blip order vs. view update
     4.64 Jun 13, 2016: added BLIP_BASE case for -volreg_align_to
         - use warped median forward blip volume as volreg alignment base
+    4.65 Jun 13, 2016: added -align_unifize_epi: unifize EPI before alignment
 """
 
-g_version = "version 4.64, June 13, 2016"
+g_version = "version 4.65, June 13, 2016"
 
 # version of AFNI required for script execution
 # prev: g_requires_afni =  "1 Apr 2015" # 1d_tool.py uncensor from 1D
@@ -520,7 +521,6 @@ g_requires_afni = "28 Oct 2015" # 3ddot -dodice
 
 g_todo_str = """todo:
   - allow for 3dAllineate in place of 3dvolreg: -volreg_use_allineate
-  - align_unifize_epi (3dUnifize -automask)
   - blip correction:
      - pass warp result dset(s)
      - pass alternate forward warp data
@@ -958,6 +958,9 @@ class SubjProcSream:
         self.valid_opts.add_opt('-align_epi_strip_method', 1, [],
                         acplist=['3dSkullStrip','3dAutomask','None'],
                         helpstr="specify method for 'skull stripping' the EPI")
+        self.valid_opts.add_opt('-align_unifize_epi', 1, [],
+                        acplist=['yes','no'],
+                        helpstr='3dUnifize EPI base before passing to aea.py')
 
         self.valid_opts.add_opt('-tlrc_anat', 0, [],
                         helpstr='run @auto_tlrc on anat from -copy_anat')
