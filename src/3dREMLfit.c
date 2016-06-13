@@ -2710,7 +2710,7 @@ STATUS("make GLTs from matrix file") ;
      double dsiz = (double)DSET_TOTALBYTES( inset ) ;
      if( virtu_mrv || (vsiz < 0.9*dsiz && vsiz > 10.0e+6) ){
        if( verb ){
-         INFO_message("Converting dataset to vector image") ;
+         INFO_message("Converting input dataset to vector image") ;
          ININFO_message(" dataset = %s bytes",approximate_number_string(dsiz)) ;
          ININFO_message(" vectim  = %s bytes",approximate_number_string(vsiz)) ;
        }
