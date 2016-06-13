@@ -105,7 +105,7 @@ def db_mod_tcat(block, proc, user_opts):
         try: bopt.parlist = [int(param) for param in uopt.parlist]
         except:
             print "** ERROR: %s: invalid as integers: %s"   \
-                  % (uopt.label, ' '.join(uopt.parlist))
+                  % (uopt.name, ' '.join(uopt.parlist))
             errs += 1
         if errs == 0 and bopt.parlist[0] > 0:
           print                                                              \
@@ -708,6 +708,7 @@ def db_mod_align(block, proc, user_opts):
 
     # maybe adjust EPI skull stripping method
     apply_uopt_to_block('-align_epi_strip_method', user_opts, block)
+    apply_uopt_to_block('-align_unifize_epi', user_opts, block)
 
     block.valid = 1
 
@@ -735,6 +736,16 @@ def db_cmd_align(proc, block):
             print '** warning: will use align base defaults: %d, %d'%(rind,bind)
             # return (allow as success now, for no volreg block)
         basevol = proc.prev_prefix_form(rind+1, block, view=1)
+
+    # should we unifize EPI?  if so, basevol becomes result
+    ucmd = ''
+    if block.opts.have_yes_opt('-align_unifize_epi', default=0):
+       epi_in = BASE.afni_name(basevol)
+       epi_out = epi_in.new(new_pref=('%s_unif' % epi_in.prefix))
+       basevol = epi_out.shortinput()
+       ucmd = '# run uniformity correction on EPI base\n' \
+              '3dUnifize -T2 -input %s -prefix %s\n\n'    \
+              % (epi_in.shortinput(), epi_out.out_prefix())
 
     # check for EPI skull strip method
     opt = block.opts.find_opt('-align_epi_strip_method')
@@ -831,7 +842,7 @@ def db_cmd_align(proc, block):
     # note the alignment in EPIs warp bitmap (2=a2e)
     proc.warp_epi |= WARP_EPI_ALIGN_A2E
 
-    return hdr + cmd
+    return hdr + ucmd + cmd
 
 # --------------- despike ---------------
 
