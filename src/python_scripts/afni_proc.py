@@ -506,9 +506,11 @@ g_history = """
     4.61 May 31, 2016: better -regress_anaticor warnings if no label
     4.62 Jun 10, 2016: added -blip_reverse_dset for blip up/down correction
     4.63 Jun 11, 2016: fixed blip order vs. view update
+    4.64 Jun 13, 2016: added BLIP_BASE case for -volreg_align_to
+        - use warped median forward blip volume as volreg alignment base
 """
 
-g_version = "version 4.63, June 11, 2016"
+g_version = "version 4.64, June 13, 2016"
 
 # version of AFNI required for script execution
 # prev: g_requires_afni =  "1 Apr 2015" # 1d_tool.py uncensor from 1D
@@ -517,6 +519,8 @@ g_version = "version 4.63, June 11, 2016"
 g_requires_afni = "28 Oct 2015" # 3ddot -dodice
 
 g_todo_str = """todo:
+  - allow for 3dAllineate in place of 3dvolreg: -volreg_use_allineate
+  - align_unifize_epi (3dUnifize -automask)
   - blip correction:
      - pass warp result dset(s)
      - pass alternate forward warp data
@@ -978,7 +982,8 @@ class SubjProcSream:
         self.valid_opts.add_opt('-volreg_align_e2a', 0, [],
                         helpstr="align EPI to anatomy (via align block)")
         self.valid_opts.add_opt('-volreg_align_to', 1, [],
-                        acplist=['first','third', 'last', 'MIN_OUTLIER'],
+                        acplist=['first','third', 'last', 'MIN_OUTLIER',
+                                 'BLIP_BASE'],
                         helpstr="align to first, third, last or MIN_OUTILER TR")
         self.valid_opts.add_opt('-volreg_base_dset', 1, [],
                         helpstr='external dataset to use as volreg base')
