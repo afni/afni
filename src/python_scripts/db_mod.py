@@ -246,7 +246,8 @@ def tcat_extract_vr_base(proc):
           if proc.verb > 2:
              print '++ TEVB: updating run/index to %d, %d' % (run, ind)
 
-       set_vr_int_name(block, proc, 'vr_base', '%02d'%run, '"[%d]"'%ind)
+       set_vr_int_name(block, proc, 'vr_base', runstr='%02d'%run,
+                                               trstr='"[%d]"'%ind)
 
     # if we are extracting an internal volreg base (min outlier or index),
     extract_registration_base(block, proc)
@@ -538,6 +539,14 @@ def db_mod_blip(block, proc, user_opts):
    else:
       print '** have blip block without -blip_reverse_dset'
       return
+
+   # check for alignment to median forward blip base
+   val, status = user_opts.get_string_opt('-volreg_align_to')
+   if val == 'BLIP_BASE':
+      # matching the same varible in db_cmd_blip
+      for_prefix = 'blip_med_for'
+      inset = '%s%s' % (for_prefix, proc.view)
+      set_vr_int_name(block, proc, 'vr_base_blip', inset=inset)
 
    # set any, if possible, since they might all come from options
    # proc.blip_rev_dset  = None
@@ -1324,8 +1333,8 @@ def vr_do_min_outlier(block, proc, user_opts):
 
    # let the user know, and init vr vars
    if proc.verb: print "-- will use min outlier volume as motion base"
-   set_vr_int_name(block, proc, 'vr_base_min_outlier', '$minoutrun',
-                                                       '"[$minouttr]"')
+   set_vr_int_name(block, proc, 'vr_base_min_outlier', runstr='$minoutrun',
+                                                       trstr='"[$minouttr]"')
 
    # 2. assign $minout{run,tr}
    pblock = proc.find_block('postdata')
@@ -1344,18 +1353,25 @@ def vr_do_min_outlier(block, proc, user_opts):
       'echo "min outlier: run $minoutrun, TR $minouttr" | tee %s\n\n'   \
       % (proc.vr_ext_pre, outtxt)
 
-def set_vr_int_name(block, proc, prefix='', runstr='', trstr=''):
+def set_vr_int_name(block, proc, prefix='', inset='', runstr='', trstr=''):
    """common usage: svin(b,p, 'vr_base_min_outlier',
                          '$minoutrun', '"[$minouttr]"')
+                or: svin(b,p, 'vr_base', inset='DSET+orig')
    """
 
-   if runstr == '' or prefix == '':
+   if prefix == '' or (inset == '' and runstr == ''):
       print '** SVIN: bad run = %s, prefix = %s' % (runstr, prefix)
       return 1
 
-   proc.vr_int_name = 'pb%02d.$subj.r%s.%s%s%s' \
-                      % (block.index-1, runstr, proc.prev_lab(block),
-                         proc.view, trstr)
+   # already set?
+   if proc.vr_int_name != '': return 0
+
+   if inset != '':
+      proc.vr_int_name = inset
+   else:
+      proc.vr_int_name = 'pb%02d.$subj.r%s.%s%s%s' \
+                         % (block.index-1, runstr, proc.prev_lab(block),
+                            proc.view, trstr)
    proc.vr_ext_pre = prefix
 
    return 0
@@ -1435,6 +1451,8 @@ def db_mod_volreg(block, proc, user_opts):
             bopt.parlist[1] = reps - 1          # index of last rep
         elif aopt.parlist[0] == 'MIN_OUTLIER':   
            if vr_do_min_outlier(block, proc, user_opts): return 1
+        elif aopt.parlist[0] == 'BLIP_BASE':   
+           pass
         else:   
             print "** unknown '%s' param with -volreg_base_ind option" \
                   % aopt.parlist[0]
