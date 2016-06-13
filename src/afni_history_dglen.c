@@ -49,6 +49,15 @@
 
 
 afni_history_struct dglen_history[] = {
+{ 13, JUN, 2016 , DRG , "3dTstat - single sub-bricks" , 
+    MINOR , TYPE_NEW_OPT, 
+    "For datasets with only a single sub-brick, 3dTstat would exit\n"
+    "with an error for many statistics. The new behavior makes the\n"
+    "program use the first value of the time series instead. Some other\n"
+    "requested statistics like the argmax type stats are now calculated\n"
+    "even for this trivial case. Optionally the user may use\n"
+    "-firstvalue for a statistic"
+},
 { 3, JUN, 2016 , DRG , "3dQwarp bug" , 
     MINOR , TYPE_BUG_FIX, 
     "bug fix in option processing\n"
