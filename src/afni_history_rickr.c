@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 13,  Jun, 2016, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,
+   "added BLIP_BASE case for -volreg_align_to",
+   "Use warped median forward blip volume as volreg alignment base."
+ } ,
+
  { 10,  Jun, 2016, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
    "add -blip_reverse_dset for blip up/blip down distortion correction",
    NULL
