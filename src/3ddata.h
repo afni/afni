@@ -5150,8 +5150,8 @@ extern FD_brick ** THD_setup_bricks( THD_3dim_dataset * ) ;
 
 extern FD_brick * THD_oriented_brick( THD_3dim_dataset *, char *) ; /* 07 Dec 2001 */
 
-extern int thd_floatscan  ( size_t , float *   ) ; /* 30 Jul 1999 */
-extern int thd_complexscan( size_t , complex * ) ; /* 14 Sep 1999 */
+extern size_t thd_floatscan  ( size_t , float *   ) ; /* 30 Jul 1999 */
+extern size_t thd_complexscan( size_t , complex * ) ; /* 14 Sep 1999 */
 
 #undef floatfix
 #ifdef isfinite
@@ -5161,10 +5161,10 @@ extern int thd_complexscan( size_t , complex * ) ; /* 14 Sep 1999 */
 # define isfinite    finite
 #endif
 
-extern int mri_floatscan  ( MRI_IMAGE * ) ;     /* 22 Feb 2007 */
-extern int imarr_floatscan( MRI_IMARR * ) ;
-extern int dblk_floatscan ( THD_datablock * ) ;
-extern int dset_floatscan ( THD_3dim_dataset * ) ;
+extern size_t mri_floatscan  ( MRI_IMAGE * ) ;     /* 22 Feb 2007 */
+extern size_t imarr_floatscan( MRI_IMARR * ) ;
+extern size_t dblk_floatscan ( THD_datablock * ) ;
+extern size_t dset_floatscan ( THD_3dim_dataset * ) ;
 
 #undef  BAD_FLOAT
 #define BAD_FLOAT(xx) thd_floatscan(1,&(xx))    /* 31 Dec 2008 */
