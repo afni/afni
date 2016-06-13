@@ -5,9 +5,9 @@
 #endif
 
 #undef  VECTIM_scan
-#define VECTIM_scan(vv)                                                     \
- do{ int nbad = thd_floatscan((vv)->nvals*(vv)->nvec,(vv)->fvec) ;          \
-     if( nbad > 0 ) WARNING_message("found %d bad values in vectim",nbad) ; \
+#define VECTIM_scan(vv)                                                                 \
+ do{ size_t nbad = thd_floatscan((size_t)(vv)->nvals*(size_t)(vv)->nvec,(vv)->fvec) ;   \
+     if( nbad > 0 ) WARNING_message("found %lld bad values in vectim",(long long)nbad); \
  } while(0)
 
 /*--------------------------------------------------------------------------*/
@@ -21,6 +21,7 @@ MRI_vectim * THD_dset_to_vectim( THD_3dim_dataset *dset, byte *mask , int ignore
    byte *mmm=mask ;
    MRI_vectim *mrv=NULL ;
    int kk,iv , nvals , nvox , nmask ;
+   size_t ntot ;
 
 ENTRY("THD_dset_to_vectim") ;
 
@@ -58,16 +59,20 @@ ENTRY("THD_dset_to_vectim") ;
      free(mrv) ; if( mmm != mask ) free(mmm) ;
      RETURN(NULL) ;
    }
+   ntot = sizeof(float)*(size_t)nmask*(size_t)nvals ;
 #pragma omp critical (MALLOC)
-   mrv->fvec  = (float *)malloc(sizeof(float)*(size_t)nmask*(size_t)nvals) ;
+   mrv->fvec  = (float *)malloc(ntot) ;
    if( mrv->fvec == NULL ){
-     ERROR_message("THD_dset_to_vectim: out of memory") ;
+     ERROR_message("THD_dset_to_vectim: out of memory -- tried to get %lld bytes",(long long)ntot) ;
      free(mrv->ivec) ; free(mrv) ; if( mmm != mask ) free(mmm) ;
      RETURN(NULL) ;
+   } else if( ntot > 1000000000 ){
+     INFO_message("THD_dset_to_vectim: allocated %lld bytes",(long long)ntot) ;
    }
 
    /* store desired voxel time series */
 
+STATUS("create index list") ;
    for( kk=iv=0 ; iv < nvox ; iv++ ){
      if( mmm[iv] ) mrv->ivec[kk++] = iv ;  /* build index list */
    }
@@ -76,6 +81,7 @@ ENTRY("THD_dset_to_vectim") ;
 
 #pragma omp critical (MALLOC)
      float *var = (float *)malloc(sizeof(float)*(nvals+ignore)) ;
+STATUS("ignore > 0 --> extracting one at a time") ;
      for( kk=iv=0 ; iv < nvox ; iv++ ){
        if( mmm[iv] == 0 ) continue ;
        (void)THD_extract_array( iv , dset , 0 , var ) ;
@@ -86,9 +92,12 @@ ENTRY("THD_dset_to_vectim") ;
 
    } else {  /* do all at once: this way is a lot faster */
 
+STATUS("ignore==0 --> extracting all at once") ;
      THD_extract_many_arrays( nmask , mrv->ivec , dset , mrv->fvec ) ;
 
    }
+
+STATUS("setting parameters in vectim header") ;
 
    mrv->nx = DSET_NX(dset) ; mrv->dx = fabs(DSET_DX(dset)) ;
    mrv->ny = DSET_NY(dset) ; mrv->dy = fabs(DSET_DY(dset)) ;
@@ -97,7 +106,13 @@ ENTRY("THD_dset_to_vectim") ;
    DSET_UNMSEC(dset) ; mrv->dt = DSET_TR(dset) ;
    if( mrv->dt <= 0.0f ) mrv->dt = 1.0f ;
 
-   if( mmm != mask ) free(mmm) ;
+
+   if( mmm != mask ){
+STATUS("free(mmm)") ;
+     free(mmm) ;
+   }
+
+STATUS("VECTIM_scan()") ;
    VECTIM_scan(mrv) ; /* 09 Nov 2010 */
    RETURN(mrv) ;
 }
