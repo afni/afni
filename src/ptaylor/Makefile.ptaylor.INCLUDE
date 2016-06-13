@@ -178,10 +178,17 @@ map_TrackID:map_TrackID.o ${AFNI_3dOBJS} ${PTAYLORLIB}
 		$(LFLAGS) ${PTAYLORLIB} $(LLIBS) \
       -lgsl -lgslcblas -lm
 
+3dAmptoRSFC: 3dAmptoRSFC.o ${AFNI_3dOBJS} ${PTAYLORLIB}
+	$(RM) $@
+	$(CC) -o 3dAmptoRSFC 3dAmptoRSFC.o  ${AFNI_3dOBJS} \
+		${PTAYLOR_INCLUDE_PATH} ${PTAYLOR_LINK_PATH}  \
+		$(LFLAGS) ${PTAYLORLIB} $(LLIBS) \
+      -lgsl -lgslcblas -lm
+
 FC_PROGRAMS = 3dTrackID 3dProbTrackID 3dDWUncert 3dReHo 3dRSFC map_TrackID \
        3dROIMaker 3dMatch 3dNetCorr 1dDW_Grad_o_Mat 3dEigsToDT \
        3dDTtoNoisyDWI 3dTORTOISEtoHere 3dVecRGB_to_HSL 3ddot_beta \
-       3dLombScargle
+       3dLombScargle 3dAmptoRSFC
 
 progs: $(FC_PROGRAMS)
 
@@ -213,6 +220,7 @@ install:
 	@if [ -f  3dVecRGB_to_HSL ]; then mv 3dVecRGB_to_HSL ${INSTALLDIR}; fi;
 	@if [ -f  3ddot_beta ]; then mv 3ddot_beta ${INSTALLDIR}; fi; 
 	@if [ -f  3dLombScargle ]; then mv 3dLombScargle ${INSTALLDIR}; fi; 
+	@if [ -f  3dAmptoRSFC ]; then mv 3dAmptoRSFC ${INSTALLDIR}; fi; 
 
 afni_install:
 	@echo Installing Binaries...
@@ -233,3 +241,4 @@ afni_install:
 	@if [ -f  3dVecRGB_to_HSL ]; then mv 3dVecRGB_to_HSL ${INSTALLDIR}; fi;
 	@if [ -f  3ddot_beta ]; then mv 3ddot_beta ${INSTALLDIR}; fi; 
 	@if [ -f  3dLombScargle ]; then mv 3dLombScargle ${INSTALLDIR}; fi; 
+	@if [ -f  3dAmptoRSFC ]; then mv 3dAmptoRSFC ${INSTALLDIR}; fi; 

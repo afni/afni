@@ -109,12 +109,19 @@ void WelchWindowInfo( float *xpts, int Nx, int Nseg,
   and wk2[] are 2^m (m in int) arrays.  Works in place.
 */
 
-// modulo/remainder
+// modulo/remainder: using essentially Fortran AMOD definition, not:
+//   while( a >= b )
+//      a -= b;
+//      return a;
 float PR89_AMOD(float a, float b)
 {
-   while( a >= b )
-      a -= b;
-   return a;
+   float out=0.;
+   int rat=0;
+
+   rat = (int) (a/b);
+   out = a - ((float) rat)*b;
+   
+   return out;
 }
 
 // calculate supplementary sizes of arrays and numbers of freqs for
@@ -242,23 +249,27 @@ void PR89_fasper( float *x,
       if( DO_NORM )
          wk2[j]/= VAR;
 
-      if( wk2[j] > PMAX ) {
+      /*if( wk2[j] > PMAX ) {
          PMAX = wk2[j];
          *jmax = j;
-      }
+         }*/
       
       if( DO_AMP )
-         wk2[j] = 2*sqrt(wk2[j]);
+         wk2[j] = sqrt(wk2[j]);
 
       K++; // also different than in PR89
    }
 
-   // significance evaluation; cheap to calc, so leaving in
+   /*
+   // significance evaluation; have to check later with scaling by N_T
+   // done in main function
    expy = exp(-PMAX);
-   effm = 2*Nout/ofac;
+   effm = 2*Nout/ofac; // -> this is ~the scaling in the output...
    *prob = effm*expy;
    if( *prob > 0.01)
       *prob = 1. - pow((1.-expy), effm);
+   */
+
 }
 
 int PR89_min_int(int A, int B)
