@@ -25,7 +25,7 @@ The inputs will be:
      the opposing polarity.  These will be denoted as REVERSE polarity.
 
 Example usage:
-     unWarpEPI.py -f run1+orig'[0..5]' -r blip_down+orig -d 'run1, run2' \
+     unWarpEPI.py -f run1+orig'[0..5]' -r blip_down+orig -d 'run1,run2' \
        -a anat+orig -s unwarp_folder
 
 
@@ -450,7 +450,7 @@ def main():
    usage = "%prog [options]"
    description = ("Routine to unwarp EPI data set using another "
                   "data set with opposite polarity or B0 field map" )
-   usage =       ("  %prog -f run1+orig'[0..5]' -r blip_down+orig -d 'run1, run2' -a anat+orig -s unwarp_folder" )
+   usage =       ("  %prog -f run1+orig'[0..5]' -r blip_down+orig -d 'run1,run2' -a anat+orig -s unwarp_folder" )
    epilog =      ("For questions, suggestions, information, please contact Vinai Roopchansingh, Daniel Glen")
 
    parser = OptionParser(usage=usage, description=description, epilog=epilog)
