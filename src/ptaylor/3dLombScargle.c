@@ -17,8 +17,12 @@ void usage_LombScargle(int detail)
 {
    printf(
 "\n"
-"  Make a (normalized or non-normalized) periodogram or amplitude-spectrum\n"
-"  of a time series that has a non-constant sampling rate.\n"
+"  Make a periodogram or amplitude-spectrum of a time series that has a\n"
+"  non-constant sampling rate. The spectra output by this program are \n"
+"  'one-sided', so that they represent the half-amplitude or power\n"
+"  associated with a frequency, and they would require a factor of 2 to \n"
+"  account for both the the right- and left-traveling frequency solutions \n"
+"  of the Fourier transform (see below 'OUTPUT' and 'NOTE').\n"
 "\n"
 "  Of particular interest is the application of this functionality to \n"
 "  resting state time series that may have been censored.  The theory behind\n"
@@ -29,11 +33,11 @@ void usage_LombScargle(int detail)
 "  This particular implementation is due to Press & Rybicki (1989), by\n"
 "  essentially translating their published Fortran implementation into C,\n"
 "  while using GSL for the FFT, instead of NR's realft(), and making\n"
-"  adjustments based on that.\n"
+"  several adjustments based on that. \n"
 "\n"
-"  The adaption was done with fairly minimal changes here by PA Taylor (v1.4,\n"
-"  June, 2016). Fun things like Welch-windowing capability and time series\n"
-"  tapering have been added now.\n"
+"  The Lomb-Scargle adaption was done with fairly minimal changes here by\n"
+"  PA Taylor (v1.4, June, 2016). Fun things like Welch-windowing capability\n"
+"  and time series tapering have been added now.\n"
 "\n"
 "* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n"
 "  \n"
@@ -66,49 +70,63 @@ void usage_LombScargle(int detail)
 "    2) PREFIX_freq.1D    :a 1D file of the frequency sample points (in units\n"
 "                          of 1/seconds) of the output periodogram/spectrum\n"
 "                          data set.\n"
-"    3) PREFIX_LS_*+orig  :volumetric data set containing a LS-derived\n"
-"                          amplitude spectrum (by default, named 'amp') or a\n"
-"                          power spectrum (see '-out_pow_spec', named 'pow')\n" 
+"    3) PREFIX_amp+orig   :volumetric data set containing a LS-derived\n"
+"             or           amplitude spectrum (by default, named 'amp') or a\n"
+"       PREFIX_pow+orig    power spectrum (see '-out_pow_spec', named 'pow')\n" 
 "                          one per voxel. \n"
 "                          Please note that the output amplitude and power\n"
-"                          spectra are 'two-sided, to represent the \n"
-"                          *total* amplitude or power of a given frequency\n"
+"                          spectra are 'one-sided', to represent the \n"
+"                          *half* amplitude or power of a given frequency\n"
 "                          (see the following note).\n"
 "\n"
-"  + A NOTE ABOUT Fourier+Parseval matters (please forgive awkward formatting):\n"
+"  + A NOTE ABOUT Fourier+Parseval matters (please forgive the awkward\n"
+"   formatting):\n"
 "      In the formulation used here, for a time series x[n] of length N, \n"
-"      the periodogram value P[k] is related to the amplitude value |X[k]| as:\n"
+"      the periodogram value P[k] is related to the amplitude value |X[k]|:\n"
 "       (1)     S[k] = (|X[k]|)**2,\n"
 "      for each k-th harmonic.\n"
 "\n"
 "      Parseval's theorem relates time fluctuations to spectral amplitudes,\n"
 "      stating that (for real time series with zero mean):\n"
 "       (2)     sum_n{ x[n]**2 } = (1/N) * sum_k{ |X[k]|**2 }, \n"
-"                                = (1/N) * sum_k{ S[k]**2 }, \n"
-"      where n=0,1,..,N-1 and k=0,1,..,N-1 (NB: A[0]=0, for zero mean series).\n"
-"      The LHS is essentially the variance of the time series (times N-1).\n"
+"                                = (1/N) * sum_k{ S[k] }, \n"
+"      where n=0,1,..,N-1 and k=0,1,..,N-1 (NB: A[0]=0, for zero mean \n"
+"      series). The LHS is essentially the variance of the time series \n"
+"      (times N-1).  The above is derived from Fourier transform maths, and\n"
+"      the Lomb-Scargle spectra are approximations to Fourier, so the above\n"
+"      can be expected to approximately hold, if all goes well.\n"
 "\n"
 "      Another Fourier-related result is that for real, discrete time series,\n"
 "      the spectral amplitudes/power values are symmetric and periodic in N.\n"
-"      Therefore, |X[k]| = |X[-k]| = |X[N-k-1]| (in zero-base array counting);\n" 
+"      Therefore, |X[k]| = |X[-k]| = |X[N-k-1]| (in zero-base array \n"
+"      counting);\n" 
 "      the distinction between positive- and negative-indexed frequencies\n"
 "      can be thought of as signifying right- and left-traveling waves, which\n"
 "      both contribute to the total power of a specific frequency.\n"
 "      The upshot is that one could write the Parseval formula as:\n"
-"       (3)     sum_n{ x[n]**2 } = (1/N) * sum_k{ 2*|X[k]|**2 }, \n"
-"                                = (1/N) * sum_k{ 2*S[k]**2 }, \n"
-"      where n=0,1,..,N-1 and k=0,1,..,N/2-1.\n"
-"      These symmetries/considerations are the reason why ~N/2 frequency\n"
-"      values are output here (we assume that only real time series are input).\n"
+"       (3)     sum_n{ x[n]**2 } = (2/N) * sum_k{ |X[k]|**2 }, \n"
+"                                = (2/N) * sum_k{ S[k] }, \n"
+"      where n=0,1,..,N-1 and k=0,1,..,N/2-1 (note the factor of 2 now\n"
+"      appearing on the RHS relations). These symmetries/considerations\n"
+"      are the reason why ~N/2 frequency values are output here (we assume \n"
+"      that only real-valued time series are input), without any loss of\n"
+"      information.\n"
+"\n"
 "      Additionally, with a view toward expressing the overall amplitude\n"
 "      or power of a given frequency, which many people might want to use to \n"
 "      estimate spectral 'functional connectivity' parameters such as ALFF,\n"
 "      fALFF, RSFA, etc. (using, for example, 3dAmptoRSFC), we therefore \n"
-"      choose to output the *total* amplitude or power of a given frequency:\n"
-"          -> A[k] = 2*|X[k]|                 (amplitude, default),\n"
-"          -> P[k] = 2*S[k] = 2*|X[k]|**2     (power, '-out_pow_spec)\n"
-"      instead of just that of the left/right traveling part. These quantities\n"
-"      are also referred to as 'two-sided' spectra.\n"
+"      note that the *total* amplitude or power of a given frequency would be:\n"
+"          -> A[k] = 2*|X[k]|                 \n"
+"          -> P[k] = 2*S[k] = 2*|X[k]|**2 = 0.5*A[k]**2    \n"
+"      instead of just that of the left/right traveling part. These types of\n"
+"      quantities (A and P) are also referred to as 'two-sided' spectra. The\n"
+"      resulting Parseval relation could then be written:\n"
+"       (4)     sum_n{ x[n]**2 } = (1/(2N)) * sum_k{ A[k]**2 }, \n"
+"                                = (1/N) * sum_k{ P[k] }, \n"
+"      where n=0,1,..,N-1 and k=0,1,..,N/2-1.  Somehow, it just seems easier\n"
+"      to output the one-sided values, X and S, so that the Parsevalian\n"
+"      summation rules look more similar.\n"
 "\n"
 "      So, please consider that when using the outputs of here. 3dAmpToRSFC\n"
 "      is prepared for this when calculating spectral parameters (from \n"
@@ -117,9 +135,9 @@ void usage_LombScargle(int detail)
 "* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n"
 "\n"
 "  + COMMAND:  3dLombScargle -prefix PREFIX -inset FILE {-in_censor1D CC}\\\n"
-"                  {-mask MASK} {-out_pow_spec} {-welch_win NW} \n"
-"                  {-in_upsamp N1} {-in_mult_nyq N2}  \n"
-"                  {-taper_off } {-nifti}\n"
+"                  {-mask MASK} {-out_pow_spec} {-welch_win NW} \\\n"
+"                  {-upsamp_fac N1} {-nyq_mult N2}  \\\n"
+"                  {-nifti} {-taper_off }\n"
 "\n"
 "* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n"
 "\n"
@@ -150,13 +168,13 @@ void usage_LombScargle(int detail)
 "\n"
 "  -out_pow_spec    :switch to output the amplitude spectrum of the freqs\n"
 "                    instead of the periodogram.  In the formulation used\n"
-"                    here, for a time series of length N, the periodogram\n"
-"                    value P is related to the amplitude value A as:\n"
-"                    P = (A)**2.\n"
+"                    here, for a time series of length N, the power spectral\n"
+"                    value S is related to the amplitude value X as:\n"
+"                    S = (X)**2.\n"
 "       ---> You can both normalize and amplitude-ize the output values,\n"
 "            if you wish. Or do neither. Or just do one of them. Your choice.\n"
 "\n"
-"  -in_mult_nyq N2  :L-S periodograms can include frequencies above what\n"
+"  -nyq_mult N2     :L-S periodograms can include frequencies above what\n"
 "                    would typically be considered Nyquist (here defined\n"
 "                    as:\n"
 "                     f_N = 0.5*(number of samples)/(total time interval)\n"
@@ -167,7 +185,7 @@ void usage_LombScargle(int detail)
 "                    there are slight differences in censoring, per subject.)\n"
 "                    Acceptable values are >0. (For those reading the \n"
 "                    algorithm papers, this sets the 'hifac' parameter.)\n"
-"  -in_upsamp N1    :During the extirpolation process, one can upsample\n"
+"  -upsamp_fac N1   :During the extirpolation process, one can upsample\n"
 "                    a bit.  If you are really interested in changing this,\n"
 "                    check out the above-cited works for more info. Default\n"
 "                    is N1=1. (For those reading the algorithm papers, this\n"
@@ -359,9 +377,9 @@ int main(int argc, char *argv[]) {
          iarg++ ; continue ;
       }
 
-      if( strcmp(argv[iarg],"-in_upsamp") == 0 ){
+      if( strcmp(argv[iarg],"-upsamp_fac") == 0 ){
          iarg++ ; if( iarg >= argc ) 
-                     ERROR_exit("Need argument after '-in_upsamp'");
+                     ERROR_exit("Need argument after '-upsamp_fac'");
          my_ofac = atof(argv[iarg]);
          if( my_ofac <=0 ) {
             ERROR_message("Can't enter an upsampling factor <=0!");
@@ -370,9 +388,9 @@ int main(int argc, char *argv[]) {
          iarg++ ; continue ;
       }
 
-      if( strcmp(argv[iarg],"-in_mult_nyq") == 0 ){
+      if( strcmp(argv[iarg],"-nyq_mult") == 0 ){
          iarg++ ; if( iarg >= argc ) 
-                     ERROR_exit("Need argument after '-in_mult_nyq'");
+                     ERROR_exit("Need argument after '-nyq_mult'");
          my_hifac = atof(argv[iarg]);
          if( my_hifac <=0 ) {
             ERROR_message("Can't enter a Nyquist factor <=0!");
@@ -680,6 +698,7 @@ int main(int argc, char *argv[]) {
      }*/
 
    // ---------------------------------------------------------------
+   //INFO_message("DBG: NPtswrk: %d",Npts_wrk);
 
    idx = 0;
    for( k=0 ; k<Dim[2] ; k++ ) 
@@ -743,13 +762,13 @@ int main(int argc, char *argv[]) {
 
                   
                   for( l=0 ; l<Npts_out ; l++ ) {
-                     if(DO_NORMALIZE) // odd way of jiving with derivation+Parseval
+                     if(DO_NORMALIZE) // odd way of jiving with deriv+Parseval
                         all_ls[l][idx]+= (float) wk2[l];
                      else{
-                        if(DO_AMPLITUDEIZE) // scale to obey Parseval with output
-                           all_ls[l][idx]+= (float) sqrt(Dim[3])*wk2[l];
+                        if(DO_AMPLITUDEIZE) // scale to obey Parseval
+                           all_ls[l][idx]+= (float) sqrt(Dim[3]/2.)*wk2[l];
                         else
-                           all_ls[l][idx]+= (float) Dim[3]*wk2[l];
+                           all_ls[l][idx]+= (float) Dim[3]*wk2[l]/2.;
                      }
                   }
 
@@ -797,10 +816,10 @@ int main(int argc, char *argv[]) {
    // for output data set
    outset_LS = EDIT_empty_copy( insetTIME ) ; 
    if( NIFTI_OUT )
-      sprintf(outset_name,"%s_LS_%s.nii.gz",
+      sprintf(outset_name,"%s_%s.nii.gz",
               prefix,out_type[DO_AMPLITUDEIZE]); 
    else
-      sprintf(outset_name,"%s_LS_%s",
+      sprintf(outset_name,"%s_%s",
               prefix,out_type[DO_AMPLITUDEIZE]); 
 
    // EDIT_add_bricklist( outset_LS,

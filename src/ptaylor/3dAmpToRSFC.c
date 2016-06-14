@@ -19,6 +19,7 @@
 
 
 void Spect_to_RSFC( THD_3dim_dataset *A,
+                    int DTYPE,
                     int *Dim,
                     int ***mskd,
                     int MIN_bp, int MAX_bp, 
@@ -31,43 +32,87 @@ void usage_AmpToRSFC(int detail)
 {
    printf(
 "\n"
-"  *** \n"
-"  *** \n"
+"  This program is for converting spectral amplitudes into standard RSFC\n"
+"  parameters.  This function is made to work directly with the outputs of\n"
+"  3dLombScargle, but you could use other inputs that have similar \n"
+"  formatting. (3dLombScargle's main algorithm is special because it\n"
+"  calculates spectra from time series with nonconstant sampling, such as if\n"
+"  some time points have been censored during processing-- check it out!.)\n"
+"\n"
+"  At present, 6 RSFC parameters get returned in separate volumes:\n"
+"     ALFF, mALFF, fALFF, RSFA, mRSFA and fRSFA.\n"
+"  For more information about each RSFC parameter, see, e.g.:   \n"
+"     ALFF/mALFF -- Zang et al. (2007),\n"
+"     fALFF --      Zou et al. (2008),\n"
+"     RSFA --       Kannurpatti & Biswal (2008).\n"
+"  You can also see the help of 3dRSFC, as well as the Appendix of \n"
+"  Taylor, Gohel, Di, Walter and Biswal (2012) for a mathematical\n"
+"  description and set of relations.\n"
+"\n"
+"  NB: *if* you want to input an unbandpassed time series and do some\n"
+"  filtering/other processing at the same time as estimating RSFC parameters,\n"
+"  then you would want to use 3dRSFC, instead.\n" 
 "\n"
 "* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n"
-"  \n"
-"  + USAGE: ***\n"
+"\n"
+"  + COMMAND: \n"
+"        3dAmpToRSFC { -in_amp AMPS | -in_pow POWS } -prefix PREFIX \\\n"
+"            -band FBOT FTOP  { -mask MASK } { -nifti }\n"
 "\n"
 "* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n"
 "\n"
-"  + COMMAND:  *** \n"
+"  + RUNNING:\n"
 "\n"
-"* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n"
+"   -in_amp AMPS   :input file of one-sided spectral amplitudes, such as\n"
+"                    output by 3dLombScargle.  It is also assumed that the\n"
+"                    the frequencies are uniformly spaced with a single DF\n"
+"                    ('delta f'), and that the zeroth brick is at 1*DF (i.e.\n"
+"                    that the zeroth/baseline frequency is not present in the\n"
+"         or         spectrum.\n"
+"   -in_pow POWS    :input file of a one-sided power spectrum, such as\n"
+"                    output by 3dLombScargle.  Similar freq assumptions\n"
+"                    as in '-in_amp ...'.\n"
 "\n"
-"  + RUNNING, need to provide:\n"
+"   -band FBOT FTOP :lower and upper boundaries, respectively, of the low\n"
+"                    frequency fluctuations (LFFs), which will be in the\n"
+"                    inclusive interval [FBOT, FTOP], within the provided\n"
+"                    input file's frequency range.\n" 
+"   -prefix PREFIX  :output file prefix; file names will be: PREFIX_ALFF*,\n"
+"                    PREFIX_FALFF*, etc.\n"
 "\n"
-"-in_amps\n"
-"-prefix\n"
-"-band\n"
-"\n"
-"-mask\n"
-"-nifti\n"
-"\n"
-"\n"
-"  *** \n"
+"   -mask MASK      :volume mask of voxels to include for calculations; if\n"
+"                    no mask is included, values are calculated for voxels\n"
+"                    whose values are not identically zero across time.\n"
+"   -nifti          :output files as *.nii.gz (default is BRIK/HEAD).\n"
 "\n"
 "* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n"
 "  + OUTPUT: \n"
-"  *** \n"
+"       Currently, 6 volumes of common RSFC parameters, briefly:\n"
+"          PREFIX_ALFF+orig    :amplitude of low freq fluctuations\n"
+"                               (L1 sum).\n"
+"          PREFIX_MALFF+orig   :ALFF divided by the mean value within\n"
+"                               the input/estimated whole brain mask\n"
+"                               (-> 'mean-scaled ALFF').\n"
+"          PREFIX_FALFF+orig   :ALFF divided by sum of full amplitude\n"
+"                               spectrum (-> 'fractional ALFF').\n"
+"          PREFIX_RSFA+orig    :square-root of summed square of low freq\n"
+"                               fluctuations (L2 sum).\n"
+"          PREFIX_MRSFA+orig   :RSFA divided by the mean value within\n"
+"                               the input/estimated whole brain mask\n"
+"                               (-> 'mean-scaled RSFA').\n"
+"          PREFIX_FRSFA+orig   :ALFF divided by sum of full amplitude\n"
+"                               spectrum (-> 'fractional RSFA').\n"
 "\n"
 "* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n"
 "\n"
 "  + EXAMPLE:\n"
-"  *** \n"
+"        3dAmpToRSFC                         \\\n"
+"            -in_amp SUBJ_01_amp.nii.gz     \\\n"
+"            -prefix  SUBJ_01                \\\n"
+"            -mask    mask_WB.nii.gz         \\\n"
+"            -band    0.01  0.1              \\\n"
+"            -nifti \n"
 "\n"
-"* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n"
-"\n"
-" reference *** \n"
 "___________________________________________________________________________\n"
           );
 	return;
@@ -88,6 +133,7 @@ int main(int argc, char *argv[]) {
    char outname[300];
 
    int NIFTI_OUT=0;
+   int DTYPE=0;
 
    int HAVE_MASK = 0;
    int ***mskd; // define mask of where time series are nonzero
@@ -161,30 +207,25 @@ int main(int argc, char *argv[]) {
          iarg++ ; continue ;
       }
 	 
-      if( strcmp(argv[iarg],"-in_amps") == 0 ){
+      if( strcmp(argv[iarg],"-in_amp") == 0 ){
          iarg++ ; if( iarg >= argc ) 
-                     ERROR_exit("Need argument after '-in_amps'");
+                     ERROR_exit("Need argument after '-in_amp'");
 
          sprintf(in_name,"%s", argv[iarg]); 
-         insetTIME = THD_open_dataset(in_name) ;
-         if( (insetTIME == NULL ))
-            ERROR_exit("Can't open time series dataset '%s'.",in_name);
-         // just 0th time point for output...
-         //sprintf(in_name0,"%s[0]", argv[iarg]); 
-         //inset0 = THD_open_dataset(in_name0) ;
-         //if( (inset0 == NULL ))
-         //  ERROR_exit("Can't open 0th brick of dataset as '%s[0]'.",in_name0);
-
-         DSET_load(insetTIME); CHECK_LOAD_ERROR(insetTIME);
-
-         Nvox = DSET_NVOX(insetTIME) ;
-         Dim[0] = DSET_NX(insetTIME); Dim[1] = DSET_NY(insetTIME); 
-         Dim[2] = DSET_NZ(insetTIME); Dim[3]= DSET_NVALS(insetTIME); 
-         delF = DSET_TR(insetTIME);
+         DTYPE = 1; // for amps
 
          iarg++ ; continue ;
       }
 
+      if( strcmp(argv[iarg],"-in_pow") == 0 ){
+         iarg++ ; if( iarg >= argc ) 
+                     ERROR_exit("Need argument after '-in_pow'");
+         
+         sprintf(in_name,"%s", argv[iarg]); 
+         DTYPE = 2; // for pow
+         
+         iarg++ ; continue ;
+      }
 
       if( strcmp(argv[iarg],"-mask") == 0 ){
          iarg++ ; if( iarg >= argc ) 
@@ -218,7 +259,25 @@ int main(int argc, char *argv[]) {
       ERROR_message("Too few options. Try -help for details.\n");
       exit(1);
    }
-	
+
+   if( !DTYPE ) {
+      ERROR_message("Think somebody forgot to specify an input file"
+                    " using '-in_amp ...' or '-in_pow ...'.");
+      exit(12);
+   }
+   else{
+         insetTIME = THD_open_dataset(in_name) ;
+         if( (insetTIME == NULL ))
+            ERROR_exit("Can't open time series dataset '%s'.",in_name);
+         
+         DSET_load(insetTIME); CHECK_LOAD_ERROR(insetTIME);
+
+         Nvox = DSET_NVOX(insetTIME) ;
+         Dim[0] = DSET_NX(insetTIME); Dim[1] = DSET_NY(insetTIME); 
+         Dim[2] = DSET_NZ(insetTIME); Dim[3]= DSET_NVALS(insetTIME); 
+         delF = DSET_TR(insetTIME);
+   }
+
    if( (fbot<0) || (ftop<0) ) {
       ERROR_message("Think somebody forgot to specify upper and lower"
                     " frequency bounds using '-band ... ...'.");
@@ -227,11 +286,6 @@ int main(int argc, char *argv[]) {
    if( fbot > ftop )
       ERROR_exit("Can't have ftop < fbot! Try entering frequency"
                     "band limits again");
-   if( !insetTIME ) {
-      ERROR_message("Think somebody forgot to specify an input file"
-                    " using '-in_amps ...'.");
-      exit(12);
-   }
    if( MASK ) 
       if ( Dim[0] != DSET_NX(MASK) || Dim[1] != DSET_NY(MASK) ||
            Dim[2] != DSET_NZ(MASK) ) {
@@ -301,10 +355,10 @@ int main(int argc, char *argv[]) {
                  "bandpass limits! bot:%f, top:%f",MIN_bp, MAX_bp);
 
    INFO_message("Actual BP range: indices [%d, %d] -> "
-                "freqs [%.4f, %.4f", MIN_bp, MAX_bp, 
+                "freqs [%.4f, %.4f]", MIN_bp, MAX_bp, 
                 allF[MIN_bp], allF[MAX_bp]);
    INFO_message("Full freq range: indices [%d, %d] -> "
-                "freqs [%.4f, %.4f", MIN_full, MAX_full, 
+                "freqs [%.4f, %.4f]", MIN_full, MAX_full, 
                 allF[MIN_full], allF[MAX_full]);
    
    // go through once: define data vox
@@ -328,6 +382,7 @@ int main(int argc, char *argv[]) {
    INFO_message("Done masking.");
 
    Spect_to_RSFC( insetTIME,
+                  DTYPE,
                   Dim,
                   mskd,
                   MIN_bp, MAX_bp, 
@@ -418,6 +473,7 @@ int main(int argc, char *argv[]) {
 
 
 void Spect_to_RSFC( THD_3dim_dataset *A,
+                    int DTYPE,
                     int *Dim,
                     int ***mskd,
                     int MIN_bp, int MAX_bp, 
@@ -448,7 +504,9 @@ void Spect_to_RSFC( THD_3dim_dataset *A,
                L1den=0.;
                L2den=0.;
                for( l=MIN_full ; l<=MAX_full ; l++ ) {
-                  tmp1 = THD_get_voxel(A,idx,l);
+                  tmp1 = THD_get_voxel(A,idx,l); 
+                  if(DTYPE==2)             // 1pow -> 1amp
+                     tmp1 = sqrt(tmp1);
                   L1den+= tmp1;
                   L2den+= tmp1*tmp1;
                   if( (MIN_bp <= l) && (l <= MAX_bp) ) {
@@ -457,6 +515,15 @@ void Spect_to_RSFC( THD_3dim_dataset *A,
                      
                   }
                }
+
+               // one-sidedness -> full values; each sum is only over
+               // half the freqs
+               ap[0][idx]*= 2.;
+               L1den*= 2.;
+               ap[3][idx]*= 2.;
+               L2den*= 2.;
+
+               // now the rest of the pars
                ap[1][idx] = ap[0][idx];         // -> malff
                ap[2][idx] = ap[0][idx] / L1den; // falff
                ap[3][idx] = sqrt(ap[3][idx]);
