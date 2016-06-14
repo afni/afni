@@ -2,13 +2,40 @@
 
 #ifdef USE_OMP
 #include <omp.h>
+#include "mri_blur3d_variable.c"
 #endif
 
 #define MASK_MIN 9
 
+#define FFAC 0.045084f
+
 static int verb = 1 ;
 
 extern short * UniqueShort( short *y, int ysz, int *kunq, int Sorted ) ;
+
+/*----------------------------------------------------------------------------*/
+/*! Blur image, in place, confined to a mask, with blurring factors given
+    separately for each dimension xyz.  A NULL blurring factor means don't
+    blur in that direction.  Blurring factors can be thought of in 2 ways
+      - diffusion equation: fx = 0.5 * Delta_t * D_x / Delta_x**2
+      - FWHM blurring:      fx = (Delta_FWHMx / Delta_x)**2 * 0.045084
+      - The fx (etc.) factors should be between 0 and 0.05 for stability;
+        for increasing the FWHM of the image, this means that the maximum
+        change in FWHM is about Delta_x in each step.
+      - Not all input fx,fy,fz factors should be NULL (or nothing will happen).
+      - Method: 3 point stencil (in each direction) conservative finite
+        difference approximation to du/dt = d/dx[ D_x(x,y,z) du/dx ] + ...
+      - Points not in the mask are not processed, and will be set to zero
+        in the output.
+      - The input mask can be NULL.  If you really want speed, a special
+        version should be written for the mask=NULL case.  Please send
+        pumpernickel bagels or dark chocolate covered cranberries.
+      - Author: Zhark, Emperor of the Galaxy!!!  (Nov 2006)
+------------------------------------------------------------------------------*/
+
+void mri_blur3D_variable( MRI_IMAGE *im , byte *mask ,
+                          MRI_IMAGE *fx , MRI_IMAGE *fy , MRI_IMAGE *fz );
+
 
 /*----------------------------------------------------------------------------*/
 
@@ -27,6 +54,10 @@ int main( int argc , char *argv[] )
    short      *unval_mmask=NULL ; int nuniq_mmask=0 ;
    int do_preserve=0 , use_qsar ;         /* 19 Oct 2009 */
 
+   THD_3dim_dataset *fwhmset=NULL ;
+   MRI_IMAGE *fxim=NULL, *fyim=NULL, *fzim=NULL ; /* 13 Jun 2016 */
+   int niter_fxyz=0 ; float dmax=0.0f , dmin=0.0f ;
+
    /*------- help the pitifully ignorant luser? -------*/
 
    AFNI_SETUP_OMP(0) ;  /* 24 Jun 2013 */
@@ -40,8 +71,11 @@ int main( int argc , char *argv[] )
       "-------\n"
       " -input  ddd = This required 'option' specifies the dataset\n"
       "               that will be smoothed and output.\n"
-      " -FWHM   f   = Add this amount of smoothness to the dataset.\n"
+      " -FWHM   f   = Add 'f' amount of smoothness to the dataset (in mm).\n"
       "              **N.B.: This is also a required 'option'.\n"
+      " -FWHMdset d = Read in dataset 'd' and add the amount of smoothness\n"
+      "               given at each voxel -- spatially variable blurring.\n"
+      "              ** EXPERIMENTAL EXPERIMENTAL EXPERIMENTAL **\n"
       " -mask   mmm = Mask dataset, if desired.  Blurring will\n"
       "               occur only within the mask.  Voxels NOT in\n"
       "               the mask will be set to zero in the output.\n"
@@ -134,7 +168,7 @@ int main( int argc , char *argv[] )
        iarg++ ; continue ;
      }
 
-     if( strcmp(argv[iarg],"-Mmask") == 0 ){   /* 07 Oct 2009 */
+     if( strcasecmp(argv[iarg],"-Mmask") == 0 ){   /* 07 Oct 2009 */
        if( ++iarg >= argc ) ERROR_exit("Need argument after '-Mmask'") ;
        if( mmask != NULL || mask != NULL || automask ) ERROR_exit("Can't have two mask inputs") ;
        mset = THD_open_dataset( argv[iarg] ) ;
@@ -192,6 +226,14 @@ int main( int argc , char *argv[] )
        iarg++ ; continue ;
      }
 
+     if( strcasecmp(argv[iarg],"-FWHMdset") == 0 ){
+       if( ++iarg >= argc ) ERROR_exit("Need argument after '%s'",argv[iarg-1]);
+       if( fwhmset != NULL ) ERROR_exit("You can't use option '-FWHMdset' twice :(") ;
+       fwhmset = THD_open_dataset( argv[iarg] ) ;
+       CHECK_OPEN_ERROR(fwhmset,argv[iarg]) ;
+       iarg++ ; continue ;
+     }
+
      if( strncmp(argv[iarg],"-float",6) == 0 ){    /* 18 May 2009 */
        floatize = 1 ; iarg++ ; continue ;
      }
@@ -213,18 +255,30 @@ int main( int argc , char *argv[] )
 
    /*----- check for stupid inputs, load datasets, et cetera -----*/
 
-   if( fwhm_goal == 0.0f )
+   if( fwhmset == NULL && fwhm_goal == 0.0f )
      ERROR_exit("No -FWHM option given! What do you want?") ;
+
+   if( fwhmset != NULL && fwhm_goal > 0.0f ){
+     WARNING_message("-FWHMdset option replaces -FWHM value") ;
+     fwhm_goal = 0.0f ;
+   }
+
+   if( fwhmset != NULL && mmask != NULL )
+     ERROR_exit("Sorry: -FWHMdset and -Mmask don't work together (yet)") ;
 
    if( inset == NULL ){
      if( iarg >= argc ) ERROR_exit("No input dataset on command line?") ;
      inset = THD_open_dataset( argv[iarg] ) ;
      CHECK_OPEN_ERROR(inset,argv[iarg]) ;
    }
+
    nvox = DSET_NVOX(inset)     ;
    dx   = fabs(DSET_DX(inset)) ; if( dx == 0.0f ) dx = 1.0f ;
    dy   = fabs(DSET_DY(inset)) ; if( dy == 0.0f ) dy = 1.0f ;
    dz   = fabs(DSET_DZ(inset)) ; if( dz == 0.0f ) dz = 1.0f ;
+
+   dmax = MAX(dx,dy) ; if( dmax < dz ) dmax = dz ;  /* 13 Jun 2016 */
+   dmin = MIN(dx,dy) ; if( dmin > dz ) dmin = dz ;
 
    if( !floatize ){    /* 18 May 2009 */
      if( !THD_datum_constant(inset->dblk)     ||
@@ -274,6 +328,53 @@ int main( int argc , char *argv[] )
      if( verb ) INFO_message("No mask ==> processing all %d voxels",nvox);
    }
 
+   /*--- process FWHMdset [13 Jun 2016] ---*/
+
+   if( fwhmset != NULL ){
+     float *fxar,*fyar,*fzar , *fwar ; MRI_IMAGE *fwim ;
+     float fwmax=0.0f , fsx,fsy,fsz ; int ii, nfpos=0 ;
+
+     if( DSET_NX(inset) != DSET_NX(fwhmset) ||
+         DSET_NY(inset) != DSET_NY(fwhmset) ||
+         DSET_NZ(inset) != DSET_NZ(fwhmset)   )
+       ERROR_exit("grid dimensions for FWHMdset and input dataset do not match :(") ;
+
+     fwim = mri_scale_to_float(DSET_BRICK_FACTOR(fwhmset,0),DSET_BRICK(fwhmset,0));
+     fwar = MRI_FLOAT_PTR(fwim);
+     for( ii=0 ; ii < nvox ; ii++ ){
+       if( mask[ii] && fwar[ii] > 0.0f ){
+         nfpos++ ;
+         if( fwar[ii] > fwmax ) fwmax = fwar[ii] ;
+       } else {
+         fwar[ii] = 0.0f ;
+       }
+     }
+     if( nfpos < 100 )
+       ERROR_exit("Cannot proceed: too few (%d) voxels are positive in -FWHMdset!",nfpos) ;
+
+     niter_fxyz = (int)(fwmax*fwmax*FFAC/(0.05f*dmin*dmin)) + 2 ;
+
+     fxim = mri_new_conforming(fwim,MRI_float); fxar = MRI_FLOAT_PTR(fxim);
+     fyim = mri_new_conforming(fwim,MRI_float); fyar = MRI_FLOAT_PTR(fyim);
+     fzim = mri_new_conforming(fwim,MRI_float); fzar = MRI_FLOAT_PTR(fzim);
+
+     fsx = FFAC/(dx*dx*niter_fxyz) ;
+     fsy = FFAC/(dy*dy*niter_fxyz) ;
+     fsz = FFAC/(dz*dz*niter_fxyz) ;
+
+     for( ii=0 ; ii < nvox ; ii++ ){
+       if( fwar[ii] > 0.0f ){
+         fxar[ii] = fwar[ii]*fwar[ii] * fsx ;
+         fyar[ii] = fwar[ii]*fwar[ii] * fsy ;
+         fzar[ii] = fwar[ii]*fwar[ii] * fsz ;
+       } else {
+         fxar[ii] = fyar[ii] = fzar[ii] = 0.0f ;
+       }
+     }
+
+     mri_free(fwim) ;
+   }
+
    /*--- process input dataset ---*/
 
    DSET_load(inset) ; CHECK_LOAD_ERROR(inset) ;
@@ -291,7 +392,7 @@ int main( int argc , char *argv[] )
  AFNI_OMP_START ;
 #pragma omp parallel if( nvals > 1 )
  {
-   MRI_IMAGE *dsim ; int ids ; byte *qmask=NULL ; register int vv ;
+   MRI_IMAGE *dsim ; int ids,qit ; byte *qmask=NULL ; register int vv ;
    MRI_IMAGE *qim=NULL, *qsim=NULL; float *qar=NULL, *dsar, *qsar=NULL;
 #pragma omp critical (MALLOC)
    { if( use_qsar ){
@@ -319,7 +420,16 @@ int main( int argc , char *argv[] )
        for( vv=0 ; vv < nvox ; vv++ ) qsar[vv] = 0.0f ;
      }
 
-     if( mmask != NULL ){         /* 07 Oct 2009: multiple masks */
+     if( fwhmset != NULL ){       /* 13 Jun 2016: spatially variable blurring */
+
+       for( qit=0 ; qit < niter_fxyz ; qit++ ){
+         mri_blur3D_variable( dsim , mask , fxim,fyim,fzim ) ;
+       }
+       if( do_preserve ){
+         for( vv=0 ; vv < nvox ; vv++ ) if( mask[vv] ) qsar[vv] = dsar[vv] ;
+       }
+
+     } else if( mmask != NULL ){         /* 07 Oct 2009: multiple masks */
        int qq ; register short uval ;
        for( qq=0 ; qq < nuniq_mmask ; qq++ ){
          uval = unval_mmask[qq] ; if( uval == 0 ) continue ;

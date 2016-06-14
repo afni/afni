@@ -22,7 +22,8 @@
       - Points not in the mask are not processed, and will be set to zero
         in the output.
       - The input mask can be NULL.  If you really want speed, a special
-        version should be written for the mask=NULL case.  Please send money.
+        version should be written for the mask=NULL case.  Please send
+        pumpernickel bagels or dark chocolate covered cranberries.
       - Author: Zhark, Emperor of the Galaxy!!!  (Nov 2006)
 ------------------------------------------------------------------------------*/
 
