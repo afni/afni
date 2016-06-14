@@ -509,9 +509,12 @@ g_history = """
     4.64 Jun 13, 2016: added BLIP_BASE case for -volreg_align_to
         - use warped median forward blip volume as volreg alignment base
     4.65 Jun 13, 2016: added -align_unifize_epi: unifize EPI before alignment
+    4.66 Jun 14, 2016:
+        - if needed, pass along obliquity for all 3dNwarpApply results
+        - added -blip_forward_dset
 """
 
-g_version = "version 4.65, June 13, 2016"
+g_version = "version 4.66, June 14, 2016"
 
 # version of AFNI required for script execution
 # prev: g_requires_afni =  "1 Apr 2015" # 1d_tool.py uncensor from 1D
@@ -610,9 +613,11 @@ class SubjProcSream:
         self.extra_labs       = []      # labels for extra -stim_file list
 
         # blip variables
+        self.blip_in_for  = None        # afni_name: input: forward blip
         self.blip_in_rev  = None        # afni_name: input: reverse blip
         self.blip_in_med  = None        # afni_name: input: blip align median
         self.blip_in_warp = None        # afni_name: input: blip NL warp dset
+        self.blip_dset_for  = None      # afni_name: local blip_in_for dset
         self.blip_dset_rev  = None      # afni_name: local blip_in_rev dset
         self.blip_dset_med  = None      # afni_name: result: blip align median
         self.blip_dset_warp = None      # afni_name: result: blip NL warp dset
@@ -948,8 +953,10 @@ class SubjProcSream:
         self.valid_opts.add_opt('-tshift_opts_ts', -1, [],
                         helpstr='additional options directly for 3dTshift')
 
+        self.valid_opts.add_opt('-blip_forward_dset', 1, [],
+                        helpstr='forward blip dset for blip up/down corretion')
         self.valid_opts.add_opt('-blip_reverse_dset', 1, [],
-                        helpstr='input dataset for blip up/down corretion')
+                        helpstr='reverse blip dset for blip up/down corretion')
 
         self.valid_opts.add_opt('-align_epi_ext_dset', 1, [],
                         helpstr='external EPI volume for align_epi_anat.py')
@@ -2233,6 +2240,14 @@ class SubjProcSream:
         # output datasets are blip_dset_*
 
         bstr = ''
+        if isinstance(self.blip_in_for, afni_name):
+           self.blip_dset_for = afni_name('blip_forward', view=self.view)
+           tstr = '# copy external -blip_forward_dset dataset\n' \
+                  '3dTcat -prefix %s/%s %s\n' %                  \
+                  (self.od_var, self.blip_dset_for.prefix,
+                  self.blip_in_for.rel_input(sel=1))
+           bstr += tstr
+
         if isinstance(self.blip_in_rev, afni_name):
            self.blip_dset_rev = afni_name('blip_reverse', view=self.view)
            tstr = '# copy external -blip_reverse_dset dataset\n' \

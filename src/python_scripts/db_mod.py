@@ -527,6 +527,8 @@ def db_mod_blip(block, proc, user_opts):
 
       set proc.blip_rev_dset for copying
    """
+   
+   apply_uopt_to_block('-blip_forward_dset', user_opts, block)
    apply_uopt_to_block('-blip_reverse_dset', user_opts, block)
 
    # note blip reverse input dset
@@ -539,6 +541,27 @@ def db_mod_blip(block, proc, user_opts):
    else:
       print '** have blip block without -blip_reverse_dset'
       return
+
+   # note blip forward input dset (or make one up)
+   bopt = block.opts.find_opt('-blip_forward_dset')
+   if bopt:
+      proc.blip_in_for = BASE.afni_name(bopt.parlist[0])
+      if proc.verb > 2:
+         print '-- have blip forward dset %s' \
+               % proc.blip_in_for.shortinput(sel=1)
+   else:
+      # make forward blip from first input
+      forinput = proc.dsets[0].rel_input()
+      revinput = proc.blip_in_rev.rel_input(sel=1)
+      rv, nt, tr = UTIL.get_dset_reps_tr(revinput, notr=1, verb=proc.verb)
+      if rv: return None
+
+      proc.blip_in_for = BASE.afni_name("%s[0..%d]" % (forinput, nt-1))
+      proc.blip_in_for.view = proc.view
+
+      if proc.verb > 2:
+         print '-- using -dsets for blip forward dset %s' \
+               % proc.blip_in_for.shortinput(sel=1)
 
    # check for alignment to median forward blip base
    val, status = user_opts.get_string_opt('-volreg_align_to')
@@ -596,12 +619,6 @@ def db_cmd_blip(proc, block):
           % (proc.blip_dset_warp.shortinput(), proc.blip_dset_med.shortinput())
       return cmd
 
-   # get NT from original input
-   # note: sub-brick selectors should be okay, if used
-   revinput = proc.blip_in_rev.rel_input(sel=1)
-   rv, nt, tr = UTIL.get_dset_reps_tr(revinput, notr=1, verb=proc.verb)
-   if rv: return None
-
    # compute the blip transformation
 
    proc.have_rm = 1            # rm.* files exist
@@ -609,9 +626,9 @@ def db_cmd_blip(proc, block):
    medr = proc.blip_dset_rev.new(new_pref='rm.blip.med.rev')
    forwdset = proc.prev_prefix_form(1, block, view=1)
    cmd += '# create median datasets from forward and reverse time series\n' \
-          '3dTstat -median -prefix %s %s"[0..%s]"\n'                        \
+          '3dTstat -median -prefix %s %s\n'                                 \
           '3dTstat -median -prefix %s %s\n\n'                               \
-          % (medf.out_prefix(), forwdset, nt-1,
+          % (medf.out_prefix(), proc.blip_dset_for.shortinput(),
              medr.out_prefix(), proc.blip_dset_rev.shortinput())
    
    mmedf = medf.new(new_pref='rm.blip.med.masked.fwd')
@@ -640,44 +657,71 @@ def db_cmd_blip(proc, block):
    warp_rev = mmedf.new(new_pref=('%s_Rev_WARP'%warp_prefix))
    proc.blip_dset_warp = warp_for  # store for volreg block
 
+   fobl = dset_is_oblique(proc.blip_in_for, proc.verb)
+   robl = dset_is_oblique(proc.blip_in_rev, proc.verb)
+
    # apply mid-warp to forward median
    for_prefix = 'blip_med_for'
    rev_prefix = 'blip_med_rev'
-   cmd += '# warp median datasets (forward and each masked) for QC checks\n' \
-          '3dNwarpApply %s -nwarp %s \\\n' \
-          '             -source %s \\\n'   \
-          '             -prefix %s\n'      \
-          % (blip_interp, warp_for.shortinput(), medf.shortinput(), for_prefix)
+   cmd += '# warp median datasets (forward and each masked) for QC checks\n'
+   if fobl or robl: cmd += '# (and preserve obliquity)\n'
+
+   cmd += blip_warp_command(proc, warp_for.shortinput(), medf.shortinput(),
+                            for_prefix, refit=fobl, interp=blip_interp)
+   cmd += '\n'
    proc.blip_dset_med = proc.blip_dset_warp.new(new_pref=for_prefix)
 
    # to forward masked median
-   cmd += '3dNwarpApply %s -nwarp %s \\\n' \
-          '             -source %s \\\n'   \
-          '             -prefix %s\n'      \
-          % (blip_interp, warp_for.shortinput(), mmedf.shortinput(),
-             '%s_masked'%for_prefix)
+   cmd += blip_warp_command(proc, warp_for.shortinput(), mmedf.shortinput(),
+               '%s_masked'%for_prefix, refit=fobl, interp=blip_interp)
+   cmd += '\n'
 
    # to reverse masked median
-   cmd += '3dNwarpApply %s -nwarp %s \\\n' \
-          '             -source %s \\\n'   \
-          '             -prefix %s\n'      \
-          % (blip_interp, warp_rev.shortinput(), mmedr.shortinput(),
-             '%s_masked'%rev_prefix)
+   cmd += blip_warp_command(proc, warp_rev.shortinput(), mmedr.shortinput(),
+               '%s_masked'%rev_prefix, refit=robl, interp=blip_interp)
 
    cmd += '\n'
 
    # apply forward mid-warp to EPI
    inform = proc.prev_prefix_form_run(block, view=1)
    outform = proc.prefix_form_run(block)
+   bstr = blip_warp_command(proc, warp_for.shortinput(), inform, outform,
+                            interp=blip_interp, refit=fobl, indent='    ')
    cmd += '# warp EPI time series data\n'       \
           'foreach run ( $runs )\n'             \
-          '    3dNwarpApply %s -nwarp %s \\\n'  \
-          '                 -source %s \\\n'    \
-          '                 -prefix %s\n\n'     \
-          '    3drefit -atrcopy %s IJK_TO_DICOM_REAL %s%s\n' \
+          '%s' \
           'end\n\n'                             \
-          % (blip_interp, warp_for.shortinput(), inform, outform,
-             inform, outform, proc.view)
+          % (bstr)
+
+   return cmd
+
+def dset_is_oblique(aname, verb):
+   cmd = '3dinfo -is_oblique %s' % aname.rel_input()
+   st, so, se = UTIL.limited_shell_exec(cmd)
+
+   if verb > 2:
+      print '== dset_is_oblique cmd: %s' % cmd
+      print '       so = %s, se = %s' % (so, se)
+
+   if len(so) < 1:    return 0
+   elif so[0] == '1': return 1
+   else:              return 0
+
+def blip_warp_command(proc, warp, source, prefix, interp=' -quintic',
+                      refit=0, indent=''):
+   if not interp:            intstr = ''
+   elif interp[0] == '-':    intstr = ' %s' % interp
+   else:                     intstr = interp
+
+   cmd = '%s3dNwarpApply%s -nwarp %s \\\n' \
+         '%s             -source %s \\\n'   \
+         '%s             -prefix %s\n'      \
+         % (indent, intstr, warp, indent, source, indent, prefix)
+
+   if refit:
+      cmd += '%s3drefit -atrcopy %s IJK_TO_DICOM_REAL \\\n' \
+             '%s                 %s%s\n'                    \
+             % (indent, source, indent, prefix, proc.view)
 
    return cmd
 
@@ -8400,7 +8444,19 @@ g_help_string = """
 
             Please see '3dTshift -help' for more information.
 
-        -blip_reverse_dset      : specify a dataset for blip up/down correction
+        -blip_forward_dset      : specify a forward blip dataset
+
+                e.g. -blip_forward_dset epi_forward_blip+orig'[0..9]'
+
+            Without this option, the first TRs of the first input EPI time
+            series would be used as the forward blip dataset.
+
+            See also -blip_revers_dset.
+
+            Please see '3dQwarp -help' for more information, and the -plusminus
+            option in particular.
+
+        -blip_reverse_dset      : specify a reverse blip dataset
 
                 e.g. -blip_reverse_dset epi_reverse_blip+orig
                 e.g. -blip_reverse_dset epi_reverse_blip+orig'[0..9]'

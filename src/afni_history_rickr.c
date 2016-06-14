@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 14,  Jun, 2016, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
+   "add -blip_forward_dset; if needed copy along any obliquity information",
+   NULL
+ } ,
+
  { 13,  Jun, 2016, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
    "add -align_unifize_epi : 3dUnifize EPI before anat alignment",
    NULL
