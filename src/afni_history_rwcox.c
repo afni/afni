@@ -44,6 +44,18 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 14 , JUN , 2016 , RWC , "3dREMLfit" , MICRO , TYPE_BUG_FIX ,
+   "Conversion to vector image fails for LARGE datasets" ,
+   "The final step in the conversion to vectim is scanning the data for\n"
+   "floating point errors (NaN, infinity).  If there are more than 2^31-1\n"
+   "voxels, integer overflow caused problems.  Fixed by making the loop\n"
+   "variables in the floatscan functions be size_t, not int.  This problem\n"
+   "certainly lurks elsewhere in AFNI, waiting to pounce on Spaniards." } ,
+
+ { 14 , JUN , 2016 , RWC , "3dBlurInMask" , MINOR , TYPE_NEW_OPT ,
+   "Option -FWHMdset allows specifying per-voxel blurring parameter" ,
+   "For use with 3dLocalACF and scripting.  EXPERIMENTAL!" } ,
+
  { 9 , JUN , 2016 , RWC , "3dLocalACF" , MINOR , TYPE_NEW_PROG ,
    "Estimate ACF parameters locally.  Slow and experimental." ,
    NULL } ,
