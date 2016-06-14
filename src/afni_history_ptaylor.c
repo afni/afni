@@ -67,6 +67,16 @@ afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
 
+{ 14, Jun , 2016 , PT , "3dAmptoRSFC" , MAJOR , TYPE_NEW_PROG,
+   "New function for calculating RSFC params from one-side spectra.",
+   "Complements 3dLombScargle. What an epithet.\n"
+},
+
+{ 14, Jun , 2016 , PT , "3dLombScargle" , MINOR , TYPE_MODIFY,
+   "Making this output 'one-sided' spectra now.",
+   "Easier for 3dAmpToRSFC calcs.\n"
+},
+
 { 13, Jun , 2016 , PT , "3dLombScargle" , MAJOR , TYPE_MODIFY,
    "Revamped LS program-- AGAIN**2!-- now has Welch windows+tapers.",
    "Scaling properly/consistently, couple bug fixes.\n"
