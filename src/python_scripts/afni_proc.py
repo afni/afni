@@ -526,8 +526,6 @@ g_todo_str = """todo:
   - allow for 3dAllineate in place of 3dvolreg: -volreg_use_allineate
   - blip correction:
      - pass warp result dset(s)
-     - pass alternate forward warp data
-     - option to use forward warped median as volreg base
   - add option to block anat from anat followers?
   - add AP test for varying remove_first_trs
   - add -4095_check and -4095_ok options?

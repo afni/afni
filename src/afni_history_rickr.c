@@ -56,7 +56,7 @@ afni_history_struct rickr_history[] = {
 
  { 13,  Jun, 2016, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
    "add -align_unifize_epi : 3dUnifize EPI before anat alignment",
-   NULL
+   "Thanks to D Glen and S Torrisi for suggesting it."
  } ,
 
  { 13,  Jun, 2016, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,
