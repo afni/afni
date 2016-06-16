@@ -136,8 +136,7 @@ void usage_LombScargle(int detail)
 "\n"
 "  + COMMAND:  3dLombScargle -prefix PREFIX -inset FILE {-in_censor1D CC}\\\n"
 "                  {-mask MASK} {-out_pow_spec} {-welch_win NW} \\\n"
-"                  {-upsamp_fac N1} {-nyq_mult N2}  \\\n"
-"                  {-nifti} {-taper_off }\n"
+"                  {-nyq_mult N2}  {-nifti} {-taper_off } \n"
 "\n"
 "* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n"
 "\n"
@@ -185,11 +184,6 @@ void usage_LombScargle(int detail)
 "                    there are slight differences in censoring, per subject.)\n"
 "                    Acceptable values are >0. (For those reading the \n"
 "                    algorithm papers, this sets the 'hifac' parameter.)\n"
-"  -upsamp_fac N1   :During the extirpolation process, one can upsample\n"
-"                    a bit.  If you are really interested in changing this,\n"
-"                    check out the above-cited works for more info. Default\n"
-"                    is N1=1. (For those reading the algorithm papers, this\n"
-"                    sets the 'ofac' parameter.)\n"
 "  -nifti           :switch to output *.nii.gz volume file\n"
 "                    (default format is BRIK/HEAD).\n"
 
@@ -218,6 +212,14 @@ scaling...
 "                    normalized periodogram value Pn is related to a non-\n"
 "                    normalized value P0 as:\n"
 "                    Pn = P0/V.\n"
+
+"  -upsamp_fac N1   :During the extirpolation process, one can upsample\n"
+"                    a bit.  If you are really interested in changing this,\n"
+"                    check out the above-cited works for more info. Default\n"
+"                    is N1=1. (For those reading the algorithm papers, this\n"
+"                    sets the 'ofac' parameter.)\n"
+
+
 */
 
 int main(int argc, char *argv[]) {
@@ -261,10 +263,10 @@ int main(int argc, char *argv[]) {
    float *tpts = NULL, *tpts_win=NULL;
    double *wk1=NULL, *wk2=NULL;
 
-   float my_hifac = -1.0; // how many mults of f_Nyquist we want
+   double my_hifac = -1.0; // how many mults of f_Nyquist we want
                           // output: choosing not to upgrade for our
                           // purposes
-   float my_ofac = 1.0;   // upsampling within range-- may just let
+   double my_ofac = 1.0;   // upsampling within range-- may just let
                           // equal to 1 for our purposes.
    int Npts_wrk = 0;      // output array size-- to be calc'ed
    int Npts_out, jmax;    // holders for output
@@ -280,7 +282,7 @@ int main(int argc, char *argv[]) {
    int NWIN, NWINp1;          // to be numbers of Welch windows
    double delF;               // to keep constant as we go -> use to
                               // set ofac
-   float win_ofac;
+   double win_ofac;
    int win_Npts_out, win_Npts_wrk;  // per win, are <= Npts_{out,work}
    int **WinInfo=NULL;
    float *WinDelT=NULL, *WinVec=NULL;
@@ -377,6 +379,7 @@ int main(int argc, char *argv[]) {
          iarg++ ; continue ;
       }
 
+      /*  unused-- shouldn't have, for consistency across groups
       if( strcmp(argv[iarg],"-upsamp_fac") == 0 ){
          iarg++ ; if( iarg >= argc ) 
                      ERROR_exit("Need argument after '-upsamp_fac'");
@@ -386,12 +389,12 @@ int main(int argc, char *argv[]) {
             exit(2);
          }
          iarg++ ; continue ;
-      }
+         }*/
 
       if( strcmp(argv[iarg],"-nyq_mult") == 0 ){
          iarg++ ; if( iarg >= argc ) 
                      ERROR_exit("Need argument after '-nyq_mult'");
-         my_hifac = atof(argv[iarg]);
+         my_hifac = (double) atof(argv[iarg]);
          if( my_hifac <=0 ) {
             ERROR_message("Can't enter a Nyquist factor <=0!");
             exit(2);
@@ -630,14 +633,14 @@ int main(int argc, char *argv[]) {
    // calculate Npts_wrk and Npts_out, as if no windows (for single
    // alloc-- would be max lengths of things; will calculate "per
    // window" ones, as needs be)
-   PR89_suppl_calc_Ns( Npts_cen, 
+   PR89_suppl_calc_Ns( Npts_cen, Dim[3],
                          my_ofac, 
                          my_hifac, 
                          &Npts_out,  // i.e., nout
                          &Npts_wrk); // i.e., ndim =nwk
    INFO_message("Full time series: have %d total points after censoring.", 
                 Npts_cen);
-   //INFO_message("Have %d points for outputting.", Npts_out);
+   INFO_message("Have %d points for outputting.", Npts_out);
    //INFO_message("Planning to have %d points for working.", Npts_wrk);
 
    tpts = (float *)calloc(Npts_cen, sizeof(float));
@@ -722,7 +725,7 @@ int main(int argc, char *argv[]) {
                      wk1[pp] = wk2[pp] = 0.;
 
                   win_ofac = 1./(delF * WinDelT[w]); // calc'ed per win
-                  PR89_suppl_calc_Ns( WinInfo[w][1],
+                  PR89_suppl_calc_Ns( WinInfo[w][1], -1,
                                       win_ofac,   
                                       my_hifac,    // const for all wins
                                       &win_Npts_out,  // i.e., nout
