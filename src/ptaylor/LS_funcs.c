@@ -126,14 +126,26 @@ float PR89_AMOD(float a, float b)
 
 // calculate supplementary sizes of arrays and numbers of freqs for
 // use in fasper(); pre-calc the N* things, and then input them into
-// fasper
-void PR89_suppl_calc_Ns( int N, float ofac, float hifac, 
+// fasper.
+// To avoid some differences in floating point division, am using 
+// the fact that hifac = NT/N directly here. -> 
+//      hifac * N = NT
+void PR89_suppl_calc_Ns( int N, int NT,
+                         double ofac, double hifac, 
                          int *Nout, int *Ndim)
 {
    int Nfreq, Nfreqt;
 
-   *Nout = (int) (0.5 * ofac * hifac * N);
-   Nfreqt = ofac * hifac * N * MACC;
+
+   if( NT > 0 ) { // newer
+      *Nout = (int) (0.5 * ofac * NT);
+      Nfreqt = (int) (ofac * NT * MACC); 
+   }
+   else { // older
+      *Nout = (int) (0.5 * ofac * hifac * N);  
+      Nfreqt = (int) (ofac * hifac * N * MACC);     
+   }
+
    Nfreq = 64;
    while (Nfreq < Nfreqt ) 
       Nfreq *= 2;
@@ -152,7 +164,7 @@ void PR89_suppl_calc_Ns( int N, float ofac, float hifac,
 void PR89_fasper( float *x, 
                   float *y, int N,
                   float *ywin, float *winvec,
-                  float ofac, 
+                  double ofac, 
                   double *wk1, double *wk2, int Nwk, 
                   int Nout, int *jmax, float *prob,
                   int DO_NORM, int DO_AMP)
