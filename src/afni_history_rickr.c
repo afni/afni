@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 16,  Jun, 2016, RCR, "afni_proc.py", MINOR, TYPE_BUG_FIX,
+   "if NLwarp but no EPI warp, no NL; fix refit of blip median datsets",
+   "User probably forgot -volreg_tlrc_warp, so warn them."
+ } ,
+
  { 14,  Jun, 2016, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
    "add -blip_forward_dset; if needed copy along any obliquity information",
    NULL

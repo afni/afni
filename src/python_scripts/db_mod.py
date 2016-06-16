@@ -666,19 +666,28 @@ def db_cmd_blip(proc, block):
    cmd += '# warp median datasets (forward and each masked) for QC checks\n'
    if fobl or robl: cmd += '# (and preserve obliquity)\n'
 
+   # if oblique, pass the local copies
+   if fobl: foblset = proc.blip_dset_for
+   else:    foblset = None
+   if fobl: roblset = proc.blip_dset_rev
+   else:    roblset = None
+
    cmd += blip_warp_command(proc, warp_for.shortinput(), medf.shortinput(),
-                            for_prefix, refit=fobl, interp=blip_interp)
+                            for_prefix, oblset=foblset, interp=blip_interp)
    cmd += '\n'
    proc.blip_dset_med = proc.blip_dset_warp.new(new_pref=for_prefix)
 
    # to forward masked median
    cmd += blip_warp_command(proc, warp_for.shortinput(), mmedf.shortinput(),
-               '%s_masked'%for_prefix, refit=fobl, interp=blip_interp)
+                    '%s_masked'%for_prefix, oblset=foblset, interp=blip_interp)
    cmd += '\n'
 
    # to reverse masked median
+   # if oblique, pass the local copy
+   if fobl: oblset = proc.blip_dset_for
+   else:    oblset = None
    cmd += blip_warp_command(proc, warp_rev.shortinput(), mmedr.shortinput(),
-               '%s_masked'%rev_prefix, refit=robl, interp=blip_interp)
+                    '%s_masked'%rev_prefix, oblset=roblset, interp=blip_interp)
 
    cmd += '\n'
 
@@ -686,7 +695,7 @@ def db_cmd_blip(proc, block):
    inform = proc.prev_prefix_form_run(block, view=1)
    outform = proc.prefix_form_run(block)
    bstr = blip_warp_command(proc, warp_for.shortinput(), inform, outform,
-                            interp=blip_interp, refit=fobl, indent='    ')
+           interp=blip_interp, oblset=foblset, indent='    ')
    cmd += '# warp EPI time series data\n'       \
           'foreach run ( $runs )\n'             \
           '%s' \
@@ -708,7 +717,7 @@ def dset_is_oblique(aname, verb):
    else:              return 0
 
 def blip_warp_command(proc, warp, source, prefix, interp=' -quintic',
-                      refit=0, indent=''):
+                      oblset=None, indent=''):
    if not interp:            intstr = ''
    elif interp[0] == '-':    intstr = ' %s' % interp
    else:                     intstr = interp
@@ -718,10 +727,10 @@ def blip_warp_command(proc, warp, source, prefix, interp=' -quintic',
          '%s             -prefix %s\n'      \
          % (indent, intstr, warp, indent, source, indent, prefix)
 
-   if refit:
+   if oblset:
       cmd += '%s3drefit -atrcopy %s IJK_TO_DICOM_REAL \\\n' \
              '%s                 %s%s\n'                    \
-             % (indent, source, indent, prefix, proc.view)
+             % (indent, oblset.shortinput(), indent, prefix, proc.view)
 
    return cmd
 
@@ -1647,6 +1656,10 @@ def db_cmd_volreg(proc, block):
     doe2a = block.opts.find_opt('-volreg_align_e2a') != None
     doblip = isinstance(proc.blip_dset_warp, BASE.afni_name)
 
+    if proc.nlw_aff_mat and not dowarp:
+       print '** have NL warp to standard space, but not applying to EPI\n' \
+             '   (consider -volreg_tlrc_warp)'
+
     # store these flags for other processing blocks
     if dowarp: proc.warp_epi |= WARP_EPI_TLRC_WARP
     if doadwarp: proc.warp_epi |= WARP_EPI_TLRC_ADWARP
@@ -1786,7 +1799,7 @@ def db_cmd_volreg(proc, block):
 
         # apply linear or non-linear warps
         wcmd = apply_catenated_warps(proc, runwarpmat, allinbase, prev_prefix,
-                                     wprefix, dim, all1_input, cstr)
+                                     dowarp, wprefix, dim, all1_input, cstr)
         if wcmd == None: return
         cmd += wcmd
 
@@ -2083,23 +2096,12 @@ def should_warp_anat_followers(proc, block):
    print '** should_warp_anat_followers: in bad block %s' % block.label
    return 0
 
-def apply_catenated_warps(proc, runwarpmat, gridbase, winput, woutput, dim,
-                          all1_dset,cstr):
+def apply_catenated_warps(proc, runwarpmat, gridbase, winput, dowarp,
+                          woutput, dim, all1_dset,cstr):
    """generate either 3dAllineate or 3dNwarpApply commands"""
 
-   # affine case
-   if proc.nlw_aff_mat == '' and proc.blip_dset_warp == None:
-      cmd = '\n'                                        \
-          '    # apply catenated xform : %s\n'          \
-          '    3dAllineate -base %s \\\n'               \
-          '                -input %s \\\n'              \
-          '                -1Dmatrix_apply %s \\\n'     \
-          '                -mast_dxyz %g\\\n'           \
-          '                -prefix %s \n'               \
-          % (cstr, gridbase, winput, runwarpmat, dim, woutput)
-
    # non-linear case - apply proc.nlw_NL_mat along with typical mat
-   else:
+   if (dowarp and proc.nlw_aff_mat != '') or proc.blip_dset_warp:
       if dim > 0: dimstr = ' -dxyz %g' % dim
       else:       dimstr = ''
 
@@ -2117,20 +2119,20 @@ def apply_catenated_warps(proc, runwarpmat, gridbase, winput, woutput, dim,
           '                 -prefix %s \n'                      \
           % (cstr, gridbase, dimstr, winput, proc.nlw_NL_mat, 
              runwarpmat, bwstr, woutput)
+   else: # affine case
+      cmd = '\n'                                        \
+          '    # apply catenated xform : %s\n'          \
+          '    3dAllineate -base %s \\\n'               \
+          '                -input %s \\\n'              \
+          '                -1Dmatrix_apply %s \\\n'     \
+          '                -mast_dxyz %g\\\n'           \
+          '                -prefix %s \n'               \
+          % (cstr, gridbase, winput, runwarpmat, dim, woutput)
 
    # intersection mask of all-1 time series is same either way
    # (forget blip warps here)
    if all1_dset != None:
-      if proc.nlw_aff_mat == '':
-         cmd = cmd + '\n' +                                        \
-             '    # warp the all-1 dataset for extents masking \n' \
-             '    3dAllineate -base %s \\\n'                       \
-             '                -input %s \\\n'                      \
-             '                -1Dmatrix_apply %s \\\n'             \
-             '                -mast_dxyz %g -final NN -quiet \\\n' \
-             '                -prefix rm.epi.1.r$run \n'           \
-             % (gridbase, all1_dset.pv(), runwarpmat, dim)
-      else:
+      if dowarp and proc.nlw_aff_mat != '': # non-linear case
          cmd = cmd + '\n' +                                        \
              '    # warp the all-1 dataset for extents masking \n' \
              '    3dNwarpApply -master %s -dxyz %g\\\n'            \
@@ -2139,6 +2141,15 @@ def apply_catenated_warps(proc, runwarpmat, gridbase, winput, woutput, dim,
              '                 -prefix rm.epi.1.r$run \\\n'        \
              '                 -ainterp NN -quiet \n'              \
              % (gridbase, dim, all1_dset.pv(), proc.nlw_NL_mat, runwarpmat)
+      else:
+         cmd = cmd + '\n' +                                        \
+             '    # warp the all-1 dataset for extents masking \n' \
+             '    3dAllineate -base %s \\\n'                       \
+             '                -input %s \\\n'                      \
+             '                -1Dmatrix_apply %s \\\n'             \
+             '                -mast_dxyz %g -final NN -quiet \\\n' \
+             '                -prefix rm.epi.1.r$run \n'           \
+             % (gridbase, all1_dset.pv(), runwarpmat, dim)
 
       cmd = cmd + '\n' +                                                 \
           '    # make an extents intersection mask of this run\n'        \

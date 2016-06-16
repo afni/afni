@@ -512,9 +512,12 @@ g_history = """
     4.66 Jun 14, 2016:
         - if needed, pass along obliquity for all 3dNwarpApply results
         - added -blip_forward_dset
+    4.67 Jun 16, 2016:
+        - if NLwarp but EPI in orig space, do not apply (warn user)
+        - fix refit of blip median datsets
 """
 
-g_version = "version 4.66, June 14, 2016"
+g_version = "version 4.67, June 16, 2016"
 
 # version of AFNI required for script execution
 # prev: g_requires_afni =  "1 Apr 2015" # 1d_tool.py uncensor from 1D
