@@ -16,7 +16,8 @@ void MakeWindowVec( float *V, int N);
 // calculate supplementary sizes of arrays and numbers of freqs for
 // use in fasper(); pre-calc the N* things, and then input them into
 // fasper
-void PR89_suppl_calc_Ns( int N, float ofac, float hifac, 
+void PR89_suppl_calc_Ns( int N, int NT,
+                         double ofac, double hifac, 
                          int *Nout, int *Ndim);
 
 // supplementary function for calculating mean and variance of a 
@@ -29,7 +30,7 @@ void PR89_suppl_avevar(float *x, int N, float *AVE, float *VAR);
 void PR89_fasper( float *x, 
                     float *y, int N,
                     float *ywin, float *winvec,
-                    float ofac, 
+                    double ofac, 
                     double *wk1, double *wk2, int Nwk, 
                     int Nout, int *jmax, float *prob,
                     int DO_NORM, int DO_AMP);
