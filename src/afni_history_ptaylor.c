@@ -77,6 +77,11 @@ afni_history_struct ptaylor_history[] = {
    "Easier for 3dAmpToRSFC calcs.\n"
 },
 
+{ 16, Jun , 2016 , PT , "3dLombScargle" , MINOR , TYPE_MODIFY,
+   "Changed how number of output points/freqs is calc'ed.",
+   "Should be more stable across group.).\n"
+},
+
 { 13, Jun , 2016 , PT , "3dLombScargle" , MAJOR , TYPE_MODIFY,
    "Revamped LS program-- AGAIN**2!-- now has Welch windows+tapers.",
    "Scaling properly/consistently, couple bug fixes.\n"
