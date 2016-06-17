@@ -1004,6 +1004,10 @@ static THD_warp tempA_warp ;
 #define DATASET_BRICK_SUFFIX  "BRIK"
 #define DATASET_NOTES_SUFFIX  "NOTE"
 
+/* for strstr searches, include the '.'  17 Jun 2016 [rickr,DRG] */
+#define DATASET_DOT_HEADER_SUFFIX ".HEAD"
+#define DATASET_DOT_BRICK_SUFFIX  ".BRIK"
+
 /***
   The following codes define how the data is stored on disk.
   At one time, I started to support more than one storage

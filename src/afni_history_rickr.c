@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 17,  Jun, 2016, RCR, "afni-general", MICRO, TYPE_BUG_FIX,
+   "w/dglen, dsets with HEAD in prefix (but no suffix) could not be opened",
+   NULL
+ } ,
+
  { 16,  Jun, 2016, RCR, "afni_proc.py", MAJOR, TYPE_ENHANCE,
    "EPI blip up/blip down distortion correction is ready",
    "Thanks to S Torrisi and D Glen."
