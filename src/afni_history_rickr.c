@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 16,  Jun, 2016, RCR, "afni_proc.py", MAJOR, TYPE_ENHANCE,
+   "EPI blip up/blip down distortion correction is ready",
+   "Thanks to S Torrisi and D Glen."
+ } ,
+
  { 16,  Jun, 2016, RCR, "afni_proc.py", MINOR, TYPE_BUG_FIX,
    "if NLwarp but no EPI warp, no NL; fix refit of blip median datsets",
    "User probably forgot -volreg_tlrc_warp, so warn them."
