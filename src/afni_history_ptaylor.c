@@ -67,6 +67,11 @@ afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
 
+{ 20, Jun , 2016 , PT , "3dLombScargle" , MINOR , TYPE_BUG_FIX,
+   "Fixing bug in delta F calculation.",
+   "What more needs to be said?\n"
+},
+
 { 14, Jun , 2016 , PT , "3dAmptoRSFC" , MAJOR , TYPE_NEW_PROG,
    "New function for calculating RSFC params from one-side spectra.",
    "Complements 3dLombScargle. What an epithet.\n"
