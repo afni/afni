@@ -1402,11 +1402,10 @@ class RegWrap:
             return 0
          if self.cost == '':
             self.cost = 'lpa'   # make default cost lpa for dset1/2 terminology
-         self.prep_off()
+         self.dset_prep_off()
          self.epi_base = "0"      # align to 0th sub-brick
          self.dset1_generic_name = 'dset1'
          self.dset2_generic_name = 'dset2'
-
 
       e = afni_name(opt.parlist[0]) 
       ps.epi = e
@@ -1418,7 +1417,7 @@ class RegWrap:
             ps.ciao(1)
          if self.cost == '':
             self.cost = 'lpa'   # make default cost lpa for dset1/2 terminology
-         self.prep_off()        # assume no motion correction, slice timing correction,...
+         self.dset_prep_off()   # assume no motion correction, slice timing correction,...
          self.epi_base = "0"      # align to 0th sub-brick
          self.dset1_generic_name = 'dset1'
          self.dset2_generic_name = 'dset2'
@@ -1846,6 +1845,15 @@ class RegWrap:
        self.resample_flag = 0
        self.info_msg("turning off deobliquing tshift, volume registration, resampling")
        return
+
+   # turn off most preprocessing steps - keep deobliquing though
+   def dset_prep_off(self) :
+       self.tshift_flag = 0
+       self.volreg_flag = 0
+       self.resample_flag = 0
+       self.info_msg("turning off tshift, volume registration, resampling")
+       return
+
 
    # find smallest dimension of dataset in x,y,z
    def min_dim_dset(self, dset=None) :
