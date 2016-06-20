@@ -29,6 +29,7 @@ set TRnup = 20
 # compute some items
 # rcr - validate TRup (TR must be an integral multiple of TRup)
 set TRup = 0.1
+set demean_psych = 0    # usually 0 (for comparison, should not matter)
 
 set nstim = $#stim_files
 set run_lens = ( 300 300 300 )
@@ -107,8 +108,18 @@ foreach sind ( `count -digits 1 1 $nstim` )
          -tr $TRup -stim_dur $stim_dur[$sind]   \
          -run_len $run_lens                     \
          -min_frac 0.3                          \
-         -timing_to_1D $timing_prefix.$sind2.$stim_labs[$sind] \
+         -timing_to_1D $timing_prefix.$sind2.$label \
          -per_run_file -show_timing 
+
+   # optionally replace psychological variables with de-meaned versions
+   if ( $demean_psych ) then
+      set mean = `cat $timing_prefix.$sind2.* | 3dTstat -prefix - 1D:stdin\'`
+      echo "-- mean of psych '$label' files = $mean"
+      foreach file ( $timing_prefix.$sind2.$label* )
+         1deval -a $file -expr "a-$mean" > rm.1D
+         mv rm.1D $file
+      end
+   endif
 end
 
 
@@ -190,6 +201,7 @@ end
 cat $prefix.c.seed.r*.reBOLD.1D > $prefix.d.seed.rall.reBOLD.1D
 echo == can compare upsampled seeds: \
 	$seed_up $prefix.d.{seed,task}.rall.reBOLD.1D
+set seed_rebold_up = $prefix.d.seed.rall.reBOLD.1D
 
 
 # ===========================================================================
@@ -210,6 +222,9 @@ foreach rind ( `count -digits 1 1 $#NT` )
 
       1dcat $recon_part'{0..$('$TRnup')}' > $recon_down
    end
+
+   # and downsample filtered seed time series
+   1dcat $seed_rebold_up'{0..$('$TRnup')}' > $seed:r.reBOLD.1D
 end
 
 

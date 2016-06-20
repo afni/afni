@@ -17,6 +17,9 @@
 # referenced as $subjdir, below.
 #
 # Then one can apply this script (assuming the main directories are correct).
+#
+# ----------------------
+# R Reynolds   Oct, 2016
 # ===========================================================================
 
 
