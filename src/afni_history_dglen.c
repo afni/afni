@@ -49,6 +49,10 @@
 
 
 afni_history_struct dglen_history[] = {
+{ 19, JUN, 2016 , DRG , "align_epi_anat.py dset1/2 deobliquing" , 
+    MICRO , TYPE_BUG_FIX, 
+    "Using dset1/2 terminology forced deobliquing off"
+},
 { 13, JUN, 2016 , DRG , "3dTstat - single sub-bricks" , 
     MINOR , TYPE_NEW_OPT, 
     "For datasets with only a single sub-brick, 3dTstat would exit\n"
