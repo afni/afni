@@ -624,7 +624,7 @@ int main(int argc, char *argv[]) {
       INFO_message("Effective Nyquist multiplicative factor "
                    "for upper frequency is %.4f", my_hifac);
    }
-   delF = 1.0/((Dim[3]-1)*sampleTR*my_ofac);  // want this const across
+   delF = 1.0/((Dim[3])*sampleTR*my_ofac);  // want this const across
                                           // group and across windows
    INFO_message("Total Ntpts=%d,  TR=%.4f, my_ofac=%.4f", 
                 Dim[3], sampleTR, my_ofac);
