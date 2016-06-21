@@ -1,0 +1,349 @@
+#!/bin/tcsh
+
+# ====================================================================
+# A script to visualize probabilistic (PROB) tracking results from
+# 3dTrackID using SUMA.  Default behavior is to open AFNI and talk, as
+# well.
+
+# PA Taylor, DR Glen and RC Reynolds.
+# ====================================================================
+
+# --------------------- preliminary settings -----------------------
+
+set portnum = `afni -available_npb_quiet`
+
+setenv AFNI_ENVIRON_WARNINGS NO
+setenv SUMA_DriveSumaMaxCloseWait 6
+setenv SUMA_DriveSumaMaxWait 6
+
+# ------------------------------------------------------------------
+# Preset stuff.
+
+set in_V1    = ""
+set in_FA    = ""
+set in_TrNet = ""
+set out_pref = ""
+
+set in_mask  = ""
+set in_ulay  = ""
+
+set do_view  = "1"
+set do_only_vis = 0
+
+# ------------------- process options, a la rr ----------------------
+
+if ( $#argv == 0 ) goto SHOW_HELP
+
+set ac = 1
+while ( $ac <= $#argv )
+    # terminal options
+    if ( ("$argv[$ac]" == "-h" ) || ("$argv[$ac]" == "-help" )) then
+        goto SHOW_HELP
+    endif
+    if ( "$argv[$ac]" == "-ver" ) then
+        goto SHOW_VERSION
+    endif
+
+   # required
+   if ( "$argv[$ac]" == "-in_fa" ) then
+      if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+      @ ac += 1
+      set in_FA = "$argv[$ac]"
+   else if ( "$argv[$ac]" == "-in_v1" ) then
+      if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+      @ ac += 1
+      set in_V1 = "$argv[$ac]"
+   else if ( "$argv[$ac]" == "-in_tracts" ) then
+      if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+      @ ac += 1
+      set in_TrNet = "$argv[$ac]"
+   else if ( "$argv[$ac]" == "-prefix" ) then
+      if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+      @ ac += 1
+      set out_pref = "$argv[$ac]"
+
+   else if ( "$argv[$ac]" == "-in_ulay" ) then
+      if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+      @ ac += 1
+      set in_ulay = "$argv[$ac]"
+
+   else if ( "$argv[$ac]" == "-no_view" ) then
+      set do_view = 0
+   else if ( "$argv[$ac]" == "-only_view" ) then
+      set do_only_vis = 1
+
+   else
+      echo "** unexpected option #$ac = '$argv[$ac]'"
+      exit 2
+
+   endif
+   @ ac += 1
+end
+
+# ----------------------------------------------------------------
+
+# need more cowbell
+if ( ($in_FA == '') || ($in_V1 == '') || ("$in_TrNet" == '') || \
+    ($out_pref == '')) then
+    exit 3
+endif
+
+if ( $do_only_vis == 1 ) then
+    # Recap!
+    set mid_HUE =  "${out_pref}_HUE.nii.gz"
+    set mid_iso =  "${out_pref}_iso"
+
+    goto ONLY_VIEW
+endif
+
+# -------------------- Intermediate file names ---------------------
+set mid_HUE =  "${out_pref}_HUE.nii.gz"
+set mid_iso =  "${out_pref}_iso"
+# ------------------------------------------------------------------
+
+# ------------------ Find minimum voxel edge length ----------------
+set Ledges = `3dinfo -ad3 "$in_FA"`
+set minL = $Ledges[1]
+foreach vv ( `seq 1 1 3` )
+    if ( `echo "$Ledges[${vv}] < $minL" | bc` == 1 ) then
+        set minL = $Ledges[${vv}]
+    endif
+end
+
+set my_len = `echo "1.9*${minL}" | bc`
+echo "\n++ I believe the minimum voxel edge length is: $minL (mm)."
+echo "++    ... so that my I will project inward half of: $my_len (mm).\n"
+# ------------------------------------------------------------------
+
+# ------------------- Colorization + surfacization -----------------
+# Make [0] Hue map (from RGB), and [1] FA map
+3dVecRGB_to_HSL -echo_edu                \
+    -in_vec  "$in_V1"                    \
+    -in_scal "$in_FA"                    \
+    -prefix  "$mid_HUE"                  \
+    -overwrite
+
+IsoSurface -echo_edu                     \
+    -overwrite                           \
+    -input "$in_TrNet"                   \
+    -o_ply "${mid_iso}.ply"              \
+    -isoval V                            \
+    -Tsmooth 0.1 52
+
+quickspec                                \
+    -tn Ply "${mid_iso}.ply"             \
+    -spec   "${mid_iso}.spec"            \
+    -overwrite
+
+3dVol2Surf                               \
+    -overwrite                           \
+    -spec         "${mid_iso}.spec"      \
+    -surf_A       "${mid_iso}.ply"       \
+    -use_norms                           \
+    -norm_len     -"${my_len}"           \
+    -f_steps      2                      \
+    -f_index      nodes                  \
+    -sv           $mid_HUE               \
+    -grid_parent  $mid_HUE               \
+    -map_func     midpoint               \
+    -out_niml     "${out_pref}.niml.dset"
+
+# --------------------------------------------------------------------
+
+if ( no_view == "1" ) then
+    echo "Done calculating, and I guess you don't want to see the"
+    echo "\t preeeeetty results..."
+    EXIT
+endif
+
+ONLY_VIEW:
+
+if ( $in_ulay == '' ) then
+    set in_ulay = "$in_FA"
+    echo "\n++ No extra underlay input-- using ${in_FA}" 
+endif
+
+# ------------------- Open up AFNI viewer and drive ------------------
+afni -npb $portnum -niml -yesplugouts &
+
+# Need to slooow things down occasionally (-> sleep commands) for
+# proper viewing behavior.  The number/length of naps may be
+# computer/data set dependent.
+echo "\n\nNAP 0/4...\n\n"
+sleep 2
+
+# NB: Plugout drive options located at: 
+# http://afni.nimh.nih.gov/pub/dist/doc/program_help/README.driver.html
+plugout_drive -echo_edu                                  \
+    -npb $portnum                                        \
+    -com "SWITCH_UNDERLAY A.${in_ulay}"                  \
+    -com "SWITCH_OVERLAY A.${in_FA}"                     \
+    -com 'SET_FUNC_VISIBLE A.+'                          \
+    -com 'SET_THRESHNEW A 0.2'                           \
+    -com 'SET_PBAR_ALL A.+99 1.0 Spectrum:yellow_to_red' \
+    -quit
+# --------------------------------------------------------------------
+
+# ------------------- Open up SUMA viewer and drive ------------------
+suma                                                    \
+    -dev                                                \
+    -npb $portnum                                       \
+    -niml                                               \
+    -spec "${mid_iso}.spec"                             \
+    -vol  "$in_ulay"                                    \
+    -sv ${mid_HUE}'[0]' &
+#"$in_FA"           \
+echo "\n\nNAP 1/4...\n\n"
+sleep 3
+
+# NB: SUMA drive options located at: 
+# http://afni.nimh.nih.gov/pub/dist/doc/program_help/DriveSuma.html
+DriveSuma                                              \
+    -npb $portnum                                      \
+    -com viewer_cont -key 't' -key '.' 
+
+echo "\n\nNAP 2/4...\n\n"
+sleep 3
+
+DriveSuma                                              \
+    -npb $portnum                                      \
+    -com surf_cont                                     \
+    -load_dset   "${out_pref}.niml.dset"               \
+    -switch_dset "${out_pref}.niml.dset"
+
+
+echo "\n\nNAP 3/4...\n\n"
+sleep 3
+
+DriveSuma                                              \
+    -npb $portnum                                      \
+    -com surf_cont                                     \
+    -view_surf_cont y                   
+
+echo "\n\nNAP 4/4...\n\n"
+sleep 3
+
+cat << EOF
+    Wheeee.....
+EOF
+
+# brightness and coloration stuff
+DriveSuma                                              \
+    -npb $portnum                                      \
+    -com surf_cont                                     \
+    -switch_cmap Color_circle_AJJ                      \
+    -I_sb  0  -I_range 0 1                             \
+    -T_sb -1                                           \
+    -B_sb  3  -B_range 0.2 0.7  -B_scale 0.3 1
+
+DriveSuma                                              \
+    -npb $portnum                                      \
+    -com viewer_cont -key 'b'
+
+## Can view tract files for comparison...
+#suma -npb $portnum \
+#      -tract o.NETS_AND_MINIP_000.niml.tract        
+
+
+echo "\n\n++ Up and running!\n\n"
+
+goto EXIT
+
+
+# ========================================================================
+# ========================================================================
+
+SHOW_HELP:
+cat << EOF
+-------------------------------------------------------------------------
+    The purpose of this function is to help visualize tractographic
+    output of 3dTrackID, in particular the fully probabilistic mode
+    ('-mode PROB') that doesn't output a set of 1D tracts for
+    viewing. Here, local orientation of WM is viewed on a surface that
+    encloses the tracked region, and the brightness is modulated by
+    the FA.
+
+    There are two halves to this program, each of which can be run
+    separately.  First, V1 and FA values are used to compute RGB ->
+    HSL coloration. An smoothed isosurface surrounding the tracked
+    region is computed, and the coloration is mapped onto the surface.
+    Second, both AFNI and SUMA are opened up with 'talking' turned on,
+    and the data sets are visualized: the thresholded FA>0.2 map in
+    AFNI, and the RGB colorized surface in SUMA.
+
+-------------------------------------------------------------------------
+
+  OUTPUTS:
+
+    1) PREFIX_RGB_HUE.nii.gz :an HSL coloration volume file with four
+                              bricks from the V1 and FA volumes:
+                                [0] Hue
+                                [1] Saturation
+                                [2] Luminosity
+                                [3] Brightness
+    2) PREFIX_RGB_iso.ply    :a slightly smoothed isosurface file made by
+                              IsoSurface
+    3) PREFIX_RGB_iso.spec   :a spec file made by quickspec.  Useful 
+                              description, huh?
+    4) PREFIX_RGB.niml.dset  :a projection of appropriate coloration onto
+                              the surface
+
+    ... and a set of AFNI+SUMA commands will also open up viewers and
+        drive them with appropriate over/underlays and some
+        probably-useful parameter settings.
+
+-------------------------------------------------------------------------
+
+  RUNNING:
+    @fat_tract_colvol -in_fa FILE_FA  -in_v1 FILE_V1             \
+                        -in_tracts FILE_TR  -prefix PREFIX       \
+                        { -in_ulay FILE_UL }                     \
+                        { -no_view }  { -only_view }
+    where:
+    
+    -in_fa FILE_FA     :FA values of the DT fitting, which can be used to
+                        modulate the brightness of the RGB coloration.
+    -in_v1 FILE_V1     :first eigenvector of the DT fitting, such as by
+                        3dDWItoDT. The volume is supposed to be a unit 
+                        vector with 3 components. The magnitudes of the 
+                        components are each between [0, 1], so that
+                        (|x|, |y|, |z|) -> gets mapped to (R, G, B).
+    -in_tracts FILE_TR :the INDIMAP or PAIRMAP file output by 3dTrackID, 
+                        specifying the subbrick as well, if there are >1
+                        in it (you likely need to put the subbrick in 
+                        quotes, like NAME_INDIMAP+orig'[0]').
+    -prefix PREFIX     :prefix of all output files.
+
+    -in_ulay FILE_UL   :optional ability load in a separate data set to
+                        underlay in both the AFNI SUMA viewers (as
+                        '-vol ...'  slices in SUMA).  For example, you
+                        might want to to load in an anatomical
+                        volume. Default is to use the FA data set.
+
+    -no_view           :switch to turn off the auto-running of AFNI_SUMA
+                        commands to view the output immediately
+    -only_view         :switch to *only* view the data with AFNI+SUMA.
+                        This assumes that you have run the command at least
+                        once previously, so that there be data to view.
+
+-------------------------------------------------------------------------
+
+  EXAMPLE:
+    
+    @fat_tract_colvol   -in_fa DTI/DT_FA+orig.                      \
+                        -in_v1 DTI/DT_V1+orig.                      \
+                        -in_tracts DTI/o.NET_000_PAIRMAP+orig'[0]'  \
+                        -prefix RGB
+
+-------------------------------------------------------------------------
+
+EOF
+    goto EXIT
+
+SHOW_VERSION:
+   echo "version  1.2 (June, 2016)"
+   goto EXIT
+
+# send everyone here, in case there is any cleanup to do
+EXIT:
+   exit
