@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 21 , JUN , 2016 , RWC , "3dmaskave" , MICRO , TYPE_NEW_OPT ,
+   "Add -perc option for percentile" ,
+   NULL } ,
+
  { 14 , JUN , 2016 , RWC , "3dREMLfit" , MICRO , TYPE_BUG_FIX ,
    "Conversion to vector image fails for LARGE datasets" ,
    "The final step in the conversion to vectim is scanning the data for\n"

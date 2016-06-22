@@ -67,6 +67,11 @@ afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
 
+{ 21, Jun , 2016 , PT , "@fat_tract_colorize" , MAJOR , TYPE_NEW_PROG,
+   "New function for coloring the volumetric tracking outputs.",
+   "RGB coloration of local diffusion, esp. for PROB track output.\n"
+},
+
 { 20, Jun , 2016 , PT , "3dLombScargle" , MINOR , TYPE_BUG_FIX,
    "Fixing bug in delta F calculation.",
    "What more needs to be said?\n"
