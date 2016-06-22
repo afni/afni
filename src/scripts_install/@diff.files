@@ -9,6 +9,7 @@ set showfiles = 1
 set showdiffs = 0
 set savediffs = 0
 set xxdiff = 0
+set diffopts = ()
 
 if ( $#argv < 2 ) then
     goto SHOW_HELP
@@ -31,6 +32,10 @@ while ( $ac < $#argv )
         @ ac ++
     else if ( "$argv[$ac]" == '-xxdiff' ) then
         set xxdiff = 1
+        @ ac ++
+    else if ( "$argv[$ac]" == '-diff_opts' ) then
+        @ ac ++
+        set diffopts = ( $diffopts $argv[$ac] )
         @ ac ++
     else if ( "$argv[$ac]" == '-X' ) then
         set xxdiff = 1
@@ -139,7 +144,7 @@ foreach file ( $files )
     if ( $result ) then
         if ( $showdiffs ) then
             echo --------------------- $file --------------------- 
-            diff $file $odir/$file
+            diff $diffopts $file $odir/$file
         endif
 
         if ( $longlist ) then
@@ -156,7 +161,7 @@ foreach file ( $files )
 
         if ( $savediffs ) then 
             set dfile = `echo $file | sed 's/\//./g'`
-            diff $file $odir/$file > diffs/$dfile.txt
+            diff $diffopts $file $odir/$file > diffs/$dfile.txt
             if( $useps ) then
                 diff -bB $odir/$file $file | diffpp $odir/$file \
                          | enscript -Ge -p diffs/$dfile.ps
@@ -196,6 +201,8 @@ cat << EOF
 
    ----------------------------------------------------------------------
    options:
+      -diff_opts 'OPTS'  : add options to diff command
+                           e.g. -diff_opts -w
       -ignore_missing    : continue even if files are missing
                            alt: -im
       -longlist          : instead of listing file, run 'ls -l' on both
