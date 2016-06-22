@@ -515,9 +515,12 @@ g_history = """
     4.67 Jun 16, 2016:
         - if NLwarp but EPI in orig space, do not apply (warn user)
         - fix refit of blip median datsets
+    4.68 Jun 22, 2016: do nothing, but work really hard at it
+        - rewrite EPI transformation steps by storing and applying an array
+          of transformations: this should make future changes easier
 """
 
-g_version = "version 4.67, June 16, 2016"
+g_version = "version 4.68, June 22, 2016"
 
 # version of AFNI required for script execution
 # prev: g_requires_afni =  "1 Apr 2015" # 1d_tool.py uncensor from 1D

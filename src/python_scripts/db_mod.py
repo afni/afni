@@ -21,6 +21,7 @@ import lib_vars_object as VO
 #    volreg     : 'motion' corrected by new 3dvolreg command
 #    warped_vr  : ?? maybe allow a volreg version to be fully warped
 motsim_types = ['motion','aligned', 'volreg', 'warped']
+valid_warp_types = ['affine', 'NL']
 
 
 WARP_EPI_TLRC_ADWARP    = 1
@@ -70,24 +71,73 @@ def apply_uopt_list_to_block(opt_name, user_opts, block):
 
     return found
 
-def new_warp_item(desc='', wtype='', src='', xfiles=[], inv=[]):
+def warp_item(desc='', wtype='', warpset=''):
    """desc      = description of warp
-      wtype     = rigid, affine, NL
-      src       = source dataset
-      xfiles    = known files for transforms
-      inv       = whether to invert a given file transform
+      wtype     = affine, NL
+      warpset   = dataset for warp *.aff12.1D, *_WARP.nii, etc.
    """
+   if warpset == '':
+      print "** warp_item missing warpset, desc = '%s'" % desc
+      return None
+   if wtype not in valid_warp_types:
+      print '** warp for dset %s not in %s' % (warpset, valid_warp_types)
+      return None
+
    vo = VO.VarsObject()
    vo.set_var('desc', desc)
    vo.set_var('wtype', wtype)
-   vo.set_var('src', src)
-   vo.set_var('xfiles', xfiles)
-   vo.set_var('inv', inv)
-   # if no inv values passed, init to no inverse per xfile
-   if len(vo.xfiles) > 0 and len(vo.inv) == 0:
-      vo.inv = [0 for i in range(len(vo.xfiles))]
-   
+   vo.set_var('warpset', warpset)
+
    return vo
+
+def apply_catenated_warps(proc, warp_list, base='', source='', prefix='',
+                          dim=0, NN=0, istr=''):
+   """For now, warp_list should consist of an outer to inner list of warps.
+      If any are non-linear, use 3dNwarpApply to apply them.  Otherwise,
+      use 3dAllineate.
+
+      Note that 3dAllineate should take only a single warp (for now).
+
+      if NN: include options for warping using NN, such as for an all-1 dset
+
+      return: status and a single command, indented by istr
+   """
+
+   NL = 0
+   nwarps = len(warp_list)
+   for warp in warp_list:
+      if warp.wtype == 'NL': NL = 1
+
+   wstr = ' '.join([w.warpset for w in warp_list])
+   if nwarps > 1: wstr = '"%s"' % wstr
+
+   if not NL and nwarps > 1:
+      print '** ACW: not ready for sequence of affine warps'
+      return 1, ''
+
+   if NL:
+      if dim > 0: dimstr = ' -dxyz %g' % dim
+      else:       dimstr = ''
+
+      clist = ['3dNwarpApply -master %s%s \\\n' % (base, dimstr),
+               '             -source %s \\\n'   % source,
+               '             -nwarp %s \\\n'    % wstr]
+      if NN: clist.append ('             -ainterp NN -quiet \\\n')
+      clist.append('             -prefix %s\n' % prefix)
+
+   else: # affine
+      if NN: nstr = ' -final NN -quiet'
+      else:  nstr = ''
+
+      clist = ['3dAllineate -base %s \\\n'           % base,
+               '            -input %s \\\n'          % source,
+               '            -1Dmatrix_apply %s \\\n' % wstr,
+               '            -mast_dxyz %g%s \\\n'    % (dim, nstr),
+               '            -prefix %s\n'            % prefix]
+
+   cmd = istr + istr.join(clist)
+
+   return 0, cmd
 
 
 # --------------- tcat ---------------
@@ -1797,9 +1847,55 @@ def db_cmd_volreg(proc, block):
         if do_extents: wprefix = "rm.epi.nomask.r$run"
         else:          wprefix = cur_prefix
 
+        # create EPI warp list, outer to inner
+        epi_warps = []
+        # first outer is any NL std space warp
+        if dowarp and proc.nlw_aff_mat != '':
+           epi_warps.append(warp_item('NL std space', 'NL', proc.nlw_NL_mat))
+
+        # next is a combined warp of volreg->std space
+        epi_warps.append(warp_item(cstr, 'affine', runwarpmat))
+
+        # most inner is blip (all1 warp need not include blip)
+        all1_warps = epi_warps[:]
+        if doblip:
+           cstr += '/NLtlrc'
+           blipinput = proc.blip_dset_warp.shortinput()
+           epi_warps.append(warp_item('blip', 'NL', blipinput))
+
+        indent = '    '
+        wcmd = '\n%s# apply catenated xform: %s\n' % (indent, cstr)
+        # rcr - remove:
+        if doblip or proc.nlw_aff_mat:
+           wcmd += '%s# then apply non-linear standard-space warp\n' % indent
+
+        st, wtmp = apply_catenated_warps(proc, epi_warps, base=allinbase,
+                      source=prev_prefix, prefix=wprefix, dim=dim, istr=indent)
+        if st: return
+        wcmd += wtmp
+
+        if do_extents:
+           all1_prefix = 'rm.epi.1.r$run'
+           st, wtmp = apply_catenated_warps(proc, all1_warps, base=allinbase,
+                         source=all1_input.shortinput(), prefix=all1_prefix,
+                         dim=dim, NN=1, istr=indent)
+           if st: return
+           wcmd += '\n%s# warp the all-1 dataset for extents masking \n%s' \
+                   % (indent, wtmp)
+
+           wcmd += '\n'                                                 \
+                '%s# make an extents intersection mask of this run\n'   \
+                '%s3dTstat -min -prefix rm.epi.min.r$run %s%s\n'        \
+                % (indent, indent, all1_prefix, proc.view)
+
+
+        #print 'ACW status %d, cmd: \n%s\n' % (st, wcmd)
+
         # apply linear or non-linear warps
-        wcmd = apply_catenated_warps(proc, runwarpmat, allinbase, prev_prefix,
-                                     dowarp, wprefix, dim, all1_input, cstr)
+        #wcmd = tmp_apply_cat_warps(proc, runwarpmat, allinbase, prev_prefix,
+        #                             dowarp, wprefix, dim, all1_input, cstr)
+        #print 'OLD cmd: \n%s\n' % (wcmd)
+
         if wcmd == None: return
         cmd += wcmd
 
@@ -2096,7 +2192,7 @@ def should_warp_anat_followers(proc, block):
    print '** should_warp_anat_followers: in bad block %s' % block.label
    return 0
 
-def apply_catenated_warps(proc, runwarpmat, gridbase, winput, dowarp,
+def tmp_apply_cat_warps(proc, runwarpmat, gridbase, winput, dowarp,
                           woutput, dim, all1_dset,cstr):
    """generate either 3dAllineate or 3dNwarpApply commands"""
 

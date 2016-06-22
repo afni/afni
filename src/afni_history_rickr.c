@@ -49,6 +49,12 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 22,  Jun, 2016, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,
+   "do nothing, but work really hard at it",
+   "Rewrite EPI transformation steps by storing and applying an array\n"
+   "of transformations: this should make future changes easier."
+ } ,
+
  { 22,  Jun, 2016, RCR, "@diff.tree", MICRO, TYPE_NEW_OPT,
    "added -diff_opts; e.g. -diff_opts -w",
    NULL
