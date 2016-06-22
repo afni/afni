@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 22,  Jun, 2016, RCR, "auto_warp.py", MICRO, TYPE_BUG_FIX,
+   "correctly check base.exists()",
+   NULL
+ } ,
+
  { 17,  Jun, 2016, RCR, "afni-general", MICRO, TYPE_BUG_FIX,
    "w/dglen, dsets with HEAD in prefix (but no suffix) could not be opened",
    NULL
