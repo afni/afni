@@ -295,9 +295,9 @@ cat << EOF
 -------------------------------------------------------------------------
 
   RUNNING:
-    @fat_tract_colvol -in_fa FILE_FA  -in_v1 FILE_V1             \
-                        -in_tracts FILE_TR  -prefix PREFIX       \
-                        { -in_ulay FILE_UL }                     \
+    @fat_tract_colorize -in_fa FILE_FA  -in_v1 FILE_V1             \
+                        -in_tracts FILE_TR  -prefix PREFIX         \
+                        { -in_ulay FILE_UL }                       \
                         { -no_view }  { -only_view }
     where:
     
@@ -330,7 +330,7 @@ cat << EOF
 
   EXAMPLE:
     
-    @fat_tract_colvol   -in_fa DTI/DT_FA+orig.                      \
+    @fat_tract_colorize -in_fa DTI/DT_FA+orig.                      \
                         -in_v1 DTI/DT_V1+orig.                      \
                         -in_tracts DTI/o.NET_000_PAIRMAP+orig'[0]'  \
                         -prefix RGB
