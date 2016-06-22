@@ -67,7 +67,7 @@ afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
 
-{ 21, Jun , 2016 , PT , "@fat_tract_colvol" , MAJOR , TYPE_NEW_PROG,
+{ 21, Jun , 2016 , PT , "@fat_tract_colorize" , MAJOR , TYPE_NEW_PROG,
    "New function for coloring the volumetric tracking outputs.",
    "RGB coloration of local diffusion, esp. for PROB track output.\n"
 },
