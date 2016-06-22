@@ -13,6 +13,7 @@ set showdiffs = 0
 set savediffs = 0
 set verb      = 1
 set xxdiff    = 0
+set diffopts  = ()
 
 set skip_data = 0 # skip BRIK, dcm
 set ignore_list = ( )
@@ -37,6 +38,9 @@ while ( $narg <= $amax )
         set savediffs = 1
     else if ( "$argv[$narg]" == "-no_diffs" ) then
         set do_diffs = 0
+    else if ( "$argv[$narg]" == '-diff_opts' ) then
+        @ narg ++
+        set diffopts = ( $diffopts $argv[$narg] )
     else if ( "$argv[$narg]" == "-show" ) then
         set showdiffs = 1
         set showfiles = 0
@@ -153,7 +157,7 @@ foreach file ( $new_files )
           $file =~ *.nii  || $file =~ *.nii.gz ) ) continue
 
   if ( $showdiffs ) then
-    diff $ndir/$file $odir/$file >& /dev/null
+    diff $diffopts $ndir/$file $odir/$file >& /dev/null
     set ss = $status
     if ( $ss ) then
       if ( $verb ) then
@@ -164,11 +168,11 @@ foreach file ( $new_files )
       if ( $xxdiff ) then
          xxdiff $ndir/$file $odir/$file
       else
-         diff $ndir/$file $odir/$file
+         diff $diffopts $ndir/$file $odir/$file
       endif
     endif
   else
-      diff $ndir/$file $odir/$file >& /dev/null
+      diff $diffopts $ndir/$file $odir/$file >& /dev/null
       set ss = $status
   endif
   if ( $ss ) then
@@ -177,7 +181,7 @@ foreach file ( $new_files )
 
     if ( $savediffs ) then 
       set dfile = `echo $file | sed 's/\//./g'`
-      diff $ndir/$file $odir/$file > diffs/t.$dfile.txt
+      diff $diffopts $ndir/$file $odir/$file > diffs/t.$dfile.txt
 
       if( $useps ) then
           diff -bB $odir/$file $ndir/$file | diffpp $odir/$file \
@@ -229,6 +233,7 @@ cat << EOF
    ----------------------------------------------------------------------
    options:
 
+      -diff_opts 'OPTS'      : apply OPTS as options in diff commands
       -ignore_append i1 ...  : append to ignore_list (list in quotes)
       -ia                    : short for -ignore_append
       -ignore_list i1 ...    : create new ignore_list (list in quotes)

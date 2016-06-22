@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 22,  Jun, 2016, RCR, "@diff.files", MICRO, TYPE_NEW_OPT,
+   "added -diff_opts; e.g. -diff_opts -w",
+   NULL
+ } ,
+
  { 22,  Jun, 2016, RCR, "auto_warp.py", MICRO, TYPE_BUG_FIX,
    "correctly check base.exists()",
    NULL
