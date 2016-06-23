@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 23,  Jun, 2016, RCR, "plug_realtime", MICRO, TYPE_ENHANCE,
+   "show pop-up if user selects Mask Vals without 3D RT registrasion",
+   "Clarify this in the plugin Help.  For L Li and V Roopchansingh."
+ } ,
+
  { 23,  Jun, 2016, RCR, "@auto_tlrc", MICRO, TYPE_ENHANCE,
    "allow to work with NIFTI template",
    NULL
