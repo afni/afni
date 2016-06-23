@@ -1356,7 +1356,7 @@ if ( "$ref_path" == "$ref_in" ) then
       goto END
    endif
    #echo "try finding ref_in in new ref_path"
-   if ( `@CheckForAfniDset ${ref_path}/${ref_in}` != 2 ) then
+   if ( `@CheckForAfniDset ${ref_path}/${ref_in}` < 2 ) then
       echo "Error: Template dset ${ref_in} not found"
       echo "   in afni's binaries directory"
       set estat = 1

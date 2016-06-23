@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 23,  Jun, 2016, RCR, "@auto_tlrc", MICRO, TYPE_ENHANCE,
+   "allow to work with NIFTI template",
+   NULL
+ } ,
+
  { 22,  Jun, 2016, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,
    "do nothing, but work really hard at it",
    "Rewrite EPI transformation steps by storing and applying an array\n"
