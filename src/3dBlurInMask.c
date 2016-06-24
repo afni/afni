@@ -14,30 +14,6 @@ static int verb = 1 ;
 extern short * UniqueShort( short *y, int ysz, int *kunq, int Sorted ) ;
 
 /*----------------------------------------------------------------------------*/
-/*! Blur image, in place, confined to a mask, with blurring factors given
-    separately for each dimension xyz.  A NULL blurring factor means don't
-    blur in that direction.  Blurring factors can be thought of in 2 ways
-      - diffusion equation: fx = 0.5 * Delta_t * D_x / Delta_x**2
-      - FWHM blurring:      fx = (Delta_FWHMx / Delta_x)**2 * 0.045084
-      - The fx (etc.) factors should be between 0 and 0.05 for stability;
-        for increasing the FWHM of the image, this means that the maximum
-        change in FWHM is about Delta_x in each step.
-      - Not all input fx,fy,fz factors should be NULL (or nothing will happen).
-      - Method: 3 point stencil (in each direction) conservative finite
-        difference approximation to du/dt = d/dx[ D_x(x,y,z) du/dx ] + ...
-      - Points not in the mask are not processed, and will be set to zero
-        in the output.
-      - The input mask can be NULL.  If you really want speed, a special
-        version should be written for the mask=NULL case.  Please send
-        pumpernickel bagels or dark chocolate covered cranberries.
-      - Author: Zhark, Emperor of the Galaxy!!!  (Nov 2006)
-------------------------------------------------------------------------------*/
-
-void mri_blur3D_variable( MRI_IMAGE *im , byte *mask ,
-                          MRI_IMAGE *fx , MRI_IMAGE *fy , MRI_IMAGE *fz );
-
-
-/*----------------------------------------------------------------------------*/
 
 int main( int argc , char *argv[] )
 {
@@ -231,7 +207,7 @@ int main( int argc , char *argv[] )
        if( fwhmset != NULL ) ERROR_exit("You can't use option '-FWHMdset' twice :(") ;
        fwhmset = THD_open_dataset( argv[iarg] ) ;
        CHECK_OPEN_ERROR(fwhmset,argv[iarg]) ;
-       iarg++ ; continue ;
+       do_preserve = 1 ; iarg++ ; continue ;
      }
 
      if( strncmp(argv[iarg],"-float",6) == 0 ){    /* 18 May 2009 */
@@ -339,20 +315,28 @@ int main( int argc , char *argv[] )
          DSET_NZ(inset) != DSET_NZ(fwhmset)   )
        ERROR_exit("grid dimensions for FWHMdset and input dataset do not match :(") ;
 
+STATUS("get fwim") ;
+     DSET_load(fwhmset) ;
      fwim = mri_scale_to_float(DSET_BRICK_FACTOR(fwhmset,0),DSET_BRICK(fwhmset,0));
      fwar = MRI_FLOAT_PTR(fwim);
+     DSET_unload(fwhmset) ;
+STATUS("process fwar") ;
      for( ii=0 ; ii < nvox ; ii++ ){
        if( mask[ii] && fwar[ii] > 0.0f ){
          nfpos++ ;
          if( fwar[ii] > fwmax ) fwmax = fwar[ii] ;
        } else {
-         fwar[ii] = 0.0f ;
+         fwar[ii] = 0.0f ; mask[ii] = 0 ;
        }
      }
      if( nfpos < 100 )
        ERROR_exit("Cannot proceed: too few (%d) voxels are positive in -FWHMdset!",nfpos) ;
 
-     niter_fxyz = (int)(fwmax*fwmax*FFAC/(0.05f*dmin*dmin)) + 2 ;
+     niter_fxyz = (int)rintf(2.0f*fwmax*fwmax*FFAC/(0.05f*dmin*dmin)) + 1 ;
+
+/** INFO_message("niter_fxyz = %d",niter_fxyz) ; **/
+
+STATUS("create fxim etc.") ;
 
      fxim = mri_new_conforming(fwim,MRI_float); fxar = MRI_FLOAT_PTR(fxim);
      fyim = mri_new_conforming(fwim,MRI_float); fyar = MRI_FLOAT_PTR(fyim);
@@ -361,6 +345,7 @@ int main( int argc , char *argv[] )
      fsx = FFAC/(dx*dx*niter_fxyz) ;
      fsy = FFAC/(dy*dy*niter_fxyz) ;
      fsz = FFAC/(dz*dz*niter_fxyz) ;
+/** INFO_message("fsx=%g fsy=%g fsz=%g",fsx,fsy,fsz) ; **/
 
      for( ii=0 ; ii < nvox ; ii++ ){
        if( fwar[ii] > 0.0f ){
@@ -372,10 +357,13 @@ int main( int argc , char *argv[] )
        }
      }
 
+STATUS("free(fwim)") ;
      mri_free(fwim) ;
    }
 
    /*--- process input dataset ---*/
+
+STATUS("load input") ;
 
    DSET_load(inset) ; CHECK_LOAD_ERROR(inset) ;
 
