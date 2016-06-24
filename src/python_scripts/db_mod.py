@@ -1888,13 +1888,8 @@ def db_cmd_volreg(proc, block):
                 '%s3dTstat -min -prefix rm.epi.min.r$run %s%s\n'        \
                 % (indent, indent, all1_prefix, proc.view)
 
-
-        #print 'ACW status %d, cmd: \n%s\n' % (st, wcmd)
-
-        # apply linear or non-linear warps
-        #wcmd = tmp_apply_cat_warps(proc, runwarpmat, allinbase, prev_prefix,
-        #                             dowarp, wprefix, dim, all1_input, cstr)
-        #print 'OLD cmd: \n%s\n' % (wcmd)
+        # wcmd = old_apply_cat_warps(proc, runwarpmat, allinbase, prev_prefix,
+        #                            dowarp, wprefix, dim, all1_input, cstr)
 
         if wcmd == None: return
         cmd += wcmd
@@ -2192,7 +2187,7 @@ def should_warp_anat_followers(proc, block):
    print '** should_warp_anat_followers: in bad block %s' % block.label
    return 0
 
-def tmp_apply_cat_warps(proc, runwarpmat, gridbase, winput, dowarp,
+def old_apply_cat_warps(proc, runwarpmat, gridbase, winput, dowarp,
                           woutput, dim, all1_dset,cstr):
    """generate either 3dAllineate or 3dNwarpApply commands"""
 
@@ -7829,7 +7824,13 @@ g_help_string = """
             against the most recent date in afni_history:
                 afni_history -past_entries 1
 
+            See also '-requires_afni_hist'.
+
             See also '-check_afni_version'.
+
+        -requires_afni_hist     : show history of -requires_afni_version
+
+            List the history of '-requires_afni_version' dates and reasons.
 
         -show_valid_opts        : show all valid options (brief format)
         -ver                    : show the version number
