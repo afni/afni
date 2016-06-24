@@ -114,6 +114,7 @@ void usage_3dmaskave(int detail) {
 "                 [-sigma is ignored with -sum, -median, -max, or -min.]\n"
 "                 [the last given of -sum, -median, -max, or -min wins.]\n"
 "  -perc XX     Means to compute the XX-th percentile value (min=0 max=100).\n"
+"               XX should be an integer from 0 to 100.\n"
 "  -dump        Means to print out all the voxel values that\n"
 "                 go into the result.\n"
 "  -udump       Means to print out all the voxel values that\n"
@@ -342,10 +343,16 @@ int main( int argc , char * argv[] )
           WARNING_message("'-perc 100' is the same as '-max'") ;
           maxit = 1 ; medianit = 0 ; minit = 0 ; sumit = 0 ;
                       sumsqit = 0 ; enormit = 0 ; percit = 0 ;
+        } else if( perc == 50.0f ){
+          WARNING_message("'-perc 50' is the same as '-median'") ;
+          maxit = 0 ; medianit = 1 ; minit = 0 ; sumit = 0 ;
+                      sumsqit = 0 ; enormit = 0 ; percit = 0 ;
+        } else {
+          maxit = 0 ; medianit = 0 ; minit = 0 ; sumit = 0 ;
+                      sumsqit = 0 ; enormit = 0 ;
+          percit = 1 ;
         }
-        maxit = 0 ; medianit = 0 ; minit = 0 ; sumit = 0 ;
-                    sumsqit = 0 ; enormit = 0 ;
-        percit = 1 ; narg++ ; continue ;
+        narg++ ; continue ;
       }
 
       if( strncmp(argv[narg],"-max",4) == 0 ){  /* 24 Feb 2005 */

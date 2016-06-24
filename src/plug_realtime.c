@@ -385,14 +385,21 @@ static char helpstring[] =
    "                port (e.g. to serial_helper or realtime_receiver.py),\n"
    "                based on 'Vals to Send'.\n"
    "\n"
-   " Vals to Send = Controls sending extra data to serial_helper port.\n"
-   "                * None              : do not send extra information\n"
-   "                * Motion Only       : send only the 6 motion parameters\n"
-   "                * ROI Means         : also send a mean for each Mask ROI\n"
-   "                * All Data          : send all Mask voxel data\n"
+   " Vals to Send = Controls sending extra data to serial_helper TCP port\n"
+   "                (perhaps to serial_helper or realtime_receiver.py).\n"
    "\n"
-   "                  --> see 'Mask', above\n"
-   "                  --> see example F from 'Dimon -help'\n"
+   "                    None          : do not send extra information\n"
+   "                    Motion Only   : send only the 6 motion parameters\n"
+   "                    ROI Means     : also send a mean for each Mask ROI\n"
+   "                    All Data      : send all Mask voxel data\n"
+   "\n"
+   "                * Sending vals requires use of '3D realtime registration',\n"
+   "                  as it is based on the 3D registration parameters and the\n"
+   "                  registered data.\n"
+   "\n"
+   "                --> see 'Mask' and 'Registration', above\n"
+   "                --> see example F from 'Dimon -help'\n"
+   "                --> see 'realtime_receiver.py -help'\n"
    "\n"
    " ChannelMerge = Turn on method for merging multi-channel information.\n"
    "                * Has no effect if only one channel of data is sent.\n"
@@ -1031,6 +1038,7 @@ char * RT_main( PLUGIN_interface * plint )
 {
    char * tag , * str , * new_prefix ;
    static char buf[256] ;
+   int    check_reg=0 ;  /* check for 3D RT reg vs mask data */
 
    if( plint == NULL )
       return "*********************\n"
@@ -1089,6 +1097,7 @@ char * RT_main( PLUGIN_interface * plint )
 
          str       = PLUTO_get_string(plint) ;
          reg_resam = PLUTO_string_index( str , NRESAM , REG_resam_strings ) ;
+         check_reg = 1;  /* check for 3D RT reg vs mask data */
          continue ;
       }
 
@@ -1174,6 +1183,8 @@ char * RT_main( PLUGIN_interface * plint )
                  g_mask_dset ? "found":"no", RT_mask_strings[g_mask_val_type]);
 
          RT_mp_rm_env_mask() ; /* delete any mask from env */
+
+         check_reg = 1;  /* check for 3D RT reg vs mask data */
 
          continue ;
       }
@@ -1279,6 +1290,16 @@ char * RT_main( PLUGIN_interface * plint )
       return buf ;
 
    }  /* end of loop over active input options */
+
+   if ( check_reg && g_mask_val_type > 0 && regmode != REGMODE_3D_RTIME ) {
+      sprintf(buf, "******************************************\n"
+                   "RT_opts: have RT mask method '%s',\n"
+                   "         but no 3D realtime registration\n"
+                   "         ==> will not process RT mask data\n" 
+                   "******************************************",
+                   RT_mask_strings[g_mask_val_type]);
+      PLUTO_popup_transient(plint, buf);
+   }
 
    /*-- 28 Apr 2000: if in Image Only mode, turn some stuff off --*/
 
