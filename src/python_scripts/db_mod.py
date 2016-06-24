@@ -21,6 +21,7 @@ import lib_vars_object as VO
 #    volreg     : 'motion' corrected by new 3dvolreg command
 #    warped_vr  : ?? maybe allow a volreg version to be fully warped
 motsim_types = ['motion','aligned', 'volreg', 'warped']
+valid_warp_types = ['affine', 'NL']
 
 
 WARP_EPI_TLRC_ADWARP    = 1
@@ -70,24 +71,73 @@ def apply_uopt_list_to_block(opt_name, user_opts, block):
 
     return found
 
-def new_warp_item(desc='', wtype='', src='', xfiles=[], inv=[]):
+def warp_item(desc='', wtype='', warpset=''):
    """desc      = description of warp
-      wtype     = rigid, affine, NL
-      src       = source dataset
-      xfiles    = known files for transforms
-      inv       = whether to invert a given file transform
+      wtype     = affine, NL
+      warpset   = dataset for warp *.aff12.1D, *_WARP.nii, etc.
    """
+   if warpset == '':
+      print "** warp_item missing warpset, desc = '%s'" % desc
+      return None
+   if wtype not in valid_warp_types:
+      print '** warp for dset %s not in %s' % (warpset, valid_warp_types)
+      return None
+
    vo = VO.VarsObject()
    vo.set_var('desc', desc)
    vo.set_var('wtype', wtype)
-   vo.set_var('src', src)
-   vo.set_var('xfiles', xfiles)
-   vo.set_var('inv', inv)
-   # if no inv values passed, init to no inverse per xfile
-   if len(vo.xfiles) > 0 and len(vo.inv) == 0:
-      vo.inv = [0 for i in range(len(vo.xfiles))]
-   
+   vo.set_var('warpset', warpset)
+
    return vo
+
+def apply_catenated_warps(proc, warp_list, base='', source='', prefix='',
+                          dim=0, NN=0, istr=''):
+   """For now, warp_list should consist of an outer to inner list of warps.
+      If any are non-linear, use 3dNwarpApply to apply them.  Otherwise,
+      use 3dAllineate.
+
+      Note that 3dAllineate should take only a single warp (for now).
+
+      if NN: include options for warping using NN, such as for an all-1 dset
+
+      return: status and a single command, indented by istr
+   """
+
+   NL = 0
+   nwarps = len(warp_list)
+   for warp in warp_list:
+      if warp.wtype == 'NL': NL = 1
+
+   wstr = ' '.join([w.warpset for w in warp_list])
+   if nwarps > 1: wstr = '"%s"' % wstr
+
+   if not NL and nwarps > 1:
+      print '** ACW: not ready for sequence of affine warps'
+      return 1, ''
+
+   if NL:
+      if dim > 0: dimstr = ' -dxyz %g' % dim
+      else:       dimstr = ''
+
+      clist = ['3dNwarpApply -master %s%s \\\n' % (base, dimstr),
+               '             -source %s \\\n'   % source,
+               '             -nwarp %s \\\n'    % wstr]
+      if NN: clist.append ('             -ainterp NN -quiet \\\n')
+      clist.append('             -prefix %s\n' % prefix)
+
+   else: # affine
+      if NN: nstr = ' -final NN -quiet'
+      else:  nstr = ''
+
+      clist = ['3dAllineate -base %s \\\n'           % base,
+               '            -input %s \\\n'          % source,
+               '            -1Dmatrix_apply %s \\\n' % wstr,
+               '            -mast_dxyz %g%s \\\n'    % (dim, nstr),
+               '            -prefix %s\n'            % prefix]
+
+   cmd = istr + istr.join(clist)
+
+   return 0, cmd
 
 
 # --------------- tcat ---------------
@@ -527,6 +577,8 @@ def db_mod_blip(block, proc, user_opts):
 
       set proc.blip_rev_dset for copying
    """
+   
+   apply_uopt_to_block('-blip_forward_dset', user_opts, block)
    apply_uopt_to_block('-blip_reverse_dset', user_opts, block)
 
    # note blip reverse input dset
@@ -539,6 +591,27 @@ def db_mod_blip(block, proc, user_opts):
    else:
       print '** have blip block without -blip_reverse_dset'
       return
+
+   # note blip forward input dset (or make one up)
+   bopt = block.opts.find_opt('-blip_forward_dset')
+   if bopt:
+      proc.blip_in_for = BASE.afni_name(bopt.parlist[0])
+      if proc.verb > 2:
+         print '-- have blip forward dset %s' \
+               % proc.blip_in_for.shortinput(sel=1)
+   else:
+      # make forward blip from first input
+      forinput = proc.dsets[0].rel_input()
+      revinput = proc.blip_in_rev.rel_input(sel=1)
+      rv, nt, tr = UTIL.get_dset_reps_tr(revinput, notr=1, verb=proc.verb)
+      if rv: return None
+
+      proc.blip_in_for = BASE.afni_name("%s[0..%d]" % (forinput, nt-1))
+      proc.blip_in_for.view = proc.view
+
+      if proc.verb > 2:
+         print '-- using -dsets for blip forward dset %s' \
+               % proc.blip_in_for.shortinput(sel=1)
 
    # check for alignment to median forward blip base
    val, status = user_opts.get_string_opt('-volreg_align_to')
@@ -596,12 +669,6 @@ def db_cmd_blip(proc, block):
           % (proc.blip_dset_warp.shortinput(), proc.blip_dset_med.shortinput())
       return cmd
 
-   # get NT from original input
-   # note: sub-brick selectors should be okay, if used
-   revinput = proc.blip_in_rev.rel_input(sel=1)
-   rv, nt, tr = UTIL.get_dset_reps_tr(revinput, notr=1, verb=proc.verb)
-   if rv: return None
-
    # compute the blip transformation
 
    proc.have_rm = 1            # rm.* files exist
@@ -609,9 +676,9 @@ def db_cmd_blip(proc, block):
    medr = proc.blip_dset_rev.new(new_pref='rm.blip.med.rev')
    forwdset = proc.prev_prefix_form(1, block, view=1)
    cmd += '# create median datasets from forward and reverse time series\n' \
-          '3dTstat -median -prefix %s %s"[0..%s]"\n'                        \
+          '3dTstat -median -prefix %s %s\n'                                 \
           '3dTstat -median -prefix %s %s\n\n'                               \
-          % (medf.out_prefix(), forwdset, nt-1,
+          % (medf.out_prefix(), proc.blip_dset_for.shortinput(),
              medr.out_prefix(), proc.blip_dset_rev.shortinput())
    
    mmedf = medf.new(new_pref='rm.blip.med.masked.fwd')
@@ -640,44 +707,80 @@ def db_cmd_blip(proc, block):
    warp_rev = mmedf.new(new_pref=('%s_Rev_WARP'%warp_prefix))
    proc.blip_dset_warp = warp_for  # store for volreg block
 
+   fobl = dset_is_oblique(proc.blip_in_for, proc.verb)
+   robl = dset_is_oblique(proc.blip_in_rev, proc.verb)
+
    # apply mid-warp to forward median
    for_prefix = 'blip_med_for'
    rev_prefix = 'blip_med_rev'
-   cmd += '# warp median datasets (forward and each masked) for QC checks\n' \
-          '3dNwarpApply %s -nwarp %s \\\n' \
-          '             -source %s \\\n'   \
-          '             -prefix %s\n'      \
-          % (blip_interp, warp_for.shortinput(), medf.shortinput(), for_prefix)
+   cmd += '# warp median datasets (forward and each masked) for QC checks\n'
+   if fobl or robl: cmd += '# (and preserve obliquity)\n'
+
+   # if oblique, pass the local copies
+   if fobl: foblset = proc.blip_dset_for
+   else:    foblset = None
+   if fobl: roblset = proc.blip_dset_rev
+   else:    roblset = None
+
+   cmd += blip_warp_command(proc, warp_for.shortinput(), medf.shortinput(),
+                            for_prefix, oblset=foblset, interp=blip_interp)
+   cmd += '\n'
    proc.blip_dset_med = proc.blip_dset_warp.new(new_pref=for_prefix)
 
    # to forward masked median
-   cmd += '3dNwarpApply %s -nwarp %s \\\n' \
-          '             -source %s \\\n'   \
-          '             -prefix %s\n'      \
-          % (blip_interp, warp_for.shortinput(), mmedf.shortinput(),
-             '%s_masked'%for_prefix)
+   cmd += blip_warp_command(proc, warp_for.shortinput(), mmedf.shortinput(),
+                    '%s_masked'%for_prefix, oblset=foblset, interp=blip_interp)
+   cmd += '\n'
 
    # to reverse masked median
-   cmd += '3dNwarpApply %s -nwarp %s \\\n' \
-          '             -source %s \\\n'   \
-          '             -prefix %s\n'      \
-          % (blip_interp, warp_rev.shortinput(), mmedr.shortinput(),
-             '%s_masked'%rev_prefix)
+   # if oblique, pass the local copy
+   if fobl: oblset = proc.blip_dset_for
+   else:    oblset = None
+   cmd += blip_warp_command(proc, warp_rev.shortinput(), mmedr.shortinput(),
+                    '%s_masked'%rev_prefix, oblset=roblset, interp=blip_interp)
 
    cmd += '\n'
 
    # apply forward mid-warp to EPI
    inform = proc.prev_prefix_form_run(block, view=1)
    outform = proc.prefix_form_run(block)
+   bstr = blip_warp_command(proc, warp_for.shortinput(), inform, outform,
+           interp=blip_interp, oblset=foblset, indent='    ')
    cmd += '# warp EPI time series data\n'       \
           'foreach run ( $runs )\n'             \
-          '    3dNwarpApply %s -nwarp %s \\\n'  \
-          '                 -source %s \\\n'    \
-          '                 -prefix %s\n\n'     \
-          '    3drefit -atrcopy %s IJK_TO_DICOM_REAL %s%s\n' \
+          '%s' \
           'end\n\n'                             \
-          % (blip_interp, warp_for.shortinput(), inform, outform,
-             inform, outform, proc.view)
+          % (bstr)
+
+   return cmd
+
+def dset_is_oblique(aname, verb):
+   cmd = '3dinfo -is_oblique %s' % aname.rel_input()
+   st, so, se = UTIL.limited_shell_exec(cmd)
+
+   if verb > 2:
+      print '== dset_is_oblique cmd: %s' % cmd
+      print '       so = %s, se = %s' % (so, se)
+
+   if len(so) < 1:    return 0
+   elif so[0] == '1': return 1
+   else:              return 0
+
+def blip_warp_command(proc, warp, source, prefix, interp=' -quintic',
+                      oblset=None, indent=''):
+   if not interp:            intstr = ''
+   elif interp[0] == '-':    intstr = ' %s' % interp
+   else:                     intstr = interp
+
+   cmd = '%s3dNwarpApply%s -nwarp %s \\\n' \
+         '%s             -source %s \\\n'   \
+         '%s             -prefix %s\n'      \
+         % (indent, intstr, warp, indent, source, indent, prefix)
+
+   if oblset:
+      cmd += '%s3drefit -atrcopy %s IJK_TO_DICOM_REAL \\\n' \
+             '%s                 %s%s\n'                    \
+             % (indent, oblset.shortinput(), indent, prefix, proc.view)
 
    return cmd
 
@@ -1603,6 +1706,10 @@ def db_cmd_volreg(proc, block):
     doe2a = block.opts.find_opt('-volreg_align_e2a') != None
     doblip = isinstance(proc.blip_dset_warp, BASE.afni_name)
 
+    if proc.nlw_aff_mat and not dowarp:
+       print '** have NL warp to standard space, but not applying to EPI\n' \
+             '   (consider -volreg_tlrc_warp)'
+
     # store these flags for other processing blocks
     if dowarp: proc.warp_epi |= WARP_EPI_TLRC_WARP
     if doadwarp: proc.warp_epi |= WARP_EPI_TLRC_ADWARP
@@ -1740,9 +1847,55 @@ def db_cmd_volreg(proc, block):
         if do_extents: wprefix = "rm.epi.nomask.r$run"
         else:          wprefix = cur_prefix
 
+        # create EPI warp list, outer to inner
+        epi_warps = []
+        # first outer is any NL std space warp
+        if dowarp and proc.nlw_aff_mat != '':
+           epi_warps.append(warp_item('NL std space', 'NL', proc.nlw_NL_mat))
+
+        # next is a combined warp of volreg->std space
+        epi_warps.append(warp_item(cstr, 'affine', runwarpmat))
+
+        # most inner is blip (all1 warp need not include blip)
+        all1_warps = epi_warps[:]
+        if doblip:
+           cstr += '/NLtlrc'
+           blipinput = proc.blip_dset_warp.shortinput()
+           epi_warps.append(warp_item('blip', 'NL', blipinput))
+
+        indent = '    '
+        wcmd = '\n%s# apply catenated xform: %s\n' % (indent, cstr)
+        # rcr - remove:
+        if doblip or proc.nlw_aff_mat:
+           wcmd += '%s# then apply non-linear standard-space warp\n' % indent
+
+        st, wtmp = apply_catenated_warps(proc, epi_warps, base=allinbase,
+                      source=prev_prefix, prefix=wprefix, dim=dim, istr=indent)
+        if st: return
+        wcmd += wtmp
+
+        if do_extents:
+           all1_prefix = 'rm.epi.1.r$run'
+           st, wtmp = apply_catenated_warps(proc, all1_warps, base=allinbase,
+                         source=all1_input.shortinput(), prefix=all1_prefix,
+                         dim=dim, NN=1, istr=indent)
+           if st: return
+           wcmd += '\n%s# warp the all-1 dataset for extents masking \n%s' \
+                   % (indent, wtmp)
+
+           wcmd += '\n'                                                 \
+                '%s# make an extents intersection mask of this run\n'   \
+                '%s3dTstat -min -prefix rm.epi.min.r$run %s%s\n'        \
+                % (indent, indent, all1_prefix, proc.view)
+
+
+        #print 'ACW status %d, cmd: \n%s\n' % (st, wcmd)
+
         # apply linear or non-linear warps
-        wcmd = apply_catenated_warps(proc, runwarpmat, allinbase, prev_prefix,
-                                     wprefix, dim, all1_input, cstr)
+        #wcmd = tmp_apply_cat_warps(proc, runwarpmat, allinbase, prev_prefix,
+        #                             dowarp, wprefix, dim, all1_input, cstr)
+        #print 'OLD cmd: \n%s\n' % (wcmd)
+
         if wcmd == None: return
         cmd += wcmd
 
@@ -2039,23 +2192,12 @@ def should_warp_anat_followers(proc, block):
    print '** should_warp_anat_followers: in bad block %s' % block.label
    return 0
 
-def apply_catenated_warps(proc, runwarpmat, gridbase, winput, woutput, dim,
-                          all1_dset,cstr):
+def tmp_apply_cat_warps(proc, runwarpmat, gridbase, winput, dowarp,
+                          woutput, dim, all1_dset,cstr):
    """generate either 3dAllineate or 3dNwarpApply commands"""
 
-   # affine case
-   if proc.nlw_aff_mat == '' and proc.blip_dset_warp == None:
-      cmd = '\n'                                        \
-          '    # apply catenated xform : %s\n'          \
-          '    3dAllineate -base %s \\\n'               \
-          '                -input %s \\\n'              \
-          '                -1Dmatrix_apply %s \\\n'     \
-          '                -mast_dxyz %g\\\n'           \
-          '                -prefix %s \n'               \
-          % (cstr, gridbase, winput, runwarpmat, dim, woutput)
-
    # non-linear case - apply proc.nlw_NL_mat along with typical mat
-   else:
+   if (dowarp and proc.nlw_aff_mat != '') or proc.blip_dset_warp:
       if dim > 0: dimstr = ' -dxyz %g' % dim
       else:       dimstr = ''
 
@@ -2073,20 +2215,20 @@ def apply_catenated_warps(proc, runwarpmat, gridbase, winput, woutput, dim,
           '                 -prefix %s \n'                      \
           % (cstr, gridbase, dimstr, winput, proc.nlw_NL_mat, 
              runwarpmat, bwstr, woutput)
+   else: # affine case
+      cmd = '\n'                                        \
+          '    # apply catenated xform : %s\n'          \
+          '    3dAllineate -base %s \\\n'               \
+          '                -input %s \\\n'              \
+          '                -1Dmatrix_apply %s \\\n'     \
+          '                -mast_dxyz %g\\\n'           \
+          '                -prefix %s \n'               \
+          % (cstr, gridbase, winput, runwarpmat, dim, woutput)
 
    # intersection mask of all-1 time series is same either way
    # (forget blip warps here)
    if all1_dset != None:
-      if proc.nlw_aff_mat == '':
-         cmd = cmd + '\n' +                                        \
-             '    # warp the all-1 dataset for extents masking \n' \
-             '    3dAllineate -base %s \\\n'                       \
-             '                -input %s \\\n'                      \
-             '                -1Dmatrix_apply %s \\\n'             \
-             '                -mast_dxyz %g -final NN -quiet \\\n' \
-             '                -prefix rm.epi.1.r$run \n'           \
-             % (gridbase, all1_dset.pv(), runwarpmat, dim)
-      else:
+      if dowarp and proc.nlw_aff_mat != '': # non-linear case
          cmd = cmd + '\n' +                                        \
              '    # warp the all-1 dataset for extents masking \n' \
              '    3dNwarpApply -master %s -dxyz %g\\\n'            \
@@ -2095,6 +2237,15 @@ def apply_catenated_warps(proc, runwarpmat, gridbase, winput, woutput, dim,
              '                 -prefix rm.epi.1.r$run \\\n'        \
              '                 -ainterp NN -quiet \n'              \
              % (gridbase, dim, all1_dset.pv(), proc.nlw_NL_mat, runwarpmat)
+      else:
+         cmd = cmd + '\n' +                                        \
+             '    # warp the all-1 dataset for extents masking \n' \
+             '    3dAllineate -base %s \\\n'                       \
+             '                -input %s \\\n'                      \
+             '                -1Dmatrix_apply %s \\\n'             \
+             '                -mast_dxyz %g -final NN -quiet \\\n' \
+             '                -prefix rm.epi.1.r$run \n'           \
+             % (gridbase, all1_dset.pv(), runwarpmat, dim)
 
       cmd = cmd + '\n' +                                                 \
           '    # make an extents intersection mask of this run\n'        \
@@ -8400,7 +8551,19 @@ g_help_string = """
 
             Please see '3dTshift -help' for more information.
 
-        -blip_reverse_dset      : specify a dataset for blip up/down correction
+        -blip_forward_dset      : specify a forward blip dataset
+
+                e.g. -blip_forward_dset epi_forward_blip+orig'[0..9]'
+
+            Without this option, the first TRs of the first input EPI time
+            series would be used as the forward blip dataset.
+
+            See also -blip_revers_dset.
+
+            Please see '3dQwarp -help' for more information, and the -plusminus
+            option in particular.
+
+        -blip_reverse_dset      : specify a reverse blip dataset
 
                 e.g. -blip_reverse_dset epi_reverse_blip+orig
                 e.g. -blip_reverse_dset epi_reverse_blip+orig'[0..9]'

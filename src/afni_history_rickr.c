@@ -49,9 +49,50 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 22,  Jun, 2016, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,
+   "do nothing, but work really hard at it",
+   "Rewrite EPI transformation steps by storing and applying an array\n"
+   "of transformations: this should make future changes easier."
+ } ,
+
+ { 22,  Jun, 2016, RCR, "@diff.tree", MICRO, TYPE_NEW_OPT,
+   "added -diff_opts; e.g. -diff_opts -w",
+   NULL
+ } ,
+
+ { 22,  Jun, 2016, RCR, "@diff.files", MICRO, TYPE_NEW_OPT,
+   "added -diff_opts; e.g. -diff_opts -w",
+   NULL
+ } ,
+
+ { 22,  Jun, 2016, RCR, "auto_warp.py", MICRO, TYPE_BUG_FIX,
+   "correctly check base.exists()",
+   NULL
+ } ,
+
+ { 17,  Jun, 2016, RCR, "afni-general", MICRO, TYPE_BUG_FIX,
+   "w/dglen, dsets with HEAD in prefix (but no suffix) could not be opened",
+   NULL
+ } ,
+
+ { 16,  Jun, 2016, RCR, "afni_proc.py", MAJOR, TYPE_ENHANCE,
+   "EPI blip up/blip down distortion correction is ready",
+   "Thanks to S Torrisi and D Glen."
+ } ,
+
+ { 16,  Jun, 2016, RCR, "afni_proc.py", MINOR, TYPE_BUG_FIX,
+   "if NLwarp but no EPI warp, no NL; fix refit of blip median datsets",
+   "User probably forgot -volreg_tlrc_warp, so warn them."
+ } ,
+
+ { 14,  Jun, 2016, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
+   "add -blip_forward_dset; if needed copy along any obliquity information",
+   NULL
+ } ,
+
  { 13,  Jun, 2016, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
    "add -align_unifize_epi : 3dUnifize EPI before anat alignment",
-   NULL
+   "Thanks to D Glen and S Torrisi for suggesting it."
  } ,
 
  { 13,  Jun, 2016, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,
