@@ -49,8 +49,8 @@
 
 afni_history_struct rickr_history[] = {
 
- { 24,  Jun, 2016, RCR, "afni_proc.py", MICRO, TYPE_NEW_OPT,
-   "add -requires_afni_hist",
+ { 24,  Jun, 2016, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
+   "add -requires_afni_hist; warp vr_base to make final_epi dset",
    NULL
  } ,
 
