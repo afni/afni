@@ -1795,6 +1795,11 @@ def db_cmd_volreg(proc, block):
                       % proc.dsets[0].rel_input()
                 return
 
+    # create EPI warp list, outer to inner
+    epi_warps      = []
+    epi_base_cmv   = []         # list of cat_matvec commands for EPI base
+    allinbase      = None       # master grid for warp
+
     # if warping, multiply matrices and apply
     # (store cat_matvec entries in case of later use)
     if dowarp or doe2a or doblip:
@@ -1824,11 +1829,13 @@ def db_cmd_volreg(proc, block):
             else:                wstr = '%s::WARP_DATA -I' % proc.tlrcanat.pv()
             cmd = cmd + '               %s \\\n' % wstr
             proc.e2final_mv.append(wstr)
+            epi_base_cmv.append(wstr)
 
         if doe2a:
             wstr = '%s -I ' % proc.a2e_mat
             cmd = cmd + '               %s \\\n' % wstr
             proc.e2final_mv.append(wstr)
+            epi_base_cmv.append(wstr)
 
         # if blip, input (prev_prefix) is from prior to blip block
         if doblip:
@@ -1847,8 +1854,6 @@ def db_cmd_volreg(proc, block):
         if do_extents: wprefix = "rm.epi.nomask.r$run"
         else:          wprefix = cur_prefix
 
-        # create EPI warp list, outer to inner
-        epi_warps = []
         # first outer is any NL std space warp
         if dowarp and proc.nlw_aff_mat != '':
            epi_warps.append(warp_item('NL std space', 'NL', proc.nlw_NL_mat))
@@ -1980,6 +1985,19 @@ def db_cmd_volreg(proc, block):
            proc.mask_extents.new_view(proc.view)
 
     # ---------------
+    # make a warped volreg base dataset, if appropriate
+    rv, wcmd, wapply = get_vr_warp_list(proc, epi_warps, epi_base_cmv)
+    if rv: return
+    if wcmd and wapply:
+        cmd += wcmd
+        wprefix = 'final_epi_%s' % proc.vr_base_dset.prefix
+        proc.epi_final = proc.vr_base_dset.new(new_pref=wprefix)
+        st, wtmp = apply_catenated_warps(proc, wapply, base=allinbase,
+                      source=basevol, prefix=wprefix, dim=dim)
+        if st: return
+        cmd += wtmp + '\n'
+
+    # ---------------
     # make a copy of the "final" anatomy, called "anat_final.$subj"
     if proc.view == '+tlrc': aset = proc.tlrcanat
     else:                    aset = proc.anat
@@ -2027,6 +2045,48 @@ def db_cmd_volreg(proc, block):
     proc.mot_labs = ['roll', 'pitch', 'yaw', 'dS', 'dL', 'dP']
 
     return cmd
+
+def get_vr_warp_list(proc, ewarps, matvec_list):
+   """if matvec_list is non-empty, apply all warps
+         to:     proc.vr_base_dset
+         making: proc.epi_final
+
+      return status (0 on success), command and new warps
+   """
+
+   # anything to do?
+   if len(matvec_list) == 0: return 0, '', None
+
+   # make sure there is no blip warp
+   wapply = [w for w in ewarps if w.desc != 'blip']
+
+   # find affine warp to replace with that from matvec_list
+   affine_ind = -1
+   for ind, witem in enumerate(ewarps):
+      if witem.wtype == 'affine':
+         affine_ind = ind
+         break
+
+   if affine_ind < 0:
+      print '** CVWBV: no affine warp to replace'
+      return 1, '', None
+
+   # create the warp to replace
+   warpmat = 'mat.basewarp.aff12.1D'
+   cstr = '# warp the volreg base EPI dataset to make a final version\n' \
+          'cat_matvec -ONELINE'
+
+   if len(matvec_list) == 1:
+      cstr += ' %s' % matvec_list[0]
+   else:
+      spacing = ' \\\n           '
+      cstr += spacing + spacing.join(matvec_list)
+
+   cstr += ' > %s\n\n' % warpmat
+
+   wapply[affine_ind] = warp_item('vr base warp', 'affine', warpmat)
+
+   return 0, cstr, wapply
 
 def warp_anat_followers(proc, block, anat_aname, epi_aname=None, prevepi=0):
    """apply a single catenated warp to all followers, to match that of anat
