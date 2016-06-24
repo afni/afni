@@ -516,17 +516,19 @@ g_history = """
         - if NLwarp but EPI in orig space, do not apply (warn user)
         - fix refit of blip median datsets
     4.68 Jun 22, 2016: do nothing, but work really hard at it
-        - rewrite EPI transformation steps by storing and applying an array
-          of transformations: this should make future changes easier
+        - apply EPI transformation steps using an array of transformations
+          (to make future changes easier)
+    4.69 Jun 24, 2016: added -requires_afni_hist
 """
 
-g_version = "version 4.68, June 22, 2016"
+g_version = "version 4.69, June 24, 2016"
 
 # version of AFNI required for script execution
-# prev: g_requires_afni =  "1 Apr 2015" # 1d_tool.py uncensor from 1D
-# prev: g_requires_afni = "23 Jul 2015" # 3dREMLfit -dsort
-# prev: g_requires_afni = "1 Sep 2015" # gen_ss_review_scripts.py -errts_dset
-g_requires_afni = "28 Oct 2015" # 3ddot -dodice
+g_requires_afni = [ \
+      [  "1 Apr 2015",  "1d_tool.py uncensor from 1D" ],
+      [ "23 Jul 2015",  "3dREMLfit -dsort" ],
+      [  "1 Sep 2015",  "gen_ss_review_scripts.py -errts_dset" ],
+      [ "28 Oct 2015",  "3ddot -dodice" ] ]
 
 g_todo_str = """todo:
   - allow for 3dAllineate in place of 3dvolreg: -volreg_use_allineate
@@ -816,6 +818,8 @@ class SubjProcSream:
                         helpstr="show revision history")
         self.valid_opts.add_opt('-requires_afni_version', 0, [],
                         helpstr='show which date is required of AFNI')
+        self.valid_opts.add_opt('-requires_afni_hist', 0, [],
+                        helpstr='show history of -requires_afni_version')
         self.valid_opts.add_opt('-show_valid_opts', 0, [],
                         helpstr="show all valid options")
         self.valid_opts.add_opt('-todo', 0, [],
@@ -1296,7 +1300,12 @@ class SubjProcSream:
             return 0  # gentle termination
         
         if opt_list.find_opt('-requires_afni_version'): # print required version
-            print g_requires_afni
+            print g_requires_afni[-1][0]
+            return 0  # gentle termination
+        
+        if opt_list.find_opt('-requires_afni_hist'): # print required history
+            hlist = ['   %11s, for : %s' % (h[0],h[1]) for h in g_requires_afni]
+            print '%s' % '\n'.join(hlist)
             return 0  # gentle termination
         
         if opt_list.find_opt('-todo'):     # print "todo" list
@@ -2097,7 +2106,7 @@ class SubjProcSream:
           '    echo "** this script requires newer AFNI binaries (than %s)"\n'\
           '    echo "   (consider: @update.afni.binaries -defaults)"\n'       \
           '    exit\n'                                                        \
-          'endif\n\n' % (g_requires_afni, g_requires_afni) )
+          'endif\n\n' % (g_requires_afni[-1][0], g_requires_afni[-1][0]) )
 
         self.write_text('# the user may specify a single subject to run with\n'\
                       'if ( $#argv > 0 ) then\n'                             \
