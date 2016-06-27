@@ -603,8 +603,8 @@ def db_mod_blip(block, proc, user_opts):
       # make forward blip from first input
       forinput = proc.dsets[0].rel_input()
       revinput = proc.blip_in_rev.rel_input(sel=1)
-      rv, nt, tr = UTIL.get_dset_reps_tr(revinput, notr=1, verb=proc.verb)
-      if rv: return None
+      nt = UTIL.get_3dinfo_nt(revinput)
+      if nt == 0: return None
 
       proc.blip_in_for = BASE.afni_name("%s[0..%d]" % (forinput, nt-1))
       proc.blip_in_for.view = proc.view

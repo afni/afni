@@ -521,9 +521,10 @@ g_history = """
     4.69 Jun 24, 2016:
         - added -requires_afni_hist
         - if appropriate, warp vr_base dset as final_epi
+    4.70 Jun 27, 2016: allow for blip datasets that are not time series
 """
 
-g_version = "version 4.69, June 24, 2016"
+g_version = "version 4.70, June 27, 2016"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \
