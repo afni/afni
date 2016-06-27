@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 27,  Jun, 2016, RCR, "afni_proc.py", MICRO, TYPE_ENHANCE,
+   "allow for blip datasets that are not time series",
+   NULL
+ } ,
+
  { 24,  Jun, 2016, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
    "add -requires_afni_hist; warp vr_base to make final_epi dset",
    NULL
