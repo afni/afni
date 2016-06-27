@@ -286,7 +286,7 @@ static char *  ppmto_png_filter   = NULL ;  /* 07 Dec 2006 */
 
 #define GIFSICLE_SUFFIX    "-O2 -d %d -k 127 -l %%s > %%s"
 #define WHIRLGIF_SUFFIX    "-time %d -loop %%s > %%s"
-#define MPEG_ENCODE_SUFFIX "-realquiet %s"
+#define FFMPEG_SUFFIX "-loglevel quiet -y"
 
 #define DO_AGIF(sq) ((sq)->opt.save_agif)
 #define DO_MPEG(sq) ((sq)->opt.save_mpeg)
@@ -344,15 +344,15 @@ void ISQ_setup_ppmto_filters(void)
 
       ppmto_ppm_filter = str ;  /* save this filter string */
 
-      pg = THD_find_executable( "mpeg_encode" ) ;
+      pg = THD_find_executable( "ffmpeg" ) ;
       if( pg != NULL ){
          str = AFMALL( char, strlen(pg)+64) ;
-         sprintf(str,"%s %s",pg,MPEG_ENCODE_SUFFIX) ;
+         sprintf(str,"%s %s",pg,FFMPEG_SUFFIX) ;
          ppmto_mpeg_filter = str ;
          if( dbg ) fprintf(stderr,"IMSAVE: animation filter '%s' for suffix '%s'\n",
                            str , "mpg" ) ;
       }
-      else CANT_FIND("mpeg_encode","MPEG-1") ;
+      else CANT_FIND("ffmpeg","MPEG-1") ;
    }
    else CANT_FIND("cat","PPM") ;  /* this is the end of the world! */
 
@@ -4389,63 +4389,33 @@ ENTRY("ISQ_saver_CB") ;
             /* MPEG-1 */
 
             else if( DO_MPEG(seq) ){ /* 02 Aug 2001 */
-               int alen ; char *alf , *oof , *par , *frate ;
-               char *qscale , *pattrn ; int mpar=0 ;
-               FILE *fpar ;
+               int alen ; char *alf , *oof , *frate ;
+               char *qscale , *pattrn ;
 
-               /* write mpeg_encode parameter file */
-
-               par = AFMALL( char, strlen(seq->saver_prefix)+32 ) ; /* param fname */
-               sprintf(par,"%s%s.PARAM",seq->saver_prefix,tsuf) ;
-
-               if( dbg ) fprintf(stderr,"  creating MPEG parameter file %s\n",par) ;
-               fpar = fopen( par , "w" ) ;
-               if( fpar == NULL ){ free(par) ; goto AnimationCleanup ; }
+               /* compose ffmpeg parameters */
                oof = AFMALL( char, strlen(seq->saver_prefix)+32 ) ; /* output fname */
                sprintf(oof,"%smpg",seq->saver_prefix) ;
                qscale=getenv("AFNI_MPEG_QSCALE")   ; if(qscale==NULL) qscale="11" ;
                frate =getenv("AFNI_MPEG_FRAMERATE"); if(frate ==NULL) frate ="24" ;
                pattrn=getenv("AFNI_MPEG_PATTERN")  ;
                if( pattrn == NULL ){                  /* 07 Apr 2009 */
-                 if( adup <= 1 ) pattrn="IIIII";
-                 else {
-                   pattrn = calloc(sizeof(char),(adup+1)) ; mpar = 1 ;
-                   pattrn[0] = 'I' ; memset( pattrn+1 , 'P' , adup-1 ) ;
-                 }
+                 /* by default use only I-frames */
+                 if( adup <= 1 ) pattrn="-intra";
+                 /* otherwise go with ffmpegs default */
+                 else pattrn="";
                }
-               fprintf(fpar,
-                          "OUTPUT %s\n"             /* oof */
-                          "GOP_SIZE          5\n"
-                          "SLICES_PER_FRAME  1\n"
-                          "FRAME_RATE        %s\n"  /* frate */
-                          "BASE_FILE_FORMAT  PPM\n"
-                          "INPUT_CONVERT     *\n"
-                          "INPUT_DIR         .\n"
-                          "PATTERN           %s\n"  /* pattrn */
-                          "IQSCALE           %s\n"  /* qscale */
-                          "PQSCALE           10\n"
-                          "BQSCALE           25\n"
-                          "PIXEL             HALF\n"
-                          "RANGE             10 4\n"
-                          "PSEARCH_ALG       LOGARITHMIC\n"
-                          "BSEARCH_ALG       SIMPLE\n"
-                          "REFERENCE_FRAME   ORIGINAL\n"
-                          "INPUT\n"
-                          "%s%s.*.ppm [%06d-%06d]\n"  /* prefix, tsuf, from, to */
-                          "END_INPUT\n"
-                       , oof , frate , pattrn , qscale ,
-                         seq->saver_prefix,tsuf,0,akk-1 ) ;
-               fclose(fpar) ;
-               if( mpar ) free(pattrn) ;
-
                /* make command to run */
-
-               alen = strlen(par)+strlen(ppmto_mpeg_filter)+32 ;
+               alen = strlen(seq->saver_prefix) + strlen(ppmto_mpeg_filter)
+                      +1000 ;
                alf  = AFMALL( char, alen) ;
-               sprintf(alf , ppmto_mpeg_filter, par ) ; /* command to run */
+               /* output fps default to 25 */
+               sprintf(alf,
+                 "%s -r %s -f image2 -i %s%s.%%06d.ppm -b 400k -qscale %s %s %s",
+                 ppmto_mpeg_filter, frate, seq->saver_prefix, tsuf, qscale,
+                 pattrn, oof) ; /* command to run */
                INFO_message("Running '%s' to produce %s\n",alf,oof) ;
                system(alf) ;                            /* so run it!    */
-               remove(par); free(alf); free(oof); free(par); /* free trash   */
+               free(alf); free(oof); /* free trash   */
             }
 
             /* animation is done, for good or for ill */
@@ -6483,7 +6453,7 @@ ENTRY("ISQ_but_disp_CB") ;
                                  "* This takes precedence over 'Save One',\n"
                                  "    if it is also turned on.\n"
                                  "* GIF animations require gifsicle.\n"
-                                 "* MPEG-1 animations require mpeg_encode.\n"
+                                 "* MPEG-1 animations require ffmpeg.\n"
                                ) ;
            MCW_reghint_children( seq->save_agif_bbox->wrowcol ,
                                  "Save image sequence to animation" ) ;
@@ -13702,63 +13672,33 @@ ENTRY("ISQ_save_anim") ;
       /* MPEG-1 */
 
       case MPEG_MODE:{
-        int alen ; char *alf , *oof , *par , *frate ;
-        char *qscale , *pattrn ; int mpar=0 ;
-        FILE *fpar ;
+        int alen ; char *alf , *oof , *frate ;
+        char *qscale , *pattrn ;
 
-        /* write mpeg_encode parameter file */
-
-        par = AFMALL( char, strlen(ppo)+32 ) ; /* param fname */
-        sprintf(par,"%s%s.PARAM",ppo,tsuf) ;
-
-        fpar = fopen( par , "w" ) ;
-        if( fpar == NULL ){ free(par) ; break ; }
+        /* compose ffmpeg parameters */
         oof = AFMALL( char, strlen(prefix)+32 ) ; /* output fname */
         sprintf(oof,"%smpg",prefix) ;
         qscale=getenv("AFNI_MPEG_QSCALE")   ; if(qscale==NULL) qscale="11";
         frate =getenv("AFNI_MPEG_FRAMERATE"); if(frate ==NULL) frate ="24";
         pattrn=getenv("AFNI_MPEG_PATTERN")  ;
         if( pattrn == NULL ){
-          if( adup <= 1 ) pattrn="IIIII";
-          else {
-            pattrn = calloc(sizeof(char),(adup+1)) ; mpar = 1 ;
-            pattrn[0] = 'I' ; memset( pattrn+1 , 'P' , adup-1 ) ;
-          }
+            /* by default use only I-frames */
+            if( adup <= 1 ) pattrn="-intra";
+            /* otherwise go with ffmpegs default */
+            else pattrn="";
         }
-        fprintf(fpar,
-                  "OUTPUT %s\n"             /* oof */
-                  "GOP_SIZE          5\n"
-                  "SLICES_PER_FRAME  1\n"
-                  "FRAME_RATE        %s\n"  /* frate */
-                  "BASE_FILE_FORMAT  PPM\n"
-                  "INPUT_CONVERT     *\n"
-                  "INPUT_DIR         .\n"
-                  "PATTERN           %s\n"  /* pattrn */
-                  "IQSCALE           %s\n"  /* qscale */
-                  "PQSCALE           10\n"
-                  "BQSCALE           25\n"
-                  "PIXEL             HALF\n"
-                  "RANGE             10 4\n"
-                  "PSEARCH_ALG       LOGARITHMIC\n"
-                  "BSEARCH_ALG       SIMPLE\n"
-                  "REFERENCE_FRAME   ORIGINAL\n"
-                  "INPUT\n"
-                  "%s%s.*.ppm [%06d-%06d]\n"  /* prefix, tsuf, from, to */
-                  "END_INPUT\n"
-               , oof , frate , pattrn , qscale ,
-                 ppo,tsuf,0,akk) ;
-        fclose(fpar) ;
-        if( mpar ) free(pattrn) ;
-
         /* make command to run */
-
-        alen = strlen(par)+strlen(ppmto_mpeg_filter)+32 ;
+        alen = strlen(seq->saver_prefix) + strlen(ppmto_mpeg_filter)
+                      +1000 ;
         alf  = AFMALL( char, alen) ;
-        sprintf(alf , ppmto_mpeg_filter, par ) ; /* command to run */
+        sprintf(alf,
+          "%s -r %s -f image2 -i %s%s.%%06d.ppm -b 400k -qscale %s %s %s",
+          ppmto_mpeg_filter, frate, seq->saver_prefix, tsuf, qscale,
+          pattrn, oof) ; /* command to run */
         INFO_message("Running '%s' to produce %s",alf,oof) ;
         if( THD_is_ondisk(oof) ) WARNING_message("Over-writing '%s'",oof);
         system(alf) ;                            /* so run it!    */
-        remove(par); free(alf); free(oof); free(par); /* free trash   */
+        free(alf); free(oof); /* free trash   */
       }
       break ;
      }
