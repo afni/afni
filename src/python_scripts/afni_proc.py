@@ -518,10 +518,17 @@ g_history = """
     4.68 Jun 22, 2016: do nothing, but work really hard at it
         - apply EPI transformation steps using an array of transformations
           (to make future changes easier)
-    4.69 Jun 24, 2016: added -requires_afni_hist
+    4.69 Jun 24, 2016:
+        - added -requires_afni_hist
+        - if appropriate, warp vr_base dset as final_epi
+    4.70 Jun 27, 2016: allow for blip datasets that are not time series
+    4.71 Jun 29, 2016:
+        - can modify blip order
+        - BLIP_BASE is now MEDIAN_BLIP
+        - added BLIP NOTE to -help output
 """
 
-g_version = "version 4.69, June 24, 2016"
+g_version = "version 4.71, June 29, 2016"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \
@@ -631,7 +638,8 @@ class SubjProcSream:
         self.vr_ext_base= None          # name of external volreg base 
         self.vr_ext_pre = 'external_volreg_base' # copied volreg base prefix
         self.vr_int_name= ''            # other internal volreg dset name
-        self.vr_base_dset  = None       # afni_name for applied volreg base
+        self.vr_base_dset = None        # afni_name for applied volreg base
+        self.epi_final  = None          # vr_base_dset or warped version of it
         self.volreg_prefix = ''         # prefix for volreg dataset ($run)
                                         #   (using $subj and $run)
         self.vr_vall    = None          # all runs from volreg block
@@ -1001,7 +1009,7 @@ class SubjProcSream:
                         helpstr="align EPI to anatomy (via align block)")
         self.valid_opts.add_opt('-volreg_align_to', 1, [],
                         acplist=['first','third', 'last', 'MIN_OUTLIER',
-                                 'BLIP_BASE'],
+                                 'MEDIAN_BLIP'],
                         helpstr="align to first, third, last or MIN_OUTILER TR")
         self.valid_opts.add_opt('-volreg_base_dset', 1, [],
                         helpstr='external dataset to use as volreg base')
@@ -1504,8 +1512,8 @@ class SubjProcSream:
            if err: return 1
 
         # do we want the blip block?
-        # rcr - also check -blip_align_dsets
-        if self.user_opts.find_opt('-blip_reverse_dset'):
+        if self.user_opts.find_opt('-blip_reverse_dset') \
+              and not 'blip' in blocks:
            err, blocks = self.add_block_to_list(blocks, 'blip')
            if err: return 1
 
