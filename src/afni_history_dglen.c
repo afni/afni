@@ -49,6 +49,10 @@
 
 
 afni_history_struct dglen_history[] = {
+{ 29, JUN, 2016 , DRG , "align_epi_anat.py flipping identity" , 
+    MINOR , TYPE_BUG_FIX, 
+    "Case of mistaken IDENTITY for check_flip option"
+},
 { 19, JUN, 2016 , DRG , "align_epi_anat.py dset1/2 deobliquing" , 
     MICRO , TYPE_BUG_FIX, 
     "Using dset1/2 terminology forced deobliquing off"
