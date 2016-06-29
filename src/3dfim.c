@@ -863,8 +863,9 @@ void get_line_opt( int argc , char *argv[] , line_opt *opt )
          opt->dset = THD_open_one_dataset( argv[nopt] ) ;
          if( opt->dset == NULL ) 
          {
-            sprintf (err_note, "Unable to open 3d+time data file: %s", argv[nopt]);
-            Syntax (err_note); 
+            fprintf(stderr, "\n** Unable to open 3d+time data file: %s\n",
+                    argv[nopt]);
+            Syntax ("input dataset open failure");
          }
          continue ;
       }
