@@ -603,8 +603,8 @@ def db_mod_blip(block, proc, user_opts):
       # make forward blip from first input
       forinput = proc.dsets[0].rel_input()
       revinput = proc.blip_in_rev.rel_input(sel=1)
-      rv, nt, tr = UTIL.get_dset_reps_tr(revinput, notr=1, verb=proc.verb)
-      if rv: return None
+      nt = UTIL.get_3dinfo_nt(revinput)
+      if nt == 0: return None
 
       proc.blip_in_for = BASE.afni_name("%s[0..%d]" % (forinput, nt-1))
       proc.blip_in_for.view = proc.view
@@ -615,7 +615,7 @@ def db_mod_blip(block, proc, user_opts):
 
    # check for alignment to median forward blip base
    val, status = user_opts.get_string_opt('-volreg_align_to')
-   if val == 'BLIP_BASE':
+   if val == 'MEDIAN_BLIP':
       # matching the same varible in db_cmd_blip
       for_prefix = 'blip_med_for'
       inset = '%s%s' % (for_prefix, proc.view)
@@ -1565,7 +1565,7 @@ def db_mod_volreg(block, proc, user_opts):
             bopt.parlist[1] = reps - 1          # index of last rep
         elif aopt.parlist[0] == 'MIN_OUTLIER':   
            if vr_do_min_outlier(block, proc, user_opts): return 1
-        elif aopt.parlist[0] == 'BLIP_BASE':   
+        elif aopt.parlist[0] == 'MEDIAN_BLIP':   
            pass
         else:   
             print "** unknown '%s' param with -volreg_base_ind option" \
@@ -1795,6 +1795,11 @@ def db_cmd_volreg(proc, block):
                       % proc.dsets[0].rel_input()
                 return
 
+    # create EPI warp list, outer to inner
+    epi_warps      = []
+    epi_base_cmv   = []         # list of cat_matvec commands for EPI base
+    allinbase      = None       # master grid for warp
+
     # if warping, multiply matrices and apply
     # (store cat_matvec entries in case of later use)
     if dowarp or doe2a or doblip:
@@ -1824,11 +1829,13 @@ def db_cmd_volreg(proc, block):
             else:                wstr = '%s::WARP_DATA -I' % proc.tlrcanat.pv()
             cmd = cmd + '               %s \\\n' % wstr
             proc.e2final_mv.append(wstr)
+            epi_base_cmv.append(wstr)
 
         if doe2a:
             wstr = '%s -I ' % proc.a2e_mat
             cmd = cmd + '               %s \\\n' % wstr
             proc.e2final_mv.append(wstr)
+            epi_base_cmv.append(wstr)
 
         # if blip, input (prev_prefix) is from prior to blip block
         if doblip:
@@ -1847,8 +1854,6 @@ def db_cmd_volreg(proc, block):
         if do_extents: wprefix = "rm.epi.nomask.r$run"
         else:          wprefix = cur_prefix
 
-        # create EPI warp list, outer to inner
-        epi_warps = []
         # first outer is any NL std space warp
         if dowarp and proc.nlw_aff_mat != '':
            epi_warps.append(warp_item('NL std space', 'NL', proc.nlw_NL_mat))
@@ -1980,6 +1985,19 @@ def db_cmd_volreg(proc, block):
            proc.mask_extents.new_view(proc.view)
 
     # ---------------
+    # make a warped volreg base dataset, if appropriate
+    rv, wcmd, wapply = get_vr_warp_list(proc, epi_warps, epi_base_cmv)
+    if rv: return
+    if wcmd and wapply:
+        cmd += wcmd
+        wprefix = 'final_epi_%s' % proc.vr_base_dset.prefix
+        proc.epi_final = proc.vr_base_dset.new(new_pref=wprefix)
+        st, wtmp = apply_catenated_warps(proc, wapply, base=allinbase,
+                      source=basevol, prefix=wprefix, dim=dim)
+        if st: return
+        cmd += wtmp + '\n'
+
+    # ---------------
     # make a copy of the "final" anatomy, called "anat_final.$subj"
     if proc.view == '+tlrc': aset = proc.tlrcanat
     else:                    aset = proc.anat
@@ -2027,6 +2045,48 @@ def db_cmd_volreg(proc, block):
     proc.mot_labs = ['roll', 'pitch', 'yaw', 'dS', 'dL', 'dP']
 
     return cmd
+
+def get_vr_warp_list(proc, ewarps, matvec_list):
+   """if matvec_list is non-empty, apply all warps
+         to:     proc.vr_base_dset
+         making: proc.epi_final
+
+      return status (0 on success), command and new warps
+   """
+
+   # anything to do?
+   if len(matvec_list) == 0: return 0, '', None
+
+   # make sure there is no blip warp
+   wapply = [w for w in ewarps if w.desc != 'blip']
+
+   # find affine warp to replace with that from matvec_list
+   affine_ind = -1
+   for ind, witem in enumerate(ewarps):
+      if witem.wtype == 'affine':
+         affine_ind = ind
+         break
+
+   if affine_ind < 0:
+      print '** CVWBV: no affine warp to replace'
+      return 1, '', None
+
+   # create the warp to replace
+   warpmat = 'mat.basewarp.aff12.1D'
+   cstr = '# warp the volreg base EPI dataset to make a final version\n' \
+          'cat_matvec -ONELINE'
+
+   if len(matvec_list) == 1:
+      cstr += ' %s' % matvec_list[0]
+   else:
+      spacing = ' \\\n           '
+      cstr += spacing + spacing.join(matvec_list)
+
+   cstr += ' > %s\n\n' % warpmat
+
+   wapply[affine_ind] = warp_item('vr base warp', 'affine', warpmat)
+
+   return 0, cstr, wapply
 
 def warp_anat_followers(proc, block, anat_aname, epi_aname=None, prevepi=0):
    """apply a single catenated warp to all followers, to match that of anat
@@ -7413,6 +7473,45 @@ g_help_string = """
     changes could result.  Because large values would be a detriment to the
     numerical resolution of the scaled short data, the default is to truncate
     scaled values at 200 (percent), which should not occur in the brain.
+
+    --------------------------------------------------
+    BLIP NOTE:
+
+    application of reverse-blip (blip-up/blip-down) registration:
+
+       o compute the median of the forward and reverse-blip data
+       o align them using 3dQwarp -plusminus
+          -> the main output warp is the square root of the forward warp
+             to the reverse, i.e. it warps the forward data halfway
+          -> in theory, this warp should make the EPI anatomically accurate
+
+    order of operations:
+
+       o the blip warp is computed after all initial temporal operations
+         (despike, ricor, tshift)
+       o and before all spatial operations (anat/EPI align, tlrc, volreg)
+
+    notes:
+
+       o If no forward blip time series (volume?) is provided by the user,
+         the first time points from the first run will be used (using the
+         same number of time points as in the reverse blip time series).
+       o As usual, all registration transformations are combined.
+
+    differences with unWarpEPI.py (R Cox, D Glen and V Roopchansingh):
+
+                        afni_proc.py            unWarpEPI.py
+                        --------------------    --------------------
+       tshift order:    before unwarp           after unwarp
+                        (option: unwarp first)
+
+       volreg program:  3dvolreg                3dAllineate
+
+       volreg base:     as before               median warped dset
+                        (option: MEDIAN_BLIP)
+
+       unifize EPI?     no (option: yes)        yes
+       (align w/anat)
 
     --------------------------------------------------
     ANAT/EPI ALIGNMENT CASES NOTE:
