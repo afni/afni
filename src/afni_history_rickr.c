@@ -49,7 +49,12 @@
 
 afni_history_struct rickr_history[] = {
 
- { 29,  Jun, 2016, RCR, "afni_proc.py", MICRO, TYPE_ENHANCE,
+ { 29,  Jun, 2016, RCR, "3dfim", MICRO, TYPE_BUG_FIX,
+   "fix crash for dset open error with long dset name",
+   "Thanks to J Henry for reporting the problem."
+ } ,
+
+ { 29,  Jun, 2016, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,
    "can modify blip order; BLIP_BASE -> MEDIAN_BLIP; add BLIP_NOTE to help",
    NULL
  } ,
