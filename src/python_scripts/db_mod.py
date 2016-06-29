@@ -615,7 +615,7 @@ def db_mod_blip(block, proc, user_opts):
 
    # check for alignment to median forward blip base
    val, status = user_opts.get_string_opt('-volreg_align_to')
-   if val == 'BLIP_BASE':
+   if val == 'MEDIAN_BLIP':
       # matching the same varible in db_cmd_blip
       for_prefix = 'blip_med_for'
       inset = '%s%s' % (for_prefix, proc.view)
@@ -1565,7 +1565,7 @@ def db_mod_volreg(block, proc, user_opts):
             bopt.parlist[1] = reps - 1          # index of last rep
         elif aopt.parlist[0] == 'MIN_OUTLIER':   
            if vr_do_min_outlier(block, proc, user_opts): return 1
-        elif aopt.parlist[0] == 'BLIP_BASE':   
+        elif aopt.parlist[0] == 'MEDIAN_BLIP':   
            pass
         else:   
             print "** unknown '%s' param with -volreg_base_ind option" \
@@ -7473,6 +7473,45 @@ g_help_string = """
     changes could result.  Because large values would be a detriment to the
     numerical resolution of the scaled short data, the default is to truncate
     scaled values at 200 (percent), which should not occur in the brain.
+
+    --------------------------------------------------
+    BLIP NOTE:
+
+    application of reverse-blip (blip-up/blip-down) registration:
+
+       o compute the median of the forward and reverse-blip data
+       o align them using 3dQwarp -plusminus
+          -> the main output warp is the square root of the forward warp
+             to the reverse, i.e. it warps the forward data halfway
+          -> in theory, this warp should make the EPI anatomically accurate
+
+    order of operations:
+
+       o the blip warp is computed after all initial temporal operations
+         (despike, ricor, tshift)
+       o and before all spatial operations (anat/EPI align, tlrc, volreg)
+
+    notes:
+
+       o If no forward blip time series (volume?) is provided by the user,
+         the first time points from the first run will be used (using the
+         same number of time points as in the reverse blip time series).
+       o As usual, all registration transformations are combined.
+
+    differences with unWarpEPI.py (R Cox, D Glen and V Roopchansingh):
+
+                        afni_proc.py            unWarpEPI.py
+                        --------------------    --------------------
+       tshift order:    before unwarp           after unwarp
+                        (option: unwarp first)
+
+       volreg program:  3dvolreg                3dAllineate
+
+       volreg base:     as before               median warped dset
+                        (option: MEDIAN_BLIP)
+
+       unifize EPI?     no (option: yes)        yes
+       (align w/anat)
 
     --------------------------------------------------
     ANAT/EPI ALIGNMENT CASES NOTE:
