@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 29,  Jun, 2016, RCR, "afni_proc.py", MICRO, TYPE_ENHANCE,
+   "can modify blip order; BLIP_BASE -> MEDIAN_BLIP; add BLIP_NOTE to help",
+   NULL
+ } ,
+
  { 27,  Jun, 2016, RCR, "afni_proc.py", MICRO, TYPE_ENHANCE,
    "allow for blip datasets that are not time series",
    NULL
