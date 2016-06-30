@@ -1045,6 +1045,8 @@ def get_dset_reps_tr(dset, notr=0, verb=1):
        tr   = length of TR, in seconds
     """
 
+    # use 3dinfo directly, instead of TAXIS attributes  30 Jun 2016
+
     reps = get_3dinfo_val(dset, 'nt', int, verb=verb)
     tr = get_3dinfo_val(dset, 'tr', float, verb=verb)
 
