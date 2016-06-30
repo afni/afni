@@ -973,6 +973,15 @@ def db_cmd_align(proc, block):
           '# (new anat will be %s %s)\n'        \
           % (block_header('align'), astr, istr, proc.anat.pv())
 
+    if 0:  # rcr - here
+       # get costs
+       acmd = '# make a record of alginment costs\n'               \
+              '3dAllineate -base %s  \\\n'                         \
+              '            -input %s"[%d]" \\\n'                   \
+              '            -allcostX |& tee out.a2e.costs.txt\n\n' \
+              % (proc.anat.pv(), basevol, bind)
+       cmd += acmd
+
     # ---------------
     # if requested, create any anat followers
     if should_warp_anat_followers(proc, block):
