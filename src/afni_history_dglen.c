@@ -49,6 +49,10 @@
 
 
 afni_history_struct dglen_history[] = {
+{ 30, JUN, 2016 , DRG , "unWarpEPI.py anat to epi lpc+ZZ cost" , 
+    MINOR , TYPE_BUG_FIX, 
+    "Mistakenly used lpa for anat to epi alignment"
+},
 { 29, JUN, 2016 , DRG , "align_epi_anat.py flipping identity" , 
     MINOR , TYPE_BUG_FIX, 
     "Case of mistaken IDENTITY for check_flip option"
