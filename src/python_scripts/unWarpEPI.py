@@ -420,7 +420,7 @@ class unWarpWithBlipUpBlipDownEPI:
                       "-epi", "07_" + dataToCorrectName + "_unif.nii" \
                       + self.compress,
                       "-epi_base", "0", "-epi_strip", "3dAutomask",
-                      "-suffix", "_aligned", "-cost", "lpa", "-master_anat",
+                      "-suffix", "_aligned", "-cost", "lpc+ZZ", "-master_anat",
                       ("08_" + self.subjectID + "_anat"  \
                             + "_ob_temp" + ".nii" + self.compress)]
          # these skullstrip options worked well for a particular subject,
