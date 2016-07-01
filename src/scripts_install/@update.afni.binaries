@@ -1023,7 +1023,7 @@ if ( $do_dotfiles && -d $abin && $?USER ) then
       grep $abin:t $rcfile >& /dev/null
       if ( $status ) then
          # finally, update .csrhc and our current path
-         echo "++ updating path in $rcfile ..."
+         echo "++ adding $abin to path in $rcfile ..."
          echo 'set path = ( $path ' $abin ' ) ' >> $rcfile
          set path = ( $path $abin )
       endif
@@ -1042,7 +1042,7 @@ if ( $do_dotfiles && -d $abin && $?USER ) then
       grep $abin:t $brcfile >& /dev/null
       if ( $status ) then
          # not found, so append to file
-         echo "++ updating PATH in $brcfile ..."
+         echo "++ adding $abin to PATH in $brcfile ..."
          echo 'export PATH=$PATH:'$abin >> $brcfile
       endif
 
