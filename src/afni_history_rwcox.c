@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 6 , JUL , 2016 , RWC , "3dQwarp" , MICRO , TYPE_ENHANCE ,
+   "Allow .jpg or .png file as source/base 'dataset' for 2D warping" ,
+   NULL } ,
+
  { 21 , JUN , 2016 , RWC , "3dmaskave" , MICRO , TYPE_NEW_OPT ,
    "Add -perc option for percentile" ,
    NULL } ,

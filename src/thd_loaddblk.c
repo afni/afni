@@ -327,6 +327,12 @@ ENTRY("THD_load_datablock") ; /* 29 Aug 2001 */
      RETURN( False ) ;
    }
 
+   if( dkptr->storage_mode == STORAGE_BY_IMAGE_FILE ){ /* 06 Jul 2016 */
+     WARNING_message("attempt to reload an image file 'dataset' -- not supported") ;
+     STATUS("can't reload image file dataset") ;
+     RETURN( False ) ;
+   }
+
    /*** END OF SPECIAL CASES ABOVE; NOW FOR THE AFNI FORMAT! ***/
 
    /*-- allocate data space --*/
