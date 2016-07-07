@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  7,  Jul, 2016, RCR, "afni_system_check.py", MICRO, TYPE_ENHANCE,
+   "check for partial install of PyQt4 (might be common on OS X 10.11)",
+   NULL
+ } ,
+
  { 30,  Jun, 2016, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,
    "allow single volume EPI input (e.g. to test blip correction)",
    "Also, auto -blip_forward_dset should come from tcat output."
