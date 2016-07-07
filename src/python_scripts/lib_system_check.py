@@ -456,11 +456,16 @@ class SysInfo:
       # explicitly note whether we have PyQt4
       if not MT.test_import('PyQt4', verb=0):
          self.have_pyqt4 = 1
+
+         # check for partial install
          cmd = 'from PyQt4 import QtCore, QtGui'
          try: exec cmd
          except:
+            print '\n** have PyQt4, but cannot load QtCore, QtGui; error is:' \
+                  '\n\n'                                                      \
+                  '   **************************************************'
             os.system('python -c "%s"' % cmd)
-            print '\n** have PyQt4, but cannot load QtCore, QtGui'
+            print '   **************************************************\n'
             self.comments.append('check for partial install of PyQt4')
       print
 
