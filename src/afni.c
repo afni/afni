@@ -1774,6 +1774,11 @@ void AFNI_sigfunc_alrm(int sig)
      "When life looks like Easy Street, there is danger at your door",
      "Like the morning sun I come, like the wind I go"               ,
      "What I want to know is, where does the time go?"               ,
+     "Every silver lining's got a touch of grey"                     ,
+     "A friend of the devil is a friend of mine"                     ,
+     "Well, I ain't often right, but I never been wrong"             ,
+     "If the horse don't pull, you got to carry the load"            ,
+     "Hang it up and see what tomorrow brings"                       ,
      "The flower that once has blown, for ever dies"                 ,
      "Drink! for you know not why you go, or where"                  ,
      "Tomorrow we feast with us at home"                             ,
@@ -1792,6 +1797,8 @@ void AFNI_sigfunc_alrm(int sig)
      "We are each our own devil, and make this world our hell"       ,
      "I have nothing to declare except my genius"                    ,
      "In matters of opinion, all my adversaries are insane"          ,
+     "The fewer the facts, the stronger the opinions"                ,
+     "Research is what I'm doing when I don't know what I'm doing"   ,
      "Everything is a matter of opinion: mine matters, yours doesn't",
      "It's not a phase, it's a lifestyle"                            ,
      "Go to Heaven for the climate, Hell for the company"            ,
@@ -1980,6 +1987,9 @@ void AFNI_sigfunc_alrm(int sig)
      "I have not failed; I've just found 10,000 ways that don't work",
      "Statistics are good, but dark chocolate is better"             ,
      "After every tempest comes the calm"                            ,
+     "I've got MY story about the brain; what's yours?"              ,
+     "I came, I saw, I got confused"                                 ,
+     "Computers are useless -- they can only give you answers"       ,
 
      /* This set of quotes is from Paradise Lost,
         by John Milton (a very very early AFNI user) */
@@ -2027,10 +2037,17 @@ void AFNI_sigfunc_alrm(int sig)
      "If you have any problems with AFNI, blame goes to ... Ziad Saad ;)"      ,
      "If you have any problems with AFNI, blame goes to ... Pat Bellgowan ;)"  ,
      "If you have any problems with AFNI, blame goes to ... Kyle Simmons ;)"   ,
+     "If you have any problems with AFNI, blame goes to ... Jerzy Bodurka ;)"  ,
      "All suspicion points to a Frost-Bellgowan plot"                          ,
      "All signs points to a Frost-Bellgowan conspiracy"                        ,
 
-     "Will all great Neptune's ocean wash this modeling error from my hands?"         ,
+     "Math is the only place where truth and beauty mean the same thing"              ,
+     "I may be going to hell in a bucket, but at least I'm enjoying the ride"         ,
+     "Next time, just for fun, I'll toss in some extra blobs in CSF for you"          ,
+     "What do you mean, you don't believe all those clusters in white matter?"        ,
+     "For an extra pumpernickel bagel, I'll put a blob wherever you want it"          ,
+     "I don't know about you, but my amygdala is lighting up like it's on fire"       ,
+     "Will all great Neptune's ocean wash this modeling error from my regression?"    ,
      "Remember -- Screaming is the next best thing to solving a problem"              ,
      "Remember -- Swearing is almost as good as solving a problem"                    ,
      "Data which passes through so many steps can hardly have much truth left"        ,
@@ -2074,6 +2091,7 @@ void AFNI_sigfunc_alrm(int sig)
      "Three things cannot long be hidden: the Sun, the Moon, and the Truth"           ,
      "May the Dark Side of the Force get lost on the way to your data"                ,
      "The Andromeda Galaxy is on a collision course with us -- be prepared"           ,
+     "Stellar formation will cease in just a trillion years -- what will we do then?" ,
      "We are very user friendly -- we are just selective about who our friends are"   ,
      "May it be a light to you in dark places, when all other lights go out"          ,
      "No in elenath hilar nan had gin -- May the stars shine upon your path"          ,
@@ -2090,7 +2108,6 @@ void AFNI_sigfunc_alrm(int sig)
      "One half the world cannot understand the statistics of the other"               ,
 
      "My name is AFNImandias, Brain of Brains; Look on my Statistics, ye Clever, and despair" ,
-
      "Statistically Significant is NOT the same as Significant -- they're not even similar"   ,
 
      "\n  It is a truth universally acknowledged, that a single scientist\n"
