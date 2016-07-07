@@ -2212,7 +2212,7 @@ THD_OBJS = thd_atr.o thd_dsetto1D.o thd_initalldir.o thd_reconpar.o \
            thd_bandpass.o thd_instacorr.o thd_svdblur.o thd_satcheck.o    \
            thd_dumdset.o ktaub.o bilinear_warp3D.o thd_table.o            \
            thd_atlas.o thd_warp_tables.o thd_lasso.o thd_mean_dset.o      \
-           thd_despike_L1.o thd_Tcorr1D.o
+           thd_despike_L1.o thd_Tcorr1D.o thd_openimage.o
 
 # these are now included in NIML
 

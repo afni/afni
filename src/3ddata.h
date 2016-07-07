@@ -1036,8 +1036,9 @@ static THD_warp tempA_warp ;
 #define STORAGE_BY_NI_SURF_DSET  13  /* NIML surface dset */
 #define STORAGE_BY_GIFTI         14  /* GIFTI surface dset */
 #define STORAGE_BY_NI_TRACT      15  /* NIML tract dset */
+#define STORAGE_BY_IMAGE_FILE    16  /* 06 Jul 2016 */
 
-#define LAST_STORAGE_MODE        15
+#define LAST_STORAGE_MODE        16
 
 /*! Contains information about where/how dataset is stored on disk.
 
@@ -4442,6 +4443,9 @@ extern THD_3dim_dataset * THD_open_mpeg( char * ) ;         /* 03 Dec 2003 */
 extern THD_3dim_dataset * THD_open_tcat( char * ) ;         /* 04 Aug 2004 */
 extern THD_3dim_dataset * THD_open_niml( char * ) ;         /* 01 Jun 2006 */
 extern THD_3dim_dataset * THD_open_gifti( char * ) ;        /* 13 Feb 2008 */
+
+extern THD_3dim_dataset * THD_open_image( char *fname ) ;   /* 06 Jul 2016 */
+extern THD_3dim_dataset * THD_image_to_dset( MRI_IMAGE *im , char *prefix ) ;
 
 extern THD_string_array * THD_multiplex_dataset( char * ) ; /* 19 Jul 2007 */
 
