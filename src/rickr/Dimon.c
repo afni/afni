@@ -236,6 +236,8 @@ int       g_num_slices     = 0;  /* num_slices for sort by ZPOSN            */
 #undef IM_IS_AFNI
 #endif
 
+#define IM_IS_APPROX(a,b) ( fabs((a)-(b)) < gD_epsilon )
+
 #define IM_IS_GEMS(ftype)  (ftype == IFM_IM_FTYPE_GEMS5 )
 #define IM_IS_DICOM(ftype) (ftype == IFM_IM_FTYPE_DICOM )
 #define IM_IS_AFNI(ftype)  (ftype == IFM_IM_FTYPE_AFNI )
@@ -1575,6 +1577,16 @@ static int make_sorted_fim_list(param_t  * p)
          g_num_slices = p->opts.num_slices;
          qsort(fp, n2sort, sizeof(finfo_t), compare_finfo_z);
          break;
+      }
+   }
+
+   if( 0 ) { /* will be swap_zt_order(fp, n2sort); */
+      int nt;
+      float zoff = fp[0].geh.zoff;
+      for( nt=1; nt < n2sort && IM_IS_APPROX(zoff, fp[nt].geh.zoff); nt++ )
+         /* nada */ ;
+      if( nt > 1 ) {
+        /* re-order from slice-major to time-major order */
       }
    }
 
