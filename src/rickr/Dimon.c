@@ -141,12 +141,12 @@ static char * g_history[] =
     "      - run to3d via 'tcsh -x' to see the command\n"
     " 4.14 Apr 19, 2016 [rickr]: \n",
     "      - no sorting was incorrectly returning an error\n"
-    " 4.15 Jul  7, 2016 [rickr]: \n",
-    "      - add -order_as_zt to convert tz ordering to zt\n"
+    " 4.15 Jul  7, 2016 [rickr]: add -order_as_zt: convert tz ordering to zt\n"
+    " 4.16 Jul  8, 2016 [rickr]: add -read_all: remove limit on images read\n"
     "----------------------------------------------------------------------\n"
 };
 
-#define DIMON_VERSION "version 4.15 (July 7, 2016)"
+#define DIMON_VERSION "version 4.16 (July 8, 2016)"
 
 /*----------------------------------------------------------------------
  * Dimon - monitor real-time aquisition of Dicom or I-files
@@ -1635,7 +1635,7 @@ static int finfo_order_as_zt(param_t * p, finfo_t * flist, int n2sort)
       if( gD.level > 3 || ! ok)
          fprintf(stderr,"\n++ order_as_zt: have nt=%d, n2sort=%d, ns=%d\n",
                  nt, n2sort, ns);
-      if( ! ok && p->opts.num_slices )
+      if( ! ok && p->opts.num_slices != ns )
          fprintf(stderr,"** order_as_zt: num_slices=%d, but computed ns=%d\n",
                  p->opts.num_slices, ns);
       else if( ! ok )
@@ -1648,8 +1648,13 @@ static int finfo_order_as_zt(param_t * p, finfo_t * flist, int n2sort)
 
    /* whine if we try to do things more than once */
    nentry++;
-   if( nentry > 1 )
+   if( nentry > 1 && nentry <= 10 ) {
       fprintf(stderr,"** warning, entering order_as_zt %d times\n", nentry);
+      if( nentry == 1 && p->max2read > 0 )
+         fprintf(stderr,"   ==> consider using -dicom_org or -read_all\n");
+      if( nentry == 10 )
+         fprintf(stderr,"   no more such warnings will be printed ...\n");
+   }
 
    /* allocate temporary copy */
    fnew = (finfo_t *)calloc(n2sort, sizeof(finfo_t));
@@ -2419,6 +2424,7 @@ static int read_new_images( param_t * p )
    nerrs = 0;
 
    n2read = nfim_in_state(p, p->fim_skip, p->nfim-1, IFM_FSTATE_TO_READ);
+
    if( n2read > 300 && p->max2read <= 0 ) stat = n2read/100;
    if( stat && gD.level )
       fprintf(stderr,"-- reading %d image files ...  00%%", n2read);
@@ -2963,7 +2969,8 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
         }
         else if ( ! strcmp( argv[ac], "-order_as_zt") )
         {
-            p->opts.order_as_zt = 1;   /* just note the user option        */
+            p->opts.order_as_zt = 1;    /* just note the user option */
+            p->opts.read_all = 1;       /* implied                   */
         }
         else if ( ! strncmp( argv[ac], "-pause", 6 ) )
         {
@@ -2986,9 +2993,13 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
             if ( gD.level == IFM_DEBUG_DEFAULT )
                 gD.level = 0;
         }
-        else if ( ! strncmp( argv[ac], "-quit", 5 ) )
+        else if ( ! strcmp( argv[ac], "-quit" ) )
         {
             p->opts.quit = 1;
+        }
+        else if ( ! strcmp( argv[ac], "-read_all" ) )
+        {
+            p->opts.read_all = 1;       /* just note the option */
         }
         else if ( ! strncmp( argv[ac], "-rev_org_dir", 8 ) )
         {
@@ -3268,6 +3279,9 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
        fputs("** -save_errors requires -save_details for file prefix\n",stderr);
        return 1;
     }
+
+    /* apply read_all */
+    if( p->opts.read_all ) p->max2read = -1;
 
     if ( errors > 0 )          /* check for all minor errors before exiting */
     {
@@ -4208,10 +4222,11 @@ static int idisp_param_t( char * info, param_t * p )
             "   nfalloc           = %d\n"
             "   fim_update        = %d\n"
             "   fim_skip          = %d\n"
-            "   fim_start         = %d\n",
+            "   fim_start         = %d\n"
+            "   max2read          = %d\n",
             p->ftype, CHECK_NULL_STR(p->glob_dir),
             p->fnames_done, p->nfim, p->nfalloc, p->fim_update,
-            p->fim_skip, p->fim_start);
+            p->fim_skip, p->fim_start, p->max2read);
 
     return 0;
 }
@@ -4268,6 +4283,7 @@ static int idisp_opts_t( char * info, opts_t * opt )
             "   sort_num_suff      = %d\n"
             "   sort_acq_time      = %d\n"
             "   order_as_zt        = %d\n"
+            "   read_all           = %d\n"
             "   rev_org_dir        = %d\n"
             "   rev_sort_dir       = %d\n"
             "   save_errors        = %d\n"
@@ -4298,7 +4314,7 @@ static int idisp_opts_t( char * info, opts_t * opt )
             CHECK_NULL_STR(opt->gert_prefix),
             opt->gert_nz, opt->gert_format, opt->gert_exec, opt->gert_quiterr,
             opt->dicom_org, opt->sort_num_suff, opt->sort_acq_time,
-            opt->order_as_zt,
+            opt->order_as_zt, opt->read_all,
             opt->rev_org_dir, opt->rev_sort_dir, opt->save_errors,
             CHECK_NULL_STR(opt->flist_file), CHECK_NULL_STR(opt->flist_details),
             CHECK_NULL_STR(opt->sort_method),
@@ -5314,9 +5330,26 @@ printf(
     "        it was intended for real-time use (when all slices for a given\n"
     "        time point come together).\n"
     "\n"
-    "      * This should almost certainly not be used on a real-time system.\n"
+    "        This option implies -read_all.\n"
+    "\n"
+    "      * This is a post-sort operation.  Images will be initially sorted\n"
+    "        based on the other options, then they will be shuffled into the\n"
+    "        slice-minor order (volumes of slices grouped over time).\n"
+    "\n"
+    "      * This should probably not be used on a real-time system.\n"
     "\n"
     "        See 'to3d -help' for the -time options.\n"
+    "\n"
+    "    -read_all          : read all images at once\n"
+    "\n"
+    "        e.g.  -read_all\n"
+    "\n"
+    "        There is typically a limit on the number of images initially\n"
+    "        read or stored at any one time.  This option is to remove that\n"
+    "        limit.\n"
+    "\n"
+    "        It uses more memory, but is particularly important if sorting\n"
+    "        should be done over a complete image list.\n"
     "\n"
     "    -rev_org_dir       : reverse the sort in dicom_org\n"
     "\n"
