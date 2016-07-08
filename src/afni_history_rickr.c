@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  8,  Jul, 2016, RCR, "Dimon", MINOR, TYPE_NEW_OPT,
+   "add -read_all, in case it is useful for sorting (e.g. -order_as_zt)",
+   NULL
+ } ,
+
  {  7,  Jul, 2016, RCR, "Dimon", MINOR, TYPE_NEW_OPT,
    "add -order_as_zt to re-order from -time:tz to -time:zt",
    NULL
