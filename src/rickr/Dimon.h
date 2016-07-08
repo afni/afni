@@ -110,6 +110,7 @@ typedef struct  /* user options */
     int              dicom_org;     /* flag to organize dicom files     */
     int              sort_num_suff; /* flag to sort by numerical suffix */
     int              sort_acq_time; /* flag to sort by acq time         */
+    int              order_as_zt;   /* change tminor to slice minor order */
     int              rev_org_dir;   /* flag to reverse dicom_org dir    */
     int              rev_sort_dir;  /* flag to reverse glob sort dir    */
     int              save_errors;   /* save details in cases of errors  */
