@@ -51,7 +51,7 @@ afni_history_struct rickr_history[] = {
 
  {  8,  Jul, 2016, RCR, "Dimon", MINOR, TYPE_NEW_OPT,
    "add -read_all, in case it is useful for sorting (e.g. -order_as_zt)",
-   NULL
+   "Added for K Vishwanath."
  } ,
 
  {  7,  Jul, 2016, RCR, "Dimon", MINOR, TYPE_NEW_OPT,
