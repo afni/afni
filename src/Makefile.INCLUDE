@@ -1936,7 +1936,7 @@ install_exe: $(INSTALLDIR)
 # some dependencies (not complete)
 
 afni.o:imseq.h 3ddata.h xutil.h pbar.h afni.h bbox.h afni_warp.h \
-       afni_graph.h afni_setup.h machdep.h
+       afni_graph.h afni_setup.h machdep.h AFNI_version.h
 
 debugtrace.o:debugtrace.h debugtrace.c AFNI_version.h
 	$(RM) $@
