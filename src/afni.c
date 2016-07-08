@@ -1862,6 +1862,8 @@ void AFNI_sigfunc_alrm(int sig)
      "How quick come the reasons for approving what we like"         ,
      "This is your only chance at building a disreputable past"      ,
      "O Brave New World, that has such software in it"               ,
+     "When I ask for advice, what I really want is an accomplice"    ,
+     "Remember -- You are absolutely unique. Just like everone else" ,
      "Remember -- AFNI is free, but worth at least 1000 times more"  ,
      "Remember -- Nothing is always absolutely so"                   ,
      "Remember -- 90% of everything is cr*p"                         ,
