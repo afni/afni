@@ -5314,6 +5314,8 @@ printf(
     "        it was intended for real-time use (when all slices for a given\n"
     "        time point come together).\n"
     "\n"
+    "      * This should almost certainly not be used on a real-time system.\n"
+    "\n"
     "        See 'to3d -help' for the -time options.\n"
     "\n"
     "    -rev_org_dir       : reverse the sort in dicom_org\n"
