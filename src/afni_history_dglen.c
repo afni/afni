@@ -49,6 +49,10 @@
 
 
 afni_history_struct dglen_history[] = {
+{ 11, JUL, 2016 , DRG , "3dWarp tta2mni grid dimensions bug" , 
+    MINOR , TYPE_BUG_FIX, 
+    "Ignored grid dimensions in transformation between Talairach to MNI"
+},
 { 30, JUN, 2016 , DRG , "unWarpEPI.py anat to epi lpc+ZZ cost" , 
     MINOR , TYPE_BUG_FIX, 
     "Mistakenly used lpa for anat to epi alignment"
