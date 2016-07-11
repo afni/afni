@@ -32,7 +32,7 @@ static char * file_extension_list[] = {
     ".nii", ".nii.gz", ".nia", ".hdr", ".img",
     ".mpg", ".mpeg", ".MPG", ".MPEG",
     ".niml", ".niml.dset", ".niml.do",
-    ".gii", ".gii.dset", ".niml.tract"
+    ".gii", ".gii.dset", ".niml.tract" , ".jpg" , ".png"
 };
 
 /*
@@ -252,6 +252,15 @@ ENTRY("THD_open_one_dataset") ;
      CHECK_FOR_DATA(pathname) ;               /* 06 Jan 2005 */
      dset = THD_open_mpeg(pathname) ;
      THD_patch_brickim(dset) ;  /* 20 Oct 2006 */
+     RETURN(dset) ;
+   }
+
+   if( STRING_HAS_SUFFIX_CASE(pathname,".jpg") ||
+       STRING_HAS_SUFFIX_CASE(pathname,".png")   ){  /* 06 Jul 2016 */
+
+     CHECK_FOR_DATA(pathname) ;
+     dset = THD_open_image(pathname) ;  /* will be loaded, too */
+     THD_patch_brickim(dset) ;
      RETURN(dset) ;
    }
 

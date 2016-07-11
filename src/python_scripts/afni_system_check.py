@@ -183,9 +183,10 @@ g_history = """
         - make comments about shell RC files, given login shell
    0.18 Mar 25, 2016 - tiny update
    0.19 May 20, 2016 - added -dot_file_list/_pack/_show
+   0.20 Jul  7, 2016 - check for partial PyQt4 (for OS X 10.11)
 """
 
-g_version = "afni_system_check.py version 0.19, May 20, 2016"
+g_version = "afni_system_check.py version 0.20, July 7, 2016"
 
 
 class CmdInterface:
