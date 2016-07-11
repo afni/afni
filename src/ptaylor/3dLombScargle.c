@@ -288,7 +288,9 @@ int main(int argc, char *argv[]) {
    float *WinDelT=NULL, *WinVec=NULL;
    int DO_TAPER = 1;
    int NIFTI_OUT=0;
-   //   int mk_info=1;
+   int mk_info=1;
+
+   float AVE=0., VAR=0.;
 
    mainENTRY("3dLombScargle"); machdep(); 
   
@@ -624,7 +626,7 @@ int main(int argc, char *argv[]) {
       INFO_message("Effective Nyquist multiplicative factor "
                    "for upper frequency is %.4f", my_hifac);
    }
-   delF = 1.0/((Dim[3])*sampleTR*my_ofac);  // want this const across
+   delF = 1.0/((Dim[3]-1)*sampleTR*my_ofac);  // want this const across
                                           // group and across windows
    INFO_message("Total Ntpts=%d,  TR=%.4f, my_ofac=%.4f", 
                 Dim[3], sampleTR, my_ofac);
@@ -731,12 +733,17 @@ int main(int argc, char *argv[]) {
                                       &win_Npts_out,  // i.e., nout
                                       &win_Npts_wrk); // i.e., ndim =nwk
 
-                  //if(mk_info) {
-                  //   INFO_message("Window[%d] ofac: %.3f  \t-->  %d points.", 
-                  //                w, win_ofac, Npts_out);
-                  //   if (w == (NWIN-1))
-                  //      mk_info=0;
-                  //}
+                  /*if(mk_info) {
+                     INFO_message("Window[%d] ofac: %.3f  \t-->  %d points.", 
+                                  w, win_ofac, Npts_out);
+                     INFO_message("windelt[%d]: %.3f  \t-->  winnumpts: %d .", 
+                                  w, WinDelT[w], WinInfo[w][1]);
+                     INFO_message("%d   %d", win_Npts_out, win_Npts_wrk);
+                     INFO_message("offset: %d", WinInfo[w][0]);
+
+                     if (w == (NWIN-1))
+                        mk_info=0;
+                        }*/
 
                   /*for( pp=0 ; pp<WinInfo[w][1] ; pp++ )
                      tpts_win[pp] = tpts[pp+WinInfo[w][0]];
@@ -765,19 +772,18 @@ int main(int argc, char *argv[]) {
 
                   
                   for( l=0 ; l<Npts_out ; l++ ) {
-                     if(DO_NORMALIZE) // odd way of jiving with deriv+Parseval
-                        all_ls[l][idx]+= (float) wk2[l];
-                     else{
-                        if(DO_AMPLITUDEIZE) // scale to obey Parseval
-                           all_ls[l][idx]+= (float) sqrt(Dim[3]/2.)*wk2[l];
-                        else
-                           all_ls[l][idx]+= (float) Dim[3]*wk2[l]/2.;
-                     }
+                     all_ls[l][idx]+= (float) wk2[l]; 
                   }
 
                }
-               for( l=0 ; l<Npts_out ; l++ ) 
-                  all_ls[l][idx]/= NWIN; 
+               for( l=0 ; l<Npts_out ; l++ ) { 
+                  // normalizing and accounting for wins
+                  all_ls[l][idx]*= ((float) Dim[3]) / NWIN; 
+                  if( DO_NORMALIZE)
+                     all_ls[l][idx]/= Dim[3];
+                  if( DO_AMPLITUDEIZE )
+                     all_ls[l][idx] = sqrt(all_ls[l][idx]);
+               }
             }
             idx++;
          }

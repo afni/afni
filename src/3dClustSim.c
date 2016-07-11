@@ -723,6 +723,7 @@ ENTRY("get_options") ;
       if( ++nopt >= argc )
         ERROR_exit("You need at least 1 argument after option '-inset'") ;
       for( ; nopt < argc && argv[nopt][0] != '-' ; nopt++ ){
+        /* ININFO_message("opening -inset '%s'",argv[nopt]) ; */
         qset = THD_open_dataset(argv[nopt]) ;
         if( qset == NULL ){
           ERROR_message("-inset '%s': failure to open dataset",argv[nopt]) ;
@@ -1114,6 +1115,7 @@ ENTRY("get_options") ;
     dz = fabsf(DSET_DZ(inset[0])) ;
     for( niter=qq=0 ; qq < num_inset ; qq++ ){
       niter += nval_inset[qq] ;
+      ININFO_message("loading -inset '%s'",DSET_HEADNAME(inset[qq])) ;
       DSET_load(inset[qq]) ;
       if( !DSET_LOADED(inset[qq]) ){
         ERROR_message("Can't load dataset -inset '%s'",DSET_HEADNAME(inset[qq])) ;

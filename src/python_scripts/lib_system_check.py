@@ -454,7 +454,19 @@ class SysInfo:
       if header: print UTIL.section_divider('python libs', hchar='-')
       for lib in plibs: MT.test_import(lib, verb=verb)
       # explicitly note whether we have PyQt4
-      if not MT.test_import('PyQt4', verb=0): self.have_pyqt4 = 1
+      if not MT.test_import('PyQt4', verb=0):
+         self.have_pyqt4 = 1
+
+         # check for partial install
+         cmd = 'from PyQt4 import QtCore, QtGui'
+         try: exec cmd
+         except:
+            print '\n** have PyQt4, but cannot load QtCore, QtGui; error is:' \
+                  '\n\n'                                                      \
+                  '   **************************************************'
+            os.system('python -c "%s"' % cmd)
+            print '   **************************************************\n'
+            self.comments.append('check for partial install of PyQt4')
       print
 
       pdirs = glob.glob('/sw/bin/python*')
@@ -473,8 +485,10 @@ class SysInfo:
       for evar in ['PATH', 'PYTHONPATH', 'R_LIBS',
                    'LD_LIBRARY_PATH',
                    'DYLD_LIBRARY_PATH', 'DYLD_FALLBACK_LIBRARY_PATH']:
-         if os.environ.has_key(evar): print "%s = %s\n" % (evar, os.environ[evar])
-         else: print "%s = " % evar
+         if os.environ.has_key(evar):
+            print "%s = %s\n" % (evar, os.environ[evar])
+         else:
+            print "%s = " % evar
       print
 
    def show_general_afni_info(self, header=1):

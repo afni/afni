@@ -49,6 +49,26 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  8,  Jul, 2016, RCR, "Dimon", MINOR, TYPE_NEW_OPT,
+   "add -read_all, in case it is useful for sorting (e.g. -order_as_zt)",
+   "Added for K Vishwanath."
+ } ,
+
+ {  7,  Jul, 2016, RCR, "Dimon", MINOR, TYPE_NEW_OPT,
+   "add -order_as_zt to re-order from -time:tz to -time:zt",
+   NULL
+ } ,
+
+ {  7,  Jul, 2016, RCR, "afni_system_check.py", MICRO, TYPE_ENHANCE,
+   "check for partial install of PyQt4 (might be common on OS X 10.11)",
+   NULL
+ } ,
+
+ { 30,  Jun, 2016, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,
+   "allow single volume EPI input (e.g. to test blip correction)",
+   "Also, auto -blip_forward_dset should come from tcat output."
+ } ,
+
  { 29,  Jun, 2016, RCR, "3dfim", MICRO, TYPE_BUG_FIX,
    "fix crash for dset open error with long dset name",
    "Thanks to J Henry for reporting the problem."

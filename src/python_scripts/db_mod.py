@@ -238,7 +238,53 @@ def db_cmd_tcat(proc, block):
 
     tcat_extract_vr_base(proc)
 
+    if proc.blip_in_rev != None and proc.blip_in_for == None:
+       rv, tcmd = tcat_make_blip_in_for(proc, block)
+       if rv: return 1, ''
+       if tcmd != '': cmd += tcmd
+
     return cmd
+
+def tcat_make_blip_in_for(proc, block):
+    """copy a number of time points from first tcat output that
+       corresponds to blip_in_rev
+
+       Populate proc.blip_in_for and blip_dset_for.
+
+       return status (0 on success) and command
+    """
+    # should we be here?
+    if not isinstance(proc.blip_in_rev, BASE.afni_name): return 0, ''
+    if isinstance(proc.blip_in_for, BASE.afni_name): return 0, ''
+
+    # make forward blip from first input (after pre-SS is removed)
+
+    # populate proc.blip_in_for
+    forinput = proc.prefix_form(block, 1, view=1)
+    revinput = proc.blip_in_rev.rel_input(sel=1)
+    nt = UTIL.get_3dinfo_nt(revinput)
+    if nt == 0: return 1, ''
+
+    if nt == 1: 
+       proc.blip_in_for = BASE.afni_name("%s[0]" % forinput)
+    else:
+       proc.blip_in_for = BASE.afni_name("%s[0..%d]" % (forinput, nt-1))
+    proc.blip_in_for.view = proc.view
+
+    if proc.verb > 2:
+       print '-- using auto blip forward dset, %s' \
+             % proc.blip_in_for.shortinput(sel=1)
+
+    # populate proc.blip_dset_for
+    proc.blip_dset_for = BASE.afni_name('blip_forward', view=proc.view)
+
+    # make actual command
+    cmd = '# -------------------------------------------------------\n' \
+          '# extract initial volumes as automatic -blip_forward_dset\n' \
+          '3dTcat -prefix %s %s\n\n'                                    \
+          % (proc.blip_dset_for.prefix, proc.blip_in_for.shortinput(sel=1))
+
+    return 0, cmd
 
 def set_proc_polort(proc):
     """set proc.polort from -regress_polort or get_default_polort
@@ -359,7 +405,8 @@ def db_cmd_postdata(proc, block):
        cmd = cmd + oc
 
     # probaby get outlier fractions
-    if proc.user_opts.have_yes_opt('-outlier_count', default=1):
+    if proc.user_opts.have_yes_opt('-outlier_count', default=1) and \
+            proc.reps_all[0] > 5:
         rv, oc = make_outlier_commands(proc, block)
         if rv: return   # failure (error has been printed)
         cmd = cmd + oc
@@ -594,24 +641,16 @@ def db_mod_blip(block, proc, user_opts):
 
    # note blip forward input dset (or make one up)
    bopt = block.opts.find_opt('-blip_forward_dset')
+   fblip_oblset = proc.dsets[0]  # default obl test is from -dsets
    if bopt:
       proc.blip_in_for = BASE.afni_name(bopt.parlist[0])
       if proc.verb > 2:
          print '-- have blip forward dset %s' \
                % proc.blip_in_for.shortinput(sel=1)
-   else:
-      # make forward blip from first input
-      forinput = proc.dsets[0].rel_input()
-      revinput = proc.blip_in_rev.rel_input(sel=1)
-      nt = UTIL.get_3dinfo_nt(revinput)
-      if nt == 0: return None
+      fblip_oblset = proc.dsets[0]
 
-      proc.blip_in_for = BASE.afni_name("%s[0..%d]" % (forinput, nt-1))
-      proc.blip_in_for.view = proc.view
-
-      if proc.verb > 2:
-         print '-- using -dsets for blip forward dset %s' \
-               % proc.blip_in_for.shortinput(sel=1)
+   proc.blip_obl_for = dset_is_oblique(fblip_oblset, proc.verb)
+   proc.blip_obl_rev = dset_is_oblique(proc.blip_in_rev, proc.verb)
 
    # check for alignment to median forward blip base
    val, status = user_opts.get_string_opt('-volreg_align_to')
@@ -707,8 +746,8 @@ def db_cmd_blip(proc, block):
    warp_rev = mmedf.new(new_pref=('%s_Rev_WARP'%warp_prefix))
    proc.blip_dset_warp = warp_for  # store for volreg block
 
-   fobl = dset_is_oblique(proc.blip_in_for, proc.verb)
-   robl = dset_is_oblique(proc.blip_in_rev, proc.verb)
+   fobl = proc.blip_obl_for     # set earlier, since fwd might be from -dsets
+   robl = proc.blip_obl_rev
 
    # apply mid-warp to forward median
    for_prefix = 'blip_med_for'
@@ -719,7 +758,7 @@ def db_cmd_blip(proc, block):
    # if oblique, pass the local copies
    if fobl: foblset = proc.blip_dset_for
    else:    foblset = None
-   if fobl: roblset = proc.blip_dset_rev
+   if robl: roblset = proc.blip_dset_rev
    else:    roblset = None
 
    cmd += blip_warp_command(proc, warp_for.shortinput(), medf.shortinput(),
@@ -933,6 +972,15 @@ def db_cmd_align(proc, block):
           '# %s to EPI registration base\n'     \
           '# (new anat will be %s %s)\n'        \
           % (block_header('align'), astr, istr, proc.anat.pv())
+
+    if 0:  # rcr - here
+       # get costs
+       acmd = '# make a record of alginment costs\n'               \
+              '3dAllineate -base %s  \\\n'                         \
+              '            -input %s"[%d]" \\\n'                   \
+              '            -allcostX |& tee out.a2e.costs.txt\n\n' \
+              % (proc.anat.pv(), basevol, bind)
+       cmd += acmd
 
     # ---------------
     # if requested, create any anat followers
