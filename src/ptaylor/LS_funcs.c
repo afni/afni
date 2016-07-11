@@ -15,7 +15,7 @@ void MakeWindowVec( float *V, int N)
 {
    int i;
    float temp;
-   float allwt=0;
+   float allwt=0.;
 
    for( i=0 ; i<N ; i++ ) {
       // WELCH
@@ -23,7 +23,7 @@ void MakeWindowVec( float *V, int N)
       //V[i] = 1 - pow( (i-temp)/temp, 2);
 
       // Hann
-      temp = (2.*PI_here * i)/N;
+      temp = (2.*PI_here * i)/(N-1);
       V[i] = 0.5*(1-cos(temp));
    }
 
@@ -36,6 +36,7 @@ void MakeWindowVec( float *V, int N)
    
    for( i=0 ; i<N ; i++ )
       V[i]/= allwt;
+
 }
 
 
@@ -151,6 +152,10 @@ void PR89_suppl_calc_Ns( int N, int NT,
       Nfreq *= 2;
 
    *Ndim = 2 * Nfreq;
+
+
+   //  INFO_message("%d %d %d %d", *Nout, Nfreqt, Nfreq, *Ndim);
+
 }
 
 // here, (Nout, Nwk) are calculated in separate functions, and
@@ -188,14 +193,30 @@ void PR89_fasper( float *x,
 
    Ndim = Nwk;
 
+   /*
    PR89_suppl_avevar(y, N, &AVE, &VAR);
-  
    for( j=1 ; j<=N ; j++ ) 
       ywin[j] = y[j] - AVE; // demean
    // ! windowing
    if(winvec)
       for( j=1 ; j<=N ; j++ ) 
          ywin[j]*=winvec[j];
+   if (DO_NORM)
+      PR89_suppl_avevar(ywin, N, &AVE, &VAR);
+   */
+
+   if(winvec) {
+      for( j=1 ; j<=N ; j++ ) 
+         ywin[j]= y[j]*winvec[j];
+      PR89_suppl_avevar(ywin, N, &AVE, &VAR);
+      for( j=1 ; j<=N ; j++ ) 
+         ywin[j]-= AVE; // demean
+   }
+   else{
+      PR89_suppl_avevar(y, N, &AVE, &VAR);
+      for( j=1 ; j<=N ; j++ ) 
+         ywin[j] = y[j] - AVE; // demean
+   }
 
    xmin = x[1];
    xmax = xmin;
@@ -226,8 +247,13 @@ void PR89_fasper( float *x,
    mm = gsl_fft_real_radix2_transform(wk1+1, 1, Ndim);
    mm = gsl_fft_real_radix2_transform(wk2+1, 1, Ndim);
 
+   //for( j=0 ; j<Ndim ; j++ ) 
+   //   INFO_message("%d\t %f  ",j,wk2[j]);
+
    DF = 1./(xdif*ofac);
    //INFO_message("DF: %f     Nout = %d",DF,Nout);
+   //INFO_message("mm=%d, FAC=%f, FNDIM=%f",mm,FAC, FNDIM);
+   //INFO_message("Ck=%f  Ckk=%f", Ck, Ckk);
 
    for( j=1 ; j<=Nout ; j++ ) {
       // for imag parts-- different criterion than in PR89, because
@@ -246,8 +272,10 @@ void PR89_fasper( float *x,
       //    a positive exponential in the forward transform. >>
       // and PR89 use the NR convention (understandably...).
 
-      hypo = sqrt(wk2[K]*wk2[K] + wk2[KK]*wk2[KK]);
-
+      hypo = sqrt(wk2[K]*wk2[K]+wk2[KK]*wk2[KK])+0.000001; // badness
+                                                           // if == 0.
+                                                           // fixed,
+                                                           // July2016
       hc2wt = 0.5*wk2[K]/hypo;
       hs2wt = -0.5*wk2[KK]/hypo;
       cwt = sqrt(0.5 + hc2wt);
@@ -255,6 +283,7 @@ void PR89_fasper( float *x,
       den = 0.5*N + hc2wt*wk2[K] - hs2wt*wk2[KK];
       cterm = pow((cwt*wk1[K] - swt*wk1[KK]),2)/den;
       sterm = pow((-cwt*wk1[KK] + swt*wk1[K]),2)/(N-den);
+
       wk1[j] = j*DF;
       wk2[j] = (cterm + sterm)/(2.);
 
@@ -266,8 +295,8 @@ void PR89_fasper( float *x,
          *jmax = j;
          }*/
       
-      if( DO_AMP )
-         wk2[j] = sqrt(wk2[j]);
+      //if( DO_AMP )   ---> do this later, for greater consistency of power/amp
+      //   wk2[j] = sqrt(wk2[j]);
 
       K++; // also different than in PR89
    }

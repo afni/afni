@@ -526,9 +526,13 @@ g_history = """
         - can modify blip order
         - BLIP_BASE is now MEDIAN_BLIP
         - added BLIP NOTE to -help output
+    4.72 Jun 30, 2016:
+        - allow for single volume EPI input (e.g. to test blip correction)
+        - auto -blip_forward_dset should come from tcat output
+          (obliquity test still be from existing -dsets, if appropriate)
 """
 
-g_version = "version 4.71, June 29, 2016"
+g_version = "version 4.72, June 30, 2016"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \
@@ -634,6 +638,8 @@ class SubjProcSream:
         self.blip_dset_rev  = None      # afni_name: local blip_in_rev dset
         self.blip_dset_med  = None      # afni_name: result: blip align median
         self.blip_dset_warp = None      # afni_name: result: blip NL warp dset
+        self.blip_obl_for = 0           # is it oblique
+        self.blip_obl_rev = 0           # is it oblique
 
         self.vr_ext_base= None          # name of external volreg base 
         self.vr_ext_pre = 'external_volreg_base' # copied volreg base prefix
@@ -2270,6 +2276,11 @@ class SubjProcSream:
            bstr += tstr
 
         if isinstance(self.blip_in_rev, afni_name):
+           # if copying rev but not forward, add a comment
+           if self.blip_in_for == None:
+              bstr += '# will extract automatic -blip_forward_dset in tcat ' \
+                      'block, below\n\n'
+
            self.blip_dset_rev = afni_name('blip_reverse', view=self.view)
            tstr = '# copy external -blip_reverse_dset dataset\n' \
                   '3dTcat -prefix %s/%s %s\n' %                  \

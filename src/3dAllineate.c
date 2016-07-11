@@ -1809,7 +1809,7 @@ int main( int argc , char *argv[] )
        if(strcmp(argv[++iarg],"IDENTITY") == 0)
             allcostX1D = mri_identity_params();
        else {
-          qim = mri_read_1D( argv[++iarg] ) ;
+          qim = mri_read_1D( argv[iarg] ) ;
           if( qim == NULL )
             ERROR_exit("Can't read -allcostX1D '%s' :-(",argv[iarg]) ;
             allcostX1D = mri_transpose(qim) ; mri_free(qim) ;
