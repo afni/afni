@@ -3528,7 +3528,7 @@ ENTRY("mri_read_1D_stdin") ;
      inim = mri_copy(im_stdin); RETURN(inim);
    }
 
-INFO_message("reading 1D_stdin") ;
+/*** INFO_message("reading 1D_stdin") ; ***/
    lbuf = (char * )malloc(sizeof(char )*SIN_NLBUF) ;
    val  = (float *)malloc(sizeof(float)*SIN_NVMAX) ;
 
