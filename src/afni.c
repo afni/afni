@@ -1880,6 +1880,7 @@ void AFNI_sigfunc_alrm(int sig)
      "Remember -- Memory is long but time is tricky"                 ,
      "Remember -- Men are always willing to believe what they wish"  ,
      "Remember -- What I tell you three times is true"               ,
+     "Remember -- A monad is the same as an endofunctor"             ,
      "Fools give you reasons, wise men never try"                    ,
      "People willingly trust the statistics they wish to believe"    ,
      "Heaven's last best gift, my ever new delight"                  ,
@@ -1993,6 +1994,11 @@ void AFNI_sigfunc_alrm(int sig)
      "I came, I saw, I got confused"                                 ,
      "Computers are useless -- they can only give you answers"       ,
 
+     "Returning control of your brain (images) back to yourself"     ,
+     "Returning your endofunctors back to their co-monads"           ,
+     "Returning you from brain-blob land to actual thinking land"    ,
+
+
      /* This set of quotes is from Paradise Lost,
         by John Milton (a very very early AFNI user) */
 
@@ -2052,6 +2058,7 @@ void AFNI_sigfunc_alrm(int sig)
      "Will all great Neptune's ocean wash this modeling error from my regression?"    ,
      "Remember -- Screaming is the next best thing to solving a problem"              ,
      "Remember -- Swearing is almost as good as solving a problem"                    ,
+     "Remember -- Closure operators are monads on preorder categories"                ,
      "Data which passes through so many steps can hardly have much truth left"        ,
      "One man's way may be as good as another's, but we all like our own best"        ,
      "Some ideas are so wrong that only an intelligent person could believe them"     ,
@@ -2109,8 +2116,9 @@ void AFNI_sigfunc_alrm(int sig)
      "O wad some Pow'r the giftie gie us, To see oursels as ithers see us"            ,
      "One half the world cannot understand the statistics of the other"               ,
 
-     "My name is AFNImandias, Brain of Brains; Look on my Statistics, ye Clever, and despair" ,
+     "My name is AFNImandias, Brain of Brains; Look on my Statistics, ye Clever, and Despair" ,
      "Statistically Significant is NOT the same as Significant -- they're not even similar"   ,
+     "If you drink a liquid that has p=0.06 of being poison, do you feel significantly safe?" ,
 
      "\n  It is a truth universally acknowledged, that a single scientist\n"
      "  in possession of a large data collection, is in need of an AFNI."                     ,
