@@ -3038,6 +3038,13 @@ printf("decoded %s to give zincode=%d bot=%f top=%f\n",Argv[nopt],
          nopt++ ; continue ;  /* go to next arg */
       }
 
+
+      /* show debugging information */
+      if( strcmp(Argv[nopt],"-verb") == 0 ){
+         dicom_debug(3);
+         nopt++ ; continue ;  /* go to next arg */
+      }
+
       /*--- illegal option ---*/
 
       printf("** ILLEGAL OPTION: %s\n\n",Argv[nopt]) ;
@@ -3595,6 +3602,8 @@ void Syntax()
     "    By default, use the new code if this option is not provided.\n"
     "  -ushort2float\n"
     "    Convert input shorts to float, and add 2^16 to any negatives.\n"
+    "  -verb\n"
+    "    show debugging information for reading DICOM files\n\n"
    ) ;
 
    printf(

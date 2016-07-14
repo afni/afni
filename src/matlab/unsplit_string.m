@@ -9,8 +9,8 @@ function s=unsplit_string(c, sep)
 %
 % NNO Jan 2010
 
-if ~iscell(c)
-    error('Expected cell input');
+if ~iscellstr(c)
+    error('Expected cell string input');
 end
 
 n=numel(c);
@@ -19,14 +19,14 @@ if n==0
     return
 end
 
-r=cell(1,2*n);
+% insert separator string
+parts=cell(1,2*n-1);
 for k=1:n
-    r{k*2-1}=sep;
-    r{k*2}=c{k};
+    parts{k*2-1}=c{k};
+    if k>1
+        parts{k}=sep;
+    end
 end
 
-s=[r{2:end}];
-
-
-
-
+% concatenate
+s=sprintf('%s',parts{:});

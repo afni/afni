@@ -823,6 +823,66 @@ def get_3dinfo(dname, lines=0, verb=0):
 
    return output
 
+def get_3dinfo_nt(dname, verb=1):
+   """run 3dinfo -nt
+
+      return 0 on failure (>= 0 on success)
+   """
+   command = '3dinfo -nt %s' % dname
+   status, output, se = limited_shell_exec(command, nlines=1)
+   if status or len(output) == 0:
+      if verb: print '** 3dinfo -nt failure: message is:\n%s%s\n' % (se,output)
+      return 0
+
+   output = output[0].strip()
+   if output == 'NO-DSET' :
+      if verb: print '** 3dinfo -nt: no dataset %s' % dname
+      return 0
+
+   nt = 0
+   try: nt = int(output)
+   except:
+      if verb: print '** 3dinfo -nt: cannot get NT from %s, for dset %s' \
+                     % (output, dname)
+      return 0
+
+   return nt
+
+def get_3dinfo_val(dname, val, vtype, verb=1):
+   """run 3dinfo -val, and convert to vtype (also serves as a test)
+
+      return vtype(0) on failure
+   """
+   command = '3dinfo -%s %s' % (val, dname)
+   status, output, se = limited_shell_exec(command, nlines=1)
+   if status or len(output) == 0:
+      if verb:
+         print '** 3dinfo -%s failure: message is:\n%s%s\n' % (val, se, output)
+      return 0
+
+   output = output[0].strip()
+   if output == 'NO-DSET' :
+      if verb: print '** 3dinfo -%s: no dataset %s' % (val, dname)
+      return 0
+
+   dval = 0
+   try: dval = vtype(output)
+   except:
+      # allow conversion from float to int as a backup
+      fail = 0
+      if vtype == int:
+         try:
+            dval = float(output)
+            dval = vtype(dval)
+         except:
+            fail = 1
+      if verb and fail:
+         print "** 3dinfo -%s: cannot get val from %s, for dset %s" \
+               % (val, output, dname)
+      if fail: return vtype(0)
+
+   return dval
+
 def dset_view(dname):
    """return the AFNI view for the given dset"""
    command = '3dinfo -av_space %s' % dname
@@ -978,55 +1038,24 @@ def test_truncation(top=10.0, bot=0.1, bits=3, e=0.0000001):
 def get_dset_reps_tr(dset, notr=0, verb=1):
     """given an AFNI dataset, return err, reps, tr
 
-       if notr: do not worry about any TR failure
+       if notr: use 3dinfo -nt
 
        err  = error code (0 = success, else failure)
        reps = number of TRs in the dataset
        tr   = length of TR, in seconds
     """
 
+    # use 3dinfo directly, instead of TAXIS attributes  30 Jun 2016
+
+    reps = get_3dinfo_val(dset, 'nt', int, verb=verb)
+    tr = get_3dinfo_val(dset, 'tr', float, verb=verb)
+
     # store timing info in a list (to get reps and timing units)
-    tinfo = BASE.read_attribute(dset, 'TAXIS_NUMS')
-    if tinfo == None:
+    if reps == 0:
         print "** failed to find the number of TRs from dset '%s'" % dset
         return 1, None, None
 
-    # look for the number of repetitions
-    try: reps = int(tinfo[0])
-    except:
-        print "** reps '%s' is not an int in dset %s?" % (tinfo[0], dset)
-        return 1, None, None
-    if reps < 1:
-        print "** invalid nreps (%d) for dset %s" % (reps, dset)
-        return 1, None, None
-
-    # note the units (either sec (77002) or ms (77001))
-    try: units = int(tinfo[2])
-    except: units = 77002
-    if units != 77001 and units != 77002: units = 77002
-
-    # now read the TR (and apply previous units)
-    tinfo = BASE.read_attribute(dset, 'TAXIS_FLOATS')
-    if tinfo == None:
-        # if we do not care, return tr == 1.0
-        if notr:
-           if verb > 1: print "** setting missing TR to 1 for '%s'" % dset
-           tinfo = [0, 1]
-        else:
-           print "** failed to find the TR length from dset '%s'" % dset
-           return 1, None, None
-    try: tr = float(tinfo[1])
-    except:
-        print "** TR '%s' is not a float?" % tinfo[1]
-        return 1, None, None
-
-    if verb > 1:
-        if units == 77001: unit_str = 'ms'
-        else             : unit_str = 's'
-        print '-- dset %s : reps = %d, tr = %s%s' %(dset,reps,str(tr),unit_str)
-
-    # and adjust TR
-    if units == 77001: tr /= 1000.0
+    if verb > 1: print '-- dset %s : reps = %d, tr = %ss' % (dset, reps, tr)
 
     return 0, reps, tr
 

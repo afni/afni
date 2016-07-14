@@ -49,6 +49,18 @@
 
 
 afni_history_struct dglen_history[] = {
+{ 11, JUL, 2016 , DRG , "3dWarp tta2mni grid dimensions bug" , 
+    MINOR , TYPE_BUG_FIX, 
+    "Ignored grid dimensions in transformation between Talairach to MNI"
+},
+{ 30, JUN, 2016 , DRG , "unWarpEPI.py anat to epi lpc+ZZ cost" , 
+    MINOR , TYPE_BUG_FIX, 
+    "Mistakenly used lpa for anat to epi alignment"
+},
+{ 29, JUN, 2016 , DRG , "align_epi_anat.py flipping identity" , 
+    MINOR , TYPE_BUG_FIX, 
+    "Case of mistaken IDENTITY for check_flip option"
+},
 { 19, JUN, 2016 , DRG , "align_epi_anat.py dset1/2 deobliquing" , 
     MICRO , TYPE_BUG_FIX, 
     "Using dset1/2 terminology forced deobliquing off"

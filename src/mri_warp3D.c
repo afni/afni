@@ -1372,7 +1372,7 @@ static INLINE void w3d_tta2mni( float tx , float ty , float tz ,
 THD_3dim_dataset * THD_warp3D_tta2mni( THD_3dim_dataset *inset , void *newggg ,
                                        char *prefix , int zpad , int flag )
 {
-   return THD_warp3D( inset , w3d_tta2mni,w3d_mni2tta , NULL,prefix,0,0 ) ;
+   return THD_warp3D( inset , w3d_tta2mni,w3d_mni2tta , newggg,prefix,zpad,flag ) ;
 }
 
 /*-------  Should be the inverse of the above! -----------------------------*/
