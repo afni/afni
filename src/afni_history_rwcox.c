@@ -44,6 +44,21 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 8 , JUL , 2016 , RWC , "3dttest++" , MAJOR , TYPE_ENHANCE ,
+   "Extend -clustsim option" ,
+   "Covariates and centering\n"
+   "1- and 2-sided\n"
+   "unpooled and paired\n"
+   "1 sample as well as 2 sample" } ,
+
+ { 6 , JUL , 2016 , RWC , "3dQwarp" , MICRO , TYPE_ENHANCE ,
+   "Allow .jpg or .png file as source/base 'dataset' for 2D warping" ,
+   NULL } ,
+
+ { 21 , JUN , 2016 , RWC , "3dmaskave" , MICRO , TYPE_NEW_OPT ,
+   "Add -perc option for percentile" ,
+   NULL } ,
+
  { 14 , JUN , 2016 , RWC , "3dREMLfit" , MICRO , TYPE_BUG_FIX ,
    "Conversion to vector image fails for LARGE datasets" ,
    "The final step in the conversion to vectim is scanning the data for\n"

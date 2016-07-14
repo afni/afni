@@ -515,15 +515,31 @@ g_history = """
     4.67 Jun 16, 2016:
         - if NLwarp but EPI in orig space, do not apply (warn user)
         - fix refit of blip median datsets
+    4.68 Jun 22, 2016: do nothing, but work really hard at it
+        - apply EPI transformation steps using an array of transformations
+          (to make future changes easier)
+    4.69 Jun 24, 2016:
+        - added -requires_afni_hist
+        - if appropriate, warp vr_base dset as final_epi
+    4.70 Jun 27, 2016: allow for blip datasets that are not time series
+    4.71 Jun 29, 2016:
+        - can modify blip order
+        - BLIP_BASE is now MEDIAN_BLIP
+        - added BLIP NOTE to -help output
+    4.72 Jun 30, 2016:
+        - allow for single volume EPI input (e.g. to test blip correction)
+        - auto -blip_forward_dset should come from tcat output
+          (obliquity test still be from existing -dsets, if appropriate)
 """
 
-g_version = "version 4.67, June 16, 2016"
+g_version = "version 4.72, June 30, 2016"
 
 # version of AFNI required for script execution
-# prev: g_requires_afni =  "1 Apr 2015" # 1d_tool.py uncensor from 1D
-# prev: g_requires_afni = "23 Jul 2015" # 3dREMLfit -dsort
-# prev: g_requires_afni = "1 Sep 2015" # gen_ss_review_scripts.py -errts_dset
-g_requires_afni = "28 Oct 2015" # 3ddot -dodice
+g_requires_afni = [ \
+      [  "1 Apr 2015",  "1d_tool.py uncensor from 1D" ],
+      [ "23 Jul 2015",  "3dREMLfit -dsort" ],
+      [  "1 Sep 2015",  "gen_ss_review_scripts.py -errts_dset" ],
+      [ "28 Oct 2015",  "3ddot -dodice" ] ]
 
 g_todo_str = """todo:
   - allow for 3dAllineate in place of 3dvolreg: -volreg_use_allineate
@@ -622,11 +638,14 @@ class SubjProcSream:
         self.blip_dset_rev  = None      # afni_name: local blip_in_rev dset
         self.blip_dset_med  = None      # afni_name: result: blip align median
         self.blip_dset_warp = None      # afni_name: result: blip NL warp dset
+        self.blip_obl_for = 0           # is it oblique
+        self.blip_obl_rev = 0           # is it oblique
 
         self.vr_ext_base= None          # name of external volreg base 
         self.vr_ext_pre = 'external_volreg_base' # copied volreg base prefix
         self.vr_int_name= ''            # other internal volreg dset name
-        self.vr_base_dset  = None       # afni_name for applied volreg base
+        self.vr_base_dset = None        # afni_name for applied volreg base
+        self.epi_final  = None          # vr_base_dset or warped version of it
         self.volreg_prefix = ''         # prefix for volreg dataset ($run)
                                         #   (using $subj and $run)
         self.vr_vall    = None          # all runs from volreg block
@@ -813,6 +832,8 @@ class SubjProcSream:
                         helpstr="show revision history")
         self.valid_opts.add_opt('-requires_afni_version', 0, [],
                         helpstr='show which date is required of AFNI')
+        self.valid_opts.add_opt('-requires_afni_hist', 0, [],
+                        helpstr='show history of -requires_afni_version')
         self.valid_opts.add_opt('-show_valid_opts', 0, [],
                         helpstr="show all valid options")
         self.valid_opts.add_opt('-todo', 0, [],
@@ -994,7 +1015,7 @@ class SubjProcSream:
                         helpstr="align EPI to anatomy (via align block)")
         self.valid_opts.add_opt('-volreg_align_to', 1, [],
                         acplist=['first','third', 'last', 'MIN_OUTLIER',
-                                 'BLIP_BASE'],
+                                 'MEDIAN_BLIP'],
                         helpstr="align to first, third, last or MIN_OUTILER TR")
         self.valid_opts.add_opt('-volreg_base_dset', 1, [],
                         helpstr='external dataset to use as volreg base')
@@ -1293,7 +1314,12 @@ class SubjProcSream:
             return 0  # gentle termination
         
         if opt_list.find_opt('-requires_afni_version'): # print required version
-            print g_requires_afni
+            print g_requires_afni[-1][0]
+            return 0  # gentle termination
+        
+        if opt_list.find_opt('-requires_afni_hist'): # print required history
+            hlist = ['   %11s, for : %s' % (h[0],h[1]) for h in g_requires_afni]
+            print '%s' % '\n'.join(hlist)
             return 0  # gentle termination
         
         if opt_list.find_opt('-todo'):     # print "todo" list
@@ -1492,8 +1518,8 @@ class SubjProcSream:
            if err: return 1
 
         # do we want the blip block?
-        # rcr - also check -blip_align_dsets
-        if self.user_opts.find_opt('-blip_reverse_dset'):
+        if self.user_opts.find_opt('-blip_reverse_dset') \
+              and not 'blip' in blocks:
            err, blocks = self.add_block_to_list(blocks, 'blip')
            if err: return 1
 
@@ -2094,7 +2120,7 @@ class SubjProcSream:
           '    echo "** this script requires newer AFNI binaries (than %s)"\n'\
           '    echo "   (consider: @update.afni.binaries -defaults)"\n'       \
           '    exit\n'                                                        \
-          'endif\n\n' % (g_requires_afni, g_requires_afni) )
+          'endif\n\n' % (g_requires_afni[-1][0], g_requires_afni[-1][0]) )
 
         self.write_text('# the user may specify a single subject to run with\n'\
                       'if ( $#argv > 0 ) then\n'                             \
@@ -2250,6 +2276,11 @@ class SubjProcSream:
            bstr += tstr
 
         if isinstance(self.blip_in_rev, afni_name):
+           # if copying rev but not forward, add a comment
+           if self.blip_in_for == None:
+              bstr += '# will extract automatic -blip_forward_dset in tcat ' \
+                      'block, below\n\n'
+
            self.blip_dset_rev = afni_name('blip_reverse', view=self.view)
            tstr = '# copy external -blip_reverse_dset dataset\n' \
                   '3dTcat -prefix %s/%s %s\n' %                  \

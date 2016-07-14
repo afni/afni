@@ -148,6 +148,7 @@ extern int AFD_manufacturer_string_to_code( char * ) ;
 extern AFD_dicom_header * AFD_scanfor_header( char * ) ;
 extern char * AFD_format_header( AFD_dicom_header *adh ) ;
 extern int disp_dicom_globals(char * mesg);
+extern void dicom_debug(int verb_level);
 
 extern MultiFrame_info * AFD_scanfor_MultiFrame( char *ppp ) ;
 
