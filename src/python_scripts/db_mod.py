@@ -21,6 +21,7 @@ import lib_vars_object as VO
 #    volreg     : 'motion' corrected by new 3dvolreg command
 #    warped_vr  : ?? maybe allow a volreg version to be fully warped
 motsim_types = ['motion','aligned', 'volreg', 'warped']
+valid_warp_types = ['affine', 'NL']
 
 
 WARP_EPI_TLRC_ADWARP    = 1
@@ -70,24 +71,73 @@ def apply_uopt_list_to_block(opt_name, user_opts, block):
 
     return found
 
-def new_warp_item(desc='', wtype='', src='', xfiles=[], inv=[]):
+def warp_item(desc='', wtype='', warpset=''):
    """desc      = description of warp
-      wtype     = rigid, affine, NL
-      src       = source dataset
-      xfiles    = known files for transforms
-      inv       = whether to invert a given file transform
+      wtype     = affine, NL
+      warpset   = dataset for warp *.aff12.1D, *_WARP.nii, etc.
    """
+   if warpset == '':
+      print "** warp_item missing warpset, desc = '%s'" % desc
+      return None
+   if wtype not in valid_warp_types:
+      print '** warp for dset %s not in %s' % (warpset, valid_warp_types)
+      return None
+
    vo = VO.VarsObject()
    vo.set_var('desc', desc)
    vo.set_var('wtype', wtype)
-   vo.set_var('src', src)
-   vo.set_var('xfiles', xfiles)
-   vo.set_var('inv', inv)
-   # if no inv values passed, init to no inverse per xfile
-   if len(vo.xfiles) > 0 and len(vo.inv) == 0:
-      vo.inv = [0 for i in range(len(vo.xfiles))]
-   
+   vo.set_var('warpset', warpset)
+
    return vo
+
+def apply_catenated_warps(proc, warp_list, base='', source='', prefix='',
+                          dim=0, NN=0, istr=''):
+   """For now, warp_list should consist of an outer to inner list of warps.
+      If any are non-linear, use 3dNwarpApply to apply them.  Otherwise,
+      use 3dAllineate.
+
+      Note that 3dAllineate should take only a single warp (for now).
+
+      if NN: include options for warping using NN, such as for an all-1 dset
+
+      return: status and a single command, indented by istr
+   """
+
+   NL = 0
+   nwarps = len(warp_list)
+   for warp in warp_list:
+      if warp.wtype == 'NL': NL = 1
+
+   wstr = ' '.join([w.warpset for w in warp_list])
+   if nwarps > 1: wstr = '"%s"' % wstr
+
+   if not NL and nwarps > 1:
+      print '** ACW: not ready for sequence of affine warps'
+      return 1, ''
+
+   if NL:
+      if dim > 0: dimstr = ' -dxyz %g' % dim
+      else:       dimstr = ''
+
+      clist = ['3dNwarpApply -master %s%s \\\n' % (base, dimstr),
+               '             -source %s \\\n'   % source,
+               '             -nwarp %s \\\n'    % wstr]
+      if NN: clist.append ('             -ainterp NN -quiet \\\n')
+      clist.append('             -prefix %s\n' % prefix)
+
+   else: # affine
+      if NN: nstr = ' -final NN -quiet'
+      else:  nstr = ''
+
+      clist = ['3dAllineate -base %s \\\n'           % base,
+               '            -input %s \\\n'          % source,
+               '            -1Dmatrix_apply %s \\\n' % wstr,
+               '            -mast_dxyz %g%s \\\n'    % (dim, nstr),
+               '            -prefix %s\n'            % prefix]
+
+   cmd = istr + istr.join(clist)
+
+   return 0, cmd
 
 
 # --------------- tcat ---------------
@@ -188,7 +238,53 @@ def db_cmd_tcat(proc, block):
 
     tcat_extract_vr_base(proc)
 
+    if proc.blip_in_rev != None and proc.blip_in_for == None:
+       rv, tcmd = tcat_make_blip_in_for(proc, block)
+       if rv: return 1, ''
+       if tcmd != '': cmd += tcmd
+
     return cmd
+
+def tcat_make_blip_in_for(proc, block):
+    """copy a number of time points from first tcat output that
+       corresponds to blip_in_rev
+
+       Populate proc.blip_in_for and blip_dset_for.
+
+       return status (0 on success) and command
+    """
+    # should we be here?
+    if not isinstance(proc.blip_in_rev, BASE.afni_name): return 0, ''
+    if isinstance(proc.blip_in_for, BASE.afni_name): return 0, ''
+
+    # make forward blip from first input (after pre-SS is removed)
+
+    # populate proc.blip_in_for
+    forinput = proc.prefix_form(block, 1, view=1)
+    revinput = proc.blip_in_rev.rel_input(sel=1)
+    nt = UTIL.get_3dinfo_nt(revinput)
+    if nt == 0: return 1, ''
+
+    if nt == 1: 
+       proc.blip_in_for = BASE.afni_name("%s[0]" % forinput)
+    else:
+       proc.blip_in_for = BASE.afni_name("%s[0..%d]" % (forinput, nt-1))
+    proc.blip_in_for.view = proc.view
+
+    if proc.verb > 2:
+       print '-- using auto blip forward dset, %s' \
+             % proc.blip_in_for.shortinput(sel=1)
+
+    # populate proc.blip_dset_for
+    proc.blip_dset_for = BASE.afni_name('blip_forward', view=proc.view)
+
+    # make actual command
+    cmd = '# -------------------------------------------------------\n' \
+          '# extract initial volumes as automatic -blip_forward_dset\n' \
+          '3dTcat -prefix %s %s\n\n'                                    \
+          % (proc.blip_dset_for.prefix, proc.blip_in_for.shortinput(sel=1))
+
+    return 0, cmd
 
 def set_proc_polort(proc):
     """set proc.polort from -regress_polort or get_default_polort
@@ -309,7 +405,8 @@ def db_cmd_postdata(proc, block):
        cmd = cmd + oc
 
     # probaby get outlier fractions
-    if proc.user_opts.have_yes_opt('-outlier_count', default=1):
+    if proc.user_opts.have_yes_opt('-outlier_count', default=1) and \
+            proc.reps_all[0] > 5:
         rv, oc = make_outlier_commands(proc, block)
         if rv: return   # failure (error has been printed)
         cmd = cmd + oc
@@ -544,28 +641,20 @@ def db_mod_blip(block, proc, user_opts):
 
    # note blip forward input dset (or make one up)
    bopt = block.opts.find_opt('-blip_forward_dset')
+   fblip_oblset = proc.dsets[0]  # default obl test is from -dsets
    if bopt:
       proc.blip_in_for = BASE.afni_name(bopt.parlist[0])
       if proc.verb > 2:
          print '-- have blip forward dset %s' \
                % proc.blip_in_for.shortinput(sel=1)
-   else:
-      # make forward blip from first input
-      forinput = proc.dsets[0].rel_input()
-      revinput = proc.blip_in_rev.rel_input(sel=1)
-      rv, nt, tr = UTIL.get_dset_reps_tr(revinput, notr=1, verb=proc.verb)
-      if rv: return None
+      fblip_oblset = proc.dsets[0]
 
-      proc.blip_in_for = BASE.afni_name("%s[0..%d]" % (forinput, nt-1))
-      proc.blip_in_for.view = proc.view
-
-      if proc.verb > 2:
-         print '-- using -dsets for blip forward dset %s' \
-               % proc.blip_in_for.shortinput(sel=1)
+   proc.blip_obl_for = dset_is_oblique(fblip_oblset, proc.verb)
+   proc.blip_obl_rev = dset_is_oblique(proc.blip_in_rev, proc.verb)
 
    # check for alignment to median forward blip base
    val, status = user_opts.get_string_opt('-volreg_align_to')
-   if val == 'BLIP_BASE':
+   if val == 'MEDIAN_BLIP':
       # matching the same varible in db_cmd_blip
       for_prefix = 'blip_med_for'
       inset = '%s%s' % (for_prefix, proc.view)
@@ -657,8 +746,8 @@ def db_cmd_blip(proc, block):
    warp_rev = mmedf.new(new_pref=('%s_Rev_WARP'%warp_prefix))
    proc.blip_dset_warp = warp_for  # store for volreg block
 
-   fobl = dset_is_oblique(proc.blip_in_for, proc.verb)
-   robl = dset_is_oblique(proc.blip_in_rev, proc.verb)
+   fobl = proc.blip_obl_for     # set earlier, since fwd might be from -dsets
+   robl = proc.blip_obl_rev
 
    # apply mid-warp to forward median
    for_prefix = 'blip_med_for'
@@ -669,7 +758,7 @@ def db_cmd_blip(proc, block):
    # if oblique, pass the local copies
    if fobl: foblset = proc.blip_dset_for
    else:    foblset = None
-   if fobl: roblset = proc.blip_dset_rev
+   if robl: roblset = proc.blip_dset_rev
    else:    roblset = None
 
    cmd += blip_warp_command(proc, warp_for.shortinput(), medf.shortinput(),
@@ -883,6 +972,15 @@ def db_cmd_align(proc, block):
           '# %s to EPI registration base\n'     \
           '# (new anat will be %s %s)\n'        \
           % (block_header('align'), astr, istr, proc.anat.pv())
+
+    if 0:  # rcr - here
+       # get costs
+       acmd = '# make a record of alginment costs\n'               \
+              '3dAllineate -base %s  \\\n'                         \
+              '            -input %s"[%d]" \\\n'                   \
+              '            -allcostX |& tee out.a2e.costs.txt\n\n' \
+              % (proc.anat.pv(), basevol, bind)
+       cmd += acmd
 
     # ---------------
     # if requested, create any anat followers
@@ -1515,7 +1613,7 @@ def db_mod_volreg(block, proc, user_opts):
             bopt.parlist[1] = reps - 1          # index of last rep
         elif aopt.parlist[0] == 'MIN_OUTLIER':   
            if vr_do_min_outlier(block, proc, user_opts): return 1
-        elif aopt.parlist[0] == 'BLIP_BASE':   
+        elif aopt.parlist[0] == 'MEDIAN_BLIP':   
            pass
         else:   
             print "** unknown '%s' param with -volreg_base_ind option" \
@@ -1745,6 +1843,11 @@ def db_cmd_volreg(proc, block):
                       % proc.dsets[0].rel_input()
                 return
 
+    # create EPI warp list, outer to inner
+    epi_warps      = []
+    epi_base_cmv   = []         # list of cat_matvec commands for EPI base
+    allinbase      = None       # master grid for warp
+
     # if warping, multiply matrices and apply
     # (store cat_matvec entries in case of later use)
     if dowarp or doe2a or doblip:
@@ -1774,11 +1877,13 @@ def db_cmd_volreg(proc, block):
             else:                wstr = '%s::WARP_DATA -I' % proc.tlrcanat.pv()
             cmd = cmd + '               %s \\\n' % wstr
             proc.e2final_mv.append(wstr)
+            epi_base_cmv.append(wstr)
 
         if doe2a:
             wstr = '%s -I ' % proc.a2e_mat
             cmd = cmd + '               %s \\\n' % wstr
             proc.e2final_mv.append(wstr)
+            epi_base_cmv.append(wstr)
 
         # if blip, input (prev_prefix) is from prior to blip block
         if doblip:
@@ -1797,9 +1902,48 @@ def db_cmd_volreg(proc, block):
         if do_extents: wprefix = "rm.epi.nomask.r$run"
         else:          wprefix = cur_prefix
 
-        # apply linear or non-linear warps
-        wcmd = apply_catenated_warps(proc, runwarpmat, allinbase, prev_prefix,
-                                     dowarp, wprefix, dim, all1_input, cstr)
+        # first outer is any NL std space warp
+        if dowarp and proc.nlw_aff_mat != '':
+           epi_warps.append(warp_item('NL std space', 'NL', proc.nlw_NL_mat))
+
+        # next is a combined warp of volreg->std space
+        epi_warps.append(warp_item(cstr, 'affine', runwarpmat))
+
+        # most inner is blip (all1 warp need not include blip)
+        all1_warps = epi_warps[:]
+        if doblip:
+           cstr += '/NLtlrc'
+           blipinput = proc.blip_dset_warp.shortinput()
+           epi_warps.append(warp_item('blip', 'NL', blipinput))
+
+        indent = '    '
+        wcmd = '\n%s# apply catenated xform: %s\n' % (indent, cstr)
+        # rcr - remove:
+        if doblip or proc.nlw_aff_mat:
+           wcmd += '%s# then apply non-linear standard-space warp\n' % indent
+
+        st, wtmp = apply_catenated_warps(proc, epi_warps, base=allinbase,
+                      source=prev_prefix, prefix=wprefix, dim=dim, istr=indent)
+        if st: return
+        wcmd += wtmp
+
+        if do_extents:
+           all1_prefix = 'rm.epi.1.r$run'
+           st, wtmp = apply_catenated_warps(proc, all1_warps, base=allinbase,
+                         source=all1_input.shortinput(), prefix=all1_prefix,
+                         dim=dim, NN=1, istr=indent)
+           if st: return
+           wcmd += '\n%s# warp the all-1 dataset for extents masking \n%s' \
+                   % (indent, wtmp)
+
+           wcmd += '\n'                                                 \
+                '%s# make an extents intersection mask of this run\n'   \
+                '%s3dTstat -min -prefix rm.epi.min.r$run %s%s\n'        \
+                % (indent, indent, all1_prefix, proc.view)
+
+        # wcmd = old_apply_cat_warps(proc, runwarpmat, allinbase, prev_prefix,
+        #                            dowarp, wprefix, dim, all1_input, cstr)
+
         if wcmd == None: return
         cmd += wcmd
 
@@ -1889,6 +2033,19 @@ def db_cmd_volreg(proc, block):
            proc.mask_extents.new_view(proc.view)
 
     # ---------------
+    # make a warped volreg base dataset, if appropriate
+    rv, wcmd, wapply = get_vr_warp_list(proc, epi_warps, epi_base_cmv)
+    if rv: return
+    if wcmd and wapply:
+        cmd += wcmd
+        wprefix = 'final_epi_%s' % proc.vr_base_dset.prefix
+        proc.epi_final = proc.vr_base_dset.new(new_pref=wprefix)
+        st, wtmp = apply_catenated_warps(proc, wapply, base=allinbase,
+                      source=basevol, prefix=wprefix, dim=dim)
+        if st: return
+        cmd += wtmp + '\n'
+
+    # ---------------
     # make a copy of the "final" anatomy, called "anat_final.$subj"
     if proc.view == '+tlrc': aset = proc.tlrcanat
     else:                    aset = proc.anat
@@ -1936,6 +2093,48 @@ def db_cmd_volreg(proc, block):
     proc.mot_labs = ['roll', 'pitch', 'yaw', 'dS', 'dL', 'dP']
 
     return cmd
+
+def get_vr_warp_list(proc, ewarps, matvec_list):
+   """if matvec_list is non-empty, apply all warps
+         to:     proc.vr_base_dset
+         making: proc.epi_final
+
+      return status (0 on success), command and new warps
+   """
+
+   # anything to do?
+   if len(matvec_list) == 0: return 0, '', None
+
+   # make sure there is no blip warp
+   wapply = [w for w in ewarps if w.desc != 'blip']
+
+   # find affine warp to replace with that from matvec_list
+   affine_ind = -1
+   for ind, witem in enumerate(ewarps):
+      if witem.wtype == 'affine':
+         affine_ind = ind
+         break
+
+   if affine_ind < 0:
+      print '** CVWBV: no affine warp to replace'
+      return 1, '', None
+
+   # create the warp to replace
+   warpmat = 'mat.basewarp.aff12.1D'
+   cstr = '# warp the volreg base EPI dataset to make a final version\n' \
+          'cat_matvec -ONELINE'
+
+   if len(matvec_list) == 1:
+      cstr += ' %s' % matvec_list[0]
+   else:
+      spacing = ' \\\n           '
+      cstr += spacing + spacing.join(matvec_list)
+
+   cstr += ' > %s\n\n' % warpmat
+
+   wapply[affine_ind] = warp_item('vr base warp', 'affine', warpmat)
+
+   return 0, cstr, wapply
 
 def warp_anat_followers(proc, block, anat_aname, epi_aname=None, prevepi=0):
    """apply a single catenated warp to all followers, to match that of anat
@@ -2096,7 +2295,7 @@ def should_warp_anat_followers(proc, block):
    print '** should_warp_anat_followers: in bad block %s' % block.label
    return 0
 
-def apply_catenated_warps(proc, runwarpmat, gridbase, winput, dowarp,
+def old_apply_cat_warps(proc, runwarpmat, gridbase, winput, dowarp,
                           woutput, dim, all1_dset,cstr):
    """generate either 3dAllineate or 3dNwarpApply commands"""
 
@@ -7324,6 +7523,45 @@ g_help_string = """
     scaled values at 200 (percent), which should not occur in the brain.
 
     --------------------------------------------------
+    BLIP NOTE:
+
+    application of reverse-blip (blip-up/blip-down) registration:
+
+       o compute the median of the forward and reverse-blip data
+       o align them using 3dQwarp -plusminus
+          -> the main output warp is the square root of the forward warp
+             to the reverse, i.e. it warps the forward data halfway
+          -> in theory, this warp should make the EPI anatomically accurate
+
+    order of operations:
+
+       o the blip warp is computed after all initial temporal operations
+         (despike, ricor, tshift)
+       o and before all spatial operations (anat/EPI align, tlrc, volreg)
+
+    notes:
+
+       o If no forward blip time series (volume?) is provided by the user,
+         the first time points from the first run will be used (using the
+         same number of time points as in the reverse blip time series).
+       o As usual, all registration transformations are combined.
+
+    differences with unWarpEPI.py (R Cox, D Glen and V Roopchansingh):
+
+                        afni_proc.py            unWarpEPI.py
+                        --------------------    --------------------
+       tshift order:    before unwarp           after unwarp
+                        (option: unwarp first)
+
+       volreg program:  3dvolreg                3dAllineate
+
+       volreg base:     as before               median warped dset
+                        (option: MEDIAN_BLIP)
+
+       unifize EPI?     no (option: yes)        yes
+       (align w/anat)
+
+    --------------------------------------------------
     ANAT/EPI ALIGNMENT CASES NOTE:
 
     This outlines the effects of alignment options, to help decide what options
@@ -7733,7 +7971,13 @@ g_help_string = """
             against the most recent date in afni_history:
                 afni_history -past_entries 1
 
+            See also '-requires_afni_hist'.
+
             See also '-check_afni_version'.
+
+        -requires_afni_hist     : show history of -requires_afni_version
+
+            List the history of '-requires_afni_version' dates and reasons.
 
         -show_valid_opts        : show all valid options (brief format)
         -ver                    : show the version number

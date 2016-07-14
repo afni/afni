@@ -49,6 +49,77 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  8,  Jul, 2016, RCR, "Dimon", MINOR, TYPE_NEW_OPT,
+   "add -read_all, in case it is useful for sorting (e.g. -order_as_zt)",
+   "Added for K Vishwanath."
+ } ,
+
+ {  7,  Jul, 2016, RCR, "Dimon", MINOR, TYPE_NEW_OPT,
+   "add -order_as_zt to re-order from -time:tz to -time:zt",
+   NULL
+ } ,
+
+ {  7,  Jul, 2016, RCR, "afni_system_check.py", MICRO, TYPE_ENHANCE,
+   "check for partial install of PyQt4 (might be common on OS X 10.11)",
+   NULL
+ } ,
+
+ { 30,  Jun, 2016, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,
+   "allow single volume EPI input (e.g. to test blip correction)",
+   "Also, auto -blip_forward_dset should come from tcat output."
+ } ,
+
+ { 29,  Jun, 2016, RCR, "3dfim", MICRO, TYPE_BUG_FIX,
+   "fix crash for dset open error with long dset name",
+   "Thanks to J Henry for reporting the problem."
+ } ,
+
+ { 29,  Jun, 2016, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,
+   "can modify blip order; BLIP_BASE -> MEDIAN_BLIP; add BLIP_NOTE to help",
+   NULL
+ } ,
+
+ { 27,  Jun, 2016, RCR, "afni_proc.py", MICRO, TYPE_ENHANCE,
+   "allow for blip datasets that are not time series",
+   NULL
+ } ,
+
+ { 24,  Jun, 2016, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
+   "add -requires_afni_hist; warp vr_base to make final_epi dset",
+   NULL
+ } ,
+
+ { 23,  Jun, 2016, RCR, "plug_realtime", MICRO, TYPE_ENHANCE,
+   "show pop-up if user selects Mask Vals without 3D RT registrasion",
+   "Clarify this in the plugin Help.  For L Li and V Roopchansingh."
+ } ,
+
+ { 23,  Jun, 2016, RCR, "@auto_tlrc", MICRO, TYPE_ENHANCE,
+   "allow to work with NIFTI template",
+   NULL
+ } ,
+
+ { 22,  Jun, 2016, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,
+   "do nothing, but work really hard at it",
+   "Rewrite EPI transformation steps by storing and applying an array\n"
+   "of transformations: this should make future changes easier."
+ } ,
+
+ { 22,  Jun, 2016, RCR, "@diff.tree", MICRO, TYPE_NEW_OPT,
+   "added -diff_opts; e.g. -diff_opts -w",
+   NULL
+ } ,
+
+ { 22,  Jun, 2016, RCR, "@diff.files", MICRO, TYPE_NEW_OPT,
+   "added -diff_opts; e.g. -diff_opts -w",
+   NULL
+ } ,
+
+ { 22,  Jun, 2016, RCR, "auto_warp.py", MICRO, TYPE_BUG_FIX,
+   "correctly check base.exists()",
+   NULL
+ } ,
+
  { 17,  Jun, 2016, RCR, "afni-general", MICRO, TYPE_BUG_FIX,
    "w/dglen, dsets with HEAD in prefix (but no suffix) could not be opened",
    NULL

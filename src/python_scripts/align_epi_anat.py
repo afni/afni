@@ -598,7 +598,7 @@ g_help_string = """
 ## BEGIN common functions across scripts (loosely of course)
 class RegWrap:
    def __init__(self, label):
-      self.align_version = "1.53" # software version (update for changes)
+      self.align_version = "1.54" # software version (update for changes)
       self.label = label
       self.valid_opts = None
       self.user_opts = None
@@ -2086,13 +2086,8 @@ class RegWrap:
                  ps.oexec)
             com.run()
 
-            # need an identity matrix
-            idfile = open('identity.1D', 'w')
-            idfile.write('1 0 0 0  0 1 0 0  0 0 1 0\n')
-            idfile.close()
-
             com = shell_com( \
-               "3dAllineate -allcostX1D identity.1D __tt_lr_noflipcosts.1D "       \
+               "3dAllineate -allcostX1D IDENTITY __tt_lr_noflipcosts.1D "       \
                "%s "              # weighting          \
                "-source %s "        \
                "-base %s "                  \
@@ -2103,7 +2098,7 @@ class RegWrap:
                  ps.oexec)
             com.run()
             com = shell_com( \
-               "3dAllineate -allcostX1D identity.1D __tt_lr_flipcosts.1D "       \
+               "3dAllineate -allcostX1D IDENTITY __tt_lr_flipcosts.1D "       \
                "%s "              # weighting          \
                "-source %s "                           \
                "-base %s "                             \
