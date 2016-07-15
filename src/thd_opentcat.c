@@ -85,14 +85,16 @@ ENTRY("THD_open_tcat") ;
       sar = NI_decode_string_list( dlocal , "~" ) ;
 
       if( ! sar ) {
-         WARNING_message("THD_open_tcat: no space list from '%s'", dlocal);
+         if( tcat_open_verb )
+            WARNING_message("THD_open_tcat: no space list from '%s'", dlocal);
          RETURN(NULL);
       }
    } else if( HAS_WILDCARD(dlocal) ) {
       sar = NI_get_wildcard_list( dlocal );
 
       if( ! sar ) {
-         WARNING_message("THD_open_tcat: no wildcard match for '%s'", dlocal);
+         if( tcat_open_verb )
+            WARNING_message("THD_open_tcat: no wildcard match for '%s'",dlocal);
          RETURN(NULL);
       }
    } else {
