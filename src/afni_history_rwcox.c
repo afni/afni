@@ -44,6 +44,11 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 14 , JUL , 2016 , RWC , "3dttest++" , MICRO , TYPE_BUG_FIX ,
+   "Fix problem with -resid combined with -clustsim" ,
+   "Program assumed prefix_resid was NIFTI format,"
+   "so just add '.nii' if it does have that already." } ,
+
  { 8 , JUL , 2016 , RWC , "3dttest++" , MAJOR , TYPE_ENHANCE ,
    "Extend -clustsim option" ,
    "Covariates and centering\n"

@@ -2066,6 +2066,13 @@ int main( int argc , char *argv[] )
      if( prefix_resid == NULL ){
        prefix_resid = (char *)malloc(sizeof(char)*(strlen(prefix_clustsim)+32)) ;
        sprintf(prefix_resid,"%s.resid.nii",prefix_clustsim) ;
+     } else {
+       if( !PREFIX_IS_NIFTI(prefix_resid) ){
+         prefix_resid = (char *)realloc(prefix_resid,sizeof(char)*(strlen(prefix_resid)+32)) ;
+         strcat(prefix_resid,".nii") ;
+         INFO_message("running 3dClustSim --> changed '-resid' prefix to NIFTI form: %s",
+                      prefix_resid ) ;
+       }
      }
    }
 
