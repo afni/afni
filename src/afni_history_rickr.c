@@ -54,6 +54,11 @@ afni_history_struct rickr_history[] = {
    "Added for K Vishwanath."
  } ,
 
+ {  14,  Jul, 2016, RCR, "afni-general", MICRO, TYPE_BUG_FIX,
+   "THD_open_tcat: print error and return NULL on bad wildcard match",
+   NULL
+ } ,
+
  {  7,  Jul, 2016, RCR, "Dimon", MINOR, TYPE_NEW_OPT,
    "add -order_as_zt to re-order from -time:tz to -time:zt",
    NULL
