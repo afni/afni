@@ -329,3 +329,27 @@ ENTRY("THD_cliplevel_gradual") ;
 
    RETURN(cim) ;
 }
+
+/*--------------------------------------------------------------------------*/
+
+float THD_cliplevel_search( MRI_IMAGE *im )  /* experimental */
+{
+#define NC 10
+#define DC 0.05f
+#define CB 0.10f
+   int qc , nmask[NC] ; float cc ; byte *mask ;
+
+   THD_automask_verbose(0) ;
+INFO_message("\nTHD_cliplevel_search:") ;
+   for( qc=0 ; qc < NC ; qc++ ){
+     cc = DC * qc + CB ;
+     THD_automask_set_clipfrac(cc) ;
+     THD_automask_set_cheapo(1) ;
+     mask = mri_automask_image(im) ;
+     nmask[qc] = THD_countmask( im->nvox , mask ) ;
+     free(mask) ;
+ININFO_message("  clfrac=%.2f nmask=%d (%.1f%%)",cc,nmask[qc],(100.0f*nmask[qc])/(float)(im->nvox)) ;
+   }
+   THD_automask_set_cheapo(0) ;
+   return 0.0f ;
+}

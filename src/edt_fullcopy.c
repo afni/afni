@@ -20,7 +20,10 @@ ENTRY("EDIT_full_copy") ;
 
    /*-- sanity check --*/
 
-   if( ! ISVALID_3DIM_DATASET(dset) ) RETURN(NULL) ;
+   if( ! ISVALID_3DIM_DATASET(dset) ){
+     ERROR_message("EDIT_full_copy: invalid dataset input ptr=%p",(void *)dset) ;
+     RETURN(NULL) ;
+   }
 
    /*-- make the empty copy --*/
 
@@ -48,6 +51,8 @@ ENTRY("EDIT_full_copy") ;
 
      if( new_brick == NULL ){
        THD_delete_3dim_dataset( new_dset , False ) ;
+       ERROR_message("EDIT_full_copy: can't malloc %d bytes for new sub-brick %d",nbytes,ival) ;
+       ININFO_message("   Dataset %s",DSET_HEADNAME(dset)) ;
        RETURN(NULL) ;
      }
 
@@ -59,6 +64,8 @@ ENTRY("EDIT_full_copy") ;
 
      if( old_brick == NULL ){
        THD_delete_3dim_dataset( new_dset , False ) ;
+       ERROR_message("EDIT_full_copy: input sub-brick %d is NULL",ival) ;
+       ININFO_message("   Dataset %s",DSET_HEADNAME(dset)) ;
        RETURN(NULL) ;
      }
 

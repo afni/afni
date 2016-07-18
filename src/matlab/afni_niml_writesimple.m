@@ -91,7 +91,8 @@ if size(idxs,1)==1
 end
 
 if numel(idxs) ~= nverts
-    error('The number of node indices (%d) does not match the number of rows (%d) in the data.',nverts,numel(idxs));
+    error(['The number of node indices (%d) does not match the '...
+                'number of rows (%d) in the data.'],nverts,numel(idxs));
 end
 
 nd.data=idxs;
@@ -116,19 +117,24 @@ end
 
 % default value for history; make call stack
 st=dbstack();
-stc=cell(numel(st));
+stc=cell(numel(st),1);
 for j=1:numel(st)
     stc{j}=sprintf('%s (%d)',st(j).name,st(j).line);
 end
-defaulthistory=sprintf('Written %s using: %s',datestr(clock),unsplit_string(stc,' <- '));
+defaulthistory=sprintf('Written %s using: %s',datestr(clock),...
+                                unsplit_string(stc,' <- '));
 if isfield(S,'history')
     S.history=[S.history ';' defaulthistory];
 end
 
-nodes{4}=make_str_element('COLMS_LABS',S,'labels',defaultlabels,ncols);
-nodes{5}=make_str_element('COLMS_TYPE',S,'types',make_default_type(S.data),ncols); % as of May 2011, use make_default_type; see below
-nodes{6}=make_str_element('COLMS_STATSYM',S,'stats',{'none'},ncols);
-nodes{7}=make_str_element('HISTORY_NOTE',S,'history',defaulthistory,ncols);
+nodes{4}=make_str_element('COLMS_LABS',S,'labels',...
+                        defaultlabels,ncols);
+nodes{5}=make_str_element('COLMS_TYPE',S,'types',...
+                        make_default_type(S.data),ncols);
+nodes{6}=make_str_element('COLMS_STATSYM',S,'stats',...
+                        {'none'},ncols);
+nodes{7}=make_str_element('HISTORY_NOTE',S,'history',...
+                        defaulthistory,ncols);
 
 D.nodes=nodes;
 
@@ -169,7 +175,8 @@ if iscell(vals);
     end
     vals=unsplit_string(v,';');
 elseif ~ischar(vals)
-    error('Unrecognized data type for field %s (%s)', Nodefieldname, Sfieldname);
+    error('Unrecognized data type for field %s (%s)', ...
+                                Nodefieldname, Sfieldname);
 end
 
 elem.data={{vals}};

@@ -1360,6 +1360,7 @@ int main( int argc , char *argv[] )
 
    PRINT_VERSION("3dREMLfit"); mainENTRY("3dREMLfit main"); machdep();
    AFNI_logger("3dREMLfit",argc,argv); AUTHOR("RWCox");
+   SET_message_file("3dREMLfit.err") ;
    (void)COX_clock_time() ;
    THD_check_AFNI_version("3dREMLfit");
 
@@ -2709,7 +2710,7 @@ STATUS("make GLTs from matrix file") ;
      double dsiz = (double)DSET_TOTALBYTES( inset ) ;
      if( virtu_mrv || (vsiz < 0.9*dsiz && vsiz > 10.0e+6) ){
        if( verb ){
-         INFO_message("Converting dataset to vector image") ;
+         INFO_message("Converting input dataset to vector image") ;
          ININFO_message(" dataset = %s bytes",approximate_number_string(dsiz)) ;
          ININFO_message(" vectim  = %s bytes",approximate_number_string(vsiz)) ;
        }
@@ -3530,7 +3531,7 @@ STATUS("setting up Rglt") ;
      if( qp != NULL ){ free((ppp)) ; (ppp) = qp ; }                 \
  } while(0)
 
-   if( do_Rstuff && num_dsort > 0 && !doing_nods ){
+   if( do_Rstuff && num_dsort > 0 && dsort_nods && !doing_nods ){
      PREFIX_NODSIZE(Rbeta_prefix ) ;
      PREFIX_NODSIZE(Rvar_prefix  ) ;
      PREFIX_NODSIZE(Rbuckt_prefix) ;
@@ -3948,7 +3949,7 @@ STATUS("ALL_GLTS") ;
 
    /** rinse and repeat? [27 Jul 2015] */
 
-   if( do_Ostuff && num_dsort > 0 && !doing_nods ){
+   if( do_Ostuff && num_dsort > 0 && dsort_nods && !doing_nods ){
      PREFIX_NODSIZE(Oerrts_prefix) ;
      PREFIX_NODSIZE(Oglt_prefix  ) ;
      PREFIX_NODSIZE(Obeta_prefix ) ;

@@ -173,6 +173,70 @@ INFO_message("EDIT_geometry_constructor: orientation codes = %d %d %d",orixyz.ij
 }
 
 /*-------------------------------------------------------------------------*/
+/* create a random dataset [16 Mar 2016] */
+
+THD_3dim_dataset * jRandomDataset( int nx, int ny, int nz, int nt )
+{
+   THD_3dim_dataset *dset ;
+   char gstr[128] ;
+   int iv,jj,nvox; float *far , zz=0.0f ;
+
+   if( nx < 2 ) return NULL ;
+   if( ny < 1 ) ny = nx ;
+   if( nz < 1 ) nz = 1 ;
+   if( nt < 1 ) nt = 1 ;
+
+   sprintf(gstr,"RAI:%d,0,1.0,%d,0,1.0,%d,0,1.0",nx,ny,nz) ;
+   dset = EDIT_geometry_constructor(gstr,"jRandomDataset") ;
+
+   EDIT_dset_items( dset ,
+                      ADN_nvals  , nt ,
+                    ADN_none ) ;
+   if( nt > 1 ){
+     EDIT_dset_items( dset ,
+                        ADN_ntt    , nt ,
+                        ADN_ttdel  , 1.0f ,
+                       ADN_none ) ;
+   }
+
+   nvox = nx*ny*nz ;
+   for( iv=0 ; iv < nt ; iv++ ){
+     EDIT_substitute_brick( dset , iv , MRI_float , NULL ) ;
+     far = DSET_ARRAY( dset , iv ) ;
+     for( jj=0 ; jj < nvox ; jj++ ) far[jj] = 2.0f*(float)(drand48())-1.0f ;
+     if( nvox%32 == 0 && iv < nt-1 ){
+       for( jj=0 ; jj < 17 ; jj++ ) zz += drand48() ; /* avoid artifacts */
+     }
+   }
+
+   return dset ;
+}
+
+/*-------------------------------------------------------------------------*/
+/* create a random 1D file [17 Mar 2016] */
+
+MRI_IMAGE * jRandom1D( int nx , int ny )
+{
+   MRI_IMAGE *im ; int ii,jj,kk,nxy ; float *far , zz=0.0f ;
+
+   if( nx < 1 ) return NULL ;
+   if( ny < 1 ) ny = 1 ;
+
+   im  = mri_new( nx , ny , MRI_float ) ;
+   far = MRI_FLOAT_PTR(im) ;
+   nxy = nx*ny ;
+   for( kk=jj=0 ; jj < ny ; jj++ ){
+     for( ii=0 ; ii < nx ; ii++,kk++ )
+       far[kk] = 2.0f*(float)(drand48())-1.0f ;
+     if( nx%8 == 0 && jj < ny-1 ){
+       int qq ; for( qq=0 ; qq < 11 ; qq++ ) zz += drand48() ;
+     }
+   }
+
+   return im ;
+}
+
+/*-------------------------------------------------------------------------*/
 
 char * EDIT_get_geometry_string( THD_3dim_dataset *dset )
 {

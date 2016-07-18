@@ -931,7 +931,7 @@ ENTRY("AFNI_finalize_write_palette_CB") ;
       char buf[512] ;
       sprintf(buf,"\nWriting current palette to file\n %s\n",fname) ;
       (void) MCW_popup_message( im3d->vwid->func->options_label ,
-                                buf , MCW_USER_KILL | MCW_TIMER_KILL ) ;
+                                buf , MCW_USER_KILL | MCW_QUICK_KILL ) ;
    }
 
    pbar  = im3d->vwid->func->inten_pbar ;

@@ -129,11 +129,11 @@ extern "C" {
 
 /*! Max num datasets per session. */
 
-#define THD_MAX_SESSION_SIZE  4096
+#define THD_MAX_SESSION_SIZE  8192
 
 /*! Max number of directories. */
 
-#define THD_MAX_NUM_SESSION    80
+#define THD_MAX_NUM_SESSION    99
 
 #define THD_MAX_CHOICES THD_MAX_SESSION_SIZE
 
@@ -1004,6 +1004,10 @@ static THD_warp tempA_warp ;
 #define DATASET_BRICK_SUFFIX  "BRIK"
 #define DATASET_NOTES_SUFFIX  "NOTE"
 
+/* for strstr searches, include the '.'  17 Jun 2016 [rickr,DRG] */
+#define DATASET_DOT_HEADER_SUFFIX ".HEAD"
+#define DATASET_DOT_BRICK_SUFFIX  ".BRIK"
+
 /***
   The following codes define how the data is stored on disk.
   At one time, I started to support more than one storage
@@ -1032,8 +1036,9 @@ static THD_warp tempA_warp ;
 #define STORAGE_BY_NI_SURF_DSET  13  /* NIML surface dset */
 #define STORAGE_BY_GIFTI         14  /* GIFTI surface dset */
 #define STORAGE_BY_NI_TRACT      15  /* NIML tract dset */
+#define STORAGE_BY_IMAGE_FILE    16  /* 06 Jul 2016 */
 
-#define LAST_STORAGE_MODE        15
+#define LAST_STORAGE_MODE        16
 
 /*! Contains information about where/how dataset is stored on disk.
 
@@ -4439,6 +4444,9 @@ extern THD_3dim_dataset * THD_open_tcat( char * ) ;         /* 04 Aug 2004 */
 extern THD_3dim_dataset * THD_open_niml( char * ) ;         /* 01 Jun 2006 */
 extern THD_3dim_dataset * THD_open_gifti( char * ) ;        /* 13 Feb 2008 */
 
+extern THD_3dim_dataset * THD_open_image( char *fname ) ;   /* 06 Jul 2016 */
+extern THD_3dim_dataset * THD_image_to_dset( MRI_IMAGE *im , char *prefix ) ;
+
 extern THD_string_array * THD_multiplex_dataset( char * ) ; /* 19 Jul 2007 */
 
 extern THD_3dim_dataset * THD_niml_3D_to_dataset( NI_element *, char * ) ;
@@ -4486,15 +4494,15 @@ extern THD_3dim_dataset * THD_copy_one_sub  ( THD_3dim_dataset * , int ) ;
 
 /*! Help string to explain dataset "mastering" briefly. */
 
-#define MASTER_SHORTHELP_STRING                                                 \
- "INPUT DATASET NAMES\n"                                                        \
- "-------------------\n"                                                        \
- "This program accepts datasets that are modified on input according to the\n"  \
- "following schemes:\n"                                                         \
- "  'r1+orig[3..5]'                                    {sub-brick selector}\n"  \
- "  'r1+orig<100..200>'                                {sub-range selector}\n"  \
- "  'r1+orig[3..5]<100..200>'                          {both selectors}\n"      \
- "  '3dcalc( -a r1+orig -b r2+orig -expr 0.5*(a+b) )'  {calculation}\n"         \
+#define MASTER_SHORTHELP_STRING                                                \
+ "INPUT DATASET NAMES\n"                                                       \
+ "-------------------\n"                                                       \
+ "This program accepts datasets that are modified on input according to the\n" \
+ "following schemes:\n"                                                        \
+ "  'r1+orig[3..5]'                                    {sub-brick selector}\n" \
+ "  'r1+orig<100..200>'                                {sub-range selector}\n" \
+ "  'r1+orig[3..5]<100..200>'                          {both selectors}\n"     \
+ "  '3dcalc( -a r1+orig -b r2+orig -expr 0.5*(a+b) )'  {calculation}\n"        \
  "For the gruesome details, see the output of 'afni -help'.\n"
 
 /*! Help string to explain dataset "mastering" at length. */
@@ -4544,6 +4552,60 @@ extern THD_3dim_dataset * THD_copy_one_sub  ( THD_3dim_dataset * , int ) ;
     " so you will have to escape them.  This is most easily done by\n"        \
     " putting the entire dataset plus selection list inside forward\n"        \
     " single quotes, as in 'fred+orig[5..7,9]', or double quotes \"x\".\n"
+
+
+/*! Help string to explain catenated datasets. */
+
+#define CATENATE_HELP_STRING                                                  \
+    "CATENATED AND WILDCARD DATASET NAMES\n"                                  \
+    "------------------------------------\n"                                  \
+    " Datasets may also be catenated or combined in memory, as if one first\n"\
+    " ran 3dTcat or 3dbucket.\n"                                              \
+    " \n"                                                                     \
+    " An input with space-separated elements will be read as a concatenated\n"\
+    " dataset, as with 'dset1+tlrc dset2+tlrc dset3+tlrc', or with paths,\n"  \
+    " 'dir/dset1+tlrc dir/dset2+tlrc dir/dset3+tlrc'.\n"                      \
+    " The datasets will be combined (as if by 3dTcat) and then treated as a\n"\
+    " single input dataset.  Note that the quotes are required to specify\n"\
+    " them as a single argument.\n"                                           \
+    " \n"                                                                     \
+    " Sub-brick selection using '[]' works with space separated dataset\n"    \
+    " names.  If the selector is at the end, it is considered global and\n"   \
+    " applies to all inputs.  Otherwise, it applies to the adjacent input.\n" \
+    " For example:\n"                                                         \
+    "    local:  'dset1+tlrc[2,3] dset2+tlrc[7,0,1] dset3+tlrc[5,0,$]'\n"     \
+    "    global: 'dset1+tlrc dset2+tlrc dset3+tlrc[5,6]'\n"                   \
+    " \n"                                                                     \
+    " N.B. If AFNI_PATH_SPACES_OK is set to Yes, will be considered as part\n"\
+    " of the dataset name, and not as a separator between them.\n"            \
+    " \n"                                                                     \
+    " \n"                                                                     \
+    " Similar treatment applies when specifying datasets using a wildcard\n"  \
+    " pattern, using '*' or '?', as in: 'dset*+tlrc.HEAD'.  Any sub-brick\n"  \
+    " selectors would apply to all matching datasets, as with:\n"             \
+    "    'dset*+tlrc.HEAD[2,5,3]'\n"                                          \
+    " \n"                                                                     \
+    " N.B.: complete filenames are required when using wildcard matching,\n"\
+    " or no files will exist to match, e.g. 'dset*+tlrc' would not work.\n" \
+    " \n"                                                                     \
+    " N.B.: '[]' are processed as sub-brick or time point selectors.  They\n" \
+    " are therefore not allowed as wildcard characters in this context.\n"    \
+    " \n"                                                                     \
+    " Space and wildcard catenation can be put together.  In such a case,\n"  \
+    " spaces divide the input into wildcard pieces, which are processed\n"    \
+    " individually.\n"                                                        \
+    " \n"                                                                     \
+    " Examples (each is processed as a single, combined dataset):\n"          \
+    " \n"                                                                     \
+    "    'dset1+tlrc dset2+tlrc dset3+tlrc'\n"                                \
+    "    'dset1+tlrc dset2+tlrc dset3+tlrc[2,5,3]'\n"                         \
+    "    'dset1+tlrc[3] dset2+tlrc[0,1] dset3+tlrc[3,0,1]'\n"                 \
+    " \n"                                                                     \
+    "    'dset*+tlrc.HEAD'\n"                                                 \
+    "    'dset*+tlrc.HEAD[2,5,3]'\n"                                          \
+    "    'dset1*+tlrc.HEAD[0,1] dset2*+tlrc.HEAD[7,8]'\n"                     \
+    " \n"                                                                     \
+    "    'group.*/subj.*/stats*+tlrc.HEAD[7]'\n"
 
 /*! Help string to explain calculated datasets. */
 
@@ -4609,7 +4671,7 @@ extern THD_3dim_dataset * THD_copy_one_sub  ( THD_3dim_dataset * , int ) ;
    "   Try 1dplot '1D: 3 4 3 5 | 3 5 4 3'\n"                                  \
    "\n"                                                                       \
    "** TRANSPOSITION WITH \\' **\n"                                           \
-   "Finally, you can force most AFNI programs to transpose a 1D file on\n"     \
+   "Finally, you can force most AFNI programs to transpose a 1D file on\n"    \
    "input by appending a single ' character at the end of the filename.\n"    \
    "N.B.: Since the ' character is also special to the shell, you'll\n"       \
    "      probably have to put a \\ character before it. Examples:\n"         \
@@ -5096,8 +5158,8 @@ extern FD_brick ** THD_setup_bricks( THD_3dim_dataset * ) ;
 
 extern FD_brick * THD_oriented_brick( THD_3dim_dataset *, char *) ; /* 07 Dec 2001 */
 
-extern int thd_floatscan  ( size_t , float *   ) ; /* 30 Jul 1999 */
-extern int thd_complexscan( size_t , complex * ) ; /* 14 Sep 1999 */
+extern size_t thd_floatscan  ( size_t , float *   ) ; /* 30 Jul 1999 */
+extern size_t thd_complexscan( size_t , complex * ) ; /* 14 Sep 1999 */
 
 #undef floatfix
 #ifdef isfinite
@@ -5107,10 +5169,10 @@ extern int thd_complexscan( size_t , complex * ) ; /* 14 Sep 1999 */
 # define isfinite    finite
 #endif
 
-extern int mri_floatscan  ( MRI_IMAGE * ) ;     /* 22 Feb 2007 */
-extern int imarr_floatscan( MRI_IMARR * ) ;
-extern int dblk_floatscan ( THD_datablock * ) ;
-extern int dset_floatscan ( THD_3dim_dataset * ) ;
+extern size_t mri_floatscan  ( MRI_IMAGE * ) ;     /* 22 Feb 2007 */
+extern size_t imarr_floatscan( MRI_IMARR * ) ;
+extern size_t dblk_floatscan ( THD_datablock * ) ;
+extern size_t dset_floatscan ( THD_3dim_dataset * ) ;
 
 #undef  BAD_FLOAT
 #define BAD_FLOAT(xx) thd_floatscan(1,&(xx))    /* 31 Dec 2008 */
@@ -5199,6 +5261,7 @@ extern short *THD_mask_depth (int nx, int ny, int nz, byte *mask,
 extern float THD_cliplevel( MRI_IMAGE * , float ) ;          /* 12 Aug 2001 */
 extern float THD_cliplevel_abs( MRI_IMAGE * , float ) ;      /* 05 Mar 2007 */
 extern float mri_topclip( MRI_IMAGE * ) ;                    /* 28 Sep 2006 */
+extern float THD_cliplevel_search( MRI_IMAGE *im ) ;         /* 17 May 2017 */
 extern MRI_IMAGE * THD_median_brick( THD_3dim_dataset * ) ;  /* 12 Aug 2001 */
 extern MRI_IMAGE * THD_mad_brick   ( THD_3dim_dataset * ) ;  /* 07 Dec 2006 */
 extern MRI_IMAGE * THD_mean_brick  ( THD_3dim_dataset * ) ;  /* 15 Apr 2005 */

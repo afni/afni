@@ -273,9 +273,9 @@ static char * accum_bbox_label[1]   = { "Accumulate" } ;
 
 typedef struct                  /* bigstuff                 v1.8 [rickr] */
 {
-    byte r[NPANE_BIG];          /* for ease of calling CREN_set_rgbmap() */
-    byte g[NPANE_BIG];
-    byte b[NPANE_BIG];
+    byte r[NPANE_BIGGEST];          /* for ease of calling CREN_set_rgbmap() */
+    byte g[NPANE_BIGGEST];
+    byte b[NPANE_BIGGEST];
 } CR_bigstuff;
 
 typedef struct

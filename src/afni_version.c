@@ -78,7 +78,10 @@ static char *motd_new     = NULL ;
 #undef VERBOSE   /* print messages on failure? */
 
 void AFNI_start_fetching_url( char *urlstring ) ;
+static NI_element * AFNI_read_vctime(void);
 static int AFNI_version_diff( char * s1, char * s2, int * diff );
+static int AFNI_update_vctime( char * new_ver, char * new_motd );
+static int vc_check_too_soon( void );
 
 /*------------------------------------------------------------------------*/
 /*!  This is only called from within the child process. */
@@ -138,36 +141,10 @@ void AFNI_start_fetching_url( char *urlstring )
 #undef  VDELAY
 #define VDELAY 1234567 /* about 2 weeks */
    /* check if we did this in the last VDELAY seconds */
-
-   { char *home=getenv("HOME") , mname[VSIZE]="file:" ;
-     NI_stream ns ;
-     if( home != NULL ) strcat(mname,home) ;
-     strcat(mname,"/.afni.vctime") ;
-     ns = NI_stream_open( mname , "r" ) ;
-     if( ns != NULL ){
-       NI_element *nel = NI_read_element(ns,22) ;
-       NI_stream_close(ns) ;
-       if( nel != NULL ){
-         char *rhs ;
-         rhs = NI_get_attribute( nel , "version_check_time" ) ;
-         if( rhs != NULL ){
-           int last_time = strtol(rhs,NULL,10) ;
-           int dtime = ((int)time(NULL)) - last_time ;
-           if( dtime >= 0 && dtime < VDELAY ){ /* don't check */
-             NI_free_element(nel) ; disabled = 1 ; return ;
-           }
-         }
-         rhs = NI_get_attribute(nel,"version_string") ;  /* 27 Jan 2003 */
-         if( rhs != NULL && strcmp(rhs,AVERZHN) != 0 ){
-           fprintf(stderr,
-                   "\n** Your AFNI version changed from %s to %s since last check\n",
-                   rhs , AVERZHN ) ;
-         }
-         rhs = NI_get_attribute(nel,"motd") ;            /* 29 Nov 2005 */
-         if( rhs != NULL ) motd_old = strdup(rhs) ;
-         NI_free_element(nel) ;
-       }
-     }
+   /* also, update global motd_old                    */
+   if( vc_check_too_soon() ) {
+      disabled = 1 ;
+      return ;
    }
 
    /*-- OK, start the child process --*/
@@ -254,7 +231,12 @@ void AFNI_start_fetching_url( char *urlstring )
 
      /*-- if this failed, quit --*/
 
-     if( nbuf <= 0 || vbuf == NULL || vbuf[0] == '\0' ) vexit(1);
+     if( nbuf <= 0 || vbuf == NULL || vbuf[0] == '\0' ) {
+        /* block recheck until a new DELAY has passed    22 Mar 2016 [rickr] */
+        /* - also so server is not flooded when there are issues             */
+        AFNI_update_vctime(NULL, NULL);
+        vexit(1);
+     }
 
      /*-- talk to parent process thru IOCHAN --*/
 
@@ -415,24 +397,8 @@ int AFNI_version_check(void)
    free(vbuf) ;  /* done with the input data from the child */
 
    /* record the current time, so we don't check too often */
-
-   { char *home=getenv("HOME") , mname[VSIZE]="file:" ;
-     NI_stream ns ;
-     if( home != NULL ) strcat(mname,home) ;
-     strcat(mname,"/.afni.vctime") ;
-     ns = NI_stream_open( mname , "w" ) ;
-     if( ns != NULL ){
-       NI_element *nel=NI_new_data_element("AFNI_vctime",0); char rhs[32];
-       sprintf(rhs,"%d",(int)time(NULL)) ;
-       NI_set_attribute( nel , "version_check_time" , rhs ) ;
-       if( strcmp(vv,"none") != 0 )                            /* 27 Jan 2003 */
-         NI_set_attribute( nel , "version_string" , AVERZHN ) ;
-       if( motd_new != NULL )
-         NI_set_attribute( nel , "motd" , motd_new ) ;         /* 29 Nov 2005 */
-       NI_write_element( ns , nel , NI_TEXT_MODE ) ;
-       NI_stream_close(ns) ;
-     }
-   }
+   /* move to separate function        22 Mar 2016 [rickr] */
+   AFNI_update_vctime(vv, motd_new) ;
 
    /* 29 Nov 2005:
       compare motd strings (old and new)
@@ -473,6 +439,101 @@ int AFNI_version_check(void)
 
 #endif /* CYGWIN */
 }
+
+/* try to update .afni.vctime with new version and motd strings */
+/* (broken out from AFNI_version_check)     22 Mar 2016 [rickr] */
+static int AFNI_update_vctime(char * new_ver, char * new_motd)
+{
+   char *home=getenv("HOME") , mname[VSIZE]="file:" , rhs[32];
+   NI_element *nel ;
+   NI_stream ns ;
+
+   if( home != NULL ) strcat(mname,home) ;
+   strcat(mname,"/.afni.vctime") ;
+
+   /* first read the old one or make a new one */
+   nel = AFNI_read_vctime();
+   if ( ! nel ) nel = NI_new_data_element("AFNI_vctime",0);
+
+   ns = NI_stream_open( mname , "w" ) ;
+   if( ns == NULL ) return 1 ;
+
+   sprintf(rhs,"%d",(int)time(NULL)) ;
+   NI_set_attribute( nel , "version_check_time" , rhs ) ;
+   if( new_ver && (strcmp(new_ver,"none") != 0 ) )         /* 27 Jan 2003 */
+      NI_set_attribute( nel , "version_string" , AVERZHN ) ;
+   if( new_motd != NULL )
+      NI_set_attribute( nel , "motd" , new_motd ) ;         /* 29 Nov 2005 */
+   NI_write_element( ns , nel , NI_TEXT_MODE ) ;
+   NI_stream_close(ns) ;
+
+   return 0 ;
+}
+
+/* read in .afni.vctime into NI_element    22 Mar 2016 [rickr] */
+/* (broken out from AFNI_start_fetching_url)                   */
+static NI_element * AFNI_read_vctime(void)
+{
+   char *home=getenv("HOME") , mname[VSIZE]="file:" ;
+   NI_element *nel=NULL ;
+   NI_stream   ns ;
+
+   if( home != NULL ) strcat(mname,home) ;
+   strcat(mname,"/.afni.vctime") ;
+   ns = NI_stream_open( mname , "r" ) ;
+   if( ns == NULL ) return NULL ;
+
+   nel = NI_read_element(ns,22) ;
+   NI_stream_close(ns) ;
+
+   return nel;
+}
+
+
+/* do we have a valid check_time and is it too soon?                 */
+/*    - warn on old check and version change                         */
+/*    - possibly update motd_old                                     */
+/* (broken out from AFNI_start_fetching_url)     22 Mar 2016 [rickr] */
+static int vc_check_too_soon(void)
+{
+   NI_element *nel=NULL;
+   char       *rhs;
+   int         last_time, dtime;
+
+   nel = AFNI_read_vctime() ;
+   if( nel == NULL ) return 0;
+
+   rhs = NI_get_attribute(nel , "version_check_time");
+   if( rhs == NULL ) return 0;
+
+   last_time = strtol(rhs,NULL,10);
+   dtime = ((int)time(NULL)) - last_time;
+
+   /* too soon to worry */
+   if( dtime >= 0 && dtime < VDELAY ) {
+      NI_free_element(nel);
+      return 1;
+   }
+
+   /* warn on version change */
+   rhs = NI_get_attribute(nel,"version_string") ;  /* 27 Jan 2003 */
+   if( rhs != NULL && strcmp(rhs,AVERZHN) != 0 ){
+      fprintf(stderr,
+              "\n** Your AFNI version changed from %s to %s since last check\n",
+              rhs , AVERZHN ) ;
+   }
+
+   /* possibly update global motd_old */
+   rhs = NI_get_attribute(nel,"motd") ;            /* 29 Nov 2005 */
+   if( rhs != NULL ) {
+      if( motd_old ) free(motd_old);
+      motd_old = strdup(rhs) ;
+   }
+
+   NI_free_element(nel);
+   return 0;
+}
+
 
 /*----------------------------------------------------------------------------*/
 /*! Complete the compile date check -- return number of days difference.

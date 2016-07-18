@@ -3038,6 +3038,13 @@ printf("decoded %s to give zincode=%d bot=%f top=%f\n",Argv[nopt],
          nopt++ ; continue ;  /* go to next arg */
       }
 
+
+      /* show debugging information */
+      if( strcmp(Argv[nopt],"-verb") == 0 ){
+         dicom_debug(3);
+         nopt++ ; continue ;  /* go to next arg */
+      }
+
       /*--- illegal option ---*/
 
       printf("** ILLEGAL OPTION: %s\n\n",Argv[nopt]) ;
@@ -3595,6 +3602,8 @@ void Syntax()
     "    By default, use the new code if this option is not provided.\n"
     "  -ushort2float\n"
     "    Convert input shorts to float, and add 2^16 to any negatives.\n"
+    "  -verb\n"
+    "    show debugging information for reading DICOM files\n\n"
    ) ;
 
    printf(
@@ -4088,10 +4097,11 @@ void T3D_read_images(void)
 {
    MRI_IMAGE * im , * shim ;
    char * bar ;
-   int64_t bb;              /* allow for large volumes (Ziad's fault) */
-                            /*                     6 Nov 2015 [rickr] */
+   int64_t bb, bsize;       /* allow for large volumes    (Ziad's fault) */
+                            /*                        6 Nov 2015 [rickr] */
+                            /* more int64_t updates  26 Mar 2016 [rickr] */
    int npix , ii , dsize ;
-   int nx , ny , nz , nim , lf , isfunc , nvals , kz,kim , bsize,ibr ;
+   int nx , ny , nz , nim , lf , isfunc , nvals , kz,kim , ibr ;
    MRI_IMARR * arr ;
    char iname[THD_MAX_NAME] ;
    float nonshort_min=1.E38 , nonshort_max=-1.E38 ;
@@ -4509,7 +4519,8 @@ printf("T3D_read_images: putting data into slice %d\n",kz) ;
 
             /**-- copy data from shim into the (kzz,ltt)-th slice in bar --**/
 
-            bb = npix * dsize * ( kzz + ltt * nzz ) ;
+            /* promote early     26 Mar 2016 [rickr] */
+            bb = npix * dsize * ( kzz + ltt * (int64_t)nzz ) ;
             memcpy( bar+bb , mri_data_pointer(shim) , npix*dsize ) ;
 
             /*-- step the kzz,ltt indices forward, depending on the
@@ -4666,7 +4677,8 @@ printf("T3D_read_images: nvals set to %d\n",nvals) ;
    dblk->master_ival  = NULL ;
    dblk->master_bytes = NULL ;
 
-   bsize = nx*ny*nz * mri_datum_size( argopt.datum_all ) ;
+   /* promote early for big volumes   26 Mar 2016 [rickr] */
+   bsize = nx*ny*(int64_t)nz * mri_datum_size( argopt.datum_all ) ;
    for( ibr=0 ; ibr < nvals ; ibr++ ){
       mri_fix_data_pointer( dbrick + ibr*bsize , DBLK_BRICK(dblk,ibr) ) ;
    }

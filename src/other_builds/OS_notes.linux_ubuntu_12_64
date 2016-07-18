@@ -53,5 +53,4 @@ sudo apt-get install -y libglw1-mesa-dev
 sudo apt-get install -y libglib2.0-dev
 sudo apt-get install -y libglib2.0
 sudo apt-get install -y libgsl0-dev
-sudo apt-get install -y libxp-dev
 sudo apt-get install -y tcsh

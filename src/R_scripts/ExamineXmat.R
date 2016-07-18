@@ -620,7 +620,10 @@ main_loop <- function (fn, select=NULL) {
    if (!exists('.DBG_args')) { 
       args = (commandArgs(TRUE))  
       rfile <- first.in.path(sprintf('%s.R',ExecName))  
-      save(args, rfile, file=".ExamineXmat.dbg.AFNI.args", ascii = TRUE) 
+      # save only on -dbg_args          28 Apr 2016 [rickr]
+      if ( '-dbg_args' %in% args ) {
+         save(args, rfile, file="ExamineXmat.dbg.AFNI.args", ascii = TRUE) 
+      }
    } else {
       note.AFNI("Using .DBG_args resident in workspace");
       args <- .DBG_args

@@ -1,3 +1,13 @@
+#ifndef __POWELL_NEWUOA__
+#define __POWELL_NEWUOA__
+
+#undef  AFmax
+#undef  AFmin
+#define AFmax(a,b) (((a)<(b)) ? (b) : (a))
+#define AFmin(a,b) (((a)>(b)) ? (b) : (a))
+
+/*---------------------------------------------------------------------------*/
+
 /* powell_newuoa.f -- translated by f2c (version 19961017).
    You must link the resulting object file with the libraries:
 	-lf2c -lm   (in that order)
@@ -10,14 +20,14 @@
 #include "f2c.h"
 
 /* CC      SUBROUTINE NEWUOA (N,NPT,X,RHOBEG,RHOEND,IPRINT,MAXFUN,W) */
-/* Subroutine */ int newuoa_(integer *n, integer *npt, doublereal *x, 
+/* Subroutine */ int newuoa_(integer *n, integer *npt, doublereal *x,
 	doublereal *rhobeg, doublereal *rhoend, integer *maxfun, doublereal *
 	w, integer *icode)
 {
     STATIC integer ndim=0, nptm=0, ibmat=0, izmat=0, id=0, np=0, iw=0;
-    extern /* Subroutine */ int newuob_(integer *, integer *, doublereal *, 
+    extern /* Subroutine */ int newuob_(integer *, integer *, doublereal *,
 	    doublereal *, doublereal *, integer *, doublereal *, doublereal *,
-	     doublereal *, doublereal *, doublereal *, doublereal *, 
+	     doublereal *, doublereal *, doublereal *, doublereal *,
 	    doublereal *, doublereal *, doublereal *, doublereal *, integer *,
 	     doublereal *, doublereal *, doublereal *, integer *);
     STATIC integer igq=0, ihq=0, ixb=0, ifv=0, ipq=0, ivl=0, ixn=0, ixo=0, ixp=0;
@@ -35,14 +45,14 @@ d*/
 */
 /*     arguments of the subroutine are as follows. */
 
-/*     N must be set to the number of variables and must be at least two. 
+/*     N must be set to the number of variables and must be at least two.
 */
-/*    NPT is the number of interpolation conditions. Its value must be in 
+/*    NPT is the number of interpolation conditions. Its value must be in
 the*/
 /*       interval [N+2,(N+1)(N+2)/2]. */
 /*    Initial values of the variables must be set in X(1),X(2),...,X(N). T
 hey*/
-/*       will be changed to the values that give the least calculated F. 
+/*       will be changed to the values that give the least calculated F.
 */
 /*    RHOBEG and RHOEND must be set to the initial and final values of a t
 rust*/
@@ -59,7 +69,7 @@ s the*/
 =0 and*/
 /*CCC       there is output only at the return if IPRINT=1. Otherwise, eac
 h new*/
-/*CCC       value of RHO is printed, with the best vector of variables so 
+/*CCC       value of RHO is printed, with the best vector of variables so
 far and*/
 /*CCC       the corresponding value of the objective function. Further, ea
 ch new*/
@@ -70,7 +80,7 @@ N.*/
 ast*/
 /*     (NPT+13)*(NPT+N)+3*N*(N+3)/2. */
 
-/*    SUBROUTINE CALFUN (N,X,F) must be provided by the user. It must set 
+/*    SUBROUTINE CALFUN (N,X,F) must be provided by the user. It must set
 F to*/
 /*    the value of the objective function for the variables X(1),X(2),...,
 X(N).*/
@@ -108,14 +118,14 @@ ion.*/
     ivl = id + *n;
     iw = ivl + ndim;
 
-/*     The above settings provide a partition of W for subroutine NEWUOB. 
+/*     The above settings provide a partition of W for subroutine NEWUOB.
 */
 /*    The partition requires the first NPT*(NPT+N)+5*N*(N+3)/2 elements of
 */
 /*     W plus the space that is needed by the last array of NEWUOB. */
 
 /* CC      CALL NEWUOB (N,NPT,X,RHOBEG,RHOEND,IPRINT,MAXFUN,W(IXB), */
-    newuob_(n, npt, &x[1], rhobeg, rhoend, maxfun, &w[ixb], &w[ixo], &w[ixn], 
+    newuob_(n, npt, &x[1], rhobeg, rhoend, maxfun, &w[ixb], &w[ixo], &w[ixn],
 	    &w[ixp], &w[ifv], &w[igq], &w[ihq], &w[ipq], &w[ibmat], &w[izmat],
 	     &ndim, &w[id], &w[ivl], &w[iw], icode);
 /* L20: */
@@ -123,15 +133,15 @@ ion.*/
 } /* newuoa_ */
 
 /* CC      SUBROUTINE NEWUOB (N,NPT,X,RHOBEG,RHOEND,IPRINT,MAXFUN,XBASE, */
-/* Subroutine */ int newuob_(integer *n, integer *npt, doublereal *x, 
+/* Subroutine */ int newuob_(integer *n, integer *npt, doublereal *x,
 	doublereal *rhobeg, doublereal *rhoend, integer *maxfun, doublereal *
-	xbase, doublereal *xopt, doublereal *xnew, doublereal *xpt, 
-	doublereal *fval, doublereal *gq, doublereal *hq, doublereal *pq, 
-	doublereal *bmat, doublereal *zmat, integer *ndim, doublereal *d__, 
+	xbase, doublereal *xopt, doublereal *xnew, doublereal *xpt,
+	doublereal *fval, doublereal *gq, doublereal *hq, doublereal *pq,
+	doublereal *bmat, doublereal *zmat, integer *ndim, doublereal *d__,
 	doublereal *vlag, doublereal *w, integer *icode)
 {
     /* System generated locals */
-    integer xpt_dim1, xpt_offset, bmat_dim1, bmat_offset, zmat_dim1, 
+    integer xpt_dim1, xpt_offset, bmat_dim1, bmat_offset, zmat_dim1,
 	    zmat_offset, i__1, i__2, i__3;
     doublereal d__1, d__2, d__3;
 
@@ -147,7 +157,7 @@ ion.*/
     STATIC integer kopt=0, nptm=0;
     STATIC doublereal zero=0, xipt=0, xjpt=0, sumz=0, f=0;
     STATIC integer i__=0, j=0, k=0;
-    STATIC doublereal diffa=0, diffb=0, diffc=0, hdiag=0, alpha=0, delta=0, recip=0, reciq=0, 
+    STATIC doublereal diffa=0, diffb=0, diffc=0, hdiag=0, alpha=0, delta=0, recip=0, reciq=0,
 	    fsave=0;
     STATIC integer ksave=0, nfsav=0, itemp=0;
     STATIC doublereal dnorm=0, ratio=0, dstep=0, tenth=0, vquad=0;
@@ -156,27 +166,27 @@ ion.*/
     STATIC integer itest=0;
     STATIC doublereal rhosq=0;
     STATIC integer ih=0, nf=0;
-    extern /* Subroutine */ int biglag_(integer *, integer *, doublereal *, 
-	    doublereal *, doublereal *, doublereal *, integer *, integer *, 
+    extern /* Subroutine */ int biglag_(integer *, integer *, doublereal *,
+	    doublereal *, doublereal *, doublereal *, integer *, integer *,
 	    integer *, doublereal *, doublereal *, doublereal *, doublereal *,
 	     doublereal *, doublereal *, doublereal *, doublereal *);
     STATIC integer nh=0, ip=0, jp=0;
     STATIC doublereal dx=0;
-    extern /* Subroutine */ int bigden_(integer *, integer *, doublereal *, 
-	    doublereal *, doublereal *, doublereal *, integer *, integer *, 
-	    integer *, integer *, doublereal *, doublereal *, doublereal *, 
+    extern /* Subroutine */ int bigden_(integer *, integer *, doublereal *,
+	    doublereal *, doublereal *, doublereal *, integer *, integer *,
+	    integer *, integer *, doublereal *, doublereal *, doublereal *,
 	    doublereal *, doublereal *, doublereal *, doublereal *);
     STATIC integer np=0;
     extern /* Subroutine */ int calfun_(integer *, doublereal *, doublereal *)
-	    , update_(integer *, integer *, doublereal *, doublereal *, 
-	    integer *, integer *, doublereal *, doublereal *, integer *, 
+	    , update_(integer *, integer *, doublereal *, doublereal *,
+	    integer *, integer *, doublereal *, doublereal *, integer *,
 	    doublereal *);
     STATIC doublereal detrat=0, crvmin=0;
     STATIC integer nftest=0;
     STATIC doublereal distsq=0;
-    extern /* Subroutine */ int trsapp_(integer *, integer *, doublereal *, 
-	    doublereal *, doublereal *, doublereal *, doublereal *, 
-	    doublereal *, doublereal *, doublereal *, doublereal *, 
+    extern /* Subroutine */ int trsapp_(integer *, integer *, doublereal *,
+	    doublereal *, doublereal *, doublereal *, doublereal *,
+	    doublereal *, doublereal *, doublereal *, doublereal *,
 	    doublereal *, doublereal *, doublereal *);
     STATIC doublereal xoptsq=0;
     STATIC integer nfm=0;
@@ -255,7 +265,7 @@ ast*/
     np = *n + 1;
     nh = *n * np / 2;
     nptm = *npt - np;
-    nftest = max(*maxfun,1);
+    nftest = AFmax(*maxfun,1);
 
 /*     Set the initial elements of XPT, BMAT, HQ, PQ and ZMAT to zero. */
 
@@ -292,7 +302,7 @@ ast*/
 ber*/
 /*    of function values so far. The coordinates of the displacement of th
 e*/
-/*     next initial interpolation point from XBASE are set in XPT(NF,.). 
+/*     next initial interpolation point from XBASE are set in XPT(NF,.).
 */
 
     rhosq = *rhobeg * *rhobeg;
@@ -331,7 +341,7 @@ L50:
 	xpt[nf + jpt * xpt_dim1] = xjpt;
     }
 
-/*     Calculate the next value of F, label 70 being reached immediately 
+/*     Calculate the next value of F, label 70 being reached immediately
 */
 /*    after this calculation. The least function value so far and its inde
 x*/
@@ -421,7 +431,7 @@ s and*/
 L90:
     nfsav = nf;
 
-/*     Generate the next trust region step and test its length. Set KNEW 
+/*     Generate the next trust region step and test its length. Set KNEW
 */
 /*     to -1 if the purpose of the next F will be to improve the model. */
 
@@ -440,7 +450,7 @@ L100:
     }
 /* Computing MIN */
     d__1 = delta, d__2 = sqrt(dsq);
-    dnorm = min(d__1,d__2);
+    dnorm = AFmin(d__1,d__2);
     if (dnorm < half * rho) {
 	knew = -1;
 	delta = tenth * delta;
@@ -453,8 +463,8 @@ L100:
 	}
 	temp = crvmin * .125 * rho * rho;
 /* Computing MAX */
-	d__1 = max(diffa,diffb);
-	if (temp <= max(d__1,diffc)) {
+	d__1 = AFmax(diffa,diffb);
+	if (temp <= AFmax(d__1,diffc)) {
 	    goto L460;
 	}
 	goto L490;
@@ -488,13 +498,13 @@ L120:
 		i__3 = i__;
 		for (j = 1; j <= i__3; ++j) {
 /* L140: */
-		    bmat[ip + j * bmat_dim1] = bmat[ip + j * bmat_dim1] + 
+		    bmat[ip + j * bmat_dim1] = bmat[ip + j * bmat_dim1] +
 			    vlag[i__] * w[j] + w[i__] * vlag[j];
 		}
 	    }
 	}
 
-/*     Then the revisions of BMAT that depend on ZMAT are calculated. 
+/*     Then the revisions of BMAT that depend on ZMAT are calculated.
 */
 
 	i__3 = nptm;
@@ -521,7 +531,7 @@ L120:
 		i__1 = *npt;
 		for (i__ = 1; i__ <= i__1; ++i__) {
 /* L170: */
-		    bmat[i__ + j * bmat_dim1] += sum * zmat[i__ + k * 
+		    bmat[i__ + j * bmat_dim1] += sum * zmat[i__ + k *
 			    zmat_dim1];
 		}
 	    }
@@ -563,7 +573,7 @@ ng */
 		gq[i__] += hq[ih] * xopt[j];
 		hq[ih] = hq[ih] + w[i__] * xopt[j] + xopt[i__] * w[j];
 /* L200: */
-		bmat[*npt + i__ + j * bmat_dim1] = bmat[*npt + j + i__ * 
+		bmat[*npt + i__ + j * bmat_dim1] = bmat[*npt + j + i__ *
 			bmat_dim1];
 	    }
 	}
@@ -577,7 +587,7 @@ ng */
     }
 
 /*     Pick the model step if KNEW is positive. A different choice of D */
-/*     may be made later, if the choice of D by BIGLAG causes substantial 
+/*     may be made later, if the choice of D by BIGLAG causes substantial
 */
 /*     cancellation in DENOM. */
 
@@ -587,7 +597,7 @@ ng */
 		vlag[1], &vlag[*npt + 1], &w[1], &w[np], &w[np + *n]);
     }
 
-/*     Calculate VLAG and BETA for the current choice of D. The first NPT 
+/*     Calculate VLAG and BETA for the current choice of D. The first NPT
 */
 /*     components of W_check will be held in W. */
 
@@ -666,7 +676,7 @@ r*/
 	if (abs(temp) <= .8) {
 	    bigden_(n, npt, &xopt[1], &xpt[xpt_offset], &bmat[bmat_offset], &
 		    zmat[zmat_offset], &idz, ndim, &kopt, &knew, &d__[1], &w[
-		    1], &vlag[1], &beta, &xnew[1], &w[*ndim + 1], &w[*ndim * 
+		    1], &vlag[1], &beta, &xnew[1], &w[*ndim + 1], &w[*ndim *
 		    6 + 1]);
 	}
     }
@@ -775,11 +785,11 @@ e*/
     } else if (ratio <= .7) {
 /* Computing MAX */
 	d__1 = half * delta;
-	delta = max(d__1,dnorm);
+	delta = AFmax(d__1,dnorm);
     } else {
 /* Computing MAX */
 	d__1 = half * delta, d__2 = dnorm + dnorm;
-	delta = max(d__1,d__2);
+	delta = AFmax(d__1,d__2);
     }
     if (delta <= rho * 1.5) {
 	delta = rho;
@@ -791,7 +801,7 @@ e*/
 /* Computing MAX */
     d__2 = tenth * delta;
 /* Computing 2nd power */
-    d__1 = max(d__2,rho);
+    d__1 = AFmax(d__2,rho);
     rhosq = d__1 * d__1;
     ktemp = 0;
     detrat = zero;
@@ -839,9 +849,9 @@ e*/
 	goto L460;
     }
 
-/*     Update BMAT, ZMAT and IDZ, so that the KNEW-th interpolation point 
+/*     Update BMAT, ZMAT and IDZ, so that the KNEW-th interpolation point
 */
-/*     can be moved. Begin the updating of the quadratic model, starting 
+/*     can be moved. Begin the updating of the quadratic model, starting
 */
 /*     with the explicit second derivative term. */
 
@@ -891,7 +901,7 @@ L410:
 
 /*    If a trust region step makes a small change to the objective functio
 n,*/
-/*    then calculate the gradient of the least Frobenius norm interpolant 
+/*    then calculate the gradient of the least Frobenius norm interpolant
 at*/
 /*    XBASE, and store it in W, using VLAG for a vector of right hand side
 s.*/
@@ -1006,7 +1016,7 @@ L460:
 /* L480: */
     }
 
-/*     If KNEW is positive, then set DSTEP, and branch back for the next 
+/*     If KNEW is positive, then set DSTEP, and branch back for the next
 */
 /*     iteration, which will generate a "model step". */
 
@@ -1014,15 +1024,15 @@ L460:
 /* Computing MAX */
 /* Computing MIN */
 	d__2 = tenth * sqrt(distsq), d__3 = half * delta;
-	d__1 = min(d__2,d__3);
-	dstep = max(d__1,rho);
+	d__1 = AFmin(d__2,d__3);
+	dstep = AFmax(d__1,rho);
 	dsq = dstep * dstep;
 	goto L120;
     }
     if (ratio > zero) {
 	goto L100;
     }
-    if (max(delta,dnorm) > rho) {
+    if (AFmax(delta,dnorm) > rho) {
 	goto L100;
     }
 
@@ -1041,7 +1051,7 @@ L490:
 	} else {
 	    rho = tenth * rho;
 	}
-	delta = max(delta,rho);
+	delta = AFmax(delta,rho);
 /* CC          IF (IPRINT .GE. 2) THEN */
 /* CC              IF (IPRINT .GE. 3) PRINT 500 */
 /* CC  500         FORMAT (5X) */
@@ -1055,7 +1065,7 @@ L490:
 	goto L90;
     }
 
-/*     Return from the calculation, after another Newton-Raphson step, if 
+/*     Return from the calculation, after another Newton-Raphson step, if
 */
 /*     it is too short to have been tried before. */
 
@@ -1083,9 +1093,9 @@ L530:
     return 0;
 } /* newuob_ */
 
-/* Subroutine */ int trsapp_(integer *n, integer *npt, doublereal *xopt, 
-	doublereal *xpt, doublereal *gq, doublereal *hq, doublereal *pq, 
-	doublereal *delta, doublereal *step, doublereal *d__, doublereal *g, 
+/* Subroutine */ int trsapp_(integer *n, integer *npt, doublereal *xopt,
+	doublereal *xpt, doublereal *gq, doublereal *hq, doublereal *pq,
+	doublereal *delta, doublereal *step, doublereal *d__, doublereal *g,
 	doublereal *hd, doublereal *hs, doublereal *crvmin)
 {
     /* System generated locals */
@@ -1123,7 +1133,7 @@ s,*/
 /*     DELTA is the trust region radius, and has to be positive. */
 /*     STEP will be set to the calculated trial step. */
 /*     The arrays D, G, HD and HS will be used for working space. */
-/*     CRVMIN will be set to the least curvature of H along the conjugate 
+/*     CRVMIN will be set to the least curvature of H along the conjugate
 */
 /*       directions that occur, except that it is set to zero if STEP goes
  */
@@ -1135,7 +1145,7 @@ s,*/
 */
 /*     changes to STEP may be made, each one being in the 2D space spanned
  */
-/*     by the current STEP and the corresponding gradient of Q. Thus STEP 
+/*     by the current STEP and the corresponding gradient of Q. Thus STEP
 */
 /*    should provide a substantial reduction to Q within the trust region.
 */
@@ -1220,10 +1230,10 @@ L50:
 	if (iterc == 1) {
 	    *crvmin = temp;
 	}
-	*crvmin = min(*crvmin,temp);
+	*crvmin = AFmin(*crvmin,temp);
 /* Computing MIN */
 	d__1 = alpha, d__2 = gg / dhd;
-	alpha = min(d__1,d__2);
+	alpha = AFmin(d__1,d__2);
     }
     qadd = alpha * (gg - half * alpha * dhd);
     qred += qadd;
@@ -1438,8 +1448,8 @@ L170:
     goto L120;
 } /* trsapp_ */
 
-/* Subroutine */ int update_(integer *n, integer *npt, doublereal *bmat, 
-	doublereal *zmat, integer *idz, integer *ndim, doublereal *vlag, 
+/* Subroutine */ int update_(integer *n, integer *npt, doublereal *bmat,
+	doublereal *zmat, integer *idz, integer *ndim, doublereal *vlag,
 	doublereal *beta, integer *knew, doublereal *w)
 {
     /* System generated locals */
@@ -1463,7 +1473,7 @@ L170:
 */
 /*    interpolation point that has index KNEW. On entry, VLAG contains the
 */
-/*     components of the vector Theta*Wcheck+e_b of the updating formula 
+/*     components of the vector Theta*Wcheck+e_b of the updating formula
 */
 /*    (6.11), and BETA holds the value of the parameter that has this name
 .*/
@@ -1503,9 +1513,9 @@ L170:
 	    tempb = zmat[*knew + j * zmat_dim1] / temp;
 	    i__2 = *npt;
 	    for (i__ = 1; i__ <= i__2; ++i__) {
-		temp = tempa * zmat[i__ + jl * zmat_dim1] + tempb * zmat[i__ 
+		temp = tempa * zmat[i__ + jl * zmat_dim1] + tempb * zmat[i__
 			+ j * zmat_dim1];
-		zmat[i__ + j * zmat_dim1] = tempa * zmat[i__ + j * zmat_dim1] 
+		zmat[i__ + j * zmat_dim1] = tempa * zmat[i__ + j * zmat_dim1]
 			- tempb * zmat[i__ + jl * zmat_dim1];
 /* L10: */
 		zmat[i__ + jl * zmat_dim1] = temp;
@@ -1515,7 +1525,7 @@ L170:
 /* L20: */
     }
 
-/*     Put the first NPT components of the KNEW-th column of HLAG into W, 
+/*     Put the first NPT components of the KNEW-th column of HLAG into W,
 */
 /*     and calculate the parameters of the updating formula. */
 
@@ -1555,7 +1565,7 @@ er.*/
 	i__1 = *npt;
 	for (i__ = 1; i__ <= i__1; ++i__) {
 /* L40: */
-	    zmat[i__ + zmat_dim1] = tempa * zmat[i__ + zmat_dim1] - tempb * 
+	    zmat[i__ + zmat_dim1] = tempa * zmat[i__ + zmat_dim1] - tempb *
 		    vlag[i__];
 	}
 	if (*idz == 1 && temp < zero) {
@@ -1581,10 +1591,10 @@ er.*/
 	scalb = scala * sqrt((abs(denom)));
 	i__1 = *npt;
 	for (i__ = 1; i__ <= i__1; ++i__) {
-	    zmat[i__ + ja * zmat_dim1] = scala * (tau * zmat[i__ + ja * 
+	    zmat[i__ + ja * zmat_dim1] = scala * (tau * zmat[i__ + ja *
 		    zmat_dim1] - temp * vlag[i__]);
 /* L50: */
-	    zmat[i__ + jb * zmat_dim1] = scalb * (zmat[i__ + jb * zmat_dim1] 
+	    zmat[i__ + jb * zmat_dim1] = scalb * (zmat[i__ + jb * zmat_dim1]
 		    - tempa * w[i__] - tempb * vlag[i__]);
 	}
 	if (denom <= zero) {
@@ -1597,7 +1607,7 @@ er.*/
 	}
     }
 
-/*     IDZ is reduced in the following case, and usually the first column 
+/*     IDZ is reduced in the following case, and usually the first column
 */
 /*     of ZMAT is exchanged with a later one. */
 
@@ -1622,10 +1632,10 @@ er.*/
 	tempb = (-(*beta) * w[jp] - tau * vlag[jp]) / denom;
 	i__2 = jp;
 	for (i__ = 1; i__ <= i__2; ++i__) {
-	    bmat[i__ + j * bmat_dim1] = bmat[i__ + j * bmat_dim1] + tempa * 
+	    bmat[i__ + j * bmat_dim1] = bmat[i__ + j * bmat_dim1] + tempa *
 		    vlag[i__] + tempb * w[i__];
 	    if (i__ > *npt) {
-		bmat[jp + (i__ - *npt) * bmat_dim1] = bmat[i__ + j * 
+		bmat[jp + (i__ - *npt) * bmat_dim1] = bmat[i__ + j *
 			bmat_dim1];
 	    }
 /* L70: */
@@ -1634,14 +1644,14 @@ er.*/
     return 0;
 } /* update_ */
 
-/* Subroutine */ int bigden_(integer *n, integer *npt, doublereal *xopt, 
-	doublereal *xpt, doublereal *bmat, doublereal *zmat, integer *idz, 
-	integer *ndim, integer *kopt, integer *knew, doublereal *d__, 
-	doublereal *w, doublereal *vlag, doublereal *beta, doublereal *s, 
+/* Subroutine */ int bigden_(integer *n, integer *npt, doublereal *xopt,
+	doublereal *xpt, doublereal *bmat, doublereal *zmat, integer *idz,
+	integer *ndim, integer *kopt, integer *knew, doublereal *d__,
+	doublereal *w, doublereal *vlag, doublereal *beta, doublereal *s,
 	doublereal *wvec, doublereal *prod)
 {
     /* System generated locals */
-    integer xpt_dim1, xpt_offset, bmat_dim1, bmat_offset, zmat_dim1, 
+    integer xpt_dim1, xpt_offset, bmat_dim1, bmat_offset, zmat_dim1,
 	    zmat_offset, wvec_dim1, wvec_offset, prod_dim1, prod_offset, i__1,
 	     i__2;
     doublereal d__1;
@@ -1665,7 +1675,7 @@ er.*/
     STATIC integer jc=0;
     STATIC doublereal ds=0;
     STATIC integer ip=0, iu=0, nw=0;
-    STATIC doublereal ss=0, denold=0, denmax=0, densav=0, dstemp=0, sumold=0, sstemp=0, 
+    STATIC doublereal ss=0, denold=0, denmax=0, densav=0, dstemp=0, sumold=0, sstemp=0,
 	    xoptsq=0, den[9]={0,0,0,0,0,0,0,0,0}, one=0,
        par[9]={0,0,0,0,0,0,0,0,0}, tau=0, sum=0, two=0;
 
@@ -1673,10 +1683,10 @@ er.*/
 /*     N is the number of variables. */
 /*     NPT is the number of interpolation equations. */
 /*     XOPT is the best interpolation point so far. */
-/*     XPT contains the coordinates of the current interpolation points. 
+/*     XPT contains the coordinates of the current interpolation points.
 */
 /*     BMAT provides the last N columns of H. */
-/*    ZMAT and IDZ give a factorization of the first NPT by NPT submatrix 
+/*    ZMAT and IDZ give a factorization of the first NPT by NPT submatrix
 of H.*/
 /*     NDIM is the first dimension of BMAT and has the value NPT+N. */
 /*     KOPT is the index of the optimal interpolation point. */
@@ -1737,7 +1747,7 @@ rge*/
     twopi = atan(one) * 8.;
     nptm = *npt - *n - 1;
 
-/*     Store the first NPT elements of the KNEW-th column of H in W(N+1) 
+/*     Store the first NPT elements of the KNEW-th column of H in W(N+1)
 */
 /*     to W(N+NPT). */
 
@@ -1764,9 +1774,9 @@ rge*/
 ,*/
 /*     and the initial S is set below, usually to the direction from X_OPT
  */
-/*     to X_KNEW, but a different direction to an interpolation point may 
+/*     to X_KNEW, but a different direction to an interpolation point may
 */
-/*     be chosen, in order to prevent S from being nearly parallel to D. 
+/*     be chosen, in order to prevent S from being nearly parallel to D.
 */
 
     dd = zero;
@@ -1920,7 +1930,7 @@ L70:
 		i__2 = *n;
 		for (j = 1; j <= i__2; ++j) {
 /* L160: */
-		    sum += bmat[k + j * bmat_dim1] * wvec[*npt + j + jc * 
+		    sum += bmat[k + j * bmat_dim1] * wvec[*npt + j + jc *
 			    wvec_dim1];
 		}
 /* L170: */
@@ -1946,7 +1956,7 @@ L70:
     for (k = 1; k <= i__1; ++k) {
 	sum = zero;
 	for (i__ = 1; i__ <= 5; ++i__) {
-	    par[i__ - 1] = half * prod[k + i__ * prod_dim1] * wvec[k + i__ * 
+	    par[i__ - 1] = half * prod[k + i__ * prod_dim1] * wvec[k + i__ *
 		    wvec_dim1];
 /* L200: */
 	    sum += par[i__ - 1];
@@ -1954,30 +1964,30 @@ L70:
 	den[0] = den[0] - par[0] - sum;
 	tempa = prod[k + prod_dim1] * wvec[k + (wvec_dim1 << 1)] + prod[k + (
 		prod_dim1 << 1)] * wvec[k + wvec_dim1];
-	tempb = prod[k + (prod_dim1 << 1)] * wvec[k + (wvec_dim1 << 2)] + 
+	tempb = prod[k + (prod_dim1 << 1)] * wvec[k + (wvec_dim1 << 2)] +
 		prod[k + (prod_dim1 << 2)] * wvec[k + (wvec_dim1 << 1)];
-	tempc = prod[k + prod_dim1 * 3] * wvec[k + wvec_dim1 * 5] + prod[k + 
+	tempc = prod[k + prod_dim1 * 3] * wvec[k + wvec_dim1 * 5] + prod[k +
 		prod_dim1 * 5] * wvec[k + wvec_dim1 * 3];
 	den[1] = den[1] - tempa - half * (tempb + tempc);
 	den[5] -= half * (tempb - tempc);
-	tempa = prod[k + prod_dim1] * wvec[k + wvec_dim1 * 3] + prod[k + 
+	tempa = prod[k + prod_dim1] * wvec[k + wvec_dim1 * 3] + prod[k +
 		prod_dim1 * 3] * wvec[k + wvec_dim1];
-	tempb = prod[k + (prod_dim1 << 1)] * wvec[k + wvec_dim1 * 5] + prod[k 
+	tempb = prod[k + (prod_dim1 << 1)] * wvec[k + wvec_dim1 * 5] + prod[k
 		+ prod_dim1 * 5] * wvec[k + (wvec_dim1 << 1)];
-	tempc = prod[k + prod_dim1 * 3] * wvec[k + (wvec_dim1 << 2)] + prod[k 
+	tempc = prod[k + prod_dim1 * 3] * wvec[k + (wvec_dim1 << 2)] + prod[k
 		+ (prod_dim1 << 2)] * wvec[k + wvec_dim1 * 3];
 	den[2] = den[2] - tempa - half * (tempb - tempc);
 	den[6] -= half * (tempb + tempc);
 	tempa = prod[k + prod_dim1] * wvec[k + (wvec_dim1 << 2)] + prod[k + (
 		prod_dim1 << 2)] * wvec[k + wvec_dim1];
 	den[3] = den[3] - tempa - par[1] + par[2];
-	tempa = prod[k + prod_dim1] * wvec[k + wvec_dim1 * 5] + prod[k + 
+	tempa = prod[k + prod_dim1] * wvec[k + wvec_dim1 * 5] + prod[k +
 		prod_dim1 * 5] * wvec[k + wvec_dim1];
-	tempb = prod[k + (prod_dim1 << 1)] * wvec[k + wvec_dim1 * 3] + prod[k 
+	tempb = prod[k + (prod_dim1 << 1)] * wvec[k + wvec_dim1 * 3] + prod[k
 		+ prod_dim1 * 3] * wvec[k + (wvec_dim1 << 1)];
 	den[4] = den[4] - tempa - half * tempb;
 	den[7] = den[7] - par[3] + par[4];
-	tempa = prod[k + (prod_dim1 << 2)] * wvec[k + wvec_dim1 * 5] + prod[k 
+	tempa = prod[k + (prod_dim1 << 2)] * wvec[k + wvec_dim1 * 5] + prod[k
 		+ prod_dim1 * 5] * wvec[k + (wvec_dim1 << 2)];
 /* L210: */
 	den[8] -= half * tempa;
@@ -2010,7 +2020,7 @@ L70:
     denex[4] = alpha * den[4] + tempa + prod[*knew + (prod_dim1 << 1)] * prod[
 	    *knew + prod_dim1 * 3];
     denex[7] = alpha * den[7] + par[3] - par[4];
-    denex[8] = alpha * den[8] + prod[*knew + (prod_dim1 << 2)] * prod[*knew + 
+    denex[8] = alpha * den[8] + prod[*knew + (prod_dim1 << 2)] * prod[*knew +
 	    prod_dim1 * 5];
 
 /*     Seek the value of the angle that maximizes the modulus of DENOM. */
@@ -2106,7 +2116,7 @@ L70:
 	goto L340;
     }
     if (iterc > 1) {
-	densav = max(densav,denold);
+	densav = AFmax(densav,denold);
     }
     if (abs(denmax) <= abs(densav) * 1.1) {
 	goto L340;
@@ -2167,14 +2177,14 @@ L340:
     return 0;
 } /* bigden_ */
 
-/* Subroutine */ int biglag_(integer *n, integer *npt, doublereal *xopt, 
-	doublereal *xpt, doublereal *bmat, doublereal *zmat, integer *idz, 
-	integer *ndim, integer *knew, doublereal *delta, doublereal *d__, 
-	doublereal *alpha, doublereal *hcol, doublereal *gc, doublereal *gd, 
+/* Subroutine */ int biglag_(integer *n, integer *npt, doublereal *xopt,
+	doublereal *xpt, doublereal *bmat, doublereal *zmat, integer *idz,
+	integer *ndim, integer *knew, doublereal *delta, doublereal *d__,
+	doublereal *alpha, doublereal *hcol, doublereal *gc, doublereal *gd,
 	doublereal *s, doublereal *w)
 {
     /* System generated locals */
-    integer xpt_dim1, xpt_offset, bmat_dim1, bmat_offset, zmat_dim1, 
+    integer xpt_dim1, xpt_offset, bmat_dim1, bmat_offset, zmat_dim1,
 	    zmat_offset, i__1, i__2;
     doublereal d__1;
 
@@ -2198,17 +2208,17 @@ L340:
 /*     N is the number of variables. */
 /*     NPT is the number of interpolation equations. */
 /*     XOPT is the best interpolation point so far. */
-/*     XPT contains the coordinates of the current interpolation points. 
+/*     XPT contains the coordinates of the current interpolation points.
 */
 /*     BMAT provides the last N columns of H. */
-/*    ZMAT and IDZ give a factorization of the first NPT by NPT submatrix 
+/*    ZMAT and IDZ give a factorization of the first NPT by NPT submatrix
 of H.*/
 /*     NDIM is the first dimension of BMAT and has the value NPT+N. */
 /*    KNEW is the index of the interpolation point that is going to be mov
 ed.*/
 /*     DELTA is the current trust region bound. */
 /*     D will be set to the step from XOPT to the new point. */
-/*     ALPHA will be set to the KNEW-th diagonal element of the H matrix. 
+/*     ALPHA will be set to the KNEW-th diagonal element of the H matrix.
 */
 /*     HCOL, GC, GD, S and W will be used for working space. */
 
@@ -2469,3 +2479,8 @@ L160:
     return 0;
 } /* biglag_ */
 
+
+/*---------------------------------------------------------------------------*/
+#undef  AFmax
+#undef  AFmin
+#endif /* __POWELL_NEWUOA__ */

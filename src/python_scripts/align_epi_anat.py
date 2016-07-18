@@ -332,6 +332,40 @@ g_help_string = """
                      "-master_dset1" and "-master_dset2" may be used as 
                      equivalent expressions for anat and epi output resolutions,
                      respectively.
+                     
+   -check_flip : check if data may have been left/right flipped by aligning
+                     original and flipped versions and then comparing costs
+                     between the two. This option produces the L/R flipped
+                     and aligned anat/dset1 dataset. A warning is printed
+                     if the flipped data has a lower cost function value
+                     than the original dataset when both are aligned to the
+                     epi/dset2 dataset.
+
+                     This issue of left-right confusion can be caused
+                     by problems with DICOM files or pipelines
+                     that include Analyze format datasets. In these cases,
+                     the orientation information is lost, and left-right may
+                     be reversed. Other directions can also be confused, but
+                     A-P and I-S are usually obvious. Note this problem has
+                     appeared on several major publicly available databases.
+                     Even if other software packages may proceed without errors
+                     despite inconsistent, wrong or even missing coordinate
+                     and orientation information, this problem can be easily
+                     identified with this option.
+
+                     This option does not identify which of the two datasets
+                     need to be flipped. It only determines there is likely 
+                     to be a problem with one or the other of the two input
+                     datasets. Importantly, we recommend properly visualizing
+                     the datasets in the afni GUI. Look for asymmetries in the
+                     two aligned anat/dset1 datasets, and see how they align
+                     with the epi/dset2 dataset. To better determine the left
+                     and right of each dataset, we recommend relying on tags
+                     like vitamin E or looking for surgical markers.
+                      
+   -flip_giant : apply giant_move options to flipped dataset alignment
+                     even if not using that option for original dataset
+                     alignment
 
    -save_xxx options
       Normally all intermediate datasets are deleted at the end of the script.
@@ -564,7 +598,7 @@ g_help_string = """
 ## BEGIN common functions across scripts (loosely of course)
 class RegWrap:
    def __init__(self, label):
-      self.align_version = "1.51" # software version (update for changes)
+      self.align_version = "1.54" # software version (update for changes)
       self.label = label
       self.valid_opts = None
       self.user_opts = None
@@ -594,6 +628,9 @@ class RegWrap:
       self.epi_dir = ''    # assign path from EPI (dset2) dataset's path
       self.anat_dir = ''   # assign path from anat (dset1) dataset's path
       self.output_dir = '' # user assigned path for anat and EPI
+      self.flip = 0        # don't test for left/right flipping
+      self.flip_giant = 0  # don't necessarily use giant_move for L-R flipping test
+      self.giant_move = 0  # don't use giant_move
       
       # options for saving temporary datasets permanently
       self.save_Al_in = 0  # don't save 3dAllineate input files
@@ -896,6 +933,12 @@ class RegWrap:
 
       self.valid_opts.trailers = 0   # do not allow unknown options
       
+      self.valid_opts.add_opt('-check_flip', 0, [], \
+               helpstr="Check if L/R flipping gives better results")
+      self.valid_opts.add_opt('-flip_giant', 0, [], \
+               helpstr="use giant_move on flipped data even if not used\n"\
+                       "on original data")
+
       # saving optional output datasets
       # save datasets used as input to 3dAllineate
       self.valid_opts.add_opt('-save_Al_in', 0, [],    \
@@ -1068,6 +1111,9 @@ class RegWrap:
               self.error_msg("resample option not on/off");
               self.ciao(1)
 
+      opt = opt_list.find_opt('-check_flip')       # check for left/right flipping
+      if opt != None: 
+         self.flip = 1
 
       # optional data to save
       opt = opt_list.find_opt('-save_Al_in')       # save 3dAllineate input datasets
@@ -1328,11 +1374,15 @@ class RegWrap:
          "%s -twobest 11 -twopass -VERB -maxrot 45 -maxshf 40 " \
          "-fineblur %s -source_automask+2" % (ps.AlOpt, fsize)
          ps.cmass = "cmass"
-         giant_move = 1
+         ps.giant_move = 1
       else :
-         giant_move = 0
+         ps.giant_move = 0
       if(opt3): # ginormous option
          ps.align_centers = 1
+
+      #giant_move?
+      opt = self.user_opts.find_opt('-flip_giant')
+      if(opt): ps.flip_giant = 1;
          
       #add edges
       opt = self.user_opts.find_opt('-AddEdge')
@@ -1352,11 +1402,10 @@ class RegWrap:
             return 0
          if self.cost == '':
             self.cost = 'lpa'   # make default cost lpa for dset1/2 terminology
-         self.prep_off()
+         self.dset_prep_off()
          self.epi_base = "0"      # align to 0th sub-brick
          self.dset1_generic_name = 'dset1'
          self.dset2_generic_name = 'dset2'
-
 
       e = afni_name(opt.parlist[0]) 
       ps.epi = e
@@ -1368,7 +1417,7 @@ class RegWrap:
             ps.ciao(1)
          if self.cost == '':
             self.cost = 'lpa'   # make default cost lpa for dset1/2 terminology
-         self.prep_off()        # assume no motion correction, slice timing correction,...
+         self.dset_prep_off()   # assume no motion correction, slice timing correction,...
          self.epi_base = "0"      # align to 0th sub-brick
          self.dset1_generic_name = 'dset1'
          self.dset2_generic_name = 'dset2'
@@ -1576,7 +1625,7 @@ class RegWrap:
       min_d =  self.min_dim_dset(ps.epi)
       mast_dxyz = "" # set default output 
       mast_dset = "SOURCE"
-      if giant_move == 1 :
+      if ps.giant_move == 1 :
          mast_dset = "BASE"
          mast_dxyz = '-mast_dxyz %f' % min_d
          
@@ -1662,7 +1711,7 @@ class RegWrap:
       min_d =  self.min_dim_dset(ps.anat0)
       mast_dxyz = ""    # set default output is same as original
       mast_dset = "SOURCE"
-      if giant_move:
+      if ps.giant_move:
          mast_dset = "BASE"
          mast_dxyz = '-mast_dxyz %f' % min_d
       
@@ -1797,6 +1846,15 @@ class RegWrap:
        self.info_msg("turning off deobliquing tshift, volume registration, resampling")
        return
 
+   # turn off most preprocessing steps - keep deobliquing though
+   def dset_prep_off(self) :
+       self.tshift_flag = 0
+       self.volreg_flag = 0
+       self.resample_flag = 0
+       self.info_msg("turning off tshift, volume registration, resampling")
+       return
+
+
    # find smallest dimension of dataset in x,y,z
    def min_dim_dset(self, dset=None) :
        com = shell_com(  \
@@ -1852,6 +1910,48 @@ class RegWrap:
       self.info_msg( "Dataset %s is not oblique" % dset.input())
       return (0)  # if here, then not oblique
 
+
+   # parse 1D file of multiple costs for a particular cost
+   # the data are arranged like this
+   ## 3dAllineate -allcostX1D results:
+   ##  ___ ls   ___  ___ sp   ___  ___ mi   ___  ___ crM  ___  ___ nmi  ___  ___ je   ___  ___ hel  ___  ___ crA  ___  ___ crU  ___  ___ lss  ___  ___ lpc  ___  ___ lpa  ___  ___ lpc+ ___  ___ ncd  ___
+   #      0.778644     0.410080    -0.108398     0.778821     0.989730    10.462562    -0.018096     0.882749     0.862151     0.221356    -0.009732     0.990268     0.522726     0.999801
+
+   def get_cost(self, costfilename ,costfunction):
+      # lpc+ZZ evaluated at end of alignment as lpc
+      if costfunction == "lpc+ZZ" :
+          costfunction = "lpc"
+
+      try:
+         costfile = open(costfilename,'r')
+         # ignore first line. That should just say "3dAllineate -allcostX1D results"
+         costfile.readline()
+         # read the list of costnames in the second line
+         costnames = costfile.readline()
+         # remove the underscores and the leading ##
+         costnamelist = [(x) for x in costnames.split() if x != "___" and x != "#" and x != "##" ]
+         # read the list of cost values
+         costlist = costfile.readline()
+         # convert into list structure
+         costs = costlist.split()
+         costfile.close()
+         # make dictionary of names and costs
+         costdict = dict(zip(costnamelist, costs))
+         # get cost value from dictionary (error handling if it doesn't exist in list)
+         costvalue = float(costdict[costfunction])
+         return (costvalue)
+      except:
+         print "ERROR: error reading cost list file"
+      
+      # find the cost name and then the corresponding value
+      # for i, name in enumerate(costnamelist):
+      #   if name == costfunction:
+      #      costvalue = costs[i]
+      #      return costvalue
+      return (1000)
+
+
+
 # align the anatomical data to the epi data using 3dAllineate
 # this is the real meat of the program
 # note for some of the reasoning:
@@ -1897,18 +1997,26 @@ class RegWrap:
             o = a.new("__tt_%s%s" % (ps.anat0.out_prefix(), suf)) # save temporary copy
          
       ow = a.new("%s%s_wtal" % (a.out_prefix(), suf))
+      of = a.new("%s_flip%s" % (ps.anat0.out_prefix(), suf))
+      olr = a.new("__tt_%s_lr%s" % (ps.anat0.out_prefix(), suf))
 
       if(self.master_anat_dset=='BASE'):
           o.view = e.view
           ow.view = e.view
+          of.view = e.view
+          olr.view = e.view
       else:
           if(self.master_anat_dset=='SOURCE'):
              o.view = a.view
              ow.view = a.view
+             of.view = a.view
+             olr.view = a.view
           else:
              manat = afni_name(self.master_anat_dset)
              o.view = manat.view
              ow.view = manat.view
+             of.view = manat.view
+             olr.view = manat.view
 
       anatview = o.view
 
@@ -1942,7 +2050,75 @@ class RegWrap:
                ps.oexec)
          com.run()
          e2a_mat = self.anat_mat
- 
+
+         if (ps.flip):
+            com = shell_com( \
+               "3dLRflip -prefix %s%s -overwrite %s" % \
+               (olr.p(), olr.out_prefix(),a.input()), ps.oexec)
+            com.run()
+            if((ps.flip_giant) and not(ps.giant_move)):
+               alopt =  \
+               "%s -twobest 11 -twopass -VERB -maxrot 45 -maxshf 40 " \
+               "-source_automask+2" % (ps.AlOpt)
+               ps.cmass = "cmass"
+            # flips don't need weight            
+            if m:
+               wtopt = "-weight %s" % (m.input())
+            else:
+               wtopt = "" 
+
+            # save transformation matrix with original anatomical name,suf,...
+            self.flip_mat = "%s%s_flip_%s_mat.aff12.1D" % \
+                  (a.p(), ps.anat0.out_prefix(),suf)
+     
+            com = shell_com( \
+               "3dAllineate -%s "  # costfunction       \
+               "%s "              # weighting          \
+               "-source %s "        \
+               "-prefix %s%s -base %s "                  \
+               "%s "  # center of mass options (cmass) \
+               "-1Dmatrix_save %s "                    \
+               "%s %s %s "  # master grid, other 3dAllineate options \
+                         #   (may be user specified)   \
+               % (costfunction, wtopt, olr.input(), of.p(), of.out_prefix(), \
+                 e.input(), cmass, self.flip_mat, self.master_anat_3dAl_option, \
+                 alopt, checkstr ), \
+                 ps.oexec)
+            com.run()
+
+            com = shell_com( \
+               "3dAllineate -allcostX1D IDENTITY __tt_lr_noflipcosts.1D "       \
+               "%s "              # weighting          \
+               "-source %s "        \
+               "-base %s "                  \
+               "%s "  # center of mass options (cmass) \
+               "%s %s %s "  # master grid, other 3dAllineate options \
+               % (wtopt, o.input(), e.input(), cmass, \
+                  self.master_anat_3dAl_option, alopt, checkstr ), \
+                 ps.oexec)
+            com.run()
+            com = shell_com( \
+               "3dAllineate -allcostX1D IDENTITY __tt_lr_flipcosts.1D "       \
+               "%s "              # weighting          \
+               "-source %s "                           \
+               "-base %s "                             \
+               "%s "  # center of mass options (cmass) \
+               "%s %s %s "  # master grid, other 3dAllineate options \
+               % (wtopt, of.input(), e.input(), cmass, \
+                  self.master_anat_3dAl_option, alopt, checkstr ), \
+                 ps.oexec)
+            com.run()
+
+            noflipcost = self.get_cost("__tt_lr_noflipcosts.1D",costfunction)
+            print "No flip cost is %f for %s cost function" % (noflipcost, costfunction)
+            flipcost = self.get_cost("__tt_lr_flipcosts.1D",costfunction)
+            print "Flip cost is %f for %s cost function" % (flipcost, costfunction)
+            if(flipcost < noflipcost):
+               print "WARNING: ************ flipped data aligns better than original data\n" \
+                     "Check for left - right flipping in the GUI ************************"
+            else:
+               print "Data does not need flipping"
+          
          # if not doing alignment for anat2epi, just return now,
          # and use the xform matrix computed later
          if (not(ps.anat2epi)):
@@ -2349,25 +2525,27 @@ class RegWrap:
    # create edge dataset of internal brain structure edges
    def edge_dset(self, e=None, prefix = "temp_edge", binarize=0,erodelevel=2):
       o = afni_name(prefix)
-
       o.view = e.view
-      if (not o.exist() or ps.rewrite or ps.dry_run()):
-         o.delete(ps.oexec)
+      m = afni_name("%s_edge_mask" % o.prefix)
+      m.view = e.view
+      
+      if (not m.exist() or ps.rewrite or ps.dry_run()):
+         m.delete(ps.oexec)
          self.info_msg("Creating edge dataset")
-         com = shell_com("3dAutomask -overwrite -erode %s -prefix %s_edge_mask %s" \
-                         % (erodelevel, prefix, e.input()), ps.oexec)
+         com = shell_com("3dAutomask -overwrite -erode %s -prefix %s %s" \
+                         % (erodelevel, m.prefix, e.input()), ps.oexec)
          com.run()
 
          if(binarize):
-            lprefix = "%s_edge_cvar" % prefix
+            lprefix = "%s_edge_cvar" % o.prefix
          else:
-            lprefix = prefix
+            lprefix = o.prefix
 
          com = shell_com(                                                  \
-                         "3dLocalstat -overwrite -mask %s_edge_mask%s " \
-                         "-nbhd 'RECT(-1,-1,0)'"                           \
+                         "3dLocalstat -overwrite -mask %s"                 \
+                         " -nbhd 'RECT(-2,-2,-1)'"                          \
                          " -stat cvar -prefix %s %s" %                     \
-                         (prefix, o.view, lprefix, e.input()), ps.oexec)
+                         (m.ppv(), lprefix, e.input()), ps.oexec)
          com.run();
 
          if(binarize):
@@ -2403,7 +2581,7 @@ class RegWrap:
             com.run()
 
          if (not o.exist() and not ps.dry_run()):
-            print "** ERROR: Could not create edge dataset"
+            print("** ERROR: Could not create edge dataset %s" % o.ppv())
             return None
       else:
          self.exists_msg(o.input())
@@ -2411,8 +2589,7 @@ class RegWrap:
             
       return o
 
-
-
+   
    # deoblique epi dataset
    def deoblique_epi(self, e=None, deoblique_opt="", prefix="temp_deob"):
       o = e.new(prefix)  

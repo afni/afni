@@ -21,7 +21,7 @@ static char ** Argv ;
 
 static int         VL_nbase  = 0 ;
 static int         VL_intern = 1 ;
-static int         VL_resam  = MRI_FOURIER ;
+static int         VL_resam  = MRI_HEPTIC ;  /* from MRI_FOURIER 08 Mar 2016 */
 static int         VL_final  = -1 ;   /* 20 Nov 1998 */
 static int         VL_clipit = 1 ;    /* 23 Oct 1998 and 16 Apr 2002 */
 static MRI_IMAGE * VL_imbase = NULL ;
@@ -1397,7 +1397,8 @@ void VL_syntax(void)
     "  -quintic        Use quintic polynomical interpolation.\n"
     "  -cubic          Use cubic polynomial interpolation.\n"
     "  -linear         Use linear interpolation.\n"
-    "                    Default = Fourier [slowest and most accurate interpolator]\n"
+    "             -->>   OLD Default = Fourier [slowest and most accurate interpolator]\n"
+    "             -->>   NEW Default = Heptic [7th order polynomials]\n"
     "  -clipit         Clips the values in each output sub-brick to be in the same\n"
     "                    range as the corresponding input volume.\n"
     "                    The interpolation schemes can produce values outside\n"

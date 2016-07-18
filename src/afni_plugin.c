@@ -4254,14 +4254,15 @@ ENTRY("PLUGIN_seq_send_CB") ;
            if( !NO_frivolities && nold < NBIRN ){
              if( strstr(birn[nold],"Rasmus") != NULL )
                AFNI_speak("Stop it, Rasmus", 0 ) ;
-             MCW_popup_message( seq->wimage , birn[nold++] , MCW_USER_KILL ) ;
+             MCW_popup_message( seq->wimage , birn[nold++] ,
+                                (nold < NBIRN) ? MCW_QUICK_KILL : MCW_USER_KILL ) ;
            } else {
              PLUTO_beep() ;
              if( nold == NBIRN ){ AFNI_speak("Stop it",0); nold++; }
            }
          } else if( xev->button == Button3 ){
            if( !NO_frivolities && nkl < NKLING ){
-             MCW_popup_message( seq->wimage , kling[nkl++] , MCW_USER_KILL ) ;
+             MCW_popup_message( seq->wimage , kling[nkl++] , MCW_QUICK_KILL ) ;
            } else {
              PLUTO_beep() ;
              if( nkl == NKLING ){ AFNI_speak("Deesist at once",0); nkl++; }
@@ -4353,7 +4354,8 @@ ENTRY("PLUGIN_seq_send_CB") ;
 
         static int iold=-1 ; int ii ;
         do{ ii=lrand48()%NUM_NASH; } while( ii==iold ) ; iold = ii ;
-        MCW_popup_message( seq->wimage , nash[ii] , MCW_USER_KILL ) ;
+        MCW_popup_message( seq->wimage , nash[ii] ,
+                           (strlen(nash[ii]) < 111) ? MCW_QUICK_KILL : MCW_TIMER_KILL ) ;
       }
       break ;
 #endif  /* NO_FRIVOLITIES */

@@ -126,11 +126,264 @@
 #define USE_SIDES  /* 01 Dec 1999: replace "left is xxx" */
                    /* labels with "sides" labels.        */
 
-/*----------------------------------------------------------------
+/*-----------------------------------------------------------------------
+   Fallback resources for AFNI.  May be overridden by the user's
+   .Xdefaults file, or other resource sources.  AFNI does not come
+   with an "app-defaults" file, since that would be too much like work.
+   (And would require sysadmin privileges to install.)
+-------------------------------------------------------------------------*/
+
+static char *FALLback[] =
+  {   "AFNI*fontList:              9x15bold=charset1"    , /* normal font */
+      "AFNI*pbar*fontList:         6x10=charset1"        , /* next to pbar */
+      "AFNI*imseq*fontList:        7x13=charset1"        , /* on imseq */
+      "AFNI*font8*fontList:        8x13bold=charset1"    , /* smaller fonts */
+      "AFNI*font7*fontList:        7x13=charset1"        ,  /* for various */
+      "AFNI*font6*fontList:        6x10=charset1"        ,  /* usages */
+      "AFNI*background:            gray22"               , /* background clr */
+      "AFNI*menu*background:       gray4"                , /* bkgd in menus */
+      "AFNI*menu*foreground:       #ffdd22"              , /* menu text color */
+      "AFNI*borderColor:           gray19"               , /* same as bkgd! */
+      "AFNI*foreground:            yellow"               , /* normal text */
+      "AFNI*borderWidth:           0"                    , /* don't change! */
+      "AFNI*troughColor:           blue3"                , /* in sliders */
+      "AFNI*XmLabel.translations:  #override<Btn2Down>:" , /* Motif 2.0 bug */
+      "AFNI*help*background:       black"                , /* for help */
+      "AFNI*help*foreground:       #ffffff"              ,
+      "AFNI*help*helpborder:       False"                ,
+      "AFNI*help*waitPeriod:       1066"                 ,
+      "AFNI*help*fontList:         9x15bold=charset1"    ,
+      "AFNI*cluefont:              9x15bold"             , /* for popup */
+      "AFNI*bigtext*fontList:      10x20=charset1"       , /* hints */
+      "AFNI*help*cancelWaitPeriod: 333"                  ,
+#if 0
+      "AFNI*clustA*fontList:       9x15bold=charset1"    , /* for Clusterize */
+      "AFNI*clustB*fontList:       9x15bold=charset1"    ,
+      "AFNI*clustA*background:     gray22"               ,
+      "AFNI*clustB*background:     gray1"                ,
+      "AFNI*clustA*foreground:     yellow"               ,
+      "AFNI*clustB*foreground:     white"                ,
+#endif
+
+      "AFNI*XmList.translations: #augment"                /* 24 Feb 2007 */
+           "<Btn4Down>: ListPrevItem()\\n"                /* for scrollwheel */
+           "<Btn5Down>: ListNextItem()"                  ,
+
+      "AFNI*XmText.translations: #augment"
+           "<Btn4Down>: previous-line() scroll-one-line-down()\\n"
+           "<Btn5Down>: next-line() scroll-one-line-up()"          ,
+#if 0
+      "AFNI*XmScrollBar.translations: #augment"
+           "<Btn4Down>: IncrementUpOrLeft(0) IncrementUpOrLeft(1)\\n"
+           "<Btn5Down>: IncrementDownOrRight(1) IncrementDownOrRight(0)" ,
+#endif
+
+   NULL } ;
+
+/* The trick to using multiple Xt translations in the fallback resources
+   above is to separate them not with '\n' but with '\\n'.  Ugghhhhhhh.  */
+
+/*-----------------------------------------------------------------------*/
+static int    new_FALLback_num = 0 ;    /* for -XXX option [24 Mar 2016] */
+static char **new_FALLback     = NULL ;
+static char  *xrdb_old         = NULL ;
+static char  *xrdb_pg          = NULL ;
+
+/*-----------------------------------------------------------------------*/
+
+static int equiv_FALLback( char *n1 , char *n2 ) /* check if 2 strings */
+{                                                /* start the same */
+   char *c1,*c2 , *d1,*d2 ; int ee ;
+   if( n1 == NULL || *n1 == '\0' ) return 1 ;
+   if( n2 == NULL || *n2 == '\0' ) return 1 ;
+   if( strcmp(n1,n2) == 0        ) return 1 ;
+   d1 = strdup(n1) ; c1 = strchr(d1,':') ;
+   d2 = strdup(n2) ; c2 = strchr(d2,':') ;
+   if( c1 == NULL || c2 == NULL  ){ free(d1); free(d2); return 1; }
+   *c1 = '\0' ; *c2 = '\0' ;
+   ee = strcmp(d1,d2) ; free(d1) ; free(d2) ;
+   return (ee==0) ;
+}
+
+/*-----------------------------------------------------------------------*/
+
+/*-----------------------------------------------------------------------*/
+
+#define ADDTO_FALLback_one(nameval)                                            \
+ do{ int nf ;                                                                  \
+     nf = new_FALLback_num ;                                                   \
+     new_FALLback = (char **)realloc( new_FALLback , sizeof(char *)*(nf+2) ) ; \
+     new_FALLback[nf]   = strdup(nameval) ;                                    \
+     new_FALLback[nf+1] = NULL ; new_FALLback_num = nf+1 ;                     \
+ } while(0)
+
+#define ADDTO_FALLback_pair(name,val)                                          \
+ do{ char *str=malloc(strlen(name)+strlen(val)+16) ;                           \
+     strcpy(str,name) ; strcat(str,":   ") ; strcat(str,val) ;                 \
+     ADDTO_FALLback_one(str) ;                                                 \
+ } while(0)
+
+/*-----------------------------------------------------------------------*/
+
+static int XXX_set_default = 0 ; /* 08 Apr 2016 */
+
+static void process_XXX_options( int argc , char *argv[] )
+{
+   int nopt=1 ;
+
+   while( nopt < argc ){
+
+     if( strncasecmp(argv[nopt],"-XXX",4) != 0 ){ nopt++; continue; }
+
+     if( strcasecmp(argv[nopt],"-XXX") == 0 ){
+       if( ++nopt >= argc ){
+         WARNING_message("no argument after '%s' :-(",argv[nopt-1]) ;
+         break ;
+       }
+       if( strncasecmp(argv[nopt],"default",7) == 0 ){ /* 08 Apr 2016 */
+         if( THD_find_executable("xrdb") != NULL ){
+           int qq ;
+           XXX_set_default = 1 ;
+           for( qq=0 ; FALLback[qq] != NULL ; qq++ )
+             ADDTO_FALLback_one(FALLback[qq]) ;
+         }
+       } else if( strchr(argv[nopt],':') != NULL ){
+         ADDTO_FALLback_one(argv[nopt]) ;
+       }
+       nopt++ ; continue ;
+     }
+
+     if( strcasecmp(argv[nopt],"-XXXnpane") == 0 ){  /* 06 May 2016 */
+       int np ;
+       if( ++nopt >= argc ){
+         WARNING_message("no argument after '%s' :-(",argv[nopt-1]) ;
+         break ;
+       }
+       np = (int)strtod(argv[nopt],NULL) ;
+       if( np < 256 || np > NPANE_BIGGEST ){
+         WARNING_message("value '%s' after '%s' is illegal -- ignoring",argv[nopt],argv[nopt-1]) ;
+       } else {
+         if( np%2 == 1 ) np++ ;
+         if( np > NPANE_BIGGEST ) np = NPANE_BIGGEST ;
+         npane_big = np ;
+       }
+       nopt++ ; continue ;
+     }
+
+     if( strcasecmp(argv[nopt],"-XXXbgcolor") == 0 ){
+       if( ++nopt >= argc ){
+         WARNING_message("no argument after '%s' :-(",argv[nopt-1]) ;
+         break ;
+       }
+       ADDTO_FALLback_pair("AFNI*background"     ,argv[nopt]) ;
+       ADDTO_FALLback_pair("AFNI*menu*background",argv[nopt]) ;
+       ADDTO_FALLback_pair("AFNI*help*background",argv[nopt]) ;
+       nopt++ ; continue ;
+     }
+
+     if( strcasecmp(argv[nopt],"-XXXfgcolor") == 0 ){
+       if( ++nopt >= argc ){
+         WARNING_message("no argument after '%s' :-(",argv[nopt-1]) ;
+         break ;
+       }
+       ADDTO_FALLback_pair("AFNI*foreground"     ,argv[nopt]) ;
+       ADDTO_FALLback_pair("AFNI*menu*foreground",argv[nopt]) ;
+       ADDTO_FALLback_pair("AFNI*help*foreground",argv[nopt]) ;
+       nopt++ ; continue ;
+     }
+
+     if( strcasecmp(argv[nopt],"-XXXfontsize") == 0 ){
+       if( ++nopt >= argc ){
+         WARNING_message("no argument after '%s' :-(",argv[nopt-1]) ;
+         break ;
+       }
+       if( strcasecmp(argv[nopt],"plus") == 0 || strcmp(argv[nopt],"+") == 0 ){
+         ADDTO_FALLback_pair("AFNI*fontList"        , "10x20") ;
+         ADDTO_FALLback_pair("AFNI*help*fontList"   , "10x20") ;
+         ADDTO_FALLback_pair("AFNI*bigtext*fontList", "10x20") ;
+         ADDTO_FALLback_pair("AFNI*cluefont"        , "10x20") ;
+         ADDTO_FALLback_pair("AFNI*font8*fontList"  ,  "9x15") ;
+         ADDTO_FALLback_pair("AFNI*imseq*fontList"  ,  "8x13") ;
+         ADDTO_FALLback_pair("AFNI*font7*fontList"  ,  "8x13") ;
+         ADDTO_FALLback_pair("AFNI*font6*fontList"  ,  "7x13") ;
+         ADDTO_FALLback_pair("AFNI*pbar*fontList"   ,  "7x13") ;
+       } else if( strcasecmp(argv[nopt],"minus") == 0 || strcmp(argv[nopt],"-") == 0 ){
+         ADDTO_FALLback_pair("AFNI*fontList"        , "8x13bold") ;
+         ADDTO_FALLback_pair("AFNI*help*fontList"   , "8x13bold") ;
+         ADDTO_FALLback_pair("AFNI*bigtext*fontList", "8x13bold") ;
+         ADDTO_FALLback_pair("AFNI*cluefont"        , "8x13bold") ;
+         ADDTO_FALLback_pair("AFNI*font8*fontList"  , "7x13") ;
+         ADDTO_FALLback_pair("AFNI*imseq*fontList"  , "6x10") ;
+         ADDTO_FALLback_pair("AFNI*font7*fontList"  , "6x10") ;
+         ADDTO_FALLback_pair("AFNI*font6*fontList"  , "5x8" ) ;
+         ADDTO_FALLback_pair("AFNI*pbar*fontList"   , "5x8" ) ;
+       }
+       nopt++ ; continue ;
+     }
+
+     if( strcasecmp(argv[nopt],"-XXXfontA") == 0 ){
+       char *fn ;
+       if( ++nopt >= argc ){
+         WARNING_message("no argument after '%s' :-(",argv[nopt-1]) ;
+         break ;
+       }
+       fn = (char *)malloc(sizeof(char)*(strlen(argv[nopt])+32)) ;
+       sprintf(fn,"%s=charset1",argv[nopt]) ;
+       ADDTO_FALLback_pair("AFNI*fontList"        ,fn) ;
+       ADDTO_FALLback_pair("AFNI*help*fontList"   ,fn) ;
+       ADDTO_FALLback_pair("AFNI*bigtext*fontList",fn) ;
+       ADDTO_FALLback_pair("AFNI*cluefont"        ,fn) ;
+       free(fn) ; nopt++ ; continue ;
+     }
+
+     if( strcasecmp(argv[nopt],"-XXXfontB") == 0 ){
+       char *fn ;
+       if( ++nopt >= argc ){
+         WARNING_message("no argument after '%s' :-(",argv[nopt-1]) ;
+         break ;
+       }
+       fn = (char *)malloc(sizeof(char)*(strlen(argv[nopt])+32)) ;
+       sprintf(fn,"%s=charset1",argv[nopt]) ;
+       ADDTO_FALLback_pair("AFNI*font8*fontList",fn) ;
+       free(fn) ; nopt++ ; continue ;
+     }
+
+     if( strcasecmp(argv[nopt],"-XXXfontC") == 0 ){
+       char *fn ;
+       if( ++nopt >= argc ){
+         WARNING_message("no argument after '%s' :-(",argv[nopt-1]) ;
+         break ;
+       }
+       fn = (char *)malloc(sizeof(char)*(strlen(argv[nopt])+32)) ;
+       sprintf(fn,"%s=charset1",argv[nopt]) ;
+       ADDTO_FALLback_pair("AFNI*imseq*fontList",fn) ;
+       ADDTO_FALLback_pair("AFNI*font7*fontList",fn) ;
+       free(fn) ; nopt++ ; continue ;
+     }
+
+     if( strcasecmp(argv[nopt],"-XXXfontD") == 0 ){
+       char *fn ;
+       if( ++nopt >= argc ){
+         WARNING_message("no argument after '%s' :-(",argv[nopt-1]) ;
+         break ;
+       }
+       fn = (char *)malloc(sizeof(char)*(strlen(argv[nopt])+32)) ;
+       sprintf(fn,"%s=charset1",argv[nopt]) ;
+       ADDTO_FALLback_pair("AFNI*font6*fontList",fn) ;
+       ADDTO_FALLback_pair("AFNI*pbar*fontList" ,fn) ;
+       free(fn) ; nopt++ ; continue ;
+     }
+
+   }
+
+   return ;
+}
+
+/*----------------------------------------------------------------------------
    Global variables that used to be local variables in main(),
    but since the advent of the splash screen and startup code
-   in MAIN_workprocess().
-------------------------------------------------------------------*/
+   in MAIN_workprocess() are needed in more than one place.
+------------------------------------------------------------------------------*/
 
 static XtAppContext   MAIN_app ;
 static XtErrorHandler MAIN_old_handler ;   /* no longer used */
@@ -153,7 +406,7 @@ static int recursed_ondot = 0 ;  /* 18 Feb 2007 */
 /* ---------------------------------------------------------------------- */
 /* just display the AFNI version                      26 Oct 2015 [rickr] */
 /* (since writing to stdout, do not interfere with print-and-exit funcs)  */
-void show_AFNI_version(void) 
+void show_AFNI_version(void)
 {
 #ifdef SHSTRING
      printf( "Precompiled binary " SHSTRING ": " __DATE__ " (Version " AVERZHN ")\n" ) ;
@@ -180,7 +433,7 @@ void AFNI_syntax(void)
    else
      printf(
       " **** Help for all AFNI programs can be found at the Web page\n"
-      "    https://afni.nimh.nih.gov/afni/doc/program_help/index.html\n"
+      "    https://afni.nimh.nih.gov/pub/dist/doc/program_help/index.html\n"
       "\n"
      ) ;
 
@@ -386,11 +639,10 @@ void AFNI_syntax(void)
      "  using the \\' transpose syntax, as in\n"
      "     afni Fred.1D\\'\n"
      "  However, this isn't very useful (IMHO).\n"
-     "\n"
-    MASTER_HELP_STRING
-     "\n"
-    CALC_HELP_STRING
-   ) ;
+     "\n");
+    printf(MASTER_HELP_STRING);   putchar('\n');
+    printf(CATENATE_HELP_STRING); putchar('\n');
+    printf(CALC_HELP_STRING);     putchar('\n');
 
    printf(
      "\n"
@@ -447,6 +699,116 @@ void AFNI_syntax(void)
    ) ;
 
    printf("\n"
+    "-----------------------------------------------------------\n"
+    "Options that affect X11 Display properties: '-XXXsomething'\n"
+    "-----------------------------------------------------------\n"
+    "\n"
+    "My intent with these options is that you use them in aliases\n"
+    "or shell scripts, to let you setup specific appearances for\n"
+    "multiple copies of AFNI.  For example, put the following\n"
+    "command in your shell startup file (e.g., ~/.cshrc or ~/.bashrc)\n"
+    "   alias ablue afni -XXXfgcolor white -XXXbgcolor navyblue\n"
+	 "Then the command 'ablue' will start AFNI with a blue background\n"
+    "and using white for the default text color.\n"
+    "\n"
+    "Note that these options set 'properties' on the X11 server,\n"
+    "which might survive after AFNI exits (especially if AFNI crashes).\n"
+    "If for some reason these settings cause trouble after AFNI\n"
+    "exits, use the option '-XXX defaults' to reset the X11\n"
+    "properties for AFNI back to their default values.\n"
+    "\n"
+    "Also note that each option is of the form '-XXXsomething', followed\n"
+    "by a single argument.\n"
+    "\n"
+    " -XXXfgcolor colorname = set the 'foreground' color (text color)\n"
+    "                         to 'colorname'\n"
+    "                         [default = yellow]\n"
+    "                         ++ This should be a bright color, to contrast\n"
+    "                            the background color.\n"
+    "                         ++ You can find a list of X11 color names at\n"
+    "                              https://en.wikipedia.org/wiki/X11_color_names\n"
+    "                            However, if you use a name like Dark Cyan\n"
+    "                            (with a space inside the name), you must\n"
+    "                            put the name in quotes: 'Dark Cyan', or remove\n"
+    "                            the space: DarkCyan.\n"
+    "                         ++ Another way to specify X11 colors is in hexadecimal,\n"
+    "                            as in '#rgb' or '#rrggbb', where the letters shown\n"
+    "                            are replaced by hex values from 0 to f.  For example,\n"
+    "                            '#ffcc00' is an orange-yellow mixture.\n"
+    "\n"
+    " -XXXbgcolor colorname = set the 'background' color to 'colorname'\n"
+    "                         [default = gray22]\n"
+    "                         ++ This should be a somewhat dark color,\n"
+    "                            or parts of the interface may be hard\n"
+    "                            to read.\n"
+    "\n"
+    " -XXXfontsize plus     = set all the X11 fonts used by AFNI to be one\n"
+    "   *OR*                  size larger ('plus') or to be one size smaller\n"
+    " -XXXfontsize minus      ('minus').  The 'plus' version I find useful for\n"
+    "                         a screen resolution of about 100 dots per inch\n"
+    "                         (39 dots per cm) -- you can find what the system\n"
+    "                         thinks your screen resolution is by the command\n"
+    "                           xdpyinfo | grep -i resolution\n"
+    "                         ++ Applying 'plus' twice does NOT make the fonts\n"
+    "                            bigger twice -- 'plus' just set each font to\n"
+    "                            be one step bigger than the default sizes.\n"
+    "                         ++ Alternatively, you can control each of the 4 fonts\n"
+    "                            that AFNI uses, via the 4 following options ...\n"
+    "\n"
+    " -XXXfontA fontname    = set the X11 font name for the main AFNI\n"
+    "                         controller\n"
+    "                         [default = 9x15bold]\n"
+    "                         ++ To see a list of all X11 font names, type the command\n"
+    "  xlsfonts | more\n"
+    "                            *or* more elaborately (to show only fixed width fonts):\n"
+    "  xlsfonts | grep -e '-[cm]-' | grep -e '-iso8859-1$' | grep -e '-medium-' \\\n"
+    "           | grep -e '-r-normal-' | grep -v -e '-0-0-' | sort -t '-' -k 8 -n | uniq\n"
+    "                         ++ It is best to use a fixed width font\n"
+    "                            (e.g., not Helvetica), or the AFNI buttons\n"
+    "                            won't line up nicely!\n"
+    "                         ++ If you use an illegal font name here, you\n"
+    "                            might make it hard to use the AFNI GUI!\n"
+    "                         ++ The default fonts are chosen for 'normal' screen\n"
+    "                            resolutions (about 72 dots per inch = 28 dots per cm).\n"
+    "                            For higher resolutions ('Retina'), you might\n"
+    "                            want to use larger fonts.  Adding these\n"
+    "                            '-XXXfont?' options is one way to address this\n"
+    "                            problem.\n"
+    "                         ++ An example of two quite large fonts on my computer\n"
+    "                            (which at this time has a 108 dot per inch display):\n"
+    "       '-adobe-courier-bold-r-normal--34-240-100-100-m-200-iso8859-1\n"
+    "       '-b&h-lucidatypewriter-medium-r-normal-sans-34-240-100-100-m-200-iso8859-1'\n"
+    "                            Note that to use the latter font on the command line,\n"
+    "                            you have to enclose the name in quotes, as shown above,\n"
+    "                            since the 'foundry name' includes the character '&'.\n"
+    "                            To use it in an alias, you need to do something like\n"
+    "  alias abig -XXXfontA '-b\\&h-lucidatypewriter-medium-r-normal-sans-34-240-100-100-m-200-iso8859-1'\n"
+    "                         ++ When setting the fonts, it is often helpful\n"
+    "                            to set the colors as well.\n"
+    "\n"
+    " -XXXfontB fontname    = set the X11 font name for somewhat smaller text\n"
+    "                         [default = 8x13bold]\n"
+    "\n"
+    " -XXXfontC fontname    = set the X11 font name for even smaller text\n"
+    "                         [default = 7x13]\n"
+    "\n"
+    " -XXXfontD fontname    = set the X11 font name for the smallest text\n"
+    "                         [default = 6x10]\n"
+    "\n"
+    " -XXX defaults         = set the X11 properties to the AFNI defaults\n"
+    "                         (the purpose of this is to restore things )\n"
+    "                         (to normal if the X11 settings get mangled)\n"
+    "\n"
+    " -XXXnpane P           = set the number of 'panes' in the continuous\n"
+    "                         colorscale to the value 'P', where P is an\n"
+    "                         even integer between 256 and 2048 (inclusive).\n"
+    "                         Probably will work best if P is an integral\n"
+    "                         multiple of 256 (e.g., 256, 512, 1024, 2048).\n"
+    "                         [This option is for the mysterious Dr ZXu.]\n"
+    "\n"
+   ) ;
+
+   printf("\n"
     "--------------------------------------\n"
     "Educational and Informational Material\n"
     "--------------------------------------\n"
@@ -458,14 +820,15 @@ void AFNI_syntax(void)
     " https://afni.nimh.nih.gov/pub/dist/edu/latest/afni01_intro/afni01_intro.pdf\n"
     " https://afni.nimh.nih.gov/pub/dist/edu/latest/afni03_interactive/afni03_interactive.pdf\n"
     "* For the -help on all AFNI programs, plus the README files, and more, please see\n"
-    " https://afni.nimh.nih.gov/afni/doc/program_help/index.html\n"
+    " https://afni.nimh.nih.gov/pub/dist/doc/program_help/index.html\n"
     "* For indvidualized help with AFNI problems, and to keep up with AFNI news, please\n"
     "   use the AFNI Message Board:\n"
     " https://afni.nimh.nih.gov/afni/community/board/\n"
     "* If an AFNI program crashes, please include the EXACT error messages it outputs\n"
     "   in your message board posting, as well as any other information needed to\n"
-    "   reproduce the problem.  Just saying 'program X crashed, what's the issue?'\n"
-    "   is not helpful at all!  In all message board postings, detail is relevant.\n"
+    "   reproduce the problem.  Just saying 'program X crashed, what's the problem?'\n"
+    "   is not helpful at all!  In all message board postings, detail and context\n"
+    "   are highly relevant.\n"
     "* Also, be sure your AFNI distribution is up-to-date.  You can check the date\n"
     "   on your copy with the command 'afni -ver'.  If it is more than a few months\n"
     "   old, you should update your AFNI binaries and try the problematic command\n"
@@ -649,6 +1012,8 @@ ENTRY("AFNI_parse_args") ;
 
    GLOBAL_argopt.read_tim = 0 ;   /* 19 Oct 1999 */
 
+   GLOBAL_argopt.cat_sess = !AFNI_noenv("AFNI_ALL_DATASETS") ; /* 02 Jun 2016 */
+
    while( narg < argc ){
 
       if( argv[narg][0] != '-' ) break ;   /* no - ==> quit */
@@ -819,6 +1184,12 @@ ENTRY("AFNI_parse_args") ;
       if( strncmp(argv[narg],"-XTWARNS",6) == 0 ){
          GLOBAL_argopt.xtwarns = 2 ;
          narg++ ; continue ;  /* go to next arg */
+      }
+
+      /*----- -XXX [24 Mar 2016] -----*/
+
+      if( strncasecmp(argv[narg],"-XXX",4) == 0 ){  /* all -XXX options are */
+        narg += 2 ; continue ;                      /* followed by one arg */
       }
 
       /*----- -destruct option -----*/
@@ -1252,63 +1623,6 @@ int AFNI_xerrhandler( Display *d , XErrorEvent *x ){
   return 0 ;
 }
 
-/*-----------------------------------------------------------------------
-   Fallback resources for AFNI.  May be overridden by the user's
-   .Xdefaults file, or other resource sources.  AFNI does not come
-   with an "app-defaults" file, since that would be too much like work.
-   (And would require sysadmin privileges to install.)
--------------------------------------------------------------------------*/
-
-static char *FALLback[] =
-  {   "AFNI*fontList:              9x15bold=charset1"    , /* normal font */
-      "AFNI*pbar*fontList:         6x10=charset1"        , /* next to pbar */
-      "AFNI*imseq*fontList:        7x13=charset1"        , /* on imseq */
-      "AFNI*font8*fontList:        8x13bold=charset1"    , /* smaller fonts */
-      "AFNI*font7*fontList:        7x13=charset1"        ,  /* for various */
-      "AFNI*font6*fontList:        6x10=charset1"        ,  /* usages */
-      "AFNI*background:            gray28"               , /* background clr */
-      "AFNI*menu*background:       gray4"                , /* bkgd in menus */
-      "AFNI*menu*foreground:       #ffdd22"              , /* menu text color */
-      "AFNI*borderColor:           gray19"               , /* same as bkgd! */
-      "AFNI*foreground:            yellow"               , /* normal text */
-      "AFNI*borderWidth:           0"                    , /* don't change! */
-      "AFNI*troughColor:           blue3"                , /* in sliders */
-      "AFNI*XmLabel.translations:  #override<Btn2Down>:" , /* Motif 2.0 bug */
-      "AFNI*help*background:       black"                , /* for help */
-      "AFNI*help*foreground:       #ffffff"              ,
-      "AFNI*help*helpborder:       False"                ,
-      "AFNI*help*waitPeriod:       1066"                 ,
-      "AFNI*help*fontList:         9x15bold=charset1"    ,
-      "AFNI*cluefont:              9x15bold"             , /* for popup */
-      "AFNI*bigtext*fontList:      10x20=charset1"       , /* hints */
-      "AFNI*help*cancelWaitPeriod: 333"                  ,
-#if 0
-      "AFNI*clustA*fontList:       9x15bold=charset1"    , /* for Clusterize */
-      "AFNI*clustB*fontList:       9x15bold=charset1"    ,
-      "AFNI*clustA*background:     gray28"               ,
-      "AFNI*clustB*background:     gray1"                ,
-      "AFNI*clustA*foreground:     yellow"               ,
-      "AFNI*clustB*foreground:     white"                ,
-#endif
-
-      "AFNI*XmList.translations: #augment"                /* 24 Feb 2007 */
-           "<Btn4Down>: ListPrevItem()\\n"                /* for scrollwheel */
-           "<Btn5Down>: ListNextItem()"                  ,
-
-      "AFNI*XmText.translations: #augment"
-           "<Btn4Down>: previous-line() scroll-one-line-down()\\n"
-           "<Btn5Down>: next-line() scroll-one-line-up()"          ,
-#if 0
-      "AFNI*XmScrollBar.translations: #augment"
-           "<Btn4Down>: IncrementUpOrLeft(0) IncrementUpOrLeft(1)\\n"
-           "<Btn5Down>: IncrementDownOrRight(1) IncrementDownOrRight(0)" ,
-#endif
-
-   NULL } ;
-
-/* The trick to using multiple Xt translations in the fallback resources
-   above is to separate them not with '\n' but with '\\n'.  Ugghhhhhhh.  */
-
 /*-----------------------------------------------------------------------*/
 /* Signal handler for fatal errors; prints out some info before death. */
 
@@ -1375,7 +1689,6 @@ void AFNI_sigfunc_alrm(int sig)
 #undef  NMSG
 #define NMSG (sizeof(msg)/sizeof(char *))
    static char *msg[] = {
-     "All suspicion points to a Frost-Bellgowan conspiracy"          ,
      "Farewell, my friend"                                           ,
      "Farewell?  A long farewell to all my greatness"                ,
      "Sweet is the memory of distant friends"                        ,
@@ -1461,6 +1774,11 @@ void AFNI_sigfunc_alrm(int sig)
      "When life looks like Easy Street, there is danger at your door",
      "Like the morning sun I come, like the wind I go"               ,
      "What I want to know is, where does the time go?"               ,
+     "Every silver lining's got a touch of grey"                     ,
+     "A friend of the devil is a friend of mine"                     ,
+     "Well, I ain't often right, but I never been wrong"             ,
+     "If the horse don't pull, you got to carry the load"            ,
+     "Hang it up and see what tomorrow brings"                       ,
      "The flower that once has blown, for ever dies"                 ,
      "Drink! for you know not why you go, or where"                  ,
      "Tomorrow we feast with us at home"                             ,
@@ -1479,6 +1797,8 @@ void AFNI_sigfunc_alrm(int sig)
      "We are each our own devil, and make this world our hell"       ,
      "I have nothing to declare except my genius"                    ,
      "In matters of opinion, all my adversaries are insane"          ,
+     "The fewer the facts, the stronger the opinions"                ,
+     "Research is what I'm doing when I don't know what I'm doing"   ,
      "Everything is a matter of opinion: mine matters, yours doesn't",
      "It's not a phase, it's a lifestyle"                            ,
      "Go to Heaven for the climate, Hell for the company"            ,
@@ -1538,8 +1858,12 @@ void AFNI_sigfunc_alrm(int sig)
      "If you have tears, prepare to shed them now"                   ,
      "Man, those solar neutrinos are killing me"                     ,
      "Are you ready for the explosion of Eta Carinae?"               ,
-     "He who will deceive will always fin a willing victim"          ,
+     "He who will deceive will always find a willing victim"         ,
      "How quick come the reasons for approving what we like"         ,
+     "This is your only chance at building a disreputable past"      ,
+     "O Brave New World, that has such software in it"               ,
+     "When I ask for advice, what I really want is an accomplice"    ,
+     "Remember -- You are absolutely unique. Just like everone else" ,
      "Remember -- AFNI is free, but worth at least 1000 times more"  ,
      "Remember -- Nothing is always absolutely so"                   ,
      "Remember -- 90% of everything is cr*p"                         ,
@@ -1556,6 +1880,16 @@ void AFNI_sigfunc_alrm(int sig)
      "Remember -- Memory is long but time is tricky"                 ,
      "Remember -- Men are always willing to believe what they wish"  ,
      "Remember -- What I tell you three times is true"               ,
+     "Remember -- A monad is the same as an endofunctor"             ,
+     "Fools give you reasons, wise men never try"                    ,
+     "People willingly trust the statistics they wish to believe"    ,
+     "Heaven's last best gift, my ever new delight"                  ,
+     "Long is the way and hard, that out of Data leads to Light"     ,
+     "They also serve, who only stand and process data"              ,
+     "Farewell happy software, where joy forever dwells"             ,
+     "He who destroys a good book, destroys reason itself"           ,
+     "Wild above rule or art, enormous bliss"                        ,
+     "Yet from those flames no light, but rather darkness visible"   ,
      "Think of all the beauty around you, and be happy"              ,
      "Experience is a hard teacher, but fools will have no other"    ,
      "By failing to prepare, you are preparing to fail"              ,
@@ -1602,7 +1936,6 @@ void AFNI_sigfunc_alrm(int sig)
      "I hereby declare the Null Hypothesis to be ..... Falsified"    ,
      "I'm sick of thinking about p-values -- how about you?"         ,
      "Did you fail to negate the opposite of the null hypothesis?"   ,
-     "All suspicion points to a Frost-Bellgowan plot"                ,
      "I'd like to live as a poor man with lots of money"             ,
      "Wine is proof that God loves us and wants to see us happy"     ,
      "If two wrongs don't make a right, then try three; then four"   ,
@@ -1653,10 +1986,81 @@ void AFNI_sigfunc_alrm(int sig)
      "When life gives you lemons, throw them right back at it"       ,
      "Happiness isn't good enough for me; I demand euphoria"         ,
      "Judge a person by her questions, rather than her answers"      ,
+     "Be yourself; everyone else is already taken"                   ,
+     "I have not failed; I've just found 10,000 ways that don't work",
+     "Statistics are good, but dark chocolate is better"             ,
+     "After every tempest comes the calm"                            ,
+     "I've got MY story about the brain; what's yours?"              ,
+     "I came, I saw, I got confused"                                 ,
+     "Computers are useless -- they can only give you answers"       ,
 
+     "Returning control of your brain (images) back to yourself"     ,
+     "Returning your endofunctors back to their co-monads"           ,
+     "Returning you from brain-blob land to actual thinking land"    ,
+
+
+     /* This set of quotes is from Paradise Lost,
+        by John Milton (a very very early AFNI user) */
+
+     "With hideous ruin and combustion, down to bottomless perdition"                    ,
+     "The mind and spirit remains invincible"                                            ,
+     "The thought both of lost happiness and lasting pain"                               ,
+     "Clothed with transcendent brightness"                                              ,
+     "All is not lost: the unconquerable will, and courage never to submit or yield"     ,
+     "Too well I see and rue the dire event that hath lost us Heaven"                    ,
+     "Happy state here swallowed up in endless misery"                                   ,
+     "What reinforcement we may gain from hope, if now what resolution from despair"     ,
+     "Farewell happy fields where Joy for ever dwells"                                   ,
+     "The mind is its own place, and itself can make a Heaven of Hell, a Hell of Heaven" ,
+     "No light, but rather darkness visible"                                             ,
+     "Find yourself not lost in loss itself"                                             ,
+     "Through the gloom were seen ten thousand banners rise in the air"                  ,
+     "Let tears such as angels weep burst forth"                                         ,
+     "To set itself in glory above its peers"                                            ,
+     "Hurled headlong flaming from the ethereal sky"                                     ,
+     "Here in the heart of Hell to work in fire"                                         ,
+     "Ceases now to bellow through the vast and boundless deep"                          ,
+     "The seat of desolation, void of light"                                             ,
+     "Left at large to its own dark designs"                                             ,
+     "Whom reason has equalled, force has made supreme above his equals"                 ,
+     "Resume new courage and revive"                                                     ,
+     "After the toil of battle, repose your wearied virtue"                              ,
+     "From eternal splendours flung"                                                     ,
+     "Long is the way and hard, that out of Hell leads up to light"                      ,
+     "Wild above rule or art, enormous bliss"                                            ,
+     "Of what darkness do we dread?"                                                     ,
+     "Free and to none accountable"                                                      ,
+     "Designing or exhorting glorious statisticks"                                       ,
+     "Those thoughts that wander through eternity"                                       ,
+     "Now fiercer by despair"                                                            ,
+     "Celestial Virtues rising will appear"                                              ,
+     "Fit to bear the weight of mightiest monarchies"                                    ,
+     "This horror will grow mild, this darkness will light"                              ,
+     "Whose eye views all things at one view"                                            ,
+     "Thus uplifted high beyond hope"                                                    ,
+
+     /* These are to make it clear that Cox is not to be blamed for ANYTHING */
+
+     "If you have any problems with AFNI, blame goes to ... Mike Beauchamp ;)" ,
+     "If you have any problems with AFNI, blame goes to ... Ziad Saad ;)"      ,
+     "If you have any problems with AFNI, blame goes to ... Pat Bellgowan ;)"  ,
+     "If you have any problems with AFNI, blame goes to ... Kyle Simmons ;)"   ,
+     "If you have any problems with AFNI, blame goes to ... Jerzy Bodurka ;)"  ,
+     "All suspicion points to a Frost-Bellgowan plot"                          ,
+     "All signs points to a Frost-Bellgowan conspiracy"                        ,
+
+     "Math is the only place where truth and beauty mean the same thing"              ,
+     "I may be going to hell in a bucket, but at least I'm enjoying the ride"         ,
+     "Next time, just for fun, I'll toss in some extra blobs in CSF for you"          ,
+     "What do you mean, you don't believe all those clusters in white matter?"        ,
+     "For an extra pumpernickel bagel, I'll put a blob wherever you want it"          ,
+     "I don't know about you, but my amygdala is lighting up like it's on fire"       ,
+     "Will all great Neptune's ocean wash this modeling error from my regression?"    ,
      "Remember -- Screaming is the next best thing to solving a problem"              ,
+     "Remember -- Swearing is almost as good as solving a problem"                    ,
+     "Remember -- Closure operators are monads on preorder categories"                ,
      "Data which passes through so many steps can hardly have much truth left"        ,
-     "One mans' way may be as good as another's, but we all like our own best"        ,
+     "One man's way may be as good as another's, but we all like our own best"        ,
      "Some ideas are so wrong that only an intelligent person could believe them"     ,
      "Life's a lot more fun when you aren't responsible for your actions"             ,
      "I'm not dumb. I just have command of thoroughly useless algorithms"             ,
@@ -1666,6 +2070,7 @@ void AFNI_sigfunc_alrm(int sig)
      "Dreams are true while they last, and do we not live in dreams?"                 ,
      "Have you made your long term (trillion year) research plan yet? Get busy now"   ,
      "Why is 'Gold Standard' used in science? Gold is pretty but almost useless"      ,
+     "The 'Lead Standard' for neuroimaging since 1994"                                ,
      "Oh well, you can always end your paper with 'Further research needed'"          ,
      "It's not true my youth was wild and crazy -- only half of that is true"         ,
      "Not yet quite as powerful as the totalized and integrated mind of Arisia"       ,
@@ -1695,6 +2100,7 @@ void AFNI_sigfunc_alrm(int sig)
      "Three things cannot long be hidden: the Sun, the Moon, and the Truth"           ,
      "May the Dark Side of the Force get lost on the way to your data"                ,
      "The Andromeda Galaxy is on a collision course with us -- be prepared"           ,
+     "Stellar formation will cease in just a trillion years -- what will we do then?" ,
      "We are very user friendly -- we are just selective about who our friends are"   ,
      "May it be a light to you in dark places, when all other lights go out"          ,
      "No in elenath hilar nan had gin -- May the stars shine upon your path"          ,
@@ -1708,9 +2114,14 @@ void AFNI_sigfunc_alrm(int sig)
      "Let us therefore study the incidents of this as philosophy to learn wisdom from",
      "Analyze your data rigorously -- you can fake the conclusions all you want later",
      "O wad some Pow'r the giftie gie us, To see oursels as ithers see us"            ,
+     "One half the world cannot understand the statistics of the other"               ,
 
-     "My name is AFNImandias, Brain of Brains; Look on my Statistics, ye Clever, and despair" ,
-     "Statistically Significant is NOT the same as Significant -- they're not even close"     ,
+     "My name is AFNImandias, Brain of Brains; Look on my Statistics, ye Clever, and Despair" ,
+     "Statistically Significant is NOT the same as Significant -- they're not even similar"   ,
+     "If you drink a liquid that has p=0.06 of being poison, do you feel significantly safe?" ,
+
+     "\n  It is a truth universally acknowledged, that a single scientist\n"
+     "  in possession of a large data collection, is in need of an AFNI."                     ,
 
      "\n  The great thing about the human condition:\n"
      "  No matter how bad it is, it can always get worse"                                     ,
@@ -1740,7 +2151,23 @@ void AFNI_sigfunc_alrm(int sig)
      "  look for more data, think harder, mumble inaudibly, or have a strong drink"           ,
 
      "\n  To be stupid, selfish, and have good health are three requirements\n"
-     "   for happiness; though if stupidity is lacking, all is lost.\n"
+     "  for happiness; though if stupidity is lacking, all is lost"                           ,
+
+     "\n xkcd's translation of p-values into words:\n"
+     "     0.001  = Highly significant\n"
+     "     0.01   = Highly significant\n"
+     "     0.02   = Highly significant\n"
+     "     0.03   = Highly significant\n"
+     "     0.04   = Significant\n"
+     "     0.049  = Significant\n"
+     "     0.050  = Oh cr*p, redo calculations\n"
+     "     0.051  = On the edge of significance\n"
+     "     0.06   = On the edge of significance\n"
+     "     0.07   = Highly suggestive\n"
+     "     0.08   = Highly suggestive\n"
+     "     0.09   = Significant at the p < 0.1 level\n"
+     "     0.099  = Significant at the p < 0.1 level\n"
+     "     > 0.1  = Hey! Look at this interesting subgroup analysis"
    } ;
 #undef NTOP
 #ifdef USE_SONNETS
@@ -2064,11 +2491,88 @@ int main( int argc , char *argv[] )
 
    REPORT_PROGRESS("Initializing: X11");
 
+   /*--- look for -XXX options before starting X11 [24 Mar 2016] ---*/
+
+   process_XXX_options( argc , argv ) ;  /* will set new_FALLback */
+
+   if( new_FALLback != NULL ){  /* if found any -XXX options, merge them */
+     int qq,pp ;
+     xrdb_pg = THD_find_executable("xrdb") ;
+
+     /* can't find xrdb executable ==> merge FALLback strings */
+
+     if( xrdb_pg == NULL ){
+       for( qq=0 ; FALLback[qq] != NULL ; qq++ ){
+         for( pp=0 ; new_FALLback[pp] != NULL ; pp++ ){
+           if( equiv_FALLback( new_FALLback[pp] , FALLback[qq] ) ) break ;
+         }
+         if( new_FALLback[pp] == NULL )
+           ADDTO_FALLback_one(FALLback[qq]) ;
+       }
+       for( qq=0 ; new_FALLback[qq] != NULL ; qq++ )
+         ININFO_message("new_FALLback[%d] = \"%s\"",qq,new_FALLback[qq]) ;
+
+     } else {  /* use xrdb to merge X11 resources */
+
+#define XXXSIZ 4096
+       char *xpg , *xout=NULL ; FILE *fp ;
+       xpg = malloc(strlen(xrdb_pg)+64) ;
+
+       /* get the current resources settings */
+
+       sprintf(xpg,"%s -query",xrdb_pg) ;
+       fp = popen(xpg,"r") ;
+       if( fp != NULL ){
+         xout = (char *)malloc(sizeof(char)*XXXSIZ) ; xout[0] = '\0' ;
+         while( fgets(xout+strlen(xout),XXXSIZ-2,fp) != NULL ){
+           xout = (char *)realloc(xout,sizeof(char)*(strlen(xout)+XXXSIZ)) ;
+         }
+         (void)pclose(fp) ;
+         if( *xout != '\0' ) xrdb_old = xout ;
+       }
+
+       /* set the new ones */
+
+       sprintf(xpg,"%s -override -",xrdb_pg) ;
+       fp = popen( xpg , "w" ) ;
+       if( fp != NULL ){
+         for( pp=0 ; new_FALLback[pp] != NULL ; pp++ )
+           fprintf(fp,"%s\n",new_FALLback[pp]) ;
+         (void)pclose(fp) ;
+       }
+
+       /* don't need new_FALLback any more */
+
+       for( pp=0 ; new_FALLback[pp] != NULL ; pp++ ) free(new_FALLback[pp]) ;
+       free(new_FALLback) ; new_FALLback = NULL ; free(xpg) ;
+#undef XXXSIZ
+     }
+   }
+
+   /*--- now ready to start X11 for true --*/
+
    memset(&MAIN_app, 0, sizeof(MAIN_app)) ;  /* 11 Feb 2009 [lesstif patrol] */
    MAIN_shell = XtVaAppInitialize( &MAIN_app , "AFNI" , NULL , 0 ,
-                                   &argc , argv , FALLback , NULL ) ;
+                                   &argc , argv ,
+                                   (new_FALLback!=NULL)?new_FALLback:FALLback ,
+                                   NULL ) ;
 
    if( MAIN_shell == NULL ) ERROR_exit("Cannot initialize X11") ;
+
+   /* if we used xrdb to set X11 resources, re-set them back to their old
+      state so that other AFNIs don't use these new settings by default   */
+
+   if( xrdb_old != NULL && !XXX_set_default ){  /* 24 Mar 2016 */
+     FILE *fp ; char *xpg ;
+     xpg = malloc(strlen(xrdb_pg)+64) ;
+     sprintf(xpg,"%s -override -",xrdb_pg) ;
+     fp = popen( xpg , "w" ) ;
+     if( fp != NULL ){
+       fprintf(fp,"%s",xrdb_old) ;
+       (void)pclose(fp) ;
+     }
+     free(xpg) ;
+   }
 
    if( DBG_trace == 2 ){                           /* 01 Dec 1999 */
      XSynchronize(XtDisplay(MAIN_shell),TRUE) ;
@@ -2091,6 +2595,7 @@ int main( int argc , char *argv[] )
    PUTENV("AFNI_VIDEO_DELAY","66") ;       /* 20 Aug 2009 */
    PUTENV("AFNI_GRAPH_FADE","YES") ;          /* Apr 2013 */
    PUTENV("AFNI_MPEG_DATASETS","NO") ;        /* Feb 2015 */
+   PUTENV("AFNI_FLASH_VIEWSWITCH","NO") ;  /* 14 Apr 2016 */
 #if 0
    PUTENV("AFNI_PBAR_FULLRANGE","YES") ;   /* 03 Jun 2014 */
 #endif
@@ -2481,6 +2986,8 @@ STATUS("call 14") ;
 
         /*--- Other small and quick startup stuff before AFNI can go ---*/
 
+STATUS("initialize help") ;
+
         MCW_help_CB( MAIN_im3d->vwid->top_shell,NULL,NULL ); /* initialize help */
 
 #if 0
@@ -2492,6 +2999,8 @@ STATUS("call 14") ;
 
         /* initialize hints */
 
+STATUS("initialize hints") ;
+
         GLOBAL_library.hints_on = !AFNI_noenv("AFNI_HINTS") ;
         if( !GLOBAL_library.hints_on ) MCW_hint_toggle() ;
 
@@ -2501,6 +3010,8 @@ STATUS("call 14") ;
 
         /* Feb 1998: setup write compression from environment */
         /*           (read de-compression always works)       */
+
+STATUS("initialize compression mode (if any)") ;
 
         ii = THD_enviro_write_compression() ;
         if( ii >= 0 && ii <= COMPRESS_LASTCODE ){
@@ -2518,10 +3029,14 @@ STATUS("call 14") ;
         if( GLOBAL_argopt.layout_fname != NULL &&
             MAIN_im3d->type == AFNI_3DDATA_VIEW   ){
 
+STATUS("start user's layout timer") ;
+
           (void) XtAppAddTimeOut( MAIN_app , 123 ,
                                   AFNI_startup_layout_CB , GLOBAL_argopt.layout_fname ) ;
 
         } else if (MAIN_im3d->type == AFNI_3DDATA_VIEW){ /* ZSS Dec 02 2010. */
+
+STATUS("start default layout timer") ;
 
           (void) XtAppAddTimeOut( MAIN_app , 123 ,
                                   AFNI_startup_layout_CB ,
@@ -2534,12 +3049,16 @@ STATUS("call 14") ;
         if( GLOBAL_argopt.script_fname != NULL &&
             MAIN_im3d->type == AFNI_3DDATA_VIEW   ){
 
+STATUS("start script timeout") ;
+
           (void) XtAppAddTimeOut( MAIN_app , 246 ,
                                   AFNI_startup_script_CB , GLOBAL_argopt.script_fname ) ;
         }
 
         /* this function will be called 1.666 seconds from now to finalize
            anything else that needs fixing up once AFNI is fully started   */
+
+STATUS("start startup timeout") ;
 
         PICTURE_ON(MAIN_im3d) ;
         (void) XtAppAddTimeOut( MAIN_app, 1666, AFNI_startup_timeout_CB, MAIN_im3d ) ;
@@ -2569,7 +3088,7 @@ STATUS("call 14") ;
         }
 
         PUTENV("AFNI_DECONFLICT","OVERWRITE") ; /* 24 Sep 2007 */
-        putenv("AFNI_IS_RUNNING=YES") ;       /* 08 Jun 2007 */
+        putenv("AFNI_IS_RUNNING=YES") ;         /* 08 Jun 2007 */
 
         memplot_topshell_setsaver( ".jpg" , memplot_to_jpg ) ; /* 05 Dec 2007 */
         memplot_topshell_setsaver( ".png" , memplot_to_png ) ;
@@ -2586,6 +3105,8 @@ STATUS("call 14") ;
             REPORT_PROGRESS(msg) ;
           }
         }
+
+STATUS("exit call 14") ;
 
       }
       break ;  /* end of 14th entry case */
@@ -2737,6 +3258,10 @@ ENTRY("AFNI_startup_timeout_CB") ;
 
    /* make sure help window is popped down */
 
+#if 0
+   MCW_help_CB( MAIN_im3d->vwid->top_shell,NULL,NULL ); /* initialize help */
+#endif
+
    MCW_help_CB(NULL,NULL,NULL) ;
 
    /* tell user if any mixed-type datasets transpired [06 Sep 2006] */
@@ -2827,7 +3352,7 @@ ENTRY("AFNI_startup_timeout_CB") ;
              "                                                               \n"
              "++ For general AFNI program help, see the Web page           ++\n"
              "\n"
-             "   https://afni.nimh.nih.gov/afni/doc/program_help/index.html   \n"
+             "   https://afni.nimh.nih.gov/pub/dist/doc/program_help/index.html   \n"
              "%s"
              "\n"
              "++ [To close this message window, left-click inside of it.]  ++\n"
@@ -5417,7 +5942,7 @@ ENTRY("AFNI_read_inputs") ;
 
    /*--- sessions of 3D datasets (from to3d or other AFNI programs) ---*/
 
-   else if( GLOBAL_argopt.read_sessions ){
+   else if( GLOBAL_argopt.read_sessions ){   /*--- the usual method ---*/
 
       char str[256] ;
       Boolean good ;
@@ -5427,8 +5952,12 @@ ENTRY("AFNI_read_inputs") ;
       THD_session *new_ss ;
       int num_dsets=0 ;       /* 04 Jan 2000 */
       THD_session *gss=NULL ; /* 11 May 2002: global session */
-      THD_session *dss ;      /* 28 Aug 2003: session for command-line datasets */
+      THD_session *dss=NULL ; /* 28 Aug 2003: session for command-line datasets */
       THD_3dim_dataset *temp_dset; /* 16 Jul 2010 place holder dummy datasets*/
+
+      THD_session *css=NULL ; /* 02 Jun 2016: catenated sessions */
+      int       do_css=GLOBAL_argopt.cat_sess ;
+      int      num_css=0 ;
 
       /*-- 20 Dec 2001: Try to read a "global" session --*/
       /*-- 11 May 2002: Move read global session up here --*/
@@ -5465,10 +5994,21 @@ ENTRY("AFNI_read_inputs") ;
       dss->type   = SESSION_TYPE ;
       dss->parent = NULL ;
       dss->ndsets = 0;
-      dss->dsrow = NULL;
+      dss->dsrow  = NULL;
       BLANK_SESSION(dss) ;
       MCW_strncpy( dss->sessname , "fromCLI" , THD_MAX_NAME ) ;
       MCW_strncpy( dss->lastname , "fromCLI" , THD_MAX_NAME ) ;
+
+      if( do_css ){  /* catenated sessions [02 Jun 2016] */
+        css         = myXtNew( THD_session ) ;
+        css->type   = SESSION_TYPE ;
+        css->parent = NULL ;
+        css->ndsets = 0;
+        css->dsrow  = NULL;
+        BLANK_SESSION(css) ;
+        MCW_strncpy( css->sessname , "All_Datasets" , THD_MAX_NAME ) ;
+        MCW_strncpy( css->lastname , "All_Datasets" , THD_MAX_NAME ) ;
+      }
 
       /* now get the list of strings to read as directories */
 
@@ -5515,6 +6055,10 @@ STATUS("no args: using ./") ;
 STATUS("normalizing directory list") ;
       qlist = THD_normalize_flist( dlist ) ;
       if( qlist != NULL ){ DESTROY_SARR(dlist); dlist = qlist; }
+
+      if( dlist->num == 1 & css != NULL && gss == NULL ){ /* 02 Jun 2016 */
+        myXtFree(css) ; do_css = 0 ; num_css = 0 ;
+      }
 
       REFRESH ;
 
@@ -5594,6 +6138,12 @@ if(PRINT_TRACING)
              new_ss->warptable = NULL ;
            }
 
+           /* 02 Jun 2016: catenate this session with the css (all datasets) */
+
+           if( do_css ){
+             AFNI_append_sessions( css , new_ss ) ; num_css++ ;
+           }
+
            /* 11 May 2002: put global datasets into session now */
 
            if( new_ss != NULL && gss != NULL )
@@ -5619,10 +6169,13 @@ if(PRINT_TRACING)
 
       }  /*----- end of id loop (over input directory names) -----*/
 
-      /* 28 Aug 2003: if have dataset in session dss, use it */
+      /* 28 Aug 2003: if have datasets in session dss, use it */
 
       if( dss->num_dsset > 0 ){
         if( GLOBAL_library.sslist->num_sess < THD_MAX_NUM_SESSION ){
+          if( do_css ){ /* 02 Jun 2016 */
+            AFNI_append_sessions(css,dss); num_css++;
+          }
           GLOBAL_library.sslist->ssar[(GLOBAL_library.sslist->num_sess)++] = dss ;
           num_dsets += dss->num_dsset ;
           sprintf(str,"\n session #%3d  = %s ==> %d dataset%s" ,
@@ -5638,6 +6191,10 @@ if(PRINT_TRACING)
         free(dss) ;
       }
 
+      if( gss != NULL && do_css ){
+        AFNI_append_sessions(css,gss); num_css++;
+      }
+
       /* 11 May 2002: if have global session but no others, use it */
 
       if( gss != NULL && GLOBAL_library.sslist->num_sess == 0 ){
@@ -5650,6 +6207,17 @@ if(PRINT_TRACING)
         num_dsets += gss->num_dsset ;
 
         REPORT_PROGRESS(str) ;
+      }
+
+      /* add the catenated session list, if nontrivial */
+
+      if( num_css > 1 && GLOBAL_library.sslist->num_sess < THD_MAX_NUM_SESSION ){
+        GLOBAL_library.sslist->ssar[(GLOBAL_library.sslist->num_sess)++] = css ;
+        sprintf(str,"\n Catenated %d sessions = %s has %d datasets" ,
+                num_css , css->sessname , css->num_dsset ) ;
+        REPORT_PROGRESS(str) ;
+      } else {
+        myXtFree(css) ;
       }
 
       /** if nothing read at all, make up a dummy **/
@@ -5711,7 +6279,7 @@ STATUS("reading timeseries files") ;
       /* 10 Feb 2016:broke sometime - allow skipping */
       if(GLOBAL_argopt.read_1D)
          GLOBAL_library.timeseries = THD_get_many_timeseries(qlist);
-      else 
+      else
          GLOBAL_library.timeseries = NULL;
 
 /*      THD_get_many_timeseries( (GLOBAL_argopt.read_1D) ? qlist : NULL ) ;*/
@@ -6392,7 +6960,7 @@ ENTRY("AFNI_time_index_EV") ;
                                                  "\n wouldn't do that! \n "
                                               :  " \n   Why do you "
                                                  "\n torment me so? \n "
-                 , MCW_USER_KILL | MCW_TIMER_KILL ) ;
+                 , MCW_USER_KILL | MCW_QUICK_KILL ) ;
        }
      }
      break ;
@@ -9446,6 +10014,19 @@ STATUS(" -- turning time index control off") ;
    else
      old_func_nvals = -1 ;
 
+   /* DRG 25 Apr 2016  */
+   /*   extra fix for percentile flag not working with warp-on-demand switch views */
+   if(DSET_ONDISK(im3d->fim_now)) {
+     MCW_set_bbox( im3d->vwid->func->perc_bbox ,
+                 (im3d->cont_perc_thr) ? (1) : (0) ) ;
+      SENSITIZE( im3d->vwid->func->perc_bbox->wbut[PERC_AUTOBUT] , TRUE ) ;
+   }
+   else {
+      MCW_set_bbox( im3d->vwid->func->perc_bbox , 0 ) ;
+      im3d->cont_perc_thr = 0;
+      SENSITIZE( im3d->vwid->func->perc_bbox->wbut[PERC_AUTOBUT] , False ) ;
+   }
+
    IM3D_CLEAR_THRSTAT(im3d) ;  /* 12 Jun 2014 */
 
    AFNI_sleep(13) ;             /* 18 Oct 2005: for luck */
@@ -9962,6 +10543,8 @@ static char *last_mnito_string      = NULL ;
 static char *last_sumato_string     = NULL ;
 static char jumpstring[128];                  /* 13 Jun 2014 */
 
+static char *last_jumpto_ijk_olay_string = NULL ;  /* 20 Apr 2016 */
+
 void AFNI_crosshair_pop_CB( Widget w ,
                             XtPointer client_data , XtPointer call_data )
 {
@@ -9984,9 +10567,14 @@ ENTRY("AFNI_crosshair_pop_CB") ;
                         AFNI_jumpto_CB, (XtPointer) im3d ) ;
      EXRETURN ;
    } else if ( w == im3d->vwid->imag->crosshair_jtijk_pb ){
-     MCW_choose_string( im3d->vwid->imag->crosshair_label , "Enter new i j k:" ,
+     MCW_choose_string( im3d->vwid->imag->crosshair_label , "Enter new i j k (UnderLay):" ,
                         last_jumpto_ijk_string ,
                         AFNI_jumpto_ijk_CB , (XtPointer) im3d ) ;
+     EXRETURN ;
+   } else if ( w == im3d->vwid->imag->crosshair_jtijk_olay_pb ){  /* 20 Apr 2016 */
+     MCW_choose_string( im3d->vwid->imag->crosshair_label , "Enter new i j k (OverLay):" ,
+                        last_jumpto_ijk_olay_string ,
+                        AFNI_jumpto_ijk_olay_CB , (XtPointer) im3d ) ;
      EXRETURN ;
    }
 
@@ -10071,8 +10659,17 @@ ENTRY("AFNI_imag_pop_CB") ;
             im3d->type == AFNI_3DDATA_VIEW             ){
 
       if( ISQ_REALZ(seq) ){
-         MCW_choose_string( seq->wbar , "Enter new i j k:" , last_jumpto_ijk_string ,
+         MCW_choose_string( seq->wbar , "Enter new i j k (UnderLay):" , last_jumpto_ijk_string ,
                             AFNI_jumpto_ijk_CB , (XtPointer) im3d ) ;
+      }
+   }
+
+   else if( w == im3d->vwid->imag->pop_jumpto_ijk_olay_pb &&
+            im3d->type == AFNI_3DDATA_VIEW                  ){  /* 20 Apr 2016 */
+
+      if( ISQ_REALZ(seq) ){
+         MCW_choose_string( seq->wbar , "Enter new i j k (OverLay):" , last_jumpto_ijk_olay_string ,
+                            AFNI_jumpto_ijk_olay_CB , (XtPointer) im3d ) ;
       }
    }
 
@@ -10791,6 +11388,33 @@ ENTRY("AFNI_jumpto_thminmax_CB") ;
 }
 
 /*---------------------------------------------------------------------*/
+/* Jump to ijk in Overlay [20 Apr 2016] */
+
+int AFNI_jumpto_ijk_olay( Three_D_View *im3d , int ii, int jj, int kk )
+{
+   THD_dataxes *daxes ;
+
+ENTRY("AFNI_jumpto_ijk_olay") ;
+
+   if( !ISVALID_DSET(im3d->fim_now) ){ BEEPIT; RETURN(-1); }
+
+   daxes = im3d->fim_now->daxes ;
+
+   if( ii >= 0 && ii < daxes->nxx &&
+       jj >= 0 && jj < daxes->nyy && kk >= 0 && kk < daxes->nzz ){
+
+      THD_fvec3 fv ;
+      SAVE_VPT(im3d) ;
+
+      fv = THD_3dind_to_dicomm_no_wod( im3d->fim_now , TEMP_IVEC3(ii,jj,kk) ) ;
+      RETURN( AFNI_jumpto_dicom_OLD( im3d , fv.xyz[0], fv.xyz[1], fv.xyz[2] ) ) ;
+   }
+
+   BEEPIT ; WARNING_message("Jumpto IJK (OL) failed -- bad indexes?!") ;
+   RETURN(-1) ;
+}
+
+/*---------------------------------------------------------------------*/
 
 void AFNI_jumpto_ijk_CB( Widget w , XtPointer cd , MCW_choose_cbs *cbs )
 {
@@ -10816,6 +11440,38 @@ ENTRY("AFNI_jumpto_ijk_CB") ;
    } else if( nn != 5 ){ BEEPIT; WARNING_message("Jumpto IJK failed -- bad entries?!"); EXRETURN; }
 
    nn = AFNI_jumpto_ijk( im3d , ii,jj,kk ) ;
+   if( nn < 0 ) BEEPIT ;
+
+   RESET_AFNI_QUIT(im3d) ;
+   EXRETURN ;
+}
+
+/*---------------------------------------------------------------------*/
+
+void AFNI_jumpto_ijk_olay_CB( Widget w , XtPointer cd , MCW_choose_cbs *cbs )
+{
+   Three_D_View *im3d = (Three_D_View *) cd ;
+   int ii=-1,jj=-1,kk=-1 ;
+   int nn ;
+   char dum1[32],dum2[32];
+
+ENTRY("AFNI_jumpto_ijk_olay_CB") ;
+
+   if( ! IM3D_VALID(im3d) || im3d->type != AFNI_3DDATA_VIEW ) EXRETURN ;
+   if( cbs->reason != mcwCR_string ) EXRETURN ;  /* error */
+
+   if( last_jumpto_ijk_olay_string != NULL ) free(last_jumpto_ijk_olay_string) ;
+   last_jumpto_ijk_olay_string = strdup(cbs->cval) ;
+
+   nn = sscanf( cbs->cval , "%d%[ ,]%d%[ ,]%d" , &ii,dum1,&jj,dum2,&kk ) ;
+   if( nn > 0 && nn < 3 && ii >= 0 ){
+     nn = ii ;
+     ii = DSET_index_to_ix(im3d->fim_now,nn) ;
+     jj = DSET_index_to_jy(im3d->fim_now,nn) ;
+     kk = DSET_index_to_kz(im3d->fim_now,nn) ;
+   } else if( nn != 5 ){ BEEPIT; WARNING_message("Jumpto IJK failed -- bad entries?!"); EXRETURN; }
+
+   nn = AFNI_jumpto_ijk_olay( im3d , ii,jj,kk ) ;
    if( nn < 0 ) BEEPIT ;
 
    RESET_AFNI_QUIT(im3d) ;

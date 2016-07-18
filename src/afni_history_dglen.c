@@ -49,6 +49,69 @@
 
 
 afni_history_struct dglen_history[] = {
+{ 11, JUL, 2016 , DRG , "3dWarp tta2mni grid dimensions bug" , 
+    MINOR , TYPE_BUG_FIX, 
+    "Ignored grid dimensions in transformation between Talairach to MNI"
+},
+{ 30, JUN, 2016 , DRG , "unWarpEPI.py anat to epi lpc+ZZ cost" , 
+    MINOR , TYPE_BUG_FIX, 
+    "Mistakenly used lpa for anat to epi alignment"
+},
+{ 29, JUN, 2016 , DRG , "align_epi_anat.py flipping identity" , 
+    MINOR , TYPE_BUG_FIX, 
+    "Case of mistaken IDENTITY for check_flip option"
+},
+{ 19, JUN, 2016 , DRG , "align_epi_anat.py dset1/2 deobliquing" , 
+    MICRO , TYPE_BUG_FIX, 
+    "Using dset1/2 terminology forced deobliquing off"
+},
+{ 13, JUN, 2016 , DRG , "3dTstat - single sub-bricks" , 
+    MINOR , TYPE_NEW_OPT, 
+    "For datasets with only a single sub-brick, 3dTstat would exit\n"
+    "with an error for many statistics. The new behavior makes the\n"
+    "program use the first value of the time series instead. Some other\n"
+    "requested statistics like the argmax type stats are now calculated\n"
+    "even for this trivial case. Optionally the user may use\n"
+    "-firstvalue for a statistic"
+},
+{ 3, JUN, 2016 , DRG , "3dQwarp bug" , 
+    MINOR , TYPE_BUG_FIX, 
+    "bug fix in option processing\n"
+    "Fixed wtprefix handling and gridlist option handling (with RCR)"
+},
+{ 16, MAY, 2016 , DRG , "align_epi_anat.py - left/right test" , 
+    MINOR , TYPE_NEW_OPT, 
+    "left/right checking using align_epi_anat.py\n"
+    "flipped datasets go unnoticed even in major publicly available\n"
+    "databases (initially noted by Brad Buchsbaum with FCON1000).\n"
+    "Now automatically determine mismatch in L/R with simple test\n"
+    "New -check_flip and -flip_giant options check alignment against\n"
+    "flipped data."
+},
+
+{ 3, MAY, 2016 , DRG , "whereami - atlas queries" , 
+    MICRO , TYPE_BUG_FIX, 
+    "Removing structures that are all numbers was breaking atlas label queries"
+},
+
+{ 3, MAY, 2016 , DRG , "@Atlasize no voxel regions" , 
+    MICRO , TYPE_NEW_OPT, 
+    "Skip structures with no voxels",
+    "New -skip_novoxels option in @Atlasize and @MakeLabelTable"
+},
+{ 25, APR, 2016 , DRG , "afni GUI perc threshold flag" , 
+    MICRO , TYPE_BUG_FIX, 
+    "percentile thresholding didn't work properly with warp-on-demand between views"
+},
+
+{ 19, APR, 2016 , DRG , "unWarpEPI.py" , 
+    MINOR , TYPE_NEW_PROG, 
+    "blip-up/down distortion correction script"
+},
+{ 7, MAR, 2016 , DRG , "align_epi_anat.py" , 
+    MINOR , TYPE_BUG_FIX, 
+    "fixed edge option change using too small neighborhood size"
+},
 { 10, FEB, 2016 , DRG , "afni" , 
     MICRO , TYPE_BUG_FIX, 
     "fixed ignoring of -no1D option, and 1D files are not read on input"

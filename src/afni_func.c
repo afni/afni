@@ -3033,7 +3033,8 @@ static char *dset_choice[] = { "Session" , "Underlay" , "Overlay" , "Dataset" } 
 
 /** max size of strings in the list **/
 
-#define STRLIST_SIZE (THD_MAX_PREFIX+64)
+#define STRLIST_SIZE      (THD_MAX_PREFIX+256)
+#define MAX_SESSTRAIL_LEN 48
 
 void AFNI_choose_dataset_CB( Widget w , XtPointer cd , XtPointer cb )
 {
@@ -3049,6 +3050,8 @@ void AFNI_choose_dataset_CB( Widget w , XtPointer cd , XtPointer cb )
    int is_other = 0 ;       /* 18 Dec 2007 */
    void (*cbfun)(Widget,XtPointer,MCW_choose_cbs *)=AFNI_finalize_dataset_CB;
    THD_3dim_dataset *temp_dset=NULL;
+   int sesstrail = (strcmp(im3d->ss_now->sessname,"All_Datasets")==0) ;
+   char *st=NULL , sst[STRLIST_SIZE+1] ;
 
 ENTRY("AFNI_choose_dataset_CB") ;
 
@@ -3132,7 +3135,15 @@ ENTRY("AFNI_choose_dataset_CB") ;
 
          if( vv <= LAST_VIEW_TYPE ){
             llen = strlen( temp_dset->dblk->diskptr->prefix ) ;
-            ltop = MAX( ltop , llen ) ;
+            if( sesstrail ){
+              st = THD_trailname(temp_dset->dblk->diskptr->directory_name,1) ;
+              if( st != NULL ){
+                if( strlen(st) > MAX_SESSTRAIL_LEN )
+                  st += (strlen(st)-MAX_SESSTRAIL_LEN) ;
+                llen += strlen(st) ;
+              }
+            }
+            if( llen > ltop ) ltop = llen ;
          }
       }
       ltop = MIN(ltop,STRLIST_SIZE-24) ;  /* 06 Aug 2002 */
@@ -3144,8 +3155,17 @@ ENTRY("AFNI_choose_dataset_CB") ;
          }
 
          if( vv <= LAST_VIEW_TYPE ){
-              sprintf( strlist[ii] , "%-*s" ,
-                  ltop,temp_dset->dblk->diskptr->prefix ) ;
+            if( sesstrail ){
+              st = THD_trailname(temp_dset->dblk->diskptr->directory_name,1) ;
+              if( st != NULL ){
+                if( strlen(st) > MAX_SESSTRAIL_LEN )
+                  st += (strlen(st)-MAX_SESSTRAIL_LEN) ;
+              }
+            } else {
+              st = "\0" ;
+            }
+            strcpy(sst,st) ; strcat(sst,temp_dset->dblk->diskptr->prefix) ;
+            sprintf( strlist[ii] , "%-*s" , ltop,sst ) ;
 
             strcat( strlist[ii] , " [" ) ;
             strcat( strlist[ii] , DSET_PREFIXSTR(temp_dset) ) ;
@@ -3172,6 +3192,7 @@ ENTRY("AFNI_choose_dataset_CB") ;
 
             if( DSET_in_global_session(temp_dset) )
               strcat( strlist[ii] , "G" ) ;
+
 
          } else {
 #if 1
@@ -3212,6 +3233,7 @@ if( first ){
         dset_list = cs->dset ; if( dset_list == NULL ) EXRETURN ;
         cbfun = cs->cb ; if( cbfun == NULL ) EXRETURN ;
         wpar = w ;
+        /*** sesstrail = 0 ; ***/
       } else {
         if( AFNI_yesenv("AFNI_DATASET_BROWSE") ) browse_select = 1 ;
         wpar = im3d->vwid->view->choose_func_pb ;
@@ -3230,7 +3252,15 @@ if( first ){
         }
         if( ISVALID_DSET(dset) ){
           llen = strlen( dset->dblk->diskptr->prefix ) ;
-          ltop = MAX( ltop , llen ) ;
+          if( sesstrail ){
+            st = THD_trailname(dset->dblk->diskptr->directory_name,1) ;
+            if( st != NULL ){
+              if( strlen(st) > MAX_SESSTRAIL_LEN )
+                st += (strlen(st)-MAX_SESSTRAIL_LEN) ;
+              llen += strlen(st) ;
+            }
+          }
+          if( llen > ltop ) ltop = llen ;
         }
       }
       ltop = MIN(ltop,STRLIST_SIZE-24) ;  /* 06 Aug 2002 */
@@ -3247,8 +3277,17 @@ if( first ){
          }
 
          if( ISVALID_DSET(dset) ){
-           sprintf( strlist[nn] , "%-*s" ,
-                    ltop , dset->dblk->diskptr->prefix ) ;
+           if( sesstrail ){
+             st = THD_trailname(dset->dblk->diskptr->directory_name,1) ;
+             if( st != NULL ){
+               if( strlen(st) > MAX_SESSTRAIL_LEN )
+                 st += (strlen(st)-MAX_SESSTRAIL_LEN) ;
+             }
+           } else {
+             st = "\0" ;
+           }
+           strcpy(sst,st) ; strcat(sst,dset->dblk->diskptr->prefix) ;
+           sprintf( strlist[nn] , "%-*s" , ltop,sst ) ;
 
            strcat( strlist[nn] , " [" ) ;
            strcat( strlist[nn] , DSET_PREFIXSTR(dset) ) ;
@@ -3357,6 +3396,7 @@ ENTRY("AFNI_finalize_dataset_CB") ;
       ss_new = GLOBAL_library.sslist->ssar[new_sess] ;
 
       /* find an anat in new session to match current anat */
+
       temp_dset = GET_SESSION_DSET(ss_new, old_anat, old_view);
       if( ISVALID_3DIM_DATASET(temp_dset) ){  /* are OK */
         new_anat = old_anat ;
@@ -3370,6 +3410,7 @@ ENTRY("AFNI_finalize_dataset_CB") ;
       if( new_anat < 0 ) new_anat = 0 ;  /* use 1st if no match */
 
       /* find a view to fit this chosen anat */
+
       temp_dset = GET_SESSION_DSET(ss_new, new_anat, old_view);
       if( ISVALID_3DIM_DATASET(temp_dset )) { /* are OK */
          new_view = old_view ;
@@ -3574,25 +3615,30 @@ ENTRY("AFNI_finalize_dataset_CB") ;
      /* this stuff is for Adam Thomas -- 18 Oct 2006 */
 
      if( nwarn < 3 )
-       WARNING_message("Forced switch from '%s' to '%s'\a",
-                       VIEW_typestr[old_view] , VIEW_typestr[new_view] ) ;
-     if( nwarn==0 && wcall != NULL ){
-       char str[256] ;
-       sprintf(str," \nForced switch from\n  '%s'\nto\n  '%s'\n ",
-                   VIEW_typestr[old_view] , VIEW_typestr[new_view] ) ;
-       (void)MCW_popup_message( wcall, str, MCW_USER_KILL | MCW_TIMER_KILL ) ;
-     }
+       WARNING_message("Forced switch from '%s' to '%s' [#%d]",
+                       VIEW_typestr[old_view] , VIEW_typestr[new_view] , nwarn+1 ) ;
 
-     if( wcall != NULL && AFNI_yesenv("AFNI_FLASH_VIEWSWITCH") ){
-       for( ii=0 ; ii < 6 ; ii++ ){
-         MCW_invert_widget(im3d->vwid->view->view_bbox->wframe ); RWC_sleep(32);
-         MCW_invert_widget(im3d->vwid->view->view_bbox->wrowcol); RWC_sleep(32);
-         MCW_invert_widget(wcall) ;
-         MCW_invert_widget(im3d->vwid->view->view_bbox->wframe ); RWC_sleep(32);
-         MCW_invert_widget(im3d->vwid->view->view_bbox->wrowcol); RWC_sleep(32);
-         MCW_invert_widget(wcall) ;
+     if( AFNI_yesenv("AFNI_FLASH_VIEWSWITCH") ){
+
+       if( nwarn==0 && wcall != NULL ){
+         char str[256] ;
+         sprintf(str," \nForced switch from\n  '%s'\nto\n  '%s'\n ",
+                     VIEW_typestr[old_view] , VIEW_typestr[new_view] ) ;
+         (void)MCW_popup_message( wcall, str, MCW_USER_KILL | MCW_TIMER_KILL ) ;
+       }
+
+       if( wcall != NULL ){
+         for( ii=0 ; ii < 3 ; ii++ ){
+           MCW_invert_widget(im3d->vwid->view->view_bbox->wframe ); RWC_sleep(16);
+           MCW_invert_widget(im3d->vwid->view->view_bbox->wrowcol); RWC_sleep(16);
+           MCW_invert_widget(wcall) ;
+           MCW_invert_widget(im3d->vwid->view->view_bbox->wframe ); RWC_sleep(16);
+           MCW_invert_widget(im3d->vwid->view->view_bbox->wrowcol); RWC_sleep(16);
+           MCW_invert_widget(wcall) ;
+         }
        }
      }
+
      nwarn++ ;  /* 16 Sep 2009 */
    }
 
@@ -3611,9 +3657,9 @@ ENTRY("AFNI_finalize_dataset_CB") ;
    SHOW_AFNI_READY ;
    FIX_SCALE_SIZE(im3d) ;
 
-   if( old_view != new_view ){            /* ending flash */
+   if( AFNI_yesenv("AFNI_FLASH_VIEWSWITCH") && old_view != new_view ){ /* ending flash */
      BEEPIT ;
-     for( ii=0 ; ii < 8 ; ii++ ){
+     for( ii=0 ; ii < 3 ; ii++ ){
        MCW_invert_widget( im3d->vwid->view->view_bbox->wframe ); RWC_sleep(16);
        MCW_invert_widget( im3d->vwid->view->view_bbox->wrowcol); RWC_sleep(16);
        MCW_invert_widget(wcall) ;
@@ -3903,8 +3949,8 @@ void AFNI_append_sessions( THD_session *ssa , THD_session *ssb )
 
 ENTRY("AFNI_append_sessions") ;
 
-   if( !ISVALID_SESSION(ssa) || !ISVALID_SESSION(ssb) ) EXRETURN ;
-   if( THD_equiv_files(ssa->sessname,ssb->sessname)   ) EXRETURN ;
+   if( !ISVALID_SESSION(ssa) || !ISVALID_SESSION(ssb)  ) EXRETURN ;
+   if( THD_equiv_files(ssa->sessname,ssb->sessname)==1 ) EXRETURN ;
 
    qs = ssa->num_dsset ;
    for( qd=0; qd < ssb->num_dsset && qd+qs < THD_MAX_SESSION_SIZE ; qd++ )
@@ -4548,6 +4594,8 @@ fprintf(stderr,"Enter AFNI_rescan_session_OLD on session index %d\n",sss) ;
 
    if( old_ss == GLOBAL_library.session ) RETURN(0) ;  /* 21 Dec 2001 */
 
+   if( ! THD_is_directory(old_ss->sessname) ) RETURN(0) ; /* 02 Jun 2016 */
+
    /*--- Make sure that the dataset choosers are closed.
          Since these are just instances of the generic strlist
          chooser, and we can't tell what is being chosen just now,
@@ -4609,7 +4657,7 @@ STATUS(old_ss->sessname) ;
    new_ss = THD_init_session( old_ss->sessname ) ;
 
    if( new_ss == NULL || new_ss->num_dsset <= 0 ){
-      fprintf(stderr,"\n*** Fatal error: Rescan of session %s finds nothing!\a\n",
+      fprintf(stderr,"\n*** Fatal error: Rescan of session %s finds nothing!\n",
               old_ss->sessname ) ;
       EXIT(1) ;
    }
@@ -4776,6 +4824,8 @@ fprintf(stderr,"Enter AFNI_rescan_session_NEW on session index %d\n",sss) ;
 
                                      /* can't rescan global session */
    if( old_ss == GLOBAL_library.session ) RETURN(0); /* 21 Dec 2001 */
+
+   if( ! THD_is_directory(old_ss->sessname) ) RETURN(0) ; /* 02 Jun 2016 */
 
    /*--- read in the session again, into a new THD_session struct ---*/
 

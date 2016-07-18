@@ -1230,10 +1230,14 @@ void get_options (int argc, char ** argv, anova_options * option_data)
    }   
 
 
-
       /*----- unknown command -----*/
-      sprintf (message,"Unrecognized command line option: %s\n", argv[nopt]);
+      sprintf (message,"Unrecognized command line option #%d: '%s'\n",
+               nopt, argv[nopt]);
       ERROR_message (message);
+
+      /* show up to 3 prior options             29 Feb 2016 [rickr] */
+      disp_strings(stderr, "-- prior options: ",
+                   argc, argv, nopt-5, nopt-1, " ", 1);
       suggest_best_prog_option(argv[0], argv[nopt]);
       exit(1);
     }
