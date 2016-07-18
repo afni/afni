@@ -46,6 +46,11 @@ static char *elist[] = {
  "0019 10a2" ,  /* GE multi-echo index   */
  "0020 1002" ,  /* Images in Acquisition */
 
+ /*--- The following are for Siemens 3D mosaic images [RCR/DRG 1 Jun 2016] --*/
+
+ "0018 0023" ,  /* ACQ MR Acquisition Type */
+ "0019 100a" ,  /* unnamed MR header num mosaic slices */
+
  /*--- The following are for multi-frame DICOM files [RWC - 02 May 2008] ---*/
 
  "0020 0105" ,  /* Number of temporal positions */
@@ -106,15 +111,18 @@ NULL } ;
 #define E_GE_ME_INDEX                31    /* 15 Aug 2014: GEME sort [rickr] */
 #define E_NIM_IN_ACQ                 32    /* 19 Aug 2014: GE multi-echo sort */
 
-#define E_NUMBER_OF_TIMES            33    /* 02 May 2008 */
-#define E_RS_STUDY_NUM               34    /* 10 Feb 2005: for Imon [rickr] */
-#define E_RS_SERIES_NUM              35
-#define E_INSTANCE_NUMBER            36
-#define E_TIME_INDEX_ID              37
-#define E_TIME_INDEX                 38
-#define E_STACK_INDEX                39
+#define E_MR_ACQ_TYPE                33    /* 01 Jun 2016: Siemens 3D acq */
+#define E_SIEMENS_3D_NSLICES         34    /* 01 Jun 2016: Siemens 3D acq */
 
-#define E_RS_IMAGE_INDEX             40    /* 06 May 2010: for PET [rickr] */
+#define E_NUMBER_OF_TIMES            35    /* 02 May 2008 */
+#define E_RS_STUDY_NUM               36    /* 10 Feb 2005: for Imon [rickr] */
+#define E_RS_SERIES_NUM              37
+#define E_INSTANCE_NUMBER            38
+#define E_TIME_INDEX_ID              39
+#define E_TIME_INDEX                 40
+#define E_STACK_INDEX                41
+
+#define E_RS_IMAGE_INDEX             42    /* 06 May 2010: for PET [rickr] */
 
 
 /*----------------------------------------------------------------------------*/

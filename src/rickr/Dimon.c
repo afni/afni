@@ -136,10 +136,17 @@ static char * g_history[] =
     " 4.12 Aug  3, 2015 [rickr]: \n",
     "      - lost timing info in change to 3D+t (version 4.04, above)\n"
     "      - add it back via new sequence type 3D+timing\n"
+    " 4.13 Mar 24, 2016 [rickr]: \n",
+    "      - added option -use_obl_origin for oblique data\n"
+    "      - run to3d via 'tcsh -x' to see the command\n"
+    " 4.14 Apr 19, 2016 [rickr]: \n",
+    "      - no sorting was incorrectly returning an error\n"
+    " 4.15 Jul  7, 2016 [rickr]: add -order_as_zt: convert tz ordering to zt\n"
+    " 4.16 Jul  8, 2016 [rickr]: add -read_all: remove limit on images read\n"
     "----------------------------------------------------------------------\n"
 };
 
-#define DIMON_VERSION "version 4.12 (August 3, 2015)"
+#define DIMON_VERSION "version 4.16 (July 8, 2016)"
 
 /*----------------------------------------------------------------------
  * Dimon - monitor real-time aquisition of Dicom or I-files
@@ -231,6 +238,8 @@ int       g_num_slices     = 0;  /* num_slices for sort by ZPOSN            */
 #undef IM_IS_AFNI
 #endif
 
+#define IM_IS_APPROX(a,b) ( fabs((a)-(b)) < gD_epsilon )
+
 #define IM_IS_GEMS(ftype)  (ftype == IFM_IM_FTYPE_GEMS5 )
 #define IM_IS_DICOM(ftype) (ftype == IFM_IM_FTYPE_DICOM )
 #define IM_IS_AFNI(ftype)  (ftype == IFM_IM_FTYPE_AFNI )
@@ -310,6 +319,7 @@ int                compare_by_geme( const void * v0, const void * v1 );
 int                compare_by_sindex( const void * v0, const void * v1 );
 static int         copy_dset_data(finfo_t * fp, THD_3dim_dataset * dset);
 static int         copy_image_data(finfo_t * fp, MRI_IMARR * imarr);
+static int         finfo_order_as_zt(param_t * p, finfo_t * flist, int n2sort);
 static int         get_num_suffix( char * str );
 static int         read_afni_image( char *pathname, finfo_t *fp, int get_data);
 static int         read_dicom_image( char *pathname, finfo_t *fp, int get_data);
@@ -964,7 +974,7 @@ int check_one_volume(param_t *p, int bound, int state,
 {
     static int errs=0;
     finfo_t  * fp;
-    float      delta, z_orig, prev_z, dz;
+    float      delta, prev_z, dz;
     int        run0, run1, first, next, last;
     double     zsum;
     int        zcount, start = p->fim_start, testc;
@@ -1046,7 +1056,6 @@ int check_one_volume(param_t *p, int bound, int state,
     /* --- okay, see if we can find a volume --- */
 
     fp = p->fim_o + first;                      /* initialize flist posn  */
-    z_orig = fp->geh.zoff;                   /* note original position */
 
     /* set current values at position (first+1) */
     fp++;
@@ -1545,7 +1554,8 @@ static int make_sorted_fim_list(param_t  * p)
 
    /* apply requested sorting method            15 Aug 2014 [rickr] */
    switch( method ) {
-      default: return; /* UNKNOWN, UNSPEC or NONE: no sorting */
+      /* return SUCCESS on no sort              19 Apr 2016 [rickr] */
+      default: return 0; /* UNKNOWN, UNSPEC or NONE: no sorting */
 
       case IFM_SORT_ACQ_TIME: {
          g_sort_by_atime = 1;
@@ -1572,6 +1582,8 @@ static int make_sorted_fim_list(param_t  * p)
       }
    }
 
+   if( p->opts.order_as_zt ) finfo_order_as_zt(p, fp, n2sort);
+
    /* after sorting, increment starting index to first TO_PROC (or later)
     * image (if not found, fim_start should be left unchanged) */
    fp = p->fim_o + p->fim_start; /* might have changed since first set */
@@ -1595,6 +1607,86 @@ static int make_sorted_fim_list(param_t  * p)
 
    return 0;
 }
+
+/* change order from slice-major (time changes fast, slices slow) to
+ * time-major order (slices change fast, time slow)
+ *
+ * - allocate and free memory to perform the change
+ * - return 0 on success
+ */
+static int finfo_order_as_zt(param_t * p, finfo_t * flist, int n2sort)
+{
+   static int   nentry=0;
+   finfo_t    * fnew;
+   float        zoff;
+   int          nt, ns, iold, inew, tind, ok;
+
+   if( n2sort < 3 ) return 0;
+
+   zoff = flist[0].geh.zoff;
+   for( nt=1; nt < n2sort && IM_IS_APPROX(zoff, flist[nt].geh.zoff); nt++ )
+      /* nada */ ;
+   ns = n2sort / nt;  /* apparent number of slices (truncated ratio) */
+   ok = (p->opts.num_slices == 0) || (p->opts.num_slices == ns);
+   if( ns*nt != n2sort) ok = 0;
+
+   /* debug info */
+   if( gD.level > 0 ) {
+      if( gD.level > 3 || ! ok)
+         fprintf(stderr,"\n++ order_as_zt: have nt=%d, n2sort=%d, ns=%d\n",
+                 nt, n2sort, ns);
+      if( ! ok && p->opts.num_slices != ns )
+         fprintf(stderr,"** order_as_zt: num_slices=%d, but computed ns=%d\n",
+                 p->opts.num_slices, ns);
+      else if( ! ok )
+         fprintf(stderr,"** order_as_zt: (ns=%d*nt=%d = %d) != n2sort %d\n",
+                 ns, nt, ns*nt, n2sort);
+   }
+   
+   /* noting to do? */
+   if( nt < 2 ) return 0;
+
+   /* whine if we try to do things more than once */
+   nentry++;
+   if( nentry > 1 && nentry <= 10 ) {
+      fprintf(stderr,"** warning, entering order_as_zt %d times\n", nentry);
+      if( nentry == 1 && p->max2read > 0 )
+         fprintf(stderr,"   ==> consider using -dicom_org or -read_all\n");
+      if( nentry == 10 )
+         fprintf(stderr,"   no more such warnings will be printed ...\n");
+   }
+
+   /* allocate temporary copy */
+   fnew = (finfo_t *)calloc(n2sort, sizeof(finfo_t));
+   if( !fnew ) {
+      fprintf(stderr,"** failed to allocate %d structs for order_as_zt\n",
+              n2sort);
+      return 1;
+   }
+
+   /* re-order from slice-major to time-major order */
+   tind = 0;  /* saved time index, will go from 0 to nt-1 */
+   inew = 0;  /* new position, will go from 0 to n2sort-1 */
+   while( inew < n2sort ) {
+      for( iold=tind; iold < n2sort; iold+=nt, inew++ ) {
+         fnew[inew] = flist[iold];
+         if( gD.level > 3 ) fprintf(stderr,"   %d -> %d\n", iold, inew);
+      }
+      tind++;
+   }
+
+   if( inew != n2sort )
+      fprintf(stderr,"** order_as_zt: counted %d moves in list of %d\n",
+              inew, n2sort);
+
+   /* move back to original list */
+   memcpy(flist, fnew, n2sort * sizeof(finfo_t));
+
+   free(fnew);
+
+   return 0;
+}
+
 
 /* sort finto_t structs by GE multi-echo index scheme
  *
@@ -2009,7 +2101,6 @@ int compare_finfo_num_suff(const void * v0, const void * v1)
 {
    finfo_t * p0 = (finfo_t *)v0;
    finfo_t * p1 = (finfo_t *)v1;
-   int            by_findex = 0;
 
    /* if states differ, just sort by state (but allow in TO_PROC..TO_READ) */
    if( p0->state != p1->state ) {
@@ -2333,8 +2424,9 @@ static int read_new_images( param_t * p )
    nerrs = 0;
 
    n2read = nfim_in_state(p, p->fim_skip, p->nfim-1, IFM_FSTATE_TO_READ);
+
    if( n2read > 300 && p->max2read <= 0 ) stat = n2read/100;
-   if( stat && (gD.level>1) || (gD.level && stat) )
+   if( stat && gD.level )
       fprintf(stderr,"-- reading %d image files ...  00%%", n2read);
 
    for( index = p->fim_skip; index < p->nfim; index++, fp++ ) {
@@ -2875,6 +2967,11 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
 
             p->opts.gert_outdir = argv[ac];
         }
+        else if ( ! strcmp( argv[ac], "-order_as_zt") )
+        {
+            p->opts.order_as_zt = 1;    /* just note the user option */
+            p->opts.read_all = 1;       /* implied                   */
+        }
         else if ( ! strncmp( argv[ac], "-pause", 6 ) )
         {
             if ( ++ac >= argc )
@@ -2896,9 +2993,13 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
             if ( gD.level == IFM_DEBUG_DEFAULT )
                 gD.level = 0;
         }
-        else if ( ! strncmp( argv[ac], "-quit", 5 ) )
+        else if ( ! strcmp( argv[ac], "-quit" ) )
         {
             p->opts.quit = 1;
+        }
+        else if ( ! strcmp( argv[ac], "-read_all" ) )
+        {
+            p->opts.read_all = 1;       /* just note the option */
         }
         else if ( ! strncmp( argv[ac], "-rev_org_dir", 8 ) )
         {
@@ -3115,7 +3216,7 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
             A->state = ART_STATE_TO_OPEN; /* real-time is open for business */
             p->opts.rt = 1;               /* just note the user option      */
         }
-        else if ( ! strncmp( argv[ac], "-swap", 5 ) )
+        else if ( ! strcmp( argv[ac], "-swap" ) )
         {
             A->swap = 1;                /* do byte swapping before sending  */
             p->opts.swap = 1;           /* just note the user option        */
@@ -3153,6 +3254,10 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
         {
             p->opts.use_slice_loc = 1;
         }
+        else if ( ! strncmp( argv[ac], "-use_obl_origin", 12 ) )
+        {
+            p->opts.use_obl_origin = 1;
+        }
         else if ( ! strncmp( argv[ac], "-zorder", 6 ) )
         {
             if ( ++ac >= argc )
@@ -3174,6 +3279,9 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
        fputs("** -save_errors requires -save_details for file prefix\n",stderr);
        return 1;
     }
+
+    /* apply read_all */
+    if( p->opts.read_all ) p->max2read = -1;
 
     if ( errors > 0 )          /* check for all minor errors before exiting */
     {
@@ -4114,10 +4222,11 @@ static int idisp_param_t( char * info, param_t * p )
             "   nfalloc           = %d\n"
             "   fim_update        = %d\n"
             "   fim_skip          = %d\n"
-            "   fim_start         = %d\n",
+            "   fim_start         = %d\n"
+            "   max2read          = %d\n",
             p->ftype, CHECK_NULL_STR(p->glob_dir),
             p->fnames_done, p->nfim, p->nfalloc, p->fim_update,
-            p->fim_skip, p->fim_start);
+            p->fim_skip, p->fim_start, p->max2read);
 
     return 0;
 }
@@ -4161,6 +4270,7 @@ static int idisp_opts_t( char * info, opts_t * opt )
             "   quit, no_wait      = %d, %d\n"
             "   use_last_elem      = %d\n"
             "   use_slice_loc      = %d\n"
+            "   use_obl_origin     = %d\n"
             "   show_sorted_list   = %d\n"
             "   gert_reco          = %d\n"
             "   gert_filename      = %s\n"
@@ -4172,6 +4282,8 @@ static int idisp_opts_t( char * info, opts_t * opt )
             "   dicom_org          = %d\n"
             "   sort_num_suff      = %d\n"
             "   sort_acq_time      = %d\n"
+            "   order_as_zt        = %d\n"
+            "   read_all           = %d\n"
             "   rev_org_dir        = %d\n"
             "   rev_sort_dir       = %d\n"
             "   save_errors        = %d\n"
@@ -4196,12 +4308,13 @@ static int idisp_opts_t( char * info, opts_t * opt )
             opt->max_quiet_trs, opt->nice, opt->pause,
             opt->sleep_frac, opt->sleep_init, opt->sleep_vol,
             opt->debug, opt->quit, opt->no_wait,
-            opt->use_last_elem, opt->use_slice_loc,
+            opt->use_last_elem, opt->use_slice_loc, opt->use_obl_origin,
             opt->show_sorted_list, opt->gert_reco,
             CHECK_NULL_STR(opt->gert_filename),
             CHECK_NULL_STR(opt->gert_prefix),
             opt->gert_nz, opt->gert_format, opt->gert_exec, opt->gert_quiterr,
             opt->dicom_org, opt->sort_num_suff, opt->sort_acq_time,
+            opt->order_as_zt, opt->read_all,
             opt->rev_org_dir, opt->rev_sort_dir, opt->save_errors,
             CHECK_NULL_STR(opt->flist_file), CHECK_NULL_STR(opt->flist_details),
             CHECK_NULL_STR(opt->sort_method),
@@ -5202,6 +5315,42 @@ printf(
     "\n"
     "        This option is implied by -no_wait.\n"
     "\n"
+    "    -order_as_zt       : change order from -time:tz to -time_zt\n"
+    "\n"
+    "        e.g.  -rev_org_dir\n"
+    "\n"
+    "        Assuming the images are initially sorted in to3d's -time:tz\n"
+    "        order (meaning across images, time changes first and slice\n"
+    "        position changes next, i.e. all time points for the first slice\n"
+    "        come first, then all time points for the next slice), re-order\n"
+    "        the images into the -time:zt order (meaning all slices at the\n"
+    "        first time point come first, then all slices at the next, etc).\n"
+    "        \n"
+    "        Note that -time:zt is the usual order expected with Dimon, since\n"
+    "        it was intended for real-time use (when all slices for a given\n"
+    "        time point come together).\n"
+    "\n"
+    "        This option implies -read_all.\n"
+    "\n"
+    "      * This is a post-sort operation.  Images will be initially sorted\n"
+    "        based on the other options, then they will be shuffled into the\n"
+    "        slice-minor order (volumes of slices grouped over time).\n"
+    "\n"
+    "      * This should probably not be used on a real-time system.\n"
+    "\n"
+    "        See 'to3d -help' for the -time options.\n"
+    "\n"
+    "    -read_all          : read all images at once\n"
+    "\n"
+    "        e.g.  -read_all\n"
+    "\n"
+    "        There is typically a limit on the number of images initially\n"
+    "        read or stored at any one time.  This option is to remove that\n"
+    "        limit.\n"
+    "\n"
+    "        It uses more memory, but is particularly important if sorting\n"
+    "        should be done over a complete image list.\n"
+    "\n"
     "    -rev_org_dir       : reverse the sort in dicom_org\n"
     "\n"
     "        e.g.  -rev_org_dir\n"
@@ -5498,6 +5647,12 @@ printf(
     "                        which has the effect of causing to3d to \n"
     "                        fail rather than come up in interactive\n"
     "                        mode if the input has an error.\n"
+    "\n"
+    "    -use_obl_origin    : if oblique, pass -oblique_origin to to3d\n"
+    "\n"
+    "        This will usually apply a more accurate origin to the volume.\n"
+    "        Maybe this will become the default operation in the future.\n"
+    "\n"
     "  ---------------------------------------------------------------\n"
     "\n"
     "  Author: R. Reynolds - %s\n"
@@ -5678,7 +5833,7 @@ static int create_gert_script( stats_t * s, param_t * p )
 static int create_gert_dicom( stats_t * s, param_t * p )
 {
     opts_t * opts = &p->opts;
-    FILE   * fp, * nfp;                   /* script and name file pointers */
+    FILE   * fp;                          /* script and name file pointers */
     char     script[32] = IFM_GERT_DICOM; /* output script filename */
     char   * sfile;                       /* pointer to script      */
     char     prefixname[32];              /* output prefix          */
@@ -5688,7 +5843,7 @@ static int create_gert_dicom( stats_t * s, param_t * p )
     char     outfile[64];                 /* run files */
     char     TR[16];                      /* for printing TR w/out zeros */
     float    tr;
-    int      num_valid, c, findex, indent=0;
+    int      num_valid, c, indent=0;
     int      first_run = -1, nspaces = 0;
 
     /* If the user did not give a slice pattern string, use the default *
@@ -5825,6 +5980,15 @@ static int create_gert_dicom( stats_t * s, param_t * p )
         if( want_ushort2float )
            fprintf(fp, "%*s     -ushort2float                 \\\n",indent,"");
 
+        /* check -use_obl_origin against oblique   24 Mar 2016 */
+        if( s->oblique ) {
+          if( opts->use_obl_origin ) {
+            fprintf(stderr,"++ oblique data: applying to3d -oblique_origin\n");
+            fprintf(fp,"%*s     -oblique_origin               \\\n",indent,"");
+          } else fprintf(stderr,
+                       "** warning: oblique data, consider -use_obl_origin\n");
+        }
+
         fprintf(fp, "%*s     -@ < %s\n\n", indent, "", outfile);
         if( opts->num_chan > 1 ) fprintf(fp, "end\n\n");
 
@@ -5848,7 +6012,7 @@ static int create_gert_dicom( stats_t * s, param_t * p )
 
     /* and maybe the user wants to actually execute it */
     if( opts->gert_exec ) {
-        sprintf(command, "./%s", sfile);
+        sprintf(command, "tcsh -x %s", sfile);
         system(command);
     }
 
@@ -6194,7 +6358,7 @@ static int create_gert_reco( stats_t * s, opts_t * opts )
 
     /* and maybe the user wants to actually execute it */
     if( opts->gert_exec ) {
-        sprintf(command, "./%s", IFM_GERT_SCRIPT);
+        sprintf(command, "tcsh -x %s", IFM_GERT_SCRIPT);
         system(command);
     }
 
@@ -6209,7 +6373,7 @@ static int create_gert_reco( stats_t * s, opts_t * opts )
 */
 static int show_run_stats( stats_t * s )
 {
-    char * ftypestr, * tstr;
+    char * tstr;
     int c;
 
     if ( s == NULL )
@@ -6218,8 +6382,7 @@ static int show_run_stats( stats_t * s )
         return -1;
     }
 
-    /* note image file type and set type string */
-    ftypestr = get_ftype_str(gP.ftype);
+    /* check image file type */
     
     if ( s->mos_nslices > 1 ) {
        if      ( IM_IS_AFNI(gP.ftype)  ) tstr = "(AFNI volume)";

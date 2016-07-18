@@ -136,9 +136,12 @@ static char * gifti_history[] =
   "1.12 15 June, 2012: make num_dim violation a warning (mris_convert)\n",
   "1.13 17 June, 2015: added gifti_read_image_buf\n"
   "1.14 24 July, 2015: added gifti_rotate_DAs_to_front\n"
+  "1.15 01 March, 2016:\n"
+  "     - gifti_xml.c fix for Windows-style newline characters\n",
+  "     - noticed and fixed by R Vincent\n"
 };
 
-static char gifti_version[] = "gifti library version 1.14, 24 July, 2015";
+static char gifti_version[] = "gifti library version 1.15, 1 March, 2016";
 
 /* ---------------------------------------------------------------------- */
 /*! global lists of XML strings */

@@ -897,15 +897,27 @@ STATUS("making imag->rowcol") ;
       imag->pop_jumpto_ijk_pb =
          XtVaCreateManagedWidget(
             "dialog" , xmPushButtonWidgetClass , imag->popmenu ,
-               LABEL_ARG("Jump to (ijk)") ,
+               LABEL_ARG("Jump to (ijk UL)") ,
                XmNmarginHeight , 0 ,
                XmNtraversalOn , True  ,
                XmNinitialResourcesPersistent , False ,
             NULL ) ;
       XtAddCallback( imag->pop_jumpto_ijk_pb , XmNactivateCallback ,
                      AFNI_imag_pop_CB , im3d ) ;
+
+      imag->pop_jumpto_ijk_olay_pb =  /* 20 Apr 2016 */
+         XtVaCreateManagedWidget(
+            "dialog" , xmPushButtonWidgetClass , imag->popmenu ,
+               LABEL_ARG("Jump to (ijk OL)") ,
+               XmNmarginHeight , 0 ,
+               XmNtraversalOn , True  ,
+               XmNinitialResourcesPersistent , False ,
+            NULL ) ;
+      XtAddCallback( imag->pop_jumpto_ijk_olay_pb , XmNactivateCallback ,
+                     AFNI_imag_pop_CB , im3d ) ;
    } else {
-      imag->pop_jumpto_ijk_pb = NULL ;
+      imag->pop_jumpto_ijk_pb      = NULL ;
+      imag->pop_jumpto_ijk_olay_pb = NULL ;
    }
 
    /*--- mnito button in menu [01 May 2002] ---*/
@@ -1148,6 +1160,8 @@ STATUS("making imag->rowcol") ;
           NULL ) ;
     XtAddCallback( imag->crosshair_dicom_pb , XmNactivateCallback ,
                    AFNI_crosshair_pop_CB , im3d ) ;
+    MCW_register_hint( imag->crosshair_dicom_pb ,
+                       "Show xyz coordinates in DICOM order" ) ;
 
     imag->crosshair_spm_pb =
        XtVaCreateManagedWidget(
@@ -1159,6 +1173,8 @@ STATUS("making imag->rowcol") ;
           NULL ) ;
     XtAddCallback( imag->crosshair_spm_pb , XmNactivateCallback ,
                    AFNI_crosshair_pop_CB , im3d ) ;
+    MCW_register_hint( imag->crosshair_spm_pb ,
+                       "Show xyz coordinates in SPM/FSL order" ) ;
 
     imag->crosshair_ijk_pb =      /* 04 Oct 2010 */
        XtVaCreateManagedWidget(
@@ -1170,6 +1186,8 @@ STATUS("making imag->rowcol") ;
           NULL ) ;
     XtAddCallback( imag->crosshair_ijk_pb , XmNactivateCallback ,
                    AFNI_crosshair_pop_CB , im3d ) ;
+    MCW_register_hint( imag->crosshair_ijk_pb ,
+                       "Show 3D voxel indexes (ijk) instead of xyz" ) ;
 
     imag->crosshair_jtxyz_pb =      /* 01 Aug 2011 */
        XtVaCreateManagedWidget(
@@ -1181,17 +1199,34 @@ STATUS("making imag->rowcol") ;
           NULL ) ;
     XtAddCallback( imag->crosshair_jtxyz_pb , XmNactivateCallback ,
                    AFNI_crosshair_pop_CB , im3d ) ;
+    MCW_register_hint( imag->crosshair_jtxyz_pb ,
+                       "Jump crosshairs to these xyz coordinates" ) ;
 
     imag->crosshair_jtijk_pb =      /* 01 Aug 2011 */
        XtVaCreateManagedWidget(
           "menu" , xmPushButtonWidgetClass , imag->crosshair_menu ,
-             LABEL_ARG("Jump to (ijk)") ,
+             LABEL_ARG("Jump to (ijk UL)") ,
              XmNmarginHeight , 0 ,
              XmNtraversalOn , True  ,
              XmNinitialResourcesPersistent , False ,
           NULL ) ;
     XtAddCallback( imag->crosshair_jtijk_pb , XmNactivateCallback ,
                    AFNI_crosshair_pop_CB , im3d ) ;
+    MCW_register_hint( imag->crosshair_jtijk_pb ,
+                       "Jump to 3D ijk index (UnderLay)" ) ;
+
+    imag->crosshair_jtijk_olay_pb =  /* 20 Apr 2016 */
+       XtVaCreateManagedWidget(
+          "menu" , xmPushButtonWidgetClass , imag->crosshair_menu ,
+             LABEL_ARG("Jump to (ijk OL)") ,
+             XmNmarginHeight , 0 ,
+             XmNtraversalOn , True  ,
+             XmNinitialResourcesPersistent , False ,
+          NULL ) ;
+    XtAddCallback( imag->crosshair_jtijk_olay_pb , XmNactivateCallback ,
+                   AFNI_crosshair_pop_CB , im3d ) ;
+    MCW_register_hint( imag->crosshair_jtijk_olay_pb ,
+                       "Jump to 3D ijk index (OverLay)" ) ;
 
    } /*- end of crosshair_label popup menu -*/
 
@@ -3352,6 +3387,7 @@ STATUS("making func->rowcol") ;
                   AFNI_jumpto_thminmax_CB , im3d ) ;
    MCW_register_hint( func->pbar_jumpto_thmax_pb , "Jumpto OLay thresholded maximum" ) ;
    XtSetSensitive( func->pbar_jumpto_thmax_pb , False ) ;
+   MCW_set_widget_bg( func->pbar_jumpto_thmax_pb , "black" , 0 ) ;
 
    func->pbar_jumpto_thmin_pb =
       XtVaCreateManagedWidget(
@@ -3365,6 +3401,7 @@ STATUS("making func->rowcol") ;
                   AFNI_jumpto_thminmax_CB , im3d ) ;
    MCW_register_hint( func->pbar_jumpto_thmin_pb , "Jumpto OLay thresholded minimum" ) ;
    XtSetSensitive( func->pbar_jumpto_thmin_pb , False ) ;
+   MCW_set_widget_bg( func->pbar_jumpto_thmin_pb , "black" , 0 ) ;
 
    (void) XtVaCreateManagedWidget(
             "dialog" , xmSeparatorWidgetClass , func->pbar_menu ,
@@ -7341,8 +7378,16 @@ int AFNI_reset_func_range_cont(XtPointer *vp_im3d)
    AFNI_inten_bbox_CB( im3d->vwid->func->inten_bbox->wbut[PBAR_MODEBUT] ,
                        (XtPointer)im3d , NULL ) ;
 
-   /* reset perc only */
-   MCW_set_bbox( im3d->vwid->func->perc_bbox , im3d->cont_perc_thr ) ;
+   /* DRG 25 Apr 2016  */
+   /*   extra fix for percentile flag not working with warp-on-demand switch views */
+   /* reset perc only  - only allow for dataset on disk, not warp on demand */
+   if(DSET_ONDISK(im3d->fim_now)) {
+      MCW_set_bbox( im3d->vwid->func->perc_bbox ,
+                 (im3d->cont_perc_thr) ? (1) : (0) ) ;
+   }
+   else
+      MCW_set_bbox( im3d->vwid->func->perc_bbox , 0 ) ;
+
    AFNI_inten_bbox_CB( im3d->vwid->func->perc_bbox->wbut[PERC_AUTOBUT] ,
                        (XtPointer)im3d , NULL ) ;
 
@@ -7648,7 +7693,7 @@ ENTRY("get_3Dview_func_thresh") ;
    if( ! IM3D_VALID(im3d) || ! ISVALID_3DIM_DATASET(im3d->fim_now) )
       RETURN(thresh) ;
 
-   if (im3d->cont_perc_thr) {
+   if ((im3d->cont_perc_thr) && DSET_ONDISK(im3d->fim_now)) {
       thresh = AFNI_thresh_from_percentile(im3d, im3d->vinfo->func_threshold);
       /* INFO_message("In percentile mode %p %d\n"
                       "Still need to put flush action when 'pos' is toggled,\n"

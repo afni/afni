@@ -93,6 +93,7 @@ typedef struct  /* user options */
     int              no_wait;       /* never wait for more data         */
     int              use_last_elem; /* use last element in DICOM images */
     int              use_slice_loc; /* use Slice Loc for zoff           */
+    int              use_obl_origin;/* maybe apply to3d -oblique_origin */
     int              show_sorted_list; /* display sorted list and quit  */
 
     /* GERT_Reco options */
@@ -109,6 +110,8 @@ typedef struct  /* user options */
     int              dicom_org;     /* flag to organize dicom files     */
     int              sort_num_suff; /* flag to sort by numerical suffix */
     int              sort_acq_time; /* flag to sort by acq time         */
+    int              order_as_zt;   /* change tminor to slice minor order */
+    int              read_all;      /* flag to read all images at once  */
     int              rev_org_dir;   /* flag to reverse dicom_org dir    */
     int              rev_sort_dir;  /* flag to reverse glob sort dir    */
     int              save_errors;   /* save details in cases of errors  */

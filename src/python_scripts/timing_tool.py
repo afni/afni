@@ -848,7 +848,7 @@ descriptions of various basis functions, as applied by 3dDeconvolve
 
   BLOCK                 : INVALID
   BLOCK(d)              : stimulus duration d (convolve with d-second boxcar)
-                   peak : peak of 1.0 (for d=1) @ t=4.5, max peak of ~5.4
+                   peak : peak of 1.0 (for d=1) @ t=4.5, max peak of ~5.1
                duration : approx. 15+d seconds
   BLOCK(d,p)            : stimulus duration d, peak p
                    peak : peak = p, @t~=4+d/2
@@ -858,14 +858,14 @@ descriptions of various basis functions, as applied by 3dDeconvolve
   duration modulation - individual stimulus durations included in timing file
 
   dmBLOCK, dmBLOCK(0)   : akin to BLOCK(d), where d varies per stimulus event
-                   peak : see BLOCK(d), maybe dur=peak in [0,1], then max ~5.4
+                   peak : see BLOCK(d), maybe dur=peak in [0,1], then max ~5.1
                duration : see BLOCK(d), approx 15+d seconds
   dmBLOCK(p)      p > 0 : all peaks equal to p, regardless of duration
                           (same as dmUBLOCK(p))
                   p < 0 : same as p=0, or dmBLOCK(0)
 
-  dmUBLOCK, dmUBLOCK(0) : basically equals dmBLOCK/5.4 (so max peak = 1)
-                   peak : d=1:p=1/5.4, to max d=15:p=1 (i.e. BLOCK(d)/5.4)
+  dmUBLOCK, dmUBLOCK(0) : basically equals dmBLOCK/5.1 (so max peak = 1)
+                   peak : d=1:p=1/5.1, to max d=15:p=1 (i.e. BLOCK(d)/5.1)
   dmUBLOCK(p)     p > 0 : all peaks = p, regardless of duration
                           (same as dmBLOCK(p))
                   p < 0 : like p=0, but scale so peak = 1 for dur=|p|
@@ -977,9 +977,11 @@ g_history = """
    2.11 Jan 20, 2015 - allow ',' as married timing separator (with '*')
    2.12 Jun 05, 2015 - added -per_run_file
    2.13 Aug 21, 2015 - start-of-run fix to -multi_timing_to_event_list offsets
+   2.14 Feb 24, 2016 - fix crash in -warn_tr_stats if no timing events
+   2.15 Mar 15, 2016 - help_basis update: max of BLOCK() is ~5.1 (not 5.4)
 """
 
-g_version = "timing_tool.py version 2.13, August 21, 2015"
+g_version = "timing_tool.py version 2.15, March 15, 2015"
 
 
 

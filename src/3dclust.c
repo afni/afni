@@ -495,7 +495,7 @@ int main( int argc , char * argv[] )
       vfim   = DSET_ARRAY(dset,ivfim) ;                            /* ptr to data */
       fimfac = DSET_BRICK_FACTOR(dset,ivfim) ;                     /* scl factor  */
       if( vfim == NULL ){
-        ERROR_message("Cannot access data in dataset %s",argv[iarg]) ;
+        ERROR_message("Cannot access data brick[%d] in dataset %s",ivfim,argv[iarg]) ;
         continue ;
       }
 

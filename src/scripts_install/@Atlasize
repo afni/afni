@@ -7,6 +7,7 @@ set RNS = `3dnewid -fun`
 set log = /tmp/${RNS}.MLT.log
 set ds = `date '+%y%m%d_%H%M'`
 set centeropt = ""
+set skipnovoxopt = ""
 
 if ("$1" == "" || "$1" == '-h' || "$1" == '-help') then
    goto HELP
@@ -59,7 +60,7 @@ if ("$flab" != "IS_ATLAS") then
    @MakeLabelTable -lab_file_delim "$delim"  \
                    -lab_file $flab $iL $iV \
                    -atlas_pointlist keys_${RNS}_ \
-                   -dset $target_dset  $replace $centeropt \
+                   -dset $target_dset  $replace $centeropt $skipnovoxopt\
                    -atlas_file $atlas_file $aname \
                    -atlas_description "$adesc"
    if ($status) then
@@ -242,6 +243,11 @@ PARSE:
          set centeropt = "-centers"
          goto CONTINUE
       endif
+
+      if ("$argv[$cnt]" == "-skip_novoxels") then
+         set skipnovoxopt = "-skip_novoxels"
+         goto CONTINUE
+      endif
       
       echo "Error: Option or parameter '$argv[$cnt]' not understood"
       apsearch -popt `basename $0` -word $argv[$cnt]
@@ -350,6 +356,7 @@ echo "                 and allow an overwrite. You could endup with a lot of"
 echo "                 backed volumes and niml files, so you might want to"
 echo "                 to cleanup now and then."
 echo "   -centers:    Add center of mass coordinates to atlas"
+echo "   -skip_novoxels:  Skip regions without any voxels in the dataset"
 echo ""
    @global_parse -gopts_help
 echo ""
@@ -382,7 +389,7 @@ echo "    the new atlas."
 echo ""
 echo "      Case 1.1, dset is already an atlas but it is not in an atlas file"
 echo "                and therefore is not visible from whereami."
-echo "             @Atlasize -dset altas_for_joe.nii"
+echo "             @Atlasize -dset atlas_for_joe.nii"
 echo ""
 echo "    Note: For NIFTI volumes, all changes are made in the header  "
 echo "    extension, so non-AFNI programs should not be bothered by this." 
@@ -396,10 +403,10 @@ echo ""
 echo "         @AfniEnv -set AFNI_SUPP_ATLAS_DIR ~/MyCustomAtlases/"
 echo ""
 echo "    Then:"
-echo "         @Atlasize -space MNI -dset altas_for_all.nii \"
+echo "         @Atlasize -space MNI -dset atlas_for_all.nii \"
 echo "                   -lab_file keys.txt 1 0 -atlas_type G" 
 echo ""
-echo "    In ~/MyCustomAtlases/ you will now find  altas_for_all.nii along "
+echo "    In ~/MyCustomAtlases/ you will now find  atlas_for_all.nii along "
 echo "    along with a modified CustomAtlases.niml file."
 echo ""
 echo "    Launching afni from any directory will make atlas_for_all.nii "

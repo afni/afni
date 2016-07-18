@@ -6,6 +6,7 @@ set stat = 0
 set RNS = `3dnewid -fun`
 set log = /tmp/${RNS}.MLT.log
 set COG = ""
+set SKIPNOVOX = ""
 
 if ("$1" == "") then
    goto HELP
@@ -304,13 +305,20 @@ MAKE_ATLAS_TABLE:
       printf ' ni_form="ni_group">\n\n' >> $labeltable
       foreach n (`count -digits 1 1 $ne[1] 1`)
          set lln = `sed -n ${n}p /tmp/${RNS}.___ult.txt`
+         set cogval = `echo $lln[1] |tr -d \"`
+         if ($SKIPNOVOX) then
+            set count = `3dBrickStat -count -non-zero $target_dset"<$cogval>"` 
+            if("$count" == "0") then
+               echo "WARNING: no voxels at $cogval ($lln[2-]), skipping"
+               continue
+            endif
+         endif
          printf '<ATLAS_POINT\n data_type="atlas_point"\n' >> $labeltable
          printf ' STRUCT="%s"\n VAL=%s\n' "`echo $lln[2-]`" $lln[1] \
                               >> $labeltable
          printf ' OKEY=%s\n' $lln[1] >> $labeltable
          if ($COG) then
             # restricting range to a single value for this label line without quotes
-            set cogval = `echo $lln[1] |tr -d \"`
             set cog = `3dCM $target_dset"<$cogval>"`
             printf ' GYoAR="0"\n COG="%s %s %s"\n' $cog >> $labeltable
          else
@@ -877,6 +885,11 @@ PARSE:
          set COG = 1
          goto CONTINUE
       endif      
+
+      if ("$argv[$cnt]" == "-skip_novoxels") then
+         set SKIPNOVOX = 1
+         goto CONTINUE
+      endif      
       
       echo "Error: Option or parameter '$argv[$cnt]' not understood"
       apsearch -popt `basename $0` -word $argv[$cnt]
@@ -937,6 +950,7 @@ HELP:
 #   echo "                              in DSET" 
    echo "   -centers : Compute center of mass location for each ROI"
    echo "              requires simple blobbish ROIs to work"
+   echo "   -skip_novoxels : Skip regions without voxels"
    echo ""
    echo "   Note that you cannot use the same key for multiple labels."
    echo "   When redundancies occur, the script preserves just one entry."

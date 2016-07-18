@@ -218,7 +218,8 @@ int main( int argc , char *argv[] )
       if( strcmp(argv[nopt],"-voxshift") == 0 ){  /* 21 Sep 2011 */
         if( TS_fset != NULL ) ERROR_exit("Can't use -voxshift twice!") ;
         TS_fset = TS_fset = THD_open_dataset( argv[++nopt] ) ;
-        if( TS_fset == NULL ) TS_syntax("Can't open -voxshift dataset!") ;
+        if( TS_fset == NULL )
+          ERROR_exit("Can't open -voxshift dataset '%s'",argv[nopt]) ;
         DSET_load(TS_fset) ; CHECK_LOAD_ERROR(TS_fset) ;
         nopt++ ; continue ;
       }
@@ -234,7 +235,7 @@ int main( int argc , char *argv[] )
 
       if( strcmp(argv[nopt],"-ignore") == 0 ){  /* 15 Feb 2001 */
          TS_ignore = (int) strtod(argv[++nopt],NULL) ;
-         if( TS_ignore < 0 ) TS_syntax("-ignore value is negative!") ;
+         if( TS_ignore < 0 ) ERROR_exit("-ignore value %d is negative!",TS_ignore) ;
          nopt++ ; continue ;
       }
 
@@ -265,16 +266,16 @@ int main( int argc , char *argv[] )
 
       if( strcmp(argv[nopt],"-TR") == 0 ){
          char * eptr ;
-         if( ++nopt >= argc ) TS_syntax("-TR needs an argument!") ;
+         if( ++nopt >= argc ) ERROR_exit("-TR needs an argument!") ;
          TS_TR = strtod( argv[nopt] , &eptr ) ;
-         if( TS_TR <= 0.0 ) TS_syntax("illegal value after -TR!") ;
+         if( TS_TR <= 0.0 ) ERROR_exit("illegal value '%s' after -TR!",argv[nopt]) ;
 
-         if( strcmp(eptr,"ms")==0 || strcmp(eptr,"msec")==0 ){
+         if( strcasecmp(eptr,"ms")==0 || strcasecmp(eptr,"msec")==0 ){
             TS_tunits = UNITS_MSEC_TYPE ;
-            WARNING_message("TR expressed in milliseconds is deprecated.") ;
-         } else if( strcmp(eptr,"s")==0 || strcmp(eptr,"sec")==0 ){
+            WARNING_message("TR expressed in milliseconds is deprecated [not wanted].") ;
+         } else if( strcasecmp(eptr,"s")==0 || strcasecmp(eptr,"sec")==0 ){
             TS_tunits = UNITS_SEC_TYPE ;
-         } else if( strcmp(eptr,"Hz")==0 || strcmp(eptr,"Hertz")==0 ){
+         } else if( strcasecmp(eptr,"Hz")==0 || strcasecmp(eptr,"Hertz")==0 ){
             TS_tunits = UNITS_HZ_TYPE ;
          }
 
@@ -282,43 +283,44 @@ int main( int argc , char *argv[] )
       }
 
       if( strcmp(argv[nopt],"-tzero") == 0 ){
-         if( ++nopt >= argc ) TS_syntax("-tzero needs an argument!") ;
+         if( ++nopt >= argc ) ERROR_exit("-tzero needs an argument!") ;
          TS_tzero = strtod( argv[nopt] , NULL ) ;
-         if( TS_tzero < 0.0 ) TS_syntax("illegal value after -tzero!") ;
+         if( TS_tzero < 0.0 ) ERROR_exit("illegal value '%s' after -tzero!",argv[nopt]) ;
          nopt++ ; continue ;
       }
 
       if( strcmp(argv[nopt],"-slice") == 0 ){
-         if( ++nopt >= argc ) TS_syntax("-slice needs an argument!") ;
+         if( ++nopt >= argc ) ERROR_exit("-slice needs an argument!") ;
          TS_slice = strtod( argv[nopt] , NULL ) ;
-         if( TS_slice < 0 ) TS_syntax("illegal value after -slice!") ;
+         if( TS_slice < 0 ) ERROR_exit("illegal value '%s' after -slice!",argv[nopt]) ;
          nopt++ ; continue ;
       }
 
       if( strcmp(argv[nopt],"-prefix") == 0 ){
-         if( ++nopt >= argc ) TS_syntax("-prefix needs an argument!") ;
+         if( ++nopt >= argc ) ERROR_exit("-prefix needs an argument!") ;
          MCW_strncpy( TS_prefix , argv[nopt] , THD_MAX_NAME ) ;
-         if( !THD_filename_ok(TS_prefix) ) TS_syntax("illegal value after -prefix") ;
+         if( !THD_filename_ok(TS_prefix) )
+           ERROR_exit("illegal value '%s' after -prefix",argv[nopt]) ;
          nopt++ ; continue ;
       }
 
       if( strcmp(argv[nopt],"-rlt") == 0 ){
-         if( !TS_detrend ) TS_syntax("cannot use both -rlt and -no_detrend");
+         if( !TS_detrend ) ERROR_exit("cannot use both -rlt and -no_detrend");
          TS_rlt = 1 ;
          nopt++ ; continue ;
       }
 
       if( strcmp(argv[nopt],"-rlt+") == 0 ){
-         if( !TS_detrend ) TS_syntax("cannot use both -rlt+ and -no_detrend");
+         if( !TS_detrend ) ERROR_exit("cannot use both -rlt+ and -no_detrend");
          TS_rlt = 2 ;
          nopt++ ; continue ;
       }
 
       if( strcmp(argv[nopt],"-no_detrend") == 0 ){ /* 3 Jan 2007 */
-         if( TS_rlt ) TS_syntax("cannot use both -rlt and -no_detrend");
+         if( TS_rlt ) ERROR_exit("cannot use both -rlt and -no_detrend");
          if( SHIFT_get_method() == MRI_FOURIER ){
-            fprintf(stderr,"found -no_detrend, changing default to -heptic\n");
-            SHIFT_set_method(MRI_HEPTIC);
+            ERROR_exit("found -no_detrend, changing default to -heptic\n");
+                       SHIFT_set_method(MRI_HEPTIC);
          }
          TS_detrend = 0 ;
          TS_rlt = 2 ;        /* still de-mean/re-mean, as Bob suggests */
@@ -326,7 +328,7 @@ int main( int argc , char *argv[] )
       }
 
       if( strcmp(argv[nopt],"-tpattern") == 0 ){
-         if( ++nopt >= argc ) TS_syntax("-tpattern needs an argument!") ;
+         if( ++nopt >= argc ) ERROR_exit("-tpattern needs an argument!") ;
          TS_tpattern = argv[nopt] ;
          nopt++ ; continue ;
       }
@@ -340,10 +342,10 @@ int main( int argc , char *argv[] )
 
    /*- open dataset; extract values, check for errors -*/
 
-   if( nopt >= argc ) TS_syntax("Need a dataset input?!") ;
+   if( nopt >= argc ) ERROR_exit("Need a dataset input?!") ;
    if( TS_verbose ) printf("++ opening input dataset header\n") ;
    TS_dset = THD_open_dataset( argv[nopt] ) ;
-   if( TS_dset == NULL ) TS_syntax("Can't open input dataset!") ;
+   if( TS_dset == NULL ) ERROR_exit("Can't open input dataset '%s'",argv[nopt]) ;
 
    nxx = DSET_NX(TS_dset) ;                      /* get dimensions */
    nyy = DSET_NY(TS_dset) ; nxy = nxx * nyy ;
@@ -355,9 +357,9 @@ int main( int argc , char *argv[] )
      TS_copy_input_to_output() ;
    }
 
-   if( TS_slice >= nzz ) TS_syntax("-slice value is too large") ;
+   if( TS_slice >= nzz ) ERROR_exit("-slice value is too large (%d >= %d)",TS_slice,nzz) ;
 
-   if( TS_ignore > ntt-5 ) TS_syntax("-ignore value is too large") ;
+   if( TS_ignore > ntt-5 ) ERROR_exit("-ignore value %d is too large",TS_ignore) ;
 
    if( TS_TR <= 0.0 ){                                    /* set TR from dataset */
       if( TS_dset->taxis != NULL ){
@@ -377,7 +379,7 @@ int main( int argc , char *argv[] )
      if( nxx != DSET_NX(TS_fset) ||
          nyy != DSET_NY(TS_fset) ||
          nzz != DSET_NZ(TS_fset)   )
-       TS_syntax("-voxshift and input datasets don't match!") ;
+       ERROR_exit("-voxshift and input datasets don't match!") ;
 
    } else {
 
@@ -440,11 +442,12 @@ int main( int argc , char *argv[] )
    if( TS_verbose ) printf("++ copying input dataset bricks\n") ;
 
    TS_oset = EDIT_full_copy( TS_dset , TS_prefix ) ;
-   if( TS_oset == NULL ) TS_syntax("Can't copy input dataset!") ;
+   if( TS_oset == NULL )
+     ERROR_exit("Can't copy input dataset '%s'",DSET_HEADNAME(TS_dset)) ;
    DSET_unload( TS_dset ) ;
 
    if( THD_deathcon() && THD_is_file(DSET_HEADNAME(TS_oset)) )
-     TS_syntax("output dataset already exists!") ;
+     ERROR_exit("output dataset already exists '%s'",DSET_HEADNAME(TS_oset)) ;
 
    tross_Copy_History( TS_dset , TS_oset ) ;
    tross_Make_History( "3dTshift" , argc,argv , TS_oset ) ;
@@ -606,9 +609,9 @@ static void TS_copy_input_to_output(void)
 {
    WARNING_message("==>> output dataset is just a copy of input dataset") ;
    TS_oset = EDIT_full_copy( TS_dset , TS_prefix ) ;
-   if( TS_oset == NULL ) TS_syntax("Can't copy input dataset!") ;
+   if( TS_oset == NULL ) ERROR_exit("Can't copy input dataset '%s'",DSET_HEADNAME(TS_dset)) ;
    DSET_unload( TS_dset ) ;
    DSET_write( TS_oset ) ;
-   if( TS_verbose ) fprintf(stderr,"++ Wrote output: %s\n",DSET_BRIKNAME(TS_oset)) ;
+   if( TS_verbose ) INFO_message("Wrote output: %s",DSET_HEADNAME(TS_oset)) ;
    exit(0) ;
 }

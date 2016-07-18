@@ -12,6 +12,8 @@ static char *x11_vcl[] =  { "StaticGray"  , "GrayScale" , "StaticColor" ,
 
 MCW_DC *first_dc = NULL ;              /* 26 Jun 2003 */
 
+int npane_big = 256 ;                  /* 06 May 2016 */
+
 /*------------------------------------------------------------------------
   Returns position of highest set bit in 'ul' as an integer (0-31),
   or returns -1 if no bit is set.

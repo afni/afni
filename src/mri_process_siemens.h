@@ -18,7 +18,7 @@ int process_siemens_mosaic(
         Siemens_extra_info * Sinfo, char ** Sstr, char ** epos,
         char * fname, int assume, int nx, int ny, int nz);
 
-int get_siemens_extra_info(char *str, Siemens_extra_info *mi) ;
+int get_siemens_extra_info(char *str, Siemens_extra_info *mi, char ** epos) ;
 
 
 int read_mosaic_data(FILE *fp, MRI_IMAGE *im, MRI_IMARR *imar,

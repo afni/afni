@@ -1,5 +1,7 @@
 #include "mrilib.h"
 
+#include "debugtrace.h"
+
 #include <sys/file.h>
 
 /******************************************************************************
@@ -49,6 +51,7 @@ int AFNI_logger( char *pname , int argc , char **argv )
    if( argc > 1 ) cline = tross_commandline( pname , argc , argv ) ;
    else           cline = strdup(pname) ;
    if( cline == NULL ) return -1 ;
+   DBG_commandline = strdup(cline) ; /* 10 Mar 2016 */
    cdate = tross_datetime() ;
    fn = AFMALL(char,  strlen(eh)+strlen(logfile)+8) ;
    strcpy(fn,eh) ; strcat(fn,"/") ; strcat(fn,logfile) ;
