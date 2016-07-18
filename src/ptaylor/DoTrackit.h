@@ -1,6 +1,9 @@
 #ifndef _DOTRACKIT_HEADER_
 #define _DOTRACKIT_HEADER_
 
+#include <gsl/gsl_randist.h>
+#include <gsl/gsl_rng.h>
+
 #define EPS_V (0.000001) // for eigvec 'vel' to not have badness dividing
 #define CONV (PI/180)
 #define PIo2 (PI/2)

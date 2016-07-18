@@ -10,7 +10,8 @@
    :maxdepth: 3
 
    overview
-   steps_linux
+   steps_linux_ubuntu
+   steps_linux_Fed_RH
    steps_mac
    error_msgs
 

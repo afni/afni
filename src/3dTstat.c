@@ -67,15 +67,19 @@
 
 #define METH_NZSTDEV       39  /* RWC 29 Jul 2015 */
 
-#define MAX_NUM_OF_METHS   40
+#define METH_PERCENTILE    40  /* RWC 05 May 2016 */
+static int perc_val = -666;
+
+#define METH_FIRSTVALUE    41 /* returns the 1st value - to avoid exiting on invalid 1-input-methods */
+#define MAX_NUM_OF_METHS   42
 
 /* allow single inputs for some methods (test as we care to add) */
-#define NUM_1_INPUT_METHODS 4
+#define NUM_1_INPUT_METHODS 12
 static int valid_1_input_methods[NUM_1_INPUT_METHODS]
-           = { METH_MEAN, METH_MAX, METH_MIN, METH_SUM };
-/* maybe add:  METH_ARGMAX, METH_ARGMIN, METH_ARGABSMAX,
-               METH_SUM, METH_ABSSUM, METH_NZMEAN, METH_SUM_SQUARES
-*/
+           = { METH_MEAN, METH_MAX, METH_MIN, METH_SUM,
+               METH_ARGMAX, METH_ARGMIN, METH_ARGABSMAX,METH_SUM,
+               METH_ABSSUM, METH_NZMEAN, METH_SUM_SQUARES, METH_FIRSTVALUE };
+
 
 static int meth[MAX_NUM_OF_METHS]  = {METH_MEAN};
 static int nmeths                  = 0;
@@ -96,7 +100,8 @@ static char *meth_names[] = {
    "Offset"        , "Accumulate"   , "SS"            , "BiwtMidV"    ,
    "ArgMin+1"      , "ArgMax+1"     , "ArgAbsMax+1"   , "CentroMean"  ,
    "CVarInv"       , "CvarInv (NOD)", "ZeroCount"     , "NZ Median"   ,
-   "Signed Absmax" , "L2 Norm"      , "NonZero Count" , "NZ Stdev"
+   "Signed Absmax" , "L2 Norm"      , "NonZero Count" , "NZ Stdev"    ,
+   "Percentile %d" , "FirstValue"
 };
 
 static void STATS_tsfunc( double tzero , double tdelta ,
@@ -152,6 +157,9 @@ void usage_3dTstat(int detail)
  " -max       = compute maximum of input voxels [undetrended]\n"
  " -absmax    = compute absolute maximum of input voxels [undetrended]\n"
  " -signed_absmax = (signed) value with absolute maximum [undetrended]\n"
+ " -percentile P  = the P-th percentile point (0=min, 50=median, 100=max)\n"
+ "                  of the data in each voxel time series.\n"
+ "                  [this option can only be used once!]\n"
  " -argmin    = index of minimum of input voxels [undetrended]\n"
  " -argmin1   = index + 1 of minimum of input voxels [undetrended]\n"
  " -argmax    = index of maximum of input voxels [undetrended]\n"
@@ -184,6 +192,7 @@ void usage_3dTstat(int detail)
  "\n"
  " -centromean = compute mean of middle 50%% of voxel values [undetrended]\n"
  "\n"
+ " -firstvalue = first value in dataset - typically just placeholder\n\n"
  " ** If no statistic option is given, then '-mean' is assumed **\n"
  "\n"
  "Other Options:\n"
@@ -364,6 +373,23 @@ int main( int argc , char *argv[] )
          meth[nmeths++] = METH_MEAN ;
          nbriks++ ;
          nopt++ ; continue ;
+      }
+
+      if( strcasecmp(argv[nopt],"-percentile") == 0 ){ /* 05 May 2016 */
+         if( ++nopt >= argc )
+           ERROR_exit("need argument after option '%s'",argv[nopt-1]) ;
+         if( perc_val >= 0 )
+           ERROR_exit("you can't use option '%s' twice!",argv[nopt-1]) ;
+         perc_val = (int)strtod(argv[nopt],NULL) ;
+         if( perc_val < 0 || perc_val > 100 )
+           ERROR_exit("illegal number '%d' after option '%s'",
+                      perc_val , argv[nopt-1]) ;
+         if( perc_val == 0 )
+           WARNING_message("option '%s 0' is the same as '-min'",argv[nopt-1]) ;
+         if( perc_val == 100 )
+           WARNING_message("option '%s 100' is the same as '-max'",argv[nopt-1]) ;
+         meth[nmeths++] = METH_PERCENTILE ;
+         nbriks++ ; nopt++ ; continue ;
       }
 
       if( strcasecmp(argv[nopt],"-sum") == 0 ){
@@ -647,10 +673,10 @@ int main( int argc , char *argv[] )
       exit(1);
    }
 
-    if (argc < 2) {
-      ERROR_message("Too few options, use -help for details");
-      exit(1);
-    }
+   if (argc < 2) {
+     ERROR_message("Too few options, use -help for details");
+     exit(1);
+   }
 
    /*--- If no options selected, default to single stat MEAN -- KRH ---*/
 
@@ -680,7 +706,7 @@ int main( int argc , char *argv[] )
       ERROR_exit("Time series is of length 0?\n") ;
    }
    else if( DSET_NVALS(old_dset) == 1 || (do_tdiff && DSET_NVALS(old_dset)==2) ) {
-     int methOK, OK = 1;
+     int methOK;
      /* see if each method is valid for nvals == 1 */
      for( methIndex = 0; methIndex < nmeths; methIndex++ ) {
         methOK = 0;
@@ -689,9 +715,11 @@ int main( int argc , char *argv[] )
                 methOK = 1;
                 break;
             }
+            else
+               meth[methIndex] = METH_FIRSTVALUE;
         }
         if( ! methOK )
-           ERROR_exit("Can't use dataset with %d values per voxel!" ,
+           WARNING_message("Using dataset with only %d values per voxel and giving back just the first value!" ,
                       DSET_NVALS(old_dset) ) ;
      }
      /* tell the library function that this case is okay */
@@ -790,6 +818,10 @@ int main( int argc , char *argv[] )
           }
           methIndex++;
           brikIndex += numMultBriks - 1;
+        } else if( meth[methIndex] == METH_PERCENTILE ){ /* 05 May 2016 */
+          char plabel[32] ;
+          sprintf(plabel,meth_names[METH_PERCENTILE],perc_val) ;
+          EDIT_BRICK_LABEL(new_dset, brikIndex, plabel ) ;
         } else {
           EDIT_BRICK_LABEL(new_dset, brikIndex, meth_names[meth[methIndex]]) ;
         }
@@ -877,6 +909,7 @@ static void STATS_tsfunc( double tzero, double tdelta ,
     switch( meth[meth_index] ){
 
       default:
+      case METH_FIRSTVALUE:  val[out_index] = ts[0]; break ; /* placeholder drg 06/13/2016 */
       case METH_MEAN:  val[out_index] = ts_mean  ; break ;
 
       case METH_SUM:   val[out_index] = ts_mean * npts; break; /* 24 Apr 2006 */
@@ -889,6 +922,24 @@ static void STATS_tsfunc( double tzero, double tdelta ,
         val[out_index] = sum;
       }
       break;
+
+      case METH_PERCENTILE:{         /* 05 May 2016 */
+        float* ts_copy; int ii , fi ;
+        ts_copy = (float*)calloc(npts, sizeof(float));
+        memcpy( ts_copy, ts, npts * sizeof(float));
+        qsort_float(npts,ts_copy) ;
+        fi = (perc_val * npts)*0.01f ;
+        ii = (int)fi ; fi = fi - ii ;
+        if( ii >= npts-1 ){                  /* max */
+          val[out_index] = ts_copy[npts-1] ;
+        } else if( ii < 0 ){                 /* should never happen */
+          val[out_index] = ts_copy[0] ;
+        } else {                             /* the usual suspects */
+          val[out_index] = (1.0f-fi)*ts_copy[ii] + fi*ts_copy[ii+1] ;
+        }
+        free(ts_copy) ;
+      }
+      break ;
 
       case METH_L2_NORM:                /* 07 Jan 2013 [rickr] */
       case METH_SUM_SQUARES:{           /* 18 Dec 2008 */

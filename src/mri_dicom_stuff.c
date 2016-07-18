@@ -366,3 +366,8 @@ int disp_dicom_globals(char * mesg)
    return 0;
 }
 
+
+void dicom_debug(int verb_level)
+{
+   g_dicom_ctrl.verb = verb_level;
+}

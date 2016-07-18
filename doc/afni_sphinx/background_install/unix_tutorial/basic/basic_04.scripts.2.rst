@@ -73,8 +73,8 @@ terms are surrounded by quotes, just to group them into a single parameter).
 Backslash characters (``\``)
 ----------------------------
 
-The file `rall_regress` is a simple script with one ``3dDeconvolve`` command
-in it.
+The file `rall_regress` (which was viewed using ``gedit``, just above) is a simple
+script with one ``3dDeconvolve`` command in it.
 
    This is actually one long command.  A ``\`` character (when it is the very
    last character on a line, **including spaces and tabs**) tells the shell

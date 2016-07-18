@@ -67,7 +67,7 @@ int main(int argc, char **argv)
 
    mri_dicom_nohex( 1 ) ;
 
-   while( argv[iarg][0] == '-' ){
+   while( argv[iarg] && argv[iarg][0] == '-' ){
 
      if( strcmp(argv[iarg],"-sexinfo") == 0 ){  /* 23 Dec 2002 */
        do_sin++ ; iarg++ ; continue ;
@@ -111,6 +111,8 @@ int main(int argc, char **argv)
 
      fprintf(stderr,"*** Unknown option: %s\n",argv[iarg]) ; iarg++ ;
    }
+
+   if( iarg == argc ) { fprintf(stderr,"** no input files?\n"); return 0; }
 
    mri_dicom_header_use_printf(do_printf) ;  /* 02 May 2008 */
    mri_dicom_header_show_size_offset(do_length) ; /* 17 Oct 2012 [rickr] */

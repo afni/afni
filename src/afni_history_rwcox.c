@@ -44,6 +44,169 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 14 , JUL , 2016 , RWC , "3dttest++" , MICRO , TYPE_BUG_FIX ,
+   "Fix problem with -resid combined with -clustsim" ,
+   "Program assumed prefix_resid was NIFTI format,"
+   "so just add '.nii' if it does have that already." } ,
+
+ { 8 , JUL , 2016 , RWC , "3dttest++" , MAJOR , TYPE_ENHANCE ,
+   "Extend -clustsim option" ,
+   "Covariates and centering\n"
+   "1- and 2-sided\n"
+   "unpooled and paired\n"
+   "1 sample as well as 2 sample" } ,
+
+ { 6 , JUL , 2016 , RWC , "3dQwarp" , MICRO , TYPE_ENHANCE ,
+   "Allow .jpg or .png file as source/base 'dataset' for 2D warping" ,
+   NULL } ,
+
+ { 21 , JUN , 2016 , RWC , "3dmaskave" , MICRO , TYPE_NEW_OPT ,
+   "Add -perc option for percentile" ,
+   NULL } ,
+
+ { 14 , JUN , 2016 , RWC , "3dREMLfit" , MICRO , TYPE_BUG_FIX ,
+   "Conversion to vector image fails for LARGE datasets" ,
+   "The final step in the conversion to vectim is scanning the data for\n"
+   "floating point errors (NaN, infinity).  If there are more than 2^31-1\n"
+   "voxels, integer overflow caused problems.  Fixed by making the loop\n"
+   "variables in the floatscan functions be size_t, not int.  This problem\n"
+   "certainly lurks elsewhere in AFNI, waiting to pounce on Spaniards." } ,
+
+ { 14 , JUN , 2016 , RWC , "3dBlurInMask" , MINOR , TYPE_NEW_OPT ,
+   "Option -FWHMdset allows specifying per-voxel blurring parameter" ,
+   "For use with 3dLocalACF and scripting.  EXPERIMENTAL!" } ,
+
+ { 9 , JUN , 2016 , RWC , "3dLocalACF" , MINOR , TYPE_NEW_PROG ,
+   "Estimate ACF parameters locally.  Slow and experimental." ,
+   NULL } ,
+
+ { 3 , JUN , 2016 , RWC , "3dQwarp" , MICRO , TYPE_NEW_OPT ,
+   "-wtprefix to save computed weight to dataset" ,
+   NULL } ,
+
+ { 2 , JUN , 2016 , RWC , "afni GUI" , MINOR , TYPE_ENHANCE ,
+   "Creation of All_Datasets session" ,
+   "If more than one session is input or created, then the All_Datasets\n"
+   "session is created as the catenation of all of them.  This will help\n"
+   "people who want to look at data in multiple directories without moving\n"
+   "them together." } ,
+
+ { 24 , MAY , 2016 , RWC , "3dQwarp" , MICRO , TYPE_MODIFY ,
+   "Remove second cubic and quintic iterations at lev=0" ,
+   "Repeating these iterations almost never does any good, and takes up a\n"
+   "fair amount of time." } ,
+
+ { 24 , MAY , 2016 , RWC , "3dUnifize" , MINOR , TYPE_MODIFY ,
+   "Alter default -clfrac value to 0.2" ,
+   "Because old 0.1 default would often have too much noise outside the head\n"
+   "when used with non-skull-stripped datasets.  User can still set '-clfrac\n"
+   "0.1' if needed." } ,
+
+ { 20, MAY , 2016 , RWC , "afni GUI" , MICRO , TYPE_MODIFY ,
+   "alter 'Jumpto OLay Max/Min @Thr' menu button backgrounds to black" ,
+   "Because I find them hard to find; from Hangzhou China - Ni Hao!" } ,
+
+ { 19, MAY , 2016 , RWC , "3dQwarp" , MINOR , TYPE_NEW_OPT ,
+   "-wball = emphasize some (spherical) region in the weighting" ,
+   "Written in Hangzhou China -- for Peng" } ,
+
+ { 17, MAY , 2016 , RWC , "3dUnifize" , MICRO , TYPE_BUG_FIX ,
+   "-ssave option caused a crash :-(" ,
+   "fixed in Hangzhou China" } ,
+
+ { 17, MAY , 2016 , RWC , "3dTshift" , MICRO , TYPE_MODIFY ,
+   "Update error messages to be more informative" ,
+   "To find problem in unWarpEPI.py script - from Hangzhou China" } ,
+
+ { 15, MAY, 2016 , RWC , "3dNwarpApply" , MICRO , TYPE_MODIFY ,
+   "Update error messages yet again (a little)" , NULL } ,
+
+ { 6 , MAY , 2016 , RWC , "afni GUI" , MICRO , TYPE_NEW_OPT ,
+   "-XXXnpane to set number of panes in pbar" ,
+   "For the elusive ZXu, man of many nations." } ,
+
+ { 5 , MAY , 2016 , RWC , "3dTstat" , MICRO , TYPE_NEW_OPT ,
+   "Option -percentile P" ,
+   "Computes the Pth percentile 0 <= P <= 100 of the data in each voxel. \n"
+   "Can only be used once per run!" } ,
+
+ { 4 , MAY , 2016 , RWC , "3dREMLfit" , MICRO , TYPE_BUG_FIX ,
+   "-dsort always produced the _nods dataset; now, only if -nods is used" ,
+   NULL } ,
+
+ { 27 , APR , 2016 , RWC , "afni + 3dGroupInCorr" , MICRO , TYPE_GENERAL ,
+   "Remind user of what to do after 3dGIC connects to afni GUI" ,
+   "This is the Caballero-Rossi popup reminder." } ,
+
+ { 20 , APR , 2016 , RWC , "afni GUI" , MICRO , TYPE_MODIFY ,
+   "new Jumpto IJK for Overlay button" ,
+   "For someone in the Tulsa class :)" } ,
+
+ { 18 , APR , 2016 , RWC , "afni GUI" , MICRO , TYPE_NEW_ENV ,
+   "Open all 3 image viewers by default" ,
+   "New variables AFNI_OPEN_AXIAL (etc.) will turn off axial"
+   "image viwer (etc.) if set to NO -- for LIBR and Tulsa." } ,
+
+ { 14 , APR , 2016 , RWC , "afni GUI" , MICRO , TYPE_MODIFY ,
+   "Make AFNI_FLASH_VIEWSWITCH turn off all obnoxious stuff" ,
+   "For Mr Neon (or is that Dr Neon?)" } ,
+
+ { 8 , APR , 2016 , RWC , "afni GUI" , MICRO , TYPE_NEW_OPT ,
+   "Add '-XXX defaults'" ,
+   NULL } ,
+
+ { 7 , APR , 2016 , RWC , "3dGroupInCorr" , MICRO , TYPE_NEW_ENV ,
+   "AFNI_GIC_DEBUG=YES will cause lots of debugging printouts" ,
+   "For Sharyn and Cesar." } ,
+
+ { 5 , APR , 2016 , RWC , "3dQwarp" , MINOR , TYPE_NEW_OPT ,
+   "fix bug with -5final -- but still hide from user" ,
+   NULL } ,
+
+ { 25 , MAR , 2016 , RWC , "afni GUI" , MINOR , TYPE_NEW_OPT ,
+   "A bunch of '-XXX' options to control colors and fonts" ,
+   NULL } ,
+
+ { 24 , MAR , 2016 , RWC , "afni GUI" , MICRO , TYPE_NEW_OPT ,
+   "Add -XXX option" ,
+   "Moving towards letting user set X11 things (fonts, colors) on the\n"
+   "command line.  Still needs work, but has some functionality now for the\n"
+   "true Jedi AFNI Master." } ,
+
+ { 17 , MAR , 2016 , RWC , "dataset input" , MICRO , TYPE_ENHANCE ,
+   "Input random dataset or 1D file on command line" ,
+   "jRandomDataset:64,64,32,22 creates a random dataset with nx=64, ny=64,\n"
+   "nz=32, and 22 time points.\n"
+   "jRandom1D:128,16 creates a random 1D file with 128 rows and 16 columns.\n"
+   "These are shortcuts for testing programs, which avoid having to create\n"
+   "temporary files via 3dcalc (say).  In other words, these 'inputs' are\n"
+   "testaments to my preference to write C code than do actual work." } ,
+
+ { 17 , MAR , 2016 , RWC , "3dTproject" , MINOR , TYPE_BUG_FIX ,
+   "Fix problem in setting count of bandpass regressors" ,
+   "Typo meant that Nyquist frequency might not be counted properly,\n"
+   "resulting in bad stuff (memory corruption)." } ,
+
+ { 10 , MAR , 2016 , RWC , "debugtrace.h" , MICRO , TYPE_MODIFY ,
+   "Output command line, if available, in crash report" , NULL } ,
+
+ { 8 , MAR , 2016 , RWC , "afni GUI" , MICRO , TYPE_MODIFY ,
+   "Turn Auto-scaling on in graph windows by default" , NULL } ,
+
+ { 8 , MAR , 2016 , RWC , "3dTproject" , MICRO , TYPE_MODIFY ,
+   "Add STATUS calls to 3dTproject for debugging" , NULL } ,
+
+ { 8 , MAR , 2016 , RWC , "3dvolreg" , MICRO , TYPE_MODIFY ,
+   "Default resampling now heptic, not Fourier." , NULL } ,
+
+ { 7 , MAR , 2016 , RWC , "3dDeconvolve" , MICRO , TYPE_MODIFY ,
+   "Double default size of Xmat JPEG file" ,
+   "To avoid losing resolution when looking at TENT designs." } ,
+
+ { 22 , FEB , 2016 , RWC , "debugtrace.c" , MICRO , TYPE_NEW_OPT ,
+   "Colorize WARNING and ERROR message prefixes." ,
+   "Can turn off by setting AFNI_MESSAGE_COLORIZE to NO. For Javier." } ,
+
  { 11 , FEB , 2016 , RWC , "3dGroupInCorr" , MICRO , TYPE_NEW_OPT ,
    "Add -ztest option == test inputs if they are all zero" ,
    "For Cesar." } ,

@@ -1,8 +1,8 @@
 
 .. _install_steps_mac:
 
-*Complete system setup for:  (modern) Mac OS*
-=============================================
+*The essential system setup for:* **Mac OS**
+============================================
 
 
 Here we describe a complete AFNI installation and system setup for Mac
@@ -24,8 +24,8 @@ operating system) to a link to install XQuartz.
 
       .. note:: Admin privileges are needed for package management.
 
-   #. (optional) Set the shell to ``/bin/tcsh``.  This no longer works
-      using the ``chsh ...`` command.
+   #. (optional) Set the shell to ``/bin/tcsh``.  NB: this no longer
+      works using the ``chsh ...`` command.
 
       Under System Preferences : System : Accounts menu, right-click
       on the user to get the Advanced Options menu and change the
@@ -51,26 +51,30 @@ operating system) to a link to install XQuartz.
    Xcode is needed for the gcc compiler and related tools.  XQuartz is
    the desktop manager needed to run X11 programs (such as afni).
 
-   For OS X 10.9 and later, simply run the 2 commands::
+   *  *For OS X 10.9 and later*, simply run the 2 commands::
 
-      xcode-select --install
-      /Applications/Utilities/X11.app
+         xcode-select --install
+         /Applications/Utilities/X11.app
 
-   Otherwise (for OS X versions up through 10.8), it is best to start
-   with the most recent version from the Apple website:
+   *  *Otherwise (for OS X versions up through 10.8)*, it is best to start
+      with the most recent version from the Apple website:
 
-   a. Go to http://developer.apple.com
+      a. Go to http://developer.apple.com
 
-      * Sign up for a login account (necessary for downloading) 
+         * Sign up for a login account (necessary for downloading) 
 
-      * Sign up via "Register as an Apple Developer" (it is free)
+         * Sign up via "Register as an Apple Developer" (it is free)
 
-   #. Get the current "Command Line Tools" package (part of Developer
-      Tools) and install
+      #. Get the current "Command Line Tools" package (part of Developer
+         Tools) and install it
 
-      * current version is 4.6.2
+         * the current version is 4.6.2
 
-      * installation defaults are good, to complete installation
+         * installation defaults are good, to complete installation
+
+      #. Install XQuartz using the "Quick Download" of the DMG file
+         located at http://www.xquartz.org
+
    |
 
 #. **Homebrew installation**
@@ -101,13 +105,15 @@ operating system) to a link to install XQuartz.
 
         brew install pyqt
 
-   #. (only for OS X 10.11, El Capitan) Install gcc with OpenMP support::
+   #. (only for OS X 10.11, El Capitan) Install gcc with OpenMP support,
+      along with glib::
 
         brew install gcc --with-all-languages --without-multilib
         ln -s /usr/local/Cellar/gcc/5.3.0/lib/gcc/5/libgomp.1.dylib /usr/local/lib/libgomp.1.dylib
+        brew install glib
 
 
-#. **AFNI installation**
+#. **Install AFNI**
 
    a. Download and unpack the current binaries into your ``$HOME``
       directory, changing the directory name to ``$HOME/abin/``::
@@ -116,11 +122,17 @@ operating system) to a link to install XQuartz.
         curl -O https://afni.nimh.nih.gov/pub/dist/bin/macosx_10.7_Intel_64/@update.afni.binaries
         tcsh @update.afni.binaries -defaults
 
+     .. note:: if the binary package has already been downloaded, one can use ``-local_package``, followed by the location+name of the binary file, e.g.:
+
+      tcsh @update.afni.binaries -local_package macosx_10.7_Intel_64.tgz -do_extras
+
    #. Update the path and library path.
 
       .. note:: ``DYLD_FALLBACK_LIBRARY_PATH`` does not apply to OS X 10.11, El Capitan
 
-      * *for tcsh* (``$PATH`` in ``~/.cshrc`` was set by ``@update.afni.binaries``)::
+      .. note:: ``$PATH`` in ``~/.cshrc`` and ``~/.bashrc`` was set by ``@update.afni.binaries -do_extras``
+
+      * *for tcsh* ::
 
           echo 'setenv DYLD_FALLBACK_LIBRARY_PATH $HOME/abin' >> ~/.cshrc
           echo 'setenv PYTHONPATH /usr/local/lib/python2.7/site-packages' >> ~/.cshrc
@@ -129,22 +141,11 @@ operating system) to a link to install XQuartz.
 
       * *for bash*::
 
-          echo 'export PATH=/usr/local/bin:$PATH:$HOME/abin' >> ~/.bashrc
+          echo 'export PATH=/usr/local/bin:$PATH' >> ~/.bashrc
           echo 'export DYLD_FALLBACK_LIBRARY_PATH=$HOME/abin' >> ~/.bashrc
           echo 'export PYTHONPATH=/usr/local/lib/python2.7/site-packages' >> ~/.bashrc
           . ~/.bashrc
 
-
-#. **Quick AFNI verification**
-   
-   a. Try it out!  If these start, you should be in good shape::
-
-          afni
-          suma
-          uber_subject.py
-          
-      .. note:: For 10.8 users, when prompted, follow the instructions
-                to install XQuartz.
 
 #. **R installation**
 
@@ -162,70 +163,45 @@ operating system) to a link to install XQuartz.
 
            sudo rPkgsInstall -pkgs ALL
 
+
    .. ---------- HERE/BELOW: copy for all installs --------------
+
+#. **Automatically set up AFNI/SUMA profiles.**
+
+   .. include:: substep_profiles.rst
+
+
+#. **(optional) Prepare for an AFNI Bootcamp.**
+
+   .. include:: substep_bootcamp.rst
+
 
 #. **EVALUATE THE SETUP: an important and useful step in this
    process!**
 
-   a. There is a very useful script to check on your installed AFNI
-      and lots of its dependencies, such as looking for the installed
-      R libraries, profiles, Python stuff, etc. You can run it
+   .. include:: substep_evaluate.rst
 
-      - outputting to the screen::
-       
-          afni_system_check.py -check_all
 
-      - outputting to a text file::
-       
-          afni_system_check.py -check_all > out.afni_system_check.txt
+#. **(optional) Niceifying interfaces: it's a magical terminal.**
 
-      which might be useful to email to your local AFNI Guru if there
-      are any problems. 
+   .. include:: substep_rcfiles.rst
 
-   #. So, at this point, if your "system check" doesn't really give
-      any errors, you're all set to go. If it *did* give some errors,
-      please:
 
-      - check the list of :ref:`known setup issues <install_error_msgs>`;
+#. **Keeping up-to-date (remember).**
 
-      - search on the `Message Board
-        <https://afni.nimh.nih.gov/afni/community/board/>`_, and/or
-        put the error into google;
+   .. include:: substep_update.rst
 
-      - post a question on the aforementioned `Message Board
-        <https://afni.nimh.nih.gov/afni/community/board/>`_.
-   |
 
-#. **Setting up autoprompts for command line options.**
+
+
+.. comment
+
+   #. **Setting up autoprompts for command line options.**
 
    The following is quite useful to be set up help files for
    tab-autocompletion of options as you type AFNI commands.  Run this
    command::
 
      apsearch -update_all_afni_help
-
+      
    and then follow the brief instructions.
-
-#. **Keeping up-to-date.**
-
-   From this point onward, you can easily keep your AFNI uptodate just
-   by running a single command::
-
-     @update.afni.binaries -d
-
-   That's it!! It will automatically download the correct latest
-   version to your computer, replacing your old binaries.  You can
-   always check your version by typing::
-
-     afni -ver
-
-   (And you should always check and report your version if you have
-   questions/comments/etc.)
-
-#. **(optional) Prepare for an AFNI Bootcamp.**
-
-   .. warning::
-      If you are preparing for an AFNI Bootcamp, then please see the
-      :ref:`Bootcamp prep <install_bootcamp>` instructions on downloading
-      the class data.  And have a nice day.
-

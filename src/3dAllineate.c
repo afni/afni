@@ -74,6 +74,8 @@ void AL_setup_warp_coords( int,int,int,int ,
                            int *, float *, mat44,
                            int *, float *, mat44 ) ;             /* prototype */
 
+MRI_IMAGE * mri_identity_params(void);                           /* prototype */
+
 #undef MEMORY_CHECK
 #ifdef USING_MCW_MALLOC
 # define MEMORY_CHECK(mm)                                               \
@@ -1160,12 +1162,12 @@ int main( int argc , char *argv[] )
      /*......................................................................*/
 
      if( argc > 1 &&
-        ( strcmp(argv[1],"-HELP") ==0 ||
-          strcmp(argv[1],"-POMOC")==0 || AFNI_yesenv("AFNI_POMOC") ) ){
+        ( strcasecmp(argv[1],"-HELP") ==0 ||
+          strcmp(argv[1],"-POMOC")==0     || AFNI_yesenv("AFNI_POMOC") ) ){
        printf(
         "\n"
         "===========================================================================\n"
-        "                TOP SECRET HIDDEN OPTIONS (-HELP or -POMOC)\n"
+        "                       FORMERLY SECRET HIDDEN OPTIONS\n"
         "---------------------------------------------------------------------------\n"
         "        ** N.B.: Most of these are experimental! [permanent beta] **\n"
         "===========================================================================\n"
@@ -1279,6 +1281,11 @@ int main( int argc , char *argv[] )
         "                   write them to the 1D file 'q', then exit. (For you, Zman)\n"
         "                  * N.B.: If -fineblur is used, that amount of smoothing\n"
         "                          will be applied prior to the -allcostX evaluations.\n"
+        "                          The parameters are the rotation, shift, scale,\n"
+        "                          and shear values, not the affine transformation\n"
+        "                          matrix. An identity matrix could be provided as\n"
+        "                          \"0 0 0  0 0 0  1 1 1  0 0 0\" for instance or by\n"
+        "                          using the word \"IDENTITY\"\n"
        ) ;
 
        printf("\n"
@@ -1799,10 +1806,14 @@ int main( int argc , char *argv[] )
      if( strcmp(argv[iarg],"-allcostX1D") == 0 ){ /* 02 Sep 2008 */
        MRI_IMAGE *qim ;
        do_allcost = -2 ;
-       qim = mri_read_1D( argv[++iarg] ) ;
-       if( qim == NULL )
-         ERROR_exit("Can't read -allcostX1D '%s' :-(",argv[iarg]) ;
-       allcostX1D = mri_transpose(qim) ; mri_free(qim) ;
+       if(strcmp(argv[++iarg],"IDENTITY") == 0)
+            allcostX1D = mri_identity_params();
+       else {
+          qim = mri_read_1D( argv[iarg] ) ;
+          if( qim == NULL )
+            ERROR_exit("Can't read -allcostX1D '%s' :-(",argv[iarg]) ;
+            allcostX1D = mri_transpose(qim) ; mri_free(qim) ;
+       }
        if( allcostX1D->nx < 12 )
          ERROR_exit("-allcostX1D '%s' has only %d values per row :-(" ,
                     argv[iarg] , allcostX1D->nx ) ;
@@ -2200,7 +2211,8 @@ int main( int argc , char *argv[] )
 
      if( strncmp(argv[iarg],"-source",6) == 0 ||
          strncmp(argv[iarg],"-input" ,5) == 0 ||
-         strncmp(argv[iarg],"-target",7) == 0   ){
+         strncmp(argv[iarg],"-target",7) == 0 ||
+         strncmp(argv[iarg],"-src"   ,4) == 0   ){
        if( dset_targ != NULL ) ERROR_exit("Can't have multiple %s options :-(",argv[iarg]) ;
        if( ++iarg >= argc ) ERROR_exit("no argument after '%s' :-(",argv[iarg-1]) ;
        dset_targ = THD_open_dataset( argv[iarg] ) ;
@@ -5673,6 +5685,24 @@ void AL_setup_warp_coords( int epi_targ , int epi_fe, int epi_pe, int epi_se,
    mri_genalign_affine_set_befafter( &cmat_before , &imat_after ) ;
 
    return ;
+}
+
+/* create MRI_IMAGE Identity parameters (not affine matrix) */
+MRI_IMAGE * mri_identity_params(void)
+{
+
+   MRI_IMAGE *om;
+   float id[] = {0,0,0, 0,0,0, 1,1,1, 0,0,0};
+   float *oar;
+   int ii;
+ 
+   om  = mri_new( 12 , 1 , MRI_float ) ;
+   oar = MRI_FLOAT_PTR(om) ;
+
+   for( ii=0 ; ii < 12 ; ii++ )
+         oar[ii] = id[ii] ;
+
+   RETURN(om) ;
 }
 
 #ifdef USE_OMP

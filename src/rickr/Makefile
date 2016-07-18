@@ -11,6 +11,10 @@ file_tool: file_tool.o file_tool.h fields.o fields.h
 	$(RM) $@
 	$(CC) -o file_tool file_tool.o fields.o ../ge4_header.o -lm
 
+tokens: tokens.o
+	$(RM) $@
+	$(CC) -o tokens tokens.o
+
 Imon: Imon.o $(IMON_OBJS) Imon.h realtime.h
 	$(RM) $@
 	$(CC) -o Imon Imon.o $(IMON_OBJS) ../thd_iochan.o -lm

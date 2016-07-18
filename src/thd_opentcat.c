@@ -1,5 +1,10 @@
 #include "mrilib.h"
 
+static int tcat_open_verb = 0;
+
+static NI_str_array * NI_get_wildcard_list(char * pattern);
+static char * update_sar_with_selectors(NI_str_array * sar, char * sel);
+
 /*---------------------------------------------------------------------------*/
 /*! Open a dataset that is an impromptu catenation of multiple dataset.      */
 /*---------------------------------------------------------------------------*/
@@ -7,10 +12,11 @@
 THD_3dim_dataset * THD_open_tcat( char *dlist )
 {
    THD_3dim_dataset *dset_out , **dset_in ;
-   int ndset_in , dd , nerr , new_nvals, sb=0 ;
+   int ndset_in , dd , nerr , new_nvals, sb=0 , ivout;
    NI_str_array *sar ;
    double angle=0.0;
    char *dp, *dlocal = dlist;   /* local dlist, in case it is altered */
+   char *sel=NULL;
    
 ENTRY("THD_open_tcat") ;
 
@@ -29,19 +35,95 @@ ENTRY("THD_open_tcat") ;
          if( *dp == '\n' || *dp  == '\r' ) *dp = ' ';
    }
 
-   if( strchr(dlocal,' ') == NULL ){
+   if( strchr(dlocal,' ') == NULL && ! HAS_WILDCARD(dlocal) ) {
      dset_out = THD_open_dataset(dlocal) ; RETURN(dset_out) ;
    }
 
-   sar = NI_decode_string_list( dlocal , "~" ) ;
-   if( sar == NULL ) RETURN(NULL) ;
+   /* save selectors, akin to wildcard selection         4 Apr 2016 [rickr] */
+   /* (use by default; consider future vals: FOR_COMPOSITE and FOR_INDIVID) */
+   tcat_open_verb = AFNI_numenv_def("AFNI_TCAT_SELECTORS_VERB", 0);
+   if( tcat_open_verb > 1 )
+      INFO_message("THD_open_tcat: processing wildcards in '%s'\n", dlocal);
+   if( ! AFNI_noenv("AFNI_TCAT_SELECTORS") ) {
+      for( dd=0; dd < strlen(dlocal); dd++ ) {
+         if( dlocal[dd] == '[' || dlocal[dd] == '<' || dlocal[dd] == '{' ) {
+            char * cp = strchr(dlocal+dd, ' ');
+            int    dcp;
+            if( cp ) {
+               /* whitespace follows selector...
+                  If something besides white space follows, then this is
+                  not considered to be a general selector.
+               */
+               for( dcp=1; cp[dcp] && isspace(cp[dcp]); dcp++ )
+                  ;
 
+               /* if non-nul do not use global tcat selector. */
+               if( cp[dcp] ) {
+                 if( tcat_open_verb )
+                   INFO_message("THD_open_tcat: skip general tcat selector\n");
+                 break;
+               }
+            }
+
+            /* we have selectors! */
+            sel = strdup(dlocal+dd);
+
+            /* altering string, so be sure it is a local, modifiable one */
+            if( dlocal == dlist ) dlocal = strdup(dlocal);
+            dlocal[dd] = '\0'; /* terminate */
+
+            if( tcat_open_verb )
+               INFO_message("THD_open_tcat, have tcat selector %s\n", sel);
+
+            break;
+         }
+      }
+   }
+
+   /* check for failure here       14 Jul 2016 [rickr] */
+   if( strchr(dlocal,' ') ) {
+      sar = NI_decode_string_list( dlocal , "~" ) ;
+
+      if( ! sar ) {
+         if( tcat_open_verb )
+            WARNING_message("THD_open_tcat: no space list from '%s'", dlocal);
+         RETURN(NULL);
+      }
+   } else if( HAS_WILDCARD(dlocal) ) {
+      sar = NI_get_wildcard_list( dlocal );
+
+      if( ! sar ) {
+         if( tcat_open_verb )
+            WARNING_message("THD_open_tcat: no wildcard match for '%s'",dlocal);
+         RETURN(NULL);
+      }
+   } else {
+      WARNING_message("THD_open_tcat: should find wildcard or space in %s",
+                      dlocal);
+      RETURN(NULL) ;
+   }
+
+   /* if selectors and/or WILDCARD, append to sar elements and create new */
+   /* 'dlocal' string                                  5 Apr 2016 [rickr] */
+   if( sel || HAS_WILDCARD(dlocal) ) {
+      if( dlocal != dlist ) free(dlocal);    /* free if locally allocated */
+      dlocal = update_sar_with_selectors(sar, sel);
+      if(tcat_open_verb>1) INFO_message("THD_open_tcat: new dlocal %s",dlocal);
+
+      /* free selectors (if they exist)  18 Apr 2016 [rickr] */
+      if( sel ) { free(sel); sel = NULL; }
+   }
+
+   /* open all of the input datasets, possibly with selectors */
    ndset_in = sar->num ;
    dset_in  = (THD_3dim_dataset **)malloc(sizeof(THD_3dim_dataset *)*sar->num) ;
    for( nerr=dd=0 ; dd < ndset_in ; dd++ ){
-     dset_in[dd] = THD_open_dataset( sar->str[dd] ) ;
+     if( tcat_open_verb > 1 )
+        INFO_message("THD_open_tcat: opening dset %s ...", sar->str[dd]);
+     dset_in[dd] = THD_open_dataset( sar->str[dd] );
+
      if( dset_in[dd] == NULL ){
-       fprintf(stderr,"** THD_open_tcat: can't open dataset %s\n",sar->str[dd]) ;
+       WARNING_message("THD_open_tcat: can't open dataset %s\n", sar->str[dd]);
        nerr++ ;
      }
    }
@@ -144,6 +226,16 @@ ENTRY("THD_open_tcat") ;
                     ADN_none ) ;
    DSET_mallocize( dset_out ) ;
 
+   /* get factors and labels here, not at load time   4 Apr 2016 [rickr] */
+   ivout = 0;
+   for( dd=0 ; dd < ndset_in ; dd++ ) {
+      for (sb=0; sb < DSET_NVALS(dset_in[dd]); ++sb) {
+         EDIT_BRICK_FACTOR(dset_out, ivout, DSET_BRICK_FACTOR(dset_in[dd],sb));
+         EDIT_BRICK_LABEL (dset_out, ivout, DSET_BRICK_LABEL (dset_in[dd],sb));
+         ivout++;
+      }
+   }
+
    /* check if we have a valid time axis; if not, make one up */
 
    if( DSET_TIMESTEP(dset_out) <= 0.0f ){
@@ -157,12 +249,20 @@ ENTRY("THD_open_tcat") ;
                        ADN_none ) ;
    }
 
-   dset_out->tcat_list = strdup( dlocal ) ;
+   /* if dlocal is not new memory, must copy, else steal */
+   if( dlocal == dlist ) dset_out->tcat_list = strdup( dlocal ) ;
+   else                  dset_out->tcat_list = dlocal;
+
+   if( tcat_open_verb > 2 )
+      INFO_message("setting tcat_list[%d] = %s", ndset_in, dlocal);
+
    dset_out->tcat_num  = ndset_in ;
    dset_out->tcat_len  = (int *)malloc(sizeof(int)*ndset_in) ;
    for( dd=0 ; dd < ndset_in ; dd++ ){
      dset_out->tcat_len[dd] = DSET_NVALS(dset_in[dd]) ;
      DSET_delete(dset_in[dd]) ;
+      if( tcat_open_verb > 2 )
+         INFO_message("  tcat: including %d volumes", dset_out->tcat_len[dd]);
    }
    free((void *)dset_in) ;
    NI_delete_str_array(sar) ;
@@ -174,6 +274,70 @@ fprintf(stderr,"\n");
 #endif
 
    RETURN(dset_out) ;
+}
+
+/*---------------------------------------------------------------------------*/
+/*! append selectors to elements of a NI_str_array list                      */
+/*  - return a catenated string (space delimited)         7 Apr 2016 [rickr] */
+/*---------------------------------------------------------------------------*/
+static char * update_sar_with_selectors(NI_str_array * sar, char * sel)
+{
+   char * lptr, * dlist;
+   int    dd, len, fulllen, nsel=0;
+
+   if( ! sar ) return NULL;
+   if( sel ) nsel = strlen(sel);
+
+   /* first allocate for catenation string with repeated selectors */
+   fulllen = 1; /* for trailing nul */
+   for( dd=0 ; dd < sar->num ; dd++ )
+      /* extra +1 is for separation spaces */
+      fulllen += strlen(sar->str[dd]) + nsel + 1;
+   dlist = (char *)malloc(fulllen * sizeof(char));
+
+   /* empty dlist and fill with updated sar names and separation spaces */
+   dlist[0] = '\0';
+   lptr = dlist;
+   for( dd=0 ; dd < sar->num ; dd++ ) {
+      len = strlen(sar->str[dd]) + nsel;
+      sar->str[dd] = NI_realloc(sar->str[dd], char, (len+1)*sizeof(char));
+      if( sel ) strcat(sar->str[dd], sel);
+
+      /* and append to new dlist string */
+      strcpy(lptr, sar->str[dd]);
+      strcat(lptr, " ");
+      lptr += len+1;
+   }
+
+   return dlist;
+}
+
+
+/*---------------------------------------------------------------------------*/
+/*! Expand the wildcard selection and populate a NI_str_array struct.        */
+/*  - a wildcard version of NI_decode_string_list         7 Apr 2016 [rickr] */
+/*---------------------------------------------------------------------------*/
+static NI_str_array * NI_get_wildcard_list(char * pattern)
+{
+   NI_str_array * sar=NULL;
+   int            nexp=0, ind;
+   char        ** fexp=NULL;
+
+ENTRY("NI_get_wildcard_list");
+
+   MCW_file_expand(1, &pattern, &nexp, &fexp);
+   if( nexp == 0 ) RETURN(NULL);
+
+   sar = NI_malloc(NI_str_array, sizeof(NI_str_array));
+   sar->num = nexp;
+   sar->str = NI_malloc(char *, nexp*sizeof(char *));
+
+   for( ind=0; ind<nexp; ind++ )
+      sar->str[ind] = NI_strdup(fexp[ind]);
+
+   MCW_free_expand(nexp, fexp);
+
+   RETURN(sar);
 }
 
 /*---------------------------------------------------------------------------*/
@@ -199,6 +363,8 @@ ENTRY("THD_load_tcat") ;
    for( dd=0 ; dd < sar->num ; dd++ ){
      dset_in = THD_open_dataset( sar->str[dd] ) ;
      if( dset_in == NULL ){
+        if( tcat_open_verb )
+           INFO_message("THD_load_tcat: failed for dset %s", sar->str[dd]);
        NI_delete_str_array(sar) ; DSET_unload(dset_out) ;
        EXRETURN ;
      }
@@ -212,9 +378,6 @@ ENTRY("THD_load_tcat") ;
        EDIT_substitute_brick( dset_out , ivout ,
                               DSET_BRICK_TYPE(dset_in,iv), DSET_ARRAY(dset_in,iv) );
        mri_fix_data_pointer( NULL , DSET_BRICK(dset_in,iv) ) ;
-       EDIT_BRICK_FACTOR( dset_out , ivout , DSET_BRICK_FACTOR(dset_in,iv) ) ;
-       EDIT_BRICK_LABEL(dset_out, ivout, 
-                        DSET_BRICK_LABEL(dset_in, iv)); /* ZSS Aug. 27 2012 */
        ivout++ ;
      }
      DSET_delete(dset_in) ;

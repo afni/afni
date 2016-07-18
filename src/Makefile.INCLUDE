@@ -97,8 +97,9 @@ PROGRAMS = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge count   
            3dNormalityTest 3dmask_tool FIRdesign help_format 2perm 3dClustCount \
            column_cat 3dUnifize 3dNwarpCat 3dQwarp 3dLocalHistog 3dNwarpAdjust  \
            3dNwarpFuncs 3dTproject afni_open 3dConformist 3dNwarpXYZ 3dTRfix    \
-           3dToyProg 3dRankizer nifti1_tool gifti_tool cifti_tool  \
-           3dECM 3dMSE 3dLFCD 3dDegreeCentrality 3dsvm_linpredict 3dCWAS \
+           3dToyProg 3dRankizer nifti1_tool gifti_tool cifti_tool 3dECM 3dMSE   \
+	   3dLFCD 3dDegreeCentrality 3dsvm_linpredict images_equal uniq_images  \
+	   tokens 3dLocalACF                                                    \
            $(EXTRAS)
 
 PROGRAMS_NOPLUG = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge      \
@@ -134,12 +135,9 @@ PROGRAMS_NOPLUG = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge  
                   apsearch 3dNormalityTest 3dmask_tool 2perm 3dClustCount           \
                   3dUnifize 3dNwarpCat 3dQwarp 3dLocalHistog 3dNwarpAdjust 3dTRfix  \
                   3dNwarpFuncs 3dTproject  afni_open   3dConformist 3dNwarpXYZ      \
-                  3dToyProg nifti1_tool gifti_tool cifti_tool    \
-<<<<<<< HEAD
-                  3dDegreeCentrality 3dECM 3dMSE 3dLFCD 3dCWAS \
-=======
-                  3dDegreeCentrality 3dECM 3dMSE 3dLFCD  3dsvm_linpredict \
->>>>>>> 09eb43387dd3181d07bc2148f6e617d4420d8fc7
+                  3dToyProg nifti1_tool gifti_tool cifti_tool images_equal          \
+                  uniq_images stimband 1dNLfit tokens 3dLocalACF                    \
+                  3dDegreeCentrality 3dECM 3dMSE 3dLFCD  3dsvm_linpredict           \
                   $(EXTRAS)
 
 # For CYGWIN (look for "exe" to find various places below)
@@ -175,36 +173,11 @@ PROGRAMS_EXE = afni.exe to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge 
                3dTcorrMap 3dABoverlap 3dRank 3dFFT 3dTcorr1D 3dClustSim 3dTRfix   \
                3dRetinoPhase 3dMaskToASCII 3dttest++ 3dDTtoDWI niccc 3dXYZcat     \
                column_cat GLTsymtest nifti1_tool gifti_tool cifti_tool \
-               3dDegreeCentrality 3dECM 3dMSE 3dLFCD 3dCWAS
+               3dDegreeCentrality 3dECM 3dMSE 3dLFCD 
 
-SCRIPTS = @4Daverage @CommandGlobb @GetAfniOrient @DTI_studio_reposition          \
-          @GetAfniPrefix @NoExt @UpdateAfni @RenamePanga @2dwarper                \
-          @GetAfniView @SUMA_AlignToExperiment @SUMA_Make_Spec_FS @Purify_1D      \
-          @SUMA_Make_Spec_SF @make_stim_file @Align_Centers suma_change_spec      \
-          @CheckForAfniDset @clip_volume @AfniOrient2RAImap @parse_afni_name      \
-          @auto_align @auto_tlrc @FromRAI @ToRAI @AfniOrientSign @VolCenter       \
-          @Center_Distance @fix_FSsphere @parse_name @align_partial_oblique       \
-          @np 3dMax @IsoMasks @SUMA_Make_Spec_Caret @FindAfniDsetPath @GetAfniID  \
-          @float_fix @escape- 3dPAR2AFNI.pl @DriveAfni @DriveSuma @AddEdge        \
-          @SurfSmooth.HEAT_07.examples @SUMA_FSvolToBRIK @isOblique afni_run_R    \
-          @GetAfniDims @GetAfniRes @NoisySkullStrip @statauxcode @ScaleVolume     \
-          @ShowDynamicRange AFNI_Batch_R @DO.examples demo.fixed.niml.do          \
-          demo.mobile.niml.do @Spharm.examples @GetAfniBin @fast_roi              \
-          @make_plug_diff @build_afni_Xlib @update.afni.binaries @ROI_Corr_Mat    \
-          @FS_roi_label @demo_prompt @ScriptCheck @NoPound @Reorder 3dSignatures  \
-          3dMEMA @DiceMetric @R_funclist @TimeDiff @FullPath @RetinoProc          \
-          @ANATICOR @MakeLabelTable @ElectroGrid ExamineXmat 1dRplot              \
-          @2dwarper.Allin @Shift_Volume  @help.AFNI @1dDiffMag @FSlabel2dset      \
-          @Install_InstaCorr_Demo @Quiet_Talkers @radial_correlate                \
-          @DeblankFileNames @clean_help_dir @global_parse @AfniEnv @Atlasize      \
-          @Install_TSrestMovieDemo @Install_AfniRetinoDemo @get.afni.version      \
-          @Install_FATCAT_DEMO @Install_RSFMRI_Motion_Group_Demo                  \
-          @Install_MEICA_Demo @T1scale 3dMVM @compute_gcor 3dLME                  \
-          @Install_ClustScat_Demo @Install_FATMVM_DEMO @GradFlipTest              \
-          @move.to.series.dirs @toMNI_Awarp @toMNI_Qwarpar @simulate_motion	    \
-          @afni.run.me 3dRprogDemo @ExamineGenFeatDists rPkgsInstall 	         \
-          @Install_DBSproc @Install_3dPFM_Demo 3dPFM @diff.files @diff.tree
-
+# put all scripts to install here (no SCRIPTS variable)
+SCRIPTS_DIR = scripts_install
+SCRIPTS_SRC = scripts_src
 
 PY_DIR = python_scripts
 PY_SCRIPTS = 1d_tool.py afni_proc.py afni_restproc.py afni_system_check.py   \
@@ -218,7 +191,9 @@ PY_SCRIPTS = 1d_tool.py afni_proc.py afni_restproc.py afni_system_check.py   \
              python_module_test.py quick.alpha.vals.py realtime_receiver.py  \
              slow_surf_clustsim.py timing_tool.py                            \
              uber_align_test.py uber_proc.py uber_skel.py uber_subject.py    \
-             uber_ttest.py xmat_tool.py read_matlab_files.py afni_skeleton.py
+             uber_ttest.py xmat_tool.py read_matlab_files.py afni_skeleton.py\
+	     parse_fs_lt_log.py
+
 R_DIR = R_scripts
 
 LIBHEADERS = mrilib.h mcw_glob.h 3ddata.h thd_maker.h thd_iochan.h            \
@@ -267,7 +242,7 @@ totality_noplug:libmri.a libmrix.a libcoxplot.a programs_noplug install_noplug c
 
 # Create program list
 echo_progs:
-	echo "$(PROGRAMS) $(SCRIPTS) $(SUMA_PROGS) $(SUMA_GTS_PROGS)   \
+	echo "$(PROGRAMS) `\ls $(SCRIPTS_DIR)` $(SUMA_PROGS) $(SUMA_GTS_PROGS)   \
              $(PY_SCRIPTS)" | tr ' ' '\n' | LC_COLLATE=C sort | uniq 
 
 prog_list:
@@ -277,7 +252,7 @@ prog_list:
 	echo "#  apsearch -list_all_afni_progs | LC_COLLATE=C sort | uniq" \
 		>> prog_list.txt
 	echo "" >> prog_list.txt
-	echo "$(PROGRAMS) $(SCRIPTS) $(SUMA_PROGS) $(SUMA_GTS_PROGS)    \
+	echo "$(PROGRAMS) `\ls $(SCRIPTS_DIR)` $(SUMA_PROGS) $(SUMA_GTS_PROGS)    \
                 $(PY_SCRIPTS)" | tr ' ' '\n' | LC_COLLATE=C sort | uniq \
 		> ___prog_list.txt
 	make -s -f ptaylor/Makefile.ptaylor.INCLUDE echo_progs | \
@@ -1380,11 +1355,11 @@ AlphaSim:AlphaSim.o
 	$(RM) $@
 	$(CCOMP) -o 3dAllineate 3dAllineate.o $(LFLAGS) $(LLIBS)
 
-3dQwarp:3dQwarp.o mri_genalign.c mri_genalign_util.c mri_nwarp.c thd_incorrelate.c
+3dQwarp:3dQwarp.o
 	$(RM) $@
 	$(CCOMP) -o 3dQwarp 3dQwarp.o $(LFLAGS) $(LLIBS)
 
-3dQwarp.o:3dQwarp.c mri_genalign.c mri_genalign_util.c thd_incorrelate.c mri_nwarp.c
+3dQwarp.o:3dQwarp.c mri_genalign.c mri_genalign_util.c thd_incorrelate.c mri_nwarp.c powell_int.c powell_newuoa.c
 	$(RM) $@
 	$(CCOMP) -c 3dQwarp.c $(INFLAGS)
 
@@ -1420,17 +1395,17 @@ AlphaSim:AlphaSim.o
 	$(RM) $@
 	$(CCOMP) -o 3dNwarpCalc 3dNwarpCalc.o $(LFLAGS) $(LLIBS)
 
+3dLocalACF.o:3dLocalACF.c powell_int.c powell_newuoa.c
+	$(RM) $@
+	$(CCOMP) -c 3dLocalACF.c $(INFLAGS)
+
+3dLocalACF:3dLocalACF.o
+	$(RM) $@
+	$(CCOMP) -o 3dLocalACF 3dLocalACF.o $(LFLAGS) $(LLIBS)
+
 3dRBFdset:3dRBFdset.o mri_rbfinterp.o
 	$(RM) $@
 	$(CCOMP) -o 3dRBFdset 3dRBFdset.o $(LFLAGS) $(LLIBS)
-
-3dCWAS.o:3dCWAS.c
-	$(RM) $@
-	$(CCOMP) -c 3dCWAS.c $(INFLAGS)
-
-3dCWAS:3dCWAS.o
-	$(RM) $@
-	$(CCOMP) -o 3dCWAS 3dCWAS.o $(LFLAGS) $(LLIBS)
 
 3dDegreeCentrality.o:3dDegreeCentrality.c
 	$(RM) $@
@@ -1927,8 +1902,8 @@ afni_src.tgz:
 	$(MKDIR) afni_src
 	$(CP) -p *.c *.f *.inc *.h *.hhh Makefile.* *.xbm $(MINDOCS) $(MISC)     ./afni_src
 	$(CP) -pr coxplot volpack moveup moveAFNI* eispack                       ./afni_src
-	$(CP) -pr avovk ptaylor pkundu                                           ./afni_src
-	$(CP) -pr $(SCRIPTS) $(PY_DIR) $(R_DIR)                                  ./afni_src
+	$(CP) -pr avovk ptaylor pkundu 					         ./afni_src
+	$(CP) -pr $(SCRIPTS_DIR) $(SCRIPTS_SRC) $(PY_DIR) $(R_DIR)               ./afni_src
 	$(CP) -pr gifsicledir qhulldir f2cdir mpeg_encodedir                     ./afni_src
 	$(CP) -pr 3DEdge netcdf-3.5.0 jpeg-6b niml Makefile_* nifti dlcompat     ./afni_src
 	$(CP) -pr SUMA svm matlab rickr faces poems gifti ni_test_? README.*     ./afni_src
@@ -1962,7 +1937,7 @@ afni_doc.tgz:
 
 install: $(INSTALLDIR) $(INSTALL_PREREQ) ptaylor_install pkundu_install 
 	$(MV) $(PROGRAMS) $(INSTALLDIR)
-	$(CP) $(SCRIPTS)  $(INSTALLDIR)
+	$(CP) $(SCRIPTS_DIR)/* $(INSTALLDIR)
 	$(CP) $(PY_DIR)/*.py  $(R_DIR)/*.R $(INSTALLDIR)
 	$(CP) html/??*.* $(EXTRA_INSTALL_FILES) $(INSTALLDIR)
 	if [ -f README.environment ]; then $(CP) README.*    $(INSTALLDIR); fi;
@@ -1976,7 +1951,7 @@ install: $(INSTALLDIR) $(INSTALL_PREREQ) ptaylor_install pkundu_install
 
 install_noplug: $(INSTALLDIR)
 	$(MV) $(PROGRAMS_NOPLUG) $(INSTALLDIR)
-	$(CP) $(SCRIPTS) $(INSTALLDIR)
+	$(CP) $(SCRIPTS_DIR)/* $(INSTALLDIR)
 	$(CP) $(PY_DIR)/*.py $(R_DIR)/*.R $(INSTALLDIR)
 
 install_lib: $(LIBDIR)
@@ -1988,14 +1963,14 @@ install_exe: $(INSTALLDIR)
 	( for pp in $(PROGRAMS_EXE) ; do                               \
              qq=`basename $$pp .exe`; $(MV) $${qq}.exe $(INSTALLDIR) ; \
           done )
-	$(CP) $(SCRIPTS) $(INSTALLDIR)
+	$(CP) $(SCRIPTS_DIR)/* $(INSTALLDIR)
 	$(CP) $(PY_DIR)/*.py $(R_DIR)/*.R $(INSTALLDIR)
 
 ###################################################################
 # some dependencies (not complete)
 
 afni.o:imseq.h 3ddata.h xutil.h pbar.h afni.h bbox.h afni_warp.h \
-       afni_graph.h afni_setup.h machdep.h
+       afni_graph.h afni_setup.h machdep.h AFNI_version.h
 
 debugtrace.o:debugtrace.h debugtrace.c AFNI_version.h
 	$(RM) $@
@@ -2271,7 +2246,7 @@ THD_OBJS = thd_atr.o thd_dsetto1D.o thd_initalldir.o thd_reconpar.o \
            thd_bandpass.o thd_instacorr.o thd_svdblur.o thd_satcheck.o    \
            thd_dumdset.o ktaub.o bilinear_warp3D.o thd_table.o            \
            thd_atlas.o thd_warp_tables.o thd_lasso.o thd_mean_dset.o      \
-           thd_despike_L1.o thd_Tcorr1D.o
+           thd_despike_L1.o thd_Tcorr1D.o thd_openimage.o
 
 # these are now included in NIML
 
@@ -2688,6 +2663,13 @@ column_cat: rickr/column_cat.c
 	$(RM) $@
 	$(CC) -o 3dexample1 3dexample1.o $(LFLAGS) $(LLIBS)
 
+tokens: rickr/tokens.c
+	( cd rickr ;                                                    \
+	$(MAKE) tokens 'RM=$(RM)' 'CC=$(CC)' 'IFLAGS=$(ISFLAGS)'      	\
+			'LFLAGS=$(LFLAGS)' 'LLIBS=$(LLIBS)' ;           \
+	$(MV) tokens .. ; )
+
+
 selenium_test: selenium_test.o
 	$(RM) $@
 	$(CC) -o selenium_test selenium_test.o $(LFLAGS) $(LLIBS) $(LPYTHON)
@@ -2798,11 +2780,11 @@ mpegtoppm:
 #######
 # 11 Sep 2002 - for fun
 
-djpeg:cjpeg
+djpeg:libjpeg.a
 
-libjpeg.a:cjpeg
+cjpeg:libjpeg.a
 
-cjpeg:
+libjpeg.a:
 	( cd jpeg-6b ; $(RM) Makefile jconfig.h ;                    \
           chmod ugo+x ./configure ; ./configure 'CC=$(CCMIN)' ; \
           $(MAKE) ; $(MV) cjpeg djpeg libjpeg.a .. ;            \
@@ -3569,7 +3551,7 @@ suma_install:
    SUMA/3dHist SUMA/HalloSuma SUMA/InstaTract SUMA/niprobe SUMA/BrainSkin \
    ${INSTALLDIR} ; \
 	if [ -f SUMA/SurfMesh ]; then $(CP) SUMA/SurfMesh ${INSTALLDIR} ; fi; \
-	$(CP) @SUMA_* ${INSTALLDIR} ;)
+	$(CP) scripts_install/@SUMA_* ${INSTALLDIR} ;)
 	
 suma: suma_clean suma_exec suma_install
 suma_gts: suma_clean suma_exec suma_gts_progs suma_install

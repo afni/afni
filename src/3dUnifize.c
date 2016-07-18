@@ -2,6 +2,11 @@
 
 static int verb = 1 ;
 
+#define USE_ALL_VALS 1
+#ifndef USE_ALL_VALS
+static int USE_ALL_VALS = 0 ;  /* 17 May 2016 */
+#endif
+
 #ifdef USE_OMP
 # include <omp.h>
 #endif
@@ -328,6 +333,7 @@ MRI_IMAGE * mri_local_percmean( MRI_IMAGE *fim , float vrad , float p1, float p2
    byte      *ams , *bms ;
    MCW_cluster *nbhd ;
    int ii , nx,ny,nz,nxy,nxyz ;
+   float vbot=0.0f ;
 
 ENTRY("mri_local_percmean") ;
 
@@ -360,6 +366,10 @@ ENTRY("mri_local_percmean") ;
    bms = (byte *)malloc(sizeof(byte)*bim->nvox) ;
    for( ii=0 ; ii < bim->nvox ; ii++ ) bms[ii] = (bar[ii] != 0.0f) ;
 
+   if( !USE_ALL_VALS ){
+     vbot = 0.00666f * mri_max(bim) ;
+   }
+
    /* create neighborhood mask (1/2 radius in the shrunken copy) */
 
    nbhd = MCW_spheremask( 1.0f,1.0f,1.0f , 0.5f*vrad+0.001f ) ;
@@ -390,11 +400,25 @@ ENTRY("mri_local_percmean") ;
            if( nbar_num == 1 ){           /* stoopid case */
              val = nbar[0] ;
            } else {             /* average values from p1 to p2 percentiles */
-             int q1,q2,qq ;
-             q1 = (int)( 0.01f*p1*(nbar_num-1) ) ;  /* p1 location */
-             q2 = (int)( 0.01f*p2*(nbar_num-1) ) ;  /* p2 location */
-             for( qq=q1,val=0.0f ; qq <= q2 ; qq++ ) val += nbar[qq] ;
-             val /= (q2-q1+1.0f) ;
+             int q1,q2,qq , qb;
+             if( !USE_ALL_VALS ){ /* Ignore tiny values [17 May 2016] */
+               for( qb=0 ; qb < nbar_num && nbar[qb] <= vbot ; qb++ ) ; /*nada*/
+               if( qb == nbar_num ){
+                 val = 0.0f ;
+               } else if( qb == nbar_num-1 ){
+                 val = nbar[qb] ;
+               } else {
+                 q1 = (int)( 0.01f*p1*(nbar_num-1-qb)) + qb; if( q1 > nbar_num-1 ) q1 = nbar_num-1;
+                 q2 = (int)( 0.01f*p2*(nbar_num-1-qb)) + qb; if( q2 > nbar_num-1 ) q2 = nbar_num-1;
+                 for( qq=q1,val=0.0f ; qq <= q2 ; qq++ ) val += nbar[qq] ;
+                 val /= (q2-q1+1.0f) ;
+               }
+             } else {             /* Use all values [the olden way] */
+               q1 = (int)( 0.01f*p1*(nbar_num-1) ) ;  /* p1 location */
+               q2 = (int)( 0.01f*p2*(nbar_num-1) ) ;  /* p2 location */
+               for( qq=q1,val=0.0f ; qq <= q2 ; qq++ ) val += nbar[qq] ;
+               val /= (q2-q1+1.0f) ;
+             }
            }
          }
          FSUB(car,ii,jj,kk,nx,nxy) = val ;
@@ -419,11 +443,25 @@ ENTRY("mri_local_percmean") ;
        if( nbar_num == 1 ){           /* stoopid case */
          val = nbar[0] ;
        } else {             /* average values from p1 to p2 percentiles */
-         int q1,q2,qq ;
-         q1 = (int)( 0.01f*p1*(nbar_num-1) ) ;  /* p1 location */
-         q2 = (int)( 0.01f*p2*(nbar_num-1) ) ;  /* p2 location */
-         for( qq=q1,val=0.0f ; qq <= q2 ; qq++ ) val += nbar[qq] ;
-         val /= (q2-q1+1.0f) ;
+         int q1,q2,qq , qb;
+         if( !USE_ALL_VALS ){ /* Ignore tiny values [17 May 2016] */
+           for( qb=0 ; qb < nbar_num && nbar[qb] <= vbot ; qb++ ) ; /*nada*/
+           if( qb == nbar_num ){
+             val = 0.0f ;
+           } else if( qb == nbar_num-1 ){
+             val = nbar[qb] ;
+           } else {
+             q1 = (int)( 0.01f*p1*(nbar_num-1-qb)) + qb; if( q1 > nbar_num-1 ) q1 = nbar_num-1;
+             q2 = (int)( 0.01f*p2*(nbar_num-1-qb)) + qb; if( q2 > nbar_num-1 ) q2 = nbar_num-1;
+             for( qq=q1,val=0.0f ; qq <= q2 ; qq++ ) val += nbar[qq] ;
+             val /= (q2-q1+1.0f) ;
+           }
+         } else {             /* Use all values [the olden way] */
+           q1 = (int)( 0.01f*p1*(nbar_num-1) ) ;  /* p1 location */
+           q2 = (int)( 0.01f*p2*(nbar_num-1) ) ;  /* p2 location */
+           for( qq=q1,val=0.0f ; qq <= q2 ; qq++ ) val += nbar[qq] ;
+           val /= (q2-q1+1.0f) ;
+         }
          if( verb && vvv%66666==0 ) fprintf(stderr,".") ;
        }
      }
@@ -456,7 +494,8 @@ static float Uprad = 18.3f ;  /* sphere radius */
 #define PKVAL 1000.0f
 #define PKMID  666.0f
 
-MRI_IMAGE *sclim = NULL ;     /* 25 Jun 2013 */
+static MRI_IMAGE *sclim = NULL ;     /* 25 Jun 2013 */
+static char     *sspref = NULL ;
 
 /* White Matter uniformization */
 
@@ -561,9 +600,9 @@ int main( int argc , char *argv[] )
    int iarg , ct , do_GM=0 ;
    int do_T2=0 ; float T2_uperc=98.5f ; byte *T2_mask=NULL ;
    char *prefix = "Unifized" ;
-   char *sspref = NULL ;
    THD_3dim_dataset *inset=NULL , *outset=NULL ;
    MRI_IMAGE *imin , *imout ;
+   float clfrac=0.2f ;
 
    AFNI_SETUP_OMP(0) ;  /* 24 Jun 2013 */
 
@@ -665,7 +704,20 @@ int main( int argc , char *argv[] )
             "                  clip level fraction of 0.5, which proved to be too large\n"
             "                  for some users, who had images with very strong shading issues.\n"
             "                  Thus, the default value for this parameter was lowered to 0.1.\n"
-            "                  If you strongly desire the old behavior, use '-clfrac 0.5'.\n"
+            "               ++ [24 May 2016] The default value for this parameter was\n"
+            "                  raised to 0.2, since the lower value often left a lot of\n"
+            "                  noise outside the head on non-3dSkullStrip-ed datasets.\n"
+            "                  You can still manually set -clfrac to 0.1 if you need to\n"
+            "                  correct for very large shading artifacts.\n"
+            "               ++ If the results of 3dUnifize have a lot of noise outside the head,\n"
+            "                  then using '-clfrac 0.5' value will probably help.\n"
+#ifndef USE_ALL_VALS
+            "\n"
+            "  -useall    = The 'old' way of operating was to use all dataset values\n"
+            "               in the local WM histogram.  The 'new' way [May 2016] is to\n"
+            "               only use positive values.  If you want to use the 'old' way,\n"
+            "               then this option is what you want.\n"
+#endif
             "\n"
             "-- Feb 2013 - by Obi-Wan Unifobi\n"
 #ifdef USE_OMP
@@ -754,7 +806,8 @@ int main( int argc , char *argv[] )
    while( iarg < argc && argv[iarg][0] == '-' ){
 
      if( strcmp(argv[iarg],"-clfrac") == 0 || strcmp(argv[iarg],"-mfrac") == 0 ){    /* 22 May 2013 */
-       float clfrac = (float)strtod( argv[++iarg] , NULL ) ;
+       if( ++iarg >= argc ) ERROR_exit("Need argument after '%s'",argv[iarg-1]) ;
+       clfrac = (float)strtod( argv[iarg] , NULL ) ;
        if( clfrac < 0.1f || clfrac > 0.9f )
          ERROR_exit("-clfrac value %f is illegal!",clfrac) ;
        THD_automask_set_clipfrac(clfrac) ;
@@ -770,7 +823,7 @@ int main( int argc , char *argv[] )
 
      if( strcmp(argv[iarg],"-ssave") == 0 ){
        if( ++iarg >= argc ) ERROR_exit("Need argument after '%s'",argv[iarg-1]) ;
-       sspref = argv[iarg] ;
+       sspref = strdup(argv[iarg]) ;
        if( !THD_filename_ok(sspref) ) ERROR_exit("Illegal value after -ssave!") ;
        iarg++ ; continue ;
      }
@@ -790,6 +843,17 @@ int main( int argc , char *argv[] )
          ERROR_exit("Illegal value %f after option -Urad",Uprad) ;
        iarg++ ; continue ;
      }
+
+#ifndef USE_ALL_VALS
+     if( strcmp(argv[iarg],"-useall") == 0 ){   /* 17 May 2016 */
+       USE_ALL_VALS = 1 ; iarg++ ; continue ;
+     }
+#else
+     if( strcmp(argv[iarg],"-useall") == 0 ){
+       WARNING_message("-useall option is disabled in this version") ;
+       iarg++ ; continue ;
+     }
+#endif
 
      if( strcmp(argv[iarg],"-param") == 0 ||      /*--- HIDDEN OPTION ---*/
          strcmp(argv[iarg],"-rbt"  ) == 0    ){
@@ -850,6 +914,12 @@ int main( int argc , char *argv[] )
    imin = mri_to_float( DSET_BRICK(inset,0) ) ; DSET_unload(inset) ;
    if( imin == NULL ) ERROR_exit("Can't copy input dataset brick?!") ;
 
+#if 0
+THD_cliplevel_search(imin) ; exit(0) ;  /* experimentation only */
+#endif
+
+   THD_automask_set_clipfrac(clfrac) ;
+
    /* invert T2? */
 
    if( do_T2 ){
@@ -864,6 +934,7 @@ int main( int argc , char *argv[] )
    free(imin) ;
 
    if( sspref != NULL && sclim != NULL ){  /* 25 Jun 2013 */
+     STATUS("output -ssave") ;
      outset = EDIT_empty_copy( inset )  ;
      EDIT_dset_items( outset ,
                          ADN_prefix , sspref ,
@@ -873,9 +944,9 @@ int main( int argc , char *argv[] )
      EDIT_substitute_brick( outset , 0 , MRI_float , MRI_FLOAT_PTR(sclim) ) ;
      tross_Copy_History( inset , outset ) ;
      tross_Make_History( "3dUnifize" , argc,argv , outset ) ;
-     DSET_write(outset) ; DSET_delete(outset) ; outset = NULL ;
+     DSET_write(outset) ; outset = NULL ;
    }
-   mri_free(sclim) ;
+   if( sclim != NULL ){ mri_free(sclim) ; sclim = NULL ; }
 
    if( imout == NULL ){                   /* this is bad-ositiness */
      if( verb ) fprintf(stderr,"\n") ;

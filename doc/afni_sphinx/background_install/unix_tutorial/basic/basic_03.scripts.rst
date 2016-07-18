@@ -73,10 +73,12 @@ Write a simple script
 
    And save the script.
 
+.. note:: How the ``gedit`` window looks will depend on the operating system
+          and environment.
+
 .. image:: media/basic_3_B.jpg
    :align: center
    :width: 80%
-
 
 Verify that the script exists
 -----------------------------

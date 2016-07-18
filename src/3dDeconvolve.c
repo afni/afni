@@ -9048,7 +9048,7 @@ MEM_plotdata * PLOT_tsgray( int npt , int nts , int ymask , float **y )
 
 MRI_IMAGE * PLOT_matrix_gray( matrix X )
 {
-   int nts=X.cols , npt=X.rows , ii,jj , nxim=768 , nyim=1024 ;
+   int nts=X.cols , npt=X.rows , ii,jj , nxim=2*768 , nyim=2*1024 ;
    MEM_plotdata *mp ;
    float **xar ;
    MRI_IMAGE *im ;

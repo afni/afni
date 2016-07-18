@@ -153,6 +153,14 @@ terminal stream.  For example, a csh script might look like so:
   end
   wait
 
+-------------------------------
+Variable: AFNI_MESSAGE_COLORIZE   [22 Feb 2016]
+-------------------------------
+When AFNI programs print WARNING or ERROR messages, they normally print the
+'WARNING' or 'ERROR' label using inverted colors, to aid in picking out these
+messages from other text on the screen.  To turn this feature off, set this
+environment variable to 'NO'.
+
 ------------------------------------
 Variable: AFNI_DONT_SORT_ENVIRONMENT
 ------------------------------------
@@ -1221,6 +1229,16 @@ If neither is present, no zero padding is used.  Note well that this
 padding is only in the z-direction, unlike that of AFNI_ROTA_ZPAD.
 
 ----------------------------
+Variable: AFNI_OPEN_AXIAL
+Variable: AFNI_OPEN_SAGITTAL
+Variable: AFNI_OPEN_CORONAL
+----------------------------
+When the AFNI GUI starts, by default it opens all 3 image viewer
+windows. If you do NOT want a particular one of these, set the
+corresponding variable named above to NO.  For finer control over
+AFNI startup, see the AFNI_STARTUP_SCRIPT variable and README.driver.
+
+----------------------------
 Variable: AFNI_IMAGE_MINFRAC (editable)
 ----------------------------
 This variable sets the minimum size of an image window when it is first
@@ -1951,8 +1969,8 @@ of a Layout file (cf. AFNI_LAYOUT_FILE above), you'll get a Script file
 if you leave the filename blank or enter any filename with the string
 "script" included (e.g., "coolstuff.script").
 
-The capabilities of Script files are being expanded.  Not all features of
-the AFNI window setup are currently save-able this way.
+The capabilities of Script files are expanded from time to time.  Not all
+features of the AFNI window setup are currently save-able this way.
 
 You can load a Script file interactively during an AFNI run by using the
 button "Datamode->Misc->Run Script".  As a 'secret' option, if you enter
@@ -2930,6 +2948,16 @@ will rescan all session directories everytime you click on either of the
 'Overlay' or 'Underlay' buttons. Basically, this is just another way for
 you to avoid pressing the 'Rescan' buttons.  (Unlike with AFNI_AUTO_RESCAN,
 the AFNI_RESCAN_METHOD settings are respected.)
+
+---------------------------
+Variable: AFNI_ALL_DATASETS  [02 Jun 2016]
+---------------------------
+By default, AFNI creates a session (internal the the program) that
+contains all the input datasets -- if you input more than one session
+directory, that is.  This session is called 'All_Datasets' in the
+'DataDir Switch' popup chooser, and should be the last session listed
+in that list.  If you do NOT want this session created, then set
+AFNI_ALL_DATASETS to NO.
 
 --------------------------
 Variable: AFNI_WEB_BROWSER

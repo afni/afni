@@ -34,11 +34,17 @@ int main( int argc , char * argv[] )
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
      printf(
        "\n"
+       "--------------------------------------------------------------------------\n"
        "** NOTA BENE:  For the purpose of preparing resting-state FMRI datasets **\n"
        "** for analysis (e.g., with 3dGroupInCorr),  this program is now mostly **\n"
        "** superseded by the afni_proc.py script.  See the 'afni_proc.py -help' **\n"
        "** section 'Resting state analysis (modern)' to get our current rs-FMRI **\n"
        "** pre-processing recommended sequence of steps. -- RW Cox, et alii.    **\n"
+       "--------------------------------------------------------------------------\n"
+       "** If you insist on doing your own bandpassing, I now recommend using   **\n"
+       "** program 3dTproject instead of this program.  3dTproject also can do  **\n"
+       "** censoring and other nuisance regression at the same time -- RW Cox.  **\n"
+       "--------------------------------------------------------------------------\n"
        "\n"
        "Usage: 3dBandpass [options] fbot ftop dataset\n"
        "\n"
@@ -157,6 +163,8 @@ int main( int argc , char * argv[] )
    mainENTRY("3dBandpass"); machdep();
    AFNI_logger("3dBandpass",argc,argv);
    PRINT_VERSION("3dBandpass"); AUTHOR("RW Cox");
+
+   WARNING_message("(-: For most purposes, 3dTproject is superior to 3dBandpass :-)") ;
 
    nosat =  AFNI_yesenv("AFNI_SKIP_SATCHECK") ;
 

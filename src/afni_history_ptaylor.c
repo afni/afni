@@ -67,6 +67,81 @@ afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
 
+{ 21, Jun , 2016 , PT , "@fat_tract_colorize" , MAJOR , TYPE_NEW_PROG,
+   "New function for coloring the volumetric tracking outputs.",
+   "RGB coloration of local diffusion, esp. for PROB track output.\n"
+},
+
+{ 20, Jun , 2016 , PT , "3dLombScargle" , MINOR , TYPE_BUG_FIX,
+   "Fixing bug in delta F calculation.",
+   "What more needs to be said?\n"
+},
+
+{ 14, Jun , 2016 , PT , "3dAmptoRSFC" , MAJOR , TYPE_NEW_PROG,
+   "New function for calculating RSFC params from one-side spectra.",
+   "Complements 3dLombScargle. What an epithet.\n"
+},
+
+{ 14, Jun , 2016 , PT , "3dLombScargle" , MINOR , TYPE_MODIFY,
+   "Making this output 'one-sided' spectra now.",
+   "Easier for 3dAmpToRSFC calcs.\n"
+},
+
+{ 16, Jun , 2016 , PT , "3dLombScargle" , MINOR , TYPE_MODIFY,
+   "Changed how number of output points/freqs is calc'ed.",
+   "Should be more stable across group.).\n"
+},
+
+{ 13, Jun , 2016 , PT , "3dLombScargle" , MAJOR , TYPE_MODIFY,
+   "Revamped LS program-- AGAIN**2!-- now has Welch windows+tapers.",
+   "Scaling properly/consistently, couple bug fixes.\n"
+},
+
+{ 9, Jun , 2016 , PT , "3dLombScargle" , MAJOR , TYPE_MODIFY,
+   "Revamped LS program-- AGAIN-- now has Welch windows+tapers.",
+   "Several new options added (related to windows/tapers).\n"
+},
+
+{ 27, May , 2016 , PT , "3dDWItoDT" , MINOR , TYPE_NEW_OPT,
+   "Have a new '-scale_out_1000' option: rescale output, if desired.",
+   "Effectively: change output diff units of mm^2/s -> x10^{-3} mm^2/s.\n"
+},
+
+{ 24, May , 2016 , PT , "3dLombScargle" , MAJOR , TYPE_MODIFY,
+   "Revamped LS program-- new implementation, directly from PR89.",
+   "Several new options added (normalize, amplitudeize, etc.).\n"
+},
+
+{ 12, May , 2016 , PT , "3dLombScargle" , MAJOR , TYPE_NEW_PROG,
+   "New function for calculating LS (normalized) periodogram from time series.",
+   "Calculate magnitude spectrum from non-equisampled data.\n"
+},
+
+{ 3, May , 2016 , PT , "@GradFlipTest" , MINOR , TYPE_MODIFY,
+   "Using '-out_grad_cols_bwt' for grad stuff now-- use weights.",
+   "Can deal well with multiple DW factors in gradient list now.\n"
+},
+
+{ 2, May , 2016 , PT , "3dDWItoDT" , MINOR , TYPE_NEW_OPT,
+   "Have a new '-min_bad_md' option: use to threshold badness.",
+   "Also now detect bad DT fits if MD is crazy big.  Whoa.\n"
+},
+
+{ 8, Apr , 2016 , PT , "3dDTtoDWI" , MINOR , TYPE_MODIFY,
+   "Work to deal with bvalue-weighted grads.",
+   "This is useful esp. for new TORTOISE outputs.\n"
+},
+
+{ 5, Apr , 2016 , PT , "3dDWUncert" , MINOR , TYPE_NEW_OPT,
+   "New inp format option-- for dealing with TORT export/import.",
+   "-bmatrix_Z for reading in bmat in AFNI format; byebye -bmatr opt.\n"
+},
+
+{ 5, Apr , 2016 , PT , "1dDW_Grad_o_Mat" , MINOR , TYPE_NEW_OPT,
+   "New I/O options-- for dealing with TORT export.",
+   "Now have I/O of grad columns weighted by bvalues.\n"
+},
+
 { 5, Jan , 2016 , PT , "3dVecRGB_to_HSL" , MAJOR , TYPE_NEW_PROG,
    "Take a 3-vec to a single index on RGB color scale, and glue FA brick.",
    "Replaces earlier version, 3dVec_to_RGBind.\n"

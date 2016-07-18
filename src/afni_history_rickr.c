@@ -49,6 +49,346 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  8,  Jul, 2016, RCR, "Dimon", MINOR, TYPE_NEW_OPT,
+   "add -read_all, in case it is useful for sorting (e.g. -order_as_zt)",
+   "Added for K Vishwanath."
+ } ,
+
+ {  14,  Jul, 2016, RCR, "afni-general", MICRO, TYPE_BUG_FIX,
+   "THD_open_tcat: print error and return NULL on bad wildcard match",
+   NULL
+ } ,
+
+ {  7,  Jul, 2016, RCR, "Dimon", MINOR, TYPE_NEW_OPT,
+   "add -order_as_zt to re-order from -time:tz to -time:zt",
+   NULL
+ } ,
+
+ {  7,  Jul, 2016, RCR, "afni_system_check.py", MICRO, TYPE_ENHANCE,
+   "check for partial install of PyQt4 (might be common on OS X 10.11)",
+   NULL
+ } ,
+
+ { 30,  Jun, 2016, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,
+   "allow single volume EPI input (e.g. to test blip correction)",
+   "Also, auto -blip_forward_dset should come from tcat output."
+ } ,
+
+ { 29,  Jun, 2016, RCR, "3dfim", MICRO, TYPE_BUG_FIX,
+   "fix crash for dset open error with long dset name",
+   "Thanks to J Henry for reporting the problem."
+ } ,
+
+ { 29,  Jun, 2016, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,
+   "can modify blip order; BLIP_BASE -> MEDIAN_BLIP; add BLIP_NOTE to help",
+   NULL
+ } ,
+
+ { 27,  Jun, 2016, RCR, "afni_proc.py", MICRO, TYPE_ENHANCE,
+   "allow for blip datasets that are not time series",
+   NULL
+ } ,
+
+ { 24,  Jun, 2016, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
+   "add -requires_afni_hist; warp vr_base to make final_epi dset",
+   NULL
+ } ,
+
+ { 23,  Jun, 2016, RCR, "plug_realtime", MICRO, TYPE_ENHANCE,
+   "show pop-up if user selects Mask Vals without 3D RT registrasion",
+   "Clarify this in the plugin Help.  For L Li and V Roopchansingh."
+ } ,
+
+ { 23,  Jun, 2016, RCR, "@auto_tlrc", MICRO, TYPE_ENHANCE,
+   "allow to work with NIFTI template",
+   NULL
+ } ,
+
+ { 22,  Jun, 2016, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,
+   "do nothing, but work really hard at it",
+   "Rewrite EPI transformation steps by storing and applying an array\n"
+   "of transformations: this should make future changes easier."
+ } ,
+
+ { 22,  Jun, 2016, RCR, "@diff.tree", MICRO, TYPE_NEW_OPT,
+   "added -diff_opts; e.g. -diff_opts -w",
+   NULL
+ } ,
+
+ { 22,  Jun, 2016, RCR, "@diff.files", MICRO, TYPE_NEW_OPT,
+   "added -diff_opts; e.g. -diff_opts -w",
+   NULL
+ } ,
+
+ { 22,  Jun, 2016, RCR, "auto_warp.py", MICRO, TYPE_BUG_FIX,
+   "correctly check base.exists()",
+   NULL
+ } ,
+
+ { 17,  Jun, 2016, RCR, "afni-general", MICRO, TYPE_BUG_FIX,
+   "w/dglen, dsets with HEAD in prefix (but no suffix) could not be opened",
+   NULL
+ } ,
+
+ { 16,  Jun, 2016, RCR, "afni_proc.py", MAJOR, TYPE_ENHANCE,
+   "EPI blip up/blip down distortion correction is ready",
+   "Thanks to S Torrisi and D Glen."
+ } ,
+
+ { 16,  Jun, 2016, RCR, "afni_proc.py", MINOR, TYPE_BUG_FIX,
+   "if NLwarp but no EPI warp, no NL; fix refit of blip median datsets",
+   "User probably forgot -volreg_tlrc_warp, so warn them."
+ } ,
+
+ { 14,  Jun, 2016, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
+   "add -blip_forward_dset; if needed copy along any obliquity information",
+   NULL
+ } ,
+
+ { 13,  Jun, 2016, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
+   "add -align_unifize_epi : 3dUnifize EPI before anat alignment",
+   "Thanks to D Glen and S Torrisi for suggesting it."
+ } ,
+
+ { 13,  Jun, 2016, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,
+   "add BLIP_BASE case for -volreg_align_to",
+   "Use warped median forward blip volume as volreg alignment base."
+ } ,
+
+ { 10,  Jun, 2016, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
+   "add -blip_reverse_dset for blip up/blip down distortion correction",
+   NULL
+ } ,
+
+ {  2,  Jun, 2016, RCR, "afni-general", MINOR, TYPE_ENHANCE,
+   "w/dglen: read num slices from Siemens 3D acquisition DICOM image files",
+   NULL
+ } ,
+
+ {  1,  Jun, 2016, RCR, "make_random_timing.py", MICRO, TYPE_ENHANCE,
+   "minor updates to verbose output",
+   NULL
+ } ,
+
+ { 23,  May, 2016, RCR, "parse_fs_lt_log.py", MINOR, TYPE_NEW_PROG,
+   "get an index list from a FreeSurfer labletable log file",
+   NULL
+ } ,
+
+
+ { 20,  May, 2016, RCR, "afni_system_check.py", MINOR, TYPE_NEW_OPT,
+   "add options -dot_file_list/_pack/_show",
+   "List, package (tgz) or show the contents of found 'dot' files."
+ } ,
+
+ { 19,  May, 2016, RCR, "dicom_hdr", MICRO, TYPE_BUG_FIX,
+   "do not crash on missing input",
+   NULL
+ } ,
+
+ {  5,  May, 2016, RCR, "@update.afni.binaries", MICRO, TYPE_MODIFY,
+   "-defaults similarly implies -do_dotfiles and apsearch yes",
+   NULL
+ } ,
+
+ {  4,  May, 2016, RCR, "@update.afni.binaries", MICRO, TYPE_MODIFY,
+   "add -do_dotfiles and -do_extras",
+   "Running apsearch and possibly editing dot files is only on request."
+ } ,
+
+ {  3,  May, 2016, RCR, "afni_proc.py", MICRO, TYPE_MODIFY,
+   "suggest -regress_est_blur_epits for resting state",
+   "Thanks to S Torrisi for bringing up the question."
+ } ,
+
+ { 28,  Apr, 2016, RCR, "@update.afni_binaries", MINOR, TYPE_NEW_OPT,
+   "add -local_package, to use an already downloaded package",
+   "Requested by P Taylor."
+ } ,
+
+ { 28,  Apr, 2016, RCR, "3dMVM.R", MICRO, TYPE_MODIFY,
+   "prevent any unexpected writing of dbg.AFNI.args files",
+   "Only write such files given -dbg_args.\n"
+   "Affects 1dRplot, 3dLME, 3dMEMA, 3dMVM, 3dPFM, 3dRprogDemo\n"
+   "        3dSignatures, AFNIio, ExamineXmat, rPkgsInstall.\n"
+   "The dbg files no longer start with '.'."
+ } ,
+
+ { 28,  Apr, 2016, RCR, "afni-general", MICRO, TYPE_MODIFY,
+   "add initial #!prog to tops of some meica programs, and bricks_test.sh",
+   "This corresponds with -x permission clearing by yarikoptic."
+ } ,
+
+ { 27,  Apr, 2016, RCR, "afni_proc.py", MINOR, TYPE_MODIFY,
+   "prep for later: always extract volreg base, as vr_base*",
+   NULL
+ } ,
+
+ { 26,  Apr, 2016, RCR, "afni-general", MICRO, TYPE_MODIFY,
+   "Makefile.INCLUDE: moved SCRIPTS into scripts_install",
+   NULL
+ } ,
+
+ { 26,  Apr, 2016, RCR, "tokens", MICRO, TYPE_ENHANCE,
+   "handle arbitrarily long tokens",
+   NULL
+ } ,
+
+ { 19,  Apr, 2016, RCR, "Dimon", MICRO, TYPE_BUG_FIX,
+   "incorrectly reported 'IFM:RIF fatal error' for the case of no sorting",
+   "Thanks to I Groen for reporting the problem."
+ } ,
+
+ { 18,  Apr, 2016, RCR, "3dbucket", MICRO, TYPE_ENHANCE,
+   "if THD_open_one_dataset fails, fall back to THD_open_dataset",
+   "As with 3dTcat, fall back rather than failing outright."
+ } ,
+
+ { 18,  Apr, 2016, RCR, "afni-general", MICRO, TYPE_BUG_FIX,
+   "THD_open_tcat: fix wilcard input lacking sub-brick selectors",
+   "Forgot to regenerate catenated list, dlocal."
+ } ,
+
+ { 15,  Apr, 2016, RCR, "afni-general", MICRO, TYPE_ENHANCE,
+   "added help macro CATENATE_HELP_STRING",
+   "This displays a 'CATENATED AND WILDCARD DATASET NAMES' section in the\n"
+   "help output from afni and 3dcalc (following 'INPUT DATASET NAMES')."
+ } ,
+
+ { 15,  Apr, 2016, RCR, "NIFTI-2", MICRO, TYPE_MODIFY,
+   "print int64_t using PRId64 macro, which looks ugly, but avoids warnings",
+   NULL
+ } ,
+
+ {  8,  Apr, 2016, RCR, "afni-general", MINOR, TYPE_ENHANCE,
+   "auto-tcat inputs with spaces, wildcards and global selectors",
+   "For example, input of 'DA*.HEAD DB*.HEAD DC*.HEAD[3,4]' would create\n"
+   "a dataset with sub-bricks 3 and 4 from all D[ABC]*.HEAD datasets.\n"
+   "If sub-brick selectors appear only at the end, they are global,\n"
+   "otherwise they can be per input, as in 'DA*.HEAD[0,1] DB*.HEAD[2,3]'."
+ } ,
+
+ {  7,  Apr, 2016, RCR, "Makefile.INCLUDE", MICRO, TYPE_MODIFY,
+   "switch to have cjpeg depend on libjpeg.a, so it does not get rebuilt",
+   NULL
+ } ,
+
+ {  7,  Apr, 2016, RCR, "@update.afni.binaries", MINOR, TYPE_NEW_OPT,
+   "add options -proto and -test_proto",
+   "One can specify the download protocol as http, https or NONE."
+ } ,
+
+ {  5,  Apr, 2016, RCR, "afni-general", MINOR, TYPE_ENHANCE,
+   "THD_open_tcat works as wildcard - can apply sub-brick selectors",
+   NULL
+ } ,
+
+ {  4,  Apr, 2016, RCR, "3dTcat", MICRO, TYPE_ENHANCE,
+   "if THD_open_one_dataset fails, fall back to THD_open_dataset",
+   "Fall back rather than failing outright."
+ } ,
+
+ {  4,  Apr, 2016, RCR, "THD_load_tcat", MINOR, TYPE_BUG_FIX,
+   "set factors and labels at open time, not at load time",
+   "This fixes use with 3dcalc and 3dinfo, though stats are not yet loaded."
+ } ,
+
+ { 31,  Mar, 2016, RCR, "3dMVM.R", MICRO, TYPE_MODIFY,
+   "do not create .dbg.AFNI.args files on -help usage",
+   "Modified 1dRplot.R, 3dLME.R, 3dMEMA.R, 3dMVM.R, 3dPFM.R, 3dRprogDemo.R,\n"
+   "         3dSignatures.R, ExamineXmat.R and rPkgsInstall.R."
+ } ,
+
+ { 30,  Mar, 2016, RCR, "@update.afni.binaries", MICRO, TYPE_ENHANCE,
+   "possibly update .bashrc if .cshrc is updated",
+   NULL
+ } ,
+
+ { 29,  Mar, 2016, RCR, "@update.afni.binaries", MICRO, TYPE_NEW_OPT,
+   "add option -no_cert_verify, to skip server certificate verification",
+   NULL
+ } ,
+
+ { 29,  Mar, 2016, RCR, "gen_group_command.py", MICRO, TYPE_MODIFY,
+   "3dMEMA no longer allows for a paied test",
+   "One must now input contrast/stat from original regression."
+ } ,
+
+ { 29,  Mar, 2016, RCR, "afni_restproc.py", MICRO, TYPE_MODIFY,
+   "suggest that users consider afni_proc.py",
+   "This was requested by Rayus."
+ } ,
+
+ { 26,  Mar, 2016, RCR, "to3d", MICRO, TYPE_BUG_FIX,
+   "another allowance for datasets exceeding 2 GB",
+   "Thanks to SS Kim for noting the problem."
+ } ,
+
+ { 24,  Mar, 2016, RCR, "Dimon", MICRO, TYPE_NEW_OPT,
+   "add option -use_obl_origin, to apply -oblique_origin to to3d command",
+   "Also, run any to3d script via 'tcsh -x' so the users get to see."
+ } ,
+
+ { 22,  Mar, 2016, RCR, "afni-general", MINOR, TYPE_ENHANCE,
+   "modularize version checking",
+   "Update .afni.vctime even if URL read fails, to not flood server."
+ } ,
+
+ { 21,  Mar, 2016, RCR, "gen_ss_review_scripts.py", MICRO, TYPE_BUG_FIX,
+   "get slightly more accurate motion ave via 3dTstat -nzmean",
+   NULL
+ } ,
+
+ { 21,  Mar, 2016, RCR, "3dANOVA", MICRO, TYPE_ENHANCE,
+   "allow for up to 666 observations",
+   "Consider changing this to use a string_list or something similar."
+ } ,
+
+ { 21,  Mar, 2016, RCR, "GLTsymtest", MICRO, TYPE_NEW_OPT,
+   "added -badonly, to avoid screen clutter from many good GLTs",
+   NULL
+ } ,
+
+ { 21,  Mar, 2016, RCR, "uber_subject.py", MICRO, TYPE_ENHANCE,
+   "run GLTsymtest on specified GLTs",
+   NULL
+ } ,
+
+ { 15,  Mar, 2016, RCR, "timing_tool.py", MICRO, TYPE_BUG_FIX,
+   "-help_basis update: max convolved BLOCK() is ~5.1, not ~5.4",
+   NULL
+ } ,
+
+ {  1,  Mar, 2016, RCR, "GIFTI", MICRO, TYPE_BUG_FIX,
+   "applied R Vincent fix for GIFTI datasets with Windows-style newlines",
+   NULL
+ } ,
+
+ {  1,  Mar, 2016, RCR, "tokens", MINOR, TYPE_NEW_PROG,
+   "program to extract valid text entries from a file",
+   NULL
+ } ,
+
+ { 29,  Feb, 2016, RCR, "3dANOVA3", MICRO, TYPE_ENHANCE,
+   "show prior options to any 'Unrecognized command line option'",
+   "Added disp_strings() to libmri.a."
+ } ,
+
+ { 24,  Feb, 2016, RCR, "uber_subject.py", MINOR, TYPE_ENHANCE,
+   "replace tlrc_no_ss with anat_has_skull toggle and move to anat block",
+   NULL
+ } ,
+
+ { 24,  Feb, 2016, RCR, "timing_tool.py", MINOR, TYPE_BUG_FIX,
+   "fix -warn_tr_stats crash on empty timing file",
+   "Thanks to Z Reagh for noting the problem."
+ } ,
+
+ { 19,  Feb, 2016, RCR, "afni_system_check.py", MINOR, TYPE_ENHANCE,
+   "add many tests and summarize potential issues",
+   NULL
+ } ,
+
  { 17,  Feb, 2016, RCR, "afni_util.py", MICRO, TYPE_ENHANCE,
    "add function affine_to_params_6: where input is 12 element sub-matrix",
    NULL
