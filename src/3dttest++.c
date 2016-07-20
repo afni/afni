@@ -159,6 +159,7 @@ static int num_randomsign  = 0 ;     /* 02 Feb 2016 */
 static int       do_clustsim = 0 ;   /* 10 Feb 2016 */
 static int      num_clustsim = 0 ;
 static char *prefix_clustsim = NULL ;
+static char *tempdir         = "./" ;/* 20 Jul 2016 */
 
 static int dofsub          = 0    ;  /* 19 Jan 2016 */
 
@@ -882,6 +883,9 @@ void display_help_menu(void)
       "                         'TT.' and be followed by 11 alphanumeric characters,\n"
       "                         as in 'TT.Sv0Ghrn4uVg'.  To mimic this, you might\n"
       "                         use '-prefix_clustsim TT.Zhark'.\n"
+      "\n"
+      " -tempdir ttt        = Store temporary files for '-Clustsim' in this directory.\n"
+      "                       [NOTE: these files will not be deleted by 3dttest++]\n"
 #if 0 /*** hidden from user ***/
       "\n"
       " -dofsub ss  = Subtract 'ss' from the normal degrees of freedom used.\n"
@@ -1557,6 +1561,17 @@ int main( int argc , char *argv[] )
        prefix_clustsim = strdup(argv[nopt]) ;
        if( !THD_filename_ok(prefix_clustsim) )
          ERROR_exit("-prefix_clustsim '%s' is not acceptable",prefix_clustsim) ;
+       nopt++ ; continue ;
+     }
+
+     /*----- -tempdir [20 Jul 2016] -----*/
+
+     if( strcasecmp(argv[nopt],"-tempdir") == 0 ){
+       if( ++nopt >= argc )
+         ERROR_exit("Need argument after '%s'",argv[nopt-1]) ;
+       tempdir = strdup(argv[nopt]) ;
+       if( !THD_filename_ok(tempdir) )
+         ERROR_exit("-tempdir '%s' is not acceptable",tempdir) ;
        nopt++ ; continue ;
      }
 
@@ -3014,9 +3029,9 @@ LABELS_ARE_DONE:  /* target for goto above */
          }
        }
 
-       /* let only job #0 print progress to the screen */
+       sprintf( cmd+strlen(cmd) , " -prefix %s/%s.%03d.nii" , tempdir , prefix_clustsim , pp ) ;
 
-       sprintf( cmd+strlen(cmd) , " -prefix %s.%03d.nii" , prefix_clustsim , pp ) ;
+       /* let only job #0 print progress to the screen */
        if( pp > 0 ) strcat(cmd," >& /dev/null") ;
 
        if( pp == 0 ) ININFO_message("#0 jobs command:\n   %s",cmd) ;
@@ -3037,8 +3052,8 @@ LABELS_ARE_DONE:  /* target for goto above */
 
      sprintf(fname,"%s.CSim.cmd",prefix_clustsim) ;
      sprintf( cmd , "3dClustSim -DAFNI_DONT_LOGFILE=YES"
-                    " -inset %s.???.nii -prefix %s.CSim -LOTS -both -cmd %s" ,
-                    prefix_clustsim , prefix_clustsim , fname ) ;
+                    " -inset %s/%s.???.nii -prefix %s.CSim -LOTS -both -cmd %s" ,
+                    tempdir , prefix_clustsim , prefix_clustsim , fname ) ;
      if( name_mask != NULL )
        sprintf( cmd+strlen(cmd) , " -mask %s",name_mask) ;
 

@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 20 , JUL , 2016 , RWC , "3dttest++" , MICRO , TYPE_NEW_OPT ,
+   "-tempdir for -Clustsim" ,
+   NULL } ,
+
  { 14 , JUL , 2016 , RWC , "3dttest++" , MICRO , TYPE_BUG_FIX ,
    "Fix problem with -resid combined with -clustsim" ,
    "Program assumed prefix_resid was NIFTI format,"
