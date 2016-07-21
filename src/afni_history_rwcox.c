@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 21 , JUL , 2016 , RWC , "3dttest++" , MICRO , TYPE_MODIFY ,
+   "if -clustsim, check for non-3D datasets (e.g., surfaces)" ,
+   NULL } ,
+
  { 20 , JUL , 2016 , RWC , "3dttest++" , MICRO , TYPE_NEW_OPT ,
    "-tempdir for -Clustsim" ,
    NULL } ,
