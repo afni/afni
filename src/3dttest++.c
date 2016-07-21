@@ -2077,6 +2077,9 @@ int main( int argc , char *argv[] )
    if( debug ) INFO_message("brickwise_num set to %d",brickwise_num) ;
 
    if( do_clustsim ){
+     if( DSET_NY(dset_AAA[0]) < 4 || DSET_NZ(dset_AAA[0]) < 4 )  /* 21 Jul 2016 */
+       ERROR_exit("You cannot use the '-Clustsim' option except on 3D datasets :-(") ;
+
      do_resid = 1 ;
      if( prefix_resid == NULL ){
        prefix_resid = (char *)malloc(sizeof(char)*(strlen(prefix_clustsim)+32)) ;
