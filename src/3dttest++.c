@@ -97,6 +97,7 @@ static int   do_ranks  = 0 ;  /* 10 Nov 2010 */
 static int   do_1sam   = 1 ;  /* 10 Nov 2010 */
 static int   do_means  = 1 ;  /* 05 Feb 2014 */
 static int   do_tests  = 1 ;
+static int   do_cov    = 1 ;  /* 22 Jun 2016 */
 
 static unsigned int testA, testB, testAB ;
 
@@ -743,6 +744,10 @@ void display_help_menu(void)
       "              where the amount of output sub-bricks can become overwhelming.\n"
       "             ++ You CANNOT use both '-nomeans' and '-notests', because\n"
       "                 then you would be asking for no outputs at all!\n"
+      "\n"
+      " -nocov    = Do not output the '-covariates' results.  This option is\n"
+      "             useful only for internal testing, and it's hard to see\n"
+      "             why the ordinary user would want it.\n"
       "\n"
       " -mask mmm = Only compute results for voxels in the specified mask.\n"
       "             ++ Voxels not in the mask will be set to 0 in the output.\n"
@@ -1449,6 +1454,12 @@ int main( int argc , char *argv[] )
 
      if( strcasecmp(argv[nopt],"-no1sam") == 0 ){   /* 10 Nov 2010 */
        do_1sam = 0 ; nopt++ ; continue ;
+     }
+
+     /*----- nocov -----*/
+
+     if( strcasecmp(argv[nopt],"-nocov") == 0 ){    /* 22 Jul 2016 */
+       do_cov = 0 ; nopt++ ; continue ;
      }
 
      /*----- nomeans -----*/
@@ -2425,8 +2436,11 @@ int main( int argc , char *argv[] )
 
    if( singletonA )
      nvres = nvout = 2 ;
-   else
-     nvres = nvout = ((twosam && do_1sam) ? 6 : 2) * (mcov+1) ; /* # of output volumes */
+   else {
+     int mct = (do_cov) ? mcov : 0 ;
+     nvres = ((twosam && do_1sam) ? 6 : 2) * (mcov+1) ; /* # of output volumes (calculated) */
+     nvout = ((twosam && do_1sam) ? 6 : 2) * (mct+1)  ; /* # of output volumes (saved) */
+   }
 
    if( !do_means || !do_tests ) nvout /= 2 ; /* no mean or stat sub-bricks? [05 Feb 2014] */
 
@@ -2570,7 +2584,7 @@ int main( int argc , char *argv[] )
 
    for( bb=0 ; bb < brickwise_num ; bb++ ){ /** loop over tests to perform **/
      bbase = bb*nvout ; ss = 0 ;
-     if( mcov <= 0 ){                    /*--- no covariates ---*/
+     if( mcov <= 0 || !do_cov ){         /*--- no covariates ---*/
        if( !twosam ){   /* 1 sample only = the simplest case */
          if( do_means ) MEAN_LABEL_1SAM (snam_AAA,"mean") ;
          if( do_tests ) TEST_LABEL_1SAM_MEAN(snam_AAA,dof_A ) ;
@@ -2878,13 +2892,14 @@ LABELS_ARE_DONE:  /* target for goto above */
      for( kk=0 ; kk < nvout ; kk++ )        /* load dataset with 0s */
        EDIT_substitute_brick( bbset , kk , MRI_float , NULL ) ;
 
-     if( do_means+do_tests == 2 ){  /* simple copy of results into temp dataset */
+     if( do_means+do_tests == 2 && do_cov ){  /* simple copy of results into temp dataset */
        THD_vectim_to_dset( vimout , bbset ) ;
      } else {
        int *list = (int *)malloc(sizeof(int)*nvout) ;
        ss = (do_means) ? 0 : 1 ;
        for( kk=0 ; kk < nvout ; kk++ ) list[kk] = ss + 2*kk ;
        THD_vectim_indexed_to_dset( vimout , nvout,list , bbset ) ;
+       free(list) ;
      }
 
      for( kk=0 ; kk < nvout ; kk++ ){       /* move results into final output dataset */
@@ -3010,7 +3025,7 @@ LABELS_ARE_DONE:  /* target for goto above */
                                       prefix_resid , nval_AAA    ) ;
          }
        } else {  /* covariates are harder to format (must allow for labels) */
-         sprintf( cmd+strlen(cmd) , " -covariates %s" , fname_cov ) ;
+         sprintf( cmd+strlen(cmd) , " -nocov -covariates %s" , fname_cov ) ;
          switch( center_code ){
            default:
            case CENTER_DIFF: sprintf( cmd+strlen(cmd) , " -center DIFF") ; break ;
@@ -3055,7 +3070,7 @@ LABELS_ARE_DONE:  /* target for goto above */
 
      sprintf(fname,"%s.CSim.cmd",prefix_clustsim) ;
      sprintf( cmd , "3dClustSim -DAFNI_DONT_LOGFILE=YES"
-                    " -inset %s/%s.???.nii -prefix %s.CSim -LOTS -both -cmd %s" ,
+                    " -inset %s/%s.???.nii -prefix %s.CSim -LOTS -both -nodec -cmd %s" ,
                     tempdir , prefix_clustsim , prefix_clustsim , fname ) ;
      if( name_mask != NULL )
        sprintf( cmd+strlen(cmd) , " -mask %s",name_mask) ;

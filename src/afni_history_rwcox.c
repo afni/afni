@@ -44,6 +44,11 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 22 , JUL , 2016 , RWC , "3dttest++" , MICRO , TYPE_MODIFY ,
+   "New -nocov option for used with -Clustsim" ,
+   "To avoid writing out the -covariates sub-bricks in the -Clustsim\n"
+   "operation.  Not clear that it is useful otherwise." } ,
+
  { 21 , JUL , 2016 , RWC , "3dttest++" , MICRO , TYPE_MODIFY ,
    "if -clustsim, check for non-3D datasets (e.g., surfaces)" ,
    NULL } ,
