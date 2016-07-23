@@ -530,9 +530,11 @@ g_history = """
         - allow for single volume EPI input (e.g. to test blip correction)
         - auto -blip_forward_dset should come from tcat output
           (obliquity test still be from existing -dsets, if appropriate)
+    4.73 Jul 23, 2016:
+        - if empty regressor, check for -GOFORIT
 """
 
-g_version = "version 4.72, June 30, 2016"
+g_version = "version 4.73, July 23, 2016"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \
