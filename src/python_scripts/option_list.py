@@ -151,6 +151,14 @@ class OptionList:
         if opt_is_no(opt): return 1
         return 0
 
+    def opt_has_arg(self, opt_name=None, opt=None, arg=''):
+        """is the given argument in opt.parlist
+           (if opt is passed, we don't need to find it)"""
+
+        if opt == None: opt = self.find_opt(opt_name)
+        if not opt or not opt.parlist or len(opt.parlist) < 1: return 0
+        return arg in opt.parlist
+
     def count_opt(self, name):
         """return number of comopts where name=name"""
         count = 0
