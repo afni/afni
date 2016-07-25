@@ -49,14 +49,24 @@
 
 afni_history_struct rickr_history[] = {
 
- {  8,  Jul, 2016, RCR, "Dimon", MINOR, TYPE_NEW_OPT,
-   "add -read_all, in case it is useful for sorting (e.g. -order_as_zt)",
-   "Added for K Vishwanath."
+ {  25,  Jul, 2016, RCR, "3dDeconvolve", MICRO, TYPE_BUG_FIX,
+   "fixed attaching lone '-' to following label",
+   "No NI_malloc might lead to crash, and the '-' was overwritten."
+ } ,
+
+ {  23,  Jul, 2016, RCR, "afni_proc.py", MICRO, TYPE_ENHANCE,
+   "if empty regressor, check for -GOFORIT",
+   NULL
  } ,
 
  {  14,  Jul, 2016, RCR, "afni-general", MICRO, TYPE_BUG_FIX,
    "THD_open_tcat: print error and return NULL on bad wildcard match",
    NULL
+ } ,
+
+ {  8,  Jul, 2016, RCR, "Dimon", MINOR, TYPE_NEW_OPT,
+   "add -read_all, in case it is useful for sorting (e.g. -order_as_zt)",
+   "Added for K Vishwanath."
  } ,
 
  {  7,  Jul, 2016, RCR, "Dimon", MINOR, TYPE_NEW_OPT,
