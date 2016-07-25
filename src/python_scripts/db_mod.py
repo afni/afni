@@ -7686,6 +7686,7 @@ g_help_string = """
          -align_opts_aea -cost lpa
          -align_opts_aea -giant_move
          -align_opts_aea -cost lpc+ZZ -giant_move
+         -align_opts_aea -check_flip
          -align_opts_aea -cost lpc+ZZ -giant_move -resample off
          -align_opts_aea -skullstrip_opts -blur_fwhm 2
 
@@ -8900,6 +8901,7 @@ g_help_string = """
         -align_opts_aea OPTS ... : specify extra options for align_epi_anat.py
 
                 e.g. -align_opts_aea -cost lpc+ZZ
+                e.g. -align_opts_aea -cost lpc+ZZ -check_flip
                 e.g. -align_opts_aea -Allineate_opts -source_automask+4
                 e.g. -align_opts_aea -giant_move -AddEdge -epi_strip 3dAutomask
                 e.g. -align_opts_aea -skullstrip_opts -blur_fwhm 2
@@ -8916,6 +8918,13 @@ g_help_string = """
 
             Similarly, the fourth example passes '-blur_fwhm 2' down through
             align_epi_anat.py to 3dSkullStrip.
+
+          * The -check_flip option to align_epi_anat.py is good for evaluating
+            data from external sources.  Aside from performing the typical
+            registration, it will compare the final registration cost to that
+            of a left/right flipped version.  If the flipped version is lower,
+            one should investigate whether the axes are correctly labeled, or
+            even labeled at all.
 
             Please see "align_epi_anat.py -help" for more information.
             Please see "3dAllineate -help" for more information.
