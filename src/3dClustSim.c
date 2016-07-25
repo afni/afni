@@ -1115,7 +1115,7 @@ ENTRY("get_options") ;
     dz = fabsf(DSET_DZ(inset[0])) ;
     for( niter=qq=0 ; qq < num_inset ; qq++ ){
       niter += nval_inset[qq] ;
-      ININFO_message("loading -inset '%s'",DSET_HEADNAME(inset[qq])) ;
+      ININFO_message("loading -inset '%s' with %d volumes",DSET_HEADNAME(inset[qq]),DSET_NVALS(inset[qq])) ;
       DSET_load(inset[qq]) ;
       if( !DSET_LOADED(inset[qq]) ){
         ERROR_message("Can't load dataset -inset '%s'",DSET_HEADNAME(inset[qq])) ;
