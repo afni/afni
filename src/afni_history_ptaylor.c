@@ -67,6 +67,11 @@ afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
 
+{ 1, Aug , 2016 , PT , "3dRSFC" , MINOR , TYPE_BUG_FIX,
+   "In cases of *very large* N_pts, an error message appeared-- no more.",
+   "Just changed default initialization of >f_N value.\n"
+},
+
 { 21, Jun , 2016 , PT , "@fat_tract_colorize" , MAJOR , TYPE_NEW_PROG,
    "New function for coloring the volumetric tracking outputs.",
    "RGB coloration of local diffusion, esp. for PROB track output.\n"
