@@ -49,13 +49,18 @@
 
 afni_history_struct rickr_history[] = {
 
+ {   1,  Aug, 2016, RCR, "afni_system_check.py", MINOR, TYPE_ENHANCE,
+   "do more hunting and reporting on libgomp and libglib",
+   NULL
+ } ,
+
  {  25,  Jul, 2016, RCR, "3dDeconvolve", MICRO, TYPE_BUG_FIX,
    "fixed attaching lone '-' to following label",
    "No NI_malloc might lead to crash, and the '-' was overwritten."
  } ,
 
  {  23,  Jul, 2016, RCR, "afni_proc.py", MICRO, TYPE_ENHANCE,
-   "if empty regressor, check for -GOFORIT",
+   "if empty regressor, check for -GOFORIT (only suggest if not found)",
    NULL
  } ,
 
