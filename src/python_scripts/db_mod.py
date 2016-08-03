@@ -7558,13 +7558,13 @@ g_help_string = """
 
                         afni_proc.py            unWarpEPI.py
                         --------------------    --------------------
-       tshift order:    before unwarp           after unwarp
+       tshift step:     before unwarp           after unwarp
                         (option: unwarp first)
 
        volreg program:  3dvolreg                3dAllineate
 
        volreg base:     as before               median warped dset
-                        (option: MEDIAN_BLIP)
+                        (option: MEDIAN_BLIP)   (same as MEDIAN_BLIP)
 
        unifize EPI?     no (option: yes)        yes
        (align w/anat)
