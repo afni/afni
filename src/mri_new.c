@@ -101,6 +101,8 @@ ENTRY("mri_new_7D_generic") ;
    newim->fname   = NULL ;
    newim->foffset = newim->fondisk = 0 ;
 
+   newim->comments = NULL ;         /* 03 Aug 2016 */
+
    npix = newim->nvox ;
 
    switch( kind ){
