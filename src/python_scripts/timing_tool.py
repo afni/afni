@@ -281,6 +281,15 @@ examples:
          timing_tool.py -timing stimes.1.txt                   \\
                         -partition part1.pred.txt stimes.1.part
 
+   Example 15. Add a simple linear modulator.
+
+      For modulation across a run, add the event modulator as the event
+      time divided by the run length, meaning the fraction the run that
+      has passed before the event time.
+
+         timing_tool.py -timing stim_times.txt -run_len 300     \\
+                        -marry_AM lin_run_fraw -write_timing stim_mod.txt
+
 --------------------------------------------------------------------------
 Notes:
 
@@ -447,6 +456,24 @@ action options (apply to single timing element, only):
         23.6 s would be converted to a stimulus at global time 143.6 s.
 
             Consider example 9b and options '-run_len' and '-global_to_local'.
+
+   -marry_AM MTYPE      : add event modulators based on MTYPE
+
+        e.g. -marry_AM lin_run_fraq
+        e.g. -marry_AM lin_event_index
+
+        Use this option to add a simple amplitude modulator to events.
+        Current modulator types are:
+
+           linear modulators (across events or time):
+
+              lin_event_index   : event index, per run (1, 2, 3, ...)
+              lin_run_fraq      : event time, as fractional offset into run
+                                  (in [0,1])
+
+        Non-index modulators require use of -run_len.
+
+            Consider example 15.
 
    -partition PART_FILE PREFIX  : partition the stimulus timing file
 
@@ -1221,6 +1248,10 @@ class ATInterface:
       self.valid_opts.add_opt('-transpose', 0, [], 
                          helpstr='transpose timing data (must be rectangular)')
 
+      self.valid_opts.add_opt('-marry_AM', 1, [], 
+                         acplist=LT.g_marry_AM_methods,
+                         helpstr='attach event modulators')
+
       self.valid_opts.add_opt('-truncate_times', 0, [], 
                          helpstr='truncation times to multiple of TR')
 
@@ -1505,6 +1536,13 @@ class ATInterface:
                print "** '%s' requires -tr" % opt.name
                return 1
             if self.timing.round_times(self.tr): return 1
+
+         elif opt.name == '-marry_AM':
+            if not self.timing:
+               print "** '%s' requires -timing" % opt.name
+               return 1
+            val, err = uopts.get_string_opt('', opt=opt)
+            if self.timing.marry_AM(val, self.run_len): return 1
 
          elif opt.name == '-sort':
             if not self.timing:
