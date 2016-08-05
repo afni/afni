@@ -427,7 +427,7 @@ class AfniTiming(LD.AfniData):
 
       return 0
 
-   def marry_AM(self, mtype, rlens=[]):
+   def marry_AM(self, mtype, rlens=[], nplaces=-1):
       """add modulator of given type
 
          lin_run_fraq     : [0,1] modulator = event time/run dur
@@ -463,8 +463,13 @@ class AfniTiming(LD.AfniData):
          else:                          rlen = rlens[rind]
 
          for ind, event in enumerate(mrun):
-            if mtype == 'lin_event_index'    : mval = ind+1
-            elif mtype == 'lin_run_fraq'     : mval = event[0]/rlen
+            if mtype == 'lin_event_index':
+               mval = ind+1
+            elif mtype == 'lin_run_fraq':
+               mval = event[0]/rlen
+               if nplaces >= 0:
+                  power = 10.0**nplaces
+                  mval = int(power*mval)/power
             event[1].append(mval)
 
       # and be sure it is married
