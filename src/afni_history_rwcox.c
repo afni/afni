@@ -44,6 +44,14 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 4 , AUG , 2016 , RWC , "afni GUI" , MICRO , TYPE_GENERAL ,
+   "Changes to keep controller height from expanding on Linux" ,
+   "Of course, being on a Mac, I can't actually test this change." } ,
+
+ { 4 , AUG , 2016 , RWC , "1dsum" , MICRO , TYPE_ENHANCE ,
+   "Save # header lines from mri_read_1D; echo back in 1dsum output" ,
+   "For use in combining 3dClustSim outputs, for example." } ,
+
  { 22 , JUL , 2016 , RWC , "3dttest++" , MICRO , TYPE_MODIFY ,
    "New -nocov option for used with -Clustsim" ,
    "To avoid writing out the -covariates sub-bricks in the -Clustsim\n"

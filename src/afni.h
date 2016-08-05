@@ -623,21 +623,22 @@ extern float AFNI_thresh_from_percentile(struct Three_D_View *im3d, float perc);
 
 extern void reset_mnito(struct Three_D_View *im3d);
 
-#define OPEN_PANEL(iq,panel)                                            \
-   {  XtManageChild( (iq)->vwid->  panel  ->frame ) ;                    \
+#define OPEN_PANEL(iq,panel)                                              \
+   {  XtManageChild( (iq)->vwid->  panel  ->frame ) ;                     \
       if( ! (iq)->vwid->view->  panel ## _pb_inverted ){                  \
-         MCW_invert_widget( (iq)->vwid->view->define_ ## panel ## _pb ) ;  \
-         (iq)->vwid->view->  panel ## _pb_inverted = True ;                \
-         (iq)->vwid->func->inten_pbar->update_me = 2 ;                     \
-         update_MCW_pbar((iq)->vwid->func->inten_pbar) ; }                 \
-      XMapRaised( XtDisplay( (iq)->vwid->  panel  ->frame ) ,              \
-                   XtWindow( (iq)->vwid->  panel  ->frame )  ) ;           \
+         MCW_invert_widget( (iq)->vwid->view->define_ ## panel ## _pb ) ; \
+         (iq)->vwid->view->  panel ## _pb_inverted = True ;               \
+         (iq)->vwid->func->inten_pbar->update_me = 2 ;                    \
+         update_MCW_pbar((iq)->vwid->func->inten_pbar) ; }                \
+      XMapRaised( XtDisplay( (iq)->vwid->  panel  ->frame ) ,             \
+                   XtWindow( (iq)->vwid->  panel  ->frame )  ) ;          \
       FIX_SCALE_SIZE(iq) ; }
 
-#define CLOSE_PANEL(iq,panel)                                           \
-   {  XtUnmanageChild( (iq)->vwid->  panel  ->frame ) ;                  \
+#define CLOSE_PANEL(iq,panel)                                             \
+   {  XtUnmanageChild( (iq)->vwid->  panel  ->frame ) ;                   \
+      FIX_TOPFORM_HEIGHT(iq) ; HIDE_SCALE(iq) ; FIX_SCALE_SIZE(iq) ;      \
       if( (iq)->vwid->view->  panel ## _pb_inverted ){                    \
-         MCW_invert_widget( (iq)->vwid->view->define_ ## panel ## _pb ) ;  \
+         MCW_invert_widget( (iq)->vwid->view->define_ ## panel ## _pb ) ; \
          (iq)->vwid->view->  panel ## _pb_inverted = False ; } }
 
 /*---*/
@@ -815,14 +816,14 @@ extern void AFNI_set_qval( struct Three_D_View * , float ) ;      /* 27 Feb 2014
     threshold scale to behave bizarrely.  This macro is a fixup **/
 
 #ifdef FIX_SCALE_SIZE_PROBLEM
-#  define FIX_SCALE_SIZE(iqqq)                                           \
-     do{ int sel_height ;  XtPointer sel_ptr=NULL ;                      \
-         XtVaGetValues( (iqqq)->vwid->func->thr_scale ,                  \
-                           XmNuserData , &sel_ptr , NULL ) ;             \
-         sel_height = PTOI(sel_ptr) ;                                    \
-         XtVaSetValues( (iqqq)->vwid->func->thr_scale ,                  \
-                           XmNheight , sel_height , NULL ) ;             \
-         XtManageChild((iqqq)->vwid->func->thr_scale) ;                  \
+#  define FIX_SCALE_SIZE(iqqq)                                    \
+     do{ int sel_height ;  XtPointer sel_ptr=NULL ;               \
+         XtVaGetValues( (iqqq)->vwid->func->thr_scale ,           \
+                        XmNuserData , &sel_ptr , NULL ) ;         \
+         sel_height = PTOI(sel_ptr) ;                             \
+         XtVaSetValues( (iqqq)->vwid->func->thr_scale ,           \
+                        XmNheight , sel_height , NULL ) ;         \
+         XtManageChild((iqqq)->vwid->func->thr_scale) ;           \
        } while(0)
 #  define HIDE_SCALE(iqqq) XtUnmanageChild((iqqq)->vwid->func->thr_scale)
 #else
@@ -973,6 +974,7 @@ struct PLUGIN_interface ; /* incomplete definition */
 
 typedef struct {
       Widget top_shell , top_form ;
+      int top_form_height ;               /* 04 Aug 2016 */
 
       AFNI_imaging_widgets  * imag ;
       AFNI_viewing_widgets  * view ;
@@ -1002,6 +1004,14 @@ typedef struct {
 
       int butx , buty ;        /* 17 May 2005 */
 } AFNI_widget_set ;
+
+/* Macro to reset size of the top_form in AFNI [04 Aug 2016] */
+
+#define FIX_TOPFORM_HEIGHT(iq)                                       \
+ do{ if( (iq)->vwid->top_form_height > 99 )                          \
+       XtVaSetValues( (iq)->vwid->top_form ,                         \
+                      XmNheight,(iq)->vwid->top_form_height,NULL ) ; \
+ } while(0)
 
 #define TIPS_PLUS_SHIFT   2
 #define TIPS_MINUS_SHIFT -60
@@ -1495,6 +1505,9 @@ extern int AFNI_get_todays_trivia( char *** ) ; /* 27 Nov 2007 */
  do{ XtRealizeWidget((iq)->vwid->top_shell) ;                \
      while(XtWindow((iq)->vwid->top_shell)==(Window)NULL) ;  \
      AFNI_startup_3dview(iq); (iq)->opened = 1;              \
+     MCW_widget_geom( (iq)->vwid->top_form,                  \
+                      NULL, &((iq)->vwid->top_form_height),  \
+                      NULL, NULL ) ;                         \
  } while(0)
 
 #define CLOSE_CONTROLLER(iq) ( AFNI_closedown_3dview(iq),                \
