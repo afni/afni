@@ -17,6 +17,8 @@ import copy
 import afni_util as UTIL
 import lib_afni1D as LD
 
+g_marry_AM_methods = ['lin_run_fraq', 'lin_event_index']
+
 # ----------------------------------------------------------------------
 # AfniTiming class - for stim times that are married with
 #                    either time intervals or magnitudes
@@ -422,6 +424,52 @@ class AfniTiming(LD.AfniData):
             else           : val = math.floor(tind+rf) * tr
             row[ind][0] = val
          self.data.append([e[0] for e in row])
+
+      return 0
+
+   def marry_AM(self, mtype, rlens=[]):
+      """add modulator of given type
+
+         lin_run_fraq     : [0,1] modulator = event time/run dur
+         lin_run_fraq_off : [0,1] modulator = event time from first/run dur
+         lin_event_index  : 0, 1, 2, ... = event index
+
+         if rlens is needed should match len(mdata)
+      """
+      if not self.ready: return 1
+      # g_marry_AM_methods = ['lin_run_fraq', 'lin_event_index']
+
+      if mtype not in g_marry_AM_methods:
+         print "** marry_AM: invalid mod type '%s'" % mtype
+         return 1
+
+      if len(rlens) == 1 and len(self.mdata) > 1:
+         rlens = rlens*len(self.mdata)
+
+      # most types need the run lengths
+      if mtype != 'lin_event_index':
+         nruns = len(self.mdata)
+         nlens = len(rlens)
+         if nlens == 0:
+            print '** marry_AM needs run lengths'
+            return 1
+         if nlens != nruns:
+            print '** marry_AM: have %d runs but %d run lengths'%(nruns, nlens)
+            return 1
+
+      # append the modulator to each event in mdata
+      for rind, mrun in enumerate(self.mdata):
+         if mtype == 'lin_event_index': rlen = 0
+         else:                          rlen = rlens[rind]
+
+         for ind, event in enumerate(mrun):
+            if mtype == 'lin_event_index'    : mval = ind+1
+            elif mtype == 'lin_run_fraq'     : mval = event[0]/rlen
+            event[1].append(mval)
+
+      # and be sure it is married
+      self.married = 1
+      self.mtype |= LD.MTYPE_AMP
 
       return 0
 
