@@ -7,11 +7,12 @@
 int main( int argc , char * argv[] )
 {
    int nim , ii,nii , jj , kk , nx ;
-   MRI_IMAGE ** inim ;
-   float * far ;
+   MRI_IMAGE **inim ;
+   float *far ;
    int ncol , ic ;
-   float * csum ;
-   int nn_ignore=0 , mm_use=0 , iarg=1 , do_mean=0 ;
+   float *csum ;
+   int nn_ignore=0 , mm_use=0 , iarg=1 , do_mean=0 , do_comments=1 ;
+   char *comments=NULL ; /* 04 Aug 2016 */
 
    /*-- help? --*/
 
@@ -24,6 +25,10 @@ int main( int argc , char * argv[] )
             "  -ignore nn = skip the first nn rows of each file\n"
             "  -use    mm = use only mm rows from each file\n"
             "  -mean      = compute the average instead of the sum\n"
+            "  -nocomment = the # comments from the header of the first\n"
+            "               input file will be reproduced to the output;\n"
+            "               if you do NOT want this to happen, use the\n"
+            "               '-nocomment' option.\n"
            ) ;
       PRINT_COMPILE_DATE ; exit(0) ;
    }
@@ -33,6 +38,10 @@ int main( int argc , char * argv[] )
    /* parse options */
 
    while( iarg < argc && argv[iarg][0] == '-' ){
+
+      if( strncmp(argv[iarg],"-nocom",6) == 0 ){
+        do_comments = 0 ; iarg++ ; continue ;
+      }
 
       if( strncmp(argv[iarg],"-ignore",4) == 0 ){
          nn_ignore = (int) strtod(argv[++iarg],NULL) ;
@@ -64,6 +73,9 @@ int main( int argc , char * argv[] )
          fprintf(stderr,"** Can't read input file %s\n",argv[jj+iarg]) ;
          exit(1) ;
       }
+      if( do_comments && comments == NULL && inim[jj]->comments != NULL )  /* 04 Aug 2016 */
+        comments = strdup(inim[jj]->comments) ;
+
       if( jj > 0 && inim[jj]->nx != inim[0]->nx ){
          fprintf(stderr,
                  "** Input file %s doesn't match first file %s in length!\n",
@@ -95,6 +107,8 @@ int main( int argc , char * argv[] )
    if( do_mean ){
      for( ic=0 ; ic < ncol ; ic++ ) csum[ic] /= nii ;
    }
+
+   if( comments != NULL ) printf("%s",comments) ;  /* 04 Aug 2016 */
 
    for( ic=0 ; ic < ncol ; ic++ ) printf("%g ",csum[ic]) ;
    printf("\n");
