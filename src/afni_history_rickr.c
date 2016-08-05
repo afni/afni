@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {   5,  Aug, 2016, RCR, "uber_subject.py", MINOR, TYPE_MODIFY,
+   "make -help_install more current",
+   NULL
+ } ,
+
  {   5,  Aug, 2016, RCR, "timing_tool.py", MINOR, TYPE_NEW_OPT,
    "add -marry_AM",
    "Added for J Wiggins."
