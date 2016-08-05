@@ -1006,9 +1006,10 @@ g_history = """
    2.13 Aug 21, 2015 - start-of-run fix to -multi_timing_to_event_list offsets
    2.14 Feb 24, 2016 - fix crash in -warn_tr_stats if no timing events
    2.15 Mar 15, 2016 - help_basis update: max of BLOCK() is ~5.1 (not 5.4)
+   2.16 Aug  5, 2016 - added -marry_AM for J Wiggins
 """
 
-g_version = "timing_tool.py version 2.15, March 15, 2015"
+g_version = "timing_tool.py version 2.16, August 5, 2016"
 
 
 
@@ -1542,7 +1543,8 @@ class ATInterface:
                print "** '%s' requires -timing" % opt.name
                return 1
             val, err = uopts.get_string_opt('', opt=opt)
-            if self.timing.marry_AM(val, self.run_len): return 1
+            if self.timing.marry_AM(val, self.run_len, nplaces=self.nplaces):
+               return 1
 
          elif opt.name == '-sort':
             if not self.timing:

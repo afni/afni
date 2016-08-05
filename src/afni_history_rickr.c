@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {   5,  Aug, 2016, RCR, "timing_tool.py", MINOR, TYPE_NEW_OPT,
+   "add -marry_AM",
+   "Added for J Wiggins."
+ } ,
+
  {   1,  Aug, 2016, RCR, "afni_system_check.py", MINOR, TYPE_ENHANCE,
    "do more hunting and reporting on libgomp and libglib",
    NULL
