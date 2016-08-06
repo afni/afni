@@ -2528,7 +2528,10 @@ STATUS(fname) ;  /* 16 Oct 2007 */
    if( ptr==NULL || *ptr=='\0' ){        /* bad read? */
      FRB(comment_buffer); FRB(buf); fclose(fts); RETURN(NULL);
    }
-   save_comments = 0; cbuf = strdup(comment_buffer); FRB(comment_buffer);
+   save_comments = 0;
+   if( comment_buffer ) cbuf = strdup(comment_buffer); /* 6 Aug 2016 [rickr] */
+   else			cbuf = NULL;
+   FRB(comment_buffer);
 
    lbfill = 0.0f ;                          /* 10 Aug 2004 */
 
