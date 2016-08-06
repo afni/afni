@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {   6,  Aug, 2016, RCR, "afni-general", MICRO, TYPE_BUG_FIX,
+   "mri_read_ascii: check comment_buffer before strdup",
+   NULL
+ } ,
+
  {   5,  Aug, 2016, RCR, "uber_subject.py", MICRO, TYPE_MODIFY,
    "make -help_install more current",
    NULL
