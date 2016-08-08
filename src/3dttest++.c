@@ -161,6 +161,7 @@ static int       do_clustsim = 0 ;   /* 10 Feb 2016 */
 static int      num_clustsim = 0 ;
 static char *prefix_clustsim = NULL ;
 static char *tempdir         = "./" ;/* 20 Jul 2016 */
+static int64_t  mem_clustsim = 0 ;   /* 02 Aug 2016 */
 
 static int dofsub          = 0    ;  /* 19 Jan 2016 */
 
@@ -866,19 +867,31 @@ void display_help_menu(void)
       "                 means that the output statistics will be z-scores, not t-values.\n"
       "              ++ '-clustsim' will not work with less than 7 datasets in each\n"
       "                 input set -- in particular, it doesn't work with '-singletonA'.\n"
-      "              ++ '-clustsim' runs step (a) in multiple jobs, for speed.  By\n"
+      "          -->>++ '-clustsim' runs step (a) in multiple jobs, for speed.  By\n"
       "                 default, it tries to auto-detect the number of CPUs on the system\n"
       "                 and uses that many separate jobs.  If you put a positive integer\n"
       "                 immediately following the option, as in '-clustsim 12', it will\n"
       "                 instead use that many jobs (e.g., 12).  This capability is to\n"
       "                 be used when the CPU count is not auto-detected correctly.\n"
+#if 0
+      "          -->>++ '-clustsim' can use up all the memory on a computer, and even\n"
+      "                 more -- causing the computer to freeze or crash.  The program\n"
+      "                 tries to avoid this, but it is not always possible to detect\n"
+      "                 how much memory is usable on a computer. For this reason, you\n"
+      "                 can use this option in the form\n"
+      "                    -clustsim NCPU NGIG\n"
+      "                 where NCPU is the number of CPUs (cores) to use, and NGIG is\n"
+      "                 the number of gigabytes of memory to use.  This may help you\n"
+      "                 prevent the 'Texas meltdown'.\n"
+#endif
       "              ++ It is important to use the proper '-mask' option with '-clustsim'.\n"
-      "                 Otherwise, the statistics of the clustering will be skewed.\n"
+      "                 Otherwise, the statistics of the clustering will be skewed (badly).\n"
       "\n"
-      "        --->>>   PLEASE NOTE: This option has been tested only for a 2-sample\n"
-      "        --->>>   unpaired test vs. resting state data -- to see if the false\n"
-      "        --->>>   alarm rate (FAR) was near the nominal 5%% level.  It has not\n"
-      "        --->>>   yet been tested in the 1-sample case, or with covariates.\n"
+      "        --->>>   PLEASE NOTE: This option has been tested only for 1- and 2-sample\n"
+      "        --->>>   unpaired tests vs. resting state data -- to see if the false\n"
+      "        --->>>   alarm rate (FAR) was near the nominal 5%% level (it was).\n"
+      "        --->>>   The FAR for the covariate effects (as opposed to the main effect)\n"
+      "        --->>>   is still somewhat biased away from the 5%% level.\n"
       "\n"
       " -prefix_clustsim cc = Use 'cc' for the prefix for the '-clustsim' temporary\n"
       "                       files, rather than a randomly generated prefix.\n"
@@ -887,7 +900,7 @@ void display_help_menu(void)
       "                      ++ The default randomly generated prefix will start with\n"
       "                         'TT.' and be followed by 11 alphanumeric characters,\n"
       "                         as in 'TT.Sv0Ghrn4uVg'.  To mimic this, you might\n"
-      "                         use '-prefix_clustsim TT.Zhark'.\n"
+      "                         use something like '-prefix_clustsim TT.Zhark'.\n"
       "\n"
       " -tempdir ttt        = Store temporary files for '-Clustsim' in this directory.\n"
       "                       [NOTE: these files will not be deleted by 3dttest++]\n"
@@ -1539,26 +1552,54 @@ int main( int argc , char *argv[] )
        char *uuu ;
        if( do_clustsim )
          WARNING_message("Why do you use -clustsim more than once?!") ;
-       do_clustsim = 1 ; toz = 1 ;
+       do_clustsim = 2 ; toz = 1 ;
        if( argv[nopt][1] == 'C' ) do_clustsim = 2 ;
        if( argv[nopt][2] == 'L' ) do_clustsim = 3 ;
+
+       /* if next option is a number, it is the number of CPUs to use */
+
        nopt++ ;
        if( nopt < argc && isdigit(argv[nopt][0]) ){
          num_clustsim = (int)strtod(argv[nopt],NULL) ; nopt++ ;
          if( num_clustsim > 99 ){
-           ERROR_message("value after -clustsim is > 99") ; num_clustsim = 99 ;
+           ERROR_message("CPU count after -clustsim is > 99") ; num_clustsim = 99 ;
          } else if( num_clustsim < 1 ){
-           ERROR_message("value after -clustsim is < 1" ) ; num_clustsim = 1 ;
+           ERROR_message("CPU count after -clustsim is < 1" ) ; num_clustsim = 1 ;
          }
-       } else {
-         num_clustsim = AFNI_get_ncpu() ;
+
+         /* if next option is a number, it is the number of gigabytes to use */
+
+         if( nopt < argc && isdigit(argv[nopt][0]) ){
+           mem_clustsim = (int)strtod(argv[nopt],NULL) ; nopt++ ;
+           if( mem_clustsim < 2 )
+             ERROR_message("GIG count after -clustsim is < 2" ) ; mem_clustsim = 2 ;
+           mem_clustsim *= 1073741824LL ;  /* scale to byte count */
+         }
+       }
+
+       /* make sure number of CPUs and gigabytes are set to reasonable values */
+
+       if( num_clustsim == 0 ){
+         num_clustsim = AFNI_get_ncpu() ;  /* will be at least 1 */
          jj = (int)AFNI_numenv("OMP_NUM_THREADS") ;
          if( jj > 0 && (jj < num_clustsim || num_clustsim == 1) ) num_clustsim = jj ;
        }
+       if( mem_clustsim == 0 ){
+         mem_clustsim = AFNI_get_memsize() ;  /* might be 0 */
+         if( mem_clustsim == 0 ) mem_clustsim = 1073741824LL * 64LL ;  /* 64 Gbytes */
+       }
+
        INFO_message("Number of -clustsim threads set to %d",num_clustsim) ;
        uuu = UNIQ_idcode_11() ;
        prefix_clustsim = (char *)malloc(sizeof(char)*32) ;
        sprintf(prefix_clustsim,"TT.%s",uuu) ; free(uuu) ;
+
+       mem_clustsim = AFNI_get_memsize() ;
+       ININFO_message("Approximate amount of memory to be used = %s (%s)",
+                      commaized_integer_string(mem_clustsim) ,
+                      approximate_number_string((double)mem_clustsim) ) ;
+
+       ININFO_message("Default clustsim prefix set to '%s'",prefix_clustsim) ;
        continue ;
      }
 
@@ -3050,7 +3091,7 @@ LABELS_ARE_DONE:  /* target for goto above */
        sprintf( cmd+strlen(cmd) , " -prefix %s/%s.%03d.nii" , tempdir , prefix_clustsim , pp ) ;
 
        /* let only job #0 print progress to the screen */
-       if( pp > 0 ) strcat(cmd," >& /dev/null") ;
+       if( pp > 0 ) strcat(cmd," &> /dev/null") ;
 
        if( pp == 0 ) ININFO_message("#0 jobs command:\n   %s",cmd) ;
 
