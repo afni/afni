@@ -3264,6 +3264,16 @@ ENTRY("AFNI_startup_timeout_CB") ;
 
    MCW_help_CB(NULL,NULL,NULL) ;
 
+   /* test geometry of main window [08 Aug 2016] */
+
+   { Position xroot,yroot ;
+     XtTranslateCoords( MAIN_im3d->vwid->top_shell , 0,0, &xroot , &yroot ) ;
+     if( xroot < 0 || yroot < 0 ){
+       XtVaSetValues( MAIN_im3d->vwid->top_shell, XmNx,20, XmNy,20, NULL ) ;
+       AFNI_sleep(1) ; REFRESH ;
+     }
+   }
+
    /* tell user if any mixed-type datasets transpired [06 Sep 2006] */
 
    AFNI_inconstancy_check( im3d , NULL ) ;
