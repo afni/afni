@@ -49,6 +49,10 @@
 
 
 afni_history_struct dglen_history[] = {
+{ 9, AUG, 2016 , DRG , "@SUMA_MakeSpecFS" , 
+    MINOR , TYPE_MODIFY, 
+    "Atlasize original unranked datasets too. They will have more reliable indices than the ranked"
+},
 { 11, JUL, 2016 , DRG , "3dWarp tta2mni grid dimensions bug" , 
     MINOR , TYPE_BUG_FIX, 
     "Ignored grid dimensions in transformation between Talairach to MNI"
