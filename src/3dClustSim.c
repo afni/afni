@@ -1105,6 +1105,8 @@ ENTRY("get_options") ;
     WARNING_message("-sumup canceled") ;
   }
 
+#undef INSET_PRELOAD
+
   if( num_inset > 0 ){      /* 02 Feb 2016 */
     int qq,nbad=0 ;
     nx = DSET_NX(inset[0]) ;
@@ -1115,16 +1117,18 @@ ENTRY("get_options") ;
     dz = fabsf(DSET_DZ(inset[0])) ;
     for( niter=qq=0 ; qq < num_inset ; qq++ ){
       niter += nval_inset[qq] ;
+#ifdef INSET_PRELOAD
       ININFO_message("loading -inset '%s' with %d volumes",DSET_HEADNAME(inset[qq]),DSET_NVALS(inset[qq])) ;
       DSET_load(inset[qq]) ;
       if( !DSET_LOADED(inset[qq]) ){
         ERROR_message("Can't load dataset -inset '%s'",DSET_HEADNAME(inset[qq])) ;
         nbad ++ ;
       }
+#endif
     }
     if( nbad > 0 ) ERROR_exit("Can't continue without all -inset datasets :-(") ;
     if( niter < 100 )
-      WARNING_message("-inset has only %d volumes (= new '-niter' value)",niter) ;
+      WARNING_message("-inset has only %d volumes total (= new '-niter' value)",niter) ;
     else if( verb )
       INFO_message("-inset had %d volumes = new '-niter' value",niter) ;
     if( mask_dset != NULL ){
@@ -1300,6 +1304,10 @@ void generate_fim_inset( float *fim , int ival )
        ERROR_message("inset[%d] == array overflow !!",ival) ;
      } else {
        bar = DSET_ARRAY(inset[qq],qval) ;
+       if( bar == NULL ){
+         ININFO_message("loading -inset '%s' with %d volumes",DSET_HEADNAME(inset[qq]),DSET_NVALS(inset[qq])) ;
+         DSET_load(inset[qq]) ; bar = DSET_ARRAY(inset[qq],qval) ;
+       }
      }
      if( bar != NULL ){
        for( ii=0 ; ii < nxyz ; ii++ ) fim[ii] = bar[ii] ;   /* copy data */
@@ -2652,7 +2660,7 @@ int main( int argc , char **argv )
       cc such that max_table_xxxx[nnn][ipthr][cc] > 0 [23 Dec 2015] */
 
    { int cc ;
-     for( nnn=1 ; nnn <=3 ; nnn++ ){
+     for( nnn=1 ; nnn <= 3 ; nnn++ ){
        for( ipthr=0 ; ipthr < npthr ; ipthr++ ){
          for( cc=max_cluster_size ;
               cc >= 1 && max_table_1sid[nnn][ipthr][cc]==0 ; cc-- ) ; /*nada*/
@@ -2666,6 +2674,31 @@ int main( int argc , char **argv )
        }
      }
    }
+
+#if 0
+   if( AFNI_yesenv("AFNI_CLUSTSIM_SAVE") ){
+     FILE *fp; char fname[128]; static char *lnn[3] = { "NN1","NN2","NN3" }; int cc;
+     for( nnn=1 ; nnn <= 3 ; nnn++ ){
+       for( ipthr=0 ; ipthr < npthr ; ipthr++ ){
+         sprintf(fname,"mt.1sid.%s.%.5f.1D",lnn[nnn-1],pthr[ipthr]) ;
+         fp = fopen(fname,"w") ;
+         for( cc=1 ; cc <= cmx_table_1sid[nnn][ipthr] ; cc++ )
+           fprintf(fp,"%d %d\n",cc,max_table_1sid[nnn][ipthr][cc]) ;
+         fclose(fp) ;
+         sprintf(fname,"mt.2sid.%s.%.5f.1D",lnn[nnn-1],pthr[ipthr]) ;
+         fp = fopen(fname,"w") ;
+         for( cc=1 ; cc <= cmx_table_2sid[nnn][ipthr] ; cc++ )
+           fprintf(fp,"%d %d\n",cc,max_table_2sid[nnn][ipthr][cc]) ;
+         fclose(fp) ;
+         sprintf(fname,"mt.bsid.%s.%.5f.1D",lnn[nnn-1],pthr[ipthr]) ;
+         fp = fopen(fname,"w") ;
+         for( cc=1 ; cc <= cmx_table_bsid[nnn][ipthr] ; cc++ )
+           fprintf(fp,"%d %d\n",cc,max_table_bsid[nnn][ipthr][cc]) ;
+         fclose(fp) ;
+       }
+     }
+   }
+#endif
 
 #if 0
   enable_mcw_malloc() ;

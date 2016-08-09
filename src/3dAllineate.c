@@ -628,6 +628,8 @@ int main( int argc , char *argv[] )
 "                       Here, the identity transformation is specified\n"
 "                       by giving all 12 affine parameters as 0 (note\n"
 "                       the extra \\' at the end of the '1D: 12@0' input!).\n"
+"                     ** You can also use the word 'IDENTITY' in place of\n"
+"                        '1D: 12@0'\\' (to indicate the identity transformation).\n"
 "              **N.B.: Some expert options for modifying how the wsinc5\n"
 "                       method works are described far below, if you use\n"
 "                       '-HELP' instead of '-help'.\n"
@@ -663,6 +665,10 @@ int main( int argc , char *argv[] )
 "               *N.B.: You probably want to use either -base or -master\n"
 "                      with either *_apply option, so that the coordinate\n"
 "                      system that the matrix refers to is correctly loaded.\n"
+"                     ** You can also use the word 'IDENTITY' in place of a\n"
+"                        filename to indicate the identity transformation --\n"
+"                        presumably for the purpose of resampling the source\n"
+"                        dataset to a new grid.\n"
 "\n"
 "  * The -1Dmatrix_* options can be used to save and re-use the transformation *\n"
 "  * matrices.  In combination with the program cat_matvec, which can multiply *\n"
@@ -2332,14 +2338,18 @@ int main( int argc , char *argv[] )
 
      if( strncmp(argv[iarg],"-1Dapply",5)        == 0 ||
          strncmp(argv[iarg],"-1Dparam_apply",13) == 0   ){
+       char *fname ;
 
        if( apply_1D != NULL || apply_mode != 0 )
          ERROR_exit("Can't have multiple 'apply' options :-(") ;
        if( ++iarg >= argc ) ERROR_exit("no argument after '%s' :-(",argv[iarg-1]) ;
- /*      if( strncmp(argv[iarg],"1D:",3) != 0 && !THD_filename_ok(argv[iarg]) )
+#if 0
+       if( strncmp(argv[iarg],"1D:",3) != 0 && !THD_filename_ok(argv[iarg]) )
          ERROR_exit("badly formed filename: %s '%s' :-(",argv[iarg-1],argv[iarg]) ;
-*/
-       apply_1D = argv[iarg] ; qim = mri_read_1D(apply_1D) ;
+#endif
+       fname = argv[iarg] ;
+       if( strcasecmp(fname,"IDENTITY")==0 ) fname = "1D: 12@0'" ;
+       apply_1D = fname ; qim = mri_read_1D(apply_1D) ;
        if( qim == NULL ) ERROR_exit("Can't read %s '%s' :-(",argv[iarg-1],apply_1D) ;
        apply_im  = mri_transpose(qim); mri_free(qim);
        apply_far = MRI_FLOAT_PTR(apply_im) ;
@@ -2352,12 +2362,18 @@ int main( int argc , char *argv[] )
      /*-----*/
 
      if( strncmp(argv[iarg],"-1Dmatrix_apply",13) == 0 ){
+       char *fname ;
        if( apply_1D != NULL || apply_mode != 0 )
          ERROR_exit("Can't have multiple 'apply' options :-(") ;
        if( ++iarg >= argc ) ERROR_exit("no argument after '%s' :-(",argv[iarg-1]) ;
-       /*if( !THD_filename_ok(argv[iarg]) )
-         ERROR_exit("badly formed filename: %s '%s' :-(",argv[iarg-1],argv[iarg]) ;*/
-       apply_1D = argv[iarg] ; qim = mri_read_1D(apply_1D) ;
+#if 0
+       if( !THD_filename_ok(argv[iarg]) )
+         ERROR_exit("badly formed filename: %s '%s' :-(",argv[iarg-1],argv[iarg]) ;
+#endif
+       fname = argv[iarg] ;
+       if( strcasecmp(fname,"IDENTITY")==0 )
+         fname = "1D: 1 0 0 0   0 1 0 0   0 0 1 0" ;
+       apply_1D = fname ; qim = mri_read_1D(apply_1D) ;
        if( qim == NULL ) ERROR_exit("Can't read -1Dmatrix_apply '%s' :-(",apply_1D) ;
        apply_im  = mri_transpose(qim); mri_free(qim);
        apply_far = MRI_FLOAT_PTR(apply_im) ;
@@ -5695,7 +5711,7 @@ MRI_IMAGE * mri_identity_params(void)
    float id[] = {0,0,0, 0,0,0, 1,1,1, 0,0,0};
    float *oar;
    int ii;
- 
+
    om  = mri_new( 12 , 1 , MRI_float ) ;
    oar = MRI_FLOAT_PTR(om) ;
 
