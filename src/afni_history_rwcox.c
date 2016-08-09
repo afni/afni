@@ -44,6 +44,17 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 9 , AUG , 2016 , RWC , "3dAllineate" , MICRO , TYPE_ENHANCE ,
+   "Allow IDENTITY to specify the identity matrix for transformations" ,
+   "In options -1Dparam_apply and -1Dmatrix_apply -- to make resampling\n"
+   "simpler for the hopeless users out there" } ,
+
+ { 9 , AUG , 2016 , RWC , "afni GUI" , MICRO , TYPE_MODIFY ,
+   "If A controller pops up with a negative x or y, move it" ,
+   "This is an attempt to overcome some peculiar bug in XQuartz on El\n"
+   "Capitan, where the A controller pops up, then disappears to a negative x\n"
+   "location (off screen)." } ,
+
  { 4 , AUG , 2016 , RWC , "afni GUI" , MICRO , TYPE_GENERAL ,
    "Changes to keep controller height from expanding on Linux" ,
    "Of course, being on a Mac, I can't actually test this change." } ,
