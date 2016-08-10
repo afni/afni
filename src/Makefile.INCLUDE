@@ -1542,7 +1542,7 @@ afni_version.o:afni_version.c
 	$(RM) $@
 	$(CC) -c afni_version.c $(INFLAGS) $(SHOWOFF)
 
-afni:$(AFOBJS) libcoxplot.a libmri.a libmrix.a libvolpack.a libjpeg.a libXmHTML.a volpack.h coxplot.h niml.h
+afni: libmri.a libcoxplot.a libmrix.a libvolpack.a libjpeg.a libXmHTML.a volpack.h coxplot.h niml.h $(AFOBJS)
 	$(RM) $@
 	$(CC) -o afni $(AFOBJS) $(PLFLAGS) -lmrix -lcoxplot -lmri -lvolpack libXmHTML.a libjpeg.a $(LLIBS) -lm -lc 
 
