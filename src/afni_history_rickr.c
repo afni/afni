@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  10,  Aug, 2016, RCR, "afni-general", MICRO, TYPE_MODIFY,
+   "in Makefile.INCLUDE, have afni depend first on libmri.a",
+   NULL
+ } ,
+
  {   6,  Aug, 2016, RCR, "afni-general", MICRO, TYPE_BUG_FIX,
    "mri_read_ascii: check comment_buffer before strdup",
    NULL
