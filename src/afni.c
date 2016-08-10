@@ -708,7 +708,7 @@ void AFNI_syntax(void)
     "multiple copies of AFNI.  For example, put the following\n"
     "command in your shell startup file (e.g., ~/.cshrc or ~/.bashrc)\n"
     "   alias ablue afni -XXXfgcolor white -XXXbgcolor navyblue\n"
-	 "Then the command 'ablue' will start AFNI with a blue background\n"
+    "Then the command 'ablue' will start AFNI with a blue background\n"
     "and using white for the default text color.\n"
     "\n"
     "Note that these options set 'properties' on the X11 server,\n"
@@ -3256,7 +3256,7 @@ void AFNI_startup_timeout_CB( XtPointer client_data , XtIntervalId *id )
 
 ENTRY("AFNI_startup_timeout_CB") ;
 
-   /* make sure help window is popped down */
+   /*--- make sure help window is popped down ---*/
 
 #if 0
    MCW_help_CB( MAIN_im3d->vwid->top_shell,NULL,NULL ); /* initialize help */
@@ -3264,21 +3264,29 @@ ENTRY("AFNI_startup_timeout_CB") ;
 
    MCW_help_CB(NULL,NULL,NULL) ;
 
-   /* test geometry of main window [08 Aug 2016] */
+   /*--- test geometry of main window [08 Aug 2016]
+         if it is negative territory, move it back to positive land;
+         this is to (hopefull) fix a peculiarity in XQuartz on El Capitan ---*/
 
    { Position xroot,yroot ;
+     WAIT_for_window( MAIN_im3d->vwid->top_shell ) ;
      XtTranslateCoords( MAIN_im3d->vwid->top_shell , 0,0, &xroot , &yroot ) ;
+#if 0
+INFO_message("AFNI controller xroot=%d yroot=%d",(int)xroot,(int)yroot) ;
+#endif
      if( xroot < 0 || yroot < 0 ){
+       INFO_message("AFNI was off screen at x=%d y=%d -- repositioning" ,
+                   (int)xroot , (int)yroot ) ;
        XtVaSetValues( MAIN_im3d->vwid->top_shell, XmNx,20, XmNy,20, NULL ) ;
-       AFNI_sleep(1) ; REFRESH ;
+       REFRESH ;
      }
    }
 
-   /* tell user if any mixed-type datasets transpired [06 Sep 2006] */
+   /*--- tell user if any mixed-type datasets transpired [06 Sep 2006] ---*/
 
    AFNI_inconstancy_check( im3d , NULL ) ;
 
-   /* NIML listening on [moved here 17 Mar 2002] */
+   /*--- NIML listening on [moved here 17 Mar 2002] ---*/
 
    if( MAIN_im3d->type == AFNI_3DDATA_VIEW && GLOBAL_argopt.yes_niml ){
      AFNI_init_niml() ;
@@ -3385,7 +3393,7 @@ ENTRY("AFNI_startup_timeout_CB") ;
                             NULL ) ;                           /* 12 Feb 2010 */
    }
 
-   /* 05 May 2009: make sure the Cluster widgets show up properly */
+   /*--- 05 May 2009: make sure the Cluster widgets show up properly ---*/
 
    AFNI_vedit_CB( im3d->vwid->func->options_vedit_av , im3d ) ;
 
@@ -3420,7 +3428,7 @@ ENTRY("AFNI_startup_timeout_CB") ;
    }
 #endif
 
-   /* finish up getting AFNI ready to be presented to the world */
+   /*--- finish up getting AFNI ready to be presented to the world ---*/
 
    if( im3d->vwid->tips_pb != NULL && lrand48()%2==0 )
      MCW_flash_widget(1,im3d->vwid->tips_pb) ;
@@ -3432,25 +3440,25 @@ ENTRY("AFNI_startup_timeout_CB") ;
    if( im3d->vwid->tips_pb != NULL && lrand48()%2==0 )
      MCW_flash_widget(1,im3d->vwid->tips_pb) ;
 
-   /* 29 Jul 2005: run any driver commands from the command line */
+   /*--- 29 Jul 2005: run any driver commands from the command line ---*/
 
    for( vv=0 ; vv < COM_num ; vv++ ){
      AFNI_driver(COM_com[vv]) ; free(COM_com[vv]) ;
    }
 
-   /* 29 Nov 2005: Message Of The Day -- did it change? */
+   /*--- 29 Nov 2005: Message Of The Day -- did it change? ---*/
 
    if( GLOBAL_motd != NULL && !AFNI_noenv("AFNI_MOTD_CHECK") )
      AFNI_display_motd( im3d->vwid->imag->topper ) ;
 
-   /* 09 Nov 2005: start checking periodically for updated datasets */
+   /*--- 09 Nov 2005: start checking periodically for updated datasets ---*/
 
    if( AFNI_yesenv("AFNI_AUTO_RESCAN") )
     (void) XtAppAddTimeOut( MAIN_app,29999, AFNI_rescan_timeout_CB,&MAIN_app );
 
    AFNI_coord_filer_setup(im3d) ; /* 07 May 2010 */
 
-   /*- 12 May 2010: As the last printout, say when this version was created -*/
+   /*--- 12 May 2010: As the last printout, say when this version was created ---*/
 
    fprintf(stderr,"\n++ NOTE: This version of AFNI was built " __DATE__ " ++\n" ) ;
 
@@ -3458,7 +3466,7 @@ ENTRY("AFNI_startup_timeout_CB") ;
       !AFNI_yesenv("AFNI_ENABLE_MARKERS")    )
      fprintf(stderr,"++ NOTE: 'Define Markers' is hidden: right-click 'DataDir' to see it\n") ;
 
-   /** Apr 2013: delete this message in a few months **/
+   /**--- Apr 2013: delete this message in a few months ---**/
 
    if( __DATE__[10] == '3' && (__DATE__[0] == 'A' || __DATE__[0] == 'M') )
      fprintf(stderr,
@@ -3479,9 +3487,11 @@ ENTRY("AFNI_startup_timeout_CB") ;
        "   https://afni.nimh.nih.gov/pub/dist/doc/program_help/README.environment.html\n") ;
 
 
-   /* splash window down -- moved here 29 May 2013 */
+   /*--- splash window down -- moved here 29 May 2013 ---*/
 
    AFNI_splashdown(); STATUS("splashed down");
+
+   /*--- and AWAY WE GO (how sweet it is!) ---*/
 
    MPROBE ;                       /* check mcw_malloc() for integrity */
    EXRETURN ;
@@ -3504,6 +3514,7 @@ ENTRY("AFNI_startup_timeout_CB") ;
 
    See also Get_UO_Dset
 ----------------------------------------------------------------------*/
+
 FD_brick *Get_FD_Brick_As_Selected(FD_brick *br, int type, int *rival)
 {
    Three_D_View *im3d = (Three_D_View *)br->parent ;
