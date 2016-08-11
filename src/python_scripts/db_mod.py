@@ -4170,7 +4170,9 @@ def db_cmd_regress(proc, block):
     # maybe any original stims are as 1D, whether converting or not
     if not opt.parlist or len(opt.parlist) == 0: vtype = 1
     else:                                        vtype = verify_times_type
-    if not valid_file_types(proc, proc.stims_orig, vtype, stypes=stim_types):
+    goforit = block.opts.opt_has_arg('-regress_opts_3dD', arg='-GOFORIT')
+    if not valid_file_types(proc, proc.stims_orig, vtype, stypes=stim_types,
+                            goforit=goforit):
         return
 
     # check any extras against 1D only
@@ -4399,7 +4401,7 @@ def db_cmd_regress(proc, block):
     opt = block.opts.find_opt('-regress_opts_3dD')
     if not opt or not opt.parlist: other_opts = ''
     else: other_opts = '    %s' % \
-          ' '.join(UTIL.quotize_list(opt.parlist, '\\\n%s    '%istr, 1))
+             ' '.join(UTIL.quotize_list(opt.parlist, '\\\n%s    '%istr, 1))
 
     # are we going to stop with the 1D matrix?
     # (either explicit option or if using 3dTproject)
@@ -5203,7 +5205,7 @@ def make_clustsim_commands(proc, block, blur_file, mask_dset, statsets):
 
     cprefix = 'ClustSim'        # prefix for 3dClustSim files
     cstr = '# add 3dClustSim results as attributes to any stats dset\n' \
-           'set fxyz = ( `tail -1 %s` )\n'                              \
+           'set fxyz = ( `grep FWHM | tail -1 %s` )\n'                  \
            '3dClustSim -both -mask %s -fwhmxyz $fxyz[1-3] \\\n'         \
            '%s'                                                         \
            '           -prefix %s\n'                                    \
@@ -5256,21 +5258,22 @@ def blur_est_loop_str(proc, dname, mname, label, outfile, trs_cen=0):
       '# restrict to uncensored TRs, per run\n'                 \
       'foreach run ( $runs )\n'                                 \
       '%s'                                                      \
-      '    3dFWHMx -detrend -mask %s \\\n'                      \
+      '    3dFWHMx -ACF -detrend -mask %s \\\n'                 \
       '        %s%s >> %s\n'                                    \
       'end\n\n'                                                 \
       % (tstr1, mask, inset, tstr2, tmpfile)
 
-    # how to get the blurs differs if there is only 1 run
-    if proc.runs > 1: blur_str = "3dTstat -mean -prefix - %s\\\'" % tmpfile
-    else:             blur_str = "cat %s" % tmpfile
+    btypes = ['FWHM', 'ACF']
+    for bind, btype in enumerate(btypes):
+       blur_str = "3dTstat -mean -prefix - %s'{%d..$(2)}'\\\'" % \
+                  (tmpfile, bind)
 
-    cmd = cmd +                                                 \
-        '# compute average blur and append\n'                   \
-        'set blurs = ( `%s` )\n'                                \
-        'echo average %s blurs: $blurs\n'                       \
-        'echo "$blurs   # %s blur estimates" >> %s\n\n'     %   \
-        (blur_str, label, label, outfile)
+       cmd = cmd +                                                         \
+           '# compute average %s blur (from every other row) and append\n' \
+           'set blurs = ( `%s` )\n'                                        \
+           'echo average %s %s blurs: $blurs\n'                            \
+           'echo "$blurs   # %s %s blur estimates" >> %s\n\n' %            \
+           (btype, blur_str, label, btype, label, btype, outfile)
 
     return cmd
 
@@ -6158,7 +6161,7 @@ def married_types_match(proc, stims, stypes, bases):
 
     return ok_all
 
-def valid_file_types(proc, stims, file_type, stypes=[]):
+def valid_file_types(proc, stims, file_type, stypes=[], goforit=0):
     """verify that the files are valid as 1D, local or global times
 
          1 : 1D
@@ -6169,6 +6172,8 @@ def valid_file_types(proc, stims, file_type, stypes=[]):
        If invalid, print messages.
        If valid, print any warning messages.
        So checks are always run twice.
+
+       goforit: means -GOFORIT was already used
 
        return 1 if valid, 0 otherwise
     """
@@ -6232,7 +6237,11 @@ def valid_file_types(proc, stims, file_type, stypes=[]):
 
         # if empty, warn user (3dD will fail)
         if ok and adata.empty:
-            print '** empty stim file %s (consider 3dD -GOFORIT ...)\n' % fname
+            if goforit:
+               print '** empty stim file %s (but have 3dD -GOFORIT)\n' % fname
+            else:
+               print '** empty stim file %s (consider 3dD -GOFORIT ...)\n' \
+                     % fname
 
         # if current file is good, move on
         if ok: continue
@@ -7550,13 +7559,13 @@ g_help_string = """
 
                         afni_proc.py            unWarpEPI.py
                         --------------------    --------------------
-       tshift order:    before unwarp           after unwarp
+       tshift step:     before unwarp           after unwarp
                         (option: unwarp first)
 
        volreg program:  3dvolreg                3dAllineate
 
        volreg base:     as before               median warped dset
-                        (option: MEDIAN_BLIP)
+                        (option: MEDIAN_BLIP)   (same as MEDIAN_BLIP)
 
        unifize EPI?     no (option: yes)        yes
        (align w/anat)
@@ -7678,6 +7687,7 @@ g_help_string = """
          -align_opts_aea -cost lpa
          -align_opts_aea -giant_move
          -align_opts_aea -cost lpc+ZZ -giant_move
+         -align_opts_aea -check_flip
          -align_opts_aea -cost lpc+ZZ -giant_move -resample off
          -align_opts_aea -skullstrip_opts -blur_fwhm 2
 
@@ -8892,6 +8902,7 @@ g_help_string = """
         -align_opts_aea OPTS ... : specify extra options for align_epi_anat.py
 
                 e.g. -align_opts_aea -cost lpc+ZZ
+                e.g. -align_opts_aea -cost lpc+ZZ -check_flip
                 e.g. -align_opts_aea -Allineate_opts -source_automask+4
                 e.g. -align_opts_aea -giant_move -AddEdge -epi_strip 3dAutomask
                 e.g. -align_opts_aea -skullstrip_opts -blur_fwhm 2
@@ -8908,6 +8919,13 @@ g_help_string = """
 
             Similarly, the fourth example passes '-blur_fwhm 2' down through
             align_epi_anat.py to 3dSkullStrip.
+
+          * The -check_flip option to align_epi_anat.py is good for evaluating
+            data from external sources.  Aside from performing the typical
+            registration, it will compare the final registration cost to that
+            of a left/right flipped version.  If the flipped version is lower,
+            one should investigate whether the axes are correctly labeled, or
+            even labeled at all.
 
             Please see "align_epi_anat.py -help" for more information.
             Please see "3dAllineate -help" for more information.
