@@ -36,11 +36,13 @@ just a set with one phase encode direction, or a pair of oppositely
 phase encoded (AP-PA, blip-up/blip-down data)?  Scans of squirmy kids,
 or meditating adults? etc.
 
-These scripts are examples, not dogma. They are bound to change
-(improve?) over time. Additional options can happily be added if they
-simplify your life and don't overly complicate mine.  And please let
-me know if you have any problems, via posting on the `Message Board
-<https://afni.nimh.nih.gov/afni/community/board>`_ or emailing.  
+These scripts are examples, not dogma-- they are **a** way to go about
+DWI processing with AFNI, FATCAT and TORTOISE (and dcm2nii). They are
+bound to change (improve?) over time. Additional options can happily
+be added if they simplify your life and don't overly complicate mine.
+And please let me know if you have any problems, via posting on the
+`Message Board <https://afni.nimh.nih.gov/afni/community/board>`_ or
+emailing.
 
 Overview I: Distortions and TORTOISE
 ------------------------------------
@@ -110,7 +112,7 @@ even be recommended if you acquire data with special, non-standard
 sequences).  I *do* like to convert DICOMS to NIFTI so that I can view
 the data and kick out bad volumes pre-TORTOISEing, and I haven't had
 the misfortune to have major formatting trouble whilst doing so (*he
-writes asking for trouble*...).
+writes asking The Universe for trouble*...).
 
 So, on with the scripting show, then.
 
@@ -124,6 +126,9 @@ The purpose of this set of scripts is to:
     * to allow the DWIs to be viewed, quality-checked and filtered
       according to the user's judgment (e.g., remove dropout volumes
       or those with heavy motion distortion);
+
+    * to filter volume, gradient and bvalue files of a given data set
+      simultaneously;
 
     * to process dual phase encoded DWI data sets (i.e., when AP-PA
       data are present) in parallel, in order to maintain matched
@@ -140,4 +145,118 @@ You can skip any steps that aren't applicable. I will assume that each
 acquired volume is currently a set of unpacked DICOMs sitting in its
 own directory.
 
-1. 
+Note that each function listed below has its own helpfile, describing
+more details, defaults and available options.  Here, I will often use
+default names and locations of things (such as output directories,
+prefixes, etc.) in order to simplerify life.
+
+.. note:: Have matched data sets with opposite phase encoding (e.g.,
+          AP and PA) is useful for correcting EPI distortions.
+          However, if you only have one, whether it is AP or PA
+          doesn't really matter for this pre-processing-- I will refer
+          to single phase encode data sets as 'AP' just for
+          simplicity, but either encoding would get treated the same.
+
+|
+
+1. **Convert DWIs**
+
+   Go from DICOMs to a NIFTI volume and supplementary text files (a
+   '\*.bvec' file has the unit normal gradients, and a '\*.bval' file
+   has the diffusion weighting b-values).
+
+   * *Case A:* A single set of *N* DWIs acquired with a single phase
+     encode direction (in SUB01/01_dicom_dir_AP/)::
+
+        tcsh fat_pre_convert_dwis.tcsh                   \
+            -indir_ap  SUB01/01_dicom_dir_AP
+
+     -> produces a single directory called 'SUB01/UNFILT_AP/', which
+     contains three files: AP.nii (*N* volumes), AP.bvec (3x\ *N*
+     lines) and AP.bval (1x\ *N* lines).
+
+   * *Case B:* Multiple sets each with *N* DWIs with a single phase
+     encode direction (in SUB01/01_dicom_dir_AP/,
+     SUB01/02_dicom_dir_AP/, SUB01/02_dicom_dir_AP/)::
+
+        tcsh fat_pre_convert_dwis.tcsh                   \
+            -indir_ap  SUB01/0*_dicom_dir_AP
+
+     -> produces a single directory called 'SUB01/UNFILT_AP/', which
+     contains three files: AP.nii (3\ *N* volumes), AP.bvec (3x3\ *N*
+     lines) and AP.bval (1x3\ *N* lines).
+
+   * *Case C:* A paired set of *N* DWIs with opposite phase encode
+     directions (in SUB01/01_dicom_dir_AP/ and
+     SUB01/01_dicom_dir_PA/)::
+
+        tcsh fat_pre_convert_dwis.tcsh                   \
+            -indir_ap  SUB01/01_dicom_dir_AP             \
+            -indir_pa  SUB01/01_dicom_dir_PA
+
+     -> produces two directories in 'SUB01/', one called 'UNFILT_AP/',
+     which contains three files: AP.nii (*N* volumes), AP.bvec (3x\
+     *N* lines) and AP.bval (1x\ *N* lines); and the other called
+     'UNFILT_PA/', which contains three files: PA.nii (*N* volumes),
+     PA.bvec (3x\ *N* lines) and PA.bval (1x\ *N* lines).
+
+   Each data set will have 'RPI' orientation; the gradients in each
+   case will not be flipped.  See the help file for changing these
+   defaults, as well as output directories and file prefixes.
+
+#. **Convert anatomical volume**
+
+   Go from DICOMs to NIFTI. Sometimes ``dcm2nii`` creates multiple
+   volumes from a single anatomical (one zoomed in on brain, etc.),
+   but here we try to auto-select the basic one (file name typically
+   starts with "2\*")
+
+   * A single anatomical (in SUB01/01_dicom_dir_anat/)::
+
+        tcsh fat_pre_convert_anat.tcsh                   \
+            -indir  SUB01/01_dicom_dir_anat
+
+     -> produces a single directory called 'SUB01/ANATOM/', which
+     contains one file: anat.nii (there's also a subdirectory of
+     SUB01/ANATOM/ containing intermediate files; should be
+     ignorable).
+
+   The anatomical will have 'RPI' orientation. You could change that,
+   or rename it to reflect what kind of anatomical it is (e.g., T1w or
+   T2w).
+
+#. **Axialize the anatomical**
+
+   It might be useful to have the standard slice planes of the brain
+   be parallel with the sides of the volume.  That is, if a subject's
+   head is strongly tilted in the volumetric field of view (FOV), then
+   the display of slices might be awkward, anatomical definition might
+   be tricky, and tract/structure coloration could be
+   non-standard. 
+
+   This program "rights the ship" by calculating an affine alignment
+   to an a reference volume of the user's choice (e.g., a standard
+   space Talairach volume), but only applying the rotation/translation
+   part, so that the subject's brain doesn't warp/change shape.  This
+   is essentially an automated version of AC-PC alignment.
+
+   * A single anatomical volume (SUB01/ANATOM/anat.nii) and a
+     similar-contrast anatomical reference (~/TEMPLATES/TT_N27+tlrc)::
+
+       tcsh fat_pre_axialize_anat.tcsh           \
+           -inset   SUB01/ANATOM/anat.nii        \
+           -refset  ~/TEMPLATES/TT_N27+tlrc
+
+     -> produces a single file called 'SUB01/ANATOM/anat_axi.nii' (NB:
+     default naming is not to add an appendix to the input, but right
+     now is just generically 'anat_axi.nii'); there's also a working
+     directory called 'SUB01/ANATOM/__WORK_prealign'; would be useful
+     to look at if the auto-axializing fails.
+
+   The alignment is done with 3dAllineate, and some options can be
+   added to it from the command line; additionally, an option to
+   resample the volume to a particular spatial resolution can be
+   given.
+
+#. **Make a T2w-like volume from a T1w one**
+
