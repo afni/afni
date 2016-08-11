@@ -9,6 +9,7 @@ Tutorials, Demos
    
    SelfGuidedScripts
    fatcat_demo/fatcat_demo.rst
+   fatcat_prep/fatcat_prep.rst
    WalnutBrain/WalnutBrain
    ContributeDocs/ContributeDocs
    DrawingSurfaceROIs/DrawingROIs
