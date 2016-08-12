@@ -5,6 +5,35 @@
 #endif
 
 /*---------------------------------------------------------------------------*/
+
+#define USE_UBYTE
+
+/*====================================*/
+#ifdef USE_UBYTE  /* for grids <= 255 */
+
+# define DALL    256
+# define MAX_IND 255u
+
+  typedef ind_t unsigned char ;
+
+#else   /*==== for grids <= 32767 ====*/
+
+# define DALL    1024
+# define MAX_IND 32767u
+
+  typedef ind_t unsigned short ;
+
+#endif
+/*====================================*/
+
+typedef struct {
+  int npt , nall , ngood ;
+  float fom ;
+  ind_t *ip , *jp , *kp ;
+  int   *ijk ;
+} Xcluster ;
+
+/*---------------------------------------------------------------------------*/
 /*
   Global data
 */
@@ -12,6 +41,11 @@
 static THD_3dim_dataset  *mask_dset  = NULL ; /* mask dataset */
 static byte              *mask_vol   = NULL;  /* mask volume */
 static int mask_nvox = 0, mask_ngood = 0;     /* number of good voxels in mask volume */
+
+static ind_t *ipmask=NULL , *jpmask=NULL , *kpmask=NULL ;
+#define INMASK(ijk) (mask_vol==NULL || mask_vol[ijk]!=0)
+
+static int *ijk_to_vec=NULL ;
 
 static int   nx ;
 static int   ny ;
@@ -232,6 +266,24 @@ ENTRY("get_options") ;
 
   if( mask_ngood == 0 ) mask_ngood = nxyz ;
 
+  /* make a list of the i,j,k coordinates of each point in the mask */
+
+  { int pp,qq , xx,yy,zz ;
+    ipmask = (ind_t *)malloc(sizeof(ind_t)*mask_ngood) ;
+    jpmask = (ind_t *)malloc(sizeof(ind_t)*mask_ngood) ;
+    kpmask = (ind_t *)malloc(sizeof(ind_t)*mask_ngood) ;
+    for( pp=qq=0 ; qq < nxyz ; qq++ ){
+      if( INMASK(qq) ){
+        IJK_TO_THREE(qq,xx,yy,zz,nx,nxy) ;
+        ipmask[pp] = (ind_t)xx; jpmask[pp] = (ind_t)yy; kpmask[pp] = (ind_t)zz;
+        pp++ ;
+      }
+    }
+    ijk_to_vec = (int *)malloc(sizeof(int)*nxyz) ;
+    for( pp=qq=0 ; qq < nxyz ; qq++ )
+      ijk_to_vec[qq] = INMASK(qq) ? pp++ : -1 ;
+  }
+
   /*-- z-score thresholds for the various p-values --*/
 
   zthr_1sid = (float *)malloc(sizeof(float)*npthr) ;
@@ -295,36 +347,6 @@ void generate_image( float *fim , float *pfim , unsigned short xran[] , int iter
   return ;
 }
 
-/*---------------------------------------------------------------------------*/
-
-#define USE_UBYTE
-
-/*===================================*/
-#ifdef USE_UBYTE  /* for grids < 255 */
-
-# define DALL    256
-# define MAX_IND 254u
-# define BLASTED 255u
-
-  typedef ind_t unsigned char ;
-
-#else   /*==== for grids < 32767 ====*/
-
-# define DALL    1024
-# define MAX_IND 32766u
-# define BLASTED 32767u
-
-  typedef ind_t unsigned short ;
-
-#endif
-/*===================================*/
-
-typedef struct {
-  int npt , nall , ngood ;
-  float fom ;
-  ind_t *ip , *jp , *kp ;
-} Xcluster ;
-
 /*----------------------------------------------------------------------------*/
 
 #if 0  /* for later developments */
@@ -336,25 +358,21 @@ typedef struct {
 
 /*----------------------------------------------------------------------------*/
 
-#define BLAST_Xpoint(xc,qq)                                            \
-  do{if( (xc)->ip[qq]<BLASTED ){(xc)->ip[qq]=BLASTED; (xc)->ngood--;}} while(0)
-
-#define ISGOOD_Xpoint(xc,qq) ((xc)->ip[qq] < BLASTED)
-
-/*----------------------------------------------------------------------------*/
-
 #define DESTROY_Xcluster(xc)                                           \
- do{ free((xc)->ip); free((xc)->jp); free((xc)->kp); free(xc); } while(0)
+ do{ free((xc)->ip); free((xc)->jp); free((xc)->kp);                   \
+     free((xc)->ijk); free(xc);                                        \
+ } while(0)
 
 /*----------------------------------------------------------------------------*/
 
 #define CREATE_Xcluster(xc,siz)                                        \
  do{ xc = (Xcluster *)malloc(sizeof(Xcluster)) ;                       \
-     xc->npt  = 0 ; xc->ngood = 0 ; xc->nall = (siz) ;                 \
-     xc->fom  = 0.0f ;                                                 \
-     xc->ip   = (ind_t *)malloc(sizeof(ind_t)*(siz)) ;                 \
-     xc->jp   = (ind_t *)malloc(sizeof(ind_t)*(siz)) ;                 \
-     xc->kp   = (ind_t *)malloc(sizeof(ind_t)*(siz)) ;                 \
+     xc->npt = 0 ; xc->ngood = 0 ; xc->nall = (siz) ;                  \
+     xc->fom = 0.0f ;                                                  \
+     xc->ip  = (ind_t *)malloc(sizeof(ind_t)*(siz)) ;                  \
+     xc->jp  = (ind_t *)malloc(sizeof(ind_t)*(siz)) ;                  \
+     xc->kp  = (ind_t *)malloc(sizeof(ind_t)*(siz)) ;                  \
+     xc->ijk = (ind_t *)malloc(sizeof(int)  *(siz)) ;                  \
  } while(0)
 
 /*----------------------------------------------------------------------------*/
@@ -368,13 +386,15 @@ void copyover_Xcluster( Xcluster *xcin , Xcluster *xcout )
    nin = xcin->npt ;
    if( nin > xcout->nall ){
      xcout->nall = nin ;
-     xcout->ip = (ind_t *)realloc(xcout->ip,sizeof(ind_t)*nin) ;
-     xcout->jp = (ind_t *)realloc(xcout->jp,sizeof(ind_t)*nin) ;
-     xcout->kp = (ind_t *)realloc(xcout->kp,sizeof(ind_t)*nin) ;
+     xcout->ip  = (ind_t *)realloc(xcout->ip ,sizeof(ind_t)*nin) ;
+     xcout->jp  = (ind_t *)realloc(xcout->jp ,sizeof(ind_t)*nin) ;
+     xcout->kp  = (ind_t *)realloc(xcout->kp ,sizeof(ind_t)*nin) ;
+     xcout->ijk = (int *)  realloc(xcout->ijk,sizeof(int)  *nin) ;
    }
    memcpy( xcout->ip , xcin->ip , sizeof(ind_t)*nin ) ;
    memcpy( xcout->jp , xcin->jp , sizeof(ind_t)*nin ) ;
    memcpy( xcout->kp , xcin->kp , sizeof(ind_t)*nin ) ;
+   memcpy( xcout->ijk, xcin->ijk, sizeof(int)  *nin ) ;
    xcout->fom   = xcin->fom ;
    xcout->npt   = nin ;
    xcout->ngood = xcin->ngood ;
@@ -397,15 +417,6 @@ Xcluster * copy_Xcluster( Xcluster *xcc )
 
 static Xcluster **Xctemp_g = NULL ;
 
-/* code to initialize Xctemp_g */
-
-#pragma omp_master
- {
-   Xctemp_g = (Xcluster **)malloc(sizeof(Xcluster *)*nthr) ;
- }
-#pragma barrier
-   CREATE_Xcluster(Xctemp_g[ithr],DALL) ;
-
 /*----------------------------------------------------------------------------*/
 
 #define XPUT_point(i,j,k)                                              \
@@ -416,8 +427,10 @@ static Xcluster **Xctemp_g = NULL ;
          xcc->ip = (ind_t *)realloc(xcc->ip,sizeof(ind_t)*xcc->nall) ; \
          xcc->jp = (ind_t *)realloc(xcc->jp,sizeof(ind_t)*xcc->nall) ; \
          xcc->kp = (ind_t *)realloc(xcc->kp,sizeof(ind_t)*xcc->nall) ; \
+         xcc->ijk= (int *)  realloc(xcc->ijk,sizeof(int) *xcc->nall) ; \
        }                                                               \
        xcc->ip[npt] = (i); xcc->jp[npt] = (j); xcc->kp[npt] = (k);     \
+       xcc->ijk[npt] = pqr ;                                           \
        xcc->npt++ ; xcc->ngood++ ;                                     \
        xcc->fom += ADDTO_FOM(fim[pqr]) ;                               \
        fim[pqr] = 0.0f ;                                               \
@@ -465,10 +478,10 @@ Xcluster * find_fomest_Xcluster_NN1( float *fim , int ithr )
        if( jp < ny ) XPUT_point(ii,jp,kk) ;
        if( km >= 0 ) XPUT_point(ii,jj,km) ;
        if( kp < nz ) XPUT_point(ii,jj,kp) ;
-     } /* since xcc->npt increases if XPUT_point works,
+     } /* since xcc->npt increases if XPUT_point adds the point,
           the loop continues until finally no new neighbors get added */
 
-     /* is this the fom-est cluster yet? if so, save it */
+     /* is this the fom-iest cluster yet? if so, save it */
 
      if( xcc->fom > fom_max ){
        if( xccout == NULL ) xccout = copy_Xcluster(xcc) ;
@@ -501,3 +514,97 @@ void gather_clusters_NN1_1sid( int ipthr, float *fim, float *tfim, int ithr,int 
 }
 
 /*---------------------------------------------------------------------------*/
+
+typedef struct {
+  ind_t ip,jp,kp ; int ijk ;
+  int npt , nall ;
+  float *far ;
+} Xvector ;
+
+#define CREATE_Xvector(xv,siz)                         \
+ do{ xv = (Xvector *)malloc(sizeof(Xvector)) ;         \
+     xv->npt = 0 ; xv->nall = (siz) ;                  \
+     xv->far = (float *)malloc(sizeof(float)*(siz)) ;  \
+ } while(0)
+
+#define DESTROY_Xvector(xv)                            \
+ do{ free(xv->far); free(xv); } while(0)
+
+#define ADDTO_Xvector(xv,val)                                 \
+ do{ if( xv->npt == xv->nall ){                               \
+       xv->nall += DALL ;                                     \
+       xv->far   = (float *)realloc(sizeof(float)*xv->nall) ; \
+     }                                                        \
+     xv->far[xv->npt++] = (val) ;                             \
+ } while(0)
+
+static Xvector **fomvec = NULL ;
+
+/*---------------------------------------------------------------------------*/
+
+void process_clusters_to_Xvectors( int ijkbot, int ijktop , int ipthr )
+{
+   Xcluster **xcar = Xclust_g[ipthr] ;
+   XCluster *xc ;
+   int cc , pp,npt , ijk,vin ;
+
+   for( cc=0 ; cc < niter ; cc++ ){
+     xc = xcar[cc] ; if( xc == NULL || xc->ngood == 0 ) continue ;
+     npt = xc->npt ;
+     for( pp=0 ; pp < npt ; pp++ ){
+       ijk = xc->ijk[pp] ;
+       if( ijk >= ijkbot && ijk <= ijktop ){
+         vin = ijk_to_vec[ijk] ;
+         if( vin >= 0 ){
+           ADDTO_Xvector(fomvec[vin],xc->fom) ;
+           xc->ijk[pp] = -1 ;
+#pragma omp atomic
+           xc->ngood-- ;
+         }
+       }
+     }
+   }
+
+   return ;
+}
+
+/*---------------------------------------------------------------------------*/
+
+int main( int argc , char *argv[] )
+{
+   int ipthr , ii,xx,yy,zz ;
+
+   /* code to initialize the cluster arrays */
+
+   Xclust_g = (Xcluster ***)malloc(sizeof(XCluster **)*npthr) ;
+   for( ipthr=0 ; ipthr < npthr ; ipthr++ )
+     Xclust_g[ipthr] = (XCluster **)malloc(sizeof(XCluster *)*niter) ;
+
+   /* initialize the FOM vector arrays */
+
+   fomvec = (Xvector **)malloc(sizeof(Xvector *)*mask_ngood) ;
+   for( ii=0 ; ii < mask_ngood ; ii++ ){
+     CREATE_Xvector(fomvec[ii],100) ;
+     fomvec[ii]->ip  = ipmask[ii] ; xx = (int)ipmask[ii] ;
+     fomvec[ii]->jp  = jpmask[ii] ; yy = (int)jpmask[ii] ;
+     fomvec[ii]->kp  = kpmask[ii] ; zz = (int)kpmask[ii] ;
+     fomvec[ii]->ijk = xx+yy*nx+zz*nxy ;
+   }
+
+AFNI_OMP_START ;
+#pragma omp parallel
+{
+
+   /* code to initialize Xctemp_g */
+#pragma omp_master
+ { Xctemp_g = (Xcluster ** )malloc(sizeof(Xcluster * )*nthr) ; }
+#pragma barrier
+   CREATE_Xcluster(Xctemp_g[ithr],DALL) ;
+
+}
+AFNI_OMP_END ;
+
+
+
+
+}
