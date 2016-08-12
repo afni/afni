@@ -4,6 +4,15 @@
 **FATCAT: DWI Pre- and Postprocessing**
 =======================================
 
+|
+
+**FOR NOW**, the script files to execute are here:
+:download:`SCRIPT_TARBALL <media/FAT_PRE_SCRIPTS.tar.gz>`
+
+|
+
+|
+
 Overview S
 ----------
 
@@ -81,7 +90,13 @@ T2-weighted (T2w) volume; the application of a T1w volume as a
 reference if a T2w one is not available is discussed below. Finally,
 we note that TORTOISE includes the DIFF_CALC module for tensor
 fitting, visualization and other features, but here it is only used
-for exporting DIFF_PREP or DR-BUDDI results.
+for exporting DIFF_PREP or DR-BUDDI results.  
+
+As also noted on their webpage, it is not a speedy program.  It will
+take upwards of a couple hours per data set to process with either
+DIFF_PREP or DR-BUDDI, increasing with higher spatial resolution, with
+selecting to upsample more, and with a larger number of
+volumes/gradients. 
 
 Overview II: DICOMs and dcm2nii
 -------------------------------
@@ -145,8 +160,8 @@ What do distortions in DWI data look like?  Ugly stuff.
              :width: 100%
         - .. image:: media/Screenshot_from_2016-08-12_15:40:58.png
              :width: 100%
-      * - *AP encoded b=0 volume.*
-        - *PA encoded b=0 volume.*
+      * - *PA encoded b=0 volume.*
+        - *AP encoded b=0 volume.*
 
    |
 
@@ -189,7 +204,7 @@ What do distortions in DWI data look like?  Ugly stuff.
       * - .. image:: media/Screenshot_from_2016-08-12_15:09:20.png
              :width: 100%
       * - *Example of subject motion artifact in a DWI volume that was
-          acquired with an interleaved sequence (which is common).* |
+          acquired with an interleaved sequence (which is common).* 
 
    |
 
@@ -293,7 +308,7 @@ often used in order to simplerify life.
      directions (in SUB01/01_dicom_dir_AP/ and
      SUB01/01_dicom_dir_PA/)::
 
-        tcsh fat_pre_convert_dwis.tcsh                   \
+        fat_pre_convert_dwis.tcsh                        \
             -indir_ap  SUB01/01_dicom_dir_AP             \
             -indir_pa  SUB01/01_dicom_dir_PA
 
@@ -316,7 +331,7 @@ often used in order to simplerify life.
    * *Case B:* A single set of *N* DWIs acquired with a single phase
      encode direction (in SUB01/01_dicom_dir_AP/)::
 
-        tcsh fat_pre_convert_dwis.tcsh                   \
+        fat_pre_convert_dwis.tcsh                        \
             -indir_ap  SUB01/01_dicom_dir_AP
 
      -> produces a single directory called 'SUB01/UNFILT_AP/', which
@@ -328,7 +343,7 @@ often used in order to simplerify life.
      encode direction (in SUB01/01_dicom_dir_AP/,
      SUB01/02_dicom_dir_AP/, SUB01/02_dicom_dir_AP/)::
 
-        tcsh fat_pre_convert_dwis.tcsh                   \
+        fat_pre_convert_dwis.tcsh                        \
             -indir_ap  SUB01/0*_dicom_dir_AP
 
      -> produces a single directory called 'SUB01/UNFILT_AP/', which
@@ -349,7 +364,7 @@ often used in order to simplerify life.
 
    * A single anatomical (in SUB01/01_dicom_dir_anat/)::
 
-        tcsh fat_pre_convert_anat.tcsh                  \
+        fat_pre_convert_anat.tcsh                       \
             -indir  SUB01/01_dicom_dir_anat
 
      -> produces a single directory called 'SUB01/ANATOM/', which
@@ -388,7 +403,7 @@ often used in order to simplerify life.
    * A single anatomical volume (SUB01/ANATOM/anat.nii) and a
      similar-contrast anatomical reference (~/TEMPLATES/TT_N27+tlrc)::
 
-       tcsh fat_pre_axialize_anat.tcsh                  \
+       fat_pre_axialize_anat.tcsh                       \
            -inset   SUB01/ANATOM/anat.nii               \
            -refset  ~/TEMPLATES/TT_N27+tlrc
 
@@ -430,7 +445,7 @@ often used in order to simplerify life.
    
    * A single T1w volume (SUB01/ANATOM/anat_axi.nii)::
 
-       tcsh fat_pre_t2w_from_t1w.tcsh                   \
+       fat_pre_t2w_from_t1w.tcsh                        \
            -inset  SUB01/ANATOM/anat_axi.nii
 
      -> produces three files in SUB01/ANATOM/ called out_t2w.nii (the
@@ -480,7 +495,7 @@ often used in order to simplerify life.
      assume you want to remove the volumes with index 4, 5 and 8,
      leaving *M*\ =\ *N*\ -3 volumes/grads::
 
-        tcsh fat_pre_filter_dwis.tcsh                      \
+        fat_pre_filter_dwis.tcsh                           \
             -inset_ap  SUB01/UNFILT_AP/AP.nii              \
             -inset_pa  SUB01/UNFILT_PA/PA.nii              \
             -select    "[0..3,6,7,9..$]"
@@ -511,6 +526,7 @@ often used in order to simplerify life.
             in text files, bvals (top pair) and bvecs (bottom pair).
             Columns are: # of lines, # of total words or numbers, # of
             characters.*
+     |
 
    * *Case B (and C, from above):* A single set of *N* DWIs acquired
      with a single phase encode direction (in SUB01/UNFILT_AP/AP.nii,
@@ -518,7 +534,7 @@ often used in order to simplerify life.
      length); assume you want to remove the volumes with index 4, 5
      and 8, leaving *M*\ =\ *N*\ -3 volumes/grads::
 
-        tcsh fat_pre_filter_dwis.tcsh                      \
+        fat_pre_filter_dwis.tcsh                           \
             -inset_ap  SUB01/UNFILT_AP/AP.nii              \
             -select    "[0..3,6,7,9..$]"
 
