@@ -95,8 +95,8 @@ own inner workings from time to time), and tailored sequences might
 contain additional wrinkles.  Basically, it's a hard task.
 
 There's a fair number of DICOM converters out there and even some "in
-here" in AFNI (e.g., ``to3d``).  I use ``dcm2nii`` for conversion
-because it is `free
+here" in AFNI (e.g., ``to3d``, ``Dimon``).  I use ``dcm2nii`` for
+conversion because it is `free
 <http://people.cas.sc.edu/rorden/mricron/dcm2nii.html>`_, I have used
 it for a long time, it requires minimal user input, and I've generally
 had quite good luck with it.  That is, most converted volumes (appear
@@ -115,10 +115,111 @@ the data and kick out bad volumes pre-TORTOISEing, and I haven't had
 the misfortune to have major formatting trouble whilst doing so (*he
 writes asking The Universe for trouble*...).
 
-So, on with the scripting show, then.
+Overview III: Distorted views of the DWI world
+----------------------------------------------
+
+What do distortions in DWI data look like?  Ugly stuff.
+
+1. **EPI distortion**
+
+   EPI distortions occur predominantly along the phase encode
+   direction (often along the anterior-posterior orientation), and
+   these cause both geometric distortions (brain warping: stretching
+   and compressing) and signal intensity distortions (wrong signal
+   value stored: signal pileup and attenuation).  These can effect
+   both the reference *b* \=0 and gradient weighted volumes.  
+
+   One can see the relative the locations of greatest distortion when
+   comparing the oppositely phase encoded data.  TORTOISE uses
+   registration between the oppositely encoded sets, as well as the
+   anatomical reference, to reduce the warping distortions (see
+   Irfanoglu et al., 2012).
+
+   .. list-table:: 
+      :header-rows: 1
+      :widths: 50 50
+
+      * - Identical slices, single subject DWI.
+        -
+      * - .. image:: media/Screenshot_from_2016-08-12_15:41:22.png
+             :width: 100%
+        - .. image:: media/Screenshot_from_2016-08-12_15:40:58.png
+             :width: 100%
+      * - *AP encoded b=0 volume.*
+        - *PA encoded b=0 volume.*
+
+   |
+
+#. **Eddy current distortion**
+
+   Rapid switching of the diffusion gradients causes distortions.
+   These occur in the *b*\>0 volumes of a DWI data set.  They cause
+   nonlinear distortions, and generally need nonlinear registration to
+   reduce their effects.  The DIFF_PREP part of TORTOISE tries to undo
+   some of these.
+
+#. **Subject motion**
+
+   When we talk about subjection motion, we can talk about two main
+   types: motion occuring between volumes, and motion that occurs with
+   a TR.  (And in practice, there is often a combination of the two.)
+   If motion happened only between TRs, then we are in a better
+   position to "correct" some of its effects, essentially by using a
+   good volume registration procedure.  The assumption is that the
+   signal value at a location is what it should be-- we just have to
+   reorient the head to put that voxel back where it was
+   pre-motion. (NB: this is a simplification-- motion has other
+   knock-on effects on data acquisition, but we hope these are fairly
+   small.)
+
+   The within-TR motion is quite problematic, though.  Consider a
+   standard DWI acquisition sequence that collects axial slices in an
+   interleaved pattern.  That is, it collects slices #0, 2, 4, 6, 8,
+   etc. and then slices #1, 3, 5, 7, etc.  What happens if a person
+   moves during this?  Pre-motion slices might be fine, but those
+   afterward are not properly measured, and a distinctive brightness
+   pattern can be seen in a sagittal view.  This is often known as the
+   "Venetian blind" effect, and it is very easy to spot when looking
+   at data-- this would be a good candidate to filter out.
+
+   .. list-table:: 
+      :header-rows: 1
+      :widths: 100
+      
+      * - .. image:: media/Screenshot_from_2016-08-12_15:09:20.png
+             :width: 100%
+      * - *Example of subject motion artifact in a DWI volume that was
+          acquired with an interleaved sequence (which is common).* |
+
+   |
+
+#. **Signal dropout**
+
+   Signal dropout can occur due to susceptibility and excitation
+   problems, sometimes limiting problems to just one slice.  However,
+   that slice is effectively useless, and one might consider filtering
+   out this volume.  (NB: in some cases, the volume could be left in
+   if using an outlier rejection algorithm on a voxelwise basis for
+   tensor fitting.)
+
+   .. list-table:: 
+      :header-rows: 1
+      :widths: 100
+      
+      * - .. image:: media/Screenshot_from_2016-08-12_10:21:09.png
+             :width: 100%
+      * - *Example of a dropout slice in a DWI volume.*
+   |
+
+
+
 
 Pre-preprocessing
 -----------------
+
+Somehow, this ended up being a long section, but don't fret-- the
+reality is that there are very few scripts to run (about 5), and each
+has a pretty short syntax.
 
 The purposes of this set of scripts are to: 
 
@@ -144,12 +245,16 @@ The purposes of this set of scripts are to:
 
 You can skip any steps that aren't applicable. I will assume that each
 acquired volume is currently a set of unpacked DICOMs sitting in its
-own directory.
+own directory. If a directory structure is set up well, it should be
+possible to loop through all subjects with the same few commands. (The
+filtering step, though, would likely require its own command per
+subject, as motion/distortion will occur in different volumes for
+different subjects.)
 
 Note that each function listed below has its own helpfile, describing
-more details, defaults and available options.  Here, I will often use
-default names and locations of things (such as output directories,
-prefixes, etc.) in order to simplerify life.
+more details, defaults and available options.  Here, default names and
+locations of things (such as output directories, prefixes, etc.) are
+often used in order to simplerify life.
 
 .. note:: Have matched data sets with opposite phase encoding (e.g.,
           AP and PA) is useful for correcting EPI distortions.
@@ -160,34 +265,31 @@ prefixes, etc.) in order to simplerify life.
 
 |
 
-1. **Convert DWIs**
+0. **Setup**
+
+   Consider starting with the following directory structure: group
+   directory for a study (e.g., DTI_GROUP_STUDY/) with a subdirectory
+   for each subject.  Consider one subject's directory, which contains
+   three sets of DICOM directories: one AP DWI scan, one PA DWI scan
+   and one anatomical scan.
+
+   .. list-table:: 
+      :header-rows: 1
+      :widths: 100
+      
+      * - .. image:: media/Screenshot_from_2016-08-12_09:31:58.png
+             :width: 100%
+      * - *Initial, basic subject directory layout.*
+   |
+
+
+#. **Convert DWIs**
 
    Go from DICOMs to a NIFTI volume and supplementary text files (a
    '\*.bvec' file has the unit normal gradients, and a '\*.bval' file
    has the diffusion weighting b-values).
 
-   * *Case A:* A single set of *N* DWIs acquired with a single phase
-     encode direction (in SUB01/01_dicom_dir_AP/)::
-
-        tcsh fat_pre_convert_dwis.tcsh                   \
-            -indir_ap  SUB01/01_dicom_dir_AP
-
-     -> produces a single directory called 'SUB01/UNFILT_AP/', which
-     contains three files: AP.nii (*N* volumes), AP.bvec (3x\ *N*
-     lines) and AP.bval (1x\ *N* lines).
-
-   * *Case B:* Multiple sets each with *N* DWIs with a single phase
-     encode direction (in SUB01/01_dicom_dir_AP/,
-     SUB01/02_dicom_dir_AP/, SUB01/02_dicom_dir_AP/)::
-
-        tcsh fat_pre_convert_dwis.tcsh                   \
-            -indir_ap  SUB01/0*_dicom_dir_AP
-
-     -> produces a single directory called 'SUB01/UNFILT_AP/', which
-     contains three files: AP.nii (3\ *N* volumes), AP.bvec (3x3\ *N*
-     lines) and AP.bval (1x3\ *N* lines).
-
-   * *Case C:* A paired set of *N* DWIs with opposite phase encode
+   * *Case A:* A paired set of *N* DWIs with opposite phase encode
      directions (in SUB01/01_dicom_dir_AP/ and
      SUB01/01_dicom_dir_PA/)::
 
@@ -200,6 +302,39 @@ prefixes, etc.) in order to simplerify life.
      *N* lines) and AP.bval (1x\ *N* lines); and the other called
      'UNFILT_PA/', which contains three files: PA.nii (*N* volumes),
      PA.bvec (3x\ *N* lines) and PA.bval (1x\ *N* lines).
+
+     .. list-table:: 
+        :header-rows: 1
+        :widths: 100
+
+        * - .. image:: media/Screenshot_from_2016-08-12_09:33:47.png
+               :width: 100%
+        * - *End of 'DWI conversion' script message, and listing of
+            directories afterwards.*
+     |
+
+   * *Case B:* A single set of *N* DWIs acquired with a single phase
+     encode direction (in SUB01/01_dicom_dir_AP/)::
+
+        tcsh fat_pre_convert_dwis.tcsh                   \
+            -indir_ap  SUB01/01_dicom_dir_AP
+
+     -> produces a single directory called 'SUB01/UNFILT_AP/', which
+     contains three files: AP.nii (*N* volumes), AP.bvec (3x\ *N*
+     lines) and AP.bval (1x\ *N* lines). Output would look similar to
+     *Case A* but without the PA results.
+
+   * *Case C:* Multiple sets each with *Q* DWIs with a single phase
+     encode direction (in SUB01/01_dicom_dir_AP/,
+     SUB01/02_dicom_dir_AP/, SUB01/02_dicom_dir_AP/)::
+
+        tcsh fat_pre_convert_dwis.tcsh                   \
+            -indir_ap  SUB01/0*_dicom_dir_AP
+
+     -> produces a single directory called 'SUB01/UNFILT_AP/', which
+     contains three files: AP.nii (*N*\=3\ *Q* volumes), AP.bvec (3x\ *N*
+     lines) and AP.bval (1x\ *N* lines). Output would look similar to
+     *Case A* but without the PA results.
 
    Each data set will have 'RPI' orientation; the gradients in each
    case will not be flipped.  See the help file for changing these
@@ -221,6 +356,15 @@ prefixes, etc.) in order to simplerify life.
      contains one file: anat.nii (there's also a subdirectory of
      SUB01/ANATOM/ containing intermediate files; should be
      ignorable).
+
+     .. list-table:: 
+        :header-rows: 1
+        :widths: 100
+
+        * - .. image:: media/Screenshot_from_2016-08-12_09:43:26.png
+               :width: 100%
+        * - *End of 'anatomical conversion' script message, and
+            listing of directories afterwards.*
 
    The anatomical will have 'RPI' orientation. You could change that,
    or rename it to reflect what kind of anatomical it is (e.g., T1w or
@@ -249,10 +393,21 @@ prefixes, etc.) in order to simplerify life.
            -refset  ~/TEMPLATES/TT_N27+tlrc
 
      -> produces a single file called 'SUB01/ANATOM/anat_axi.nii' (NB:
-     default naming is not to add an appendix to the input, but right
-     now is just generically 'anat_axi.nii'); there's also a working
-     directory called 'SUB01/ANATOM/__WORK_prealign'; would be useful
-     to look at if the auto-axializing fails.
+     default naming is to output a file called 'anat_axi.nii',
+     independent of input name); there's also a working directory
+     called 'SUB01/ANATOM/__WORK_prealign'; would be useful to look at
+     if the auto-axializing fails.  There might be some warnings about
+     converting standard space to orig space, but that should be OK if
+     the inset is in 'orig' space.
+
+     .. list-table:: 
+        :header-rows: 1
+        :widths: 100
+
+        * - .. image:: media/Screenshot_from_2016-08-12_09:50:16.png
+               :width: 100%
+        * - *End of 'axializing' script message, and listing of
+            directories afterwards.*
 
    The alignment is done with 3dAllineate, and some options can be
    added to it from the command line; additionally, an option to
@@ -273,10 +428,10 @@ prefixes, etc.) in order to simplerify life.
    should probably *not* use the resulting imitation T2w volume for
    other applications, though.
    
-   * A single T1w volume (SUB01/ANATOM/T1_axi.nii)::
+   * A single T1w volume (SUB01/ANATOM/anat_axi.nii)::
 
        tcsh fat_pre_t2w_from_t1w.tcsh                   \
-           -inset  SUB01/ANATOM/T1_axi.nii
+           -inset  SUB01/ANATOM/anat_axi.nii
 
      -> produces three files in SUB01/ANATOM/ called out_t2w.nii (the
      main output of interest), out_t1w.nii (a somewhat
@@ -284,6 +439,15 @@ prefixes, etc.) in order to simplerify life.
      skull-stripped version of the preceding file).  There is a bit of
      dim skull + noise outside the brain the first two files; it seems
      to matter for TORTOISE that there isn't zero-noise.
+
+     .. list-table:: 
+        :header-rows: 1
+        :widths: 100
+
+        * - .. image:: media/Screenshot_from_2016-08-12_09:53:56.png
+               :width: 100%
+        * - *End of 'T1w inversion -> ~T2w' script message, and
+            listing of directories afterwards.*
 
    This processing depends on skull-stripping in order to isolate the
    brain for inverting.  Skull-stripping is *really* a hard thing to
@@ -309,20 +473,66 @@ prefixes, etc.) in order to simplerify life.
    you enter the volumes and volume ranges **to be kept**, using
    standard AFNI notation for brick selection.
 
-   * *Case A:* A single set of *N* DWIs acquired with a single phase
-     encode direction (in SUB01/FILT/AP.nii, along with correponding
-     '*.bvec' and '*.bval' files of matching length); assume you want
-     to remove the volumes with index 4, 5 and 8, leaving *M*\ =\
-     *N*\ -3 volumes/grads::
+   * *Case A:* A paired set of *N* DWIs acquired with opposite phase
+     encode directions (in SUB01/UNFILT_AP/AP.nii and
+     SUB01/UNFILT_PA/PA.nii, each having correponding '\*.bvec' and
+     '\*.bval' files of matching length in the respective directories);
+     assume you want to remove the volumes with index 4, 5 and 8,
+     leaving *M*\ =\ *N*\ -3 volumes/grads::
 
         tcsh fat_pre_filter_dwis.tcsh                      \
-            -indir_ap  SUB01/UNFILT/AP.nii                 \
+            -inset_ap  SUB01/UNFILT_AP/AP.nii              \
+            -inset_pa  SUB01/UNFILT_PA/PA.nii              \
+            -select    "[0..3,6,7,9..$]"
+
+     -> produces a pair of directories called 'SUB01/FILT_AP/' and
+     'SUB01/FILT_PA/', each of which contains three files: in the
+     first, AP.nii (*M* volumes), AP.bvec (3x\ *M* lines) and AP.bval
+     (1x\ *M* lines); and in the second, an analogously named set of
+     identical dimensions.
+       
+     .. list-table:: 
+        :header-rows: 1
+        :widths: 100
+
+        * - .. image:: media/Screenshot_from_2016-08-12_11:00:19.png
+               :width: 100%
+        * - *End of 'DWI filtering' script message, and listing of
+            directories afterwards.*
+        * - .. image:: media/Screenshot_from_2016-08-12_11:00:49.png
+               :width: 100%
+        * - *File listing within the filtered directories.*
+        * - .. image:: media/Screenshot_from_2016-08-12_11:01:50.png
+               :width: 100%
+        * - *Command line checking of difference in number of volumes.*
+        * - .. image:: media/Screenshot_from_2016-08-12_11:08:00.png
+               :width: 100%
+        * - *Command line checking of difference in number of entries
+            in text files, bvals (top pair) and bvecs (bottom pair).
+            Columns are: # of lines, # of total words or numbers, # of
+            characters.*
+
+   * *Case B (and C, from above):* A single set of *N* DWIs acquired
+     with a single phase encode direction (in SUB01/UNFILT_AP/AP.nii,
+     along with correponding '\*.bvec' and '\*.bval' files of matching
+     length); assume you want to remove the volumes with index 4, 5
+     and 8, leaving *M*\ =\ *N*\ -3 volumes/grads::
+
+        tcsh fat_pre_filter_dwis.tcsh                      \
+            -inset_ap  SUB01/UNFILT_AP/AP.nii              \
             -select    "[0..3,6,7,9..$]"
 
      -> produces a single directory called 'SUB01/FILT_AP/', which
      contains three files: AP.nii (*M* volumes), AP.bvec (3x\ *M*
-     lines) and AP.bval (1x\ *M* lines). Note that the '..$' in the
-     index selection represents 'to the last volume' in the data set.
+     lines) and AP.bval (1x\ *M* lines). 
+
+   Other output directory names and prefixes can be chosen. It's
+   important to note that TORTOISE will decide its own output
+   directory names based on the prefix of the NIFTI file, so you don't
+   want the paired phase encode files to have the same prefixes. In
+   terms of the volume selection index rules, the '..$' represents 'to
+   the last volume in the data set'; if this and other rules aren't
+   familiar, check the AFNI docs, such as the help of ``3dcalc``.
 
 |
      
@@ -331,3 +541,19 @@ Running TORTOISE
 
 At present, if you don't have an IDL license, TORTOISE can only be run
 through the GUI (i.e., 
+
+
+
+.. asdf
+
+     .. figure:: media/ROIS/ROI_neigh_img.png
+        :width: 80%
+        :align: center
+        :name: media/ROIS/ROI_neigh_img.png
+   
+        *Basic voxel terminology, and its use in defining three
+        standard, symmetric (nearest-)neighborhoods for an individual
+        voxel. The central voxel is darkened, with each type of
+        neighborhood colored in a 3D, high-tec, separated image.*
+        :ref:`(link)<media/ROIS/ROI_neigh_img.png>`
+
