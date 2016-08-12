@@ -120,7 +120,7 @@ So, on with the scripting show, then.
 Pre-preprocessing
 -----------------
 
-The purpose of this set of scripts is to: 
+The purposes of this set of scripts are to: 
 
     * convert DICOMs to NIFTIs;
 
@@ -312,8 +312,8 @@ prefixes, etc.) in order to simplerify life.
    * *Case A:* A single set of *N* DWIs acquired with a single phase
      encode direction (in SUB01/FILT/AP.nii, along with correponding
      '*.bvec' and '*.bval' files of matching length); assume you want
-     to remove the volumes with index 4, 5 and 8, leaving M = N-3
-     volumes/grads::
+     to remove the volumes with index 4, 5 and 8, leaving *M*\ =\
+     *N*\ -3 volumes/grads::
 
         tcsh fat_pre_filter_dwis.tcsh                      \
             -indir_ap  SUB01/UNFILT/AP.nii                 \
@@ -321,4 +321,13 @@ prefixes, etc.) in order to simplerify life.
 
      -> produces a single directory called 'SUB01/FILT_AP/', which
      contains three files: AP.nii (*M* volumes), AP.bvec (3x\ *M*
-     lines) and AP.bval (1x\ *M* lines).
+     lines) and AP.bval (1x\ *M* lines). Note that the '..$' in the
+     index selection represents 'to the last volume' in the data set.
+
+|
+     
+Running TORTOISE
+----------------
+
+At present, if you don't have an IDL license, TORTOISE can only be run
+through the GUI (i.e., 
