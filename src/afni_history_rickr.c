@@ -236,7 +236,7 @@ afni_history_struct rickr_history[] = {
    "Thanks to S Torrisi for bringing up the question."
  } ,
 
- { 28,  Apr, 2016, RCR, "@update.afni_binaries", MINOR, TYPE_NEW_OPT,
+ { 28,  Apr, 2016, RCR, "@update.afni.binaries", MINOR, TYPE_NEW_OPT,
    "add -local_package, to use an already downloaded package",
    "Requested by P Taylor."
  } ,
