@@ -64,13 +64,14 @@ it is publicly available from the NIH.  As noted on their `webpage
 there are two main tools in TORTOISE for corrective preprocessing of
 diffusion data:
 
-    "*DIFF_PREP* - software for image resampling, motion, eddy current
-    distortion, and EPI distortion correction using a structural image
-    as target, and for re-orientation of data to a common space.
+    * *DIFF_PREP* - software for image resampling, motion, eddy
+      current distortion, and EPI distortion correction using a
+      structural image as target, and for re-orientation of data to a
+      common space.
 
-    *DR-BUDDI* - software for EPI distortion correction using pairs of
-    diffusion data sets acquired with opposite phase encoding (blip-up
-    blip-down acquisitions)."
+    * *DR-BUDDI* - software for EPI distortion correction using pairs
+      of diffusion data sets acquired with opposite phase encoding
+      (blip-up blip-down acquisitions).
 
 By default, these functions use an anatomical reference for distortion
 correction/unwarping, and it is strongly recommended to have one when
@@ -127,7 +128,7 @@ The purpose of this set of scripts is to:
       according to the user's judgment (e.g., remove dropout volumes
       or those with heavy motion distortion);
 
-    * to filter volume, gradient and bvalue files of a given data set
+    * to filter volume, gradient and b-value files of a given data set
       simultaneously;
 
     * to process dual phase encoded DWI data sets (i.e., when AP-PA
@@ -213,7 +214,7 @@ prefixes, etc.) in order to simplerify life.
 
    * A single anatomical (in SUB01/01_dicom_dir_anat/)::
 
-        tcsh fat_pre_convert_anat.tcsh                   \
+        tcsh fat_pre_convert_anat.tcsh                  \
             -indir  SUB01/01_dicom_dir_anat
 
      -> produces a single directory called 'SUB01/ANATOM/', which
@@ -243,8 +244,8 @@ prefixes, etc.) in order to simplerify life.
    * A single anatomical volume (SUB01/ANATOM/anat.nii) and a
      similar-contrast anatomical reference (~/TEMPLATES/TT_N27+tlrc)::
 
-       tcsh fat_pre_axialize_anat.tcsh           \
-           -inset   SUB01/ANATOM/anat.nii        \
+       tcsh fat_pre_axialize_anat.tcsh                  \
+           -inset   SUB01/ANATOM/anat.nii               \
            -refset  ~/TEMPLATES/TT_N27+tlrc
 
      -> produces a single file called 'SUB01/ANATOM/anat_axi.nii' (NB:
@@ -260,3 +261,64 @@ prefixes, etc.) in order to simplerify life.
 
 #. **Make a T2w-like volume from a T1w one**
 
+   For TORTOISEing, one should have a T2w anatomical, which is used as
+   a reference volume to help unwarp things.  It has the useful
+   properties of (hopefully) being relatively undistorted and of
+   having similar contrast to the *b*\ =0 DWI volume.
+
+   In the event that you *didn't* acquire such volumes as part of a
+   study but that you *do* have T1w volumes, you can invert the
+   brightness of the latter to estimate the relative tissue contrast
+   of the former for use as a reference volume in TORTOISE.  You
+   should probably *not* use the resulting imitation T2w volume for
+   other applications, though.
+   
+   * A single T1w volume (SUB01/ANATOM/T1_axi.nii)::
+
+       tcsh fat_pre_t2w_from_t1w.tcsh                   \
+           -inset  SUB01/ANATOM/T1_axi.nii
+
+     -> produces three files in SUB01/ANATOM/ called out_t2w.nii (the
+     main output of interest), out_t1w.nii (a somewhat
+     processed/polished T1w volume) and out_t1w_ss.nii (a
+     skull-stripped version of the preceding file).  There is a bit of
+     dim skull + noise outside the brain the first two files; it seems
+     to matter for TORTOISE that there isn't zero-noise.
+
+   This processing depends on skull-stripping in order to isolate the
+   brain for inverting.  Skull-stripping is *really* a hard thing to
+   do consistently algorithmically, so it is possible to do that
+   separately and enter an isolated brain in as another option; see
+   the help file for more about this and other minorly fun things.
+
+   And always visually check to see that the output looks reasonable!
+
+#. **Filter out (bad) DWIs**
+
+   Say you have *N* DWIs in your data set; you will also have *N*
+   gradient vectors and *N* b-values.  If you remove any DWI volume
+   (e.g., perhaps it was corrupted by motion or had extreme dropout),
+   then you also want to remove the corresponding gradient and b-value
+   from their respective text files; and if you have AP-PA data, then
+   you want to remove the corresponding DWI/grad/b-value from the
+   opposite phase encoded set, so that every DWI has a partner.
+
+   Here, we'll suppose that you look at each AP and/or PA DWIs (you
+   can view the data in AFNI) and write down the indices of obviously
+   bad/corrupted volumes.  Remember, AFNI indices start at '0'.  Then
+   you enter the volumes and volume ranges **to be kept**, using
+   standard AFNI notation for brick selection.
+
+   * *Case A:* A single set of *N* DWIs acquired with a single phase
+     encode direction (in SUB01/FILT/AP.nii, along with correponding
+     '*.bvec' and '*.bval' files of matching length); assume you want
+     to remove the volumes with index 4, 5 and 8, leaving M = N-3
+     volumes/grads::
+
+        tcsh fat_pre_filter_dwis.tcsh                      \
+            -indir_ap  SUB01/UNFILT/AP.nii                 \
+            -select    "[0..3,6,7,9..$]"
+
+     -> produces a single directory called 'SUB01/FILT_AP/', which
+     contains three files: AP.nii (*M* volumes), AP.bvec (3x\ *M*
+     lines) and AP.bval (1x\ *M* lines).
