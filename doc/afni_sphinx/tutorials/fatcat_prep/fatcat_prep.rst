@@ -176,7 +176,7 @@ prefixes, etc.) in order to simplerify life.
      contains three files: AP.nii (*N* volumes), AP.bvec (3x\ *N*
      lines) and AP.bval (1x\ *N* lines).
 
-   * *Case B:* Multiple sets each with *N* DWIs with a single phase
+   * *Case B:* Multiple sets each with *Q* DWIs with a single phase
      encode direction (in SUB01/01_dicom_dir_AP/,
      SUB01/02_dicom_dir_AP/, SUB01/02_dicom_dir_AP/)::
 
@@ -184,8 +184,8 @@ prefixes, etc.) in order to simplerify life.
             -indir_ap  SUB01/0*_dicom_dir_AP
 
      -> produces a single directory called 'SUB01/UNFILT_AP/', which
-     contains three files: AP.nii (3\ *N* volumes), AP.bvec (3x3\ *N*
-     lines) and AP.bval (1x3\ *N* lines).
+     contains three files: AP.nii (*N*\=3\ *Q* volumes), AP.bvec (3x\ *N*
+     lines) and AP.bval (1x\ *N* lines).
 
    * *Case C:* A paired set of *N* DWIs with opposite phase encode
      directions (in SUB01/01_dicom_dir_AP/ and
@@ -249,10 +249,12 @@ prefixes, etc.) in order to simplerify life.
            -refset  ~/TEMPLATES/TT_N27+tlrc
 
      -> produces a single file called 'SUB01/ANATOM/anat_axi.nii' (NB:
-     default naming is not to add an appendix to the input, but right
-     now is just generically 'anat_axi.nii'); there's also a working
-     directory called 'SUB01/ANATOM/__WORK_prealign'; would be useful
-     to look at if the auto-axializing fails.
+     default naming is to output a file called 'anat_axi.nii',
+     independent of input name); there's also a working directory
+     called 'SUB01/ANATOM/__WORK_prealign'; would be useful to look at
+     if the auto-axializing fails.  There might be some warnings about
+     converting standard space to orig space, but that should be OK if
+     the inset is in 'orig' space.
 
    The alignment is done with 3dAllineate, and some options can be
    added to it from the command line; additionally, an option to
@@ -273,10 +275,10 @@ prefixes, etc.) in order to simplerify life.
    should probably *not* use the resulting imitation T2w volume for
    other applications, though.
    
-   * A single T1w volume (SUB01/ANATOM/T1_axi.nii)::
+   * A single T1w volume (SUB01/ANATOM/anat_axi.nii)::
 
        tcsh fat_pre_t2w_from_t1w.tcsh                   \
-           -inset  SUB01/ANATOM/T1_axi.nii
+           -inset  SUB01/ANATOM/anat_axi.nii
 
      -> produces three files in SUB01/ANATOM/ called out_t2w.nii (the
      main output of interest), out_t1w.nii (a somewhat
@@ -309,14 +311,14 @@ prefixes, etc.) in order to simplerify life.
    you enter the volumes and volume ranges **to be kept**, using
    standard AFNI notation for brick selection.
 
-   * *Case A:* A single set of *N* DWIs acquired with a single phase
-     encode direction (in SUB01/FILT/AP.nii, along with correponding
-     '*.bvec' and '*.bval' files of matching length); assume you want
-     to remove the volumes with index 4, 5 and 8, leaving *M*\ =\
-     *N*\ -3 volumes/grads::
+   * *Case A (and B, from above):* A single set of *N* DWIs acquired
+     with a single phase encode direction (in SUB01/UNFILT_AP/AP.nii,
+     along with correponding '\*.bvec' and '\*.bval' files of matching
+     length); assume you want to remove the volumes with index 4, 5
+     and 8, leaving *M*\ =\ *N*\ -3 volumes/grads::
 
         tcsh fat_pre_filter_dwis.tcsh                      \
-            -indir_ap  SUB01/UNFILT/AP.nii                 \
+            -indir_ap  SUB01/UNFILT_AP/AP.nii              \
             -select    "[0..3,6,7,9..$]"
 
      -> produces a single directory called 'SUB01/FILT_AP/', which
@@ -324,6 +326,23 @@ prefixes, etc.) in order to simplerify life.
      lines) and AP.bval (1x\ *M* lines). Note that the '..$' in the
      index selection represents 'to the last volume' in the data set.
 
+   * *Case C:* A paired set of *N* DWIs acquired with opposite phase
+     encode directions (in SUB01/UNFILT_AP/AP.nii and
+     SUB01/UNFILT_PA/PA.nii, each having correponding '\*.bvec' and
+     '\*.bval' files of matching length in the respective directories);
+     assume you want to remove the volumes with index 4, 5 and 8,
+     leaving *M*\ =\ *N*\ -3 volumes/grads::
+
+        tcsh fat_pre_filter_dwis.tcsh                      \
+            -indir_ap  SUB01/UNFILT_AP/AP.nii              \
+            -indir_pa  SUB01/UNFILTPA/PA.nii               \
+            -select    "[0..3,6,7,9..$]"
+
+     -> produces a pair of directories called 'SUB01/FILT_AP/' and
+     'SUB01/FILT_PA/', which contains three files: in the first,
+     AP.nii (*M* volumes), AP.bvec (3x\ *M* lines) and AP.bval (1x\
+     *M* lines); and in the second, an analogously named set. 
+       
 |
      
 Running TORTOISE
