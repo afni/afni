@@ -401,7 +401,8 @@ often used in order to simplerify life.
    is essentially an automated version of AC-PC alignment.
 
    * A single anatomical volume (SUB01/ANATOM/anat.nii) and a
-     similar-contrast anatomical reference (~/TEMPLATES/TT_N27+tlrc)::
+     similar-contrast anatomical reference (e.g.,
+     ~/TEMPLATES/TT_N27+tlrc, or wherever stored on your computer)::
 
        fat_pre_axialize_anat.tcsh                       \
            -inset   SUB01/ANATOM/anat.nii               \
