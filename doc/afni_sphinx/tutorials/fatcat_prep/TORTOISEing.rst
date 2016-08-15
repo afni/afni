@@ -41,23 +41,38 @@ phases (AP-PA). The instructions can also be applied for when just a
 single DWI data set (i.e., only one phase encoding direction-- either
 AP or PA, or anything else for that matter) is obtained. In either
 case a reference anatomical volume (either a real T2w volume, or an
-imitation one as estimated above) should also be included.
+imitation one as described :ref:`here <IRCT_invert>`) should also be
+included.
 
 **OUTPUT** from TORTOISE: again, there is flexibility here.  Default
-for us will be to export a single 4D data set of DWIs (DWI.nii) and
-their DWI gradient/*b*\-value information (BMTXT_AFNI.txt).  This is
-the case even if we put in AP-PA data, or just a single phase encoded
-set. The *b*\-value information is output as a *b*\-matrix text file,
-and this includes information of any rotations made to volumes during
-processing.
+for us will be to export a single 4D data set of *N* DWIs (DWI.nii)
+and their *N* DWI gradient/*b*\-value information (BMTXT_AFNI.txt).
+This is the case even if we put in AP-PA data, or just a single phase
+encoded set. The *b*\-value information is output as a *b*\-matrix
+text file, and this includes information of any rotations made to
+volumes during processing.
 
 .. warning:: We note that versions of TORTOISE **before** v2.5.2
-             contained a slightly different format of *b*\-matrix that
-             wasn't
+             (="old," here) contained a slightly different output
+             formats from DIFF_CALC.
+
+             1) The old *b*\-matrix that wasn't in the full AFNI
+                format (though it could be converted to one fairly
+                easily).  Those were called "BMTXT.txt", and you can
+                read more about them `here
+                <https://afni.nimh.nih.gov/afni/community/board/read.php?1,151518,151518#msg-151518>`_
+                on the AFNI MB, particularly how to deal with the old
+                format efficiently.
+
+             2) The old DWI.nii file automatically had the b=0 volumes
+                averaged together, and the resulting average was
+                placed at the [0]th brick of the output
+                file. Nowadays, this is not done (but it is
+                straightforward to mimic the old behavior, as will be
+                shown in :ref:`postTORTOISEing`).
 
 
 
-asdf
    
 
 

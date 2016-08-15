@@ -19,7 +19,7 @@ echo "Backup directory called: $backup_dir"
 
 ### Make preliminary stuff from helpfiles: will open both AFNI and SUMA
 ### this way
-@gen_all -phelp -suma -afni
+#@gen_all -phelp -suma -afni
 
 ### Build Sphinx.
 make html
@@ -28,7 +28,7 @@ make html
 #mv  /mnt/afni/var/www/html/pub/dist/doc/htmldoc     \
 #    /mnt/afni/var/www/html/pub/dist/doc/$backup_dir
 
-exit
+
 
 ### new documentation ----> slow to RSYNC!
 rsync -av --delete _build/html/                              \
