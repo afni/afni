@@ -5,6 +5,7 @@
 #endif
 
 /*---------------------------------------------------------------------------*/
+/* Cluster definition.  Index type ind_t can be byte or short. */
 
 #define USE_UBYTE
 
@@ -14,23 +15,27 @@
 # define DALL    256
 # define MAX_IND 255u
 
-  typedef ind_t unsigned char ;
+  typedef unsigned char ind_t ;
 
 #else   /*==== for grids <= 32767 ====*/
 
 # define DALL    1024
 # define MAX_IND 32767u
 
-  typedef ind_t unsigned short ;
+  typedef unsigned short ind_t ;
 
 #endif
 /*====================================*/
 
+/*----- struct to hold a single cluster of points -----*/
+
 typedef struct {
-  int npt , nall , ngood ;
-  float fom ;
-  ind_t *ip , *jp , *kp ;
-  int   *ijk ;
+  int npt ,                 /* number of points assigned */
+      nall ,                /* number of points allocated */
+      ngood ;               /* number of good points left */
+  float fom ;               /* Figure Of Merit for cluster */
+  ind_t *ip , *jp , *kp ;   /* 3D indexes for each point */
+  int   *ijk ;              /* 1D index for each point */
 } Xcluster ;
 
 /*---------------------------------------------------------------------------*/
@@ -42,12 +47,18 @@ static THD_3dim_dataset  *mask_dset  = NULL ; /* mask dataset */
 static byte              *mask_vol   = NULL;  /* mask volume */
 static int mask_nvox = 0, mask_ngood = 0;     /* number of good voxels in mask volume */
 
-static ind_t *ipmask=NULL , *jpmask=NULL , *kpmask=NULL ;
 #define INMASK(ijk) (mask_vol==NULL || mask_vol[ijk]!=0)
+
+/* 3D indexes for each point in the mask */
+
+static ind_t *ipmask=NULL , *jpmask=NULL , *kpmask=NULL ;
+static int   *ijkmask=NULL ;
+
+/* map from 1D index in volume to points in the mask */
 
 static int *ijk_to_vec=NULL ;
 
-static int   nx ;
+static int   nx ;     /* 3D grid stuff */
 static int   ny ;
 static int   nz ;
 static int   nxy ;
@@ -56,7 +67,7 @@ static int   nxyz1 ;
 static float dx ;
 static float dy ;
 static float dz ;
-static int   niter ;
+static int   niter ;  /* number of iterations */
 
 #define PMAX 0.5
 
@@ -73,9 +84,9 @@ static int    nathr = 5 ;
 static double *athr = NULL ;
 
 static int verb = 1 ;
-static int nthr = 1 ;
+static int nthr = 1 ;  /* default number of threads */
 
-#undef DECLARE_ithr   /* 30 Nov 2015 */
+#undef DECLARE_ithr
 #ifdef USE_OMP
 # define DECLARE_ithr const int ithr=omp_get_thread_num()
 #else
@@ -84,9 +95,9 @@ static int nthr = 1 ;
 
 static int minmask = 128 ;   /* 29 Mar 2011 */
 
-static char *prefix = NULL ;
+static char *prefix = "Xsim.nii" ;
 
-static THD_3dim_dataset **inset = NULL ; /* 02 Feb 2016 */
+static THD_3dim_dataset **inset = NULL ; /* input datasets */
 static int           num_inset  = 0 ;
 static int          *nval_inset = NULL ;
 
@@ -228,6 +239,8 @@ ENTRY("get_options") ;
 
 #define INSET_PRELOAD
 
+  if( num_inset <= 0 ) ERROR_exit("-inset option is mandatory :(") ;
+
   if( num_inset > 0 ){      /* 02 Feb 2016 */
     int qq,nbad=0 ;
     nx = DSET_NX(inset[0]) ;
@@ -272,10 +285,12 @@ ENTRY("get_options") ;
     ipmask = (ind_t *)malloc(sizeof(ind_t)*mask_ngood) ;
     jpmask = (ind_t *)malloc(sizeof(ind_t)*mask_ngood) ;
     kpmask = (ind_t *)malloc(sizeof(ind_t)*mask_ngood) ;
+    ijkmask= (int *  )malloc(sizeof(int)  *mask_ngood) ;
     for( pp=qq=0 ; qq < nxyz ; qq++ ){
       if( INMASK(qq) ){
         IJK_TO_THREE(qq,xx,yy,zz,nx,nxy) ;
         ipmask[pp] = (ind_t)xx; jpmask[pp] = (ind_t)yy; kpmask[pp] = (ind_t)zz;
+        ijkmask[pp] = xx+yy*nx+zz*nxy ;
         pp++ ;
       }
     }
@@ -297,7 +312,7 @@ ENTRY("get_options") ;
 }
 
 /*---------------------------------------------------------------------------*/
-/* Create the "functional" image, from the inset dataset [02 Feb 2016] */
+/* Create the "functional" image, from the inset datasets */
 
 void generate_fim_inset( float *fim , int ival )
 {
@@ -315,14 +330,18 @@ void generate_fim_inset( float *fim , int ival )
      } else {
        bar = DSET_ARRAY(inset[qq],qval) ;
        if( bar == NULL ){
-         ININFO_message("loading -inset '%s' with %d volumes",DSET_HEADNAME(inset[qq]),DSET_NVALS(inset[qq])) ;
-         DSET_load(inset[qq]) ; bar = DSET_ARRAY(inset[qq],qval) ;
+#pragma omp critical
+         { ININFO_message("loading -inset '%s' with %d volumes",
+                           DSET_HEADNAME(inset[qq]),DSET_NVALS(inset[qq])) ;
+           DSET_load(inset[qq]) ;
+         }
+         bar = DSET_ARRAY(inset[qq],qval) ;
        }
      }
      if( bar != NULL ){
        for( ii=0 ; ii < nxyz ; ii++ ) fim[ii] = bar[ii] ;   /* copy data */
        DSET_unload_one(inset[qq],qval) ;
-     } else {
+     } else {                                       /* should not happen */
        ERROR_message("inset[%d] == NULL :-(",ival) ;
        memset( fim , 0 , sizeof(float)*nxyz ) ;
      }
@@ -332,13 +351,13 @@ void generate_fim_inset( float *fim , int ival )
 /*---------------------------------------------------------------------------*/
 /* Generate random smoothed masked image, with stdev=1. */
 
-void generate_image( float *fim , float *pfim , unsigned short xran[] , int iter )
+void generate_image( float *fim , int iter )
 {
   register int ii ; register float sum ;
 
-  /* Outsource the creation of the smoothed random field [12 May 2015] */
+  /* Outsource the creation of the random field */
 
-  generate_fim_inset( fim , iter-1 ) ;
+  generate_fim_inset( fim , iter ) ;
 
   if( mask_vol != NULL ){
     for( ii=0 ; ii < nxyz ; ii++ ) if( !mask_vol[ii] ) fim[ii] = 0.0f ;
@@ -364,6 +383,7 @@ void generate_image( float *fim , float *pfim , unsigned short xran[] , int iter
  } while(0)
 
 /*----------------------------------------------------------------------------*/
+/* Create a cluster with initial array allocation of siz */
 
 #define CREATE_Xcluster(xc,siz)                                        \
  do{ xc = (Xcluster *)malloc(sizeof(Xcluster)) ;                       \
@@ -372,10 +392,11 @@ void generate_image( float *fim , float *pfim , unsigned short xran[] , int iter
      xc->ip  = (ind_t *)malloc(sizeof(ind_t)*(siz)) ;                  \
      xc->jp  = (ind_t *)malloc(sizeof(ind_t)*(siz)) ;                  \
      xc->kp  = (ind_t *)malloc(sizeof(ind_t)*(siz)) ;                  \
-     xc->ijk = (ind_t *)malloc(sizeof(int)  *(siz)) ;                  \
+     xc->ijk = (int *)  malloc(sizeof(int)  *(siz)) ;                  \
  } while(0)
 
 /*----------------------------------------------------------------------------*/
+/* Copy one cluster's data over another's */
 
 void copyover_Xcluster( Xcluster *xcin , Xcluster *xcout )
 {
@@ -402,6 +423,7 @@ void copyover_Xcluster( Xcluster *xcin , Xcluster *xcout )
 }
 
 /*----------------------------------------------------------------------------*/
+/* Create a new cluster that is a copy of the input */
 
 Xcluster * copy_Xcluster( Xcluster *xcc )
 {
@@ -414,10 +436,12 @@ Xcluster * copy_Xcluster( Xcluster *xcc )
 }
 
 /*----------------------------------------------------------------------------*/
+/* Temporary clusters, one for each thread -- allocated in main() */
 
 static Xcluster **Xctemp_g = NULL ;
 
 /*----------------------------------------------------------------------------*/
+/* Add a point to a cluster (if fim is nonzero at this point) */
 
 #define XPUT_point(i,j,k)                                              \
  do{ int pqr = (i)+(j)*nx+(k)*nxy , npt=xcc->npt ;                     \
@@ -437,6 +461,7 @@ static Xcluster **Xctemp_g = NULL ;
      } } while(0)
 
 /*----------------------------------------------------------------------------*/
+/* Find clusters (NN1 mode), keep the one with the biggest FOM. */
 
 Xcluster * find_fomest_Xcluster_NN1( float *fim , int ithr )
 {
@@ -456,11 +481,11 @@ Xcluster * find_fomest_Xcluster_NN1( float *fim , int ithr )
      if( ijk == nxyz ) break ;  /* didn't find any! */
      ijk_last = ijk+1 ;         /* start here next time */
 
-     /* build a new cluster starting with this 1 point */
-
      IJK_TO_THREE(ijk, ii,jj,kk , nx,nxy) ;  /* 3D coords of this point */
 
-     xcc->ip[0] = ii ; xcc->jp[0] = jj ; xcc->kp[0] = kk ;
+     /* build a new cluster starting with this 1 point */
+
+     xcc->ip[0] = ii; xcc->jp[0] = jj; xcc->kp[0] = kk; xcc->ijk[0] = ijk;
      xcc->npt   = xcc->ngood = 1 ;
      xcc->fom   = ADDTO_FOM(fim[ijk]) ; fim[ijk] = 0.0f ;
 
@@ -484,19 +509,36 @@ Xcluster * find_fomest_Xcluster_NN1( float *fim , int ithr )
      /* is this the fom-iest cluster yet? if so, save it */
 
      if( xcc->fom > fom_max ){
-       if( xccout == NULL ) xccout = copy_Xcluster(xcc) ;
-       else                 copyover_Xcluster(xcc,xccout) ;
-       fom_max = xcc->fom ; /* the bar has been raised */
+       if( xccout == NULL ) xccout = copy_Xcluster(xcc) ;    /* a new copy */
+       else                 copyover_Xcluster(xcc,xccout) ;  /* over-write */
+       fom_max = xcc->fom ;                 /* the FOM bar has been raised */
      }
    } /* loop until all nonzero points in fim[] have been used up */
 
-   return xccout ;
+   return xccout ;  /* could be NULL, if fim is all zeros */
 }
 
 /*---------------------------------------------------------------------------*/
-/* Collect clusters */
+/* Global cluster collection:
+     Xclust_g[ipthr][iter] = cluster at iteration iter and threshold ipthr
+   The basic array is created in main().
+*//*-------------------------------------------------------------------------*/
 
 static Xcluster ***Xclust_g ;
+
+/*---------------------------------------------------------------------------*/
+/* Macro to delete a cluster when it is marked as having no good points left */
+
+#define CLEANUP_Xclust_g(ip,it)                                        \
+ do{ if( Xclust_g[ip][it] != NULL && Xclust_g[ip][it]->ngood == 0 ){   \
+       DESTROY_Xcluster(Xclust_g[ip][it]) ; Xclust_g[ip][it] = NULL ;  \
+ } } while(0)
+
+/*---------------------------------------------------------------------------*/
+/* Get a NN1_1sided cluster at a particular threshold (ipthr),
+   in a particular thread (ithr), at a particular iteration (iter),
+   and save it into the global cluster collection Xclust_g.
+*//*-------------------------------------------------------------------------*/
 
 void gather_clusters_NN1_1sid( int ipthr, float *fim, float *tfim, int ithr,int iter )
 {
@@ -506,7 +548,7 @@ void gather_clusters_NN1_1sid( int ipthr, float *fim, float *tfim, int ithr,int 
   for( ii=0 ; ii < nxyz ; ii++ )
     tfim[ii] = (fim[ii] > thr) ? fim[ii] : 0.0f ;
 
-  xcc = find_fomest_cluster_NN1(tfim,ithr) ;
+  xcc = find_fomest_Xcluster_NN1(tfim,ithr) ;
 
   Xclust_g[ipthr][iter] = xcc ;
 
@@ -514,6 +556,9 @@ void gather_clusters_NN1_1sid( int ipthr, float *fim, float *tfim, int ithr,int 
 }
 
 /*---------------------------------------------------------------------------*/
+/* Vector struct.
+   One for each point in the mask, to hold the FOM values found at that point.
+*//*-------------------------------------------------------------------------*/
 
 typedef struct {
   ind_t ip,jp,kp ; int ijk ;
@@ -530,36 +575,45 @@ typedef struct {
 #define DESTROY_Xvector(xv)                            \
  do{ free(xv->far); free(xv); } while(0)
 
-#define ADDTO_Xvector(xv,val)                                 \
- do{ if( xv->npt == xv->nall ){                               \
-       xv->nall += DALL ;                                     \
-       xv->far   = (float *)realloc(sizeof(float)*xv->nall) ; \
-     }                                                        \
-     xv->far[xv->npt++] = (val) ;                             \
+#define ADDTO_Xvector(xv,val)                                         \
+ do{ if( xv->npt == xv->nall ){                                       \
+       xv->nall += DALL ;                                             \
+       xv->far   = (float *)realloc(xv->far,sizeof(float)*xv->nall) ; \
+     }                                                                \
+     xv->far[xv->npt++] = (val) ;                                     \
  } while(0)
+
+/* global FOM vector array -- created in main() */
 
 static Xvector **fomvec = NULL ;
 
 /*---------------------------------------------------------------------------*/
+/* Process the clusters to FOM vectors for a range of 3D indexes,
+   for a given p-value threshold index ipthr.
+     This function is intended to be use in multiple threads, operating
+     over differing ijkbot..ijktop blocks; thus the 'atomic' pragma, to
+     make sure there is no thread conflict when altering the 'ngood' count
+     inside an Xcluster.
+*//*-------------------------------------------------------------------------*/
 
 void process_clusters_to_Xvectors( int ijkbot, int ijktop , int ipthr )
 {
    Xcluster **xcar = Xclust_g[ipthr] ;
-   XCluster *xc ;
+   Xcluster *xc ;
    int cc , pp,npt , ijk,vin ;
 
-   for( cc=0 ; cc < niter ; cc++ ){
+   for( cc=0 ; cc < niter ; cc++ ){                    /* loop over clusters */
      xc = xcar[cc] ; if( xc == NULL || xc->ngood == 0 ) continue ;
      npt = xc->npt ;
-     for( pp=0 ; pp < npt ; pp++ ){
+     for( pp=0 ; pp < npt ; pp++ ){          /* loop over pts inside cluster */
        ijk = xc->ijk[pp] ;
-       if( ijk >= ijkbot && ijk <= ijktop ){
-         vin = ijk_to_vec[ijk] ;
+       if( ijk >= ijkbot && ijk <= ijktop ){  /* is point inside our region? */
+         vin = ijk_to_vec[ijk] ;                           /* find its index */
          if( vin >= 0 ){
-           ADDTO_Xvector(fomvec[vin],xc->fom) ;
-           xc->ijk[pp] = -1 ;
+           ADDTO_Xvector(fomvec[vin],xc->fom) ; /* add to vector of FOM vals */
+           xc->ijk[pp] = -1 ;         /* for this pt, and mark pt as used up */
 #pragma omp atomic
-           xc->ngood-- ;
+           xc->ngood-- ;              /* reduce count of good pts in cluster */
          }
        }
      }
@@ -572,39 +626,150 @@ void process_clusters_to_Xvectors( int ijkbot, int ijktop , int ipthr )
 
 int main( int argc , char *argv[] )
 {
-   int ipthr , ii,xx,yy,zz ;
+   int qpthr , ii,xx,yy,zz,ijk ;
+   THD_3dim_dataset *qset=NULL ;
+   short *qar=NULL ;
+   char qpr[32] ;
 
-   /* code to initialize the cluster arrays */
+   if( argc < 2 || strcasecmp(argv[1],"-help") == 0 ){
+     printf("\n"
+       "God only knows what this program does, and only somewhat.\n") ;
+     exit(0) ;
+   }
 
-   Xclust_g = (Xcluster ***)malloc(sizeof(XCluster **)*npthr) ;
-   for( ipthr=0 ; ipthr < npthr ; ipthr++ )
-     Xclust_g[ipthr] = (XCluster **)malloc(sizeof(XCluster *)*niter) ;
+   get_options(argc,argv) ;
 
-   /* initialize the FOM vector arrays */
+   /*----- get the number of threads -----*/
 
+ AFNI_OMP_START;
+#pragma omp parallel
+ {
+#pragma omp master
+  {
+#ifdef USE_OMP
+   nthr = omp_get_num_threads() ;
+#else
+   nthr = 1 ;
+#endif
+  }
+ }
+ AFNI_OMP_END ;
+   if( nthr > 1 )
+     INFO_message("3dClustSimX: Using %d OpenMP threads") ;
+   else
+     INFO_message("3dClustSimX: Using 1 thread -- this will be slow!") ;
+
+   /*--- code to initialize the cluster arrays ---*/
+
+INFO_message("initialize Xclust_g") ;
+   Xclust_g = (Xcluster ***)malloc(sizeof(Xcluster **)*npthr) ;
+   for( qpthr=0 ; qpthr < npthr ; qpthr++ )
+     Xclust_g[qpthr] = (Xcluster **)malloc(sizeof(Xcluster *)*niter) ;
+
+   /*--- thread specific temporary clusters ---*/
+
+INFO_message("initialize Xctemp_g") ;
+   Xctemp_g = (Xcluster ** )malloc(sizeof(Xcluster * )*nthr) ;
+
+   /*--- loop over realizations to load up Xclust_g[][] ---*/
+
+ AFNI_OMP_START ;
+#pragma omp parallel
+ { DECLARE_ithr ;
+   int iter , ipthr ;
+   float *fim , *tfim ;
+
+   /* code to initialize thread-specific stuff */
+
+if( ithr == 0 ) INFO_message("create Xctemp_g[0]") ;
+   CREATE_Xcluster(Xctemp_g[ithr],DALL) ;
+if( ithr == 0 ) INFO_message("create fim & tfim [%d]",nxyz) ;
+   fim  = (float *)malloc(sizeof(float)*nxyz) ;
+   tfim = (float *)malloc(sizeof(float)*nxyz) ;
+
+#pragma omp for
+   for( iter=0; iter < niter ; iter++ ){
+if( ithr == 0 ) INFO_message("generate_image(%d)",iter) ;
+     generate_image( fim , iter ) ;
+     for( ipthr=0 ; ipthr < npthr ; ipthr++ ){
+if( ithr == 0 ) ININFO_message(" clusters %d",ipthr) ;
+       gather_clusters_NN1_1sid( ipthr , fim , tfim , ithr , iter ) ;
+     }
+   }
+
+#if 0
+   free(fim) ; free(tfim) ; DESTROY_Xcluster(Xctemp_g[ithr]) ;
+#endif
+ }
+ AFNI_OMP_END ;
+
+#if 0
+ free(Xctemp_g) ;
+#endif
+
+   /*--- initialize the FOM vector array for each voxel ---*/
+
+INFO_message("Inititalize fomvec") ;
    fomvec = (Xvector **)malloc(sizeof(Xvector *)*mask_ngood) ;
    for( ii=0 ; ii < mask_ngood ; ii++ ){
      CREATE_Xvector(fomvec[ii],100) ;
-     fomvec[ii]->ip  = ipmask[ii] ; xx = (int)ipmask[ii] ;
-     fomvec[ii]->jp  = jpmask[ii] ; yy = (int)jpmask[ii] ;
-     fomvec[ii]->kp  = kpmask[ii] ; zz = (int)kpmask[ii] ;
-     fomvec[ii]->ijk = xx+yy*nx+zz*nxy ;
+     fomvec[ii]->ip  = ipmask[ii] ;
+     fomvec[ii]->jp  = jpmask[ii] ;
+     fomvec[ii]->kp  = kpmask[ii] ;
+     fomvec[ii]->ijk = ijkmask[ii] ;
    }
 
-AFNI_OMP_START ;
-#pragma omp parallel
-{
+   /*--- create FOM vectors for each p-threshold ---*/
 
-   /* code to initialize Xctemp_g */
-#pragma omp_master
- { Xctemp_g = (Xcluster ** )malloc(sizeof(Xcluster * )*nthr) ; }
-#pragma barrier
-   CREATE_Xcluster(Xctemp_g[ithr],DALL) ;
+   for( qpthr=0 ; qpthr < npthr ; qpthr++ ){
 
-}
-AFNI_OMP_END ;
+INFO_message("qpthr = %d",qpthr) ;
 
+ AFNI_OMP_START ;
+# pragma omp parallel
+   { DECLARE_ithr ;
+     int dijk , ijkbot,ijktop , iter ;
 
+                         dijk = nxyz / nthr ;
+     if( dijk > nxy )    dijk = nxy ;
+     if( dijk > 131072 ) dijk = 131072 ;
 
+#pragma omp for
+     for( ijkbot=0 ; ijkbot < nxyz ; ijkbot+=dijk ){
+       ijktop = ijkbot + (dijk-1) ;
+if( ithr == 0 ) INFO_message("ijkbot = %d ijktop = %d",ijkbot,ijktop) ;
+       process_clusters_to_Xvectors( ijkbot, ijktop , qpthr ) ;
+     }
+
+#if 0
+#pragma omp for
+     for( iter=0 ; iter < niter ; iter++ ){
+       DESTROY_Xcluster(Xclust_g[qpthr][iter]) ;
+     }
+#endif
+
+   }
+ AFNI_OMP_END ;
+
+     qset = EDIT_empty_copy(inset[0]) ;
+     sprintf(qpr,".%d",qpthr) ;
+     EDIT_dset_items( qset ,
+                        ADN_prefix , modify_afni_prefix(prefix,NULL,qpr) ,
+                        ADN_nvals  , 1 ,
+                      ADN_none ) ;
+     EDIT_substitute_brick( qset , 0 , MRI_short , NULL ) ;
+     qar = DSET_ARRAY(qset,0) ;
+     for( ii=0 ; ii < mask_ngood ; ii++ ){
+       ijk = ijkmask[ii] ;
+       qar[ijk] = (short)fomvec[ii]->npt ;
+       fomvec[ii]->npt = 0 ;
+     }
+
+     DSET_write(qset); WROTE_DSET(qset);
+     DSET_delete(qset); qset = NULL; qar = NULL;
+
+   } /* end of loop over qpthr */
+
+   exit(0) ;
 
 }
