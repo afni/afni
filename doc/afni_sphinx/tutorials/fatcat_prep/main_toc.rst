@@ -2,10 +2,9 @@
 
 .. _FATCAT_prep:
 
+=======================================
 **FATCAT: DWI Pre- and Postprocessing**
 =======================================
-
-
 
 .. toctree::
    :maxdepth: 2
@@ -14,3 +13,4 @@
    Prepreprocessing
    TORTOISEing
    Postprocessing
+
