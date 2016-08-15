@@ -5258,10 +5258,11 @@ def blur_est_loop_str(proc, dname, mname, label, outfile, trs_cen=0):
       '# restrict to uncensored TRs, per run\n'                 \
       'foreach run ( $runs )\n'                                 \
       '%s'                                                      \
-      '    3dFWHMx -ACF -detrend -mask %s \\\n'                 \
-      '        %s%s >> %s\n'                                    \
+      '    3dFWHMx -detrend -mask %s \\\n'                      \
+      '            -ACF out.3dFWHMx.ACF.%s.r$run.1D \\\n'       \
+      '            %s%s >> %s\n'                                \
       'end\n\n'                                                 \
-      % (tstr1, mask, inset, tstr2, tmpfile)
+      % (tstr1, mask, label, inset, tstr2, tmpfile)
 
     btypes = ['FWHM', 'ACF']
     for bind, btype in enumerate(btypes):
