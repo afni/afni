@@ -5205,7 +5205,7 @@ def make_clustsim_commands(proc, block, blur_file, mask_dset, statsets):
 
     cprefix = 'ClustSim'        # prefix for 3dClustSim files
     cstr = '# add 3dClustSim results as attributes to any stats dset\n' \
-           'set fxyz = ( `grep FWHM | tail -1 %s` )\n'                  \
+           'set fxyz = ( `grep FWHM %s | tail -n 1` )\n'                \
            '3dClustSim -both -mask %s -fwhmxyz $fxyz[1-3] \\\n'         \
            '%s'                                                         \
            '           -prefix %s\n'                                    \
