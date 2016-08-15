@@ -530,9 +530,10 @@ g_history = """
         - allow for single volume EPI input (e.g. to test blip correction)
         - auto -blip_forward_dset should come from tcat output
           (obliquity test still be from existing -dsets, if appropriate)
+    4.74 Aug 15, 2016: ACF preparation - run 3dFWHMx with -ACF
 """
 
-g_version = "version 4.72, June 30, 2016"
+g_version = "version 4.74, August 15, 2016"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \
