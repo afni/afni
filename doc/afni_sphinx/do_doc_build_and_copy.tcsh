@@ -34,7 +34,13 @@ make html
 rsync -av --delete _build/html/                              \
     /mnt/afni/var/www/html/pub/dist/doc/htmldoc
 
+
+
+
 exit
+
+
+
 ### make a tarball for the new documentation?  Is this really so much
 ### faster than rsync?
 echo "++ Make tarball of directory"
