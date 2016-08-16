@@ -49,6 +49,19 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 16,  Aug, 2016, RCR, "gen_ss_review_scripts.py", MINOR, TYPE_ENHANCE,
+   "look for new ACF/FWHM blur estimates",
+   NULL
+ } ,
+
+ { 15,  Aug, 2016, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,
+   "default clustsim method is now ACF",
+   "o run 3dFWHMx with -ACF\n"
+   "o ACF and ClustSim files go into sub-directories, files_ACF/ClustSim\n"
+   "o -regress_run_clustsim now prefers arguments, ACF, FWHM, both, no\n"
+   "o default clustsim method is now ACF (including -regress_run_clustsim yes)"
+ } ,
+
  {  10,  Aug, 2016, RCR, "afni-general", MICRO, TYPE_MODIFY,
    "in Makefile.INCLUDE, have afni depend first on libmri.a",
    NULL
