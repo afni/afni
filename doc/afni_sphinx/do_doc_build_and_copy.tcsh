@@ -28,6 +28,8 @@ make html
 #mv  /mnt/afni/var/www/html/pub/dist/doc/htmldoc     \
 #    /mnt/afni/var/www/html/pub/dist/doc/$backup_dir
 
+
+
 ### new documentation ----> slow to RSYNC!
 rsync -av --delete _build/html/                              \
     /mnt/afni/var/www/html/pub/dist/doc/htmldoc

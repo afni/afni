@@ -1,4 +1,4 @@
-#!/bin/env python
+#!/usr/bin/env python
 
 import time, sys, os
 from   optparse  import  OptionParser
@@ -25,7 +25,7 @@ The inputs will be:
      the opposing polarity.  These will be denoted as REVERSE polarity.
 
 Example usage:
-     unWarpEPI.py -f run1+orig'[0..5]' -r blip_down+orig -d 'run1, run2' \
+     unWarpEPI.py -f run1+orig'[0..5]' -r blip_down+orig -d 'run1,run2' \
        -a anat+orig -s unwarp_folder
 
 
@@ -50,7 +50,7 @@ Daniel Glen, Vinai Roopchansingh
 
 class unWarpWithBlipUpBlipDownEPI:
 
-   def __init__ (self, options):
+   def __init__ (self, options,parser):
 
       print "Unwarp function initialized"
 
@@ -87,6 +87,7 @@ class unWarpWithBlipUpBlipDownEPI:
       # Get data sets required to do unwarping
       if not options.forward:
          print "!!! Required forward calibration data missing - exiting !!!"
+         parser.print_usage()
          sys.exit (-1)
       else:
          self.forwardCalibrationData = options.forward
@@ -94,6 +95,7 @@ class unWarpWithBlipUpBlipDownEPI:
 
       if not options.reverse:
          print "!!! Required reverse calibration data missing - exiting !!!"
+         parser.print_usage()
          sys.exit (-1)
       else:
          self.reverseCalibrationData = options.reverse
@@ -101,6 +103,7 @@ class unWarpWithBlipUpBlipDownEPI:
 
       if not options.data:
          print "!!! Required data to be corrected missing - exiting !!!"
+         parser.print_usage()
          sys.exit (-1)
       else:
          self.dataToCorrect = list(dataSet for dataSet in string.split (options.data, ','))
@@ -417,7 +420,7 @@ class unWarpWithBlipUpBlipDownEPI:
                       "-epi", "07_" + dataToCorrectName + "_unif.nii" \
                       + self.compress,
                       "-epi_base", "0", "-epi_strip", "3dAutomask",
-                      "-suffix", "_aligned", "-cost", "lpa", "-master_anat",
+                      "-suffix", "_aligned", "-cost", "lpc+ZZ", "-master_anat",
                       ("08_" + self.subjectID + "_anat"  \
                             + "_ob_temp" + ".nii" + self.compress)]
          # these skullstrip options worked well for a particular subject,
@@ -436,7 +439,7 @@ class unWarpWithBlipUpBlipDownEPI:
 
       # If we're all happy, then exit that way!
       #   but who's ever "all happy" anyway?
-      sys.exit (1)
+      sys.exit (0)
 
 
 
@@ -447,16 +450,16 @@ def main():
    usage = "%prog [options]"
    description = ("Routine to unwarp EPI data set using another "
                   "data set with opposite polarity or B0 field map" )
-   usage =       ("  %prog -f run1+orig'[0..5]' -r blip_down+orig -d 'run1, run2' -a anat+orig -s unwarp_folder" )
+   usage =       ("  %prog -f run1+orig'[0..5]' -r blip_down+orig -d 'run1,run2' -a anat+orig -s unwarp_folder" )
    epilog =      ("For questions, suggestions, information, please contact Vinai Roopchansingh, Daniel Glen")
 
    parser = OptionParser(usage=usage, description=description, epilog=epilog)
 
    parser.add_option ("-f", "--forward",  action="store",
-                                          help="calibration matching data to be corrected -- all dataset names must end in +orig, except for the '-d' option!")
+                                          help="calibration matching data to be corrected")
 
    parser.add_option ("-r", "--reverse",  action="store",
-                                          help="calibration with opposing polarity to data to be corrected")
+                   help="calibration with opposing polarity to data to be corrected")
 
    parser.add_option ("-a", "--anat4warp",action="store",
                                           help="reference anatomical data set")
@@ -473,7 +476,7 @@ def main():
    options, args = parser.parse_args()
 
 
-   unwarpJob = unWarpWithBlipUpBlipDownEPI(options)
+   unwarpJob = unWarpWithBlipUpBlipDownEPI(options,parser)
 
    unwarpJob.unWarpData()
 

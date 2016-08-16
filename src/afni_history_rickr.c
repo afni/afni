@@ -49,6 +49,152 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  10,  Aug, 2016, RCR, "afni-general", MICRO, TYPE_MODIFY,
+   "in Makefile.INCLUDE, have afni depend first on libmri.a",
+   NULL
+ } ,
+
+ {   6,  Aug, 2016, RCR, "afni-general", MICRO, TYPE_BUG_FIX,
+   "mri_read_ascii: check comment_buffer before strdup",
+   NULL
+ } ,
+
+ {   5,  Aug, 2016, RCR, "uber_subject.py", MICRO, TYPE_MODIFY,
+   "make -help_install more current",
+   NULL
+ } ,
+
+ {   5,  Aug, 2016, RCR, "timing_tool.py", MINOR, TYPE_NEW_OPT,
+   "add -marry_AM",
+   "Added for J Wiggins."
+ } ,
+
+ {   1,  Aug, 2016, RCR, "afni_system_check.py", MINOR, TYPE_ENHANCE,
+   "do more hunting and reporting on libgomp and libglib",
+   NULL
+ } ,
+
+ {  25,  Jul, 2016, RCR, "3dDeconvolve", MICRO, TYPE_BUG_FIX,
+   "fixed attaching lone '-' to following label",
+   "No NI_malloc might lead to crash, and the '-' was overwritten."
+ } ,
+
+ {  23,  Jul, 2016, RCR, "afni_proc.py", MICRO, TYPE_ENHANCE,
+   "if empty regressor, check for -GOFORIT (only suggest if not found)",
+   NULL
+ } ,
+
+ {  14,  Jul, 2016, RCR, "afni-general", MICRO, TYPE_BUG_FIX,
+   "THD_open_tcat: print error and return NULL on bad wildcard match",
+   NULL
+ } ,
+
+ {  8,  Jul, 2016, RCR, "Dimon", MINOR, TYPE_NEW_OPT,
+   "add -read_all, in case it is useful for sorting (e.g. -order_as_zt)",
+   "Added for K Vishwanath."
+ } ,
+
+ {  7,  Jul, 2016, RCR, "Dimon", MINOR, TYPE_NEW_OPT,
+   "add -order_as_zt to re-order from -time:tz to -time:zt",
+   NULL
+ } ,
+
+ {  7,  Jul, 2016, RCR, "afni_system_check.py", MICRO, TYPE_ENHANCE,
+   "check for partial install of PyQt4 (might be common on OS X 10.11)",
+   NULL
+ } ,
+
+ { 30,  Jun, 2016, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,
+   "allow single volume EPI input (e.g. to test blip correction)",
+   "Also, auto -blip_forward_dset should come from tcat output."
+ } ,
+
+ { 29,  Jun, 2016, RCR, "3dfim", MICRO, TYPE_BUG_FIX,
+   "fix crash for dset open error with long dset name",
+   "Thanks to J Henry for reporting the problem."
+ } ,
+
+ { 29,  Jun, 2016, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,
+   "can modify blip order; BLIP_BASE -> MEDIAN_BLIP; add BLIP_NOTE to help",
+   NULL
+ } ,
+
+ { 27,  Jun, 2016, RCR, "afni_proc.py", MICRO, TYPE_ENHANCE,
+   "allow for blip datasets that are not time series",
+   NULL
+ } ,
+
+ { 24,  Jun, 2016, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
+   "add -requires_afni_hist; warp vr_base to make final_epi dset",
+   NULL
+ } ,
+
+ { 23,  Jun, 2016, RCR, "plug_realtime", MICRO, TYPE_ENHANCE,
+   "show pop-up if user selects Mask Vals without 3D RT registrasion",
+   "Clarify this in the plugin Help.  For L Li and V Roopchansingh."
+ } ,
+
+ { 23,  Jun, 2016, RCR, "@auto_tlrc", MICRO, TYPE_ENHANCE,
+   "allow to work with NIFTI template",
+   NULL
+ } ,
+
+ { 22,  Jun, 2016, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,
+   "do nothing, but work really hard at it",
+   "Rewrite EPI transformation steps by storing and applying an array\n"
+   "of transformations: this should make future changes easier."
+ } ,
+
+ { 22,  Jun, 2016, RCR, "@diff.tree", MICRO, TYPE_NEW_OPT,
+   "added -diff_opts; e.g. -diff_opts -w",
+   NULL
+ } ,
+
+ { 22,  Jun, 2016, RCR, "@diff.files", MICRO, TYPE_NEW_OPT,
+   "added -diff_opts; e.g. -diff_opts -w",
+   NULL
+ } ,
+
+ { 22,  Jun, 2016, RCR, "auto_warp.py", MICRO, TYPE_BUG_FIX,
+   "correctly check base.exists()",
+   NULL
+ } ,
+
+ { 17,  Jun, 2016, RCR, "afni-general", MICRO, TYPE_BUG_FIX,
+   "w/dglen, dsets with HEAD in prefix (but no suffix) could not be opened",
+   NULL
+ } ,
+
+ { 16,  Jun, 2016, RCR, "afni_proc.py", MAJOR, TYPE_ENHANCE,
+   "EPI blip up/blip down distortion correction is ready",
+   "Thanks to S Torrisi and D Glen."
+ } ,
+
+ { 16,  Jun, 2016, RCR, "afni_proc.py", MINOR, TYPE_BUG_FIX,
+   "if NLwarp but no EPI warp, no NL; fix refit of blip median datsets",
+   "User probably forgot -volreg_tlrc_warp, so warn them."
+ } ,
+
+ { 14,  Jun, 2016, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
+   "add -blip_forward_dset; if needed copy along any obliquity information",
+   NULL
+ } ,
+
+ { 13,  Jun, 2016, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
+   "add -align_unifize_epi : 3dUnifize EPI before anat alignment",
+   "Thanks to D Glen and S Torrisi for suggesting it."
+ } ,
+
+ { 13,  Jun, 2016, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,
+   "add BLIP_BASE case for -volreg_align_to",
+   "Use warped median forward blip volume as volreg alignment base."
+ } ,
+
+ { 10,  Jun, 2016, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
+   "add -blip_reverse_dset for blip up/blip down distortion correction",
+   NULL
+ } ,
+
  {  2,  Jun, 2016, RCR, "afni-general", MINOR, TYPE_ENHANCE,
    "w/dglen: read num slices from Siemens 3D acquisition DICOM image files",
    NULL
@@ -90,7 +236,7 @@ afni_history_struct rickr_history[] = {
    "Thanks to S Torrisi for bringing up the question."
  } ,
 
- { 28,  Apr, 2016, RCR, "@update.afni_binaries", MINOR, TYPE_NEW_OPT,
+ { 28,  Apr, 2016, RCR, "@update.afni.binaries", MINOR, TYPE_NEW_OPT,
    "add -local_package, to use an already downloaded package",
    "Requested by P Taylor."
  } ,

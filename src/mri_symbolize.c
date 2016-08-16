@@ -1,4 +1,5 @@
 #include "mrilib.h"
+#include "niml.h"
 
 static int nerr=0 ;
 int SYM_expand_errcount(void){ return nerr; }  /* 03 May 2007 */
@@ -193,8 +194,9 @@ ENTRY("SYM_expand_ranges") ;
            ERROR_message("-gltsym: isolated '-' is followed by '%s' which is already signed? IGNORING!",qpt) ;
            qstr[0] = '\0' ; nerr++ ;
          } else {                                  /* everything is cool: attach sign to next string */
-           qls = (char *)malloc(sizeof(char)*(strlen(qpt)+4)) ;
-           strcpy(qls,qstr) ; strcpy(qls,qpt) ;
+           /* alloc with NIML and do not lose '-'   25 Jul 2016 [rickr] */
+           qls = (char *)NI_malloc(char, sizeof(char)*(strlen(qpt)+4)) ;
+           strcpy(qls,qstr) ; strcat(qls,qpt) ;
            INFO_message("INFO: -gltsym: isolated '-' is merged with following '%s'",qpt) ;
            NI_free(qpt) ; sar->str[ss+1] = qls ; qstr[0] = '\0' ;
          }

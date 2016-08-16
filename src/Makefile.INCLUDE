@@ -1309,6 +1309,14 @@ AlphaSim:AlphaSim.o
 	$(RM) $@
 	$(CCOMP) -o 3dClustSim 3dClustSim.o $(LFLAGS) $(LLIBS)
 
+3dClustSimX.o:3dClustSimX.c
+	$(RM) $@
+	$(CCOMP) -c 3dClustSimX.c $(INFLAGS)
+
+3dClustSimX:3dClustSimX.o
+	$(RM) $@
+	$(CCOMP) -o 3dClustSimX 3dClustSimX.o $(LFLAGS) $(LLIBS)
+
 3dBlurInMask.o:3dBlurInMask.c
 	$(RM) $@
 	$(CCOMP) -c 3dBlurInMask.c $(INFLAGS)
@@ -1542,7 +1550,7 @@ afni_version.o:afni_version.c
 	$(RM) $@
 	$(CC) -c afni_version.c $(INFLAGS) $(SHOWOFF)
 
-afni:$(AFOBJS) libcoxplot.a libmri.a libmrix.a libvolpack.a libjpeg.a libXmHTML.a volpack.h coxplot.h niml.h
+afni: libmri.a libcoxplot.a libmrix.a libvolpack.a libjpeg.a libXmHTML.a volpack.h coxplot.h niml.h $(AFOBJS)
 	$(RM) $@
 	$(CC) -o afni $(AFOBJS) $(PLFLAGS) -lmrix -lcoxplot -lmri -lvolpack libXmHTML.a libjpeg.a $(LLIBS) -lm -lc 
 
@@ -1936,7 +1944,7 @@ install_exe: $(INSTALLDIR)
 # some dependencies (not complete)
 
 afni.o:imseq.h 3ddata.h xutil.h pbar.h afni.h bbox.h afni_warp.h \
-       afni_graph.h afni_setup.h machdep.h
+       afni_graph.h afni_setup.h machdep.h AFNI_version.h
 
 debugtrace.o:debugtrace.h debugtrace.c AFNI_version.h
 	$(RM) $@
@@ -2212,7 +2220,7 @@ THD_OBJS = thd_atr.o thd_dsetto1D.o thd_initalldir.o thd_reconpar.o \
            thd_bandpass.o thd_instacorr.o thd_svdblur.o thd_satcheck.o    \
            thd_dumdset.o ktaub.o bilinear_warp3D.o thd_table.o            \
            thd_atlas.o thd_warp_tables.o thd_lasso.o thd_mean_dset.o      \
-           thd_despike_L1.o thd_Tcorr1D.o
+           thd_despike_L1.o thd_Tcorr1D.o thd_openimage.o
 
 # these are now included in NIML
 

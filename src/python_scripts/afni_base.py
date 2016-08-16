@@ -2,13 +2,14 @@
 import os, sys, glob, operator, string, re, afni_base
 
 valid_afni_views = ['+orig', '+acpc', '+tlrc']
+valid_new_views  = ['+orig', '+acpc', '+tlrc', '']
 
 # limits for shell_com history
 SAVE_SHELL_HISTORY = 400
 MAX_SHELL_HISTORY  = 600
 
 class afni_name:
-   def __init__(self, name="", do_sel=1):
+   def __init__(self, name="", do_sel=1, view=None):
       """do_sel : apply selectors (col, row, range)"""
       self.initname = name
       self.do_sel = do_sel
@@ -22,7 +23,10 @@ class afni_name:
       self.nodesel = res['node']
       self.rowsel = res['row']
       self.rangesel = res['range']
+      self.selquote = '"'       # selector quote
+      if view in valid_new_views: self.new_view(view)
       return
+
    def p(self):   #Full path 
       """show path only, no dataset name"""
       pp = "%s/" % os.path.abspath('./')  #full path at this location
@@ -31,6 +35,7 @@ class afni_name:
          return pp
       else:
          return "%s/" % os.path.abspath(self.path)
+
    def realp(self):   #Full path following symbolic links 
       """show path only, no dataset name"""
       pp = "%s/" % os.path.realpath('./')  #full path at this location
@@ -39,38 +44,56 @@ class afni_name:
          return pp
       else:
          return "%s/" % os.path.realpath(self.path)
-   def ppve(self):
+
+   def ppve(self, sel=0):
       """show path, prefix, view and extension"""
-      s = "%s%s%s%s" % (self.p(), self.prefix, \
-                         self.view, self.extension)
-      return s
-      
-   def rppve(self):
-      """show path, prefix, view and extension"""
-      s = "%s%s%s%s" % (self.realp(), self.prefix, \
-                         self.view, self.extension)
+      s = "%s%s" % (self.p(), self.pve(sel=sel))
       return s
 
-   def ppves(self, quotes=1):
-      """show path, prefix, view, extension and all selectors
+   def rppve(self, sel=0):
+      """show path, prefix, view and extension"""
+      s = "%s%s" % (self.realp(), self.pve(sel=sel))
+      return s
+
+   # selectors, along with many sel=0 function parameters  7 Jun 2016 [rickr]
+   def selectors(self):
+      """return all selectors, usually in double quotes
          (colsel, rowsel, nodesel, rangesel)"""
 
-      # if no selectors, do not incude quotes    7 Apr 2015 [rickr]
-      pstuff = "%s%s%s%s" % (self.p(), self.prefix, self.view, self.extension)
       sstuff = '%s%s%s%s' % (self.colsel, self.rowsel, self.nodesel,
                              self.rangesel)
 
-      if sstuff == '': return pstuff
+      if sstuff == '': return sstuff
     
-      if quotes: return "%s'%s'" % (pstuff, sstuff)
-      else:      return "%s%s" % (pstuff, sstuff)
+      return "%s%s%s" % (self.selquote, sstuff, self.selquote)
+      
+   def ppves(self, quotes=1):
+      """show path, prefix, view, extension and all selectors
+         (colsel, rowsel, nodesel, rangesel)
+
+         this is identically ppve(sel=1), but maybe without quotes
+      """
+      
+      # if no selectors, do not incude quotes    7 Apr 2015 [rickr]
+
+      # if no quotes, clear and reset internal selqute
+      if not quotes:
+         qstr = self.selquote
+         self.selquote = ''
+
+      pstuff = self.ppve(sel=1)
+
+      if not quotes:
+         self.selquote = qstr
+
+      return pstuff
 
       # s = "%s%s%s%s'%s%s%s%s'" % (self.p(), self.prefix, \
       #                    self.view, self.extension,\
       #                    self.colsel, self.rowsel,\
       #                    self.nodesel, self.rangesel)
-
-      return s
+      #
+      # return s
       
    def input(self):
       """full path to dataset in 'input' format
@@ -91,29 +114,36 @@ class afni_name:
       else:
          return self.rppve() 
 
-   def rel_input(self, head=0):
+   def rel_input(self, head=0, sel=0):
       """relative path to dataset in 'input' format
          e.g. +orig, but no .HEAD
          e.g. would include .nii"""
       if self.type == 'BRIK':
+         # separate selectors for HEAD case
+         if sel: sstr = self.selectors()
+         else:   sstr = ''
          name = self.rpv()
-         if head: return '%s%s' % (name, '.HEAD')
-         else:    return name
+         if head: return '%s%s%s' % (name, '.HEAD', sstr)
+         else:    return '%s%s' % (name, sstr)
       else:
-         return self.rpve() 
+         return self.rpve(sel=sel) 
 
-   def shortinput(self, head=0):
+   def shortinput(self, head=0, sel=0):
       """dataset name in 'input' format
          - no directory prefix
          - include extension if non-BRIK format
          - if head: include .HEAD suffix
+         - if sel: include selectors
       """
       if self.type == 'BRIK':
+         # separate selectors for HEAD case
+         if sel: sstr = self.selectors()
+         else:   sstr = ''
          name = self.pv()
-         if head: return '%s%s' % (name, '.HEAD')
-         else:    return name
+         if head: return '%s%s%s' % (name, '.HEAD', sstr)
+         else:    return '%s%s' % (name, sstr)
       else:
-         return self.pve() 
+         return self.pve(sel=sel) 
 
    def out_prefix(self):
       """dataset name in 'output' format
@@ -123,67 +153,71 @@ class afni_name:
          return self.prefix
       else:
          return self.pve() 
-   def ppv(self):
+   def ppv(self, sel=0):
       """return path, prefix, view formatted name"""
-      s = "%s%s%s" % (self.p(), self.prefix, self.view)
+      s = "%s%s" % (self.p(), self.pv(sel=sel))
       return s
-   def rppv(self):
+   def rppv(self, sel=0):
       """return path, prefix, view formatted name resolving symbolic links"""
-      s = "%s%s%s" % (self.realp(), self.prefix, self.view)
+      s = "%s%s" % (self.realp(), self.pv(sel=sel))
       return s
-   def rpv(self):
+   def rpv(self, sel=0):
       """return relative path, prefix, view formatted name
          - do not include ./ as relative path"""
       rp = string.replace(self.path, "%s/" % os.path.abspath(os.curdir), '')
-      s = "%s%s%s" % (rp, self.prefix, self.view)
+      s = "%s%s" % (rp, self.pv(sel=sel))
       return s
-   def rpve(self):
+   def rpve(self, sel=0):
       """return relative path, prefix, view, extension formatted name
          - do not include ./ as relative path"""
       rp = string.replace(self.path, "%s/" % os.path.abspath(os.curdir), '')
-      s = "%s%s%s%s" % (rp, self.prefix, self.view, self.extension)
+      s = "%s%s" % (rp, self.pve(sel=sel))
       return s
    def pp(self):
       """return path, prefix formatted name"""
       return "%s%s" % (self.p(), self.prefix)
-   def pv(self):
+   def pv(self, sel=0):
       """return prefix, view formatted name"""
+      if sel: sstr = self.selectors()
+      else:   sstr = ''
       if self.type == 'BRIK':
-         return "%s%s" % (self.prefix, self.view)
+         return "%s%s%s" % (self.prefix, self.view, sstr)
       else:
-         return self.pve()
-   def pve(self):
+         return self.pve(sel=sel)
+   def pve(self, sel=0):
       """return prefix, view, extension formatted name"""
-      return "%s%s%s" % (self.prefix, self.view, self.extension)
+      if sel: sstr = self.selectors()
+      else:   sstr = ''
+      return "%s%s%s%s" % (self.prefix, self.view, self.extension, sstr)
    def dims(self, quotes=1):
       """return xyzt dimensions, as a list of ints"""
       return dset_dims(self.ppves(quotes=quotes))
    def exist(self):
       """return whether the dataset seems to exist on disk"""
+      locppv = self.ppv()
       if (self.type == 'NIFTI'):
-         if (     os.path.isfile("%s.nii" % self.ppv()) or \
-                  os.path.isfile("%s.nii.gz" % self.ppv()) \
+         if (     os.path.isfile("%s" % locppv) or \
+                  os.path.isfile("%s.gz" % locppv) \
             ):
             return 1
          else: return 0
       elif (self.type == 'BRIK'):
-         #  print "dataset ppv is %s" % self.ppv()
-         if (     os.path.isfile("%s.HEAD" % self.ppv()) \
-               and  \
-               (  os.path.isfile("%s.BRIK" % self.ppv()) or \
-                  os.path.isfile("%s.BRIK.gz" % self.ppv()) or \
-                  os.path.isfile("%s.BRIK.bz2" % self.ppv()) or \
-                  os.path.isfile("%s.BRIK.Z" % self.ppv()) )   \
+         if (     os.path.isfile("%s.HEAD" % locppv)        \
+               and                                          \
+               (  os.path.isfile("%s.BRIK" % locppv) or     \
+                  os.path.isfile("%s.BRIK.gz" % locppv) or  \
+                  os.path.isfile("%s.BRIK.bz2" % locppv) or \
+                  os.path.isfile("%s.BRIK.Z" % locppv) )    \
             ):
             return 1
          else: return 0
       elif (self.type == 'NIML'):
-         if (     os.path.isfile("%s.niml.dset" % self.ppv()) \
+         if (     os.path.isfile("%s.niml.dset" % locppv) \
             ):
             return 1
          else: return 0
       else:
-         if (     os.path.isfile(self.ppve()) ):
+         if (     os.path.isfile(locppv) ):
             return 1
          else: return 0
    

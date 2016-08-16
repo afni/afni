@@ -15,8 +15,8 @@ static int myTHD_extract_nbhd( THD_3dim_dataset *dset, byte *mask,
                                int xx, int yy, int zz, MCW_cluster *nbhd,
                                int *ivar , int *ijkar , float *tsar ) ;
 
-static float_quad ACF_nbhd_vec_to_modelE( int nt , int nvec ,
-                                          int *ijkar , float *tsar ) ;
+static float_quint ACF_nbhd_vec_to_modelE( int nt , int nvec ,
+                                           int *ijkar , float *tsar ) ;
 
 /*------------------------------------------------------------------------*/
 
@@ -277,18 +277,19 @@ int main( int argc , char *argv[] )
    EDIT_dset_items( outset,
                       ADN_prefix   , prefix,
                       ADN_brick_fac, NULL  ,
-                      ADN_nvals    , 4     ,
+                      ADN_nvals    , 5     ,
                       ADN_ntt      , 0     ,
                     ADN_none );
    tross_Copy_History( inset , outset ) ;
    tross_Make_History( "3dLocalACF" , argc,argv , outset ) ;
-   for( kk=0 ; kk < 4 ; kk++ )                         /* create bricks */
+   for( kk=0 ; kk < 5 ; kk++ )                         /* create bricks */
      EDIT_substitute_brick( outset , kk , MRI_float , NULL ) ;
 
    EDIT_BRICK_LABEL(outset,0,"ACF:a") ;
    EDIT_BRICK_LABEL(outset,1,"ACF:b") ;
    EDIT_BRICK_LABEL(outset,2,"ACF:c") ;
    EDIT_BRICK_LABEL(outset,3,"ACF:FWHM") ;
+   EDIT_BRICK_LABEL(outset,4,"ACF:FWQM") ;
 
 #if 0
    if( despike ){             /* 14 Oct 2010 */
@@ -337,7 +338,7 @@ int main( int argc , char *argv[] )
    float *zar=NULL , *nbar ; int *ivar , *ijkar ;
    float *tsar ;
    int ithr=0 ; float sval,tval=0.0 ;
-   float_quad Epar ; float Evec[4] ;
+   float_quint Epar ; float Evec[5] ;
 
 #pragma omp critical (MALLOC)
    { nbar  = (float *)malloc(sizeof(float)*nt*nbhd->num_pt+4096) ;
@@ -364,8 +365,8 @@ int main( int argc , char *argv[] )
 
      Epar = ACF_nbhd_vec_to_modelE( nt , mm , ijkar , nbar ) ;
      if( Epar.a >= 0.0f ){
-       Evec[0] = Epar.a ; Evec[1] = Epar.b ; Evec[2] = Epar.c ; Evec[3] = Epar.d ;
-       THD_insert_series( kk, outset, 4, MRI_float, Evec, 0 ) ;
+       Evec[0] = Epar.a; Evec[1] = Epar.b; Evec[2] = Epar.c; Evec[3] = Epar.d; Evec[4] = Epar.e;
+       THD_insert_series( kk, outset, 5, MRI_float, Evec, 0 ) ;
      }
 
    } /* end parallel loop */
@@ -384,7 +385,7 @@ int main( int argc , char *argv[] )
    if( verb ) INFO_message("Median filter output (a little)") ;
 
    mri_medianfilter_usedxyz(0) ;
-   for( kk=0 ; kk < 4 ; kk++ ){
+   for( kk=0 ; kk < 5 ; kk++ ){
      fim = mri_medianfilter( DSET_BRICK(outset,kk) , 1.444f , mask , 0 ) ;
      EDIT_substitute_brick( outset , kk , MRI_float , MRI_FLOAT_PTR(fim) ) ;
    }
@@ -512,18 +513,20 @@ double ACF_modelE_cost( int npar , double *par )
 AO_DEFINE_SCALAR(float,apar) ;
 AO_DEFINE_SCALAR(float,bpar) ;
 AO_DEFINE_SCALAR(float,cpar) ;
+AO_DEFINE_SCALAR(float,flev) ;
 
 double ACF_fhwm_cost( int npar , double *par )
 {
    float fit , rr=(float)(*par) ;
-   float apar,bpar,cpar ;
+   float apar,bpar,cpar , flev ;
 
-   apar = AO_VALUE(apar) ; bpar = AO_VALUE(bpar) ; cpar = AO_VALUE(cpar) ;
+   apar = AO_VALUE(apar) ; bpar = AO_VALUE(bpar) ;
+   cpar = AO_VALUE(cpar) ; flev = AO_VALUE(flev) ;
 
    fit =         apar * expf( -0.5f*rr*rr/(bpar*bpar) )
         + (1.0f-apar) * expf( -rr/cpar) ;
 
-   return (double)fabsf(fit-0.5f) ;
+   return (double)fabsf(fit-flev) ;
 }
 
 float ACF_fwhm( float apar , float bpar , float cpar )
@@ -541,14 +544,14 @@ float ACF_fwhm( float apar , float bpar , float cpar )
 
 /*------------------------------------------------------------------------*/
 
-static float_quad ACF_nbhd_vec_to_modelE( int nt , int nvec ,
-                                          int *ijkar , float *tsar )
+static float_quint ACF_nbhd_vec_to_modelE( int nt , int nvec ,
+                                           int *ijkar , float *tsar )
 {
-   float_quad Epar={-1.0f,-1.0f,-1.0f,-1.0f} ;
+   float_quint Epar={-1.0f,-1.0f,-1.0f,-1.0f,-1.0f} ;
    float *zar=tsar , zsq , *var , vsq , ssq , xx,yy,zz , vp,rp,vs ;
    int pp,qq,dq,ss , tt ;
    float *ccar , *rrar ;
-   float apar , bpar , cpar , dpar ;
+   float apar , bpar , cpar , dpar , epar ;
    double xpar[3] , xbot[3] , xtop[3] ;
 
    if( nt==0 || nvec==0 || ijkar==NULL || tsar==NULL ) return Epar ;  /* ERROR */
@@ -633,8 +636,12 @@ static float_quad ACF_nbhd_vec_to_modelE( int nt , int nvec ,
 
    /* compute FWHM from these parameters (kind of brute force) */
 
+   AO_VALUE(flev) = 0.5f ;
    dpar = ACF_fwhm(apar,bpar,cpar) ;
 
-   Epar.a = apar ; Epar.b = bpar ; Epar.c = cpar ; Epar.d = dpar ;
+   AO_VALUE(flev) = 0.25f ;
+   epar = ACF_fwhm(apar,bpar,cpar) ;
+
+   Epar.a = apar; Epar.b = bpar; Epar.c = cpar; Epar.d = dpar; Epar.e = epar;
    return Epar ;
 }

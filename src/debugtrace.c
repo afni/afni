@@ -76,10 +76,10 @@ ENTRY("THD_zzprintf") ;
    /* make new space, copy input string sss, append new stuff, return result */
 
    if( sss == NULL || *sss == '\0' ){  /* no input string ==> copy new stuff */
-     zz = (char *) malloc( sizeof(char)*(nsbuf+2) ) ;
+     zz = (char *) malloc( sizeof(char)*(nsbuf+8) ) ;
      strcpy(zz,sbuf) ;
    } else {             /* the full Monty: copy old then new */
-     nzz = strlen(sss) + nsbuf + 2 ;
+     nzz = strlen(sss) + nsbuf + 8 ;
      zz  = (char *) malloc( sizeof(char) * nzz ) ;
      strcpy(zz,sss) ; strcat(zz,sbuf) ;
      free(sss) ;       /* don't need input copy any more */
