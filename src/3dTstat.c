@@ -70,15 +70,16 @@
 #define METH_PERCENTILE    40  /* RWC 05 May 2016 */
 static int perc_val = -666;
 
-#define MAX_NUM_OF_METHS   41
+#define METH_FIRSTVALUE    41 /* returns the 1st value - to avoid exiting on invalid 1-input-methods */
+#define MAX_NUM_OF_METHS   42
 
 /* allow single inputs for some methods (test as we care to add) */
-#define NUM_1_INPUT_METHODS 4
+#define NUM_1_INPUT_METHODS 12
 static int valid_1_input_methods[NUM_1_INPUT_METHODS]
-           = { METH_MEAN, METH_MAX, METH_MIN, METH_SUM };
-/* maybe add:  METH_ARGMAX, METH_ARGMIN, METH_ARGABSMAX,
-               METH_SUM, METH_ABSSUM, METH_NZMEAN, METH_SUM_SQUARES
-*/
+           = { METH_MEAN, METH_MAX, METH_MIN, METH_SUM,
+               METH_ARGMAX, METH_ARGMIN, METH_ARGABSMAX,METH_SUM,
+               METH_ABSSUM, METH_NZMEAN, METH_SUM_SQUARES, METH_FIRSTVALUE };
+
 
 static int meth[MAX_NUM_OF_METHS]  = {METH_MEAN};
 static int nmeths                  = 0;
@@ -100,7 +101,7 @@ static char *meth_names[] = {
    "ArgMin+1"      , "ArgMax+1"     , "ArgAbsMax+1"   , "CentroMean"  ,
    "CVarInv"       , "CvarInv (NOD)", "ZeroCount"     , "NZ Median"   ,
    "Signed Absmax" , "L2 Norm"      , "NonZero Count" , "NZ Stdev"    ,
-   "Percentile %d"
+   "Percentile %d" , "FirstValue"
 };
 
 static void STATS_tsfunc( double tzero , double tdelta ,
@@ -191,6 +192,7 @@ void usage_3dTstat(int detail)
  "\n"
  " -centromean = compute mean of middle 50%% of voxel values [undetrended]\n"
  "\n"
+ " -firstvalue = first value in dataset - typically just placeholder\n\n"
  " ** If no statistic option is given, then '-mean' is assumed **\n"
  "\n"
  "Other Options:\n"
@@ -704,7 +706,7 @@ int main( int argc , char *argv[] )
       ERROR_exit("Time series is of length 0?\n") ;
    }
    else if( DSET_NVALS(old_dset) == 1 || (do_tdiff && DSET_NVALS(old_dset)==2) ) {
-     int methOK, OK = 1;
+     int methOK;
      /* see if each method is valid for nvals == 1 */
      for( methIndex = 0; methIndex < nmeths; methIndex++ ) {
         methOK = 0;
@@ -713,9 +715,11 @@ int main( int argc , char *argv[] )
                 methOK = 1;
                 break;
             }
+            else
+               meth[methIndex] = METH_FIRSTVALUE;
         }
         if( ! methOK )
-           ERROR_exit("Can't use dataset with %d values per voxel!" ,
+           WARNING_message("Using dataset with only %d values per voxel and giving back just the first value!" ,
                       DSET_NVALS(old_dset) ) ;
      }
      /* tell the library function that this case is okay */
@@ -905,6 +909,7 @@ static void STATS_tsfunc( double tzero, double tdelta ,
     switch( meth[meth_index] ){
 
       default:
+      case METH_FIRSTVALUE:  val[out_index] = ts[0]; break ; /* placeholder drg 06/13/2016 */
       case METH_MEAN:  val[out_index] = ts_mean  ; break ;
 
       case METH_SUM:   val[out_index] = ts_mean * npts; break; /* 24 Apr 2006 */

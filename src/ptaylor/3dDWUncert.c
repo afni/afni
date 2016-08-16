@@ -765,7 +765,7 @@ int main(int argc, char *argv[]) {
       
       if( (grads == NULL) || (grads_dyad == NULL) ) {
          fprintf(stderr, "\n\n MemAlloc failure.\n\n");
-         exit(1254);
+         exit(125);
       }
 		
       if( (fin4 = fopen(gradmat_in, "r")) == NULL) {
@@ -806,7 +806,7 @@ int main(int argc, char *argv[]) {
       
       if( (grads == NULL) || (DWs == NULL) || (DWcheck == NULL) ) {
          fprintf(stderr, "\n\n MemAlloc failure.\n\n");
-         exit(1254);
+         exit(124);
       }
       // Opening/Reading in FACT params
       if( (fin4 = fopen(gradmat_in, "r")) == NULL) {
@@ -1835,7 +1835,7 @@ format, for consistency:
       
       if( (grads == NULL) || (DWs == NULL) || (DWcheck == NULL) ) {
          fprintf(stderr, "\n\n MemAlloc failure.\n\n");
-         exit(1254);
+         exit(124);
       }
       // Opening/Reading in FACT params
       if( (fin4 = fopen(gradmat_in, "r")) == NULL) {

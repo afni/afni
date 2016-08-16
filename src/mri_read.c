@@ -2122,6 +2122,9 @@ ENTRY("mri_read_ppm") ;
 
 #undef USE_LASTBUF
 
+static int   save_comments  = 0 ;    /* 03 Aug 2016 */
+static char *comment_buffer = NULL ;
+
 /*---------------------------------------------------------------*/
 /*! [20 Jun 2002] Like fgets, but also
      - skips blank or comment lines
@@ -2148,7 +2151,9 @@ static char * my_fgets( char *buf , int size , FILE *fts )
 
    if( buf == NULL && qbuf != NULL ){ free((void *)qbuf); qbuf = NULL; }
 
-   if( buf == NULL || size < 1 || fts == NULL ) return NULL ;
+   if( buf == NULL || size < 1 || fts == NULL ){
+     FRB(comment_buffer) ; return NULL ;
+   }
 
    if( qbuf == NULL ) qbuf = AFMALL(char, LBUF) ;  /* 1st time in */
 
@@ -2179,10 +2184,6 @@ static char * my_fgets( char *buf , int size , FILE *fts )
      }
 #endif
 
-     /* skip comment lines (even if we are catenating) */
-
-     if( *ptr == '#' || (*ptr == '/' && *(ptr+1) == '/') ) continue ;
-
      /* strip trailing whitespace */
 
      ll = strlen(ptr) ;                                  /* will be > 0 */
@@ -2191,6 +2192,15 @@ static char * my_fgets( char *buf , int size , FILE *fts )
 
      ll = strlen(ptr) ;                 /* number of chars left */
      if( ll == 0 ) continue ;           /* should not happen */
+
+     /* save then skip comment lines (even if we are catenating) */
+
+     if( *ptr == '#' || (*ptr == '/' && *(ptr+1) == '/') ){
+       if( save_comments ){
+         comment_buffer = THD_zzprintf( comment_buffer , "%s\n" , ptr ) ;
+       }
+       continue ;
+     }
 
      cflag = (ptr[ll-1] == '\\') ;      /* catenate next line? */
      if( cflag ) ptr[ll-1] = ' ' ;      /* replace '\' with ' ' */
@@ -2486,6 +2496,7 @@ MRI_IMAGE * mri_read_ascii( char *fname )
 
    floatvec *fvec ;                   /* 20 Jul 2004 */
    int incts ;
+   char *cbuf=NULL ;                  /* 03 Aug 2016: comments? */
 
 ENTRY("mri_read_ascii") ;
 
@@ -2511,8 +2522,16 @@ STATUS(fname) ;  /* 16 Oct 2007 */
                (skipping lines that are comments or entirely blank)     */
 
    (void) my_fgets( NULL , 0 , NULL ) ;  /* reset [20 Jul 2004] */
+
+   save_comments = 1 ;                   /* 03 Aug 2016 */
    ptr = my_fgets( buf , LBUF , fts ) ;
-   if( ptr==NULL || *ptr=='\0' ){ FRB(buf); fclose(fts); RETURN(NULL); }  /* bad read? */
+   if( ptr==NULL || *ptr=='\0' ){        /* bad read? */
+     FRB(comment_buffer); FRB(buf); fclose(fts); RETURN(NULL);
+   }
+   save_comments = 0;
+   if( comment_buffer ) cbuf = strdup(comment_buffer); /* 6 Aug 2016 [rickr] */
+   else			cbuf = NULL;
+   FRB(comment_buffer);
 
    lbfill = 0.0f ;                          /* 10 Aug 2004 */
 
@@ -2613,6 +2632,10 @@ STATUS(fname) ;  /* 16 Oct 2007 */
    outim = mri_new_vol_empty( ncol , nrow , 1 , MRI_float ) ;
    mri_fix_data_pointer( tsar , outim ) ;
    mri_add_name( fname , outim ) ;
+
+   if( cbuf != NULL ){         /* 03 Aug 2016 */
+     outim->comments = cbuf ; cbuf  = NULL ;
+   }
 
    FRB(buf) ; RETURN(outim) ;
 }
@@ -3528,7 +3551,7 @@ ENTRY("mri_read_1D_stdin") ;
      inim = mri_copy(im_stdin); RETURN(inim);
    }
 
-INFO_message("reading 1D_stdin") ;
+/*** INFO_message("reading 1D_stdin") ; ***/
    lbuf = (char * )malloc(sizeof(char )*SIN_NLBUF) ;
    val  = (float *)malloc(sizeof(float)*SIN_NVMAX) ;
 

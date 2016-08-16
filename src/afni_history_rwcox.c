@@ -44,6 +44,70 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 9 , AUG , 2016 , RWC , "3dAllineate" , MICRO , TYPE_ENHANCE ,
+   "Allow IDENTITY to specify the identity matrix for transformations" ,
+   "In options -1Dparam_apply and -1Dmatrix_apply -- to make resampling\n"
+   "simpler for the hopeless users out there" } ,
+
+ { 9 , AUG , 2016 , RWC , "afni GUI" , MICRO , TYPE_MODIFY ,
+   "If A controller pops up with a negative x or y, move it" ,
+   "This is an attempt to overcome some peculiar bug in XQuartz on El\n"
+   "Capitan, where the A controller pops up, then disappears to a negative x\n"
+   "location (off screen)." } ,
+
+ { 4 , AUG , 2016 , RWC , "afni GUI" , MICRO , TYPE_GENERAL ,
+   "Changes to keep controller height from expanding on Linux" ,
+   "Of course, being on a Mac, I can't actually test this change." } ,
+
+ { 4 , AUG , 2016 , RWC , "1dsum" , MICRO , TYPE_ENHANCE ,
+   "Save # header lines from mri_read_1D; echo back in 1dsum output" ,
+   "For use in combining 3dClustSim outputs, for example." } ,
+
+ { 22 , JUL , 2016 , RWC , "3dttest++" , MICRO , TYPE_MODIFY ,
+   "New -nocov option for used with -Clustsim" ,
+   "To avoid writing out the -covariates sub-bricks in the -Clustsim\n"
+   "operation.  Not clear that it is useful otherwise." } ,
+
+ { 21 , JUL , 2016 , RWC , "3dttest++" , MICRO , TYPE_MODIFY ,
+   "if -clustsim, check for non-3D datasets (e.g., surfaces)" ,
+   NULL } ,
+
+ { 20 , JUL , 2016 , RWC , "3dttest++" , MICRO , TYPE_NEW_OPT ,
+   "-tempdir for -Clustsim" ,
+   NULL } ,
+
+ { 14 , JUL , 2016 , RWC , "3dttest++" , MICRO , TYPE_BUG_FIX ,
+   "Fix problem with -resid combined with -clustsim" ,
+   "Program assumed prefix_resid was NIFTI format,"
+   "so just add '.nii' if it does have that already." } ,
+
+ { 8 , JUL , 2016 , RWC , "3dttest++" , MAJOR , TYPE_ENHANCE ,
+   "Extend -clustsim option" ,
+   "Covariates and centering\n"
+   "1- and 2-sided\n"
+   "unpooled and paired\n"
+   "1 sample as well as 2 sample" } ,
+
+ { 6 , JUL , 2016 , RWC , "3dQwarp" , MICRO , TYPE_ENHANCE ,
+   "Allow .jpg or .png file as source/base 'dataset' for 2D warping" ,
+   NULL } ,
+
+ { 21 , JUN , 2016 , RWC , "3dmaskave" , MICRO , TYPE_NEW_OPT ,
+   "Add -perc option for percentile" ,
+   NULL } ,
+
+ { 14 , JUN , 2016 , RWC , "3dREMLfit" , MICRO , TYPE_BUG_FIX ,
+   "Conversion to vector image fails for LARGE datasets" ,
+   "The final step in the conversion to vectim is scanning the data for\n"
+   "floating point errors (NaN, infinity).  If there are more than 2^31-1\n"
+   "voxels, integer overflow caused problems.  Fixed by making the loop\n"
+   "variables in the floatscan functions be size_t, not int.  This problem\n"
+   "certainly lurks elsewhere in AFNI, waiting to pounce on Spaniards." } ,
+
+ { 14 , JUN , 2016 , RWC , "3dBlurInMask" , MINOR , TYPE_NEW_OPT ,
+   "Option -FWHMdset allows specifying per-voxel blurring parameter" ,
+   "For use with 3dLocalACF and scripting.  EXPERIMENTAL!" } ,
+
  { 9 , JUN , 2016 , RWC , "3dLocalACF" , MINOR , TYPE_NEW_PROG ,
    "Estimate ACF parameters locally.  Slow and experimental." ,
    NULL } ,

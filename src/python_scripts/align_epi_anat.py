@@ -598,7 +598,7 @@ g_help_string = """
 ## BEGIN common functions across scripts (loosely of course)
 class RegWrap:
    def __init__(self, label):
-      self.align_version = "1.53" # software version (update for changes)
+      self.align_version = "1.54" # software version (update for changes)
       self.label = label
       self.valid_opts = None
       self.user_opts = None
@@ -1402,11 +1402,10 @@ class RegWrap:
             return 0
          if self.cost == '':
             self.cost = 'lpa'   # make default cost lpa for dset1/2 terminology
-         self.prep_off()
+         self.dset_prep_off()
          self.epi_base = "0"      # align to 0th sub-brick
          self.dset1_generic_name = 'dset1'
          self.dset2_generic_name = 'dset2'
-
 
       e = afni_name(opt.parlist[0]) 
       ps.epi = e
@@ -1418,7 +1417,7 @@ class RegWrap:
             ps.ciao(1)
          if self.cost == '':
             self.cost = 'lpa'   # make default cost lpa for dset1/2 terminology
-         self.prep_off()        # assume no motion correction, slice timing correction,...
+         self.dset_prep_off()   # assume no motion correction, slice timing correction,...
          self.epi_base = "0"      # align to 0th sub-brick
          self.dset1_generic_name = 'dset1'
          self.dset2_generic_name = 'dset2'
@@ -1847,6 +1846,15 @@ class RegWrap:
        self.info_msg("turning off deobliquing tshift, volume registration, resampling")
        return
 
+   # turn off most preprocessing steps - keep deobliquing though
+   def dset_prep_off(self) :
+       self.tshift_flag = 0
+       self.volreg_flag = 0
+       self.resample_flag = 0
+       self.info_msg("turning off tshift, volume registration, resampling")
+       return
+
+
    # find smallest dimension of dataset in x,y,z
    def min_dim_dset(self, dset=None) :
        com = shell_com(  \
@@ -2078,13 +2086,8 @@ class RegWrap:
                  ps.oexec)
             com.run()
 
-            # need an identity matrix
-            idfile = open('identity.1D', 'w')
-            idfile.write('1 0 0 0  0 1 0 0  0 0 1 0\n')
-            idfile.close()
-
             com = shell_com( \
-               "3dAllineate -allcostX1D identity.1D __tt_lr_noflipcosts.1D "       \
+               "3dAllineate -allcostX1D IDENTITY __tt_lr_noflipcosts.1D "       \
                "%s "              # weighting          \
                "-source %s "        \
                "-base %s "                  \
@@ -2095,7 +2098,7 @@ class RegWrap:
                  ps.oexec)
             com.run()
             com = shell_com( \
-               "3dAllineate -allcostX1D identity.1D __tt_lr_flipcosts.1D "       \
+               "3dAllineate -allcostX1D IDENTITY __tt_lr_flipcosts.1D "       \
                "%s "              # weighting          \
                "-source %s "                           \
                "-base %s "                             \

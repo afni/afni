@@ -1066,6 +1066,15 @@ L_CREATE_BRICK:
     cd $start_dir
     
     if ($#other_mgz > 0) then
+#       cat /Applications/freesurfer/FreeSurferColorLUT.txt | grep -v "^#" | sed '/^[[:space:]]*$/d' > fslut.txt
+       # first unranked original datasets - reliably constant across subjects
+       @FS_roi_label -name ALL -labeltable $start_dir/$suma_dir/fs_table
+       if -e $start_dir/$suma_dir/fs_table.niml.lt then
+          echo "Made roi label table for AFNI - fs_table.niml.lt"
+       else
+          echo "ERROR: failed to make roi label table fs_table.niml.lt"
+       endif
+
        #Do the other .mgz files
        foreach other ($other_mgz)
          #@SUMA_FSvolToBRIK $other $start_dir/$suma_dir/$other:t:r
@@ -1081,6 +1090,16 @@ L_CREATE_BRICK:
               "${other:t:r}" == "aparc.a2009s+aseg" ||   \
               "${other:t:r}" == "aseg" ||   \
               "${other:t:r}" == "aparc+aseg" ) then
+            # put atlas labels into FreeSurfer segmentation datasets
+            # first use generic FS table that's the same for all datasets
+            if -e $start_dir/$suma_dir/fs_table.niml.lt then
+               3drefit -labeltable $start_dir/$suma_dir/fs_table.niml.lt \
+                                  "${other:t:r}.nii"
+               @MakeLabelTable -replace -atlasize_labeled_dset "${other:t:r}.nii"
+            endif
+
+
+            # now ranked datasets-removing empty indices - easier to color in AFNI
             3dmerge -1rank -prefix "${other:t:r}_rank.nii" ${other:t:r}".nii"
             if (0) then
                # kill this block soon.
@@ -1096,7 +1115,7 @@ L_CREATE_BRICK:
             else
                3drefit -labeltable ${other:t:r}_rank.niml.lt \
                                   "${other:t:r}_rank.nii"
-               @MakeLabelTable -atlasize_labeled_dset "${other:t:r}_rank.nii"
+               @MakeLabelTable -replace -atlasize_labeled_dset "${other:t:r}_rank.nii"
             endif
          endif
          cd - 

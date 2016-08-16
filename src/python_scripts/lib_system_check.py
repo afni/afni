@@ -361,7 +361,8 @@ class SysInfo:
             self.comments.append('consider installing PyQt4')
 
       # in 10.11, check for gcc under homebrew
-      self.check_for_10_11_gomp()
+      self.check_for_10_11_lib('libgomp.1.dylib', wpath='gcc/*/lib/gcc/*')
+      self.check_for_10_11_lib('libglib-2.0.dylib', wpath='glib/*/lib')
 
    def hunt_for_homebrew(self):
       """assuming it was not found, just look for the file"""
@@ -377,29 +378,60 @@ class SysInfo:
 
       return 0
             
-   def check_for_10_11_gomp(self):
-      """in 10.11, check for openmp/gcc under homebrew
+   def check_for_10_11_lib(self, libname, wpath='gcc/*/lib/gcc/*'):
+      """in 10.11, check for library under homebrew
+
+         wpath = wildcard path to library name
 
          return 0 if no issue was detected
       """
-      if self.get_osx_ver() < 11:  return 0
-      if self.repo_prog != 'brew': return 0
-      if self.ok_openmp:           return 0
+      # if no homebrew, do not bother
+      if self.repo_prog != 'brew':
+         return 0
 
-      clibs = glob.glob('/usr/local/Cellar/gcc/*/lib/gcc/*/libgomp.*dylib')
-      # first check for nothing found
+      # require 10.11, unless being verbose
+      if self.get_osx_ver() < 11 and self.verb <= 1:
+         return 0
+
+      sname   = wpath.split('/')[0]    # short name, e.g. gcc
+      libdir  = '/usr/local/lib'
+      libpath = '%s/%s' % (libdir, libname)
+
+      croot = '/usr/local/Cellar'
+      clibs = glob.glob('%s/%s/%s' % (croot, wpath, libname))
+      clibs.sort(reverse=True)
+      # first check for any homebrew gomp libraries, at all
       if len(clibs) == 0:
-         self.comments.append('consider installing gcc under homebrew')
+         self.comments.append('consider installing %s under homebrew'%sname)
          return 1
 
-      # then check for a link under /usr/local/lib
-      llibs = glob.glob('/usr/local/lib/libgomp.*.dylib')
-      if len(llibs) == 0:
-         self.comments.append('consider linking %s under /usr/local/lib'\
-                              % clibs[0])
+      # if the library exists (as link or file), we are good to go
+      if os.path.exists(libpath):
+         if os.path.islink(libpath):
+	    lname = os.readlink(libpath)
+            print '++ found valid link %s\n   to %s' % (libpath, lname)
+         else:
+            print '++ found existent library %s' % libpath
+         return 0
+
+      # ** does not exist: so either no link or a bad one **
+
+      # if no link, suggest making one
+      if not os.path.islink(libpath):
+         self.comments.append('consider linking %s under %s'%(clibs[0],libdir))
          return 1
 
-      return 0
+      # huston, we have a bad link, say something useful
+      print '** bad link %s, probably to old version' % libpath
+      print '   --> points to missing %s' % os.readlink(libpath)
+      print '   --> consider instead: %s' % clibs[0]
+      print '   for example:\n' \
+            '       rm -f %s\n' \
+            '       ln -s %s %s' % (libpath, clibs[0], libpath)
+      self.comments.append('consider fixing link %s \n   to point to %s'\
+                           %(libpath,clibs[0]))
+
+      return 1
 
    def get_osx_ver(self):
       if self.system != "Darwin": return 0
@@ -454,7 +486,19 @@ class SysInfo:
       if header: print UTIL.section_divider('python libs', hchar='-')
       for lib in plibs: MT.test_import(lib, verb=verb)
       # explicitly note whether we have PyQt4
-      if not MT.test_import('PyQt4', verb=0): self.have_pyqt4 = 1
+      if not MT.test_import('PyQt4', verb=0):
+         self.have_pyqt4 = 1
+
+         # check for partial install
+         cmd = 'from PyQt4 import QtCore, QtGui'
+         try: exec cmd
+         except:
+            print '\n** have PyQt4, but cannot load QtCore, QtGui; error is:' \
+                  '\n\n'                                                      \
+                  '   **************************************************'
+            os.system('python -c "%s"' % cmd)
+            print '   **************************************************\n'
+            self.comments.append('check for partial install of PyQt4')
       print
 
       pdirs = glob.glob('/sw/bin/python*')
@@ -473,8 +517,10 @@ class SysInfo:
       for evar in ['PATH', 'PYTHONPATH', 'R_LIBS',
                    'LD_LIBRARY_PATH',
                    'DYLD_LIBRARY_PATH', 'DYLD_FALLBACK_LIBRARY_PATH']:
-         if os.environ.has_key(evar): print "%s = %s\n" % (evar, os.environ[evar])
-         else: print "%s = " % evar
+         if os.environ.has_key(evar):
+            print "%s = %s\n" % (evar, os.environ[evar])
+         else:
+            print "%s = " % evar
       print
 
    def show_general_afni_info(self, header=1):
@@ -484,7 +530,7 @@ class SysInfo:
       check_list = ['afni', 'AFNI_version.txt', 'python', 'R', 'tcsh']
       nfound = self.check_for_progs(check_list, show_missing=1)
       if nfound < len(check_list):
-         self.comments.append('missing main software component')
+         self.comments.append('failure under initial "AFNI and related program tests"')
 
       # make generic but pretty
       print "instances of various programs found in PATH:"
