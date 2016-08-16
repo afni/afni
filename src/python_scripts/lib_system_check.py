@@ -530,7 +530,7 @@ class SysInfo:
       check_list = ['afni', 'AFNI_version.txt', 'python', 'R', 'tcsh']
       nfound = self.check_for_progs(check_list, show_missing=1)
       if nfound < len(check_list):
-         self.comments.append('missing main software component')
+         self.comments.append('failure under initial "AFNI and related program tests"')
 
       # make generic but pretty
       print "instances of various programs found in PATH:"
