@@ -4,11 +4,10 @@ Statistics
 ==========
 
 
-
 .. toctree::
    :maxdepth: 2
 
-   STATS_All
+   center
 
 |
 
