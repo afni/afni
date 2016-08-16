@@ -534,7 +534,7 @@ g_history = """
     4.74 Aug 15, 2016: ACF blur estimation - run 3dFWHMx with -ACF
         - ACF and ClustSim files go into sub-directories, files_ACF/ClustSim
         - -regress_run_clustsim now prefers arguments, ACF, FWHM, both, no
-        - default clustsim method now ACF (including -regress_run_clustsim yes)
+        - default clustsim method is ACF (including -regress_run_clustsim yes)
 """
 
 g_version = "version 4.74, August 15, 2016"
