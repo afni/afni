@@ -97,6 +97,7 @@ static int   do_ranks  = 0 ;  /* 10 Nov 2010 */
 static int   do_1sam   = 1 ;  /* 10 Nov 2010 */
 static int   do_means  = 1 ;  /* 05 Feb 2014 */
 static int   do_tests  = 1 ;
+static int   do_cov    = 1 ;  /* 22 Jun 2016 */
 
 static unsigned int testA, testB, testAB ;
 
@@ -107,6 +108,7 @@ static unsigned int testA, testB, testAB ;
 #define CMETH_MEDIAN 1
 #define CMETH_MEAN   2
 
+static char *fname_cov=NULL ;
 static int mcov  = 0 ;
 static int nvout = 0 ;
 static int nvres = 0 ;
@@ -158,6 +160,8 @@ static int num_randomsign  = 0 ;     /* 02 Feb 2016 */
 static int       do_clustsim = 0 ;   /* 10 Feb 2016 */
 static int      num_clustsim = 0 ;
 static char *prefix_clustsim = NULL ;
+static char *tempdir         = "./" ;/* 20 Jul 2016 */
+static int64_t  mem_clustsim = 0 ;   /* 02 Aug 2016 */
 
 static int dofsub          = 0    ;  /* 19 Jan 2016 */
 
@@ -192,7 +196,8 @@ static void setup_randomsign(void)  /* moved here 02 Feb 2016 */
 
    if( randomsign_AAA == NULL )
      randomsign_AAA = (int *)malloc(sizeof(int)*nval_AAA) ;
-   nb = (int)rintf(0.35f*nval_AAA) ; nt = nval_AAA - nb ;
+   nb = (int)rintf(0.15f*nval_AAA) ; if( nb < 1 ) nb = 1 ;
+   nt = nval_AAA - nb ;
    do{
      for( nflip=jj=0 ; jj < nval_AAA ; jj++ ){
        randomsign_AAA[jj] = (lrand48()>>3) % 2 ;
@@ -742,6 +747,10 @@ void display_help_menu(void)
       "             ++ You CANNOT use both '-nomeans' and '-notests', because\n"
       "                 then you would be asking for no outputs at all!\n"
       "\n"
+      " -nocov    = Do not output the '-covariates' results.  This option is\n"
+      "             useful only for internal testing, and it's hard to see\n"
+      "             why the ordinary user would want it.\n"
+      "\n"
       " -mask mmm = Only compute results for voxels in the specified mask.\n"
       "             ++ Voxels not in the mask will be set to 0 in the output.\n"
       "             ++ If '-mask' is not used, all voxels will be tested.\n"
@@ -785,7 +794,7 @@ void display_help_menu(void)
       "                  (e.g., from MEG or from moving-window RS-FMRI analyses),\n"
       "                  and get time-dependent t-test results.  It is possible to do\n"
       "                  the same thing with a scripted loop, but that way is painful.\n"
-      "              ++ You can use '-covariates' with '-brickwise'. You should note that\n"
+      "              ++ You CAN use '-covariates' with '-brickwise'. You should note that\n"
       "                  each t-test will re-use the same covariates -- that is, there\n"
       "                  is no provision for time-dependent (or sub-brick dependent)\n"
       "                  covariate values -- for that, you'd have to relapse to scripting.\n"
@@ -830,7 +839,7 @@ void display_help_menu(void)
       "               '-nomeans' and '-toz').  Cannot be used with '-singletonA'\n"
       "               or with '-brickwise'.\n"
       "             ++ You will never get an 'all positive' or 'all negative' sign\n"
-      "                flipping case -- each sign will be present at least 35%%\n"
+      "                flipping case -- each sign will be present at least 15%%\n"
       "                of the time.\n"
       "             ++ There must be at least 7 samples in each input set to\n"
       "                use this option.\n"
@@ -854,21 +863,36 @@ void display_help_menu(void)
       "              ++ If you want to keep the 3dClustSim table .1D files, use this\n"
       "                 option in the form '-Clustsim'.  If you want to keep ALL the\n"
       "                 temp files, use '-CLUSTSIM'.\n"
-      "              ++ Since the simulations are done with '-toz' active, it would\n"
-      "                 make sense for you to use '-toz' when you use '-clustsim'.\n"
+      "              ++ Since the simulations are done with '-toz' active, the program\n"
+      "                 also turns on the '-toz' option for your output dataset. This\n"
+      "                 means that the output statistics will be z-scores, not t-values.\n"
       "              ++ '-clustsim' will not work with less than 7 datasets in each\n"
       "                 input set -- in particular, it doesn't work with '-singletonA'.\n"
-      "              ++ '-clustsim' runs step (a) in multiple jobs, for speed.  By\n"
+      "          -->>++ '-clustsim' runs step (a) in multiple jobs, for speed.  By\n"
       "                 default, it tries to auto-detect the number of CPUs on the system\n"
       "                 and uses that many separate jobs.  If you put a positive integer\n"
       "                 immediately following the option, as in '-clustsim 12', it will\n"
       "                 instead use that many jobs (e.g., 12).  This capability is to\n"
       "                 be used when the CPU count is not auto-detected correctly.\n"
+#if 0
+      "          -->>++ '-clustsim' can use up all the memory on a computer, and even\n"
+      "                 more -- causing the computer to freeze or crash.  The program\n"
+      "                 tries to avoid this, but it is not always possible to detect\n"
+      "                 how much memory is usable on a computer. For this reason, you\n"
+      "                 can use this option in the form\n"
+      "                    -clustsim NCPU NGIG\n"
+      "                 where NCPU is the number of CPUs (cores) to use, and NGIG is\n"
+      "                 the number of gigabytes of memory to use.  This may help you\n"
+      "                 prevent the 'Texas meltdown'.\n"
+#endif
+      "              ++ It is important to use the proper '-mask' option with '-clustsim'.\n"
+      "                 Otherwise, the statistics of the clustering will be skewed (badly).\n"
       "\n"
-      "        --->>>   PLEASE NOTE: This option has been tested only for a 2-sample\n"
-      "        --->>>   unpaired test vs. resting state data -- to see if the false\n"
-      "        --->>>   alarm rate (FAR) was near the nominal 5%% level.  It has not\n"
-      "        --->>>   yet been tested in the 1-sample case, or with covariates.\n"
+      "        --->>>   PLEASE NOTE: This option has been tested only for 1- and 2-sample\n"
+      "        --->>>   unpaired tests vs. resting state data -- to see if the false\n"
+      "        --->>>   alarm rate (FAR) was near the nominal 5%% level (it was).\n"
+      "        --->>>   The FAR for the covariate effects (as opposed to the main effect)\n"
+      "        --->>>   is still somewhat biased away from the 5%% level.\n"
       "\n"
       " -prefix_clustsim cc = Use 'cc' for the prefix for the '-clustsim' temporary\n"
       "                       files, rather than a randomly generated prefix.\n"
@@ -877,7 +901,10 @@ void display_help_menu(void)
       "                      ++ The default randomly generated prefix will start with\n"
       "                         'TT.' and be followed by 11 alphanumeric characters,\n"
       "                         as in 'TT.Sv0Ghrn4uVg'.  To mimic this, you might\n"
-      "                         use '-prefix_clustsim TT.Zhark'.\n"
+      "                         use something like '-prefix_clustsim TT.Zhark'.\n"
+      "\n"
+      " -tempdir ttt        = Store temporary files for '-Clustsim' in this directory.\n"
+      "                       [NOTE: these files will not be deleted by 3dttest++]\n"
 #if 0 /*** hidden from user ***/
       "\n"
       " -dofsub ss  = Subtract 'ss' from the normal degrees of freedom used.\n"
@@ -1443,6 +1470,12 @@ int main( int argc , char *argv[] )
        do_1sam = 0 ; nopt++ ; continue ;
      }
 
+     /*----- nocov -----*/
+
+     if( strcasecmp(argv[nopt],"-nocov") == 0 ){    /* 22 Jul 2016 */
+       do_cov = 0 ; nopt++ ; continue ;
+     }
+
      /*----- nomeans -----*/
 
      if( strcasecmp(argv[nopt],"-nomeans") == 0 ){  /* 05 Feb 2014 */
@@ -1520,28 +1553,58 @@ int main( int argc , char *argv[] )
        char *uuu ;
        if( do_clustsim )
          WARNING_message("Why do you use -clustsim more than once?!") ;
-       do_clustsim = 1 ;
+       do_clustsim = 2 ; toz = 1 ;
        if( argv[nopt][1] == 'C' ) do_clustsim = 2 ;
        if( argv[nopt][2] == 'L' ) do_clustsim = 3 ;
+
+       /* if next option is a number, it is the number of CPUs to use */
+
        nopt++ ;
        if( nopt < argc && isdigit(argv[nopt][0]) ){
          num_clustsim = (int)strtod(argv[nopt],NULL) ; nopt++ ;
          if( num_clustsim > 99 ){
-           ERROR_message("value after -clustsim is > 99") ; num_clustsim = 99 ;
+           ERROR_message("CPU count after -clustsim is > 99") ; num_clustsim = 99 ;
          } else if( num_clustsim < 1 ){
-           ERROR_message("value after -clustsim is < 1" ) ; num_clustsim = 1 ;
+           ERROR_message("CPU count after -clustsim is < 1" ) ; num_clustsim = 1 ;
          }
-       } else {
-         num_clustsim = AFNI_get_ncpu() ;
+
+         /* if next option is a number, it is the number of gigabytes to use */
+
+         if( nopt < argc && isdigit(argv[nopt][0]) ){
+           mem_clustsim = (int)strtod(argv[nopt],NULL) ; nopt++ ;
+           if( mem_clustsim < 2 )
+             ERROR_message("GIG count after -clustsim is < 2" ) ; mem_clustsim = 2 ;
+           mem_clustsim *= 1073741824LL ;  /* scale to byte count */
+         }
        }
+
+       /* make sure number of CPUs and gigabytes are set to reasonable values */
+
+       if( num_clustsim == 0 ){
+         num_clustsim = AFNI_get_ncpu() ;  /* will be at least 1 */
+         jj = (int)AFNI_numenv("OMP_NUM_THREADS") ;
+         if( jj > 0 && (jj < num_clustsim || num_clustsim == 1) ) num_clustsim = jj ;
+       }
+       if( mem_clustsim == 0 ){
+         mem_clustsim = AFNI_get_memsize() ;  /* might be 0 */
+         if( mem_clustsim == 0 ) mem_clustsim = 1073741824LL * 64LL ;  /* 64 Gbytes */
+       }
+
        INFO_message("Number of -clustsim threads set to %d",num_clustsim) ;
        uuu = UNIQ_idcode_11() ;
        prefix_clustsim = (char *)malloc(sizeof(char)*32) ;
        sprintf(prefix_clustsim,"TT.%s",uuu) ; free(uuu) ;
+
+       mem_clustsim = AFNI_get_memsize() ;
+       ININFO_message("Approximate amount of memory to be used = %s (%s)",
+                      commaized_integer_string(mem_clustsim) ,
+                      approximate_number_string((double)mem_clustsim) ) ;
+
+       ININFO_message("Default clustsim prefix set to '%s'",prefix_clustsim) ;
        continue ;
      }
 
-     /*----- -prefixclustim cc [11 Feb 2016] -----*/
+     /*----- -prefix_clustsim cc [11 Feb 2016] -----*/
 
      if( strcasecmp(argv[nopt],"-prefix_clustsim") == 0 ){
        if( ! do_clustsim )
@@ -1551,6 +1614,17 @@ int main( int argc , char *argv[] )
        prefix_clustsim = strdup(argv[nopt]) ;
        if( !THD_filename_ok(prefix_clustsim) )
          ERROR_exit("-prefix_clustsim '%s' is not acceptable",prefix_clustsim) ;
+       nopt++ ; continue ;
+     }
+
+     /*----- -tempdir [20 Jul 2016] -----*/
+
+     if( strcasecmp(argv[nopt],"-tempdir") == 0 ){
+       if( ++nopt >= argc )
+         ERROR_exit("Need argument after '%s'",argv[nopt-1]) ;
+       tempdir = strdup(argv[nopt]) ;
+       if( !THD_filename_ok(tempdir) )
+         ERROR_exit("-tempdir '%s' is not acceptable",tempdir) ;
        nopt++ ; continue ;
      }
 
@@ -1728,6 +1802,7 @@ int main( int argc , char *argv[] )
              labs[nds-1] = strdup(THD_trailname(fexp[iex],0)) ;
              cpt = strchr(labs[nds-1]+1,'+')    ; if( cpt != NULL ) *cpt = '\0' ;
              cpt = strstr(labs[nds-1]+1,".nii") ; if( cpt != NULL ) *cpt = '\0' ;
+             cpt = strstr(labs[nds-1]+1,".1D")  ; if( cpt != NULL ) *cpt = '\0' ;
              LTRUNC(labs[nds-1]) ;
            }
            if( didex ) MCW_free_expand(nexp,fexp) ;
@@ -1962,7 +2037,7 @@ int main( int argc , char *argv[] )
        char *lab ; float sig , men ; char nlab[2048] , dlab[2048] ;
        if( ++nopt >= argc ) ERROR_exit("need 1 argument after option '%s'",argv[nopt-1]);
        if( covnel != NULL ) ERROR_exit("can't use -covariates twice!") ;
-       covnel = THD_mixed_table_read( argv[nopt] ) ;
+       covnel = THD_mixed_table_read( argv[nopt] ) ; fname_cov = strdup(argv[nopt]) ;
        if( covnel == NULL ){
          ERROR_message("Can't read table from -covariates file '%s'",argv[nopt]) ;
          ERROR_message("Try re-running this program with the extra option -DAFNI_DEBUG_TABLE=YES") ;
@@ -2037,6 +2112,9 @@ int main( int argc , char *argv[] )
    if( brickwise && do_clustsim )            /* 10 Feb 2016 */
      ERROR_exit("You can't use -brickwise and -clustsim together!") ;
 
+   if( do_ranks && do_clustsim )
+     ERROR_exit("Can't use -rankize and -clustsim together :-(") ;
+
    if( do_randomsign && do_clustsim )        /* 10 Feb 2016 */
      ERROR_exit("You can't use -randomsign and -clustsim together!") ;
 
@@ -2052,10 +2130,20 @@ int main( int argc , char *argv[] )
    if( debug ) INFO_message("brickwise_num set to %d",brickwise_num) ;
 
    if( do_clustsim ){
+     if( DSET_NY(dset_AAA[0]) < 4 || DSET_NZ(dset_AAA[0]) < 4 )  /* 21 Jul 2016 */
+       ERROR_exit("You cannot use the '-Clustsim' option except on 3D datasets :-(") ;
+
      do_resid = 1 ;
      if( prefix_resid == NULL ){
        prefix_resid = (char *)malloc(sizeof(char)*(strlen(prefix_clustsim)+32)) ;
        sprintf(prefix_resid,"%s.resid.nii",prefix_clustsim) ;
+     } else {
+       if( !PREFIX_IS_NIFTI(prefix_resid) ){
+         prefix_resid = (char *)realloc(prefix_resid,sizeof(char)*(strlen(prefix_resid)+32)) ;
+         strcat(prefix_resid,".nii") ;
+         INFO_message("running 3dClustSim --> changed '-resid' prefix to NIFTI form: %s",
+                      prefix_resid ) ;
+       }
      }
    }
 
@@ -2390,8 +2478,11 @@ int main( int argc , char *argv[] )
 
    if( singletonA )
      nvres = nvout = 2 ;
-   else
-     nvres = nvout = ((twosam && do_1sam) ? 6 : 2) * (mcov+1) ; /* # of output volumes */
+   else {
+     int mct = (do_cov) ? mcov : 0 ;
+     nvres = ((twosam && do_1sam) ? 6 : 2) * (mcov+1) ; /* # of output volumes (calculated) */
+     nvout = ((twosam && do_1sam) ? 6 : 2) * (mct+1)  ; /* # of output volumes (saved) */
+   }
 
    if( !do_means || !do_tests ) nvout /= 2 ; /* no mean or stat sub-bricks? [05 Feb 2014] */
 
@@ -2535,7 +2626,7 @@ int main( int argc , char *argv[] )
 
    for( bb=0 ; bb < brickwise_num ; bb++ ){ /** loop over tests to perform **/
      bbase = bb*nvout ; ss = 0 ;
-     if( mcov <= 0 ){                    /*--- no covariates ---*/
+     if( mcov <= 0 || !do_cov ){         /*--- no covariates ---*/
        if( !twosam ){   /* 1 sample only = the simplest case */
          if( do_means ) MEAN_LABEL_1SAM (snam_AAA,"mean") ;
          if( do_tests ) TEST_LABEL_1SAM_MEAN(snam_AAA,dof_A ) ;
@@ -2843,13 +2934,14 @@ LABELS_ARE_DONE:  /* target for goto above */
      for( kk=0 ; kk < nvout ; kk++ )        /* load dataset with 0s */
        EDIT_substitute_brick( bbset , kk , MRI_float , NULL ) ;
 
-     if( do_means+do_tests == 2 ){  /* simple copy of results into temp dataset */
+     if( do_means+do_tests == 2 && do_cov ){  /* simple copy of results into temp dataset */
        THD_vectim_to_dset( vimout , bbset ) ;
      } else {
        int *list = (int *)malloc(sizeof(int)*nvout) ;
        ss = (do_means) ? 0 : 1 ;
        for( kk=0 ; kk < nvout ; kk++ ) list[kk] = ss + 2*kk ;
        THD_vectim_indexed_to_dset( vimout , nvout,list , bbset ) ;
+       free(list) ;
      }
 
      for( kk=0 ; kk < nvout ; kk++ ){       /* move results into final output dataset */
@@ -2940,7 +3032,7 @@ LABELS_ARE_DONE:  /* target for goto above */
    if( do_clustsim ){
      char fname[128] , *cmd , *ccc ; int qq,pp , nper ; double ct1,ct2 ;
 
-     cmd = (char *)malloc(sizeof(char)*8192) ;
+     cmd = (char *)malloc(sizeof(char)*(8192+mcov*128)) ;
      nper = 10000 / num_clustsim + 1 ;
 
      /* loop to start jobs */
@@ -2956,24 +3048,56 @@ LABELS_ARE_DONE:  /* target for goto above */
        /* run 3dttest++ with the residuals as input */
 
        sprintf( cmd , "3dttest++ -DAFNI_AUTOMATIC_FDR=NO -DAFNI_DONT_LOGFILE=YES"
-                      " -randomsign %d -no1sam -nomeans -toz" , nper ) ;
+                      " -randomsign %d -nomeans -toz" , nper ) ;
+       if( twosam )
+         sprintf( cmd+strlen(cmd) , " -no1sam") ;
        if( name_mask != NULL )
          sprintf( cmd+strlen(cmd) , " -mask %s",name_mask) ;
+       if( ttest_opcode == 1 )
+         sprintf( cmd+strlen(cmd) , " -unpooled") ;
+       if( ttest_opcode == 2 )
+         sprintf( cmd+strlen(cmd) , " -paired") ;
 
-       if( nval_BBB == 0 ){  /* only -setA */
-         sprintf( cmd+strlen(cmd) , " -setA %s" , prefix_resid ) ;
-       } else {
-         sprintf( cmd+strlen(cmd) , " -setA %s'[0..%d]' -setB %s'[%d..$]'" ,
-                                    prefix_resid , nval_AAA-1 ,
-                                    prefix_resid , nval_AAA    ) ;
+       if( mcov == 0 ){
+         if( nval_BBB == 0 ){  /* only -setA */
+           sprintf( cmd+strlen(cmd) , " -setA %s" , prefix_resid ) ;
+         } else {
+           sprintf( cmd+strlen(cmd) , " -setA %s'[0..%d]' -setB %s'[%d..$]'" ,
+                                      prefix_resid , nval_AAA-1 ,
+                                      prefix_resid , nval_AAA    ) ;
+         }
+       } else {  /* covariates are harder to format (must allow for labels) */
+         sprintf( cmd+strlen(cmd) , " -nocov -covariates %s" , fname_cov ) ;
+         switch( center_code ){
+           default:
+           case CENTER_DIFF: sprintf( cmd+strlen(cmd) , " -center DIFF") ; break ;
+           case CENTER_SAME: sprintf( cmd+strlen(cmd) , " -center SAME") ; break ;
+           case CENTER_NONE: sprintf( cmd+strlen(cmd) , " -center NONE") ; break ;
+         }
+         if( center_meth == CMETH_MEDIAN )
+           sprintf( cmd+strlen(cmd) , " -cmeth MEDIAN") ;
+
+         sprintf( cmd+strlen(cmd) , " -setA rAAA" ) ;
+         for( jj=0 ; jj < nval_AAA ; jj++ ){
+           sprintf( cmd+strlen(cmd) , " %s %s'[%d]'" , labl_AAA[jj] , prefix_resid , jj ) ;
+         }
+         if( nval_BBB > 0 ){
+           sprintf( cmd+strlen(cmd) , " -setB rBBB" ) ;
+           for( jj=0 ; jj < nval_BBB ; jj++ ){
+             sprintf( cmd+strlen(cmd) , " %s %s'[%d]'" , labl_BBB[jj] , prefix_resid , jj+nval_AAA ) ;
+           }
+         }
        }
 
+       sprintf( cmd+strlen(cmd) , " -prefix %s/%s.%03d.nii" , tempdir , prefix_clustsim , pp ) ;
+
        /* let only job #0 print progress to the screen */
+       if( pp > 0 ) strcat(cmd," &> /dev/null") ;
 
-       sprintf( cmd+strlen(cmd) , " -prefix %s.%03d.nii" , prefix_clustsim , pp ) ;
-       if( pp > 0 ) strcat(cmd," >& /dev/null") ;
+       if( pp == 0 ) ININFO_message("#0 jobs command:\n   %s",cmd) ;
 
-       start_job( cmd ) ; if( pp > 0 ) NI_sleep(66) ;
+       start_job( cmd ) ;
+       if( pp > 0 ) NI_sleep(666) ;
      }
 
      /* wait until all jobs stop */
@@ -2988,12 +3112,12 @@ LABELS_ARE_DONE:  /* target for goto above */
 
      sprintf(fname,"%s.CSim.cmd",prefix_clustsim) ;
      sprintf( cmd , "3dClustSim -DAFNI_DONT_LOGFILE=YES"
-                    " -inset %s.???.nii -prefix %s.CSim -LOTS -both -cmd %s" ,
-                    prefix_clustsim , prefix_clustsim , fname ) ;
+                    " -inset %s/%s.???.nii -prefix %s.CSim -LOTS -both -nodec -cmd %s" ,
+                    tempdir , prefix_clustsim , prefix_clustsim , fname ) ;
      if( name_mask != NULL )
        sprintf( cmd+strlen(cmd) , " -mask %s",name_mask) ;
 
-     ININFO_message("===== starting 3dClustSim =====") ;
+     ININFO_message("===== starting 3dClustSim =====\n   %s",cmd) ;
      system(cmd) ;
 
      /* load the 3drefit command from 3dClustSim */
@@ -3010,7 +3134,7 @@ LABELS_ARE_DONE:  /* target for goto above */
      /* and run 3drefit */
 
      ININFO_message("===== 3drefit-ing 3dClustSim results into %s =====",DSET_HEADNAME(outset)) ;
-     sprintf(cmd,"%s %s",ccc,DSET_HEADNAME(outset)) ;
+     sprintf(cmd,"%s -DAFNI_DONT_LOGFILE=NO %s",ccc,DSET_HEADNAME(outset)) ;
      system(cmd) ;
 
      if( do_clustsim == 1 ){

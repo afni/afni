@@ -708,7 +708,7 @@ void AFNI_syntax(void)
     "multiple copies of AFNI.  For example, put the following\n"
     "command in your shell startup file (e.g., ~/.cshrc or ~/.bashrc)\n"
     "   alias ablue afni -XXXfgcolor white -XXXbgcolor navyblue\n"
-	 "Then the command 'ablue' will start AFNI with a blue background\n"
+    "Then the command 'ablue' will start AFNI with a blue background\n"
     "and using white for the default text color.\n"
     "\n"
     "Note that these options set 'properties' on the X11 server,\n"
@@ -1774,6 +1774,11 @@ void AFNI_sigfunc_alrm(int sig)
      "When life looks like Easy Street, there is danger at your door",
      "Like the morning sun I come, like the wind I go"               ,
      "What I want to know is, where does the time go?"               ,
+     "Every silver lining's got a touch of grey"                     ,
+     "A friend of the devil is a friend of mine"                     ,
+     "Well, I ain't often right, but I never been wrong"             ,
+     "If the horse don't pull, you got to carry the load"            ,
+     "Hang it up and see what tomorrow brings"                       ,
      "The flower that once has blown, for ever dies"                 ,
      "Drink! for you know not why you go, or where"                  ,
      "Tomorrow we feast with us at home"                             ,
@@ -1792,6 +1797,8 @@ void AFNI_sigfunc_alrm(int sig)
      "We are each our own devil, and make this world our hell"       ,
      "I have nothing to declare except my genius"                    ,
      "In matters of opinion, all my adversaries are insane"          ,
+     "The fewer the facts, the stronger the opinions"                ,
+     "Research is what I'm doing when I don't know what I'm doing"   ,
      "Everything is a matter of opinion: mine matters, yours doesn't",
      "It's not a phase, it's a lifestyle"                            ,
      "Go to Heaven for the climate, Hell for the company"            ,
@@ -1855,6 +1862,8 @@ void AFNI_sigfunc_alrm(int sig)
      "How quick come the reasons for approving what we like"         ,
      "This is your only chance at building a disreputable past"      ,
      "O Brave New World, that has such software in it"               ,
+     "When I ask for advice, what I really want is an accomplice"    ,
+     "Remember -- You are absolutely unique. Just like everone else" ,
      "Remember -- AFNI is free, but worth at least 1000 times more"  ,
      "Remember -- Nothing is always absolutely so"                   ,
      "Remember -- 90% of everything is cr*p"                         ,
@@ -1871,6 +1880,7 @@ void AFNI_sigfunc_alrm(int sig)
      "Remember -- Memory is long but time is tricky"                 ,
      "Remember -- Men are always willing to believe what they wish"  ,
      "Remember -- What I tell you three times is true"               ,
+     "Remember -- A monad is the same as an endofunctor"             ,
      "Fools give you reasons, wise men never try"                    ,
      "People willingly trust the statistics they wish to believe"    ,
      "Heaven's last best gift, my ever new delight"                  ,
@@ -1922,6 +1932,7 @@ void AFNI_sigfunc_alrm(int sig)
      "Even if you a minority of one, the truth is still the truth"   ,
      "Money talks, but usually just to say 'Goodbye'"                ,
      "Are you a Bayesian Heretic or a Frequentist True Believer?"    ,
+     "Please tell me you don't believe in Fuzzy Logic"               ,
      "Are you ready for the Big Rip?"                                ,
      "I hereby declare the Null Hypothesis to be ..... Falsified"    ,
      "I'm sick of thinking about p-values -- how about you?"         ,
@@ -1936,7 +1947,6 @@ void AFNI_sigfunc_alrm(int sig)
      "A thermos of hot tea in Pangboche would be a nice pit stop"    ,
      "Next stop: Bora Bora and Rangiroa"                             ,
      "Do you still miss the NIH Bear? I do"                          ,
-     "Advice from the NIH Bear -- honey goes good with brains"       ,
      "Always be patient with the rich and powerful"                  ,
      "Better to visit hell in your lifetime than afterwards"         ,
      "Halfway is 12 miles, when you have 14 miles to go"             ,
@@ -1980,6 +1990,14 @@ void AFNI_sigfunc_alrm(int sig)
      "I have not failed; I've just found 10,000 ways that don't work",
      "Statistics are good, but dark chocolate is better"             ,
      "After every tempest comes the calm"                            ,
+     "I've got MY story about the brain; what's yours?"              ,
+     "I came, I saw, I got confused"                                 ,
+     "Computers are useless -- they can only give you answers"       ,
+
+     "Returning control of your brain (images) back to yourself"     ,
+     "Returning your endofunctors back to their co-monads"           ,
+     "Returning you from brain-blob land to actual thinking land"    ,
+
 
      /* This set of quotes is from Paradise Lost,
         by John Milton (a very very early AFNI user) */
@@ -2027,12 +2045,27 @@ void AFNI_sigfunc_alrm(int sig)
      "If you have any problems with AFNI, blame goes to ... Ziad Saad ;)"      ,
      "If you have any problems with AFNI, blame goes to ... Pat Bellgowan ;)"  ,
      "If you have any problems with AFNI, blame goes to ... Kyle Simmons ;)"   ,
+     "If you have any problems with AFNI, blame goes to ... Jerzy Bodurka ;)"  ,
      "All suspicion points to a Frost-Bellgowan plot"                          ,
      "All signs points to a Frost-Bellgowan conspiracy"                        ,
+     "If you have any questions about AFNI, ask ... Daniel Glen :)"            ,
+     "If you have any questions about AFNI, ask ... Rick Reynolds :)"          ,
+     "If you have any questions about AFNI, ask ... Paul Taylor :)"            ,
+     "If you have any questions about AFNI, ask ... Gang Chen :)"              ,
 
-     "Will all great Neptune's ocean wash this modeling error from my hands?"         ,
+     "Remember -- Belief is not Truth. No matter how much you want it to be"          ,
+     "Remember -- Truth is not always believed, even when it is under your nose"      ,
      "Remember -- Screaming is the next best thing to solving a problem"              ,
      "Remember -- Swearing is almost as good as solving a problem"                    ,
+     "Remember -- Closure operators are monads on preorder categories"                ,
+     "How about you and me climb Mt Belford next weekend? Meet me at the trailhead"   ,
+     "Math is the only place where truth and beauty mean the same thing"              ,
+     "I may be going to hell in a bucket, but at least I'm enjoying the ride"         ,
+     "Next time, just for fun, I'll toss in some extra blobs in CSF for you"          ,
+     "What do you mean, you don't believe all those clusters in white matter?"        ,
+     "For an extra pumpernickel bagel, I'll put a blob wherever you want it"          ,
+     "I don't know about you, but my amygdala is lighting up like it's on fire"       ,
+     "Will all great Neptune's ocean wash this modeling error from my regression?"    ,
      "Data which passes through so many steps can hardly have much truth left"        ,
      "One man's way may be as good as another's, but we all like our own best"        ,
      "Some ideas are so wrong that only an intelligent person could believe them"     ,
@@ -2074,6 +2107,7 @@ void AFNI_sigfunc_alrm(int sig)
      "Three things cannot long be hidden: the Sun, the Moon, and the Truth"           ,
      "May the Dark Side of the Force get lost on the way to your data"                ,
      "The Andromeda Galaxy is on a collision course with us -- be prepared"           ,
+     "Stellar formation will cease in just a trillion years -- what will we do then?" ,
      "We are very user friendly -- we are just selective about who our friends are"   ,
      "May it be a light to you in dark places, when all other lights go out"          ,
      "No in elenath hilar nan had gin -- May the stars shine upon your path"          ,
@@ -2089,9 +2123,9 @@ void AFNI_sigfunc_alrm(int sig)
      "O wad some Pow'r the giftie gie us, To see oursels as ithers see us"            ,
      "One half the world cannot understand the statistics of the other"               ,
 
-     "My name is AFNImandias, Brain of Brains; Look on my Statistics, ye Clever, and despair" ,
-
+     "My name is AFNImandias, Brain of Brains; Look on my Statistics, ye Clever, and Despair" ,
      "Statistically Significant is NOT the same as Significant -- they're not even similar"   ,
+     "If you drink a liquid that has p=0.06 of being poison, do you feel significantly safe?" ,
 
      "\n  It is a truth universally acknowledged, that a single scientist\n"
      "  in possession of a large data collection, is in need of an AFNI."                     ,
@@ -2124,7 +2158,23 @@ void AFNI_sigfunc_alrm(int sig)
      "  look for more data, think harder, mumble inaudibly, or have a strong drink"           ,
 
      "\n  To be stupid, selfish, and have good health are three requirements\n"
-     "  for happiness; though if stupidity is lacking, all is lost"
+     "  for happiness; though if stupidity is lacking, all is lost"                           ,
+
+     "\n xkcd's translation of p-values into words:\n"
+     "     0.001  = Highly significant\n"
+     "     0.01   = Highly significant\n"
+     "     0.02   = Highly significant\n"
+     "     0.03   = Highly significant\n"
+     "     0.04   = Significant\n"
+     "     0.049  = Significant\n"
+     "     0.050  = Oh cr*p, redo calculations\n"
+     "     0.051  = On the edge of significance\n"
+     "     0.06   = On the edge of significance\n"
+     "     0.07   = Highly suggestive\n"
+     "     0.08   = Highly suggestive\n"
+     "     0.09   = Significant at the p < 0.1 level\n"
+     "     0.099  = Significant at the p < 0.1 level\n"
+     "     > 0.1  = Hey! Look at this interesting subgroup analysis"
    } ;
 #undef NTOP
 #ifdef USE_SONNETS
@@ -3213,7 +3263,7 @@ void AFNI_startup_timeout_CB( XtPointer client_data , XtIntervalId *id )
 
 ENTRY("AFNI_startup_timeout_CB") ;
 
-   /* make sure help window is popped down */
+   /*--- make sure help window is popped down ---*/
 
 #if 0
    MCW_help_CB( MAIN_im3d->vwid->top_shell,NULL,NULL ); /* initialize help */
@@ -3221,11 +3271,29 @@ ENTRY("AFNI_startup_timeout_CB") ;
 
    MCW_help_CB(NULL,NULL,NULL) ;
 
-   /* tell user if any mixed-type datasets transpired [06 Sep 2006] */
+   /*--- test geometry of main window [08 Aug 2016]
+         if it is negative territory, move it back to positive land;
+         this is to (hopefull) fix a peculiarity in XQuartz on El Capitan ---*/
+
+   { Position xroot,yroot ;
+     WAIT_for_window( MAIN_im3d->vwid->top_shell ) ;
+     XtTranslateCoords( MAIN_im3d->vwid->top_shell , 0,0, &xroot , &yroot ) ;
+#if 0
+INFO_message("AFNI controller xroot=%d yroot=%d",(int)xroot,(int)yroot) ;
+#endif
+     if( xroot < 0 || yroot < 0 ){
+       INFO_message("AFNI was off screen at x=%d y=%d -- repositioning" ,
+                   (int)xroot , (int)yroot ) ;
+       XtVaSetValues( MAIN_im3d->vwid->top_shell, XmNx,20, XmNy,20, NULL ) ;
+       REFRESH ;
+     }
+   }
+
+   /*--- tell user if any mixed-type datasets transpired [06 Sep 2006] ---*/
 
    AFNI_inconstancy_check( im3d , NULL ) ;
 
-   /* NIML listening on [moved here 17 Mar 2002] */
+   /*--- NIML listening on [moved here 17 Mar 2002] ---*/
 
    if( MAIN_im3d->type == AFNI_3DDATA_VIEW && GLOBAL_argopt.yes_niml ){
      AFNI_init_niml() ;
@@ -3332,7 +3400,7 @@ ENTRY("AFNI_startup_timeout_CB") ;
                             NULL ) ;                           /* 12 Feb 2010 */
    }
 
-   /* 05 May 2009: make sure the Cluster widgets show up properly */
+   /*--- 05 May 2009: make sure the Cluster widgets show up properly ---*/
 
    AFNI_vedit_CB( im3d->vwid->func->options_vedit_av , im3d ) ;
 
@@ -3367,7 +3435,7 @@ ENTRY("AFNI_startup_timeout_CB") ;
    }
 #endif
 
-   /* finish up getting AFNI ready to be presented to the world */
+   /*--- finish up getting AFNI ready to be presented to the world ---*/
 
    if( im3d->vwid->tips_pb != NULL && lrand48()%2==0 )
      MCW_flash_widget(1,im3d->vwid->tips_pb) ;
@@ -3379,25 +3447,25 @@ ENTRY("AFNI_startup_timeout_CB") ;
    if( im3d->vwid->tips_pb != NULL && lrand48()%2==0 )
      MCW_flash_widget(1,im3d->vwid->tips_pb) ;
 
-   /* 29 Jul 2005: run any driver commands from the command line */
+   /*--- 29 Jul 2005: run any driver commands from the command line ---*/
 
    for( vv=0 ; vv < COM_num ; vv++ ){
      AFNI_driver(COM_com[vv]) ; free(COM_com[vv]) ;
    }
 
-   /* 29 Nov 2005: Message Of The Day -- did it change? */
+   /*--- 29 Nov 2005: Message Of The Day -- did it change? ---*/
 
    if( GLOBAL_motd != NULL && !AFNI_noenv("AFNI_MOTD_CHECK") )
      AFNI_display_motd( im3d->vwid->imag->topper ) ;
 
-   /* 09 Nov 2005: start checking periodically for updated datasets */
+   /*--- 09 Nov 2005: start checking periodically for updated datasets ---*/
 
    if( AFNI_yesenv("AFNI_AUTO_RESCAN") )
     (void) XtAppAddTimeOut( MAIN_app,29999, AFNI_rescan_timeout_CB,&MAIN_app );
 
    AFNI_coord_filer_setup(im3d) ; /* 07 May 2010 */
 
-   /*- 12 May 2010: As the last printout, say when this version was created -*/
+   /*--- 12 May 2010: As the last printout, say when this version was created ---*/
 
    fprintf(stderr,"\n++ NOTE: This version of AFNI was built " __DATE__ " ++\n" ) ;
 
@@ -3405,7 +3473,7 @@ ENTRY("AFNI_startup_timeout_CB") ;
       !AFNI_yesenv("AFNI_ENABLE_MARKERS")    )
      fprintf(stderr,"++ NOTE: 'Define Markers' is hidden: right-click 'DataDir' to see it\n") ;
 
-   /** Apr 2013: delete this message in a few months **/
+   /**--- Apr 2013: delete this message in a few months ---**/
 
    if( __DATE__[10] == '3' && (__DATE__[0] == 'A' || __DATE__[0] == 'M') )
      fprintf(stderr,
@@ -3426,9 +3494,11 @@ ENTRY("AFNI_startup_timeout_CB") ;
        "   https://afni.nimh.nih.gov/pub/dist/doc/program_help/README.environment.html\n") ;
 
 
-   /* splash window down -- moved here 29 May 2013 */
+   /*--- splash window down -- moved here 29 May 2013 ---*/
 
    AFNI_splashdown(); STATUS("splashed down");
+
+   /*--- and AWAY WE GO (how sweet it is!) ---*/
 
    MPROBE ;                       /* check mcw_malloc() for integrity */
    EXRETURN ;
@@ -3451,6 +3521,7 @@ ENTRY("AFNI_startup_timeout_CB") ;
 
    See also Get_UO_Dset
 ----------------------------------------------------------------------*/
+
 FD_brick *Get_FD_Brick_As_Selected(FD_brick *br, int type, int *rival)
 {
    Three_D_View *im3d = (Three_D_View *)br->parent ;

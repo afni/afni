@@ -1004,6 +1004,10 @@ static THD_warp tempA_warp ;
 #define DATASET_BRICK_SUFFIX  "BRIK"
 #define DATASET_NOTES_SUFFIX  "NOTE"
 
+/* for strstr searches, include the '.'  17 Jun 2016 [rickr,DRG] */
+#define DATASET_DOT_HEADER_SUFFIX ".HEAD"
+#define DATASET_DOT_BRICK_SUFFIX  ".BRIK"
+
 /***
   The following codes define how the data is stored on disk.
   At one time, I started to support more than one storage
@@ -1032,8 +1036,9 @@ static THD_warp tempA_warp ;
 #define STORAGE_BY_NI_SURF_DSET  13  /* NIML surface dset */
 #define STORAGE_BY_GIFTI         14  /* GIFTI surface dset */
 #define STORAGE_BY_NI_TRACT      15  /* NIML tract dset */
+#define STORAGE_BY_IMAGE_FILE    16  /* 06 Jul 2016 */
 
-#define LAST_STORAGE_MODE        15
+#define LAST_STORAGE_MODE        16
 
 /*! Contains information about where/how dataset is stored on disk.
 
@@ -4439,6 +4444,9 @@ extern THD_3dim_dataset * THD_open_tcat( char * ) ;         /* 04 Aug 2004 */
 extern THD_3dim_dataset * THD_open_niml( char * ) ;         /* 01 Jun 2006 */
 extern THD_3dim_dataset * THD_open_gifti( char * ) ;        /* 13 Feb 2008 */
 
+extern THD_3dim_dataset * THD_open_image( char *fname ) ;   /* 06 Jul 2016 */
+extern THD_3dim_dataset * THD_image_to_dset( MRI_IMAGE *im , char *prefix ) ;
+
 extern THD_string_array * THD_multiplex_dataset( char * ) ; /* 19 Jul 2007 */
 
 extern THD_3dim_dataset * THD_niml_3D_to_dataset( NI_element *, char * ) ;
@@ -5150,8 +5158,8 @@ extern FD_brick ** THD_setup_bricks( THD_3dim_dataset * ) ;
 
 extern FD_brick * THD_oriented_brick( THD_3dim_dataset *, char *) ; /* 07 Dec 2001 */
 
-extern int thd_floatscan  ( size_t , float *   ) ; /* 30 Jul 1999 */
-extern int thd_complexscan( size_t , complex * ) ; /* 14 Sep 1999 */
+extern size_t thd_floatscan  ( size_t , float *   ) ; /* 30 Jul 1999 */
+extern size_t thd_complexscan( size_t , complex * ) ; /* 14 Sep 1999 */
 
 #undef floatfix
 #ifdef isfinite
@@ -5161,10 +5169,10 @@ extern int thd_complexscan( size_t , complex * ) ; /* 14 Sep 1999 */
 # define isfinite    finite
 #endif
 
-extern int mri_floatscan  ( MRI_IMAGE * ) ;     /* 22 Feb 2007 */
-extern int imarr_floatscan( MRI_IMARR * ) ;
-extern int dblk_floatscan ( THD_datablock * ) ;
-extern int dset_floatscan ( THD_3dim_dataset * ) ;
+extern size_t mri_floatscan  ( MRI_IMAGE * ) ;     /* 22 Feb 2007 */
+extern size_t imarr_floatscan( MRI_IMARR * ) ;
+extern size_t dblk_floatscan ( THD_datablock * ) ;
+extern size_t dset_floatscan ( THD_3dim_dataset * ) ;
 
 #undef  BAD_FLOAT
 #define BAD_FLOAT(xx) thd_floatscan(1,&(xx))    /* 31 Dec 2008 */

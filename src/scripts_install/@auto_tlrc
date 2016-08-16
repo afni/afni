@@ -1,6 +1,18 @@
 #!/bin/tcsh -f
 @global_parse `basename $0` "$*" ; if ($status) exit 0
 
+
+# ---------------------------------------------------------------------------
+# @auto_tlrc depends on (at least) the following AFNI programs:
+#
+#    3dAttribute  3dBrickStat  3dNotes  3dSkullStrip  3dWarp  3dWarpDrive
+#    3dZeropad  3dcalc  3dcopy  3dinfo  3drefit  3drename  3dresample
+#    @AfniOrient2RAImap  @Center_Distance  @CheckForAfniDset @FindAfniDsetPath
+#    @FromRAI  @GetAfniOrient  @GetAfniPrefix  @GetAfniView  @VolCenter  
+#    @clip_volume  @global_parse  @parse_afni_name  afni  cat_matvec  ccalc
+# ---------------------------------------------------------------------------
+
+
 PARSE: 
    #exit status
    set estat = 0
@@ -1356,7 +1368,7 @@ if ( "$ref_path" == "$ref_in" ) then
       goto END
    endif
    #echo "try finding ref_in in new ref_path"
-   if ( `@CheckForAfniDset ${ref_path}/${ref_in}` != 2 ) then
+   if ( `@CheckForAfniDset ${ref_path}/${ref_in}` < 2 ) then
       echo "Error: Template dset ${ref_in} not found"
       echo "   in afni's binaries directory"
       set estat = 1
