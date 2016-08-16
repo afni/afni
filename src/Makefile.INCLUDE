@@ -1309,6 +1309,14 @@ AlphaSim:AlphaSim.o
 	$(RM) $@
 	$(CCOMP) -o 3dClustSim 3dClustSim.o $(LFLAGS) $(LLIBS)
 
+3dClustSimX.o:3dClustSimX.c
+	$(RM) $@
+	$(CCOMP) -c 3dClustSimX.c $(INFLAGS)
+
+3dClustSimX:3dClustSimX.o
+	$(RM) $@
+	$(CCOMP) -o 3dClustSimX 3dClustSimX.o $(LFLAGS) $(LLIBS)
+
 3dBlurInMask.o:3dBlurInMask.c
 	$(RM) $@
 	$(CCOMP) -c 3dBlurInMask.c $(INFLAGS)
