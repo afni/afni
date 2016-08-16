@@ -196,7 +196,8 @@ static void setup_randomsign(void)  /* moved here 02 Feb 2016 */
 
    if( randomsign_AAA == NULL )
      randomsign_AAA = (int *)malloc(sizeof(int)*nval_AAA) ;
-   nb = (int)rintf(0.35f*nval_AAA) ; nt = nval_AAA - nb ;
+   nb = (int)rintf(0.15f*nval_AAA) ; if( nb < 1 ) nb = 1 ;
+   nt = nval_AAA - nb ;
    do{
      for( nflip=jj=0 ; jj < nval_AAA ; jj++ ){
        randomsign_AAA[jj] = (lrand48()>>3) % 2 ;
@@ -838,7 +839,7 @@ void display_help_menu(void)
       "               '-nomeans' and '-toz').  Cannot be used with '-singletonA'\n"
       "               or with '-brickwise'.\n"
       "             ++ You will never get an 'all positive' or 'all negative' sign\n"
-      "                flipping case -- each sign will be present at least 35%%\n"
+      "                flipping case -- each sign will be present at least 15%%\n"
       "                of the time.\n"
       "             ++ There must be at least 7 samples in each input set to\n"
       "                use this option.\n"
