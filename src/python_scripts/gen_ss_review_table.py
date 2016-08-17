@@ -121,9 +121,10 @@ g_history = """
    0.5  May 19, 2014   - mention gen_ss_review_scripts.py -help_fields
    0.6  Aug 19, 2015   - added -show_missing, to display missing keys
    0.7  Oct 28, 2015   - make 'a/E mask Dice coef' parent of 'mask correlation'
+   0.8  Aug 17, 2016   - 'blur estimates (FWHM)' is parent of 'blur estimates'
 """
 
-g_version = "gen_ss_review_table.py version 0.7, Oct 28, 2015"
+g_version = "gen_ss_review_table.py version 0.8, August 17, 2016"
 
 
 class MyInterface:
@@ -383,6 +384,8 @@ class MyInterface:
          return 'degrees of freedom used'
       if label == 'anat/EPI mask correlation':
          return 'anat/EPI mask Dice coef'
+      if label == 'blur estimates':
+         return 'blur estimates (FWHM)'
 
       return label
 

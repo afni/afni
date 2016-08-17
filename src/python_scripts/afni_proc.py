@@ -535,9 +535,11 @@ g_history = """
         - ACF and ClustSim files go into sub-directories, files_ACF/ClustSim
         - -regress_run_clustsim now prefers arguments, ACF, FWHM, both, no
         - default clustsim method is ACF (including -regress_run_clustsim yes)
+    5.00 Aug 17, 2016: ACF blur estimation is ready
+        - includes gen_ss_review_scripts/table.py
 """
 
-g_version = "version 4.74, August 15, 2016"
+g_version = "version 5.00, August 17, 2016"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \
