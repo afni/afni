@@ -938,6 +938,30 @@ void process_clusters_to_Xvectors( int ijkbot, int ijktop , int ipthr )
 }
 
 /*---------------------------------------------------------------------------*/
+/* find the intermediate value of x at alphat,
+   given x at alpha0 and alpha1, where alpha is a tail (1-CDF) probability,
+   assumed to be of the extreme value form
+      alpha(x) = 1 - exp( -exp(-(x-p)/q) )
+      log(-log(1-alpha(x))) = -x/q + p/q
+   Define a(alpha) = log(-log(1-alpha)), so
+      a(x) = -x/q + p/q  or  x(a) = p - q*a
+*//*-------------------------------------------------------------------------*/
+
+static __inline__ float
+  inverse_interp_extreme( float alpha0 , float alpha1 , float alphat ,
+                          float x0     , float x1                      )
+{
+   float a0,a1,at , xt ;
+
+   a0 = log(-log(1-alpha0)) ;
+   a1 = log(-log(1-alpha1)) ;
+   at = log(-log(1-alphat)) ;
+
+   xt = x0 + (x1-x0)/(a1-a0)*(at-a0) ;
+   return xt ;
+}
+
+/*---------------------------------------------------------------------------*/
 
 int main( int argc , char *argv[] )
 {
@@ -1034,9 +1058,29 @@ INFO_message("start clustering NN=%d",nnlev) ;
 
    for( ii=0 ; ii < num_inset ; ii++ ) DSET_unload(inset[ii]) ;
 
+   /*--- find the global distributions ---*/
+
+   { float *fomg=calloc(sizeof(float),niter); int nfom,jj; Xcluster **xcc;
+     float a0,a1,f0,f1,ft ;
+     for( qpthr=0 ; qpthr < npthr ; qpthr++ ){
+       xcc = Xclust_g[qpthr] ;
+       for( nfom=ii=0 ; ii < niter ; ii++ ){
+         if( xcc[ii] != NULL ) fomg[nfom++] = xcc[ii]->fom ;
+       }
+       if( nfom < 100 ) continue ;  /* should not happen */
+       qsort_float_rev( nfom, fomg ) ;
+       jj = (int)(0.05f*niter) ;
+       a0 = ((float)jj)/((float)niter) ; f0 = fomg[jj] ;
+       a1 = a0 + 1.0f/((float)niter) ;   f1 = fomg[jj+1] ;
+       ft = inverse_interp_extreme( a0,a1,0.05f , f0,f1 ) ;
+       INFO_message("5%% FOM for pthr=%.5f is %g (crude=%g nfom=%d)",pthr[qpthr],ft,fomg[jj],nfom) ;
+     }
+     free(fomg) ;
+   }
+
    /*--- dilate the clusters ---*/
 
-   if( nndil > 0 ){
+   if( nndil >= 0 ){
 
      ndilg   = (int *   )malloc(sizeof(int    )*nthr) ;
      dilg_iq = (ind_t **)malloc(sizeof(ind_t *)*nthr) ;
@@ -1051,6 +1095,7 @@ INFO_message("start clustering NN=%d",nnlev) ;
 
      for( qpthr=0 ; qpthr < npthr ; qpthr++ ){
 
+       if( qpthr+nndil == 0 ) continue ;
 ININFO_message("start dilating %d",qpthr+nndil) ;
 
  AFNI_OMP_START ;
