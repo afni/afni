@@ -1289,7 +1289,7 @@ qqqOMP:qqqOMP.o
 	$(RM) $@
 	$(CCOMP) -c 3dLocalstat.c $(INFLAGS)
 
-3dLocalstat:3dLocalstat.o
+3dLocalstat:3dLocalstat.o libmri.a
 	$(RM) $@
 	$(CCOMP) -o 3dLocalstat 3dLocalstat.o $(LFLAGS) $(LLIBS)
 
@@ -1305,7 +1305,7 @@ AlphaSim:AlphaSim.o
 	$(RM) $@
 	$(CCOMP) -c 3dClustSim.c $(INFLAGS)
 
-3dClustSim:3dClustSim.o
+3dClustSim:3dClustSim.o libmri.a
 	$(RM) $@
 	$(CCOMP) -o 3dClustSim 3dClustSim.o $(LFLAGS) $(LLIBS)
 
@@ -1313,7 +1313,7 @@ AlphaSim:AlphaSim.o
 	$(RM) $@
 	$(CCOMP) -c 3dClustSimX.c $(INFLAGS)
 
-3dClustSimX:3dClustSimX.o
+3dClustSimX:3dClustSimX.o libmri.a
 	$(RM) $@
 	$(CCOMP) -o 3dClustSimX 3dClustSimX.o $(LFLAGS) $(LLIBS)
 
@@ -1325,15 +1325,15 @@ AlphaSim:AlphaSim.o
 	$(RM) $@
 	$(CCOMP) -o 3dTcorrMap 3dTcorrMap.o $(LFLAGS) $(LLIBS)
 
-3dTmatch:3dTmatch.o
+3dTmatch:3dTmatch.o libmri.a
 	$(RM) $@
 	$(CCOMP) -o 3dTmatch 3dTmatch.o $(LFLAGS) $(LLIBS)
 
-3dTcorr1D:3dTcorr1D.o
+3dTcorr1D:3dTcorr1D.o libmri.a
 	$(RM) $@
 	$(CCOMP) -o 3dTcorr1D 3dTcorr1D.o $(LFLAGS) $(LLIBS)
 
-3dBlurInMask:3dBlurInMask.o
+3dBlurInMask:3dBlurInMask.o libmri.a
 	$(RM) $@
 	$(CCOMP) -o 3dBlurInMask 3dBlurInMask.o $(LFLAGS) $(LLIBS)
 
@@ -1341,7 +1341,7 @@ AlphaSim:AlphaSim.o
 	$(RM) $@
 	$(CCOMP) -c 3dTproject.c $(INFLAGS)
 
-3dTproject:3dTproject.o
+3dTproject:3dTproject.o libmri.a
 	$(RM) $@
 	$(CCOMP) -o 3dTproject 3dTproject.o $(LFLAGS) $(LLIBS)
 
@@ -1349,15 +1349,15 @@ AlphaSim:AlphaSim.o
 	$(RM) $@
 	$(CCOMP) -c 3dDespike.c $(INFLAGS)
 
-3dDespike:3dDespike.o
+3dDespike:3dDespike.o libmri.a
 	$(RM) $@
 	$(CCOMP) -o 3dDespike 3dDespike.o $(LFLAGS) $(LLIBS)
 
-3dAllineate:3dAllineate.o mri_genalign.c mri_genalign_util.c thd_correlate.c
+3dAllineate:3dAllineate.o mri_genalign.c mri_genalign_util.c thd_correlate.c libmri.a
 	$(RM) $@
 	$(CCOMP) -o 3dAllineate 3dAllineate.o $(LFLAGS) $(LLIBS)
 
-3dQwarp:3dQwarp.o
+3dQwarp:3dQwarp.o libmri.a
 	$(RM) $@
 	$(CCOMP) -o 3dQwarp 3dQwarp.o $(LFLAGS) $(LLIBS)
 
@@ -1373,7 +1373,7 @@ AlphaSim:AlphaSim.o
 	$(RM) $@
 	$(CCOMP) -c 3dQwarp_new.c $(INFLAGS)
 
-3dNwarpApply:3dNwarpApply.o
+3dNwarpApply:3dNwarpApply.o libmri.a
 	$(RM) $@
 	$(CCOMP) -o 3dNwarpApply 3dNwarpApply.o $(LFLAGS) $(LLIBS)
 
