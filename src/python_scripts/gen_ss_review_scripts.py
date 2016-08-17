@@ -615,15 +615,27 @@ endif
 
 g_basic_finish_str = """
 # ------------------------------------------------------------'
-# note blur estimates
+# note blur estimates (try for ACF and FWHM, first)
 set blur_file = blur_est.$subj.1D
 if ( -f $blur_file ) then
-    set best = `awk '/errts/ {print $1, $2, $3}' $blur_file`
-    if ( $#best != 3 ) then
-        set best = `awk '/epits/ {print $1, $2, $3}' $blur_file`
+    set found = 0
+    set best_acf = `grep ACF $blur_file | tail -n 1 | awk '{print $1, $2, $3}'`
+    set best_fw = `grep FWHM $blur_file | tail -n 1 | awk '{print $1, $2, $3}'`
+    if ( $#best_acf == 3 ) then
+        set found = 1
+        echo "blur estimates (ACF)      : $best_acf"
     endif
-    if ( $#best == 3 ) then
-        echo "blur estimates            : $best"
+    if ( $#best_fw == 3 ) then
+        set found = 1
+        echo "blur estimates (FWHM)     : $best_fw"
+    endif
+
+    # fallback
+    if ( ! $found ) then
+       set best = `tail -n 1 $blur_file | awk '{print $1, $2, $3}'`
+       if ( $#best == 3 ) then
+           echo "blur estimates            : $best"
+       endif
     endif
 endif
 
@@ -822,9 +834,12 @@ g_history = """
    0.45 Sep  3, 2015: change: have stats dset default to REML, if it exists
    0.46 Oct 28, 2015: look for dice coef file ae_dice, as well ae_corr
    0.47 Mar 21, 2016: use nzmean for motion ave
+   0.48 Aug 16, 2016:
+        - look for new ACF/FWHM blur estimates
+        - for each case, go after last estimates (so prefer err_reml > errts > epits)
 """
 
-g_version = "gen_ss_review_scripts.py version 0.47, Mar 21, 2016"
+g_version = "gen_ss_review_scripts.py version 0.48, August 16, 2016"
 
 g_todo_str = """
    - add @epi_review execution as a run-time choice (in the 'drive' script)?
