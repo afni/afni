@@ -23,6 +23,8 @@ import lib_vars_object as VO
 motsim_types = ['motion','aligned', 'volreg', 'warped']
 valid_warp_types = ['affine', 'NL']
 
+clustsim_types = ['FWHM', 'ACF', 'both', 'yes', 'no']
+
 
 WARP_EPI_TLRC_ADWARP    = 1
 WARP_EPI_TLRC_WARP      = 2
@@ -3969,8 +3971,9 @@ def db_mod_regress(block, proc, user_opts):
         if bopt: bopt.parlist = uopt.parlist
         else: block.opts.add_opt('-regress_run_clustsim', 1, uopt.parlist,
                                  setpar=1)
-        # if explicit 'yes', require blur estimation
-        if OL.opt_is_yes(uopt)                                and \
+
+        # if not 'no', require blur estimation
+        if not OL.opt_is_no(uopt)                             and \
            not block.opts.find_opt('-regress_est_blur_errts') and \
            not block.opts.find_opt('-regress_est_blur_epits'):
             print '** blur estimation is required for ClustSim\n' \
@@ -5153,6 +5156,10 @@ def db_cmd_blur_est(proc, block):
                 'touch %s   # start with empty file\n\n'\
                 % (block_header('blur estimation'), blur_file)
 
+    if proc.ACFdir != '':
+       cmd += '# create directory for ACF curve files\n' \
+              'mkdir %s\n\n' % proc.ACFdir
+
     if aopt:
         bstr = blur_est_loop_str(proc,
                     'all_runs%s$subj%s' % (proc.sep_char, proc.view), 
@@ -5175,13 +5182,30 @@ def db_cmd_blur_est(proc, block):
     cmd = cmd + '\n'
 
     # maybe make string to run and apply 3dClustSim
-    if block.opts.have_yes_opt('-regress_run_clustsim', default=1):
+    # note: the new default uses ACF rather than the old FWHM    15 Aug, 2016
+    # clustsim_types = ['FWHM', 'ACF', 'both', 'yes', 'no']
+    copt,rv = block.opts.get_string_opt('-regress_run_clustsim', default='yes')
+    if rv: return
+    if copt == 'yes':
+       print '** the default 3dClustSim method has changed from FWHM to ACF'
+       print "   (to get FWHM, use '-regress_run_clustsim FWHM')"
+
+    if copt == 'FWHM':   cmethods = [copt]
+    elif copt == 'ACF':  cmethods = [copt]
+    elif copt == 'both': cmethods = ['FWHM', 'ACF'] # put ACF last
+    elif copt == 'yes':  cmethods = ['ACF']
+    elif copt == 'no':   cmethods = []
+    else:
+      print '** invalid -regress_run_clustsim param, %s' % copt
+      print '   should be one of: %s' % ', '.join(clustsim_types)
+
+    if len(cmethods) > 0:
       statsets = []
       if proc.have_3dd_stats: statsets.append('stats.$subj%s' % proc.view)
       if proc.have_reml_stats:statsets.append('stats.${subj}_REML%s'%proc.view)
 
       if proc.have_3dd_stats or proc.have_reml_stats:
-         rv, bstr = make_clustsim_commands(proc, block, blur_file, 
+         rv, bstr = make_clustsim_commands(proc, block, cmethods, blur_file, 
                                            mask_dset, statsets)
          if rv: return   # failure (error has been printed)
          cmd = cmd + bstr + '\n'
@@ -5190,12 +5214,13 @@ def db_cmd_blur_est(proc, block):
 
     return cmd
 
-def make_clustsim_commands(proc, block, blur_file, mask_dset, statsets):
+def make_clustsim_commands(proc, block, cmethods, blur_file, mask_dset,
+                           statsets):
     if proc.verb > 0: print '-- will add 3dClustSim table to stats dset'
     if proc.verb > 1:
-        print '-- make_clustsim_commands: blur = %s\n'  \
-              '   mask = %s, stat sets = %s'\
-              % (blur_file, mask_dset, ', '.join(statsets))
+        print '-- make_clustsim_commands: blur = %s, methods = %s\n'  \
+              '   mask = %s, stat sets = %s'                          \
+              % (blur_file,', '.join(cmethods), mask_dset, ', '.join(statsets))
 
     opt = block.opts.find_opt('-regress_opts_CS')
     optstr = ''
@@ -5203,17 +5228,30 @@ def make_clustsim_commands(proc, block, blur_file, mask_dset, statsets):
         if len(opt.parlist) > 0 :
            optstr = '           %s \\\n' % ' '.join(opt.parlist)
 
-    cprefix = 'ClustSim'        # prefix for 3dClustSim files
-    cstr = '# add 3dClustSim results as attributes to any stats dset\n' \
-           'set fxyz = ( `tail -1 %s` )\n'                              \
-           '3dClustSim -both -mask %s -fwhmxyz $fxyz[1-3] \\\n'         \
-           '%s'                                                         \
-           '           -prefix %s\n'                                    \
-           % (blur_file, mask_dset, optstr, cprefix)
+    cstr = '# add 3dClustSim results as attributes to any stats dset\n'
+    if proc.CSdir != '': cstr += 'mkdir %s\n\n' % proc.CSdir
+
+    # run cluster method(s)
+    for cmeth in cmethods:
+       # prefix for 3dClustSim files might be in a sub-directory
+       cprefix = 'ClustSim.%s' % cmeth
+       if proc.CSdir != '': cprefix = '%s/%s' % (proc.CSdir, cprefix)
+
+       cscmdfile = '3dClustSim.%s.cmd' % cmeth
+       if cmeth == 'FWHM': copt = '-fwhmxyz'
+       else              : copt = '-acf'
+       cstr += "# run Monte Carlo simulations using method '%s'\n"          \
+               'set params = ( `grep %s %s | tail -n 1` )\n'                \
+               '3dClustSim -both -mask %s %s $params[1-3] \\\n'             \
+               '%s'                                                         \
+               '           -cmd %s -prefix %s\n\n'                          \
+               % (cmeth,cmeth, blur_file, mask_dset, copt, optstr,
+                  cscmdfile,cprefix)
 
     # the 3drefit command is now stored in 3dClustSim.cmd
-    cstr += 'set cmd = ( `cat 3dClustSim.cmd` )\n' \
-            '$cmd %s\n\n' % ' '.join(statsets)
+    cstr += '# run 3drefit to attach 3dClustSim results to stats\n' \
+            'set cmd = ( `cat %s` )\n'                              \
+            '$cmd %s\n\n' % (cscmdfile, ' '.join(statsets))
 
     return 0, cstr
 
@@ -5252,27 +5290,32 @@ def blur_est_loop_str(proc, dname, mname, label, outfile, trs_cen=0):
                '                          -show_trs_run $run`\n'        \
                '    if ( $trs == "" ) continue\n' % proc.xmat
        tstr2 = '"[$trs]"'
-       
+
+    # might put ACF curves in sub-dir
+    acffile = 'out.3dFWHMx.ACF.%s.r$run.1D' % label
+    if proc.ACFdir != '': acffile = '%s/%s' % (proc.ACFdir, acffile)
 
     cmd = cmd +                                                 \
       '# restrict to uncensored TRs, per run\n'                 \
       'foreach run ( $runs )\n'                                 \
       '%s'                                                      \
       '    3dFWHMx -detrend -mask %s \\\n'                      \
-      '        %s%s >> %s\n'                                    \
+      '            -ACF %s \\\n'                                \
+      '            %s%s >> %s\n'                                \
       'end\n\n'                                                 \
-      % (tstr1, mask, inset, tstr2, tmpfile)
+      % (tstr1, mask, acffile, inset, tstr2, tmpfile)
 
-    # how to get the blurs differs if there is only 1 run
-    if proc.runs > 1: blur_str = "3dTstat -mean -prefix - %s\\\'" % tmpfile
-    else:             blur_str = "cat %s" % tmpfile
+    btypes = ['FWHM', 'ACF']
+    for bind, btype in enumerate(btypes):
+       blur_str = "3dTstat -mean -prefix - %s'{%d..$(2)}'\\\'" % \
+                  (tmpfile, bind)
 
-    cmd = cmd +                                                 \
-        '# compute average blur and append\n'                   \
-        'set blurs = ( `%s` )\n'                                \
-        'echo average %s blurs: $blurs\n'                       \
-        'echo "$blurs   # %s blur estimates" >> %s\n\n'     %   \
-        (blur_str, label, label, outfile)
+       cmd = cmd +                                                         \
+           '# compute average %s blur (from every other row) and append\n' \
+           'set blurs = ( `%s` )\n'                                        \
+           'echo average %s %s blurs: $blurs\n'                            \
+           'echo "$blurs   # %s %s blur estimates" >> %s\n\n' %            \
+           (btype, blur_str, label, btype, label, btype, outfile)
 
     return cmd
 

@@ -530,18 +530,22 @@ g_history = """
         - allow for single volume EPI input (e.g. to test blip correction)
         - auto -blip_forward_dset should come from tcat output
           (obliquity test still be from existing -dsets, if appropriate)
-    4.73 Jul 23, 2016:
-        - if empty regressor, check for -GOFORIT
+    4.73 Jul 23, 2016: if empty regressor, check for -GOFORIT
+    4.74 Aug 15, 2016: ACF blur estimation - run 3dFWHMx with -ACF
+        - ACF and ClustSim files go into sub-directories, files_ACF/ClustSim
+        - -regress_run_clustsim now prefers arguments, ACF, FWHM, both, no
+        - default clustsim method is ACF (including -regress_run_clustsim yes)
 """
 
-g_version = "version 4.73, July 23, 2016"
+g_version = "version 4.74, August 15, 2016"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \
       [  "1 Apr 2015",  "1d_tool.py uncensor from 1D" ],
       [ "23 Jul 2015",  "3dREMLfit -dsort" ],
       [  "1 Sep 2015",  "gen_ss_review_scripts.py -errts_dset" ],
-      [ "28 Oct 2015",  "3ddot -dodice" ] ]
+      [ "28 Oct 2015",  "3ddot -dodice" ],
+      [  "1 Dec 2015",  "3dClustSim -ACF" ] ]
 
 g_todo_str = """todo:
   - allow for 3dAllineate in place of 3dvolreg: -volreg_use_allineate
@@ -753,6 +757,11 @@ class SubjProcSream:
         self.mask_group = None          # mask dataset (from tlrc base)
         self.mask_extents = None        # mask dataset (of EPI extents)
         self.mask_classes = None        # Segsy result at EPI resolution
+
+        # options related to ACF and clustsim
+        self.ACFdir     = 'files_ACF'   # where to put 3dFWHMx -ACF files
+        self.CSdir      = 'files_ClustSim' # and 3dClustSim files
+        self.made_cdir  = 0             # has it been created
 
         # options for tissue based time series
         self.roi_dict   = {}            # dictionary of ROI vs afni_name
@@ -1267,7 +1276,7 @@ class SubjProcSream:
         self.valid_opts.add_opt('-regress_opts_CS', -1, [],
                         helpstr='additional options directly to 3dClustSim')
         self.valid_opts.add_opt('-regress_run_clustsim', 1, [],
-                        acplist=['yes','no'],
+                        acplist=clustsim_types,
                         helpstr="add 3dClustSim attrs to regression bucket")
 
         self.valid_opts.trailers = 0   # do not allow unknown options
