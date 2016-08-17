@@ -9620,11 +9620,14 @@ g_help_string = """
 
             The script will run the standard regression via 3dDeconvolve (or
             stop after setting up the X-matrix, if the user says to), and use
-            that X-matrix, possibly censored, in 3dTfitter.  The WMeLocal time
+            that X-matrix, possibly censored, in 3dTproject.  The WMeLocal time
             series is applied along with the X-matrix to get the result.
 
             Note that other 4-D time series might be regressed out via the
-            3dTfitter step, as well.
+            3dTproject step, as well.
+
+            In the case of task-based ANATICOR, -regress_reml_exec is required,
+            which uses 3dREMLfit to regress the voxel-wise ANATICOR regressors.
 
             This option implies -mask_segment_anat and -mask_segment_erode.
 
@@ -9633,6 +9636,7 @@ g_help_string = """
             Please see "@ANATICOR -help" for more detail, including the paper
             reference for the method.
             See also -mask_segment_anat, -mask_segment_erode, -regress_3dD_stop.
+            See also -regress_reml_exec.
 
         -regress_anaticor_label LABEL : specify LABEL for ANATICOR ROI
 
