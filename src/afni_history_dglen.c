@@ -49,6 +49,10 @@
 
 
 afni_history_struct dglen_history[] = {
+{ 17, AUG, 2016 , DRG , "align_epi_anat.py" , 
+    MICRO , TYPE_BUG_FIX, 
+    "History not updated properly on output with NIFTI dset1/anat"
+},
 { 9, AUG, 2016 , DRG , "@SUMA_MakeSpecFS" , 
     MINOR , TYPE_MODIFY, 
     "Atlasize original unranked datasets too. They will have more reliable indices than the ranked"
