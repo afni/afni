@@ -1105,7 +1105,7 @@ ENTRY("get_options") ;
     WARNING_message("-sumup canceled") ;
   }
 
-#undef INSET_PRELOAD
+#define INSET_PRELOAD
 
   if( num_inset > 0 ){      /* 02 Feb 2016 */
     int qq,nbad=0 ;
