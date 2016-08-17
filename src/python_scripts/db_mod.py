@@ -7076,13 +7076,16 @@ g_help_string = """
          o Use FreeSurfer segmentation for:
              - regression of first 3 principal components of lateral ventricles
              - ANATICOR white matter mask (for local white matter regression)
+           * For details on how these masks were created, see "FREESURFER NOTE"
+             in the help, as it refers to this "Example 11".
          o Input anat is from FreeSurfer (meaning it is aligned with FS masks).
              - output from FS is usually not quite aligned with input
          o Erode FS white matter and ventricle masks before application.
          o Bring along FreeSurfer parcellation datasets:
              - aaseg : NN interpolated onto the anatomical grid
              - aeseg : NN interpolated onto the EPI        grid
-           These follower datasets are just for evaluation.
+           * These 'rank' follower datasets are just for visualization,
+             they are not actually required for the analysis.
          o Compute average correlation volumes of the errts against the
            the gray matter (aeseg) and ventricle (FSVent) masks.
 
