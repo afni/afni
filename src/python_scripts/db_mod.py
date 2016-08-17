@@ -7076,13 +7076,16 @@ g_help_string = """
          o Use FreeSurfer segmentation for:
              - regression of first 3 principal components of lateral ventricles
              - ANATICOR white matter mask (for local white matter regression)
+           * For details on how these masks were created, see "FREESURFER NOTE"
+             in the help, as it refers to this "Example 11".
          o Input anat is from FreeSurfer (meaning it is aligned with FS masks).
              - output from FS is usually not quite aligned with input
          o Erode FS white matter and ventricle masks before application.
          o Bring along FreeSurfer parcellation datasets:
              - aaseg : NN interpolated onto the anatomical grid
              - aeseg : NN interpolated onto the EPI        grid
-           These follower datasets are just for evaluation.
+           * These 'rank' follower datasets are just for visualization,
+             they are not actually required for the analysis.
          o Compute average correlation volumes of the errts against the
            the gray matter (aeseg) and ventricle (FSVent) masks.
 
@@ -9620,11 +9623,14 @@ g_help_string = """
 
             The script will run the standard regression via 3dDeconvolve (or
             stop after setting up the X-matrix, if the user says to), and use
-            that X-matrix, possibly censored, in 3dTfitter.  The WMeLocal time
+            that X-matrix, possibly censored, in 3dTproject.  The WMeLocal time
             series is applied along with the X-matrix to get the result.
 
             Note that other 4-D time series might be regressed out via the
-            3dTfitter step, as well.
+            3dTproject step, as well.
+
+            In the case of task-based ANATICOR, -regress_reml_exec is required,
+            which uses 3dREMLfit to regress the voxel-wise ANATICOR regressors.
 
             This option implies -mask_segment_anat and -mask_segment_erode.
 
@@ -9633,6 +9639,7 @@ g_help_string = """
             Please see "@ANATICOR -help" for more detail, including the paper
             reference for the method.
             See also -mask_segment_anat, -mask_segment_erode, -regress_3dD_stop.
+            See also -regress_reml_exec.
 
         -regress_anaticor_label LABEL : specify LABEL for ANATICOR ROI
 
