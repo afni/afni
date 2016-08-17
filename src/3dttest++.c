@@ -3031,9 +3031,14 @@ LABELS_ARE_DONE:  /* target for goto above */
 
    if( do_clustsim ){
      char fname[128] , *cmd , *ccc ; int qq,pp , nper ; double ct1,ct2 ;
+     int ncsim;
+
+     ncsim = (int)AFNI_numenv("AFNI_TTEST_NUMCSIM") ;
+          if( ncsim <  10000 ) ncsim =  10000 ;
+     else if( ncsim > 100000 ) ncsim = 100000 ;
 
      cmd = (char *)malloc(sizeof(char)*(8192+mcov*128)) ;
-     nper = 10000 / num_clustsim + 1 ;
+     nper = ncsim / num_clustsim + 1 ;
 
      /* loop to start jobs */
 
