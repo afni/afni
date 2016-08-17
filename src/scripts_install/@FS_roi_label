@@ -159,7 +159,7 @@ if ($name != "") then
       printf 'ni_type="2*String"\n' >> $labeltable
       printf 'ni_dimen="%d"\n' $cnt_lt >> $labeltable
       printf 'pbar_name="%s">\n' $pbar >> $labeltable
-      if($rankmap!="") then
+      if($rankmap != "") then
          uniq /tmp/${tmpP}lt.txt >> $labeltable
       else
          cat /tmp/${tmpP}lt.txt |sed 's/^#//' >> $labeltable
