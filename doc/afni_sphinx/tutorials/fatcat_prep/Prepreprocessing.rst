@@ -13,7 +13,8 @@ has a pretty short syntax.
 
 The purposes of this set of scripts are to: 
 
-    * convert DICOMs to NIFTIs;
+    * convert DICOMs to NIFTIs, putting (0, 0, 0) at the volume's center
+      of mass (useful for alignment, viewing, rotating);
 
     * to allow the DWIs to be viewed, quality-checked and filtered
       according to the user's judgment (e.g., remove dropout volumes
@@ -30,8 +31,9 @@ The purposes of this set of scripts are to:
       a T1w is available (NB: 'twould be better to have the real
       thing, probably);
 
-    * to put a reference anatomical into "nice" alignment within a
-      volume for slice viewing and WM/tracking coloration.
+    * to axialize a reference anatomical (i.e., put it into "nice"
+      alignment within a volume's axes/orientation) for slice viewing,
+      structure coloration, and group alignment.
 
 You can skip any steps that aren't applicable. I will assume that each
 acquired volume is currently a set of unpacked DICOMs sitting in its
@@ -120,17 +122,20 @@ rotating visualizations and for alignment processes.
   lines) and AP.bval (1x\ *N* lines). Output would look similar to
   **Case A** but without the PA results.
 
-* **Case C:** Multiple sets each with *Q* DWIs with a single phase
-  encode direction (in SUB01/01_dicom_dir_AP/,
-  SUB01/02_dicom_dir_AP/, SUB01/02_dicom_dir_AP/)::
+* **Case C:** Multiple sets each in separate directories, for example
+  each with *Q* DWIs with a single phase encode direction (in
+  SUB01/01_dicom_dir_AP/, SUB01/02_dicom_dir_AP/,
+  SUB01/02_dicom_dir_AP/)::
 
      fat_pre_convert_dwis.tcsh                        \
-         -indir_ap  SUB01/0*_dicom_dir_AP
+         -indir_ap  "SUB01/0*_dicom_dir_AP"
 
   -> produces a single directory called 'SUB01/UNFILT_AP/', which
   contains three files: AP.nii (*N*\=3\ *Q* volumes), AP.bvec (3x\ *N*
   lines) and AP.bval (1x\ *N* lines). Output would look similar to
-  **Case A** but without the PA results.
+  **Case A** but without the PA results. NOTE: the use of double
+  quotes around the wildcarded file directories after
+  ``-indir_ap``.  
 
 Each data set will have 'RPI' orientation; the gradients in each
 case will not be flipped.  See the help file for changing these
