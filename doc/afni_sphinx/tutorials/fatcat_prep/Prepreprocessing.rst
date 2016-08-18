@@ -133,9 +133,10 @@ rotating visualizations and for alignment processes.
   -> produces a single directory called 'SUB01/UNFILT_AP/', which
   contains three files: AP.nii (*N*\=3\ *Q* volumes), AP.bvec (3x\ *N*
   lines) and AP.bval (1x\ *N* lines). Output would look similar to
-  **Case A** but without the PA results. NOTE: the use of double
-  quotes around the wildcarded file directories after
-  ``-indir_ap``.  
+  **Case A** but without the PA results. Note the use of double
+  quotes around the wildcarded file directories after ``-indir_ap``;
+  the quotes are necessary for either a wildcarded expression or a
+  simple list of directories after ``-indir_ap`` or ``-indir_pa``.
 
 Each data set will have 'RPI' orientation; the gradients in each
 case will not be flipped.  See the help file for changing these

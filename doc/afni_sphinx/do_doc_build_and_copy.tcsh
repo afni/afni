@@ -19,7 +19,7 @@ echo "Backup directory called: $backup_dir"
 
 ### Make preliminary stuff from helpfiles: will open both AFNI and SUMA
 ### this way
-@gen_all -phelp -suma -afni
+#@gen_all -phelp -suma -afni
 
 ### Build Sphinx.
 make html
