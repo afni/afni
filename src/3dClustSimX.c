@@ -1174,12 +1174,23 @@ INFO_message("re-loading FOM vectors after final dilations") ;
      /* vectors loaded for each pt in space;
         now sort them (biggest first) to determine equitable thresholds */
 
+/* NEXT: The 0.002 fraction here is just for testing.
+         Have to evaluate the FAR for various values of TFRAC
+          to find the correct threshold volumes.
+         (a) run mri_threshold_Xcluster() using each threshold
+             volume at a given TFRAC (with threshX_keep_only_fomest==1)
+         (b) if any return non-NULL, that is 1 false alarm
+         (c) add up over simulations
+         (d) adjust TFRAC to get to 5% FAR. */
+
+#define TFRAC 0.002f
+
 #pragma omp for schedule(dynamic,200)
      for( iv=0 ; iv < mask_ngood ; iv++ ){
        npt = fomvec[iv]->npt ; fomvec[iv]->val = 0.0f ;
        if( npt > 1 ){
          qsort_float_rev( npt , fomvec[iv]->far ) ;
-         jj = (int)(0.002f*niter) ;
+         jj = (int)(TFRAC*niter) ;
          if( jj >= npt ) jj = npt/2 ;
          a0 = ((float)jj)/((float)niter) ; f0 = fomvec[iv]->far[jj] ;
          a1 = a0 + 1.0f/((float)niter) ;   f1 = fomvec[iv]->far[jj+1] ;
