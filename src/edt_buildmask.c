@@ -12,7 +12,7 @@
      - max_dist   = maximum distance for a point to be included in the mask
    Date   :  11 September 1996
 
-   To correct error due to abiguity in identification of clusters,
+   To correct error due to ambiguity in identification of clusters,
    voxel coordinates are now stored as 3 separate short integers.
    BDW  06 March 1997
 
@@ -25,7 +25,7 @@
 
 MCW_cluster * MCW_build_mask( float dx, float dy, float dz, float max_dist )
 {
-   int ii, jj, kk, idx, jdy, kdz, ijkma, mnum;
+   int ii, jj, kk, idx, jdy, kdz, mnum;
    float xq, yq, zq, dist_q;
    MCW_cluster *mask;
 
@@ -102,7 +102,12 @@ MCW_cluster * MCW_spheremask( float dx, float dy, float dz, float radius )
    nn = mask->num_pt ;
    for( ii=0 ; ii < nn ; ii++ ){
      x = mask->i[ii]*dx; y = mask->j[ii]*dy; z = mask->k[ii]*dz;
-     mask->mag[ii] = sqrt(x*x+y*y+z*z) ;
+/*     if((x==0.0)&&(y==0.0)&&(z==0.0)) 
+         mask->mag[ii] = 1.0;
+     else
+*/
+
+         mask->mag[ii] = sqrt(x*x+y*y+z*z) ;
    }
    MCW_sort_cluster( mask ) ;
    return mask ;
@@ -134,7 +139,8 @@ MCW_cluster * MCW_rectmask( float dx, float dy, float dz,
    for( kk=-kdz ; kk <= kdz ; kk++ ){
     for( jj=-jdy ; jj <= jdy ; jj++ ){
      for( ii=-idx ; ii <= idx ; ii++ ){
-       if (ii && jj && kk) ADDTO_CLUSTER( mask , ii,jj,kk , 0 ) ;
+       if (ii || jj || kk)
+       ADDTO_CLUSTER( mask , ii,jj,kk , 0 ) ;
    }}}
 
    return mask ;
@@ -171,7 +177,7 @@ MCW_cluster * MCW_rhddmask( float dx, float dy, float dz, float radius )
     for( jj=-jdy ; jj <= jdy ; jj++ ){
      b = jj*dy ;
      for( ii=-idx ; ii <= idx ; ii++ ){
-       if (ii && jj && kk) {
+       if (ii || jj || kk) {
           a = ii*dx ;
           if( fabsf(a+b) <= radius &&
               fabsf(a-b) <= radius &&
@@ -225,7 +231,7 @@ MCW_cluster * MCW_tohdmask( float dx, float dy, float dz, float radius )
      b = jj*dy ;
      for( ii=-idx ; ii <= idx ; ii++ ){
        a = ii*dx ;
-       if( ii && jj && kk && TOHD_inside(a,b,c,radius) ) 
+       if( (ii || jj || kk) && TOHD_inside(a,b,c,radius) ) 
                               ADDTO_CLUSTER( mask , ii,jj,kk , 0 ) ;
    }}}
 
