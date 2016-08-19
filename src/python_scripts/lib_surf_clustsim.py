@@ -34,9 +34,10 @@ g_history = """
     0.10 21 Aug, 2012: added 'sigma' uvar, for SurfSmooth
     0.11 02 Jun, 2014: changed default niter from 20 to 1000
                        (20 was more of a quick test, but 1000 is appropriate)
+    0.12 19 Aug, 2016: handle NIFTI surf_vol
 """
 
-g_version = '0.11 (June 2, 2014)'
+g_version = '0.12 (August 19, 2016)'
 
 # ----------------------------------------------------------------------
 # global values to apply as defaults
@@ -448,6 +449,11 @@ class SurfClust(object):
    def script_do_3dv2s(self, indent=3):
       istr = ' '*indent
       vv = self.LV.svset.view
+      print 'vm = %s' % self.LV.vmask
+      if vv == '':
+         if isinstance(self.LV.vmset, BASE.afni_name):
+            vv = self.LV.vmset.view
+      if vv == '': vv = '+orig'
 
       clist = [ '# map noise voxels to surface domain\n',
                 self.LV.time_str,
@@ -585,6 +591,7 @@ class SurfClust(object):
          self.LV.svol  = U.surf_vol
          self.LV.svset = BASE.afni_name(self.LV.svol)
          self.LV.vmask = U.vol_mask
+         self.LV.vmset = BASE.afni_name(U.vol_mask)
          self.LV.spec  = U.spec_file
       else:
          self.LV.svol  = '$top_dir/%s' % self.LV.short_names[0][0]
@@ -592,6 +599,7 @@ class SurfClust(object):
          self.LV.spec  = '$top_dir/%s' % self.LV.short_names[0][1]
          if self.cvars.val('on_surface') != 'yes':
             self.LV.vmask = '$top_dir/%s' % self.LV.short_names[0][2]
+            self.LV.vmset = BASE.afni_name(self.LV.vmask)
 
       cmd += '# input datasets and surface specification file\n'         \
              '# (absolute paths are used since inputs are not copied)\n' \
