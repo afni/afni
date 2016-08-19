@@ -34,7 +34,9 @@ g_history = """
     0.10 21 Aug, 2012: added 'sigma' uvar, for SurfSmooth
     0.11 02 Jun, 2014: changed default niter from 20 to 1000
                        (20 was more of a quick test, but 1000 is appropriate)
-    0.12 19 Aug, 2016: handle NIFTI surf_vol
+    0.12 19 Aug, 2016:
+        - handle NIFTI surf_vol
+        - append command line to script
 """
 
 g_version = '0.12 (August 19, 2016)'
@@ -71,6 +73,7 @@ g_user_defs.results_dir    = 'clust.results' # where script puts results
 # required inputs
 g_user_defs.spec_file      = ''
 g_user_defs.surf_vol       = ''
+g_user_defs.surf_mask      = ''  # optional when on_surface
 g_user_defs.vol_mask       = ''  # required only if not on_surface
 
 # other inputs
@@ -133,7 +136,7 @@ class SurfClust(object):
            errors            --> array of resulting error messages
            warnings          --> array of resulting warning messages
    """
-   def __init__(self, cvars=None, uvars=None):
+   def __init__(self, cvars=None, uvars=None, argv=[]):
 
       # ------------------------------------------------------------
       # variables
@@ -150,6 +153,7 @@ class SurfClust(object):
       self.uvars = g_user_defs.copy()
       self.cvars.merge(cvars, typedef=g_ctrl_defs)
       self.uvars.merge(uvars, typedef=g_user_defs)
+      self.argv = argv
 
       # output variables
       self.rvars = g_res_defs.copy()    # init result vars
@@ -261,6 +265,9 @@ class SurfClust(object):
             'echo "finished, consider the command:"\n'          \
             'echo "  quick.alpha.vals.py -niter $titers %s"\n'  \
             'echo ""\n' % zfile
+
+      if len(self.argv) > 0:
+         cmd += '\n%s\n' % UTIL.get_command_str(args=self.argv)
 
       return cmd
 
@@ -449,7 +456,6 @@ class SurfClust(object):
    def script_do_3dv2s(self, indent=3):
       istr = ' '*indent
       vv = self.LV.svset.view
-      print 'vm = %s' % self.LV.vmask
       if vv == '':
          if isinstance(self.LV.vmset, BASE.afni_name):
             vv = self.LV.vmset.view
@@ -699,7 +705,7 @@ class SurfClust(object):
       self.LV.retdir = SUBJ.ret_from_proc_dir(self.LV.retdir)
       # ------------------------- done -------------------------
 
-   def write_script(self, fname=''):
+   def write_script(self, fname='', argv=[]):
       """write processing script to a file (in the proc_dir)
          - if fname is set, use it, else generate
          - set rvars.file_proc and output_proc
