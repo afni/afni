@@ -13,7 +13,8 @@ has a pretty short syntax.
 
 The purposes of this set of scripts are to: 
 
-    * convert DICOMs to NIFTIs;
+    * convert DICOMs to NIFTIs, putting (0, 0, 0) at the volume's center
+      of mass (useful for alignment, viewing, rotating);
 
     * to allow the DWIs to be viewed, quality-checked and filtered
       according to the user's judgment (e.g., remove dropout volumes
@@ -30,8 +31,9 @@ The purposes of this set of scripts are to:
       a T1w is available (NB: 'twould be better to have the real
       thing, probably);
 
-    * to put a reference anatomical into "nice" alignment within a
-      volume for slice viewing and WM/tracking coloration.
+    * to axialize a reference anatomical (i.e., put it into "nice"
+      alignment within a volume's axes/orientation) for slice viewing,
+      structure coloration, and group alignment.
 
 You can skip any steps that aren't applicable. I will assume that each
 acquired volume is currently a set of unpacked DICOMs sitting in its
@@ -64,23 +66,27 @@ three sets of DICOM directories: one AP DWI scan, one PA DWI scan
 and one anatomical scan.
 
 .. list-table:: 
-   :header-rows: 1
-   :widths: 100
+   :header-rows: 0
+   :widths: 90
    
    * - .. image:: media/Screenshot_from_2016-08-12_09:31:58.png
-          :width: 100%
+          :width: 90%
+          :align: center
    * - *Initial, basic subject directory layout.*
-
 
 
 Convert DWIs
 ------------
 
 Go from DICOMs to a NIFTI volume and supplementary text files (a
-'\*.bvec' file has the unit normal gradients, and a '\*.bval' file
-has the diffusion weighting b-values).
+'\*.bvec' file has the unit normal gradients, and a '\*.bval' file has
+the diffusion weighting b-values). The (x, y, z) = (0, 0, 0)
+coordinate of the data set is placed at the center of mass of the
+volume (and, when AP-PA sets are loaded, the sets have the same
+origin); having large distance among data sets create problems for
+rotating visualizations and for alignment processes.
 
-* *Case A:* A paired set of *N* DWIs with opposite phase encode
+* **Case A:** A paired set of *N* DWIs with opposite phase encode
   directions (in SUB01/01_dicom_dir_AP/ and
   SUB01/01_dicom_dir_PA/)::
 
@@ -95,16 +101,17 @@ has the diffusion weighting b-values).
   PA.bvec (3x\ *N* lines) and PA.bval (1x\ *N* lines).
 
   .. list-table:: 
-     :header-rows: 1
+     :header-rows: 0
      :widths: 100
 
      * - .. image:: media/Screenshot_from_2016-08-12_09:33:47.png
-            :width: 100%
+            :width: 90%   
+            :align: center
      * - *End of 'DWI conversion' script message, and listing of
          directories afterwards.*
   |
 
-* *Case B:* A single set of *N* DWIs acquired with a single phase
+* **Case B:** A single set of *N* DWIs acquired with a single phase
   encode direction (in SUB01/01_dicom_dir_AP/)::
 
      fat_pre_convert_dwis.tcsh                        \
@@ -113,19 +120,23 @@ has the diffusion weighting b-values).
   -> produces a single directory called 'SUB01/UNFILT_AP/', which
   contains three files: AP.nii (*N* volumes), AP.bvec (3x\ *N*
   lines) and AP.bval (1x\ *N* lines). Output would look similar to
-  *Case A* but without the PA results.
+  **Case A** but without the PA results.
 
-* *Case C:* Multiple sets each with *Q* DWIs with a single phase
-  encode direction (in SUB01/01_dicom_dir_AP/,
-  SUB01/02_dicom_dir_AP/, SUB01/02_dicom_dir_AP/)::
+* **Case C:** Multiple sets each in separate directories, for example
+  each with *Q* DWIs with a single phase encode direction (in
+  SUB01/01_dicom_dir_AP/, SUB01/02_dicom_dir_AP/,
+  SUB01/02_dicom_dir_AP/)::
 
      fat_pre_convert_dwis.tcsh                        \
-         -indir_ap  SUB01/0*_dicom_dir_AP
+         -indir_ap  "SUB01/0*_dicom_dir_AP"
 
   -> produces a single directory called 'SUB01/UNFILT_AP/', which
   contains three files: AP.nii (*N*\=3\ *Q* volumes), AP.bvec (3x\ *N*
   lines) and AP.bval (1x\ *N* lines). Output would look similar to
-  *Case A* but without the PA results.
+  **Case A** but without the PA results. Note the use of double
+  quotes around the wildcarded file directories after ``-indir_ap``;
+  the quotes are necessary for either a wildcarded expression or a
+  simple list of directories after ``-indir_ap`` or ``-indir_pa``.
 
 Each data set will have 'RPI' orientation; the gradients in each
 case will not be flipped.  See the help file for changing these
@@ -135,9 +146,10 @@ Convert anatomical volume
 -------------------------
 
 Go from DICOMs to NIFTI. Sometimes ``dcm2nii`` creates multiple
-volumes from a single anatomical (one zoomed in on brain, etc.),
-but here we try to auto-select the basic one (file name typically
-starts with "2\*")
+volumes from a single anatomical (one zoomed in on brain, etc.), but
+here we try to auto-select the basic one (file name typically starts
+with "2\*").  As for DWIs above, the (x, y, z) = (0, 0, 0) coordinate
+of the data set is placed at the center of mass of the volume.
 
 * A single anatomical (in SUB01/01_dicom_dir_anat/)::
 
@@ -150,11 +162,12 @@ starts with "2\*")
   ignorable).
 
   .. list-table:: 
-     :header-rows: 1
+     :header-rows: 0
      :widths: 100
 
      * - .. image:: media/Screenshot_from_2016-08-12_09:43:26.png
-            :width: 100%
+            :width: 90%
+            :align: center
      * - *End of 'anatomical conversion' script message, and
          listing of directories afterwards.*
 
@@ -165,48 +178,83 @@ T2w).
 Axialize the anatomical
 -----------------------
 
-It might be useful to have the standard slice planes of the brain
-be parallel with the sides of the volume.  That is, if a subject's
-head is strongly tilted in the volumetric field of view (FOV), then
-the display of slices might be awkward, anatomical definition might
-be tricky, and tract/structure coloration could be
-non-standard. 
+It might be useful to have the standard slice planes of the brain be
+parallel with the sides of the volume.  That is, if a subject's head
+is strongly tilted in the volumetric field of view (FOV), then the
+display of slices might be awkward, anatomical definition might be
+tricky, tract/structure coloration could be non-standard, and later
+alignments might be made more difficult.  This process is akin to an
+automated form of "AC-PC alignment" that is sometimes performed (for
+example, using MIPAV).
 
-This program "rights the ship" by calculating an affine alignment
-to an a reference volume of the user's choice (e.g., a standard
-space Talairach volume), but only applying the rotation/translation
-part, so that the subject's brain doesn't warp/change shape.  This
-is essentially an automated version of AC-PC alignment.
+This program "rights the ship" by calculating an affine alignment to a
+reference volume of the user's choice (e.g., a standard space
+Talairach volume), *but only applying the rotation/translation part*,
+so that the subject's brain doesn't warp/change shape (and brightness
+values are not altered, except by minor smoothing due to rotation).
+This is essentially an automated version of AC-PC alignment. 
 
-* A single anatomical volume (SUB01/ANATOM/anat.nii) and a
-  similar-contrast anatomical reference (e.g.,
+Note that for T2w volumes, a special option should be used (see
+below).
+
+* **T1w volume:** A single anatomical volume (SUB01/ANATOM/anat.nii)
+  and a similar-contrast anatomical reference (e.g.,
   ~/TEMPLATES/TT_N27+tlrc, or wherever stored on your computer)::
 
     fat_pre_axialize_anat.tcsh                       \
         -inset   SUB01/ANATOM/anat.nii               \
-        -refset  ~/TEMPLATES/TT_N27+tlrc
+        -refset  ~/TEMPLATES/TT_N27+tlrc             \
+        -extra_al_opts "-newgrid 1.0"
 
   -> produces a single file called 'SUB01/ANATOM/anat_axi.nii' (NB:
   default naming is to output a file called 'anat_axi.nii',
-  independent of input name); there's also a working directory
-  called 'SUB01/ANATOM/__WORK_prealign'; would be useful to look at
-  if the auto-axializing fails.  There might be some warnings about
+  independent of input name); there's also a working directory called
+  'SUB01/ANATOM/__WORK_prealign'; would be useful to look at if the
+  auto-axializing fails.  There might be some warnings about
   converting standard space to orig space, but that should be OK if
-  the inset is in 'orig' space.
+  the inset is in 'orig' space.  The final line instructs the output
+  to be resampled to a uniform 1 mm isotropic spatial resolution,
+  which is not necessary but might be useful, particularly for
+  non-isotropic input.
 
   .. list-table:: 
-     :header-rows: 1
+     :header-rows: 0
      :widths: 100
 
      * - .. image:: media/Screenshot_from_2016-08-12_09:50:16.png
-            :width: 100%
+            :width: 90%
+            :align: center
      * - *End of 'axializing' script message, and listing of
          directories afterwards.*
 
-The alignment is done with 3dAllineate, and some options can be
-added to it from the command line; additionally, an option to
-resample the volume to a particular spatial resolution can be
-given.
+* **T2w volume:** This kind of volume has fairly low brightness
+  throughout much of the GM and WM, and mostly a relatively brights
+  CSF/ventricles (in human adults). Therefore, some special options
+  should be used for the intermediate steps before alignment (but not
+  affecting final brightness).
+
+  A single anatomical volume (SUB01/ANATOM/anat.nii) and a
+  similar-contrast anatomical reference (e.g.,
+  ~/TEMPLATES/mni_icbm152_t2_relx_tal_nlin_sym_09a.nii.gz, or wherever
+  stored on your computer)::
+
+    fat_pre_axialize_anat.tcsh                                            \
+        -inset   SUB01/ANATOM/anat.nii                                    \
+        -refset  ~/TEMPLATES/mni_icbm152_t2_relx_tal_nlin_sym_09a.nii.gz  \
+        -t2w_mode                                                         \
+        -extra_al_opts "-newgrid 1.0"
+
+  -> as in the T1w case above, this produces a single file called
+  'SUB01/ANATOM/anat_axi.nii' and working directory called
+  'SUB01/ANATOM/__WORK_prealign'; again, the extra option to upsample
+  the final data set has been included (but is not necessary).  Note
+  the important use of the flag '-t2w_mode', to specify internal
+  options for this type of (adult) brain.
+
+The alignment is done with 3dAllineate, and some options can be added
+to it from the command line; additionally, an option to resample the
+volume to a particular spatial resolution can be given.  The quality
+of axialization should always be checked visually!
 
 .. _IRCT_invert:
 
@@ -238,11 +286,12 @@ other applications, though.
   to matter for TORTOISE that there isn't zero-noise.
 
   .. list-table:: 
-     :header-rows: 1
+     :header-rows: 0
      :widths: 100
 
      * - .. image:: media/Screenshot_from_2016-08-12_09:53:56.png
-            :width: 100%
+            :width: 90%
+            :align: center
      * - *End of 'T1w inversion -> ~T2w' script message, and
          listing of directories afterwards.*
 
@@ -271,7 +320,7 @@ bad/corrupted volumes.  Remember, AFNI indices start at '0'.  Then
 you enter the volumes and volume ranges **to be kept**, using
 standard AFNI notation for brick selection.
 
-* *Case A:* A paired set of *N* DWIs acquired with opposite phase
+* **Case A:** A paired set of *N* DWIs acquired with opposite phase
   encode directions (in SUB01/UNFILT_AP/AP.nii and
   SUB01/UNFILT_PA/PA.nii, each having correponding '\*.bvec' and
   '\*.bval' files of matching length in the respective directories);
@@ -290,28 +339,32 @@ standard AFNI notation for brick selection.
   identical dimensions.
     
   .. list-table:: 
-     :header-rows: 1
+     :header-rows: 0
      :widths: 100
 
      * - .. image:: media/Screenshot_from_2016-08-12_11:00:19.png
-            :width: 100%
+            :width: 90%
+            :align: center
      * - *End of 'DWI filtering' script message, and listing of
          directories afterwards.*
      * - .. image:: media/Screenshot_from_2016-08-12_11:00:49.png
-            :width: 100%
+            :width: 90%
+            :align: center
      * - *File listing within the filtered directories.*
      * - .. image:: media/Screenshot_from_2016-08-12_11:01:50.png
-            :width: 100%
+            :width: 90%
+            :align: center
      * - *Command line checking of difference in number of volumes.*
      * - .. image:: media/Screenshot_from_2016-08-12_11:08:00.png
-            :width: 100%
+            :width: 90%
+            :align: center
      * - *Command line checking of difference in number of entries
          in text files, bvals (top pair) and bvecs (bottom pair).
          Columns are: # of lines, # of total words or numbers, # of
          characters.*
   |
 
-* *Case B (and C, from above):* A single set of *N* DWIs acquired
+* **Case B (and C, from above):** A single set of *N* DWIs acquired
   with a single phase encode direction (in SUB01/UNFILT_AP/AP.nii,
   along with correponding '\*.bvec' and '\*.bval' files of matching
   length); assume you want to remove the volumes with index 4, 5

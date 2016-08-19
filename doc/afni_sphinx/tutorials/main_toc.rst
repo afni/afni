@@ -8,8 +8,8 @@ Tutorials, Demos
    :maxdepth: 2
    
    SelfGuidedScripts
-   fatcat_demo/fatcat_demo.rst
    fatcat_prep/main_toc.rst
+   fatcat_demo/fatcat_demo.rst
    WalnutBrain/WalnutBrain
    ContributeDocs/ContributeDocs
    DrawingSurfaceROIs/DrawingROIs
