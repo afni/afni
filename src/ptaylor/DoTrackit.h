@@ -3,6 +3,8 @@
 
 #include <gsl/gsl_randist.h>
 #include <gsl/gsl_rng.h>
+#include <gsl/gsl_statistics_double.h>
+
 
 #define EPS_V (0.000001) // for eigvec 'vel' to not have badness dividing
 #define CONV (PI/180)

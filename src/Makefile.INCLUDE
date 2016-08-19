@@ -1309,7 +1309,7 @@ AlphaSim:AlphaSim.o
 	$(RM) $@
 	$(CCOMP) -o 3dClustSim 3dClustSim.o $(LFLAGS) $(LLIBS)
 
-3dClustSimX.o:3dClustSimX.c
+3dClustSimX.o:3dClustSimX.c mri_threshX.c
 	$(RM) $@
 	$(CCOMP) -c 3dClustSimX.c $(INFLAGS)
 
