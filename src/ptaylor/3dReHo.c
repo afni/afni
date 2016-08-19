@@ -15,6 +15,8 @@
    + updated, Feb. 2013: for large ROIs, no longer *int* issue
                          more mask use
                          EPS_v thing sorted
+   + updated, Aug. 2016: wasn't allowing for subbrik selection on input
+                         -> now it does
 */
 
 
@@ -155,13 +157,11 @@ int main(int argc, char *argv[]) {
   int i,j,k,m,n,mm;
   int iarg;
   THD_3dim_dataset *insetTIME = NULL;
-  THD_3dim_dataset *inset0 = NULL;
   THD_3dim_dataset *outsetREHO=NULL;
   THD_3dim_dataset *MASK=NULL;
   THD_3dim_dataset *ROIS=NULL;
   char *prefix="REHO" ;
   char in_name[300];
-  char in_name0[300];
   char out_pref[300];
   char in_mask[300];
   char in_rois[300];
@@ -237,11 +237,6 @@ int main(int argc, char *argv[]) {
       insetTIME = THD_open_dataset(in_name) ;
       if( (insetTIME == NULL ))
         ERROR_exit("Can't open time series dataset '%s'.",in_name);
-      // just 0th time point for output...
-      sprintf(in_name0,"%s[0]", argv[iarg]); 
-      inset0 = THD_open_dataset(in_name0) ;
-      if( (inset0 == NULL ))
-        ERROR_exit("Can't open 0th brick of dataset as '%s[0]'.",in_name0);
 
       Dim = (int *)calloc(4,sizeof(int));
       DSET_load(insetTIME); CHECK_LOAD_ERROR(insetTIME);
@@ -574,9 +569,6 @@ int main(int argc, char *argv[]) {
         idx++;
       }
   
-  DSET_delete(insetTIME); // free here to save some space
-  free(insetTIME);
-
   
   idx = 0;
   // calculate KendallW for each voxel
@@ -611,14 +603,15 @@ int main(int argc, char *argv[]) {
   // **************************************************************
   // **************************************************************
 	
-  outsetREHO = EDIT_empty_copy( inset0 ) ; 
-  if(CHI_ON)
-    EDIT_add_bricklist(outsetREHO,
-                       1, NULL , NULL , NULL );
+  outsetREHO = EDIT_empty_copy( insetTIME ) ; 
+
   EDIT_dset_items( outsetREHO,
                    ADN_datum_all , MRI_float , 
+                   ADN_ntt       , 1+CHI_ON, 
+                   ADN_nvals     , 1+CHI_ON,
                    ADN_prefix    , prefix ,
                    ADN_none ) ;
+
   if( !THD_ok_overwrite() && THD_is_ondisk(DSET_HEADNAME(outsetREHO)) )
     ERROR_exit("Can't overwrite existing dataset '%s'",
                DSET_HEADNAME(outsetREHO));
@@ -673,9 +666,9 @@ int main(int argc, char *argv[]) {
   // ************************************************************
   // ************************************************************
 	
-  // insetTIME gets freed earlier to save some space
+  DSET_delete(insetTIME); 
+  free(insetTIME);
 
-  DSET_delete(inset0);
   DSET_delete(outsetREHO);
   DSET_delete(MASK);
   DSET_delete(ROIS);
@@ -706,7 +699,6 @@ int main(int argc, char *argv[]) {
   free(ndof);
 
   free(Dim); // need to free last because it's used for other arrays...
-  free(inset0);
   free(outsetREHO);
   free(prefix);
   free(LIST_OF_NEIGHS);

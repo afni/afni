@@ -67,6 +67,11 @@ afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
 
+{ 18, Aug , 2016 , PT , "3dReHo" , MINOR , TYPE_BUG_FIX,
+   "Used to not allow subbrik selection on input.",
+   "Now it does.  Thanks to Daniel H. for pointing it out.\n"
+},
+
 { 1, Aug , 2016 , PT , "3dRSFC" , MINOR , TYPE_BUG_FIX,
    "In cases of *very large* N_pts, an error message appeared-- no more.",
    "Just changed default initialization of >f_N value.\n"
