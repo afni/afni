@@ -8,14 +8,14 @@
 /*====================================*/
 #ifdef USE_UBYTE  /* for grids <= 255 */
 
-# define DALL    256
+# define DALL    128
 # define MAX_IND 255u
 
   typedef unsigned char ind_t ;
 
 #else   /*==== for grids <= 32767 ====*/
 
-# define DALL    1024
+# define DALL    512
 # define MAX_IND 32767u
 
   typedef unsigned short ind_t ;
@@ -28,7 +28,8 @@
 typedef struct {
   int npt ,                 /* number of points assigned */
       nall ,                /* number of points allocated */
-      ngood ;               /* number of good points left */
+      norig ,               /* number of original pts (before dilation) */
+      nbcount ;             /* for dilation decisions (cf. 3dClustSimX) */
   float fom ;               /* Figure Of Merit for cluster */
   ind_t *ip , *jp , *kp ;   /* 3D indexes for each point */
   int   *ijk ;              /* 1D index for each point */
@@ -50,7 +51,7 @@ typedef struct {
  } while(0)
 
 #define ADDTO_Xcluster_array(xcar,xc)                                          \
- do{ if( (xcar)->npt = (xcar)->nall ){                                         \
+ do{ if( (xcar)->nclu == (xcar)->nall ){                                       \
        (xcar)->nall += 16 ;                                                    \
        (xcar)->xclu = (Xcluster **)realloc((xcar)->xclu,                       \
                                            sizeof(Xcluster **)*(xcar)->nall) ; \
@@ -58,11 +59,11 @@ typedef struct {
      (xcar)->xclu[(xcar)->nclu++] = (xc) ;                                     \
  } while(0)
 
-#define DESTROY_Xcluster_array(xcar)                                       \
- do{ int cc ;                                                              \
-     for( cc=0 ; cc < (xcar)->nclu ; cc++ )                                \
-       if( (xcar)->xclu[cc] != NULL ) DESTROY_Xcluster((xcar)->xclu[cc]) ; \
-     free((xcar)->xclu) ; free(xcar) ;                                     \
+#define DESTROY_Xcluster_array(xcar)         \
+ do{ int cc ;                                \
+     for( cc=0 ; cc < (xcar)->nclu ; cc++ )  \
+       DESTROY_Xcluster((xcar)->xclu[cc]) ;  \
+     free((xcar)->xclu) ; free(xcar) ;       \
  } while(0)
 
 /*----------------------------------------------------------------------------*/
@@ -70,7 +71,7 @@ typedef struct {
 
 #define CREATE_Xcluster(xc,siz)                                        \
  do{ xc = (Xcluster *)malloc(sizeof(Xcluster)) ;                       \
-     xc->npt = 0 ; xc->ngood = 0 ; xc->nall = (siz) ;                  \
+     xc->npt = xc->norig = xc->nbcount = 0 ; xc->nall = (siz) ;        \
      xc->fom = 0.0f ;                                                  \
      xc->ip  = (ind_t *)malloc(sizeof(ind_t)*(siz)) ;                  \
      xc->jp  = (ind_t *)malloc(sizeof(ind_t)*(siz)) ;                  \
@@ -79,9 +80,10 @@ typedef struct {
  } while(0)
 
 #define DESTROY_Xcluster(xc)                                           \
- do{ free((xc)->ip); free((xc)->jp); free((xc)->kp);                   \
-     free((xc)->ijk); free(xc);                                        \
- } while(0)
+ do{ if( (xc) != NULL ){                                               \
+       free((xc)->ip); free((xc)->jp); free((xc)->kp);                 \
+       free((xc)->ijk); free(xc);                                      \
+ }} while(0)
 
 /*----------------------------------------------------------------------------*/
 /* Copy one cluster's data over another's */
@@ -106,7 +108,7 @@ void copyover_Xcluster( Xcluster *xcin , Xcluster *xcout )
    AA_memcpy( xcout->ijk, xcin->ijk, sizeof(int)  *nin ) ;
    xcout->fom   = xcin->fom ;
    xcout->npt   = nin ;
-   xcout->ngood = xcin->ngood ;
+   xcout->norig = xcin->norig ;
    return ;
 }
 
@@ -133,11 +135,13 @@ Xcluster * copy_Xcluster( Xcluster *xcc )
 #endif
 
 /*----------------------------------------------------------------------------*/
-/* Add a point to a cluster (if fim is nonzero at this point) */
+/* Add a point to current cluster (if far is nonzero at this point).
+   For use only in the function directly below!
+*//*--------------------------------------------------------------------------*/
 
-#define XPUT_point(xcc,i,j,k)                                                \
+#define TPUT_point(i,j,k)                                                    \
  do{ int pqr = (i)+(j)*nx+(k)*nxy , npt=(xcc)->npt ;                         \
-     if( fim[pqr] != 0.0f ){                                                 \
+     if( far[pqr] != 0.0f ){                                                 \
        if( npt == (xcc)->nall ){                                             \
          (xcc)->nall += DALL + (xcc)->nall/2 ;                               \
          (xcc)->ip = (ind_t *)realloc((xcc)->ip,sizeof(ind_t)*(xcc)->nall) ; \
@@ -147,28 +151,35 @@ Xcluster * copy_Xcluster( Xcluster *xcc )
        }                                                                     \
        (xcc)->ip[npt] = (i); (xcc)->jp[npt] = (j); (xcc)->kp[npt] = (k);     \
        (xcc)->ijk[npt] = pqr ;                                               \
-       (xcc)->npt++ ; (xcc)->ngood++ ;                                       \
-       (xcc)->fom += ADDTO_FOM(fim[pqr]) ;                                   \
-       fim[pqr] = 0.0f ;                                                     \
+       (xcc)->npt++ ; (xcc)->norig++ ;                                       \
+       (xcc)->fom += ADDTO_FOM(far[pqr]) ;                                   \
+       far[pqr] = 0.0f ;                                                     \
      } } while(0)
 
 /*----------------------------------------------------------------------------*/
-/* Find clusters */
+/* Find clusters of nonzero voxels:
+     fim    = float image (will be zero-ed out at end)
+     nnlev  = 1 or 2 or 3 (clustering neighborliness)
+     minfom = minimum FOM cluster to keep
+*//*--------------------------------------------------------------------------*/
 
-Xcluster_array * find_Xcluster_array( float *fim , int nnlev , int minsiz )
+Xcluster_array * find_Xcluster_array( MRI_IMAGE *fim, int nnlev, float minfom )
 {
-   Xcluster *xcc ; Xcluster_array *xcar=NULL ;
+   Xcluster *xcc ; Xcluster_array *xcar=NULL ; float *far ;
    int ii,jj,kk, icl , ijk , ijk_last ;
-   int ip,jp,kp , im,jm,km ;
-   float fom_max=0.0f ;
+   int ip,jp,kp , im,jm,km , nx,ny,nz,nxy,nxyz ;
    const int do_nn2=(nnlev > 1) , do_nn3=(nnlev > 2) ;
+
+   if( fim == NULL || fim->kind != MRI_float ) return NULL ;
+   far = MRI_FLOAT_PTR(fim) ;
+   nx = fim->nx; ny = fim->ny; nxy = nx*ny; nz = fim->nz; nxyz = nxy*nz;
 
    ijk_last = 0 ;  /* start scanning at the {..wait for it..} start */
 
    while(1) {
-     /* find next nonzero point in fim array */
+     /* find next nonzero point in far array */
 
-     for( ijk=ijk_last ; ijk < nxyz ; ijk++ ) if( fim[ijk] != 0.0f ) break ;
+     for( ijk=ijk_last ; ijk < nxyz ; ijk++ ) if( far[ijk] != 0.0f ) break ;
      if( ijk == nxyz ) break ;  /* didn't find any! */
      ijk_last = ijk+1 ;         /* start here next time */
 
@@ -178,9 +189,10 @@ Xcluster_array * find_Xcluster_array( float *fim , int nnlev , int minsiz )
 
      CREATE_Xcluster(xcc,16) ;
 
-     xcc->ip[0] = ii; xcc->jp[0] = jj; xcc->kp[0] = kk; xcc->ijk[0] = ijk;
-     xcc->npt   = xcc->ngood = 1 ;
-     xcc->fom   = ADDTO_FOM(fim[ijk]) ; fim[ijk] = 0.0f ;
+     xcc->ip[0] = (ind_t)ii; xcc->jp[0] = (ind_t)jj; xcc->kp[0] = (ind_t)kk;
+     xcc->ijk[0]= ijk;
+     xcc->npt   = xcc->norig = 1 ;
+     xcc->fom   = ADDTO_FOM(far[ijk]) ; far[ijk] = 0.0f ;
 
      /* loop over points in cluster, checking their neighbors,
         growing the cluster if we find any that belong therein */
@@ -190,60 +202,131 @@ Xcluster_array * find_Xcluster_array( float *fim , int nnlev , int minsiz )
        im = ii-1        ; jm = jj-1        ; km = kk-1 ;  /* minus 1 indexes */
        ip = ii+1        ; jp = jj+1        ; kp = kk+1 ;  /* plus 1 indexes */
 
-       if( im >= 0 ){  XPUT_point(im,jj,kk) ;
+       if( im >= 0 ){                 TPUT_point(im,jj,kk) ;  /* 1NN */
          if( do_nn2 ){
-           if( jm >= 0 ) XPUT_point(im,jm,kk) ;  /* 2NN */
-           if( jp < ny ) XPUT_point(im,jp,kk) ;  /* 2NN */
-           if( km >= 0 ) XPUT_point(im,jj,km) ;  /* 2NN */
-           if( kp < nz ) XPUT_point(im,jj,kp) ;  /* 2NN */
+           if( jm >= 0 )              TPUT_point(im,jm,kk) ;  /* 2NN */
+           if( jp < ny )              TPUT_point(im,jp,kk) ;  /* 2NN */
+           if( km >= 0 )              TPUT_point(im,jj,km) ;  /* 2NN */
+           if( kp < nz )              TPUT_point(im,jj,kp) ;  /* 2NN */
            if( do_nn3 ){
-             if( jm >= 0 && km >= 0 ) XPUT_point(im,jm,km) ;  /* 3NN */
-             if( jm >= 0 && kp < nz ) XPUT_point(im,jm,kp) ;  /* 3NN */
-             if( jp < ny && km >= 0 ) XPUT_point(im,jp,km) ;  /* 3NN */
-             if( jp < ny && kp < nz ) XPUT_point(im,jp,kp) ;  /* 3NN */
+             if( jm >= 0 && km >= 0 ) TPUT_point(im,jm,km) ;  /* 3NN */
+             if( jm >= 0 && kp < nz ) TPUT_point(im,jm,kp) ;  /* 3NN */
+             if( jp < ny && km >= 0 ) TPUT_point(im,jp,km) ;  /* 3NN */
+             if( jp < ny && kp < nz ) TPUT_point(im,jp,kp) ;  /* 3NN */
        }}}
-       if( ip < nx ){  XPUT_point(ip,jj,kk) ;
+       if( ip < nx ){                 TPUT_point(ip,jj,kk) ;  /* 1NN */
          if( do_nn2 ){
-           if( jm >= 0 ) XPUT_point(ip,jm,kk) ;  /* 2NN */
-           if( jp < ny ) XPUT_point(ip,jp,kk) ;  /* 2NN */
-           if( km >= 0 ) XPUT_point(ip,jj,km) ;  /* 2NN */
-           if( kp < nz ) XPUT_point(ip,jj,kp) ;  /* 2NN */
+           if( jm >= 0 )              TPUT_point(ip,jm,kk) ;  /* 2NN */
+           if( jp < ny )              TPUT_point(ip,jp,kk) ;  /* 2NN */
+           if( km >= 0 )              TPUT_point(ip,jj,km) ;  /* 2NN */
+           if( kp < nz )              TPUT_point(ip,jj,kp) ;  /* 2NN */
            if( do_nn3 ){
-             if( jm >= 0 && km >= 0 ) XPUT_point(ip,jm,km) ;  /* 3NN */
-             if( jm >= 0 && kp < nz ) XPUT_point(ip,jm,kp) ;  /* 3NN */
-             if( jp < ny && km >= 0 ) XPUT_point(ip,jp,km) ;  /* 3NN */
-             if( jp < ny && kp < nz ) XPUT_point(ip,jp,kp) ;  /* 3NN */
+             if( jm >= 0 && km >= 0 ) TPUT_point(ip,jm,km) ;  /* 3NN */
+             if( jm >= 0 && kp < nz ) TPUT_point(ip,jm,kp) ;  /* 3NN */
+             if( jp < ny && km >= 0 ) TPUT_point(ip,jp,km) ;  /* 3NN */
+             if( jp < ny && kp < nz ) TPUT_point(ip,jp,kp) ;  /* 3NN */
        }}}
-       if( jm >= 0 ){  XPUT_point(ii,jm,kk) ;
+       if( jm >= 0 ){                 TPUT_point(ii,jm,kk) ;  /* 1NN */
          if( do_nn2 ){
-           if( km >= 0 ) XPUT_point(ii,jm,km) ;  /* 2NN */
-           if( kp < nz ) XPUT_point(ii,jm,kp) ;  /* 2NN */
+           if( km >= 0 )              TPUT_point(ii,jm,km) ;  /* 2NN */
+           if( kp < nz )              TPUT_point(ii,jm,kp) ;  /* 2NN */
        }}
-       if( jp < ny ){  XPUT_point(ii,jp,kk) ;
+       if( jp < ny ){                 TPUT_point(ii,jp,kk) ;  /* 1NN */
          if( do_nn2 ){
-           if( km >= 0 ) XPUT_point(ii,jp,km) ;  /* 2NN */
-           if( kp < nz ) XPUT_point(ii,jp,kp) ;  /* 2NN */
+           if( km >= 0 )              TPUT_point(ii,jp,km) ;  /* 2NN */
+           if( kp < nz )              TPUT_point(ii,jp,kp) ;  /* 2NN */
        }}
-       if( km >= 0 )   XPUT_point(ii,jj,km) ;
-       if( kp < nz )   XPUT_point(ii,jj,kp) ;
-     } /* since xcc->npt increases if XPUT_point adds the point,
+       if( km >= 0 )                  TPUT_point(ii,jj,km) ;  /* 1NN */
+       if( kp < nz )                  TPUT_point(ii,jj,kp) ;  /* 1NN */
+
+     } /* since xcc->npt increases if TPUT_point adds the point,
           the loop continues until finally no new neighbors get added */
 
-     if( xcc->npt < minsiz ){
+     if( xcc->fom < minfom ){  /* too 'small' ==> toss onto the trash */
        DESTROY_Xcluster(xcc) ; xcc = NULL ;
-     } else {
+     } else {                  /* add to the cluster list */
        if( xcar == NULL ) CREATE_Xcluster_array(xcar,4) ;
-       ADDTO_Xcluster_array(xcar,xcc) ;
+       ADDTO_Xcluster_array(xcar,xcc) ; xcc = NULL ;
      }
 
-   } /* loop until all nonzero points in fim[] have been used up */
+   } /* loop until all nonzero points in far[] have been used up */
 
    return xcar ;  /* could be NULL, if fim is all zeros */
 }
 
-/*----------------------------------------------------------------------------*/
+#undef TPUT_point
 
-void mri_threshold_Xcluster( MRI_IMAGE *fim,
-                             float thr, int sid, int nnlev, MRI_IMAGE *cim )
+/*----------------------------------------------------------------------------*/
+/* fim   = image to threshold
+   thr   = threshold
+   sid   = sideness of threshold (1 or 2)
+   nnlev = 1 or 2 or 3
+   cim   = cluster fom threshold image
+*//*--------------------------------------------------------------------------*/
+
+MRI_IMAGE * mri_threshold_Xcluster( MRI_IMAGE *fim,
+                                    float thr, int sid, int nnlev,
+                                    MRI_IMAGE *cim )
 {
+   MRI_IMAGE *tfim ;
+   float *car , *tfar , *far , cmin,cth,cval ;
+   int ii,nvox,ncdon ;
+   Xcluster_array *xcar ; Xcluster *xcc ; int icl,npt, *ijkar ;
+
+   if( fim == NULL || fim->kind != MRI_float ) return NULL ;
+   if( cim == NULL || cim->kind != MRI_float ) return NULL ;
+
+   nvox = fim->nvox ;  if( cim->nvox != nvox ) return NULL ;
+   car  = MRI_FLOAT_PTR(cim) ;
+   far  = MRI_FLOAT_PTR(fim) ;
+
+   cmin = WAY_BIG ;
+   for( ii=0 ; ii < nvox ; ii++ )
+     if( car[ii] > 0.0f && car[ii] < cmin ) cmin = car[ii] ;
+   if( cmin == WAY_BIG ) return NULL ;
+
+   tfim = mri_copy(fim) ;
+   tfar = MRI_FLOAT_PTR(tfim) ;
+
+   /* voxel-wise thresholding */
+
+   if( thr != 0.0f ){
+     if( sid == 2 ){           /*-- 2 sided --*/
+       thr = fabsf(thr) ;
+       for( ii=0 ; ii < nvox ; ii++ )
+         if( tfar[ii] > -thr && tfar[ii] < thr ) tfar[ii] = 0.0f ;
+     } else if( thr > 0.0f ){  /*-- 1 sided (positive) --*/
+       for( ii=0 ; ii < nvox ; ii++ )
+         if( tfar[ii] < thr ) tfar[ii] = 0.0f ;
+     } else if( thr < 0.0f ){  /*-- 1 sided (negative) --*/
+       for( ii=0 ; ii < nvox ; ii++ )
+         if( tfar[ii] > thr ) tfar[ii] = 0.0f ;
+     }
+   }
+
+   /* clusterize */
+
+   xcar = find_Xcluster_array( tfim , nnlev , cmin ) ;
+
+   if( xcar == NULL ){ mri_free(tfim); return NULL; }  /* nada */
+
+   /* put "good" clusters back into tfim */
+
+   ncdon = 0 ;
+   for( icl=0 ; icl < xcar->nclu ; icl++ ){
+     xcc = xcar->xclu[icl]; npt = xcc->npt; ijkar = xcc->ijk; cth = 0.0f;
+     /* average the threshold across the cluster */
+     for( ii=0 ; ii < npt ; ii++ ){ cval = car[ijkar[ii]]; cth += MAX(cval,cmin); }
+     cth /= npt ;
+     if( xcc->fom >= cth ){  /* it's good, Jim */
+       for( ii=0 ; ii < npt ; ii++ )  /* copy from fim to tfim */
+         tfar[ijkar[ii]] = far[ijkar[ii]] ;
+       ncdon += npt ;
+     }
+   }
+
+   DESTROY_Xcluster_array(xcar) ;
+   if( ncdon == 0 ){ mri_free(tfim) ; tfim = NULL ; }
+
+   return tfim ;
 }
