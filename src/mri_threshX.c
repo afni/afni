@@ -163,6 +163,8 @@ Xcluster * copy_Xcluster( Xcluster *xcc )
      minfom = minimum FOM cluster to keep
 *//*--------------------------------------------------------------------------*/
 
+static int threshX_keep_only_fomest = 0 ; /* for determining FAR: 3dClustSimX */
+
 Xcluster_array * find_Xcluster_array( MRI_IMAGE *fim, int nnlev, float minfom )
 {
    Xcluster *xcc ; Xcluster_array *xcar=NULL ; float *far ;
@@ -243,11 +245,20 @@ Xcluster_array * find_Xcluster_array( MRI_IMAGE *fim, int nnlev, float minfom )
           the loop continues until finally no new neighbors get added */
 
      if( xcc->fom < minfom ){  /* too 'small' ==> toss onto the trash */
-       DESTROY_Xcluster(xcc) ; xcc = NULL ;
+       DESTROY_Xcluster(xcc) ;
      } else {                  /* add to the cluster list */
        if( xcar == NULL ) CREATE_Xcluster_array(xcar,4) ;
-       ADDTO_Xcluster_array(xcar,xcc) ; xcc = NULL ;
+       if( threshX_keep_only_fomest && xcar->nclu == 1 ){
+         if( xcc->fom > xcar->xclu[1]->fom ){
+           DESTROY_Xcluster(xcar->xclu[1]) ; xcar->xclu[1] = xcc ;
+         } else {
+           DESTROY_Xcluster(xcc) ;
+         }
+       } else {
+         ADDTO_Xcluster_array(xcar,xcc) ;
+       }
      }
+     xcc = NULL ;
 
    } /* loop until all nonzero points in far[] have been used up */
 
@@ -319,9 +330,9 @@ MRI_IMAGE * mri_threshold_Xcluster( MRI_IMAGE *fim,
      for( ii=0 ; ii < npt ; ii++ ){ cval = car[ijkar[ii]]; cth += MAX(cval,cmin); }
      cth /= npt ;
      if( xcc->fom >= cth ){  /* it's good, Jim */
+       ncdon += npt ;
        for( ii=0 ; ii < npt ; ii++ )  /* copy from fim to tfim */
          tfar[ijkar[ii]] = far[ijkar[ii]] ;
-       ncdon += npt ;
      }
    }
 
