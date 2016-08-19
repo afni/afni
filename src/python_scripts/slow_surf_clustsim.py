@@ -34,6 +34,7 @@ slow_surf_clustsim.py    - generate a tcsh script to run clustsim on surface
             -uvar blur 4.0                                      \\
             -uvar vol_mask mask_3mm+orig                        \\
 
+
    2. more advanced, but still based on EPI analysis
 
       Specify p-values, blur size and number of iterations, along with the
@@ -50,6 +51,7 @@ slow_surf_clustsim.py    - generate a tcsh script to run clustsim on surface
             -save_script csim.10000                             \\
             -uvar results_dir clust.results.10000
 
+
    3. basic, but on the surface (so no vol_mask is provided)
 
         slow_surf_clustsim.py -save_script surf.sim.3           \\
@@ -57,6 +59,9 @@ slow_surf_clustsim.py    - generate a tcsh script to run clustsim on surface
             -uvar blur 3.0                                      \\
             -uvar spec_file sb23_lh_141_std.spec                \\
             -uvar surf_vol sb23_SurfVol_aligned+orig
+
+      One can also add a surface mask via '-uvar surf_mask smask_lh.gii'.
+
 
    Note: it is appropriate to use a volume mask on the same grid as the data to
          be analyzed, which is to say either the EPI grid (for functional
