@@ -49,6 +49,13 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 19,  Aug, 2016, RCR, "slow_surf_clustsim.py", MINOR, TYPE_ENHANCE,
+   "can use surf_mask to restrict surface clustering",
+   "Use '-uvar surf_mask' to restrict on_surface clustering to mask.\n"
+   "Append SSCS command to end of script and handle NIFTI surf_vol.\n"
+   "The surf_mask mas added for C Thomas."
+ } ,
+
  { 16,  Aug, 2016, RCR, "gen_ss_review_scripts.py", MINOR, TYPE_ENHANCE,
    "look for new ACF/FWHM blur estimates",
    NULL

@@ -204,3 +204,11 @@ Useful papers describing FATCAT (+ AFNI + SUMA) tools are:
   application of "mini-probabilistic" tracking) and group analysis
   with multivariate statistics.*
 
+
+.. list-table:: 
+   :header-rows: 0
+   :widths: 100
+
+   * - .. image:: media/FATCAT_logo.jpg
+          :width: 25%
+          :align: center

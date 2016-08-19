@@ -4,39 +4,7 @@
 #include <omp.h>
 #endif
 
-/*---------------------------------------------------------------------------*/
-/* Cluster definition.  Index type ind_t can be byte or short. */
-
-#define USE_UBYTE
-
-/*====================================*/
-#ifdef USE_UBYTE  /* for grids <= 255 */
-
-# define DALL    256
-# define MAX_IND 255u
-
-  typedef unsigned char ind_t ;
-
-#else   /*==== for grids <= 32767 ====*/
-
-# define DALL    1024
-# define MAX_IND 32767u
-
-  typedef unsigned short ind_t ;
-
-#endif
-/*====================================*/
-
-/*----- struct to hold a single cluster of points -----*/
-
-typedef struct {
-  int npt ,                 /* number of points assigned */
-      nall ,                /* number of points allocated */
-      ngood ;               /* number of good points left */
-  float fom ;               /* Figure Of Merit for cluster */
-  ind_t *ip , *jp , *kp ;   /* 3D indexes for each point */
-  int   *ijk ;              /* 1D index for each point */
-} Xcluster ;
+#include "mri_threshX.c"
 
 /*---------------------------------------------------------------------------*/
 /*
@@ -134,6 +102,28 @@ static void vstep_print(void)
 }
 
 /*---------------------------------------------------------------------------*/
+/* load the input datasets */
+
+int load_insets(void)
+{
+   int nin=0,qq,nbad=0 ;
+
+   for( qq=0 ; qq < num_inset ; qq++ ){
+     nin += nval_inset[qq] ;
+     ININFO_message("loading -inset '%s' with %d volumes",
+                    DSET_HEADNAME(inset[qq]),DSET_NVALS(inset[qq])) ;
+     DSET_load(inset[qq]) ;
+     if( !DSET_LOADED(inset[qq]) ){
+       ERROR_message("Can't load dataset -inset '%s'",DSET_HEADNAME(inset[qq])) ;
+       nbad++ ;
+     }
+   }
+   if( nbad > 0 ) ERROR_exit("Can't continue after load errors") ;
+
+   return nin ;
+}
+
+/*---------------------------------------------------------------------------*/
 /* Routine to initialize the input options (values are in global variables). */
 
 void get_options( int argc , char **argv )
@@ -166,12 +156,14 @@ ENTRY("get_options") ;
 
     /*-----*/
 
+#if 0
     if( strcmp(argv[nopt],"-dilate") == 0 ){
       if( ++nopt >= argc )
         ERROR_exit("You need 1 argument after option '-dilate'") ;
       nndil = (int)strtod(argv[nopt],NULL) ;
       nopt++ ; continue ;
     }
+#endif
 
     /*-----  -inset iii  -----*/
 
@@ -264,36 +256,22 @@ ENTRY("get_options") ;
 
   if( num_inset <= 0 ) ERROR_exit("-inset option is mandatory :(") ;
 
-  if( num_inset > 0 ){      /* 02 Feb 2016 */
-    int qq,nbad=0 ;
-    nx = DSET_NX(inset[0]) ;
-    ny = DSET_NY(inset[0]) ;
-    nz = DSET_NZ(inset[0]) ;
-    dx = fabsf(DSET_DX(inset[0])) ;
-    dy = fabsf(DSET_DY(inset[0])) ;
-    dz = fabsf(DSET_DZ(inset[0])) ;
-    for( niter=qq=0 ; qq < num_inset ; qq++ ){
-      niter += nval_inset[qq] ;
-#ifdef INSET_PRELOAD
-      ININFO_message("loading -inset '%s' with %d volumes",DSET_HEADNAME(inset[qq]),DSET_NVALS(inset[qq])) ;
-      DSET_load(inset[qq]) ;
-      if( !DSET_LOADED(inset[qq]) ){
-        ERROR_message("Can't load dataset -inset '%s'",DSET_HEADNAME(inset[qq])) ;
-        nbad ++ ;
-      }
-#endif
-    }
-    if( nbad > 0 ) ERROR_exit("Can't continue without all -inset datasets :-(") ;
-    if( niter < 100 )
-      WARNING_message("-inset has only %d volumes total (= new '-niter' value)",niter) ;
-    else if( verb )
-      INFO_message("-inset had %d volumes = new '-niter' value",niter) ;
-    if( mask_dset != NULL ){
-      if( nx != DSET_NX(mask_dset) ||
-          ny != DSET_NY(mask_dset) ||
-          nz != DSET_NZ(mask_dset)   )
-        ERROR_exit("-mask and -inset don't match in grid dimensions :-(") ;
-    }
+  nx = DSET_NX(inset[0]) ;
+  ny = DSET_NY(inset[0]) ;
+  nz = DSET_NZ(inset[0]) ;
+  dx = fabsf(DSET_DX(inset[0])) ;
+  dy = fabsf(DSET_DY(inset[0])) ;
+  dz = fabsf(DSET_DZ(inset[0])) ;
+  niter = load_insets() ;
+  if( niter < 1000 )
+    WARNING_message("-inset has only %d volumes total (= new '-niter' value)",niter) ;
+  else if( verb )
+    INFO_message("-inset had %d volumes",niter) ;
+  if( mask_dset != NULL ){
+    if( nx != DSET_NX(mask_dset) ||
+        ny != DSET_NY(mask_dset) ||
+        nz != DSET_NZ(mask_dset)   )
+      ERROR_exit("-mask and -inset don't match in grid dimensions :-(") ;
   }
 
   nxy = nx*ny ; nxyz = nxy*nz ; nxyz1 = nxyz - nxy ;
@@ -390,82 +368,16 @@ void generate_image( float *fim , int iter )
 }
 
 /*----------------------------------------------------------------------------*/
-
-#if 0  /* for later developments */
-#  define ADDTO_FOM(val)                                               \
-    ( (qpow==0) ? 1.0f :(qpow==1) ? fabsf(val) : (val)*(val) )
-#else
-#  define ADDTO_FOM(val) 1.0f
-#endif
-
-/*----------------------------------------------------------------------------*/
-
-#define DESTROY_Xcluster(xc)                                           \
- do{ free((xc)->ip); free((xc)->jp); free((xc)->kp);                   \
-     free((xc)->ijk); free(xc);                                        \
- } while(0)
-
-/*----------------------------------------------------------------------------*/
-/* Create a cluster with initial array allocation of siz */
-
-#define CREATE_Xcluster(xc,siz)                                        \
- do{ xc = (Xcluster *)malloc(sizeof(Xcluster)) ;                       \
-     xc->npt = 0 ; xc->ngood = 0 ; xc->nall = (siz) ;                  \
-     xc->fom = 0.0f ;                                                  \
-     xc->ip  = (ind_t *)malloc(sizeof(ind_t)*(siz)) ;                  \
-     xc->jp  = (ind_t *)malloc(sizeof(ind_t)*(siz)) ;                  \
-     xc->kp  = (ind_t *)malloc(sizeof(ind_t)*(siz)) ;                  \
-     xc->ijk = (int *)  malloc(sizeof(int)  *(siz)) ;                  \
- } while(0)
-
-/*----------------------------------------------------------------------------*/
-/* Copy one cluster's data over another's */
-
-void copyover_Xcluster( Xcluster *xcin , Xcluster *xcout )
-{
-   int nin ;
-
-   if( xcin == NULL || xcout == NULL ) return ;
-
-   nin = xcin->npt ;
-   if( nin > xcout->nall ){
-     xcout->nall = nin ;
-#pragma omp critical (MALLOC)
-     { xcout->ip  = (ind_t *)realloc(xcout->ip ,sizeof(ind_t)*nin) ;
-       xcout->jp  = (ind_t *)realloc(xcout->jp ,sizeof(ind_t)*nin) ;
-       xcout->kp  = (ind_t *)realloc(xcout->kp ,sizeof(ind_t)*nin) ;
-       xcout->ijk = (int *)  realloc(xcout->ijk,sizeof(int)  *nin) ; }
-   }
-   AA_memcpy( xcout->ip , xcin->ip , sizeof(ind_t)*nin ) ;
-   AA_memcpy( xcout->jp , xcin->jp , sizeof(ind_t)*nin ) ;
-   AA_memcpy( xcout->kp , xcin->kp , sizeof(ind_t)*nin ) ;
-   AA_memcpy( xcout->ijk, xcin->ijk, sizeof(int)  *nin ) ;
-   xcout->fom   = xcin->fom ;
-   xcout->npt   = nin ;
-   xcout->ngood = xcin->ngood ;
-   return ;
-}
-
-/*----------------------------------------------------------------------------*/
-/* Create a new cluster that is a copy of the input */
-
-Xcluster * copy_Xcluster( Xcluster *xcc )
-{
-   Xcluster *xccout ;
-
-   if( xcc == NULL ) return NULL ;
-   CREATE_Xcluster(xccout,xcc->npt) ;
-   copyover_Xcluster( xcc , xccout ) ;
-   return xccout ;
-}
-
-/*----------------------------------------------------------------------------*/
 /* Temporary clusters, one for each thread -- allocated in main() */
+/* These are created once in main(), and not deleted, to avoid the
+   overhead of malloc/free, which tends to degrade OpenMP performance */
 
 static Xcluster **Xctemp_g = NULL ;
 
 /*----------------------------------------------------------------------------*/
-/* Add a point to a cluster (if fim is nonzero at this point) */
+/* Add a point to a cluster (if fim is nonzero at this point).
+   For use only in the cluster finding functions directly below!
+*//*--------------------------------------------------------------------------*/
 
 #define XPUT_point(i,j,k)                                              \
  do{ int pqr = (i)+(j)*nx+(k)*nxy , npt=xcc->npt ;                     \
@@ -479,7 +391,7 @@ static Xcluster **Xctemp_g = NULL ;
        }                                                               \
        xcc->ip[npt] = (i); xcc->jp[npt] = (j); xcc->kp[npt] = (k);     \
        xcc->ijk[npt] = pqr ;                                           \
-       xcc->npt++ ; xcc->ngood++ ;                                     \
+       xcc->npt++ ; xcc->norig++ ;                                     \
        xcc->fom += ADDTO_FOM(fim[pqr]) ;                               \
        fim[pqr] = 0.0f ;                                               \
      } } while(0)
@@ -510,7 +422,7 @@ Xcluster * find_fomest_Xcluster_NN1( float *fim , int ithr )
      /* build a new cluster starting with this 1 point */
 
      xcc->ip[0] = ii; xcc->jp[0] = jj; xcc->kp[0] = kk; xcc->ijk[0] = ijk;
-     xcc->npt   = xcc->ngood = 1 ;
+     xcc->npt   = xcc->norig = 1 ;
      xcc->fom   = ADDTO_FOM(fim[ijk]) ; fim[ijk] = 0.0f ;
 
      /* loop over points in cluster, checking their neighbors,
@@ -568,7 +480,7 @@ Xcluster * find_fomest_Xcluster_NN2( float *fim , int ithr )
      /* build a new cluster starting with this 1 point */
 
      xcc->ip[0] = ii; xcc->jp[0] = jj; xcc->kp[0] = kk; xcc->ijk[0] = ijk;
-     xcc->npt   = xcc->ngood = 1 ;
+     xcc->npt   = xcc->norig = 1 ;
      xcc->fom   = ADDTO_FOM(fim[ijk]) ; fim[ijk] = 0.0f ;
 
      /* loop over points in cluster, checking their neighbors,
@@ -642,7 +554,7 @@ Xcluster * find_fomest_Xcluster_NN3( float *fim , int ithr )
      /* build a new cluster starting with this 1 point */
 
      xcc->ip[0] = ii; xcc->jp[0] = jj; xcc->kp[0] = kk; xcc->ijk[0] = ijk;
-     xcc->npt   = xcc->ngood = 1 ;
+     xcc->npt   = xcc->norig = 1 ;
      xcc->fom   = ADDTO_FOM(fim[ijk]) ; fim[ijk] = 0.0f ;
 
      /* loop over points in cluster, checking their neighbors,
@@ -698,6 +610,8 @@ Xcluster * find_fomest_Xcluster_NN3( float *fim , int ithr )
    return xccout ;  /* could be NULL, if fim is all zeros */
 }
 
+#undef XPUT_point
+
 /*---------------------------------------------------------------------------*/
 /* Global cluster collection:
      Xclust_g[ipthr][iter] = cluster at iteration iter and threshold ipthr
@@ -705,14 +619,6 @@ Xcluster * find_fomest_Xcluster_NN3( float *fim , int ithr )
 *//*-------------------------------------------------------------------------*/
 
 static Xcluster ***Xclust_g ;
-
-/*---------------------------------------------------------------------------*/
-/* Macro to delete a cluster when it is marked as having no good points left */
-
-#define CLEANUP_Xclust_g(ip,it)                                        \
- do{ if( Xclust_g[ip][it] != NULL && Xclust_g[ip][it]->ngood == 0 ){   \
-       DESTROY_Xcluster(Xclust_g[ip][it]) ; Xclust_g[ip][it] = NULL ;  \
- } } while(0)
 
 /*---------------------------------------------------------------------------*/
 /* Get a NN1_1sided cluster at a particular threshold (ipthr),
@@ -791,71 +697,79 @@ void gather_clusters_NN3_1sid( int ipthr, float *fim, float *tfim, int ithr,int 
          xc->ijk= (int *)  realloc(xc->ijk,sizeof(int) *xc->nall) ; \
        }                                                            \
        xc->ip[npt] = (i); xc->jp[npt] = (j); xc->kp[npt] = (k);     \
-       xc->ijk[npt] = pqr ;                                         \
-       xc->npt++ ; xc->ngood++ ;                                    \
+       xc->ijk[npt] = pqr ; xc->npt++ ;                             \
      }                                                              \
  } while(0)
 
-#define DILATE_NN  2   /* 1 or 2 or 3 */
+/*---------------------------------------------------------------------------*/
+/* per-thread work arrays for dilation;
+   again, the highest level arrays are created in main(),
+   and the sub-arrays are never free()-ed to avoid OpenMP degradation */
 
 static ind_t **dilg_iq=NULL , **dilg_jq=NULL , **dilg_kq=NULL ;
 static int   *ndilg=NULL ;
 
-void dilate_Xcluster( Xcluster *xc , int ithr )
+void dilate_Xcluster( Xcluster *xc , int nnlev , int ithr )
 {
    int npt,ntry,ii,jj , nx1=nx-1,ny1=ny-1,nz1=nz-1 ;
    ind_t *iq, *jq, *kq , xx,yy,zz ;
 
    if( xc == NULL || xc->npt == 0 ) return ;
+
    npt = xc->npt ;
-   ntry = npt * (  (DILATE_NN==1) ? 6 : (DILATE_NN==2) ? 18 : 26 ) ;
+
+   /* create the list of candidate points for dilation
+      (most will not survive the second step: already in cluster) */
+
+   ntry = npt * (  (nnlev<=1) ? 6 : (nnlev==2) ? 18 : 26 ) ;
    if( ntry > ndilg[ithr] ){
-#pragma omp critical (MALLOC)
-     { dilg_iq[ithr] = (ind_t *)realloc(dilg_iq[ithr],sizeof(ind_t)*ntry) ;
-       dilg_jq[ithr] = (ind_t *)realloc(dilg_jq[ithr],sizeof(ind_t)*ntry) ;
-       dilg_kq[ithr] = (ind_t *)realloc(dilg_kq[ithr],sizeof(ind_t)*ntry) ;
-       ndilg  [ithr] = ntry ;
-     }
+     dilg_iq[ithr] = (ind_t *)realloc(dilg_iq[ithr],sizeof(ind_t)*(ntry+64)) ;
+     dilg_jq[ithr] = (ind_t *)realloc(dilg_jq[ithr],sizeof(ind_t)*(ntry+64)) ;
+     dilg_kq[ithr] = (ind_t *)realloc(dilg_kq[ithr],sizeof(ind_t)*(ntry+64)) ;
+     ndilg  [ithr] = ntry+64 ;
    }
    iq = dilg_iq[ithr] ; jq = dilg_jq[ithr] ; kq = dilg_kq[ithr] ;
 
-   for( jj=ii=0 ; ii < npt ; ii++ ){
-     xx = xc->ip[ii] ; yy = xc->jp[ii] ; zz = xc->kp[ii] ;
+   for( jj=ii=0 ; ii < npt ; ii++ ){           /* candidates = neighbors */
+     xx = xc->ip[ii] ; yy = xc->jp[ii] ; zz = xc->kp[ii] ; /* current pt */
+     /* no dilation from outer edges of 3D grid */
      if( xx==0 || xx==nx1 || yy==0 || yy==ny1 || zz==0 || zz==nz-1 ) continue ;
 
-     iq[jj] = xx+1; jq[jj] = yy;   kq[jj] = zz;   jj++;
-     iq[jj] = xx-1; jq[jj] = yy;   kq[jj] = zz;   jj++;
+     iq[jj] = xx+1; jq[jj] = yy;   kq[jj] = zz;   jj++;  /* NN1 dilation */
+     iq[jj] = xx-1; jq[jj] = yy;   kq[jj] = zz;   jj++;  /* candidates */
      iq[jj] = xx;   jq[jj] = yy+1; kq[jj] = zz;   jj++;
      iq[jj] = xx;   jq[jj] = yy-1; kq[jj] = zz;   jj++;
      iq[jj] = xx;   jq[jj] = yy;   kq[jj] = zz+1; jj++;
      iq[jj] = xx;   jq[jj] = yy;   kq[jj] = zz-1; jj++;
-#if (DILATE_NN >= 2)
-     iq[jj] = xx+1; jq[jj] = yy+1; kq[jj] = zz  ; jj++;
-     iq[jj] = xx-1; jq[jj] = yy+1; kq[jj] = zz  ; jj++;
-     iq[jj] = xx+1; jq[jj] = yy-1; kq[jj] = zz  ; jj++;
-     iq[jj] = xx-1; jq[jj] = yy-1; kq[jj] = zz  ; jj++;
-     iq[jj] = xx;   jq[jj] = yy+1; kq[jj] = zz+1; jj++;
-     iq[jj] = xx;   jq[jj] = yy-1; kq[jj] = zz+1; jj++;
-     iq[jj] = xx;   jq[jj] = yy+1; kq[jj] = zz-1; jj++;
-     iq[jj] = xx;   jq[jj] = yy-1; kq[jj] = zz-1; jj++;
-     iq[jj] = xx+1; jq[jj] = yy;   kq[jj] = zz+1; jj++;
-     iq[jj] = xx-1; jq[jj] = yy;   kq[jj] = zz+1; jj++;
-     iq[jj] = xx+1; jq[jj] = yy;   kq[jj] = zz-1; jj++;
-     iq[jj] = xx-1; jq[jj] = yy;   kq[jj] = zz-1; jj++;
-#endif
-
-#if (DILATE_NN == 3)
-     iq[jj] = xx+1; jq[jj] = yy+1; kq[jj] = zz+1; jj++;
-     iq[jj] = xx-1; jq[jj] = yy+1; kq[jj] = zz+1; jj++;
-     iq[jj] = xx+1; jq[jj] = yy-1; kq[jj] = zz+1; jj++;
-     iq[jj] = xx-1; jq[jj] = yy-1; kq[jj] = zz+1; jj++;
-     iq[jj] = xx+1; jq[jj] = yy+1; kq[jj] = zz-1; jj++;
-     iq[jj] = xx-1; jq[jj] = yy+1; kq[jj] = zz-1; jj++;
-     iq[jj] = xx+1; jq[jj] = yy-1; kq[jj] = zz-1; jj++;
-     iq[jj] = xx-1; jq[jj] = yy-1; kq[jj] = zz-1; jj++;
-#endif
+     if( nnlev >= 2 ){
+       iq[jj] = xx+1; jq[jj] = yy+1; kq[jj] = zz  ; jj++;
+       iq[jj] = xx-1; jq[jj] = yy+1; kq[jj] = zz  ; jj++;
+       iq[jj] = xx+1; jq[jj] = yy-1; kq[jj] = zz  ; jj++;
+       iq[jj] = xx-1; jq[jj] = yy-1; kq[jj] = zz  ; jj++;
+       iq[jj] = xx;   jq[jj] = yy+1; kq[jj] = zz+1; jj++;
+       iq[jj] = xx;   jq[jj] = yy-1; kq[jj] = zz+1; jj++;
+       iq[jj] = xx;   jq[jj] = yy+1; kq[jj] = zz-1; jj++;
+       iq[jj] = xx;   jq[jj] = yy-1; kq[jj] = zz-1; jj++;
+       iq[jj] = xx+1; jq[jj] = yy;   kq[jj] = zz+1; jj++;
+       iq[jj] = xx-1; jq[jj] = yy;   kq[jj] = zz+1; jj++;
+       iq[jj] = xx+1; jq[jj] = yy;   kq[jj] = zz-1; jj++;
+       iq[jj] = xx-1; jq[jj] = yy;   kq[jj] = zz-1; jj++;
+       if( nnlev >=3 ){
+         iq[jj] = xx+1; jq[jj] = yy+1; kq[jj] = zz+1; jj++;
+         iq[jj] = xx-1; jq[jj] = yy+1; kq[jj] = zz+1; jj++;
+         iq[jj] = xx+1; jq[jj] = yy-1; kq[jj] = zz+1; jj++;
+         iq[jj] = xx-1; jq[jj] = yy-1; kq[jj] = zz+1; jj++;
+         iq[jj] = xx+1; jq[jj] = yy+1; kq[jj] = zz-1; jj++;
+         iq[jj] = xx-1; jq[jj] = yy+1; kq[jj] = zz-1; jj++;
+         iq[jj] = xx+1; jq[jj] = yy-1; kq[jj] = zz-1; jj++;
+         iq[jj] = xx-1; jq[jj] = yy-1; kq[jj] = zz-1; jj++;
+     }}
    }
    ntry = jj ;
+
+   /* for each new point:
+        compare to all other points in the cluster
+        if it isn't any of them, add it to the cluster */
 
    for( jj=0 ; jj < ntry ; jj++ ){
      xx = iq[jj] ; yy = jq[jj] ; zz = kq[jj] ; /* trial new pt */
@@ -863,10 +777,10 @@ void dilate_Xcluster( Xcluster *xc , int ithr )
        if( xx == xc->ip[ii] && yy == xc->jp[ii] && zz == xc->kp[ii] ) break ;
      }
      if( ii == xc->npt ) /* did not break == new point */
-       DILATE_point(xx,yy,zz) ;
-   }
+       DILATE_point(xx,yy,zz) ;  /* add it in, Babee! */
+   } /* note: xc->npt will expand as the cluster grows */
 
-   return ;
+   return ;  /* cluster is all dilated now */
 }
 
 /*---------------------------------------------------------------------------*/
@@ -875,10 +789,10 @@ void dilate_Xcluster( Xcluster *xc , int ithr )
 *//*-------------------------------------------------------------------------*/
 
 typedef struct {
-  ind_t ip,jp,kp ; int ijk ;
-  int npt , nall ;
-  float *far ;
-  float val ;
+  ind_t ip,jp,kp ; int ijk ;  /* where is this pt? */
+  int npt , nall ;             /* array dimensions */
+  float *far ;              /* array of FOM values */
+  float val ;                 /* summary FOM value */
 } Xvector ;
 
 #define CREATE_Xvector(xv,siz)                         \
@@ -906,9 +820,10 @@ static Xvector **fomvec = NULL ;
 /* Process the clusters to FOM vectors for a range of 3D indexes,
    for a given p-value threshold index ipthr.
      This function is intended to be use in multiple threads, operating
-     over differing ijkbot..ijktop blocks; thus the 'atomic' pragma, to
-     make sure there is no thread conflict when altering the 'ngood' count
-     inside an Xcluster.
+     over differing ijkbot..ijktop blocks:
+       a given fomvec will not be in thread conflict, since it is linked
+       to a given voxel in space (ijk), so there is no potential problem
+       when updating that fomvec, or the cluster's ijk entry.
 *//*-------------------------------------------------------------------------*/
 
 void process_clusters_to_Xvectors( int ijkbot, int ijktop , int ipthr )
@@ -918,17 +833,14 @@ void process_clusters_to_Xvectors( int ijkbot, int ijktop , int ipthr )
    int cc , pp,npt , ijk,vin ;
 
    for( cc=0 ; cc < niter ; cc++ ){                    /* loop over clusters */
-     xc = xcar[cc] ; if( xc == NULL || xc->ngood == 0 ) continue ;
+     xc = xcar[cc] ; if( xc == NULL ) continue ;
      npt = xc->npt ;
      for( pp=0 ; pp < npt ; pp++ ){          /* loop over pts inside cluster */
-       ijk = xc->ijk[pp] ;
+       ijk = xc->ijk[pp] ;                            /* index of pt in grid */
        if( ijk >= ijkbot && ijk <= ijktop ){  /* is point inside our region? */
          vin = ijk_to_vec[ijk] ;                           /* find its index */
          if( vin >= 0 ){
            ADDTO_Xvector(fomvec[vin],xc->fom) ; /* add to vector of FOM vals */
-           xc->ijk[pp] = -1 ;         /* for this pt, and mark pt as used up */
-#pragma omp atomic
-           xc->ngood-- ;              /* reduce count of good pts in cluster */
          }
        }
      }
@@ -938,12 +850,67 @@ void process_clusters_to_Xvectors( int ijkbot, int ijktop , int ipthr )
 }
 
 /*---------------------------------------------------------------------------*/
+/* get median of the number of counts in fomvec's touched by this cluster */
+
+static int    *ncount_g ;
+static float **fcount_g ;
+
+int get_Xcluster_nbcount( Xcluster *xc , int ithr )
+{
+   int nc,ii ; float *fc ;
+
+   if( xc == NULL || xc->npt == 0 ) return 0 ;
+   if( xc->npt == 1 ){
+     xc->nbcount = fomvec[ijk_to_vec[xc->ijk[0]]]->npt ;
+     return xc->nbcount ;
+   }
+
+   if( ncount_g[ithr] < xc->npt ){
+     ncount_g[ithr] = xc->npt + DALL ;
+     fcount_g[ithr] = (float *)realloc(fcount_g[ithr],
+                                       sizeof(float)*ncount_g[ithr]) ;
+   }
+   nc = ncount_g[ithr] ;
+   fc = fcount_g[ithr] ;
+   for( ii=0 ; ii < xc->npt ; ii++ )
+     fc[ii] = fomvec[ijk_to_vec[xc->ijk[ii]]]->npt ;
+
+   xc->nbcount = (int)qmed_float(xc->npt,fc) ;
+   return xc->nbcount ;
+}
+
+/*---------------------------------------------------------------------------*/
+/* find the intermediate value of x at alphat (t=target),
+   given x at alpha0 and alpha1, where alpha is a tail (1-CDF) probability,
+   assumed to be of the extreme value form
+      alpha(x) = 1 - exp( -exp(-(x-p)/q) )
+      log(-log(1-alpha(x))) = -x/q + p/q
+   Define a(alpha) = log(-log(1-alpha)), so
+      a(x) = -x/q + p/q  or  x(a) = p - q*a
+   The alpha values are between 0 and 1; alphat is between alpha0 and alpha1.
+*//*-------------------------------------------------------------------------*/
+
+static __inline__ float
+  inverse_interp_extreme( float alpha0 , float alpha1 , float alphat ,
+                          float x0     , float x1                      )
+{
+   float a0,a1,at ;
+
+   a0 = logf(-logf(1.0f-alpha0)) ;
+   a1 = logf(-logf(1.0f-alpha1)) ;
+   at = logf(-logf(1.0f-alphat)) ;
+   return (x0 + (x1-x0)/(a1-a0)*(at-a0)) ;  /* linear interp in a-space */
+}
+
+/*---------------------------------------------------------------------------*/
 
 int main( int argc , char *argv[] )
 {
-   int qpthr , ii,xx,yy,zz,ijk ;
+   int qpthr , ii,xx,yy,zz,ijk , dijk ;
+   int ndilstep , ndilated[4] , ndilsum ;
+   int count_targ100 , count_targ90, count_targ70 ;
    THD_3dim_dataset *qset=NULL ;
-   float *qar=NULL ;
+   float *qar=NULL , *gthresh=NULL ;
    char qpr[32] ;
 
    if( argc < 2 || strcasecmp(argv[1],"-help") == 0 ){
@@ -952,7 +919,6 @@ int main( int argc , char *argv[] )
 
      printf("\n"
        " -NN     1 or 2 or 3\n"
-       " -dilate 1 or more\n"
        " -inset  dsets\n"
        " -prefix something\n"
        " -mask   something\n"
@@ -962,57 +928,54 @@ int main( int argc , char *argv[] )
 
    get_options(argc,argv) ;
 
-   /*----- get the number of threads -----*/
+   /*----- get the number of threads -----------------------------------*/
 
- AFNI_OMP_START;
+ AFNI_OMP_START ;     /*------------ start parallel section ----------*/
 #pragma omp parallel
  {
-#pragma omp master
-  {
 #ifdef USE_OMP
-   nthr = omp_get_num_threads() ;
+#pragma omp master
+   { nthr = omp_get_num_threads() ; }
 #else
    nthr = 1 ;
 #endif
-  }
  }
- AFNI_OMP_END ;
+ AFNI_OMP_END ;       /*---------- end parallel section ----------*/
    if( nthr > 1 )
      INFO_message("3dClustSimX: Using %d OpenMP threads") ;
    else
-     INFO_message("3dClustSimX: Using 1 thread -- this will be slow!") ;
+     INFO_message("3dClustSimX: Using 1 thread -- this will be slow :-(") ;
 
-   /*--- code to initialize the cluster arrays ---*/
+   /*--- code to initialize the cluster arrays (one for each simulation) ---*/
 
    Xclust_g = (Xcluster ***)malloc(sizeof(Xcluster **)*npthr) ;
    for( qpthr=0 ; qpthr < npthr ; qpthr++ )
      Xclust_g[qpthr] = (Xcluster **)malloc(sizeof(Xcluster *)*niter) ;
 
-   /*--- thread specific temporary clusters ---*/
+   /*--- thread-specific temporary clusters ---*/
 
    Xctemp_g = (Xcluster ** )malloc(sizeof(Xcluster * )*nthr) ;
 
    /*--- loop over realizations to load up Xclust_g[][] ---*/
 
-INFO_message("start clustering NN=%d",nnlev) ;
+INFO_message("start 1-sided clustering with NN=%d",nnlev) ;
 
- AFNI_OMP_START ;
+ AFNI_OMP_START ;      /*------------ start parallel section ----------*/
 #pragma omp parallel
  { DECLARE_ithr ;
    int iter , ipthr ;
    float *fim , *tfim ;
 
-   /* code to initialize thread-specific stuff */
+   /* code to initialize thread-specific workspace */
 
-#pragma omp critical (MALLOC)
-   { CREATE_Xcluster(Xctemp_g[ithr],DALL) ;
-     fim  = (float *)malloc(sizeof(float)*nxyz) ;
-     tfim = (float *)malloc(sizeof(float)*nxyz) ; }
+   CREATE_Xcluster(Xctemp_g[ithr],DALL) ;
+   fim  = (float *)malloc(sizeof(float)*nxyz) ;
+   tfim = (float *)malloc(sizeof(float)*nxyz) ;
 
 #pragma omp for
-   for( iter=0; iter < niter ; iter++ ){
+   for( iter=0; iter < niter ; iter++ ){ /* loop over realizations */
      generate_image( fim , iter ) ;
-     for( ipthr=0 ; ipthr < npthr ; ipthr++ ){
+     for( ipthr=0 ; ipthr < npthr ; ipthr++ ){  /* over thresholds */
        if( nnlev == 1 )
          gather_clusters_NN1_1sid( ipthr , fim , tfim , ithr , iter ) ;
        else if( nnlev == 2 )
@@ -1022,59 +985,41 @@ INFO_message("start clustering NN=%d",nnlev) ;
      }
    }
 
-#if 0
-   free(fim) ; free(tfim) ; DESTROY_Xcluster(Xctemp_g[ithr]) ;
+#if 1
+#pragma omp critical
+   { ININFO_message(" free workspace for thread %d",ithr) ;
+     free(fim) ; free(tfim) ; DESTROY_Xcluster(Xctemp_g[ithr]) ; }
 #endif
  }
- AFNI_OMP_END ;
+ AFNI_OMP_END ;       /*---------- end parallel section ----------*/
 
-#if 0
+#if 1
  free(Xctemp_g) ;
 #endif
 
+   /* make sure datasets are unloaded (to frugalize memory) */
+
    for( ii=0 ; ii < num_inset ; ii++ ) DSET_unload(inset[ii]) ;
 
-   /*--- dilate the clusters ---*/
+   /*--- find the global distributions ---------------------------------*/
 
-   if( nndil > 0 ){
-
-     ndilg   = (int *   )malloc(sizeof(int    )*nthr) ;
-     dilg_iq = (ind_t **)malloc(sizeof(ind_t *)*nthr) ;
-     dilg_jq = (ind_t **)malloc(sizeof(ind_t *)*nthr) ;
-     dilg_kq = (ind_t **)malloc(sizeof(ind_t *)*nthr) ;
-     for( ii=0 ; ii < nthr ; ii++ ){
-       ndilg  [ii] = DALL ;
-       dilg_iq[ii] = (ind_t *)malloc(sizeof(ind_t)*DALL) ;
-       dilg_jq[ii] = (ind_t *)malloc(sizeof(ind_t)*DALL) ;
-       dilg_kq[ii] = (ind_t *)malloc(sizeof(ind_t)*DALL) ;
-     }
-
+   { float *fomg=calloc(sizeof(float),niter); int nfom,jj; Xcluster **xcc;
+     float a0,a1,f0,f1,ft ;
+     gthresh = (float *)calloc(sizeof(float),npthr) ;
      for( qpthr=0 ; qpthr < npthr ; qpthr++ ){
-
-ININFO_message("start dilating %d",qpthr+nndil) ;
-
- AFNI_OMP_START ;
-#pragma omp parallel
- {  DECLARE_ithr ;
-    int iter, idil ;
-
-#pragma omp for
-    for( iter=0 ; iter < niter ; iter++ ){
-      for( idil=0 ; idil < nndil+qpthr ; idil++ )
-        dilate_Xcluster( Xclust_g[qpthr][iter] , ithr ) ;
-    }
-
- }
- AFNI_OMP_END ;
-
+       xcc = Xclust_g[qpthr] ;
+       for( nfom=ii=0 ; ii < niter ; ii++ ){
+         if( xcc[ii] != NULL ) fomg[nfom++] = xcc[ii]->fom ;
+       }
+       if( nfom < 100 ) continue ;  /* should not happen */
+       qsort_float_rev( nfom, fomg ) ;
+       jj = (int)(0.05f*niter) ;
+       a0 = ((float)jj)/((float)niter) ; f0 = fomg[jj] ;
+       a1 = a0 + 1.0f/((float)niter) ;   f1 = fomg[jj+1] ;
+       ft = gthresh[qpthr] = inverse_interp_extreme( a0,a1,0.05f , f0,f1 ) ;
+       INFO_message("5%% FOM for pthr=%.5f is %g (nfom=%d)",pthr[qpthr],ft,nfom) ;
      }
-
-#if 1
-     for( ii=0 ; ii < nthr ; ii++ ){
-       free(dilg_iq[ii]); free(dilg_jq[ii]); free(dilg_kq[ii]);
-     }
-     free(ndilg); free(dilg_iq); free(dilg_jq); free(dilg_kq);
-#endif
+     free(fomg) ;
    }
 
    /*--- initialize the FOM vector array for each voxel ---*/
@@ -1082,45 +1027,180 @@ ININFO_message("start dilating %d",qpthr+nndil) ;
    fomvec = (Xvector **)malloc(sizeof(Xvector *)*mask_ngood) ;
    for( ii=0 ; ii < mask_ngood ; ii++ ){
      CREATE_Xvector(fomvec[ii],100) ;
-     fomvec[ii]->ip  = ipmask[ii] ;
-     fomvec[ii]->jp  = jpmask[ii] ;
+     fomvec[ii]->ip  = ipmask[ii] ;   /* store location of this */
+     fomvec[ii]->jp  = jpmask[ii] ;   /* vector in the 3D grid */
      fomvec[ii]->kp  = kpmask[ii] ;
      fomvec[ii]->ijk = ijkmask[ii] ;
    }
+   ncount_g = (int *)   malloc(sizeof(int)    *nthr) ;
+   fcount_g = (float **)malloc(sizeof(float *)*nthr) ;
+   for( ii=0 ; ii < nthr ; ii++ ){
+     fcount_g[ii] = (float *)malloc(sizeof(float)*DALL) ;
+     ncount_g[ii] = DALL ;
+   }
 
-   /*--- create FOM vectors for each p-threshold ---*/
+   /*--- dilate the clusters -------------------------------------------*/
 
-INFO_message("loading FOM vectors") ;
+   /*--- make thread-specific workspaces ---*/
+
+   ndilg   = (int *   )malloc(sizeof(int    )*nthr) ;
+   dilg_iq = (ind_t **)malloc(sizeof(ind_t *)*nthr) ;
+   dilg_jq = (ind_t **)malloc(sizeof(ind_t *)*nthr) ;
+   dilg_kq = (ind_t **)malloc(sizeof(ind_t *)*nthr) ;
+   for( ii=0 ; ii < nthr ; ii++ ){
+     ndilg  [ii] = DALL ;
+     dilg_iq[ii] = (ind_t *)malloc(sizeof(ind_t)*DALL) ;
+     dilg_jq[ii] = (ind_t *)malloc(sizeof(ind_t)*DALL) ;
+     dilg_kq[ii] = (ind_t *)malloc(sizeof(ind_t)*DALL) ;
+   }
+
+   /*----- loop over p-thresholds -----*/
+
+                      dijk = nxyz / nthr ;
+   if( dijk > 2*nxy ) dijk = 2*nxy ;
+   if( dijk > 16384 ) dijk = 16384 ;
+
+   count_targ100 = (int)rintf(0.0100f*niter) ;
+   count_targ90  = (int)rintf(0.0090f*niter) ;
+   count_targ70  = (int)rintf(0.0070f*niter) ;
+
    for( qpthr=0 ; qpthr < npthr ; qpthr++ ){
 
- AFNI_OMP_START ;
-# pragma omp parallel
-   { DECLARE_ithr ;
-     int dijk , ijkbot,ijktop , iv,jj , npt ;
+#define NDILMAX 7
 
-                         dijk = nxyz / nthr ;
-     if( dijk > nxy )    dijk = nxy ;
-     if( dijk > 131072 ) dijk = 131072 ;
+     INFO_message("dilation at pthr=%.5f",pthr[qpthr]) ;
+     for( ndilstep=0 ; ndilstep < NDILMAX ; ndilstep++ ){
+       ININFO_message(" step %d",ndilstep+1) ;
+       ndilated[0] = ndilated[1] = ndilated[2] = ndilated[3] = 0 ;
+
+ AFNI_OMP_START ;      /*------------ start parallel section ----------*/
+#pragma omp parallel
+ {  DECLARE_ithr ;
+    int iter, idil , ijkbot,ijktop ;
+
+#pragma omp master
+    { ININFO_message("  compute FOM vectors") ; }
+
+    /* reset the FOM vectors */
 
 #pragma omp for
+    for( iter=0 ; iter < mask_ngood ; iter++ ) fomvec[iter]->npt = 0 ;
+
+    /* load the FOM vectors (parallelized across 3D segments) */
+
+#pragma omp for schedule(dynamic,1)
+    for( ijkbot=0 ; ijkbot < nxyz ; ijkbot+=dijk ){
+      ijktop = ijkbot + (dijk-1) ;
+      process_clusters_to_Xvectors( ijkbot, ijktop , qpthr ) ;
+    }
+
+    /* get median FOM counts in each cluster,
+       then determine how to dilate
+       (parallelized across clusters = simulation iterations) */
+
+#pragma omp master
+    { ININFO_message("  dilate clusters") ; }
+
+#pragma omp for schedule(dynamic,200)
+    for( iter=0 ; iter < niter ; iter++ ){
+      if( Xclust_g[qpthr][iter]          != NULL          &&
+          Xclust_g[qpthr][iter]->nbcount <  count_targ100   ){
+        idil = get_Xcluster_nbcount( Xclust_g[qpthr][iter] , ithr ) ;
+        if( idil < count_targ100 ){
+          idil = (idil < count_targ70) ? 3 :(idil < count_targ90) ? 2 : 1 ;
+          dilate_Xcluster( Xclust_g[qpthr][iter] , idil , ithr ) ;
+#pragma omp atomic
+          ndilated[idil]++ ;
+        }
+      }
+    }
+
+ }
+ AFNI_OMP_END ;       /*---------- end parallel section ----------*/
+
+       ndilsum = ndilated[1] + ndilated[2] + ndilated[3] ;
+       ININFO_message("  dilation counts:  NN1=%d  NN2=%d  NN3=%d  total=%d",
+                      ndilated[1] , ndilated[2] , ndilated[3] , ndilsum ) ;
+
+       if( ndilstep < NDILMAX-1 && ndilsum < niter/50 ){
+         ININFO_message("- breaking out of dilation") ; break ;
+       }
+     } /* end of loop over dilation steps */
+   }
+
+#if 1
+   ININFO_message(" free dilation workspace") ;
+   for( ii=0 ; ii < nthr ; ii++ ){
+     free(dilg_iq[ii]); free(dilg_jq[ii]); free(dilg_kq[ii]);
+   }
+   free(ndilg); free(dilg_iq); free(dilg_jq); free(dilg_kq);
+#endif
+
+INFO_message("re-loading FOM vectors after final dilations") ;
+   for( qpthr=0 ; qpthr < npthr ; qpthr++ ){ /* loop over thresholds */
+
+     ININFO_message(" start pthr=%.5f",pthr[qpthr]) ;
+
+ AFNI_OMP_START ;      /*------------ start parallel section ----------*/
+# pragma omp parallel
+   { DECLARE_ithr ;
+     int ijkbot,ijktop , iv,jj , npt ;
+     float a0,a1,f0,f1,ft ;
+
+#pragma omp master
+     { ININFO_message("  A: compute FOM vectors") ; }
+
+#pragma omp for schedule(dynamic,1)
      for( ijkbot=0 ; ijkbot < nxyz ; ijkbot+=dijk ){
        ijktop = ijkbot + (dijk-1) ;
        process_clusters_to_Xvectors( ijkbot, ijktop , qpthr ) ;
      }
 
-#pragma omp for
+#pragma omp master
+     { ININFO_message("  B: delete Xclusters") ; }
+
+     /* delete all clusters for this qpthr */
+#pragma omp master
+     { for( jj=0 ; jj < niter ; jj++ ){
+         DESTROY_Xcluster(Xclust_g[qpthr][jj]) ;
+       }
+       free(Xclust_g[qpthr]) ; Xclust_g[qpthr] = NULL ;
+     }
+#pragma omp barrier
+
+#pragma omp master
+     { ININFO_message("  C: find thresholds") ; }
+
+     /* vectors loaded for each pt in space;
+        now sort them (biggest first) to determine equitable thresholds */
+
+/* NEXT: The 0.002 fraction here is just for testing.
+         Have to evaluate the FAR for various values of TFRAC
+          to find the correct threshold volumes.
+         (a) run mri_threshold_Xcluster() using each threshold
+             volume at a given TFRAC (with threshX_keep_only_fomest==1)
+         (b) if any return non-NULL, that is 1 false alarm
+         (c) add up over simulations
+         (d) adjust TFRAC to get to 5% FAR. */
+
+#define TFRAC 0.002f
+
+#pragma omp for schedule(dynamic,200)
      for( iv=0 ; iv < mask_ngood ; iv++ ){
-       npt = fomvec[iv]->npt ;
-       if( npt > 0 ){
+       npt = fomvec[iv]->npt ; fomvec[iv]->val = 0.0f ;
+       if( npt > 1 ){
          qsort_float_rev( npt , fomvec[iv]->far ) ;
-         jj = (int)rintf(0.05f*npt) ;
-         fomvec[iv]->val = fomvec[iv]->far[jj] ;
-       } else {
-         fomvec[iv]->val = 0.0f ;
+         jj = (int)(TFRAC*niter) ;
+         if( jj >= npt ) jj = npt/2 ;
+         a0 = ((float)jj)/((float)niter) ; f0 = fomvec[iv]->far[jj] ;
+         a1 = a0 + 1.0f/((float)niter) ;   f1 = fomvec[iv]->far[jj+1] ;
+         ft = inverse_interp_extreme( a0,a1,0.05f , f0,f1 ) ;
+         if( ft < 0.333f*gthresh[qpthr] ) ft = 0.333f*gthresh[qpthr] ;
+         fomvec[iv]->val = ft ;
        }
      }
    }
- AFNI_OMP_END ;
+ AFNI_OMP_END ;       /*---------- end parallel section ----------*/
 
      /* save datasets of fomvec counts */
 
@@ -1148,7 +1228,7 @@ INFO_message("loading FOM vectors") ;
      DSET_write(qset); WROTE_DSET(qset);
      DSET_delete(qset); qset = NULL; qar = NULL;
 
-   } /* end of loop over qpthr */
+   } /*----- end of loop over qpthr -----*/
 
    exit(0) ;
 

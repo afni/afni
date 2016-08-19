@@ -102,6 +102,9 @@ DIFF_PREP or DR-BUDDI, increasing with higher spatial resolution, with
 selecting to upsample more, and with a larger number of
 volumes/gradients. 
 
+**Many thanks to Okan Irfanoglu, Amritha Nayak and the rest of the
+TORTOISE crew for constructive comments, suggestions and
+contributions to these notes and scripts.**
 
 DICOMs and dcm2nii
 ------------------
