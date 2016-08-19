@@ -26,7 +26,7 @@ slow_surf_clustsim.py    - generate a tcsh script to run clustsim on surface
 
    1. basic: give 3 required inputs, all else is default
 
-      While a blur of 4.0 is the default, it is inculded for clarity.
+      While a blur of 4.0 is the default, it is included for clarity.
 
         slow_surf_clustsim.py -save_script surf.clustsim        \\
             -uvar spec_file sb23_lh_141_std.spec                \\
