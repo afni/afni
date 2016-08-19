@@ -330,7 +330,7 @@ class MyInterface:
       """return the SurfClust object and script
          (print warnings and errors to screen)"""
 
-      ctest = CLUST.SurfClust(self.cvars, self.uvars)
+      ctest = CLUST.SurfClust(self.cvars, self.uvars, argv=sys.argv)
 
       nwarn, wstr = ctest.get_warnings()
       status, mesg = ctest.get_script()
