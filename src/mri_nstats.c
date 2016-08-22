@@ -712,9 +712,9 @@ THD_3dim_dataset * THD_localstat( THD_3dim_dataset *dset , byte *mask ,
 #endif
 
 ENTRY("THD_localstat") ;
-fprintf(stderr,"%p, %p, %d, %p", dset, nbhd, ncode, code);
+/*fprintf(stderr,"%p, %p, %d, %p", dset, nbhd, ncode, code);*/
    if( dset == NULL || nbhd == NULL || ncode < 1 || code == NULL ) RETURN(NULL);
-fprintf(stderr,"%d\n", nbhd->num_pt);
+/*fprintf(stderr,"%d\n", nbhd->num_pt);*/
    npt = nbhd->num_pt ; if( npt == 0 )                             RETURN(NULL);
 
    /* check for stupid reduction parameters allowing = 1.0 for testing purposes*/
