@@ -783,6 +783,8 @@ void dilate_Xcluster( Xcluster *xc , int nnlev , int ithr )
    return ;  /* cluster is all dilated now */
 }
 
+#undef DILATE_point
+
 /*---------------------------------------------------------------------------*/
 /* Vector struct.
    One for each point in the mask, to hold the FOM values found at that point.
@@ -1177,11 +1179,13 @@ INFO_message("re-loading FOM vectors after final dilations") ;
 /* NEXT: The 0.002 fraction here is just for testing.
          Have to evaluate the FAR for various values of TFRAC
           to find the correct threshold volumes.
-         (a) run mri_threshold_Xcluster() using each threshold
-             volume at a given TFRAC (with threshX_keep_only_fomest==1)
-         (b) if any return non-NULL, that is 1 false alarm
+         (a) run mri_threshold_Xcluster() using each FOM threshold
+             volume at a given TFRAC -- initialize TFRAC to value
+             that gives median cluster size across voxels equal
+             to global cluster size for 5%
+         (b) if any pthr return non-NULL, that is 1 false alarm
          (c) add up over simulations
-         (d) adjust TFRAC to get to 5% FAR. */
+         (d) adjust TFRAC to get to 5% FAR */
 
 #define TFRAC 0.002f
 
