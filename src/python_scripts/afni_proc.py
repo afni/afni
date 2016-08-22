@@ -537,9 +537,10 @@ g_history = """
         - default clustsim method is ACF (including -regress_run_clustsim yes)
     5.00 Aug 17, 2016: ACF blur estimation is ready
         - includes gen_ss_review_scripts/table.py
+    5.01 Aug 22, 2016: save all final anat/EPI costs into out.allcostX.txt
 """
 
-g_version = "version 5.00, August 17, 2016"
+g_version = "version 5.01, August 22, 2016"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \
@@ -1037,6 +1038,9 @@ class SubjProcSream:
         self.valid_opts.add_opt('-volreg_compute_tsnr', 1, [],
                         acplist=['yes','no'],
                         helpstr='compute TSNR datasets (yes/no) of volreg run1')
+        self.valid_opts.add_opt('-volreg_get_allcostX', 1, [],
+                        acplist=['yes','no'],
+                        helpstr='compute all final EPI/anat alignment costs')
         self.valid_opts.add_opt('-volreg_interp', 1, [],
                         helpstr='interpolation method used in volreg')
         # rcr - antiquate old motsim options

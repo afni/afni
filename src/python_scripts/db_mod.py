@@ -1624,6 +1624,7 @@ def db_mod_volreg(block, proc, user_opts):
 
     apply_uopt_to_block('-volreg_interp', user_opts, block)
     apply_uopt_to_block('-volreg_motsim', user_opts, block)
+    apply_uopt_to_block('-volreg_get_allcostX', user_opts, block)
 
     zopt = user_opts.find_opt('-volreg_zpad')
     if zopt:
@@ -1847,7 +1848,6 @@ def db_cmd_volreg(proc, block):
 
     # create EPI warp list, outer to inner
     epi_warps      = []
-    epi_base_cmv   = []         # list of cat_matvec commands for EPI base
     allinbase      = None       # master grid for warp
 
     # if warping, multiply matrices and apply
@@ -1879,13 +1879,11 @@ def db_cmd_volreg(proc, block):
             else:                wstr = '%s::WARP_DATA -I' % proc.tlrcanat.pv()
             cmd = cmd + '               %s \\\n' % wstr
             proc.e2final_mv.append(wstr)
-            epi_base_cmv.append(wstr)
 
         if doe2a:
             wstr = '%s -I ' % proc.a2e_mat
             cmd = cmd + '               %s \\\n' % wstr
             proc.e2final_mv.append(wstr)
-            epi_base_cmv.append(wstr)
 
         # if blip, input (prev_prefix) is from prior to blip block
         if doblip:
@@ -2036,16 +2034,19 @@ def db_cmd_volreg(proc, block):
 
     # ---------------
     # make a warped volreg base dataset, if appropriate
-    rv, wcmd, wapply = get_vr_warp_list(proc, epi_warps, epi_base_cmv)
+    rv, wcmd, wapply = create_volreg_base_warp(proc, epi_warps, proc.e2final_mv)
     if rv: return
+    get_allcostX = 0    # run "3dAllineate -allcostX" if we get to 2
     if wcmd and wapply:
         cmd += wcmd
         wprefix = 'final_epi_%s' % proc.vr_base_dset.prefix
         proc.epi_final = proc.vr_base_dset.new(new_pref=wprefix)
+        proc.epi_final.new_view(proc.view)
         st, wtmp = apply_catenated_warps(proc, wapply, base=allinbase,
                       source=basevol, prefix=wprefix, dim=dim)
         if st: return
         cmd += wtmp + '\n'
+        get_allcostX += 1
 
     # ---------------
     # make a copy of the "final" anatomy, called "anat_final.$subj"
@@ -2056,6 +2057,15 @@ def db_cmd_volreg(proc, block):
        cmd += "# create an anat_final dataset, aligned with stats\n"    \
               "3dcopy %s %s\n\n"                                        \
               % (aset.pv(), proc.anat_final.prefix)
+       get_allcostX += 1
+
+    # ---------------
+    # possibly run "3dAllineate -allcostX"
+    if get_allcostX == 2 and block.opts.have_yes_opt('-volreg_get_allcostX',1):
+       cmd += "# record final registration costs\n"     \
+              "3dAllineate -base %s -allcostX\\\n"      \
+              "            -input %s |& tee out.allcostX.txt\n\n" \
+              % (proc.epi_final.shortinput(), proc.anat_final.shortinput())
 
     if do_extents: emask = proc.mask_extents.prefix
     else:          emask = ''
@@ -2096,10 +2106,13 @@ def db_cmd_volreg(proc, block):
 
     return cmd
 
-def get_vr_warp_list(proc, ewarps, matvec_list):
+def create_volreg_base_warp(proc, ewarps, matvec_list):
    """if matvec_list is non-empty, apply all warps
-         to:     proc.vr_base_dset
-         making: proc.epi_final
+         to:         proc.vr_base_dset
+         for making: proc.epi_final
+
+      Replace affine warp from ewarps with concatenated warp
+      from matvec_list.
 
       return status (0 on success), command and new warps
    """
@@ -9081,6 +9094,26 @@ g_help_string = """
 
             See also -volreg_align_to, -tcat_remove_first_trs and
             -volreg_base_dset.
+
+        -volreg_get_allcostX yes/no : compute all anat/EPI costs
+
+                e.g. -volreg_get_allcostX no
+                default: yes
+
+            By default, given the final anatomical dataset (anat_final) and
+            the the final EPI volreg base (final_epi), this option can be used
+            to compute alignment costs between the two volumes across all cost
+            functions from 3dAllineate.  Effectively, it will add the following
+            to the proc script:
+
+                3dAllineate -base FINAL_EPI -input FINAL_ANAT -allcostX
+
+             The text output is stored in the file out.allcostX.txt.
+
+             This operation is informational only, to help evaluate alignment
+             costs across subjects.
+
+             Please see '3dAllineate -help' for more details.
 
         -volreg_compute_tsnr yes/no : compute TSNR datasets from volreg output
 
