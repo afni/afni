@@ -95,7 +95,7 @@ void usage_3dLocalstat(int detail)
 "                    half the dimension of a side. So if one wanted to\n"
 "                    compute a 5-slice projection on a 1mm3 volume,\n"
 "                    then a RECT(0,0,2) would be appropriate, and \n"
-"                    the program would report 6 voxels used in the mask\n"
+"                    the program would report 5 voxels used in the mask\n"
 "                    Any dimension less than a voxel will avoid\n"
 "                    voxels in that direction.\n"
 "                 ** A negative value for 'a' means that the region\n"
