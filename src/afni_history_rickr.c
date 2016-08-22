@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 22,  Aug, 2016, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,
+   "save all '3dAllineate -allcostX' anat/EPI costs to out.allcostX.txt",
+   "This is another quailty control measure."
+ } ,
+
  { 19,  Aug, 2016, RCR, "slow_surf_clustsim.py", MINOR, TYPE_ENHANCE,
    "can use surf_mask to restrict surface clustering",
    "Use '-uvar surf_mask' to restrict on_surface clustering to mask.\n"
@@ -61,12 +66,13 @@ afni_history_struct rickr_history[] = {
    NULL
  } ,
 
- { 15,  Aug, 2016, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,
+ { 15,  Aug, 2016, RCR, "afni_proc.py", MAJOR, TYPE_ENHANCE,
    "default clustsim method is now ACF",
-   "o run 3dFWHMx with -ACF\n"
-   "o ACF and ClustSim files go into sub-directories, files_ACF/ClustSim\n"
-   "o -regress_run_clustsim now prefers arguments, ACF, FWHM, both, no\n"
-   "o default clustsim method is now ACF (including -regress_run_clustsim yes)"
+   "This marks afni_proc.py version 5.00.\n"
+   "  o run 3dFWHMx with -ACF\n"
+   "  o ACF and ClustSim files go into sub-directories, files_ACF/ClustSim\n"
+   "  o -regress_run_clustsim now prefers arguments, ACF, FWHM, both, no\n"
+   "  o default clustsim method is now ACF (via -regress_run_clustsim yes)"
  } ,
 
  {  10,  Aug, 2016, RCR, "afni-general", MICRO, TYPE_MODIFY,
