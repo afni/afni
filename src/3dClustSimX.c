@@ -1194,8 +1194,8 @@ INFO_message("re-loading FOM vectors after final dilations") ;
          if( jj >= npt ) jj = npt/2 ;
          a0 = ((float)jj)/((float)niter) ; f0 = fomvec[iv]->far[jj] ;
          a1 = a0 + 1.0f/((float)niter) ;   f1 = fomvec[iv]->far[jj+1] ;
-         ft = inverse_interp_extreme( a0,a1,0.05f , f0,f1 ) ;
-         if( ft < 0.333f*gthresh[qpthr] ) ft = 0.333f*gthresh[qpthr] ;
+         ft = inverse_interp_extreme( a0,a1,TFRAC , f0,f1 ) ;
+         if( ft < 0.222f*gthresh[qpthr] ) ft = 0.222f*gthresh[qpthr] ;
          fomvec[iv]->val = ft ;
        }
      }
