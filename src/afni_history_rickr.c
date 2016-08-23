@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 23,  Aug, 2016, RCR, "file_tool", MINOR, TYPE_NEW_OPT,
+   "add -fix_rich_quotes; if fixing a script, convert rich quotes to ASCII",
+   "Done for G Chen."
+ } ,
+
  { 22,  Aug, 2016, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,
    "save all '3dAllineate -allcostX' anat/EPI costs to out.allcostX.txt",
    "This is another quailty control measure."
