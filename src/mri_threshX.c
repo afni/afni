@@ -153,6 +153,7 @@ Xcluster * copy_Xcluster( Xcluster *xcc )
        (xcc)->ijk[npt] = pqr ;                                               \
        (xcc)->npt++ ; (xcc)->norig++ ;                                       \
        (xcc)->fom += ADDTO_FOM(far[pqr]) ;                                   \
+       cth        += car[pqr] ;                                              \
        far[pqr] = 0.0f ;                                                     \
      } } while(0)
 
@@ -165,20 +166,21 @@ Xcluster * copy_Xcluster( Xcluster *xcc )
 
 static int threshX_keep_only_fomest = 0 ; /* for determining FAR: 3dClustSimX */
 
-Xcluster_array * find_Xcluster_array( MRI_IMAGE *fim, int nnlev, float minfom )
+Xcluster_array * find_Xcluster_array( MRI_IMAGE *fim, int nnlev, MRI_IMAGE *cim )
 {
-   Xcluster *xcc ; Xcluster_array *xcar=NULL ; float *far ;
+   Xcluster *xcc ; Xcluster_array *xcar=NULL ;
+   float *far,*car , cth ;
    int ii,jj,kk, icl , ijk , ijk_last ;
    int ip,jp,kp , im,jm,km , nx,ny,nz,nxy,nxyz ;
    const int do_nn2=(nnlev > 1) , do_nn3=(nnlev > 2) ;
 
-   if( fim == NULL || fim->kind != MRI_float ) return NULL ;
    far = MRI_FLOAT_PTR(fim) ;
+   car = MRI_FLOAT_PTR(cim) ;
    nx = fim->nx; ny = fim->ny; nxy = nx*ny; nz = fim->nz; nxyz = nxy*nz;
 
    ijk_last = 0 ;  /* start scanning at the {..wait for it..} start */
 
-   while(1) {
+   while(1){
      /* find next nonzero point in far array */
 
      for( ijk=ijk_last ; ijk < nxyz ; ijk++ ) if( far[ijk] != 0.0f ) break ;
@@ -195,6 +197,7 @@ Xcluster_array * find_Xcluster_array( MRI_IMAGE *fim, int nnlev, float minfom )
      xcc->ijk[0]= ijk;
      xcc->npt   = xcc->norig = 1 ;
      xcc->fom   = ADDTO_FOM(far[ijk]) ; far[ijk] = 0.0f ;
+     cth        = car[ijk] ;
 
      /* loop over points in cluster, checking their neighbors,
         growing the cluster if we find any that belong therein */
@@ -244,25 +247,31 @@ Xcluster_array * find_Xcluster_array( MRI_IMAGE *fim, int nnlev, float minfom )
      } /* since xcc->npt increases if TPUT_point adds the point,
           the loop continues until finally no new neighbors get added */
 
-     if( xcc->fom < minfom ){  /* too 'small' ==> toss onto the trash */
-       DESTROY_Xcluster(xcc) ;
-     } else {                  /* add to the cluster list */
-       if( xcar == NULL ) CREATE_Xcluster_array(xcar,4) ;
-       if( threshX_keep_only_fomest && xcar->nclu == 1 ){
-         if( xcc->fom > xcar->xclu[1]->fom ){
-           DESTROY_Xcluster(xcar->xclu[1]) ; xcar->xclu[1] = xcc ;
-         } else {
-           DESTROY_Xcluster(xcc) ;
-         }
+     cth /= xcc->npt ;
+     if( xcc->fom < cth || xcc->npt < 2 ){    /* too 'small' ==> recycle */
+       xcc->npt = xcc->norig = 0 ; xcc->fom = 0.0f ;
+
+     } else if( threshX_keep_only_fomest ){   /* keep only the 'biggest' */
+       if( xcar == NULL ){                        /* the first 'big' one */
+         CREATE_Xcluster_array(xcar,1) ;
+         ADDTO_Xcluster_array(xcar,xcc) ; xcc = NULL ;
        } else {
-         ADDTO_Xcluster_array(xcar,xcc) ;
+         if( xcc->fom > xcar->xclu[1]->fom ){    /* 'bigger' than before */
+           DESTROY_Xcluster(xcar->xclu[1]) ;
+           xcar->xclu[1] = xcc ; xcc = NULL ;
+         }
        }
+
+     } else {                    /* add to the ever growing cluster list */
+       if( xcar == NULL ) CREATE_Xcluster_array(xcar,4) ;
+       ADDTO_Xcluster_array(xcar,xcc) ; xcc = NULL ;
      }
-     xcc = NULL ;
 
    } /* loop until all nonzero points in far[] have been used up */
 
-   return xcar ;  /* could be NULL, if fim is all zeros */
+   if( xcc != NULL ) DESTROY_Xcluster(xcc) ;
+
+   return xcar ;  /* could be NULL */
 }
 
 #undef TPUT_point
@@ -281,7 +290,7 @@ MRI_IMAGE * mri_threshold_Xcluster( MRI_IMAGE *fim,
 {
    MRI_IMAGE *tfim ;
    float *car , *tfar , *far , cmin,cth,cval ;
-   int ii,nvox,ncdon ;
+   int ii,nvox ;
    Xcluster_array *xcar ; Xcluster *xcc ; int icl,npt, *ijkar ;
 
    if( fim == NULL || fim->kind != MRI_float ) return NULL ;
@@ -290,11 +299,6 @@ MRI_IMAGE * mri_threshold_Xcluster( MRI_IMAGE *fim,
    nvox = fim->nvox ;  if( cim->nvox != nvox ) return NULL ;
    car  = MRI_FLOAT_PTR(cim) ;
    far  = MRI_FLOAT_PTR(fim) ;
-
-   cmin = WAY_BIG ;
-   for( ii=0 ; ii < nvox ; ii++ )
-     if( car[ii] > 0.0f && car[ii] < cmin ) cmin = car[ii] ;
-   if( cmin == WAY_BIG ) return NULL ;
 
    tfim = mri_copy(fim) ;
    tfar = MRI_FLOAT_PTR(tfim) ;
@@ -315,29 +319,19 @@ MRI_IMAGE * mri_threshold_Xcluster( MRI_IMAGE *fim,
      }
    }
 
-   /* clusterize */
+   /* clusterize and keep "good" clusters (relative to cim) */
 
-   xcar = find_Xcluster_array( tfim , nnlev , cmin ) ;
+   xcar = find_Xcluster_array( tfim , nnlev , cim ) ;
 
    if( xcar == NULL ){ mri_free(tfim); return NULL; }  /* nada */
 
    /* put "good" clusters back into tfim */
 
-   ncdon = 0 ;
    for( icl=0 ; icl < xcar->nclu ; icl++ ){
-     xcc = xcar->xclu[icl]; npt = xcc->npt; ijkar = xcc->ijk; cth = 0.0f;
-     /* average the threshold across the cluster */
-     for( ii=0 ; ii < npt ; ii++ ){ cval = car[ijkar[ii]]; cth += MAX(cval,cmin); }
-     cth /= npt ;
-     if( xcc->fom >= cth ){  /* it's good, Jim */
-       ncdon += npt ;
-       for( ii=0 ; ii < npt ; ii++ )  /* copy from fim to tfim */
-         tfar[ijkar[ii]] = far[ijkar[ii]] ;
-     }
+     xcc = xcar->xclu[icl]; npt = xcc->npt; ijkar = xcc->ijk;
+     for( ii=0 ; ii < npt ; ii++ ) tfar[ijkar[ii]] = far[ijkar[ii]] ;
    }
 
    DESTROY_Xcluster_array(xcar) ;
-   if( ncdon == 0 ){ mri_free(tfim) ; tfim = NULL ; }
-
    return tfim ;
 }
