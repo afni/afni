@@ -139,7 +139,9 @@ static char g_history[] =
  " 3.17 Apr 22, 2015\n"
  "      - add 'fix' for non-unix files: ignoring bad chars\n"
  "      - allow for multiple tests/fixes using -prefix\n"
- " 3.18 Aug 23, 2016    - fix rich-text quotes; added -fix_rich_quotes\n"
+ " 3.18 Aug 23, 2016\n"
+ "      - fix rich-text quotes; added -fix_rich_quotes\n"
+ "      - add any missing newline character at end of file\n"
  "----------------------------------------------------------------------\n";
 
 #define VERSION         "3.18 (August 23, 2015)"
@@ -498,15 +500,25 @@ scr_show_bad_ch( char ** fname, param_t * p )
         if( cp[count] == '\n' ) lineno++;
     }
 
+    /* if there is no newline at the end, add one */
+    if( cp[length-1] != '\n' )
+       fprintf(stderr,"file '%s': missing final newline\n", filename);
+
     if( bad && p->debug ) putc('\n', stderr);
     printf("%s has %d bad characters\n", filename, bad);
+
     if ( bad ) {
         printf("  -- starting at line %d, position %d\n", bad_line, bad_loc);
         if( bad_loc > 50 )
            printf("  -- bad chars follow: '%.50s'\n",fdata+(bad_loc-50));
     } else putchar('\n');
+
     if( outfp ) {
         if(fixed_quotes) printf("  -- fixed %d rich quotes\n",fixed_quotes);
+        if( cp[length-1] != '\n' ) {
+             printf("  -- missing final newline was added\n");
+             fputc('\n', outfp);
+        }
         fclose(outfp);
     }
 
