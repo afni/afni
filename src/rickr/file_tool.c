@@ -140,7 +140,7 @@ static char g_history[] =
  "      - add 'fix' for non-unix files: ignoring bad chars\n"
  "      - allow for multiple tests/fixes using -prefix\n"
  " 3.18 Aug 23, 2016\n"
- "      - fix rich-text quotes; added -fix_rich_quotes\n"
+ "      - fix rich-text single or double quotes; added -fix_rich_quotes\n"
  "      - add any missing newline character at end of file\n"
  "----------------------------------------------------------------------\n";
 
@@ -489,9 +489,11 @@ scr_show_bad_ch( char ** fname, param_t * p )
                 bad_line = lineno;
             }
             /* replace rich-text single quotes with simple ones */
-            if( outfp && p->fix_rich_quotes
-                      && (bchar == 0x98 || bchar == 0x99) ) {
-               fputc(0x27, outfp);
+            if( outfp && p->fix_rich_quotes ) {
+               /* replace either single quote */
+               if (bchar == 0x98 || bchar == 0x99) fputc(0x27, outfp);
+               /* replace either double quote */
+               if (bchar == 0x9c || bchar == 0x9d) fputc(0x22, outfp);
                fixed_quotes++;
             }
             bad++;
@@ -1951,6 +1953,10 @@ help_full( char * prog )
         "      -fix_rich_quotes y/n : replace rich-text quotes with ASCII\n"
         "\n"
         "               e.g. -fix_rich_quotes no\n"
+        "\n"
+        "          Rich text quote values seem to be:\n"
+        "               single: 0xe28098   or   0x e28099\n"
+        "               double: 0xe2809c   or   0x e2809d\n"
         "\n"
         "          In the case of scripts being fixed (e.g. -test -prefix P),\n"
         "          rich-text quote characters will be replaced by ASCII\n"
