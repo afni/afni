@@ -139,9 +139,12 @@ static char g_history[] =
  " 3.17 Apr 22, 2015\n"
  "      - add 'fix' for non-unix files: ignoring bad chars\n"
  "      - allow for multiple tests/fixes using -prefix\n"
+ " 3.18 Aug 23, 2016\n"
+ "      - fix rich-text single or double quotes; added -fix_rich_quotes\n"
+ "      - add any missing newline character at end of file\n"
  "----------------------------------------------------------------------\n";
 
-#define VERSION         "3.17 (April 22, 2015)"
+#define VERSION         "3.18 (August 23, 2015)"
 
 
 /* ----------------------------------------------------------------------
@@ -450,6 +453,7 @@ scr_show_bad_ch( char ** fname, param_t * p )
     FILE        * outfp = NULL;
     char        * cp, * filename = *fname;      /* might change */
     int           length, lineno, count, bad = 0, bad_loc=-1, bad_line=-1;
+    int           fixed_quotes=0, bchar; /* char converted by byte */
     int           owrite = p->overwrite;        /* might change */
 
     if( p->debug ) fprintf(stderr,"-- show_bad_chars: file %s ...\n",
@@ -473,15 +477,24 @@ scr_show_bad_ch( char ** fname, param_t * p )
     {
         if( !isprint(cp[count]) && !isspace(cp[count]) )
         {
+            bchar = 0xff & cp[count]; /* view it as a 1-byte value */
             if( p->debug ) {
                 if( !bad ) fprintf(stderr,"file '%s' has non-printable chars\n",
                                    filename);
                 if( !bad ) fputs("bad chars", stderr);
-                fprintf(stderr," : %d (0x%0x)",cp[count],0xff & cp[count]);
+                fprintf(stderr," : %d (0x%0x)",cp[count], bchar);
             }
             if( bad_loc < 0 ) {
                 bad_loc = count;
                 bad_line = lineno;
+            }
+            /* replace rich-text single quotes with simple ones */
+            if( outfp && p->fix_rich_quotes ) {
+               /* replace either single quote */
+               if (bchar == 0x98 || bchar == 0x99) fputc(0x27, outfp);
+               /* replace either double quote */
+               if (bchar == 0x9c || bchar == 0x9d) fputc(0x22, outfp);
+               fixed_quotes++;
             }
             bad++;
         } else if( outfp ) fputc(cp[count], outfp); /* else, pass on */
@@ -489,14 +502,27 @@ scr_show_bad_ch( char ** fname, param_t * p )
         if( cp[count] == '\n' ) lineno++;
     }
 
+    /* if there is no newline at the end, add one */
+    if( cp[length-1] != '\n' )
+       fprintf(stderr,"file '%s': missing final newline\n", filename);
+
     if( bad && p->debug ) putc('\n', stderr);
     printf("%s has %d bad characters\n", filename, bad);
+
     if ( bad ) {
         printf("  -- starting at line %d, position %d\n", bad_line, bad_loc);
         if( bad_loc > 50 )
            printf("  -- bad chars follow: '%.50s'\n",fdata+(bad_loc-50));
     } else putchar('\n');
-    if( outfp ) fclose(outfp);
+
+    if( outfp ) {
+        if(fixed_quotes) printf("  -- fixed %d rich quotes\n",fixed_quotes);
+        if( cp[length-1] != '\n' ) {
+             printf("  -- missing final newline was added\n");
+             fputc('\n', outfp);
+        }
+        fclose(outfp);
+    }
 
     return 0;
 }
@@ -1201,6 +1227,7 @@ set_params( param_t * p, int argc, char * argv[] )
 
     /* clear out param struct - this sets all default values */
     memset( p, 0, sizeof(*p) );
+    p->fix_rich_quotes = 1;     /* default to doing it */
 
     for ( ac = 1; ac < argc; ac++ )
     {
@@ -1273,6 +1300,13 @@ set_params( param_t * p, int argc, char * argv[] )
         else if ( ! strncmp(argv[ac], "-disp_real4", 11 ) )
         {
             p->ndisp = NDISP_REAL4;
+        }
+        else if ( ! strcmp(argv[ac], "-fix_rich_quotes") )
+        {
+            ac++;
+            CHECK_NEXT_OPT2(ac, argc, "-fix_rich_quotes", "yes/no");
+            if( argv[ac][0] == 'n' || argv[ac][0] == 'N' )
+               p->fix_rich_quotes = 0;
         }
         else if ( ! strncmp(argv[ac], "-hex", 4 ) )
         {
@@ -1915,6 +1949,19 @@ help_full( char * prog )
         "          Shell scripts need to be UNIX type files.  This option\n"
         "          will inform the programmer if there are end of line\n"
         "          characters that define an alternate file type.\n"
+        "\n"
+        "      -fix_rich_quotes y/n : replace rich-text quotes with ASCII\n"
+        "\n"
+        "               e.g. -fix_rich_quotes no\n"
+        "\n"
+        "          Rich text quote values seem to be:\n"
+        "               single: 0xe28098   or   0x e28099\n"
+        "               double: 0xe2809c   or   0x e2809d\n"
+        "\n"
+        "          In the case of scripts being fixed (e.g. -test -prefix P),\n"
+        "          rich-text quote characters will be replaced by ASCII\n"
+        "          quotes by default.  Use this option to turn off that\n"
+        "          behavior.\n"
         "\n"
         "      -test  : short for -show_bad_all\n"
         "\n"
