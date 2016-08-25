@@ -35,7 +35,7 @@ typedef struct {
   int   *ijk ;              /* 1D index for each point */
 } Xcluster ;
 
-#define MIN_CLUST 3  /* smallest cluster size allowed (voxels) */
+#define MIN_CLUST 5  /* smallest cluster size allowed (voxels) */
 
 /*----- struct to hold a bunch of clusters -----*/
 
@@ -179,11 +179,16 @@ Xcluster * copy_Xcluster( Xcluster *xcc )
 
 Xcluster_array * find_Xcluster_array( MRI_IMAGE *fim, int nnlev, MRI_IMAGE *cim )
 {
-   Xcluster *xcc ; Xcluster_array *xcar=NULL ;
-   float *far,*car , cth ;
+   Xcluster *xcc=NULL ; Xcluster_array *xcar=NULL ;
+   float *far=NULL,*car=NULL , cth ;
    int ii,jj,kk, icl , ijk , ijk_last ;
    int ip,jp,kp , im,jm,km , nx,ny,nz,nxy,nxyz ;
    const int do_nn2=(nnlev > 1) , do_nn3=(nnlev > 2) ;
+
+#if 0
+#pragma omp critical
+ { fprintf(stderr,"    + enter find_Xcluster_array\n") ; }
+#endif
 
    far = MRI_FLOAT_PTR(fim) ;
    car = (cim != NULL) ? MRI_FLOAT_PTR(cim) : NULL ;
@@ -191,8 +196,18 @@ Xcluster_array * find_Xcluster_array( MRI_IMAGE *fim, int nnlev, MRI_IMAGE *cim 
 
    ijk_last = 0 ;  /* start scanning at the {..wait for it..} start */
 
+#if 0
+#pragma omp critical
+ { fprintf(stderr,"    + start scanning fim=%p\n",(void *)far) ; }
+#endif
+
    while(1){
      /* find next nonzero point in far array */
+
+#if 0
+#pragma omp critical
+ { fprintf(stderr,"    + scanning ijk_last=%d\n",ijk_last) ; }
+#endif
 
      for( ijk=ijk_last ; ijk < nxyz ; ijk++ ) if( far[ijk] != 0.0f ) break ;
      if( ijk == nxyz ) break ;  /* didn't find any! */
@@ -201,6 +216,11 @@ Xcluster_array * find_Xcluster_array( MRI_IMAGE *fim, int nnlev, MRI_IMAGE *cim 
      IJK_TO_THREE(ijk, ii,jj,kk , nx,nxy) ;  /* 3D coords of this point */
 
      /* build a new cluster starting with this 1 point */
+
+#if 0
+#pragma omp critical
+ { fprintf(stderr,"     + cluster at ijk=%d %d %d\n",ii,jj,kk) ; }
+#endif
 
      CREATE_Xcluster(xcc,16) ;
 
@@ -257,6 +277,11 @@ Xcluster_array * find_Xcluster_array( MRI_IMAGE *fim, int nnlev, MRI_IMAGE *cim 
 
      } /* since xcc->npt increases if TPUT_point adds the point,
           the loop continues until finally no new neighbors get added */
+
+#if 0
+#pragma omp critical
+ { fprintf(stderr,"     = cluster %d %g\n",xcc->npt,xcc->fom) ; }
+#endif
 
      cth /= xcc->npt ;
      if( xcc->fom < cth || xcc->npt < MIN_CLUST ){ /* too 'small' ==> recycle */
