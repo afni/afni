@@ -538,7 +538,9 @@ g_history = """
     5.00 Aug 17, 2016: ACF blur estimation is ready
         - includes gen_ss_review_scripts/table.py
     5.01 Aug 22, 2016: save all final anat/EPI costs into out.allcostX.txt
-    5.02 Aug 25, 2016: fix output.proc prefix if -script has path
+    5.02 Aug 25, 2016:
+        - fix output.proc prefix if -script has path
+        - allow -mask_apply group in case of -tlrc_NL_warped_dsets
 """
 
 g_version = "version 5.02, August 25, 2016"

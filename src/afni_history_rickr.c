@@ -49,9 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
- { 25,  Aug, 2016, RCR, "afni_proc.py", MICRO, TYPE_BUG_FIX,
+ { 25,  Aug, 2016, RCR, "afni_proc.py", MINOR, TYPE_BUG_FIX,
    "fix output.proc prefix in case -script has a path",
-   NULL
+   "Also, allow -mask_apply group in the case of -tlrc_NL_warped_dsets.\n"
+   "Thanks to C Capistrano and P Kim for noting the output.proc problem.\n"
+   "Thanks to C Connolly for noting the mask problem."
  } ,
 
  { 25,  Aug, 2016, RCR, "afni_util.py", MICRO, TYPE_ENHANCE,
