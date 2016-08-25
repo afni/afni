@@ -5917,10 +5917,6 @@ def db_cmd_tlrc(proc, block):
         print "** missing dataset name for tlrc operation"
         return None
 
-    # if we are given NL-warped datasets, just apply them
-    if block.opts.find_opt('-tlrc_NL_warped_dsets'):
-       return tlrc_cmd_nlwarp_priors(proc, block)
-
     # no longer look to add +orig
 
     opt = block.opts.find_opt('-tlrc_base')
@@ -5928,6 +5924,10 @@ def db_cmd_tlrc(proc, block):
     else:   base = 'TT_N27+tlrc'
 
     proc.tlrc_base = BASE.afni_name(base)       # store for later
+
+    # if we are given NL-warped datasets, just apply them
+    if block.opts.find_opt('-tlrc_NL_warped_dsets'):
+       return tlrc_cmd_nlwarp_priors(proc, block)
 
     # add any user-specified options
     opt = block.opts.find_opt('-tlrc_opts_at')
