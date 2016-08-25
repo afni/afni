@@ -538,9 +538,10 @@ g_history = """
     5.00 Aug 17, 2016: ACF blur estimation is ready
         - includes gen_ss_review_scripts/table.py
     5.01 Aug 22, 2016: save all final anat/EPI costs into out.allcostX.txt
+    5.02 Aug 25, 2016: fix output.proc prefix if -script has path
 """
 
-g_version = "version 5.01, August 22, 2016"
+g_version = "version 5.02, August 25, 2016"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \
@@ -2103,10 +2104,13 @@ class SubjProcSream:
         else:                  opts = '-x'
 
         # store both tcsh and bash versions
-        self.bash_cmd = 'tcsh %s %s 2>&1 | tee output.%s' % \
-                        (opts, self.script, self.script)
-        self.tcsh_cmd = 'tcsh %s %s |& tee output.%s'     % \
-                        (opts, self.script, self.script)
+        # - script might have a path, so set output file by modifying prefix
+        outputname = UTIL.change_path_basename(self.script, 'output.', append=1)
+
+        self.bash_cmd = 'tcsh %s %s 2>&1 | tee %s' % \
+                        (opts, self.script, outputname)
+        self.tcsh_cmd = 'tcsh %s %s |& tee %s'     % \
+                        (opts, self.script, outputname)
 
         if self.user_opts.find_opt('-bash'): self.exec_cmd = self.bash_cmd
         else:                                self.exec_cmd = self.tcsh_cmd

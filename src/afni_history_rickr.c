@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 25,  Aug, 2016, RCR, "afni_proc.py", MICRO, TYPE_BUG_FIX,
+   "fix output.proc prefix in case -script has a path",
+   NULL
+ } ,
+
  { 25,  Aug, 2016, RCR, "afni_util.py", MICRO, TYPE_ENHANCE,
    "add append flag to change_path_basename()",
    NULL
