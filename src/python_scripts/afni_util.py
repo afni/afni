@@ -15,16 +15,27 @@ stim_types_one_reg = ['file', 'AM1', 'times']
 
 # this file contains various afni utilities   17 Nov 2006 [rickr]
 
-def change_path_basename(orig, prefix, suffix):
+def change_path_basename(orig, prefix='', suffix='', append=0):
     """given a path (leading directory or not) swap the trailing
        filename with the passed prefix and suffix
-
-          e.g. C_P_B('my/dir/pickles.yummy','toast','.1D') --> 'my/dir/toast.1D' 
+          e.g. C_P_B('my/dir/pickles.yummy','toast','.1D')
+                 --> 'my/dir/toast.1D' 
+       or with append...
+          e.g. C_P_B('my/dir/pickles.yummy','toast','.1D', append=1)
+                 --> 'my/dir/toastpickles.yummy.1D'
+       or maybe we want another dot then
+          e.g. C_P_B('my/dir/pickles.yummy','toast.','.1D', append=1)
+                 --> 'my/dir/toast.pickles.yummy.1D'
     """
-    if not orig or not prefix: return
+    if not orig: return ''
+    if not prefix and not suffix: return orig
+
     (head, tail) = os.path.split(orig)
-    if head == '': return "%s%s" % (prefix, suffix)
-    return "%s/%s%s" % (head, prefix, suffix)
+    if append: tail = '%s%s%s' % (prefix, tail, suffix)
+    else:      tail = '%s%s' % (prefix, suffix)
+
+    if head == '': return tail
+    return "%s/%s" % (head, tail)
 
 # write text to a file
 def write_text_to_file(fname, tdata, mode='w', wrap=0, wrapstr='\\\n', exe=0):

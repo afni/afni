@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 25,  Aug, 2016, RCR, "afni_util.py", MICRO, TYPE_ENHANCE,
+   "add append flag to change_path_basename()",
+   NULL
+ } ,
+
  { 23,  Aug, 2016, RCR, "file_tool", MINOR, TYPE_NEW_OPT,
    "add -fix_rich_quotes; if fixing a script, convert rich quotes to ASCII",
    "Done for G Chen."
