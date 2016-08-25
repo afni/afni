@@ -1317,6 +1317,10 @@ AlphaSim:AlphaSim.o
 	$(RM) $@
 	$(CCOMP) -o 3dClustSimX 3dClustSimX.o $(LFLAGS) $(LLIBS)
 
+3dtoXdataset:3dtoXdataset.o
+	$(RM) $@
+	$(CC) -o 3dtoXdataset 3dtoXdataset.o $(LFLAGS) $(LLIBS)
+
 3dBlurInMask.o:3dBlurInMask.c
 	$(RM) $@
 	$(CCOMP) -c 3dBlurInMask.c $(INFLAGS)

@@ -15,7 +15,7 @@ static THD_3dim_dataset  *mask_dset  = NULL ; /* mask dataset */
 static byte              *mask_vol   = NULL;  /* mask volume */
 static int mask_nvox = 0, mask_ngood = 0;     /* number of good voxels in mask volume */
 
-#define INMASK(ijk) (mask_vol==NULL || mask_vol[ijk]!=0)
+#define INMASK(ijk) (mask_vol[ijk]!=0)
 
 /* 3D indexes for each point in the mask */
 
@@ -64,14 +64,12 @@ static int nndil = 0 ;
 # define DECLARE_ithr const int ithr=0
 #endif
 
-static int minmask = 128 ;   /* 29 Mar 2011 */
+static const int min_mask = 1024 ;
+static const int min_nvol = 10000 ;
 
 static char *prefix = "Xsim.nii" ;
 
-static THD_3dim_dataset **inset = NULL ; /* input datasets */
-static int           num_inset  = 0 ;
-static int          *nval_inset = NULL ;
-static MRI_IMAGE    *inimzero   = NULL ;
+static MRI_IMAGE *imtemplate = NULL ;
 
 #undef  PSMALL
 #define PSMALL 1.e-15
@@ -103,25 +101,115 @@ static void vstep_print(void)
 }
 
 /*---------------------------------------------------------------------------*/
-/* load the input datasets */
 
-int load_insets(void)
+#define SFAC 0.0002f
+
+typedef struct {
+  THD_3dim_dataset  *mask_dset ;                        /* mask dataset */
+  byte              *mask_vol ;                          /* mask volume */
+  int nvox, ngood ;
+  ind_t *ipmask, *jpmask, *kpmask ;             /* indexes in 3D and 1D */
+  int   *ijkmask ;                               /* for pts in the mask */
+  int   *ijk_to_vec ;    /* map from index in volume to pts in the mask */
+
+  int    nvol ;
+  short *sdat ;
+} Xdataset ;
+
+static Xdataset *xinset=NULL ;
+
+Xdataset * open_Xdataset( char *mask_fname , char *sdat_fname )
 {
-   int nin=0,qq,nbad=0 ;
+   Xdataset *xds ; int fdes ; int64_t fsiz ;
 
-   for( qq=0 ; qq < num_inset ; qq++ ){
-     nin += nval_inset[qq] ;
-     ININFO_message("loading -inset '%s' with %d volumes",
-                    DSET_HEADNAME(inset[qq]),DSET_NVALS(inset[qq])) ;
-     DSET_load(inset[qq]) ;
-     if( !DSET_LOADED(inset[qq]) ){
-       ERROR_message("Can't load dataset -inset '%s'",DSET_HEADNAME(inset[qq])) ;
-       nbad++ ;
+   if( mask_fname == NULL || sdat_fname == NULL )
+     ERROR_exit("bad inputs to open_Xdataset") ;
+
+   xds = (Xdataset *)calloc(sizeof(Xdataset),1) ;
+
+   /*--- create the mask ---*/
+
+   xds->mask_dset = THD_open_dataset(mask_fname) ;
+   if( xds->mask_dset == NULL )
+     ERROR_exit("can't open mask dataset '%s'",mask_fname) ;
+   DSET_load(xds->mask_dset) ; CHECK_LOAD_ERROR(xds->mask_dset) ;
+
+   xds->mask_vol = THD_makemask( xds->mask_dset , 0 , 1.0,0.0 ) ;
+   if( xds->mask_vol == NULL )
+     ERROR_exit("can't use -mask dataset '%s'",mask_fname) ;
+   DSET_unload(xds->mask_dset) ;
+
+   xds->nvox = DSET_NVOX(xds->mask_dset) ;
+   xds->ngood = THD_countmask( xds->nvox , xds->mask_vol ) ;
+
+   if( xds->ngood < min_mask ){
+     if( min_mask > 2 && xds->ngood > 2 ){
+       ERROR_message("mask has only %d nonzero voxels; minimum allowed is %d.",
+                     xds->ngood , min_mask ) ;
+       ERROR_exit("Cannot continue -- may we meet under happier circumstances!") ;
+     } else if( xds->ngood == 0 ){
+       ERROR_exit("mask has no nonzero voxels -- cannot use this at all :-(") ;
+     } else {
+       ERROR_exit("mask has only %d nonzero voxel%s -- cannot use this :-(",
+                  xds->ngood , (xds->ngood > 1) ? "s" : "\0" ) ;
      }
    }
-   if( nbad > 0 ) ERROR_exit("Can't continue after load errors") ;
 
-   return nin ;
+   /*--- open data file with the short-ized and mask-ized data ---*/
+
+   fsiz = (int64_t)THD_filesize(sdat_fname) ;  /* in bytes */
+   if( fsiz == 0 )
+     ERROR_exit("can't find any data in file '%s'",sdat_fname) ;
+
+   xds->nvol = (int)( fsiz /(sizeof(short)*xds->ngood) ) ;  /* num volumes */
+   if( xds->nvol < min_nvol )                               /* in file */
+     ERROR_exit("data file '%s' isn't long enough",sdat_fname) ;
+
+   fdes = open( sdat_fname , O_RDONLY ) ;   /* open, get file descriptor */
+   if( fdes < 0 )
+     ERROR_exit("can't open data file '%s'",sdat_fname) ;
+
+   /* memory map the data file */
+
+   xds->sdat = (short *)mmap( 0 , (size_t)fsiz , PROT_READ, THD_MMAP_FLAG, fdes, 0 ) ;
+   close(fdes) ;
+   if( xds->sdat == (short *)(-1) )
+     ERROR_exit("can't mmap() data file '%s' -- memory space exhausted?",sdat_fname) ;
+
+   /* page fault the data into memory */
+
+   { int64_t ii,sum=0 ; char *bdat = (char *)xds->sdat ;
+     for( ii=0 ; ii < fsiz ; ii+=128 ) sum += (int64_t)bdat[ii] ;
+   }
+
+   /* e finito */
+
+   return xds ;
+}
+
+/*---------------------------------------------------------------------------*/
+
+void load_from_Xdataset( Xdataset *xds , int ival , float *far )
+{
+   int ii,jj ; short *spt ;
+
+   if( ival >= xds->nvol)
+     ERROR_exit("load_from_Xdataset: ival=%d nvol=%d",ival,xds->nvol) ;
+
+/* fprintf(stderr,"load ival=%d",ival) ; */
+
+   AAmemset( far , 0 , sizeof(float)*xds->nvox ) ;
+/* fprintf(stderr," a") ; */
+   spt = xds->sdat + ((size_t)ival)*((size_t)xds->ngood) ;
+/* fprintf(stderr,"b") ; */
+   for( ii=0 ; ii < xds->ngood ; ii++ ){
+/* if( xds->ijkmask[ii] < 0 || xds->ijkmask[ii] >= xds->nvox ) */
+/* fprintf(stderr,"[ii=%d ijk=%d]",ii,xds->ijkmask[ii]) ; */
+     jj = xds->ijkmask[ii] ;
+     far[jj] = SFAC * spt[ii] ;
+   }
+/* fprintf(stderr,"c\n") ; */
+   return ;
 }
 
 /*---------------------------------------------------------------------------*/
@@ -137,10 +225,10 @@ ENTRY("get_options") ;
   /*----- add to program log -----*/
 
   pthr = (double *)malloc(sizeof(double)*npthr) ;
-  memcpy( pthr , pthr_init , sizeof(double)*npthr ) ;
+  AAmemcpy( pthr , pthr_init , sizeof(double)*npthr ) ;
 
   athr = (double *)malloc(sizeof(double)*nathr) ;
-  memcpy( athr , athr_init , sizeof(double)*nathr ) ;
+  AAmemcpy( athr , athr_init , sizeof(double)*nathr ) ;
 
   while( nopt < argc ){
 
@@ -155,80 +243,18 @@ ENTRY("get_options") ;
       nopt++ ; continue ;
     }
 
-    /*-----*/
-
-#if 0
-    if( strcmp(argv[nopt],"-dilate") == 0 ){
-      if( ++nopt >= argc )
-        ERROR_exit("You need 1 argument after option '-dilate'") ;
-      nndil = (int)strtod(argv[nopt],NULL) ;
-      nopt++ ; continue ;
-    }
-#endif
-
-    /*-----  -inset iii  -----*/
+    /*-----  -inset mask sdata  -----*/
 
     if( strcmp(argv[nopt],"-inset") == 0 ){  /* 02 Feb 2016 */
       int ii,nbad=0 ; THD_3dim_dataset *qset ;
-      if( num_inset > 0 )
+      if( xinset != NULL )
         ERROR_exit("You can't use '-inset' more than once!") ;
-      if( ++nopt >= argc )
-        ERROR_exit("You need at least 1 argument after option '-inset'") ;
-      for( ; nopt < argc && argv[nopt][0] != '-' ; nopt++ ){
-        /* ININFO_message("opening -inset '%s'",argv[nopt]) ; */
-        qset = THD_open_dataset(argv[nopt]) ;
-        if( qset == NULL ){
-          ERROR_message("-inset '%s': failure to open dataset",argv[nopt]) ;
-          nbad++ ; continue ;
-        }
-        for( ii=0 ; ii < DSET_NVALS(qset) ; ii++ ){
-          if( DSET_BRICK_TYPE(qset,ii) != MRI_float ){
-            ERROR_message("-inset '%s': all sub-bricks must be float :-(",argv[nopt]) ;
-            nbad++ ; break ;
-          }
-        }
-        if( num_inset > 0 && DSET_NVOX(qset) != DSET_NVOX(inset[0]) ){
-          ERROR_message("-inset '%s': grid size doesn't match other datasets",argv[nopt]) ;
-          nbad++ ;
-        }
-        inset      = (THD_3dim_dataset **)realloc( inset     , sizeof(THD_3dim_dataset *)*(num_inset+1)) ;
-        nval_inset = (int *)              realloc( nval_inset, sizeof(int)               *(num_inset+1)) ;
-        inset[num_inset] = qset ; nval_inset[num_inset] = DSET_NVALS(qset) ; num_inset++ ;
-      }
-      if( num_inset == 0 ) ERROR_exit("no valid datasets opened after -inset :-(") ;
-      if( nbad      >  0 ) ERROR_exit("can't continue after above -inset problems") ;
-      continue ;
-    }
+      if( ++nopt >= argc-1 )
+        ERROR_exit("You need 2 arguments after option '-inset'") ;
 
-    /**** -mask mset ****/
+      xinset = open_Xdataset( argv[nopt], argv[nopt+1] ) ;
 
-    if( strcmp(argv[nopt],"-mask") == 0 ){
-      if( mask_dset != NULL ) ERROR_exit("Can't use -mask twice!") ;
-      nopt++ ; if( nopt >= argc ) ERROR_exit("need argument after -mask!") ;
-      mask_dset = THD_open_dataset(argv[nopt]);
-      if( mask_dset == NULL ) ERROR_exit("can't open -mask dataset!") ;
-      mask_vol = THD_makemask( mask_dset , 0 , 1.0,0.0 ) ;
-      if( mask_vol == NULL ) ERROR_exit("can't use -mask dataset!") ;
-      mask_nvox = DSET_NVOX(mask_dset) ;
-      DSET_unload(mask_dset) ;
-      mask_ngood = THD_countmask( mask_nvox , mask_vol ) ;
-      if( mask_ngood < minmask ){
-        if( minmask > 2 && mask_ngood > 2 ){
-          ERROR_message("-mask has only %d nonzero voxels; minimum allowed is %d.",
-                        mask_ngood , minmask ) ;
-          ERROR_message("To run this simulation, please read the CAUTION and CAVEAT in -help,") ;
-          ERROR_message("and then you can use the '-OKsmallmask' option if you so desire.") ;
-          ERROR_exit("Cannot continue -- may we meet under happier circumstances!") ;
-        } else if( mask_ngood == 0 ){
-          ERROR_exit("-mask has no nonzero voxels -- cannot use this at all :-(") ;
-        } else {
-          ERROR_exit("-mask has only %d nonzero voxel%s -- cannot use this :-(",
-                     mask_ngood , (mask_ngood > 1) ? "s" : "\0" ) ;
-        }
-      }
-      if( verb ) INFO_message("%d voxels in mask (%.2f%% of total)",
-                              mask_ngood,100.0*mask_ngood/(double)mask_nvox) ;
-      nopt++ ; continue ;
+      nopt+=2 ; continue ;
     }
 
     /*-----  -prefix -----*/
@@ -255,49 +281,42 @@ ENTRY("get_options") ;
 
 #define INSET_PRELOAD
 
-  if( num_inset <= 0 ) ERROR_exit("-inset option is mandatory :(") ;
+  if( xinset == NULL ) ERROR_exit("-inset option is mandatory :(") ;
 
-  nx = DSET_NX(inset[0]) ;
-  ny = DSET_NY(inset[0]) ;
-  nz = DSET_NZ(inset[0]) ;
-  dx = fabsf(DSET_DX(inset[0])) ;
-  dy = fabsf(DSET_DY(inset[0])) ;
-  dz = fabsf(DSET_DZ(inset[0])) ;
-  niter = load_insets() ;
-  inimzero = DSET_BRICK(inset[0],0) ;
-  if( niter < 1000 )
-    WARNING_message("-inset has only %d volumes total (= new '-niter' value)",niter) ;
-  else if( verb )
-    INFO_message("-inset had %d volumes",niter) ;
-  if( mask_dset != NULL ){
-    if( nx != DSET_NX(mask_dset) ||
-        ny != DSET_NY(mask_dset) ||
-        nz != DSET_NZ(mask_dset)   )
-      ERROR_exit("-mask and -inset don't match in grid dimensions :-(") ;
-  }
+  nx = DSET_NX(xinset->mask_dset) ;
+  ny = DSET_NY(xinset->mask_dset) ;
+  nz = DSET_NZ(xinset->mask_dset) ;
+  dx = fabsf(DSET_DX(xinset->mask_dset)) ;
+  dy = fabsf(DSET_DY(xinset->mask_dset)) ;
+  dz = fabsf(DSET_DZ(xinset->mask_dset)) ;
+
+  mask_dset  = xinset->mask_dset ;
+  imtemplate = DSET_BRICK(xinset->mask_dset,0) ;
+  niter      = xinset->nvol ;
+  mask_ngood = xinset->ngood ;
+  mask_vol   = xinset->mask_vol ;
+  INFO_message("-inset has %d volumes; mask has %d points",niter,mask_ngood) ;
 
   nxy = nx*ny ; nxyz = nxy*nz ; nxyz1 = nxyz - nxy ;
-  if( nxyz < 256 )
-    ERROR_exit("Only %d voxels in simulation?! Need at least 256.",nxyz) ;
-
-  if( mask_ngood == 0 ) mask_ngood = nxyz ;
+  if( nxyz < 1024 )
+    ERROR_exit("Only %d voxels in simulation?! Need at least 1024.",nxyz) ;
 
   /* make a list of the i,j,k coordinates of each point in the mask */
 
   { int pp,qq , xx,yy,zz ;
-    ipmask = (ind_t *)malloc(sizeof(ind_t)*mask_ngood) ;
-    jpmask = (ind_t *)malloc(sizeof(ind_t)*mask_ngood) ;
-    kpmask = (ind_t *)malloc(sizeof(ind_t)*mask_ngood) ;
-    ijkmask= (int *  )malloc(sizeof(int)  *mask_ngood) ;
+    ipmask = xinset->ipmask = (ind_t *)malloc(sizeof(ind_t)*mask_ngood) ;
+    jpmask = xinset->jpmask = (ind_t *)malloc(sizeof(ind_t)*mask_ngood) ;
+    kpmask = xinset->kpmask = (ind_t *)malloc(sizeof(ind_t)*mask_ngood) ;
+    ijkmask= xinset->ijkmask= (int *  )malloc(sizeof(int)  *mask_ngood) ;
     for( pp=qq=0 ; qq < nxyz ; qq++ ){
       if( INMASK(qq) ){
         IJK_TO_THREE(qq,xx,yy,zz,nx,nxy) ;
         ipmask[pp] = (ind_t)xx; jpmask[pp] = (ind_t)yy; kpmask[pp] = (ind_t)zz;
-        ijkmask[pp] = xx+yy*nx+zz*nxy ;
+        ijkmask[pp] = qq ;
         pp++ ;
       }
     }
-    ijk_to_vec = (int *)malloc(sizeof(int)*nxyz) ;
+    ijk_to_vec = xinset->ijk_to_vec = (int *)malloc(sizeof(int)*nxyz) ;
     for( pp=qq=0 ; qq < nxyz ; qq++ )
       ijk_to_vec[qq] = INMASK(qq) ? pp++ : -1 ;
   }
@@ -315,58 +334,13 @@ ENTRY("get_options") ;
 }
 
 /*---------------------------------------------------------------------------*/
-/* Create the "functional" image, from the inset datasets */
-
-void generate_fim_inset( float *fim , int ival )
-{
-   if( ival < 0 || ival >= niter ){            /* should not be possible */
-     ERROR_message("inset[%d] == out of range!",ival) ;
-     memset( fim , 0 , sizeof(float)*nxyz ) ;
-   } else {
-     float *bar=NULL ; int ii,qq,qval ;
-     for( qval=ival,qq=0 ; qq < num_inset ; qq++ ){  /* find which */
-       if( qval < nval_inset[qq] ) break ;           /* inset[qq] to use */
-       qval -= nval_inset[qq] ;
-     }
-     if( qq == num_inset ){                    /* should not be possible */
-       ERROR_message("inset[%d] == array overflow !!",ival) ;
-     } else {
-       bar = DSET_ARRAY(inset[qq],qval) ;
-       if( bar == NULL ){
-#pragma omp critical
-         { ININFO_message("reloading -inset '%s' with %d volumes",
-                           DSET_HEADNAME(inset[qq]),DSET_NVALS(inset[qq])) ;
-           DSET_load(inset[qq]) ;
-         }
-         bar = DSET_ARRAY(inset[qq],qval) ;
-       }
-     }
-     if( bar != NULL ){
-       for( ii=0 ; ii < nxyz ; ii++ ) fim[ii] = bar[ii] ;   /* copy data */
-#if 0
-       DSET_unload_one(inset[qq],qval) ;
-#endif
-     } else {                                       /* should not happen */
-       ERROR_message("inset[%d] == NULL :-(",ival) ;
-       memset( fim , 0 , sizeof(float)*nxyz ) ;
-     }
-   }
-}
-
-/*---------------------------------------------------------------------------*/
 /* Generate random smoothed masked image, with stdev=1. */
 
 void generate_image( float *fim , int iter )
 {
-  register int ii ; register float sum ;
-
   /* Outsource the creation of the random field */
 
-  generate_fim_inset( fim , iter ) ;
-
-  if( mask_vol != NULL ){
-    for( ii=0 ; ii < nxyz ; ii++ ) if( !mask_vol[ii] ) fim[ii] = 0.0f ;
-  }
+  load_from_Xdataset( xinset , iter , fim ) ;
 
   return ;
 }
@@ -638,8 +612,8 @@ int main( int argc , char *argv[] )
    THD_3dim_dataset *qset=NULL ;
    float *qar=NULL , *gthresh=NULL ;
    char qpr[32] ;
-   MRI_IMAGE *cim ; MRI_IMARR *cimar ; float **car ;
-   int nfomkeep , nfar , itrac , ithresh ; float tfrac ;
+   MRI_IMAGE *cim ; MRI_IMARR *cimar ; float **car , *farar ;
+   int nfomkeep , nfar , itrac , ithresh ; float tfrac , farperc ;
 
    if( argc < 2 || strcasecmp(argv[1],"-help") == 0 ){
      printf("\n"
@@ -647,9 +621,8 @@ int main( int argc , char *argv[] )
 
      printf("\n"
        " -NN     1 or 2 or 3\n"
-       " -inset  dsets\n"
        " -prefix something\n"
-       " -mask   something\n"
+       " -inset  mask sdata\n"
      ) ;
      exit(0) ;
    }
@@ -693,7 +666,7 @@ INFO_message("start 1-sided clustering with NN=%d",nnlev) ;
    /* code to initialize thread-specific workspace */
 
 #pragma omp critical
-   { fim  = mri_new_conforming( inimzero , MRI_float ) ;
+   { fim  = mri_new_conforming( imtemplate , MRI_float ) ;
      tfim = mri_new_conforming( fim      , MRI_float ) ; }
    far  = MRI_FLOAT_PTR(fim) ;
    tfar = MRI_FLOAT_PTR(tfim) ;
@@ -713,12 +686,6 @@ INFO_message("start 1-sided clustering with NN=%d",nnlev) ;
  }
  AFNI_OMP_END ;       /*---------- end parallel section ----------*/
 
-   /* make sure datasets are unloaded (to frugalize memory) */
-
-#if 0
-   for( ii=0 ; ii < num_inset ; ii++ ) DSET_unload(inset[ii]) ;
-#endif
-
    /* STEP 1b: count number of clusters overall, and merge them  */
 
    { int qter, qq,pp ; Xcluster_array *xcar ;
@@ -731,7 +698,9 @@ INFO_message("start 1-sided clustering with NN=%d",nnlev) ;
          xcar = Xclustar_g[qpthr][qter] ;
          if( xcar != NULL ) nclust_tot[qpthr] += xcar->nclu ;
        }
-       INFO_message("pthr=%.5f has %d total clusters",nclust_tot[qpthr]);
+#if 0
+       ININFO_message("pthr=%.5f has %d total clusters",pthr[qpthr],nclust_tot[qpthr]);
+#endif
        if( nclust_tot[qpthr] > nclust_max ) nclust_max = nclust_tot[qpthr] ;
        Xclust_tot[qpthr] = (Xcluster **)malloc(sizeof(Xcluster *)*nclust_tot[qpthr]) ;
        for( pp=qter=0 ; qter < niter ; qter++ ){
@@ -764,7 +733,9 @@ INFO_message("start 1-sided clustering with NN=%d",nnlev) ;
        a0 = ((float)jj)/((float)niter) ; f0 = fomg[jj] ;
        a1 = a0 + 1.0f/((float)niter) ;   f1 = fomg[jj+1] ;
        ft = gthresh[qpthr] = inverse_interp_extreme( a0,a1,0.05f , f0,f1 ) ;
-       INFO_message("5%% FOM for pthr=%.5f is %g (nfom=%d)",pthr[qpthr],ft,nfom) ;
+#if 0
+       ININFO_message("5%% FOM for pthr=%.5f is %g (nfom=%d)",pthr[qpthr],ft,nfom) ;
+#endif
      }
      free(fomg) ;
    }
@@ -807,13 +778,19 @@ INFO_message("start 1-sided clustering with NN=%d",nnlev) ;
    count_targ80  = (int)rintf(0.0080f*niter) ;
    count_targ50  = (int)rintf(0.0050f*niter) ;
 
+INFO_message("start cluster dilation") ;
+
    for( qpthr=0 ; qpthr < npthr ; qpthr++ ){
 
 #define NDILMAX 9
 
+#if 0
      INFO_message("dilation at pthr=%.5f",pthr[qpthr]) ;
+#endif
      for( ndilstep=0 ; ndilstep < NDILMAX ; ndilstep++ ){
+#if 0
        ININFO_message(" step %d",ndilstep+1) ;
+#endif
        ndilated[0] = ndilated[1] = ndilated[2] = ndilated[3] = 0 ;
 
  AFNI_OMP_START ;      /*------------ start parallel section ----------*/
@@ -821,8 +798,10 @@ INFO_message("start 1-sided clustering with NN=%d",nnlev) ;
  {  DECLARE_ithr ;
     int iter, idil , ijkbot,ijktop , nclu=nclust_tot[qpthr] ;
 
+#if 0
 #pragma omp master
     { ININFO_message("  compute FOM vectors") ; }
+#endif
 
     /* reset the FOM vectors */
 
@@ -841,8 +820,10 @@ INFO_message("start 1-sided clustering with NN=%d",nnlev) ;
        then determine how to dilate
        (parallelized across clusters = simulation iterations) */
 
+#if 0
 #pragma omp master
     { ININFO_message("  dilate clusters") ; }
+#endif
 
 #pragma omp for schedule(dynamic,200)
     for( iter=0 ; iter < nclu ; iter++ ){
@@ -862,20 +843,25 @@ INFO_message("start 1-sided clustering with NN=%d",nnlev) ;
  AFNI_OMP_END ;       /*---------- end parallel section ----------*/
 
        ndilsum = ndilated[2] + ndilated[3] ;
+#if 0
        ININFO_message("  dilation counts:  NN1=%d  NN2=%d  NN3=%d  NN2+NN3=%d",
                       ndilated[1] , ndilated[2] , ndilated[3] , ndilsum ) ;
+#endif
 
        if( ndilstep < NDILMAX-1 && ndilsum < niter/50 ){
-         ININFO_message("- breaking out of dilation") ; break ;
+#if 0
+         ININFO_message("- breaking out of dilation") ;
+#endif
+         break ;
        }
      } /* end of loop over dilation steps */
    }
 
-#if 1
+#if 0
    ININFO_message(" free dilation workspace") ;
+#endif
    for( ii=0 ; ii < nthr ; ii++ ) free(dilg_ijk[ii]) ;
    free(ndilg ); free(dilg_ijk );
-#endif
 
    /*--- STEP 3: create sorted FOM vectors ---*/
 
@@ -893,7 +879,9 @@ INFO_message("re-loading & sorting FOM vectors after final dilations") ;
 
    for( qpthr=0 ; qpthr < npthr ; qpthr++ ){ /* loop over thresholds */
 
+#if 0
      ININFO_message(" start pthr=%.5f",pthr[qpthr]) ;
+#endif
 
  AFNI_OMP_START ;      /*------------ start parallel section ----------*/
 # pragma omp parallel
@@ -901,8 +889,10 @@ INFO_message("re-loading & sorting FOM vectors after final dilations") ;
      int ijkbot,ijktop , iv,jj , npt , nclu=nclust_tot[qpthr] ;
      float a0,a1,f0,f1,ft ;
 
+#if 0
 #pragma omp master
      { ININFO_message("  A: re-load FOM vectors for this threshold") ; }
+#endif
 
 #pragma omp for
     for( iv=0 ; iv < mask_ngood ; iv++ ) fomvec[iv]->npt = 0 ;
@@ -913,8 +903,10 @@ INFO_message("re-loading & sorting FOM vectors after final dilations") ;
        process_clusters_to_Xvectors( ijkbot, ijktop , qpthr ) ;
      }
 
+#if 0
 #pragma omp master
      { ININFO_message("  B: delete Xclusters for this threshold") ; }
+#endif
 
      /* delete all clusters for this qpthr */
 #pragma omp master
@@ -925,8 +917,10 @@ INFO_message("re-loading & sorting FOM vectors after final dilations") ;
      }
 #pragma omp barrier
 
+#if 0
 #pragma omp master
      { ININFO_message("  C: sort/truncate FOM vectors for this threshold") ; }
+#endif
 
      /* vectors loaded for each pt in space;
         now sort them (biggest first) to determine equitable thresholds */
@@ -946,14 +940,17 @@ INFO_message("re-loading & sorting FOM vectors after final dilations") ;
        fomsort[qpthr][iv]->kp  = kpmask[iv] ;
        fomsort[qpthr][iv]->ijk = ijkmask[iv] ;
        fomsort[qpthr][iv]->npt = jj ;
-       memcpy(fomsort[qpthr][iv]->far,fomvec[iv]->far,sizeof(float)*jj) ;
+       AAmemcpy(fomsort[qpthr][iv]->far,fomvec[iv]->far,sizeof(float)*jj) ;
      }
    }
  AFNI_OMP_END ;       /*---------- end parallel section ----------*/
 
      /* save datasets of fomvec counts */
 
-     qset = EDIT_empty_copy(inset[0]) ;
+#if 0
+     ININFO_message("  D: write fomvec counts to dataset") ;
+#endif
+     qset = EDIT_empty_copy(mask_dset) ;
      sprintf(qpr,".%d",qpthr) ;
      EDIT_dset_items( qset ,
                         ADN_prefix , modify_afni_prefix(prefix,NULL,qpr) ,
@@ -968,6 +965,9 @@ INFO_message("re-loading & sorting FOM vectors after final dilations") ;
      }
      DSET_write(qset); WROTE_DSET(qset);
      DSET_delete(qset); qset = NULL; qar = NULL;
+#if 0
+ININFO_message("  E: loopback") ;
+#endif
 
    } /*----- end of loop over qpthr -----*/
 
@@ -978,34 +978,38 @@ INFO_message("re-loading & sorting FOM vectors after final dilations") ;
 
    /*--- STEP 4: test trial thresholds ---*/
 
-   (void)load_insets() ;
    INIT_IMARR(cimar) ;
    car = (float **)malloc(sizeof(float *)*npthr) ;
    for( qpthr=0; qpthr < npthr ; qpthr++ ){
-     cim = mri_new_conforming( inimzero , MRI_float ) ;
+     cim = mri_new_conforming( imtemplate , MRI_float ) ;
      ADDTO_IMARR(cimar,cim) ;
      car[qpthr] = MRI_FLOAT_PTR(cim) ;
    }
 
-#define DTF 0.0002
-#define NTF 10
+#define FARP_GOAL 5.00f  /* percent */
 
-   for( itrac=1 ; itrac <= NTF ; itrac++ ){
-     nfar = 0 ; tfrac = itrac*DTF ; ithresh = (int)(tfrac*niter) ;
-     INFO_message("testing threshold images at %g",tfrac) ;
+   tfrac = 0.0003f ; itrac = 0 ;
+   farar = (float *)malloc(sizeof(float)*nxyz) ;
+
+FARP_LOOPBACK:
+   {
+     itrac++ ; nfar = 0 ; ithresh = (int)(tfrac*niter) ;
+     INFO_message("testing threshold images at %g ==> %d",tfrac,ithresh) ;
+
      for( qpthr=0 ; qpthr < npthr ; qpthr++ ){
-       memset(car[qpthr],0,sizeof(float)*inimzero->nvox) ;
+       AAmemset(car[qpthr],0,sizeof(float)*nxyz) ;
      }
+     AAmemset(farar,0,sizeof(float)*nxyz) ;
 
  AFNI_OMP_START ;     /*------------ start parallel section ----------*/
 #pragma omp parallel
  {  DECLARE_ithr ;
-    MRI_IMAGE *fim , *tfim ; float *far ;
-    int iter,npt,iv,jthresh , ipthr ;
+    MRI_IMAGE *fim , *tfim ; float *far , *tfar ;
+    int iter,npt,iv,jthresh , ipthr , qq ;
     float a0,a1,f0,f1,ft ;
 
 #pragma omp critical
-   { fim = mri_new_conforming( inimzero , MRI_float ) ;
+   { fim = mri_new_conforming( imtemplate , MRI_float ) ;
      far = MRI_FLOAT_PTR(fim) ; }
 
 #pragma omp for
@@ -1051,8 +1055,15 @@ INFO_message("re-loading & sorting FOM vectors after final dilations") ;
        generate_image( far , iter ) ;
        tfim = mri_multi_threshold_Xcluster( fim, npthr,zthr_1sid, 1,nnlev, cimar ) ;
        if( tfim != NULL ){
+         tfar = MRI_FLOAT_PTR(tfim) ;
+         for( qq=0 ; qq < nxyz ; qq++ ){
+           if( tfar[qq] != 0.0f )
+#pragma omp atomic
+             farar[qq]++ ;
+         }
+
 #pragma omp critical
-         { mri_free(tfim) ; nfar++ ; }
+         { mri_free(tfim) ; nfar++ ;}
        }
      }
 
@@ -1062,9 +1073,39 @@ INFO_message("re-loading & sorting FOM vectors after final dilations") ;
  }
  AFNI_OMP_END ;
 
-   ININFO_message("False Alarm count = %d   Rate = %.2f%%" ,
-                  nfar , (100.0*nfar)/(float)niter ) ;
-  }
+     farperc = (100.0*nfar)/(float)niter ;
+     ININFO_message("False Alarm count = %d   Rate = %.2f%%" ,
+                    nfar , farperc ) ;
+
+     if( itrac < 10 && fabsf(farperc-FARP_GOAL) > 0.5f ){
+       float fff = FARP_GOAL/farperc ;
+       if( fff > 3.0f ) fff = 3.0f ; else if( fff < 0.333f ) fff = 0.333f ;
+       tfrac *= fff ;
+       if( tfrac < 0.0002f ) tfrac = 0.0002f ; else if( tfrac > 0.004f ) tfrac = 0.004f ;
+       goto FARP_LOOPBACK ;
+     }
+
+   }
+
+   /*----------*/
+
+   qset = EDIT_empty_copy(mask_dset) ;
+   sprintf(qpr,".FAR=%.2f%%",farperc) ;
+   EDIT_dset_items( qset ,
+                      ADN_prefix , modify_afni_prefix(prefix,NULL,qpr) ,
+                      ADN_nvals  , npthr+1 ,
+                    ADN_none ) ;
+   for( qpthr=0 ; qpthr < npthr ; qpthr++ ){
+     EDIT_substitute_brick( qset , qpthr , MRI_float , NULL ) ;
+     qar = DSET_ARRAY(qset,qpthr) ;
+     AAmemcpy( qar , car[qpthr] , sizeof(float)*nxyz ) ;
+   }
+   EDIT_substitute_brick( qset , npthr , MRI_float , NULL ) ;
+   qar = DSET_ARRAY(qset,npthr) ;
+   AAmemcpy( qar , farar , sizeof(float)*nxyz ) ;
+
+   DSET_write(qset); WROTE_DSET(qset);
+   DSET_delete(qset); qset = NULL; qar = NULL;
 
    exit(0) ;
 }
