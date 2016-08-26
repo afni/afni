@@ -1317,9 +1317,17 @@ AlphaSim:AlphaSim.o
 	$(RM) $@
 	$(CCOMP) -o 3dClustSimX 3dClustSimX.o $(LFLAGS) $(LLIBS)
 
+## this program is not OpenMP, but goes with 3dClustSimX above
+
 3dtoXdataset:3dtoXdataset.o
 	$(RM) $@
 	$(CC) -o 3dtoXdataset 3dtoXdataset.o $(LFLAGS) $(LLIBS)
+
+## this program is not OpenMP, but goes with 3dClustSimX above
+
+3dMultiThresh:3dMultiThresh.o
+	$(RM) $@
+	$(CC) -o 3dMultiThresh 3dMultiThresh.o $(LFLAGS) $(LLIBS)
 
 3dBlurInMask.o:3dBlurInMask.c
 	$(RM) $@
