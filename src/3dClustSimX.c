@@ -37,6 +37,10 @@ static float dy ;
 static float dz ;
 static int   niter ;  /* number of iterations */
 
+static int   do_fixed                = 0 ;
+static int   fixed_cluster_threshold = 0 ;
+static float fixed_pvalue_threshold  = 0.0f ;
+
 #define PMAX 0.5
 
 static double pthr_init[5] = { 0.0100, 0.0056, 0.0031, 0.0018, 0.0010 } ;
@@ -232,7 +236,23 @@ ENTRY("get_options") ;
 
   while( nopt < argc ){
 
-    /*-----*/
+    /*-----  -fixed pvalue clustersize  -----*/
+
+    if( strcmp(argv[nopt],"-fixed") == 0 ){
+      if( ++nopt >= argc-1 )
+        ERROR_exit("You need 2 arguments after option '-fixed'") ;
+      fixed_pvalue_threshold  = (float)strtod(argv[nopt++],NULL) ;
+      fixed_cluster_threshold = (int)  strtod(argv[nopt++],NULL) ;
+      do_fixed = ( fixed_pvalue_threshold  > 0.0f &&
+                   fixed_pvalue_threshold  < 0.1f &&
+                   fixed_cluster_threshold > MIN_CLUST ) ;
+      if( do_fixed ){
+        npthr = 1 ; pthr[0] = fixed_pvalue_threshold ;
+      }
+      continue ;
+    }
+
+    /*----- -NN 1 or 2 or 3 -----*/
 
     if( strcmp(argv[nopt],"-NN") == 0 ){
       if( ++nopt >= argc )
@@ -623,6 +643,7 @@ int main( int argc , char *argv[] )
        " -NN     1 or 2 or 3\n"
        " -prefix something\n"
        " -inset  mask sdata\n"
+       " -fixed  pvalue clustersize\n"
      ) ;
      exit(0) ;
    }
@@ -646,6 +667,8 @@ int main( int argc , char *argv[] )
      INFO_message("3dClustSimX: Using %d OpenMP threads") ;
    else
      INFO_message("3dClustSimX: Using 1 thread -- this will be slow :-(") ;
+
+   if( do_fixed ) goto FINAL_STUFF ;
 
    /*--- code to initialize the cluster arrays (one for each simulation) ---*/
 
@@ -978,12 +1001,17 @@ ININFO_message("  E: loopback") ;
 
    /*--- STEP 4: test trial thresholds ---*/
 
+FINAL_STUFF:
+
    INIT_IMARR(cimar) ;
    car = (float **)malloc(sizeof(float *)*npthr) ;
    for( qpthr=0; qpthr < npthr ; qpthr++ ){
      cim = mri_new_conforming( imtemplate , MRI_float ) ;
      ADDTO_IMARR(cimar,cim) ;
      car[qpthr] = MRI_FLOAT_PTR(cim) ;
+     if( do_fixed ){
+       for( ii=0 ; ii < nxyz ; ii++ ) car[qpthr][ii] = fixed_cluster_threshold;
+     }
    }
 
 #define FARP_GOAL 5.00f  /* percent */
@@ -994,10 +1022,12 @@ ININFO_message("  E: loopback") ;
 FARP_LOOPBACK:
    {
      itrac++ ; nfar = 0 ; ithresh = (int)(tfrac*niter) ;
-     INFO_message("testing threshold images at %g ==> %d",tfrac,ithresh) ;
 
-     for( qpthr=0 ; qpthr < npthr ; qpthr++ ){
-       AAmemset(car[qpthr],0,sizeof(float)*nxyz) ;
+     if( !do_fixed ){
+       INFO_message("testing threshold images at %g ==> %d",tfrac,ithresh) ;
+       for( qpthr=0 ; qpthr < npthr ; qpthr++ ){
+         AAmemset(car[qpthr],0,sizeof(float)*nxyz) ;
+       }
      }
      AAmemset(farar,0,sizeof(float)*nxyz) ;
 
@@ -1012,6 +1042,7 @@ FARP_LOOPBACK:
    { fim = mri_new_conforming( imtemplate , MRI_float ) ;
      far = MRI_FLOAT_PTR(fim) ; }
 
+     if( !do_fixed ){
 #pragma omp for
      for( iv=0 ; iv < mask_ngood ; iv++ ){
 #if 0
@@ -1045,6 +1076,7 @@ FARP_LOOPBACK:
 #endif
        }
      }
+     }
 
 #pragma omp for schedule(dynamic,100)
      for( iter=0 ; iter < niter ; iter++ ){
@@ -1077,7 +1109,7 @@ FARP_LOOPBACK:
      ININFO_message("False Alarm count = %d   Rate = %.2f%%" ,
                     nfar , farperc ) ;
 
-     if( itrac < 10 && fabsf(farperc-FARP_GOAL) > 0.5f ){
+     if( !do_fixed && itrac < 10 && fabsf(farperc-FARP_GOAL) > 0.222f ){
        float fff = FARP_GOAL/farperc ;
        if( fff > 3.0f ) fff = 3.0f ; else if( fff < 0.333f ) fff = 0.333f ;
        tfrac *= fff ;
@@ -1093,15 +1125,18 @@ FARP_LOOPBACK:
    sprintf(qpr,".FAR=%.2f%%",farperc) ;
    EDIT_dset_items( qset ,
                       ADN_prefix , modify_afni_prefix(prefix,NULL,qpr) ,
-                      ADN_nvals  , npthr+1 ,
+                      ADN_nvals  , (do_fixed) ? 1 : npthr+1 ,
                     ADN_none ) ;
-   for( qpthr=0 ; qpthr < npthr ; qpthr++ ){
-     EDIT_substitute_brick( qset , qpthr , MRI_float , NULL ) ;
-     qar = DSET_ARRAY(qset,qpthr) ;
-     AAmemcpy( qar , car[qpthr] , sizeof(float)*nxyz ) ;
+   ii = 0 ;
+   if( !do_fixed ){
+     for( qpthr=0 ; qpthr < npthr ; qpthr++,ii++ ){
+       EDIT_substitute_brick( qset , qpthr , MRI_float , NULL ) ;
+       qar = DSET_ARRAY(qset,qpthr) ;
+       AAmemcpy( qar , car[qpthr] , sizeof(float)*nxyz ) ;
+     }
    }
-   EDIT_substitute_brick( qset , npthr , MRI_float , NULL ) ;
-   qar = DSET_ARRAY(qset,npthr) ;
+   EDIT_substitute_brick( qset , ii , MRI_float , NULL ) ;
+   qar = DSET_ARRAY(qset,ii) ;
    AAmemcpy( qar , farar , sizeof(float)*nxyz ) ;
 
    DSET_write(qset); WROTE_DSET(qset);
