@@ -19,6 +19,10 @@ int main( int argc , char *argv[] )
        "\n"
        " 3dtoXdataset -prefix PPP maskdataset inputdataset ...\n"
        "\n"
+       "The output file 'PPP.sdat' will be created, if it does not exist.\n"
+       "If it already exists, the input dataset value (inside the mask) will\n"
+       "be appended to this output file.\n"
+       "\n"
      ) ;
      exit(0) ;
    }
@@ -64,7 +68,7 @@ int main( int argc , char *argv[] )
        ERROR_exit("data is not pure float type at input %s",argv[nopt]) ;
 
      if( fpout == NULL ){
-       fpout = fopen( fpname , "w" ) ;
+       fpout = fopen( fpname , "a" ) ;  /* open for write/append */
        if( fpout == NULL )
          ERROR_exit("can't open file '%s' for writing",fpname) ;
      }
