@@ -147,6 +147,14 @@ Xcluster * copy_Xcluster( Xcluster *xcc )
 #endif
 
 /*----------------------------------------------------------------------------*/
+/* Struct to define how to threshold and clusterize */
+
+typedef struct {
+  int nnlev , sid , qpow ;
+  float pthr , blur ;
+} thresh_clust_param ;
+
+/*----------------------------------------------------------------------------*/
 
 #if 0  /* for later developments in FOM technology */
 #  define ADDTO_FOM(val)                                               \
