@@ -279,13 +279,13 @@ ENTRY("get_options") ;
         ERROR_exit("-NN must be 1 or 2 or 3 :(") ;
       nopt++ ; continue ;
     }
-    if( strcasecmp(argv[nopt],"-NN1") == 0 ){
+    if( strcasecmp(argv[nopt],"-NN1") == 0 || -strcasecmp(argv[nopt],"-1NN") == 0 ){
       nnlev = 1 ; nopt++ ; continue ;
     }
-    if( strcasecmp(argv[nopt],"-NN2") == 0 ){
+    if( strcasecmp(argv[nopt],"-NN2") == 0 || -strcasecmp(argv[nopt],"-2NN") == 0 ){
       nnlev = 2 ; nopt++ ; continue ;
     }
-    if( strcasecmp(argv[nopt],"-NN3") == 0 ){
+    if( strcasecmp(argv[nopt],"-NN3") == 0 || -strcasecmp(argv[nopt],"-3NN") == 0 ){
       nnlev = 3 ; nopt++ ; continue ;
     }
 
@@ -299,10 +299,10 @@ ENTRY("get_options") ;
         ERROR_exit("-sid must be 1 or 2 :(") ;
       nopt++ ; continue ;
     }
-    if( strcasecmp(argv[nopt],"-sid1") == 0 ){
+    if( strcasecmp(argv[nopt],"-sid1") == 0 || strcasecmp(argv[nopt],"-1sid") == 0 ){
       nnsid = 1 ; nopt++ ; continue ;
     }
-    if( strcasecmp(argv[nopt],"-sid") == 0 ){
+    if( strcasecmp(argv[nopt],"-sid2") == 0 || strcasecmp(argv[nopt],"-2sid") == 0 ){
       nnsid = 2 ; nopt++ ; continue ;
     }
 
@@ -368,9 +368,13 @@ ENTRY("get_options") ;
 
   /*------- finalize some simple setup stuff --------*/
 
+  if( xinset == NULL ) ERROR_exit("-inset option is mandatory :(") ;
+
   if( pthr == NULL ){
     pthr = (double *)malloc(sizeof(double)*npthr) ;
     AAmemcpy( pthr , pthr_init , sizeof(double)*npthr ) ;
+    if( !verb )
+      INFO_message("using default %d p-value thresholds",npthr) ;
   }
 
 #if 0
@@ -379,8 +383,6 @@ ENTRY("get_options") ;
     AAmemcpy( athr , athr_init , sizeof(double)*nathr ) ;
   }
 #endif
-
-  if( xinset == NULL ) ERROR_exit("-inset option is mandatory :(") ;
 
   nx = DSET_NX(xinset->mask_dset) ;
   ny = DSET_NY(xinset->mask_dset) ;
@@ -726,10 +728,10 @@ int main( int argc , char *argv[] )
        "God only knows what this program does (if anything).\n") ;
 
      printf("\n"
-       " -NN     1 or 2 or 3 [or, -NN1 -NN2 -NN3 will work]\n"
-       " -sid    1 or 2      [or, -sid1 -sid2 will work]\n"
+       " -inset  mask sdata  {MANDATORY} [e.g., from 3dtoXdataset]\n"
+       " -NN     1 or 2 or 3 [-NN1 or -NN2 or -NN3 will work]\n"
+       " -sid    1 or 2      [-1sid or -2sid will work]\n"
        " -prefix something\n"
-       " -inset  mask sdata  [e.g., from 3dtoXdataset]\n"
        " -fixed  pvalue clustersize\n"
        " -pthr   list of values [default = 0.0100 0.0056 0.0031 0.0018 0.0010]\n"
      ) ;
@@ -753,7 +755,7 @@ int main( int argc , char *argv[] )
 
    if( verb ){
      if( nthr > 1 )
-       INFO_message("3dClustSimX: Using %d OpenMP threads") ;
+       INFO_message("3dClustSimX: Using %d OpenMP threads",nthr) ;
      else
        INFO_message("3dClustSimX: Using 1 thread -- this will be slow :-(") ;
    }
