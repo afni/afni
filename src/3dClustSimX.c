@@ -1,5 +1,10 @@
 #include "mrilib.h"
 
+/** to do:
+     generalize equity loop to be over a struct array instead of just pthr
+     write better help
+**/
+
 #ifdef USE_OMP
 #include <omp.h>
 #endif
@@ -240,19 +245,13 @@ void get_options( int argc , char **argv )
 
 ENTRY("get_options") ;
 
-  /*----- add to program log -----*/
-
-  pthr = (double *)malloc(sizeof(double)*npthr) ;
-  AAmemcpy( pthr , pthr_init , sizeof(double)*npthr ) ;
-
-  athr = (double *)malloc(sizeof(double)*nathr) ;
-  AAmemcpy( athr , athr_init , sizeof(double)*nathr ) ;
-
   while( nopt < argc ){
 
     /*-----  -fixed pvalue clustersize  -----*/
 
     if( strcasecmp(argv[nopt],"-fixed") == 0 ){
+      if( pthr != NULL )
+        ERROR_exit("You can't use '-fixed' AND also use '-pthr'") ;
       if( ++nopt >= argc-1 )
         ERROR_exit("You need 2 arguments after option '-fixed'") ;
       fixed_pvalue_threshold  = (float)strtod(argv[nopt++],NULL) ;
@@ -261,7 +260,11 @@ ENTRY("get_options") ;
                    fixed_pvalue_threshold  < 0.1f &&
                    fixed_cluster_threshold > MIN_CLUST ) ;
       if( do_fixed ){
-        npthr = 1 ; pthr[0] = fixed_pvalue_threshold ;
+        npthr   = 1 ;
+        pthr    = (double *)malloc(sizeof(double)) ;
+        pthr[0] = fixed_pvalue_threshold ;
+      } else {
+        ERROR_exit("Illegal values after '-fixed'") ;
       }
       continue ;
     }
@@ -331,12 +334,51 @@ ENTRY("get_options") ;
       verb = 0 ; nopt++ ; continue ;
     }
 
+    /*-----   -pthr p   -----*/
+
+    if( strcmp(argv[nopt],"-pthr") == 0 || strcmp(argv[nopt],"-pval") == 0 ){
+      if( pthr != NULL )         ERROR_exit("you can't use '-pthr' twice!'") ;
+      nopt++; if( nopt >= argc ) ERROR_exit("need argument after %s",argv[nopt-1]);
+      for( ii=nopt ; ii < argc && argv[ii][0] != '-' ; ii++ ) ; /*nada*/
+      npthr = ii-nopt ;
+      if( npthr <= 0 ) ERROR_exit("No positive values found after %s",argv[nopt-1]) ;
+      pthr = (double *)realloc(pthr,sizeof(double)*npthr) ;
+      for( ii=0 ; ii < npthr ; ii++ ){
+        pthr[ii] = strtod(argv[nopt+ii],NULL) ;
+        if( pthr[ii] <= 0.0 || pthr[ii] > PMAX )
+          ERROR_exit("value '%s' after '%s' is illegal!",argv[nopt+ii],argv[nopt-1]) ;
+      }
+      if( npthr > 1 ){
+        for( ii=0 ; ii < npthr ; ii++ ) pthr[ii] = -pthr[ii] ;  /* sort into */
+        qsort_double( npthr , pthr ) ;                          /* descending */
+        for( ii=0 ; ii < npthr ; ii++ ) pthr[ii] = -pthr[ii] ;  /* order */
+        for( ii=1 ; ii < npthr ; ii++ ){
+          if( pthr[ii] == pthr[ii-1] )
+            WARNING_message("duplicate value %g after '%s'",pthr[ii],argv[nopt-1]) ;
+        }
+      }
+      nopt += npthr ;
+      continue ;
+    }
+
     /*----- unknown option -----*/
 
     ERROR_exit("3dClustSim -- unknown option '%s'",argv[nopt]) ;
   }
 
   /*------- finalize some simple setup stuff --------*/
+
+  if( pthr == NULL ){
+    pthr = (double *)malloc(sizeof(double)*npthr) ;
+    AAmemcpy( pthr , pthr_init , sizeof(double)*npthr ) ;
+  }
+
+#if 0
+  if( athr == NULL ){
+    athr = (double *)malloc(sizeof(double)*nathr) ;
+    AAmemcpy( athr , athr_init , sizeof(double)*nathr ) ;
+  }
+#endif
 
   if( xinset == NULL ) ERROR_exit("-inset option is mandatory :(") ;
 
@@ -689,6 +731,7 @@ int main( int argc , char *argv[] )
        " -prefix something\n"
        " -inset  mask sdata  [e.g., from 3dtoXdataset]\n"
        " -fixed  pvalue clustersize\n"
+       " -pthr   list of values [default = 0.0100 0.0056 0.0031 0.0018 0.0010]\n"
      ) ;
      exit(0) ;
    }
@@ -1180,7 +1223,7 @@ FARP_LOOPBACK:
 
    if( !do_fixed ){
      qset = EDIT_empty_copy(mask_dset) ;
-     sprintf(qpr,".mthresh",farperc) ;
+     sprintf(qpr,".mthresh") ;
      EDIT_dset_items( qset ,
                         ADN_prefix , modify_afni_prefix(prefix,NULL,qpr) ,
                         ADN_nvals  , npthr ,
@@ -1207,7 +1250,7 @@ FARP_LOOPBACK:
    }
 
    qset = EDIT_empty_copy(mask_dset) ;
-   sprintf(qpr,".FARvox",farperc) ;
+   sprintf(qpr,".FARvox") ;
    EDIT_dset_items( qset ,
                       ADN_prefix , modify_afni_prefix(prefix,NULL,qpr) ,
                       ADN_nvals  , 1 ,
