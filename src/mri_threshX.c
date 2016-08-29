@@ -17,12 +17,16 @@
 
   typedef unsigned char ind_t ;
 
+# define IND_T unsigned char
+
 #else   /*==== for grids <= 32767 ====*/
 
 # define DALL    512
 # define MAX_IND 32767u
 
   typedef unsigned short ind_t ;
+
+# define IND_T unsigned short
 
 #endif
 /*====================================*/

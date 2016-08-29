@@ -10,6 +10,7 @@
 #endif
 
 #include "mri_threshX.c"  /* lots of important stuff */
+#include "thd_Xdataset.c" /* input dataset format */
 
 /*---------------------------------------------------------------------------*/
 /*--- Global data ---*/
@@ -28,6 +29,8 @@ static int   *ijkmask=NULL ;
 /* map from 1D index in volume to points in the mask */
 
 static int *ijk_to_vec=NULL ;
+
+static Xdataset *xinset=NULL ;  /* global struct of input dataset(s) */
 
 static int   nx ;     /* 3D grid stuff */
 static int   ny ;
@@ -114,128 +117,6 @@ static void vstep_print(void)
 #endif
 
 /*---------------------------------------------------------------------------*/
-/* Stuff for reading dataset stored as shorts inside a mask
-   -- Basically, a compressed file, since 10000+
-      realizations is pretty damn big when stored as 3D float bricks!
-   -- And reading them in that way was about 80% of the execution time!
-*//*-------------------------------------------------------------------------*/
-
-#define SFAC 0.0002f  /* scale factor to convert shorts to floats */
-
-/* struct that combines the 3D mask dataset and the array of shorts */
-
-typedef struct {
-  THD_3dim_dataset  *mask_dset ;                        /* mask dataset */
-  byte              *mask_vol ;                          /* mask volume */
-  int nvox, ngood ;
-  ind_t *ipmask, *jpmask, *kpmask ;             /* indexes in 3D and 1D */
-  int   *ijkmask ;                               /* for pts in the mask */
-  int   *ijk_to_vec ;    /* map from index in volume to pts in the mask */
-
-  int    nvol ;
-  short *sdat ;
-} Xdataset ;
-
-/*----------------------------------------------------------*/
-/* create Xdataset struct from 2 files: mask and short data */
-
-static Xdataset *xinset=NULL ;  /* global struct */
-
-Xdataset * open_Xdataset( char *mask_fname , char *sdat_fname )
-{
-   Xdataset *xds ; int fdes ; int64_t fsiz ;
-
-   if( mask_fname == NULL || sdat_fname == NULL )
-     ERROR_exit("bad inputs to open_Xdataset") ;
-
-   xds = (Xdataset *)calloc(sizeof(Xdataset),1) ;
-
-   /*--- create the mask ---*/
-
-   xds->mask_dset = THD_open_dataset(mask_fname) ;
-   if( xds->mask_dset == NULL )
-     ERROR_exit("can't open mask dataset '%s'",mask_fname) ;
-   DSET_load(xds->mask_dset) ; CHECK_LOAD_ERROR(xds->mask_dset) ;
-
-   xds->mask_vol = THD_makemask( xds->mask_dset , 0 , 1.0,0.0 ) ;
-   if( xds->mask_vol == NULL )
-     ERROR_exit("can't use -mask dataset '%s'",mask_fname) ;
-   DSET_unload(xds->mask_dset) ;
-
-   xds->nvox = DSET_NVOX(xds->mask_dset) ;
-   xds->ngood = THD_countmask( xds->nvox , xds->mask_vol ) ;
-
-   /* check mask for finger licking goodness */
-
-   if( xds->ngood < min_mask ){
-     if( min_mask > 2 && xds->ngood > 2 ){
-       ERROR_message("mask has only %d nonzero voxels; minimum allowed is %d.",
-                     xds->ngood , min_mask ) ;
-       ERROR_exit("Cannot continue -- may we meet under happier circumstances!") ;
-     } else if( xds->ngood == 0 ){
-       ERROR_exit("mask has no nonzero voxels -- cannot use this at all :-(") ;
-     } else {
-       ERROR_exit("mask has only %d nonzero voxel%s -- cannot use this :-(",
-                  xds->ngood , (xds->ngood > 1) ? "s" : "\0" ) ;
-     }
-   }
-
-   /*--- open data file with the short-ized and mask-ized data ---*/
-
-   fsiz = (int64_t)THD_filesize(sdat_fname) ;  /* in bytes */
-   if( fsiz == 0 )
-     ERROR_exit("can't find any data in file '%s'",sdat_fname) ;
-
-   xds->nvol = (int)( fsiz /(sizeof(short)*xds->ngood) ) ;  /* num volumes */
-   if( xds->nvol < min_nvol )                               /* in file */
-     ERROR_exit("data file '%s' isn't long enough",sdat_fname) ;
-
-   fdes = open( sdat_fname , O_RDONLY ) ;   /* open, get file descriptor */
-   if( fdes < 0 )
-     ERROR_exit("can't open data file '%s'",sdat_fname) ;
-
-   /* memory map the data file */
-
-   xds->sdat = (short *)mmap( 0 , (size_t)fsiz , PROT_READ, THD_MMAP_FLAG, fdes, 0 ) ;
-   close(fdes) ;
-   if( xds->sdat == (short *)(-1) )
-     ERROR_exit("can't mmap() data file '%s' -- memory space exhausted?",sdat_fname) ;
-
-   /* page fault the data into memory */
-
-   if( verb )
-     INFO_message("mapping %s into memory",sdat_fname) ;
-
-   { int64_t ii,sum=0 ; char *bdat = (char *)xds->sdat ;
-     for( ii=0 ; ii < fsiz ; ii+=128 ) sum += (int64_t)bdat[ii] ;
-     if( verb == 666 ) INFO_message("sum=%g",(double)sum) ; /* never executed */
-   }
-
-   /* e finito */
-
-   return xds ;
-}
-
-/*---------------------------------------------------------------------------*/
-/* load a 3D array from the masked file of shorts */
-
-void load_from_Xdataset( Xdataset *xds , int ival , float *far )
-{
-   int ii,jj ; short *spt ;
-
-   if( ival < 0 || ival >= xds->nvol)
-     ERROR_exit("load_from_Xdataset: ival=%d nvol=%d",ival,xds->nvol) ;
-
-   AAmemset( far , 0 , sizeof(float)*xds->nvox ) ;
-   spt = xds->sdat + ((size_t)ival)*((size_t)xds->ngood) ;
-   for( ii=0 ; ii < xds->ngood ; ii++ ){
-     jj = xds->ijkmask[ii] ;    /* if put this directly in the far[] */
-     far[jj] = SFAC * spt[ii] ; /* subscript, optimizer problems in icc */
-   }
-   return ;
-}
-
-/*---------------------------------------------------------------------------*/
 /* Routine to initialize the input options (values are in global variables). */
 
 void get_options( int argc , char **argv )
@@ -308,15 +189,31 @@ ENTRY("get_options") ;
 
     /*-----  -inset mask sdata  -----*/
 
-    if( strcasecmp(argv[nopt],"-inset") == 0 ){
+    if( strcasecmp(argv[nopt],"-inset" ) == 0 ||
+        strcasecmp(argv[nopt],"-insdat") == 0   ){
+      int nfile ;
       if( xinset != NULL )
-        ERROR_exit("You can't use '-inset' more than once!") ;
+        ERROR_exit("You can't use option '%s' more than once!",argv[nopt]) ;
       if( ++nopt >= argc-1 )
-        ERROR_exit("You need 2 arguments after option '-inset'") ;
+        ERROR_exit("You need at least 2 arguments after option '%s'",argv[nopt-1]) ;
 
-      xinset = open_Xdataset( argv[nopt], argv[nopt+1] ) ;
+      for( ii=nopt ; ii < argc && argv[ii][0] != '-' ; ii++ ) ; /*nada*/
+      nfile = ii-nopt ;
 
-      nopt+=2 ; continue ;
+      if( verb )
+        INFO_message("Loading %s datasets",argv[nopt-1]) ;
+
+      xinset = open_Xdataset( argv[nopt], nfile-1,argv+(nopt+1) ) ;
+
+      if( xinset->ngood < min_mask )
+        ERROR_exit("mask has %d good voxels; minimum allowed is %d",
+                   xinset->ngood , min_mask ) ;
+
+      if( xinset->nvtot < min_nvol )
+        ERROR_exit("only %d input volumes, less than minimum of %d",
+                   xinset->nvtot,min_nvol) ;
+
+      nopt += nfile ; continue ;
     }
 
     /*-----  -prefix -----*/
@@ -374,7 +271,7 @@ ENTRY("get_options") ;
     pthr = (double *)malloc(sizeof(double)*npthr) ;
     AAmemcpy( pthr , pthr_init , sizeof(double)*npthr ) ;
     if( !verb )
-      INFO_message("using default %d p-value thresholds",npthr) ;
+      INFO_message("Using default %d p-value thresholds",npthr) ;
   }
 
 #if 0
@@ -395,7 +292,7 @@ ENTRY("get_options") ;
 
   mask_dset  = xinset->mask_dset ;
   imtemplate = DSET_BRICK(xinset->mask_dset,0) ;
-  niter      = xinset->nvol ;
+  niter      = xinset->nvtot ;
   mask_ngood = xinset->ngood ;
   mask_vol   = xinset->mask_vol ;
   if( verb )
@@ -411,12 +308,11 @@ ENTRY("get_options") ;
     ipmask = xinset->ipmask = (ind_t *)malloc(sizeof(ind_t)*mask_ngood) ;
     jpmask = xinset->jpmask = (ind_t *)malloc(sizeof(ind_t)*mask_ngood) ;
     kpmask = xinset->kpmask = (ind_t *)malloc(sizeof(ind_t)*mask_ngood) ;
-    ijkmask= xinset->ijkmask= (int *  )malloc(sizeof(int)  *mask_ngood) ;
+    ijkmask= xinset->ijkmask ;
     for( pp=qq=0 ; qq < nxyz ; qq++ ){
       if( INMASK(qq) ){
         IJK_TO_THREE(qq,xx,yy,zz,nx,nxy) ;
         ipmask[pp] = (ind_t)xx; jpmask[pp] = (ind_t)yy; kpmask[pp] = (ind_t)zz;
-        ijkmask[pp] = qq ;
         pp++ ;
       }
     }
@@ -738,6 +634,8 @@ int main( int argc , char *argv[] )
      exit(0) ;
    }
 
+   (void)COX_clock_time() ;
+
    /*----- load command line options -----*/
 
    get_options(argc,argv) ;
@@ -850,6 +748,8 @@ int main( int argc , char *argv[] )
    /*============================================================================*/
    /*--- STEP 1c: find the global distributions [not needed but fun] ------------*/
 
+#define GTHRESH_FAC 0.1f
+
    { int nfom,jj; Xcluster **xcc;
      float a0,a1,f0,f1,ft ;
      float *fomg=calloc(sizeof(float),nclust_max);
@@ -865,10 +765,10 @@ int main( int argc , char *argv[] )
        jj = (int)(0.05f*niter) ;
        a0 = ((float)jj)/((float)niter) ; f0 = fomg[jj] ;
        a1 = a0 + 1.0f/((float)niter) ;   f1 = fomg[jj+1] ;
-       ft = gthresh[qpthr] = inverse_interp_extreme( a0,a1,0.05f , f0,f1 ) ;
-#if 0
-       ININFO_message("5%% FOM for pthr=%.5f is %g (nfom=%d)",pthr[qpthr],ft,nfom) ;
-#endif
+       ft = gthresh[qpthr] = GTHRESH_FAC * inverse_interp_extreme( a0,a1,0.05f, f0,f1 ) ;
+       if( verb )
+         ININFO_message("pthr=%.5f get min threshold %.1f [nfom=%d]",
+                        pthr[qpthr],ft,nfom) ;
      }
      free(fomg) ;
    }
@@ -916,9 +816,10 @@ int main( int argc , char *argv[] )
 
    /* target counts for voxel "hits" */
 
-   count_targ100 = (int)rintf(0.0100f*niter) ;  /* 1.0% of cases */
-   count_targ80  = (int)rintf(0.0080f*niter) ;  /* 0.8% of cases */
-   count_targ50  = (int)rintf(0.0050f*niter) ;  /* 0.5% of cases */
+   count_targ100 = (int)rintf(0.0100f*niter) ;
+   if( count_targ100 > 200 ) count_targ100 = 200 ;
+   count_targ80  = (int)rintf(0.80f*count_targ100) ;
+   count_targ50  = (int)rintf(0.50f*count_targ100) ;
 
    if( verb )
      INFO_message("STEP 2: start cluster dilation") ;
@@ -1138,7 +1039,7 @@ FARP_LOOPBACK:
 
      if( !do_fixed ){
        if( verb )
-         ININFO_message("testing threshold images at %g ==> %d",tfrac,ithresh) ;
+         ININFO_message("Testing threshold images at %g ==> %d",tfrac,ithresh) ;
        for( qpthr=0 ; qpthr < npthr ; qpthr++ ){
          AAmemset(car[qpthr],0,sizeof(float)*nxyz) ;
        }
@@ -1264,5 +1165,6 @@ FARP_LOOPBACK:
    DSET_write(qset); WROTE_DSET(qset);
    DSET_delete(qset); qset = NULL; qar = NULL;
 
+   if( verb ) INFO_message("Elapsed time = %.1f s",COX_clock_time()) ;
    exit(0) ;
 }
