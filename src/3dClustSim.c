@@ -18,6 +18,12 @@
 /*----------------------------------------------------------------------------*/
 #include "mri_radial_random_field.c" /** 3D FFT-based random field generator **/
 /*----------------------------------------------------------------------------*/
+#ifndef IND_T
+  typedef unsigned char ind_t ;
+# define IND_T unsigned char
+#endif
+#include "thd_Xdataset.c"                         /** reading .sdat datasets **/
+/*----------------------------------------------------------------------------*/
 
 #include <time.h>
 #include <sys/types.h>
@@ -211,6 +217,8 @@ static char *prefix = NULL ;
 static THD_3dim_dataset **inset = NULL ; /* 02 Feb 2016 */
 static int           num_inset  = 0 ;
 static int          *nval_inset = NULL ;
+
+static Xdataset *xinset = NULL ;         /* 29 Aug 2016 */
 
 #undef  PSMALL
 #define PSMALL 1.e-15
@@ -720,6 +728,8 @@ ENTRY("get_options") ;
       int ii,nbad=0 ; THD_3dim_dataset *qset ;
       if( num_inset > 0 )
         ERROR_exit("You can't use '-inset' more than once!") ;
+      if( xinset != NULL )
+        ERROR_exit("You can't use '-inset' after '-insdat'!") ;
       if( ++nopt >= argc )
         ERROR_exit("You need at least 1 argument after option '-inset'") ;
       for( ; nopt < argc && argv[nopt][0] != '-' ; nopt++ ){
@@ -746,6 +756,28 @@ ENTRY("get_options") ;
       if( num_inset == 0 ) ERROR_exit("no valid datasets opened after -inset :-(") ;
       if( nbad      >  0 ) ERROR_exit("can't continue after above -inset problems") ;
       continue ;
+    }
+
+    /*-----  -insdat mask sdata  -----*/
+
+    if( strcasecmp(argv[nopt],"-insdat") == 0 ){
+      int nfile , ii ;
+      if( xinset != NULL )
+        ERROR_exit("You can't use option '%s' more than once!",argv[nopt]) ;
+      if( num_inset > 0 )
+        ERROR_exit("You can't use '-insdat' after '-inset'!") ;
+      if( ++nopt >= argc-1 )
+        ERROR_exit("You need at least 2 arguments after option '%s'",argv[nopt-1]) ;
+
+      for( ii=nopt ; ii < argc && argv[ii][0] != '-' ; ii++ ) ; /*nada*/
+      nfile = ii-nopt ;
+
+      if( verb )
+        INFO_message("Loading %s datasets",argv[nopt-1]) ;
+
+      xinset = open_Xdataset( argv[nopt], nfile-1,argv+(nopt+1) ) ;
+
+      nopt += nfile ; continue ;
     }
 
     /*-----  -nxyz n1 n2 n3 -----*/
@@ -1105,6 +1137,9 @@ ENTRY("get_options") ;
     WARNING_message("-sumup canceled") ;
   }
 
+  if( xinset != NULL && num_inset > 0 ) /* should not be possible */
+    ERROR_exit("-insdat and -inset are incompatible :-(") ;
+
 #define INSET_PRELOAD
 
   if( num_inset > 0 ){      /* 02 Feb 2016 */
@@ -1137,12 +1172,27 @@ ENTRY("get_options") ;
           nz != DSET_NZ(mask_dset)   )
         ERROR_exit("-mask and -inset don't match in grid dimensions :-(") ;
     }
-    if( do_ssave ){
-      WARNING_message("-inset turns off -ssave") ; do_ssave = 0 ;
-    }
-    if( do_acf ){
-      WARNING_message("-inset turns off -acf") ; do_acf = 0 ;
-    }
+    if( do_ssave ){ WARNING_message("-inset turns off -ssave"); do_ssave = 0; }
+    if( do_acf   ){ WARNING_message("-inset turns off -acf")  ; do_acf = 0  ; }
+
+  } else if( xinset != NULL ){           /*--- 29 Aug 2016 ---*/
+    mask_dset  = xinset->mask_dset ;
+    mask_ngood = xinset->ngood ;
+    mask_vol   = xinset->mask_vol ;
+    nx = DSET_NX(mask_dset) ;
+    ny = DSET_NY(mask_dset) ;
+    nz = DSET_NZ(mask_dset) ;
+    dx = fabsf(DSET_DX(mask_dset)) ;
+    dy = fabsf(DSET_DY(mask_dset)) ;
+    dz = fabsf(DSET_DZ(mask_dset)) ;
+    niter = xinset->nvtot ;
+    if( niter < 100 )
+      WARNING_message("-insdat has only %d volumes total (= new '-niter' value)",niter) ;
+    else if( verb )
+      INFO_message("-insdat had %d volumes = new '-niter' value",niter) ;
+    if( do_ssave ){ WARNING_message("-insdat turns off -ssave"); do_ssave = 0; }
+    if( do_acf   ){ WARNING_message("-insdat turns off -acf")  ; do_acf   = 0; }
+
   } else if( mask_dset != NULL ){
     nx = DSET_NX(mask_dset) ;
     ny = DSET_NY(mask_dset) ;
@@ -1287,6 +1337,15 @@ void ssave_dataset( float *fim )  /* 24 Apr 2014 */
 }
 
 /*---------------------------------------------------------------------------*/
+/* Create the "functional" image, from the xinset struct [29 Aug 2016] */
+
+void generate_fim_insdat( float *fim , int ival )
+{
+   load_from_Xdataset( xinset , ival , fim ) ;
+   return ;
+}
+
+/*---------------------------------------------------------------------------*/
 /* Create the "functional" image, from the inset dataset [02 Feb 2016] */
 
 void generate_fim_inset( float *fim , int ival )
@@ -1421,6 +1480,8 @@ void generate_image( float *fim , float *pfim , unsigned short xran[] , int iter
 
   if( inset != NULL )
     generate_fim_inset( fim , iter-1 ) ;
+  else if( xinset != NULL )
+    generate_fim_insdat( fim , iter-1 ) ;
   else if( do_acf )
     generate_fim_acf( fim , xran ) ;
   else if( do_pad )
@@ -1430,7 +1491,7 @@ void generate_image( float *fim , float *pfim , unsigned short xran[] , int iter
 
   /* normalizing */
 
-  if( num_inset == 0 ){
+  if( num_inset == 0 && xinset == NULL ){
     for( sum=0.0f,ii=0 ; ii < nxyz ; ii++ ) sum += fim[ii]*fim[ii] ;
     sum = sqrtf( nxyz / sum ) ;  /* fix stdev back to 1 */
     for( ii=0 ; ii < nxyz ; ii++ ) fim[ii] *= sum ;
@@ -1442,12 +1503,12 @@ void generate_image( float *fim , float *pfim , unsigned short xran[] , int iter
 
   /* maskizing? */
 
-  if( mask_vol != NULL ){
+  if( mask_vol != NULL && xinset == NULL ){
     for( ii=0 ; ii < nxyz ; ii++ ) if( !mask_vol[ii] ) fim[ii] = 0.0f ;
   }
 
-  if( num_inset == 0 && tdof > 0.0f ){  /* 26 May 2015: secret stuff */
-    float zfac = 1.0f/(1.0f-0.25f/tdof) ;
+  if( num_inset == 0 && xinset == NULL && tdof > 0.0f ){
+    float zfac = 1.0f/(1.0f-0.25f/tdof) ;  /* 26 May 2015: secret stuff */
     float tfac = 0.5f/tdof ;
     float zhat , denom ;
     for( ii=0 ; ii < nxyz ; ii++ ){

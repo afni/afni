@@ -153,6 +153,7 @@ static MRI_vectim      *vectim_BBB=NULL ;
 static int debug = 0 ;
 
 static int do_randomsign   = 0 ;     /* 31 Dec 2015 */
+static int do_sdat         = 0 ;     /* 29 Aug 2016 */
 static int *randomsign_AAA = NULL ;
 static int *randomsign_BBB = NULL ;
 static int num_randomsign  = 0 ;     /* 02 Feb 2016 */
@@ -1430,6 +1431,7 @@ int main( int argc , char *argv[] )
    int dupe_ok=0;  /* 1 Jun 2015 [rickr] */
    char *snam_PPP=NULL, *snam_MMM=NULL ;
    static int iwarn=0;
+   FILE *fp_sdat = NULL ; short *sdatar=NULL ; char *sdat_prefix=NULL ;
 
    /*--- help the piteous luser? ---*/
 
@@ -1536,14 +1538,16 @@ int main( int argc , char *argv[] )
 
      /*----- randomsign -----*/
 
-     if( strcmp(argv[nopt],"-randomsign") == 0 ){  /* 31 Dec 2015 */
+     if( strcasecmp(argv[nopt],"-randomsign") == 0 ){  /* 31 Dec 2015 */
        do_randomsign++ ;
+       do_sdat = (argv[nopt][1] == 'R' ) ;
        nopt++ ;
        if( nopt < argc && isdigit(argv[nopt][0]) ){
          num_randomsign = (int)strtod(argv[nopt],NULL) ; nopt++ ;
        } else {
          num_randomsign = 1 ;
        }
+       do_sdat = do_sdat && (num_randomsign > 1) ;
        continue ;
      }
 
@@ -2507,6 +2511,20 @@ int main( int argc , char *argv[] )
    bbset = EDIT_empty_copy(outset) ;
    EDIT_dset_items( bbset, ADN_nvals,nvout, ADN_none ) ;
 
+   if( do_sdat ){  /* 29 Aug 2016 */
+     char *cpt ;
+     sdat_prefix = (char *)malloc(sizeof(char)*(strlen(prefix)+32)) ;
+     strcpy(sdat_prefix,prefix) ;
+     cpt = strstr(sdat_prefix,".nii") ; if( cpt != NULL ) *cpt = '\0' ;
+     cpt = strstr(sdat_prefix,".sdat");
+     if( cpt == NULL ) strcat(sdat_prefix,".sdat") ;
+     fp_sdat = fopen( sdat_prefix , "w" ) ;
+     if( fp_sdat == NULL )
+       ERROR_exit("unable to open file %s for output",sdat_prefix) ;
+     sdatar = (short *)malloc(sizeof(short)*nvox) ;
+     INFO_message("opened file %s for output",sdat_prefix) ;
+   }
+
    /*** make up some brick labels [[[man, this is tediously boring work]]] ***/
 
    if( mcov > 0 ){
@@ -2931,22 +2949,34 @@ LABELS_ARE_DONE:  /* target for goto above */
 
      if( debug ) ININFO_message("saving results into output volumes") ;
 
-     for( kk=0 ; kk < nvout ; kk++ )        /* load dataset with 0s */
-       EDIT_substitute_brick( bbset , kk , MRI_float , NULL ) ;
+     if( !do_sdat ){
+       for( kk=0 ; kk < nvout ; kk++ )        /* load dataset with 0s */
+         EDIT_substitute_brick( bbset , kk , MRI_float , NULL ) ;
 
-     if( do_means+do_tests == 2 && do_cov ){  /* simple copy of results into temp dataset */
-       THD_vectim_to_dset( vimout , bbset ) ;
-     } else {
-       int *list = (int *)malloc(sizeof(int)*nvout) ;
+       if( do_means+do_tests == 2 && do_cov ){ /* simple copy to temp dataset */
+         THD_vectim_to_dset( vimout , bbset ) ;
+       } else {                                /* complicated copy */
+         int *list = (int *)malloc(sizeof(int)*nvout) ;
+         ss = (do_means) ? 0 : 1 ;
+         for( kk=0 ; kk < nvout ; kk++ ) list[kk] = ss + 2*kk ;
+         THD_vectim_indexed_to_dset( vimout , nvout,list , bbset ) ;
+         free(list) ;
+       }
+
+       for( kk=0 ; kk < nvout ; kk++ ){       /* move results into final output dataset */
+         EDIT_substitute_brick( outset , kk+bbase , MRI_float , DSET_ARRAY(bbset,kk) ) ;
+         DSET_NULL_ARRAY(bbset,kk) ;
+       }
+     } else {  /* 29 Aug 2016 */
+#define SFAC 0.0002f
+       float rval ;
        ss = (do_means) ? 0 : 1 ;
-       for( kk=0 ; kk < nvout ; kk++ ) list[kk] = ss + 2*kk ;
-       THD_vectim_indexed_to_dset( vimout , nvout,list , bbset ) ;
-       free(list) ;
-     }
-
-     for( kk=0 ; kk < nvout ; kk++ ){       /* move results into final output dataset */
-       EDIT_substitute_brick( outset , kk+bbase , MRI_float , DSET_ARRAY(bbset,kk) ) ;
-       DSET_NULL_ARRAY(bbset,kk) ;
+       for( kout=0 ; kout < nmask_hits ; kout++ ){
+         resar = VECTIM_PTR(vimout,kout) ;
+         rval  = resar[ss] / SFAC ;
+         sdatar[kout] = SHORTIZE(rval) ;
+       }
+       fwrite(sdatar,sizeof(short),nmask_hits,fp_sdat) ;
      }
 
      /* and load residual dataset [07 Dec 2015] */
@@ -2960,6 +2990,12 @@ LABELS_ARE_DONE:  /* target for goto above */
    } /*----- end of brickwise loop -----*/
 
    if( brickwise_num > 1 ) fprintf(stderr,"!\n") ;
+
+   if( do_sdat ){      /*----- 29 Aug 2016 -----*/
+     fclose(fp_sdat) ;
+     INFO_message("output short-ized file %s",sdat_prefix) ;
+     exit(0) ;
+   }
 
    /*-------- get rid of the input data and workspaces now --------*/
 
