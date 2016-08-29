@@ -1,5 +1,10 @@
 #include "mrilib.h"
 
+/** to do:
+     generalize equity loop to be over a struct array instead of just pthr
+     write better help
+**/
+
 #ifdef USE_OMP
 #include <omp.h>
 #endif
@@ -7,9 +12,7 @@
 #include "mri_threshX.c"  /* lots of important stuff */
 
 /*---------------------------------------------------------------------------*/
-/*
-  Global data
-*/
+/*--- Global data ---*/
 
 static THD_3dim_dataset  *mask_dset  = NULL ; /* mask dataset */
 static byte              *mask_vol   = NULL;  /* mask volume */
@@ -35,7 +38,12 @@ static int   nxyz1 ;
 static float dx ;
 static float dy ;
 static float dz ;
-static int   niter ;  /* number of iterations */
+
+static int   niter ;  /* number of iterations (realizations) */
+
+static int   do_fixed                = 0 ;    /* fixed FOM threshold? */
+static int   fixed_cluster_threshold = 0 ;
+static float fixed_pvalue_threshold  = 0.0f ;
 
 #define PMAX 0.5
 
@@ -47,15 +55,19 @@ static double *pthr = NULL ;
 
 static float  *zthr_1sid = NULL ;
 static float  *zthr_2sid = NULL ;
+static float  *zthr_used = NULL ;
 
-static int    nathr = 5 ;
+static int    nathr = 5 ;     /* athr is not used at this time */
 static double *athr = NULL ;
 
 static int verb = 1 ;
 static int nthr = 1 ;  /* default number of threads */
 
-static int nnlev = 1 ;
-static int nndil = 0 ;
+static int nnlev = 1 ; /* 1 or 2 or 3 */
+static int nnsid = 1 ; /* 1 or 2 */
+
+/* macro for use inside parallel regions,
+   to declare and get ithr = thread number */
 
 #undef DECLARE_ithr
 #ifdef USE_OMP
@@ -64,8 +76,8 @@ static int nndil = 0 ;
 # define DECLARE_ithr const int ithr=0
 #endif
 
-static const int min_mask = 1024 ;
-static const int min_nvol = 10000 ;
+static const int min_mask = 1024 ;    /* min # voxels */
+static const int min_nvol = 10000 ;   /* min # realizations */
 
 static char *prefix = "Xsim.nii" ;
 
@@ -73,8 +85,6 @@ static MRI_IMAGE *imtemplate = NULL ;
 
 #undef  PSMALL
 #define PSMALL 1.e-15
-
-static char *cmd_fname = "3dClustSim.cmd" ;
 
 /*----------------------------------------------------------------------------*/
 /*! Threshold for upper tail probability of N(0,1) */
@@ -87,7 +97,9 @@ double zthresh( double pval )
 }
 
 /*---------------------------------------------------------------------------*/
+/* For use in progress counts */
 
+#if 0
 static int vsnn=0 ;
 
 static void vstep_reset(void){ vsnn=0; }
@@ -99,10 +111,18 @@ static void vstep_print(void)
    if( vsnn%10 == 9) fprintf(stderr,".") ;
    vsnn++ ;
 }
+#endif
 
 /*---------------------------------------------------------------------------*/
+/* Stuff for reading dataset stored as shorts inside a mask
+   -- Basically, a compressed file, since 10000+
+      realizations is pretty damn big when stored as 3D float bricks!
+   -- And reading them in that way was about 80% of the execution time!
+*//*-------------------------------------------------------------------------*/
 
-#define SFAC 0.0002f
+#define SFAC 0.0002f  /* scale factor to convert shorts to floats */
+
+/* struct that combines the 3D mask dataset and the array of shorts */
 
 typedef struct {
   THD_3dim_dataset  *mask_dset ;                        /* mask dataset */
@@ -116,7 +136,10 @@ typedef struct {
   short *sdat ;
 } Xdataset ;
 
-static Xdataset *xinset=NULL ;
+/*----------------------------------------------------------*/
+/* create Xdataset struct from 2 files: mask and short data */
+
+static Xdataset *xinset=NULL ;  /* global struct */
 
 Xdataset * open_Xdataset( char *mask_fname , char *sdat_fname )
 {
@@ -141,6 +164,8 @@ Xdataset * open_Xdataset( char *mask_fname , char *sdat_fname )
 
    xds->nvox = DSET_NVOX(xds->mask_dset) ;
    xds->ngood = THD_countmask( xds->nvox , xds->mask_vol ) ;
+
+   /* check mask for finger licking goodness */
 
    if( xds->ngood < min_mask ){
      if( min_mask > 2 && xds->ngood > 2 ){
@@ -178,8 +203,12 @@ Xdataset * open_Xdataset( char *mask_fname , char *sdat_fname )
 
    /* page fault the data into memory */
 
+   if( verb )
+     INFO_message("mapping %s into memory",sdat_fname) ;
+
    { int64_t ii,sum=0 ; char *bdat = (char *)xds->sdat ;
      for( ii=0 ; ii < fsiz ; ii+=128 ) sum += (int64_t)bdat[ii] ;
+     if( verb == 666 ) INFO_message("sum=%g",(double)sum) ; /* never executed */
    }
 
    /* e finito */
@@ -188,27 +217,21 @@ Xdataset * open_Xdataset( char *mask_fname , char *sdat_fname )
 }
 
 /*---------------------------------------------------------------------------*/
+/* load a 3D array from the masked file of shorts */
 
 void load_from_Xdataset( Xdataset *xds , int ival , float *far )
 {
    int ii,jj ; short *spt ;
 
-   if( ival >= xds->nvol)
+   if( ival < 0 || ival >= xds->nvol)
      ERROR_exit("load_from_Xdataset: ival=%d nvol=%d",ival,xds->nvol) ;
 
-/* fprintf(stderr,"load ival=%d",ival) ; */
-
    AAmemset( far , 0 , sizeof(float)*xds->nvox ) ;
-/* fprintf(stderr," a") ; */
    spt = xds->sdat + ((size_t)ival)*((size_t)xds->ngood) ;
-/* fprintf(stderr,"b") ; */
    for( ii=0 ; ii < xds->ngood ; ii++ ){
-/* if( xds->ijkmask[ii] < 0 || xds->ijkmask[ii] >= xds->nvox ) */
-/* fprintf(stderr,"[ii=%d ijk=%d]",ii,xds->ijkmask[ii]) ; */
-     jj = xds->ijkmask[ii] ;
-     far[jj] = SFAC * spt[ii] ;
+     jj = xds->ijkmask[ii] ;    /* if put this directly in the far[] */
+     far[jj] = SFAC * spt[ii] ; /* subscript, optimizer problems in icc */
    }
-/* fprintf(stderr,"c\n") ; */
    return ;
 }
 
@@ -218,35 +241,74 @@ void load_from_Xdataset( Xdataset *xds , int ival , float *far )
 void get_options( int argc , char **argv )
 {
   char * ep;
-  int nopt=1 , ii , have_pthr=0;
+  int nopt=1 , ii ;
 
 ENTRY("get_options") ;
 
-  /*----- add to program log -----*/
-
-  pthr = (double *)malloc(sizeof(double)*npthr) ;
-  AAmemcpy( pthr , pthr_init , sizeof(double)*npthr ) ;
-
-  athr = (double *)malloc(sizeof(double)*nathr) ;
-  AAmemcpy( athr , athr_init , sizeof(double)*nathr ) ;
-
   while( nopt < argc ){
 
-    /*-----*/
+    /*-----  -fixed pvalue clustersize  -----*/
 
-    if( strcmp(argv[nopt],"-NN") == 0 ){
+    if( strcasecmp(argv[nopt],"-fixed") == 0 ){
+      if( pthr != NULL )
+        ERROR_exit("You can't use '-fixed' AND also use '-pthr'") ;
+      if( ++nopt >= argc-1 )
+        ERROR_exit("You need 2 arguments after option '-fixed'") ;
+      fixed_pvalue_threshold  = (float)strtod(argv[nopt++],NULL) ;
+      fixed_cluster_threshold = (int)  strtod(argv[nopt++],NULL) ;
+      do_fixed = ( fixed_pvalue_threshold  > 0.0f &&
+                   fixed_pvalue_threshold  < 0.1f &&
+                   fixed_cluster_threshold > MIN_CLUST ) ;
+      if( do_fixed ){
+        npthr   = 1 ;
+        pthr    = (double *)malloc(sizeof(double)) ;
+        pthr[0] = fixed_pvalue_threshold ;
+      } else {
+        ERROR_exit("Illegal values after '-fixed'") ;
+      }
+      continue ;
+    }
+
+    /*----- -NN 1 or 2 or 3 -----*/
+
+    if( strcasecmp(argv[nopt],"-NN") == 0 ){
       if( ++nopt >= argc )
         ERROR_exit("You need 1 argument after option '-NN'") ;
       nnlev = (int)strtod(argv[nopt],NULL) ;
       if( nnlev < 1 || nnlev > 3 )
-        ERROR_exit("-NN must be 1 or or 3 :(") ;
+        ERROR_exit("-NN must be 1 or 2 or 3 :(") ;
       nopt++ ; continue ;
+    }
+    if( strcasecmp(argv[nopt],"-NN1") == 0 || -strcasecmp(argv[nopt],"-1NN") == 0 ){
+      nnlev = 1 ; nopt++ ; continue ;
+    }
+    if( strcasecmp(argv[nopt],"-NN2") == 0 || -strcasecmp(argv[nopt],"-2NN") == 0 ){
+      nnlev = 2 ; nopt++ ; continue ;
+    }
+    if( strcasecmp(argv[nopt],"-NN3") == 0 || -strcasecmp(argv[nopt],"-3NN") == 0 ){
+      nnlev = 3 ; nopt++ ; continue ;
+    }
+
+    /*----- -sid 1 or 2 -----*/
+
+    if( strcasecmp(argv[nopt],"-sid") == 0 ){
+      if( ++nopt >= argc )
+        ERROR_exit("You need 1 argument after option '-sid'") ;
+      nnsid = (int)strtod(argv[nopt],NULL) ;
+      if( nnsid < 1 || nnsid > 2 )
+        ERROR_exit("-sid must be 1 or 2 :(") ;
+      nopt++ ; continue ;
+    }
+    if( strcasecmp(argv[nopt],"-sid1") == 0 || strcasecmp(argv[nopt],"-1sid") == 0 ){
+      nnsid = 1 ; nopt++ ; continue ;
+    }
+    if( strcasecmp(argv[nopt],"-sid2") == 0 || strcasecmp(argv[nopt],"-2sid") == 0 ){
+      nnsid = 2 ; nopt++ ; continue ;
     }
 
     /*-----  -inset mask sdata  -----*/
 
-    if( strcmp(argv[nopt],"-inset") == 0 ){  /* 02 Feb 2016 */
-      int ii,nbad=0 ; THD_3dim_dataset *qset ;
+    if( strcasecmp(argv[nopt],"-inset") == 0 ){
       if( xinset != NULL )
         ERROR_exit("You can't use '-inset' more than once!") ;
       if( ++nopt >= argc-1 )
@@ -259,7 +321,7 @@ ENTRY("get_options") ;
 
     /*-----  -prefix -----*/
 
-    if( strcmp(argv[nopt],"-prefix") == 0 ){
+    if( strcasecmp(argv[nopt],"-prefix") == 0 ){
       nopt++ ; if( nopt >= argc ) ERROR_exit("need argument after -prefix!") ;
       prefix = strdup(argv[nopt]) ;
       if( !THD_filename_ok(prefix) ) ERROR_exit("bad -prefix option!") ;
@@ -272,6 +334,33 @@ ENTRY("get_options") ;
       verb = 0 ; nopt++ ; continue ;
     }
 
+    /*-----   -pthr p   -----*/
+
+    if( strcmp(argv[nopt],"-pthr") == 0 || strcmp(argv[nopt],"-pval") == 0 ){
+      if( pthr != NULL )         ERROR_exit("you can't use '-pthr' twice!'") ;
+      nopt++; if( nopt >= argc ) ERROR_exit("need argument after %s",argv[nopt-1]);
+      for( ii=nopt ; ii < argc && argv[ii][0] != '-' ; ii++ ) ; /*nada*/
+      npthr = ii-nopt ;
+      if( npthr <= 0 ) ERROR_exit("No positive values found after %s",argv[nopt-1]) ;
+      pthr = (double *)realloc(pthr,sizeof(double)*npthr) ;
+      for( ii=0 ; ii < npthr ; ii++ ){
+        pthr[ii] = strtod(argv[nopt+ii],NULL) ;
+        if( pthr[ii] <= 0.0 || pthr[ii] > PMAX )
+          ERROR_exit("value '%s' after '%s' is illegal!",argv[nopt+ii],argv[nopt-1]) ;
+      }
+      if( npthr > 1 ){
+        for( ii=0 ; ii < npthr ; ii++ ) pthr[ii] = -pthr[ii] ;  /* sort into */
+        qsort_double( npthr , pthr ) ;                          /* descending */
+        for( ii=0 ; ii < npthr ; ii++ ) pthr[ii] = -pthr[ii] ;  /* order */
+        for( ii=1 ; ii < npthr ; ii++ ){
+          if( pthr[ii] == pthr[ii-1] )
+            WARNING_message("duplicate value %g after '%s'",pthr[ii],argv[nopt-1]) ;
+        }
+      }
+      nopt += npthr ;
+      continue ;
+    }
+
     /*----- unknown option -----*/
 
     ERROR_exit("3dClustSim -- unknown option '%s'",argv[nopt]) ;
@@ -279,9 +368,21 @@ ENTRY("get_options") ;
 
   /*------- finalize some simple setup stuff --------*/
 
-#define INSET_PRELOAD
-
   if( xinset == NULL ) ERROR_exit("-inset option is mandatory :(") ;
+
+  if( pthr == NULL ){
+    pthr = (double *)malloc(sizeof(double)*npthr) ;
+    AAmemcpy( pthr , pthr_init , sizeof(double)*npthr ) ;
+    if( !verb )
+      INFO_message("using default %d p-value thresholds",npthr) ;
+  }
+
+#if 0
+  if( athr == NULL ){
+    athr = (double *)malloc(sizeof(double)*nathr) ;
+    AAmemcpy( athr , athr_init , sizeof(double)*nathr ) ;
+  }
+#endif
 
   nx = DSET_NX(xinset->mask_dset) ;
   ny = DSET_NY(xinset->mask_dset) ;
@@ -290,12 +391,15 @@ ENTRY("get_options") ;
   dy = fabsf(DSET_DY(xinset->mask_dset)) ;
   dz = fabsf(DSET_DZ(xinset->mask_dset)) ;
 
+  /* copy some variables because xinset was a late addition to the code */
+
   mask_dset  = xinset->mask_dset ;
   imtemplate = DSET_BRICK(xinset->mask_dset,0) ;
   niter      = xinset->nvol ;
   mask_ngood = xinset->ngood ;
   mask_vol   = xinset->mask_vol ;
-  INFO_message("-inset has %d volumes; mask has %d points",niter,mask_ngood) ;
+  if( verb )
+    INFO_message("-inset has %d volumes; mask has %d points",niter,mask_ngood) ;
 
   nxy = nx*ny ; nxyz = nxy*nz ; nxyz1 = nxyz - nxy ;
   if( nxyz < 1024 )
@@ -329,12 +433,13 @@ ENTRY("get_options") ;
     zthr_1sid[ii] = (float)zthresh(     pthr[ii] ) ;
     zthr_2sid[ii] = (float)zthresh( 0.5*pthr[ii] ) ;
   }
+  zthr_used = (nnsid==1) ? zthr_1sid : zthr_1sid ;
 
   EXRETURN ;
 }
 
 /*---------------------------------------------------------------------------*/
-/* Generate random smoothed masked image, with stdev=1. */
+/* Load image (realization) for thresholdization */
 
 void generate_image( float *fim , int iter )
 {
@@ -357,30 +462,25 @@ static int        *nclust_tot , nclust_max ;
 static Xcluster ***Xclust_tot ;  /* [ipthr][nclust_tot[ipthr]] */
 
 /*---------------------------------------------------------------------------*/
-/* Get a NN{nnlev}_1sided cluster array at a particular threshold (ipthr),
+/* Get a NN{nn}_{ss}sided cluster array at a particular threshold (ipthr),
    at a particular iteration (iter), and save it into the global cluster
-   collection Xclustar_g.
+   collection Xclustar_g.  nn=1 or 2 or 3;  ss=1 or 2.
 *//*-------------------------------------------------------------------------*/
 
-void gather_clusters_1sid( int ipthr, float *fim, MRI_IMAGE *tfim, int nnlev, int iter, int ithr )
+void gather_clusters( int ipthr, float *fim, MRI_IMAGE *tfim, int nn,int ss, int iter )
 {
   register int ii ; register float thr ; float *tfar = MRI_FLOAT_PTR(tfim) ;
 
-  thr = zthr_1sid[ipthr] ;
-  for( ii=0 ; ii < nxyz ; ii++ )
-    tfar[ii] = (fim[ii] > thr) ? fim[ii] : 0.0f ;
+  thr = zthr_used[ipthr] ;
+  if( ss == 1 ){
+    for( ii=0 ; ii < nxyz ; ii++ )
+      tfar[ii] = (      fim[ii]  >= thr) ? fim[ii] : 0.0f ;
+  } else {
+    for( ii=0 ; ii < nxyz ; ii++ )
+      tfar[ii] = (fabsf(fim[ii]) >= thr) ? fim[ii] : 0.0f ;
+  }
 
-#if 0
-#pragma omp critical
- { fprintf(stderr,"    + ipthr=%d iter=%d ithr=%d thr=%g\n",ipthr,iter,ithr,thr); }
-#endif
-
-  Xclustar_g[ipthr][iter] = find_Xcluster_array( tfim , nnlev , NULL ) ;
-
-#if 0
-#pragma omp critical
- { fprintf(stderr,"    - ipthr=%d iter=%d ithr=%d\n",ipthr,iter,ithr); }
-#endif
+  Xclustar_g[ipthr][iter] = find_Xcluster_array( tfim , nn , NULL ) ;
 
   return ;
 }
@@ -461,7 +561,7 @@ void dilate_Xcluster( Xcluster *xc , int nnlev , int ithr )
      }}
    }
    ntry = jj ;
-   qsort_int(ntry,ijkar) ;
+   qsort_int(ntry,ijkar) ;  /* sorting makes it easy to skip duplicates */
 
    /* for each new point:
         compare to all other points in the cluster
@@ -469,7 +569,7 @@ void dilate_Xcluster( Xcluster *xc , int nnlev , int ithr )
 
    for( jj=0 ; jj < ntry ; jj++ ){
      ijk = ijkar[jj] ; if( !INMASK(ijk) ) continue ;   /* not a useful pt */
-     if( jj > 0 && ijk==ijkar[jj-1] ) continue ;          /* not a new pt */
+     if( jj > 0 && ijk==ijkar[jj-1] ) continue ;          /* is duplicate */
      for( ii=0 ; ii < xc->npt ; ii++ ){    /* check if already in cluster */
        if( ijk == xc->ijk[ii] ) break ;          /* oops, already present */
      }
@@ -549,15 +649,17 @@ void process_clusters_to_Xvectors( int ijkbot, int ijktop , int ipthr )
    return ;
 }
 
-/*---------------------------------------------------------------------------*/
-/* get median of the number of counts in fomvec's touched by this cluster */
+/*--------------------------------------------------------------------------*/
+/* get median of number of counts in voxel fomvec's touched by this cluster */
 
 static int    *ncount_g ;
 static float **fcount_g ;
 
 int get_Xcluster_nbcount( Xcluster *xc , int ithr )
 {
-   int nc,ii ; float *fc ;
+   int ii ; float *fc ;
+
+   /* trivial cases */
 
    if( xc == NULL || xc->npt == 0 ) return 0 ;
    if( xc->npt == 1 ){
@@ -565,17 +667,21 @@ int get_Xcluster_nbcount( Xcluster *xc , int ithr )
      return xc->nbcount ;
    }
 
+   /* size of this cluster is bigger than space we've set aside? */
+
    if( ncount_g[ithr] < xc->npt ){
      ncount_g[ithr] = xc->npt + DALL ;
      fcount_g[ithr] = (float *)realloc(fcount_g[ithr],
                                        sizeof(float)*ncount_g[ithr]) ;
    }
-   nc = ncount_g[ithr] ;
-   fc = fcount_g[ithr] ;
-   for( ii=0 ; ii < xc->npt ; ii++ )
-     fc[ii] = fomvec[ijk_to_vec[xc->ijk[ii]]]->npt ;
 
-   xc->nbcount = (int)qmed_float(xc->npt,fc) ;
+   /* assemble the count of FOM vector hits for each voxel in this cluster */
+
+   fc = fcount_g[ithr] ;  /* thread-specific temp array */
+   for( ii=0 ; ii < xc->npt ; ii++ )
+     fc[ii] = fomvec[ijk_to_vec[xc->ijk[ii]]]->npt ;  /* count */
+
+   xc->nbcount = (int)qmed_float(xc->npt,fc) ;  /* find the median count */
    return xc->nbcount ;
 }
 
@@ -590,9 +696,8 @@ int get_Xcluster_nbcount( Xcluster *xc , int ithr )
    The alpha values are between 0 and 1; alphat is between alpha0 and alpha1.
 *//*-------------------------------------------------------------------------*/
 
-static __inline__ float
-  inverse_interp_extreme( float alpha0 , float alpha1 , float alphat ,
-                          float x0     , float x1                      )
+static float inverse_interp_extreme( float alpha0, float alpha1, float alphat,
+                                     float x0    , float x1                   )
 {
    float a0,a1,at ;
 
@@ -603,6 +708,7 @@ static __inline__ float
 }
 
 /*---------------------------------------------------------------------------*/
+/* this is too complicated, and should be function-ized :( */
 
 int main( int argc , char *argv[] )
 {
@@ -615,47 +721,64 @@ int main( int argc , char *argv[] )
    MRI_IMAGE *cim ; MRI_IMARR *cimar ; float **car , *farar ;
    int nfomkeep , nfar , itrac , ithresh ; float tfrac , farperc ;
 
+   /*----- help me if you can -----*/
+
    if( argc < 2 || strcasecmp(argv[1],"-help") == 0 ){
      printf("\n"
        "God only knows what this program does (if anything).\n") ;
 
      printf("\n"
-       " -NN     1 or 2 or 3\n"
+       " -inset  mask sdata  {MANDATORY} [e.g., from 3dtoXdataset]\n"
+       " -NN     1 or 2 or 3 [-NN1 or -NN2 or -NN3 will work]\n"
+       " -sid    1 or 2      [-1sid or -2sid will work]\n"
        " -prefix something\n"
-       " -inset  mask sdata\n"
+       " -fixed  pvalue clustersize\n"
+       " -pthr   list of values [default = 0.0100 0.0056 0.0031 0.0018 0.0010]\n"
      ) ;
      exit(0) ;
    }
+
+   /*----- load command line options -----*/
 
    get_options(argc,argv) ;
 
    /*----- get the number of threads -----------------------------------*/
 
- AFNI_OMP_START ;     /*------------ start parallel section ----------*/
-#pragma omp parallel
- {
+   nthr = 1 ;
 #ifdef USE_OMP
+#pragma omp parallel /*------------ start parallel section ----------*/
+ {
 #pragma omp master
    { nthr = omp_get_num_threads() ; }
-#else
-   nthr = 1 ;
 #endif
- }
- AFNI_OMP_END ;       /*---------- end parallel section ----------*/
-   if( nthr > 1 )
-     INFO_message("3dClustSimX: Using %d OpenMP threads") ;
-   else
-     INFO_message("3dClustSimX: Using 1 thread -- this will be slow :-(") ;
+ }                   /*---------- end parallel section ----------*/
 
-   /*--- code to initialize the cluster arrays (one for each simulation) ---*/
+   if( verb ){
+     if( nthr > 1 )
+       INFO_message("3dClustSimX: Using %d OpenMP threads",nthr) ;
+     else
+       INFO_message("3dClustSimX: Using 1 thread -- this will be slow :-(") ;
+   }
+
+   /*--- skip all the cluster size thresholding calculations,
+         and just compute the final result for the fixed thresholds;
+         this is for testing and comparison with the "old" methods  ---*/
+
+   if( do_fixed ) goto FINAL_STUFF ;
+
+   /*--- initialize the cluster arrays (one for each p-value thresh) ---*/
+   /*--- Xclustar_g[qpthr][iter] = array of clusters at p-value
+                                   pthr[qpthr] for realization iter  ---*/
 
    Xclustar_g = (Xcluster_array ***)malloc(sizeof(Xcluster_array **)*npthr) ;
    for( qpthr=0 ; qpthr < npthr ; qpthr++ )
      Xclustar_g[qpthr] = (Xcluster_array **)malloc(sizeof(Xcluster_array *)*niter) ;
 
+   /*=================================================================*/
    /*--- STEP 1a: loop over realizations to load up Xclustar_g[][] ---*/
 
-INFO_message("start 1-sided clustering with NN=%d",nnlev) ;
+   if( verb )
+     INFO_message("STEP 1: start %d-sided clustering with NN=%d",nnsid,nnlev) ;
 
  AFNI_OMP_START ;      /*------------ start parallel section ----------*/
 #pragma omp parallel
@@ -663,59 +786,69 @@ INFO_message("start 1-sided clustering with NN=%d",nnlev) ;
    int iter , ipthr ;
    MRI_IMAGE *fim , *tfim ; float *far , *tfar ;
 
-   /* code to initialize thread-specific workspace */
+   /* initialize thread-specific workspace images */
 
 #pragma omp critical
    { fim  = mri_new_conforming( imtemplate , MRI_float ) ;
-     tfim = mri_new_conforming( fim      , MRI_float ) ; }
+     tfim = mri_new_conforming( fim        , MRI_float ) ; }
    far  = MRI_FLOAT_PTR(fim) ;
    tfar = MRI_FLOAT_PTR(tfim) ;
+
+   /* clusterize each volume at each p-value threshold */
 
 #pragma omp for schedule(dynamic,200)
    for( iter=0; iter < niter ; iter++ ){ /* loop over realizations */
      generate_image( far , iter ) ;
      for( ipthr=0 ; ipthr < npthr ; ipthr++ ){  /* over thresholds */
-       gather_clusters_1sid( ipthr, far, tfim, nnlev, iter , ithr ) ;
+       /* creates Xclustar_g[qpthr][iter] */
+       gather_clusters( ipthr, far, tfim, nnlev,nnsid, iter ) ;
      }
    }
 
-#if 1
+   /* delete thread-specific workspace */
+
 #pragma omp critical
    { mri_free(fim) ; mri_free(tfim) ; }
-#endif
  }
  AFNI_OMP_END ;       /*---------- end parallel section ----------*/
 
-   /* STEP 1b: count number of clusters overall, and merge them  */
+   /*=====================================================================*/
+   /* STEP 1b: count num clusters total, and merge them into one big list */
 
    { int qter, qq,pp ; Xcluster_array *xcar ;
      nclust_tot = (int *)malloc(sizeof(int)*npthr) ;
      Xclust_tot = (Xcluster ***)malloc(sizeof(Xcluster_array **)*npthr) ;
      nclust_max = 0 ;
-     for( qpthr=0 ; qpthr < npthr ; qpthr++ ){
+
+     for( qpthr=0 ; qpthr < npthr ; qpthr++ ){  /* loop over p-value thresh */
        nclust_tot[qpthr] = 0 ;
-       for( qter=0 ; qter < niter ; qter++ ){
+       for( qter=0 ; qter < niter ; qter++ ){   /* count total clusters */
          xcar = Xclustar_g[qpthr][qter] ;
          if( xcar != NULL ) nclust_tot[qpthr] += xcar->nclu ;
        }
+       /* max number of clusters across all p-value thresh */
+       if( nclust_tot[qpthr] > nclust_max ) nclust_max = nclust_tot[qpthr] ;
 #if 0
        ININFO_message("pthr=%.5f has %d total clusters",pthr[qpthr],nclust_tot[qpthr]);
 #endif
-       if( nclust_tot[qpthr] > nclust_max ) nclust_max = nclust_tot[qpthr] ;
+
+       /* assemble all clusters at this p-value thresh into one big array */
+
        Xclust_tot[qpthr] = (Xcluster **)malloc(sizeof(Xcluster *)*nclust_tot[qpthr]) ;
-       for( pp=qter=0 ; qter < niter ; qter++ ){
+       for( pp=qter=0 ; qter < niter ; qter++ ){    /* loop over realizations */
          xcar = Xclustar_g[qpthr][qter] ; if( xcar == NULL ) continue ;
-         for( qq=0 ; qq < xcar->nclu ; qq++ ){
-           Xclust_tot[qpthr][pp++] = xcar->xclu[qq] ;
+         for( qq=0 ; qq < xcar->nclu ; qq++ ){ /* over clusts frm realization */
+           Xclust_tot[qpthr][pp++] = xcar->xclu[qq] ;     /* add to big array */
          }
          free(xcar->xclu) ; free(xcar) ;
        }
        free(Xclustar_g[qpthr]) ;
      }
-     free(Xclustar_g) ; Xclustar_g = NULL ;
+     free(Xclustar_g) ; Xclustar_g = NULL ; /* not needed no more */
    }
 
-   /*--- STEP 1c: find the global distributions ---------------------------------*/
+   /*============================================================================*/
+   /*--- STEP 1c: find the global distributions [not needed but fun] ------------*/
 
    { int nfom,jj; Xcluster **xcc;
      float a0,a1,f0,f1,ft ;
@@ -740,9 +873,13 @@ INFO_message("start 1-sided clustering with NN=%d",nnlev) ;
      free(fomg) ;
    }
 
-   /*--- STEP 2: dilate the clusters -----------------------------------------*/
+   /*==========================================================================*/
+   /*--- STEP 2: dilate the clusters ------------------------------------------*/
+   /*    The goal is to have at least so many "hits" at each voxel in the mask */
 
    /*--- initialize the FOM vector array for each voxel ---*/
+   /*--- this is the list of FOMs (e.g., cluster sizes)
+         that were found at that voxel                  ---*/
 
    fomvec = (Xvector **)malloc(sizeof(Xvector *)*mask_ngood) ;
    for( ii=0 ; ii < mask_ngood ; ii++ ){
@@ -752,45 +889,46 @@ INFO_message("start 1-sided clustering with NN=%d",nnlev) ;
      fomvec[ii]->kp  = kpmask[ii] ;
      fomvec[ii]->ijk = ijkmask[ii] ;
    }
-   ncount_g = (int *)   malloc(sizeof(int)    *nthr) ;
-   fcount_g = (float **)malloc(sizeof(float *)*nthr) ;
+
+   /* temp space to hold counts of FOM vec length for each voxel in a cluster */
+
+   ncount_g = (int *)   malloc(sizeof(int)    *nthr) ; /* dimens of fcount_g */
+   fcount_g = (float **)malloc(sizeof(float *)*nthr) ; /* counts */
    for( ii=0 ; ii < nthr ; ii++ ){
      fcount_g[ii] = (float *)malloc(sizeof(float)*DALL) ;
      ncount_g[ii] = DALL ;
    }
 
-   /*--- make thread-specific workspaces ---*/
+   /*--- make thread-specific workspaces for clustering ---*/
 
-   ndilg    = (int * )malloc(sizeof(int  )*nthr) ;
-   dilg_ijk = (int **)malloc(sizeof(int *)*nthr) ;
+   ndilg    = (int * )malloc(sizeof(int  )*nthr) ; /* size of dilg_ijk */
+   dilg_ijk = (int **)malloc(sizeof(int *)*nthr) ; /* candidates for dilate */
    for( ii=0 ; ii < nthr ; ii++ ){
      ndilg   [ii] = DALL ;
      dilg_ijk[ii] = (int *)malloc(sizeof(int)*DALL) ;
    }
 
-   /*----- loop over p-thresholds -----*/
+   /*----- loop over p-thresholds and dilate in voxel chunks -----*/
 
-                      dijk = nxyz / nthr ;
+                      dijk = nxyz / nthr ;  /* set chunk size */
    if( dijk > 2*nxy ) dijk = 2*nxy ;
    if( dijk > 16384 ) dijk = 16384 ;
 
-   count_targ100 = (int)rintf(0.0100f*niter) ;
-   count_targ80  = (int)rintf(0.0080f*niter) ;
-   count_targ50  = (int)rintf(0.0050f*niter) ;
+   /* target counts for voxel "hits" */
 
-INFO_message("start cluster dilation") ;
+   count_targ100 = (int)rintf(0.0100f*niter) ;  /* 1.0% of cases */
+   count_targ80  = (int)rintf(0.0080f*niter) ;  /* 0.8% of cases */
+   count_targ50  = (int)rintf(0.0050f*niter) ;  /* 0.5% of cases */
 
-   for( qpthr=0 ; qpthr < npthr ; qpthr++ ){
+   if( verb )
+     INFO_message("STEP 2: start cluster dilation") ;
 
-#define NDILMAX 9
+   for( qpthr=0 ; qpthr < npthr ; qpthr++ ){  /* loop over p-value thresh */
 
-#if 0
-     INFO_message("dilation at pthr=%.5f",pthr[qpthr]) ;
-#endif
+#define NDILMAX 9  /* max number of dilation steps */
+
      for( ndilstep=0 ; ndilstep < NDILMAX ; ndilstep++ ){
-#if 0
-       ININFO_message(" step %d",ndilstep+1) ;
-#endif
+       /* initialize counts of number of dilations for each NN type */
        ndilated[0] = ndilated[1] = ndilated[2] = ndilated[3] = 0 ;
 
  AFNI_OMP_START ;      /*------------ start parallel section ----------*/
@@ -798,12 +936,7 @@ INFO_message("start cluster dilation") ;
  {  DECLARE_ithr ;
     int iter, idil , ijkbot,ijktop , nclu=nclust_tot[qpthr] ;
 
-#if 0
-#pragma omp master
-    { ININFO_message("  compute FOM vectors") ; }
-#endif
-
-    /* reset the FOM vectors */
+    /* reset the FOM vector for each voxel */
 
 #pragma omp for
     for( iter=0 ; iter < mask_ngood ; iter++ ) fomvec[iter]->npt = 0 ;
@@ -817,24 +950,20 @@ INFO_message("start cluster dilation") ;
     }
 
     /* get median FOM counts in each cluster,
-       then determine how to dilate
-       (parallelized across clusters = simulation iterations) */
-
-#if 0
-#pragma omp master
-    { ININFO_message("  dilate clusters") ; }
-#endif
+       then determine how to dilate (NN1, NN2, NN3)
+       [parallelized across clusters = simulation iterations] */
 
 #pragma omp for schedule(dynamic,200)
     for( iter=0 ; iter < nclu ; iter++ ){
       if( Xclust_tot[qpthr][iter]          != NULL          &&
           Xclust_tot[qpthr][iter]->nbcount <  count_targ100   ){
         idil = get_Xcluster_nbcount( Xclust_tot[qpthr][iter] , ithr ) ;
-        if( idil < count_targ100 ){
-          idil = (idil < count_targ50) ? 3 :(idil < count_targ80) ? 2 : 1 ;
+        if( idil < count_targ100 ){  /* too few? */
+          /* dilate:                   NN3 or                     NN2 or NN1 */
+          idil = (idil < count_targ50) ? 3 :(idil < count_targ80) ? 2 :    1 ;
           dilate_Xcluster( Xclust_tot[qpthr][iter] , idil , ithr ) ;
 #pragma omp atomic
-          ndilated[idil]++ ;
+          ndilated[idil]++ ;  /* count how many dilations of each type */
         }
       }
     }
@@ -842,30 +971,26 @@ INFO_message("start cluster dilation") ;
  }
  AFNI_OMP_END ;       /*---------- end parallel section ----------*/
 
+       /* number of significant dilations (NN2+NN3) */
+
        ndilsum = ndilated[2] + ndilated[3] ;
-#if 0
-       ININFO_message("  dilation counts:  NN1=%d  NN2=%d  NN3=%d  NN2+NN3=%d",
-                      ndilated[1] , ndilated[2] , ndilated[3] , ndilsum ) ;
-#endif
 
-       if( ndilstep < NDILMAX-1 && ndilsum < niter/50 ){
-#if 0
-         ININFO_message("- breaking out of dilation") ;
-#endif
-         break ;
-       }
+       /* if not very many, then we are done with this p-value thresh */
+
+       if( ndilstep < NDILMAX-1 && ndilsum < niter/50 ) break ;
      } /* end of loop over dilation steps */
-   }
+   } /* end of loop over p-value thresh cluster collection */
 
-#if 0
-   ININFO_message(" free dilation workspace") ;
-#endif
+   /* free the counting workspace for each thread */
+
    for( ii=0 ; ii < nthr ; ii++ ) free(dilg_ijk[ii]) ;
    free(ndilg ); free(dilg_ijk );
 
-   /*--- STEP 3: create sorted FOM vectors ---*/
+   /*=======================================================*/
+   /*--- STEP 3: create sorted and truncated FOM vectors ---*/
 
-INFO_message("re-loading & sorting FOM vectors after final dilations") ;
+   if( verb )
+     INFO_message("STEP 3: re-loading & sorting FOM vectors after final dilations") ;
 
    /*--- initialize the final sorted FOM vector array for each voxel ---*/
 
@@ -874,14 +999,10 @@ INFO_message("re-loading & sorting FOM vectors after final dilations") ;
      fomsort[qpthr] = (Xvector **)malloc(sizeof(Xvector *)*mask_ngood) ;
    }
 
-#define TOPFRAC 0.02f
+#define TOPFRAC 0.0222f
    nfomkeep = (int)(TOPFRAC*niter) ; /* max number of FOMs to keep at 1 voxel */
 
-   for( qpthr=0 ; qpthr < npthr ; qpthr++ ){ /* loop over thresholds */
-
-#if 0
-     ININFO_message(" start pthr=%.5f",pthr[qpthr]) ;
-#endif
+   for( qpthr=0 ; qpthr < npthr ; qpthr++ ){ /* loop over p-value thresh */
 
  AFNI_OMP_START ;      /*------------ start parallel section ----------*/
 # pragma omp parallel
@@ -889,10 +1010,7 @@ INFO_message("re-loading & sorting FOM vectors after final dilations") ;
      int ijkbot,ijktop , iv,jj , npt , nclu=nclust_tot[qpthr] ;
      float a0,a1,f0,f1,ft ;
 
-#if 0
-#pragma omp master
-     { ININFO_message("  A: re-load FOM vectors for this threshold") ; }
-#endif
+     /* re-load FOM vectors for this threshold */
 
 #pragma omp for
     for( iv=0 ; iv < mask_ngood ; iv++ ) fomvec[iv]->npt = 0 ;
@@ -903,12 +1021,9 @@ INFO_message("re-loading & sorting FOM vectors after final dilations") ;
        process_clusters_to_Xvectors( ijkbot, ijktop , qpthr ) ;
      }
 
-#if 0
-#pragma omp master
-     { ININFO_message("  B: delete Xclusters for this threshold") ; }
-#endif
+     /* delete Xclusters for this threshold,
+        since we have the finalized FOM vectors */
 
-     /* delete all clusters for this qpthr */
 #pragma omp master
      { for( jj=0 ; jj < nclu ; jj++ ){
          DESTROY_Xcluster(Xclust_tot[qpthr][jj]) ;
@@ -917,41 +1032,44 @@ INFO_message("re-loading & sorting FOM vectors after final dilations") ;
      }
 #pragma omp barrier
 
-#if 0
-#pragma omp master
-     { ININFO_message("  C: sort/truncate FOM vectors for this threshold") ; }
-#endif
+     /* sort/truncate FOM vectors for this threshold */
 
      /* vectors loaded for each pt in space;
         now sort them (biggest first) to determine equitable thresholds */
 
 #pragma omp for schedule(dynamic,200)
      for( iv=0 ; iv < mask_ngood ; iv++ ){
-       if( fomvec[iv]->npt < 3 ){
-         ADDTO_Xvector(fomvec[iv],0.01f) ;
+       if( fomvec[iv]->npt < 3 ){          /* if it's way short */
+         ADDTO_Xvector(fomvec[iv],0.01f) ; /* put some padding in */
          ADDTO_Xvector(fomvec[iv],0.01f) ;
          ADDTO_Xvector(fomvec[iv],0.01f) ;
        }
+
+       /* sort into decreasing order (largest FOMs first) */
+
        qsort_float_rev( fomvec[iv]->npt , fomvec[iv]->far ) ;
+
+       /* how many to keep */
+
        jj = MIN(fomvec[iv]->npt,nfomkeep) ;
+
+       /* create a new vector to get the keeper FOM counts */
+
        CREATE_Xvector(fomsort[qpthr][iv],jj) ;
-       fomsort[qpthr][iv]->ip  = ipmask[iv] ;
+       fomsort[qpthr][iv]->ip  = ipmask[iv] ;  /* location */
        fomsort[qpthr][iv]->jp  = jpmask[iv] ;
        fomsort[qpthr][iv]->kp  = kpmask[iv] ;
        fomsort[qpthr][iv]->ijk = ijkmask[iv] ;
-       fomsort[qpthr][iv]->npt = jj ;
+       fomsort[qpthr][iv]->npt = jj ;          /* count */
        AAmemcpy(fomsort[qpthr][iv]->far,fomvec[iv]->far,sizeof(float)*jj) ;
      }
    }
  AFNI_OMP_END ;       /*---------- end parallel section ----------*/
 
-     /* save datasets of fomvec counts */
+     /* save dataset of fomvec counts */
 
-#if 0
-     ININFO_message("  D: write fomvec counts to dataset") ;
-#endif
      qset = EDIT_empty_copy(mask_dset) ;
-     sprintf(qpr,".%d",qpthr) ;
+     sprintf(qpr,".FOMcount.%d",qpthr) ;
      EDIT_dset_items( qset ,
                         ADN_prefix , modify_afni_prefix(prefix,NULL,qpr) ,
                         ADN_nvals  , 1 ,
@@ -963,20 +1081,26 @@ INFO_message("re-loading & sorting FOM vectors after final dilations") ;
        qar[ijk] = (float)fomvec[ii]->npt ;
        fomvec[ii]->npt = 0 ;
      }
+     EDIT_BRICK_LABEL(qset,0,"FOMcount") ;
      DSET_write(qset); WROTE_DSET(qset);
      DSET_delete(qset); qset = NULL; qar = NULL;
-#if 0
-ININFO_message("  E: loopback") ;
-#endif
 
    } /*----- end of loop over qpthr -----*/
 
+   /* destroy the original unsorted FOM vectors */
 
    for( ii=0 ; ii < mask_ngood ; ii++ )  /* don't need no more */
      DESTROY_Xvector(fomvec[ii]) ;
-   free(fomvec) ;
+   free(fomvec) ; fomvec = NULL ;
 
-   /*--- STEP 4: test trial thresholds ---*/
+   /*========================================================*/
+   /*--- STEP 4: test FOM count thresholds to find FAR=5% ---*/
+
+#define FARP_GOAL 5.00f  /* 5 percent */
+
+FINAL_STUFF:
+
+   /* create voxel-specific FOM threshold images (for each p-value thresh) */
 
    INIT_IMARR(cimar) ;
    car = (float **)malloc(sizeof(float *)*npthr) ;
@@ -984,20 +1108,40 @@ ININFO_message("  E: loopback") ;
      cim = mri_new_conforming( imtemplate , MRI_float ) ;
      ADDTO_IMARR(cimar,cim) ;
      car[qpthr] = MRI_FLOAT_PTR(cim) ;
+     if( do_fixed ){ /* special case: all values are given by user */
+       for( ii=0 ; ii < nxyz ; ii++ ) car[qpthr][ii] = fixed_cluster_threshold;
+     }
    }
 
-#define FARP_GOAL 5.00f  /* percent */
+   if( verb ){
+     if( do_fixed )
+       INFO_message("Computing FAR count for each voxel for -fixed") ;
+     else
+       INFO_message("STEP 4: adjusting per-voxel FOM thresholds to reach FAR=%.2f%%",FARP_GOAL) ;
+   }
+
+   /* tfrac = FOM count fractional threshold;
+              will be adjusted to find the 5% FAR goal */
 
    tfrac = 0.0003f ; itrac = 0 ;
+
+   /* array to make map of false alarm count at each voxel */
+
    farar = (float *)malloc(sizeof(float)*nxyz) ;
 
 FARP_LOOPBACK:
    {
-     itrac++ ; nfar = 0 ; ithresh = (int)(tfrac*niter) ;
-     INFO_message("testing threshold images at %g ==> %d",tfrac,ithresh) ;
+     itrac++ ;                                        /* number of iterations */
+     nfar = 0 ;                                            /* total FAR count */
+     ithresh = (int)(tfrac*niter) ;                    /* FOM count threshold */
+     /* we take the ithresh-th largest FOM at each voxel as its FOM threshold */
 
-     for( qpthr=0 ; qpthr < npthr ; qpthr++ ){
-       AAmemset(car[qpthr],0,sizeof(float)*nxyz) ;
+     if( !do_fixed ){
+       if( verb )
+         ININFO_message("testing threshold images at %g ==> %d",tfrac,ithresh) ;
+       for( qpthr=0 ; qpthr < npthr ; qpthr++ ){
+         AAmemset(car[qpthr],0,sizeof(float)*nxyz) ;
+       }
      }
      AAmemset(farar,0,sizeof(float)*nxyz) ;
 
@@ -1008,76 +1152,65 @@ FARP_LOOPBACK:
     int iter,npt,iv,jthresh , ipthr , qq ;
     float a0,a1,f0,f1,ft ;
 
+    /* workspace array for each thread */
+
 #pragma omp critical
    { fim = mri_new_conforming( imtemplate , MRI_float ) ;
      far = MRI_FLOAT_PTR(fim) ; }
 
+     /* find the FOM threshold for each voxel, for each p-value thresh */
+
+     if( !do_fixed ){
 #pragma omp for
-     for( iv=0 ; iv < mask_ngood ; iv++ ){
-#if 0
-#pragma omp critical
-{fprintf(stderr,"    process voxel iv=%d\n",iv);}
-#endif
-       for( ipthr=0 ; ipthr < npthr ; ipthr++ ){
-         npt = fomsort[ipthr][iv]->npt ;
-#if 0
-#pragma omp critical
-{fprintf(stderr,"      iv=%d npt=%d\n",iv,npt);}
-#endif
-         jthresh = ithresh ;
-         if( jthresh > npt/2 ) jthresh = npt/2 ;
-#if 0
-#pragma omp critical
-{fprintf(stderr,"      iv=%d jthresh=%d\n",iv,jthresh);}
-#endif
-         a0 = ((float)jthresh)/((float)niter) ; f0 = fomsort[ipthr][iv]->far[jthresh] ;
-         a1 = a0        + 1.0f/((float)niter) ; f1 = fomsort[ipthr][iv]->far[jthresh+1] ;
-         ft = inverse_interp_extreme( a0,a1,tfrac , f0,f1 ) ;
-         if( ft < 0.222f*gthresh[ipthr] ) ft = 0.222f*gthresh[ipthr] ;
-#if 0
-#pragma omp critical
-{fprintf(stderr,"      iv=%d ft=%g\n",iv,ft);}
-#endif
-         car[ipthr][ijkmask[iv]] = ft ;
-#if 0
-#pragma omp critical
-{fprintf(stderr,"      iv=%d ijk=%d\n",iv,ijkmask[iv]);}
-#endif
-       }
-     }
+      for( iv=0 ; iv < mask_ngood ; iv++ ){          /* loop over voxels */
+        for( ipthr=0 ; ipthr < npthr ; ipthr++ ){ /* over p-value thresh */
+          npt = fomsort[ipthr][iv]->npt ;    /* how many FOM values here */
+          jthresh = ithresh ;             /* default index of FOM thresh */
+          if( jthresh > npt/2 ) jthresh = npt/2 ;    /* don't go too far */
+          /* extract this FOM thresh by interpolation */
+          a0 = ((float)jthresh)/((float)niter) ; f0 = fomsort[ipthr][iv]->far[jthresh] ;
+          a1 = a0        + 1.0f/((float)niter) ; f1 = fomsort[ipthr][iv]->far[jthresh+1] ;
+          ft = inverse_interp_extreme( a0,a1,tfrac , f0,f1 ) ;
+          if( ft < 0.123f*gthresh[ipthr] ) ft = 0.123f*gthresh[ipthr] ;
+          car[ipthr][ijkmask[iv]] = ft ;  /* = FOM threshold for this voxel */
+                                          /* = the goal of this entire program! */
+        }
+      } /* end of loop over voxels */
+     } /* if not fixed */
+
+     /* now, use the thresholds just computed to multi-threshold
+        each realization, and create count of total FA and in each voxel */
 
 #pragma omp for schedule(dynamic,100)
      for( iter=0 ; iter < niter ; iter++ ){
-#if 0
-#pragma omp critical
-{fprintf(stderr,"    process image iter=%d\n",iter);}
-#endif
        generate_image( far , iter ) ;
-       tfim = mri_multi_threshold_Xcluster( fim, npthr,zthr_1sid, 1,nnlev, cimar ) ;
-       if( tfim != NULL ){
+       tfim = mri_multi_threshold_Xcluster( fim, npthr,zthr_used, nnsid,nnlev, cimar ) ;
+       if( tfim != NULL ){   /* nothing found ==> NULL is returned */
          tfar = MRI_FLOAT_PTR(tfim) ;
          for( qq=0 ; qq < nxyz ; qq++ ){
            if( tfar[qq] != 0.0f )
 #pragma omp atomic
-             farar[qq]++ ;
+             farar[qq]++ ;  /* count of FA at this voxel */
          }
-
 #pragma omp critical
-         { mri_free(tfim) ; nfar++ ;}
+         { mri_free(tfim) ; nfar++ ;} /* count of total FA */
        }
      }
 
 #pragma omp critical
-     { mri_free(fim) ; }
-
+     { mri_free(fim) ; }  /* tossing the trash for this thread */
  }
- AFNI_OMP_END ;
+ AFNI_OMP_END ;  /*------------ end parallel section ------------*/
+
+     /* compute the FAR percentage */
 
      farperc = (100.0*nfar)/(float)niter ;
-     ININFO_message("False Alarm count = %d   Rate = %.2f%%" ,
-                    nfar , farperc ) ;
+     if( verb )
+       ININFO_message("False Alarm count = %d  Rate = %.2f%%", nfar,farperc ) ;
 
-     if( itrac < 10 && fabsf(farperc-FARP_GOAL) > 0.5f ){
+     /* do we need to tru another tfrac to get closer to our goal? */
+
+     if( !do_fixed && itrac < 10 && fabsf(farperc-FARP_GOAL) > 0.222f ){
        float fff = FARP_GOAL/farperc ;
        if( fff > 3.0f ) fff = 3.0f ; else if( fff < 0.333f ) fff = 0.333f ;
        tfrac *= fff ;
@@ -1087,23 +1220,47 @@ FARP_LOOPBACK:
 
    }
 
-   /*----------*/
+   /*============================================*/
+   /*--- Write stuff out, then quit quit quit ---*/
+
+   if( !do_fixed ){
+     qset = EDIT_empty_copy(mask_dset) ;
+     sprintf(qpr,".mthresh") ;
+     EDIT_dset_items( qset ,
+                        ADN_prefix , modify_afni_prefix(prefix,NULL,qpr) ,
+                        ADN_nvals  , npthr ,
+                      ADN_none ) ;
+     for( qpthr=0 ; qpthr < npthr ; qpthr++ ){
+       EDIT_substitute_brick( qset , qpthr , MRI_float , NULL ) ;
+       qar = DSET_ARRAY(qset,qpthr) ;
+       AAmemcpy( qar , car[qpthr] , sizeof(float)*nxyz ) ;
+       sprintf(qpr,"FARthr:%.4f",pthr[qpthr]) ;
+       EDIT_BRICK_LABEL(qset,qpthr,qpr) ;
+     }
+     { float *afl=malloc(sizeof(float)*(npthr+3)) ;
+       afl[0] = (float)nnlev ;
+       afl[1] = (float)nnsid ;
+       afl[2] = (float)qpthr ;
+       for( qpthr=0 ; qpthr < npthr ; qpthr++ )
+         afl[qpthr+3] = zthr_used[qpthr] ;
+       THD_set_float_atr( qset->dblk ,
+                          "MULTI_THRESHOLDS" , npthr+3 , afl ) ;
+       free(afl) ;
+     }
+     DSET_write(qset); WROTE_DSET(qset);
+     DSET_delete(qset); qset = NULL; qar = NULL;
+   }
 
    qset = EDIT_empty_copy(mask_dset) ;
-   sprintf(qpr,".FAR=%.2f%%",farperc) ;
+   sprintf(qpr,".FARvox") ;
    EDIT_dset_items( qset ,
                       ADN_prefix , modify_afni_prefix(prefix,NULL,qpr) ,
-                      ADN_nvals  , npthr+1 ,
+                      ADN_nvals  , 1 ,
                     ADN_none ) ;
-   for( qpthr=0 ; qpthr < npthr ; qpthr++ ){
-     EDIT_substitute_brick( qset , qpthr , MRI_float , NULL ) ;
-     qar = DSET_ARRAY(qset,qpthr) ;
-     AAmemcpy( qar , car[qpthr] , sizeof(float)*nxyz ) ;
-   }
-   EDIT_substitute_brick( qset , npthr , MRI_float , NULL ) ;
-   qar = DSET_ARRAY(qset,npthr) ;
+   EDIT_BRICK_LABEL(qset,0,"FARcount") ;
+   EDIT_substitute_brick( qset , 0 , MRI_float , NULL ) ;
+   qar = DSET_ARRAY(qset,0) ;
    AAmemcpy( qar , farar , sizeof(float)*nxyz ) ;
-
    DSET_write(qset); WROTE_DSET(qset);
    DSET_delete(qset); qset = NULL; qar = NULL;
 
