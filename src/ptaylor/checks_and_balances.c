@@ -1,6 +1,7 @@
 #include <afni.h>
 #include "checks_and_balances.h"
 #include "DoTrackit.h"
+#include "rsfc.h"
 
 
 
@@ -47,7 +48,7 @@ int WB_corr_loop(
             if(mskd[ii][jj][kk] ) {
 
                i = THD_extract_double_array(ctr,A,Y) ;  
-               mapA[idx] = (double) CORR_FUN(X,Y,Dim[3]);
+               mapA[idx] = BOBatanhd( (double) CORR_FUN(X,Y,Dim[3]) );
 
                //fprintf(stderr,"MapCorr: %f ", mapA[idx]);
 

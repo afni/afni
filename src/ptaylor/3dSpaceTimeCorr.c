@@ -1,10 +1,9 @@
 /* 
    written by: PA Taylor
 
-   Aug. 2016: starting
+   Aug. 2016: v1.0, starting
    
 */
-
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -14,8 +13,6 @@
 #include <debugtrace.h>
 #include <mrilib.h>    
 #include <3ddata.h>    
-//#include <rsfc.h>    
-//#include <gsl/gsl_rng.h>
 #include "DoTrackit.h"
 #include "checks_and_balances.h"
 
@@ -43,33 +40,49 @@ void usage_SpaceTimeCorr(int detail)
 "   correlation!).\n"
 "\n"
 "   This could be useful when someone *wishes* that s/he could use \n"
-"   3dTcorrelate on something like resting state FMRI data.\n"
+"   3dTcorrelate on something like resting state FMRI data.  Maybe.\n"
+"   Note that this program could take several minutes or more to run,\n"
+"   depending on the size of the data set and mask.\n"
 "\n"
 "* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n"
 "  \n"
-"  + USAGE: Load in 2 data\n"
+"  + USAGE: Load in 2 data sets and a mask.  This computation can get pretty\n"
+"           time consuming-- it depends on the number of voxels N like N**2.\n"
 "\n"
 "* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n"
 "\n"
-"  + COMMAND:  *** \n"
+"  + COMMAND:  two 4D data sets need to be put in (order doesn't matter), \n"
+"              and a mask also *should* be.\n"
+"\n"
+"    3dSpaceTimeCorr -insetA FILEA -insetB FILEB -prefix PREFIX   \\\n"
+"                   {-mask MASK}   \n"
+"\n"
+"    where:\n"
+"\n"
+"  -insetA FILEA  :one 4D data set.\n"
+"  -insetB FILEB  :another 4D data set; must have same spatial dimesions as\n"
+"                  FILEA, as well as same number of time points.\n"
+"\n"
+"  -mask MASK     :optional mask.  Highly recommended to use for speed of\n"
+"                  calcs (and probably for interpretability, too).\n"
+"\n"
+"  -prefix PREFIX :output filename/base.\n"
 "\n"
 "* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n"
 "\n"
-"  + RUNNING, need to provide:\n"
-"  *** \n"
-"\n"
-"* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n"
 "  + OUTPUT: \n"
-"  *** \n"
+"      A data set with one value at each voxel, representing the space-time \n"
+"      correlation of the two input data sets within the input mask.\n"
 "\n"
 "* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n"
 "\n"
 "  + EXAMPLE:\n"
-"  *** \n"
+"    3dSpaceTimeCorr                       \\\n"
+"        -insetA SUB_01.nii.gz             \\\n"
+"        -insetB SUB_02.nii.gz             \\\n"
+"        -mask   mask_GM.nii.gz            \\\n"
+"        -prefix stcorr_01_02              \\\n"
 "\n"
-"* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n"
-"\n"
-" reference *** \n"
 "____________________________________________________________________________\n"
           );
 	return;
