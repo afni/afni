@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 29,  Aug, 2016, RCR, "afni_system_check.py", MICRO, TYPE_ENHANCE,
+   "add a few more DYLD_FALLBACK_LIBRARY_PATH tests",
+   NULL
+ } ,
+
  { 25,  Aug, 2016, RCR, "afni_proc.py", MINOR, TYPE_BUG_FIX,
    "fix output.proc prefix in case -script has a path",
    "Also, allow -mask_apply group in the case of -tlrc_NL_warped_dsets.\n"
