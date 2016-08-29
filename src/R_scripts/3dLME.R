@@ -25,7 +25,7 @@ help.LME.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
           ================== Welcome to 3dLME ==================          
     AFNI Group Analysis Program with Multi-Variate Modeling Approach
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 1.7.8, Feb 5, 2016
+Version 1.8.0, Aug 29, 2016
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - https://afni.nimh.nih.gov/sscc/gangc/lme.html
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -284,6 +284,11 @@ read.LME.opts.batch <- function (args=NULL, verb = 0) {
    "         the help.\n", sep = '\n'
                              ) ),
 
+       '-dbgArgs' = apl(n=0, h = paste(
+   "-dbgArgs: This option will enable R to save the parameters in a",
+   "         file called .3dLME.dbg.AFNI.args in the current directory",
+   "          so that debugging can be performed.\n", sep='\n')),
+       
       '-qVars' = apl(n=c(1,100), d=NA, h = paste(
    "-qVars variable_list: Identify quantitative variables (or covariates) with",
    "         this option. The list with more than one variable has to be",
@@ -508,6 +513,7 @@ read.LME.opts.batch <- function (args=NULL, verb = 0) {
       lop$dataTable <- NULL
       
       lop$iometh <- 'clib'
+      lop$dbgArgs  <- FALSE # for debugging purpose 
       lop$verb <- 0
 
    #Get user's input
@@ -538,6 +544,7 @@ read.LME.opts.batch <- function (args=NULL, verb = 0) {
              dataTable  = lop$dataTable <- dataTable.AFNI.parse(ops[[i]]),
              
              help = help.LME.opts(params, adieu=TRUE),
+             dbgArgs = lop$dbgArgs <- TRUE,
 
              cio = lop$iometh<-'clib',
              Rio = lop$iometh<-'Rlib'
@@ -886,7 +893,7 @@ runLME <- function(inData, dataframe, ModelForm) {
                covariates=lop$covValListF[[ii]], adjustment="none")$terms$`(Intercept)`$test, error=function(e) NULL) else
             glfRes <- tryCatch(testFactors(fm, levels=lop$glfList[[ii]], slope=lop$slpListF[[ii]], 
                covariates=lop$covValListF[[ii]], adjustment="none")$terms$`(Intercept)`$test, error=function(e) NULL)
-            Stat[lop$nF[1]+2*lop$num_glt+ii] <- glfRes[2,2] # chi-sq value
+            if(!is.null(glfRes)) Stat[lop$nF[1]+2*lop$num_glt+ii] <- glfRes[2,2] # chi-sq value
             #Stat[lop$nF[1]+2*lop$num_glt+ii] <- qnorm(glfRes[2,3]/2, lower.tail = F)  # convert chisq to Z
          }
       }
@@ -1139,10 +1146,10 @@ read.LME.opts.from.file <- function (modFile='model.txt', verb = 0) {
 
    if(!exists('.DBG_args')) { 
       args = (commandArgs(TRUE))  
-      rfile <- first.in.path(sprintf('%s.R',ExecName))  
+      rfile <- first.in.path(sprintf('%s.R',ExecName))
       # save only on -dbg_args          28 Apr 2016 [rickr]
-      if ( '-dbg_args' %in% args ) {
-         try(save(args, rfile, file="3dLME.dbg.AFNI.args", ascii = TRUE), silent=TRUE)
+      if ( '-dbgArgs' %in% args ) {
+         try(save(args, rfile, file=".3dLME.dbg.AFNI.args", ascii = TRUE), silent=TRUE)
       }
    } else {
       note.AFNI("Using .DBG_args resident in workspace")
