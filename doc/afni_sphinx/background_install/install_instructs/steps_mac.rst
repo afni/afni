@@ -109,9 +109,10 @@ operating system) to a link to install XQuartz.
       along with glib::
 
         brew install gcc --with-all-languages --without-multilib
-        ln -s /usr/local/Cellar/gcc/5.3.0/lib/gcc/5/libgomp.1.dylib /usr/local/lib/libgomp.1.dylib
+        ln -s /usr/local/Cellar/gcc/6.2.0/lib/gcc/6/libgomp.1.dylib /usr/local/lib/libgomp.1.dylib
         brew install glib
 
+     .. note:: the 6.2.0 version will change at some point, though the ``afni_system_check.py`` command (see below) should inform the user of any discrepancy
 
 #. **Install AFNI**
 
