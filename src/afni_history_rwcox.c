@@ -44,6 +44,17 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 30 , AUG , 2016 , RWC , "3dtoXdataset" , MINOR , TYPE_NEW_PROG ,
+   "Convert 3D datasets to a list of in-mask shorts" ,
+   "Purpose = compression for use in 3dClustSimX simulations.  The '.sdat'\n"
+   "format is now directly write-able from 3dttest++, so this program is\n"
+   "probably not generally useful." } ,
+
+ { 30 , AUG , 2016 , RWC , "3dClustSimX" , SUPER , TYPE_NEW_PROG ,
+   "Generalized cluster simulation" ,
+   "Hopefully, the new way forward.  Not ready for general users yet, but\n"
+   "getting there." } ,
+
  { 9 , AUG , 2016 , RWC , "3dAllineate" , MICRO , TYPE_ENHANCE ,
    "Allow IDENTITY to specify the identity matrix for transformations" ,
    "In options -1Dparam_apply and -1Dmatrix_apply -- to make resampling\n"
