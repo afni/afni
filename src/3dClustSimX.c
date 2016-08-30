@@ -48,6 +48,9 @@ static int   do_fixed                = 0 ;    /* fixed FOM threshold? */
 static int   fixed_cluster_threshold = 0 ;
 static float fixed_pvalue_threshold  = 0.0f ;
 
+static int   do_FOMcount = 0 ;
+static int   do_FARvox   = 1 ;
+
 #define PMAX 0.5
 
 static double pthr_init[5] = { 0.0100, 0.0056, 0.0031, 0.0018, 0.0010 } ;
@@ -229,6 +232,18 @@ ENTRY("get_options") ;
 
     if( strcasecmp(argv[nopt],"-quiet") == 0 ){
       verb = 0 ; nopt++ ; continue ;
+    }
+
+    /*----   -FOMcount   ----*/
+
+    if( strcasecmp(argv[nopt],"-FOMcount") == 0 ){
+      do_FOMcount = 1 ; nopt++ ; continue ;
+    }
+
+    /*----   -noFARvox   ----*/
+
+    if( strcasecmp(argv[nopt],"-noFARvox") == 0 ){
+      do_FARvox = 0 ; nopt++ ; continue ;
     }
 
     /*-----   -pthr p   -----*/
@@ -624,12 +639,14 @@ int main( int argc , char *argv[] )
        "God only knows what this program does (if anything).\n") ;
 
      printf("\n"
-       " -inset  mask sdata  {MANDATORY} [e.g., from 3dtoXdataset]\n"
-       " -NN     1 or 2 or 3 [-NN1 or -NN2 or -NN3 will work]\n"
-       " -sid    1 or 2      [-1sid or -2sid will work]\n"
-       " -prefix something\n"
-       " -fixed  pvalue clustersize\n"
-       " -pthr   list of values [default = 0.0100 0.0056 0.0031 0.0018 0.0010]\n"
+       " -inset     mask sdata  {MANDATORY} [e.g., from 3dtoXdataset]\n"
+       " -NN        1 or 2 or 3 [-NN1 or -NN2 or -NN3 will work]\n"
+       " -sid       1 or 2      [-1sid or -2sid will work]\n"
+       " -prefix    something\n"
+       " -fixed     pvalue clustersize\n"
+       " -pthr      list of values [default = 0.0100 0.0056 0.0031 0.0018 0.0010]\n"
+       " -FOMcount  turn on FOMcount output\n"
+       " -noFARvox  turn off FARvox output\n"
      ) ;
      exit(0) ;
    }
@@ -639,6 +656,11 @@ int main( int argc , char *argv[] )
    /*----- load command line options -----*/
 
    get_options(argc,argv) ;
+
+   if( do_fixed ){
+     do_FARvox = 1 ;
+     INFO_message("-fixed turns FARvox output back on :)") ;
+   }
 
    /*----- get the number of threads -----------------------------------*/
 
@@ -969,22 +991,24 @@ int main( int argc , char *argv[] )
 
      /* save dataset of fomvec counts */
 
-     qset = EDIT_empty_copy(mask_dset) ;
-     sprintf(qpr,".FOMcount.%d",qpthr) ;
-     EDIT_dset_items( qset ,
-                        ADN_prefix , modify_afni_prefix(prefix,NULL,qpr) ,
-                        ADN_nvals  , 1 ,
-                      ADN_none ) ;
-     EDIT_substitute_brick( qset , 0 , MRI_float , NULL ) ;
-     qar = DSET_ARRAY(qset,0) ;
-     for( ii=0 ; ii < mask_ngood ; ii++ ){
-       ijk = ijkmask[ii] ;
-       qar[ijk] = (float)fomvec[ii]->npt ;
-       fomvec[ii]->npt = 0 ;
+     if( do_FOMcount ){
+       qset = EDIT_empty_copy(mask_dset) ;
+       sprintf(qpr,".FOMcount.%d",qpthr) ;
+       EDIT_dset_items( qset ,
+                          ADN_prefix , modify_afni_prefix(prefix,NULL,qpr) ,
+                          ADN_nvals  , 1 ,
+                        ADN_none ) ;
+       EDIT_substitute_brick( qset , 0 , MRI_float , NULL ) ;
+       qar = DSET_ARRAY(qset,0) ;
+       for( ii=0 ; ii < mask_ngood ; ii++ ){
+         ijk = ijkmask[ii] ;
+         qar[ijk] = (float)fomvec[ii]->npt ;
+         fomvec[ii]->npt = 0 ;
+       }
+       EDIT_BRICK_LABEL(qset,0,"FOMcount") ;
+       DSET_write(qset); WROTE_DSET(qset);
+       DSET_delete(qset); qset = NULL; qar = NULL;
      }
-     EDIT_BRICK_LABEL(qset,0,"FOMcount") ;
-     DSET_write(qset); WROTE_DSET(qset);
-     DSET_delete(qset); qset = NULL; qar = NULL;
 
    } /*----- end of loop over qpthr -----*/
 
@@ -1152,18 +1176,20 @@ FARP_LOOPBACK:
      DSET_delete(qset); qset = NULL; qar = NULL;
    }
 
-   qset = EDIT_empty_copy(mask_dset) ;
-   sprintf(qpr,".FARvox") ;
-   EDIT_dset_items( qset ,
-                      ADN_prefix , modify_afni_prefix(prefix,NULL,qpr) ,
-                      ADN_nvals  , 1 ,
-                    ADN_none ) ;
-   EDIT_BRICK_LABEL(qset,0,"FARcount") ;
-   EDIT_substitute_brick( qset , 0 , MRI_float , NULL ) ;
-   qar = DSET_ARRAY(qset,0) ;
-   AAmemcpy( qar , farar , sizeof(float)*nxyz ) ;
-   DSET_write(qset); WROTE_DSET(qset);
-   DSET_delete(qset); qset = NULL; qar = NULL;
+   if( do_FARvox ){
+     qset = EDIT_empty_copy(mask_dset) ;
+     sprintf(qpr,".FARvox") ;
+     EDIT_dset_items( qset ,
+                        ADN_prefix , modify_afni_prefix(prefix,NULL,qpr) ,
+                        ADN_nvals  , 1 ,
+                      ADN_none ) ;
+     EDIT_BRICK_LABEL(qset,0,"FARcount") ;
+     EDIT_substitute_brick( qset , 0 , MRI_float , NULL ) ;
+     qar = DSET_ARRAY(qset,0) ;
+     AAmemcpy( qar , farar , sizeof(float)*nxyz ) ;
+     DSET_write(qset); WROTE_DSET(qset);
+     DSET_delete(qset); qset = NULL; qar = NULL;
+   }
 
    if( verb ) INFO_message("Elapsed time = %.1f s",COX_clock_time()) ;
    exit(0) ;
