@@ -828,13 +828,19 @@ int main(int argc, char *argv[]) {
          fprintf(fout1,"# %s\n", "FZ");
          for( i=0 ; i<NROI_REF[k] ; i++ ) {
             for( j=0 ; j<NROI_REF[k]-1 ; j++ ) {// b/c we put '\n' after last
-               fprintf(fout1,"%12.4f\t",FisherZ(Corr_Matr[k][i][j]));
+               fprintf(fout1,"%12.4f\t",BOBatanhf(Corr_Matr[k][i][j]));
                flat_matr[k][FM_ctr][i*NROI_REF[k]+j] = 
-                  FisherZ(Corr_Matr[k][i][j]);
+                  BOBatanhf(Corr_Matr[k][i][j]);            
+               /* fprintf(fout1,"%12.4f\t",FisherZ(Corr_Matr[k][i][j]));
+               flat_matr[k][FM_ctr][i*NROI_REF[k]+j] = 
+               FisherZ(Corr_Matr[k][i][j]);*/
             }
-            fprintf(fout1,"%12.4f\n",FisherZ(Corr_Matr[k][i][j]));
+            fprintf(fout1,"%12.4f\n",BOBatanhf(Corr_Matr[k][i][j]));
             flat_matr[k][FM_ctr][i*NROI_REF[k]+j] = 
-               FisherZ(Corr_Matr[k][i][j]);
+               BOBatanhf(Corr_Matr[k][i][j]);
+            /*fprintf(fout1,"%12.4f\n",FisherZ(Corr_Matr[k][i][j]));
+            flat_matr[k][FM_ctr][i*NROI_REF[k]+j] = 
+               FisherZ(Corr_Matr[k][i][j]);*/
          }
       }
     
