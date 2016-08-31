@@ -66,6 +66,10 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 31, Aug , 2016 , PT , "3dSpaceTimeCorr" , MAJOR , TYPE_NEW_PROG,
+   "New function for calculating spatial corr of temporal corr maps.",
+   "Calc spatial corr of WB/mask connectivity maps; useful for RSFC?\n"
+},
 
 { 18, Aug , 2016 , PT , "3dReHo" , MINOR , TYPE_BUG_FIX,
    "Used to not allow subbrik selection on input.",
