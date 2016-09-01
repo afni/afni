@@ -3165,8 +3165,8 @@ LABELS_ARE_DONE:  /* target for goto above */
                 ( name_mask != NULL && !AFNI_yesenv("AFNI_TTEST_NIICSIM") ) ;
 
      ncsim = (int)AFNI_numenv("AFNI_TTEST_NUMCSIM") ;  /* 0 if not set */
-          if( ncsim <  10000 ) ncsim =  ncmin ;
-     else if( ncsim > 100000 ) ncsim = 100000 ;
+          if( ncsim <   10000 ) ncsim =  ncmin ;
+     else if( ncsim > 1000000 ) ncsim = 1000000 ;
 
      cmd  = (char *)malloc(sizeof(char)*(8192+mcov*128)) ;
      nper = ncsim / num_clustsim ; if( nper*num_clustsim < ncsim ) nper++ ;
