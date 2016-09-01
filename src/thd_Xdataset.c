@@ -63,7 +63,7 @@ Xdataset * open_Xdataset( char *mask_fname, int nsdat, char **sdat_fname )
      ERROR_exit("mask has only %d good voxels -- cannot continue",xds->ngood) ;
 
    xds->ijkmask = (int *)malloc(sizeof(int)*xds->nvox) ;
-   for( pp=qq=0 ; pp < xds->nvox ; qq++ ){
+   for( pp=qq=0 ; qq < xds->nvox ; qq++ ){
      if( xds->mask_vol[qq] ) xds->ijkmask[pp++] = qq ;
    }
 
