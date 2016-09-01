@@ -42,7 +42,7 @@ static float dx ;
 static float dy ;
 static float dz ;
 
-static int   niter ;  /* number of iterations (realizations) */
+static int   niter=0 ;  /* number of iterations (realizations) */
 
 static int   do_fixed                = 0 ;    /* fixed FOM threshold? */
 static int   fixed_cluster_threshold = 0 ;
@@ -131,6 +131,18 @@ ENTRY("get_options") ;
 
   while( nopt < argc ){
 
+    /*-----  -niter NNN  -----*/
+
+    if( strcasecmp(argv[nopt],"-niter") == 0 ){
+      if( ++nopt >= argc )
+        ERROR_exit("You need 1 argument after option '-niter'") ;
+      niter = (int)strtod(argv[nopt],NULL) ;
+      if( niter < min_nvol )
+        WARNING_message("running with -niter %d less than %d is STRONGLY deprecated!",
+                        niter , min_nvol ) ;
+      nopt++ ; continue ;
+    }
+
     /*-----  -fixed pvalue clustersize  -----*/
 
     if( strcasecmp(argv[nopt],"-fixed") == 0 ){
@@ -213,8 +225,8 @@ ENTRY("get_options") ;
                    xinset->ngood , min_mask ) ;
 
       if( xinset->nvtot < min_nvol )
-        ERROR_exit("only %d input volumes, less than minimum of %d",
-                   xinset->nvtot,min_nvol) ;
+        WARNING_message("only %d input volumes, less than minimum of %d",
+                        xinset->nvtot,min_nvol) ;
 
       nopt += nfile ; continue ;
     }
@@ -307,11 +319,12 @@ ENTRY("get_options") ;
 
   mask_dset  = xinset->mask_dset ;
   imtemplate = DSET_BRICK(xinset->mask_dset,0) ;
-  niter      = xinset->nvtot ;
   mask_ngood = xinset->ngood ;
   mask_vol   = xinset->mask_vol ;
+  if( niter <= 0 || niter > xinset->nvtot ) niter = xinset->nvtot ;
   if( verb )
-    INFO_message("-inset has %d volumes; mask has %d points",niter,mask_ngood) ;
+    INFO_message("using %d/%d volumes from -inset; mask has %d points",
+                 niter, xinset->nvtot, mask_ngood ) ;
 
   nxy = nx*ny ; nxyz = nxy*nz ; nxyz1 = nxyz - nxy ;
   if( nxyz < 1024 )
@@ -630,7 +643,8 @@ int main( int argc , char *argv[] )
    float *qar=NULL , *gthresh=NULL ;
    char qpr[32] ;
    MRI_IMAGE *cim ; MRI_IMARR *cimar ; float **car , *farar ;
-   int nfomkeep , nfar , itrac , ithresh ; float tfrac , farperc ;
+   int nfomkeep , nfar , itrac , ithresh ;
+   float tfrac , farperc,farcut , tfracold,farpercold,ttemp ;
 
    /*----- help me if you can -----*/
 
@@ -652,6 +666,10 @@ int main( int argc , char *argv[] )
    }
 
    (void)COX_clock_time() ;
+
+   mainENTRY("3dClustSimX") ; machdep() ;
+   AFNI_logger("3dClustSimX",argc,argv);
+   PRINT_VERSION("3dClustSimX"); AUTHOR("Who Cares?") ;
 
    /*----- load command line options -----*/
 
@@ -789,7 +807,7 @@ int main( int argc , char *argv[] )
        a1 = a0 + 1.0f/((float)niter) ;   f1 = fomg[jj+1] ;
        ft = gthresh[qpthr] = GTHRESH_FAC * inverse_interp_extreme( a0,a1,0.05f, f0,f1 ) ;
        if( verb )
-         ININFO_message("pthr=%.5f get min threshold %.1f [nfom=%d]",
+         ININFO_message("pthr=%.5f gets min threshold %.1f [nfom=%d]",
                         pthr[qpthr],ft,nfom) ;
      }
      free(fomg) ;
@@ -1006,6 +1024,7 @@ int main( int argc , char *argv[] )
          fomvec[ii]->npt = 0 ;
        }
        EDIT_BRICK_LABEL(qset,0,"FOMcount") ;
+       tross_Make_History( "3dClustSimX" , argc,argv , qset ) ;
        DSET_write(qset); WROTE_DSET(qset);
        DSET_delete(qset); qset = NULL; qar = NULL;
      }
@@ -1048,7 +1067,8 @@ FINAL_STUFF:
    /* tfrac = FOM count fractional threshold;
               will be adjusted to find the 5% FAR goal */
 
-   tfrac = 0.0003f ; itrac = 0 ;
+   tfrac = 0.0004f ; itrac = 0 ;
+   farpercold = 0.0f ; tfracold = tfrac ;
 
    /* array to make map of false alarm count at each voxel */
 
@@ -1091,7 +1111,7 @@ FARP_LOOPBACK:
         for( ipthr=0 ; ipthr < npthr ; ipthr++ ){ /* over p-value thresh */
           npt = fomsort[ipthr][iv]->npt ;    /* how many FOM values here */
           jthresh = ithresh ;             /* default index of FOM thresh */
-          if( jthresh > npt/2 ) jthresh = npt/2 ;    /* don't go too far */
+          if( jthresh > (int)(0.8f*npt) ) jthresh = (int)(0.8*npt) ;
           /* extract this FOM thresh by interpolation */
           a0 = ((float)jthresh)/((float)niter) ; f0 = fomsort[ipthr][iv]->far[jthresh] ;
           a1 = a0        + 1.0f/((float)niter) ; f1 = fomsort[ipthr][iv]->far[jthresh+1] ;
@@ -1109,7 +1129,8 @@ FARP_LOOPBACK:
 #pragma omp for schedule(dynamic,100)
      for( iter=0 ; iter < niter ; iter++ ){
        generate_image( far , iter ) ;
-       tfim = mri_multi_threshold_Xcluster( fim, npthr,zthr_used, nnsid,nnlev, cimar ) ;
+       tfim = mri_multi_threshold_Xcluster( fim, npthr,zthr_used,
+                                            nnsid,nnlev, cimar, 0, NULL ) ;
        if( tfim != NULL ){   /* nothing found ==> NULL is returned */
          tfar = MRI_FLOAT_PTR(tfim) ;
          for( qq=0 ; qq < nxyz ; qq++ ){
@@ -1129,16 +1150,31 @@ FARP_LOOPBACK:
 
      /* compute the FAR percentage */
 
-     farperc = (100.0*nfar)/(float)niter ;
+     farpercold = farperc ;               /* save what we got last time */
+     farperc    = (100.0*nfar)/(float)niter ;  /* what we got this time */
      if( verb )
-       ININFO_message("False Alarm count = %d  Rate = %.2f%%", nfar,farperc ) ;
+       ININFO_message("#%2d: False Alarm count = %d  Rate = %.2f%%",
+                      itrac,nfar,farperc ) ;
 
-     /* do we need to tru another tfrac to get closer to our goal? */
+     /* do we need to try another tfrac to get closer to our goal? */
 
-     if( !do_fixed && itrac < 10 && fabsf(farperc-FARP_GOAL) > 0.222f ){
-       float fff = FARP_GOAL/farperc ;
-       if( fff > 3.0f ) fff = 3.0f ; else if( fff < 0.333f ) fff = 0.333f ;
-       tfrac *= fff ;
+          if( itrac < 5 ) farcut = 0.111f ; /* precision of goal meeting */
+     else if( itrac < 9 ) farcut = 0.222f ;
+     else                 farcut = 0.333f ;
+     if( !do_fixed && itrac < 13 && fabsf(farperc-FARP_GOAL) > farcut ){
+       float fff ;
+       if( itrac == 1 || (farperc-FARP_GOAL)*(farpercold-FARP_GOAL) > 0.0f ){
+         fff = FARP_GOAL/farperc ;
+         if( fff > 2.222f ) fff = 2.222f ; else if( fff < 0.450f ) fff = 0.450f ;
+/* ININFO_message("   scale tfrac by %g -- fold=%g fnew=%g",fff,farpercold,farperc) ; */
+         ttemp = tfrac ; tfrac *= fff ;
+       } else {
+         fff = (farperc-farpercold)/(tfrac-tfracold) ;
+         ttemp = tfrac ; tfrac = tfracold + (FARP_GOAL-farpercold)/fff ;
+/* ININFO_message("   interpolate tfrac from told=%g fold=%g tnew=%g fnew=%g",
+               tfracold,farpercold,ttemp,farperc) ; */
+       }
+       tfracold = ttemp ;
        if( tfrac < 0.0002f ) tfrac = 0.0002f ; else if( tfrac > 0.004f ) tfrac = 0.004f ;
        goto FARP_LOOPBACK ;
      }
@@ -1172,6 +1208,7 @@ FARP_LOOPBACK:
                           "MULTI_THRESHOLDS" , npthr+3 , afl ) ;
        free(afl) ;
      }
+     tross_Make_History( "3dClustSimX" , argc,argv , qset ) ;
      DSET_write(qset); WROTE_DSET(qset);
      DSET_delete(qset); qset = NULL; qar = NULL;
    }
@@ -1187,6 +1224,7 @@ FARP_LOOPBACK:
      EDIT_substitute_brick( qset , 0 , MRI_float , NULL ) ;
      qar = DSET_ARRAY(qset,0) ;
      AAmemcpy( qar , farar , sizeof(float)*nxyz ) ;
+     tross_Make_History( "3dClustSimX" , argc,argv , qset ) ;
      DSET_write(qset); WROTE_DSET(qset);
      DSET_delete(qset); qset = NULL; qar = NULL;
    }

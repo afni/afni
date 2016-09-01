@@ -164,6 +164,10 @@ static char *prefix_clustsim = NULL ;
 static char *tempdir         = "./" ;/* 20 Jul 2016 */
 
 static int      do_Xclustsim = 0 ;   /* 30 Aug 2016 */
+static int      nnlev_Xclu   = 2 ;
+static int      sid_Xclu     = 2 ;
+static int      npthr_Xclu   = 0 ;
+static float *   pthr_Xclu   = NULL ;
 
 static char *clustsim_prog=NULL ;    /* 30 Aug 2016 */
 static char *clustsim_opt =NULL ;
@@ -1618,6 +1622,7 @@ int main( int argc , char *argv[] )
 
        clustsim_prog = "3dClustSimX" ;
        clustsim_opt  = argv[nopt] ;
+       do_Xclustsim  = 1 ;
 
        /* if next option is a number, it is the number of CPUs to use */
 
@@ -1646,6 +1651,47 @@ int main( int argc , char *argv[] )
          sprintf(prefix_clustsim,"TT.%s",uuu) ; free(uuu) ;
          ININFO_message("Default Xclustsim prefix set to '%s'",prefix_clustsim) ;
        }
+
+       /* process next argument as possible assignments to control variables */
+
+       if( nopt < argc && argv[nopt][0] != '-' ){
+         char *cpt ; int qq,nbad ;
+
+         cpt = strcasestr(argv[nopt],"NN=") ;
+         if( cpt != NULL ){
+           qq = (int)strtod(cpt+3,NULL) ;
+           if( qq >= 1 && qq <= 3 ) nnlev_Xclu = qq ;
+           else
+             WARNING_message("Illegal value after -Xclustsim 'NN='; default NN=%d is used",nnlev_Xclu);
+         }
+
+         cpt = strcasestr(argv[nopt],"sid=") ;
+         if( cpt != NULL ){
+           qq = (int)strtod(cpt+4,NULL) ;
+           if( qq >= 1 && qq <= 2 ) sid_Xclu = qq ;
+           else
+             WARNING_message("Illegal value after -Xclustsim 'sid='; default sid=%d is used",sid_Xclu);
+         }
+
+         cpt = strcasestr(argv[nopt],"pthr=") ;
+         if( cpt != NULL ){
+           NI_float_array *nfar = NI_decode_float_list(cpt+5,",") ;
+           if( nfar != NULL || nfar->num > 0 ){
+             for( nbad=qq=0 ; qq < nfar->num ; qq++ ){
+               if( nfar->ar[qq] < 0.0001f || nfar->ar[qq] > 0.1f ) nbad++ ;
+             }
+             if( nbad > 0 ){
+               ERROR_exit("Illegal values after -Xclustsim 'pthr=' ; defaults are used") ;
+             } else {
+               npthr_Xclu = nfar->num ;
+                pthr_Xclu = nfar->ar ;
+             }
+           }
+         }
+
+         nopt++ ;
+       }
+
        continue ;
      }
 
@@ -3113,7 +3159,7 @@ LABELS_ARE_DONE:  /* target for goto above */
      int ncsim ;
      int use_sdat ;
      char **tfname ;
-     int ncmin = (do_Xclustsim) ? 30000 : 10000 ;
+     int ncmin = (do_Xclustsim) ? 36000 : 10000 ;
 
      use_sdat = do_Xclustsim ||
                 ( name_mask != NULL && !AFNI_yesenv("AFNI_TTEST_NIICSIM") ) ;
@@ -3137,111 +3183,67 @@ LABELS_ARE_DONE:  /* target for goto above */
 
      for( pp=0 ; pp < num_clustsim ; pp++ ){
 
-       if( ! use_sdat ){  /*--- the old way of running randomsign ---*/
+       /* format the command to run 3dttest++ with the residuals as input */
 
-         /* run 3dttest++ with the residuals as input */
-
+       if( !use_sdat )
          sprintf( cmd , "3dttest++ -DAFNI_AUTOMATIC_FDR=NO -DAFNI_DONT_LOGFILE=YES"
                         " -randomsign %d -nomeans -toz" , nper ) ;
-         if( twosam )
-           sprintf( cmd+strlen(cmd) , " -no1sam") ;
-         if( name_mask != NULL )
-           sprintf( cmd+strlen(cmd) , " -mask %s",name_mask) ;
-         if( ttest_opcode == 1 )
-           sprintf( cmd+strlen(cmd) , " -unpooled") ;
-         if( ttest_opcode == 2 )
-           sprintf( cmd+strlen(cmd) , " -paired") ;
-
-         if( mcov == 0 ){   /* no covariates == easy peasy */
-
-           if( nval_BBB == 0 ){  /* only -setA */
-             sprintf( cmd+strlen(cmd) , " -setA %s" , prefix_resid ) ;
-           } else {
-             sprintf( cmd+strlen(cmd) , " -setA %s'[0..%d]' -setB %s'[%d..$]'" ,
-                                        prefix_resid , nval_AAA-1 ,
-                                        prefix_resid , nval_AAA    ) ;
-           }
-
-         } else {  /* covariates are harder to format (must allow for labels) */
-
-           sprintf( cmd+strlen(cmd) , " -nocov -covariates %s" , fname_cov ) ;
-           switch( center_code ){
-             default:
-             case CENTER_DIFF: sprintf( cmd+strlen(cmd) , " -center DIFF") ; break ;
-             case CENTER_SAME: sprintf( cmd+strlen(cmd) , " -center SAME") ; break ;
-             case CENTER_NONE: sprintf( cmd+strlen(cmd) , " -center NONE") ; break ;
-           }
-           if( center_meth == CMETH_MEDIAN )
-             sprintf( cmd+strlen(cmd) , " -cmeth MEDIAN") ;
-
-           sprintf( cmd+strlen(cmd) , " -setA rAAA" ) ;
-           for( jj=0 ; jj < nval_AAA ; jj++ ){
-             sprintf( cmd+strlen(cmd) , " %s %s'[%d]'" , labl_AAA[jj] , prefix_resid , jj ) ;
-           }
-           if( nval_BBB > 0 ){
-             sprintf( cmd+strlen(cmd) , " -setB rBBB" ) ;
-             for( jj=0 ; jj < nval_BBB ; jj++ ){
-               sprintf( cmd+strlen(cmd) , " %s %s'[%d]'" , labl_BBB[jj] , prefix_resid , jj+nval_AAA ) ;
-             }
-           }
-         }
-
-         tfname[pp] = (char *)malloc(sizeof(char)*THD_MAX_NAME) ;
-         sprintf(tfname[pp],"%s/%s.%03d.nii",tempdir,prefix_clustsim,pp) ;
-         sprintf( cmd+strlen(cmd) , " -prefix %s" , tfname[pp] ) ;
-
-       } else {   /*--- the SDAT way [30 Aug 2016] ---*/
-
+       else
          sprintf( cmd , "3dttest++ -DAFNI_AUTOMATIC_FDR=NO -DAFNI_DONT_LOGFILE=YES"
                         " -RANDOMSIGN %d -nomeans -toz" , nper ) ;
-         if( twosam )
-           sprintf( cmd+strlen(cmd) , " -no1sam") ;
-         if( name_mask != NULL )
-           sprintf( cmd+strlen(cmd) , " -mask %s",name_mask) ;
-         if( ttest_opcode == 1 )
-           sprintf( cmd+strlen(cmd) , " -unpooled") ;
-         if( ttest_opcode == 2 )
-           sprintf( cmd+strlen(cmd) , " -paired") ;
 
-         if( mcov == 0 ){   /* no covariates == easy peasy */
+       if( twosam )
+         sprintf( cmd+strlen(cmd) , " -no1sam") ;
+       if( name_mask != NULL )
+         sprintf( cmd+strlen(cmd) , " -mask %s",name_mask) ;
+       if( ttest_opcode == 1 )
+         sprintf( cmd+strlen(cmd) , " -unpooled") ;
+       if( ttest_opcode == 2 )
+         sprintf( cmd+strlen(cmd) , " -paired") ;
 
-           if( nval_BBB == 0 ){  /* only -setA */
-             sprintf( cmd+strlen(cmd) , " -setA %s" , prefix_resid ) ;
-           } else {
-             sprintf( cmd+strlen(cmd) , " -setA %s'[0..%d]' -setB %s'[%d..$]'" ,
-                                        prefix_resid , nval_AAA-1 ,
-                                        prefix_resid , nval_AAA    ) ;
-           }
+       if( mcov == 0 ){   /* no covariates == easy peasy */
 
-         } else {  /* covariates are harder to format (must allow for labels) */
-
-           sprintf( cmd+strlen(cmd) , " -nocov -covariates %s" , fname_cov ) ;
-           switch( center_code ){
-             default:
-             case CENTER_DIFF: sprintf( cmd+strlen(cmd) , " -center DIFF") ; break ;
-             case CENTER_SAME: sprintf( cmd+strlen(cmd) , " -center SAME") ; break ;
-             case CENTER_NONE: sprintf( cmd+strlen(cmd) , " -center NONE") ; break ;
-           }
-           if( center_meth == CMETH_MEDIAN )
-             sprintf( cmd+strlen(cmd) , " -cmeth MEDIAN") ;
-
-           sprintf( cmd+strlen(cmd) , " -setA rAAA" ) ;
-           for( jj=0 ; jj < nval_AAA ; jj++ ){
-             sprintf( cmd+strlen(cmd) , " %s %s'[%d]'" , labl_AAA[jj] , prefix_resid , jj ) ;
-           }
-           if( nval_BBB > 0 ){
-             sprintf( cmd+strlen(cmd) , " -setB rBBB" ) ;
-             for( jj=0 ; jj < nval_BBB ; jj++ ){
-               sprintf( cmd+strlen(cmd) , " %s %s'[%d]'" , labl_BBB[jj] , prefix_resid , jj+nval_AAA ) ;
-             }
-           }
+         if( nval_BBB == 0 ){  /* only -setA */
+           sprintf( cmd+strlen(cmd) , " -setA %s" , prefix_resid ) ;
+         } else {
+           sprintf( cmd+strlen(cmd) , " -setA %s'[0..%d]' -setB %s'[%d..$]'" ,
+                                      prefix_resid , nval_AAA-1 ,
+                                      prefix_resid , nval_AAA    ) ;
          }
 
-         tfname[pp] = (char *)malloc(sizeof(char)*THD_MAX_NAME) ;
+       } else {  /* covariates are harder to format (must allow for labels) */
+
+         sprintf( cmd+strlen(cmd) , " -nocov -covariates %s" , fname_cov ) ;
+         switch( center_code ){
+           default:
+           case CENTER_DIFF: sprintf( cmd+strlen(cmd) , " -center DIFF") ; break ;
+           case CENTER_SAME: sprintf( cmd+strlen(cmd) , " -center SAME") ; break ;
+           case CENTER_NONE: sprintf( cmd+strlen(cmd) , " -center NONE") ; break ;
+         }
+         if( center_meth == CMETH_MEDIAN )
+           sprintf( cmd+strlen(cmd) , " -cmeth MEDIAN") ;
+
+         sprintf( cmd+strlen(cmd) , " -setA rAAA" ) ;
+         for( jj=0 ; jj < nval_AAA ; jj++ ){
+           sprintf( cmd+strlen(cmd) , " %s %s'[%d]'" , labl_AAA[jj] , prefix_resid , jj ) ;
+         }
+         if( nval_BBB > 0 ){
+           sprintf( cmd+strlen(cmd) , " -setB rBBB" ) ;
+           for( jj=0 ; jj < nval_BBB ; jj++ ){
+             sprintf( cmd+strlen(cmd) , " %s %s'[%d]'" , labl_BBB[jj] , prefix_resid , jj+nval_AAA ) ;
+           }
+         }
+       }
+
+       tfname[pp] = (char *)malloc(sizeof(char)*THD_MAX_NAME) ;
+       if( !use_sdat ){
+         sprintf(tfname[pp],"%s/%s.%03d.nii",tempdir,prefix_clustsim,pp) ;
+         sprintf( cmd+strlen(cmd) , " -prefix %s" , tfname[pp] ) ;
+       } else {
          sprintf(tfname[pp],"%s/%s.%03d.sdat",tempdir,prefix_clustsim,pp) ;
          sprintf( cmd+strlen(cmd) , " -prefix %s" , tfname[pp] ) ;
-
        }
+       /* the command for 3dttest++ is finished here */
 
        /* let only job #0 print progress to the screen */
        if( pp > 0 ) strcat(cmd," &> /dev/null") ;
@@ -3249,10 +3251,10 @@ LABELS_ARE_DONE:  /* target for goto above */
        if( pp == 0 ) ININFO_message("#0 jobs command:\n   %s",cmd) ;
 
        start_job( cmd ) ;
-       if( pp > 0 ) NI_sleep(666) ;
+       if( pp > 0 ) NI_sleep(666) ;  /* give each job a little bit to start up */
      }
 
-     /* wait until all jobs stop */
+     /*-- wait until all jobs stop --*/
 
      wait_for_jobs() ;
 
@@ -3303,11 +3305,17 @@ LABELS_ARE_DONE:  /* target for goto above */
 
      } else {  /*----- 3dClustSimX [30 Aug 2016] -----*/
 
-         sprintf( cmd , "3dClustSimX -DAFNI_DONT_LOGFILE=YES -noFARvox"
-                        " -prefix %s.CSimX.nii -NN1 -2sid -insdat %s" ,
-                        prefix_clustsim , name_mask ) ;
-         for( pp=0 ; pp < num_clustsim ; pp++ )
-           sprintf( cmd+strlen(cmd) , " %s" , tfname[pp]) ;
+       sprintf( cmd , "3dClustSimX -DAFNI_DONT_LOGFILE=YES "
+                      " -prefix %s.CSimX.nii -NN%d -%dsid" ,
+                      prefix_clustsim , nnlev_Xclu , sid_Xclu ) ;
+       if( npthr_Xclu > 0 ){
+         sprintf( cmd+strlen(cmd) , " -pthr") ;
+         for( pp=0 ; pp < npthr_Xclu ; pp++ )
+           sprintf( cmd+strlen(cmd) , " %.5f",pthr_Xclu[pp]) ;
+       }
+       sprintf( cmd+strlen(cmd) , " -insdat %s",name_mask) ;
+       for( pp=0 ; pp < num_clustsim ; pp++ )
+         sprintf( cmd+strlen(cmd) , " %s" , tfname[pp]) ;
 
        ININFO_message("===== starting 3dClustSimX =====\n   %s",cmd) ;
        system(cmd) ;
@@ -3342,9 +3350,11 @@ LABELS_ARE_DONE:  /* target for goto above */
 
      /* et viola */
 
+#if 0
      free(ccc) ; free(cmd) ;
      for( pp=0 ; pp < num_clustsim ; pp++ ) free(tfname[pp]) ;
      free(tfname) ;
+#endif
      ININFO_message("=============== %s work is finished :-) ===============",clustsim_opt) ;
    }
 

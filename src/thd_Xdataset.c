@@ -106,11 +106,13 @@ Xdataset * open_Xdataset( char *mask_fname, int nsdat, char **sdat_fname )
        INFO_message("mapping %s into memory",sdat_fname[ids]) ;
 #endif
 
+#if 0
      { int64_t ii,sum=0 ; char *bdat = (char *)xds->sdat[ids] ;
        for( ii=0 ; ii < fsiz ; ii+=1024 ) sum += (int64_t)bdat[ii] ;
        if( sin((double)sum)==666.0 )
          INFO_message("sum=%g",(double)sum) ; /* never executed */
      }
+#endif
    } /* end of loop over input .sdat files */
 
    xds->nvtot = nvtot ;
