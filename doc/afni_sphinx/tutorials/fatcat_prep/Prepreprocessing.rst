@@ -256,6 +256,23 @@ to it from the command line; additionally, an option to resample the
 volume to a particular spatial resolution can be given.  The quality
 of axialization should always be checked visually!
 
+*TIPS*: 
+
++ | For any anatomical, it might useful to resample the volume to
+    isotropic, fairly high resolution both for viewing and
+    registration purposes.  That's why I've included the following
+    option to set the output resolution to isotropic 1 :math:`{\rm
+    mm}^{3}` in both of the above examples using:
+  | ``-extra_al_opts "-newgrid 1.0"``
+  | Something similar (perhaps using a different resolution) might be
+    useful in most cases with this function.
++ | When analyzing adult T1w data, using the following option might
+    be useful:
+  | ``-extra_al_inps "-nomask"``
+  | Using this, 3dAllineate won't try to mask a subregion for
+    warping/alignment, and I often find this helpful for T1w volumes.
+
+
 .. _IRCT_invert:
 
 Make a T2w-like volume from a T1w one
