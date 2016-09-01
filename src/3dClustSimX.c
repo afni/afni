@@ -1175,7 +1175,7 @@ FARP_LOOPBACK:
                tfracold,farpercold,ttemp,farperc) ; */
        }
        tfracold = ttemp ;
-       if( tfrac < 0.0002f ) tfrac = 0.0002f ; else if( tfrac > 0.004f ) tfrac = 0.004f ;
+       if( tfrac < 0.0001f ) tfrac = 0.0001f ; else if( tfrac > 0.005f ) tfrac = 0.005f ;
        goto FARP_LOOPBACK ;
      }
 
