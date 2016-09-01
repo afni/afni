@@ -10,6 +10,7 @@
 #define USE_UBYTE
 
 /*====================================*/
+#ifndef IND_T
 #ifdef USE_UBYTE  /* for grids <= 255 */
 
 # define DALL    128
@@ -29,6 +30,7 @@
 # define IND_T unsigned short
 
 #endif
+#endif
 /*====================================*/
 
 /*----- struct to hold a single cluster of points -----*/
@@ -43,7 +45,7 @@ typedef struct {
   int   *ijk ;              /* 1D index for each point */
 } Xcluster ;
 
-#define MIN_CLUST 5  /* smallest cluster size allowed (voxels) */
+#define MIN_CLUST 3  /* smallest cluster size allowed (voxels) */
 
 /*----- struct to hold a bunch of clusters -----*/
 
@@ -300,6 +302,10 @@ Xcluster_array * find_Xcluster_array( MRI_IMAGE *fim, int nnlev, MRI_IMAGE *cim 
 #undef CPUT_point
 
 /*----------------------------------------------------------------------------*/
+
+#define XTHRESH_OUTPUT_MASK  1
+
+/*----------------------------------------------------------------------------*/
 /* fim   = image to threshold
    nthr  = num thresholds   (at least 1)
    thar  = threshold array
@@ -307,21 +313,29 @@ Xcluster_array * find_Xcluster_array( MRI_IMAGE *fim, int nnlev, MRI_IMAGE *cim 
    nnlev = NN cluster type (1 or 2 or 3)
    cimar = array of cluster fom threshold images
            (if NULL, all clusters >= MIN_CLUST voxels are kept)
+   flags = bitwise OR (|) of some or all of the following
+             XTHRESH_OUTPUT_MASK
 
    return value will be NULL if nothing was found
+   if nhits!=NULL, the number of 'hits' (nonzero voxels in output) goes there
 *//*--------------------------------------------------------------------------*/
 
 MRI_IMAGE * mri_multi_threshold_Xcluster( MRI_IMAGE *fim ,
                                           int nthr , float *thar ,
                                           int sid , int nnlev ,
-                                          MRI_IMARR *cimar        )
+                                          MRI_IMARR *cimar ,
+                                          int flags , int *nhits )
 {
    MRI_IMAGE *tfim , *qfim=NULL , *cim ;
    float *tfar , *far , *qfar=NULL , cth,cval,thr ;
    int ii,nvox , kth ;
    Xcluster_array *xcar ; Xcluster *xcc ; int icl,npt, *ijkar ;
+   int do_mask = (flags & XTHRESH_OUTPUT_MASK) ;
+   byte *qbyt=NULL ;
 
    /* bad inputs? */
+
+   if( nhits != NULL ) *nhits = 0 ;
 
    if( fim  == NULL || fim->kind          != MRI_float ) return NULL ;
    if( nthr <= 0    || thar               == NULL      ) return NULL ;
@@ -362,17 +376,37 @@ MRI_IMAGE * mri_multi_threshold_Xcluster( MRI_IMAGE *fim ,
 
      /* put "good" clusters into qfim (copying from original input image) */
 
-     if( qfim == NULL ){                          /* create output image */
-       qfim = mri_new_conforming(fim,MRI_float) ; /* zero filled */
-       qfar = MRI_FLOAT_PTR(qfim) ;
+     if( qfim == NULL ){                            /* create output image */
+       if( do_mask ){
+         qfim = mri_new_conforming(fim,MRI_byte) ;  /* zero filled */
+         qbyt = MRI_BYTE_PTR(qfim) ;
+       } else {
+         qfim = mri_new_conforming(fim,MRI_float) ; /* zero filled */
+         qfar = MRI_FLOAT_PTR(qfim) ;
+       }
      }
 
      for( icl=0 ; icl < xcar->nclu ; icl++ ){
        xcc = xcar->xclu[icl]; npt = xcc->npt; ijkar = xcc->ijk;
-       for( ii=0 ; ii < npt ; ii++ ) qfar[ijkar[ii]] = far[ijkar[ii]] ;
+       if( do_mask ){
+         for( ii=0 ; ii < npt ; ii++ ) qbyt[ijkar[ii]]++ ;
+       } else {
+         for( ii=0 ; ii < npt ; ii++ ) qfar[ijkar[ii]] = far[ijkar[ii]] ;
+       }
      }
 
      DESTROY_Xcluster_array(xcar) ;
+   }
+
+   /* count number of hits */
+
+   if( nhits != NULL && qfim != NULL ){
+     if( do_mask ){
+       for( npt=ii=0 ; ii < nvox ; ii++ ) npt += (qbyt[ii] != 0) ;
+     } else if( qfar != NULL ){
+       for( npt=ii=0 ; ii < nvox ; ii++ ) npt += (qfar[ii] != 0.0f) ;
+     }
+     *nhits = npt ;
    }
 
    return qfim ;  /* will be NULL if nuthin was found nowhere nohow */
@@ -385,7 +419,7 @@ MRI_IMAGE * mri_multi_threshold_Xcluster( MRI_IMAGE *fim ,
 
 MRI_IMAGE * mri_threshold_Xcluster( MRI_IMAGE *fim ,
                                     float thr , int sid , int nnlev ,
-                                    MRI_IMAGE *cim )
+                                    MRI_IMAGE *cim , int flags , int *nhits )
 {
    float thar[1] ;
    MRI_IMARR *cimar ;
@@ -395,7 +429,7 @@ MRI_IMAGE * mri_threshold_Xcluster( MRI_IMAGE *fim ,
    ADDTO_IMARR(cimar,cim) ;
    thar[0] = thr ;
 
-   qfim = mri_multi_threshold_Xcluster( fim, 1, thar, sid, nnlev, cimar ) ;
+   qfim = mri_multi_threshold_Xcluster(fim,1,thar,sid,nnlev,cimar,flags,nhits) ;
 
    FREE_IMARR(cimar) ;
    return qfim ;

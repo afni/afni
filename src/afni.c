@@ -1863,6 +1863,7 @@ void AFNI_sigfunc_alrm(int sig)
      "This is your only chance at building a disreputable past"      ,
      "O Brave New World, that has such software in it"               ,
      "When I ask for advice, what I really want is an accomplice"    ,
+     "Above all -- Don't let your brain lie to you"                  ,
      "Remember -- You are absolutely unique. Just like everone else" ,
      "Remember -- AFNI is free, but worth at least 1000 times more"  ,
      "Remember -- Nothing is always absolutely so"                   ,
@@ -2041,11 +2042,11 @@ void AFNI_sigfunc_alrm(int sig)
 
      /* These are to make it clear that Cox is not to be blamed for ANYTHING */
 
-     "If you have any problems with AFNI, blame goes to ... Mike Beauchamp ;)" ,
-     "If you have any problems with AFNI, blame goes to ... Ziad Saad ;)"      ,
-     "If you have any problems with AFNI, blame goes to ... Pat Bellgowan ;)"  ,
-     "If you have any problems with AFNI, blame goes to ... Kyle Simmons ;)"   ,
-     "If you have any problems with AFNI, blame goes to ... Jerzy Bodurka ;)"  ,
+     "If you have any problems with AFNI, blame goes to ... Mike Beauchamp :)" ,
+     "If you have any problems with AFNI, blame goes to ... Ziad Saad :)"      ,
+     "If you have any problems with AFNI, blame goes to ... Pat Bellgowan :)"  ,
+     "If you have any problems with AFNI, blame goes to ... Kyle Simmons :)"   ,
+     "If you have any problems with AFNI, blame goes to ... Jerzy Bodurka :)"  ,
      "All suspicion points to a Frost-Bellgowan plot"                          ,
      "All signs points to a Frost-Bellgowan conspiracy"                        ,
      "If you have any questions about AFNI, ask ... Daniel Glen :)"            ,
