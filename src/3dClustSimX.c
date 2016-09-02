@@ -669,7 +669,7 @@ int main( int argc , char *argv[] )
 
    mainENTRY("3dClustSimX") ; machdep() ;
    AFNI_logger("3dClustSimX",argc,argv);
-   PRINT_VERSION("3dClustSimX"); AUTHOR("Who Cares?") ;
+   PRINT_VERSION("3dClustSimX"); AUTHOR("Lamont Cranston") ;
 
    /*----- load command line options -----*/
 
@@ -1077,6 +1077,9 @@ FINAL_STUFF:
 
 FARP_LOOPBACK:
    {
+     float min_tfrac ;
+     min_tfrac = 6.0f / niter ; if( min_tfrac > 0.0001f ) min_tfrac = 0.0001f ;
+
      itrac++ ;                                        /* number of iterations */
      nfar = 0 ;                                            /* total FAR count */
      ithresh = (int)(tfrac*niter) ;                    /* FOM count threshold */
@@ -1176,7 +1179,7 @@ FARP_LOOPBACK:
                tfracold,farpercold,ttemp,farperc) ; */
        }
        tfracold = ttemp ;
-       if( tfrac < 0.0001f ) tfrac = 0.0001f ; else if( tfrac > 0.005f ) tfrac = 0.005f ;
+       if( tfrac < min_tfrac ) tfrac = min_tfrac ; else if( tfrac > 0.005f ) tfrac = 0.005f ;
        goto FARP_LOOPBACK ;
      }
 
