@@ -9,15 +9,13 @@ before_install:
     # install build-dependencies as the doc says
     - sudo sh src/other_builds/OS_notes.linux_ubuntu_12_64
     # install packages needed for testing
-    - sudo apt-get install xvfb xauth libgl1-mesa-dri mesa-utils tcsh libjpeg-progs
+    - sudo apt-get install xvfb xauth libgl1-mesa-dri mesa-utils tcsh libjpeg-progs gifsicle
+    # for Debian pkg build testing
+    - if [ -e debian ]; then sudo tools/ci/debian_before_install; fi
 install:
-    - cd src
-    - cp other_builds/Makefile.$FLAVOR Makefile
-    - make vastness
+    - if [ ! -e debian ]; then cd src; cp other_builds/Makefile.$FLAVOR Makefile; make vastness; fi
 script:
-    - export PATH=$PATH:$PWD/$FLAVOR  # to gain access to built binaries
-    - mkdir ../testing; cd ../testing # from here will run tests
-    - cmake -DAFNI_BUILD_TESTS:BOOL=ON ..
-    - ctest
+    - export PATH=$PATH:$PWD/$FLAVOR  # to gain access to built binaries if built natively
+    - if [ -e debian ]; then tools/ci/debian_run_tests; else tools/ci/run_tests; fi
     # Smoke tests for some additional commands
     - 3dinfo

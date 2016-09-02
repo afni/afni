@@ -1,0 +1,10 @@
+#!/bin/sh
+# Runs AFNI's tests natively
+
+# To guarantee normal execution in -x mode
+export PS4=+
+set -eux
+
+mkdir ../testing; cd ../testing # from here will run tests
+cmake -DAFNI_BUILD_TESTS:BOOL=ON ..
+ctest

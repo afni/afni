@@ -1,0 +1,11 @@
+#!/bin/sh
+# Builds package which in turn also runs tests and installs
+
+# To guarantee normal execution in -x mode
+export PS4=+
+set -eux
+
+QUILT_PATCHES=debian/patches quilt push -a
+dpkg-buildpackage -uc -us -b -rfakeroot
+sudo dpkg -i ../*.deb
+source /etc/afni/afni.sh
