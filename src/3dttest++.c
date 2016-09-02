@@ -1622,7 +1622,7 @@ int main( int argc , char *argv[] )
 
        clustsim_prog = "3dClustSimX" ;
        clustsim_opt  = argv[nopt] ;
-       do_Xclustsim  = 1 ;
+       do_Xclustsim  = (argv[nopt][2] == 'c' ) ? 1 : 2 ;
 
        /* if next option is a number, it is the number of CPUs to use */
 
@@ -3165,8 +3165,8 @@ LABELS_ARE_DONE:  /* target for goto above */
                 ( name_mask != NULL && !AFNI_yesenv("AFNI_TTEST_NIICSIM") ) ;
 
      ncsim = (int)AFNI_numenv("AFNI_TTEST_NUMCSIM") ;  /* 0 if not set */
-          if( ncsim <   10000 ) ncsim =  ncmin ;
-     else if( ncsim > 1000000 ) ncsim = 1000000 ;
+          if( ncsim <    10000 ) ncsim =  ncmin ;
+     else if( ncsim > 10000000 ) ncsim = 10000000 ;
 
      cmd  = (char *)malloc(sizeof(char)*(8192+mcov*128)) ;
      nper = ncsim / num_clustsim ; if( nper*num_clustsim < ncsim ) nper++ ;
@@ -3323,7 +3323,7 @@ LABELS_ARE_DONE:  /* target for goto above */
 
      /* remove intermediate files */
 
-     if( do_Xclustsim ){
+     if( do_Xclustsim == 1 ){
        ININFO_message("===== deleting temp files =====") ;
        sprintf(cmd,"\\rm %s",prefix_resid) ;
        for( pp=0 ; pp < num_clustsim ; pp++ )
