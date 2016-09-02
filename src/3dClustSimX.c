@@ -688,8 +688,8 @@ int main( int argc , char *argv[] )
  {
 #pragma omp master
    { nthr = omp_get_num_threads() ; }
-#endif
  }                   /*---------- end parallel section ----------*/
+#endif
 
    if( verb ){
      if( nthr > 1 )
