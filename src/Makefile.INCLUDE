@@ -2431,16 +2431,16 @@ plug_crender.$(SO):plug_crender.c
 	$(PLUGIN_CC) -c plug_crender.c $(INFLAGS)
 	$(LD) $(PLUGIN_LFLAGS) -o plug_crender.$(SO) plug_crender.o -L.
 
-plug_maxima.$(SO):plug_maxima.c maxima.o
+plug_maxima.$(SO):plug_maxima.c maxima.c
 	$(RM) $@
-	$(PLUGIN_CC) -c plug_maxima.c $(INFLAGS)
+	$(PLUGIN_CC) -c plug_maxima.c maxima.c $(INFLAGS)
 	$(LD) $(PLUGIN_LFLAGS) -o plug_maxima.$(SO) plug_maxima.o maxima.o -L.
 
 ### From Fred Tam
 
-plug_retroicor.$(SO):plug_retroicor.c retroicor.o
+plug_retroicor.$(SO):plug_retroicor.c retroicor.c
 	$(RM) $@
-	$(PLUGIN_CC) -c plug_retroicor.c $(INFLAGS)
+	$(PLUGIN_CC) -c plug_retroicor.c retroicor.c $(INFLAGS)
 	$(LD) $(PLUGIN_LFLAGS) -o plug_retroicor.$(SO) plug_retroicor.o \
       retroicor.o
 
