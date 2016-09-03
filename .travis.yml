@@ -13,9 +13,9 @@ before_install:
     # for Debian pkg build testing
     - if [ -e debian ]; then sudo tools/ci/debian_before_install; fi
 install:
-    - if [ ! -e debian ]; then cd src; cp other_builds/Makefile.$FLAVOR Makefile; make vastness; fi
+    - if [ ! -e debian ]; then cd src; cp other_builds/Makefile.$FLAVOR Makefile; make vastness; cd ..; fi
 script:
-    - export PATH=$PATH:$PWD/$FLAVOR  # to gain access to built binaries if built natively
+    - export PATH=$PATH:$PWD/src/$FLAVOR  # to gain access to built binaries if built natively
     - if [ -e debian ]; then tools/ci/debian_run_tests; else tools/ci/run_tests; fi
     # Smoke tests for some additional commands
     - 3dinfo
