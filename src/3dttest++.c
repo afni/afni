@@ -170,7 +170,7 @@ typedef struct {
 } Xclu_opt ;
 
 static int      do_Xclustsim = 0 ;   /* 30 Aug 2016 */
-static int       nopt_Xclu   = 0 ;
+static int       nnopt_Xclu  = 0 ;
 static Xclu_opt **opt_Xclu   = NULL ;
 
 static char *clustsim_prog=NULL ;    /* 30 Aug 2016 */
@@ -1652,7 +1652,7 @@ int main( int argc , char *argv[] )
        if( prefix_clustsim == NULL ){
          uuu = UNIQ_idcode_11() ;
          prefix_clustsim = (char *)malloc(sizeof(char)*32) ;
-         sprintf(prefix_clustsim,"TT.%s",uuu) ; free(uuu) ;
+         sprintf(prefix_clustsim,"TT.%s",uuu) ;
          ININFO_message("Default Xclustsim prefix set to '%s'",prefix_clustsim) ;
        }
 
@@ -1665,19 +1665,13 @@ int main( int argc , char *argv[] )
        char *cpt ; int qq,nbad=0 ; Xclu_opt *opx ;
        if( ++nopt >= argc ) ERROR_exit("need 1 argument after '%s'",argv[nopt-1]) ;
 
-       opt_Xclu = (Xclu_opt **)realloc( opt_Xclu , sizeof(Xclu_opt *)*(nopt_Xclu+1)) ;
-       opx      = opt_Xclu[nopt] ;
+       opt_Xclu = (Xclu_opt **)realloc( opt_Xclu , sizeof(Xclu_opt *)*(nnopt_Xclu+1)) ;
+       opx = opt_Xclu[nnopt_Xclu]  = malloc(sizeof(Xclu_opt)) ;
        opx->nnlev = 0 ;
        opx->sid   = 0 ;
        opx->npthr = 0 ;
        opx->pthr  = NULL ;
-       sprintf(opx->name,"Case%d",nopt_Xclu+1) ;
-
-       if( !do_Xclustsim ){
-         do_Xclustsim = (argv[nopt][2] == 'c' ) ? 1 : 2 ;
-         clustsim_prog = "3dClustSimX" ;
-         clustsim_opt  = argv[nopt] ;
-       }
+       sprintf(opx->name,"Case%d",nnopt_Xclu+1) ;
 
        cpt = strcasestr(argv[nopt],"NN1") ; if( cpt != NULL ) opx->nnlev = 1 ;
        cpt = strcasestr(argv[nopt],"NN2") ; if( cpt != NULL ) opx->nnlev = 2 ;
@@ -1733,7 +1727,7 @@ int main( int argc , char *argv[] )
        if( nbad > 0 )
          ERROR_exit("Can't continue after such errors in option %s",argv[nopt-1]) ;
 
-       nopt_Xclu++ ; nopt++ ; continue ;
+       nnopt_Xclu++ ; nopt++ ; continue ;
      }
 
      /*----- -prefix_clustsim cc [11 Feb 2016] -----*/
@@ -2242,6 +2236,9 @@ int main( int argc , char *argv[] )
 
    if( do_clustsim && do_Xclustsim )
      ERROR_exit("You can't use -Clustsim and -Xclustsim together :(") ;
+
+   if( nnopt_Xclu > 0 && !do_Xclustsim )
+     ERROR_exit("You can't use -Xclu_opt without -Xclustsim :( !!") ;
 
    if( brickwise && (do_clustsim || do_Xclustsim) )
      ERROR_exit("You can't use -brickwise and %s together!",clustsim_opt) ;
@@ -3348,11 +3345,11 @@ LABELS_ARE_DONE:  /* target for goto above */
        system(cmd) ;
 
      } else {  /*----- 3dClustSimX [30 Aug 2016] -----*/
-       int ixx , nxx=MAX(nopt_Xclu,1) ; Xclu_opt *opx ;
+       int ixx , nxx=MAX(nnopt_Xclu,1) ; Xclu_opt *opx ;
        int nnlev, sid, npthr ; float *pthr ; char *nam ;
 
        for( ixx=0 ; ixx < nxx ; ixx++ ){  /* loop over -Xclu_opt cases */
-         if( ixx < nopt_Xclu ){
+         if( ixx < nnopt_Xclu ){
            opx   = opt_Xclu[ixx] ;
            nnlev = opx->nnlev ;
            sid   = opx->sid ;
