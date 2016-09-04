@@ -163,11 +163,15 @@ static int      num_clustsim = 0 ;
 static char *prefix_clustsim = NULL ;
 static char *tempdir         = "./" ;/* 20 Jul 2016 */
 
+typedef struct {
+  int nnlev , sid , npthr ;
+  float *pthr ;
+  char name[32] ;
+} Xclu_opt ;
+
 static int      do_Xclustsim = 0 ;   /* 30 Aug 2016 */
-static int      nnlev_Xclu   = 2 ;
-static int      sid_Xclu     = 2 ;
-static int      npthr_Xclu   = 0 ;
-static float *   pthr_Xclu   = NULL ;
+static int       nnopt_Xclu  = 0 ;
+static Xclu_opt **opt_Xclu   = NULL ;
 
 static char *clustsim_prog=NULL ;    /* 30 Aug 2016 */
 static char *clustsim_opt =NULL ;
@@ -1648,51 +1652,82 @@ int main( int argc , char *argv[] )
        if( prefix_clustsim == NULL ){
          uuu = UNIQ_idcode_11() ;
          prefix_clustsim = (char *)malloc(sizeof(char)*32) ;
-         sprintf(prefix_clustsim,"TT.%s",uuu) ; free(uuu) ;
+         sprintf(prefix_clustsim,"TT.%s",uuu) ;
          ININFO_message("Default Xclustsim prefix set to '%s'",prefix_clustsim) ;
        }
 
-       /* process next argument as possible assignments to control variables */
+       continue ;
+     }
 
-       if( nopt < argc && argv[nopt][0] != '-' ){
-         char *cpt ; int qq,nbad ;
+     /*-----  -Xclu_opt STUFF  [03 Sep 2016]  -----*/
 
-         cpt = strcasestr(argv[nopt],"NN=") ;
-         if( cpt != NULL ){
-           qq = (int)strtod(cpt+3,NULL) ;
-           if( qq >= 1 && qq <= 3 ) nnlev_Xclu = qq ;
-           else
-             WARNING_message("Illegal value after -Xclustsim 'NN='; default NN=%d is used",nnlev_Xclu);
+     if( strcasecmp(argv[nopt],"-Xclu_opt") == 0 ){
+       char *cpt ; int qq,nbad=0 ; Xclu_opt *opx ;
+       if( ++nopt >= argc ) ERROR_exit("need 1 argument after '%s'",argv[nopt-1]) ;
+
+       opt_Xclu = (Xclu_opt **)realloc( opt_Xclu , sizeof(Xclu_opt *)*(nnopt_Xclu+1)) ;
+       opx = opt_Xclu[nnopt_Xclu]  = malloc(sizeof(Xclu_opt)) ;
+       opx->nnlev = 0 ;
+       opx->sid   = 0 ;
+       opx->npthr = 0 ;
+       opx->pthr  = NULL ;
+       sprintf(opx->name,"Case%d",nnopt_Xclu+1) ;
+
+       cpt = strcasestr(argv[nopt],"NN1") ; if( cpt != NULL ) opx->nnlev = 1 ;
+       cpt = strcasestr(argv[nopt],"NN2") ; if( cpt != NULL ) opx->nnlev = 2 ;
+       cpt = strcasestr(argv[nopt],"NN3") ; if( cpt != NULL ) opx->nnlev = 3 ;
+
+       cpt = strcasestr(argv[nopt],"NN=") ;
+       if( cpt != NULL ){
+         qq = (int)strtod(cpt+3,NULL) ;
+         if( qq >= 1 && qq <= 3 ) opx->nnlev = qq ;
+         else {
+          ERROR_message("Illegal value after NN= in argument '%s'",argv[nopt]); nbad++;
          }
-
-         cpt = strcasestr(argv[nopt],"sid=") ;
-         if( cpt != NULL ){
-           qq = (int)strtod(cpt+4,NULL) ;
-           if( qq >= 1 && qq <= 2 ) sid_Xclu = qq ;
-           else
-             WARNING_message("Illegal value after -Xclustsim 'sid='; default sid=%d is used",sid_Xclu);
-         }
-
-         cpt = strcasestr(argv[nopt],"pthr=") ;
-         if( cpt != NULL ){
-           NI_float_array *nfar = NI_decode_float_list(cpt+5,",") ;
-           if( nfar != NULL || nfar->num > 0 ){
-             for( nbad=qq=0 ; qq < nfar->num ; qq++ ){
-               if( nfar->ar[qq] < 0.0001f || nfar->ar[qq] > 0.1f ) nbad++ ;
-             }
-             if( nbad > 0 ){
-               ERROR_exit("Illegal values after -Xclustsim 'pthr=' ; defaults are used") ;
-             } else {
-               npthr_Xclu = nfar->num ;
-                pthr_Xclu = nfar->ar ;
-             }
-           }
-         }
-
-         nopt++ ;
        }
 
-       continue ;
+       cpt = strcasestr(argv[nopt],"1sid") ; if( cpt != NULL ) opx->sid = 1 ;
+       cpt = strcasestr(argv[nopt],"2sid") ; if( cpt != NULL ) opx->sid = 2 ;
+
+       cpt = strcasestr(argv[nopt],"sid=") ;
+       if( cpt != NULL ){
+         qq = (int)strtod(cpt+4,NULL) ;
+         if( qq >= 1 && qq <= 2 ) opx->sid = qq ;
+         else {
+           ERROR_message("Illegal value after sid= in argument '%s'",argv[nopt]); nbad++;
+         }
+       }
+
+       cpt = strcasestr(argv[nopt],"pthr=") ;
+       if( cpt != NULL ){
+         NI_float_array *nfar = NI_decode_float_list(cpt+5,",") ;
+         if( nfar != NULL && nfar->num > 0 ){
+           for( nbad=qq=0 ; qq < nfar->num ; qq++ ){
+             if( nfar->ar[qq] < 0.0001f || nfar->ar[qq] > 0.1f ){
+               ERROR_message("Illegal value after pthr= in argument '%s'",argv[nopt]);  nbad++ ;
+             }
+           }
+           opx->npthr = nfar->num ; opx->pthr = nfar->ar ;
+         } else {
+           ERROR_message("Indecipherable values after pthr= in argument '%s'",argv[nopt]); nbad++;
+         }
+       }
+
+       cpt = strcasestr(argv[nopt],"name=") ;
+       if( cpt != NULL && cpt[5] != '\0' ){
+         char nam[128] ; nam[0] = '\0' ;
+         sscanf(cpt+5," %s",nam) ;
+         if( strlen(nam) == 0 || strlen(nam) > 31 || !THD_filename_pure(nam) ){
+           ERROR_message("Illegal string after name= in argument '%s'",argv[nopt]); nbad++ ;
+         } else {
+           MCW_strncpy(opx->name,nam,32) ;
+         }
+       }
+
+       if( nbad > 0 )
+         ERROR_exit("Can't continue after such errors in option %s",argv[nopt-1]) ;
+
+       nnopt_Xclu++ ; nopt++ ; continue ;
      }
 
      /*----- -prefix_clustsim cc [11 Feb 2016] -----*/
@@ -2198,6 +2233,12 @@ int main( int argc , char *argv[] )
 
    if( brickwise && do_randomsign )          /* 02 Feb 2016 */
      ERROR_exit("You can't use -brickwise and -randomsign together!") ;
+
+   if( do_clustsim && do_Xclustsim )
+     ERROR_exit("You can't use -Clustsim and -Xclustsim together :(") ;
+
+   if( nnopt_Xclu > 0 && !do_Xclustsim )
+     ERROR_exit("You can't use -Xclu_opt without -Xclustsim :( !!") ;
 
    if( brickwise && (do_clustsim || do_Xclustsim) )
      ERROR_exit("You can't use -brickwise and %s together!",clustsim_opt) ;
@@ -3304,21 +3345,41 @@ LABELS_ARE_DONE:  /* target for goto above */
        system(cmd) ;
 
      } else {  /*----- 3dClustSimX [30 Aug 2016] -----*/
+       int ixx , nxx=MAX(nnopt_Xclu,1) ; Xclu_opt *opx ;
+       int nnlev, sid, npthr ; float *pthr ; char *nam ;
 
-       sprintf( cmd , "3dClustSimX -DAFNI_DONT_LOGFILE=YES "
-                      " -prefix %s.CSimX.nii -NN%d -%dsid" ,
-                      prefix_clustsim , nnlev_Xclu , sid_Xclu ) ;
-       if( npthr_Xclu > 0 ){
-         sprintf( cmd+strlen(cmd) , " -pthr") ;
-         for( pp=0 ; pp < npthr_Xclu ; pp++ )
-           sprintf( cmd+strlen(cmd) , " %.5f",pthr_Xclu[pp]) ;
-       }
-       sprintf( cmd+strlen(cmd) , " -insdat %s",name_mask) ;
-       for( pp=0 ; pp < num_clustsim ; pp++ )
-         sprintf( cmd+strlen(cmd) , " %s" , tfname[pp]) ;
+       for( ixx=0 ; ixx < nxx ; ixx++ ){  /* loop over -Xclu_opt cases */
+         if( ixx < nnopt_Xclu ){
+           opx   = opt_Xclu[ixx] ;
+           nnlev = opx->nnlev ;
+           sid   = opx->sid ;
+           npthr = opx->npthr ;
+            pthr = opx->pthr ;
+           nam   = opx->name ;
+         } else {
+           nnlev = sid = npthr = 0 ; pthr = NULL ; nam="default" ;
+         }
 
-       ININFO_message("===== starting 3dClustSimX =====\n   %s",cmd) ;
-       system(cmd) ;
+         sprintf( cmd , "3dClustSimX -DAFNI_DONT_LOGFILE=YES" 
+                        " -prefix %s.%s.CsimX.nii" , prefix_clustsim , nam ) ;
+
+         if( nnlev > 0 )
+           sprintf( cmd+strlen(cmd) , " -NN%d" , nnlev ) ;
+         if( sid   > 0 )
+           sprintf( cmd+strlen(cmd) , " -%dsid" , sid ) ;
+
+         if( npthr > 0 && pthr != NULL ){
+           sprintf( cmd+strlen(cmd) , " -pthr") ;
+           for( pp=0 ; pp < npthr ; pp++ )
+             sprintf( cmd+strlen(cmd) , " %.5f",pthr[pp]) ;
+         }
+         sprintf( cmd+strlen(cmd) , " -insdat %s",name_mask) ;
+         for( pp=0 ; pp < num_clustsim ; pp++ )
+           sprintf( cmd+strlen(cmd) , " %s" , tfname[pp]) ;
+
+         ININFO_message("===== starting 3dClustSimX =====\n   %s",cmd) ;
+         system(cmd) ;
+       }  /* loop over 3dClustSimX (-Xclu_opt) cases to run */
      }
 
      /* remove intermediate files */
