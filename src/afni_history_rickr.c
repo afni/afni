@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  4,  Sep, 2016, RCR, "suma-general", MICRO, TYPE_BUG_FIX,
+   "do not call glutInit in general - crashes with out display",
+   "Consider an alternate fix for NeuroDebian when there is time."
+ } ,
+
  { 29,  Aug, 2016, RCR, "afni_system_check.py", MICRO, TYPE_ENHANCE,
    "add a few more DYLD_FALLBACK_LIBRARY_PATH tests",
    NULL
