@@ -661,12 +661,19 @@ int get_Xcluster_nbcount( Xcluster *xc , int ithr )
 static float inverse_interp_extreme( float alpha0, float alpha1, float alphat,
                                      float x0    , float x1                   )
 {
-   float a0,a1,at ;
+   float a0,a1,at , xx ;
 
-   a0 = logf(-logf(1.0f-alpha0)) ;
-   a1 = logf(-logf(1.0f-alpha1)) ;
-   at = logf(-logf(1.0f-alphat)) ;
-   return (x0 + (x1-x0)/(a1-a0)*(at-a0)) ;  /* linear interp in a-space */
+   if( (alphat-alpha0)*(alphat-alpha1) < 0.0f ){ /* alphat is bracketed */
+     a0 = logf(-logf(1.0f-alpha0)) ;
+     a1 = logf(-logf(1.0f-alpha1)) ;
+     at = logf(-logf(1.0f-alphat)) ;
+     xx = (x0 + (x1-x0)/(a1-a0)*(at-a0)) ;  /* linear interp in a-space */
+   } else if( fabsf(alphat-alpha0) <= fabsf(alphat-alpha1) ){
+     xx = x0 ;  /* alphat is closer to alpha0 */
+   } else {
+     xx = x1 ;  /* alphat is closer to alpha1 */
+   }
+   return xx ;
 }
 
 /*---------------------------------------------------------------------------*/
@@ -827,7 +834,7 @@ int main( int argc , char *argv[] )
    /*============================================================================*/
    /*--- STEP 1c: find the global distributions [not needed but fun] ------------*/
 
-#define GTHRESH_FAC 0.1f
+#define GTHRESH_FAC 0.0666f
 
    { int nfom,jj; Xcluster **xcc;
      float a0,a1,f0,f1,ft ;
@@ -1169,7 +1176,7 @@ FARP_LOOPBACK:
           a0 = ((float)jthresh)/((float)niter) ; f0 = fomsort[ipthr][iv]->far[jthresh] ;
           a1 = a0        + 1.0f/((float)niter) ; f1 = fomsort[ipthr][iv]->far[jthresh+1] ;
           ft = inverse_interp_extreme( a0,a1,tfrac , f0,f1 ) ;
-          if( ft < 0.123f*gthresh[ipthr] ) ft = 0.123f*gthresh[ipthr] ;
+          if( ft < gthresh[ipthr] ) ft = gthresh[ipthr] ;
           car[ipthr][ijkmask[iv]] = ft ;  /* = FOM threshold for this voxel */
                                           /* = the goal of this entire program! */
         }
