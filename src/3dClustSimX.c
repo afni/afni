@@ -1133,11 +1133,12 @@ FINAL_STUFF:
 
 FARP_LOOPBACK:
    {
-     float min_tfrac ;
+     float min_tfrac ; int nedge ;
      min_tfrac = 6.0f / niter ; if( min_tfrac > 0.0001f ) min_tfrac = 0.0001f ;
 
      itrac++ ;                                        /* number of iterations */
      nfar = 0 ;                                            /* total FAR count */
+     nedge = 0 ;                                      /* number of edge cases */
      ithresh = (int)(tfrac*niter) ;                    /* FOM count threshold */
      /* we take the ithresh-th largest FOM at each voxel as its FOM threshold */
 
@@ -1171,7 +1172,11 @@ FARP_LOOPBACK:
         for( ipthr=0 ; ipthr < npthr ; ipthr++ ){ /* over p-value thresh */
           npt = fomsort[ipthr][iv]->npt ;    /* how many FOM values here */
           jthresh = ithresh ;             /* default index of FOM thresh */
-          if( jthresh > (int)(0.8f*npt) ) jthresh = (int)(0.8*npt) ;
+          if( jthresh > (int)(0.8f*npt) ){
+            jthresh = (int)(0.8*npt) ;
+#pragma omp atomic
+            nedge++ ;
+          }
           /* extract this FOM thresh by interpolation */
           a0 = ((float)jthresh)/((float)niter) ; f0 = fomsort[ipthr][iv]->far[jthresh] ;
           a1 = a0        + 1.0f/((float)niter) ; f1 = fomsort[ipthr][iv]->far[jthresh+1] ;
@@ -1213,8 +1218,8 @@ FARP_LOOPBACK:
      farpercold = farperc ;               /* save what we got last time */
      farperc    = (100.0*nfar)/(float)niter ;  /* what we got this time */
      if( verb )
-       ININFO_message("#%2d: False Alarm count = %d  Rate = %.2f%%",
-                      itrac,nfar,farperc ) ;
+       ININFO_message("#%2d: False Alarm count = %d  Rate = %.2f%%  [nedge=%d]",
+                      itrac, nfar, farperc, nedge ) ;
 
      /* do we need to try another tfrac to get closer to our goal? */
 
@@ -1239,12 +1244,12 @@ FARP_LOOPBACK:
        goto FARP_LOOPBACK ;
      }
 
-   }
+   } /* end of iterations to find the ideal farperc */
 
    /*============================================*/
    /*--- Write stuff out, then quit quit quit ---*/
 
-   if( !(do_fixed || do_mfixed) ){
+   if( !(do_fixed || do_mfixed) ){         /* output the per-voxel FOM thresholds */
      qset = EDIT_empty_copy(mask_dset) ;
      sprintf(qpr,".mthresh") ;
      EDIT_dset_items( qset ,
@@ -1273,7 +1278,7 @@ FARP_LOOPBACK:
      DSET_delete(qset); qset = NULL; qar = NULL;
    }
 
-   if( do_FARvox ){
+   if( do_FARvox ){                       /* output the per-voxel false alarm count */
      qset = EDIT_empty_copy(mask_dset) ;
      sprintf(qpr,".FARvox") ;
      EDIT_dset_items( qset ,
@@ -1288,6 +1293,8 @@ FARP_LOOPBACK:
      DSET_write(qset); WROTE_DSET(qset);
      DSET_delete(qset); qset = NULL; qar = NULL;
    }
+
+   /* It's the end of the world, Calvin */
 
    if( verb ) INFO_message("Elapsed time = %.1f s",COX_clock_time()) ;
    exit(0) ;
