@@ -3589,7 +3589,15 @@ R_io.so:R_io.c libmri.a
 #    all:     depends on AFNI_version.txt
 #    install: installs AFNI_version.txt
 
-mrilib.h: AFNI_version.h
+mrilib.h: Startup_Commands AFNI_version.h
+
+# the purpose of this is to run any commands needed before
+# actually starting compilation:
+#   in particular, for the NIH Biowulf, it is necessary to
+#   do 'module load intel' to gain access to the Intel C compiler
+
+Startup_Commands:
+	$(STARTUP_COMMANDS)
 
 AFNI_version.h: AFNI_version_base.txt
 	echo "#undef  AFNI_VERSION_LABEL" > AFNI_version.h ;                 \
