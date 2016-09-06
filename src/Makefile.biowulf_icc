@@ -81,8 +81,10 @@ LINT = /usr/bin/lint -a -b -u -v -x $(IFLAGS) $(CCDEFS)
 
 INSTALLDIR = ./macosx_10.10_icc
 LIBDIR = $(INSTALLDIR)
-SYSTEM_NAME = macosx_10.10_icc
+SYSTEM_NAME = biowulf_icc
 SHOWOFF = -DSHOWOFF=$(SYSTEM_NAME)
+
+STARTUP_COMMANDS = module load intel
 
 INSTALL_PREREQ = suma_gts
 #INSTALL_PREREQ = suma

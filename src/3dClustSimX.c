@@ -834,7 +834,7 @@ int main( int argc , char *argv[] )
    /*============================================================================*/
    /*--- STEP 1c: find the global distributions [not needed but fun] ------------*/
 
-#define GTHRESH_FAC 0.0666f
+#define GTHRESH_FAC 0.333333f
 
    { int nfom,jj; Xcluster **xcc;
      float a0,a1,f0,f1,ft ;
