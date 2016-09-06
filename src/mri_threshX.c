@@ -45,7 +45,7 @@ typedef struct {
   int   *ijk ;              /* 1D index for each point */
 } Xcluster ;
 
-#define MIN_CLUST 3  /* smallest cluster size allowed (voxels) */
+#define MIN_CLUST 5  /* smallest cluster size allowed (voxels) */
 
 /*----- struct to hold a bunch of clusters -----*/
 
@@ -156,18 +156,14 @@ Xcluster * copy_Xcluster( Xcluster *xcc )
 /* Struct to define how to threshold and clusterize */
 
 typedef struct {
-  int nnlev , sid , qpow ;
+  int nnlev , sid , hpow ;
   float pthr , blur ;
-} thresh_clust_param ;
+} Xthresh_clust_param ;
 
 /*----------------------------------------------------------------------------*/
 
-#if 0  /* for later developments in FOM technology */
-#  define ADDTO_FOM(val)                                               \
-    ( (qpow==0) ? 1.0f :(qpow==1) ? fabsf(val) : (val)*(val) )
-#else
-#  define ADDTO_FOM(val) 1.0f
-#endif
+#define ADDTO_FOM(val)                                       \
+  ( (hpow==0) ? 1.0f :(hpow==1) ? fabsf(val) : (val)*(val) )
 
 /*----------------------------------------------------------------------------*/
 /* Add a point to current cluster (if far is nonzero at this point).
@@ -206,6 +202,7 @@ Xcluster_array * find_Xcluster_array( MRI_IMAGE *fim, int nnlev, MRI_IMAGE *cim 
    int ii,jj,kk, icl , ijk , ijk_last ;
    int ip,jp,kp , im,jm,km , nx,ny,nz,nxy,nxyz ;
    const int do_nn2=(nnlev > 1) , do_nn3=(nnlev > 2) ;
+   const int hpow=0 ;
 
    far = MRI_FLOAT_PTR(fim) ;
    car = (cim != NULL) ? MRI_FLOAT_PTR(cim) : NULL ;
@@ -344,7 +341,7 @@ MRI_IMAGE * mri_multi_threshold_Xcluster( MRI_IMAGE *fim ,
    nvox = fim->nvox ;
    far  = MRI_FLOAT_PTR(fim) ;
 
-   for( kth=0 ; kth < nthr ; kth++ ){
+   for( kth=0 ; kth < nthr ; kth++ ){  /* loop over thresholds */
      thr  = thar[kth] ;
      cim  = (cimar != NULL) ? IMARR_SUBIM(cimar,kth) : NULL ;
      tfim = mri_copy(fim) ;
