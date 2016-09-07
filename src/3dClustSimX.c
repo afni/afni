@@ -1177,8 +1177,8 @@ FARP_LOOPBACK:
         for( ipthr=0 ; ipthr < npthr ; ipthr++ ){ /* over p-value thresh */
           npt = fomsort[ipthr][iv]->npt ;    /* how many FOM values here */
           jthresh = ithresh ;             /* default index of FOM thresh */
-          if( jthresh > (int)(0.8f*npt) ){
-            jthresh = (int)(0.8*npt) ;
+          if( jthresh > (int)(0.666f*npt) ){
+            jthresh = (int)(0.666f*npt) ;
 #pragma omp atomic
             nedge++ ;
           }
