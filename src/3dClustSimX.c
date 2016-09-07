@@ -837,7 +837,7 @@ int main( int argc , char *argv[] )
 #define GTHRESH_FAC 0.333333f
 
    { int nfom,jj; Xcluster **xcc;
-     float a0,a1,f0,f1,ft ;
+     float a0,a1,f0,f1,fta,ftb ;
      float *fomg=calloc(sizeof(float),nclust_max);
 
      gthresh = (float *)calloc(sizeof(float),npthr) ;
@@ -848,13 +848,18 @@ int main( int argc , char *argv[] )
        }
        if( nfom < 100 ) continue ;  /* should not happen */
        qsort_float_rev( nfom, fomg ) ;
-       jj = (int)(0.05f*niter) ;
-       a0 = ((float)jj)/((float)niter) ; f0 = fomg[jj] ;
-       a1 = a0 + 1.0f/((float)niter) ;   f1 = fomg[jj+1] ;
-       ft = gthresh[qpthr] = GTHRESH_FAC * inverse_interp_extreme( a0,a1,0.05f, f0,f1 ) ;
+       jj  = (int)(0.05f*niter) ;
+       a0  = ((float)jj)/((float)niter) ; f0 = fomg[jj] ;
+       a1  = a0 + 1.0f/((float)niter) ;   f1 = fomg[jj+1] ;
+       fta = GTHRESH_FAC * inverse_interp_extreme( a0,a1,0.05f, f0,f1 ) ;
+       jj  = (int)(0.20f*niter) ;
+       a0  = ((float)jj)/((float)niter) ; f0 = fomg[jj] ;
+       a1  = a0 + 1.0f/((float)niter) ;   f1 = fomg[jj+1] ;
+       ftb = inverse_interp_extreme( a0,a1,0.05f, f0,f1 ) ;
+       gthresh[qpthr] = MAX(fta,ftb) ;
        if( verb )
          ININFO_message("pthr=%.5f gets min threshold %.1f [nfom=%d]",
-                        pthr[qpthr],ft,nfom) ;
+                        pthr[qpthr],gthresh[qpthr],nfom) ;
      }
      free(fomg) ;
    }
