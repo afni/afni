@@ -855,10 +855,10 @@ int main( int argc , char *argv[] )
        jj  = (int)(0.20f*niter) ;
        a0  = ((float)jj)/((float)niter) ; f0 = fomg[jj] ;
        a1  = a0 + 1.0f/((float)niter) ;   f1 = fomg[jj+1] ;
-       ftb = inverse_interp_extreme( a0,a1,0.05f, f0,f1 ) ;
-       gthresh[qpthr] = MAX(fta,ftb) ;
+       ftb = inverse_interp_extreme( a0,a1,0.20f, f0,f1 ) ;
+       gthresh[qpthr] = (int)MAX(fta,ftb) ;
        if( verb )
-         ININFO_message("pthr=%.5f gets min threshold %.1f [nfom=%d]",
+         ININFO_message("pthr=%.5f gets min threshold %.0f [nfom=%d]",
                         pthr[qpthr],gthresh[qpthr],nfom) ;
      }
      free(fomg) ;
