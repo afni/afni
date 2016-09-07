@@ -683,7 +683,7 @@ int main( int argc , char *argv[] )
 {
    int qpthr , ii,xx,yy,zz,ijk , dijk ;
    int ndilstep , ndilated[4] , ndilsum ;
-   int count_targ100 , count_targ80, count_targ50 ;
+   int count_targ100 , count_targ80, count_targ60 ;
    THD_3dim_dataset *qset=NULL ;
    float *qar=NULL , *gthresh=NULL ;
    char qpr[32] ;
@@ -907,11 +907,11 @@ int main( int argc , char *argv[] )
 
    /* target counts for voxel "hits" */
 
-   count_targ100 = (int)rintf(0.0100f*niter) ;
-   if( count_targ100 > 300 )
-     count_targ100 = (int)rintf(sqrtf(300.0f*count_targ100)) ;
+   count_targ100 = (int)rintf(0.0111f*niter) ;
+   if( count_targ100 > 333 )
+     count_targ100 = (int)rintf(sqrtf(333.0f*count_targ100)) ;
    count_targ80  = (int)rintf(0.80f*count_targ100) ;
-   count_targ50  = (int)rintf(0.50f*count_targ100) ;
+   count_targ60  = (int)rintf(0.60f*count_targ100) ;
 
    if( verb )
      INFO_message("STEP 2: start cluster dilation") ;
@@ -953,7 +953,7 @@ int main( int argc , char *argv[] )
         idil = get_Xcluster_nbcount( Xclust_tot[qpthr][iter] , ithr ) ;
         if( idil < count_targ100 ){  /* too few? */
           /* dilate:                   NN3 or                     NN2 or NN1 */
-          idil = (idil < count_targ50) ? 3 :(idil < count_targ80) ? 2 :    1 ;
+          idil = (idil < count_targ60) ? 3 :(idil < count_targ80) ? 2 :    1 ;
           dilate_Xcluster( Xclust_tot[qpthr][iter] , idil , ithr ) ;
 #pragma omp atomic
           ndilated[idil]++ ;  /* count how many dilations of each type */
