@@ -49,6 +49,15 @@ Xdataset * open_Xdataset( char *mask_fname, int nsdat, char **sdat_fname )
      ERROR_exit("can't open mask dataset '%s'",mask_fname) ;
    DSET_load(xds->mask_dset) ; CHECK_LOAD_ERROR(xds->mask_dset) ;
 
+   if( DSET_NX(xds->mask_dset) > MAX_IND ||
+       DSET_NY(xds->mask_dset) > MAX_IND || DSET_NZ(xds->mask_dset) > MAX_IND )
+#ifdef USE_UBYTE
+     ERROR_exit("dataset grid too big -- must recompile to use shorts as indexes :(") ;
+#else
+     ERROR_exit("dataset grid too big -- what ARE you doing?") ; /* should never happen */
+ #endif
+
+
    xds->mask_vol = THD_makemask( xds->mask_dset , 0 , 1.0,0.0 ) ;
    if( xds->mask_vol == NULL )
      ERROR_exit("can't use -mask dataset '%s'",mask_fname) ;
