@@ -30,7 +30,8 @@ void usage_SpaceTimeCorr(int detail)
 "   operatesdifferently. Here, two data sets are loaded in, and for each \n"
 "   voxel in the brain:\n"
 "      + for each data set, an ijk-th voxel is used as a seed to generate a\n"
-"        correlation map within a user-defined mask (e.g., whole brain);\n"
+"        correlation map within a user-defined mask (e.g., whole brain,\n"
+"        excluding the seed location where r==1, by definition);\n"
 "      + that correlation map is Fisher Z transformed;\n"
 "      + the Z-correlation maps are (Pearson) correlated with each other,\n"
 "        generating a single correlation coefficient;\n"
@@ -104,17 +105,19 @@ int main(int argc, char *argv[]) {
 
    FILE *fout0, *fout1;
    int Nvox=-1;       // tot number vox in data set
-   int Nmskd=-1;      // tot number vox in mask
+   int Nmskd=-1,Nmskdm1=-1;      // tot number vox in mask
    int *Dim=NULL;
    byte ***mskd=NULL; // define mask of where time series are nonzero
 
-   double *mapA=NULL, *mapB=NULL; // will hold time series correlations
+   float *mapA=NULL, *mapB=NULL; // will hold time series correlations
    float *scorrAB=NULL;          // will be spatial correlation map
-   double *tsX=NULL, *tsY=NULL;
+   float *tsX=NULL, *tsY=NULL;
    int np=0, nprog = 0;           // count progress.
    time_t t_start;
 
    int ZOUT = 0;
+
+   int myloc[3] = {0,0,0};
 
    mainENTRY("3dSpaceTimeCorr"); machdep(); 
   
@@ -258,12 +261,15 @@ int main(int argc, char *argv[]) {
                   ctr++;
                }
             }
-            else
+            else{
                mskd[i][j][k] = 1;
+               ctr++;
+            }
             idx+= 1; // skip, and mskd and KW are both still 0 from calloc
          }
 
    Nmskd = ctr;
+   Nmskdm1 = Nmskd - 1; // use, because we skip self in ts-corr
    np = (int) Nmskd / 10.;
 
    if( MASK )
@@ -278,13 +284,13 @@ int main(int argc, char *argv[]) {
    // **************************************************************
    // **************************************************************
 
-   mapA = (double *)calloc(Nmskd, sizeof(double)); 
-   mapB = (double *)calloc(Nmskd, sizeof(double)); 
+   mapA = (float *)calloc(Nmskdm1, sizeof(float)); 
+   mapB = (float *)calloc(Nmskdm1, sizeof(float)); 
 
    scorrAB = (float *)calloc(Nvox, sizeof(float)); 
 
-   tsX = (double *)malloc(sizeof(double)*Dim[3]) ;  
-   tsY = (double *)malloc(sizeof(double)*Dim[3]) ;  
+   tsX = (float *)calloc(Dim[3], sizeof(float)); 
+   tsY = (float *)calloc(Dim[3], sizeof(float)); 
 
    if( (mapA == NULL) || (mapB == NULL) || (scorrAB == NULL) ||
        (tsX == NULL) || (tsY == NULL)) {
@@ -303,24 +309,31 @@ int main(int argc, char *argv[]) {
          for( i=0 ; i<Dim[0] ; i++ ) {
             if( mskd[i][j][k] ) {
 
-               mm = THD_extract_double_array(ctr,insetTIMEA,tsX);  
+               myloc[0]=i;
+               myloc[1]=j;
+               myloc[2]=k;
+
+               mm = THD_extract_float_array(ctr,insetTIMEA,tsX);  
                mm = WB_corr_loop(
                                  tsX,tsY,
                                  insetTIMEA,
                                  Dim,
                                  mskd,
-                                 mapA
+                                 mapA,
+                                 myloc
                                  );
-               mm = THD_extract_double_array(ctr,insetTIMEB,tsX);  
+               
+               mm = THD_extract_float_array(ctr,insetTIMEB,tsX);  
                mm = WB_corr_loop(
                                  tsX,tsY,
                                  insetTIMEB,
                                  Dim,
                                  mskd,
-                                 mapB
+                                 mapB,
+                                 myloc
                                  );
 
-               scorrAB[ctr] = (float) CORR_FUN(mapA,mapB,Nmskd);
+               scorrAB[ctr] = THD_pearson_corr(Nmskdm1,mapA,mapB); 
 
                nprog++;
                if (nprog % np == 0) {
