@@ -835,6 +835,8 @@ int main( int argc , char *argv[] )
    /*--- STEP 1c: find the global distributions [not needed but fun] ------------*/
 
 #define GTHRESH_FAC 0.333333f
+#define GTHRESH_THA 0.05f
+#define GTHRESH_THB 0.19f
 
    { int nfom,jj; Xcluster **xcc;
      float a0,a1,f0,f1,fta,ftb ;
@@ -846,16 +848,12 @@ int main( int argc , char *argv[] )
        for( nfom=ii=0 ; ii < nclust_tot[qpthr] ; ii++ ){
          if( xcc[ii] != NULL ) fomg[nfom++] = xcc[ii]->fom ;
        }
-       if( nfom < 100 ) continue ;  /* should not happen */
+       if( nfom < 50 ) continue ;  /* should not happen */
        qsort_float_rev( nfom, fomg ) ;
-       jj  = (int)(0.05f*niter) ;
-       a0  = ((float)jj)/((float)niter) ; f0 = fomg[jj] ;
-       a1  = a0 + 1.0f/((float)niter) ;   f1 = fomg[jj+1] ;
-       fta = GTHRESH_FAC * inverse_interp_extreme( a0,a1,0.05f, f0,f1 ) ;
-       jj  = (int)(0.20f*niter) ;
-       a0  = ((float)jj)/((float)niter) ; f0 = fomg[jj] ;
-       a1  = a0 + 1.0f/((float)niter) ;   f1 = fomg[jj+1] ;
-       ftb = inverse_interp_extreme( a0,a1,0.20f, f0,f1 ) ;
+       jj  = (int)(GTHRESH_THA*niter) ;
+       fta = GTHRESH_FAC*fomg[jj] ;
+       jj  = (int)(GTHRESH_THB*niter) ;
+       ftb = fomg[jj] ;
        gthresh[qpthr] = (int)MAX(fta,ftb) ;
        if( verb )
          ININFO_message("pthr=%.5f gets min threshold %.0f [nfom=%d]",
