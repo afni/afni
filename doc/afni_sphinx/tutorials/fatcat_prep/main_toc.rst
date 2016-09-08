@@ -3,7 +3,7 @@
 .. _FATCAT_prep:
 
 =====================================================
-**FATCAT: DWI Pre-pre-, Pre- and Post-preprocessing**
+**FATCAT: DWI {Pre-pre-, Pre-, Post-pre}processing**
 =====================================================
 
 .. toctree::
