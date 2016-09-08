@@ -66,6 +66,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 31, Aug , 2016 , PT , "3dSpaceTimeCorr" , MAJOR , TYPE_BUG_FIX,
+   "Fixed bug in yet-unreleased function... and also changed a feature.",
+   "Bug: ts = all0 -> GSL badness on some comp; now, exclude seedvox in corr.\n"
+},
+
 { 31, Aug , 2016 , PT , "3dSpaceTimeCorr" , MAJOR , TYPE_NEW_PROG,
    "New function for calculating spatial corr of temporal corr maps.",
    "Calc spatial corr of WB/mask connectivity maps; useful for RSFC?\n"
