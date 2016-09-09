@@ -1,0 +1,284 @@
+#!/bin/tcsh -ef
+
+
+# Sept, 2016
+#   + added pre-lr-symm (as def), 
+#   + added option for post-lr-symm
+#   + added '-wdir'
+#   + added cmass->(0,0,0) as def for output
+
+set version = "2.2.1"
+set rev_dat = "Sep, 2016"
+
+set here     = $PWD
+set in_fa   = ""
+set in_v1   = ""
+set in_mask  = ""
+
+set outdir   = ""
+set outpref  = "DEC"
+set tmppref  = "_zxcvbnm09"
+
+set DoClean  = "0"
+
+# ------------------- process options, a la rr ----------------------
+
+if ( $#argv == 0 ) goto SHOW_HELP
+
+set ac = 1
+while ( $ac <= $#argv )
+    # terminal options
+    if ( ("$argv[$ac]" == "-h" ) || ("$argv[$ac]" == "-help" )) then
+        goto SHOW_HELP
+    endif
+    if ( "$argv[$ac]" == "-ver" ) then
+        goto SHOW_VERSION
+    endif
+
+   # required
+   if ( "$argv[$ac]" == "-in_fa" ) then
+      if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+      @ ac += 1
+      set in_fa = "$argv[$ac]"
+
+   else if ( "$argv[$ac]" == "-in_v1" ) then
+      if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+      @ ac += 1
+      set in_v1 = "$argv[$ac]"
+
+   else if ( "$argv[$ac]" == "-in_mask" ) then
+      if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+      @ ac += 1
+      set in_mask = "$argv[$ac]"
+
+   else if ( "$argv[$ac]" == "-outdir" ) then
+      if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+      @ ac += 1
+      set outdir = "$argv[$ac]"
+
+   else if ( "$argv[$ac]" == "-prefix" ) then
+      if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+      @ ac += 1
+      set outpref = "$argv[$ac]"
+
+   else if ( "$argv[$ac]" == "-do_clean" ) then
+      set DoClean = 1
+
+
+   else
+      echo "** unexpected option #$ac = '$argv[$ac]'"
+      exit 2
+
+   endif
+   @ ac += 1
+end
+
+
+# =======================================================================
+# ============================ ** SETUP ** ==============================
+# =======================================================================
+
+# ============================ input files ==============================
+
+echo "++ Start script version: $version"
+
+set to_clean = ( ) 
+
+set check = `3dinfo "$in_fa"`
+echo "$#check"
+if ( "$#check" == "0" ) then
+    echo "** ERROR: can't find inset file $in_fa !"
+    goto EXIT
+endif
+
+set check = `3dinfo "$in_v1"`
+echo "$#check"
+if ( "$#check" == "0" ) then
+    echo "** ERROR: can't find inset file $in_v1 !"
+    goto EXIT
+endif
+
+# ========================= output/working dir ==========================
+
+# check output directory, use input one if nothing given
+
+if ( $outdir == "" ) then
+    # default output dir, if nothing input; it must exist already,
+    # because a file is in it
+
+    set outdir = `dirname $in_fa`
+    echo "\n++ No output directory specificied by the user."
+    echo "++ Using the input FA file's directory by default:"
+    echo "\t$outdir"
+else
+    if ( ! -e $outdir ) then
+        echo "++ Making new output directory: $outdir"
+        mkdir $outdir
+    endif
+endif
+
+if ( $in_mask =="" ) then
+
+    echo "+* No mask input, so ~making one of regions where FA>0."
+
+    set in_mask = "$outdir/${tmppref}_mskd.nii.gz"
+
+    3dcalc -echo_edu                     \
+        -overwrite                       \
+        -a $in_fa                        \
+        -expr 'step(a)'                  \
+        -prefix $in_mask                 \
+        -datum byte
+
+    set to_clean = ( $to_clean $in_mask )
+
+else
+    echo "++ User input mask, so checking for it..."
+    set check = `3dinfo "$in_mask"`
+    if ( "$#check" == "0" ) then
+        echo "** ERROR: can't find inset file $in_mask !"
+        goto EXIT
+    endif 
+    echo "++ ... OK, got $in_mask"
+endif
+
+
+endif
+
+# =======================================================================
+# =========================== ** PROCESS ** =============================
+# =======================================================================
+
+echo "\n-----> STARTING RGB calcs with FA and V1 <----"
+
+set fout = "$outdir/${tmppref}_v1fa.nii.gz"
+set to_clean = ( $to_clean $fout )
+3dcalc                                   \
+    -echo_edu                            \
+    -overwrite                           \
+    -a $in_fa                            \
+    -b $in_v1                            \
+    -expr 'a*abs(b)'                     \
+    -prefix "$fout"                      \
+    -datum float
+
+set fin  = "$fout"
+set fout = "$outdir/${outpref}.nii.gz"
+3dThreetoRGB                             \
+    -echo_edu                            \
+    -overwrite                           \
+    -scale 255                           \
+    -prefix $fout                        \
+    -mask   $in_mask                     \
+    $fin
+
+# --------------------------------------------------------
+
+if ( $DoClean ) then
+    echo "\n Removing temporary file(s):"
+    echo "\t $to_clean"
+   \rm $to_clean
+else
+    echo "\n NOT Removing temporary files.\n"
+endif
+
+# --------------------------------------------------------
+
+printf "\n++ -----------------------------------------------"
+printf "\n++ DONE! View the finished, DEC (whee, yay!) product:"
+printf "\n     $fout\n\n"
+
+goto EXIT
+
+# ========================================================================
+# ========================================================================
+
+SHOW_HELP:
+cat << EOF
+-------------------------------------------------------------------------
+
+  This program makes a "directionally encoded color" (DEC) map for DTI
+  results.  Basically, the directionality of the tensor's major axis
+  provides the color information, and the FA value weights the
+  brightness (higher FA is brighter).
+
+    red   :     left <-> right
+    blue  : inferior <-> superior
+    green : anterior <-> posterior
+
+  This program uses the first eigenvector ("V1" file, from 3dDWItoDT),
+  takes its absolute value and multiplies each component by the
+  voxel's FA value.  That makes a 3-vector of numbers between [0,1],
+  which is turned into RGB coloration.
+
+  This is basically a simple wrapper script for 3dcalc and
+  3dThreetoRGB.
+
+  REQUIRES: AFNI.
+
+  Ver. $version (PA Taylor, ${rev_dat})
+
+-------------------------------------------------------------------------
+
+  RUNNING:
+
+  This script has two *required* arguments ('-in_fa ...' and '-in_v1 ...'),
+  and the rest are optional:
+
+   \$fat_proc_decmap.tcsh                        \
+        -in_fa    IN_FA                          \
+        -in_v1    IN_V1                          \
+        {-in_mask MASK}                          \
+        {-prefix  PREFIX}                        \
+        {-outdir  DIR}                           \
+        {-do_clean}
+
+   where:
+   -in_fa   IN_FA  :input FA (scalar) map.   
+   -in_v1   IN_V1  :input first eigenvector (3-vector) map.
+   -in_mask MASK   :optional mask for pickout out a region;
+                    otherwise, only places with FA>0 are 
+                    given coloration (which just makese sense,
+                    anyways, since FA>=0?).
+   -prefix  PREFIX :optional prefix for output file (default
+                    is ${outpref}).
+   -outdir  DIR    :optional location of output directory (default
+                    is wherever the FA map is).
+   -do_clean       :a couple temporary files are created whilst
+                    making the DEC map.  This switch tells the 
+                    program to delete them when finishing (default
+                    is not to do so).  The prefix of the temp files
+                    is "${tmppref}".
+
+
+ ------------------------------------------------------------------------
+
+  OUTPUTS:
+
+    DEC.nii.gz     :single file of type 'rgb' that AFNI knows how to 
+                    display with RGB coloration when viewed as underlay.
+
+    (temp files    :these can be deleted, as desired.)
+
+-------------------------------------------------------------------------
+
+  EXAMPLE:
+    
+    \$ fat_proc_decmap.tcsh                       \
+        -in_fa DTI/DT_FA+orig.                    \
+        -in_v1 DTI/DT_V1+orig.                    \
+        -in_mask mask_DWI+orig                    \
+        -do_clean
+
+-------------------------------------------------------------------------
+EOF
+
+    goto EXIT
+
+SHOW_VERSION:
+   echo "version  $version (${rev_dat})"
+   goto EXIT
+
+# send everyone here, in case there is any cleanup to do
+EXIT:
+   exit
