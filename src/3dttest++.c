@@ -172,6 +172,7 @@ typedef struct {
 static int      do_Xclustsim = 0 ;   /* 30 Aug 2016 */
 static int       nnopt_Xclu  = 0 ;
 static Xclu_opt **opt_Xclu   = NULL ;
+static char *Xclu_arg        = NULL ;  /* 10 Sep 2016 */
 
 static char *clustsim_prog=NULL ;    /* 30 Aug 2016 */
 static char *clustsim_opt =NULL ;
@@ -1731,6 +1732,20 @@ int main( int argc , char *argv[] )
          ERROR_exit("Can't continue after such errors in option %s",argv[nopt-1]) ;
 
        nnopt_Xclu++ ; nopt++ ; free(acp) ; continue ;
+     }
+
+     /*-----  -Xclu_arg string  -----*/
+
+     if( strcasecmp(argv[nopt],"-Xclu_arg") == 0 ){
+       if( ++nopt >= argc ) ERROR_exit("need 1 argument after '%s'",argv[nopt-1]) ;
+       if( Xclu_arg == NULL ){
+         Xclu_arg = strdup(argv[nopt]) ;
+       } else {
+         int nch = strlen(Xclu_arg) + strlen(argv[nopt]) + 16 ;
+         Xclu_arg = (char *)realloc(Xclu_arg,sizeof(char)*nch) ;
+         strcat(Xclu_arg," ") ; strcat(Xclu_arg,argv[nopt]) ;
+       }
+       nopt++ ; continue ;
      }
 
      /*----- -prefix_clustsim cc [11 Feb 2016] -----*/
@@ -3363,8 +3378,10 @@ LABELS_ARE_DONE:  /* target for goto above */
            nnlev = sid = npthr = 0 ; pthr = NULL ; nam="default" ;
          }
 
-         sprintf( cmd , "3dClustSimX -DAFNI_DONT_LOGFILE=YES" 
+         sprintf( cmd , "3dClustSimX -DAFNI_DONT_LOGFILE=YES"
                         " -prefix %s.%s.CsimX.nii" , prefix_clustsim , nam ) ;
+         if( Xclu_arg != NULL )
+           sprintf( cmd+strlen(cmd) , " %s",Xclu_arg) ;
 
          if( nnlev > 0 )
            sprintf( cmd+strlen(cmd) , " -NN%d" , nnlev ) ;
