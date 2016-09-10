@@ -92,6 +92,8 @@ static int nnsid = 1 ; /* 1 or 2 */
 static const int min_mask = 1024 ;    /* min # voxels */
 static const int min_nvol = 10000 ;   /* min # realizations */
 
+static float dilate_fac = 0.0111f ;   /* for STEP 2 */
+
 static char *prefix = "Xsim.nii" ;
 
 static MRI_IMAGE *imtemplate = NULL ;
@@ -137,6 +139,15 @@ void get_options( int argc , char **argv )
 ENTRY("get_options") ;
 
   while( nopt < argc ){
+
+    /*-----  -dilfac ddd  -----*/
+
+    if( strcasecmp(argv[nopt],"-dilfac") == 0 ){
+      if( ++nopt >= argc )
+        ERROR_exit("You need 1 argument after option '-dilfac'") ;
+      dilate_fac = (float)strtod(argv[nopt],NULL) ;
+      nopt++ ; continue ;
+    }
 
     /*-----  -niter NNN  -----*/
 
@@ -682,7 +693,7 @@ static float inverse_interp_extreme( float alpha0, float alpha1, float alphat,
 int main( int argc , char *argv[] )
 {
    int qpthr , ii,xx,yy,zz,ijk , dijk ;
-   int ndilstep , ndilated[4] , ndilsum ;
+   int ndilstep , ndilated[4] , ndilsum , ndiltot ;
    int count_targ100 , count_targ80, count_targ60 ;
    THD_3dim_dataset *qset=NULL ;
    float *qar=NULL , *gthresh=NULL ;
@@ -905,7 +916,7 @@ int main( int argc , char *argv[] )
 
    /* target counts for voxel "hits" */
 
-   count_targ100 = (int)rintf(0.0111f*niter) ;
+   count_targ100 = (int)rintf(dilate_fac*niter) ;
    if( count_targ100 > 333 )
      count_targ100 = (int)rintf(sqrtf(333.0f*count_targ100)) ;
    count_targ80  = (int)rintf(0.80f*count_targ100) ;
@@ -918,6 +929,7 @@ int main( int argc , char *argv[] )
 
 #define NDILMAX 9  /* max number of dilation steps */
 
+     ndiltot = 0 ;
      for( ndilstep=0 ; ndilstep < NDILMAX ; ndilstep++ ){
        /* initialize counts of number of dilations for each NN type */
        ndilated[0] = ndilated[1] = ndilated[2] = ndilated[3] = 0 ;
@@ -964,12 +976,15 @@ int main( int argc , char *argv[] )
 
        /* number of significant dilations (NN2+NN3) */
 
-       ndilsum = ndilated[2] + ndilated[3] ;
+       ndilsum  = ndilated[2] + ndilated[3] ;
+       ndiltot += ndilated[1] + ndilated[2] + ndilated[3] ;
 
        /* if not very many, then we are done with this p-value thresh */
 
        if( ndilstep < NDILMAX-1 && ndilsum < niter/50 ) break ;
      } /* end of loop over dilation steps */
+ININFO_message(" p=%.5f did %d dilation loops with %d cluster dilations",
+               pthr[qpthr],ndilstep,ndiltot) ;
    } /* end of loop over p-value thresh cluster collection */
 
    /* free the counting workspace for each thread */
