@@ -905,7 +905,11 @@ int main( int argc , char *argv[] )
 
    /* target counts for voxel "hits" */
 
+#if 0 
    count_targ100 = (int)rintf(0.0111f*niter) ;
+#else
+   count_targ100 = (int)rintf(0.00111f*niter) ;
+#endif
    if( count_targ100 > 333 )
      count_targ100 = (int)rintf(sqrtf(333.0f*count_targ100)) ;
    count_targ80  = (int)rintf(0.80f*count_targ100) ;
