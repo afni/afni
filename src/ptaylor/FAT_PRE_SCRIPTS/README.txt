@@ -1,3 +1,6 @@
+++ v2.3 (Sept, 2016b):
+   o fat_pre_axialize_anat.tcsh   :added ability to warp easily to refset
+-------------------------------------------------------------------------
 ++ v2.2.1 (Sept, 2016):
    o fat_proc_decmap.tcsh         :new program;
                                    calculate RGB-coloration maps of DT

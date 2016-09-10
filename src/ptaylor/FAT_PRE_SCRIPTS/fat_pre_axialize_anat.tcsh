@@ -1,14 +1,20 @@
 #!/bin/tcsh -ef
 
 
+# ----------------------------------------------------------------
 # Sept, 2016
 #   + added pre-lr-symm (as def), 
 #   + added option for post-lr-symm
 #   + added '-wdir'
 #   + added cmass->(0,0,0) as def for output
+#
+# Sept,2016b
+#   + added added '-out_match_ref' stuff
+#
+# ----------------------------------------------------------------
 
-set version = "2.2"
-set rev_dat = "Sep, 2016"
+set version = "2.3"
+set rev_dat = "Sep, 2016b"
 
 set here     = $PWD
 set anat_dir = ""                   # will be output dir
@@ -30,7 +36,9 @@ set extra_allin_inps = ""           # could use to get large rots?
 set DoUni    = "1"
 set DoAni    = "0"
 set valthr   = 90
-set powcon   = 1.5  # enhance contrast in t2w mode
+set powcon   = 1.1  # enhance contrast in t2w mode
+
+set OutMatchRef = "0"
 
 # ------------------- process options, a la rr ----------------------
 
@@ -102,6 +110,8 @@ while ( $ac <= $#argv )
       @ ac += 1
       set wdir = "$argv[$ac]"
 
+   else if ( "$argv[$ac]" == "-out_match_ref" ) then
+      set OutMatchRef = 1
 
    else
       echo "** unexpected option #$ac = '$argv[$ac]'"
@@ -228,11 +238,15 @@ if ( $DoAni ) then
         "$fin"
     @ idx += 1
 
+    set meanz = `3dROIstats -quiet -nzmean -mask "3dcalc( -a $fout -expr step(a) )" $fout`
+    set mval = $meanz[1]
+    echo "++ Mean here is: $mval"
+
     set fin  = "$fout"
     set fout = "${tpref}_${idx}_pos.nii.gz"
     3dcalc -echo_edu                 \
         -a $fin                      \
-        -expr "step(a)*a**${powcon}" \
+        -expr "(step(a)*(a/$mval)**${powcon})" \
         -prefix $fout                \
         -overwrite 
     @ idx += 1
@@ -275,7 +289,7 @@ if ( $DoUni ) then
     # --------------------------------------------------------------
 
     # get rid of bright spots that would affect the cost function
-    set v1 = `3dBrickStat -automask -percentile 90 1 90 "$fout"`
+    set v1 = `3dBrickStat -automask -percentile 95 1 95 "$fout"`
     set thr_t1 = "${v1[2]}"
     echo "\n\n++ Percentile for thresholding: ${thr_t1}\n"
 
@@ -339,33 +353,46 @@ if ( $PRE_LR ) then
     @ idx += 1
 
     # update what is considered the 'base input' now for applying
-    # final rot.
+    # final rot; won't use this one for further matching at the moment
     set fin  = $inp0
-    set fout = "${tpref}_${idx}_origLR.nii.gz"
-    set inp0 = $fout
+    set fout2 = "${tpref}_${idx}_origLR.nii.gz"
+    set inp0 = $fout2
+    echo "++ New inp0 = $fout2"
     3dAllineate   -echo_edu                    \
         -1Dmatrix_apply _map_lr_half.aff12.1D  \
-        -prefix "$fout"                        \
+        -prefix "$fout2"                       \
         -source "$fin"                         \
         -final wsinc5                          \
         -overwrite
     @ idx += 1
 
-
-
 endif
-
 
 # --------------------------------------------------------------
 
-echo "++ Aligning centers of ref and inset."
-# make data sets close together before starting to align formally;
-# rewrite REF
-@Align_Centers               \
-    -cm                      \
-    -no_cp                   \
-    -dset "$rout"            \
-    -base "$fout"
+if ( $OutMatchRef == "0" ) then
+    # default
+
+    echo "++ Aligning center of refset -> inset."
+    # make data sets close together before starting to align formally;
+    # rewrite REF
+    @Align_Centers               \
+        -cm                      \
+        -no_cp                   \
+        -dset "$rout"            \
+        -base "$fout"
+else
+
+    echo "++ Aligning center of inset -> refset."
+    @Align_Centers               \
+        -cm                      \
+        -no_cp                   \
+        -base "$rout"            \
+        -dset "$fout"            \
+        -child "$inp0"
+
+    set extra_allin_apps = " $extra_allin_apps -master $rout " 
+endif
 
 # --------------------------------------------------------------
 
@@ -449,8 +476,14 @@ if ( $POST_LR ) then
 
 endif
 
-# Nearly done-- keep center at center.
-3dCM -automask -set 0 0 0 $fout
+if ( $OutMatchRef == "0" ) then
+
+    # Nearly done-- keep center at center (unless using refspace for
+    # output).
+    echo "++ Setting (0, 0, 0) to the center of mass."
+    3dCM -automask -set 0 0 0 $fout
+endif
+
 
 # DONE, just copy endprod out!
 set fin  = $fout
@@ -523,6 +556,7 @@ cat << EOF
         {-prefix PREFIX}                      \
         {-outdir DIR_NAME}                    \
         {-wdir   WORKDIR}                     \
+        {-out_match_ref}                      \
         {-extra_al_cost CC}                   \
         {-extra_al_inps II}                   \
         {-extra_al_opts SS}                   \
@@ -543,6 +577,21 @@ cat << EOF
   -outdir DIR_NAME :is the output directory (default is the directory
                     containing the input anatomical file).
 
+  -out_match_ref   :switch to have the final output volume be in the same
+                    'space' (FOV, spatial resolution) as the REF_FILE. 
+                    Might be useful for standardizing the reference
+                    output across a group, or at least centering the brain
+                    in the FOV. (This applies a '-master REF_FILE' to the
+                    final 3dAllineate in the script.)
+
+  -t2w_mode        :switch to alter some intermediate steps (turn off
+                    unifizing and raise voxel ceiling threshold).
+                    This is particularly useful when dealing with a
+                    (adult) T2w image, which tends to be bright in the
+                    CSF and darker in other tissues; default options
+                    are for dealing with (adult) T1w brains, where the
+                    opposite is the case.
+
  -extra_al_cost CC :specify a cost function for 3dAllineate to work
                     with (default is 'lpa'; one might investigate
                     'lpc', esp. if contrasts differ between the
@@ -556,14 +605,6 @@ cat << EOF
                     warp with 3dAllineate at the end.  One I could see
                     being useful would be having "-newgrid X", where X
                     is desired final resolution of the data.
-
-  -t2w_mode        :switch to alter some intermediate steps (turn off
-                    unifizing and raise voxel ceiling threshold).
-                    This is particularly useful when dealing with a
-                    (adult) T2w image, which tends to be bright in the
-                    CSF and darker in other tissues; default options
-                    are for dealing with (adult) T1w brains, where the
-                    opposite is the case.
 
   -no_pre_lr_symm  :a pre-alignment left-right symmetrization is
                     performed by default, but you can turn it off if you
@@ -613,12 +654,16 @@ cat << EOF
 -------------------------------------------------------------------------
   TIPS:
 
-    + when analyzing adult T1w data, using the following option might
+    + When analyzing adult T1w data, using the following option might
       be useful:
          -extra_al_inps "-nomask"
       Using this, 3dAllineate won't try to mask a subregion for 
       warping/alignment, and I often find this helpful for T1w volumes.
 
+    + For centering data, using the '-out_match_ref' switch might be 
+      useful; it might also somewhat, veeeery roughly help standardize
+      a group of subjects' data in terms of spatial resolution, centering
+      in FOV, etc.
 
 -------------------------------------------------------------------------
 EOF
