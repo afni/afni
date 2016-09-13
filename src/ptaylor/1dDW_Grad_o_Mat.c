@@ -1037,8 +1037,8 @@ int main(int argc, char *argv[])
    }
    fclose(fout);
 
-   INFO_message("\t-> DONE with grad/matr. "
-                "Check output file '%s' for results\n\n",
+   INFO_message("\t -> DONE with grad/matr. "
+                "Check output file '%s'.\n\n",
                 Fname_output);
 
    if( BVAL_OUT_SEP ) {
@@ -1056,7 +1056,7 @@ int main(int argc, char *argv[])
          fprintf(foutBV,"\n");
 
       fclose(foutBV);
-      INFO_message("\t-> DONE with b-value file '%s'\n\n",
+      INFO_message("\t -> DONE with b-value file '%s'.\n\n",
                    Fname_outputBV);
    }
 
@@ -1180,7 +1180,7 @@ int main(int argc, char *argv[])
 
 
    if(dwset) {
-      INFO_message("\t->DONE with data_set. Check '%s'\n\n",
+      INFO_message("\t ->DONE with data_set. Check '%s'.\n\n",
                    DSET_FILECODE(dwout));
    }
    exit(0);   
