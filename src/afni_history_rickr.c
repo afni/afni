@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 13,  Sep, 2016, RCR, "3dANOVA3", MICRO, TYPE_MODIFY,
+   "change 'illegal argument after' errors to something more specific",
+   NULL
+ } ,
+
  { 13,  Sep, 2016, RCR, "afni_proc.py", MICRO, TYPE_NEW_OPT,
    "add -blip_opts_qw to pass options to 3dQwarp in the blip block",
    NULL
