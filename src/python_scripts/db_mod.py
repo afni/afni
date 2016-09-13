@@ -629,6 +629,7 @@ def db_mod_blip(block, proc, user_opts):
    
    apply_uopt_to_block('-blip_forward_dset', user_opts, block)
    apply_uopt_to_block('-blip_reverse_dset', user_opts, block)
+   apply_uopt_to_block('-blip_opts_qw', user_opts, block)
 
    # note blip reverse input dset
    bopt = block.opts.find_opt('-blip_reverse_dset')
@@ -730,6 +731,12 @@ def db_cmd_blip(proc, block):
           % (mmedf.out_prefix(), medf.shortinput(),
              mmedr.out_prefix(), medr.shortinput())
 
+   # get any 3dQwarp options
+   olist, rv = block.opts.get_string_list('-blip_opts_qw')
+   if olist and len(olist) > 0:
+       other_opts = '%8s%s \\\n' % (' ', ' '.join(olist))
+   else: other_opts = ''
+
    # -source is reverse, -base is forward (but does not matter, of course)
    # current prefix: simply blip_warp
    # rcr: todo add options to control Qwarp inputs
@@ -738,10 +745,11 @@ def db_cmd_blip(proc, block):
           '3dQwarp -plusminus -pmNAMES Rev For  \\\n'   \
           '        -pblur 0.05 0.05 -blur -1 -1 \\\n'   \
           '        -noweight -minpatch 9        \\\n'   \
+          '%s'                                          \
           '        -source %s                   \\\n'   \
           '        -base   %s                   \\\n'   \
           '        -prefix %s\n\n'                      \
-          % (mmedr.shortinput(), mmedf.shortinput(), warp_prefix)
+          % (other_opts, mmedr.shortinput(), mmedf.shortinput(), warp_prefix)
 
    # store forward warp dataset name, and note reverse warp dataset name
    warp_for = mmedf.new(new_pref=('%s_For_WARP'%warp_prefix))
@@ -7618,7 +7626,7 @@ g_help_string = """
                         afni_proc.py            unWarpEPI.py
                         --------------------    --------------------
        tshift step:     before unwarp           after unwarp
-                        (option: unwarp first)
+                        (option: after unwarp)
 
        volreg program:  3dvolreg                3dAllineate
 
@@ -8792,6 +8800,18 @@ g_help_string = """
 
             Please see '3dQwarp -help' for more information, and the -plusminus
             option in particular.
+
+        -blip_opts_qw OPTS ...  : specify extra options for 3dQwarp
+
+                e.g. -blip_opts_qw -noXdis -noZdis
+
+            This option allows the user to add extra options to the 3dQwarp
+            command specific to the 'blip' processing block.
+
+            There are many options (e.g. for blurring) applied in the 3dQwarp
+            command by afni_proc.py by default, so review the resulting script.
+
+            Please see '3dQwarp -help' for more information.
 
         -tlrc_anat              : run @auto_tlrc on '-copy_anat' dataset
 
