@@ -541,9 +541,10 @@ g_history = """
     5.02 Aug 25, 2016:
         - fix output.proc prefix if -script has path
         - allow -mask_apply group in case of -tlrc_NL_warped_dsets
+    5.03 Sep 13, 2016: added -blip_opts_qw
 """
 
-g_version = "version 5.02, August 25, 2016"
+g_version = "version 5.03, September 13, 2016"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \
@@ -996,6 +997,8 @@ class SubjProcSream:
                         helpstr='forward blip dset for blip up/down corretion')
         self.valid_opts.add_opt('-blip_reverse_dset', 1, [],
                         helpstr='reverse blip dset for blip up/down corretion')
+        self.valid_opts.add_opt('-blip_opts_qw', -1, [],
+                        helpstr='additional options for 3dQwarp in blip block')
 
         self.valid_opts.add_opt('-align_epi_ext_dset', 1, [],
                         helpstr='external EPI volume for align_epi_anat.py')
