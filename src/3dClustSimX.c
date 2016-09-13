@@ -604,20 +604,34 @@ void process_clusters_to_Xvectors( int ijkbot, int ijktop , int ipthr )
    int        ncar = nclust_tot[ipthr] ;
    Xcluster *xc ;
    int cc , pp,npt , ijk,vin ;
+   const int nx1=nx-1,ny1=ny-1,nz1=nz-1 ;
+
+#define PROCESS(iii)                                        \
+ do{ if( iii >= ijkbot && ijk <= ijktop ){                  \
+       vin = ijk_to_vec[iii] ;                              \
+       if( vin >= 0 ) ADDTO_Xvector(fomvec[vin],xc->fom) ;  \
+   }} while(0)
 
    for( cc=0 ; cc < ncar ; cc++ ){                    /* loop over clusters */
      xc = xcar[cc] ; if( xc == NULL ) continue ;
      npt = xc->npt ;
      for( pp=0 ; pp < npt ; pp++ ){          /* loop over pts inside cluster */
        ijk = xc->ijk[pp] ;                            /* index of pt in grid */
-       if( ijk >= ijkbot && ijk <= ijktop ){  /* is point inside our region? */
-         vin = ijk_to_vec[ijk] ;                           /* find its index */
-         if( vin >= 0 ){
-           ADDTO_Xvector(fomvec[vin],xc->fom) ; /* add to vector of FOM vals */
-         }
+       PROCESS(ijk) ;  /* if pt in region and is good, add FOM to this list */
+#ifdef LARGER_FOOTPRINT
+       { int iqq ;
+         if( xc->ip[pp] < nx1 ){ iqq = ijk+1   ; PROCESS(iqq) ; }
+         if( xc->ip[pp] > 0   ){ iqq = ijk-1   ; PROCESS(iqq) ; }
+         if( xc->jp[pp] < ny1 ){ iqq = ijk+nx  ; PROCESS(iqq) ; }
+         if( xc->jp[pp] > 0   ){ iqq = ijk-nx  ; PROCESS(iqq) ; }
+         if( xc->kp[pp] < nz1 ){ iqq = ijk+nxy ; PROCESS(iqq) ; }
+         if( xc->kp[pp] > 0   ){ iqq = ijk-nxy ; PROCESS(iqq) ; }
        }
+#endif
      }
    }
+
+#undef PROCESS
 
    return ;
 }
@@ -919,7 +933,7 @@ int main( int argc , char *argv[] )
 <<<<<<< HEAD
    count_targ100 = (int)rintf(dilate_fac*niter) ;
 =======
-#if 0 
+#if 0
    count_targ100 = (int)rintf(0.0111f*niter) ;
 #else
    count_targ100 = (int)rintf(0.00111f*niter) ;
