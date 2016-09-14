@@ -583,7 +583,7 @@ int main(int argc, char *argv[])
 
    if(PUT_MEAN_BREF_TOP && (YES_B || EXTRA_ZEROS) ) {
       ERROR_message("Incompatible combo of options: can't have "
-                    "-put_meanbref_top with either -keep_b0s "
+                    "-bref_mean_top with either -keep_b0s "
                     "or -put_zeros_top");
       exit(5);
    }
@@ -698,8 +698,8 @@ int main(int argc, char *argv[])
          for ( j=0; j<3 ; j++ )
             INP_GRAD[i][j+1] = *(READIN + 3*i+j);
    
-   // A/row/3dDWItoDT: Bxx, Byy, Bzz, Bxy, Bxz, Byz
-   // T/diag/TORTOISE:  b_xx 2b_xy 2b_xz b_yy 2b_yz b_zz
+   // A/diag/3dDWItoDT: Bxx, Byy, Bzz, Bxy, Bxz, Byz
+   // T/row/TORTOISE:  b_xx 2b_xy 2b_xz b_yy 2b_yz b_zz
    else if ( (IN_FORM == 3) || (IN_FORM ==5 ) ) { // diag matr
       for( i=0; i<idx ; i++ ) { 
          for( j=0; j<3 ; j++ ) {
@@ -952,7 +952,7 @@ int main(int argc, char *argv[])
             tmp[k] = bref_vec[k+1];
       else
          k = GradConv_GmatA_from_Gsign( tmp, bref_vec+1);
-      
+
       if( USE_BWT ) // weight if nec
          for ( k=0 ; k<Ncol ; k++)
             tmp[k]*= bref_vec[0];
@@ -960,8 +960,19 @@ int main(int argc, char *argv[])
       if( EXTRA_col )
          OUT[0][0] = bref_vec[0];
 
-      for ( k=0 ; k<Ncol ; k++) 
-         OUT[0][EXTRA_col+k] = tmp[k]; // start at either 0 or 1
+      // g- or b-mats: deal with row or diag format
+      if( ( OUT_FORM==2 ) || ( OUT_FORM==4 )) {// TORT-style
+         OUT[0][EXTRA_col+0] = tmp[0];
+         OUT[0][EXTRA_col+1] = 2.*tmp[3];
+         OUT[0][EXTRA_col+2] = 2.*tmp[4];
+         OUT[0][EXTRA_col+3] = tmp[1];
+         OUT[0][EXTRA_col+4] = 2.*tmp[5];
+         OUT[0][EXTRA_col+5] = tmp[2];
+      }
+      else{
+         for ( k=0 ; k<Ncol ; k++) 
+            OUT[0][EXTRA_col+k] = tmp[k]; // start at either 0 or 1
+      }
 
       BOUT[0] = (int) rintf(bref_vec[0]);  // and bval entry 
    }
@@ -983,9 +994,20 @@ int main(int argc, char *argv[])
          if( EXTRA_col )
             OUT[ctr][0] = INP_GRAD[i][0];
 
-         for ( k=0 ; k<Ncol ; k++) 
-            OUT[ctr][EXTRA_col+k] = tmp[k]; // start at either 0 or 1
-         
+         // g- or b-mats: deal with row or diag format
+         if( ( OUT_FORM==2 ) || ( OUT_FORM==4 )) {// TORT-style
+            OUT[ctr][EXTRA_col+0] = tmp[0];
+            OUT[ctr][EXTRA_col+1] = 2.*tmp[3];
+            OUT[ctr][EXTRA_col+2] = 2.*tmp[4];
+            OUT[ctr][EXTRA_col+3] = tmp[1];
+            OUT[ctr][EXTRA_col+4] = 2.*tmp[5];
+            OUT[ctr][EXTRA_col+5] = tmp[2];
+         }
+         else{
+            for ( k=0 ; k<Ncol ; k++) 
+               OUT[ctr][EXTRA_col+k] = tmp[k]; // start at either 0 or 1
+         }
+
          BOUT[ctr] = (int) rintf(INP_GRAD[i][0]);  // and bval entry 
 
          ctr++;
@@ -1037,8 +1059,8 @@ int main(int argc, char *argv[])
    }
    fclose(fout);
 
-   INFO_message("\t -> DONE with grad/matr. "
-                "Check output file '%s'.\n\n",
+   INFO_message("\t-> DONE with grad/matr. "
+                "Check output file '%s' for results\n\n",
                 Fname_output);
 
    if( BVAL_OUT_SEP ) {
@@ -1056,7 +1078,7 @@ int main(int argc, char *argv[])
          fprintf(foutBV,"\n");
 
       fclose(foutBV);
-      INFO_message("\t -> DONE with b-value file '%s'.\n\n",
+      INFO_message("\t-> DONE with b-value file '%s'\n\n",
                    Fname_outputBV);
    }
 
@@ -1180,7 +1202,7 @@ int main(int argc, char *argv[])
 
 
    if(dwset) {
-      INFO_message("\t ->DONE with data_set. Check '%s'.\n\n",
+      INFO_message("\t->DONE with data_set. Check '%s'\n\n",
                    DSET_FILECODE(dwout));
    }
    exit(0);   
