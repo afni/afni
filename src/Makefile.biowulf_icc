@@ -59,8 +59,8 @@ LFLAGS = -L. $(XROOT_L) -L/usr/local/intel/lib/intel64 -L/usr/lib64 -L/usr/local
 CCSVD  = icc -m64 -O0
 
 PLUGIN_SUFFIX = so
-PLUGIN_LFLAGS = -m64 -bundle -flat_namespace -undefined suppress
-PLUGIN_CC     = $(CC) -fno-common
+PLUGIN_LFLAGS = -m64 -shared -fPIC
+PLUGIN_CC     = $(CC) -fno-common -fPIC
 PLFLAGS       = -m64 $(LFLAGS)
 
 # include the line below if you want to include vector arith in 3dDeconvolve_f
@@ -79,13 +79,15 @@ CP = /bin/cp -f
 
 LINT = /usr/bin/lint -a -b -u -v -x $(IFLAGS) $(CCDEFS)
 
-INSTALLDIR = ./macosx_10.10_icc
+INSTALLDIR = ./biowulf_icc
 LIBDIR = $(INSTALLDIR)
-SYSTEM_NAME = macosx_10.10_icc
+SYSTEM_NAME = biowulf_icc
 SHOWOFF = -DSHOWOFF=$(SYSTEM_NAME)
 
-INSTALL_PREREQ = suma_gts
-#INSTALL_PREREQ = suma
+STARTUP_COMMANDS = 
+
+#INSTALL_PREREQ = suma_gts
+INSTALL_PREREQ = suma
 # uncomment if the Gnu Scientific Library is installed (libgsl, libgslcblas)
 # GSLPROGS = balloon
 EXPROGS = $(GSLPROGS)

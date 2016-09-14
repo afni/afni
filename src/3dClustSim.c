@@ -21,6 +21,8 @@
 #ifndef IND_T
   typedef unsigned char ind_t ;
 # define IND_T unsigned char
+# define USE_UBYTE
+# define MAX_IND 255u
 #endif
 #include "thd_Xdataset.c"                         /** reading .sdat datasets **/
 /*----------------------------------------------------------------------------*/
