@@ -172,6 +172,7 @@ typedef struct {
 static int      do_Xclustsim = 0 ;   /* 30 Aug 2016 */
 static int       nnopt_Xclu  = 0 ;
 static Xclu_opt **opt_Xclu   = NULL ;
+static char *Xclu_arg        = NULL ;  /* 10 Sep 2016 */
 
 static char *clustsim_prog=NULL ;    /* 30 Aug 2016 */
 static char *clustsim_opt =NULL ;
@@ -1662,7 +1663,7 @@ int main( int argc , char *argv[] )
      /*-----  -Xclu_opt STUFF  [03 Sep 2016]  -----*/
 
      if( strcasecmp(argv[nopt],"-Xclu_opt") == 0 ){
-       char *cpt ; int qq,nbad=0 ; Xclu_opt *opx ;
+       char *cpt , *acp ; int qq,nbad=0 ; Xclu_opt *opx ;
        if( ++nopt >= argc ) ERROR_exit("need 1 argument after '%s'",argv[nopt-1]) ;
 
        opt_Xclu = (Xclu_opt **)realloc( opt_Xclu , sizeof(Xclu_opt *)*(nnopt_Xclu+1)) ;
@@ -1673,11 +1674,14 @@ int main( int argc , char *argv[] )
        opx->pthr  = NULL ;
        sprintf(opx->name,"Case%d",nnopt_Xclu+1) ;
 
-       cpt = strcasestr(argv[nopt],"NN1") ; if( cpt != NULL ) opx->nnlev = 1 ;
-       cpt = strcasestr(argv[nopt],"NN2") ; if( cpt != NULL ) opx->nnlev = 2 ;
-       cpt = strcasestr(argv[nopt],"NN3") ; if( cpt != NULL ) opx->nnlev = 3 ;
+       acp = strdup(argv[nopt]) ;  /* change colons to blanks */
+       for( cpt=acp ; *cpt != '\0' ; cpt++ ) if( *cpt == ':' ) *cpt = ' ' ;
 
-       cpt = strcasestr(argv[nopt],"NN=") ;
+       cpt = strcasestr(acp,"NN1") ; if( cpt != NULL ) opx->nnlev = 1 ;
+       cpt = strcasestr(acp,"NN2") ; if( cpt != NULL ) opx->nnlev = 2 ;
+       cpt = strcasestr(acp,"NN3") ; if( cpt != NULL ) opx->nnlev = 3 ;
+
+       cpt = strcasestr(acp,"NN=") ;
        if( cpt != NULL ){
          qq = (int)strtod(cpt+3,NULL) ;
          if( qq >= 1 && qq <= 3 ) opx->nnlev = qq ;
@@ -1686,10 +1690,10 @@ int main( int argc , char *argv[] )
          }
        }
 
-       cpt = strcasestr(argv[nopt],"1sid") ; if( cpt != NULL ) opx->sid = 1 ;
-       cpt = strcasestr(argv[nopt],"2sid") ; if( cpt != NULL ) opx->sid = 2 ;
+       cpt = strcasestr(acp,"1sid") ; if( cpt != NULL ) opx->sid = 1 ;
+       cpt = strcasestr(acp,"2sid") ; if( cpt != NULL ) opx->sid = 2 ;
 
-       cpt = strcasestr(argv[nopt],"sid=") ;
+       cpt = strcasestr(acp,"sid=") ;
        if( cpt != NULL ){
          qq = (int)strtod(cpt+4,NULL) ;
          if( qq >= 1 && qq <= 2 ) opx->sid = qq ;
@@ -1698,7 +1702,7 @@ int main( int argc , char *argv[] )
          }
        }
 
-       cpt = strcasestr(argv[nopt],"pthr=") ;
+       cpt = strcasestr(acp,"pthr=") ;
        if( cpt != NULL ){
          NI_float_array *nfar = NI_decode_float_list(cpt+5,",") ;
          if( nfar != NULL && nfar->num > 0 ){
@@ -1713,7 +1717,7 @@ int main( int argc , char *argv[] )
          }
        }
 
-       cpt = strcasestr(argv[nopt],"name=") ;
+       cpt = strcasestr(acp,"name=") ;
        if( cpt != NULL && cpt[5] != '\0' ){
          char nam[128] ; nam[0] = '\0' ;
          sscanf(cpt+5," %s",nam) ;
@@ -1727,7 +1731,21 @@ int main( int argc , char *argv[] )
        if( nbad > 0 )
          ERROR_exit("Can't continue after such errors in option %s",argv[nopt-1]) ;
 
-       nnopt_Xclu++ ; nopt++ ; continue ;
+       nnopt_Xclu++ ; nopt++ ; free(acp) ; continue ;
+     }
+
+     /*-----  -Xclu_arg string  -----*/
+
+     if( strcasecmp(argv[nopt],"-Xclu_arg") == 0 ){
+       if( ++nopt >= argc ) ERROR_exit("need 1 argument after '%s'",argv[nopt-1]) ;
+       if( Xclu_arg == NULL ){
+         Xclu_arg = strdup(argv[nopt]) ;
+       } else {
+         int nch = strlen(Xclu_arg) + strlen(argv[nopt]) + 16 ;
+         Xclu_arg = (char *)realloc(Xclu_arg,sizeof(char)*nch) ;
+         strcat(Xclu_arg," ") ; strcat(Xclu_arg,argv[nopt]) ;
+       }
+       nopt++ ; continue ;
      }
 
      /*----- -prefix_clustsim cc [11 Feb 2016] -----*/
@@ -3360,8 +3378,10 @@ LABELS_ARE_DONE:  /* target for goto above */
            nnlev = sid = npthr = 0 ; pthr = NULL ; nam="default" ;
          }
 
-         sprintf( cmd , "3dClustSimX -DAFNI_DONT_LOGFILE=YES" 
+         sprintf( cmd , "3dClustSimX -DAFNI_DONT_LOGFILE=YES"
                         " -prefix %s.%s.CsimX.nii" , prefix_clustsim , nam ) ;
+         if( Xclu_arg != NULL )
+           sprintf( cmd+strlen(cmd) , " %s",Xclu_arg) ;
 
          if( nnlev > 0 )
            sprintf( cmd+strlen(cmd) , " -NN%d" , nnlev ) ;
