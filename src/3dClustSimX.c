@@ -92,6 +92,8 @@ static int nnsid = 1 ; /* 1 or 2 */
 static const int min_mask = 1024 ;    /* min # voxels */
 static const int min_nvol = 10000 ;   /* min # realizations */
 
+static float dilate_fac = 0.0111f ;   /* for STEP 2 */
+
 static char *prefix = "Xsim.nii" ;
 
 static MRI_IMAGE *imtemplate = NULL ;
@@ -137,6 +139,15 @@ void get_options( int argc , char **argv )
 ENTRY("get_options") ;
 
   while( nopt < argc ){
+
+    /*-----  -dilfac ddd  -----*/
+
+    if( strcasecmp(argv[nopt],"-dilfac") == 0 ){
+      if( ++nopt >= argc )
+        ERROR_exit("You need 1 argument after option '-dilfac'") ;
+      dilate_fac = (float)strtod(argv[nopt],NULL) ;
+      nopt++ ; continue ;
+    }
 
     /*-----  -niter NNN  -----*/
 
@@ -593,20 +604,34 @@ void process_clusters_to_Xvectors( int ijkbot, int ijktop , int ipthr )
    int        ncar = nclust_tot[ipthr] ;
    Xcluster *xc ;
    int cc , pp,npt , ijk,vin ;
+   const int nx1=nx-1,ny1=ny-1,nz1=nz-1 ;
+
+#define PROCESS(iii)                                        \
+ do{ if( iii >= ijkbot && ijk <= ijktop ){                  \
+       vin = ijk_to_vec[iii] ;                              \
+       if( vin >= 0 ) ADDTO_Xvector(fomvec[vin],xc->fom) ;  \
+   }} while(0)
 
    for( cc=0 ; cc < ncar ; cc++ ){                    /* loop over clusters */
      xc = xcar[cc] ; if( xc == NULL ) continue ;
      npt = xc->npt ;
      for( pp=0 ; pp < npt ; pp++ ){          /* loop over pts inside cluster */
        ijk = xc->ijk[pp] ;                            /* index of pt in grid */
-       if( ijk >= ijkbot && ijk <= ijktop ){  /* is point inside our region? */
-         vin = ijk_to_vec[ijk] ;                           /* find its index */
-         if( vin >= 0 ){
-           ADDTO_Xvector(fomvec[vin],xc->fom) ; /* add to vector of FOM vals */
-         }
+       PROCESS(ijk) ;  /* if pt in region and is good, add FOM to this list */
+#ifdef LARGER_FOOTPRINT
+       { int iqq ;
+         if( xc->ip[pp] < nx1 ){ iqq = ijk+1   ; PROCESS(iqq) ; }
+         if( xc->ip[pp] > 0   ){ iqq = ijk-1   ; PROCESS(iqq) ; }
+         if( xc->jp[pp] < ny1 ){ iqq = ijk+nx  ; PROCESS(iqq) ; }
+         if( xc->jp[pp] > 0   ){ iqq = ijk-nx  ; PROCESS(iqq) ; }
+         if( xc->kp[pp] < nz1 ){ iqq = ijk+nxy ; PROCESS(iqq) ; }
+         if( xc->kp[pp] > 0   ){ iqq = ijk-nxy ; PROCESS(iqq) ; }
        }
+#endif
      }
    }
+
+#undef PROCESS
 
    return ;
 }
@@ -682,8 +707,8 @@ static float inverse_interp_extreme( float alpha0, float alpha1, float alphat,
 int main( int argc , char *argv[] )
 {
    int qpthr , ii,xx,yy,zz,ijk , dijk ;
-   int ndilstep , ndilated[4] , ndilsum ;
-   int count_targ100 , count_targ80, count_targ50 ;
+   int ndilstep , ndilated[4] , ndilsum , ndiltot ;
+   int count_targ100 , count_targ80, count_targ60 ;
    THD_3dim_dataset *qset=NULL ;
    float *qar=NULL , *gthresh=NULL ;
    char qpr[32] ;
@@ -834,10 +859,12 @@ int main( int argc , char *argv[] )
    /*============================================================================*/
    /*--- STEP 1c: find the global distributions [not needed but fun] ------------*/
 
-#define GTHRESH_FAC 0.0666f
+#define GTHRESH_FAC 0.333333f
+#define GTHRESH_THA 0.05f
+#define GTHRESH_THB 0.19f
 
    { int nfom,jj; Xcluster **xcc;
-     float a0,a1,f0,f1,ft ;
+     float a0,a1,f0,f1,fta,ftb ;
      float *fomg=calloc(sizeof(float),nclust_max);
 
      gthresh = (float *)calloc(sizeof(float),npthr) ;
@@ -846,15 +873,16 @@ int main( int argc , char *argv[] )
        for( nfom=ii=0 ; ii < nclust_tot[qpthr] ; ii++ ){
          if( xcc[ii] != NULL ) fomg[nfom++] = xcc[ii]->fom ;
        }
-       if( nfom < 100 ) continue ;  /* should not happen */
+       if( nfom < 50 ) continue ;  /* should not happen */
        qsort_float_rev( nfom, fomg ) ;
-       jj = (int)(0.05f*niter) ;
-       a0 = ((float)jj)/((float)niter) ; f0 = fomg[jj] ;
-       a1 = a0 + 1.0f/((float)niter) ;   f1 = fomg[jj+1] ;
-       ft = gthresh[qpthr] = GTHRESH_FAC * inverse_interp_extreme( a0,a1,0.05f, f0,f1 ) ;
+       jj  = (int)(GTHRESH_THA*niter) ;
+       fta = GTHRESH_FAC*fomg[jj] ;
+       jj  = (int)(GTHRESH_THB*niter) ;
+       ftb = fomg[jj] ;
+       gthresh[qpthr] = (int)MAX(fta,ftb) ;
        if( verb )
-         ININFO_message("pthr=%.5f gets min threshold %.1f [nfom=%d]",
-                        pthr[qpthr],ft,nfom) ;
+         ININFO_message("pthr=%.5f gets min threshold %.0f [nfom=%d]",
+                        pthr[qpthr],gthresh[qpthr],nfom) ;
      }
      free(fomg) ;
    }
@@ -902,11 +930,11 @@ int main( int argc , char *argv[] )
 
    /* target counts for voxel "hits" */
 
-   count_targ100 = (int)rintf(0.0100f*niter) ;
-   if( count_targ100 > 200 )
-     count_targ100 = (int)rintf(sqrtf(200.0f*count_targ100)) ;
+   count_targ100 = (int)rintf(dilate_fac*niter) ;
+   if( count_targ100 > 333 )
+     count_targ100 = (int)rintf(sqrtf(333.0f*count_targ100)) ;
    count_targ80  = (int)rintf(0.80f*count_targ100) ;
-   count_targ50  = (int)rintf(0.50f*count_targ100) ;
+   count_targ60  = (int)rintf(0.60f*count_targ100) ;
 
    if( verb )
      INFO_message("STEP 2: start cluster dilation") ;
@@ -915,6 +943,7 @@ int main( int argc , char *argv[] )
 
 #define NDILMAX 9  /* max number of dilation steps */
 
+     ndiltot = 0 ;
      for( ndilstep=0 ; ndilstep < NDILMAX ; ndilstep++ ){
        /* initialize counts of number of dilations for each NN type */
        ndilated[0] = ndilated[1] = ndilated[2] = ndilated[3] = 0 ;
@@ -948,7 +977,7 @@ int main( int argc , char *argv[] )
         idil = get_Xcluster_nbcount( Xclust_tot[qpthr][iter] , ithr ) ;
         if( idil < count_targ100 ){  /* too few? */
           /* dilate:                   NN3 or                     NN2 or NN1 */
-          idil = (idil < count_targ50) ? 3 :(idil < count_targ80) ? 2 :    1 ;
+          idil = (idil < count_targ60) ? 3 :(idil < count_targ80) ? 2 :    1 ;
           dilate_Xcluster( Xclust_tot[qpthr][iter] , idil , ithr ) ;
 #pragma omp atomic
           ndilated[idil]++ ;  /* count how many dilations of each type */
@@ -961,12 +990,15 @@ int main( int argc , char *argv[] )
 
        /* number of significant dilations (NN2+NN3) */
 
-       ndilsum = ndilated[2] + ndilated[3] ;
+       ndilsum  = ndilated[2] + ndilated[3] ;
+       ndiltot += ndilated[1] + ndilated[2] + ndilated[3] ;
 
        /* if not very many, then we are done with this p-value thresh */
 
        if( ndilstep < NDILMAX-1 && ndilsum < niter/50 ) break ;
      } /* end of loop over dilation steps */
+ININFO_message(" p=%.5f did %d dilation loops with %d cluster dilations",
+               pthr[qpthr],ndilstep,ndiltot) ;
    } /* end of loop over p-value thresh cluster collection */
 
    /* free the counting workspace for each thread */
@@ -1172,8 +1204,8 @@ FARP_LOOPBACK:
         for( ipthr=0 ; ipthr < npthr ; ipthr++ ){ /* over p-value thresh */
           npt = fomsort[ipthr][iv]->npt ;    /* how many FOM values here */
           jthresh = ithresh ;             /* default index of FOM thresh */
-          if( jthresh > (int)(0.8f*npt) ){
-            jthresh = (int)(0.8*npt) ;
+          if( jthresh > (int)(0.666f*npt) ){
+            jthresh = (int)(0.666f*npt) ;
 #pragma omp atomic
             nedge++ ;
           }
