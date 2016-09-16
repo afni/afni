@@ -49,9 +49,24 @@
 
 afni_history_struct rickr_history[] = {
 
- {  4,  Sep, 2016, RCR, "suma-general", MICRO, TYPE_BUG_FIX,
-   "do not call glutInit in general - crashes with out display",
-   "Consider an alternate fix for NeuroDebian when there is time."
+ { 16,  Sep, 2016, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
+   "added -radial_correlate option, to run @radial_correlate in proc script",
+   NULL
+ } ,
+
+ { 16,  Sep, 2016, RCR, "realtime_receiver.py", MICRO, TYPE_MODIFY,
+   "continue even if requested GUI fails",
+   NULL
+ } ,
+
+ { 13,  Sep, 2016, RCR, "3dANOVA3", MICRO, TYPE_MODIFY,
+   "change 'illegal argument after' errors to something more specific",
+   NULL
+ } ,
+
+ { 13,  Sep, 2016, RCR, "afni_proc.py", MICRO, TYPE_NEW_OPT,
+   "add -blip_opts_qw to pass options to 3dQwarp in the blip block",
+   NULL
  } ,
 
  { 29,  Aug, 2016, RCR, "afni_system_check.py", MICRO, TYPE_ENHANCE,

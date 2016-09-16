@@ -541,9 +541,11 @@ g_history = """
     5.02 Aug 25, 2016:
         - fix output.proc prefix if -script has path
         - allow -mask_apply group in case of -tlrc_NL_warped_dsets
+    5.03 Sep 13, 2016: added -blip_opts_qw
+    5.04 Sep 16, 2016: added -radial_correlate
 """
 
-g_version = "version 5.02, August 25, 2016"
+g_version = "version 5.04, September 16, 2016"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \
@@ -554,6 +556,8 @@ g_requires_afni = [ \
       [  "1 Dec 2015",  "3dClustSim -ACF" ] ]
 
 g_todo_str = """todo:
+  - finish @radial_correlate updates, like _opts and _volreg
+     - maybe add to gen_ss_review_scripts.py
   - allow for 3dAllineate in place of 3dvolreg: -volreg_use_allineate
   - blip correction:
      - pass warp result dset(s)
@@ -814,7 +818,7 @@ class SubjProcSream:
 
         # updated throughout processing...
         self.bindex     = 0             # current block index
-        self.pblabel    = 'xxx'            # previous block label
+        self.pblabel    = 'xxx'         # previous block label
         self.surf_names = 0             # make surface I/O dset names
 
         return
@@ -937,6 +941,9 @@ class SubjProcSream:
                         helpstr='use -legendre in 3dToutcount?  (def=yes)')
         self.valid_opts.add_opt('-outlier_polort', 1, [],
                         helpstr='3dToutcount polort (default is as with 3dD)')
+        self.valid_opts.add_opt('-radial_correlate', 1, [],
+                        acplist=['yes','no'],
+                        helpstr="compute correlations with spherical averages")
         self.valid_opts.add_opt('-remove_preproc_files', 0, [],
                         helpstr='remove pb0* preprocessing files')
         self.valid_opts.add_opt('-test_for_dsets', 1, [],
@@ -996,6 +1003,8 @@ class SubjProcSream:
                         helpstr='forward blip dset for blip up/down corretion')
         self.valid_opts.add_opt('-blip_reverse_dset', 1, [],
                         helpstr='reverse blip dset for blip up/down corretion')
+        self.valid_opts.add_opt('-blip_opts_qw', -1, [],
+                        helpstr='additional options for 3dQwarp in blip block')
 
         self.valid_opts.add_opt('-align_epi_ext_dset', 1, [],
                         helpstr='external EPI volume for align_epi_anat.py')

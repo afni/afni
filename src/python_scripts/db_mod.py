@@ -393,7 +393,7 @@ def db_mod_postdata(block, proc, user_opts):
     block.valid = 1
 
 def db_cmd_postdata(proc, block):
-    """add any sub-blocks with their oun headers"""
+    """add any sub-blocks with their own headers"""
 
     cmd = ''
 
@@ -410,6 +410,13 @@ def db_cmd_postdata(proc, block):
     if proc.user_opts.have_yes_opt('-outlier_count', default=1) and \
             proc.reps_all[0] > 5:
         rv, oc = make_outlier_commands(proc, block)
+        if rv: return   # failure (error has been printed)
+        cmd = cmd + oc
+
+    # possibly get @radial_correlate command
+    if proc.user_opts.have_yes_opt('-radial_correlate', default=0) and \
+            proc.reps_all[0] > 5:
+        rv, oc = run_radial_correlate(proc, block)
         if rv: return   # failure (error has been printed)
         cmd = cmd + oc
 
@@ -594,6 +601,29 @@ def make_outlier_commands(proc, block):
  
     return 0, cmd
 
+def run_radial_correlate(proc, block):
+    # ----------------------------------------
+    # check for any censoring
+    if not proc.user_opts.have_yes_opt('-radial_correlate', default=0):
+       return 0, ''
+
+    olist, rv = proc.user_opts.get_string_list('-radial_correlate_opts')
+    if olist and len(olist) > 0:
+        other_opts = '%8s%s \\\n' % (' ', ' '.join(olist))
+    else: other_opts = ''
+
+    prev_dsets = proc.prev_dset_form_wild(block, view=1)
+    rdir = 'corr_test.results.%s' % block.label
+
+    cmd  = '# %s\n'                                                       \
+           '# data check: compute correlations with spherical averages\n' \
+           % block_header('@radial_correlate (%s)' % block.label)
+
+    cmd += '@radial_correlate -do_clust yes -nfirst 0 -rdir %s \\\n' \
+           '                  %s\n\n' % (rdir, prev_dsets)
+
+    return 0, cmd
+
 def combine_censor_files(proc, cfile, newfile=''):
     """create a 1deval command to multiply the 2 current censor file
        with the existing one, writing to newfile
@@ -629,6 +659,7 @@ def db_mod_blip(block, proc, user_opts):
    
    apply_uopt_to_block('-blip_forward_dset', user_opts, block)
    apply_uopt_to_block('-blip_reverse_dset', user_opts, block)
+   apply_uopt_to_block('-blip_opts_qw', user_opts, block)
 
    # note blip reverse input dset
    bopt = block.opts.find_opt('-blip_reverse_dset')
@@ -730,6 +761,12 @@ def db_cmd_blip(proc, block):
           % (mmedf.out_prefix(), medf.shortinput(),
              mmedr.out_prefix(), medr.shortinput())
 
+   # get any 3dQwarp options
+   olist, rv = block.opts.get_string_list('-blip_opts_qw')
+   if olist and len(olist) > 0:
+       other_opts = '%8s%s \\\n' % (' ', ' '.join(olist))
+   else: other_opts = ''
+
    # -source is reverse, -base is forward (but does not matter, of course)
    # current prefix: simply blip_warp
    # rcr: todo add options to control Qwarp inputs
@@ -738,10 +775,11 @@ def db_cmd_blip(proc, block):
           '3dQwarp -plusminus -pmNAMES Rev For  \\\n'   \
           '        -pblur 0.05 0.05 -blur -1 -1 \\\n'   \
           '        -noweight -minpatch 9        \\\n'   \
+          '%s'                                          \
           '        -source %s                   \\\n'   \
           '        -base   %s                   \\\n'   \
           '        -prefix %s\n\n'                      \
-          % (mmedr.shortinput(), mmedf.shortinput(), warp_prefix)
+          % (other_opts, mmedr.shortinput(), mmedf.shortinput(), warp_prefix)
 
    # store forward warp dataset name, and note reverse warp dataset name
    warp_for = mmedf.new(new_pref=('%s_For_WARP'%warp_prefix))
@@ -7618,7 +7656,7 @@ g_help_string = """
                         afni_proc.py            unWarpEPI.py
                         --------------------    --------------------
        tshift step:     before unwarp           after unwarp
-                        (option: unwarp first)
+                        (option: after unwarp)
 
        volreg program:  3dvolreg                3dAllineate
 
@@ -8414,6 +8452,34 @@ g_help_string = """
             See "3dDeconvolve -help" for more details.
             See also '-regress_polort' and '-outlier_legendre'.
 
+        -radial_correlate yes/no : correlate each voxel with local radius
+
+                e.g. -radial_correlate yes
+                default: no
+
+            With this option set, @radial_correlate will be run on the
+            initial EPI time series datasets.  That creates a 'corr_test'
+            directory that one can review, plus potential warnings (in text)
+            if large clusters of high correlations are found.
+
+            (very abbreviated) method for @radial_correlate:
+                for each voxel
+                   compute average time series within 20 mm radius sphere
+                   correlate central voxel time series with spherical average
+                look for clusters of high correlations
+
+            This is a useful quality control (QC) dataset that helps one find
+            scanner artifacts, particularly including coils going bad.
+
+            To visually check the results, the program text output suggests:
+
+                run command: afni corr_test.results.postdata
+                then set:    Underlay  = epi.SOMETHING
+                             Overlay   = res.SOMETHING.corr
+                             maybe threshold = 0.9, maybe clusterize
+            
+            See "@radial_correlate -help" for details and a list of options.
+
         -remove_preproc_files   : delete pre-processed data
 
             At the end of the output script, delete the intermediate data (to
@@ -8792,6 +8858,18 @@ g_help_string = """
 
             Please see '3dQwarp -help' for more information, and the -plusminus
             option in particular.
+
+        -blip_opts_qw OPTS ...  : specify extra options for 3dQwarp
+
+                e.g. -blip_opts_qw -noXdis -noZdis
+
+            This option allows the user to add extra options to the 3dQwarp
+            command specific to the 'blip' processing block.
+
+            There are many options (e.g. for blurring) applied in the 3dQwarp
+            command by afni_proc.py by default, so review the resulting script.
+
+            Please see '3dQwarp -help' for more information.
 
         -tlrc_anat              : run @auto_tlrc on '-copy_anat' dataset
 
