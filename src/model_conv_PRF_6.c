@@ -126,7 +126,7 @@ static int    genv_sigma_ratio_nsteps = 4; /* integers >= 1, or any >= 1 if 0 */
 static int    genv_theta_nsteps = 6;   /* truncate [-PI/2,PI/2) to S steps
 					  (if > 0) */
 
-static int    genv_get_help = 0;      /* AFNI_MODEL_HELP_ALL or HELP_CONV_PRF */
+static int    genv_get_help = 0;      /* AFNI_MODEL_HELP_ALL/HELP_CONV_PRF_6 */
 
 static int set_env_vars(void)
 {
@@ -161,7 +161,7 @@ static int set_env_vars(void)
               genv_sigma_ratio_nsteps, genv_theta_nsteps);
 
    /* help */
-   genv_get_help = AFNI_yesenv("AFNI_MODEL_HELP_CONV_PRF")
+   genv_get_help = AFNI_yesenv("AFNI_MODEL_HELP_CONV_PRF_6")
                 || AFNI_yesenv("AFNI_MODEL_HELP_ALL");
 
    return 0;
@@ -1194,7 +1194,7 @@ static int model_help(void)
 "\n"
 "      3dNLfim -input epi.scale.demean+tlrc \\\n"
 "              -noise Zero                  \\\n"
-"              -signal Conv_PRF             \\\n"
+"              -signal Conv_PRF_6           \\\n"
 "              -sconstr 0 -10.0 10.0        \\\n"
 "              -sconstr 1 -1.0 1.0          \\\n"
 "              -sconstr 2 -1.0 1.0          \\\n"
@@ -1275,19 +1275,19 @@ static int model_help(void)
 "   -----------------------------------\n"
 "   helpful:\n"
 "\n"
-"      AFNI_MODEL_HELP_CONV_PRF    : Y/N - output this help\n"
+"      AFNI_MODEL_HELP_CONV_PRF_6  : Y/N - output this help\n"
 "\n"
-"         e.g. setenv AFNI_MODEL_HELP_CONV_PRF YES\n"
+"         e.g. setenv AFNI_MODEL_HELP_CONV_PRF_6 YES\n"
 "\n"
 "         When set, the model initialization function will output this help.\n"
 "\n"
 "         Consider:\n"
 "\n"
-"            3dNLfim -signal Conv_PRF\n"
+"            3dNLfim -signal Conv_PRF_6\n"
 "\n"
 "         or more directly (without setenv):\n"
 "\n"
-"            3dNLfim -DAFNI_MODEL_HELP_CONV_PRF=Y -signal Conv_PRF\n"
+"            3dNLfim -DAFNI_MODEL_HELP_CONV_PRF_6=Y -signal Conv_PRF_6\n"
 "\n"
 "      AFNI_MODEL_DEBUG            : specify debug/verbosity level\n"
 "\n"
