@@ -1465,6 +1465,11 @@ int main( int argc , char *argv[] )
    enable_mcw_malloc() ;
 #endif
 
+   { int new_argc ; char ** new_argv ;                    /*-- 16 Sep 2016 --*/
+     addto_args( argc , argv , &new_argc , &new_argv ) ;
+     if( new_argv != NULL ){ argc = new_argc ; argv = new_argv ; }
+   }
+
    /*--- read the options from the command line ---*/
 
    PUTENV("AFNI_GLOB_SELECTORS","YES") ;  /* 19 Jun 2012 */
