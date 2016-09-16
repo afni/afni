@@ -66,6 +66,16 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 14, Sep , 2016 , PT , "3dDWItoDT" , MINOR , TYPE_NEW_OPT,
+   "Have a new '-bmax_ref ...' option: if bref has b>0.",
+   "Won't have much effective change *yet*, but will later. Possibly.\n"
+},
+
+{ 13, Sep , 2016 , PT , "1dDW_Grad_o_Mat" , MINOR , TYPE_NEW_OPT,
+   "New opt -bref_mean_top to average over mean bref when b>0.",
+   "Also, totally reprogrammed most of interior; had been too scraggly.\n"
+},
+
 { 31, Aug , 2016 , PT , "3dSpaceTimeCorr" , MAJOR , TYPE_BUG_FIX,
    "Fixed bug in yet-unreleased function... and also changed a feature.",
    "Bug: ts = all0 -> GSL badness on some comp; now, exclude seedvox in corr.\n"
