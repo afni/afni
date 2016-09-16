@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 16,  Sep, 2016, RCR, "realtime_receiver.py", MICRO, TYPE_MODIFY,
+   "continue even if requested GUI fails",
+   NULL
+ } ,
+
  { 13,  Sep, 2016, RCR, "3dANOVA3", MICRO, TYPE_MODIFY,
    "change 'illegal argument after' errors to something more specific",
    NULL
