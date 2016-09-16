@@ -45,6 +45,10 @@
 //   ~0.7 (x10^{-3} mm^2/s), etc., which is more the style propounded in
 //   reported literature.
 
+// Sep, 2016 (PT):
+// + introduce user opt BMAX_REF into program, so we can identify if 
+//   bvalue is really > 0, which can happen
+
 #include "thd_shear3d.h"
 /*#ifndef FLOATIZE*/
 # include "matrix.h"
@@ -143,6 +147,7 @@ float SCALE_VAL_OUT = -1.0 ;         // allow users to scaled physical
                                      // values by 1000 easily; will be
                                      // set to 1 if negative after
                                      // reading in inputs
+float BMAX_REF = 0.01;    // for identifying reference bvalues
 
 static NI_stream_type * DWIstreamid = 0;     /* NIML stream ID */
 
@@ -227,19 +232,18 @@ main (int argc, char *argv[])
 "               high-intensity (presumably brain) voxels.  The intensity \n"
 "               level is determined the same way that 3dClipLevel works.\n\n"
 "   -mask dset = use dset as mask to include/exclude voxels\n\n"
-"   -bmatrix_NZ = input dataset is b-matrix, not gradient directions, and\n"
-"               there is *no* row of zeros at the top of the file,\n"
-"               similar to the format for the grad input.\n"
+"   -bmatrix_NZ = switch to note that the input dataset is b-matrix, \n"
+"               not gradient directions, and there is *no* row of zeros \n"
+"               at the top of the file, similar to the format for the grad\n"
+"               input: N-1 rows in this file for N vols in matched data set.\n"
 "               There must be 6 columns of data, representing either elements\n"
 "               of G_{ij} = g_i*g_j (i.e., dyad of gradients, without b-value\n"
 "               included) or of the DW scaled version, B_{ij} = b*g_i*g_j.\n"
 "               The order of components is: G_xx G_yy G_zz G_xy G_xz G_yz.\n"
-"   -bmatrix_Z = similar to '-bmatrix_NZ' above, but assumes that first row\n"
-"               of the file is all zeros, i.e. the bmatrix includes a b=0 \n"
-"               volume as the first volume. Note that the first row is \n"
-"               ignored, so that if you do have a non-zero gradient as the \n"
-"               first volume, then that would be ignored and treated as a \n"
-"               B=0, no gradient volume.\n\n"
+"   -bmatrix_Z = similar to '-bmatrix_NZ' above, but assumes that first\n"
+"               row of the file is all zeros (or whatever the b-value for\n"
+"               the reference volume was!), i.e. there are N rows to the\n"
+"               text file and N volumes in the matched data set.\n\n"
 "   -scale_out_1000 = increase output parameters that have physical units\n"
 "               (DT, MD, L1, L2 and L3) by multiplying them by 1000.  This\n"
 "               might be convenient, as the input bmatrix/gradient values \n"
@@ -252,6 +256,11 @@ main (int argc, char *argv[])
 "               bmatrix/gradient values that have their physical scalings,\n"
 "               then using this switch probably wouldn't make much sense.\n"
 "               FA, V1, V2 and V3 are unchanged.\n\n" 
+" -bmax_ref THR = if the 'reference' bvalue is actually >0, you can flag\n"
+"                 that here.  Otherwise, it is assumed to be zero.\n"
+"                 At present, this is probably only useful/meaningful if\n"
+"                 using the '-bmatrix_Z' switch, where the reference\n"
+"                 bvalue must be found/identified from the input info alone.\n"
 "   -nonlinear = compute iterative solution to avoid negative eigenvalues.\n"
 "                This is the default method.\n\n"
 "   -linear = compute simple linear solution.\n\n"
@@ -434,6 +443,14 @@ main (int argc, char *argv[])
             continue;
          }
          
+         if (strcmp (argv[nopt], "-bmax_ref") == 0){
+            if(++nopt >=argc )
+               ERROR_exit("Error: need an argument after -bmax_ref!");
+            BMAX_REF = (float) strtod(argv[nopt], NULL); 
+            nopt++;
+            continue;
+         }
+
          // May,2016: essentially, turn off badness criterion of
          // superlarge MD by setting the value SOOO high
          if (strcmp (argv[nopt], "-min_bad_md") == 0){
@@ -736,6 +753,7 @@ main (int argc, char *argv[])
    for( i=0 ; i<npix ; i++ ){
       flar[i]/= SCALE_VAL_OUT;
    }
+   BMAX_REF/= SCALE_VAL_OUT;
 
    //fprintf(stderr,"\n\n nyx=%d; npix=%d\n",grad1Dptr->nxy, npix);
    //for( i=0 ; i<npix ; i++)
@@ -2105,9 +2123,12 @@ Computebmatrix (MRI_IMAGE * grad1Dptr, int NO_ZERO_ROW1)
          *bptr++ = Byy;
          *bptr++ = Byz;
          *bptr++ = Bzz;
-         if(Bxx==0.0 && Byy==0.0 && Bzz==0.0)  /* is this a zero
-                                                  gradient volume
-                                                  also? */
+
+         // if(Bxx==0.0 && Byy==0.0 && Bzz==0.0)  
+
+         // is this a zero gradient volume also? -> user can input a
+         // larger value, if necessary.
+         if( (Bxx+Byy+Bzz)<BMAX_REF )
             B0list[i] = 1;
          else{
             B0list[i] = 0;
@@ -2149,7 +2170,10 @@ Computebmatrix (MRI_IMAGE * grad1Dptr, int NO_ZERO_ROW1)
          *bptr++ = Byy;
          *bptr++ = Byz;
          *bptr++ = Bzz;
-         if(Bxx==0.0 && Byy==0.0 && Bzz==0.0)  /* is this a zero gradient volume also? */
+
+         // is this a zero gradient volume also? 
+         //if(Bxx==0.0 && Byy==0.0 && Bzz==0.0)  
+         if( (Bxx+Byy+Bzz)<BMAX_REF )
             B0list[i+1] = 1; 
          else{
             B0list[i+1] = 0; 
@@ -2178,11 +2202,13 @@ Computebmatrix (MRI_IMAGE * grad1Dptr, int NO_ZERO_ROW1)
             Gx = *Gxptr++;
             Gy = *Gyptr++;
             Gz = *Gzptr++;
-            if((Gx==0.0) && (Gy==0.0) && (Gz==0.0))
+
+            //if((Gx==0.0) && (Gy==0.0) && (Gz==0.0))
+            gscale = sqrt(Gx*Gx + Gy*Gy + Gz*Gz);
+            if( gscale<BMAX_REF )
                B0list[i+1] = 1;   /* no gradient applied*/
             else{
                B0list[i+1] = 0;
-               gscale = sqrt(Gx*Gx + Gy*Gy + Gz*Gz);
                if(gscale > MAX_BVAL)
                   MAX_BVAL = gscale; // apr,2016
             }
