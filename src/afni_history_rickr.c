@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 16,  Sep, 2016, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
+   "added -radial_correlate option, to run @radial_correlate in proc script",
+   NULL
+ } ,
+
  { 16,  Sep, 2016, RCR, "realtime_receiver.py", MICRO, TYPE_MODIFY,
    "continue even if requested GUI fails",
    NULL

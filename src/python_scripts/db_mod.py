@@ -393,7 +393,7 @@ def db_mod_postdata(block, proc, user_opts):
     block.valid = 1
 
 def db_cmd_postdata(proc, block):
-    """add any sub-blocks with their oun headers"""
+    """add any sub-blocks with their own headers"""
 
     cmd = ''
 
@@ -410,6 +410,13 @@ def db_cmd_postdata(proc, block):
     if proc.user_opts.have_yes_opt('-outlier_count', default=1) and \
             proc.reps_all[0] > 5:
         rv, oc = make_outlier_commands(proc, block)
+        if rv: return   # failure (error has been printed)
+        cmd = cmd + oc
+
+    # possibly get @radial_correlate command
+    if proc.user_opts.have_yes_opt('-radial_correlate', default=0) and \
+            proc.reps_all[0] > 5:
+        rv, oc = run_radial_correlate(proc, block)
         if rv: return   # failure (error has been printed)
         cmd = cmd + oc
 
@@ -592,6 +599,29 @@ def make_outlier_commands(proc, block):
            'cat outcount.r*.1D > outcount_rall.1D\n'                      \
            '%s\n' % cs1
  
+    return 0, cmd
+
+def run_radial_correlate(proc, block):
+    # ----------------------------------------
+    # check for any censoring
+    if not proc.user_opts.have_yes_opt('-radial_correlate', default=0):
+       return 0, ''
+
+    olist, rv = proc.user_opts.get_string_list('-radial_correlate_opts')
+    if olist and len(olist) > 0:
+        other_opts = '%8s%s \\\n' % (' ', ' '.join(olist))
+    else: other_opts = ''
+
+    prev_dsets = proc.prev_dset_form_wild(block, view=1)
+    rdir = 'corr_test.results.%s' % block.label
+
+    cmd  = '# %s\n'                                                       \
+           '# data check: compute correlations with spherical averages\n' \
+           % block_header('@radial_correlate (%s)' % block.label)
+
+    cmd += '@radial_correlate -do_clust yes -nfirst 0 -rdir %s \\\n' \
+           '                  %s\n\n' % (rdir, prev_dsets)
+
     return 0, cmd
 
 def combine_censor_files(proc, cfile, newfile=''):
@@ -8421,6 +8451,34 @@ g_help_string = """
             See "3dToutcount -help" for more details.
             See "3dDeconvolve -help" for more details.
             See also '-regress_polort' and '-outlier_legendre'.
+
+        -radial_correlate yes/no : correlate each voxel with local radius
+
+                e.g. -radial_correlate yes
+                default: no
+
+            With this option set, @radial_correlate will be run on the
+            initial EPI time series datasets.  That creates a 'corr_test'
+            directory that one can review, plus potential warnings (in text)
+            if large clusters of high correlations are found.
+
+            (very abbreviated) method for @radial_correlate:
+                for each voxel
+                   compute average time series within 20 mm radius sphere
+                   correlate central voxel time series with spherical average
+                look for clusters of high correlations
+
+            This is a useful quality control (QC) dataset that helps one find
+            scanner artifacts, particularly including coils going bad.
+
+            To visually check the results, the program text output suggests:
+
+                run command: afni corr_test.results.postdata
+                then set:    Underlay  = epi.SOMETHING
+                             Overlay   = res.SOMETHING.corr
+                             maybe threshold = 0.9, maybe clusterize
+            
+            See "@radial_correlate -help" for details and a list of options.
 
         -remove_preproc_files   : delete pre-processed data
 
