@@ -49,8 +49,23 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 19,  Sep, 2016, RCR, "afni_util.py", MICRO, TYPE_NEW_OPT,
+   "add -funchelp option, to display __doc__ from afni_util.py functions",
+   NULL
+ } ,
+
+ { 19,  Sep, 2016, RCR, "@move.to.series.dirs", MICRO, TYPE_NEW_OPT,
+   "add -glob, for processing glob forms via afni_util.py and xargs",
+   NULL
+ } ,
+
+ { 19,  Sep, 2016, RCR, "afni_util.py", MICRO, TYPE_NEW_OPT,
+   "add glob2stdout, for converting glob forms to lists in stdout",
+   NULL
+ } ,
+
  { 16,  Sep, 2016, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
-   "added -radial_correlate option, to run @radial_correlate in proc script",
+   "add -radial_correlate option, to run @radial_correlate in proc script",
    NULL
  } ,
 
