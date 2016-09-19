@@ -3680,6 +3680,14 @@ afni_util.py: not really intended as a main program
             afni_util.py -exec "import PyQt4"
             afni_util.py -exec "show_process_stack()"
 
+      -funchelp FUNC    : print the help for afni_util.py function FUNC
+
+         Pring the FUNC.__doc__ text, if any.
+
+         Example:
+
+            afni_util.py -funchelp wrap_file_text
+
       -print STRING     : print the result of executing STRING
 
          Akin to -eval, but print the results of evaluating STRING.
@@ -3811,6 +3819,14 @@ def process_listfunc(argv):
    # else do nothing special
    return 0
 
+def show_function_help(flist):
+   for func in flist:
+      print section_divider('help for: %s' % func)
+      try:
+         fn = eval(func)
+         print fn.__doc__
+      except:
+         print "** not a valid function '%s'" % func
 
 def main():
    argv = sys.argv
@@ -3823,6 +3839,9 @@ def main():
          return 0
       elif argv[1] == '-exec':
          exec(' '.join(argv[2:]))
+         return 0
+      elif argv[1] == '-funchelp':
+         show_function_help(argv[2:])
          return 0
       elif argv[1] == '-lprint':
          ret = eval(' '.join(argv[2:]))
