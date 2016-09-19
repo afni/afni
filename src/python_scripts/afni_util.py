@@ -2176,6 +2176,18 @@ def first_last_match_strs(slist):
 
    return slist[0][0:hmatch], tstr
 
+def glob2stdout(globlist):
+   """given a list of glob forms, print all matches to stdout
+
+      This is meant to be a stream workaround to shell errors
+      like, "Argument list too long".
+
+      echo 'd1/*.dcm' 'd2/*.dcm' | afni_util.py -listfunc glob2stdout -
+   """
+   for gform in globlist:
+      for fname in glob.glob(gform):
+         print fname
+
 def glob_form_from_list(slist):
    """given a list of strings, return a glob form
 
@@ -3705,6 +3717,7 @@ afni_util.py: not really intended as a main program
 
             afni_util.py -listfunc -join shuffle `count -digits 4 1 124`
             count -digits 4 1 124 | afni_util.py -listfunc -join shuffle -
+            afni_util.py -listfunc glob2stdout 'EPI_run1/8*'
 
             afni_util.py -listfunc -joinc list_minus_glob_form *HEAD
 
