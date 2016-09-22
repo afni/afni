@@ -1,5 +1,10 @@
 #include "mrilib.h"
 
+/** To do:
+      allow output for a range of temporal subsets
+      allow censoring
+**/
+
 #ifdef USE_OMP
 #include <omp.h>
 #endif
