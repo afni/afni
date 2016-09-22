@@ -1262,8 +1262,12 @@ class SubjProcSream:
                         helpstr="execute 3dREMLfit command script")
         self.valid_opts.add_opt('-regress_ROI', -1, [], okdash=0,
                         helpstr="regress out known ROIs")
+        self.valid_opts.add_opt('-regress_ROI_per_run', -1, [], okdash=0,
+                        helpstr="regress given ROIs averages per run")
         self.valid_opts.add_opt('-regress_ROI_PC', 2, [], okdash=0,
                         helpstr="regress PCs from ROI (label num_pc)")
+        self.valid_opts.add_opt('-regress_ROI_PC_per_run', -1, [], okdash=0,
+                        helpstr="regress PCs of given ROIs per run")
         self.valid_opts.add_opt('-regress_RONI', -1, [], okdash=0,
                         helpstr="1-based list of regressors of no interest")
         self.valid_opts.add_opt('-regress_RSFC', 0, [],
