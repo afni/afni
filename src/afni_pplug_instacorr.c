@@ -577,6 +577,8 @@ static char * ICOR_main( PLUGIN_interface *plint )
      INFO_message("InstaCorr setup: %d voxels ready for work: %.2f sec",qq,etim) ;
    ININFO_message("..... Use 'InstaCorr Set' to pick a seed voxel .....") ;
    ININFO_message("..... (Mouse-right-click menu in image viewer) .....") ;
+   ININFO_message("..... (or Shift+Ctrl+left-click at seed point) .....") ;
+   ININFO_message("..... (Shift+Ctrl+left-click-and-drag for fun) .....") ;
 
    im3d->iset = iset ;
 
