@@ -3695,6 +3695,8 @@ def db_mod_regress(block, proc, user_opts):
     # -regress_ROI* options
     apply_uopt_to_block('-regress_ROI', user_opts, block)  # 04 Sept 2012
     apply_uopt_list_to_block('-regress_ROI_PC', user_opts, block) # 01 Apr 2015
+    apply_uopt_to_block('-regress_ROI_per_run', user_opts, block)  # 09/21/2016
+    apply_uopt_to_block('-regress_ROI_PC_per_run', user_opts, block)
 
     # add any appropriate datasets anat followers   01 Apr 2015
     if add_ROI_PC_followers(proc, block): errs += 1
@@ -5413,6 +5415,7 @@ def db_cmd_regress_pc_followers(proc, block):
 
     # make a list of [LABEL, NPC]
     roipcs = []
+    roipclabs = []
     for opt in proc.user_opts.find_all_opts(oname):
        label = opt.parlist[0]
        npc   = opt.parlist[1]
@@ -5425,12 +5428,31 @@ def db_cmd_regress_pc_followers(proc, block):
           return 1, ''
        # okay, append to the list
        roipcs.append([label, numpc])
+       roipclabs.append(label)
 
     if len(roipcs) == 0: return 0, ''
 
-    roinames = ', '.join([r[0] for r in roipcs])
+    roinames = ', '.join(roipclabs)
     clist = ['# ------------------------------\n']
     clist.append('# create ROI PC ort sets: %s\n' % roinames)
+
+    # note any per_run labels
+    oname = '-regress_ROI_PC_per_run'
+    per_run_rois, rv = block.opts.get_string_list(oname)
+    if not per_run_rois:
+       per_run_rois = [] # be sure it is a list
+    for roi in per_run_rois:
+       if not roi in roipclabs:
+          print "** PC per_run ROI '%s' not in ROI list: %s" \
+	     % (roi, ', '.join(roipclabs))
+          return 1, ''
+
+    # do we catenate?
+    docat = 0
+    doperrun = (len(per_run_rois) > 0)
+    for roi in roipclabs:
+       if not roi in per_run_rois:
+          docat = 1
 
     # if there is no volreg prefix, get a more recent one
     vr_prefix = proc.volreg_prefix
@@ -5453,10 +5475,11 @@ def db_cmd_regress_pc_followers(proc, block):
     if proc.censor_file: c1str = ', prepare to censor TRs'
     else:                c1str = ''
  
-    clist.append('# catenate runs%s\n' % c1str)
-    clist.append('3dTcat -prefix %s_rall %s_r*%s.HEAD\n\n' \
-                 % (tpre,tpre,proc.view) )
-    tpre += '_rall'
+    if docat:
+       clist.append('# catenate runs%s\n' % c1str)
+       clist.append('3dTcat -prefix %s_rall %s_r*%s.HEAD\n\n' \
+                    % (tpre,tpre,proc.view) )
+       tpre += '_rall'
 
     for pcind, pcentry in enumerate(roipcs):
        label = pcentry[0]
@@ -5514,6 +5537,16 @@ def db_cmd_regress_ROI(proc, block):
        print '** have -regress_ROI but no ROIs provided'
        return 1, ''
 
+    # note any per_run labels
+    oname = '-regress_ROI_per_run'
+    per_run_rois, rv = block.opts.get_string_list(oname)
+    if not per_run_rois:
+       per_run_rois = [] # be sure it is a list
+    for roi in per_run_rois:
+       if not roi in rois:
+          print "** per_run ROI '%s' not in ROI list: %s"%(roi,', '.join(rois))
+          return 1, ''
+
     # report errors for any unknown ROIs (not in roi_dict)
     keystr = ', '.join(proc.roi_dict.keys())
     nerrs = 0
@@ -5549,29 +5582,54 @@ def db_cmd_regress_ROI(proc, block):
        vr_prefix = proc.prefix_form_run(vblock)
 
     cmd += 'foreach run ( $runs )\n'
+    docat = 0
     for roi in rois:
         mset = proc.get_roi_dset(roi)
         # if mset == None:
         if not isinstance(mset, BASE.afni_name):
            print "** regress_ROI: missing ROI dset for '%s'" % roi
            return 1, ''
+
+        per_run = (roi in per_run_rois)
+
         # -- no more label table, masks are now unit            22 Apr 2013
         # maybe we need a label table value selector
         # if roi in ['GM', 'WM', 'CSF']: substr = '"<%s>"' % roi
         # else:                          substr = ''
-        ofile = 'rm.ROI.%s.r$run.1D' % roi
-        cmd += '    3dmaskave -quiet -mask %s \\\n'                        \
-               '              %s%s \\\n'                                   \
-               '              | 1d_tool.py -infile - -demean -write %s \n' \
-               % (mset.pv(), vr_prefix, proc.view, ofile)
+
+   	# if per run, output goes to stdout before appending pipe
+	if not per_run:
+	   ofile = 'rm.ROI.%s.r$run.1D' % roi
+           cpr = ''
+           docat = 1 # catenate across runs
+        else:
+	   ofile = 'ROI.%s.r$run.1D' % roi
+	   spaces = ' '*13
+           cpr = '%s -set_run_lengths $tr_counts ' \
+	         '-pad_into_many_runs $run %d \n'  \
+ 		 % (spaces, proc.runs)
+
+        cmd += '    3dmaskave -quiet -mask %s \\\n'                          \
+               '              %s%s \\\n'                                     \
+               '              | 1d_tool.py -infile - -demean -write %s%s \n' \
+               % (mset.pv(), vr_prefix, proc.view, ofile, cpr)
     cmd += 'end\n'
 
-    cmd += '# and catenate the demeaned ROI averages across runs\n'
+    if docat:
+       cmd += '# and catenate the demeaned ROI averages across runs\n'
     for roi in rois:
-        rname = 'ROI.%s' % roi
-        rfile = '%s_rall.1D' % rname
-        cmd += 'cat rm.%s.r*.1D > %s\n' % (rname, rfile)
-        proc.regress_orts.append([rfile, rname])
+	if roi in per_run_rois:
+	   for run in range(proc.runs):
+              rname = 'ROI.%s.r%02d' % (roi, run+1)
+	      rfile = '%s.1D' % rname
+              proc.regress_orts.append([rfile, rname])
+	      print '== adding ROI %s %s' % (rname, rfile)
+	   continue
+        else:
+           rname = 'ROI.%s' % roi
+           rfile = '%s_rall.1D' % rname
+           cmd += 'cat rm.%s.r*.1D > %s\n' % (rname, rfile)
+           proc.regress_orts.append([rfile, rname])
     cmd += '\n'
 
     proc.have_rm = 1
