@@ -5453,6 +5453,7 @@ def db_cmd_regress_pc_followers(proc, block):
     for roi in roipclabs:
        if not roi in per_run_rois:
           docat = 1
+          break
 
     # if there is no volreg prefix, get a more recent one
     vr_prefix = proc.volreg_prefix
@@ -5467,9 +5468,11 @@ def db_cmd_regress_pc_followers(proc, block):
        'foreach run ( $runs )\n'                                 \
        '    3dDetrend -polort %d -prefix %s_r$run \\\n'          \
        '              %s%s\n'                                    \
-          'end\n\n' % (proc.regress_polort, tpre, vr_prefix, proc.view) \
+       % (proc.regress_polort, tpre, vr_prefix, proc.view)       \
        )
-     
+
+    # finish 'foreach run loop, after any per-run regressors
+    clist.append('end\n\n')
 
     # will be censor and uncensor
     if proc.censor_file: c1str = ', prepare to censor TRs'
@@ -5481,43 +5484,53 @@ def db_cmd_regress_pc_followers(proc, block):
                     % (tpre,tpre,proc.view) )
        tpre += '_rall'
 
-    for pcind, pcentry in enumerate(roipcs):
-       label = pcentry[0]
-       num_pc = pcentry[1]
-       cname = proc.get_roi_dset(label)
-       if cname == None:
-          print '** applying %s, failed to get ROI dset for label %s' \
-                % (oname, label)
-          return 1, ''
-
-       # create roi_pc_01_LABEL_00.1D ...
-       pcpref = 'roi_pc_%02d_%s' % (pcind+1, label)
-
-       if proc.censor_file: c1str = ' and uncensor (zero-pad)'
-       else:                c1str = ''
-
-       clist.append('# make ROI PCs%s : %s\n'            \
-              '3dpc -mask %s -pcsave %d -prefix %s \\\n' \
-              '     %s%s%s\n'                            \
-              % (c1str, label, cname.shortinput(),
-                 num_pc, pcpref, tpre, proc.view, proc.keep_trs))
-       pcname = '%s_vec.1D' % pcpref
-
-       # append pcfiles to orts list
-       # (possibly create censor file, first)
-       if proc.censor_file:
-          newname = '%s_noc.1D' % pcpref
-          clist.append(                                     \
-             '1d_tool.py -censor_fill_parent %s \\\n'       \
-             '    -infile %s -write %s\n'%(proc.censor_file, pcname, newname))
-          pcname = newname
-       
-       proc.regress_orts.append([pcname, 'ROI.PC.%s'%label])
-       clist.append('\n')
+    rv, cnew = regress_pc_followers_regressors(proc, oname, roipcs, tpre)
+    if rv: return 1, ''
+    clist.extend(cnew)
 
     print '-- have %d PC ROIs to regress: %s' % (len(roipcs), roinames)
 
     return 0, ''.join(clist)
+
+
+def regress_pc_followers_regressors(proc, oname, roipcs, tprefix, perrun=0):
+   """return list of commands for 3dpc, either per run or across them"""
+   clist = []
+   for pcind, pcentry in enumerate(roipcs):
+      label = pcentry[0]
+      num_pc = pcentry[1]
+      cname = proc.get_roi_dset(label)
+      if cname == None:
+         print '** applying %s, failed to get ROI dset for label %s' \
+               % (oname, label)
+         return 1, clist
+
+      # create roi_pc_01_LABEL_00.1D ...
+      pcpref = 'roi_pc_%02d_%s' % (pcind+1, label)
+
+      if proc.censor_file: c1str = ' and uncensor (zero-pad)'
+      else:                c1str = ''
+
+      clist.append('# make ROI PCs%s : %s\n'            \
+             '3dpc -mask %s -pcsave %d -prefix %s \\\n' \
+             '     %s%s%s\n'                            \
+             % (c1str, label, cname.shortinput(),
+                num_pc, pcpref, tprefix, proc.view, proc.keep_trs))
+      pcname = '%s_vec.1D' % pcpref
+
+      # append pcfiles to orts list
+      # (possibly create censor file, first)
+      if proc.censor_file:
+         newname = '%s_noc.1D' % pcpref
+         clist.append(                                     \
+            '1d_tool.py -censor_fill_parent %s \\\n'       \
+            '    -infile %s -write %s\n'%(proc.censor_file, pcname, newname))
+         pcname = newname
+
+      proc.regress_orts.append([pcname, 'ROI.PC.%s'%label])
+      clist.append('\n')
+
+   return 0, clist
 
 def db_cmd_regress_ROI(proc, block):
     """remove any regressors of no interest
