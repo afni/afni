@@ -110,6 +110,68 @@ class Afni1D:
 
       return 0
 
+   def reduce_by_run_list(self, rlist):
+      """extract the list of (1-based) runs from the dataset
+         return 0 on success"""
+
+      if not self.ready:
+         print '** reduce_by_run_list: Afni1D is not ready'
+         return 1
+
+      # are all of the runs valid?
+      errs = 0
+      for run in rlist:
+         if run < 1:
+            print '** reduce_by_run_list: min run index is 1'
+            errs += 1
+         if run > self.nruns:
+            print '** reduce_by_run_list: %d exceeds max run index %d' \
+                  % (run, self.nruns)
+            errs += 1
+      if errs: return 1
+
+      if len(self.runstart) != self.nruns:
+         print '** run_list: missing %d run positions (-set_run_lengths?)' \
+               % self.nruns
+         errs += 1
+      if len(self.run_len) != self.nruns:
+         print '** run_list: missing %d run lengths (-set_run_lengths?)' \
+               % self.nruns
+         errs += 1
+      if errs: return 1
+
+      # make useful runstart list to begin with, which will be trashed anyway
+      runstart = []
+      ntotal = 0
+      for rlen in self.run_len:
+         runstart.append(ntotal)
+         ntotal += rlen
+      self.runstart = runstart
+
+      # finally ready?  
+      # make tlist, clear groups, reduce_by_tlist
+      # and then update nruns, run_len, runstart
+      self.groups = []
+      tlist = []
+      run_len = []      # make new lists as we go
+      runstart = []     # make new lists as we go
+      ntotal = 0        # for runstart list
+      for run in rlist:
+         r0 = run - 1
+         nt = self.run_len[r0]
+         tlist.extend([self.runstart[r0]+i for i in range(nt)])
+         run_len.append(nt)
+         runstart.append(ntotal)
+         ntotal += nt
+
+      if self.reduce_by_tlist(tlist): return 1
+
+      self.nruns = len(rlist)
+      self.run_len = run_len
+      self.runstart = runstart
+
+      return 0
+
    def reduce_by_vec_list(self, vlist):
       """reduce the dataset according to the vector list
          return 0 on success"""
@@ -2263,13 +2325,15 @@ class Afni1D:
              "++ labels   : %s\n" \
              "++ groups   : %s\n" \
              "++ goodlist : %s\n" \
+             "++ runstart : %s\n" \
              "++ tr       : %s\n" \
              "++ nrowfull : %d\n" \
              "++ nruns    : %d\n" \
              "++ run_len  : %s\n" \
              "++ run_len_nc: %s\n" % \
              (self.name, rstr, self.fname, self.nvec, self.nt,
-             self.labels, self.groups, self.goodlist, self.tr, self.nrowfull,
+             self.labels, self.groups, self.goodlist, self.runstart,
+             self.tr, self.nrowfull,
              self.nruns, self.run_len, self.run_len_nc)
 
       return mstr
