@@ -1033,9 +1033,10 @@ g_history = """
    1.24 Mar 31, 2015 - allow -censor_fill_parent with simple 1D files
    1.25 Apr  1, 2015 - expand simple -censor_fill_parent for 2-D files
    1.26 Nov  4, 2015 - added -slice_order_to_times
+   1.27 Sep 23, 2016 - tiny nruns adjust
 """
 
-g_version = "1d_tool.py version 1.26, November 4, 2015"
+g_version = "1d_tool.py version 1.27, September 23, 2016"
 
 
 class A1DInterface:
@@ -2134,9 +2135,9 @@ class A1DInterface:
 
       # if desired, just get sub-list
       if self.show_trs_run >= 0:
-         if self.show_trs_run > self.adata.nruns:
+         if self.show_trs_run >= self.adata.nruns:
             print '** -show_trs_run (%d) exceeds num runs (%d)' \
-                  % (self.show_trs_run, self.adata.nruns)
+                  % (self.show_trs_run+1, self.adata.nruns)
             return
 
          trs    = trs   [self.show_trs_run:self.show_trs_run+1]
