@@ -5466,14 +5466,14 @@ def db_cmd_regress_pc_followers(proc, block):
        '\n# create a time series dataset to run 3dpc on...\n\n'  \
        '# detrend, so principal components are not affected\n'   \
        'foreach run ( $runs )\n'                                 \
-       '    3dDetrend -polort %d -prefix %s_r$run \\\n'          \
-       '              %s%s\n'                                    \
+       '    3dTproject -polort %d -prefix %s_r$run \\\n'         \
+       '               -input %s%s\n'                            \
        % (proc.regress_polort, tpre, vr_prefix, proc.view)       \
        )
 
     if doperrun:
        rv, cnew = regress_pc_followers_regressors(proc, oname, roipcs,
-                      tpre+'r$run', perrun=1)
+                      tpre+'r$run', perrun=True, per_run_rois=per_run_rois)
        if rv: return 1, ''
        clist.extend(cnew)
 
@@ -5490,7 +5490,8 @@ def db_cmd_regress_pc_followers(proc, block):
                     % (tpre,tpre,proc.view) )
        tpre += '_rall'
 
-    rv, cnew = regress_pc_followers_regressors(proc, oname, roipcs, tpre)
+    rv, cnew = regress_pc_followers_regressors(proc, oname, roipcs, tpre,
+                        perrun=False, per_run_rois=per_run_rois)
     if rv: return 1, ''
     clist.extend(cnew)
 
@@ -5499,12 +5500,19 @@ def db_cmd_regress_pc_followers(proc, block):
     return 0, ''.join(clist)
 
 
-def regress_pc_followers_regressors(proc, optname, roipcs, pcdset, perrun=0):
+def regress_pc_followers_regressors(proc, optname, roipcs, pcdset, perrun=False,
+        per_run_rois=[]):
    """return list of commands for 3dpc, either per run or across them
-      if perrun:
+      if per_run_rois:
+         if perrun: only do ROIs in per_run_rois
+         else:      only do ROIs NOT in per_run_rois
+      if perrun ROI:
          - indent by 4 (do it at the end)
          - censor fill per run (1d_tool.py needs current run and all lengths)
    """
+   if perrun: indent = '   '
+   else:      indent = ''
+
    clist = []
    for pcind, pcentry in enumerate(roipcs):
       label = pcentry[0]
@@ -5515,30 +5523,36 @@ def regress_pc_followers_regressors(proc, optname, roipcs, pcdset, perrun=0):
                % (optname, label)
          return 1, clist
 
+      # perrun should agree with (label in per_run_rois)
+      if perrun != (label in per_run_rois): continue
+
       # create roi_pc_01_LABEL_00.1D ...
       pcpref = 'roi_pc_%02d_%s' % (pcind+1, label)
 
       if proc.censor_file: c1str = ' and uncensor (zero-pad)'
       else:                c1str = ''
 
-      clist.append('# make ROI PCs%s : %s\n'            \
-             '3dpc -mask %s -pcsave %d -prefix %s \\\n' \
-             '     %s%s%s\n'                            \
-             % (c1str, label, cname.shortinput(),
-                num_pc, pcpref, pcdset, proc.view, proc.keep_trs))
+      if perrun: clist.append('\n')
+      clist.append('%s# make ROI PCs%s : %s\n'            \
+             '%s3dpc -mask %s -pcsave %d -prefix %s \\\n' \
+             '%s     %s%s%s\n'                            \
+             % (indent, c1str, label,
+                indent, cname.shortinput(), num_pc, pcpref,
+                indent, pcdset, proc.view, proc.keep_trs))
       pcname = '%s_vec.1D' % pcpref
 
       # append pcfiles to orts list
       # (possibly create censor file, first)
       if proc.censor_file:
          newname = '%s_noc.1D' % pcpref
-         clist.append(                                     \
-            '1d_tool.py -censor_fill_parent %s \\\n'       \
-            '    -infile %s -write %s\n'%(proc.censor_file, pcname, newname))
+         clist.append(                                 \
+            '%s1d_tool.py -censor_fill_parent %s \\\n' \
+            '%s    -infile %s -write %s\n'             \
+            %(indent, proc.censor_file, indent, pcname, newname))
          pcname = newname
 
       proc.regress_orts.append([pcname, 'ROI.PC.%s'%label])
-      clist.append('\n')
+      if not perrun: clist.append('\n')
 
    return 0, clist
 
@@ -5646,7 +5660,6 @@ def db_cmd_regress_ROI(proc, block):
               rname = 'ROI.%s.r%02d' % (roi, run+1)
 	      rfile = '%s.1D' % rname
               proc.regress_orts.append([rfile, rname])
-	      print '== adding ROI %s %s' % (rname, rfile)
 	   continue
         else:
            rname = 'ROI.%s' % roi
