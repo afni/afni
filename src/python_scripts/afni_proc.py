@@ -543,6 +543,8 @@ g_history = """
         - allow -mask_apply group in case of -tlrc_NL_warped_dsets
     5.03 Sep 13, 2016: added -blip_opts_qw
     5.04 Sep 16, 2016: added -radial_correlate
+    5.05
+        - detrend with 3dTproject for PC regressors, to allow for censoring
 """
 
 g_version = "version 5.04, September 16, 2016"
