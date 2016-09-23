@@ -1032,8 +1032,8 @@ class Afni1D:
       if run_index < 0: return 0, tr_list
 
       if run_index >= self.nruns:
-         print '** cannot restrict TR list for (0-based) run %d, have %d' \
-               (run_index, self.nruns)
+         print '** cannot restrict TR list for (1-based) run %d, have %d' \
+               % (run_index+1, self.nruns)
          return 1, []
 
       if self.nrowfull > 0: nt = self.nrowfull
