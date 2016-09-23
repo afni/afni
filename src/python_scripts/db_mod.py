@@ -5471,6 +5471,12 @@ def db_cmd_regress_pc_followers(proc, block):
        % (proc.regress_polort, tpre, vr_prefix, proc.view)       \
        )
 
+    if doperrun:
+       rv, cnew = regress_pc_followers_regressors(proc, oname, roipcs,
+                      tpre+'r$run', perrun=1)
+       if rv: return 1, ''
+       clist.extend(cnew)
+
     # finish 'foreach run loop, after any per-run regressors
     clist.append('end\n\n')
 
@@ -5493,8 +5499,12 @@ def db_cmd_regress_pc_followers(proc, block):
     return 0, ''.join(clist)
 
 
-def regress_pc_followers_regressors(proc, oname, roipcs, tprefix, perrun=0):
-   """return list of commands for 3dpc, either per run or across them"""
+def regress_pc_followers_regressors(proc, optname, roipcs, pcdset, perrun=0):
+   """return list of commands for 3dpc, either per run or across them
+      if perrun:
+         - indent by 4 (do it at the end)
+         - censor fill per run (1d_tool.py needs current run and all lengths)
+   """
    clist = []
    for pcind, pcentry in enumerate(roipcs):
       label = pcentry[0]
@@ -5502,7 +5512,7 @@ def regress_pc_followers_regressors(proc, oname, roipcs, tprefix, perrun=0):
       cname = proc.get_roi_dset(label)
       if cname == None:
          print '** applying %s, failed to get ROI dset for label %s' \
-               % (oname, label)
+               % (optname, label)
          return 1, clist
 
       # create roi_pc_01_LABEL_00.1D ...
@@ -5515,7 +5525,7 @@ def regress_pc_followers_regressors(proc, oname, roipcs, tprefix, perrun=0):
              '3dpc -mask %s -pcsave %d -prefix %s \\\n' \
              '     %s%s%s\n'                            \
              % (c1str, label, cname.shortinput(),
-                num_pc, pcpref, tprefix, proc.view, proc.keep_trs))
+                num_pc, pcpref, pcdset, proc.view, proc.keep_trs))
       pcname = '%s_vec.1D' % pcpref
 
       # append pcfiles to orts list
@@ -5617,14 +5627,14 @@ def db_cmd_regress_ROI(proc, block):
            docat = 1 # catenate across runs
         else:
 	   ofile = 'ROI.%s.r$run.1D' % roi
-	   spaces = ' '*13
-           cpr = '%s -set_run_lengths $tr_counts ' \
+	   spaces = ' '*16
+           cpr = '\\\n %s -set_run_lengths $tr_counts ' \
 	         '-pad_into_many_runs $run %d \n'  \
  		 % (spaces, proc.runs)
 
         cmd += '    3dmaskave -quiet -mask %s \\\n'                          \
                '              %s%s \\\n'                                     \
-               '              | 1d_tool.py -infile - -demean -write %s%s \n' \
+               '            | 1d_tool.py -infile - -demean -write %s%s \n' \
                % (mset.pv(), vr_prefix, proc.view, ofile, cpr)
     cmd += 'end\n'
 
