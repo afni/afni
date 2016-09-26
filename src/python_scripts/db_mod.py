@@ -5447,13 +5447,26 @@ def db_cmd_regress_pc_followers(proc, block):
 	     % (roi, ', '.join(roipclabs))
           return 1, ''
 
-    # do we catenate?
-    docat = 0
+    # make across run regressors?  per-run regressors?
+    doacross = 0
     doperrun = (len(per_run_rois) > 0)
     for roi in roipclabs:
        if not roi in per_run_rois:
-          docat = 1
+          doacross = 1
           break
+    # if censoring, censor each run with -cenmode KILL
+    if proc.censor_file != '':
+       prcfile = 'rm.censor.r$run.1D'
+       cmd_censor = \
+          '    # to censor, create per-run censor files\n'                    \
+          '    1d_tool.py -set_run_lengths $tr_counts -select_runs $run \\\n' \
+          '               -infile %s -write %s\n\n'                           \
+          '    # do not let censored time points affect detrending\n'         \
+          % (proc.censor_file, prcfile)
+       opt_censor = '               -censor %s -cenmode KILL \\\n' % prcfile
+    else:
+       cmd_censor = ''
+       opt_censor = ''
 
     # if there is no volreg prefix, get a more recent one
     vr_prefix = proc.volreg_prefix
@@ -5466,10 +5479,12 @@ def db_cmd_regress_pc_followers(proc, block):
        '\n# create a time series dataset to run 3dpc on...\n\n'  \
        '# detrend, so principal components are not affected\n'   \
        'foreach run ( $runs )\n'                                 \
+       '%s'                                                      \
        '    3dTproject -polort %d -prefix %s_r$run \\\n'         \
+       '%s'                                                      \
        '               -input %s%s\n'                            \
-       % (proc.regress_polort, tpre, vr_prefix, proc.view)       \
-       )
+       % (cmd_censor, proc.regress_polort, tpre, opt_censor,
+          vr_prefix, proc.view) )
 
     if doperrun:
        rv, cnew = regress_pc_followers_regressors(proc, oname, roipcs,
@@ -5484,14 +5499,13 @@ def db_cmd_regress_pc_followers(proc, block):
     if proc.censor_file: c1str = ', prepare to censor TRs'
     else:                c1str = ''
  
-    if docat:
+    if doacross:
        clist.append('# catenate runs%s\n' % c1str)
        clist.append('3dTcat -prefix %s_rall %s_r*%s.HEAD\n\n' \
                     % (tpre,tpre,proc.view) )
-       tpre += '_rall'
+       rv, cnew = regress_pc_followers_regressors(proc, oname, roipcs, 
+                      tpre+'_rall', perrun=False, per_run_rois=per_run_rois)
 
-    rv, cnew = regress_pc_followers_regressors(proc, oname, roipcs, tpre,
-                        perrun=False, per_run_rois=per_run_rois)
     if rv: return 1, ''
     clist.extend(cnew)
 
@@ -5535,10 +5549,10 @@ def regress_pc_followers_regressors(proc, optname, roipcs, pcdset, perrun=False,
       if perrun: clist.append('\n')
       clist.append('%s# make ROI PCs%s : %s\n'            \
              '%s3dpc -mask %s -pcsave %d -prefix %s \\\n' \
-             '%s     %s%s%s\n'                            \
+             '%s     %s%s\n'                              \
              % (indent, c1str, label,
                 indent, cname.shortinput(), num_pc, pcpref,
-                indent, pcdset, proc.view, proc.keep_trs))
+                indent, pcdset, proc.view))
       pcname = '%s_vec.1D' % pcpref
 
       # append pcfiles to orts list
@@ -5619,7 +5633,7 @@ def db_cmd_regress_ROI(proc, block):
        vr_prefix = proc.prefix_form_run(vblock)
 
     cmd += 'foreach run ( $runs )\n'
-    docat = 0
+    doacross = 0
     for roi in rois:
         mset = proc.get_roi_dset(roi)
         # if mset == None:
@@ -5638,7 +5652,7 @@ def db_cmd_regress_ROI(proc, block):
 	if not per_run:
 	   ofile = 'rm.ROI.%s.r$run.1D' % roi
            cpr = ''
-           docat = 1 # catenate across runs
+           doacross = 1 # catenate across runs
         else:
 	   ofile = 'ROI.%s.r$run.1D' % roi
 	   spaces = ' '*16
@@ -5652,7 +5666,7 @@ def db_cmd_regress_ROI(proc, block):
                % (mset.pv(), vr_prefix, proc.view, ofile, cpr)
     cmd += 'end\n'
 
-    if docat:
+    if doacross:
        cmd += '# and catenate the demeaned ROI averages across runs\n'
     for roi in rois:
 	if roi in per_run_rois:
