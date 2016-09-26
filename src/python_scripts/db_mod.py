@@ -7243,7 +7243,7 @@ g_help_string = """
          o Bring along FreeSurfer parcellation datasets:
              - aaseg : NN interpolated onto the anatomical grid
              - aeseg : NN interpolated onto the EPI        grid
-           * These 'rank' follower datasets are just for visualization,
+           * These 'aseg' follower datasets are just for visualization,
              they are not actually required for the analysis.
          o Compute average correlation volumes of the errts against the
            the gray matter (aeseg) and ventricle (FSVent) masks.
@@ -7260,8 +7260,8 @@ g_help_string = """
                 afni_proc.py -subj_id FT.11.rest                             \\
                   -blocks despike tshift align tlrc volreg blur mask regress \\
                   -copy_anat FT_SurfVol.nii                                  \\
-                  -anat_follower_ROI aaseg anat aparc.a2009s+aseg_rank.nii   \\
-                  -anat_follower_ROI aeseg epi  aparc.a2009s+aseg_rank.nii   \\
+                  -anat_follower_ROI aaseg anat aparc.a2009s+aseg.nii        \\
+                  -anat_follower_ROI aeseg epi  aparc.a2009s+aseg.nii        \\
                   -anat_follower_ROI FSvent epi FT_vent.nii                  \\
                   -anat_follower_ROI FSWe epi FT_white.nii                   \\
                   -anat_follower_erode FSvent FSWe                           \\
@@ -7516,9 +7516,9 @@ g_help_string = """
     ventricles.  I have not studied the differences.
 
 
-    Example 11 brings the ranked version of the aparc.a2009s+aseg segmentation
-    along (for viewing or atlas purposes, aligned with the result), though the
-    white matter and ventricle masks are based instead on aparc+aseg.nii.
+    Example 11 brings the aparc.a2009s+aseg segmentation along (for viewing or
+    atlas purposes, aligned with the result), though the white matter and
+    ventricle masks are based instead on aparc+aseg.nii.
 
         # run (complete) FreeSurfer on FT.nii
         recon-all -all -subject FT -i FT.nii
@@ -7537,7 +7537,7 @@ g_help_string = """
                -expr 'amongst(a,2,7,16,41,46,251,252,253,254,255)'
 
     After this, FT_SurfVol.nii, FT_vent.nii and FT_WM.nii (along with the
-    basically unused aparc.a2009s+aseg_rank.nii) are passed to afni_proc.py.
+    basically unused aparc.a2009s+aseg.nii) are passed to afni_proc.py.
 
 
   * Be aware that the output from FreeSurfer (e.g. FT_SurfVol.nii) will
@@ -8236,7 +8236,7 @@ g_help_string = """
 
         -anat_follower_ROI LABEL GRID DSET : specify anat follower ROI dataset
 
-                e.g. -anat_follower_ROI aaseg anat aparc.a2009s+aseg_rank.nii
+                e.g. -anat_follower_ROI aaseg anat aparc.a2009s+aseg.nii
                 e.g. -anat_follower_ROI FSvent epi FreeSurfer_ventricles.nii
 
             Use this option to pass any anatomical follower dataset.  Such a
