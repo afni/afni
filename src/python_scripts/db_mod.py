@@ -5454,17 +5454,19 @@ def db_cmd_regress_pc_followers(proc, block):
        if not roi in per_run_rois:
           doacross = 1
           break
+
     # if censoring, censor each run with -cenmode KILL
-    if proc.censor_file != '':
-       prcfile = 'rm.censor.r$run.1D'
+    if proc.censor_file:
+       censor_file = 'rm.censor.r$run.1D'
        cmd_censor = \
           '    # to censor, create per-run censor files\n'                    \
           '    1d_tool.py -set_run_lengths $tr_counts -select_runs $run \\\n' \
           '               -infile %s -write %s\n\n'                           \
           '    # do not let censored time points affect detrending\n'         \
-          % (proc.censor_file, prcfile)
-       opt_censor = '               -censor %s -cenmode KILL \\\n' % prcfile
+          % (proc.censor_file, censor_file)
+       opt_censor = '               -censor %s -cenmode KILL \\\n'%censor_file
     else:
+       censor_file = ''
        cmd_censor = ''
        opt_censor = ''
 
@@ -5488,7 +5490,8 @@ def db_cmd_regress_pc_followers(proc, block):
 
     if doperrun:
        rv, cnew = regress_pc_followers_regressors(proc, oname, roipcs,
-                      tpre+'r$run', perrun=True, per_run_rois=per_run_rois)
+                      tpre+'_r$run', censor_file=censor_file, 
+                      perrun=True, per_run_rois=per_run_rois)
        if rv: return 1, ''
        clist.extend(cnew)
 
@@ -5498,24 +5501,24 @@ def db_cmd_regress_pc_followers(proc, block):
     # will be censor and uncensor
     if proc.censor_file: c1str = ', prepare to censor TRs'
     else:                c1str = ''
- 
+
     if doacross:
        clist.append('# catenate runs%s\n' % c1str)
        clist.append('3dTcat -prefix %s_rall %s_r*%s.HEAD\n\n' \
                     % (tpre,tpre,proc.view) )
        rv, cnew = regress_pc_followers_regressors(proc, oname, roipcs, 
-                      tpre+'_rall', perrun=False, per_run_rois=per_run_rois)
-
-    if rv: return 1, ''
-    clist.extend(cnew)
+                      tpre+'_rall', censor_file=proc.censor_file,
+                      perrun=False, per_run_rois=per_run_rois)
+       if rv: return 1, ''
+       clist.extend(cnew)
 
     print '-- have %d PC ROIs to regress: %s' % (len(roipcs), roinames)
 
     return 0, ''.join(clist)
 
 
-def regress_pc_followers_regressors(proc, optname, roipcs, pcdset, perrun=False,
-        per_run_rois=[]):
+def regress_pc_followers_regressors(proc, optname, roipcs, pcdset,
+        censor_file='', perrun=False, per_run_rois=[]):
    """return list of commands for 3dpc, either per run or across them
       if per_run_rois:
          if perrun: only do ROIs in per_run_rois
@@ -5540,32 +5543,75 @@ def regress_pc_followers_regressors(proc, optname, roipcs, pcdset, perrun=False,
       # perrun should agree with (label in per_run_rois)
       if perrun != (label in per_run_rois): continue
 
-      # create roi_pc_01_LABEL_00.1D ...
-      pcpref = 'roi_pc_%02d_%s' % (pcind+1, label)
-
-      if proc.censor_file: c1str = ' and uncensor (zero-pad)'
-      else:                c1str = ''
+      # output prefix ROIPC.LABEL_00.1D ...
+      # (store the base_prefix and add anything for per run or censoring)
+      base_prefix = 'ROIPC.%s' % label
+      prefix = base_prefix
+      if perrun: prefix = '%s.r${run}' % prefix
+      if perrun or censor_file: prefix = 'rm.%s' % prefix
 
       if perrun: clist.append('\n')
-      clist.append('%s# make ROI PCs%s : %s\n'            \
-             '%s3dpc -mask %s -pcsave %d -prefix %s \\\n' \
-             '%s     %s%s\n'                              \
-             % (indent, c1str, label,
-                indent, cname.shortinput(), num_pc, pcpref,
-                indent, pcdset, proc.view))
-      pcname = '%s_vec.1D' % pcpref
+      clist.append('%s# make ROI PCs : %s\n'   \
+             '%s3dpc -mask %s -pcsave %d \\\n' \
+             '%s     -prefix %s %s%s\n'        \
+             % (indent, label,
+                indent, cname.shortinput(), num_pc,
+                indent, prefix, pcdset, proc.view))
+      pcname = '%s_vec.1D' % prefix
 
       # append pcfiles to orts list
       # (possibly create censor file, first)
-      if proc.censor_file:
-         newname = '%s_noc.1D' % pcpref
-         clist.append(                                 \
-            '%s1d_tool.py -censor_fill_parent %s \\\n' \
-            '%s    -infile %s -write %s\n'             \
-            %(indent, proc.censor_file, indent, pcname, newname))
+      # --- need to do all cases here (cen&pr, cen, pr)
+      if censor_file:
+         newname = '%s_cfill.1D' % base_prefix
+         # possibly handle per-run here, too
+         if perrun:
+            cout_name = '-'
+            cstr = ' and further pad to fill across all runs'
+         else:
+            cstr = ''
+            cout_name = newname
+
+         cmd = '%s# zero pad censored TRs%s\n'            \
+               '%s1d_tool.py -censor_fill_parent %s \\\n' \
+               '%s    -infile %s \\\n'                    \
+               '%s    -write %s'                          \
+            % (indent, cstr, indent, censor_file,
+               indent, pcname, indent, cout_name)
+
+         # if per run, pipe this through pad_into_many_runs
+         if perrun:
+            cmd += ' \\\n%s  | 1d_tool.py -set_run_lengths $tr_counts ' \
+                   '-pad_into_many_runs $run %d \\\n'                   \
+                   '%s               -infile - -write %s\n'             \
+                   % (indent, proc.runs, indent, newname)
+         else:
+            cmd += '\n'
+
+         clist.append(cmd)
          pcname = newname
 
-      proc.regress_orts.append([pcname, 'ROI.PC.%s'%label])
+         rcr - add multiple PCs
+
+      # now just implement pad into many runs
+      elif perrun:
+         newname = '%s_cfill.1D' % base_prefix
+         cmd = \
+           '%s# zero pad single run to extent across all runs\n'        \
+           '%s1d_tool.py -set_run_lengths $tr_counts '                  \
+           '-pad_into_many_runs $run %d \\\n'                           \
+           '%s    -infile %s -write %s\n'                               \
+            % (indent, indent, proc.runs, censor_file,
+               indent, pcname, newname)
+         clist.append(cmd)
+         pcname = newname
+
+         rcr - add multiple PCs
+
+      # otherwise, just add the one PC
+      else:
+         proc.regress_orts.append([pcname, 'ROIPC.%s'%label])
+
       if not perrun: clist.append('\n')
 
    return 0, clist
@@ -5657,12 +5703,12 @@ def db_cmd_regress_ROI(proc, block):
 	   ofile = 'ROI.%s.r$run.1D' % roi
 	   spaces = ' '*16
            cpr = '\\\n %s -set_run_lengths $tr_counts ' \
-	         '-pad_into_many_runs $run %d \n'  \
+	         '-pad_into_many_runs $run %d'  \
  		 % (spaces, proc.runs)
 
-        cmd += '    3dmaskave -quiet -mask %s \\\n'                          \
-               '              %s%s \\\n'                                     \
-               '            | 1d_tool.py -infile - -demean -write %s%s \n' \
+        cmd += '    3dmaskave -quiet -mask %s \\\n'                       \
+               '              %s%s \\\n'                                  \
+               '            | 1d_tool.py -infile - -demean -write %s%s\n' \
                % (mset.pv(), vr_prefix, proc.view, ofile, cpr)
     cmd += 'end\n'
 
