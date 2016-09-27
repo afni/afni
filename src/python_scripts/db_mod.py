@@ -1013,15 +1013,6 @@ def db_cmd_align(proc, block):
           '# (new anat will be %s %s)\n'        \
           % (block_header('align'), astr, istr, proc.anat.pv())
 
-    if 0:  # rcr - here
-       # get costs
-       acmd = '# make a record of alginment costs\n'               \
-              '3dAllineate -base %s  \\\n'                         \
-              '            -input %s"[%d]" \\\n'                   \
-              '            -allcostX |& tee out.a2e.costs.txt\n\n' \
-              % (proc.anat.pv(), basevol, bind)
-       cmd += acmd
-
     # ---------------
     # if requested, create any anat followers
     if should_warp_anat_followers(proc, block):
@@ -5527,7 +5518,7 @@ def regress_pc_followers_regressors(proc, optname, roipcs, pcdset,
          - indent by 4 (do it at the end)
          - censor fill per run (1d_tool.py needs current run and all lengths)
    """
-   if perrun: indent = '   '
+   if perrun: indent = '    '
    else:      indent = ''
 
    clist = []
@@ -5544,9 +5535,9 @@ def regress_pc_followers_regressors(proc, optname, roipcs, pcdset,
       if perrun != (label in per_run_rois): continue
 
       # output prefix ROIPC.LABEL_00.1D ...
-      # (store the base_prefix and add anything for per run or censoring)
-      base_prefix = 'ROIPC.%s' % label
-      prefix = base_prefix
+      # (store the pclabel and add anything for per run or censoring)
+      pclabel = 'ROIPC.%s' % label
+      prefix = pclabel
       if perrun: prefix = '%s.r${run}' % prefix
       if perrun or censor_file: prefix = 'rm.%s' % prefix
 
@@ -5563,12 +5554,13 @@ def regress_pc_followers_regressors(proc, optname, roipcs, pcdset,
       # (possibly create censor file, first)
       # --- need to do all cases here (cen&pr, cen, pr)
       if censor_file:
-         newname = '%s_cfill.1D' % base_prefix
          # possibly handle per-run here, too
          if perrun:
-            cout_name = '-'
+            newname = '%s.r$run.1D' % pclabel
             cstr = ' and further pad to fill across all runs'
+            cout_name = '-'
          else:
+            newname = '%s_cfill.1D' % pclabel
             cstr = ''
             cout_name = newname
 
@@ -5585,32 +5577,35 @@ def regress_pc_followers_regressors(proc, optname, roipcs, pcdset,
                    '-pad_into_many_runs $run %d \\\n'                   \
                    '%s               -infile - -write %s\n'             \
                    % (indent, proc.runs, indent, newname)
+            for rind in range(proc.runs):
+               newlab = '%s.r%02d' % (pclabel, rind+1)
+               proc.regress_orts.append(['%s.1D'%newlab, newlab])
          else:
             cmd += '\n'
+            proc.regress_orts.append([newname, pclabel])
 
          clist.append(cmd)
-         pcname = newname
-
-         rcr - add multiple PCs
 
       # now just implement pad into many runs
       elif perrun:
-         newname = '%s_cfill.1D' % base_prefix
+         newname = '%s.r$run.1D' % pclabel
          cmd = \
            '%s# zero pad single run to extent across all runs\n'        \
            '%s1d_tool.py -set_run_lengths $tr_counts '                  \
            '-pad_into_many_runs $run %d \\\n'                           \
            '%s    -infile %s -write %s\n'                               \
-            % (indent, indent, proc.runs, censor_file,
+            % (indent, indent, proc.runs,
                indent, pcname, newname)
-         clist.append(cmd)
-         pcname = newname
 
-         rcr - add multiple PCs
+         clist.append(cmd)
+
+         for rind in range(proc.runs):
+            newlab = '%s.r%02d' % (pclabel, rind+1)
+            proc.regress_orts.append(['%s.1D'%newlab, newlab])
 
       # otherwise, just add the one PC
       else:
-         proc.regress_orts.append([pcname, 'ROIPC.%s'%label])
+         proc.regress_orts.append([pcname, pclabel])
 
       if not perrun: clist.append('\n')
 
@@ -9378,7 +9373,7 @@ g_help_string = """
             This dataset can be used to generate regressors of no interest to
             be used in the regression block.
 
-            rcr - note relevant option once they are in
+            rcr - note relevant options once they are in
 
             Please see '@simulate_motion -help' for more information.
 
