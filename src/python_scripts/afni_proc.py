@@ -543,19 +543,22 @@ g_history = """
         - allow -mask_apply group in case of -tlrc_NL_warped_dsets
     5.03 Sep 13, 2016: added -blip_opts_qw
     5.04 Sep 16, 2016: added -radial_correlate
-    5.05
+    5.05 Sep 27, 2016: added per run regression option
         - detrend with 3dTproject for PC regressors, to allow for censoring
+        - added -regress_ROI_per_run    to apply -regress_ROI    per-run
+        - added -regress_ROI_PC_per_run to apply -regress_ROI_PC per-run
 """
 
 g_version = "version 5.04, September 16, 2016"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \
-      [  "1 Apr 2015",  "1d_tool.py uncensor from 1D" ],
-      [ "23 Jul 2015",  "3dREMLfit -dsort" ],
-      [  "1 Sep 2015",  "gen_ss_review_scripts.py -errts_dset" ],
+      [ "23 Sep 2016",  "1d_tool.py -select_runs" ],
+      [  "1 Dec 2015",  "3dClustSim -ACF" ],
       [ "28 Oct 2015",  "3ddot -dodice" ],
-      [  "1 Dec 2015",  "3dClustSim -ACF" ] ]
+      [  "1 Sep 2015",  "gen_ss_review_scripts.py -errts_dset" ],
+      [ "23 Jul 2015",  "3dREMLfit -dsort" ],
+      [  "1 Apr 2015",  "1d_tool.py uncensor from 1D" ] ]
 
 g_todo_str = """todo:
   - finish @radial_correlate updates, like _opts and _volreg
@@ -1349,7 +1352,7 @@ class SubjProcSream:
             return 0  # gentle termination
         
         if opt_list.find_opt('-requires_afni_version'): # print required version
-            print g_requires_afni[-1][0]
+            print g_requires_afni[0][0]
             return 0  # gentle termination
         
         if opt_list.find_opt('-requires_afni_hist'): # print required history
@@ -2158,7 +2161,7 @@ class SubjProcSream:
           '    echo "** this script requires newer AFNI binaries (than %s)"\n'\
           '    echo "   (consider: @update.afni.binaries -defaults)"\n'       \
           '    exit\n'                                                        \
-          'endif\n\n' % (g_requires_afni[-1][0], g_requires_afni[-1][0]) )
+          'endif\n\n' % (g_requires_afni[0][0], g_requires_afni[0][0]) )
 
         self.write_text('# the user may specify a single subject to run with\n'\
                       'if ( $#argv > 0 ) then\n'                             \
