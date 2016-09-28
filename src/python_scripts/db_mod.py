@@ -1013,15 +1013,6 @@ def db_cmd_align(proc, block):
           '# (new anat will be %s %s)\n'        \
           % (block_header('align'), astr, istr, proc.anat.pv())
 
-    if 0:  # rcr - here
-       # get costs
-       acmd = '# make a record of alginment costs\n'               \
-              '3dAllineate -base %s  \\\n'                         \
-              '            -input %s"[%d]" \\\n'                   \
-              '            -allcostX |& tee out.a2e.costs.txt\n\n' \
-              % (proc.anat.pv(), basevol, bind)
-       cmd += acmd
-
     # ---------------
     # if requested, create any anat followers
     if should_warp_anat_followers(proc, block):
@@ -3693,8 +3684,10 @@ def db_mod_regress(block, proc, user_opts):
 
     # --------------------------------------------------
     # -regress_ROI* options
-    apply_uopt_to_block('-regress_ROI', user_opts, block)  # 04 Sept 2012
+    apply_uopt_list_to_block('-regress_ROI', user_opts, block)    # 04 Sep 2012
     apply_uopt_list_to_block('-regress_ROI_PC', user_opts, block) # 01 Apr 2015
+    apply_uopt_to_block('-regress_ROI_per_run', user_opts, block)  # 09/21/2016
+    apply_uopt_to_block('-regress_ROI_PC_per_run', user_opts, block)
 
     # add any appropriate datasets anat followers   01 Apr 2015
     if add_ROI_PC_followers(proc, block): errs += 1
@@ -5413,6 +5406,7 @@ def db_cmd_regress_pc_followers(proc, block):
 
     # make a list of [LABEL, NPC]
     roipcs = []
+    roipclabs = []
     for opt in proc.user_opts.find_all_opts(oname):
        label = opt.parlist[0]
        npc   = opt.parlist[1]
@@ -5425,12 +5419,47 @@ def db_cmd_regress_pc_followers(proc, block):
           return 1, ''
        # okay, append to the list
        roipcs.append([label, numpc])
+       roipclabs.append(label)
 
     if len(roipcs) == 0: return 0, ''
 
-    roinames = ', '.join([r[0] for r in roipcs])
+    roinames = ', '.join(roipclabs)
     clist = ['# ------------------------------\n']
     clist.append('# create ROI PC ort sets: %s\n' % roinames)
+
+    # note any per_run labels
+    oname = '-regress_ROI_PC_per_run'
+    per_run_rois, rv = block.opts.get_string_list(oname)
+    if not per_run_rois:
+       per_run_rois = [] # be sure it is a list
+    for roi in per_run_rois:
+       if not roi in roipclabs:
+          print "** PC per_run ROI '%s' not in ROI list: %s" \
+	     % (roi, ', '.join(roipclabs))
+          return 1, ''
+
+    # make across run regressors?  per-run regressors?
+    doacross = 0
+    doperrun = (len(per_run_rois) > 0)
+    for roi in roipclabs:
+       if not roi in per_run_rois:
+          doacross = 1
+          break
+
+    # if censoring, censor each run with -cenmode KILL
+    if proc.censor_file:
+       censor_file = 'rm.censor.r$run.1D'
+       cmd_censor = \
+          '    # to censor, create per-run censor files\n'                    \
+          '    1d_tool.py -set_run_lengths $tr_counts -select_runs $run \\\n' \
+          '               -infile %s -write %s\n\n'                           \
+          '    # do not let censored time points affect detrending\n'         \
+          % (proc.censor_file, censor_file)
+       opt_censor = '               -censor %s -cenmode KILL \\\n'%censor_file
+    else:
+       censor_file = ''
+       cmd_censor = ''
+       opt_censor = ''
 
     # if there is no volreg prefix, get a more recent one
     vr_prefix = proc.volreg_prefix
@@ -5443,58 +5472,151 @@ def db_cmd_regress_pc_followers(proc, block):
        '\n# create a time series dataset to run 3dpc on...\n\n'  \
        '# detrend, so principal components are not affected\n'   \
        'foreach run ( $runs )\n'                                 \
-       '    3dDetrend -polort %d -prefix %s_r$run \\\n'          \
-       '              %s%s\n'                                    \
-          'end\n\n' % (proc.regress_polort, tpre, vr_prefix, proc.view) \
-       )
-     
+       '%s'                                                      \
+       '    3dTproject -polort %d -prefix %s_r$run \\\n'         \
+       '%s'                                                      \
+       '               -input %s%s\n'                            \
+       % (cmd_censor, proc.regress_polort, tpre, opt_censor,
+          vr_prefix, proc.view) )
+
+    if doperrun:
+       rv, cnew = regress_pc_followers_regressors(proc, oname, roipcs,
+                      tpre+'_r$run', censor_file=censor_file, 
+                      perrun=True, per_run_rois=per_run_rois)
+       if rv: return 1, ''
+       clist.extend(cnew)
+
+    # finish 'foreach run loop, after any per-run regressors
+    clist.append('end\n\n')
 
     # will be censor and uncensor
     if proc.censor_file: c1str = ', prepare to censor TRs'
     else:                c1str = ''
- 
-    clist.append('# catenate runs%s\n' % c1str)
-    clist.append('3dTcat -prefix %s_rall %s_r*%s.HEAD\n\n' \
-                 % (tpre,tpre,proc.view) )
-    tpre += '_rall'
 
-    for pcind, pcentry in enumerate(roipcs):
-       label = pcentry[0]
-       num_pc = pcentry[1]
-       cname = proc.get_roi_dset(label)
-       if cname == None:
-          print '** applying %s, failed to get ROI dset for label %s' \
-                % (oname, label)
-          return 1, ''
-
-       # create roi_pc_01_LABEL_00.1D ...
-       pcpref = 'roi_pc_%02d_%s' % (pcind+1, label)
-
-       if proc.censor_file: c1str = ' and uncensor (zero-pad)'
-       else:                c1str = ''
-
-       clist.append('# make ROI PCs%s : %s\n'            \
-              '3dpc -mask %s -pcsave %d -prefix %s \\\n' \
-              '     %s%s%s\n'                            \
-              % (c1str, label, cname.shortinput(),
-                 num_pc, pcpref, tpre, proc.view, proc.keep_trs))
-       pcname = '%s_vec.1D' % pcpref
-
-       # append pcfiles to orts list
-       # (possibly create censor file, first)
-       if proc.censor_file:
-          newname = '%s_noc.1D' % pcpref
-          clist.append(                                     \
-             '1d_tool.py -censor_fill_parent %s \\\n'       \
-             '    -infile %s -write %s\n'%(proc.censor_file, pcname, newname))
-          pcname = newname
-       
-       proc.regress_orts.append([pcname, 'ROI.PC.%s'%label])
-       clist.append('\n')
+    if doacross:
+       clist.append('# catenate runs%s\n' % c1str)
+       clist.append('3dTcat -prefix %s_rall %s_r*%s.HEAD\n\n' \
+                    % (tpre,tpre,proc.view) )
+       rv, cnew = regress_pc_followers_regressors(proc, oname, roipcs, 
+                      tpre+'_rall', censor_file=proc.censor_file,
+                      perrun=False, per_run_rois=per_run_rois)
+       if rv: return 1, ''
+       clist.extend(cnew)
 
     print '-- have %d PC ROIs to regress: %s' % (len(roipcs), roinames)
 
     return 0, ''.join(clist)
+
+
+def regress_pc_followers_regressors(proc, optname, roipcs, pcdset,
+        censor_file='', perrun=False, per_run_rois=[]):
+   """return list of commands for 3dpc, either per run or across them
+      if per_run_rois:
+         if perrun: only do ROIs in per_run_rois
+         else:      only do ROIs NOT in per_run_rois
+      if perrun ROI:
+         - indent by 4 (do it at the end)
+         - censor fill per run (1d_tool.py needs current run and all lengths)
+   """
+   if perrun: indent = '    '
+   else:      indent = ''
+
+   clist = []
+   for pcind, pcentry in enumerate(roipcs):
+      label = pcentry[0]
+      num_pc = pcentry[1]
+      cname = proc.get_roi_dset(label)
+      if cname == None:
+         print '** applying %s, failed to get ROI dset for label %s' \
+               % (optname, label)
+         return 1, clist
+
+      # perrun should agree with (label in per_run_rois)
+      if perrun != (label in per_run_rois): continue
+
+      # output prefix ROIPC.LABEL_00.1D ...
+      # (store the pclabel and add anything for per run or censoring)
+      pclabel = 'ROIPC.%s' % label
+      prefix = pclabel
+      if perrun: prefix = '%s.r${run}' % prefix
+      if perrun or censor_file: prefix = 'rm.%s' % prefix
+
+      if perrun:
+         clist.append('\n')
+         cstr = '(per run) '
+      else:
+         cstr = ''
+
+      clist.append('%s# make ROI PCs %s: %s\n'   \
+             '%s3dpc -mask %s -pcsave %d \\\n' \
+             '%s     -prefix %s %s%s\n'        \
+             % (indent, cstr, label,
+                indent, cname.shortinput(), num_pc,
+                indent, prefix, pcdset, proc.view))
+      pcname = '%s_vec.1D' % prefix
+
+      # append pcfiles to orts list
+      # (possibly create censor file, first)
+      # --- need to do all cases here (cen&pr, cen, pr)
+      if censor_file:
+         # possibly handle per-run here, too
+         if perrun:
+            newname = '%s.r$run.1D' % pclabel
+            cstr = ' and further pad to fill across all runs'
+            cout_name = '-'
+         else:
+            newname = '%s_cfill.1D' % pclabel
+            cstr = ''
+            cout_name = newname
+
+         cmd = '%s# zero pad censored TRs%s\n'            \
+               '%s1d_tool.py -censor_fill_parent %s \\\n' \
+               '%s    -infile %s \\\n'                    \
+               '%s    -write %s'                          \
+            % (indent, cstr, indent, censor_file,
+               indent, pcname, indent, cout_name)
+
+         # if per run, pipe this through pad_into_many_runs
+         if perrun:
+            cmd += ' \\\n%s  | 1d_tool.py -set_run_lengths $tr_counts ' \
+                   '-pad_into_many_runs $run %d \\\n'                   \
+                   '%s               -infile - -write %s\n'             \
+                   % (indent, proc.runs, indent, newname)
+            for rind in range(proc.runs):
+               newlab = '%s.r%02d' % (pclabel, rind+1)
+               proc.regress_orts.append(['%s.1D'%newlab, newlab])
+         else:
+            cmd += '\n'
+            proc.regress_orts.append([newname, pclabel])
+
+         clist.append('\n')
+         clist.append(cmd)
+
+      # now just implement pad into many runs
+      elif perrun:
+         newname = '%s.r$run.1D' % pclabel
+         cmd = \
+           '%s# zero pad single run to extend across all runs\n'        \
+           '%s1d_tool.py -set_run_lengths $tr_counts '                  \
+           '-pad_into_many_runs $run %d \\\n'                           \
+           '%s    -infile %s -write %s\n'                               \
+            % (indent, indent, proc.runs,
+               indent, pcname, newname)
+
+         clist.append('\n')
+         clist.append(cmd)
+
+         for rind in range(proc.runs):
+            newlab = '%s.r%02d' % (pclabel, rind+1)
+            proc.regress_orts.append(['%s.1D'%newlab, newlab])
+
+      # otherwise, just add the one PC
+      else:
+         proc.regress_orts.append([pcname, pclabel])
+
+      if not perrun: clist.append('\n')
+
+   return 0, clist
 
 def db_cmd_regress_ROI(proc, block):
     """remove any regressors of no interest
@@ -5507,12 +5629,22 @@ def db_cmd_regress_ROI(proc, block):
 
     # maybe we shouldn't be here
     oname = '-regress_ROI'
-    opt = block.opts.find_opt(oname)
-    if not opt: return 0, ''
-    rois = opt.parlist
+    rois = []
+    for opt in block.opts.find_all_opts(oname):
+       rois.extend(opt.parlist)
     if len(rois) == 0:
-       print '** have -regress_ROI but no ROIs provided'
+       print '** have %s but no ROIs provided' % oname
        return 1, ''
+
+    # note any per_run labels
+    oname = '-regress_ROI_per_run'
+    per_run_rois, rv = block.opts.get_string_list(oname)
+    if not per_run_rois:
+       per_run_rois = [] # be sure it is a list
+    for roi in per_run_rois:
+       if not roi in rois:
+          print "** per_run ROI '%s' not in ROI list: %s"%(roi,', '.join(rois))
+          return 1, ''
 
     # report errors for any unknown ROIs (not in roi_dict)
     keystr = ', '.join(proc.roi_dict.keys())
@@ -5549,29 +5681,58 @@ def db_cmd_regress_ROI(proc, block):
        vr_prefix = proc.prefix_form_run(vblock)
 
     cmd += 'foreach run ( $runs )\n'
+    doacross = 0
     for roi in rois:
         mset = proc.get_roi_dset(roi)
         # if mset == None:
         if not isinstance(mset, BASE.afni_name):
            print "** regress_ROI: missing ROI dset for '%s'" % roi
            return 1, ''
+
+        per_run = (roi in per_run_rois)
+
         # -- no more label table, masks are now unit            22 Apr 2013
         # maybe we need a label table value selector
         # if roi in ['GM', 'WM', 'CSF']: substr = '"<%s>"' % roi
         # else:                          substr = ''
-        ofile = 'rm.ROI.%s.r$run.1D' % roi
-        cmd += '    3dmaskave -quiet -mask %s \\\n'                        \
-               '              %s%s \\\n'                                   \
-               '              | 1d_tool.py -infile - -demean -write %s \n' \
-               % (mset.pv(), vr_prefix, proc.view, ofile)
+
+   	# if per run, output goes to stdout before appending pipe
+	if not per_run:
+	   ofile = 'rm.ROI.%s.r$run.1D' % roi
+           cpr = ''
+           doacross = 1 # catenate across runs
+        else:
+	   ofile = 'ROI.%s.r$run.1D' % roi
+	   spaces = ' '*16
+           cpr = '\\\n %s -set_run_lengths $tr_counts ' \
+	         '-pad_into_many_runs $run %d'  \
+ 		 % (spaces, proc.runs)
+
+        if per_run:
+           cstr = '    # per-run ROI averages: zero-pad across all runs\n'
+        else:
+           cstr = ''
+        cmd += '%s'                                                       \
+               '    3dmaskave -quiet -mask %s \\\n'                       \
+               '              %s%s \\\n'                                  \
+               '            | 1d_tool.py -infile - -demean -write %s%s\n' \
+               % (cstr, mset.pv(), vr_prefix, proc.view, ofile, cpr)
     cmd += 'end\n'
 
-    cmd += '# and catenate the demeaned ROI averages across runs\n'
+    if doacross:
+       cmd += '# and catenate the demeaned ROI averages across runs\n'
     for roi in rois:
-        rname = 'ROI.%s' % roi
-        rfile = '%s_rall.1D' % rname
-        cmd += 'cat rm.%s.r*.1D > %s\n' % (rname, rfile)
-        proc.regress_orts.append([rfile, rname])
+	if roi in per_run_rois:
+	   for run in range(proc.runs):
+              rname = 'ROI.%s.r%02d' % (roi, run+1)
+	      rfile = '%s.1D' % rname
+              proc.regress_orts.append([rfile, rname])
+	   continue
+        else:
+           rname = 'ROI.%s' % roi
+           rfile = '%s_rall.1D' % rname
+           cmd += 'cat rm.%s.r*.1D > %s\n' % (rname, rfile)
+           proc.regress_orts.append([rfile, rname])
     cmd += '\n'
 
     proc.have_rm = 1
@@ -7135,7 +7296,7 @@ g_help_string = """
          o Bring along FreeSurfer parcellation datasets:
              - aaseg : NN interpolated onto the anatomical grid
              - aeseg : NN interpolated onto the EPI        grid
-           * These 'rank' follower datasets are just for visualization,
+           * These 'aseg' follower datasets are just for visualization,
              they are not actually required for the analysis.
          o Compute average correlation volumes of the errts against the
            the gray matter (aeseg) and ventricle (FSVent) masks.
@@ -7152,8 +7313,8 @@ g_help_string = """
                 afni_proc.py -subj_id FT.11.rest                             \\
                   -blocks despike tshift align tlrc volreg blur mask regress \\
                   -copy_anat FT_SurfVol.nii                                  \\
-                  -anat_follower_ROI aaseg anat aparc.a2009s+aseg_rank.nii   \\
-                  -anat_follower_ROI aeseg epi  aparc.a2009s+aseg_rank.nii   \\
+                  -anat_follower_ROI aaseg anat aparc.a2009s+aseg.nii        \\
+                  -anat_follower_ROI aeseg epi  aparc.a2009s+aseg.nii        \\
                   -anat_follower_ROI FSvent epi FT_vent.nii                  \\
                   -anat_follower_ROI FSWe epi FT_white.nii                   \\
                   -anat_follower_erode FSvent FSWe                           \\
@@ -7408,9 +7569,9 @@ g_help_string = """
     ventricles.  I have not studied the differences.
 
 
-    Example 11 brings the ranked version of the aparc.a2009s+aseg segmentation
-    along (for viewing or atlas purposes, aligned with the result), though the
-    white matter and ventricle masks are based instead on aparc+aseg.nii.
+    Example 11 brings the aparc.a2009s+aseg segmentation along (for viewing or
+    atlas purposes, aligned with the result), though the white matter and
+    ventricle masks are based instead on aparc+aseg.nii.
 
         # run (complete) FreeSurfer on FT.nii
         recon-all -all -subject FT -i FT.nii
@@ -7429,7 +7590,7 @@ g_help_string = """
                -expr 'amongst(a,2,7,16,41,46,251,252,253,254,255)'
 
     After this, FT_SurfVol.nii, FT_vent.nii and FT_WM.nii (along with the
-    basically unused aparc.a2009s+aseg_rank.nii) are passed to afni_proc.py.
+    basically unused aparc.a2009s+aseg.nii) are passed to afni_proc.py.
 
 
   * Be aware that the output from FreeSurfer (e.g. FT_SurfVol.nii) will
@@ -8128,7 +8289,7 @@ g_help_string = """
 
         -anat_follower_ROI LABEL GRID DSET : specify anat follower ROI dataset
 
-                e.g. -anat_follower_ROI aaseg anat aparc.a2009s+aseg_rank.nii
+                e.g. -anat_follower_ROI aaseg anat aparc.a2009s+aseg.nii
                 e.g. -anat_follower_ROI FSvent epi FreeSurfer_ventricles.nii
 
             Use this option to pass any anatomical follower dataset.  Such a
@@ -9224,7 +9385,7 @@ g_help_string = """
             This dataset can be used to generate regressors of no interest to
             be used in the regression block.
 
-            rcr - note relevant option once they are in
+            rcr - note relevant options once they are in
 
             Please see '@simulate_motion -help' for more information.
 
@@ -10608,9 +10769,28 @@ g_help_string = """
             See also -mask_segment_anat/_erode, -anat_follower_ROI.
             Please see '3dSeg -help' for more information on the masks.
 
+        -regress_ROI_PC_per_run LABEL ... : regress these PCs per run
+
+                e.g. -regress_ROI_PC_per_run vent
+                e.g. -regress_ROI_PC_per_run vent WMe
+
+            Use this option to create the given PC regressors per run.  So
+            if there are 4 runs and 3 'vent' PCs were requested with the
+            option "-regress_ROI_PC vent 3", then applying this option with
+            the 'vent' label results in not 3 regressors (one per PC), but
+            12 regressors (one per PC per run).
+
+            Note that unlike the -regress_ROI_per_run case, this is not merely
+            splitting one signal across runs.  In this case the principle
+            components are be computed per run, almost certainly resulting in
+            different components than those computed across all runs at once.
+
+            See also -regress_ROI_PC, -regress_ROI_per_run.
+
         -regress_ROI_PC LABEL NUM_PC    : regress out PCs within mask
 
-                e.g. -regress_ROI_PC ventricles 3
+                e.g. -regress_ROI_PC vent 3
+                     -regress_ROI_PC WMe 3
 
             Add the top principal components (PCs) over an anatomical mask as
             regressors of no interest.  
@@ -10665,8 +10845,28 @@ g_help_string = """
           * The given MASK must be in register with the anatomical dataset,
             though it does not necessarily need to be on the anatomical grid.
 
+          * Multiple -regress_ROI_PC options can be used.
+
             See also -anat_follower, -anat_follower_ROI, -regress_ROI_erode,
             and -regress_ROI.
+
+        -regress_ROI_PC_per_run LABEL ... : regress these PCs per run
+
+                e.g. -regress_ROI_PC_per_run vent
+                e.g. -regress_ROI_PC_per_run vent WMe
+
+            Use this option to create the given PC regressors per run.  So
+            if there are 4 runs and 3 'vent' PCs were requested with the
+            option "-regress_ROI_PC vent 3", then applying this option with
+            the 'vent' label results in not 3 regressors (one per PC), but
+            12 regressors (one per PC per run).
+
+            Note that unlike the -regress_ROI_per_run case, this is not merely
+            splitting one signal across runs.  In this case the principle
+            components are be computed per run, almost certainly resulting in
+            different components than those computed across all runs at once.
+
+            See also -regress_ROI_PC, -regress_ROI_per_run.
 
         -regress_RSFC           : perform bandpassing via 3dRSFC
 
