@@ -3684,7 +3684,7 @@ def db_mod_regress(block, proc, user_opts):
 
     # --------------------------------------------------
     # -regress_ROI* options
-    apply_uopt_to_block('-regress_ROI', user_opts, block)  # 04 Sept 2012
+    apply_uopt_list_to_block('-regress_ROI', user_opts, block)    # 04 Sep 2012
     apply_uopt_list_to_block('-regress_ROI_PC', user_opts, block) # 01 Apr 2015
     apply_uopt_to_block('-regress_ROI_per_run', user_opts, block)  # 09/21/2016
     apply_uopt_to_block('-regress_ROI_PC_per_run', user_opts, block)
@@ -5541,11 +5541,16 @@ def regress_pc_followers_regressors(proc, optname, roipcs, pcdset,
       if perrun: prefix = '%s.r${run}' % prefix
       if perrun or censor_file: prefix = 'rm.%s' % prefix
 
-      if perrun: clist.append('\n')
-      clist.append('%s# make ROI PCs : %s\n'   \
+      if perrun:
+         clist.append('\n')
+         cstr = '(per run) '
+      else:
+         cstr = ''
+
+      clist.append('%s# make ROI PCs %s: %s\n'   \
              '%s3dpc -mask %s -pcsave %d \\\n' \
              '%s     -prefix %s %s%s\n'        \
-             % (indent, label,
+             % (indent, cstr, label,
                 indent, cname.shortinput(), num_pc,
                 indent, prefix, pcdset, proc.view))
       pcname = '%s_vec.1D' % prefix
@@ -5584,19 +5589,21 @@ def regress_pc_followers_regressors(proc, optname, roipcs, pcdset,
             cmd += '\n'
             proc.regress_orts.append([newname, pclabel])
 
+         clist.append('\n')
          clist.append(cmd)
 
       # now just implement pad into many runs
       elif perrun:
          newname = '%s.r$run.1D' % pclabel
          cmd = \
-           '%s# zero pad single run to extent across all runs\n'        \
+           '%s# zero pad single run to extend across all runs\n'        \
            '%s1d_tool.py -set_run_lengths $tr_counts '                  \
            '-pad_into_many_runs $run %d \\\n'                           \
            '%s    -infile %s -write %s\n'                               \
             % (indent, indent, proc.runs,
                indent, pcname, newname)
 
+         clist.append('\n')
          clist.append(cmd)
 
          for rind in range(proc.runs):
@@ -5622,11 +5629,11 @@ def db_cmd_regress_ROI(proc, block):
 
     # maybe we shouldn't be here
     oname = '-regress_ROI'
-    opt = block.opts.find_opt(oname)
-    if not opt: return 0, ''
-    rois = opt.parlist
+    rois = []
+    for opt in block.opts.find_all_opts(oname):
+       rois.extend(opt.parlist)
     if len(rois) == 0:
-       print '** have -regress_ROI but no ROIs provided'
+       print '** have %s but no ROIs provided' % oname
        return 1, ''
 
     # note any per_run labels
@@ -5701,10 +5708,15 @@ def db_cmd_regress_ROI(proc, block):
 	         '-pad_into_many_runs $run %d'  \
  		 % (spaces, proc.runs)
 
-        cmd += '    3dmaskave -quiet -mask %s \\\n'                       \
+        if per_run:
+           cstr = '    # per-run ROI averages: zero-pad across all runs\n'
+        else:
+           cstr = ''
+        cmd += '%s'                                                       \
+               '    3dmaskave -quiet -mask %s \\\n'                       \
                '              %s%s \\\n'                                  \
                '            | 1d_tool.py -infile - -demean -write %s%s\n' \
-               % (mset.pv(), vr_prefix, proc.view, ofile, cpr)
+               % (cstr, mset.pv(), vr_prefix, proc.view, ofile, cpr)
     cmd += 'end\n'
 
     if doacross:
@@ -10777,7 +10789,8 @@ g_help_string = """
 
         -regress_ROI_PC LABEL NUM_PC    : regress out PCs within mask
 
-                e.g. -regress_ROI_PC ventricles 3
+                e.g. -regress_ROI_PC vent 3
+                     -regress_ROI_PC WMe 3
 
             Add the top principal components (PCs) over an anatomical mask as
             regressors of no interest.  
@@ -10831,6 +10844,8 @@ g_help_string = """
 
           * The given MASK must be in register with the anatomical dataset,
             though it does not necessarily need to be on the anatomical grid.
+
+          * Multiple -regress_ROI_PC options can be used.
 
             See also -anat_follower, -anat_follower_ROI, -regress_ROI_erode,
             and -regress_ROI.
