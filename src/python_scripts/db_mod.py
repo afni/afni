@@ -10757,6 +10757,24 @@ g_help_string = """
             See also -mask_segment_anat/_erode, -anat_follower_ROI.
             Please see '3dSeg -help' for more information on the masks.
 
+        -regress_ROI_PC_per_run LABEL ... : regress these PCs per run
+
+                e.g. -regress_ROI_PC_per_run vent
+                e.g. -regress_ROI_PC_per_run vent WMe
+
+            Use this option to create the given PC regressors per run.  So
+            if there are 4 runs and 3 'vent' PCs were requested with the
+            option "-regress_ROI_PC vent 3", then applying this option with
+            the 'vent' label results in not 3 regressors (one per PC), but
+            12 regressors (one per PC per run).
+
+            Note that unlike the -regress_ROI_per_run case, this is not merely
+            splitting one signal across runs.  In this case the principle
+            components are be computed per run, almost certainly resulting in
+            different components than those computed across all runs at once.
+
+            See also -regress_ROI_PC, -regress_ROI_per_run.
+
         -regress_ROI_PC LABEL NUM_PC    : regress out PCs within mask
 
                 e.g. -regress_ROI_PC ventricles 3
@@ -10816,6 +10834,24 @@ g_help_string = """
 
             See also -anat_follower, -anat_follower_ROI, -regress_ROI_erode,
             and -regress_ROI.
+
+        -regress_ROI_PC_per_run LABEL ... : regress these PCs per run
+
+                e.g. -regress_ROI_PC_per_run vent
+                e.g. -regress_ROI_PC_per_run vent WMe
+
+            Use this option to create the given PC regressors per run.  So
+            if there are 4 runs and 3 'vent' PCs were requested with the
+            option "-regress_ROI_PC vent 3", then applying this option with
+            the 'vent' label results in not 3 regressors (one per PC), but
+            12 regressors (one per PC per run).
+
+            Note that unlike the -regress_ROI_per_run case, this is not merely
+            splitting one signal across runs.  In this case the principle
+            components are be computed per run, almost certainly resulting in
+            different components than those computed across all runs at once.
+
+            See also -regress_ROI_PC, -regress_ROI_per_run.
 
         -regress_RSFC           : perform bandpassing via 3dRSFC
 
