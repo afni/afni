@@ -549,7 +549,7 @@ g_history = """
         - added -regress_ROI_PC_per_run to apply -regress_ROI_PC per-run
 """
 
-g_version = "version 5.04, September 16, 2016"
+g_version = "version 5.05, September 27, 2016"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \
