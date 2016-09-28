@@ -543,13 +543,13 @@ g_history = """
         - allow -mask_apply group in case of -tlrc_NL_warped_dsets
     5.03 Sep 13, 2016: added -blip_opts_qw
     5.04 Sep 16, 2016: added -radial_correlate
-    5.05 Sep 27, 2016: added per run regression option
+    5.05 Sep 28, 2016: added per run regression option
         - detrend with 3dTproject for PC regressors, to allow for censoring
         - added -regress_ROI_per_run    to apply -regress_ROI    per-run
         - added -regress_ROI_PC_per_run to apply -regress_ROI_PC per-run
 """
 
-g_version = "version 5.05, September 27, 2016"
+g_version = "version 5.05, September 28, 2016"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \
