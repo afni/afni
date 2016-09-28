@@ -49,8 +49,13 @@
 
 afni_history_struct rickr_history[] = {
 
- { 19,  Sep, 2016, RCR, "afni_util.py", MICRO, TYPE_NEW_OPT,
-   "add -funchelp option, to display __doc__ from afni_util.py functions",
+ { 28,  Sep, 2016, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
+   "add -regress_ROI[_PC]_per_run options, to make per-run regressors",
+   "Also, used 3dTproject to detrend PC regressors for appropriate censoring."
+ } ,
+
+ { 23,  Sep, 2016, RCR, "1d_tool.py", MINOR, TYPE_NEW_OPT,
+   "add -select_runs option",
    NULL
  } ,
 
