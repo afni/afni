@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 29 , SEP , 2016 , RWC , "afni GUI" , MICRO , TYPE_MODIFY ,
+   "New 1D transform = AdptMean19 = 19 point adaptive local mean" ,
+   NULL } ,
+
  { 29 , SEP , 2016 , RWC , "3dDespike" , MINOR , TYPE_NEW_OPT ,
    "-NEW25 is a slightly more agressive approach" ,
    "(a) uses 25 point running median instead of 9 for pre-filtering\n"
