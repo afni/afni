@@ -598,7 +598,7 @@ int main( int argc , char *argv[] )
 
      if( do_acf > 0 )
        printf("# ACF model parameters for a*exp(-r*r/(2*b*b))+(1-a)*exp(-r/c) plus effective FWHM\n") ;
-     printf(" %g  %g  %g     %g\n",acf_Epar.a,acf_Epar.b,acf_Epar.c,acf_Epar.d) ;
+     printf(" %g  %g  %g    %g\n",acf_Epar.a,acf_Epar.b,acf_Epar.c,acf_Epar.d) ;
 
      if( acf_im != NULL ){
        char cmd[4096] ;

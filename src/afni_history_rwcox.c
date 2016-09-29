@@ -44,6 +44,11 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 29 , SEP , 2016 , RWC , "3dDespike" , MINOR , TYPE_NEW_OPT ,
+   "-NEW25 is a slightly more agressive approach" ,
+   "(a) uses 25 point running median instead of 9 for pre-filtering\n"
+   "(b) sets cut2=3.2 (4 MADs) instead of 4.0 (5 MADs)" } ,
+
  { 30 , AUG , 2016 , RWC , "3dtoXdataset" , MINOR , TYPE_NEW_PROG ,
    "Convert 3D datasets to a list of in-mask shorts" ,
    "Purpose = compression for use in 3dClustSimX simulations.  The '.sdat'\n"

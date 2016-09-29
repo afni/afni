@@ -96,6 +96,27 @@ void adpt_wt_mn9( int num , double to,double dt, float *vec )
    memcpy(vec,nv,sizeof(float)*num) ; free(nv) ; return ;
 }
 
+/*--------------------------------------------------------------------------*/
+
+void adpt_wt_mn19( int num , double to,double dt, float *vec )
+{
+   float x[19] , *nv ; int ii,jj,kk , n1=num-1 ;
+
+   nv = (float *)malloc(sizeof(float)*num) ;
+
+   for( ii=0 ; ii < num ; ii++ ){
+
+     for( jj=-9 ; jj <= 9 ; jj++ ){
+       kk = ii+jj ; if( kk < 0 ) kk = 0 ; else if( kk > n1 ) kk = n1 ;
+       x[jj+9] = vec[kk] ;
+     }
+
+     nv[ii] = adaptive_weighted_mean( 19 , x ) ;
+   }
+
+   memcpy(vec,nv,sizeof(float)*num) ; free(nv) ; return ;
+}
+
 /*--------------- Sample 1D function: Order Statistics Filter -------------*/
 
 void osfilt3_func( int num , double to,double dt, float *vec )
