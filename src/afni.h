@@ -2342,6 +2342,7 @@ extern void median3_func( int, double,double, float * ) ;
 extern void absfft_func ( int, double,double, float * ) ;
 extern void ztone_func  ( int, double,double, float * ) ; /* 02 Sep 2009 */
 extern void adpt_wt_mn9 ( int, double,double, float * ) ; /* 04 Sep 2009 */
+extern void adpt_wt_mn19( int, double,double, float * ) ; /* 29 Sep 2016 */
 extern void despike7_func  (int, double,double, float *); /* 07 Oct 2010 */
 extern void despike9_func  (int, double,double, float *); /* 08 Oct 2010 */
 extern void hrfdecon_func  (int, double,double, float *); /* 29 Oct 2010 */
