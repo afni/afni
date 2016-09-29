@@ -1869,6 +1869,8 @@ void AFNI_sigfunc_alrm(int sig)
      "If Ziad were here, we'd be going for gelato just about now"    ,
      "Trust me, I know what I'm doing"                               ,
      "Never tell me the odds"                                        ,
+     "If you're good at something, never do it for free"             ,
+     "I'm Spartacus"                                                 ,
      "Remember -- You are absolutely unique. Just like everone else" ,
      "Remember -- AFNI is free, but worth at least 1000 times more"  ,
      "Remember -- Nothing is always absolutely so"                   ,
@@ -2129,6 +2131,7 @@ void AFNI_sigfunc_alrm(int sig)
      "O wad some Pow'r the giftie gie us, To see oursels as ithers see us"            ,
      "One half the world cannot understand the statistics of the other"               ,
 
+     "Once you've done what you have to do, no one will let you do what you want to do"       ,
      "My name is AFNImandias, Brain of Brains; Look on my Statistics, ye Clever, and Despair" ,
      "Statistically Significant is NOT the same as Significant -- they're not even similar"   ,
      "If you drink a liquid that has p=0.06 of being poison, do you feel significantly safe?" ,
