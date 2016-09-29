@@ -25,7 +25,7 @@ help.LME.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
           ================== Welcome to 3dLME ==================          
     AFNI Group Analysis Program with Multi-Variate Modeling Approach
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 1.8.0, Aug 29, 2016
+Version 1.8.1, Sept 29, 2016
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - https://afni.nimh.nih.gov/sscc/gangc/lme.html
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -883,8 +883,8 @@ runLME <- function(inData, dataframe, ModelForm) {
             
             #glt <- testInteractions(fm, custom=lop$gltList[[ii]], slope=lop$slpList[[ii]], adjustment="none")
             if(!is.null(glt)) {
-               Stat[lop$nF[1]+2*ii-1] <- glt[1,1]
-	       Stat[lop$nF[1]+2*ii]   <- sign(glt[1,1])*qnorm(glt[1,4]/2, lower.tail = F)  # convert chisq to Z
+               Stat[lop$nF[1]+2*lop$nBasis+2*ii-1] <- glt[1,1]
+	       Stat[lop$nF[1]+2*lop$nBasis+2*ii]   <- sign(glt[1,1])*qnorm(glt[1,4]/2, lower.tail = F)  # convert chisq to Z
             }
          }
          # GLF part below
@@ -893,7 +893,7 @@ runLME <- function(inData, dataframe, ModelForm) {
                covariates=lop$covValListF[[ii]], adjustment="none")$terms$`(Intercept)`$test, error=function(e) NULL) else
             glfRes <- tryCatch(testFactors(fm, levels=lop$glfList[[ii]], slope=lop$slpListF[[ii]], 
                covariates=lop$covValListF[[ii]], adjustment="none")$terms$`(Intercept)`$test, error=function(e) NULL)
-            if(!is.null(glfRes)) Stat[lop$nF[1]+2*lop$num_glt+ii] <- glfRes[2,2] # chi-sq value
+            if(!is.null(glfRes)) Stat[lop$nF[1]+2*lop$num_glt+2*lop$nBasis+ii] <- glfRes[2,2] # chi-sq value
             #Stat[lop$nF[1]+2*lop$num_glt+ii] <- qnorm(glfRes[2,3]/2, lower.tail = F)  # convert chisq to Z
          }
       }
