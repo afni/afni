@@ -1547,6 +1547,10 @@ extern int AFNI_get_todays_trivia( char *** ) ; /* 27 Nov 2007 */
 }
 #endif
 
+#ifdef MAIN
+int first_plugin_check = 1 ;     /* 30 Sep 2016 */
+#endif
+
 #include "afni_plugin.h"
 
 #ifdef  __cplusplus
