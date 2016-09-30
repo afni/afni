@@ -634,7 +634,7 @@ PLUGIN_interface * PLUGIN_init( int ncall )
    model_array = NLFIT_get_many_MODELs ();
    if ((model_array == NULL) || (model_array->num == 0))
 #if 1
-     { PLUTO_report( plint , "Found no models!") ;
+     { PLUTO_report( plint , "Found no models!\n") ;
        jump_on_NLfit_error = 0 ; return NULL ; }
 #else
      NLfit_error ("Unable to locate any models");
@@ -643,7 +643,7 @@ PLUGIN_interface * PLUGIN_init( int ncall )
 #if 1
    else
    { char str[64] ;
-     sprintf(str,"Found %d models",model_array->num) ;
+     sprintf(str,"Found %d models\n",model_array->num) ;
      PLUTO_report( plint , str ) ;
    }
 #endif
