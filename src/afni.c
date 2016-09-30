@@ -2912,6 +2912,17 @@ STATUS("call 13") ;
         AFNI_register_1D_function( "OSfilt3"   , osfilt3_func) ;
         AFNI_register_1D_function( "AdptMean9" , adpt_wt_mn9 ) ;       /* 04 Sep 2009 */
         AFNI_register_1D_function( "AdptMean19", adpt_wt_mn19 );       /* 29 Sep 2016 */
+
+        { int nad = AFNI_numenv("AFNI_AdptMeanWidth") ;                /* 30 Sep 2016 */
+          char lab[16] ;                                      /* user specified width */
+          if( nad > 9 && nad != 19 && nad < 100 ){
+            if( nad%2 == 0 ) nad++ ;
+            sprintf(lab,"AdptMean%d",nad) ;
+            AFNI_register_1D_function( lab , adpt_wt_mnXX ) ;
+            adpt_wt_mnXX(nad,0.0,0.0,NULL) ;
+          }
+        }
+
         AFNI_register_1D_function( "Despike"   , despike9_func);       /* 08 Oct 2010 */
         AFNI_register_1D_function( "HRF decon" , hrfdecon_func);       /* 29 Oct 2010 */
         AFNI_register_1D_function( "|FFT()|"   , absfft_func ) ;
