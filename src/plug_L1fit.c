@@ -73,6 +73,7 @@ PLUGIN_interface * PLUGIN_init( int ncall )
    PLUGIN_interface * plint ;     /* will be the output of this routine */
 
    if( ncall > 0 ) return NULL ;
+   CHECK_IF_ALLOWED("L1FIT","L1_Fit & Dtr") ;  /* 30 Sep 2016 */
 
    /*---------------- set titles and call point ----------------*/
 

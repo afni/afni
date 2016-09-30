@@ -44,6 +44,18 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 30 , SEP , 2016 , RWC , "AFNI plugins" , MAJOR , TYPE_GENERAL ,
+   "A long list of little-used plugins has been disabled." ,
+   "They can all be re-enabled by setting environment variable\n"
+   "AFNI_ALLOW_ALL_PLUGINS to YES.\n"
+   "Or each one can be individually re-enabled by setting environment\n"
+   "variable AFNI_ALLOW_somename_PLUGIN to YES, where the list of such\n"
+   "plugins can be found in file README.environment." } ,
+
+ { 30 , SEP , 2016 , RWC , "AFNI GUI" , MICRO , TYPE_ENHANCE ,
+   "Let user specify length of adaptive mean Tran 1D function" ,
+   "Through environment variable AFNI_AdptMeanWidth" } ,
+
  { 29 , SEP , 2016 , RWC , "afni GUI" , MICRO , TYPE_MODIFY ,
    "New 1D transform = AdptMean19 = 19 point adaptive local mean" ,
    NULL } ,

@@ -55,6 +55,7 @@ void ssqrt_func( int num , float *vec )
 }
 
 /*--------------------------------------------------------------------------*/
+/* adaptive = downweight things a long ways from median */
 
 float adaptive_weighted_mean( int num , float *x )
 {
@@ -76,6 +77,7 @@ float adaptive_weighted_mean( int num , float *x )
 }
 
 /*--------------------------------------------------------------------------*/
+/* 1D adaptive filter 9 points wide */
 
 void adpt_wt_mn9( int num , double to,double dt, float *vec )
 {
@@ -97,6 +99,7 @@ void adpt_wt_mn9( int num , double to,double dt, float *vec )
 }
 
 /*--------------------------------------------------------------------------*/
+/* 1D adaptive filter 19 points wide */
 
 void adpt_wt_mn19( int num , double to,double dt, float *vec )
 {
@@ -118,6 +121,7 @@ void adpt_wt_mn19( int num , double to,double dt, float *vec )
 }
 
 /*--------------------------------------------------------------------------*/
+/* 1D adaptive filter user-initialized points wide (must be odd) */
 
 void adpt_wt_mnXX( int num , double to,double dt, float *vec )
 {

@@ -88,6 +88,7 @@ PLUGIN_interface * PLUGIN_init( int ncall )
 
 
   if( ncall > 0 ) return NULL ;  /* only one interface */
+  CHECK_IF_ALLOWED("3DEDIT","3D Edit") ;  /* 30 Sep 2016 */
   
   /*-- set titles and call point --*/
   plint = PLUTO_new_interface( "3D Edit" , "Dataset Editing" , helpstring ,

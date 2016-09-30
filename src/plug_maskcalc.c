@@ -64,8 +64,9 @@ PLUGIN_interface * PLUGIN_init( int ncall )
 {
     PLUGIN_interface * plint;
 
-    if ( ncall > 0 )
-	return NULL;		/* only one interface */
+    if ( ncall > 0 ) return NULL;		/* only one interface */
+
+    CHECK_IF_ALLOWED("MASKCALC","maskcalc") ;  /* 30 Sep 2016 */
 
     plint = PLUTO_new_interface( "maskcalc", "masked computations on datasets",
 	    gr_help_message, PLUGIN_CALL_VIA_MENU, MASKCALC_main );

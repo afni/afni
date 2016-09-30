@@ -229,6 +229,57 @@ If this YES/NO variable is set to YES, then AFNI will not try to
 read plugins when it starts up.  The command line switch "-noplugins"
 will have the same effect.
 
+--------------------------------
+Variable: AFNI_ALLOW_ALL_PLUGINS
+--------------------------------
+Setting this variable to YES will allow all defined plugins to
+be loaded.  Otherwise, little-used plugins must be allowed one
+at a time, using the next set of variable names.
+
+-------------------------------------
+Variables: AFNI_ALLOW_somename_PLUGIN
+-------------------------------------
+Some plugins distributed with AFNI are not commonly used, and are
+disabled by default.  If you wish to turn one of these plugins
+back on, set the corresponding environment variable to YES.
+The list of these plugins is:
+  --- somename ---     --- name in menu ---
+  2DREGISTRATION       2D Registration
+  3DCLUSTER            3D Cluster
+  3DCORRELATION        3D Correlation
+  3DDUMP98             3D Dump98
+  3DEDIT               3D Edit
+  3DEXTRACT            3D+t Extract
+  3DREGISTRATION       3D Registration
+  3DSTATISTIC          3D+t Statistic
+  4DDUMP               4D Dump
+  ASL                  ASL a3/d3
+  BRIKCOMPRESSOR       BRIK Compressor
+  COORDORDER           Coord Order
+  DATASETCOPY          Dataset Copy
+  DATASETDUP           Dataset Dup
+  DATASETRENAME        Dataset Rename
+  DECONVOLVE           Deconvolution
+  DSETZEROPAD          Dset Zeropad
+  FOURIER              Fourier
+  GYRUSFINDER          Gyrus Finder
+  HEMISUBTRACT         Hemi-subtract
+  HILBERTDELAY98       Hilbert Delay98
+  HISTOGRAMBFIT        Histogram: BFit
+  L1FIT                L1_Fit & Dtr
+  L2FIT                LSqFit & Dtr
+  MASKCALC             maskcalc
+  PERMUTATIONTEST      Permutation Test
+  POWERSPECTRUM        Power Spectrum
+  REORDER              Reorder
+  RETROICOR            RETROICOR
+  ROIAVERAGE           ROI Average
+  ROIPLOT              ROI Plot
+  SINGLETRIALAVG       SingleTrial Avg
+  THRESHOLD            Threshold
+  TSGENERATE           TS Generate
+  WAVELETS             Wavelets
+
 --------------------------
 Variable: AFNI_YESPLUGOUTS
 --------------------------
@@ -1536,9 +1587,9 @@ of the AFNI graph window is turned on for all graph viewers when
 they open.  Otherwise, you have to turn this feature on via the
 'F' key or the toggle control in the Opt menu.
 
-----------------------------
-Variable: AFNI_AdptMeanWidth
-----------------------------
+------------------------------
+Variable: AFNI_AdptMeanWidth1D
+------------------------------
 This variable lets you add a new Adaptive Mean filter to the 'Tran 1D'
 transformations menu in the AFNI graph viewer.  The built in adaptive
 mean filter widths are 9 time points (plus/minus 4 about each value)

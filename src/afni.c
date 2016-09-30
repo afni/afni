@@ -2909,14 +2909,16 @@ STATUS("call 13") ;
         AFNI_register_0D_function( "SSqrt" , ssqrt_func ) ;
 
         AFNI_register_1D_function( "Median3"   , median3_func) ;
+#if 0
         AFNI_register_1D_function( "OSfilt3"   , osfilt3_func) ;
+#endif
         AFNI_register_1D_function( "AdptMean9" , adpt_wt_mn9 ) ;       /* 04 Sep 2009 */
         AFNI_register_1D_function( "AdptMean19", adpt_wt_mn19 );       /* 29 Sep 2016 */
 
-        { int nad = AFNI_numenv("AFNI_AdptMeanWidth") ;                /* 30 Sep 2016 */
+        { int nad = AFNI_numenv("AFNI_AdptMeanWidth1D") ;              /* 30 Sep 2016 */
           char lab[16] ;                                      /* user specified width */
           if( nad > 9 && nad != 19 && nad < 100 ){
-            if( nad%2 == 0 ) nad++ ;
+            if( nad%2 == 0 ){ nad++; INFO_message("increased AFNI_AdptMeanWidth1D to %d",nad); }
             sprintf(lab,"AdptMean%d",nad) ;
             AFNI_register_1D_function( lab , adpt_wt_mnXX ) ;
             adpt_wt_mnXX(nad,0.0,0.0,NULL) ;
@@ -2926,9 +2928,11 @@ STATUS("call 13") ;
         AFNI_register_1D_function( "Despike"   , despike9_func);       /* 08 Oct 2010 */
         AFNI_register_1D_function( "HRF decon" , hrfdecon_func);       /* 29 Oct 2010 */
         AFNI_register_1D_function( "|FFT()|"   , absfft_func ) ;
+#if 0
         AFNI_register_1D_function( "ZeroToOne" , ztone_func  ) ;       /* 02 Sep 2009 */
         AFNI_register_1D_function( "Normlz_L1" , L1normalize_func  ) ; /* 03 Sep 2009 */
         AFNI_register_1D_function( "Normlz_L2" , L2normalize_func  ) ; /* 03 Sep 2009 */
+#endif
 
         AFNI_register_2D_function( "Median9" , median9_box_func ) ;
         AFNI_register_2D_function( "Winsor9" , winsor9_box_func ) ;

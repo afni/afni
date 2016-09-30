@@ -532,6 +532,7 @@ PLUGIN_interface * PLUGIN_init( int ncall )
    int is;                        /* input stimulus index */
    int iglt;                   /* index for general linear test */
 
+   CHECK_IF_ALLOWED("DECONVOLVE","Deconvolution") ;  /* 30 Sep 2016 */
 
    if( ncall > 0 ) return NULL ;  /* generate interface for ncall 0 */
 
