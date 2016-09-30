@@ -1536,6 +1536,20 @@ of the AFNI graph window is turned on for all graph viewers when
 they open.  Otherwise, you have to turn this feature on via the
 'F' key or the toggle control in the Opt menu.
 
+----------------------------
+Variable: AFNI_AdptMeanWidth
+----------------------------
+This variable lets you add a new Adaptive Mean filter to the 'Tran 1D'
+transformations menu in the AFNI graph viewer.  The built in adaptive
+mean filter widths are 9 time points (plus/minus 4 about each value)
+and 19 time points (plus/minus 9).  If you define this variable to
+be an odd integer larger than 9, not equal to 19, and less than 100,
+then a new function labeled 'AdptMeanXX' will appear in the 'Tran 1D'
+menu, where 'XX' is the width you choose here.  This transformation
+is mainly for 'fun' -- to smooth out a time series to see structure
+obscured by noise.  You can combine this function with the |FFT|
+function using the 'Edit 1Dchain' item in the Datamode->Misc menu.
+
 --------------------------
 Variable: AFNI_VALUE_LABEL (editable)
 --------------------------
@@ -2284,7 +2298,6 @@ Variable: AFNI_1D_ZERO_TEXT
 ---------------------------
 If this is set to 'YES', then non-commented text gets set to 0
 instead of causing a read failure. The default setting is 'No'
-
 
 ------------------------
 Variable: AFNI_3D_BINARY
