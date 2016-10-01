@@ -891,9 +891,6 @@ afni_open:afni_open.c
 	$(RM) $@
 	$(CC) -o 3duuu2 3duuu2.o $(LFLAGS) $(LLIBS)
 
-3dsvm_linpredict:3dsvm_linpredict.o
-	$(RM) $@
-	$(CC) -o 3dsvm_linpredict 3dsvm_linpredict.o $(LFLAGS) $(LLIBS)
 
 3ddot:3ddot.o
 	$(RM) $@
@@ -1430,42 +1427,6 @@ AlphaSim:AlphaSim.o
 	$(RM) $@
 	$(CCOMP) -o 3dRBFdset 3dRBFdset.o $(LFLAGS) $(LLIBS)
 
-3dDegreeCentrality.o:3dDegreeCentrality.c
-	$(RM) $@
-	$(CCOMP) -c 3dDegreeCentrality.c $(INFLAGS)
-
-3dDegreeCentrality:3dDegreeCentrality.o
-	$(RM) $@
-	$(CCOMP) -o 3dDegreeCentrality 3dDegreeCentrality.o $(LFLAGS) $(LLIBS)
-
-3dLFCD.o:3dLFCD.c
-	$(RM) $@
-	$(CCOMP) -c 3dLFCD.c $(INFLAGS)
-
-3dLFCD:3dLFCD.o 
-	$(RM) $@
-	$(CCOMP) -o 3dLFCD 3dLFCD.o sparse_array.o $(LFLAGS) $(LLIBS)
-
-sparse_array.o:sparse_array.c sparse_array.h
-	$(RM) $@
-	$(CCOMP) -c sparse_array.c $(INFLAGS)
-
-3dECM.o:3dECM.c
-	$(RM) $@
-	$(CCOMP) -c 3dECM.c $(INFLAGS)
-
-3dECM:3dECM.o sparse_array.o
-	$(RM) $@
-	$(CCOMP) -o 3dECM 3dECM.o sparse_array.o $(LFLAGS) $(LLIBS)
-
-3dMSE.o:3dMSE.c
-	$(RM) $@
-	$(CCOMP) -c 3dMSE.c $(INFLAGS)
-
-3dMSE:3dMSE.o sparse_array.o
-	$(RM) $@
-	$(CCOMP) -o 3dMSE 3dMSE.o $(LFLAGS) $(LLIBS)
-
 3dAutoTcorrelate.o:3dAutoTcorrelate.c
 	$(RM) $@
 	$(CCOMP) -c 3dAutoTcorrelate.c $(INFLAGS)
@@ -1517,6 +1478,51 @@ mri_rbfinterp.o:mri_rbfinterp.c
 3dTcorr1D.o:3dTcorr1D.c
 	$(RM) $@
 	$(CCOMP) -c 3dTcorr1D.c $(INFLAGS)
+
+#### programs contributed by R. Cameron Craddock
+# cameron.craddock@gmail.com
+3dDegreeCentrality.o:3dDegreeCentrality.c
+	$(RM) $@
+	$(CCOMP) -c 3dDegreeCentrality.c $(INFLAGS)
+
+3dDegreeCentrality:3dDegreeCentrality.o
+	$(RM) $@
+	$(CCOMP) -o 3dDegreeCentrality 3dDegreeCentrality.o $(LFLAGS) $(LLIBS)
+
+3dLFCD.o:3dLFCD.c
+	$(RM) $@
+	$(CCOMP) -c 3dLFCD.c $(INFLAGS)
+
+3dLFCD:3dLFCD.o
+	$(RM) $@
+	$(CCOMP) -o 3dLFCD 3dLFCD.o sparse_array.o $(LFLAGS) $(LLIBS)
+
+sparse_array.o:sparse_array.c sparse_array.h
+	$(RM) $@
+	$(CCOMP) -c sparse_array.c $(INFLAGS)
+
+3dECM.o:3dECM.c
+	$(RM) $@
+	$(CCOMP) -c 3dECM.c $(INFLAGS)
+
+3dECM:3dECM.o sparse_array.o
+	$(RM) $@
+	$(CCOMP) -o 3dECM 3dECM.o sparse_array.o $(LFLAGS) $(LLIBS)
+
+3dMSE.o:3dMSE.c
+	$(RM) $@
+	$(CCOMP) -c 3dMSE.c $(INFLAGS)
+
+3dMSE:3dMSE.o sparse_array.o
+	$(RM) $@
+	$(CCOMP) -o 3dMSE 3dMSE.o $(LFLAGS) $(LLIBS)
+
+# This one doens't need OpenMP, but goes with other RCC progs
+3dsvm_linpredict:3dsvm_linpredict.o
+	$(RM) $@
+	$(CC) -o 3dsvm_linpredict 3dsvm_linpredict.o $(LFLAGS) $(LLIBS)
+
+# - end of programs contributed by RCC
 
 ## ------- end of OpenMP compilations -------
 
