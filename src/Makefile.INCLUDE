@@ -174,8 +174,7 @@ PROGRAMS_EXE = afni.exe to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge 
                3dRetinoPhase 3dMaskToASCII 3dttest++ 3dDTtoDWI niccc 3dXYZcat     \
                column_cat GLTsymtest nifti1_tool gifti_tool cifti_tool            \
                images_equal uniq_images stimband 1dNLfit                          \
-               3dDegreeCentrality 3dECM 3dLFCD 3dMSE
-
+               3dDegreeCentrality 3dECM 3dLFCD 3dMSE 3dsvm_linpredict
 
 # put all scripts to install here (no SCRIPTS variable)
 SCRIPTS_DIR = scripts_install
