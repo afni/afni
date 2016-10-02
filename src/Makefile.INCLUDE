@@ -1489,17 +1489,17 @@ mri_rbfinterp.o:mri_rbfinterp.c
 	$(RM) $@
 	$(CCOMP) -o 3dDegreeCentrality 3dDegreeCentrality.o $(LFLAGS) $(LLIBS)
 
+sparse_array.o:sparse_array.c sparse_array.h
+	$(RM) $@
+	$(CCOMP) -c sparse_array.c $(INFLAGS)
+
 3dLFCD.o:3dLFCD.c
 	$(RM) $@
 	$(CCOMP) -c 3dLFCD.c $(INFLAGS)
 
 3dLFCD:3dLFCD.o
 	$(RM) $@
-	$(CCOMP) -o 3dLFCD 3dLFCD.o sparse_array.o $(LFLAGS) $(LLIBS)
-
-sparse_array.o:sparse_array.c sparse_array.h
-	$(RM) $@
-	$(CCOMP) -c sparse_array.c $(INFLAGS)
+	$(CCOMP) -o 3dLFCD 3dLFCD.o $(LFLAGS) $(LLIBS)
 
 3dECM.o:3dECM.c
 	$(RM) $@
