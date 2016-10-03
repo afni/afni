@@ -3047,6 +3047,7 @@ def db_mod_mask(block, proc, user_opts):
     apply_uopt_to_block('-mask_segment_erode',user_opts, block)
     apply_uopt_to_block('-mask_test_overlap', user_opts, block)
     apply_uopt_to_block('-mask_type',         user_opts, block)
+    apply_uopt_list_to_block('-mask_import',  user_opts, block)
 
     proc.mask_epi = BASE.afni_name('full_mask%s$subj' % proc.sep_char)
 
@@ -3062,6 +3063,13 @@ def db_mod_mask(block, proc, user_opts):
     if block.opts.have_yes_opt('-mask_segment_erode', 0):
        for roi in roilist:
           proc.add_roi_dict_key('%se' % roi)
+
+    # possibly note -mask_import_ROIs
+    oname = '-mask_import'
+    for opt in block.opts.find_all_opts(oname):
+       label = opt.parlist[0]
+       aname = BASE.afni_name('mask_import_%s' % label)
+       if proc.add_roi_dict_key(label, aname=aname): return 1
 
     proc.mask = proc.mask_epi   # default to referring to EPI mask
 
@@ -3149,6 +3157,16 @@ def db_cmd_mask(proc, block):
         else:
             print "** ERROR: cannot apply %s mask" % mtype
             return
+
+    oname = '-mask_import'
+    for opt in block.opts.find_all_opts(oname):
+       label = opt.parlist[0]
+       aname = proc.get_roi_dset(label)
+       if not aname:
+          print "** missing -mask_import ROI '%s'" % label
+          return
+       aname = proc.roi_dict[label]
+       aname.view = proc.view
 
     scmd = mask_segment_anat(proc, block)
     if scmd == None: return

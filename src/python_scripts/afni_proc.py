@@ -547,6 +547,7 @@ g_history = """
         - detrend with 3dTproject for PC regressors, to allow for censoring
         - added -regress_ROI_per_run    to apply -regress_ROI    per-run
         - added -regress_ROI_PC_per_run to apply -regress_ROI_PC per-run
+    5.06 Oct  3, 2016: added -mask_import option
 """
 
 g_version = "version 5.05, September 28, 2016"
@@ -773,14 +774,14 @@ class SubjProcSream:
         self.mask_extents = None        # mask dataset (of EPI extents)
         self.mask_classes = None        # Segsy result at EPI resolution
 
+        # options for tissue based time series
+        self.roi_dict   = {}            # dictionary of ROI vs afni_name
+        self.def_roi_keys = default_roi_keys
+
         # options related to ACF and clustsim
         self.ACFdir     = 'files_ACF'   # where to put 3dFWHMx -ACF files
         self.CSdir      = 'files_ClustSim' # and 3dClustSim files
         self.made_cdir  = 0             # has it been created
-
-        # options for tissue based time series
-        self.roi_dict   = {}            # dictionary of ROI vs afni_name
-        self.def_roi_keys = default_roi_keys
 
         self.bandpass     = []          # bandpass limits
         self.censor_file  = ''          # for use as '-censor FILE' in 3dD
@@ -1111,6 +1112,8 @@ class SubjProcSream:
                         helpstr="select mask to apply in regression")
         self.valid_opts.add_opt('-mask_dilate', 1, [],
                         helpstr="dilation to be applied in automask")
+        self.valid_opts.add_opt('-mask_import', 2, [],
+                        helpstr="import mask as given label (label/mset)")
         self.valid_opts.add_opt('-mask_rm_segsy', 1, [],
                         acplist=['yes', 'no'],
                         helpstr="remove Segsy directory (yes/no)")
@@ -2280,6 +2283,24 @@ class SubjProcSream:
            self.write_text(add_line_wrappers(tstr))
            self.write_text("%s\n" % stat_inc)
 
+        # copy any -mask_import datasets as mask_import_LABEL
+        tstr = ''
+        oname = '-mask_import'
+        for opt in self.user_opts.find_all_opts(oname):
+           if tstr == '':
+              tstr = '# copy any %s datasets as mask_import_LABEL\n' % oname
+           # get label and dset params
+           label = opt.parlist[0]
+           dset  = opt.parlist[1]
+           # find in ROI dict
+           aname = self.get_roi_dset(label)
+           if not aname:
+              print "** no -mask_import label set for '%s' to copy" % label
+              return 1
+           tstr += '3dcopy %s %s/%s\n' % (dset, self.od_var, aname.prefix)
+        if tstr:
+           self.write_text(add_line_wrappers(tstr+'\n'))
+
         # copy any -tlrc_NL_warped_dsets files (self.nlw_priors dsets)
         if len(self.nlw_priors) == 3:
            tstr = '# copy external -tlrc_NL_warped_dsets datasets\n'
@@ -2770,7 +2791,7 @@ class SubjProcSream:
           if not overwrite:
              if key in self.def_roi_keys: 
                 print "** ROI key '%s' in default list, consider renaming"%key
-                print "   (default list comea from 3dSeg result)"
+                print "   (default list comes from 3dSeg result)"
              return 1
 
        elif self.verb > 1:
@@ -2779,6 +2800,15 @@ class SubjProcSream:
        self.roi_dict[key] = aname
 
        return 0
+
+    def show_roi_dict_keys(self):
+       keys = self.roi_dict.keys()
+       if len(keys) <= 0: return
+       print '== have %d ROI dict entries ...' % len(keys)
+       for key in keys:
+          aname = self.roi_dict[key]
+          aname.show(mesg=('ROI key "%s"' % key))
+       print
 
     def get_roi_dset(self, label):
        """check roi_dict and afollowers list for label"""
