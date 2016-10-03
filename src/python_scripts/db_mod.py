@@ -3172,6 +3172,8 @@ def db_cmd_mask(proc, block):
     if scmd == None: return
     cmd += scmd
 
+    if proc.verb: proc.show_roi_dict_keys(verb=(proc.verb-1))
+
     # do not increment block index or set 'previous' block label,
     # as there are no datasets created here
 
