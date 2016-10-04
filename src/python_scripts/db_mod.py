@@ -3048,6 +3048,7 @@ def db_mod_mask(block, proc, user_opts):
     apply_uopt_to_block('-mask_test_overlap', user_opts, block)
     apply_uopt_to_block('-mask_type',         user_opts, block)
     apply_uopt_list_to_block('-mask_import',  user_opts, block)
+    apply_uopt_to_block('-mask_seg_inter_csf_vent',  user_opts, block)
 
     proc.mask_epi = BASE.afni_name('full_mask%s$subj' % proc.sep_char)
 
@@ -3070,6 +3071,14 @@ def db_mod_mask(block, proc, user_opts):
        label = opt.parlist[0]
        aname = BASE.afni_name('mask_import_%s' % label)
        if proc.add_roi_dict_key(label, aname=aname): return 1
+
+    # possibly note a 3dSeg ventricle mask via -mask_seg_inter_csf_vent
+    oname = '-mask_seg_inter_csf_vent'
+    if block.opts.find_opt(oname):
+       if proc.add_roi_dict_key('Svent'): return 1
+       if not block.opts.have_yes_opt('-mask_segment_anat', 0):
+          print '** option %s requires -mask_segment_anat' % oname
+          return 1
 
     proc.mask = proc.mask_epi   # default to referring to EPI mask
 
@@ -3195,8 +3204,8 @@ def mask_segment_anat(proc, block):
     # ----------------------------------------------------------------------
     # make any segmentation masks
 
-    opt = block.opts.find_opt('-mask_segment_anat')
-    if not OL.opt_is_yes(opt): return ''        # default is now no
+    if not block.opts.have_yes_opt('-mask_segment_anat', default=0):
+       return ''        # default is now no
 
     if not proc.anat_final:
         if proc.verb > 1:
@@ -3286,7 +3295,25 @@ def mask_segment_anat(proc, block):
           newname = BASE.afni_name('mask_%s_resam%s'%(ec,proc.view))
           if proc.add_roi_dict_key(ec, newname, overwrite=1): return ''
 
+    # do we intersect with ventricle mask?
+    if block.opts.find_opt('-mask_seg_inter_csf_vent'):
+       cc = get_mask_cmd_seg_inter_csf_vent(proc, block, erode)
+       if not cc: return
+       cmd += cc
+
     return cmd
+
+def get_mask_cmd_seg_inter_csf_vent(proc, block, erode):
+    oname = '-mask_seg_inter_csf_vent'
+    mlabel = block.opts.get_string_opt(oname)
+    if erode: clab = 'CSFe'
+    else:     clab = 'CSF'
+    csfset = proc.get_roi_dset(clab)
+    if not csfset:
+       print "** no '%s' label dset for option %s" % (clab, oname)
+       return ''
+
+    rcr - here
 
 
 # if possible: make a group anatomical mask (resampled to EPI)
