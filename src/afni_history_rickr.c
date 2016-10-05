@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  5,  Oct, 2016, RCR, "afni-general", MAJOR, TYPE_NEW_PROG,
+   "update from C Cradock and dclark87",
+   "New Programs: 3dLFCD, 3dDegreeCentrality, 3dECM, 3dMSE, 3dsvm_linpredict."
+ } ,
+
  { 28,  Sep, 2016, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
    "add -regress_ROI[_PC]_per_run options, to make per-run regressors",
    "Also, used 3dTproject to detrend PC regressors for appropriate censoring."
