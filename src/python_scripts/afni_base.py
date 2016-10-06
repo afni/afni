@@ -328,13 +328,16 @@ class afni_name:
       self.prefix = prefix
    def new_view(self,view=""):
       self.view = view
-   def show(self, mesg=''):
+   def show(self, mesg='', verb=1):
+      """options to see the path require verb>1"""
       if mesg: mesg = ' (%s)' % mesg
       print "AFNI filename%s:" % mesg
-      print "   curdir  : %s" % os.path.abspath(os.curdir)
+      if verb > 1: print "   curdir  : %s" % os.path.abspath(os.curdir)
+
       print "   initial : %s" % self.initname
-      print "   name    : %s" % self.ppve()
-      print "   path    : %s" % self.path
+      if verb > 1: print "   name    : %s" % self.ppve()
+      if verb > 1: print "   path    : %s" % self.path
+
       print "   prefix  : %s" % self.prefix   
       print "   view    : %s" % self.view
       print "   exten.  : %s" % self.extension
