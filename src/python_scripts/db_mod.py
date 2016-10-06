@@ -3305,15 +3305,31 @@ def mask_segment_anat(proc, block):
 
 def get_mask_cmd_seg_inter_csf_vent(proc, block, erode):
     oname = '-mask_seg_inter_csf_vent'
-    mlabel = block.opts.get_string_opt(oname)
-    if erode: clab = 'CSFe'
-    else:     clab = 'CSF'
-    csfset = proc.get_roi_dset(clab)
-    if not csfset:
-       print "** no '%s' label dset for option %s" % (clab, oname)
+    olist = block.opts.get_string_list(oname)
+    clabel = olist[0]   # CSF label
+    vlabel = olist[1]   # imported ventricle mask label
+
+    cset = proc.get_roi_dset(clabel)
+    if not cset:
+       print "** no CSF label '%s' dset for option %s" % (clabel, oname)
        return ''
 
-    rcr - here
+    vset = proc.get_roi_dset(vlabel)
+    if not vset:
+       print "** no ventricle label '%s' dset for option %s" % (vlabel, oname)
+       return ''
+
+    ilabel = 'Svent'
+    if not proc.have_roi_label(ilabel)
+       print '** no CSF/vent intersect label %s for option %s' % (ilabel,oname)
+       return ''
+
+    cmd = '# intersect 3dSeg %s mask with imported %s mask\n'   \
+          "3dcalc -a %s -b %s -expr 'bool(a*b)' -prefix %s\n\n" \
+          % (clabel, vlabel, cset.shorinput(), vset.shortinput())
+
+    # rcr - here
+    return '# do nothing\n'
 
 
 # if possible: make a group anatomical mask (resampled to EPI)

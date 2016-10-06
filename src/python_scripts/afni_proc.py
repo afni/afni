@@ -1114,8 +1114,8 @@ class SubjProcSream:
                         helpstr="dilation to be applied in automask")
         self.valid_opts.add_opt('-mask_import', 2, [],
                         helpstr="import mask as given label (label/mset)")
-        self.valid_opts.add_opt('-mask_seg_inter_csf_vent', 1, [],
-                        helpstr="ventricle mask LABEL for 3dSeg CSF intersect")
+        self.valid_opts.add_opt('-mask_seg_inter_csf_vent', 2, [],
+                        helpstr="CSF and vent mask LABELs for 3dSeg CSF inter")
         self.valid_opts.add_opt('-mask_rm_segsy', 1, [],
                         acplist=['yes', 'no'],
                         helpstr="remove Segsy directory (yes/no)")
@@ -2806,18 +2806,19 @@ class SubjProcSream:
 
     def show_roi_dict_keys(self, verb=0):
        keys = self.roi_dict.keys()
-       if len(keys) <= 0: return
-       print '-- have %d ROI dict entries ...' % len(keys)
-       # get max key string length
-       maxlen = max(len(key) for key in keys)
+       nkeys = len(keys)
+       if nkeys <= 0: return
+       print '-- have %d ROI dict entries ...' % nkeys
+       # get max key string length, with 2 positions for surrounding quotes
+       maxlen = max((len(key)+2) for key in keys)
        if verb < 0: verb = 0
 
        for key in keys:
-          kmesg='"%s"' % key
-          mesg='ROI key %-*s' % (maxlen, key)
+          kstr = "'%s'" % key
+          mesg = 'ROI key %-*s' % (maxlen, kstr)
           aname = self.roi_dict[key]
           if isinstance(aname, afni_name):
-             if verb: aname.show(mesg=mesg)
+             if verb: aname.show(mesg=mesg, verb=verb-1)
              else:    print "   %s : %s" % (mesg, aname.shortinput())
           else:
              print "   %s : %s" % (mesg, aname)
