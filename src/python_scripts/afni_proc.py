@@ -547,7 +547,9 @@ g_history = """
         - detrend with 3dTproject for PC regressors, to allow for censoring
         - added -regress_ROI_per_run    to apply -regress_ROI    per-run
         - added -regress_ROI_PC_per_run to apply -regress_ROI_PC per-run
-    5.06 Oct  3, 2016: added -mask_import option
+    5.06 Oct  3, 2016:
+        - added -mask_import option
+        - added -mask_seg_inter_csf_vent
 """
 
 g_version = "version 5.05, September 28, 2016"
@@ -2817,17 +2819,19 @@ class SubjProcSream:
           kstr = "'%s'" % key
           mesg = 'ROI key %-*s' % (maxlen, kstr)
           aname = self.roi_dict[key]
-          if isinstance(aname, afni_name):
-             if verb: aname.show(mesg=mesg, verb=verb-1)
-             else:    print "   %s : %s" % (mesg, aname.shortinput())
-          else:
-             print "   %s : %s" % (mesg, aname)
-       if verb: print
+          if verb:
+             if isinstance(aname, afni_name):
+                if verb > 1: aname.show(mesg=mesg, verb=verb-1)
+                else:        print "   %s : %s" % (mesg, aname.shortinput())
+             else:
+                print "   %s : %s" % (mesg, aname)
+       if verb>1: print
 
     def get_roi_dset(self, label):
        """check roi_dict and afollowers list for label"""
 
-       if self.roi_dict.has_key(label): return self.roi_dict[label]
+       if self.roi_dict.has_key(label):
+          return self.roi_dict[label]
 
        af = self.get_anat_follower(label)
        if af: return af.cname
