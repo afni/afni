@@ -3305,7 +3305,8 @@ def mask_segment_anat(proc, block):
 
 def get_mask_cmd_seg_inter_csf_vent(proc, block, erode):
     oname = '-mask_seg_inter_csf_vent'
-    olist = block.opts.get_string_list(oname)
+    olist, rv = block.opts.get_string_list(oname)
+    if rv: return ''
     clabel = olist[0]   # CSF label
     vlabel = olist[1]   # imported ventricle mask label
 
@@ -3320,16 +3321,25 @@ def get_mask_cmd_seg_inter_csf_vent(proc, block, erode):
        return ''
 
     ilabel = 'Svent'
-    if not proc.have_roi_label(ilabel)
+    if not proc.have_roi_label(ilabel):
        print '** no CSF/vent intersect label %s for option %s' % (ilabel,oname)
        return ''
+    iset = BASE.afni_name('mask_%s'%ilabel, view=proc.view)
+    if proc.add_roi_dict_key(ilabel, iset, overwrite=1): return ''
+
+    if proc.verb > 2: 
+       print '++ GMCSICV: have c/v/i labels %s/%s/%s' % (clabel,vlabel,ilabel)
+       cset.show(mesg='cset')
+       vset.show(mesg='vset')
+       iset.show(mesg='iset')
 
     cmd = '# intersect 3dSeg %s mask with imported %s mask\n'   \
-          "3dcalc -a %s -b %s -expr 'bool(a*b)' -prefix %s\n\n" \
-          % (clabel, vlabel, cset.shorinput(), vset.shortinput())
+          "3dcalc -a %s -b %s \\\n"                             \
+          "       -expr 'bool(a*b)' -prefix %s\n\n" \
+          % (clabel, vlabel, cset.shortinput(), vset.shortinput(),
+             iset.out_prefix())
 
-    # rcr - here
-    return '# do nothing\n'
+    return cmd
 
 
 # if possible: make a group anatomical mask (resampled to EPI)
