@@ -3296,65 +3296,32 @@ def mask_segment_anat(proc, block):
 
     # create any intersection masks
     if block.opts.find_opt('-mask_intersect'):
-       cc = get_cmd_mask_intersect(proc, block)
+       cc = get_cmd_mask_combine(proc, block, 'inter')
        if not cc: return
        cmd += cc
 
     # create any union masks
     if block.opts.find_opt('-mask_union'):
-       cc = get_cmd_mask_union(proc, block)
+       cc = get_cmd_mask_combine(proc, block, 'union')
        if not cc: return
        cmd += cc
 
     return cmd
 
-def get_cmd_mask_union(proc, block):
-    oname = '-mask_union'
-    cmd = ''
-    for opt in block.opts.find_all_opts(oname):
-       olist, rv = block.opts.get_string_list(opt=opt)
-       if rv: return ''
-       ilabel = olist[0]   # label for resulting union mask
-       alabel = olist[1]   # label A (e.g. 3dSeg CSFe)
-       blabel = olist[2]   # label B (e.g. imported ventricle mask)
 
-       aset = proc.get_roi_dset(alabel)
-       if not aset:
-          print "** mask_union: no label '%s' dset A for option %s" \
-                % (alabel, oname)
-          return ''
+def get_cmd_mask_combine(proc, block, oper='union'):
+    """operation ostr should be union or inter"""
+    if oper == 'union':
+       ostr = 'union'
+       expr = 'or(bool(a),bool(b))'
+    elif oper == 'inter':
+       ostr = 'intersect'
+       expr = 'bool(a*b)'
+    else:
+       print '** GCMC: bad oper %s' % oper
+       return ''
 
-       bset = proc.get_roi_dset(blabel)
-       if not bset:
-          print "** mask_union: no label '%s' dset B for option %s" \
-                % (blabel, oname)
-          return ''
-
-       if not proc.have_roi_label(ilabel):
-          print '** no union label %s for option %s' % (ilabel,oname)
-          return ''
-
-       iset = BASE.afni_name('mask_union_%s'%ilabel, view=proc.view)
-       if proc.add_roi_dict_key(ilabel, iset, overwrite=1): return ''
-
-       cmd += '# create union mask %s from masks %s and %s\n' \
-              "3dcalc -a %s -b %s \\\n"                              \
-              "       -expr 'or(bool(a),bool(b))' -prefix %s\n\n" \
-              % (ilabel, alabel, blabel,
-                 aset.shortinput(), bset.shortinput(), iset.out_prefix())
-
-       if proc.verb:
-          print '++ making union mask %s from %s and %s'%(ilabel,alabel,blabel)
-       if proc.verb > 3: 
-          iset.show(mesg='iset')
-          aset.show(mesg='aset')
-          bset.show(mesg='bset')
-
-    return cmd
-
-
-def get_cmd_mask_intersect(proc, block):
-    oname = '-mask_intersect'
+    oname = '-mask_%s' % ostr
     cmd = ''
     for opt in block.opts.find_all_opts(oname):
        olist, rv = block.opts.get_string_list(opt=opt)
@@ -3365,32 +3332,32 @@ def get_cmd_mask_intersect(proc, block):
 
        aset = proc.get_roi_dset(alabel)
        if not aset:
-          print "** mask_intersect: no label '%s' dset A for option %s" \
+          print "** GCMC: no label '%s' dset A for option %s" \
                 % (alabel, oname)
           return ''
 
        bset = proc.get_roi_dset(blabel)
        if not bset:
-          print "** mask_intersect: no label '%s' dset B for option %s" \
+          print "** GCMC: no label '%s' dset B for option %s" \
                 % (blabel, oname)
           return ''
 
        if not proc.have_roi_label(ilabel):
-          print '** no intersect label %s for option %s' % (ilabel,oname)
+          print '** no %s label %s for option %s' % (ostr, ilabel, oname)
           return ''
 
-       iset = BASE.afni_name('mask_inter_%s'%ilabel, view=proc.view)
+       iset = BASE.afni_name('mask_%s_%s'%(oper,ilabel), view=proc.view)
        if proc.add_roi_dict_key(ilabel, iset, overwrite=1): return ''
 
-       cmd += '# create intersection mask %s from masks %s and %s\n' \
+       cmd += '# create %s mask %s from masks %s and %s\n' \
               "3dcalc -a %s -b %s \\\n"                              \
               "       -expr 'bool(a*b)' -prefix %s\n\n" \
-              % (ilabel, alabel, blabel,
+              % (ostr, ilabel, alabel, blabel,
                  aset.shortinput(), bset.shortinput(), iset.out_prefix())
 
        if proc.verb:
-          print '++ making intersection mask %s from %s and %s' \
-                % (ilabel,alabel,blabel)
+          print '++ making %s mask %s from %s and %s' \
+                % (ostr, ilabel,alabel,blabel)
        if proc.verb > 2: 
           iset.show(mesg='iset')
           aset.show(mesg='aset')
