@@ -548,8 +548,7 @@ g_history = """
         - added -regress_ROI_per_run    to apply -regress_ROI    per-run
         - added -regress_ROI_PC_per_run to apply -regress_ROI_PC per-run
     5.06 Oct  3, 2016:
-        - added -mask_import option
-        - added -mask_seg_inter_csf_vent
+        - added options -mask_import, -mask_intersect, -mask_union
 """
 
 g_version = "version 5.05, September 28, 2016"
@@ -1116,8 +1115,8 @@ class SubjProcSream:
                         helpstr="dilation to be applied in automask")
         self.valid_opts.add_opt('-mask_import', 2, [],
                         helpstr="import mask as given label (label/mset)")
-        self.valid_opts.add_opt('-mask_seg_inter_csf_vent', 2, [],
-                        helpstr="CSF and vent mask LABELs for 3dSeg CSF inter")
+        self.valid_opts.add_opt('-mask_intersect', 3, [],
+                        helpstr="create new mask by intersecting 2 others")
         self.valid_opts.add_opt('-mask_rm_segsy', 1, [],
                         acplist=['yes', 'no'],
                         helpstr="remove Segsy directory (yes/no)")

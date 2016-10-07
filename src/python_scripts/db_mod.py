@@ -3048,7 +3048,7 @@ def db_mod_mask(block, proc, user_opts):
     apply_uopt_to_block('-mask_test_overlap', user_opts, block)
     apply_uopt_to_block('-mask_type',         user_opts, block)
     apply_uopt_list_to_block('-mask_import',  user_opts, block)
-    apply_uopt_to_block('-mask_seg_inter_csf_vent',  user_opts, block)
+    apply_uopt_list_to_block('-mask_intersect',user_opts, block)
 
     proc.mask_epi = BASE.afni_name('full_mask%s$subj' % proc.sep_char)
 
@@ -3072,13 +3072,11 @@ def db_mod_mask(block, proc, user_opts):
        aname = BASE.afni_name('mask_import_%s' % label)
        if proc.add_roi_dict_key(label, aname=aname): return 1
 
-    # possibly note a 3dSeg ventricle mask via -mask_seg_inter_csf_vent
-    oname = '-mask_seg_inter_csf_vent'
-    if block.opts.find_opt(oname):
-       if proc.add_roi_dict_key('Svent'): return 1
-       if not block.opts.have_yes_opt('-mask_segment_anat', 0):
-          print '** option %s requires -mask_segment_anat' % oname
-          return 1
+    # add any intersection masks
+    oname = '-mask_intersect'
+    for opt in block.opts.find_all_opts(oname):
+       label = opt.parlist[0]
+       if proc.add_roi_dict_key(label): return 1
 
     proc.mask = proc.mask_epi   # default to referring to EPI mask
 
@@ -3296,48 +3294,53 @@ def mask_segment_anat(proc, block):
           if proc.add_roi_dict_key(ec, newname, overwrite=1): return ''
 
     # do we intersect with ventricle mask?
-    if block.opts.find_opt('-mask_seg_inter_csf_vent'):
-       cc = get_mask_cmd_seg_inter_csf_vent(proc, block, erode)
+    if block.opts.find_opt('-mask_intersect'):
+       cc = get_cmd_mask_intersect(proc, block)
        if not cc: return
        cmd += cc
 
     return cmd
 
-def get_mask_cmd_seg_inter_csf_vent(proc, block, erode):
-    oname = '-mask_seg_inter_csf_vent'
-    olist, rv = block.opts.get_string_list(oname)
-    if rv: return ''
-    clabel = olist[0]   # CSF label
-    vlabel = olist[1]   # imported ventricle mask label
+def get_cmd_mask_intersect(proc, block):
+    oname = '-mask_intersect'
+    cmd = ''
+    for opt in block.opts.find_all_opts(oname):
+       olist, rv = block.opts.get_string_list(opt=opt)
+       if rv: return ''
+       ilabel = olist[0]   # label for resulting intersection mask
+       alabel = olist[1]   # label A (e.g. 3dSeg CSFe)
+       blabel = olist[2]   # label B (e.g. imported ventricle mask)
 
-    cset = proc.get_roi_dset(clabel)
-    if not cset:
-       print "** no CSF label '%s' dset for option %s" % (clabel, oname)
-       return ''
+       aset = proc.get_roi_dset(alabel)
+       if not aset:
+          print "** mask_intersect: no label '%s' dset A for option %s" \
+                % (alabel, oname)
+          return ''
 
-    vset = proc.get_roi_dset(vlabel)
-    if not vset:
-       print "** no ventricle label '%s' dset for option %s" % (vlabel, oname)
-       return ''
+       bset = proc.get_roi_dset(blabel)
+       if not bset:
+          print "** mask_intersect: no label '%s' dset B for option %s" \
+                % (blabel, oname)
+          return ''
 
-    ilabel = 'Svent'
-    if not proc.have_roi_label(ilabel):
-       print '** no CSF/vent intersect label %s for option %s' % (ilabel,oname)
-       return ''
-    iset = BASE.afni_name('mask_%s'%ilabel, view=proc.view)
-    if proc.add_roi_dict_key(ilabel, iset, overwrite=1): return ''
+       if not proc.have_roi_label(ilabel):
+          print '** no intersect label %s for option %s' % (ilabel,oname)
+          return ''
 
-    if proc.verb > 2: 
-       print '++ GMCSICV: have c/v/i labels %s/%s/%s' % (clabel,vlabel,ilabel)
-       cset.show(mesg='cset')
-       vset.show(mesg='vset')
-       iset.show(mesg='iset')
+       iset = BASE.afni_name('mask_inter_%s'%ilabel, view=proc.view)
+       if proc.add_roi_dict_key(ilabel, iset, overwrite=1): return ''
 
-    cmd = '# intersect 3dSeg %s mask with imported %s mask\n'   \
-          "3dcalc -a %s -b %s \\\n"                             \
-          "       -expr 'bool(a*b)' -prefix %s\n\n" \
-          % (clabel, vlabel, cset.shortinput(), vset.shortinput(),
-             iset.out_prefix())
+       if proc.verb > 2: 
+          print '++ GCMI: have i/a/b labels %s/%s/%s' % (ilabel,alabel,blabel)
+          iset.show(mesg='iset')
+          aset.show(mesg='aset')
+          bset.show(mesg='bset')
+
+       cmd += '# create intersection mask %s from masks %s and %s\n' \
+              "3dcalc -a %s -b %s \\\n"                              \
+              "       -expr 'bool(a*b)' -prefix %s\n\n" \
+              % (ilabel, alabel, blabel,
+                 aset.shortinput(), bset.shortinput(), iset.out_prefix())
 
     return cmd
 
