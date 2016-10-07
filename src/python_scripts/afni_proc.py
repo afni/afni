@@ -547,11 +547,10 @@ g_history = """
         - detrend with 3dTproject for PC regressors, to allow for censoring
         - added -regress_ROI_per_run    to apply -regress_ROI    per-run
         - added -regress_ROI_PC_per_run to apply -regress_ROI_PC per-run
-    5.06 Oct  3, 2016:
-        - added options -mask_import, -mask_intersect, -mask_union
+    5.06 Oct  7, 2016: added opts -mask_import, -mask_intersect, -mask_union
 """
 
-g_version = "version 5.05, September 28, 2016"
+g_version = "version 5.06, October 7, 2016"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \
@@ -563,6 +562,7 @@ g_requires_afni = [ \
       [  "1 Apr 2015",  "1d_tool.py uncensor from 1D" ] ]
 
 g_todo_str = """todo:
+  - add help for -mask_import/intersect/union
   - finish @radial_correlate updates, like _opts and _volreg
      - maybe add to gen_ss_review_scripts.py
   - allow for 3dAllineate in place of 3dvolreg: -volreg_use_allineate
@@ -1117,6 +1117,8 @@ class SubjProcSream:
                         helpstr="import mask as given label (label/mset)")
         self.valid_opts.add_opt('-mask_intersect', 3, [],
                         helpstr="create new mask by intersecting 2 others")
+        self.valid_opts.add_opt('-mask_union', 3, [],
+                        helpstr="create new mask by taking union of 2 others")
         self.valid_opts.add_opt('-mask_rm_segsy', 1, [],
                         acplist=['yes', 'no'],
                         helpstr="remove Segsy directory (yes/no)")
