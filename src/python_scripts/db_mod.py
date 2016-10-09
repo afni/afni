@@ -9852,6 +9852,60 @@ g_help_string = """
             Please see '3dAutomask -help' for more information.
             See also -mask_type.
 
+        -mask_import LABEL MSET : import a final grid mask with the given label
+
+                e.g. -mask_import tvent template_ventricle_3mm+tlrc
+
+            Use this option to import a mask that is aligned with the final
+            EPI data _and_ is on the final grid.
+
+                o  this might be based on the group template
+                o  this should already be resampled appropriately
+                o  no warping or resampling will be done to this dataset
+
+            This mask can be applied via LABEL as other masks, using options
+            like: -regress_ROI, -regress_ROI_PC, -regress_make_corr_vols,
+                  -regress_anaticor_label, -mask_intersect, -mask_union.
+
+            For example, one might import a ventricle mask from the template,
+            intersect it with the subject specific CSFe (eroded CSF) mask,
+            and possibly take the union with WMe (eroded white matter), before
+            using the result for principle component regression, as in:
+
+                -mask_import tvent template_ventricle_3mm+tlrc \\
+                -mask_intersect Svent CSFe tvent               \\
+                -mask_union WM_vent Svent WMe                  \\
+                -regress_ROI_PC WM_vent 3                      \\
+
+            See also -regress_ROI, -regress_ROI_PC, -regress_make_corr_vols,
+                     -regress_anaticor_label, -mask_intersect, -mask_union.
+
+        -mask_intersect NEW_LABEL MASK_A MASK_B : intersect 2 masks
+
+                e.g. -mask_intersect Svent CSFe tvent
+
+            Use this option to intersect 2 known masks to create a new mask.
+            NEW_LABEL will be the label of the result, while MASK_A and MASK_B
+            should be labels for existing masks.
+
+            One could use this to intersect a template ventricle mask with each
+            subject's specific CSFe (eroded CSF) mask from 3dSeg, for example.
+
+            See -mask_import for more details.
+
+        -mask_union NEW_LABEL MASK_A MASK_B : take union of 2 masks
+
+                e.g. -mask_union WM_vent Svent WMe
+
+            Use this option to take the union of 2 known masks to create a new
+            mask.  NEW_LABEL will be the label of the result, while MASK_A and
+            MASK_B should be labels for existing masks.
+
+            One could use this to create union of CSFe and WMe for principle
+            component regression, for example.
+
+            See -mask_import for more details.
+
         -mask_rm_segsy Y/N  : choose whether to delete the Segsy directory
 
                 e.g. -mask_rm_segsy no
