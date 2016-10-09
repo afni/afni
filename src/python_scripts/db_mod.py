@@ -3311,12 +3311,8 @@ def mask_segment_anat(proc, block):
 
 def get_cmd_mask_combine(proc, block, oper='union'):
     """operation ostr should be union or inter"""
-    if oper == 'union':
-       ostr = 'union'
-       expr = 'or(bool(a),bool(b))'
-    elif oper == 'inter':
-       ostr = 'intersect'
-       expr = 'bool(a*b)'
+    if oper == 'union':   ostr = 'union'
+    elif oper == 'inter': ostr = 'intersect'
     else:
        print '** GCMC: bad oper %s' % oper
        return ''
@@ -3349,11 +3345,11 @@ def get_cmd_mask_combine(proc, block, oper='union'):
        iset = BASE.afni_name('mask_%s_%s'%(oper,ilabel), view=proc.view)
        if proc.add_roi_dict_key(ilabel, iset, overwrite=1): return ''
 
-       cmd += '# create %s mask %s from masks %s and %s\n' \
-              "3dcalc -a %s -b %s \\\n"                              \
-              "       -expr 'bool(a*b)' -prefix %s\n\n" \
+       cmd += '# create %s mask %s from masks %s and %s\n'      \
+              "3dmask_tool -input %s %s \\\n"                   \
+              "       -%s -prefix %s\n\n"                       \
               % (ostr, ilabel, alabel, blabel,
-                 aset.shortinput(), bset.shortinput(), iset.out_prefix())
+                 aset.shortinput(), bset.shortinput(), oper, iset.out_prefix())
 
        if proc.verb:
           print '++ making %s mask %s from %s and %s' \
