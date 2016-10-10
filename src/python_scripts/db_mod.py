@@ -3047,6 +3047,9 @@ def db_mod_mask(block, proc, user_opts):
     apply_uopt_to_block('-mask_segment_erode',user_opts, block)
     apply_uopt_to_block('-mask_test_overlap', user_opts, block)
     apply_uopt_to_block('-mask_type',         user_opts, block)
+    apply_uopt_list_to_block('-mask_import',  user_opts, block)
+    apply_uopt_list_to_block('-mask_intersect',user_opts, block)
+    apply_uopt_list_to_block('-mask_union',   user_opts, block)
 
     proc.mask_epi = BASE.afni_name('full_mask%s$subj' % proc.sep_char)
 
@@ -3062,6 +3065,19 @@ def db_mod_mask(block, proc, user_opts):
     if block.opts.have_yes_opt('-mask_segment_erode', 0):
        for roi in roilist:
           proc.add_roi_dict_key('%se' % roi)
+
+    # possibly note -mask_import_ROIs
+    oname = '-mask_import'
+    for opt in block.opts.find_all_opts(oname):
+       label = opt.parlist[0]
+       aname = BASE.afni_name('mask_import_%s' % label)
+       if proc.add_roi_dict_key(label, aname=aname): return 1
+
+    # add any intersection or union masks
+    for oname in ['-mask_intersect', '-mask_union']:
+       for opt in block.opts.find_all_opts(oname):
+          label = opt.parlist[0]
+          if proc.add_roi_dict_key(label): return 1
 
     proc.mask = proc.mask_epi   # default to referring to EPI mask
 
@@ -3150,9 +3166,21 @@ def db_cmd_mask(proc, block):
             print "** ERROR: cannot apply %s mask" % mtype
             return
 
+    oname = '-mask_import'
+    for opt in block.opts.find_all_opts(oname):
+       label = opt.parlist[0]
+       aname = proc.get_roi_dset(label)
+       if not aname:
+          print "** missing -mask_import ROI '%s'" % label
+          return
+       aname = proc.roi_dict[label]
+       aname.view = proc.view
+
     scmd = mask_segment_anat(proc, block)
     if scmd == None: return
     cmd += scmd
+
+    if proc.verb: proc.show_roi_dict_keys(verb=(proc.verb-1))
 
     # do not increment block index or set 'previous' block label,
     # as there are no datasets created here
@@ -3175,8 +3203,8 @@ def mask_segment_anat(proc, block):
     # ----------------------------------------------------------------------
     # make any segmentation masks
 
-    opt = block.opts.find_opt('-mask_segment_anat')
-    if not OL.opt_is_yes(opt): return ''        # default is now no
+    if not block.opts.have_yes_opt('-mask_segment_anat', default=0):
+       return ''        # default is now no
 
     if not proc.anat_final:
         if proc.verb > 1:
@@ -3265,6 +3293,71 @@ def mask_segment_anat(proc, block):
           ec = '%se' % sc
           newname = BASE.afni_name('mask_%s_resam%s'%(ec,proc.view))
           if proc.add_roi_dict_key(ec, newname, overwrite=1): return ''
+
+    # create any intersection masks
+    if block.opts.find_opt('-mask_intersect'):
+       cc = get_cmd_mask_combine(proc, block, 'inter')
+       if not cc: return
+       cmd += cc
+
+    # create any union masks
+    if block.opts.find_opt('-mask_union'):
+       cc = get_cmd_mask_combine(proc, block, 'union')
+       if not cc: return
+       cmd += cc
+
+    return cmd
+
+
+def get_cmd_mask_combine(proc, block, oper='union'):
+    """operation ostr should be union or inter"""
+    if oper == 'union':   ostr = 'union'
+    elif oper == 'inter': ostr = 'intersect'
+    else:
+       print '** GCMC: bad oper %s' % oper
+       return ''
+
+    oname = '-mask_%s' % ostr
+    cmd = ''
+    for opt in block.opts.find_all_opts(oname):
+       olist, rv = block.opts.get_string_list(opt=opt)
+       if rv: return ''
+       ilabel = olist[0]   # label for resulting intersection mask
+       alabel = olist[1]   # label A (e.g. 3dSeg CSFe)
+       blabel = olist[2]   # label B (e.g. imported ventricle mask)
+
+       aset = proc.get_roi_dset(alabel)
+       if not aset:
+          print "** GCMC: no label '%s' dset A for option %s" \
+                % (alabel, oname)
+          return ''
+
+       bset = proc.get_roi_dset(blabel)
+       if not bset:
+          print "** GCMC: no label '%s' dset B for option %s" \
+                % (blabel, oname)
+          return ''
+
+       if not proc.have_roi_label(ilabel):
+          print '** no %s label %s for option %s' % (ostr, ilabel, oname)
+          return ''
+
+       iset = BASE.afni_name('mask_%s_%s'%(oper,ilabel), view=proc.view)
+       if proc.add_roi_dict_key(ilabel, iset, overwrite=1): return ''
+
+       cmd += '# create %s mask %s from masks %s and %s\n'      \
+              "3dmask_tool -input %s %s \\\n"                   \
+              "       -%s -prefix %s\n\n"                       \
+              % (ostr, ilabel, alabel, blabel,
+                 aset.shortinput(), bset.shortinput(), oper, iset.out_prefix())
+
+       if proc.verb:
+          print '++ making %s mask %s from %s and %s' \
+                % (ostr, ilabel,alabel,blabel)
+       if proc.verb > 2: 
+          iset.show(mesg='iset')
+          aset.show(mesg='aset')
+          bset.show(mesg='bset')
 
     return cmd
 
@@ -7283,6 +7376,7 @@ g_help_string = """
          o Register EPI volumes to the one which has the minimum outlier
               fraction (so hopefully the least motion).
          o Use non-linear registration to MNI template.
+           * This adds a lot of processing time.
          o No bandpassing.
          o Use fast ANATICOR method (slightly different from default ANATICOR).
          o Use FreeSurfer segmentation for:
@@ -7335,6 +7429,53 @@ g_help_string = """
                   -regress_est_blur_epits                                    \\
                   -regress_est_blur_errts                                    \\
                   -regress_run_clustsim no
+
+       Example 11b. Similar to 11, but without FreeSurfer.
+           
+         AFNI currently does not have a good program to extract ventricles.
+         But it can make a CSF mask that includes them.  So without FreeSurfer,
+         one could import a ventricle mask from the template (e.g. for TT space,
+         using TT_desai_dd_mpm+tlrc).  For example, assume Talairach space for
+         the analysis, create a ventricle mask as follows:
+
+                3dcalc -a ~/abin/TT_desai_dd_mpm+tlrc                       \\
+                       -expr 'amongst(a,152,170)' -prefix template_ventricle
+                3dresample -dxyz 2.5 2.5 2.5 -inset template_ventricle+tlrc \\
+                       -prefix template_ventricle_2.5mm
+
+         o Be explicit with 2.5mm, using '-volreg_warp_dxyz 2.5'.
+         o Use template TT_N27+tlrc, to be aligned with the desai atlas.
+         o No -anat_follower options, but use -mask_import to import the
+           template_ventricle_2.5mm dataset (and call it Tvent).
+         o Use -mask_intersect to intersect ventricle mask with the subject's
+           CSFe mask, making a more reliable subject ventricle mask (Svent).
+         o Make WMe and Svent correlation volumes, which are just for
+           entertainment purposes anyway.
+         o Run the cluster simulation.
+
+                afni_proc.py -subj_id FT.11.rest                             \\
+                  -blocks despike tshift align tlrc volreg blur mask regress \\
+                  -copy_anat FT_anat+orig                                    \\
+                  -dsets FT_epi_r?+orig.HEAD                                 \\
+                  -tcat_remove_first_trs 2                                   \\
+                  -tlrc_base TT_N27+tlrc                                     \\
+                  -tlrc_NL_warp                                              \\
+                  -volreg_align_to MIN_OUTLIER                               \\
+                  -volreg_align_e2a                                          \\
+                  -volreg_tlrc_warp                                          \\
+                  -volreg_warp_dxyz 2.5                                      \\
+                  -mask_segment_anat yes                                     \\
+                  -mask_import Tvent template_ventricle_2.5mm+tlrc           \\
+                  -mask_intersect Svent CSFe Tvent                           \\
+                  -regress_ROI_PC Svent 3                                    \\
+                  -regress_make_corr_vols WMe Svent                          \\
+                  -regress_anaticor_fast                                     \\
+                  -regress_censor_motion 0.2                                 \\
+                  -regress_censor_outliers 0.1                               \\
+                  -regress_apply_mot_types demean deriv                      \\
+                  -regress_est_blur_epits                                    \\
+                  -regress_est_blur_errts                                    \\
+                  -regress_run_clustsim yes
 
     --------------------------------------------------
     -ask_me EXAMPLES:  ** NOTE: -ask_me is antiquated **
@@ -9758,6 +9899,60 @@ g_help_string = """
 
             Please see '3dAutomask -help' for more information.
             See also -mask_type.
+
+        -mask_import LABEL MSET : import a final grid mask with the given label
+
+                e.g. -mask_import Tvent template_ventricle_3mm+tlrc
+
+            Use this option to import a mask that is aligned with the final
+            EPI data _and_ is on the final grid.
+
+                o  this might be based on the group template
+                o  this should already be resampled appropriately
+                o  no warping or resampling will be done to this dataset
+
+            This mask can be applied via LABEL as other masks, using options
+            like: -regress_ROI, -regress_ROI_PC, -regress_make_corr_vols,
+                  -regress_anaticor_label, -mask_intersect, -mask_union.
+
+            For example, one might import a ventricle mask from the template,
+            intersect it with the subject specific CSFe (eroded CSF) mask,
+            and possibly take the union with WMe (eroded white matter), before
+            using the result for principle component regression, as in:
+
+                -mask_import Tvent template_ventricle_3mm+tlrc \\
+                -mask_intersect Svent CSFe Tvent               \\
+                -mask_union WM_vent Svent WMe                  \\
+                -regress_ROI_PC WM_vent 3                      \\
+
+            See also -regress_ROI, -regress_ROI_PC, -regress_make_corr_vols,
+                     -regress_anaticor_label, -mask_intersect, -mask_union.
+
+        -mask_intersect NEW_LABEL MASK_A MASK_B : intersect 2 masks
+
+                e.g. -mask_intersect Svent CSFe Tvent
+
+            Use this option to intersect 2 known masks to create a new mask.
+            NEW_LABEL will be the label of the result, while MASK_A and MASK_B
+            should be labels for existing masks.
+
+            One could use this to intersect a template ventricle mask with each
+            subject's specific CSFe (eroded CSF) mask from 3dSeg, for example.
+
+            See -mask_import for more details.
+
+        -mask_union NEW_LABEL MASK_A MASK_B : take union of 2 masks
+
+                e.g. -mask_union WM_vent Svent WMe
+
+            Use this option to take the union of 2 known masks to create a new
+            mask.  NEW_LABEL will be the label of the result, while MASK_A and
+            MASK_B should be labels for existing masks.
+
+            One could use this to create union of CSFe and WMe for principle
+            component regression, for example.
+
+            See -mask_import for more details.
 
         -mask_rm_segsy Y/N  : choose whether to delete the Segsy directory
 
