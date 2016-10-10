@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  9,  Oct, 2016, RCR, "afni_proc.py", MAJOR, TYPE_NEW_OPT,
+   "new options -mask_import, -mask_intersect and -mask_union",
+   "For J Stoddard and J Jarcho."
+ } ,
+
  {  5,  Oct, 2016, RCR, "afni-general", MAJOR, TYPE_NEW_PROG,
    "update from C Cradock and dclark87",
    "New Programs: 3dLFCD, 3dDegreeCentrality, 3dECM, 3dMSE, 3dsvm_linpredict."
