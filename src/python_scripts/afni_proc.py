@@ -547,10 +547,12 @@ g_history = """
         - detrend with 3dTproject for PC regressors, to allow for censoring
         - added -regress_ROI_per_run    to apply -regress_ROI    per-run
         - added -regress_ROI_PC_per_run to apply -regress_ROI_PC per-run
-    5.06 Oct  7, 2016: added opts -mask_import, -mask_intersect, -mask_union
+    5.06 Oct  9, 2016:
+        - added opts -mask_import, -mask_intersect, -mask_union
+        - added corresponding Example 11b
 """
 
-g_version = "version 5.06, October 7, 2016"
+g_version = "version 5.06, October 9, 2016"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \

@@ -7376,6 +7376,7 @@ g_help_string = """
          o Register EPI volumes to the one which has the minimum outlier
               fraction (so hopefully the least motion).
          o Use non-linear registration to MNI template.
+           * This adds a lot of processing time.
          o No bandpassing.
          o Use fast ANATICOR method (slightly different from default ANATICOR).
          o Use FreeSurfer segmentation for:
@@ -7428,6 +7429,53 @@ g_help_string = """
                   -regress_est_blur_epits                                    \\
                   -regress_est_blur_errts                                    \\
                   -regress_run_clustsim no
+
+       Example 11b. Similar to 11, but without FreeSurfer.
+           
+         AFNI currently does not have a good program to extract ventricles.
+         But it can make a CSF mask that includes them.  So without FreeSurfer,
+         one could import a ventricle mask from the template (e.g. for TT space,
+         using TT_desai_dd_mpm+tlrc).  For example, assume Talairach space for
+         the analysis, create a ventricle mask as follows:
+
+                3dcalc -a ~/abin/TT_desai_dd_mpm+tlrc                       \\
+                       -expr 'amongst(a,152,170)' -prefix template_ventricle
+                3dresample -dxyz 2.5 2.5 2.5 -inset template_ventricle+tlrc \\
+                       -prefix template_ventricle_2.5mm
+
+         o Be explicit with 2.5mm, using '-volreg_warp_dxyz 2.5'.
+         o Use template TT_N27+tlrc, to be aligned with the desai atlas.
+         o No -anat_follower options, but use -mask_import to import the
+           template_ventricle_2.5mm dataset (and call it Tvent).
+         o Use -mask_intersect to intersect ventricle mask with the subject's
+           CSFe mask, making a more reliable subject ventricle mask (Svent).
+         o Make WMe and Svent correlation volumes, which are just for
+           entertainment purposes anyway.
+         o Run the cluster simulation.
+
+                afni_proc.py -subj_id FT.11.rest                             \\
+                  -blocks despike tshift align tlrc volreg blur mask regress \\
+                  -copy_anat FT_anat+orig                                    \\
+                  -dsets FT_epi_r?+orig.HEAD                                 \\
+                  -tcat_remove_first_trs 2                                   \\
+                  -tlrc_base TT_N27+tlrc                                     \\
+                  -tlrc_NL_warp                                              \\
+                  -volreg_align_to MIN_OUTLIER                               \\
+                  -volreg_align_e2a                                          \\
+                  -volreg_tlrc_warp                                          \\
+                  -volreg_warp_dxyz 2.5                                      \\
+                  -mask_segment_anat yes                                     \\
+                  -mask_import Tvent template_ventricle_2.5mm+tlrc           \\
+                  -mask_intersect Svent CSFe Tvent                           \\
+                  -regress_ROI_PC Svent 3                                    \\
+                  -regress_make_corr_vols WMe Svent                          \\
+                  -regress_anaticor_fast                                     \\
+                  -regress_censor_motion 0.2                                 \\
+                  -regress_censor_outliers 0.1                               \\
+                  -regress_apply_mot_types demean deriv                      \\
+                  -regress_est_blur_epits                                    \\
+                  -regress_est_blur_errts                                    \\
+                  -regress_run_clustsim yes
 
     --------------------------------------------------
     -ask_me EXAMPLES:  ** NOTE: -ask_me is antiquated **
@@ -9854,7 +9902,7 @@ g_help_string = """
 
         -mask_import LABEL MSET : import a final grid mask with the given label
 
-                e.g. -mask_import tvent template_ventricle_3mm+tlrc
+                e.g. -mask_import Tvent template_ventricle_3mm+tlrc
 
             Use this option to import a mask that is aligned with the final
             EPI data _and_ is on the final grid.
@@ -9872,8 +9920,8 @@ g_help_string = """
             and possibly take the union with WMe (eroded white matter), before
             using the result for principle component regression, as in:
 
-                -mask_import tvent template_ventricle_3mm+tlrc \\
-                -mask_intersect Svent CSFe tvent               \\
+                -mask_import Tvent template_ventricle_3mm+tlrc \\
+                -mask_intersect Svent CSFe Tvent               \\
                 -mask_union WM_vent Svent WMe                  \\
                 -regress_ROI_PC WM_vent 3                      \\
 
@@ -9882,7 +9930,7 @@ g_help_string = """
 
         -mask_intersect NEW_LABEL MASK_A MASK_B : intersect 2 masks
 
-                e.g. -mask_intersect Svent CSFe tvent
+                e.g. -mask_intersect Svent CSFe Tvent
 
             Use this option to intersect 2 known masks to create a new mask.
             NEW_LABEL will be the label of the result, while MASK_A and MASK_B
