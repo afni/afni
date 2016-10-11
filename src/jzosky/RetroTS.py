@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 # coding=utf-8
 __author__ = 'Joshua Zosky'
 
@@ -19,10 +21,10 @@ __author__ = 'Joshua Zosky'
 """
 
 from numpy import zeros, size, savetxt, column_stack, shape
-from Lib.PeakFinder import peak_finder
-from Lib.PhaseEstimator import phase_estimator
-from Lib.RVT_from_PeakFinder import rvt_from_peakfinder
-from Lib.Show_RVT_Peak import show_rvt_peak
+from lib_RetroTS.PeakFinder import peak_finder
+from lib_RetroTS.PhaseEstimator import phase_estimator
+from lib_RetroTS.RVT_from_PeakFinder import rvt_from_peakfinder
+from lib_RetroTS.Show_RVT_Peak import show_rvt_peak
 
 
 
@@ -60,10 +62,11 @@ def retro_ts(respiration_file, cardiac_file, phys_fs, number_of_slices, volume_t
     :param cardiac_cutoff_frequency: 
     :param interpolation_style: kind : str or int, optional
         Specifies the kind of interpolation as a string:
-            â€˜linearâ€™, â€˜nearestâ€™, â€˜zeroâ€™, 'slinear', â€˜quadratic, â€˜cubicâ€™
-            Where 'slinear', â€˜quadraticâ€™ and â€˜cubicâ€™ refer to a spline interpolation
-            of first, second or third order
-        Or as an integer specifying the order of the spline interpolator to use. Default is â€˜linearâ€™.
+            "linear", "nearest", "zero", 'slinear', "quadratic", "cubic",
+            Where 'slinear', "quadratic" and "cubic" refer to a spline
+            interpolation of first, second or third order
+        Or as an integer specifying the order of the spline interpolator to
+        use. Default is "linear".
     :param fir_order: 
     :param quiet: 
     :param demo:
