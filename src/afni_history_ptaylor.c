@@ -66,6 +66,16 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 11, Oct , 2016 , PT , "map_TrackID" , MICRO , TYPE_GENERAL,
+   "Put integer variables in to not get lame warnings when building.",
+   "Things like 'pppp = fscan();', etc... Purely aesthetic changes.\n"
+},
+
+{ 11, Oct , 2016 , PT , "3dDWUncert" , MAJOR , TYPE_GENERAL,
+   "Totally reprogrammed, mainly to use OpenMP and be fstr.",
+   "Also should be more generalized if b0 != 0.\n"
+},
+
 { 14, Sep , 2016 , PT , "3dDWItoDT" , MINOR , TYPE_NEW_OPT,
    "Have a new '-bmax_ref ...' option: if bref has b>0.",
    "Won't have much effective change *yet*, but will later. Possibly.\n"
