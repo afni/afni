@@ -23,7 +23,8 @@ import numpy
 from numpy import real
 from numpy.fft import fft, ifft
 from numpy import zeros, ones, nonzero
-from pylab import plot, subplot, show, text, style, figure
+# rcr: omit new style sub-library of pylab
+from pylab import plot, subplot, show, text, figure
 from scipy.signal import lfilter, firwin
 from scipy.interpolate import interp1d
 import glob
@@ -411,7 +412,7 @@ def peak_finder(var_v, filename):
 
         if var_vector['quiet'] == 0:
             print '--> Improved peak location\n--> Removed duplicates'
-            style.use('ggplot')
+            # style.use('ggplot')
             subplot(211)
             plot(r['tp_trace'], r['p_trace'], 'r+', r['tp_trace'], r['p_trace'], 'r')
             plot(r['tn_trace'], r['n_trace'], 'b+', r['tn_trace'], r['n_trace'], 'b')

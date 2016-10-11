@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 11,  Oct, 2016, RCR, "RetroTS.py", MICRO, TYPE_MODIFY,
+   "make top-level executable, remove 'style' lib, quotes, use lib_RetroTS",
+   NULL
+ } ,
+
  {  9,  Oct, 2016, RCR, "afni_proc.py", MAJOR, TYPE_NEW_OPT,
    "new options -mask_import, -mask_intersect and -mask_union",
    "For J Stoddard and J Jarcho."
