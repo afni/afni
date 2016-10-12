@@ -66,6 +66,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 12, Oct , 2016 , PT , "3dDWUncert" , MINOR , TYPE_GENERAL,
+   "Now output progress; also, only divvy up non-zeros to proc.",
+   "Should be faster/better parallelized, also tell user about itself.\n"
+},
+
 { 11, Oct , 2016 , PT , "map_TrackID" , MICRO , TYPE_GENERAL,
    "Put integer variables in to not get lame warnings when building.",
    "Things like 'pppp = fscan();', etc... Purely aesthetic changes.\n"

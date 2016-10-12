@@ -13,8 +13,8 @@
 #define BAD_WEI ( 0 ) // tiny weight to unfit values, if necessary.
 
 int Finalize_Uncert_Array( float **UU, 
-                           short *mskd,
-                           int Nvox,
+                           int *minds, //short *mskd,
+                           int Ntodo,
                            int Nj );
 
 
