@@ -14,29 +14,31 @@
 
 
 int Finalize_Uncert_Array( float **UU,
-                           short *mskd,
-                           int Nvox,
+                           int *minds, //short *mskd,
+                           int Ntodo,
                            int Nj
                            )
 {
+   int aa;
    int i,j;
 
-   for(i=0 ; i<Nvox ; i++) 
-      if(mskd[i])
-         for(j=0 ; j<6 ; j+=2) {
-            // -> make mean
-            UU[j][i]/= Nj;
-            // -> make std
-            UU[j+1][i]-= Nj*UU[j][i]*UU[j][i];
-            if(UU[j+1][i]>=0)
-               UU[j+1][i] = sqrt(UU[j+1][i]/(Nj-1));
-            else{
-               if( (j+1) < 4)
-                  UU[j+1][i] = PIo2;
-               else
-                  UU[j+1][i] = 1.;
-            }
+   for(aa=0 ; aa<Ntodo ; aa++) {
+      i = minds[aa];
+      for(j=0 ; j<6 ; j+=2) {
+         // -> make mean
+         UU[j][i]/= Nj;
+         // -> make std
+         UU[j+1][i]-= Nj*UU[j][i]*UU[j][i];
+         if(UU[j+1][i]>=0)
+            UU[j+1][i] = sqrt(UU[j+1][i]/(Nj-1));
+         else{
+            if( (j+1) < 4)
+               UU[j+1][i] = PIo2;
+            else
+               UU[j+1][i] = 1.;
          }
+      }
+   }
    
    return 0;
 }
