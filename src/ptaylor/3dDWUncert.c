@@ -30,6 +30,10 @@
        + should work when no b=0 is there
        + should be much faster
 
+   Oct, 2016b:
+       + made parallel not distribute zeros -> more full parallel
+       + helpful time messaging of completion
+   
 */
 
 
@@ -62,7 +66,7 @@
 */
  
 int Calc_DTI_uncert( float **UU,
-                     short *mskd,
+                     int *minds, //short *mskd,
                      int Nvox,
                      THD_3dim_dataset **PARS,
                      THD_3dim_dataset **VECS,
@@ -72,7 +76,8 @@ int Calc_DTI_uncert( float **UU,
                      int Mj,
                      int Nj,
                      int MAXBAD,
-                     int M
+                     int M,
+                     int Ntodo
                      );
 
 
@@ -204,7 +209,7 @@ void usage_3dDWUncert(int detail)
 
 int main(int argc, char *argv[]) {
    int i,j,k,m,n,mm;
-   int idx=0;
+   int Ntodo=0;
    int iarg;
 
    THD_3dim_dataset *dwiset1 = NULL;
@@ -228,8 +233,10 @@ int main(int argc, char *argv[]) {
 
    int Nvox=-1;   // tot number vox
    int Dim[4]={0,0,0,0};
-   short *mskd=NULL; // define mask of where time series are nonzero
-   float **unc_out=NULL; // define mask of where time series are nonzero
+   short *mskd=NULL;     // define mask of where time series are nonzero
+   int  *minds=NULL;     // the mask as a list of inds, to better
+                         // divide amongst procs
+   float **unc_out=NULL; 
 
    int Nj=300;
    float CALC_THR_FA=-1.;    // DEFAULT: value for new option of only
@@ -660,14 +667,26 @@ int main(int argc, char *argv[]) {
          }
       }
    
-   idx = 0;
+   Ntodo = 0;
    for( i=0 ; i<Nvox ; i++ ) 
       if( mskd[i] ) {
-         idx++;
+         Ntodo++;
+      }
+
+   minds = (int *)calloc(Ntodo, sizeof(int)); 
+   if( (minds == NULL) ) { 
+      fprintf(stderr, "\n\n MemAlloc failure.\n\n");
+      exit(4);
+   } 
+   j=0;
+   for( i=0 ; i<Nvox ; i++ ) 
+      if( mskd[i] ) {
+         minds[j] = i;
+         j++;
       }
 
    INFO_message("Have %d total voxels in the data set, "
-                "of which %d are to be resampled.", Nvox, idx);
+                "of which %d are to be resampled.", Nvox, Ntodo);
 
    // --------------------------------------------------------------------
    
@@ -678,7 +697,7 @@ int main(int argc, char *argv[]) {
      Nvox);*/
 
    i = Calc_DTI_uncert( unc_out, 
-                        mskd,
+                        minds, //mskd,
                         Nvox,
                         insetPARS,
                         insetVECS,
@@ -688,7 +707,8 @@ int main(int argc, char *argv[]) {
                         Mj,
                         Nj,
                         MAXBAD,
-                        Dim[3]
+                        Dim[3],
+                        Ntodo
                         );
 
    INFO_message("Done processing");
@@ -787,6 +807,9 @@ int main(int argc, char *argv[]) {
    if(mskd) 
       free(mskd);
 
+   if(minds) 
+      free(minds);
+
    if(prefix)
       free(prefix);
 
@@ -846,7 +869,7 @@ int main(int argc, char *argv[]) {
 // ######################################################################
 
 int Calc_DTI_uncert( float **UU,
-                     short *mskd,
+                     int *minds, //short *mskd,
                      int Nvox,
                      THD_3dim_dataset **PARS,
                      THD_3dim_dataset **VECS,
@@ -856,11 +879,14 @@ int Calc_DTI_uncert( float **UU,
                      int Mj,
                      int Nj,
                      int MAXBAD,
-                     int M
+                     int M,
+                     int Ntodo
                      )
 {
-   int Nthreads;
+   int Nthreads=1;
    int j;
+
+   int ApproxTenPerc=0;
 
 #ifdef USE_OMP
    INFO_message("Start OMPing");
@@ -868,13 +894,34 @@ int Calc_DTI_uncert( float **UU,
    Nthreads = omp_get_max_threads();
    INFO_message("OMP thread count = %d", Nthreads);
 #else
-   INFO_message("Not using OMP-- will be slow.") ;
+   INFO_message("Not using OMP-- will be slow.");
 #endif
 
+   ApproxTenPerc = (int) (0.1*Ntodo)/Nthreads;
+   INFO_message("ApproxTenPerc = %d", ApproxTenPerc);
+
+   if( ApproxTenPerc == 0 ) {
+      if( Ntodo < 100 )
+         WARNING_message("Very small number of voxels to calculate! "
+                         "Only %d??", Ntodo);
+      else
+         WARNING_message("Really?  %d voxels to analyze and %d threads??",
+                         Ntodo, Nthreads);
+      ApproxTenPerc = 1;
+   }
+   else if(ApproxTenPerc < 0 ) 
+      ERROR_exit("ERROR! %d voxels to analyze and %d threads?? "
+                    "This leads to ~10 percent value of %d?!??",
+                    Ntodo, Nthreads, ApproxTenPerc);
+
    AFNI_OMP_START;
-#pragma omp parallel if(1)
+#pragma omp parallel //if(1)
    {
+      int aa;
       int i;
+      int ithr;
+      int nprog=0;
+      time_t t_start;
 
       int POSDEF=0;
       int ii,kk,jj,ll;
@@ -899,145 +946,164 @@ int Calc_DTI_uncert( float **UU,
       
       //int iter = 0;
       //int whichvox=0;
-      
-#pragma omp for
-      for( i=0 ; i<Nvox ; i++ ) {
-         if( mskd[i] ) { 
-            for( ll=0 ; ll<Nj ; ll++ ) {
-               /*for( ii=0 ; ii<Nvox ; ii++ ) // ONLY FOR TESTING
-                 if(mskd[ii]){
-                 whichvox=ii;
-                 j++;
-                 if(j==1){
-                 INFO_message("THIS VOX: %d",whichvox);
-                 break;
-                 }
-                 }*/
 
-               for( ii=0 ; ii<Mj ; ii++ ) 
-                  Wei[ii] = pow(THD_get_voxel(DWI, i, 
-                                              StoreRandInd[ll][ii]), 2);
+      ithr = omp_get_thread_num();
+      if( !ithr ) {
+         fprintf(stderr,"++ Nvox progress proxy count on thread[%d]: "
+                 "start ...\n", ithr);
+         t_start = time(NULL);
+      }
+
+#pragma omp for
+      for( aa=0 ; aa<Ntodo ; aa++ ) {
+         //if( mskd[i] ) { 
+         i = minds[aa];
+         for( ll=0 ; ll<Nj ; ll++ ) {
+            /*for( ii=0 ; ii<Nvox ; ii++ ) // ONLY FOR TESTING
+              if(mskd[ii]){
+              whichvox=ii;
+              j++;
+              if(j==1){
+              INFO_message("THIS VOX: %d",whichvox);
+              break;
+              }
+              }*/
             
-               ii = Make_Uncert_Matrs_init( i,
-                                            bseven,
-                                            DWI,
-                                            StoreRandInd[ll], 
-                                            Wei,
-                                            x,
-                                            B,
-                                            BTW,
-                                            Mj
-                                            );
-   
-               ii = Make_Uncert_Matrs_final( 
-                                             B,
-                                             BTW,
-                                             BTWB,
-                                             BTWBinv,
-                                             C
-                                             );
+            for( ii=0 ; ii<Mj ; ii++ ) 
+               Wei[ii] = pow(THD_get_voxel(DWI, i, 
+                                           StoreRandInd[ll][ii]), 2);
             
-               ii = Calc_DTI_lin_tensor( x,
-                                         dd,
-                                         C,
-                                         testD,
-                                         Eval,
-                                         EigenV,
-                                         &POSDEF
+            ii = Make_Uncert_Matrs_init( i,
+                                         bseven,
+                                         DWI,
+                                         StoreRandInd[ll], 
+                                         Wei,
+                                         x,
+                                         B,
+                                         BTW,
+                                         Mj
                                          );
+   
+            ii = Make_Uncert_Matrs_final( 
+                                         B,
+                                         BTW,
+                                         BTWB,
+                                         BTWBinv,
+                                         C
+                                          );
             
-               if( !POSDEF ) {
-                  //INFO_message("Vox: %10d has neg eigval(s)", i);
+            ii = Calc_DTI_lin_tensor( x,
+                                      dd,
+                                      C,
+                                      testD,
+                                      Eval,
+                                      EigenV,
+                                      &POSDEF
+                                      );
+            
+            if( !POSDEF ) {
+               //INFO_message("Vox: %10d has neg eigval(s)", i);
                
-                  for( ii=0 ; ii<Mj ; ii++ ) 
-                     Weibad[ii] = 0;
+               for( ii=0 ; ii<Mj ; ii++ ) 
+                  Weibad[ii] = 0;
                
-                  for( jj=0 ; jj<MAXBAD ; jj++ ) {
-                     //INFO_message("fitting iter: %d",jj);
+               for( jj=0 ; jj<MAXBAD ; jj++ ) {
+                  //INFO_message("fitting iter: %d",jj);
                   
-                     mostpos = -1.e10; // ceiling in this nonPOSDEF zone 
-                     worstS = -1;
-                     // start getting rid of bad ones, but not the [0]th
-                     for( kk=1 ; kk<Mj ; kk++ ) {
-                        if( !Weibad[kk] ) {
-                           for( ii=0 ; ii<Mj ; ii++ ) {
-                              Wei[ii] = pow(THD_get_voxel(DWI, 
-                                                        i, 
-                                                        StoreRandInd[ll][ii]), 
-                                            2);
-                              if ( Weibad[ii] || (ii==kk) ) 
-                                 Wei[ii]/= 10.e8;
-                           }
-                           //Show_1DArray_Floats(Wei,Mj);
-                           ii = Make_Uncert_Matrs_init( i,
-                                                        bseven,
-                                                        DWI,
-                                                        StoreRandInd[ll], 
-                                                        Wei,
-                                                        x,
-                                                        B,
-                                                        BTW,
-                                                        Mj
-                                                        );
-                        
-                           ii = Make_Uncert_Matrs_final( B,
-                                                         BTW,
-                                                         BTWB,
-                                                         BTWBinv,
-                                                         C 
-                                                         );
-               
-                           ii = Calc_DTI_lin_tensor( x,
-                                                     dd,
-                                                     C,
-                                                     testD,
-                                                     Eval,
-                                                     EigenV,
-                                                     &POSDEF
+                  mostpos = -1.e10; // ceiling in this nonPOSDEF zone 
+                  worstS = -1;
+                  // start getting rid of bad ones, but not the [0]th
+                  for( kk=1 ; kk<Mj ; kk++ ) {
+                     if( !Weibad[kk] ) {
+                        for( ii=0 ; ii<Mj ; ii++ ) {
+                           Wei[ii] = pow(THD_get_voxel(DWI, 
+                                                       i, 
+                                                       StoreRandInd[ll][ii]), 
+                                         2);
+                           if ( Weibad[ii] || (ii==kk) ) 
+                              Wei[ii]/= 10.e8;
+                        }
+                        //Show_1DArray_Floats(Wei,Mj);
+                        ii = Make_Uncert_Matrs_init( i,
+                                                     bseven,
+                                                     DWI,
+                                                     StoreRandInd[ll], 
+                                                     Wei,
+                                                     x,
+                                                     B,
+                                                     BTW,
+                                                     Mj
                                                      );
-                           if(POSDEF) {
-                              jj = MAXBAD+10; // break the cycle!
-                              break;
-                           }
-                           if(gsl_vector_min(Eval)>mostpos) {
-                              mostpos = gsl_vector_min(Eval);
-                              worstS = kk;
-                           }
+                        
+                        ii = Make_Uncert_Matrs_final( B,
+                                                      BTW,
+                                                      BTWB,
+                                                      BTWBinv,
+                                                      C 
+                                                      );
+               
+                        ii = Calc_DTI_lin_tensor( x,
+                                                  dd,
+                                                  C,
+                                                  testD,
+                                                  Eval,
+                                                  EigenV,
+                                                  &POSDEF
+                                                  );
+                        if(POSDEF) {
+                           jj = MAXBAD+10; // break the cycle!
+                           break;
+                        }
+                        if(gsl_vector_min(Eval)>mostpos) {
+                           mostpos = gsl_vector_min(Eval);
+                           worstS = kk;
                         }
                      }
-                     // another one stored as bad for next go 'round
-                     Weibad[worstS]=1; 
                   }
-                  //if(POSDEF)
-                  //INFO_message("Fixed one! %d",i);
+                  // another one stored as bad for next go 'round
+                  Weibad[worstS]=1; 
                }
+               //if(POSDEF)
+               //INFO_message("Fixed one! %d",i);
+            }
             
-               // still per voxel thing
-               if(POSDEF) { // if things were fine in tensor calc
-                  //INFO_message("OK fit!");
-                  ii = Calc_Eigs_Uncert( i,
-                                         UU,
-                                         dd,
-                                         testD, // have to recreate
-                                         Eval,
-                                         Evec,
-                                         PARS,
-                                         VECS
-                                         );
-               }
-               else{ // never found a posdef!
+            // still per voxel thing
+            if(POSDEF) { // if things were fine in tensor calc
+               //INFO_message("OK fit!");
+               ii = Calc_Eigs_Uncert( i,
+                                      UU,
+                                      dd,
+                                      testD, // have to recreate
+                                      Eval,
+                                      Evec,
+                                      PARS,
+                                      VECS
+                                      );
+            }
+            else{ // never found a posdef!
                   //WARNING_message("Vox %10d couldn't be fit!", i);
                   //UU[0][i]+= 0.; --> don't need to add zeros
                   //UU[2][i]+= 0.;
                   //UU[4][i]+= 0.;
-                  UU[1][i]+= PIo2;
-                  UU[3][i]+= PIo2;
-                  UU[5][i]+= 1.;
-               }
+               UU[1][i]+= PIo2;
+               UU[3][i]+= PIo2;
+               UU[5][i]+= 1.;
+            }
 
+         }
+
+         ithr = omp_get_thread_num();
+         // counter for user
+         if( ithr == 0 ) {
+            nprog++;
+            if( (nprog % ApproxTenPerc) == 0 ) {
+               fprintf(stderr,"\t%s %3.0f%% %s -> %.2f min\n",
+                       "[", nprog *10./ApproxTenPerc,"]", 
+                       (float) difftime( time(NULL), t_start)/60. );
             }
          }
       }
+      
 
       // free stuff, per usual...
       gsl_vector_free(x);
@@ -1058,12 +1124,12 @@ int Calc_DTI_uncert( float **UU,
    AFNI_OMP_END ;
    
    
-   INFO_message("Finished OMPing");
+   INFO_message("Finished OMPing.  Finalizing...");
    
    // after all tensor diffs have been entered, finalize
    j = Finalize_Uncert_Array( UU,
-                              mskd,
-                              Nvox,
+                              minds,
+                              Ntodo,
                               Nj
                               );
 
