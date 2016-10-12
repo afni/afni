@@ -2061,6 +2061,10 @@ void AFNI_sigfunc_alrm(int sig)
      "If you have any questions about AFNI, ask ... Paul Taylor :)"            ,
      "If you have any questions about AFNI, ask ... Gang Chen :)"              ,
 
+     "The kindest, bravest, warmest, most wonderful software you've ever known"       ,
+     "Your brains have not only been washed, but been dry cleaned"                    ,
+     "Why don't you pass the time by playing a little solitaire?"                     ,
+
      "Remember -- Belief is not Truth. No matter how much you want it to be"          ,
      "Remember -- Truth is not always believed, even when it is under your nose"      ,
      "Remember -- Screaming is the next best thing to solving a problem"              ,
@@ -2184,11 +2188,16 @@ void AFNI_sigfunc_alrm(int sig)
      "     0.08   = Highly suggestive\n"
      "     0.09   = Significant at the p < 0.1 level\n"
      "     0.099  = Significant at the p < 0.1 level\n"
-     "     > 0.1  = Hey! Look at this interesting subgroup analysis"
+     "     > 0.1  = Hey! Look at this interesting subgroup analysis"   ,
+
+     "\n There comes a time when you look into the mirror and you realize\n"
+     "  what you see is all that you will ever be. And then you accept it.\n"
+     "  Or you stop looking in mirrors"
+
    } ;
 #undef NTOP
 #ifdef USE_SONNETS
-# define NTOP (NMSG+3)
+# define NTOP (NMSG+2)
 #else
 # define NTOP NMSG
 #endif
