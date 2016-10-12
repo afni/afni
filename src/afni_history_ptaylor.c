@@ -66,6 +66,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 12, Oct , 2016 , PT , "3dDWItoDT" , MINOR , TYPE_GENERAL,
+   "Now, automatically output RD if '-eigs' opt is used.",
+   "And the users of 3dTrackID say, 'Yaaaay'. Or 'Wha'evah!'.\n"
+},
+
 { 12, Oct , 2016 , PT , "3dDWUncert" , MINOR , TYPE_GENERAL,
    "Now output progress; also, only divvy up non-zeros to proc.",
    "Should be faster/better parallelized, also tell user about itself.\n"
