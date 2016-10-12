@@ -49,6 +49,11 @@
 // + introduce user opt BMAX_REF into program, so we can identify if 
 //   bvalue is really > 0, which can happen
 
+// Oct, 2016 (PT):
+// + now calcs/outputs RD as part of '-eigs'
+
+
+
 #include "thd_shear3d.h"
 /*#ifndef FLOATIZE*/
 # include "matrix.h"
@@ -133,6 +138,10 @@ static double backoff_factor = 0.2; /* minimum allowable factor for
 static float csf_val = 1.0;     /* a default value for diffusivity for
                                    CSF at 37C; apr,2016: now set to
                                    '1' */
+static float rd_val = 1.0;     /* a default value for diffusivity for
+                                   CSF at 37C; apr,2016: now set to
+                                   '1' */
+
 static float csf_fa = 0.012345678; /* default FA value where there is
                                       CSF */
 static float MAX_BVAL = -1.;     /* use in scaling csf_val for MD and
@@ -158,6 +167,7 @@ static void DWItoDT_tsfunc ( double tzero, double tdelta, int npts,
 static void EIG_func (void);
 static float Calc_FA(float *val);
 static float Calc_MD(float *val);
+static float Calc_RD(float *val); // pt,Oct,2016: for RD
 static void ComputeD0 (void);
 static double ComputeJ (float ts[], int npts);
 static void ComputeDeltaTau (void);
@@ -215,16 +225,29 @@ main (int argc, char *argv[])
    /*----- Read command line -----*/
    if (argc < 2 || strcmp (argv[1], "-help") == 0)
       {
-         printf ("Usage: 3dDWItoDT [options] gradient-file dataset\n"
-"Computes 6 principle direction tensors from multiple gradient vectors\n"
+         printf (
+"\n"
+" Usage: 3dDWItoDT [options] gradient-file dataset\n"
+"\n"
+" Computes 6 principle direction tensors from multiple gradient vectors\n"
 " and corresponding DTI image volumes.\n"
 " The program takes two parameters as input :  \n"
 "    a 1D file of the gradient vectors with lines of ASCII floats:\n"
 "            Gxi, Gyi, Gzi.\n"
 "    Only the non-zero gradient vectors are included in this file (no G0 \n"
 "    line). \n"
+"    ** Now, a '1D' file of b-matrix elements can alternatively be input,\n"
+"        and *all* the gradient values are included!**\n"
 "    A 3D bucket dataset with Np+1 sub-briks where the first sub-brik is the\n"
 "    volume acquired with no diffusion weighting.\n"
+"\n"
+" OUTPUTS: \n"
+"     + you can output all 6 of the independent tensor values (Dxx, Dyy, \n"
+"       etc.), as well as all three eigenvalues (L1, L2, L3) and \n"
+"       eigenvectors (V1, V2, V3), and useful DTI parameters FA, MD and\n"
+"       RD.\n"
+"     + 'Debugging bricks' can also be output, see below.\n"
+"\n"
 " Options:\n"
 "   -prefix pname = Use 'pname' for the output dataset prefix name.\n"
 "                   [default='DT']\n\n"
@@ -245,7 +268,7 @@ main (int argc, char *argv[])
 "               the reference volume was!), i.e. there are N rows to the\n"
 "               text file and N volumes in the matched data set.\n\n"
 "   -scale_out_1000 = increase output parameters that have physical units\n"
-"               (DT, MD, L1, L2 and L3) by multiplying them by 1000.  This\n"
+"               (DT, MD, RD, L1, L2 and L3) by multiplying them by 1000. This\n"
 "               might be convenient, as the input bmatrix/gradient values \n"
 "               can have their physical magnitudes of ~1000 s/mm^2, for\n"
 "               which typical adult WM has diffusion values of MD~0.0007\n"
@@ -294,8 +317,8 @@ main (int argc, char *argv[])
 "                    '1.0 divided by the max bvalue in the grads/bmatrices'.\n"
 "                    The assumption is that there are flow artifacts in CSF\n"
 "                    and blood vessels that give rise to lower b=0 voxels.\n"
-"                    NB: MD, L1, L2, L3, Dxx, Dyy, etc. values are all scaled\n"
-"                    in the same way.\n\n"
+"                    NB: MD, RD L1, L2, L3, Dxx, Dyy, etc. values are all\n"
+"                    scaled in the same way.\n\n"
 "   -min_bad_md N  = change the min MD value used as a 'badness check' for\n"
 "                    tensor fits that have veeery (-> unreasonably) large MD\n"
 "                    values. Voxels where MD > N*(csf_val) will be treated\n"
@@ -623,6 +646,7 @@ main (int argc, char *argv[])
             if(++nopt >=argc )
                ERROR_exit("Error - need an argument after -csf_val!");
             csf_val = (float) strtod(argv[nopt], NULL);
+            rd_val = csf_val; // pt,Oct,2016: for RD
             USER_CSF_VAL = 1;
             nopt++;
             continue;
@@ -692,7 +716,7 @@ main (int argc, char *argv[])
    }
 
    if(eigs_flag)
-      nbriks += 14;
+      nbriks += 15; // pt,Oct,2016: for RD
 
    if(debug_briks)
       nbriks += 4;
@@ -806,6 +830,7 @@ main (int argc, char *argv[])
                    "appears to be: %.2f", MAX_BVAL);
    if(!USER_CSF_VAL) {
       csf_val/= MAX_BVAL;
+      rd_val/= MAX_BVAL;
       INFO_message("-> and, by scale, the 'CSF value' (e.g., MD)"
                    " for any unfit voxels will be: %.8f", csf_val);
    }
@@ -920,6 +945,7 @@ main (int argc, char *argv[])
             EDIT_dset_items(new_dset, eigs_brik+11,"eigvec_3[3]",ADN_none);
             EDIT_dset_items(new_dset, eigs_brik+12,"FA",ADN_none);
             EDIT_dset_items(new_dset, eigs_brik+13,"MD",ADN_none);
+            EDIT_dset_items(new_dset, eigs_brik+14,"RD",ADN_none); // pt,Oct,2016: for RD
          }
 
          if(debug_briks) {
@@ -995,6 +1021,8 @@ Save_Sep_DTdata(whole_dset, prefix, output_datum)
       Copy_dset_array(whole_dset,18,1, nprefix, output_datum);
       sprintf(nprefix,"%s_MD%s", tprefix,ext);
       Copy_dset_array(whole_dset,19,1, nprefix, output_datum);
+      sprintf(nprefix,"%s_RD%s", tprefix,ext);  // pt,Oct,2016: for RD
+      Copy_dset_array(whole_dset,20,1, nprefix, output_datum);
    }  
    if(debug_briks) {
       sprintf(nprefix,"%s_debugbriks%s", tprefix,ext);
@@ -1639,6 +1667,7 @@ DWItoDT_tsfunc (double tzero, double tdelta,
       /* calc FA */
       val[18] = Calc_FA(val+6);                /* calculate fractional anisotropy */
       val[19] = Calc_MD(val+6);               /* calculate average (mean) diffusivity */
+      val[20] = Calc_RD(val+6);               // calculate radial diffusivity; pt,Oct,2016
       length = sqrt(eigs[3]*eigs[3]+eigs[4]*eigs[4]+eigs[5]*eigs[5]);
       dl = fabs(1.0 - length);
       if (dl>SMALLNUMBER) {
@@ -1758,6 +1787,8 @@ Assign_CSF_values(float *val)
       val[18] = csf_fa;               /* calculate fractional
                                          anisotropy */
       val[19] = csf_val;              /* calculate average (mean)
+                                         diffusivity */
+      val[20] = rd_val;              /* calculate average (mean)
                                          diffusivity */
    }
 }
@@ -1927,6 +1958,30 @@ Calc_MD(float *val)
 
    RETURN(MD);
 }
+
+//! calculate radial Diffusivity;  pt,Oct,2016
+/* passed float pointer to start of eigenvalues */
+static float
+Calc_RD(float *val)
+{
+   float RD;
+
+   ENTRY("Calc_RD");
+
+   /* calculate the Fractional Anisotropy, RD */
+   if((val[0]<=0.0)||(val[1]<0.0)||(val[2]<0.0)) {   
+      /* any negative eigenvalues-- should not see any for non-linear
+         method. Set FA to 0*/
+      RETURN(0.0);                            
+   }
+   RD = (val[1] + val[2]) / 2.;
+
+   RETURN(RD);
+}
+
+
+
+
 
 
 /*! compute initial estimate of D0 */
