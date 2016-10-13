@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 13 , OCT , 2016 , RWC , "3dttest++" , MINOR , TYPE_BUG_FIX ,
+   "Fix -BminusA bug" ,
+   "double sign reversal == no sign reversal == not good for anyone" } ,
+
  { 30 , SEP , 2016 , RWC , "AFNI plugins" , MAJOR , TYPE_GENERAL ,
    "A long list of little-used plugins has been disabled." ,
    "They can all be re-enabled by setting environment variable\n"
