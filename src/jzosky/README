@@ -1,3 +1,5 @@
 This module is currently capable of being run:
 1) Via command-line, type "python RetroTS.py -h" for documentation
 2) Within a python script, check out "testing.py" for usage example
+
+This depends on scipy and python-matplotlib.
