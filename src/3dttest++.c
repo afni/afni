@@ -3033,7 +3033,6 @@ LABELS_ARE_DONE:  /* target for goto above */
              tpair = ttest_toz( nAAA,zAAA , nBBB,zBBB , ttest_opcode , Aresid,Bresid) ; /* 2 sample A-B */
            }
            resar[0] = tpair.a ; resar[1] = tpair.b ;
-           if( BminusA ){ resar[0] = -resar[0] ; resar[1] = -resar[1] ; }
            if( debug > 1 ) fprintf(stderr,"   resar[0]=%g  [1]=%g\n",resar[0],resar[1]) ;
          } else {
            tpair = ttest_toz( nAAA,zAAA , 0 ,NULL   , ttest_opcode , Aresid,NULL ) ; /* 1 sample setA */
