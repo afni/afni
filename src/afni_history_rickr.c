@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 12,  Oct, 2016, RCR, "RetroTS.py", MICRO, TYPE_MODIFY,
+   "updated Makefile.INCLUDE to distribute this",
+   NULL
+ } ,
+
  { 11,  Oct, 2016, RCR, "RetroTS.py", MICRO, TYPE_MODIFY,
    "make top-level executable, remove 'style' lib, quotes, use lib_RetroTS",
    NULL

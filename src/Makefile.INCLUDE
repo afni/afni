@@ -193,7 +193,7 @@ PY_SCRIPTS = 1d_tool.py afni_proc.py afni_restproc.py afni_system_check.py   \
              slow_surf_clustsim.py timing_tool.py                            \
              uber_align_test.py uber_proc.py uber_skel.py uber_subject.py    \
              uber_ttest.py xmat_tool.py read_matlab_files.py afni_skeleton.py\
-	     parse_fs_lt_log.py
+	     parse_fs_lt_log.py RetroTS.py
 
 R_DIR = R_scripts
 
@@ -1931,7 +1931,7 @@ afni_src.tgz:
 	$(MKDIR) afni_src
 	$(CP) -p *.c *.f *.inc *.h *.hhh Makefile.* *.xbm $(MINDOCS) $(MISC)     ./afni_src
 	$(CP) -pr coxplot volpack moveup moveAFNI* eispack                       ./afni_src
-	$(CP) -pr avovk ptaylor pkundu 					         ./afni_src
+	$(CP) -pr avovk ptaylor pkundu jzosky				         ./afni_src
 	$(CP) -pr $(SCRIPTS_DIR) $(SCRIPTS_SRC) $(PY_DIR) $(R_DIR)               ./afni_src
 	$(CP) -pr gifsicledir qhulldir f2cdir mpeg_encodedir                     ./afni_src
 	$(CP) -pr 3DEdge netcdf-3.5.0 jpeg-6b niml Makefile_* nifti dlcompat     ./afni_src
@@ -1964,7 +1964,9 @@ afni_doc.tgz:
 
 ### Put things in their places
 
-install: $(INSTALLDIR) $(INSTALL_PREREQ) ptaylor_install pkundu_install
+install_devs: ptaylor_install pkundu_install jzosky_install
+
+install: $(INSTALLDIR) $(INSTALL_PREREQ) install_devs
 	$(MV) $(PROGRAMS) $(INSTALLDIR)
 	$(CP) $(SCRIPTS_DIR)/* $(INSTALLDIR)
 	$(CP) $(PY_DIR)/*.py  $(R_DIR)/*.R $(INSTALLDIR)
@@ -3264,6 +3266,12 @@ pkundu_install:
 #	( cd ccaballero ;	\
 #	$(CP) *.R $(INSTALLDIR)	;\
 #	cd ../	;		)
+
+#############
+# jzosky directory
+
+jzosky_install:
+	$(CP) -r jzosky/RetroTS.py jzosky/lib_RetroTS $(INSTALLDIR)
 
 #############
 #SUMA
