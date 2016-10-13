@@ -550,9 +550,10 @@ g_history = """
     5.06 Oct  9, 2016:
         - added opts -mask_import, -mask_intersect, -mask_union
         - added corresponding Example 11b
+    5.07 Oct 13, 2016: minor 11b update (PC_per_run)
 """
 
-g_version = "version 5.06, October 9, 2016"
+g_version = "version 5.07, October 13, 2016"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \
@@ -564,7 +565,6 @@ g_requires_afni = [ \
       [  "1 Apr 2015",  "1d_tool.py uncensor from 1D" ] ]
 
 g_todo_str = """todo:
-  - add help for -mask_import/intersect/union
   - finish @radial_correlate updates, like _opts and _volreg
      - maybe add to gen_ss_review_scripts.py
   - allow for 3dAllineate in place of 3dvolreg: -volreg_use_allineate
