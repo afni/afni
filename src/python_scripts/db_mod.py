@@ -7449,11 +7449,12 @@ g_help_string = """
            template_ventricle_2.5mm dataset (and call it Tvent).
          o Use -mask_intersect to intersect ventricle mask with the subject's
            CSFe mask, making a more reliable subject ventricle mask (Svent).
+         o Ventrile principle components are created as per-run regressors.
          o Make WMe and Svent correlation volumes, which are just for
            entertainment purposes anyway.
          o Run the cluster simulation.
 
-                afni_proc.py -subj_id FT.11.rest                             \\
+                afni_proc.py -subj_id FT.11b.rest                            \\
                   -blocks despike tshift align tlrc volreg blur mask regress \\
                   -copy_anat FT_anat+orig                                    \\
                   -dsets FT_epi_r?+orig.HEAD                                 \\
@@ -7465,9 +7466,11 @@ g_help_string = """
                   -volreg_tlrc_warp                                          \\
                   -volreg_warp_dxyz 2.5                                      \\
                   -mask_segment_anat yes                                     \\
+                  -mask_segment_erode yes                                    \\
                   -mask_import Tvent template_ventricle_2.5mm+tlrc           \\
                   -mask_intersect Svent CSFe Tvent                           \\
                   -regress_ROI_PC Svent 3                                    \\
+                  -regress_ROI_PC_per_run Svent 3                            \\
                   -regress_make_corr_vols WMe Svent                          \\
                   -regress_anaticor_fast                                     \\
                   -regress_censor_motion 0.2                                 \\
