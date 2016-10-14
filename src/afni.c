@@ -1871,7 +1871,6 @@ void AFNI_sigfunc_alrm(int sig)
      "Never tell me the odds"                                        ,
      "If you're good at something, never do it for free"             ,
      "I'm Spartacus"                                                 ,
-     "Remember -- You are absolutely unique. Just like everone else" ,
      "Remember -- AFNI is free, but worth at least 1000 times more"  ,
      "Remember -- Nothing is always absolutely so"                   ,
      "Remember -- 90% of everything is cr*p"                         ,
@@ -2065,6 +2064,7 @@ void AFNI_sigfunc_alrm(int sig)
      "Your brains have not only been washed, but been dry cleaned"                    ,
      "Why don't you pass the time by playing a little solitaire?"                     ,
 
+     "Remember -- You are absolutely incredibly unique. Just like everone else"       ,
      "Remember -- Belief is not Truth. No matter how much you want it to be"          ,
      "Remember -- Truth is not always believed, even when it is under your nose"      ,
      "Remember -- Screaming is the next best thing to solving a problem"              ,
