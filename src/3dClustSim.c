@@ -2646,7 +2646,7 @@ int main( int argc , char **argv )
   for( iter=1 ; iter <= niter ; iter++ ){
 
     if( verb && ithr == 0 ){
-      vii++ ; if( vii%vstep == vstep/2 ) vstep_print() ;
+      vii++ ; if( vii%vstep == 2 ) vstep_print() ;
     }
 
     generate_image( fim , pfim , xran , iter ) ;
