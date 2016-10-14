@@ -1081,7 +1081,7 @@ ENTRY("get_options") ;
     /*----   -NN   ----*/
 
     if( strcasecmp(argv[nopt],"-NN") == 0 ){
-      WARNING_message("-NN option is no longer supported! All NN cases are computed now.") ;
+      WARNING_message("-NN option is no longer supported! All NN cases are computed now :)") ;
       nopt++ ; if( isdigit(argv[nopt][0]) ) nopt++ ;
       continue ;
     }
