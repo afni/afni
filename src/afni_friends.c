@@ -649,6 +649,7 @@ static mday holiday[] = {
    {OCT,14,"Dwight Eisenhower's birthday"                            } ,
    {OCT,15,"Pelham Grenville Wodehouse's birthday"                   } ,
    {OCT,16,"National Boss Day!"                                      } ,
+   {OCT,16,"Hamilton Day!"                                           } ,
    {OCT,19,"Anniversary of Cornwallis' surrender at Yorktown"        } ,
    {OCT,20,"World Statistics Day!"                                   } ,
    {OCT,21,"Anniversary of Battle of Trafalgar"                      } ,
