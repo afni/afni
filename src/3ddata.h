@@ -99,15 +99,15 @@ extern "C" {
 
 #define THD_MAX_SBLABEL     64     /* added 11/03/2011 drg */
 
-/*! Max length of a dataset prefix. */
+/*! Max length of a dataset prefix. [increased to 999 by RWCox 17 Oct 2016] */
 
-#define THD_MAX_PREFIX     (255+1)  /* must be more than THD_MAX_LABEL
+#define THD_MAX_PREFIX     (999+1)  /* must be more than THD_MAX_LABEL
                                     (  ZSS Jan 07 need room for path specified
                                        with prefix on command line    ) */
 
 /*! Max length of a "name" of a file, or stuff like that. */
 
-#define THD_MAX_NAME      (256+THD_MAX_PREFIX)     /* (ZSS Jan 07)*/
+#define THD_MAX_NAME      (999+THD_MAX_PREFIX)     /* (ZSS Jan 07)*/
 
 /*! Max length of a dataset view code (+orig, etc). */
 
