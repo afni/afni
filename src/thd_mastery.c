@@ -44,6 +44,27 @@ ENTRY("THD_open_dataset") ;
      }
    }
 
+   if( ii >= THD_MAX_NAME ){  /*--- 18 Oct 2016 ---*/
+     static int first=1 ;
+     ERROR_message("The following dataset filename is too long for AFNI:\n"
+                   "   %s\n** Length(filename)=%d --> The dataset above WILL NOT BE OPENED :((",
+                   pathname , ii ) ;
+     if( first ){
+       ERROR_message("(The longest filename allowed in AFNI is %d characters)",THD_MAX_NAME-1) ;
+       first = 0 ;
+     }
+     RETURN(NULL) ;
+   } else if( ii > THD_MAX_NAME/2 ){
+     static int first=1 ;
+     WARNING_message("The following dataset filename is very long and might cause troubles:\n"
+                     "  %s\n * Length(filename)=%d !!" ,
+                     pathname , ii ) ;
+     if( first ){
+       WARNING_message("(The longest filename allowed in AFNI is %d characters)",THD_MAX_NAME-1) ;
+       first = 0 ;
+     }
+   }
+
    /*-- 16 Mar 2016: jRandomDataset:nx,ny,nz,nt --*/
 
    if( strncasecmp(pathname,"jRandomDataset:",15) == 0 && isdigit(pathname[15]) ){
