@@ -21,12 +21,12 @@ static THD_3dim_dataset * THD_open_3dcalc( char * ) ;
 THD_3dim_dataset * THD_open_dataset( char *pathname )
 {
    THD_3dim_dataset *dset=NULL ;
-   char dname[THD_MAX_NAME]="\0" , *subv=NULL ;  /* 8 May 2007 */
+   char dname[THD_MAX_NAME+222]="\0" , *subv=NULL ;  /* 8 May 2007 */
    char *cpt=NULL , *bpt=NULL ;
    int  *ivlist=NULL ;
    int    ii=-1, jj=-1, kk=-1;
    float  bot=1.0 , top=0.0 ;
-   static char qname[THD_MAX_NAME+222] ;
+   char *qname=NULL ;
 
 ENTRY("THD_open_dataset") ;
 
@@ -36,36 +36,7 @@ ENTRY("THD_open_dataset") ;
        (ii=strlen(pathname)) == 0  ||
        pathname[ii-1]        == '/'  ) RETURN(NULL) ;
 
-   if( pathname[0] == '~' && pathname[1] == '/' ){  /* 13 Feb 2008 */
-     char *eee = getenv("HOME") ;
-     if( eee != NULL ){
-       strcpy(qname,eee); strcat(qname,pathname+1);
-       pathname = qname ;
-     }
-   }
-
-   if( ii >= THD_MAX_NAME ){  /*--- 18 Oct 2016 ---*/
-     static int first=1 ;
-     ERROR_message("The following dataset filename is too long for AFNI:\n"
-                   "   %s\n** Length(filename)=%d --> The dataset above WILL NOT BE OPENED :((",
-                   pathname , ii ) ;
-     if( first ){
-       ERROR_message("(The longest filename allowed in AFNI is %d characters)",THD_MAX_NAME-1) ;
-       first = 0 ;
-     }
-     RETURN(NULL) ;
-   } else if( ii > THD_MAX_NAME/2 ){
-     static int first=1 ;
-     WARNING_message("The following dataset filename is very long and might cause troubles:\n"
-                     "  %s\n * Length(filename)=%d !!" ,
-                     pathname , ii ) ;
-     if( first ){
-       WARNING_message("(The longest filename allowed in AFNI is %d characters)",THD_MAX_NAME-1) ;
-       first = 0 ;
-     }
-   }
-
-   /*-- 16 Mar 2016: jRandomDataset:nx,ny,nz,nt --*/
+   /*-- [16 Mar 2016] jRandomDataset:nx,ny,nz,nt --*/
 
    if( strncasecmp(pathname,"jRandomDataset:",15) == 0 && isdigit(pathname[15]) ){
      int nx=0,ny=0,nz=0,nt=0 ;
@@ -81,7 +52,7 @@ ENTRY("THD_open_dataset") ;
      RETURN(dset) ;
    }
 
-   /*-- 23 Mar 2001: perhaps get from across the Web --*/
+   /*-- [23 Mar 2001] perhaps get from across the Web --*/
 
    if( strncmp(pathname,"http://",7) == 0 ||
        strncmp(pathname,"ftp://" ,6) == 0   ){
@@ -94,7 +65,7 @@ ENTRY("THD_open_dataset") ;
      RETURN(dset) ;
    }
 
-   /*-- 17 Mar 2000: check if this is a 3dcalc() run --*/
+   /*-- [17 Mar 2000] check if this is a 3dcalc() run --*/
 
    if( strncmp(pathname,"3dcalc(",7) == 0 ||
        strncmp(pathname,"3dcalc ",7) == 0   ){
@@ -112,10 +83,11 @@ ENTRY("THD_open_dataset") ;
      if( ISVALID_DSET(dset) &&
         !ISVALID_MAT44(dset->daxes->ijk_to_dicom) )  /* 15 Dec 2005 */
        THD_daxes_to_mat44(dset->daxes) ;
-     THD_patch_brickim(dset); RETURN(dset) ;
+     THD_patch_brickim(dset);
+     RETURN(dset) ;
    }
 
-   /*-- 04 Aug 2004: allow input of a list of datasets, separated by spaces --*/
+   /*-- [04 Aug 2004] allow input of a list of datasets, separated by spaces --*/
    /*  unless a count command is used inside the brackets 9 May 2007 drg*/
    /* allow use of spaces with AFNI_PATH_SPACES_OK        2 May 2012 [rickr]  */
    if( ! AFNI_yesenv("AFNI_PATH_SPACES_OK") &&
@@ -126,7 +98,8 @@ ENTRY("THD_open_dataset") ;
      if( ISVALID_DSET(dset) &&
         !ISVALID_MAT44(dset->daxes->ijk_to_dicom) )  /* 15 Dec 2005 */
        THD_daxes_to_mat44(dset->daxes) ;
-     THD_patch_brickim(dset); RETURN(dset) ;
+     THD_patch_brickim(dset);
+     RETURN(dset) ;
    }
 
    /*-- 7 Apr 2016 [rickr]: allow wildcards --*/
@@ -134,7 +107,43 @@ ENTRY("THD_open_dataset") ;
      dset = THD_open_tcat( pathname ) ;
      if( ISVALID_DSET(dset) && !ISVALID_MAT44(dset->daxes->ijk_to_dicom) )
         THD_daxes_to_mat44(dset->daxes) ;
-     THD_patch_brickim(dset); RETURN(dset) ;
+     THD_patch_brickim(dset);
+     RETURN(dset) ;
+   }
+
+   /*-- expand "~/" to home directory [13 Feb 2008] (from here, must free qname if it was used) --*/
+
+   if( pathname[0] == '~' && pathname[1] == '/' ){
+     char *eee = getenv("HOME") ;
+     if( eee != NULL ){
+       (char *)malloc( sizeof(char) * (strlen(pathname)+strlen(eee)+222) ) ;
+       strcpy(qname,eee); strcat(qname,pathname+1);
+       pathname = qname ;
+     }
+   }
+
+   /*-- [18 Oct 2016] check if input filename is super long --*/
+
+   if( (ii=strlen(pathname)) >= THD_MAX_NAME ){  /* super long */
+     static int first=1 ;
+     ERROR_message("The following dataset filename is too long for AFNI:\n"
+                   "   %s\n** Length(filename)=%d --> The dataset above WILL NOT BE OPENED :((",
+                   pathname , ii ) ;
+     if( first ){
+       ERROR_message("(The longest filename allowed in AFNI is %d characters)",THD_MAX_NAME-1) ;
+       first = 0 ;
+     }
+     if( qname != NULL ) free(qname) ;
+     RETURN(NULL) ;
+   } else if( ii > THD_MAX_NAME/2 ){       /* just pretty long */
+     static int first=1 ;
+     WARNING_message("The following dataset filename is very long and might cause troubles:\n"
+                     "  %s\n * Length(filename)=%d !!" ,
+                     pathname , ii ) ;
+     if( first ){
+       WARNING_message("(The longest filename allowed in AFNI is %d characters)",THD_MAX_NAME-1) ;
+       first = 0 ;
+     }
    }
 
    /*-- 04 Mar 2003: allow input of .1D files     --*/
@@ -147,7 +156,7 @@ ENTRY("THD_open_dataset") ;
      if( ISVALID_DSET(dset) &&
         !ISVALID_MAT44(dset->daxes->ijk_to_dicom) )  /* 15 Dec 2005 */
        THD_daxes_to_mat44(dset->daxes) ;
-     if( dset != NULL ){ THD_patch_brickim(dset); RETURN(dset); }
+     if( dset != NULL ){ THD_patch_brickim(dset); if(qname!=NULL)free(qname); RETURN(dset); }
    }
 
    /*-- find the opening "[" and/or "<" --*/
@@ -159,10 +168,12 @@ ENTRY("THD_open_dataset") ;
      if( ISVALID_DSET(dset) &&
         !ISVALID_MAT44(dset->daxes->ijk_to_dicom) )  /* 15 Dec 2005 */
        THD_daxes_to_mat44(dset->daxes) ;
-     THD_patch_brickim(dset); RETURN(dset);     /*     normally */
+     THD_patch_brickim(dset); if(qname!=NULL)free(qname); RETURN(dset);     /*     normally */
    }
 
-   if( cpt == pathname || bpt == pathname ) RETURN(NULL);  /* error */
+   if( cpt == pathname || bpt == pathname ){
+     if(qname!=NULL)free(qname); RETURN(NULL);  /* error */
+   }
 
    /* copy dataset filename to dname and selector string to subv */
 
@@ -176,12 +187,14 @@ ENTRY("THD_open_dataset") ;
        STRING_HAS_SUFFIX(dname,".mri")    ||
        STRING_HAS_SUFFIX(dname,".svl")      ){
      ERROR_message("Can't use selectors on dataset: %s",pathname) ;
-     RETURN(NULL) ;
+     if(qname!=NULL)free(qname); RETURN(NULL) ;
    }
 
    /* open the dataset */
    dset = THD_open_one_dataset( dname ) ;
-   if( dset == NULL ) RETURN(NULL) ;
+   if( dset == NULL ){
+     if(qname!=NULL)free(qname); RETURN(NULL) ;
+   }
 
    /* parse the sub-brick selector string (if any) */
 
@@ -199,7 +212,7 @@ ENTRY("THD_open_dataset") ;
           Now it fails. */
        ERROR_message("bad sub-brick selector %s => using [0..%d]",
                        cpt, DSET_NVALS(dset)-1) ;
-       RETURN(NULL) ;
+       if(qname!=NULL)free(qname); RETURN(NULL) ;
      }
      ivlist = (int *) malloc(sizeof(int)*(DSET_NVALS(dset)+1)) ;
      ivlist[0] = DSET_NVALS(dset) ;
@@ -235,7 +248,8 @@ ENTRY("THD_open_dataset") ;
       !ISVALID_MAT44(dset->daxes->ijk_to_dicom) )  /* 15 Dec 2005 */
      THD_daxes_to_mat44(dset->daxes) ;
 
-   THD_patch_brickim(dset); RETURN(dset);
+   THD_patch_brickim(dset); if(qname!=NULL)free(qname);
+   RETURN(dset);
 }
 
 /*-----------------------------------------------------------------
