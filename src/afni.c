@@ -2140,9 +2140,15 @@ void AFNI_sigfunc_alrm(int sig)
      "My name is AFNImandias, Brain of Brains; Look on my Statistics, ye Clever, and Despair" ,
      "Statistically Significant is NOT the same as Significant -- they're not even similar"   ,
      "If you drink a liquid that has p=0.06 of being poison, do you feel significantly safe?" ,
+     "You must accept finite disappointments, but never lose your infinite hope"              ,
+     "We may all have come on different ships, but we're all in the same boat now"            ,
+
+     "\n  Ever returning spring, trinity sure to me you bring\n"
+     "  Lilac blooming perennial, drooping star in the West,\n"
+     "  And thought of him I love"                                                            ,
 
      "\n  It is a truth universally acknowledged, that a single scientist\n"
-     "  in possession of a large data collection, is in need of an AFNI."                     ,
+     "  in possession of a large FMRI data collection, is in need of an AFNI."                ,
 
      "\n  The great thing about the human condition:\n"
      "  No matter how bad it is, it can always get worse"                                     ,
@@ -2197,7 +2203,7 @@ void AFNI_sigfunc_alrm(int sig)
    } ;
 #undef NTOP
 #ifdef USE_SONNETS
-# define NTOP (NMSG+2)
+# define NTOP (NMSG+1)
 #else
 # define NTOP NMSG
 #endif
