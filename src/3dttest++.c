@@ -1630,7 +1630,7 @@ int main( int argc , char *argv[] )
          ERROR_exit("You can't use -clustsim and -Xclustsim together!") ;
        toz = 1 ;
 
-       clustsim_prog = "3dClustSimX" ;
+       clustsim_prog = "3dXClustSim" ;
        clustsim_opt  = argv[nopt] ;
        do_Xclustsim  = (argv[nopt][2] == 'c' ) ? 1 : 2 ;
 
@@ -3366,7 +3366,7 @@ LABELS_ARE_DONE:  /* target for goto above */
        sprintf(cmd,"%s -DAFNI_DONT_LOGFILE=NO %s",ccc,DSET_HEADNAME(outset)) ;
        system(cmd) ;
 
-     } else {  /*----- 3dClustSimX [30 Aug 2016] -----*/
+     } else {  /*----- 3dXClustSim [30 Aug 2016] -----*/
        int ixx , nxx=MAX(nnopt_Xclu,1) ; Xclu_opt *opx ;
        int nnlev, sid, npthr ; float *pthr ; char *nam ;
 
@@ -3382,7 +3382,7 @@ LABELS_ARE_DONE:  /* target for goto above */
            nnlev = sid = npthr = 0 ; pthr = NULL ; nam="default" ;
          }
 
-         sprintf( cmd , "3dClustSimX -DAFNI_DONT_LOGFILE=YES"
+         sprintf( cmd , "3dXClustSim -DAFNI_DONT_LOGFILE=YES"
                         " -prefix %s.%s.CsimX.nii" , prefix_clustsim , nam ) ;
          if( Xclu_arg != NULL )
            sprintf( cmd+strlen(cmd) , " %s",Xclu_arg) ;
@@ -3401,9 +3401,9 @@ LABELS_ARE_DONE:  /* target for goto above */
          for( pp=0 ; pp < num_clustsim ; pp++ )
            sprintf( cmd+strlen(cmd) , " %s" , tfname[pp]) ;
 
-         ININFO_message("===== starting 3dClustSimX =====\n   %s",cmd) ;
+         ININFO_message("===== starting 3dXClustSim =====\n   %s",cmd) ;
          system(cmd) ;
-       }  /* loop over 3dClustSimX (-Xclu_opt) cases to run */
+       }  /* loop over 3dXClustSim (-Xclu_opt) cases to run */
      }
 
      /* remove intermediate files */
