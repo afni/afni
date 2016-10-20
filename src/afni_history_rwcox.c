@@ -44,6 +44,25 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 20 , OCT , 2016 , RWC , "afni GUI" , MICRO , TYPE_MODIFY ,
+   "Don't get 'vedit' volume for threshold slice when OLay==Thr brick" ,
+   "When Clusterize is on, the steps are\n"
+   "1) create a new overlay volume that is 'edited' -- set to zero where Thr\n"
+   "is too small or cluster was too small -- this is on the OLay grid\n"
+   "2) colorization fetches 2D slices from OLay and Thr sub-bricks for\n"
+   "viewing, interpolated to the ULay grid, then processes them for display\n"
+   "(threshold+coloring)\n"
+   "But when OLay==Thr, and anything but NN interpolation is used at step 2,\n"
+   "then the visible shape of the clusters can change due to the\n"
+   "interpolation of the Thr slice after its volume was edited.  To avoid\n"
+   "this, volume editing is now skipped when extracting the threshold slice\n"
+   "in step 2.\n"
+   "This artifact occurs because of the 'warp-on-demand' feature in AFNI,\n"
+   "which allows the display of overlays whose grid does not match the\n"
+   "underlay grid, combined with the nonlinear operations of thresholding\n"
+   "and clusterizing.  Since DRG brought this to my attention, he has to\n"
+   "bring the cookies to the next group meeting." } ,
+
  { 13 , OCT , 2016 , RWC , "3dttest++" , MINOR , TYPE_BUG_FIX ,
    "Fix -BminusA bug" ,
    "double sign reversal == no sign reversal == not good for anyone" } ,
