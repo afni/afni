@@ -1,5 +1,5 @@
 /****************************************************************************
- ***** This file is mean to be #include-d, especially for 3dClustSimX.c *****
+ ***** This file is mean to be #include-d, especially for 3dXClustSim.c *****
  ****************************************************************************/
 
 #include "mrilib.h"
@@ -39,7 +39,7 @@ typedef struct {
   int npt ,                 /* number of points assigned */
       nall ,                /* number of points allocated */
       norig ,               /* number of original pts (before dilation) */
-      nbcount ;             /* for dilation decisions (cf. 3dClustSimX) */
+      nbcount ;             /* for dilation decisions (cf. 3dXClustSim) */
   float fom ;               /* Figure Of Merit for cluster */
   ind_t *ip , *jp , *kp ;   /* 3D indexes for each point */
   int   *ijk ;              /* 1D index for each point */
