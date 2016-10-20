@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 20,  Oct, 2016, RCR, "afni_proc.py", MICRO, TYPE_ENHANCE,
+   "check -mask_import for reasonable voxel dimensions",
+   NULL
+ } ,
+
  { 12,  Oct, 2016, RCR, "RetroTS.py", MICRO, TYPE_MODIFY,
    "updated Makefile.INCLUDE to distribute this",
    NULL
