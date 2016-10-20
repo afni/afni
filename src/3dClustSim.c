@@ -1081,7 +1081,7 @@ ENTRY("get_options") ;
     /*----   -NN   ----*/
 
     if( strcasecmp(argv[nopt],"-NN") == 0 ){
-      WARNING_message("-NN option is no longer supported! All NN cases are computed now.") ;
+      WARNING_message("-NN option is no longer supported! All NN cases are computed now :)") ;
       nopt++ ; if( isdigit(argv[nopt][0]) ) nopt++ ;
       continue ;
     }
@@ -2646,7 +2646,7 @@ int main( int argc , char **argv )
   for( iter=1 ; iter <= niter ; iter++ ){
 
     if( verb && ithr == 0 ){
-      vii++ ; if( vii%vstep == vstep/2 ) vstep_print() ;
+      vii++ ; if( vii%vstep == 2 ) vstep_print() ;
     }
 
     generate_image( fim , pfim , xran , iter ) ;
