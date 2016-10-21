@@ -98,7 +98,7 @@ PROGRAMS = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge count   
            column_cat 3dUnifize 3dNwarpCat 3dQwarp 3dLocalHistog 3dNwarpAdjust  \
            3dNwarpFuncs 3dTproject afni_open 3dConformist 3dNwarpXYZ 3dTRfix    \
            3dToyProg 3dRankizer nifti1_tool gifti_tool cifti_tool images_equal  \
-           uniq_images tokens 3dLocalACF 3dClustSimX 3dtoXdataset 3dMultiThresh \
+           uniq_images tokens 3dLocalACF 3dXClustSim 3dtoXdataset 3dMultiThresh \
            3dLFCD 3dDegreeCentrality 3dECM 3dMSE  3dsvm_linpredict              \
            $(EXTRAS)
 
@@ -1313,21 +1313,21 @@ AlphaSim:AlphaSim.o
 	$(RM) $@
 	$(CCOMP) -o 3dClustSim 3dClustSim.o $(LFLAGS) $(LLIBS)
 
-3dClustSimX.o:3dClustSimX.c mri_threshX.c
+3dXClustSim.o:3dXClustSim.c mri_threshX.c
 	$(RM) $@
-	$(CCOMP) -c 3dClustSimX.c $(INFLAGS)
+	$(CCOMP) -c 3dXClustSim.c $(INFLAGS)
 
-3dClustSimX:3dClustSimX.o libmri.a
+3dXClustSim:3dXClustSim.o libmri.a
 	$(RM) $@
-	$(CCOMP) -o 3dClustSimX 3dClustSimX.o $(LFLAGS) $(LLIBS)
+	$(CCOMP) -o 3dXClustSim 3dXClustSim.o $(LFLAGS) $(LLIBS)
 
-## this program is not OpenMP, but goes with 3dClustSimX above
+## this program is not OpenMP, but goes with 3dXClustSim above
 
 3dtoXdataset:3dtoXdataset.o
 	$(RM) $@
 	$(CC) -o 3dtoXdataset 3dtoXdataset.o $(LFLAGS) $(LLIBS)
 
-## this program is not OpenMP, but goes with 3dClustSimX above
+## this program is not OpenMP, but goes with 3dXClustSim above
 
 3dMultiThresh.o:3dMultiThresh.c mri_threshX.c
 
