@@ -894,6 +894,30 @@ def get_3dinfo_val(dname, val, vtype, verb=1):
 
    return dval
 
+def get_3dinfo_val_list(dname, val, vtype, verb=1):
+   """run 3dinfo -val, and convert to vtype (also serves as a test)
+
+      return None on failure, else a list
+   """
+   command = '3dinfo -%s %s' % (val, dname)
+   status, output, se = limited_shell_exec(command, nlines=1)
+   if status or len(output) == 0:
+      if verb:
+         print '** 3dinfo -%s failure: message is:\n%s%s\n' % (val, se, output)
+      return None
+
+   output = output[0].strip()
+   if output == 'NO-DSET' :
+      if verb: print '** 3dinfo -%s: no dataset %s' % (val, dname)
+      return None
+
+   dlist = string_to_type_list(output, vtype)
+   if dlist == None and verb:
+      print "** 3dinfo -%s: cannot get val list from %s, for dset %s" \
+            % (val, output, dname)
+
+   return dlist
+
 def dset_view(dname):
    """return the AFNI view for the given dset"""
    command = '3dinfo -av_space %s' % dname
@@ -1884,8 +1908,11 @@ def vals_are_unique(vlist, dosort=1):
       
    return rval
 
-def lists_are_same(list1, list2):
-   """return 1 if the lists have identical values, else 0"""
+def lists_are_same(list1, list2, epsilon=0):
+   """return 1 if the lists have similar values, else 0
+
+      similar means difference <= epsilon
+   """
    if not list1 and not list2: return 1
    if not list1: return 0
    if not list2: return 0
@@ -1893,6 +1920,8 @@ def lists_are_same(list1, list2):
 
    for ind in range(len(list1)):
       if list1[ind] != list2[ind]: return 0
+      if epsilon:
+         if abs(list1[ind]-list2[ind]) > epsilon: return 0
 
    return 1
 
@@ -1910,6 +1939,26 @@ def string_to_float_list(fstring):
    except: return None
 
    return flist
+
+def string_to_type_list(sdata, dtype=float):
+   """return a list of dtype, converted from the string
+      return None on error
+   """
+
+   if type(sdata) != str: return None
+   slist = sdata.split()
+
+   if len(slist) == 0: return []
+
+   # if going to int, use float as an intermediate step
+   if dtype == int:
+      try: slist = [float(sval) for sval in slist]
+      except: return None
+
+   try: dlist = [dtype(sval) for sval in slist]
+   except: return None
+
+   return dlist
 
 def float_list_string(vals, nchar=7, ndec=3, nspaces=2, mesg='', left=0):
    """return a string to display the floats:

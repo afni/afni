@@ -551,9 +551,10 @@ g_history = """
         - added opts -mask_import, -mask_intersect, -mask_union
         - added corresponding Example 11b
     5.07 Oct 13, 2016: minor 11b update (PC_per_run)
+    5.08 Oct 20, 2016: check -mask_import for reasonable voxel dimensions
 """
 
-g_version = "version 5.07, October 13, 2016"
+g_version = "version 5.08, October 20, 2016"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \
@@ -768,6 +769,8 @@ class SubjProcSream:
         self.runs       = 0             # number of runs
         self.reps_all   = []            # number of TRs in each run
         self.reps_vary  = 0             # do the repetitions vary
+        self.orig_delta = [0, 0, 0]     # dataset voxel size (initial)
+        self.delta      = [0, 0, 0]     # dataset voxel size
         self.datatype   = -1            # 1=short, 3=float, ..., -1=uninit
         self.scaled     = -1            # if shorts, are they scaled?
         self.mask       = None          # mask dataset: one of the following
@@ -1508,6 +1511,13 @@ class SubjProcSream:
                 self.origview = self.view
                 if self.verb>0: print '-- applying orig view as %s' % self.view
 
+            # get voxel dimensions
+            dims = UTIL.get_3dinfo_val_list(self.dsets[0].rel_input(),
+                                            'd3', float, verb=1)
+            if dims == None: return 1
+            self.orig_delta = dims
+            self.delta = dims
+
         # next, check for -surf_anat, which defines whether to do volume
         # or surface analysis
         opt = self.user_opts.find_opt('-surf_anat')
@@ -1801,17 +1811,18 @@ class SubjProcSream:
         for block in self.blocks:
             cmd_str = BlockCmdFunc[block.label](self, block)
             if cmd_str == None:
-                print "** script creation failure for block '%s'" % block.label
-                errs += 1
-            else:
-                if block.post_cstr != '':
-                   if self.verb > 2:
-                      print '++ adding post_cstr to block %s:\n%s=======' \
-                            % (block.label, block.post_cstr)
-                   cmd_str += block.post_cstr
-                self.write_text(add_line_wrappers(cmd_str))
-                if self.verb>3: block.show('+d post command creation: ')
-                if self.verb>4: print '+d %s cmd: \n%s'%(block.label, cmd_str)
+               print "** script creation failure for block '%s'" % block.label
+               errs += 1
+               break
+
+            if block.post_cstr != '':
+               if self.verb > 2:
+                  print '++ adding post_cstr to block %s:\n%s=======' \
+                        % (block.label, block.post_cstr)
+               cmd_str += block.post_cstr
+            self.write_text(add_line_wrappers(cmd_str))
+            if self.verb>3: block.show('+d post command creation: ')
+            if self.verb>4: print '+d %s cmd: \n%s'%(block.label, cmd_str)
 
         if self.epi_review:
             cmd_str = db_cmd_gen_review(self)

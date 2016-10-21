@@ -1874,6 +1874,8 @@ def db_cmd_volreg(proc, block):
                 print '** failed to get grid dim from %s' \
                       % proc.dsets[0].rel_input()
                 return
+        # store updated voxel dimensions
+        proc.delta = [dim, dim, dim]
 
     # create EPI warp list, outer to inner
     epi_warps      = []
@@ -3176,9 +3178,31 @@ def db_cmd_mask(proc, block):
        aname = proc.roi_dict[label]
        aname.view = proc.view
 
+       # and check grid
+       dset = opt.parlist[1]
+       dims = UTIL.get_3dinfo_val_list(dset, 'd3', float, verb=1)
+       if not UTIL.lists_are_same(dims, proc.delta, proc.delta[0]*0.01):
+          print "** bad dims for -mask_import dataset: \n" \
+                "   %s\n"                                  \
+                "   import dims = %s, analysis dims = %s"  \
+                % (dset, dims, proc.delta)
+          return
+
     scmd = mask_segment_anat(proc, block)
     if scmd == None: return
     cmd += scmd
+
+    # create any intersection masks
+    if block.opts.find_opt('-mask_intersect'):
+       cc = get_cmd_mask_combine(proc, block, 'inter')
+       if not cc: return
+       cmd += cc
+
+    # create any union masks
+    if block.opts.find_opt('-mask_union'):
+       cc = get_cmd_mask_combine(proc, block, 'union')
+       if not cc: return
+       cmd += cc
 
     if proc.verb: proc.show_roi_dict_keys(verb=(proc.verb-1))
 
@@ -3293,18 +3317,6 @@ def mask_segment_anat(proc, block):
           ec = '%se' % sc
           newname = BASE.afni_name('mask_%s_resam%s'%(ec,proc.view))
           if proc.add_roi_dict_key(ec, newname, overwrite=1): return ''
-
-    # create any intersection masks
-    if block.opts.find_opt('-mask_intersect'):
-       cc = get_cmd_mask_combine(proc, block, 'inter')
-       if not cc: return
-       cmd += cc
-
-    # create any union masks
-    if block.opts.find_opt('-mask_union'):
-       cc = get_cmd_mask_combine(proc, block, 'union')
-       if not cc: return
-       cmd += cc
 
     return cmd
 
