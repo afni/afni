@@ -1,7 +1,7 @@
 #include "mrilib.h"
 
 /***** This file is intended to be #include-d into   *****/
-/***** places such as 3dClustSimX.c and 3dClustSim.c *****/
+/***** places such as 3dXClustSim.c and 3dClustSim.c *****/
 
 /***** Also see program 3dtoXdataset.c for creating such files *****/
 
