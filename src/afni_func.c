@@ -1741,7 +1741,9 @@ ENTRY("AFNI_func_overlay") ;
 
    if( need_thr ){
      STATUS("fetch im_thr") ;
+     AFNI_set_ignore_vedit(1) ;  /* 20 Oct 2016 */
      im_thr = FD_warp_to_mri( n , ival , br_fim ) ;
+     AFNI_set_ignore_vedit(0) ;
    } else{
      STATUS("don't need im_thr") ;
      im_thr = NULL ;
@@ -1762,13 +1764,8 @@ ENTRY("AFNI_func_overlay") ;
      if( ind >= DSET_NVALS(br_fim->dset) )
        ind = DSET_NVALS(br_fim->dset) - 1 ;
 
-     if( im_thr != NULL && ind == ival ){   /* 06 Feb 2003: allow for */
-       STATUS("copy im_thr to im_fim") ;
-       im_fim = mri_copy( im_thr ) ;        /* func image = thr image */
-     } else {
-       STATUS("fetch im_fim") ;
-       im_fim = FD_warp_to_mri( n, ind, br_fim ) ;  /* get func image */
-     }
+     STATUS("fetch im_fim") ;
+     im_fim = FD_warp_to_mri( n, ind, br_fim ) ;  /* get func image */
      scale_factor = FIM_RANGE(im3d) ;
      if( scale_factor == 0.0 || PBAR_FULLRANGE ) scale_factor = 1.0f ;
 

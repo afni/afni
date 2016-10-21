@@ -738,9 +738,9 @@ int main( int argc , char *argv[] )
 
    (void)COX_clock_time() ;
 
-   mainENTRY("3dClustSimX") ; machdep() ;
-   AFNI_logger("3dClustSimX",argc,argv);
-   PRINT_VERSION("3dClustSimX"); AUTHOR("Lamont Cranston") ;
+   mainENTRY("3dXClustSim") ; machdep() ;
+   AFNI_logger("3dXClustSim",argc,argv);
+   PRINT_VERSION("3dXClustSim"); AUTHOR("Lamont Cranston") ;
 
    /*----- load command line options -----*/
 
@@ -764,9 +764,9 @@ int main( int argc , char *argv[] )
 
    if( verb ){
      if( nthr > 1 )
-       INFO_message("3dClustSimX: Using %d OpenMP threads",nthr) ;
+       INFO_message("3dXClustSim: Using %d OpenMP threads",nthr) ;
      else
-       INFO_message("3dClustSimX: Using 1 thread -- this will be slow :-(") ;
+       INFO_message("3dXClustSim: Using 1 thread -- this will be slow :-(") ;
    }
 
    /*--- skip all the cluster size thresholding calculations,
@@ -1103,7 +1103,7 @@ ININFO_message(" p=%.5f did %d dilation loops with %d cluster dilations",
          fomvec[ii]->npt = 0 ;
        }
        EDIT_BRICK_LABEL(qset,0,"FOMcount") ;
-       tross_Make_History( "3dClustSimX" , argc,argv , qset ) ;
+       tross_Make_History( "3dXClustSim" , argc,argv , qset ) ;
        DSET_write(qset); WROTE_DSET(qset);
        DSET_delete(qset); qset = NULL; qar = NULL;
      }
@@ -1305,7 +1305,7 @@ FARP_LOOPBACK:
                           "MULTI_THRESHOLDS" , npthr+3 , afl ) ;
        free(afl) ;
      }
-     tross_Make_History( "3dClustSimX" , argc,argv , qset ) ;
+     tross_Make_History( "3dXClustSim" , argc,argv , qset ) ;
      DSET_write(qset); WROTE_DSET(qset);
      DSET_delete(qset); qset = NULL; qar = NULL;
    }
@@ -1321,7 +1321,7 @@ FARP_LOOPBACK:
      EDIT_substitute_brick( qset , 0 , MRI_float , NULL ) ;
      qar = DSET_ARRAY(qset,0) ;
      AAmemcpy( qar , farar , sizeof(float)*nxyz ) ;
-     tross_Make_History( "3dClustSimX" , argc,argv , qset ) ;
+     tross_Make_History( "3dXClustSim" , argc,argv , qset ) ;
      DSET_write(qset); WROTE_DSET(qset);
      DSET_delete(qset); qset = NULL; qar = NULL;
    }
