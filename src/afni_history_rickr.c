@@ -49,6 +49,10 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 24,  Oct, 2016, RCR, "afni_proc.py", MICRO, TYPE_ENHANCE,
+   "bandpass notes and reference; stronger warning on missing -tlrc_dset",
+   "For P Taylor."
+ } ,
  { 20,  Oct, 2016, RCR, "afni_proc.py", MICRO, TYPE_ENHANCE,
    "check -mask_import for reasonable voxel dimensions",
    NULL
