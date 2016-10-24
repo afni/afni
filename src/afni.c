@@ -1864,6 +1864,8 @@ void AFNI_sigfunc_alrm(int sig)
      "O Brave New World, that has such software in it"               ,
      "When I ask for advice, what I really want is an accomplice"    ,
      "Above all -- Don't let your brain lie to you"                  ,
+     "I like nonsense -- it shakes the neurons out of their naps"    ,
+     "Using it is like going to the gym for your brain"              ,
      "We are all mad here"                                           ,
      "Working for improved brain-ology not just 24/7 but 25/8!"      ,
      "If Ziad were here, we'd be going for gelato just about now"    ,
@@ -2001,6 +2003,8 @@ void AFNI_sigfunc_alrm(int sig)
      "I've got MY story about the brain; what's yours?"              ,
      "I came, I saw, I got confused"                                 ,
      "Computers are useless -- they can only give you answers"       ,
+     "If nothing else, this software is a great toy"                 ,
+     "Remember to take your brain out and polish it"                 ,
 
      "Returning control of your brain (images) back to yourself"     ,
      "Returning your endofunctors back to their co-monads"           ,
@@ -2155,6 +2159,7 @@ void AFNI_sigfunc_alrm(int sig)
      "You must accept finite disappointments, but never lose your infinite hope"              ,
      "We may all have come on different ships, but we're all in the same boat now"            ,
      "You can always find me out on the Long Line -- I hang out by the Church-Kleene ordinal" ,
+     "Outside of a dog, a book is Man's best friend. Inside of a dog, it's too dark to read"  ,
 
      "\n  Ever returning spring, trinity sure to me you bring\n"
      "  Lilac blooming perennial, drooping star in the West,\n"
