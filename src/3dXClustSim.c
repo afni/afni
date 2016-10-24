@@ -43,6 +43,7 @@ static float dy ;
 static float dz ;
 
 static int   niter=0 ;  /* number of iterations (realizations) */
+static float nit33=0.0f ;
 
 static int   do_fixed                = 0 ;    /* fixed FOM threshold? */
 static int   fixed_cluster_threshold = 0 ;
@@ -805,7 +806,7 @@ int main( int argc , char *argv[] )
 
    /* clusterize each volume at each p-value threshold */
 
-#pragma omp for schedule(dynamic,200)
+#pragma omp for schedule(dynamic,500)
    for( iter=0; iter < niter ; iter++ ){ /* loop over realizations */
      generate_image( far , iter ) ;
      for( ipthr=0 ; ipthr < npthr ; ipthr++ ){  /* over thresholds */
@@ -970,7 +971,7 @@ int main( int argc , char *argv[] )
        then determine how to dilate (NN1, NN2, NN3)
        [parallelized across clusters = simulation iterations] */
 
-#pragma omp for schedule(dynamic,200)
+#pragma omp for schedule(dynamic,500)
     for( iter=0 ; iter < nclu ; iter++ ){
       if( Xclust_tot[qpthr][iter]          != NULL          &&
           Xclust_tot[qpthr][iter]->nbcount <  count_targ100   ){
@@ -1057,7 +1058,7 @@ ININFO_message(" p=%.5f did %d dilation loops with %d cluster dilations",
      /* vectors loaded for each pt in space;
         now sort them (biggest first) to determine equitable thresholds */
 
-#pragma omp for schedule(dynamic,200)
+#pragma omp for schedule(dynamic,500)
      for( iv=0 ; iv < mask_ngood ; iv++ ){
        if( fomvec[iv]->npt < 3 ){          /* if it's way short */
          ADDTO_Xvector(fomvec[iv],0.01f) ; /* put some padding in */
@@ -1158,6 +1159,7 @@ FINAL_STUFF:
 
    tfrac = 0.0004f ; itrac = 0 ;
    farpercold = 0.0f ; tfracold = tfrac ;
+   nit33 = 1.0f/(niter+0.333f) ;
 
    /* array to make map of false alarm count at each voxel */
 
@@ -1171,7 +1173,11 @@ FARP_LOOPBACK:
      itrac++ ;                                        /* number of iterations */
      nfar = 0 ;                                            /* total FAR count */
      nedge = 0 ;                                      /* number of edge cases */
+#if 0
      ithresh = (int)(tfrac*niter) ;                    /* FOM count threshold */
+#else
+     ithresh = (int)rintf(tfrac*(niter-0.666f)+0.333f) ;
+#endif
      /* we take the ithresh-th largest FOM at each voxel as its FOM threshold */
 
      if( !(do_fixed || do_mfixed) ){
@@ -1204,14 +1210,21 @@ FARP_LOOPBACK:
         for( ipthr=0 ; ipthr < npthr ; ipthr++ ){ /* over p-value thresh */
           npt = fomsort[ipthr][iv]->npt ;    /* how many FOM values here */
           jthresh = ithresh ;             /* default index of FOM thresh */
-          if( jthresh > (int)(0.666f*npt) ){
-            jthresh = (int)(0.666f*npt) ;
+          if( jthresh > (int)(0.333f*npt) ){
+            jthresh = (int)(0.333f*npt) ;
 #pragma omp atomic
             nedge++ ;
           }
           /* extract this FOM thresh by interpolation */
-          a0 = ((float)jthresh)/((float)niter) ; f0 = fomsort[ipthr][iv]->far[jthresh] ;
-          a1 = a0        + 1.0f/((float)niter) ; f1 = fomsort[ipthr][iv]->far[jthresh+1] ;
+#if 0
+          a0 = ((float)jthresh)/((float)niter) ;
+          a1 = a0        + 1.0f/((float)niter) ;
+#else
+          a0 = ((float)jthresh+0.666f)*nit33 ;
+          a1 = a0 + nit33 ;
+#endif
+          f0 = fomsort[ipthr][iv]->far[jthresh] ;
+          f1 = fomsort[ipthr][iv]->far[jthresh+1] ;
           ft = inverse_interp_extreme( a0,a1,tfrac , f0,f1 ) ;
           if( ft < gthresh[ipthr] ) ft = gthresh[ipthr] ;
           car[ipthr][ijkmask[iv]] = ft ;  /* = FOM threshold for this voxel */
@@ -1223,7 +1236,7 @@ FARP_LOOPBACK:
      /* now, use the thresholds just computed to multi-threshold
         each realization, and create count of total FA and in each voxel */
 
-#pragma omp for schedule(dynamic,100)
+#pragma omp for schedule(dynamic,500)
      for( iter=0 ; iter < niter ; iter++ ){
        generate_image( far , iter ) ;
        tfim = mri_multi_threshold_Xcluster( fim, npthr,zthr_used,
