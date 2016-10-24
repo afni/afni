@@ -3412,7 +3412,8 @@ def group_mask_command(proc, block):
           % (proc.tlrc_base.pv(), proc.tlrc_base.exist())
 
     if not proc.tlrc_base.exist():
-        print "** cannot create group mask"
+        print "** missing tlrc base: %s" % proc.tlrc_base.ppv()
+        print "   (cannot create group mask)"
         return ''
 
     #--- tlrc base exists, now resample and make a mask of it
@@ -7021,7 +7022,6 @@ g_help_string = """
            is simple.
 
            Note: bandpassing in the face of RETROICOR processing is questionable.
-                 There is no strong opinion on it (at least within our group).
                  To skip bandpassing, remove the -regress_bandpass option line.
 
            Also, align EPI to anat and warp to standard space.
@@ -7548,6 +7548,41 @@ g_help_string = """
         with negative degrees of freedom, making the resulting signals useless
         (or worse, misleading garbage).  But without keeping track of it,
         researchers may not even know.
+
+    Bandpassing and degrees of freedom:
+
+        Bandpassing between 0.01 and 0.1 means, from just the lowpass side,
+        throwing away frequencies above 0.1.  So the higher the frequency of
+        collected data (i.e. the smaller the TR), the higher the fraction of
+        DoF will be thrown away.
+
+        For example, if TR = 2s, then the Nyquist frequency (the highest
+        frequency detectable in the data) is 1/(2*2) = 0.25 Hz.  That is to
+        say, one could only detect something going up and down at a cycle rate
+        of once every 4 seconds (twice the TR).
+
+        So for TR = 2s, approximately 40% of the DoF are kept (0.1/0.25) and
+        60% are lost (frequencies from 0.1 to 0.25) due to bandpassing.
+
+        To generalize, Nyquist = 1/(2*TR), so the fraction of DoF kept is
+
+            fraction kept = 0.1/Nyquist = 0.1/(1/2*TR) = 0.1 * 2 * TR = 0.2*TR
+
+        For example,
+
+            at TR = 2 s,   0.4  of DoF are kept (60% are lost)
+            at TR = 1 s,   0.2  of DoF are kept (80% are lost)
+            at TR = 0.5 s, 0.1  of DoF are kept (90% are lost)
+            at TR = 0.1 s, 0.02 of DoF are kept (98% are lost)
+
+        Consider also:
+
+            Gohel, S.R., Biswal, B.B.
+            Functional integration between brain regions at rest occurs in
+                multiple-frequency bands
+            (2015) Brain Connectivity, 5 (1), pp. 23-34
+
+    Application of bandpassing in afni_proc.py:
 
         In afni_proc.py, this is all done in a single regression model (removal
         of noise and baseline signals, bandpassing and censoring).  If some

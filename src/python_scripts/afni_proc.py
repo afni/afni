@@ -552,9 +552,12 @@ g_history = """
         - added corresponding Example 11b
     5.07 Oct 13, 2016: minor 11b update (PC_per_run)
     5.08 Oct 20, 2016: check -mask_import for reasonable voxel dimensions
+    5.09 Oct 24, 2016:
+        - bandpass notes and reference
+        - stronger warning on missing -tlrc_base dataset
 """
 
-g_version = "version 5.08, October 20, 2016"
+g_version = "version 5.09, October 24, 2016"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \
