@@ -1121,6 +1121,8 @@ ININFO_message(" p=%.5f did %d dilation loops with %d cluster dilations",
    /*--- STEP 4: test FOM count thresholds to find FAR=5% ---*/
 
 #define FARP_GOAL 5.00f  /* 5 percent */
+#define FGFAC     0.77f
+#define FG_GOAL   (FARP_GOAL*FGFAC)
 
 FINAL_STUFF:
 
@@ -1271,16 +1273,16 @@ FARP_LOOPBACK:
           if( itrac < 5 ) farcut = 0.111f ; /* precision of goal meeting */
      else if( itrac < 9 ) farcut = 0.222f ;
      else                 farcut = 0.333f ;
-     if( !(do_fixed || do_mfixed) && itrac < 13 && fabsf(farperc-FARP_GOAL) > farcut ){
+     if( !(do_fixed || do_mfixed) && itrac < 13 && fabsf(farperc-FG_GOAL) > farcut ){
        float fff ;
-       if( itrac == 1 || (farperc-FARP_GOAL)*(farpercold-FARP_GOAL) > 0.0f ){
-         fff = FARP_GOAL/farperc ;
+       if( itrac == 1 || (farperc-FG_GOAL)*(farpercold-FG_GOAL) > 0.0f ){
+         fff = FG_GOAL/farperc ;
          if( fff > 2.222f ) fff = 2.222f ; else if( fff < 0.450f ) fff = 0.450f ;
 /* ININFO_message("   scale tfrac by %g -- fold=%g fnew=%g",fff,farpercold,farperc) ; */
          ttemp = tfrac ; tfrac *= fff ;
        } else {
          fff = (farperc-farpercold)/(tfrac-tfracold) ;
-         ttemp = tfrac ; tfrac = tfracold + (FARP_GOAL-farpercold)/fff ;
+         ttemp = tfrac ; tfrac = tfracold + (FG_GOAL-farpercold)/fff ;
 /* ININFO_message("   interpolate tfrac from told=%g fold=%g tnew=%g fnew=%g",
                tfracold,farpercold,ttemp,farperc) ; */
        }
