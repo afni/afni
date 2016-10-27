@@ -4234,6 +4234,7 @@ void RT_start_dataset( RT_input * rtin )
    rtin->reg_chan_mode = RT_chmrg_reg_mode;
    if( rtin->reg_chan_mode > RT_CM_RMODE_NONE ) {
      if( ! rtin->mrg_dset ) {
+       /* rcr OC - only for 1 and 2 now */
        if( verbose > 0 ) fprintf(stderr,"** RTCM: no merge dset to register\n");
        rtin->reg_chan_mode = RT_CM_RMODE_NONE;
      } else if ( rtin->reg_mode != REGMODE_3D_RTIME ) {
@@ -4252,6 +4253,7 @@ void RT_start_dataset( RT_input * rtin )
         (rtin->dtype==DTYPE_3DTM) ){
 
       /* if registering mrg_dset, use it as base for reg_dset */
+      /* rcr OC - might not matter much */
       if( rtin->reg_chan_mode > RT_CM_RMODE_NONE ) {
          if( verbose > 1 )
             fprintf(stderr,"RTCM: using MERGE dset for registration grid\n");
@@ -6239,6 +6241,7 @@ void RT_registration_3D_realtime( RT_input *rtin )
       /* check if enough data to setup */
 
       if( rtin->reg_base_index >= rtin->nvol[0] ) return ;  /* can't setup */
+      /* rcr OC - applies to 1 and 2 */
       if( rtin->reg_chan_mode > RT_CM_RMODE_NONE &&
           rtin->reg_base_index >= rtin->mrg_nvol ) return ;
 
@@ -6299,6 +6302,7 @@ void RT_registration_3D_realtime( RT_input *rtin )
 
    /*-- register all sub-bricks that aren't done yet --*/
 
+   /* rcr OC - applies to 1 and 2 */
    if( rtin->reg_chan_mode > RT_CM_RMODE_NONE )
       ntt = DSET_NUM_TIMES( rtin->mrg_dset ) ;
    else
@@ -6439,6 +6443,8 @@ int RT_registration_set_vr_base(RT_input * rtin)
    if( rtin->reg_base_mode == RT_RBASE_MODE_CUR ) RETURN(0); /* nothing to do */
 
    /* note dset to register                     27 May 2010 [rickr] */
+   /* rcr OC - applies to 1 and 2
+ *      also, can choose channel */
    if( rtin->reg_chan_mode > RT_CM_RMODE_NONE ) dset = rtin->mrg_dset;
    else                                         dset = rtin->dset[0];
 
@@ -6492,6 +6498,7 @@ void RT_registration_3D_setup( RT_input * rtin )
    if( RT_registration_set_vr_base(rtin) ) return;  /* failure */
 
    /* note dset to register                     27 May 2010 [rickr] */
+   /* rcr OC - add case for option 3 */
    if( rtin->reg_chan_mode > RT_CM_RMODE_NONE ) dset = rtin->mrg_dset;
    else                                         dset = rtin->dset[0];
 
@@ -6595,6 +6602,22 @@ void RT_registration_3D_onevol( RT_input *rtin , int tt )
 
    /*-- sanity check --*/
 
+   /* rcr OC - option to set source channel
+        ChannelMerge MergeRegister modes (RT_CM_RMODE_*)
+           - NONE
+           - reg merged
+           - reg M and chans
+           - reg chans only     (merging probably happens after chan reg)
+        Registration SourceChan -1..(Nchan-1)
+           - -1 means last channel (since possibly unknown?)
+           - 0 is default in 0-based list
+
+        set RT_chmrg_reg_mode
+        trace references to reg_chan_mode and RT_CM_RMODE_NONE
+        add variable for Registration:SourceChan
+        update Help
+   */
+
    if( rtin->reg_chan_mode > RT_CM_RMODE_NONE ) {
       if(verbose && !tt) fprintf(stderr,"RTCM: using mrg_dset as reg source\n");
       source = rtin->mrg_dset ;
@@ -6616,14 +6639,19 @@ void RT_registration_3D_onevol( RT_input *rtin , int tt )
    qim->dy = fabs( DSET_DY(source) ) ;
    qim->dz = fabs( DSET_DZ(source) ) ;
 
-   if( rtin->reg_chan_mode < RT_CM_RMODE_REG_CHAN )
-      rim = mri_3dalign_one( rtin->reg_3dbasis , qim ,
+   /* rcr OC - source should be properly set
+             - then 3dalign_one from qim
+             - then mri_3dalign_apply(imarr, ...) */
+      /* rcr OC - if none, else for 3 use chan# */
+
+   /* always do the base, then apply afterwards        27 Oct 2016 [rickr] */
+   rim = mri_3dalign_one( rtin->reg_3dbasis , qim ,
                           &roll , &pitch , &yaw , &dx , &dy , &dz ) ;
-   else {
+
+   if( rtin->reg_chan_mode >= RT_CM_RMODE_REG_CHAN ) {
       /* align mrg_dset and all channels as followers  27 May 2010 [rickr] */
       /* input imarr should have source image and then each channel        */
       INIT_IMARR(imarr);
-      ADDTO_IMARR(imarr, qim);
       dx = qim->dx ; dy = qim->dy ; dz = qim->dz ;   /* store for channels */
 
       for( cc = 0; cc < rtin->num_chan; cc++ ) {
@@ -6632,14 +6660,13 @@ void RT_registration_3D_onevol( RT_input *rtin , int tt )
          ADDTO_IMARR(imarr, tim);
       }
 
-      outarr = mri_3dalign_oneplus( rtin->reg_3dbasis , imarr ,
-                                    &roll , &pitch , &yaw , &dx , &dy , &dz ) ;
+      /* rcr OC - change mri_3dalign_oneplus() to mri_3dalign_apply() */
+      outarr = mri_3dalign_apply( rtin->reg_3dbasis , imarr ,
+                                  roll , pitch , yaw , dx , dy , dz ) ;
       if( outarr == NULL ) {
-         fprintf(stderr,"** mri_3dalign_oneplus returns NULL\n");
+         fprintf(stderr,"** mri_3dalign_apply returns NULL\n");
          return;
       }
-
-      rim = outarr->imarr[0];   /* point to expected result */
 
       FREE_IMARR(imarr);        /* but do not free the images */
    }
@@ -6766,10 +6793,11 @@ void RT_registration_3D_onevol( RT_input *rtin , int tt )
            store results (no conversion)         2 Jun 2010 [rickr] --*/
       if( rtin->reg_chan_mode >= RT_CM_RMODE_REG_CHAN && outarr ) {
          for( cc = 0; cc < rtin->num_chan; cc++ ) {
+            /* no more imarr[cc+1], since reg master is no longer in it */
             if( tt == 0 ) EDIT_substitute_brick(rtin->reg_chan_dset[cc], 0,
-                                       rtin->datum, outarr->imarr[cc+1]->im) ;
+                                       rtin->datum, outarr->imarr[cc]->im) ;
             else EDIT_add_brick(rtin->reg_chan_dset[cc], rtin->datum,
-                                0.0, outarr->imarr[cc+1]->im) ;
+                                0.0, outarr->imarr[cc]->im) ;
             EDIT_dset_items(rtin->reg_chan_dset[cc], ADN_ntt,rtin->reg_nvol ,
                                                      ADN_none ) ;
          }
