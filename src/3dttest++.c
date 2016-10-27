@@ -3256,7 +3256,9 @@ LABELS_ARE_DONE:  /* target for goto above */
                         " -RANDOMSIGN %d -nomeans -toz" , nper ) ;
 
        if( twosam )
-         sprintf( cmd+strlen(cmd) , " -no1sam") ;
+         sprintf( cmd+strlen(cmd) , " -no1sam -dofsub 2") ;
+       else
+         sprintf( cmd+strlen(cmd) , " -dofsub 1" ) ;
        if( name_mask != NULL )
          sprintf( cmd+strlen(cmd) , " -mask %s",name_mask) ;
        if( ttest_opcode == 1 )
