@@ -486,6 +486,8 @@ static int verbose = 1 ;
   static int regmode  = 0 ;  /* index into REG_strings */
   static int reggraph = 0 ;  /* graphing mode */
 
+  static int g_reg_src_chan = 0 ;  /* chan for reg source 27 Oct 2016 [rcr] */
+
   /* registriation base globals to apply in RT_main     27 Aug 2009 [rickr] */
   static int g_reg_base_mode = 0 ;           /* index into REG_BASE_strings */
   static THD_3dim_dataset * g_reg_base_dset = NULL ;  /* single volume dset */
@@ -861,6 +863,12 @@ PLUGIN_interface * PLUGIN_init( int ncall )
       if( ii >= 0 && ii <= 9999 ) regtime = ii ;
    }
 
+   ept = getenv("AFNI_REALTIME_Reg_Source_Chan") ;    /* 27 Oct 2016 */
+   if( ept != NULL ){
+      int ii = (int) rint(strtod(ept,NULL)) ;
+      if( ii >= 0 && ii <= 9999 ) g_reg_src_chan = ii ;
+   }
+
    PLUTO_add_option(plint, "" , "Registration Base" , FALSE ) ;
    PLUTO_add_hint  (plint, "choose registration base dataset and sub-brick");
    PLUTO_add_string(plint, "Reg Base", NREG_BASE, REG_BASE_strings,
@@ -871,6 +879,8 @@ PLUGIN_interface * PLUGIN_init( int ncall )
    PLUTO_add_hint( plint , "choose mask dataset for serial_helper" ) ;
    PLUTO_add_number(plint, "Base Image" , 0,9999,0 , regtime , TRUE ) ;
    PLUTO_add_hint  (plint, "registration base dataset index");
+   PLUTO_add_number(plint, "Src Chan" , 0,9999,0 , g_reg_src_chan , TRUE ) ;
+   PLUTO_add_hint  (plint, "registration source channel");
 
 
 
@@ -1117,6 +1127,8 @@ char * RT_main( PLUGIN_interface * plint )
 
          regtime = PLUTO_get_number(plint) ;
 
+         g_reg_src_chan = PLUTO_get_number(plint) ;  /* 27 Oct 2016 */
+
          /* if extern dset, copy single volume */
          if( g_reg_base_mode == RT_RBASE_MODE_EXTERN ) {
             if( ! g_reg_base_dset )
@@ -1137,9 +1149,10 @@ char * RT_main( PLUGIN_interface * plint )
          }
 
          if (verbose)
-            fprintf(stderr,"RTM: reg base mode '%s', index %d, dset %s\n",
+            fprintf(stderr,
+                    "RTM: reg base mode '%s', index %d, dset %s, src chan %d\n",
                     REG_BASE_strings[g_reg_base_mode], regtime,
-                    g_reg_base_dset ? "<found>" : "<empty>");
+                    g_reg_base_dset ? "<found>" : "<empty>", g_reg_src_chan);
 
          continue ;
       }
@@ -3763,7 +3776,8 @@ int RT_process_info( int ninfo , char * info , RT_input * rtin )
       }
    }  /* end of loop over command buffers */
 
-   /* check numte against num_chan (can equal, or numte == 1) */
+   /* check numte against num_chan (can equal, or numte == 1) */ {
+      }
    if( numte > 0 ) {
       if( rtin->num_chan > 1 && numte == 1 ) /* then dupe */
          for( jj=1; jj < rtin->num_chan; jj++ ) rtin->TE[jj] = rtin->TE[0] ;
@@ -3808,6 +3822,13 @@ int RT_process_info( int ninfo , char * info , RT_input * rtin )
        rtin->reg_mode = REGMODE_NONE ;
        fprintf(stderr,"RT: can't do 3D registration on 2D dataset!\n") ;
      }
+   }
+
+   /** 27 Oct 2016 [rickr]: check g_reg_src_chan against num_chan **/
+   if( (g_reg_src_chan < 0) || (g_reg_src_chan >= rtin->num_chan) ) {
+     fprintf(stderr,"RT: ** bad src_chan %d for %d channels, clearning...\n",
+             g_reg_src_chan, rtin->num_chan);
+     g_reg_src_chan = 0;
    }
 
    RT_check_info( rtin , 0 ) ;
@@ -4259,7 +4280,7 @@ void RT_start_dataset( RT_input * rtin )
             fprintf(stderr,"RTCM: using MERGE dset for registration grid\n");
          rtin->reg_dset = EDIT_empty_copy( rtin->mrg_dset ) ;
       } else
-         rtin->reg_dset = EDIT_empty_copy( rtin->dset[0] ) ;
+         rtin->reg_dset = EDIT_empty_copy( rtin->dset[g_reg_src_chan] ) ;
 
       tross_Append_History( rtin->reg_dset , "plug_realtime: registration" ) ;
 
@@ -5951,7 +5972,7 @@ void RT_registration_2D_realtime( RT_input * rtin )
 
    /*-- register all sub-bricks that aren't done yet --*/
 
-   ntt = DSET_NUM_TIMES( rtin->dset[0] ) ;
+   ntt = DSET_NUM_TIMES( rtin->dset[g_reg_src_chan] ) ;
    for( tt=rtin->reg_nvol ; tt < ntt ; tt++ )
       RT_registration_2D_onevol( rtin , tt ) ;
 
@@ -5972,7 +5993,7 @@ void RT_registration_2D_atend( RT_input * rtin )
 
    /* check if have enough data to register as ordered */
 
-   if( rtin->reg_base_index >= rtin->nvol[0] ){
+   if( rtin->reg_base_index >= rtin->nvol[g_reg_src_chan] ){
       fprintf(stderr,"RT: can't do %s registration: not enough 3D volumes!\a\n",
               REG_strings[REGMODE_2D_ATEND] ) ;
       DSET_delete( rtin->reg_dset ) ; rtin->reg_dset = NULL ;
@@ -5998,7 +6019,7 @@ void RT_registration_2D_atend( RT_input * rtin )
 
    /* register each volume into the new dataset */
 
-   ntt = DSET_NUM_TIMES( rtin->dset[0] ) ;
+   ntt = DSET_NUM_TIMES( rtin->dset[g_reg_src_chan] ) ;
    for( tt=0 ; tt < ntt ; tt++ ){
       XmUpdateDisplay( THE_TOPSHELL ) ;
       RT_registration_2D_onevol( rtin , tt ) ;
@@ -6040,7 +6061,8 @@ void RT_registration_2D_setup( RT_input * rtin )
 
    /* set pointer to base volume                         26 Aug 2009 [rickr] */
    if( rtin->reg_base_dset ) bar = DSET_BRICK_ARRAY(rtin->reg_base_dset, 0);
-   else                      bar = DSET_BRICK_ARRAY(rtin->dset[0], ibase);
+   else                      bar = DSET_BRICK_ARRAY(rtin->dset[g_reg_src_chan],
+                                                    ibase);
 
    nbar = im->nvox * im->pixel_size ;               /* offset for each slice */
 
@@ -6094,7 +6116,7 @@ void RT_registration_2D_onevol( RT_input * rtin , int tt )
 
    /*-- sanity check --*/
 
-   if( rtin->dset[0] == NULL || rtin->reg_dset == NULL ) return ;
+   if( rtin->dset[g_reg_src_chan] == NULL || rtin->reg_dset == NULL ) return ;
 
    nx   = DSET_NX( rtin->dset[0] ) ;
    ny   = DSET_NY( rtin->dset[0] ) ; nxy = nx * ny ;
@@ -6102,7 +6124,8 @@ void RT_registration_2D_onevol( RT_input * rtin , int tt )
    kind = DSET_BRICK_TYPE( rtin->dset[0] , 0 ) ;
 
    im   = mri_new_vol_empty( nx,ny,1 , kind ) ;     /* fake image for slices */
-   bar  = DSET_BRICK_ARRAY( rtin->dset[0] , tt ) ;  /* ptr to input volume   */
+   /* ptr to input volume   */
+   bar  = DSET_BRICK_ARRAY( rtin->dset[g_reg_src_chan] , tt ) ;
    nbar = im->nvox * im->pixel_size ;               /* offset for each slice */
 
    /* make space for new sub-brick in reg_dset */
@@ -6143,7 +6166,8 @@ void RT_registration_2D_onevol( RT_input * rtin , int tt )
       rtin->reg_phi = (float *) realloc( (void *) rtin->reg_phi ,
                                          sizeof(float) * (nest+1) ) ;
 
-      rtin->reg_tim[nest] = THD_timeof_vox( tt , kk*nxy , rtin->dset[0] ) ;
+      rtin->reg_tim[nest] = THD_timeof_vox( tt , kk*nxy ,
+                                            rtin->dset[g_reg_src_chan] ) ;
       rtin->reg_dx [nest] = dx * DSET_DX(rtin->dset[0]) ;
       rtin->reg_dy [nest] = dy * DSET_DY(rtin->dset[0]) ;
       rtin->reg_phi[nest] = phi * R2DFAC             ; rtin->reg_nest ++ ;
@@ -6238,9 +6262,9 @@ void RT_registration_3D_realtime( RT_input *rtin )
 
    if( rtin->reg_3dbasis == NULL ){  /* need to setup */
 
-      /* check if enough data to setup */
-
-      if( rtin->reg_base_index >= rtin->nvol[0] ) return ;  /* can't setup */
+      /* check if enough data to setup (0 -> g_reg_src_chan 27 Oct 2016) */
+      if( rtin->reg_base_index >= rtin->nvol[g_reg_src_chan] )
+         return ;  /* can't setup */
       /* rcr OC - applies to 1 and 2 */
       if( rtin->reg_chan_mode > RT_CM_RMODE_NONE &&
           rtin->reg_base_index >= rtin->mrg_nvol ) return ;
@@ -6306,7 +6330,7 @@ void RT_registration_3D_realtime( RT_input *rtin )
    if( rtin->reg_chan_mode > RT_CM_RMODE_NONE )
       ntt = DSET_NUM_TIMES( rtin->mrg_dset ) ;
    else
-      ntt = DSET_NUM_TIMES( rtin->dset[0] ) ;
+      ntt = DSET_NUM_TIMES( rtin->dset[g_reg_src_chan] ) ;
 
    ttbot = rtin->reg_nvol ;
    for( tt=ttbot ; tt < ntt ; tt++ )
@@ -6399,7 +6423,7 @@ void RT_registration_3D_atend( RT_input * rtin )
 
    /* register each volume into the new dataset */
 
-   ntt = DSET_NUM_TIMES( rtin->dset[0] ) ;
+   ntt = DSET_NUM_TIMES( rtin->dset[g_reg_src_chan] ) ;
    if( verbose == 1 ) fprintf(stderr,"RT: ") ;
    for( tt=0 ; tt < ntt ; tt++ ){
       XmUpdateDisplay( THE_TOPSHELL ) ;
@@ -6445,8 +6469,10 @@ int RT_registration_set_vr_base(RT_input * rtin)
    /* note dset to register                     27 May 2010 [rickr] */
    /* rcr OC - applies to 1 and 2
  *      also, can choose channel */
-   if( rtin->reg_chan_mode > RT_CM_RMODE_NONE ) dset = rtin->mrg_dset;
-   else                                         dset = rtin->dset[0];
+   if( rtin->reg_chan_mode > RT_CM_RMODE_NONE )
+      dset = rtin->mrg_dset;
+   else
+      dset = rtin->dset[g_reg_src_chan];  /* 0->g_reg_src_chan  27 Oct 2016 */
 
    /* If CUR_KEEP, create the global base dataset (deleting any old one).
       Note that we still do not need to set rtin->reg_base_dset. */
@@ -6499,8 +6525,10 @@ void RT_registration_3D_setup( RT_input * rtin )
 
    /* note dset to register                     27 May 2010 [rickr] */
    /* rcr OC - add case for option 3 */
-   if( rtin->reg_chan_mode > RT_CM_RMODE_NONE ) dset = rtin->mrg_dset;
-   else                                         dset = rtin->dset[0];
+   if( rtin->reg_chan_mode > RT_CM_RMODE_NONE )
+       dset = rtin->mrg_dset;
+   else
+       dset = rtin->dset[g_reg_src_chan];
 
    /*-- extract info about coordinate axes of dataset --*/
 
@@ -6612,17 +6640,20 @@ void RT_registration_3D_onevol( RT_input *rtin , int tt )
            - -1 means last channel (since possibly unknown?)
            - 0 is default in 0-based list
 
+        have g_reg_src_chan from AFNI_REALTIME_Reg_Source_Chan & GUI
         set RT_chmrg_reg_mode
         trace references to reg_chan_mode and RT_CM_RMODE_NONE
         add variable for Registration:SourceChan
         update Help
+        with multi-chan, why no reg_dset?
    */
 
    if( rtin->reg_chan_mode > RT_CM_RMODE_NONE ) {
       if(verbose && !tt) fprintf(stderr,"RTCM: using mrg_dset as reg source\n");
       source = rtin->mrg_dset ;
    }
-   else source = rtin->dset[0] ;
+   /* 0->g_reg_src_chan  27 Oct 2016 [rickr] */
+   else source = rtin->dset[g_reg_src_chan] ;
 
    if( source == NULL ) return ;
 
@@ -6879,10 +6910,12 @@ int RT_fim_recurse( RT_input *rtin , int mode )
 
    if( mode == INIT_MODE ){
 
-      dset_time = rtin->dset[0] ;       /* assign dset_time first   30 Oct 2003 [rickr] */
+      /* assign dset_time first   30 Oct 2003 [rickr] */
+      dset_time = rtin->dset[g_reg_src_chan] ;
 
-      /* now check for use of registered dataset                    30 Oct 2003 [rickr] */
-      if( (rtin->reg_mode == REGMODE_2D_RTIME) || (rtin->reg_mode == REGMODE_3D_RTIME) )
+      /* now check for use of registered dataset        30 Oct 2003 [rickr] */
+      if( (rtin->reg_mode == REGMODE_2D_RTIME) ||
+          (rtin->reg_mode == REGMODE_3D_RTIME) )
          dset_time = rtin->reg_dset;
 
       if( dset_time == NULL ) return -1 ;
