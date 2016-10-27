@@ -763,6 +763,68 @@ ENTRY("mri_3dalign_oneplus") ;
 }
 
 /*---------------------------------------------------------------------------*/
+/* apply rotate/shift parameters to list of images        27 Oct 2016 [rickr]
+
+   Like mri_3dalign_oneplus(), but expect that mri_3dalign_one() has already
+   happened, so parameters are known.
+*//*-------------------------------------------------------------------------*/
+
+MRI_IMARR * mri_3dalign_apply( MRI_3dalign_basis *basis, MRI_IMARR *imar ,
+                                 float dth1 , float dth2 , float dth3 ,
+                                 float ddx  , float ddy  , float ddz   )
+{
+   int nim = IMARR_COUNT(imar) , kk ;
+   MRI_IMAGE *bim , *outim ;
+   MRI_IMARR *outar ;
+
+ENTRY("mri_3dalign_apply") ;
+
+   INIT_IMARR (outar) ;
+
+   for( kk=0 ; kk < nim ; kk++ ){
+     bim = IMARR_SUBIM(imar,kk) ;
+
+     if( bim->kind == MRI_complex ){   /* special case! */
+       MRI_IMARR *impair ; MRI_IMAGE *rim,*iim , *xim,*yim ;
+       impair = mri_complex_to_pair(bim) ;
+       if( impair == NULL ){
+         ERROR_message("mri_complex_to_pair fails in mri_3dalign_apply! ") ;
+       } else {
+         rim = IMAGE_IN_IMARR(impair,0) ;
+         iim = IMAGE_IN_IMARR(impair,1) ;  FREE_IMARR(impair) ;
+         xim = THD_rota3D( rim ,
+                           ax1,dth1, ax2,dth2, ax3,dth3,
+                           dcode , ddx,ddy,ddz ) ; mri_free(rim) ;
+         yim = THD_rota3D( iim ,
+                           ax1,dth1, ax2,dth2, ax3,dth3,
+                           dcode , ddx,ddy,ddz ) ; mri_free(iim) ;
+         outim = mri_pair_to_complex(xim,yim) ; mri_free(xim) ; mri_free(yim) ;
+       }
+
+     } else {                  /* real-valued input */
+       outim = THD_rota3D( bim ,
+                           ax1,dth1, ax2,dth2, ax3,dth3, dcode , ddx,ddy,ddz ) ;
+
+       if( outim != NULL && outim->kind == MRI_float && clipit &&
+           (final_regmode == MRI_QUINTIC || final_regmode==MRI_CUBIC  ||
+            final_regmode == MRI_HEPTIC  || final_regmode==MRI_FOURIER  ) ){
+
+         register int ii ; register float ftop, fbot, *tar ;
+         ftop = mri_max(bim); fbot = mri_min(bim); tar = MRI_FLOAT_PTR(outim);
+         for( ii=0 ; ii < outim->nvox ; ii++ ){
+                 if( tar[ii] < fbot ) tar[ii] = fbot ;
+            else if( tar[ii] > ftop ) tar[ii] = ftop ;
+         }
+       }
+     }
+
+     ADDTO_IMARR(outar,outim) ;
+   }
+
+   RETURN(outar) ;
+}
+
+/*---------------------------------------------------------------------------*/
 
 MRI_IMARR * mri_3dalign_many( MRI_IMAGE *im , MRI_IMAGE *imwt , MRI_IMARR *ims ,
                               float *th1 , float *th2 , float *th3 ,
