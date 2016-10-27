@@ -702,6 +702,7 @@ static int  RT_mp_mask_free     ( RT_input * rtin );  /* 10 Nov 2006 [rickr] */
 static int  RT_mp_getenv        ( void );
 static int  RT_mp_show_time     ( char * mesg ) ;
 static int  RT_show_duration    ( char * mesg ) ;
+static int  RT_will_register_merged_dset(RT_input * rtin);    /* 27 Oct 2016 */
 
 /* string list functions (used for DRIVE_WAIT commands) */
 static int add_to_rt_slist    ( rt_string_list * slist, char * str );
@@ -4253,7 +4254,7 @@ void RT_start_dataset( RT_input * rtin )
       note: reg_chan_mode specifies to register the mrg_dset, and maybe
             the channel dsets as followers          19 May 2010 [rickr] */
    rtin->reg_chan_mode = RT_chmrg_reg_mode;
-   if( rtin->reg_chan_mode > RT_CM_RMODE_NONE ) {
+   if( RT_will_register_merged_dset(rtin) ) {
      if( ! rtin->mrg_dset ) {
        /* rcr OC - only for 1 and 2 now */
        if( verbose > 0 ) fprintf(stderr,"** RTCM: no merge dset to register\n");
@@ -4274,8 +4275,8 @@ void RT_start_dataset( RT_input * rtin )
         (rtin->dtype==DTYPE_3DTM) ){
 
       /* if registering mrg_dset, use it as base for reg_dset */
-      /* rcr OC - might not matter much */
-      if( rtin->reg_chan_mode > RT_CM_RMODE_NONE ) {
+      /* rcr OC - only if reg_chan_mode is 1 or 2 */
+      if( RT_will_register_merged_dset(rtin) ) {
          if( verbose > 1 )
             fprintf(stderr,"RTCM: using MERGE dset for registration grid\n");
          rtin->reg_dset = EDIT_empty_copy( rtin->mrg_dset ) ;
@@ -4555,6 +4556,17 @@ void RT_start_dataset( RT_input * rtin )
    }
 
    return ;
+}
+
+/* return whether this is true, whether we will register the
+ * merged dataset                        27 Oct 2016 [rickr] */
+static int RT_will_register_merged_dset(RT_input * rtin)
+{
+   if( (rtin->reg_chan_mode == RT_CM_RMODE_REG_MRG) ||
+       (rtin->reg_chan_mode == RT_CM_RMODE_REG_CHAN) )
+      return 1;
+
+   return 0;
 }
 
 /*--------------------------------------------------------------------
@@ -6266,7 +6278,7 @@ void RT_registration_3D_realtime( RT_input *rtin )
       if( rtin->reg_base_index >= rtin->nvol[g_reg_src_chan] )
          return ;  /* can't setup */
       /* rcr OC - applies to 1 and 2 */
-      if( rtin->reg_chan_mode > RT_CM_RMODE_NONE &&
+      if( RT_will_register_merged_dset(rtin) &&
           rtin->reg_base_index >= rtin->mrg_nvol ) return ;
 
       /* setup the registration process */
@@ -6327,7 +6339,7 @@ void RT_registration_3D_realtime( RT_input *rtin )
    /*-- register all sub-bricks that aren't done yet --*/
 
    /* rcr OC - applies to 1 and 2 */
-   if( rtin->reg_chan_mode > RT_CM_RMODE_NONE )
+   if( RT_will_register_merged_dset(rtin) )
       ntt = DSET_NUM_TIMES( rtin->mrg_dset ) ;
    else
       ntt = DSET_NUM_TIMES( rtin->dset[g_reg_src_chan] ) ;
@@ -6469,7 +6481,7 @@ int RT_registration_set_vr_base(RT_input * rtin)
    /* note dset to register                     27 May 2010 [rickr] */
    /* rcr OC - applies to 1 and 2
  *      also, can choose channel */
-   if( rtin->reg_chan_mode > RT_CM_RMODE_NONE )
+   if( RT_will_register_merged_dset(rtin) )
       dset = rtin->mrg_dset;
    else
       dset = rtin->dset[g_reg_src_chan];  /* 0->g_reg_src_chan  27 Oct 2016 */
@@ -6525,10 +6537,8 @@ void RT_registration_3D_setup( RT_input * rtin )
 
    /* note dset to register                     27 May 2010 [rickr] */
    /* rcr OC - add case for option 3 */
-   if( rtin->reg_chan_mode > RT_CM_RMODE_NONE )
-       dset = rtin->mrg_dset;
-   else
-       dset = rtin->dset[g_reg_src_chan];
+   if( RT_will_register_merged_dset(rtin) ) dset = rtin->mrg_dset;
+   else                                     dset = rtin->dset[g_reg_src_chan];
 
    /*-- extract info about coordinate axes of dataset --*/
 
@@ -6648,7 +6658,7 @@ void RT_registration_3D_onevol( RT_input *rtin , int tt )
         with multi-chan, why no reg_dset?
    */
 
-   if( rtin->reg_chan_mode > RT_CM_RMODE_NONE ) {
+   if( RT_will_register_merged_dset(rtin) ) {
       if(verbose && !tt) fprintf(stderr,"RTCM: using mrg_dset as reg source\n");
       source = rtin->mrg_dset ;
    }
