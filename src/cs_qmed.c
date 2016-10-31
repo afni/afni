@@ -1026,3 +1026,82 @@ float wtmed_float( int n , float *x , float *w )
 
    return 0.0f ;
 }
+
+/*------------------------------------------------------------------------*/
+
+float qfrac_float( int n , float frac , float *ar )
+{
+   register int i , j ;           /* scanning indices */
+   register float temp , pivot ;  /* holding places */
+   register float *a = ar ;
+
+   int left , right , mid , nodd ;
+
+   /* special cases */
+
+   if( n <= 0 ) return 0.0f ;
+   if( n == 1 ) return a[0] ;
+
+   if( frac <= 0.0f || frac >= 1.0f ) return 0.0f ;
+#if 0
+   if( frac == 0.5f ) return qmed_float(n,ar) ;
+#endif
+
+   if( n == 2 ){
+     float b=ar[0], t=ar[1] ;
+     if( b > t ) SWAP(b,t) ;
+     return (frac*t + (1.0f-frac)*b) ;
+   }
+
+   mid = (int)rintf(frac*n) ;
+
+   /* general case */
+
+   left = 0 ; right = n-1 ;
+
+   /* loop while the subarray is at least 3 long */
+
+   while( right-left > 1  ){  /* work on subarray from left -> right */
+
+      i = ( left + right ) / 2 ;   /* middle of subarray */
+
+      /* sort the left, middle, and right a[]'s */
+
+      if( a[left] > a[i]     ) SWAP( a[left]  , a[i]     ) ;
+      if( a[left] > a[right] ) SWAP( a[left]  , a[right] ) ;
+      if( a[i] > a[right]    ) SWAP( a[right] , a[i]     ) ;
+
+      pivot = a[i] ;                 /* a[i] is the median-of-3 pivot! */
+      a[i]  = a[right] ;
+
+      i = left ;                     /* initialize scanning */
+      j = right ;
+
+      /*----- partition:  move elements bigger than pivot up and elements
+                          smaller than pivot down, scanning in from ends -----*/
+
+      do{
+        for( ; a[++i] < pivot ; ) ;  /* scan i up,   until a[i] >= pivot */
+        for( ; a[--j] > pivot ; ) ;  /* scan j down, until a[j] <= pivot */
+
+        if( j <= i ) break ;         /* if j meets i, quit */
+
+        SWAP( a[i] , a[j] ) ;
+      } while( 1 ) ;
+
+      /*----- at this point, the array is partitioned -----*/
+
+      a[right] = a[i] ;           /* restore the pivot */
+      a[i]     = pivot ;
+
+      if( i == mid ){             /* good luck */
+         return pivot ;
+      }
+
+      if( i <  mid ) left  = i ; /* throw away bottom partition */
+      else           right = i ; /* throw away top partition    */
+
+   }  /* end of while sub-array is long */
+
+   return a[mid] ;
+}

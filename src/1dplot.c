@@ -1273,6 +1273,18 @@ int main( int argc , char *argv[] )
    if( nx < 2 )
      ERROR_exit("1dplot can't plot curves only 1 point long!\n") ;
 
+#if 0
+{ float qa,qb,qc,qm ; int jj ;
+  for( jj=0 ; jj < ny ; jj++ ){
+    qa = qfrac_float( nx , 0.40f , far+jj*nx ) ;
+    qb = qfrac_float( nx , 0.50f , far+jj*nx ) ;
+    qc = qfrac_float( nx , 0.60f , far+jj*nx ) ;
+    qm = qmed_float ( nx         , far+jj*nx ) ;
+    INFO_message("#%d: %.5f  %.5f  %.5f  %.5f",jj,qa,qb,qc,qm) ;
+  }
+}
+#endif
+
    /*--- select data to plot ---*/
 
    nts = ny ;
