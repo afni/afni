@@ -795,11 +795,12 @@ class SubjProcSream:
         self.bandpass     = []          # bandpass limits
         self.censor_file  = ''          # for use as '-censor FILE' in 3dD
         self.censor_count = 0           # count times censoring
-        self.censor_extern = ''         # from -regress_censor_extern
-        self.exec_cmd   = ''            # script execution command string
-        self.bash_cmd   = ''            # bash formatted exec_cmd
-        self.tcsh_cmd   = ''            # tcsh formatted exec_cmd
-        self.regmask    = 0             # apply any full_mask in regression
+        self.censor_extern= ''          # from -regress_censor_extern
+        self.skip_censor  = 0           # for use as '-censor FILE' in 3dD
+        self.exec_cmd     = ''          # script execution command string
+        self.bash_cmd     = ''          # bash formatted exec_cmd
+        self.tcsh_cmd     = ''          # tcsh formatted exec_cmd
+        self.regmask      = 0           # apply any full_mask in regression
         self.regress_orts = []          # list of ortvec [file, label] pairs
         self.regress_polort = 0         # applied polort
         self.origview   = '+orig'       # view could also be '+tlrc'
@@ -1817,6 +1818,9 @@ class SubjProcSream:
                print "** script creation failure for block '%s'" % block.label
                errs += 1
                break
+
+            # allow for early termination
+            if cmd_str == 'DONE': return None
 
             if block.post_cstr != '':
                if self.verb > 2:
@@ -2868,6 +2872,23 @@ class SubjProcSream:
 
        return 0
 
+    # ----------------------------------------------------------------------
+    # PPI regression script functions
+    def want_ppi_reg_scripts(self):
+        return 0
+
+    def ppi_nocensor(self):
+        """if censoring, make regression script without censoring
+           add -write_3dD options
+        """
+        # do not modify censor options, so filenames are as expected,
+        # just set flag to clear actual censor operation in regress block
+        proc.skip_censor = 1
+        return 0
+
+    def ppi_add_regs(self):
+        return 0
+
     # given a block, run, return a prefix of the form: pNN.SUBJ.rMM.BLABEL
     #    NN = block index, SUBJ = subj label, MM = run, BLABEL = block label
     # if surf_names: pbNN.SUBJ.rMM.BLABEL.HEMI.niml.dset
@@ -2999,31 +3020,72 @@ class ProcessBlock:
         print '------- %sProcessBlock: %s -------' % (mesg, self.label)
         self.opts.show('new options: ')
 
-def run_proc():
+def make_proc(do_reg_nocensor=0, do_reg_ppi=0):
+    """create proc instance
 
-    ps = SubjProcSream('subject regression')
-    ps.init_opts()
+       do_reg_no_censor : if set, create non-censored regress command
+       do_reg_ppi       : if set, pass PPI regs as extra stim files
 
-    rv = ps.get_user_opts()
+       return status and instance (if None, quit)
+    """
+    proc = SubjProcSream('subject regression')
+    proc.init_opts()
+
+    rv = proc.get_user_opts()
     if rv != None:  # 0 is a valid return
-        if rv != 0:
-            show_args_as_command(ps.argv, "** failed command (get_user_opts):")
-        return rv
+       if rv != 0:
+          show_args_as_command(proc.argv, "** failed command (get_user_opts):")
+       return rv, None
+
+    # ----------------------------------------------------------------------
+    # possibly adjust options before any processing
+
+    # possibly omit censor options (implies -write_3dD_*)
+    # (if no censoring already, does nothing)
+    if do_reg_nocensor:
+       if proc.ppi_nocensor():
+          return 1, None
+
+    # possibly add PPI regressors as extra stim files (implies -write_3dD_*)
+    if do_reg_ppi:
+       if proc.ppi_add_regs():
+          return 1, None
 
     # run db_mod functions, and possibly allow other mods
-    if ps.create_blocks():
-        show_args_as_command(ps.argv, "** failed command (create_blocks):")
-        return rv
+    if proc.create_blocks():
+       show_args_as_command(proc.argv, "** failed command (create_blocks):")
+       return 1, None
+    # ----------------------------------------------------------------------
 
-    # run db_cm functions, to create the script
-    rv = ps.create_script()
+    # run db_cmd functions, to create the script
+    rv = proc.create_script()
     if rv != None:  # terminal, but do not display command on 0
-        if rv != 0:
-            show_args_as_command(ps.argv, "** failed command (create_script):")
-        return 1
+       if rv > 0:
+          show_args_as_command(proc.argv, "** failed command (create_script):")
+       return rv, None
+
+    return 0, proc
+
+def run_proc():
+
+    # creat proc script
+    rv, proc = make_proc()
+    if proc == None: return rv
+
+    # maybe make PPI regression scripts
+    if proc.want_ppi_reg_scripts():
+       # possibly make nocensor script
+       rv, ppi_proc  = make_proc(do_reg_nocensor=1)
+       if ppi_proc == None: return rv
+       del(ppi_proc)
+
+       # make PPI regresion script
+       rv, ppi_proc = make_proc(do_reg_ppi=1)
+       if ppi_proc == None: return rv
+       del(ppi_proc)
 
     # finally, execute if requested
-    if ps.user_opts.find_opt('-execute'): rv = os.system(ps.bash_cmd)
+    if proc.user_opts.find_opt('-execute'): rv = os.system(proc.bash_cmd)
 
     return rv
 
