@@ -5678,7 +5678,7 @@ def regress_pc_followers_regressors(proc, optname, roipcs, pcdset,
             cstr = ' and further pad to fill across all runs'
             cout_name = '-'
          else:
-            newname = '%s_cfill.1D' % pclabel
+            newname = '%s.1D' % pclabel
             cstr = ''
             cout_name = newname
 
