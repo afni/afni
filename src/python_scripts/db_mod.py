@@ -4345,9 +4345,16 @@ def db_cmd_regress(proc, block):
     else:                         nricor = 0
     total_nstim =  len(proc.stims) + len(proc.extra_stims) + nmotion + nricor
     
-    # maybe we will censor
+    # add any censor option
     if proc.censor_file: censor_str = '    -censor %s' % proc.censor_file
     else:                censor_str = ''
+
+    # --------------------------------------------------
+    # if skip_censor, either clear censor_str or just do an early return
+    # (early return via 'DONE' terminates this proc instance)
+    if proc.skip_censor:
+       if proc.censor_file: censor_str = ''
+       else:                return 'DONE'
 
     # check for regress_orts lines
     reg_orts = []
@@ -4633,7 +4640,7 @@ def db_cmd_regress(proc, block):
                 'set prefix_3dd = %s\n\n' % (proc.subj_id, proc.prefix_3dD)
        UTIL.write_text_to_file(proc.script_3dD, header+c3d, wrap=1, exe=1)
        print '++ writing 3dDeconvolve script %s ...' % proc.script_3dD
-       sys.exit(0)
+       return 'DONE'
 
     # if 3dDeconvolve fails, terminate the script
     # (rcr - maybe just skip this in case of surfaces)
