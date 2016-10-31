@@ -4,6 +4,13 @@
 
 #include "mrilib.h"
 
+#undef DECLARE_ithr   /* 30 Nov 2015 */
+#ifdef USE_OMP
+# define DECLARE_ithr const int ithr=omp_get_thread_num()
+#else
+# define DECLARE_ithr const int ithr=0
+#endif
+
 /*---------------------------------------------------------------------------*/
 /* Cluster definition.  Index type ind_t can be byte or short. */
 
@@ -170,6 +177,18 @@ typedef struct {
    For use only in the function directly below!
 *//*--------------------------------------------------------------------------*/
 
+static float **cthar = NULL ;
+static int   *ncthar = NULL ;
+static int   *kcthar = NULL ;
+
+#define ADDTO_CTHAR(val,ith)                                                 \
+ do{ if( kcthar[ith] >= ncthar[ith] ){                                       \
+      ncthar[ith] = 2*kcthar[ith] ;                                          \
+       cthar[ith] = (float *)realloc(cthar[ith],sizeof(float)*ncthar[ith]);  \
+     }                                                                       \
+     cthar[ith][kcthar[ith]++] = (val) ;                                     \
+ } while(0)
+
 #define CPUT_point(i,j,k)                                                    \
  do{ int pqr = (i)+(j)*nx+(k)*nxy , npt=(xcc)->npt ;                         \
      if( far[pqr] != 0.0f ){                                                 \
@@ -184,7 +203,7 @@ typedef struct {
        (xcc)->ijk[npt] = pqr ;                                               \
        (xcc)->npt++ ; (xcc)->norig++ ;                                       \
        (xcc)->fom += ADDTO_FOM(far[pqr]) ;                                   \
-       cth        += (car != NULL) ? car[pqr] : 0.0f ;                       \
+       if( car != NULL ) ADDTO_CTHAR(car[pqr],ithr) ;                        \
        far[pqr] = 0.0f ;                                                     \
      } } while(0)
 
@@ -203,6 +222,7 @@ Xcluster_array * find_Xcluster_array( MRI_IMAGE *fim, int nnlev, MRI_IMAGE *cim 
    int ip,jp,kp , im,jm,km , nx,ny,nz,nxy,nxyz ;
    const int do_nn2=(nnlev > 1) , do_nn3=(nnlev > 2) ;
    const int hpow=0 ;
+   DECLARE_ithr ;
 
    far = MRI_FLOAT_PTR(fim) ;
    car = (cim != NULL) ? MRI_FLOAT_PTR(cim) : NULL ;
@@ -228,7 +248,11 @@ Xcluster_array * find_Xcluster_array( MRI_IMAGE *fim, int nnlev, MRI_IMAGE *cim 
      xcc->ijk[0]= ijk;
      xcc->npt   = xcc->norig = 1 ;
      xcc->fom   = ADDTO_FOM(far[ijk]) ; far[ijk] = 0.0f ;
-     cth        = (car != NULL) ? car[ijk] : 0.0f ;
+     if( car != NULL ){
+       cthar[ithr][0] = car[ijk] ; kcthar[ithr] = 1 ;
+     } else {
+       kcthar[ithr] = 0 ;
+     }
 
      /* loop over points in cluster, checking their neighbors,
         growing the cluster if we find any that belong therein */
@@ -278,7 +302,15 @@ Xcluster_array * find_Xcluster_array( MRI_IMAGE *fim, int nnlev, MRI_IMAGE *cim 
      } /* since xcc->npt increases if CPUT_point adds the point,
           the loop continues until finally no new neighbors get added */
 
-     cth /= xcc->npt ;  /* average FOM threshold over this cluster */
+     if( car != NULL && kcthar[ithr] > 0 ){
+#if 1
+       cth = qmean_float( kcthar[ithr] , cthar[ithr] ) ;
+#else
+       cth = qfrac_float( kcthar[ithr] , 0.555f , cthar[ithr] ) ;
+#endif
+     } else {
+       cth = 0.0f ;
+     }
 
      /* decide what to do with this cluster */
 
@@ -300,12 +332,43 @@ Xcluster_array * find_Xcluster_array( MRI_IMAGE *fim, int nnlev, MRI_IMAGE *cim 
 
 /*----------------------------------------------------------------------------*/
 
+void mri_multi_threshold_setup(void)
+{
+   int nthr=1 , ithr ;
+#ifdef USE_OMP
+   nthr = omp_get_max_threads() ;
+#endif
+    cthar = (float **)malloc(sizeof(float *)*nthr) ;
+   ncthar = (int *   )malloc(sizeof(int)*nthr) ;
+   kcthar = (int *   )malloc(sizeof(int)*nthr) ;
+   for( ithr=0 ; ithr < nthr ; ithr++ ){
+     cthar[ithr] = (float *)malloc(sizeof(float)*4096) ;
+    ncthar[ithr] = 4096 ;
+    kcthar[ithr] = 0 ;
+   }
+   return ;
+}
+
+void mri_multi_threshold_unsetup(void)
+{
+   int nthr=1 , ithr ;
+   if( cthar != NULL ) return ;
+#ifdef USE_OMP
+   nthr = omp_get_max_threads() ;
+#endif
+   for( ithr=0 ; ithr < nthr ; ithr++ ) free(cthar[ithr]) ;
+   free(cthar) ; free(ncthar) ; free(kcthar) ;
+   return ;
+}
+
+/*----------------------------------------------------------------------------*/
+
 #define XTHRESH_OUTPUT_MASK  1
 
 /*----------------------------------------------------------------------------*/
 /* fim   = image to threshold
    nthr  = num thresholds   (at least 1)
-   thar  = threshold array
+   thar  = threshold array  (length nthr)
    sid   = sideness of threshold (1 or 2)
    nnlev = NN cluster type (1 or 2 or 3)
    cimar = array of cluster fom threshold images
