@@ -555,9 +555,13 @@ g_history = """
     5.09 Oct 24, 2016:
         - bandpass notes and reference
         - stronger warning on missing -tlrc_base dataset
+    5.10 Oct 31, 2016: adding scary options...
+        - added -regress_skip_censor
+        - added -write_3dD_ppi_scripts to go with:
+        - added -regress_ppi_stim_files, -regress_ppi_stim_labels
 """
 
-g_version = "version 5.09, October 24, 2016"
+g_version = "version 5.10, October 31, 2016"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \
@@ -972,6 +976,8 @@ class SubjProcSream:
                        helpstr="prefix for output files via -write_3dD_script")
         self.valid_opts.add_opt('-write_3dD_script', 1, [],
                        helpstr="only write 3dDeconvolve script (to given file)")
+        self.valid_opts.add_opt('-write_3dD_ppi_scripts', 0, [],
+                       helpstr="flag: write no-censor and PPI extras scripts")
         self.valid_opts.add_opt('-verb', 1, [],
                         helpstr="set the verbose level")
 
@@ -1197,6 +1203,8 @@ class SubjProcSream:
                         helpstr="censor TR if outlier fraction exceeds limit")
         self.valid_opts.add_opt('-regress_skip_first_outliers', 1, [],
                         helpstr="ignore outliers in first few TRs of each run")
+        self.valid_opts.add_opt('-regress_skip_censor', 0, [],
+                        helpstr="process normally, but omit 3dD -censor option")
 
         self.valid_opts.add_opt('-regress_fout', 1, [],
                         acplist=['yes','no'],
@@ -1241,6 +1249,10 @@ class SubjProcSream:
                         helpstr="extra -stim_files to apply")
         self.valid_opts.add_opt('-regress_extra_stim_labels', -1, [], okdash=0,
                         helpstr="labels for extra -stim_files")
+        self.valid_opts.add_opt('-regress_ppi_stim_files', -1, [], okdash=0,
+                        helpstr="extra PPI -stim_files to apply")
+        self.valid_opts.add_opt('-regress_ppi_stim_labels', -1, [], okdash=0,
+                        helpstr="extra PPI -stim_labels to apply")
 
         self.valid_opts.add_opt('-regress_compute_fitts', 0, [],
                         helpstr="compute fitts only after 3dDeconvolve")
@@ -1322,6 +1334,8 @@ class SubjProcSream:
         self.valid_opts.add_opt('-regress_run_clustsim', 1, [],
                         acplist=clustsim_types,
                         helpstr="add 3dClustSim attrs to regression bucket")
+
+        # PPI options
 
         self.valid_opts.trailers = 0   # do not allow unknown options
         
@@ -1471,6 +1485,10 @@ class SubjProcSream:
         if opt != None:
            self.script_3dD = opt.parlist[0]
            self.make_main_script = 0
+
+        opt = opt_list.find_opt('-write_3dD_nocensor')
+        if opt != None:
+           self.skip_censor = 1
 
         opt = opt_list.find_opt('-scr_overwrite')
         if opt != None: self.overwrite = 1
@@ -1852,7 +1870,7 @@ class SubjProcSream:
             # default to removing any created script
             opt = self.user_opts.find_opt('-keep_script_on_err')
             if not opt or opt_is_no(opt):
-                os.remove(self.script)
+                if os.path.isfile(self.script): os.remove(self.script)
             return 1    # so we print all errors before leaving
 
         self.report_final_messages()
@@ -2875,18 +2893,70 @@ class SubjProcSream:
     # ----------------------------------------------------------------------
     # PPI regression script functions
     def want_ppi_reg_scripts(self):
+        if self.user_opts.find_opt('-write_3dD_ppi_scripts'):
+           return 1
         return 0
 
-    def ppi_nocensor(self):
+    def do_nocensor(self):
         """if censoring, make regression script without censoring
-           add -write_3dD options
+           adjust self.script_3dD and self.prefix_3dD
         """
+
         # do not modify censor options, so filenames are as expected,
         # just set flag to clear actual censor operation in regress block
-        proc.skip_censor = 1
+        self.skip_censor = 1
+
+        # do no make main script
+        self.make_main_script = 0
+
+        if self.script_3dD: self.script_3dD += '.0.nocensor'
+        else:               self.script_3dD =  'ppi_3dD_cmd.0.nocensor'
+
+        if self.prefix_3dD: self.prefix_3dD += '0.nocensor.'
+        else:               self.prefix_3dD =  'ppi.0.nocensor.'
+
         return 0
 
     def ppi_add_regs(self):
+        """append PPI regressors and labels to extras and labels
+           (self.test_stims is cleared via script_3dD)
+        """
+
+        errs = 0
+
+        # get files and labels
+
+        oname = '-regress_ppi_stim_files'
+        pregs, rv = self.user_opts.get_string_list(oname)
+        if pregs == None or len(pregs) < 1:
+           print '** missing %s list' % oname
+           errs += 1
+        
+        oname = '-regress_ppi_stim_labels'
+        plabs, rv = self.user_opts.get_string_list(oname)
+        if plabs == None or len(plabs) < 1:
+           print '** missing %s list' % oname
+           errs += 1
+
+        if errs: return 1
+
+        # append to extras
+
+        oname = '-regress_extra_stim_files'
+        self.user_opts.append_to_opt(oname, pregs)
+
+        oname = '-regress_extra_stim_labels'
+        self.user_opts.append_to_opt(oname, plabs)
+
+        # make 3dD scripts
+        self.make_main_script = 0
+
+        if self.script_3dD: self.script_3dD += '.1.ppi'
+        else:               self.script_3dD =  'ppi_3dD_cmd.1.ppi'
+
+        if self.prefix_3dD: self.prefix_3dD += '1.ppi.'
+        else:               self.prefix_3dD =  'ppi.1.ppi.'
+
         return 0
 
     # given a block, run, return a prefix of the form: pNN.SUBJ.rMM.BLABEL
@@ -3040,10 +3110,10 @@ def make_proc(do_reg_nocensor=0, do_reg_ppi=0):
     # ----------------------------------------------------------------------
     # possibly adjust options before any processing
 
-    # possibly omit censor options (implies -write_3dD_*)
+    # if requested, omit censor options (implies -write_3dD_*)
     # (if no censoring already, does nothing)
     if do_reg_nocensor:
-       if proc.ppi_nocensor():
+       if proc.do_nocensor():
           return 1, None
 
     # possibly add PPI regressors as extra stim files (implies -write_3dD_*)
@@ -3074,6 +3144,7 @@ def run_proc():
 
     # maybe make PPI regression scripts
     if proc.want_ppi_reg_scripts():
+
        # possibly make nocensor script
        rv, ppi_proc  = make_proc(do_reg_nocensor=1)
        if ppi_proc == None: return rv
