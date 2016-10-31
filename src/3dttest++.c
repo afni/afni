@@ -1781,7 +1781,7 @@ int main( int argc , char *argv[] )
      if( strcmp(argv[nopt],"-dofsub") == 0 ){  /* 19 Jan 2016 [hidden option] */
        if( ++nopt >= argc )
          ERROR_exit("Need argument after '%s'",argv[nopt-1]) ;
-       if( !isdigit(argv[nopt][0]) )
+       if( !isdigit(argv[nopt][0]) && argv[nopt][0] != '-' )
          ERROR_exit("Value after '%s' must be a number",argv[nopt-1]) ;
        dofsub = (int)strtod(argv[nopt],NULL) ;
        nopt++ ; continue ;
@@ -2895,6 +2895,10 @@ LABELS_ARE_DONE:  /* target for goto above */
      bstep =0 ;
    }
 
+   if( do_Xclustsim && dofsub == 0 ){
+     dofsub = (int)rintf(0.0999f*(nval_AAA+nval_BBB)) ;
+   }
+
    for( bb=0 ; bb < brickwise_num ; bb++ ){  /* for each 'brick' to process */
      bbase = bb*nvout ;
 
@@ -3255,10 +3259,8 @@ LABELS_ARE_DONE:  /* target for goto above */
          sprintf( cmd , "3dttest++ -DAFNI_AUTOMATIC_FDR=NO -DAFNI_DONT_LOGFILE=YES"
                         " -RANDOMSIGN %d -nomeans -toz" , nper ) ;
 
-       if( twosam )
-         sprintf( cmd+strlen(cmd) , " -no1sam -dofsub 2") ;
-       else
-         sprintf( cmd+strlen(cmd) , " -dofsub 1" ) ;
+       sprintf( cmd+strlen(cmd) , " -no1sam -dofsub %d",-dofsub) ;
+
        if( name_mask != NULL )
          sprintf( cmd+strlen(cmd) , " -mask %s",name_mask) ;
        if( ttest_opcode == 1 )
