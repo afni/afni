@@ -25,7 +25,7 @@ help.LME.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
           ================== Welcome to 3dLME ==================          
     AFNI Group Analysis Program with Multi-Variate Modeling Approach
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 1.8.1, Sept 29, 2016
+Version 1.8.2, OCt 26, 2016
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - https://afni.nimh.nih.gov/sscc/gangc/lme.html
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -235,7 +235,17 @@ read.LME.opts.batch <- function (args=NULL, verb = 0) {
    "         if present, should be interpreted as the effect with each factor",
    "         at the reference level (alphabetically the lowest level) for each",
    "         factor and with each quantitative covariate at the center value.\n", sep = '\n'
-                     ) ),
+      ) ),
+
+      '-resid' = apl(n = 1, d = NA,  h = paste(
+   "-resid PREFIX: Output file name for the residuals. For AFNI format, provide",
+   "         prefix only without view+suffix. Filename for NIfTI format should",
+   "         have .nii attached, while file name for surface data is expected",
+   "         to end with .niml.dset. The sub-brick labeled with the '(Intercept)',",
+   "         if present, should be interpreted as the effect with each factor",
+   "         at the reference level (alphabetically the lowest level) for each",
+   "         factor and with each quantitative covariate at the center value.\n", sep = '\n'
+                     ) ),       
 
       '-mask' = apl(n=1,  d = NA, h = paste(
    "-mask MASK: Process voxels inside this mask only.\n",
@@ -522,7 +532,8 @@ read.LME.opts.batch <- function (args=NULL, verb = 0) {
       opname <- opname[length(opname)];
       switch(opname,
              prefix = lop$outFN  <- pprefix.AFNI.name(ops[[i]]),
-             mask = lop$maskFN <- ops[[i]],
+             resid  = lop$resid  <- pprefix.AFNI.name(ops[[i]]),
+             mask   = lop$maskFN <- ops[[i]],
              jobs   = lop$nNodes <- ops[[i]],
              cutoff = lop$cutoff <- ops[[i]],
              model  = lop$model  <- ops[[i]],
@@ -694,11 +705,28 @@ process.LME.opts <- function (lop, verb = 0) {
    }      
    
    #Make sure new io must be used with anything but BRIK format
-   an <- parse.AFNI.name(lop$outFN)
+   #an <- parse.AFNI.name(lop$outFN)
    if(an$type != 'BRIK' && lop$iometh != 'clib') 
       errex.AFNI(c('Must of use -cio option with any input/output ',
                    'format other than BRIK'))
 
+   if(!is.null(lop$resid)) {
+      an2 <- parse.AFNI.name(lop$resid)
+      if(an2$type == "NIML") {
+         if(file.exists(lop$resid)) errex.AFNI(c("File ", lop$resid, " exists! Try a different name.\n"))
+      } else if(file.exists(paste(lop$resid,"+tlrc.HEAD", sep="")) || 
+        file.exists(paste(lop$resid,"+tlrc.BRIK", sep="")) || 
+        file.exists(paste(lop$resid,"+orig.HEAD", sep="")) || 
+        file.exists(paste(lop$resid,"+orig.BRIK", sep=""))) {
+        errex.AFNI(c("File ", lop$resid, " exists! Try a different name.\n"))
+        return(NULL)
+      }  
+      #Make sure new io must be used with anything but BRIK format
+      #an <- parse.AFNI.name(lop$resid)
+      if(an2$type != 'BRIK' && lop$iometh != 'clib') 
+          errex.AFNI(c('Must of use -cio option with any input/output ',
+                       'format other than BRIK'))   
+   }
    # assume the quantitative variables are separated by + here
    if(!is.na(lop$qVars)) lop$QV <- strsplit(lop$qVars, '\\,')[[1]]
    if(!is.na(lop$vVars[1])) lop$vQV <- strsplit(lop$vVars, '\\,')[[1]]
@@ -806,14 +834,24 @@ process.LME.opts <- function (lop, verb = 0) {
       lop$covValListF <- glf[[3]]
    }
    
-   if(lop$iometh == 'Rlib') 
-      lop$outFN <- paste(lop$outFN, "+tlrc", sep="") else {
-      an <- parse.AFNI.name(lop$outFN)
+   if(lop$iometh == 'Rlib') {
+      lop$outFN <- paste(lop$outFN, "+tlrc", sep="")
+      if(!is.null(lop$resid)) lop$resid <- paste(lop$resid, "+tlrc", sep="")
+   } else {
+      #an <- parse.AFNI.name(lop$outFN)
       if(an$type == "BRIK" && an$ext == "" && is.na(an$view))
          lop$outFN <- paste(lop$outFN, "+tlrc", sep="")      
       if (exists.AFNI.name(lop$outFN) || 
           exists.AFNI.name(modify.AFNI.name(lop$outFN,"view","+tlrc")))
          errex.AFNI(c("File ", lop$outFN, " exists! Try a different name.\n"))
+      if(!is.null(lop$resid)) {
+         #an2 <- paste(lop$resid, "+tlrc", sep="")      
+         if(an2$type == "BRIK" && an2$ext == "" && is.na(an2$view))
+            lop$resid <- paste(lop$resid, "+tlrc", sep="")      
+         if (exists.AFNI.name(lop$resid) || 
+             exists.AFNI.name(modify.AFNI.name(lop$resid,"view","+tlrc")))
+             errex.AFNI(c("File ", lop$resid, " exists! Try a different name.\n"))
+      }
    }
 
    if(lop$nNodes < 1) lop$nNodes <- 1
@@ -846,7 +884,9 @@ scanLine <- function(file, lnNo=1, marker="\\:")
 
 # heavy computation with voxel-wise analysis
 runLME <- function(inData, dataframe, ModelForm) {
+   #if(is.null(lop$resid)) Stat <- rep(0, lop$NoBrick) else Stat <- rep(0, lop$NoBrick+length(inData))
    Stat <- rep(0, lop$NoBrick)
+   if(!is.null(lop$resid)) resid <- rep(0, length(inData))
    if (!all(abs(inData) < 10e-8)) {        
       dataframe$Beta<-inData
       fm <- NULL
@@ -896,8 +936,10 @@ runLME <- function(inData, dataframe, ModelForm) {
             if(!is.null(glfRes)) Stat[lop$nF[1]+2*lop$num_glt+2*lop$nBasis+ii] <- glfRes[2,2] # chi-sq value
             #Stat[lop$nF[1]+2*lop$num_glt+ii] <- qnorm(glfRes[2,3]/2, lower.tail = F)  # convert chisq to Z
          }
+         resid <- unname(residuals(fm))
       }
    }
+   if(!is.null(lop$resid)) Stat <- c(Stat, resid)
    return(Stat)	
 }
 # test runLME(inData[20,20,20,], dataframe=lop$dataStr, ModelForm=ModelForm)      
@@ -1564,7 +1606,7 @@ if(lop$ICC) {  # ICC part
       # pad with extra 0s
       inData <- rbind(inData, array(0, dim=c(fill, NoFile)))
       # declare output receiver
-      Stat <- array(0, dim=c(dimx_n, nSeg, lop$NoBrick))
+      Stat <- array(0, dim=c(dimx_n, nSeg, lop$NoBrick+(!is.null(lop$resid))*nrow(lop$dataStr)))
       # break input multiple segments for parrel computation
       dim(inData) <- c(dimx_n, nSeg, NoFile)
       if (lop$nNodes==1) for(kk in 1:nSeg) {
@@ -1593,13 +1635,13 @@ if(lop$ICC) {  # ICC part
       stopCluster(cl)
       }
       # convert to 4D
-      dim(Stat) <- c(dimx_n*nSeg, 1, 1, lop$NoBrick)
+      dim(Stat) <- c(dimx_n*nSeg, 1, 1, lop$NoBrick+(!is.null(lop$resid))*nrow(lop$dataStr))
       # remove the trailers (padded 0s)
       Stat <- Stat[-c((dimx_n*nSeg-fill+1):(dimx_n*nSeg)), 1, 1,,drop=F]
       
    } else {  # LME with volumetric data  
       # Initialization
-      Stat <- array(0, dim=c(dimx, dimy, dimz, lop$NoBrick))
+      Stat <- array(0, dim=c(dimx, dimy, dimz, lop$NoBrick+(!is.null(lop$resid))*nrow(lop$dataStr)))
    
       if (lop$nNodes==1) for (kk in 1:dimz) {
          if(lop$NoBrick > 1) Stat[,,kk,] <- aperm(apply(inData[,,kk,], c(1,2), runLME, dataframe=lop$dataStr, 
@@ -1672,14 +1714,18 @@ if(lop$ICC) {  # ICC part
 } # if(lop$ICC)
 
 #statpar <- paste(statpar, " -addFDR -newid ", lop$outFN)
-write.AFNI(lop$outFN, Stat, outLabel, defhead=head, idcode=newid.AFNI(),
+write.AFNI(lop$outFN, Stat[,,,1:lop$NoBrick], outLabel, defhead=head, idcode=newid.AFNI(),
    com_hist=lop$com_history, statsym=statsym, addFDR=1, type='MRI_short')
 if(lop$LOGIT) {
    write.AFNI(paste(parse.AFNI.name(lop$outFN)$path, paste('/cutoff_', parse.AFNI.name(lop$outFN)$prefix, sep=''), sep=''),
       cutoff, label=NULL, defhead=head, idcode=newid.AFNI(), com_hist=lop$com_history, type='MRI_short')
    write.AFNI(paste(parse.AFNI.name(lop$outFN)$path, paste('/acc_', parse.AFNI.name(lop$outFN)$prefix, sep=''), sep=''),
       acc, label=NULL, defhead=head, idcode=newid.AFNI(), com_hist=lop$com_history, type='MRI_short')
-}    
+}
+if(!is.null(lop$resid))
+   write.AFNI(lop$resid, Stat[,,,(lop$NoBrick+1):(lop$NoBrick+(!is.null(lop$resid))*nrow(lop$dataStr))],
+      label=NULL, defhead=head, idcode=newid.AFNI(), com_hist=lop$com_history, type='MRI_short')
+
 #system(statpar)
 print(sprintf("Congratulations! You've got an output %s", lop$outFN))
 
