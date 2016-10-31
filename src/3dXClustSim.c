@@ -770,6 +770,8 @@ int main( int argc , char *argv[] )
        INFO_message("3dXClustSim: Using 1 thread -- this will be slow :-(") ;
    }
 
+   mri_multi_threshold_setup() ;
+
    /*--- skip all the cluster size thresholding calculations,
          and just compute the final result for the fixed thresholds;
          this is for testing and comparison with directly input parameters ---*/
@@ -999,7 +1001,7 @@ int main( int argc , char *argv[] )
        if( ndilstep < NDILMAX-1 && ndilsum < niter/50 ) break ;
      } /* end of loop over dilation steps */
 ININFO_message(" p=%.5f did %d dilation loops with %d cluster dilations",
-               pthr[qpthr],ndilstep,ndiltot) ;
+               pthr[qpthr],ndilstep+1,ndiltot) ;
    } /* end of loop over p-value thresh cluster collection */
 
    /* free the counting workspace for each thread */
@@ -1212,8 +1214,8 @@ FARP_LOOPBACK:
         for( ipthr=0 ; ipthr < npthr ; ipthr++ ){ /* over p-value thresh */
           npt = fomsort[ipthr][iv]->npt ;    /* how many FOM values here */
           jthresh = ithresh ;             /* default index of FOM thresh */
-          if( jthresh > (int)(0.333f*npt) ){
-            jthresh = (int)(0.333f*npt) ;
+          if( jthresh > (int)(0.222f*npt) ){
+            jthresh = (int)(0.222f*npt) ;
 #pragma omp atomic
             nedge++ ;
           }
@@ -1265,8 +1267,8 @@ FARP_LOOPBACK:
      farpercold = farperc ;               /* save what we got last time */
      farperc    = (100.0*nfar)/(float)niter ;  /* what we got this time */
      if( verb )
-       ININFO_message("#%2d: False Alarm count = %d  Rate = %.2f%%  [nedge=%d]",
-                      itrac, nfar, farperc, nedge ) ;
+       ININFO_message("#%2d: FPR = %.2f%%  [nedge=%d]",
+                      itrac, farperc/FGFAC, nedge ) ;
 
      /* do we need to try another tfrac to get closer to our goal? */
 
@@ -1275,19 +1277,17 @@ FARP_LOOPBACK:
      else                 farcut = 0.333f ;
      if( !(do_fixed || do_mfixed) && itrac < 13 && fabsf(farperc-FG_GOAL) > farcut ){
        float fff ;
-       if( itrac == 1 || (farperc-FG_GOAL)*(farpercold-FG_GOAL) > 0.0f ){
+       if( itrac == 1 || (farperc-FG_GOAL)*(farpercold-FG_GOAL) > 0.0f ){ /* scale */
          fff = FG_GOAL/farperc ;
          if( fff > 2.222f ) fff = 2.222f ; else if( fff < 0.450f ) fff = 0.450f ;
-/* ININFO_message("   scale tfrac by %g -- fold=%g fnew=%g",fff,farpercold,farperc) ; */
          ttemp = tfrac ; tfrac *= fff ;
-       } else {
+       } else {                                             /* inverse interpolate */
          fff = (farperc-farpercold)/(tfrac-tfracold) ;
          ttemp = tfrac ; tfrac = tfracold + (FG_GOAL-farpercold)/fff ;
-/* ININFO_message("   interpolate tfrac from told=%g fold=%g tnew=%g fnew=%g",
-               tfracold,farpercold,ttemp,farperc) ; */
        }
        tfracold = ttemp ;
-       if( tfrac < min_tfrac ) tfrac = min_tfrac ; else if( tfrac > 0.005f ) tfrac = 0.005f ;
+            if( tfrac < min_tfrac ) tfrac = min_tfrac ;
+       else if( tfrac > 0.005f    ) tfrac = 0.005f ;
        goto FARP_LOOPBACK ;
      }
 

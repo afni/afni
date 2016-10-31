@@ -153,10 +153,14 @@ int main( int argc , char *argv[] )
 
    /* get the mask of values above the multi-thresholds */
 
+   mri_multi_threshold_setup() ;
+
    bfim = mri_multi_threshold_Xcluster( fim ,
                                         nzthr , zthr , nnsid , nnlev ,
                                         mset->dblk->brick ,
                                         XTHRESH_OUTPUT_MASK , &nhits ) ;
+
+   mri_multi_threshold_unsetup() ;
 
    mri_free(fim) ; DSET_unload(mset) ;
 

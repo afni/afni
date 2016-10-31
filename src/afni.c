@@ -1880,6 +1880,7 @@ void AFNI_sigfunc_alrm(int sig)
      "I'll miss you -- come back soon"                               ,
      "Be careful out there"                                          ,
      "Yesterday, all my troubles seemed so far away"                 ,
+     "Stochastic delights have deterministic ends"                   ,
      "Remember -- Time and tide wait for no brain imaging software"  ,
      "Remember -- AFNI is free, but worth at least 1000 times more"  ,
      "Remember -- Nothing is always absolutely so"                   ,
