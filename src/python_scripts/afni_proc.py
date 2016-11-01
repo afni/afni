@@ -555,13 +555,13 @@ g_history = """
     5.09 Oct 24, 2016:
         - bandpass notes and reference
         - stronger warning on missing -tlrc_base dataset
-    5.10 Oct 31, 2016: adding scary options...
+    5.10 Nov  1, 2016:
         - added -regress_skip_censor
-        - added -write_3dD_ppi_scripts to go with:
+        - added -write_ppi_3dD_scripts to go with:
         - added -regress_ppi_stim_files, -regress_ppi_stim_labels
 """
 
-g_version = "version 5.10, October 31, 2016"
+g_version = "version 5.10, November 1, 2016"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \
@@ -976,7 +976,7 @@ class SubjProcSream:
                        helpstr="prefix for output files via -write_3dD_script")
         self.valid_opts.add_opt('-write_3dD_script', 1, [],
                        helpstr="only write 3dDeconvolve script (to given file)")
-        self.valid_opts.add_opt('-write_3dD_ppi_scripts', 0, [],
+        self.valid_opts.add_opt('-write_ppi_3dD_scripts', 0, [],
                        helpstr="flag: write no-censor and PPI extras scripts")
         self.valid_opts.add_opt('-verb', 1, [],
                         helpstr="set the verbose level")
@@ -1485,10 +1485,6 @@ class SubjProcSream:
         if opt != None:
            self.script_3dD = opt.parlist[0]
            self.make_main_script = 0
-
-        opt = opt_list.find_opt('-write_3dD_nocensor')
-        if opt != None:
-           self.skip_censor = 1
 
         opt = opt_list.find_opt('-scr_overwrite')
         if opt != None: self.overwrite = 1
@@ -2893,7 +2889,7 @@ class SubjProcSream:
     # ----------------------------------------------------------------------
     # PPI regression script functions
     def want_ppi_reg_scripts(self):
-        if self.user_opts.find_opt('-write_3dD_ppi_scripts'):
+        if self.user_opts.find_opt('-write_ppi_3dD_scripts'):
            return 1
         return 0
 
@@ -2909,8 +2905,10 @@ class SubjProcSream:
         # do no make main script
         self.make_main_script = 0
 
-        if self.script_3dD: self.script_3dD += '.0.nocensor'
-        else:               self.script_3dD =  'ppi_3dD_cmd.0.nocensor'
+        if self.script_3dD:
+           self.script_3dD += '.0.nocensor'
+        else:
+           self.script_3dD = 'ppi_3dD.%s.0.nocensor' % self.subj_id
 
         if self.prefix_3dD: self.prefix_3dD += '0.nocensor.'
         else:               self.prefix_3dD =  'ppi.0.nocensor.'
@@ -2952,7 +2950,7 @@ class SubjProcSream:
         self.make_main_script = 0
 
         if self.script_3dD: self.script_3dD += '.1.ppi'
-        else:               self.script_3dD =  'ppi_3dD_cmd.1.ppi'
+        else:               self.script_3dD =  'ppi_3dD.%s.1.ppi'%self.subj_id
 
         if self.prefix_3dD: self.prefix_3dD += '1.ppi.'
         else:               self.prefix_3dD =  'ppi.1.ppi.'
