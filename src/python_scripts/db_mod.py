@@ -3930,6 +3930,8 @@ def db_mod_regress(block, proc, user_opts):
       if bopt: bopt.parlist[0] = limit
       else: block.opts.add_opt('-regress_censor_motion', 1, [limit], setpar=1)
 
+    apply_uopt_to_block('-regress_skip_censor', user_opts, block)
+
     # do we also censor first N TRs per run?
     uopt = user_opts.find_opt('-regress_censor_first_trs')
     bopt = block.opts.find_opt('-regress_censor_first_trs')
@@ -4355,7 +4357,8 @@ def db_cmd_regress(proc, block):
     # --------------------------------------------------
     # if skip_censor, either clear censor_str or just do an early return
     # (early return via 'DONE' terminates this proc instance)
-    if proc.skip_censor:
+    if proc.skip_censor or block.opts.find_opt('-regress_skip_censor'):
+       proc.skip_censor = 1
        if proc.censor_file: censor_str = ''
        else:                return 'DONE'
 
@@ -8987,7 +8990,11 @@ g_help_string = """
 
             See also -write_3dD_prefix, -test_stim_files.
 
-        -write_3dD_ppi_scripts  : flag: write 3dD scripts for PPI analysis
+        -write_ppi_3dD_scripts  : flag: write 3dD scripts for PPI analysis
+
+                e.g. -write_ppi_3dD_scripts                        \\
+                     -regress_ppi_stim_files PPI_*.1D some_seed.1D \\
+                     -regress_ppi_stim_labels PPI_A PPI_B PPI_C seed
 
             Request 3dDeconvolve scripts for pre-PPI filtering (do regression
             without censoring) and post-PPI filtering (include PPI regressors
@@ -8998,10 +9005,23 @@ g_help_string = """
             with different options.
 
             Using this option, afni_proc.py will create the main proc script,
-            plus (if censoring was done) an uncensored 3dDeconvolve command
-            pre-PPI filter script (to create an uncensored errts time series),
-            and a 3dDeconvolve post-PPI filter script to include the PPI and
-            seed regressors.
+            plus :
+
+               A. (if censoring was done) an uncensored 3dDeconvolve command
+                  pre-PPI filter script, to create an uncensored errts time
+                  series.
+
+                  This script is akin to using -write_3dD_* to output a
+                  regression script, along with adding -regress_skip_censor.
+                  The regression command should be identical to the original
+                  one, except for inclusion of 3dDeconvolve's -censor option.
+
+               B. a 3dDeconvolve post-PPI filter script to include the PPI
+                  and seed regressors.
+
+                  This script is akin to using -write_3dD_* to output a
+                  regression script, along with passing the PPI and seed
+                  regressors via -regress_extra_stim_files and _labels.
 
             Use -regress_ppi_stim_files and -regress_ppi_stim_labels to
             specify the PPI (and seed) regressors and their labels.  These
@@ -11000,7 +11020,7 @@ g_help_string = """
 
             Use -regress_ppi_stim_labels to specify the corresponding labels.
 
-            See also -write_3dD_ppi_scripts, -regress_ppi_stim_labels.
+            See also -write_ppi_3dD_scripts, -regress_ppi_stim_labels.
 
         -regress_ppi_stim_labels LAB1 LAB2 ... : specify PPI (and seed) labels
 
@@ -11012,7 +11032,7 @@ g_help_string = """
 
             Use -regress_ppi_stim_labels to specify the corresponding labels.
 
-            See also -write_3dD_ppi_scripts, -regress_ppi_stim_labels.
+            See also -write_ppi_3dD_scripts, -regress_ppi_stim_labels.
 
         -regress_polort DEGREE  : specify the polynomial degree of baseline
 
