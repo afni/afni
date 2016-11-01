@@ -181,6 +181,9 @@ static float **cthar = NULL ;
 static int   *ncthar = NULL ;
 static int   *kcthar = NULL ;
 
+static int   cth_mode = 0 ;    /* 0 = mean , 1 = median, 2 = cth_perc% */
+static float cth_perc = 60.0f ;
+
 #define ADDTO_CTHAR(val,ith)                                                 \
  do{ if( kcthar[ith] >= ncthar[ith] ){                                       \
       ncthar[ith] = 2*kcthar[ith] ;                                          \
@@ -303,11 +306,14 @@ Xcluster_array * find_Xcluster_array( MRI_IMAGE *fim, int nnlev, MRI_IMAGE *cim 
           the loop continues until finally no new neighbors get added */
 
      if( car != NULL && kcthar[ithr] > 0 ){
-#if 1
-       cth = qmean_float( kcthar[ithr] , cthar[ithr] ) ;
-#else
-       cth = qfrac_float( kcthar[ithr] , 0.555f , cthar[ithr] ) ;
-#endif
+       switch( cth_mode ){
+         default:
+           cth = qmean_float( kcthar[ithr], cthar[ithr] ) ;         break ;
+         case 1:
+           cth = qmed_float ( kcthar[ithr], cthar[ithr] ) ;         break ;
+         case 2:
+           cth = qfrac_float( kcthar[ithr], 0.01f*cth_perc, cthar[ithr] ) ; break ;
+       }
      } else {
        cth = 0.0f ;
      }
@@ -334,7 +340,7 @@ Xcluster_array * find_Xcluster_array( MRI_IMAGE *fim, int nnlev, MRI_IMAGE *cim 
 
 void mri_multi_threshold_setup(void)
 {
-   int nthr=1 , ithr ;
+   int nthr=1 , ithr ; char *eee ;
 #ifdef USE_OMP
    nthr = omp_get_max_threads() ;
 #endif
@@ -345,6 +351,32 @@ void mri_multi_threshold_setup(void)
      cthar[ithr] = (float *)malloc(sizeof(float)*4096) ;
     ncthar[ithr] = 4096 ;
     kcthar[ithr] = 0 ;
+   }
+   eee = getenv("AFNI_MTHRESH_MODE") ;
+   if( eee != NULL ){
+     char *ppp ;
+     cth_mode = 0 ;
+     ppp = strcasestr(eee,"median") ;
+     if( ppp != NULL ) cth_mode = 1 ;
+     ppp = strstr(eee,"%") ;
+     if( ppp != NULL && isdigit(*(ppp+1)) ){
+       cth_perc = (float)strtod(ppp+1,NULL) ;
+       if( cth_perc >= 10.0f && cth_perc <= 90.0f ) cth_mode = 2 ;
+       else {
+         WARNING_message(
+          "AFNI_MTHRESH_MODE says %.1f%% -- out of range 10..90, so using median",
+          cth_perc) ;
+         cth_mode = 1 ;
+       }
+     }
+   }
+   switch( cth_mode ){
+     default:
+       INFO_message("MultiThresh cluster FOM threshold method set to MEAN") ; break ;
+     case 1:
+       INFO_message("MultiThresh cluster FOM threshold method set to MEDIAN") ; break ;
+     case 2:
+       INFO_message("MultiThresh cluster FOM threshold method set to cdf %.1f%%",cth_perc) ; break ;
    }
    return ;
 }
