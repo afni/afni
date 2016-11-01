@@ -3930,6 +3930,8 @@ def db_mod_regress(block, proc, user_opts):
       if bopt: bopt.parlist[0] = limit
       else: block.opts.add_opt('-regress_censor_motion', 1, [limit], setpar=1)
 
+    apply_uopt_to_block('-regress_skip_censor', user_opts, block)
+
     # do we also censor first N TRs per run?
     uopt = user_opts.find_opt('-regress_censor_first_trs')
     bopt = block.opts.find_opt('-regress_censor_first_trs')
@@ -4177,9 +4179,12 @@ def db_cmd_regress(proc, block):
        opt = block.opts.find_opt('-regress_apply_ricor')
        if OL.opt_is_yes(opt): proc.ricor_apply = 'yes'
 
-    # maybe we want a special prefix
-    if proc.script_3dD: tmp_prefix = "${prefix_3dd}"
-    else:               tmp_prefix = ''
+    # maybe we want a special prefix (do not test stims in this case)
+    if proc.script_3dD:
+        proc.test_stims = 0
+        tmp_prefix = "${prefix_3dd}"
+    else:
+        tmp_prefix = ''
 
     # options for surface analysis
     if proc.surf_anat:
@@ -4345,9 +4350,17 @@ def db_cmd_regress(proc, block):
     else:                         nricor = 0
     total_nstim =  len(proc.stims) + len(proc.extra_stims) + nmotion + nricor
     
-    # maybe we will censor
+    # add any censor option
     if proc.censor_file: censor_str = '    -censor %s' % proc.censor_file
     else:                censor_str = ''
+
+    # --------------------------------------------------
+    # if skip_censor, either clear censor_str or just do an early return
+    # (early return via 'DONE' terminates this proc instance)
+    if proc.skip_censor or block.opts.find_opt('-regress_skip_censor'):
+       proc.skip_censor = 1
+       if proc.censor_file: censor_str = ''
+       else:                return 'DONE'
 
     # check for regress_orts lines
     reg_orts = []
@@ -4632,8 +4645,8 @@ def db_cmd_regress(proc, block):
                 'set subj = %s\n\n'             \
                 'set prefix_3dd = %s\n\n' % (proc.subj_id, proc.prefix_3dD)
        UTIL.write_text_to_file(proc.script_3dD, header+c3d, wrap=1, exe=1)
-       print '++ writing 3dDeconvolve script %s ...' % proc.script_3dD
-       sys.exit(0)
+       print '++ writing 3dDeconvolve script %s ...\n' % proc.script_3dD
+       return 'DONE'
 
     # if 3dDeconvolve fails, terminate the script
     # (rcr - maybe just skip this in case of surfaces)
@@ -5671,7 +5684,7 @@ def regress_pc_followers_regressors(proc, optname, roipcs, pcdset,
             cstr = ' and further pad to fill across all runs'
             cout_name = '-'
          else:
-            newname = '%s_cfill.1D' % pclabel
+            newname = '%s.1D' % pclabel
             cstr = ''
             cout_name = newname
 
@@ -8973,7 +8986,48 @@ g_help_string = """
             The new script should include a prefix to distinguish output files
             from those created by the original proc script.
 
-            See also -write_3dD_prefix.
+          * This option implies '-test_stim_files no'.
+
+            See also -write_3dD_prefix, -test_stim_files.
+
+        -write_ppi_3dD_scripts  : flag: write 3dD scripts for PPI analysis
+
+                e.g. -write_ppi_3dD_scripts                        \\
+                     -regress_ppi_stim_files PPI_*.1D some_seed.1D \\
+                     -regress_ppi_stim_labels PPI_A PPI_B PPI_C seed
+
+            Request 3dDeconvolve scripts for pre-PPI filtering (do regression
+            without censoring) and post-PPI filtering (include PPI regressors
+            and seed).
+
+            This is a convenience method for creating extra 3dDeconvolve
+            command scripts without having to run afni_proc.py multiple times
+            with different options.
+
+            Using this option, afni_proc.py will create the main proc script,
+            plus :
+
+               A. (if censoring was done) an uncensored 3dDeconvolve command
+                  pre-PPI filter script, to create an uncensored errts time
+                  series.
+
+                  This script is akin to using -write_3dD_* to output a
+                  regression script, along with adding -regress_skip_censor.
+                  The regression command should be identical to the original
+                  one, except for inclusion of 3dDeconvolve's -censor option.
+
+               B. a 3dDeconvolve post-PPI filter script to include the PPI
+                  and seed regressors.
+
+                  This script is akin to using -write_3dD_* to output a
+                  regression script, along with passing the PPI and seed
+                  regressors via -regress_extra_stim_files and _labels.
+
+            Use -regress_ppi_stim_files and -regress_ppi_stim_labels to
+            specify the PPI (and seed) regressors and their labels.  These
+            options are currently required.
+
+            See also -regress_ppi_stim_files, -regress_ppi_stim_labels.
 
         ------------ block options (in default block order) ------------
 
@@ -10953,6 +11007,32 @@ g_help_string = """
             which may be used for multiple 3dREMLfit options.
 
             Please see '3dREMLfit -help' for more information.
+
+        -regress_ppi_stim_files FILE FILE ... : specify PPI (and seed) files
+
+                e.g. -regress_ppi_stim_files PPI.1.A.1D PPI.2.B.1D PPI.3.seed.1D
+
+            Use this option to pass PPI stimulus files for inclusion in
+            3dDeconvolve command.  This list is essentially appended to
+            (and could be replaced by) -regress_extra_stim_files.
+
+          * These are not timing files, but direct regressors.
+
+            Use -regress_ppi_stim_labels to specify the corresponding labels.
+
+            See also -write_ppi_3dD_scripts, -regress_ppi_stim_labels.
+
+        -regress_ppi_stim_labels LAB1 LAB2 ... : specify PPI (and seed) labels
+
+                e.g. -regress_ppi_stim_files PPI.taskA PPI.taskB PPI.seed
+
+            Use this option to specify labels for the PPI stimulus files
+            specified via -regress_ppi_stim_files.  This list is essentially
+            appended to (and could be replaced by) -regress_extra_stim_labels.
+
+            Use -regress_ppi_stim_labels to specify the corresponding labels.
+
+            See also -write_ppi_3dD_scripts, -regress_ppi_stim_labels.
 
         -regress_polort DEGREE  : specify the polynomial degree of baseline
 
