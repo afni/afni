@@ -273,6 +273,40 @@ class OptionList:
 
         return tlist, 0        # return the list
 
+    def replace_opt(self, opt_name, vals):
+        """replace the parlist from the first instace of opt_name with vals
+           if not found, add a new option
+        """
+
+        opt = self.find_opt(opt_name)
+        if not opt:
+           setpar = len(vals)
+           self.add_opt(opt_name, len(vals), deflist=vals, setpar=setpar)
+           return
+
+        # make a copy, to be safe
+        if len(vals) == 0: opt.parlist = []
+        else:              opt.parlist = vals[:]
+
+        return
+
+    def append_to_opt(self, opt_name, vals):
+        """append the vals to parlist from the first instace of opt_name
+           if not found, add a new option
+        """
+
+        opt = self.find_opt(opt_name)
+        if not opt:
+           setpar = len(vals)
+           self.add_opt(opt_name, len(vals), deflist=vals, setpar=setpar)
+           return
+
+        # make a copy, to be safe
+        if len(vals) == 0: opt.parlist = vals[:]
+        else:              opt.parlist.extend(vals)
+
+        return
+
     # rcr - improve this garbage
     def check_special_opts(self, argv):
         """process known '-optlist_* options' and other global_opts,
