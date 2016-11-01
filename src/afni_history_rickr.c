@@ -49,10 +49,21 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  1,  Nov, 2016, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
+   "add PPI preparation options",
+   "Add -regress_skip_censor to omit 3dD -censor option.\n"
+   "Add -write_ppi_3dD_scripts with corressponding options\n"
+   "    -regress_ppi_stim_files and -regress_ppi_stim_labels.\n"
+   "These make PPI pre and post regression scripts, along with\n"
+   "    the main analysis script.\n"
+   "Done for S Haller."
+ } ,
+
  { 24,  Oct, 2016, RCR, "afni_proc.py", MICRO, TYPE_ENHANCE,
    "bandpass notes and reference; stronger warning on missing -tlrc_dset",
-   "For P Taylor."
+   "Thanks to P Taylor."
  } ,
+
  { 20,  Oct, 2016, RCR, "afni_proc.py", MICRO, TYPE_ENHANCE,
    "check -mask_import for reasonable voxel dimensions",
    NULL
