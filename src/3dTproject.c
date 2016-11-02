@@ -807,8 +807,18 @@ STATUS("checking dsortar for goodness") ;
 
    if( nbad > 0 ) ERROR_exit("Cannot continue after above errors :-( :-( :-( !!") ;
 
-   INFO_message("%d retained time points MINUS %d regressors ==> %d D.O.F. left",
-                ntkeep , nort_fixed+nort_voxel , ntkeep-nort_fixed-nort_voxel    ) ;
+   { int ndof = ntkeep-nort_fixed-nort_voxel ;
+     INFO_message("%d retained time points MINUS %d regressors ==> %d D.O.F. left",
+                  ntkeep , nort_fixed+nort_voxel , ndof ) ;
+     if( ndof < 30 ){
+       if( ndof > 19 )
+         WARNING_message("Be careful when your data has so few D.O.F.!") ;
+       else if( ndof > 9 )
+         WARNING_message("Statistics using data with so few D.O.F. might be meretricious!") ;
+       else
+         WARNING_message("Statistics using data with so few D.O.F. will be meretricious!") ;
+     }
+   }
 
    /*----- make voxel mask, if present -----*/
 

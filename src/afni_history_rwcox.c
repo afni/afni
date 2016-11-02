@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 2 , NOV , 2016 , RWC , "3dTproject" , MICRO , TYPE_MODIFY ,
+   "Add warning message if DOF is less than 20" ,
+   NULL } ,
+
  { 20 , OCT , 2016 , RWC , "afni GUI" , MICRO , TYPE_MODIFY ,
    "Don't get 'vedit' volume for threshold slice when OLay==Thr brick" ,
    "When Clusterize is on, the steps are\n"
