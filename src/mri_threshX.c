@@ -370,6 +370,7 @@ void mri_multi_threshold_setup(void)
        }
      }
    }
+#if 0
    switch( cth_mode ){
      default:
        INFO_message("MultiThresh cluster FOM threshold method set to MEAN") ; break ;
@@ -378,6 +379,7 @@ void mri_multi_threshold_setup(void)
      case 2:
        INFO_message("MultiThresh cluster FOM threshold method set to cdf %.1f%%",cth_perc) ; break ;
    }
+#endif
    return ;
 }
 

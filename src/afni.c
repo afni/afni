@@ -2077,9 +2077,10 @@ void AFNI_sigfunc_alrm(int sig)
      "Your brains have not only been washed, but been dry cleaned"                    ,
      "Why don't you pass the time by playing a little solitaire?"                     ,
 
+     "I'm not as smart as you, but I'm not as dumb as you think I am"                 ,
      "If you haven't anything nice to say about anybody, come sit next to me"         ,
      "Hmmm -- I think your p-value is 0.050001 -- better luck next time"              ,
-     "Wow! You're p-value is 0.049999 -- you are incredibly lucky"                    ,
+     "Wow! Your p-value is 0.049999 -- you are incredibly lucky"                      ,
      "Remember -- You are absolutely incredibly unique. Just like everone else"       ,
      "Remember -- Belief is not Truth. No matter how much you want it to be"          ,
      "Remember -- Truth is not always believed, even when it is under your nose"      ,
