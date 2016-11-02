@@ -185,9 +185,10 @@ g_history = """
    0.19 May 20, 2016 - added -dot_file_list/_pack/_show
    0.20 Jul  7, 2016 - check for partial PyQt4 (for OS X 10.11)
    0.21 Aug 29, 2016 - added a few more FALLBACK tests
+   0.22 Nov  2, 2016 - handle OS X 10.12 version string
 """
 
-g_version = "afni_system_check.py version 0.21, August 29, 2016"
+g_version = "afni_system_check.py version 0.22, Novemeber 2, 2016"
 
 
 class CmdInterface:

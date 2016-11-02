@@ -487,7 +487,9 @@ class SysInfo:
 
    def get_osx_ver(self):
       if self.system != "Darwin": return 0
-      verlist = self.os_dist.split('.')
+      verlist = self.os_dist.split()
+      if len(verlist) < 1: return 0
+      verlist = verlist[0].split('.')
       if len(verlist) < 2: return 0
       if verlist[0] != '10': return 0
       try: vint = int(verlist[1])
