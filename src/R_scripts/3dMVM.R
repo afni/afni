@@ -32,7 +32,7 @@ help.MVM.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
           ================== Welcome to 3dMVM ==================          
     AFNI Group Analysis Program with Multi-Variate Modeling Approach
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 3.8.1, May 6, 2016
+Version 3.9.0, Aug 30, 2016
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - https://afni.nimh.nih.gov/sscc/gangc/MVM.html
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -153,7 +153,7 @@ within-subject (condition and emotion) variables:
    ex2 <-
 "--------------------------------
 Example 2 --- two between-subjects (genotype and sex), onewithin-subject
-(emotion) factor, plus two quantitative variables (age and IQ).f
+(emotion) factor, plus two quantitative variables (age and IQ).
 
    3dMVM -prefix Example2 -jobs 24        \\
           -bsVars  \"genotype*sex+age+IQ\"  \\
@@ -405,12 +405,18 @@ read.MVM.opts.batch <- function (args=NULL, verb = 0) {
    "         reasonably handled through MM-estimation. Currently it",
    "         only works without involving any within-subject factors.",
    "         That is, anything that can be done with 3dttest++ could",
-   "         be analyzed through robust regression here (except that",
-   "         pairwise comparison would have to be done by providing",
-   "         contrast from each subject as input. Post hoc F-tests",
+   "         be analyzed through robust regression here (except for",
+   "         one-sample which can be added later one if requested).",
+   "         pairwise comparisons can be performed by providing",
+   "         contrast from each subject as input). Post hoc F-tests",
    "         through option -glfCode are currently not available with",
    "         robust regression. This option requires that the user",
    "         install R package robustbase.\n", sep='\n')),
+
+      '-dbgArgs' = apl(n=0, h = paste(
+   "-dbgArgs: This option will enable R to save the parameters in a",
+   "         file called .3dMVM.dbg.AFNI.args in the current directory",
+   "          so that debugging can be performed.\n", sep='\n')),
 
       '-qVars' = apl(n=c(1,100), d=NA, h = paste(
    "-qVars variable_list: Identify quantitative variables (or covariates) with",
@@ -642,6 +648,7 @@ read.MVM.opts.batch <- function (args=NULL, verb = 0) {
                            # factor (e.g., effects from basis functions). Results added (or appended) to 
                            # others (cf., lop$mvE5a).
       lop$parSubset <- NA  # parameter subset from option -matrPar for DTI data analysis
+      lop$dbgArgs  <- FALSE # for debugging purpose 
       lop$iometh <- 'clib'
       lop$verb   <- 0
 
@@ -670,7 +677,7 @@ read.MVM.opts.batch <- function (args=NULL, verb = 0) {
              glfCode  = lop$glfCode <- ops[[i]],
              dataTable  = lop$dataTable <- dataTable.AFNI.parse(ops[[i]]),
              parSubset  = lop$parSubset <- ops[[i]],
- 
+            
              help   = help.MVM.opts(params, adieu=TRUE),
              GES    = lop$GES    <- TRUE,
              SC     = lop$SC     <- TRUE,
@@ -680,7 +687,8 @@ read.MVM.opts.batch <- function (args=NULL, verb = 0) {
              mvE5   = lop$mvE5   <- TRUE,
              mvE5a  = lop$mvE5a  <- TRUE,
              cio    = lop$iometh <- 'clib',
-             Rio    = lop$iometh <- 'Rlib'
+             Rio    = lop$iometh <- 'Rlib',
+             dbgArgs = lop$dbgArgs <- TRUE
              )
    }
 
@@ -1268,8 +1276,8 @@ read.MVM.opts.from.file <- function (modFile='model.txt', verb = 0) {
    if(!exists('.DBG_args')) { 
       args = (commandArgs(TRUE))  
       rfile <- first.in.path(sprintf('%s.R',ExecName))
-       # save only on -dbg_args          28 Apr 2016 [rickr]
-       if ('-dbg_args' %in% args) try(save(args, rfile, file="3dMVM.dbg.AFNI.args", ascii = TRUE), silent=TRUE) 
+       # save only on -dbgArgs          28 Apr 2016 [rickr]
+       if ('-dbgArgs' %in% args) try(save(args, rfile, file=".3dMVM.dbg.AFNI.args", ascii = TRUE), silent=TRUE) 
    } else {
       note.AFNI("Using .DBG_args resident in workspace")
       args <- .DBG_args
