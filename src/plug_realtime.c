@@ -551,11 +551,12 @@ static char * GRAPH_strings[NGRAPH] = { "No" , "Yes" , "Realtime" } ;
 #define RT_CHMER_L2NORM    3
 /* Begin FMRIF changes for RT T2* estimates - VR */
 #define RT_CHMER_T2STAREST 4
-#define N_RT_CHMER_MODES   5
+#define RT_CHMER_POST_OC   5  /* rcr OC - need updates */
+#define N_RT_CHMER_MODES   6
    static char *RT_chmrg_strings[N_RT_CHMER_MODES] =
-                { "none" , "sum" , "L1 norm" , "L2 norm" , "T2* est"} ;
+          { "none" , "sum" , "L1 norm" , "L2 norm" , "T2* est", "post OC"} ;
    static char *RT_chmrg_labels[N_RT_CHMER_MODES] =
-                { "none" , "sum" , "L1" , "L2" , "T2star" } ;
+          { "none" , "sum" , "L1" , "L2" , "T2star", "post_OC" } ;
 /* End FMRIF changes for RT T2* estimates - VR */
    static int RT_chmrg_mode  = 0 ;
    static int RT_chmrg_datum = -1 ;
@@ -564,17 +565,21 @@ static char * GRAPH_strings[NGRAPH] = { "No" , "Yes" , "Realtime" } ;
    MRI_IMAGE * RT_mergerize( RT_input * , int , int ) ;
 static int RT_merge( RT_input *, int, int ) ;  /* 28 Oct 2016 [rickr] */
 
+/* merge before or after registration */
+#define RT_CM_NO_MERGE          0
+#define RT_CM_MERGE_BEFORE_REG  1
+#define RT_CM_MERGE_AFTER_REG   2
+
 /* variables for regisrtation of merged dataset  17 May 2010 [rickr] */
 #define RT_CM_RMODE_NONE     0
 #define RT_CM_RMODE_REG_MRG  1  /* register merged dataset           */
 #define RT_CM_RMODE_REG_CHAN 2  /* also apply xform to raw channels  */
-#define RT_CM_RMODE_POST_MRG 3
-#define N_RT_CM_RMODES       4
+#define N_RT_CM_RMODES       3
 /* Begin FMRIF changes - wrong variable used here ? - VR */
    static char *RT_chmrg_rmode_strings[N_RT_CM_RMODES] =
-                { "none" , "reg merged" , "reg channels", "post merge" } ;
+                { "none" , "reg merged" , "reg channels" } ;
    static char *RT_chmrg_rmode_labels[N_RT_CM_RMODES] =
-                { "none" , "reg_merge" , "reg_chan", "post_merge" } ;
+                { "none" , "reg_merge" , "reg_chan" } ;
 /* End FMRIF changes - wrong variable used here ? - VR */
    static int RT_chmrg_reg_mode = RT_CM_RMODE_NONE;
 
@@ -4258,7 +4263,6 @@ void RT_start_dataset( RT_input * rtin )
    rtin->reg_chan_mode = RT_chmrg_reg_mode;
    if( RT_will_register_merged_dset(rtin) ) {
      if( ! rtin->mrg_dset ) {
-       /* rcr OC - only for 1 and 2 now */
        if( verbose > 0 ) fprintf(stderr,"** RTCM: no merge dset to register\n");
        rtin->reg_chan_mode = RT_CM_RMODE_NONE;
      } else if ( rtin->reg_mode != REGMODE_3D_RTIME ) {
@@ -4269,12 +4273,6 @@ void RT_start_dataset( RT_input * rtin )
      else if( verbose > 0 && rtin->reg_chan_mode >= RT_CM_RMODE_REG_CHAN )
        fprintf(stderr,"RTCM: plan to register %d channels, mode %s\n",
                rtin->num_chan, RT_chmrg_rmode_labels[rtin->reg_chan_mode]);
-   } else if ( rtin->reg_chan_mode == RT_CM_RMODE_POST_MRG ) {
-     if( ! rtin->mrg_dset ) {
-       if( verbose>0 ) fprintf(stderr,"** RTCM: no merge dset for post reg\n");
-       rtin->reg_chan_mode = RT_CM_RMODE_NONE;
-     } 
-     if( verbose > 0 ) fprintf(stderr,"RTCM: plan to merge after register\n");
    }
 
 
@@ -4569,11 +4567,21 @@ void RT_start_dataset( RT_input * rtin )
  * merged dataset                        27 Oct 2016 [rickr] */
 static int RT_will_register_merged_dset(RT_input * rtin)
 {
-   if( (rtin->reg_chan_mode == RT_CM_RMODE_REG_MRG) ||
-       (rtin->reg_chan_mode == RT_CM_RMODE_REG_CHAN) )
+   if( rtin->reg_chan_mode > RT_CM_RMODE_NONE )
       return 1;
 
    return 0;
+}
+
+/* return whether this is true, whether we will register the
+ * merged dataset                        27 Oct 2016 [rickr] */
+static int RT_when_to_merge( void )
+{
+   if( RT_chmrg_mode == RT_CHMER_NONE )    return RT_CM_NO_MERGE;
+   if( RT_chmrg_mode == RT_CHMER_POST_OC ) return RT_CM_MERGE_AFTER_REG;
+
+   /* otherwise, merge before registration */
+   return RT_CM_MERGE_BEFORE_REG;
 }
 
 /*--------------------------------------------------------------------
@@ -4824,50 +4832,13 @@ void RT_process_image( RT_input * rtin )
       /** 02 Jun 2009: merger operations?
                        if have completed a full set of channels, that is **/
 
-      if( cc+1 == rtin->num_chan && RT_chmrg_mode > 0 ){
-        int iv = rtin->nvol[cc]-1 ;  /* sub-brick index */
-        MRI_IMAGE *mrgim ;
-
-        /* 10 Jul 2010 [rickr]: maybe merge only a subset of channels */
-        /* note: the channel int list can only be created "now", since
-                 we must know how many channels there are to use */
-        if( rtin->chan_list_str && ! rtin->chan_list ) {
-          rtin->chan_list = MCW_get_labels_intlist(NULL, rtin->num_chan,
-                                                   rtin->chan_list_str);
-          if( !rtin->chan_list ) {
-             fprintf(stderr,"** failed to make channel list (%d) from '%s'\n",
-                     rtin->num_chan, rtin->chan_list_str);
-             free(rtin->chan_list_str);  rtin->chan_list_str = NULL;
-          } else if( verbose )
-             fprintf(stderr,"RTM: using list of %d chans for merge from %s\n",
-                     rtin->chan_list[0], rtin->chan_list_str);
-        }
-
-        mrgim = RT_mergerize(rtin, iv, 0) ;
-        if( mrgim == NULL ){
-          ERROR_message("RT can't merge channels at time index #%d",iv) ;
-        } else {
-          if( iv == 0 )
-            EDIT_substitute_brick( rtin->mrg_dset , 0 , (int)mrgim->kind ,
-                                                   mri_data_pointer(mrgim) ) ;
-          else
-            EDIT_add_brick( rtin->mrg_dset , (int)mrgim->kind , 0.0 ,
-                                                   mri_data_pointer(mrgim) ) ;
-          mri_clear_data_pointer(mrgim); mri_free(mrgim);
-          if( verbose > 1 )
-            fprintf(stderr,"RT: added brick #%d to merged dataset\n",iv) ;
-          EDIT_dset_items( rtin->mrg_dset , ADN_ntt , iv+1 , ADN_none ) ;
-          rtin->mrg_nvol = iv+1 ;
-        }
-        VMCHECK ;
-
-        /* Cameron Craddock added this to ease profiling */
-        if( g_show_times && verbose > 1 ) {
-          char vmesg[64];
-          sprintf(vmesg,"volume %d through mergering",rtin->nvol[0]-1);
-          RT_show_duration(vmesg);
-        }
+      /* rcr OC - check for pre-reg merge */
+      if( cc+1 == rtin->num_chan && 
+          RT_when_to_merge() == RT_CM_MERGE_BEFORE_REG ) {
+        RT_merge( rtin, cc, 0);
       }
+fprintf(stderr,"== PLOT pre reg: reg_mode = %d, reg_graph = %d\n",
+        rtin->reg_mode, rtin->reg_graph);
 
       /* do registration before function computation   - 30 Oct 2003 [rickr] */
       switch( rtin->reg_mode ){
@@ -4884,6 +4855,12 @@ void RT_process_image( RT_input * rtin )
           char vmesg[64];
           sprintf(vmesg,"volume %d through motion correction",rtin->nvol[0]-1);
           RT_show_duration(vmesg);
+      }
+
+      /* rcr OC - check for post-reg merge              1 Nov 2016 [rickr] */
+      if( cc+1 == rtin->num_chan && 
+          RT_when_to_merge() == RT_CM_MERGE_AFTER_REG ) {
+        RT_merge( rtin, cc, 1);
       }
 
       /* Cameron Craddock
@@ -5173,7 +5150,7 @@ static int RT_merge( RT_input * rtin, int chan, int postreg )
    int         iv;
 
    /* if not merging, we are out of here */
-   if( chan+1 != rtin->num_chan !! RT_chmrg_mode == 0 ) return 0;
+   if( chan+1 != rtin->num_chan || RT_chmrg_mode == 0 ) return 0;
 
    iv = rtin->nvol[chan]-1 ;  /* sub-brick index */
   
@@ -6333,6 +6310,7 @@ void RT_registration_3D_realtime( RT_input *rtin )
 
    /*-- check to see if we need to setup first --*/
 
+fprintf(stderr,"== PLOT 0: reg_graph = %d\n", rtin->reg_graph);
    if( rtin->reg_3dbasis == NULL ){  /* need to setup */
 
       /* check if enough data to setup (0 -> g_reg_src_chan 27 Oct 2016) */
@@ -6366,6 +6344,7 @@ void RT_registration_3D_realtime( RT_input *rtin )
 
       /* realtime graphing? */
 
+fprintf(stderr,"== PLOT 1: reg_graph = %d\n", rtin->reg_graph);
       if( rtin->reg_graph == 2 ){
          int    ycount = -6 ;  /* default number of graphs */
          static char * nar[6] = {
@@ -6399,6 +6378,7 @@ void RT_registration_3D_realtime( RT_input *rtin )
 
    /*-- register all sub-bricks that aren't done yet --*/
 
+fprintf(stderr,"== PLOT 2: reg_graph = %d\n", rtin->reg_graph);
    /* rcr OC - applies to 1 and 2 */
    if( RT_will_register_merged_dset(rtin) )
       ntt = DSET_NUM_TIMES( rtin->mrg_dset ) ;
@@ -6718,7 +6698,21 @@ void RT_registration_3D_onevol( RT_input *rtin , int tt )
         for RT_CM_RMODE_POST_MRG: merge reg_chan_dset list
             - merging requires float data?
         update Help
-        with multi-chan, why no reg_dset?
+        with multi-chan, no reg_dset
+          - allow reg in multi- mode, esp given Src Chan
+          - still add 'chans only' to MergeRegister list
+            (i.e. register channels without merging)
+          - again: maybe change MergeRegister to be (just Register?)
+                - FLAG to register channels
+                - MERGE: pre-reg or post-reg?
+             or
+                FLAG? : register chan or merge
+                - none
+                - merge pre-reg
+                - merge and reg chans
+                - reg chans and merge
+                - just reg chans
+          - afni hangs at end of run, waiting for Dimon to close
    */
 
    if( RT_will_register_merged_dset(rtin) ) {
