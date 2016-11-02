@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  2,  Nov, 2016, RCR, "afni_system_check.py", MICRO, TYPE_ENHANCE,
+   "handle 10.12 version string",
+   NULL
+ } ,
+
  {  1,  Nov, 2016, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
    "add PPI preparation options",
    "Add -regress_skip_censor to omit 3dD -censor option.\n"
