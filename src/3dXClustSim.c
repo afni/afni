@@ -715,7 +715,7 @@ int main( int argc , char *argv[] )
    char qpr[32] ;
    MRI_IMAGE *cim ; MRI_IMARR *cimar=NULL ; float **car , *farar ;
    int nfomkeep , nfar , itrac , ithresh ;
-   float tfrac , farperc,farcut , tfracold,farpercold,ttemp ;
+   float tfrac , farperc,farcut , tfracold,farpercold,ttemp , fgfac ;
 
    /*----- help me if you can -----*/
 
@@ -1123,8 +1123,11 @@ ININFO_message(" p=%.5f did %d dilation loops with %d cluster dilations",
    /*--- STEP 4: test FOM count thresholds to find FAR=5% ---*/
 
 #define FARP_GOAL 5.00f  /* 5 percent */
-#define FGFAC     0.77f
-#define FG_GOAL   (FARP_GOAL*FGFAC)
+#define FGFAC     0.80f
+#define FG_GOAL   (FARP_GOAL*fgfac)
+
+   fgfac = AFNI_numenv("AFNI_XCLUSTSIM_FGFAC") ;
+   if( fgfac < 0.1f || fgfac > 1.0f ) fgfac = FGFAC ;
 
 FINAL_STUFF:
 
@@ -1268,7 +1271,7 @@ FARP_LOOPBACK:
      farperc    = (100.0*nfar)/(float)niter ;  /* what we got this time */
      if( verb )
        ININFO_message("#%2d: FPR = %.2f%%  [nedge=%d]",
-                      itrac, farperc/FGFAC, nedge ) ;
+                      itrac, farperc/fgfac, nedge ) ;
 
      /* do we need to try another tfrac to get closer to our goal? */
 
