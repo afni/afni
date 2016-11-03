@@ -310,7 +310,8 @@ Xcluster_array * find_Xcluster_array( MRI_IMAGE *fim, int nnlev, MRI_IMAGE *cim 
          default:
            cth = qmean_float( kcthar[ithr], cthar[ithr] ) ;         break ;
          case 1:
-           cth = qmed_float ( kcthar[ithr], cthar[ithr] ) ;         break ;
+           cth = 0.5f * ( qmean_float(kcthar[ithr],cthar[ithr])
+                         +qmed_float (kcthar[ithr],cthar[ithr]) ) ; break ;
          case 2:
            cth = qfrac_float( kcthar[ithr], 0.01f*cth_perc, cthar[ithr] ) ; break ;
        }
