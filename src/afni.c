@@ -3570,6 +3570,11 @@ INFO_message("AFNI controller xroot=%d yroot=%d",(int)xroot,(int)yroot) ;
 
    AFNI_splashdown(); STATUS("splashed down");
 
+   { char *eee = getenv("USER") ;
+     set_program_name("afni") ;
+     if( eee != NULL && strcmp(eee,"rwcox") == 0 ) atexit(clock_time_atexit) ;
+   }
+
    /*--- and AWAY WE GO (how sweet it is!) ---*/
 
    MPROBE ;                       /* check mcw_malloc() for integrity */
