@@ -635,15 +635,18 @@ THD_ivec3 THD_find_closest_roundtrip( THD_3dim_dataset *odset,
 {
    THD_ivec3 iv,jv,kv , ivbest ; THD_fvec3 xv,yv,zv ;
    int di,dj,dk ; float dist , dbest=666666.6f ;
+   int nxo=DSET_NX(odset) ;
+   int nyo=DSET_NY(odset) ;
+   int nzo=DSET_NZ(odset) ;
 
    xv = THD_dicomm_to_3dmm        ( odset, uxyz ) ;
    iv = THD_3dmm_to_3dind_no_wod  ( odset, xv   ) ; ivbest = iv ;
    for( di=-1 ; di <= 1 ; di++ ){
     for( dj=-1 ; dj <= 1 ; dj++ ){
      for( dk=-1 ; dk <= 1 ; dk++ ){
-       jv.ijk[0] = iv.ijk[0] + di ;
-       jv.ijk[1] = iv.ijk[1] + dj ;
-       jv.ijk[2] = iv.ijk[2] + dk ;
+       jv.ijk[0] = iv.ijk[0] + di ; if( jv.ijk[0] < 0 || jv.ijk[0] >= nxo ) continue ;
+       jv.ijk[1] = iv.ijk[1] + dj ; if( jv.ijk[1] < 0 || jv.ijk[1] >= nyo ) continue ;
+       jv.ijk[2] = iv.ijk[2] + dk ; if( jv.ijk[2] < 0 || jv.ijk[2] >= nzo ) continue ;
        yv = THD_3dind_to_dicomm_no_wod( odset, jv   ) ;
        xv = THD_dicomm_to_3dmm        ( udset, yv   ) ;
        kv = THD_3dmm_to_3dind         ( udset, xv   ) ;
@@ -722,6 +725,12 @@ ENTRY("AFNI_icor_setref_xyz") ;
    kv  = THD_find_closest_roundtrip(im3d->iset->dset,im3d->anat_now,iv) ;
 #endif
    ijk = DSET_ixyz_to_index( im3d->iset->dset, kv.ijk[0],kv.ijk[1],kv.ijk[2] ) ;
+
+#if 0
+INFO_message("AFNI_icor_setref_xyz: iv=%.3f,%.3f,%.3f  kv=%d,%d,%d  ijk=%d",
+             iv.xyz[0],iv.xyz[1],iv.xyz[2] ,
+             kv.ijk[0],kv.ijk[1],kv.ijk[2] , ijk ) ;
+#endif
 
    /* do the real work: ijk = voxel index */
 

@@ -299,6 +299,11 @@ MRI_IMAGE * THD_instacorr( ICOR_setup *iset , int ijk )
 
 ENTRY("THD_instacorr") ;
 
+#if 0
+INFO_message("THD_instacorr: ijk=%d  iset=%p",ijk,(void *)iset) ;
+if( iset != NULL ) ININFO_message(" iset->mv=%p",(void *)iset->mv) ;
+#endif
+
    if( iset == NULL || iset->mv == NULL || ijk < 0 ) RETURN(NULL) ;
 
    /** extract reference time series **/

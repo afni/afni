@@ -44,6 +44,15 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 3 , NOV , 2016 , RWC , "afni GUI" , MICRO , TYPE_ENHANCE ,
+   "Experiment with logging duration of use (only for me for now)" ,
+   NULL } ,
+
+ { 3 , NOV , 2016 , RWC , "afni GUI" , MICRO , TYPE_BUG_FIX ,
+   "Single slice dataset InstaCorr failed" ,
+   "Due to the 'roundtrip' index calculation giving a value outside the\n"
+   "dataset.  This is now prevented." } ,
+
  { 2 , NOV , 2016 , RWC , "3dTproject" , MICRO , TYPE_MODIFY ,
    "Add warning message if DOF is less than 20" ,
    NULL } ,
