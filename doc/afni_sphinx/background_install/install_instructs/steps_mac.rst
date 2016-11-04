@@ -75,6 +75,10 @@ operating system) to a link to install XQuartz.
       #. Install XQuartz using the "Quick Download" of the DMG file
          located at http://www.xquartz.org
 
+      #. If ``afni`` crashes, consider (in ``tcsh`` syntax)::
+
+         setenv DYLD_LIBRARY_PATH /opt/X11/lib/flat_namespace
+
    |
 
 #. **Homebrew installation**
