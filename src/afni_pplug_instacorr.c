@@ -132,6 +132,8 @@ static char i_helpstring[] =
   "             * If Start > 0, but this file is shorter than the input dataset,\n"
   "               then no initial points in this 1D file will be ignored.\n"
   "             * If the Global Ort file is too short, it will be ignored in toto.\n"
+  "    #PC      = Number of principal components of the collective input\n"
+  "               time series vectors to compute and use as global orts.\n"
   "\n"
   "* Misc Opts:\n"
   "  IF environment variable AFNI_INSTACORR_SEEDBLUR is YES\n"
@@ -261,12 +263,13 @@ PLUGIN_interface * ICOR_init( char *lab )
    PLUTO_add_number ( plint , "Index" , 0,ICOR_MAX_FTOP,0,0,TRUE ) ;
 
    PLUTO_add_option( plint , "Bandpass(Hz)" , "Bandpass" , MAYBE ) ;
-   PLUTO_add_number( plint , "Lower" , 0,1000,3, 10 , TRUE ) ;
-   PLUTO_add_number( plint , "Upper" , 0,1000,3,100 , TRUE ) ;
+   PLUTO_add_number( plint , "Lower" , 0, 9000,3, 10 , TRUE ) ;
+   PLUTO_add_number( plint , "Upper" , 0,10000,3,100 , TRUE ) ;
    PLUTO_add_string( plint , "Despike" , 2 , yn , 0 ) ;
 
    PLUTO_add_option    ( plint , "Global Orts" , "GlobalOrts" , FALSE ) ;
    PLUTO_add_timeseries( plint , "1D file" ) ;
+   PLUTO_add_number    ( plint , "#PC" , 0 , 9 , 0 , 0 , TRUE ) ;
 
 #if 0
    PLUTO_add_option    ( plint , "Slice Orts" , "SliceOrts" , FALSE ) ;
@@ -310,6 +313,7 @@ static char * ICOR_main( PLUGIN_interface *plint )
    char *tag ;
    float fbot=-1.0f , ftop=ICOR_BIG ;
    MRI_IMAGE *gortim=NULL ;
+   int       gortnpc=0 ;    /* 04 Nov 2016 */
    THD_3dim_dataset *dset=NULL , *mset=NULL , *eset=NULL ;
    int start=0,end=0 , mindex=0 , automask=0 , qq ; float blur=0.0f , sblur=0.0f ;
    ICOR_setup *iset ; char *cpt ;
@@ -406,6 +410,7 @@ static char * ICOR_main( PLUGIN_interface *plint )
        MRI_IMAGE *qim = PLUTO_get_timeseries(plint) ;
        if( qim == NULL ) ERROR_message("Ignoring NULL 'Global Orts' time series") ;
        else              gortim = mri_copy(qim) ;
+       gortnpc = (int)PLUTO_get_number(plint) ;
        continue ;
      }
 
@@ -509,6 +514,7 @@ static char * ICOR_main( PLUGIN_interface *plint )
        im3d->iset->eset     == eset     &&
        im3d->iset->mset     == mset     &&
        im3d->iset->gortim   == gortim   &&
+       im3d->iset->gortnpc  == gortnpc  &&
        im3d->iset->start    == start    &&
        im3d->iset->end      == end      &&
        im3d->iset->clen     == clen     &&
@@ -538,6 +544,7 @@ static char * ICOR_main( PLUGIN_interface *plint )
    iset->eset     = eset ;
    iset->mset     = (automask) ? NULL : mset ;
    iset->gortim   = gortim ;
+   iset->gortnpc  = gortnpc ;
    iset->start    = start ;
    iset->end      = end ;
    iset->automask = automask ;
