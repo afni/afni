@@ -44,6 +44,14 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 4 , NOV , 2016 , RWC , "afni InstaCorr" , MINOR , TYPE_ENHANCE ,
+   "Two small changes" ,
+   "(1) Extend the range of the bandpass to allow up to 10Hz (formerly only\n"
+   "up to 1Hz).  10Hz = Nyquist frequency for TR=0.05s, which is pretty fast\n"
+   "for MRI -- but doable for single slice imaging.\n"
+   "(2) Add a #PC option, to compute principal components to use as global\n"
+   "orts." } ,
+
  { 3 , NOV , 2016 , RWC , "afni GUI" , MICRO , TYPE_ENHANCE ,
    "Experiment with logging duration of use (only for me for now)" ,
    NULL } ,
