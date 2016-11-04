@@ -5005,7 +5005,7 @@ extern MRI_vectim * THD_dset_list_to_vectim( int, THD_3dim_dataset **, byte * );
 typedef struct {
   THD_3dim_dataset *dset , *mset ;
   byte *mmm ;
-  MRI_IMAGE *gortim ;
+  MRI_IMAGE *gortim ; int gortnpc ;
   int start,end , automask , mindex ;
   int clen,cnum,cstep ;
   float fbot , ftop , blur , sblur ;
