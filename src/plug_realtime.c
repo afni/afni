@@ -551,12 +551,12 @@ static char * GRAPH_strings[NGRAPH] = { "No" , "Yes" , "Realtime" } ;
 #define RT_CHMER_L2NORM    3
 /* Begin FMRIF changes for RT T2* estimates - VR */
 #define RT_CHMER_T2STAREST 4
-#define RT_CHMER_POST_OC   5  /* rcr OC - need updates */
+#define RT_CHMER_OPT_COMB  5
 #define N_RT_CHMER_MODES   6
    static char *RT_chmrg_strings[N_RT_CHMER_MODES] =
-          { "none" , "sum" , "L1 norm" , "L2 norm" , "T2* est", "post OC"} ;
+          { "none" , "sum" , "L1 norm" , "L2 norm" , "T2* est", "Opt Comb"} ;
    static char *RT_chmrg_labels[N_RT_CHMER_MODES] =
-          { "none" , "sum" , "L1" , "L2" , "T2star", "post_OC" } ;
+          { "none" , "sum" , "L1" , "L2" , "T2star", "optComb" } ;
 /* End FMRIF changes for RT T2* estimates - VR */
    static int RT_chmrg_mode  = 0 ;
    static int RT_chmrg_datum = -1 ;
@@ -4577,8 +4577,8 @@ static int RT_will_register_merged_dset(RT_input * rtin)
  * merged dataset                        27 Oct 2016 [rickr] */
 static int RT_when_to_merge( void )
 {
-   if( RT_chmrg_mode == RT_CHMER_NONE )    return RT_CM_NO_MERGE;
-   if( RT_chmrg_mode == RT_CHMER_POST_OC ) return RT_CM_MERGE_AFTER_REG;
+   if( RT_chmrg_mode == RT_CHMER_NONE )     return RT_CM_NO_MERGE;
+   if( RT_chmrg_mode == RT_CHMER_OPT_COMB ) return RT_CM_MERGE_AFTER_REG;
 
    /* otherwise, merge before registration */
    return RT_CM_MERGE_BEFORE_REG;
@@ -7714,11 +7714,93 @@ MRI_IMAGE * RT_mergerize(RT_input * rtin, int iv, int postreg)
        }
      break ; /* done with RT_CHMER_T2STAREST */
 
-     fflush (stdout);
-
      /* End FMRIF changes for RT T2* estimates - VR */
 
+     /* Begin FMRIF changes for RT Optimal combined echo data - VR */
+
+     case RT_CHMER_OPT_COMB :  /* output datum is always float */
+        if( idatum != MRI_float )
+           fprintf(stderr,"** type of optimally combined est dataset must be float\n");
+        else {
+           float t2startest, intercept;
+           float sumX, sumY, sumX2, sumXY, diffSumX2, logY;
+
+           sumX = sumX2 = 0.0, diffSumX2 = 1.0;
+           for (cc=0 ; cc < ndsets ; cc++)
+           {
+              sumX  += (rtin->TE[cc]);
+              sumX2 += (rtin->TE[cc] * rtin->TE[cc]);
+           }
+           diffSumX2 = ((ndsets * sumX2) - (sumX * sumX));
+
+           for (ii=0 ; ii < nvox ; ii++)
+           {
+              sumY = sumXY = 0.0;
+              for (cc=0 ; cc < ndsets ; cc++)
+              {
+                 ftar   = (far[cc]);
+
+                 if (ftar[ii] > 0.5)
+                    logY   = log (ftar[ii]);
+                 else
+                    logY   = 0.0;
+
+                 sumY  += (logY);
+                 sumXY += (logY * rtin->TE[cc]);
+              }
+
+              /* Regression Formula:                                          *
+               *                                                              *
+               * Slope     = ((N * sum (X * Y)) - (sum (X) * sum (Y))) /      *
+               *             ((N * sum (X * X)) - ((sum (X)^2)))              *
+               *                                                              *
+               * Intercept = (sum(Y) - Slope * sum(X)) / N                    *
+               *                                                              *
+               * For this simple model, slope = -1 / T2*, so T2* = -1 / slope *
+               *                                                              *
+               * Statement for slope computed via linear regression is:       *
+               *                                                              *
+               *   fmar[ii] = ((ndsets * sumXY) - (sumX * sumY)) / diffSumX2; *
+               *                                                              *
+               * For T2* value directly from linear regression coefficients:  */
+
+               if (((sumX * sumY) - (ndsets * sumXY)) > 0.001)
+                  fmar[ii] = diffSumX2 / ((sumX * sumY) - (ndsets * sumXY));
+               else
+                  fmar[ii] = 0.0;
+
+               /* def make_optcom(data,t2s,tes):
+
+                   """
+                   Generates the optimally combined time series. 
+
+                   Parameters:
+                   -----------
+                   data: this is the original ME dataset with the mean in a (Nv,Ne,Nt) array.
+                   t2s:  this is the static T2s map in a (Nv,) array.
+                   tes:  echo times in a (Ne,) array.
+
+                   Returns:
+                   --------
+                   octs: optimally combined time series in a (Nv,Nt) array.    
+                   """
+
+                   Nv,Ne,Nt = data.shape
+                   ft2s  = t2s[:,np.newaxis]
+                   alpha = tes * np.exp(-tes /ft2s)
+                   alpha = np.tile(alpha[:,:,np.newaxis],(1,1,Nt))
+                   octs  = np.average(data,axis = 1,weights=alpha)
+                   return octs
+               */
+           }
+       }
+     break ; /* done with RT_CHMER_OPT_COMB */
+
+     /* End FMRIF changes for RT Optimal combined echo data - VR */
+
      /*** sum of input values ***/
+
+     fflush (stdout);
 
      case RT_CHMER_SUM:  /* output datum is same as input datum */
        switch( idatum ){
