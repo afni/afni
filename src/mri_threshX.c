@@ -225,6 +225,7 @@ Xcluster_array * find_Xcluster_array( MRI_IMAGE *fim, int nnlev, MRI_IMAGE *cim 
    int ip,jp,kp , im,jm,km , nx,ny,nz,nxy,nxyz ;
    const int do_nn2=(nnlev > 1) , do_nn3=(nnlev > 2) ;
    const int hpow=0 ;
+   float qmed=0.0f,qmean=0.0f ;
    DECLARE_ithr ;
 
    far = MRI_FLOAT_PTR(fim) ;
@@ -310,8 +311,9 @@ Xcluster_array * find_Xcluster_array( MRI_IMAGE *fim, int nnlev, MRI_IMAGE *cim 
          default:
            cth = qmean_float( kcthar[ithr], cthar[ithr] ) ;         break ;
          case 1:
-           cth = 0.5f * ( qmean_float(kcthar[ithr],cthar[ithr])
-                         +qmed_float (kcthar[ithr],cthar[ithr]) ) ; break ;
+           qmean = qmean_float(kcthar[ithr],cthar[ithr]) ;
+           qmed  = qmed_float (kcthar[ithr],cthar[ithr]) ;
+           cth   = 0.5f * (qmean+qmed) ;                            break ;
          case 2:
            cth = qfrac_float( kcthar[ithr], 0.01f*cth_perc, cthar[ithr] ) ; break ;
        }
@@ -326,6 +328,8 @@ Xcluster_array * find_Xcluster_array( MRI_IMAGE *fim, int nnlev, MRI_IMAGE *cim 
      } else {                         /* add to the ever growing cluster list */
        if( xcar == NULL ) CREATE_Xcluster_array(xcar,4) ;  /* create the list */
        ADDTO_Xcluster_array(xcar,xcc) ; xcc = NULL ;
+if( cth_mode == 1 )
+INFO_message("FOM=%g  qmean=%g  qmed=%g",xcc->fom,qmean,qmed) ;
      }
 
    } /* loop until all nonzero points in far[] have been used up */
