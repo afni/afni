@@ -331,12 +331,12 @@ Xcluster_array * find_Xcluster_array( MRI_IMAGE *fim, int nnlev, MRI_IMAGE *cim 
      if( xcc->fom < cth || xcc->npt < MIN_CLUST ){ /* too 'small' ==> recycle */
        xcc->npt = xcc->norig = 0 ; xcc->fom = 0.0f ;
      } else {                         /* add to the ever growing cluster list */
-       if( xcar == NULL ) CREATE_Xcluster_array(xcar,4) ;  /* create the list */
-       ADDTO_Xcluster_array(xcar,xcc) ; xcc = NULL ;
 #if 0
 if( cth_mode == 1 )
 INFO_message("FOM=%g  qmean=%g  qmed=%g",xcc->fom,qmean,qmed) ;
 #endif
+       if( xcar == NULL ) CREATE_Xcluster_array(xcar,4) ;  /* create the list */
+       ADDTO_Xcluster_array(xcar,xcc) ; xcc = NULL ;
      }
 
    } /* loop until all nonzero points in far[] have been used up */
