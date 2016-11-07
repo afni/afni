@@ -2614,6 +2614,15 @@ int main( int argc , char *argv[] )
 
    /*--- now ready to start X11 for true --*/
 
+#ifdef DARWIN
+   fprintf(stderr,
+            "\n"
+            "++ If you are using XQuartz 2.7.10 (or later), and\n"
+            " + AFNI crashes when opening windows, you might need\n"
+            " + to set an environment variable to solve this problem:\n"
+            " +   setenv DYLD_LIBRARY_PATH /opt/X11/lib/flat_namespace\n\n" ) ;
+#endif
+
    memset(&MAIN_app, 0, sizeof(MAIN_app)) ;  /* 11 Feb 2009 [lesstif patrol] */
    MAIN_shell = XtVaAppInitialize( &MAIN_app , "AFNI" , NULL , 0 ,
                                    &argc , argv ,
