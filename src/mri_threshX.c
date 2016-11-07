@@ -307,20 +307,18 @@ Xcluster_array * find_Xcluster_array( MRI_IMAGE *fim, int nnlev, MRI_IMAGE *cim 
           the loop continues until finally no new neighbors get added */
 
      if( car != NULL && kcthar[ithr] > 0 ){
+       qmean = qmean_float(kcthar[ithr],cthar[ithr]) ;
        switch( cth_mode ){
          default:
-           cth = qmean_float( kcthar[ithr], cthar[ithr] ) ;         break ;
+           cth = qmean ; break ;
          case 1:
-           qmean = qmean_float(kcthar[ithr],cthar[ithr]) ;
            qmed  = qmed_float (kcthar[ithr],cthar[ithr]) ;
-#if 0
-           cth   = 0.5f * (qmean+qmed) ;
-#else
            cth   = MAX(qmean,qmed) ;
-#endif
            break ;
          case 2:
-           cth = qfrac_float( kcthar[ithr], 0.01f*cth_perc, cthar[ithr] ) ; break ;
+           qmed = qfrac_float( kcthar[ithr], 0.01f*cth_perc, cthar[ithr] ) ;
+           cth  = MAX(qmean,qmed) ;
+           break ;
        }
      } else {
        cth = 0.0f ;
