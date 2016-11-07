@@ -72,6 +72,16 @@ void adaptive_filter( int num , float *vec )
 }
 
 /*--------------------------------------------------------------------------*/
+
+static int polort=-1 ;
+
+void polort_filter( int num , float *vec )
+{
+   THD_generic_detrend_LSQ( num , vec , polort , 0,NULL,NULL ) ;
+   return ;
+}
+
+/*--------------------------------------------------------------------------*/
 /* Array of filter functions to apply to time series */
 
 static int           nffunc=0 ;
@@ -134,12 +144,17 @@ int main( int argc , char *argv[] )
       "Options:\n"
       "--------\n"
       "\n"
+      " -input inputdataset\n"
+      "\n"
+      " -prefix outputdataset\n"
+      "\n"
       " -filter FunctionName\n"
       "     At least one '-filter' option is required!\n"
       "     The FunctionName values that you can give are:\n"
       "\n"
       "        rank       = smallest value is replaced by 0,\n"
       "                     next smallest value by 1, and so forth.\n"
+      "                     ** This filter is pretty useless.\n"
       "\n"
       "        adaptive:H = adaptive mean filter with half-width of\n"
       "                     'H' time points (H > 0).\n"
@@ -149,9 +164,9 @@ int main( int argc , char *argv[] )
       "                        'footprint', with values far away from\n"
       "                        the local median being weighted less.\n"
       "\n"
-      " -input inputdataset\n"
-      "\n"
-      " -prefix outputdataset\n"
+      "        detrend:P  = (least squares) detrend with polynomials of up\n"
+      "                     order 'P' for P=0, 1, 2, ....\n"
+      "                     ** At most one 'detrend' filter can be used!\n"
       "\n"
       "Example:\n"
       "--------\n"
@@ -197,9 +212,11 @@ int main( int argc , char *argv[] )
 
      if( strcasecmp(argv[nopt],"-filter") == 0 ){
        if( ++nopt >= argc ) ERROR_exit("%s needs an argument!",argv[nopt-1]);
+
        if( strcasecmp(argv[nopt],"rank") == 0 ){
          ADD_FILTER(rank_order_float) ;
          INFO_message("Filter #%d = rank",nffunc) ;
+
        } else if( strncasecmp(argv[nopt],"adaptive:",9) == 0 ){
          char *cpt=argv[nopt]+9 ;
          if( hh > 0 )
@@ -213,6 +230,19 @@ int main( int argc , char *argv[] )
            ERROR_exit("'%s' is not a legal 'adaptive' filter name",argv[nopt]) ;
          ADD_FILTER(adaptive_filter) ;
          INFO_message("Filter #%d = adaptive:%d",nffunc,hh) ;
+
+       } else if( strncasecmp(argv[nopt],"detrend:",8) == 0 ){
+         char *cpt=argv[nopt]+8 ;
+         if( polort > 0 )
+           ERROR_exit("You can't use more than one 'detrend' filter :(") ;
+         if( !isdigit(*cpt) )
+           ERROR_exit("'%s' is not a valid 'detrend' filter name",argv[nopt]) ;
+         polort = (int)strtod(cpt,NULL) ;
+         if( polort < 0 )
+           ERROR_exit("'%s' is not a legal 'detrend' filter name",argv[nopt]) ;
+         ADD_FILTER(polort_filter) ;
+         INFO_message("Filter #%d = detrend:%d",nffunc,polort) ;
+
        } else {
          ERROR_exit("Unkown filter type '%s'",argv[nopt]) ;
        }
