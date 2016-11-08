@@ -549,7 +549,7 @@ static char * GRAPH_strings[NGRAPH] = { "No" , "Yes" , "Realtime" } ;
 #define RT_CHMER_SUM       1
 #define RT_CHMER_L1NORM    2
 #define RT_CHMER_L2NORM    3
-/* Begin FMRIF changes for RT T2* estimates - VR */
+/* Begin FMRIF changes for RT T2* estimates and optimally combined data - VR */
 #define RT_CHMER_T2STAREST 4
 #define RT_CHMER_OPT_COMB  5
 #define N_RT_CHMER_MODES   6
@@ -7665,7 +7665,6 @@ MRI_IMAGE * RT_mergerize(RT_input * rtin, int iv, int postreg)
         if( idatum != MRI_float )
            fprintf(stderr,"** type of T2star est dataset must be float\n");
         else {
-           float t2startest, intercept;
            float sumX, sumY, sumX2, sumXY, diffSumX2, logY;
 
            sumX = sumX2 = 0.0, diffSumX2 = 1.0;
@@ -7722,7 +7721,7 @@ MRI_IMAGE * RT_mergerize(RT_input * rtin, int iv, int postreg)
         if( idatum != MRI_float )
            fprintf(stderr,"** type of optimally combined est dataset must be float\n");
         else {
-           float t2startest, intercept;
+           float t2startest, sumTEsByExpTEs;
            float sumX, sumY, sumX2, sumXY, diffSumX2, logY;
 
            sumX = sumX2 = 0.0, diffSumX2 = 1.0;
@@ -7765,9 +7764,9 @@ MRI_IMAGE * RT_mergerize(RT_input * rtin, int iv, int postreg)
                * For T2* value directly from linear regression coefficients:  */
 
                if (((sumX * sumY) - (ndsets * sumXY)) > 0.001)
-                  fmar[ii] = diffSumX2 / ((sumX * sumY) - (ndsets * sumXY));
+                  t2startest = diffSumX2 / ((sumX * sumY) - (ndsets * sumXY));
                else
-                  fmar[ii] = 0.0;
+                  t2startest  = 0.0;
 
                /* def make_optcom(data,t2s,tes):
 
@@ -7791,7 +7790,26 @@ MRI_IMAGE * RT_mergerize(RT_input * rtin, int iv, int postreg)
                    alpha = np.tile(alpha[:,:,np.newaxis],(1,1,Nt))
                    octs  = np.average(data,axis = 1,weights=alpha)
                    return octs
+
+               weight (T2*)[i] = TE[i] * exp (-TE[i]/T2*(fit)) /
+                                 Sum ( TE[i] * exp(-TE[i]/T2*(fit)) )
+
                */
+
+               sumTEsByExpTEs = 0.0;
+               for (cc=0 ; cc < ndsets ; cc++)
+               {
+                  sumTEsByExpTEs += ( rtin->TE[cc] * exp (-1.0 * rtin->TE[cc] / t2startest) );
+               }
+
+               for (cc=0 ; cc < ndsets ; cc++)
+               {
+                  ftar   = (far[cc]);
+
+                  fmar[ii] += (ftar[ii] * rtin->TE[cc] * exp (-1.0 * rtin->TE[cc] / t2startest));
+               }
+
+               fmar[ii] =  fmar[ii] / sumTEsByExpTEs;
            }
        }
      break ; /* done with RT_CHMER_OPT_COMB */
