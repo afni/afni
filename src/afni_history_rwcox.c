@@ -44,6 +44,11 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 7 , NOV , 2016 , RWC , "3dTfilter" , MINOR , TYPE_NEW_PROG ,
+   "Platform for generic filtering of time series" ,
+   "Right now, just for adaptive local mean filtering (generalized smoothing\n"
+   "plus despiking)." } ,
+
  { 4 , NOV , 2016 , RWC , "afni InstaCorr" , MINOR , TYPE_ENHANCE ,
    "Two small changes" ,
    "(1) Extend the range of the bandpass to allow up to 10Hz (formerly only\n"
