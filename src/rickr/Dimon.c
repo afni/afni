@@ -143,10 +143,11 @@ static char * g_history[] =
     "      - no sorting was incorrectly returning an error\n"
     " 4.15 Jul  7, 2016 [rickr]: add -order_as_zt: convert tz ordering to zt\n"
     " 4.16 Jul  8, 2016 [rickr]: add -read_all: remove limit on images read\n"
+    " 4.17 Nov  8, 2016 [rickr]: maybe override DICOM orient if sorting\n"
     "----------------------------------------------------------------------\n"
 };
 
-#define DIMON_VERSION "version 4.16 (July 8, 2016)"
+#define DIMON_VERSION "version 4.17 (November 8, 2016)"
 
 /*----------------------------------------------------------------------
  * Dimon - monitor real-time aquisition of Dicom or I-files
@@ -6679,10 +6680,28 @@ static int complete_orients_str( vol_t * v, param_t * p )
     }
 
     if ( gD.level > 2 )
-        fprintf(stderr,"completing orients from '%s' to", v->geh.orients);
+        fprintf(stderr,"completing orients from '%s' to ", v->geh.orients);
 
-    if ( IM_IS_DICOM(p->ftype) )
+    /* terminate this in case we print it early */
+    v->geh.orients[6] = '\0';
+
+    if ( IM_IS_DICOM(p->ftype) ) {
+        static int si_report=1;
+        char zo = MRILIB_orients[4];
         strncpy(v->geh.orients + 4, MRILIB_orients + 4, 2 );
+        /* might have to reverse the slice order after sorting */
+        /* inverted images noted by Wenming Luh     8 Nov 2016 */
+        if ( ( v->z_delta < 0 && (zo == 'R' || zo == 'A' || zo == 'I') ) ||
+             ( v->z_delta > 0 && (zo == 'L' || zo == 'P' || zo == 'S') ) ) {
+           v->geh.orients[4] = v->geh.orients[5];
+           v->geh.orients[5] = zo;
+           if( si_report || gD.level > 3 ) {
+              fprintf(stderr,"-- reversing z-orient to '%s'\n",
+                      v->geh.orients+4);
+              si_report = 0;
+           }
+        }
+    }
     else if ( IM_IS_GEMS(p->ftype) )
     {
         kk = p->fim_o[v->fs_1].gex.kk;
@@ -6735,8 +6754,6 @@ static int complete_orients_str( vol_t * v, param_t * p )
             }
         }
     }
-
-    v->geh.orients[6] = '\0';
 
     if ( gD.level > 2 ) fprintf(stderr,"'%s'\n", v->geh.orients);
                                 
