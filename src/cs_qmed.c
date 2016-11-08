@@ -1031,31 +1031,42 @@ float wtmed_float( int n , float *x , float *w )
 
 float qfrac_float( int n , float frac , float *ar )
 {
-   register int i , j ;           /* scanning indices */
-   register float temp , pivot ;  /* holding places */
-   register float *a = ar ;
-
-   int left , right , mid , nodd ;
+   int i , j ;           /* scanning indices */
+   float temp , pivot ;  /* holding places */
+   float *a=ar ;
+   float ni, fmid, ft,fb ;
+   int left, right, mid ;
 
    /* special cases */
 
    if( n <= 0 ) return 0.0f ;
    if( n == 1 ) return a[0] ;
 
-   if( frac <= 0.0f || frac >= 1.0f ) return 0.0f ;
-#if 0
-   if( frac == 0.5f ) return qmed_float(n,ar) ;
-#endif
+   ni = 1.0f/(float)n ;
 
-   if( n == 2 ){
-     float b=ar[0], t=ar[1] ;
-     if( b > t ) SWAP(b,t) ;
-     return (frac*t + (1.0f-frac)*b) ;
+   if( frac <= ni ){                    /* min */
+     temp = a[0] ;
+     for( i=1 ; i < n ; i++ ) if( temp > a[i] ) temp = a[i] ;
+     return temp ;
+   } else if( frac >= 1.0f-ni ){        /* max */
+     temp = a[0] ;
+     for( i=1 ; i < n ; i++ ) if( temp < a[i] ) temp = a[i] ;
+     return temp ;
+   } else if( fabsf(frac-0.5f) < ni ){  /* median */
+     return qmed_float(n,a) ;
    }
 
-   mid = (int)rintf(frac*n) ;
+   fmid = frac * n - 0.5f ;
+    mid = (int)fmid ; if( mid >= n-1 ) mid = n-2 ;  /* shouldn't happen */
+     ft = fmid-mid ;
+     fb = 1.0f-ft ;
 
-   /* general case */
+   if( n <= 21 ){        /* fast sorting for small arrays */
+     qsort_float(n,a) ;
+     return (fb*a[mid]+ft*a[mid+1]) ;
+   }
+
+   /* general (longer) case */
 
    left = 0 ; right = n-1 ;
 
@@ -1094,14 +1105,21 @@ float qfrac_float( int n , float frac , float *ar )
       a[right] = a[i] ;           /* restore the pivot */
       a[i]     = pivot ;
 
-      if( i == mid ){             /* good luck */
-         return pivot ;
-      }
+      if( i == mid ) break ;      /* good luck == hit the target exactly */
 
-      if( i <  mid ) left  = i ; /* throw away bottom partition */
-      else           right = i ; /* throw away top partition    */
+      if( i <  mid ) left  = i ;  /* throw away bottom partition */
+      else           right = i ;  /* throw away top partition    */
 
    }  /* end of while sub-array is long */
 
-   return a[mid] ;
+   /* find smallest element in the fraction above */
+
+   temp = a[mid+1] ;
+   for( j=mid+2 ; j < n ; j++ ) if( temp > a[j] ) temp = a[j] ;
+
+#if 0
+INFO_message("qfrac(%g): fmid=%g mid=%d a[mid]=%g temp=%g",frac,fmid,mid,a[mid],temp) ;
+#endif
+
+   return (fb*a[mid]+ft*temp) ;
 }
