@@ -99,7 +99,7 @@ PROGRAMS = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge count   
            3dNwarpFuncs 3dTproject afni_open 3dConformist 3dNwarpXYZ 3dTRfix    \
            3dToyProg 3dRankizer nifti1_tool gifti_tool cifti_tool images_equal  \
            uniq_images tokens 3dLocalACF 3dXClustSim 3dtoXdataset 3dMultiThresh \
-           3dLFCD 3dDegreeCentrality 3dECM 3dMSE  3dsvm_linpredict              \
+           3dLFCD 3dDegreeCentrality 3dECM 3dMSE 3dsvm_linpredict 3dTfilter     \
            $(EXTRAS)
 
 PROGRAMS_NOPLUG = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge      \
@@ -608,6 +608,10 @@ dsetdup:dsetdup.o
 3dTsort:3dTsort.o
 	$(RM) $@
 	$(CC) -o 3dTsort 3dTsort.o $(LFLAGS) $(LLIBS)
+
+3dTfilter:3dTfilter.o
+	$(RM) $@
+	$(CC) -o 3dTfilter 3dTfilter.o $(LFLAGS) $(LLIBS)
 
 3dPeriodogram:3dPeriodogram.o
 	$(RM) $@
