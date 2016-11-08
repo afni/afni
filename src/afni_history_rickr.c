@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  8,  Nov, 2016, RCR, "Dimon", MINOR, TYPE_BUG_FIX,
+   "possibly invert slice order, as DICOM sorting might affect MRILIB_orients",
+   "Thanks to W Luh for noting the problem."
+ } ,
+
  {  2,  Nov, 2016, RCR, "afni_system_check.py", MICRO, TYPE_ENHANCE,
    "handle 10.12 version string",
    NULL
