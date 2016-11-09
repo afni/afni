@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  9,  Nov, 2016, RCR, "to3d", MICRO, TYPE_MODIFY,
+   "and Dimon/Dimon1: siemens timing outside range is only a warning",
+   NULL
+ } ,
+
  {  8,  Nov, 2016, RCR, "Dimon", MINOR, TYPE_BUG_FIX,
    "possibly invert slice order, as DICOM sorting might affect MRILIB_orients",
    "Thanks to W Luh for noting the problem."
