@@ -413,7 +413,7 @@ int ART_send_control_info( ART_comm * ac, vol_t * v, int debug )
     /* if mosaic with valid timing, apply it                     25 Apr 2011 */
     /* -> set tpattern = explicit and pass times                             */
     if ( v->minfo.im_is_volume &&
-         valid_g_siemens_times(v->minfo.nslices, v->geh.tr, 0) )
+         valid_g_siemens_times(v->minfo.nslices, v->geh.tr, 0, 0) )
     {
         int off, nchar, ind;
         off = sprintf( tbuf, "TPATTERN explicit" );

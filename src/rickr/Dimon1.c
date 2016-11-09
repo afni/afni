@@ -5005,7 +5005,7 @@ static int create_gert_dicom( stats_t * s, param_t * p )
 
                 /* check siemens timing for errors, just to be sure */
                 if( !strcmp(spat, "FROM_IMAGE") )
-                    valid_g_siemens_times(nslices, tr, 1);
+                    valid_g_siemens_times(nslices, tr, 0, 1);
             }
 
             if( opts->use_last_elem )
