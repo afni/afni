@@ -229,12 +229,14 @@ ENTRY("populate_g_siemens_times");
  * 2. verify that 0 <= min, max <= TR
  * 3. maybe output which order the times seem to be in (future?)
  *
+ * if range_check, times outside TR are an error
+ *
  * if verb, output any errors
  * if verb > 1, output time pattern to screen
  *
  * return 1 if valid, 0 otherwise
  */
-int valid_g_siemens_times(int nz, float TR, int verb)
+int valid_g_siemens_times(int nz, float TR, int range_check, int verb)
 {
    float min, max, * times = g_siemens_timing_times;
    int   ind, decimals=3;
@@ -271,13 +273,15 @@ ENTRY("test_g_siemens_times");
    if( min < 0.0 ) {
       if(verb) printf("** min slice time %.*f outside TR range [0.0, %.*f]\n",
                       decimals, min, decimals, TR);
+      if( range_check ) RETURN(0);  /* bad times, man   9 Nov 2016 [rickr] */
    }
    else if( max > TR ) {
       if(verb) printf("** max slice time %.*f outside TR range [0.0, %.*f]\n",
                       decimals, max, decimals, TR);
-   } else RETURN(1); /* let the good times roll! */ 
+      if( range_check ) RETURN(0);  /* bad times, man */
+   }
 
-   RETURN(0); /* either min or max was bad (or both) */
+   RETURN(1);
 }
 
 int get_and_display_siemens_times(void)

@@ -413,11 +413,11 @@ DUMP_MAT44("MRILIB_dicom_matrix",MRILIB_dicom_matrix) ;
    if( user_inputs.ntt && user_inputs.tpattern
                        && user_inputs.tpattern[0] == -666.0 ) {
       int ii;
-      /* if Siemens times seem valid, use them */
-      if( valid_g_siemens_times(user_inputs.nzz, user_inputs.TR, 2) ) {
+      /* if Siemens times exist, use them */
+      if( valid_g_siemens_times(user_inputs.nzz, user_inputs.TR, 0, 2) ) {
          for( ii=0; ii < user_inputs.nzz ; ii++ )
             user_inputs.tpattern[ii] = g_siemens_timing_times[ii];
-      } else all_good = False;
+      } /* else all_good = False;  cannot be fixed in GUI, just whine */
    }
 
    if( all_good && !user_inputs.nosave ){      /* done! */
