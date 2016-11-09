@@ -5969,9 +5969,9 @@ static int create_gert_dicom( stats_t * s, param_t * p )
             fprintf(fp, "%*s     -time:zt %d %d %ssec %s %*s  \\\n",
                     indent, "", nslices, nvols, TR, spat, nspaces, "");
 
-            /* check siemens timing for errors, just to be sure */
+            /* check siemens timing for errors, just to warn user */
             if( !strcmp(spat, "FROM_IMAGE") )
-                valid_g_siemens_times(nslices, tr, 1);
+                valid_g_siemens_times(nslices, tr, 0, 1);
         }
 
         if( opts->use_last_elem )
