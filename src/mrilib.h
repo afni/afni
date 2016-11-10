@@ -70,7 +70,7 @@ extern float * g_siemens_timing_times;  /* actual list of times          */
 extern int     g_siemens_timing_units;  /* time units, UNITS_MSEC_TYPE?  */
 extern int     populate_g_siemens_times(int tunits);
 extern int     get_and_display_siemens_times(void);
-extern int     valid_g_siemens_times(int nz, float TR, int verb);
+extern int     valid_g_siemens_times(int, float, int, int);
 
 /*----------------------------------------------------------------------------*/
 
