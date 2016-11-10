@@ -181,8 +181,8 @@ static float **cthar = NULL ;
 static int   *ncthar = NULL ;
 static int   *kcthar = NULL ;
 
-static int   cth_mode = 0 ;    /* 0 = mean , 1 = median, 2 = cth_perc% */
-static float cth_perc = 60.0f ;
+static int   cth_mode = 2 ;    /* 0 = mean , 1 = median, 2 = cth_perc% */
+static float cth_perc = 80.0f ;
 
 #define ADDTO_CTHAR(val,ith)                                                 \
  do{ if( kcthar[ith] >= ncthar[ith] ){                                       \
@@ -309,12 +309,13 @@ Xcluster_array * find_Xcluster_array( MRI_IMAGE *fim, int nnlev, MRI_IMAGE *cim 
      if( car != NULL && kcthar[ithr] > 0 ){
        qmean = qmean_float(kcthar[ithr],cthar[ithr]) ;
        switch( cth_mode ){
-         default:
+         case 0:
            cth = qmean ; break ;
          case 1:
            qmed  = qmed_float (kcthar[ithr],cthar[ithr]) ;
            cth   = MAX(qmean,qmed) ;
            break ;
+         default:
          case 2:
            qmed = qfrac_float( kcthar[ithr], 0.01f*cth_perc, cthar[ithr] ) ;
            cth  = MAX(qmean,qmed) ;
@@ -329,10 +330,6 @@ Xcluster_array * find_Xcluster_array( MRI_IMAGE *fim, int nnlev, MRI_IMAGE *cim 
      if( xcc->fom < cth || xcc->npt < MIN_CLUST ){ /* too 'small' ==> recycle */
        xcc->npt = xcc->norig = 0 ; xcc->fom = 0.0f ;
      } else {                         /* add to the ever growing cluster list */
-#if 0
-if( cth_mode == 1 )
-INFO_message("FOM=%g  qmean=%g  qmed=%g",xcc->fom,qmean,qmed) ;
-#endif
        if( xcar == NULL ) CREATE_Xcluster_array(xcar,4) ;  /* create the list */
        ADDTO_Xcluster_array(xcar,xcc) ; xcc = NULL ;
      }
@@ -365,7 +362,9 @@ void mri_multi_threshold_setup(void)
    eee = getenv("AFNI_MTHRESH_MODE") ;
    if( eee != NULL ){
      char *ppp ;
-     cth_mode = 0 ;
+     cth_mode = 2 ;
+     ppp = strcasestr(eee,"mean") ;
+     if( ppp != NULL ) cth_mode = 0 ;
      ppp = strcasestr(eee,"median") ;
      if( ppp != NULL ) cth_mode = 1 ;
      ppp = strstr(eee,"%") ;
