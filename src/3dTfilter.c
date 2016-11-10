@@ -81,6 +81,156 @@ void polort_filter( int num , float *vec )
    return ;
 }
 
+/*----------------------------------------------------------------------------*/
+/* Despiking filter */
+
+#undef  SWAP
+#define SWAP(x,y) (temp=x,x=y,y=temp)
+
+#undef  SORT2
+#define SORT2(a,b) if(a>b) SWAP(a,b)
+
+static float *deswks = NULL ;
+
+/*--- fast median of 9 values ---*/
+
+static INLINE float median9f(float *p)
+{
+    register float temp ;
+    SORT2(p[1],p[2]) ; SORT2(p[4],p[5]) ; SORT2(p[7],p[8]) ;
+    SORT2(p[0],p[1]) ; SORT2(p[3],p[4]) ; SORT2(p[6],p[7]) ;
+    SORT2(p[1],p[2]) ; SORT2(p[4],p[5]) ; SORT2(p[7],p[8]) ;
+    SORT2(p[0],p[3]) ; SORT2(p[5],p[8]) ; SORT2(p[4],p[7]) ;
+    SORT2(p[3],p[6]) ; SORT2(p[1],p[4]) ; SORT2(p[2],p[5]) ;
+    SORT2(p[4],p[7]) ; SORT2(p[4],p[2]) ; SORT2(p[6],p[4]) ;
+    SORT2(p[4],p[2]) ; return(p[4]) ;
+}
+
+/*--- get the local median and MAD of values vec[j-4 .. j+4] ---*/
+
+#undef  mead9
+#define mead9(j)                                               \
+ { float qqq[9] ; int jj = (j)-4 ;                             \
+   if( jj < 0 ) jj = 0; else if( jj+8 >= num ) jj = num-9;     \
+   qqq[0] = vec[jj+0]; qqq[1] = vec[jj+1]; qqq[2] = vec[jj+2]; \
+   qqq[3] = vec[jj+3]; qqq[4] = vec[jj+4]; qqq[5] = vec[jj+5]; \
+   qqq[6] = vec[jj+6]; qqq[7] = vec[jj+7]; qqq[8] = vec[jj+8]; \
+   med    = median9f(qqq);     qqq[0] = fabsf(qqq[0]-med);     \
+   qqq[1] = fabsf(qqq[1]-med); qqq[2] = fabsf(qqq[2]-med);     \
+   qqq[3] = fabsf(qqq[3]-med); qqq[4] = fabsf(qqq[4]-med);     \
+   qqq[5] = fabsf(qqq[5]-med); qqq[6] = fabsf(qqq[6]-med);     \
+   qqq[7] = fabsf(qqq[7]-med); qqq[8] = fabsf(qqq[8]-med);     \
+   mad    = median9f(qqq); }
+
+/*-------------------------------------------------------------------------*/
+/*! Remove spikes from a time series, in a very simplistic way.
+    Return value is the number of spikes that were squashed [RWCox].
+*//*-----------------------------------------------------------------------*/
+
+void DES_despike9( int num , float *vec )
+{
+   int ii , nsp ; float *zma,*zme , med,mad,val ;
+
+   if( num < 9 || vec == NULL ) return ;
+
+   if( deswks == NULL ) deswks = (float *)malloc(sizeof(float *)*(4*num)) ;
+
+   zme = deswks ; zma = zme + num ;
+
+   for( ii=0 ; ii < num ; ii++ ){
+     mead9(ii) ; zme[ii] = med ; zma[ii] = mad ;
+   }
+   mad = qmed_float(num,zma) ;
+   if( mad <= 0.0f ) return ;
+   mad *= 6.789f ;  /* threshold value */
+
+   for( nsp=ii=0 ; ii < num ; ii++ )
+     if( fabsf(vec[ii]-zme[ii]) > mad ){ vec[ii] = zme[ii]; nsp++; }
+
+   return ;
+}
+#undef mead9
+
+/*----------------------------------------------------------------------------*/
+/* Similar code to the above, but for spans of length 25 instead of 9 */
+
+static INLINE float median25f(float *p)
+{
+    register float temp ;
+    SORT2(p[0], p[1]) ;   SORT2(p[3], p[4]) ;   SORT2(p[2], p[4]) ;
+    SORT2(p[2], p[3]) ;   SORT2(p[6], p[7]) ;   SORT2(p[5], p[7]) ;
+    SORT2(p[5], p[6]) ;   SORT2(p[9], p[10]) ;  SORT2(p[8], p[10]) ;
+    SORT2(p[8], p[9]) ;   SORT2(p[12], p[13]) ; SORT2(p[11], p[13]) ;
+    SORT2(p[11], p[12]) ; SORT2(p[15], p[16]) ; SORT2(p[14], p[16]) ;
+    SORT2(p[14], p[15]) ; SORT2(p[18], p[19]) ; SORT2(p[17], p[19]) ;
+    SORT2(p[17], p[18]) ; SORT2(p[21], p[22]) ; SORT2(p[20], p[22]) ;
+    SORT2(p[20], p[21]) ; SORT2(p[23], p[24]) ; SORT2(p[2], p[5]) ;
+    SORT2(p[3], p[6]) ;   SORT2(p[0], p[6]) ;   SORT2(p[0], p[3]) ;
+    SORT2(p[4], p[7]) ;   SORT2(p[1], p[7]) ;   SORT2(p[1], p[4]) ;
+    SORT2(p[11], p[14]) ; SORT2(p[8], p[14]) ;  SORT2(p[8], p[11]) ;
+    SORT2(p[12], p[15]) ; SORT2(p[9], p[15]) ;  SORT2(p[9], p[12]) ;
+    SORT2(p[13], p[16]) ; SORT2(p[10], p[16]) ; SORT2(p[10], p[13]) ;
+    SORT2(p[20], p[23]) ; SORT2(p[17], p[23]) ; SORT2(p[17], p[20]) ;
+    SORT2(p[21], p[24]) ; SORT2(p[18], p[24]) ; SORT2(p[18], p[21]) ;
+    SORT2(p[19], p[22]) ; SORT2(p[8], p[17]) ;  SORT2(p[9], p[18]) ;
+    SORT2(p[0], p[18]) ;  SORT2(p[0], p[9]) ;   SORT2(p[10], p[19]) ;
+    SORT2(p[1], p[19]) ;  SORT2(p[1], p[10]) ;  SORT2(p[11], p[20]) ;
+    SORT2(p[2], p[20]) ;  SORT2(p[2], p[11]) ;  SORT2(p[12], p[21]) ;
+    SORT2(p[3], p[21]) ;  SORT2(p[3], p[12]) ;  SORT2(p[13], p[22]) ;
+    SORT2(p[4], p[22]) ;  SORT2(p[4], p[13]) ;  SORT2(p[14], p[23]) ;
+    SORT2(p[5], p[23]) ;  SORT2(p[5], p[14]) ;  SORT2(p[15], p[24]) ;
+    SORT2(p[6], p[24]) ;  SORT2(p[6], p[15]) ;  SORT2(p[7], p[16]) ;
+    SORT2(p[7], p[19]) ;  SORT2(p[13], p[21]) ; SORT2(p[15], p[23]) ;
+    SORT2(p[7], p[13]) ;  SORT2(p[7], p[15]) ;  SORT2(p[1], p[9]) ;
+    SORT2(p[3], p[11]) ;  SORT2(p[5], p[17]) ;  SORT2(p[11], p[17]) ;
+    SORT2(p[9], p[17]) ;  SORT2(p[4], p[10]) ;  SORT2(p[6], p[12]) ;
+    SORT2(p[7], p[14]) ;  SORT2(p[4], p[6]) ;   SORT2(p[4], p[7]) ;
+    SORT2(p[12], p[14]) ; SORT2(p[10], p[14]) ; SORT2(p[6], p[7]) ;
+    SORT2(p[10], p[12]) ; SORT2(p[6], p[10]) ;  SORT2(p[6], p[17]) ;
+    SORT2(p[12], p[17]) ; SORT2(p[7], p[17]) ;  SORT2(p[7], p[10]) ;
+    SORT2(p[12], p[18]) ; SORT2(p[7], p[12]) ;  SORT2(p[10], p[18]) ;
+    SORT2(p[12], p[20]) ; SORT2(p[10], p[20]) ; SORT2(p[10], p[12]) ;
+    return (p[12]);
+}
+
+/*--- get the local median and MAD of values vec[j-12 .. j+12] ---*/
+
+#undef  mead25
+#define mead25(j)                                              \
+ { float qqq[25] ; int jj=(j)-12 ; register int pp;            \
+   if( jj < 0 ) jj = 0; else if( jj+24 >= num ) jj = num-24;   \
+   for( pp=0 ; pp < 25 ; pp++ ) qqq[pp] = vec[jj+pp] ;         \
+   med = median25f(qqq) ;                                      \
+   for( pp=0 ; pp < 25 ; pp++ ) qqq[pp] = fabsf(qqq[pp]-med) ; \
+   mad = median25f(qqq); }
+
+void DES_despike25( int num , float *vec )
+{
+   int ii , nsp ; float *zma,*zme , med,mad,val ;
+
+   if( deswks == NULL ) deswks = (float *)malloc(sizeof(float *)*(4*num)) ;
+
+   if( vec == NULL ) return ;
+   if( num <  25   ) { DES_despike9(num,vec) ; return ; }
+
+   zme = deswks ; zma = zme + num ;
+
+   for( ii=0 ; ii < num ; ii++ ){
+     mead25(ii) ; zme[ii] = med ; zma[ii] = mad ;
+   }
+   mad = qmed_float(num,zma) ;
+   if( mad <= 0.0f ) return ;
+   mad *= 6.789f ;  /* threshold value */
+
+   for( nsp=ii=0 ; ii < num ; ii++ )
+     if( fabsf(vec[ii]-zme[ii]) > mad ){ vec[ii] = zme[ii]; nsp++; }
+
+   return ;
+}
+#undef mead25
+#undef SORT2
+#undef SWAP
+
 /*--------------------------------------------------------------------------*/
 /* Array of filter functions to apply to time series */
 
@@ -103,6 +253,9 @@ void FILTER_tsfunc( double tzero , double tdelta ,
    if( ts == NULL || val == NULL ) return ;  /* setup/cleanup calls */
 
    memcpy(val,ts,sizeof(float)*npts) ;
+
+   for( qq=0 ; qq < npts ; qq++ ) if( val[qq] != 0.0f ) break ;
+   if( qq == npts ) return ;
 
    for( qq=0 ; qq < nffunc ; qq++ )
      AFNI_CALL_VOID_2ARG( ffunc[qq] , int,npts , float *,val ) ;
@@ -167,6 +320,9 @@ int main( int argc , char *argv[] )
       "        detrend:P  = (least squares) detrend with polynomials of up\n"
       "                     order 'P' for P=0, 1, 2, ....\n"
       "                     ** At most one 'detrend' filter can be used!\n"
+      "\n"
+      "        despike    = apply the 'NEW25' despiking algorithm, as in\n"
+      "                     program 3dDespike.\n"
       "\n"
       "Example:\n"
       "--------\n"
@@ -242,6 +398,10 @@ int main( int argc , char *argv[] )
            ERROR_exit("'%s' is not a legal 'detrend' filter name",argv[nopt]) ;
          ADD_FILTER(polort_filter) ;
          INFO_message("Filter #%d = detrend:%d",nffunc,polort) ;
+
+       } else if( strcasecmp(argv[nopt],"despike") == 0 ){
+         ADD_FILTER(DES_despike25) ;
+         INFO_message("Filter #%d = despike",nffunc) ;
 
        } else {
          ERROR_exit("Unkown filter type '%s'",argv[nopt]) ;

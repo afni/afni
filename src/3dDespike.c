@@ -622,7 +622,8 @@ int main( int argc , char *argv[] )
 
    if( do_NEW ){
      NEW_psinv = DES_get_psinv(nuse,nref,ref) ;
-     INFO_message("Procesing time series with NEW model fit algorithm") ;
+     INFO_message("Procesing time series with %s model fit algorithm",
+                  (use_des25) ? "NEW25" : "NEW" ) ;
    } else {
      INFO_message("Procesing time series with OLD model fit algorithm") ;
    }
