@@ -370,10 +370,10 @@ void mri_multi_threshold_setup(void)
      ppp = strstr(eee,"%") ;
      if( ppp != NULL && isdigit(*(ppp+1)) ){
        cth_perc = (float)strtod(ppp+1,NULL) ;
-       if( cth_perc >= 10.0f && cth_perc <= 90.0f ) cth_mode = 2 ;
+       if( cth_perc >= 0.0f && cth_perc <= 100.0f ) cth_mode = 2 ;
        else {
          WARNING_message(
-          "AFNI_MTHRESH_MODE says %.1f%% -- out of range 10..90, so using median",
+          "AFNI_MTHRESH_MODE says %.1f%% -- out of range 0..100, so using median",
           cth_perc) ;
          cth_mode = 1 ;
        }
