@@ -1123,7 +1123,7 @@ ININFO_message(" p=%.5f did %d dilation loops with %d cluster dilations",
    /*--- STEP 4: test FOM count thresholds to find FAR=5% ---*/
 
 #define FARP_GOAL 5.00f  /* 5 percent */
-#define FGFAC     0.80f
+#define FGFAC     0.90f
 #define FG_GOAL   (FARP_GOAL*fgfac)
 
    fgfac = AFNI_numenv("AFNI_XCLUSTSIM_FGFAC") ;
