@@ -1684,6 +1684,8 @@ void AFNI_sigfunc(int sig)
    This catenation of events is for Jerzy 'the Mad Pole' Bodurka.
 ------------------------------------------------------------------------------*/
 
+extern int selenium_close(void) ;
+
 void AFNI_sigfunc_alrm(int sig)
 {
 #undef  NMSG

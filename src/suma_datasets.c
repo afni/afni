@@ -17,6 +17,8 @@ See SUMA_Makefile_NoDev
 
 #include "suma_suma.h"
 
+extern int selenium_close(void) ;
+
 int SUMA_AddDsetNelIndexCol ( SUMA_DSET *dset, char *col_label, 
                                SUMA_COL_TYPE ctp, void *col, 
                                void *col_attr, int stride) ;
@@ -2612,14 +2614,6 @@ char * SUMA_GetNgrColStringAttr( NI_group *ngr, int col_index,
    SUMA_RETURN(rs);
 }
 
-int SUMA_GetDsetNodeIndexColRange(  SUMA_DSET *dset, 
-                                    double range[2], int loc[2], 
-                                    int addifmissing)
-{
-   return(SUMA_GetDsetNodeIndexColRange_eng(
-            dset, range, loc, addifmissing,0));
-}
-
 int SUMA_GetDsetNodeIndexColRange_eng(  SUMA_DSET *dset, 
                                     double range[2], int loc[2], 
                                     int addifmissing, int ii)
@@ -2712,6 +2706,14 @@ int SUMA_GetDsetNodeIndexColRange_eng(  SUMA_DSET *dset,
    range[0] = nums[0]; range[1] = nums[1]; 
    loc[0] = (int)nums[2]; loc[1] = (int)nums[3];
    SUMA_RETURN(1);
+}
+
+int SUMA_GetDsetNodeIndexColRange(  SUMA_DSET *dset, 
+                                    double range[2], int loc[2], 
+                                    int addifmissing)
+{
+   return(SUMA_GetDsetNodeIndexColRange_eng(
+            dset, range, loc, addifmissing,0));
 }
 
 
