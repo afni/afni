@@ -102,6 +102,12 @@ static MRI_IMAGE *imtemplate = NULL ;
 #undef  PSMALL
 #define PSMALL 1.e-15
 
+#define FARP_GOAL 5.00f  /* 5 percent */
+#define FGFAC     0.90f
+#define FG_GOAL   (FARP_GOAL*fgfac)
+
+static float fgfac = FGFAC ;
+
 /*----------------------------------------------------------------------------*/
 /*! Threshold for upper tail probability of N(0,1) */
 
@@ -138,6 +144,9 @@ void get_options( int argc , char **argv )
   int nopt=1 , ii ;
 
 ENTRY("get_options") ;
+
+  fgfac = AFNI_numenv("AFNI_XCLUSTSIM_FGFAC") ;
+  if( fgfac < 0.1f || fgfac > 1.0f ) fgfac = FGFAC ;
 
   while( nopt < argc ){
 
@@ -333,6 +342,12 @@ ENTRY("get_options") ;
       }
       nopt += npthr ;
       continue ;
+    }
+
+    /*-----  -FG  -----*/
+
+    if( strcmp(argv[nopt],"-FG") == 0 ){
+      INFO_message("FG=%g  FG_GOAL=%g",FGFAC,FG_GOAL) ; exit(0) ;
     }
 
     /*----- unknown option -----*/
@@ -715,7 +730,7 @@ int main( int argc , char *argv[] )
    char qpr[32] ;
    MRI_IMAGE *cim ; MRI_IMARR *cimar=NULL ; float **car , *farar ;
    int nfomkeep , nfar , itrac , ithresh ;
-   float tfrac , farperc,farcut , tfracold,farpercold,ttemp , fgfac ;
+   float tfrac , farperc,farcut , tfracold,farpercold,ttemp ;
 
    /*----- help me if you can -----*/
 
@@ -1121,13 +1136,6 @@ ININFO_message(" p=%.5f did %d dilation loops with %d cluster dilations",
 
    /*========================================================*/
    /*--- STEP 4: test FOM count thresholds to find FAR=5% ---*/
-
-#define FARP_GOAL 5.00f  /* 5 percent */
-#define FGFAC     0.90f
-#define FG_GOAL   (FARP_GOAL*fgfac)
-
-   fgfac = AFNI_numenv("AFNI_XCLUSTSIM_FGFAC") ;
-   if( fgfac < 0.1f || fgfac > 1.0f ) fgfac = FGFAC ;
 
 FINAL_STUFF:
 
