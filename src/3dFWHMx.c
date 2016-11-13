@@ -9,6 +9,8 @@ extern void THD_estimate_FWHM_moments_all( THD_3dim_dataset *dset,
 #ifdef USE_OMP
 # include <omp.h>
 # include "mri_fwhm.c"
+#else
+extern void mri_fwhm_mom12_set_stdev_fac(double) ;
 #endif
 
 int main( int argc , char *argv[] )

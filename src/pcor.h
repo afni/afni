@@ -194,4 +194,6 @@ extern void get_variances() ;
 
 extern void get_lsqfit() ;
 
+extern void get_variance() ;
+
 #endif
