@@ -9536,6 +9536,8 @@ char *linkrbrain_XML_get(char *data, FILE *fp, int offset)
    return("linkrbrain_corr");
 }
 
+extern int afni_uses_selenium(void) ;
+extern int selenium_open_webpage(char *) ;
 
 int whereami_browser(char *url)
 {

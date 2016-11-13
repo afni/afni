@@ -7,6 +7,7 @@
 #include "mrilib.h"
 #include "coxplot.h"
 #include "xim.h"
+#include "parser.h"
 
 /*-------------------------------------------------------------------*/
 /*---- quickie program to look at some graphs - RWCox - Feb 1999 ----*/
@@ -1451,7 +1452,7 @@ int main( int argc , char *argv[] )
    if( xtran != NULL ){
      int ss , ns , *ls ; float **sx ;
 STATUS("xtran xar[]") ;
-     ss = PARSER_1dtran( xtran , nx , xar[ii] ) ;
+     ss = PARSER_1dtran( xtran , nx , xar ) ;
      if( ss <= 0 ) ERROR_exit("Can't evaluate -xtran expression '%s'",xtran) ;
 STATUS("fetch sepx") ;
      plot_ts_fetch_sepx( &ns , &ls , &sx ) ;

@@ -7,8 +7,11 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <stdlib.h>
+#include <string.h>
 
 typedef struct { unsigned char a,b ; } twobytes ;
+
+int swap2(int,short *) ;
 
 #define TEMP_FILE "Elvis.Lives"
 #define BUFSIZE   16000
@@ -69,9 +72,7 @@ int main( argc , argv )
    exit(0) ;
 }
 
-int swap2( n , ar )
-   int n ;
-   short * ar ;
+int swap2( int n , short *ar )
 {
    register int ii ;
    register twobytes * tb = (twobytes *) ar ;

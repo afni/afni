@@ -4,6 +4,7 @@
 #include "mcw_malloc.h"
 #include "AFNI_version.h"
 #include "debugtrace.h"  /* contains 1 function */
+#include <ctype.h>
 
 /*--------------------------------------------------------------------------*/
 
@@ -289,6 +290,8 @@ void set_program_name(char *ch)
 
 #include <time.h>
 extern char * nice_time_string(int) ;
+extern int NI_clock_time(void) ;
+extern int THD_is_directory( char * ) ;
 
 void clock_time_atexit(void)
 {
