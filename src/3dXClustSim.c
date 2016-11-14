@@ -347,12 +347,12 @@ ENTRY("get_options") ;
     /*-----  -FG  -----*/
 
     if( strcmp(argv[nopt],"-FG") == 0 ){
-      INFO_message("FG=%g  FG_GOAL=%g",FGFAC,FG_GOAL) ; exit(0) ;
+      INFO_message("FG=%g  FG_GOAL=%g",fgfac,FG_GOAL) ; exit(0) ;
     }
 
     /*----- unknown option -----*/
 
-    ERROR_exit("3dClustSim -- unknown option '%s'",argv[nopt]) ;
+    ERROR_exit("3dXClustSim -- unknown option '%s'",argv[nopt]) ;
   }
 
   /*------- finalize some simple setup stuff --------*/
