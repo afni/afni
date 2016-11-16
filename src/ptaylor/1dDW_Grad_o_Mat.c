@@ -23,6 +23,9 @@
   + added new '-bref_mean_top' option for people with repeated bref>0
     reference values/grads
 
+  Nov 2016:
+  + extra col option can be turned on-- forgot to make equal to 1 in IF{}!
+  + also, make returned bvals be floats
 */
 
 
@@ -269,7 +272,7 @@ int main(int argc, char *argv[])
    int Nrow=0, Ncol=0, EXTRA_row=0, EXTRA_col=0,Nrow_final=0;
    int ctr;
    float **OUT=NULL;
-   int *BOUT=NULL;
+   float *BOUT=NULL;
 
 
 	mainENTRY("1dDW_Grad_o_Mat"); machdep();
@@ -929,13 +932,13 @@ int main(int argc, char *argv[])
       Ncol = 6;
 
    if( BVAL_OUT ) // extra row for outputting bval
-      EXTRA_col;
+      EXTRA_col = 1;
 
    OUT = calloc( idx+EXTRA_row, sizeof(OUT));
    for( i=0 ; i<(idx+EXTRA_row) ; i++) 
       OUT[i] = calloc( Ncol+EXTRA_col, sizeof(float)); 
 
-   BOUT = (int *) calloc(idx+EXTRA_row, sizeof(int));
+   BOUT = (float *) calloc(idx+EXTRA_row, sizeof(float));
 
    if( ( OUT == NULL ) || ( BOUT == NULL )) {
       fprintf(stderr, "\n\n MemAlloc failure in out arrays.\n\n");
@@ -974,7 +977,7 @@ int main(int argc, char *argv[])
             OUT[0][EXTRA_col+k] = tmp[k]; // start at either 0 or 1
       }
 
-      BOUT[0] = (int) rintf(bref_vec[0]);  // and bval entry 
+      BOUT[0] = bref_vec[0];  // and bval entry 
    }
 
    // now go through all flagged rows
@@ -1008,7 +1011,7 @@ int main(int argc, char *argv[])
                OUT[ctr][EXTRA_col+k] = tmp[k]; // start at either 0 or 1
          }
 
-         BOUT[ctr] = (int) rintf(INP_GRAD[i][0]);  // and bval entry 
+         BOUT[ctr] = INP_GRAD[i][0];  // and bval entry 
 
          ctr++;
       }
@@ -1040,7 +1043,7 @@ int main(int argc, char *argv[])
    if( OUT_FORM>0) {
       for( i=0 ; i<Nrow_final ; i++) {
          if( EXTRA_col)
-            fprintf(fout,"%8d  ", (int) OUT[i][0]);
+            fprintf(fout,"%10.3f  ", OUT[i][0]);
          for( k=0 ; k<Ncol ; k++) 
             fprintf(fout,"%11.5f  ", OUT[i][EXTRA_col+k]);
          fprintf(fout,"\n");
@@ -1070,7 +1073,7 @@ int main(int argc, char *argv[])
       }
 
       for( i=0 ; i<Nrow_final ; i++) {
-         fprintf(foutBV,"%8d  ", BOUT[i]);
+         fprintf(foutBV,"%10.3f ", BOUT[i]);
          if( BVAL_OUT_SEP==2 )
             fprintf(foutBV,"\n");
       }
