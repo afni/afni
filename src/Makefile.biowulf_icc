@@ -105,8 +105,13 @@ LLIBS  = -lmri -lf2c $(XLIBS) -lXft -lfontconfig $(LDPYTHON) -lpng         \
 #  # OSX 10.5 has issues with libGL, where the multiple copies cause a cycle
 # (somehow).  Get around this by using -dylib_file (in a strange way).
 
-SUMA_GLLIB = /System/Library/Frameworks/OpenGL.framework/Versions/A/Libraries/libGL.dylib
-SUMA_GL_DYLIB_CMD = -dylib_file $(SUMA_GLLIB): $(SUMA_GLLIB)
+# SUMA_GLLIB = /System/Library/Frameworks/OpenGL.framework/Versions/A/Libraries/libGL.dylib
+# SUMA_GL_DYLIB_CMD = -dylib_file $(SUMA_GLLIB): $(SUMA_GLLIB)
+
+SUMA_GLLIB =  
+SUMA_GL_DYLIB_CMD =  
+
+SUMA_LINK_PATH = -L/usr/lib64 -L/usr/local/lib64 -L..
 # -------------------------------------------------------------------
 
 GLw_IPATH  =
@@ -120,7 +125,7 @@ SUMA_GLIB_VER = -2.0
 SUMA_INCLUDE_PATH = $(GLw_IPATH) -I.. -I../niml $(IFLAGS) -Igts/src -I/sw/include/glib-2.0 -I/sw/lib/glib-2.0/include 
 SUMA_LINK_PATH = $(XROOT_L) $(LFLAGS) -L..
 
-SUMA_LINK_LIB = $(XLIBS) $(GLw_LIB) $(LLIBS) -lGLU -lGL -lmri -lf2c -lmx -L/sw/lib -lglib-2.0  $(SUMA_GL_DYLIB_CMD)
+SUMA_LINK_LIB = $(XLIBS) $(GLw_LIB) $(LLIBS) -lGLU -lGL -lmri -lf2c -L/sw/lib -lglib-2.0  $(SUMA_GL_DYLIB_CMD)
 SUMA_MAKEFILE_NAME = SUMA_Makefile
 SUMA_BIN_ARCHIVE = SUMA_MacOSX.tar
 SUMA_MDEFS = -DSUMA_GL_NO_CHECK_FRAME_BUFFER

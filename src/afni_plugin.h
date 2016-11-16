@@ -26,12 +26,13 @@
 
 extern int first_plugin_check ;       /* cf afni.h */
 #undef  CHECK_IF_ALLOWED              /* 30 Sep 2016 */
-#define CHECK_IF_ALLOWED(nam1,nam2)                                                          \
- do{ if( !AFNI_yesenv("AFNI_ALLOW_ALL_PLUGINS")    &&                                        \
-         !AFNI_yesenv("AFNI_ALLOW_" nam1 "_PLUGIN")   ){                                     \
-       if( first_plugin_check ){ fprintf(stderr,"\n"); first_plugin_check=0; }               \
-       ININFO_message("plugin %17s: set AFNI_ALLOW_%s_PLUGIN to YES to allow it",nam2,nam1); \
-       return NULL ;                                                                         \
+#define CHECK_IF_ALLOWED(nam1,nam2)                                                            \
+ do{ if( !AFNI_yesenv("AFNI_ALLOW_ALL_PLUGINS")    &&                                          \
+         !AFNI_yesenv("AFNI_ALLOW_" nam1 "_PLUGIN")   ){                                       \
+       if( first_plugin_check >  0 ){ fprintf(stderr,"\n"); first_plugin_check=0; }            \
+       if( first_plugin_check >= 0 )                                                           \
+         ININFO_message("plugin %17s: set AFNI_ALLOW_%s_PLUGIN to YES to allow it",nam2,nam1); \
+       return NULL ;                                                                           \
      } } while(0)
 
 #include <sys/types.h>
