@@ -66,6 +66,31 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 16, Nov , 2015 , PT , "3dTrackID" , MAJOR , TYPE_GENERAL,
+   "Estimate mean and stdev of fiber lengths in bundles.",
+   "These are now automatically output in *.grid file.\n"
+},
+
+{ 16, Nov , 2015 , PT , "3dTrackID" , MAJOR , TYPE_NEW_OPT,
+   "Can limit tracts to 'between targets' in new ways.",
+   "See '-targ_surf_stop' and '-targ_surf_twixt' in the help.\n"
+},
+
+{ 16, Nov , 2016 , PT , "1dDW_Grad_o_Mat" , MINOR , TYPE_GENERAL,
+   "Output b-values are now floats, not ints.",
+   "Seems necessary, depending on what user has input.\n"
+},
+
+{ 16, Nov , 2016 , PT , "1dDW_Grad_o_Mat" , MINOR , TYPE_BUG_FIX,
+   "The -out_bval_col_sep used did nothing (after last changes).",
+   "Have returned it to functionality.\n"
+},
+
+{ 16, Nov , 2016 , PT , "3dDWUncert" , MINOR , TYPE_GENERAL,
+   "Check for singular values, so don't get crashes from GSL calcs.",
+   "These pretty much occur outside mask, but can also be inside mask.\n"
+},
+
 { 12, Oct , 2016 , PT , "3dDWItoDT" , MINOR , TYPE_GENERAL,
    "Now, automatically output RD if '-eigs' opt is used.",
    "And the users of 3dTrackID say, 'Yaaaay'. Or 'Wha'evah!'.\n"

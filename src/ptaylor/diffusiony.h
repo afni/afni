@@ -12,6 +12,10 @@
 
 #define BAD_WEI ( 0 ) // tiny weight to unfit values, if necessary.
 
+// a copy of the gsl function singular() for pre-detecting singular
+// matrices; gsl now returns (exiting?) errors for such events.
+int copy_gsl_singular (const gsl_matrix * LU);
+
 int Finalize_Uncert_Array( float **UU, 
                            int *minds, //short *mskd,
                            int Ntodo,
