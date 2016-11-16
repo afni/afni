@@ -708,6 +708,14 @@ A. Default: only the parts of the tract within and between the targets;
    tracts are only between (= betwixt) the targets, not overlapping at
    all.  
 
+Each of these approaches applies to any mode of tracking (``DET``,
+``MINIP`` or ``PROB``).  Also, each approach only refers to the
+AND-logic (= pairwise; the off-diagonal elements of the returned
+matrix of structural properties) connections between two targets; the
+OR-logic tracts (the on-diagonal elements in the matrix of structural
+properties) that are defined by going through at least a single target
+are unaffected (those are always untrimmed).
+
 .. note:: Note that for the ``-tarf_surf_*`` cases, a tract between
           targets A and B *could* overlap/pass through a separate
           target C, though; the restriction on a tract's overlap only
