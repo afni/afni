@@ -33,6 +33,11 @@
    Oct, 2016b:
        + made parallel not distribute zeros -> more full parallel
        + helpful time messaging of completion
+
+  Oct, 2016c:
+       + output name no longer automatically attaches "_UNC" to
+         user prefix.
+       + fixed listname usage.
    
 */
 
@@ -53,6 +58,7 @@
 #include "readglob.h"
 #include "basic_boring.h"
 #include "diffusiony.h"
+#include "readglob.h"
 #include "gsl/gsl_permutation.h"
 #include <gsl/gsl_types.h>
 #include <gsl/gsl_permute.h>
@@ -220,6 +226,7 @@ int main(int argc, char *argv[]) {
 
    THD_3dim_dataset **insetPARS=NULL; // [0] FA, [1] MD, [2] L1
    THD_3dim_dataset **insetVECS=NULL; // [0] V1, [1] V2, [2] V3
+   char **wild_names=NULL;//[N_DTI_MAX_PARS][32]; // get names
 
    char *infix=NULL;
    int hardi_pref_len=0;
@@ -584,15 +591,28 @@ int main(int argc, char *argv[]) {
       exit(13);
    }
 
+   wild_names = (char **)calloc(N_DTI_MAX_PARS, sizeof(char *)); //AAAA
+   for (j=0; j<N_DTI_MAX_PARS; ++j) 
+      wild_names[j] = (char *)calloc(32, sizeof(char));
+   
+   if( (wild_names == NULL) ) {
+      fprintf(stderr, "\n\n MemAlloc failure.\n\n");
+      exit(123);
+   }
+
    if(infix)                                     // glob
       glob_for_DTI( infix,
                     insetPARS,
                     insetVECS,
-                    hardi_pref_len );
+                    hardi_pref_len,
+                    0);
    else if(dti_listname)                         // listed
-      list_for_DTI( infix,
+      list_for_DTI( dti_listname,
                     insetPARS,
-                    insetVECS  );
+                    insetVECS,
+                    &i,&j, // just holders, not really used here
+                    wild_names,
+                    0);
    else{                                         // ooops
       for( i=0 ; i<N_DTI_SCAL ; i++){
          DSET_delete(insetPARS[i]);
@@ -794,6 +814,11 @@ int main(int argc, char *argv[]) {
    }
    free(insetVECS);
 
+   for( i=0 ; i<N_DTI_MAX_PARS ; i++)  
+      free(wild_names[i]);
+   free(wild_names);
+
+
    if(dwiset1){
       DSET_delete(dwiset1);
       free(dwiset1);
@@ -984,24 +1009,26 @@ int Calc_DTI_uncert( float **UU,
                                          Mj
                                          );
    
-            ii = Make_Uncert_Matrs_final( 
-                                         B,
-                                         BTW,
-                                         BTWB,
-                                         BTWBinv,
-                                         C
+            ii = Make_Uncert_Matrs_final( B,
+                                          BTW,
+                                          BTWB,
+                                          BTWBinv,
+                                          C
                                           );
-            
-            ii = Calc_DTI_lin_tensor( x,
-                                      dd,
-                                      C,
-                                      testD,
-                                      Eval,
-                                      EigenV,
-                                      &POSDEF
-                                      );
-            
-            if( !POSDEF ) {
+
+            if( !ii ) 
+               ii = Calc_DTI_lin_tensor( x,
+                                         dd,
+                                         C,
+                                         testD,
+                                         Eval,
+                                         EigenV,
+                                         &POSDEF
+                                         );
+            else // badness, e.g., singular matrix
+               POSDEF = -1;
+
+            if( POSDEF != 1 ) {
                //INFO_message("Vox: %10d has neg eigval(s)", i);
                
                for( ii=0 ; ii<Mj ; ii++ ) 
@@ -1041,20 +1068,26 @@ int Calc_DTI_uncert( float **UU,
                                                       BTWBinv,
                                                       C 
                                                       );
-               
-                        ii = Calc_DTI_lin_tensor( x,
-                                                  dd,
-                                                  C,
-                                                  testD,
-                                                  Eval,
-                                                  EigenV,
-                                                  &POSDEF
-                                                  );
-                        if(POSDEF) {
+                        if( !ii ) 
+                           ii = Calc_DTI_lin_tensor( x,
+                                                     dd,
+                                                     C,
+                                                     testD,
+                                                     Eval,
+                                                     EigenV,
+                                                     &POSDEF
+                                                     );
+                        else // badness, e.g., singular matrix
+                           POSDEF = -1;
+                           
+                        if(POSDEF==1) {
                            jj = MAXBAD+10; // break the cycle!
                            break;
                         }
-                        if(gsl_vector_min(Eval)>mostpos) {
+                        else if(POSDEF== -1)
+                           continue; // don't record this one to leave
+                                     // out again
+                        else if(gsl_vector_min(Eval)>mostpos) {
                            mostpos = gsl_vector_min(Eval);
                            worstS = kk;
                         }
@@ -1068,7 +1101,7 @@ int Calc_DTI_uncert( float **UU,
             }
             
             // still per voxel thing
-            if(POSDEF) { // if things were fine in tensor calc
+            if(POSDEF==1) { // if things were fine in tensor calc
                //INFO_message("OK fit!");
                ii = Calc_Eigs_Uncert( i,
                                       UU,

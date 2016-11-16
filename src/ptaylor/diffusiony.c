@@ -250,8 +250,26 @@ int Make_Uncert_Matrs_final( gsl_matrix *B,
    // BTWB
    j = gsl_blas_dgemm(CblasNoTrans,CblasNoTrans,1.0,BTW,B,1.0,BTWB);
 
+   //j = copy_gsl_singular (BTWB);
+   //if(j) {
+   //   WARNING_message("1 Singular matrix! Is a mask being used?");
+   //   gsl_permutation_free(P);
+   //      return -1;
+   //}
+
    // BTWBinv: can't use BTWB for itself after this (calcs change it)
    j = gsl_linalg_LU_decomp(BTWB, P, &i);
+
+   // have started finding errors returned for singular values -> GSL
+   // change; use a copy of their own function in gsl_lu.c to
+   // pre-check for singuarities
+   j = copy_gsl_singular (BTWB);
+   if(j) {
+      // -> just leads to non-tensor fitting scenario.
+      gsl_permutation_free(P);
+      return -1;
+   }
+
    j = gsl_linalg_LU_invert(BTWB, P, BTWBinv);
 
    // C = BTWBinv * BTW, what we need to mult x by to get sol
@@ -265,7 +283,18 @@ int Make_Uncert_Matrs_final( gsl_matrix *B,
 }
 
 
+int copy_gsl_singular (const gsl_matrix * LU)
+{
+  size_t i, n = LU->size1;
 
+  for (i = 0; i < n; i++)
+    {
+      double u = gsl_matrix_get (LU, i, i);
+      if (u == 0) return 1;
+    }
+ 
+ return 0;
+}
 
 
 /*
