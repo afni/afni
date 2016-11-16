@@ -501,6 +501,12 @@ void AFNI_syntax(void)
      "   -noplugins   Tells the program not to load plugins.\n"
      "                  (Plugins can also be disabled by setting the\n"
      "                   environment variable AFNI_NOPLUGINS.)\n"
+     "   -seehidden   Tells the program to show you which plugins\n"
+     "                  are hidden.\n"
+     "   -DAFNI_ALLOW_ALL_PLUGINS=YES\n"
+     "                Tells the program NOT to hide plugins from you.\n"
+     "                  Note that there are a lot of hidden plugins,\n"
+     "                  most of which are not very useful!\n"
      "   -yesplugouts Tells the program to listen for plugouts.\n"
      "                  (Plugouts can also be enabled by setting the\n"
      "                   environment variable AFNI_YESPLUGOUTS.)\n"
@@ -1039,6 +1045,11 @@ ENTRY("AFNI_parse_args") ;
         narg++ ; continue ;                 /* go to next arg */
       }
 #endif
+
+      if( strcmp(argv[narg],"-seehidden") == 0 ){
+        first_plugin_check = 1 ;
+        narg++ ; continue ;
+      }
 
       /*----- -layout (23 Sep 2000) -----*/
 
@@ -2456,6 +2467,8 @@ int main( int argc , char *argv[] )
    signal(SIGSEGV,AFNI_sigfunc) ;
    signal(SIGTERM,AFNI_sigfunc) ;
 
+   first_plugin_check = -1 ;  /* 16 Nov 2016 */
+
 #if 0
 #ifdef USE_TRACING
    if( ALLOW_realtime ) DBG_trace = 0 ; /* 26 Jan 2001 */
@@ -3556,6 +3569,9 @@ INFO_message("AFNI controller xroot=%d yroot=%d",(int)xroot,(int)yroot) ;
    if( MAIN_im3d->type == AFNI_3DDATA_VIEW &&
       !AFNI_yesenv("AFNI_ENABLE_MARKERS")    )
      fprintf(stderr,"++ NOTE: 'Define Markers' is hidden: right-click 'DataDir' to see it\n") ;
+
+   if( MAIN_im3d->type == AFNI_3DDATA_VIEW && first_plugin_check < 0 )
+     fprintf(stderr,"++ NOTE: Use '-seehidden' option to see which plugins are hidden\n") ;
 
    /**--- Apr 2013: delete this message in a few months ---**/
 
