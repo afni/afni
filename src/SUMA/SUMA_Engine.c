@@ -20,6 +20,9 @@
 /* Header FILES */
    
 #include "SUMA_suma.h"
+static FILE *sumaout = NULL;             /* no default output stream */
+static int SUMA_drive_set_outstream(char *outfile);
+static FILE *SUMA_drive_get_outstream(void);
 
 /* Make suma call itself with DriveSuma command in scom */
 SUMA_Boolean SUMA_MakeMeDo (char *scom, int method) 
@@ -3926,8 +3929,8 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                   SUMA_SwitchCmap(ado, ColMap, 1);
                   #endif
                }
-            }
-            
+            } 
+           
             if (NI_get_attribute(EngineData->ngr, "switch_cmode")) {
                /* Set the menu button to the current choice */
                if (!SUMA_SetCmodeMenuChoice (ado, 
@@ -4062,7 +4065,8 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                               NI_get_attribute(EngineData->ngr, "shw_0"));
                   SurfCont->curColPlane->OptScl->MaskZero = NOPE;
                } 
-               XmToggleButtonSetState ( SurfCont->ShowZero_tb,                                             SurfCont->curColPlane->OptScl->MaskZero, YUP);
+               XmToggleButtonSetState ( SurfCont->ShowZero_tb,
+                              SurfCont->curColPlane->OptScl->MaskZero, YUP);
             }
             
             if (NI_get_attribute(EngineData->ngr, "B_sb")) {
@@ -4604,7 +4608,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
             }
             
             break;
-            
+ 
          case SE_SetViewerCont:
             /* expects a ngr and ADO in vp */
             if (  EngineData->ngr_Dest != NextComCode || 
@@ -4669,7 +4673,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                SUMAg_CF->autorecord = SUMA_SetAutoRecord(
                   NI_get_attribute(EngineData->ngr, "autorecord"));
             }
-            
+        
             /* search for the keys */
             if (NI_get_attribute(EngineData->ngr,"N_Key")) {
                char *stmp=NULL, nc, *vbuf=NULL, *strgval=NULL;
@@ -5122,7 +5126,7 @@ void *SUMA_nimlEngine2Engine(NI_group *ngr)
    SUMA_SurfaceViewer *sv = NULL;
    SUMA_X_SurfCont *SurfCont=NULL;
    SUMA_PARSED_NAME *fn = NULL;
-   SUMA_Boolean LocalHead = NOPE;
+   SUMA_Boolean LocalHead = YUP;
    
    SUMA_ENTRY;
    
@@ -5428,6 +5432,21 @@ void *SUMA_nimlEngine2Engine(NI_group *ngr)
          selenium_close();/* close selenium opened browser windows if open */
          exit(0);
          break;
+      case SE_GetLabel:
+           {
+               /* show the current surface label */
+               SUMA_SurfaceObject *SO=NULL;
+               char *lbls;
+//              lbls = ADO_LABEL(ado);
+               SO = (SUMA_SurfaceObject *)ado;
+               lbls = SUMA_GetLabelsAtSelection(ado,
+                      SO->SelectedNode, -1);
+               sumaout = SUMA_drive_get_outstream();
+               fprintf(sumaout,"%s\n",lbls);
+               fflush(sumaout);
+            }
+            break;           
+
       default:
          SUMA_S_Errv("Cannot deal with command %s yet.\n", 
                      NI_get_attribute(ngr,"command"));
@@ -7092,4 +7111,59 @@ int *SUMA_FormSOListToSendToAFNI(SUMA_DO *dov, int N_dov, int *N_Send)
    SUMA_RETURN(SendList);
 
 }
+
+
+
+/* get the output file for plugout info */
+static FILE *
+SUMA_drive_get_outstream()
+{
+   char *suma_outfile;
+
+   /* first time in set the output stream to stdout or environment variable */
+   if(sumaout==NULL){
+      /* get from environment variable if set */
+      suma_outfile = my_getenv("SUMA_OUTPLUG");
+      if(suma_outfile!=NULL) {
+         SUMA_drive_set_outstream(suma_outfile);
+      }
+   }
+
+   /* if still NULL output stream, set to default of stdout */
+   if(sumaout==NULL) sumaout = stdout;
+
+   return(sumaout);
+}
+
+/* set the output stream to a file rather than stdout*/
+static int
+SUMA_drive_set_outstream(char *outfile)
+{
+   /* if just passed a NULL, reset output to stdout */
+   if(outfile==NULL){
+      sumaout = stdout;
+      return(-1);
+   }
+
+   /* check if resetting to stdout by string from plugout command */
+   if(strcmp(outfile, "stdout")==0) {
+      sumaout = stdout;
+      return 0;
+   }
+
+    /* make sure this file name is a good one, and open it for append */
+   if( THD_filename_ok(outfile) )
+      sumaout = fopen(outfile, "a");
+
+   /* something went wrong, so tell user and reset to stdout */
+   if(sumaout==NULL){
+      fprintf(stderr, "**** couldn't open outfile, resetting to stdout\n");
+      sumaout = stdout;
+      return(-1);
+   }
+   else {
+    return 0;
+   }
+}
+
 
