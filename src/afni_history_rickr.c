@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 17,  Nov, 2016, RCR, "afni_system_check.py", MICRO, TYPE_ENHANCE,
+   "added some checks for flat_namespace on OS X",
+   NULL
+ } ,
+
  {  9,  Nov, 2016, RCR, "Dimon", MICRO, TYPE_NEW_OPT,
    "add -gert_chan_prefix",
    "Done for W Luh."

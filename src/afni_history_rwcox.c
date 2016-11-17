@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 17 , NOV , 2016 , RWC , "afni GUI" , MICRO , TYPE_ENHANCE ,
+   "Four new colorscales" ,
+   NULL } ,
+
  { 7 , NOV , 2016 , RWC , "3dTfilter" , MINOR , TYPE_NEW_PROG ,
    "Platform for generic filtering of time series" ,
    "Right now, just for adaptive local mean filtering (generalized smoothing\n"
