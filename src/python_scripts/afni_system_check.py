@@ -186,9 +186,10 @@ g_history = """
    0.20 Jul  7, 2016 - check for partial PyQt4 (for OS X 10.11)
    0.21 Aug 29, 2016 - added a few more FALLBACK tests
    0.22 Nov  2, 2016 - handle OS X 10.12 version string
+   0.23 Nov 17, 2016 - look for flat_namespace on macs
 """
 
-g_version = "afni_system_check.py version 0.22, Novemeber 2, 2016"
+g_version = "afni_system_check.py version 0.23, Novemeber 17, 2016"
 
 
 class CmdInterface:
