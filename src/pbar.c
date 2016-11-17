@@ -16,6 +16,8 @@ static void PBAR_button_EV( Widget w, XtPointer cd, XEvent *ev, Boolean *ctd ) ;
 static void PBAR_bigmap_finalize( Widget w, XtPointer cd, MCW_choose_cbs *cbs );
 static void PBAR_big_menu_CB( Widget , XtPointer , XtPointer ) ;
 
+static void PBAR_define_bigmap_float( int ncol, float *rgb, char *nam ) ;
+
 static int      bigmap_num=0 ;    /* 31 Jan 2003 */
 static char   **bigmap_name ;
 static rgbyte **bigmap ;
@@ -339,6 +341,11 @@ STATUS("init pval_save") ;
    PBAR_define_bigmap( ADD_EDGE );
    PBAR_define_bigmap( RedBlueGreen_CMD);
 
+   PBAR_define_bigmap_float( viridis_num, viridis_data, viridis_name ) ;
+   PBAR_define_bigmap_float( magma_num  , magma_data  , magma_name   ) ;
+   PBAR_define_bigmap_float( inferno_num, inferno_data, inferno_name ) ;
+   PBAR_define_bigmap_float( plasma_num , plasma_data , plasma_name  ) ;
+
    RETURN( pbar );
 }
 
@@ -526,6 +533,37 @@ ENTRY("PBAR_define_bigmap") ;
   }
   PBAR_make_bigmap( name , neq, val, col, myfirst_dc );
   RETURN(0) ;
+}
+
+/*-----------------------------------------------------------------------*/
+
+static void PBAR_define_bigmap_float( int ncol, float *rgb, char *nam )
+{
+  int ii ;
+  char name[NSBUF] ;
+  float  val[NPANE_BIGGEST+2] , fr,fg,fb ;
+  rgbyte col[NPANE_BIGGEST+2] ;
+
+ENTRY("PBAR_define_bigmap_float") ;
+
+  if( myfirst_dc == NULL ) EXRETURN ;
+  if( ncol < 4 || rgb == NULL || nam == NULL ) EXRETURN ;
+  if( ncol > NPANE_BIG ) ncol = NPANE_BIG ;
+
+  MCW_strncpy( name, nam, NSBUF ) ;
+
+  for( ii=0 ; ii < ncol ; ii++ ){
+    fr = rgb[3*ii+0] ;
+    fg = rgb[3*ii+1] ;
+    fb = rgb[3*ii+2] ;
+    col[ii].r = (byte)(255.0f*fr+0.5f) ;
+    col[ii].g = (byte)(255.0f*fg+0.5f) ;
+    col[ii].b = (byte)(255.0f*fb+0.5f) ;
+    val[ii]   = ii ;
+  }
+
+  PBAR_make_bigmap( name , ncol, val, col, myfirst_dc );
+  EXRETURN ;
 }
 
 /*-----------------------------------------------------------------------*/

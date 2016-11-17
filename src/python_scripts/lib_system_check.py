@@ -366,6 +366,7 @@ class SysInfo:
       # in 10.11, check for gcc under homebrew
       self.check_for_10_11_lib('libgomp.1.dylib', wpath='gcc/*/lib/gcc/*')
       self.check_for_10_11_lib('libglib-2.0.dylib', wpath='glib/*/lib')
+      self.check_for_flat_namespace()
 
    def hunt_for_homebrew(self):
       """assuming it was not found, just look for the file"""
@@ -485,6 +486,60 @@ class SysInfo:
 
       return 1
 
+   def check_for_flat_namespace(self, fnames=['libXt']):
+      """note whether /opt/X11/lib/flat_namespace exists and is non-empty
+
+         in particular, check for any libraries in fnames list
+
+         return 0 if no error was detected
+      """
+
+      # require 10.9, unless being verbose
+      if self.get_osx_ver() < 9 and self.verb <= 1:
+         return 0
+
+      flatdir = '/opt/X11/lib/flat_namespace'
+
+      # if the directory exists and is non-empty, note it
+      flibs = glob.glob('%s/*dylib*' % flatdir)
+      # first check for any homebrew gomp libraries, at all
+      if len(flibs) > 0:
+         print "++ found %d dylib files under '%s'" % (len(flibs), flatdir)
+      else:
+         if self.verb > 1: print '-- no flat_namespace libraries exist'
+         return 0
+
+      found = 0
+      for name in fnames:
+         flibs = glob.glob('%s/%s*dylib*' % (flatdir, name))
+         if len(flibs) > 0:
+            print "   -- found '%s' dylib files, e.g. %s" % (name, flibs[0])
+            found += 1
+
+      # if no libraries are found, we are done
+      if not found:
+         if self.verb > 1: print '-- no checked flat_namespace libraries found'
+         return 0
+
+      # so there is something here that we might care about
+
+      edir = 'DYLD_LIBRARY_PATH'
+      if flatdir in self.split_env_var(edir):
+         print '++ yay, env var %s contains %s' % (edir, flatdir)
+      elif os.environ.has_key(edir):
+         print '** env var %s does not contain %s' % (edir, flatdir)
+         print '   (so afni and suma might fail)'
+         self.comments.append('consider appending %s with %s' % (edir,flatdir))
+      else:
+         print '** env var %s is not set to contain %s' % (edir, flatdir)
+         print '   (so afni and suma may fail)'
+         if self.get_osx_ver() >= 11:
+            self.comments.append('cannot tell if %s includes %s'%(edir,flatdir))
+         else:
+            self.comments.append('consider setting %s to %s' % (edir, flatdir))
+
+      return 1
+
    def get_osx_ver(self):
       if self.system != "Darwin": return 0
       verlist = self.os_dist.split()
@@ -577,6 +632,14 @@ class SysInfo:
             print "%s = " % evar
       print
 
+   def split_env_var(self, evar, sep=':'):
+      """get env var and split on sep, returning list"""
+
+      try: evalue = os.environ[evar]
+      except: return []
+
+      return evalue.split(sep)
+
    def show_general_afni_info(self, header=1):
       print UTIL.section_divider('AFNI and related program tests', hchar='-')
 
@@ -584,7 +647,8 @@ class SysInfo:
       check_list = ['afni', 'AFNI_version.txt', 'python', 'R', 'tcsh']
       nfound = self.check_for_progs(check_list, show_missing=1)
       if nfound < len(check_list):
-         self.comments.append('failure under initial "AFNI and related program tests"')
+         self.comments.append('failure under initial ' \
+                              '"AFNI and related program tests"')
 
       # make generic but pretty
       print "instances of various programs found in PATH:"
