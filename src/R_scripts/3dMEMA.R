@@ -110,12 +110,16 @@ read.MEMA.opts.interactive <- function (verb = 0) {
                                    verb=lop$verb, meth=lop$iometh); 
          lop$tList[[ii]] <- lapply(lop$tFN[[ii]], read.AFNI, 
                                    verb=lop$verb, meth=lop$iometh);
-         if(ii==1) { 
-            lop$myNote=lop$bList[[1]][[1]]$header$HISTORY_NOTE; 
-            lop$myOrig=lop$bList[[1]][[1]]$origin; 
-            lop$myDelta=lop$bList[[1]][[1]]$delta; 
-            lop$myDim <- lop$bList[[1]][[1]]$dim;
+         if(ii==1) {
+            lop$head <- lop$bList[[1]]
+            lop$myDim <- lop$bList[[1]][[1]]$dim
          }
+         #{ 
+         #   lop$myNote=lop$bList[[1]][[1]]$header$HISTORY_NOTE; 
+         #   lop$myOrig=lop$bList[[1]][[1]]$origin; 
+         #   lop$myDelta=lop$bList[[1]][[1]]$delta; 
+         #   lop$myDim <- lop$bList[[1]][[1]]$dim;
+         #}
          lapply(lapply(lop$bList[[ii]], function(x) x$dim), 
                 function(x) 
                   if(!all(x==lop$myDim)) 
@@ -507,7 +511,7 @@ greeting.MEMA <- function ()
           ================== Welcome to 3dMEMA.R ==================          
              AFNI Mixed-Effects Meta-Analysis Modeling Package!
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 0.2.7, Aug 18, 2015
+Version 1.0.0, Nov 17, 2016
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - https://afni.nimh.nih.gov/sscc/gangc/MEMA.html
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -540,7 +544,7 @@ Usage:
  both regression coefficients, or general linear contrasts among them, and the 
  corresponding t-statistics from each subject as input. It\'s required to install 
  R (https://www.r-project.org/), plus \'snow\' package if parallel computing is
- desirable. Version 0.2.7, Aug 18, 2015. If you want to cite the analysis
+ desirable. Version 1.0.0, Nov 17, 2016. If you want to cite the analysis
  approach, use the following at this moment:
 
  Chen et al., 2012. FMRI Group Analysis Combining Effect Estimates
@@ -698,6 +702,11 @@ read.MEMA.opts.batch <- function (args=NULL, verb = 0) {
    "             up the program significantly.",
    "             Choose 1 for a single-processor computer.\n", sep = '\n'
                      ) ),
+
+      '-dbgArgs' = apl(n=0, h = paste(
+   "-dbgArgs: This option will enable R to save the parameters in a",
+   "         file called .3dMEMA.dbg.AFNI.args in the current directory",
+   "          so that debugging can be performed.\n", sep='\n')),
       
       '-groups' = apl(n = c(1,2), d = 'G1', h = paste(
    "-groups GROUP1 [GROUP2]: Name of 1 or 2 groups. This option must be used\n",
@@ -951,6 +960,7 @@ read.MEMA.opts.batch <- function (args=NULL, verb = 0) {
       lop$contrastName <- NULL
       lop$verb <- 0
       lop$iometh <- 'clib'
+      lop$dbgArgs  <- FALSE # for debugging purpose 
    #Get user's input
    for (i in 1:length(ops)) {
       opname <- strsplit(names(ops)[i],'^-')[[1]];
@@ -982,6 +992,7 @@ read.MEMA.opts.batch <- function (args=NULL, verb = 0) {
              covariates_name = lop$covName <- ops[[i]],
              contrast_name  = lop$contrastName <- ops[[i]],
              verb = lop$verb <- ops[[i]],
+             dbgArgs = lop$dbgArgs <- TRUE,
              help = help.MEMA.opts(params, adieu=TRUE),
              show_allowed_options = show.AFNI.args(ops, verb=0, 
                                               hstr="3dMEMA's",adieu=TRUE),
@@ -1209,12 +1220,16 @@ process.MEMA.opts <- function (lop, verb = 0) {
                                    verb=lop$verb, meth=lop$iometh); 
          lop$tList[[ii]] <- lapply(lop$tFN[[ii]], read.AFNI, 
                                    verb=lop$verb, meth=lop$iometh);
-         if(ii==1) { 
-            lop$myNote=lop$bList[[1]][[1]]$header$HISTORY_NOTE; 
-            lop$myOrig=lop$bList[[1]][[1]]$origin; 
-            lop$myDelta=lop$bList[[1]][[1]]$delta; 
-            lop$myDim <- lop$bList[[1]][[1]]$dim;
+         if(ii==1) {
+            lop$head <- lop$bList[[1]]
+            lop$myDim <- lop$bList[[1]][[1]]$dim
          }
+         #{ 
+         #   lop$myNote=lop$bList[[1]][[1]]$header$HISTORY_NOTE; 
+         #   lop$myOrig=lop$bList[[1]][[1]]$origin; 
+         #   lop$myDelta=lop$bList[[1]][[1]]$delta; 
+         #   lop$myDim <- lop$bList[[1]][[1]]$dim;
+         #}
          lapply(lapply(lop$bList[[ii]], function(x) x$dim), 
                 function(x) 
                   if(!all(x==lop$myDim)) 
@@ -1283,11 +1298,15 @@ process.MEMA.opts <- function (lop, verb = 0) {
          lop$tList[[ii]] <- lapply(lop$tFN[[ii]], read.AFNI, 
                                    verb=lop$verb, meth=lop$iometh);
          if(ii==1) {
-            lop$myNote=lop$bList[[1]][[1]]$header$HISTORY_NOTE; 
-            lop$myOrig=lop$bList[[1]][[1]]$origin; 
-            lop$myDelta=lop$bList[[1]][[1]]$delta; 
+            lop$head <- lop$bList[[1]]
             lop$myDim <- lop$bList[[1]][[1]]$dim
          }
+         #{
+         #   lop$myNote=lop$bList[[1]][[1]]$header$HISTORY_NOTE; 
+         #   lop$myOrig=lop$bList[[1]][[1]]$origin; 
+         #   lop$myDelta=lop$bList[[1]][[1]]$delta; 
+         #   lop$myDim <- lop$bList[[1]][[1]]$dim
+         #}
          lapply(lapply(lop$bList[[ii]], function(x) x$dim), 
                 function(x) 
                   if(!all(x==lop$myDim)) 
@@ -2116,8 +2135,8 @@ tTop <- 100   # upper bound for t-statistic
       args = (commandArgs(TRUE))  
       rfile <- first.in.path(sprintf('%s.R',ExecName))  
       # save only on -dbg_args          28 Apr 2016 [rickr]
-      if ( '-dbg_args' %in% args ) {
-         try(save(args, rfile, file="3dMEMA.dbg.AFNI.args", ascii = TRUE), silent=TRUE)
+      if ( '-dbgArgs' %in% args ) {
+         try(save(args, rfile, file=".3dMEMA.dbg.AFNI.args", ascii = TRUE), silent=TRUE)
       }
    } else {
       note.AFNI("Using .DBG_args resident in workspace");
@@ -2575,11 +2594,11 @@ tTop <- 100   # upper bound for t-statistic
       cat ( 'outLabel', outLabel,'\n', 
             'Writing results to', lop$outFN, '\n');
    #write.AFNI(lop$outFN, outArr[,,,1:nBrick0],
-   write.AFNI(lop$outFN, subBRKarray(brk=outArr, sel=1:nBrick0), 
-                  outLabel, note=lop$myNote, origin=lop$myOrig, 
-                  delta=lop$myDelta, idcode=newid.AFNI(), addFDR=1,
-                  verb=lop$verb, meth=lop$iometh, statsym=statsym,
-                  view=dataView, orient=dataOrient, com_hist=lop$com_history)
+   write.AFNI(lop$outFN, subBRKarray(brk=outArr, sel=1:nBrick0), outLabel, defhead=lop$head, idcode=newid.AFNI(), com_hist=lop$com_history, statsym=statsym, addFDR=1, type='MRI_short')
+                  #outLabel, note=lop$myNote, origin=lop$myOrig, 
+                  #delta=lop$myDelta, idcode=newid.AFNI(), addFDR=1,
+                  #verb=lop$verb, meth=lop$iometh, statsym=statsym,
+                  #view=dataView, orient=dataOrient, com_hist=lop$com_history)
    if (lop$iometh == 'Rlib') {
       if (dataView=="tlrc") statpar <- paste(statpar, " -view ", dataView)     
       statpar <- paste( statpar, " -addFDR -newid -orient ", 
@@ -2591,18 +2610,18 @@ tTop <- 100   # upper bound for t-statistic
    if(lop$resZout==1) {
       #write.AFNI(lop$icc_FN, outArr[,,,seq((nBrick0+1), nBrick, by=2)], iccLabel,
       write.AFNI(lop$icc_FN, 
-                 subBRKarray(outArr, seq((nBrick0+1), nBrick, by=2)), iccLabel,
-                 note=lop$myNote, origin=lop$myOrig, delta=lop$myDelta, 
-                 idcode=newid.AFNI(),
-                 verb=lop$verb, meth=lop$iometh, view=dataView,
-                 orient=dataOrient, com_hist=lop$com_history)
+                 subBRKarray(outArr, seq((nBrick0+1), nBrick, by=2)), iccLabel, defhead=lop$head, idcode=newid.AFNI(), com_hist=lop$com_history, addFDR=1, type='MRI_short')
+                 #note=lop$myNote, origin=lop$myOrig, delta=lop$myDelta, 
+                 #idcode=newid.AFNI(),
+                 #verb=lop$verb, meth=lop$iometh, view=dataView,
+                 #orient=dataOrient, com_hist=lop$com_history)
       #write.AFNI(lop$resZ_FN, outArr[,,,seq((nBrick0+2), nBrick, by=2)],
       write.AFNI(lop$resZ_FN, 
-                 subBRKarray(outArr, seq((nBrick0+2), nBrick, by=2)), 
-                 resZLabel, note=lop$myNote, origin=lop$myOrig, 
-                 delta=lop$myDelta, idcode=newid.AFNI(),
-                 verb=lop$verb, meth=lop$iometh, statsym=statsymResZ,
-                 view=dataView, orient=dataOrient, com_hist=lop$com_history)
+                 subBRKarray(outArr, seq((nBrick0+2), nBrick, by=2)), resZLabel, defhead=lop$head, idcode=newid.AFNI(), com_hist=lop$com_history, statsym=statsymResZ, addFDR=1, type='MRI_short')
+                 #resZLabel, note=lop$myNote, origin=lop$myOrig, 
+                 #delta=lop$myDelta, idcode=newid.AFNI(),
+                 #verb=lop$verb, meth=lop$iometh, statsym=statsymResZ,
+                 #view=dataView, orient=dataOrient, com_hist=lop$com_history)
       if (lop$iometh == 'Rlib') {
          if (dataView=="tlrc") {
             statparICC  <- paste(statparICC, " -view ", dataView); 
@@ -2616,9 +2635,5 @@ tTop <- 100   # upper bound for t-statistic
          system(statparResZ)
       }
    }
-
       
    geterrmessage()
-
-
-
