@@ -75,6 +75,10 @@ operating system) to a link to install XQuartz.
       #. Install XQuartz using the "Quick Download" of the DMG file
          located at http://www.xquartz.org
 
+      #. If ``afni`` crashes, consider (in ``tcsh`` syntax)::
+
+         setenv DYLD_LIBRARY_PATH /opt/X11/lib/flat_namespace
+
    |
 
 #. **Homebrew installation**
@@ -109,9 +113,10 @@ operating system) to a link to install XQuartz.
       along with glib::
 
         brew install gcc --with-all-languages --without-multilib
-        ln -s /usr/local/Cellar/gcc/5.3.0/lib/gcc/5/libgomp.1.dylib /usr/local/lib/libgomp.1.dylib
+        ln -s /usr/local/Cellar/gcc/6.2.0/lib/gcc/6/libgomp.1.dylib /usr/local/lib/libgomp.1.dylib
         brew install glib
 
+     .. note:: the 6.2.0 version will change at some point, though the ``afni_system_check.py`` command (see below) should inform the user of any discrepancy
 
 #. **Install AFNI**
 
@@ -122,7 +127,9 @@ operating system) to a link to install XQuartz.
         curl -O https://afni.nimh.nih.gov/pub/dist/bin/macosx_10.7_Intel_64/@update.afni.binaries
         tcsh @update.afni.binaries -defaults
 
-     .. note:: if the binary package has already been downloaded, one can use ``-local_package``, followed by the location+name of the binary file, e.g.:
+      .. note:: if the binary package has already been downloaded, one
+                can use ``-local_package``, followed by the
+                location+name of the binary file, e.g.:
 
       tcsh @update.afni.binaries -local_package macosx_10.7_Intel_64.tgz -do_extras
 

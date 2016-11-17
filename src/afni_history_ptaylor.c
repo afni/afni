@@ -66,6 +66,80 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 16, Nov , 2015 , PT , "3dTrackID" , MAJOR , TYPE_GENERAL,
+   "Estimate mean and stdev of fiber lengths in bundles.",
+   "These are now automatically output in *.grid file.\n"
+},
+
+{ 16, Nov , 2015 , PT , "3dTrackID" , MAJOR , TYPE_NEW_OPT,
+   "Can limit tracts to 'between targets' in new ways.",
+   "See '-targ_surf_stop' and '-targ_surf_twixt' in the help.\n"
+},
+
+{ 16, Nov , 2016 , PT , "1dDW_Grad_o_Mat" , MINOR , TYPE_GENERAL,
+   "Output b-values are now floats, not ints.",
+   "Seems necessary, depending on what user has input.\n"
+},
+
+{ 16, Nov , 2016 , PT , "1dDW_Grad_o_Mat" , MINOR , TYPE_BUG_FIX,
+   "The -out_bval_col_sep used did nothing (after last changes).",
+   "Have returned it to functionality.\n"
+},
+
+{ 16, Nov , 2016 , PT , "3dDWUncert" , MINOR , TYPE_GENERAL,
+   "Check for singular values, so don't get crashes from GSL calcs.",
+   "These pretty much occur outside mask, but can also be inside mask.\n"
+},
+
+{ 12, Oct , 2016 , PT , "3dDWItoDT" , MINOR , TYPE_GENERAL,
+   "Now, automatically output RD if '-eigs' opt is used.",
+   "And the users of 3dTrackID say, 'Yaaaay'. Or 'Wha'evah!'.\n"
+},
+
+{ 12, Oct , 2016 , PT , "3dDWUncert" , MINOR , TYPE_GENERAL,
+   "Now output progress; also, only divvy up non-zeros to proc.",
+   "Should be faster/better parallelized, also tell user about itself.\n"
+},
+
+{ 11, Oct , 2016 , PT , "map_TrackID" , MICRO , TYPE_GENERAL,
+   "Put integer variables in to not get lame warnings when building.",
+   "Things like 'pppp = fscan();', etc... Purely aesthetic changes.\n"
+},
+
+{ 11, Oct , 2016 , PT , "3dDWUncert" , MAJOR , TYPE_GENERAL,
+   "Totally reprogrammed, mainly to use OpenMP and be fstr.",
+   "Also should be more generalized if b0 != 0.\n"
+},
+
+{ 14, Sep , 2016 , PT , "3dDWItoDT" , MINOR , TYPE_NEW_OPT,
+   "Have a new '-bmax_ref ...' option: if bref has b>0.",
+   "Won't have much effective change *yet*, but will later. Possibly.\n"
+},
+
+{ 13, Sep , 2016 , PT , "1dDW_Grad_o_Mat" , MINOR , TYPE_NEW_OPT,
+   "New opt -bref_mean_top to average over mean bref when b>0.",
+   "Also, totally reprogrammed most of interior; had been too scraggly.\n"
+},
+
+{ 31, Aug , 2016 , PT , "3dSpaceTimeCorr" , MAJOR , TYPE_BUG_FIX,
+   "Fixed bug in yet-unreleased function... and also changed a feature.",
+   "Bug: ts = all0 -> GSL badness on some comp; now, exclude seedvox in corr.\n"
+},
+
+{ 31, Aug , 2016 , PT , "3dSpaceTimeCorr" , MAJOR , TYPE_NEW_PROG,
+   "New function for calculating spatial corr of temporal corr maps.",
+   "Calc spatial corr of WB/mask connectivity maps; useful for RSFC?\n"
+},
+
+{ 18, Aug , 2016 , PT , "3dReHo" , MINOR , TYPE_BUG_FIX,
+   "Used to not allow subbrik selection on input.",
+   "Now it does.  Thanks to Daniel H. for pointing it out.\n"
+},
+
+{ 1, Aug , 2016 , PT , "3dRSFC" , MINOR , TYPE_BUG_FIX,
+   "In cases of *very large* N_pts, an error message appeared-- no more.",
+   "Just changed default initialization of >f_N value.\n"
+},
 
 { 21, Jun , 2016 , PT , "@fat_tract_colorize" , MAJOR , TYPE_NEW_PROG,
    "New function for coloring the volumetric tracking outputs.",

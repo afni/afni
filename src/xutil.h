@@ -171,6 +171,8 @@ extern void MCW_message_timer_CB( XtPointer , XtIntervalId * ) ;
 
 extern void MCW_message_alter( Widget , char * ) ;  /* 10 Jul 2001 */
 
+extern void MCW_popup_message_once( Widget w, char *msg, char *expiry, char *codestring ) ;
+
 #define MCW_nofile    0
 #define MCW_readonly  1
 #define MCW_readwrite 2

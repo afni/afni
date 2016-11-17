@@ -49,6 +49,18 @@
 
 
 afni_history_struct dglen_history[] = {
+{ 19, AUG, 2016 , DRG , "3dLocalstat" , 
+    MINOR , TYPE_BUG_FIX, 
+    "Neighborhoods miscalculated"
+},
+{ 17, AUG, 2016 , DRG , "align_epi_anat.py" , 
+    MICRO , TYPE_BUG_FIX, 
+    "History not updated properly on output with NIFTI dset1/anat"
+},
+{ 9, AUG, 2016 , DRG , "@SUMA_MakeSpecFS" , 
+    MINOR , TYPE_MODIFY, 
+    "Atlasize original unranked datasets too. They will have more reliable indices than the ranked"
+},
 { 11, JUL, 2016 , DRG , "3dWarp tta2mni grid dimensions bug" , 
     MINOR , TYPE_BUG_FIX, 
     "Ignored grid dimensions in transformation between Talairach to MNI"

@@ -3,14 +3,16 @@
 #include <suma_algorithms.h> 
 #include <suma_utils.h>
 #include <suma_datasets.h> 
-#include <TrackIO.h>
+#include "TrackIO.h"
+#include "readglob.h"      // need numbers of things for DTI in/out
 #include "suma_suma.h"
 
 static int NI_tract_type = -1;
 int get_NI_tract_type(void) {
    if (NI_tract_type == -1) {
-      if ((NI_tract_type = NI_rowtype_define("TAYLOR_TRACT_DATUM", 
-															TAYLOR_TRACT_DATUM_NIML_DEF)) < 0) {
+      if ((NI_tract_type = 
+           NI_rowtype_define( "TAYLOR_TRACT_DATUM", 
+                              TAYLOR_TRACT_DATUM_NIML_DEF)) < 0) {
          ERROR_message("Failed to define NIML tract type");
          return(-2);
       }
@@ -163,7 +165,9 @@ TAYLOR_TRACT *Create_Tract_NEW(int ptA, int ptB, float **pts_buff,
 
      grid (THD_3dim_dataset *) Without the grid structure, coordinates
      will not be in RAI, but in UHU, unholy units.
-*/
+
+----> can prob delete now; Nov,2016
+
 TAYLOR_TRACT *Create_Tract(int N_ptsB, float **pts_buffB, 
 									int N_ptsF, float **pts_buffF,
 									int id, THD_3dim_dataset *grid)
@@ -214,7 +218,7 @@ TAYLOR_TRACT *Create_Tract(int N_ptsB, float **pts_buffB,
       }
    }
    RETURN(tt);
-}
+   }*/
 
 TAYLOR_TRACT *Free_Tracts(TAYLOR_TRACT *tt, int n) 
 {
@@ -1428,7 +1432,77 @@ NI_element * ReadDTI_inputs(char *fname)
    RETURN(nel);
 }      
 
+
 int NI_getDTI_inputs( NI_element *nel, 
+                      char **NameVECT,
+                      char *NameXF, 
+                      char **NameSCAL, 
+                      char **NamePLUS,
+                      int *extrafile, int *pars_top)
+{
+   char *atr="NONAME";
+   char tmp[THD_MAX_PREFIX];
+   int i;
+   int ct_scal = 1;  // 1 -> start with space for 'extrafile' 
+
+   ENTRY("NI_getDTI_inputs");
+   if (!nel) RETURN(1);
+
+   atr = (char *)calloc(100, sizeof(char)); 
+   if( (atr == NULL) ) {
+      fprintf(stderr, "\n\n MemAlloc failure.\n\n");
+      exit(126);
+   }
+
+   // for vectors
+   for( i=0 ; i<N_DTI_VECT ; i++ ) {
+      sprintf(tmp, "dti_%s", DTI_VECT_LABS[i]);
+      if (NameVECT[i] && (atr=NI_get_attribute(nel,tmp))) {
+         snprintf(NameVECT[i],100,"%s", atr);
+      }
+   }
+         INFO_message(" CCC1  ");
+
+   // for scalars
+   for( i=0 ; i<N_DTI_SCAL ; i++ ) {
+      sprintf(tmp, "dti_%s", DTI_SCAL_LABS[i]);
+      if (NameSCAL[i] && (atr=NI_get_attribute(nel,tmp))) {
+         snprintf(NameSCAL[i],100,"%s", atr);
+         ct_scal++;
+      }
+   }
+
+   // for extra scalar
+   sprintf(tmp, "dti_%s", DTI_XTRA_LABS[0]);
+   if (NameXF && (atr=NI_get_attribute(nel,tmp))) {
+      snprintf(NameXF,100,"%s", atr); 
+      *extrafile = 1;
+   }
+   else
+      NameXF = NULL;
+   
+   
+   // allow up to four extra files
+   for( i=0 ; i<N_DTI_PLUS ; i++ ) {
+      sprintf(tmp, "dti_%s", DTI_PLUS_LABS[i]);
+      if (NamePLUS[i] && (atr=NI_get_attribute(nel,tmp))) {
+         snprintf(NamePLUS[i],100,"%s", atr);
+         ct_scal++;
+      }
+      else 
+         snprintf(NamePLUS[i],100,"%s", "\0");
+   }
+   
+   *pars_top = ct_scal; // 2 + 3 + ct_ex; // RD and extra; FA,MD;extras
+   INFO_message(" ct_scal: %d atr:%s ",ct_scal,atr);
+   
+   RETURN(0);
+}
+
+
+
+//OLD
+/*int NI_getDTI_inputs( NI_element *nel, 
                       char **NameVEC,
                       char *NameXF, 
                       char **NameSCAL, 
@@ -1492,3 +1566,4 @@ int NI_getDTI_inputs( NI_element *nel,
    RETURN(0);
 }
 
+*/

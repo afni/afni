@@ -46,8 +46,6 @@ static INLINE float median9f(float *p)
     SORT2(p[4],p[7]) ; SORT2(p[4],p[2]) ; SORT2(p[6],p[4]) ;
     SORT2(p[4],p[2]) ; return(p[4]) ;
 }
-#undef SORT2
-#undef SWAP
 
 /*--- get the local median and MAD of values vec[j-4 .. j+4] ---*/
 
@@ -93,6 +91,84 @@ int DES_despike9( int num , float *vec , float *wks )
 #undef mead9
 
 /*----------------------------------------------------------------------------*/
+/* Similar code to the above, but for spans of length 25 instead of 9 */
+
+static INLINE float median25f(float *p)
+{
+    register float temp ;
+    SORT2(p[0], p[1]) ;   SORT2(p[3], p[4]) ;   SORT2(p[2], p[4]) ;
+    SORT2(p[2], p[3]) ;   SORT2(p[6], p[7]) ;   SORT2(p[5], p[7]) ;
+    SORT2(p[5], p[6]) ;   SORT2(p[9], p[10]) ;  SORT2(p[8], p[10]) ;
+    SORT2(p[8], p[9]) ;   SORT2(p[12], p[13]) ; SORT2(p[11], p[13]) ;
+    SORT2(p[11], p[12]) ; SORT2(p[15], p[16]) ; SORT2(p[14], p[16]) ;
+    SORT2(p[14], p[15]) ; SORT2(p[18], p[19]) ; SORT2(p[17], p[19]) ;
+    SORT2(p[17], p[18]) ; SORT2(p[21], p[22]) ; SORT2(p[20], p[22]) ;
+    SORT2(p[20], p[21]) ; SORT2(p[23], p[24]) ; SORT2(p[2], p[5]) ;
+    SORT2(p[3], p[6]) ;   SORT2(p[0], p[6]) ;   SORT2(p[0], p[3]) ;
+    SORT2(p[4], p[7]) ;   SORT2(p[1], p[7]) ;   SORT2(p[1], p[4]) ;
+    SORT2(p[11], p[14]) ; SORT2(p[8], p[14]) ;  SORT2(p[8], p[11]) ;
+    SORT2(p[12], p[15]) ; SORT2(p[9], p[15]) ;  SORT2(p[9], p[12]) ;
+    SORT2(p[13], p[16]) ; SORT2(p[10], p[16]) ; SORT2(p[10], p[13]) ;
+    SORT2(p[20], p[23]) ; SORT2(p[17], p[23]) ; SORT2(p[17], p[20]) ;
+    SORT2(p[21], p[24]) ; SORT2(p[18], p[24]) ; SORT2(p[18], p[21]) ;
+    SORT2(p[19], p[22]) ; SORT2(p[8], p[17]) ;  SORT2(p[9], p[18]) ;
+    SORT2(p[0], p[18]) ;  SORT2(p[0], p[9]) ;   SORT2(p[10], p[19]) ;
+    SORT2(p[1], p[19]) ;  SORT2(p[1], p[10]) ;  SORT2(p[11], p[20]) ;
+    SORT2(p[2], p[20]) ;  SORT2(p[2], p[11]) ;  SORT2(p[12], p[21]) ;
+    SORT2(p[3], p[21]) ;  SORT2(p[3], p[12]) ;  SORT2(p[13], p[22]) ;
+    SORT2(p[4], p[22]) ;  SORT2(p[4], p[13]) ;  SORT2(p[14], p[23]) ;
+    SORT2(p[5], p[23]) ;  SORT2(p[5], p[14]) ;  SORT2(p[15], p[24]) ;
+    SORT2(p[6], p[24]) ;  SORT2(p[6], p[15]) ;  SORT2(p[7], p[16]) ;
+    SORT2(p[7], p[19]) ;  SORT2(p[13], p[21]) ; SORT2(p[15], p[23]) ;
+    SORT2(p[7], p[13]) ;  SORT2(p[7], p[15]) ;  SORT2(p[1], p[9]) ;
+    SORT2(p[3], p[11]) ;  SORT2(p[5], p[17]) ;  SORT2(p[11], p[17]) ;
+    SORT2(p[9], p[17]) ;  SORT2(p[4], p[10]) ;  SORT2(p[6], p[12]) ;
+    SORT2(p[7], p[14]) ;  SORT2(p[4], p[6]) ;   SORT2(p[4], p[7]) ;
+    SORT2(p[12], p[14]) ; SORT2(p[10], p[14]) ; SORT2(p[6], p[7]) ;
+    SORT2(p[10], p[12]) ; SORT2(p[6], p[10]) ;  SORT2(p[6], p[17]) ;
+    SORT2(p[12], p[17]) ; SORT2(p[7], p[17]) ;  SORT2(p[7], p[10]) ;
+    SORT2(p[12], p[18]) ; SORT2(p[7], p[12]) ;  SORT2(p[10], p[18]) ;
+    SORT2(p[12], p[20]) ; SORT2(p[10], p[20]) ; SORT2(p[10], p[12]) ;
+    return (p[12]);
+}
+
+/*--- get the local median and MAD of values vec[j-12 .. j+12] ---*/
+
+#undef  mead25
+#define mead25(j)                                              \
+ { float qqq[25] ; int jj=(j)-12 ; register int pp;            \
+   if( jj < 0 ) jj = 0; else if( jj+24 >= num ) jj = num-24;   \
+   for( pp=0 ; pp < 25 ; pp++ ) qqq[pp] = vec[jj+pp] ;         \
+   med = median25f(qqq) ;                                      \
+   for( pp=0 ; pp < 25 ; pp++ ) qqq[pp] = fabsf(qqq[pp]-med) ; \
+   mad = median25f(qqq); }
+
+int DES_despike25( int num , float *vec , float *wks )
+{
+   int ii , nsp ; float *zma,*zme , med,mad,val ;
+
+   if( vec == NULL ) return 0 ;
+   if( num <  25   ) return DES_despike9(num,vec,wks) ;
+
+   zme = wks ; zma = zme + num ;
+
+   for( ii=0 ; ii < num ; ii++ ){
+     mead25(ii) ; zme[ii] = med ; zma[ii] = mad ;
+   }
+   mad = qmed_float(num,zma) ;
+   if( mad <= 0.0f ){ if( wks == NULL ) free(zme); return 0; }  /* should not happen */
+   mad *= 6.789f ;  /* threshold value */
+
+   for( nsp=ii=0 ; ii < num ; ii++ )
+     if( fabsf(vec[ii]-zme[ii]) > mad ){ vec[ii] = zme[ii]; nsp++; }
+
+   return nsp ;
+}
+#undef mead25
+#undef SORT2
+#undef SWAP
+
+/*----------------------------------------------------------------------------*/
 
 int DES_workspace_size( int ntim, int nref )
 {
@@ -100,6 +176,8 @@ int DES_workspace_size( int ntim, int nref )
 }
 
 /*----------------------------------------------------------------------------*/
+
+static int use_des25 = 0 ;
 
 float DES_solve( MRI_IMAGE *psinv , float *z , float *coef , float *wks )
 {
@@ -111,7 +189,10 @@ float DES_solve( MRI_IMAGE *psinv , float *z , float *coef , float *wks )
 
    /* step 1: despike the data the simplistic way */
 
-   (void) DES_despike9( ntim , z , wks ) ;
+   if( use_des25 )
+     (void) DES_despike25( ntim , z , wks ) ;
+   else
+     (void) DES_despike9( ntim , z , wks ) ;
 
    /* least squares solve the equations with the modified data */
 
@@ -249,6 +330,11 @@ int main( int argc , char *argv[] )
              "                use the '-NEW' algorith in such cases.\n"
              "             ** At some indeterminate point in the future, the '-NEW'\n"
              "                method will become the default!\n"
+             "          -->>* As of 29 Sep 2016, '-NEW' is the default if there\n"
+             "                is more than 500 points in the time series dataset.\n"
+             "\n"
+             " -NEW25     = A slightly more aggressive despiking approach than\n"
+             "              the '-NEW' method.\n"
              "\n"
              "Caveats:\n"
              "* Despiking may interfere with image registration, since head\n"
@@ -287,6 +373,9 @@ int main( int argc , char *argv[] )
 
       if( strcmp(argv[iarg],"-NEW") == 0 ){       /* 29 Nov 2013 */
         do_NEW = 1 ; iarg++ ; continue ;
+      }
+      if( strcmp(argv[iarg],"-NEW25") == 0 ){     /* 29 Sep 2016 */
+        do_NEW = 1 ; use_des25 = 1 ; cut1 = 2.5f ; cut2 = 3.2f ; iarg++ ; continue ;
       }
       if( strcmp(argv[iarg],"-OLD") == 0 ){
         do_NEW = 0 ; iarg++ ; continue ;
@@ -374,6 +463,12 @@ int main( int argc , char *argv[] )
    nvals = DSET_NUM_TIMES(dset) ; nuse = nvals - ignore ;
    if( nuse < 15 )
      ERROR_exit("Can't use dataset with < 15 time points per voxel!") ;
+
+   if( nuse > 500 && !do_NEW ){
+     INFO_message("Switching to '-NEW' method since number of time points = %d > 500",nuse) ;
+     do_NEW = 1 ;
+   }
+   if( use_des25 && nuse < 99 ) use_des25 = 0 ;
 
    if( verb ) INFO_message("ignoring first %d time points, using last %d",ignore,nuse);
    if( corder > 0 && 4*corder+2 > nuse ){
@@ -527,7 +622,8 @@ int main( int argc , char *argv[] )
 
    if( do_NEW ){
      NEW_psinv = DES_get_psinv(nuse,nref,ref) ;
-     INFO_message("Procesing time series with NEW model fit algorithm") ;
+     INFO_message("Procesing time series with %s model fit algorithm",
+                  (use_des25) ? "NEW25" : "NEW" ) ;
    } else {
      INFO_message("Procesing time series with OLD model fit algorithm") ;
    }

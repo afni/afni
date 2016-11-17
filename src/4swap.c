@@ -7,6 +7,9 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <stdlib.h>
+#include <string.h>
+
+int swap4() ;
 
 typedef struct { unsigned char a,b,c,d ; } fourbytes ;
 

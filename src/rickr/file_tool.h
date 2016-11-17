@@ -111,6 +111,8 @@ typedef struct
     int     overwrite; /* overwrite output file(s)?  */
     char  * mod_data; /* new data (change to list?) */
     char  * prefix;  /* prefix for any output file */
+
+    int     fix_rich_quotes; /* replace 0xffffff98, 0xffffff99 with 0x27 */
 } param_t;
 
 typedef struct                    /* file offsets for various fields   */

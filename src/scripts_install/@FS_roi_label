@@ -47,7 +47,7 @@ if ( $Do_Surf ) then
       set SurfLabelFile = $lbls[1]
    endif
    
-   #Now proces lbl file
+   #Now process lbl file
    set nlbls = `3dnvals ${SurfLabelFile}\'`
    1dcat ${SurfLabelFile}'[0]' | sed 's/^ */#/g' > /tmp/${tmpP}indices   
    cat ${SurfLabelFile} | \
@@ -139,7 +139,9 @@ if ($name != "") then
          @ n ++
       end
    else
-      paste  /tmp/${tmpP}nmi.txt /tmp/${tmpP}nmn.txt
+      set rankmax = 1024
+      set cnt_lt = `cat /tmp/${tmpP}nmn.txt | wc -l`
+      paste  /tmp/${tmpP}nmi.txt /tmp/${tmpP}nmn.txt > /tmp/${tmpP}lt.txt
    endif
    
    if ($labeltable != "") then
@@ -157,7 +159,11 @@ if ($name != "") then
       printf 'ni_type="2*String"\n' >> $labeltable
       printf 'ni_dimen="%d"\n' $cnt_lt >> $labeltable
       printf 'pbar_name="%s">\n' $pbar >> $labeltable
-      uniq /tmp/${tmpP}lt.txt >> $labeltable
+      if($rankmap != "") then
+         uniq /tmp/${tmpP}lt.txt >> $labeltable
+      else
+         cat /tmp/${tmpP}lt.txt |sed 's/^#//' >> $labeltable
+      endif
       if ($status) goto BEND
       printf '</VALUE_LABEL_DTABLE>\n' >> $labeltable
    endif
@@ -198,6 +204,7 @@ PARSE:
 	#find the locations of -ts and -roi, etc
    set name = ''
    set rankmap = ''
+   set rankmax = 1024
    set rank = ''
    set lab = ''
 	set Narg = $#
@@ -367,10 +374,10 @@ PARSE:
       echo "Need -rankmap with -rank"
       goto END
    endif
-   if ($labeltable != "" && $rankmap == "") then
-      echo "Need -rankmap with -labeltable"
-      goto END
-   endif
+#   if ($labeltable != "" && $rankmap == "") then
+#      echo "Need -rankmap with -labeltable"
+#      goto END
+#   endif
    if ($labeltable != "" && name == "") then
       set name = "ALL"
    endif

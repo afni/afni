@@ -70,7 +70,7 @@ extern float * g_siemens_timing_times;  /* actual list of times          */
 extern int     g_siemens_timing_units;  /* time units, UNITS_MSEC_TYPE?  */
 extern int     populate_g_siemens_times(int tunits);
 extern int     get_and_display_siemens_times(void);
-extern int     valid_g_siemens_times(int nz, float TR, int verb);
+extern int     valid_g_siemens_times(int, float, int, int);
 
 /*----------------------------------------------------------------------------*/
 
@@ -384,11 +384,13 @@ typedef struct MRI_IMAGE {
          int was_swapped ; /* 07 Mar 2002 */
          int vdim ;        /* 28 Nov 2008 */
          int flags ;       /* 21 Mar 2013 */
+
+         char *comments ;  /* 03 Aug 2016 */
 } MRI_IMAGE ;
 
 #ifdef USE_MRI_LABELS
 /*! Copy auxiliary data from one MRI_IMAGE to another. */
-#  define MRI_COPY_AUX(nn,oo)                                           \
+#  define MRI_COPY_AUX_OLD(nn,oo)                                       \
     ( (nn)->dx = (oo)->dx , (nn)->dy = (oo)->dy , (nn)->dz = (oo)->dz , \
       (nn)->dt = (oo)->dt , (nn)->du = (oo)->du , (nn)->dv = (oo)->dv , \
       (nn)->dw = (oo)->dw ,                                             \
@@ -401,7 +403,7 @@ typedef struct MRI_IMAGE {
       strcpy((nn)->wlab,(oo)->wlab) ,                                   \
       mri_add_name( (oo)->name , (nn) ) )
 #else
-#  define MRI_COPY_AUX(nn,oo)                                           \
+#  define MRI_COPY_AUX_OLD(nn,oo)                                       \
     ( (nn)->dx = (oo)->dx , (nn)->dy = (oo)->dy , (nn)->dz = (oo)->dz , \
       (nn)->dt = (oo)->dt , (nn)->du = (oo)->du , (nn)->dv = (oo)->dv , \
       (nn)->dw = (oo)->dw ,                                             \
@@ -410,6 +412,12 @@ typedef struct MRI_IMAGE {
       (nn)->wo = (oo)->wo ,                                             \
       mri_add_name( (oo)->name , (nn) ) )
 #endif
+
+#define MRI_COPY_AUX(nn,oo)                                                  \
+  do{ MRI_COPY_AUX_OLD(nn,oo) ;                                              \
+      if( (oo)->comments != NULL ) (nn)->comments = strdup((oo)->comments) ; \
+      else                         (nn)->comments = NULL ;                   \
+  } while(0)
 
 /*! Check if MRI_IMAGE is 1D (ny=1) */
 #define MRI_IS_1D(iq)  ((iq)->ny == 1)

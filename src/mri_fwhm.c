@@ -548,7 +548,7 @@ AFNI_OMP_END;
 /*========================================================================*/
 static double mom12_stdev_fac = 1.0 ;
 
-mri_fwhm_mom12_set_stdev_fac( double fff ){ mom12_stdev_fac = fff ; }
+void mri_fwhm_mom12_set_stdev_fac( double fff ){ mom12_stdev_fac = fff ; }
 
 /*------------------------------------------------------------------------*/
 /*! New method using first and second moments of absolute values of

@@ -656,8 +656,8 @@ Changing default tracking parameters
    0.06 rad (~3.4 deg) for any eigenvector/direction. User assigns
    values in degrees.
 
-Thresholding ``{DET|MINIP}`` tract bundles
-------------------------------------------
+Thresholding ``{DET|MINIP}`` bundles by tract count
+---------------------------------------------------
 
 The PROB method requires a certain number of tracts to go through a
 voxel before it is included in a WM ROI connection.
@@ -676,6 +676,80 @@ useful in removing it easily.
 
 Note, however, that the fully probabilistic mode's criterion is
 stricter, and it still provides the most robust results when tracking.
+
+Using target surfaces to control tract trimming
+-----------------------------------------------
+
+In each iteration of ``3dTrackID``, an initial set of all possible
+tracts throughout the brain are generated, tracking forward and
+backward as far as the stopping conditions allow from seeds in every
+WM voxel (such as where FA>0.2).  A network map is then "stamped"
+down, and any tracts that intersect targets are kept (with the others
+temporarily ignored).  For connections between pairs of targets, once
+can decide how much of the initial tract constitutes a connection.  
+
+The :ref:`figure <fig_tract_trimming>` below demonstrates the four
+current possibilities (AFNI version >=16.3.09). It could be:
+
+A. Default: only the parts of the tract within and between the targets;
+   that is, parts of the initial tract that stick out away from the
+   partner target are ignored.
+
+#. ``-uncut_at_rois``: The whole initial tract: parts of the tract
+   within each target, between the targets, *and* those endparts
+   sticking out away from each target.
+
+#. ``-tarf_surf_stop``: only parts of the tract between the targets and
+   just **one layer into** the target volumes; that is, the target
+   surface stops the tracts after they enter.
+
+#. ``-tarf_surf_twixt``: only parts of the tract between the targets,
+   stopping just **just outside of** the target volumes; that is, the
+   tracts are only between (= betwixt) the targets, not overlapping at
+   all.  
+
+Each of these approaches applies to any mode of tracking (``DET``,
+``MINIP`` or ``PROB``).  Also, each approach only refers to the
+AND-logic (= pairwise; the off-diagonal elements of the returned
+matrix of structural properties) connections between two targets; the
+OR-logic tracts (the on-diagonal elements in the matrix of structural
+properties) that are defined by going through at least a single target
+are unaffected (those are always untrimmed).
+
+.. note:: Note that for the ``-tarf_surf_*`` cases, a tract between
+          targets A and B *could* overlap/pass through a separate
+          target C, though; the restriction on a tract's overlap only
+          refers to the two targets it connects. Separate tracts from
+          A to C and from B to C would obey specified surface-stopping
+          rules with those respective targets.
+
+
+.. _fig_tract_trimming:
+
+.. list-table:: 
+   :header-rows: 1
+   :widths: 50 50
+
+   * - Tract control options in ``3dTrackID``
+     - 
+   * - A. Default: between and within target
+     - B. ``-uncut_at_rois``: no trimming
+   * - .. image:: media/TRACKING/TR_trim_default_cut.jpg
+          :width: 100%
+     - .. image:: media/TRACKING/TR_trim_uncut.jpg
+          :width: 100%
+   * - C. ``-tarf_surf_stop``: between targets and includes surface
+     - D. ``-tarf_surf_twixt``: between targets only
+   * - .. image:: media/TRACKING/TR_trim_targ_surf_stop.jpg
+          :width: 100%
+     - .. image:: media/TRACKING/TR_trim_targ_surf_twixt.jpg
+          :width: 100%
+
+Using SUMA for visualization (sagittal view, FA slice as background),
+the above :ref:`figure <fig_tract_trimming>` shows two targets
+(represented as magenta and orange meshes) and various ways that the
+AND-logic, pairwise connection tracts for them could be returned.
+
 
 Useful output dumping of WM ROIs
 --------------------------------

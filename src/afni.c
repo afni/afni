@@ -501,6 +501,12 @@ void AFNI_syntax(void)
      "   -noplugins   Tells the program not to load plugins.\n"
      "                  (Plugins can also be disabled by setting the\n"
      "                   environment variable AFNI_NOPLUGINS.)\n"
+     "   -seehidden   Tells the program to show you which plugins\n"
+     "                  are hidden.\n"
+     "   -DAFNI_ALLOW_ALL_PLUGINS=YES\n"
+     "                Tells the program NOT to hide plugins from you.\n"
+     "                  Note that there are a lot of hidden plugins,\n"
+     "                  most of which are not very useful!\n"
      "   -yesplugouts Tells the program to listen for plugouts.\n"
      "                  (Plugouts can also be enabled by setting the\n"
      "                   environment variable AFNI_YESPLUGOUTS.)\n"
@@ -708,7 +714,7 @@ void AFNI_syntax(void)
     "multiple copies of AFNI.  For example, put the following\n"
     "command in your shell startup file (e.g., ~/.cshrc or ~/.bashrc)\n"
     "   alias ablue afni -XXXfgcolor white -XXXbgcolor navyblue\n"
-	 "Then the command 'ablue' will start AFNI with a blue background\n"
+    "Then the command 'ablue' will start AFNI with a blue background\n"
     "and using white for the default text color.\n"
     "\n"
     "Note that these options set 'properties' on the X11 server,\n"
@@ -1039,6 +1045,11 @@ ENTRY("AFNI_parse_args") ;
         narg++ ; continue ;                 /* go to next arg */
       }
 #endif
+
+      if( strcmp(argv[narg],"-seehidden") == 0 ){
+        first_plugin_check = 1 ;
+        narg++ ; continue ;
+      }
 
       /*----- -layout (23 Sep 2000) -----*/
 
@@ -1684,6 +1695,8 @@ void AFNI_sigfunc(int sig)
    This catenation of events is for Jerzy 'the Mad Pole' Bodurka.
 ------------------------------------------------------------------------------*/
 
+extern int selenium_close(void) ;
+
 void AFNI_sigfunc_alrm(int sig)
 {
 #undef  NMSG
@@ -1863,7 +1876,25 @@ void AFNI_sigfunc_alrm(int sig)
      "This is your only chance at building a disreputable past"      ,
      "O Brave New World, that has such software in it"               ,
      "When I ask for advice, what I really want is an accomplice"    ,
-     "Remember -- You are absolutely unique. Just like everone else" ,
+     "Above all -- Don't let your brain lie to you"                  ,
+     "I like nonsense -- it shakes the neurons out of their naps"    ,
+     "Using it is like going to the gym for your brain"              ,
+     "We are all mad here"                                           ,
+     "Working for improved brain-ology not just 24/7 but 25/8!"      ,
+     "If Ziad were here, we'd be going for gelato just about now"    ,
+     "Trust me, I know what I'm doing"                               ,
+     "Never tell me the odds"                                        ,
+     "If you're good at something, never do it for free"             ,
+     "I'm Spartacus"                                                 ,
+     "Abandon all hope, ye who leave here"                           ,
+     "From a little spark may burst a flame"                         ,
+     "I love to doubt as well as to know"                            ,
+     "At this moment, ability fails my capacity to describe"         ,
+     "I'll miss you -- come back soon"                               ,
+     "Be careful out there"                                          ,
+     "Yesterday, all my troubles seemed so far away"                 ,
+     "Stochastic delights have deterministic ends"                   ,
+     "Remember -- Time and tide wait for no brain imaging software"  ,
      "Remember -- AFNI is free, but worth at least 1000 times more"  ,
      "Remember -- Nothing is always absolutely so"                   ,
      "Remember -- 90% of everything is cr*p"                         ,
@@ -1932,6 +1963,7 @@ void AFNI_sigfunc_alrm(int sig)
      "Even if you a minority of one, the truth is still the truth"   ,
      "Money talks, but usually just to say 'Goodbye'"                ,
      "Are you a Bayesian Heretic or a Frequentist True Believer?"    ,
+     "Please tell me you don't believe in Fuzzy Logic"               ,
      "Are you ready for the Big Rip?"                                ,
      "I hereby declare the Null Hypothesis to be ..... Falsified"    ,
      "I'm sick of thinking about p-values -- how about you?"         ,
@@ -1946,7 +1978,6 @@ void AFNI_sigfunc_alrm(int sig)
      "A thermos of hot tea in Pangboche would be a nice pit stop"    ,
      "Next stop: Bora Bora and Rangiroa"                             ,
      "Do you still miss the NIH Bear? I do"                          ,
-     "Advice from the NIH Bear -- honey goes good with brains"       ,
      "Always be patient with the rich and powerful"                  ,
      "Better to visit hell in your lifetime than afterwards"         ,
      "Halfway is 12 miles, when you have 14 miles to go"             ,
@@ -1989,15 +2020,17 @@ void AFNI_sigfunc_alrm(int sig)
      "Be yourself; everyone else is already taken"                   ,
      "I have not failed; I've just found 10,000 ways that don't work",
      "Statistics are good, but dark chocolate is better"             ,
+     "Espresso chocolate -- mmmmmm -- good"                          ,
      "After every tempest comes the calm"                            ,
      "I've got MY story about the brain; what's yours?"              ,
      "I came, I saw, I got confused"                                 ,
      "Computers are useless -- they can only give you answers"       ,
+     "If nothing else, this software is a great toy"                 ,
+     "Remember to take your brain out and polish it"                 ,
 
      "Returning control of your brain (images) back to yourself"     ,
      "Returning your endofunctors back to their co-monads"           ,
      "Returning you from brain-blob land to actual thinking land"    ,
-
 
      /* This set of quotes is from Paradise Lost,
         by John Milton (a very very early AFNI user) */
@@ -2041,24 +2074,47 @@ void AFNI_sigfunc_alrm(int sig)
 
      /* These are to make it clear that Cox is not to be blamed for ANYTHING */
 
-     "If you have any problems with AFNI, blame goes to ... Mike Beauchamp ;)" ,
-     "If you have any problems with AFNI, blame goes to ... Ziad Saad ;)"      ,
-     "If you have any problems with AFNI, blame goes to ... Pat Bellgowan ;)"  ,
-     "If you have any problems with AFNI, blame goes to ... Kyle Simmons ;)"   ,
-     "If you have any problems with AFNI, blame goes to ... Jerzy Bodurka ;)"  ,
+     "If you have any problems with AFNI, blame goes to ... Mike Beauchamp :)" ,
+     "If you have any problems with AFNI, blame goes to ... Ziad Saad :)"      ,
+     "If you have any problems with AFNI, blame goes to ... Pat Bellgowan :)"  ,
+     "If you have any problems with AFNI, blame goes to ... Kyle Simmons :)"   ,
+     "If you have any problems with AFNI, blame goes to ... Jerzy Bodurka :)"  ,
      "All suspicion points to a Frost-Bellgowan plot"                          ,
      "All signs points to a Frost-Bellgowan conspiracy"                        ,
+     "If you have any questions about AFNI, ask ... Daniel Glen :)"            ,
+     "If you have any questions about AFNI, ask ... Rick Reynolds :)"          ,
+     "If you have any questions about AFNI, ask ... Paul Taylor :)"            ,
+     "If you have any questions about AFNI, ask ... Gang Chen :)"              ,
 
-     "Math is the only place where truth and beauty mean the same thing"              ,
+     "The kindest, bravest, warmest, most wonderful software you've ever known"       ,
+     "Your brains have not only been washed, but been dry cleaned"                    ,
+     "Why don't you pass the time by playing a little solitaire?"                     ,
+
+     "Home is the sailor, home from the sea; And the hunter home from the hill"       ,
+     "I'm not as smart as you, but I'm not as dumb as you think I am"                 ,
+     "If you haven't anything nice to say about anybody, come sit next to me"         ,
+     "Hmmm -- I think your p-value is 0.050001 -- better luck next time"              ,
+     "Wow! Your p-value is 0.049999 -- you are incredibly lucky"                      ,
+     "Remember -- You are absolutely incredibly unique. Just like everone else"       ,
+     "Remember -- Belief is not Truth. No matter how much you want it to be"          ,
+     "Remember -- Truth is not always believed, even when it is under your nose"      ,
+     "Remember -- Screaming is the next best thing to solving a problem"              ,
+     "Remember -- Swearing is almost as good as solving a problem"                    ,
+     "Remember -- Closure operators are monads on preorder categories"                ,
+     "Remember -- There is more to life than getting a small p-value"                 ,
+     "Always read something that will make you look good if you die in the middle"    ,
+     "When I die, I hope to go to Heaven -- wherever the Hell that is"                ,
+     "How about you and me climb Mt Belford next weekend? Meet me at the trailhead"   ,
+     "The difference between stupidity and genius is that genius has its limits"      ,
+     "If we knew what we are doing, it wouldn't be called research, would it?"        ,
+     "Mathematics is the only place where truth and beauty mean the same thing"       ,
      "I may be going to hell in a bucket, but at least I'm enjoying the ride"         ,
      "Next time, just for fun, I'll toss in some extra blobs in CSF for you"          ,
+     "Next time, just for fun, I'll toss in some extra blobs in air just for you"     ,
      "What do you mean, you don't believe all those clusters in white matter?"        ,
      "For an extra pumpernickel bagel, I'll put a blob wherever you want it"          ,
      "I don't know about you, but my amygdala is lighting up like it's on fire"       ,
      "Will all great Neptune's ocean wash this modeling error from my regression?"    ,
-     "Remember -- Screaming is the next best thing to solving a problem"              ,
-     "Remember -- Swearing is almost as good as solving a problem"                    ,
-     "Remember -- Closure operators are monads on preorder categories"                ,
      "Data which passes through so many steps can hardly have much truth left"        ,
      "One man's way may be as good as another's, but we all like our own best"        ,
      "Some ideas are so wrong that only an intelligent person could believe them"     ,
@@ -2073,6 +2129,7 @@ void AFNI_sigfunc_alrm(int sig)
      "The 'Lead Standard' for neuroimaging since 1994"                                ,
      "Oh well, you can always end your paper with 'Further research needed'"          ,
      "It's not true my youth was wild and crazy -- only half of that is true"         ,
+     "Your theory is crazy, just not crazy enough to be true"                         ,
      "Not yet quite as powerful as the totalized and integrated mind of Arisia"       ,
      "Are you testing for the Dull Hypothesis? It's never significant"                ,
      "For every complex problem there is an answer that is clear, simple, and wrong"  ,
@@ -2098,6 +2155,11 @@ void AFNI_sigfunc_alrm(int sig)
      "Get your statistics first, then you can distort them as you please"             ,
      "A man who carries a cat by the tail learns something he can learn no other way" ,
      "Three things cannot long be hidden: the Sun, the Moon, and the Truth"           ,
+     "The truth does not change, just because you don't want to hear it"              ,
+     "Everything we see is a perspective, not the truth"                              ,
+     "The truth will set you free, but first it will make you miserable"              ,
+     "We live in a world of illusion; the great task of life is to find reality"      ,
+     "Better than a thousand hollow words is one word that brings peace"              ,
      "May the Dark Side of the Force get lost on the way to your data"                ,
      "The Andromeda Galaxy is on a collision course with us -- be prepared"           ,
      "Stellar formation will cease in just a trillion years -- what will we do then?" ,
@@ -2116,12 +2178,22 @@ void AFNI_sigfunc_alrm(int sig)
      "O wad some Pow'r the giftie gie us, To see oursels as ithers see us"            ,
      "One half the world cannot understand the statistics of the other"               ,
 
+     "You know you're in trouble when it takes a 64 bit integer to count your unread emails"  ,
+     "Once you've done what you have to do, no one will let you do what you want to do"       ,
      "My name is AFNImandias, Brain of Brains; Look on my Statistics, ye Clever, and Despair" ,
      "Statistically Significant is NOT the same as Significant -- they're not even similar"   ,
      "If you drink a liquid that has p=0.06 of being poison, do you feel significantly safe?" ,
+     "You must accept finite disappointments, but never lose your infinite hope"              ,
+     "We may all have come on different ships, but we're all in the same boat now"            ,
+     "You can always find me out on the Long Line -- I hang out by the Church-Kleene ordinal" ,
+     "Outside of a dog, a book is Man's best friend. Inside of a dog, it's too dark to read"  ,
+
+     "\n  Ever returning spring, trinity sure to me you bring\n"
+     "  Lilac blooming perennial, drooping star in the West,\n"
+     "  And thought of him I love"                                                            ,
 
      "\n  It is a truth universally acknowledged, that a single scientist\n"
-     "  in possession of a large data collection, is in need of an AFNI."                     ,
+     "  in possession of a large FMRI data collection, is in need of an AFNI."                ,
 
      "\n  The great thing about the human condition:\n"
      "  No matter how bad it is, it can always get worse"                                     ,
@@ -2167,11 +2239,16 @@ void AFNI_sigfunc_alrm(int sig)
      "     0.08   = Highly suggestive\n"
      "     0.09   = Significant at the p < 0.1 level\n"
      "     0.099  = Significant at the p < 0.1 level\n"
-     "     > 0.1  = Hey! Look at this interesting subgroup analysis"
+     "     > 0.1  = Hey! Look at this interesting subgroup analysis"   ,
+
+     "\n There comes a time when you look into the mirror and you realize\n"
+     "  what you see is all that you will ever be. And then you accept it.\n"
+     "  Or you stop looking in mirrors"
+
    } ;
 #undef NTOP
 #ifdef USE_SONNETS
-# define NTOP (NMSG+3)
+# define NTOP (NMSG+1)
 #else
 # define NTOP NMSG
 #endif
@@ -2390,6 +2467,8 @@ int main( int argc , char *argv[] )
    signal(SIGSEGV,AFNI_sigfunc) ;
    signal(SIGTERM,AFNI_sigfunc) ;
 
+   first_plugin_check = -1 ;  /* 16 Nov 2016 */
+
 #if 0
 #ifdef USE_TRACING
    if( ALLOW_realtime ) DBG_trace = 0 ; /* 26 Jan 2001 */
@@ -2550,6 +2629,15 @@ int main( int argc , char *argv[] )
    }
 
    /*--- now ready to start X11 for true --*/
+
+#ifdef DARWIN
+   fprintf(stderr,
+            "\n"
+            "++ If you are using XQuartz 2.7.10 (or later), and\n"
+            " + AFNI crashes when opening windows, you might need\n"
+            " + to set an environment variable to solve this problem:\n"
+            " +   setenv DYLD_LIBRARY_PATH /opt/X11/lib/flat_namespace\n\n" ) ;
+#endif
 
    memset(&MAIN_app, 0, sizeof(MAIN_app)) ;  /* 11 Feb 2009 [lesstif patrol] */
    MAIN_shell = XtVaAppInitialize( &MAIN_app , "AFNI" , NULL , 0 ,
@@ -2892,14 +2980,30 @@ STATUS("call 13") ;
         AFNI_register_0D_function( "SSqrt" , ssqrt_func ) ;
 
         AFNI_register_1D_function( "Median3"   , median3_func) ;
+#if 0
         AFNI_register_1D_function( "OSfilt3"   , osfilt3_func) ;
+#endif
         AFNI_register_1D_function( "AdptMean9" , adpt_wt_mn9 ) ;       /* 04 Sep 2009 */
+        AFNI_register_1D_function( "AdptMean19", adpt_wt_mn19 );       /* 29 Sep 2016 */
+
+        { int nad = AFNI_numenv("AFNI_AdptMeanWidth1D") ;              /* 30 Sep 2016 */
+          char lab[16] ;                                      /* user specified width */
+          if( nad > 9 && nad != 19 && nad < 100 ){
+            if( nad%2 == 0 ){ nad++; INFO_message("increased AFNI_AdptMeanWidth1D to %d",nad); }
+            sprintf(lab,"AdptMean%d",nad) ;
+            AFNI_register_1D_function( lab , adpt_wt_mnXX ) ;
+            adpt_wt_mnXX(nad,0.0,0.0,NULL) ;
+          }
+        }
+
         AFNI_register_1D_function( "Despike"   , despike9_func);       /* 08 Oct 2010 */
         AFNI_register_1D_function( "HRF decon" , hrfdecon_func);       /* 29 Oct 2010 */
         AFNI_register_1D_function( "|FFT()|"   , absfft_func ) ;
+#if 0
         AFNI_register_1D_function( "ZeroToOne" , ztone_func  ) ;       /* 02 Sep 2009 */
         AFNI_register_1D_function( "Normlz_L1" , L1normalize_func  ) ; /* 03 Sep 2009 */
         AFNI_register_1D_function( "Normlz_L2" , L2normalize_func  ) ; /* 03 Sep 2009 */
+#endif
 
         AFNI_register_2D_function( "Median9" , median9_box_func ) ;
         AFNI_register_2D_function( "Winsor9" , winsor9_box_func ) ;
@@ -3256,7 +3360,7 @@ void AFNI_startup_timeout_CB( XtPointer client_data , XtIntervalId *id )
 
 ENTRY("AFNI_startup_timeout_CB") ;
 
-   /* make sure help window is popped down */
+   /*--- make sure help window is popped down ---*/
 
 #if 0
    MCW_help_CB( MAIN_im3d->vwid->top_shell,NULL,NULL ); /* initialize help */
@@ -3264,11 +3368,29 @@ ENTRY("AFNI_startup_timeout_CB") ;
 
    MCW_help_CB(NULL,NULL,NULL) ;
 
-   /* tell user if any mixed-type datasets transpired [06 Sep 2006] */
+   /*--- test geometry of main window [08 Aug 2016]
+         if it is negative territory, move it back to positive land;
+         this is to (hopefull) fix a peculiarity in XQuartz on El Capitan ---*/
+
+   { Position xroot,yroot ;
+     WAIT_for_window( MAIN_im3d->vwid->top_shell ) ;
+     XtTranslateCoords( MAIN_im3d->vwid->top_shell , 0,0, &xroot , &yroot ) ;
+#if 0
+INFO_message("AFNI controller xroot=%d yroot=%d",(int)xroot,(int)yroot) ;
+#endif
+     if( xroot < 0 || yroot < 0 ){
+       INFO_message("AFNI was off screen at x=%d y=%d -- repositioning" ,
+                   (int)xroot , (int)yroot ) ;
+       XtVaSetValues( MAIN_im3d->vwid->top_shell, XmNx,20, XmNy,20, NULL ) ;
+       REFRESH ;
+     }
+   }
+
+   /*--- tell user if any mixed-type datasets transpired [06 Sep 2006] ---*/
 
    AFNI_inconstancy_check( im3d , NULL ) ;
 
-   /* NIML listening on [moved here 17 Mar 2002] */
+   /*--- NIML listening on [moved here 17 Mar 2002] ---*/
 
    if( MAIN_im3d->type == AFNI_3DDATA_VIEW && GLOBAL_argopt.yes_niml ){
      AFNI_init_niml() ;
@@ -3375,7 +3497,7 @@ ENTRY("AFNI_startup_timeout_CB") ;
                             NULL ) ;                           /* 12 Feb 2010 */
    }
 
-   /* 05 May 2009: make sure the Cluster widgets show up properly */
+   /*--- 05 May 2009: make sure the Cluster widgets show up properly ---*/
 
    AFNI_vedit_CB( im3d->vwid->func->options_vedit_av , im3d ) ;
 
@@ -3410,7 +3532,7 @@ ENTRY("AFNI_startup_timeout_CB") ;
    }
 #endif
 
-   /* finish up getting AFNI ready to be presented to the world */
+   /*--- finish up getting AFNI ready to be presented to the world ---*/
 
    if( im3d->vwid->tips_pb != NULL && lrand48()%2==0 )
      MCW_flash_widget(1,im3d->vwid->tips_pb) ;
@@ -3422,25 +3544,25 @@ ENTRY("AFNI_startup_timeout_CB") ;
    if( im3d->vwid->tips_pb != NULL && lrand48()%2==0 )
      MCW_flash_widget(1,im3d->vwid->tips_pb) ;
 
-   /* 29 Jul 2005: run any driver commands from the command line */
+   /*--- 29 Jul 2005: run any driver commands from the command line ---*/
 
    for( vv=0 ; vv < COM_num ; vv++ ){
      AFNI_driver(COM_com[vv]) ; free(COM_com[vv]) ;
    }
 
-   /* 29 Nov 2005: Message Of The Day -- did it change? */
+   /*--- 29 Nov 2005: Message Of The Day -- did it change? ---*/
 
    if( GLOBAL_motd != NULL && !AFNI_noenv("AFNI_MOTD_CHECK") )
      AFNI_display_motd( im3d->vwid->imag->topper ) ;
 
-   /* 09 Nov 2005: start checking periodically for updated datasets */
+   /*--- 09 Nov 2005: start checking periodically for updated datasets ---*/
 
    if( AFNI_yesenv("AFNI_AUTO_RESCAN") )
     (void) XtAppAddTimeOut( MAIN_app,29999, AFNI_rescan_timeout_CB,&MAIN_app );
 
    AFNI_coord_filer_setup(im3d) ; /* 07 May 2010 */
 
-   /*- 12 May 2010: As the last printout, say when this version was created -*/
+   /*--- 12 May 2010: As the last printout, say when this version was created ---*/
 
    fprintf(stderr,"\n++ NOTE: This version of AFNI was built " __DATE__ " ++\n" ) ;
 
@@ -3448,7 +3570,10 @@ ENTRY("AFNI_startup_timeout_CB") ;
       !AFNI_yesenv("AFNI_ENABLE_MARKERS")    )
      fprintf(stderr,"++ NOTE: 'Define Markers' is hidden: right-click 'DataDir' to see it\n") ;
 
-   /** Apr 2013: delete this message in a few months **/
+   if( MAIN_im3d->type == AFNI_3DDATA_VIEW && first_plugin_check < 0 )
+     fprintf(stderr,"++ NOTE: Use '-seehidden' option to see which plugins are hidden\n") ;
+
+   /**--- Apr 2013: delete this message in a few months ---**/
 
    if( __DATE__[10] == '3' && (__DATE__[0] == 'A' || __DATE__[0] == 'M') )
      fprintf(stderr,
@@ -3469,9 +3594,16 @@ ENTRY("AFNI_startup_timeout_CB") ;
        "   https://afni.nimh.nih.gov/pub/dist/doc/program_help/README.environment.html\n") ;
 
 
-   /* splash window down -- moved here 29 May 2013 */
+   /*--- splash window down -- moved here 29 May 2013 ---*/
 
    AFNI_splashdown(); STATUS("splashed down");
+
+   { char *eee = getenv("USER") ;
+     set_program_name("afni") ;
+     if( eee != NULL && strcmp(eee,"rwcox") == 0 ) atexit(clock_time_atexit) ;
+   }
+
+   /*--- and AWAY WE GO (how sweet it is!) ---*/
 
    MPROBE ;                       /* check mcw_malloc() for integrity */
    EXRETURN ;
@@ -3494,6 +3626,7 @@ ENTRY("AFNI_startup_timeout_CB") ;
 
    See also Get_UO_Dset
 ----------------------------------------------------------------------*/
+
 FD_brick *Get_FD_Brick_As_Selected(FD_brick *br, int type, int *rival)
 {
    Three_D_View *im3d = (Three_D_View *)br->parent ;

@@ -100,6 +100,7 @@ typedef struct  /* user options */
     int              gert_reco;     /* output GERT_Reco script          */
     char           * gert_filename; /* GERT_Reco script name            */
     char           * gert_prefix;   /* to3d prefix in GERT_Reco script  */
+    char           * chan_prefix;   /* _chan_ par of prefix in script   */
     int              gert_nz;       /* override nz=1 in script          */
     int              gert_format;   /* dataset format: 0=AFNI, 1=NIFTI  */
                                     /* (see -gert_write_as_*)           */

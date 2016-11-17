@@ -10,6 +10,8 @@
 void ENV_init(void){}
 #else
 
+extern void TTRR_resetup(void) ;
+
 /***********************************************************************
   Pseudo-plugin to set/show environment variables
 ************************************************************************/

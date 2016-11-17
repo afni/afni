@@ -125,6 +125,8 @@ extern void RWC_xineramize( Display *,int,int,int,int,int *,int *) ;
 
 #include <stdio.h>
 
+extern void RWC_sleep( int msec ) ;
+
 #if 0
 #define CheckWidgetClass(routine) \
 	if (XtClass(w) != xcgLiteClueWidgetClass) \

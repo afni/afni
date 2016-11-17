@@ -72,6 +72,7 @@ PLUGIN_interface * PLUGIN_init( int ncall )
     PLUGIN_interface * plint ;
 
     if( ncall > 0 ) return NULL ;  /* only one interface */
+    CHECK_IF_ALLOWED("HEMISUBTRACT","Hemi-subtract") ;  /* 30 Sep 2016 */
 
     /* create the new interface */
 
