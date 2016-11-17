@@ -67,6 +67,7 @@ PLUGIN_interface * PLUGIN_init( int ncall )
 			      "Order"};                      
 
    if( ncall > 0 ) return NULL ;  /* only one interface */
+   CHECK_IF_ALLOWED("3DCLUSTER","3D Cluster") ;  /* 30 Sep 2016 */
 
    /*-- set titles and call point --*/
 

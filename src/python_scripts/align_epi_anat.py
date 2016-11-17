@@ -598,7 +598,7 @@ g_help_string = """
 ## BEGIN common functions across scripts (loosely of course)
 class RegWrap:
    def __init__(self, label):
-      self.align_version = "1.54" # software version (update for changes)
+      self.align_version = "1.55" # software version (update for changes)
       self.label = label
       self.valid_opts = None
       self.user_opts = None
@@ -2293,7 +2293,7 @@ class RegWrap:
         alopt="",\
         suf = "_alnd_anat"):
 
-      self.info_msg(" Aligning %s to %s" % (e.input(), ps.dset1_generic_name))
+      self.info_msg(" Applying alignment for %s to %s" % (ps.dset2_generic_name, ps.dset1_generic_name))
  
       o = e.new("%s%s" % (self.epi_afniformat.out_prefix(), suf))
 #      o = afni_name("%s%s" % (self.epi.out_prefix(), suf)) # was e.out_prefix() here
@@ -2303,6 +2303,8 @@ class RegWrap:
       else:
           if(self.master_epi_dset == 'BASE'):
              o.view = "%s" % a.view
+             if(not(o.view)) :
+                 o.view = e.view
 #             self.info_msg("o.view is BASE VIEW %s\n" % o.view)
           else:
              mepi = afni_name(self.master_epi_dset)
@@ -2310,7 +2312,8 @@ class RegWrap:
 #             self.info_msg("o.view is OTHER VIEW %s\n" % o.view)
 
 #      self.info_msg("o.view is %s\n" % o.view)
-
+      if(not(o.view)) :
+          o.view = '+orig'           
       eview = "%s" % o.view
 #      o.view = '+orig'
      

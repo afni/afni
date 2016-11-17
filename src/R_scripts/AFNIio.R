@@ -3610,7 +3610,8 @@ gl_Constr <- function(n_gl, code, lop) {  # n_gl: number of tests: lop$num_glt o
       outList[[2]]    <- vector('list', n_gl)
       outList[[3]] <- vector('list', n_gl)
       for (n in 1:n_gl) { # assuming each GLT has one slope involved and placed last
-         if(length(lop$QV)==0) outList[[1]][[n]] <- glfConstr(code[[n]], lop$dataStr) else {
+         # if(length(lop$QV)==0) outList[[1]][[n]] <- glfConstr(code[[n]], lop$dataStr) else {
+         if((length(lop$QV)==0) & is.na(lop$vVars)) outList[[1]][[n]] <- glfConstr(code[[n]], lop$dataStr) else {
          if((length(lop$QV)>0) & any(lop$QV %in% code[[n]])) {
             QVpos <- which(code[[n]] %in% lop$QV)
             if(is.na(code[[n]][QVpos+2])) { # test for covariate effect

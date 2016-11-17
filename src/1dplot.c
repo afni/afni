@@ -7,6 +7,7 @@
 #include "mrilib.h"
 #include "coxplot.h"
 #include "xim.h"
+#include "parser.h"
 
 /*-------------------------------------------------------------------*/
 /*---- quickie program to look at some graphs - RWCox - Feb 1999 ----*/
@@ -1273,6 +1274,18 @@ int main( int argc , char *argv[] )
    if( nx < 2 )
      ERROR_exit("1dplot can't plot curves only 1 point long!\n") ;
 
+#if 0  /* testing */
+{ float qa,qb,qc,qm ; int jj ;
+  for( jj=0 ; jj < ny ; jj++ ){
+    qa = qfrac_float( nx , 0.40f , far+jj*nx ) ;
+    qb = qfrac_float( nx , 0.50f , far+jj*nx ) ;
+    qc = qfrac_float( nx , 0.60f , far+jj*nx ) ;
+    qm = qmed_float ( nx         , far+jj*nx ) ;
+    INFO_message("#%d: %.5f  %.5f  %.5f  %.5f",jj,qa,qb,qc,qm) ;
+  }
+}
+#endif
+
    /*--- select data to plot ---*/
 
    nts = ny ;
@@ -1439,7 +1452,7 @@ int main( int argc , char *argv[] )
    if( xtran != NULL ){
      int ss , ns , *ls ; float **sx ;
 STATUS("xtran xar[]") ;
-     ss = PARSER_1dtran( xtran , nx , xar[ii] ) ;
+     ss = PARSER_1dtran( xtran , nx , xar ) ;
      if( ss <= 0 ) ERROR_exit("Can't evaluate -xtran expression '%s'",xtran) ;
 STATUS("fetch sepx") ;
      plot_ts_fetch_sepx( &ns , &ls , &sx ) ;

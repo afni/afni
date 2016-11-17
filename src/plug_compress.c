@@ -69,6 +69,7 @@ PLUGIN_interface * PLUGIN_init( int ncall )
    int meth ;
 
    if( ncall > 0 ) return NULL ;  /* only one interface */
+   CHECK_IF_ALLOWED("BRIKCOMPRESSOR","BRIK Compressor") ;  /* 30 Sep 2016 */
 
    /*---------------- set titles and call point ----------------*/
 

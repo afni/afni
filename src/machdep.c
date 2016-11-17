@@ -68,16 +68,44 @@ int AFNI_get_ncpu(void)  /* 11 Feb 2016 */
 #endif
 
 #ifdef USE_SYSCTL
-   if( nnn < 1 )
-     sysctlbyname( "hw.logicalcpu" , &nnn , sizeof(int32_t) , NULL,0 ) ;
+   { size_t isiz=sizeof(int32_t) ;
+     if( nnn < 1 )
+       sysctlbyname( "hw.logicalcpu" , &nnn , &isiz , NULL,0 ) ;
 
-   if( nnn < 1 )
-     sysctlbyname( "hw.ncpu" , &nnn , sizeof(int32_t) , NULL,0 ) ;
+     if( nnn < 1 )
+       sysctlbyname( "hw.ncpu" , &nnn , &isiz , NULL,0 ) ;
+   }
 #endif
 
    if( nnn < 1 ) nnn = 1 ;
 
    return (int)nnn ;
+}
+
+/*-------------------------------------------------------------------*/
+
+int64_t AFNI_get_memsize(void)  /* in bytes -- 02 Aug 2016 */
+{
+   int64_t mmm=0 , psiz=0 , pnum=0 ;
+
+#ifdef _SC_PAGESIZE
+   psiz = (int64_t)sysconf(_SC_PAGESIZE) ;
+#endif
+#ifdef _SC_PHYS_PAGES
+   pnum = (int64_t)sysconf(_SC_PHYS_PAGES) ;
+#endif
+#ifdef _SC_AVPHYS_PAGES
+   if( pnum == 0 )
+     pnum = (int64_t)sysconf(_SC_AVPHYS_PAGES) ;
+#endif
+   if( psiz > 0 && pnum > 0 ) return (psiz*pnum) ;
+
+#ifdef USE_SYSCTL
+   { size_t isiz=sizeof(int64_t) ;
+     sysctlbyname( "hw.memsize" , &mmm , &isiz , NULL,0 ) ;
+   }
+#endif
+   return mmm ;
 }
 
 /*-------------------------------------------------------------------*/
@@ -105,7 +133,7 @@ char * GetAfniTextEditor(void)
    ate = getenv("AFNI_GUI_EDITOR");
 
    if( ate ) return ate;
-   
+
    /* else, hunt */
    if( ate == NULL ) ate = THD_find_executable( "nedit" )   ;
    if( ate == NULL ) ate = THD_find_executable( "kedit" )   ;
@@ -127,7 +155,7 @@ char * GetAfniWebDownloader(void)
    ate = getenv("AFNI_WEB_DOWNLOADER");
 
    if( ate ) return ate;
-   
+
    /* else, hunt */
    if( ate == NULL ) if (THD_find_executable( "curl" )) ate = "curl -O -f" ;
    if( ate == NULL ) ate = THD_find_executable( "wget" )   ;
@@ -143,7 +171,7 @@ char * GetAfniPDFViewer(void)
    ate = getenv("AFNI_PDF_VIEWER");
 
    if( ate ) return ate;
-   
+
    /* else, hunt */
    if( ate == NULL ) ate = THD_find_executable( "Preview" )   ;
    if( ate == NULL ) ate = THD_find_executable( "evince" )   ;
@@ -161,7 +189,7 @@ char * GetAfniImageViewer(void)
    ate = getenv("AFNI_IMAGE_VIEWER");
 
    if( ate ) return ate;
-   
+
    /* else, hunt */
    if( ate == NULL ) ate = THD_find_executable( "Preview" )   ;
    if( ate == NULL ) ate = THD_find_executable( "aiv" )   ;
@@ -292,11 +320,11 @@ char *AFNI_strcasestr(const char *s1, const char *s2)
    char *so=NULL;
    int off=0;
    int i = 0;
-   
-   if (!s1 || !s2 || s2[0] == '\0') 
-      return(strstr(s1,s2)); /* let it fail as in strstr 
+
+   if (!s1 || !s2 || s2[0] == '\0')
+      return(strstr(s1,s2)); /* let it fail as in strstr
                                 You will get death if s2 is NULL */
-   
+
    if (!(s1u = strdup(s1))) {
       fprintf(stderr,"AFNI_strcasestr: Failed to dup string 1\n");
       return(NULL);
@@ -308,12 +336,12 @@ char *AFNI_strcasestr(const char *s1, const char *s2)
    }
    i=0; while (s1u[i]!='\0') { s1u[i] = SOL_TO_LOWER(s1u[i]); ++i; }
    i=0; while (s2u[i]!='\0') { s2u[i] = SOL_TO_LOWER(s2u[i]); ++i; }
-   
+
    so = strstr(s1u,s2u);
    off=0;
    if (so)  off = so-s1u;
    free(s1u); free(s2u);
-    
+ 
    if (so) return((char*)s1+off);
    return(NULL);
 }

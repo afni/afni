@@ -76,6 +76,14 @@ examples (very basic for now):
 
          1d_tool.py -infile X.xmat.1D -select_groups POS 0, -1 -write order.1D
 
+   Example 2d. Select specific runs from the input.  Note that X.xmat.1D may
+        have runs defined automatically, but for an arbitrary input, they may
+        need to be specified via -set_run_lengths.
+
+        i) 
+
+         1d_tool.py -infile X.xmat.1D -write X.bandpass.1D    \\
+
    Example 3.  Transpose a dataset, akin to 1dtranspose.
 
          1d_tool.py -infile t3.1D -transpose -write ttr.1D
@@ -783,6 +791,10 @@ general options:
                                   e.g. '[5,0,7..21(2)]'
    -select_rows SELECTOR        : apply AFNI row selectors, {} is optional
                                   e.g. '{5,0,7..21(2)}'
+   -select_runs r1 r2 ...       : extract the given runs from the dataset
+                                  (these are 1-based run indices)
+                                  e.g. 2
+                                  e.g. 2 3 1 1 1 1 1 4
    -set_nruns NRUNS             : treat the input data as if it has nruns
                                   (e.g. applies to -derivative and -demean)
 
@@ -1033,9 +1045,12 @@ g_history = """
    1.24 Mar 31, 2015 - allow -censor_fill_parent with simple 1D files
    1.25 Apr  1, 2015 - expand simple -censor_fill_parent for 2-D files
    1.26 Nov  4, 2015 - added -slice_order_to_times
+   1.27 Sep 23, 2016
+        - tiny nruns adjust
+        - added -select_runs
 """
 
-g_version = "1d_tool.py version 1.26, November 4, 2015"
+g_version = "1d_tool.py version 1.27, September 23, 2016"
 
 
 class A1DInterface:
@@ -1077,6 +1092,7 @@ class A1DInterface:
       self.select_groups   = []         # column selection list
       self.select_cols     = ''         # column selection string
       self.select_rows     = ''         # row selection string
+      self.select_runs     = []         # run selection list
       self.label_pre_drop  = []         # columns to drop - label prefix list
       self.label_pre_keep  = []         # columns to keep - label prefix list
       self.set_extremes    = 0          # make mask of extreme TRs
@@ -1310,6 +1326,9 @@ class A1DInterface:
 
       self.valid_opts.add_opt('-select_groups', -1, [], 
                       helpstr='select columns by the given list of groups')
+
+      self.valid_opts.add_opt('-select_runs', -1, [], 
+                      helpstr='select the given runs from the dataset')
 
       self.valid_opts.add_opt('-set_nruns', 1, [], 
                       helpstr='specify the number of runs in the input')
@@ -1735,6 +1754,11 @@ class A1DInterface:
             if err: return 1
             self.select_groups = val
 
+         elif opt.name == '-select_runs':
+            val, err = uopts.get_type_list(int, opt=opt)
+            if err: return 1
+            self.select_runs = val
+
          elif opt.name == '-show_cormat':
             self.show_cormat = 1
 
@@ -1946,6 +1970,10 @@ class A1DInterface:
          if self.adata != None:
             if self.adata.set_nruns(run_lens=self.set_run_lengths): return 1
 
+      # not with things like reduce_by_tlist
+      if len(self.select_runs) > 0:
+         if self.adata.reduce_by_run_list(self.select_runs): return 1
+
       if self.set_tr > 0: self.adata.tr = self.set_tr
 
       if self.derivative:
@@ -2134,9 +2162,9 @@ class A1DInterface:
 
       # if desired, just get sub-list
       if self.show_trs_run >= 0:
-         if self.show_trs_run > self.adata.nruns:
+         if self.show_trs_run >= self.adata.nruns:
             print '** -show_trs_run (%d) exceeds num runs (%d)' \
-                  % (self.show_trs_run, self.adata.nruns)
+                  % (self.show_trs_run+1, self.adata.nruns)
             return
 
          trs    = trs   [self.show_trs_run:self.show_trs_run+1]

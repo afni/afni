@@ -1026,3 +1026,100 @@ float wtmed_float( int n , float *x , float *w )
 
    return 0.0f ;
 }
+
+/*------------------------------------------------------------------------*/
+
+float qfrac_float( int n , float frac , float *ar )
+{
+   int i , j ;           /* scanning indices */
+   float temp , pivot ;  /* holding places */
+   float *a=ar ;
+   float ni, fmid, ft,fb ;
+   int left, right, mid ;
+
+   /* special cases */
+
+   if( n <= 0 ) return 0.0f ;
+   if( n == 1 ) return a[0] ;
+
+   ni = 1.0f/(float)n ;
+
+   if( frac <= ni ){                    /* min */
+     temp = a[0] ;
+     for( i=1 ; i < n ; i++ ) if( temp > a[i] ) temp = a[i] ;
+     return temp ;
+   } else if( frac >= 1.0f-ni ){        /* max */
+     temp = a[0] ;
+     for( i=1 ; i < n ; i++ ) if( temp < a[i] ) temp = a[i] ;
+     return temp ;
+   } else if( fabsf(frac-0.5f) < ni ){  /* median */
+     return qmed_float(n,a) ;
+   }
+
+   fmid = frac * n - 0.5f ;
+    mid = (int)fmid ; if( mid >= n-1 ) mid = n-2 ;  /* shouldn't happen */
+     ft = fmid-mid ;
+     fb = 1.0f-ft ;
+
+   if( n <= 21 ){        /* fast sorting for small arrays */
+     qsort_float(n,a) ;
+     return (fb*a[mid]+ft*a[mid+1]) ;
+   }
+
+   /* general (longer) case */
+
+   left = 0 ; right = n-1 ;
+
+   /* loop while the subarray is at least 3 long */
+
+   while( right-left > 1  ){  /* work on subarray from left -> right */
+
+      i = ( left + right ) / 2 ;   /* middle of subarray */
+
+      /* sort the left, middle, and right a[]'s */
+
+      if( a[left] > a[i]     ) SWAP( a[left]  , a[i]     ) ;
+      if( a[left] > a[right] ) SWAP( a[left]  , a[right] ) ;
+      if( a[i] > a[right]    ) SWAP( a[right] , a[i]     ) ;
+
+      pivot = a[i] ;                 /* a[i] is the median-of-3 pivot! */
+      a[i]  = a[right] ;
+
+      i = left ;                     /* initialize scanning */
+      j = right ;
+
+      /*----- partition:  move elements bigger than pivot up and elements
+                          smaller than pivot down, scanning in from ends -----*/
+
+      do{
+        for( ; a[++i] < pivot ; ) ;  /* scan i up,   until a[i] >= pivot */
+        for( ; a[--j] > pivot ; ) ;  /* scan j down, until a[j] <= pivot */
+
+        if( j <= i ) break ;         /* if j meets i, quit */
+
+        SWAP( a[i] , a[j] ) ;
+      } while( 1 ) ;
+
+      /*----- at this point, the array is partitioned -----*/
+
+      a[right] = a[i] ;           /* restore the pivot */
+      a[i]     = pivot ;
+
+      if( i == mid ) break ;      /* good luck == hit the target exactly */
+
+      if( i <  mid ) left  = i ;  /* throw away bottom partition */
+      else           right = i ;  /* throw away top partition    */
+
+   }  /* end of while sub-array is long */
+
+   /* find smallest element in the fraction above */
+
+   temp = a[mid+1] ;
+   for( j=mid+2 ; j < n ; j++ ) if( temp > a[j] ) temp = a[j] ;
+
+#if 0
+INFO_message("qfrac(%g): fmid=%g mid=%d a[mid]=%g temp=%g",frac,fmid,mid,a[mid],temp) ;
+#endif
+
+   return (fb*a[mid]+ft*temp) ;
+}

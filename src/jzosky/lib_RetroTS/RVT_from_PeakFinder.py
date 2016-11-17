@@ -21,7 +21,8 @@ import numpy # delete this and replace with specific functions
 from numpy import nonzero, add, subtract, divide, mean, zeros, around
 from scipy.signal import firwin, lfilter
 from scipy.interpolate import interp1d
-from pylab import plot, subplot, show, text, style, figure
+# rcr: omit new style sub-library of pylab
+from pylab import plot, subplot, show, text, figure
 from zscale import z_scale
 
 
@@ -33,12 +34,16 @@ def rvt_from_peakfinder(r):
     if len(r['p_trace']) != len(r['n_trace']):
         dd = abs(len(r['p_trace']) - len(r['n_trace']))
         if dd > 1:  # have not seen this yet, trap for it.
-            print 'Error RVT_from_PeakFinder:\nPeak trace lengths differ by %d\nThis is unusual, please upload data' \
-                  '\nsample to afni.nimh.nih.gov' % dd
+            print 'Error RVT_from_PeakFinder:\n'            \
+                  '  Peak trace lengths differ by %d\n'     \
+                  '  This is unusual, please upload data\n' \
+                  '  sample to afni.nimh.nih.gov' % dd
             # keyboard
             return
         else:  # just a difference of 1, happens sometimes, seems ok to discard one sample
-            print 'Notice RVT_from_PeakFinder:\nPeak trace lengths differ by %d\nClipping longer trace.' % dd
+            print 'Notice RVT_from_PeakFinder:\n'       \
+                  '   Peak trace lengths differ by %d\n'\
+                  '   Clipping longer trace.' % dd
             dm = min(len(r['p_trace']), len(r['p_trace']))
             if len(r['p_trace']) != dm: 
                r['p_trace'] = r['p_trace'][0:dm]

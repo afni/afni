@@ -1,5 +1,10 @@
 #include "mrilib.h"
 
+/** To do:
+      allow output for a range of temporal subsets
+      allow censoring
+**/
+
 #ifdef USE_OMP
 #include <omp.h>
 #endif
@@ -129,6 +134,7 @@ void usage_3dTcorrMap(int detail) {
        "\n"
        "----------------------------------\n"
        "Time Series Preprocessing Options: (applied only to -input, not to -seed)\n"
+       "[[[[ In general, it would be better to pre-process with afni_proc.py ]]]]\n"
        "----------------------------------\n"
        "TEMPORAL FILTERING:\n"
        "-------------------\n"
@@ -229,7 +235,7 @@ void usage_3dTcorrMap(int detail) {
        "         a dataset with prefix 'pp'.\n"
        "       **  Essentially this does what 3dAutoTcorrelate would,\n"
        "           with some of the additional options offered here.\n"
-       "       ** N.B.: Output dataset will be HUGE in most cases.\n"
+       "       ** N.B.: Output dataset will be HUGE and BIG in most cases.\n"
        "  -CorrMask\n"
        "         By default, -CorrMap outputs a sub-brick for EACH\n"
        "         input dataset voxel, even those that are NOT in\n"
@@ -285,8 +291,8 @@ void usage_3dTcorrMap(int detail) {
        "----------------\n"
        "Random Thoughts:\n"
        "----------------\n"
-       "-- In all output calculations, the correlation of a voxel with\n"
-       "   itself is ignored.\n"
+       "-- In all output calculations, the correlation of a voxel with itself\n"
+       "   is ignored.  If you don't understand why, step away from the keyboard.\n"
        "-- This purely experimental program is somewhat time consuming.\n"
        "   (Of course, it's doing a LOT of calculations.)\n"
        "-- For Kyle, AKA the new Pat (assuming such a thing were possible).\n"

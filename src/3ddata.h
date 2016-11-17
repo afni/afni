@@ -99,15 +99,15 @@ extern "C" {
 
 #define THD_MAX_SBLABEL     64     /* added 11/03/2011 drg */
 
-/*! Max length of a dataset prefix. */
+/*! Max length of a dataset prefix. [increased to 999 by RWCox 17 Oct 2016] */
 
-#define THD_MAX_PREFIX     (255+1)  /* must be more than THD_MAX_LABEL
+#define THD_MAX_PREFIX     (999+1)  /* must be more than THD_MAX_LABEL
                                     (  ZSS Jan 07 need room for path specified
                                        with prefix on command line    ) */
 
 /*! Max length of a "name" of a file, or stuff like that. */
 
-#define THD_MAX_NAME      (256+THD_MAX_PREFIX)     /* (ZSS Jan 07)*/
+#define THD_MAX_NAME      (999+THD_MAX_PREFIX)     /* (ZSS Jan 07)*/
 
 /*! Max length of a dataset view code (+orig, etc). */
 
@@ -4031,20 +4031,21 @@ typedef struct {
       XtPointer parent ;        /*!< generic pointer to "owner" of session */
 } THD_session ;
 
-char * THD_get_space(THD_3dim_dataset *dset);
-int THD_space_code(char *space);
+extern char * THD_get_space(THD_3dim_dataset *dset);
+extern int THD_space_code(char *space);
 
+extern int is_surface_storage_mode( int smode ) ;
 
-THD_3dim_dataset *
-get_session_dset_id(THD_session *sess, MCW_idcode idcode, int space_index);
-THD_3dim_dataset *
-get_session_dset(THD_session *sess, int index, int space_index);
-int
-set_session_dset(THD_3dim_dataset *dset, THD_session *sess,
-   int index, int space_index);
-void set_nspaces(int n);
-void set_atlas_nspaces(void);
-int get_nspaces(void);
+extern THD_3dim_dataset *
+        get_session_dset_id(THD_session *sess, MCW_idcode idcode, int space_index);
+extern THD_3dim_dataset *
+        get_session_dset(THD_session *sess, int index, int space_index);
+extern int
+        set_session_dset(THD_3dim_dataset *dset, THD_session *sess,
+                           int index, int space_index);
+extern void set_nspaces(int n);
+extern void set_atlas_nspaces(void);
+extern int get_nspaces(void);
 
 #ifdef oldsessions
    #define GET_SESSION_DSET(session, index, space) \
@@ -4989,6 +4990,9 @@ extern void THD_vectim_applyfunc( MRI_vectim *mrv , void *vp ) ;        /* 10 Ma
 
 extern void THD_vectim_pearsonBC( MRI_vectim *mrv, float srad, int sijk, int pv, float *par ) ;
 
+extern void THD_vectim_distance( MRI_vectim *mrv , float *vec ,
+                                 float *dp, int abs, char *xform) ;
+
 extern float kendallNlogN ( float *arr1, float *arr2, int len ) ;  /* in ktaub.c */
 extern float kendallSmallN( float *arr1, float *arr2, int len ) ;
 
@@ -5005,7 +5009,7 @@ extern MRI_vectim * THD_dset_list_to_vectim( int, THD_3dim_dataset **, byte * );
 typedef struct {
   THD_3dim_dataset *dset , *mset ;
   byte *mmm ;
-  MRI_IMAGE *gortim ;
+  MRI_IMAGE *gortim ; int gortnpc ;
   int start,end , automask , mindex ;
   int clen,cnum,cstep ;
   float fbot , ftop , blur , sblur ;
@@ -5041,6 +5045,8 @@ extern int         THD_instacorr_prepare( ICOR_setup *iset ) ;
 extern MRI_IMAGE * THD_instacorr        ( ICOR_setup *iset, int ijk ) ;
 extern int         THD_instacorr_cmeth_needs_normalize( int cmeth );
 extern MRI_IMARR * THD_instacorr_collection( ICOR_setup *iset, int ijk ) ;
+
+extern int THD_instacorr_cmeth_needs_norm(int cmeth) ;
 /*---------------------------------------------------------------------------*/
 
 extern int THD_extract_array      ( int, THD_3dim_dataset *, int, void * ) ;

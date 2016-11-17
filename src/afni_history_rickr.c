@@ -49,6 +49,194 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  9,  Nov, 2016, RCR, "Dimon", MICRO, TYPE_NEW_OPT,
+   "add -gert_chan_prefix",
+   "Done for W Luh."
+ } ,
+
+ {  9,  Nov, 2016, RCR, "to3d", MICRO, TYPE_MODIFY,
+   "and Dimon/Dimon1: siemens timing outside range is only a warning",
+   NULL
+ } ,
+
+ {  8,  Nov, 2016, RCR, "Dimon", MINOR, TYPE_BUG_FIX,
+   "possibly invert slice order, as DICOM sorting might affect MRILIB_orients",
+   "Thanks to W Luh for noting the problem."
+ } ,
+
+ {  2,  Nov, 2016, RCR, "afni_system_check.py", MICRO, TYPE_ENHANCE,
+   "handle 10.12 version string",
+   NULL
+ } ,
+
+ {  1,  Nov, 2016, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
+   "add PPI preparation options",
+   "Add -regress_skip_censor to omit 3dD -censor option.\n"
+   "Add -write_ppi_3dD_scripts with corressponding options\n"
+   "    -regress_ppi_stim_files and -regress_ppi_stim_labels.\n"
+   "These make PPI pre and post regression scripts, along with\n"
+   "    the main analysis script.\n"
+   "Done for S Haller."
+ } ,
+
+ { 24,  Oct, 2016, RCR, "afni_proc.py", MICRO, TYPE_ENHANCE,
+   "bandpass notes and reference; stronger warning on missing -tlrc_dset",
+   "Thanks to P Taylor."
+ } ,
+
+ { 20,  Oct, 2016, RCR, "afni_proc.py", MICRO, TYPE_ENHANCE,
+   "check -mask_import for reasonable voxel dimensions",
+   NULL
+ } ,
+
+ { 12,  Oct, 2016, RCR, "RetroTS.py", MICRO, TYPE_MODIFY,
+   "updated Makefile.INCLUDE to distribute this",
+   NULL
+ } ,
+
+ { 11,  Oct, 2016, RCR, "RetroTS.py", MICRO, TYPE_MODIFY,
+   "make top-level executable, remove 'style' lib, quotes, use lib_RetroTS",
+   NULL
+ } ,
+
+ {  9,  Oct, 2016, RCR, "afni_proc.py", MAJOR, TYPE_NEW_OPT,
+   "new options -mask_import, -mask_intersect and -mask_union",
+   "For J Stoddard and J Jarcho."
+ } ,
+
+ {  5,  Oct, 2016, RCR, "afni-general", MAJOR, TYPE_NEW_PROG,
+   "update from C Cradock and dclark87",
+   "New Programs: 3dLFCD, 3dDegreeCentrality, 3dECM, 3dMSE, 3dsvm_linpredict."
+ } ,
+
+ { 28,  Sep, 2016, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
+   "add -regress_ROI[_PC]_per_run options, to make per-run regressors",
+   "Also, used 3dTproject to detrend PC regressors for appropriate censoring."
+ } ,
+
+ { 23,  Sep, 2016, RCR, "1d_tool.py", MINOR, TYPE_NEW_OPT,
+   "add -select_runs option",
+   NULL
+ } ,
+
+ { 19,  Sep, 2016, RCR, "@move.to.series.dirs", MICRO, TYPE_NEW_OPT,
+   "add -glob, for processing glob forms via afni_util.py and xargs",
+   NULL
+ } ,
+
+ { 19,  Sep, 2016, RCR, "afni_util.py", MICRO, TYPE_NEW_OPT,
+   "add glob2stdout, for converting glob forms to lists in stdout",
+   NULL
+ } ,
+
+ { 16,  Sep, 2016, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
+   "add -radial_correlate option, to run @radial_correlate in proc script",
+   NULL
+ } ,
+
+ { 16,  Sep, 2016, RCR, "realtime_receiver.py", MICRO, TYPE_MODIFY,
+   "continue even if requested GUI fails",
+   NULL
+ } ,
+
+ { 13,  Sep, 2016, RCR, "3dANOVA3", MICRO, TYPE_MODIFY,
+   "change 'illegal argument after' errors to something more specific",
+   NULL
+ } ,
+
+ { 13,  Sep, 2016, RCR, "afni_proc.py", MICRO, TYPE_NEW_OPT,
+   "add -blip_opts_qw to pass options to 3dQwarp in the blip block",
+   NULL
+ } ,
+
+ { 29,  Aug, 2016, RCR, "afni_system_check.py", MICRO, TYPE_ENHANCE,
+   "add a few more DYLD_FALLBACK_LIBRARY_PATH tests",
+   NULL
+ } ,
+
+ { 25,  Aug, 2016, RCR, "afni_proc.py", MINOR, TYPE_BUG_FIX,
+   "fix output.proc prefix in case -script has a path",
+   "Also, allow -mask_apply group in the case of -tlrc_NL_warped_dsets.\n"
+   "Thanks to C Capistrano and P Kim for noting the output.proc problem.\n"
+   "Thanks to C Connolly for noting the mask problem."
+ } ,
+
+ { 25,  Aug, 2016, RCR, "afni_util.py", MICRO, TYPE_ENHANCE,
+   "add append flag to change_path_basename()",
+   NULL
+ } ,
+
+ { 23,  Aug, 2016, RCR, "file_tool", MINOR, TYPE_NEW_OPT,
+   "add -fix_rich_quotes; if fixing a script, convert rich quotes to ASCII",
+   "Done for G Chen."
+ } ,
+
+ { 22,  Aug, 2016, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,
+   "save all '3dAllineate -allcostX' anat/EPI costs to out.allcostX.txt",
+   "This is another quailty control measure."
+ } ,
+
+ { 19,  Aug, 2016, RCR, "slow_surf_clustsim.py", MINOR, TYPE_ENHANCE,
+   "can use surf_mask to restrict surface clustering",
+   "Use '-uvar surf_mask' to restrict on_surface clustering to mask.\n"
+   "Append SSCS command to end of script and handle NIFTI surf_vol.\n"
+   "The surf_mask mas added for C Thomas."
+ } ,
+
+ { 16,  Aug, 2016, RCR, "gen_ss_review_scripts.py", MINOR, TYPE_ENHANCE,
+   "look for new ACF/FWHM blur estimates",
+   NULL
+ } ,
+
+ { 15,  Aug, 2016, RCR, "afni_proc.py", MAJOR, TYPE_ENHANCE,
+   "default clustsim method is now ACF",
+   "This marks afni_proc.py version 5.00.\n"
+   "  o run 3dFWHMx with -ACF\n"
+   "  o ACF and ClustSim files go into sub-directories, files_ACF/ClustSim\n"
+   "  o -regress_run_clustsim now prefers arguments, ACF, FWHM, both, no\n"
+   "  o default clustsim method is now ACF (via -regress_run_clustsim yes)"
+ } ,
+
+ {  10,  Aug, 2016, RCR, "afni-general", MICRO, TYPE_MODIFY,
+   "in Makefile.INCLUDE, have afni depend first on libmri.a",
+   NULL
+ } ,
+
+ {   6,  Aug, 2016, RCR, "afni-general", MICRO, TYPE_BUG_FIX,
+   "mri_read_ascii: check comment_buffer before strdup",
+   NULL
+ } ,
+
+ {   5,  Aug, 2016, RCR, "uber_subject.py", MICRO, TYPE_MODIFY,
+   "make -help_install more current",
+   NULL
+ } ,
+
+ {   5,  Aug, 2016, RCR, "timing_tool.py", MINOR, TYPE_NEW_OPT,
+   "add -marry_AM",
+   "Added for J Wiggins."
+ } ,
+
+ {   1,  Aug, 2016, RCR, "afni_system_check.py", MINOR, TYPE_ENHANCE,
+   "do more hunting and reporting on libgomp and libglib",
+   NULL
+ } ,
+
+ {  25,  Jul, 2016, RCR, "3dDeconvolve", MICRO, TYPE_BUG_FIX,
+   "fixed attaching lone '-' to following label",
+   "No NI_malloc might lead to crash, and the '-' was overwritten."
+ } ,
+
+ {  23,  Jul, 2016, RCR, "afni_proc.py", MICRO, TYPE_ENHANCE,
+   "if empty regressor, check for -GOFORIT (only suggest if not found)",
+   NULL
+ } ,
+
+ {  14,  Jul, 2016, RCR, "afni-general", MICRO, TYPE_BUG_FIX,
+   "THD_open_tcat: print error and return NULL on bad wildcard match",
+   NULL
+ } ,
+
  {  8,  Jul, 2016, RCR, "Dimon", MINOR, TYPE_NEW_OPT,
    "add -read_all, in case it is useful for sorting (e.g. -order_as_zt)",
    "Added for K Vishwanath."
@@ -196,7 +384,7 @@ afni_history_struct rickr_history[] = {
    "Thanks to S Torrisi for bringing up the question."
  } ,
 
- { 28,  Apr, 2016, RCR, "@update.afni_binaries", MINOR, TYPE_NEW_OPT,
+ { 28,  Apr, 2016, RCR, "@update.afni.binaries", MINOR, TYPE_NEW_OPT,
    "add -local_package, to use an already downloaded package",
    "Requested by P Taylor."
  } ,

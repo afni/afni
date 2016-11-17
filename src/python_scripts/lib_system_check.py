@@ -30,6 +30,7 @@ class SysInfo:
       self.os_dist         = ''
       self.rc_file         = ''
       self.comments        = [] # comments to print at the end
+      self.afni_fails      = 0
 
       self.repo_prog       = '' # e.g. yum or brew
       self.have_pyqt4      = 0
@@ -360,8 +361,11 @@ class SysInfo:
          else:
             self.comments.append('consider installing PyQt4')
 
+      self.check_for_pre_11_dylib()
+
       # in 10.11, check for gcc under homebrew
-      self.check_for_10_11_gomp()
+      self.check_for_10_11_lib('libgomp.1.dylib', wpath='gcc/*/lib/gcc/*')
+      self.check_for_10_11_lib('libglib-2.0.dylib', wpath='glib/*/lib')
 
    def hunt_for_homebrew(self):
       """assuming it was not found, just look for the file"""
@@ -377,33 +381,115 @@ class SysInfo:
 
       return 0
             
-   def check_for_10_11_gomp(self):
-      """in 10.11, check for openmp/gcc under homebrew
+   def check_for_pre_11_dylib(self):
+      """in 10.X where 7 <= X <= 10, DYLD_FALLBACK_LIBRARY_PATH
+         might be needed (unless homebrew is installed and 10.10?)
+
+         - if AFNI prog failures and if not set:
+            suggest setting to abin
+            (comment if homebrew is installed)
+      """
+
+      # if 0 or 1 AFNI failures, we are gone
+      if self.afni_fails < 2: return
+            
+      # this check only applis to OS X 10.7 through 10.10 (and if that)
+      osver = self.get_osx_ver()
+      if osver < 7 or osver > 10:
+         return
+
+      # count AFNI dylib files
+      dfiles = glob.glob('%s/*.dylib' % self.afni_dir)
+      nadylib = len(dfiles)
+
+      # if set, check if any dylibs exist
+      fvar = 'DYLD_FALLBACK_LIBRARY_PATH'
+      if not os.environ.has_key(fvar):
+         print '** AFNI program failures and DYLD_FALLBACK_LIBRARY_PATH not set'
+         if nadylib > 0:
+            self.comments.append('consider setting DYLD_FALLBACK_LIBRARY_PATH'\
+                                 ' to abin, e.g.\n   '                        \
+                                 'setenv DYLD_FALLBACK_LIBRARY_PATH %s'       \
+                                 % self.afni_dir)
+         else:
+            self.comments.append('DYLD_FALLBACK_LIBRARY_PATH not set and no'  \
+                                 ' abin/*.dylib')
+      else:
+         fdir = os.environ[fvar]
+         # count FALLBACK dylib files
+         dfiles = glob.glob('%s/*.dylib' % fdir)
+         nfdylib = len(dfiles)
+         if nfdylib == 0:
+            print '** no dylib files under %s directory' % fvar
+         if fvar != self.afni_dir and nadylib > 0:
+            self.comments.append('consider changing DYLD_FALLBACK_LIBRARY_PATH'\
+                                 ' to abin, e.g.\n   '                        \
+                                 'setenv DYLD_FALLBACK_LIBRARY_PATH %s'       \
+                                 % self.afni_dir)
+         elif fvar != self.afni_dir:
+            self.comments.append('not sure about DYLD_FALLBACK_LIBRARY_PATH')
+
+
+   def check_for_10_11_lib(self, libname, wpath='gcc/*/lib/gcc/*'):
+      """in 10.11, check for library under homebrew
+
+         wpath = wildcard path to library name
 
          return 0 if no issue was detected
       """
-      if self.get_osx_ver() < 11:  return 0
-      if self.repo_prog != 'brew': return 0
-      if self.ok_openmp:           return 0
+      # if no homebrew, do not bother
+      if self.repo_prog != 'brew':
+         return 0
 
-      clibs = glob.glob('/usr/local/Cellar/gcc/*/lib/gcc/*/libgomp.*dylib')
-      # first check for nothing found
+      # require 10.11, unless being verbose
+      if self.get_osx_ver() < 11 and self.verb <= 1:
+         return 0
+
+      sname   = wpath.split('/')[0]    # short name, e.g. gcc
+      libdir  = '/usr/local/lib'
+      libpath = '%s/%s' % (libdir, libname)
+
+      croot = '/usr/local/Cellar'
+      clibs = glob.glob('%s/%s/%s' % (croot, wpath, libname))
+      clibs.sort(reverse=True)
+      # first check for any homebrew gomp libraries, at all
       if len(clibs) == 0:
-         self.comments.append('consider installing gcc under homebrew')
+         self.comments.append('consider installing %s under homebrew'%sname)
          return 1
 
-      # then check for a link under /usr/local/lib
-      llibs = glob.glob('/usr/local/lib/libgomp.*.dylib')
-      if len(llibs) == 0:
-         self.comments.append('consider linking %s under /usr/local/lib'\
-                              % clibs[0])
+      # if the library exists (as link or file), we are good to go
+      if os.path.exists(libpath):
+         if os.path.islink(libpath):
+	    lname = os.readlink(libpath)
+            print '++ found valid link %s\n   to %s' % (libpath, lname)
+         else:
+            print '++ found existent library %s' % libpath
+         return 0
+
+      # ** does not exist: so either no link or a bad one **
+
+      # if no link, suggest making one
+      if not os.path.islink(libpath):
+         self.comments.append('consider linking %s under %s'%(clibs[0],libdir))
          return 1
 
-      return 0
+      # huston, we have a bad link, say something useful
+      print '** bad link %s, probably to old version' % libpath
+      print '   --> points to missing %s' % os.readlink(libpath)
+      print '   --> consider instead: %s' % clibs[0]
+      print '   for example:\n' \
+            '       rm -f %s\n' \
+            '       ln -s %s %s' % (libpath, clibs[0], libpath)
+      self.comments.append('consider fixing link %s \n   to point to %s'\
+                           %(libpath,clibs[0]))
+
+      return 1
 
    def get_osx_ver(self):
       if self.system != "Darwin": return 0
-      verlist = self.os_dist.split('.')
+      verlist = self.os_dist.split()
+      if len(verlist) < 1: return 0
+      verlist = verlist[0].split('.')
       if len(verlist) < 2: return 0
       if verlist[0] != '10': return 0
       try: vint = int(verlist[1])
@@ -498,7 +584,7 @@ class SysInfo:
       check_list = ['afni', 'AFNI_version.txt', 'python', 'R', 'tcsh']
       nfound = self.check_for_progs(check_list, show_missing=1)
       if nfound < len(check_list):
-         self.comments.append('missing main software component')
+         self.comments.append('failure under initial "AFNI and related program tests"')
 
       # make generic but pretty
       print "instances of various programs found in PATH:"
@@ -540,7 +626,9 @@ class SysInfo:
             if prog == '3dAllineate': self.ok_openmp = 1
       print
       pfailure = fcount == len(proglist)
-      if fcount > 0: self.comments.append('AFNI programs show FAILURE')
+      if fcount > 0:
+         self.afni_fails = fcount
+         self.comments.append('AFNI programs show FAILURE')
 
       # if complete failure, retry from exec dir
       ascdir = UTIL.executable_dir()

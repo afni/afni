@@ -151,6 +151,14 @@ class OptionList:
         if opt_is_no(opt): return 1
         return 0
 
+    def opt_has_arg(self, opt_name=None, opt=None, arg=''):
+        """is the given argument in opt.parlist
+           (if opt is passed, we don't need to find it)"""
+
+        if opt == None: opt = self.find_opt(opt_name)
+        if not opt or not opt.parlist or len(opt.parlist) < 1: return 0
+        return arg in opt.parlist
+
     def count_opt(self, name):
         """return number of comopts where name=name"""
         count = 0
@@ -264,6 +272,40 @@ class OptionList:
         elif verb > 1: print '-- have %s list %s' % (opt_name, tlist)
 
         return tlist, 0        # return the list
+
+    def replace_opt(self, opt_name, vals):
+        """replace the parlist from the first instace of opt_name with vals
+           if not found, add a new option
+        """
+
+        opt = self.find_opt(opt_name)
+        if not opt:
+           setpar = len(vals)
+           self.add_opt(opt_name, len(vals), deflist=vals, setpar=setpar)
+           return
+
+        # make a copy, to be safe
+        if len(vals) == 0: opt.parlist = []
+        else:              opt.parlist = vals[:]
+
+        return
+
+    def append_to_opt(self, opt_name, vals):
+        """append the vals to parlist from the first instace of opt_name
+           if not found, add a new option
+        """
+
+        opt = self.find_opt(opt_name)
+        if not opt:
+           setpar = len(vals)
+           self.add_opt(opt_name, len(vals), deflist=vals, setpar=setpar)
+           return
+
+        # make a copy, to be safe
+        if len(vals) == 0: opt.parlist = vals[:]
+        else:              opt.parlist.extend(vals)
+
+        return
 
     # rcr - improve this garbage
     def check_special_opts(self, argv):

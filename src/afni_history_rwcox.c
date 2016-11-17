@@ -44,6 +44,124 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 7 , NOV , 2016 , RWC , "3dTfilter" , MINOR , TYPE_NEW_PROG ,
+   "Platform for generic filtering of time series" ,
+   "Right now, just for adaptive local mean filtering (generalized smoothing\n"
+   "plus despiking)." } ,
+
+ { 4 , NOV , 2016 , RWC , "afni InstaCorr" , MINOR , TYPE_ENHANCE ,
+   "Two small changes" ,
+   "(1) Extend the range of the bandpass to allow up to 10Hz (formerly only\n"
+   "up to 1Hz).  10Hz = Nyquist frequency for TR=0.05s, which is pretty fast\n"
+   "for MRI -- but doable for single slice imaging.\n"
+   "(2) Add a #PC option, to compute principal components to use as global\n"
+   "orts." } ,
+
+ { 3 , NOV , 2016 , RWC , "afni GUI" , MICRO , TYPE_ENHANCE ,
+   "Experiment with logging duration of use (only for me for now)" ,
+   NULL } ,
+
+ { 3 , NOV , 2016 , RWC , "afni GUI" , MICRO , TYPE_BUG_FIX ,
+   "Single slice dataset InstaCorr failed" ,
+   "Due to the 'roundtrip' index calculation giving a value outside the\n"
+   "dataset.  This is now prevented." } ,
+
+ { 2 , NOV , 2016 , RWC , "3dTproject" , MICRO , TYPE_MODIFY ,
+   "Add warning message if DOF is less than 20" ,
+   NULL } ,
+
+ { 20 , OCT , 2016 , RWC , "afni GUI" , MICRO , TYPE_MODIFY ,
+   "Don't get 'vedit' volume for threshold slice when OLay==Thr brick" ,
+   "When Clusterize is on, the steps are\n"
+   "1) create a new overlay volume that is 'edited' -- set to zero where Thr\n"
+   "is too small or cluster was too small -- this is on the OLay grid\n"
+   "2) colorization fetches 2D slices from OLay and Thr sub-bricks for\n"
+   "viewing, interpolated to the ULay grid, then processes them for display\n"
+   "(threshold+coloring)\n"
+   "But when OLay==Thr, and anything but NN interpolation is used at step 2,\n"
+   "then the visible shape of the clusters can change due to the\n"
+   "interpolation of the Thr slice after its volume was edited.  To avoid\n"
+   "this, volume editing is now skipped when extracting the threshold slice\n"
+   "in step 2.\n"
+   "This artifact occurs because of the 'warp-on-demand' feature in AFNI,\n"
+   "which allows the display of overlays whose grid does not match the\n"
+   "underlay grid, combined with the nonlinear operations of thresholding\n"
+   "and clusterizing.  Since DRG brought this to my attention, he has to\n"
+   "bring the cookies to the next group meeting." } ,
+
+ { 13 , OCT , 2016 , RWC , "3dttest++" , MINOR , TYPE_BUG_FIX ,
+   "Fix -BminusA bug" ,
+   "double sign reversal == no sign reversal == not good for anyone" } ,
+
+ { 30 , SEP , 2016 , RWC , "AFNI plugins" , MAJOR , TYPE_GENERAL ,
+   "A long list of little-used plugins has been disabled." ,
+   "They can all be re-enabled by setting environment variable\n"
+   "AFNI_ALLOW_ALL_PLUGINS to YES.\n"
+   "Or each one can be individually re-enabled by setting environment\n"
+   "variable AFNI_ALLOW_somename_PLUGIN to YES, where the list of such\n"
+   "plugins can be found in file README.environment." } ,
+
+ { 30 , SEP , 2016 , RWC , "AFNI GUI" , MICRO , TYPE_ENHANCE ,
+   "Let user specify length of adaptive mean Tran 1D function" ,
+   "Through environment variable AFNI_AdptMeanWidth" } ,
+
+ { 29 , SEP , 2016 , RWC , "afni GUI" , MICRO , TYPE_MODIFY ,
+   "New 1D transform = AdptMean19 = 19 point adaptive local mean" ,
+   NULL } ,
+
+ { 29 , SEP , 2016 , RWC , "3dDespike" , MINOR , TYPE_NEW_OPT ,
+   "-NEW25 is a slightly more agressive approach" ,
+   "(a) uses 25 point running median instead of 9 for pre-filtering\n"
+   "(b) sets cut2=3.2 (4 MADs) instead of 4.0 (5 MADs)" } ,
+
+ { 30 , AUG , 2016 , RWC , "3dtoXdataset" , MINOR , TYPE_NEW_PROG ,
+   "Convert 3D datasets to a list of in-mask shorts" ,
+   "Purpose = compression for use in 3dClustSimX simulations.  The '.sdat'\n"
+   "format is now directly write-able from 3dttest++, so this program is\n"
+   "probably not generally useful." } ,
+
+ { 30 , AUG , 2016 , RWC , "3dClustSimX" , SUPER , TYPE_NEW_PROG ,
+   "Generalized cluster simulation" ,
+   "Hopefully, the new way forward.  Not ready for general users yet, but\n"
+   "getting there." } ,
+
+ { 9 , AUG , 2016 , RWC , "3dAllineate" , MICRO , TYPE_ENHANCE ,
+   "Allow IDENTITY to specify the identity matrix for transformations" ,
+   "In options -1Dparam_apply and -1Dmatrix_apply -- to make resampling\n"
+   "simpler for the hopeless users out there" } ,
+
+ { 9 , AUG , 2016 , RWC , "afni GUI" , MICRO , TYPE_MODIFY ,
+   "If A controller pops up with a negative x or y, move it" ,
+   "This is an attempt to overcome some peculiar bug in XQuartz on El\n"
+   "Capitan, where the A controller pops up, then disappears to a negative x\n"
+   "location (off screen)." } ,
+
+ { 4 , AUG , 2016 , RWC , "afni GUI" , MICRO , TYPE_GENERAL ,
+   "Changes to keep controller height from expanding on Linux" ,
+   "Of course, being on a Mac, I can't actually test this change." } ,
+
+ { 4 , AUG , 2016 , RWC , "1dsum" , MICRO , TYPE_ENHANCE ,
+   "Save # header lines from mri_read_1D; echo back in 1dsum output" ,
+   "For use in combining 3dClustSim outputs, for example." } ,
+
+ { 22 , JUL , 2016 , RWC , "3dttest++" , MICRO , TYPE_MODIFY ,
+   "New -nocov option for used with -Clustsim" ,
+   "To avoid writing out the -covariates sub-bricks in the -Clustsim\n"
+   "operation.  Not clear that it is useful otherwise." } ,
+
+ { 21 , JUL , 2016 , RWC , "3dttest++" , MICRO , TYPE_MODIFY ,
+   "if -clustsim, check for non-3D datasets (e.g., surfaces)" ,
+   NULL } ,
+
+ { 20 , JUL , 2016 , RWC , "3dttest++" , MICRO , TYPE_NEW_OPT ,
+   "-tempdir for -Clustsim" ,
+   NULL } ,
+
+ { 14 , JUL , 2016 , RWC , "3dttest++" , MICRO , TYPE_BUG_FIX ,
+   "Fix problem with -resid combined with -clustsim" ,
+   "Program assumed prefix_resid was NIFTI format,"
+   "so just add '.nii' if it does have that already." } ,
+
  { 8 , JUL , 2016 , RWC , "3dttest++" , MAJOR , TYPE_ENHANCE ,
    "Extend -clustsim option" ,
    "Covariates and centering\n"

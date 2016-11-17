@@ -98,6 +98,15 @@ typedef struct {
      memcpy((dd)->mag,(cc)->mag,sizeof(float)*nn);       \
  } while(0)
 
+#define DUMP_CLUSTER(cc)                             \
+ do{ int cii;                                        \
+  printf("# points in cluster = %d\n",(cc)->num_pt); \
+  printf("     i   j   k  - mag\n");                 \
+  for(cii=0;cii<(cc)->num_pt;cii++)                  \
+      printf("    %d %d %d  - %f\n",                 \
+       (cc)->i[cii], (cc)->j[cii], (cc)->k[cii], (cc)->mag[cii]); \
+ } while(0)
+
 /*! Add point (ii,jj,kk) with magnitude mm to a MCW_cluster. */
 
 #define ADDTO_CLUSTER(cc,ii,jj,kk,m)                                        \

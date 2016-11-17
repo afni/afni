@@ -168,8 +168,8 @@ void usage_NetCorr(int detail)
 "                      have been Fisher transformed to Z-scores the relation:\n"
 "                      Z=atanh(r). \n"
 "                      To avoid infinities in the transform, Pearson values \n"
-"                      are effectively capped at r=0.9999999999999999 (where\n"
-"                      Z~18.71;  hope that's good enough).\n"
+"                      are effectively capped at |r| = 0.999329 (where\n"
+"                      |Z| = 4.0;  hope that's good enough).\n"
 "                      Files are labelled WB_Z_ROI_001+orig, etc.\n"
 "    -nifti           :output any correlation map files as NIFTI files\n"
 "                      (default is BRIK/HEAD). Only useful if using\n"
@@ -828,13 +828,19 @@ int main(int argc, char *argv[]) {
          fprintf(fout1,"# %s\n", "FZ");
          for( i=0 ; i<NROI_REF[k] ; i++ ) {
             for( j=0 ; j<NROI_REF[k]-1 ; j++ ) {// b/c we put '\n' after last
-               fprintf(fout1,"%12.4f\t",FisherZ(Corr_Matr[k][i][j]));
+               fprintf(fout1,"%12.4f\t",BOBatanhf(Corr_Matr[k][i][j]));
                flat_matr[k][FM_ctr][i*NROI_REF[k]+j] = 
-                  FisherZ(Corr_Matr[k][i][j]);
+                  BOBatanhf(Corr_Matr[k][i][j]);            
+               /* fprintf(fout1,"%12.4f\t",FisherZ(Corr_Matr[k][i][j]));
+               flat_matr[k][FM_ctr][i*NROI_REF[k]+j] = 
+               FisherZ(Corr_Matr[k][i][j]);*/
             }
-            fprintf(fout1,"%12.4f\n",FisherZ(Corr_Matr[k][i][j]));
+            fprintf(fout1,"%12.4f\n",BOBatanhf(Corr_Matr[k][i][j]));
             flat_matr[k][FM_ctr][i*NROI_REF[k]+j] = 
-               FisherZ(Corr_Matr[k][i][j]);
+               BOBatanhf(Corr_Matr[k][i][j]);
+            /*fprintf(fout1,"%12.4f\n",FisherZ(Corr_Matr[k][i][j]));
+            flat_matr[k][FM_ctr][i*NROI_REF[k]+j] = 
+               FisherZ(Corr_Matr[k][i][j]);*/
          }
       }
     
