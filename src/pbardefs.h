@@ -780,7 +780,11 @@ static char RedBlueGreen_CMD[] = {
 };
 
 /***--------------------------------------------------------------***/
-/*** these are from the Viridis colormaps -- 17 Nov 2016 -- RWCox ***/
+/*** These are from the Viridis colormaps -- 17 Nov 2016 -- RWCox ***/
+
+/*** The colors are defined as RGB triples of floats, unlike the  ***/
+/*** ones above, where the colors are defined as byte #triples.   ***/
+/*** See pbar.c for how these arrays are loading into AFNI's GUI. ***/
 
 #define      magma_num 256
 static char *magma_name = "Magma" ;
