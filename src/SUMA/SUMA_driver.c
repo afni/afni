@@ -1,4 +1,6 @@
 #include "SUMA_suma.h"
+static int SUMA_drive_set_outstream(char *outfile);
+static FILE *SUMA_drive_get_outstream(void);
 
 static char uDS_show_surf[]={
                "        CreateIcosahedron -rd 4\n"
@@ -81,6 +83,8 @@ static char uDS_kill_suma[]={
                "       DriveSuma -com kill_suma\n"
 };
 
+static FILE *sumaout = NULL;             /* no default output stream */
+
 void usage_DriveSuma (SUMA_GENERIC_ARGV_PARSE *ps, int detail)
 {
       static char FuncName[]={"usage_DriveSuma"};
@@ -152,14 +156,16 @@ void usage_DriveSuma (SUMA_GENERIC_ARGV_PARSE *ps, int detail)
 "        and would prefer to get them directly from a surface,\n"
 "        you can substitute -xyz_1D COORDS.1D with any valid suma \n"
 "        surface input option. For example, if you want to send\n"
-"        the coords of surface surf.gii, you can just use -i surf.gii , in\n"
-"        lieu of -node_xyz COORDS.1D\n"
+"        the coords of surface surf.gii, you can just use -i surf.gii,\n"
+"        in lieu of -node_xyz COORDS.1D\n"
 "     + Example node_xyz (needs surface from 'Example show_surf')\n"
 "        1- Create some variation on the coords of the surface\n"
 "        2- Send new coordinates to SUMA\n"
 "        3- Manipulate the x coordinate now\n"
 "        4- Send new coordinates again to SUMA\n"
 "        -------------------------------------\n"
+" o get_label: have current label associated with current node printed\n"
+" o set_outplug filename: redirect output to file instead of stdout\n"
 "%s"
 "\n"
 " o viewer_cont: Apply settings to viewer or viewer controller\n"
@@ -631,7 +637,32 @@ int SUMA_ProcessCommand(char *com, SUMA_COMM_STRUCT *cs, char *EchoNel)
       }
       if (EchoNel) NEL_WRITE_TX(ngr, EchoNel, suc);
       NI_free_element(ngr); ngr = NULL;
-   } else if (strcmp((act), "sleep") == 0) {
+   } else if (strcmp((act), "set_outplug") == 0) {
+      char **argt=NULL;
+      char *outplug=NULL;
+      int argtc = 0;
+
+      /* change com to a bunch of arguments */
+      argt = SUMA_com2argv(com, &argtc); 
+
+      if (argtc != 2) {
+         SUMA_S_Errv("Expecting one value after sleep, have %d\n%s\n", 
+                        argtc-1, argt[1]);
+         ans = NOPE;
+      }
+      outplug = argt[1];
+      SUMA_drive_set_outstream(outplug);
+   } else if (strcmp((act), "get_label") == 0) {
+      if (!(ngr = SUMA_ComToNgr(com, act))) {
+         SUMA_S_Err("Failed to process command."); SUMA_RETURN(NOPE); 
+      }
+      SUMA_LH("Sending get_label to suma");
+      if (!SUMA_SendToSuma (SO, cs, (void *)ngr,SUMA_ENGINE_INSTRUCTION, 1)){
+         SUMA_SL_Warn("Failed in SUMA_SendToSuma\nCommunication halted.");
+      }
+      if (EchoNel) NEL_WRITE_TX(ngr, EchoNel, suc);      
+      NI_free_element(ngr); ngr = NULL;
+  } else if (strcmp((act), "sleep") == 0) {
       double slp;
       char **argt=NULL;
       int argtc = 0;
@@ -714,7 +745,7 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_DriveSuma_ParseInput(
    Opt->s = NULL;
    kar = 1;
    brk = NOPE;
-	while (kar < argc) { /* loop accross command ine options */
+	while (kar < argc) { /* loop across command line options */
 		SUMA_LH("Parsing command line at %d/%d: %s...\n", kar, argc, argv[kar]);
 		if (ps) {
          if (strcmp(argv[kar], "-h") == 0 || strcmp(argv[kar], "-help") == 0) {
@@ -736,7 +767,7 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_DriveSuma_ParseInput(
       if (strcmp(argv[kar], "-echo_nel") == 0) {
          if (kar+1 >= argc)
          {
-            fprintf (SUMA_STDERR, "need a paramter after -echo_nel \n");
+            fprintf (SUMA_STDERR, "need a parameter after -echo_nel \n");
             exit (1);
          }
          ++kar;
@@ -2977,4 +3008,58 @@ NI_group *SUMA_ComToNgr(char *com, char *command)
 
    SUMA_RETURN(ngr);
 }
+
+/* get the output file for plugout info */
+static FILE *
+SUMA_drive_get_outstream()
+{
+   char *suma_outfile;
+
+   /* first time in set the output stream to stdout or environment variable */
+   if(sumaout==NULL){
+      /* get from environment variable if set */
+      suma_outfile = my_getenv("SUMA_OUTPLUG");
+      if(suma_outfile!=NULL) {
+         SUMA_drive_set_outstream(suma_outfile);
+      }
+   }
+
+   /* if still NULL output stream, set to default of stdout */
+   if(sumaout==NULL) sumaout = stdout;
+
+   return(sumaout);
+}
+
+/* set the output stream to a file rather than stdout*/
+static int
+SUMA_drive_set_outstream(char *outfile)
+{
+   /* if just passed a NULL, reset output to stdout */
+   if(outfile==NULL){
+      sumaout = stdout;
+      return(-1);
+   }
+
+   /* check if resetting to stdout by string from plugout command */
+   if(strcmp(outfile, "stdout")==0) {
+      sumaout = stdout;
+      return 0;
+   }
+
+    /* make sure this file name is a good one, and open it for append */
+   if( THD_filename_ok(outfile) )
+      sumaout = fopen(outfile, "a");
+
+   /* something went wrong, so tell user and reset to stdout */
+   if(sumaout==NULL){
+      fprintf(stderr, "**** couldn't open outfile, resetting to stdout\n");
+      sumaout = stdout;
+      return(-1);
+   }
+   else {
+    return 0;
+   }
+}
+
+
 

@@ -12178,7 +12178,6 @@ char *SUMA_GetLabelsAtSelection_ADO(SUMA_ALL_DO *ado, int node, int sec)
    char **sar=NULL, stmp[64]={""};
    char *seps[3]={"I=", " T=", " B="};
    SUMA_Boolean LocalHead = NOPE;
-
    SUMA_ENTRY;
    
    if (!ado) SUMA_RETURN(NULL);
