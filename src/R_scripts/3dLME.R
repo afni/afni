@@ -25,7 +25,7 @@ help.LME.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
           ================== Welcome to 3dLME ==================          
     AFNI Group Analysis Program with Multi-Variate Modeling Approach
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 1.8.2, OCt 26, 2016
+Version 1.9.0, Nov 17, 2016
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - https://afni.nimh.nih.gov/sscc/gangc/lme.html
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -364,6 +364,15 @@ read.LME.opts.batch <- function (args=NULL, verb = 0) {
              sep = '\n'
                      ) ),
 
+            '-ICCb' = apl(n=0, d=3, h = paste(
+   "-ICCb: This option allows 3dLME to compute voxel-wise intra-class correlation",
+   "         through a Bayesian approach with Gamma priors for the variables",
+   "         specified through option -ranEff. The computation will take much",
+   "         longer due the sophistication involved. However, the Bayesian method is",
+   "         preferred to the old approach with -ICC for the typical FMRI data.\n ",
+             sep = '\n'
+                     ) ),
+       
      '-LOGIT' = apl(n=0, d=3, h = paste(
    "-LOGIT: This option allows 3dLME to perform voxel-wise logistic modeling.",
    "        Currently no random effects are allowed ('-ranEff NA'), but this",
@@ -513,6 +522,7 @@ read.LME.opts.batch <- function (args=NULL, verb = 0) {
       lop$corStr <- NA
       lop$SS_type <- 3
       lop$ICC     <- FALSE
+      lop$ICCb     <- FALSE
       lop$LOGIT   <- FALSE
       lop$num_glt <- 0
       lop$gltLabel <- NULL
@@ -545,6 +555,7 @@ read.LME.opts.batch <- function (args=NULL, verb = 0) {
              corStr  = lop$corStr <- ops[[i]],
              SS_type = lop$SS_type <- ops[[i]],
              ICC     = lop$ICC     <- TRUE,
+             ICCb    = lop$ICCb    <- TRUE,
              LOGIT   = lop$LOGIT   <- TRUE,
              num_glt = lop$num_glt <- ops[[i]],
              gltLabel = lop$gltLabel <- ops[[i]],
@@ -958,6 +969,22 @@ runREML <- function(myData, fm, nBrk, tag) {
    return(myStat)
 }
 
+# Bayesian for ICC with gamma priors
+runREMLb <- function(myData, ModelForm, dataframe, nBrk, tag) {
+   #browser()
+   myStat<-vector(mode="numeric", length= nBrk)
+   if(!all(myData == 0)) {     
+      dataframe$Beta<-myData
+      try(fmAOV<-blmer(ModelForm, data=dataframe, cov.prior=gamma), tag<-1)   
+      if(tag != 1) {    
+         for(ii in 1:(nBrk-1)) myStat[ii] <- VarCorr(fmAOV)[[ii]][1]  # factor variances
+         myStat[nBrk] <- attr(VarCorr(fmAOV), "sc")^2  # residual variance
+         myStat <- myStat/sum(myStat)
+      }
+   }
+   return(myStat)
+}
+
 assVV <- function(DF, vQV, value, c) {
       # centering - c: center; value: voxel-wise value; vQV: voxel-wise variable name; DF: dataframe
       if(is.na(c)) cvalue <- scale(value, center=TRUE, scale=F) else
@@ -1237,7 +1264,7 @@ lop$gltCode <- lapply(lop$gltCode, function(ss) unlist(strsplit(ss, split="(?=:)
 
 if(!is.na(lop$qVarCenters)) lop$qVarCenters <- as.numeric(strsplit(as.character(lop$qVarCenters), '\\,')[[1]])
 
-if(lop$ICC) pkgLoad('lme4') else if(lop$LOGIT) pkgLoad('ROCR') else pkgLoad(c('nlme', 'phia'))
+if(lop$ICC) pkgLoad('lme4') else if(lop$LOGIT) pkgLoad('ROCR') else if(lop$ICCb) pkgLoad('blme') else pkgLoad(c('nlme', 'phia'))
 # effect coding leads to the same type III as SAS   
 options(contrasts = c("contr.sum", "contr.poly"))
    
@@ -1276,7 +1303,7 @@ for(ii in 2:(dim(lop$dataStr)[2]-1)) if(class(lop$dataStr[,ii]) == 'factor')
 cat(lop$num_glt, 'post hoc tests\n')
 
 cat('\nContingency tables of subject distributions among the categorical variables:\n\n')
-if(lop$ICC) showTab <- as.formula(paste('~', gsub("\\*", "+", lop$ranEff))) else {
+if(lop$ICC | lop$ICCb) showTab <- as.formula(paste('~', gsub("\\*", "+", lop$ranEff))) else {
    showTab <- as.formula(paste('~', gsub("\\:", "+", gsub("\\*", "+", lop$model))))
    if(!is.na(lop$qVars)) for(ii in rev(levels(ordered(lop$QV)))) # reversing the oder of those quantitative covariates so that
       showTab <- gsub(paste('\\*', ii, sep=''), '', gsub(paste('\\+', ii, sep=''), '', showTab))
@@ -1285,7 +1312,7 @@ if(lop$ICC) showTab <- as.formula(paste('~', gsub("\\*", "+", lop$ranEff))) else
 }
 #print(xtabs(showTab, data=lop$dataStr))                                           
 
-if(!lop$ICC) {
+if(!lop$ICC | lop$ICCb) {
    cat('\nTabulation of subjects against all categorical variables')
    all_vars <- names(lop$dataStr)
    for(var in all_vars[-c(1, length(all_vars))]) if(!(var %in% lop$QV)) {
@@ -1421,7 +1448,36 @@ if(lop$ICC) {  # ICC part
       }
    }
    lop$NoBrick <- nRanEff+1
-} else if(lop$LOGIT) {  # logistic regression part
+} else if(lop$ICCb) {  # Bayesian ICC
+   lop$ranEff <- unlist(strsplit(lop$ranEff, split="[+]"))
+   nRanEff <- length(lop$ranEff)
+   for(nn in 1:nRanEff) ModelForm <- paste(ModelForm,"+(1|",lop$ranEff[nn],")")
+   ModelForm <- as.formula(ModelForm)
+   while(is.null(fm)) {
+      fm<-NULL
+      lop$dataStr$Beta<-inData[ii, jj, kk,]
+      options(warn=-1)
+      try(fm <- blmer(ModelForm, data=lop$dataStr), silent=TRUE)
+      if(!is.null(fm))  {
+         print(sprintf("Great, test run passed at voxel (%i, %i, %i)!", ii, jj, kk))
+      } else if(ii<dimx) ii<-ii+1 else if(jj<dimy) {ii<-xinit; jj <- jj+1} else if(kk<dimz) {
+         ii<-xinit; jj <- yinit; kk <- kk+1 } else {
+         cat('~~~~~~~~~~~~~~~~~~~ Model test failed  ~~~~~~~~~~~~~~~~~~~\n')    
+         cat('Possible reasons:\n\n')
+         cat('0) Make sure that R package lme4 has been installed. See the 3dLME\n')
+         cat('help documentation for more details.\n\n')
+         cat('1) Inappropriate model specification with options -model, or -qVars.\n\n')
+         cat('2) In correct specifications for random effect with -ranEff.\n\n')
+         cat('3) Mistakes in data table. Check the data structure shown above, and verify\n')
+         cat('whether there are any inconsistencies.\n\n')
+         cat('4) Inconsistent variable names which are case sensitive. For example, factor\n')
+         cat('named Scanner in model specification and then listed as scanner in the table hader\n')
+         cat('would cause grief for 3dLME.\n')
+         errex.AFNI("Quitting due to model test failure...")
+      }
+   }
+   lop$NoBrick <- nRanEff+1
+} else if(lop$LOGIT) {  # logistic regression part    
       fm <- NULL
       lop$dataStr$InputFile <- as.numeric(lop$dataStr$InputFile)
       lop$dataStr$Beta <- lop$dataStr$InputFile
@@ -1548,6 +1604,31 @@ if(lop$ICC) {  # ICC part
    outLabel <- append(names(VarCorr(fm)), "Residual")
    statsym <- NULL
    for(ii in 1:lop$NoBrick) statsym <- c(statsym, list(list(sb=ii-1,typ="fim")))
+} else if(lop$ICCb) {  # Bayesian ICC
+
+   if(dimy==1 & dimz==1) Stat <- array(0, dim=c(dimx, lop$NoBrick)) else
+   Stat <- array(0, dim=c(dimx, dimy, dimz, lop$NoBrick))
+   if (lop$nNodes==1) for (kk in 1:dimz) {
+      # 2/9/2016: for 1D input files. Should do this for other scenarios
+      if(dimy==1 & dimz==1) Stat <- aperm(apply(drop(inData[,,kk,]), 1, runREMLb, ModelForm=ModelForm, dataframe=lop$dataStr, nBrk=lop$NoBrick, tag=0), c(2,1)) else
+      Stat[,,kk,] <- aperm(apply(inData[,,kk,], c(1,2), runREMLb, ModelForm=ModelForm, dataframe=lop$dataStr, nBrk=lop$NoBrick, tag=0), c(2,3,1))
+      cat("Z slice #", kk, "done: ", format(Sys.time(), "%D %H:%M:%OS3"), "\n")
+   }         
+   if (lop$nNodes>1) {
+      pkgLoad('snow')
+      cl <- makeCluster(lop$nNodes, type = "SOCK")
+      clusterEvalQ(cl, library(blme))
+      clusterEvalQ(cl, options(contrasts = c("contr.sum", "contr.poly")))
+      for (kk in 1:dimz) {
+         Stat[,,kk,] <- aperm(parApply(cl, inData[,,kk,], c(1,2), runREMLb, ModelForm=ModelForm, dataframe=lop$dataStr, nBrk=lop$NoBrick, tag=0), c(2,3,1))
+         cat("Z slice #", kk, "done: ", format(Sys.time(), "%D %H:%M:%OS3"), "\n")
+      } 
+      stopCluster(cl)
+   }
+   outLabel <- append(names(VarCorr(fm)), "Residual")
+   statsym <- NULL
+   for(ii in 1:lop$NoBrick) statsym <- c(statsym, list(list(sb=ii-1,typ="fim")))
+    
 } else if(lop$LOGIT) {  # logistic regression: no random effects for now
    Stat <- array(0, dim=c(dimx, dimy, dimz, lop$NoBrick+2*(nlevels(lop$dataStr$Subj) + 1)))
    # the following is for bootstrapping
