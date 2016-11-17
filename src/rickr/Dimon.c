@@ -143,10 +143,12 @@ static char * g_history[] =
     "      - no sorting was incorrectly returning an error\n"
     " 4.15 Jul  7, 2016 [rickr]: add -order_as_zt: convert tz ordering to zt\n"
     " 4.16 Jul  8, 2016 [rickr]: add -read_all: remove limit on images read\n"
+    " 4.17 Nov  8, 2016 [rickr]: maybe override DICOM orient if sorting\n"
+    " 4.18 Nov  9, 2016 [rickr]: add -gert_chan_prefix\n"
     "----------------------------------------------------------------------\n"
 };
 
-#define DIMON_VERSION "version 4.16 (July 8, 2016)"
+#define DIMON_VERSION "version 4.18 (November 9, 2016)"
 
 /*----------------------------------------------------------------------
  * Dimon - monitor real-time aquisition of Dicom or I-files
@@ -2825,6 +2827,16 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
         {
             p->opts.gert_reco = 1;      /* output script at the end */
         }
+        else if ( ! strncmp( argv[ac], "-gert_chan_prefix", 14 ) )
+        {
+            if ( ++ac >= argc )
+            {
+                fputs( "option usage: -gert_chan_prefix PREFIX\n", stderr );
+                return 1;
+            }
+
+            p->opts.chan_prefix = argv[ac];
+        }
         else if ( ! strncmp( argv[ac], "-gert_to3d_prefix", 14 ) )
         {
             if ( ++ac >= argc )
@@ -4275,6 +4287,7 @@ static int idisp_opts_t( char * info, opts_t * opt )
             "   gert_reco          = %d\n"
             "   gert_filename      = %s\n"
             "   gert_prefix        = %s\n"
+            "   chan_prefix        = %s\n"
             "   gert_nz            = %d\n"
             "   gert_format        = %d\n"
             "   gert_exec          = %d\n"
@@ -4312,6 +4325,7 @@ static int idisp_opts_t( char * info, opts_t * opt )
             opt->show_sorted_list, opt->gert_reco,
             CHECK_NULL_STR(opt->gert_filename),
             CHECK_NULL_STR(opt->gert_prefix),
+            CHECK_NULL_STR(opt->chan_prefix),
             opt->gert_nz, opt->gert_format, opt->gert_exec, opt->gert_quiterr,
             opt->dicom_org, opt->sort_num_suff, opt->sort_acq_time,
             opt->order_as_zt, opt->read_all,
@@ -5634,6 +5648,19 @@ printf(
     "      * Caution: this option should only be used when the output\n"
     "        is for a single run.\n"
     "\n"
+    "    -gert_chan_prefix PREFIX : use PREFIX instead of _chan_ in dsets\n"
+    "\n"
+    "        e.g. -gert_chan_prefix _echo_\n"
+    "\n"
+    "        When creating a GERT_Reco script that calls 'to3d' in the case\n"
+    "        of multi-channel (or echo) data, this option overrides the\n"
+    "        _chan_ part of the prefix.\n"
+    "\n"
+    "        Instead of naming the result as in:\n"
+    "            OutBrick_run_003_chan_001+orig.HEAD\n"
+    "        the name would use PREFIX, e.g. _echo_, in place of _chan_:\n"
+    "            OutBrick_run_003_echo_001+orig.HEAD\n"
+    "\n"
     "    -gert_write_as_nifti     : output dataset should be in NIFTI format\n"
     "\n"
     "        By default, datasets created by the GERT_Reco script will be in \n"
@@ -5945,11 +5972,15 @@ static int create_gert_dicom( stats_t * s, param_t * p )
         }
 
         /* if gert_format = 1, write as NIfTI */
-        fprintf(fp, "%*sto3d%s -prefix %s%s%s  \\\n", 
+        fprintf(fp, "%*sto3d%s -prefix %s%s%s%s  \\\n", 
                  indent, "",
                  opts->gert_quiterr==1 ? " -quit_on_err" : "",
                  pname,
-                 opts->num_chan > 1 ? "_chan_$chan" : "",
+                 /* if multi-chan, use either prefix or _chan_, else "" */
+                 opts->num_chan > 1 ? 
+                    opts->chan_prefix ? opts->chan_prefix : "_chan_" 
+                    : "",
+                 opts->num_chan > 1 ? "$chan" : "",
                  opts->gert_format==1 ? ".nii" : "" );
 
         if( s->runs[c].volumes > 1 )
@@ -5968,9 +5999,9 @@ static int create_gert_dicom( stats_t * s, param_t * p )
             fprintf(fp, "%*s     -time:zt %d %d %ssec %s %*s  \\\n",
                     indent, "", nslices, nvols, TR, spat, nspaces, "");
 
-            /* check siemens timing for errors, just to be sure */
+            /* check siemens timing for errors, just to warn user */
             if( !strcmp(spat, "FROM_IMAGE") )
-                valid_g_siemens_times(nslices, tr, 1);
+                valid_g_siemens_times(nslices, tr, 0, 1);
         }
 
         if( opts->use_last_elem )
@@ -6679,10 +6710,28 @@ static int complete_orients_str( vol_t * v, param_t * p )
     }
 
     if ( gD.level > 2 )
-        fprintf(stderr,"completing orients from '%s' to", v->geh.orients);
+        fprintf(stderr,"completing orients from '%s' to ", v->geh.orients);
 
-    if ( IM_IS_DICOM(p->ftype) )
+    /* terminate this in case we print it early */
+    v->geh.orients[6] = '\0';
+
+    if ( IM_IS_DICOM(p->ftype) ) {
+        static int si_report=1;
+        char zo = MRILIB_orients[4];
         strncpy(v->geh.orients + 4, MRILIB_orients + 4, 2 );
+        /* might have to reverse the slice order after sorting */
+        /* inverted images noted by Wenming Luh     8 Nov 2016 */
+        if ( ( v->z_delta < 0 && (zo == 'R' || zo == 'A' || zo == 'I') ) ||
+             ( v->z_delta > 0 && (zo == 'L' || zo == 'P' || zo == 'S') ) ) {
+           v->geh.orients[4] = v->geh.orients[5];
+           v->geh.orients[5] = zo;
+           if( si_report || gD.level > 3 ) {
+              fprintf(stderr,"-- reversing z-orient to '%s'\n",
+                      v->geh.orients+4);
+              si_report = 0;
+           }
+        }
+    }
     else if ( IM_IS_GEMS(p->ftype) )
     {
         kk = p->fim_o[v->fs_1].gex.kk;
@@ -6735,8 +6784,6 @@ static int complete_orients_str( vol_t * v, param_t * p )
             }
         }
     }
-
-    v->geh.orients[6] = '\0';
 
     if ( gD.level > 2 ) fprintf(stderr,"'%s'\n", v->geh.orients);
                                 

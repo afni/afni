@@ -34,9 +34,13 @@ g_history = """
     0.10 21 Aug, 2012: added 'sigma' uvar, for SurfSmooth
     0.11 02 Jun, 2014: changed default niter from 20 to 1000
                        (20 was more of a quick test, but 1000 is appropriate)
+    0.12 19 Aug, 2016:
+        - added uvar surf_mask, to restrict on_surface to surface mask
+        - handle NIFTI surf_vol
+        - append command line to script
 """
 
-g_version = '0.11 (June 2, 2014)'
+g_version = '0.12 (August 19, 2016)'
 
 # ----------------------------------------------------------------------
 # global values to apply as defaults
@@ -70,6 +74,7 @@ g_user_defs.results_dir    = 'clust.results' # where script puts results
 # required inputs
 g_user_defs.spec_file      = ''
 g_user_defs.surf_vol       = ''
+g_user_defs.surf_mask      = ''  # optional when on_surface
 g_user_defs.vol_mask       = ''  # required only if not on_surface
 
 # other inputs
@@ -93,6 +98,7 @@ g_cdef_strs = g_ctrl_defs.copy(as_strings=1)
 g_udef_strs = g_user_defs.copy(as_strings=1)
 
 
+# follow this by creating all-1 dataset, depending on mask
 g_make_empty_surf_str = """
 # ------------------------------
 # make an empty surface dataset (for data on surface and 3dmaskave)
@@ -110,8 +116,6 @@ set empty_surf = empty.gii
 ConvertDset -o_gii -input nodes.1D -prefix $empty_surf   \\
             -add_node_index -pad_to_node $last_node
 
-# make an all-1 surface for 3dmaskave
-3dcalc -a $empty_surf -expr 1 -prefix all_1.gii
 """
 
 # main class definition
@@ -132,7 +136,7 @@ class SurfClust(object):
            errors            --> array of resulting error messages
            warnings          --> array of resulting warning messages
    """
-   def __init__(self, cvars=None, uvars=None):
+   def __init__(self, cvars=None, uvars=None, argv=[]):
 
       # ------------------------------------------------------------
       # variables
@@ -149,6 +153,7 @@ class SurfClust(object):
       self.uvars = g_user_defs.copy()
       self.cvars.merge(cvars, typedef=g_ctrl_defs)
       self.uvars.merge(uvars, typedef=g_user_defs)
+      self.argv = argv
 
       # output variables
       self.rvars = g_res_defs.copy()    # init result vars
@@ -189,7 +194,9 @@ class SurfClust(object):
       """
 
       inputs = [self.uvars.surf_vol, self.uvars.spec_file]
-      if self.cvars.val('on_surface') != 'yes':
+      if self.cvars.val('on_surface') == 'yes':
+         if self.uvars.surf_mask != '': inputs.append(self.uvars.surf_mask)
+      else:
          inputs.append(self.uvars.vol_mask)
 
       # try converting to absolute paths
@@ -217,6 +224,8 @@ class SurfClust(object):
                   '             short surf_vol  = %s\n' \
                   '             short spec_file = %s\n' % (self.LV.top_dir,
                      short_names[0][0], short_names[0][1])
+            if len(short_names[0]) > 2:
+                print '             short surf_mask = %s\n' % short_names[0][2]
 
       # if top_dir isn't long enough, do not bother with it
       if self.LV.top_dir.count('/') < 2:
@@ -260,6 +269,9 @@ class SurfClust(object):
             'echo "finished, consider the command:"\n'          \
             'echo "  quick.alpha.vals.py -niter $titers %s"\n'  \
             'echo ""\n' % zfile
+
+      if len(self.argv) > 0:
+         cmd += '\n%s\n' % UTIL.get_command_str(args=self.argv)
 
       return cmd
 
@@ -433,12 +445,17 @@ class SurfClust(object):
         '# smooth to the given target FWHM\n',
         self.LV.time_str,
         'SurfSmooth -spec $spec_file -surf_A $surfA           \\\n',
-        '           -input %s         \\\n' % inset,
+        '           -input %s         \\\n' % inset ]
+
+      if self.LV.val('smask'):
+         clist.append('           -c_mask "-a $surf_mask -expr a" %10s\\\n'%'')
+
+      clist.extend( [ \
         '           -met HEAT_07 -target_fwhm $blur %s        \\\n' % sigopt,
         '           -blurmaster %s    \\\n' % inset,
         '           -detrend_master                           \\\n',
         '           -output smooth.noise.$iter.gii            \\\n',
-        '           | tee params.surf.smooth.$iter.1D\n\n' ]
+        '           | tee params.surf.smooth.$iter.1D\n\n' ] )
 
       # add current output to optional delete list
       self.LV.rmsets.append('smooth.noise.$iter.gii')
@@ -448,6 +465,10 @@ class SurfClust(object):
    def script_do_3dv2s(self, indent=3):
       istr = ' '*indent
       vv = self.LV.svset.view
+      if vv == '':
+         if isinstance(self.LV.vmset, BASE.afni_name):
+            vv = self.LV.vmset.view
+      if vv == '': vv = '+orig'
 
       clist = [ '# map noise voxels to surface domain\n',
                 self.LV.time_str,
@@ -473,9 +494,13 @@ class SurfClust(object):
       if self.cvars.val('on_surface') == 'yes': domain = 'surface'
       else:                                     domain = 'volume'
 
+      # dummy time series might be -b or -c
+      if self.LV.val('smask'): dumbvar = 'c'
+      else:                    dumbvar = 'b'
+
       dlist = [ '# do not include single TR "time series" in 3dcalc\n',
                 'if ( $itersize > 1 ) then\n',
-                '   set bset = "-b dummy.TRs.$itersize.1D"\n',
+                '   set bset = "-%s dummy.TRs.$itersize.1D"\n' % dumbvar,
                 'else\n',
                 '   set bset = ""\n',
                 'endif\n\n',
@@ -483,8 +508,16 @@ class SurfClust(object):
                 self.LV.time_str]
 
       if self.cvars.val('on_surface') == 'yes':
+         if self.LV.val('smask'):
+            mopt = '-b $surf_mask '
+            eopt = 'b*'
+         else:
+            mopt = ''
+            eopt = ''
+
          clist = [ \
-            '3dcalc -a $empty_surf $bset -expr "gran(0,1)" \\\n',
+            '3dcalc -a $empty_surf $bset %s-expr "%sgran(0,1)" \\\n' \
+            % (mopt, eopt),
             '       -prefix ./surf.noise.$iter.gii -datum float\n\n' ]
          rmset = 'surf.noise.$iter.gii'
       else:
@@ -527,6 +560,13 @@ class SurfClust(object):
 
       # always create an empty surface, and then an all-1 surface
       cmd += g_make_empty_surf_str
+      if self.LV.val('smask'):
+         cmd += '# make an all-1 masked surface for 3dmaskave\n' \
+                '3dcalc -a $empty_surf -b $surf_mask'            \
+                ' -expr "bool(b)" -prefix all_1.gii\n\n'
+      else: 
+         cmd += '# make an all-1 surface for 3dmaskave\n' \
+             '3dcalc -a $empty_surf -expr 1 -prefix all_1.gii\n\n'
 
       return cmd
 
@@ -585,13 +625,22 @@ class SurfClust(object):
          self.LV.svol  = U.surf_vol
          self.LV.svset = BASE.afni_name(self.LV.svol)
          self.LV.vmask = U.vol_mask
+         self.LV.vmset = BASE.afni_name(U.vol_mask)
          self.LV.spec  = U.spec_file
+         if self.uvars.surf_mask != '':
+            self.LV.smset = BASE.afni_name(self.uvars.surf_mask)
+            self.LV.smask = self.LV.smset.real_input()
       else:
          self.LV.svol  = '$top_dir/%s' % self.LV.short_names[0][0]
          self.LV.svset = BASE.afni_name(self.LV.svol)
          self.LV.spec  = '$top_dir/%s' % self.LV.short_names[0][1]
-         if self.cvars.val('on_surface') != 'yes':
+         if self.cvars.val('on_surface') == 'yes':
+            if self.uvars.surf_mask != '':
+               self.LV.smask = '$top_dir/%s' % self.LV.short_names[0][2]
+               self.LV.smset = BASE.afni_name(self.LV.smask)
+         else:
             self.LV.vmask = '$top_dir/%s' % self.LV.short_names[0][2]
+            self.LV.vmset = BASE.afni_name(self.LV.vmask)
 
       cmd += '# input datasets and surface specification file\n'         \
              '# (absolute paths are used since inputs are not copied)\n' \
@@ -600,6 +649,9 @@ class SurfClust(object):
 
       if self.cvars.val('on_surface') != 'yes':
          cmd += 'set vol_mask    = %s\n' % self.LV.vmask
+
+      if self.LV.val('smask'):
+         cmd += 'set surf_mask   = %s\n' % self.LV.smask
 
       # as a list, these might come is as strings or floats, be generic
       plist =  [ '%s'%p for p in U.pthr_list ]
@@ -691,7 +743,7 @@ class SurfClust(object):
       self.LV.retdir = SUBJ.ret_from_proc_dir(self.LV.retdir)
       # ------------------------- done -------------------------
 
-   def write_script(self, fname=''):
+   def write_script(self, fname='', argv=[]):
       """write processing script to a file (in the proc_dir)
          - if fname is set, use it, else generate
          - set rvars.file_proc and output_proc

@@ -297,18 +297,21 @@ def update_field_help():
      ['This shows the average correlation across all pairs of voxels (within',
       'the brain mask: full_mask).',
       'A larger number suggests more coherence, which is likely artifactual.'])
-   add_field_help('anat/EPI mask correlation', 'r(mask_anat, full_mask)',
-     ['This is simply the correlation between the anatomical mask (mask_anat)',
-      'and the EPI mask (full_mask).',
-      'A low value might flag alignment failure.'])
+   add_field_help('anat/EPI mask Dice coef', 'Dice coef(mask_anat, full_mask)',
+     ['This is the Sorenson-Dice coefficient (twice intersection over sum of',
+      'regions) between the anat mask (mask_anat) and EPI mask (full_mask).',
+      'A low value (closer to 0 than 1, say) might flag alignment failure.'])
    add_field_help('maximum F-stat (masked)', 'max F from stats dataset',
      ['This is the maximum F-stat from the final stats dataset, restricted',
       'to the full_mask.'])
-   add_field_help('blur estimates', 'computed blur estimates',
-    ['These are the blur estimates computed over the full_mask dataset',
-     'from either the residuals or the regression input.',
-     'Such values are generally averaged across subjects and input to',
-     '3dClustSim for multiple comparison correction.'])
+   add_field_help('blur estimates (ACF)', 'computed ACF blur estimates',
+    ['These are the AutoCorrelation Function (ACF) blur estimates computed',
+     'over the full_mask dataset from either the residuals or the regression',
+     'input.  Such values are generally averaged across subjects and input to',
+     '"3dClustSim -acf" for multiple comparison correction.'])
+   add_field_help('blur estimates (FWHM)', 'computed FWHM blur estimates',
+    ['These are the related full width at half max (FWHM) blur estimates,',
+     'similarly computed and applied using "3dClustSim -fwhmxyz".'])
 
 
 # cannot have empty line
@@ -615,15 +618,27 @@ endif
 
 g_basic_finish_str = """
 # ------------------------------------------------------------'
-# note blur estimates
+# note blur estimates (try for ACF and FWHM, first)
 set blur_file = blur_est.$subj.1D
 if ( -f $blur_file ) then
-    set best = `awk '/errts/ {print $1, $2, $3}' $blur_file`
-    if ( $#best != 3 ) then
-        set best = `awk '/epits/ {print $1, $2, $3}' $blur_file`
+    set found = 0
+    set best_acf = `grep ACF $blur_file | tail -n 1 | awk '{print $1, $2, $3}'`
+    set best_fw = `grep FWHM $blur_file | tail -n 1 | awk '{print $1, $2, $3}'`
+    if ( $#best_acf == 3 ) then
+        set found = 1
+        echo "blur estimates (ACF)      : $best_acf"
     endif
-    if ( $#best == 3 ) then
-        echo "blur estimates            : $best"
+    if ( $#best_fw == 3 ) then
+        set found = 1
+        echo "blur estimates (FWHM)     : $best_fw"
+    endif
+
+    # fallback
+    if ( ! $found ) then
+       set best = `tail -n 1 $blur_file | awk '{print $1, $2, $3}'`
+       if ( $#best == 3 ) then
+           echo "blur estimates            : $best"
+       endif
     endif
 endif
 
@@ -822,9 +837,13 @@ g_history = """
    0.45 Sep  3, 2015: change: have stats dset default to REML, if it exists
    0.46 Oct 28, 2015: look for dice coef file ae_dice, as well ae_corr
    0.47 Mar 21, 2016: use nzmean for motion ave
+   0.48 Aug 17, 2016:
+        - look for new ACF/FWHM blur estimates
+        - get each last estimate (so prefer err_reml > errts > epits)
+        - update -help_fields
 """
 
-g_version = "gen_ss_review_scripts.py version 0.47, Mar 21, 2016"
+g_version = "gen_ss_review_scripts.py version 0.48, August 17, 2016"
 
 g_todo_str = """
    - add @epi_review execution as a run-time choice (in the 'drive' script)?

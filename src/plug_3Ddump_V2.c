@@ -3,7 +3,7 @@
    of Wisconsin, 1994-2000, and are released under the Gnu General Public
    License, Version 2.  See the file README.Copyright for details.
 ******************************************************************************/
-   
+
 #include "afni.h"
 #include "afni_plugin.h"
 
@@ -12,9 +12,9 @@
 #endif
 
 /***********************************************************************
-  Plugin to extract 3D brick data 
+  Plugin to extract 3D brick data
 ************************************************************************/
-typedef struct 
+typedef struct
 	{
 		  int nxx;			/* number of voxels in the x direction */
 		  int nyy;			/* number of voxels in the y direction */
@@ -31,7 +31,7 @@ typedef struct
 		  int DoInt;
 		  int DoThres;
 		  int DoInd;
-		  int intind; 
+		  int intind;
 		  int	thrind;
 		  int Nsub;
 		  int isanat;
@@ -47,7 +47,7 @@ typedef struct
 static char helpstring[] =
   "                   3Ddump98 Plugin\n"
   "This plugin is used to write to an ascii file the data present in AFNI bricks.\n"
-  "You can apply intenstity or threshold masks to the voxel data that is being extracted.\n\n" 
+  "You can apply intenstity or threshold masks to the voxel data that is being extracted.\n\n"
   "Plugin Inputs:\n\n"
   "   1- Dataset :\n"
   "      3D brick  -> 3D AFNI brick of the type :\n"
@@ -57,7 +57,7 @@ static char helpstring[] =
   "      Intensity -> Index of the subbrick to be used\n"
   "                   as an intensity subbrick.\n"
   "      Threshold -> Index of the subbrick to be used \n"
-  "                   as a threshold subbrick.\n" 
+  "                   as a threshold subbrick.\n"
   "   While the subbrick indices are obvious when dealing with most bricks\n"
   "   You might need to specified them for bricks of the type bucket\n\n"
   "   3- Intensity Mask : (optional) \n"
@@ -96,7 +96,7 @@ static char helpstring[] =
   "                    Ziad Saad   Nov. 9 97, latest update Aug. 26 99.\n\n"
 ;
 
-/* Significant update Aug. 26 99 */ 
+/* Significant update Aug. 26 99 */
 /* The indexing into Storear has been swapped (columns became rows and rows columns.
 That's because each subbrick was not stored in a vector on N elements, rather in N vectors
 of 1 element each. That made the allocation process very slow, especially now that Bob has
@@ -104,7 +104,7 @@ malloc and calloc going through his own macros. */
 
 /*-------- strings for output format  and some definitions -----------*/
 
-static char * yn_strings[] = { "n" , "y" }; 
+static char * yn_strings[] = { "n" , "y" };
 
 #define NUM_YN_STRINGS (sizeof(yn_strings)/sizeof(char *))
 
@@ -140,6 +140,8 @@ PLUGIN_interface * PLUGIN_init( int ncall )
 {
    PLUGIN_interface * plint ;
 
+   CHECK_IF_ALLOWED("3DDUMP98","3D Dump98") ;  /* 30 Sep 2016 */
+
    if( ncall > 0 ) return NULL ;  /* only one interface */
 
    /*-- set titles and call point --*/
@@ -156,10 +158,10 @@ PLUGIN_interface * PLUGIN_init( int ncall )
                                     ANAT_ALL_MASK  ,  FUNC_ALL_MASK ,
                                     SESSION_ALL_MASK |
                                     DIMEN_ALL_MASK   | BRICK_ALLREAL_MASK ) ;
-   
+
 	/*-- second line of input: intensity and threshold brick indices --*/
-   
-   
+
+
 	PLUTO_add_option( plint ,
                      "SubBrik info" ,  /* label at left of input line */
                      "Index" ,  /* tag to return to plugin */
@@ -183,13 +185,13 @@ PLUGIN_interface * PLUGIN_init( int ncall )
                     FALSE       /* allow user to edit value? */
                   ) ;	
 	/*-- Third line of input: intensity mask --*/
-   
+
    PLUTO_add_option( plint ,
                      "Intensity Mask" ,  /* label at left of input line */
                      "Intensity" ,  /* tag to return to plugin */
                      FALSE       /* is this mandatory? */
                    ) ;
-   
+
    PLUTO_add_number( plint ,
                     "Minimum" ,  /* label next to chooser */
                     -100000 ,         /* smallest possible value */
@@ -198,7 +200,7 @@ PLUGIN_interface * PLUGIN_init( int ncall )
                     0 ,         /* default value */
                     TRUE       /* allow user to edit value? */
                   ) ;
-                  
+
 	PLUTO_add_number( plint ,
                     "Maximum" ,  /* label next to chooser */
                     -10000 ,         /* smallest possible value */
@@ -207,15 +209,15 @@ PLUGIN_interface * PLUGIN_init( int ncall )
                     0 ,         /* default value */
                     TRUE       /* allow user to edit value? */
                   ) ;
-   
+
    /*-- Fourth line of input: threshold mask --*/
-   
+
    PLUTO_add_option( plint ,
                      "Threshold Mask" ,  /* label at left of input line */
                      "Threshold" ,  /* tag to return to plugin */
                      FALSE       /* is this mandatory? */
                    ) ;
-   
+
    PLUTO_add_number( plint ,
                     "Minimum" ,  /* label next to chooser */
                     -10000 ,         /* smallest possible value */
@@ -224,7 +226,7 @@ PLUGIN_interface * PLUGIN_init( int ncall )
                     0.5 ,         /* default value */
                     TRUE       /* allow user to edit value? */
                   ) ;
-                  
+
 	PLUTO_add_number( plint ,
                     "Maximum" ,  /* label next to chooser */
                     -10000 ,         /* smallest possible value */
@@ -233,7 +235,7 @@ PLUGIN_interface * PLUGIN_init( int ncall )
                     1 ,         /* default value */
                     TRUE       /* allow user to edit value? */
                   ) ;
-   
+
    /*---------- 5th line: output stuff ----------*/
 
    PLUTO_add_option( plint ,
@@ -247,7 +249,7 @@ PLUGIN_interface * PLUGIN_init( int ncall )
                      0,NULL ,    /* no fixed strings to choose among */
                      19          /* 19 spaces for typing in value */
                    ) ;
-                  
+
    return plint ;
 }
 
@@ -270,7 +272,7 @@ static char * DUMP_main( PLUGIN_interface * plint )
 	/* Do not allocate more space for mssg, because AFNI would choke on it*/
 	mssg = (char *) calloc (PLUGIN_MAX_STRING_RANGE,sizeof(char));
 	memset(&uda, 0, sizeof(extract_data));
-	if (str == NULL || nprfxstr == NULL || mssg == NULL ) 
+	if (str == NULL || nprfxstr == NULL || mssg == NULL )
 									  return "********************\n"
 												"Could not Allocate\n"
 												"a teeni weeni bit of\n"
@@ -278,11 +280,11 @@ static char * DUMP_main( PLUGIN_interface * plint )
 												"********************\n";
 
 	ud = &uda;		/* ud now points to an allocated space */
-   
+
    /*--------------------------------------------------------------------*/
    /*----- Check inputs from AFNI to see if they are reasonable-ish -----*/
 	tag = PLUTO_get_optiontag(plint) ;
-   
+
    if (tag == NULL)
    	{
    		return "************************\n"
@@ -290,7 +292,7 @@ static char * DUMP_main( PLUGIN_interface * plint )
              "************************"  ;
    	}	
    	
-   
+
    idc  = PLUTO_get_idcode(plint) ; 	/* get 1st dataset item */
    xset = PLUTO_find_dset(idc) ;                   /* get ptr to dataset */
    if( xset == NULL )
@@ -307,7 +309,7 @@ static char * DUMP_main( PLUGIN_interface * plint )
 	ud->DoInd = NOPE;
 	
 	ud->intind = 1; /* The first subbrick is numbered 1 here, it makes more sense to the user.*/
-	ud->thrind = 2; 
+	ud->thrind = 2;
 	
 	do
 		{
@@ -317,15 +319,15 @@ static char * DUMP_main( PLUGIN_interface * plint )
 			if (equal_strings (tag, "Index") == 1)
 				{
 					ud->DoInd = YUP;
-					ud->intind = PLUTO_get_number(plint) ; 
+					ud->intind = PLUTO_get_number(plint) ;
 					ud->thrind = PLUTO_get_number(plint) ;
-					continue; 
+					continue;
 				}
 			
 			if (equal_strings (tag, "Intensity") == 1)
 				{
 					ud->DoInt = YUP;
-					ud->mini = PLUTO_get_number(plint) ; 
+					ud->mini = PLUTO_get_number(plint) ;
 					ud->maxi = PLUTO_get_number(plint) ;
 					continue;
 				}
@@ -333,14 +335,14 @@ static char * DUMP_main( PLUGIN_interface * plint )
 			if (equal_strings (tag, "Threshold") == 1)
 				{
 					ud->DoThres = YUP;
-					ud->minth = PLUTO_get_number(plint) ; 
+					ud->minth = PLUTO_get_number(plint) ;
 					ud->maxth = PLUTO_get_number(plint) ;
 					continue;
 				}
 			
 			if (equal_strings (tag, "Output") == 1)
 					{
-						ud->strout = PLUTO_get_string(plint) ; 
+						ud->strout = PLUTO_get_string(plint) ;
 						continue;
 					}
 			
@@ -361,7 +363,7 @@ static char * DUMP_main( PLUGIN_interface * plint )
 	if (ud->isanat && (ud->DoThres== YUP || ud->DoInd == YUP))
 		{
 			return "*************************************\n"
-                "Can't use threshold or index options \n" 
+                "Can't use threshold or index options \n"
                 "for fim or ANAT type bricks !\n"
                 "*************************************"  ;
 		}
@@ -370,7 +372,7 @@ static char * DUMP_main( PLUGIN_interface * plint )
 	if (ud->DoInd == YUP && (ud->fimonly == YUP && ud->isfunc == YUP))
 		{
 			return "*******************************\n"
-                "Can't specify Indices for fim\n" 
+                "Can't specify Indices for fim\n"
                 "type bricks, they only have one !\n"
                 "*******************************"  ;
 		}
@@ -380,7 +382,7 @@ static char * DUMP_main( PLUGIN_interface * plint )
 	if ((ud->DoInt && (ud->maxi < ud->mini)) || (ud->DoThres && (ud->maxth < ud->minth)))
 		{
 		return "**********************\n"
-             "Something's wrong with\n" 
+             "Something's wrong with\n"
              "min and max  values.\n"
              "**********************"  ;
 		}
@@ -388,7 +390,7 @@ static char * DUMP_main( PLUGIN_interface * plint )
 		{
 		
 		return "**********************\n"
-             "One or both of the indices\n" 
+             "One or both of the indices\n"
              "is larger than the maximum\n"
 				 "number of sub-bricks\n"
              "**********************"  ;
@@ -396,7 +398,7 @@ static char * DUMP_main( PLUGIN_interface * plint )
 
 	/*------------------------------------------------------*/
    /*----- Open the output file for writing operation -----*/
-   
+
 	/*if strout is null or of length 0, use the a default name */
 	if (ud->strout == NULL)
    	nprf = 0;
@@ -414,7 +416,7 @@ static char * DUMP_main( PLUGIN_interface * plint )
 			ud->strout = nprfxstr;
    	}
 
-   
+
 	sprintf (str,"%s.log",ud->strout);	
 		
    if ((filexists(ud->strout) == 1) || (filexists(str) == 1))
@@ -463,14 +465,14 @@ static char * DUMP_main( PLUGIN_interface * plint )
 
    /*-- put the output to the screen --*/
 
-   /* That output message was too long. AFNI was crashing, must ask Bob to allow more verbose messages */ 
-	 
+   /* That output message was too long. AFNI was crashing, must ask Bob to allow more verbose messages */
+	
    /*sprintf(mssg , "            Dataset %s was dumped.\n"
                  "%d voxels (%5f %% of total) met the boundary conditions.\n"
                   , DSET_FILECODE(xset) , ndmp , (float)ndmp/(float)(ud->nxx * ud->nyy * ud-> nzz)*100.0) ;*/
 						
    /* That's shorter */
-	sprintf(mssg , "%d voxels (%5f %% of total) were dumped.\n" 
+	sprintf(mssg , "%d voxels (%5f %% of total) were dumped.\n"
 	                 , ndmp , (float)ndmp/(float)(ud->nxx * ud->nyy * ud-> nzz)*100.0) ;
 
 	PLUTO_popup_message( plint , mssg ) ;
@@ -481,8 +483,8 @@ static char * DUMP_main( PLUGIN_interface * plint )
 	fclose (ud->outlogfile);
 	free (nprfxstr);	
 	free (str);
-	free (mssg); 
-	 
+	free (mssg);
+	
    return NULL ;  /* null string returned means all was OK */
 }
 
@@ -523,7 +525,7 @@ static int Dumpit( extract_data* ud, THD_3dim_dataset * xset)
 		{
    		xar   = DSET_ARRAY(xset,ii) ;        /* get the array */
    		EDIT_coerce_scale_type (nxyz,DSET_BRICK_FACTOR(xset,ii),
-   							DSET_BRICK_TYPE(xset,ii), xar,	MRI_float,fxar ) ;   
+   							DSET_BRICK_TYPE(xset,ii), xar,	MRI_float,fxar ) ;
 			
 			/* Store the iith sub-brick in Storear array */
 			for (jj = 0; jj < nxyz; ++jj)
@@ -547,7 +549,7 @@ static int Dumpit( extract_data* ud, THD_3dim_dataset * xset)
       				pass = NOPE;
       		}
       	
-      	if (pass && ud->DoThres)   
+      	if (pass && ud->DoThres)
       		{
       			if (Storear[ud->thrind-1][ii] < ud->minth || Storear[ud->thrind-1][ii] > ud->maxth)/* changed both from : Storear[ii][ud->intind-1]*/
       				pass = NOPE;
@@ -580,11 +582,11 @@ static int Dumpit( extract_data* ud, THD_3dim_dataset * xset)
    /*-- free up arrays --*/
 
 	
-   if( fxar_new ) 
+   if( fxar_new )
 		{
 		free(fxar) ;
 		}
-	 else 
+	 else
 	 	{
 			DSET_unload(xset) ;
 		}
@@ -597,26 +599,26 @@ static int Dumpit( extract_data* ud, THD_3dim_dataset * xset)
 }
 
 
-/* ************************************************************ */ 
+/* ************************************************************ */
 /* function to check for file existence       */
-/* ************************************************************ */ 
+/* ************************************************************ */
 	
 static int filexists (char *f_name)
 {/*filexists*/
         FILE *outfile;
-        
+
         outfile = fopen (f_name,"r");
         if (outfile == NULL)
                 return (0);
-        else 
+        else
                 fclose (outfile);
                 return (1);
-                
+
 }/*filexists*/
 
-/* ************************************************************ */ 
+/* ************************************************************ */
 /* function to create log file       */
-/* ************************************************************ */ 
+/* ************************************************************ */
 
 void write_ud (extract_data* ud)
 	{
@@ -644,9 +646,9 @@ void write_ud (extract_data* ud)
 		return;
 	}
 
-/* ************************************************************ */ 
+/* ************************************************************ */
 /* function to allocate 2D arrays       */
-/* ************************************************************ */ 
+/* ************************************************************ */
 
 static char **allocate2D (int rows,int cols,int element_size)
 
@@ -743,42 +745,42 @@ static char **allocate2D (int rows,int cols,int element_size)
     return(A);
 }
 
-/* ************************************************************ */ 
+/* ************************************************************ */
 /* function to free 2D arrays       */
-/* ************************************************************ */ 
+/* ************************************************************ */
 static void free2D(char **a,int rows)
-    
+
 {
     int i;
-    
+
 /* free each row of data */
     for(i = 0 ; i < rows ; i++) free(a[i]);
 
 /* free each row pointer */
     free((char *)a);
     a = NULL;           /* set to null for error */
-    
+
 	return;
 }
 
-/* ************************************************************ */ 
+/* ************************************************************ */
 /* function to Check if strings are equal       */
-/* ************************************************************ */ 
+/* ************************************************************ */
 
 
 int equal_strings (char *s1,char *s2)
 
  {
    int i=0;
-   
+
    if (s1 == NULL && s2 == NULL) return (-2);
-   
+
    if ((s1 == NULL && s2 != NULL) || (s1 != NULL && s2 == NULL)) return (-1);
-   
-   while (s1[i] == s2[i] 
+
+   while (s1[i] == s2[i]
    			&& s1[i] != '\0' && s2[i] != '\0') ++i;
    			
    	if (s1[i] == '\0' && s2[i] == '\0') return (1);
    	 else return (0);
- 
+
  }

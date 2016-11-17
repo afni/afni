@@ -8,6 +8,9 @@
 #include "afni_plugout.h"
 #include "thd_ttatlas_query.h"
 
+extern SUMA_Boolean SUMA_Register_Widget_Help(Widget w, int type, char *name,
+                                              char *hint, char *help) ;
+
 /*---------------------------------------------------------------*/
 /*------------ Stuff for logos and pixmap definitions -----------*/
 #undef MAIN

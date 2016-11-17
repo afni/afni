@@ -1,0 +1,138 @@
+# This Makefile is for Mac OSX 10.10 (Yosemite) for 64 bit AFNI with Intel C Compiler (icc)
+
+USE_ZLIB  = -DHAVE_ZLIB
+LZLIB     = -lz
+USE_GIFTI = -DHAVE_GIFTI
+LGIFTI    = /usr/lib64/libexpat.a
+
+# ------------------------------
+# python from C
+IPYTHON     = 
+LPYTHON     = 
+LDPYTHON    = 
+
+# ----------------------------------------------------------------------
+# X configuration
+#
+# uncomment to build using local /usr/local/afniX 'X' tree
+# USE_LOCAL_X_TREE = 1
+ifdef USE_LOCAL_X_TREE
+    XROOT = /usr/local/afniX
+    XROOT_I = -I$(XROOT)/include
+    XROOT_L = -L$(XROOT)/lib64
+else
+    XROOT   = /usr/share/X11
+    XROOT_I = -I$(XROOT)/include
+    XROOT_L = -L$(XROOT)/lib64
+endif
+
+# uncomment USE_LESSTIF to use lesstif instead of openmotif
+# USE_LESSTIF = 1
+ifdef USE_LESSTIF
+    LESSTIF_DEFS = -DUSING_LESSTIF
+
+    XLIBS = $(XROOT)/lib64/libXm.a $(XROOT)/lib64/libXt.a 
+else
+    # default is static motif
+    XLIBS = /usr/lib64/libXm.a -lXt -lX11
+endif
+
+# in case user wants to override with system dynamic libs
+# XLIBS = -lXm -lXt
+# ----------------------------------------------------------------------
+
+
+CCDEBS = -DAFNI_DEBUG -DIMSEQ_DEBUG -DDISPLAY_DEBUG -DTHD_DEBUG
+CEXTRA = -m64 -Wcomment -Wformat -DUSE_TRACING -DHAVE_XDBE -UDONT_USE_MCW_MALLOC $(LESSTIF_DEFS)
+CC     = icc -O2 -DLINUX $(CEXTRA)
+CCVOL  = icc -O2 -DLINUX $(CEXTRA)
+CCFAST = icc -O3 -DLINUX $(CEXTRA)
+CCMIN  = icc -O0 -m64
+CCD    = $(CC) $(CCDEBS)
+CCOLD  = $(CC)
+
+OMPFLAG = -qopenmp -qopenmp-link static -DUSE_OMP
+
+IFLAGS = -I. $(XROOT_I) -I/usr/local/include -I/usr/X11R6/include -I/sw/include 
+LFLAGS = -L. $(XROOT_L) -L/usr/local/intel/lib/intel64 -L/usr/lib64 -L/usr/local/lib64
+
+CCSVD  = icc -m64 -O0
+
+PLUGIN_SUFFIX = so
+PLUGIN_LFLAGS = -m64 -shared -fPIC
+PLUGIN_CC     = $(CC) -fno-common -fPIC
+PLFLAGS       = -m64 $(LFLAGS)
+
+# include the line below if you want to include vector arith in 3dDeconvolve_f
+# SPECIAL = -framework Accelerate -DUSE_ACCELERATE
+
+AR     = /usr/bin/ar
+RANLIB = /usr/bin/ranlib
+TAR    = /usr/bin/tar
+MKDIR  = /bin/mkdir
+GZIP   = /usr/bin/gzip
+LD     = icc
+
+RM = /bin/rm -f
+MV = /bin/mv -f
+CP = /bin/cp -f
+
+LINT = /usr/bin/lint -a -b -u -v -x $(IFLAGS) $(CCDEFS)
+
+INSTALLDIR = ./biowulf_icc
+LIBDIR = $(INSTALLDIR)
+SYSTEM_NAME = biowulf_icc
+SHOWOFF = -DSHOWOFF=$(SYSTEM_NAME)
+
+STARTUP_COMMANDS = 
+
+#INSTALL_PREREQ = suma_gts
+INSTALL_PREREQ = suma
+# uncomment if the Gnu Scientific Library is installed (libgsl, libgslcblas)
+# GSLPROGS = balloon
+EXPROGS = $(GSLPROGS)
+
+# for dynamic linking
+
+LLIBS  = -lmri -lf2c $(XLIBS) -lXft -lfontconfig $(LDPYTHON) -lpng         \
+         -lXmu -lXp -lXpm -lXext -lX11 -ljpeg $(LZLIB) $(LGIFTI) -lm -lc
+
+# vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
+# For suma 
+# ZSS Aug. 08. LibGLw.a now made locally and called libGLws.a 
+
+# -------------------------------------------------------------------
+#  # OSX 10.5 has issues with libGL, where the multiple copies cause a cycle
+# (somehow).  Get around this by using -dylib_file (in a strange way).
+
+# SUMA_GLLIB = /System/Library/Frameworks/OpenGL.framework/Versions/A/Libraries/libGL.dylib
+# SUMA_GL_DYLIB_CMD = -dylib_file $(SUMA_GLLIB): $(SUMA_GLLIB)
+
+SUMA_GLLIB =  
+SUMA_GL_DYLIB_CMD =  
+
+SUMA_LINK_PATH = -L/usr/lib64 -L/usr/local/lib64 -L..
+# -------------------------------------------------------------------
+
+GLw_IPATH  =
+GLw_LIB = -lGLw
+#uncomment next two lines if you want to use libGLws.a, SUMA's copy of GLw
+GLw_IPATH  = -IGLw_local 
+GLw_LIB = libGLws.a
+
+
+SUMA_GLIB_VER = -2.0
+SUMA_INCLUDE_PATH = $(GLw_IPATH) -I.. -I../niml $(IFLAGS) -Igts/src -I/sw/include/glib-2.0 -I/sw/lib/glib-2.0/include 
+SUMA_LINK_PATH = $(XROOT_L) $(LFLAGS) -L..
+
+SUMA_LINK_LIB = $(XLIBS) $(GLw_LIB) $(LLIBS) -lGLU -lGL -lmri -lf2c -L/sw/lib -lglib-2.0  $(SUMA_GL_DYLIB_CMD)
+SUMA_MAKEFILE_NAME = SUMA_Makefile
+SUMA_BIN_ARCHIVE = SUMA_MacOSX.tar
+SUMA_MDEFS = -DSUMA_GL_NO_CHECK_FRAME_BUFFER
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+
+###############################################################
+
+MAKE = make
+include Makefile.INCLUDE

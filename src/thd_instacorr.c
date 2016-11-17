@@ -25,6 +25,7 @@ static MRI_vectim * THD_instacorr_tsprep( ICOR_setup *iset , THD_3dim_dataset *d
    MRI_vectim *mv ;
    int iv , nmmm , ntime ;
    float **dvec , **gvec=NULL ; int ngvec=0 ;
+   int ngext=0 ; float *uvec=NULL ;
 
 ENTRY("THD_instacorr_tsprep") ;
 
@@ -96,15 +97,46 @@ ENTRY("THD_instacorr_tsprep") ;
      }
    }
 
+   ngext = iset->gortnpc ;
+   if( ngext > 0 ){
+     MRI_IMAGE *qim ; MRI_IMARR *qimar ; float *qar , *svec ;
+     INIT_IMARR(qimar) ;
+     for( iv=0 ; iv < nmmm ; iv++ ){
+       qim = mri_new(ntime,1,MRI_float) ;
+       qar = MRI_FLOAT_PTR(qim) ;
+       memcpy(qar,dvec[iv],sizeof(float)*ntime) ;
+       if( iset->polort >= 0 ) THD_cubic_detrend(ntime,qar) ;
+       ADDTO_IMARR(qimar,qim) ;
+     }
+     uvec = (float *)malloc(sizeof(float)*ntime*ngext) ;
+     svec = (float *)malloc(sizeof(float)*ngext) ;
+     iv = mri_principal_vectors( qimar , ngext , svec , uvec ) ;
+     DESTROY_IMARR(qimar) ;
+     if( iv < ngext ){
+       WARNING_message("Could not compute PC vectors -- skipping :-(((") ;
+       free(uvec) ;
+     } else {
+       gvec = (float **)realloc(gvec,sizeof(float *)*(ngvec+ngext)) ;
+       for( iv=0 ; iv < ngext ; iv++ )
+         gvec[iv+ngvec] = uvec + iv*ntime ;
+       fprintf(stderr," + singular values:") ;
+       for( iv=0 ; iv < ngext ; iv++ ) fprintf(stderr," %.6g",svec[iv]) ;
+       fprintf(stderr,"\n") ;
+       free(svec) ;
+     }
+   }
+
    (void)THD_bandpass_OK( ntime , mv->dt , iset->fbot,iset->ftop , 1 ) ;
 
    iset->ndet = THD_bandpass_vectors( ntime, nmmm, dvec, mv->dt,
                                       iset->fbot, iset->ftop, iset->polort,
-                                      ngvec, gvec ) ;
+                                      ngvec+ngext, gvec ) ;
 
 /** ININFO_message("Filtering removed %d DOF",iset->ndet) ; **/
 
-   free(dvec) ; if( gvec != NULL ) free(gvec) ;
+   free(dvec) ;
+   if( gvec != NULL ) free(gvec) ;
+   if( uvec != NULL ) free(uvec) ;
 
    /*--- Blur time series ---*/
 
@@ -298,6 +330,11 @@ MRI_IMAGE * THD_instacorr( ICOR_setup *iset , int ijk )
    int iter_count , iter , nvals ; float iter_thresh , *nsar=NULL ;
 
 ENTRY("THD_instacorr") ;
+
+#if 0
+INFO_message("THD_instacorr: ijk=%d  iset=%p",ijk,(void *)iset) ;
+if( iset != NULL ) ININFO_message(" iset->mv=%p",(void *)iset->mv) ;
+#endif
 
    if( iset == NULL || iset->mv == NULL || ijk < 0 ) RETURN(NULL) ;
 
