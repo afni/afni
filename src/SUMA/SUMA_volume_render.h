@@ -22,6 +22,7 @@ SUMA_Boolean SUMA_VO_InitCutPlanes(SUMA_VolumeObject *VO);
 SUMA_Boolean SUMA_CreateGL3DTexture(SUMA_VolumeObject *VO);
 SUMA_Boolean SUMA_Load3DTextureNIDOnel (NI_element *nel,
                                  SUMA_DO_CoordUnits coordtype);
+SUMA_Boolean SUMA_VO_set_slices_XYZ(SUMA_VolumeObject *VOu, float *xyz);
 void SUMA_RecordEnablingState(SUMA_EnablingRecord *SER, char *Label);
 void SUMA_RestoreEnablingState(SUMA_EnablingRecord *SER);
 void SUMA_ShowEnablingState(SUMA_EnablingRecord *SER, FILE *out, char *preamble);
