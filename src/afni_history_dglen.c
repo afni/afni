@@ -49,6 +49,10 @@
 
 
 afni_history_struct dglen_history[] = {
+{ 17, NOV, 2016 , DRG , "DriveSuma" , 
+    MINOR , TYPE_NEW_OPT, 
+    "Ask suma to send current surface name to SUMA_OUTPLUG file or stdout"
+},
 { 19, AUG, 2016 , DRG , "3dLocalstat" , 
     MINOR , TYPE_BUG_FIX, 
     "Neighborhoods miscalculated"
