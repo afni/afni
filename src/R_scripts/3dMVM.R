@@ -32,7 +32,7 @@ help.MVM.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
           ================== Welcome to 3dMVM ==================          
     AFNI Group Analysis Program with Multi-Variate Modeling Approach
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 3.9.0, Aug 30, 2016
+Version 3.9.1, Nov 18 2016
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - https://afni.nimh.nih.gov/sscc/gangc/MVM.html
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -738,8 +738,9 @@ glfConstr <- function(cStr, dataStr) {
    nvar <- length(vars)
    pos <- c(pos, length(cStr)+2) # add an artificial one for convenient usage below
    varsOK <- vars %in% colnames(dataStr)
+   glfList <- vector('list', nvar)
    if(all(varsOK)) {
-      glfList <- vector('list', nvar)
+      #glfList <- vector('list', nvar)
       names(glfList) <- vars
       for(ii in 1:nvar) {
 	 lvl  <- levels(dataStr[,vars[ii]])   # all the levels for each involved factor
@@ -765,13 +766,14 @@ glfConstr <- function(cStr, dataStr) {
 	       if(all(lvlOK)) {
 	          sq <- match(lvlInv, lvl)
                   glfList[[ii]][sq,jj] <- as.numeric(sepTerms[seq(1,length(sepTerms),2)])
-	       } else errex.AFNI(paste("Incorrect level coding in variable", vars[ii],
-	         ": ", lvlInv[which(!lvlOK)], " \n   "))
-            }
+	       #} else errex.AFNI(paste("Incorrect level coding in variable", vars[ii], ": ", lvlInv[which(!lvlOK)], " \n   "))
+               } else glfList <- NA
+           }
          #}
       }
       return(glfList)
-   } else errex.AFNI(paste("Incorrect variable name in GLF coding: ", vars[which(!varsOK)], " \n   "))
+   #} else errex.AFNI(paste("Incorrect variable name in GLF coding: ", vars[which(!varsOK)], " \n   "))
+   } else glfList <- NA
 }
 
 # glfConstr(lop$glfCode[[1]], lop$dataStr)
