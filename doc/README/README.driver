@@ -45,8 +45,7 @@ ready for user interaction after the image file was saved.
 
 N.B.: If you are adroit, you could use the virtual X11 server program Xvfb
 to create images as indicated above with no need for an actual X11 display.
-For an example of how this can work, see the AFNI message board:
- https://afni.nimh.nih.gov/afni/community/board/read.php?f=1&i=20001&t=19993&v=f
+A sample script is given later -- search forward to find the string 'Xvfb'.
 
 ==============================================================================
 Advanced AFNI Programming: Extending the AFNI Driver Functionality
@@ -499,6 +498,11 @@ QUIT
   (with existing technology), this action forestalls all further attempts
   to send commands to AFNI.
 
+QUITT
+  AFNI will exit even more immediately!  That is, none of the usual
+  things at the end (e.g., 'goodbye' messages) will be done, and the
+  program just stops.
+
 SETENV name value
   Set the environment variable "name" to "value" in AFNI; for example
     SETENV AFNI_CROSSHAIR_LINES YES
@@ -532,6 +536,90 @@ NOISY_PLUGOUTS
 
 TRACE {YES | NO}
   Turns debug tracing on or off.  Mostly for AFNI developers.
+
+==============================================================================
+Sample Script Using Xvfb
+------------------------
+This script uses the output files in a set of directories created by
+afni_proc.py.  It overlays the registered EPI with the structural image,
+and saves an image snapshot from each directory.  The goal is to give
+the user a quick way of looking for grossly bad registrations.
+
+You probably cannot use the script exactly as it is shown here. You will have
+to modify the filenames to meet your needs, at least. This script relies on
+the NetPBM package being installed on your system.
+
+#!/bin/tcsh
+#
+# start the X Virtual Frame Buffer program (on screen 9)
+#
+ Xvfb :9 -screen 0 1024x768x24 &
+#
+# set some environment variables
+#
+ setenv AFNI_NOSPLASH    YES
+ setenv AFNI_SPLASH_MELT NO
+ setenv DISPLAY          :9
+#
+# make directory for output images
+#
+ mkdir -p snapshots
+#
+# loop over the afni_proc.py results directories
+#
+ foreach ddd ( *.results )
+    set sub  = `basename $ddd .results`
+    set epi  = pb02.${sub}.r01.volreg+tlrc
+    set anat = anat_final.${sub}+tlrc
+# max value in EPI brick
+    set mval = `3dBrickStat -max $ddd/$epi'[0]'`
+# clip level for EPI brick
+    set cval = `3dClipLevel $ddd/$epi'[0]'`
+# threshold value to use for EPI brick overlay
+    set tval = `ccalc "min($cval,$mval/4)"`
+# upper limit for EPI brick overlay
+    set uval = `ccalc "max(3*$cval,0.666*$mval)"`
+# name for output image file
+    set jnam = $sub
+# drive AFNI to get the images we want
+    afni -noplugins -no_detach                               \
+         -com "OPEN_WINDOW sagittalimage opacity=6"          \
+         -com "OPEN_WINDOW axialimage opacity=6"             \
+         -com "OPEN_WINDOW coronalimage opacity=6"           \
+         -com "SET_PBAR_ALL +99 1 gray_scale"                \
+         -com "SET_FUNC_RANGE $uval"                         \
+         -com "SET_THRESHNEW $tval *"                        \
+         -com "SWITCH_OVERLAY $epi                           \
+         -com "SEE_OVERLAY +"                                \
+         -com "SAVE_JPEG sagittalimage sag.jpg blowup=2"     \
+         -com "SAVE_JPEG coronalimage  cor.jpg blowup=2"     \
+         -com "SAVE_JPEG axialimage    axi.jpg blowup=2"     \
+         -com "QUIT"                                         \
+       $ddd/$anat $ddd/$epi'[0]'
+#
+# convert the JPEG outputs to PNM for NetPBM manipulations
+#
+    djpeg sag.jpg > sag.pnm
+    djpeg cor.jpg > cor.pnm
+    djpeg axi.jpg > axi.pnm
+#
+# the commands below make a labeled composite image, and require NetPBM
+#
+# glue the images together
+    pnmcat -lr -jcenter -black sag.pnm axi.pnm cor.pnm > qqq.pnm
+# make a text overlay
+    pbmtext $jnam                                      > qqq.pbm
+# overlay the text image on the composite, write to JPEG
+    pamcomp -xoff=1 -yoff=1 qqq.pbm qqq.pnm | cjpeg -quality 95 > snapshots/$jnam.jpg
+# throw away the trash
+    \rm sag.* axi.* cor.* qqq.*
+ end
+#
+# done: kill the Xvfb process, then vamoose
+#
+ killall Xvfb
+ exit 0
+
 
 ==============================================================================
 ** GRAPHS **
@@ -666,5 +754,5 @@ WRITE_CONT_SPX_HELP filename
 
 SNAP_CONT image.jpg
    Take a snapshot of the main controller and save into image.jpg
-   
+
 
