@@ -594,7 +594,7 @@ the NetPBM package being installed on your system.
          -com "SAVE_JPEG sagittalimage sag.jpg blowup=2"     \
          -com "SAVE_JPEG coronalimage  cor.jpg blowup=2"     \
          -com "SAVE_JPEG axialimage    axi.jpg blowup=2"     \
-         -com "QUIT"                                         \
+         -com "QUITT"                                        \
        $ddd/$anat $ddd/$epi'[0]'
 #
 # convert the JPEG outputs to PNM for NetPBM manipulations
@@ -609,7 +609,7 @@ the NetPBM package being installed on your system.
     pnmcat -lr -jcenter -black sag.pnm axi.pnm cor.pnm > qqq.pnm
 # make a text overlay
     pbmtext $jnam                                      > qqq.pbm
-# overlay the text image on the composite, write to JPEG
+# overlay the text image on the composite, convert to JPEG
     pamcomp -xoff=1 -yoff=1 qqq.pbm qqq.pnm | cjpeg -quality 95 > snapshots/$jnam.jpg
 # throw away the trash
     \rm sag.* axi.* cor.* qqq.*
