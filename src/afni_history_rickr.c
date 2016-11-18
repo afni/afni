@@ -49,8 +49,13 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 18,  Nov, 2016, RCR, "@Align_Centers", MICRO, TYPE_NEW_OPT,
+   "add -prefix option, to name output",
+   NULL
+ } ,
+
  { 17,  Nov, 2016, RCR, "afni_system_check.py", MICRO, TYPE_ENHANCE,
-   "added some checks for flat_namespace on OS X",
+   "add some checks for flat_namespace on OS X",
    NULL
  } ,
 
