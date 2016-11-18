@@ -341,10 +341,20 @@ STATUS("init pval_save") ;
    PBAR_define_bigmap( ADD_EDGE );
    PBAR_define_bigmap( RedBlueGreen_CMD);
 
+   /*- colorscales defined by arrays of floats from pbardefs.h [17 Nov 2016] -*/
+
+#ifdef viridis_num
    PBAR_define_bigmap_float( viridis_num, viridis_data, viridis_name ) ;
+#endif
+#ifdef magma_num
    PBAR_define_bigmap_float( magma_num  , magma_data  , magma_name   ) ;
+#endif
+#ifdef inferno_num
    PBAR_define_bigmap_float( inferno_num, inferno_data, inferno_name ) ;
+#endif
+#ifdef plasma_num
    PBAR_define_bigmap_float( plasma_num , plasma_data , plasma_name  ) ;
+#endif
 
    RETURN( pbar );
 }
