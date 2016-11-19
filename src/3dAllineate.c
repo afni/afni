@@ -463,6 +463,7 @@ int main( int argc , char *argv[] )
    double micho_crA            = 0.4 ;
    double micho_hel            = 0.4 ;
    double micho_ov             = 0.4 ;           /* 02 Mar 2010 */
+   int    micho_fallthru       = 0 ;             /* 19 Nov 2016 */
 
    int do_zclip                = 0 ;             /* 29 Oct 2010 */
 
@@ -1388,10 +1389,12 @@ int main( int argc , char *argv[] )
               "     '-lpc+hel*0.5+nmi*0+mi*0+crA*1.0+ov*0.5'\n"
               " * The quotes are needed to prevent the shell from wild-card expanding\n"
               "   the '*' character.\n"
+              "   --> You can now use ':' in place of '*' to avoid this wildcard problem:\n"
+              "         -lpc+hel:0.5+nmi:0+mi:0+crA:1+ov:0.5+ZZ\n"
               " * Notice the weight factors FOLLOW the name of the extra functionals.\n"
               "   ++ If you want a weight to be 0 or 1, you have to provide for that\n"
               "      explicitly -- if you leave a weight off, then it will get its\n"
-              "      default value.\n"
+              "      default value!\n"
               "   ++ The order of the weight factor names is unimportant here:\n"
               "        '-lpc+hel*0.5+nmi*0.8' == '-lpc+nmi*0.8+hel*0.5'\n"
               " * Only the 5 functionals listed (hel,crA,nmi,mi,ov) can be used in '-lpc+'.\n"
@@ -2147,20 +2150,38 @@ int main( int argc , char *argv[] )
        jj = meth_name_to_code( argv[iarg] ) ;
        if( jj > 0 ){ meth_code = jj ; iarg++ ; continue ; }
 
-       ERROR_exit("Unknown code '%s' after -cost :-(",argv[iarg]) ;
+       /* fail here, UNLESS the method is 'lpc+something' */
+
+       if( ! (strlen(argv[iarg]) > 5 && strncasecmp(argv[iarg],"lpc+",4) == 0) )
+         ERROR_exit("Unknown code '%s' after -cost :-(",argv[iarg]) ;
+
+       /* fall through to lpc+ code */
+
+       micho_fallthru = 1 ;
      }
 
      /* 24 Feb 2010: special option for -lpc+stuff */
 
-     if( strlen(argv[iarg]) > 6 && strncasecmp(argv[iarg],"-lpc+",5) == 0 ){
+     if( micho_fallthru ||
+         (strlen(argv[iarg]) > 6 && strncasecmp(argv[iarg],"-lpc+",5) == 0) ){
        char *cpt ;
+       micho_fallthru = 0 ;
        meth_code = GA_MATCH_LPC_MICHO_SCALAR ;
        cpt = strcasestr(argv[iarg],"+hel*"); if( cpt != NULL ) micho_hel = strtod(cpt+5,NULL);
+       cpt = strcasestr(argv[iarg],"+hel:"); if( cpt != NULL ) micho_hel = strtod(cpt+5,NULL);
        cpt = strcasestr(argv[iarg],"+mi*" ); if( cpt != NULL ) micho_mi  = strtod(cpt+4,NULL);
+       cpt = strcasestr(argv[iarg],"+mi:" ); if( cpt != NULL ) micho_mi  = strtod(cpt+4,NULL);
        cpt = strcasestr(argv[iarg],"+nmi*"); if( cpt != NULL ) micho_nmi = strtod(cpt+5,NULL);
+       cpt = strcasestr(argv[iarg],"+nmi:"); if( cpt != NULL ) micho_nmi = strtod(cpt+5,NULL);
        cpt = strcasestr(argv[iarg],"+crA*"); if( cpt != NULL ) micho_crA = strtod(cpt+5,NULL);
+       cpt = strcasestr(argv[iarg],"+crA:"); if( cpt != NULL ) micho_crA = strtod(cpt+5,NULL);
        cpt = strcasestr(argv[iarg],"+ov*" ); if( cpt != NULL ) micho_ov  = strtod(cpt+4,NULL);
+       cpt = strcasestr(argv[iarg],"+ov:" ); if( cpt != NULL ) micho_ov  = strtod(cpt+4,NULL);
        cpt = strcasestr(argv[iarg],"ZZ")   ; micho_zfinal = (cpt != NULL) ;
+
+       INFO_message("lpc+ parameters: hel=%.2f mi=%.2f nmi=%.2f crA=%.2f ov=%.2f %s",
+                    micho_hel , micho_mi , micho_nmi , micho_crA , micho_ov ,
+                    micho_zfinal ? "[to be zeroed at Final iteration]" : "\0" ) ;
        iarg++ ; continue ;
      }
 
