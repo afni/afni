@@ -2338,8 +2338,6 @@ int main( int argc , char *argv[] )
 
    /*--- help the pitiful user? ---*/
 
-   init_rand_seed(0) ;
-
    if( argc > 1 && strcmp(argv[1],"-help")    == 0 ) AFNI_syntax() ;
    if( argc > 1 && strcmp(argv[1],"-goodbye") == 0 ) AFNI_sigfunc_alrm(0) ;
 
