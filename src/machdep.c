@@ -201,7 +201,15 @@ char * GetAfniImageViewer(void)
 
 void init_rand_seed( long int seed )
 {
-   if( seed == 0 ) seed = (long)time(NULL)+37*(long)getpid() ;
+   if( seed == 0 ){
+     FILE *ufp=fopen("/dev/urandom","rb") ;
+     seed = (long)time(NULL)+37*(long)getpid() ;
+     if( ufp != NULL ){  /* get some extra randomness [20 Nov 2016] */
+       short urr=0 ;
+       (void)fread( &urr , sizeof(short),1, ufp ); fclose(ufp);
+       seed += (long)urr ;
+     }
+   }
    srand48(seed) ;
 }
 
