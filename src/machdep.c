@@ -205,8 +205,8 @@ void init_rand_seed( long int seed )
      FILE *ufp=fopen("/dev/urandom","rb") ;
      seed = (long)time(NULL)+37*(long)getpid() ;
      if( ufp != NULL ){  /* get some extra randomness [20 Nov 2016] */
-       short urr=0 ;
-       (void)fread( &urr , sizeof(short),1, ufp ); fclose(ufp);
+       byte urr=0 ;
+       (void)fread( &urr , sizeof(byte),1, ufp ); fclose(ufp);
        seed += (long)urr ;
      }
    }
@@ -349,7 +349,7 @@ char *AFNI_strcasestr(const char *s1, const char *s2)
    off=0;
    if (so)  off = so-s1u;
    free(s1u); free(s2u);
- 
+
    if (so) return((char*)s1+off);
    return(NULL);
 }
