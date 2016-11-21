@@ -1031,9 +1031,23 @@ ENTRY("THD_apply_master_limits") ;
         case MRI_short:{
            short mbot, mtop, *mar = (short *) DBLK_ARRAY(blk,jbr) ;
            float mfac = DBLK_BRICK_FACTOR(blk,jbr) ;
+           float fval, fmax;
            if( mfac == 0.0 ) mfac = 1.0 ;
-           mbot = SHORTIZE(bot/mfac) ; mtop = SHORTIZE(top/mfac) ;
+           /* - do not use SHORTIZE, rounding can include unwanted values    */
+           /* - use ceil() for bot and floor() for top   21 Nov 2016 [rickr] */
+           fval = bot/mfac;
+           fmax = MRI_TYPE_maxval[MRI_short];
+           if     ( fval < -fmax ) mbot = (short)-fmax;
+           else if( fval >  fmax ) mbot = (short)fmax;
+           else                    mbot = (short)ceilf(fval);
+           
+           fval = top/mfac;
+           if     ( fval < -fmax ) mtop = (short)-fmax;
+           else if( fval >  fmax ) mtop = (short)fmax;
+           else                    mtop = (short)floorf(fval);
+           /* mbot = SHORTIZE(bot/mfac) ; mtop = SHORTIZE(top/mfac) ; */
 #if 0
+fprintf(stderr,"bot=%f top=%f\n",bot,top) ;
 fprintf(stderr,"mbot=%d mtop=%d\n",(int)mbot,(int)mtop) ;
 #endif
            for( ii=0 ; ii < nxyz ; ii++ )
@@ -1045,7 +1059,8 @@ fprintf(stderr,"mbot=%d mtop=%d\n",(int)mbot,(int)mtop) ;
            int mbot, mtop, *mar = (int *) DBLK_ARRAY(blk,jbr) ;
            float mfac = DBLK_BRICK_FACTOR(blk,jbr) ;
            if( mfac == 0.0 ) mfac = 1.0 ;
-           mbot = rint(bot/mfac) ; mtop = rint(top/mfac) ;
+           /* do not include unrequested values    21 Nov 2016 [rickr] */
+           mbot = ceilf(bot/mfac) ; mtop = floor(top/mfac) ;
            for( ii=0 ; ii < nxyz ; ii++ )
               if( mar[ii] < mbot || mar[ii] > mtop ) mar[ii] = 0 ;
         }
@@ -1053,9 +1068,20 @@ fprintf(stderr,"mbot=%d mtop=%d\n",(int)mbot,(int)mtop) ;
 
         case MRI_byte:{
            byte mbot, mtop, *mar = (byte *) DBLK_ARRAY(blk,jbr) ;
-           float mfac = DBLK_BRICK_FACTOR(blk,jbr) ;
+           float fval, mfac = DBLK_BRICK_FACTOR(blk,jbr) ;
            if( mfac == 0.0 ) mfac = 1.0 ;
-           mbot = BYTEIZE(bot/mfac) ; mtop = BYTEIZE(top/mfac) ;
+           fval = bot/mfac;
+           fmax = MRI_TYPE_maxval[MRI_byte];
+           if     ( fval < 0    ) mbot = (byte)0;
+           else if( fval > fmax ) mbot = (byte)fmax;
+           else                   mbot = (byte)ceilf(fval);
+           
+           fval = top/mfac;
+           if     ( fval < 0    ) mtop = (byte)0;
+           else if( fval > fmax ) mtop = (byte)fmax;
+           else                   mtop = (byte)floorf(fval);
+           
+           /* old way: mbot = BYTEIZE(bot/mfac) ; mtop = BYTEIZE(top/mfac) ; */
            for( ii=0 ; ii < nxyz ; ii++ )
               if( mar[ii] < mbot || mar[ii] > mtop ) mar[ii] = 0 ;
         }
