@@ -3650,7 +3650,7 @@ gl_Constr <- function(n_gl, code, lop) {  # n_gl: number of tests: lop$num_glt o
       outList[[1]]    <- vector('list', n_gl)
       outList[[2]]    <- vector('list', n_gl)
       outList[[3]] <- vector('list', n_gl)
-      comQV <- c(lop$QV, lop$vVars); comQV <- comQV[!is.na(comQV)]
+      comQV <- c(lop$QV, lop$vVars)
       for (n in 1:n_gl) { # assuming each GLT has one slope involved and placed last
          if(length(comQV)==0) outList[[1]][[n]] <- glfConstr(code[[n]], lop$dataStr) else {
          if((length(comQV)>0) & any(comQV %in% code[[n]])) {
@@ -3667,7 +3667,7 @@ gl_Constr <- function(n_gl, code, lop) {  # n_gl: number of tests: lop$num_glt o
             } # if(is.na(lop$gltCode[[n]][QVpos+2]))
          } else outList[[1]][[n]] <- glfConstr(code[[n]], lop$dataStr) # if((length(lop$QV)>0) & any(lop$QV %in% lop$gltCode[[n]]))
          }
-         if(is.na(outList[[1]][[n]])) errex.AFNI(paste("Inappropriate coding in test No.", n, "! \n   ", sep = ""))
+         if(is.null(outList[[1]][[n]])) errex.AFNI(paste("Inappropriate coding in test No.", n, "! \n   ", sep = ""))
       }
    }
    return(outList)
