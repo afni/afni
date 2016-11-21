@@ -1,0 +1,144 @@
+#!/bin/tcsh
+
+# help?
+
+if( $#argv < 2 )then
+  echo
+  echo "This script will make a JPEG image showing the edges of an"
+  echo "EPI dataset overlayed on an anatomical dataset.  The purpose"
+  echo "is to let the user judge the quality of the 3D registration"
+  echo
+  echo "Usage: @snapshot_volreg ANATDataset EPIdataset"
+  echo
+  echo "Do NOT put a sub-brick index (such as '[0]') on the EPIdataset"
+  echo "name -- the script will automatically only use the '[0]' volume."
+  echo
+  echo "This script is new [Nov 2016] and will probably evolve into"
+  echo "something better (fondly do we hope)."
+  echo
+  echo "-- Author: The Mad Allineator"
+  echo
+  exit 0
+endif
+
+# check if all the needed auxiliary programs exist
+
+set nerr = 0
+set errm = "** ERROR:"
+
+set plist = ( Xvfb djpeg cjpeg pnmcat pbmtext pamcomp )
+foreach pppp ( $plist )
+  set wwww = `which $pppp`
+  if( $status != 0 )then
+    @ nerr++
+    set errm = "$errm $pppp"
+  endif
+end
+if( $nerr > 0 )then
+  echo "$errm -- not found in path -- @snapshot_volreg fails"
+  exit 1
+endif
+
+# set the prefix for the anat and epi datasets
+
+set adset = $argv[1]
+set anat  = `basename $adset .gz`
+set anat  = `basename $anat  .nii`
+set anat  = `basename $anat  .HEAD`
+set anat  = `basename $anat  .BRIK`
+set anat  = `basename $anat  +tlrc`
+set anat  = `basename $anat  +orig`
+set anat  = `basename $anat  +acpc`
+
+set edset = $argv[2]
+set epi   = `basename $edset .gz`
+set epi   = `basename $epi   .nii`
+set epi   = `basename $epi   .HEAD`
+set epi   = `basename $epi   .BRIK`
+set epi   = `basename $epi   +tlrc`
+set epi   = `basename $epi   +orig`
+set epi   = `basename $epi   +acpc`
+
+if( ! -f $adset || ! -f edset )then
+  if( ! -f $adset ) echo "** ERROR: @snapshot_volreg can't find $adset"
+  if( ! -f $edset ) echo "** ERROR: @snapshot_volreg can't find $edset"
+  exit 0
+endif
+
+# start the X virtual frame buffer on display 9
+
+Xvfb :9 -screen 0 1024x768x24 &
+
+# set some AFNI GUI things
+
+setenv AFNI_NOSPLASH    YES
+setenv AFNI_SPLASH_MELT NO
+setenv DISPLAY          :9
+
+# output image prefix
+
+set jnam = $anat.$epi
+
+# resample the EPI to the anat grid
+
+3dAllineate -input  ${edset}'[0]'     \
+            -master ${adset}          \
+            -prefix erm.epiR.nii      \
+            -1Dparam_apply IDENTITY   \
+            -final cubic
+
+# find edges in the EPI
+
+3dedge3 -input erm.epiR.nii -prefix erm.epiE.nii
+
+# get the EPI automask and apply it to the edgized EPI
+
+3dAutomask -prefix erm.epiM.nii -clfrac 0.333 -dilate 5 erm.epiR.nii
+3dcalc -a erm.epiE.nii -b erm.epiM.nii -expr 'a*b' -prefix erm.epiEM.nii
+
+# get the lower and upper thresholds for the edgized EPI
+
+set epp = `3dBrickStat -non-zero -percentile 20 60 80 erm.epiEM.nii`
+set eth = $epp[2]
+set emx = $epp[4]
+
+# run AFNI to make the 3 overlay images
+
+afni -noplugins -no_detach                                \
+     -com "SWITCH_UNDERLAY $anat"                         \
+     -com "SWITCH_OVERLAY erm.epiEM.nii"                  \
+     -com "SET_PBAR_ALL +99 1 Plasma"                     \
+     -com "SET_FUNC_RANGE $emx"                           \
+     -com "SET_THRESHNEW $eth *"                          \
+     -com "SEE_OVERLAY +"                                 \
+     -com "OPEN_WINDOW sagittalimage opacity=6"           \
+     -com "OPEN_WINDOW axialimage opacity=6"              \
+     -com "OPEN_WINDOW coronalimage opacity=6"            \
+     -com "SAVE_JPEG sagittalimage erm.sag.jpg blowup=2"  \
+     -com "SAVE_JPEG coronalimage  erm.cor.jpg blowup=2"  \
+     -com "SAVE_JPEG axialimage    erm.axi.jpg blowup=2"  \
+     -com "QUITT"                                         \
+     ${adset} erm.epiEM.nii
+
+# stop Xvfb
+
+kill %1
+
+# convert the output JPEGs to PNMs for manipulation
+
+djpeg erm.sag.jpg > erm.sag.pnm
+djpeg erm.cor.jpg > erm.cor.pnm
+djpeg erm.axi.jpg > erm.axi.pnm
+
+# cat them together, make a text label, overlay it, make output JPEG
+
+pnmcat -lr -jcenter -black erm.sag.pnm erm.axi.pnm erm.cor.pnm > erm.pnm
+pbmtext $jnam                                                  > erm.pbm
+pamcomp -xoff=1 -yoff=1 erm.pbm erm.pnm | cjpeg -quality 95    > $jnam.jpg
+
+# delete the trash data
+
+\rm -f erm.*
+
+echo "@snapshot_volreg output image = $jnam.jpg"
+exit 0
