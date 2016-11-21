@@ -210,8 +210,7 @@ ENTRY("THD_open_dataset") ;
      if( cpt != NULL ) {/* ZSS  Dec 09 */
        /* The condition used to issue a warning and proceed.
           Now it fails. */
-       ERROR_message("bad sub-brick selector %s => using [0..%d]",
-                       cpt, DSET_NVALS(dset)-1) ;
+       ERROR_message("bad sub-brick selector %s", cpt);
        if(qname!=NULL)free(qname); RETURN(NULL) ;
      }
      ivlist = (int *) malloc(sizeof(int)*(DSET_NVALS(dset)+1)) ;
@@ -231,13 +230,14 @@ ENTRY("THD_open_dataset") ;
       dset->dblk->master_top = 0.0 ;
    }
 
-   /* moved to new function that goes after labels   17 Apr 2012 [rickr] */
-   if( bpt != NULL ){
-      bot = 1.0 ; top = 0.0 ; /* in case of odd failure */
-      MCW_get_angle_range(dset, bpt, &bot, &top) ;
-      dset->dblk->master_bot = bot ;
-      dset->dblk->master_top = top ;
-   }
+   /* - moved to new function that goes after labels   17 Apr 2012 [rickr] */
+   /* - set single value, float .. range, or comma-delimited int list      */
+   /* - fail on illegal angle selector                                     */
+   if( bpt != NULL )
+      if( thd_check_angle_selector(dset, bpt) ) {
+         ERROR_message("bad angle bracket selector: %s", bpt);
+         RETURN(NULL);
+      }
 
    /* modify the dataset according to the selector string */
 

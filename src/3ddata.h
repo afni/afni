@@ -1213,6 +1213,12 @@ typedef struct {
       float master_bot ;      /*!< range of data values to keep from master - bottom */
       float master_top ;      /*!< range of data values to keep from master - top */
 
+      /* for angle bracket selectors - input restricted to an integer list of */
+      /* CSV (comma separated values) - akin to master_bot and master_top,    */
+      /* but a list, not a range                          21 Nov 2016 [rickr] */
+      int    master_ncsv ;    /*!< Number of values in master_csv             */
+      int *  master_csv  ;    /*!< list of non-zero values that can be stored */
+
       THD_diskptr * diskptr ; /*!< where the data is on disk (if anywhere!) */
 
       int       natr ;        /*!< number of attributes read from disk (or to write to disk) */
@@ -4478,15 +4484,18 @@ extern MRI_IMAGE *        THD_fetch_1D           (char *) ; /* 26 Mar 2001 */
 
 extern void THD_set_storage_mode( THD_3dim_dataset *,int ); /* 21 Mar 2003 */
 
-extern int * get_count_intlist ( char *str , int *nret , int maxval );
+extern int * get_count_intlist    (char *str, int *nret, int maxval );
+extern int * get_count_intlist_eng(char *str, int *nret, int maxval, int ok_neg);
 /* get_1dcat_intlist: May 15 2012 ZSS    ; added maxval 4 Jan 2016 [rickr] */
-int * get_1dcat_intlist ( char *str , int *nret, int maxval);
+int * get_1dcat_intlist    ( char *str , int *nret, int maxval);
+int * get_1dcat_intlist_eng( char *str , int *nret, int maxval, int ok_neg);
 
 extern int * MCW_get_intlist( int , char * ) ;
 extern int * MCW_get_labels_intlist( char ** , int,  char * ); /* ZSS Dec 09 */
 extern int * MCW_get_thd_intlist( THD_3dim_dataset * , char * ); /* ZSS Dec 09 */
 extern void MCW_intlist_allow_negative( int ) ;             /* 22 Nov 1999 */
 extern int  MCW_get_angle_range(THD_3dim_dataset *, char *, float *, float *);
+extern int  thd_check_angle_selector(THD_3dim_dataset *, char *); /* 21 Nov 2016 */
 
 
 /* copy a dataset, given a list of sub-bricks          [rickr] 26 Jul 2004 */
