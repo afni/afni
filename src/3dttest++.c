@@ -1382,25 +1382,28 @@ int is_possible_filename( char * fname )
 static int   njob   = 0 ;
 static pid_t *jobid = NULL ;
 
+#include <errno.h>
+
 void start_job( char *cmd )   /* 10 Feb 2016 */
 {
    pid_t newid ;
 
    if( cmd == NULL || *cmd == '\0' ) return ;
 
+   errno = 0 ;
    newid = fork() ;
 
    if( newid == (pid_t)-1 ){  /*--- fork failed -- should never happen ---*/
 
      int qq ;
-     ERROR_message("----- Failure to fork for cmd = '%s'") ;
+     ERROR_message("----- Failure to fork for job=%d error='%s'",njob,strerror(errno)) ;
      for( qq=0 ; qq < njob ; qq++ ){
        ERROR_message("  Killing fork-ed job %d (pid=%u)",
                         qq , (unsigned int)jobid[qq]   ) ;
-       kill( jobid[qq] ,SIGTERM   ) ; NI_sleep(10) ;
+       kill( jobid[qq] ,SIGTERM   ) ; NI_sleep(1) ;
        waitpid( jobid[qq] , NULL , 0 ) ;
      }
-     ERROR_exit("Program exits -- sorry :-(") ;
+     ERROR_exit("Program exits -- sorry :-(((") ;
 
    } else if( newid > 0 ){    /*--- fork worked -- we are the original ---*/
 
