@@ -17,7 +17,7 @@ void MCW_intlist_allow_negative( int iii )   /* 22 Nov 1999 */
    allow_negative = iii ; return ;
 }
 
-/*! Stopping criterion for MCW_get_intlist()          ZSS, Aug 06: Added '#' to ISEND */
+/*! Stopping criterion for MCW_get_intlist()  ZSS, Aug 06: Added '#' to ISEND */
 
 #define ISEND(c) ( (c)==']' || (c)=='}' || (c)=='#' || (c)=='\0' )
 
@@ -314,7 +314,7 @@ int * MCW_get_intlist( int nvals , char *str )
          ibot = nvals-1 ; ipos++ ;
       } else {                 /* decode an integer */
          ibot = strtol( str+ipos , &cpt , 10 ) ;
-         if( ibot < 0 && !ok_neg ){
+         if( ibot < 0 && !allow_negative ){
            fprintf(stderr,
                    "** ERROR: selector index %d is out of range 0..%d\n",
                    ibot,nvals-1) ;
@@ -366,7 +366,7 @@ int * MCW_get_intlist( int nvals , char *str )
          itop = nvals-1 ; ipos++ ;
       } else {                 /* decode an integer */
          itop = strtol( str+ipos , &cpt , 10 ) ;
-         if( itop < 0 && !ok_neg ){
+         if( itop < 0 && !allow_negative ){
            fprintf(stderr,"** ERROR: selector index %d is out of range 0..%d\n",
                    itop,nvals-1) ;
            free(subv) ; return NULL ;
@@ -872,8 +872,14 @@ int thd_check_angle_selector(THD_3dim_dataset * dset, char * instr)
       }
    /* handle ,-delimited list of integers/labels */
    } else if ( cptr ) {
-      fprintf(stderr,"== rcr - make list of ints from %s\n", rptr);
-      return 1;
+      int iii;
+      if( thd_get_labeltable_intlist(dset, rptr, &dset->dblk->master_csv,
+                                                 &dset->dblk->master_ncsv) )
+         return 1;
+fprintf(stderr,"== rcr have %d ints\n", dset->dblk->master_ncsv);
+for(iii=0; iii<dset->dblk->master_ncsv;iii++)
+  fprintf(stderr,"   val = %d\n", dset->dblk->master_csv[iii]);
+      return 0;
    /* handle single value/label */
    } else { /* ZSS: Why not allow for <val> ? */
       scount = sscanf(rptr,   "%f", &fbot);
@@ -892,5 +898,120 @@ int thd_check_angle_selector(THD_3dim_dataset * dset, char * instr)
 
    /* should not get here */
    return 1;
+}
+
+
+/* based on MCW_get_intlist
+ *
+ * dset is only needed if going after labeltable
+ *
+ * return 0 on success, else error
+ */
+int thd_get_labeltable_intlist(THD_3dim_dataset * dset, char *str,
+                               int ** list, int * nvals)
+{   
+   static int   show_labs = -1;
+   int_list     ilist, llist;    /* maintain list in int_list struct */
+   char       * workstr, * next, * cpt;
+   int        * tmplist;
+   int          ival, tind, err;
+
+   ENTRY("thd_get_labeltable_intlist");
+
+   /* if cannot return length, fail */
+   if( !nvals || !list ) RETURN(1);
+
+   /* call empty selection list okay */
+   *nvals = 0;
+   *list = NULL;
+   if( !str || str[0] == '\0' ) RETURN(0);
+
+   if( show_labs == -1 ) show_labs = AFNI_yesenv("AFNI_SHOW_LABEL_TO_INDEX");
+
+   /* ---------------------------------------------------------------------- */
+   /* check if using 1dcat or count */
+   tmplist = NULL;
+
+   if (strstr(str,"1dcat ")) {
+      tmplist = get_1dcat_intlist_eng(str, nvals, 0, 1);
+      if( ! tmplist || *nvals < 1 ) RETURN(1);
+   }
+   if (strstr(str,"count ")) {
+      tmplist = get_count_intlist_eng(str, nvals, 0, 1);
+      if( ! tmplist || *nvals < 1 ) RETURN(1);
+   }
+
+   /* if success, get rid of initial length value in tmplist */
+   if ( tmplist ) {
+      *list = malloc(*nvals * sizeof(int));
+      memcpy(*list, tmplist+1, *nvals * sizeof(int));
+      free(tmplist);
+      RETURN(0);
+   }
+
+   /* ---------------------------------------------------------------------- */
+   /* else, process as comma-separated list                                  */
+
+   /* create empty int lists */
+   init_int_list(&ilist, 0);
+   init_int_list(&llist, 0);
+
+   /* use strtok to process comma-separated list */
+   workstr = nifti_strdup(str);
+   if( !workstr ) { ERROR_message("TGLI: failed to cp <> string"); RETURN(1); }
+   next = strtok(workstr, ",");
+   err = 0;
+   for( tind=0;  next && ! err;  next=strtok(NULL, ", "), tind++ ) {
+      if( *next == '>' ) break;
+
+      if ( isdigit(*next) ) { /* then decode integer */
+         ival = strtol( next , &cpt , 10 ) ;
+         if( ival == 0 && cpt == next ){
+            err = 1;
+            break;
+         }
+
+         if( add_to_int_list(&ilist, ival, 16) <= 0 ) {
+            ERROR_message(
+               "<> select: failed to extend int_list to len %d for %s\n",
+               ilist.nall, next);
+            err = 1;
+            break;
+         }
+      } else if ( isalpha(*next) ) {
+         if ( thd_LT_label_to_int_list(dset, &llist, next) ) {
+            ERROR_message( "<> select: invalid label %s\n", next);
+            err = 1;
+            break;
+         }
+         extend_int_list(&ilist, &llist);
+      } else {
+         ERROR_message("<> select: unexpected char at posn %d in '%s'",
+                       (int)(next-workstr), str);
+         err = 1;
+      }
+   }  /* end of loop through selector string */
+
+   free(workstr);
+   free_int_list(&llist);
+
+   if( err ) {
+      ERROR_message("failed to process <> selector, '%s'", str);
+      free_int_list(&ilist);
+      RETURN(1);
+   }
+
+   /* success!  steal integer list and flee */
+   *list = ilist.list;
+   *nvals = ilist.num;
+
+if(ilist.num > 0) {
+int c;
+fprintf(stderr,"== have csv list:\n");
+for(c = 0; c < ilist.num; c++)
+  fprintf(stderr,"   %d\n", ilist.list[c]);
+}
+
+   RETURN(0);
 }
 
