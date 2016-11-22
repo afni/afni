@@ -5146,7 +5146,6 @@ void *SUMA_nimlEngine2Engine(NI_group *ngr)
                   SUMA_CHECK_NULL_STR(NI_get_attribute(ngr,"Command")));
       SUMA_RETURN(Ret); 
    }
-  printf("cc is %d for attribute %s\n",cc, NI_get_attribute(ngr,"Command"));
    
    /* do we have the classics? */
    itmp = 0;
@@ -5434,7 +5433,6 @@ void *SUMA_nimlEngine2Engine(NI_group *ngr)
          exit(0);
          break;
       case SE_GetLabel:
-printf("trying to get label\n");
            {
                /* show the current surface label */
                SUMA_SurfaceObject *SO=NULL;
