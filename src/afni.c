@@ -1127,11 +1127,11 @@ ENTRY("AFNI_parse_args") ;
         int ii , ll ; char *cm , *cs , *cq ;
         if( ++narg >= argc ) ERROR_exit("need an argument after -com!");
         cm = argv[narg] ; ll = strlen(cm) ; cs = strchr(cm,comsep) ;
-             if( ll > 1024   ) ERROR_message("argument after -com is too long" );
-        else if( ll <   3   ) ERROR_message("argument after -com is too short");
+             if( ll > 1024   ) ERROR_message("argument after -com is too long:\n'%s'" ,argv[narg] );
+        else if( ll <   3   ) ERROR_message ("argument after -com is too short:\n'%s'",argv[narg] );
         else if( cs == NULL ) {
            if (COM_num < MAX_N_COM) COM_com[ COM_num++ ] = strdup(argv[narg]) ;
-           else ERROR_message("Too many commands");
+           else ERROR_message("Too many commands (max allowed=%d)",MAX_N_COM);
         } else {  /* 22 Feb 2007: break into sub-commands */
           cq = cm = strdup(argv[narg]) ;
           for( ii=ll-1 ; isspace(cm[ii]) ; ii-- ) cm[ii] = '\0' ; /* trim end */
@@ -2337,8 +2337,6 @@ int main( int argc , char *argv[] )
    int ii ; int dienow=0 ;
 
    /*--- help the pitiful user? ---*/
-
-   init_rand_seed(0) ;
 
    if( argc > 1 && strcmp(argv[1],"-help")    == 0 ) AFNI_syntax() ;
    if( argc > 1 && strcmp(argv[1],"-goodbye") == 0 ) AFNI_sigfunc_alrm(0) ;

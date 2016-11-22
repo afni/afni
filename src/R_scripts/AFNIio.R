@@ -3603,17 +3603,58 @@ extract.data <- function(z,what="data") {
 }
 
 # GC 01/12/2015: Used in 3dMVM.T and 3dLME.R to construct GLT and GLF stuff
+#gl_Constr2 <- function(n_gl, code, lop) {  # n_gl: number of tests: lop$num_glt or lop$num_glf; code: lop$glfCode
+#   if (n_gl > 0) {
+#      outList <- vector('list', 3)
+#      outList[[1]]    <- vector('list', n_gl)
+#      outList[[2]]    <- vector('list', n_gl)
+#      outList[[3]] <- vector('list', n_gl)
+#      for (n in 1:n_gl) { # assuming each GLT has one slope involved and placed last
+#         # if(length(lop$QV)==0) outList[[1]][[n]] <- glfConstr(code[[n]], lop$dataStr) else {
+#         if((length(lop$QV)==0) & is.na(lop$vVars)) outList[[1]][[n]] <- glfConstr(code[[n]], lop$dataStr) else {
+#         if((length(lop$QV)>0) & any(lop$QV %in% code[[n]])) {
+#            QVpos <- which(code[[n]] %in% lop$QV)
+#            if(is.na(code[[n]][QVpos+2])) { # test for covariate effect
+#               if(QVpos==1) outList[[1]][[n]] <- NA else
+#                  outList[[1]][[n]] <-glfConstr(code[[n]][-c(QVpos, QVpos+1)], lop$dataStr)
+#               outList[[2]][[n]]    <- code[[n]][QVpos]
+#            } else { # effect at a specific covariate value
+#              if(QVpos==1) outList[[1]][[n]] <- NA else
+#                  outList[[1]][[n]] <-glfConstr(code[[n]][-(QVpos:(QVpos+2))], lop$dataStr)
+#               outList[[3]][[n]] <- as.numeric(code[[n]][QVpos+2])
+#               names(outList[[3]][[n]]) <- code[[n]][QVpos]
+#            } # if(is.na(lop$gltCode[[n]][QVpos+2]))
+#         } else if(!is.na(lop$vVars) & any(lop$vQV %in% code[[n]])) { # voxel-wise covariate
+#            vQVpos <- which(code[[n]] %in% lop$vQV)
+#            if(is.na(code[[n]][vQVpos+2])) { # test for covariate effect
+#               if(vQVpos==1) outList[[1]][[n]] <- NA else
+#                  outList[[1]][[n]] <-glfConstr(code[[n]][-c(vQVpos, vQVpos+1)], lop$dataStr)
+#               outList[[2]][[n]]    <- code[[n]][vQVpos]
+#            } else { # effect at a specific covariate value
+#              if(vQVpos==1) outList[[1]][[n]] <- NA else
+#                  outList[[1]][[n]] <-glfConstr(code[[n]][-(vQVpos:(vQVpos+2))], lop$dataStr)
+#               outList[[3]][[n]] <- as.numeric(code[[n]][vQVpos+2])
+#               names(outList[[3]][[n]]) <- code[[n]][vQVpos]
+#           } # if(is.na(lop$gltCode[[n]][vQVpos+2]))
+#         } else outList[[1]][[n]] <- glfConstr(code[[n]], lop$dataStr) # if((length(lop$QV)>0) & any(lop$QV %in% lop$gltCode[[n]]))
+#      }
+#      }
+#   }
+#   return(outList)
+#}
+
+
 gl_Constr <- function(n_gl, code, lop) {  # n_gl: number of tests: lop$num_glt or lop$num_glf; code: lop$glfCode
    if (n_gl > 0) {
       outList <- vector('list', 3)
       outList[[1]]    <- vector('list', n_gl)
       outList[[2]]    <- vector('list', n_gl)
       outList[[3]] <- vector('list', n_gl)
+      comQV <- c(lop$QV, lop$vVars)
       for (n in 1:n_gl) { # assuming each GLT has one slope involved and placed last
-         # if(length(lop$QV)==0) outList[[1]][[n]] <- glfConstr(code[[n]], lop$dataStr) else {
-         if((length(lop$QV)==0) & is.na(lop$vVars)) outList[[1]][[n]] <- glfConstr(code[[n]], lop$dataStr) else {
-         if((length(lop$QV)>0) & any(lop$QV %in% code[[n]])) {
-            QVpos <- which(code[[n]] %in% lop$QV)
+         if(length(comQV)==0) outList[[1]][[n]] <- glfConstr(code[[n]], lop$dataStr) else {
+         if((length(comQV)>0) & any(comQV %in% code[[n]])) {
+            QVpos <- which(code[[n]] %in% comQV)
             if(is.na(code[[n]][QVpos+2])) { # test for covariate effect
                if(QVpos==1) outList[[1]][[n]] <- NA else
                   outList[[1]][[n]] <-glfConstr(code[[n]][-c(QVpos, QVpos+1)], lop$dataStr)
@@ -3624,20 +3665,9 @@ gl_Constr <- function(n_gl, code, lop) {  # n_gl: number of tests: lop$num_glt o
                outList[[3]][[n]] <- as.numeric(code[[n]][QVpos+2])
                names(outList[[3]][[n]]) <- code[[n]][QVpos]
             } # if(is.na(lop$gltCode[[n]][QVpos+2]))
-         } else if(!is.na(lop$vVars) & any(lop$vQV %in% code[[n]])) { # voxel-wise covariate
-            vQVpos <- which(code[[n]] %in% lop$vQV)
-            if(is.na(code[[n]][vQVpos+2])) { # test for covariate effect
-               if(vQVpos==1) outList[[1]][[n]] <- NA else
-                  outList[[1]][[n]] <-glfConstr(code[[n]][-c(vQVpos, vQVpos+1)], lop$dataStr)
-               outList[[2]][[n]]    <- code[[n]][vQVpos]
-            } else { # effect at a specific covariate value
-              if(vQVpos==1) outList[[1]][[n]] <- NA else
-                  outList[[1]][[n]] <-glfConstr(code[[n]][-(vQVpos:(vQVpos+2))], lop$dataStr)
-               outList[[3]][[n]] <- as.numeric(code[[n]][vQVpos+2])
-               names(outList[[3]][[n]]) <- code[[n]][vQVpos]
-           } # if(is.na(lop$gltCode[[n]][vQVpos+2]))
          } else outList[[1]][[n]] <- glfConstr(code[[n]], lop$dataStr) # if((length(lop$QV)>0) & any(lop$QV %in% lop$gltCode[[n]]))
-      }
+         }
+         if(is.null(outList[[1]][[n]])) errex.AFNI(paste("Inappropriate coding in test No.", n, "! \n   ", sep = ""))
       }
    }
    return(outList)
