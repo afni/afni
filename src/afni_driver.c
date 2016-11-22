@@ -28,6 +28,7 @@ static int AFNI_drive_switch_function( char *cmd ) ;
 static int AFNI_drive_open_window( char *cmd ) ;
 static int AFNI_drive_close_window( char *cmd ) ;
 static int AFNI_drive_quit( char *cmd ) ;
+static int AFNI_drive_quitt( char *cmd ) ;
 static int AFNI_drive_setenv( char *cmd ) ;
 static int AFNI_drive_getenv( char *cmd );          /* 20 Oct 2008 */
 
@@ -176,6 +177,7 @@ static AFNI_driver_pair dpair[] = {
 
  { "SET_GRAPH_GEOM"   , AFNI_drive_geom_graph        } ,
 
+ { "QUITT"            , AFNI_drive_quitt             } ,
  { "QUIT"             , AFNI_drive_quit              } ,
 
  { "SYSTEM"           , AFNI_drive_system            } ,
@@ -1195,6 +1197,13 @@ static int AFNI_drive_quit( char *cmd )
   for( ii=0 ; ii < 7 ; ii++ ){ RWC_sleep(123); fprintf(stderr,"*"); fflush(stderr); }
   fprintf(stderr,"\n\n") ;
   AFexit(0) ; return 0 ;
+}
+
+/*---------------------------------------------------------------*/
+
+static int AFNI_drive_quitt( char *cmd )
+{
+  fprintf(stderr,"\nAFNI QUITTs!\n"); exit(0);
 }
 
 /*===============================================================

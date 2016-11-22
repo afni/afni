@@ -1046,6 +1046,7 @@ static float magma_data[3*magma_num] =
      0.987387, 0.984288, 0.742002,
      0.987053, 0.991438, 0.749504 } ;
 
+#if 0
 #define      inferno_num 256
 static char *inferno_name = "Inferno" ;
 static float inferno_data[3*inferno_num] =
@@ -1305,6 +1306,7 @@ static float inferno_data[3*inferno_num] =
                  0.976511, 0.989753, 0.616760,
                  0.982257, 0.994109, 0.631017,
                  0.988362, 0.998364, 0.644924} ;
+#endif
 
 #define      plasma_num 256
 static char *plasma_name = "Plasma" ;

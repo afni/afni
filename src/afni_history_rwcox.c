@@ -44,6 +44,11 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 18 , NOV , 2016 , RWC , "afni GUI" , MICRO , TYPE_ENHANCE ,
+   "Add 'QUITT' command to the driver" ,
+   "Exits AFNI immediately, rather than calling the usual leisurely rundown.\n"
+   "For use in scripts, to save a little time." } ,
+
  { 17 , NOV , 2016 , RWC , "afni GUI" , MICRO , TYPE_ENHANCE ,
    "Four new colorscales" ,
    NULL } ,
