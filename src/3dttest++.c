@@ -3386,7 +3386,7 @@ LABELS_ARE_DONE:  /* target for goto above */
            nnlev = sid = npthr = 0 ; pthr = NULL ; nam="default" ;
          }
 
-         sprintf( cmd , "3dXClustSim -DAFNI_DONT_LOGFILE=YES"
+         sprintf( cmd , "3dXClustSim -DAFNI_DONT_LOGFILE=YES -noFARvox"
                         " -prefix %s.%s.CsimX.nii" , prefix_clustsim , nam ) ;
          if( Xclu_arg != NULL )
            sprintf( cmd+strlen(cmd) , " %s",Xclu_arg) ;
