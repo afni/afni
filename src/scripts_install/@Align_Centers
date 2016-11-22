@@ -5,12 +5,13 @@ set retval = 0   # return a status (do we need to goto END?)
 PARSE:
    set Narg = $#
    set cnt = 1
-   set v1_list = ""
+   set v1_list = ()     # init as list             18 Nov 2016 [rickr]
    set v2i = ""
    set v1i = ""
    set usecp = 1
    set xmat_only = 0
    set xmat_only_meanit = 0  # really don't make new dsets
+   set oprefix = "" # optional output prefix       18 Nov 2016 [rickr]
  
    set mode = 'grid'
    set cm_amask = '-automask' # -automask or ''     6 Nov 2015 [rickr]
@@ -103,6 +104,19 @@ PARSE:
             set donext = 0   
          endif   
       endif
+      # -prefix, if we do not want _shft        18 Nov 2016 [rickr]
+      if ($donext && "$argv[$cnt]" == "-prefix") then
+         set pLoc = $cnt      
+         if ($pLoc == $Narg) then
+            echo "Need name after -prefix"
+            set retval = 1
+            goto END
+         else
+            @ cnt ++
+            set oprefix = ($argv[$cnt])
+            set donext = 0   
+         endif   
+      endif
       if ($donext == 1) then
          echo "Error: Option or parameter '$argv[$cnt]' not understood"
             set retval = 1
@@ -116,6 +130,22 @@ if ("$v1i" == "" || "$v2i" == "") then
             set retval = 1
    goto END
 endif   
+
+# -prefix should not be combined with -child or -no_cp    18 Nov 2016
+if ( $oprefix != "" ) then
+   set retval = 0
+   if ( $#v1_list > 0 ) then
+      echo "Error: cannot use -prefix with -child"
+      set retval = 1
+   endif
+   if ( ! $usecp ) then
+      echo "Error: cannot use -prefix with -no_cp"
+      set retval = 1
+   endif
+   if ( $retval ) then
+      goto END
+   endif
+endif
 
 SET_PARAMS: 
 set v2_vw = `@GetAfniView $v2i`
@@ -155,6 +185,11 @@ SETCENTER:
    set v1_pref = `@GetAfniPrefix $v1i`
    set v1 = $v1_pth/$v1_pref$v1_vw
    set oname = `ParseName -app _shft  -out PrefixView $v1`
+   # possibly apply -prefix
+   if ( $oprefix != "" ) then
+      set dsview = `@GetAfniView $oname`
+      set oname = $oprefix$dsview
+   endif
 
 if ($mode == 'grid') then
    #orientation of v1
@@ -247,6 +282,10 @@ DELTA_TO_XMAT:
       set del_xform = ($del_xform `ccalc -eval "$delx * -1"`)
    end
    set oname = `ParseName -app _shft  -out Prefix $v1`
+   # possibly apply -prefix
+   if ( $oprefix != "" ) then
+      set oname = $oprefix
+   endif
    #get rid of .nii which remains in prefix
    set o1d = `ParseName -out FNameNoAfniExt $oname`
    echo "1 0 0 $del_xform[1] 0 1 0 $del_xform[2] 0 0 1 $del_xform[3]" \
@@ -313,73 +352,80 @@ end
 goto END  
 
 
+# get rid of quotes here...   18 Nov 2016
 HELP:
-   echo ""
-   echo "Usage: `basename $0` <-base BASE> <-dset DSET> [-no_cp] "
-   echo "                     [-child CHILD_2 ... CHILD_N] [-echo]"
-   echo ""
-   echo "   Moves the center of DSET to the center of BASE."
-   echo "   By default, center refers to the center of the volume's voxel grid."
-   echo "   Use -cm to use the brain's center of mass instead."
-   echo ""
-   echo "   AND/OR creates the transform matrix XFORM.1D needed for this shift."
-   echo "   The transform can be used with 3dAllineate's -1Dmatrix_apply "
-   echo "      3dAllineate   -1Dmatrix_apply XFORM.1D    \"
-   echo "                    -prefix PREFIX -master BASE \"
-   echo "                    -input DSET"
-   echo ""
-   echo "   -echo: Echo all commands to terminal for debugging"
-   echo "   -overwrite: You know what"
-   echo "   -1Dmat_only: Only output the transfrom needed to align"
-   echo "                the centers. Do not shift any child volumes."
-   echo "                The transform is named DSET_shft.1D"
-   echo "   -1Dmat_only_nodset: Like above, but no dsets at all"
-   echo "                are created or changed."
-   echo "   -base BASE: Base volume, typically a template."
-   echo "   -dset DSET: Typically an anatomical dset to be"
-   echo "               aligned to BASE."
-   echo "   -child CHILD_'*': A bunch of datasets, originally"
-   echo "                     in register with DSET, that"
-   echo "                     should be shifted in the same"
-   echo "                     way."
-   echo "   -no_cp: Do not create new data, shift existing ones"
-   echo "           This is a good option if you know what you "
-   echo "           are doing. It will save you a lot of space."
-   echo "           See NOTE below before using it."
-   echo ""
-   echo "    DSET and CHILD_'*' are typically all the datasets "
-   echo "    from a particular scanning session that"
-   echo "    you want to eventually align to BASE."
-   echo "    Such an operation is needed when DSET and CHILD_'*'"
-   echo "    overlap very little, if at all with BASE"
-   echo ""
-   echo " Note that you can specify *.HEAD for the children even "
-   echo " if the wildcard substitution would contain DSET "
-   echo " and possibly even BASE. The script will not process"
-   echo " a dataset twice in one execution."
-   echo ""
-   echo " Center options:"
-   echo "   -grid: (default) Center is that of the volume's grid"
-   echo "   -cm : Center is the center of mass of the volume."
-   echo "   -cm_no_amask : Implies -cm, but with no -automask."
-   echo "" 
-   echo ""
-   echo "   See also @Center_Distance"
-   echo ""
-   echo " NOTE: Running the script multiple times on the same data"
-   echo "       will cause a lot of trouble. That is why the default"
-   echo "       is to create new datasets as opposed to shifting the"
-   echo "       existing ones. Do not use -no_cp unless you know what"
-   echo "       you are doing."
-   echo "       To undo errors caused by repeated executions"
-   echo "       look at the history of each dset and undo"
-   echo "       the excess 3drefit operations."
-   echo ""
-   echo "Requires 3drefit newer than Oct. 02/02."
-   echo ""
-   echo "Ziad Saad (saadz@mail.nih.gov)"
-   echo "SSCC/NIMH/ National Institutes of Health, Bethesda Maryland"
-   echo ""
+cat << EOF
+
+Usage: `basename $0` <-base BASE> <-dset DSET> [-no_cp] 
+                     [-child CHILD_2 ... CHILD_N] [-echo]
+
+   Moves the center of DSET to the center of BASE.
+   By default, center refers to the center of the volume's voxel grid.
+   Use -cm to use the brain's center of mass instead.
+
+   AND/OR creates the transform matrix XFORM.1D needed for this shift.
+   The transform can be used with 3dAllineate's -1Dmatrix_apply 
+      3dAllineate   -1Dmatrix_apply XFORM.1D    \
+                    -prefix PREFIX -master BASE \
+                    -input DSET
+
+   -echo: Echo all commands to terminal for debugging
+   -overwrite: You know what
+   -prefix PREFIX:  Result will be named using PREFIX, instead of the
+                    current prefix with _shft appended.
+                  * Does not work with -child or -no_cp.
+   -1Dmat_only: Only output the transfrom needed to align
+                the centers. Do not shift any child volumes.
+                The transform is named DSET_shft.1D
+   -1Dmat_only_nodset: Like above, but no dsets at all
+                are created or changed.
+   -base BASE: Base volume, typically a template.
+   -dset DSET: Typically an anatomical dset to be
+               aligned to BASE.
+   -child CHILD_'*': A bunch of datasets, originally
+                     in register with DSET, that
+                     should be shifted in the same
+                     way.
+   -no_cp: Do not create new data, shift existing ones
+           This is a good option if you know what you 
+           are doing. It will save you a lot of space.
+           See NOTE below before using it.
+
+    DSET and CHILD_'*' are typically all the datasets 
+    from a particular scanning session that
+    you want to eventually align to BASE.
+    Such an operation is needed when DSET and CHILD_'*'
+    overlap very little, if at all with BASE
+
+ Note that you can specify *.HEAD for the children even 
+ if the wildcard substitution would contain DSET 
+ and possibly even BASE. The script will not process
+ a dataset twice in one execution.
+
+ Center options:
+   -grid: (default) Center is that of the volume's grid
+   -cm : Center is the center of mass of the volume.
+   -cm_no_amask : Implies -cm, but with no -automask.
+
+
+   See also @Center_Distance
+
+ NOTE: Running the script multiple times on the same data
+       will cause a lot of trouble. That is why the default
+       is to create new datasets as opposed to shifting the
+       existing ones. Do not use -no_cp unless you know what
+       you are doing.
+       To undo errors caused by repeated executions
+       look at the history of each dset and undo
+       the excess 3drefit operations.
+
+Requires 3drefit newer than Oct. 02/02.
+
+Ziad Saad (saadz@mail.nih.gov)
+SSCC/NIMH/ National Institutes of Health, Bethesda Maryland
+
+EOF
+
    goto END
 
 

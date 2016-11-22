@@ -32,7 +32,7 @@ help.MVM.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
           ================== Welcome to 3dMVM ==================          
     AFNI Group Analysis Program with Multi-Variate Modeling Approach
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 3.9.0, Aug 30, 2016
+Version 3.9.2, Nov 21 2016
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - https://afni.nimh.nih.gov/sscc/gangc/MVM.html
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -620,7 +620,7 @@ read.MVM.opts.batch <- function (args=NULL, verb = 0) {
       lop$wsVars <- NA
       lop$mVar   <- NA
       lop$qVars  <- NA
-      lop$vVars  <- NA
+      lop$vVars  <- NULL
       lop$vQV    <- NA
       lop$qVarCenters <- NA
       lop$vVarCenters <- NA
@@ -738,8 +738,9 @@ glfConstr <- function(cStr, dataStr) {
    nvar <- length(vars)
    pos <- c(pos, length(cStr)+2) # add an artificial one for convenient usage below
    varsOK <- vars %in% colnames(dataStr)
+   glfList <- vector('list', nvar)
    if(all(varsOK)) {
-      glfList <- vector('list', nvar)
+      #glfList <- vector('list', nvar)
       names(glfList) <- vars
       for(ii in 1:nvar) {
 	 lvl  <- levels(dataStr[,vars[ii]])   # all the levels for each involved factor
@@ -765,13 +766,14 @@ glfConstr <- function(cStr, dataStr) {
 	       if(all(lvlOK)) {
 	          sq <- match(lvlInv, lvl)
                   glfList[[ii]][sq,jj] <- as.numeric(sepTerms[seq(1,length(sepTerms),2)])
-	       } else errex.AFNI(paste("Incorrect level coding in variable", vars[ii],
-	         ": ", lvlInv[which(!lvlOK)], " \n   "))
-            }
+	       #} else errex.AFNI(paste("Incorrect level coding in variable", vars[ii], ": ", lvlInv[which(!lvlOK)], " \n   "))
+               } else glfList <- NULL
+           }
          #}
       }
       return(glfList)
-   } else errex.AFNI(paste("Incorrect variable name in GLF coding: ", vars[which(!varsOK)], " \n   "))
+   #} else errex.AFNI(paste("Incorrect variable name in GLF coding: ", vars[which(!varsOK)], " \n   "))
+   } else glfList <- NULL
 }
 
 # glfConstr(lop$glfCode[[1]], lop$dataStr)
@@ -797,7 +799,7 @@ process.MVM.opts <- function (lop, verb = 0) {
                    'format other than BRIK'))
 
    if(!is.na(lop$qVars[1])) lop$QV <- strsplit(lop$qVars, '\\,')[[1]]
-   if(!is.na(lop$vVars[1])) lop$vQV <- strsplit(lop$vVars, '\\,')[[1]]
+   if(!is.null(lop$vVars[1])) lop$vQV <- strsplit(lop$vVars, '\\,')[[1]]
 
    if(!is.na(lop$parSubset[1])) lop$parSubsetVector <- strsplit(lop$parSubset, '\\,')[[1]]
 
@@ -855,7 +857,7 @@ process.MVM.opts <- function (lop, verb = 0) {
       #if(!is.na(lop$qVars)) for(jj in lop$QV) lop$dataStr[,jj] <- as.numeric(lop$dataStr[,jj])
       if(!is.na(lop$qVars[1])) for(jj in lop$QV) lop$dataStr[,jj] <- as.numeric(as.character(lop$dataStr[,jj]))
       # or if(!is.na(lop$qVars)) for(jj in lop$QV) lop$dataStr[,jj] <- as.numeric(levels(lop$dataStr[,jj]))[as.integer(lop$dataStr[,jj])]
-      if(!is.na(lop$vVars[1])) for(jj in lop$vQV) lop$dataStr[,jj] <- as.character(lop$dataStr[,jj])
+      if(!is.null(lop$vVars[1])) for(jj in lop$vQV) lop$dataStr[,jj] <- as.character(lop$dataStr[,jj])
    }
    
    # set the covariate default values at their centers
@@ -975,6 +977,7 @@ process.MVM.opts <- function (lop, verb = 0) {
 
    return(lop)
 }
+# process.MVM.opts(lop, verb = lop$verb)                                               
 
 #################################################################################
 ################# MVM Computation functions ##############################
@@ -1444,7 +1447,7 @@ head <- inData
 cat('Reading input files: Done!\n\n')
 
 # voxel-wise covariate files
-if(any(!is.na(lop$vVars))) {
+if(any(!is.null(lop$vVars))) {
    for(ii in lop$vQV)
    if(length(unique(lop$dataStr[,ii])) != nlevels(lop$dataStr$Subj))
       errex.AFNI(c("Error with voxel-wise covariate ", ii, ": Each subject is only\n",
@@ -1479,7 +1482,7 @@ assVV <- function(DF, vQV, value, c) {
 }                                           
 
 # add a new column to store the voxel-wise filenames
-if(any(!is.na(lop$vVars))) {
+if(any(!is.null(lop$vVars))) {
    lop$dataStr <- cbind(lop$dataStr, lop$dataStr[, lop$vQV[1]])                                                
    names(lop$dataStr)[length(names(lop$dataStr))] <- paste(lop$vQV[1], '_fn', sep='')
 }                                           
@@ -1512,7 +1515,7 @@ while(is.null(fm)) {
    fm<-NULL
    if (all(abs(inData[ii, jj, kk,]) < 10e-8)) fm<-NULL else {
    lop$dataStr$Beta<-inData[ii, jj, kk,1:lop$NoFile]
-   if(any(!is.na(lop$vVars))) {
+   if(any(!is.null(lop$vVars))) {
       #lop$dataStr <- assVV(lop$dataStr, lop$vQV[1], vQV[ii,jj,kk,])
       lop$dataStr <- assVV(lop$dataStr, lop$vQV[1], inData[ii,jj,kk,(lop$NoFile+1):(lop$NoFile+lop$nSubj)], lop$vVarCenters[1])
       #if(all(is.na(lop$vVarCenters))) 
