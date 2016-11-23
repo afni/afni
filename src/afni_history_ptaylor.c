@@ -66,6 +66,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 23, Nov , 2016 , PT , "3dTrackID" , MINOR , TYPE_BUG_FIX,
+   "Used to be able to have nans in sBL b/c of sqrt(neg-from-rounding).",
+   "Now IF condition to prevent that.  Happy Thanksgiving.\n"
+},
+
 { 23, Nov , 2016 , PT , "3dNetCorr" , MINOR , TYPE_BUG_FIX,
    "Z-score WB maps were all zeros-> now have values.",
    "Hopefully even the correct Z-values.\n"
