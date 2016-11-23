@@ -93,7 +93,7 @@ static int nnsid = 1 ; /* 1 or 2 */
 static const int min_mask = 1024 ;    /* min # voxels */
 static const int min_nvol = 10000 ;   /* min # realizations */
 
-static float dilate_fac = 0.0111f ;   /* for STEP 2 */
+static float dilate_fac = 0.0666f ;   /* for STEP 2 */
 
 static char *prefix = "Xsim.nii" ;
 
