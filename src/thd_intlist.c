@@ -876,9 +876,11 @@ int thd_check_angle_selector(THD_3dim_dataset * dset, char * instr)
       if( thd_get_labeltable_intlist(dset, rptr, &dset->dblk->master_csv,
                                                  &dset->dblk->master_ncsv) )
          return 1;
+#if 0
 fprintf(stderr,"== rcr have %d ints\n", dset->dblk->master_ncsv);
 for(iii=0; iii<dset->dblk->master_ncsv;iii++)
   fprintf(stderr,"   val = %d\n", dset->dblk->master_csv[iii]);
+#endif
       return 0;
    /* handle single value/label */
    } else { /* ZSS: Why not allow for <val> ? */
@@ -907,23 +909,24 @@ for(iii=0; iii<dset->dblk->master_ncsv;iii++)
  *
  * return 0 on success, else error
  */
-int thd_get_labeltable_intlist(THD_3dim_dataset * dset, char *str,
-                               int ** list, int * nvals)
+int thd_get_labeltable_intlist(THD_3dim_dataset * dset, char *str)
 {   
    static int   show_labs = -1;
    int_list     ilist, llist;    /* maintain list in int_list struct */
    char       * workstr, * next, * cpt;
-   int        * tmplist;
-   int          ival, tind, err;
+   int        * list=NULL, * tmplist;
+   int          nvals=0, ival, tind, err;
 
    ENTRY("thd_get_labeltable_intlist");
 
-   /* if cannot return length, fail */
-   if( !nvals || !list ) RETURN(1);
+   /* check for missing inputs */
+   if( ! dset ) RETURN(1);
+
+   /* init to empty */
+   dset->dblk->master_csv = NULL;
+   dset->dblk->master_ncsv = 0;
 
    /* call empty selection list okay */
-   *nvals = 0;
-   *list = NULL;
    if( !str || str[0] == '\0' ) RETURN(0);
 
    if( show_labs == -1 ) show_labs = AFNI_yesenv("AFNI_SHOW_LABEL_TO_INDEX");
@@ -933,19 +936,23 @@ int thd_get_labeltable_intlist(THD_3dim_dataset * dset, char *str,
    tmplist = NULL;
 
    if (strstr(str,"1dcat ")) {
-      tmplist = get_1dcat_intlist_eng(str, nvals, 0, 1);
-      if( ! tmplist || *nvals < 1 ) RETURN(1);
+      tmplist = get_1dcat_intlist_eng(str, &nvals, 0, 1);
+      if( ! tmplist || nvals < 1 ) RETURN(1);
    }
    if (strstr(str,"count ")) {
-      tmplist = get_count_intlist_eng(str, nvals, 0, 1);
-      if( ! tmplist || *nvals < 1 ) RETURN(1);
+      tmplist = get_count_intlist_eng(str, &nvals, 0, 1);
+      if( ! tmplist || nvals < 1 ) RETURN(1);
    }
 
    /* if success, get rid of initial length value in tmplist */
    if ( tmplist ) {
-      *list = malloc(*nvals * sizeof(int));
-      memcpy(*list, tmplist+1, *nvals * sizeof(int));
+      list = malloc(nvals * sizeof(int));
+      memcpy(list, tmplist+1, nvals * sizeof(int));
       free(tmplist);
+
+      dset->dblk->master_csv = list;
+      dset->dblk->master_ncsv = nvals;
+
       RETURN(0);
    }
 
@@ -1002,14 +1009,14 @@ int thd_get_labeltable_intlist(THD_3dim_dataset * dset, char *str,
    }
 
    /* success!  steal integer list and flee */
-   *list = ilist.list;
-   *nvals = ilist.num;
+   dset->dblk->master_csv = ilist.list;
+   dset->dblk->master_ncsv = ilist.num;
 
-if(ilist.num > 0) {
+if(dset->dblk->master_ncsv > 0) {
 int c;
-fprintf(stderr,"== have csv list:\n");
-for(c = 0; c < ilist.num; c++)
-  fprintf(stderr,"   %d\n", ilist.list[c]);
+fprintf(stderr,"== have master csv list:\n");
+for(c = 0; c < dset->dblk->master_ncsv; c++)
+  fprintf(stderr,"   %d\n", dset->dblk->master_csv[c]);
 }
 
    RETURN(0);
