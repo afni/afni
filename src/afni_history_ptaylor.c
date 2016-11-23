@@ -66,6 +66,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 23, Nov , 2016 , PT , "3dNetCorr" , MINOR , TYPE_BUG_FIX,
+   "Z-score WB maps were all zeros-> now have values.",
+   "Hopefully even the correct Z-values.\n"
+},
+
 { 16, Nov , 2015 , PT , "3dTrackID" , MAJOR , TYPE_GENERAL,
    "Estimate mean and stdev of fiber lengths in bundles.",
    "These are now automatically output in *.grid file.\n"
