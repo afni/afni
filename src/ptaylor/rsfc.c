@@ -327,7 +327,7 @@ int WB_netw_corr(int Do_r,
 
             for( j=0 ; j<Nvox ; j++ )
               if( mskd2[j] ) // control for r ==1
-                 BOBatanhf( THD_get_voxel(OUT_CORR_MAP, j, 0) );
+                 zscores[j] = BOBatanhf( THD_get_voxel(OUT_CORR_MAP, j, 0) );
                  /*
                  if( THD_get_voxel(OUT_CORR_MAP, j, 0) > MAX_R )
                    zscores[j] = (float) atanh(MAX_R);
