@@ -375,6 +375,16 @@ automatically be uncompressed on input, no matter what the setting of
 this variable.  AFNI_COMPRESSOR only controls how the datasets are
 written.
 
+----------------------------
+Variable: AFNI_DONT_USE_PIGZ
+----------------------------
+On some systems, the multi-threaded version of gzip -- program pigz -- can
+fail randomly.  To prevent the use of pigz even if it is found, set
+this variable to YES.  Note that if you explicitly set AFNI_COMPRESSOR
+to PIGZ, then AFNI_DONT_USE_PIGZ will be ignored.  The purpose of
+AFNI_DONT_USE_PIGZ is to prevent the automatic use of the pigz program
+in cases where you don't provide AFNI_COMPRESSOR explicitly.
+
 ------------------------
 Variable: AFNI_BYTEORDER
 ------------------------
