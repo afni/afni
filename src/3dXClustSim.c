@@ -102,8 +102,8 @@ static MRI_IMAGE *imtemplate = NULL ;
 #undef  PSMALL
 #define PSMALL 1.e-15
 
-#define FARP_GOAL 5.00f  /* 5 percent */
-#define FGFAC     0.90f
+#define FARP_GOAL 5.00f    /* 5 percent -- non-adjustable by user */
+#define FGFAC     0.9444f
 #define FG_GOAL   (FARP_GOAL*fgfac)
 
 static float fgfac = FGFAC ;
