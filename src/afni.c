@@ -2252,7 +2252,9 @@ void AFNI_sigfunc_alrm(int sig)
 #else
 # define NTOP NMSG
 #endif
-   int nn = (lrand48()>>3) % NTOP ;
+   int nn ;
+   srand48((long)time(NULL)+(long)getpid()) ; /* reset random number generator */
+   nn = (lrand48()>>3) % NTOP ;
    if( !AFNI_yesenv("AFNI_NEVER_SAY_GOODBYE") ){
      if( nn < NMSG ){
 #undef  NDUN
