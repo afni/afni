@@ -49,6 +49,20 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 30,  Nov, 2016, RCR, "afni-general", MAJOR, TYPE_ENHANCE,
+   "<> range selector can now take a comma-delimited list of integers",
+   "So for a dataset with interger values from 0 to 8, these commands\n"
+   "should produce identical resutls:\n"
+   "   3dcalc -a DSET+tlrc -expr 'a*amongst(a,3,4,5)' -prefix JELLO\n"
+   "   3dbucket 'DSET+tlrc<4,3,5>'                    -prefix JELLO\n"
+   "   3dbucket 'DSET+tlrc<3..5>'                     -prefix JELLO\n"
+   "   3dbucket 'DSET+tlrc<2.3..5.86>'                -prefix JELLO\n"
+   "Of course, this will probably get further enhanced to a list of\n"
+   "float ranges.  We shall see.\n"
+   "Comma-delimited labels should work now, with a plan to add general\n"
+   "labels that might define all GM or similar in a FreeSurfer dataset, say."
+ } ,
+
  { 18,  Nov, 2016, RCR, "@Align_Centers", MICRO, TYPE_NEW_OPT,
    "add -prefix option, to name output",
    NULL
