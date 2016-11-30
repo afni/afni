@@ -1216,6 +1216,7 @@ typedef struct {
       /* for angle bracket selectors - input restricted to an integer list of */
       /* CSV (comma separated values) - akin to master_bot and master_top,    */
       /* but a list, not a range                          21 Nov 2016 [rickr] */
+      /* --> of course, this will probably change to a list of float ranges...*/
       int    master_ncsv ;    /*!< Number of values in master_csv             */
       int *  master_csv  ;    /*!< list of non-zero values that can be stored */
 
@@ -1291,6 +1292,13 @@ typedef struct {
 
 #define DBLK_IS_MASTERED(db) \
   ((db)->master_nvals > 0 && (db)->master_ival != NULL && (db)->master_bytes != NULL)
+
+/*! Check if brick is mastered and has subranges to be applied */
+
+#define DBLK_IS_MASTER_SUBRANGED(db)                    \
+   (DBLK_IS_MASTERED(db) &&                             \
+      ( ((db)->master_bot <= (db)->master_top) ||       \
+        ((db)->master_ncsv > 0 && (db)->master_csv != NULL) ))
 
 extern void THD_delete_datablock         ( THD_datablock * ) ;
 extern void THD_init_datablock_brick     ( THD_datablock * , int , void * ) ;
@@ -4750,6 +4758,7 @@ extern THD_3dim_dataset * THD_mean_dataset( int nds, THD_3dim_dataset **dsin, in
 
 extern void    THD_zerofill_dataset( THD_3dim_dataset * ) ;  /* 18 Mar 2005 */
 extern int     THD_apply_master_subrange( THD_datablock * ); /* 14 Apr 2006 */
+extern int     THD_apply_master_subrange_list(THD_datablock *);/* 30 Nov 2016 */
 extern void    THD_patch_brickim( THD_3dim_dataset * ) ;     /* 20 Oct 2006 */
 
 extern int THD_datum_constant( THD_datablock * ) ;           /* 30 Aug 2002 */

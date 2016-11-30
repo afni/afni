@@ -1009,13 +1009,6 @@ int thd_get_labeltable_intlist(THD_3dim_dataset * dset, char *str)
    dset->dblk->master_csv = ilist.list;
    dset->dblk->master_ncsv = ilist.num;
 
-if(dset->dblk->master_ncsv > 0) {
-int c;
-fprintf(stderr,"== have master csv list:\n");
-for(c = 0; c < dset->dblk->master_ncsv; c++)
-  fprintf(stderr,"   %d\n", dset->dblk->master_csv[c]);
-}
-
    RETURN(0);
 }
 
