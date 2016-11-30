@@ -256,6 +256,8 @@ ENTRY("EDIT_empty_datablock") ;
    new_dblk->master_bytes   = NULL ;
    new_dblk->master_bot     = 1.0  ;
    new_dblk->master_top     = 0.0  ;
+   new_dblk->master_ncsv    = 0    ;
+   new_dblk->master_csv     = NULL ;
    new_dblk->shm_idcode[0]  = '\0' ;
    new_dblk->nvals          = 1 ;
    new_dblk->natr           = new_dblk->natr_alloc = 0 ;
