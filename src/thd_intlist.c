@@ -872,15 +872,9 @@ int thd_check_angle_selector(THD_3dim_dataset * dset, char * instr)
       }
    /* handle ,-delimited list of integers/labels */
    } else if ( cptr ) {
-      int iii;
       if( thd_get_labeltable_intlist(dset, rptr, &dset->dblk->master_csv,
                                                  &dset->dblk->master_ncsv) )
          return 1;
-#if 0
-fprintf(stderr,"== rcr have %d ints\n", dset->dblk->master_ncsv);
-for(iii=0; iii<dset->dblk->master_ncsv;iii++)
-  fprintf(stderr,"   val = %d\n", dset->dblk->master_csv[iii]);
-#endif
       return 0;
    /* handle single value/label */
    } else { /* ZSS: Why not allow for <val> ? */
@@ -976,6 +970,9 @@ int thd_get_labeltable_intlist(THD_3dim_dataset * dset, char *str)
          if( ival == 0 && cpt == next ){
             err = 1;
             break;
+         } else if ( ival == 0 ) {
+            WARNING_message("<> select: skipping useless 0");
+            continue;
          }
 
          if( add_to_int_list(&ilist, ival, 16) <= 0 ) {
@@ -986,7 +983,7 @@ int thd_get_labeltable_intlist(THD_3dim_dataset * dset, char *str)
             break;
          }
       } else if ( isalpha(*next) ) {
-         if ( thd_LT_label_to_int_list(dset, &llist, next) ) {
+         if ( thd_LT_label_to_int_list(dset, &llist, next) <= 0 ) {
             ERROR_message( "<> select: invalid label %s\n", next);
             err = 1;
             break;

@@ -486,12 +486,10 @@ char * search_quotes(char *in_str);
 
 char *Current_Atlas_Default_Name(void);
 char **Atlas_Names_List(ATLAS_LIST *atl);
-int AFNI_get_dset_val_label(THD_3dim_dataset *dset,  /* 26 Feb 2010 ZSS */
-                                    double val, char *str);
-int AFNI_get_dset_label_val(THD_3dim_dataset *dset, 
-                            double *val, char *str); /* 02 Nov 2010 ZSS */
-int thd_LT_label_to_int_list(THD_3dim_dataset *dset, int_list *ilist,
-                             char *str);         /* 22 Nov 2016 [rickr] */
+int AFNI_get_dset_val_label(THD_3dim_dataset *dset, double val, char *str);  /* 26 Feb 2010 ZSS */
+int AFNI_get_dset_label_val(THD_3dim_dataset *dset, double *val, char *str); /* 02 Nov 2010 ZSS */
+int AFNI_get_dset_label_ival(THD_3dim_dataset *dset, int *val, char *str);   /* 30 Nov 2016 [rickr] */
+int thd_LT_label_to_int_list(THD_3dim_dataset *dset,int_list *ilist,char *str); /* 22 Nov 2016 [rickr] */
 int known_atlas_label_to_int_list(int_list * ilist, char * str);
 
 
