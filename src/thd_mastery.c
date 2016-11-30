@@ -449,6 +449,8 @@ ENTRY("THD_setup_mastery") ;
 
       /* 21 Feb 2001: mangle statistics if sub-ranging is used */
 
+      /* rcr - also if csv list is applied */
+
       bot = dset->dblk->master_bot ; top = dset->dblk->master_top ;
       if( bot <= top ){
               if( bot > 0.0 ) bot = 0.0 ;
