@@ -233,11 +233,12 @@ ENTRY("THD_open_dataset") ;
    /* - moved to new function that goes after labels   17 Apr 2012 [rickr] */
    /* - set single value, float .. range, or comma-delimited int list      */
    /* - fail on illegal angle selector                                     */
-   if( bpt != NULL )
+   if( bpt != NULL ) {
       if( thd_check_angle_selector(dset, bpt) ) {
          ERROR_message("bad angle bracket selector: %s", bpt);
          RETURN(NULL);
       }
+   }
 
    /* modify the dataset according to the selector string */
 
