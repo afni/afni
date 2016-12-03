@@ -1162,15 +1162,15 @@ FINAL_STUFF:
 
    if( verb ){
      if( do_fixed )
-       INFO_message("Computing FAR count for each voxel for -fixed") ;
+       INFO_message("Computing FPR count for each voxel for -fixed") ;
      else if( do_mfixed )
-       INFO_message("Computing FAR count for each voxel for -mfixed") ;
+       INFO_message("Computing FPR count for each voxel for -mfixed") ;
      else
-       INFO_message("STEP 4: adjusting per-voxel FOM thresholds to reach FAR=%.2f%%",FARP_GOAL) ;
+       INFO_message("STEP 4: adjusting per-voxel FOM thresholds to reach FPR=%.2f%%",FARP_GOAL) ;
    }
 
    /* tfrac = FOM count fractional threshold;
-              will be adjusted to find the 5% FAR goal */
+              will be adjusted to find the 5% FPR goal */
 
    tfrac = 0.0004f ; itrac = 0 ;
    farpercold = 0.0f ; tfracold = tfrac ;
@@ -1318,7 +1318,7 @@ FARP_LOOPBACK:
        EDIT_substitute_brick( qset , qpthr , MRI_float , NULL ) ;
        qar = DSET_ARRAY(qset,qpthr) ;
        AAmemcpy( qar , car[qpthr] , sizeof(float)*nxyz ) ;
-       sprintf(qpr,"FARthr:%.4f",pthr[qpthr]) ;
+       sprintf(qpr,"FPRthr:%.4f",pthr[qpthr]) ;
        EDIT_BRICK_LABEL(qset,qpthr,qpr) ;
      }
      { float *afl=malloc(sizeof(float)*(npthr+3)) ;
