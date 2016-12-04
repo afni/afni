@@ -877,9 +877,9 @@ int main( int argc , char *argv[] )
    /*============================================================================*/
    /*--- STEP 1c: find the global distributions [not needed but fun] ------------*/
 
-#define GTHRESH_FAC 0.333333f
+#define GTHRESH_FAC 0.222222f
 #define GTHRESH_THA 0.05f
-#define GTHRESH_THB 0.19f
+#define GTHRESH_THB 0.196666f
 
    { int nfom,jj; Xcluster **xcc;
      float a0,a1,f0,f1,fta,ftb ;
@@ -1182,12 +1182,12 @@ FINAL_STUFF:
 
 FARP_LOOPBACK:
    {
-     float min_tfrac ; int nedge ;
+     float min_tfrac ; int nedge,nmin ;
      min_tfrac = 6.0f / niter ; if( min_tfrac > 0.0001f ) min_tfrac = 0.0001f ;
 
      itrac++ ;                                        /* number of iterations */
      nfar = 0 ;                                            /* total FAR count */
-     nedge = 0 ;                                      /* number of edge cases */
+     nedge = nmin = 0 ;                               /* number of edge cases */
 #if 0
      ithresh = (int)(tfrac*niter) ;                    /* FOM count threshold */
 #else
@@ -1241,7 +1241,11 @@ FARP_LOOPBACK:
           f0 = fomsort[ipthr][iv]->far[jthresh] ;
           f1 = fomsort[ipthr][iv]->far[jthresh+1] ;
           ft = inverse_interp_extreme( a0,a1,tfrac , f0,f1 ) ;
-          if( ft < gthresh[ipthr] ) ft = gthresh[ipthr] ;
+          if( ft < gthresh[ipthr] ){
+            ft = gthresh[ipthr] ;
+#pragma omp atomic
+            nmin++ ;
+          }
           car[ipthr][ijkmask[iv]] = ft ;  /* = FOM threshold for this voxel */
                                           /* = the goal of this entire program! */
         }
@@ -1278,8 +1282,8 @@ FARP_LOOPBACK:
      farpercold = farperc ;               /* save what we got last time */
      farperc    = (100.0*nfar)/(float)niter ;  /* what we got this time */
      if( verb )
-       ININFO_message("#%2d: FPR = %.2f%%  [nedge=%d]",
-                      itrac, farperc/fgfac, nedge ) ;
+       ININFO_message("#%2d: FPR = %.2f%%  [nedge=%d nmin=%d]",
+                      itrac, farperc/fgfac, nedge, nmin ) ;
 
      /* do we need to try another tfrac to get closer to our goal? */
 
