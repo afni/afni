@@ -881,7 +881,7 @@ int main( int argc , char *argv[] )
 #define GTHRESH_THA 0.05f
 #define GTHRESH_THB 0.234567f
 
-   { int nfom,jj; Xcluster **xcc;
+   { int nfom,jj,nfff; Xcluster **xcc;
      float a0,a1,f0,f1,fta,ftb ;
      float *fomg=calloc(sizeof(float),nclust_max);
 
@@ -892,15 +892,23 @@ int main( int argc , char *argv[] )
          if( xcc[ii] != NULL ) fomg[nfom++] = xcc[ii]->fom ;
        }
        if( nfom < 50 ) continue ;  /* should not happen */
+       nfff = (int)rintf(sqrtf(nfom*(float)niter)); if( nfff > nfom ) nfff = nfom;
        qsort_float_rev( nfom, fomg ) ;
-       jj  = (int)(GTHRESH_THA*niter) ;
+       jj  = (int)(GTHRESH_THA*nfff) ;
        fta = GTHRESH_FAC*fomg[jj] ;
-       jj  = (int)(GTHRESH_THB*niter) ;
+       jj  = (int)(GTHRESH_THB*nfff) ;
        ftb = fomg[jj] ;
        gthresh[qpthr] = (int)MAX(fta,ftb) ;
-       if( verb )
-         ININFO_message("pthr=%.5f gets min threshold %.0f [nfom=%d]",
-                        pthr[qpthr],gthresh[qpthr],nfom) ;
+       if( verb ){
+         ININFO_message("pthr=%.5f gets min threshold %.0f [nfom=%d niter=%d nfff=%d]",
+                        pthr[qpthr],gthresh[qpthr],nfom,niter,nfff) ;
+         nfff = niter ;
+         jj  = (int)(GTHRESH_THA*nfff) ;
+         fta = GTHRESH_FAC*fomg[jj] ;
+         jj  = (int)(GTHRESH_THB*nfff) ;
+         ftb = fomg[jj] ;
+         ININFO_message("  old method min threshold = %.0f",MAX(fta,ftb)) ;
+       }
      }
      free(fomg) ;
    }
