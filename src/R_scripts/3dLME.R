@@ -25,7 +25,7 @@ help.LME.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
           ================== Welcome to 3dLME ==================          
     AFNI Group Analysis Program with Multi-Variate Modeling Approach
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 1.9.1, Nov 23, 2016
+Version 1.9.2, Dec 1, 2016
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - https://afni.nimh.nih.gov/sscc/gangc/lme.html
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -956,11 +956,26 @@ runLME <- function(inData, dataframe, ModelForm) {
 }
 # test runLME(inData[20,20,20,], dataframe=lop$dataStr, ModelForm=ModelForm)      
 
-runREML <- function(myData, fm, nBrk, tag) {
+#runREML <- function(myData, fm, nBrk, tag) {
+#   #browser()
+#   myStat<-vector(mode="numeric", length= nBrk)
+#   if(!all(myData == 0)) {     
+#      try(fmAOV<-refit(fm, myData), tag<-1)   
+#      if(tag != 1) {    
+#         for(ii in 1:(nBrk-1)) myStat[ii] <- VarCorr(fmAOV)[[ii]][1]  # factor variances
+#         myStat[nBrk] <- attr(VarCorr(fmAOV), "sc")^2  # residual variance
+#         myStat <- myStat/sum(myStat)
+#      }
+#   }
+#   return(myStat)
+#}
+
+runREML <- function(myData, ModelForm, dataframe, nBrk, tag) {
    #browser()
    myStat<-vector(mode="numeric", length= nBrk)
    if(!all(myData == 0)) {     
-      try(fmAOV<-refit(fm, myData), tag<-1)   
+      dataframe$Beta<-myData
+      try(fmAOV<-lmer(ModelForm, data=dataframe), tag<-1)
       if(tag != 1) {    
          for(ii in 1:(nBrk-1)) myStat[ii] <- VarCorr(fmAOV)[[ii]][1]  # factor variances
          myStat[nBrk] <- attr(VarCorr(fmAOV), "sc")^2  # residual variance
@@ -1588,8 +1603,8 @@ if(lop$ICC) {  # ICC part
    Stat <- array(0, dim=c(dimx, dimy, dimz, lop$NoBrick))
    if (lop$nNodes==1) for (kk in 1:dimz) {
       # 2/9/2016: for 1D input files. Should do this for other scenarios
-      if(dimy==1 & dimz==1) Stat <- aperm(apply(drop(inData[,,kk,]), 1, runREML, fm=fm, nBrk=lop$NoBrick, tag=0), c(2,1)) else
-      Stat[,,kk,] <- aperm(apply(inData[,,kk,], c(1,2), runREML, fm=fm, nBrk=lop$NoBrick, tag=0), c(2,3,1))
+      if(dimy==1 & dimz==1) Stat <- aperm(apply(drop(inData[,,kk,]), 1, runREML, ModelForm=ModelForm, dataframe=lop$dataStr, nBrk=lop$NoBrick, tag=0), c(2,1)) else
+      Stat[,,kk,] <- aperm(apply(inData[,,kk,], c(1,2), runREML, ModelForm=ModelForm, dataframe=lop$dataStr, nBrk=lop$NoBrick, tag=0), c(2,3,1))
       cat("Z slice #", kk, "done: ", format(Sys.time(), "%D %H:%M:%OS3"), "\n")
    }         
    if (lop$nNodes>1) {
@@ -1598,7 +1613,7 @@ if(lop$ICC) {  # ICC part
       clusterEvalQ(cl, library(lme4))
       clusterEvalQ(cl, options(contrasts = c("contr.sum", "contr.poly")))
       for (kk in 1:dimz) {
-         Stat[,,kk,] <- aperm(parApply(cl, inData[,,kk,], c(1,2), runREML, fm=fm, nBrk=lop$NoBrick, tag=0), c(2,3,1))
+         Stat[,,kk,] <- aperm(parApply(cl, inData[,,kk,], c(1,2), runREML, ModelForm=ModelForm, dataframe=lop$dataStr, nBrk=lop$NoBrick, tag=0), c(2,3,1))
          cat("Z slice #", kk, "done: ", format(Sys.time(), "%D %H:%M:%OS3"), "\n")
       } 
       stopCluster(cl)
