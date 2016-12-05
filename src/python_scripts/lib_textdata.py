@@ -232,7 +232,8 @@ def process_one_data_line(line, verb=1):
    res_list = []        # result list
    acount = 0
    for tok in tokens:
-      if tok == '*':
+      # for '*', just check first char (in case it is married)    5 Dec 2016
+      if tok[0] == '*':
          if verb > 2: print "-- data file: skipping '*'"
          acount += 1
          continue
