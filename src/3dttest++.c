@@ -863,7 +863,7 @@ void display_help_menu(void)
       "                as many output sub-bricks as usual. This is intended for\n"
       "                for use with simulations such as '3dClustSim -inset'.\n"
       "\n"
-      " -clustsim   = With this option, after the commanded t-tests are done, then:\n"
+      " -Clustsim   = With this option, after the commanded t-tests are done, then:\n"
       "                (a) the residuals from '-resid' are used with '-randomsign' to\n"
       "                    simulate about 10000 null 3D results, and then\n"
       "                (b) 3dClustSim is run with those to generate cluster-threshold\n"
@@ -874,32 +874,30 @@ void display_help_menu(void)
       "               The goal is to provide a method for cluster-level statistical\n"
       "               inference in the output dataset, to be used with the AFNI GUI\n"
       "               Clusterize controls.\n"
-      "              ++ If you want to keep the 3dClustSim table .1D files, use this\n"
-      "                 option in the form '-Clustsim'.  If you want to keep ALL the\n"
-      "                 temporary files, use '-CLUSTSIM'.\n"
+      "              ++ If you want to keep ALL the temporary files, use '-CLUSTSIM'.\n"
       "              ++ Since the simulations are done with '-toz' active, the program\n"
       "                 also turns on the '-toz' option for your output dataset. This\n"
       "                 means that the output statistics will be z-scores, not t-values.\n"
-      "              ++ '-clustsim' will not work with less than 7 datasets in each\n"
+      "              ++ '-Clustsim' will not work with less than 7 datasets in each\n"
       "                 input set -- in particular, it doesn't work with '-singletonA'.\n"
-      "          -->>++ '-clustsim' runs step (a) in multiple jobs, for speed.  By\n"
+      "          -->>++ '-Clustsim' runs step (a) in multiple jobs, for speed.  By\n"
       "                 default, it tries to auto-detect the number of CPUs on the system\n"
       "                 and uses that many separate jobs.  If you put a positive integer\n"
-      "                 immediately following the option, as in '-clustsim 12', it will\n"
+      "                 immediately following the option, as in '-Clustsim 12', it will\n"
       "                 instead use that many jobs (e.g., 12).  This capability is to\n"
       "                 be used when the CPU count is not auto-detected correctly.\n"
 #if 0
-      "          -->>++ '-clustsim' can use up all the memory on a computer, and even\n"
+      "          -->>++ '-Clustsim' can use up all the memory on a computer, and even\n"
       "                 more -- causing the computer to freeze or crash.  The program\n"
       "                 tries to avoid this, but it is not always possible to detect\n"
       "                 how much memory is usable on a computer. For this reason, you\n"
       "                 can use this option in the form\n"
-      "                    -clustsim NCPU NGIG\n"
+      "                    -Clustsim NCPU NGIG\n"
       "                 where NCPU is the number of CPUs (cores) to use, and NGIG is\n"
       "                 the number of gigabytes of memory to use.  This may help you\n"
       "                 prevent the 'Texas meltdown'.\n"
 #endif
-      "          -->>++ It is important to use the proper '-mask' option with '-clustsim'.\n"
+      "          -->>++ It is important to use the proper '-mask' option with '-Clustsim'.\n"
       "                 Otherwise, the statistics of the clustering will be skewed (badly).\n"
       "\n"
       "        ---==>>> PLEASE NOTE: This option has been tested for 1- and 2-sample\n"
@@ -908,7 +906,7 @@ void display_help_menu(void)
       "        ---==>>> The FAR for the covariate effects (as opposed to the main effect)\n"
       "        ---==>>> is still somewhat biased away from the 5%% level :(\n"
       "\n"
-      " -prefix_clustsim cc = Use 'cc' for the prefix for the '-clustsim' temporary\n"
+      " -prefix_clustsim cc = Use 'cc' for the prefix for the '-Clustsim' temporary\n"
       "                       files, rather than a randomly generated prefix.\n"
       "                       You might find this useful if scripting.\n"
       "                      ++ The default randomly generated prefix will start with\n"
@@ -919,7 +917,7 @@ void display_help_menu(void)
       " -tempdir ttt        = Store temporary files for '-Clustsim' in this directory,\n"
       "                       rather than in the current working directory: this option\n"
       "                       is for use when you have access to a fast local disk\n"
-      "                       compared to general storage on a network RAID.\n"
+      "                       (e.g., SSD) compared to general storage on a network RAID.\n"
       "                       [NOTE: if you use '-CLUSTSIM', these files aren't deleted!]\n"
 
 #if 0 /*** hidden from user ***/
@@ -1576,14 +1574,14 @@ int main( int argc , char *argv[] )
        continue ;
      }
 
-     /*----- -clustsim njob [10 Feb 2016] -----*/
+     /*----- -Clustsim njob [10 Feb 2016] -----*/
 
-     if( strcasecmp(argv[nopt],"-clustsim") == 0 ){
+     if( strcasecmp(argv[nopt],"-Clustsim") == 0 ){
        char *uuu ;
        if( do_clustsim )
-         WARNING_message("Why do you use -clustsim more than once?!") ;
+         WARNING_message("Why do you use -Clustsim more than once?!") ;
        if( do_Xclustsim )
-         ERROR_exit("You can't use -clustsim and -Xclustsim together!") ;
+         ERROR_exit("You can't use -Clustsim and -Xclustsim together!") ;
        toz = 1 ;
 
        clustsim_prog = "3dClustSim" ;
@@ -1599,9 +1597,9 @@ int main( int argc , char *argv[] )
        if( nopt < argc && isdigit(argv[nopt][0]) ){
          num_clustsim = (int)strtod(argv[nopt],NULL) ; nopt++ ;
          if( num_clustsim > 99 ){
-           WARNING_message("CPU count after -clustsim is > 99") ; num_clustsim = 99 ;
+           WARNING_message("CPU count after -Clustsim is > 99") ; num_clustsim = 99 ;
          } else if( num_clustsim < 1 ){
-           WARNING_message("CPU count after -clustsim is < 1" ) ; num_clustsim = 1 ;
+           WARNING_message("CPU count after -Clustsim is < 1" ) ; num_clustsim = 1 ;
          }
        }
 
@@ -1613,7 +1611,7 @@ int main( int argc , char *argv[] )
          if( jj > 0 && (jj < num_clustsim || num_clustsim == 1) ) num_clustsim = jj ;
        }
 
-       INFO_message("Number of -clustsim threads set to %d",num_clustsim) ;
+       INFO_message("Number of -Clustsim threads set to %d",num_clustsim) ;
        if( prefix_clustsim == NULL ){
          uuu = UNIQ_idcode_11() ;
          prefix_clustsim = (char *)malloc(sizeof(char)*32) ;
@@ -1630,7 +1628,7 @@ int main( int argc , char *argv[] )
        if( do_Xclustsim )
          WARNING_message("Why do you use -Xclustsim more than once?!") ;
        if( do_clustsim )
-         ERROR_exit("You can't use -clustsim and -Xclustsim together!") ;
+         ERROR_exit("You can't use -Clustsim and -Xclustsim together!") ;
        toz = 1 ;
 
        clustsim_prog = "3dXClustSim" ;
@@ -3260,10 +3258,10 @@ LABELS_ARE_DONE:  /* target for goto above */
                         " -randomsign %d -nomeans -toz" , nper ) ;
        else
          sprintf( cmd , "3dttest++ -DAFNI_AUTOMATIC_FDR=NO -DAFNI_DONT_LOGFILE=YES"
-                        " -RANDOMSIGN %d -nomeans -toz" , nper ) ;
+                        " -RANDOMSIGN %d -nomeans -toz -no1sam" , nper ) ;
 
-       sprintf( cmd+strlen(cmd) , " -no1sam -dofsub %d",-dofsub) ;
-
+       if( dofsub != 0 )
+         sprintf( cmd+strlen(cmd) , " -dofsub %d",-dofsub) ;
        if( name_mask != NULL )
          sprintf( cmd+strlen(cmd) , " -mask %s",name_mask) ;
        if( ttest_opcode == 1 )
