@@ -103,7 +103,7 @@ static MRI_IMAGE *imtemplate = NULL ;
 #define PSMALL 1.e-15
 
 #define FARP_GOAL 5.00f    /* 5 percent -- non-adjustable by user */
-#define FGFAC     0.94321f
+#define FGFAC     0.94f
 #define FG_GOAL   (FARP_GOAL*fgfac)
 
 static float fgfac = FGFAC ;
@@ -878,7 +878,7 @@ int main( int argc , char *argv[] )
    /*--- STEP 1c: find the global distributions [not needed but fun] ------------*/
 
 #define GTHRESH_FAC 0.123456f
-#define GTHRESH_THA 0.05f
+#define GTHRESH_THA 0.055555f
 #define GTHRESH_THB 0.234567f
 
    { int nfom,jj,nfff; Xcluster **xcc;
@@ -891,23 +891,17 @@ int main( int argc , char *argv[] )
        for( nfom=ii=0 ; ii < nclust_tot[qpthr] ; ii++ ){
          if( xcc[ii] != NULL ) fomg[nfom++] = xcc[ii]->fom ;
        }
-       if( nfom < 50 ) continue ;  /* should not happen */
-       nfff = (int)rintf(sqrtf(nfom*(float)niter)); if( nfff > nfom ) nfff = nfom;
+       if( nfom < 50 ) continue ;      /* should not happen */
+       if( nfff > nfom ) nfff = nfom ; /* very unlikely */
        qsort_float_rev( nfom, fomg ) ;
-       jj  = (int)(GTHRESH_THA*nfff) ;
+       jj  = (int)rintf(GTHRESH_THA*nfff) ;
        fta = GTHRESH_FAC*fomg[jj] ;
-       jj  = (int)(GTHRESH_THB*nfff) ;
+       jj  = (int)rintf(GTHRESH_THB*nfff) ;
        ftb = fomg[jj] ;
-       gthresh[qpthr] = (int)MAX(fta,ftb) ;
+       gthresh[qpthr] = (int)(0.777f*MAX(fta,ftb)+0.222f*MIN(fta,ftb)) ;
        if( verb ){
-         ININFO_message("pthr=%.5f gets min threshold %.0f [nfom=%d niter=%d nfff=%d]",
-                        pthr[qpthr],gthresh[qpthr],nfom,niter,nfff) ;
-         nfff = niter ;
-         jj  = (int)(GTHRESH_THA*nfff) ;
-         fta = GTHRESH_FAC*fomg[jj] ;
-         jj  = (int)(GTHRESH_THB*nfff) ;
-         ftb = fomg[jj] ;
-         ININFO_message("  old method min threshold = %.0f",MAX(fta,ftb)) ;
+         ININFO_message("pthr=%.5f gets min threshold %.0f [fta=%.1f ftb=%1.f] [nfom=%d niter=%d]",
+                        pthr[qpthr],gthresh[qpthr],fta,ftb,nfom,niter) ;
        }
      }
      free(fomg) ;
