@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  5,  Dec, 2016, RCR, "timing_tool.py", MICRO, TYPE_MODIFY,
+   "allow *:1 (or *ANYTHING) to mean no event",
+   "This is in case someone also marries empty run events."
+ } ,
+
  { 30,  Nov, 2016, RCR, "afni-general", MAJOR, TYPE_ENHANCE,
    "<> range selector can now take a comma-delimited list of integers",
    "So for a dataset with interger values from 0 to 8, these commands\n"
