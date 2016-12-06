@@ -51,7 +51,8 @@ afni_history_struct rickr_history[] = {
 
  {  5,  Dec, 2016, RCR, "timing_tool.py", MICRO, TYPE_MODIFY,
    "allow *:1 (or *ANYTHING) to mean no event",
-   "This is in case someone also marries empty run events."
+   "This is in case someone also marries empty run events.\n"
+   "Done for R Kampe."
  } ,
 
  { 30,  Nov, 2016, RCR, "afni-general", MAJOR, TYPE_ENHANCE,
