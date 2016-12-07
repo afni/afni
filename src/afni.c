@@ -2090,7 +2090,9 @@ void AFNI_sigfunc_alrm(int sig)
      "Your brains have not only been washed, but been dry cleaned"                    ,
      "Why don't you pass the time by playing a little solitaire?"                     ,
 
+     "From now on, let's just reject the null hypothesis, and then have a beer"       ,
      "Home is the sailor, home from the sea; And the hunter home from the hill"       ,
+     "Glad did I run, and gladly end, and I turn me off with a will"                  ,
      "I'm not as smart as you, but I'm not as dumb as you think I am"                 ,
      "If you haven't anything nice to say about anybody, come sit next to me"         ,
      "Hmmm -- I think your p-value is 0.050001 -- better luck next time"              ,
