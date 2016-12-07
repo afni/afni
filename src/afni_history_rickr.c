@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  7,  Dec, 2016, RCR, "afni_system_check.py", MICRO, TYPE_ENHANCE,
+   "check for python2 and python3",
+   NULL
+ } ,
+
  {  5,  Dec, 2016, RCR, "timing_tool.py", MICRO, TYPE_MODIFY,
    "allow *:1 (or *ANYTHING) to mean no event",
    "This is in case someone also marries empty run events.\n"
