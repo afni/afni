@@ -652,7 +652,7 @@ class SysInfo:
 
       # make generic but pretty
       print "instances of various programs found in PATH:"
-      proglist = ['afni', 'R', 'python']
+      proglist = ['afni', 'R', 'python', 'python2', 'python3']
       ml = UTIL.max_len_in_list(proglist)
       for prog in proglist:
          rv, files = UTIL.search_path_dirs(prog, mtype=1)
@@ -668,6 +668,13 @@ class SysInfo:
                if len(files) > 0:
                   if os.stat(files[0]).st_uid == 0:
                      self.comments.append("'afni' executable is owned by root")
+      print
+
+      # explicit python2 vs python3 check    7 Dec 2016
+      n2 = UTIL.num_found_in_path('python2', mtype=1)
+      n3 = UTIL.num_found_in_path('python3', mtype=1)
+      if n3 > 0 and n2 <= 0:
+         self.comments.append("have python3 but not python2")
       print
 
       # try select AFNI programs

@@ -2807,6 +2807,23 @@ def search_path_dirs(word, mtype=0, casematch=1):
 
    return 0, get_unique_sublist(rlist)
 
+def num_found_in_path(word, mtype=0, casematch=1):
+   """a simple wrapper to print search_path_dirs results
+
+      Search for given 'word' in path, and print out list elements
+      with element prefix of 'indent'.
+
+        mtype     : 0 = match any sub-word (i.e. look for DIR/*word*)
+                    1 = exact match (i.e. no wildcard, look for DIR/word)
+                    2 = prefix match (i.e. look for DIR/word*)
+        casematch : flag: if set, case must match
+                          else, 'word' letters can be either case
+        indent    : prefix/separator string for list elements
+   """
+   rv, rlist = search_path_dirs(word, mtype=mtype, casematch=casematch)
+   if rv: return 0
+   return len(rlist)
+
 def show_found_in_path(word, mtype=0, casematch=1, indent='\n   '):
    """a simple wrapper to print search_path_dirs results
 
