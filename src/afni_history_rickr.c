@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  8,  Dec, 2016, RCR, "3dTsplit4D", MICRO, TYPE_NEW_PROG,
+   "have 3dTsplit4D build; make some updates",
+   "This program is by P Molfese."
+ } ,
+
  {  8,  Dec, 2016, RCR, "plug_vol2surf", MICRO, TYPE_ENHANCE,
    "add -cmask option to correspond with any auto non-zero mask",
    NULL
