@@ -1210,8 +1210,8 @@ afni_history_struct rickr_history[] = {
    NULL
  } ,
 
- { 28,  Apr, 2015, RCR, "NIFTI", MINOR, TYPE_NEW_PROG,
-   "added clib_02.nifti2.c demo and Makefile",
+ { 28,  Apr, 2015, RCR, "clib_02.nifti2", MINOR, TYPE_NEW_PROG,
+   "added clib_02.nifti2.c demo and Makefile under nifti2 dir",
    NULL
  } ,
 
