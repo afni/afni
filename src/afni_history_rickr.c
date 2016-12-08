@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  8,  Dec, 2016, RCR, "plug_vol2surf", MICRO, TYPE_ENHANCE,
+   "add -cmask option to correspond with any auto non-zero mask",
+   NULL
+ } ,
+
  {  7,  Dec, 2016, RCR, "afni_system_check.py", MICRO, TYPE_ENHANCE,
    "check for python2 and python3",
    NULL

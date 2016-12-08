@@ -137,7 +137,7 @@ ENTRY("AFNI_vol2surf_func_overlay") ;
     cmask = NULL;
 
     /* if a new overlay has been created from clustering, get it as a mask
-       (for now - since it's in MRI_IMAGE, and we can't pass to v2s)
+       (for now - since it's an MRI_IMAGE, and we can't pass to v2s)
                                                        11 Jan 2008 [rickr] */
 
     if( debug ) {
@@ -201,8 +201,12 @@ ENTRY("AFNI_vol2surf_func_overlay") ;
 
         /* note mask options for v2s command output  9 Aug 2006 [rickr] */
         if( cmask ) { go->gpt_index = tind; go->gpt_thresh = thresh; }
-    } else      /* then make the mask from non-zero overlay values */
+    } else {    /* then make the mask from non-zero overlay values */
         cmask = THD_makemask(oset, oind, 1.0, 0.0);
+        /* we are applying a cmask, so make it clear in any printed command
+                                                         8 Dec 2016 [rickr] */
+        go->gpt_index = oind; go->gpt_thresh = 0;
+    }
 
     /*-------------------- vol2surf computation --------------------*/
     results = afni_vol2surf(oset, oind, sA, sB, cmask, use_defaults);
