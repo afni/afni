@@ -145,7 +145,7 @@ afni_history_struct rickr_history[] = {
  } ,
 
  {  5,  Oct, 2016, RCR, "afni-general", MAJOR, TYPE_NEW_PROG,
-   "update from C Cradock and dclark87",
+   "update from C Craddock and dclark87",
    "New Programs: 3dLFCD, 3dDegreeCentrality, 3dECM, 3dMSE, 3dsvm_linpredict."
  } ,
 
