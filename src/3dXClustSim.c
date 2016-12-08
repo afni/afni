@@ -892,6 +892,7 @@ int main( int argc , char *argv[] )
          if( xcc[ii] != NULL ) fomg[nfom++] = xcc[ii]->fom ;
        }
        if( nfom < 50 ) continue ;      /* should not happen */
+       nfff = niter ;
        if( nfff > nfom ) nfff = nfom ; /* very unlikely */
        qsort_float_rev( nfom, fomg ) ;
        jj  = (int)rintf(GTHRESH_THA*nfff) ;

@@ -212,7 +212,8 @@ static void setup_randomsign(void)  /* moved here 02 Feb 2016 */
 
    if( randomsign_AAA == NULL )
      randomsign_AAA = (int *)malloc(sizeof(int)*nval_AAA) ;
-   nb = (int)rintf(0.15f*nval_AAA) ; /** if( nb < 1 ) nb = 1 ; **/
+
+   nb = (int)rintf(0.15f*nval_AAA) ; if( nb < 1 ) nb = 1 ;
    nt = nval_AAA - nb ;
    do{
      for( nflip=jj=0 ; jj < nval_AAA ; jj++ ){
@@ -230,7 +231,8 @@ static void setup_randomsign(void)  /* moved here 02 Feb 2016 */
    if( nval_BBB > 0 ){
      if( randomsign_BBB == NULL )
        randomsign_BBB = (int *)malloc(sizeof(int)*nval_BBB) ;
-     nb = (int)rintf(0.15f*nval_BBB) ; /** if( nb < 1 ) nb = 1 ; **/
+
+     nb = (int)rintf(0.15f*nval_BBB) ; if( nb < 1 ) nb = 1 ;
      nt = nval_BBB - nb ;
      do{
        for( nflip=jj=0 ; jj < nval_BBB ; jj++ ){
@@ -249,12 +251,15 @@ static void setup_randomsign(void)  /* moved here 02 Feb 2016 */
 
 /*--------------------------------------------------------------------------*/
 /* How -permute is implemented [07 Dec 2016] */
+/*--------------------------------------------------------------------------*/
 
 static int    p_nxy  = 0 ;
 static float *p_xyar = NULL ;
 static int   *p_ijar = NULL ;
 
-static void setup_permute( int nx , int ny )  /* create the permutation */
+/*---------- create the permutation ----------*/
+
+static void setup_permute( int nx , int ny )
 {
    int ii,jj,tt ;
 
@@ -275,23 +280,29 @@ static void setup_permute( int nx , int ny )  /* create the permutation */
 
    for( ii=0 ; ii < p_nxy-1 ; ii++ ){
      jj = (lrand48()>>3) % (p_nxy-ii) ; /* jj in 0..p_nxy-ii-1 inclusive */
+                                        /* so ii+jj in ii..p_nxy-1 inclusive */
      if( jj > 0 ){                      /* swap */
        tt = p_ijar[ii] ; p_ijar[ii] = p_ijar[ii+jj] ; p_ijar[ii+jj] = tt ;
      }
    }
 
-#if 0
-   {static int first=1 ;
+#if 1
+   {static int first=9 ;
     if( first ){
-      fprintf(stderr,"\nFirst permutation:") ;
-      for(ii=0;ii<p_nxy;ii++) fprintf(stderr," %d",p_ijar[ii]) ;
+      fprintf(stderr,"\nPermutation [0..%d]:",p_nxy-1) ;
+      for(ii=0;ii<p_nxy;ii++){
+        fprintf(stderr," %d%c" , p_ijar[ii] , ((p_ijar[ii] < nx) ? 'A' : 'B') ) ;
+        if( ii == nx-1 ) fprintf(stderr," ;") ;
+      }
       fprintf(stderr,"\n") ;
-      first=0 ;
+      first--;
    }}
 #endif
 
    return ;
 }
+
+/*------ same permutation is applied for all voxels for each iteration ------*/
 
 static void permute_arrays( int nx , float *x , int ny , float *y )
 {
@@ -299,7 +310,7 @@ static void permute_arrays( int nx , float *x , int ny , float *y )
 
    /* these errors should never happen */
 
-   if( nx == 0 || ny == 0 || x == NULL || y == NULL || p_nxy < nx+ny ){
+   if( nx == 0 || ny == 0 || x == NULL || y == NULL || p_nxy != nx+ny ){
      static int first=1 ;
      if( first ){
        ERROR_message("-permute failure for unexplainable reasons") ;
@@ -310,8 +321,13 @@ static void permute_arrays( int nx , float *x , int ny , float *y )
 
    /* copy 2 inputs into 1 big array */
 
+#if 0
    memcpy( p_xyar    , x , sizeof(float)*nx ) ;
    memcpy( p_xyar+nx , y , sizeof(float)*ny ) ;
+#else
+   for( ii=0 ; ii < nx ; ii++ ) p_xyar[ii]    = x[ii] ;
+   for( ii=0 ; ii < ny ; ii++ ) p_xyar[ii+nx] = y[ii] ;
+#endif
 
    /* scatter the results back to the input arrays */
 
@@ -3069,8 +3085,11 @@ LABELS_ARE_DONE:  /* target for goto above */
    for( bb=0 ; bb < brickwise_num ; bb++ ){  /* for each 'brick' to process */
      bbase = bb*nvout ;
 
-     if( do_randomsign ){     /* setup randomization and permutation */
-       setup_randomsign() ;   /* (same things applied to all voxels! */
+     /* setup permutation and randomization:
+        the same things are applied to all voxels for each iteration! */
+
+     if( do_randomsign ){
+       setup_randomsign() ;
        if( do_permute ) setup_permute(nval_AAA,nval_BBB) ;
      }
 
