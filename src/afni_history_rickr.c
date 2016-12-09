@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  9,  Dec, 2016, RCR, "3dTsplit4D", MICRO, TYPE_ENHANCE,
+   "allow for direct writing to NIFTI via prefix, e.g. result.nii",
+   NULL
+ } ,
+
  {  8,  Dec, 2016, RCR, "3dTsplit4D", MINOR, TYPE_NEW_OPT,
    "add -digits and -keep_datum; other minor updates",
    NULL
