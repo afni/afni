@@ -286,7 +286,7 @@ static void setup_permute( int nx , int ny )
      }
    }
 
-#if 1
+#if 0
    {static int first=9 ;
     if( first ){
       fprintf(stderr,"\nPermutation [0..%d]:",p_nxy-1) ;
