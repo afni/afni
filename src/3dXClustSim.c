@@ -899,7 +899,7 @@ int main( int argc , char *argv[] )
        fta = GTHRESH_FAC*fomg[jj] ;
        jj  = (int)rintf(GTHRESH_THB*nfff) ;
        ftb = fomg[jj] ;
-       fmax = AFNI_numenv("AFNI_XCLUSTIM_FMAX") ;
+       fmax = AFNI_numenv("AFNI_XCLUSTSIM_FMAX") ;
        if( fmax <= 0.0f || fmax > 1.0f ) fmax = 0.777f ;
        gthresh[qpthr] = (int)(fmax*MAX(fta,ftb)+(1.0f-fmax)*MIN(fta,ftb)) ;
        if( verb ){
