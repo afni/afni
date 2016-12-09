@@ -24,6 +24,18 @@ int help_3dTsplit4D( )
       "with Some other PrograM that doesn't like datasets in the pseudo-4D\n"
       "nature that AFNI knows and loves.\n"
       "\n"
+      "examples:\n"
+      "\n"
+      "   1. Write the 152 time point dataset, epi_r1+orig, to 152 single\n"
+      "      volume datasets, out/epi.000+orig ... epi.151+orig.\n"
+      "\n"
+      "         3dTsplit4D -prefix out/epi epi_r1+orig\n"
+      "\n"
+      "   2. Do the same thing, but write to 152 NIFTI volume datasets,\n"
+      "      out/epi.000.nii ... out/epi.151.nii.  Include .nii in -prefix.\n"
+      "\n"
+      "         3dTsplit4D -prefix out/epi.nii epi_r1+orig\n"
+      "\n"
       " -prefix PREFIX : Prefix of the output datasets\n"
       "                  Numbers will be added after the prefix to denote\n"
       "                  prior sub-brick.\n"
@@ -44,9 +56,10 @@ int main( int argc, char *argv[] )
    THD_3dim_dataset *iset, *oset;
    float ffac;
    int   iarg=1, kk, nval;
-   int   datum=MRI_float, keep_datum=0, ndigits=0;
+   int   datum=MRI_float, keep_datum=0, ndigits=0, prelen, smode;
    char *prefix = "SPLIT";
    char *sub_prefix, newlabel[32];
+   char *precopy=NULL, *exten=NULL;  /* copied prefix and any needed ext */
    MRI_IMAGE *inImage=NULL;
    
    if( argc < 2 || strcmp(argv[1], "-help") == 0 )
@@ -77,7 +90,7 @@ int main( int argc, char *argv[] )
       }
    }
    
-   printf("Prefix set to: %s\n", prefix);
+   INFO_message("Prefix set to: %s\n", prefix);
    
    /* Begin reading dataset, error checking like a good programmer */
    iset = THD_open_dataset( argv[iarg] );
@@ -103,6 +116,20 @@ int main( int argc, char *argv[] )
    sub_prefix = (char *)malloc(kk*sizeof(char));
    if( ! sub_prefix ) ERROR_exit("failed to alloc %d bytes for prefix", kk);
 
+   /* make new prefix in case of non-AFNI writing, so it can be altered */
+   /* (precopy and exten will be used for actual output prefix) */
+   precopy = nifti_strdup(prefix);
+   exten = NULL;
+   smode = storage_mode_from_filename(prefix);
+   if( has_known_non_afni_extension(precopy)
+        && is_writable_storage_mode(smode) ) {
+      exten = find_filename_extension(precopy);
+      /* if found, terminate actual prefix, and point exten past '.' */
+      if( exten && exten > precopy )
+         *exten++ = '\0';
+      INFO_message("Using new prefix for non-AFNI write: %s\n", precopy);
+   }
+
    oset = EDIT_empty_copy( iset ); //Easy to just copy!
    THD_force_malloc_type( oset->dblk , DATABLOCK_MEM_MALLOC ) ;
 
@@ -110,11 +137,13 @@ int main( int argc, char *argv[] )
 
    for( kk=0 ; kk < nval ; kk++ )
    {
-   
       /* MODIFY to make single brik output */
       /* ALSO NEED TO CHANGE PREFIX EACH TIME! */
       
-      sprintf(sub_prefix, "%s.%0*d", prefix, ndigits, kk);
+      /* if there is a non-AFNI extension, use it       9 Dec 2016 [rickr] */
+      if(exten) sprintf(sub_prefix, "%s.%0*d.%s", precopy, ndigits, kk, exten);
+      else      sprintf(sub_prefix, "%s.%0*d", precopy, ndigits, kk);
+      
       //sub_prefix = strncat( prefix, itoa(kk), 10 );
 
       // INFO_message("File Saved: %s", sub_prefix);
@@ -166,9 +195,9 @@ int main( int argc, char *argv[] )
       DSET_BRICK(oset, 0) = NULL;
 
       if( inImage) mri_clear_and_free( inImage );
-   }//for
+   }  /* for each volume */
    
    printf("\n...Done\n");
-      
+
    exit(0);
 }
