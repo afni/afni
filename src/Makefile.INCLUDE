@@ -2632,6 +2632,7 @@ r_misc.o: rickr/r_misc.c rickr/r_misc.h
 
 #######
 # Peter Molfese programs
+
 3dTsplit4D: 3dTsplit4D.o libmri.a
 	$(RM) $@
 	$(CC) -o 3dTsplit4D 3dTsplit4D.o $(LFLAGS) $(LLIBS)
