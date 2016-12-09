@@ -24,6 +24,18 @@ int help_3dTsplit4D( )
       "with Some other PrograM that doesn't like datasets in the pseudo-4D\n"
       "nature that AFNI knows and loves.\n"
       "\n"
+      "examples:\n"
+      "\n"
+      "   1. Write the 152 time point dataset, epi_r1+orig, to 152 single\n"
+      "      volume datasets, out/epi.000+orig ... epi.151+orig.\n"
+      "\n"
+      "         3dTsplit4D -prefix out/epi epi_r1+orig\n"
+      "\n"
+      "   2. Do the same thing, but write to 152 NIFTI volume datasets,\n"
+      "      out/epi.000.nii ... out/epi.151.nii.  Include .nii in -prefix.\n"
+      "\n"
+      "         3dTsplit4D -prefix out/epi.nii epi_r1+orig\n"
+      "\n"
       " -prefix PREFIX : Prefix of the output datasets\n"
       "                  Numbers will be added after the prefix to denote\n"
       "                  prior sub-brick.\n"
@@ -44,7 +56,7 @@ int main( int argc, char *argv[] )
    THD_3dim_dataset *iset, *oset;
    float ffac;
    int   iarg=1, kk, nval;
-   int   datum=MRI_float, keep_datum=0, ndigits=0, prelen;
+   int   datum=MRI_float, keep_datum=0, ndigits=0, prelen, smode;
    char *prefix = "SPLIT";
    char *sub_prefix, newlabel[32];
    char *precopy=NULL, *exten=NULL;  /* copied prefix and any needed ext */
@@ -104,10 +116,13 @@ int main( int argc, char *argv[] )
    sub_prefix = (char *)malloc(kk*sizeof(char));
    if( ! sub_prefix ) ERROR_exit("failed to alloc %d bytes for prefix", kk);
 
-   /* make new prefix in case of non-AFNI writing */
+   /* make new prefix in case of non-AFNI writing, so it can be altered */
+   /* (precopy and exten will be used for actual output prefix) */
    precopy = nifti_strdup(prefix);
    exten = NULL;
-   if( has_known_non_afni_extension(precopy) ) {
+   smode = storage_mode_from_filename(prefix);
+   if( has_known_non_afni_extension(precopy)
+        && is_writable_storage_mode(smode) ) {
       exten = find_filename_extension(precopy);
       /* if found, terminate actual prefix, and point exten past '.' */
       if( exten && exten > precopy )
