@@ -959,7 +959,7 @@ void display_help_menu(void)
       "\n"
       " -permute    = With '-randomsign', and when both '-setA' and '-setB' are used,\n"
       "               this option will add inter-set permutation to the randomization.\n"
-      "             ++ If only '-setA' is used (1-sample test), this option means nothing.\n"
+      "             ++ If only '-setA' is used (1-sample test), there is no permutation!\n"
       "             ++ If '-randomsign' is NOT given, but '-Clustsim' is used, then\n"
       "                '-permute' will be passed for use with the '-Clustsim' tests\n"
       "                (again, only if '-setA' and '-setB' are both used).\n"
@@ -972,13 +972,13 @@ void display_help_menu(void)
       "                  (c) You are not using '-covariates'.\n"
       "         -->>++ You only NEED to use '-permute' if you want inter-set\n"
       "                permutation used AND you give at least one of '-unpooled' or\n"
-      "                '-paired' or '-covariates'.\n"
+      "                '-paired' or '-covariates'. Normally, you don't need '-permute'.\n"
       "             ++ There is no option to do permutation WITHOUT sign randomization :(\n"
       "\n"
       " -nopermute  = This option is present if you want to turn OFF the automatic\n"
       "               use of inter-set permutation with '-randomsign'.\n"
       "             ++ I'm not sure WHY you would want this option, but it is here\n"
-      "                for completeness.\n"
+      "                for completeness of the Galactic Chronsynclastic Infundibulum.\n"
       "\n"
       " -Clustsim   = With this option, after the commanded t-tests are done, then:\n"
       "                (a) the residuals from '-resid' are used with '-randomsign' to\n"
@@ -2622,7 +2622,7 @@ int main( int argc , char *argv[] )
        if( do_permute == 1 )          /* default to off */
          { do_permute = 0 ; dont_permute = 1 ; }
        else if( do_permute > 1 )      /* forced on */
-         WARNING_message("-permute with -covariates is partly weird\n"
+         WARNING_message("-permute with -covariates is a little weird\n"
                          "           -- but since you asked for it, you'll get it :)") ;
      }
    } /* end of polymorphic permute perturbations */
