@@ -49,9 +49,14 @@
 
 afni_history_struct rickr_history[] = {
 
- {  8,  Dec, 2016, RCR, "3dTsplit4D", MICRO, TYPE_NEW_PROG,
-   "have 3dTsplit4D build; make some updates",
-   "This program is by P Molfese."
+ {  8,  Dec, 2016, RCR, "3dTsplit4D", MINOR, TYPE_NEW_OPT,
+   "add -digits and -keep_datum; other minor updates",
+   NULL
+ } ,
+
+ {  8,  Dec, 2016, RCR, "3dTsplit4D", MINOR, TYPE_NEW_PROG,
+   "program to break 4D dataset into a set of 3D ones",
+   "Authored by P Molfese."
  } ,
 
  {  8,  Dec, 2016, RCR, "plug_vol2surf", MICRO, TYPE_ENHANCE,

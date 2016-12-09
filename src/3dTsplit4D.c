@@ -24,10 +24,11 @@ int help_3dTsplit4D( )
       "with Some other PrograM that doesn't like datasets in the pseudo-4D\n"
       "nature that AFNI knows and loves.\n"
       "\n"
-      " -as_type       : leave output as original type\n"
-      " -prefix PREFIX : Prefix of the output dataset \n"
+      " -prefix PREFIX : Prefix of the output datasets\n"
       "                  Numbers will be added after the prefix to denote\n"
       "                  prior sub-brick.\n"
+      " -keep_datum    : output uses original datum (no conversion to float)\n"
+      " -digits DIGITS : number of digits to use for output filenames\n"
       "\n\n"
       "Authored by: Peter Molfese, UConn"
       );
@@ -42,11 +43,11 @@ int main( int argc, char *argv[] )
 {
    THD_3dim_dataset *iset, *oset;
    float ffac;
-   int   iarg=1, kk, nval, ndigits, freq;
-   int   datum=MRI_float, as_type=0;
+   int   iarg=1, kk, nval;
+   int   datum=MRI_float, keep_datum=0, ndigits=0;
    char *prefix = "SPLIT";
    char *sub_prefix, newlabel[32];
-   MRI_IMAGE *inImage=NULL, *outImage;
+   MRI_IMAGE *inImage=NULL;
    
    if( argc < 2 || strcmp(argv[1], "-help") == 0 )
    {
@@ -64,8 +65,13 @@ int main( int argc, char *argv[] )
          prefix = argv[++iarg];
          if( !THD_filename_ok(prefix) )
             ERROR_exit("bad -prefix value");
-      } else if( strcmp( argv[iarg], "-as_type") == 0 ) {
-         as_type = 1;
+      } else if( strcmp( argv[iarg], "-digits") == 0 )
+      {
+         ndigits = atoi(argv[++iarg]);
+         if( ndigits <= 0 )
+            ERROR_exit("bad -digits '%s'", argv[iarg-1]);
+      } else if( strcmp( argv[iarg], "-keep_datum") == 0 ) {
+         keep_datum = 1;
       } else {
          ERROR_exit("unknown option %s", argv[iarg]);
       }
@@ -89,7 +95,8 @@ int main( int argc, char *argv[] )
    if( nval == 0 ) ERROR_exit("no volumes to output?");
 
    /* how many digits do we need for the prefix trailer?   8 Dec 2016 */
-   ndigits = (int)(log(nval)/log(10)+1);
+   if( ndigits == 0 )
+      ndigits = (int)(log(nval)/log(10)+1);
 
    /* allocate sub_prefix */
    kk = strlen(prefix) + ndigits + 4; /* full length of prefix, plus 2 extra */
@@ -116,8 +123,8 @@ int main( int argc, char *argv[] )
       else
          putchar('.');
       
-      if( as_type ) datum = DSET_BRICK_TYPE(iset, kk);
-      else          datum = MRI_float;
+      if( keep_datum ) datum = DSET_BRICK_TYPE(iset, kk);
+      else             datum = MRI_float;
 
       EDIT_dset_items( oset, 
          ADN_datum_all , datum ,
@@ -137,7 +144,7 @@ int main( int argc, char *argv[] )
       }
       
       /* either pass the data along or make a float version */
-      if( as_type ) {
+      if( keep_datum ) {
          EDIT_substitute_brick( oset, 0, datum, DSET_ARRAY(iset, kk));
          DSET_BRICK_FACTOR(oset,0) = DSET_BRICK_FACTOR(iset, kk);
       } else {
