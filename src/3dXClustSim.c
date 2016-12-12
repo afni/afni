@@ -103,7 +103,7 @@ static MRI_IMAGE *imtemplate = NULL ;
 #define PSMALL 1.e-15
 
 #define FARP_GOAL 5.00f    /* 5 percent -- non-adjustable by user */
-#define FGFAC     0.94f
+#define FGFAC     0.90f
 #define FG_GOAL   (FARP_GOAL*fgfac)
 
 static float fgfac = FGFAC ;
@@ -900,7 +900,7 @@ int main( int argc , char *argv[] )
        jj  = (int)rintf(GTHRESH_THB*nfff) ;
        ftb = fomg[jj] ;
        fmax = AFNI_numenv("AFNI_XCLUSTSIM_FMAX") ;
-       if( fmax <= 0.0f || fmax > 1.0f ) fmax = 0.777f ;
+       if( fmax <= 0.01f || fmax > 1.0f ) fmax = 0.622f ;
        gthresh[qpthr] = (int)(fmax*MAX(fta,ftb)+(1.0f-fmax)*MIN(fta,ftb)) ;
        if( verb ){
          ININFO_message("pthr=%.5f gets min threshold %.0f [fta=%.1f ftb=%1.f] [nfom=%d niter=%d]",
