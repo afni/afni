@@ -827,6 +827,42 @@ gDEF_T_GRAN     = 0.1    # default time granularity, in seconds
 gDEF_MIN_T_GRAN = 0.0001 # minimum time granularity, in seconds
 gDEF_DEC_PLACES = 1      # decimal places when printing time (-1 ==> %g format)
 
+gdef_timing_param = {   'decay' : [],   # no params (embedded in t_gran)
+                        'uniform' : []
+                    }
+                        
+# use via dictionary, as entries should be unique
+class TDistribution:
+   def __init__(self, name, tgran=gDEF_T_GRAN):
+      self.name         = name
+      self.tgran        = tgran
+
+# use via dictionaries, one for rest, one for stim
+class TimingClass:
+   def __init__(self, name, min_dur, mean_dur, max_dur,
+                      dist_type='decay', params=[]):
+      # required from the command line (name value -> set duration)
+      self.name         = name
+      self.event_type   = 0             # 0 = stim, 1 = rest
+
+      self.min_dur      = min_dur
+      self.mean_dur     = mean_dur      # implies total_time
+      self.max_dur      = max_dur
+      self.dist_type    = dist_type
+      self.params       = params        # e.g. nbins for uniform
+
+      # computation parameters
+      self.total_time   = 0
+
+class StimClass:
+   def __init__(self, name, nevents, tname, rname=None):
+      # optional from command line
+      self.name         = name
+      self.nevents      = nevents
+      self.tname        = tname         # name of stim TimingClass
+      self.rname        = rname         # name of rest TimingClass
+
+
 class RandTiming:
     def __init__(self, label):
         # actual stimulus timing lists
