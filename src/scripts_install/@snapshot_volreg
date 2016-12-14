@@ -61,6 +61,11 @@ set adset = $argv[1]
 set abase = $adset:t
 set anat  = `basename $abase .gz`
 set anat  = `basename $anat  .nii`
+set anat  = `basename $anat  .HEAD`
+set anat  = `basename $anat  .BRIK`
+set anat  = `basename $anat  +tlrc`
+set anat  = `basename $anat  +orig`
+set anat  = `basename $anat  +acpc`
 if( $abase == $anat.nii.gz )then
   set asuff = .nii.gz
 else if( $abase == $anat.nii )then
@@ -68,11 +73,6 @@ else if( $abase == $anat.nii )then
 else
   set asuff = ""
 endif
-set anat  = `basename $anat  .HEAD`
-set anat  = `basename $anat  .BRIK`
-set anat  = `basename $anat  +tlrc`
-set anat  = `basename $anat  +orig`
-set anat  = `basename $anat  +acpc`
 set anat  = $anat:r
 
 set edset = $argv[2]
