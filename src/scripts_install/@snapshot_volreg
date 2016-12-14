@@ -8,13 +8,22 @@ if( $#argv < 2 )then
   echo "EPI dataset overlayed on an anatomical dataset.  The purpose"
   echo "is to let the user judge the quality of the 3D registration"
   echo
-  echo "Usage: @snapshot_volreg ANATDataset EPIdataset [jname]"
+  echo "Usage: @snapshot_volreg ANATDataset EPIdataset [jname] [xscreen]"
   echo
   echo "Do NOT put a sub-brick index (such as '[0]') on the EPIdataset"
   echo "name -- the script will automatically only use the '[0]' volume."
   echo
   echo "The optional third argument is the name of the output JPEG"
   echo "file -- if it does not end in '.jpg', that suffix will be added."
+  echo
+  echo "The fourth optional argument is the screen number of an"
+  echo "ALREADY RUNNING copy of Xvfb, as in"
+  echo "  Xvfb :8 -screen 0 1024x768x24 &"
+  echo "If you do NOT supply this number (8 in the example), then"
+  echo "the script will start its own Xvfb (on 'screen' 9), use it"
+  echo "once, and then stop it. If you are going to run this script"
+  echo "many times in a row, starting and stopping your own Xvfb"
+  echo "instance will speed things up."
   echo
   echo "This script is new [Nov 2016] and will probably evolve into"
   echo "something better (fondly do we hope)."
@@ -23,6 +32,10 @@ if( $#argv < 2 )then
   echo
   exit 0
 endif
+
+# control variables
+
+setenv AFNI_DONT_LOGFILE YES
 
 # check if all the needed auxiliary programs exist
 
@@ -84,6 +97,14 @@ else
   set jnam = $anat.$epi
 endif
 
+# Are we re-using Xvfb?
+
+unset xscreen
+unset killX
+if( $#argv > 3 )then
+  set xscreen = $argv[4]
+endif
+
 # if( ! -f $adset || ! -f edset )then
 #   if( ! -f $adset ) echo "** ERROR: @snapshot_volreg can't find $adset"
 #   if( ! -f $edset ) echo "** ERROR: @snapshot_volreg can't find $edset"
@@ -98,7 +119,7 @@ setenv AFNI_LEFT_IS_LEFT      YES
 setenv AFNI_IMAGE_LABEL_MODE  5
 setenv AFNI_IMAGE_LABEL_SIZE  2
 setenv AFNI_ENVIRON_WARNINGS  NO
-setenv DISPLAY                :9
+setenv DISPLAY                :${xscreen}
 
 unset noclobber
 
@@ -125,9 +146,13 @@ set epp = `3dBrickStat -non-zero -percentile 20 60 80 zzzerm.epiEM.nii`
 set eth = $epp[2]
 set emx = $epp[4]
 
-# start the X virtual frame buffer on display 9
+# start the X virtual frame buffer on display #xscreen
 
-Xvfb :9 -screen 0 1024x768x24 &
+if( $?xscreen == 0 )then
+  set xscreen = 9
+  set killX   = 1
+  Xvfb :${xscreen} -screen 0 1024x768x24 &
+endif
 
 # run AFNI to make the 3 overlay images
 
@@ -150,7 +175,7 @@ afni -noplugins -no_detach                                  \
 
 # stop Xvfb
 
-kill %1
+if( $?killX ) kill %1
 
 # convert the output JPEGs to PNMs for manipulation
 
