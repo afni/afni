@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 15,  Dec, 2016, RCR, "column_cat", MICRO, TYPE_ENHANCE,
+   "allow for reading from stdin via either '-' or 'stdin'",
+   NULL
+ } ,
+
  {  9,  Dec, 2016, RCR, "3dTsplit4D", MICRO, TYPE_ENHANCE,
    "allow for direct writing to NIFTI via prefix, e.g. result.nii",
    NULL
