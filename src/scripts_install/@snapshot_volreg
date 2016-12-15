@@ -4,34 +4,80 @@
 
 if( $#argv < 2 )then
   echo
-  echo "This script will make a JPEG image showing the edges of an"
-  echo "EPI dataset overlayed on an anatomical dataset.  The purpose"
-  echo "is to let the user judge the quality of the 3D registration"
+  echo 'This script will make a JPEG image showing the edges of an'
+  echo 'EPI dataset overlayed on an anatomical dataset.  The purpose'
+  echo 'is to let the user judge the quality of the 3D registration'
   echo
-  echo "Usage: @snapshot_volreg ANATDataset EPIdataset [jname] [xscreen]"
+  echo 'Usage: @snapshot_volreg ANATDataset EPIdataset [jname] [xscreen]'
   echo
-  echo "Do NOT put a sub-brick index (such as '[0]') on the EPIdataset"
-  echo "name -- the script will automatically only use the '[0]' volume."
+  echo 'Do NOT put a sub-brick index (such as "[0]") on the EPIdataset'
+  echo 'name -- the script will automatically only use the "[0]" volume.'
   echo
-  echo "The optional third argument is the name of the output JPEG"
-  echo "file -- if it does not end in '.jpg', that suffix will be added."
+  echo 'The optional third argument is the name of the output JPEG'
+  echo 'file -- if it does not end in ".jpg", that suffix will be added.'
   echo
-  echo "The fourth optional argument is the screen number of an"
-  echo "ALREADY RUNNING copy of Xvfb, as in"
-  echo "  Xvfb :8 -screen 0 1024x768x24 &"
-  echo "If you do NOT supply this number (8 in the example), then"
-  echo "the script will start its own Xvfb (on 'screen' 9), use it"
-  echo "once, and then stop it. If you are going to run this script"
-  echo "many times in a row, starting and stopping your own Xvfb"
-  echo "instance will speed things up."
+  echo 'The fourth optional argument is the screen number of an'
+  echo 'ALREADY RUNNING copy of Xvfb, as in'
+  echo '  Xvfb :8 -screen 0 1024x768x24 &'
+  echo 'If you do NOT supply this number (8 in the example), then'
+  echo 'the script will start its own Xvfb (on "screen" 9), use it'
+  echo 'once, and then stop it. If you are going to run this script'
+  echo 'many times in a row, starting and stopping your own Xvfb'
+  echo 'instance will speed things up.'
   echo
-  echo "This script is new [Nov 2016] and will probably evolve into"
-  echo "something better (fondly do we hope)."
+  echo 'This script is new [Nov 2016] and will probably evolve into'
+  echo 'something better (fondly do we hope).'
   echo
-  echo "[Dec 2016] add fourth argument, and random temp filenames
+  echo '[Dec 2016] add fourth argument, randomized temp filenames'
   echo
-  echo "-- Author: The Mad Allineator"
+  echo '-------------- Author: The Mad Allineator ---------------'
   echo
+  echo '----- SAMPLE SCRIPT FOR PROCESSING LOTS OF SUBJECTS -----'
+  echo
+  echo "#\!/bin/tcsh"
+  echo
+  echo '## This file makes a JPEG snapshot of the EPI-ANAT registration'
+  echo '## results for each subject -- after the 6mm analyses are done.'
+  echo '##'
+  echo '## argument #1 = Xvfb screen number to use (2-99)'
+  echo '##               if you are going to run several jobs in'
+  echo '##               parallel on the same system, you need to use'
+  echo '##               different screen numbers to prevent conflicts'
+  echo '## argument #2 = file with list of subjects to process'
+  echo
+  echo 'if( $#argv < 2 )then'
+  echo '  echo "need 2 args for this script -- exiting" ; exit 1'
+  echo 'endif'
+  echo
+  echo 'set topdir = /data/NIMH_SSCC/UCLA.pamenc'
+  echo 'cd $topdir/data_orig'
+  echo 'mkdir -p snapshots'
+  echo
+  echo '# start the Xvfb server for X11 "display"'
+  echo
+  echo 'set xs = $argv[1]'
+  echo 'Xvfb :$xs -screen 0 1024x768x24 &'
+  echo
+  echo '# process each subject'
+  echo
+  echo 'foreach subj ( `cat $argv[2]` )'
+  echo
+  echo '  set ddd = ${subj}/${subj}.b6mm.results'
+  echo
+  echo '  if( ! -d $ddd                                   ) continue'
+  echo '  if( ! -f $ddd/anat_final.${subj}+tlrc.HEAD      ) continue'
+  echo '  if( ! -f $ddd/pb02.${subj}.r01.volreg+tlrc.HEAD ) continue'
+  echo
+  echo '  @snapshot_volreg $ddd/anat_final.${subj}+tlrc $ddd/pb02.${subj}.r01.volreg+tlrc ${subj} $xs'
+  echo
+  echo '  if( -f ${subj}.jpg ) \mv -f ${subj}.jpg snapshots/'
+  echo
+  echo 'end'
+  echo
+  echo 'kill %1'
+  echo 'exit 0'
+  echo
+  echo '----- END OF SAMPLE SCRIPT -----'
   exit 0
 endif
 
