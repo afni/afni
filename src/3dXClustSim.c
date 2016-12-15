@@ -103,7 +103,7 @@ static MRI_IMAGE *imtemplate = NULL ;
 #define PSMALL 1.e-15
 
 #define FARP_GOAL 5.00f    /* 5 percent -- non-adjustable by user */
-#define FGFAC     0.94f
+#define FGFAC     0.90f
 #define FG_GOAL   (FARP_GOAL*fgfac)
 
 static float fgfac = FGFAC ;
@@ -882,7 +882,7 @@ int main( int argc , char *argv[] )
 #define GTHRESH_THB 0.234567f
 
    { int nfom,jj,nfff; Xcluster **xcc;
-     float a0,a1,f0,f1,fta,ftb ;
+     float a0,a1,f0,f1,fta,ftb , fmax ;
      float *fomg=calloc(sizeof(float),nclust_max);
 
      gthresh = (float *)calloc(sizeof(float),npthr) ;
@@ -899,7 +899,9 @@ int main( int argc , char *argv[] )
        fta = GTHRESH_FAC*fomg[jj] ;
        jj  = (int)rintf(GTHRESH_THB*nfff) ;
        ftb = fomg[jj] ;
-       gthresh[qpthr] = (int)(0.777f*MAX(fta,ftb)+0.222f*MIN(fta,ftb)) ;
+       fmax = AFNI_numenv("AFNI_XCLUSTSIM_FMAX") ;
+       if( fmax <= 0.01f || fmax > 1.0f ) fmax = 0.622f ;
+       gthresh[qpthr] = (int)(fmax*MAX(fta,ftb)+(1.0f-fmax)*MIN(fta,ftb)) ;
        if( verb ){
          ININFO_message("pthr=%.5f gets min threshold %.0f [fta=%.1f ftb=%1.f] [nfom=%d niter=%d]",
                         pthr[qpthr],gthresh[qpthr],fta,ftb,nfom,niter) ;

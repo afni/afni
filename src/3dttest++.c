@@ -157,7 +157,7 @@ static int do_sdat         = 0 ;     /* 29 Aug 2016 */
 static int *randomsign_AAA = NULL ;
 static int *randomsign_BBB = NULL ;
 static int num_randomsign  = 0 ;     /* 02 Feb 2016 */
-static int do_permute      = 1 ;     /* 07 Dec 2016 */
+static int do_permute      = 1 ;     /* 07 Dec 2016 - on by default */
 static int dont_permute    = 0 ;
 static char *CS_arg        = NULL ;  /* 07 Dec 2016 */
 
@@ -254,9 +254,9 @@ static void setup_randomsign(void)  /* moved here 02 Feb 2016 */
 /* How -permute is implemented [07 Dec 2016] */
 /*--------------------------------------------------------------------------*/
 
-static int    p_nxy  = 0 ;
-static float *p_xyar = NULL ;
-static int   *p_ijar = NULL ;
+static int    p_nxy  = 0 ;     /* total length of data */
+static float *p_xyar = NULL ;  /* array to hold both samples */
+static int   *p_ijar = NULL ;  /* permutation array */
 
 /*---------- create the permutation of length nx+ny into p_ijar ----------*/
 
@@ -266,7 +266,7 @@ static void setup_permute( int nx , int ny )
 
    if( nx == 0 || ny == 0 ) return ;  /* how did this happen? */
 
-   if( nx+ny > p_nxy ){  /* workspace */
+   if( nx+ny > p_nxy ){  /* make workspaces */
      p_nxy = nx+ny ;
      p_xyar = (float *)realloc(p_xyar,sizeof(float)*p_nxy) ;
      p_ijar = (int   *)realloc(p_ijar,sizeof(int  )*p_nxy) ;
@@ -959,23 +959,26 @@ void display_help_menu(void)
       "\n"
       " -permute    = With '-randomsign', and when both '-setA' and '-setB' are used,\n"
       "               this option will add inter-set permutation to the randomization.\n"
-      "             ++ If only '-setA' is used (1-sample test), this option means nothing.\n"
+      "             ++ If only '-setA' is used (1-sample test), there is no permutation!\n"
       "             ++ If '-randomsign' is NOT given, but '-Clustsim' is used, then\n"
       "                '-permute' will be passed for use with the '-Clustsim' tests\n"
       "                (again, only if '-setA' and '-setB' are both used).\n"
       "             ++ If '-randomsign' is given and if the following conditions\n"
       "                are ALL true, then '-permute' is assumed:\n"
       "                  (a) You have a 2-sample test.\n"
-      "                  (b) You are not using '-unpooled' (a 2-sample option).\n"
+      "                      [Permutation is meaningless without 2 samples!]\n"
+      "                  (b) You are not using '-unpooled'.\n"
+      "                  (c) You are not using '-paired'.\n"
       "                  (c) You are not using '-covariates'.\n"
       "         -->>++ You only NEED to use '-permute' if you want inter-set\n"
-      "                permutation used and you give '-unpooled' or '-covariates'.\n"
-      "             ++ There is no option to do permutation WITHOUT sign randomization.\n"
+      "                permutation used AND you give at least one of '-unpooled' or\n"
+      "                '-paired' or '-covariates'. Normally, you don't need '-permute'.\n"
+      "             ++ There is no option to do permutation WITHOUT sign randomization :(\n"
       "\n"
       " -nopermute  = This option is present if you want to turn OFF the automatic\n"
       "               use of inter-set permutation with '-randomsign'.\n"
       "             ++ I'm not sure WHY you would want this option, but it is here\n"
-      "                for completeness.\n"
+      "                for completeness of the Galactic Chronsynclastic Infundibulum.\n"
       "\n"
       " -Clustsim   = With this option, after the commanded t-tests are done, then:\n"
       "                (a) the residuals from '-resid' are used with '-randomsign' to\n"
@@ -2578,9 +2581,14 @@ int main( int argc , char *argv[] )
 
    /* check if -permute is used reasonably */
 
-   if( !twosam ) dont_permute = 1 ;  /* that was easy */
+   if( !twosam ){
+     if( do_permute > 1 ){
+       WARNING_message("only 1 sample: -permute is turned off") ;
+     }
+     do_permute = 0 ; dont_permute = 1 ;
+   }
 
-   if( dont_permute ){ /* check if user did both -nopermute and -permute */
+   if( do_permute && dont_permute ){ /* check if user did both -nopermute and -permute */
      if( do_permute > 1 ) WARNING_message("-nopermute turns off -permute") ;
      do_permute = 0 ;
    }
@@ -2589,28 +2597,35 @@ int main( int argc , char *argv[] )
      if( !do_randomsign && !do_clustsim && !do_Xclustsim ){  /* is it useful? */
        if( do_permute > 1 )
          WARNING_message("-permute without -randomsign or -Clustsim -- turning it off :(") ;
-       do_permute = 0 ;
+       { do_permute = 0 ; dont_permute = 1 ; }
      }
-     if( singletonA ){      /* is it legal? */
+     if( singletonA ){                                        /* is it legal? */
        if( do_permute > 1 )
          WARNING_message("You can't use -permute with -singletonA -- turning it off :(") ;
-       do_permute = 0 ;
+       { do_permute = 0 ; dont_permute = 1 ; }
      }
-     if( ttest_opcode == 1 ){ /* -unpooled -- keep -permute or not? */
-       if( do_permute == 1 )     /* default to off */
-         do_permute = 0 ;
-       else if( do_permute > 1 ) /* forced on */
+     if( ttest_opcode == 1 ){         /* -unpooled -- keep -permute or not? */
+       if( do_permute == 1 )          /* default to off */
+         { do_permute = 0 ; dont_permute = 1 ; }
+       else if( do_permute > 1 )      /* forced on */
          WARNING_message("-permute with -unpooled is somewhat weird\n"
                          "           -- but since you asked for it, you'll get it :)") ;
      }
-     if( mcov > 0 ){  /* -covariates -- keep -permute or not? */
-       if( do_permute == 1 )     /* default to off */
-         do_permute = 0 ;
-       else if( do_permute > 1 ) /* forced on */
-         WARNING_message("-permute with -covariates is somewhat weird\n"
+     if( ttest_opcode == 2 ){         /* -paired -- keep -permute or not? */
+       if( do_permute == 1 )          /* default to off */
+         { do_permute = 0 ; dont_permute = 1 ; }
+       else if( do_permute > 1 )      /* forced on */
+         WARNING_message("-permute with -paired is definitely weird\n"
                          "           -- but since you asked for it, you'll get it :)") ;
      }
-   } /* end of playing with -permute options */
+     if( mcov > 0 ){                  /* -covariates -- keep -permute or not? */
+       if( do_permute == 1 )          /* default to off */
+         { do_permute = 0 ; dont_permute = 1 ; }
+       else if( do_permute > 1 )      /* forced on */
+         WARNING_message("-permute with -covariates is a little weird\n"
+                         "           -- but since you asked for it, you'll get it :)") ;
+     }
+   } /* end of polymorphic permute perturbations */
 
 #ifdef ALLOW_RANK
    if( do_ranks && !twosam ){
