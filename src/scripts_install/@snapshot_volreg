@@ -28,6 +28,8 @@ if( $#argv < 2 )then
   echo "This script is new [Nov 2016] and will probably evolve into"
   echo "something better (fondly do we hope)."
   echo
+  echo "[Dec 2016] add fourth argument, and random temp filenames
+  echo
   echo "-- Author: The Mad Allineator"
   echo
   exit 0
@@ -73,7 +75,6 @@ else if( $abase == $anat.nii )then
 else
   set asuff = ""
 endif
-set anat  = $anat:r
 
 set edset = $argv[2]
 set epi   = `basename $edset .gz`
@@ -83,7 +84,6 @@ set epi   = `basename $epi   .BRIK`
 set epi   = `basename $epi   +tlrc`
 set epi   = `basename $epi   +orig`
 set epi   = `basename $epi   +acpc`
-set epi   = $epi:r
 
 # set output image prefix
 
@@ -121,28 +121,32 @@ setenv AFNI_IMAGE_LABEL_SIZE  2
 setenv AFNI_ENVIRON_WARNINGS  NO
 setenv DISPLAY                :${xscreen}
 
+# quasi-random temp filename prefix
+
+set zpref = zzerm.X${xscreen}-`count -dig 1 1 9999 R1`
+
 unset noclobber
 
 # resample the EPI to the anat grid
 
 3dAllineate -input  ${edset}'[0]'     \
             -master ${adset}          \
-            -prefix zzzerm.epiR.nii   \
+            -prefix ${zpref}.epiR.nii \
             -1Dparam_apply IDENTITY   \
             -final cubic
 
 # find edges in the EPI
 
-3dedge3 -input zzzerm.epiR.nii -prefix zzzerm.epiE.nii
+3dedge3 -input ${zpref}.epiR.nii -prefix ${zpref}.epiE.nii
 
 # get the EPI automask and apply it to the edgized EPI
 
-3dAutomask -q -prefix zzzerm.epiM.nii -clfrac 0.333 -dilate 5 zzzerm.epiR.nii
-3dcalc -a zzzerm.epiE.nii -b zzzerm.epiM.nii -expr 'a*b' -prefix zzzerm.epiEM.nii
+3dAutomask -q -prefix ${zpref}.epiM.nii -clfrac 0.333 -dilate 5 ${zpref}.epiR.nii
+3dcalc -a ${zpref}.epiE.nii -b ${zpref}.epiM.nii -expr 'a*b' -prefix ${zpref}.epiEM.nii
 
 # get the lower and upper thresholds for the edgized EPI
 
-set epp = `3dBrickStat -non-zero -percentile 20 60 80 zzzerm.epiEM.nii`
+set epp = `3dBrickStat -non-zero -percentile 20 60 80 ${zpref}.epiEM.nii`
 set eth = $epp[2]
 set emx = $epp[4]
 
@@ -156,22 +160,22 @@ endif
 
 # run AFNI to make the 3 overlay images
 
-afni -noplugins -no_detach                                  \
-     -com "SWITCH_UNDERLAY ${anat}${asuff}"                 \
-     -com "SWITCH_OVERLAY zzzerm.epiEM.nii"                 \
-     -com "SET_PBAR_ALL +99 1 Plasma"                       \
-     -com "SET_FUNC_RANGE $emx"                             \
-     -com "SET_THRESHNEW $eth *"                            \
-     -com "SEE_OVERLAY +"                                   \
-     -com "SET_XHAIRS OFF"                                  \
-     -com "OPEN_WINDOW sagittalimage opacity=6"             \
-     -com "OPEN_WINDOW axialimage opacity=6"                \
-     -com "OPEN_WINDOW coronalimage opacity=6"              \
-     -com "SAVE_JPEG sagittalimage zzzerm.sag.jpg blowup=2" \
-     -com "SAVE_JPEG coronalimage  zzzerm.cor.jpg blowup=2" \
-     -com "SAVE_JPEG axialimage    zzzerm.axi.jpg blowup=2" \
-     -com "QUITT"                                           \
-     ${adset} zzzerm.epiEM.nii
+afni -noplugins -no_detach                                    \
+     -com "SWITCH_UNDERLAY ${anat}${asuff}"                   \
+     -com "SWITCH_OVERLAY ${zpref}.epiEM.nii"                 \
+     -com "SET_PBAR_ALL +99 1 Plasma"                         \
+     -com "SET_FUNC_RANGE $emx"                               \
+     -com "SET_THRESHNEW $eth *"                              \
+     -com "SEE_OVERLAY +"                                     \
+     -com "SET_XHAIRS OFF"                                    \
+     -com "OPEN_WINDOW sagittalimage opacity=6"               \
+     -com "OPEN_WINDOW axialimage opacity=6"                  \
+     -com "OPEN_WINDOW coronalimage opacity=6"                \
+     -com "SAVE_JPEG sagittalimage ${zpref}.sag.jpg blowup=2" \
+     -com "SAVE_JPEG coronalimage  ${zpref}.cor.jpg blowup=2" \
+     -com "SAVE_JPEG axialimage    ${zpref}.axi.jpg blowup=2" \
+     -com "QUITT"                                             \
+     ${adset} ${zpref}.epiEM.nii
 
 # stop Xvfb
 
@@ -179,21 +183,21 @@ if( $?killX ) kill %1
 
 # convert the output JPEGs to PNMs for manipulation
 
-djpeg zzzerm.sag.jpg > zzzerm.sag.pnm
-djpeg zzzerm.cor.jpg > zzzerm.cor.pnm
-djpeg zzzerm.axi.jpg > zzzerm.axi.pnm
+djpeg ${zpref}.sag.jpg > ${zpref}.sag.pnm
+djpeg ${zpref}.cor.jpg > ${zpref}.cor.pnm
+djpeg ${zpref}.axi.jpg > ${zpref}.axi.pnm
 
 # cat them together, make a text label, overlay it, make output JPEG
 
-pnmcat -lr -jcenter -black zzzerm.sag.pnm zzzerm.axi.pnm zzzerm.cor.pnm   > zzzerm.pnm
-pbmtext -nomargins -builtin fixed "$jnam"   | pbmtopgm 1 1 | pamstretch 2 > zzzerm.t1.pgm
-pbmtext -nomargins -builtin fixed "<- Left" | pbmtopgm 1 1                > zzzerm.t2.pgm
-pamcomp -align=right -valign=bottom zzzerm.t1.pgm zzzerm.pnm              > zzzerm.t3.pnm
-pamcomp -align=right -valign=top    zzzerm.t2.pgm zzzerm.t3.pnm | cjpeg -quality 95 > "$jnam.jpg"
+pnmcat -lr -jcenter -black ${zpref}.sag.pnm ${zpref}.axi.pnm ${zpref}.cor.pnm           > ${zpref}.pnm
+pbmtext -nomargins -builtin fixed "$jnam"   | pbmtopgm 1 1 | pamstretch 2               > ${zpref}.t1.pgm
+pbmtext -nomargins -builtin fixed "<- Left" | pbmtopgm 1 1                              > ${zpref}.t2.pgm
+pamcomp -align=right -valign=bottom ${zpref}.t1.pgm ${zpref}.pnm                        > ${zpref}.t3.pnm
+pamcomp -align=right -valign=top    ${zpref}.t2.pgm ${zpref}.t3.pnm | cjpeg -quality 95 > "$jnam.jpg"
 
 # delete the trash data
 
-\rm -f zzzerm.*
+\rm -f ${zpref}.*
 
 echo "@snapshot_volreg output image = $jnam.jpg"
 exit 0
