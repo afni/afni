@@ -822,6 +822,16 @@ g_history = """
 
 g_version = "version 1.10, June 1, 2016"
 
+g_todo = 
+"""
+   - maybe this program should just be a new one?  gen_random_timing.py?
+      - MRT could be forked and depricated, but maybe people want to use it?
+      - or perhaps it could be clear by calling it old_MRT.py
+   -add_timing_class label MIN MEAN MAX PDF TGRAN
+   -add_stim_class label Nreps stim_timing_class rest_timing_class
+   -global "-across_runs" still applies
+"""
+
 gDEF_VERB       = 1      # default verbose level
 gDEF_T_GRAN     = 0.1    # default time granularity, in seconds
 gDEF_MIN_T_GRAN = 0.0001 # minimum time granularity, in seconds
@@ -831,15 +841,18 @@ gdef_timing_param = {   'decay' : [],   # no params (embedded in t_gran)
                         'uniform' : []
                     }
 
-# example usage:
-# -timing_class stimA 3 
-# -timing_class stimA 3 5 10
-# -timing_class stimA 3 5 10 decay
-# -timing_class stimA 3 5 7  uniform 1
+# sample usage:
+#
+# -add_timing_class stimA 3 
+# -add_timing_class stimA 3 3  3 decay 0.1
+# -add_timing_class stimA 3 5 10
+# -add_timing_class stimA 3 5 10 decay
+# -add_timing_class stimA 3 5 10 decay 0.1
+# -add_timing_class stimA 3 5  7 uniform 1
 # 
-# -timing_class restA 3
-# -timing_class stimA 3 5 10 decay
-# -timing_class stimA 1 5  9 uniform 0.1
+# -add_timing_class restA 3
+# -add_timing_class restA 3 5 10 decay
+# -add_timing_class restA 1 5  9 uniform 0.1  (decide how to sample)
 
                         
 # use via dictionary, as entries should be unique
