@@ -830,6 +830,17 @@ gDEF_DEC_PLACES = 1      # decimal places when printing time (-1 ==> %g format)
 gdef_timing_param = {   'decay' : [],   # no params (embedded in t_gran)
                         'uniform' : []
                     }
+
+# example usage:
+# -timing_class stimA 3 
+# -timing_class stimA 3 5 10
+# -timing_class stimA 3 5 10 decay
+# -timing_class stimA 3 5 7  uniform 1
+# 
+# -timing_class restA 3
+# -timing_class stimA 3 5 10 decay
+# -timing_class stimA 1 5  9 uniform 0.1
+
                         
 # use via dictionary, as entries should be unique
 class TDistribution:
@@ -855,12 +866,12 @@ class TimingClass:
       self.total_time   = 0
 
 class StimClass:
-   def __init__(self, name, nevents, tname, rname=None):
+   def __init__(self, name, nevents, stname, rtname=None):
       # optional from command line
       self.name         = name
       self.nevents      = nevents
-      self.tname        = tname         # name of stim TimingClass
-      self.rname        = rname         # name of rest TimingClass
+      self.stname       = stname        # name of stim TimingClass
+      self.rtname       = rtname        # name of rest TimingClass
 
 
 class RandTiming:
