@@ -2271,16 +2271,20 @@ int main( int argc , char *argv[] )
      /*-----*/
 
      if( strncmp(argv[iarg],"-twobest",7) == 0 ){
+       static int first=1 ; int tbold=tbest ;
        if( ++iarg >= argc ) ERROR_exit("no argument after '%s' :-(",argv[iarg-1]) ;
        tbest = (int)strtod(argv[iarg],NULL) ; twopass = 1 ;
        if( tbest < 0 ){
          WARNING_message("-twobest %d is illegal: replacing with 0",tbest) ;
          tbest = 0 ;
        } else if( tbest > PARAM_MAXTRIAL ){
-         WARNING_message("-twobest %d is illegal: replacing with %d",tbest,PARAM_MAXTRIAL) ;
+         INFO_message("-twobest %d is too big: replaced with %d",tbest,PARAM_MAXTRIAL) ;
          tbest = PARAM_MAXTRIAL ;
+       } else if( !first && tbold > tbest ){
+         INFO_message("keeping older/larger -twobest value of %d",tbold) ;
+         tbest = tbold ;
        }
-       iarg++ ; continue ;
+       first = 0 ; iarg++ ; continue ;
      }
 
      if( strncmp(argv[iarg],"-num_rtb",7) == 0 ){
@@ -4654,10 +4658,14 @@ STATUS("zeropad weight dataset") ;
        stup.need_hist_setup = 1 ;
        if( meth_code == GA_MATCH_LPC_MICHO_SCALAR && micho_zfinal ){
          GA_setup_micho( 0.0 , 0.0 , 0.0 , 0.0 , 0.0 ) ;
-         if( verb > 1 ) ININFO_message(" - Set lpc+ parameters back to pure lpc before Final") ;
+         if( verb > 1 )
+           ININFO_message(" - Set lpc+ parameters back to pure lpc before Final") ;
+         rad *= 1.666f ;
+       } else {
+         rad *= 0.666f ;
        }
        if( powell_mm == 0.0f ) powell_set_mfac( 3.0f , 3.0f ) ;  /* 07 Jun 2011 */
-       nfunc = mri_genalign_scalar_optim( &stup , 0.666f*rad, conv_rad,6666 );
+       nfunc = mri_genalign_scalar_optim( &stup , rad, conv_rad,6666 );
        powell_set_mfac( powell_mm , powell_aa ) ;                /* 07 Jun 2011 */
      }
 

@@ -224,7 +224,7 @@ afni -noplugins -no_detach                                    \
      -com "QUITT"                                             \
      ${adset} ${zpref}.epiEM.nii
 
-# stop Xvfb
+# stop Xvfb if we started it ourselves
 
 if( $?killX ) kill %1
 
