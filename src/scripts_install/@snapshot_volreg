@@ -165,7 +165,16 @@ setenv AFNI_LEFT_IS_LEFT      YES
 setenv AFNI_IMAGE_LABEL_MODE  5
 setenv AFNI_IMAGE_LABEL_SIZE  2
 setenv AFNI_ENVIRON_WARNINGS  NO
-setenv DISPLAY                :${xscreen}
+
+# start the X virtual frame buffer on display #xscreen
+
+if( $?xscreen == 0 )then
+  set xscreen = 9
+  set killX   = 1
+  Xvfb :${xscreen} -screen 0 1024x768x24 &
+endif
+
+setenv DISPLAY :${xscreen}
 
 # quasi-random temp filename prefix
 
@@ -195,14 +204,6 @@ unset noclobber
 set epp = `3dBrickStat -non-zero -percentile 20 60 80 ${zpref}.epiEM.nii`
 set eth = $epp[2]
 set emx = $epp[4]
-
-# start the X virtual frame buffer on display #xscreen
-
-if( $?xscreen == 0 )then
-  set xscreen = 9
-  set killX   = 1
-  Xvfb :${xscreen} -screen 0 1024x768x24 &
-endif
 
 # run AFNI to make the 3 overlay images
 
