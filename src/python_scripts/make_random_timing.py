@@ -14,10 +14,16 @@ Create random stimulus timing files.
 
     This can easily be used to generate many sets of random timing files to
     test via "3dDeconvolve -nodata", in order to determine good timing, akin
-    to what is done in HowTo #3 using RSFgen.  Note that the -save_3dd_cmd
+    to what is done in HowTo #3 using
+
+        RSFgen.
+
+    Note that the -save_3dd_cmd
     can be used to create a sample "3dDeconvolve -nodata" script.
 
     given:
+        rcr - FIX
+
         num_stim        - number of stimulus classes
         num_runs        - number of runs
         num_reps        - number of repetitions for each class (same each run)
@@ -50,22 +56,6 @@ Create random stimulus timing files.
         t_gran      - granularity of time, in seconds (default 0.1 seconds)
         tr_locked   - make all timing locked with the accompanying TR
 
-    The internal method used is similar to that of RSFgen.  For a given run, a
-    list of num_reps stimulus intervals for each stimulus class is generated
-    (each interval is stim_dur seconds).  Appended to this is a list of rest
-    intervals (each of length t_gran seconds).  This accounts for all time
-    except for pre_stim_rest and post_stim_rest.
-
-    This list (of numbers 0..num_stim, where 0 means rest) is then randomized.
-    Timing comes from the result.
-
-    Reading the list (still for a single run), times are accumulated, starting
-    with pre_stim_rest seconds.  As the list is read, a 0 means add t_gran
-    seconds to the current time.  A non-zero value means the given stimulus
-    type occurred, so the current time goes into that stimulus file and the
-    time is incremented by stim_dur seconds.
-
-  * Note that stimulus times will never overlap, though response times can.
 
   * The following options can be specified as one value or as a list:
 
@@ -97,17 +87,7 @@ distributing stimuli across all runs at once (via -across_runs)
     each stimulus class would have 8 repetitions in each of the 4 runs (for a
     total of 32 repetitions).
 
-    That changes if -across_runs is applied.
-
-    With the addition of the -across_runs option, the meaning of -num_reps
-    changes to be the total number of repetitions for each class across all
-    runs, and the randomization changes to occur across all runs.  So in the
-    above example, with -num_reps equal to 8, 8 stimuli (of each class) will
-    be distributed across 4 runs.  The average number of repetitions per run
-    would be 2.
-
-    In such a case, note that it would be possible for some runs not to have
-    any stimuli of a certain type.
+    ...
 
 ----------------------------------------------------------------------
 examples:
@@ -165,31 +145,11 @@ examples:
                 -stim_dur 2.0 -num_reps 8 -prefix stimesD                \\
                 -pre_stim_rest 20 -post_stim_rest 20 -tr_locked -tr 2.0
 
-    5. Esoteric example.
-
-       Similar to #2, but require an additional 0.7 seconds of rest after
-       each stimulus (exactly the same as adding 0.7 to the stim_dur), set
-       the granularity of random sequencing to 0.001 seconds, apply a random
-       number seed of 31415, and set the verbose level to 2.
-
-       Save a 3dDeconvolve -nodata command in @cmd.3dd .
-       
-            make_random_timing.py -num_stim 3 -num_runs 4 -run_time 200  \\
-                -stim_dur 3.5 -num_reps 8 -prefix stimesE                \\
-                -pre_stim_rest 20 -post_stim_rest 20                     \\
-                -min_rest 0.7 -max_rest 7.0                              \\
-                -t_gran 0.001 -seed 31415 -verb 2                        \\
-                -show_timing_stats -save_3dd_cmd @cmd.3dd
+    5. 
 
     6. Example with varying number of events, durations and run times.
 
     ** Note that this does not make for a balanced design.
-
-       Similar to #2, but require each stimulus class to have a different
-       number of events.  Class #1 will have 8 reps per run, class #2 will
-       have 10 reps per run and class #3 will have 15 reps per run.  The
-       -num_reps option takes either 1 or -num_stim parameters.  Here, 3
-       are supplied.
 
             make_random_timing.py -num_stim 3 -num_runs 4       \\
                 -run_time 200 190 185 225                       \\
@@ -222,107 +182,8 @@ examples:
 
        Do this in 4 steps:
 
-          a. Generate stimulus timing for 6 classes: A, B, A1, A2, B1, B2.
-             Stim lengths will be 8, 8, and 16, 16, 16, 16 seconds, at first.
-             Note that both the stimulus durations and frequencies will vary.
-
-               make_random_timing.py -num_stim 6 -num_runs 3 -run_time 540  \\
-                   -stim_dur 8 8 16 16 16 16 -num_reps 4 4 5 5 5 5          \\
-                   -stim_labels A B A1 A2 B1 B2 -min_rest 1.5 -seed 54321   \\
-                   -prefix stimesG 
-
-          b. Separate 'catch' trials from main events.  Catch trails for A will
-             occur at the exact stim times of A1 and A2.  Therefore all of our
-             time for A/A1/A2 are actually times for A (and similarly for B).
-             Concatenate the timing files and save them.
-
-                1dcat stimesG_??_A.1D stimesG_??_A?.1D > stimesG_A_all.1D
-                1dcat stimesG_??_B.1D stimesG_??_B?.1D > stimesG_B_all.1D
-
-             Perhaps consider sorting the stimulus times per run, since the
-             1dcat command does not do that.  Use timing_tool.py.  The new
-             'sorted' timing files would replace the 'all' timing files.
-
-                timing_tool.py -timing stimesG_A_all.1D -sort  \\
-                               -write_timing stimesG_A_sorted.1D
-                timing_tool.py -timing stimesG_B_all.1D -sort  \\
-                               -write_timing stimesG_B_sorted.1D
-
-          c. To get stim times for the 'main' regressors we need to add 8
-             seconds to every time.  Otherwise, the times will be identical to
-             those in stimesG.a_03_A?.1D (and B).
-
-             There are many ways to add 8 to the timing files.  In this case,
-             just run the program again, with the same seed, but add an offset
-             of 8 seconds to all times.  Then simply ignore the new files for
-             A and B, while keeping those of A1, A2, B1 and B2.
-
-             Also, save the 3dDeconvolve command to run with -nodata.
-
-               make_random_timing.py -num_stim 6 -num_runs 3 -run_time 540  \\
-                   -stim_dur 8 8 16 16 16 16 -num_reps 4 4 5 5 5 5          \\
-                   -stim_labels A B A1 A2 B1 B2 -min_rest 1.5 -seed 54321   \\
-                   -offset 8.0 -save_3dd_cmd @cmd.3dd.G -prefix stimesG 
-
-          d. Finally, fix the 3dDeconvolve command in @cmd.3dd.G.
-
-             1. Use timing files stimesG_A_sorted.1D and stimesG_B_sorted.1D
-                from step b, replacing stimesG_01_A.1D and stimesG_01_B.1D.
-
-             2. Update the stimulus durations of A1, A2, B1 and B2 from 16
-                seconds to the correct 8 seconds (the second half of the 16
-                second intervals).
-
-             This is necessary because the command in step (c) does not know
-             about the updated A/B files from step (b).  The first half of each
-             16 second A1/A2 stimulus is actually stimulus A, while the second
-             half is really A1 or A2.  Similarly for B.
-             
-        
-       The resulting files are kept (and applied in and 3dDeconvolve commands):
-
-            stimesG_[AB]_sorted.1D : the (sorted) 'catch' regressors,
-                                     14 stimuli per run (from step b)
-            stimesG_*_[AB][12].1D  : the 4 main regressors (at 8 sec offsets)
-                                     (from step c)
-
-       --- end of (long) example #7 ---
 
     8. Example requiring partially fixed stimulus ordering.
-
-       Suppose we have 2 sets of stimuli, question/answer/score along with
-       face/doughnut.  Anytime a question is given it is followed by an answer
-       (after random rest) and then a score (after random rest).  The face and
-       doughnut stimuli are random, but cannot interrupt the q/a/s triples.
-
-       Effectively, this means question, face and doughnut are random, but
-       answer and score must always follow question.  Rest should be randomly
-       distributed anywhere.
-
-       The q/a/s stimuli are each 1.5 seconds, but since we require a minimum
-       of 1 second after 'q' and 'a', and 1.5 seconds after 's', those stimulus
-       durations are given as 2.5, 2.5 and 3.0 seconds, respectively.  The
-       'f' and 'd' stimuli are each 1 second.
-
-       Each stimulus has 8 repetitions per run, over 4 240 second runs.  The
-       first and last 20 seconds of each run will be left to rest.
-
-         make_random_timing.py -num_runs 4 -run_time 240                \\
-                 -num_stim 5 -num_reps 8                                \\
-                 -stim_labels question answer score face doughnut       \\
-                 -stim_dur 2.5 2.5 3 1 1                                \\
-                 -ordered_stimuli question answer score                 \\
-                 -pre_stim_rest 20 -post_stim_rest 20                   \\
-                 -show_timing_stats -seed 31415 -prefix stimesH
-
-       To verify the stimulus order, consider using timing_tool.py to convert
-       timing files to an event list.  The corresponding command might be the
-       following, output on a TR grid of 1.0 s.
-
-         timing_tool.py -multi_timing stimesH*.1D                       \\
-                -multi_timing_to_events events.stimesH.txt              \\
-                -multi_stim_dur 2.5 2.5 3 1 1                           \\
-                -tr 1.0 -min_frac 0.5 -per_run -run_len 240
 
 
     9. TR-locked example, fixed seed, limited consecutive events.
@@ -382,81 +243,6 @@ NOTE: distribution of ISI
         -------- = -------   = for visual significance = -----------
          P(X=r)    R+T-1-r                               R+T-1   - r
 
-    The left side of that ratio is fixed at R/(R+T-1) = 1000/(1049) = .953
-    for the earlier example.  It may by common to be in that ballpark.
-    For subsequent r values, that ratio goes down, eventually hitting 0 when
-    the rest is exhausted (r=R).
-
-    This means that the distribution of such rest actually falls _below_ an
-    exponential decay curve.  It is close to (R/(R+T-1))^r at first, decaying
-    more rapidly until hitting 0.
-     
-    ==> The overall distribution of ISI rest looks like an exponential decay
-        curve, with a peak at r=0 (no rest) and probability close to T/R.
-
-    Note that the average ISI should be approximately equal to
-    total rest time / # task events
-    (e.g. 100s / 50 stimuli = 2s (per stim)).
-    So the cumulative distribution function would hit 0.5 where r corresponds
-    to this ratio, e.g. r = 20, where each rest event is 0.1s.
-
-    Test this:
-
-    Create a histogram of all ISI durations based on 100 2-second events in a
-    single run of length 300 (so 200 s for task, 100 s for rest), with rest
-    distributed randomly on a 0.1 s time grid.  Note that what matters is the
-    number of stim events (100) and the number of rest events (1000), not their
-    respective durations (unless there are user-imposed limits).
-
-    Given the timing, "timing_tool.py -multi_timing_to_event_list" can be used
-    to output ISIs (for example).  Use that to simply make a list of ISIs, and
-    then make a histogram.  Let us repeat the process of generating events and
-    ISIs, accumulating a list of ISIs, a total of 100 times.  The generate and
-    plot of histogram of all ISI duration counts.
-
-    Since rest is on a 0.1 s grid, we will scale by 10 and make an integer
-    histogram.
-
-       echo -n "" > isis_all.1D
-       foreach rep ( `count 1 100` )
-          echo simulation $rep
-          make_random_timing.py -num_stim 1 -num_runs 1 -run_time 300 \\
-              -stim_dur 2 -num_reps 100 -prefix t -verb 0
-          ( timing_tool.py -multi_timing t_01.1D -multi_stim_dur 2    \\
-              -multi_timing_to_event_list GE:o - -verb 0              \\
-              | 1deval -a - -expr '10*a' >> isis_all.1D ) >& /dev/null
-       end
-       3dhistog -int isis_all.1D | tee isis_hist.1D
-       1dplot -sepscl isis_hist.1D'[1,2]'
-
-    Note that the histogram might be scaled down by a factor of 100 to get
-    an expected ISI frequency per run (since we effectively accumulated the
-    ISI lists over 100 runs).
-
-    Basically, we are looking for something like a exponential decay curve
-    in the frequency histogram (the lower plot).
-
-    Include plot of probabilities, computed incrementally (no factorials).
-    Use the same event counts, 100 task and 1000 rest events.  Truncate this
-    histogram to plot them together.
-
-       set nhist = `1dcat isis_hist.1D | wc -l`
-       make_random_timing.py -verb 0 -show_isi_pdf 100 1000 > pure_probs.1D
-       grep -v prob pure_probs.1D | grep -v result | grep -v '\-----' \\
-           | head -n $nhist > prob.1D
-       1dplot -sepscl prob.1D'[1]' isis_hist.1D'[1,2]'
-
-    Side note assuming replacement and the binomial distribution:
-
-       In the case of replacement, we get a binomial distribution.  In the same
-       P(X=r) case (starting with r rest events), the probabilities are simple.
-          P(X=r) = [R/(R+T)]^r  * T/(R+T)
-       Each rest probability is simply R/(R+T), while task is T/(R+T).
-       The incremental probability is simply that of getting one more rest,
-       which is R/(R+T) because of independence (samples are "replaced").
-
-       In this case, the PDF should more exactly follow an exponential decay
-       curve.
 
 ----------------------------------------------------------------------
 informational arguments:
@@ -468,83 +254,6 @@ informational arguments:
 
 ----------------------------------------
 required arguments:
-
-    -num_runs  NRUNS            : set the number of runs
-
-        e.g. -num_runs 4
-
-        Use this option to specify the total number of runs.  Output timing
-        files will have one row per run (for -local_times in 3dDeconvolve).
-
-    -run_time  TIME             : set the total time, per run (in seconds)
-
-        e.g. -run_time 180
-        e.g. -run_time 180 150 150 180
-
-        This option specifies the total amount of time per run, in seconds.
-        This time includes all rest and stimulation.  This time is per run,
-        even if -across_runs is used.
-
-    -num_stim  NSTIM            : set the number of stimulus classes
-
-        e.g. -num_stim 3
-
-        This specifies the number of stimulus classes.  The program will
-        create one output file per stimulus class.
-
-    -num_reps  REPS             : set the number of repetitions (per class?)
-
-        e.g. -num_reps 8
-        e.g. -num_reps 8 15 6
-
-        This specifies the number of repetitions of each stimulus type, per run
-        (unless -across_runs is used).  If one parameter is provided, every
-        stimulus class will be given that number of repetitions per run (unless
-        -across_runs is given, in which case each stimulus class will be given
-        a total of that number of repetitions, across all runs).
-
-        The user can also specify the number of repetitions for each of the
-        stimulus classes separately, as a list.
-
-            see also: -across_runs
-
-    -prefix    PREFIX           : set the prefix for output filenames
-
-        e.g. -prefix stim_times
-
-                --> might create: stim_times_001.1D
-
-        The option specifies the prefix for all output stimulus timing files.
-        The files will have the form: PREFIX_INDEX[_LABEL].1D, where PREFIX
-        is via this option, INDEX is 01, 02, ... through the number of stim
-        classes, and LABEL is optionally provided via -stim_labels.
-
-        Therefore, output files will be sorted alphabetically, regardless of
-        any labels, in the order that they are given to this program.
-
-            see also -stim_labels
-
-    -show_timing_stats          : show statistics from the timing
-
-        e.g. -show_timing_stats
-
-        If this option is set, the program will output statistical information
-        regarding the stimulus timing, and on ISIs (inter-stimulus intervals)
-        in particular.  One might want to be able to state what the min, mean,
-        max and stdev of the ISI are.
-
-    -stim_dur TIME              : set the duration for a single stimulus
-
-        e.g. -stim_dur 3.5
-        e.g. -stim_dur 3.5 1.0 4.2
-
-        This specifies the length of time taken for a single stimulus, in
-        seconds.  These stimulation intervals never overlap (with either rest
-        or other stimulus intervals) in the output timing files.
-
-        If a single TIME parameter is given, it applies to all of the stimulus
-        classes.  Otherwise, the user can provide a list of durations, one per
-        stimulus class.
 
 ----------------------------------------
 optional arguments:
@@ -589,43 +298,6 @@ optional arguments:
         events of length 4 and 2, respectively.
 
         A limit of 0 means no limit (num_reps, effectively).
-
-    -max_rest REST_TIME         : specify maximum rest between stimuli
-
-        e.g. -max_rest 7.25
-
-        This option applies a second phase in ordering events.  After events
-        have been randomized, non-pre- and non-post-stim rest periods are
-        limited to the max_rest duration.  Any rest intervals exceeding this
-        duration are distributed randomly into intervals below this maximum.
-
-    -min_rest REST_TIME         : specify extra rest after each stimulus
-
-        e.g. -min_rest 0.320
-
-                --> would add 320 milliseconds of rest after each stimulus
-
-        There is no difference between applying this option and instead
-        adding the REST_TIME to that of each regressor.  It is merely another
-        way to partition the stimulus time period.
-
-        For example, if each stimulus lasts 1.5 seconds, but it is required
-        that at least 0.5 seconds separates each stimulus pair, then there
-        are 2 equivalent ways to express this:
-
-            A: -stim_dur 2.0
-            B: -stim_dur 1.5 -min_rest 0.5
-
-        These have the same effect, but perhaps the user wants to keep the
-        terms logically separate.
-
-        However the program simply adds min_rest to each stimulus length.
-
-    -offset OFFSET              : specify an offset to add to every stim time
-
-        e.g. -offset 4.5
-
-        Use this option to offset every stimulus time by OFFSET seconds.
 
     -ordered_stimuli STIM1 STIM2 ... : specify a partial ordering of stimuli
 
@@ -712,20 +384,6 @@ optional arguments:
 
         By default, the seed is based on the current system time.
 
-    -stim_labels LAB1 LAB2 ...  : specify labels for the stimulus classes
-
-        e.g. -stim_labels houses faces donuts
-
-        Via this option, one can specify labels to become part of the output
-        filenames.  If the above example were used, along with -prefix stim,
-        the first stimulus timing would be written to stim_01_houses.1D.
-
-        The stimulus index (1-based) is always part of the filename, as that
-        keeps the files alphabetical in the order that the stimuli were
-        specified to the program.
-
-        There must be exactly -num_stim labels provided.
-
     -t_digits DIGITS            : set the number of decimal places for times
 
         e.g. -t_digits 3
@@ -775,52 +433,18 @@ optional arguments:
         errors.  The maximum level is currently 4.
 
 
-- R Reynolds  May 7, 2008               motivated by Ikuko Mukai
+- R Reynolds  Dec 14, 2016
+  motivated by many, including K Kircanski
 ===========================================================================
 """
 
 g_history = """
     make_random_timing.py history:
 
-    0.1  May 07, 2008: initial release
-    0.2  May 18, 2008:
-         - changed -stim_time option to -stim_dur
-         - added options -tr_locked, -tr and -save_3dd_cmd
-    0.3  June 6, 2008: get_*_opt now returns error code
-    0.4  Oct 27, 2008:
-         - actually implemented -min_rest, which I apparently forgot to do
-         - added -offsets option
-    0.5  Oct 31, 2008:
-         - added -show_timing_stats option
-         - made small change that affects timing (old results will not match)
-    0.6  Dec 01, 2008:
-         - moved min_mean_max_stdev to afni_util.py
-         - modified examples to correspond with those in timing_tool.py
-    0.7  Dec 24, 2008: redefine 'sum' for old python versions
-    0.8  Feb 05, 2009: added timing_tool.py use to catch trial example
-    0.9  Apr 17, 2009: added -ordered_stimuli
-    0.10 Jun 17, 2009:
-         - print block durations with general decimal accuracy
-         - added -make_3dd_contrasts
-    1.0  Jul 14, 2009: call this a release version
-         - added -max_rest for Steffen S (see message board post 30189)
-    1.1  May 01, 2010: added -max_consec for Liat of Cornell
-    1.2  Aug 24, 2010: small updates for 3dDeconvolve -nodata script
-         - update polort and write -nodata TR using 3 decimal places
-    1.3  Mar 09, 2011: fixed bug writing comment text in 3dD script
-         - noted by Z Saad and P Kaskan
-    1.4  Jun 08, 2011: tr-lock test: fixed print and added min_rest to durs
-    1.5  Apr 08, 2012: -ordered_stimuli can now use labels
-    1.6  May 01, 2012: -ordered_stimuli now works with -max_consec
-         - requested by Liat
-    1.7  Oct 03, 2012: some options do not allow dashed parameters
-    1.8  Nov 14, 2012: fixed checks for random space in -max_consec case
-    1.9  Aug 21, 2015: added help for understanding the distribution of ISI
-                       see: NOTE: distribution of ISI
-    1.10 Jun 01, 2016: minor updates to verbose output
+    0.0  Dec 13, 2016: forked from what is now old_make_random_timing.py
 """
 
-g_version = "version 1.10, June 1, 2016"
+g_version = "version 0.0, December 13, 2016"
 
 gDEF_VERB       = 1      # default verbose level
 gDEF_T_GRAN     = 0.1    # default time granularity, in seconds
@@ -877,7 +501,6 @@ class StimClass:
 class RandTiming:
     def __init__(self, label):
         # actual stimulus timing lists
-        self.stimes     = []
         self.fnames     = []            # output filenames
 
         # general parameters
@@ -887,117 +510,81 @@ class RandTiming:
         self.user_opts  = None
 
         # required arguments
-        self.num_stim   = 0             # number of stimulus classes
-        self.num_runs   = 0             # number of runs
-        self.prefix     = None          # prefix for output files
-                                        # add .LABEL.INDEX.1D
-
-        self.run_time   = []            # total time per run (seconds)
-        self.num_reps   = []            # number of stimuli, per class (per run)
-        self.stim_dur   = []            # time of single stimulus (seconds)
-                                        #   - per stim class
-
-        # optional arguments
-        self.across_runs    = 0         # flag: stimuli span all runs
-        self.pre_stim_rest  = 0         # seconds before first stim
-        self.post_stim_rest = 0         # seconds after last stim
-        self.max_rest = 0.0             # maximum rest after each stimulus
-        self.min_rest = 0.0             # minimum rest after each stimulus
-        self.offset   = 0.0             # offset for all stimulus times
-        self.seed     = None            # random number seed
-        self.orderstim= []              # list of ordered stimulus lists
-        self.max_consec = []            # max consectutive stimuli per type
-        self.t_gran   = gDEF_T_GRAN     # time granularity for rest
-        self.t_digits = gDEF_DEC_PLACES # digits after decimal when showing time
-                                        # (-1 means to use %g)
-        self.labels   = None            # labels to be applied to filenames
-
-        self.tr_locked      = 0         # flag: require TR-locked timing
-        self.tr             = 0.0       # TR, for use in output 3dDecon cmd
-        self.control_breaks = 1         # flag: across runs, add max stim time
-                                        # to post_stim_rest
-        self.file_3dd_cmd   = None      # file for 3dD -nodata command
-        self.make_3dd_contr = 0         # flag to make all 3dD contrasts
-
-        # statistics
-        self.show_timing_stats = 0      # do we show ISI statistics?
-        self.isi            = []        # list of isi's, per run
-        self.prerest        = []        # pre-stim rest, per run
-        self.postrest       = []        # post-stim rest, per run
 
     def init_opts(self):
         global g_help_string
         self.valid_opts = OL.OptionList('for input')
 
         # short, terminal arguments
-        self.valid_opts.add_opt('-help', 0, [],      \
+        vopts.add_opt('-help', 0, [],      \
                         helpstr='display program help')
-        self.valid_opts.add_opt('-hist', 0, [],      \
+        vopts.add_opt('-hist', 0, [],      \
                         helpstr='display the modification history')
-        self.valid_opts.add_opt('-show_isi_pdf', 2, [], \
+        vopts.add_opt('-show_isi_pdf', 2, [], \
                         helpstr='show init ISI pdf given NTASK NREST')
-        self.valid_opts.add_opt('-show_isi_f_pdf', 2, [], \
+        vopts.add_opt('-show_isi_f_pdf', 2, [], \
                         helpstr='show init fact ISI pdf given NTASK NREST')
-        self.valid_opts.add_opt('-show_valid_opts', 0, [], \
+        vopts.add_opt('-show_valid_opts', 0, [], \
                         helpstr='display all valid options')
-        self.valid_opts.add_opt('-ver', 0, [],       \
+        vopts.add_opt('-ver', 0, [],       \
                         helpstr='display the current version number')
 
         # required arguments
-        self.valid_opts.add_opt('-num_stim', 1, [], req=1,
+        vopts.add_opt('-num_stim', 1, [], req=1,
                         helpstr='number of stimulus types')
-        self.valid_opts.add_opt('-num_runs', 1, [], req=1,
+        vopts.add_opt('-num_runs', 1, [], req=1,
                         helpstr='number of scanning runs')
 
-        self.valid_opts.add_opt('-prefix', 1, [], req=1,
+        vopts.add_opt('-prefix', 1, [], req=1,
                         helpstr='prefix for output stimulus timing files')
 
-        self.valid_opts.add_opt('-num_reps', -1, [], req=1, okdash=0,
+        vopts.add_opt('-num_reps', -1, [], req=1, okdash=0,
                         helpstr='number of stimulus reps per run, per class')
-        self.valid_opts.add_opt('-run_time', -1, [], req=1, okdash=0,
+        vopts.add_opt('-run_time', -1, [], req=1, okdash=0,
                         helpstr='total length of each run, in seconds')
-        self.valid_opts.add_opt('-stim_dur', -1, [], req=1, okdash=0,
+        vopts.add_opt('-stim_dur', -1, [], req=1, okdash=0,
                         helpstr='length of each stimulus, in seconds')
 
         # optional arguments
-        self.valid_opts.add_opt('-across_runs', 0, [],
+        vopts.add_opt('-across_runs', 0, [],
                         helpstr='distribute stim reps across all runs')
-        self.valid_opts.add_opt('-make_3dd_contrasts', 0, [],
+        vopts.add_opt('-make_3dd_contrasts', 0, [],
                         helpstr='add contrasts pairs to 3dDeconvolve script')
-        self.valid_opts.add_opt('-max_consec', -1, [], okdash=0,
+        vopts.add_opt('-max_consec', -1, [], okdash=0,
                         helpstr='max consecutive occurances of each stim type')
-        self.valid_opts.add_opt('-max_rest', 1, [],
+        vopts.add_opt('-max_rest', 1, [],
                         helpstr='maximum rest time after each stimulus')
-        self.valid_opts.add_opt('-min_rest', 1, [],
+        vopts.add_opt('-min_rest', 1, [],
                         helpstr='minimum rest time after each stimulus')
-        self.valid_opts.add_opt('-offset', 1, [],
+        vopts.add_opt('-offset', 1, [],
                         helpstr='offset to add to every stimulus time')
-        self.valid_opts.add_opt('-ordered_stimuli', -1, [], okdash=0,
+        vopts.add_opt('-ordered_stimuli', -1, [], okdash=0,
                         helpstr='require these stimuli to be so ordered')
-        self.valid_opts.add_opt('-pre_stim_rest', 1, [],
+        vopts.add_opt('-pre_stim_rest', 1, [],
                         helpstr='time before first stimulus, in seconds')
-        self.valid_opts.add_opt('-post_stim_rest', 1, [],
+        vopts.add_opt('-post_stim_rest', 1, [],
                         helpstr='time after last stimulus, in seconds')
-        self.valid_opts.add_opt('-save_3dd_cmd', 1, [],
+        vopts.add_opt('-save_3dd_cmd', 1, [],
                         helpstr='file for "3dDeconvolve -nodata" command')
-        self.valid_opts.add_opt('-seed', 1, [],
+        vopts.add_opt('-seed', 1, [],
                         helpstr='seed for random number generation (integer)')
-        self.valid_opts.add_opt('-show_timing_stats', 0, [],
+        vopts.add_opt('-show_timing_stats', 0, [],
                         helpstr='show statistics for inter-stimulus intervals')
-        self.valid_opts.add_opt('-stim_labels', -1, [], okdash=0,
+        vopts.add_opt('-stim_labels', -1, [], okdash=0,
                         helpstr='specify stimulus labels for filenames')
-        self.valid_opts.add_opt('-t_digits', 1, [],
+        vopts.add_opt('-t_digits', 1, [],
                         helpstr='digits after decimal, for printing times')
-        self.valid_opts.add_opt('-t_gran', 1, [],
+        vopts.add_opt('-t_gran', 1, [],
                         helpstr='time_granularity for rest, in seconds')
-        self.valid_opts.add_opt('-tr', 1, [],
+        vopts.add_opt('-tr', 1, [],
                         helpstr='specify TR for 3dDeconvolve command');
-        self.valid_opts.add_opt('-tr_locked', 0, [],
+        vopts.add_opt('-tr_locked', 0, [],
                         helpstr='specify TR and enforce TR-locked timing');
 
-        self.valid_opts.add_opt('-verb', 1, [],
+        vopts.add_opt('-verb', 1, [],
                         helpstr='verbose level (0=quiet, 1=default, ...)')
 
+        self.valid_opts = vopts
 
     def read_opts(self):
         """check for terminal arguments, then read the user options"""
