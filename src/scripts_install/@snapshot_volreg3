@@ -42,6 +42,7 @@ endif
 # control variables
 
 setenv AFNI_DONT_LOGFILE YES
+unset noclobber
 
 # check if all the needed auxiliary programs exist
 
@@ -135,19 +136,30 @@ setenv AFNI_ENVIRON_WARNINGS  NO
 
 # start the X virtual frame buffer on display #xscreen
 
+set ranval = `count -dig 1 1 999999 R1`
+
 if( $?xscreen == 0 )then
-  set xscreen = 9
   set killX   = 1
+  set xscreen = 9
   Xvfb :${xscreen} -screen 0 1024x768x24 &
+  sleep 1
+  jobs > zzerm.$ranval.txt
+  grep -q Xvfb zzerm.$ranval.txt
+  set Xnotfound = $status
+  \rm -f zzerm.$ranval.txt
+  if( $Xnotfound == 1 )then
+    echo "** ERROR: can't start Xvfb :$xscreen -- exiting"
+    exit 1
+  else
+    echo "++ Xvfb :$xscreen -- started"
+  endif
 endif
 
 setenv DISPLAY :${xscreen}
 
 # quasi-random temp filename prefix
 
-set zpref = zzerm.X${xscreen}-`count -dig 1 1 9999 R1`
-
-unset noclobber
+set zpref = zzerm.X${xscreen}-${ranval}
 
 # resample the EPI to the anat grid
 
