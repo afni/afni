@@ -3967,8 +3967,10 @@ ENTRY("ISQ_saver_CB") ;
          /* 23 Mar 2002: zoom out, if ordered */
 
          if( (seq->zoom_fac > 1 || seq->saver_blowup > 1) &&
+#if 0
              seq->mont_nx  == 1    &&
              seq->mont_ny  == 1    &&
+#endif
              tim           != NULL && tim->kind == MRI_rgb ){
 
            int zf = MAX(seq->zoom_fac,seq->saver_blowup) ;
