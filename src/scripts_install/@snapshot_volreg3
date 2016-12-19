@@ -12,7 +12,7 @@ if( $#argv < 2 )then
   echo '* For a similar script that used 1 image from each view, use'
   echo '  script @snapshot_volreg.'
   echo
-  echo 'Usage: @snapshot_volreg3 ANATDataset EPIdataset [jname] [xscreen]'
+  echo 'Usage: @snapshot_volreg3 ANATDataset EPIdataset [jname] [xdisplay]'
   echo
   echo 'Do NOT put a sub-brick index (such as "[0]") on the EPIdataset'
   echo 'name -- the script will automatically only use the "[0]" volume.'
@@ -21,12 +21,12 @@ if( $#argv < 2 )then
   echo 'file -- if it does not end in ".jpg", that suffix will be added.'
   echo 'If you do NOT supply a 3rd argument, the script will invent a name.'
   echo
-  echo 'The fourth (and optional) argument is the screen number of an'
+  echo 'The fourth (and optional) argument is the display number of an'
   echo 'ALREADY RUNNING copy of Xvfb, as in'
   echo '  Xvfb :8 -screen 0 1024x768x24 &'
   echo 'If you do NOT supply this number (8 in the example), then'
-  echo 'the script will start its own Xvfb (on "screen" 9), use it'
-  echo 'once, and then stop it. If you are going to run this script'
+  echo 'the script will start its own Xvfb (on a display of it's choosing),'
+  echo 'use it once, and then stop it. If you are going to run this script'
   echo 'many times in a row, starting and stopping your own Xvfb'
   echo 'instance will speed things up.'
   echo
@@ -110,10 +110,14 @@ endif
 
 # Are we re-using Xvfb?
 
-unset xscreen
+unset xdisplay
 unset killX
 if( $#argv > 3 )then
-  set xscreen = $argv[4]
+  set xdisplay = $argv[4]
+  if( ! -e /tmp/.X${xdisplay}-lock )then
+    echo "** ERROR: it doesn't look like Xvfb is running with display $xdisplay"
+    exit 1
+  endif
 endif
 
 set exad = `3dinfo -exists $adset`
@@ -134,32 +138,38 @@ setenv AFNI_IMAGE_LABEL_MODE  5
 setenv AFNI_IMAGE_LABEL_SIZE  2
 setenv AFNI_ENVIRON_WARNINGS  NO
 
-# start the X virtual frame buffer on display #xscreen
+# start the X virtual frame buffer on display #xdisplay
 
 set ranval = `count -dig 1 1 999999 R1`
 
-if( $?xscreen == 0 )then
-  set killX   = 1
-  set xscreen = 9
-  Xvfb :${xscreen} -screen 0 1024x768x24 &
-  sleep 1
-  jobs > zzerm.$ranval.txt
-  grep -q Xvfb zzerm.$ranval.txt
-  set Xnotfound = $status
-  \rm -f zzerm.$ranval.txt
-  if( $Xnotfound == 1 )then
-    echo "** ERROR: can't start Xvfb :$xscreen -- exiting"
-    exit 1
-  else
-    echo "++ Xvfb :$xscreen -- started"
-  endif
+if( $?xdisplay == 0 )then
+  set killX     = 1
+  set ntry      = 1
+  set Xnotfound = 1
+  while( $Xnotfound )
+    set xdisplay = `count -dig 1 3 999 R1`
+    if( -e /tmp/.X${xdisplay}-lock ) continue
+    echo " -- trying to start Xvfb :${xdisplay}"
+    Xvfb :${xdisplay} -screen 0 1024x768x24 &
+    sleep 1
+    jobs > zzerm.$ranval.txt
+    grep -q Xvfb zzerm.$ranval.txt
+    set Xnotfound = $status
+    \rm -f zzerm.$ranval.txt
+    if( $Xnotfound == 0 )break ;
+    @ ntry++
+    if( $ntry > 99 )then
+      echo "** ERROR: can't start Xvfb -- exiting"
+      exit 1
+    endif
+  end
 endif
 
-setenv DISPLAY :${xscreen}
+setenv DISPLAY :${xdisplay}
 
 # quasi-random temp filename prefix
 
-set zpref = zzerm.X${xscreen}-${ranval}
+set zpref = zzerm.X${xdisplay}-${ranval}
 
 # resample the EPI to the anat grid
 
