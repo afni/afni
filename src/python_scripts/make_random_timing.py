@@ -824,18 +824,21 @@ g_history = """
 g_version = "version 1.10, June 1, 2016"
 
 g_todo = """
-   - maybe this program should just be a new one?  gen_random_timing.py?
-      - MRT could be forked and depricated, but maybe people want to use it?
-      - or perhaps it could be clear by calling it old_MRT.py
-      -no, just try to partition optios
-         - OLD: -num_stim, -num_reps, -stim_dur, -stim_labels, -min_rest
-         - NEW: -add_stim_class, -add_timing_class
+   - add pre-defined timing classes?
+        INSTANT 0 0 0 'decay' 0    ==> i.e. duration
    -add_timing_class label MIN MEAN MAX PDF TGRAN
    -add_stim_class label Nreps stim_timing_class rest_timing_class
    -global "-across_runs" still applies
 
-   - remove last event's rest in favor of -post_stim_rest
-   - -pre_/-post_stim_rest can be given a class?
+   - option to remove last event's rest in favor of -post_stim_rest
+   - option to give -pre_/-post_stim_rest a class?
+
+   - maybe this program should just be a new one?  gen_random_timing.py?
+      - MRT could be forked and depricated, but maybe people want to use it?
+      - or perhaps it could be clear by calling it old_MRT.py
+      -no, just try to partition options
+         - OLD: -num_stim, -num_reps, -stim_dur, -stim_labels, -min_rest
+         - NEW: -add_stim_class, -add_timing_class
 """
 
 gDEF_VERB       = 1      # default verbose level
@@ -870,40 +873,75 @@ g_style_opts_new = ['-add_stim_class', '-add_timing_class']
 #    - ordered_stimuli
 #    - across_runs (sum (sdur+ave rest) to match run lengths)
 #    - catch trials (can do later)
+#
+# stim events:
+#    randomize events subject to any constraints (max consec, ordered stim)
+#    compute random timing for events
+# apply rest:
+#    add all minimum rest: is design possible?
+#    add all maximum rest: is design possible?
+#    
 
                         
-# use via dictionary, as entries should be unique
-class TDistribution:
-   def __init__(self, name, tgran=gDEF_T_GRAN):
-      self.name         = name
-      self.tgran        = tgran
-
 # use via dictionaries, one for rest, one for stim
 # (these will be unique)
 class TimingClass:
    def __init__(self, name, min_dur, mean_dur, max_dur,
-                      dist_type='decay', params=[]):
+                      dist_type='decay', params=[], verb=1):
       # required from the command line (name value -> set duration)
       self.name         = name
-      self.event_type   = 0             # 0 = stim, 1 = rest
 
-      self.min_dur      = min_dur
-      self.mean_dur     = mean_dur      # implies total_time
-      self.max_dur      = max_dur
-      self.dist_type    = dist_type
+      self.min_dur      = min_dur       # ** required **
+      self.mean_dur     = mean_dur      # implies total_time (-1 means unspec)
+      self.max_dur      = max_dur       # (-1 means unspec)
+      self.dist_type    = dist_type     # decay, uniform
       self.params       = params        # e.g. nbins for uniform
+      self.verb         = verb
 
-      # computation parameters
+      # additional parameters (just t_gran, for now)
+      self.t_gran       = gDEF_T_GRAN
+      if len(params) > 0:       # first must be t_gran
+         try: t_gran = float(params[0])
+         except:
+            print "** invalid %s timing class t_gran = %s" % (name, params[0])
+            return None
+
+      # computation parameters (computed during processing)
       self.total_time   = 0
 
+   def show(self, mesg='', details=0):
+      if mesg: mstr = '(%s) ' % mesg
+      else:    mstr = ''
+      print '-- TimingClass %s:' % mstr
+      print '   name         : %s' % self.name
+      print '   min_dur      : %s' % self.min_dur
+      print '   mean_dur     : %s' % self.mean_dur
+      print '   max_dur      : %s' % self.max_dur
+      print '   dist_type    : %s' % self.dist_type
+      print '   params       : %s' % self.params
+
+      if details:
+         print '   verb         : %s' % self.verb
+         print '   total_time   : %s' % self.total_time
+
 class StimClass:
-   def __init__(self, name, nevents, stname, rtname=None):
+   def __init__(self, name, nreps, stname, rtname=None):
       # optional from command line
       self.name         = name
-      self.nevents      = nevents
+      self.nreps        = nreps         # number of events (per-/across- runs)
       self.stname       = stname        # name of stim TimingClass
       self.rtname       = rtname        # name of rest TimingClass
 
+   def show(self, mesg='', details=0):
+      if mesg: mstr = '(%s) ' % mesg
+      else:    mstr = ''
+      print '-- StimClass %s:' % mstr
+      print '   name         : %s' % self.name
+      print '   nreps        : %s' % self.nreps
+      print '   stname       : %s' % self.stname
+      print '   rtname       : %s' % self.rtname
+
+      # no details yet
 
 class RandTiming:
     def __init__(self, label):
@@ -981,21 +1019,27 @@ class RandTiming:
         self.valid_opts.add_opt('-ver', 0, [],       \
                         helpstr='display the current version number')
 
-        # required arguments
-        self.valid_opts.add_opt('-num_stim', 1, [], req=1,
+        # new 'required' arguments
+        self.valid_opts.add_opt('-add_timing_class', -2, [], req=0,
+                        helpstr='timing class: name min mean max pdf tgran')
+        self.valid_opts.add_opt('-add_stim_class', 4, [], req=0,
+                        helpstr='stim class: name nreps stiming rtiming')
+
+        # old 'required' arguments
+        self.valid_opts.add_opt('-num_stim', 1, [], req=0,
                         helpstr='number of stimulus types')
         self.valid_opts.add_opt('-num_runs', 1, [], req=1,
                         helpstr='number of scanning runs')
+        self.valid_opts.add_opt('-num_reps', -1, [], req=0, okdash=0,
+                        helpstr='number of stimulus reps per run, per class')
+        self.valid_opts.add_opt('-stim_dur', -1, [], req=0, okdash=0,
+                        helpstr='length of each stimulus, in seconds')
 
+        # required arguments
         self.valid_opts.add_opt('-prefix', 1, [], req=1,
                         helpstr='prefix for output stimulus timing files')
-
-        self.valid_opts.add_opt('-num_reps', -1, [], req=1, okdash=0,
-                        helpstr='number of stimulus reps per run, per class')
         self.valid_opts.add_opt('-run_time', -1, [], req=1, okdash=0,
                         helpstr='total length of each run, in seconds')
-        self.valid_opts.add_opt('-stim_dur', -1, [], req=1, okdash=0,
-                        helpstr='length of each stimulus, in seconds')
 
         # optional arguments
         self.valid_opts.add_opt('-across_runs', 0, [],
@@ -1101,10 +1145,17 @@ class RandTiming:
 
            # get timing classes first, required for stim classes
            olist = self.user_opts.find_all_opts('-add_timing_class')
+           if len(olist) == 0:
+               print '** NEW STYLE: missing option -add_timing_class'
+               return 1
            for opt in olist:
                if self.apply_opt_timing_class(opt):
                   return 1
+
            olist = self.user_opts.find_all_opts('-add_stim_class')
+           if len(olist) == 0:
+               print '** NEW STYLE: missing option -add_stim_class'
+               return 1
            for opt in olist:
                if self.apply_opt_stim_class(opt):
                   return 1
@@ -1304,8 +1355,8 @@ class RandTiming:
           usage: -add_timing_class label mindur [[mean max] [dtype [tgran]]]
 
           required: label mindur
-          more:     label mindur meandur max dur
-          all:      label mindur meandur max dur dtype tgran
+          more:     label mindur meandur maxdur
+          all:      label mindur meandur maxdur dtype tgran
 
           sample usage:
              -add_timing_class stimA 3 
@@ -1361,23 +1412,149 @@ class RandTiming:
              print '   not all 3 durations convert to float'
              return 1
 
+       # ------------------------------------------------------------
+       # check non-decreasing, for any durs not equal to -1
+       # (min must be set)
+
        # and check for non-decreasing or negative (allow zero)
        if min_dur < 0:
           print error_string
           print "   invalid negative duration"
           return 1
 
-       if min_dur > mean_dur or mean_dur > max_dur:
+       # meandur is allowed to be -1, for unspecified
+       if mean_dur == -1:
+          if self.verb > 2:
+             print "-- timing class %s will have no fixed mean duration" % name
+       elif min_dur > mean_dur:
           print error_string
-          print "   durations must have: min <= mean <= max"
+          print "   durations must have: min <= mean"
           return 1
+
+       # max can also be -1, for unspecified
+       if max_dur == -1:
+          if self.verb > 2:
+             print "-- timing class %s will have no maximum duration" % name
+       # max set, mean unset, so check min vs max
+       elif mean_dur == -1 and min_dur > max_dur:
+          print error_string
+          print "   durations must have: min <= max"
+          return 1
+       # max set, mean set, so check mean vs max
+       elif mean_dur != -1 and mean_dur > max_dur:
+          print error_string
+          print "   durations must have: mean <= max"
+          return 1
+
+       # ------------------------------------------------------------
+       # now check for distribution type and params
+       if nparm >= 5:
+          dtype = params[4]
+       else:
+          dtype = 'decay'
+
+       dparms = params[5:]
+
+       # ------------------------------------------------------------
+       # ready to roll, create the actual timing class instance
+       
+       tclass = TimingClass(name, min_dur, mean_dur, max_dur,
+                            dtype, dparms, self.verb)
+       if tclass == None:
+          print error_string
+          return 1
+
+       if self.verb > 1: print "++ adding new Timing class '%s'" % name
+       if self.verb > 2: tclass.show('new timing class')
+
+       self.tclasses.append(tclass)
 
        return 0
 
     def apply_opt_stim_class(self, opt):
        """apply all -add_stim_class options
+
+          usage: -add_stim_class label Nreps stim_class rest_class
+
+          All parameters are required.
        """
+
+       params = opt.parlist
+       nparm  = len(params)
+       oname  = '-add_stim_class'
+       error_string = "** bad usage in '%s %s'" % (oname, ' '.join(params))
+
+       if nparm != 4:
+          print error_string
+          return 1
+
+       # ------------------------------------------------------------
+       # check the 4 parameters: name, nreps, stname, rtname
+
+       # get label (verify that it is not a number)
+       name = params[0]
+       try:
+          ff = float(name)
+          print error_string
+          print '   first parameter should be a stim class label'
+          return 1
+       except: pass
+
+       # get nreps (verify that it is a positive integer)
+       try:
+          nreps = int(params[1])
+       except:
+          print error_string
+          print '   second parameter should be nreps (integer > 0)'
+          return 1
+
+       # get stim and rest timing classes, verify existence
+       stname = params[2]
+       rtname = params[3]
+
+       if self.get_timing_class(stname) == None:
+          print error_string
+          print "** did not find timing class '%s' for stim" % stname
+          return 1
+
+       if self.get_timing_class(rtname) == None:
+          print error_string
+          print "** did not find timing class '%s' for rest" % rtname
+          return 1
+
+       # ------------------------------------------------------------
+       # ready to roll, create the actual stim class instance
+       sclass = StimClass(name, nreps, stname, rtname)
+       if sclass == None:
+          print error_string
+          return 1
+
+       if self.verb > 1: print "++ adding new Stim class '%s'" % name
+       if self.verb > 2: sclass.show('new stim class')
+
+       self.sclasses.append(sclass)
+
        return 0
+
+    def get_timing_class(self, name):
+        """given name, return a TimingClass instance from tclasses
+           if not found, return None
+        """
+        for cc in self.tclasses:
+           if cc.name == name:
+              return cc
+
+        return None
+
+    def get_stim_class(self, name):
+        """given name, return a StimClass instance from sclasses
+           if not found, return None
+        """
+        for cc in self.sclasses:
+           if cc.name == name:
+              return cc
+
+        return None
 
     def labels_to_indices(self, labels, print_err=1):
         """convert the labels list into an index list
