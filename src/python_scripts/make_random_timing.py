@@ -1160,6 +1160,10 @@ class RandTiming:
                if self.apply_opt_stim_class(opt):
                   return 1
 
+           # and set some of the old-style parameters
+           self.num_stim = len(olist)
+           self.labels = [scl.name for scl in self.sclasses]
+
         # OLD: -num_stim, -num_reps, -stim_dur, -stim_labels, -min_rest
         elif self.has_any_opts(g_style_opts_old):
            self.num_stim, err = self.user_opts.get_type_opt(int, '-num_stim')
@@ -1647,6 +1651,8 @@ class RandTiming:
         if self.prefix: prefix = self.prefix    # be sure we have a prefix
         else:           prefix = 'stim_times'
 
+        # rcr - if AfniData, set AD.fname
+
         self.fnames = []
         for sind in range(self.num_stim):
             if self.labels:
@@ -1665,6 +1671,11 @@ class RandTiming:
         if len(self.fnames) != self.num_stim:
             print '** missing filenames for timing output'
             return 1
+
+        # rcr - 
+        # if using AfniData class, then when writing timing:
+        #    if durations are constant, do not write them to file
+        #      to do this, set mtype to 0 before writing and reset
 
         # compute min and max stim times, for verbose output
         mint = max(self.run_time)
@@ -2727,24 +2738,36 @@ def process():
         if rv: UTIL.show_args_as_command(sys.argv,"** failed command:")
         return rv
 
-    rv = timing.create_timing()
-    if rv != None:
-        if rv: UTIL.show_args_as_command(sys.argv,"** failed command:")
-        return rv
+    # new way
+    if len(timing.sclasses) > 0:
+       rv = timing.new_create_timing()
+       if rv != None:
+           if rv: UTIL.show_args_as_command(sys.argv,"** failed command:")
+           return rv
 
-    rv = timing.set_filenames()
-    if rv != None:
-        if rv: UTIL.show_args_as_command(sys.argv,"** failed command:")
-        return rv
+       # rcr - continue
 
-    rv = timing.write_timing_files()
-    if rv != None:
-        if rv: UTIL.show_args_as_command(sys.argv,"** failed command:")
-        return rv
 
-    if timing.file_3dd_cmd: timing.make_3dd_cmd()  # ignore return value
+    # old way
+    else:
+       rv = timing.create_timing()
+       if rv != None:
+           if rv: UTIL.show_args_as_command(sys.argv,"** failed command:")
+           return rv
 
-    if timing.show_timing_stats: timing.disp_time_stats() # ignore return value
+       rv = timing.set_filenames()
+       if rv != None:
+           if rv: UTIL.show_args_as_command(sys.argv,"** failed command:")
+           return rv
+
+       rv = timing.write_timing_files()
+       if rv != None:
+           if rv: UTIL.show_args_as_command(sys.argv,"** failed command:")
+           return rv
+
+       if timing.file_3dd_cmd: timing.make_3dd_cmd()  # ignore return value
+
+       if timing.show_timing_stats: timing.disp_time_stats() # ignore rval
 
     return 0
 
