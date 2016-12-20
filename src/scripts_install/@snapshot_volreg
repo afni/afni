@@ -186,6 +186,7 @@ setenv AFNI_LEFT_IS_LEFT      YES
 setenv AFNI_IMAGE_LABEL_MODE  5
 setenv AFNI_IMAGE_LABEL_SIZE  2
 setenv AFNI_ENVIRON_WARNINGS  NO
+setenv AFNI_COMPRESSOR        NONE
 
 # start the X virtual frame buffer on display #xdisplay
 

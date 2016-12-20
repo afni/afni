@@ -579,8 +579,9 @@ ENTRY("mri_GMunifize") ;
 
    pfac = (PKVAL-PKMID) / (PKVAL-pmid) ;
 
+   plower *= 0.333f ;
    for( ii=0 ; ii < nvox ; ii++ ){
-     if( gar[ii] > 0.0f ){
+     if( gar[ii] >= plower ){
        gar[ii] = pfac * (gar[ii]-PKVAL) + PKVAL ;
        if( gar[ii] < 0.0f ) gar[ii] = 0.0f ;
      } else {

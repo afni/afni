@@ -44,6 +44,15 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 20 , DEC , 2016 , RWC , "3dUnifize" , MICRO , TYPE_MODIFY ,
+   "Tweak to make sure tiny values aren't amplified much by -GM" ,
+   "Tiny positive values way outside the brain could get super-amplified by\n"
+   "the -GM switch, producing a 3D halo.  This fix clips those off." } ,
+
+ { 20 , DEC , 2016 , RWC , "AFNI GUI" , MICRO , TYPE_ENHANCE ,
+   "Allow blowups for saved montage images" ,
+   "For @snapshot_volreg3 script, but of course anyone can use it now." } ,
+
  { 18 , NOV , 2016 , RWC , "afni GUI" , MICRO , TYPE_ENHANCE ,
    "Add 'QUITT' command to the driver" ,
    "Exits AFNI immediately, rather than calling the usual leisurely rundown.\n"
