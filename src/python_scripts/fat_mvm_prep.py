@@ -19,6 +19,16 @@
 ###########################################################################
 ###########################################################################
 
+# UPDATES
+#
+# Dec, 2016:
+#    + new opt '--unionize_rois':
+#      instead of using the intersection of ROIs (in GRID file) 
+#      take the union, and make *that* the list of regions
+#      --> will result in zeros model, hopefully user is choosing 
+#      those to be meaningful.
+#
+
 
 import lib_fat_funcs as GR
 from numpy import set_printoptions
@@ -97,7 +107,7 @@ def main(argv):
                                   this method may not always find unique
                                   matches, in which case, use '-l'
                                   approach.
-        -l, --list_match=LIST    :another way of inputting the matrix
+      -l, --list_match=LIST      :another way of inputting the matrix
                                   (*.grid or *.netcc) files-- by explicit
                                   path, matched per file with a CSV
                                   subject ID.
@@ -105,6 +115,19 @@ def main(argv):
                                   col 1: path to subject matrix file.
                                   col 2: CSV IDs,
                                   (first line can be a '#'-commented one.
+
+      -u, --unionize_rois        :mainly for GRID files (shouldn't affect
+                                  NETCC files)-- instead of making the ROI
+                                  list by taking the *intersection* of all
+                                  nonzero-regions in the matrix, make the
+                                  list as the *union* of elements across the 
+                                  group. In this case, there will likely be 
+                                  some zeros in properties, where there were
+                                  no tracts found, and the assumption would be
+                                  that those zeros are meaningful quantities
+                                  in your modeling (likely only for special 
+                                  purposes).  Choose wisely!
+
       -N, --NA_warn_off          :switch to turn off the automatic
                                   warnings as the data table is created. 3dMVM
                                   will excise subjects with NA values, so there
@@ -158,11 +181,13 @@ def main(argv):
     file_listmatch = ''
     SWITCH_NAwarn = 1
     SWITCH_ExternLabsOK = 1
+    SWITCH_union = 0
 
     try:
-        opts, args = getopt.getopt(argv,"hNEc:m:p:l:",["help",
+        opts, args = getopt.getopt(argv,"hNEuc:m:p:l:",["help",
                                                        "NA_warn_off",
                                                        "ExternLabsNo",
+                                                       "unionize_rois",
                                                        "csv_in=",
                                                        "matr_in=",
                                                        "prefix=",
@@ -189,6 +214,10 @@ def main(argv):
             SWITCH_NAwarn = 0
         elif opt in ("-E", "--ExternLabsNo"):
             SWITCH_ExternLabsOK = 0
+        elif opt in ("-u", "--unionize_rois"):
+            print "++ 'Unionizing': will make list of ROIs as the *union*"
+            print "   of nonzero elements across the entered group."
+            SWITCH_union = 1
 
     if ( file_csv == '' ) or ( file_prefix == '' ) :
 	print "** ERROR: missing a necessary input."
@@ -203,7 +232,7 @@ def main(argv):
         print "\tThe glob one after '-m' will be ignored."
 
     return file_csv, file_matr_glob, file_prefix, file_listmatch, \
-     SWITCH_NAwarn, SWITCH_ExternLabsOK
+     SWITCH_NAwarn, SWITCH_ExternLabsOK, SWITCH_union
 
 
 ########################################################################
@@ -212,7 +241,7 @@ if __name__=="__main__":
     set_printoptions(linewidth=200)
     print "\n"
     file_csv, file_matr_glob, file_prefix, file_listmatch, NA_WARN, \
-     ExternLabsOK = main(sys.argv[1:])
+     ExternLabsOK, opt_union = main(sys.argv[1:])
 
     if not(NA_WARN):
         print "++ Won't warn about NAs in the data."
@@ -246,7 +275,8 @@ if __name__=="__main__":
     if grid_subj:
         grid_ROIlist, grid_PARlist = GR.FindGroupwiseTargets(grid_data, 
                                                              MTYPE,
-                                                             ExternLabsOK)
+                                                             ExternLabsOK,
+                                                             opt_union )
 
     # Match the CSV_subjectIDs and the GRID_subject list. This is
     # based on A) just the filenames and CSV labels; or B) explicit

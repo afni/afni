@@ -66,6 +66,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+   { 20, Dec , 2016 , PT , "fat_mvm_prep.py" , MICRO , TYPE_NEW_OPT,
+   "New --unionize_rois option: affects GRID element selection.",
+   "Now can select union of matrix elements across group for MVM_tbl.\n"
+},
+
 { 23, Nov , 2016 , PT , "3dTrackID" , MINOR , TYPE_BUG_FIX,
    "Used to be able to have nans in sBL b/c of sqrt(neg-from-rounding).",
    "Now IF condition to prevent that.  Happy Thanksgiving.\n"
