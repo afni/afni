@@ -1949,7 +1949,7 @@ void AFNI_sigfunc_alrm(int sig)
      "Which is more accurate: Haruspicy or Statistical Inference?"   ,
      "Forgive your enemy -- but remember the bastard's name"         ,
      "If the facts don't fit the theory, change the facts"           ,
-     "All generalizations are false, including this one"             ,
+     "All generalizations are false: including this one"             ,
      "Facts are stubborn, but statistics are pliable"                ,
      "I can prove anything with statistics, except the truth"        ,
      "The chief function of the body is to carry the brain around"   ,

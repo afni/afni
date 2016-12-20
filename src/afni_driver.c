@@ -2745,7 +2745,7 @@ ENTRY("AFNI_drive_save_1image") ;
      blowup = (int)strtod(cpt+7,NULL) ;
      if( blowup < 1 ) blowup = 1 ; else if( blowup > 8 ) blowup = 8 ;
    }
-fprintf(stderr,"blowup set to %d\n",blowup) ;
+/* fprintf(stderr,"blowup set to %d\n",blowup) ; */
 
    /* find graph or image window */
 
