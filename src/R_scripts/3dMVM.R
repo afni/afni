@@ -32,7 +32,7 @@ help.MVM.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
           ================== Welcome to 3dMVM ==================          
     AFNI Group Analysis Program with Multi-Variate Modeling Approach
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 3.9.3, Dec 1, 2016
+Version 3.9.4, Dec 21, 2016
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - https://afni.nimh.nih.gov/sscc/gangc/MVM.html
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -113,7 +113,6 @@ within-subject (condition and emotion) variables:
    3dMVM  -prefix Example1 -jobs 4            \\
           -bsVars  'genotype*sex+scanner'      \\
           -wsVars \"condition*emotion\"         \\
-          -wsE2                               \\
           -SS_type 2                          \\
           -num_glt 14                         \\
           -gltLabel 1 face_pos_vs_neg -gltCode  1 'condition : 1*face emotion : 1*pos -1*neg'            \\
@@ -136,17 +135,14 @@ within-subject (condition and emotion) variables:
           s68   TN         female scan2   house       neg       s68+tlrc\'[face_neg_beta]\'                \\
           s68   TN         female scan2   house       neu       s68+tlrc\'[house_pos_beta]\'                    
 
-   NOTE:  1) Option -wsE2 is used to combine both the univariate testing and the within-subject
-          multivariate approach. This option only makes sense if a within-subject factor has
-          more than 2 levels.
-          2) The 3rd GLT is for the 2-way 2 x 2 interaction between sex and condition, which
+   NOTE:  1) The 3rd GLT is for the 2-way 2 x 2 interaction between sex and condition, which
           is essentially a t-test (or one degree of freedom for the numerator of F-statistic).
           Multiple degrees of freedom for the numerator of F-statistic can be obtained through
           option -glfCode (see GLFs #1, #2, and #3).
-          3) Similarly, the 4th GLT is a 3-way 2 x 2 x 2 interaction, which is a partial (not full)
+          2) Similarly, the 4th GLT is a 3-way 2 x 2 x 2 interaction, which is a partial (not full)
           interaction between the three factors because 'emotion' has three levels. The F-test for
           the full 2 x 2 x 3 interaction is automatically spilled out by 3dMVM.
-          4) The two GLFs showcase the user how to specify sub-interactions.
+          3) The two GLFs showcase the user how to specify sub-interactions.
           5) Option '-SS_type 2' specifies the hierarchial type for the sume of squares in the
           omnibus F-statistics in the output. See more details in the help.\n"   
       
@@ -158,7 +154,6 @@ Example 2 --- two between-subjects (genotype and sex), onewithin-subject
    3dMVM -prefix Example2 -jobs 24        \\
           -bsVars  \"genotype*sex+age+IQ\"  \\
           -wsVars emotion                \\
-          -wsE2                           \\
           -qVars  \"age,IQ\"               \\
           -qVarCenters '25,105'          \\
           -num_glt 10                    \\
@@ -178,20 +173,14 @@ Example 2 --- two between-subjects (genotype and sex), onewithin-subject
           s63   NN         female 29   110    neg       s63+tlrc\'[neg_beta]\'           \\
           s63   NN         female 29   110    neu       s63+tlrc\'[neu_beta]\'         
 
-   NOTE:  1) By default the program provides an F-stat through the univariate testing
-          (UVT) method for each effect that involves a within-subject factor. With option
-          -wsE2 UVT is combined with the within-subject multivariate approach, and the
-          merged result remains the same as UVT most of the time (or in most brain regions),
-          but occasionally it may be more powerful. This option only makes sense if a
-          within-subject factor has more than 3 level.
-          2) The 2nd GLT shows the age effect (slope) while the 3rd GLT reveals the contrast
+   NOTE:  1) The 2nd GLT shows the age effect (slope) while the 3rd GLT reveals the contrast
           between the emotions at the age of 30 (5 above the center). On the other hand,
           all the other GLTs (1st, 4th, and 5th) should be interpreted at the center Age
           value, 25 year old.
-          3) The 4rd GLT is for the 2-way 2 x 2 interaction between genotype and sex, which
+          2) The 4rd GLT is for the 2-way 2 x 2 interaction between genotype and sex, which
           is essentially a t-test (or one degree of freedom for the numerator of F-statistic).
           Multiple degrees of freedom for the numerator of F-statistic is currently unavailable.
-          4) Similarly, the 5th GLT is a 3-way 2 x 2 x 2 interaction, which is a partial (not full)
+          3) Similarly, the 5th GLT is a 3-way 2 x 2 x 2 interaction, which is a partial (not full)
           interaction between the three factors because 'emotion' has three levels. The F-test for
           the full 2 x 2 x 3 interaction is automatically spilled out by 3dMVM.\n"
      
@@ -451,7 +440,7 @@ read.MVM.opts.batch <- function (args=NULL, verb = 0) {
              sep = '\n'
              ) ),
 
-     '-qVarCenters' = apl(n=1, d=NA, h = paste(
+     '-qvarcenters' = apl(n=1, d=NA, h = paste(
    "-qVarCenters VALUES: Specify centering values for quantitative variables",
    "         identified under -qVars. Multiple centers are separated by ",
    "         commas (,) within (single or double) quotes. The order of the",
