@@ -123,3 +123,7 @@ random_duration_list(nevents, tclass, total_time):
             print '   from mean = %s, from param = %s' % (ttime, total_time)
 
 
+if __name__ == '__main__':
+   print '** this is not a main module'
+   sys.exit(1)
+
