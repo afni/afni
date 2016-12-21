@@ -450,7 +450,7 @@ static mday holiday[] = {
    {JUN,17,"Anniversary of Battle of Bunker's Hill"                  } ,
    {JUN,17,"Iceland Republic Day"                                    } ,
    {JUN,19,"Juneteenth"                                              } ,
-#   {JUN,19,"Kuwait National Day"                                     } ,
+/*   {JUN,19,"Kuwait National Day"                                     } , */
    {JUN,20,"Anniversary of Oxford University"                        } ,
    {JUN,21,"Alexander the Great's birthday"                          } ,
    {JUN,22,"Anniversary of saxophone invention"                      } ,
