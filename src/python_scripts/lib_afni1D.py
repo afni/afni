@@ -3572,7 +3572,7 @@ class AfniData(object):
       
       return 0
 
-   def init_from_mdata(self, name, mdata):
+   def init_from_mdata(self, name, mdata, fname='NO_FILE'):
       """mdata should be of the form:
             one row per run, where each row is a list of events:
                [time [AM list] duration]
@@ -3590,8 +3590,8 @@ class AfniData(object):
       # data will ignore any married information
       self.data     = [[val[0] for val in row] for row in mdata]
       self.mdata    = mdata
-      self.clines   = clines
-      self.fname    = 'NO_FILE'
+      self.clines   = None
+      self.fname    = fname
 
       # init alist to be 0, 1 or 2, for each run so at least 2 "events"
       self.alist    = [0] * len(mdata)
