@@ -16328,7 +16328,7 @@ byte SUMA_isTractDset(SUMA_DSET *dset)
       }      
    }
    if (SUMA_isTractDsetNgr(dset->ngr)) {
-      dset->Aux->isGraph == TRACT_DSET;
+      dset->Aux->isGraph = TRACT_DSET;
    }
    
    SUMA_RETURN(dset->Aux->isGraph == TRACT_DSET);
@@ -16380,12 +16380,12 @@ byte SUMA_isCIFTIDset(SUMA_DSET *dset)
       	             	       with CIFTI dataset that
 			       are elementarized, there is
 			       no more ngr, etc.*/
-      dset->Aux->isGraph == CIFTI_DSET;
+      dset->Aux->isGraph = CIFTI_DSET;
       SUMA_RETURN(YUP);
    }
    
    if (dset->ngr && SUMA_isCIFTIDsetNgr(dset->ngr)) {
-      dset->Aux->isGraph == CIFTI_DSET;
+      dset->Aux->isGraph = CIFTI_DSET;
    }
    
    SUMA_RETURN(dset->Aux->isGraph == CIFTI_DSET);
