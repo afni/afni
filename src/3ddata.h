@@ -1585,6 +1585,13 @@ typedef struct {
     (cax)->yyorient == (dax)->yyorient          && \
     (cax)->zzorient == (dax)->zzorient    )
 
+#define EQUIV_DATAXES_NXYZ(cax,dax)                \
+  ( ISVALID_DATAXES((cax))                      && \
+    ISVALID_DATAXES((dax))                      && \
+    (cax)->nxx == (dax)->nxx                    && \
+    (cax)->nyy == (dax)->nyy                    && \
+    (cax)->nzz == (dax)->nzz  )
+
 #define EQUIV_GRIDS(d1,d2) \
  ( ISVALID_DSET(d1) && ISVALID_DSET(d2) && EQUIV_DATAXES((d1)->daxes,(d2)->daxes) )
 
@@ -1593,6 +1600,9 @@ typedef struct {
 
 #define EQUIV_DELTAXYZ(d1,d2) \
  ( ISVALID_DSET(d1) && ISVALID_DSET(d2) && EQUIV_DATADELTAXYZ((d1)->daxes,(d2)->daxes) )
+
+#define EQUIV_GRIDS_NXYZ(d1,d2) \
+ ( ISVALID_DSET(d1) && ISVALID_DSET(d2) && EQUIV_DATAXES_NXYZ((d1)->daxes,(d2)->daxes) )
 
 extern void THD_edit_dataxes( float , THD_dataxes * , THD_dataxes * ) ;
 
@@ -5503,7 +5513,7 @@ extern MRI_IMARR * mri_3dalign_oneplus( MRI_3dalign_basis * , MRI_IMARR * ,
   /*-- see mri_warp3D_align.c for these routines --*/
 
 #undef  PARAM_MAXTRIAL
-#define PARAM_MAXTRIAL 22
+#define PARAM_MAXTRIAL 17
 typedef struct {
   float min, max, siz, ident, delta, toler ;
   float val_init , val_out , val_fixed , val_pinit ;
