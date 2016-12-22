@@ -825,6 +825,12 @@ g_history = """
 g_version = "version 1.10, June 1, 2016"
 
 g_todo = """
+   - describe 'decay' geometric dist_type as the discrete analog of the
+        negative exponential distribution function (NED describes the
+        time between events in a Poisson process)
+        - only approximate, since fixed # Bernoulli trials in fixed time
+        - not the "shifted" version
+        - this is approximate, 
    - add pre-defined timing classes?
         INSTANT 0 0 0 'decay' 0    ==> i.e. duration
    -add_timing_class label MIN MEAN MAX PDF TGRAN
