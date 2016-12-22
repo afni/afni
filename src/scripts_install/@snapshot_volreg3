@@ -17,6 +17,11 @@ if( $#argv < 2 )then
   echo 'Do NOT put a sub-brick index (such as "[0]") on the EPIdataset'
   echo 'name -- the script will automatically only use the "[0]" volume.'
   echo
+  echo '( Although the original use was for visualizing how well EPI )'
+  echo '( and anatomical datasets were aligned by align_epi_anat.py, )'
+  echo '( it is also useful to see how well 3dQwarp aligned an       )'
+  echo '( anatomical dataset to a template dataset.                  )'
+  echo
   echo 'The optional third argument is the name of the output JPEG'
   echo 'file -- if it does not end in ".jpg", that suffix will be added.'
   echo 'If you do NOT supply a 3rd argument, the script will invent a name.'
