@@ -44,6 +44,18 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 21 , DEC , 2016 , RWC , "3dQwarp" , MICRO , TYPE_GENERAL ,
+   "Add -awarp option, to save Allineate-to-Nonlinear warp only" ,
+   "If -allineate is used, the output WARP dataset is the catenated affine\n"
+   "transform from 3dAllineate and the nonlinear warp from Warpomatic.  If\n"
+   "the user wants to keep the 'pure' nonlinear warp from Warpomatic, then\n"
+   "'-awarp' will do so, with a dataset containing the AWARP moniker." } ,
+
+ { 21 , DEC , 2016 , RWC , "3dQwarp" , MINOR , TYPE_NEW_OPT ,
+   "Add '-wmask' option" ,
+   "Like '-wball', enhances the auto-generated weight in a region, but this\n"
+   "region is selected by a mask dataset." } ,
+
  { 20 , DEC , 2016 , RWC , "3dUnifize" , MICRO , TYPE_MODIFY ,
    "Tweak to make sure tiny values aren't amplified much by -GM" ,
    "Tiny positive values way outside the brain could get super-amplified by\n"
