@@ -9264,7 +9264,8 @@ int thd_LT_label_to_int_list(THD_3dim_dataset *dset, int_list *ilist, char *str)
 /* top-level function for converting globally known labels to a corresponding
  * list of ints
  * 
- * e.g. AFNI_GLAB_FS_WM might expand to a list of FreeSurfer WM values
+ * e.g. AFNI_GLAB_FS5_WM might expand to a list of FreeSurfer 5 WM values
+ * e.g. AFNI_GLAB_FS6_WM might be useful if FreeSurfer 6 changes the numbers
  *
  * This should realy be done using a hash table (or a list of them), akin to
  * how findin_Dtable_b() works.
