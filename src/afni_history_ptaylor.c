@@ -66,7 +66,13 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
-   { 20, Dec , 2016 , PT , "fat_mvm_prep.py" , MICRO , TYPE_NEW_OPT,
+
+{ 23, Dec , 2016 , PT , "3dCM" , MINOR , TYPE_NEW_OPT,
+   "Allow ijk coordinate output.",
+   "Will be in local orientation.  Makes undumping after easier.\n"
+},
+
+{ 20, Dec , 2016 , PT , "fat_mvm_prep.py" , MICRO , TYPE_NEW_OPT,
    "New --unionize_rois option: affects GRID element selection.",
    "Now can select union of matrix elements across group for MVM_tbl.\n"
 },
