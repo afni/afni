@@ -1585,13 +1585,6 @@ typedef struct {
     (cax)->yyorient == (dax)->yyorient          && \
     (cax)->zzorient == (dax)->zzorient    )
 
-#define EQUIV_DATAXES_NXYZ(cax,dax)                \
-  ( ISVALID_DATAXES((cax))                      && \
-    ISVALID_DATAXES((dax))                      && \
-    (cax)->nxx == (dax)->nxx                    && \
-    (cax)->nyy == (dax)->nyy                    && \
-    (cax)->nzz == (dax)->nzz  )
-
 #define EQUIV_GRIDS(d1,d2) \
  ( ISVALID_DSET(d1) && ISVALID_DSET(d2) && EQUIV_DATAXES((d1)->daxes,(d2)->daxes) )
 
@@ -1600,9 +1593,6 @@ typedef struct {
 
 #define EQUIV_DELTAXYZ(d1,d2) \
  ( ISVALID_DSET(d1) && ISVALID_DSET(d2) && EQUIV_DATADELTAXYZ((d1)->daxes,(d2)->daxes) )
-
-#define EQUIV_GRIDS_NXYZ(d1,d2) \
- ( ISVALID_DSET(d1) && ISVALID_DSET(d2) && EQUIV_DATAXES_NXYZ((d1)->daxes,(d2)->daxes) )
 
 extern void THD_edit_dataxes( float , THD_dataxes * , THD_dataxes * ) ;
 
@@ -4836,9 +4826,10 @@ extern float THD_timeof_slice( int , int , THD_3dim_dataset * ) ;  /* BDW */
 extern float * TS_parse_tpattern( int, float, char * ) ;  /* 11 Dec 2007 */
 
 extern THD_fvec3 THD_dataset_center( THD_3dim_dataset * ) ;  /* 01 Feb 2001 */
-extern THD_fvec3 THD_cmass( THD_3dim_dataset *xset , int iv , byte *mmm );
+extern THD_fvec3 THD_cmass( THD_3dim_dataset *xset , int iv , byte *mmm,
+                               int cmode);
 extern float *THD_roi_cmass(THD_3dim_dataset *xset , int iv ,
-                            int *rois, int N_rois);
+                            int *rois, int N_rois, int cmode);
 extern int THD_dataset_mismatch(THD_3dim_dataset *, THD_3dim_dataset *) ;
 extern double THD_diff_vol_vals(THD_3dim_dataset *d1, THD_3dim_dataset *d2,
                                 int scl);
@@ -5513,7 +5504,7 @@ extern MRI_IMARR * mri_3dalign_oneplus( MRI_3dalign_basis * , MRI_IMARR * ,
   /*-- see mri_warp3D_align.c for these routines --*/
 
 #undef  PARAM_MAXTRIAL
-#define PARAM_MAXTRIAL 17
+#define PARAM_MAXTRIAL 22
 typedef struct {
   float min, max, siz, ident, delta, toler ;
   float val_init , val_out , val_fixed , val_pinit ;
