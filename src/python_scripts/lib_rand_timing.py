@@ -2,10 +2,15 @@
 
 import sys, random, os, math
 import afni_util as UTIL
+import lib_afni1D as LD
 
 gDEF_T_GRAN     = 0.1    # default time granularity, in seconds
+gDEF_DEC_PLACES = 1      # decimal places when printing time (-1 ==> %g format)
+
 
 g_valid_dist_types = ['decay', 'uniform_rand', 'uniform_grid', 'INSTANT']
+
+g_instant_timing_class = TimingClass('INSTANT', 0, 0, 0)
 
 # -add_timing_class stimA 3 3  3 decay 0.1
 # -add_timing_class stimA 3 5 10
@@ -60,16 +65,184 @@ class TimingClass:
          print '   verb         : %s' % self.verb
          print '   total_time   : %s' % self.total_time
 
+   def decay_get_dur_list(self, nevents, tot_time, max_dur):
+      """return a list of durations of length nevents, such that tot_time is
+         distributed with PDF decay (okay, the discrete version, which is less)
+      """
+
+      durlist = [0] * nevents
+
+      # see how much rest there is to distribute
+      nrest = int(tot_time / self.t_gran)
+
+      # if no rest, just return the 0-filled list
+      if nrest < 1:
+         return durlist
+
+      # start by doing a simple random distribution at t_gran granularity
+      # (partition time with nevents-1 dividers)
+      elist = [1] * (nevents - 1)
+      rlist = [0] * nrest
+
+      elist.extend(rlist)
+
+      UTIL.shuffle(elist)
+      # add a trailer to count the final duration (since only n-1 dividers)
+      elist.append(1)
+
+      # now get counts
+      posn = -1
+      prev = posn
+      for eind in range(nevents):
+         # look for the next 1
+         try: posn = elist.index(1, prev+1)
+         except:
+            print '** DGDL index failure, n = %d, elist = %s' % (nevents, elist)
+            return durlist
+
+         # rest count is number of zeros between prev and posn
+         durlist[eind] = posn-prev-1
+         prev = posn
+
+      # if no maximum to deal with, we are done (scale by t_gran)
+      if max_dur < 0:
+         for dind in range(nevents):
+            durlist[dind] *= self.t_gran
+         return durlist
+
+      # --------------------------------------------------
+      # have a max duration, so redistribute the wealth
+
+      nmax = int(max_dur / self.t_gran)
+
+      self.decay_apply_max_limit(durlist, nmax)
+
+      # and finally, scale by t_gran
+      for dind in range(len(durlist)):
+         durlist[dind] *= self.t_gran
+
+      return durlist
+
+   def decay_apply_max_limit(self, dlist, nmax):
+      """none of the (integer) entries in dlist should exceed nmax
+         - modify the actual list
+      """
+      
+      n2move = 0
+      navail = 0
+      spacelist = []
+
+      for dind, dur in enumerate(dlist):
+         # if there is space here, note the index and available space
+         if dur < nmax:
+            navail += nmax-dur
+            spacelist.append(dind)
+         # if this is too full, track count to move
+         # (do not fix until we are sure we can)
+         elif dur > nmax:
+            n2move += dur-nmax
+
+      # is there anything to fix?
+      if n2move == 0:
+         return
+
+      # can we actually fix this?  (failure should already be prevented)
+      if navail < n2move:
+         print '** DAML space availability error for class %s' % self.name
+         return
+
+      # --------------------------------------------------
+      # okay, start fixing things
+
+      # first, truncate to max (skipped above, just to be sure)
+      for dind, dur in enumerate(dlist):
+         if dur > nmax:
+            dlist[dind] = nmax
+
+      # for each n2move, pick a place to move it and track space
+      nspace = len(spacelist)
+
+      for sind in range(n2move):
+         if nspace == 0:
+            print '** DAML: no more space entries in class %s' % self.name
+            return
+         mind = int(random.uniform(0,nspace))
+         if mind == nspace: mind -= 1  # probability close to 0
+         sind = spacelist[mind]
+         dlist[sind] += 1
+         # maybe this event is maxed out
+         if dlist[sind] >= nmax:
+            nspace -= 1
+            spacelist.remove(sind)
+            
+      return
+
+   def urand_get_dur_list(self, nevents, tot_time):
+      """return a list of durations, distributed uniformly in [0,max_dur]
+         (but still on t_gran)
+
+         - mean time is tot/n, max is 2*tot/n
+
+         - get int(n/2) random times
+         - fill with max-val (so pairs average at mean)
+         - if n is odd, append one mean duration
+         - shuffle
+      """
+
+      if nevents <= 0: return []
+      if nevents == 1: return [tot_time]
+
+      max_dur = tot_time * 1.0 / nevents
+
+      # number of t_gran possibilities (equates to 0..max_dur in time)
+      # ("+1" is to include zero, say)
+      nmax = 1 + int(max_dur / self.t_gran)
+
+      durlist = []
+      for ind in range(nevents//2):
+         ngran = int(random.uniform(0,nmax+1))
+         if ngran > nmax: ngran = nmax  # to be safe
+         # add time and balancing time
+         durlist.append(ngran * self.t_gran)
+         durlist.append((nmax - ngran) * self.t_gran)
+
+       if nevents % 2:
+         durlist.append(max_dur/2.0)
+
+       UTIL.shuffle(durlist)
+
+       return durlist
+
+   def ugrid_get_dur_list(self, nevents, tot_time, max_dur):
+      """return a list of durations of length nevents, such that tot_time is
+         distributed with PDF decay (okay, the discrete version, which is less)
+      """
+
+      durlist = [0] * nevents
+
+      # see how much rest there is to distribute
+      nrest = int(tot_time / self.t_gran)
+
+      rcr - todo
+
 # stimulus event object, with 
 class StimClass:
-   def __init__(self, name, nreps, stname, rtname=None, verb=1):
+   def __init__(self, name, nreps, sclass, rclass, verb=1):
       # optional from command line
       self.name         = name
       self.nreps        = nreps         # number of events (per-/across- runs)
-      self.stname       = stname        # name of stim TimingClass
-      self.rtname       = rtname        # name of rest TimingClass
+      self.sclass       = sclass        # name of stim TimingClass
+      self.rclass       = rclass        # name of rest TimingClass
+
+      if not isinstance(sclass, TimingClass):
+         print '** StimClass stim timing is not a TimingClass'
+      if not isinstance(rclass, TimingClass):
+         print '** StimClass rest timing is not a TimingClass'
 
       self.verb         = verb
+
+      self.durlist      = []            # durations per run
+      self.sdata        = None          # AfniData instance
 
    def show(self, mesg='', details=0):
       if mesg: mstr = '(%s) ' % mesg
@@ -77,10 +250,35 @@ class StimClass:
       print '-- StimClass %s:' % mstr
       print '   name         : %s' % self.name
       print '   nreps        : %s' % self.nreps
-      print '   stname       : %s' % self.stname
-      print '   rtname       : %s' % self.rtname
+      print '   sclass       : %s' % self.sclass.name
+      print '   rclass       : %s' % self.rclass.name
 
-      # no details yet
+      if details:
+         print '   verb         : %s' % self.verb
+         self.sclass.show('stim class for %s'%self.name)
+         self.rclass.show('rest class for %s'%self.name)
+
+   def show_durlist_stats(self, details=0):
+      tc = self.sclass
+      print "=== event duration statistics for StimClass '%s' ===" % self.name
+      print 'run       min       mean      max      stdev'
+      print '------  -------   -------   -------   -------'
+      print 'expect %7.3f   %7.3f   %7.3f     %s' % \
+               (tc.min_dur, tc.mean_dur, tc.max_dur, tc.dist_type)
+      for rind, durs in enumerate(self.durlist):
+         mmin,mmean,mmax,mstdev = UTIL.min_mean_max_stdev(durs)
+         print '%02d     %7.3f   %7.3f   %7.3f   %7.3f' % \
+               (rind, mmin, mmean, mmax, mstdev)
+      print
+
+      if not details: return
+
+      digs = gDEF_DEC_PLACES
+
+      print '-- StimClass %s event durations:'  % self.name
+      for rind, durs in enumerate(self.durlist):
+         dstr = ['%.*f'%(digs, dd) for dd in durs]
+         print '   run %02d: %s' % (rind, ' '.join(dstr))
 
 def create_duration_lists(slist, nruns, across_runs=0, verb=1):
    """for each class, create nreps event times
@@ -94,16 +292,20 @@ def create_duration_lists(slist, nruns, across_runs=0, verb=1):
       print '-- creating stim dur lists for %d classes, nruns=%d, across=%d' \
             % (nsc, nruns, across_runs)
 
+
    for sc in slist:
-      nevents = sc.nreps
       if across_runs:
-         pass
+         sc.durlist = random_duration_list(sc.nreps, sc.sclass, 0)
       else:
-         pass
+         sc.durlist = []
+         for rind in range(nruns):
+            dlist = random_duration_list(sc.nreps, sc.sclass, 0)
+            sc.durlist.append(dlist)
+      if verb > 2: sc.show_durlist_stats(details=(verb//4))
 
    return 1
 
-random_duration_list(nevents, tclass, total_time):
+def random_duration_list(nevents, tclass, total_time):
    """create a length nevents list of durations according to the class
 
       if dur_mean > 0 and total_time > 0:
@@ -125,19 +327,19 @@ random_duration_list(nevents, tclass, total_time):
 
    # other quick check: INSTANT type is list of duration 0 events
    if tclass.dist_type == 'INSTANT':
-      return [0] * nevents
+      return [0.0] * nevents
 
    # ----------------------------------------------------------------------
    # reconcile total time (ttime) and min duration (min_dur),
    # then initialize a minimum time list,
-   # then note remaining time and an appropriate max_time
+   # then note remaining time and an appropriate max_dur
    if tclass.mean_dur == 0:
       ttime = 0.0
    elif tclass.mean_dur > 0:
       ttime = 1.0 * tclass.mean_dur * nevents
 
       if total_time > 0:
-         if (ttime - total_time)/total_time < 0.95 or
+         if (ttime - total_time)/total_time < 0.95 or \
             (ttime - total_time)/total_time > 1.05:
             print '** warning: random_duration_list has conflicting total time'
             print '   from mean = %s, from param = %s' % (ttime, total_time)
@@ -164,141 +366,49 @@ random_duration_list(nevents, tclass, total_time):
    remain = ttime - min_dur * nevents
 
    # if time is already maxed out by the minimum, just return it
-   if remain < tclass.t_gran
+   if remain < tclass.t_gran:
       return min_list
 
    # get appropriate max remaining time (beyond min_dur)
-   if tclass.max_time > 0:
-      max_time = tclass.max_time - min_dur
-      if max_time <= 0: # just bail
+   if tclass.max_dur > 0:
+      max_dur = tclass.max_dur - min_dur
+      if max_dur <= 0: # just bail
          return min_list
       # if there is too much time left, everyone gets the max
-      if remain >= (max_time * ntrials):
-         return [tclass.max_time] * nevents
+      if remain >= (max_dur * nevents):
+         return [tclass.max_dur] * nevents
    else:
       # no maximum
-      max_time = -1.0
+      max_dur = -1.0
 
    # ======================================================================
    # we have some time (remain) to distribute, possibly with a max time
    # ======================================================================
 
-   # check for valid type
-   if tclass.dist_type not in g_valid_dist_types:
-      print '** invalid dist_type %s for TimingClass class %s' \
-            % (tclass.dist_type, tclass.name)
-      # just return average?
+   # ----------------------------------------------------------------------
+   # g_valid_dist_types = ['decay', 'uniform_rand', 'uniform_grid', 'INSTANT']
+
+   # get list based on distribution type (INSTANT was done above)
+   if tclass.dist_type == 'decay':
+      dlist = tclass.decay_get_dur_list(nevents, remain, max_dur)
+   elif dist_type == 'uniform_rand':
+      dlist = tclass.urand_get_dur_list(nevents, remain)
+   elif dist_type == 'uniform_grid':
+      dlist = tclass.ugrid_get_dur_list(nevents, remain)
+   elif dist_type == 'INSTANT':
+      print '** RDL: INSTANT type should not be processed here'
+      return [0.0] * nevents
+   else:
+      print '** RDL: unknown dist type %s, return ave time' % tclass.dist_type
       return [ttime*1.0/nevents] * nevents
 
-   # decay type:
-   if tclass.dist_type == 'decay':
-      dlist = decay_get_dur_list(nevents, remain, max_time, tclass.t_gran)
+   # ----------------------------------------------------------------------
+   # add min_dur back in
 
-def decay_get_dur_list(nevents, tot_time, max_dur, t_gran):
-   """return a list of durations of length nevents, such that tot_time is
-      distributed with PDF decay (okay, the discrete version, which is less)
-   """
+   for dind in range(nevents):
+      dlist[dind] += min_dur
 
-   durlist = [0] * nevents
-
-   # see how much rest there is to distribute
-   nrest = tot_time / t_gran
-
-   # if no rest, just return the 0-filled list
-   if nrest < 1:
-      return durlist
-
-   # start by doing a simple random distribution at t_gran granularity
-   # (partition time with nevents-1 dividers)
-   elist = [1] * (nevents - 1)
-   rlist = [0] * nrest
-
-   elist.extend(rlist)
-
-   UTIL.shuffle(elist)
-
-   # now get counts
-   posn = -1
-   prev = posn
-   for eind in range(nevents):
-      # look for the next 1
-      try: posn = elist.index(1, prev+1)
-      except:
-         print '** DGDL index failure, n = %d, elist = %s' % (nevents, elist)
-         return durlist
-
-      # rest count is number of zeros between prev and posn
-      durlist[eind] = posn-prev-1
-      prev = posn
-
-   # if no maximum to deal with, we are done (scale by t_gran)
-   if max_dur < 0:
-      for dind in range(nevents):
-         durlist[dind] *= t_gran
-      return durlist
-
-   # --------------------------------------------------
-   # have a max duration, so redistribute the wealth
-
-   nmax = int(max_dur / t_gran)
-
-   decay_apply_max_limit(tclass.name, durlist, nmax)
-
-   return durlist
-
-def decay_apply_max_limit(name, dlist, nmax):
-   """none of the (integer) entries in dlist should exceed nmax
-      - modify the actual list
-   """
-   
-   n2move = 0
-   navail = 0
-   spacelist = []
-
-   for dind, dur in enumerate(dlist):
-      # if there is space here, note the index and available space
-      if dur < nmax:
-         navail += nmax-dur
-         spacelist.append(dind)
-      # if this is too full, track count to move
-      # (do not fix until we are sure we can)
-      elif dur > nmax:
-         n2move += dur-nmax
-
-   # is there anything to fix?
-   if n2move == 0:
-      return
-
-   # can we actually fix this?  (failure should already be prevented)
-   if navail < n2move:
-      print '** DAML space availability error for class %s' % name
-      return
-
-   # --------------------------------------------------
-   # okay, start fixing things
-
-   # first, truncate to max (skipped above, just to be sure)
-   for dind, dur in enumerate(dlist):
-      if dur > nmax:
-         dlist[dind] = nmax
-
-   # for each n2move, pick a place to move it and track space
-   nspace = len(spacelist)
-
-   for sind in range(n2move):
-      if nspace == 0:
-         print '** DAML: no more space entries for %s!' % name
-         return
-      mind = int(0,nspace)
-      if mind == nspace: mind -= 1  # probability close to 0
-      sind = spacelist[mind]
-      dlist[sind] += 1
-      # maybe this event is maxed out
-      if dlist[sind] >= nmax:
-         nspace -= 1
-         spacelist.remove(sind)
-         
-   return
+   return dlist
 
 if __name__ == '__main__':
    print '** this is not a main module'
