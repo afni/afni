@@ -5,7 +5,7 @@ import afni_util as UTIL
 
 gDEF_T_GRAN     = 0.1    # default time granularity, in seconds
 
-g_valid_dist_types = ['decay', 'uniform', 'INSTANT']
+g_valid_dist_types = ['decay', 'uniform_rand', 'uniform_grid', 'INSTANT']
 
 # -add_timing_class stimA 3 3  3 decay 0.1
 # -add_timing_class stimA 3 5 10
@@ -242,11 +242,11 @@ def decay_get_dur_list(nevents, tot_time, max_dur, t_gran):
 
    nmax = int(max_dur / t_gran)
 
-   decay_apply_max_limit(durlist, nmax)
+   decay_apply_max_limit(tclass.name, durlist, nmax)
 
    return durlist
 
-def decay_apply_max_limit(dlist, nmax):
+def decay_apply_max_limit(name, dlist, nmax):
    """none of the (integer) entries in dlist should exceed nmax
       - modify the actual list
    """
@@ -271,7 +271,7 @@ def decay_apply_max_limit(dlist, nmax):
 
    # can we actually fix this?  (failure should already be prevented)
    if navail < n2move:
-      print '** DAML space availability error'
+      print '** DAML space availability error for class %s' % name
       return
 
    # --------------------------------------------------
@@ -284,6 +284,21 @@ def decay_apply_max_limit(dlist, nmax):
 
    # for each n2move, pick a place to move it and track space
    nspace = len(spacelist)
+
+   for sind in range(n2move):
+      if nspace == 0:
+         print '** DAML: no more space entries for %s!' % name
+         return
+      mind = int(0,nspace)
+      if mind == nspace: mind -= 1  # probability close to 0
+      sind = spacelist[mind]
+      dlist[sind] += 1
+      # maybe this event is maxed out
+      if dlist[sind] >= nmax:
+         nspace -= 1
+         spacelist.remove(sind)
+         
+   return
 
 if __name__ == '__main__':
    print '** this is not a main module'
