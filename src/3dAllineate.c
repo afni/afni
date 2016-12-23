@@ -469,6 +469,11 @@ int main( int argc , char *argv[] )
 
    bytevec *emask              = NULL ;          /* 14 Feb 2013 */
 
+   int do_unifize_base         = 0 ;             /* 23 Dec 2016 */
+   int do_unifize_targ         = 0 ;
+   MRI_IMAGE *im_ubase         = NULL ;
+   MRI_IMAGE *im_utarg         = NULL ;
+
    /**----------------------------------------------------------------------*/
    /**----------------- Help the pitifully ignorant user? -----------------**/
 
@@ -1679,6 +1684,18 @@ int main( int argc , char *argv[] )
 
    iarg = 1 ;
    while( iarg < argc && argv[iarg][0] == '-' ){
+
+     /*------*/
+
+     if( strcmp(argv[iarg],"-unifize_base") == 0 ){    /* 23 Dec 2016 */
+       do_unifize_base++ ; iarg++ ; continue ;
+     }
+
+#if 0
+     if( strcmp(argv[iarg],"-unifize_source") == 0 ){  /* 23 Dec 2016 */
+       do_unifize_targ++ ; iarg++ ; continue ;
+     }
+#endif
 
      /*------*/
 
@@ -4091,6 +4108,45 @@ STATUS("zeropad weight dataset") ;
    im_bset = im_base ;  /* base image for first loop */
    im_wset = im_weig ;
 
+   /** 3dUnifize the base image? [23 Dec 2016] **/
+
+   if( do_unifize_base && dset_base != NULL && nz_base > 5 && apply_1D == NULL ){
+     THD_3dim_dataset *qset, *uset ;
+     char *uuu, bname[32], uname[32] , cmd[1024] ;
+     float *bar , urad ;
+
+     uuu = UNIQ_idcode_11() ;
+     sprintf(uname,"UU.%s.nii",uuu) ;
+     sprintf(bname,"BB.%s.nii",uuu) ;
+
+     qset = THD_image_to_dset(im_bset,bname) ;
+     qset->dblk->diskptr->storage_mode = STORAGE_BY_NIFTI ;
+     DSET_write(qset) ;
+
+     urad = 18.3f / cbrtf(dx_base*dy_base*dz_base) ;
+          if( urad < 5.01f ) urad = 5.01f ;
+     else if( urad > 23.3f ) urad = 23.3f ;
+     sprintf(cmd,
+             "3dUnifize -input %s -prefix %s -T2 -Urad %.2f -clfrac 0.333",
+             bname , uname , urad ) ;
+     INFO_message("About to do -unifize_base:\n  %s",cmd) ;
+     system(cmd) ;
+     THD_delete_3dim_dataset(qset,True) ;
+
+     uset = THD_open_dataset(uname) ;
+     if( uset == NULL ){
+       WARNING_message("-unifize_base failed :(") ;
+     } else {
+       DSET_load(uset) ;
+       if( !DSET_LOADED(uset) ){
+         WARNING_message("-unifize_base did something weird :((") ;
+       } else {
+         im_bset = im_ubase = mri_copy(DSET_BRICK(uset,0)) ;
+       }
+       THD_delete_3dim_dataset(uset,True) ;
+     }
+   } /* end of -unifize_base */
+
    stup.ajmask_ranfill = 0 ;                          /* 02 Mar 2010: oops */
    if( im_tmask != NULL ){
      mri_genalign_set_targmask( im_tmask , &stup ) ;  /* 07 Aug 2007 */
@@ -5405,7 +5461,7 @@ mri_genalign_set_pgmat(1) ;
    /*--- unload stuff we no longer need ---*/
 
    DSET_unload(dset_targ) ;
-   mri_free(im_base) ; mri_free(im_weig) ; mri_free(im_mask) ;
+   mri_free(im_base); mri_free(im_weig); mri_free(im_mask); mri_free(im_ubase);
 
    MRI_FREE(stup.bsim); MRI_FREE(stup.bsims);
    MRI_FREE(stup.ajim); MRI_FREE(stup.ajims); MRI_FREE(stup.bwght);
