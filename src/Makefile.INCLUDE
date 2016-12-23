@@ -1972,8 +1972,8 @@ afni_doc.tgz:
 install_devs: ptaylor_install pkundu_install jzosky_install
 
 install: $(INSTALLDIR) $(INSTALL_PREREQ) install_devs
-	$(MV) $(PROGRAMS) $(INSTALLDIR)
 	$(CP) $(SCRIPTS_DIR)/* $(INSTALLDIR)
+	$(MV) $(PROGRAMS) $(INSTALLDIR)
 	$(CP) $(PY_DIR)/*.py  $(R_DIR)/*.R $(INSTALLDIR)
 	$(CP) html/??*.* $(EXTRA_INSTALL_FILES) $(INSTALLDIR)
 	if [ -f README.environment ]; then $(CP) README.*    $(INSTALLDIR); fi;
