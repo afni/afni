@@ -825,6 +825,8 @@ g_history = """
 g_version = "version 1.10, June 1, 2016"
 
 g_todo = """
+   - add option to change timing classes for pre and post stim rest
+   - add related dist_types rand_unif and rand_gauss?
    - describe 'decay' geometric dist_type as the discrete analog of the
         negative exponential distribution function (NED describes the
         time between events in a Poisson process)
@@ -832,7 +834,7 @@ g_todo = """
         - not the "shifted" version
         - this is approximate, 
    - add pre-defined timing classes?
-        INSTANT 0 0 0 'decay' 0    ==> i.e. duration
+        INSTANT 0 0 0 'decay' 0    ==> i.e. 0 duration event
    -add_timing_class label MIN MEAN MAX PDF TGRAN
    -add_stim_class label Nreps stim_timing_class rest_timing_class
    -global "-across_runs" still applies
@@ -845,12 +847,11 @@ g_todo = """
       - or perhaps it could be clear by calling it old_MRT.py
       -no, just try to partition options
          - OLD: -num_stim, -num_reps, -stim_dur, -stim_labels, -min_rest
-         - NEW: -add_stim_class, -add_timing_class
+         - ADV: -add_stim_class, -add_timing_class
 """
 
 gDEF_VERB       = 1      # default verbose level
 gDEF_MIN_T_GRAN = 0.0001 # minimum time granularity, in seconds
-gDEF_DEC_PLACES = 1      # decimal places when printing time (-1 ==> %g format)
 
 gdef_timing_param = {   'decay' : [],   # no params (embedded in t_gran)
                         'uniform' : []
@@ -901,15 +902,24 @@ class RandTiming:
         self.valid_opts = None          # OptionList
         self.user_opts  = None
 
-        # required arguments for new method
+        # ------------------------------------------------------------
+        # required arguments for advanced method
         self.tclasses   = []            # TimingClass instances
         self.sclasses   = []            # StimClass instances
 
-        # required arguments for old method
+        # other parameters for advanced method
+
+        # pre- and post-rest timing classes
+        self.pre_stimc  = LRT.g_instant_timing_class
+        self.post_stimc = LRT.g_instant_timing_class
+
+        # ------------------------------------------------------------
+        # required arguments for basic method
         self.num_reps   = []            # number of stimuli, per class (per run)
         self.stim_dur   = []            # time of single stimulus (seconds)
                                         #   - per stim class
 
+        # ------------------------------------------------------------
         # other required arguments
         self.num_stim   = 0             # number of stimulus classes
         self.num_runs   = 0             # number of runs
@@ -918,7 +928,7 @@ class RandTiming:
 
         self.run_time   = []            # total time per run (seconds)
 
-
+        # ------------------------------------------------------------
         # optional arguments
         self.across_runs    = 0         # flag: stimuli span all runs
         self.pre_stim_rest  = 0         # seconds before first stim
@@ -930,7 +940,7 @@ class RandTiming:
         self.orderstim= []              # list of ordered stimulus lists
         self.max_consec = []            # max consectutive stimuli per type
         self.t_gran   = LRT.gDEF_T_GRAN # time granularity for rest
-        self.t_digits = gDEF_DEC_PLACES # digits after decimal when showing time
+        self.t_digits = LRT.gDEF_DEC_PLACES # digits after decimal for times
                                         # (-1 means to use %g)
         self.labels   = None            # labels to be applied to filenames
 
@@ -1079,20 +1089,20 @@ class RandTiming:
         elif err: return 1
 
         # -----------------------------------------------------------------
-        # determine NEW or OLD usage styles and get relevant args
+        # determine advanced or basic usage styles and get relevant args
 
-        # NEW: -add_stim_class, -add_timing_class
+        # ADVANCED: -add_stim_class, -add_timing_class
         if self.has_any_opts(g_style_opts_new):
            if self.has_any_opts(g_style_opts_old):
               print '** have both new- and old-styled options, use only one'
-              print '   NEW: %s' % ', '.join(g_style_opts_new)
-              print '   OLD: %s' % ', '.join(g_style_opts_old)
+              print '   ADVAN: %s' % ', '.join(g_style_opts_new)
+              print '   BASIC: %s' % ', '.join(g_style_opts_old)
               return 1
 
            # get timing classes first, required for stim classes
            olist = self.user_opts.find_all_opts('-add_timing_class')
            if len(olist) == 0:
-               print '** NEW STYLE: missing option -add_timing_class'
+               print '** ADV STYLE: missing option -add_timing_class'
                return 1
            for opt in olist:
                if self.apply_opt_timing_class(opt):
@@ -1100,7 +1110,7 @@ class RandTiming:
 
            olist = self.user_opts.find_all_opts('-add_stim_class')
            if len(olist) == 0:
-               print '** NEW STYLE: missing option -add_stim_class'
+               print '** ADV STYLE: missing option -add_stim_class'
                return 1
            for opt in olist:
                if self.apply_opt_stim_class(opt):
@@ -1141,7 +1151,7 @@ class RandTiming:
            elif err: return 1
 
 
-        # end: process OLD and NEW style options
+        # end: process OLD and ADV style options
         # -----------------------------------------------------------------
 
         
@@ -1267,7 +1277,7 @@ class RandTiming:
         self.t_digits, err = self.user_opts.get_type_opt(float,'-t_digits')
         if self.t_digits == None:
             if self.t_gran == round(self.t_gran,1):
-                self.t_digits = gDEF_DEC_PLACES
+                self.t_digits = LRT.gDEF_DEC_PLACES
             else:
                 self.t_digits = 3
         elif err: return 1
@@ -1460,19 +1470,21 @@ class RandTiming:
        stname = params[2]
        rtname = params[3]
 
-       if self.get_timing_class(stname) == None:
+       sclass = self.get_timing_class(stname)
+       if sclass == None:
           print error_string
           print "** did not find timing class '%s' for stim" % stname
           return 1
 
-       if self.get_timing_class(rtname) == None:
+       rclass = self.get_timing_class(rtname)
+       if rclass == None:
           print error_string
           print "** did not find timing class '%s' for rest" % rtname
           return 1
 
        # ------------------------------------------------------------
        # ready to roll, create the actual stim class instance
-       sclass = LRT.StimClass(name, nreps, stname, rtname, verb=verb)
+       sclass = LRT.StimClass(name, nreps, sclass, rclass, verb=self.verb)
        if sclass == None:
           print error_string
           return 1
@@ -2583,9 +2595,9 @@ class RandTiming:
             print '-- updated etotal = %d' % etotal
 
     # ======================================================================
-    # NEW: functions for modern timing method
+    # ADV: functions for modern timing method
 
-    def new_create_timing(self):
+    def adv_create_timing(self):
         """create stimulus timing event list
               create list of events (array of event type/duration)
                  - put 2D list of married data elements in StimClass
@@ -2604,58 +2616,50 @@ class RandTiming:
 
         # durations are created per stim class even if the timing types are
         # the same (so more time in one class does not cost time in another)
-        if LRT.create_duration_lists(self.sclasses, self.across_runs,
-                                     verb=self.verb):
+        if LRT.create_duration_lists(self.sclasses, self.num_runs,
+                                     self.across_runs, verb=self.verb):
            return 1
 
-        # possibly get timing across all runs at once
-        if self.across_runs:
-            self.stimes = self.make_rand_timing(self.num_runs, self.run_time[0])
+        # simlpy randomize order of all events per run
+        sall = self.adv_randomize_event_lists()
 
-            if self.stimes == None: return 1
-            if len(self.stimes) != self.num_stim or     \
-                    len(self.stimes[0]) != self.num_runs:
-                print '** make_rand_timing failure: bad list size'
-                return 1
+        # add rest
+        if self.adv_fill_with_rest(sall): return 1
 
-        # create a timing list for each run separately
-        else:
+    def adv_randomize_event_lists(self):
+       """For each run (or across), put all events in a list and randomize.
 
-            # init the 3D array: class by run by stim
-            # each element (class) is a list (run) of lists (stim)
-            # (for each run, append a stim_dur list to each class)
-            self.stimes = [[] for i in range(self.num_stim)]
+          return an array of run lists of [stimind duration], e.g.
 
-            for run in range(self.num_runs):
-                # get timing for current run
-                stim_list = self.make_rand_timing(1, self.run_time[run])
+          eall = [ [ [1 3.2] [4 0.7] .. ]
+                   [ [0 4.2] [2 3.1] .. ]
+                   [ [4 2.0] [2 1.9] .. ]
+                 ]
+       """
 
-                # check for failure
-                if stim_list == None:
-                    print '** rand_timing failure for run %d' % (run+1)
-                    return 1
+       if self.across_runs: ntodo = 1
+       else:                ntodo = self.nruns
 
-                if len(stim_list) != self.num_stim:
-                    print '** bad stim_list length %d' % len(stim_list)
-                    return 1
+       eall = []
+       for rind in range(ntodo):
+          erun = []
+          for sind, sc in enumerate(self.sclasses):
+             for dur in sc.durlist[rind]:
+                erun.append([sind, dur])
+          UTIL.shuffle(erun)
+          eall.append(erun)
 
-                if len(stim_list[0]) != 1:
-                    print '** bad stim_list[0] length %d' % len(stim_list[0])
-                    return 1
+       return eall
 
-                # add lists to stimes
-                for index in range(self.num_stim):
-                    self.stimes[index].append(stim_list[index][0])
+    def adv_fill_with_rest(self, sall):
+      """for each run
+            compute total rest time (run_time - sum of stim durs - pre/post)
+            distribute across applied rest classes
 
-        if self.verb > 2:
-            print '--------- final list ---------'
-            for s in range(len(self.stimes)):
-                for r in range(len(self.stimes[0])):
-                    print UTIL.gen_float_list_string(self.stimes[s][r],
-                               '++ stim list[%d][%d] = '%((s+1),r))
-            # print self.stimes
+         across runs is harder, save that for later
+      """
 
-        return None
+      print '== rcr napping...'
 
 def basis_from_time(stim_len):
     if stim_len > 1.0: return "'BLOCK(%g,1)'" % stim_len
@@ -2757,7 +2761,7 @@ def process():
 
     # new way
     if len(timing.sclasses) > 0:
-       rv = timing.new_create_timing()
+       rv = timing.adv_create_timing()
        if rv != None:
            if rv: UTIL.show_args_as_command(sys.argv,"** failed command:")
            return rv
