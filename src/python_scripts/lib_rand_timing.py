@@ -10,8 +10,6 @@ gDEF_DEC_PLACES = 1      # decimal places when printing time (-1 ==> %g format)
 
 g_valid_dist_types = ['decay', 'uniform_rand', 'uniform_grid', 'INSTANT']
 
-g_instant_timing_class = TimingClass('INSTANT', 0, 0, 0)
-
 # -add_timing_class stimA 3 3  3 decay 0.1
 # -add_timing_class stimA 3 5 10
 # -add_timing_class stimA 3 5  7 uniform 1 0.1
@@ -192,11 +190,11 @@ class TimingClass:
       if nevents <= 0: return []
       if nevents == 1: return [tot_time]
 
-      max_dur = tot_time * 1.0 / nevents
+      max_dur = tot_time * 2.0 / nevents
 
       # number of t_gran possibilities (equates to 0..max_dur in time)
-      # ("+1" is to include zero, say)
-      nmax = 1 + int(max_dur / self.t_gran)
+      # ("+1" is to include zero, say, +0.01 is to avoid a trunction miss)
+      nmax = 1 + int(max_dur / self.t_gran + 0.01)
 
       durlist = []
       for ind in range(nevents//2):
@@ -206,24 +204,56 @@ class TimingClass:
          durlist.append(ngran * self.t_gran)
          durlist.append((nmax - ngran) * self.t_gran)
 
-       if nevents % 2:
+      if nevents % 2:
          durlist.append(max_dur/2.0)
 
-       UTIL.shuffle(durlist)
+      UTIL.shuffle(durlist)
 
-       return durlist
+      return durlist
 
-   def ugrid_get_dur_list(self, nevents, tot_time, max_dur):
-      """return a list of durations of length nevents, such that tot_time is
-         distributed with PDF decay (okay, the discrete version, which is less)
+   def ugrid_get_dur_list(self, nevents, tot_time):
+      """return a list of durations, distributed evenly along [0,max_dur],
+         but truncated to the t_gran grid
+
+         EXPECTS: minimum event time == 0, i.e. old min was subtracted out
+         
+         - like urand, but create a list of evenly divided times, 
+           without any randomness
+
+         - mean time is tot/n, max is 2*tot/n
+
+         - make int(n/2) lower grid times
+            - compute exact time, then convert to t_gran indices (val)
+         - fill with max-val (so pairs average at mean)
+         - if n is odd, append one mean duration
+         - shuffle
       """
 
-      durlist = [0] * nevents
+      if nevents <= 0: return []
+      if nevents == 1: return [tot_time]
 
-      # see how much rest there is to distribute
-      nrest = int(tot_time / self.t_gran)
+      max_dur = tot_time * 2.0 / nevents
+      tspace = max_dur / (nevents - 1.0)
 
-      rcr - todo
+      # number of t_gran possibilities (equates to 0..max_dur in time)
+      # ("+1" is to include zero, say, +0.01 is to avoid a trunction miss)
+      nmax = 1 + int(max_dur / self.t_gran + 0.01)
+
+      durlist = []
+      for ind in range(nevents//2):
+         actual_time = ind * tspace
+         grid_time = t_gran * int(actual_time/t_gran)
+         # add time and balancing time
+         durlist.append(grid_time)
+         durlist.append(max_dur - grid_time)
+
+      # if odd number, include a mean dur
+      if nevents % 2:
+         durlist.append(max_dur/2.0)
+
+      UTIL.shuffle(durlist)
+
+      return durlist
 
 # stimulus event object, with 
 class StimClass:

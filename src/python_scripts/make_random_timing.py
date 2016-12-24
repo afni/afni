@@ -853,9 +853,8 @@ g_todo = """
 gDEF_VERB       = 1      # default verbose level
 gDEF_MIN_T_GRAN = 0.0001 # minimum time granularity, in seconds
 
-gdef_timing_param = {   'decay' : [],   # no params (embedded in t_gran)
-                        'uniform' : []
-                    }
+g_instant_timing_class = LRT.TimingClass('INSTANT', 0, 0, 0)
+
 
 g_style_opts_old = ['-num_stim', '-num_reps', '-stim_dur', '-stim_labels',
                     '-min_rest']
@@ -910,8 +909,8 @@ class RandTiming:
         # other parameters for advanced method
 
         # pre- and post-rest timing classes
-        self.pre_stimc  = LRT.g_instant_timing_class
-        self.post_stimc = LRT.g_instant_timing_class
+        self.pre_stimc  = g_instant_timing_class
+        self.post_stimc = g_instant_timing_class
 
         # ------------------------------------------------------------
         # required arguments for basic method
