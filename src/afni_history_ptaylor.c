@@ -67,6 +67,12 @@ afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
 
+{ 26, Dec , 2016 , PT , "thd_center" , MINOR , TYPE_NEW_OPT,
+   "Extra argument in THD_cmass() and THD_roi_cmass().",
+   "Allows for local ijk coordinate output; updated other calling functions.\n"
+},
+
+
 { 23, Dec , 2016 , PT , "3dCM" , MINOR , TYPE_NEW_OPT,
    "Allow ijk coordinate output.",
    "Will be in local orientation.  Makes undumping after easier.\n"
