@@ -1687,9 +1687,11 @@ int main( int argc , char *argv[] )
 
      /*------*/
 
+#if 0
      if( strcmp(argv[iarg],"-unifize_base") == 0 ){    /* 23 Dec 2016 */
        do_unifize_base++ ; iarg++ ; continue ;
      }
+#endif
 
 #if 0
      if( strcmp(argv[iarg],"-unifize_source") == 0 ){  /* 23 Dec 2016 */
@@ -4110,6 +4112,7 @@ STATUS("zeropad weight dataset") ;
 
    /** 3dUnifize the base image? [23 Dec 2016] **/
 
+#if 0
    if( do_unifize_base && dset_base != NULL && nz_base > 5 && apply_1D == NULL ){
      THD_3dim_dataset *qset, *uset ;
      char *uuu, bname[32], uname[32] , cmd[1024] ;
@@ -4146,6 +4149,7 @@ STATUS("zeropad weight dataset") ;
        THD_delete_3dim_dataset(uset,True) ;
      }
    } /* end of -unifize_base */
+#endif
 
    stup.ajmask_ranfill = 0 ;                          /* 02 Mar 2010: oops */
    if( im_tmask != NULL ){

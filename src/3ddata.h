@@ -1594,6 +1594,16 @@ typedef struct {
 #define EQUIV_DELTAXYZ(d1,d2) \
  ( ISVALID_DSET(d1) && ISVALID_DSET(d2) && EQUIV_DATADELTAXYZ((d1)->daxes,(d2)->daxes) )
 
+#define EQUIV_DATA_NXYZ(cax,dax)    \
+ ( ISVALID_DATAXES((cax))        && \
+   ISVALID_DATAXES((dax))        && \
+   (cax)->nxx == (dax)->nxx      && \
+   (cax)->nyy == (dax)->nyy      && \
+   (cax)->nzz == (dax)->nzz  )
+
+#define EQUIV_GRIDS_NXYZ(d1,d2) \
+ ( ISVALID_DSET(d1) && ISVALID_DSET(d2) && EQUIV_DATA_NXYZ((d1)->daxes,(d2)->daxes) )
+
 extern void THD_edit_dataxes( float , THD_dataxes * , THD_dataxes * ) ;
 
 extern void THD_set_daxes_bbox     ( THD_dataxes * ) ; /* 20 Dec 2005 */
