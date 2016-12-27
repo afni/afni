@@ -910,7 +910,7 @@ class RandTiming:
         self.sclasses   = []            # StimClass instances
 
         # advanced options
-        self.rand_post_stim_rest = 'yes' # include random rest from last event?
+        self.rand_post_stim_rest = 1    # include random rest from last event?
 
         # pre- and post-rest timing classes
         self.pre_stimc  = g_instant_timing_class
@@ -1131,6 +1131,10 @@ class RandTiming:
            for opt in olist:
                if self.apply_opt_stim_class(opt):
                   return 1
+
+           # default to including post-stim rest
+           if self.user_opts.have_no_opt('-rand_post_stim_rest')
+              self.rand_post_stim_rest = 0
 
            # and set some of the old-style parameters
            self.num_stim = len(olist)
@@ -2716,6 +2720,9 @@ class RandTiming:
        if self.adv_create_adata_list():
           return 1
 
+       print '** ACAL: calling it failure until ready'
+       return 1
+
     def adv_create_full_event_list(self):
        """given stim_event_list of form:
              [ [ [sind dur] [sind dur] ... ]
@@ -2739,6 +2746,7 @@ class RandTiming:
           self.pre_stim_rest = self.pre_stimc.get_one_val()
        if self.post_stim_rest == 0:
           self.post_stim_rest = self.post_stimc.get_one_val()
+       pprest = self.pre_stim_rest+self.post_stim_rest
 
        # input selist, output felist
        selist = self.stim_event_list
@@ -2748,6 +2756,10 @@ class RandTiming:
           rtime = self.run_time[rind] - stime
           if self.verb > 2:
              print '-- run %d: stime = %s, rtime = %s' % (rind, stime, rtime)
+             print '   pre-rest = %s, post-rest = %s' \
+                   % (self.pre_stim_rest, self.post_stim_rest)
+
+          # check self.rand_post_stim_rest
 
     def adv_create_adata_list(self):
        print '** RCR - get all rest types'
