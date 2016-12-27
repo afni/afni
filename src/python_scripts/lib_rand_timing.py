@@ -8,7 +8,8 @@ gDEF_T_GRAN     = 0.1    # default time granularity, in seconds
 gDEF_DEC_PLACES = 1      # decimal places when printing time (-1 ==> %g format)
 
 
-g_valid_dist_types = ['decay', 'uniform_rand', 'uniform_grid', 'INSTANT']
+g_valid_dist_types = ['decay', 'uniform_rand', 'uniform_grid',
+                      'fixed', 'INSTANT']
 
 # -add_timing_class stimA 3 3  3 decay 0.1
 # -add_timing_class stimA 3 5 10
@@ -62,6 +63,9 @@ class TimingClass:
       if details:
          print '   verb         : %s' % self.verb
          print '   total_time   : %s' % self.total_time
+
+   def get_one_val(self):
+      return random_duration_list(1, self)
 
    def decay_get_dur_list(self, nevents, tot_time, max_dur):
       """return a list of durations of length nevents, such that tot_time is
@@ -322,7 +326,6 @@ def create_duration_lists(slist, nruns, across_runs=0, verb=1):
       print '-- creating stim dur lists for %d classes, nruns=%d, across=%d' \
             % (nsc, nruns, across_runs)
 
-
    for sc in slist:
       if across_runs:
          sc.durlist = random_duration_list(sc.nreps, sc.sclass, 0)
@@ -333,9 +336,9 @@ def create_duration_lists(slist, nruns, across_runs=0, verb=1):
             sc.durlist.append(dlist)
       if verb > 2: sc.show_durlist_stats(details=(verb//4))
 
-   return 1
+   return 0
 
-def random_duration_list(nevents, tclass, total_time):
+def random_duration_list(nevents, tclass, total_time=-1.0):
    """create a length nevents list of durations according to the class
 
       if dur_mean > 0 and total_time > 0:
@@ -355,9 +358,15 @@ def random_duration_list(nevents, tclass, total_time):
    if tclass.min_dur >= 0 and tclass.min_dur == tclass.max_dur:
       return [tclass.min_dur] * nevents
 
-   # other quick check: INSTANT type is list of duration 0 events
+   # other quick checks:
+   #
+   # INSTANT type is list of duration 0 events
    if tclass.dist_type == 'INSTANT':
       return [0.0] * nevents
+
+   # fixed type is list of duration min_dur events
+   if tclass.dist_type == 'fixed':
+      return [tclass.min_dur] * nevents
 
    # ----------------------------------------------------------------------
    # reconcile total time (ttime) and min duration (min_dur),
@@ -372,15 +381,23 @@ def random_duration_list(nevents, tclass, total_time):
          if (ttime - total_time)/total_time < 0.95 or \
             (ttime - total_time)/total_time > 1.05:
             print '** warning: random_duration_list has conflicting total time'
-            print '   from mean = %s, from param = %s' % (ttime, total_time)
-   elif total_time > 0:
+            print '   from mean = %s, from param = %s, type = %s' \
+                  % (ttime, total_time, tclass.name)
+   elif total_time >= 0:
       ttime = total_time
    else:
-      ttime = 0
+      # we do not know a mean or a total, try to return minimum
+      print '** RDL: do not know mean or total time, returning min for %s' \
+            % tclass.name
+      min_dur = tclass.t_gran * math.ceil(tclass.min_dur/tclass.t_gran)
+      return [min_dur] * nevents
 
    # if total time is zero, we are done
    if ttime == 0:
       return [0] * nevents
+
+   # truncate ttime to t_gran grid (allow a little leeway)
+   max_dur = ttime * math.floor(ttime/tclass.t_gran + 0.001)
 
    # quick check: if only 1 event, return
    if nevents == 1:
@@ -391,19 +408,23 @@ def random_duration_list(nevents, tclass, total_time):
    min_dur = tclass.min_dur
    if min_dur <= 0: min_dur = 0
 
+   # round min_dur up to nearest t_gran
+   min_dur = tclass.t_gran * math.ceil(min_dur/tclass.t_gran)
+
    # initialize a list of minimums, and set remain to the remaining time
-   min_list = [min_dur] * nevents
    remain = ttime - min_dur * nevents
 
    # if time is already maxed out by the minimum, just return it
    if remain < tclass.t_gran:
-      return min_list
+      return [min_dur] * nevents
 
    # get appropriate max remaining time (beyond min_dur)
    if tclass.max_dur > 0:
+      # start by taking floor
+      max_dur = tclass.t_gran * math.floor(tclass.max_dur/tclass.t_gran)
       max_dur = tclass.max_dur - min_dur
-      if max_dur <= 0: # just bail
-         return min_list
+      if max_dur <= 0: # just bail (return minimums)
+         return [min_dur] * nevents
       # if there is too much time left, everyone gets the max
       if remain >= (max_dur * nevents):
          return [tclass.max_dur] * nevents
@@ -425,8 +446,8 @@ def random_duration_list(nevents, tclass, total_time):
       dlist = tclass.urand_get_dur_list(nevents, remain)
    elif dist_type == 'uniform_grid':
       dlist = tclass.ugrid_get_dur_list(nevents, remain)
-   elif dist_type == 'INSTANT':
-      print '** RDL: INSTANT type should not be processed here'
+   elif dist_type == 'INSTANT' or dist_type == 'fixed':
+      print "** RDL: dist_type '%s' should not be processed here" % dist_type
       return [0.0] * nevents
    else:
       print '** RDL: unknown dist type %s, return ave time' % tclass.dist_type
