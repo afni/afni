@@ -2027,6 +2027,8 @@ void AFNI_sigfunc_alrm(int sig)
      "Computers are useless -- they can only give you answers"       ,
      "If nothing else, this software is a great toy"                 ,
      "Remember to take your brain out and polish it"                 ,
+     "What in God's Holy Name are you blathering on about?"          ,
+     "Putting the 'wit' in 'twit' since 1994"                        ,
 
      "Returning control of your brain (images) back to yourself"     ,
      "Returning your endofunctors back to their co-monads"           ,
