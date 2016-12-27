@@ -825,6 +825,9 @@ g_history = """
 g_version = "version 1.10, June 1, 2016"
 
 g_todo = """
+   - add warning if post-stim rest < 3 seconds
+   - help for options:
+        -rand_post_stim_rest, -write_event_list
    - add option to change timing classes for pre and post stim rest
    - add related dist_types rand_unif and rand_gauss?
    - describe 'decay' geometric dist_type as the discrete analog of the
@@ -906,11 +909,17 @@ class RandTiming:
         self.tclasses   = []            # TimingClass instances
         self.sclasses   = []            # StimClass instances
 
-        # other parameters for advanced method
+        # advanced options
+        self.rand_post_stim_rest = 'yes' # include random rest from last event?
 
         # pre- and post-rest timing classes
         self.pre_stimc  = g_instant_timing_class
         self.post_stimc = g_instant_timing_class
+
+        # other parameters for advanced method
+        self.stim_event_list = []       # stim index, duration lists
+        self.full_event_list = []       # index, duration, time lists
+        self.stim_adata      = []       # AfniData instance, per stim class
 
         # ------------------------------------------------------------
         # required arguments for basic method
@@ -949,6 +958,7 @@ class RandTiming:
                                         # to post_stim_rest
         self.file_3dd_cmd   = None      # file for 3dD -nodata command
         self.make_3dd_contr = 0         # flag to make all 3dD contrasts
+        self.file_elist     = ''        # file for stimulus event list
 
         # statistics
         self.show_timing_stats = 0      # do we show ISI statistics?
@@ -979,6 +989,11 @@ class RandTiming:
                         helpstr='timing class: name min mean max pdf tgran')
         self.valid_opts.add_opt('-add_stim_class', 4, [], req=0,
                         helpstr='stim class: name nreps stiming rtiming')
+
+        # new optional arguments
+        self.valid_opts.add_opt('-rand_post_stim_rest', 1, [], req=0,
+                        acplist=['no','yes'],
+                        helpstr='include random rest after final stimulus? y/n')
 
         # old 'required' arguments
         self.valid_opts.add_opt('-num_stim', 1, [], req=0,
@@ -1031,6 +1046,8 @@ class RandTiming:
                         helpstr='specify TR for 3dDeconvolve command');
         self.valid_opts.add_opt('-tr_locked', 0, [],
                         helpstr='specify TR and enforce TR-locked timing');
+        self.valid_opts.add_opt('-write_event_list', 1, [],
+                        helpstr="write event list to file ('-' for stdout)")
 
         self.valid_opts.add_opt('-verb', 1, [],
                         helpstr='verbose level (0=quiet, 1=default, ...)')
@@ -1283,6 +1300,12 @@ class RandTiming:
 
         self.file_3dd_cmd, err = self.user_opts.get_string_opt('-save_3dd_cmd')
         if err: return 1
+
+        fname, err = self.user_opts.get_string_opt('-write_event_list')
+        if err: return 1
+        self.file_elist = fname
+
+        # have all options
 
         if self.make_3dd_contr:
             if not self.file_3dd_cmd:
@@ -1613,6 +1636,17 @@ class RandTiming:
             else:
                 fname = '%s_%02d.1D' % (prefix, sind+1)
             self.fnames.append(fname)
+
+    def write_event_list(self, eall, fname):
+       """write event list to given file ('' or '-' or 'stdout' means stdout)
+
+          eall = [ [ [1 3.2] [4 0.7] .. ]
+                   [ [0 4.2] [2 3.1] .. ]
+                   [ [4 2.0] [2 1.9] .. ]
+                 ]
+       """
+
+       # rcr - todo: 
 
     def write_timing_files(self):
         """write timing from slist to files from the prefix"""
@@ -2620,10 +2654,15 @@ class RandTiming:
            return 1
 
         # simlpy randomize order of all events per run
-        sall = self.adv_randomize_event_lists()
+        if self.adv_randomize_event_lists():
+           return 1
 
-        # add rest
-        if self.adv_fill_with_rest(sall): return 1
+        # add rest, return final event list
+        if self.adv_create_afnidata_list():
+           return 1
+
+        if self.file_elist or self.verb > 4:
+           self.write_event_list(sall, self.file_elist)
 
     def adv_randomize_event_lists(self):
        """For each run (or across), put all events in a list and randomize.
@@ -2637,7 +2676,7 @@ class RandTiming:
        """
 
        if self.across_runs: ntodo = 1
-       else:                ntodo = self.nruns
+       else:                ntodo = self.num_runs
 
        eall = []
        for rind in range(ntodo):
@@ -2648,17 +2687,77 @@ class RandTiming:
           UTIL.shuffle(erun)
           eall.append(erun)
 
-       return eall
+       self.stim_event_list = eall
 
-    def adv_fill_with_rest(self, sall):
-      """for each run
-            compute total rest time (run_time - sum of stim durs - pre/post)
-            distribute across applied rest classes
+       return 0
 
-         across runs is harder, save that for later
-      """
+    # in across_runs case, we do not yet know run breaks
+    def adv_create_afnidata_list(self):
+       """create AfniData instances per stim class
+          (decide on rest, which implies all timing)
 
-      print '== rcr napping...'
+          convert stim_events to full_events (i.e. attach times, base on rest)
+             (across runs: also break into multiple runs)
+          create corresponding mdata lists per stim class
+          create corresponding AfniData instances
+
+          across runs is harder, save that for later
+       """
+
+       # do across runs separately
+       if self.across_runs:
+          return self.adv_rest_across_runs()
+
+       # add rest to convert stim_event_list to full_event_list
+       if self.adv_create_full_event_list():
+          return 1
+
+       # 
+       if self.adv_create_adata_list():
+          return 1
+
+    def adv_create_full_event_list(self):
+       """given stim_event_list of form:
+             [ [ [sind dur] [sind dur] ... ]
+               [ [sind dur] [sind dur] ... ] ]
+          create full_event_list (append times) of form:
+             [ [ [sind dur time] [sind dur time] ... ]
+               [ [sind dur time] [sind dur time] ... ] ]
+
+          for each run
+             compute total rest time (run_time - sum of stim durs)
+                rest time includes pre/post stim rest
+             make list of all rest classes
+             partition total rest time across rest classes
+             distribute across applied rest classes
+
+          return 0 on success
+       """
+
+       # initialize pre- and post- stimulus rest
+       if self.pre_stim_rest == 0:
+          self.pre_stim_rest = self.pre_stimc.get_one_val()
+       if self.post_stim_rest == 0:
+          self.post_stim_rest = self.post_stimc.get_one_val()
+
+       # input selist, output felist
+       selist = self.stim_event_list
+       felist = []
+       for rind, erun in enumerate(selist):
+          stime = sum([e[1] for e in erun])
+          rtime = self.run_time[rind] - stime
+          if self.verb > 2:
+             print '-- run %d: stime = %s, rtime = %s' % (rind, stime, rtime)
+
+    def adv_create_adata_list(self):
+       print '** RCR - get all rest types'
+
+    def get_all_rest_types(self):
+       print '** RCR - get all rest types'
+
+    def adv_rest_across_runs(self, sall):
+       print '** RCR - rest across runs...'
+       return []
 
 def basis_from_time(stim_len):
     if stim_len > 1.0: return "'BLOCK(%g,1)'" % stim_len
