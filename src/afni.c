@@ -1758,6 +1758,7 @@ void AFNI_sigfunc_alrm(int sig)
      "Out of Benedictine Error: How do you expect me get work done?" ,
      "More cheese, Gromit!"                                          ,
      "Life can be tough sometimes -- so have a chocolate (or two)"   ,
+     "Sweet sweet caffeine -- is there anything it can't do?"        ,
      "If at first you don't succeed -- call it version 1.0"          ,
      "Never trust a statistic you haven't faked yourself"            ,
      "May your teeth never be replaced by damp woolen socks"         ,
@@ -2028,6 +2029,7 @@ void AFNI_sigfunc_alrm(int sig)
      "If nothing else, this software is a great toy"                 ,
      "Remember to take your brain out and polish it"                 ,
      "What in God's Holy Name are you blathering on about?"          ,
+     "Are you a Dada-ist or a Dude-ist?"                             ,
      "Putting the 'wit' in 'twit' since 1994"                        ,
 
      "Returning control of your brain (images) back to yourself"     ,
@@ -2092,6 +2094,7 @@ void AFNI_sigfunc_alrm(int sig)
      "Your brains have not only been washed, but been dry cleaned"                    ,
      "Why don't you pass the time by playing a little solitaire?"                     ,
 
+     "A practical truth: no man has eaten an entire elephant in one day"              ,
      "From now on, let's just reject the null hypothesis, and then have a beer"       ,
      "Home is the sailor, home from the sea; And the hunter home from the hill"       ,
      "Glad did I run, and gladly end, and I turn me off with a will"                  ,
