@@ -12,6 +12,11 @@ use.  These take the guess work out of translating a paper's Methods
 section into a command and provide a good starting point for building
 your *own* scripts with AFNI. 
 
+For each set of examples, there is a "brief" description, that is
+meant to be scannable and searchable by keyword; links to the papers
+and scripts are provided. Each entry also a link to the "detailed"
+description, where the codes can be viewed directly.
+
 Scripts and commands may be provided in simplified/basic form. One can
 also expect that file names or any other identifying information has
 been removed, relabelled, recoded, etc.  We will try to make such
@@ -31,5 +36,6 @@ and hopefully these scripts further the discussion.
 .. toctree::
    :maxdepth: 2
 
-   fmri_proc
+   fmri_brief
+   fmri_detailed
 

@@ -1,8 +1,9 @@
 #!/bin/tcsh
 
 # --------------------------------------------------------------------
-# Script from:
+# Script: script_01_init.tcsh
 #
+# From:
 # Chen GC, Taylor PA, Shin Y-W, Reynolds RC, Cox RW (2016). Untangling
 # the Relatedness among Correlations, Part II: Inter-Subject
 # Correlation Group Analysis through Linear Mixed-Effects

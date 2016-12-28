@@ -11,29 +11,12 @@ Group Level <https://www.ncbi.nlm.nih.gov/pubmed/27195792>`_.
 Neuroimage (in press).  `Corrigendum
 <http://www.sciencedirect.com/science/article/pii/S1053811916305754>`_
 
-.. table::
-   :widths: 1 1
-   :column-alignment: left 
-   :column-wrapping: true 
-   :column-dividers: double single double
-
-   =======================  =====================================================
-   Tag                      Label
-   =======================  =====================================================
-   FMRI paradigm:           naturalistic
-   FMRI dset:               EPI
-   Anatomical dset:         MPRAGE
-   Subject population:      human
-   Subject characteristic:  control
-   Subject age:             adult
-   Tissue segmentation:     FreeSurfer
-   Tissue regression:       fANATICOR
-   Comments:                
-   =======================  =====================================================
+.. include:: fmri_proc/paper_2016_ChenEtal/table.rst
 
 |
 
-.. table::
+..
+   .. table::
    :widths: 1 1
    :column-alignment: left 
    :column-wrapping: true  
@@ -41,13 +24,16 @@ Neuroimage (in press).  `Corrigendum
 
    ===================================================================================  ===================================================================================
    Script files:                                                                        Description
-   ===================================================================================  ===================================================================================
-   :download:`script_01_init.tcsh <fmri_proc/paper_2016_ChenEtal/script_01_init.tcsh>`  FreeSurfer segmentation; ``@SUMA_Make_Spec_FS``; tissue selection
-   :download:`script_02_ap.tcsh <fmri_proc/paper_2016_ChenEtal/script_02_ap.tcsh>`      ``afni_proc.py`` command
-   ===================================================================================  ===================================================================================
+
+===== ==================================================
+|s01|  FreeSurfer segmentation; ``@SUMA_Make_Spec_FS``; 
+       tissue selection
+
+|s02| ``afni_proc.py`` command
+===== ==================================================
 
 
 
 
-
-
+.. |s01| replace:: :download:`script_01_init.tcsh <fmri_proc/paper_2016_ChenEtal/script_01_init.tcsh>`
+.. |s02| replace:: :download:`script_02_ap.tcsh   <fmri_proc/paper_2016_ChenEtal/script_02_ap.tcsh>`   
