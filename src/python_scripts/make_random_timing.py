@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import sys, random, os, math
+import sys, random, os, math, copy
 import option_list as OL, afni_util as UTIL
 import lib_rand_timing as LRT
 
@@ -854,6 +854,7 @@ g_todo = """
 """
 
 gDEF_VERB       = 1      # default verbose level
+gDEF_OLD_T_GRAN = 0.1    # old-style time granularity, in seconds
 gDEF_MIN_T_GRAN = 0.0001 # minimum time granularity, in seconds
 
 g_instant_timing_class = LRT.TimingClass('INSTANT', 0, 0, 0)
@@ -947,7 +948,7 @@ class RandTiming:
         self.seed     = None            # random number seed
         self.orderstim= []              # list of ordered stimulus lists
         self.max_consec = []            # max consectutive stimuli per type
-        self.t_gran   = LRT.gDEF_T_GRAN # time granularity for rest
+        self.t_gran   = gDEF_OLD_T_GRAN # time granularity for rest
         self.t_digits = LRT.gDEF_DEC_PLACES # digits after decimal for times
                                         # (-1 means to use %g)
         self.labels   = None            # labels to be applied to filenames
@@ -1133,7 +1134,7 @@ class RandTiming:
                   return 1
 
            # default to including post-stim rest
-           if self.user_opts.have_no_opt('-rand_post_stim_rest')
+           if self.user_opts.have_no_opt('-rand_post_stim_rest'):
               self.rand_post_stim_rest = 0
 
            # and set some of the old-style parameters
@@ -1291,7 +1292,7 @@ class RandTiming:
                 return 1
 
         # if t_gran is still not set, apply the default
-        if not self.t_gran: self.t_gran = LRT.gDEF_T_GRAN
+        if not self.t_gran: self.t_gran = gDEF_OLD_T_GRAN
 
         # t_digits must come after t_gran is set
         self.t_digits, err = self.user_opts.get_type_opt(float,'-t_digits')
@@ -2693,30 +2694,36 @@ class RandTiming:
 
        self.stim_event_list = eall
 
+       if self.across_runs:
+          if self.adv_partition_sevents_across_runs():
+             return 1
+
        return 0
+
+    def adv_partition_sevents_across_runs(self):
+       """break stim_event_list into num_runs"""
+       if not self.across_runs: return 0
+
+       print '** rcr - adv_partition_sevents_across_runs'
+
+       return 1
 
     # in across_runs case, we do not yet know run breaks
     def adv_create_afnidata_list(self):
        """create AfniData instances per stim class
           (decide on rest, which implies all timing)
+          (across_runs: nothing special to do anymore)
 
           convert stim_events to full_events (i.e. attach times, base on rest)
-             (across runs: also break into multiple runs)
           create corresponding mdata lists per stim class
           create corresponding AfniData instances
-
-          across runs is harder, save that for later
        """
-
-       # do across runs separately
-       if self.across_runs:
-          return self.adv_rest_across_runs()
 
        # add rest to convert stim_event_list to full_event_list
        if self.adv_create_full_event_list():
           return 1
 
-       # 
+       # convert to AfniData instances
        if self.adv_create_adata_list():
           return 1
 
@@ -2732,15 +2739,31 @@ class RandTiming:
                [ [sind dur time] [sind dur time] ... ] ]
 
           for each run
-             compute total rest time (run_time - sum of stim durs)
-                rest time includes pre/post stim rest
-             make list of all rest classes
-             partition total rest time across rest classes
-             distribute across applied rest classes
-
           return 0 on success
        """
 
+       # input selist, output felist
+       selist = self.stim_event_list
+       felist = []
+       for rind, erun in enumerate(selist):
+          rv, ferun = self.adv_stim2full_run_elist(rind, erun)
+
+       return 0
+
+    def adv_stim2full_run_elist(self, rind, events):
+       """convert an event_list line:
+               [ [sind dur] [sind dur] ... ] ]
+          into a full_event_list line (which just includes the time offset):
+               [ [sind dur time] [sind dur time] ... ]
+
+          - compute total rest time (run_time - sum of stim durs)
+               rest time includes pre/post stim rest
+          - make list of all used rest classes (for this run)
+          - partition total rest time across rest classes
+          - distribute across applied rest classes
+
+          return status, full_event_list
+       """
        # initialize pre- and post- stimulus rest
        if self.pre_stim_rest == 0:
           self.pre_stim_rest = self.pre_stimc.get_one_val()
@@ -2748,24 +2771,103 @@ class RandTiming:
           self.post_stim_rest = self.post_stimc.get_one_val()
        pprest = self.pre_stim_rest+self.post_stim_rest
 
-       # input selist, output felist
-       selist = self.stim_event_list
-       felist = []
-       for rind, erun in enumerate(selist):
-          stime = sum([e[1] for e in erun])
-          rtime = self.run_time[rind] - stime
-          if self.verb > 2:
-             print '-- run %d: stime = %s, rtime = %s' % (rind, stime, rtime)
-             print '   pre-rest = %s, post-rest = %s' \
-                   % (self.pre_stim_rest, self.post_stim_rest)
+       stime = sum([e[1] for e in events])
+       rtime = self.run_time[rind] - stime
+       randtime = rtime-pprest
+       nevents = len(events)
 
-          # check self.rand_post_stim_rest
+       if self.verb > 2 or randtime < 0:
+          print '-- run %02d: run time = %s, stime = %s, rtime = %s' \
+                % (rind, self.run_time[rind], stime, rtime)
+          print '   pre-rest = %s, post-rest = %s, random rest = %s' \
+                % (self.pre_stim_rest, self.post_stim_rest, randtime)
+
+       # check self.rand_post_stim_rest
+       if randtime < 0:
+          print '** unsolvable random timing for rest'
+          return 1, []
+
+       # quick checks:
+       if nevents == 0:
+          return 0, events
+       elif nevents == 1:
+          events[0].append(self.pre_stim_rest)
+          return 0, events
+
+       # note number of rest events (len(events) or one less)
+       nrest = len(events)
+       if self.rand_post_stim_rest:
+          nrest -= 1
+
+       rv, rcounts, rtypes = self.count_all_rest_types(events, nrest)
+       if rv: return 1, events
+
+       rv, rtimes = self.partition_rest_time(randtime, rcounts, rtypes)
+       if rv: return 1, events
+
+       return 0, elist
 
     def adv_create_adata_list(self):
-       print '** RCR - get all rest types'
+       print '** RCR - create_adata_list'
 
-    def get_all_rest_types(self):
-       print '** RCR - get all rest types'
+    def partition_rest_time(self, rtot, rcounts, rtypes):
+       """given counts and corresponding rest types, partition total rest time
+          per rest type
+
+          - try to allocate min time for all types
+          - for all types with means, decide on total needed time (above min)
+          - if there is not quite enough time, rescale their times
+          - for now, extra rest will trickle to end
+       """
+          
+       # allocate min_time
+       tot_min = 0
+       rtimes = [0] * len(rtypes)
+       for rind, rc in enumerate(rtypes):
+          # compute min total, store it and accumuate
+          mt = rc.min_dur * rcounts[rind]
+          rtimes[rind] = mt
+          tot_min += mt
+
+       if tot_min > rtot:
+          print '** partition rest: insufficient space for even min rest'
+          return 1, []
+
+       print '== have min rest times: %s' % rtimes
+
+       return 1, []
+
+    def count_all_rest_types(self, elist, nevents):
+       """given an event list of [etype, dur] elements, get a unique
+          list of rest timing classes and their counts
+
+          nevents is passed because we might ignore the final event
+
+          return status, [rcount], [rtype]
+       """
+
+       rcounts = []
+       rtypes = []
+
+       for eind in range(nevents):
+          sc = self.sclasses[elist[eind][0]]
+          rc = sc.rclass
+          # if we already have this one, increment the count, else append
+          if rc in rtypes:
+             rind = rtypes.index(rc)
+             rcounts[rind] += 1
+          else:
+             rtypes.append(rc)
+             rcounts.append(1)
+
+       if self.verb > 2:
+          print "-- have %d rest events across %d rest classes" \
+                % (sum(rcounts), len(rcounts))
+          if self.verb > 3:
+             for cind, rc in enumerate(rtypes):
+                print "   %4d rest events of type '%s'"%(rcounts[cind],rc.name)
+
+       return 0, rcounts, rtypes
 
     def adv_rest_across_runs(self, sall):
        print '** RCR - rest across runs...'
