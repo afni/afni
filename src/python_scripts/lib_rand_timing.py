@@ -4,7 +4,8 @@ import sys, random, os, math
 import afni_util as UTIL
 import lib_afni1D as LD
 
-gDEF_T_GRAN     = 0.1    # default time granularity, in seconds
+gDEF_T_GRAN     = 0.01   # default time granularity, in seconds
+                         # (OLD one in mrt.py is just 0.1)
 gDEF_DEC_PLACES = 1      # decimal places when printing time (-1 ==> %g format)
 
 
@@ -39,12 +40,30 @@ class TimingClass:
       self.verb         = verb
 
       # additional parameters (just t_gran, for now)
-      self.t_gran       = gDEF_T_GRAN
+      t_gran            = gDEF_T_GRAN
       if len(params) > 0:       # first must be t_gran
          try: t_gran = float(params[0])
          except:
             print "** invalid %s timing class t_gran = %s" % (name, params[0])
             return None
+         if t_gran <= 0:
+            print '** bad t_gran for timing class %s, %s' % (name, t_gran)
+            t_gran = 0.01
+      self.t_gran = t_gran
+
+      # round min and max times to t_gran (actually, truncate towards mean)
+      # (but make sure we do not barely miss some t_gran multiple)
+      if self.min_dur < t_gran:
+         self.min_dur = 0.0
+      else:
+         self.min_dur = t_gran * math.ceil (self.min_dur / t_gran - 0.01)
+      if self.max_dur < 0.0:
+         self.max_dur = -1.0
+      elif self.max_dur < t_gran:
+         self.max_dur = 0.0
+      else:
+         self.max_dur = t_gran * math.floor(self.max_dur / t_gran + 0.01)
+
 
       # computation parameters (computed during processing)
       self.total_time   = 0
@@ -196,9 +215,12 @@ class TimingClass:
 
       max_dur = tot_time * 2.0 / nevents
 
-      # number of t_gran possibilities (equates to 0..max_dur in time)
-      # ("+1" is to include zero, say, +0.01 is to avoid a trunction miss)
-      nmax = 1 + int(max_dur / self.t_gran + 0.01)
+      # maximum num t_gran possibile (equates to 0..max_dur in time)
+      # (+0.01 is to avoid a close trunction miss)
+      nmax = int(max_dur / self.t_gran + 0.01)
+
+      print '== urand: nevents %d, tot_time %s, max_dur %s, nmax %d' \
+            % (nevents, tot_time, max_dur, nmax)
 
       durlist = []
       for ind in range(nevents//2):
@@ -239,9 +261,9 @@ class TimingClass:
       max_dur = tot_time * 2.0 / nevents
       tspace = max_dur / (nevents - 1.0)
 
-      # number of t_gran possibilities (equates to 0..max_dur in time)
-      # ("+1" is to include zero, say, +0.01 is to avoid a trunction miss)
-      nmax = 1 + int(max_dur / self.t_gran + 0.01)
+      # maximum num t_gran possibile (equates to 0..max_dur in time)
+      # (+0.01 is to avoid a close trunction miss)
+      nmax = int(max_dur / self.t_gran + 0.01)
 
       durlist = []
       for ind in range(nevents//2):
@@ -303,7 +325,7 @@ class StimClass:
          mmin,mmean,mmax,mstdev = UTIL.min_mean_max_stdev(durs)
          print '%02d     %7.3f   %7.3f   %7.3f   %7.3f' % \
                (rind, mmin, mmean, mmax, mstdev)
-      print
+      print '\n'
 
       if not details: return
 
@@ -440,17 +462,18 @@ def random_duration_list(nevents, tclass, total_time=-1.0):
    # g_valid_dist_types = ['decay', 'uniform_rand', 'uniform_grid', 'INSTANT']
 
    # get list based on distribution type (INSTANT was done above)
-   if tclass.dist_type == 'decay':
+   dtype = tclass.dist_type
+   if dtype == 'decay':
       dlist = tclass.decay_get_dur_list(nevents, remain, max_dur)
-   elif dist_type == 'uniform_rand':
+   elif dtype == 'uniform_rand':
       dlist = tclass.urand_get_dur_list(nevents, remain)
-   elif dist_type == 'uniform_grid':
+   elif dtype == 'uniform_grid':
       dlist = tclass.ugrid_get_dur_list(nevents, remain)
-   elif dist_type == 'INSTANT' or dist_type == 'fixed':
-      print "** RDL: dist_type '%s' should not be processed here" % dist_type
+   elif dtype == 'INSTANT' or dtype == 'fixed':
+      print "** RDL: dist_type '%s' should not be processed here" % dtype
       return [0.0] * nevents
    else:
-      print '** RDL: unknown dist type %s, return ave time' % tclass.dist_type
+      print '** RDL: unknown dist type %s, return ave time' % dtype
       return [ttime*1.0/nevents] * nevents
 
    # ----------------------------------------------------------------------
