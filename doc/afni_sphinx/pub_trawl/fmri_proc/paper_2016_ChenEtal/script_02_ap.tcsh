@@ -1,5 +1,17 @@
 #!/bin/tcsh
 
+# --------------------------------------------------------------------
+# Script from:
+#
+# Chen GC, Taylor PA, Shin Y-W, Reynolds RC, Cox RW (2016). Untangling
+# the Relatedness among Correlations, Part II: Inter-Subject
+# Correlation Group Analysis through Linear Mixed-Effects
+# Modeling. Neuroimage (in press).
+#
+# Run using: AFNI_16.1.16
+# --------------------------------------------------------------------
+
+
 # FMRI processing script, ISC movie data.
 # Assumes previously run FS and SUMA commands, respectively: 
 # $ recon-all -all -subject $subj -i $anat

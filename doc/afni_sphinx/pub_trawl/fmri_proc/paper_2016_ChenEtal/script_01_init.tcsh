@@ -1,5 +1,17 @@
 #!/bin/tcsh
 
+# --------------------------------------------------------------------
+# Script from:
+#
+# Chen GC, Taylor PA, Shin Y-W, Reynolds RC, Cox RW (2016). Untangling
+# the Relatedness among Correlations, Part II: Inter-Subject
+# Correlation Group Analysis through Linear Mixed-Effects
+# Modeling. Neuroimage (in press).
+#
+# Run using: AFNI_16.1.16
+# --------------------------------------------------------------------
+
+
 # Commands run prior to afni_proc.py, each in appropriate 
 # directories for the data sets for each subject
 

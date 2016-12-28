@@ -1,15 +1,14 @@
-**Chen GC, Taylor PA, Shin Y-W, Reynolds RC, Cox RW.** `Untangling the
-Relatedness among Correlations, Part II: Inter-Subject Correlation
-Group Analysis through Linear Mixed-Effects Modeling
-<https://www.ncbi.nlm.nih.gov/pubmed/27751943Neuroimage>`_. Neuroimage
-(in press).
+**Chen GC, Taylor PA, Shin Y-W, Reynolds RC, Cox RW (2016).**
+`Untangling the Relatedness among Correlations, Part II: Inter-Subject
+Correlation Group Analysis through Linear Mixed-Effects Modeling
+<https://www.ncbi.nlm.nih.gov/pubmed/27751943Neuroimage>`_.
+Neuroimage (in press).
 
 **Chen GC, Shin Y-W, Taylor PA, Glen DR, Reynolds RC, Israel RB, Cox
-RW.** `Untangling the Relatedness among Correlations, Part I:
+RW (2016).** `Untangling the Relatedness among Correlations, Part I:
 Nonparametric Approaches to Inter-Subject Correlation Analysis at the
-Group Level
-<https://www.ncbi.nlm.nih.gov/pubmed/27195792>`_. Neuroimage (in
-press).  `Corrigendum
+Group Level <https://www.ncbi.nlm.nih.gov/pubmed/27195792>`_.
+Neuroimage (in press).  `Corrigendum
 <http://www.sciencedirect.com/science/article/pii/S1053811916305754>`_
 
 .. table::
@@ -27,8 +26,8 @@ press).  `Corrigendum
    Subject population:      human
    Subject characteristic:  control
    Subject age:             adult
-   ?Tissue segmentation:    FreeSurfer
-   ?Tissue regression:      ANATICOR
+   Tissue segmentation:     FreeSurfer
+   Tissue regression:       fANATICOR
    Comments:                
    =======================  =====================================================
 
