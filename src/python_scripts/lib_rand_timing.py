@@ -11,6 +11,7 @@ gDEF_DEC_PLACES = 1      # decimal places when printing time (-1 ==> %g format)
 
 g_valid_dist_types = ['decay', 'uniform_rand', 'uniform_grid',
                       'fixed', 'INSTANT']
+g_fixed_dist_types = ['fixed', 'INSTANT']
 
 # -add_timing_class stimA 3 3  3 decay 0.1
 # -add_timing_class stimA 3 5 10
