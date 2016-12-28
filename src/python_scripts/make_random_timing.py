@@ -2734,11 +2734,10 @@ class RandTiming:
        """given stim_event_list of form:
              [ [ [sind dur] [sind dur] ... ]
                [ [sind dur] [sind dur] ... ] ]
-          create full_event_list (append times) of form:
-             [ [ [sind dur time] [sind dur time] ... ]
-               [ [sind dur time] [sind dur time] ... ] ]
+          create full_event_list (append stim times) of form:
+             [ [ [sind dur stime] [sind dur stime] ... ]
+               [ [sind dur stime] [sind dur stime] ... ] ]
 
-          for each run
           return 0 on success
        """
 
@@ -2756,6 +2755,8 @@ class RandTiming:
           into a full_event_list line (which just includes the time offset):
                [ [sind dur time] [sind dur time] ... ]
 
+          - add pre-stim and post-stim rest events, in case they have
+            needed timing classes
           - compute total rest time (run_time - sum of stim durs)
                rest time includes pre/post stim rest
           - make list of all used rest classes (for this run)
@@ -2764,17 +2765,31 @@ class RandTiming:
 
           return status, full_event_list
        """
-       # initialize pre- and post- stimulus rest
-       if self.pre_stim_rest == 0:
-          self.pre_stim_rest = self.pre_stimc.get_one_val()
-       if self.post_stim_rest == 0:
-          self.post_stim_rest = self.post_stimc.get_one_val()
+       # quick checks:
+       nevents = len(events)
+       if nevents == 0:
+          return 0, events
+       elif nevents == 1:
+          events[0].append(self.pre_stim_rest)
+          return 0, events
+
+       # total stim time before pre-/post-stim rest events are included
+       stime = sum([e[1] for e in events])
+
+       # -----------------------------------------------------------------
+       # include pre- and post- stimulus rest events :
+       #    dur entry comes from options
+       #    rest entry comes from timing class
+       # (these rest events come and go just within this function)
+       # also, self.rand_post_stim_rest affects rest for last stim
+       # rcr - explain in help
+       events.insert(0, [-2, self.pre_stim_rest])
+       events.append([-1, self.post_stim_rest])
+
        pprest = self.pre_stim_rest+self.post_stim_rest
 
-       stime = sum([e[1] for e in events])
        rtime = self.run_time[rind] - stime
        randtime = rtime-pprest
-       nevents = len(events)
 
        if self.verb > 2 or randtime < 0:
           print '-- run %02d: run time = %s, stime = %s, rtime = %s' \
@@ -2782,24 +2797,11 @@ class RandTiming:
           print '   pre-rest = %s, post-rest = %s, random rest = %s' \
                 % (self.pre_stim_rest, self.post_stim_rest, randtime)
 
-       # check self.rand_post_stim_rest
        if randtime < 0:
           print '** unsolvable random timing for rest'
           return 1, []
 
-       # quick checks:
-       if nevents == 0:
-          return 0, events
-       elif nevents == 1:
-          events[0].append(self.pre_stim_rest)
-          return 0, events
-
-       # note number of rest events (len(events) or one less)
-       nrest = len(events)
-       if self.rand_post_stim_rest:
-          nrest -= 1
-
-       rv, rcounts, rtypes = self.count_all_rest_types(events, nrest)
+       rv, rcounts, rtypes = self.count_all_rest_types(events)
        if rv: return 1, events
 
        rv, rtimes = self.partition_rest_time(randtime, rcounts, rtypes)
@@ -2820,7 +2822,7 @@ class RandTiming:
           - for now, extra rest will trickle to end
        """
           
-       # allocate min_time
+       # compute and distribute min_time
        tot_min = 0
        rtimes = [0] * len(rtypes)
        for rind, rc in enumerate(rtypes):
@@ -2829,19 +2831,28 @@ class RandTiming:
           rtimes[rind] = mt
           tot_min += mt
 
-       if tot_min > rtot:
+       remain = rtot - tot_min
+       if remain < 0:
           print '** partition rest: insufficient space for even min rest'
           return 1, []
 
-       print '== have min rest times: %s' % rtimes
+       # now go back and track those with applied means (mean > min)
+       tot_mean = 0
+       have_rand = 0    # have unrestricted rest
+       for rind, rc in enumerate(rtypes):
+          offset = rc.mean_dur - rc.min_dur
+          if offset <= 0.0: continue
+
+          mt = offset * rcounts[rind]
+          tot_mean += mt
+
+       # if remain > tot_mean:
 
        return 1, []
 
-    def count_all_rest_types(self, elist, nevents):
+    def count_all_rest_types(self, elist):
        """given an event list of [etype, dur] elements, get a unique
           list of rest timing classes and their counts
-
-          nevents is passed because we might ignore the final event
 
           return status, [rcount], [rtype]
        """
@@ -2849,9 +2860,24 @@ class RandTiming:
        rcounts = []
        rtypes = []
 
-       for eind in range(nevents):
-          sc = self.sclasses[elist[eind][0]]
-          rc = sc.rclass
+       nume = len(elist)
+
+       for eind, event in enumerate(elist):
+          sc = self.sclasses[event[0]]
+          # there are special cases for which rest class to use
+          if eind == 0:
+             # pre-stim rest event
+             rc = self.pre_stimc
+          elif eind == (nume-1):
+             # post-stim rest event
+             rc = self.post_stimc
+          elif eind == (nume-2) and not self.rand_post_stim_rest:
+             # no event rest after last event
+             rc = self.post_stimc
+          else:
+             # ahhh, the usual case, get rest class out of stim class
+             rc = sc.rclass
+
           # if we already have this one, increment the count, else append
           if rc in rtypes:
              rind = rtypes.index(rc)
