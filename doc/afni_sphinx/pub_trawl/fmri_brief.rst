@@ -31,5 +31,5 @@ Publications with example scripts
 
 **2016**
 ---------
- 
+
 *  .. include:: fmri_proc/paper_2016_ChenEtal/brief.rst

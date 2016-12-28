@@ -26,13 +26,13 @@ Publications with example scripts
 
 |
 
+
+
 .. _public_ex_fmri_2016:
 
 **2016**
 ---------
  
-*  .. include:: fmri_proc/paper_2016_ChenEtal/brief.rst
 
-   .. literalinclude:: fmri_proc/paper_2016_ChenEtal/script_01_init.tcsh
-   |
-   .. literalinclude:: fmri_proc/paper_2016_ChenEtal/script_02_ap.tcsh
+*  .. include:: fmri_proc/paper_2016_ChenEtal/detailed.rst
+
