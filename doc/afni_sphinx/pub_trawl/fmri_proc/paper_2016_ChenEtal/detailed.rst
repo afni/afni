@@ -20,8 +20,8 @@
 
 .. script(s)
 .. literalinclude:: fmri_proc/paper_2016_ChenEtal/script_01_init.tcsh
-
+    :linenos:
 |
 
 .. literalinclude:: fmri_proc/paper_2016_ChenEtal/script_02_ap.tcsh
-
+    :linenos:
