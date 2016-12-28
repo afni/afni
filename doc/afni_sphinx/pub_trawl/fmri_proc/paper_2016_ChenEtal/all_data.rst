@@ -1,6 +1,7 @@
 
 .. begin_title
 
+.. title(s) with links; usually just a single paper here
 **Chen GC, Taylor PA, Shin Y-W, Reynolds RC, Cox RW (2016).**
 `Untangling the Relatedness among Correlations, Part II: Inter-Subject
 Correlation Group Analysis through Linear Mixed-Effects Modeling
@@ -19,14 +20,15 @@ Neuroimage (in press).  `Corrigendum
 
 .. begin_short_tags
 
-**tags:** naturalistic, EPI, MPRAGE, human, control, adult, Talairach,
-nonlinear, FreeSurfer, fANATICOR
+:**tags**: naturalistic, EPI, MPRAGE, human, control, adult, Talairach,
+           nonlinear, FreeSurfer, fANATICOR
 
 .. end_short_tags
 
 
 .. begin_long_tags
 
+.. full table format of search strings
 .. table::
    :column-alignment: left 
    :column-wrapping: true 
@@ -53,16 +55,19 @@ nonlinear, FreeSurfer, fANATICOR
 
 .. begin_script_table
 
-===== ==================================================
-|s01|  FreeSurfer segmentation; ``@SUMA_Make_Spec_FS``; 
-       tissue selection
+.. list-table:: 
+   :header-rows: 0
 
-|s02| ``afni_proc.py`` command
-===== ==================================================
+   * - |s01|
+     - FreeSurfer segmentation; ``@SUMA_Make_Spec_FS``; tissue selection
+   * - |s02|
+     - ``afni_proc.py`` command
 
+
+.. aliases for scripts, so above is easier to read
 .. |s01| replace:: :download:`script_01_init.tcsh
                    <fmri_proc/paper_2016_ChenEtal/script_01_init.tcsh>`
 .. |s02| replace:: :download:`script_02_ap.tcsh
                    <fmri_proc/paper_2016_ChenEtal/script_02_ap.tcsh>`
   
-.. begin_script_table
+.. end_script_table
