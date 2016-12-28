@@ -9,7 +9,7 @@
 # Correlation Group Analysis through Linear Mixed-Effects
 # Modeling. Neuroimage (in press).
 #
-# Run using: AFNI_16.1.16
+# Originally run using: AFNI_16.1.16
 # --------------------------------------------------------------------
 
 
