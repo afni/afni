@@ -469,10 +469,13 @@ int main( int argc , char *argv[] )
 
    bytevec *emask              = NULL ;          /* 14 Feb 2013 */
 
+#undef ALLOW_UNIFIZE
+#ifdef ALLOW_UNIFIZE
    int do_unifize_base         = 0 ;             /* 23 Dec 2016 */
-   int do_unifize_targ         = 0 ;
+   int do_unifize_targ         = 0 ;             /* not implemented */
    MRI_IMAGE *im_ubase         = NULL ;
    MRI_IMAGE *im_utarg         = NULL ;
+#endif
 
    /**----------------------------------------------------------------------*/
    /**----------------- Help the pitifully ignorant user? -----------------**/
@@ -1687,16 +1690,15 @@ int main( int argc , char *argv[] )
 
      /*------*/
 
-#if 0
+#ifdef ALLOW_UNIFIZE
      if( strcmp(argv[iarg],"-unifize_base") == 0 ){    /* 23 Dec 2016 */
        do_unifize_base++ ; iarg++ ; continue ;
      }
-#endif
-
-#if 0
+# if 0
      if( strcmp(argv[iarg],"-unifize_source") == 0 ){  /* 23 Dec 2016 */
        do_unifize_targ++ ; iarg++ ; continue ;
      }
+# endif
 #endif
 
      /*------*/
@@ -4112,7 +4114,7 @@ STATUS("zeropad weight dataset") ;
 
    /** 3dUnifize the base image? [23 Dec 2016] **/
 
-#if 0
+#ifdef ALLOW_UNIFIZE
    if( do_unifize_base && dset_base != NULL && nz_base > 5 && apply_1D == NULL ){
      THD_3dim_dataset *qset, *uset ;
      char *uuu, bname[32], uname[32] , cmd[1024] ;
@@ -5465,7 +5467,10 @@ mri_genalign_set_pgmat(1) ;
    /*--- unload stuff we no longer need ---*/
 
    DSET_unload(dset_targ) ;
-   mri_free(im_base); mri_free(im_weig); mri_free(im_mask); mri_free(im_ubase);
+   mri_free(im_base); mri_free(im_weig); mri_free(im_mask);
+#ifdef ALLOW_UNIFIZE
+   mri_free(im_ubase);
+#endif
 
    MRI_FREE(stup.bsim); MRI_FREE(stup.bsims);
    MRI_FREE(stup.ajim); MRI_FREE(stup.ajims); MRI_FREE(stup.bwght);
