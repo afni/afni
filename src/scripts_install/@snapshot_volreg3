@@ -30,7 +30,7 @@ if( $#argv < 2 )then
   echo 'ALREADY RUNNING copy of Xvfb, as in'
   echo '  Xvfb :8 -screen 0 1024x768x24 &'
   echo 'If you do NOT supply this number (8 in the example), then'
-  echo 'the script will start its own Xvfb (on a display of it's choosing),'
+  echo 'the script will start its own Xvfb (on a display of its choosing),'
   echo 'use it once, and then stop it. If you are going to run this script'
   echo 'many times in a row, starting and stopping your own Xvfb'
   echo 'instance will speed things up.'
