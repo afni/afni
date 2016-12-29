@@ -62,8 +62,8 @@ Neuroimage (in press).  `Corrigendum
 .. note:: 
 
    :s.2016_ChenEtal_01_init.tcsh:
-   
-      The selection of WM regions in ln 30 has changed to: ``-expr
+
+      The selection of WM regions in line 30 has changed to: ``-expr
       'amongst(a,2,7,41,46,251,252,253,254,255)'``.
 
 .. end_script_note
