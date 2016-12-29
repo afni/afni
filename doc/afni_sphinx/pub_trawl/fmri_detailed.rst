@@ -21,8 +21,8 @@ Publications with example scripts
 
 :2016:
 
-   .. _public_ex_fmri_paper_2016_ChenEtal_det:
-   .. include:: fmri_proc/paper_2016_ChenEtal/detailed.rst
+   .. _public_ex_fmri_2016_ChenEtal_det:
+   .. include:: fmri_proc/2016_ChenEtal/detailed.rst
 
 ==========
 
