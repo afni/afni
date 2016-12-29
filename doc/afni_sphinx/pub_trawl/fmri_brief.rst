@@ -1,5 +1,4 @@
-.. _fmri_proc:
-
+.. _public_ex_fmri_brief:
 
 *************************
 **FMRI examples (brief)**
@@ -16,7 +15,6 @@ Overview
 .. include:: fmri_proc/fmri_table.rst
 
 
-.. _public_ex_fmri:
 
 Publications with example scripts
 =================================
