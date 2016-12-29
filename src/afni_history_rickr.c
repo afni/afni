@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 29,  Dec, 2016, RCR, "afni_proc.py", MICRO, TYPE_BUG_FIX,
+   "remove case 16 (brainstem) from aparc+aseg.nii WM extraction in help",
+   "Thanks to P Taylor for noting this."
+ } ,
+
  { 15,  Dec, 2016, RCR, "column_cat", MICRO, TYPE_ENHANCE,
    "allow for reading from stdin via either '-' or 'stdin'",
    NULL
