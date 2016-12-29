@@ -317,7 +317,7 @@ class StimClass:
 
    def show_durlist_stats(self, details=0):
       tc = self.sclass
-      print "=== event duration statistics for StimClass '%s' ===" % self.name
+      print "=== event duration statistics for StimClass %s ===" % self.name
       print 'run       min       mean      max      stdev'
       print '------  -------   -------   -------   -------'
       print 'expect %7.3f   %7.3f   %7.3f     %s' % \
