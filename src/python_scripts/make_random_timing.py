@@ -2806,8 +2806,17 @@ class RandTiming:
 
        rv, rtimes = self.partition_rest_time(randtime, rcounts, rtypes)
        if rv: return 1, events
+       if self.verb > 3:
+          print '== partitioned rest:'
+          for cind, rc in enumerate(rtypes):
+             print "   %4d rest events of type '%s', time = %g" \
+                   %(rcounts[cind], rc.name, rtimes[cind])
 
-       return 0, elist
+       # get rest events, and apply to timing (append accumulated time)
+
+
+
+       return 0, events
 
     def adv_create_adata_list(self):
        print '** RCR - create_adata_list'
@@ -2820,11 +2829,16 @@ class RandTiming:
           - for all types with means, decide on total needed time (above min)
           - if there is not quite enough time, rescale their times
           - for now, extra rest will trickle to end
+
+          return status, rtimes
        """
           
+       ntypes = len(rtypes)
+
+       # -----------------------------------------------------------------
        # compute and distribute min_time
        tot_min = 0
-       rtimes = [0] * len(rtypes)
+       rtimes = [0] * ntypes
        for rind, rc in enumerate(rtypes):
           # compute min total, store it and accumuate
           mt = rc.min_dur * rcounts[rind]
@@ -2837,18 +2851,80 @@ class RandTiming:
           return 1, []
 
        # now go back and track those with applied means (mean > min)
+       # - also, note whether we can alter the times later
        tot_mean = 0
        have_rand = 0    # have unrestricted rest
+       can_alter = [0] * ntypes   # we can adjust times for these classes
        for rind, rc in enumerate(rtypes):
           offset = rc.mean_dur - rc.min_dur
-          if offset <= 0.0: continue
+          if offset != 0:
+             can_alter[rind] = 1
 
+          # do we have classes with unrestricted rest?
+          if offset < 0: have_rand = 1
+
+          # now skip anything without known space
+          if offset <= 0: continue
+
+          # total requested remaining time is mean * nevents
           mt = offset * rcounts[rind]
           tot_mean += mt
 
-       # if remain > tot_mean:
+       # -----------------------------------------------------------------
+       # check for early exit if remain == 0 (warn user if not complete)
+       # (remain < 0 was checked above, but be safe)
+       if remain <= 0:
+          if tot_mean > 0:
+             print '** PRT: no time left for above-min mean-based rest'
+          if have_rand == 1:
+             print '** PRT: no time left for above-min random rest'
+          return 0, rtimes
 
-       return 1, []
+       # -----------------------------------------------------------------
+       # possibly scale down offsets for means
+       mean_scalar = 1
+       if tot_mean > remain:
+          mean_scalar = remain * 1.0 / tot_mean
+          if mean_scalar < .95:
+             print '** above-min random rest must shrink'
+       # or, scale UP if there are no max-less classes
+       elif have_rand == 0 and tot_mean > 0:
+          mean_scalar = remain * 1.0 / tot_mean
+          if mean_scalar > 1.05:
+             print '** above-min random rest must expand'
+
+       # possibly provide more details on scalar
+       if abs(mean_scalar-1) > 0.05 or self.verb > 2:
+          print '-- have %g of %g mean seconds available, scaling by %g' \
+                % (remain, tot_mean, mean_scalar)
+       
+       # -----------------------------------------------------------------
+       # now actually distribute into rtimes
+
+       # min time is done, so next distribute postive mean time
+       if tot_mean > 0:
+          for rind, rc in enumerate(rtypes):
+             offset = rc.mean_dur - rc.min_dur
+             if offset <= 0: continue
+             mt = mean_scalar * offset * rcounts[rind]
+             rtimes[rind] += mt
+       remain -= tot_mean
+
+       # for have_rand, partition remaining time based on number of events
+       if remain > 0 and have_rand > 0:
+          nevents = 0
+          # first get total number of events
+          for rind, rc in enumerate(rtypes):
+             if rc.mean_dur < rc.min_dur:
+                nevents += rcounts[rind]
+          # then partition time based on fractional number of events
+          for rind, rc in enumerate(rtypes):
+             if rc.mean_dur < rc.min_dur:
+                rtimes[rind] = remain * rcounts[rind] * 1.0 / nevents
+
+       # any undistributed rest will trickle to post-stim rest
+
+       return 0, rtimes
 
     def count_all_rest_types(self, elist):
        """given an event list of [etype, dur] elements, get a unique
