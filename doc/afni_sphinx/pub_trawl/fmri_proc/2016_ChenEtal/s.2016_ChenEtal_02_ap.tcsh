@@ -1,7 +1,7 @@
 #!/bin/tcsh
 
 # --------------------------------------------------------------------
-# Script: script_02_ap.tcsh
+# Script: s.2016_ChenEtal_02_ap.tcsh
 #
 # From:
 # Chen GC, Taylor PA, Shin Y-W, Reynolds RC, Cox RW (2016). Untangling

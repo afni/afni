@@ -53,6 +53,22 @@ Neuroimage (in press).  `Corrigendum
 .. end_long_tags
 
 
+.. NB, nothing needs to be put into this next field-- could just
+   remain blank!
+.. begin_script_note
+
+|
+
+.. note:: 
+
+   :s.2016_ChenEtal_01_init.tcsh:
+   
+      The selection of WM regions in ln 30 has changed to: ``-expr
+      'amongst(a,2,7,41,46,251,252,253,254,255)'``.
+
+.. end_script_note
+
+
 .. begin_script_table
 
 .. list-table:: 
@@ -65,9 +81,9 @@ Neuroimage (in press).  `Corrigendum
 
 
 .. aliases for scripts, so above is easier to read
-.. |s01| replace:: :download:`script_01_init.tcsh
-                   <fmri_proc/paper_2016_ChenEtal/script_01_init.tcsh>`
-.. |s02| replace:: :download:`script_02_ap.tcsh
-                   <fmri_proc/paper_2016_ChenEtal/script_02_ap.tcsh>`
+.. |s01| replace:: :download:`s.2016_ChenEtal_01_init.tcsh
+                   <fmri_proc/2016_ChenEtal/s.2016_ChenEtal_01_init.tcsh>`
+.. |s02| replace:: :download:`s.2016_ChenEtal_02_ap.tcsh
+                   <fmri_proc/2016_ChenEtal/s.2016_ChenEtal_02_ap.tcsh>`
   
 .. end_script_table
