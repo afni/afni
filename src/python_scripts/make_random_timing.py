@@ -2814,7 +2814,10 @@ class RandTiming:
 
        # get rest events, and apply to timing (append accumulated time)
 
-
+       # for each class, get a duration list given total time
+       # for each event, get the current rest time (pop index 0?),
+       #    append current time
+       #    accumulate stim+rest into current time
 
        return 0, events
 
