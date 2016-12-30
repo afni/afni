@@ -10,6 +10,13 @@
 # colorability in the AFNI viewer at present, and the GM list might be
 # useful for tracking.
 
+
+
+if ( $#argv > 1 ) then
+    echo "** Only one command line argument, please!\n\n"
+    exit
+endif
+
 if ( ("$1" == "-h") || ("$1" == "-help") || ("$1" == "") ) then
     goto SHOW_HELP
 endif
@@ -17,9 +24,11 @@ endif
 set sumadir = $1
 set here = $PWD
 
+cd $1
 
-# known file names from @SUMA_Make_Spec_FS
+# --------- check for known file names from @SUMA_Make_Spec_FS -----------
 
+# either zipped or unzipped files
 set ugh2000 = `ls aparc+aseg.nii*`
 if ( $#ugh2000 == "1" ) then
     echo "++ found $ugh2000"
@@ -38,6 +47,8 @@ else
 endif
 set set2009 = "$ugh2009"
 
+# --------------------- look for reference files -----------------------
+
 # get reffile
 set afniloc = `which afni`
 set refloc  = `dirname $afniloc`
@@ -53,7 +64,6 @@ set tmp0 = "__zarglefizz_070.nii.gz"
 set tmp1 = "__zarglefizz_071.nii.gz"
 set tmp2 = "__zarglefizz_072.nii.gz"
 
-cd $1
 
 # --------------------- check for necessary files ------------------------
 if ( ! -e $set2000 ) then
