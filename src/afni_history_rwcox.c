@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 30 , DEC , 2016 , RWC , "3dttest++" , MICRO , TYPE_NEW_OPT ,
+   "Add -ACF option -- to compute ACF parameters from residuals" ,
+   NULL } ,
+
  { 29 , DEC , 2016 , RWC , "@SSwarper" , MINOR , TYPE_NEW_PROG ,
    "New script to combine skull stripping and nonlinear warping" ,
    "Uses partial warping to improve skull stripping, and then finishes the\n"
