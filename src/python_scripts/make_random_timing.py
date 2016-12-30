@@ -2730,13 +2730,16 @@ class RandTiming:
        print '** ACAL: calling it failure until ready'
        return 1
 
+    def adv_create_adata_list(self):
+       print '** RCR - create_adata_list'
+
     def adv_create_full_event_list(self):
        """given stim_event_list of form:
              [ [ [sind dur] [sind dur] ... ]
                [ [sind dur] [sind dur] ... ] ]
-          create full_event_list (append stim times) of form:
-             [ [ [sind dur stime] [sind dur stime] ... ]
-               [ [sind dur stime] [sind dur stime] ... ] ]
+          create full_event_list (append rest dur and event time) of form:
+             [ [ [sind sdur rdur stime] [sind sdur rdur stime] ... ]
+               [ [sind sdur rdur stime] [sind sdur rdur stime] ... ] ]
 
           return 0 on success
        """
@@ -2746,14 +2749,19 @@ class RandTiming:
        felist = []
        for rind, erun in enumerate(selist):
           rv, ferun = self.adv_stim2full_run_elist(rind, erun)
+          if self.verb > 5:
+             print '== full timing list: run %d, elist %s' % (rind+1, ferun)
+          felist.append(ferun)
+
+       self.full_event_list = felist
 
        return 0
 
     def adv_stim2full_run_elist(self, rind, events):
        """convert an event_list line:
                [ [sind dur] [sind dur] ... ] ]
-          into a full_event_list line (which just includes the time offset):
-               [ [sind dur time] [sind dur time] ... ]
+          into a full_event_list line (includes rest dur and stim time):
+               [ [sind sdur rdir time] [sind sdur rdir time] ... ]
 
           - add pre-stim and post-stim rest events, in case they have
             needed timing classes
@@ -2793,7 +2801,7 @@ class RandTiming:
 
        if self.verb > 2 or randtime < 0:
           print '-- run %02d: run time = %s, stime = %s, rtime = %s' \
-                % (rind, self.run_time[rind], stime, rtime)
+                % (rind+1, self.run_time[rind], stime, rtime)
           print '   pre-rest = %s, post-rest = %s, random rest = %s' \
                 % (self.pre_stim_rest, self.post_stim_rest, randtime)
 
@@ -2813,16 +2821,38 @@ class RandTiming:
                    %(rcounts[cind], rc.name, rtimes[cind])
 
        # get rest events, and apply to timing (append accumulated time)
+       for rind, rc in enumerate(rtypes):
+          rc.etimes = LRT.random_duration_list(rcounts[rind], rc,
+                                               rtimes[rind], force_total=1)
 
-       # for each class, get a duration list given total time
-       # for each event, get the current rest time (pop index 0?),
-       #    append current time
-       #    accumulate stim+rest into current time
+       # quick test
+       if self.verb > 3:
+          rc = sum([len(rc.etimes) for rc in rtypes])
+          ec = len(events)
+          print '== have %d rest events and %d stim events' % (rc, ec)
+
+       # for each event, get the current rest time
+       rall = 0
+       try:
+          for event in events:
+             sind = event[0]
+             if sind == -2:   rc = self.pre_stimc
+             elif sind == -1: rc = self.post_stimc
+             else:            rc = self.sclasses[event[0]].rclass
+             rtime = rc.etimes.pop(0)
+             event.append(rtime)
+       except:
+          print '** rest time extraction error'
+          return 0, events
+
+       # replace rest time with event time
+       ctime = 0
+       for event in events:
+          # append current time, and increment by stim and rest times
+          event.append(ctime)
+          ctime += event[1] + event[2]
 
        return 0, events
-
-    def adv_create_adata_list(self):
-       print '** RCR - create_adata_list'
 
     def partition_rest_time(self, rtot, rcounts, rtypes):
        """given counts and corresponding rest types, partition total rest time

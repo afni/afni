@@ -361,13 +361,15 @@ def create_duration_lists(slist, nruns, across_runs=0, verb=1):
 
    return 0
 
-def random_duration_list(nevents, tclass, total_time=-1.0):
+def random_duration_list(nevents, tclass, total_time=-1.0, force_total=0):
    """create a length nevents list of durations according to the class
 
       if dur_mean > 0 and total_time > 0:
          warn if they imply different times (10%?)
 
       must have dur_mean >= 0 or total_time > 0
+
+      if force_total: total_time overrides mean
 
       this function is not really returning error codes or whining
       (maybe that should change?)
@@ -395,7 +397,9 @@ def random_duration_list(nevents, tclass, total_time=-1.0):
    # reconcile total time (ttime) and min duration (min_dur),
    # then initialize a minimum time list,
    # then note remaining time and an appropriate max_dur
-   if tclass.mean_dur == 0:
+   if force_total and total_time >= 0:
+      ttime = total_time
+   elif tclass.mean_dur == 0:
       ttime = 0.0
    elif tclass.mean_dur > 0:
       ttime = 1.0 * tclass.mean_dur * nevents
