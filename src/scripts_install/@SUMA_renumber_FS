@@ -19,8 +19,24 @@ set here = $PWD
 
 
 # known file names from @SUMA_Make_Spec_FS
-set set2000 = "aparc+aseg.nii.gz"
-set set2009 = "aparc.a2009s+aseg.nii.gz"
+
+set ugh2000 = `ls aparc+aseg.nii*`
+if ( $#ugh2000 == "1" ) then
+    echo "++ found $ugh2000"
+else
+    echo "** Trouble finding 'aparc+aseg.nii*'! Check $PWD"
+    exit
+endif
+set set2000 = "$ugh2000"
+
+set ugh2009 = `ls aparc.a2009s+aseg.nii*`
+if ( $#ugh2009 == "1" ) then
+    echo "++ found $ugh2009"
+else
+    echo "** Trouble finding 'aparc+aseg.nii*'! Check $PWD"
+    exit
+endif
+set set2009 = "$ugh2009"
 
 # get reffile
 set afniloc = `which afni`
@@ -63,7 +79,8 @@ endif
 # ----------------- 2000 parc/seg: full and tissues -----------------------
 
 # full
-set ss             = "${set2000:gas/.nii.gz//}_REN"
+set s0             = `3dinfo -prefix_noext ${set2000}`
+set ss             = "${s0}_REN"
 set s2000_renum    = "${ss}_all.nii.gz"
 set s2000_renum_lt = "${ss}_all.niml.lt"
 
@@ -218,7 +235,8 @@ echo "\n\n++ OK through '2000' dsets.\n\n"
 # ----------------- 2009 parc/seg: full and GM ---------------------------
 
 # full
-set ss             = "${set2009:gas/.nii.gz//}_REN"
+set s0             = `3dinfo -prefix_noext ${set2009}`
+set ss             = "${s0}_REN"
 set s2009_renum    = "${ss}_all.nii.gz"
 set s2009_renum_lt = "${ss}_all.niml.lt"
 
