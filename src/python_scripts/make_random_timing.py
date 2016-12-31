@@ -2731,7 +2731,20 @@ class RandTiming:
        return 1
 
     def adv_create_adata_list(self):
-       print '** RCR - create_adata_list'
+       """convert full_event_list to AfniData objects
+          given a list of [sind sdur rdur stime] per run
+          make a list of mdata = [stime [] sdur] per run, per sclass
+          convert mdata to AfniData object, stored as adata in stim class
+          - 
+       """
+       for sind, sc in enumerate(self.sclasses):
+          sc.mdata = []
+          for rind, erun in enumerate(self.full_event_list):
+             srun = [event in erun if event[0] == sind]
+             mrun = [[se[1] [] se[2]] for se in srun]
+             sc.mdata.append[mrun]
+          sc.adata = LAD.AfniData()
+       # rcr - here
 
     def adv_create_full_event_list(self):
        """given stim_event_list of form:
@@ -2851,6 +2864,13 @@ class RandTiming:
           # append current time, and increment by stim and rest times
           event.append(ctime)
           ctime += event[1] + event[2]
+
+       # and finally remove the pre- and post- rest events
+       if events[0][0] != -2 or events[-1][0] != -1:
+          print '** pre/post-stim rest events out of order'
+       else:
+          events.pop(0)
+          events.pop()
 
        return 0, events
 
