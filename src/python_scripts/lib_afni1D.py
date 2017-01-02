@@ -2592,7 +2592,7 @@ ERR_ST_TOO_BIG    = 16       # val >= run length
 
 
 class AfniData(object):
-   def __init__(self, filename="", verb=1):
+   def __init__(self, filename="", mdata=None, verb=1):
       """akin to a 2D float class, but do not require a square matrix
 
          init from filename
@@ -2619,6 +2619,7 @@ class AfniData(object):
       self.mtype     = 0        # married type (bits, amp, dur)
       self.minlen    = 0        # min and max row lengths
       self.maxlen    = 0
+      self.dur_len   = 0.0
 
       self.ready     = 0        # data is ready
 
@@ -2637,6 +2638,8 @@ class AfniData(object):
       # initialize...
       if self.fname: 
          if self.init_from_filename(self.fname): return None
+      elif mdata:
+         if self.init_from_mdata(mdata): return None
 
    # some accessor functions to match Afni1D
    def set_nruns(nruns):
@@ -3572,13 +3575,11 @@ class AfniData(object):
       
       return 0
 
-   def init_from_mdata(self, name, mdata, fname='NO_FILE'):
+   def init_from_mdata(self, mdata):
       """mdata should be of the form:
             one row per run, where each row is a list of events:
                [time [AM list] duration]
       """
-
-      self.name  = name
 
       if not self.mdata_looks_valid(mdata):
          return 1
@@ -3591,7 +3592,6 @@ class AfniData(object):
       self.data     = [[val[0] for val in row] for row in mdata]
       self.mdata    = mdata
       self.clines   = None
-      self.fname    = fname
 
       # init alist to be 0, 1 or 2, for each run so at least 2 "events"
       self.alist    = [0] * len(mdata)
