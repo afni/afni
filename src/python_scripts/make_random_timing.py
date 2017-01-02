@@ -3,6 +3,7 @@
 import sys, random, os, math, copy
 import option_list as OL, afni_util as UTIL
 import lib_rand_timing as LRT
+import lib_afni1D as LAD
 
 g_help_string = """
 ===========================================================================
@@ -1642,8 +1643,24 @@ class RandTiming:
                 fname = '%s_%02d.1D' % (prefix, sind+1)
             self.fnames.append(fname)
 
-    def write_event_list(self, eall, fname):
+    def adv_write_timing_files(self):
+        """write files using AfniData class"""
+
+        print '== write timing files...'
+        if self.prefix: prefix = self.prefix    # be sure we have a prefix
+        else:           prefix = 'stim_times'
+
+        for sind, sc in enumerate(self.sclasses):
+            sc.adata.fname = '%s_%02d_%s.1D' % (prefix, sind+1, sc.name)
+            if sc.adata.write_as_timing():
+               return 1
+
+        return 0
+
+    def write_event_list(self, fname):
        """write event list to given file ('' or '-' or 'stdout' means stdout)
+
+          self.full_event.list = per run list of [cind sdur tdur time]
 
           eall = [ [ [1 3.2] [4 0.7] .. ]
                    [ [0 4.2] [2 3.1] .. ]
@@ -1651,7 +1668,27 @@ class RandTiming:
                  ]
        """
 
-       # rcr - todo: 
+       if fname:
+          if self.verb > 3:
+             print "** writing event list to file '%s'" % fname
+          fd = open(fname, 'w')
+          if not fd:
+             print "** failed to open '%s' for writing event list" % fname
+             return 1
+       else:
+          fd = sys.stderr
+
+       for rind, erun in enumerate(self.full_event_list):
+          print 'run %d events:' % (rind+1)
+          for event in erun:
+             print '%4d   %.2f    %.2f    %.2f' \
+                   % (event[0], event[1], event[2], event[3])
+          print
+
+       if fd != sys.stderr:
+          fd.close()
+
+       return 0
 
     def write_timing_files(self):
         """write timing from slist to files from the prefix"""
@@ -2667,7 +2704,10 @@ class RandTiming:
            return 1
 
         if self.file_elist or self.verb > 4:
-           self.write_event_list(sall, self.file_elist)
+           if self.write_event_list(self.file_elist):
+              return 1
+
+        return 0
 
     def adv_randomize_event_lists(self):
        """For each run (or across), put all events in a list and randomize.
@@ -2698,6 +2738,9 @@ class RandTiming:
           if self.adv_partition_sevents_across_runs():
              return 1
 
+       if self.verb > 3:
+          print '-- have randomized event lists'
+
        return 0
 
     def adv_partition_sevents_across_runs(self):
@@ -2727,8 +2770,7 @@ class RandTiming:
        if self.adv_create_adata_list():
           return 1
 
-       print '** ACAL: calling it failure until ready'
-       return 1
+       return 0
 
     def adv_create_adata_list(self):
        """convert full_event_list to AfniData objects
@@ -2740,11 +2782,13 @@ class RandTiming:
        for sind, sc in enumerate(self.sclasses):
           sc.mdata = []
           for rind, erun in enumerate(self.full_event_list):
-             srun = [event in erun if event[0] == sind]
-             mrun = [[se[1] [] se[2]] for se in srun]
-             sc.mdata.append[mrun]
-          sc.adata = LAD.AfniData()
-       # rcr - here
+             srun = [event for event in erun if event[0] == sind]
+             mrun = [[se[1], [], se[3]] for se in srun]
+             sc.mdata.append(mrun)
+          sc.adata = LAD.AfniData(mdata=sc.mdata, verb=self.verb)
+          sc.adata.name = sc.name
+
+       return 0
 
     def adv_create_full_event_list(self):
        """given stim_event_list of form:
@@ -2762,6 +2806,7 @@ class RandTiming:
        felist = []
        for rind, erun in enumerate(selist):
           rv, ferun = self.adv_stim2full_run_elist(rind, erun)
+          if rv: return 1
           if self.verb > 5:
              print '== full timing list: run %d, elist %s' % (rind+1, ferun)
           felist.append(ferun)
@@ -2938,13 +2983,9 @@ class RandTiming:
        mean_scalar = 1
        if tot_mean > remain:
           mean_scalar = remain * 1.0 / tot_mean
-          if mean_scalar < .95:
-             print '** above-min random rest must shrink'
        # or, scale UP if there are no max-less classes
        elif have_rand == 0 and tot_mean > 0:
           mean_scalar = remain * 1.0 / tot_mean
-          if mean_scalar > 1.05:
-             print '** above-min random rest must expand'
 
        # possibly provide more details on scalar
        if abs(mean_scalar-1) > 0.05 or self.verb > 2:
@@ -3126,15 +3167,15 @@ def process():
         if rv: UTIL.show_args_as_command(sys.argv,"** failed command:")
         return rv
 
-    # new way
+    # new, advanced way
     if len(timing.sclasses) > 0:
        rv = timing.adv_create_timing()
-       if rv != None:
-           if rv: UTIL.show_args_as_command(sys.argv,"** failed command:")
-           return rv
+       if rv:
+           UTIL.show_args_as_command(sys.argv,"** failed command:")
+           return 1
 
-       # rcr - continue
-
+       if timing.adv_write_timing_files():
+          return 1
 
     # old way
     else:
