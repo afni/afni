@@ -1678,12 +1678,16 @@ class RandTiming:
        else:
           fd = sys.stderr
 
+       if fd == sys.stderr:
+          fd.write('# ==== all events ====\n')
        for rind, erun in enumerate(self.full_event_list):
-          print 'run %d events:' % (rind+1)
+          fd.write('-- run %d events --\n' % (rind+1))
+          fd.write('class   start      dur     rest\n')
+          fd.write('-----   -----     ----     ----\n')
           for event in erun:
-             print '%4d   %.2f    %.2f    %.2f' \
-                   % (event[0], event[1], event[2], event[3])
-          print
+             fd.write('%3d    %6.2f   %6.2f   %6.2f\n' \
+                   % (event[0], event[3], event[1], event[2]))
+          fd.write('\n')
 
        if fd != sys.stderr:
           fd.close()
@@ -2783,7 +2787,7 @@ class RandTiming:
           sc.mdata = []
           for rind, erun in enumerate(self.full_event_list):
              srun = [event for event in erun if event[0] == sind]
-             mrun = [[se[1], [], se[3]] for se in srun]
+             mrun = [[se[3], [], se[1]] for se in srun]
              sc.mdata.append(mrun)
           sc.adata = LAD.AfniData(mdata=sc.mdata, verb=self.verb)
           sc.adata.name = sc.name
