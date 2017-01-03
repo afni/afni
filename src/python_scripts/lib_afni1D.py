@@ -3682,6 +3682,25 @@ class AfniData(object):
 
       return mstr
 
+def show_multi_isi_stats(adlist, run_lens, tr, verb=0):
+   import lib_timing as LT
+
+   nad = len(adlist)
+   if nad == 0:
+      print '** show_multi_isi_stats: no elements to list'
+      return 1
+
+   AD0 = adlist[0]
+   MT = LT.AfniTiming(mdata=AD0.mdata)
+   for ind in range(1, nad):
+      tt = LT.AfniTiming(mdata=adlist[ind].mdata)
+      MT.extend_rows(tt)
+
+   if verb:
+     MT.show('multistim timing')
+
+   MT.show_isi_stats(mesg='%d elements'%nad, run_len=run_lens, tr=tr)
+
 if __name__ == '__main__':
    print '** this is not a main module'
    sys.exit(1)
