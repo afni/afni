@@ -828,17 +828,9 @@ g_version = "version 1.10, June 1, 2016"
 g_todo = """
    - add warning if post-stim rest < 3 seconds
    - help for options:
-        -rand_post_stim_rest, -write_event_list
+        -rand_post_stim_rest, -write_event_list, show_rest_events
    - add option to change timing classes for pre and post stim rest
    - add related dist_types rand_unif and rand_gauss?
-   - describe 'decay' geometric dist_type as the discrete analog of the
-        negative exponential distribution function (NED describes the
-        time between events in a Poisson process)
-        - only approximate, since fixed # Bernoulli trials in fixed time
-        - not the "shifted" version
-        - this is approximate, 
-   - add pre-defined timing classes?
-        INSTANT 0 0 0 'decay' 0    ==> i.e. 0 duration event
    -add_timing_class label MIN MEAN MAX PDF TGRAN
    -add_stim_class label Nreps stim_timing_class rest_timing_class
    -global "-across_runs" still applies
@@ -913,6 +905,7 @@ class RandTiming:
 
         # advanced options
         self.rand_post_stim_rest = 1    # include random rest from last event?
+        self.show_rest_events = 0       # show stats and rest events
 
         # pre- and post-rest timing classes
         self.pre_stimc  = g_instant_timing_class
@@ -996,6 +989,9 @@ class RandTiming:
         self.valid_opts.add_opt('-rand_post_stim_rest', 1, [], req=0,
                         acplist=['no','yes'],
                         helpstr='include random rest after final stimulus? y/n')
+        self.valid_opts.add_opt('-show_rest_events', 1, [], req=0,
+                        acplist=['no','yes'],
+                        helpstr='show stats on each rest class (y/n)')
 
         # old 'required' arguments
         self.valid_opts.add_opt('-num_stim', 1, [], req=0,
@@ -1137,6 +1133,9 @@ class RandTiming:
            # default to including post-stim rest
            if self.user_opts.have_no_opt('-rand_post_stim_rest'):
               self.rand_post_stim_rest = 0
+
+           if self.user_opts.have_yes_opt('-show_rest_events'):
+              self.show_rest_events = 1
 
            # and set some of the old-style parameters
            self.num_stim = len(olist)
@@ -2729,10 +2728,17 @@ class RandTiming:
        eall = []
        for rind in range(ntodo):
           erun = []
+          # rcr - handle ordered_stim?  check valid_orderstim()
+          #   - insert only leaders
+          #   - shuffle full leader list
+          #   - insert followers
           for sind, sc in enumerate(self.sclasses):
+             # if ordered stim and sc is not a leader: skip
              for dur in sc.durlist[rind]:
                 erun.append([sind, dur])
           self.shuffle_event_list(erun)
+          # if ordered stim, shuffle and insert followers insert
+
           eall.append(erun)
 
        self.stim_event_list = eall
@@ -2752,7 +2758,20 @@ class RandTiming:
           possibly deal with max consec or ordered stimuli
        """
        # rcr - check ordered stimuli and max consec
+       #
+       # max consec could be passed as the next parameter in the stim class
+       #
+       # ordered stimuli should be done as before:
+       #   - check validity of ordered stim
+       #      - starters and followers must 
+       #   - remove any followers
+       #   - shuffle main starter list
+       #   - insert followers
+
        UTIL.shuffle(events)
+
+       # if max_consec:
+       #    adjust events list
 
     def adv_partition_sevents_across_runs(self):
        """break stim_event_list into num_runs"""
@@ -2893,6 +2912,10 @@ class RandTiming:
        for rind, rc in enumerate(rtypes):
           rc.etimes = LRT.random_duration_list(rcounts[rind], rc,
                                                rtimes[rind], force_total=1)
+          # add option, show rest details
+          if self.verb > 5 or self.show_rest_events:
+             rc.show_durlist_stats(rc.etimes, mesg='Rest Class %s'%rc.name,
+                                   details=1)
 
        # quick test
        if self.verb > 3:
