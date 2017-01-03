@@ -828,17 +828,9 @@ g_version = "version 1.10, June 1, 2016"
 g_todo = """
    - add warning if post-stim rest < 3 seconds
    - help for options:
-        -rand_post_stim_rest, -write_event_list
+        -rand_post_stim_rest, -write_event_list, show_rest_events
    - add option to change timing classes for pre and post stim rest
    - add related dist_types rand_unif and rand_gauss?
-   - describe 'decay' geometric dist_type as the discrete analog of the
-        negative exponential distribution function (NED describes the
-        time between events in a Poisson process)
-        - only approximate, since fixed # Bernoulli trials in fixed time
-        - not the "shifted" version
-        - this is approximate, 
-   - add pre-defined timing classes?
-        INSTANT 0 0 0 'decay' 0    ==> i.e. 0 duration event
    -add_timing_class label MIN MEAN MAX PDF TGRAN
    -add_stim_class label Nreps stim_timing_class rest_timing_class
    -global "-across_runs" still applies
@@ -913,6 +905,7 @@ class RandTiming:
 
         # advanced options
         self.rand_post_stim_rest = 1    # include random rest from last event?
+        self.show_rest_events = 0       # show stats and rest events
 
         # pre- and post-rest timing classes
         self.pre_stimc  = g_instant_timing_class
@@ -996,6 +989,9 @@ class RandTiming:
         self.valid_opts.add_opt('-rand_post_stim_rest', 1, [], req=0,
                         acplist=['no','yes'],
                         helpstr='include random rest after final stimulus? y/n')
+        self.valid_opts.add_opt('-show_rest_events', 1, [], req=0,
+                        acplist=['no','yes'],
+                        helpstr='show stats on each rest class (y/n)')
 
         # old 'required' arguments
         self.valid_opts.add_opt('-num_stim', 1, [], req=0,
@@ -1137,6 +1133,9 @@ class RandTiming:
            # default to including post-stim rest
            if self.user_opts.have_no_opt('-rand_post_stim_rest'):
               self.rand_post_stim_rest = 0
+
+           if self.user_opts.have_yes_opt('-show_rest_events'):
+              self.show_rest_events = 1
 
            # and set some of the old-style parameters
            self.num_stim = len(olist)
@@ -1646,7 +1645,6 @@ class RandTiming:
     def adv_write_timing_files(self):
         """write files using AfniData class"""
 
-        print '== write timing files...'
         if self.prefix: prefix = self.prefix    # be sure we have a prefix
         else:           prefix = 'stim_times'
 
@@ -1678,12 +1676,16 @@ class RandTiming:
        else:
           fd = sys.stderr
 
+       if fd == sys.stderr:
+          fd.write('# ==== all events ====\n')
        for rind, erun in enumerate(self.full_event_list):
-          print 'run %d events:' % (rind+1)
+          fd.write('-- run %d events --\n' % (rind+1))
+          fd.write('class   start      dur     rest\n')
+          fd.write('-----   -----     ----     ----\n')
           for event in erun:
-             print '%4d   %.2f    %.2f    %.2f' \
-                   % (event[0], event[1], event[2], event[3])
-          print
+             fd.write('%3d    %6.2f   %6.2f   %6.2f\n' \
+                   % (event[0], event[3], event[1], event[2]))
+          fd.write('\n')
 
        if fd != sys.stderr:
           fd.close()
@@ -2726,10 +2728,17 @@ class RandTiming:
        eall = []
        for rind in range(ntodo):
           erun = []
+          # rcr - handle ordered_stim?  check valid_orderstim()
+          #   - insert only leaders
+          #   - shuffle full leader list
+          #   - insert followers
           for sind, sc in enumerate(self.sclasses):
+             # if ordered stim and sc is not a leader: skip
              for dur in sc.durlist[rind]:
                 erun.append([sind, dur])
-          UTIL.shuffle(erun)
+          self.shuffle_event_list(erun)
+          # if ordered stim, shuffle and insert followers insert
+
           eall.append(erun)
 
        self.stim_event_list = eall
@@ -2742,6 +2751,27 @@ class RandTiming:
           print '-- have randomized event lists'
 
        return 0
+
+    def shuffle_event_list(self, events):
+       """randomize order of events
+
+          possibly deal with max consec or ordered stimuli
+       """
+       # rcr - check ordered stimuli and max consec
+       #
+       # max consec could be passed as the next parameter in the stim class
+       #
+       # ordered stimuli should be done as before:
+       #   - check validity of ordered stim
+       #      - starters and followers must 
+       #   - remove any followers
+       #   - shuffle main starter list
+       #   - insert followers
+
+       UTIL.shuffle(events)
+
+       # if max_consec:
+       #    adjust events list
 
     def adv_partition_sevents_across_runs(self):
        """break stim_event_list into num_runs"""
@@ -2783,7 +2813,7 @@ class RandTiming:
           sc.mdata = []
           for rind, erun in enumerate(self.full_event_list):
              srun = [event for event in erun if event[0] == sind]
-             mrun = [[se[1], [], se[3]] for se in srun]
+             mrun = [[se[3], [], se[1]] for se in srun]
              sc.mdata.append(mrun)
           sc.adata = LAD.AfniData(mdata=sc.mdata, verb=self.verb)
           sc.adata.name = sc.name
@@ -2882,6 +2912,10 @@ class RandTiming:
        for rind, rc in enumerate(rtypes):
           rc.etimes = LRT.random_duration_list(rcounts[rind], rc,
                                                rtimes[rind], force_total=1)
+          # add option, show rest details
+          if self.verb > 5 or self.show_rest_events:
+             rc.show_durlist_stats(rc.etimes, mesg='Rest Class %s'%rc.name,
+                                   details=1)
 
        # quick test
        if self.verb > 3:
@@ -2892,9 +2926,15 @@ class RandTiming:
        # for each event, get the current rest time
        rall = 0
        try:
-          for event in events:
+          for eind, event in enumerate(events):
              sind = event[0]
-             if sind == -2:   rc = self.pre_stimc
+
+             if eind == nevents and not self.rand_post_stim_rest:
+                # no post-stim rest (this is not in any rest list,
+                # since it does not match rest class for stim)
+                # (also, #nevents is before inserting pre-stim rest)
+                rc = g_instant_timing_class
+             elif sind == -2: rc = self.pre_stimc
              elif sind == -1: rc = self.post_stimc
              else:            rc = self.sclasses[event[0]].rclass
              rtime = rc.etimes.pop(0)
@@ -3042,8 +3082,8 @@ class RandTiming:
              # post-stim rest event
              rc = self.post_stimc
           elif eind == (nume-2) and not self.rand_post_stim_rest:
-             # no event rest after last event
-             rc = self.post_stimc
+             # use INSTANT rest after last event
+             rc = g_instant_timing_class
           else:
              # ahhh, the usual case, get rest class out of stim class
              rc = sc.rclass
@@ -3176,6 +3216,10 @@ def process():
 
        if timing.adv_write_timing_files():
           return 1
+
+       if timing.show_timing_stats:
+          LAD.show_multi_isi_stats(timing.sclasses, timing.run_time, timing.tr,
+                                   verb=(timing.verb>2))
 
     # old way
     else:
