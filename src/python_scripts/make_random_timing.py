@@ -1646,7 +1646,6 @@ class RandTiming:
     def adv_write_timing_files(self):
         """write files using AfniData class"""
 
-        print '== write timing files...'
         if self.prefix: prefix = self.prefix    # be sure we have a prefix
         else:           prefix = 'stim_times'
 
@@ -2733,7 +2732,7 @@ class RandTiming:
           for sind, sc in enumerate(self.sclasses):
              for dur in sc.durlist[rind]:
                 erun.append([sind, dur])
-          UTIL.shuffle(erun)
+          self.shuffle_event_list(erun)
           eall.append(erun)
 
        self.stim_event_list = eall
@@ -2746,6 +2745,14 @@ class RandTiming:
           print '-- have randomized event lists'
 
        return 0
+
+    def shuffle_event_list(self, events):
+       """randomize order of events
+
+          possibly deal with max consec or ordered stimuli
+       """
+       # rcr - check ordered stimuli and max consec
+       UTIL.shuffle(events)
 
     def adv_partition_sevents_across_runs(self):
        """break stim_event_list into num_runs"""
@@ -2896,9 +2903,15 @@ class RandTiming:
        # for each event, get the current rest time
        rall = 0
        try:
-          for event in events:
+          for eind, event in enumerate(events):
              sind = event[0]
-             if sind == -2:   rc = self.pre_stimc
+
+             if eind == nevents and not self.rand_post_stim_rest:
+                # no post-stim rest (this is not in any rest list,
+                # since it does not match rest class for stim)
+                # (also, #nevents is before inserting pre-stim rest)
+                rc = g_instant_timing_class
+             elif sind == -2: rc = self.pre_stimc
              elif sind == -1: rc = self.post_stimc
              else:            rc = self.sclasses[event[0]].rclass
              rtime = rc.etimes.pop(0)
@@ -3046,8 +3059,8 @@ class RandTiming:
              # post-stim rest event
              rc = self.post_stimc
           elif eind == (nume-2) and not self.rand_post_stim_rest:
-             # no event rest after last event
-             rc = self.post_stimc
+             # use INSTANT rest after last event
+             rc = g_instant_timing_class
           else:
              # ahhh, the usual case, get rest class out of stim class
              rc = sc.rclass
@@ -3180,6 +3193,10 @@ def process():
 
        if timing.adv_write_timing_files():
           return 1
+
+       if timing.show_timing_stats:
+          LAD.show_multi_isi_stats(timing.sclasses, timing.run_time, timing.tr,
+                                   verb=(timing.verb>2))
 
     # old way
     else:
