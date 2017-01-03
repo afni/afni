@@ -210,7 +210,7 @@ class OptionList:
         if not opt or not opt.parlist or len(opt.parlist) < 1: return None,0
         return opt.parlist, 0
 
-    def get_type_opt(self, type, opt_name='', opt=None, default=None):
+    def get_type_opt(self, otype, opt_name='', opt=None, default=None):
         """return the option param value converted to the given type, and err
            (err = 0 on success, 1 on failure)
 
@@ -226,20 +226,20 @@ class OptionList:
             print "** expectin 1 parameter for option '%s', have: %s" % \
                   (opt_name, opt.parlist)
             return default, 1
-        try: val = type(opt.parlist[0])
+        try: val = otype(opt.parlist[0])
         except:
-            print "** cannot convert '%s' to %s" % (opt.parlist[0], type)
+            print "** cannot convert '%s' to %s" % (opt.parlist[0], otype)
             return default, 1
 
         return val, 0
 
-    def get_type_list(self, type, opt_name='', length=0, len_name='',
+    def get_type_list(self, otype, opt_name='', length=0, len_name='',
                       opt=None, verb=1):
-        """return a list of values of the given type, and err
+        """return a list of values of the given otype, and err
 
             err will be set (1) if there is an error
 
-            type      : expected conversion type
+            otype     : expected conversion type
             opt_name  : option name to find in opts list
             length    : expected length of option parameters (or 1)
                         (if length == 0, return whatever is found)
@@ -248,7 +248,7 @@ class OptionList:
             verb      : verbose level
 
             Find opt_name in opts list.  Verify that the parlist values are of
-            the proper type and that there are either 1 or 'length' of them.
+            the proper otype and that there are either 1 or 'length' of them.
             If 1, duplicate it to length."""
 
         if opt == None: opt = self.find_opt(opt_name)
@@ -261,10 +261,10 @@ class OptionList:
                   (opt_name, len_name, length, olen, ', '.join(opt.parlist))
             return None, 1
         try:
-            tlist = map(type,opt.parlist)
+            tlist = map(otype,opt.parlist)
         except:
             if verb: print "** %s takes only %ss, have: %s"  \
-                           % (opt_name,type,opt.parlist)
+                           % (opt_name,otype,opt.parlist)
             return None, 1
         if length > 0 and olen != length:     # expand the list
             tlist = [tlist[0] for i in range(length)]
