@@ -26,9 +26,11 @@ if( $#argv < 2 )then
   echo "                            template space"
   echo "  anatQQ.sub007_WARP.nii  = incremental warp from affine transformation"
   echo "                            to nonlinearly aligned dataset"
-  echo "  Qsub007.jpg             = 3x3 snapshot image of the anatQQ.sub007.nii"
+  echo "  AMsub007.jpg            = 3x3 snapshot image of the anatQQ.sub007.nii"
   echo "                            dataset with the edges from the MNI template"
   echo "                            overlaid -- to check the alignment"
+  echo "  MAsub007.jpg            = similar to the above, with the roles of the"
+  echo "                            template and the anatomical datasets reversed"
   echo
   echo "The inputs needed for the '-tlrc_NL_warped_dsets' option to afni_proc.py"
   echo "are (in this order):"
@@ -203,6 +205,7 @@ endif
 
 ## Step #7: Make a pretty picture
 
-@snapshot_volreg3 anatQQ."${SubID}".nii $Basedset Q"${SubID}"
+@snapshot_volreg3 anatQQ."${SubID}".nii $Basedset AM"${SubID}"
+@snapshot_volreg3 $Basedset anatQQ."${SubID}".nii MA"${SubID}"
 
 exit 0
