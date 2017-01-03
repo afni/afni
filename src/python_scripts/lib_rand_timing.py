@@ -84,6 +84,35 @@ class TimingClass:
          print '   verb         : %s' % self.verb
          print '   total_time   : %s' % self.total_time
 
+   def show_durlist_stats(self, durlist, mesg='', details=0, sort=0):
+      if mesg != '': print mesg
+
+      print '            min       mean      max      stdev'
+      print '------    -------   -------   -------   -------'
+
+      print 'expected %7.3f   %7.3f   %7.3f     %s' % \
+            (self.min_dur, self.mean_dur, self.max_dur, self.dist_type)
+
+      mmin,mmean,mmax,mstdev = UTIL.min_mean_max_stdev(durlist)
+      print 'actual   %7.3f   %7.3f   %7.3f   %7.3f\n' % \
+            (mmin, mmean, mmax, mstdev)
+
+      if not details: return
+
+      digs = gDEF_DEC_PLACES
+
+      if sort:
+         dlist = durlist[:]
+         dlist.sort
+         sstr = ' (sorted)'
+      else:
+         dlist = durlist
+         sstr = ''
+
+      print '-- TimingClass %s%s event durations:'  % (self.name,sstr)
+      dstr = ['%.*f'%(digs, dd) for dd in dlist]
+      print '   %s\n' % ' '.join(dstr)
+
    def get_one_val(self):
       return random_duration_list(1, self)
 
