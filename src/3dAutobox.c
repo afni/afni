@@ -23,6 +23,7 @@ void help_autobox()
      "                 The default method uses some clustering to find the\n"
      "                 cropping box, and will clip off small isolated blobs.\n"
      "\n"
+     "-extent: Write to standard out the spatial extent of the box\n"
      "-npad NNN      = Number of extra voxels to pad on each side of box,\n"
      "                 since some troublesome people (that's you, LRF) want\n"
      "                 this feature for no apparent reason.\n"
@@ -40,7 +41,7 @@ void help_autobox()
 int main( int argc , char * argv[] )
 {
    THD_3dim_dataset *dset, *outset=NULL;
-   int iarg=1, npad = 0;
+   int iarg=1, npad = 0, extent=0;
    char *prefix=NULL, *iname=NULL;
 
    /*-- startup bureaucracy --*/
@@ -86,7 +87,12 @@ int main( int argc , char * argv[] )
         iarg++ ; continue ;
       }
 
-      /*- washappenin, dood? -*/
+      if( strcmp(argv[iarg],"-extent") == 0 ){
+        extent = 1 ;
+        iarg++ ; continue ;
+      }
+
+     /*- washappenin, dood? -*/
 
       ERROR_message("** 3dAutobox: %s makes no sense here.\n",
                  argv[iarg]) ;
@@ -120,7 +126,7 @@ int main( int argc , char * argv[] )
 
    {
       int nx=DSET_NX(dset), ny=DSET_NY(dset), nz=DSET_NZ(dset), nxy=nx*ny ;
-      int xm=-1,xp=-1,ym=-1,yp=-1,zm=-1,zp=-1 ;
+      int xm=-1,xp=-1,ym=-1,yp=-1,zm=-1,zp=-1;
       THD_autobbox( dset , &xm,&xp , &ym,&yp , &zm,&zp, NULL ) ;
 
       xm -= npad; ym -= npad; zm -= npad;  /* for LRF */
@@ -129,6 +135,7 @@ int main( int argc , char * argv[] )
       INFO_message("Auto bbox: x=%d..%d  y=%d..%d  z=%d..%d\n",
                    xm,xp,ym,yp,zm,zp ) ;
 
+      if (extent && !prefix) prefix = "EXTENT_ONLY";
       if( prefix ){
          outset = THD_zeropad( dset ,
                             -xm, xp-nx+1,
@@ -145,8 +152,19 @@ int main( int argc , char * argv[] )
          tross_Copy_History( dset , outset ) ;             /* 31 Jan 2001 - RWCox */
          tross_Make_History( "3dAutobox" , argc,argv , outset ) ;
 
-         DSET_write(outset) ;
-         INFO_message("3dAutobox: output dataset = %s",DSET_BRIKNAME(outset)) ;
+         if (!strstr(prefix,"EXTENT_ONLY")) {
+            DSET_write(outset) ;
+            INFO_message("3dAutobox: output dataset = %s",
+                         DSET_BRIKNAME(outset)) ;
+         }
+         if (extent) {
+          float RL_AP_IS[6];
+          THD_dset_extent(outset, '-', RL_AP_IS);
+          INFO_message("Extent auto bbox: RL=%f..%f  AP=%f..%f  IS=%f..%f\n",
+                    RL_AP_IS[0],RL_AP_IS[1],
+                    RL_AP_IS[2],RL_AP_IS[3],
+                    RL_AP_IS[4],RL_AP_IS[5] ) ;
+         }
       }
 
    }
