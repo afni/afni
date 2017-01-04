@@ -84,6 +84,13 @@ int Syntax(TFORM targ, int detail)
 "            For example, LPI means:\n"
 "               i direction grows from Left(negative) to Right(positive).\n"
 "               j direction grows from Posterior (neg.) to Anterior (pos.)\n"     "               k direction grows from Inferior (neg.) to Superior (pos.)\n"
+"   -extent: The spatial extent of the dataset along R, L, A, P, I and S\n"
+"   -Rextent: Extent along R\n"
+"   -Lextent: Extent along L\n"
+"   -Aextent: Extent along P\n"
+"   -Pextent: Extent along P\n"
+"   -Iextent: Extent along I\n"
+"   -Sextent: Extent along S\n"
 "   -all_names: Value of various dset structures handling filenames.\n"
 "  ==== Options producing one value per sub-brick ========\n"
 "   -fac: Return the float scaling factor\n"
@@ -211,6 +218,7 @@ typedef enum {
    SAME_GRID, SAME_DIM, SAME_DELTA, SAME_ORIENT, SAME_CENTER, 
    SAME_OBL, SVAL_DIFF, VAL_DIFF, SAME_ALL_GRID, ID, SMODE,
    VOXVOL, INAME, HANDEDNESS, 
+   EXTENT_R, EXTENT_L, EXTENT_A, EXTENT_P, EXTENT_I, EXTENT_S, EXTENT,
    N_FIELDS } INFO_FIELDS; /* Keep synchronized with Field_Names  
                               Leave N_FIELDS at the end */
 
@@ -233,7 +241,8 @@ char Field_Names[][32]={
    {"=grid?"}, {"=dim?"}, {"=delt?"}, {"=ornt?"}, {"=cent?"},
    {"=obl?"}, {"sDval"}, {"Dval"}, {"=dim_delta_orient_center_obl"}, 
    {"id"}, {"smode"}, 
-   {"voxvol"}, {"iname"}, {"hand"},
+   {"voxvol"}, {"iname"}, {"hand"}, 
+   {"Rext"}, {"Lext"},{"Aext"}, {"Pext"}, {"Iext"}, {"Sext"}, {"RLAPIS_ext"},
    {"\0"} }; /* Keep synchronized with INFO_FIELDS */
 
 char *PrintForm(INFO_FIELDS sing , int namelen, byte ForHead)
@@ -278,7 +287,8 @@ int main( int argc , char *argv[] )
    int ip=0, needpair = 0, namelen=0, monog_pairs = 0;
    THD_3dim_dataset *tttdset=NULL, *dsetp=NULL;
    char *tempstr = NULL;
-
+   int extinit = 0;
+   float RL_AP_IS[6];
 
    mainENTRY("3dinfo main") ; machdep() ; 
 
@@ -361,6 +371,33 @@ int main( int argc , char *argv[] )
          sing[N_sing++] = NJ; 
          sing[N_sing++] = NK; 
          sing[N_sing++] = NV; iarg++; 
+         continue;
+      } else if( strcasecmp(argv[iarg],"-Rextent") == 0) {
+         sing[N_sing++] = EXTENT_R; iarg++; 
+         continue;
+      } else if( strcasecmp(argv[iarg],"-Lextent") == 0) {
+         sing[N_sing++] = EXTENT_L; iarg++; 
+         continue;
+      } else if( strcasecmp(argv[iarg],"-Aextent") == 0) {
+         sing[N_sing++] = EXTENT_A; iarg++; 
+         continue;
+      } else if( strcasecmp(argv[iarg],"-Pextent") == 0) {
+         sing[N_sing++] = EXTENT_P; iarg++; 
+         continue;
+      } else if( strcasecmp(argv[iarg],"-Iextent") == 0) {
+         sing[N_sing++] = EXTENT_I; iarg++; 
+         continue;
+      }  else if( strcasecmp(argv[iarg],"-Sextent") == 0) {
+         sing[N_sing++] = EXTENT_S; iarg++; 
+         continue;
+      } else if( strcasecmp(argv[iarg],"-extent") == 0) {
+         sing[N_sing++] = EXTENT_R; 
+         sing[N_sing++] = EXTENT_L; 
+         sing[N_sing++] = EXTENT_A; 
+         sing[N_sing++] = EXTENT_P; 
+         sing[N_sing++] = EXTENT_I; 
+         sing[N_sing++] = EXTENT_S; 
+         iarg++; 
          continue;
       } else if( strcasecmp(argv[iarg],"-di") == 0) {
          sing[N_sing++] = DI; iarg++; continue;
@@ -778,6 +815,21 @@ int main( int argc , char *argv[] )
          case ADI:
             fprintf(stdout,"%f", fabs(DSET_DX(dset)));
             break;
+         case EXTENT_R:
+         case EXTENT_L:
+         case EXTENT_A:
+         case EXTENT_P:
+         case EXTENT_I:
+         case EXTENT_S:
+            {
+               if (!extinit) {
+                  THD_dset_extent(dset, '-', RL_AP_IS);
+                  extinit = 1;
+               }
+               fprintf(stdout,"%f", RL_AP_IS[sing[iis]-EXTENT_R]);
+            }
+            break;
+
          case ADJ:
             fprintf(stdout,"%f", fabs(DSET_DY(dset)));
             break;
