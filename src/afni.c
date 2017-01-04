@@ -1758,6 +1758,7 @@ void AFNI_sigfunc_alrm(int sig)
      "Out of Benedictine Error: How do you expect me get work done?" ,
      "More cheese, Gromit!"                                          ,
      "Life can be tough sometimes -- so have a chocolate (or two)"   ,
+     "Sweet sweet caffeine -- is there anything it can't do?"        ,
      "If at first you don't succeed -- call it version 1.0"          ,
      "Never trust a statistic you haven't faked yourself"            ,
      "May your teeth never be replaced by damp woolen socks"         ,
@@ -1796,16 +1797,12 @@ void AFNI_sigfunc_alrm(int sig)
      "Drink! for you know not why you go, or where"                  ,
      "Tomorrow we feast with us at home"                             ,
      "Forgive your enemies; but never forget their names"            ,
-     "Always forgive your enemies - nothing annoys them so much"     ,
      "A friend is one who has the same enemies as you have"          ,
      "Am I not destroying my enemies when I make friends of them?"   ,
      "True friends will stab you in the FRONT"                       ,
      "I am so clever I don't understand a word of what I'm saying"   ,
      "Some cause happiness wherever they go; others whenever they go",
      "A man who does not think for himself does not think at all"    ,
-     "The truth is rarely pure and never simple"                     ,
-     "A thing is not necessarily true because a man dies for it"     ,
-     "Experience is the name men give to their mistakes"             ,
      "Whenever people agree with me, I think I must be wrong"        ,
      "We are each our own devil, and make this world our hell"       ,
      "I have nothing to declare except my genius"                    ,
@@ -1903,7 +1900,6 @@ void AFNI_sigfunc_alrm(int sig)
      "Remember -- Murphy was an optimist"                            ,
      "Remember -- Statistics are no substitute for judgment"         ,
      "Remember -- A thing can be true, and still be desperate folly" ,
-     "Remember -- Everything popular is wrong"                       ,
      "Remember -- Aquaman cares"                                     ,
      "Remember -- She who laughs, lasts"                             ,
      "Remember -- He who laughs, lasts"                              ,
@@ -2017,7 +2013,6 @@ void AFNI_sigfunc_alrm(int sig)
      "When life gives you lemons, throw them right back at it"       ,
      "Happiness isn't good enough for me; I demand euphoria"         ,
      "Judge a person by her questions, rather than her answers"      ,
-     "Be yourself; everyone else is already taken"                   ,
      "I have not failed; I've just found 10,000 ways that don't work",
      "Statistics are good, but dark chocolate is better"             ,
      "Espresso chocolate -- mmmmmm -- good"                          ,
@@ -2027,6 +2022,9 @@ void AFNI_sigfunc_alrm(int sig)
      "Computers are useless -- they can only give you answers"       ,
      "If nothing else, this software is a great toy"                 ,
      "Remember to take your brain out and polish it"                 ,
+     "What in God's Holy Name are you blathering on about?"          ,
+     "Are you a Dada-ist or a Dude-ist?"                             ,
+     "Putting the 'wit' in 'twit' since 1994"                        ,
 
      "Returning control of your brain (images) back to yourself"     ,
      "Returning your endofunctors back to their co-monads"           ,
@@ -2085,11 +2083,39 @@ void AFNI_sigfunc_alrm(int sig)
      "If you have any questions about AFNI, ask ... Rick Reynolds :)"          ,
      "If you have any questions about AFNI, ask ... Paul Taylor :)"            ,
      "If you have any questions about AFNI, ask ... Gang Chen :)"              ,
+     "AFNI's mantra: Bob, Bob, there is one Bob, He spells it B-O-B"           ,
 
-     "The kindest, bravest, warmest, most wonderful software you've ever known"       ,
-     "Your brains have not only been washed, but been dry cleaned"                    ,
-     "Why don't you pass the time by playing a little solitaire?"                     ,
+     /* The Manchurian Candidate */
 
+     "The kindest, bravest, warmest, most wonderful software you've ever used"    ,
+     "Your brains have not only been washed, but have been dry cleaned"           ,
+     "Why don't you pass the time by playing a little solitaire?"                 ,
+
+     /* Carrie Fisher */
+
+     "Resentment is like drinking poison and waiting for the other person to die" ,
+     "I'm not happy about getting old, but what are the options?"                 ,
+     "I'm very sane about how crazy I am"                                         ,
+     "Instant gratification takes too long"                                       ,
+
+     /* Oscar Wilde */
+
+     "We are all in the gutter, but some of us are looking at the stars"          ,
+     "Always forgive your enemies - nothing annoys them so much"                  ,
+     "Experience is the name men give to their mistakes"                          ,
+     "The truth is rarely pure and never simple"                                  ,
+     "Be yourself; everyone else is already taken"                                ,
+     "I have simple tastes: I am easily satisfied with the best"                  ,
+     "Remember -- Everything popular is wrong"                                    ,
+     "Experience is one thing you can't get for nothing"                          ,
+     "A thing is not necessarily true because a man dies for it"                  ,
+     "Moderation is fatal - nothing succeeds like excess"                         ,
+     "The world is a stage - but the play is badly cast"                          ,
+     "An idea that is not dangerous is unworthy of being called an idea at all"   ,
+
+     /* Longer quotes */
+
+     "A practical truth: no man has eaten an entire elephant in one day"              ,
      "From now on, let's just reject the null hypothesis, and then have a beer"       ,
      "Home is the sailor, home from the sea; And the hunter home from the hill"       ,
      "Glad did I run, and gladly end, and I turn me off with a will"                  ,
@@ -2185,10 +2211,12 @@ void AFNI_sigfunc_alrm(int sig)
      "My name is AFNImandias, Brain of Brains; Look on my Statistics, ye Clever, and Despair" ,
      "Statistically Significant is NOT the same as Significant -- they're not even similar"   ,
      "If you drink a liquid that has p=0.06 of being poison, do you feel significantly safe?" ,
-     "You must accept finite disappointments, but never lose your infinite hope"              ,
+     "You must accept finite disappointments, but never lose your infinite hopes"             ,
      "We may all have come on different ships, but we're all in the same boat now"            ,
      "You can always find me out on the Long Line -- I hang out by the Church-Kleene ordinal" ,
      "Outside of a dog, a book is Man's best friend. Inside of a dog, it's too dark to read"  ,
+
+     /* Multi-line quotes */
 
      "\n  Ever returning spring, trinity sure to me you bring\n"
      "  Lilac blooming perennial, drooping star in the West,\n"
@@ -2633,12 +2661,15 @@ int main( int argc , char *argv[] )
    /*--- now ready to start X11 for true --*/
 
 #ifdef DARWIN
-   fprintf(stderr,
-            "\n"
-            "++ If you are using XQuartz 2.7.10 (or later), and\n"
-            " + AFNI crashes when opening windows, you might need\n"
-            " + to set an environment variable to solve this problem:\n"
-            " +   setenv DYLD_LIBRARY_PATH /opt/X11/lib/flat_namespace\n\n" ) ;
+   { char *eee = getenv("DYLD_LIBRARY_PATH") ;
+     if( eee == NULL || strstr(eee,"flat_namespace") == NULL )
+       fprintf(stderr,
+         "\n"
+         "++ If you are using XQuartz 2.7.10 (or later), and\n"
+         " + AFNI crashes when opening windows, you might need\n"
+         " + to set an environment variable to solve this problem:\n"
+         " +   setenv DYLD_LIBRARY_PATH /opt/X11/lib/flat_namespace\n\n" ) ;
+   }
 #endif
 
    memset(&MAIN_app, 0, sizeof(MAIN_app)) ;  /* 11 Feb 2009 [lesstif patrol] */

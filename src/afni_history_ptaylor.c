@@ -66,7 +66,28 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
-   { 20, Dec , 2016 , PT , "fat_mvm_prep.py" , MICRO , TYPE_NEW_OPT,
+
+{ 30, Dec , 2016 , PT , "@SUMA_renumber_FS" , MINOR , TYPE_NEW_PROG,
+   "New program for renumbering FS output after @SUMA_Make_Spec_FS.",
+   "Also conglomerates things into tissue maps.\n"
+},
+
+{ 30, Dec , 2016 , PT , "@SUMA_Make_Spec_FS" , MINOR , TYPE_MODIFY,
+   "Output new data sets of renumbered values, more consistent than 'rank' ones.",
+   "Also output more tissue segmentation maps based on ROIs.\n"
+},
+
+{ 26, Dec , 2016 , PT , "thd_center" , MINOR , TYPE_NEW_OPT,
+   "Extra argument in THD_cmass() and THD_roi_cmass().",
+   "Allows for local ijk coordinate output; updated other calling functions.\n"
+},
+
+{ 23, Dec , 2016 , PT , "3dCM" , MINOR , TYPE_NEW_OPT,
+   "Allow ijk coordinate output.",
+   "Will be in local orientation.  Makes undumping after easier.\n"
+},
+
+{ 20, Dec , 2016 , PT , "fat_mvm_prep.py" , MICRO , TYPE_NEW_OPT,
    "New --unionize_rois option: affects GRID element selection.",
    "Now can select union of matrix elements across group for MVM_tbl.\n"
 },

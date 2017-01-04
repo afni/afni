@@ -44,6 +44,16 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 30 , DEC , 2016 , RWC , "3dttest++" , MICRO , TYPE_NEW_OPT ,
+   "Add -ACF option -- to compute ACF parameters from residuals" ,
+   NULL } ,
+
+ { 29 , DEC , 2016 , RWC , "@SSwarper" , MINOR , TYPE_NEW_PROG ,
+   "New script to combine skull stripping and nonlinear warping" ,
+   "Uses partial warping to improve skull stripping, and then finishes the\n"
+   "warping, producing outputs compatible for use with afni_proc.py\n"
+   "-tlrc_NL_warped_dsets" } ,
+
  { 21 , DEC , 2016 , RWC , "3dQwarp" , MICRO , TYPE_GENERAL ,
    "Add -awarp option, to save Allineate-to-Nonlinear warp only" ,
    "If -allineate is used, the output WARP dataset is the catenated affine\n"
