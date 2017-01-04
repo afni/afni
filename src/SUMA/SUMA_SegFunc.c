@@ -3187,7 +3187,7 @@ int SUMA_Volume_RadFill_killme(THD_3dim_dataset *aset, float *ufv, byte *ucmask,
    
    /* center of mass */
    if (!ucm) {
-      ccc = THD_cmass(aset, 0, cmask); 
+      ccc = THD_cmass(aset, 0, cmask, 0); 
       cm[0] = ccc.xyz[0];
       cm[1] = ccc.xyz[1];
       cm[2] = ccc.xyz[2];
@@ -4147,7 +4147,7 @@ int SUMA_Volume_RadFill(THD_3dim_dataset *aset, float *ufv, byte *ucmask,
    
    /* center of mass */
    if (!ucm) {
-      ccc = THD_cmass(aset, 0, cmask); 
+      ccc = THD_cmass(aset, 0, cmask, 0); 
       cm[0] = ccc.xyz[0];
       cm[1] = ccc.xyz[1];
       cm[2] = ccc.xyz[2];
@@ -9718,7 +9718,7 @@ SUMA_Boolean SUMA_ShrinkHeadSurf_RS(SUMA_SurfaceObject *SO,
       for (vv=0; vv<DSET_NVOX(aset); ++vv) {
          if (isin[vv]>1) cmmm[vv]=1;
       }
-      ccc = THD_cmass(aset, 0, cmmm); SUMA_free(cmmm); cmmm=NULL;
+      ccc = THD_cmass(aset, 0, cmmm, 0); SUMA_free(cmmm); cmmm=NULL;
       cm[0] = ccc.xyz[0];
       cm[1] = ccc.xyz[1];
       cm[2] = ccc.xyz[2];

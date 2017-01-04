@@ -559,9 +559,11 @@ g_history = """
         - added -regress_skip_censor
         - added -write_ppi_3dD_scripts to go with:
         - added -regress_ppi_stim_files, -regress_ppi_stim_labels
+    5.11 Dec 29, 2016:
+        - removed case 16 (brainstem) from aparc+aseg.nii WM extraction in help
 """
 
-g_version = "version 5.10, November 1, 2016"
+g_version = "version 5.11, December 29, 2016"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \

@@ -7791,7 +7791,10 @@ g_help_string = """
         3dcalc -a aparc+aseg.nii -datum byte -prefix FT_vent.nii \\
                -expr 'amongst(a,4,43)'
         3dcalc -a aparc+aseg.nii -datum byte -prefix FT_WM.nii \\
-               -expr 'amongst(a,2,7,16,41,46,251,252,253,254,255)'
+               -expr 'amongst(a,2,7,41,46,251,252,253,254,255)'
+
+        # note: 16 (brainstem) was incorrectly included from @ANATICOR
+        #       and then in this help through 2016
 
     After this, FT_SurfVol.nii, FT_vent.nii and FT_WM.nii (along with the
     basically unused aparc.a2009s+aseg.nii) are passed to afni_proc.py.
