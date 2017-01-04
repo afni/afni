@@ -835,7 +835,7 @@ static mday holiday[] = {
    {DEC,28,"John von Neumann's birthday"                             } ,
    {DEC,28,"Linus Torvalds' birthday"                                } ,
    {DEC,29,"William Gladstone's birthday"                            } ,
-   {DEC,30,"Tiger Woods' birthday"                                   } ,
+/**   {DEC,30,"Tiger Woods' birthday"                                   } , **/
    {DEC,30,"Rudyard Kipling's birthday"                              } ,
    {DEC,31,"New Year's Eve"                                          } ,
    {DEC,31,"George C Marshall's birthday"                            } ,
