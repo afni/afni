@@ -93,7 +93,7 @@ static int nnsid = 1 ; /* 1 or 2 */
 static const int min_mask = 1024 ;    /* min # voxels */
 static const int min_nvol = 10000 ;   /* min # realizations */
 
-static float dilate_fac = 0.0111f ;   /* for STEP 2 */
+static float dilate_fac = 0.0666f ;   /* for STEP 2 */
 
 static char *prefix = "Xsim.nii" ;
 
@@ -102,7 +102,7 @@ static MRI_IMAGE *imtemplate = NULL ;
 #undef  PSMALL
 #define PSMALL 1.e-15
 
-#define FARP_GOAL 5.00f  /* 5 percent */
+#define FARP_GOAL 5.00f    /* 5 percent -- non-adjustable by user */
 #define FGFAC     0.90f
 #define FG_GOAL   (FARP_GOAL*fgfac)
 
@@ -877,12 +877,12 @@ int main( int argc , char *argv[] )
    /*============================================================================*/
    /*--- STEP 1c: find the global distributions [not needed but fun] ------------*/
 
-#define GTHRESH_FAC 0.333333f
-#define GTHRESH_THA 0.05f
-#define GTHRESH_THB 0.19f
+#define GTHRESH_FAC 0.123456f
+#define GTHRESH_THA 0.055555f
+#define GTHRESH_THB 0.234567f
 
-   { int nfom,jj; Xcluster **xcc;
-     float a0,a1,f0,f1,fta,ftb ;
+   { int nfom,jj,nfff; Xcluster **xcc;
+     float a0,a1,f0,f1,fta,ftb , fmax ;
      float *fomg=calloc(sizeof(float),nclust_max);
 
      gthresh = (float *)calloc(sizeof(float),npthr) ;
@@ -891,16 +891,21 @@ int main( int argc , char *argv[] )
        for( nfom=ii=0 ; ii < nclust_tot[qpthr] ; ii++ ){
          if( xcc[ii] != NULL ) fomg[nfom++] = xcc[ii]->fom ;
        }
-       if( nfom < 50 ) continue ;  /* should not happen */
+       if( nfom < 50 ) continue ;      /* should not happen */
+       nfff = niter ;
+       if( nfff > nfom ) nfff = nfom ; /* very unlikely */
        qsort_float_rev( nfom, fomg ) ;
-       jj  = (int)(GTHRESH_THA*niter) ;
+       jj  = (int)rintf(GTHRESH_THA*nfff) ;
        fta = GTHRESH_FAC*fomg[jj] ;
-       jj  = (int)(GTHRESH_THB*niter) ;
+       jj  = (int)rintf(GTHRESH_THB*nfff) ;
        ftb = fomg[jj] ;
-       gthresh[qpthr] = (int)MAX(fta,ftb) ;
-       if( verb )
-         ININFO_message("pthr=%.5f gets min threshold %.0f [nfom=%d]",
-                        pthr[qpthr],gthresh[qpthr],nfom) ;
+       fmax = AFNI_numenv("AFNI_XCLUSTSIM_FMAX") ;
+       if( fmax <= 0.01f || fmax > 1.0f ) fmax = 0.622f ;
+       gthresh[qpthr] = (int)(fmax*MAX(fta,ftb)+(1.0f-fmax)*MIN(fta,ftb)) ;
+       if( verb ){
+         ININFO_message("pthr=%.5f gets min threshold %.0f [fta=%.1f ftb=%1.f] [nfom=%d niter=%d]",
+                        pthr[qpthr],gthresh[qpthr],fta,ftb,nfom,niter) ;
+       }
      }
      free(fomg) ;
    }
@@ -1162,15 +1167,15 @@ FINAL_STUFF:
 
    if( verb ){
      if( do_fixed )
-       INFO_message("Computing FAR count for each voxel for -fixed") ;
+       INFO_message("Computing FPR count for each voxel for -fixed") ;
      else if( do_mfixed )
-       INFO_message("Computing FAR count for each voxel for -mfixed") ;
+       INFO_message("Computing FPR count for each voxel for -mfixed") ;
      else
-       INFO_message("STEP 4: adjusting per-voxel FOM thresholds to reach FAR=%.2f%%",FARP_GOAL) ;
+       INFO_message("STEP 4: adjusting per-voxel FOM thresholds to reach FPR=%.2f%%",FARP_GOAL) ;
    }
 
    /* tfrac = FOM count fractional threshold;
-              will be adjusted to find the 5% FAR goal */
+              will be adjusted to find the 5% FPR goal */
 
    tfrac = 0.0004f ; itrac = 0 ;
    farpercold = 0.0f ; tfracold = tfrac ;
@@ -1182,12 +1187,12 @@ FINAL_STUFF:
 
 FARP_LOOPBACK:
    {
-     float min_tfrac ; int nedge ;
+     float min_tfrac ; int nedge,nmin ;
      min_tfrac = 6.0f / niter ; if( min_tfrac > 0.0001f ) min_tfrac = 0.0001f ;
 
      itrac++ ;                                        /* number of iterations */
      nfar = 0 ;                                            /* total FAR count */
-     nedge = 0 ;                                      /* number of edge cases */
+     nedge = nmin = 0 ;                               /* number of edge cases */
 #if 0
      ithresh = (int)(tfrac*niter) ;                    /* FOM count threshold */
 #else
@@ -1241,7 +1246,11 @@ FARP_LOOPBACK:
           f0 = fomsort[ipthr][iv]->far[jthresh] ;
           f1 = fomsort[ipthr][iv]->far[jthresh+1] ;
           ft = inverse_interp_extreme( a0,a1,tfrac , f0,f1 ) ;
-          if( ft < gthresh[ipthr] ) ft = gthresh[ipthr] ;
+          if( ft < gthresh[ipthr] ){
+            ft = gthresh[ipthr] ;
+#pragma omp atomic
+            nmin++ ;
+          }
           car[ipthr][ijkmask[iv]] = ft ;  /* = FOM threshold for this voxel */
                                           /* = the goal of this entire program! */
         }
@@ -1278,8 +1287,8 @@ FARP_LOOPBACK:
      farpercold = farperc ;               /* save what we got last time */
      farperc    = (100.0*nfar)/(float)niter ;  /* what we got this time */
      if( verb )
-       ININFO_message("#%2d: FPR = %.2f%%  [nedge=%d]",
-                      itrac, farperc/fgfac, nedge ) ;
+       ININFO_message("#%2d: FPR = %.2f%%  [nedge=%d nmin=%d]",
+                      itrac, farperc/fgfac, nedge, nmin ) ;
 
      /* do we need to try another tfrac to get closer to our goal? */
 
@@ -1318,7 +1327,7 @@ FARP_LOOPBACK:
        EDIT_substitute_brick( qset , qpthr , MRI_float , NULL ) ;
        qar = DSET_ARRAY(qset,qpthr) ;
        AAmemcpy( qar , car[qpthr] , sizeof(float)*nxyz ) ;
-       sprintf(qpr,"FARthr:%.4f",pthr[qpthr]) ;
+       sprintf(qpr,"FPRthr:%.4f",pthr[qpthr]) ;
        EDIT_BRICK_LABEL(qset,qpthr,qpr) ;
      }
      { float *afl=malloc(sizeof(float)*(npthr+3)) ;

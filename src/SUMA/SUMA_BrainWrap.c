@@ -992,7 +992,7 @@ int SUMA_THD_Radial_Avgs( THD_3dim_dataset  *dset, float *ufin,
    }
    
    if (!ucm) {
-      ccc = THD_cmass(dset, 0, cmask);
+      ccc = THD_cmass(dset, 0, cmask,0);
       cm[0] = ccc.xyz[0];
       cm[1] = ccc.xyz[1];
       cm[2] = ccc.xyz[2];
@@ -1078,7 +1078,7 @@ int SUMA_THD_Radial_Stats( THD_3dim_dataset  *dset,
    if (avgwin < 1) avgwin =1;
    if (!osetp || !dset) SUMA_RETURN(NOPE);
    if (!ucm) {
-      ccc = THD_cmass(dset, 0, cmask);
+      ccc = THD_cmass(dset, 0, cmask,0);
       cm[0] = ccc.xyz[0];
       cm[1] = ccc.xyz[1];
       cm[2] = ccc.xyz[2];
@@ -1433,7 +1433,7 @@ int SUMA_THD_Radial_HeadBoundary( THD_3dim_dataset  *dset, float uthr,
    
    if (!osetp || !dset) SUMA_RETURN(NOPE);
    if (!ucm) {
-      ccc = THD_cmass(dset, 0, cmask);
+      ccc = THD_cmass(dset, 0, cmask,0);
       cm[0] = ccc.xyz[0];
       cm[1] = ccc.xyz[1];
       cm[2] = ccc.xyz[2];

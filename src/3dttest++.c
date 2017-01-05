@@ -122,6 +122,8 @@ static char *prefix_resid = NULL ;
 static int  do_resid=0 ;
 static float *ABresid=NULL , *Aresid=NULL , *Bresid=NULL ; /* 07 Dec 2015 */
 
+static int  do_ACF=0 ;                                     /* 30 Dec 2016 */
+
 #undef  AXX
 #define AXX(i,j) Axx[(i)+(j)*(nval_AAA)]    /* i=0..nval_AAA-1 , j=0..mcov */
 #undef  BXX
@@ -157,6 +159,9 @@ static int do_sdat         = 0 ;     /* 29 Aug 2016 */
 static int *randomsign_AAA = NULL ;
 static int *randomsign_BBB = NULL ;
 static int num_randomsign  = 0 ;     /* 02 Feb 2016 */
+static int do_permute      = 1 ;     /* 07 Dec 2016 - on by default */
+static int dont_permute    = 0 ;
+static char *CS_arg        = NULL ;  /* 07 Dec 2016 */
 
 static int       do_clustsim = 0 ;   /* 10 Feb 2016 */
 static int      num_clustsim = 0 ;
@@ -210,6 +215,7 @@ static void setup_randomsign(void)  /* moved here 02 Feb 2016 */
 
    if( randomsign_AAA == NULL )
      randomsign_AAA = (int *)malloc(sizeof(int)*nval_AAA) ;
+
    nb = (int)rintf(0.15f*nval_AAA) ; if( nb < 1 ) nb = 1 ;
    nt = nval_AAA - nb ;
    do{
@@ -228,7 +234,9 @@ static void setup_randomsign(void)  /* moved here 02 Feb 2016 */
    if( nval_BBB > 0 ){
      if( randomsign_BBB == NULL )
        randomsign_BBB = (int *)malloc(sizeof(int)*nval_BBB) ;
-     nb = (int)rintf(0.345f*nval_BBB) ; nt = nval_BBB - nb ;
+
+     nb = (int)rintf(0.15f*nval_BBB) ; if( nb < 1 ) nb = 1 ;
+     nt = nval_BBB - nb ;
      do{
        for( nflip=jj=0 ; jj < nval_BBB ; jj++ ){
          randomsign_BBB[jj] = (lrand48()>>3) % 2 ;
@@ -242,6 +250,90 @@ static void setup_randomsign(void)  /* moved here 02 Feb 2016 */
      fprintf(stderr,"\n") ;
 #endif
    }
+}
+
+/*--------------------------------------------------------------------------*/
+/* How -permute is implemented [07 Dec 2016] */
+/*--------------------------------------------------------------------------*/
+
+static int    p_nxy  = 0 ;     /* total length of data */
+static float *p_xyar = NULL ;  /* array to hold both samples */
+static int   *p_ijar = NULL ;  /* permutation array */
+
+/*---------- create the permutation of length nx+ny into p_ijar ----------*/
+
+static void setup_permute( int nx , int ny )
+{
+   int ii,jj,tt ;
+
+   if( nx == 0 || ny == 0 ) return ;  /* how did this happen? */
+
+   if( nx+ny > p_nxy ){  /* make workspaces */
+     p_nxy = nx+ny ;
+     p_xyar = (float *)realloc(p_xyar,sizeof(float)*p_nxy) ;
+     p_ijar = (int   *)realloc(p_ijar,sizeof(int  )*p_nxy) ;
+   }
+
+   /* initialize the permutation a little randomly */
+
+   tt = lrand48() % p_nxy ;
+   for( ii=0 ; ii < p_nxy ; ii++ ) p_ijar[ii] = (ii+tt)%p_nxy ;
+
+   /* create a random-ish permutation */
+   /* https://en.wikipedia.org/wiki/Random_permutation */
+
+   for( ii=0 ; ii < p_nxy-1 ; ii++ ){
+     jj = (lrand48()>>3) % (p_nxy-ii) ; /* jj in 0..p_nxy-ii-1 inclusive */
+                                        /* so ii+jj in ii..p_nxy-1 inclusive */
+     if( jj > 0 ){                      /* swap */
+       tt = p_ijar[ii] ; p_ijar[ii] = p_ijar[ii+jj] ; p_ijar[ii+jj] = tt ;
+     }
+   }
+
+#if 0
+   {static int first=9 ;  /* debugging printouts */
+    if( first ){
+      fprintf(stderr,"\nPermutation [0..%d]:",p_nxy-1) ;
+      for(ii=0;ii<p_nxy;ii++){
+        fprintf(stderr," %d%c" , p_ijar[ii] , ((p_ijar[ii] < nx) ? 'A' : 'B') ) ;
+        if( ii == nx-1 ) fprintf(stderr," ;") ;
+      }
+      fprintf(stderr,"\n") ;
+      first--;
+   }}
+#endif
+
+   return ;
+}
+
+/*------ same permutation is applied for all voxels for each iteration ------*/
+
+static void permute_arrays( int nx , float *x , int ny , float *y )
+{
+   int ii ;
+
+   /* these errors should never ever happen */
+
+   if( nx == 0 || ny == 0 || x == NULL || y == NULL || p_nxy != nx+ny ){
+     static int first=1 ;
+     if( first ){
+       ERROR_message("-permute failure for unexplainable reasons :(") ;
+       first = 0 ;
+     }
+     return ;
+   }
+
+   /* copy 2 inputs into 1 big array */
+
+   for( ii=0 ; ii < nx ; ii++ ) p_xyar[ii]    = x[ii] ;
+   for( ii=0 ; ii < ny ; ii++ ) p_xyar[ii+nx] = y[ii] ;
+
+   /* scatter the results back to the input arrays */
+
+   for( ii=0 ; ii < nx ; ii++ ) x[ii] = p_xyar[p_ijar[ii]   ] ;
+   for( ii=0 ; ii < ny ; ii++ ) y[ii] = p_xyar[p_ijar[ii+nx]] ;
+
+   return ;
 }
 
 /*--------------------------------------------------------------------------*/
@@ -836,16 +928,20 @@ void display_help_menu(void)
       "                   selectors.\n"
       "\n"
       " -prefix p = Gives the name of the output dataset file.\n"
-      "             ++ For surface-based datasets, use something like:\n"
-      "                 -prefix p.niml.dset or -prefix p.gii.dset \n"
-      "                Otherwise you may end up files containing numbers but\n"
-      "                not a full set of header information.\n"
+      "              ++ For surface-based datasets, use something like:\n"
+      "                  -prefix p.niml.dset or -prefix p.gii.dset \n"
+      "                 Otherwise you may end up files containing numbers but\n"
+      "                 not a full set of header information.\n"
       "\n"
       " -resid q  = Output the residuals into a dataset with prefix 'q'.\n"
-      "             ++ The residuals are the difference between the data values\n"
-      "                and their prediction from the set mean (and set covariates).\n"
-      "             ++ For use in further analysis of the results (e.g., 3dFWHMx).\n"
-      "             ++ Cannot be used with '-brickwise' or '-zskip' (sorry).\n"
+      "              ++ The residuals are the difference between the data values\n"
+      "                 and their prediction from the set mean (and set covariates).\n"
+      "              ++ For use in further analysis of the results (e.g., 3dFWHMx).\n"
+      "              ++ Cannot be used with '-brickwise' or '-zskip' (sorry).\n"
+      "\n"
+      " -ACF      = If residuals are saved, also compute the ACF parameters from\n"
+      "             them using program 3dFHWMx -- for further use in 3dClustSim\n"
+      "             (which must be run separately).\n"
       "\n"
       " -randomsign = Randomize the signs of the datasets.  Intended to be used\n"
       "               with the output of '-resid' to generate null hypothesis\n"
@@ -855,15 +951,42 @@ void display_help_menu(void)
       "             ++ You will never get an 'all positive' or 'all negative' sign\n"
       "                flipping case -- each sign will be present at least 15%%\n"
       "                of the time.\n"
-      "             ++ There must be at least 7 samples in each input set to\n"
-      "                use this option.\n"
+      "             ++ There must be at least 4 samples in each input set to\n"
+      "                use this option, and at least a total of 14 samples in\n"
+      "                setA and setB combined.\n"
       "             ++ If you following '-randomsign' with a number (e.g.,\n"
       "                '-randomsign 1000'), then you will get 1000 iterations\n"
       "                of random sign flipping, so you will get 1000 times the\n"
       "                as many output sub-bricks as usual. This is intended for\n"
       "                for use with simulations such as '3dClustSim -inset'.\n"
+      "         -->>++ This option is usually not used directly, but will be\n"
+      "                invoked by the use of '-Clustsim'.  It documented here\n"
+      "                for the sake of telling the Galaxy how the program works.\n"
       "\n"
-      " -clustsim   = With this option, after the commanded t-tests are done, then:\n"
+      " -permute    = With '-randomsign', and when both '-setA' and '-setB' are used,\n"
+      "               this option will add inter-set permutation to the randomization.\n"
+      "             ++ If only '-setA' is used (1-sample test), there is no permutation!\n"
+      "             ++ If '-randomsign' is NOT given, but '-Clustsim' is used, then\n"
+      "                '-permute' will be passed for use with the '-Clustsim' tests\n"
+      "                (again, only if '-setA' and '-setB' are both used).\n"
+      "             ++ If '-randomsign' is given and if the following conditions\n"
+      "                are ALL true, then '-permute' is assumed:\n"
+      "                  (a) You have a 2-sample test.\n"
+      "                      [Permutation is meaningless without 2 samples!]\n"
+      "                  (b) You are not using '-unpooled'.\n"
+      "                  (c) You are not using '-paired'.\n"
+      "                  (c) You are not using '-covariates'.\n"
+      "         -->>++ You only NEED to use '-permute' if you want inter-set\n"
+      "                permutation used AND you give at least one of '-unpooled' or\n"
+      "                '-paired' or '-covariates'. Normally, you don't need '-permute'.\n"
+      "             ++ There is no option to do permutation WITHOUT sign randomization :(\n"
+      "\n"
+      " -nopermute  = This option is present if you want to turn OFF the automatic\n"
+      "               use of inter-set permutation with '-randomsign'.\n"
+      "             ++ I'm not sure WHY you would want this option, but it is here\n"
+      "                for completeness of the Galactic Chronosynclastic Infundibulum.\n"
+      "\n"
+      " -Clustsim   = With this option, after the commanded t-tests are done, then:\n"
       "                (a) the residuals from '-resid' are used with '-randomsign' to\n"
       "                    simulate about 10000 null 3D results, and then\n"
       "                (b) 3dClustSim is run with those to generate cluster-threshold\n"
@@ -874,32 +997,31 @@ void display_help_menu(void)
       "               The goal is to provide a method for cluster-level statistical\n"
       "               inference in the output dataset, to be used with the AFNI GUI\n"
       "               Clusterize controls.\n"
-      "              ++ If you want to keep the 3dClustSim table .1D files, use this\n"
-      "                 option in the form '-Clustsim'.  If you want to keep ALL the\n"
-      "                 temporary files, use '-CLUSTSIM'.\n"
+      "              ++ If you want to keep ALL the temporary files, use '-CLUSTSIM'.\n"
       "              ++ Since the simulations are done with '-toz' active, the program\n"
       "                 also turns on the '-toz' option for your output dataset. This\n"
       "                 means that the output statistics will be z-scores, not t-values.\n"
-      "              ++ '-clustsim' will not work with less than 7 datasets in each\n"
-      "                 input set -- in particular, it doesn't work with '-singletonA'.\n"
-      "          -->>++ '-clustsim' runs step (a) in multiple jobs, for speed.  By\n"
+      "              ++ If you have less than 14 datasets total (setA and setB combined),\n"
+      "                 this option will not work!\n"
+      "               ** And it will not work with '-singletonA'.\n"
+      "          -->>++ '-Clustsim' runs step (a) in multiple jobs, for speed.  By\n"
       "                 default, it tries to auto-detect the number of CPUs on the system\n"
       "                 and uses that many separate jobs.  If you put a positive integer\n"
-      "                 immediately following the option, as in '-clustsim 12', it will\n"
+      "                 immediately following the option, as in '-Clustsim 12', it will\n"
       "                 instead use that many jobs (e.g., 12).  This capability is to\n"
       "                 be used when the CPU count is not auto-detected correctly.\n"
 #if 0
-      "          -->>++ '-clustsim' can use up all the memory on a computer, and even\n"
+      "          -->>++ '-Clustsim' can use up all the memory on a computer, and even\n"
       "                 more -- causing the computer to freeze or crash.  The program\n"
       "                 tries to avoid this, but it is not always possible to detect\n"
       "                 how much memory is usable on a computer. For this reason, you\n"
       "                 can use this option in the form\n"
-      "                    -clustsim NCPU NGIG\n"
+      "                    -Clustsim NCPU NGIG\n"
       "                 where NCPU is the number of CPUs (cores) to use, and NGIG is\n"
       "                 the number of gigabytes of memory to use.  This may help you\n"
       "                 prevent the 'Texas meltdown'.\n"
 #endif
-      "          -->>++ It is important to use the proper '-mask' option with '-clustsim'.\n"
+      "          -->>++ It is important to use the proper '-mask' option with '-Clustsim'.\n"
       "                 Otherwise, the statistics of the clustering will be skewed (badly).\n"
       "\n"
       "        ---==>>> PLEASE NOTE: This option has been tested for 1- and 2-sample\n"
@@ -908,7 +1030,7 @@ void display_help_menu(void)
       "        ---==>>> The FAR for the covariate effects (as opposed to the main effect)\n"
       "        ---==>>> is still somewhat biased away from the 5%% level :(\n"
       "\n"
-      " -prefix_clustsim cc = Use 'cc' for the prefix for the '-clustsim' temporary\n"
+      " -prefix_clustsim cc = Use 'cc' for the prefix for the '-Clustsim' temporary\n"
       "                       files, rather than a randomly generated prefix.\n"
       "                       You might find this useful if scripting.\n"
       "                      ++ The default randomly generated prefix will start with\n"
@@ -919,7 +1041,7 @@ void display_help_menu(void)
       " -tempdir ttt        = Store temporary files for '-Clustsim' in this directory,\n"
       "                       rather than in the current working directory: this option\n"
       "                       is for use when you have access to a fast local disk\n"
-      "                       compared to general storage on a network RAID.\n"
+      "                       (e.g., SSD) compared to general storage on a network RAID.\n"
       "                       [NOTE: if you use '-CLUSTSIM', these files aren't deleted!]\n"
 
 #if 0 /*** hidden from user ***/
@@ -1382,25 +1504,28 @@ int is_possible_filename( char * fname )
 static int   njob   = 0 ;
 static pid_t *jobid = NULL ;
 
+#include <errno.h>
+
 void start_job( char *cmd )   /* 10 Feb 2016 */
 {
    pid_t newid ;
 
    if( cmd == NULL || *cmd == '\0' ) return ;
 
+   errno = 0 ;
    newid = fork() ;
 
    if( newid == (pid_t)-1 ){  /*--- fork failed -- should never happen ---*/
 
      int qq ;
-     ERROR_message("----- Failure to fork for cmd = '%s'") ;
+     ERROR_message("----- Failure to fork for job=%d error='%s'",njob,strerror(errno)) ;
      for( qq=0 ; qq < njob ; qq++ ){
        ERROR_message("  Killing fork-ed job %d (pid=%u)",
                         qq , (unsigned int)jobid[qq]   ) ;
-       kill( jobid[qq] ,SIGTERM   ) ; NI_sleep(10) ;
+       kill( jobid[qq] ,SIGTERM   ) ; NI_sleep(1) ;
        waitpid( jobid[qq] , NULL , 0 ) ;
      }
-     ERROR_exit("Program exits -- sorry :-(") ;
+     ERROR_exit("Program exits -- sorry :-(((") ;
 
    } else if( newid > 0 ){    /*--- fork worked -- we are the original ---*/
 
@@ -1573,14 +1698,28 @@ int main( int argc , char *argv[] )
        continue ;
      }
 
-     /*----- -clustsim njob [10 Feb 2016] -----*/
+     /*----- permute ----*/
 
-     if( strcasecmp(argv[nopt],"-clustsim") == 0 ){
+     if( strcasecmp(argv[nopt],"-permute") == 0 ){  /* 07 Dec 2016 */
+       do_permute = 2 ;    /* force it on, if possible */
+       nopt++ ; continue ;
+     }
+
+     /*----- nopermute ----*/
+
+     if( strcasecmp(argv[nopt],"-nopermute") == 0 ){ /* 09 Dec 2016 */
+       do_permute = 0 ; dont_permute = 1 ;  /* force it off */
+       nopt++ ; continue ;
+     }
+
+     /*----- -Clustsim njob [10 Feb 2016] -----*/
+
+     if( strcasecmp(argv[nopt],"-Clustsim") == 0 ){
        char *uuu ;
        if( do_clustsim )
-         WARNING_message("Why do you use -clustsim more than once?!") ;
+         WARNING_message("Why do you use -Clustsim more than once?!") ;
        if( do_Xclustsim )
-         ERROR_exit("You can't use -clustsim and -Xclustsim together!") ;
+         ERROR_exit("You can't use -Clustsim and -Xclustsim together!") ;
        toz = 1 ;
 
        clustsim_prog = "3dClustSim" ;
@@ -1596,9 +1735,9 @@ int main( int argc , char *argv[] )
        if( nopt < argc && isdigit(argv[nopt][0]) ){
          num_clustsim = (int)strtod(argv[nopt],NULL) ; nopt++ ;
          if( num_clustsim > 99 ){
-           WARNING_message("CPU count after -clustsim is > 99") ; num_clustsim = 99 ;
+           WARNING_message("CPU count after -Clustsim is > 99") ; num_clustsim = 99 ;
          } else if( num_clustsim < 1 ){
-           WARNING_message("CPU count after -clustsim is < 1" ) ; num_clustsim = 1 ;
+           WARNING_message("CPU count after -Clustsim is < 1" ) ; num_clustsim = 1 ;
          }
        }
 
@@ -1610,7 +1749,7 @@ int main( int argc , char *argv[] )
          if( jj > 0 && (jj < num_clustsim || num_clustsim == 1) ) num_clustsim = jj ;
        }
 
-       INFO_message("Number of -clustsim threads set to %d",num_clustsim) ;
+       INFO_message("Number of -Clustsim threads set to %d",num_clustsim) ;
        if( prefix_clustsim == NULL ){
          uuu = UNIQ_idcode_11() ;
          prefix_clustsim = (char *)malloc(sizeof(char)*32) ;
@@ -1627,7 +1766,7 @@ int main( int argc , char *argv[] )
        if( do_Xclustsim )
          WARNING_message("Why do you use -Xclustsim more than once?!") ;
        if( do_clustsim )
-         ERROR_exit("You can't use -clustsim and -Xclustsim together!") ;
+         ERROR_exit("You can't use -Clustsim and -Xclustsim together!") ;
        toz = 1 ;
 
        clustsim_prog = "3dXClustSim" ;
@@ -1749,6 +1888,20 @@ int main( int argc , char *argv[] )
          int nch = strlen(Xclu_arg) + strlen(argv[nopt]) + 16 ;
          Xclu_arg = (char *)realloc(Xclu_arg,sizeof(char)*nch) ;
          strcat(Xclu_arg," ") ; strcat(Xclu_arg,argv[nopt]) ;
+       }
+       nopt++ ; continue ;
+     }
+
+     /*----- -CS_arg string [07 Dec 2016] -----*/
+
+     if( strcasecmp(argv[nopt],"-CS_arg") == 0 ){
+       if( ++nopt >= argc ) ERROR_exit("need 1 argument after '%s'",argv[nopt-1]) ;
+       if( CS_arg == NULL ){
+         CS_arg = strdup(argv[nopt]) ;
+       } else {
+         int nch = strlen(CS_arg) + strlen(argv[nopt]) + 16 ;
+         CS_arg = (char *)realloc(CS_arg,sizeof(char)*nch) ;
+         strcat(CS_arg," ") ; strcat(CS_arg,argv[nopt]) ;
        }
        nopt++ ; continue ;
      }
@@ -2082,6 +2235,10 @@ int main( int argc , char *argv[] )
        nopt++ ; continue ;
      }
 
+     if( strcasecmp(argv[nopt],"-ACF") == 0 ){  /* 30 Dec 2016 */
+       do_ACF = 1 ; nopt++ ; continue ;
+     }
+
      /*----- -singletonA [19 Mar 2015] -----*/
 
      if( strcmp(argv[nopt],"-singletonA") == 0 ){
@@ -2250,14 +2407,18 @@ int main( int argc , char *argv[] )
 
    }  /*-------------------- end of option parsing --------------------*/
 
-   /*----- check some stuff -----*/
+   /*----- check lots of possible usage errors and other things -----*/
 
    if( !brickwise ) brickwise_num = 1 ;      /* 28 Jan 2014 */
+
+   if( debug ) INFO_message("brickwise_num set to %d",brickwise_num) ;
+
+   /* randomizations combined with various things can't be done */
 
    if( brickwise && do_randomsign )          /* 02 Feb 2016 */
      ERROR_exit("You can't use -brickwise and -randomsign together!") ;
 
-   if( do_clustsim && do_Xclustsim )
+   if( do_clustsim && do_Xclustsim ) /* should not be possible */
      ERROR_exit("You can't use -Clustsim and -Xclustsim together :(") ;
 
    if( nnopt_Xclu > 0 && !do_Xclustsim )
@@ -2281,11 +2442,6 @@ int main( int argc , char *argv[] )
    if( do_randomsign && do_resid )           /* 02 Feb 2016 */
      ERROR_exit("You can't do -resid and -randomsign together!") ;
 
-   if( do_tests+do_means == 0 )
-     ERROR_exit("You can't use -nomeans and -notests together! (Duh)") ;
-
-   if( debug ) INFO_message("brickwise_num set to %d",brickwise_num) ;
-
    if( do_clustsim || do_Xclustsim ){
      if( DSET_NY(dset_AAA[0]) < 4 || DSET_NZ(dset_AAA[0]) < 4 )  /* 21 Jul 2016 */
        ERROR_exit("You cannot use the '%s' option except on 3D datasets :-(",clustsim_opt) ;
@@ -2303,6 +2459,13 @@ int main( int argc , char *argv[] )
        }
      }
    }
+
+   /* did the user say to do nothing at all? */
+
+   if( do_tests+do_means == 0 )
+     ERROR_exit("You can't use -nomeans and -notests together! (Duh)") ;
+
+   /* check sample counts */
 
    twosam = (nval_BBB > 1) ; /* 2 sample test? */
 
@@ -2397,21 +2560,87 @@ int main( int argc , char *argv[] )
      do_1sam = 1 ;
    }
 
-   if( brickwise && do_resid ) /* 07 Dec 2015 */
+   if( brickwise && do_resid )               /* 07 Dec 2015 */
      ERROR_exit("You can't use -brickwise and -resid together :-(") ;
+
+   if( do_ACF && !do_resid ){                /* 30 Dec 2016 */
+     INFO_message("-ACF option is turned off because -resid wasn't also given") ;
+     do_ACF = 0 ;
+   }
 
    if( do_zskip && do_resid )  /* 31 Dec 2015 */
      ERROR_exit("You can't use -resid and -zskip together :-(") ;
 
-   if( do_randomsign && nval_AAA < 7 )
-     ERROR_exit("You can't use -randomsign with nval_AAA=%d < 7",nval_AAA) ;
-   if( do_randomsign && nval_BBB > 0 && nval_BBB < 7 )
-     ERROR_exit("You can't use -randomsign with nval_BBB=%d < 7",nval_BBB) ;
+   /* check lower limits on dataset counts if doing randomization stuff */
 
-   if( (do_clustsim || do_Xclustsim) && nval_AAA < 7 )
-     ERROR_exit("You can't use %s with nval_AAA=%d < 7",clustsim_opt,nval_AAA) ;
-   if( (do_clustsim || do_Xclustsim) && nval_BBB > 0 && nval_BBB < 7 )
-     ERROR_exit("You can't use %s with nval_BBB=%d < 7",clustsim_opt,nval_BBB) ;
+   if( do_randomsign && nval_AAA < 4 )
+     ERROR_exit("You can't use -randomsign with nval_AAA=%d < 4",nval_AAA) ;
+   if( do_randomsign && nval_BBB > 0 && nval_BBB < 4 )
+     ERROR_exit("You can't use -randomsign with nval_BBB=%d < 4",nval_BBB) ;
+   if( do_randomsign && nval_AAA+nval_BBB < 14 )
+     ERROR_exit("You can't use -randomsign with nval_AAA+nval_BBB=%d < 14",nval_AAA+nval_BBB) ;
+
+   if( do_Xclustsim && !twosam && nval_AAA < 17 )
+     ERROR_exit("You can't use %s with nval_AAA=%d in a 1-sample test",
+                clustsim_opt,nval_AAA) ;
+   if( do_Xclustsim && nval_AAA+nval_BBB < 14 )
+     ERROR_exit("You can't use %s in a 2-sample test with nval_AAA+nval_BBB=%d < 14",
+                clustsim_opt,nval_AAA+nval_BBB) ;
+
+   if( do_clustsim && nval_AAA < 4 )
+     ERROR_exit("You can't use %s with nval_AAA=%d < 4",clustsim_opt,nval_AAA) ;
+   if( do_clustsim && nval_BBB > 0 && nval_BBB < 4 )
+     ERROR_exit("You can't use %s with nval_BBB=%d < 4",clustsim_opt,nval_BBB) ;
+   if( do_clustsim && (nval_AAA+nval_BBB) < 14 )
+     ERROR_exit("You can't use %s with nval_AAA+nval_BBB=%d < 14",clustsim_opt,nval_AAA+nval_BBB) ;
+
+   /* check if -permute is used reasonably */
+
+   if( !twosam ){
+     if( do_permute > 1 ){
+       WARNING_message("only 1 sample: -permute is turned off") ;
+     }
+     do_permute = 0 ; dont_permute = 1 ;
+   }
+
+   if( do_permute && dont_permute ){ /* check if user did both -nopermute and -permute */
+     if( do_permute > 1 ) WARNING_message("-nopermute turns off -permute") ;
+     do_permute = 0 ;
+   }
+
+   if( do_permute ){
+     if( !do_randomsign && !do_clustsim && !do_Xclustsim ){  /* is it useful? */
+       if( do_permute > 1 )
+         WARNING_message("-permute without -randomsign or -Clustsim -- turning it off :(") ;
+       { do_permute = 0 ; dont_permute = 1 ; }
+     }
+     if( singletonA ){                                        /* is it legal? */
+       if( do_permute > 1 )
+         WARNING_message("You can't use -permute with -singletonA -- turning it off :(") ;
+       { do_permute = 0 ; dont_permute = 1 ; }
+     }
+     if( ttest_opcode == 1 ){         /* -unpooled -- keep -permute or not? */
+       if( do_permute == 1 )          /* default to off */
+         { do_permute = 0 ; dont_permute = 1 ; }
+       else if( do_permute > 1 )      /* forced on */
+         WARNING_message("-permute with -unpooled is somewhat weird\n"
+                         "           -- but since you asked for it, you'll get it :)") ;
+     }
+     if( ttest_opcode == 2 ){         /* -paired -- keep -permute or not? */
+       if( do_permute == 1 )          /* default to off */
+         { do_permute = 0 ; dont_permute = 1 ; }
+       else if( do_permute > 1 )      /* forced on */
+         WARNING_message("-permute with -paired is definitely weird\n"
+                         "           -- but since you asked for it, you'll get it :)") ;
+     }
+     if( mcov > 0 ){                  /* -covariates -- keep -permute or not? */
+       if( do_permute == 1 )          /* default to off */
+         { do_permute = 0 ; dont_permute = 1 ; }
+       else if( do_permute > 1 )      /* forced on */
+         WARNING_message("-permute with -covariates is a little weird\n"
+                         "           -- but since you asked for it, you'll get it :)") ;
+     }
+   } /* end of polymorphic permute perturbations */
 
 #ifdef ALLOW_RANK
    if( do_ranks && !twosam ){
@@ -2902,7 +3131,13 @@ LABELS_ARE_DONE:  /* target for goto above */
    for( bb=0 ; bb < brickwise_num ; bb++ ){  /* for each 'brick' to process */
      bbase = bb*nvout ;
 
-     if( do_randomsign ) setup_randomsign() ; /* moved here 02 Feb 2016 */
+     /* setup permutation and randomization:
+        the same things are applied to all voxels for each iteration! */
+
+     if( do_randomsign ){
+       setup_randomsign() ;
+       if( do_permute ) setup_permute(nval_AAA,nval_BBB) ;
+     }
 
      if( bstep > 0 && bb%bstep==bstep/2 ) vstep_print() ;
 
@@ -2944,6 +3179,9 @@ LABELS_ARE_DONE:  /* target for goto above */
 
        resar = VECTIM_PTR(vimout,kout) ;                    /* results array */
        memset( resar , 0 , sizeof(float)*nvres ) ;          /* (set to zero) */
+
+       if( do_permute && do_randomsign )         /* permute amongst all data */
+         permute_arrays( nval_AAA,datAAA, nval_BBB,datBBB );  /* 07 Dec 2016 */
 
        if( randomsign_AAA != NULL ){        /* randomize signs [31 Dec 2015] */
          for( ii=0 ; ii < nval_AAA ; ii++ )
@@ -3210,6 +3448,24 @@ LABELS_ARE_DONE:  /* target for goto above */
 
    if( rrset != NULL ){
      DSET_write(rrset) ; WROTE_DSET(rrset) ; DSET_unload(rrset) ;
+
+     if( do_ACF ){                      /* 30 Dec 2016 */
+       char cmd[4096] , *anam , *cpt ;
+       anam = strdup(prefix_resid) ;
+       cpt  = strstr(anam,".nii" ) ; if( cpt != NULL ) *cpt = '\0' ;
+       cpt  = strstr(anam,"+tlrc") ; if( cpt != NULL ) *cpt = '\0' ;
+       cpt  = strstr(anam,"+orig") ; if( cpt != NULL ) *cpt = '\0' ;
+       cpt  = strstr(anam,"+acpc") ; if( cpt != NULL ) *cpt = '\0' ;
+       sprintf(cmd,"3dFWHMx -input %s -acf %s.ACF.out" ,
+                   prefix_resid , anam ) ;
+       if( name_mask != NULL )
+         sprintf( cmd+strlen(cmd) , " -mask %s",name_mask) ;
+       sprintf( cmd+strlen(cmd) , " | tail -1 > %s.ACFparam.txt" , anam ) ;
+       INFO_message("Command to compute ACF from residuals now running:\n"
+                    "   %s",cmd) ;
+       system(cmd) ;
+       INFO_message("ACF parameter output in %s.ACFparam.txt",anam) ;
+     }
    }
 
    if( singletonA )
@@ -3231,11 +3487,13 @@ LABELS_ARE_DONE:  /* target for goto above */
      use_sdat = do_Xclustsim ||
                 ( name_mask != NULL && !AFNI_yesenv("AFNI_TTEST_NIICSIM") ) ;
 
+     /* how many iterations? */
+
      ncsim = (int)AFNI_numenv("AFNI_TTEST_NUMCSIM") ;  /* 0 if not set */
           if( ncsim <    10000 ) ncsim =  ncmin ;
-     else if( ncsim > 10000000 ) ncsim = 10000000 ;
+     else if( ncsim > 10000000 ) ncsim = 10000000 ;    /* that's a lot */
 
-     cmd  = (char *)malloc(sizeof(char)*(8192+mcov*128)) ;
+     cmd  = (char *)malloc(sizeof(char)*(16384+mcov*256+(nval_AAA+nval_BBB)*512)) ;
      nper = ncsim / num_clustsim ; if( nper*num_clustsim < ncsim ) nper++ ;
 
      tfname = (char **)malloc(sizeof(char *)*num_clustsim) ;
@@ -3254,13 +3512,24 @@ LABELS_ARE_DONE:  /* target for goto above */
 
        if( !use_sdat )
          sprintf( cmd , "3dttest++ -DAFNI_AUTOMATIC_FDR=NO -DAFNI_DONT_LOGFILE=YES"
-                        " -randomsign %d -nomeans -toz" , nper ) ;
+                        " -randomsign %d -nomeans -toz \\\n   " , nper ) ;
        else
          sprintf( cmd , "3dttest++ -DAFNI_AUTOMATIC_FDR=NO -DAFNI_DONT_LOGFILE=YES"
-                        " -RANDOMSIGN %d -nomeans -toz" , nper ) ;
+                        " -RANDOMSIGN %d -nomeans -toz \\\n   " , nper ) ;
 
-       sprintf( cmd+strlen(cmd) , " -no1sam -dofsub %d",-dofsub) ;
+       /* set various options to duplicate the t-test parameters,
+          and to get only the results we need for the cluster simulations */
 
+       if( nval_BBB != 0 )    /* we don't do the 1-sample results */
+         sprintf( cmd+strlen(cmd) , " -no1sam" ) ;
+
+       if( do_permute )
+         sprintf( cmd+strlen(cmd) , " -permute" ) ;    /* 07 Dec 2016 */
+       else if( dont_permute )
+         sprintf( cmd+strlen(cmd) , " -nopermute" ) ;  /* 09 Dec 2016 */
+
+       if( dofsub != 0 )
+         sprintf( cmd+strlen(cmd) , " -dofsub %d",-dofsub) ;
        if( name_mask != NULL )
          sprintf( cmd+strlen(cmd) , " -mask %s",name_mask) ;
        if( ttest_opcode == 1 )
@@ -3268,7 +3537,12 @@ LABELS_ARE_DONE:  /* target for goto above */
        if( ttest_opcode == 2 )
          sprintf( cmd+strlen(cmd) , " -paired") ;
 
-       if( mcov == 0 ){   /* no covariates == easy peasy */
+       if( CS_arg != NULL )     /* any extra arguments from the user */
+         sprintf( cmd+strlen(cmd) , " %s",CS_arg ) ;  /* 07 Dec 2016 */
+
+       sprintf( cmd+strlen(cmd) , " \\\n   ") ;
+
+       if( mcov == 0 ){   /* no covariates == easy peasy (just the sets) */
 
          if( nval_BBB == 0 ){  /* only -setA */
            sprintf( cmd+strlen(cmd) , " -setA %s" , prefix_resid ) ;
@@ -3290,11 +3564,15 @@ LABELS_ARE_DONE:  /* target for goto above */
          if( center_meth == CMETH_MEDIAN )
            sprintf( cmd+strlen(cmd) , " -cmeth MEDIAN") ;
 
+         sprintf( cmd+strlen(cmd) , " \\\n   ") ;
+
          sprintf( cmd+strlen(cmd) , " -setA rAAA" ) ;
          for( jj=0 ; jj < nval_AAA ; jj++ ){
            sprintf( cmd+strlen(cmd) , " %s %s'[%d]'" , labl_AAA[jj] , prefix_resid , jj ) ;
          }
          if( nval_BBB > 0 ){
+           sprintf( cmd+strlen(cmd) , " \\\n   ") ;
+
            sprintf( cmd+strlen(cmd) , " -setB rBBB" ) ;
            for( jj=0 ; jj < nval_BBB ; jj++ ){
              sprintf( cmd+strlen(cmd) , " %s %s'[%d]'" , labl_BBB[jj] , prefix_resid , jj+nval_AAA ) ;
@@ -3302,15 +3580,20 @@ LABELS_ARE_DONE:  /* target for goto above */
          }
        }
 
+       /* temporary filename */
+
        tfname[pp] = (char *)malloc(sizeof(char)*THD_MAX_NAME) ;
        if( !use_sdat ){
          sprintf(tfname[pp],"%s/%s.%03d.nii",tempdir,prefix_clustsim,pp) ;
+         sprintf( cmd+strlen(cmd) , " \\\n   ") ;
          sprintf( cmd+strlen(cmd) , " -prefix %s" , tfname[pp] ) ;
        } else {
          sprintf(tfname[pp],"%s/%s.%03d.sdat",tempdir,prefix_clustsim,pp) ;
+         sprintf( cmd+strlen(cmd) , " \\\n   ") ;
          sprintf( cmd+strlen(cmd) , " -prefix %s" , tfname[pp] ) ;
        }
-       /* the command for 3dttest++ is finished here */
+
+       /* the command for 3dttest++ is finished now */
 
        /* let only job #0 print progress to the screen */
        if( pp > 0 ) strcat(cmd," &> /dev/null") ;
@@ -3326,7 +3609,7 @@ LABELS_ARE_DONE:  /* target for goto above */
      wait_for_jobs() ;
 
      ct2 = COX_clock_time() ;
-     ININFO_message("===== jobs have finished (%.1f s elapsed) =====",ct2-ct1) ;
+     ININFO_message("===== all jobs have finished (%.1f s elapsed) =====",ct2-ct1) ;
      ct1 = ct2 ;
 
      /* run 3dClustSim[X] using the outputs from the above as the simulations */
@@ -3338,14 +3621,16 @@ LABELS_ARE_DONE:  /* target for goto above */
          sprintf( cmd , "3dClustSim -DAFNI_DONT_LOGFILE=YES"
                         " -prefix %s.CSim -LOTS -both -nodec -cmd %s -inset" ,
                         prefix_clustsim , fname ) ;
-         for( pp=0 ; pp < num_clustsim ; pp++ )
-           sprintf( cmd+strlen(cmd) , " %s" , tfname[pp]) ;
+         sprintf( cmd+strlen(cmd) , " \\\n   ") ;
          if( name_mask != NULL )
            sprintf( cmd+strlen(cmd) , " -mask %s",name_mask) ;
+         for( pp=0 ; pp < num_clustsim ; pp++ )
+           sprintf( cmd+strlen(cmd) , " %s" , tfname[pp]) ;
        } else {
          sprintf( cmd , "3dClustSim -DAFNI_DONT_LOGFILE=YES"
                         " -prefix %s.CSim -LOTS -both -nodec -cmd %s -insdat %s" ,
                         prefix_clustsim , fname , name_mask ) ;
+         sprintf( cmd+strlen(cmd) , " \\\n   ") ;
          for( pp=0 ; pp < num_clustsim ; pp++ )
            sprintf( cmd+strlen(cmd) , " %s" , tfname[pp]) ;
        }
@@ -3371,25 +3656,30 @@ LABELS_ARE_DONE:  /* target for goto above */
        system(cmd) ;
 
      } else {  /*----- 3dXClustSim [30 Aug 2016] -----*/
+
        int ixx , nxx=MAX(nnopt_Xclu,1) ; Xclu_opt *opx ;
        int nnlev, sid, npthr ; float *pthr ; char *nam ;
 
-       for( ixx=0 ; ixx < nxx ; ixx++ ){  /* loop over -Xclu_opt cases */
-         if( ixx < nnopt_Xclu ){
+       for( ixx=0 ; ixx < nxx ; ixx++ ){   /* loop over -Xclu_opt cases */
+         if( ixx < nnopt_Xclu ){   /* and run 3dXClustSim once for each */
            opx   = opt_Xclu[ixx] ;
-           nnlev = opx->nnlev ;
-           sid   = opx->sid ;
-           npthr = opx->npthr ;
-            pthr = opx->pthr ;
-           nam   = opx->name ;
+           nnlev = opx->nnlev ;      /* NN method */
+           sid   = opx->sid ;        /* sideness of t-test */
+           npthr = opx->npthr ;      /* number of threshold */
+            pthr = opx->pthr ;       /* threshold array */
+           nam   = opx->name ;       /* code name for output */
          } else {
            nnlev = sid = npthr = 0 ; pthr = NULL ; nam="default" ;
          }
 
-         sprintf( cmd , "3dXClustSim -DAFNI_DONT_LOGFILE=YES"
+         sprintf( cmd , "3dXClustSim -DAFNI_DONT_LOGFILE=YES -noFARvox"
                         " -prefix %s.%s.CsimX.nii" , prefix_clustsim , nam ) ;
-         if( Xclu_arg != NULL )
-           sprintf( cmd+strlen(cmd) , " %s",Xclu_arg) ;
+         sprintf( cmd+strlen(cmd) , " \\\n   ") ;
+
+         if( Xclu_arg != NULL ){  /* any extra argument from user */
+           sprintf( cmd+strlen(cmd) , " %s",Xclu_arg ) ;
+           sprintf( cmd+strlen(cmd) , " \\\n   ") ;
+         }
 
          if( nnlev > 0 )
            sprintf( cmd+strlen(cmd) , " -NN%d" , nnlev ) ;
@@ -3401,6 +3691,7 @@ LABELS_ARE_DONE:  /* target for goto above */
            for( pp=0 ; pp < npthr ; pp++ )
              sprintf( cmd+strlen(cmd) , " %.5f",pthr[pp]) ;
          }
+         sprintf( cmd+strlen(cmd) , " \\\n   ") ;
          sprintf( cmd+strlen(cmd) , " -insdat %s",name_mask) ;
          for( pp=0 ; pp < num_clustsim ; pp++ )
            sprintf( cmd+strlen(cmd) , " %s" , tfname[pp]) ;
@@ -3413,7 +3704,7 @@ LABELS_ARE_DONE:  /* target for goto above */
      /* remove intermediate files */
 
      if( do_Xclustsim == 1 ){
-       ININFO_message("===== deleting temp files =====") ;
+       ININFO_message("===== deleting -Xclustsim temp files =====") ;
        sprintf(cmd,"\\rm %s",prefix_resid) ;
        for( pp=0 ; pp < num_clustsim ; pp++ )
          sprintf(cmd+strlen(cmd)," %s",tfname[pp]) ;
@@ -3428,16 +3719,16 @@ LABELS_ARE_DONE:  /* target for goto above */
        }
        system(cmd) ;
      } else if( do_clustsim == 2 ){                     /** the default case **/
-       ININFO_message("===== deleting temp files =====") ;
+       ININFO_message("===== deleting -Clustsim temp files =====") ;
        sprintf(cmd,"\\rm %s.*.niml %s",prefix_clustsim,prefix_resid) ;
        for( pp=0 ; pp < num_clustsim ; pp++ )
          sprintf(cmd+strlen(cmd)," %s",tfname[pp]) ;
        system(cmd) ;
      } else {
-       ININFO_message("===== NOT deleting any temp files =====") ;
+       ININFO_message("===== NOT deleting any -Clustsim temp files =====") ;
      }
 
-     /* et viola */
+     /* et viola (or maybe cello?) */
 
 #if 0
      free(ccc) ; free(cmd) ;

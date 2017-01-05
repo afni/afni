@@ -9171,6 +9171,125 @@ int AFNI_get_dset_label_val(THD_3dim_dataset *dset, double *val, char *str)
 }
 
 
+/* An integer version of AFNI_get_dset_label_val(), which assumes ints
+ * to begin with.                                  30 Nov 2016 [rickr]
+ *
+ * NOTE: the return values have been expanded in this version
+ *
+ * return  1 if found
+ *         0 if not
+ *        -1 on error
+*/
+int AFNI_get_dset_label_ival(THD_3dim_dataset *dset, int *val, char *str)
+{
+   ATR_string * atr=NULL;
+   char       * str_lab=NULL;
+   int          found;
+
+   ENTRY("AFNI_get_dset_label_ival") ;
+
+   if (!dset || !val || !str) {
+      ERROR_message("AGDLIv: missing params, have %p, %p, %p\n",dset,val,str);
+      RETURN(-1);
+   }
+
+   *val = 0;
+   found = 0;
+
+   /* initialize hash table */
+   if (!dset->Label_Dtable &&
+       (atr = THD_find_string_atr( dset->dblk , "VALUE_LABEL_DTABLE" ))) {
+      dset->Label_Dtable = Dtable_from_nimlstring(atr->ch);
+   }
+
+   /* try to find label in dataset */
+   if (dset->Label_Dtable) {
+      str_lab = findin_Dtable_b(str, dset->Label_Dtable);
+      /* fprintf(stderr,"ZSS: Have value '%s' for label '%s'\n",
+                     str_lab ? str_lab:"NULL", str); */
+      if (str_lab) {
+         *val = strtol(str_lab, NULL, 10);
+         RETURN(1);
+      }
+   }
+
+   RETURN(0);
+}
+
+
+/* Fill the int_list with a single label value or an expanded list
+ *
+ * return: -1 on error, else number of ints found
+ * 
+ * needs expanding
+*/
+int thd_LT_label_to_int_list(THD_3dim_dataset *dset, int_list *ilist, char *str)
+{
+   int ival, rv;
+
+   ENTRY("thd_LT_label_to_int_list") ;
+
+   if (!dset || !ilist || !str) {
+      ERROR_message("TLLTIL: missing params, have %p, %p, %p\n",dset,ilist,str);
+      RETURN(-1);
+   }
+
+   /* empty the list, but do not free it */
+   ilist->num = 0;
+
+   /* see if this is a single lable in the dataset label table */
+   rv = AFNI_get_dset_label_ival(dset, &ival, str);
+   if( rv < 0 ) RETURN(-1);
+   if( rv > 0 ) {
+      /* if there was a match, insert into list and return */
+      if( add_to_int_list(ilist, ival, 16) < 0 ) {
+         ERROR_message("TLLTIL: failed to add 1 val to int list, n=%d\n",
+                       ilist->num);
+         RETURN(-1);
+      }
+      RETURN(1); /* returning 1 value */
+   }
+
+   /* no match yet, try string as globally known label */
+
+   if( known_atlas_label_to_int_list(ilist, str) < 0 )
+      RETURN(-1);  /* error */
+
+   /* further ponder ilist->num == 0 ? */
+
+   RETURN(ilist->num);
+}
+
+
+/* top-level function for converting globally known labels to a corresponding
+ * list of ints
+ * 
+ * e.g. AFNI_GLAB_FS5_WM might expand to a list of FreeSurfer 5 WM values
+ * e.g. AFNI_GLAB_FS6_WM might be useful if FreeSurfer 6 changes the numbers
+ *
+ * This should realy be done using a hash table (or a list of them), akin to
+ * how findin_Dtable_b() works.
+ *
+ * return -1 on error, else num returned values           30 Nov 2016 [rickr]
+ */
+int known_atlas_label_to_int_list(int_list * ilist, char * str)
+{
+   ENTRY("known_atlas_label_to_int_list");
+
+   if( !ilist || !str ) {
+      ERROR_message("KALTIL: missing params, have %p, %p\n", ilist, str);
+      RETURN(-1);
+   }
+
+   ilist->num = 0;
+
+
+   /* display this list via some verbosity flag (wami_verb()?) */
+
+   RETURN(ilist->num);
+}
+
+
 /* open Elsevier's BrainNavigator in webpage */
 /* xyz input should be in RAI in the same space as atlas,
    but BrainNavigator takes "RSA" as xyz order, so coords need

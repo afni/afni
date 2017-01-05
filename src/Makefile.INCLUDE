@@ -100,6 +100,7 @@ PROGRAMS = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge count   
            3dToyProg 3dRankizer nifti1_tool gifti_tool cifti_tool images_equal  \
            uniq_images tokens 3dLocalACF 3dXClustSim 3dtoXdataset 3dMultiThresh \
            3dLFCD 3dDegreeCentrality 3dECM 3dMSE 3dsvm_linpredict 3dTfilter     \
+           3dTsplit4D \
            $(EXTRAS)
 
 PROGRAMS_NOPLUG = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge      \
@@ -1971,8 +1972,8 @@ afni_doc.tgz:
 install_devs: ptaylor_install pkundu_install jzosky_install
 
 install: $(INSTALLDIR) $(INSTALL_PREREQ) install_devs
-	$(MV) $(PROGRAMS) $(INSTALLDIR)
 	$(CP) $(SCRIPTS_DIR)/* $(INSTALLDIR)
+	$(MV) $(PROGRAMS) $(INSTALLDIR)
 	$(CP) $(PY_DIR)/*.py  $(R_DIR)/*.R $(INSTALLDIR)
 	$(CP) html/??*.* $(EXTRA_INSTALL_FILES) $(INSTALLDIR)
 	if [ -f README.environment ]; then $(CP) README.*    $(INSTALLDIR); fi;
@@ -2628,6 +2629,13 @@ r_idisp.o: rickr/r_idisp.c rickr/r_idisp.h
 r_misc.o: rickr/r_misc.c rickr/r_misc.h
 	$(RM) $@
 	$(CC) -c rickr/r_misc.c $(INFLAGS)
+
+#######
+# Peter Molfese programs
+
+3dTsplit4D: 3dTsplit4D.o libmri.a
+	$(RM) $@
+	$(CC) -o 3dTsplit4D 3dTsplit4D.o $(LFLAGS) $(LLIBS)
 
 #######
 # rickr programs

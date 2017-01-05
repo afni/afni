@@ -44,6 +44,37 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 30 , DEC , 2016 , RWC , "3dttest++" , MICRO , TYPE_NEW_OPT ,
+   "Add -ACF option -- to compute ACF parameters from residuals" ,
+   NULL } ,
+
+ { 29 , DEC , 2016 , RWC , "@SSwarper" , MINOR , TYPE_NEW_PROG ,
+   "New script to combine skull stripping and nonlinear warping" ,
+   "Uses partial warping to improve skull stripping, and then finishes the\n"
+   "warping, producing outputs compatible for use with afni_proc.py\n"
+   "-tlrc_NL_warped_dsets" } ,
+
+ { 21 , DEC , 2016 , RWC , "3dQwarp" , MICRO , TYPE_GENERAL ,
+   "Add -awarp option, to save Allineate-to-Nonlinear warp only" ,
+   "If -allineate is used, the output WARP dataset is the catenated affine\n"
+   "transform from 3dAllineate and the nonlinear warp from Warpomatic.  If\n"
+   "the user wants to keep the 'pure' nonlinear warp from Warpomatic, then\n"
+   "'-awarp' will do so, with a dataset containing the AWARP moniker." } ,
+
+ { 21 , DEC , 2016 , RWC , "3dQwarp" , MINOR , TYPE_NEW_OPT ,
+   "Add '-wmask' option" ,
+   "Like '-wball', enhances the auto-generated weight in a region, but this\n"
+   "region is selected by a mask dataset." } ,
+
+ { 20 , DEC , 2016 , RWC , "3dUnifize" , MICRO , TYPE_MODIFY ,
+   "Tweak to make sure tiny values aren't amplified much by -GM" ,
+   "Tiny positive values way outside the brain could get super-amplified by\n"
+   "the -GM switch, producing a 3D halo.  This fix clips those off." } ,
+
+ { 20 , DEC , 2016 , RWC , "AFNI GUI" , MICRO , TYPE_ENHANCE ,
+   "Allow blowups for saved montage images" ,
+   "For @snapshot_volreg3 script, but of course anyone can use it now." } ,
+
  { 18 , NOV , 2016 , RWC , "afni GUI" , MICRO , TYPE_ENHANCE ,
    "Add 'QUITT' command to the driver" ,
    "Exits AFNI immediately, rather than calling the usual leisurely rundown.\n"

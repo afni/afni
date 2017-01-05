@@ -1273,7 +1273,7 @@ def Check_Matr_type(LM):
 
     return
 
-def FindGroupwiseTargets(All_sub_grid, ftype, ExternLabsOK):
+def FindGroupwiseTargets(All_sub_grid, ftype, ExternLabsOK, UNION=0):
     '''Take a list of 4-tuples representing subject data (and a string
     of what filetype it is), go through all, and find set of
     intersecting matrix elements based on labels.  When done, return
@@ -1295,7 +1295,11 @@ def FindGroupwiseTargets(All_sub_grid, ftype, ExternLabsOK):
     print '\tThe number of elements in the ROI matrix set is:\n\t  ',
     for i in range(1,Nsub):
         print '%d,' % len(a),
-        a.intersection_update(GetSet(All_sub_grid[i], ftype, ExternLabsOK))
+        if UNION: 
+            # updating with the *union* of regions
+            a.update(GetSet(All_sub_grid[i], ftype, ExternLabsOK))
+        else:
+            a.intersection_update(GetSet(All_sub_grid[i], ftype, ExternLabsOK))
     print '%d.' % len(a)
 
     temp = list(a)
