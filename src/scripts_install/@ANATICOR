@@ -48,10 +48,11 @@ endif
 GET_msk:
 if ($verb) echo "Making masks from aseg file ..."
 
+# remove 16   29 Dec 2016 [rickr]
 3dcalc -a $fn_aseg \
        -expr 'equals(a,2)   +equals(a,7)   +equals(a,41)  +equals(a,46) \
              +equals(a,251) +equals(a,252) +equals(a,253) +equals(a,254) \
-             +equals(a,255) +equals(a, 16)' \
+             +equals(a,255)' \
        -prefix __mask_WM  >& /dev/null
 if ($DoLVe) then
 3dcalc -a $fn_aseg -expr 'equals(a,4) +equals(a,43)' \

@@ -824,7 +824,14 @@ fprintf(stderr,"VOL[%d]: id=%d\n",ibr,id) ;
 #if 0
 fprintf(stderr,"master_bot=%g master_top=%g\n",blk->master_bot,blk->master_top) ;
 #endif
-   if( DBLK_IS_MASTERED(blk) && blk->master_bot <= blk->master_top )
+   /* rcr - replace this with DBLK_IS_RANGE_MASTERED to also check for
+    *       csv list
+    *     - then call a new parent function to THD_apply_master_subrange
+    *
+    * *** same as in thd_load_nifti and thd_niml.c
+    */
+
+   if( DBLK_IS_MASTER_SUBRANGED(blk) )
       THD_apply_master_subrange(blk) ;
 
    if( verb ) fprintf(stderr,".done\n") ;
@@ -1011,7 +1018,15 @@ int THD_apply_master_subrange( THD_datablock * blk )
 
 ENTRY("THD_apply_master_limits") ;
 
-   if( ! DBLK_IS_MASTERED(blk) || blk->master_bot > blk->master_top )
+   if( ! DBLK_IS_MASTERED(blk) )
+        RETURN(0);
+
+   /* if set, process csv list instead of bot..top      30 Nov 2016 [rickr] */
+   if( (blk->master_ncsv > 0) && (blk->master_csv != NULL) )
+        RETURN(THD_apply_master_subrange_list(blk));
+
+   /* if not applicable, skip bot..top range */
+   if( blk->master_bot > blk->master_top )
         RETURN(0);
 
    dkptr = blk->diskptr ;
@@ -1111,6 +1126,128 @@ fprintf(stderr,"mbot=%d mtop=%d\n",(int)mbot,(int)mtop) ;
         break ;
      }
   }
+
+  RETURN(0) ;
+}
+
+/*----------------------------------------------------------------------------*/
+/*! Apply master limit lists to data sub-bricks.           30 Nov 2016 [rickr]
+  
+    Like THD_apply_master_subrange(), but require all values to have
+    corresponding entries in master_csv list.
+
+    This will be a slower function.
+
+    Perhaps this should all go directly through floats?  Perhaps generalize
+    to list of float ranges?  It would not be difficult.
+  
+    return 0 on success
+*//*--------------------------------------------------------------------------*/
+int THD_apply_master_subrange_list( THD_datablock * blk )
+{
+   THD_diskptr * dkptr ;
+   float       * fcsv=NULL;
+   int           jbr, ii, ic, ncsv, nxyz ;
+
+ENTRY("THD_apply_master_limits") ;
+
+   if( ! DBLK_IS_MASTERED(blk) || blk->master_ncsv <= 0 ||
+                                  blk->master_csv == NULL )
+        RETURN(0);
+
+   /* should we warn if DBLK_BRICK_FACTOR() != 0.0 or 1.0? */
+
+   /* do all work as floats, to ease issues with brick factors */
+   /* (unless we do not allow factors, and then re-write this) */
+   ncsv = blk->master_ncsv;
+   fcsv = (float *)malloc(ncsv * sizeof(float));
+   for( ii=0; ii < ncsv; ii++)
+      fcsv[ii] = (float)blk->master_csv[ii];
+
+   dkptr = blk->diskptr ;
+   nxyz = dkptr->dimsizes[0] * dkptr->dimsizes[1] * dkptr->dimsizes[2];
+
+   for( jbr=0 ; jbr < dkptr->nvals ; jbr++ ){
+     switch( DBLK_BRICK_TYPE(blk,jbr) ){
+
+        default:
+           fprintf(stderr, "** TAMSL: cannot sub-range datum type %s\n",
+                           MRI_TYPE_name[DBLK_BRICK_TYPE(blk,jbr)]) ;
+           RETURN(1);
+        break ;
+
+        case MRI_short:{
+           short *mar = (short *) DBLK_ARRAY(blk,jbr) ;
+           float dval, mfac = DBLK_BRICK_FACTOR(blk,jbr) ;
+           if( mfac == 0.0 ) mfac = 1.0 ;
+           for( ii=0 ; ii < nxyz ; ii++ ) {
+              /* write as function?  overhead per voxel, hmmmm... */
+              dval = mar[ii] * mfac;
+              for( ic=0; ic < ncsv; ic++ )
+                 if( dval == fcsv[ic] ) break;
+              /* if not found, clear */
+              if( ic == ncsv ) mar[ii] = 0 ;
+           }
+        }
+        break ;
+
+        /* going through float limits to 24 of 32 bits, ~16 million */
+        case MRI_int:{
+           int *mar = (int *) DBLK_ARRAY(blk,jbr) ;
+           float dval, mfac = DBLK_BRICK_FACTOR(blk,jbr) ;
+           if( mfac == 0.0 ) mfac = 1.0 ;
+           for( ii=0 ; ii < nxyz ; ii++ ) {
+              dval = mar[ii] * mfac;
+              for( ic=0; ic < ncsv; ic++ )
+                 if( dval == fcsv[ic] ) break;
+              if( ic == ncsv ) mar[ii] = 0 ; /* if not found, clear */
+           }
+        }
+        break ;
+
+        case MRI_byte:{
+           byte *mar = (byte *) DBLK_ARRAY(blk,jbr) ;
+           float dval, mfac = DBLK_BRICK_FACTOR(blk,jbr) ;
+           if( mfac == 0.0 ) mfac = 1.0 ;
+           for( ii=0 ; ii < nxyz ; ii++ ) {
+              dval = mar[ii] * mfac;
+              for( ic=0; ic < ncsv; ic++ )
+                 if( dval == fcsv[ic] ) break;
+              if( ic == ncsv ) mar[ii] = 0 ; /* if not found, clear */
+           }
+        }
+        break ;
+
+        case MRI_float:{
+           float *mar = (float *) DBLK_ARRAY(blk,jbr) ;
+           float dval, mfac = DBLK_BRICK_FACTOR(blk,jbr) ;
+           if( mfac == 0.0 ) mfac = 1.0 ;
+           for( ii=0 ; ii < nxyz ; ii++ ) {
+              dval = mar[ii] * mfac;
+              for( ic=0; ic < ncsv; ic++ )
+                 if( dval == fcsv[ic] ) break;
+              if( ic == ncsv ) mar[ii] = 0 ; /* if not found, clear */
+           }
+        }
+        break ;
+
+        case MRI_complex:{
+           complex *mar = (complex *) DBLK_ARRAY(blk,jbr) ;
+           float dval, mfac = DBLK_BRICK_FACTOR(blk,jbr) ;
+           if( mfac == 0.0 ) mfac = 1.0 ;
+           for( ii=0 ; ii < nxyz ; ii++ ){
+              dval = CABS(mar[ii]) ;
+              for( ic=0; ic < ncsv; ic++ )
+                 if( dval == fcsv[ic] ) break;
+              /* if not found, clear */
+              if( ic == ncsv ) mar[ii].r = mar[ii].i = 0 ;
+           }
+        }
+        break ;
+     }
+  }
+
+  free(fcsv);
 
   RETURN(0) ;
 }
