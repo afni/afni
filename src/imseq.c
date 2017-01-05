@@ -292,6 +292,18 @@ static char *  ppmto_png_filter   = NULL ;  /* 07 Dec 2006 */
 #define DO_MPEG(sq) ((sq)->opt.save_mpeg)
 #define DO_ANIM(sq) (DO_AGIF(sq) || DO_MPEG(sq))
 
+/* below: the first DO_BLOWUP will let montages be blown up
+          the second will not [20 Dec 2016]                 */
+
+#if 1
+# define DO_BLOWUP(sss)                                  \
+   ((sss)->zoom_fac > 1 || (sss)->saver_blowup > 1)
+#else
+# define DO_BLOWUP(sss)                                  \
+   ( ((sss)->zoom_fac > 1 || (sss)->saver_blowup > 1) && \
+     ((sss)->mont_nx == 1 && (sss)->mont_ny     == 1)      )
+#endif
+
 #define ADDTO_PPMTO(pnam,suff,bbb)                                       \
   do{ ppmto_filter = (char **) realloc( ppmto_filter ,                   \
                                         sizeof(char *)*(ppmto_num+1) ) ; \
@@ -3966,10 +3978,7 @@ ENTRY("ISQ_saver_CB") ;
 
          /* 23 Mar 2002: zoom out, if ordered */
 
-         if( (seq->zoom_fac > 1 || seq->saver_blowup > 1) &&
-             seq->mont_nx  == 1    &&
-             seq->mont_ny  == 1    &&
-             tim           != NULL && tim->kind == MRI_rgb ){
+         if( DO_BLOWUP(seq) && tim != NULL && tim->kind == MRI_rgb ){
 
            int zf = MAX(seq->zoom_fac,seq->saver_blowup) ;
            MRI_IMAGE *qim ;
@@ -4238,11 +4247,11 @@ ENTRY("ISQ_saver_CB") ;
 
          /* 26 Mar 2002: zoom out, and geometry overlay, maybe */
 
-         if( (seq->zoom_fac > 1 || seq->saver_blowup > 1) && seq->mont_nx == 1 && seq->mont_ny == 1 ){
+         if( DO_BLOWUP(seq) ){
            int zf = MAX(seq->zoom_fac,seq->saver_blowup) ;
            if( dbg ) fprintf(stderr,"  zoom zoom zoom\n") ;
            if( !AFNI_yesenv("AFNI_IMAGE_ZOOM_NN") ) mri_dup2D_mode(-7) ;
-           tim=mri_dup2D(zf,flim) ;
+           tim = mri_dup2D(zf,flim) ;
            mri_dup2D_mode(7) ;
            mri_free(flim) ; flim = tim ;
          }
@@ -13214,7 +13223,7 @@ ENTRY("ISQ_save_image") ;
 
    /** zoom? **/
 
-   if( (seq->zoom_fac > 1 || seq->saver_blowup > 1) && seq->mont_nx == 1 && seq->mont_ny == 1 ){
+   if( DO_BLOWUP(seq) ){
      int zf = MAX(seq->zoom_fac,seq->saver_blowup) ;
      if( !AFNI_yesenv("AFNI_IMAGE_ZOOM_NN") ) mri_dup2D_mode(-7) ;
      flim = mri_dup2D(zf,tim) ;
@@ -13557,10 +13566,10 @@ ENTRY("ISQ_save_anim") ;
 
       /* 26 Mar 2002: zoom out, and geometry overlay, maybe */
 
-      if( (seq->zoom_fac > 1 || seq->saver_blowup > 1) && seq->mont_nx == 1 && seq->mont_ny == 1 ){
+      if( DO_BLOWUP(seq) ){
         int zf = MAX(seq->zoom_fac,seq->saver_blowup) ;
         if( !AFNI_yesenv("AFNI_IMAGE_ZOOM_NN") ) mri_dup2D_mode(-7) ;
-        tim=mri_dup2D(zf,flim) ;
+        tim = mri_dup2D(zf,flim) ;
         mri_dup2D_mode(7) ;
         mri_free(flim) ; flim = tim ;
       }

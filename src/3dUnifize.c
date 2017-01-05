@@ -118,6 +118,8 @@ static INLINE float median7(float *p)
 /* Shrink a 3D image down by a factor of 2 in all dimensions,
    by taking the median of each point and its 6 nearest neighbors. */
 
+static int do_double = 1 ;
+
 #undef  FSUB
 #define FSUB(far,i,j,k,ni,nij) far[(i)+(j)*(ni)+(k)*(nij)]
 
@@ -265,13 +267,21 @@ ENTRY("mri_local_percentile") ;
 
    /* shrink image by 2 for speedup */
 
-   bim = mri_double_down(aim) ; bar = MRI_FLOAT_PTR(bim) ; mri_free(aim) ;
+   if( do_double ){
+     bim = mri_double_down(aim) ; bar = MRI_FLOAT_PTR(bim) ; mri_free(aim) ;
+   } else {
+     bim = aim ; bar = MRI_FLOAT_PTR(bim) ;
+   }
    bms = (byte *)malloc(sizeof(byte)*bim->nvox) ;
    for( ii=0 ; ii < bim->nvox ; ii++ ) bms[ii] = (bar[ii] != 0.0f) ;
 
    /* neighborhood has 1/2 radius in the shrunken volume */
 
-   nbhd = MCW_spheremask( 1.0f,1.0f,1.0f , 0.5f*vrad+0.001f ) ;
+   if( do_double )
+     nbhd = MCW_spheremask( 1.0f,1.0f,1.0f , 0.5f*vrad+0.001f ) ;
+   else
+     nbhd = MCW_spheremask( 1.0f,1.0f,1.0f ,      vrad        ) ;
+
    nbar = (float *)malloc(sizeof(float)*nbhd->num_pt) ;
 
    cim = mri_new_conforming(bim,MRI_float) ; car = MRI_FLOAT_PTR(cim) ;
@@ -306,9 +316,12 @@ ENTRY("mri_local_percentile") ;
 
    mri_free(bim) ; free(bms) ; free(nbar) ; KILL_CLUSTER(nbhd) ;
 
-   dim = mri_double_up( cim , fim->nx%2 , fim->ny%2 , fim->nz%2 ) ;
-
-   mri_free(cim) ;
+   if( do_double ){
+     dim = mri_double_up( cim , fim->nx%2 , fim->ny%2 , fim->nz%2 ) ;
+     mri_free(cim) ;
+   } else {
+     dim = cim ;
+   }
 
    RETURN(dim) ;
 }
@@ -362,7 +375,12 @@ ENTRY("mri_local_percmean") ;
 
    if( verb ) fprintf(stderr,"D") ;
 
-   bim = mri_double_down(aim) ; bar = MRI_FLOAT_PTR(bim) ; mri_free(aim) ;
+   if( do_double ){
+     bim = mri_double_down(aim) ; bar = MRI_FLOAT_PTR(bim) ; mri_free(aim) ;
+   } else {
+     bim = aim ; bar = bar = MRI_FLOAT_PTR(bim) ;
+   }
+
    bms = (byte *)malloc(sizeof(byte)*bim->nvox) ;
    for( ii=0 ; ii < bim->nvox ; ii++ ) bms[ii] = (bar[ii] != 0.0f) ;
 
@@ -372,7 +390,10 @@ ENTRY("mri_local_percmean") ;
 
    /* create neighborhood mask (1/2 radius in the shrunken copy) */
 
-   nbhd = MCW_spheremask( 1.0f,1.0f,1.0f , 0.5f*vrad+0.001f ) ;
+   if( do_double )
+     nbhd = MCW_spheremask( 1.0f,1.0f,1.0f , 0.5f*vrad+0.001f ) ;
+   else
+     nbhd = MCW_spheremask( 1.0f,1.0f,1.0f ,      vrad        ) ;
 
    cim = mri_new_conforming(bim,MRI_float) ; car = MRI_FLOAT_PTR(cim) ;
    SetSearchAboutMaskedVoxel(1) ;
@@ -476,11 +497,14 @@ ENTRY("mri_local_percmean") ;
 
    /* expand output image back to original size */
 
-   dim = mri_double_up( cim , fim->nx%2 , fim->ny%2 , fim->nz%2 ) ;
+   if( do_double ){
+     dim = mri_double_up( cim , fim->nx%2 , fim->ny%2 , fim->nz%2 ) ;
+     mri_free(cim) ;
+   } else {
+     dim = cim ;
+   }
 
    if( verb ) fprintf(stderr,"U") ;
-
-   mri_free(cim) ;
 
    RETURN(dim) ;
 }
@@ -508,6 +532,11 @@ ENTRY("mri_WMunifize") ;
    if( fim == NULL ) RETURN(NULL) ;
 
    /* create image of local high-intensity value */
+
+   if( do_double == 1 ) do_double = (fim->nvox > 1000000) ;
+#if 0
+   INFO_message("do_double = %d",do_double) ;
+#endif
 
    pim = mri_local_percmean( fim , Uprad , Upbot,Uptop ) ;
    if( pim == NULL ) RETURN(NULL) ;
@@ -579,8 +608,9 @@ ENTRY("mri_GMunifize") ;
 
    pfac = (PKVAL-PKMID) / (PKVAL-pmid) ;
 
+   plower *= 0.333f ;
    for( ii=0 ; ii < nvox ; ii++ ){
-     if( gar[ii] > 0.0f ){
+     if( gar[ii] >= plower ){
        gar[ii] = pfac * (gar[ii]-PKVAL) + PKVAL ;
        if( gar[ii] < 0.0f ) gar[ii] = 0.0f ;
      } else {
@@ -804,6 +834,10 @@ int main( int argc , char *argv[] )
 
    iarg = 1 ;
    while( iarg < argc && argv[iarg][0] == '-' ){
+
+     if( strcmp(argv[iarg],"-double") == 0 ){  /* 23 Dec 2016 -- for testing only */
+       do_double = 2 ; iarg++ ; continue ;
+     }
 
      if( strcmp(argv[iarg],"-clfrac") == 0 || strcmp(argv[iarg],"-mfrac") == 0 ){    /* 22 May 2013 */
        if( ++iarg >= argc ) ERROR_exit("Need argument after '%s'",argv[iarg-1]) ;

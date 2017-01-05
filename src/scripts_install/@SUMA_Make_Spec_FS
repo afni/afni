@@ -12,6 +12,13 @@
 #           -debug      level      : display extra output
 #
 
+# [Dec 30, 2016]: PT+RCR updated.
+#    + new renumbering of aparc/aseg files for both 2000 and 2009
+#      atlases
+#    + replaces functionality of 'rank' data sets
+#    + produce tissue maps based on hopefully good guesses of FS
+#      labeling
+
 #----------------------------------------------------------------------
 goto L_INIT_VARS
      L_INIT_VARS_DONE:
@@ -48,6 +55,10 @@ goto L_ICO
 
 goto L_TEST_SURF_VOL
      L_TEST_SURF_VOL_DONE:
+
+# PT added [Dec 30, 2016]
+goto L_RENUMBER_ROIS
+     L_RENUMBER_ROIS_DONE:
 
 goto L_GOOD_END   # finished, woohooo!
 
@@ -1193,6 +1204,19 @@ L_TEST_SURF_VOL:
 
 goto L_TEST_SURF_VOL_DONE
 
+####################################################################
+# [PT, Dec 30, 2016]
+# finally replacing rank utility.
+
+L_RENUMBER_ROIS:
+
+    echo "\n\n++ Going to make renumbered ROIs now."
+    echo "    --> done for colorbar and making tissue maps."
+    echo "        See '@SUMA_renumber_FS -help' for description.\n\n"
+
+    @SUMA_renumber_FS $suma_dir
+
+goto L_RENUMBER_ROIS_DONE
 
 ####################################################################
 # display help and exit
@@ -1214,6 +1238,10 @@ echo "        by FreeSurfer. The segmentation volumes with aseg in the "
 echo "        name are best viewed in AFNI with the FreeSurfer_Seg_255"
 echo "        colormap. See bottom of @SUMA_FSvolToBRIK -help for more"
 echo "        info." 
+echo "      - [new: Dec 30, 2016] new renumbered data sets output, to"
+echo "        replace old '*rank*' file data sets. Also new tissue maps"
+echo "        based on FS functions and labels. Collectively, these are"
+echo "        the '*REN*' dsets in the output directory."
 echo ""
 echo "      - all created files are stored in a new SUMA directory"
 echo ""
@@ -1367,13 +1395,15 @@ echo "       but NOT between SUBJ_lh and SUBJ_rh surfaces."
 echo ""
 echo "  notes:"
 echo ""
-echo "    0. More help may be found at https://afni.nimh.nih.gov/ssc/ziad/SUMA/SUMA_doc.htm"
+echo "    0. More help may be found at:"
+echo "           https://afni.nimh.nih.gov/ssc/ziad/SUMA/SUMA_doc.htm"
 echo "    1. Surface file names should look like 'lh.smoothwm'."
 echo "    2. Patches of surfaces need the word patch in their name, in"
 echo "       order to use the correct option for 'mris_convert'."
 echo "    3. Flat surfaces must have .flat in their name."
-echo "    4. You can tailor the script to your needs. Just make sure you rename it or risk"
-echo "       having your modifications overwritten with the next SUMA version you install."
+echo "    4. You can tailor the script to your needs. Just make sure you"
+echo "       rename it or risk having your modifications overwritten with"
+echo "       the next SUMA version you install."
 echo ""
 echo "     R. Reynolds (rickr@codon.nih.gov)"
 echo "     Z. Saad (saadz@mail.nih.gov)"

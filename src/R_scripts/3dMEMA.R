@@ -111,8 +111,8 @@ read.MEMA.opts.interactive <- function (verb = 0) {
          lop$tList[[ii]] <- lapply(lop$tFN[[ii]], read.AFNI, 
                                    verb=lop$verb, meth=lop$iometh);
          if(ii==1) {
-            lop$head <- lop$bList[[1]]
-            lop$myDim <- lop$bList[[1]][[1]]$dim
+            lop$head <- lop$bList[[1]][[1]]
+            lop$myDim <- lop$head$dim
          }
          #{ 
          #   lop$myNote=lop$bList[[1]][[1]]$header$HISTORY_NOTE; 
@@ -511,7 +511,7 @@ greeting.MEMA <- function ()
           ================== Welcome to 3dMEMA.R ==================          
              AFNI Mixed-Effects Meta-Analysis Modeling Package!
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 1.0.0, Nov 17, 2016
+Version 1.0.1, Dec 21, 2016
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - https://afni.nimh.nih.gov/sscc/gangc/MEMA.html
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -544,7 +544,7 @@ Usage:
  both regression coefficients, or general linear contrasts among them, and the 
  corresponding t-statistics from each subject as input. It\'s required to install 
  R (https://www.r-project.org/), plus \'snow\' package if parallel computing is
- desirable. Version 1.0.0, Nov 17, 2016. If you want to cite the analysis
+ desirable. Version 1.0.1, Dec 21, 2016. If you want to cite the analysis
  approach, use the following at this moment:
 
  Chen et al., 2012. FMRI Group Analysis Combining Effect Estimates
@@ -1221,8 +1221,8 @@ process.MEMA.opts <- function (lop, verb = 0) {
          lop$tList[[ii]] <- lapply(lop$tFN[[ii]], read.AFNI, 
                                    verb=lop$verb, meth=lop$iometh);
          if(ii==1) {
-            lop$head <- lop$bList[[1]]
-            lop$myDim <- lop$bList[[1]][[1]]$dim
+            lop$head <- lop$bList[[1]][[1]]
+            lop$myDim <- lop$head$dim
          }
          #{ 
          #   lop$myNote=lop$bList[[1]][[1]]$header$HISTORY_NOTE; 
@@ -1298,8 +1298,8 @@ process.MEMA.opts <- function (lop, verb = 0) {
          lop$tList[[ii]] <- lapply(lop$tFN[[ii]], read.AFNI, 
                                    verb=lop$verb, meth=lop$iometh);
          if(ii==1) {
-            lop$head <- lop$bList[[1]]
-            lop$myDim <- lop$bList[[1]][[1]]$dim
+            lop$head <- lop$bList[[1]][[1]]
+            lop$myDim <- lop$head$dim
          }
          #{
          #   lop$myNote=lop$bList[[1]][[1]]$header$HISTORY_NOTE; 

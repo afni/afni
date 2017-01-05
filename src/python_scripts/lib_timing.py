@@ -24,10 +24,10 @@ g_marry_AM_methods = ['lin_run_fraq', 'lin_event_index']
 #                    either time intervals or magnitudes
 
 class AfniTiming(LD.AfniData):
-   def __init__(self, filename="", dur=-1, verb=1):
+   def __init__(self, filename="", dur=-1, mdata=None, verb=1):
       """AFNI married stimulus timing class"""
 
-      super(AfniTiming, self).__init__(filename, verb=verb)
+      super(AfniTiming, self).__init__(filename, mdata=mdata, verb=verb)
 
       # additional variables (on top of those in AfniData)
       self.dur_len = -1           # if MTYPE_DUR, length of equal intervals

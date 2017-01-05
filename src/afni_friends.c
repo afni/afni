@@ -101,7 +101,8 @@ static AFNI_friend afni_friends[] = {
   { "P Taylor"       ,      (                      64 | 128 | 512       ) } ,
   { "P Kundu"        ,      (                      64                   ) } ,
   { "S Gotts"        ,      (    8 |          32                        ) } ,
-  { "S Japee"        ,      (                           128             ) }
+  { "S Japee"        ,      (                           128             ) } ,
+  { "X Weng"         ,      (    8                                      ) }
 } ;
 
 #define NUM_FRIENDS (sizeof(afni_friends)/sizeof(AFNI_friend))
@@ -174,6 +175,7 @@ static mday holiday[] = {
    {JAN, 1,"Haiti Independence Day"                                  } ,
    {JAN, 1,"Western Samoa Independence Day"                          } ,
    {JAN, 1,"Sudan Independence Day"                                  } ,
+   {JAN, 1,"Satyendra Nath Bose's birthday"                          } ,
    {JAN, 2,"Isaac Asimov's birthday"                                 } ,
    {JAN, 3,"John Ronald Reuel Tolkien's birthday"                    } ,
    {JAN, 3,"Anniversary of Battle of Princeton"                      } ,
@@ -448,7 +450,7 @@ static mday holiday[] = {
    {JUN,17,"Anniversary of Battle of Bunker's Hill"                  } ,
    {JUN,17,"Iceland Republic Day"                                    } ,
    {JUN,19,"Juneteenth"                                              } ,
-   {JUN,19,"Kuwait National Day"                                     } ,
+/*   {JUN,19,"Kuwait National Day"                                     } , */
    {JUN,20,"Anniversary of Oxford University"                        } ,
    {JUN,21,"Alexander the Great's birthday"                          } ,
    {JUN,22,"Anniversary of saxophone invention"                      } ,
@@ -743,6 +745,7 @@ static mday holiday[] = {
    {NOV,30,"Barbados Independence Day"                               } ,
    {NOV,30,"Saint Andrew's Day"                                      } ,
    {NOV,30,"Barbados Independence Day"                               } ,
+   {NOV,30,"Jagdish Chandra Bose's birthday"                         } ,
 
    {DEC, 1,"Anniversary of Rosa Parks' arrest"                       } ,  /* WW */
    {DEC, 1,"Woody Allen's birthday"                                  } ,
@@ -754,7 +757,7 @@ static mday holiday[] = {
    {DEC, 3,"Joseph Konrad's birthday"                                } ,
    {DEC, 3,"Anniversary of Galileo's telescope"                      } ,
    {DEC, 4,"Crazy Horse's birthday"                                  } ,
-   {DEC, 5,"Anniversary of Prohibition's end"                        } ,
+   {DEC, 5,"Anniversary of Prohibition's end!"                       } ,
    {DEC, 5,"George Armstrong Custer's birthday"                      } ,
    {DEC, 5,"Werner Karl Heisenberg's birthday"                       } ,
    {DEC, 5,"Jozef Pilsudki's birthday"                               } ,
@@ -762,10 +765,12 @@ static mday holiday[] = {
    {DEC, 6,"Finland Independence Day"                                } ,
    {DEC, 6,"Anniversary of the Irish Free State"                     } ,
    {DEC, 6,"Henryk Gorecki's birthday"                               } ,
+   {DEC, 6,"Anniversary of 13th Amendment!"                          } ,
    {DEC, 7,"Anniversary of Battle of Pearl Harbor"                   } ,
    {DEC, 7,"Ivory Coast National Day"                                } ,
    {DEC, 8,"Jacques Hadamard's birthday"                             } ,
    {DEC, 8,"Jim Morrison's birthday"                                 } ,
+   {DEC, 8,"Diego Rivera's birthday"                                 } ,
    {DEC, 8,"Anniversary of Syllabus Errorum"                         } ,
    {DEC, 8,"Anniversary of US Declaration of War on Japan"           } ,
    {DEC, 9,"John Milton's birthday"                                  } ,
@@ -780,14 +785,17 @@ static mday holiday[] = {
    {DEC,11,"Upper Volta Republic Day"                                } ,
    {DEC,11,"Aleksander Solzhenitsyn's birthday"                      } ,
    {DEC,11,"Max Born's birthday"                                     } ,
+   {DEC,11,"Fiorello LaGuardia's birthday"                           } ,
    {DEC,12,"Frank Sinatra's birthday"                                } ,
    {DEC,12,"Kenya Independence Day"                                  } ,
    {DEC,12,"William Lloyd Garrison's birthday"                       } ,
    {DEC,12,"Edvard Munch's birthday"                                 } ,
    {DEC,13,"Werner von Siemens's birthday"                           } ,
+   {DEC,13,"Anniversary of Tasman at New Zealand"                    } ,
    {DEC,14,"Tycho Brahe's birthday"                                  } ,
    {DEC,14,"Nostradamus's birthday"                                  } ,
    {DEC,14,"Jimmy Doolittle's birthday"                              } ,
+   {DEC,15,"Alexandre Eiffel's birthday"                             } ,
    {DEC,15,"Anniversary of adoption of US Bill of Rights"            } ,
    {DEC,15,"Anniversary of Gone With the Wind debut"                 } ,
    {DEC,16,"Anniversary of Boston Tea Party"                         } ,
@@ -822,11 +830,12 @@ static mday holiday[] = {
    {DEC,26,"Boxing Day"                                              } ,
    {DEC,27,"Johannes Kepler's birthday"                              } ,
    {DEC,27,"Louis Pasteur's birthday"                                } ,
+   {DEC,27,"Anniversary of Indonesian Independence"                  } ,
    {DEC,28,"Arthur Eddington's birthday"                             } ,
    {DEC,28,"John von Neumann's birthday"                             } ,
    {DEC,28,"Linus Torvalds' birthday"                                } ,
    {DEC,29,"William Gladstone's birthday"                            } ,
-   {DEC,30,"Tiger Woods' birthday"                                   } ,
+/**   {DEC,30,"Tiger Woods' birthday"                                   } , **/
    {DEC,30,"Rudyard Kipling's birthday"                              } ,
    {DEC,31,"New Year's Eve"                                          } ,
    {DEC,31,"George C Marshall's birthday"                            } ,

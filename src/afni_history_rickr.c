@@ -49,6 +49,61 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 29,  Dec, 2016, RCR, "afni_proc.py", MICRO, TYPE_BUG_FIX,
+   "remove case 16 (brainstem) from aparc+aseg.nii WM extraction in help",
+   "Thanks to P Taylor for noting this."
+ } ,
+
+ { 15,  Dec, 2016, RCR, "column_cat", MICRO, TYPE_ENHANCE,
+   "allow for reading from stdin via either '-' or 'stdin'",
+   NULL
+ } ,
+
+ {  9,  Dec, 2016, RCR, "3dTsplit4D", MICRO, TYPE_ENHANCE,
+   "allow for direct writing to NIFTI via prefix, e.g. result.nii",
+   NULL
+ } ,
+
+ {  8,  Dec, 2016, RCR, "3dTsplit4D", MINOR, TYPE_NEW_OPT,
+   "add -digits and -keep_datum; other minor updates",
+   NULL
+ } ,
+
+ {  8,  Dec, 2016, RCR, "3dTsplit4D", MINOR, TYPE_NEW_PROG,
+   "program to break 4D dataset into a set of 3D ones",
+   "Authored by P Molfese."
+ } ,
+
+ {  8,  Dec, 2016, RCR, "plug_vol2surf", MICRO, TYPE_ENHANCE,
+   "add -cmask option to correspond with any auto non-zero mask",
+   NULL
+ } ,
+
+ {  7,  Dec, 2016, RCR, "afni_system_check.py", MICRO, TYPE_ENHANCE,
+   "check for python2 and python3",
+   NULL
+ } ,
+
+ {  5,  Dec, 2016, RCR, "timing_tool.py", MICRO, TYPE_MODIFY,
+   "allow *:1 (or *ANYTHING) to mean no event",
+   "This is in case someone also marries empty run events.\n"
+   "Done for R Kampe."
+ } ,
+
+ { 30,  Nov, 2016, RCR, "afni-general", MAJOR, TYPE_ENHANCE,
+   "<> range selector can now take a comma-delimited list of integers",
+   "So for a dataset with interger values from 0 to 8, these commands\n"
+   "should produce identical resutls:\n"
+   "   3dcalc -a DSET+tlrc -expr 'a*amongst(a,3,4,5)' -prefix JELLO\n"
+   "   3dbucket 'DSET+tlrc<4,3,5>'                    -prefix JELLO\n"
+   "   3dbucket 'DSET+tlrc<3..5>'                     -prefix JELLO\n"
+   "   3dbucket 'DSET+tlrc<2.3..5.86>'                -prefix JELLO\n"
+   "Of course, this will probably get further enhanced to a list of\n"
+   "float ranges.  We shall see.\n"
+   "Comma-delimited labels should work now, with a plan to add general\n"
+   "labels that might define all GM or similar in a FreeSurfer dataset, say."
+ } ,
+
  { 18,  Nov, 2016, RCR, "@Align_Centers", MICRO, TYPE_NEW_OPT,
    "add -prefix option, to name output",
    NULL
@@ -115,7 +170,7 @@ afni_history_struct rickr_history[] = {
  } ,
 
  {  5,  Oct, 2016, RCR, "afni-general", MAJOR, TYPE_NEW_PROG,
-   "update from C Cradock and dclark87",
+   "update from C Craddock and dclark87",
    "New Programs: 3dLFCD, 3dDegreeCentrality, 3dECM, 3dMSE, 3dsvm_linpredict."
  } ,
 
@@ -1180,8 +1235,8 @@ afni_history_struct rickr_history[] = {
    NULL
  } ,
 
- { 28,  Apr, 2015, RCR, "NIFTI", MINOR, TYPE_NEW_PROG,
-   "added clib_02.nifti2.c demo and Makefile",
+ { 28,  Apr, 2015, RCR, "clib_02.nifti2", MINOR, TYPE_NEW_PROG,
+   "added clib_02.nifti2.c demo and Makefile under nifti2 dir",
    NULL
  } ,
 

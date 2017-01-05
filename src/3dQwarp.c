@@ -67,6 +67,9 @@ static float wball_z = 0.0f ;
 static float wball_r = 0.0f ;  /* FWHM, actually */
 static float wball_f = 0.0f ;
 
+static THD_3dim_dataset *wmask_set = NULL ;  /* 21 Dec 2016 */
+static float             wmask_f   = 0.0f ;
+
 /*---------------------------------------------------------------------------*/
 /*! Turn an input image into a weighting factor.
       If acod == 2, then make a binary mask at the end.
@@ -562,6 +565,12 @@ void Qhelp(void)
     "             *** The following 3dQwarp options CANNOT be used with -allineate:\n"
     "                   -plusminus  -inilev  -iniwarp\n"
     "             *** However, you CAN use -duplo with -allineate.\n"
+    "               * The '-awarp' option will output the computed warp from the\n"
+    "                 intermediea 3dAllineate-d dataset to the base dataset,\n"
+    "                 in case you want that for some reason. This option will\n"
+    "                 only have meaning if '-allineate' or '-allinfast' is used.\n"
+    "                 The prefix of the '-awarp' output will have the string\n"
+    "                 '_AWARP' appended to the '-prefix' for the output dataset.\n"
     "\n"
     " -allineate_opts '-opt ...'\n"
     "   *OR*        * This option lets you add extra options to the 3dAllineate\n"
@@ -679,6 +688,17 @@ void Qhelp(void)
     "                 alignment to use '-wball', then you should examine the\n"
     "                 results from 3dQwarp for each subject, to see if the\n"
     "                 alignments are good enough for your purposes.\n"
+    "\n"
+    " -wmask ws f  = Similar to '-wball', but here, you provide a dataset 'ws'\n"
+    "                that indicates where to increase the weight.\n"
+    "               * The 'ws' dataset must be on the same 3D grid as the base dataset.\n"
+    "               * 'ws' is treated as a mask -- it only matters where it\n"
+    "                 is nonzero -- otherwise, the values inside are not used.\n"
+    "               * After 'ws' comes the factor 'f' by which to increase the\n"
+    "                 automatically computed weight.  Where 'ws' is nonzero,\n"
+    "                 the weighting will be multiplied by (1+f).\n"
+    "               * As with '-wball', the factor 'f' should be between 1 and 100.\n"
+    "               * You cannot use '-wball' and '-wmask' together!\n"
     "\n"
     " -wtprefix p  = Saves the auto-computed weight volume to a dataset with prefix 'p'.\n"
     "                If you are sufficiently dedicated, you could manually edit\n"
@@ -1250,6 +1270,7 @@ int main( int argc , char *argv[] )
    char *wtprefix=NULL  , *wtprefix_clean=NULL ;
    int meth=GA_MATCH_PEARCLP_SCALAR ; int meth_is_lpc=0 ;
    int ilev=0 , nowarp=0 , nowarpi=1 , mlev=666 , nodset=0 ;
+   int do_awarp=0 ; /* 21 Dec 2016 */
    int duplo=0 , qsave=0 , minpatch=0 , nx,ny,nz , ct , nnn , noneg=0 ;
    float dx,dy,dz ;
    int do_allin=0 ; char *allopt=NULL ; mat44 allin_matrix ;
@@ -1344,6 +1365,12 @@ int main( int argc , char *argv[] )
 
      if( strcasecmp(argv[nopt],"-iwarp") == 0 ){
        nowarpi = 0 ; nopt++ ; continue ;
+     }
+
+     /*---------------*/
+
+     if( strcasecmp(argv[nopt],"-awarp") == 0 ){ /* 21 Dec 2016 */
+       do_awarp = 1 ; nopt++ ; continue ;
      }
 
      /*---------------*/
@@ -1556,7 +1583,7 @@ int main( int argc , char *argv[] )
        qset = THD_open_dataset(argv[nopt]) ;
        if( qset == NULL )   ERROR_exit("Cannot open -weight dataset :-(") ;
        DSET_load(qset) ; CHECK_LOAD_ERROR(qset) ;
-       wbim = THD_extract_float_brick(0,qset) ; DSET_delete(qset) ;
+       wbim = THD_extract_float_brick(0,qset) ; DSET_delete(qset) ; qset=NULL ;
        nopt++ ; continue ;
      }
 
@@ -1784,7 +1811,10 @@ int main( int argc , char *argv[] )
      /*---------------*/
 
      if( strcasecmp(argv[nopt],"-wball") == 0 ){
-       if( ++nopt >= argc-4 ) ERROR_exit("need 5 args after -wball") ;
+       if( ++nopt >= argc-4 )
+         ERROR_exit("need 5 args after -wball") ;
+       if( wmask_set != NULL )
+         ERROR_exit("You can't use -wball and -wmask together") ;
        if( wball_r > 0.0f && wball_f > 0.0f )
          WARNING_message("repeated use of -wball erases earlier use") ;
        wball_x = (float)strtod(argv[nopt++],NULL) ;  /* center */
@@ -1803,6 +1833,27 @@ int main( int argc , char *argv[] )
          INFO_message("-wball option: x=%g y=%g z=%g r=%g f=%g",
                       wball_x,wball_y,wball_z,wball_r,wball_f) ;
        continue ;
+     }
+
+     /*---------------*/
+
+     if( strcasecmp(argv[nopt],"-wmask") == 0 ){  /* 21 Dec 2016 */
+       if( ++nopt >= argc-1 )
+         ERROR_exit("need 2 args after -wmask") ;
+       if( wmask_set != NULL )
+         ERROR_exit("You can't use -wmask twice") ;
+       if( wball_r > 0.0f && wball_f > 0.0f )
+         ERROR_exit("You can't use -wmask and -wball together") ;
+       wmask_set = THD_open_dataset(argv[nopt]) ;    /* dataset */
+       if( wmask_set == NULL )
+         ERROR_exit("Can't open -wmask dataset '%s'",argv[nopt]) ;
+       DSET_load(wmask_set) ; CHECK_LOAD_ERROR(wmask_set) ;
+       wmask_f = (float)strtod(argv[++nopt],NULL) ;  /* factor */
+       if( wmask_f < 1.0f || wmask_f > 100.0f ){
+         WARNING_message("-wmask f=%g is illegal ==> ignoring this option") ;
+         DSET_delete(wmask_set) ; wmask_set = NULL ; wmask_f = 0.0f ;
+       }
+       nopt++ ; continue ;
      }
 
      /*---------------*/
@@ -1991,6 +2042,7 @@ int main( int argc , char *argv[] )
      exit(1) ;
 
    } /*--------------- end of loop over command line args --------------------*/
+
    if( argc < 3 )
      ERROR_exit("Too few options, use -help for details");
 
@@ -2075,6 +2127,11 @@ STATUS("check for errors") ;
 
    /*--- other checks that aren't fatal, just to let the user beware ---*/
 
+   if( !do_allin && do_awarp ){ /* 21 Dec 2016 */
+     WARNING_message("-awarp given without -allineate -- turning -awarp off") ;
+     do_awarp = 0 ;
+   }
+
    if( meth_is_lpc && mlev > 0 )
      WARNING_message("Use of '-maxlev 0' is recommended with '-lpc'") ;
 
@@ -2099,6 +2156,10 @@ STATUS("check for errors") ;
    if( wbim != NULL && wball_r > 0.0f && wball_f > 0.0f ){  /* May 2016 */
      WARNING_message("-weight option means -wball option is ignored :-(") ;
      wball_r = wball_f = 0.0f ;
+   }
+   if( wbim != NULL && wmask_set !=NULL && wmask_f > 0.0f ){ /* 21 Dec 2016 */
+     WARNING_message("-weight option means -wmask option is ignored :-(") ;
+     DSET_delete(wmask_set) ; wmask_set = NULL ; wmask_f = 0.0f ;
    }
 
    if( wbim != NULL && wtprefix != NULL ){                  /* 03 Jun 2016 */
@@ -2177,6 +2238,9 @@ STATUS("source dataset opened") ;
      INFO_message("-resample is not needed (datasets on same 3D grid) -- turning it off") ;
      do_resam = 0 ;
    }
+
+   if( wmask_set != NULL && !EQUIV_GRIDS_NXYZ(wmask_set,bset) ) /* 21 Dec 2016 */
+     ERROR_exit("-wmask dataset and -base dataset grids don't match :(") ;
 
    /*---- Set up -XYZmatch stuff, if present [15 Aug 2014] ----*/
 
@@ -2662,11 +2726,46 @@ STATUS("construct weight/mask volume") ;
          WARNING_message(
            "-wball significantly affected the weight in only %d voxel%s",
            nwb , (nwb>1) ? "s" : "\0" ) ;
-       else if( Hverb > 1 )
+       else if( Hverb > 0 )
          INFO_message("-wball significantly affected the weight in %d voxels",nwb);
 
-       if( qset != bset ) DSET_delete(qset) ;  /* trash */
+       if( qset != bset ){ DSET_delete(qset); qset=NULL; }  /* trash */
+
      } /* end of wball-ification */
+
+     else if( wmask_set != NULL && wmask_f > 0.0f ){  /* 21 Dec 2016 */
+       THD_3dim_dataset *qset ; MRI_IMAGE *qim ;
+       float fff, *wbar=MRI_FLOAT_PTR(wbim) , *qar ;
+       int ii , nxyz=nx*ny*nz , nwb=0 ;
+       if( zeropad ){
+         qset = THD_zeropad( wmask_set ,
+                             pad_xm,pad_xp , pad_ym,pad_yp , pad_zm,pad_zp ,
+                            "wmask_zeropadded" , ZPAD_IJK ) ;
+         DSET_delete(wmask_set) ;
+       } else {
+         qset = wmask_set ;
+       }
+
+       qim = THD_extract_float_brick(0,qset) ; qar = MRI_FLOAT_PTR(qim) ;
+       DSET_delete(qset) ; qset=NULL ;
+
+       fff = 1.0f + wmask_f ;
+       for( ii=0 ; ii < nxyz ; ii++ ){
+         if( qar[ii] != 0.0f && wbar[ii] > 0.0f ){ wbar[ii] *= fff ; nwb++ ; }
+       }
+       mri_free(qim) ;
+
+       if( nwb == 0 )
+         WARNING_message(
+           "-wmask did not change any weights!");
+       else if( nwb < 100 )
+         WARNING_message(
+           "-wmask affected the weight in only %d voxel%s",
+           nwb , (nwb>1) ? "s" : "\0" ) ;
+       else if( Hverb > 0 )
+         INFO_message("-wmask affected the weight in %d voxels",nwb);
+
+     } /* end of wmask-ification */
 
    } else {             /* just use -weight input image */
 
@@ -2698,7 +2797,7 @@ STATUS("construct weight/mask volume") ;
                       ADN_none ) ;
      EDIT_BRICK_FACTOR(qset,0,0.0) ;
      EDIT_substitute_brick( qset, 0, MRI_float, MRI_FLOAT_PTR(qim) ) ;
-     DSET_write(qset) ; WROTE_DSET(qset) ; DSET_delete(qset) ;
+     DSET_write(qset) ; WROTE_DSET(qset) ; DSET_delete(qset) ; qset=NULL ;
    }
 
    /*--- scale weight volume so max value is 1 (and is all non-negative) ---*/
@@ -2851,6 +2950,19 @@ STATUS("construct weight/mask volume") ;
    /*-------------------------------------------------------------------------*/
    /*-- Special case of pre-3dAllineate: adjust output warp and image (oiw) --*/
 
+   if( do_awarp ){  /* but first save a copy of the 'pure' warp [21 Dec 2016] */
+     char *qprefix ; IndexWarp3D *awarp ;
+     awarp = IW3D_copy (oww  ,1.0f ) ;
+     IW3D_adopt_dataset(awarp,adset) ;
+STATUS("output awarp") ;
+     qprefix = modify_afni_prefix(prefix,NULL,"_AWARP") ;
+     qset = IW3D_to_dataset( awarp , qprefix ) ;
+     tross_Copy_History( bset , qset ) ;
+     tross_Make_History( "3dQwarp" , argc,argv , qset ) ;
+     MCW_strncpy( qset->atlas_space , bset->atlas_space , THD_MAX_NAME ) ;
+     DSET_write(qset) ; WROTE_DSET(qset) ; DSET_delete(qset) ; qset=NULL ;
+   }
+
    if( do_allin || do_resam ){
 
      /* adjust warp for 3dAllineate matrix that came earlier */
@@ -2977,7 +3089,7 @@ INFO_message("warp dataset origin: %g %g %g",DSET_XORG(qset),DSET_YORG(qset),DSE
      tross_Copy_History( bset , qset ) ;
      tross_Make_History( "3dQwarp" , argc,argv , qset ) ;
      MCW_strncpy( qset->atlas_space , bset->atlas_space , THD_MAX_NAME ) ;
-     DSET_write(qset) ; WROTE_DSET(qset) ; DSET_delete(qset) ;
+     DSET_write(qset) ; WROTE_DSET(qset) ; DSET_delete(qset) ; qset=NULL ;
 
      if( do_plusminus && qiw != NULL ){
        sprintf(appendage,"_%s_WARP",minusname) ;
@@ -2986,7 +3098,7 @@ INFO_message("warp dataset origin: %g %g %g",DSET_XORG(qset),DSET_YORG(qset),DSE
        tross_Copy_History( bset , qset ) ;
        tross_Make_History( "3dQwarp" , argc,argv , qset ) ;
        MCW_strncpy( qset->atlas_space , bset->atlas_space , THD_MAX_NAME ) ;
-       DSET_write(qset) ; WROTE_DSET(qset) ; DSET_delete(qset) ;
+       DSET_write(qset) ; WROTE_DSET(qset) ; DSET_delete(qset) ; qset=NULL ;
      }
 
      if( pmbase_warp != NULL ){   /* 12 Aug 2014 */
@@ -2995,7 +3107,7 @@ INFO_message("warp dataset origin: %g %g %g",DSET_XORG(qset),DSET_YORG(qset),DSE
        tross_Copy_History( bset , qset ) ;
        tross_Make_History( "3dQwarp" , argc,argv , qset ) ;
        MCW_strncpy( qset->atlas_space , bset->atlas_space , THD_MAX_NAME ) ;
-       DSET_write(qset) ; WROTE_DSET(qset) ; DSET_delete(qset) ;
+       DSET_write(qset) ; WROTE_DSET(qset) ; DSET_delete(qset) ; qset=NULL ;
      }
 
    } /* end of output of warp dataset */
@@ -3009,7 +3121,7 @@ INFO_message("warp dataset origin: %g %g %g",DSET_XORG(qset),DSET_YORG(qset),DSE
      tross_Copy_History( bset , qset ) ;
      tross_Make_History( "3dQwarp" , argc,argv , qset ) ;
      MCW_strncpy( qset->atlas_space , bset->atlas_space , THD_MAX_NAME ) ;
-     DSET_write(qset) ; WROTE_DSET(qset) ; DSET_delete(qset) ;
+     DSET_write(qset) ; WROTE_DSET(qset) ; DSET_delete(qset) ; qset=NULL ;
      IW3D_destroy(owwi) ; owwi = NULL ;
    }
 
@@ -3024,7 +3136,7 @@ INFO_message("warp dataset origin: %g %g %g",DSET_XORG(qset),DSET_YORG(qset),DSE
        tross_Copy_History( bset , qset ) ;
        tross_Make_History( "3dQwarp" , argc,argv , qset ) ;
        MCW_strncpy( qset->atlas_space , bset->atlas_space , THD_MAX_NAME ) ;
-       DSET_write(qset) ; WROTE_DSET(qset) ; DSET_delete(qset) ;
+       DSET_write(qset) ; WROTE_DSET(qset) ; DSET_delete(qset) ; qset=NULL ;
      }
      HSAVE_DESTROY ;
    }

@@ -426,6 +426,8 @@ int r_idisp_thd_datablock( char * info, THD_datablock * dp )
             "   master_bytes   : %p\n"
             "   master_bot     : %f\n"
             "   master_top     : %f\n"
+            "   master_ncsv    : %d\n"
+            "   master_csv     : %p\n"
             "   --------------------------------------\n"
             "   diskptr        : %p\n"
             "   natr           : %d\n"
@@ -440,7 +442,7 @@ int r_idisp_thd_datablock( char * info, THD_datablock * dp )
             dp->brick_keywords, dp->brick_statcode, dp->brick_stataux,
             (int)dp->total_bytes, dp->malloc_type, dp->locked,
             dp->master_nvals, dp->master_ival, dp->master_bytes,
-            dp->master_bot, dp->master_top,
+            dp->master_bot, dp->master_top, dp->master_ncsv, dp->master_csv,
             dp->diskptr, dp->natr, dp->natr_alloc, dp->atr,
             dp->kl.num, dp->kl.nalloc, dp->kl.kill, dp->parent );
 

@@ -2592,7 +2592,7 @@ ERR_ST_TOO_BIG    = 16       # val >= run length
 
 
 class AfniData(object):
-   def __init__(self, filename="", verb=1):
+   def __init__(self, filename="", mdata=None, verb=1):
       """akin to a 2D float class, but do not require a square matrix
 
          init from filename
@@ -2619,6 +2619,7 @@ class AfniData(object):
       self.mtype     = 0        # married type (bits, amp, dur)
       self.minlen    = 0        # min and max row lengths
       self.maxlen    = 0
+      self.dur_len   = 0.0
 
       self.ready     = 0        # data is ready
 
@@ -2637,6 +2638,8 @@ class AfniData(object):
       # initialize...
       if self.fname: 
          if self.init_from_filename(self.fname): return None
+      elif mdata:
+         if self.init_from_mdata(mdata): return None
 
    # some accessor functions to match Afni1D
    def set_nruns(nruns):
@@ -3572,6 +3575,81 @@ class AfniData(object):
       
       return 0
 
+   def init_from_mdata(self, mdata):
+      """mdata should be of the form:
+            one row per run, where each row is a list of events:
+               [time [AM list] duration]
+      """
+
+      if not self.mdata_looks_valid(mdata):
+         return 1
+
+      # note whether the data is married (modulation or duration)
+      self.mtype = TD.married_type(mdata)
+      if self.mtype: self.married = 1
+
+      # data will ignore any married information
+      self.data     = [[val[0] for val in row] for row in mdata]
+      self.mdata    = mdata
+      self.clines   = None
+
+      # init alist to be 0, 1 or 2, for each run so at least 2 "events"
+      self.alist    = [0] * len(mdata)
+      for rind, run in enumerate(mdata):
+         if len(run) == 0:
+            alist[rind] = 2
+         elif len(run) == 1:
+            alist[rind] = 1
+
+      self.nrows    = len(self.data)
+      self.row_lens = [len(row) for row in self.data]
+
+      # empty data includes existing but empty runs
+      if len(self.data) == 0:
+         self.maxlen = 0
+         self.minlen = 0
+      else:
+         self.maxlen = max([len(drow) for drow in self.data])
+         self.minlen = min([len(drow) for drow in self.data])
+
+      # accept an empty file?
+      if self.nrows == 0 or self.maxlen == 0:
+         self.empty = 1
+         self.ready = 1
+         return 0
+
+      # if row lengths are all the same, use ncols, instead
+      if UTIL.vals_are_constant(self.row_lens):
+         self.ncols = self.row_lens[0]
+         del(self.row_lens)
+         self.row_lens = []
+
+      # check to see if it is a 0/1 file
+      self.binary = 1
+      for row in self.data:
+         if not UTIL.vals_are_0_1(row):
+            self.binary = 0
+            break
+
+      self.ready = 1
+      
+      return 0
+
+   def mdata_looks_valid(self, mdata, verb=0):
+      """show be rows of [float [float list] float]"""
+      errs = 0
+      for rind, row in enumerate(mdata):
+         for eind, event in enumerate(row):
+            # check for bad event
+            if len(event) != 3:
+               if verb <= 0: return 0   # quiet failure
+               errs += 1
+               print '** (0-based) run %d, event %d: bad form: %s' \
+                     % (rind, eind, event)
+               if verb < 2: return 0
+      if errs: return 0
+      return 1
+
    def show(self, mesg=''):
       print self.make_show_str(mesg=mesg)
 
@@ -3603,6 +3681,25 @@ class AfniData(object):
                 self.verb)
 
       return mstr
+
+def show_multi_isi_stats(adlist, run_lens, tr, verb=0):
+   import lib_timing as LT
+
+   nad = len(adlist)
+   if nad == 0:
+      print '** show_multi_isi_stats: no elements to list'
+      return 1
+
+   AD0 = adlist[0]
+   MT = LT.AfniTiming(mdata=AD0.mdata)
+   for ind in range(1, nad):
+      tt = LT.AfniTiming(mdata=adlist[ind].mdata)
+      MT.extend_rows(tt)
+
+   if verb:
+     MT.show('multistim timing')
+
+   MT.show_isi_stats(mesg='%d elements'%nad, run_len=run_lens, tr=tr)
 
 if __name__ == '__main__':
    print '** this is not a main module'

@@ -93,6 +93,10 @@
    + *lots* of new internal streamlining as part 
      of this process
 
+   Nov 2016b:
+   + got rid of occasional nan in sBL (rounding err neg -> sqrt ->
+     nan) with IF
+
 */
 
 
@@ -2407,7 +2411,6 @@ int RunTrackingMaestro( int comline, TRACK_RUN_PARAMS opts,
       tt = (TAYLOR_TRACT **)calloc(N_nets, sizeof(TAYLOR_TRACT *)); 
       tnet = (TAYLOR_NETWORK **)calloc(N_nets, sizeof(TAYLOR_NETWORK *));
       id = (int *)calloc(N_nets, sizeof(int)); 
-     
 
       prefix_det = calloc( N_nets,sizeof(prefix_det));  
       for(i=0 ; i<N_nets ; i++) 
@@ -2801,8 +2804,6 @@ int RunTrackingMaestro( int comline, TRACK_RUN_PARAMS opts,
         fprintf(stderr, "\n");
         }
       */
-
-
    }
 
    // *************************************************************
@@ -3260,7 +3261,7 @@ int RunTrackingMaestro( int comline, TRACK_RUN_PARAMS opts,
                                                 idx3 = MatrInd_to_FlatUHT(temp_list[bb],temp_list[cc],NROI[hh]);
                                                 for( mm=start_loc ; mm<(start_loc+trL) ; mm++) {
 
-                                                   if( mm>start_loc ) // phys len: Nov,2016
+                                                   if( mm>start_loc )  // phys len: Nov,2016
                                                       phys_l+= sqrt( pow(flTtot[mm][0]-flTtot[mm-1][0],2) +
                                                                      pow(flTtot[mm][1]-flTtot[mm-1][1],2) +
                                                                      pow(flTtot[mm][2]-flTtot[mm-1][2],2));
@@ -3430,7 +3431,10 @@ int RunTrackingMaestro( int comline, TRACK_RUN_PARAMS opts,
                if( Prob_grid[k][i] > 1.5 ) {// need at least 2 tr per bun
                   Prob_grid_L[k][i][1]-= Prob_grid[k][i] * pow(Prob_grid_L[k][i][0],2);
                   Prob_grid_L[k][i][1]/= Prob_grid[k][i] - 1;
-                  Prob_grid_L[k][i][1] = sqrt(Prob_grid_L[k][i][1]);
+                  if( Prob_grid_L[k][i][1] > 0 ) // 23Nov,2016: no rounding err negs->nans
+                     Prob_grid_L[k][i][1] = sqrt(Prob_grid_L[k][i][1]);
+                  else
+                     Prob_grid_L[k][i][1] = 0.; 
                }
                else{
                   INFO_message("Network [%d]:\t [%d]th WM bundle "
@@ -3623,7 +3627,7 @@ int RunTrackingMaestro( int comline, TRACK_RUN_PARAMS opts,
                                           "full", ParLab, 
                                           NULL, NULL, NULL);
 
-            if( xyz = THD_roi_cmass(ROI_set, k, ROI_LABELS[k]+1, NROI[k]) ) {
+            if( xyz = THD_roi_cmass(ROI_set, k, ROI_LABELS[k]+1, NROI[k], 0)){
                if (!(SUMA_AddGDsetNodeListElement(gset, NULL,
                                                   xyz, NULL, NULL, 
                                                   gdset_roi_names[k],

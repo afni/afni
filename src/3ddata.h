@@ -1213,6 +1213,13 @@ typedef struct {
       float master_bot ;      /*!< range of data values to keep from master - bottom */
       float master_top ;      /*!< range of data values to keep from master - top */
 
+      /* for angle bracket selectors - input restricted to an integer list of */
+      /* CSV (comma separated values) - akin to master_bot and master_top,    */
+      /* but a list, not a range                          21 Nov 2016 [rickr] */
+      /* --> of course, this will probably change to a list of float ranges...*/
+      int    master_ncsv ;    /*!< Number of values in master_csv             */
+      int *  master_csv  ;    /*!< list of non-zero values that can be stored */
+
       THD_diskptr * diskptr ; /*!< where the data is on disk (if anywhere!) */
 
       int       natr ;        /*!< number of attributes read from disk (or to write to disk) */
@@ -1285,6 +1292,13 @@ typedef struct {
 
 #define DBLK_IS_MASTERED(db) \
   ((db)->master_nvals > 0 && (db)->master_ival != NULL && (db)->master_bytes != NULL)
+
+/*! Check if brick is mastered and has subranges to be applied */
+
+#define DBLK_IS_MASTER_SUBRANGED(db)                    \
+   (DBLK_IS_MASTERED(db) &&                             \
+      ( ((db)->master_bot <= (db)->master_top) ||       \
+        ((db)->master_ncsv > 0 && (db)->master_csv != NULL) ))
 
 extern void THD_delete_datablock         ( THD_datablock * ) ;
 extern void THD_init_datablock_brick     ( THD_datablock * , int , void * ) ;
@@ -1579,6 +1593,16 @@ typedef struct {
 
 #define EQUIV_DELTAXYZ(d1,d2) \
  ( ISVALID_DSET(d1) && ISVALID_DSET(d2) && EQUIV_DATADELTAXYZ((d1)->daxes,(d2)->daxes) )
+
+#define EQUIV_DATA_NXYZ(cax,dax)    \
+ ( ISVALID_DATAXES((cax))        && \
+   ISVALID_DATAXES((dax))        && \
+   (cax)->nxx == (dax)->nxx      && \
+   (cax)->nyy == (dax)->nyy      && \
+   (cax)->nzz == (dax)->nzz  )
+
+#define EQUIV_GRIDS_NXYZ(d1,d2) \
+ ( ISVALID_DSET(d1) && ISVALID_DSET(d2) && EQUIV_DATA_NXYZ((d1)->daxes,(d2)->daxes) )
 
 extern void THD_edit_dataxes( float , THD_dataxes * , THD_dataxes * ) ;
 
@@ -4478,15 +4502,18 @@ extern MRI_IMAGE *        THD_fetch_1D           (char *) ; /* 26 Mar 2001 */
 
 extern void THD_set_storage_mode( THD_3dim_dataset *,int ); /* 21 Mar 2003 */
 
-extern int * get_count_intlist ( char *str , int *nret , int maxval );
+extern int * get_count_intlist    (char *str, int *nret, int maxval );
+extern int * get_count_intlist_eng(char *str, int *nret, int maxval, int ok_neg);
 /* get_1dcat_intlist: May 15 2012 ZSS    ; added maxval 4 Jan 2016 [rickr] */
-int * get_1dcat_intlist ( char *str , int *nret, int maxval);
+int * get_1dcat_intlist    ( char *str , int *nret, int maxval);
+int * get_1dcat_intlist_eng( char *str , int *nret, int maxval, int ok_neg);
 
 extern int * MCW_get_intlist( int , char * ) ;
 extern int * MCW_get_labels_intlist( char ** , int,  char * ); /* ZSS Dec 09 */
 extern int * MCW_get_thd_intlist( THD_3dim_dataset * , char * ); /* ZSS Dec 09 */
 extern void MCW_intlist_allow_negative( int ) ;             /* 22 Nov 1999 */
 extern int  MCW_get_angle_range(THD_3dim_dataset *, char *, float *, float *);
+extern int  thd_check_angle_selector(THD_3dim_dataset *, char *); /* 21 Nov 2016 */
 
 
 /* copy a dataset, given a list of sub-bricks          [rickr] 26 Jul 2004 */
@@ -4741,6 +4768,7 @@ extern THD_3dim_dataset * THD_mean_dataset( int nds, THD_3dim_dataset **dsin, in
 
 extern void    THD_zerofill_dataset( THD_3dim_dataset * ) ;  /* 18 Mar 2005 */
 extern int     THD_apply_master_subrange( THD_datablock * ); /* 14 Apr 2006 */
+extern int     THD_apply_master_subrange_list(THD_datablock *);/* 30 Nov 2016 */
 extern void    THD_patch_brickim( THD_3dim_dataset * ) ;     /* 20 Oct 2006 */
 
 extern int THD_datum_constant( THD_datablock * ) ;           /* 30 Aug 2002 */
@@ -4808,9 +4836,10 @@ extern float THD_timeof_slice( int , int , THD_3dim_dataset * ) ;  /* BDW */
 extern float * TS_parse_tpattern( int, float, char * ) ;  /* 11 Dec 2007 */
 
 extern THD_fvec3 THD_dataset_center( THD_3dim_dataset * ) ;  /* 01 Feb 2001 */
-extern THD_fvec3 THD_cmass( THD_3dim_dataset *xset , int iv , byte *mmm );
+extern THD_fvec3 THD_cmass( THD_3dim_dataset *xset , int iv , byte *mmm,
+                               int cmode);
 extern float *THD_roi_cmass(THD_3dim_dataset *xset , int iv ,
-                            int *rois, int N_rois);
+                            int *rois, int N_rois, int cmode);
 extern int THD_dataset_mismatch(THD_3dim_dataset *, THD_3dim_dataset *) ;
 extern double THD_diff_vol_vals(THD_3dim_dataset *d1, THD_3dim_dataset *d2,
                                 int scl);
@@ -5485,7 +5514,7 @@ extern MRI_IMARR * mri_3dalign_oneplus( MRI_3dalign_basis * , MRI_IMARR * ,
   /*-- see mri_warp3D_align.c for these routines --*/
 
 #undef  PARAM_MAXTRIAL
-#define PARAM_MAXTRIAL 11
+#define PARAM_MAXTRIAL 22
 typedef struct {
   float min, max, siz, ident, delta, toler ;
   float val_init , val_out , val_fixed , val_pinit ;
