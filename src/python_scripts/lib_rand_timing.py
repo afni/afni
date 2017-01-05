@@ -355,16 +355,17 @@ class StimClass:
          mmin,mmean,mmax,mstdev = UTIL.min_mean_max_stdev(durs)
          print '%02d     %7.3f   %7.3f   %7.3f   %7.3f' % \
                (rind, mmin, mmean, mmax, mstdev)
-      print '\n'
+      print
 
-      if not details: return
+      if details:
+         digs = gDEF_DEC_PLACES
+         print '-- StimClass %s event durations:'  % self.name
+         for rind, durs in enumerate(self.durlist):
+            dstr = ['%.*f'%(digs, dd) for dd in durs]
+            print '   run %02d: %s' % (rind, ' '.join(dstr))
+         print
 
-      digs = gDEF_DEC_PLACES
-
-      print '-- StimClass %s event durations:'  % self.name
-      for rind, durs in enumerate(self.durlist):
-         dstr = ['%.*f'%(digs, dd) for dd in durs]
-         print '   run %02d: %s' % (rind, ' '.join(dstr))
+      print
 
 def create_duration_lists(slist, nruns, across_runs=0, verb=1):
    """for each class, create nreps event times
