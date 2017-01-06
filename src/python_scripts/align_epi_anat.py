@@ -598,7 +598,7 @@ g_help_string = """
 ## BEGIN common functions across scripts (loosely of course)
 class RegWrap:
    def __init__(self, label):
-      self.align_version = "1.55" # software version (update for changes)
+      self.align_version = "1.56" # software version (update for changes)
       self.label = label
       self.valid_opts = None
       self.user_opts = None
@@ -1266,7 +1266,6 @@ class RegWrap:
    # return non-zero error if can not copy
    def copy_dset(self, dset1, dset2, message, exec_mode):
       self.info_msg(message)
-
       if(dset1.input()==dset2.input()):
          print "# copy is not necessary"
          return 0
@@ -1274,7 +1273,14 @@ class RegWrap:
       if(dset1.real_input() == dset2.real_input()):
          print "# copy is not necessary"
          return 0
-
+      ds1 = dset1.real_input()
+      ds2 = dset2.real_input()
+      ds1s = ds1.replace('/./','/')
+      ds2s = ds2.replace('/./','/')
+      if(ds1s == ds2s):
+          print "# copy is not necessary - both paths are same"
+          return 0
+      print("copying from dataset %s to %s" % (dset1.input(), dset2.input()))
       dset2.delete(exec_mode)
       com = shell_com(  \
             "3dcopy %s %s" % (dset1.input(), dset2.out_prefix()), exec_mode)
@@ -1821,6 +1827,7 @@ class RegWrap:
       opt = self.user_opts.find_opt('-output_dir') # set alternative output directory
       if opt != None: 
          self.output_dir = opt.parlist[0]
+         # end with a slash
          self.output_dir = "%s/" % os.path.realpath(self.output_dir)
          print "# User has selected a new output directory %s" % self.output_dir
          com = shell_com(("mkdir %s" % self.output_dir), self.oexec)
@@ -1828,9 +1835,8 @@ class RegWrap:
          print "cd %s" % self.output_dir
          if(not self.dry_run()):
             os.chdir(self.output_dir)
-            
       else :
-         self.output_dir = "./"  # just a space
+         self.output_dir = "./"  # just the current directory
       self.anat_dir = self.output_dir
       self.epi_dir = self.output_dir
 
@@ -2295,7 +2301,7 @@ class RegWrap:
 
       self.info_msg(" Applying alignment for %s to %s" % (ps.dset2_generic_name, ps.dset1_generic_name))
  
-      o = e.new("%s%s" % (self.epi_afniformat.out_prefix(), suf))
+      o = e.new("%s%s%s" % (ps.output_dir,self.epi_afniformat.out_prefix(), suf))
 #      o = afni_name("%s%s" % (self.epi.out_prefix(), suf)) # was e.out_prefix() here
       if(self.master_epi_dset == 'SOURCE'):
           o.view = "%s" % e.view
@@ -2321,7 +2327,7 @@ class RegWrap:
          o.delete(ps.oexec)
          o.view = eview
          # anat_mat = "%s%s_mat.aff12.1D" %  (ps.anat0.out_prefix(),suf)
-         epi_mat = "%s%s%s_mat.aff12.1D" %  (e.p(), self.epi_afniformat.out_prefix(),suf)
+         epi_mat = "%s%s%s_mat.aff12.1D" %  (o.p(), self.epi_afniformat.out_prefix(),suf)
          self.info_msg("Inverting %s to %s matrix" % \
                     (ps.dset1_generic_name, ps.dset2_generic_name ))
 
@@ -2341,7 +2347,7 @@ class RegWrap:
                           "to %s transformations" % \
                          (ps.dset2_generic_name, ps.dset1_generic_name ))
 
-            epi_mat = "%s%s%s_reg_mat.aff12.1D" % (e.p(), self.epi_afniformat.out_prefix(), suf)
+            epi_mat = "%s%s%s_reg_mat.aff12.1D" % (o.p(), self.epi_afniformat.out_prefix(), suf)
             com = shell_com(  \
                      "cat_matvec -ONELINE %s %s -I %s > %s" % \
                      (oblique_mat, ps.anat_mat, self.reg_mat, epi_mat), ps.oexec)
@@ -2378,7 +2384,7 @@ class RegWrap:
             
             if(ps.post_matrix != ""):
                 anat_tlrc_mat = ps.post_matrix
-                epi_mat = "%s%s%s_post_mat.aff12.1D" % (e.p(),self.epi_afniformat.out_prefix(), suf)
+                epi_mat = "%s%s%s_post_mat.aff12.1D" % (o.p(),self.epi_afniformat.out_prefix(), suf)
 
             if(ps.tlrc_apar != ""): # tlrc parent trumps post_matrix
                com = shell_com(  \
@@ -2397,7 +2403,7 @@ class RegWrap:
                   return o
 
                anat_tlrc_mat = "%s::WARP_DATA" % (ps.tlrc_apar.input())
-               epi_mat = "%s%s%s_tlrc_mat.aff12.1D" % (e.p(),self.epi_afniformat.out_prefix(), suf)
+               epi_mat = "%s%s%s_tlrc_mat.aff12.1D" % (o.p(),self.epi_afniformat.out_prefix(), suf)
 
             # note registration matrix, reg_mat, can be blank and ignored
             com = shell_com(  \
@@ -2407,7 +2413,7 @@ class RegWrap:
             com.run();
 
             if(ps.tlrc_apar!=""):
-               tlrc_dset = afni_name("%s%s_tlrc%s" % (e.p(), self.epi_afniformat.out_prefix(), suf))
+               tlrc_dset = afni_name("%s%s_tlrc%s" % (o.p(), self.epi_afniformat.out_prefix(), suf))
                # tlrc_dset.view = ps.tlrc_apar.view  '+tlrc'
                if(self.master_tlrc_dset=='SOURCE'):
                    tlrc_dset.view = e.view
@@ -2431,7 +2437,7 @@ class RegWrap:
                    ps.master_tlrc_option, alopt), ps.oexec)
 
             else:
-               tlrc_orig_dset = afni_name("%s%s_post%s" % (e.p(), self.epi_afniformat.out_prefix(), suf))
+               tlrc_orig_dset = afni_name("%s%s_post%s" % (o.p(), self.epi_afniformat.out_prefix(), suf))
                tlrc_orig_dset.view = '+orig'
                base_dset = a
                if(self.master_tlrc_dset=='SOURCE'):
@@ -2463,7 +2469,7 @@ class RegWrap:
               # force +tlrc output for master SOURCE option - 3dAllineate saves this as +orig
               if((ps.master_tlrc_dset=="SOURCE") and (ps.tlrc_apar!="")):
                  com = shell_com ("3drefit -deoblique -view tlrc %s%s+orig" %     \
-                        (e.p(), atlrcpost.out_prefix()), ps.oexec)
+                        (o.p(), atlrcpost.out_prefix()), ps.oexec)
                  com.run()
               else:
                  if(oblique_mat!=""):
@@ -2891,7 +2897,7 @@ class RegWrap:
    # box, bin and fat mask are not used
       a = ps.anat_ns
       
-      o = afni_name("%s%s%s%s" % (e.p(),e.out_prefix(), suf,e.view))            
+      o = afni_name("%s%s%s%s" % (ps.output_dir,e.out_prefix(), suf,e.view))            
       if perci < 0:
          perci = 90.0;
       self.info_msg( "Computing weight mask")
@@ -3442,7 +3448,7 @@ if __name__ == '__main__':
          ps.anat_alnd = ''
 
       if(ps.AddEdge):
-         if(ps.output_dir==" "):
+         if(ps.output_dir=="./"):
             com = shell_com("\\rm -f AddEdge/*", ps.oexec)
          else:
             com = shell_com("cd %s; \\rm -f AddEdge/*" % ps.output_dir, ps.oexec)
@@ -3479,7 +3485,7 @@ if __name__ == '__main__':
             # Use 3dAllineate to create the resampled, skullstripped EPI
             # from the same representative sub-brick used to align anat to epi
             
-            if(ps.output_dir == " "):
+            if((ps.output_dir == "./") or (ps.output_dir == " ")):
                outdir = ps.epi.p()
             else:
                outdir = ps.output_dir
