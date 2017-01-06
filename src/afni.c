@@ -1908,6 +1908,7 @@ void AFNI_sigfunc_alrm(int sig)
      "Remember -- Men are always willing to believe what they wish"  ,
      "Remember -- What I tell you three times is true"               ,
      "Remember -- A monad is the same as an endofunctor"             ,
+     "Remember -- Things aren't always what they seem"               ,
      "Fools give you reasons, wise men never try"                    ,
      "People willingly trust the statistics they wish to believe"    ,
      "Heaven's last best gift, my ever new delight"                  ,
@@ -2025,6 +2026,7 @@ void AFNI_sigfunc_alrm(int sig)
      "What in God's Holy Name are you blathering on about?"          ,
      "Are you a Dada-ist or a Dude-ist?"                             ,
      "Putting the 'wit' in 'twit' since 1994"                        ,
+     "I'm completely innocent. Within reason"                        ,
 
      "Returning control of your brain (images) back to yourself"     ,
      "Returning your endofunctors back to their co-monads"           ,
@@ -2083,7 +2085,7 @@ void AFNI_sigfunc_alrm(int sig)
      "If you have any questions about AFNI, ask ... Rick Reynolds :)"          ,
      "If you have any questions about AFNI, ask ... Paul Taylor :)"            ,
      "If you have any questions about AFNI, ask ... Gang Chen :)"              ,
-     "AFNI's mantra: Bob, Bob, there is one Bob, He spells it B-O-B"           ,
+     "AFNI user's mantra: Bob, Bob, there is one Bob, He spells it B-O-B"      ,
 
      /* The Manchurian Candidate */
 
@@ -2205,7 +2207,13 @@ void AFNI_sigfunc_alrm(int sig)
      "Analyze your data rigorously -- you can fake the conclusions all you want later",
      "O wad some Pow'r the giftie gie us, To see oursels as ithers see us"            ,
      "One half the world cannot understand the statistics of the other"               ,
+     "It is better to create than to learn. Creating is the essence of life"          ,
+     "Events of importance are often the result of trivial causes"                    ,
+     "Men worry more about what they can't see than about what they can"              ,
+     "The best revenge is to be unlike him who performed the injury"                  ,
+     "The art of living is more like wrestling than dancing"                          ,
 
+     "It is the pardonable vanity of lonely people everywhere to assume that are unique"      ,
      "You know you're in trouble when it takes a 64 bit integer to count your unread emails"  ,
      "Once you've done what you have to do, no one will let you do what you want to do"       ,
      "My name is AFNImandias, Brain of Brains; Look on my Statistics, ye Clever, and Despair" ,
