@@ -3464,7 +3464,7 @@ LABELS_ARE_DONE:  /* target for goto above */
        INFO_message("Command to compute ACF from residuals now running:\n"
                     "   %s",cmd) ;
        system(cmd) ;
-       INFO_message("ACF parameter output in %s.ACFparam.txt",anam) ;
+       INFO_message("ACF parameters output in %s.ACFparam.txt",anam) ;
      }
    }
 
