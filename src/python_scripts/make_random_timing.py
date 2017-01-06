@@ -826,6 +826,8 @@ g_history = """
 g_version = "version 1.10, June 1, 2016"
 
 g_todo = """
+   - check tr_locked
+   - new method for decay that better handles max duration, w/out spike
    - add warning if post-stim rest < 3 seconds
    - help for options:
         -rand_post_stim_rest, -write_event_list, show_rest_events
@@ -989,8 +991,7 @@ class RandTiming:
         self.valid_opts.add_opt('-rand_post_stim_rest', 1, [], req=0,
                         acplist=['no','yes'],
                         helpstr='include random rest after final stimulus? y/n')
-        self.valid_opts.add_opt('-show_rest_events', 1, [], req=0,
-                        acplist=['no','yes'],
+        self.valid_opts.add_opt('-show_rest_events', 0, [], req=0,
                         helpstr='show stats on each rest class (y/n)')
 
         # old 'required' arguments
@@ -1134,7 +1135,7 @@ class RandTiming:
            if self.user_opts.have_no_opt('-rand_post_stim_rest'):
               self.rand_post_stim_rest = 0
 
-           if self.user_opts.have_yes_opt('-show_rest_events'):
+           if self.user_opts.find_opt('-show_rest_events'):
               self.show_rest_events = 1
 
            # and set some of the old-style parameters
@@ -2909,13 +2910,13 @@ class RandTiming:
                    %(rcounts[cind], rc.name, rtimes[cind])
 
        # get rest events, and apply to timing (append accumulated time)
-       for rind, rc in enumerate(rtypes):
-          rc.etimes = LRT.random_duration_list(rcounts[rind], rc,
-                                               rtimes[rind], force_total=1)
+       for rtind, rc in enumerate(rtypes):
+          rc.etimes = LRT.random_duration_list(rcounts[rtind], rc,
+                                               rtimes[rtind], force_total=1)
           # add option, show rest details
           if self.verb > 5 or self.show_rest_events:
-             rc.show_durlist_stats(rc.etimes, mesg='Rest Class %s'%rc.name,
-                                   details=1)
+             mesg='=== run %d rest durs, Rest Class %s ===' % (rind, rc.name)
+             rc.show_durlist_stats(rc.etimes, mesg=mesg, details=1)
 
        # quick test
        if self.verb > 3:
