@@ -2915,7 +2915,7 @@ class RandTiming:
                                                rtimes[rtind], force_total=1)
           # add option, show rest details
           if self.verb > 5 or self.show_rest_events:
-             mesg='=== run %d rest durs, Rest Class %s ===' % (rind, rc.name)
+             mesg='run %d rest' % rind
              rc.show_durlist_stats(rc.etimes, mesg=mesg, details=1)
 
        # quick test
