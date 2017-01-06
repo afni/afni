@@ -85,7 +85,12 @@ class TimingClass:
          print '   total_time   : %s' % self.total_time
 
    def show_durlist_stats(self, durlist, mesg='', details=0, sort=0):
-      if mesg != '': print mesg
+      if mesg != '': mstr = '(%s) ' % mesg
+      else:          mstr = ''
+      nevents = len(durlist)
+      total   = sum(durlist)
+      print "=== %sstats for TimingClass %s ===" % (mstr, self.name)
+      print "    (%d events, total time %g)" % (nevents, total)
 
       print '            min       mean      max      stdev'
       print '------    -------   -------   -------   -------'
@@ -298,7 +303,7 @@ class TimingClass:
       durlist = []
       for ind in range(nevents//2):
          actual_time = ind * tspace
-         grid_time = t_gran * int(actual_time/t_gran)
+         grid_time = self.t_gran * int(actual_time/self.t_gran)
          # add time and balancing time
          durlist.append(grid_time)
          durlist.append(max_dur - grid_time)
@@ -344,23 +349,28 @@ class StimClass:
          self.sclass.show('stim class for %s'%self.name)
          self.rclass.show('rest class for %s'%self.name)
 
-   def show_durlist_stats(self, details=0):
+   def show_durlist_stats(self, mesg='', details=0):
       tc = self.sclass
-      print "=== event duration statistics for StimClass %s ===" % self.name
-      print 'run       min       mean      max      stdev'
-      print '------  -------   -------   -------   -------'
-      print 'expect %7.3f   %7.3f   %7.3f     %s' % \
+      durlist = self.durlist
+
+      if mesg != '': mstr = '(%s) ' % mesg
+      else:          mstr = ''
+      print "=== %sstats for StimClass %s ===" % (mstr, self.name)
+
+      print 'run       #      min       mean      max      stdev'
+      print '------  -----  -------   -------   -------   -------'
+      print 'expect        %7.3f   %7.3f   %7.3f     %s' % \
                (tc.min_dur, tc.mean_dur, tc.max_dur, tc.dist_type)
-      for rind, durs in enumerate(self.durlist):
+      for rind, durs in enumerate(durlist):
          mmin,mmean,mmax,mstdev = UTIL.min_mean_max_stdev(durs)
-         print '%02d     %7.3f   %7.3f   %7.3f   %7.3f' % \
-               (rind, mmin, mmean, mmax, mstdev)
+         print '%2d       %3d  %7.3f   %7.3f   %7.3f   %7.3f' % \
+               (rind, len(durs), mmin, mmean, mmax, mstdev)
       print
 
       if details:
          digs = gDEF_DEC_PLACES
          print '-- StimClass %s event durations:'  % self.name
-         for rind, durs in enumerate(self.durlist):
+         for rind, durs in enumerate(durlist):
             dstr = ['%.*f'%(digs, dd) for dd in durs]
             print '   run %02d: %s' % (rind, ' '.join(dstr))
          print
