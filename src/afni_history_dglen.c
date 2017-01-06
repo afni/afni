@@ -49,6 +49,10 @@
 
 
 afni_history_struct dglen_history[] = {
+{ 5, JAN, 2017 , DRG , "align_epi_anat.py" , 
+    MINOR , TYPE_BUG_FIX, 
+    "NIFTI output and output directories not always handled correctly or completely"
+},
 { 17, NOV, 2016 , DRG , "DriveSuma" , 
     MINOR , TYPE_NEW_OPT, 
     "Ask suma to send current surface name to SUMA_OUTPLUG file or stdout"
