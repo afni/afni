@@ -203,8 +203,8 @@ class SysInfo:
       # locate various data trees, and possibly show recent history
       rv = 0
       rv += self.show_data_dir_info('AFNI_data6', 'history.txt')
+      rv += self.show_data_dir_info('AFNI_demos', 'history.txt')
       rv += self.show_data_dir_info('suma_demo', 'README.archive_creation')
-      rv += self.show_data_dir_info('FATCAT_DEMO', 'README.timestamp')
       rv += self.show_data_dir_info('afni_handouts')
 
       if rv: self.comments.append('insufficient data for AFNI bootcamp')
