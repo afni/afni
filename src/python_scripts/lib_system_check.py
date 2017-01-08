@@ -504,8 +504,7 @@ class SysInfo:
       flibs = glob.glob('%s/*dylib*' % flatdir)
       # first check for any homebrew gomp libraries, at all
       if len(flibs) > 0:
-         print "++ found %d dylib files under '%s':" % (len(flibs), flatdir)
-         print '   ' + '\n   '.join(flibs)
+         print "++ found %d dylib files under '%s'" % (len(flibs), flatdir)
       else:
          if self.verb > 1: print '-- no flat_namespace libraries exist'
          return 0
@@ -514,7 +513,8 @@ class SysInfo:
       for name in fnames:
          flibs = glob.glob('%s/%s*dylib*' % (flatdir, name))
          if len(flibs) > 0:
-            print "   -- found '%s' dylib files, e.g. %s" % (name, flibs[0])
+            print "   -- found '%s' dylib files:" % name
+            print '      ' + '\n      '.join(flibs)
             found += 1
 
       # if no libraries are found, we are done
