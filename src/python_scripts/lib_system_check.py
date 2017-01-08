@@ -494,9 +494,9 @@ class SysInfo:
          return 0 if no error was detected
       """
 
-      # require 10.9, unless being verbose
-      if self.get_osx_ver() < 9 and self.verb <= 1:
-         return 0
+      # require 10.9, unless being verbose (nah, just check...)
+      # if self.get_osx_ver() < 9 and self.verb <= 1:
+      #    return 0
 
       flatdir = '/opt/X11/lib/flat_namespace'
 
@@ -504,7 +504,8 @@ class SysInfo:
       flibs = glob.glob('%s/*dylib*' % flatdir)
       # first check for any homebrew gomp libraries, at all
       if len(flibs) > 0:
-         print "++ found %d dylib files under '%s'" % (len(flibs), flatdir)
+         print "++ found %d dylib files under '%s':" % (len(flibs), flatdir)
+         print '   ' + '\n   '.join(flibs)
       else:
          if self.verb > 1: print '-- no flat_namespace libraries exist'
          return 0
