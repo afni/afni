@@ -1651,6 +1651,7 @@ class RandTiming:
 
         for sind, sc in enumerate(self.sclasses):
             sc.adata.fname = '%s_%02d_%s.1D' % (prefix, sind+1, sc.name)
+            sc.adata.dur_len = -1.0
             if sc.adata.write_as_timing():
                return 1
 
