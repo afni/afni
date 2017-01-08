@@ -10,6 +10,7 @@ if( $#argv < 2 )then
   echo '* One image each from the sagittal, coronal, and axial views is used.'
   echo '* For a similar script that uses 3 images from each view, giving'
   echo '  more coverage of the brain, use @snapshot_volreg3.'
+  echo '  ***** That script is probably more useful! *****'
   echo
   echo 'Usage: @snapshot_volreg ANATDataset EPIdataset [jname] [xdisplay]'
   echo
