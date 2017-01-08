@@ -2629,6 +2629,7 @@ class AfniData(object):
       self.run_lens  = []       # run lengths, in seconds or TRs
       self.verb      = verb
       self.hist      = g_AfniData_hist
+      self.write_dm  = 1        # if found include durations when printing
 
       # computed variables
       self.cormat      = None   # correlation mat (normed xtx)
@@ -2963,18 +2964,16 @@ class AfniData(object):
 
       return 1
 
-   def make_single_row_string(self, row=-1, nplaces=3, flag_empty=0,
-                              check_simple=1):
+   def make_single_row_string(self, row=-1, nplaces=3, flag_empty=0, simple=1):
       """return a string of row data, to the given number of decimal places
-         if row is non-negative, return a string for the given row"""
+         if row is non-negative, return a string for the given row
+
+         if not simple, show_durs controls display of durations
+      """
       if not self.ready: return ''
       if row < 0 or row >= self.nrows:
          if self.verb > 0: print '** row %d out of range for printing' % row
          return ''
-
-      if check_simple and self.dur_len == 0.0: simple = 1
-      elif self.mtype == 0:                    simple = 1
-      else:                                    simple = 0
 
       data = self.mdata[row]
       rstr = ''
@@ -2995,7 +2994,8 @@ class AfniData(object):
                astr = ''.join(alist)
             else: astr = ''
 
-            if self.mtype & MTYPE_DUR:
+            # if married and want durations, include them
+            if self.write_dm and (self.mtype & MTYPE_DUR):
                dstr = ':%s' % val[2]
             else: dstr = ''
 
@@ -3016,20 +3016,36 @@ class AfniData(object):
             mesg         : display the message before data
       """
 
+      if check_simple and self.dur_len == 0.0: simple = 1
+      elif self.mtype == 0:                    simple = 1
+      else:                                    simple = 0
+
       # init return string based on message
       if len(mesg) > 0: rstr = "%s :\n" % mesg
       else:             rstr = ''
 
+      if self.verb > 2:
+         print '== writing %s, simple=%d, wdm=%d, const=%d, dur_len=%d' \
+               % (self.name, simple, self.write_dm, self.durs_are_constant(),
+                  self.dur_len)
+
       if row >=0:
          return rstr+self.make_single_row_string(row, nplaces, flag_empty,
-                                                 check_simple)
+                                                 simple)
 
       # make it for all rows
       for ind in range(self.nrows):
-         rstr += self.make_single_row_string(ind, nplaces, flag_empty,
-                                             check_simple)
+         rstr += self.make_single_row_string(ind, nplaces, flag_empty, simple)
 
       return rstr
+
+   def durs_are_constant(self):
+      """just check mdata"""
+      if self.mdata == None: return 1
+      dall = []
+      for mrow in self.mdata:
+         dall.extend([e[2] for e in mrow])
+      return UTIL.vals_are_constant(dall)
 
    def write_as_timing(self, fname='', nplaces=-1):
       """write the current M timing out, with nplaces right of the decimal"""
@@ -3584,13 +3600,21 @@ class AfniData(object):
       if not self.mdata_looks_valid(mdata):
          return 1
 
+      self.mdata    = mdata
+
       # note whether the data is married (modulation or duration)
       self.mtype = TD.married_type(mdata)
       if self.mtype: self.married = 1
 
+      # if durs, but constant, set dur_len instead
+      if self.mtype & MTYPE_DUR:
+         if self.durs_are_constant():
+            self.write_dm = 0
+         else:
+            self.dur_len = -1
+
       # data will ignore any married information
       self.data     = [[val[0] for val in row] for row in mdata]
-      self.mdata    = mdata
       self.clines   = None
 
       # init alist to be 0, 1 or 2, for each run so at least 2 "events"

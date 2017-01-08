@@ -357,13 +357,13 @@ class StimClass:
       else:          mstr = ''
       print "=== %sstats for StimClass %s ===" % (mstr, self.name)
 
-      print 'run       #      min       mean      max      stdev'
-      print '------  -----  -------   -------   -------   -------'
-      print 'expect        %7.3f   %7.3f   %7.3f     %s' % \
+      print 'run         #      min       mean      max      stdev'
+      print '------    -----  -------   -------   -------   -------'
+      print 'expected        %7.3f   %7.3f   %7.3f     %s' % \
                (tc.min_dur, tc.mean_dur, tc.max_dur, tc.dist_type)
       for rind, durs in enumerate(durlist):
          mmin,mmean,mmax,mstdev = UTIL.min_mean_max_stdev(durs)
-         print '%2d       %3d  %7.3f   %7.3f   %7.3f   %7.3f' % \
+         print '%2d         %3d  %7.3f   %7.3f   %7.3f   %7.3f' % \
                (rind, len(durs), mmin, mmean, mmax, mstdev)
       print
 
