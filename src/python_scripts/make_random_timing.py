@@ -850,6 +850,7 @@ g_todo = """
 
 gDEF_VERB       = 1      # default verbose level
 gDEF_OLD_T_GRAN = 0.1    # old-style time granularity, in seconds
+gDEF_OLD_DEC_PLACES = 1  # old-style digits after decimal for times
 gDEF_MIN_T_GRAN = 0.0001 # minimum time granularity, in seconds
 
 g_instant_timing_class = LRT.TimingClass('INSTANT', 0, 0, 0)
@@ -917,6 +918,7 @@ class RandTiming:
         self.stim_event_list = []       # stim index, duration lists
         self.full_event_list = []       # index, duration, time lists
         self.stim_adata      = []       # AfniData instance, per stim class
+        self.stimdict        = {}       # name:index Stim dict, for name lookup
 
         # ------------------------------------------------------------
         # required arguments for basic method
@@ -942,10 +944,15 @@ class RandTiming:
         self.min_rest = 0.0             # minimum rest after each stimulus
         self.offset   = 0.0             # offset for all stimulus times
         self.seed     = None            # random number seed
-        self.orderstim= []              # list of ordered stimulus lists
+        self.orderstim= []              # list of ordered stimulus lists (ints)
+        self.orderlabs= []              # list of ordered stimulus lists (strs)
+        self.osleaders= []              # leaders and followers
+        self.osfollow = []
+        self.osdict   = {}              # list of followers per leader
+
         self.max_consec = []            # max consectutive stimuli per type
         self.t_gran   = gDEF_OLD_T_GRAN # time granularity for rest
-        self.t_digits = LRT.gDEF_DEC_PLACES # digits after decimal for times
+        self.t_digits = gDEF_OLD_DEC_PLACES # digits after decimal for times
                                         # (-1 means to use %g)
         self.labels   = None            # labels to be applied to filenames
 
@@ -1241,7 +1248,8 @@ class RandTiming:
                print UTIL.int_list_string(self.max_consec, '-- max_consec : ')
 
         # gather a list of lists specified by -ordered_stimuli options
-        olist = self.user_opts.find_all_opts('-ordered_stimuli')
+        oname = '-ordered_stimuli'
+        olist = self.user_opts.find_all_opts(oname)
         for opt in olist:
             # check for non-int: if labels require labels to be already set
             slist, err = self.user_opts.get_type_list(int, opt=opt, verb=0)
@@ -1249,13 +1257,15 @@ class RandTiming:
                 # see if they are labels
                 slist, err = self.user_opts.get_string_list(opt=opt)
                 if err:
-                    print '** -ordered_stimuli: need list of ints or labels'
+                    print '** %s: need list of ints or labels' % oname
                     return 1
                 # see if we have labels to convert into indices
                 ilist, err = self.labels_to_indices(slist)
                 if err:
-                    print '** -ordered_stimuli requires indices or known labels'
+                    print '** %s requires indices or known labels' % oname
+                    print '   have: %s %s' % (oname, ' '.join(slist))
                     return 1
+                self.orderlabs.append(slist)
                 slist = ilist
             self.orderstim.append(slist)
             if self.verb>1: print UTIL.int_list_string(slist, '-- orderstim : ')
@@ -1299,7 +1309,7 @@ class RandTiming:
         self.t_digits, err = self.user_opts.get_type_opt(float,'-t_digits')
         if self.t_digits == None:
             if self.t_gran == round(self.t_gran,1):
-                self.t_digits = LRT.gDEF_DEC_PLACES
+                self.t_digits = gDEF_OLD_DEC_PLACES
             else:
                 self.t_digits = 3
         elif err: return 1
@@ -2698,6 +2708,10 @@ class RandTiming:
             if self.verb > 1: print '++ init with random seed %d' % self.seed
             random.seed(self.seed)
 
+        # create stimdict, a name -> StimClass index list
+        for sind, sc in enumerate(self.sclasses):
+           self.stimdict[sc.name] = sind
+
         # durations are created per stim class even if the timing types are
         # the same (so more time in one class does not cost time in another)
         if LRT.create_duration_lists(self.sclasses, self.num_runs,
@@ -2732,19 +2746,25 @@ class RandTiming:
        if self.across_runs: ntodo = 1
        else:                ntodo = self.num_runs
 
+       ordered = self.valid_ordered_stim()
+       if ordered < 0: return 1
+
        eall = []
        for rind in range(ntodo):
           erun = []
-          # rcr - handle ordered_stim?  check valid_orderstim()
-          #   - insert only leaders
-          #   - shuffle full leader list
-          #   - insert followers
           for sind, sc in enumerate(self.sclasses):
              # if ordered stim and sc is not a leader: skip
+             if ordered and sc.name in self.osfollow:
+                if self.verb>3: print '-- no shuffle for follower %s' % sc.name
+                continue
+        
              for dur in sc.durlist[rind]:
                 erun.append([sind, dur])
           self.shuffle_event_list(erun)
-          # if ordered stim, shuffle and insert followers insert
+
+          # if ordered stim, insert followers
+          if ordered:
+             erun = self.adv_insert_followers(erun)
 
           eall.append(erun)
 
@@ -2754,10 +2774,87 @@ class RandTiming:
           if self.adv_partition_sevents_across_runs():
              return 1
 
-       if self.verb > 3:
+       if self.verb > 2:
           print '-- have randomized event lists'
 
        return 0
+
+    def adv_insert_followers(self, events):
+       """given list of [sind, dur], insert appropriate followers
+
+          return new event list"""
+       enew = []
+       for event in events:
+          ename = self.sclasses[event[0]]
+          enew.append(event)
+
+          # possibly insert followers
+          if ename in self.osleaders:
+             for fname in self.osdict[ename]:
+                sind = self.stimdict[fname]
+                sc = self.sclasses[sind]
+                dur = sc.durlist.pop(0)
+                enew.append([sind, dur])
+
+       return enew
+
+    def valid_ordered_stim(self):
+       oname = '-ordered_stimuli'
+
+       nostim = len(self.orderstim)
+       nolabs = len(self.orderlabs)
+       if nostim > 0 and nolabs == 0:
+          print '** advanced usage requires labels in %s' % oname
+          return -1
+       if nolabs == 0: return 0
+
+       errs = 0
+       alllabs = []
+       leaders = []
+       followers = []
+       for olabs in self.orderlabs:
+          if len(olabs) < 2:
+             print '** %s requires at least 2 labels, have: %s' \
+                   % (oname, ' '.join(olabs))
+             errs += 1
+             continue
+
+          lead = olabs[0]
+          follow = olabs[1:]
+          for lab in olabs:
+             if lab not in self.labels:
+                print '** invalid label %s in %s %s' \
+                      % (lab, oname, ' '.join(olabs))
+                return -1   # fatal
+             if lab in alllabs:
+                print '** %s: label %s used multiple times' % (oname, lab)
+                errs += 1
+             alllabs.append(lab)
+
+          # number of events must match
+          ls = self.sclasses[self.stimdict[lead]]
+          for fname in follow:
+             fs = self.sclasses[self.stimdict[fname]]
+             if fs.nreps != ls.nreps:
+                print '** -ordered_stimuli: classes must have equal num stim'
+                print '   %s has %d, %s has %d' \
+                      % (lead, ls.nreps, fname, fs.nreps)
+                errs += 1
+
+          self.osdict[lead] = follow
+          leaders.append(lead)
+          followers.extend(follow)
+
+       if errs: return -1
+
+       self.osleaders = leaders
+       self.osfollow = followers
+
+       if self.verb > 2:
+          print '-- have %d ordered stim, with %d leaders and %d followers' \
+                % (nolabs, len(leaders), len(followers))
+
+       return 1
 
     def shuffle_event_list(self, events):
        """randomize order of events
