@@ -3621,9 +3621,9 @@ class AfniData(object):
       self.alist    = [0] * len(mdata)
       for rind, run in enumerate(mdata):
          if len(run) == 0:
-            alist[rind] = 2
+            self.alist[rind] = 2
          elif len(run) == 1:
-            alist[rind] = 1
+            self.alist[rind] = 1
 
       self.nrows    = len(self.data)
       self.row_lens = [len(row) for row in self.data]
