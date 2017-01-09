@@ -284,6 +284,68 @@ float THD_subbrick_min(THD_3dim_dataset *dset, int isb, int scl) {
    return(min);
 }
 
+float THD_dset_extent(THD_3dim_dataset *dset, char ret, float *RL_AP_IS)
+{
+   THD_dataxes      *daxes ;
+   THD_fvec3 fv1 , fv2  ;
+   float tf;
+   char *xlbot , *xltop , *ylbot , *yltop , *zlbot , *zltop ;
+   static char *RR="[R]" , *LL="[L]" ,
+               *PP="[P]" , *AA="[A]" ,
+               *SS="[S]" , *II="[I]" , *ZZ="   " ;
+
+   ENTRY("THD_dset_extent") ;
+
+   if( ! ISVALID_3DIM_DATASET(dset) ) RETURN(0.0) ;
+
+   daxes = dset->daxes ;
+   LOAD_FVEC3(fv1 , daxes->xxorg , daxes->yyorg , daxes->zzorg) ;
+   fv1 = THD_3dmm_to_dicomm( dset , fv1 ) ;
+
+   LOAD_FVEC3(fv2 , daxes->xxorg + (daxes->nxx-1)*daxes->xxdel ,
+                    daxes->yyorg + (daxes->nyy-1)*daxes->yydel ,
+                    daxes->zzorg + (daxes->nzz-1)*daxes->zzdel  ) ;
+   fv2 = THD_3dmm_to_dicomm( dset , fv2 ) ;
+
+   if( fv1.xyz[0] > fv2.xyz[0] ) FSWAP( fv1.xyz[0] , fv2.xyz[0] ) ;
+   if( fv1.xyz[1] > fv2.xyz[1] ) FSWAP( fv1.xyz[1] , fv2.xyz[1] ) ;
+   if( fv1.xyz[2] > fv2.xyz[2] ) FSWAP( fv1.xyz[2] , fv2.xyz[2] ) ;
+
+   XLAB(xlbot,fv1.xyz[0]) ; YLAB(ylbot,fv1.xyz[1]) ; ZLAB(zlbot,fv1.xyz[2]) ;
+   XLAB(xltop,fv2.xyz[0]) ; YLAB(yltop,fv2.xyz[1]) ; ZLAB(zltop,fv2.xyz[2]) ;
+
+   if (RL_AP_IS) {
+    RL_AP_IS[0] = fv1.xyz[0];
+    RL_AP_IS[1] = fv2.xyz[0];
+    RL_AP_IS[2] = fv1.xyz[1];
+    RL_AP_IS[3] = fv2.xyz[1];
+    RL_AP_IS[4] = fv1.xyz[2];
+    RL_AP_IS[5] = fv2.xyz[2];
+   }
+
+   switch (ret) {
+    case 'R':
+      return(fv1.xyz[0]);
+    case 'L':
+      return(fv2.xyz[0]);
+    case 'A':
+      return(fv1.xyz[1]);
+    case 'P':
+      return(fv2.xyz[1]);
+    case 'I':
+      return(fv1.xyz[2]);
+    case 'S':
+      return(fv2.xyz[2]);
+    case '-':
+    default:
+      if (!RL_AP_IS) {
+        ERROR_message("Nothing being returned");
+      }
+      return(0.0);
+   }
+
+}
+
 char * THD_dataset_info( THD_3dim_dataset *dset , int verbose )
 {
    THD_dataxes      *daxes ;
