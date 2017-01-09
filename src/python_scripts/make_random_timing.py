@@ -1678,15 +1678,20 @@ class RandTiming:
        else:
           fd = sys.stderr
 
+       # note how much space will we need for '(NAME)'
+       maxlen = 2 + max([len(sc.name) for sc in self.sclasses])
+       emptystr = '%*s' % (maxlen, '')
+
        if fd == sys.stderr:
           fd.write('# ==== all events ====\n')
        for rind, erun in enumerate(self.full_event_list):
           fd.write('-- run %d events --\n' % (rind+1))
-          fd.write('class   start      dur     rest\n')
-          fd.write('-----   -----     ----     ----\n')
+          fd.write('class %s  start      dur     rest\n' % emptystr)
+          fd.write('----- %s  -----     ----     ----\n' % emptystr)
           for event in erun:
-             fd.write('%3d    %6.2f   %6.2f   %6.2f\n' \
-                   % (event[0], event[3], event[1], event[2]))
+             nstr = '(%s)' % self.sclasses[event[0]].name
+             fd.write('%3d %-*s   %6.2f   %6.2f   %6.2f\n' \
+                   % (event[0], maxlen, nstr, event[3], event[1], event[2]))
           fd.write('\n')
 
        if fd != sys.stderr:
