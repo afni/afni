@@ -64,6 +64,7 @@ foreach pppp ( $plist )
 end
 if( $nerr > 0 )then
   echo "$errm -- not found in path -- @snapshot_volreg3 fails"
+  echo "** WARNING: this script cannot run without installing package netpbm11"
   exit 1
 endif
 
