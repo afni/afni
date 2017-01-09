@@ -203,8 +203,8 @@ class SysInfo:
       # locate various data trees, and possibly show recent history
       rv = 0
       rv += self.show_data_dir_info('AFNI_data6', 'history.txt')
+      rv += self.show_data_dir_info('AFNI_demos', 'history.txt')
       rv += self.show_data_dir_info('suma_demo', 'README.archive_creation')
-      rv += self.show_data_dir_info('FATCAT_DEMO', 'README.timestamp')
       rv += self.show_data_dir_info('afni_handouts')
 
       if rv: self.comments.append('insufficient data for AFNI bootcamp')
@@ -494,9 +494,9 @@ class SysInfo:
          return 0 if no error was detected
       """
 
-      # require 10.9, unless being verbose
-      if self.get_osx_ver() < 9 and self.verb <= 1:
-         return 0
+      # require 10.9, unless being verbose (nah, just check...)
+      # if self.get_osx_ver() < 9 and self.verb <= 1:
+      #    return 0
 
       flatdir = '/opt/X11/lib/flat_namespace'
 
@@ -513,7 +513,8 @@ class SysInfo:
       for name in fnames:
          flibs = glob.glob('%s/%s*dylib*' % (flatdir, name))
          if len(flibs) > 0:
-            print "   -- found '%s' dylib files, e.g. %s" % (name, flibs[0])
+            print "   -- found '%s' dylib files:" % name
+            print '      ' + '\n      '.join(flibs)
             found += 1
 
       # if no libraries are found, we are done
