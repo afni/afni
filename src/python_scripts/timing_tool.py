@@ -1007,9 +1007,10 @@ g_history = """
    2.14 Feb 24, 2016 - fix crash in -warn_tr_stats if no timing events
    2.15 Mar 15, 2016 - help_basis update: max of BLOCK() is ~5.1 (not 5.4)
    2.16 Aug  5, 2016 - added -marry_AM for J Wiggins
+   2.17 Jan  9, 2017 - timediff for event list should use prev duration
 """
 
-g_version = "timing_tool.py version 2.16, August 5, 2016"
+g_version = "timing_tool.py version 2.17, January 9, 2017"
 
 
 
@@ -1760,13 +1761,16 @@ class ATInterface:
             if eind == 0:
                cprev = self.part_init
                tprev = 0
+               dprev = 0
             else:
                 cprev  = allevents[eind-1][3]
                 tprev = allevents[eind-1][0]
+                dprev = allevents[eind-1][2]
 
             if s1d_type != '':
                etlist.append(self.make_s1d_estr_list(s1d_type,cind,cprev=cprev,
-                                   etime=event[0], tprev=tprev, dur=event[2]))
+                                   etime=event[0], tprev=tprev, dur=event[2],
+                                   pdur=dprev))
             elif style == 'index': fp.write('%d ' % cind)
             elif style == 'part':
                if cind != 1: continue # only write predecessors of class 1
@@ -1806,7 +1810,8 @@ class ATInterface:
       return wlist
 
    def make_s1d_estr_list(self, stypes, cind=0, cprev=0,
-                             etime=0.0, tprev=0.0, dur=0.0, maxfilelen=10):
+                             etime=0.0, tprev=0.0, dur=0.0, pdur=0.0,
+                             maxfilelen=10):
       tlist = self.m_timing
 
       # apply special case of ALL for types
@@ -1820,7 +1825,7 @@ class ATInterface:
          elif st == 'f': astr = '%-*s' % (maxfilelen,tlist[cind-1].fname)
          elif st == 'd': astr = '%8.3f' % dur
          elif st == 'o':
-            offset = etime-tprev-dur
+            offset = etime-tprev-pdur
             # check for first event per run
             if tprev == 0.0: offset = etime
             if offset == 0.0:

@@ -254,9 +254,6 @@ class TimingClass:
       # (+0.01 is to avoid a close trunction miss)
       nmax = int(max_dur / self.t_gran + 0.01)
 
-      print '== urand: nevents %d, tot_time %s, max_dur %s, nmax %d' \
-            % (nevents, tot_time, max_dur, nmax)
-
       durlist = []
       for ind in range(nevents//2):
          ngran = int(random.uniform(0,nmax+1))
