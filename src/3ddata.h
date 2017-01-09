@@ -4423,6 +4423,7 @@ extern int THD_slow_minmax_dset(THD_3dim_dataset *dset,
                 float *dmin, float *dmax, int iv_bot, int iv_top);
 extern float THD_dset_max(THD_3dim_dataset *dset, int scl);
 extern float THD_dset_min(THD_3dim_dataset *dset, int scl);
+extern float THD_dset_extent(THD_3dim_dataset *dset, char ret,float *RL_AP_IS);
 
 extern void THD_show_dataset_names( THD_3dim_dataset *dset,
                                     char *head, FILE *out);
