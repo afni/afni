@@ -2674,9 +2674,14 @@ int main( int argc , char *argv[] )
        fprintf(stderr,
          "\n"
          "++ If you are using XQuartz 2.7.10 (or later), and\n"
-         " + AFNI crashes when opening windows, you might need\n"
+         " + AFNI crashes when opening windows, or you cannot\n"
+         " + type text into AFNI popup windows, you might need\n"
          " + to set an environment variable to solve this problem:\n"
-         " +   setenv DYLD_LIBRARY_PATH /opt/X11/lib/flat_namespace\n\n" ) ;
+         " +   setenv DYLD_LIBRARY_PATH /opt/X11/lib/flat_namespace\n"
+         " + This command is best put in your startup ~/.cshrc file,\n"
+         " + so that it will be invoked for every (t)csh shell\n"
+         " + you open.\n\n"
+       ) ;
    }
 #endif
 
