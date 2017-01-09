@@ -160,7 +160,7 @@ int main( int argc , char * argv[] )
          if (extent) {
           float RL_AP_IS[6];
           THD_dset_extent(outset, '-', RL_AP_IS);
-          INFO_message("Extent auto bbox: RL=%f..%f  AP=%f..%f  IS=%f..%f\n",
+          printf("Extent auto bbox: R=%f L=%f  A=%f P=%f  I=%f S=%f\n",
                     RL_AP_IS[0],RL_AP_IS[1],
                     RL_AP_IS[2],RL_AP_IS[3],
                     RL_AP_IS[4],RL_AP_IS[5] ) ;
