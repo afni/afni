@@ -1651,6 +1651,7 @@ class RandTiming:
 
         for sind, sc in enumerate(self.sclasses):
             sc.adata.fname = '%s_%02d_%s.1D' % (prefix, sind+1, sc.name)
+            sc.adata.dur_len = -1.0
             if sc.adata.write_as_timing():
                return 1
 
@@ -2915,7 +2916,7 @@ class RandTiming:
                                                rtimes[rtind], force_total=1)
           # add option, show rest details
           if self.verb > 5 or self.show_rest_events:
-             mesg='=== run %d rest durs, Rest Class %s ===' % (rind, rc.name)
+             mesg='run %d rest' % rind
              rc.show_durlist_stats(rc.etimes, mesg=mesg, details=1)
 
        # quick test
