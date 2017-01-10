@@ -2674,9 +2674,14 @@ int main( int argc , char *argv[] )
        fprintf(stderr,
          "\n"
          "++ If you are using XQuartz 2.7.10 (or later), and\n"
-         " + AFNI crashes when opening windows, you might need\n"
+         " + AFNI crashes when opening windows, or you cannot\n"
+         " + type text into AFNI popup windows, you might need\n"
          " + to set an environment variable to solve this problem:\n"
-         " +   setenv DYLD_LIBRARY_PATH /opt/X11/lib/flat_namespace\n\n" ) ;
+         " +   setenv DYLD_LIBRARY_PATH /opt/X11/lib/flat_namespace\n"
+         " + This command is best put in your startup ~/.cshrc file,\n"
+         " + so that it will be invoked for every (t)csh shell\n"
+         " + you open.\n\n"
+       ) ;
    }
 #endif
 
@@ -10889,16 +10894,17 @@ ENTRY("AFNI_imag_pop_CB") ;
 
       {  /* initialize labels */
          char **at_labels=NULL ;
-         int iii;
+         int iii , flipxy=(GLOBAL_library.cord.xxsign < 0 && GLOBAL_library.cord.yysign < 0);
          char title_str[256];
 
-         at_labels = atlas_chooser_formatted_labels(
-                           Current_Atlas_Default_Name());
+         at_labels = atlas_chooser_formatted_labels( Current_Atlas_Default_Name() , flipxy ) ;
          if( ISQ_REALZ(seq) && at_labels ){
            if( AFNI_yesenv("AFNI_DATASET_BROWSE") ) MCW_set_browse_select(1) ;
 
-           sprintf(title_str, "Brain Structure (from %s)",
-                        Current_Atlas_Default_Name());
+           sprintf(title_str, "Brain Structure (%s) [%s]",
+                        Current_Atlas_Default_Name() ,
+                        (flipxy) ? "SPM order" : "DICOM order"
+                   ) ;
            MCW_choose_strlist( seq->wbar ,
                        title_str ,
                        atlas_n_points(Current_Atlas_Default_Name()) ,

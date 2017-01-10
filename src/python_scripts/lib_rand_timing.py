@@ -6,7 +6,7 @@ import lib_afni1D as LD
 
 gDEF_T_GRAN     = 0.01   # default time granularity, in seconds
                          # (OLD one in mrt.py is just 0.1)
-gDEF_DEC_PLACES = 1      # decimal places when printing time (-1 ==> %g format)
+gDEF_DEC_PLACES = 2      # decimal places when printing time (-1 ==> %g format)
 
 
 g_valid_dist_types = ['decay', 'uniform_rand', 'uniform_grid',
@@ -83,6 +83,8 @@ class TimingClass:
       if details:
          print '   verb         : %s' % self.verb
          print '   total_time   : %s' % self.total_time
+
+      print
 
    def show_durlist_stats(self, durlist, mesg='', details=0, sort=0):
       if mesg != '': mstr = '(%s) ' % mesg
@@ -254,9 +256,6 @@ class TimingClass:
       # (+0.01 is to avoid a close trunction miss)
       nmax = int(max_dur / self.t_gran + 0.01)
 
-      print '== urand: nevents %d, tot_time %s, max_dur %s, nmax %d' \
-            % (nevents, tot_time, max_dur, nmax)
-
       durlist = []
       for ind in range(nevents//2):
          ngran = int(random.uniform(0,nmax+1))
@@ -348,6 +347,8 @@ class StimClass:
          print '   verb         : %s' % self.verb
          self.sclass.show('stim class for %s'%self.name)
          self.rclass.show('rest class for %s'%self.name)
+
+      print
 
    def show_durlist_stats(self, mesg='', details=0):
       tc = self.sclass
