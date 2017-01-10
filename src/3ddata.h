@@ -5771,7 +5771,7 @@ extern THD_3dim_dataset * TT_retrieve_atlas_big_old(void) ; /* 01 Aug 2001 */
 extern void TT_purge_atlas_big(void);
 
 extern THD_3dim_dataset * TT_retrieve_atlas_either_old(void); /* 22 Aug 2001 */
-extern char **atlas_chooser_formatted_labels(char *atname);
+extern char **atlas_chooser_formatted_labels(char *atname,int flipxy);
 
 #define TT_ATLAS_NZ_SMALL 141 /* 01 Aug 2001 */
 #define TT_ATLAS_NZ_BIG   151
