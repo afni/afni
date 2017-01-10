@@ -2711,6 +2711,9 @@ class RandTiming:
         # create stimdict, a name -> StimClass index list
         for sind, sc in enumerate(self.sclasses):
            self.stimdict[sc.name] = sind
+        if self.verb > 3:
+           print '++ have len %d stimdict : %s' \
+                 % (len(self.stimdict.keys()), self.stimdict)
 
         # durations are created per stim class even if the timing types are
         # the same (so more time in one class does not cost time in another)
@@ -2764,7 +2767,7 @@ class RandTiming:
 
           # if ordered stim, insert followers
           if ordered:
-             erun = self.adv_insert_followers(erun)
+             erun = self.adv_insert_followers(rind, erun)
 
           eall.append(erun)
 
@@ -2779,13 +2782,15 @@ class RandTiming:
 
        return 0
 
-    def adv_insert_followers(self, events):
+    def adv_insert_followers(self, rind, events):
        """given list of [sind, dur], insert appropriate followers
 
           return new event list"""
+       if self.verb > 3:
+          print '-- insert followers: starting with %d events' % len(events)
        enew = []
        for event in events:
-          ename = self.sclasses[event[0]]
+          ename = self.sclasses[event[0]].name
           enew.append(event)
 
           # possibly insert followers
@@ -2793,8 +2798,11 @@ class RandTiming:
              for fname in self.osdict[ename]:
                 sind = self.stimdict[fname]
                 sc = self.sclasses[sind]
-                dur = sc.durlist.pop(0)
+                dur = sc.durlist[rind].pop(0)
                 enew.append([sind, dur])
+
+       if self.verb > 3:
+          print '-- insert followers: returning %d events' % len(enew)
 
        return enew
 
@@ -2853,6 +2861,9 @@ class RandTiming:
        if self.verb > 2:
           print '-- have %d ordered stim, with %d leaders and %d followers' \
                 % (nolabs, len(leaders), len(followers))
+          if self.verb > 3:
+             print '   leaders  : %s' % ', '.join(leaders)
+             print '   followers: %s' % ', '.join(followers)
 
        return 1
 
