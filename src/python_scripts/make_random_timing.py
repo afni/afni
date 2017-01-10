@@ -1268,7 +1268,8 @@ class RandTiming:
                 self.orderlabs.append(slist)
                 slist = ilist
             self.orderstim.append(slist)
-            if self.verb>1: print UTIL.int_list_string(slist, '-- orderstim : ')
+            if self.verb>1:
+               print UTIL.int_list_string(slist, '-- orderstim (1-based): ')
 
         if self.verb > 1 or self.user_opts.find_opt('-show_timing_stats'):
             self.show_timing_stats = 1
@@ -2953,7 +2954,9 @@ class RandTiming:
           rv, ferun = self.adv_stim2full_run_elist(rind, erun)
           if rv: return 1
           if self.verb > 5:
-             print '== full timing list: run %d, elist %s' % (rind+1, ferun)
+             print '== full timing list: run %d, elist:' % (rind+1)
+             for fe in ferun:
+                print '   %s' % ', '.join(['%g'%e for e in fe])
           felist.append(ferun)
 
        self.full_event_list = felist
@@ -3146,6 +3149,8 @@ class RandTiming:
        if abs(mean_scalar-1) > 0.05 or self.verb > 2:
           print '-- have %g of %g mean seconds available, scaling by %g' \
                 % (remain, tot_mean, mean_scalar)
+          if remain > tot_mean and have_rand:
+             print '   (no scaling due to unlimited rest classes)'
        
        # -----------------------------------------------------------------
        # now actually distribute into rtimes
