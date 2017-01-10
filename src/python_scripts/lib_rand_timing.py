@@ -84,6 +84,8 @@ class TimingClass:
          print '   verb         : %s' % self.verb
          print '   total_time   : %s' % self.total_time
 
+      print
+
    def show_durlist_stats(self, durlist, mesg='', details=0, sort=0):
       if mesg != '': mstr = '(%s) ' % mesg
       else:          mstr = ''
@@ -345,6 +347,8 @@ class StimClass:
          print '   verb         : %s' % self.verb
          self.sclass.show('stim class for %s'%self.name)
          self.rclass.show('rest class for %s'%self.name)
+
+      print
 
    def show_durlist_stats(self, mesg='', details=0):
       tc = self.sclass
