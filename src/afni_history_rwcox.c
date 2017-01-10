@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 10 , JAN , 2016 , RWC , "afni GUI" , MICRO , TYPE_MODIFY ,
+   "Change x,y signs in 'Go to atlas location' menu for SPM coords" ,
+   "Per the request of Todd Braver" } ,
+
  { 30 , DEC , 2016 , RWC , "3dttest++" , MICRO , TYPE_NEW_OPT ,
    "Add -ACF option -- to compute ACF parameters from residuals" ,
    NULL } ,
