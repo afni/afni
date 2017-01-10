@@ -3025,7 +3025,7 @@ class AfniData(object):
       else:             rstr = ''
 
       if self.verb > 2:
-         print '== writing %s, simple=%d, wdm=%d, const=%d, dur_len=%d' \
+         print '-- writing %s, simple=%d, wdm=%d, const=%d, dur_len=%d' \
                % (self.name, simple, self.write_dm, self.durs_are_constant(),
                   self.dur_len)
 
