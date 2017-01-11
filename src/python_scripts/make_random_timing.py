@@ -14,6 +14,12 @@ Create random stimulus timing files.
     user requests it).  Stimulus presentation times will never overlap, though
     their responses can.
 
+
+    *** There is now a basic (old) and advanced usage.  Until I decide whether
+        and how to merge the help, see -help_advanced for the advanced usage.
+        What follows is the basic usage.
+
+
     This can easily be used to generate many sets of random timing files to
     test via "3dDeconvolve -nodata", in order to determine good timing, akin
     to what is done in HowTo #3 using RSFgen.  Note that the -save_3dd_cmd
@@ -464,10 +470,27 @@ NOTE: distribution of ISI
 informational arguments:
 
     -help                       : display this help
+    -help_advanced              : display help for advanced usage
+    -help_todo                  : display list of things to do
     -hist                       : display the modification history
     -show_valid_opts            : display all valid options (short format)
     -ver                        : display the version number
 
+----------------------------------------
+advanced arguments/options:
+
+    -help_advanced              : display help for advanced usage
+    -help_todo                  : "to do" list is mostly for advanced things
+
+    -add_timing_class           : create a new timing class (stim or rest)
+    -add_stim_class             : describe a new stimulus class (timing, etc.)
+    -rand_post_stim_rest yes/no : allow rest after final stimulus
+    -show_rest_events           : show details of rest timing, per type
+    -write_event_list FILE      : create FILE listing all events and times
+
+    -max_consec_adv CLASS NUM   : advanced -max_consec
+                                  specify class name and max_consec
+                                  (this might go away)
 ----------------------------------------
 required arguments:
 
@@ -781,6 +804,153 @@ optional arguments:
 ===========================================================================
 """
 
+g_help_advanced = """
+---------------------------------------------------------------------------
+make_random_timing.py - Advanced usage
+
+   With advanced usage, timing classes are defined for both stimulus periods
+   and rest periods.  Timing classes specify duration types that have different
+   distributions (min, mean, max and distribution type), which can be applied
+   to stimulus events or to rest events.
+
+   When specifying a timing class, one can provide:
+
+        min     : min, mean and maximum for possible durations
+        mean      (note that for a uniform distribution, the mean or max
+        max       implies the other, while that is not true for decay)
+        dtype   : distribution type (default=decay)
+                  decay:        shorter events are more likely
+                                see "NOTE: distribution of ISI"
+                  uniform_rand: randomly chosen durations with uniform dist
+                  uniform_grid: durations spread evenly across grid
+                  fixed:        one duration is specified
+                  INSTANT:      duration = 0
+        t_grid  : all durations are fixed on this grid (default=0.01s)
+
+   One can provide subsets:
+
+        min                             : implies fixed
+        min, mean max                   : implies decay on default t_grid
+        min, mean max, dtype            : implies default t_trid
+        min, mean max, dtype, t_grid
+
+
+   Every stimulus class type is followed by a fixed rest class type.  So rest
+   periods are "attached" to the preceding stimulus periods.  For example, the
+   'faces' class events might last for 0.5 - 1.5 seconds, and be uniformly
+   distributed (so average = 1s).  Those face events might then be followed by
+   0.5 - 8.5 seconds of rest with a 'decay' distribution (so shorter durations
+   are more probable than longer durations).
+
+   The 'decay' distribution type matches that of the basic (non-advanced) use
+   this program.  See "NOTE: distribution of ISI" in the -help output.
+
+   -------------------------------------------------------
+   Advanced Example 1: basic, with 3 conditions
+
+     - This is a simple case with 3 conditions, each having 8 events per run
+       of duration 3.5 s.  Rest is randomly distributed using the default
+       'decay' distribution (meaning shorter periods are more likely than
+       longer ones).  The first and last 20 s is also allocated for rest.
+
+     - Do this for 4 runs of length 200 s each.
+
+     - Also, do not allow any extra rest (beyond the specifiec 10 s) after
+       the final stimulus event.
+
+     - Show timing statistics.  Save a complete event list (events.adv.1.txt).
+
+         make_random_timing.py -num_runs 4 -run_time 200         \\
+            -add_timing_class stim 3.5                           \\
+            -add_timing_class rest 0 -1 -1                       \\
+            -pre_stim_rest 10 -post_stim_rest 10                 \\
+            -add_stim_class houses 10 stim rest                  \\
+            -add_stim_class faces  10 stim rest                  \\
+            -add_stim_class donuts 10 stim rest                  \\
+            -rand_post_stim_rest no                              \\
+            -show_timing_stats                                   \\
+            -write_event_list events.adv.1.txt                   \\
+            -seed 31415 -prefix stimes.adv.1
+
+
+   -------------------------------------------------------
+   Advanced Example 2: varrying stimulus and rest timing classes
+
+     - This has 4 stimulus conditions employing 3 different stimulus timing
+       classes and 3 different rest timing classes.
+
+       timing classes (stim and rest periods):
+
+           stima: durations in [0.5, 10], ave = 3s (decay distribution)
+           stimb: durations in [0.1, 3], ave = 0.5s (decay distribution)
+           stimc: durations of 2s
+
+           resta: durations in [0.2, 1.2], ave = 0.7 (uniform rand dist)
+           restb: durations in [0.5, 1.5], ave = 1.0 (uniform grid dist)
+           restc: durations in (0, inf) (decay dist) - absorbs remaining rest
+
+       conditions (each has stim timing type and subsequent rest timing type)
+
+                    # events (per run)  stim timing        rest timing
+                    --------            -----------        -----------
+           houses :    20                  stima              resta
+           faces  :    20                  stimb              restb
+           donuts :    20                  stimb              restb
+           pizza  :    20                  stimc              restc
+
+     - Do not allow any rest (aside from -post_stim_rest) after final stim
+       (per run).  So there will be exactly the rest from -post_stim_rest at
+       the end of each run, 10s in this example.
+
+         make_random_timing.py -num_runs 2 -run_time 300         \\
+            -add_timing_class stima 0.5 3 10                     \\
+            -add_timing_class stimb 0.1 0.5 3                    \\
+            -add_timing_class stimc 2                            \\
+            -add_timing_class resta 0.2 .7 1.2 uniform_rand      \\
+            -add_timing_class restb 0.5 1  1.5 uniform_grid      \\
+            -add_timing_class restc 0 -1 -1                      \\
+            -pre_stim_rest 10 -post_stim_rest 10                 \\
+            -add_stim_class houses 20 stima resta                \\
+            -add_stim_class faces  20 stimb restb                \\
+            -add_stim_class donuts 20 stimb restb                \\
+            -add_stim_class pizza  20 stimc restc                \\
+            -write_event_list events.adv.2                       \\
+            -rand_post_stim_rest no                              \\
+            -show_timing_stats                                   \\
+            -seed 31415 -prefix stimes.adv.2
+
+
+   -------------------------------------------------------
+   Advanced Example 3: ordered event types
+
+     - Every cue event is followed by test and then result.
+     - Every pizza1 event is followed by pizza2 and then pizza3.
+
+         make_random_timing.py -num_runs 2 -run_time 300        \\
+            -add_timing_class stima 0.5 3 10                    \\
+            -add_timing_class stimb 0.1 0.5 3                   \\
+            -add_timing_class stimc 0.1 2.5 10                  \\
+            -add_timing_class stimd 2 2 2                       \\
+            -add_timing_class resta 0.2 .7 1.2 uniform_rand     \\
+            -add_timing_class restb 0.5 1  1.5 uniform_grid     \\
+            -add_timing_class restc 0 -1 -1                     \\
+            -pre_stim_rest 10 -post_stim_rest 10                \\
+            -add_stim_class cue    20 stima resta               \\
+            -add_stim_class test   20 stimb restb               \\
+            -add_stim_class result 20 stimb restb               \\
+            -add_stim_class pizza1 10 stimc restc               \\
+            -add_stim_class pizza2 10 stimc restc               \\
+            -add_stim_class pizza3 10 stimc restc               \\
+            -add_stim_class salad  10 stimd restc               \\
+            -write_event_list events.adv.3                      \\
+            -rand_post_stim_rest no                             \\
+            -show_timing_stats                                  \\
+          -ordered_stimuli cue test result                      \\
+          -ordered_stimuli pizza1 pizza2 pizza3                 \\
+            -seed 31415 -prefix stimes.adv.3
+---------------------------------------------------------------------------
+"""
+
 g_history = """
     make_random_timing.py history:
 
@@ -826,6 +996,8 @@ g_history = """
 g_version = "version 1.10, June 1, 2016"
 
 g_todo = """
+   - give timing class params as t_grid=0.01 max_consec=4
+     ?? would that be better?  I think so.
    - check tr_locked
    - new method for decay that better handles max duration, w/out spike
    - add warning if post-stim rest < 3 seconds
@@ -833,11 +1005,9 @@ g_todo = """
         -rand_post_stim_rest, -write_event_list, show_rest_events
    - add option to change timing classes for pre and post stim rest
    - add related dist_types rand_unif and rand_gauss?
-   -add_timing_class label MIN MEAN MAX PDF TGRAN
-   -add_stim_class label Nreps stim_timing_class rest_timing_class
-   -global "-across_runs" still applies
+   - global "-across_runs" should still apply
+   - handle max_consec (new option?)
 
-   - option to remove last event's rest in favor of -post_stim_rest
    - option to give -pre_/-post_stim_rest a class?
 
    - maybe this program should just be a new one?  gen_random_timing.py?
@@ -977,6 +1147,10 @@ class RandTiming:
         # short, terminal arguments
         self.valid_opts.add_opt('-help', 0, [],      \
                         helpstr='display program help')
+        self.valid_opts.add_opt('-help_advanced', 0, [],      \
+                        helpstr='display program help for ADVANCED usage')
+        self.valid_opts.add_opt('-help_todo', 0, [],      \
+                        helpstr='display stupid todo list')
         self.valid_opts.add_opt('-hist', 0, [],      \
                         helpstr='display the modification history')
         self.valid_opts.add_opt('-show_isi_pdf', 2, [], \
@@ -1000,6 +1174,8 @@ class RandTiming:
                         helpstr='include random rest after final stimulus? y/n')
         self.valid_opts.add_opt('-show_rest_events', 0, [], req=0,
                         helpstr='show stats on each rest class (y/n)')
+        self.valid_opts.add_opt('-write_event_list', 1, [],
+                        helpstr="write event list to file ('-' for stdout)")
 
         # old 'required' arguments
         self.valid_opts.add_opt('-num_stim', 1, [], req=0,
@@ -1052,8 +1228,6 @@ class RandTiming:
                         helpstr='specify TR for 3dDeconvolve command');
         self.valid_opts.add_opt('-tr_locked', 0, [],
                         helpstr='specify TR and enforce TR-locked timing');
-        self.valid_opts.add_opt('-write_event_list', 1, [],
-                        helpstr="write event list to file ('-' for stdout)")
 
         self.valid_opts.add_opt('-verb', 1, [],
                         helpstr='verbose level (0=quiet, 1=default, ...)')
@@ -1071,6 +1245,14 @@ class RandTiming:
         # if argv has only the program name, or user requests help, show it
         if len(sys.argv) <= 1 or '-help' in sys.argv:
             print g_help_string
+            return 0
+
+        if '-help_advanced' in sys.argv:
+            print g_help_advanced
+            return 0
+
+        if '-help_todo' in sys.argv:
+            print g_todo
             return 0
 
         # check for -ver and -hist, too
