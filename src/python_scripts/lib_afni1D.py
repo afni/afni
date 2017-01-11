@@ -2722,7 +2722,7 @@ class AfniData(object):
 
       if self.mtype != newdata.mtype:
          print '** timing elements differ in married type (%s, %s)' \
-	       % (self.married_type_string(self.mtype),
+               % (self.married_type_string(self.mtype),
                   self.married_type_string(newdata.mtype))
          if not promote_mtype: return 1
          print '   promoting mtypes between %s and %s'%(self.name, newdata.name)
@@ -2731,15 +2731,15 @@ class AfniData(object):
       if self.verb > 1: print '++ MTiming: extending %d rows' % self.nrows
 
       for ind in range(self.nrows):
-	 if self.verb > 3:
+         if self.verb > 3:
             print '++ edr m #%d: extending %d rows from %d cols by %d' \
-	       % (ind, self.nrows, len(self.data[ind]), len(newdata.data[ind]))
+               % (ind, self.nrows, len(self.data[ind]), len(newdata.data[ind]))
          self.data[ind].extend(newdata.data[ind])
 
       for ind in range(self.nrows):
-	 if self.verb > 3:
+         if self.verb > 3:
             print '++ EDR M #%d: extending %d rows from %d cols by %d' \
-	       % (ind, self.nrows, len(self.mdata[ind]),len(newdata.mdata[ind]))
+               % (ind, self.nrows, len(self.mdata[ind]),len(newdata.mdata[ind]))
          self.mdata[ind].extend(newdata.mdata[ind])
 
       # and update ncols
