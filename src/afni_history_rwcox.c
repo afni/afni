@@ -44,6 +44,11 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 11 , JAN , 2016 , RWC , "@snapshot_volreg" , MICRO , TYPE_MODIFY ,
+   "@snapshot_volreg has been replaced by the former @snapshot_volreg3" ,
+   "Also, replaced the use of the 'pam' functions with similar 'pnm'\n"
+   "functions, to help in portability to demented Linux systems." } ,
+
  { 10 , JAN , 2016 , RWC , "afni GUI" , MICRO , TYPE_MODIFY ,
    "Change x,y signs in 'Go to atlas location' menu for SPM coords" ,
    "Per the request of Todd Braver" } ,
