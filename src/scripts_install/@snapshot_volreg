@@ -10,7 +10,7 @@ if( $#argv < 2 )then
   echo '* Three images from each of the coronal, axial, and sagittal'
   echo '  views are used, laid out in a 3x3 grid.'
   echo
-  echo 'Usage: @snapshot_volreg3 ANATDataset EPIdataset [jname] [xdisplay]'
+  echo 'Usage: @snapshot_volreg ANATdataset EPIdataset [jname] [xdisplay]'
   echo
   echo 'Do NOT put a sub-brick index (such as "[0]") on the EPIdataset'
   echo 'name -- the script will automatically only use the "[0]" volume.'
@@ -34,6 +34,11 @@ if( $#argv < 2 )then
   echo 'many times in a row, starting and stopping your own Xvfb'
   echo 'instance will speed things up a little. Normally, you do not'
   echo 'need to use this 4th argument.'
+  echo
+  echo 'Sample usage (from an afni_proc.py results directory):'
+  echo
+  echo '  @snapshot_volreg anat_final.sub-10506+tlrc      \'
+  echo '                   pb02.sub-10506.r01.volreg+tlrc sub-10506'
   echo
   echo '-------------- Author: The Mad Allineator ---------------'
   echo
@@ -74,7 +79,7 @@ if( $status != 0 )then
 endif
 
 if( $nerr > 0 )then
-  echo "$errm -- not found in path -- @snapshot_volreg3 fails"
+  echo "$errm -- not found in path -- @snapshot_volreg fails"
   echo "** WARNING: this script cannot run without installing package netpbm11"
   exit 1
 endif
@@ -141,8 +146,8 @@ set exad = `3dinfo -exists $adset`
 set exep = `3dinfo -exists $edset`
 
 if( $exad == 0 || $exep == 0 )then
-  if( $exad == 0 ) echo "** ERROR: @snapshot_volreg3 can't find $adset"
-  if( $exep == 0 ) echo "** ERROR: @snapshot_volreg3 can't find $edset"
+  if( $exad == 0 ) echo "** ERROR: @snapshot_volreg can't find $adset"
+  if( $exep == 0 ) echo "** ERROR: @snapshot_volreg can't find $edset"
   exit 1
 endif
 
@@ -249,7 +254,7 @@ $pcprog -align=right -valign=top    ${zpref}.t2.pgm ${zpref}.t3.pnm | cjpeg -qua
 
 \rm -f ${zpref}.*
 
-echo "@snapshot_volreg3 output image = $jnam.jpg"
+echo "@snapshot_volreg output image = $jnam.jpg"
 
 # stop Xvfb if we started it ourselves
 
