@@ -1,0 +1,367 @@
+#!/bin/tcsh -ef
+
+# --------------------- revision history -------------------------
+# Jan, 2017
+#   + rename
+# ----------------------------------------------------------------
+
+set version = "1.0"
+set rev_dat = "Jan, 2017"
+set this_prog = "fat_proc_dwi_to_dt"
+
+set here     = $PWD
+set i_ap     = ""
+set i_pa     = ""
+set idir_ap  = ""
+set idir_pa  = ""
+set odir_ap  = ""
+set odir_pa  = ""
+set o_ap     = "AP"        # default file output prefix
+set o_pa     = "PA"        # default file output prefix
+set ori_new  = "RPI"       # default file output orientation
+set doflip   = ""          # default: no flip of grads
+set KEEP     = "" 
+
+# ------------------- process options, a la rr ----------------------
+
+if ( $#argv == 0 ) goto SHOW_HELP
+
+set ac = 1
+while ( $ac <= $#argv )
+    # terminal options
+    if ( ("$argv[$ac]" == "-h" ) || ("$argv[$ac]" == "-help" )) then
+        goto SHOW_HELP
+    endif
+    if ( "$argv[$ac]" == "-ver" ) then
+        goto SHOW_VERSION
+    endif
+
+    #here, specify NIFTI *files*, not directories
+    if ( "$argv[$ac]" == "-inset_ap" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set i_ap = "$argv[$ac]"
+    else if ( "$argv[$ac]" == "-inset_pa" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set i_pa = "$argv[$ac]"
+        
+    else if ( "$argv[$ac]" == "-select" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set KEEP = "$argv[$ac]"
+
+    else if ( "$argv[$ac]" == "-outdir_ap" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set odir_ap = "$argv[$ac]"
+    else if ( "$argv[$ac]" == "-outdir_pa" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set odir_pa = "$argv[$ac]"
+        
+    else if ( "$argv[$ac]" == "-prefix_ap" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set o_ap = "$argv[$ac]"
+    else if ( "$argv[$ac]" == "-prefix_pa" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set o_pa = "$argv[$ac]"
+
+    else
+        echo "** unexpected option #$ac = '$argv[$ac]'"
+        exit 2
+
+    endif
+    @ ac += 1
+end
+
+
+# =======================================================================
+# ============================ ** SETUP ** ==============================
+# =======================================================================
+
+echo "++ Start script version: $version"
+
+# ============================= dicom dir ===============================
+
+if ( ("$i_ap" == "") && ("$i_pa" == "") ) then
+    echo "** ERROR: need to input at least one NIFTI volume,"
+    echo "\t using either after '-inset_ap' or '-inset_pa'."
+    exit
+endif
+
+# first check for everything needed in AP dir
+if ( "$i_ap" != "" ) then
+    set check = `3dinfo "$i_ap"`
+    if ( "$#check" == "0" ) then
+        echo "** ERROR: can't find file $i_ap !"
+        goto EXIT
+    endif
+
+    set idir_ap = `dirname $i_ap`
+    set iroot_ap = `3dinfo -prefix_noext $i_ap`
+    if ( ! -e $idir_ap/${iroot_ap}.bval ) then
+        echo "** ERROR: can't find AP file's bval file!"
+        echo "   --> had expected to find: $Piroot_ap}.bval ?!?"
+        goto EXIT
+    endif
+    if ( ! -e $idir_ap/${iroot_ap}.bvec ) then
+        echo "** ERROR: can't find AP file's bvec file!"
+        echo "   --> had expected to find: ${iroot_ap}.bvec ?!?"
+        goto EXIT
+    endif
+
+    echo "++ Found 'AP' NIFTI, bval and bvec files in: $idir_ap"
+endif
+
+# then check for everything needed in PA dir
+if ( "$i_pa" != "" ) then
+    set check = `3dinfo "$i_pa"`
+    if ( "$#check" == "0" ) then
+        echo "** ERROR: can't find file $i_pa !"
+        goto EXIT
+    endif
+
+    set idir_pa = `dirname $i_pa`
+    set iroot_pa = `3dinfo -prefix_noext $i_pa`
+    if ( ! -e $idir_pa/${iroot_pa}.bval ) then
+        echo "** ERROR: can't find PA file's bval file!"
+        echo "   --> had expected to find: $Piroot_pa}.bval ?!?"
+        goto EXIT
+    endif
+    if ( ! -e $idir_pa/${iroot_pa}.bvec ) then
+        echo "** ERROR: can't find PA file's bvec file!"
+        echo "   --> had expected to find: ${iroot_pa}.bvec ?!?"
+        goto EXIT
+    endif
+
+    echo "++ Found 'PA' NIFTI, bval and bvec files in: $idir_pa"
+endif
+
+# ============================= output dirs =============================
+
+# check output directory, use default if nec
+
+# default output dir, if nothing input.
+if ( "$i_ap" != "" ) then
+
+    if ("$odir_ap" == "") then
+        set odir_ap = "$idir_ap/../FILT_AP"
+        echo "\n++ No output 'AP' directory specified by the user."
+        echo "\t Using default location/naming output directory:"
+        echo "\t   $odir_ap"
+    endif
+
+    if ( -e "$odir_ap" ) then
+        echo "\n+* WARNING: already some output directory $odir_ap !"
+    else
+        mkdir $odir_ap
+    endif
+endif
+
+if ( "$i_pa" != "" ) then
+
+    if ("$odir_pa" == "") then
+        set odir_pa = "$idir_pa/../FILT_PA"
+        echo "\n++ No output 'PA' directory specified by the user."
+        echo "\t Using default location/naming output directory:"
+        echo "\t   $odir_pa"
+    endif
+
+    if ( -e "$odir_pa" ) then
+        echo "\n+* WARNING: already some output directory $odir_pa !"
+    else
+        mkdir $odir_pa
+    endif
+endif
+
+
+# =======================================================================
+# =========================== ** PROCESS ** =============================
+# =======================================================================
+
+# ======================== convert dicoms ===============================
+
+if ( "$idir_ap" != "") then
+
+    1dDW_Grad_o_Mat         -echo_edu                            \
+        -in_bvals           $idir_ap/${iroot_ap}.bval"$KEEP"     \
+        -in_grad_rows       $idir_ap/${iroot_ap}.bvec"$KEEP"     \
+        -keep_b0s                                                \
+        -out_bval_row_sep   $odir_ap/${o_ap}.bval                \
+        -out_grad_rows      $odir_ap/${o_ap}.bvec                \
+        -overwrite
+
+    3dcalc   -echo_edu                                           \
+        -a     $i_ap"$KEEP"                                      \
+        -expr "(a)"                                              \
+        -prefix $odir_ap/${o_ap}.nii                             \
+        -overwrite
+
+endif
+
+if ( "$idir_pa" != "") then
+
+    1dDW_Grad_o_Mat         -echo_edu                            \
+        -in_bvals           $idir_pa/${iroot_pa}.bval"$KEEP"     \
+        -in_grad_rows       $idir_pa/${iroot_pa}.bvec"$KEEP"     \
+        -keep_b0s                                                \
+        -out_bval_row_sep   $odir_pa/${o_pa}.bval                \
+        -out_grad_rows      $odir_pa/${o_pa}.bvec                \
+        -overwrite
+
+    3dcalc   -echo_edu                                           \
+        -a     $i_pa"$KEEP"                                      \
+        -expr "(a)"                                              \
+        -prefix $odir_pa/${o_pa}.nii                             \
+        -overwrite
+
+endif
+
+
+goto EXIT
+
+# ========================================================================
+# ========================================================================
+
+SHOW_HELP:
+cat << EOF
+-------------------------------------------------------------------------
+
+    The purpose of this function is to help filter out user-found and
+    user-defined bad volumes from DWI data sets.  
+
+    If a bad volume is found, then it should be removed from the 4D
+    volume, and it also has to be removed from the gradient list and
+    the bvalue list.  In addition, if the user is processing DWI data
+    that was acquired with two sets of phase encodings for EPI
+    distortion correction, then one wants to remove the same volume
+    *from both sets*.  This script is designed to help facilitate this
+    process in a scriptable manner.
+
+    It will assume that the input DWI data is stored in a format
+    similar to the output of dcm2nii for diffusion data.  That is,
+    there should be three files in a directory that have the same
+    prefix:
+
+        1) a 4D volumetric data sets of N DWIs (NAME.nii),
+
+        2) a text file of N unit-magnitude diffusion gradients
+        (NAME.bvec), with 3 rows and N entries per row.
+
+        3) a text file of N b-values (NAME.bval), a single line of N
+        entries.
+
+    The output will be in similar format, but with a different prefix
+    name and/or directory.
+
+    REQUIRES: AFNI.
+
+    Ver. $version (PA Taylor, ${rev_dat})
+
+-------------------------------------------------------------------------
+
+  RUNNING: at least one of the two '-inset_* ...' files needs to be
+           given; both can be, and the processing happens in parallel
+           (which is useful if you have to remove a
+           volume/gradient/bval from a matched pair of phase encoded
+           DWIs), producing two output sets. The 'AP' vs 'PA'
+           designation is not necessarily very important-- it is
+           really a naming convention to differentiate the separate
+           phase encodings.
+
+  \$ $this_prog  \
+      -inset_ap   FILE_AP                      \
+      -inset_pa   FILE_PA                      \
+      -select     SSS                          \
+      {-outdir_ap OUT_AP}                      \
+      {-outdir_pa OUT_PA}                      \
+      {-prefix_ap PRE_AP}                      \
+      {-prefix_pa PRE_PA} 
+
+  where:
+  -inset_ap FILE_AP :name of a 4D file of DWIs, designated as having 
+                     'AP' phase encoding.
+  -inset_pa FILE_PA :name of a 4D file of DWIs, designated as having 
+                     'PA' phase encoding.
+
+         ----> these inputs are processed in parallel, if both are
+               provided. FILE_?? can be either a NIFTI file or
+               BRIK/HEAD. It will be assumed that for each FILE_??,
+               that there is a *.bval and *.bvec in the same directory
+               with the same prefix (i.e., prefix without extension
+               like '+orig' or anything), such as would be output by
+               dcm2nii (see top section of help for more precise
+               description of these text file formats).
+
+  -select SSS       :a string of indices and index ranges for
+                     selecting which volumes/grads/bvals to *keep*.
+                     This is done in typical AFNI format, and index
+                     counting starts at 0 and the 'last' brick could
+                     be specified as '$'.  An example for skipping the
+                     index-4 and index-6 volumes in a data set:
+                     "[0..3,5,7..$]"
+                     This string is applied to the volume, bval and
+                     bvec files of all insets input.  The user should put 
+                     quotes around the square brackets.
+
+  -outdir_ap OUT_AP :single output directory name for the 'AP' set(s);
+                     default is 'FILT_AP', placed parallel to DIR_AP.
+  -outdir_pa OUT_PA :single output directory name for the 'PA' set(s);
+                     default is 'FILT_PA', placed parallel to DIR_PA.
+  -prefix_ap PRE_AP :output prefix for the *.nii, *.bvec and *.bval files
+                     in OUT_AP; default is 'AP'.
+  -prefix_pa PRE_PA :output prefix for the *.nii, *.bvec and *.bval files
+                     in OUT_PA; default is 'PA'.
+
+-------------------------------------------------------------------------
+
+  OUTPUTS:
+
+    Say that the input DWI set had N volumes/gradients/bvals, and that
+    the filter specified with '-select ...' gets rid of 3 volumes,
+    leaving M = N-3 volumes/grads/bvals.  
+
+    Then, For a given phase encoding set (and both can be processed
+    simultaneously, in parallel-- indeed, that's the *point* of this
+    function), the output directory contains a NIFTI file with M
+    volumes, a row-wise (3xM) bvec file of the gradient orientations,
+    and a row-wise (1xM) bval file of the gradient magnitudes; these
+    files are respectively named: 
+        PREFIX.nii      
+        PREFIX.bvec 
+        PREFIX.bval
+    and they are (also) meant to mimic the trio of files output by
+    dcm2nii (just as the inputs were).
+
+    If you are going to be using TORTOISE afterward, you might be
+    happy enough to have the outputs put into a separate directory on
+    their own, since that is what TORTOISE would expect.  
+
+    If you *do* decide to have the output directory(ies) be the same
+    as the input one(s), then you should probably change the output
+    prefixes so the files aren't overwritten (which they would
+    be!). Woe betide us in such an event.
+
+-------------------------------------------------------------------------
+
+  EXAMPLE:
+  \$ $this_prog  \
+        -indir_ap  SUB001/UNFILT_AP/AP.nii      \
+        -indir_pa  SUB001/UNFILT_PA/PA.nii      \
+        -select    "[0..5,7,8,10..$]"
+
+-------------------------------------------------------------------------
+
+EOF
+    goto EXIT
+
+SHOW_VERSION:
+   echo "version  $version (${rev_dat})"
+   goto EXIT
+
+# send everyone here, in case there is any cleanup to do
+EXIT:
+   exit
