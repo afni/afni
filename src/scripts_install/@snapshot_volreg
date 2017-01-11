@@ -173,7 +173,7 @@ if( $?xdisplay == 0 )then
     set xdisplay = `count -dig 1 3 999 R1`
     if( -e /tmp/.X${xdisplay}-lock ) continue
     echo " -- trying to start Xvfb :${xdisplay}"
-    Xvfb :${xdisplay} -screen 0 1024x768x24 &
+    Xvfb :${xdisplay} -screen 0 1024x768x24 >& /dev/null &
     sleep 1
     jobs > zzerm.$ranval.txt
     grep -q Xvfb zzerm.$ranval.txt
@@ -245,8 +245,8 @@ djpeg ${zpref}.axi.jpg > ${zpref}.axi.pnm
 # cat them together, make a text label, overlay it, make output JPEG
 
 pnmcat -tb -jcenter -black ${zpref}.sag.pnm ${zpref}.axi.pnm ${zpref}.cor.pnm           > ${zpref}.pnm
-pbmtext -nomargins -builtin fixed "$jnam"   | pbmtopgm 1 1 | pnmscale 2               > ${zpref}.t1.pgm
-pbmtext -nomargins -builtin fixed "<- Left" | pbmtopgm 1 1                              > ${zpref}.t2.pgm
+pbmtext            -builtin fixed "$jnam"   | pbmtopgm 1 1 | pnmscale 2               > ${zpref}.t1.pgm
+pbmtext            -builtin fixed "<- Left" | pbmtopgm 1 1                              > ${zpref}.t2.pgm
 $pcprog -align=right -valign=bottom ${zpref}.t1.pgm ${zpref}.pnm                        > ${zpref}.t3.pnm
 $pcprog -align=right -valign=top    ${zpref}.t2.pgm ${zpref}.t3.pnm | cjpeg -quality 95 > "$jnam.jpg"
 
