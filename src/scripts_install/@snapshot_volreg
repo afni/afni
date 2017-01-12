@@ -5,7 +5,7 @@
 if( $#argv < 2 )then
   echo
   echo 'This script will make a JPEG image showing the edges of an'
-  echo 'EPI dataset overlayed on an anatomical dataset.  The purpose'
+  echo 'EPI dataset overlay-ed on an anatomical dataset.  The purpose'
   echo 'is to let the user judge the quality of the 3D registration.'
   echo '* Three images from each of the coronal, axial, and sagittal'
   echo '  views are used, laid out in a 3x3 grid.'
@@ -25,8 +25,8 @@ if( $#argv < 2 )then
   echo 'If you do NOT supply a 3rd argument, the script will invent a name:'
   echo 'it is probably better for you to supply a 3rd argument.'
   echo
-  echo 'The fourth (and optional) argument is the display number of an'
-  echo 'ALREADY RUNNING copy of Xvfb, as in'
+  echo 'The fourth (and very optional) argument is the display number'
+  echo 'of an ALREADY RUNNING copy of Xvfb, as in'
   echo '  Xvfb :88 -screen 0 1024x768x24 &'
   echo 'If you do NOT supply this number (88 in the example), then'
   echo 'the script will start its own Xvfb (on a display of its choosing),'
@@ -39,6 +39,20 @@ if( $#argv < 2 )then
   echo
   echo '  @snapshot_volreg anat_final.sub-10506+tlrc      \'
   echo '                   pb02.sub-10506.r01.volreg+tlrc sub-10506'
+  echo
+  echo 'The edges from a typical EPI dataset are usually broken up and'
+  echo 'do not completely outline sulci, ventricles, etc.  In judging'
+  echo 'the quality of alignment, I usually start by looking at the'
+  echo 'outlines of the large lateral ventricles -- if those are very'
+  echo 'wrong, the alignment is not good.  After that, I look at the'
+  echo 'sulci in the superior part of the brain -- if the EPI edges'
+  echo 'there seem to be mostly aligned with the sulci, then I am'
+  echo 'usually happy.  The base of the brain, where lots of EPI'
+  echo 'dropout happens, often does not not show good edge alignment'
+  echo 'even when the rest of the brain alignment looks good.'
+  echo
+  echo 'If this script crashes, then it might leave behind files with'
+  echo 'names that start with "zzerm".  Delete these files.'
   echo
   echo '-------------- Author: The Mad Allineator ---------------'
   echo
@@ -111,10 +125,12 @@ set epi   = `basename $edset .gz`
 set epi   = `basename $epi   .nii`
 set epi   = `basename $epi   .HEAD`
 set epi   = `basename $epi   .BRIK`
-set epi   = `basename $epi   +tlrc`
 set epi   = `basename $epi   +orig`
 set epi   = `basename $epi   +acpc`
+set epi   = `basename $epi   +tlrc`
+set epi   = `basename $epi   +tlrc.`
 set anat  = `basename $anat  +tlrc.`
+set anat  = `basename $anat  +tlrc`
 set anat  = `basename $anat  +orig.`
 set anat  = `basename $anat  +acpc.`
 
