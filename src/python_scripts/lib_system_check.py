@@ -532,11 +532,14 @@ class SysInfo:
          print '   (so afni and suma might fail)'
          self.comments.append('consider appending %s with %s' % (edir,flatdir))
       else:
-         print '** env var %s is not set to contain %s' % (edir, flatdir)
-         print '   (so afni and suma may fail)'
          if self.get_osx_ver() >= 11:
+            print '** cannot tell if env var %s is set to contain %s' \
+                  % (edir, flatdir)
+            print '   (so afni and suma may fail, please try them)'
             self.comments.append('cannot tell if %s includes %s'%(edir,flatdir))
          else:
+            print '** env var %s is not set to contain %s' % (edir, flatdir)
+            print '   (so afni and suma may fail)'
             self.comments.append('consider setting %s to %s' % (edir, flatdir))
 
       return 1
