@@ -5,7 +5,7 @@
 if( $#argv < 2 )then
   echo
   echo 'This script will make a JPEG image showing the edges of an'
-  echo 'EPI dataset overlayed on an anatomical dataset.  The purpose'
+  echo 'EPI dataset overlay-ed on an anatomical dataset.  The purpose'
   echo 'is to let the user judge the quality of the 3D registration.'
   echo '* Three images from each of the coronal, axial, and sagittal'
   echo '  views are used, laid out in a 3x3 grid.'
@@ -25,8 +25,8 @@ if( $#argv < 2 )then
   echo 'If you do NOT supply a 3rd argument, the script will invent a name:'
   echo 'it is probably better for you to supply a 3rd argument.'
   echo
-  echo 'The fourth (and optional) argument is the display number of an'
-  echo 'ALREADY RUNNING copy of Xvfb, as in'
+  echo 'The fourth (and very optional) argument is the display number'
+  echo 'of an ALREADY RUNNING copy of Xvfb, as in'
   echo '  Xvfb :88 -screen 0 1024x768x24 &'
   echo 'If you do NOT supply this number (88 in the example), then'
   echo 'the script will start its own Xvfb (on a display of its choosing),'
@@ -39,6 +39,20 @@ if( $#argv < 2 )then
   echo
   echo '  @snapshot_volreg anat_final.sub-10506+tlrc      \'
   echo '                   pb02.sub-10506.r01.volreg+tlrc sub-10506'
+  echo
+  echo 'The edges from a typical EPI dataset are usually broken up and'
+  echo 'do not completely outline sulci, ventricles, etc.  In judging'
+  echo 'the quality of alignment, I usually start by looking at the'
+  echo 'outlines of the large lateral ventricles -- if those are very'
+  echo 'wrong, the alignment is not good.  After that, I look at the'
+  echo 'sulci in the superior part of the brain -- if the EPI edges'
+  echo 'there seem to be mostly aligned with the sulci, then I am'
+  echo 'usually happy.  The base of the brain, where lots of EPI'
+  echo 'dropout happens, often does not not show good edge alignment'
+  echo 'even when the rest of the brain alignment looks good.'
+  echo
+  echo 'If this script crashes, then it might leave behind files with'
+  echo 'names that start with "zzerm".  Delete these files.'
   echo
   echo '-------------- Author: The Mad Allineator ---------------'
   echo
@@ -111,10 +125,12 @@ set epi   = `basename $edset .gz`
 set epi   = `basename $epi   .nii`
 set epi   = `basename $epi   .HEAD`
 set epi   = `basename $epi   .BRIK`
-set epi   = `basename $epi   +tlrc`
 set epi   = `basename $epi   +orig`
 set epi   = `basename $epi   +acpc`
+set epi   = `basename $epi   +tlrc`
+set epi   = `basename $epi   +tlrc.`
 set anat  = `basename $anat  +tlrc.`
+set anat  = `basename $anat  +tlrc`
 set anat  = `basename $anat  +orig.`
 set anat  = `basename $anat  +acpc.`
 
@@ -173,7 +189,7 @@ if( $?xdisplay == 0 )then
     set xdisplay = `count -dig 1 3 999 R1`
     if( -e /tmp/.X${xdisplay}-lock ) continue
     echo " -- trying to start Xvfb :${xdisplay}"
-    Xvfb :${xdisplay} -screen 0 1024x768x24 &
+    Xvfb :${xdisplay} -screen 0 1024x768x24 >& /dev/null &
     sleep 1
     jobs > zzerm.$ranval.txt
     grep -q Xvfb zzerm.$ranval.txt
@@ -194,10 +210,16 @@ setenv DISPLAY :${xdisplay}
 
 set zpref = zzerm.X${xdisplay}-${ranval}
 
+# crop the input anat to a standard size
+
+set cdset = ${zpref}.acrop.nii
+
+3dAutobox -npad 17 -prefix $cdset $adset
+
 # resample the EPI to the anat grid
 
 3dAllineate -input  ${edset}'[0]'     \
-            -master ${adset}          \
+            -master ${cdset}          \
             -prefix ${zpref}.epiR.nii \
             -1Dparam_apply IDENTITY   \
             -final cubic
@@ -219,22 +241,31 @@ set emx = $epp[4]
 
 # run AFNI to make the 3 overlay images
 
-afni -noplugins -no_detach                                    \
-     -com "SWITCH_UNDERLAY ${anat}${asuff}"                   \
-     -com "SWITCH_OVERLAY ${zpref}.epiEM.nii"                 \
-     -com "SET_PBAR_ALL +99 1 Plasma"                         \
-     -com "SET_FUNC_RANGE $emx"                               \
-     -com "SET_THRESHNEW $eth *"                              \
-     -com "SEE_OVERLAY +"                                     \
-     -com "SET_XHAIRS OFF"                                    \
-     -com "OPEN_WINDOW sagittalimage opacity=6 mont=3x1:30"   \
-     -com "OPEN_WINDOW axialimage opacity=6 mont=3x1:30"      \
-     -com "OPEN_WINDOW coronalimage opacity=6 mont=3x1:30"    \
-     -com "SAVE_JPEG sagittalimage ${zpref}.sag.jpg blowup=2" \
-     -com "SAVE_JPEG coronalimage  ${zpref}.cor.jpg blowup=2" \
-     -com "SAVE_JPEG axialimage    ${zpref}.axi.jpg blowup=2" \
-     -com "QUITT"                                             \
-     ${adset} ${zpref}.epiEM.nii
+set anatCM = ( `3dCM $cdset` )
+
+set anatNN = `3dinfo -nijk $cdset`
+
+set astep = `ccalc -int "cbrt($anatNN)/6.111"`
+
+if( $astep < 2 ) set astep = 2
+
+afni -noplugins -no_detach                                       \
+     -com "SWITCH_UNDERLAY ${cdset}"                             \
+     -com "SWITCH_OVERLAY ${zpref}.epiEM.nii"                    \
+     -com "SET_DICOM_XYZ $anatCM"                                \
+     -com "SET_PBAR_ALL +99 1 Plasma"                            \
+     -com "SET_FUNC_RANGE $emx"                                  \
+     -com "SET_THRESHNEW $eth *"                                 \
+     -com "SEE_OVERLAY +"                                        \
+     -com "SET_XHAIRS OFF"                                       \
+     -com "OPEN_WINDOW sagittalimage opacity=6 mont=3x1:$astep"  \
+     -com "OPEN_WINDOW axialimage opacity=6 mont=3x1:$astep"     \
+     -com "OPEN_WINDOW coronalimage opacity=6 mont=3x1:$astep"   \
+     -com "SAVE_JPEG sagittalimage ${zpref}.sag.jpg blowup=2"    \
+     -com "SAVE_JPEG coronalimage  ${zpref}.cor.jpg blowup=2"    \
+     -com "SAVE_JPEG axialimage    ${zpref}.axi.jpg blowup=2"    \
+     -com "QUITT"                                                \
+     ${cdset} ${zpref}.epiEM.nii
 
 # convert the output JPEGs to PNMs for manipulation
 
@@ -245,8 +276,8 @@ djpeg ${zpref}.axi.jpg > ${zpref}.axi.pnm
 # cat them together, make a text label, overlay it, make output JPEG
 
 pnmcat -tb -jcenter -black ${zpref}.sag.pnm ${zpref}.axi.pnm ${zpref}.cor.pnm           > ${zpref}.pnm
-pbmtext -nomargins -builtin fixed "$jnam"   | pbmtopgm 1 1 | pnmscale 2               > ${zpref}.t1.pgm
-pbmtext -nomargins -builtin fixed "<- Left" | pbmtopgm 1 1                              > ${zpref}.t2.pgm
+pbmtext -builtin fixed "$jnam"   | pnmcrop | pbmtopgm 1 1 | pnmscale 2                  > ${zpref}.t1.pgm
+pbmtext -builtin fixed "<- Left"           | pbmtopgm 1 1                               > ${zpref}.t2.pgm
 $pcprog -align=right -valign=bottom ${zpref}.t1.pgm ${zpref}.pnm                        > ${zpref}.t3.pnm
 $pcprog -align=right -valign=top    ${zpref}.t2.pgm ${zpref}.t3.pnm | cjpeg -quality 95 > "$jnam.jpg"
 
