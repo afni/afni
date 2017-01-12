@@ -194,10 +194,16 @@ setenv DISPLAY :${xdisplay}
 
 set zpref = zzerm.X${xdisplay}-${ranval}
 
+# crop the input anat to a standard size
+
+set cdset = ${zpref}.acrop.nii
+
+3dAutobox -npad 17 -prefix $cdset $adset
+
 # resample the EPI to the anat grid
 
 3dAllineate -input  ${edset}'[0]'     \
-            -master ${adset}          \
+            -master ${cdset}          \
             -prefix ${zpref}.epiR.nii \
             -1Dparam_apply IDENTITY   \
             -final cubic
@@ -219,22 +225,31 @@ set emx = $epp[4]
 
 # run AFNI to make the 3 overlay images
 
-afni -noplugins -no_detach                                    \
-     -com "SWITCH_UNDERLAY ${anat}${asuff}"                   \
-     -com "SWITCH_OVERLAY ${zpref}.epiEM.nii"                 \
-     -com "SET_PBAR_ALL +99 1 Plasma"                         \
-     -com "SET_FUNC_RANGE $emx"                               \
-     -com "SET_THRESHNEW $eth *"                              \
-     -com "SEE_OVERLAY +"                                     \
-     -com "SET_XHAIRS OFF"                                    \
-     -com "OPEN_WINDOW sagittalimage opacity=6 mont=3x1:30"   \
-     -com "OPEN_WINDOW axialimage opacity=6 mont=3x1:30"      \
-     -com "OPEN_WINDOW coronalimage opacity=6 mont=3x1:30"    \
-     -com "SAVE_JPEG sagittalimage ${zpref}.sag.jpg blowup=2" \
-     -com "SAVE_JPEG coronalimage  ${zpref}.cor.jpg blowup=2" \
-     -com "SAVE_JPEG axialimage    ${zpref}.axi.jpg blowup=2" \
-     -com "QUITT"                                             \
-     ${adset} ${zpref}.epiEM.nii
+set anatCM = ( `3dCM $cdset` )
+
+set anatNN = `3dinfo -nijk $cdset`
+
+set astep = `ccalc -int "cbrt($anatNN)/6.111"`
+
+if( $astep < 2 ) set astep = 2
+
+afni -noplugins -no_detach                                       \
+     -com "SWITCH_UNDERLAY ${cdset}"                             \
+     -com "SWITCH_OVERLAY ${zpref}.epiEM.nii"                    \
+     -com "SET_DICOM_XYZ $anatCM"                                \
+     -com "SET_PBAR_ALL +99 1 Plasma"                            \
+     -com "SET_FUNC_RANGE $emx"                                  \
+     -com "SET_THRESHNEW $eth *"                                 \
+     -com "SEE_OVERLAY +"                                        \
+     -com "SET_XHAIRS OFF"                                       \
+     -com "OPEN_WINDOW sagittalimage opacity=6 mont=3x1:$astep"  \
+     -com "OPEN_WINDOW axialimage opacity=6 mont=3x1:$astep"     \
+     -com "OPEN_WINDOW coronalimage opacity=6 mont=3x1:$astep"   \
+     -com "SAVE_JPEG sagittalimage ${zpref}.sag.jpg blowup=2"    \
+     -com "SAVE_JPEG coronalimage  ${zpref}.cor.jpg blowup=2"    \
+     -com "SAVE_JPEG axialimage    ${zpref}.axi.jpg blowup=2"    \
+     -com "QUITT"                                                \
+     ${cdset} ${zpref}.epiEM.nii
 
 # convert the output JPEGs to PNMs for manipulation
 
@@ -245,8 +260,8 @@ djpeg ${zpref}.axi.jpg > ${zpref}.axi.pnm
 # cat them together, make a text label, overlay it, make output JPEG
 
 pnmcat -tb -jcenter -black ${zpref}.sag.pnm ${zpref}.axi.pnm ${zpref}.cor.pnm           > ${zpref}.pnm
-pbmtext            -builtin fixed "$jnam"   | pbmtopgm 1 1 | pnmscale 2               > ${zpref}.t1.pgm
-pbmtext            -builtin fixed "<- Left" | pbmtopgm 1 1                              > ${zpref}.t2.pgm
+pbmtext -builtin fixed "$jnam"   | pnmcrop | pbmtopgm 1 1 | pnmscale 2                  > ${zpref}.t1.pgm
+pbmtext -builtin fixed "<- Left"           | pbmtopgm 1 1                               > ${zpref}.t2.pgm
 $pcprog -align=right -valign=bottom ${zpref}.t1.pgm ${zpref}.pnm                        > ${zpref}.t3.pnm
 $pcprog -align=right -valign=top    ${zpref}.t2.pgm ${zpref}.t3.pnm | cjpeg -quality 95 > "$jnam.jpg"
 
