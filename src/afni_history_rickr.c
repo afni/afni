@@ -49,6 +49,21 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 12,  Jan, 2017, RCR, "afni_system_check.py", MICRO, TYPE_MODIFY,
+   "for 10.11+, make flat warning and summary comment consistent",
+   NULL
+ } ,
+
+ { 11,  Jan, 2017, RCR, "make_random_timing.py", MICRO, TYPE_NEW_OPT,
+   "added some help: -help_advanced, -help_todo",
+   NULL
+ } ,
+
+ {  3,  Jan, 2017, RCR, "make_random_timing.py", MICRO, TYPE_ENHANCE,
+   "merged mrt branch into master - prep for advanced timing",
+   NULL
+ } ,
+
  { 29,  Dec, 2016, RCR, "afni_proc.py", MICRO, TYPE_BUG_FIX,
    "remove case 16 (brainstem) from aparc+aseg.nii WM extraction in help",
    "Thanks to P Taylor for noting this."
