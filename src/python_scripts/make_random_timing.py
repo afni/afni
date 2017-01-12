@@ -487,10 +487,6 @@ advanced arguments/options:
     -rand_post_stim_rest yes/no : allow rest after final stimulus
     -show_rest_events           : show details of rest timing, per type
     -write_event_list FILE      : create FILE listing all events and times
-
-    -max_consec_adv CLASS NUM   : advanced -max_consec
-                                  specify class name and max_consec
-                                  (this might go away)
 ----------------------------------------
 required arguments:
 
@@ -906,8 +902,8 @@ make_random_timing.py - Advanced usage
             -add_timing_class stima 0.5 3 10                     \\
             -add_timing_class stimb 0.1 0.5 3                    \\
             -add_timing_class stimc 2                            \\
-            -add_timing_class resta 0.2 .7 1.2 uniform_rand      \\
-            -add_timing_class restb 0.5 1  1.5 uniform_grid      \\
+            -add_timing_class resta 0.2 .7 1.2 dist=uniform_rand \\
+            -add_timing_class restb 0.5 1  1.5 dist=uniform_grid \\
             -add_timing_class restc 0 -1 -1                      \\
             -pre_stim_rest 10 -post_stim_rest 10                 \\
             -add_stim_class houses 20 stima resta                \\
@@ -925,28 +921,30 @@ make_random_timing.py - Advanced usage
 
      - Every cue event is followed by test and then result.
      - Every pizza1 event is followed by pizza2 and then pizza3.
+     - The stimc timing class has durations on a grid of 0.1s, rather
+       than the default of 0.01s.
 
-         make_random_timing.py -num_runs 2 -run_time 300        \\
-            -add_timing_class stima 0.5 3 10                    \\
-            -add_timing_class stimb 0.1 0.5 3                   \\
-            -add_timing_class stimc 0.1 2.5 10                  \\
-            -add_timing_class stimd 2 2 2                       \\
-            -add_timing_class resta 0.2 .7 1.2 uniform_rand     \\
-            -add_timing_class restb 0.5 1  1.5 uniform_grid     \\
-            -add_timing_class restc 0 -1 -1                     \\
-            -pre_stim_rest 10 -post_stim_rest 10                \\
-            -add_stim_class cue    20 stima resta               \\
-            -add_stim_class test   20 stimb restb               \\
-            -add_stim_class result 20 stimb restb               \\
-            -add_stim_class pizza1 10 stimc restc               \\
-            -add_stim_class pizza2 10 stimc restc               \\
-            -add_stim_class pizza3 10 stimc restc               \\
-            -add_stim_class salad  10 stimd restc               \\
-            -write_event_list events.adv.3                      \\
-            -rand_post_stim_rest no                             \\
-            -show_timing_stats                                  \\
-          -ordered_stimuli cue test result                      \\
-          -ordered_stimuli pizza1 pizza2 pizza3                 \\
+         make_random_timing.py -num_runs 2 -run_time 300         \\
+            -add_timing_class stima 0.5 3 10                     \\
+            -add_timing_class stimb 0.1 0.5 3                    \\
+            -add_timing_class stimc 0.1 2.5 10 t_gran=0.1        \\
+            -add_timing_class stimd 2                            \\
+            -add_timing_class resta 0.2 .7 1.2 dist=uniform_rand \\
+            -add_timing_class restb 0.5 1  1.5 dist=uniform_grid \\
+            -add_timing_class restc 0 -1 -1                      \\
+            -pre_stim_rest 10 -post_stim_rest 10                 \\
+            -add_stim_class cue    20 stima resta                \\
+            -add_stim_class test   20 stimb restb                \\
+            -add_stim_class result 20 stimb restb                \\
+            -add_stim_class pizza1 10 stimc restc                \\
+            -add_stim_class pizza2 10 stimc restc                \\
+            -add_stim_class pizza3 10 stimc restc                \\
+            -add_stim_class salad  10 stimd restc                \\
+            -write_event_list events.adv.3                       \\
+            -rand_post_stim_rest no                              \\
+            -show_timing_stats                                   \\
+          -ordered_stimuli cue test result                       \\
+          -ordered_stimuli pizza1 pizza2 pizza3                  \\
             -seed 31415 -prefix stimes.adv.3
 ---------------------------------------------------------------------------
 """
@@ -1122,6 +1120,7 @@ class RandTiming:
 
         self.max_consec = []            # max consectutive stimuli per type
         self.t_gran   = gDEF_OLD_T_GRAN # time granularity for rest
+        self.tgset    = 0               # was this field set?
         self.t_digits = gDEF_OLD_DEC_PLACES # digits after decimal for times
                                         # (-1 means to use %g)
         self.labels   = None            # labels to be applied to filenames
@@ -1485,8 +1484,11 @@ class RandTiming:
                 print '   min_rest + duration(s): %s' % sd
                 return 1
 
-        # if t_gran is still not set, apply the default
-        if not self.t_gran: self.t_gran = gDEF_OLD_T_GRAN
+        # if t_gran was set, note the fact, else apply default
+        if self.t_gran:
+           self.tgset = 1
+        else:
+           self.t_gran = gDEF_OLD_T_GRAN
 
         # t_digits must come after t_gran is set
         self.t_digits, err = self.user_opts.get_type_opt(float,'-t_digits')
@@ -1542,8 +1544,8 @@ class RandTiming:
           sample usage:
              -add_timing_class stimA 3 
              -add_timing_class stimA 3 5 10
-             -add_timing_class stimA 3 5 10 decay
-             -add_timing_class stimA 3 3  3 decay 0.1
+             -add_timing_class stimA 3 5 10 dist=decay
+             -add_timing_class stimA 3 3  3 dist=decay t_grid=0.1
        """
 
        params = opt.parlist
@@ -1628,19 +1630,13 @@ class RandTiming:
           return 1
 
        # ------------------------------------------------------------
-       # now check for distribution type and other params
-       if nparm >= 5: dtype = params[4]
-       else:          dtype = 'decay'
-
-       dparms = params[5:]
-
-       # ------------------------------------------------------------
        # ready to roll, create the actual timing class instance
+       #
+       # just pass all other parameters, plus verb
        
        tclass = LRT.TimingClass(name, min_dur, mean_dur, max_dur,
-                                dtype, dparms, verb=self.verb)
-       if tclass == None:
-          print error_string
+                                params=params[4:], verb=self.verb)
+       if tclass.status:
           return 1
 
        if self.verb > 1: print "++ adding new Timing class '%s'" % name
@@ -1863,7 +1859,7 @@ class RandTiming:
 
        if fname:
           if self.verb > 3:
-             print "** writing event list to file '%s'" % fname
+             print "++ writing event list to file '%s'" % fname
           fd = open(fname, 'w')
           if not fd:
              print "** failed to open '%s' for writing event list" % fname
