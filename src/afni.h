@@ -269,7 +269,7 @@ typedef struct {
 
       Boolean    func_visible , force_anat_wod , force_func_wod ,
                  pts_visible , show_voxind ;
-      int        func_visible_count ;
+      int        func_visible_count , func_init_subbricks ;
       float      func_threshold , resam_vox ;
       float      func_thresh_top ;              /* 23 Jul 1997 */
       int        func_resam_mode , anat_resam_mode , pts_color ;
@@ -1813,6 +1813,8 @@ extern MRI_IMAGE * AFNI_overlay( int n , FD_brick * br );
 extern void AFNI_invert_CB( Widget, XtPointer, XtPointer ) ; /* 02 Feb 2007 */
 extern void AFNI_nimlpo_CB( Widget, XtPointer, XtPointer ) ; /* 02 Feb 2007 */
 extern void AFNI_process_NIML_data( int , void * , int ) ;   /* 01 Feb 2008 */
+
+extern int_pair find_reasonable_overlay_indexes( THD_3dim_dataset *dset ) ;
 
 extern char * AFNI_controller_label( Three_D_View * im3d ); /* 01 Apr 1999 */
 extern void AFNI_set_window_titles( Three_D_View * im3d );
