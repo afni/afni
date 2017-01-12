@@ -994,8 +994,12 @@ g_history = """
 g_version = "version 1.10, June 1, 2016"
 
 g_todo = """
+   - reconcile t_grid as global vs per class (init/pass as single parameters)
+   - similarly, what about max_consec? (must be single value, not list)
    - give timing class params as t_grid=0.01 max_consec=4
      ?? would that be better?  I think so.
+   * NO: max_consec is per stim class, not timing class
+      - handle max_consec (new option?)
    - check tr_locked
    - new method for decay that better handles max duration, w/out spike
    - add warning if post-stim rest < 3 seconds
@@ -1004,7 +1008,6 @@ g_todo = """
    - add option to change timing classes for pre and post stim rest
    - add related dist_types rand_unif and rand_gauss?
    - global "-across_runs" should still apply
-   - handle max_consec (new option?)
 
    - option to give -pre_/-post_stim_rest a class?
 
@@ -2894,6 +2897,10 @@ class RandTiming:
            print '++ have len %d stimdict : %s' \
                  % (len(self.stimdict.keys()), self.stimdict)
 
+        # apply any such command line options to the stim classes
+        if self.set_max_consec():
+           return 1
+
         # durations are created per stim class even if the timing types are
         # the same (so more time in one class does not cost time in another)
         if LRT.create_duration_lists(self.sclasses, self.num_runs,
@@ -2914,6 +2921,40 @@ class RandTiming:
 
         return 0
 
+    def set_max_consec(self):
+       """apply max_consec list here    return 0 on success, 1 on error"""
+
+       nmc = len(self.max_consec)
+       nsc = len(self.sclasses)
+       if nmc == 0 or nsc == 0: return 0
+
+       if nmc == 1:
+          # expand list to linclude all
+          self.max_consec = [self.max_consec[0]] * nsc
+       elif nmc != nsc:
+          print '** have %d -max_consec params, but %d stim classes'%(nmc,nsc)
+          return 1
+
+       mclist = self.max_consec
+
+       mcnames = [self.sclasses[ind].name for ind in range(nmc) \
+                                          if mclist[ind] > 0]
+       print '++ applying max_consec to: %s' % ', '.join(mcnames)
+       if len(mcnames) == 0: return 0
+
+       # apply to each stim class
+       for sind, sc in enumerate(self.sclasses):
+          if mclist[sind] <= 0: continue
+          if sc.max_consec > 0:
+             print '** max_consec alread set for class %s' % sc.name
+             return 1
+          sc.max_consec = mclist[sind]
+          if self.verb > 1:
+             print '-- setting max_consec = %d for class %s' \
+                   % (sc.max_consec, sc.name)
+
+       return 0
+        
     def adv_randomize_event_lists(self):
        """For each run (or across), put all events in a list and randomize.
 
@@ -2942,7 +2983,8 @@ class RandTiming:
         
              for dur in sc.durlist[rind]:
                 erun.append([sind, dur])
-          self.shuffle_event_list(erun)
+          if self.shuffle_event_list(erun):
+             return 1
 
           # if ordered stim, insert followers
           if ordered:
@@ -3047,25 +3089,68 @@ class RandTiming:
        return 1
 
     def shuffle_event_list(self, events):
-       """randomize order of events
+       """randomize order of events, and possibly deal with max consec
 
-          possibly deal with max consec or ordered stimuli
+          return 0 on success
        """
-       # rcr - check ordered stimuli and max consec
-       #
-       # max consec could be passed as the next parameter in the stim class
-       #
-       # ordered stimuli should be done as before:
-       #   - check validity of ordered stim
-       #      - starters and followers must 
-       #   - remove any followers
-       #   - shuffle main starter list
-       #   - insert followers
-
        UTIL.shuffle(events)
 
-       # if max_consec:
-       #    adjust events list
+
+       # --------------------------------------------------
+       # deal with max_consec
+
+       # get a list of existing class indices with max_consec > 0
+       slist = UTIL.get_unique_sublist([event[0] for event in events])
+       slist.sort()
+       mclist = [sind for sind in slist if self.sclasses[sind].max_consec > 0]
+
+       # for each class, adjust the events list to limit max_consec
+       # (note: moving offenders will never raise the consec of another class)
+       for sind in mclist:
+          if adv_apply_max_consec(events, sind):
+             return 1
+
+       return 0
+
+    def adv_apply_max_consec(self, events, sind):
+       """limit consecutive events of type index 'sind' to max_consec
+
+          - make a list of offending indices in events list (# NO)
+          - make a list of potential insertion indices (# NI)
+          - would like to get (NI choose NO) positions, but NI might
+            decrease if a movement increase consecutive 'sind' events
+             - so must do one at a time, and let NI possibly decrease
+             - SLOW
+
+          return 0 on success
+       """
+       sc = self.sclasses[sind]
+       limit = sc.max_consec
+       if limit <= 0:
+          print '** should not be applying max_consec for %s' % sc.name
+          return 1
+
+       elist = [e[0] for e in events]
+
+       # to be quick, see if we exceed limit for class index sind
+       nc = 0
+       for eind, event in enumerate(events):
+          if event[0] == sind:
+             nc += 1
+             if nc >= limit:
+                if self.verb > 2:
+                   print '-- class %s exceeds max_consec limit of %d' \
+                         % (sc.name, limit)
+                break
+          else:
+             sc = 0
+             continue
+             
+
+       return 0
+
+    def exceeds_consec_limit(self, vals, tval):
+       return 0
 
     def adv_partition_sevents_across_runs(self):
        """break stim_event_list into num_runs"""

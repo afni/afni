@@ -12,7 +12,7 @@ gDEF_DEC_PLACES = 2      # decimal places when printing time (-1 ==> %g format)
 g_valid_dist_types = ['decay', 'uniform_rand', 'uniform_grid',
                       'fixed', 'INSTANT']
 g_fixed_dist_types = ['fixed', 'INSTANT']
-g_valid_param_types= ['dist', 't_gran', 'max_consec']
+g_valid_param_types= ['dist', 't_gran']
 
 # -add_timing_class stimA 3 3  3 dist=decay 0.1
 # -add_timing_class stimA 3 5 10
@@ -42,7 +42,6 @@ class TimingClass:
       # additional parameters (just t_gran, for now)
       self.dist_type    = 'decay'       # see g_valid_dist_types[]
       self.t_gran       = gDEF_T_GRAN
-      self.max_consec   = 0             # >0 to apply
 
       # computation parameters (computed during processing)
       self.total_time   = 0
@@ -107,17 +106,17 @@ class TimingClass:
                 return 1
              # apply
              self.t_gran = t_gran
-          elif pvar == 'max_consec':
-             try: mc = int(pval)
-             except:
-                print errstr
-                print "** bad max_consec = %s in %s" % (pval, pp)
-                return 1
-             if mc <= 0:
-                print "** invalid max_consec = %s in %s" % (pval, pp)
-                return 1
-             # apply
-             self.max_consec = mc
+          # elif pvar == 'max_consec':
+          #    try: mc = int(pval)
+          #    except:
+          #       print errstr
+          #       print "** bad max_consec = %s in %s" % (pval, pp)
+          #       return 1
+          #    if mc <= 0:
+          #       print "** invalid max_consec = %s in %s" % (pval, pp)
+          #       return 1
+          #    # apply
+          #    self.max_consec = mc
           else:
              print "** TimingClass %s, invalid param name %s in '%s'" \
                    % (self.name, pvar, pp)
@@ -135,11 +134,12 @@ class TimingClass:
       print '   mean_dur     : %s' % self.mean_dur
       print '   max_dur      : %s' % self.max_dur
       print '   dist_type    : %s' % self.dist_type
-      print '   params       : %s' % self.params
+      print '   t_gran       : %s' % self.t_gran
 
       if details:
          print '   verb         : %s' % self.verb
          print '   total_time   : %s' % self.total_time
+         print '   params       : %s' % self.params
 
       print
 
@@ -390,6 +390,7 @@ class StimClass:
 
       self.durlist      = []            # durations per run
       self.sdata        = None          # AfniData instance
+      self.max_consec   = 0             # positive means apply limit
 
    def show(self, mesg='', details=0):
       if mesg: mstr = '(%s) ' % mesg
@@ -399,6 +400,7 @@ class StimClass:
       print '   nreps        : %s' % self.nreps
       print '   sclass       : %s' % self.sclass.name
       print '   rclass       : %s' % self.rclass.name
+      print '   max_consec   : %d' % self.max_consec
 
       if details:
          print '   verb         : %s' % self.verb
