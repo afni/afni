@@ -3133,24 +3133,35 @@ class RandTiming:
        elist = [e[0] for e in events]
 
        # to be quick, see if we exceed limit for class index sind
-       nc = 0
-       for eind, event in enumerate(events):
-          if event[0] == sind:
-             nc += 1
-             if nc >= limit:
-                if self.verb > 2:
-                   print '-- class %s exceeds max_consec limit of %d' \
-                         % (sc.name, limit)
-                break
+       nmove = self.adv_remove_above_max_consec(elist, sind, limit)
+       if not self.exceeds_consec_limit(elist, sind, limit):
+          return 0
+
+       # we exceed max
+
+       return 0
+
+    def adv_remove_above_max_consec(self, vals, tval, limit):
+       """look for more than 'limit' consecutive instances of tval
+
+          - remove extras via pop
+          - return the number removed
+       """
+       nvals = len(vals)
+       
+       cc = 0
+       nrm = 0
+       # count down and pop
+       for vind in range(nvals-1, -1, -1):
+          if vals[vind] == tval:
+             cc += 1
+             if cc > limit:
+                pop(vind)
+                nrm += 1
           else:
-             sc = 0
-             continue
-             
+             cc = 0
 
-       return 0
-
-    def exceeds_consec_limit(self, vals, tval):
-       return 0
+       return nrm
 
     def adv_partition_sevents_across_runs(self):
        """break stim_event_list into num_runs"""
