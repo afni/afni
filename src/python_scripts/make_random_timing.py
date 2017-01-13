@@ -2617,7 +2617,7 @@ class RandTiming:
             return 1, None
 
         # do we have enough space for remaining events?
-        space, npos = self.count_limited_space(clist, rtype, max_consec)
+        space, npos = self.count_limited_space(clist, rtype, max_consec[rtype])
         if space < rcount:        # we are in trouble
             print '** limited_events: only %d positions for %d inserts' \
                   % (space, rcount)
@@ -2689,7 +2689,8 @@ class RandTiming:
             # fill cases subtraced pmax+1, so all can add 1 here
             space -= 1
             if self.verb > 5: print '   clist %s' % clist
-            snew, npos = self.count_limited_space(clist, rtype, max_consec)
+            snew, npos = self.count_limited_space(clist, rtype,
+                                                  max_consec[rtype])
             if space != snew:
                print "** space count failure, space = %d, count = %d" \
                      % (space, snew)
@@ -2701,7 +2702,7 @@ class RandTiming:
 
         return 0, clist
 
-    def count_limited_space(self, clist, eind, max_consec):
+    def count_limited_space(self, clist, eind, emax):
         """Given an event class list, and event index and the maximum number
            of sequential events of each type, return the number of such events
            that could possibly be added, as well as the number of positions
@@ -2711,7 +2712,6 @@ class RandTiming:
         """
         space = 0
         positions = 0
-        emax = max_consec[eind]
         if self.verb > 5:
            print '== eind, emax: %d, %d' % (eind, emax)
            print '== CLS clist: %s' % clist
@@ -3107,7 +3107,7 @@ class RandTiming:
        # for each class, adjust the events list to limit max_consec
        # (note: moving offenders will never raise the consec of another class)
        for sind in mclist:
-          if adv_apply_max_consec(events, sind):
+          if self.adv_apply_max_consec(events, sind):
              return 1
 
        return 0
@@ -3134,18 +3134,63 @@ class RandTiming:
 
        # to be quick, see if we exceed limit for class index sind
        nmove = self.adv_remove_above_max_consec(elist, sind, limit)
-       if not self.exceeds_consec_limit(elist, sind, limit):
+       if nmove == 0:
+          # nothing to do
           return 0
+
+       adjlist = self.adv_left_adjacency_list(elist, sind)
+       if adjlist == None: return 1
+
+       #if self.adv_insert_movers(elist, sind, limit, nmove):
+       #   return 0
 
        # we exceed max
 
        return 0
 
+    def adv_left_adjacency_list(self, vals, tval):
+       """return a list of "to the right" adjacency counts
+          - at each position, how many tval's is it adjacent to
+
+          this list is slightly odd, but:
+             - all non-zero counts groups are constant and surrounded by
+               either zeros or ends
+       """
+       nvals = len(vals)
+       adjlist = [0]*(nvals+1)
+       
+       if self.verb > 3:
+          print '++ make_adj: counting adjacencies of %d among %d vals' \
+                % (tval, nvals)
+       
+       # from each position, try to count consecutive tvals to right
+       vind = 0
+       while vind < nvals:
+          if vals[vind] == tval:
+             # count to right, be careful at end
+             tind = vind+1
+             while tind < nvals:
+                if vals[tind] != tval: break
+                tind += 1
+
+             nfound = tind-vind
+             for c in range(vind, tind):
+                adjlist[c] = nfound
+             vind = tind
+          else:
+             vind += 1
+
+       if self.verb > 5:
+          print '== MAL vals: %s' % vals
+          print '== MAL adjs: %s' % adjlist
+
+       return None
+       return adjlist
+
     def adv_remove_above_max_consec(self, vals, tval, limit):
        """look for more than 'limit' consecutive instances of tval
-
           - remove extras via pop
-          - return the number removed
+          - return the number removed (which need to be reinserted)
        """
        nvals = len(vals)
        
@@ -3156,10 +3201,14 @@ class RandTiming:
           if vals[vind] == tval:
              cc += 1
              if cc > limit:
-                pop(vind)
+                vals.pop(vind)
                 nrm += 1
           else:
              cc = 0
+
+       if self.verb > 3:
+          print '++ RAM_consec: removing %d of %d values of %d' \
+                % (nrm, nvals, tval)
 
        return nrm
 
