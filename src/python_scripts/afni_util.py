@@ -1337,7 +1337,6 @@ def consec_len(ilist, start):
    """return the length of consecutive integers - always at least 1"""
    prev = ilist[start]
    length = len(ilist)
-   ind  = start
    for ind in range(start+1, length+1):
       if ind == length: break
       if ilist[ind] != prev + 1:
