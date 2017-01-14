@@ -4,21 +4,40 @@
 
 if( $#argv < 2 )then
   echo
-  echo 'This script will make a JPEG image showing the edges of an'
-  echo 'EPI dataset overlay-ed on an anatomical dataset.  The purpose'
-  echo 'is to let the user judge the quality of the 3D registration.'
-  echo '* Three images from each of the coronal, axial, and sagittal'
-  echo '  views are used, laid out in a 3x3 grid.'
+  echo '-----------------------------------------------------------------'
   echo
+  echo 'This script will make a JPEG image showing the edges of an'
+  echo 'EPI dataset overlay-ed on an anatomical dataset.  The purpose is'
+  echo 'to let the user (you) judge the quality of the 3D registration.'
+  echo
+  echo 'Three images from each of the coronal, axial, and sagittal'
+  echo 'AFNI image viewers are used, laid out in a 3x3 grid.'
+  echo
+  echo '@snapshot_volreg works by running the AFNI GUI inside a "virtual"'
+  echo 'X11 display server program named "Xvfb", and saving images from'
+  echo 'that copy of AFNI.  The script also uses programs from the netpbm11'
+  echo 'software library to put the saved images together into a pleasing'
+  echo 'layout.  If the script cannot find the netpbm11 software, it will'
+  echo 'not run :('
+  echo
+  echo '-----------------------------------------------------------------'
   echo 'Usage: @snapshot_volreg ANATdataset EPIdataset [jname] [xdisplay]'
+  echo
+  echo 'Sample (from an afni_proc.py results directory):'
+  echo
+  echo '  @snapshot_volreg anat_final.sub-10506+tlrc      \'
+  echo '                   pb02.sub-10506.r01.volreg+tlrc sub-10506'
+  echo
+  echo 'The output file from this example is "sub-10506.jpg".'
+  echo '-----------------------------------------------------------------'
   echo
   echo 'Do NOT put a sub-brick index (such as "[0]") on the EPIdataset'
   echo 'name -- the script will automatically only use the "[0]" volume.'
   echo
-  echo '( Although the original use was for visualizing how well EPI )'
-  echo '( and anatomical datasets were aligned by align_epi_anat.py, )'
-  echo '( it is also useful to see how well 3dQwarp aligned an       )'
-  echo '( anatomical dataset to a template dataset.                  )'
+  echo '(( Although the original use was for visualizing how well EPI ))'
+  echo '(( and anatomical datasets were aligned by align_epi_anat.py, ))'
+  echo '(( it is also useful to see how well 3dQwarp aligned an       ))'
+  echo '(( anatomical dataset to a template dataset.                  ))'
   echo
   echo 'The optional third argument is the name of the output JPEG'
   echo 'file -- if it does not end in ".jpg", that suffix will be added.'
@@ -35,10 +54,7 @@ if( $#argv < 2 )then
   echo 'instance will speed things up a little. Normally, you do not'
   echo 'need to use this 4th argument.'
   echo
-  echo 'Sample usage (from an afni_proc.py results directory):'
-  echo
-  echo '  @snapshot_volreg anat_final.sub-10506+tlrc      \'
-  echo '                   pb02.sub-10506.r01.volreg+tlrc sub-10506'
+  echo '-----------------------------------------------------------------'
   echo
   echo 'The edges from a typical EPI dataset are usually broken up and'
   echo 'do not completely outline sulci, ventricles, etc.  In judging'
@@ -51,10 +67,22 @@ if( $#argv < 2 )then
   echo 'dropout happens, often does not not show good edge alignment'
   echo 'even when the rest of the brain alignment looks good.'
   echo
+  echo '-----------------------------------------------------------------'
+  echo
   echo 'If this script crashes, then it might leave behind files with'
   echo 'names that start with "zzerm".  Delete these files.'
+  echo 'It is also possible that the Xvfb program will still be running'
+  echo 'if this script crashes.  A command such as that below can'
+  echo 'be used to see if you have any stray Xvfb programs running:'
   echo
-  echo '-------------- Author: The Mad Allineator ---------------'
+  echo '  ps X | grep Xvfb | grep -v grep'
+  echo
+  echo 'If there are any such programs, the command below can be used'
+  echo 'to kill all of them:'
+  echo
+  echo '  killall Xvfb'
+  echo
+  echo '-------------- Author: The Madd Allineator ----------------------'
   echo
   exit 0
 endif
