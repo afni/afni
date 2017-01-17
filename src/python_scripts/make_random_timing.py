@@ -989,6 +989,7 @@ g_history = """
                        see: NOTE: distribution of ISI
     1.10 Jun 01, 2016: minor updates to verbose output
     2.00 Dec XX, 2016: basically a new program
+         - separated make_limited_space_list
 """
 
 g_version = "version 1.10, June 1, 2016"
@@ -2473,18 +2474,20 @@ class RandTiming:
         # rcr - test this!
 
         # initial pass on creation of events list
-        rv, clist, rtype, rcount =  \
-            self.init_limited_event_list(num_reps, self.max_consec)
-        if rv:
-            print '** failure of randomize_limited_events'
-            return 1, None
+        #rv, clist, rtype, rcount =  \
+        #    self.init_limited_event_list(num_reps, self.max_consec)
+        #if rv:
+        #    print '** failure of randomize_limited_events'
+        #    return 1, None
 
         # if we ran out of space for one event type, try to fill
         # prev must be remaining event type
-        if rcount > 0:
-            rv, clist = self.fill_remaining_limited_space(self.max_consec,
-                                                          clist, rtype, rcount)
-            if rv: return 1, None
+        #if rcount > 0:
+        #    rv, clist = self.fill_remaining_limited_space(self.max_consec,
+        #                                                  clist, rtype, rcount)
+        #    if rv: return 1, None
+
+        rv, clist = self.make_limited_space_list(num_reps, self.max_consec)
 
         # next, rewrite as elist   ---> convert to 1-based index list here 
         elist = []
@@ -2504,6 +2507,27 @@ class RandTiming:
 
         return 0, elist
 
+    def make_limited_space_list(self, num_reps, max_consec):
+        """given a list of num_reps per stim_class and max_consec for each,
+           return an event count list of the form [[eind, count] ...]
+
+           return status, clist
+        """
+        # initial pass on creation of events list
+        rv, clist, rtype, rcount =  \
+            self.init_limited_event_list(num_reps, max_consec)
+        if rv:
+            print '** failure of randomize_limited_events'
+            return 1, None
+
+        # if we ran out of space for one event type, try to fill
+        # prev must be remaining event type
+        if rcount > 0:
+            rv, clist = self.fill_remaining_limited_space(max_consec,
+                                                          clist, rtype, rcount)
+            if rv: return 1, None
+
+        return 0, clist
 
     def init_limited_event_list(self, num_reps, max_consec):
         """first pass on limited event list:
