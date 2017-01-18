@@ -12,21 +12,22 @@ gDEF_DEC_PLACES = 2      # decimal places when printing time (-1 ==> %g format)
 g_valid_dist_types = ['decay', 'uniform_rand', 'uniform_grid',
                       'fixed', 'INSTANT']
 g_fixed_dist_types = ['fixed', 'INSTANT']
+g_valid_param_types= ['dist', 't_gran']
 
-# -add_timing_class stimA 3 3  3 decay 0.1
+# -add_timing_class stimA 3 3  3 dist=decay 0.1
 # -add_timing_class stimA 3 5 10
-# -add_timing_class stimA 3 5  7 uniform 1 0.1
+# -add_timing_class stimA 3 5  7 dist=uniform_grid t_gran=0.1
 
 # class for Timing object
 # - initialize with (name, min_dur required)
 #       - name (required)
 #       - min, mean and max duation
 #         (min required, mean/max of -1 are unspecified)
-#       - distribution type ('decay' or 'uniform')
-#       - t_gran (granularity of time)
+#       - params: of the form VAR=VAL
+#          - dist:   distribution type ('decay' or 'uniform')
+#          - t_gran: granularity of time, default 0.01
 class TimingClass:
-   def __init__(self, name, min_dur, mean_dur, max_dur,
-                      dist_type='decay', params=[], verb=1):
+   def __init__(self, name, min_dur, mean_dur, max_dur, params=[], verb=1):
       # required from the command line (name value -> set duration)
       self.name         = name
 
@@ -34,40 +35,95 @@ class TimingClass:
       self.mean_dur     = mean_dur      # implies total_time (-1 means unspec)
       self.max_dur      = max_dur       # (-1 means unspec)
 
-      # validate dist_type
-   
-      self.dist_type    = dist_type     # decay, uniform
-      self.params       = params        # e.g. nbins for uniform
+      # list of parameters
+      self.params       = params[:]     # e.g. nbins for uniform
       self.verb         = verb
 
       # additional parameters (just t_gran, for now)
-      t_gran            = gDEF_T_GRAN
-      if len(params) > 0:       # first must be t_gran
-         try: t_gran = float(params[0])
-         except:
-            print "** invalid %s timing class t_gran = %s" % (name, params[0])
-            return None
-         if t_gran <= 0:
-            print '** bad t_gran for timing class %s, %s' % (name, t_gran)
-            t_gran = 0.01
-      self.t_gran = t_gran
-
-      # round min and max times to t_gran (actually, truncate towards mean)
-      # (but make sure we do not barely miss some t_gran multiple)
-      if self.min_dur < t_gran:
-         self.min_dur = 0.0
-      else:
-         self.min_dur = t_gran * math.ceil (self.min_dur / t_gran - 0.01)
-      if self.max_dur < 0.0:
-         self.max_dur = -1.0
-      elif self.max_dur < t_gran:
-         self.max_dur = 0.0
-      else:
-         self.max_dur = t_gran * math.floor(self.max_dur / t_gran + 0.01)
-
+      self.dist_type    = 'decay'       # see g_valid_dist_types[]
+      self.t_gran       = gDEF_T_GRAN
 
       # computation parameters (computed during processing)
       self.total_time   = 0
+      self.status       = 0             # note errors this way
+
+      # --------------------------------------------------
+      # apply any extra parameters given
+      if len(params) > 0:
+         if self.apply_params(params):
+            self.status = 1
+            return
+
+      # --------------------------------------------------
+      # any extra steps...
+
+      # round min and max times to t_gran (actually, truncate towards mean)
+      # (but make sure we do not barely miss some t_gran multiple)
+      tg = self.t_gran
+      if self.min_dur < tg:
+         self.min_dur = 0.0
+      else:
+         self.min_dur = tg * math.ceil (self.min_dur / tg - 0.01)
+      if self.max_dur < 0.0:
+         self.max_dur = -1.0
+      elif self.max_dur < tg:
+         self.max_dur = 0.0
+      else:
+         self.max_dur = tg * math.floor(self.max_dur / tg + 0.01)
+
+
+   def apply_params(self, params):
+      """list of VAR=VAL, verify and apply"""
+      for pp in params:
+          # store an error string
+          errstr = "** TimingClass %s, poorly formed param string '%s'" \
+                   % (self.name, pp)
+
+          pv = pp.split('=')
+          if len(pv) != 2:
+             print errstr
+             return 1
+          pvar = pv[0]
+          pval = pv[1]
+
+          # now check one type at a time, else fail
+          if pvar == 'dist':
+             if pval not in g_valid_dist_types:
+                print errstr
+                print '** invalid dist = %s in %s' % (pval, pp)
+                print '   must be one of: %s' % ', '.join(g_valid_dist_types)
+                return 1
+             # apply
+             self.dist_type = pval
+          elif pvar == 't_gran':
+             try: t_gran = float(pval)
+             except:
+                print errstr
+                print "** bad t_gran = %s in %s" % (pval, pp)
+                return 1
+             if t_gran <= 0:
+                print "** invalid t_gran = %s in %s" % (pval, pp)
+                return 1
+             # apply
+             self.t_gran = t_gran
+          # elif pvar == 'max_consec':
+          #    try: mc = int(pval)
+          #    except:
+          #       print errstr
+          #       print "** bad max_consec = %s in %s" % (pval, pp)
+          #       return 1
+          #    if mc <= 0:
+          #       print "** invalid max_consec = %s in %s" % (pval, pp)
+          #       return 1
+          #    # apply
+          #    self.max_consec = mc
+          else:
+             print "** TimingClass %s, invalid param name %s in '%s'" \
+                   % (self.name, pvar, pp)
+             print '   must be one of: %s' % ', '.join(g_valid_param_types)
+             return 1
+
+      return 0
 
    def show(self, mesg='', details=0):
       if mesg: mstr = '(%s) ' % mesg
@@ -78,11 +134,12 @@ class TimingClass:
       print '   mean_dur     : %s' % self.mean_dur
       print '   max_dur      : %s' % self.max_dur
       print '   dist_type    : %s' % self.dist_type
-      print '   params       : %s' % self.params
+      print '   t_gran       : %s' % self.t_gran
 
       if details:
          print '   verb         : %s' % self.verb
          print '   total_time   : %s' % self.total_time
+         print '   params       : %s' % self.params
 
       print
 
@@ -333,6 +390,7 @@ class StimClass:
 
       self.durlist      = []            # durations per run
       self.sdata        = None          # AfniData instance
+      self.max_consec   = 0             # positive means apply limit
 
    def show(self, mesg='', details=0):
       if mesg: mstr = '(%s) ' % mesg
@@ -342,6 +400,7 @@ class StimClass:
       print '   nreps        : %s' % self.nreps
       print '   sclass       : %s' % self.sclass.name
       print '   rclass       : %s' % self.rclass.name
+      print '   max_consec   : %d' % self.max_consec
 
       if details:
          print '   verb         : %s' % self.verb

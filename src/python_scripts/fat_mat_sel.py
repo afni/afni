@@ -271,7 +271,7 @@ def main(argv):
             LAB_SIZE_FONT = int(arg)
 
     if ( file_matr_glob == '' ) and ( file_listmatch == '' ):
-	print "** ERROR: missing a necessary matrix file input."
+        print "** ERROR: missing a necessary matrix file input."
         print "\t Need to use either '-m' or '-l'."
         print "\t Use 'fat_mat_sel.py -h' for viewing helpfile."
         sys.exit()

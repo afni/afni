@@ -44,7 +44,22 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
- { 10 , JAN , 2016 , RWC , "afni GUI" , MICRO , TYPE_MODIFY ,
+ { 12 , JAN , 2017 , RWC , "afni GUI" , MICRO , TYPE_MODIFY ,
+   "First view of OLay: set sub-bricks to reasonable values" ,
+   "Where 'reasonable' is in the eye of RWCox." } ,
+
+ { 12 , JAN , 2017 , RWC , "@snapshot_volreg" , MICRO , TYPE_MODIFY ,
+   "Crop the volume before snapshot-ing" ,
+   "Cropping helps remove lots of blank space in the output.\n"
+   "Also, compute the slice spacing in the montages adaptively from\n"
+   "the dataset dimensions." } ,
+
+ { 11 , JAN , 2017 , RWC , "@snapshot_volreg" , MICRO , TYPE_MODIFY ,
+   "@snapshot_volreg has been replaced by the former @snapshot_volreg3" ,
+   "Also, replaced the use of the 'pam' functions with similar 'pnm'\n"
+   "functions, to help in portability to demented Linux systems." } ,
+
+ { 10 , JAN , 2017 , RWC , "afni GUI" , MICRO , TYPE_MODIFY ,
    "Change x,y signs in 'Go to atlas location' menu for SPM coords" ,
    "Per the request of Todd Braver" } ,
 
