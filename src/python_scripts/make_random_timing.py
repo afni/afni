@@ -2471,22 +2471,6 @@ class RandTiming:
         else: 
             num_reps = self.num_reps
 
-        # rcr - test this!
-
-        # initial pass on creation of events list
-        #rv, clist, rtype, rcount =  \
-        #    self.init_limited_event_list(num_reps, self.max_consec)
-        #if rv:
-        #    print '** failure of randomize_limited_events'
-        #    return 1, None
-
-        # if we ran out of space for one event type, try to fill
-        # prev must be remaining event type
-        #if rcount > 0:
-        #    rv, clist = self.fill_remaining_limited_space(self.max_consec,
-        #                                                  clist, rtype, rcount)
-        #    if rv: return 1, None
-
         rv, clist = self.make_limited_space_list(num_reps, self.max_consec)
 
         # next, rewrite as elist   ---> convert to 1-based index list here 
@@ -2527,6 +2511,9 @@ class RandTiming:
                                                           clist, rtype, rcount)
             if rv: return 1, None
 
+        if self.verb > 4:
+           print '++ MLSL: reps list %s' % clist
+
         return 0, clist
 
     def init_limited_event_list(self, num_reps, max_consec):
@@ -2546,6 +2533,11 @@ class RandTiming:
 
              Note clist has 0-based event indices, they should be incremented.
         """
+
+        if self.verb > 3:
+           print '-- init_limited_event_list\n' \
+                 '      num_reps   = %s\n'       \
+                 '      max_consec = %s' % (num_reps, max_consec)
 
         remain   = num_reps[:]
         nremain  = sum(remain)
@@ -2998,17 +2990,24 @@ class RandTiming:
 
        eall = []
        for rind in range(ntodo):
-          erun = []
-          for sind, sc in enumerate(self.sclasses):
-             # if ordered stim and sc is not a leader: skip
-             if ordered and sc.name in self.osfollow:
-                if self.verb>3: print '-- no shuffle for follower %s' % sc.name
-                continue
-        
-             for dur in sc.durlist[rind]:
-                erun.append([sind, dur])
-          if self.shuffle_event_list(erun):
-             return 1
+          if len(self.max_consec) == len(self.sclasses):
+             erun = self.adv_limited_shuffled_run(rind, ordered)
+             if erun == None: return 1
+          else:
+             erun = []
+             for sind, sc in enumerate(self.sclasses):
+                # if ordered stim and sc is not a leader: skip
+                if ordered and sc.name in self.osfollow:
+                   if self.verb>3:
+                      print '-- no shuffle for follower %s' % sc.name
+                   continue
+                erun.extend([[sind, dur] for dur in sc.durlist[rind]])
+             UTIL.shuffle(erun)
+
+          # if 1 or self.verb > 2:
+          if self.verb > 2:
+             print '-- randomized event lists for run %d' % rind
+             self.disp_consec_event_counts([erun])
 
           # if ordered stim, insert followers
           if ordered:
@@ -3022,10 +3021,76 @@ class RandTiming:
           if self.adv_partition_sevents_across_runs():
              return 1
 
+       # if 1 or self.verb > 2:
        if self.verb > 2:
           print '-- have randomized event lists'
+          self.disp_consec_event_counts(eall)
 
        return 0
+
+    def disp_consec_event_counts(self, eall):
+       # first convert to a list of counts per class, across runs
+       numc = len(self.sclasses)
+
+       call = [[]] * numc
+       for erun in eall:
+          eind = 0
+          elen = len(erun)
+          while eind < elen:
+             cind = erun[eind][0]
+             ecur = eind
+             eind += 1
+             while eind < elen:
+                if erun[eind][0] != cind: break
+                eind += 1
+             # have (eind-ecur) events of type cind
+             call[cind].append(eind-ecur)
+
+       print '++ consec event counts:'
+       if self.verb > 4:
+          for sind, sc in enumerate(self.sclasses):
+             print '-- consec list for %s: %s' % (sc.name, call[sind])
+          print
+
+       for sind, sc in enumerate(self.sclasses):
+          mi, mn, mx, st = UTIL.min_mean_max_stdev(call[sind])
+          print '   consec for %s, sum %d, mmms: %g  %g  %g  %g\n' % \
+                 (sc.name, sum(call[sind]), mi, mn, mx, st)
+
+    def adv_limited_shuffled_run(self, rind, ordered):
+       """return randomized events subject to max_consec
+          - if ordered stimuli, do not include followers
+       """
+       numc = len(self.sclasses)
+       if len(self.max_consec) != numc:
+          print '** ALSR: bad max_consec list: %s' % self.max_consec
+          return None
+
+       # create a modified reps list that omits followers
+       reps = [len(sc.durlist[rind]) for sc in self.sclasses]
+       if ordered:
+          for sind, sc in enumerate(self.sclasses):
+             if sc.name in self.osfollow:
+                if self.verb>3: print '-- no consec for follower %s' % sc.name
+                reps[sind] = 0
+
+       # generate a random list of the form [[sind nconsec] ...]
+       rv, clist = self.make_limited_space_list(reps, self.max_consec)
+       if rv: return None
+
+       clist.pop(0)     # remove initial [-1,0]
+
+       # convert to form [[sind dur] ...]
+       enew = []
+       for cind, consec in enumerate(clist):
+          # append consec[1] durations of type consec[0]
+          sind = consec[0]
+          sc = self.sclasses[sind]
+          for tind in range(consec[1]):
+             dur = sc.durlist[rind].pop(0)
+             enew.append([sind, dur])
+
+       return enew
 
     def adv_insert_followers(self, rind, events):
        """given list of [sind, dur], insert appropriate followers
@@ -3112,129 +3177,6 @@ class RandTiming:
 
        return 1
 
-    def shuffle_event_list(self, events):
-       """randomize order of events, and possibly deal with max consec
-
-          return 0 on success
-       """
-       UTIL.shuffle(events)
-
-
-       # --------------------------------------------------
-       # deal with max_consec
-
-       # get a list of existing class indices with max_consec > 0
-       slist = UTIL.get_unique_sublist([event[0] for event in events])
-       slist.sort()
-       mclist = [sind for sind in slist if self.sclasses[sind].max_consec > 0]
-
-       # for each class, adjust the events list to limit max_consec
-       # (note: moving offenders will never raise the consec of another class)
-       for sind in mclist:
-          if self.adv_apply_max_consec(events, sind):
-             return 1
-
-       return 0
-
-    def adv_apply_max_consec(self, events, sind):
-       """limit consecutive events of type index 'sind' to max_consec
-
-          - make a list of offending indices in events list (# NO)
-          - make a list of potential insertion indices (# NI)
-          - would like to get (NI choose NO) positions, but NI might
-            decrease if a movement increase consecutive 'sind' events
-             - so must do one at a time, and let NI possibly decrease
-             - SLOW
-
-          return 0 on success
-       """
-       sc = self.sclasses[sind]
-       limit = sc.max_consec
-       if limit <= 0:
-          print '** should not be applying max_consec for %s' % sc.name
-          return 1
-
-       elist = [e[0] for e in events]
-
-       # to be quick, see if we exceed limit for class index sind
-       nmove = self.adv_remove_above_max_consec(elist, sind, limit)
-       if nmove == 0:
-          # nothing to do
-          return 0
-
-       adjlist = self.adv_left_adjacency_list(elist, sind)
-       if adjlist == None: return 1
-
-       #if self.adv_insert_movers(elist, sind, limit, nmove):
-       #   return 0
-
-       # we exceed max
-
-       return 0
-
-    def adv_left_adjacency_list(self, vals, tval):
-       """return a list of "to the right" adjacency counts
-          - at each position, how many tval's is it adjacent to
-
-          this list is slightly odd, but:
-             - all non-zero counts groups are constant and surrounded by
-               either zeros or ends
-       """
-       nvals = len(vals)
-       adjlist = [0]*(nvals+1)
-       
-       if self.verb > 3:
-          print '++ make_adj: counting adjacencies of %d among %d vals' \
-                % (tval, nvals)
-       
-       # from each position, try to count consecutive tvals to right
-       vind = 0
-       while vind < nvals:
-          if vals[vind] == tval:
-             # count to right, be careful at end
-             tind = vind+1
-             while tind < nvals:
-                if vals[tind] != tval: break
-                tind += 1
-
-             nfound = tind-vind
-             for c in range(vind, tind):
-                adjlist[c] = nfound
-             vind = tind
-          else:
-             vind += 1
-
-       if self.verb > 5:
-          print '== MAL vals: %s' % vals
-          print '== MAL adjs: %s' % adjlist
-
-       return None
-       return adjlist
-
-    def adv_remove_above_max_consec(self, vals, tval, limit):
-       """look for more than 'limit' consecutive instances of tval
-          - remove extras via pop
-          - return the number removed (which need to be reinserted)
-       """
-       nvals = len(vals)
-       
-       cc = 0
-       nrm = 0
-       # count down and pop
-       for vind in range(nvals-1, -1, -1):
-          if vals[vind] == tval:
-             cc += 1
-             if cc > limit:
-                vals.pop(vind)
-                nrm += 1
-          else:
-             cc = 0
-
-       if self.verb > 3:
-          print '++ RAM_consec: removing %d of %d values of %d' \
-                % (nrm, nvals, tval)
-
-       return nrm
 
     def adv_partition_sevents_across_runs(self):
        """break stim_event_list into num_runs"""
