@@ -581,7 +581,7 @@ set fout = ../"${outpref}.nii.gz"
 if ( $DO_VIEWER ) then
 
     if( $qc_prefix == "" ) then
-        set vpref = ${outpref}_imqc_axiz
+        set vpref = imqc_axize_${outpref}
     else
         set vpref = $qc_prefix
     endif
