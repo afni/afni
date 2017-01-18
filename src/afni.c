@@ -9723,7 +9723,6 @@ STATUS("deciding whether to use function WOD") ;
 
       /*- The Ides of March, 2000: allow switching back to "view brick" -*/
 
-
       if( func_brick_possible                       &&
           ( ( im3d->vinfo->force_func_wod  &&
               im3d->vinfo->tempflag == 0   &&
@@ -9783,18 +9782,24 @@ STATUS("forcing function WOD") ;
       if( im3d->vinfo->thr_index >= DSET_NVALS(im3d->fim_now) )
           im3d->vinfo->thr_index = DSET_NVALS(im3d->fim_now) - 1 ;
 
-      /* first time in for this controller,
-         set thr_index to 1 if have sub-brick #1 [29 Jul 2003] */
+      /* first time in for this controller (or if so ordered),
+         set fim_index and thr_index to reasonable values (IMHO)
+         -- modified 12 Jan 2017 to define 'reasonable' more reasonably */
 
       { static int first=1, ffim[MAX_CONTROLLERS] ; int qq ;
         if( first ){
           first=0; for( qq=0; qq < MAX_CONTROLLERS; qq++ ) ffim[qq]=1;
         }
         qq = AFNI_controller_index(im3d) ;
-        if( ffim[qq] && im3d->vinfo->thr_index == 0 && DSET_NVALS(im3d->fim_now) > 1 ){
-          im3d->vinfo->thr_index = 1 ; ffim[qq] = 0 ;
+        if( ffim[qq] || im3d->vinfo->func_init_subbricks ){
+          int_pair otp = find_reasonable_overlay_indexes(im3d->fim_now) ;
+          if( otp.i >= 0 ) im3d->vinfo->fim_index = otp.i ;
+          if( otp.j >= 0 ) im3d->vinfo->thr_index = otp.j ;
+          ffim[qq] = 0 ;
         }
       }
+
+      im3d->vinfo->func_init_subbricks = 0 ;  /* 12 Jan 2017 */
 
       /* 29 Jan 2008: enable/disable the FDR-izing button */
 

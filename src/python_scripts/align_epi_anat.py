@@ -3045,7 +3045,7 @@ class RegWrap:
       # do volume registration
       if(self.volreg_flag):
          if(ps.dry_run() or \
-	   (not ps.dry_run() and (dset_dims(o.input())[3] > 1))) :
+           (not ps.dry_run() and (dset_dims(o.input())[3] > 1))) :
              basesuff = "%s_vr" % basesuff
              if(ps.save_vr):
                 prefix = "%s%s%s" % (basepathname,basesuff,baseviewext)

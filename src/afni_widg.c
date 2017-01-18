@@ -1820,7 +1820,8 @@ STATUS("making view->rowcol") ;
 
    im3d->vinfo->func_visible = False ;
    if( AFNI_yesenv("AFNI_SEE_OVERLAY") ) im3d->vinfo->func_visible = True ;
-   im3d->vinfo->func_visible_count = 0 ;
+   im3d->vinfo->func_visible_count  = 0 ;
+   im3d->vinfo->func_init_subbricks = 0 ;
 
    view->func_frame =
       XtVaCreateManagedWidget(
@@ -6006,7 +6007,8 @@ ENTRY("new_AFNI_controller") ;
    im3d->vinfo->force_anat_wod    = False ;   /* don't force warp-on-demand */
    im3d->vinfo->force_func_wod    = False ;   /* don't force warp-on-demand */
    im3d->vinfo->func_visible      = (Boolean)AFNI_yesenv("AFNI_SEE_OVERLAY") ;
-   im3d->vinfo->func_visible_count=0 ;
+   im3d->vinfo->func_visible_count  = 0 ;
+   im3d->vinfo->func_init_subbricks = 0 ;
 #ifdef ALLOW_DATASET_VLIST
    im3d->vinfo->pts_visible       = False ;   /* don't show points */
    im3d->vinfo->pts_color         = 0 ;

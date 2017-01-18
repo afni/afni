@@ -461,7 +461,7 @@ class SysInfo:
       # if the library exists (as link or file), we are good to go
       if os.path.exists(libpath):
          if os.path.islink(libpath):
-	    lname = os.readlink(libpath)
+            lname = os.readlink(libpath)
             print '++ found valid link %s\n   to %s' % (libpath, lname)
          else:
             print '++ found existent library %s' % libpath
@@ -532,11 +532,14 @@ class SysInfo:
          print '   (so afni and suma might fail)'
          self.comments.append('consider appending %s with %s' % (edir,flatdir))
       else:
-         print '** env var %s is not set to contain %s' % (edir, flatdir)
-         print '   (so afni and suma may fail)'
          if self.get_osx_ver() >= 11:
+            print '** cannot tell if env var %s is set to contain %s' \
+                  % (edir, flatdir)
+            print '   (so afni and suma may fail, please try them)'
             self.comments.append('cannot tell if %s includes %s'%(edir,flatdir))
          else:
+            print '** env var %s is not set to contain %s' % (edir, flatdir)
+            print '   (so afni and suma may fail)'
             self.comments.append('consider setting %s to %s' % (edir, flatdir))
 
       return 1
@@ -786,12 +789,12 @@ class SysInfo:
          if s:
             if len(se) > 0: return 1, se[0]
             else:           return 1, ''
-	 if len(so) > 1:
+         if len(so) > 1:
             off1 = so[1].find('[[')
             off2 = so[1].find(']]')
             if off1 >= 0 and off2 >= 0: return 1, so[1][off1+2:off2]
             else: return 1, so[1]
-	 else:
+         else:
             off1 = so[0].find('(')
             if off1 > 0: return 1, so[0][0:off1]
             else:        return 1, so[0]
