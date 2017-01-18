@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 18 , JAN , 2017 , RWC , "3dmerge" , MICRO , TYPE_NEW_OPT ,
+   "option -nozero will prevent output of an all zero dataset" ,
+   NULL } ,
+
  { 12 , JAN , 2017 , RWC , "afni GUI" , MICRO , TYPE_MODIFY ,
    "First view of OLay: set sub-bricks to reasonable values" ,
    "Where 'reasonable' is in the eye of RWCox." } ,
@@ -9376,7 +9380,7 @@ afni_history_struct rwcox_history[] = {
 
   { 24,APR,2003 , RWC , "Miscellaneous" , MICRO , TYPE_GENERAL , "Older History stuff" ,
    "* Modified 3dTshift.c and thd_tshift.c to negate time shift, since it seems have\n"
-   "   been wrong all these years.\n"
+   "   been wrong all these years :( [later: SPM and FSL were wrong, too!]\n"
    },
 
   { 28,APR,2003 , RWC , "Miscellaneous" , MICRO , TYPE_GENERAL , "Older History stuff" ,
