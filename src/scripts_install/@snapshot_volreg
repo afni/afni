@@ -4,88 +4,86 @@
 
 if( $#argv < 2 )then
   echo
-  echo 'This script will make a JPEG image showing the edges of an'
-  echo 'EPI dataset overlayed on an anatomical dataset.  The purpose'
-  echo 'is to let the user judge the quality of the 3D registration.'
-  echo '* One image each from the sagittal, coronal, and axial views is used.'
-  echo '* For a similar script that uses 3 images from each view, giving'
-  echo '  more coverage of the brain, use @snapshot_volreg3.'
-  echo '  ***** That script is probably more useful! *****'
+  echo '-----------------------------------------------------------------'
   echo
-  echo 'Usage: @snapshot_volreg ANATDataset EPIdataset [jname] [xdisplay]'
+  echo 'This script will make a JPEG image showing the edges of an'
+  echo 'EPI dataset overlay-ed on an anatomical dataset.  The purpose is'
+  echo 'to let the user (you) judge the quality of the 3D registration.'
+  echo
+  echo 'Three images from each of the coronal, axial, and sagittal'
+  echo 'AFNI image viewers are used, laid out in a 3x3 grid.'
+  echo
+  echo '@snapshot_volreg works by running the AFNI GUI inside a "virtual"'
+  echo 'X11 display server program named "Xvfb", and saving images from'
+  echo 'that copy of AFNI.  The script also uses programs from the netpbm11'
+  echo 'software library to put the saved images together into a pleasing'
+  echo 'layout.  If the script cannot find the netpbm11 software, it will'
+  echo 'not run :('
+  echo
+  echo '-----------------------------------------------------------------'
+  echo 'Usage: @snapshot_volreg ANATdataset EPIdataset [jname] [xdisplay]'
+  echo
+  echo 'Sample (from an afni_proc.py results directory):'
+  echo
+  echo '  @snapshot_volreg anat_final.sub-10506+tlrc      \'
+  echo '                   pb02.sub-10506.r01.volreg+tlrc sub-10506'
+  echo
+  echo 'The output file from this example is "sub-10506.jpg".'
+  echo '-----------------------------------------------------------------'
   echo
   echo 'Do NOT put a sub-brick index (such as "[0]") on the EPIdataset'
   echo 'name -- the script will automatically only use the "[0]" volume.'
   echo
+  echo '(( Although the original use was for visualizing how well EPI ))'
+  echo '(( and anatomical datasets were aligned by align_epi_anat.py, ))'
+  echo '(( it is also useful to see how well 3dQwarp aligned an       ))'
+  echo '(( anatomical dataset to a template dataset.                  ))'
+  echo
   echo 'The optional third argument is the name of the output JPEG'
   echo 'file -- if it does not end in ".jpg", that suffix will be added.'
-  echo 'If you do NOT supply a 3rd argument, the script will invent a name.'
+  echo 'If you do NOT supply a 3rd argument, the script will invent a name:'
+  echo 'it is probably better for you to supply a 3rd argument.'
   echo
-  echo 'The fourth (and optional) argument is the display number of an'
-  echo 'ALREADY RUNNING copy of Xvfb, as in'
-  echo '  Xvfb :8 -screen 0 1024x768x24 &'
-  echo 'If you do NOT supply this number (8 in the example), then'
-  echo 'the script will start its own Xvfb (on a display of its choice),'
-  echo 'use it once, and then stop it. If you are going to run this'
-  echo 'script many times in a row, starting and stopping your own'
-  echo 'Xvfb instance might speed things up.'
+  echo 'The fourth (and very optional) argument is the display number'
+  echo 'of an ALREADY RUNNING copy of Xvfb, as in'
+  echo '  Xvfb :88 -screen 0 1024x768x24 &'
+  echo 'If you do NOT supply this number (88 in the example), then'
+  echo 'the script will start its own Xvfb (on a display of its choosing),'
+  echo 'use it once, and then stop it. If you are going to run this script'
+  echo 'many times in a row, starting and stopping your own Xvfb'
+  echo 'instance will speed things up a little. Normally, you do not'
+  echo 'need to use this 4th argument.'
   echo
-  echo 'This script is new [Nov 2016] and will probably evolve into'
-  echo 'something better (fondly do we hope).'
+  echo '-----------------------------------------------------------------'
   echo
-  echo '[Dec 2016] add fourth argument, randomized temp filenames'
-  echo '[Dec 2016] also see script @snapshot_volreg3, which'
-  echo '           does the same thing but produces 3 images'
-  echo '           in each direction for better brain coverage' 
+  echo 'The edges from a typical EPI dataset are usually broken up and'
+  echo 'do not completely outline sulci, ventricles, etc.  In judging'
+  echo 'the quality of alignment, I usually start by looking at the'
+  echo 'outlines of the large lateral ventricles -- if those are very'
+  echo 'wrong, the alignment is not good.  After that, I look at the'
+  echo 'sulci in the superior part of the brain -- if the EPI edges'
+  echo 'there seem to be mostly aligned with the sulci, then I am'
+  echo 'usually happy.  The base of the brain, where lots of EPI'
+  echo 'dropout happens, often does not not show good edge alignment'
+  echo 'even when the rest of the brain alignment looks good.'
   echo
-  echo '-------------- Author: The Mad Allineator ---------------'
+  echo '-----------------------------------------------------------------'
   echo
-  echo '----- SAMPLE SCRIPT FOR PROCESSING LOTS OF SUBJECTS -----'
+  echo 'If this script crashes, then it might leave behind files with'
+  echo 'names that start with "zzerm".  Delete these files.'
+  echo 'It is also possible that the Xvfb program will still be running'
+  echo 'if this script crashes.  A command such as that below can'
+  echo 'be used to see if you have any stray Xvfb programs running:'
   echo
-  echo "#\!/bin/tcsh"
+  echo '  ps X | grep Xvfb | grep -v grep'
   echo
-  echo '## This file makes a JPEG snapshot of the EPI-ANAT registration'
-  echo '## results for each subject -- after the 6mm analyses are done.'
-  echo '##'
-  echo '## argument #1 = Xvfb display number to use (2-99)'
-  echo '##               if you are going to run several jobs in'
-  echo '##               parallel on the same system, you need to use'
-  echo '##               different display numbers to prevent conflicts'
-  echo '## argument #2 = file with list of subjects to process'
+  echo 'If there are any such programs, the command below can be used'
+  echo 'to kill all of them:'
   echo
-  echo 'if( $#argv < 2 )then'
-  echo '  echo "need 2 args for this script -- exiting" ; exit 1'
-  echo 'endif'
+  echo '  killall Xvfb'
   echo
-  echo 'set topdir = /data/NIMH_SSCC/UCLA.pamenc'
-  echo 'cd $topdir/data_orig'
-  echo 'mkdir -p snapshots'
+  echo '-------------- Author: The Madd Allineator ----------------------'
   echo
-  echo '# start the Xvfb server for X11 "display"'
-  echo
-  echo 'set xs = $argv[1]'
-  echo 'Xvfb :$xs -screen 0 1024x768x24 &'
-  echo
-  echo '# process each subject'
-  echo
-  echo 'foreach subj ( `cat $argv[2]` )'
-  echo
-  echo '  set ddd = ${subj}/${subj}.b6mm.results'
-  echo
-  echo '  if( ! -d $ddd                                   ) continue'
-  echo '  if( ! -f $ddd/anat_final.${subj}+tlrc.HEAD      ) continue'
-  echo '  if( ! -f $ddd/pb02.${subj}.r01.volreg+tlrc.HEAD ) continue'
-  echo
-  echo '  @snapshot_volreg $ddd/anat_final.${subj}+tlrc $ddd/pb02.${subj}.r01.volreg+tlrc ${subj} $xs'
-  echo
-  echo '  if( -f ${subj}.jpg ) \mv -f ${subj}.jpg snapshots/'
-  echo
-  echo 'end'
-  echo
-  echo 'kill %1'
-  echo 'exit 0'
-  echo
-  echo '----- END OF SAMPLE SCRIPT -----'
   exit 0
 endif
 
@@ -99,7 +97,7 @@ unset noclobber
 set nerr = 0
 set errm = "** ERROR:"
 
-set plist = ( Xvfb djpeg cjpeg pnmcat pbmtext pamcomp pamstretch pbmtopgm )
+set plist = ( Xvfb djpeg cjpeg pnmcat pbmtext pnmscale pbmtopgm )
 foreach pppp ( $plist )
   set wwww = `which $pppp`
   if( $status != 0 )then
@@ -107,8 +105,24 @@ foreach pppp ( $plist )
     set errm = "$errm $pppp"
   endif
 end
+
+# we can use either pamcomp or pnmcomp, so only need to
+# find one of the twain
+
+set pcprog = pamcomp
+set wwww = `which $pcprog`
+if( $status != 0 )then
+  set pcprog = pnmcomp
+  set wwww = `which $pcprog`
+  if( $status != 0 )then
+    @ nerr++
+    set errm = "$errm (pnmcomp OR pamcomp)"
+  endif
+endif
+
 if( $nerr > 0 )then
   echo "$errm -- not found in path -- @snapshot_volreg fails"
+  echo "** WARNING: this script cannot run without installing package netpbm11"
   exit 1
 endif
 
@@ -139,12 +153,14 @@ set epi   = `basename $edset .gz`
 set epi   = `basename $epi   .nii`
 set epi   = `basename $epi   .HEAD`
 set epi   = `basename $epi   .BRIK`
-set epi   = `basename $epi   +tlrc`
 set epi   = `basename $epi   +orig`
 set epi   = `basename $epi   +acpc`
+set epi   = `basename $epi   +tlrc`
 set epi   = `basename $epi   +tlrc.`
-set epi   = `basename $epi   +orig.`
-set epi   = `basename $epi   +acpc.`
+set anat  = `basename $anat  +tlrc.`
+set anat  = `basename $anat  +tlrc`
+set anat  = `basename $anat  +orig.`
+set anat  = `basename $anat  +acpc.`
 
 # set output image prefix
 
@@ -201,7 +217,7 @@ if( $?xdisplay == 0 )then
     set xdisplay = `count -dig 1 3 999 R1`
     if( -e /tmp/.X${xdisplay}-lock ) continue
     echo " -- trying to start Xvfb :${xdisplay}"
-    Xvfb :${xdisplay} -screen 0 1024x768x24 &
+    Xvfb :${xdisplay} -screen 0 1024x768x24 >& /dev/null &
     sleep 1
     jobs > zzerm.$ranval.txt
     grep -q Xvfb zzerm.$ranval.txt
@@ -222,10 +238,16 @@ setenv DISPLAY :${xdisplay}
 
 set zpref = zzerm.X${xdisplay}-${ranval}
 
+# crop the input anat to a standard size
+
+set cdset = ${zpref}.acrop.nii
+
+3dAutobox -npad 17 -prefix $cdset $adset
+
 # resample the EPI to the anat grid
 
 3dAllineate -input  ${edset}'[0]'     \
-            -master ${adset}          \
+            -master ${cdset}          \
             -prefix ${zpref}.epiR.nii \
             -1Dparam_apply IDENTITY   \
             -final cubic
@@ -247,26 +269,31 @@ set emx = $epp[4]
 
 # run AFNI to make the 3 overlay images
 
-afni -noplugins -no_detach                                    \
-     -com "SWITCH_UNDERLAY ${anat}${asuff}"                   \
-     -com "SWITCH_OVERLAY ${zpref}.epiEM.nii"                 \
-     -com "SET_PBAR_ALL +99 1 Plasma"                         \
-     -com "SET_FUNC_RANGE $emx"                               \
-     -com "SET_THRESHNEW $eth *"                              \
-     -com "SEE_OVERLAY +"                                     \
-     -com "SET_XHAIRS OFF"                                    \
-     -com "OPEN_WINDOW sagittalimage opacity=6"               \
-     -com "OPEN_WINDOW axialimage opacity=6"                  \
-     -com "OPEN_WINDOW coronalimage opacity=6"                \
-     -com "SAVE_JPEG sagittalimage ${zpref}.sag.jpg blowup=2" \
-     -com "SAVE_JPEG coronalimage  ${zpref}.cor.jpg blowup=2" \
-     -com "SAVE_JPEG axialimage    ${zpref}.axi.jpg blowup=2" \
-     -com "QUITT"                                             \
-     ${adset} ${zpref}.epiEM.nii
+set anatCM = ( `3dCM $cdset` )
 
-# stop Xvfb if we started it ourselves
+set anatNN = `3dinfo -nijk $cdset`
 
-if( $?killX ) kill %1
+set astep = `ccalc -int "cbrt($anatNN)/6.111"`
+
+if( $astep < 2 ) set astep = 2
+
+afni -noplugins -no_detach                                       \
+     -com "SWITCH_UNDERLAY ${cdset}"                             \
+     -com "SWITCH_OVERLAY ${zpref}.epiEM.nii"                    \
+     -com "SET_DICOM_XYZ $anatCM"                                \
+     -com "SET_PBAR_ALL +99 1 Plasma"                            \
+     -com "SET_FUNC_RANGE $emx"                                  \
+     -com "SET_THRESHNEW $eth *"                                 \
+     -com "SEE_OVERLAY +"                                        \
+     -com "SET_XHAIRS OFF"                                       \
+     -com "OPEN_WINDOW sagittalimage opacity=6 mont=3x1:$astep"  \
+     -com "OPEN_WINDOW axialimage opacity=6 mont=3x1:$astep"     \
+     -com "OPEN_WINDOW coronalimage opacity=6 mont=3x1:$astep"   \
+     -com "SAVE_JPEG sagittalimage ${zpref}.sag.jpg blowup=2"    \
+     -com "SAVE_JPEG coronalimage  ${zpref}.cor.jpg blowup=2"    \
+     -com "SAVE_JPEG axialimage    ${zpref}.axi.jpg blowup=2"    \
+     -com "QUITT"                                                \
+     ${cdset} ${zpref}.epiEM.nii
 
 # convert the output JPEGs to PNMs for manipulation
 
@@ -276,15 +303,20 @@ djpeg ${zpref}.axi.jpg > ${zpref}.axi.pnm
 
 # cat them together, make a text label, overlay it, make output JPEG
 
-pnmcat -lr -jcenter -black ${zpref}.sag.pnm ${zpref}.axi.pnm ${zpref}.cor.pnm           > ${zpref}.pnm
-pbmtext -nomargins -builtin fixed "$jnam"   | pbmtopgm 1 1 | pamstretch 2               > ${zpref}.t1.pgm
-pbmtext -nomargins -builtin fixed "<- Left" | pbmtopgm 1 1                              > ${zpref}.t2.pgm
-pamcomp -align=right -valign=bottom ${zpref}.t1.pgm ${zpref}.pnm                        > ${zpref}.t3.pnm
-pamcomp -align=right -valign=top    ${zpref}.t2.pgm ${zpref}.t3.pnm | cjpeg -quality 95 > "$jnam.jpg"
+pnmcat -tb -jcenter -black ${zpref}.sag.pnm ${zpref}.axi.pnm ${zpref}.cor.pnm           > ${zpref}.pnm
+pbmtext -builtin fixed "$jnam"   | pnmcrop | pbmtopgm 1 1 | pnmscale 2                  > ${zpref}.t1.pgm
+pbmtext -builtin fixed "<- Left"           | pbmtopgm 1 1                               > ${zpref}.t2.pgm
+$pcprog -align=right -valign=bottom ${zpref}.t1.pgm ${zpref}.pnm                        > ${zpref}.t3.pnm
+$pcprog -align=right -valign=top    ${zpref}.t2.pgm ${zpref}.t3.pnm | cjpeg -quality 95 > "$jnam.jpg"
 
 # delete the trash data
 
 \rm -f ${zpref}.*
 
 echo "@snapshot_volreg output image = $jnam.jpg"
+
+# stop Xvfb if we started it ourselves
+
+if( $?killX ) kill %1
+
 exit 0

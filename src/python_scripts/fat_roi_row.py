@@ -112,7 +112,7 @@ def main(argv):
             SWITCH_ExternLabsOK = 0
 
     if ( file_matr_glob == '' ) and ( file_listmatch == '' ):
-	print "** ERROR: missing a necessary matrix file input."
+        print "** ERROR: missing a necessary matrix file input."
         print "\t Need to use either '-m' or '-l'."
         sys.exit()
     if not( file_matr_glob == '' ) and not( file_listmatch == '' ):
