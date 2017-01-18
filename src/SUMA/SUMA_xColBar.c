@@ -11217,7 +11217,7 @@ void SUMA_SetScaleRange(SUMA_ALL_DO *ado, double range[2])
    static char FuncName[]={"SUMA_SetScaleRange"};
    int min_v, max_v, scl, dec, cv=0;
    Widget w ;
-   double dtmp;
+   double dtmp, rmult;
    char slabel[100];
    static int nwarn = 0;
    SUMA_X_SurfCont *SurfCont=NULL;
@@ -11232,7 +11232,14 @@ void SUMA_SetScaleRange(SUMA_ALL_DO *ado, double range[2])
    }
    SurfCont = SUMA_ADO_Cont(ado);
    curColPlane = SUMA_ADO_CurColPlane(ado);
-     
+   
+   rmult = (double)SUMA_floatEnv("SUMA_Range_Multiplier", 0.0) ;
+   if (rmult > 0.0f && rmult != 1.0f) {
+      SUMA_LHv("Applying range multipler of %f\n", rmult);
+      range[0] = range[0]*rmult;
+      range[1] = range[1]*rmult;
+   } 
+
    if (!SurfCont->thr_sc) { 
       SUMA_SL_Err("NULL widget");
       SUMA_RETURNe; 
