@@ -43,8 +43,8 @@ else
 endif
 
 # default location of viewer: user could modify!
-#set my_viewer = "$adir/@chauffeur_afni" !!!!!!!!!!!!!!!
-set my_viewer = "$here/@chauffeur_afni"
+set my_viewer = "$adir/@chauffeur_afni"
+
 
 
 # ----------------------- set defaults --------------------------
@@ -581,7 +581,7 @@ set fout = ../"${outpref}.nii.gz"
 if ( $DO_VIEWER ) then
 
     if( $qc_prefix == "" ) then
-        set vpref = imqc_axize_${outpref}
+        set vpref = ${outpref}_imqc_axiz
     else
         set vpref = $qc_prefix
     endif
