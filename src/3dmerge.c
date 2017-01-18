@@ -670,11 +670,14 @@ void MRG_Syntax(void)
 
    printf(
     "OTHER OPTIONS:\n"
+    "  -nozero     = Do NOT write the output dataset if it would be all zero.\n"
+    "\n"
     "  -datum type = Coerce the output data to be stored as the given type,\n"
     "                  which may be byte, short, or float.\n"
     "          N.B.: Byte data cannot be negative.  If this datum type is chosen,\n"
     "                  any negative values in the edited and/or merged dataset\n"
     "                  will be set to zero.\n"
+    "\n"
     "  -keepthr    = When using 3dmerge to edit exactly one dataset of a\n"
     "                  functional type with a threshold statistic attached,\n"
     "                  normally the resulting dataset is of the 'fim'\n"
@@ -699,6 +702,7 @@ void MRG_Syntax(void)
     "                  the responsibility of the user to verify that these \n"
     "                  are appropriate.  Note that sub-brick auxiliary data \n"
     "                  can be modified using program 3drefit. \n"
+    "\n"
     "  -quiet      = Reduce the number of messages shown\n"
     "\n"
     "  -1dindex j  = Uses sub-brick #j as the data source , and uses sub-brick\n"
