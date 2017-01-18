@@ -3461,6 +3461,9 @@ static ENV_SPEC envlist[] = {
       "old style colorization preceding the addition of this variable\n",
       "SUMA_Classic_Label_Colors",
       "NO" }, 
+   {  "Multiplier for range of thresholding scale.\n",
+      "SUMA_Range_Multiplier",
+      "1.0" },
    {  NULL, NULL, NULL  }
 };
       
