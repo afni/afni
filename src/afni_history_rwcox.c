@@ -9380,7 +9380,7 @@ afni_history_struct rwcox_history[] = {
 
   { 24,APR,2003 , RWC , "Miscellaneous" , MICRO , TYPE_GENERAL , "Older History stuff" ,
    "* Modified 3dTshift.c and thd_tshift.c to negate time shift, since it seems have\n"
-   "   been wrong all these years.\n"
+   "   been wrong all these years :( [later: SPM and FSL were wrong, too!]\n"
    },
 
   { 28,APR,2003 , RWC , "Miscellaneous" , MICRO , TYPE_GENERAL , "Older History stuff" ,
