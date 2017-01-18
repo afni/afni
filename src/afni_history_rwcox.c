@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 18 , JAN , 2017 , RWC , "3dmerge" , MICRO , TYPE_NEW_OPT ,
+   "option -nozero will prevent output of an all zero dataset" ,
+   NULL } ,
+
  { 12 , JAN , 2017 , RWC , "afni GUI" , MICRO , TYPE_MODIFY ,
    "First view of OLay: set sub-bricks to reasonable values" ,
    "Where 'reasonable' is in the eye of RWCox." } ,
