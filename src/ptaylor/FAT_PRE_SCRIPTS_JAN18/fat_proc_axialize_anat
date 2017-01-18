@@ -1,0 +1,762 @@
+#!/bin/tcsh -ef
+
+
+# --------------------- revision history -------------------------
+# Sept, 2016
+#   + added pre-lr-symm (as def), 
+#   + added option for post-lr-symm
+#   + added '-wdir'
+#   + added cmass->(0,0,0) as def for output
+#
+# Sept, 2016b
+#   + added added '-out_match_ref' stuff
+#
+# Sept, 2016c
+#   + replace 3dcopy with 3dcalc at end (preserve history)
+#   + put copy of command in workdir in text file
+#
+# Jan, 2017
+#   + rename
+#
+# Jan, 2017b
+#   + put in viewing stuff
+#
+# ----------------------------------------------------------------
+
+set version   = "2.5"
+set rev_dat   = "Jan, 2017"
+set this_prog = "fat_proc_axialize_anat"
+
+set here     = $PWD
+set anat_dir = ""                   # will be output dir
+set anat_inp = ""                   # nec input T1w vol
+set anat_ref = ""                   # optional, if SS'ing elsewhere
+set outpref  = "anat_axi"           # for final output files
+set tpref    = "tt"                 # for intermed files
+set wdir     = "__WORK_prealign"    # working directory
+set DoClean  = "0"                  # default: keep working dir
+
+set PRE_LR  = "1"
+set POST_LR = "0"
+
+set costfunc = "lpa"                # in 3dAllin estimate
+set extra_allin_apps = ""           # could use to upsample?
+set extra_allin_inps = ""           # could use to get large rots?
+
+# opts to be changed for t2w
+set DoUni    = "1"
+set DoAni    = "0"
+set valthr   = 90
+set powcon   = 1.1  # enhance contrast in t2w mode
+
+set OutMatchRef = "0"
+set output_cmd  = "1"
+set cmd_file    = "command_copy.txt"
+
+set my_viewer   = "tcsh /data/PROJECTS/FATVIEW/viewer_afni.tcsh"  # !!!!!
+set DO_VIEWER   = 1
+
+# ------------------- process options, a la rr ----------------------
+
+if ( $#argv == 0 ) goto SHOW_HELP
+
+set ac = 1
+while ( $ac <= $#argv )
+    # terminal options
+    if ( ("$argv[$ac]" == "-h" ) || ("$argv[$ac]" == "-help" )) then
+        goto SHOW_HELP
+    endif
+    if ( "$argv[$ac]" == "-ver" ) then
+        goto SHOW_VERSION
+    endif
+
+   # required
+   if ( "$argv[$ac]" == "-inset" ) then
+      if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+      @ ac += 1
+      set anat_inp = "$argv[$ac]"
+
+   else if ( "$argv[$ac]" == "-refset" ) then
+      if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+      @ ac += 1
+      set anat_ref = "$argv[$ac]"
+
+   else if ( "$argv[$ac]" == "-outdir" ) then
+      if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+      @ ac += 1
+      set anat_dir = "$argv[$ac]"
+
+   else if ( "$argv[$ac]" == "-prefix" ) then
+      if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+      @ ac += 1
+      set outpref = "$argv[$ac]"
+
+   else if ( "$argv[$ac]" == "-extra_al_opts" ) then
+      if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+      @ ac += 1
+      set extra_allin_apps = "$argv[$ac]"
+
+   else if ( "$argv[$ac]" == "-extra_al_inps" ) then
+      if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+      @ ac += 1
+      set extra_allin_inps = "$argv[$ac]"
+
+   else if ( "$argv[$ac]" == "-extra_al_cost" ) then
+      if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+      @ ac += 1
+      set costfunc = "$argv[$ac]"
+
+   else if ( "$argv[$ac]" == "-t2w_mode" ) then
+      set DoUni  = "0"
+      set DoAni  = "1"
+      set valthr = 99
+
+   else if ( "$argv[$ac]" == "-do_clean" ) then
+      set DoClean = 1
+
+  # turn it *off* if desired-- on by default
+   else if ( "$argv[$ac]" == "-no_pre_lr_symm" ) then
+      set PRE_LR = 0
+
+   else if ( "$argv[$ac]" == "-post_lr_symm" ) then
+      set POST_LR = 1
+
+   else if ( "$argv[$ac]" == "-no_cmd_out" ) then
+      set output_cmd = "0"
+
+   else if ( "$argv[$ac]" == "-wdir" ) then
+      if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+      @ ac += 1
+      set wdir = "$argv[$ac]"
+
+   else if ( "$argv[$ac]" == "-out_match_ref" ) then
+      set OutMatchRef = 1
+
+   else if ( "$argv[$ac]" == "-no_qc_view" ) then
+      set DO_VIEWER = 0
+
+   else
+      echo "** unexpected option #$ac = '$argv[$ac]'"
+      exit 2
+
+   endif
+   @ ac += 1
+end
+
+
+# =======================================================================
+# ============================ ** SETUP ** ==============================
+# =======================================================================
+
+# ============================ input files ==============================
+
+echo "++ Start script version: $version"
+
+set check = `3dinfo "$anat_inp"`
+echo "$#check"
+if ( "$#check" == "0" ) then
+    echo "** ERROR: can't find inset file $anat_inp !"
+    goto EXIT
+endif
+
+set inp_ORIENT = `3dinfo -orient "$anat_inp"`
+set inp_SPACE  = `3dinfo -space "$anat_inp"`
+set inp_VIEW  = `3dinfo -av_space "$anat_inp"`
+set inp_VIEW  = "$inp_VIEW:gas/+//"
+
+set check = `3dinfo "$anat_ref"`
+if ( $#check == "0" ) then
+    echo "** ERROR: can't find refset file $anat_ref !"
+    goto EXIT
+endif
+
+# ========================= output/working dir ==========================
+
+# check output directory, use input one if nothing given
+
+if ( $anat_dir == "" ) then
+    # default output dir, if nothing input; it must exist already,
+    # because a file is in it
+
+    set anat_dir = `dirname $anat_inp`
+    echo "\n++ No output directory specificied by the user."
+    echo "++ Using the input anatomy file's directory by default:"
+    echo "\t$anat_dir"
+else
+    if ( ! -e $anat_dir ) then
+        echo "++ Making new output directory: $anat_dir"
+        mkdir $anat_dir
+    endif
+endif
+
+# and put working directory as subdirectory.
+set wdir = $anat_dir/$wdir
+
+# make the working directory
+if ( ! -e $wdir ) then
+    echo "++ Making working directory: $wdir"
+    mkdir $wdir
+else
+    echo "+* WARNING: Somehow found a premade working directory (?):"
+    echo "      $wdir"
+
+endif
+
+
+# =======================================================================
+# =========================== ** PROCESS ** =============================
+# =======================================================================
+
+echo "\n-----> STARTING ---->"
+
+echo "\n\nThis command:"
+echo "$this_prog $argv\n\n"
+
+echo "\nThe reference template is: $anat_ref"
+
+set idx = 0
+
+# --------------------------------------------------------------
+
+# copy ref here, while also making orientation match
+set rin  = "$anat_ref"
+set rout = "REF.nii.gz"
+3dresample -echo_edu           \
+    -orient "$inp_ORIENT"      \
+    -prefix "$wdir/$rout"      \
+    -inset  "$rin"             \
+    -overwrite
+# so sets can be overlayed
+3drefit   -echo_edu            \
+    -space "$inp_SPACE"        \
+    -view  "$inp_VIEW"         \
+    "$wdir/$rout"
+
+# --------------------------------------------------------------
+
+# copy input file into working dir
+set iidx = `printf "%02d" $idx`
+set fin  = "$anat_inp"
+set fout = "${tpref}_${iidx}.nii.gz"
+set inp0 = $fout
+3dcalc    -echo_edu          \
+    -a "$fin"                \
+    -expr 'a'                \
+    -prefix "$wdir/$fout"    \
+    -float                   \
+    -overwrite
+@ idx += 1
+
+# --------------------------------------------------------------
+
+cd $wdir
+
+# if t2w, do do this
+if ( $DoAni ) then
+
+    echo "++ Doing a little anisosmoothing."
+    set iidx = `printf "%02d" $idx`
+    set fin  = "$fout"
+    set fout = "${tpref}_${iidx}_ani.nii.gz"
+    3danisosmooth -echo_edu       \
+        -overwrite                \
+        -iters 2                  \
+        -prefix $fout             \
+        -3D                       \
+        "$fin"
+    @ idx += 1
+
+    set meanz = `3dROIstats -quiet -nzmean                  \
+                  -mask "3dcalc( -a $fout -expr step(a) )"  \
+                  $fout`
+    set mval = $meanz[1]
+    echo "++ Mean here is: $mval"
+
+    set iidx = `printf "%02d" $idx`
+    set fin  = "$fout"
+    set fout = "${tpref}_${iidx}_pos.nii.gz"
+    3dcalc -echo_edu                 \
+        -a $fin                      \
+        -expr "(step(a)*(a/$mval)**${powcon})" \
+        -prefix $fout                \
+        -overwrite 
+    @ idx += 1
+endif
+
+# --------------------------------------------------------------
+
+set v1 = `3dBrickStat -automask -percentile $valthr 1 $valthr "$fout"`
+set thr_t1 = "${v1[2]}"
+echo "\n\n++ Percentile for thresholding: ${thr_t1}\n"
+
+set iidx = `printf "%02d" $idx`
+set fin  = "$fout"
+set fout = "${tpref}_${iidx}_thr.nii.gz"
+3dcalc    -echo_edu                               \
+    -a      "$fin"                                \
+    -expr   "maxbelow(${thr_t1},a)"               \
+    -prefix "$fout"                               \
+    -overwrite
+@ idx += 1
+
+# --------------------------------------------------------------
+
+# if t2w, don't do this
+if ( $DoUni ) then
+
+    echo "\n++ Doing unifizing."
+
+
+    # unifize input
+    set iidx = `printf "%02d" $idx`
+    set fin  = "$fout"
+    set fout = "${tpref}_${iidx}_uni.nii.gz"
+    3dUnifize  -echo_edu         \
+        -echo_edu                \
+        -GM                      \
+        -prefix $fout            \
+        -input  $fin             \
+        -overwrite
+    @ idx += 1
+
+    # --------------------------------------------------------------
+
+    # get rid of bright spots that would affect the cost function
+    set v1 = `3dBrickStat -automask -percentile 95 1 95 "$fout"`
+    set thr_t1 = "${v1[2]}"
+    echo "\n\n++ Percentile for thresholding: ${thr_t1}\n"
+
+    set iidx = `printf "%02d" $idx`
+    set fin  = "$fout"
+    set fout = "${tpref}_${iidx}_thr2.nii.gz"
+    3dcalc -echo_edu                           \
+        -a        "$fin"                       \
+        -expr     "maxbelow(${thr_t1},a)"      \
+        -prefix   "$fout"                      \
+        -overwrite
+    @ idx += 1
+else
+
+    echo "\n++ NOT doing unifizing, at user behest."
+    
+endif
+
+# --------------------------------------------------------------
+
+# Sep,2016
+
+if ( $PRE_LR ) then
+
+    set iidx = `printf "%02d" $idx`
+    set fin   = "$fout"
+    set fflip = "${tpref}_${iidx}_LRflip.nii.gz"
+    3dLRflip                         \
+        -LR                          \
+        -prefix $fflip               \
+        -overwrite                   \
+        $fin
+    @ idx += 1
+
+    set iidx = `printf "%02d" $idx`
+    set ffout = "${tpref}_${iidx}_LR6.nii.gz"
+    3dAllineate   -echo_edu               \
+        -1Dmatrix_save _map_lr6           \
+        -warp shift_rotate                \
+        -prefix "$ffout"                  \
+        -base   "$fflip"                  \
+        -twopass                          \
+        -cost nmi                         \
+        -nomask                           \
+        -source "$fin"                    \
+        -overwrite
+    @ idx += 1
+
+   # grep "3dAllineate" _map_lr6.param.1D > _map_lr12.param.1D
+   # set vals = `sed -n '2p' _map_lr6.param.1D`
+   # printf "$vals[1-7] ... and faking\n" >> _map_lr12.param.1D
+   # set vals = `sed -n '3p' _map_lr6.param.1D`
+   # printf "$vals[1-6] 0 0 0 0 0 0\n" >> _map_lr12.param.1D
+
+    cat_matvec -ONELINE _map_lr6.aff12.1D -S > _map_lr_half.aff12.1D
+
+    set iidx = `printf "%02d" $idx`
+    set fout = "${tpref}_${iidx}_LRmid.nii.gz"
+    3dAllineate   -echo_edu                    \
+        -1Dmatrix_apply _map_lr_half.aff12.1D  \
+        -prefix "$fout"                        \
+        -source "$fin"                         \
+        -final wsinc5                          \
+        -overwrite
+    @ idx += 1
+
+    # update what is considered the 'base input' now for applying
+    # final rot; won't use this one for further matching at the moment
+    set iidx = `printf "%02d" $idx`
+    set fin  = $inp0
+    set fout2 = "${tpref}_${iidx}_origLR.nii.gz"
+    set inp0 = $fout2
+    echo "++ New inp0 = $fout2"
+    3dAllineate   -echo_edu                    \
+        -1Dmatrix_apply _map_lr_half.aff12.1D  \
+        -prefix "$fout2"                       \
+        -source "$fin"                         \
+        -final wsinc5                          \
+        -overwrite
+    @ idx += 1
+
+endif
+
+# --------------------------------------------------------------
+
+if ( $OutMatchRef == "0" ) then
+    # default
+
+    echo "++ Aligning center of refset -> inset."
+    # make data sets close together before starting to align formally;
+    # rewrite REF
+    @Align_Centers               \
+        -cm                      \
+        -no_cp                   \
+        -dset "$rout"            \
+        -base "$fout"
+else
+
+    echo "++ Aligning center of inset -> refset."
+    @Align_Centers               \
+        -cm                      \
+        -no_cp                   \
+        -base "$rout"            \
+        -dset "$fout"            \
+        -child "$inp0"
+
+    set extra_allin_apps = " $extra_allin_apps -master $rout " 
+endif
+
+# --------------------------------------------------------------
+
+# 9 DOF fit, inp -> ref; when we actually apply, won't include
+# scaling.
+set iidx = `printf "%02d" $idx`
+set fin  = "$fout"
+set fout = "${tpref}_${iidx}_alnd.nii.gz"
+3dAllineate   -echo_edu               \
+    -1Dparam_save _map_9dof           \
+    -warp shift_rotate_scale          \
+    -prefix "$fout"                   \
+    -base "$rout"                     \
+    -twopass                          \
+    -source_automask                  \
+    -cost $costfunc                   \
+    $extra_allin_inps                 \
+    -source "$fin" \
+    -overwrite
+@ idx += 1
+
+# now we have to reparse the 9 DOF parameters, excising the rescaling.
+# That is, make it only the 6 (solid body) DOF params.
+grep "3dAllineate" _map_9dof.param.1D > map_fake12dof.param.1D
+set vals = `sed -n '2p' _map_9dof.param.1D`
+printf "$vals[1-7] ... and faking\n" >> map_fake12dof.param.1D
+set vals = `sed -n '3p' _map_9dof.param.1D`
+printf "$vals[1-6] 0 0 0 0 0 0\n" >> map_fake12dof.param.1D
+
+# --------------------------------------------------------------
+
+# apply just the shift+rotation to the original volume
+set iidx = `printf "%02d" $idx`
+set fin  = "$inp0"
+set fout = "${tpref}_${iidx}_alnd0.nii.gz" 
+3dAllineate   -echo_edu                    \
+    -1Dparam_apply map_fake12dof.param.1D  \
+    -prefix "$fout"                        \
+    -source "$fin"                         \
+    -final wsinc5                          \
+    $extra_allin_apps                      \
+    -overwrite
+@ idx += 1
+
+
+# --------------------------------------------------------------
+
+# Sep,2016
+if ( $POST_LR ) then
+
+    set iidx = `printf "%02d" $idx`
+    set fin   = "$fout"
+    set fflip = "${tpref}_${iidx}_LRflip.nii.gz"
+    3dLRflip                         \
+        -LR                          \
+        -prefix $fflip               \
+        -overwrite                   \
+        $fin
+    @ idx += 1
+    
+    set iidx = `printf "%02d" $idx`
+    set ffout = "${tpref}_${iidx}_LR6.nii.gz"
+    3dAllineate   -echo_edu               \
+        -1Dmatrix_save _mmap_lr6          \
+        -warp shift_rotate                \
+        -prefix "$ffout"                  \
+        -base   "$fflip"                  \
+        -twopass                          \
+        -cost nmi                         \
+        -nomask                           \
+        -source "$fin"                    \
+        -overwrite
+    @ idx += 1
+
+    cat_matvec -ONELINE _mmap_lr6.aff12.1D -S > _mmap_lr_half.aff12.1D
+
+    set iidx = `printf "%02d" $idx`
+    set fout = "${tpref}_${iidx}_LRmid.nii.gz"
+    3dAllineate   -echo_edu                    \
+        -1Dmatrix_apply _mmap_lr_half.aff12.1D \
+        -prefix "$fout"                        \
+        -source "$fin"                         \
+        -final wsinc5                          \
+        -overwrite
+    @ idx += 1
+
+endif
+
+if ( $OutMatchRef == "0" ) then
+
+    # Nearly done-- keep center at center (unless using refspace for
+    # output).
+    echo "++ Setting (0, 0, 0) to the center of mass."
+    3dCM -automask -set 0 0 0 $fout
+endif
+
+
+# DONE, just copy endprod out!
+set fin  = $fout
+set fout = ../"${outpref}.nii.gz"
+# copy, preserve history
+3dcalc                        \
+    -echo_edu                 \
+    -overwrite                \
+    -a $fin                   \
+    -expr 'a'                 \
+    -prefix $fout
+
+# copy original command:
+
+# dump copy of command into workdir
+if ( $output_cmd == "1" ) then
+    echo "++ Echoing the command to: $cmd_file"
+
+    echo "# Executed from the directory location:"  > $cmd_file
+    echo "$here"              >> $cmd_file
+    echo "# The command was:" >> $cmd_file
+    echo "$this_prog $argv"   >> $cmd_file
+    echo "\n"                 >> $cmd_file
+endif
+
+# ---------------------------- VIEWER ---------------------------------
+
+if ( $DO_VIEWER ) then
+
+    echo "++ Output QC #1: final olay on (essentially) original refset."
+    echo "++ HERE: $PWD"
+    $my_viewer      -ulay $inp0       \
+                    -prefix "image_final_on_ref_`3dinfo -orient $inp0`"    \
+                    -outdir ".."                    \
+                    -montx 4 -monty 4               \
+                    -set_xhairs MULTI               \
+                    -label_mode 1 -label_size 4
+endif
+
+# ---------------------------------------------------------------------
+
+cd ..
+
+if ( $DoClean ) then
+    echo "\n Removing temporary working directory '$wdir'.\n"
+    \rm $wdir/*
+    \rmdir $wdir
+else
+    echo "\n NOT Removing temporary files.\n"
+endif
+
+printf "\n++ DONE! View the finished, axialized product:"
+printf "\n     $PWD/$fout\n\n"
+
+cd $here
+
+goto EXIT
+
+# ========================================================================
+# ========================================================================
+
+SHOW_HELP:
+cat << EOF
+-------------------------------------------------------------------------
+
+  This program is designed to help line up the major axes of an
+  anatomical volume with those of the volumetric field of view in
+  which it sits.  A benefit of this would be to have slices that are
+  more parallel to standard viewing planes and/or a bit more
+  uniform/standardized across a group.  This may be useful, for
+  example, if you want to use an anatomical for registration of other
+  data (e.g., diffusion data going to be processed using TORTOISE, esp
+  if coloring by local orientation), and you want *that* data to be
+  more regularly oriented for viewing, as well.
+
+  This program works by registering (affinely, 9 DOF) the input volume
+  to some user-defined reference image, but in the end then only
+  applying the translation+rotation parts of the registration to the
+  input volume.  Before the registration is done, some polishing of
+  the input volume is performed, in order to remove outliers, but none
+  of these steps are applied to the output volume itself. Thus, the
+  idea is to distort the original brain as little as possible (NB:
+  smoothing will occur as part of this process, e.g., due to rotation
+  and any regridding), just to reorient it in space.  The output
+  volume can be up/downsampled at the same time, if desired.
+
+  You probably *wouldn't* want to use this if your anatomical data set
+  really fills up its volume (i.e., has no space to rotate/resituation
+  itself).  In that case, you might want to pre-zeropad the volume?
+
+  REQUIRES: AFNI.
+
+  Ver. $version (PA Taylor, ${rev_dat})
+
+-------------------------------------------------------------------------
+
+  RUNNING:
+
+  This script has two *required* arguments ('-inset ...' and '-refset
+  ...'), and the rest are optional:
+
+  \$ $this_prog  \
+        -inset   IN_FILE                      \
+        -refset  REF_FILE                     \
+        {-prefix PREFIX}                      \
+        {-outdir DIR_NAME}                    \
+        {-wdir   WORKDIR}                     \
+        {-out_match_ref}                      \
+        {-extra_al_cost CC}                   \
+        {-extra_al_inps II}                   \
+        {-extra_al_opts SS}                   \
+        {-no_inter_uni}                       \
+        {-post_lr_symm}                       \
+        {-no_pre_lr_symm}                     \
+        {-do_clean}
+
+  where: 
+  -inset  IN_FILE  :is the full name of the input anatomical volume.
+  -refset REF_FILE :is the full name of the reference volume, such as
+                    TT or MNI or something (probably you want to match
+                    the contrast of your anatomical INFILE, whether 
+                    there is a skull or not, etc.).
+
+  -prefix PREFIX   :is the prefix of the output/processed anatomical 
+                    volume (default is '${outpref}').
+  -outdir DIR_NAME :is the output directory (default is the directory
+                    containing the input anatomical file).
+
+  -out_match_ref   :switch to have the final output volume be in the same
+                    'space' (FOV, spatial resolution) as the REF_FILE. 
+                    Might be useful for standardizing the reference
+                    output across a group, or at least centering the brain
+                    in the FOV. (This applies a '-master REF_FILE' to the
+                    final 3dAllineate in the script.)
+
+  -t2w_mode        :switch to alter some intermediate steps (turn off
+                    unifizing and raise voxel ceiling threshold).
+                    This is particularly useful when dealing with a
+                    (adult) T2w image, which tends to be bright in the
+                    CSF and darker in other tissues; default options
+                    are for dealing with (adult) T1w brains, where the
+                    opposite is the case.
+
+ -extra_al_cost CC :specify a cost function for 3dAllineate to work
+                    with (default is 'lpa'; one might investigate
+                    'lpc', esp. if contrasts differ between the
+                    IN_FILE and REF_FILE, or 'nmi').
+ -extra_al_inps II :specify extra options when *calculating* the warp
+                    with 3dAllineate.  These could be any
+                    option+argument combination from the 3dAllineate
+                    helpfile (except the cost function would be done
+                    with "-extra_al_cost CC").
+ -extra_al_opts SS :specify extra output options when *applying* the
+                    warp with 3dAllineate at the end.  One I could see
+                    being useful would be having "-newgrid X", where X
+                    is desired final resolution of the data.
+
+  -no_pre_lr_symm  :a pre-alignment left-right symmetrization is
+                    performed by default, but you can turn it off if you
+                    desire (probably wouldn't want to in most cases, 
+                    unless *weird* stuff were happening).
+  -post_lr_symm    :a post-alignment left-right symmetrization can be 
+                    added, if desired.
+
+  -wdir WORKDIR    :the name of the working subdirectory in the output
+                    directory can be specified (default: ${wdir}).
+
+  -do_clean        :is an optional switch to remove the working file
+                    '${wdir}' and its intermediate files; 
+                    (default: not to do so).
+  -no_cmd_out      :by default, a copy of the command and file location
+                    from which it is run is dumped into the WORKDIR 
+                    (file name: $cmd_file). 
+                    If you don't want this to happen, then use this 
+                    switch.
+
+ ------------------------------------------------------------------------
+
+  OUTPUTS:
+
+    PREFIX.nii.gz   :an anatomical data set that is *hopefully*
+                     regularly situated within its FOV volume.  Thus, 
+                     the axial slices would sit nicely within a given
+                     view window, etc.
+
+    WORKDIR         :the working directory with intermediate files, so
+                     you can follow along with the process and possibly
+                     troubleshoot a bit if things go awry (what are the
+                     odds of *that* happening?).
+
+-------------------------------------------------------------------------
+
+  EXAMPLE:
+    
+   \$ $this_prog  \
+        -inset  SUB001/ANATOM/T1.nii.gz                            \
+        -refset /somehwere/TT_N27+tlrc.                            \
+        -extra_al_opts "-newgrid 1.0"
+
+    or, a specifically T2w example:
+
+   \$ $this_prog  \
+        -inset  SUB001/ANATOM/T2.nii.gz                            \
+        -refset /somehwere/mni_icbm152_t2_tal_nlin_sym_09a.nii.gz  \
+        -t2w_mode                                                  \
+        -extra_al_opts "-newgrid 1.0" 
+
+-------------------------------------------------------------------------
+  TIPS:
+
+    + When analyzing adult T1w data, using the following option might
+      be useful:
+         -extra_al_inps "-nomask"
+      Using this, 3dAllineate won't try to mask a subregion for 
+      warping/alignment, and I often find this helpful for T1w volumes.
+
+    + For centering data, using the '-out_match_ref' switch might be 
+      useful; it might also somewhat, veeeery roughly help standardize
+      a group of subjects' data in terms of spatial resolution, centering
+      in FOV, etc.
+
+-------------------------------------------------------------------------
+EOF
+
+    goto EXIT
+
+SHOW_VERSION:
+   echo "version  $version (${rev_dat})"
+   goto EXIT
+
+# send everyone here, in case there is any cleanup to do
+EXIT:
+   exit
