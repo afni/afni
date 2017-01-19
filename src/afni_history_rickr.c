@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 19,  Jan, 2017, RCR, "gen_ss_review_scripts.py", MICRO, TYPE_BUG_FIX,
+   "fix for -final_anat",
+   "Thanks to N Anderson for noting the problem."
+ } ,
+
  { 19,  Jan, 2017, RCR, "make_random_timing.py", MICRO, TYPE_ENHANCE,
    "advanced version 2 mostly ready",
    "Have -max_consec and -ordered_stimuli implemented in new version."
