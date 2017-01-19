@@ -2963,7 +2963,7 @@ int main( int argc , char *argv[] )
        meth_code == GA_MATCH_PEARSON_LOCALA  ||
        meth_code == GA_MATCH_LPC_MICHO_SCALAR  ){
 
-     if( dset_weig == NULL && !auto_weight )
+     if( dset_weig == NULL && auto_weight != 1 )
        WARNING_message(
         "'-weight' or '-autoweight' is recommended when using -lpc or -lpa;\n"
         "    For example, see the align_epi_anat.py script." ) ;
@@ -5543,11 +5543,21 @@ mri_genalign_set_pgmat(1) ;
                   COX_cpu_time() , COX_clock_time() ) ;
    MEMORY_CHECK("end of program (after final cleanup)") ;
    if( verb && apply_1D == NULL && prefix != NULL ){
-    INFO_message("###########################################################");
-    INFO_message("### Please check results visually for alignment quality ###");
+    INFO_message(  "###########################################################");
+    INFO_message(  "#   Please check results visually for alignment quality   #");
+
+    if( (meth_code == GA_MATCH_PEARSON_LOCALS  ||
+         meth_code == GA_MATCH_PEARSON_LOCALA  ||
+         meth_code == GA_MATCH_LPC_MICHO_SCALAR  ) &&
+        (dset_weig == NULL && auto_weight != 1   )   ){
+      INFO_message("###########################################################");
+      INFO_message("#   '-autoweight' is recommended when using -lpc or -lpa  #");
+      INFO_message("#   If your results are not good, please try again.       #");
+     }
    }
-   if( verb )
-    INFO_message("###########################################################");
+   if( verb ){
+      INFO_message("###########################################################");
+   }
 
    exit(0) ;
 }
