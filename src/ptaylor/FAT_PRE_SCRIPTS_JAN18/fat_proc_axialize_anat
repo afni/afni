@@ -23,7 +23,7 @@
 #
 # ----------------------------------------------------------------
 
-set version   = "2.5"
+set version   = "2.6"
 set rev_dat   = "Jan, 2017"
 set this_prog = "fat_proc_axialize_anat"
 set here      = $PWD
@@ -52,7 +52,7 @@ set my_viewer = "$adir/@chauffeur_afni"
 set anat_dir = ""                   # will be output dir
 set anat_inp = ""                   # nec input T1w vol
 set anat_ref = ""                   # optional, if SS'ing elsewhere
-set outpref  = "anat_axi"           # for final output files
+set outpref  = "anat"               # for final output files
 set tpref    = "tt"                 # for intermed files
 set wdir     = "__WORK_prealign"    # working directory
 set DoClean  = "0"                  # default: keep working dir
@@ -77,6 +77,7 @@ set qc_prefix   = ""               # def: autoname; user can enter
 set output_cmd  = 1                # def: output copy of this command
                                    # -> should expand to have all cmds
 set cmd_file    = ""               # def: same name as viewer
+set postfix     = "axlz"           # stick into name
 
 # ------------------- process options, a la rr ----------------------
 
@@ -238,7 +239,7 @@ echo "\n\nThis command:"
 echo "$this_prog $argv\n\n"
 
 if ( $cmd_file == "" ) then
-    set cmd_file = "imqc_axize_${outpref}.txt"
+    set cmd_file = "${outpref}_${postfix}_cmd.txt"
 endif
 
 # copy original command:
@@ -477,6 +478,7 @@ endif
 set iidx = `printf "%02d" $idx`
 set fin  = "$fout"
 set fout = "${tpref}_${iidx}_alnd.nii.gz"
+set qc2o = $fout
 3dAllineate   -echo_edu                    \
     -1Dparam_save _map_9dof                \
     -warp shift_rotate_scale               \
@@ -567,7 +569,7 @@ endif
 
 # DONE, just copy endprod out!
 set fin  = $fout
-set fout = ../"${outpref}.nii.gz"
+set fout = ../"${outpref}_${postfix}.nii.gz"
 # copy, preserve history
 3dcalc                        \
     -echo_edu                 \
@@ -580,21 +582,36 @@ set fout = ../"${outpref}.nii.gz"
 
 if ( $DO_VIEWER ) then
 
+    echo "++ Making QC images."
+
     if( $qc_prefix == "" ) then
-        set vpref = ${outpref}_imqc_axiz
+        set vpref1 = ${outpref}_${postfix}_qc1_fin
+        set vpref2 = ${outpref}_${postfix}_qc2_mat
     else
-        set vpref = $qc_prefix
+        set vpref1 = ${qc_prefix}_${postfix}_qc1_fin
+        set vpref2 = ${qc_prefix}_${postfix}_qc2_mat
     endif
-    echo "++ Image prefix output: $vpref"
 
     #echo "++ Output QC #1: final olay on (essentially) original refset."
-    echo "++ HERE: $PWD"
+    echo "++ QC image #1 (final output): $vpref1"
     $my_viewer      -ulay $inp0                     \
-                    -prefix $vpref                  \
+                    -prefix $vpref1                 \
                     -outdir ".."                    \
                     -montx 3 -monty 3               \
                     -set_xhairs MULTI               \
-                    -label_mode 1 -label_size 4
+                    -label_mode 1 -label_size 3     \
+                    -do_clean
+
+    echo "++ QC image #2 (earlier allin with ref): $vpref2"
+    $my_viewer      -ulay $rout                     \
+                    -olay $qc2o                     \
+                    -prefix $vpref2                 \
+                    -outdir ".."                    \
+                    -montx 3 -monty 3               \
+                    -set_xhairs MULTI               \
+                    -label_mode 1 -label_size 3     \
+                    -do_clean
+
 endif
 
 # ---------------------------------------------------------------------
@@ -602,11 +619,11 @@ endif
 cd ..
 
 if ( $DoClean ) then
-    echo "\n Removing temporary working directory '$wdir'.\n"
+    echo "\n+* Removing temporary axialization working dir: '$wdir'\n"
     \rm $wdir/*
     \rmdir $wdir
 else
-    echo "\n NOT Removing temporary files.\n"
+    echo "\n++ NOT removing temporary axialization working dir: '$wdir'\n"
 endif
 
 printf "\n++ DONE! View the finished, axialized product:"
@@ -682,7 +699,7 @@ cat << EOF
                     there is a skull or not, etc.).
 
   -prefix PREFIX   :is the prefix of the output/processed anatomical 
-                    volume (default is '${outpref}').
+                    volume (default is '${outpref}_${postfix}').
   -outdir DIR_NAME :is the output directory (default is the directory
                     containing the input anatomical file).
 
