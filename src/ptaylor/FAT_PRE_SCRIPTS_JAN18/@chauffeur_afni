@@ -489,7 +489,7 @@ echo "++ pfrac = $pfrac"
 # conditions.
 foreach i ( `seq 1 1 3` )
     set qfrac = `echo "scale=5; ( $pfrac ) " | bc` # frac to center
-    set qsh   = " "#+ 1"                             # zerobase count offset
+    set qsh   = ""#+ 1"                             # zerobase count offset
     if ( ( $all_ori[$i] == 'R' ) || ( $all_ori[$i] == 'P' )  \
         || ( $all_ori[$i] == 'S' ) ) then
         #echo "++ Coor calc:  $all_ori[$i] for $order[$i]"

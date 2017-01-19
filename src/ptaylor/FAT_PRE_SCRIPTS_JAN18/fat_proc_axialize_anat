@@ -21,6 +21,10 @@
 # Jan, 2017b
 #   + put in viewing stuff
 #
+# Jan, 2017c
+#   + new automasking for better allineation (thanks, Bob!)
+#
+#
 # ----------------------------------------------------------------
 
 set version   = "2.6"
@@ -474,7 +478,7 @@ endif
 # --------------------------------------------------------------
 
 # 9 DOF fit, inp -> ref; when we actually apply, won't include
-# scaling.
+# scaling.  *NB: "-autoweight" is very important here, esp. for T2w
 set iidx = `printf "%02d" $idx`
 set fin  = "$fout"
 set fout = "${tpref}_${iidx}_alnd.nii.gz"
@@ -486,6 +490,7 @@ set qc2o = $fout
     -base "$rout"                          \
     -twopass                               \
     -source_automask                       \
+    -autoweight                            \
     -cost $costfunc                        \
     $extra_allin_inps                      \
     -source "$fin"                         \
@@ -610,6 +615,7 @@ if ( $DO_VIEWER ) then
                     -montx 3 -monty 3               \
                     -set_xhairs MULTI               \
                     -label_mode 1 -label_size 3     \
+                    -opacity 4                      \
                     -do_clean
 
 endif
