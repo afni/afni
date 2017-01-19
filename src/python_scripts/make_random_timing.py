@@ -988,12 +988,12 @@ g_history = """
     1.9  Aug 21, 2015: added help for understanding the distribution of ISI
                        see: NOTE: distribution of ISI
     1.10 Jun 01, 2016: minor updates to verbose output
-    2.00 Jan 18, 2017: basically a new program
+    2.00 Jan 19, 2017: basically a new program
          - separated make_limited_space_list
          - have max_consec
 """
 
-g_version = "version 2.00, January 18, 2016"
+g_version = "version 2.00, January 19, 2016"
 
 g_todo = """
    - reconcile t_grid as global vs per class (init/pass as single parameters)
@@ -3007,7 +3007,7 @@ class RandTiming:
              UTIL.shuffle(erun)
 
           if self.verb > 2:
-             print '-- have randomized event lists for run %d' % rind
+             print '-- randomized event lists (no followers) for run %d' % rind
              self.disp_consec_event_counts([erun])
 
           # if ordered stim, insert followers
@@ -3023,7 +3023,7 @@ class RandTiming:
              return 1
 
        if self.verb > 4:
-          print '-- have randomized event lists'
+          print '-- randomized event lists across all runs'
           self.disp_consec_event_counts(eall)
 
        return 0
@@ -3046,17 +3046,22 @@ class RandTiming:
              # have (eind-ecur) events of type cind
              call[cind].append(eind-ecur)
 
-       print '++ consec event counts:'
+       if self.verb > 1:
+          print '++ consec event counts:'
+       slen = max([len(sc.name) for sc in self.sclasses])
+
        if self.verb > 4:
           for sind, sc in enumerate(self.sclasses):
-             print '-- consec list for #%d=%s (len %d): %s' \
-                   % (sind, sc.name, len(call[sind]), call[sind])
+             print '-- consec list for #%2d=%-*s (len %3d): %s' \
+                   % (sind, slen, sc.name, len(call[sind]), call[sind])
           print
 
        for sind, sc in enumerate(self.sclasses):
           mi, mn, mx, st = UTIL.min_mean_max_stdev(call[sind])
-          print '   consec for %s, sum %d, mmms: %g  %g  %g  %g\n' % \
-                 (sc.name, sum(call[sind]), mi, mn, mx, st)
+          if self.verb > 1:
+             print '   consec for %*s, sum %4d,'        \
+                   ' mmms: %7.3f  %7.3f  %7.3f  %7.3f'  \
+                   % (slen, sc.name, sum(call[sind]), mi, mn, mx, st)
 
     def adv_limited_shuffled_run(self, rind, ordered):
        """return randomized events subject to max_consec
