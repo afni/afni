@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 18,  Jan, 2017, RCR, "3dmask_tool", MICRO, TYPE_MODIFY,
+   "change example 3 to be with EPI masks",
+   NULL
+ } ,
+
  { 12,  Jan, 2017, RCR, "afni_system_check.py", MICRO, TYPE_MODIFY,
    "for 10.11+, make flat warning and summary comment consistent",
    NULL
