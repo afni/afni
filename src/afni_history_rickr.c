@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 19,  Jan, 2017, RCR, "make_random_timing.py", MICRO, TYPE_ENHANCE,
+   "advanced version 2 mostly ready",
+   "Have -max_consec and -ordered_stimuli implemented in new version."
+ } ,
+
  { 18,  Jan, 2017, RCR, "3dmask_tool", MICRO, TYPE_MODIFY,
    "change example 3 to be with EPI masks",
    NULL
