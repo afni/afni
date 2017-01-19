@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 19 , JAN , 2017 , RWC , "3dAllineate" , MICRO , TYPE_GENERAL ,
+   "Give warning when -lpa or -lpc is used without -autoweight" ,
+   "At beginning and at end. Thanks to PT." } ,
+
  { 18 , JAN , 2017 , RWC , "3dmerge" , MICRO , TYPE_NEW_OPT ,
    "option -nozero will prevent output of an all zero dataset" ,
    NULL } ,
