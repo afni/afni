@@ -841,9 +841,10 @@ g_history = """
         - look for new ACF/FWHM blur estimates
         - get each last estimate (so prefer err_reml > errts > epits)
         - update -help_fields
+   0.49 Jan 19, 2017: fix for -final_anat (thanks to N Anderson)
 """
 
-g_version = "gen_ss_review_scripts.py version 0.48, August 17, 2016"
+g_version = "gen_ss_review_scripts.py version 0.49, January 19, 2017"
 
 g_todo_str = """
    - add @epi_review execution as a run-time choice (in the 'drive' script)?
@@ -1455,7 +1456,10 @@ class MyInterface:
       """
 
       # check if already set
-      if self.uvar_already_set('final_anat'): return 0
+      if self.uvar_already_set('final_anat'):
+         if self.dsets.is_empty('final_anat'):
+            self.dsets.final_anat = BASE.afni_name(self.uvars.final_anat)
+         return 0
 
       # go after known file
       gstr = 'anat_final.%s+%s.HEAD' % (self.uvars.subj, self.uvars.final_view)
