@@ -988,11 +988,12 @@ g_history = """
     1.9  Aug 21, 2015: added help for understanding the distribution of ISI
                        see: NOTE: distribution of ISI
     1.10 Jun 01, 2016: minor updates to verbose output
-    2.00 Dec XX, 2016: basically a new program
+    2.00 Jan 18, 2017: basically a new program
          - separated make_limited_space_list
+         - have max_consec
 """
 
-g_version = "version 1.10, June 1, 2016"
+g_version = "version 2.00, January 18, 2016"
 
 g_todo = """
    - reconcile t_grid as global vs per class (init/pass as single parameters)
@@ -2990,6 +2991,7 @@ class RandTiming:
 
        eall = []
        for rind in range(ntodo):
+          # either applying max_consec or not
           if len(self.max_consec) == len(self.sclasses):
              erun = self.adv_limited_shuffled_run(rind, ordered)
              if erun == None: return 1
@@ -3004,9 +3006,8 @@ class RandTiming:
                 erun.extend([[sind, dur] for dur in sc.durlist[rind]])
              UTIL.shuffle(erun)
 
-          # if 1 or self.verb > 2:
           if self.verb > 2:
-             print '-- randomized event lists for run %d' % rind
+             print '-- have randomized event lists for run %d' % rind
              self.disp_consec_event_counts([erun])
 
           # if ordered stim, insert followers
@@ -3021,8 +3022,7 @@ class RandTiming:
           if self.adv_partition_sevents_across_runs():
              return 1
 
-       # if 1 or self.verb > 2:
-       if self.verb > 2:
+       if self.verb > 4:
           print '-- have randomized event lists'
           self.disp_consec_event_counts(eall)
 
@@ -3032,14 +3032,14 @@ class RandTiming:
        # first convert to a list of counts per class, across runs
        numc = len(self.sclasses)
 
-       call = [[]] * numc
+       call = [[] for sind in range(numc)]
        for erun in eall:
           eind = 0
           elen = len(erun)
           while eind < elen:
-             cind = erun[eind][0]
              ecur = eind
              eind += 1
+             cind = erun[ecur][0]
              while eind < elen:
                 if erun[eind][0] != cind: break
                 eind += 1
@@ -3049,7 +3049,8 @@ class RandTiming:
        print '++ consec event counts:'
        if self.verb > 4:
           for sind, sc in enumerate(self.sclasses):
-             print '-- consec list for %s: %s' % (sc.name, call[sind])
+             print '-- consec list for #%d=%s (len %d): %s' \
+                   % (sind, sc.name, len(call[sind]), call[sind])
           print
 
        for sind, sc in enumerate(self.sclasses):
