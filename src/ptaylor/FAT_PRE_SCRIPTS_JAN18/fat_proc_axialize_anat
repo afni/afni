@@ -251,9 +251,9 @@ endif
 if ( $output_cmd == 1 ) then
     echo "++ Echoing the command to: $cmd_file"
 
-    echo "# Executed from the directory location:"  > $cmd_file
+    echo "### Executed from the directory location:"  > $cmd_file
     echo "# $here\n"            >> $cmd_file
-    echo "# The command was:"   >> $cmd_file
+    echo "### The command was:" >> $cmd_file
     echo "# $this_prog $argv"   >> $cmd_file
     echo "\n"                   >> $cmd_file
 endif
@@ -598,8 +598,8 @@ if ( $DO_VIEWER ) then
     endif
 
     #echo "++ Output QC #1: final olay on (essentially) original refset."
-    echo "++ QC image #1 (final output): $vpref1"
-    $my_viewer      -ulay $inp0                     \
+    echo "++ QC image #1 (final output ulay): $vpref1"
+    $my_viewer      -ulay $fout                     \
                     -prefix $vpref1                 \
                     -outdir ".."                    \
                     -montx 3 -monty 3               \
@@ -607,7 +607,7 @@ if ( $DO_VIEWER ) then
                     -label_mode 1 -label_size 3     \
                     -do_clean
 
-    echo "++ QC image #2 (earlier allin with ref): $vpref2"
+    echo "++ QC image #2 (earlier allin olaying ref ulay): $vpref2"
     $my_viewer      -ulay $rout                     \
                     -olay $qc2o                     \
                     -prefix $vpref2                 \
