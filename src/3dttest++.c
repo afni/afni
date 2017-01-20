@@ -1753,7 +1753,7 @@ int main( int argc , char *argv[] )
        if( prefix_clustsim == NULL ){
          uuu = UNIQ_idcode_11() ;
          prefix_clustsim = (char *)malloc(sizeof(char)*32) ;
-         sprintf(prefix_clustsim,"TT.%s",uuu) ; free(uuu) ;
+         sprintf(prefix_clustsim,"TT.%s",uuu) ;
          ININFO_message("Default clustsim prefix set to '%s'",prefix_clustsim) ;
        }
        continue ;
