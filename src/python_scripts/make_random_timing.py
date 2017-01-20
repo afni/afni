@@ -15,10 +15,15 @@ Create random stimulus timing files.
     their responses can.
 
 
-    *** There is now a basic (old) and advanced usage.  Until I decide whether
-        and how to merge the help, see -help_advanced for the advanced usage.
-        What follows is the basic usage.
+    ---------------------------------------------------------------------------
+    **  There is now basic (old) and advanced usage.  Until I decide whether
+        and how to merge the help, consider:
 
+            make_random_timing.py -help_advanced
+
+        Otherwise, what follows is the basic usage.  Though all options are
+        listed here.
+    ---------------------------------------------------------------------------
 
     This can easily be used to generate many sets of random timing files to
     test via "3dDeconvolve -nodata", in order to determine good timing, akin
@@ -851,7 +856,7 @@ make_random_timing.py - Advanced usage
 
      - Do this for 4 runs of length 200 s each.
 
-     - Also, do not allow any extra rest (beyond the specifiec 10 s) after
+     - Also, do not allow any extra rest (beyond the specified 10 s) after
        the final stimulus event.
 
      - Show timing statistics.  Save a complete event list (events.adv.1.txt).
@@ -870,7 +875,7 @@ make_random_timing.py - Advanced usage
 
 
    -------------------------------------------------------
-   Advanced Example 2: varrying stimulus and rest timing classes
+   Advanced Example 2: varying stimulus and rest timing classes
 
      - This has 4 stimulus conditions employing 3 different stimulus timing
        classes and 3 different rest timing classes.
@@ -943,9 +948,50 @@ make_random_timing.py - Advanced usage
             -write_event_list events.adv.3                       \\
             -rand_post_stim_rest no                              \\
             -show_timing_stats                                   \\
-          -ordered_stimuli cue test result                       \\
-          -ordered_stimuli pizza1 pizza2 pizza3                  \\
+            -ordered_stimuli cue test result                     \\
+            -ordered_stimuli pizza1 pizza2 pizza3                \\
             -seed 31415 -prefix stimes.adv.3
+
+   -------------------------------------------------------
+   Advanced Example 4: limit consecutive events per class type
+
+     - Use simple 1s stim events and random rest (decay).
+     - For entertainment, houses/faces and tuna/fish are
+       ordered event pairs.
+     - Classes houses, faces, tuna and fish are restricted to a
+       limit of 3 consecutive events.
+     - There is no limit on donuts.   Why would there be?
+
+         make_random_timing.py -num_runs 2 -run_time 600         \\
+            -add_timing_class stim 1                             \\
+            -add_timing_class rest 0 -1 -1                       \\
+            -pre_stim_rest 0 -post_stim_rest 0                   \\
+            -add_stim_class houses 100 stim rest                 \\
+            -add_stim_class faces  100 stim rest                 \\
+            -add_stim_class tuna 100 stim rest                   \\
+            -add_stim_class fish 100 stim rest                   \\
+            -add_stim_class donuts 100 stim rest                 \\
+            -ordered_stimuli houses faces                        \\
+            -ordered_stimuli tuna fish                           \\
+            -max_consec 3 3 3 3 0                                \\
+            -show_timing_stats                                   \\
+            -write_event_list events.adv.4                       \\
+            -seed 31415 -prefix stimes.adv.4 -verb 2
+
+---------------------------------------------------------------------
+options (specific to the advanced usage):
+
+    -help_advanced              : display help for advanced usage
+    -help_todo                  : "to do" list is mostly for advanced things
+
+    -add_timing_class           : create a new timing class (stim or rest)
+    -add_stim_class             : describe a new stimulus class (timing, etc.)
+    -rand_post_stim_rest yes/no : allow rest after final stimulus
+    -show_rest_events           : show details of rest timing, per type
+    -write_event_list FILE      : create FILE listing all events and times
+
+----------------------------------------------------------------------
+
 ---------------------------------------------------------------------------
 """
 
@@ -997,16 +1043,8 @@ g_version = "version 2.00, January 19, 2016"
 
 g_todo = """
    - reconcile t_grid as global vs per class (init/pass as single parameters)
-   - similarly, what about max_consec? (must be single value, not list)
-   - give timing class params as t_grid=0.01 max_consec=4
-     ?? would that be better?  I think so.
-   * NO: max_consec is per stim class, not timing class
-      - handle max_consec (new option?)
-   - check tr_locked
-   - new method for decay that better handles max duration, w/out spike
+   - make new method for decay that better handles max duration, w/out spike
    - add warning if post-stim rest < 3 seconds
-   - help for options:
-        -rand_post_stim_rest, -write_event_list, show_rest_events
    - add option to change timing classes for pre and post stim rest
    - add related dist_types rand_unif and rand_gauss?
    - global "-across_runs" should still apply
@@ -3006,7 +3044,7 @@ class RandTiming:
                 erun.extend([[sind, dur] for dur in sc.durlist[rind]])
              UTIL.shuffle(erun)
 
-          if self.verb > 2:
+          if self.verb > 1:
              print '-- randomized event lists (no followers) for run %d' % rind
              self.disp_consec_event_counts([erun])
 
