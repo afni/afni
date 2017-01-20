@@ -269,7 +269,7 @@ while ( $ac <= $#argv )
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
         @ ac += 1
         setenv AFNI_IMAGE_GLOBALRANGE  "$argv[$ac]"
-
+        
     else if ( "$argv[$ac]" == "-do_clean" ) then
         set DO_CLEAN = 1
 
@@ -383,13 +383,19 @@ if ( ( $urange == "VOLUME" ) || ( $urange == "DSET" )  \
         -prefix $read_dir/$read_ulay
 
 else
-
-    # just copy over *original* version to temporary read dir
-    3dcalc                                        \
-        -overwrite                                \
-        -a $ulay                                  \
-        -expr "a"                                 \
-        -prefix $read_dir/$read_ulay
+    if ( `3dinfo -datum $ulay` == "rgb" ) then
+        # not sure why 3dcalc won't preserve rgb-ness...
+        3dcopy                                        \
+            -overwrite                                \
+            $ulay $read_dir/$read_ulay
+    else
+        # just copy over *original* version to temporary read dir
+        3dcalc                                        \
+            -overwrite                                \
+            -a $ulay                                  \
+            -expr "a"                                 \
+            -prefix $read_dir/$read_ulay
+    endif
 endif
 
 # IF we don't want to see the olay, then set it to be the ulay, for

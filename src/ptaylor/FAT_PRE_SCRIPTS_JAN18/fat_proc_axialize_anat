@@ -49,8 +49,6 @@ endif
 # default location of viewer: user could modify!
 set my_viewer = "$adir/@chauffeur_afni"
 
-
-
 # ----------------------- set defaults --------------------------
 
 set anat_dir = ""                   # will be output dir
