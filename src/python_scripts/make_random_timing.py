@@ -806,7 +806,7 @@ optional arguments:
 """
 
 g_help_advanced = """
----------------------------------------------------------------------------
+===========================================================================
 make_random_timing.py - Advanced usage
 
    With advanced usage, timing classes are defined for both stimulus periods
@@ -991,8 +991,8 @@ options (specific to the advanced usage):
     -write_event_list FILE      : create FILE listing all events and times
 
 ----------------------------------------------------------------------
-
----------------------------------------------------------------------------
+R Reynolds  Jan 20, 2017          motivated by K Kircanski and A Stringaris
+===========================================================================
 """
 
 g_history = """
@@ -1034,14 +1034,18 @@ g_history = """
     1.9  Aug 21, 2015: added help for understanding the distribution of ISI
                        see: NOTE: distribution of ISI
     1.10 Jun 01, 2016: minor updates to verbose output
-    2.00 Jan 19, 2017: basically a new program
-         - separated make_limited_space_list
-         - have max_consec
+
+    2.00 Jan 20, 2017: basically a new program
+         * Advanced usage: applying user-defined timing classes for stim/rest.
+           see:   make_random_timing.py -help_advanced
 """
 
-g_version = "version 2.00, January 19, 2016"
+g_version = "version 2.00, January 20, 2016"
 
 g_todo = """
+   - add -show_consec_stats option
+   - apply -make_3dd_contrasts, -save_3dd_cmd
+   - apply -offset?
    - reconcile t_grid as global vs per class (init/pass as single parameters)
    - make new method for decay that better handles max duration, w/out spike
    - add warning if post-stim rest < 3 seconds

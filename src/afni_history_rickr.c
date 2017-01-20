@@ -49,6 +49,14 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 20,  Jan, 2017, RCR, "make_random_timing.py", MAJOR, TYPE_NEW_OPT,
+   "advanced usage, program version 2.00",
+   "Essentially a new program.  The user may now define timing classes for\n"
+   "stimulus and rest event types.\n"
+   "   see: make_random_timing.py -help_advanced\n"
+   "Motivated by K Kircanski and A Stringaris."
+ } ,
+
  { 19,  Jan, 2017, RCR, "gen_ss_review_scripts.py", MICRO, TYPE_BUG_FIX,
    "fix for -final_anat",
    "Thanks to N Anderson for noting the problem."
