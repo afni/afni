@@ -464,6 +464,9 @@ afni -noplugins -no_detach                                         \
      -com "${do_quit}"                                                \
      "${ulay}" "${olay}"
 
+echo "\n++ Command was:"
+echo "   ${argv}\n"
+
 # A la bob:  stop Xvfb if we started it ourselves
 if( $?killX ) kill %1
 

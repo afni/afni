@@ -9,22 +9,51 @@
 #
 # Jan, 2017
 #   + rename
+#
+# Jan, 2017b
+#   + visualization output
+#
+#
+
 # ----------------------------------------------------------------
 
-set version = "2.2"
-set rev_dat = "Jan, 2017"
+set version   = "2.4"
+set rev_dat   = "Jan, 2017"
 set this_prog = "fat_proc_decmap"
+set here      = $PWD
 
-set here     = $PWD
-set in_fa   = ""
-set in_v1   = ""
-set in_mask  = ""
+# ----------------- find AFNI and set viewer ---------------------
 
-set outdir   = ""
-set outpref  = "DEC"
-set tmppref  = "_zxcvbnm09"
+# find AFNI binaries directory and viewer location
+set adir      = ""
+set my_viewer = ""
+which afni >& /dev/null
+if ( $status ) then
+    echo "** Cannot find 'afni' (??!?!)."
+    goto BAD_EXIT
+else
+    set aa   = `which afni`
+    set adir = $aa:h
+endif
 
-set DoClean  = "0"
+# default location of viewer: user could modify!
+set my_viewer = "$adir/@chauffeur_afni"
+
+# ----------------------- set defaults --------------------------
+
+set in_fa     = ""
+set in_v1     = ""
+set in_mask   = ""
+
+set outdir    = ""
+set outpref   = "DEC"
+set qc_prefix = ""
+set tmppref   = "_zxcvbnm09"
+
+set DoClean   = 1                # def: do delete temp files
+set DO_VIEWER = 1                # def: do QC image visualization
+
+set postfix   = "dec"            # stick into name
 
 # ------------------- process options, a la rr ----------------------
 
@@ -40,42 +69,49 @@ while ( $ac <= $#argv )
         goto SHOW_VERSION
     endif
 
-   # required
-   if ( "$argv[$ac]" == "-in_fa" ) then
-      if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
-      @ ac += 1
-      set in_fa = "$argv[$ac]"
+    # required
+    if ( "$argv[$ac]" == "-in_fa" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set in_fa = "$argv[$ac]"
+        
+    else if ( "$argv[$ac]" == "-in_v1" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set in_v1 = "$argv[$ac]"
 
-   else if ( "$argv[$ac]" == "-in_v1" ) then
-      if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
-      @ ac += 1
-      set in_v1 = "$argv[$ac]"
+    else if ( "$argv[$ac]" == "-in_mask" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set in_mask = "$argv[$ac]"
 
-   else if ( "$argv[$ac]" == "-in_mask" ) then
-      if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
-      @ ac += 1
-      set in_mask = "$argv[$ac]"
+    else if ( "$argv[$ac]" == "-outdir" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set outdir = "$argv[$ac]"
 
-   else if ( "$argv[$ac]" == "-outdir" ) then
-      if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
-      @ ac += 1
-      set outdir = "$argv[$ac]"
+    else if ( "$argv[$ac]" == "-prefix" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set outpref = "$argv[$ac]"
 
-   else if ( "$argv[$ac]" == "-prefix" ) then
-      if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
-      @ ac += 1
-      set outpref = "$argv[$ac]"
+    else if ( "$argv[$ac]" == "-no_clean" ) then
+        set DoClean = 0
 
-   else if ( "$argv[$ac]" == "-do_clean" ) then
-      set DoClean = 1
+    else if ( "$argv[$ac]" == "-no_qc_view" ) then
+        set DO_VIEWER = 0
 
+    else if ( "$argv[$ac]" == "-qc_prefix" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set qc_prefix = "$argv[$ac]"
 
-   else
-      echo "** unexpected option #$ac = '$argv[$ac]'"
-      exit 2
+    else
+        echo "** unexpected option #$ac = '$argv[$ac]'"
+        goto BAD_EXIT
 
-   endif
-   @ ac += 1
+    endif
+    @ ac += 1
 end
 
 
@@ -90,17 +126,15 @@ echo "++ Start script version: $version"
 set to_clean = ( ) 
 
 set check = `3dinfo "$in_fa"`
-echo "$#check"
 if ( "$#check" == "0" ) then
     echo "** ERROR: can't find inset file $in_fa !"
-    goto EXIT
+    goto BAD_EXIT
 endif
 
 set check = `3dinfo "$in_v1"`
-echo "$#check"
 if ( "$#check" == "0" ) then
     echo "** ERROR: can't find inset file $in_v1 !"
-    goto EXIT
+    goto BAD_EXIT
 endif
 
 # ========================= output/working dir ==========================
@@ -112,9 +146,10 @@ if ( $outdir == "" ) then
     # because a file is in it
 
     set outdir = `dirname $in_fa`
-    echo "\n++ No output directory specificied by the user."
+    echo ""
+    echo "++ No output directory specificied by the user."
     echo "++ Using the input FA file's directory by default:"
-    echo "\t$outdir"
+    echo "     $outdir"
 else
     if ( ! -e $outdir ) then
         echo "++ Making new output directory: $outdir"
@@ -123,9 +158,7 @@ else
 endif
 
 if ( $in_mask =="" ) then
-
     echo "+* No mask input, so ~making one of regions where FA>0."
-
     set in_mask = "$outdir/${tmppref}_mskd.nii.gz"
 
     3dcalc -echo_edu                     \
@@ -136,25 +169,21 @@ if ( $in_mask =="" ) then
         -datum byte
 
     set to_clean = ( $to_clean $in_mask )
-
 else
     echo "++ User input mask, so checking for it..."
     set check = `3dinfo "$in_mask"`
     if ( "$#check" == "0" ) then
         echo "** ERROR: can't find inset file $in_mask !"
-        goto EXIT
+        goto BAD_EXIT
     endif 
     echo "++ ... OK, got $in_mask"
-endif
-
-
 endif
 
 # =======================================================================
 # =========================== ** PROCESS ** =============================
 # =======================================================================
 
-echo "\n-----> STARTING RGB calcs with FA and V1 <----"
+echo "\n-----> STARTING RGB calcs with FA and V1 <----\n"
 
 set fout = "$outdir/${tmppref}_v1fa.nii.gz"
 set to_clean = ( $to_clean $fout )
@@ -168,7 +197,7 @@ set to_clean = ( $to_clean $fout )
     -datum float
 
 set fin  = "$fout"
-set fout = "$outdir/${outpref}.nii.gz"
+set fout = "$outdir/${outpref}_${postfix}.nii.gz"
 3dThreetoRGB                             \
     -echo_edu                            \
     -overwrite                           \
@@ -193,7 +222,32 @@ printf "\n++ -----------------------------------------------"
 printf "\n++ DONE! View the finished, DEC (whee, yay!) product:"
 printf "\n     $fout\n\n"
 
-goto EXIT
+# ---------------------------- VIEWER ---------------------------------
+
+if ( $DO_VIEWER ) then
+
+    echo "++ Making QC images."
+
+    if( $qc_prefix == "" ) then
+        set vpref1 = ${outpref}_${postfix}_qc1_fin
+    else
+        set vpref1 = ${qc_prefix}_${postfix}_qc1_fin
+    endif
+
+    echo "++ QC image #1 (final output ulay): $vpref1"
+    $my_viewer      -ulay $fout                     \
+                    -prefix $vpref1                 \
+                    -outdir "."                     \
+                    -montx 5 -monty 3               \
+                    -set_xhairs OFF                 \
+                    -label_mode 1 -label_size 3     \
+                    -globalrange ""                 \
+                    -do_clean
+endif
+
+# ---------------------------------------------------------------------
+
+goto GOOD_EXIT
 
 # ========================================================================
 # ========================================================================
@@ -236,7 +290,7 @@ cat << EOF
         {-in_mask MASK}                          \
         {-prefix  PREFIX}                        \
         {-outdir  DIR}                           \
-        {-do_clean}
+        {-no_clean}
 
    where:
    -in_fa   IN_FA  :input FA (scalar) map.   
@@ -246,22 +300,33 @@ cat << EOF
                     given coloration (which just makese sense,
                     anyways, since FA>=0?).
    -prefix  PREFIX :optional prefix for output file (default
-                    is ${outpref}).
+                    is ${outpref}).  Output is PREFIX_${postfix}.
    -outdir  DIR    :optional location of output directory (default
                     is wherever the FA map is).
-   -do_clean       :a couple temporary files are created whilst
+   -no_clean       :a couple temporary files are created whilst
                     making the DEC map.  This switch tells the 
-                    program to delete them when finishing (default
-                    is not to do so).  The prefix of the temp files
-                    is "${tmppref}".
+                    program to *not* delete them when finishing
+                    (default is to do so).  The prefix of the temp
+                    files is "${tmppref}".
 
+   -no_qc_view     :by default, a set of QC snapshots are made and
+                    output.  To turn these off (why??), use this
+                    switch
+   -qc_prefix QCP  :by default, the QC snapshots carry the same output
+                    name as the final output: PREFIX_${postfix}. You
+                    can change this to be QCP_${postfix}, if you want.
 
  ------------------------------------------------------------------------
 
   OUTPUTS:
 
-    DEC.nii.gz     :single file of type 'rgb' that AFNI knows how to 
-                    display with RGB coloration when viewed as underlay.
+    RGB_${postfix}.nii.gz 
+        a single file of type 'rgb' that AFNI knows how to 
+        display with RGB coloration when viewed as underlay.
+
+    RGB_${postfix}_qc1_fin.*.png
+        a set cor, axi and sag images (each a 5x3 montage) of the 
+        RGB data set    
 
     (temp files    :these can be deleted, as desired.)
 
@@ -278,12 +343,15 @@ cat << EOF
 -------------------------------------------------------------------------
 EOF
 
-    goto EXIT
+    goto GOOD_EXIT
 
 SHOW_VERSION:
    echo "version  $version (${rev_dat})"
-   goto EXIT
+   goto GOOD_EXIT
 
-# send everyone here, in case there is any cleanup to do
-EXIT:
-   exit
+
+BAD_EXIT:
+    exit 1
+
+GOOD_EXIT:
+    exit 0
