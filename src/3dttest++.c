@@ -2467,6 +2467,9 @@ int main( int argc , char *argv[] )
 
    /* check sample counts */
 
+   if( ndset_AAA == 0 )
+     ERROR_exit("You didn't use one of -setA or -singletonA :(") ;
+
    twosam = (nval_BBB > 1) ; /* 2 sample test? */
 
    if( singletonA && !twosam )
