@@ -88,7 +88,6 @@ set do_quit = "QUITT"            # quick-quit; not subject to change
 
 # tmp dir, in case under- and overlays are in separate dirs
 set tmp_dir  = "__tmp_ImG_837261"
-set DO_CLEAN = 0
 set read_dir = ""
 set read_ulay = tmp_ulay.nii.gz
 
@@ -269,9 +268,6 @@ while ( $ac <= $#argv )
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
         @ ac += 1
         setenv AFNI_IMAGE_GLOBALRANGE  "$argv[$ac]"
-        
-    else if ( "$argv[$ac]" == "-do_clean" ) then
-        set DO_CLEAN = 1
 
    else
       echo "** unexpected option #$ac = '$argv[$ac]'"
@@ -383,20 +379,13 @@ if ( ( $urange == "VOLUME" ) || ( $urange == "DSET" )  \
         -prefix $read_dir/$read_ulay
 
 else
-    if ( `3dinfo -datum $ulay` == "rgb" ) then
-        # not sure why 3dcalc won't preserve rgb-ness...
-        3dcopy                                        \
-            -overwrite                                \
-            $ulay $read_dir/$read_ulay
-    else
-        echo "++ For ulay, AFNI_IMAGE_GLOBALRANGE is set to be: $urange"
-        # just copy over *original* version to temporary read dir
-        3dcalc                                        \
-            -overwrite                                \
-            -a $ulay                                  \
-            -expr "a"                                 \
-            -prefix $read_dir/$read_ulay
-    endif
+
+    # just copy over *original* version to temporary read dir
+    3dcalc                                        \
+        -overwrite                                \
+        -a $ulay                                  \
+        -expr "a"                                 \
+        -prefix $read_dir/$read_ulay
 endif
 
 # IF we don't want to see the olay, then set it to be the ulay, for
@@ -488,21 +477,22 @@ set cmy = `echo $yo2 | perl -nl -MPOSIX -e 'print ceil($_);'`
 
 @ tot     = $mx * $my 
 @ hpan    = ( ( $cmy - 1 ) * $mx ) + $cmx    
-#echo "$cmx $cmy $tot $hpan"
+echo "$cmx $cmy $tot $hpan"
 set pfrac = `echo "scale=5; ( $hpan / ( $tot + 1 ) ) " | bc` # ????
-echo "++ pfrac = $pfrac"
 
+echo "++ pfrac = $pfrac"
 # These need to reflect the order of the original.  Ugh, annoying
 # conditions.
 foreach i ( `seq 1 1 3` )
     set qfrac = `echo "scale=5; ( $pfrac ) " | bc` # frac to center
-    set qsh   = ""#+ 1"                             # zerobase count offset
+    set qsh   = " "#+ 1"                             # zerobase count offset
     if ( ( $all_ori[$i] == 'R' ) || ( $all_ori[$i] == 'P' )  \
         || ( $all_ori[$i] == 'S' ) ) then
-        #echo "++ Coor calc:  $all_ori[$i] for $order[$i]"
+        echo "++ Coor calc:  $all_ori[$i] for $order[$i]"
         set qfrac = `echo "scale=5; ( 1 - $pfrac ) " | bc`
-    #else
-    #    echo "++ Coor value: $all_ori[$i] for $order[$i]"
+        set qsh   = ""# - 1"
+    else
+        echo "++ Coor value: $all_ori[$i] for $order[$i]"
     endif
     set nn        = `echo "scale=0; ( ( $Dim[$i] * $qfrac ) $qsh )" | bc`
     set coors[$i] = `echo $nn | perl -nl -MPOSIX -e 'print floor($_);'`
@@ -543,7 +533,6 @@ if( $?xdisplay == 0 )then
 endif
 
 setenv DISPLAY :${xdisplay}
-set OW = "OPEN_WINDOW"
 
 # -------------------------------------------------------------------
 # ---------------- The actual, driven command! ----------------------
@@ -557,9 +546,9 @@ afni -noplugins -no_detach  -echo_edu                               \
      -com "SEE_OVERLAY     ${see_olay}"                             \
      -com "SET_FUNC_ALPHA  $alpha_par $alpha_floor"                 \
      -com "SET_XHAIRS  ${crossh}"                                   \
-     -com "$OW sagittalimage opacity=${opac} mont=${mx}x${my}:${gapord[1]}" \
-     -com "$OW coronalimage  opacity=${opac} mont=${mx}x${my}:${gapord[2]}" \
-     -com "$OW axialimage    opacity=${opac} mont=${mx}x${my}:${gapord[3]}" \
+     -com "OPEN_WINDOW sagittalimage opacity=${opac} mont=${mx}x${my}:${gapord[1]}" \
+     -com "OPEN_WINDOW coronalimage  opacity=${opac} mont=${mx}x${my}:${gapord[2]}" \
+     -com "OPEN_WINDOW axialimage    opacity=${opac} mont=${mx}x${my}:${gapord[3]}" \
      -com "SET_IJK $coors"                                                    \
      -com "SAVE_${ftype} sagittalimage ${odir}/${impref}.sag blowup=${bufac}" \
      -com "SAVE_${ftype} coronalimage  ${odir}/${impref}.cor blowup=${bufac}" \
@@ -567,18 +556,13 @@ afni -noplugins -no_detach  -echo_edu                               \
      -com "${do_quit}"                                                        \
      "${read_dir}"
 
+   #  -com "OPEN_WINDOW sagittalimage opacity=${opac} mont=${mx}x${my}:${delsag}" \
+   #  -com "OPEN_WINDOW coronalimage  opacity=${opac} mont=${mx}x${my}:${delcor}" \
+   #  -com "OPEN_WINDOW axialimage    opacity=${opac} mont=${mx}x${my}:${delaxi}" \
+
 # A la bob:  stop Xvfb if we started it ourselves
 if( $?killX ) kill %1
 
-if ( $DO_CLEAN ) then
-    echo "\n+* Removing temporary image directory '$odir/$tmp_dir'.\n"
-    # AKA $read_dir, at present
-    \rm    $odir/$tmp_dir/*
-    \rmdir $odir/$tmp_dir
-else
-    echo "\n++ NOT removing temporary directory '$odir/$tmp_dir'.\n"
-endif
- 
 goto GOOD_EXIT
 
 # ===========================================================================
