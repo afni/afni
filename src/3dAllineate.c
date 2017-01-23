@@ -362,7 +362,7 @@ int main( int argc , char *argv[] )
    float auto_wpow             = 1.0f ;         /* 10 Sep 2007 */
    char *auto_string           = "-autobox" ;
    int auto_dilation           = 0 ;            /* for -automask+N */
-   int wtspecified             = 0 ;            /* 10 Sep 2007 */
+   int wtspecified             = 0 ;            /* 10 Sep 2007 (was weight specified?) */
    double dxyz_mast            = 0.0  ;         /* implemented 24 Jul 2007 */
    int meth_code               = GA_MATCH_HELLINGER_SCALAR ;
    int sm_code                 = GA_SMOOTH_GAUSSIAN ;
@@ -2941,9 +2941,10 @@ int main( int argc , char *argv[] )
      ERROR_message("Unknown and Illegal option '%s' :-( :-( :-(",argv[iarg]) ;
      suggest_best_prog_option(argv[0], argv[iarg]);
      exit(1);
-   }
 
-   if( iarg < argc )
+   } /*---- end of loop over command line args ----*/
+
+   if( iarg < argc )  /* oopsie */
      WARNING_message("Processing command line options stopped at '%s'",argv[iarg]);
 
    /*---------------------------------------------------------------*/
@@ -2952,25 +2953,27 @@ int main( int argc , char *argv[] )
    if( seed == 0 ) seed = (long)time(NULL)+(long)getpid() ;
    srand48(seed) ;
 
-   if( meth_code == GA_MATCH_PEARSON_SCALAR && !wtspecified ){ /* 10 Sep 2007 */
-     auto_weight = 1 ;  /* for '-ls', use '-autoweight' */
-     if( verb ) INFO_message("Cost 'ls' ==> using '-autoweight' default") ;
+   /* ls/lpc/lpa: turn -autoweight on unless it was forced off. */
+   /* [changed from pure warning to current status 23 Jan 2017] */
+
+   if( !wtspecified &&
+       ( meth_code == GA_MATCH_PEARSON_SCALAR  ||
+         meth_code == GA_MATCH_PEARSON_LOCALS  ||
+         meth_code == GA_MATCH_PEARSON_LOCALA  ||
+         meth_code == GA_MATCH_LPC_MICHO_SCALAR  ) ){
+     auto_weight = 1 ;
+     WARNING_message(
+       "Cost 'ls' or 'lpc' or 'lpa' ==> turning '-autoweight' on\n"
+       "          If you DO NOT want this to happen, then use one\n"
+       "          of '-autobox' or '-automask' or '-noauto'.\n"     ) ;
    }
 
-   /* warn the stoopid lusers out there [01 Jun 2009] */
-
-   if( meth_code == GA_MATCH_PEARSON_LOCALS  ||
-       meth_code == GA_MATCH_PEARSON_LOCALA  ||
-       meth_code == GA_MATCH_LPC_MICHO_SCALAR  ){
-
-     if( dset_weig == NULL && auto_weight != 1 )
+   if( im_tmask == NULL && !auto_tmask &&
+       ( meth_code == GA_MATCH_PEARSON_LOCALS  ||
+         meth_code == GA_MATCH_PEARSON_LOCALA  ||
+         meth_code == GA_MATCH_LPC_MICHO_SCALAR  ) ){
        WARNING_message(
-        "'-weight' or '-autoweight' is recommended when using -lpc or -lpa;\n"
-        "    For example, see the align_epi_anat.py script." ) ;
-
-     if( im_tmask == NULL && !auto_tmask )
-       WARNING_message(
-        "-source_automask is strongly recommended when using -lpc or -lpa") ;
+        "'-source_automask' is strongly recommended when using -lpc or -lpa") ;
    }
 
    if( !hist_setbyuser ){   /* 25 Jul 2007 */
@@ -5549,7 +5552,7 @@ mri_genalign_set_pgmat(1) ;
     if( (meth_code == GA_MATCH_PEARSON_LOCALS  ||
          meth_code == GA_MATCH_PEARSON_LOCALA  ||
          meth_code == GA_MATCH_LPC_MICHO_SCALAR  ) &&
-        (dset_weig == NULL && auto_weight != 1   )   ){
+        auto_weight != 1                              ){
       INFO_message("###########################################################");
       INFO_message("#   '-autoweight' is recommended when using -lpc or -lpa  #");
       INFO_message("#   If your results are not good, please try again.       #");
