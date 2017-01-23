@@ -24,11 +24,14 @@
 # Jan, 2017c
 #   + new automasking for better allineation (thanks, Bob!)
 #
+# Jan, 2017d
+#   + allow brightness control for ulay
+#
 #
 # ----------------------------------------------------------------
 
-set version   = "2.6"
-set rev_dat   = "Jan, 2017"
+set version   = "2.7"
+set rev_dat   = "Jan 23, 2017"
 set this_prog = "fat_proc_axialize_anat"
 set here      = $PWD
 
@@ -70,7 +73,7 @@ set extra_allin_inps = ""           # could use to get large rots?
 set DoUni    = "1"
 set DoAni    = "0"
 set valthr   = 90
-set powcon   = 1.1  # enhance contrast in t2w mode
+set powcon   = 1.1                 # enhance contrast in t2w mode
 
 set OutMatchRef = "0"
 
@@ -80,6 +83,11 @@ set output_cmd  = 1                # def: output copy of this command
                                    # -> should expand to have all cmds
 set cmd_file    = ""               # def: same name as viewer
 set postfix     = "axlz"           # stick into name
+  
+set defran  = -100000
+set frange1 = $defran              # for giving FUNC_RANGE value to
+set frange2 = $defran              # chauffer;  can't be these values...
+set user_frange = ""               # 
 
 # ------------------- process options, a la rr ----------------------
 
@@ -160,19 +168,31 @@ while ( $ac <= $#argv )
     else if ( "$argv[$ac]" == "-no_qc_view" ) then
         set DO_VIEWER = 0
 
+    else if ( "$argv[$ac]" == "-qc1_ulay_range" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set frange1 = "$argv[$ac]"
+        @ ac += 1
+        set frange2 = "$argv[$ac]"
+        if ( $frange1 == $defran || $frange2 == $defran ) then
+            echo "** ERROR! I think you forgot to enter **2** values"
+            echo "          after '-qc1_ulay_range' (-> min and max!)!"
+            goto BAD_EXIT
+        endif
+        set user_frange = "-ulay_range $frange1 $frange2"
+
     else if ( "$argv[$ac]" == "-qc_prefix" ) then
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
         @ ac += 1
         set qc_prefix = "$argv[$ac]"
 
     else
-        echo "** unexpected option #$ac = '$argv[$ac]'"
+        echo "\n\n** ERROR: unexpected option #$ac = '$argv[$ac]'\n\n"
         goto BAD_EXIT
         
     endif
     @ ac += 1
 end
-
 
 # =======================================================================
 # ============================ ** SETUP ** ==============================
@@ -603,7 +623,8 @@ if ( $DO_VIEWER ) then
                     -montx 3 -monty 3               \
                     -set_xhairs MULTI               \
                     -label_mode 1 -label_size 3     \
-                    -do_clean
+                    -do_clean                       \
+                    $user_frange
 
     echo "++ QC image #2 (earlier allin olaying ref ulay): $vpref2"
     $my_viewer      -ulay $rout                     \
@@ -693,7 +714,10 @@ cat << EOF
         {-no_inter_uni}                       \
         {-post_lr_symm}                       \
         {-no_pre_lr_symm}                     \
-        {-do_clean}
+        {-do_clean}                           \
+        {-qc1_ulay_range UMIN UMAX}           \
+        {-no_qc_view}                         \
+        {-qc_prefix QCP}
 
   where: 
   -inset  IN_FILE  :is the full name of the input anatomical volume.
@@ -751,9 +775,20 @@ cat << EOF
                     (default: not to do so).
   -no_cmd_out      :by default, a copy of the command and file location
                     from which it is run is dumped into the WORKDIR 
-                    (file name: $cmd_file). 
+                    (file name: 'PREFIX*_cmd.txt'). 
                     If you don't want this to happen, then use this 
                     switch.
+
+  -qc1_ulay_range UMIN UMAX
+                   :provide a min (UMIN) and max (UMAX) range for 
+                    underlay grayscale bar (black=UMIN; white=UMAX).
+                    For QC visualization only-- does not affect the 
+                    actual MRI data files. 
+                    
+  -no_qc_view      :turn off default+automatic QC image saving/viewing 
+                    (whyyy would you do this?).
+  -qc_prefix QCP   :provide a prefix for the QC stuff, separate from
+                    the PREFIX above.
 
  ------------------------------------------------------------------------
 
