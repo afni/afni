@@ -2270,7 +2270,10 @@ RT_input * new_RT_input( IOCHAN *ioc_data )
    rtin->mp_npsets  = 0 ;
    strcpy(rtin->mp_host, "localhost") ;
 
-   if(g_t2star_ref_dset) rtin->t2star_ref_dset=THD_copy_one_sub(g_t2star_ref_dset,0);
+   /* No need to copy */
+   // if(g_t2star_ref_dset) rtin->t2star_ref_dset=THD_copy_one_sub(g_t2star_ref_dset,0);
+   /* Just use data set as is */
+   if(g_t2star_ref_dset) rtin->t2star_ref_dset=g_t2star_ref_dset;
    else                  rtin->t2star_ref_dset=NULL;
 
    rtin->mask       = NULL ;      /* mask averages, to send w/motion params */
@@ -4247,8 +4250,10 @@ void RT_start_dataset( RT_input * rtin )
 
    /*---- 02 Jun 2009: make a dataset for merger, if need be ----*/
 
-   if( rtin->num_chan == 1 || !MRI_IS_FLOAT_TYPE(rtin->datum) )
-     RT_chmrg_mode = 0 ;  /* disable merger */
+   if( rtin->num_chan == 1 || !MRI_IS_FLOAT_TYPE(rtin->datum) ) {
+     if( RT_chmrg_mode != RT_CHMER_OPT_COMB && rtin->datum != MRI_short )
+        RT_chmrg_mode = 0 ;  /* disable merger */
+   }
 
    if( RT_chmrg_mode > 0 ){
      char qbuf[128] ; int mdatum=MRI_float ; /* default merge datum is float */
@@ -4884,6 +4889,9 @@ fprintf(stderr,"== PLOT pre reg: reg_mode = %d, reg_graph = %d\n",
       /* rcr OC - check for post-reg merge              1 Nov 2016 [rickr] */
       if( cc+1 == rtin->num_chan && 
           RT_when_to_merge() == RT_CM_MERGE_AFTER_REG ) {
+
+fprintf(stderr,"********* About to merge, RT_CM_MERGE_AFTER_REG, nvol = %d \n", rtin->nvol[cc]);
+
         RT_merge( rtin, cc, 1);
       }
 
@@ -5181,7 +5189,8 @@ static int RT_merge( RT_input * rtin, int chan, int postreg )
    /* 10 Jul 2010 [rickr]: maybe merge only a subset of channels */
    /* note: the channel int list can only be created "now", since
             we must know how many channels there are to use */
-   if( rtin->chan_list_str && ! rtin->chan_list ) {
+   /* if string is length zero, skip   13 Jan, 2017 [rickr] */
+   if(rtin->chan_list_str && strlen(rtin->chan_list_str) && ! rtin->chan_list){
      rtin->chan_list = MCW_get_labels_intlist(NULL, rtin->num_chan,
                                               rtin->chan_list_str);
      if( !rtin->chan_list ) {
@@ -7573,6 +7582,7 @@ MRI_IMAGE * RT_mergerize(RT_input * rtin, int iv, int postreg)
    int cc , nvox , idatum , ii , ndsets=rtin->num_chan ;
    MRI_IMAGE *mrgim ;
    float *fmar=NULL , *ftar ; complex *cmar=NULL , *ctar ;
+   short *sar[MAX_CHAN] , *star ;  /* OPT_COMB or T2STAREST */
 
    /* if after registration, use reg_chan_dset      28 Oct 2016 [rickr] */
    if( postreg ) ds = rtin->reg_chan_dset ;
@@ -7606,6 +7616,13 @@ MRI_IMAGE * RT_mergerize(RT_input * rtin, int iv, int postreg)
    idatum = DSET_BRICK_TYPE(ds[0],iv) ;
    switch( idatum ){
      default: return NULL ; /* should never happen */
+
+     case MRI_short:
+       for( cc=0 ; cc < ndsets ; cc++ )
+          /* if dlist is set, get the index from there */
+          sar[cc] = dlist ? DSET_ARRAY(ds[dlist[cc+1]],iv)
+                          : DSET_ARRAY(ds[cc],iv) ;
+     break ;
 
      case MRI_float:
        for( cc=0 ; cc < ndsets ; cc++ )
@@ -7742,9 +7759,7 @@ MRI_IMAGE * RT_mergerize(RT_input * rtin, int iv, int postreg)
      /* Begin FMRIF changes for RT Optimal combined echo data - VR */
 
      case RT_CHMER_OPT_COMB :  /* output datum is always float */
-        if( idatum != MRI_float )
-           fprintf(stderr,"** type of optimally combined est dataset must be float\n");
-        else {
+        {
            float *t2star_ref, sumTEsByExpTEs;
 
            t2star_ref = DSET_ARRAY(rtin->t2star_ref_dset, 0);
@@ -7787,9 +7802,14 @@ MRI_IMAGE * RT_mergerize(RT_input * rtin, int iv, int postreg)
 
                for (cc=0 ; cc < ndsets ; cc++)
                {
-                  ftar   = (far[cc]);
-
-                  fmar[ii] += (ftar[ii] * rtin->TE[cc] * exp (-1.0 * rtin->TE[cc] / t2star_ref[ii]));
+                  if (idatum == MRI_short) {
+                     star   = (sar[cc]);
+                     fmar[ii] += (star[ii] * rtin->TE[cc] * exp (-1.0 * rtin->TE[cc] / t2star_ref[ii]));
+                  }
+                  else { /* idatum == MRI_float */
+                     ftar   = (far[cc]);
+                     fmar[ii] += (ftar[ii] * rtin->TE[cc] * exp (-1.0 * rtin->TE[cc] / t2star_ref[ii]));
+                  }
                }
 
                fmar[ii] =  fmar[ii] / sumTEsByExpTEs;
