@@ -1,0 +1,357 @@
+#!/bin/tcsh -ef
+
+# --------------------- revision history -------------------------
+# Sept, 2016
+#   + added pre-lr-symm (as def), 
+#   + added option for post-lr-symm
+#   + added '-wdir'
+#   + added cmass->(0,0,0) as def for output
+#
+# Jan, 2017
+#   + rename
+#
+# Jan, 2017b
+#   + visualization output
+#
+#
+
+# ----------------------------------------------------------------
+
+set version   = "2.4"
+set rev_dat   = "Jan, 2017"
+set this_prog = "fat_proc_decmap"
+set here      = $PWD
+
+# ----------------- find AFNI and set viewer ---------------------
+
+# find AFNI binaries directory and viewer location
+set adir      = ""
+set my_viewer = ""
+which afni >& /dev/null
+if ( $status ) then
+    echo "** Cannot find 'afni' (??!?!)."
+    goto BAD_EXIT
+else
+    set aa   = `which afni`
+    set adir = $aa:h
+endif
+
+# default location of viewer: user could modify!
+set my_viewer = "$adir/@chauffeur_afni"
+
+# ----------------------- set defaults --------------------------
+
+set in_fa     = ""
+set in_v1     = ""
+set in_mask   = ""
+
+set outdir    = ""
+set outpref   = "DEC"
+set qc_prefix = ""
+set tmppref   = "_zxcvbnm09"
+
+set DoClean   = 1                # def: do delete temp files
+set DO_VIEWER = 1                # def: do QC image visualization
+
+set postfix   = "dec"            # stick into name
+
+# ------------------- process options, a la rr ----------------------
+
+if ( $#argv == 0 ) goto SHOW_HELP
+
+set ac = 1
+while ( $ac <= $#argv )
+    # terminal options
+    if ( ("$argv[$ac]" == "-h" ) || ("$argv[$ac]" == "-help" )) then
+        goto SHOW_HELP
+    endif
+    if ( "$argv[$ac]" == "-ver" ) then
+        goto SHOW_VERSION
+    endif
+
+    # required
+    if ( "$argv[$ac]" == "-in_fa" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set in_fa = "$argv[$ac]"
+        
+    else if ( "$argv[$ac]" == "-in_v1" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set in_v1 = "$argv[$ac]"
+
+    else if ( "$argv[$ac]" == "-in_mask" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set in_mask = "$argv[$ac]"
+
+    else if ( "$argv[$ac]" == "-outdir" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set outdir = "$argv[$ac]"
+
+    else if ( "$argv[$ac]" == "-prefix" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set outpref = "$argv[$ac]"
+
+    else if ( "$argv[$ac]" == "-no_clean" ) then
+        set DoClean = 0
+
+    else if ( "$argv[$ac]" == "-no_qc_view" ) then
+        set DO_VIEWER = 0
+
+    else if ( "$argv[$ac]" == "-qc_prefix" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set qc_prefix = "$argv[$ac]"
+
+    else
+        echo "** unexpected option #$ac = '$argv[$ac]'"
+        goto BAD_EXIT
+
+    endif
+    @ ac += 1
+end
+
+
+# =======================================================================
+# ============================ ** SETUP ** ==============================
+# =======================================================================
+
+# ============================ input files ==============================
+
+echo "++ Start script version: $version"
+
+set to_clean = ( ) 
+
+set check = `3dinfo "$in_fa"`
+if ( "$#check" == "0" ) then
+    echo "** ERROR: can't find inset file $in_fa !"
+    goto BAD_EXIT
+endif
+
+set check = `3dinfo "$in_v1"`
+if ( "$#check" == "0" ) then
+    echo "** ERROR: can't find inset file $in_v1 !"
+    goto BAD_EXIT
+endif
+
+# ========================= output/working dir ==========================
+
+# check output directory, use input one if nothing given
+
+if ( $outdir == "" ) then
+    # default output dir, if nothing input; it must exist already,
+    # because a file is in it
+
+    set outdir = `dirname $in_fa`
+    echo ""
+    echo "++ No output directory specificied by the user."
+    echo "++ Using the input FA file's directory by default:"
+    echo "     $outdir"
+else
+    if ( ! -e $outdir ) then
+        echo "++ Making new output directory: $outdir"
+        mkdir $outdir
+    endif
+endif
+
+if ( $in_mask =="" ) then
+    echo "+* No mask input, so ~making one of regions where FA>0."
+    set in_mask = "$outdir/${tmppref}_mskd.nii.gz"
+
+    3dcalc -echo_edu                     \
+        -overwrite                       \
+        -a $in_fa                        \
+        -expr 'step(a)'                  \
+        -prefix $in_mask                 \
+        -datum byte
+
+    set to_clean = ( $to_clean $in_mask )
+else
+    echo "++ User input mask, so checking for it..."
+    set check = `3dinfo "$in_mask"`
+    if ( "$#check" == "0" ) then
+        echo "** ERROR: can't find inset file $in_mask !"
+        goto BAD_EXIT
+    endif 
+    echo "++ ... OK, got $in_mask"
+endif
+
+# =======================================================================
+# =========================== ** PROCESS ** =============================
+# =======================================================================
+
+echo "\n-----> STARTING RGB calcs with FA and V1 <----\n"
+
+set fout = "$outdir/${tmppref}_v1fa.nii.gz"
+set to_clean = ( $to_clean $fout )
+3dcalc                                   \
+    -echo_edu                            \
+    -overwrite                           \
+    -a $in_fa                            \
+    -b $in_v1                            \
+    -expr 'a*abs(b)'                     \
+    -prefix "$fout"                      \
+    -datum float
+
+set fin  = "$fout"
+set fout = "$outdir/${outpref}_${postfix}.nii.gz"
+3dThreetoRGB                             \
+    -echo_edu                            \
+    -overwrite                           \
+    -scale 255                           \
+    -prefix $fout                        \
+    -mask   $in_mask                     \
+    $fin
+
+# --------------------------------------------------------
+
+if ( $DoClean ) then
+    echo "\n Removing temporary file(s):"
+    echo "\t $to_clean"
+   \rm $to_clean
+else
+    echo "\n NOT Removing temporary files.\n"
+endif
+
+# --------------------------------------------------------
+
+printf "\n++ -----------------------------------------------"
+printf "\n++ DONE! View the finished, DEC (whee, yay!) product:"
+printf "\n     $fout\n\n"
+
+# ---------------------------- VIEWER ---------------------------------
+
+if ( $DO_VIEWER ) then
+
+    echo "++ Making QC images."
+
+    if( $qc_prefix == "" ) then
+        set vpref1 = ${outpref}_${postfix}_qc1_fin
+    else
+        set vpref1 = ${qc_prefix}_${postfix}_qc1_fin
+    endif
+
+    echo "++ QC image #1 (final output ulay): $vpref1"
+    $my_viewer      -ulay $fout                     \
+                    -prefix $vpref1                 \
+                    -outdir "."                     \
+                    -montx 5 -monty 3               \
+                    -set_xhairs OFF                 \
+                    -label_mode 1 -label_size 3     \
+                    -globalrange ""                 \
+                    -do_clean
+endif
+
+# ---------------------------------------------------------------------
+
+goto GOOD_EXIT
+
+# ========================================================================
+# ========================================================================
+
+SHOW_HELP:
+cat << EOF
+-------------------------------------------------------------------------
+
+  This program makes a "directionally encoded color" (DEC) map for DTI
+  results.  Basically, the directionality of the tensor's major axis
+  provides the color information, and the FA value weights the
+  brightness (higher FA is brighter).
+
+    red   :     left <-> right
+    blue  : inferior <-> superior
+    green : anterior <-> posterior
+
+  This program uses the first eigenvector ("V1" file, from 3dDWItoDT),
+  takes its absolute value and multiplies each component by the
+  voxel's FA value.  That makes a 3-vector of numbers between [0,1],
+  which is turned into RGB coloration.
+
+  This is basically a simple wrapper script for 3dcalc and
+  3dThreetoRGB.
+
+  REQUIRES: AFNI.
+
+  Ver. $version (PA Taylor, ${rev_dat})
+
+-------------------------------------------------------------------------
+
+  RUNNING:
+
+  This script has two *required* arguments ('-in_fa ...' and '-in_v1 ...'),
+  and the rest are optional:
+
+   \$ $this_prog  \
+        -in_fa    IN_FA                          \
+        -in_v1    IN_V1                          \
+        {-in_mask MASK}                          \
+        {-prefix  PREFIX}                        \
+        {-outdir  DIR}                           \
+        {-no_clean}
+
+   where:
+   -in_fa   IN_FA  :input FA (scalar) map.   
+   -in_v1   IN_V1  :input first eigenvector (3-vector) map.
+   -in_mask MASK   :optional mask for pickout out a region;
+                    otherwise, only places with FA>0 are 
+                    given coloration (which just makese sense,
+                    anyways, since FA>=0?).
+   -prefix  PREFIX :optional prefix for output file (default
+                    is ${outpref}).  Output is PREFIX_${postfix}.
+   -outdir  DIR    :optional location of output directory (default
+                    is wherever the FA map is).
+   -no_clean       :a couple temporary files are created whilst
+                    making the DEC map.  This switch tells the 
+                    program to *not* delete them when finishing
+                    (default is to do so).  The prefix of the temp
+                    files is "${tmppref}".
+
+   -no_qc_view     :by default, a set of QC snapshots are made and
+                    output.  To turn these off (why??), use this
+                    switch
+   -qc_prefix QCP  :by default, the QC snapshots carry the same output
+                    name as the final output: PREFIX_${postfix}. You
+                    can change this to be QCP_${postfix}, if you want.
+
+ ------------------------------------------------------------------------
+
+  OUTPUTS:
+
+    RGB_${postfix}.nii.gz 
+        a single file of type 'rgb' that AFNI knows how to 
+        display with RGB coloration when viewed as underlay.
+
+    RGB_${postfix}_qc1_fin.*.png
+        a set cor, axi and sag images (each a 5x3 montage) of the 
+        RGB data set    
+
+    (temp files    :these can be deleted, as desired.)
+
+-------------------------------------------------------------------------
+
+  EXAMPLE:
+    
+    \$ $this_prog  \
+        -in_fa DTI/DT_FA+orig.                    \
+        -in_v1 DTI/DT_V1+orig.                    \
+        -in_mask mask_DWI+orig                    \
+        -do_clean
+
+-------------------------------------------------------------------------
+EOF
+
+    goto GOOD_EXIT
+
+SHOW_VERSION:
+   echo "version  $version (${rev_dat})"
+   goto GOOD_EXIT
+
+
+BAD_EXIT:
+    exit 1
+
+GOOD_EXIT:
+    exit 0
