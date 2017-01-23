@@ -44,6 +44,12 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 23 , JAN , 2017 , RWC , "3dAllineate" , MICRO , TYPE_MODIFY ,
+   "for ls, lpc, lpa: use -autoweight by default unless user changes it" ,
+   "The default weighting scheme was -autobox for all schemes.  For ls, lpc,\n"
+   "lpa, the default is not -autoweight -- if the user changes the weight,\n"
+   "this won't be enforced." } ,
+
  { 19 , JAN , 2017 , RWC , "3dAllineate" , MICRO , TYPE_GENERAL ,
    "Give warning when -lpa or -lpc is used without -autoweight" ,
    "At beginning and at end. Thanks to PT." } ,
