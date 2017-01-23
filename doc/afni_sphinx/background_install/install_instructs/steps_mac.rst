@@ -8,8 +8,8 @@
 Here we describe a complete AFNI installation and system setup for Mac
 versions that are reasonably modern, such as **Mac OS 10.7+**.  The
 full set of steps applies to a "clean" (i.e., empty) 10.7+ system.
-There is a special step at the end for 10.11 (El Capitan) users,
-because life is hard sometimes.
+There is a special step at the end for 10.11+ (El Capitan, Sierra,
+etc.) users, because life is hard sometimes.
 
 Note that 10.8 does not come with X11 (or XQuartz) installed.  When
 afni is started for the first time, you should be directed (by the
@@ -109,8 +109,8 @@ operating system) to a link to install XQuartz.
 
         brew install pyqt
 
-   #. (only for OS X 10.11, El Capitan) Install gcc with OpenMP support,
-      along with glib::
+   #. (only for OS X 10.11+: El Capitan, Sierra, ...)  Install gcc with
+      OpenMP support, along with glib::
 
         brew install gcc --with-all-languages --without-multilib
         ln -s /usr/local/Cellar/gcc/6.2.0/lib/gcc/6/libgomp.1.dylib /usr/local/lib/libgomp.1.dylib
