@@ -1909,6 +1909,7 @@ void AFNI_sigfunc_alrm(int sig)
      "Remember -- What I tell you three times is true"               ,
      "Remember -- A monad is the same as an endofunctor"             ,
      "Remember -- Things aren't always what they seem"               ,
+     "Remember -- eggs cannot be unscrambled"                        ,
      "Fools give you reasons, wise men never try"                    ,
      "People willingly trust the statistics they wish to believe"    ,
      "Heaven's last best gift, my ever new delight"                  ,
@@ -2027,6 +2028,16 @@ void AFNI_sigfunc_alrm(int sig)
      "Are you a Dada-ist or a Dude-ist?"                             ,
      "Putting the 'wit' in 'twit' since 1994"                        ,
      "I'm completely innocent. Within reason"                        ,
+     "Believe those who seek the truth; doubt those who find it"     ,
+     "There is more to truth that just the facts"                    ,
+     "There is more to truth than a small p-value"                   ,
+     "If you think you are free, no escape is possible"              ,
+     "If you chase two rabbits at once, you will not catch either"   ,
+     "It is better to know the questions than the answers"           ,
+     "Inventing Hell is easy, but inventing Heaven impossible"       ,
+     "When you are climbing the ladder, do not forget the rungs"     ,
+     "You have to do it yourself, but you cannot do it alone"        ,
+     "When you look into the abyss, the abyss looks back at you"     ,
 
      "Returning control of your brain (images) back to yourself"     ,
      "Returning your endofunctors back to their co-monads"           ,
@@ -2117,6 +2128,10 @@ void AFNI_sigfunc_alrm(int sig)
 
      /* Longer quotes */
 
+     "Why isn't there an award for getting dressed and out of the house?"             ,
+     "I like the word 'indolence': it makes my laziness seem classy"                  ,
+     "Laziness is just the habit of resting before you get tired"                     ,
+     "Laziness takes work and it isn't easy, but look at the rewards!"                ,
      "A practical truth: no man has eaten an entire elephant in one day"              ,
      "From now on, let's just reject the null hypothesis, and then have a beer"       ,
      "Home is the sailor, home from the sea; And the hunter home from the hill"       ,
@@ -2125,6 +2140,7 @@ void AFNI_sigfunc_alrm(int sig)
      "If you haven't anything nice to say about anybody, come sit next to me"         ,
      "Hmmm -- I think your p-value is 0.050001 -- better luck next time"              ,
      "Wow! Your p-value is 0.049999 -- you are incredibly lucky"                      ,
+     "Are you a special snowflake, or a normal cloddish lump of ice?"                 ,
      "Remember -- You are absolutely incredibly unique. Just like everone else"       ,
      "Remember -- Belief is not Truth. No matter how much you want it to be"          ,
      "Remember -- Truth is not always believed, even when it is under your nose"      ,
