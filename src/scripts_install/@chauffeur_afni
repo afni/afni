@@ -389,6 +389,7 @@ else
             -overwrite                                \
             $ulay $read_dir/$read_ulay
     else
+        echo "++ For ulay, AFNI_IMAGE_GLOBALRANGE is set to be: $urange"
         # just copy over *original* version to temporary read dir
         3dcalc                                        \
             -overwrite                                \
