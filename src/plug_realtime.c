@@ -219,6 +219,7 @@ typedef struct {
    THD_3dim_dataset *reg_dset ;       /* registered dataset, if any */
    THD_3dim_dataset *reg_base_dset ;  /* registration base dataset */
    MRI_2dalign_basis **reg_2dbasis ;  /* stuff for each slice */
+   THD_3dim_dataset *t2star_ref_dset ;/* T2* ref base dataset */
    int reg_base_index ;               /* where to start? */
    int reg_mode ;                     /* how to register? */
    int reg_base_mode ;                /* how to apply registration base */
@@ -491,6 +492,7 @@ static int verbose = 1 ;
   /* registriation base globals to apply in RT_main     27 Aug 2009 [rickr] */
   static int g_reg_base_mode = 0 ;           /* index into REG_BASE_strings */
   static THD_3dim_dataset * g_reg_base_dset = NULL ;  /* single volume dset */
+  static THD_3dim_dataset * g_t2star_ref_dset = NULL ;  /* also a single volume dset */
 
   static int reg_resam = 1 ;    /* index into REG_resam_strings */
   static int   reg_nr  = 100 ;  /* units of TR */
@@ -890,6 +892,12 @@ PLUGIN_interface * PLUGIN_init( int ncall )
    PLUTO_add_number(plint, "Src Chan" , 0,9999,0 , g_reg_src_chan , TRUE ) ;
    PLUTO_add_hint  (plint, "registration source channel");
 
+   /*-- Filling this line out with T2* reference data set --*/
+
+   PLUTO_add_dataset( plint , "T2* Ref Dset", ANAT_ALL_MASK, FUNC_ALL_MASK,
+                                      DIMEN_ALL_MASK | BRICK_ALLREAL_MASK ) ;
+   PLUTO_add_hint  (plint, "Reference data set with T2* values.");
+
 
 
    /*-- next line of input: registration graphing --*/
@@ -1156,11 +1164,24 @@ char * RT_main( PLUGIN_interface * plint )
             g_reg_base_dset = NULL;
          }
 
+         if( g_t2star_ref_dset ) { /* if changed: remove reference to any existing */
+            DSET_delete(g_t2star_ref_dset);
+            g_t2star_ref_dset = NULL;
+         }
+
+         idc = PLUTO_get_idcode(plint) ;
+         g_t2star_ref_dset = PLUTO_find_dset(idc);     /* might be NULL */
+
          if (verbose)
             fprintf(stderr,
-                    "RTM: reg base mode '%s', index %d, dset %s, src chan %d\n",
+                    "RTM: reg base mode '%s', index %d, dset %s, src chan %d, t2* ref %s\n",
                     REG_BASE_strings[g_reg_base_mode], regtime,
-                    g_reg_base_dset ? "<found>" : "<empty>", g_reg_src_chan);
+                    g_reg_base_dset ? "<found>" : "<empty>",
+                    g_reg_src_chan,
+                    g_t2star_ref_dset ? "<found>" : "<empty>");
+
+         /* Potential check here ? for Reg base and T2* Ref to have
+            matching grids?                                         */
 
          continue ;
       }
@@ -2248,6 +2269,9 @@ RT_input * new_RT_input( IOCHAN *ioc_data )
    rtin->mp_nmsg    = 0 ;
    rtin->mp_npsets  = 0 ;
    strcpy(rtin->mp_host, "localhost") ;
+
+   if(g_t2star_ref_dset) rtin->t2star_ref_dset=THD_copy_one_sub(g_t2star_ref_dset,0);
+   else                  rtin->t2star_ref_dset=NULL;
 
    rtin->mask       = NULL ;      /* mask averages, to send w/motion params */
    rtin->mask_aves  = NULL ;      /*                    10 Nov 2006 [rickr] */
@@ -7721,53 +7745,12 @@ MRI_IMAGE * RT_mergerize(RT_input * rtin, int iv, int postreg)
         if( idatum != MRI_float )
            fprintf(stderr,"** type of optimally combined est dataset must be float\n");
         else {
-           float t2startest, sumTEsByExpTEs;
-           float sumX, sumY, sumX2, sumXY, diffSumX2, logY;
+           float *t2star_ref, sumTEsByExpTEs;
 
-           sumX = sumX2 = 0.0, diffSumX2 = 1.0;
-           for (cc=0 ; cc < ndsets ; cc++)
-           {
-              sumX  += (rtin->TE[cc]);
-              sumX2 += (rtin->TE[cc] * rtin->TE[cc]);
-           }
-           diffSumX2 = ((ndsets * sumX2) - (sumX * sumX));
+           t2star_ref = DSET_ARRAY(rtin->t2star_ref_dset, 0);
 
            for (ii=0 ; ii < nvox ; ii++)
            {
-              sumY = sumXY = 0.0;
-              for (cc=0 ; cc < ndsets ; cc++)
-              {
-                 ftar   = (far[cc]);
-
-                 if (ftar[ii] > 0.5)
-                    logY   = log (ftar[ii]);
-                 else
-                    logY   = 0.0;
-
-                 sumY  += (logY);
-                 sumXY += (logY * rtin->TE[cc]);
-              }
-
-              /* Regression Formula:                                          *
-               *                                                              *
-               * Slope     = ((N * sum (X * Y)) - (sum (X) * sum (Y))) /      *
-               *             ((N * sum (X * X)) - ((sum (X)^2)))              *
-               *                                                              *
-               * Intercept = (sum(Y) - Slope * sum(X)) / N                    *
-               *                                                              *
-               * For this simple model, slope = -1 / T2*, so T2* = -1 / slope *
-               *                                                              *
-               * Statement for slope computed via linear regression is:       *
-               *                                                              *
-               *   fmar[ii] = ((ndsets * sumXY) - (sumX * sumY)) / diffSumX2; *
-               *                                                              *
-               * For T2* value directly from linear regression coefficients:  */
-
-               if (((sumX * sumY) - (ndsets * sumXY)) > 0.001)
-                  t2startest = diffSumX2 / ((sumX * sumY) - (ndsets * sumXY));
-               else
-                  t2startest  = 0.0;
-
                /* def make_optcom(data,t2s,tes):
 
                    """
@@ -7799,14 +7782,14 @@ MRI_IMAGE * RT_mergerize(RT_input * rtin, int iv, int postreg)
                sumTEsByExpTEs = 0.0;
                for (cc=0 ; cc < ndsets ; cc++)
                {
-                  sumTEsByExpTEs += ( rtin->TE[cc] * exp (-1.0 * rtin->TE[cc] / t2startest) );
+                  sumTEsByExpTEs += ( rtin->TE[cc] * exp (-1.0 * rtin->TE[cc] / t2star_ref[ii]) );
                }
 
                for (cc=0 ; cc < ndsets ; cc++)
                {
                   ftar   = (far[cc]);
 
-                  fmar[ii] += (ftar[ii] * rtin->TE[cc] * exp (-1.0 * rtin->TE[cc] / t2startest));
+                  fmar[ii] += (ftar[ii] * rtin->TE[cc] * exp (-1.0 * rtin->TE[cc] / t2star_ref[ii]));
                }
 
                fmar[ii] =  fmar[ii] / sumTEsByExpTEs;
