@@ -879,6 +879,19 @@ PLUGIN_interface * PLUGIN_init( int ncall )
       if( ii >= 0 && ii <= 9999 ) g_reg_src_chan = ii ;
    }
 
+   /* initialize this - it can be overwritten in the plugin  23 Jan 2017 */
+   /* rcr - but if coming throught the plugin, do not do this */
+   ept = getenv("AFNI_REALTIME_T2star_ref");
+   if( ept != NULL ){
+      /* remove any old one, first */
+      if( g_t2star_ref_dset ) DSET_delete(g_t2star_ref_dset);
+      g_t2star_ref_dset = THD_open_dataset(ept);
+      if( g_t2star_ref_dset )
+         fprintf(stderr,"RTMerge: have T2start_ref from env, %s\n", ept)
+      else
+         fprintf(stderr,"RTMerge: have T2start_ref from env, %s\n", ept)
+   }
+
    PLUTO_add_option(plint, "" , "Registration Base" , FALSE ) ;
    PLUTO_add_hint  (plint, "choose registration base dataset and sub-brick");
    PLUTO_add_string(plint, "Reg Base", NREG_BASE, REG_BASE_strings,
@@ -1164,6 +1177,7 @@ char * RT_main( PLUGIN_interface * plint )
             g_reg_base_dset = NULL;
          }
 
+         /* rcr - if coming through the plugin, we should not delete */
          if( g_t2star_ref_dset ) { /* if changed: remove reference to any existing */
             DSET_delete(g_t2star_ref_dset);
             g_t2star_ref_dset = NULL;
@@ -4251,8 +4265,14 @@ void RT_start_dataset( RT_input * rtin )
    /*---- 02 Jun 2009: make a dataset for merger, if need be ----*/
 
    if( rtin->num_chan == 1 || !MRI_IS_FLOAT_TYPE(rtin->datum) ) {
-     if( RT_chmrg_mode != RT_CHMER_OPT_COMB && rtin->datum != MRI_short )
+     /* fail only if not in OPT_COMB mode */
+     if( ! (RT_chmrg_mode==RT_CHMER_OPT_COMB && rtin->datum == MRI_short) ) {
+        if( verbose > 0 )
+           fprintf(stderr,"** RTCM: cancel merge, num_chan=%d, datum=%d,"
+                          "chmrg_mode=%d\n", rtin->num_chan, rtin->datum,
+                                             RT_chmrg_mode);
         RT_chmrg_mode = 0 ;  /* disable merger */
+     }
    }
 
    if( RT_chmrg_mode > 0 ){
