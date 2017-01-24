@@ -49,7 +49,12 @@
 
 afni_history_struct rickr_history[] = {
 
- { 20,  Jan, 2017, RCR, "make_random_timing.py", MAJOR, TYPE_NEW_OPT,
+ { 23,  Jan, 2017, RCR, "make_random_timing.py", MICRO, TYPE_BUG_FIX,
+   "allow automatic use of the INSTANT timing class",
+   NULL
+ } ,
+
+ { 20,  Jan, 2017, RCR, "make_random_timing.py", MAJOR, TYPE_ENHANCE,
    "advanced usage, program version 2.00",
    "Essentially a new program.  The user may now define timing classes for\n"
    "stimulus and rest event types.\n"

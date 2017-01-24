@@ -862,13 +862,13 @@ make_random_timing.py - Advanced usage
      - Show timing statistics.  Save a complete event list (events.adv.1.txt).
 
          make_random_timing.py -num_runs 4 -run_time 200         \\
+            -pre_stim_rest 10 -post_stim_rest 10                 \\
+            -rand_post_stim_rest no                              \\
             -add_timing_class stim 3.5                           \\
             -add_timing_class rest 0 -1 -1                       \\
-            -pre_stim_rest 10 -post_stim_rest 10                 \\
             -add_stim_class houses 10 stim rest                  \\
             -add_stim_class faces  10 stim rest                  \\
             -add_stim_class donuts 10 stim rest                  \\
-            -rand_post_stim_rest no                              \\
             -show_timing_stats                                   \\
             -write_event_list events.adv.1.txt                   \\
             -seed 31415 -prefix stimes.adv.1
@@ -904,19 +904,19 @@ make_random_timing.py - Advanced usage
        the end of each run, 10s in this example.
 
          make_random_timing.py -num_runs 2 -run_time 300         \\
+            -pre_stim_rest 10 -post_stim_rest 10                 \\
+            -rand_post_stim_rest no                              \\
             -add_timing_class stima 0.5 3 10                     \\
             -add_timing_class stimb 0.1 0.5 3                    \\
             -add_timing_class stimc 2                            \\
             -add_timing_class resta 0.2 .7 1.2 dist=uniform_rand \\
             -add_timing_class restb 0.5 1  1.5 dist=uniform_grid \\
             -add_timing_class restc 0 -1 -1                      \\
-            -pre_stim_rest 10 -post_stim_rest 10                 \\
             -add_stim_class houses 20 stima resta                \\
             -add_stim_class faces  20 stimb restb                \\
             -add_stim_class donuts 20 stimb restb                \\
             -add_stim_class pizza  20 stimc restc                \\
             -write_event_list events.adv.2                       \\
-            -rand_post_stim_rest no                              \\
             -show_timing_stats                                   \\
             -seed 31415 -prefix stimes.adv.2
 
@@ -930,6 +930,8 @@ make_random_timing.py - Advanced usage
        than the default of 0.01s.
 
          make_random_timing.py -num_runs 2 -run_time 300         \\
+            -pre_stim_rest 10 -post_stim_rest 10                 \\
+            -rand_post_stim_rest no                              \\
             -add_timing_class stima 0.5 3 10                     \\
             -add_timing_class stimb 0.1 0.5 3                    \\
             -add_timing_class stimc 0.1 2.5 10 t_gran=0.1        \\
@@ -937,7 +939,6 @@ make_random_timing.py - Advanced usage
             -add_timing_class resta 0.2 .7 1.2 dist=uniform_rand \\
             -add_timing_class restb 0.5 1  1.5 dist=uniform_grid \\
             -add_timing_class restc 0 -1 -1                      \\
-            -pre_stim_rest 10 -post_stim_rest 10                 \\
             -add_stim_class cue    20 stima resta                \\
             -add_stim_class test   20 stimb restb                \\
             -add_stim_class result 20 stimb restb                \\
@@ -946,7 +947,6 @@ make_random_timing.py - Advanced usage
             -add_stim_class pizza3 10 stimc restc                \\
             -add_stim_class salad  10 stimd restc                \\
             -write_event_list events.adv.3                       \\
-            -rand_post_stim_rest no                              \\
             -show_timing_stats                                   \\
             -ordered_stimuli cue test result                     \\
             -ordered_stimuli pizza1 pizza2 pizza3                \\
@@ -963,9 +963,9 @@ make_random_timing.py - Advanced usage
      - There is no limit on donuts.   Why would there be?
 
          make_random_timing.py -num_runs 2 -run_time 600         \\
+            -pre_stim_rest 0 -post_stim_rest 0                   \\
             -add_timing_class stim 1                             \\
             -add_timing_class rest 0 -1 -1                       \\
-            -pre_stim_rest 0 -post_stim_rest 0                   \\
             -add_stim_class houses 100 stim rest                 \\
             -add_stim_class faces  100 stim rest                 \\
             -add_stim_class tuna 100 stim rest                   \\
@@ -1035,12 +1035,13 @@ g_history = """
                        see: NOTE: distribution of ISI
     1.10 Jun 01, 2016: minor updates to verbose output
 
-    2.00 Jan 20, 2017: basically a new program
+    2.0  Jan 20, 2017: basically a new program
          * Advanced usage: applying user-defined timing classes for stim/rest.
            see:   make_random_timing.py -help_advanced
+    2.1  Jan 23, 2017: allow use of INSTANT timing class; reorder example opts
 """
 
-g_version = "version 2.00, January 20, 2016"
+g_version = "version 2.1, January 23, 2017"
 
 g_todo = """
    - add -show_consec_stats option
@@ -1118,7 +1119,7 @@ class RandTiming:
 
         # ------------------------------------------------------------
         # required arguments for advanced method
-        self.tclasses   = []            # TimingClass instances
+        self.tclasses   = [g_instant_timing_class] # TimingClass instances
         self.sclasses   = []            # StimClass instances
 
         # advanced options
