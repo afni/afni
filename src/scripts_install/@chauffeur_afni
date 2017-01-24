@@ -92,6 +92,8 @@ set DO_CLEAN = 0
 set read_dir = ""
 set read_ulay = tmp_ulay.nii.gz
 
+set USER_ULAY_RANGE = 0          # def: user doesn't enter ulay range
+
 # -------------------------------------------------------------------
 # ----------------------------- ugh ---------------------------------
 
@@ -102,6 +104,8 @@ set listind = (  1   1   2   2   3   3  )
 
 # -------------------------------------------------------------------
 # ------------------- process options, a la rr ----------------------
+
+echo "++ My command: $argv"
 
 if ( $#argv == 0 ) goto SHOW_HELP
 
@@ -184,12 +188,14 @@ while ( $ac <= $#argv )
         @ ac += 1
         set thrflag = "$argv[$ac]"
         
+    # refers to olay
     else if ( "$argv[$ac]" == "-func_range" ) then
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
         @ ac += 1
         set frange = "$argv[$ac]"
         set USER_FRANGE = 1
         
+    # refers to olay
     else if ( "$argv[$ac]" == "-func_range_perc" ) then
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
         @ ac += 1
@@ -241,7 +247,7 @@ while ( $ac <= $#argv )
         setenv AFNI_IMAGE_ZEROCOLOR  "$argv[$ac]"
 
     # AFNI_IMAGE_LABEL_MODE    = 1     // draw labels in UL of Image windows
-    # AFNI_IMAGE_LABEL_SIZE    = 2     // size of labels in Image windows
+    # AFNI_IMAGE_LABEL_SIZE    = 3     // size of labels in Image windows
     # AFNI_IMAGE_LABEL_COLOR   = white // color of labels in Image windows
     # AFNI_IMAGE_LABEL_SETBACK = 0.01  // distance from edges for labels
     else if ( "$argv[$ac]" == "-label_mode" ) then
@@ -270,6 +276,14 @@ while ( $ac <= $#argv )
         @ ac += 1
         setenv AFNI_IMAGE_GLOBALRANGE  "$argv[$ac]"
         
+    else if ( "$argv[$ac]" == "-ulay_range" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set umin = "$argv[$ac]"
+        @ ac += 1
+        set umax = "$argv[$ac]"
+        set USER_ULAY_RANGE = 1
+
     else if ( "$argv[$ac]" == "-do_clean" ) then
         set DO_CLEAN = 1
 
@@ -368,18 +382,23 @@ set urange = `echo $AFNI_IMAGE_GLOBALRANGE`
 if ( ( $urange == "VOLUME" ) || ( $urange == "DSET" )  \
     || ( $urange == "YES" ) ) then
 
-    set ubs  = `3dBrickStat -percentile 2 96 98 $ulay`
-    set umin = $ubs[2]
-    set umax = $ubs[4]
+    if ( $USER_ULAY_RANGE ) then
+        echo "++ Copying ulay to visualize (volumetric) within user's range:"
+        echo "   [${umin},${umax}]"
+    else
+        set ubs  = `3dBrickStat -percentile 2 96 98 $ulay`
+        set umin = $ubs[2]
+        set umax = $ubs[4]
 
-    echo "++ Copying ulay to visualize between 2%-98% (volumetric):"
-    echo "   [${umin},${umax}]"
+        echo "++ Copying ulay to visualize between 2%-98% (volumetric):"
+        echo "   [${umin},${umax}]"
+    endif
 
     # copy over *thresholded* version to temporary read dir
     3dcalc                                        \
         -overwrite                                \
         -a $ulay                                  \
-        -expr "a*within(a,${umin},${umax})+${umin}*step($umin-a)+${umax}*step(a-$umax)"       \
+        -expr "a*within(a,${umin},${umax})+${umin}*step($umin-a)+${umax}*step(a-$umax)" \
         -prefix $read_dir/$read_ulay
 
 else
@@ -435,13 +454,15 @@ else
         echo "++ No user-entered function range ('-frange ...') value."
         echo "   --> Ergo, calculating based on 98th %ile, getting: $frange"
         echo "   ----> ... noting that range of values is: [$minolay, $maxolay]"
+    else if ( $USER_FRANGE == 1 ) then
+        echo "++ User-entered function range value value (${frange}%)"
     else if ( $USER_FRANGE == 2 ) then
         set vv = `3dBrickStat -non-zero                           \
                     -percentile $frange_perc 1 $frange_perc -non-zero $olay`
         set frange = $vv[2]
         set maxolay = `3dinfo -max $olay`
         set minolay = `3dinfo -min $olay`
-        echo "++ User-entered percentile value (${frange_perc}%)"
+        echo "++ User-entered function range value as percentile (${frange_perc}%)"
         echo "   --> Ergo, calculating FUNC_RANGE, getting: $frange"
         echo "   ----> ... noting that range of values is: [$minolay, $maxolay]"
     endif
