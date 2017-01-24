@@ -14,9 +14,22 @@ a. There is a very useful script to check on your installed AFNI
    which might be useful to email to your local AFNI Guru if there
    are any problems. 
 
-#. So, at this point, if your "system check" doesn't really give
-   any errors, you're all set to go. If it *did* give some errors,
-   please:
+   .. note:: Please read the **summary comments** at the bottom of the
+             `afni_system_check.py` output. There are often good
+             suggestions of commands to copy+paste, and/or to ask your
+             nearest AFNI Guru about.
+
+#. It's a good idea to open up AFNI and SUMA, juuuust to make sure all
+   is well.  Each of the following commands should simply present the
+   volumetric- and surface-viewers::
+   
+     afni
+     suma
+
+   Report any crashes!
+
+#. At this point, if your "system check" doesn't really give any
+   errors, you're all set to go. If it *did* give some errors, please:
 
    - check the list of :ref:`known setup issues <install_error_msgs>`;
 
