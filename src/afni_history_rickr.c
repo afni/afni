@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 24,  Jan, 2017, RCR, "align_epi_anat.py", MICRO, TYPE_ENHANCE,
+   "trap failure from main 3dAllineate call",
+   NULL
+ } ,
+
  { 23,  Jan, 2017, RCR, "make_random_timing.py", MICRO, TYPE_BUG_FIX,
    "allow automatic use of the INSTANT timing class",
    NULL
