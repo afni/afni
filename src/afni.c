@@ -2128,6 +2128,10 @@ void AFNI_sigfunc_alrm(int sig)
 
      /* Longer quotes */
 
+     "Did you have fun with your data? I had fun showing it to you"                   ,
+     "My brain starts working when I wake up, and stops when I have to give a talk"   ,
+     "Biology gives you a brain. Life turns it into a mind"                           ,
+     "Your thoughts, your actions, your experiences, are the sculptor of your brain"  ,
      "Why isn't there an award for getting dressed and out of the house?"             ,
      "I like the word 'indolence': it makes my laziness seem classy"                  ,
      "Laziness is just the habit of resting before you get tired"                     ,
