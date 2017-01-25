@@ -2477,9 +2477,11 @@ void MCW_melt_widget( Widget w )
         XDestroyWindow(dpy,win); XFreeGC(dpy,copygc); XFreeGC(dpy,fillgc);
         XSync(dpy,0); RWC_sleep(200); free(heights); return;
       }
-#if 0
-      gcvals.foreground = (lrand48()%3) ? BlackPixel(dpy,screen) : WhitePixel(dpy,screen) ;
-      XChangeGC(dpy, fillgc , GCForeground, &gcvals);
+#if 1
+      if( lrand48()%47 == 0 ){
+        gcvals.foreground = (lrand48()%3) ? BlackPixel(dpy,screen) : WhitePixel(dpy,screen) ;
+        XChangeGC(dpy, fillgc , GCForeground, &gcvals);
+      }
 #endif
    }
 }
