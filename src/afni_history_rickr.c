@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 25,  Jan, 2017, RCR, "afni_system_check.py", MINOR, TYPE_ENHANCE,
+   "in 10.11+, check for DYLD variables via sub-shells",
+   NULL
+ } ,
+
  { 24,  Jan, 2017, RCR, "align_epi_anat.py", MICRO, TYPE_ENHANCE,
    "trap failure from main 3dAllineate call",
    NULL
