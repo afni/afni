@@ -540,7 +540,7 @@ class SysInfo:
          self.comments.append('consider appending %s with %s' % (edir,flatdir))
       else:
          if self.get_osx_ver() >= 11:
-	    self.check_evar_path_for_val(edir, flatdir)
+            self.check_evar_path_for_val(edir, flatdir)
          else:
             print '** env var %s is not set to contain %s' % (edir, flatdir)
             print '   (so afni and suma may fail)'
@@ -557,7 +557,7 @@ class SysInfo:
 
       # if not even set, fail
       if s or not so:
-	 print '** env var %s not set to contain %s' % (evar, val)
+         print '** env var %s not set to contain %s' % (evar, val)
          self.comments.append('please set %s to %s'%(evar,val))
          return 0
 
@@ -565,9 +565,9 @@ class SysInfo:
       vals = so.split(':')
       # if not found, fail
       if not val in vals:
-	 print '** env var %s is set, but without %s' % (evar, val)
+         print '** env var %s is set, but without %s' % (evar, val)
          self.comments.append('please set %s to include %s'%(evar,val))
-	 return 0
+         return 0
 
       print '++ found evar %s = %s' % (evar, so)
 
@@ -583,7 +583,7 @@ class SysInfo:
 
       if verb:
          print '++ status = %s for command: %s' % (s, cmd)
-	 print '   stdout = %s' % so
+         print '   stdout = %s' % so
          se = '\n'.join(se)
          if se: print '   stderr = %s' % se
 
