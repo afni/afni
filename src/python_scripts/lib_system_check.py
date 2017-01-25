@@ -28,9 +28,13 @@ class SysInfo:
       self.afni_ver        = ''
       self.afni_dir        = ''
       self.os_dist         = ''
-      self.rc_file         = ''
       self.comments        = [] # comments to print at the end
       self.afni_fails      = 0
+
+      # shell stuff
+      self.cur_shell       = ''
+      self.login_shell     = ''
+      self.rc_file         = ''
 
       self.repo_prog       = '' # e.g. yum or brew
       self.have_pyqt4      = 0
@@ -83,6 +87,9 @@ class SysInfo:
                               " from 'tcsh'" % logshell)
 
       print 'apparent login shell: %s%s' % (logshell, note)
+
+      self.cur_shell       = curshell
+      self.login_shell     = logshell
 
       self.set_shell_rc_file([logshell, curshell])
       if self.home_file_exists(self.rc_file): fstr = 'exists'
@@ -533,16 +540,54 @@ class SysInfo:
          self.comments.append('consider appending %s with %s' % (edir,flatdir))
       else:
          if self.get_osx_ver() >= 11:
-            print '** cannot tell if env var %s is set to contain %s' \
-                  % (edir, flatdir)
-            print '   (so afni and suma may fail, please try them)'
-            self.comments.append('cannot tell if %s includes %s'%(edir,flatdir))
+	    self.check_evar_path_for_val(edir, flatdir)
          else:
             print '** env var %s is not set to contain %s' % (edir, flatdir)
             print '   (so afni and suma may fail)'
             self.comments.append('consider setting %s to %s' % (edir, flatdir))
 
       return 1
+
+   def check_evar_path_for_val(self, evar, val, shell=''):
+      print '-- recent OS X, cannot check %s in cur shell, cheating ...' % evar
+    
+      if shell == '': shell = self.cur_shell
+
+      s, so = self.get_shell_value(shell, evar)
+
+      # if not even set, fail
+      if s or not so:
+	 print '** env var %s not set to contain %s' % (evar, val)
+         self.comments.append('please set %s to %s'%(evar,val))
+         return 0
+
+      # convert ':' delimited val list to array, and search for val
+      vals = so.split(':')
+      # if not found, fail
+      if not val in vals:
+	 print '** env var %s is set, but without %s' % (evar, val)
+         self.comments.append('please set %s to include %s'%(evar,val))
+	 return 0
+
+      print '++ found evar %s = %s' % (evar, so)
+
+      return 1
+
+   def get_shell_value(self, shell, evar, verb=0):
+      """really cheap way to grab a value from a new shell"""
+      cmd = "%s -c 'echo $%s'" % (shell, evar)
+      s, so, se = UTIL.limited_shell_exec(cmd)
+
+      if len(so) > 0: so = so[-1]
+      else: so = ''
+
+      if verb:
+         print '++ status = %s for command: %s' % (s, cmd)
+	 print '   stdout = %s' % so
+         se = '\n'.join(se)
+         if se: print '   stderr = %s' % se
+
+      return s, so
 
    def get_osx_ver(self):
       if self.system != "Darwin": return 0
@@ -632,6 +677,9 @@ class SysInfo:
                    'DYLD_LIBRARY_PATH', 'DYLD_FALLBACK_LIBRARY_PATH']:
          if os.environ.has_key(evar):
             print "%s = %s\n" % (evar, os.environ[evar])
+         elif evar.startswith('DY') and self.get_osx_ver() >= 11:
+            s, so = self.get_shell_value(self.cur_shell, evar)
+            print "%s (sub-shell) = %s" % (evar, so)
          else:
             print "%s = " % evar
       print
