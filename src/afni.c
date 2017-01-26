@@ -2131,6 +2131,8 @@ void AFNI_sigfunc_alrm(int sig)
 
      /* Longer quotes */
 
+     "When human judgment and big data interact, funny things happen"                 ,
+     "FMRI is at best like reading source code with blurring goggles over your eyes"  ,
      "Do you prefer red blobs or blue blobs? That's the real FMRI question"           ,
      "I wish we had a taste interface -- I'd make my blobs cherry-chocolate flavor"   ,
      "We cannot solve our problems with the same thinking that created them"          ,
