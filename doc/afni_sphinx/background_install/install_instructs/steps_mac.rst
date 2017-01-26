@@ -51,15 +51,23 @@ operating system) to a link to install XQuartz.
    Xcode is needed for the gcc compiler and related tools.  XQuartz is
    the desktop manager needed to run X11 programs (such as afni).
 
-   *  *For OS X 10.9 and later*, simply run the 2 commands::
+   *  *For OS X 10.12*:
+
+      a. install XCode using the command::
 
          xcode-select --install
-         /Applications/Utilities/X11.app
+
+      b. then install XQuartz from https://www.xquartz.org
+
+   *  *For OS X 10.9 through 10.11*, simply run the 2 commands::
+
+         xcode-select --install
+         /Applications/Utilities/XQuartz.app
 
    *  *Otherwise (for OS X versions up through 10.8)*, it is best to start
       with the most recent version from the Apple website:
 
-      a. Go to http://developer.apple.com
+      a. Go to https://developer.apple.com
 
          * Sign up for a login account (necessary for downloading) 
 
