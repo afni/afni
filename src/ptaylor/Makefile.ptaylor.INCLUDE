@@ -161,6 +161,13 @@ map_TrackID:map_TrackID.o ${AFNI_3dOBJS} ${PTAYLORLIB}
 		$(LFLAGS) ${PTAYLORLIB} $(LLIBS) \
       -lgsl -lgslcblas -lm
 
+1dDW_Grad_o_Mat++: 1dDW_Grad_o_Mat++.o ${AFNI_3dOBJS} ${PTAYLORLIB}
+	$(RM) $@
+	$(CC) -o 1dDW_Grad_o_Mat++ 1dDW_Grad_o_Mat++.o  ${AFNI_3dOBJS} \
+		${PTAYLOR_INCLUDE_PATH} ${PTAYLOR_LINK_PATH}  \
+		$(LFLAGS) ${PTAYLORLIB} $(LLIBS) \
+      -lgsl -lgslcblas -lm
+
 3dVecRGB_to_HSL:3dVecRGB_to_HSL.o ${AFNI_3dOBJS} ${PTAYLORLIB}
 	$(RM) $@
 	$(CC) -o 3dVecRGB_to_HSL 3dVecRGB_to_HSL.o  ${AFNI_3dOBJS} \
@@ -218,7 +225,8 @@ map_TrackID:map_TrackID.o ${AFNI_3dOBJS} ${PTAYLORLIB}
 
 
 FC_PROGRAMS = 3dTrackID 3dProbTrackID 3dDWUncert 3dReHo 3dRSFC map_TrackID \
-       3dROIMaker 3dMatch 3dNetCorr 1dDW_Grad_o_Mat 3dEigsToDT \
+       3dROIMaker 3dMatch 3dNetCorr 1dDW_Grad_o_Mat 1dDW_Grad_o_Mat++ \
+       3dEigsToDT \
        3dDTtoNoisyDWI 3dTORTOISEtoHere 3dVecRGB_to_HSL 3ddot_beta \
        3dLombScargle 3dAmpToRSFC 3dSpaceTimeCorr
 
@@ -246,6 +254,7 @@ install:
 	@if [ -f  3dMatch ]; then mv 3dMatch ${INSTALLDIR}; fi; 
 	@if [ -f  3dNetCorr ]; then mv 3dNetCorr ${INSTALLDIR}; fi;
 	@if [ -f  1dDW_Grad_o_Mat ]; then mv 1dDW_Grad_o_Mat ${INSTALLDIR}; fi;
+	@if [ -f  1dDW_Grad_o_Mat++ ]; then mv 1dDW_Grad_o_Mat++ ${INSTALLDIR}; fi;
 	@if [ -f  3dEigsToDT ]; then mv 3dEigsToDT ${INSTALLDIR}; fi;
 	@if [ -f  3dDTtoNoisyDWI ]; then mv 3dDTtoNoisyDWI ${INSTALLDIR}; fi;
 	@if [ -f  3dTORTOISEtoHere ]; then mv 3dTORTOISEtoHere ${INSTALLDIR}; fi;
@@ -268,6 +277,7 @@ afni_install:
 	@if [ -f  3dMatch ]; then mv 3dMatch ${INSTALLDIR}; fi; 
 	@if [ -f  3dNetCorr ]; then mv 3dNetCorr ${INSTALLDIR}; fi;
 	@if [ -f  1dDW_Grad_o_Mat ]; then mv 1dDW_Grad_o_Mat ${INSTALLDIR}; fi;
+	@if [ -f  1dDW_Grad_o_Mat++ ]; then mv 1dDW_Grad_o_Mat++ ${INSTALLDIR}; fi;
 	@if [ -f  3dEigsToDT ]; then mv 3dEigsToDT ${INSTALLDIR}; fi;
 	@if [ -f  3dDTtoNoisyDWI ]; then mv 3dDTtoNoisyDWI ${INSTALLDIR}; fi;
 	@if [ -f  3dTORTOISEtoHere ]; then mv 3dTORTOISEtoHere ${INSTALLDIR}; fi;
