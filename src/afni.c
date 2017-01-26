@@ -1875,6 +1875,7 @@ void AFNI_sigfunc_alrm(int sig)
      "When I ask for advice, what I really want is an accomplice"    ,
      "Above all -- Don't let your brain lie to you"                  ,
      "I like nonsense -- it shakes the neurons out of their naps"    ,
+     "I'm glad you finished up now -- I'm ready for a quick nap"     ,
      "Using it is like going to the gym for your brain"              ,
      "We are all mad here"                                           ,
      "Working for improved brain-ology not just 24/7 but 25/8!"      ,
@@ -2038,6 +2039,8 @@ void AFNI_sigfunc_alrm(int sig)
      "When you are climbing the ladder, do not forget the rungs"     ,
      "You have to do it yourself, but you cannot do it alone"        ,
      "When you look into the abyss, the abyss looks back at you"     ,
+     "Just say NO -- to arbitrary p-value thresholds"                ,
+     "Did you have fun with your data? I had fun showing it to you"  ,
 
      "Returning control of your brain (images) back to yourself"     ,
      "Returning your endofunctors back to their co-monads"           ,
@@ -2128,7 +2131,9 @@ void AFNI_sigfunc_alrm(int sig)
 
      /* Longer quotes */
 
-     "Did you have fun with your data? I had fun showing it to you"                   ,
+     "Do you prefer red blobs or blue blobs? That's the real FMRI question"           ,
+     "I wish we had a taste interface -- I'd make my blobs cherry-chocolate flavor"   ,
+     "We cannot solve our problems with the same thinking that created them"          ,
      "My brain starts working when I wake up, and stops when I have to give a talk"   ,
      "Biology gives you a brain. Life turns it into a mind"                           ,
      "Your thoughts, your actions, your experiences, are the sculptor of your brain"  ,
