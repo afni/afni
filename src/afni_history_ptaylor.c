@@ -67,13 +67,23 @@ afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
 
+{ 26, Jan , 2017 , PT , "@chauffeur_afni" , MINOR , TYPE_NEW_PROG,
+   "Simplish function for driving AFNI to make images/montages.",
+   "Based on @snapshot_volreg; mainly intended for my selfish use.\n"
+},
+
+{ 26, Jan , 2017 , PT , "1dDW_Grad_o_Mat++" , MINOR , TYPE_NEW_PROG,
+   "New program for changing/reformatting grads and things.",
+   "Better defaults and simpler than original 1dDW_Grad_o_Mat++.\n"
+},
+
 { 30, Dec , 2016 , PT , "@SUMA_renumber_FS" , MINOR , TYPE_NEW_PROG,
    "New program for renumbering FS output after @SUMA_Make_Spec_FS.",
    "Also conglomerates things into tissue maps.\n"
 },
 
 { 30, Dec , 2016 , PT , "@SUMA_Make_Spec_FS" , MINOR , TYPE_MODIFY,
-   "Output new data sets of renumbered values, more consistent than 'rank' ones.",
+   "Output new data sets of renumb'd values, more consistent than 'rank' ones.",
    "Also output more tissue segmentation maps based on ROIs.\n"
 },
 

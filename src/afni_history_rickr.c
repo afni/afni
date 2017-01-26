@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 26,  Jan, 2017, RCR, "Makefile.macosx_10.7_local", MINOR, TYPE_NEW_OPT,
+   "this is a new Makefile to prep for exec directory dynamic linking",
+   NULL
+ } ,
+
  { 25,  Jan, 2017, RCR, "afni_system_check.py", MINOR, TYPE_ENHANCE,
    "in 10.11+, check for DYLD variables via sub-shells",
    NULL
