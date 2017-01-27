@@ -2041,6 +2041,11 @@ void AFNI_sigfunc_alrm(int sig)
      "When you look into the abyss, the abyss looks back at you"     ,
      "Just say NO -- to arbitrary p-value thresholds"                ,
      "Did you have fun with your data? I had fun showing it to you"  ,
+     "Are you ready to drink from the Big Data fire hose?"           ,
+     "In God we trust; all others must have Big Data"                ,
+     "Torment the data enough and it will tell you anything you want",
+     "p-hacking? Bah -- I'll take a chainsaw to your p-values"       ,
+     "Did you like your p-values? If not, I can 'fix' them for you"  ,
 
      "Returning control of your brain (images) back to yourself"     ,
      "Returning your endofunctors back to their co-monads"           ,
@@ -2131,7 +2136,7 @@ void AFNI_sigfunc_alrm(int sig)
 
      /* Longer quotes */
 
-     "When human judgment and big data interact, funny things happen"                 ,
+     "When human judgment and big data interact, peculiar things happen"              ,
      "FMRI is at best like reading source code with blurring goggles over your eyes"  ,
      "Do you prefer red blobs or blue blobs? That's the real FMRI question"           ,
      "I wish we had a taste interface -- I'd make my blobs cherry-chocolate flavor"   ,
@@ -2250,6 +2255,8 @@ void AFNI_sigfunc_alrm(int sig)
      "We may all have come on different ships, but we're all in the same boat now"            ,
      "You can always find me out on the Long Line -- I hang out by the Church-Kleene ordinal" ,
      "Outside of a dog, a book is Man's best friend. Inside of a dog, it's too dark to read"  ,
+
+     "Someday I'll tell you of the Giant Rat of Sumatra, a tale for which the world is not prepared" ,
 
      /* Multi-line quotes */
 
@@ -2697,18 +2704,27 @@ int main( int argc , char *argv[] )
 
 #ifdef DARWIN
    { char *eee = getenv("DYLD_LIBRARY_PATH") ;
-     if( eee == NULL || strstr(eee,"flat_namespace") == NULL )
-       fprintf(stderr,
-         "\n"
-         "++ If you are using XQuartz 2.7.10 (or later), and\n"
-         " + AFNI crashes when opening windows, or you cannot\n"
-         " + type text into AFNI popup windows, you might need\n"
-         " + to set an environment variable to solve this problem:\n"
-         " +   setenv DYLD_LIBRARY_PATH /opt/X11/lib/flat_namespace\n"
-         " + This command is best put in your startup ~/.cshrc file,\n"
-         " + so that it will be invoked for every (t)csh shell\n"
-         " + you open.\n\n"
-       ) ;
+     if( eee == NULL || strstr(eee,"flat_namespace") == NULL ){
+       int vmajor=0, vminor=0 , vmicro=0 ;
+       eee = get_XQuartz_version() ;  /* Check XQuartz version [27 Jan 2017] */
+       if( eee != NULL && isdigit(*eee) ){
+         sscanf(eee,"%d.%d.%d",&vmajor,&vminor,&vmicro) ;
+         /* INFO_message("XQuartz version: %d %d %d",vmajor,vminor,vmicro) ; */
+       }
+       if( vmajor == 0 || vminor == 0 || vmajor > 2                   ||
+           (vmajor == 2 && vminor >  7)                               ||
+           (vmajor == 2 && vminor == 7 && (vmicro > 9 || vmicro == 0))  ){
+         fprintf(stderr,
+          "\n"
+          "++ If you are using XQuartz 2.7.10 (or later), and AFNI crashes when\n"
+          " + opening windows, or you cannot type text into AFNI popup windows,\n"
+          " + you might need to set an environment variable to solve this problem:\n"
+          " +   setenv DYLD_LIBRARY_PATH /opt/X11/lib/flat_namespace\n"
+          " + This command is best put in your startup ~/.cshrc file, so that\n"
+          " + it will be invoked for every (t)csh shell you open.\n\n"
+         ) ;
+       }
+     }
    }
 #endif
 
@@ -2719,6 +2735,14 @@ int main( int argc , char *argv[] )
                                    NULL ) ;
 
    if( MAIN_shell == NULL ) ERROR_exit("Cannot initialize X11") ;
+
+#if 1
+{ Display *dpy = XtDisplay(MAIN_shell) ;
+  char msg[256] , *xsv ; int xvr ;
+  xsv = XServerVendor(dpy) ; xvr = XVendorRelease(dpy) ;
+  if( xsv != NULL ){ sprintf(msg,"[%s v %d]",xsv,xvr); REPORT_PROGRESS(msg); }
+}
+#endif
 
    /* if we used xrdb to set X11 resources, re-set them back to their old
       state so that other AFNIs don't use these new settings by default   */

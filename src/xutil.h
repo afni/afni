@@ -282,4 +282,6 @@ extern void MCW_melt_widget( Widget w ) ;
 }
 #endif
 
+extern char * get_XQuartz_version(void) ; /* 27 Jan 2017 */
+
 #endif /* _MCW_XUTIL_HEADER_ */

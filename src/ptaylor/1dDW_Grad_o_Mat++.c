@@ -101,7 +101,7 @@ void usage_1dDW_Grad_o_Mat(int detail)
 "    1dDW_Grad_o_Mat                                                 \\\n"
 "         { -in_row_vec  | -in_col_vec  |                            \\\n"
 "           -in_col_matA | -in_col_matT }  INFILE                    \\\n"
-"         { -flip_x | -flip_y | -flip_z }                            \\\n"
+"         { -flip_x | -flip_y | -flip_z | -no_flip }                 \\\n"
 "         { -out_row_vec  | -out_col_vec  |                          \\\n"
 "           -out_col_matA | -out_col_matT }  OUTFILE                 \\\n"
 "         { -in_bvals BVAL_FILE }                                    \\\n"
@@ -155,6 +155,10 @@ void usage_1dDW_Grad_o_Mat(int detail)
 "                           the y-component parts of the matrix)\n"
 "    -flip_z               :change sign of third column of gradients (or of\n"
 "                           the z-component parts of the matrix)\n"
+"    -no_flip              :don't change any gradient/matrix signs.  This\n"
+"                           is an extraneous switch, as the default is to\n"
+"                           not flip any signs (this is mainly used for\n"
+"                           some scripting convenience\n"
 "\n"
 "       (and the follow options are probably mainly extraneous, nowadays)\n"
 "    -bref_mean_top        :when averaging the reference X 'b0' values (the\n"
@@ -274,6 +278,13 @@ int main(int argc, char *argv[])
 		}
       if( strcmp(argv[iarg],"-flip_z") == 0) {
 			INV[2] = -1;
+			iarg++ ; continue ;
+		}
+      // mainly for scripting; can clean up stuff.
+      if( strcmp(argv[iarg],"-no_flip") == 0) {
+			INV[0] = 1;
+			INV[1] = 1;
+			INV[2] = 1;
 			iarg++ ; continue ;
 		}
 
