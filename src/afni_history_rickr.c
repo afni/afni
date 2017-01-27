@@ -49,6 +49,12 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 27, Jan, 2017, RCR, "CA_EZ_atlas.csh", MICRO, TYPE_MODIFY,
+   "with -help, do not dump TT_N27 in current directory",
+   "Have script fail if any arguments are given (e.g. -help).\n"
+   "Fix in all bin dirs and under atlases."
+ } ,
+
  { 26,  Jan, 2017, RCR, "Makefile.macosx_10.7_local", MINOR, TYPE_NEW_OPT,
    "this is a new Makefile to prep for exec directory dynamic linking",
    NULL
