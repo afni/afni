@@ -101,7 +101,7 @@ void usage_1dDW_Grad_o_Mat(int detail)
 "    1dDW_Grad_o_Mat                                                 \\\n"
 "         { -in_row_vec  | -in_col_vec  |                            \\\n"
 "           -in_col_matA | -in_col_matT }  INFILE                    \\\n"
-"         { -flip_x | -flip_y | -flip_z }                            \\\n"
+"         { -flip_x | -flip_y | -flip_z | -no_flip }                 \\\n"
 "         { -out_row_vec  | -out_col_vec  |                          \\\n"
 "           -out_col_matA | -out_col_matT }  OUTFILE                 \\\n"
 "         { -in_bvals BVAL_FILE }                                    \\\n"
