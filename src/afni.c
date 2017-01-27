@@ -2697,18 +2697,41 @@ int main( int argc , char *argv[] )
 
 #ifdef DARWIN
    { char *eee = getenv("DYLD_LIBRARY_PATH") ;
-     if( eee == NULL || strstr(eee,"flat_namespace") == NULL )
-       fprintf(stderr,
-         "\n"
-         "++ If you are using XQuartz 2.7.10 (or later), and\n"
-         " + AFNI crashes when opening windows, or you cannot\n"
-         " + type text into AFNI popup windows, you might need\n"
-         " + to set an environment variable to solve this problem:\n"
-         " +   setenv DYLD_LIBRARY_PATH /opt/X11/lib/flat_namespace\n"
-         " + This command is best put in your startup ~/.cshrc file,\n"
-         " + so that it will be invoked for every (t)csh shell\n"
-         " + you open.\n\n"
-       ) ;
+     if( eee == NULL || strstr(eee,"flat_namespace") == NULL ){
+       int vmajor=0, vminor=0 , vmicro=0 ; char *cpt,*dpt ;
+       eee = get_XQuartz_version() ;
+       if( eee != NULL && isdigit(*eee) ){
+         vmajor = (int)strtol(eee,&cpt,10) ;
+         if( *cpt != '\0' ){
+           dpt = cpt+1 ;
+           if( isdigit(*dpt) ){
+             vminor = (int)strtol(dpt,&cpt,10) ;
+             if( *cpt != '\0' ){
+               dpt = cpt+1 ;
+               if( isdigit(*dpt) ){
+                 vmicro = (int)strtol(dpt,&cpt,10) ;
+               }
+             }
+           }
+         }
+         /* INFO_message("XQuartz version: %d %d %d",vmajor,vminor,vmicro) ; */
+       }
+       if( vmajor == 0 || vminor == 0 || vmajor > 2  ||
+           (vmajor == 2 && vminor >  7)              ||
+           (vmajor == 2 && vminor == 7 && vmicro > 9)  ){
+         fprintf(stderr,
+          "\n"
+          "++ If you are using XQuartz 2.7.10 (or later), and\n"
+          " + AFNI crashes when opening windows, or you cannot\n"
+          " + type text into AFNI popup windows, you might need\n"
+          " + to set an environment variable to solve this problem:\n"
+          " +   setenv DYLD_LIBRARY_PATH /opt/X11/lib/flat_namespace\n"
+          " + This command is best put in your startup ~/.cshrc file,\n"
+          " + so that it will be invoked for every (t)csh shell\n"
+          " + you open.\n\n"
+         ) ;
+       }
+     }
    }
 #endif
 
