@@ -99,7 +99,7 @@ CP = /bin/cp -f
 LINT = /usr/bin/lint -a -b -u -v -x $(IFLAGS) $(CCDEFS)
 
 LIBDIR = $(INSTALLDIR)
-SYSTEM_NAME = macosx_10.7_Intel_64
+SYSTEM_NAME = macosx_10.7_local
 SHOWOFF = -DSHOWOFF=$(SYSTEM_NAME)
 
 INSTALL_PREREQ = suma_gts
