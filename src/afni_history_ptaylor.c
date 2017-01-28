@@ -67,6 +67,16 @@ afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
 
+{ 27, Jan , 2017 , PT , "3dDWItoDT" , MICRO , TYPE_NEW_OPT,
+   "Miniscule new option, '-bmatrix_FULL' to have clearer usage.",
+   "Just copies functionality of cryptic '-bmatrix_Z'.\n"
+},
+
+{ 27, Jan , 2017 , PT , "@GradFlipTest" , MAJOR , TYPE_MODIFY,
+   "Totally revamped-- have real options, better funcs, output text file.",
+   "Meshes with other changes in 1dDW_Grad* and 3dDWItoDT.\n"
+},
+
 { 26, Jan , 2017 , PT , "@chauffeur_afni" , MINOR , TYPE_NEW_PROG,
    "Simplish function for driving AFNI to make images/montages.",
    "Based on @snapshot_volreg; mainly intended for my selfish use.\n"
