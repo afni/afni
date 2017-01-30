@@ -549,7 +549,7 @@ cat << EOF
 -------------------------------------------------------------------------
 
   EXAMPLE:
-  \$ $this_prog  \
+    $this_prog  \
         -indir_ap  "SUB001/DTI_AP_0*"           \
         -indir_pa  "SUB001/DTI_PA_0*"           \
         -outdir_ap  SUB001/UNFILT_AP            \
@@ -557,7 +557,7 @@ cat << EOF
 
     or
 
-  \$ $this_prog  \
+    $this_prog  \
         -indir_ap  "DTI_DICOMS"                 \
         -outdir_ap  UNFILT_DTI
 
