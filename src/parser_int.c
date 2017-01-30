@@ -786,7 +786,7 @@ double acfwxm_cost( int npar , double *par )
 
 doublereal acfwxm_( doublereal *apar , doublereal *bpar , doublereal *cpar , doublereal *flev )
 {
-   double rhalf , rtop ;
+   double rhalf , rtop , rbot ;
 
    ACFaa = *apar ; ACFbb = *bpar ; ACFcc = *cpar ; ACFflev = *flev ;
 
@@ -794,9 +794,16 @@ doublereal acfwxm_( doublereal *apar , doublereal *bpar , doublereal *cpar , dou
    if( ACFbb   <= 0.0 || ACFcc   <= 0.0 ) return 0.0 ;
    if( ACFflev <= 0.0 || ACFflev >= 1.0 ) return 0.0 ;
 
-   rtop = 5.0*ACFbb+5.0*ACFcc ;
+   if( ACFflev > 0.1 ){
+     rtop = 2.5*ACFbb+2.0*ACFcc ;
+     rbot = 0.111*rtop ;
+   } else {
+     double gg = -log(ACFflev) ;
+     rtop = sqrt(5.0*gg)*ACFbb+2.0*ACFcc ;
+     rbot = 0.0333*rtop ;
+   }
 
-   rhalf = minimize_in_1D( 0.01 , rtop , acfwxm_cost ) ;
+   rhalf = minimize_in_1D( rbot , rtop , acfwxm_cost ) ;
 
    return 2.0*rhalf ;
 }
