@@ -1,13 +1,19 @@
 #!/bin/tcsh -ef
 
 # --------------------- revision history -------------------------
+#
 # Jan, 2017
 #   + rename
+#
+# Jan 27, 2017
+#   + new opts
+#   + switch to 1dDW_Grad_o_Mat++
+#
 # ----------------------------------------------------------------
 
-set version = "2.2"
+set version = "2.3"
 set rev_dat = "Jan, 2017"
-set this_prog = "fat_proc_filter_dwis"
+set this_prog = "fat_proc_filter_dwis" 
 
 set here     = $PWD
 set i_ap     = ""
@@ -18,8 +24,6 @@ set odir_ap  = ""
 set odir_pa  = ""
 set o_ap     = "AP"        # default file output prefix
 set o_pa     = "PA"        # default file output prefix
-set ori_new  = "RPI"       # default file output orientation
-set doflip   = ""          # default: no flip of grads
 set KEEP     = "" 
 
 # ------------------- process options, a la rr ----------------------
@@ -36,11 +40,13 @@ while ( $ac <= $#argv )
         goto SHOW_VERSION
     endif
 
-    #here, specify NIFTI *files*, not directories
+    # -------------- input opts --------------------
+    # here, specify NIFTI *files*, not directories
     if ( "$argv[$ac]" == "-inset_ap" ) then
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
         @ ac += 1
         set i_ap = "$argv[$ac]"
+
     else if ( "$argv[$ac]" == "-inset_pa" ) then
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
         @ ac += 1
@@ -51,10 +57,12 @@ while ( $ac <= $#argv )
         @ ac += 1
         set KEEP = "$argv[$ac]"
 
+    # -------------- output opts --------------------
     else if ( "$argv[$ac]" == "-outdir_ap" ) then
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
         @ ac += 1
         set odir_ap = "$argv[$ac]"
+
     else if ( "$argv[$ac]" == "-outdir_pa" ) then
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
         @ ac += 1
@@ -64,6 +72,7 @@ while ( $ac <= $#argv )
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
         @ ac += 1
         set o_ap = "$argv[$ac]"
+
     else if ( "$argv[$ac]" == "-prefix_pa" ) then
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
         @ ac += 1
@@ -71,9 +80,9 @@ while ( $ac <= $#argv )
 
     else
         echo "** unexpected option #$ac = '$argv[$ac]'"
-        exit 2
-
+        goto BAD_EXIT
     endif
+
     @ ac += 1
 end
 
@@ -89,7 +98,7 @@ echo "++ Start script version: $version"
 if ( ("$i_ap" == "") && ("$i_pa" == "") ) then
     echo "** ERROR: need to input at least one NIFTI volume,"
     echo "\t using either after '-inset_ap' or '-inset_pa'."
-    exit
+    goto BAD_EXIT
 endif
 
 # first check for everything needed in AP dir
@@ -97,7 +106,7 @@ if ( "$i_ap" != "" ) then
     set check = `3dinfo "$i_ap"`
     if ( "$#check" == "0" ) then
         echo "** ERROR: can't find file $i_ap !"
-        goto EXIT
+        goto BAD_EXIT
     endif
 
     set idir_ap = `dirname $i_ap`
@@ -105,12 +114,12 @@ if ( "$i_ap" != "" ) then
     if ( ! -e $idir_ap/${iroot_ap}.bval ) then
         echo "** ERROR: can't find AP file's bval file!"
         echo "   --> had expected to find: $Piroot_ap}.bval ?!?"
-        goto EXIT
+        goto BAD_EXIT
     endif
     if ( ! -e $idir_ap/${iroot_ap}.bvec ) then
         echo "** ERROR: can't find AP file's bvec file!"
         echo "   --> had expected to find: ${iroot_ap}.bvec ?!?"
-        goto EXIT
+        goto BAD_EXIT
     endif
 
     echo "++ Found 'AP' NIFTI, bval and bvec files in: $idir_ap"
@@ -121,7 +130,7 @@ if ( "$i_pa" != "" ) then
     set check = `3dinfo "$i_pa"`
     if ( "$#check" == "0" ) then
         echo "** ERROR: can't find file $i_pa !"
-        goto EXIT
+        goto BAD_EXIT
     endif
 
     set idir_pa = `dirname $i_pa`
@@ -129,12 +138,12 @@ if ( "$i_pa" != "" ) then
     if ( ! -e $idir_pa/${iroot_pa}.bval ) then
         echo "** ERROR: can't find PA file's bval file!"
         echo "   --> had expected to find: $Piroot_pa}.bval ?!?"
-        goto EXIT
+        goto BAD_EXIT
     endif
     if ( ! -e $idir_pa/${iroot_pa}.bvec ) then
         echo "** ERROR: can't find PA file's bvec file!"
         echo "   --> had expected to find: ${iroot_pa}.bvec ?!?"
-        goto EXIT
+        goto BAD_EXIT
     endif
 
     echo "++ Found 'PA' NIFTI, bval and bvec files in: $idir_pa"
@@ -177,7 +186,6 @@ if ( "$i_pa" != "" ) then
     endif
 endif
 
-
 # =======================================================================
 # =========================== ** PROCESS ** =============================
 # =======================================================================
@@ -186,12 +194,12 @@ endif
 
 if ( "$idir_ap" != "") then
 
-    1dDW_Grad_o_Mat         -echo_edu                            \
+    1dDW_Grad_o_Mat++       -echo_edu                            \
         -in_bvals           $idir_ap/${iroot_ap}.bval"$KEEP"     \
-        -in_grad_rows       $idir_ap/${iroot_ap}.bvec"$KEEP"     \
-        -keep_b0s                                                \
-        -out_bval_row_sep   $odir_ap/${o_ap}.bval                \
-        -out_grad_rows      $odir_ap/${o_ap}.bvec                \
+        -in_row_vec         $idir_ap/${iroot_ap}.bvec"$KEEP"     \
+        -out_row_bval_sep   $odir_ap/${o_ap}.bval                \
+        -unit_mag_out                                            \
+        -out_row_vec        $odir_ap/${o_ap}.bvec                \
         -overwrite
 
     3dcalc   -echo_edu                                           \
@@ -199,17 +207,16 @@ if ( "$idir_ap" != "") then
         -expr "(a)"                                              \
         -prefix $odir_ap/${o_ap}.nii                             \
         -overwrite
-
 endif
 
 if ( "$idir_pa" != "") then
 
-    1dDW_Grad_o_Mat         -echo_edu                            \
+    1dDW_Grad_o_Mat++       -echo_edu                            \
         -in_bvals           $idir_pa/${iroot_pa}.bval"$KEEP"     \
-        -in_grad_rows       $idir_pa/${iroot_pa}.bvec"$KEEP"     \
-        -keep_b0s                                                \
-        -out_bval_row_sep   $odir_pa/${o_pa}.bval                \
-        -out_grad_rows      $odir_pa/${o_pa}.bvec                \
+        -in_row_vec         $idir_pa/${iroot_pa}.bvec"$KEEP"     \
+        -out_row_bval_sep   $odir_pa/${o_pa}.bval                \
+        -unit_mag_out                                            \
+        -out_row_vec        $odir_pa/${o_pa}.bvec                \
         -overwrite
 
     3dcalc   -echo_edu                                           \
@@ -217,11 +224,9 @@ if ( "$idir_pa" != "") then
         -expr "(a)"                                              \
         -prefix $odir_pa/${o_pa}.nii                             \
         -overwrite
-
 endif
 
-
-goto EXIT
+goto GOOD_EXIT
 
 # ========================================================================
 # ========================================================================
@@ -312,9 +317,9 @@ cat << EOF
   -outdir_pa OUT_PA :single output directory name for the 'PA' set(s);
                      default is 'FILT_PA', placed parallel to DIR_PA.
   -prefix_ap PRE_AP :output prefix for the *.nii, *.bvec and *.bval files
-                     in OUT_AP; default is 'AP'.
+                     in OUT_AP; default is '$o_ap'.
   -prefix_pa PRE_PA :output prefix for the *.nii, *.bvec and *.bval files
-                     in OUT_PA; default is 'PA'.
+                     in OUT_PA; default is '$o_PA'.
 
 -------------------------------------------------------------------------
 
@@ -356,12 +361,14 @@ cat << EOF
 -------------------------------------------------------------------------
 
 EOF
-    goto EXIT
+    goto GOOD_EXIT
 
 SHOW_VERSION:
    echo "version  $version (${rev_dat})"
-   goto EXIT
+   goto GOOD_EXIT
 
-# send everyone here, in case there is any cleanup to do
-EXIT:
-   exit
+BAD_EXIT:
+   exit 1
+
+GOOD_EXIT:
+   exit 0
