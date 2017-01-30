@@ -44,6 +44,11 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 30 , JAN , 2017 , RWC , "ccalc etc" , MICRO , TYPE_ENHANCE ,
+   "Add acfwxm function to parser programs" ,
+   "To compute the Full Width at X Maximum for the mixed ACF model, for\n"
+   "input parameters a,b,c at level x (0 < x < 1) = acfwxm(a,b,c,x)" } ,
+
  { 23 , JAN , 2017 , RWC , "3dAllineate" , MICRO , TYPE_MODIFY ,
    "for ls, lpc, lpa: use -autoweight by default unless user changes it" ,
    "The default weighting scheme was -autobox for all schemes.  For ls, lpc,\n"
