@@ -5,9 +5,14 @@
 # --------------------- revision history -------------------------
 # Jan, 2017
 #   + rename
+#
+# Jan 27, 2017
+#   + update opts
+#   + 
+#
 # ----------------------------------------------------------------
 
-set version = "2.2"
+set version = "2.3"
 set rev_dat = "Jan, 2017"
 set this_prog = "fat_proc_convert_anat"
 
@@ -16,6 +21,7 @@ set there    = ""
 set anat_dir = ""
 set ori_new  = "RPI"
 set the_t1   = "anat.nii"
+set DO_REORI = 1
 
 # ------------------- process options, a la rr ----------------------
 
@@ -31,33 +37,39 @@ while ( $ac <= $#argv )
         goto SHOW_VERSION
     endif
 
-   # required
-   if ( "$argv[$ac]" == "-indir" ) then
-      if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
-      @ ac += 1
-      set there = "$argv[$ac]"
+    # ------------- input(s) ----------------
+    if ( "$argv[$ac]" == "-indir" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set there = "$argv[$ac]"
 
-   else if ( "$argv[$ac]" == "-outdir" ) then
-      if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
-      @ ac += 1
-      set anat_dir = "$argv[$ac]"
+    # ------------- output(s) ----------------
+    else if ( "$argv[$ac]" == "-outdir" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set anat_dir = "$argv[$ac]"
 
-   else if ( "$argv[$ac]" == "-orient" ) then
-      if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
-      @ ac += 1
-      set ori_new = "$argv[$ac]"
+    else if ( "$argv[$ac]" == "-prefix" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set the_t1 = "$argv[$ac]"
 
-   else if ( "$argv[$ac]" == "-prefix" ) then
-      if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
-      @ ac += 1
-      set the_t1 = "$argv[$ac]"
+    # -------------- other opts ----------------
+    else if ( "$argv[$ac]" == "-orient" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set ori_new = "$argv[$ac]"
 
-   else
-      echo "** unexpected option #$ac = '$argv[$ac]'"
-      exit 2
+    # -------------- more other opts ----------------
+    else if ( "$argv[$ac]" == "-reorig_reorient_off" ) then
+        set DO_REORI = 0          # leave 'em alone!
 
-   endif
-   @ ac += 1
+    else
+        echo "** unexpected option #$ac = '$argv[$ac]'"
+        goto BAD_EXIT
+
+    endif
+    @ ac += 1
 end
 
 # =======================================================================
@@ -70,12 +82,12 @@ echo "++ Start script version: $version"
 
 if ( $there == "" ) then
     echo "** ERROR: need to input DICOM directory, after '-indir':"
-    exit
+    goto BAD_EXIT
 endif
 
 if ( ! -e "$there" ) then
     echo "\n** ERROR: can't find input DICOM directory: $there !"
-    exit
+    goto BAD_EXIT
 endif
 
 # ============================= input dir ===============================
@@ -89,7 +101,7 @@ printf "++ Checking $PWD for preexisting NIFTIs ... "
 if ( (`find . -maxdepth 1 -type f -name "*nii" | wc -l` > 0 ) || \
      (`find . -maxdepth 1 -type f -name "*nii.gz" | wc -l` > 0 ) ) then
     echo "\n** ERROR: already some NIFTI files in $there !"
-    exit
+    goto BAD_EXIT
 endif
 
 cd $here 
@@ -100,7 +112,6 @@ cd $here
 
 # default output dir, if nothing input.
 if ( $anat_dir == "" ) then
-
     cd $here
     cd $there
 
@@ -111,7 +122,6 @@ if ( $anat_dir == "" ) then
     echo "\t$PWD"
 
     cd $here
-
 endif
 
 if ( -e "$anat_dir" ) then
@@ -132,7 +142,7 @@ if ( ! -e $anat_dir/__TEMP_CONV_123 ) then
 else
     echo "** ERROR: directory $anat_dir/__TEMP_CONV_123/ already exists!"
     echo "   -> confusion happens with converting repeats into same dir!"
-    goto EXIT
+    goto BAD_EXIT
 endif
 
 dcm2nii -o "$anat_dir/__TEMP_CONV_123" $there/*
@@ -148,19 +158,32 @@ set all_t1 = `ls 2*.nii.gz`
 if ( ${#all_t1} < "1" ) then
     echo "\n** ERROR: no anatomical found"
     echo "\t(at least not with expected filename '2*')\n"
-    goto EXIT
+    goto BAD_EXIT
 else if ( ${#all_t1} >= "2" ) then
-    echo "\n+* Warning: multiple possible volumes: just choosing first (?!?).\n"
+    echo ""
+    echo "+* Warning: multiple possible volumes, just choosing first one (?!?)"
+    echo ""
 endif
 
-3dresample                                        \
-    -orient $ori_new                              \
-    -inset  $all_t1[1]                            \
-    -prefix ../$the_t1                            \
-    -overwrite
+if ( $DO_REORI ) then
 
-# put (0, 0, 0) at center of mass.  (Aug, 2016)
-3dCM -automask -set 0 0 0 ../$the_t1
+    3dresample                                        \
+        -orient $ori_new                              \
+        -inset  $all_t1[1]                            \
+        -prefix ../$the_t1                            \
+        -overwrite
+
+    # put (0, 0, 0) at center of mass.  (Aug, 2016)
+    3dCM -automask -set 0 0 0 ../$the_t1
+
+else
+    # chicken...
+    3dcalc                                 \
+        -a $all_t1[1]                      \
+        -expr 'a'                          \
+        -prefix ../$the_t1                 \
+        -overwrite
+endif
 
 cd $here 
 
@@ -173,9 +196,10 @@ if ( "$#check" >= "0" ) then
     cd $here
 else 
     echo "Whoa, badness outputting: $anat_dir/$the_t1"
+    goto BAD_EXIT
 endif
 
-goto EXIT
+goto GOOD_EXIT
 
 # ========================================================================
 # ========================================================================
@@ -183,6 +207,7 @@ goto EXIT
 SHOW_HELP:
 cat << EOF
 -------------------------------------------------------------------------
+
     The purpose of this function is to help convert an anatomical data
     set from DICOM files into a volume.  Ummm, yep, that's about it.
 
@@ -199,7 +224,7 @@ cat << EOF
 
   RUNNING:
 
-  \$ $this_prog  \
+  $this_prog  \
         -indir   DIR_IN                       \
         {-outdir DIR_OUT}                     \
         {-prefix PREFIX}                      \
@@ -214,9 +239,14 @@ cat << EOF
     -prefix PREFIX  :optional output file prefix for volume in DIR_OUT
                      (default is called '$the_t1').
 
-    -orient ORIENT  :option to choose the orientation of the output 
-                     volume (default is RPI).
-        
+    -orient  ORIENT :optional chance to reset orientation of the volume
+                     files (default is currently '$ori_new').
+  -reorig_reorient_off: switch to turn of the nicety of putting (0, 0, 0)
+                     at brain's center of mass (-> 'reorigin' calc) and to
+                     not reorient data (-> 'reorient' calc).  Could lead
+                     to weirdness later on down the road, depending on the
+                     data and headers (ergo, not recommended.)
+
 -------------------------------------------------------------------------
 
   OUTPUTS: a single anatomical volume in the DIR_OUT.  
@@ -239,12 +269,14 @@ cat << EOF
 -------------------------------------------------------------------------
 
 EOF
-    goto EXIT
+    goto GOOD_EXIT
 
 SHOW_VERSION:
    echo "version  $version (${rev_dat})"
-   goto EXIT
+   goto GOOD_EXIT
 
-# send everyone here, in case there is any cleanup to do
-EXIT:
-   exit
+BAD_EXIT:
+   exit 1
+
+GOOD_EXIT:
+   exit 0
