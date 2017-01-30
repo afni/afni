@@ -771,7 +771,7 @@ doublereal hrfbk5_( doublereal *ttp , doublereal *TTp )
 
 static double ACFaa, ACFbb, ACFcc, ACFflev ;
 
-double ACF_fhwm_cost( int npar , double *par )
+double acfwxm_cost( int npar , double *par )
 {
    double fit , rr=*par ;
    double apar,bpar,cpar , flev ;
@@ -796,7 +796,7 @@ doublereal acfwxm_( doublereal *apar , doublereal *bpar , doublereal *cpar , dou
 
    rtop = 5.0*ACFbb+5.0*ACFcc ;
 
-   rhalf = minimize_in_1D( 0.01 , rtop , ACF_fhwm_cost ) ;
+   rhalf = minimize_in_1D( 0.01 , rtop , acfwxm_cost ) ;
 
    return 2.0*rhalf ;
 }
