@@ -10,10 +10,10 @@
 # Jan 27, 2017
 #   + update opts
 #   + use 1dDW_Grad_o_Mat++
-
+#
 # ----------------------------------------------------------------
 
-set version = "2.2"
+set version = "2.3"
 set rev_dat = "Jan, 2017"
 set this_prog = "fat_proc_convert_dwis"
 
