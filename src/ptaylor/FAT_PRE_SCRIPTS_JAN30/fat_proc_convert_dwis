@@ -20,6 +20,7 @@ set o_ap     = "AP"        # default file output prefix
 set o_pa     = "PA"        # default file output prefix
 set ori_new  = "RPI"       # default file output orientation
 set doflip   = ""          # default: no flip of grads
+set DO_REORI = 1
 
 # ------------------- process options, a la rr ----------------------
 
@@ -35,59 +36,66 @@ while ( $ac <= $#argv )
         goto SHOW_VERSION
     endif
 
-   if ( "$argv[$ac]" == "-indir_ap" ) then
-      if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
-      @ ac += 1
-      set idir_ap = "$argv[$ac]"
-   else if ( "$argv[$ac]" == "-indir_pa" ) then
-      if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
-      @ ac += 1
-      set idir_pa = "$argv[$ac]"
+    # ------------- input(s) ----------------
+    if ( "$argv[$ac]" == "-indir_ap" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set idir_ap = "$argv[$ac]"
 
-   else if ( "$argv[$ac]" == "-outdir_ap" ) then
-      if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
-      @ ac += 1
-      set odir_ap = "$argv[$ac]"
-   else if ( "$argv[$ac]" == "-outdir_pa" ) then
-      if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
-      @ ac += 1
-      set odir_pa = "$argv[$ac]"
+    else if ( "$argv[$ac]" == "-indir_pa" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set idir_pa = "$argv[$ac]"
+        
+    # ------------- output(s) ----------------
+    else if ( "$argv[$ac]" == "-outdir_ap" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set odir_ap = "$argv[$ac]"
+        
+    else if ( "$argv[$ac]" == "-outdir_pa" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set odir_pa = "$argv[$ac]"
+        
+    else if ( "$argv[$ac]" == "-prefix_ap" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set o_ap = "$argv[$ac]"
 
-   else if ( "$argv[$ac]" == "-orient" ) then
-      if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
-      @ ac += 1
-      set ori_new = "$argv[$ac]"
+    else if ( "$argv[$ac]" == "-prefix_pa" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set o_pa = "$argv[$ac]"
 
-   else if ( "$argv[$ac]" == "-prefix_ap" ) then
-      if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
-      @ ac += 1
-      set o_ap = "$argv[$ac]"
-   else if ( "$argv[$ac]" == "-prefix_pa" ) then
-      if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
-      @ ac += 1
-      set o_pa = "$argv[$ac]"
+    # -------------- other opts ----------------
+    else if ( "$argv[$ac]" == "-orient" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set ori_new = "$argv[$ac]"
+        
+    else if ( "$argv[$ac]" == "-flip_x" ) then
+        set doflip = "-flip_x"
 
-   else if ( "$argv[$ac]" == "-gradomat" ) then
-      if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
-      @ ac += 1
-      set doflip = "-$argv[$ac]"
+    else if ( "$argv[$ac]" == "-flip_y" ) then
+        set doflip = "-flip_y"
 
-      if ( ("$doflip" == "-flip_x") ||   \
-           ("$doflip" == "-flip_y") ||   \
-           ("$doflip" == "-flip_y") ) then
-           echo "++ OK, will flip grads with: $doflip"
-      else
-           echo "** ERROR: that flip option not allowed."
-           echo "   You can use only one of:"
-           echo "\t -flip_x , -flip_y , -flip_z"
-      endif
+    else if ( "$argv[$ac]" == "-flip_z" ) then
+        set doflip = "-flip_z"
 
-   else
-      echo "** unexpected option #$ac = '$argv[$ac]'"
-      exit 2
+    else if ( "$argv[$ac]" == "-no_flip" ) then
+        set doflip = "-no_flip"
 
-   endif
-   @ ac += 1
+    # -------------- more other opts ----------------
+    else if ( "$argv[$ac]" == "-reorig_reorient_off" ) then
+        set DO_REORI = 0          # leave 'em alone!
+
+    else
+        echo "** unexpected option #$ac = '$argv[$ac]'"
+        goto BAD_EXIT
+
+    endif
+    @ ac += 1
 end
 
 
@@ -102,7 +110,7 @@ echo "++ Start script version: $version"
 if ( ("$idir_ap" == "") && ("$idir_pa" == "") ) then
     echo "** ERROR: need to input at least one DICOM directory,"
     echo "\t using either after '-indir_ap' or '-indir_pa'."
-    exit
+    goto BAD_EXIT
 endif
 
 if ( "$idir_ap" != "" ) then
@@ -128,12 +136,12 @@ foreach dd ( $idir_ap $idir_pa )
     cd $here
     cd $dd
 
-    printf "++ Checking ${dd} for preexisting NIFTIs ... "
+    echo "++ Checking ${dd} for preexisting NIFTIs ... "
 
     if ( (`find . -maxdepth 1 -type f -name "*nii" | wc -l` > 0 ) || \
          (`find . -maxdepth 1 -type f -name "*nii.gz" | wc -l` > 0 ) ) then
         echo "\n** ERROR: already some *.nii.gz files in $dd !"
-        exit
+        goto BAD_EXIT
     endif
 end
 
@@ -199,7 +207,11 @@ endif
 
 # ============ do the major rearranging/sorting/combining ================
 
-set have_orig = 0
+# ----> future note: simplify scripting with loop instead of lame
+# ----> copying...
+
+# Use this to give AP and PA same origin....
+set have_orig = 0  
 set ORIG = ( 0 0 0 )
 
 # first for AP, if they are input
@@ -223,7 +235,6 @@ if ( "$odir_ap" != "") then
     echo "   Organizizing now."
 
     # overkill, but make sure everything stays sorted in proper order
-    set list_cvals = ( )  
     set list_cvecs = ( )
     set list_vols  = ( )
 
@@ -232,19 +243,27 @@ if ( "$odir_ap" != "") then
         set ff = "$all_bvec[$i]"
         set gg = ${ff:gas/.bvec//}
 
-        # combine bvals and bvec
-        1dDW_Grad_o_Mat                            \
-            -in_grad_rows ${gg}.bvec               \
+        # combine bvals and bvec, NEWER func call
+        1dDW_Grad_o_Mat++                          \
+            -in_row_vec   ${gg}.bvec               \
             -in_bvals     ${gg}.bval               \
-            -keep_b0s                              \
             $doflip                                \
-            -out_grad_cols_bwt _TEMP_${ii}.cvec
+            -out_col_vec _TEMP_${ii}.cvec
 
-        3dresample                                 \
-            -overwrite                             \
-            -orient $ori_new                       \
-            -prefix _TEMP_${ii}.nii.gz             \
-            -inset  ${gg}.nii.gz
+        if ( $DO_REORI ) then
+            3dresample                             \
+                -overwrite                         \
+                -orient $ori_new                   \
+                -prefix _TEMP_${ii}.nii.gz         \
+                -inset  ${gg}.nii.gz
+        else
+            # chicken...
+            3dcalc                                 \
+                -a ${gg}.nii.gz                    \
+                -expr 'a'                          \
+                -prefix _TEMP_${ii}.nii.gz         \
+                -overwrite
+        endif
 
         set list_cvecs = ( $list_cvecs _TEMP_${ii}.cvec )
         set list_vols  = ( $list_vols  _TEMP_${ii}.nii.gz )
@@ -268,29 +287,31 @@ if ( "$odir_ap" != "") then
         -prefix $fin_vols              \
         $list_vols
 
-    # set the (0,0,0) to the CM of the brain, or apply the previously
-    # calc'ed origin. (Aug., 2016)
-    if ( $have_orig ) then
-        echo "++ Apply known appropriate origin."
-        3drefit                        \
-            -xorigin_raw $ORIG[1]      \
-            -yorigin_raw $ORIG[2]      \
-            -zorigin_raw $ORIG[3]      \
-            $fin_vols
-    else
-        echo "++ Set center of brain to center of mass..."
-        3dCM -automask -set 0 0 0 $fin_vols
-        echo "++ ... and remember it."
-        set ORIG = `3dinfo -o3 $fin_vols`
-        set have_orig = 1
+    if ( $DO_REORI ) then
+        # set the (0,0,0) to the CM of the brain, or apply the previously
+        # calc'ed origin. (Aug., 2016)
+        if ( $have_orig ) then
+            echo "++ Apply known appropriate origin."
+            3drefit                        \
+                -xorigin_raw $ORIG[1]      \
+                -yorigin_raw $ORIG[2]      \
+                -zorigin_raw $ORIG[3]      \
+                $fin_vols
+        else
+            echo "++ Set center of brain to center of mass..."
+            3dCM -automask -set 0 0 0 $fin_vols
+            echo "++ ... and remember it."
+            set ORIG = `3dinfo -o3 $fin_vols`
+            set have_orig = 1
+        endif
     endif
 
     # make bval/bvec/*.nii files
-    1dDW_Grad_o_Mat                            \
-        -in_grad_cols_bwt $all_cvecs           \
-        -keep_b0s                              \
-        -out_bval_row_sep $fin_bvals           \
-        -out_grad_rows    $fin_bvecs
+    1dDW_Grad_o_Mat++                          \
+        -in_col_vec       $all_cvecs           \
+        -out_row_bval_sep $fin_bvals           \
+        -unit_mag_out                          \
+        -out_row_vec      $fin_bvecs
 endif 
 
 
@@ -323,19 +344,27 @@ if ( "$odir_pa" != "") then
         set ff = "$all_bvec[$i]"
         set gg = ${ff:gas/.bvec//}
 
-        # combine bvals and bvec
-        1dDW_Grad_o_Mat                            \
-            -in_grad_rows ${gg}.bvec               \
+        # combine bvals and bvec, NEWER func call
+        1dDW_Grad_o_Mat++                          \
+            -in_row_vec   ${gg}.bvec               \
             -in_bvals     ${gg}.bval               \
-            -keep_b0s                              \
             $doflip                                \
-            -out_grad_cols_bwt _TEMP_${ii}.cvec
+            -out_col_vec _TEMP_${ii}.cvec
 
-        3dresample                                 \
-            -overwrite                             \
-            -orient $ori_new                       \
-            -prefix _TEMP_${ii}.nii.gz             \
-            -inset  ${gg}.nii.gz
+        if ( $DO_REORI ) then
+            3dresample                             \
+                -overwrite                         \
+                -orient $ori_new                   \
+                -prefix _TEMP_${ii}.nii.gz         \
+                -inset  ${gg}.nii.gz
+        else
+            # chicken...
+            3dcalc                                 \
+                -a ${gg}.nii.gz                    \
+                -expr 'a'                          \
+                -prefix _TEMP_${ii}.nii.gz         \
+                -overwrite
+        endif
 
         set list_cvecs = ( $list_cvecs _TEMP_${ii}.cvec )
         set list_vols  = ( $list_vols  _TEMP_${ii}.nii.gz )
@@ -359,29 +388,31 @@ if ( "$odir_pa" != "") then
         -prefix $fin_vols              \
         $list_vols
 
-    # set the (0,0,0) to the CM of the brain, or apply the previously
-    # calc'ed origin. (Aug., 2016)
-    if ( $have_orig ) then
-        echo "++ Apply known appropriate origin."
-        3drefit                        \
-            -xorigin_raw $ORIG[1]      \
-            -yorigin_raw $ORIG[2]      \
-            -zorigin_raw $ORIG[3]      \
-            $fin_vols
-    else
-        echo "++ Set center of brain to center of mass..."
-        3dCM -automask -set 0 0 0 $fin_vols
-        echo "++ ... and remember it."
-        set ORIG = `3dinfo -o3 $fin_vols`
-        set have_orig = 1
+    if ( $DO_REORI ) then
+        # set the (0,0,0) to the CM of the brain, or apply the previously
+        # calc'ed origin. (Aug., 2016)
+        if ( $have_orig ) then
+            echo "++ Apply known appropriate origin."
+            3drefit                        \
+                -xorigin_raw $ORIG[1]      \
+                -yorigin_raw $ORIG[2]      \
+                -zorigin_raw $ORIG[3]      \
+                $fin_vols
+        else
+            echo "++ Set center of brain to center of mass..."
+            3dCM -automask -set 0 0 0 $fin_vols
+            echo "++ ... and remember it."
+            set ORIG = `3dinfo -o3 $fin_vols`
+            set have_orig = 1
+        endif
     endif
 
     # make bval/bvec/*.nii files
-    1dDW_Grad_o_Mat                            \
-        -in_grad_cols_bwt $all_cvecs           \
-        -keep_b0s                              \
-        -out_bval_row_sep $fin_bvals           \
-        -out_grad_rows    $fin_bvecs
+    1dDW_Grad_o_Mat++                          \
+        -in_col_vec       $all_cvecs           \
+        -out_row_bval_sep $fin_bvals           \
+        -unit_mag_out                          \
+        -out_row_vec      $fin_bvecs
 endif 
 
 
@@ -421,7 +452,7 @@ if ( "$odir_pa" != "") then
     endif
 endif
 
-goto EXIT
+goto GOOD_EXIT
 
 # ========================================================================
 # ========================================================================
@@ -464,7 +495,7 @@ cat << EOF
       {-prefix_ap PRE_AP}                      \
       {-prefix_pa PRE_PA}                      \
       {-orient    ORIENT}                      \
-      {-gradomat  FF}
+      {-flip_x | -flip_y | -flip_z | -no_flip}
 
   where:
   -indir_ap  DIR_AP :directory name(s) of (only) DICOM files of the DWI
@@ -484,15 +515,22 @@ cat << EOF
   -outdir_pa OUT_PA :single output directory name for the 'PA' set(s);
                      default is 'UNFILT_PA', placed parallel to DIR_PA.
   -prefix_ap PRE_AP :output prefix for the *.nii, *.bvec and *.bval files
-                     in OUT_AP; default is 'AP'.
+                     in OUT_AP (default is '$o_ap').
   -prefix_pa PRE_PA :output prefix for the *.nii, *.bvec and *.bval files
-                     in OUT_PA; default is 'PA'.
+                     in OUT_PA (default is currently '$o_pa').
 
   -orient    ORIENT :optional chance to reset orientation of the volume
-                     files; default is 'RPI'.
-  -gradomat  FF     :optional chance to flip grads while processing with
-                     1dDW_Grad_o_Mat.  Acceptable values for FF are:
-                     flip_x, flip_y or flip_z
+                     files (default is currently '$ori_new').
+  -reorig_reorient_off: switch to turn of the nicety of putting (0, 0, 0)
+                     at brain's center of mass (-> 'reorigin' calc) and to
+                     not reorient data (-> 'reorient' calc).  Could lead
+                     to weirdness later on down the road, depending on the
+                     data and headers (ergo, not recommended.)
+
+  -flip_x | -flip_y | -flip_z | -no_flip
+                    :use any one of these for the ability to flip grads 
+                     while processing with 1dDW_Grad_o_Mat++. (Default is 
+                     to not flip.)
 
 -------------------------------------------------------------------------
 
@@ -527,12 +565,15 @@ cat << EOF
 
 EOF
 
-    goto EXIT
+    goto GOOD_EXIT
 
 SHOW_VERSION:
-   echo "version  $version (${rev_dat})"
-   goto EXIT
+    echo "version  $version (${rev_dat})"
+    goto GOOD_EXIT
+
+BAD_EXIT:
+    exit 1
 
 # send everyone here, in case there is any cleanup to do
-EXIT:
-   exit
+GOOD_EXIT:
+    exit 0
