@@ -704,9 +704,9 @@ int powell_newuoa_constrained( int ndim, double *x, double *cost ,
 *//*-------------------------------------------------------------------------*/
 
 #undef  NCUT
-#define NCUT 37   /* note 37^4 is about 2e6, so we will refine    */
-#undef  MLEV      /* the original interval xbot..xtop by a factor */
-#define MLEV 4    /* of about 1 million -- should be good enough! */
+#define NCUT 25   /* note 25^5 is about 1e7, so we will refine     */
+#undef  MLEV      /* the original interval xbot..xtop by a factor  */
+#define MLEV 5    /* of about 10 million -- should be good enough! */
 
 double minimize_in_1D( double xbot, double xtop,
                        double (*ufunc)(int,double *) )
