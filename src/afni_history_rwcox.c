@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 31 , JAN , 2017 , RWC , "minimize_in_1D func" , MICRO , TYPE_GENERAL ,
+   "Modify to be more robust (I hope)." ,
+   "Used in solving for inverse to mixed model ACF (e.g., to get FWHM)." } ,
+
  { 30 , JAN , 2017 , RWC , "ccalc etc" , MICRO , TYPE_ENHANCE ,
    "Add acfwxm function to parser programs" ,
    "To compute the Full Width at X Maximum for the mixed ACF model, for\n"
