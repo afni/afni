@@ -2090,6 +2090,8 @@ void AFNI_sigfunc_alrm(int sig)
      "This horror will grow mild, this darkness will light"                              ,
      "Whose eye views all things at one view"                                            ,
      "Thus uplifted high beyond hope"                                                    ,
+     "Returning you to the dark illimitable ocean without bound"                         ,
+     "With thoughts inflamed of highest design"                                          ,
 
      /* These are to make it clear that Cox is not to be blamed for ANYTHING */
 
