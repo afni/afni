@@ -3,10 +3,14 @@
 # --------------------- revision history -------------------------
 # Jan, 2017
 #   + rename
+#
+# Jan 27, 2017
+#   + update opts
+#
 # ----------------------------------------------------------------
 
-set version = "1.0"
-set rev_dat = "Jan, 2017"
+set version = "1.1"
+set rev_dat = "Jan 27, 2017"
 set this_prog = "fat_proc_dwi_to_dt"
 
 set idwis    = ""
@@ -15,9 +19,6 @@ set odir     = ""
 set opref    = ""
 set ori_new  = "RPI"       # default file output orientation
 set doflip   = ""          # default: no flip of grads
-
-
-
 
 # ------------------- process options, a la rr ----------------------
 
@@ -54,21 +55,6 @@ while ( $ac <= $#argv )
         @ ac += 1
         set opref = "$argv[$ac]"
 
-   else if ( "$argv[$ac]" == "-gradomat" ) then
-      if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
-      @ ac += 1
-      set doflip = "-$argv[$ac]"
-
-      if ( ("$doflip" == "-flip_x") ||   \
-           ("$doflip" == "-flip_y") ||   \
-           ("$doflip" == "-flip_y") ) then
-           echo "++ OK, will flip grads with: $doflip"
-      else
-           echo "** ERROR: that flip option not allowed."
-           echo "   You can use only one of:"
-           echo "\t -flip_x , -flip_y , -flip_z"
-      endif
-
    else if ( "$argv[$ac]" == "-orient" ) then
       if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
       @ ac += 1
@@ -79,7 +65,7 @@ while ( $ac <= $#argv )
 
     else
         echo "** unexpected option #$ac = '$argv[$ac]'"
-        exit 2
+        goto BAD_EXIT
 
     endif
     @ ac += 1
@@ -96,5 +82,50 @@ echo "++ Start script version: $version"
 if ( ("$idir_ap" == "") && ("$idir_pa" == "") ) then
     echo "** ERROR: need to input at least one DICOM directory,"
     echo "\t using either after '-indir_ap' or '-indir_pa'."
-    exit
+    goto BAD_EXIT
 endif
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+goto GOOD_EXIT
+
+# ========================================================================
+# ========================================================================
+
+SHOW_HELP:
+cat << EOF
+-------------------------------------------------------------------------
+
+
+
+-------------------------------------------------------------------------
+
+EOF
+
+    goto GOOD_EXIT
+
+SHOW_VERSION:
+    echo "version  $version (${rev_dat})"
+    goto GOOD_EXIT
+
+BAD_EXIT:
+    exit 1
+
+# send everyone here, in case there is any cleanup to do
+GOOD_EXIT:
+    exit 0
