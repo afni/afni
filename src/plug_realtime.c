@@ -564,7 +564,7 @@ static char * GRAPH_strings[NGRAPH] = { "No" , "Yes" , "Realtime" } ;
    static int RT_chmrg_datum = -1 ;
    static char * RT_chmrg_list = NULL ;
 
-   MRI_IMAGE * RT_mergerize( RT_input * , int , int ) ;
+   MRI_IMAGE * RT_mergerize( RT_input * , int ) ;
 static int RT_merge( RT_input *, int, int ) ;  /* 28 Oct 2016 [rickr] */
 
 /* merge before or after registration */
@@ -711,6 +711,7 @@ static int  RT_mp_mask_free     ( RT_input * rtin );  /* 10 Nov 2006 [rickr] */
 static int  RT_mp_getenv        ( void );
 static int  RT_mp_show_time     ( char * mesg ) ;
 static int  RT_show_duration    ( char * mesg ) ;
+static int  RT_when_to_merge    ( void );
 static int  RT_will_register_merged_dset(RT_input * rtin);    /* 27 Oct 2016 */
 
 /* string list functions (used for DRIVE_WAIT commands) */
@@ -882,15 +883,20 @@ PLUGIN_interface * PLUGIN_init( int ncall )
    /* initialize this - it can be overwritten in the plugin  23 Jan 2017 */
    /* rcr - but if coming throught the plugin, do not do this */
    ept = getenv("AFNI_REALTIME_T2star_ref");
-   if( ept != NULL ){
+   if( ept ){
       /* remove any old one, first */
       if( g_t2star_ref_dset ) DSET_delete(g_t2star_ref_dset);
       g_t2star_ref_dset = THD_open_dataset(ept);
       if( g_t2star_ref_dset )
-         fprintf(stderr,"RTMerge: have T2start_ref from env, %s\n", ept)
+{
+fprintf(stderr,"== pickles\n");
+         fprintf(stderr,"== RTMerge: have T2star_ref from env, %s\n", ept);
+}
       else
-         fprintf(stderr,"RTMerge: have T2start_ref from env, %s\n", ept)
+         fprintf(stderr,"** RTMerge: bad T2star_ref from env, %s\n", ept);
    }
+else
+fprintf(stderr,"-- no T2star_ref from env\n");
 
    PLUTO_add_option(plint, "" , "Registration Base" , FALSE ) ;
    PLUTO_add_hint  (plint, "choose registration base dataset and sub-brick");
@@ -1179,6 +1185,7 @@ char * RT_main( PLUGIN_interface * plint )
 
          /* rcr - if coming through the plugin, we should not delete */
          if( g_t2star_ref_dset ) { /* if changed: remove reference to any existing */
+fprintf(stderr,"======= clearing old ref_dset\n");
             DSET_delete(g_t2star_ref_dset);
             g_t2star_ref_dset = NULL;
          }
@@ -2289,6 +2296,8 @@ RT_input * new_RT_input( IOCHAN *ioc_data )
    /* Just use data set as is */
    if(g_t2star_ref_dset) rtin->t2star_ref_dset=g_t2star_ref_dset;
    else                  rtin->t2star_ref_dset=NULL;
+fprintf(stderr,"-- INIT: t2star_ref_dset=%p, g=%p\n",
+        rtin->t2star_ref_dset, g_t2star_ref_dset);
 
    rtin->mask       = NULL ;      /* mask averages, to send w/motion params */
    rtin->mask_aves  = NULL ;      /*                    10 Nov 2006 [rickr] */
@@ -4616,7 +4625,8 @@ void RT_start_dataset( RT_input * rtin )
  * merged dataset                        27 Oct 2016 [rickr] */
 static int RT_will_register_merged_dset(RT_input * rtin)
 {
-   if( rtin->reg_chan_mode > RT_CM_RMODE_NONE )
+   /* if( rtin->reg_chan_mode > RT_CM_RMODE_NONE ) */
+   if ( RT_when_to_merge() == RT_CM_MERGE_BEFORE_REG )
       return 1;
 
    return 0;
@@ -4884,10 +4894,8 @@ void RT_process_image( RT_input * rtin )
       /* rcr OC - check for pre-reg merge */
       if( cc+1 == rtin->num_chan && 
           RT_when_to_merge() == RT_CM_MERGE_BEFORE_REG ) {
-        RT_merge( rtin, cc, 0);
+        RT_merge( rtin, cc, -1);
       }
-fprintf(stderr,"== PLOT pre reg: reg_mode = %d, reg_graph = %d\n",
-        rtin->reg_mode, rtin->reg_graph);
 
       /* do registration before function computation   - 30 Oct 2003 [rickr] */
       switch( rtin->reg_mode ){
@@ -4910,9 +4918,14 @@ fprintf(stderr,"== PLOT pre reg: reg_mode = %d, reg_graph = %d\n",
       if( cc+1 == rtin->num_chan && 
           RT_when_to_merge() == RT_CM_MERGE_AFTER_REG ) {
 
-fprintf(stderr,"********* About to merge, RT_CM_MERGE_AFTER_REG, nvol = %d \n", rtin->nvol[cc]);
-
-        RT_merge( rtin, cc, 1);
+{/* rcr fix */
+ static int nmerged = 0;
+ int tt;
+ int ntt = DSET_NUM_TIMES( rtin->dset[g_reg_src_chan] ) ;
+fprintf(stderr,"== post-reg merging..., nmerged = %d, ntt=%d\n", nmerged,ntt);
+ for( ; nmerged < ntt ; nmerged++ )
+        RT_merge( rtin, cc, nmerged);
+}
       }
 
       /* Cameron Craddock
@@ -5196,15 +5209,20 @@ fprintf(stderr,"********* About to merge, RT_CM_MERGE_AFTER_REG, nvol = %d \n", 
    return ;
 }
 
-static int RT_merge( RT_input * rtin, int chan, int postreg )
+static int RT_merge( RT_input * rtin, int chan, int tt )
 {
    MRI_IMAGE * mrgim ;
    int         iv;
 
+fprintf(stderr,"== RTMerge 0, chan=%d, num_chan=%d, mode=%d\n",
+chan, rtin->num_chan, RT_chmrg_mode);
    /* if not merging, we are out of here */
    if( chan+1 != rtin->num_chan || RT_chmrg_mode == 0 ) return 0;
 
-   iv = rtin->nvol[chan]-1 ;  /* sub-brick index */
+   if ( tt >= 0 ) iv = tt;
+   else           iv = rtin->nvol[chan]-1 ;  /* sub-brick index */
+
+fprintf(stderr,"  merging time index iv=%d\n", iv);
   
    /* 10 Jul 2010 [rickr]: maybe merge only a subset of channels */
    /* note: the channel int list can only be created "now", since
@@ -5222,7 +5240,7 @@ static int RT_merge( RT_input * rtin, int chan, int postreg )
                 rtin->chan_list[0], rtin->chan_list_str);
    }
   
-   mrgim = RT_mergerize(rtin, iv, postreg) ;
+   mrgim = RT_mergerize(rtin, iv) ;
    if( mrgim == NULL ){
      ERROR_message("RT can't merge channels at time index #%d",iv) ;
    } else {
@@ -6363,12 +6381,12 @@ void RT_registration_3D_realtime( RT_input *rtin )
 
    /*-- check to see if we need to setup first --*/
 
-fprintf(stderr,"== PLOT 0: reg_graph = %d\n", rtin->reg_graph);
    if( rtin->reg_3dbasis == NULL ){  /* need to setup */
 
       /* check if enough data to setup (0 -> g_reg_src_chan 27 Oct 2016) */
       if( rtin->reg_base_index >= rtin->nvol[g_reg_src_chan] )
          return ;  /* can't setup */
+
       /* rcr OC - applies to 1 and 2 */
       if( RT_will_register_merged_dset(rtin) &&
           rtin->reg_base_index >= rtin->mrg_nvol ) return ;
@@ -6397,7 +6415,6 @@ fprintf(stderr,"== PLOT 0: reg_graph = %d\n", rtin->reg_graph);
 
       /* realtime graphing? */
 
-fprintf(stderr,"== PLOT 1: reg_graph = %d\n", rtin->reg_graph);
       if( rtin->reg_graph == 2 ){
          int    ycount = -6 ;  /* default number of graphs */
          static char * nar[6] = {
@@ -6431,7 +6448,6 @@ fprintf(stderr,"== PLOT 1: reg_graph = %d\n", rtin->reg_graph);
 
    /*-- register all sub-bricks that aren't done yet --*/
 
-fprintf(stderr,"== PLOT 2: reg_graph = %d\n", rtin->reg_graph);
    /* rcr OC - applies to 1 and 2 */
    if( RT_will_register_merged_dset(rtin) )
       ntt = DSET_NUM_TIMES( rtin->mrg_dset ) ;
@@ -7592,7 +7608,7 @@ void RT_test_callback(void *junk)
 MRI_IMAGE * RT_mergerize(int nds , THD_3dim_dataset **ds , int iv, int * dlist)
    but pass rtin instead of elements                     12 Mar 2015 [rickr] */
 
-MRI_IMAGE * RT_mergerize(RT_input * rtin, int iv, int postreg)
+MRI_IMAGE * RT_mergerize(RT_input * rtin, int iv)
 {
    THD_3dim_dataset **ds ;
    int * dlist = rtin->chan_list ;
@@ -7604,9 +7620,11 @@ MRI_IMAGE * RT_mergerize(RT_input * rtin, int iv, int postreg)
    float *fmar=NULL , *ftar ; complex *cmar=NULL , *ctar ;
    short *sar[MAX_CHAN] , *star ;  /* OPT_COMB or T2STAREST */
 
-   /* if after registration, use reg_chan_dset      28 Oct 2016 [rickr] */
-   if( postreg ) ds = rtin->reg_chan_dset ;
-   else          ds = rtin->dset ;
+   ds = rtin->dset ;
+
+fprintf(stderr,"++ RT_mergerize 0, iv=%d, nds=%d\n", iv, nds);
+fprintf(stderr,"   ds=%p, reg_chan_dset=%p, dset=%p\n",
+        ds, rtin->reg_chan_dset, rtin->dset);
 
    if( nds <= 1 || ds == NULL || !ISVALID_DSET(ds[0]) ) return NULL ;
    if( iv < 0 || iv >= DSET_NVALS(ds[0]) )              return NULL ;
@@ -7634,10 +7652,18 @@ MRI_IMAGE * RT_mergerize(RT_input * rtin, int iv, int postreg)
    /* get pointers to input data arrays */
 
    idatum = DSET_BRICK_TYPE(ds[0],iv) ;
+fprintf(stderr,"   RTM 1, ndsets = %d, idatum=%d, short=%d\n",
+        ndsets, idatum, MRI_short);
    switch( idatum ){
      default: return NULL ; /* should never happen */
 
      case MRI_short:
+fprintf(stderr,"-- dlist=%p, cc=%d, iv=%d, sar=%p\n", dlist, 0, iv, sar);
+for( cc=0 ; cc < ndsets ; cc++ ){
+   fprintf(stderr,"   ds[cc]=%p\n", ds[cc]);
+   fprintf(stderr,"   DA(ds[cc])=%p\n", DSET_ARRAY(ds[cc],iv));
+}
+
        for( cc=0 ; cc < ndsets ; cc++ )
           /* if dlist is set, get the index from there */
           sar[cc] = dlist ? DSET_ARRAY(ds[dlist[cc+1]],iv)
@@ -7663,7 +7689,9 @@ MRI_IMAGE * RT_mergerize(RT_input * rtin, int iv, int postreg)
 
    nvox  = DSET_NVOX(ds[0]) ;
    mrgim = mri_new_conforming( DSET_BRICK(ds[0],iv) , RT_chmrg_datum ) ;
+fprintf(stderr,"== mdatum=%d, nvox=%d, mrgim=%p\n", RT_chmrg_datum,nvox,mrgim);
    if( mrgim == NULL ) return NULL ;  /* should never happen */
+fprintf(stderr,"== mdatum=%d, float=%d\n", RT_chmrg_datum, MRI_float);
 
    /* get pointer to output array */
 
@@ -7672,6 +7700,9 @@ MRI_IMAGE * RT_mergerize(RT_input * rtin, int iv, int postreg)
      case MRI_float:   fmar = MRI_FLOAT_PTR  (mrgim) ; break ;
      case MRI_complex: cmar = MRI_COMPLEX_PTR(mrgim) ; break ;
    }
+fprintf(stderr,"-- fmar = %p\n", fmar);
+fprintf(stderr,"-- RT_chmrg_mode=%d, RT_CHMER_OPT_COMB=%d\n",
+        RT_chmrg_mode, RT_CHMER_OPT_COMB);
 
    /*** do the mergerizing ***/
 
@@ -7781,8 +7812,14 @@ MRI_IMAGE * RT_mergerize(RT_input * rtin, int iv, int postreg)
      case RT_CHMER_OPT_COMB :  /* output datum is always float */
         {
            float *t2star_ref, sumTEsByExpTEs;
+fprintf(stderr,"== xx == merging OPT_COMB\n");
 
+           DSET_load(rtin->t2star_ref_dset);
            t2star_ref = DSET_ARRAY(rtin->t2star_ref_dset, 0);
+
+fprintf(stderr,"-- USE: t2star_ref_dset=%p, g=%p\n",
+        rtin->t2star_ref_dset, g_t2star_ref_dset);
+fprintf(stderr,"   USE: t2star_ref=%p\n", t2star_ref);
 
            for (ii=0 ; ii < nvox ; ii++)
            {
@@ -7833,6 +7870,8 @@ MRI_IMAGE * RT_mergerize(RT_input * rtin, int iv, int postreg)
                }
 
                fmar[ii] =  fmar[ii] / sumTEsByExpTEs;
+if( ii==1 )
+fprintf(stderr,"=+=+ made one pass\n");
            }
        }
      break ; /* done with RT_CHMER_OPT_COMB */
