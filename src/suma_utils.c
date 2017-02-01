@@ -3464,6 +3464,10 @@ static ENV_SPEC envlist[] = {
    {  "Multiplier for range of thresholding scale.\n",
       "SUMA_Range_Multiplier",
       "1.0" },
+   {  "Default p value to adopt when switching to a new sub-brick.\n"
+      "Negative values mean leave the threshold alone when switching.\n",
+      "SUMA_pval_at_switch",
+      "-1.0" },
    {  NULL, NULL, NULL  }
 };
       
