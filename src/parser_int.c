@@ -766,6 +766,50 @@ doublereal hrfbk5_( doublereal *ttp , doublereal *TTp )
    return (doublereal)w ;
 }
 
+/*-----------------------------------------------------------------------*/
+/* Stuff for mixed-model ACF calculations */
+
+static double ACFaa, ACFbb, ACFcc, ACFflev ;
+
+double acfwxm_cost( int npar , double *par )
+{
+   double fit , rr=*par ;
+   double apar,bpar,cpar , flev ;
+
+   apar = ACFaa ; bpar = ACFbb ; cpar = ACFcc ; flev = ACFflev ;
+
+   fit =        apar * exp( -0.5*rr*rr/(bpar*bpar) )
+        + (1.0-apar) * exp( -rr/cpar) ;
+
+   return fabs(fit-flev) ;
+}
+
+doublereal acfwxm_( doublereal *apar , doublereal *bpar , doublereal *cpar , doublereal *flev )
+{
+   double rhalf , rtop , rbot ;
+
+   ACFaa = *apar ; ACFbb = *bpar ; ACFcc = *cpar ; ACFflev = *flev ;
+
+   if( ACFaa   >  1.0 || ACFaa   <  0.0 ) return 0.0 ;
+   if( ACFbb   <= 0.0 || ACFcc   <= 0.0 ) return 0.0 ;
+   if( ACFflev <= 0.0 || ACFflev >= 1.0 ) return 0.0 ;
+
+   if( ACFflev > 0.1 ){
+     rtop = 2.5*ACFbb+2.0*ACFcc ;
+     rbot = 0.0666*rtop ;
+   } else {
+     double gg = -log(ACFflev) ;
+     rtop = sqrt(5.0*gg)*ACFbb+2.0*ACFcc ;
+     rbot = 0.0333*rtop ;
+   }
+
+   rhalf = minimize_in_1D( rbot       , rtop       , acfwxm_cost ) ;
+   rhalf = minimize_in_1D( 0.50*rhalf , 2.00*rhalf , acfwxm_cost ) ;
+   rhalf = minimize_in_1D( 0.80*rhalf , 1.25*rhalf , acfwxm_cost ) ;
+
+   return 2.0*rhalf ;
+}
+
 /*===========================================================================*/
 /* Stuff for fitting an expression to a time series: PARSER_fitter().        */
 /*---------------------------------------------------------------------------*/
