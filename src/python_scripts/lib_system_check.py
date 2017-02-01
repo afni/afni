@@ -347,9 +347,9 @@ class SysInfo:
       """look for fink, macports, homebrew, PyQt4"""
 
       # check for repositories
-      nfound = self.check_for_progs(['brew', 'port', 'fink'], repos=1)
+      nfound = self.check_for_progs(['fink', 'brew', 'port'], repos=1)
       if nfound == 0:
-         self.comments.append('consider installing homebrew')
+         self.comments.append('consider installing fink')
       self.hunt_for_homebrew()
       if self.get_osx_ver() < 7:
          self.comments.append('OS X version might be old')
@@ -376,8 +376,11 @@ class SysInfo:
                      self.comments.append(cs)
                      self.comments.append(ls)
                
+         elif self.repo_prog == 'fink':
+            fcmd = 'sudo fink install pyqt4-mac-py27'
+            self.comments.append('consider running: %s'%fcmd)
          elif self.repo_prog == 'brew':
-            self.comments.append('consider running: brew install pyqt')
+            self.comments.append('note: pyqt4 is no longer available via brew')
          else:
             self.comments.append('consider installing PyQt4')
 
@@ -887,6 +890,12 @@ class SysInfo:
 
       elif prog == 'tcsh':      # no version
          return 0, ''
+
+      elif prog == 'port':      # no dashes for version
+         cmd = '%s version' % prog
+         s, so, se = UTIL.limited_shell_exec(cmd, nlines=1)
+         if s: return 1, se[0]
+         else: return 1, so[0]
 
       elif prog in ['dnf', 'yum', 'apt-get', 'brew', 'port', 'fink', 'R']:
          cmd = '%s --version' % prog
