@@ -734,10 +734,10 @@ INFO_message("x1=%g x2=%g imin=%d xmin=%g vmin=%g",x1,x2,imin,x1+imin*dx,vmin) ;
 
     if( imin == 0 ){
       x2 = x1 + 1.5*dx ;
-    } else if( imin == 20 ){
+    } else if( imin == NCUT ){
       x1 = x2 - 1.5*dx ;
     } else {
-      x1 = x1 + (imin-1)*dx ; x2 = x1 + 2.0*dx ;
+      x1 = x1 + (imin-1)*dx*0.99 ; x2 = x1 + 1.98*dx ;
     }
   }
 
