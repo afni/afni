@@ -12,7 +12,7 @@
 
 THD_3dim_dataset *THD_Tcorr1D(THD_3dim_dataset *xset, byte *mask, int nmask,
                               MRI_IMAGE *ysim,
-                              char *smethod, char *prefix)
+                              char *smethod, char *prefix, int do_short )
 {
    THD_3dim_dataset *cset = NULL;
    int method=PEARSON ;
@@ -21,6 +21,8 @@ THD_3dim_dataset *THD_Tcorr1D(THD_3dim_dataset *xset, byte *mask, int nmask,
    int nvox , nvals , ii;
 
    ENTRY("THD_Tcorr1D");
+
+   if( do_short ) datum = MRI_short ;  /* 30 Jan 2017 */
 
    if (!smethod || smethod[0] == '\0') {
     method = PEARSON;

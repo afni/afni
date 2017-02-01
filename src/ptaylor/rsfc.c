@@ -287,7 +287,7 @@ int WB_netw_corr(int Do_r,
          mri = mri_float_arrays_to_image(AVE_TS_fl,Dim[3],1);
          OUT_CORR_MAP = THD_Tcorr1D(insetTIME, mskd2, Nmask,
                                     mri,
-                                    "pearson", OUT_indiv);
+                                    "pearson", OUT_indiv, 0);
          if(Do_r){
             THD_load_statistics(OUT_CORR_MAP);
             tross_Copy_History( insetTIME , OUT_CORR_MAP ) ;

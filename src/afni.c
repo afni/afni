@@ -2057,7 +2057,7 @@ void AFNI_sigfunc_alrm(int sig)
      "With hideous ruin and combustion, down to bottomless perdition"                    ,
      "The mind and spirit remains invincible"                                            ,
      "The thought both of lost happiness and lasting pain"                               ,
-     "Clothed with transcendent brightness"                                              ,
+     "Still clothed with transcendent brightness"                                        ,
      "All is not lost: the unconquerable will, and courage never to submit or yield"     ,
      "Too well I see and rue the dire event that hath lost us Heaven"                    ,
      "Happy state here swallowed up in endless misery"                                   ,
@@ -2090,6 +2090,9 @@ void AFNI_sigfunc_alrm(int sig)
      "This horror will grow mild, this darkness will light"                              ,
      "Whose eye views all things at one view"                                            ,
      "Thus uplifted high beyond hope"                                                    ,
+     "Returning you to the dark illimitable ocean without bound"                         ,
+     "With thoughts inflamed of highest design"                                          ,
+     "Flying far off into a Limbo large and broad"                                       ,
 
      /* These are to make it clear that Cox is not to be blamed for ANYTHING */
 
