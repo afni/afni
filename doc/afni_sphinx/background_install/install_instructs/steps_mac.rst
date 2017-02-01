@@ -117,7 +117,7 @@ operating system) to a link to install XQuartz.
                 can use ``-local_package``, followed by the
                 location+name of the binary file, e.g.::
 
-                tcsh @update.afni.binaries -local_package macosx_10.7_local.tgz -do_extras
+                  tcsh @update.afni.binaries -local_package macosx_10.7_local.tgz -do_extras
 
 
 #. **R installation**
