@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  1,  Feb, 2017, RCR, "afni_system_check", MINOR, TYPE_ENHANCE,
+   "updates for fink and homebrew",
+   NULL
+ } ,
+
  { 27, Jan, 2017, RCR, "CA_EZ_atlas.csh", MICRO, TYPE_MODIFY,
    "with -help, do not dump TT_N27 in current directory",
    "Have script fail if any arguments are given (e.g. -help).\n"
