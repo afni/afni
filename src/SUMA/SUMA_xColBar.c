@@ -1201,6 +1201,7 @@ int SUMA_SwitchColPlaneIntensity_one (
    char srange[500];
    double range[2];
    int loc[2];
+   float pp = 0.0;
    SUMA_DSET *dset=NULL;
    char *Label=NULL;
    SUMA_X_SurfCont *SurfCont=NULL;
@@ -1307,6 +1308,13 @@ int SUMA_SwitchColPlaneIntensity_one (
                         }else {
                            SUMA_S_Err("Failed to get range");
                         }
+                        if ((pp=SUMA_floatEnv("SUMA_pval_at_switch", -1.0)) 
+                                                                        >= 0) {
+                           pp = (float)SUMA_Pval2ThreshVal (ado, (double)pp);
+                           /* This function will cause undue redisplays, but
+                           keeps code clean */
+                           SUMA_set_threshold_one(ado, colp, &pp);
+                        }
                      }
                   } SUMA_free(lab2); lab2=NULL;
                   /* put lab back together */
@@ -1332,6 +1340,12 @@ int SUMA_SwitchColPlaneIntensity_one (
             }else {
                SUMA_S_Err("Failed to get range");
             }
+            if ((pp=SUMA_floatEnv("SUMA_pval_at_switch", -1.0)) >= 0) {
+               pp = (float)SUMA_Pval2ThreshVal (ado, (double)pp);
+               /* This function will cause undue redisplays, but 
+               keeps code clean */
+               SUMA_set_threshold_one(ado, colp, &pp);
+            }
          }
          break;
       case SW_LinkMode_Pls1:
@@ -1350,6 +1364,12 @@ int SUMA_SwitchColPlaneIntensity_one (
                SUMA_UpdateNodeValField(ado);
             }else {
                SUMA_S_Err("Failed to get range");
+            }
+            if ((pp=SUMA_floatEnv("SUMA_pval_at_switch", -1.0)) >= 0) {
+               pp = (float)SUMA_Pval2ThreshVal (ado, (double)pp);
+               /* This function will cause undue redisplays, but 
+               keeps code clean */
+               SUMA_set_threshold_one(ado, colp, &pp);
             }
          }
             }
@@ -1458,6 +1478,7 @@ int SUMA_SwitchColPlaneThreshold_one(
    static char FuncName[]={"SUMA_SwitchColPlaneThreshold_one"};
    char srange[500];
    double range[2]; int loc[2];  
+   float pp=0.0;
    SUMA_X_SurfCont *SurfCont=NULL;
    SUMA_OVERLAYS *curColPlane=NULL;
    SUMA_Boolean LocalHead = NOPE;
@@ -1486,12 +1507,14 @@ int SUMA_SwitchColPlaneThreshold_one(
             ind, SDSET_VECNUM(colp->dset_link)-1);
       SUMA_RETURN(0);
    }
+   
    if (ind != colp->OptScl->tind &&
           colp->OptScl->Clusterize) {
          /* Need a new clusterizing effort*/
          colp->OptScl->RecomputeClust = 1;
    }
    colp->OptScl->tind = ind;
+
 
    /* make sure threshold is on if command is not from the interface*/
    if (setmen && !colp->OptScl->UseThr && colp->OptScl->tind >= 0) {
@@ -1510,7 +1533,7 @@ int SUMA_SwitchColPlaneThreshold_one(
       SUMA_SLP_Err("Failed to get range");
       SUMA_RETURN(0);
    }
-   
+
    /* threshold sub-brick change */ 
    SUMA_InitRangeTable(ado, -1) ;
    SUMA_UpdateCrossHairNodeLabelFieldForDO(ado);
@@ -1532,6 +1555,12 @@ int SUMA_SwitchColPlaneThreshold_one(
    #endif
    
    SUMA_UpdateNodeLblField(ado);
+
+   if ((pp=SUMA_floatEnv("SUMA_pval_at_switch", -1.0)) >= 0) {
+      pp = (float)SUMA_Pval2ThreshVal (ado, (double)pp);
+      /* This function will cause undue redisplays, but keeps code clean */
+      SUMA_set_threshold_one(ado, colp, &pp);
+   }
 
    SUMA_RETURN(1);
 }
