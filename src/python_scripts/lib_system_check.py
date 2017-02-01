@@ -757,7 +757,7 @@ class SysInfo:
       n2 = UTIL.num_found_in_path('python2', mtype=1)
       n3 = UTIL.num_found_in_path('python3', mtype=1)
       if n3 > 0 and n2 <= 0:
-         self.comments.append("have python3 but not python2")
+         print "** have python3 but not python2"
       print
 
       # try select AFNI programs
@@ -1000,7 +1000,7 @@ class SysInfo:
        return 1
 
    def show_comments(self):
-      print UTIL.section_divider('summary comments', hchar='=')
+      print UTIL.section_divider(' please fix ', hchar='=')
       for cc in self.comments: 
          if len(cc) == 0: print ''
          else:
