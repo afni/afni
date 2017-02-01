@@ -1313,7 +1313,9 @@ int SUMA_SwitchColPlaneIntensity_one (
                            pp = (float)SUMA_Pval2ThreshVal (ado, (double)pp);
                            /* This function will cause undue redisplays, but
                            keeps code clean */
-                           SUMA_set_threshold_one(ado, colp, &pp);
+                           if ( pp != 0.0) {
+                              SUMA_set_threshold_one(ado, colp, &pp);
+                           }
                         }
                      }
                   } SUMA_free(lab2); lab2=NULL;
@@ -1344,7 +1346,9 @@ int SUMA_SwitchColPlaneIntensity_one (
                pp = (float)SUMA_Pval2ThreshVal (ado, (double)pp);
                /* This function will cause undue redisplays, but 
                keeps code clean */
-               SUMA_set_threshold_one(ado, colp, &pp);
+               if ( pp != 0.0) {
+                  SUMA_set_threshold_one(ado, colp, &pp);
+               }
             }
          }
          break;
@@ -1369,7 +1373,9 @@ int SUMA_SwitchColPlaneIntensity_one (
                pp = (float)SUMA_Pval2ThreshVal (ado, (double)pp);
                /* This function will cause undue redisplays, but 
                keeps code clean */
-               SUMA_set_threshold_one(ado, colp, &pp);
+               if ( pp != 0.0) {
+                  SUMA_set_threshold_one(ado, colp, &pp);
+               }
             }
          }
             }
@@ -1559,7 +1565,9 @@ int SUMA_SwitchColPlaneThreshold_one(
    if ((pp=SUMA_floatEnv("SUMA_pval_at_switch", -1.0)) >= 0) {
       pp = (float)SUMA_Pval2ThreshVal (ado, (double)pp);
       /* This function will cause undue redisplays, but keeps code clean */
-      SUMA_set_threshold_one(ado, colp, &pp);
+      if ( pp != 0.0) {
+         SUMA_set_threshold_one(ado, colp, &pp);
+      }
    }
 
    SUMA_RETURN(1);
