@@ -189,9 +189,10 @@ g_history = """
    0.23 Nov 17, 2016 - look for flat_namespace on macs
    0.24 Dec  7, 2016 - check for python2 and python3
    0.25 Jan 25, 2017 - new OS X, check any DYLD vars via sub-shells
+   0.26 Feb  1, 2017 - check for fink python link
 """
 
-g_version = "afni_system_check.py version 0.25, January 25, 2017"
+g_version = "afni_system_check.py version 0.26, February 1, 2017"
 
 
 class CmdInterface:
