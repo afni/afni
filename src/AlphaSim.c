@@ -348,6 +348,10 @@ void get_options (int argc, char ** argv,
   /*----- does user request help menu? -----*/
   if (argc < 2 || strncmp(argv[1], "-help", 5) == 0)  display_help_menu();
 
+  WARNING_message(
+   "*** Please do not use AlphaSim! Use 3dClustSim instead!! ***\n" ) ;
+  ININFO_message("AlphaSim is obsolete, and is no longer kept up-to-date.") ;
+  ININFO_message("In the near future, this program will be disabled.") ;
 
   /*----- add to program log -----*/
   AFNI_logger (PROGRAM_NAME,argc,argv);
