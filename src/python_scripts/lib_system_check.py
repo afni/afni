@@ -26,6 +26,7 @@ class SysInfo:
       self.verb            = verb
 
       self.afni_ver        = ''
+      self.afni_label      = ''
       self.afni_dir        = ''
       self.os_dist         = ''
       self.comments        = [] # comments to print at the end
@@ -363,6 +364,18 @@ class SysInfo:
             ghead = os.path.dirname(gdir)
             print '++ found PyQt4 under %s' % ghead
             self.comments.append('consider adding %s to PYTHONPATH' % ghead)
+            # if fink, see whether that python exists
+            if ghead.startswith('/sw'):
+               ppath = '/sw/bin/python'
+               if os.path.isfile(ppath+'2.7'):
+                  if not os.path.isfile(ppath) and not os.path.islink(ppath):
+                     cs = 'consider linking to fink python2.7:'
+                     ls = '   sudo ln -s %s %s' % (ppath+'2.7', ppath)
+                     print '** seem to be using fink python2.7 but need python'
+                     print '   consider:%s' % ls
+                     self.comments.append(cs)
+                     self.comments.append(ls)
+               
          elif self.repo_prog == 'brew':
             self.comments.append('consider running: brew install pyqt')
          else:
@@ -541,6 +554,8 @@ class SysInfo:
       else:
          if self.get_osx_ver() >= 11:
             self.check_evar_path_for_val(edir, flatdir)
+            if self.cur_shell.find('csh') < 0:
+               self.check_evar_path_for_val(edir, flatdir, shell='tcsh')
          else:
             print '** env var %s is not set to contain %s' % (edir, flatdir)
             print '   (so afni and suma may fail)'
@@ -549,9 +564,14 @@ class SysInfo:
       return 1
 
    def check_evar_path_for_val(self, evar, val, shell=''):
-      print '-- recent OS X, cannot check %s in cur shell, cheating ...' % evar
     
-      if shell == '': shell = self.cur_shell
+      if shell == '':
+         shell = self.cur_shell
+         print '-- recent OS X, cannot check %s in cur shell, cheating ...' \
+               % evar
+      else:
+         print "-- recent OS X, cannot check %s in shell '%s', cheating ..." \
+               % (evar, shell)
 
       s, so = self.get_shell_value(shell, evar)
 
@@ -621,6 +641,12 @@ class SysInfo:
             print '%-20s : %s' % (prog, vinfo)
             continue
 
+         elif prog == 'afni label':
+            nfound += 1   # do not call this an error yet
+            s, v = self.get_prog_version('afni')
+            print '%-20s : %s' % ('', self.afni_label)
+            continue
+
          cmd = 'which %s' % prog
          s, so, se = BASE.simple_shell_exec(cmd, capture=1)
          if not s: # found one
@@ -657,6 +683,7 @@ class SysInfo:
             os.system('python -c "%s"' % cmd)
             print '   **************************************************\n'
             self.comments.append('check for partial install of PyQt4')
+            self.have_pyqt4 = 0
       print
 
       pdirs = glob.glob('/sw/bin/python*')
@@ -696,7 +723,8 @@ class SysInfo:
       print UTIL.section_divider('AFNI and related program tests', hchar='-')
 
       self.afni_dir = self.get_afni_dir()
-      check_list = ['afni', 'AFNI_version.txt', 'python', 'R', 'tcsh']
+      check_list = ['afni', 'afni label', 'AFNI_version.txt',
+                    'python', 'R', 'tcsh']
       nfound = self.check_for_progs(check_list, show_missing=1)
       if nfound < len(check_list):
          self.comments.append('failure under initial ' \
@@ -844,8 +872,15 @@ class SysInfo:
             else: return 1, so[1]
          else:
             off1 = so[0].find('(')
-            if off1 > 0: return 1, so[0][0:off1]
-            else:        return 1, so[0]
+            if off1 > 0:
+               vstr = so[0][0:off1]
+               off2 = so[0].find('AFNI_')
+               if off2 > off1:
+                  ll = so[0][off2:]
+                  self.afni_label = ll.split(')')[0]
+            else:
+               vstr = so[0]
+            return 1, vstr
 
       elif prog == 'python':
          return 1, platform.python_version()
