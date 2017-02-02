@@ -2093,6 +2093,7 @@ void AFNI_sigfunc_alrm(int sig)
      "Returning you to the dark illimitable ocean without bound"                         ,
      "With thoughts inflamed of highest design"                                          ,
      "Flying far off into a Limbo large and broad"                                       ,
+     "Ascending by degrees magnificent"                                                  ,
 
      /* These are to make it clear that Cox is not to be blamed for ANYTHING */
 
@@ -2107,6 +2108,7 @@ void AFNI_sigfunc_alrm(int sig)
      "If you have any questions about AFNI, ask ... Rick Reynolds :)"          ,
      "If you have any questions about AFNI, ask ... Paul Taylor :)"            ,
      "If you have any questions about AFNI, ask ... Gang Chen :)"              ,
+     "If you have any questions about AFNI, ask ... Justin Rajendra :)"        ,
      "AFNI user's mantra: Bob, Bob, there is one Bob, He spells it B-O-B"      ,
 
      /* The Manchurian Candidate */
