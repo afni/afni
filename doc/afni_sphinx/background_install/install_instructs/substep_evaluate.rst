@@ -1,30 +1,31 @@
 
-a. There is a very useful script to check on your installed AFNI
-   and lots of its dependencies, such as looking for the installed
-   R libraries, profiles, Python stuff, etc. You can run it
+a. There is a very useful script to check if everything you need for
+   AFNI is set up (R, Python, etc.).  You can:
 
-   - outputting to the screen::
+   - output to the screen::
     
        afni_system_check.py -check_all
 
-   - outputting to a text file::
+   - or output to a text file::
     
        afni_system_check.py -check_all > out.afni_system_check.txt
 
    which might be useful to email to your local AFNI Guru if there
    are any problems. 
 
-   .. note:: Please read the **summary comments** at the bottom of the
-             `afni_system_check.py` output. There are often good
+   .. note:: Please read the **please fix** section at the bottom of
+             the ``afni_system_check.py`` output. There are often good
              suggestions of commands to copy+paste, and/or to ask your
              nearest AFNI Guru about.
 
 #. It's a good idea to open up AFNI and SUMA, juuuust to make sure all
    is well.  Each of the following commands should simply present the
-   volumetric- and surface-viewers::
+   volumetric- and surface-viewers, as well as the processing script
+   GUI::
    
      afni
      suma
+     uber_subject.py
 
    Report any crashes!
 
