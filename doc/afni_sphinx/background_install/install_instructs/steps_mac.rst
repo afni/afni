@@ -75,7 +75,7 @@ When ``afni`` is started for the first time, you should be directed
 
       *  *For OS X 10.9 through 10.11*:
 
-         a. Run the 2 commands::
+         a. Run the two commands::
 
               xcode-select --install
               /Applications/Utilities/X11.app
@@ -105,7 +105,7 @@ When ``afni`` is started for the first time, you should be directed
          |
 
    #. ``XQuartz`` has altered the library format, so adjust
-      ``DYLD_LIBRARY_PATH``:
+      ``DYLD_LIBRARY_PATH`` by doing either:
 
       * ``tcsh`` syntax::
 
@@ -141,7 +141,7 @@ When ``afni`` is started for the first time, you should be directed
 
 #. **R installation**
 
-    a. Download and install from the main R website:
+    a. To download and install from the main R website:
 
        * Go to `the R page for Mac OS X
          <https://cran.r-project.org/bin/macosx>`_
@@ -151,23 +151,20 @@ When ``afni`` is started for the first time, you should be directed
 
          |
 
-    #. Install extra packages needed by AFNI.
-
-       Run the following AFNI command::
+    #. To install extra R packages needed by AFNI, run the following
+       AFNI command::
 
            sudo rPkgsInstall -pkgs ALL
 
 
-#. **PyQt4 installation** via fink and requiring JDK
+#. **PyQt4 installation** (via getting fink and using JDK)
 
-    a. Download and install the Java SE (standard edition) JDK 
+    a. To download and install the Java SE (standard edition) JDK, go
+       to http://www.oracle.com/technetwork/java/javase/downloads and
+       click on the ``Java`` icon.
 
-       Go to http://www.oracle.com/technetwork/java/javase/downloads
-       and clicking on the ``Java`` icon.
-
-    #. Install the package manager ``fink``.
-
-       Download and run this install script::
+    #. To install the package manager ``fink``, execute the following
+       (which gets an install script and executes it)::
 
            curl -O https://afni.nimh.nih.gov/pub/dist/bin/misc/save/install.fink.bash
            bash install.fink.bash

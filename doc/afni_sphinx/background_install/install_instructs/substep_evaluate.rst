@@ -2,11 +2,11 @@
 a. There is a very useful script to check if everything you need for
    AFNI is set up (R, Python, etc.).  You can:
 
-   - output to the screen::
+   - output the check to the screen with::
     
        afni_system_check.py -check_all
 
-   - or output to a text file::
+   - or output the check to a text file with::
     
        afni_system_check.py -check_all > out.afni_system_check.txt
 
@@ -19,9 +19,9 @@ a. There is a very useful script to check if everything you need for
              nearest AFNI Guru about.
 
 #. It's a good idea to open up AFNI and SUMA, juuuust to make sure all
-   is well.  Each of the following commands should simply present the
-   volumetric- and surface-viewers, as well as the processing script
-   GUI::
+   is well.  One by one, the following commands should simply present
+   the volumetric- and surface-viewers, as well as the processing
+   script GUI::
    
      afni
      suma
