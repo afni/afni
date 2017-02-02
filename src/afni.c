@@ -1875,6 +1875,7 @@ void AFNI_sigfunc_alrm(int sig)
      "When I ask for advice, what I really want is an accomplice"    ,
      "Above all -- Don't let your brain lie to you"                  ,
      "I like nonsense -- it shakes the neurons out of their naps"    ,
+     "I'm glad you finished up now -- I'm ready for a quick nap"     ,
      "Using it is like going to the gym for your brain"              ,
      "We are all mad here"                                           ,
      "Working for improved brain-ology not just 24/7 but 25/8!"      ,
@@ -1909,6 +1910,7 @@ void AFNI_sigfunc_alrm(int sig)
      "Remember -- What I tell you three times is true"               ,
      "Remember -- A monad is the same as an endofunctor"             ,
      "Remember -- Things aren't always what they seem"               ,
+     "Remember -- eggs cannot be unscrambled"                        ,
      "Fools give you reasons, wise men never try"                    ,
      "People willingly trust the statistics they wish to believe"    ,
      "Heaven's last best gift, my ever new delight"                  ,
@@ -2027,6 +2029,23 @@ void AFNI_sigfunc_alrm(int sig)
      "Are you a Dada-ist or a Dude-ist?"                             ,
      "Putting the 'wit' in 'twit' since 1994"                        ,
      "I'm completely innocent. Within reason"                        ,
+     "Believe those who seek the truth; doubt those who find it"     ,
+     "There is more to truth that just the facts"                    ,
+     "There is more to truth than a small p-value"                   ,
+     "If you think you are free, no escape is possible"              ,
+     "If you chase two rabbits at once, you will not catch either"   ,
+     "It is better to know the questions than the answers"           ,
+     "Inventing Hell is easy, but inventing Heaven impossible"       ,
+     "When you are climbing the ladder, do not forget the rungs"     ,
+     "You have to do it yourself, but you cannot do it alone"        ,
+     "When you look into the abyss, the abyss looks back at you"     ,
+     "Just say NO -- to arbitrary p-value thresholds"                ,
+     "Did you have fun with your data? I had fun showing it to you"  ,
+     "Are you ready to drink from the Big Data fire hose?"           ,
+     "In God we trust; all others must have Big Data"                ,
+     "Torment the data enough and it will tell you anything you want",
+     "p-hacking? Bah -- I'll take a chainsaw to your p-values"       ,
+     "Did you like your p-values? If not, I can 'fix' them for you"  ,
 
      "Returning control of your brain (images) back to yourself"     ,
      "Returning your endofunctors back to their co-monads"           ,
@@ -2038,7 +2057,7 @@ void AFNI_sigfunc_alrm(int sig)
      "With hideous ruin and combustion, down to bottomless perdition"                    ,
      "The mind and spirit remains invincible"                                            ,
      "The thought both of lost happiness and lasting pain"                               ,
-     "Clothed with transcendent brightness"                                              ,
+     "Still clothed with transcendent brightness"                                        ,
      "All is not lost: the unconquerable will, and courage never to submit or yield"     ,
      "Too well I see and rue the dire event that hath lost us Heaven"                    ,
      "Happy state here swallowed up in endless misery"                                   ,
@@ -2071,6 +2090,9 @@ void AFNI_sigfunc_alrm(int sig)
      "This horror will grow mild, this darkness will light"                              ,
      "Whose eye views all things at one view"                                            ,
      "Thus uplifted high beyond hope"                                                    ,
+     "Returning you to the dark illimitable ocean without bound"                         ,
+     "With thoughts inflamed of highest design"                                          ,
+     "Flying far off into a Limbo large and broad"                                       ,
 
      /* These are to make it clear that Cox is not to be blamed for ANYTHING */
 
@@ -2117,6 +2139,18 @@ void AFNI_sigfunc_alrm(int sig)
 
      /* Longer quotes */
 
+     "When human judgment and big data interact, peculiar things happen"              ,
+     "FMRI is at best like reading source code with blurring goggles over your eyes"  ,
+     "Do you prefer red blobs or blue blobs? That's the real FMRI question"           ,
+     "I wish we had a taste interface -- I'd make my blobs cherry-chocolate flavor"   ,
+     "We cannot solve our problems with the same thinking that created them"          ,
+     "My brain starts working when I wake up, and stops when I have to give a talk"   ,
+     "Biology gives you a brain. Life turns it into a mind"                           ,
+     "Your thoughts, your actions, your experiences, are the sculptor of your brain"  ,
+     "Why isn't there an award for getting dressed and out of the house?"             ,
+     "I like the word 'indolence': it makes my laziness seem classy"                  ,
+     "Laziness is just the habit of resting before you get tired"                     ,
+     "Laziness takes work and it isn't easy, but look at the rewards!"                ,
      "A practical truth: no man has eaten an entire elephant in one day"              ,
      "From now on, let's just reject the null hypothesis, and then have a beer"       ,
      "Home is the sailor, home from the sea; And the hunter home from the hill"       ,
@@ -2125,6 +2159,7 @@ void AFNI_sigfunc_alrm(int sig)
      "If you haven't anything nice to say about anybody, come sit next to me"         ,
      "Hmmm -- I think your p-value is 0.050001 -- better luck next time"              ,
      "Wow! Your p-value is 0.049999 -- you are incredibly lucky"                      ,
+     "Are you a special snowflake, or a normal cloddish lump of ice?"                 ,
      "Remember -- You are absolutely incredibly unique. Just like everone else"       ,
      "Remember -- Belief is not Truth. No matter how much you want it to be"          ,
      "Remember -- Truth is not always believed, even when it is under your nose"      ,
@@ -2223,6 +2258,8 @@ void AFNI_sigfunc_alrm(int sig)
      "We may all have come on different ships, but we're all in the same boat now"            ,
      "You can always find me out on the Long Line -- I hang out by the Church-Kleene ordinal" ,
      "Outside of a dog, a book is Man's best friend. Inside of a dog, it's too dark to read"  ,
+
+     "Someday I'll tell you of the Giant Rat of Sumatra, a tale for which the world is not prepared" ,
 
      /* Multi-line quotes */
 
@@ -2670,18 +2707,27 @@ int main( int argc , char *argv[] )
 
 #ifdef DARWIN
    { char *eee = getenv("DYLD_LIBRARY_PATH") ;
-     if( eee == NULL || strstr(eee,"flat_namespace") == NULL )
-       fprintf(stderr,
-         "\n"
-         "++ If you are using XQuartz 2.7.10 (or later), and\n"
-         " + AFNI crashes when opening windows, or you cannot\n"
-         " + type text into AFNI popup windows, you might need\n"
-         " + to set an environment variable to solve this problem:\n"
-         " +   setenv DYLD_LIBRARY_PATH /opt/X11/lib/flat_namespace\n"
-         " + This command is best put in your startup ~/.cshrc file,\n"
-         " + so that it will be invoked for every (t)csh shell\n"
-         " + you open.\n\n"
-       ) ;
+     if( eee == NULL || strstr(eee,"flat_namespace") == NULL ){
+       int vmajor=0, vminor=0 , vmicro=0 ;
+       eee = get_XQuartz_version() ;  /* Check XQuartz version [27 Jan 2017] */
+       if( eee != NULL && isdigit(*eee) ){
+         sscanf(eee,"%d.%d.%d",&vmajor,&vminor,&vmicro) ;
+         /* INFO_message("XQuartz version: %d %d %d",vmajor,vminor,vmicro) ; */
+       }
+       if( vmajor == 0 || vminor == 0 || vmajor > 2                   ||
+           (vmajor == 2 && vminor >  7)                               ||
+           (vmajor == 2 && vminor == 7 && (vmicro > 9 || vmicro == 0))  ){
+         fprintf(stderr,
+          "\n"
+          "++ If you are using XQuartz 2.7.10 (or later), and AFNI crashes when\n"
+          " + opening windows, or you cannot type text into AFNI popup windows,\n"
+          " + you might need to set an environment variable to solve this problem:\n"
+          " +   setenv DYLD_LIBRARY_PATH /opt/X11/lib/flat_namespace\n"
+          " + This command is best put in your startup ~/.cshrc file, so that\n"
+          " + it will be invoked for every (t)csh shell you open.\n\n"
+         ) ;
+       }
+     }
    }
 #endif
 
@@ -2692,6 +2738,14 @@ int main( int argc , char *argv[] )
                                    NULL ) ;
 
    if( MAIN_shell == NULL ) ERROR_exit("Cannot initialize X11") ;
+
+#if 1
+{ Display *dpy = XtDisplay(MAIN_shell) ;
+  char msg[256] , *xsv ; int xvr ;
+  xsv = XServerVendor(dpy) ; xvr = XVendorRelease(dpy) ;
+  if( xsv != NULL ){ sprintf(msg,"[%s v %d]",xsv,xvr); REPORT_PROGRESS(msg); }
+}
+#endif
 
    /* if we used xrdb to set X11 resources, re-set them back to their old
       state so that other AFNIs don't use these new settings by default   */

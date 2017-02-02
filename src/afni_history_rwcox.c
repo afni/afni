@@ -44,6 +44,29 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 31 , JAN , 2017 , RWC , "minimize_in_1D func" , MICRO , TYPE_GENERAL ,
+   "Modify to be more robust (I hope)." ,
+   "Used in solving for inverse to mixed model ACF (e.g., to get FWHM)." } ,
+
+ { 30 , JAN , 2017 , RWC , "ccalc etc" , MICRO , TYPE_ENHANCE ,
+   "Add acfwxm function to parser programs" ,
+   "To compute the Full Width at X Maximum for the mixed ACF model, for\n"
+   "input parameters a,b,c at level x (0 < x < 1) = acfwxm(a,b,c,x)" } ,
+
+ { 23 , JAN , 2017 , RWC , "3dAllineate" , MICRO , TYPE_MODIFY ,
+   "for ls, lpc, lpa: use -autoweight by default unless user changes it" ,
+   "The default weighting scheme was -autobox for all schemes.  For ls, lpc,\n"
+   "lpa, the default is not -autoweight -- if the user changes the weight,\n"
+   "this won't be enforced." } ,
+
+ { 19 , JAN , 2017 , RWC , "3dAllineate" , MICRO , TYPE_GENERAL ,
+   "Give warning when -lpa or -lpc is used without -autoweight" ,
+   "At beginning and at end. Thanks to PT." } ,
+
+ { 18 , JAN , 2017 , RWC , "3dmerge" , MICRO , TYPE_NEW_OPT ,
+   "option -nozero will prevent output of an all zero dataset" ,
+   NULL } ,
+
  { 12 , JAN , 2017 , RWC , "afni GUI" , MICRO , TYPE_MODIFY ,
    "First view of OLay: set sub-bricks to reasonable values" ,
    "Where 'reasonable' is in the eye of RWCox." } ,
@@ -9376,7 +9399,7 @@ afni_history_struct rwcox_history[] = {
 
   { 24,APR,2003 , RWC , "Miscellaneous" , MICRO , TYPE_GENERAL , "Older History stuff" ,
    "* Modified 3dTshift.c and thd_tshift.c to negate time shift, since it seems have\n"
-   "   been wrong all these years.\n"
+   "   been wrong all these years :( [later: SPM and FSL were wrong, too!]\n"
    },
 
   { 28,APR,2003 , RWC , "Miscellaneous" , MICRO , TYPE_GENERAL , "Older History stuff" ,

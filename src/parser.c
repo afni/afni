@@ -9,30 +9,30 @@
 
 static integer c__3 = 3;
 static integer c__1 = 1;
-static doublereal c_b426 = 0.;
-static doublereal c_b440 = 1.;
-static doublereal c_b441 = 2.;
-static doublereal c_b442 = 3.;
-static doublereal c_b443 = 4.;
-static doublereal c_b444 = 5.;
-static doublereal c_b445 = 6.;
-static doublereal c_b446 = 7.;
-static doublereal c_b447 = 8.;
-static doublereal c_b448 = 9.;
-static doublereal c_b449 = 10.;
-static doublereal c_b450 = 11.;
-static doublereal c_b451 = 12.;
+static doublereal c_b428 = 0.;
+static doublereal c_b442 = 1.;
+static doublereal c_b443 = 2.;
+static doublereal c_b444 = 3.;
+static doublereal c_b445 = 4.;
+static doublereal c_b446 = 5.;
+static doublereal c_b447 = 6.;
+static doublereal c_b448 = 7.;
+static doublereal c_b449 = 8.;
+static doublereal c_b450 = 9.;
+static doublereal c_b451 = 10.;
+static doublereal c_b452 = 11.;
+static doublereal c_b453 = 12.;
 
 /* Subroutine */ int parser_(char *c_expr__, logical *l_print__, integer *
 	num_code__, char *c_code__, ftnlen c_expr_len, ftnlen c_code_len)
 {
     /* Initialized data */
 
-    static integer n_funcargs__[119] = { 1,1,1,1,1,1,2,1,1,1,1,1,1,1,1,1,1,1,
+    static integer n_funcargs__[120] = { 1,1,1,1,1,1,2,1,1,1,1,1,1,1,1,1,1,1,
 	    1,2,2,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,-1,-1,-1,2,1,1,1,
 	    -1,4,4,4,2,2,2,3,3,3,1,1,1,2,2,2,3,3,3,3,3,3,3,3,3,2,2,2,1,-1,-1,
 	    2,1,1,1,1,-1,1,-1,-1,-1,1,1,2,1,1,-1,-1,-1,2,5,5,-1,-1,-1,1,3,2,2,
-	    1,1,2,-1,-1,-1,-1,-1,-1,3,1 };
+	    1,1,2,-1,-1,-1,-1,-1,-1,3,1,4 };
 
     /* Format strings */
     static char fmt_9001[] = "(\002 PARSER error\002,i4,\002: \002,a/1x,a/80"
@@ -616,7 +616,7 @@ L9000:
 {
     /* Initialized data */
 
-    static char c_funcname__[32*120] = "SIN                             " 
+    static char c_funcname__[32*121] = "SIN                             " 
 	    "COS                             " "TAN                         "
 	    "    " "ASIN                            " "ACOS                  "
 	    "          " "ATAN                            " "ATAN2           "
@@ -681,7 +681,8 @@ L9000:
 	    "    " "MAXBELOW                        " "EXTREME               "
 	    "          " "ABSEXTREME                      " "CHOOSE          "
 	    "                " "IFELSE                          " "LOGCOSH   "
-	    "                      " "DUMMY                           ";
+	    "                      " "ACFWXM                          " "DUMM"
+	    "Y                           ";
 
     /* Builtin functions */
     /* Subroutine */ int s_copy(char *, char *, ftnlen, ftnlen);
@@ -776,7 +777,7 @@ L8000:
 {
     /* Initialized data */
 
-    static char c_funcname__[32*120] = "SIN                             " 
+    static char c_funcname__[32*121] = "SIN                             " 
 	    "COS                             " "TAN                         "
 	    "    " "ASIN                            " "ACOS                  "
 	    "          " "ATAN                            " "ATAN2           "
@@ -841,7 +842,8 @@ L8000:
 	    "    " "MAXBELOW                        " "EXTREME               "
 	    "          " "ABSEXTREME                      " "CHOOSE          "
 	    "                " "IFELSE                          " "LOGCOSH   "
-	    "                      " "DUMMY                           ";
+	    "                      " "ACFWXM                          " "DUMM"
+	    "Y                           ";
 
     /* Format strings */
     static char fmt_5501[] = "(\002(F\002,i1,\002.0)\002)";
@@ -997,7 +999,7 @@ L120:
 */
 
 	ifunc = 1;
-	s_copy(c_funcname__ + 3808, c_id__, 32L, 32L);
+	s_copy(c_funcname__ + 3840, c_id__, 32L, 32L);
 L210:
 	if (! (s_cmp(c_id__, c_funcname__ + (ifunc - 1 << 5), 32L, 32L) != 0))
 		 {
@@ -1006,7 +1008,7 @@ L210:
 	++ifunc;
 	goto L210;
 L220:
-	if (ifunc <= 119) {
+	if (ifunc <= 120) {
 /* !it is a function */
 	    *ntype = 1008;
 	    *value = (doublereal) ifunc;
@@ -1298,27 +1300,28 @@ doublereal pareval_(integer *num_code__, char *c_code__, doublereal *r8val,
 	     argmax_(integer *, doublereal *), choose_(integer *, integer *, 
 	    doublereal *), fibntp_(doublereal *, doublereal *, doublereal *), 
 	    fibnpt_(doublereal *, doublereal *, doublereal *), ficotp_(
-	    doublereal *, doublereal *, doublereal *, doublereal *), ficopt_(
+	    doublereal *, doublereal *, doublereal *, doublereal *), acfwxm_(
 	    doublereal *, doublereal *, doublereal *, doublereal *), pairmn_(
-	    integer *, doublereal *), lncosh_(doublereal *), fibttp_(
-	    doublereal *, doublereal *, doublereal *), argnum_(integer *, 
-	    doublereal *), ficttp_(doublereal *, doublereal *), fictpt_(
-	    doublereal *, doublereal *), fifttp_(doublereal *, doublereal *, 
-	    doublereal *), fiftpt_(doublereal *, doublereal *, doublereal *), 
-	    ficotz_(doublereal *, doublereal *, doublereal *, doublereal *), 
-	    fibtpt_(doublereal *, doublereal *, doublereal *), pairmx_(
-	    integer *, doublereal *), fibntz_(doublereal *, doublereal *, 
-	    doublereal *), fibttz_(doublereal *, doublereal *, doublereal *), 
-	    ficttz_(doublereal *, doublereal *), posval_(doublereal *), 
-	    figttp_(doublereal *, doublereal *, doublereal *), fifttz_(
+	    integer *, doublereal *), lncosh_(doublereal *), ficopt_(
+	    doublereal *, doublereal *, doublereal *, doublereal *), argnum_(
+	    integer *, doublereal *), ficttp_(doublereal *, doublereal *), 
+	    fictpt_(doublereal *, doublereal *), fifttp_(doublereal *, 
+	    doublereal *, doublereal *), fiftpt_(doublereal *, doublereal *, 
+	    doublereal *), ficotz_(doublereal *, doublereal *, doublereal *, 
+	    doublereal *), fibttp_(doublereal *, doublereal *, doublereal *), 
+	    pairmx_(integer *, doublereal *), fibtpt_(doublereal *, 
+	    doublereal *, doublereal *), fibttz_(doublereal *, doublereal *, 
+	    doublereal *), ficttz_(doublereal *, doublereal *), posval_(
+	    doublereal *), fibntz_(doublereal *, doublereal *, doublereal *), 
+	    fifttz_(doublereal *, doublereal *, doublereal *), figttp_(
 	    doublereal *, doublereal *, doublereal *), figtpt_(doublereal *, 
-	    doublereal *, doublereal *), figttz_(doublereal *, doublereal *, 
-	    doublereal *), fitttp_(doublereal *, doublereal *), fittpt_(
-	    doublereal *, doublereal *), orstat_(integer *, integer *, 
-	    doublereal *), fipttp_(doublereal *, doublereal *), absextreme_(
-	    integer *, doublereal *), fiptpt_(doublereal *, doublereal *), 
-	    fizttp_(doublereal *), fiztpt_(doublereal *), fipttz_(doublereal *
-	    , doublereal *), fitttz_(doublereal *, doublereal *), fizttz_(
+	    doublereal *, doublereal *), fitttp_(doublereal *, doublereal *), 
+	    fittpt_(doublereal *, doublereal *), orstat_(integer *, integer *,
+	     doublereal *), figttz_(doublereal *, doublereal *, doublereal *),
+	     absextreme_(integer *, doublereal *), fipttp_(doublereal *, 
+	    doublereal *), fizttp_(doublereal *), fiztpt_(doublereal *), 
+	    fiptpt_(doublereal *, doublereal *), fipttz_(doublereal *, 
+	    doublereal *), fitttz_(doublereal *, doublereal *), fizttz_(
 	    doublereal *);
     static doublereal r8_eval__[128];
     extern doublereal dai_(doublereal *), dbi_(doublereal *, integer *), mad_(
@@ -1582,6 +1585,12 @@ L1000:
 	if ((d__1 = r8_eval__[neval - 1], abs(d__1)) < 87.5f) {
 	    r8_eval__[neval - 1] = lncosh_(&r8_eval__[neval - 1]);
 	}
+/* ...................................................................
+.... */
+    } else if (s_cmp(cncode, "ACFWXM", 8L, 6L) == 0) {
+	neval += -3;
+	r8_eval__[neval - 1] = acfwxm_(&r8_eval__[neval - 1], &r8_eval__[
+		neval], &r8_eval__[neval + 1], &r8_eval__[neval + 2]);
 /* ...................................................................
 .... */
     } else if (s_cmp(cncode, "TANH", 8L, 4L) == 0) {
@@ -2038,27 +2047,28 @@ L8000:
 	    argmax_(integer *, doublereal *), pairmn_(integer *, doublereal *)
 	    , amongf_(integer *, doublereal *), argnum_(integer *, doublereal 
 	    *), choose_(integer *, integer *, doublereal *), lncosh_(
+	    doublereal *), acfwxm_(doublereal *, doublereal *, doublereal *, 
 	    doublereal *), ficotp_(doublereal *, doublereal *, doublereal *, 
 	    doublereal *), ficopt_(doublereal *, doublereal *, doublereal *, 
 	    doublereal *), ficotz_(doublereal *, doublereal *, doublereal *, 
-	    doublereal *), fifttp_(doublereal *, doublereal *, doublereal *), 
-	    pairmx_(integer *, doublereal *), fiftpt_(doublereal *, 
+	    doublereal *), pairmx_(integer *, doublereal *), fifttp_(
+	    doublereal *, doublereal *, doublereal *), fiftpt_(doublereal *, 
 	    doublereal *, doublereal *), ficttp_(doublereal *, doublereal *), 
-	    fictpt_(doublereal *, doublereal *), posval_(doublereal *), 
-	    ficttz_(doublereal *, doublereal *), fifttz_(doublereal *, 
+	    posval_(doublereal *), fictpt_(doublereal *, doublereal *), 
+	    fifttz_(doublereal *, doublereal *, doublereal *), ficttz_(
 	    doublereal *, doublereal *), fibttp_(doublereal *, doublereal *, 
+	    doublereal *), fitttp_(doublereal *, doublereal *), fittpt_(
+	    doublereal *, doublereal *), orstat_(integer *, integer *, 
 	    doublereal *), fibtpt_(doublereal *, doublereal *, doublereal *), 
-	    fitttp_(doublereal *, doublereal *), fittpt_(doublereal *, 
-	    doublereal *), orstat_(integer *, integer *, doublereal *), 
-	    fibttz_(doublereal *, doublereal *, doublereal *), absextreme_(
-	    integer *, doublereal *), fibntp_(doublereal *, doublereal *, 
-	    doublereal *), fizttp_(doublereal *), fiztpt_(doublereal *), 
-	    fibnpt_(doublereal *, doublereal *, doublereal *), fibntz_(
-	    doublereal *, doublereal *, doublereal *), fitttz_(doublereal *, 
+	    absextreme_(integer *, doublereal *), fibttz_(doublereal *, 
+	    doublereal *, doublereal *), fizttp_(doublereal *), fiztpt_(
+	    doublereal *), fibntp_(doublereal *, doublereal *, doublereal *), 
+	    fibnpt_(doublereal *, doublereal *, doublereal *), fitttz_(
+	    doublereal *, doublereal *), fibntz_(doublereal *, doublereal *, 
 	    doublereal *), figttp_(doublereal *, doublereal *, doublereal *), 
 	    figtpt_(doublereal *, doublereal *, doublereal *), figttz_(
 	    doublereal *, doublereal *, doublereal *), fipttp_(doublereal *, 
-	    doublereal *), fiptpt_(doublereal *, doublereal *), fizttz_(
+	    doublereal *), fizttz_(doublereal *), fiptpt_(doublereal *, 
 	    doublereal *), fipttz_(doublereal *, doublereal *), cbrtff_(
 	    doublereal *);
     static doublereal r8_eval__[6464]	/* was [64][101] */;
@@ -2749,6 +2759,18 @@ L1000:
 		    r8_eval__[iv - ibv + (neval << 6) - 65] = lncosh_(&
 			    r8_eval__[iv - ibv + (neval << 6) - 65]);
 		}
+	    }
+/* ...............................................................
+........ */
+	} else if (s_cmp(cncode, "ACFWXM", 8L, 6L) == 0) {
+	    neval += -3;
+	    i__2 = ivtop;
+	    for (iv = ivbot; iv <= i__2; ++iv) {
+		r8_eval__[iv - ibv + (neval << 6) - 65] = acfwxm_(&r8_eval__[
+			iv - ibv + (neval << 6) - 65], &r8_eval__[iv - ibv + (
+			neval + 1 << 6) - 65], &r8_eval__[iv - ibv + (neval + 
+			2 << 6) - 65], &r8_eval__[iv - ibv + (neval + 3 << 6) 
+			- 65]);
 	    }
 /* ...............................................................
 ........ */
@@ -3710,7 +3732,7 @@ doublereal iran_(doublereal *top)
 /*  Return an integer uniformly distributed among 0..TOP */
 /* +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  */
-    d__1 = (*top + 1.) * unif_(&c_b426);
+    d__1 = (*top + 1.) * unif_(&c_b428);
     ret_val = d_int(&d__1);
     return ret_val;
 } /* iran_ */
@@ -3735,7 +3757,7 @@ doublereal eran_(doublereal *top)
 /* +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  */
 L100:
-    u1 = unif_(&c_b426);
+    u1 = unif_(&c_b428);
     if (u1 <= 0.) {
 	goto L100;
     }
@@ -3763,7 +3785,7 @@ doublereal lran_(doublereal *top)
 /* +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  */
 L100:
-    u1 = unif_(&c_b426);
+    u1 = unif_(&c_b428);
     if (u1 <= 0. || u1 >= 1.) {
 	goto L100;
     }
@@ -3787,7 +3809,7 @@ doublereal uran_(doublereal *x)
 /* +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  */
 
-    ret_val = *x * unif_(&c_b426);
+    ret_val = *x * unif_(&c_b428);
     return ret_val;
 } /* uran_ */
 
@@ -3819,11 +3841,11 @@ doublereal gran2_(doublereal *b, doublereal *s)
 
     if (ip == 0) {
 L100:
-	u1 = unif_(&c_b426);
+	u1 = unif_(&c_b428);
 	if (u1 <= 0.) {
 	    goto L100;
 	}
-	u2 = unif_(&c_b426);
+	u2 = unif_(&c_b428);
 	ret_val = *b + *s * sqrt(log(u1) * -2.) * sin(u2 * 6.2831853);
 	ip = 1;
     } else {
@@ -3848,10 +3870,10 @@ doublereal gran1_(doublereal *b, doublereal *s)
 /* +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  */
 
-    g = unif_(&c_b440) - 6. + unif_(&c_b441) + unif_(&c_b442) + unif_(&c_b443)
-	     + unif_(&c_b444) + unif_(&c_b445) + unif_(&c_b446) + unif_(&
-	    c_b447) + unif_(&c_b448) + unif_(&c_b449) + unif_(&c_b450) + 
-	    unif_(&c_b451);
+    g = unif_(&c_b442) - 6. + unif_(&c_b443) + unif_(&c_b444) + unif_(&c_b445)
+	     + unif_(&c_b446) + unif_(&c_b447) + unif_(&c_b448) + unif_(&
+	    c_b449) + unif_(&c_b450) + unif_(&c_b451) + unif_(&c_b452) + 
+	    unif_(&c_b453);
     ret_val = *b + *s * g;
     return ret_val;
 } /* gran1_ */
@@ -3872,7 +3894,7 @@ doublereal gran_(doublereal *b, doublereal *s)
 /* +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  */
 
-    uu = unif_(&c_b426);
+    uu = unif_(&c_b428);
     if (uu <= .5) {
 	ret_val = gran1_(b, s);
     } else {
