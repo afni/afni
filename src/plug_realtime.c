@@ -4922,9 +4922,11 @@ void RT_process_image( RT_input * rtin )
  static int nmerged = 0;
  int tt;
  int ntt = DSET_NUM_TIMES( rtin->dset[g_reg_src_chan] ) ;
-fprintf(stderr,"== post-reg merging..., nmerged = %d, ntt=%d\n", nmerged,ntt);
- for( ; nmerged < ntt ; nmerged++ )
+fprintf(stderr,"== consider post-reg merging, nm = %d, ntt=%d\n", nmerged,ntt);
+ for( ; nmerged < ntt && nmerged < rtin->reg_nvol; nmerged++ ) {
+   fprintf(stderr,"++ about to merge time index %d\n", nmerged);
         RT_merge( rtin, cc, nmerged);
+ }
 }
       }
 
@@ -5222,8 +5224,6 @@ chan, rtin->num_chan, RT_chmrg_mode);
    if ( tt >= 0 ) iv = tt;
    else           iv = rtin->nvol[chan]-1 ;  /* sub-brick index */
 
-fprintf(stderr,"  merging time index iv=%d\n", iv);
-  
    /* 10 Jul 2010 [rickr]: maybe merge only a subset of channels */
    /* note: the channel int list can only be created "now", since
             we must know how many channels there are to use */
@@ -6795,6 +6795,13 @@ void RT_registration_3D_onevol( RT_input *rtin , int tt )
    /* merge datum might differ from rtin->datum */
    datum = DSET_BRICK_TYPE(source, 0);
 
+   /* if merging after registration and insufficient channel data, bail */
+   if ( RT_when_to_merge() == RT_CM_MERGE_AFTER_REG &&
+         rtin->nvol[rtin->num_chan-1] <= tt )
+      return;
+
+   /* otherwise, merge before registration */
+
    /*------------------------- actual registration -------------------------*/
 
    if( verbose > 1 )
@@ -7652,18 +7659,10 @@ fprintf(stderr,"   ds=%p, reg_chan_dset=%p, dset=%p\n",
    /* get pointers to input data arrays */
 
    idatum = DSET_BRICK_TYPE(ds[0],iv) ;
-fprintf(stderr,"   RTM 1, ndsets = %d, idatum=%d, short=%d\n",
-        ndsets, idatum, MRI_short);
    switch( idatum ){
      default: return NULL ; /* should never happen */
 
      case MRI_short:
-fprintf(stderr,"-- dlist=%p, cc=%d, iv=%d, sar=%p\n", dlist, 0, iv, sar);
-for( cc=0 ; cc < ndsets ; cc++ ){
-   fprintf(stderr,"   ds[cc]=%p\n", ds[cc]);
-   fprintf(stderr,"   DA(ds[cc])=%p\n", DSET_ARRAY(ds[cc],iv));
-}
-
        for( cc=0 ; cc < ndsets ; cc++ )
           /* if dlist is set, get the index from there */
           sar[cc] = dlist ? DSET_ARRAY(ds[dlist[cc+1]],iv)
@@ -7689,9 +7688,7 @@ for( cc=0 ; cc < ndsets ; cc++ ){
 
    nvox  = DSET_NVOX(ds[0]) ;
    mrgim = mri_new_conforming( DSET_BRICK(ds[0],iv) , RT_chmrg_datum ) ;
-fprintf(stderr,"== mdatum=%d, nvox=%d, mrgim=%p\n", RT_chmrg_datum,nvox,mrgim);
    if( mrgim == NULL ) return NULL ;  /* should never happen */
-fprintf(stderr,"== mdatum=%d, float=%d\n", RT_chmrg_datum, MRI_float);
 
    /* get pointer to output array */
 
@@ -7700,9 +7697,6 @@ fprintf(stderr,"== mdatum=%d, float=%d\n", RT_chmrg_datum, MRI_float);
      case MRI_float:   fmar = MRI_FLOAT_PTR  (mrgim) ; break ;
      case MRI_complex: cmar = MRI_COMPLEX_PTR(mrgim) ; break ;
    }
-fprintf(stderr,"-- fmar = %p\n", fmar);
-fprintf(stderr,"-- RT_chmrg_mode=%d, RT_CHMER_OPT_COMB=%d\n",
-        RT_chmrg_mode, RT_CHMER_OPT_COMB);
 
    /*** do the mergerizing ***/
 
@@ -7812,14 +7806,9 @@ fprintf(stderr,"-- RT_chmrg_mode=%d, RT_CHMER_OPT_COMB=%d\n",
      case RT_CHMER_OPT_COMB :  /* output datum is always float */
         {
            float *t2star_ref, sumTEsByExpTEs;
-fprintf(stderr,"== xx == merging OPT_COMB\n");
 
            DSET_load(rtin->t2star_ref_dset);
            t2star_ref = DSET_ARRAY(rtin->t2star_ref_dset, 0);
-
-fprintf(stderr,"-- USE: t2star_ref_dset=%p, g=%p\n",
-        rtin->t2star_ref_dset, g_t2star_ref_dset);
-fprintf(stderr,"   USE: t2star_ref=%p\n", t2star_ref);
 
            for (ii=0 ; ii < nvox ; ii++)
            {
@@ -7870,8 +7859,6 @@ fprintf(stderr,"   USE: t2star_ref=%p\n", t2star_ref);
                }
 
                fmar[ii] =  fmar[ii] / sumTEsByExpTEs;
-if( ii==1 )
-fprintf(stderr,"=+=+ made one pass\n");
            }
        }
      break ; /* done with RT_CHMER_OPT_COMB */
