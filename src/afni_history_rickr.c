@@ -49,6 +49,16 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  2,  Feb, 2017, RCR, "steps_mac.rst", MINOR, TYPE_MODIFY,
+   "rewrite OS X install instructions to use 10.7_local and fink",
+   NULL
+ } ,
+
+ {  2,  Feb, 2017, RCR, "@update.afni.binaries", MICRO, TYPE_MODIFY,
+   "default mac package is now macosx_10.7_local",
+   NULL
+ } ,
+
  {  1,  Feb, 2017, RCR, "afni_system_check", MINOR, TYPE_ENHANCE,
    "updates for fink and homebrew",
    NULL
