@@ -52,6 +52,7 @@ history for $prog :
   2.8  04 May 2016 : added -do_dotfiles and -do_extras
                      (dot files and apsearch are now only done on request)
   2.9  05 May 2016 : -defaults implies -do_dotfiles and -apsearch yes
+  3.0  02 Feb 2017 : default OS X package is macosx_10.7_local
 -------------------------------------------------------------------------------
 EOF
 exit
@@ -1070,7 +1071,7 @@ EOF
 endif
 
 # maybe they need to set the DYLD_F_L_P
-if ( $package == macosx_10.7_local && $#prog_list > 0 ) then
+if ( $package == macosx_10.7_Intel_64 && $#prog_list > 0 ) then
    echo ""
    echo "-- remember to set the DYLD_FALLBACK_LIBRARY_PATH, e.g."
    echo "   setenv DYLD_FALLBACK_LIBRARY_PATH $abin"
