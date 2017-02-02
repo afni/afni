@@ -1208,7 +1208,8 @@ class RegWrap:
       if self.save_script:
          write_afni_com_history(self.save_script)
 
-      sys.exit()   
+      # return status code
+      sys.exit(i)
       
    # save the script command arguments to the dataset history
    def save_history(self, dset, exec_mode):
@@ -2054,7 +2055,10 @@ class RegWrap:
                e.input(), cmass, self.anat_mat, self.master_anat_3dAl_option, \
                alopt, checkstr ), \
                ps.oexec)
-         com.run()
+         # if this fails, notify the user
+         if com.run():
+            print '** 3dAllineate failure'
+            return None, None
          e2a_mat = self.anat_mat
 
          if (ps.flip):

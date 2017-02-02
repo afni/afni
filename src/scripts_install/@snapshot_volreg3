@@ -6,7 +6,7 @@ set wwww = `which @snapshot_volreg`
 if( $status != 0 )then
   echo
   echo 'The script @snapshot_volreg3 has been re-named to @snapshot_volreg'
-  echo '** But I can't find @snapshot_volreg in the path, so must exit :(('
+  echo '** But I cannot find @snapshot_volreg in the path, so must exit :(('
   echo
   exit 1
 endif

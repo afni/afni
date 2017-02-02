@@ -424,6 +424,9 @@ void display_help_menu()
    "                    axis, you can instead use option\n"
    "                      -fwhmxyz sx sy sz\n"
    "                    to specify the three values separately.\n"
+   "            **** This option is no longer recommended, since FMRI data    ****\n"
+   "            **** does not have a Gaussian-shaped spatial autocorrelation. ****\n"
+   "            **** Consider using '-acf' or '3dttest++ -Clustsim' instead.  ****\n"
    "\n"
    "-acf a b c      = Alternative to Gaussian filtering: use the spherical\n"
    "                  autocorrelation function parameters output by 3dFWHMx\n"
@@ -855,6 +858,9 @@ ENTRY("get_options") ;
       fwhm_x = (float)strtod(argv[nopt],&ep) ;
       if( fwhm_x < 0.0f || ep == argv[nopt] )
          ERROR_exit("illegal value after -fwhm") ;
+      WARNING_message(
+         "Use of -fwhm is not advised;\n"
+         "           FMRI data does not have Gaussian-shaped smoothness!" ) ;
       fwhm_y = fwhm_z = fwhm_x ; nopt++; continue;
     }
 
@@ -897,6 +903,9 @@ ENTRY("get_options") ;
       fwhm_z = (float)strtod(argv[nopt++],&ep) ;
       if( fwhm_z < 0.0f || ep == argv[nopt-1] )
          ERROR_exit("illegal z value after -fwhmxyz") ;
+      WARNING_message(
+         "Use of -fwhmxyz is not advised;\n"
+         "           FMRI data does not have Gaussian-shaped smoothness!" ) ;
       continue;
     }
 
@@ -1214,7 +1223,7 @@ ENTRY("get_options") ;
   if( do_acf ){  /* 30 Nov 2015 */
     float val ; int_triple ijk ;
     if( fwhm_x > 0.0f )
-      WARNING_message("-acf option ==> -fwhm options are ignored!") ;
+      WARNING_message("-acf option ==> any -fwhm options are ignored!") ;
     if( nx < 4 || ny < 4 || nz < 4 )
       ERROR_exit("-acf option: minimum grid is 4x4x4, but you have %dx%dx%d",nx,ny,nz) ;
     fwhm_x = fwhm_y = fwhm_z = 0.0f ;

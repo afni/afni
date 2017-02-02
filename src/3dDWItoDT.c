@@ -255,7 +255,7 @@ main (int argc, char *argv[])
 "               high-intensity (presumably brain) voxels.  The intensity \n"
 "               level is determined the same way that 3dClipLevel works.\n\n"
 "   -mask dset = use dset as mask to include/exclude voxels\n\n"
-"   -bmatrix_NZ = switch to note that the input dataset is b-matrix, \n"
+" -bmatrix_NZ FF = switch to note that the input dataset is b-matrix, \n"
 "               not gradient directions, and there is *no* row of zeros \n"
 "               at the top of the file, similar to the format for the grad\n"
 "               input: N-1 rows in this file for N vols in matched data set.\n"
@@ -263,10 +263,15 @@ main (int argc, char *argv[])
 "               of G_{ij} = g_i*g_j (i.e., dyad of gradients, without b-value\n"
 "               included) or of the DW scaled version, B_{ij} = b*g_i*g_j.\n"
 "               The order of components is: G_xx G_yy G_zz G_xy G_xz G_yz.\n"
-"   -bmatrix_Z = similar to '-bmatrix_NZ' above, but assumes that first\n"
+" -bmatrix_Z FF = similar to '-bmatrix_NZ' above, but assumes that first\n"
 "               row of the file is all zeros (or whatever the b-value for\n"
 "               the reference volume was!), i.e. there are N rows to the\n"
 "               text file and N volumes in the matched data set.\n\n"
+" -bmatrix_FULL FF = exact same as '-bmatrix_Z FF' above (i.e. there are N\n"
+"               rows to the text file and N volumes in the matched data set)\n"
+"               with just a lot more commonsensical name.  Definitely would\n"
+"               be preferred way to go, for ease of usage!\n"
+"\n"
 "   -scale_out_1000 = increase output parameters that have physical units\n"
 "               (DT, MD, RD, L1, L2 and L3) by multiplying them by 1000. This\n"
 "               might be convenient, as the input bmatrix/gradient values \n"
@@ -440,6 +445,12 @@ main (int argc, char *argv[])
          
          // input bmatrix with initial B=0 line
          if (strcmp(argv[nopt], "-bmatrix_Z") == 0) {  
+            bmatrix_given = 1;
+            nopt++;
+            continue;
+         }
+         // duplicate behavior of above, but with a LOT easier name
+         if (strcmp(argv[nopt], "-bmatrix_FULL") == 0) {  
             bmatrix_given = 1;
             nopt++;
             continue;

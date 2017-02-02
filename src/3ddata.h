@@ -4798,8 +4798,9 @@ extern void THD_check_idcodes( THD_sessionlist * ) ; /* 08 Jun 1999 */
 extern void THD_load_statistics( THD_3dim_dataset * ) ;
 extern void THD_update_statistics( THD_3dim_dataset * ) ;
 extern THD_brick_stats THD_get_brick_stats( MRI_IMAGE * ) ;
-extern void THD_update_one_bstat( THD_3dim_dataset * , int ) ; /* 29 Mar 2005 */
-extern int THD_dset_scale(THD_3dim_dataset *aset, float fac); /* Jan 31 2015 */
+extern void THD_update_one_bstat( THD_3dim_dataset * , int ) ;  /* 29 Mar 2005 */
+extern int THD_dset_scale(THD_3dim_dataset *aset, float fac);   /* 31 Jan 2015 */
+extern int THD_count_nonzero_bricks( THD_3dim_dataset *dset ) ; /* 17 Jan 2017 */
 
 extern THD_fvec3 THD_3dind_to_3dmm( THD_3dim_dataset * , THD_ivec3 ) ;
 extern THD_fvec3 THD_3dind_to_3dmm_no_wod( THD_3dim_dataset * , THD_ivec3 ) ;
@@ -5792,10 +5793,11 @@ extern float THD_ktaub_corr   ( int,float *,float *) ;  /* 29 Apr 2010 */
 extern float THD_eta_squared  ( int,float *,float *) ;  /* 25 Jun 2010 */
 extern double THD_eta_squared_masked(int,float *,float *,byte *);/* 16 Jun'11 */
 extern float THD_dice_coef_f_masked(int,float *,float *,byte *);/* 28 Jul'15 */
+// orig- Apr. 2014;  updated- Jan. 2017, as part of some attempted saBobtage:
 extern THD_3dim_dataset * THD_Tcorr1D(THD_3dim_dataset *xset,
                               byte *mask, int nmask,
                               MRI_IMAGE *ysim,
-                              char *smethod, char *prefix); /* Apr. 2014 */
+                              char *smethod, char *prefix,int do_short); 
 extern float THD_quantile_corr( int,float *,float *) ;  /* 10 May 2012 */
 extern float quantile_corr( int n , float *x , float rv , float *r ) ;
 extern void THD_quantile_corr_setup( int ) ;
