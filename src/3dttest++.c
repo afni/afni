@@ -1753,7 +1753,7 @@ int main( int argc , char *argv[] )
        if( prefix_clustsim == NULL ){
          uuu = UNIQ_idcode_11() ;
          prefix_clustsim = (char *)malloc(sizeof(char)*32) ;
-         sprintf(prefix_clustsim,"TT.%s",uuu) ; free(uuu) ;
+         sprintf(prefix_clustsim,"TT.%s",uuu) ;
          ININFO_message("Default clustsim prefix set to '%s'",prefix_clustsim) ;
        }
        continue ;
@@ -2466,6 +2466,9 @@ int main( int argc , char *argv[] )
      ERROR_exit("You can't use -nomeans and -notests together! (Duh)") ;
 
    /* check sample counts */
+
+   if( ndset_AAA == 0 )
+     ERROR_exit("You didn't use one of -setA or -singletonA :(") ;
 
    twosam = (nval_BBB > 1) ; /* 2 sample test? */
 

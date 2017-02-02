@@ -15,10 +15,15 @@ Create random stimulus timing files.
     their responses can.
 
 
-    *** There is now a basic (old) and advanced usage.  Until I decide whether
-        and how to merge the help, see -help_advanced for the advanced usage.
-        What follows is the basic usage.
+    ---------------------------------------------------------------------------
+    **  There is now basic (old) and advanced usage.  Until I decide whether
+        and how to merge the help, consider:
 
+            make_random_timing.py -help_advanced
+
+        Otherwise, what follows is the basic usage.  Though all options are
+        listed here.
+    ---------------------------------------------------------------------------
 
     This can easily be used to generate many sets of random timing files to
     test via "3dDeconvolve -nodata", in order to determine good timing, akin
@@ -801,7 +806,7 @@ optional arguments:
 """
 
 g_help_advanced = """
----------------------------------------------------------------------------
+===========================================================================
 make_random_timing.py - Advanced usage
 
    With advanced usage, timing classes are defined for both stimulus periods
@@ -851,26 +856,26 @@ make_random_timing.py - Advanced usage
 
      - Do this for 4 runs of length 200 s each.
 
-     - Also, do not allow any extra rest (beyond the specifiec 10 s) after
+     - Also, do not allow any extra rest (beyond the specified 10 s) after
        the final stimulus event.
 
      - Show timing statistics.  Save a complete event list (events.adv.1.txt).
 
          make_random_timing.py -num_runs 4 -run_time 200         \\
+            -pre_stim_rest 10 -post_stim_rest 10                 \\
+            -rand_post_stim_rest no                              \\
             -add_timing_class stim 3.5                           \\
             -add_timing_class rest 0 -1 -1                       \\
-            -pre_stim_rest 10 -post_stim_rest 10                 \\
             -add_stim_class houses 10 stim rest                  \\
             -add_stim_class faces  10 stim rest                  \\
             -add_stim_class donuts 10 stim rest                  \\
-            -rand_post_stim_rest no                              \\
             -show_timing_stats                                   \\
             -write_event_list events.adv.1.txt                   \\
             -seed 31415 -prefix stimes.adv.1
 
 
    -------------------------------------------------------
-   Advanced Example 2: varrying stimulus and rest timing classes
+   Advanced Example 2: varying stimulus and rest timing classes
 
      - This has 4 stimulus conditions employing 3 different stimulus timing
        classes and 3 different rest timing classes.
@@ -899,19 +904,19 @@ make_random_timing.py - Advanced usage
        the end of each run, 10s in this example.
 
          make_random_timing.py -num_runs 2 -run_time 300         \\
+            -pre_stim_rest 10 -post_stim_rest 10                 \\
+            -rand_post_stim_rest no                              \\
             -add_timing_class stima 0.5 3 10                     \\
             -add_timing_class stimb 0.1 0.5 3                    \\
             -add_timing_class stimc 2                            \\
             -add_timing_class resta 0.2 .7 1.2 dist=uniform_rand \\
             -add_timing_class restb 0.5 1  1.5 dist=uniform_grid \\
             -add_timing_class restc 0 -1 -1                      \\
-            -pre_stim_rest 10 -post_stim_rest 10                 \\
             -add_stim_class houses 20 stima resta                \\
             -add_stim_class faces  20 stimb restb                \\
             -add_stim_class donuts 20 stimb restb                \\
             -add_stim_class pizza  20 stimc restc                \\
             -write_event_list events.adv.2                       \\
-            -rand_post_stim_rest no                              \\
             -show_timing_stats                                   \\
             -seed 31415 -prefix stimes.adv.2
 
@@ -925,6 +930,8 @@ make_random_timing.py - Advanced usage
        than the default of 0.01s.
 
          make_random_timing.py -num_runs 2 -run_time 300         \\
+            -pre_stim_rest 10 -post_stim_rest 10                 \\
+            -rand_post_stim_rest no                              \\
             -add_timing_class stima 0.5 3 10                     \\
             -add_timing_class stimb 0.1 0.5 3                    \\
             -add_timing_class stimc 0.1 2.5 10 t_gran=0.1        \\
@@ -932,7 +939,6 @@ make_random_timing.py - Advanced usage
             -add_timing_class resta 0.2 .7 1.2 dist=uniform_rand \\
             -add_timing_class restb 0.5 1  1.5 dist=uniform_grid \\
             -add_timing_class restc 0 -1 -1                      \\
-            -pre_stim_rest 10 -post_stim_rest 10                 \\
             -add_stim_class cue    20 stima resta                \\
             -add_stim_class test   20 stimb restb                \\
             -add_stim_class result 20 stimb restb                \\
@@ -941,12 +947,52 @@ make_random_timing.py - Advanced usage
             -add_stim_class pizza3 10 stimc restc                \\
             -add_stim_class salad  10 stimd restc                \\
             -write_event_list events.adv.3                       \\
-            -rand_post_stim_rest no                              \\
             -show_timing_stats                                   \\
-          -ordered_stimuli cue test result                       \\
-          -ordered_stimuli pizza1 pizza2 pizza3                  \\
+            -ordered_stimuli cue test result                     \\
+            -ordered_stimuli pizza1 pizza2 pizza3                \\
             -seed 31415 -prefix stimes.adv.3
----------------------------------------------------------------------------
+
+   -------------------------------------------------------
+   Advanced Example 4: limit consecutive events per class type
+
+     - Use simple 1s stim events and random rest (decay).
+     - For entertainment, houses/faces and tuna/fish are
+       ordered event pairs.
+     - Classes houses, faces, tuna and fish are restricted to a
+       limit of 3 consecutive events.
+     - There is no limit on donuts.   Why would there be?
+
+         make_random_timing.py -num_runs 2 -run_time 600         \\
+            -pre_stim_rest 0 -post_stim_rest 0                   \\
+            -add_timing_class stim 1                             \\
+            -add_timing_class rest 0 -1 -1                       \\
+            -add_stim_class houses 100 stim rest                 \\
+            -add_stim_class faces  100 stim rest                 \\
+            -add_stim_class tuna 100 stim rest                   \\
+            -add_stim_class fish 100 stim rest                   \\
+            -add_stim_class donuts 100 stim rest                 \\
+            -ordered_stimuli houses faces                        \\
+            -ordered_stimuli tuna fish                           \\
+            -max_consec 3 3 3 3 0                                \\
+            -show_timing_stats                                   \\
+            -write_event_list events.adv.4                       \\
+            -seed 31415 -prefix stimes.adv.4 -verb 2
+
+---------------------------------------------------------------------
+options (specific to the advanced usage):
+
+    -help_advanced              : display help for advanced usage
+    -help_todo                  : "to do" list is mostly for advanced things
+
+    -add_timing_class           : create a new timing class (stim or rest)
+    -add_stim_class             : describe a new stimulus class (timing, etc.)
+    -rand_post_stim_rest yes/no : allow rest after final stimulus
+    -show_rest_events           : show details of rest timing, per type
+    -write_event_list FILE      : create FILE listing all events and times
+
+----------------------------------------------------------------------
+R Reynolds  Jan 20, 2017          motivated by K Kircanski and A Stringaris
+===========================================================================
 """
 
 g_history = """
@@ -988,24 +1034,22 @@ g_history = """
     1.9  Aug 21, 2015: added help for understanding the distribution of ISI
                        see: NOTE: distribution of ISI
     1.10 Jun 01, 2016: minor updates to verbose output
-    2.00 Dec XX, 2016: basically a new program
-         - separated make_limited_space_list
+
+    2.0  Jan 20, 2017: basically a new program
+         * Advanced usage: applying user-defined timing classes for stim/rest.
+           see:   make_random_timing.py -help_advanced
+    2.1  Jan 23, 2017: allow use of INSTANT timing class; reorder example opts
 """
 
-g_version = "version 1.10, June 1, 2016"
+g_version = "version 2.1, January 23, 2017"
 
 g_todo = """
+   - add -show_consec_stats option
+   - apply -make_3dd_contrasts, -save_3dd_cmd
+   - apply -offset?
    - reconcile t_grid as global vs per class (init/pass as single parameters)
-   - similarly, what about max_consec? (must be single value, not list)
-   - give timing class params as t_grid=0.01 max_consec=4
-     ?? would that be better?  I think so.
-   * NO: max_consec is per stim class, not timing class
-      - handle max_consec (new option?)
-   - check tr_locked
-   - new method for decay that better handles max duration, w/out spike
+   - make new method for decay that better handles max duration, w/out spike
    - add warning if post-stim rest < 3 seconds
-   - help for options:
-        -rand_post_stim_rest, -write_event_list, show_rest_events
    - add option to change timing classes for pre and post stim rest
    - add related dist_types rand_unif and rand_gauss?
    - global "-across_runs" should still apply
@@ -1075,7 +1119,7 @@ class RandTiming:
 
         # ------------------------------------------------------------
         # required arguments for advanced method
-        self.tclasses   = []            # TimingClass instances
+        self.tclasses   = [g_instant_timing_class] # TimingClass instances
         self.sclasses   = []            # StimClass instances
 
         # advanced options
@@ -2471,22 +2515,6 @@ class RandTiming:
         else: 
             num_reps = self.num_reps
 
-        # rcr - test this!
-
-        # initial pass on creation of events list
-        #rv, clist, rtype, rcount =  \
-        #    self.init_limited_event_list(num_reps, self.max_consec)
-        #if rv:
-        #    print '** failure of randomize_limited_events'
-        #    return 1, None
-
-        # if we ran out of space for one event type, try to fill
-        # prev must be remaining event type
-        #if rcount > 0:
-        #    rv, clist = self.fill_remaining_limited_space(self.max_consec,
-        #                                                  clist, rtype, rcount)
-        #    if rv: return 1, None
-
         rv, clist = self.make_limited_space_list(num_reps, self.max_consec)
 
         # next, rewrite as elist   ---> convert to 1-based index list here 
@@ -2527,6 +2555,9 @@ class RandTiming:
                                                           clist, rtype, rcount)
             if rv: return 1, None
 
+        if self.verb > 4:
+           print '++ MLSL: reps list %s' % clist
+
         return 0, clist
 
     def init_limited_event_list(self, num_reps, max_consec):
@@ -2546,6 +2577,11 @@ class RandTiming:
 
              Note clist has 0-based event indices, they should be incremented.
         """
+
+        if self.verb > 3:
+           print '-- init_limited_event_list\n' \
+                 '      num_reps   = %s\n'       \
+                 '      max_consec = %s' % (num_reps, max_consec)
 
         remain   = num_reps[:]
         nremain  = sum(remain)
@@ -2998,17 +3034,24 @@ class RandTiming:
 
        eall = []
        for rind in range(ntodo):
-          erun = []
-          for sind, sc in enumerate(self.sclasses):
-             # if ordered stim and sc is not a leader: skip
-             if ordered and sc.name in self.osfollow:
-                if self.verb>3: print '-- no shuffle for follower %s' % sc.name
-                continue
-        
-             for dur in sc.durlist[rind]:
-                erun.append([sind, dur])
-          if self.shuffle_event_list(erun):
-             return 1
+          # either applying max_consec or not
+          if len(self.max_consec) == len(self.sclasses):
+             erun = self.adv_limited_shuffled_run(rind, ordered)
+             if erun == None: return 1
+          else:
+             erun = []
+             for sind, sc in enumerate(self.sclasses):
+                # if ordered stim and sc is not a leader: skip
+                if ordered and sc.name in self.osfollow:
+                   if self.verb>3:
+                      print '-- no shuffle for follower %s' % sc.name
+                   continue
+                erun.extend([[sind, dur] for dur in sc.durlist[rind]])
+             UTIL.shuffle(erun)
+
+          if self.verb > 1:
+             print '-- randomized event lists (no followers) for run %d' % rind
+             self.disp_consec_event_counts([erun])
 
           # if ordered stim, insert followers
           if ordered:
@@ -3022,10 +3065,81 @@ class RandTiming:
           if self.adv_partition_sevents_across_runs():
              return 1
 
-       if self.verb > 2:
-          print '-- have randomized event lists'
+       if self.verb > 4:
+          print '-- randomized event lists across all runs'
+          self.disp_consec_event_counts(eall)
 
        return 0
+
+    def disp_consec_event_counts(self, eall):
+       # first convert to a list of counts per class, across runs
+       numc = len(self.sclasses)
+
+       call = [[] for sind in range(numc)]
+       for erun in eall:
+          eind = 0
+          elen = len(erun)
+          while eind < elen:
+             ecur = eind
+             eind += 1
+             cind = erun[ecur][0]
+             while eind < elen:
+                if erun[eind][0] != cind: break
+                eind += 1
+             # have (eind-ecur) events of type cind
+             call[cind].append(eind-ecur)
+
+       if self.verb > 1:
+          print '++ consec event counts:'
+       slen = max([len(sc.name) for sc in self.sclasses])
+
+       if self.verb > 4:
+          for sind, sc in enumerate(self.sclasses):
+             print '-- consec list for #%2d=%-*s (len %3d): %s' \
+                   % (sind, slen, sc.name, len(call[sind]), call[sind])
+          print
+
+       for sind, sc in enumerate(self.sclasses):
+          mi, mn, mx, st = UTIL.min_mean_max_stdev(call[sind])
+          if self.verb > 1:
+             print '   consec for %*s, sum %4d,'        \
+                   ' mmms: %7.3f  %7.3f  %7.3f  %7.3f'  \
+                   % (slen, sc.name, sum(call[sind]), mi, mn, mx, st)
+
+    def adv_limited_shuffled_run(self, rind, ordered):
+       """return randomized events subject to max_consec
+          - if ordered stimuli, do not include followers
+       """
+       numc = len(self.sclasses)
+       if len(self.max_consec) != numc:
+          print '** ALSR: bad max_consec list: %s' % self.max_consec
+          return None
+
+       # create a modified reps list that omits followers
+       reps = [len(sc.durlist[rind]) for sc in self.sclasses]
+       if ordered:
+          for sind, sc in enumerate(self.sclasses):
+             if sc.name in self.osfollow:
+                if self.verb>3: print '-- no consec for follower %s' % sc.name
+                reps[sind] = 0
+
+       # generate a random list of the form [[sind nconsec] ...]
+       rv, clist = self.make_limited_space_list(reps, self.max_consec)
+       if rv: return None
+
+       clist.pop(0)     # remove initial [-1,0]
+
+       # convert to form [[sind dur] ...]
+       enew = []
+       for cind, consec in enumerate(clist):
+          # append consec[1] durations of type consec[0]
+          sind = consec[0]
+          sc = self.sclasses[sind]
+          for tind in range(consec[1]):
+             dur = sc.durlist[rind].pop(0)
+             enew.append([sind, dur])
+
+       return enew
 
     def adv_insert_followers(self, rind, events):
        """given list of [sind, dur], insert appropriate followers
@@ -3112,129 +3226,6 @@ class RandTiming:
 
        return 1
 
-    def shuffle_event_list(self, events):
-       """randomize order of events, and possibly deal with max consec
-
-          return 0 on success
-       """
-       UTIL.shuffle(events)
-
-
-       # --------------------------------------------------
-       # deal with max_consec
-
-       # get a list of existing class indices with max_consec > 0
-       slist = UTIL.get_unique_sublist([event[0] for event in events])
-       slist.sort()
-       mclist = [sind for sind in slist if self.sclasses[sind].max_consec > 0]
-
-       # for each class, adjust the events list to limit max_consec
-       # (note: moving offenders will never raise the consec of another class)
-       for sind in mclist:
-          if self.adv_apply_max_consec(events, sind):
-             return 1
-
-       return 0
-
-    def adv_apply_max_consec(self, events, sind):
-       """limit consecutive events of type index 'sind' to max_consec
-
-          - make a list of offending indices in events list (# NO)
-          - make a list of potential insertion indices (# NI)
-          - would like to get (NI choose NO) positions, but NI might
-            decrease if a movement increase consecutive 'sind' events
-             - so must do one at a time, and let NI possibly decrease
-             - SLOW
-
-          return 0 on success
-       """
-       sc = self.sclasses[sind]
-       limit = sc.max_consec
-       if limit <= 0:
-          print '** should not be applying max_consec for %s' % sc.name
-          return 1
-
-       elist = [e[0] for e in events]
-
-       # to be quick, see if we exceed limit for class index sind
-       nmove = self.adv_remove_above_max_consec(elist, sind, limit)
-       if nmove == 0:
-          # nothing to do
-          return 0
-
-       adjlist = self.adv_left_adjacency_list(elist, sind)
-       if adjlist == None: return 1
-
-       #if self.adv_insert_movers(elist, sind, limit, nmove):
-       #   return 0
-
-       # we exceed max
-
-       return 0
-
-    def adv_left_adjacency_list(self, vals, tval):
-       """return a list of "to the right" adjacency counts
-          - at each position, how many tval's is it adjacent to
-
-          this list is slightly odd, but:
-             - all non-zero counts groups are constant and surrounded by
-               either zeros or ends
-       """
-       nvals = len(vals)
-       adjlist = [0]*(nvals+1)
-       
-       if self.verb > 3:
-          print '++ make_adj: counting adjacencies of %d among %d vals' \
-                % (tval, nvals)
-       
-       # from each position, try to count consecutive tvals to right
-       vind = 0
-       while vind < nvals:
-          if vals[vind] == tval:
-             # count to right, be careful at end
-             tind = vind+1
-             while tind < nvals:
-                if vals[tind] != tval: break
-                tind += 1
-
-             nfound = tind-vind
-             for c in range(vind, tind):
-                adjlist[c] = nfound
-             vind = tind
-          else:
-             vind += 1
-
-       if self.verb > 5:
-          print '== MAL vals: %s' % vals
-          print '== MAL adjs: %s' % adjlist
-
-       return None
-       return adjlist
-
-    def adv_remove_above_max_consec(self, vals, tval, limit):
-       """look for more than 'limit' consecutive instances of tval
-          - remove extras via pop
-          - return the number removed (which need to be reinserted)
-       """
-       nvals = len(vals)
-       
-       cc = 0
-       nrm = 0
-       # count down and pop
-       for vind in range(nvals-1, -1, -1):
-          if vals[vind] == tval:
-             cc += 1
-             if cc > limit:
-                vals.pop(vind)
-                nrm += 1
-          else:
-             cc = 0
-
-       if self.verb > 3:
-          print '++ RAM_consec: removing %d of %d values of %d' \
-                % (nrm, nvals, tval)
-
-       return nrm
 
     def adv_partition_sevents_across_runs(self):
        """break stim_event_list into num_runs"""

@@ -8,14 +8,26 @@
 # This function constructed by: PA Taylor (NIMH, NIH, USoA)
 # 
 # Dec, 2016:
-#     + conception and start
+#     + conception and start.
 #
 # Jan, 2017:
-#     + add I/O
+#     + add I/O.
 #
+# Jan, 2017b:
+#     + if ulay/olay are in different files, have tmp readdir.
+#     + default now to proceed if no olay given but also no 
+#       '-olay_off' is used.
+#
+# Jan, 2017c:
+#     + better centering of slices.
+#
+# Jan, 2017d:
+#     + better slice selection/centering.
+#     + adjust for different orders of orientation
+
 
 # current ver
-set ver = 1.0
+set ver = 1.5
 
 # For more info about opts/fields, see:
 #
@@ -30,7 +42,7 @@ setenv AFNI_NOSPLASH          YES
 setenv AFNI_SPLASH_MELT       NO
 setenv AFNI_ENVIRON_WARNINGS  NO
 setenv AFNI_COMPRESSOR        NONE
-
+setenv AFNI_IMAGE_GLOBALRANGE VOLUME
 # -------------------------------------------------------------------
 
 # ------------------- default/initialized variables -----------------
@@ -53,11 +65,14 @@ set thrflag = "*"                # threshold flags
 
 set crossh = "OFF"               # crosshairs OFF by default
 set opac   =  6                  # opacity of overlay
+
+set mx     =  3                  # 'x' dim of montage
+set my     =  3                  # 'y' dim of montage
 set delsag = -1                  # (int) slice space in sag orient
 set delaxi = -1                  # (int) slice space in axi orient
 set delcor = -1                  # (int) slice space in cor orient
-set mx     =  3                  # 'x' dim of montage
-set my     =  3                  # 'y' dim of montage
+set coors  = ( 0 0 0 )
+set gapord = ( 0 0 0 )
 
 # for SET_PBAR_ALL
 set pbar_sign = "-"              # + is pos. only, - is both (switch for both)
@@ -71,6 +86,14 @@ set alpha_edgize_no = 0          # =1 -> SETENV AFNI_EDGIZE_OVERLAY NO
 
 set do_quit = "QUITT"            # quick-quit; not subject to change
 
+# tmp dir, in case under- and overlays are in separate dirs
+set tmp_dir  = "__tmp_ImG_837261"
+set DO_CLEAN = 0
+set read_dir = ""
+set read_ulay = tmp_ulay.nii.gz
+
+set USER_ULAY_RANGE = 0          # def: user doesn't enter ulay range
+
 # -------------------------------------------------------------------
 # ----------------------------- ugh ---------------------------------
 
@@ -81,6 +104,8 @@ set listind = (  1   1   2   2   3   3  )
 
 # -------------------------------------------------------------------
 # ------------------- process options, a la rr ----------------------
+
+echo "++ My command: $argv"
 
 if ( $#argv == 0 ) goto SHOW_HELP
 
@@ -163,18 +188,19 @@ while ( $ac <= $#argv )
         @ ac += 1
         set thrflag = "$argv[$ac]"
         
+    # refers to olay
     else if ( "$argv[$ac]" == "-func_range" ) then
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
         @ ac += 1
         set frange = "$argv[$ac]"
         set USER_FRANGE = 1
         
+    # refers to olay
     else if ( "$argv[$ac]" == "-func_range_perc" ) then
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
         @ ac += 1
         set frange_perc = "$argv[$ac]"
         set USER_FRANGE = 2
-
 
     else if ( "$argv[$ac]" == "-pbar_posonly" ) then
         set pbar_sign = "+"
@@ -220,10 +246,10 @@ while ( $ac <= $#argv )
         @ ac += 1
         setenv AFNI_IMAGE_ZEROCOLOR  "$argv[$ac]"
 
-    # AFNI_IMAGE_LABEL_MODE      = 1     // draw labels in upper left of Image windows
-    # AFNI_IMAGE_LABEL_SIZE      = 2     // size of labels in Image windows
-    # AFNI_IMAGE_LABEL_COLOR     = white // color of labels in Image windows
-    # AFNI_IMAGE_LABEL_SETBACK   = 0.01  // distance from edges for labels
+    # AFNI_IMAGE_LABEL_MODE    = 1     // draw labels in UL of Image windows
+    # AFNI_IMAGE_LABEL_SIZE    = 3     // size of labels in Image windows
+    # AFNI_IMAGE_LABEL_COLOR   = white // color of labels in Image windows
+    # AFNI_IMAGE_LABEL_SETBACK = 0.01  // distance from edges for labels
     else if ( "$argv[$ac]" == "-label_mode" ) then
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
         @ ac += 1
@@ -243,6 +269,23 @@ while ( $ac <= $#argv )
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
         @ ac += 1
         setenv AFNI_IMAGE_LABEL_SETBACK  "$argv[$ac]"
+
+    # default = VOLUME
+    else if ( "$argv[$ac]" == "-globalrange" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        setenv AFNI_IMAGE_GLOBALRANGE  "$argv[$ac]"
+        
+    else if ( "$argv[$ac]" == "-ulay_range" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set umin = "$argv[$ac]"
+        @ ac += 1
+        set umax = "$argv[$ac]"
+        set USER_ULAY_RANGE = 1
+
+    else if ( "$argv[$ac]" == "-do_clean" ) then
+        set DO_CLEAN = 1
 
    else
       echo "** unexpected option #$ac = '$argv[$ac]'"
@@ -286,12 +329,12 @@ if ( ($ulay == '') ) then
     goto BAD_EXIT
 endif
 
-# need more cowbell
+# need more cowbell, but will proceed anyways
 if (( "$olay" == "" ) && ( "$see_olay" == "+" )) then
-    echo "** ERROR: you did NOT provide and overlay, and yet"
-    echo "          you did NOT turn off the overlay with '-olay_off'"
-    echo "      --> so I am confused and exiting." 
-    goto BAD_EXIT
+    echo "+* Noting: you did NOT provide an overlay, and yet"
+    echo "           you did NOT turn off the overlay with '-olay_off'"
+    echo "       --> so I assume you just want to view the underlay." 
+    set see_olay = "-"
 endif
 
 # check blowup factor
@@ -326,15 +369,74 @@ if ( $innit == 0 ) then
     goto BAD_EXIT
 endif
 
+# in so many cases we need a tmp working directory
+set read_dir = "$odir/$tmp_dir"
+if ( ! -e $read_dir ) then
+    echo "++ Making temporary work directory to copy vis files: $read_dir"
+    mkdir $read_dir
+endif
+
+# for scaling ulay uniformly with reasonable values when brightness
+# range is the same across the volume
+set urange = `echo $AFNI_IMAGE_GLOBALRANGE`
+if ( ( $urange == "VOLUME" ) || ( $urange == "DSET" )  \
+    || ( $urange == "YES" ) ) then
+
+    if ( $USER_ULAY_RANGE ) then
+        echo "++ Copying ulay to visualize (volumetric) within user's range:"
+        echo "   [${umin},${umax}]"
+    else
+        set ubs  = `3dBrickStat -percentile 2 96 98 $ulay`
+        set umin = $ubs[2]
+        set umax = $ubs[4]
+
+        echo "++ Copying ulay to visualize between 2%-98% (volumetric):"
+        echo "   [${umin},${umax}]"
+    endif
+
+    # copy over *thresholded* version to temporary read dir
+    3dcalc                                        \
+        -overwrite                                \
+        -a $ulay                                  \
+        -expr "a*within(a,${umin},${umax})+${umin}*step($umin-a)+${umax}*step(a-$umax)" \
+        -prefix $read_dir/$read_ulay
+
+else
+    if ( `3dinfo -datum $ulay` == "rgb" ) then
+        # not sure why 3dcalc won't preserve rgb-ness...
+        3dcopy                                        \
+            -overwrite                                \
+            $ulay $read_dir/$read_ulay
+    else
+        echo "++ For ulay, AFNI_IMAGE_GLOBALRANGE is set to be: $urange"
+        # just copy over *original* version to temporary read dir
+        3dcalc                                        \
+            -overwrite                                \
+            -a $ulay                                  \
+            -expr "a"                                 \
+            -prefix $read_dir/$read_ulay
+    endif
+endif
+
 # IF we don't want to see the olay, then set it to be the ulay, for
 # later simplicity with the automontaging
 if ( "$see_olay" == "-" ) then
     echo "++ No overlay viewing"
     set olay = ""
-    # a silly thing, in case we don't want to view olay
-    set lolay = "$ulay" 
+    # don't need to copy anything, just set this for scripty purposes,
+    # doesn't affect visualization.
+    set read_olay = $read_ulay
+
+    set Dim  = `3dinfo -n4 $ulay`
 else
-    set lolay = "$olay"
+    set Dim  = `3dinfo -n4 $olay`
+
+    set read_olay = tmp_olay.nii.gz
+    3dcalc                                    \
+        -a $olay                              \
+        -expr 'a'                             \
+        -prefix $read_dir/$read_olay          \
+        -overwrite
 
     # set frange, if user hasn't, based on data:
     if ( $USER_FRANGE == 0 ) then
@@ -344,7 +446,7 @@ else
         #set tval    = `ccalc "min($cval,$mval/4)"`
         #set frange  = `ccalc "max(3*$cval,0.666*$mval)"`
 
-        set vv = `3dBrickStat -percentile 98 1 98 $olay`
+        set vv = `3dBrickStat -non-zero -percentile 98 1 98 $olay`
         set frange = $vv[2]
 
         set maxolay = `3dinfo -max $olay`
@@ -352,12 +454,15 @@ else
         echo "++ No user-entered function range ('-frange ...') value."
         echo "   --> Ergo, calculating based on 98th %ile, getting: $frange"
         echo "   ----> ... noting that range of values is: [$minolay, $maxolay]"
+    else if ( $USER_FRANGE == 1 ) then
+        echo "++ User-entered function range value value (${frange}%)"
     else if ( $USER_FRANGE == 2 ) then
-        set vv = `3dBrickStat -percentile $frange_perc 1 $frange_perc $olay`
+        set vv = `3dBrickStat -non-zero                           \
+                    -percentile $frange_perc 1 $frange_perc -non-zero $olay`
         set frange = $vv[2]
         set maxolay = `3dinfo -max $olay`
         set minolay = `3dinfo -min $olay`
-        echo "++ User-entered percentile value (${frange_perc}%)"
+        echo "++ User-entered function range value as percentile (${frange_perc}%)"
         echo "   --> Ergo, calculating FUNC_RANGE, getting: $frange"
         echo "   ----> ... noting that range of values is: [$minolay, $maxolay]"
     endif
@@ -366,48 +471,65 @@ endif
 # Calculate numbers of slices in each direction, if not given by user.
 # Take number of mont wins plus a couple to calculate.
 @  Nwin  = $mx * $my
-set Dim  = `3dinfo -n4 $ulay`
 # silly stuff to deal with orientation
 set ori  = `3dinfo -orient $ulay`
 set ori0 = `echo $ori | awk '{print substr($0,1,1)}'`
 set ori1 = `echo $ori | awk '{print substr($0,2,1)}'`
 set ori2 = `echo $ori | awk '{print substr($0,3,1)}'`
 set all_ori = ( $ori0 $ori1 $ori2 )
-set order = ()
+set order  = ()
 foreach oo ( $all_ori )
     foreach i ( `seq 1 1 ${#listori}` )
         if ( $oo == "$listori[${i}]" ) then
-            set order = ( $order ${listind[$i]} )
+            set order  = ( $order ${listind[$i]} )
             break
         endif
     end
 end
 echo "++ Cryptic info: $ori -> $all_ori -> $order"
+
 echo "++ Dimensions (xyzt): $Dim"
-if ( $delsag <= 0 ) then
-    @ delsag = ${Dim[${order[1]}]} / ( $Nwin + 2 ) 
-    # reset to 1 if rounding to 0 somehow
-    if ( $delsag <= 0 ) then
-        set delsag = 1
+
+foreach i ( `seq 1 1 3` )
+    if( $gapord[$order[$i]] <= 0 ) then
+        @ gapord[$order[$i]] = $Dim[$i] / ( $Nwin )
+        if( $gapord[$order[$i]] <= 0 ) then
+            @ gapord[$order[$i]] = 1
+        endif
     endif
-    echo "++ Every '$delsag' sagittal slice will be shown."
-endif
-if ( $delcor <= 0 ) then
-    @ delcor = ${Dim[${order[2]}]} / ( $Nwin + 2 )
-    # reset to 1 if rounding to 0 somehow
-    if ( $delcor <= 0 ) then
-        set delcor = 1
+end
+
+echo "++ Slice spacing ordered (x,y,z) is:  $gapord"
+
+# get ceilings of 'montage number + 1', in each direction
+set xo2 = `echo "scale=2; ( $mx + 1 ) / 2." | bc`
+set cmx = `echo $xo2 | perl -nl -MPOSIX -e 'print ceil($_);'`
+set yo2 = `echo "scale=2; ( $my + 1 ) / 2." | bc`
+set cmy = `echo $yo2 | perl -nl -MPOSIX -e 'print ceil($_);'`
+
+@ tot     = $mx * $my 
+@ hpan    = ( ( $cmy - 1 ) * $mx ) + $cmx    
+#echo "$cmx $cmy $tot $hpan"
+set pfrac = `echo "scale=5; ( $hpan / ( $tot + 1 ) ) " | bc` # ????
+echo "++ pfrac = $pfrac"
+
+# These need to reflect the order of the original.  Ugh, annoying
+# conditions.
+foreach i ( `seq 1 1 3` )
+    set qfrac = `echo "scale=5; ( $pfrac ) " | bc` # frac to center
+    set qsh   = ""#+ 1"                             # zerobase count offset
+    if ( ( $all_ori[$i] == 'R' ) || ( $all_ori[$i] == 'P' )  \
+        || ( $all_ori[$i] == 'S' ) ) then
+        #echo "++ Coor calc:  $all_ori[$i] for $order[$i]"
+        set qfrac = `echo "scale=5; ( 1 - $pfrac ) " | bc`
+    #else
+    #    echo "++ Coor value: $all_ori[$i] for $order[$i]"
     endif
-    echo "++ Every '$delcor' coronal slice will be shown."
-endif
-if ( $delaxi <= 0 ) then
-    @ delaxi = ${Dim[${order[3]}]} / ( $Nwin + 2 )
-    # reset to 1 if rounding to 0 somehow
-    if ( $delaxi <= 0 ) then
-        set delaxi = 1
-    endif
-    echo "++ Every '$delaxi' axial slice will be shown."
-endif
+    set nn        = `echo "scale=0; ( ( $Dim[$i] * $qfrac ) $qsh )" | bc`
+    set coors[$i] = `echo $nn | perl -nl -MPOSIX -e 'print floor($_);'`
+end
+
+echo "++ Will have: SET_IJK $coors"
 
 echo "\n------------------- end of optionizing -------------------\n" 
 
@@ -442,31 +564,42 @@ if( $?xdisplay == 0 )then
 endif
 
 setenv DISPLAY :${xdisplay}
+set OW = "OPEN_WINDOW"
 
 # -------------------------------------------------------------------
 # ---------------- The actual, driven command! ----------------------
 
-afni -noplugins -no_detach                                         \
-     -com "SWITCH_UNDERLAY ${ulay}"                                \
-     -com "SWITCH_OVERLAY  ${lolay}"                               \
-     -com "SET_PBAR_ALL ${pbar_sign}${ncolors} $topval $my_cbar"   \
-     -com "SET_FUNC_RANGE ${frange}"                               \
-     -com "SET_THRESHNEW $thrnew $thrflag"                         \
-     -com "SEE_OVERLAY ${see_olay}"                                \
-     -com "SET_FUNC_ALPHA $alpha_par $alpha_floor"                 \
-     -com "SET_XHAIRS  ${crossh}"                                  \
-     -com "OPEN_WINDOW sagittalimage opacity=${opac} mont=${mx}x${my}:${delsag}"   \
-     -com "OPEN_WINDOW coronalimage  opacity=${opac} mont=${mx}x${my}:${delcor}"   \
-     -com "OPEN_WINDOW axialimage    opacity=${opac} mont=${mx}x${my}:${delaxi}"   \
+afni -noplugins -no_detach  -echo_edu                               \
+     -com "SWITCH_UNDERLAY ${read_ulay}"                            \
+     -com "SWITCH_OVERLAY  ${read_olay}"                            \
+     -com "SET_PBAR_ALL    ${pbar_sign}${ncolors} $topval $my_cbar" \
+     -com "SET_FUNC_RANGE  ${frange}"                               \
+     -com "SET_THRESHNEW   $thrnew $thrflag"                        \
+     -com "SEE_OVERLAY     ${see_olay}"                             \
+     -com "SET_FUNC_ALPHA  $alpha_par $alpha_floor"                 \
+     -com "SET_XHAIRS  ${crossh}"                                   \
+     -com "$OW sagittalimage opacity=${opac} mont=${mx}x${my}:${gapord[1]}" \
+     -com "$OW coronalimage  opacity=${opac} mont=${mx}x${my}:${gapord[2]}" \
+     -com "$OW axialimage    opacity=${opac} mont=${mx}x${my}:${gapord[3]}" \
+     -com "SET_IJK $coors"                                                    \
      -com "SAVE_${ftype} sagittalimage ${odir}/${impref}.sag blowup=${bufac}" \
      -com "SAVE_${ftype} coronalimage  ${odir}/${impref}.cor blowup=${bufac}" \
      -com "SAVE_${ftype} axialimage    ${odir}/${impref}.axi blowup=${bufac}" \
-     -com "${do_quit}"                                                \
-     "${ulay}" "${olay}"
+     -com "${do_quit}"                                                        \
+     "${read_dir}"
 
 # A la bob:  stop Xvfb if we started it ourselves
 if( $?killX ) kill %1
 
+if ( $DO_CLEAN ) then
+    echo "\n+* Removing temporary image directory '$odir/$tmp_dir'.\n"
+    # AKA $read_dir, at present
+    \rm    $odir/$tmp_dir/*
+    \rmdir $odir/$tmp_dir
+else
+    echo "\n++ NOT removing temporary directory '$odir/$tmp_dir'.\n"
+endif
+ 
 goto GOOD_EXIT
 
 # ===========================================================================
