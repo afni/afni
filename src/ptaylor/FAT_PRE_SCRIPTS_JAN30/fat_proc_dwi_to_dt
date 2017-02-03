@@ -9,16 +9,23 @@
 #
 # ----------------------------------------------------------------
 
-set version = "1.1"
-set rev_dat = "Jan 27, 2017"
+set version   = "1.2"
+set rev_dat   = "Jan 27, 2017"
 set this_prog = "fat_proc_dwi_to_dt"
 
-set idwis    = ""
-set ibmat    = ""
+set idwi     = ""
+set invecmat = ( "" "" "" "" )    # switches+names for bvecs and bvals
+set iflip    = ""                 # can flip (yaaawn)
+
 set odir     = ""
 set opref    = ""
-set ori_new  = "RPI"       # default file output orientation
-set doflip   = ""          # default: no flip of grads
+set ori_new  = "RPI"              # default file output orientation
+set out_mata = "BMTXT_AFNI.txt"   # TORTOISE default name
+set out_cvec = "BGRAD_AFNI.txt"   # NAME FOR FULL AFNI GRADS
+
+set cmd_file    = ""               # def: same name as viewer
+#set postfix     = "axlz"           # stick into name
+
 
 # ------------------- process options, a la rr ----------------------
 
@@ -34,17 +41,45 @@ while ( $ac <= $#argv )
         goto SHOW_VERSION
     endif
 
-    #here, specify NIFTI *files*, not directories
-    if ( "$argv[$ac]" == "-in_dwis" ) then
+    # --------------- input dset(s) ----------------
+    if ( "$argv[$ac]" == "-indwi" ) then
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
         @ ac += 1
-        set idwis = "$argv[$ac]"
-
-    if ( "$argv[$ac]" == "-in_bmat" ) then
+        set idwi = "$argv[$ac]"
+        
+    # ------------- input vecmat and bval --------------
+    else if ( "$argv[$ac]" == "-in_col_matA" ) then
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        set invecmat[1]  = "$argv[$ac]" # reuse in 1dDW*++
         @ ac += 1
-        set ibmat = "$argv[$ac]"
+        set invecmat[2] = "$argv[$ac]"
 
+    else if ( "$argv[$ac]" == "-in_col_matT" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        set invecmat[1]  = "$argv[$ac]" # reuse in 1dDW*++
+        @ ac += 1
+        set invecmat[2] = "$argv[$ac]"
+
+    else if ( "$argv[$ac]" == "-in_col_vec" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        set invecmat[1]  = "$argv[$ac]" # reuse in 1dDW*++
+        @ ac += 1
+        set invecmat[2] = "$argv[$ac]"
+
+    else if ( "$argv[$ac]" == "-in_row_vec" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        set invecmat[1]  = "$argv[$ac]" # reuse in 1dDW*++
+        @ ac += 1
+        set invecmat[2] = "$argv[$ac]"
+
+    # not necessary; default is just empty
+    else if ( "$argv[$ac]" == "-in_bvals" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        set invecmat[3]  = "$argv[$ac]" # reuse in 1dDW*++
+        @ ac += 1
+        set invecmat[4] = "$argv[$ac]"
+
+    # ----------------- outputs ---------------------
     else if ( "$argv[$ac]" == "-outdir" ) then
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
         @ ac += 1
@@ -55,10 +90,18 @@ while ( $ac <= $#argv )
         @ ac += 1
         set opref = "$argv[$ac]"
 
-   else if ( "$argv[$ac]" == "-orient" ) then
-      if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
-      @ ac += 1
-      set ori_new = "$argv[$ac]"
+    # ----------------- other opts ---------------------
+    else if ( "$argv[$ac]" == "-orient" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set ori_new = "$argv[$ac]"
+
+    else if ( ("$argv[$ac]" == "-flip_x") || \
+              ("$argv[$ac]" == "-flip_y") || \
+              ("$argv[$ac]" == "-flip_z") || \
+              ("$argv[$ac]" == "-no_flip") ) then
+        set iflip = "$argv[$ac]"
+
 
     # other stuff.....
     # !!!!! structural, for orientation??
@@ -75,22 +118,87 @@ end
 # ============================ ** SETUP ** ==============================
 # =======================================================================
 
+# ============================ input files ==============================
+
 echo "++ Start script version: $version"
 
-# ============================= dicom dir ===============================
+set check = `3dinfo "$idwi"`
+if ( "$#check" == "0" ) then
+    echo "** ERROR: can't find inset file $idwi !"
+    goto BAD_EXIT
+else
+    echo "++ Found inset file $idwi !"
+endif
 
-if ( ("$idir_ap" == "") && ("$idir_pa" == "") ) then
-    echo "** ERROR: need to input at least one DICOM directory,"
-    echo "\t using either after '-indir_ap' or '-indir_pa'."
+# check for vec/mat file
+if ( -f $invecmat[2] ) then
+    echo "++ Found entered vec/mat file $invecmat[2] !"
+else
+    echo "** ERROR: can't find entered vec/mat file $invecmat[2] !"
     goto BAD_EXIT
 endif
 
+# check for bval file, if entered
+if ( -f $invecmat[4] ) then
+    echo "++ Found entered bval file $invecmat[4] !"
+else
+    echo "** ERROR: can't find entered bval file $invecmat[4] !"
+    goto BAD_EXIT
+endif
+
+# ========================= output dir ==========================
+
+# check output directory, use input one if nothing given
+
+if ( $odir == "" ) then
+    # default output dir, if nothing input; it must exist already,
+    # because a file is in it
+
+    set odir = `dirname $idwi`
+    echo "\n++ No output directory specificied by the user."
+    echo "++ Using the input DWI file's directory by default:"
+    echo "\t$odir"
+else
+    if ( ! -e $odir ) then
+        echo "++ Making new output directory: $odir"
+        mkdir $odir
+    endif
+endif
+
+# =======================================================================
+# =========================== ** PROCESS ** =============================
+# =======================================================================
+
+echo "\n-----> STARTING ---->"
+
+echo "\n\nThis command:"
+echo "$this_prog $argv\n\n"
+
+if ( $cmd_file == "" ) then
+    set cmd_file = "$odir/${outpref}_${postfix}_cmd.txt"
+endif
 
 
+# make BMTXT_AFNI.txt
+if ( 1 ) then
 
+    if( ! -f $odir/$out_mata ) then
+        1dDW_Grad_o_Mat++                        \
+            -echo_edu                            \
+            $iflip                               \
+            $invecmat                            \
+            -out_col_matA  $odir/$out_mata       \
+            -overwrite
+    endif
+ 
+    1dDW_Grad_o_Mat++                        \
+        -echo_edu                            \
+        $iflip                               \
+        $invecmat                            \
+        -out_col_matA  $odir/$out_cvec       \
+        -overwrite
 
-
-
+endif
 
 
 
