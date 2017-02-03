@@ -25,7 +25,7 @@ help.LME.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
           ================== Welcome to 3dLME ==================          
     AFNI Group Analysis Program with Multi-Variate Modeling Approach
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 1.9.2, Dec 1, 2016
+Version 1.9.3, Jan 5, 2017
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - https://afni.nimh.nih.gov/sscc/gangc/lme.html
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -271,10 +271,8 @@ read.LME.opts.batch <- function (args=NULL, verb = 0) {
    "         quotes. Variable names in the formula should be consistent with",
    "         the ones used in the header of -dataTable. A+B represents the",
    "         additive effects of A and B, A:B is the interaction between A",
-   "         and B, and A*B = A+B+A:B. The effects of within-subject",
-   "         factors, if present under -wsVars are automatically assumed",
-   "         to interact with the ones specified here. Subject should not",
-   "         occur in the model specification here.\n", sep = '\n'
+   "         and B, and A*B = A+B+A:B. Subject should not occur in the model",
+   "         specification here.\n", sep = '\n'
              ) ),
 
       '-ranEff' = apl(n=c(1,100), d=NA, h = paste(
@@ -373,6 +371,13 @@ read.LME.opts.batch <- function (args=NULL, verb = 0) {
    "         package 'blme' is required for this option.\n ",
              sep = '\n'
                      ) ),
+
+            '-logLik' = apl(n=0, d=3, h = paste(
+   "-logLik: Add this option if the voxel-wise log likelihood is wanted in the output.",
+   "         This option currently cannot be combined with -ICC, -ICCb, -LOGIT.\n",
+             sep = '\n'
+                     ) ),
+       
        
      '-LOGIT' = apl(n=0, d=3, h = paste(
    "-LOGIT: This option allows 3dLME to perform voxel-wise logistic modeling.",
@@ -523,7 +528,8 @@ read.LME.opts.batch <- function (args=NULL, verb = 0) {
       lop$corStr <- NA
       lop$SS_type <- 3
       lop$ICC     <- FALSE
-      lop$ICCb     <- FALSE
+      lop$ICCb    <- FALSE
+      lop$logLik  <- FALSE
       lop$LOGIT   <- FALSE
       lop$num_glt <- 0
       lop$gltLabel <- NULL
@@ -557,6 +563,7 @@ read.LME.opts.batch <- function (args=NULL, verb = 0) {
              SS_type = lop$SS_type <- ops[[i]],
              ICC     = lop$ICC     <- TRUE,
              ICCb    = lop$ICCb    <- TRUE,
+             logLik  = lop$logLik  <- TRUE,
              LOGIT   = lop$LOGIT   <- TRUE,
              num_glt = lop$num_glt <- ops[[i]],
              gltLabel = lop$gltLabel <- ops[[i]],
@@ -915,7 +922,7 @@ runLME <- function(inData, dataframe, ModelForm) {
          try(fm <- gls(ModelForm, dataframe), silent=TRUE)
       }
 
-      if(!is.null(fm)){      
+      if(!is.null(fm)) {      
          Stat[1:lop$nF] <- anova(fm, type=lop$SStype)$F[lop$Fseq] # F-stat		
          if(!is.na(lop$corStr[1])) { # basis functions
 	    Stat[lop$nF+2*0.5:lop$nBasis] <- unname(summary(fm)$tTable[, "Value"])
@@ -948,6 +955,7 @@ runLME <- function(inData, dataframe, ModelForm) {
             if(!is.null(glfRes)) Stat[lop$nF[1]+2*lop$num_glt+2*lop$nBasis+ii] <- glfRes[2,2] # chi-sq value
             #Stat[lop$nF[1]+2*lop$num_glt+ii] <- qnorm(glfRes[2,3]/2, lower.tail = F)  # convert chisq to Z
          }
+         if(lop$logLik) Stat[lop$NoBrick] <- fm$logLik
          resid <- unname(residuals(fm))
       }
    }
@@ -1579,7 +1587,7 @@ if(lop$ICC) {  # ICC part
    lop$nF      <- nrow(anova(fm))    # total number of F-stat
    lop$nBasis  <- (!is.na(lop$corStr[1]))*nrow(summary(fm)$tTable)  # number of basis functions
    nT      <- 2*(lop$num_glt + lop$nBasis)
-   lop$NoBrick <- lop$nF + nT + lop$num_glf # total number of output values per voxel/node   
+   lop$NoBrick <- lop$nF + nT + lop$num_glf + lop$logLik # total number of output values per voxel/node   
    lop$SStype <- ifelse(lop$SS_type==3, 'marginal', 'sequential')
    lop$Fseq   <- 1:lop$nF  
    # test if it works
@@ -1768,9 +1776,13 @@ if(lop$ICC) {  # ICC part
       }
    }
    tTop <- 100
-   Stat[Stat > tTop] <- tTop  # Avoid outflow!!!!
-   Stat[Stat < (-tTop)] <- -tTop  # Avoid outflow!!!!
-   
+   if(lop$logLik) {
+      Stat[1:(lop$NoBrick-1)][Stat[1:(lop$NoBrick-1)] > tTop] <- tTop  # Avoid outflow!!!!
+      Stat[1:(lop$NoBrick-1)][Stat[1:(lop$NoBrick-1)] < (-tTop)] <- -tTop  # Avoid outflow!!!!
+   } else {
+      Stat[Stat > tTop] <- tTop  # Avoid outflow!!!!
+      Stat[Stat < (-tTop)] <- -tTop  # Avoid outflow!!!!
+   }
    outLabel <- paste(rownames(anova(fm))[lop$Fseq], " F")
    if(!is.na(lop$corStr[1])) for(n in 1:dim(summary(fm)$tTable)[1]) {
       outLabel <- append(outLabel, rownames(summary(fm)$tTable)[n])
@@ -1782,6 +1794,7 @@ if(lop$ICC) {  # ICC part
    
    }
    if(lop$num_glf > 0) for (n in 1:lop$num_glf) outLabel <- append(outLabel, paste(lop$glfLabel[n], "Chisq"))
+   if(lop$logLik) outLabel <- append(outLabel, "logLik")
    
    statsym <- NULL
    IdxAdj <- 1
@@ -1808,7 +1821,7 @@ if(lop$ICC) {  # ICC part
       #statpar <- paste(statpar, " -substatpar ", nF+2*n-1, " fitt ", summary(fm)$tTable[n,"DF"])
    
    if(lop$num_glf > 0) for (n in 1:lop$num_glf) #statpar <- paste(statpar, " -substatpar ", lop$nF+2*n-1, " fizt ")
-      statsym <- c(statsym, list(list(sb=lop$NoBrick-lop$num_glf+n-1, typ="fict", par=chi_DF)))
+      statsym <- c(statsym, list(list(sb=lop$NoBrick-lop$logLik-lop$num_glf+n-1, typ="fict", par=chi_DF)))
 } # if(lop$ICC)
 
 #statpar <- paste(statpar, " -addFDR -newid ", lop$outFN)
