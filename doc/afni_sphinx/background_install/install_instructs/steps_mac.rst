@@ -163,8 +163,10 @@ When ``afni`` is started for the first time, you should be directed
        to http://www.oracle.com/technetwork/java/javase/downloads and
        click on the ``Java`` icon.
 
-    #. To install the package manager ``fink``, execute the following
-       (which gets an install script and executes it)::
+    #. To install the package manager ``fink``, execute the following,
+       which gets an install script and executes it.  This takes perhaps
+       30 minutes and asks many questions.  One can simply keep hitting
+       the ENTER key to accept the useful defaults.  Run the commands::
 
            curl -O https://afni.nimh.nih.gov/pub/dist/bin/misc/save/install.fink.bash
            bash install.fink.bash
