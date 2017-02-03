@@ -267,7 +267,10 @@ PARSE:
 			else
             @ cnt ++
             set anat_in = "$argv[$cnt]"
-            set in_name = `@parse_afni_name $anat_in`
+            set in_name = `@parse_afni_name "$anat_in"`
+            if ($#in_name == 2) then
+               set in_name = ($in_name `3dinfo -view "$anat_in"`)
+            endif
             set donext = 0	
          endif	
       endif
@@ -321,7 +324,7 @@ DOIT:
    echo "3dcalc -a "$anat_in" -expr "$val * step($eq)" -rai -prefix ___tmp_clp"
          unset noglob
       endif
-      3dcalc -a "$anat_in" -expr "$val * step($eq)" -rai -prefix ___tmp_clp
+      3dcalc -a "$anat_in" -overwrite -expr "$val * step($eq)" -rai -prefix ___tmp_clp
       if ($verb) then
          set noglob
    echo "3dAutobox $cropopt -prefix $prefix -input ___tmp_clp$in_name[3]"

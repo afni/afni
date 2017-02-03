@@ -3869,7 +3869,7 @@ int SUMA_setenv_option(char *s)
    }
    if (s[0] != '\'' && s[0] != '\"') {
       SUMA_S_Errv("You must enclose env expression with ' or \" quotes\n"
-                  "Have open %s\n", s);
+                  "Have >>%s<<\n", s);
       SUMA_RETURN(0);
    } 
 

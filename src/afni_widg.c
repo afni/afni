@@ -1820,7 +1820,8 @@ STATUS("making view->rowcol") ;
 
    im3d->vinfo->func_visible = False ;
    if( AFNI_yesenv("AFNI_SEE_OVERLAY") ) im3d->vinfo->func_visible = True ;
-   im3d->vinfo->func_visible_count = 0 ;
+   im3d->vinfo->func_visible_count  = 0 ;
+   im3d->vinfo->func_init_subbricks = 0 ;
 
    view->func_frame =
       XtVaCreateManagedWidget(
@@ -5681,13 +5682,19 @@ STATUS("making prog->rowcol") ;
       prog->hidden_melter_pb =
             XtVaCreateManagedWidget(
                "dialog" , xmPushButtonWidgetClass , prog->hidden_menu ,
+#if 0
                   LABEL_ARG("AFNI Meltdown") ,
+#else
+                  LABEL_ARG("Activate Omega-13") ,
+#endif
                   XmNmarginHeight , 0 ,
                   XmNtraversalOn , True  ,
                   XmNinitialResourcesPersistent , False ,
                NULL ) ;
       XtAddCallback( prog->hidden_melter_pb , XmNactivateCallback ,
                      AFNI_hidden_CB , im3d ) ;
+      MCW_set_widget_bg( prog->hidden_melter_pb , "black" , 0 ) ;        \
+      MCW_set_widget_fg( prog->hidden_melter_pb , "#ffbb88" ) ;          \
 
       /*----------*/
 
@@ -6006,7 +6013,8 @@ ENTRY("new_AFNI_controller") ;
    im3d->vinfo->force_anat_wod    = False ;   /* don't force warp-on-demand */
    im3d->vinfo->force_func_wod    = False ;   /* don't force warp-on-demand */
    im3d->vinfo->func_visible      = (Boolean)AFNI_yesenv("AFNI_SEE_OVERLAY") ;
-   im3d->vinfo->func_visible_count=0 ;
+   im3d->vinfo->func_visible_count  = 0 ;
+   im3d->vinfo->func_init_subbricks = 0 ;
 #ifdef ALLOW_DATASET_VLIST
    im3d->vinfo->pts_visible       = False ;   /* don't show points */
    im3d->vinfo->pts_color         = 0 ;

@@ -26,11 +26,16 @@ class SysInfo:
       self.verb            = verb
 
       self.afni_ver        = ''
+      self.afni_label      = ''
       self.afni_dir        = ''
       self.os_dist         = ''
-      self.rc_file         = ''
       self.comments        = [] # comments to print at the end
       self.afni_fails      = 0
+
+      # shell stuff
+      self.cur_shell       = ''
+      self.login_shell     = ''
+      self.rc_file         = ''
 
       self.repo_prog       = '' # e.g. yum or brew
       self.have_pyqt4      = 0
@@ -83,6 +88,9 @@ class SysInfo:
                               " from 'tcsh'" % logshell)
 
       print 'apparent login shell: %s%s' % (logshell, note)
+
+      self.cur_shell       = curshell
+      self.login_shell     = logshell
 
       self.set_shell_rc_file([logshell, curshell])
       if self.home_file_exists(self.rc_file): fstr = 'exists'
@@ -203,8 +211,8 @@ class SysInfo:
       # locate various data trees, and possibly show recent history
       rv = 0
       rv += self.show_data_dir_info('AFNI_data6', 'history.txt')
+      rv += self.show_data_dir_info('AFNI_demos', 'history.txt')
       rv += self.show_data_dir_info('suma_demo', 'README.archive_creation')
-      rv += self.show_data_dir_info('FATCAT_DEMO', 'README.timestamp')
       rv += self.show_data_dir_info('afni_handouts')
 
       if rv: self.comments.append('insufficient data for AFNI bootcamp')
@@ -339,9 +347,9 @@ class SysInfo:
       """look for fink, macports, homebrew, PyQt4"""
 
       # check for repositories
-      nfound = self.check_for_progs(['brew', 'port', 'fink'], repos=1)
+      nfound = self.check_for_progs(['fink', 'brew', 'port'], repos=1)
       if nfound == 0:
-         self.comments.append('consider installing homebrew')
+         self.comments.append('consider installing fink')
       self.hunt_for_homebrew()
       if self.get_osx_ver() < 7:
          self.comments.append('OS X version might be old')
@@ -356,8 +364,23 @@ class SysInfo:
             ghead = os.path.dirname(gdir)
             print '++ found PyQt4 under %s' % ghead
             self.comments.append('consider adding %s to PYTHONPATH' % ghead)
+            # if fink, see whether that python exists
+            if ghead.startswith('/sw'):
+               ppath = '/sw/bin/python'
+               if os.path.isfile(ppath+'2.7'):
+                  if not os.path.isfile(ppath) and not os.path.islink(ppath):
+                     cs = 'consider linking to fink python2.7:'
+                     ls = '   sudo ln -s %s %s' % (ppath+'2.7', ppath)
+                     print '** seem to be using fink python2.7 but need python'
+                     print '   consider:%s' % ls
+                     self.comments.append(cs)
+                     self.comments.append(ls)
+               
+         elif self.repo_prog == 'fink':
+            fcmd = 'sudo fink install pyqt4-mac-py27'
+            self.comments.append('consider running: %s'%fcmd)
          elif self.repo_prog == 'brew':
-            self.comments.append('consider running: brew install pyqt')
+            self.comments.append('note: pyqt4 is no longer available via brew')
          else:
             self.comments.append('consider installing PyQt4')
 
@@ -461,7 +484,7 @@ class SysInfo:
       # if the library exists (as link or file), we are good to go
       if os.path.exists(libpath):
          if os.path.islink(libpath):
-	    lname = os.readlink(libpath)
+            lname = os.readlink(libpath)
             print '++ found valid link %s\n   to %s' % (libpath, lname)
          else:
             print '++ found existent library %s' % libpath
@@ -494,9 +517,9 @@ class SysInfo:
          return 0 if no error was detected
       """
 
-      # require 10.9, unless being verbose
-      if self.get_osx_ver() < 9 and self.verb <= 1:
-         return 0
+      # require 10.9, unless being verbose (nah, just check...)
+      # if self.get_osx_ver() < 9 and self.verb <= 1:
+      #    return 0
 
       flatdir = '/opt/X11/lib/flat_namespace'
 
@@ -513,7 +536,8 @@ class SysInfo:
       for name in fnames:
          flibs = glob.glob('%s/%s*dylib*' % (flatdir, name))
          if len(flibs) > 0:
-            print "   -- found '%s' dylib files, e.g. %s" % (name, flibs[0])
+            print "   -- found '%s' dylib files:" % name
+            print '      ' + '\n      '.join(flibs)
             found += 1
 
       # if no libraries are found, we are done
@@ -531,14 +555,62 @@ class SysInfo:
          print '   (so afni and suma might fail)'
          self.comments.append('consider appending %s with %s' % (edir,flatdir))
       else:
-         print '** env var %s is not set to contain %s' % (edir, flatdir)
-         print '   (so afni and suma may fail)'
          if self.get_osx_ver() >= 11:
-            self.comments.append('cannot tell if %s includes %s'%(edir,flatdir))
+            self.check_evar_path_for_val(edir, flatdir)
+            if self.cur_shell.find('csh') < 0:
+               self.check_evar_path_for_val(edir, flatdir, shell='tcsh')
          else:
+            print '** env var %s is not set to contain %s' % (edir, flatdir)
+            print '   (so afni and suma may fail)'
             self.comments.append('consider setting %s to %s' % (edir, flatdir))
 
       return 1
+
+   def check_evar_path_for_val(self, evar, val, shell=''):
+    
+      if shell == '':
+         shell = self.cur_shell
+         print '-- recent OS X, cannot check %s in cur shell, cheating ...' \
+               % evar
+      else:
+         print "-- recent OS X, cannot check %s in shell '%s', cheating ..." \
+               % (evar, shell)
+
+      s, so = self.get_shell_value(shell, evar)
+
+      # if not even set, fail
+      if s or not so:
+         print '** env var %s not set to contain %s' % (evar, val)
+         self.comments.append('please set %s to %s'%(evar,val))
+         return 0
+
+      # convert ':' delimited val list to array, and search for val
+      vals = so.split(':')
+      # if not found, fail
+      if not val in vals:
+         print '** env var %s is set, but without %s' % (evar, val)
+         self.comments.append('please set %s to include %s'%(evar,val))
+         return 0
+
+      print '++ found evar %s = %s' % (evar, so)
+
+      return 1
+
+   def get_shell_value(self, shell, evar, verb=0):
+      """really cheap way to grab a value from a new shell"""
+      cmd = "%s -c 'echo $%s'" % (shell, evar)
+      s, so, se = UTIL.limited_shell_exec(cmd)
+
+      if len(so) > 0: so = so[-1]
+      else: so = ''
+
+      if verb:
+         print '++ status = %s for command: %s' % (s, cmd)
+         print '   stdout = %s' % so
+         se = '\n'.join(se)
+         if se: print '   stderr = %s' % se
+
+      return s, so
 
    def get_osx_ver(self):
       if self.system != "Darwin": return 0
@@ -570,6 +642,12 @@ class SysInfo:
             else:
                self.comments.append('missing %s, maybe package is old'%prog)
             print '%-20s : %s' % (prog, vinfo)
+            continue
+
+         elif prog == 'afni label':
+            nfound += 1   # do not call this an error yet
+            s, v = self.get_prog_version('afni')
+            print '%-20s : %s' % ('', self.afni_label)
             continue
 
          cmd = 'which %s' % prog
@@ -608,6 +686,7 @@ class SysInfo:
             os.system('python -c "%s"' % cmd)
             print '   **************************************************\n'
             self.comments.append('check for partial install of PyQt4')
+            self.have_pyqt4 = 0
       print
 
       pdirs = glob.glob('/sw/bin/python*')
@@ -628,6 +707,9 @@ class SysInfo:
                    'DYLD_LIBRARY_PATH', 'DYLD_FALLBACK_LIBRARY_PATH']:
          if os.environ.has_key(evar):
             print "%s = %s\n" % (evar, os.environ[evar])
+         elif evar.startswith('DY') and self.get_osx_ver() >= 11:
+            s, so = self.get_shell_value(self.cur_shell, evar)
+            print "%s (sub-shell) = %s" % (evar, so)
          else:
             print "%s = " % evar
       print
@@ -644,7 +726,8 @@ class SysInfo:
       print UTIL.section_divider('AFNI and related program tests', hchar='-')
 
       self.afni_dir = self.get_afni_dir()
-      check_list = ['afni', 'AFNI_version.txt', 'python', 'R', 'tcsh']
+      check_list = ['afni', 'afni label', 'AFNI_version.txt',
+                    'python', 'R', 'tcsh']
       nfound = self.check_for_progs(check_list, show_missing=1)
       if nfound < len(check_list):
          self.comments.append('failure under initial ' \
@@ -674,7 +757,7 @@ class SysInfo:
       n2 = UTIL.num_found_in_path('python2', mtype=1)
       n3 = UTIL.num_found_in_path('python3', mtype=1)
       if n3 > 0 and n2 <= 0:
-         self.comments.append("have python3 but not python2")
+         print "** have python3 but not python2"
       print
 
       # try select AFNI programs
@@ -785,21 +868,34 @@ class SysInfo:
          if s:
             if len(se) > 0: return 1, se[0]
             else:           return 1, ''
-	 if len(so) > 1:
+         if len(so) > 1:
             off1 = so[1].find('[[')
             off2 = so[1].find(']]')
             if off1 >= 0 and off2 >= 0: return 1, so[1][off1+2:off2]
             else: return 1, so[1]
-	 else:
+         else:
             off1 = so[0].find('(')
-            if off1 > 0: return 1, so[0][0:off1]
-            else:        return 1, so[0]
+            if off1 > 0:
+               vstr = so[0][0:off1]
+               off2 = so[0].find('AFNI_')
+               if off2 > off1:
+                  ll = so[0][off2:]
+                  self.afni_label = ll.split(')')[0]
+            else:
+               vstr = so[0]
+            return 1, vstr
 
       elif prog == 'python':
          return 1, platform.python_version()
 
       elif prog == 'tcsh':      # no version
          return 0, ''
+
+      elif prog == 'port':      # no dashes for version
+         cmd = '%s version' % prog
+         s, so, se = UTIL.limited_shell_exec(cmd, nlines=1)
+         if s: return 1, se[0]
+         else: return 1, so[0]
 
       elif prog in ['dnf', 'yum', 'apt-get', 'brew', 'port', 'fink', 'R']:
          cmd = '%s --version' % prog
@@ -904,7 +1000,7 @@ class SysInfo:
        return 1
 
    def show_comments(self):
-      print UTIL.section_divider('summary comments', hchar='=')
+      print UTIL.section_divider(' please fix ', hchar='=')
       for cc in self.comments: 
          if len(cc) == 0: print ''
          else:

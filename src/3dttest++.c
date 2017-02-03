@@ -122,6 +122,8 @@ static char *prefix_resid = NULL ;
 static int  do_resid=0 ;
 static float *ABresid=NULL , *Aresid=NULL , *Bresid=NULL ; /* 07 Dec 2015 */
 
+static int  do_ACF=0 ;                                     /* 30 Dec 2016 */
+
 #undef  AXX
 #define AXX(i,j) Axx[(i)+(j)*(nval_AAA)]    /* i=0..nval_AAA-1 , j=0..mcov */
 #undef  BXX
@@ -926,16 +928,20 @@ void display_help_menu(void)
       "                   selectors.\n"
       "\n"
       " -prefix p = Gives the name of the output dataset file.\n"
-      "             ++ For surface-based datasets, use something like:\n"
-      "                 -prefix p.niml.dset or -prefix p.gii.dset \n"
-      "                Otherwise you may end up files containing numbers but\n"
-      "                not a full set of header information.\n"
+      "              ++ For surface-based datasets, use something like:\n"
+      "                  -prefix p.niml.dset or -prefix p.gii.dset \n"
+      "                 Otherwise you may end up files containing numbers but\n"
+      "                 not a full set of header information.\n"
       "\n"
       " -resid q  = Output the residuals into a dataset with prefix 'q'.\n"
-      "             ++ The residuals are the difference between the data values\n"
-      "                and their prediction from the set mean (and set covariates).\n"
-      "             ++ For use in further analysis of the results (e.g., 3dFWHMx).\n"
-      "             ++ Cannot be used with '-brickwise' or '-zskip' (sorry).\n"
+      "              ++ The residuals are the difference between the data values\n"
+      "                 and their prediction from the set mean (and set covariates).\n"
+      "              ++ For use in further analysis of the results (e.g., 3dFWHMx).\n"
+      "              ++ Cannot be used with '-brickwise' or '-zskip' (sorry).\n"
+      "\n"
+      " -ACF      = If residuals are saved, also compute the ACF parameters from\n"
+      "             them using program 3dFHWMx -- for further use in 3dClustSim\n"
+      "             (which must be run separately).\n"
       "\n"
       " -randomsign = Randomize the signs of the datasets.  Intended to be used\n"
       "               with the output of '-resid' to generate null hypothesis\n"
@@ -978,7 +984,7 @@ void display_help_menu(void)
       " -nopermute  = This option is present if you want to turn OFF the automatic\n"
       "               use of inter-set permutation with '-randomsign'.\n"
       "             ++ I'm not sure WHY you would want this option, but it is here\n"
-      "                for completeness of the Galactic Chronsynclastic Infundibulum.\n"
+      "                for completeness of the Galactic Chronosynclastic Infundibulum.\n"
       "\n"
       " -Clustsim   = With this option, after the commanded t-tests are done, then:\n"
       "                (a) the residuals from '-resid' are used with '-randomsign' to\n"
@@ -1747,7 +1753,7 @@ int main( int argc , char *argv[] )
        if( prefix_clustsim == NULL ){
          uuu = UNIQ_idcode_11() ;
          prefix_clustsim = (char *)malloc(sizeof(char)*32) ;
-         sprintf(prefix_clustsim,"TT.%s",uuu) ; free(uuu) ;
+         sprintf(prefix_clustsim,"TT.%s",uuu) ;
          ININFO_message("Default clustsim prefix set to '%s'",prefix_clustsim) ;
        }
        continue ;
@@ -2229,6 +2235,10 @@ int main( int argc , char *argv[] )
        nopt++ ; continue ;
      }
 
+     if( strcasecmp(argv[nopt],"-ACF") == 0 ){  /* 30 Dec 2016 */
+       do_ACF = 1 ; nopt++ ; continue ;
+     }
+
      /*----- -singletonA [19 Mar 2015] -----*/
 
      if( strcmp(argv[nopt],"-singletonA") == 0 ){
@@ -2457,6 +2467,9 @@ int main( int argc , char *argv[] )
 
    /* check sample counts */
 
+   if( ndset_AAA == 0 )
+     ERROR_exit("You didn't use one of -setA or -singletonA :(") ;
+
    twosam = (nval_BBB > 1) ; /* 2 sample test? */
 
    if( singletonA && !twosam )
@@ -2550,8 +2563,13 @@ int main( int argc , char *argv[] )
      do_1sam = 1 ;
    }
 
-   if( brickwise && do_resid ) /* 07 Dec 2015 */
+   if( brickwise && do_resid )               /* 07 Dec 2015 */
      ERROR_exit("You can't use -brickwise and -resid together :-(") ;
+
+   if( do_ACF && !do_resid ){                /* 30 Dec 2016 */
+     INFO_message("-ACF option is turned off because -resid wasn't also given") ;
+     do_ACF = 0 ;
+   }
 
    if( do_zskip && do_resid )  /* 31 Dec 2015 */
      ERROR_exit("You can't use -resid and -zskip together :-(") ;
@@ -3433,6 +3451,24 @@ LABELS_ARE_DONE:  /* target for goto above */
 
    if( rrset != NULL ){
      DSET_write(rrset) ; WROTE_DSET(rrset) ; DSET_unload(rrset) ;
+
+     if( do_ACF ){                      /* 30 Dec 2016 */
+       char cmd[4096] , *anam , *cpt ;
+       anam = strdup(prefix_resid) ;
+       cpt  = strstr(anam,".nii" ) ; if( cpt != NULL ) *cpt = '\0' ;
+       cpt  = strstr(anam,"+tlrc") ; if( cpt != NULL ) *cpt = '\0' ;
+       cpt  = strstr(anam,"+orig") ; if( cpt != NULL ) *cpt = '\0' ;
+       cpt  = strstr(anam,"+acpc") ; if( cpt != NULL ) *cpt = '\0' ;
+       sprintf(cmd,"3dFWHMx -input %s -acf %s.ACF.out" ,
+                   prefix_resid , anam ) ;
+       if( name_mask != NULL )
+         sprintf( cmd+strlen(cmd) , " -mask %s",name_mask) ;
+       sprintf( cmd+strlen(cmd) , " | tail -1 > %s.ACFparam.txt" , anam ) ;
+       INFO_message("Command to compute ACF from residuals now running:\n"
+                    "   %s",cmd) ;
+       system(cmd) ;
+       INFO_message("ACF parameters output in %s.ACFparam.txt",anam) ;
+     }
    }
 
    if( singletonA )

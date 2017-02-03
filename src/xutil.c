@@ -2380,6 +2380,35 @@ void AFNI_speak_setvoice( char *vvv ){ return; }
 #endif
 
 /****************************************************************************/
+
+#ifdef DARWIN
+char * get_XQuartz_version(void){
+   char *vers , *info , *cpt , *dpt ; int len , ii ;
+
+   info = AFNI_suck_file("/Applications/Utilities/XQuartz.app/Contents/Info.plist") ;
+   if( info == NULL ) return NULL ;
+
+                     cpt = strcasestr(info,"CFBundleShortVersionString") ;
+   if( cpt == NULL ) cpt = strcasestr(info,"CFBundleVersion") ;
+   if( cpt == NULL ){ free(info); return NULL; }
+   dpt = strcasestr(cpt+15,"<string>") ;
+   if( dpt == NULL ){ free(info); return NULL; }
+   dpt += 8 ;   /* 8 = strlen("<string>") */
+   cpt = strstr(dpt,"<") ;
+   if( cpt == NULL || cpt == dpt ) { free(info); return NULL; }
+   len = cpt - dpt ; if( len > 32 ){ free(info); return NULL; }
+   vers = (char *)malloc(sizeof(char)*(len+1)) ;
+   for( ii=0 ; ii < len ; ii++ ) vers[ii] =  dpt[ii] ;
+   vers[len] = '\0' ;
+   free(info) ; return vers ;
+}
+#else
+
+char * get_XQuartz_version(void){ return NULL; }
+
+#endif
+
+/****************************************************************************/
 #define MIN_SIZE   4
 #define MAX_SIZE  26
 #define MIN_DIST   4
@@ -2477,9 +2506,11 @@ void MCW_melt_widget( Widget w )
         XDestroyWindow(dpy,win); XFreeGC(dpy,copygc); XFreeGC(dpy,fillgc);
         XSync(dpy,0); RWC_sleep(200); free(heights); return;
       }
-#if 0
-      gcvals.foreground = (lrand48()%3) ? BlackPixel(dpy,screen) : WhitePixel(dpy,screen) ;
-      XChangeGC(dpy, fillgc , GCForeground, &gcvals);
+#if 1
+      if( lrand48()%47 == 0 ){
+        gcvals.foreground = (lrand48()%3) ? BlackPixel(dpy,screen) : WhitePixel(dpy,screen) ;
+        XChangeGC(dpy, fillgc , GCForeground, &gcvals);
+      }
 #endif
    }
 }

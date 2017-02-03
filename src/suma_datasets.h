@@ -136,11 +136,11 @@ typedef enum {
    SUMA_1D,                   /* 4 */
    SUMA_1D_PURE,              /* 5 */
    SUMA_ASCII_OPEN_DX_DSET,   /* 6 */
-   SUMA_1D_STDOUT,            /* THIS ONE IS USED AS A MARKER TOO   */    /*7 */
-   SUMA_1D_STDERR,            /* 8 */
-   SUMA_NIML_STDOUT,          /* 9 */
-   SUMA_NIML_STDERR,          /* 10 */
-   SUMA_1D_PURE_TRANSPOSE,    /* 11 */
+   SUMA_1D_PURE_TRANSPOSE,    /* 7 */
+   SUMA_1D_STDOUT,            /* THIS ONE IS USED AS A MARKER TOO   */   /*8 */
+   SUMA_1D_STDERR,            /* 9 */
+   SUMA_NIML_STDOUT,          /* 10 */
+   SUMA_NIML_STDERR,          /* 11 */
    SUMA_1D_PURE_STDOUT,       /* 12 */
    SUMA_1D_PURE_STDERR,       /* 13 */
    SUMA_1D_PURE_STDOUT_TRANSPOSE,       /* 14 */
