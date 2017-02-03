@@ -230,7 +230,7 @@ class TimingClass:
 
       nmax = int(max_dur / self.t_gran)
 
-      self.decay_apply_max_limit(durlist, nmax)
+      self.decay_apply_max_limit_old(durlist, nmax)
 
       # and finally, scale by t_gran
       for dind in range(len(durlist)):
@@ -239,6 +239,70 @@ class TimingClass:
       return durlist
 
    def decay_apply_max_limit(self, dlist, nmax):
+      """none of the (integer) entries in dlist should exceed nmax
+
+         Instead of
+            - truncating all big times to max (too many max's)
+            - adding each extra time unit to a random event
+         now do:
+            - give all big times new times on uniform grid
+            - distribute time in random blocks one event at a time
+              while time to distribute exists
+                 choose a non-max event
+                 add random amount of time (subject to max and total)
+            - re-randomize list (so we can separate maxed out events)
+      """
+      
+      n2move = 0
+      navail = 0
+      spacelist = []
+
+      for dind, dur in enumerate(dlist):
+         # if there is space here, note the index and available space
+         if dur < nmax:
+            navail += nmax-dur
+            spacelist.append(dind)
+         # if this is too full, track count to move
+         # (do not fix until we are sure we can)
+         elif dur > nmax:
+            n2move += dur-nmax
+
+      # is there anything to fix?
+      if n2move == 0:
+         return
+
+      # can we actually fix this?  (failure should already be prevented)
+      if navail < n2move:
+         print '** DAML space availability error for class %s' % self.name
+         return
+
+      # --------------------------------------------------
+      # okay, start fixing things
+
+      # first, truncate to max (skipped above, just to be sure)
+      for dind, dur in enumerate(dlist):
+         if dur > nmax:
+            dlist[dind] = nmax
+
+      # for each n2move, pick a place to move it and track space
+      nspace = len(spacelist)
+
+      for sind in range(n2move):
+         if nspace == 0:
+            print '** DAML: no more space entries in class %s' % self.name
+            return
+         mind = int(random.uniform(0,nspace))
+         if mind == nspace: mind -= 1  # probability close to 0
+         sind = spacelist[mind]
+         dlist[sind] += 1
+         # maybe this event is maxed out
+         if dlist[sind] >= nmax:
+            nspace -= 1
+            spacelist.remove(sind)
+            
+      return
+
+   def decay_apply_max_limit_old(self, dlist, nmax):
       """none of the (integer) entries in dlist should exceed nmax
          - modify the actual list
       """
