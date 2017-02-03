@@ -1050,7 +1050,8 @@ g_history = """
 g_version = "version 2.1, January 23, 2017"
 
 g_todo = """
-   - add -show_consec_stats option
+   - add -show_consec_stats option?
+   - c23 shows small post-stim rest...
    - apply -make_3dd_contrasts, -save_3dd_cmd
    - apply -offset?
    - reconcile t_grid as global vs per class (init/pass as single parameters)
