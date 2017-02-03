@@ -8,32 +8,44 @@
 Here we describe a complete AFNI installation and system setup for Mac
 versions that are reasonably modern, such as **Mac OS 10.7+**.  The
 full set of steps applies to a "clean" (i.e., empty) 10.7+ system.
-There is a special step at the end for 10.11 (El Capitan) users,
-because life is hard sometimes.
+There is a special step at the end for 10.11+ (El Capitan, Sierra,
+etc.) users, because life is hard sometimes.
 
-Note that 10.8 does not come with X11 (or XQuartz) installed.  When
-afni is started for the first time, you should be directed (by the
-operating system) to a link to install XQuartz.
+Note that 10.8 does not come with ``X11`` (or ``XQuartz``) installed.
+When ``afni`` is started for the first time, you should be directed
+(by the operating system) to a link to install ``XQuartz``.
 
-0. **Account setup**
+.. note:: We assume that a user account exists, and that you have
+          Administrator privileges, which are needed for package
+          management.  That is, if you enter::
+          
+            sudo ls
 
-   Assuming a user account exists, these steps are all optional:
+          into a terminal and can successfully enter the password for
+          the file list to display, then you are set to proceed.
 
-   a. Create a user account with ``su`` (Administrator) privileges
-      (via "System Preferences", under "Accounts").
+0. **Initial terminal setup**
 
-      .. note:: Admin privileges are needed for package management.
+   a. *What's my shell?* Some steps below depend on what login shell
+      you are running.  From a terminal window, enter::
 
-   #. (optional) Set the shell to ``/bin/tcsh``.  NB: this no longer
-      works using the ``chsh ...`` command.
+        echo $0
+
+      and the output should either be ``tcsh`` or ``bash``.
+
+   #. *(optional)* Set the shell to ``tcsh``.  
+
+      Some AFNIers prefer the syntax of ``tcsh``.
 
       Under System Preferences : System : Accounts menu, right-click
       on the user to get the Advanced Options menu and change the
       Login shell to ``/bin/tcsh``.
 
-   #. (optional) Under System Preferences : Sharing : Services, enable
-      "Remote Login" to allow ``ssh`` access.
-
+      You can verify that you have done this correctly by opening a
+      new terminal and entering::
+      
+        echo $0
+                
    #. Set the policy where "focus follows mouse", so that it is not
       necessary to first click on a new window (to select it) before
       subsequent clicks are applied to that window.  There are 3
@@ -46,117 +58,90 @@ operating system) to a link to install XQuartz.
         defaults write com.apple.Terminal FocusFollowsMouse -string YES
       |
 
-#. **Xcode and XQuartz installation**
+#. ``Xcode`` **and** ``XQuartz`` **installation**
 
-   Xcode is needed for the gcc compiler and related tools.  XQuartz is
-   the desktop manager needed to run X11 programs (such as afni).
+   a. ``Xcode`` is needed for the gcc compiler and related tools.
+      ``XQuartz`` is the desktop manager needed to run ``X11``
+      programs (such as ``afni``).
 
-   *  *For OS X 10.9 and later*, simply run the 2 commands::
+      *  *For OS X 10.12*:
 
-         xcode-select --install
-         /Applications/Utilities/X11.app
+         a. Install ``Xcode`` using the command::
 
-   *  *Otherwise (for OS X versions up through 10.8)*, it is best to start
-      with the most recent version from the Apple website:
+              xcode-select --install
+              
+         #. Install ``XQuartz`` using the "Quick Download" DMG from
+            http://www.xquartz.org
 
-      a. Go to http://developer.apple.com
+      *  *For OS X 10.9 through 10.11*:
 
-         * Sign up for a login account (necessary for downloading) 
+         a. Run the two commands::
 
-         * Sign up via "Register as an Apple Developer" (it is free)
+              xcode-select --install
+              /Applications/Utilities/X11.app
 
-      #. Get the current "Command Line Tools" package (part of Developer
-         Tools) and install it
+      *  *For OS X <=10.8*:
 
-         * the current version is 4.6.2
+         a. It is best to start with the most recent version from the
+            Apple website:
+         
+            - Go to https://developer.apple.com
 
-         * installation defaults are good, to complete installation
+            - Sign up for a login account (necessary for downloading)
 
-      #. Install XQuartz using the "Quick Download" of the DMG file
-         located at http://www.xquartz.org
+            - Sign up via "Register as an Apple Developer" (it is
+              free)
 
-      #. If ``afni`` crashes, consider (in ``tcsh`` syntax)::
+         #. Get the current "Command Line Tools" package (part of
+            Developer Tools) and install it:
 
-         setenv DYLD_LIBRARY_PATH /opt/X11/lib/flat_namespace
+            - the current version is 4.6.2
+
+            - installation defaults are good, to complete installation
+
+         #. Install ``XQuartz`` using the "Quick Download" DMG from
+            http://www.xquartz.org
+
+         |
+
+   #. ``XQuartz`` has altered the library format, so adjust
+      ``DYLD_LIBRARY_PATH`` by doing either:
+
+      * ``tcsh`` syntax::
+
+         touch ~/.cshrc
+         echo 'setenv DYLD_LIBRARY_PATH /opt/X11/lib/flat_namespace' >> ~/.cshrc
+
+      * ``bash`` syntax::
+
+         touch ~/.bashrc
+         echo 'export DYLD_LIBRARY_PATH=/opt/X11/lib/flat_namespace' >> ~/.bashrc
 
    |
 
-#. **Homebrew installation**
-
-   At this point, we will install the :ref:`package manager
-   <tech_notes_PacMan>` Homebrew:
-
-   a. Install HomeBrew and Python
- 
-      Run this command to run the Homebrew installation script,
-      choosing one of these :ref:`shell <tech_notes_PacMan>` syntaxes:
-
-      - *for tcsh*::
-
-         curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install | ruby
-
-      - *for bash*::
-
-         ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
-                    
-
-   #. Make sure the Homebrew installation succeeded with no errors by
-      typing this command::
-
-        brew doctor
-
-   #. Install PyQt4, enabling use of the AFNI uber_*.py programs::
-
-        brew install pyqt
-
-   #. (only for OS X 10.11, El Capitan) Install gcc with OpenMP support,
-      along with glib::
-
-        brew install gcc --with-all-languages --without-multilib
-        ln -s /usr/local/Cellar/gcc/6.2.0/lib/gcc/6/libgomp.1.dylib /usr/local/lib/libgomp.1.dylib
-        brew install glib
-
-     .. note:: the 6.2.0 version will change at some point, though the ``afni_system_check.py`` command (see below) should inform the user of any discrepancy
-
-#. **Install AFNI**
+#. **AFNI installation**
 
    a. Download and unpack the current binaries into your ``$HOME``
-      directory, changing the directory name to ``$HOME/abin/``::
+      directory, setting the directory name to ``$HOME/abin/``::
 
         cd
-        curl -O https://afni.nimh.nih.gov/pub/dist/bin/macosx_10.7_Intel_64/@update.afni.binaries
+        curl -O https://afni.nimh.nih.gov/pub/dist/bin/macosx_10.7_local/@update.afni.binaries
         tcsh @update.afni.binaries -defaults
 
-      .. note:: if the binary package has already been downloaded, one
-                can use ``-local_package``, followed by the
-                location+name of the binary file, e.g.:
+      .. note:: The ``$PATH`` in ``~/.cshrc`` and ``~/.bashrc`` will
+                have been set by ``@update.afni.binaries``
 
-      tcsh @update.afni.binaries -local_package macosx_10.7_Intel_64.tgz -do_extras
+      .. note:: If the AFNI binary package has already been
+                downloaded, one can use ``-local_package``, followed
+                by the location+name of the binary file, e.g. the
+                third line in the above command could be::
 
-   #. Update the path and library path.
-
-      .. note:: ``DYLD_FALLBACK_LIBRARY_PATH`` does not apply to OS X 10.11, El Capitan
-
-      .. note:: ``$PATH`` in ``~/.cshrc`` and ``~/.bashrc`` was set by ``@update.afni.binaries -do_extras``
-
-      * *for tcsh* ::
-
-          echo 'setenv DYLD_FALLBACK_LIBRARY_PATH $HOME/abin' >> ~/.cshrc
-          echo 'setenv PYTHONPATH /usr/local/lib/python2.7/site-packages' >> ~/.cshrc
-          source ~/.cshrc
-          rehash
-
-      * *for bash*::
-
-          echo 'export PATH=/usr/local/bin:$PATH' >> ~/.bashrc
-          echo 'export DYLD_FALLBACK_LIBRARY_PATH=$HOME/abin' >> ~/.bashrc
-          echo 'export PYTHONPATH=/usr/local/lib/python2.7/site-packages' >> ~/.bashrc
-          . ~/.bashrc
+                  tcsh @update.afni.binaries -local_package macosx_10.7_local.tgz -do_extras
 
 
 #. **R installation**
 
-    a. Download and install from the main R website:
+    a. To download and install from the main R website:
 
        * Go to `the R page for Mac OS X
          <https://cran.r-project.org/bin/macosx>`_
@@ -164,16 +149,47 @@ operating system) to a link to install XQuartz.
        * Click on the latest package (probably R-3.2.3.pkg), and
          download/install it.
 
-    #. Install extra packages needed by AFNI.
+         |
 
-       Run the following AFNI command::
+    #. To install extra R packages needed by AFNI, run the following
+       AFNI command::
 
            sudo rPkgsInstall -pkgs ALL
 
 
+#. **PyQt4 installation** (via getting fink and using JDK)
+
+    a. To download and install the Java SE (standard edition) JDK, go
+       to http://www.oracle.com/technetwork/java/javase/downloads and
+       click on the ``Java`` icon.
+
+    #. To install the package manager ``fink``, execute the following
+       (which gets an install script and executes it)::
+
+           curl -O https://afni.nimh.nih.gov/pub/dist/bin/misc/save/install.fink.bash
+           bash install.fink.bash
+
+    #. Install PyQt4.
+
+       First, open a new terminal window (or ``source ~/.cshrc`` or
+       ``source ~/.bashrc``) to make sure that ``fink`` has been added
+       to the ``$PATH``.
+
+       * In a new window, verify that fink is ready::
+
+           fink --version
+
+       * Run the following to install PyQt4::
+
+           sudo fink install pyqt4-mac-py27
+           sudo ln -s /sw/bin/python2.7 /sw/bin/python
+           echo 'setenv PYTHONPATH /sw/lib/qt4-mac/lib/python2.7/site-packages' >> ~/.cshrc
+
+       |
+
    .. ---------- HERE/BELOW: copy for all installs --------------
 
-#. **Automatically set up AFNI/SUMA profiles.**
+#. **Set up AFNI/SUMA profiles automatically.**
 
    .. include:: substep_profiles.rst
 
@@ -184,7 +200,7 @@ operating system) to a link to install XQuartz.
 
 
 #. **EVALUATE THE SETUP: an important and useful step in this
-   process!**
+   process!!**
 
    .. include:: substep_evaluate.rst
 

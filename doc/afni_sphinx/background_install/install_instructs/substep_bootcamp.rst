@@ -18,9 +18,10 @@ the tarred/zipped package, using "``rm CD.tgz``".  If you are
 *really* confident, you can also deleted the CD tree in the present
 location (but leaving it in ``$HOME/CD/``).
 
-**Also** don't forget to give a quick glance at the handy :ref:`Unix
-documentation/tutorial <U_misc_bg0>`. And why not practice a few of
-the basic commands on your own system (e.g., `ls`, `cd`, `less`,
-etc.)? It will *greatly* enhance your bootcamp experience-- we promise!
+.. note:: **Don't forget** to give a quick glance at the handy
+          :ref:`Unix documentation/tutorial <U_misc_bg0>`. And why not
+          practice a few of the basic commands on your own system
+          (e.g., `ls`, `cd`, `less`, etc.)? It will *greatly* enhance
+          your bootcamp experience-- we promise!
 
 

@@ -220,10 +220,10 @@ def main(argv):
             SWITCH_union = 1
 
     if ( file_csv == '' ) or ( file_prefix == '' ) :
-	print "** ERROR: missing a necessary input."
-    	sys.exit()
+        print "** ERROR: missing a necessary input."
+        sys.exit()
     if ( file_matr_glob == '' ) and ( file_listmatch == '' ):
-	print "** ERROR: missing a necessary matrix file input."
+        print "** ERROR: missing a necessary matrix file input."
         print "\t Need to use either '-m' or '-l'."
         sys.exit()
     if not( file_matr_glob == '' ) and not( file_listmatch == '' ):

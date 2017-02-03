@@ -52,6 +52,7 @@ history for $prog :
   2.8  04 May 2016 : added -do_dotfiles and -do_extras
                      (dot files and apsearch are now only done on request)
   2.9  05 May 2016 : -defaults implies -do_dotfiles and -apsearch yes
+  3.0  02 Feb 2017 : default OS X package is macosx_10.7_local
 -------------------------------------------------------------------------------
 EOF
 exit
@@ -250,7 +251,7 @@ examples:
 
     individual user: initial install or udpate
 
-       The default package is linux_openmp_64 (Linux) or macosx_10.7_Intel_64
+       The default package is linux_openmp_64 (Linux) or macosx_10.7_local
        (OS X).  The default binary directory is ~/abin.
 
        $prog -defaults -do_extras
@@ -270,7 +271,7 @@ examples:
        $prog -package linux_openmp_64 -programs suma 3dRSFC
        $prog -package linux_openmp_64 -programs file_tool python_scripts/*.py
 
-       $prog -local_package macosx_10.7_Intel_64.tgz
+       $prog -local_package macosx_10.7_local.tgz
 
 options:
 
@@ -513,7 +514,7 @@ if ( $package == "" ) then
          endif
       else if ( $sysname == Darwin ) then
          # default to no.omp.glib for now
-         set package = macosx_10.7_Intel_64
+         set package = macosx_10.7_local
       else
          @ errs ++
       endif

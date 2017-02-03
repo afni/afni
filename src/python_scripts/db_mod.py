@@ -5554,7 +5554,7 @@ def db_cmd_regress_pc_followers(proc, block):
     for roi in per_run_rois:
        if not roi in roipclabs:
           print "** PC per_run ROI '%s' not in ROI list: %s" \
-	     % (roi, ', '.join(roipclabs))
+             % (roi, ', '.join(roipclabs))
           return 1, ''
 
     # make across run regressors?  per-run regressors?
@@ -5815,17 +5815,17 @@ def db_cmd_regress_ROI(proc, block):
         # if roi in ['GM', 'WM', 'CSF']: substr = '"<%s>"' % roi
         # else:                          substr = ''
 
-   	# if per run, output goes to stdout before appending pipe
-	if not per_run:
-	   ofile = 'rm.ROI.%s.r$run.1D' % roi
+        # if per run, output goes to stdout before appending pipe
+        if not per_run:
+           ofile = 'rm.ROI.%s.r$run.1D' % roi
            cpr = ''
            doacross = 1 # catenate across runs
         else:
-	   ofile = 'ROI.%s.r$run.1D' % roi
-	   spaces = ' '*16
+           ofile = 'ROI.%s.r$run.1D' % roi
+           spaces = ' '*16
            cpr = '\\\n %s -set_run_lengths $tr_counts ' \
-	         '-pad_into_many_runs $run %d'  \
- 		 % (spaces, proc.runs)
+                 '-pad_into_many_runs $run %d'  \
+                 % (spaces, proc.runs)
 
         if per_run:
            cstr = '    # per-run ROI averages: zero-pad across all runs\n'
@@ -5841,12 +5841,12 @@ def db_cmd_regress_ROI(proc, block):
     if doacross:
        cmd += '# and catenate the demeaned ROI averages across runs\n'
     for roi in rois:
-	if roi in per_run_rois:
-	   for run in range(proc.runs):
+        if roi in per_run_rois:
+           for run in range(proc.runs):
               rname = 'ROI.%s.r%02d' % (roi, run+1)
-	      rfile = '%s.1D' % rname
+              rfile = '%s.1D' % rname
               proc.regress_orts.append([rfile, rname])
-	   continue
+           continue
         else:
            rname = 'ROI.%s' % roi
            rfile = '%s_rall.1D' % rname
@@ -7791,7 +7791,10 @@ g_help_string = """
         3dcalc -a aparc+aseg.nii -datum byte -prefix FT_vent.nii \\
                -expr 'amongst(a,4,43)'
         3dcalc -a aparc+aseg.nii -datum byte -prefix FT_WM.nii \\
-               -expr 'amongst(a,2,7,16,41,46,251,252,253,254,255)'
+               -expr 'amongst(a,2,7,41,46,251,252,253,254,255)'
+
+        # note: 16 (brainstem) was incorrectly included from @ANATICOR
+        #       and then in this help through 2016
 
     After this, FT_SurfVol.nii, FT_vent.nii and FT_WM.nii (along with the
     basically unused aparc.a2009s+aseg.nii) are passed to afni_proc.py.

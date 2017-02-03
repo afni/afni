@@ -1758,6 +1758,7 @@ void AFNI_sigfunc_alrm(int sig)
      "Out of Benedictine Error: How do you expect me get work done?" ,
      "More cheese, Gromit!"                                          ,
      "Life can be tough sometimes -- so have a chocolate (or two)"   ,
+     "Sweet sweet caffeine -- is there anything it can't do?"        ,
      "If at first you don't succeed -- call it version 1.0"          ,
      "Never trust a statistic you haven't faked yourself"            ,
      "May your teeth never be replaced by damp woolen socks"         ,
@@ -1796,16 +1797,12 @@ void AFNI_sigfunc_alrm(int sig)
      "Drink! for you know not why you go, or where"                  ,
      "Tomorrow we feast with us at home"                             ,
      "Forgive your enemies; but never forget their names"            ,
-     "Always forgive your enemies - nothing annoys them so much"     ,
      "A friend is one who has the same enemies as you have"          ,
      "Am I not destroying my enemies when I make friends of them?"   ,
      "True friends will stab you in the FRONT"                       ,
      "I am so clever I don't understand a word of what I'm saying"   ,
      "Some cause happiness wherever they go; others whenever they go",
      "A man who does not think for himself does not think at all"    ,
-     "The truth is rarely pure and never simple"                     ,
-     "A thing is not necessarily true because a man dies for it"     ,
-     "Experience is the name men give to their mistakes"             ,
      "Whenever people agree with me, I think I must be wrong"        ,
      "We are each our own devil, and make this world our hell"       ,
      "I have nothing to declare except my genius"                    ,
@@ -1878,6 +1875,7 @@ void AFNI_sigfunc_alrm(int sig)
      "When I ask for advice, what I really want is an accomplice"    ,
      "Above all -- Don't let your brain lie to you"                  ,
      "I like nonsense -- it shakes the neurons out of their naps"    ,
+     "I'm glad you finished up now -- I'm ready for a quick nap"     ,
      "Using it is like going to the gym for your brain"              ,
      "We are all mad here"                                           ,
      "Working for improved brain-ology not just 24/7 but 25/8!"      ,
@@ -1903,7 +1901,6 @@ void AFNI_sigfunc_alrm(int sig)
      "Remember -- Murphy was an optimist"                            ,
      "Remember -- Statistics are no substitute for judgment"         ,
      "Remember -- A thing can be true, and still be desperate folly" ,
-     "Remember -- Everything popular is wrong"                       ,
      "Remember -- Aquaman cares"                                     ,
      "Remember -- She who laughs, lasts"                             ,
      "Remember -- He who laughs, lasts"                              ,
@@ -1912,6 +1909,8 @@ void AFNI_sigfunc_alrm(int sig)
      "Remember -- Men are always willing to believe what they wish"  ,
      "Remember -- What I tell you three times is true"               ,
      "Remember -- A monad is the same as an endofunctor"             ,
+     "Remember -- Things aren't always what they seem"               ,
+     "Remember -- eggs cannot be unscrambled"                        ,
      "Fools give you reasons, wise men never try"                    ,
      "People willingly trust the statistics they wish to believe"    ,
      "Heaven's last best gift, my ever new delight"                  ,
@@ -2017,7 +2016,6 @@ void AFNI_sigfunc_alrm(int sig)
      "When life gives you lemons, throw them right back at it"       ,
      "Happiness isn't good enough for me; I demand euphoria"         ,
      "Judge a person by her questions, rather than her answers"      ,
-     "Be yourself; everyone else is already taken"                   ,
      "I have not failed; I've just found 10,000 ways that don't work",
      "Statistics are good, but dark chocolate is better"             ,
      "Espresso chocolate -- mmmmmm -- good"                          ,
@@ -2027,6 +2025,27 @@ void AFNI_sigfunc_alrm(int sig)
      "Computers are useless -- they can only give you answers"       ,
      "If nothing else, this software is a great toy"                 ,
      "Remember to take your brain out and polish it"                 ,
+     "What in God's Holy Name are you blathering on about?"          ,
+     "Are you a Dada-ist or a Dude-ist?"                             ,
+     "Putting the 'wit' in 'twit' since 1994"                        ,
+     "I'm completely innocent. Within reason"                        ,
+     "Believe those who seek the truth; doubt those who find it"     ,
+     "There is more to truth that just the facts"                    ,
+     "There is more to truth than a small p-value"                   ,
+     "If you think you are free, no escape is possible"              ,
+     "If you chase two rabbits at once, you will not catch either"   ,
+     "It is better to know the questions than the answers"           ,
+     "Inventing Hell is easy, but inventing Heaven impossible"       ,
+     "When you are climbing the ladder, do not forget the rungs"     ,
+     "You have to do it yourself, but you cannot do it alone"        ,
+     "When you look into the abyss, the abyss looks back at you"     ,
+     "Just say NO -- to arbitrary p-value thresholds"                ,
+     "Did you have fun with your data? I had fun showing it to you"  ,
+     "Are you ready to drink from the Big Data fire hose?"           ,
+     "In God we trust; all others must have Big Data"                ,
+     "Torment the data enough and it will tell you anything you want",
+     "p-hacking? Bah -- I'll take a chainsaw to your p-values"       ,
+     "Did you like your p-values? If not, I can 'fix' them for you"  ,
 
      "Returning control of your brain (images) back to yourself"     ,
      "Returning your endofunctors back to their co-monads"           ,
@@ -2038,7 +2057,7 @@ void AFNI_sigfunc_alrm(int sig)
      "With hideous ruin and combustion, down to bottomless perdition"                    ,
      "The mind and spirit remains invincible"                                            ,
      "The thought both of lost happiness and lasting pain"                               ,
-     "Clothed with transcendent brightness"                                              ,
+     "Still clothed with transcendent brightness"                                        ,
      "All is not lost: the unconquerable will, and courage never to submit or yield"     ,
      "Too well I see and rue the dire event that hath lost us Heaven"                    ,
      "Happy state here swallowed up in endless misery"                                   ,
@@ -2071,6 +2090,10 @@ void AFNI_sigfunc_alrm(int sig)
      "This horror will grow mild, this darkness will light"                              ,
      "Whose eye views all things at one view"                                            ,
      "Thus uplifted high beyond hope"                                                    ,
+     "Returning you to the dark illimitable ocean without bound"                         ,
+     "With thoughts inflamed of highest design"                                          ,
+     "Flying far off into a Limbo large and broad"                                       ,
+     "Ascending by degrees magnificent"                                                  ,
 
      /* These are to make it clear that Cox is not to be blamed for ANYTHING */
 
@@ -2085,11 +2108,52 @@ void AFNI_sigfunc_alrm(int sig)
      "If you have any questions about AFNI, ask ... Rick Reynolds :)"          ,
      "If you have any questions about AFNI, ask ... Paul Taylor :)"            ,
      "If you have any questions about AFNI, ask ... Gang Chen :)"              ,
+     "If you have any questions about AFNI, ask ... Justin Rajendra :)"        ,
+     "AFNI user's mantra: Bob, Bob, there is one Bob, He spells it B-O-B"      ,
 
-     "The kindest, bravest, warmest, most wonderful software you've ever known"       ,
-     "Your brains have not only been washed, but been dry cleaned"                    ,
-     "Why don't you pass the time by playing a little solitaire?"                     ,
+     /* The Manchurian Candidate */
 
+     "The kindest, bravest, warmest, most wonderful software you've ever used"    ,
+     "Your brains have not only been washed, but have been dry cleaned"           ,
+     "Why don't you pass the time by playing a little solitaire?"                 ,
+
+     /* Carrie Fisher */
+
+     "Resentment is like drinking poison and waiting for the other person to die" ,
+     "I'm not happy about getting old, but what are the options?"                 ,
+     "I'm very sane about how crazy I am"                                         ,
+     "Instant gratification takes too long"                                       ,
+
+     /* Oscar Wilde */
+
+     "We are all in the gutter, but some of us are looking at the stars"          ,
+     "Always forgive your enemies - nothing annoys them so much"                  ,
+     "Experience is the name men give to their mistakes"                          ,
+     "The truth is rarely pure and never simple"                                  ,
+     "Be yourself; everyone else is already taken"                                ,
+     "I have simple tastes: I am easily satisfied with the best"                  ,
+     "Remember -- Everything popular is wrong"                                    ,
+     "Experience is one thing you can't get for nothing"                          ,
+     "A thing is not necessarily true because a man dies for it"                  ,
+     "Moderation is fatal - nothing succeeds like excess"                         ,
+     "The world is a stage - but the play is badly cast"                          ,
+     "An idea that is not dangerous is unworthy of being called an idea at all"   ,
+
+     /* Longer quotes */
+
+     "When human judgment and big data interact, peculiar things happen"              ,
+     "FMRI is at best like reading source code with blurring goggles over your eyes"  ,
+     "Do you prefer red blobs or blue blobs? That's the real FMRI question"           ,
+     "I wish we had a taste interface -- I'd make my blobs cherry-chocolate flavor"   ,
+     "We cannot solve our problems with the same thinking that created them"          ,
+     "My brain starts working when I wake up, and stops when I have to give a talk"   ,
+     "Biology gives you a brain. Life turns it into a mind"                           ,
+     "Your thoughts, your actions, your experiences, are the sculptor of your brain"  ,
+     "Why isn't there an award for getting dressed and out of the house?"             ,
+     "I like the word 'indolence': it makes my laziness seem classy"                  ,
+     "Laziness is just the habit of resting before you get tired"                     ,
+     "Laziness takes work and it isn't easy, but look at the rewards!"                ,
+     "A practical truth: no man has eaten an entire elephant in one day"              ,
      "From now on, let's just reject the null hypothesis, and then have a beer"       ,
      "Home is the sailor, home from the sea; And the hunter home from the hill"       ,
      "Glad did I run, and gladly end, and I turn me off with a will"                  ,
@@ -2097,6 +2161,7 @@ void AFNI_sigfunc_alrm(int sig)
      "If you haven't anything nice to say about anybody, come sit next to me"         ,
      "Hmmm -- I think your p-value is 0.050001 -- better luck next time"              ,
      "Wow! Your p-value is 0.049999 -- you are incredibly lucky"                      ,
+     "Are you a special snowflake, or a normal cloddish lump of ice?"                 ,
      "Remember -- You are absolutely incredibly unique. Just like everone else"       ,
      "Remember -- Belief is not Truth. No matter how much you want it to be"          ,
      "Remember -- Truth is not always believed, even when it is under your nose"      ,
@@ -2179,16 +2244,26 @@ void AFNI_sigfunc_alrm(int sig)
      "Analyze your data rigorously -- you can fake the conclusions all you want later",
      "O wad some Pow'r the giftie gie us, To see oursels as ithers see us"            ,
      "One half the world cannot understand the statistics of the other"               ,
+     "It is better to create than to learn. Creating is the essence of life"          ,
+     "Events of importance are often the result of trivial causes"                    ,
+     "Men worry more about what they can't see than about what they can"              ,
+     "The best revenge is to be unlike him who performed the injury"                  ,
+     "The art of living is more like wrestling than dancing"                          ,
 
+     "It is the pardonable vanity of lonely people everywhere to assume that are unique"      ,
      "You know you're in trouble when it takes a 64 bit integer to count your unread emails"  ,
      "Once you've done what you have to do, no one will let you do what you want to do"       ,
      "My name is AFNImandias, Brain of Brains; Look on my Statistics, ye Clever, and Despair" ,
      "Statistically Significant is NOT the same as Significant -- they're not even similar"   ,
      "If you drink a liquid that has p=0.06 of being poison, do you feel significantly safe?" ,
-     "You must accept finite disappointments, but never lose your infinite hope"              ,
+     "You must accept finite disappointments, but never lose your infinite hopes"             ,
      "We may all have come on different ships, but we're all in the same boat now"            ,
      "You can always find me out on the Long Line -- I hang out by the Church-Kleene ordinal" ,
      "Outside of a dog, a book is Man's best friend. Inside of a dog, it's too dark to read"  ,
+
+     "Someday I'll tell you of the Giant Rat of Sumatra, a tale for which the world is not prepared" ,
+
+     /* Multi-line quotes */
 
      "\n  Ever returning spring, trinity sure to me you bring\n"
      "  Lilac blooming perennial, drooping star in the West,\n"
@@ -2633,12 +2708,29 @@ int main( int argc , char *argv[] )
    /*--- now ready to start X11 for true --*/
 
 #ifdef DARWIN
-   fprintf(stderr,
-            "\n"
-            "++ If you are using XQuartz 2.7.10 (or later), and\n"
-            " + AFNI crashes when opening windows, you might need\n"
-            " + to set an environment variable to solve this problem:\n"
-            " +   setenv DYLD_LIBRARY_PATH /opt/X11/lib/flat_namespace\n\n" ) ;
+   { char *eee = getenv("DYLD_LIBRARY_PATH") ;
+     if( eee == NULL || strstr(eee,"flat_namespace") == NULL ){
+       int vmajor=0, vminor=0 , vmicro=0 ;
+       eee = get_XQuartz_version() ;  /* Check XQuartz version [27 Jan 2017] */
+       if( eee != NULL && isdigit(*eee) ){
+         sscanf(eee,"%d.%d.%d",&vmajor,&vminor,&vmicro) ;
+         /* INFO_message("XQuartz version: %d %d %d",vmajor,vminor,vmicro) ; */
+       }
+       if( vmajor == 0 || vminor == 0 || vmajor > 2                   ||
+           (vmajor == 2 && vminor >  7)                               ||
+           (vmajor == 2 && vminor == 7 && (vmicro > 9 || vmicro == 0))  ){
+         fprintf(stderr,
+          "\n"
+          "++ If you are using XQuartz 2.7.10 (or later), and AFNI crashes when\n"
+          " + opening windows, or you cannot type text into AFNI popup windows,\n"
+          " + you might need to set an environment variable to solve this problem:\n"
+          " +   setenv DYLD_LIBRARY_PATH /opt/X11/lib/flat_namespace\n"
+          " + This command is best put in your startup ~/.cshrc file, so that\n"
+          " + it will be invoked for every (t)csh shell you open.\n\n"
+         ) ;
+       }
+     }
+   }
 #endif
 
    memset(&MAIN_app, 0, sizeof(MAIN_app)) ;  /* 11 Feb 2009 [lesstif patrol] */
@@ -2648,6 +2740,14 @@ int main( int argc , char *argv[] )
                                    NULL ) ;
 
    if( MAIN_shell == NULL ) ERROR_exit("Cannot initialize X11") ;
+
+#if 1
+{ Display *dpy = XtDisplay(MAIN_shell) ;
+  char msg[256] , *xsv ; int xvr ;
+  xsv = XServerVendor(dpy) ; xvr = XVendorRelease(dpy) ;
+  if( xsv != NULL ){ sprintf(msg,"[%s v %d]",xsv,xvr); REPORT_PROGRESS(msg); }
+}
+#endif
 
    /* if we used xrdb to set X11 resources, re-set them back to their old
       state so that other AFNIs don't use these new settings by default   */
@@ -9679,7 +9779,6 @@ STATUS("deciding whether to use function WOD") ;
 
       /*- The Ides of March, 2000: allow switching back to "view brick" -*/
 
-
       if( func_brick_possible                       &&
           ( ( im3d->vinfo->force_func_wod  &&
               im3d->vinfo->tempflag == 0   &&
@@ -9739,18 +9838,24 @@ STATUS("forcing function WOD") ;
       if( im3d->vinfo->thr_index >= DSET_NVALS(im3d->fim_now) )
           im3d->vinfo->thr_index = DSET_NVALS(im3d->fim_now) - 1 ;
 
-      /* first time in for this controller,
-         set thr_index to 1 if have sub-brick #1 [29 Jul 2003] */
+      /* first time in for this controller (or if so ordered),
+         set fim_index and thr_index to reasonable values (IMHO)
+         -- modified 12 Jan 2017 to define 'reasonable' more reasonably */
 
       { static int first=1, ffim[MAX_CONTROLLERS] ; int qq ;
         if( first ){
           first=0; for( qq=0; qq < MAX_CONTROLLERS; qq++ ) ffim[qq]=1;
         }
         qq = AFNI_controller_index(im3d) ;
-        if( ffim[qq] && im3d->vinfo->thr_index == 0 && DSET_NVALS(im3d->fim_now) > 1 ){
-          im3d->vinfo->thr_index = 1 ; ffim[qq] = 0 ;
+        if( ffim[qq] || im3d->vinfo->func_init_subbricks ){
+          int_pair otp = find_reasonable_overlay_indexes(im3d->fim_now) ;
+          if( otp.i >= 0 ) im3d->vinfo->fim_index = otp.i ;
+          if( otp.j >= 0 ) im3d->vinfo->thr_index = otp.j ;
+          ffim[qq] = 0 ;
         }
       }
+
+      im3d->vinfo->func_init_subbricks = 0 ;  /* 12 Jan 2017 */
 
       /* 29 Jan 2008: enable/disable the FDR-izing button */
 
@@ -10850,16 +10955,17 @@ ENTRY("AFNI_imag_pop_CB") ;
 
       {  /* initialize labels */
          char **at_labels=NULL ;
-         int iii;
+         int iii , flipxy=(GLOBAL_library.cord.xxsign < 0 && GLOBAL_library.cord.yysign < 0);
          char title_str[256];
 
-         at_labels = atlas_chooser_formatted_labels(
-                           Current_Atlas_Default_Name());
+         at_labels = atlas_chooser_formatted_labels( Current_Atlas_Default_Name() , flipxy ) ;
          if( ISQ_REALZ(seq) && at_labels ){
            if( AFNI_yesenv("AFNI_DATASET_BROWSE") ) MCW_set_browse_select(1) ;
 
-           sprintf(title_str, "Brain Structure (from %s)",
-                        Current_Atlas_Default_Name());
+           sprintf(title_str, "Brain Structure (%s) [%s]",
+                        Current_Atlas_Default_Name() ,
+                        (flipxy) ? "SPM order" : "DICOM order"
+                   ) ;
            MCW_choose_strlist( seq->wbar ,
                        title_str ,
                        atlas_n_points(Current_Atlas_Default_Name()) ,

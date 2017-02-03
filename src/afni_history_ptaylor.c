@@ -66,7 +66,53 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
-   { 20, Dec , 2016 , PT , "fat_mvm_prep.py" , MICRO , TYPE_NEW_OPT,
+
+   { 31, Jan , 2017 , PT , "@SUMA_renumber_FS" , MINOR , TYPE_MODIFY,
+   "Update region list to work with new FS 6.0 that came out a week ago.",
+   "Regions #3 and #42 (in FS file output) appear now; ~'leftover' GM.\n"
+},
+
+{ 27, Jan , 2017 , PT , "3dDWItoDT" , MICRO , TYPE_NEW_OPT,
+   "Miniscule new option, '-bmatrix_FULL' to have clearer usage.",
+   "Just copies functionality of cryptic '-bmatrix_Z'.\n"
+},
+
+{ 27, Jan , 2017 , PT , "@GradFlipTest" , MAJOR , TYPE_MODIFY,
+   "Totally revamped-- have real options, better funcs, output text file.",
+   "Meshes with other changes in 1dDW_Grad* and 3dDWItoDT.\n"
+},
+
+{ 26, Jan , 2017 , PT , "@chauffeur_afni" , MINOR , TYPE_NEW_PROG,
+   "Simplish function for driving AFNI to make images/montages.",
+   "Based on @snapshot_volreg; mainly intended for my selfish use.\n"
+},
+
+{ 26, Jan , 2017 , PT , "1dDW_Grad_o_Mat++" , MINOR , TYPE_NEW_PROG,
+   "New program for changing/reformatting grads and things.",
+   "Better defaults and simpler than original 1dDW_Grad_o_Mat++.\n"
+},
+
+{ 30, Dec , 2016 , PT , "@SUMA_renumber_FS" , MINOR , TYPE_NEW_PROG,
+   "New program for renumbering FS output after @SUMA_Make_Spec_FS.",
+   "Also conglomerates things into tissue maps.\n"
+},
+
+{ 30, Dec , 2016 , PT , "@SUMA_Make_Spec_FS" , MINOR , TYPE_MODIFY,
+   "Output new data sets of renumb'd values, more consistent than 'rank' ones.",
+   "Also output more tissue segmentation maps based on ROIs.\n"
+},
+
+{ 26, Dec , 2016 , PT , "thd_center" , MINOR , TYPE_NEW_OPT,
+   "Extra argument in THD_cmass() and THD_roi_cmass().",
+   "Allows for local ijk coordinate output; updated other calling functions.\n"
+},
+
+{ 23, Dec , 2016 , PT , "3dCM" , MINOR , TYPE_NEW_OPT,
+   "Allow ijk coordinate output.",
+   "Will be in local orientation.  Makes undumping after easier.\n"
+},
+
+{ 20, Dec , 2016 , PT , "fat_mvm_prep.py" , MICRO , TYPE_NEW_OPT,
    "New --unionize_rois option: affects GRID element selection.",
    "Now can select union of matrix elements across group for MVM_tbl.\n"
 },

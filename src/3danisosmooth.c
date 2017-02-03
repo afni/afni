@@ -478,7 +478,7 @@ int main( int argc , char * argv[] )
    DSET_load (dset);	                /* load dataset */
 
   if (get_with_diff_measures()) {
-   THD_fvec3 cmv = THD_cmass( dset , 0, NULL);
+   THD_fvec3 cmv = THD_cmass( dset , 0, NULL,0 );
    UNLOAD_FVEC3(cmv, cen[0], cen[1], cen[2]);
   } else {
    cen[0] = cen[1] = cen[2] = 0.0;

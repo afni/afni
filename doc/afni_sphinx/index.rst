@@ -13,6 +13,7 @@ Welcome to AFNI's documentation!
    :includehidden:
 
    background_install/main_toc
+   pub_trawl/main_toc
    .. AFNI/main_toc
    SUMA/main_toc
    FATCAT/main_toc

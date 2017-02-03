@@ -85,8 +85,8 @@ Usage:
  The advantage of the latter command is that the progression is saved into
  the text file diary.txt and, if anything goes awry, can be examined later.
  
- Thank the R community, Henrik Singmann and Helios de Rosario for the strong
- technical support.'
+ Thanks to the R community, Henrik Singmann and Helios de Rosario for the 
+ strong technical support.'
 
    ex1 <- 
 "

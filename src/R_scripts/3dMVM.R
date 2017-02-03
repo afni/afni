@@ -103,8 +103,8 @@ Chen, G., Saad, Z.S., Adleman, N.E., Leibenluft, E., Cox, R.W. (2015).
  The advantage of the latter command is that the progression is saved into
  the text file diary.txt and, if anything goes awry, can be examined later.
  
- Thank the R community, Henrik Singmann, and Helios de Rosario for the strong
- technical support.'
+ Thanks to the R community, Henrik Singmann, and Helios de Rosario for the 
+ strong technical support.'
 
    ex1 <- 
 "\n--------------------------------
@@ -601,7 +601,7 @@ read.MVM.opts.batch <- function (args=NULL, verb = 0) {
    #Parse dems options
    #initialize with defaults
       com_history<-AFNI.command.history(ExecName, args,NULL)
-      lop <- list (com_history = com_history)
+      lop <- AFNI.new.options.list(history = com_history, parsed_args = ops)
       lop$nNodes <- 1
       lop$model  <- 1
       lop$maskFN <- NA
@@ -772,11 +772,12 @@ process.MVM.opts <- function (lop, verb = 0) {
    if(is.null(lop$outFN)) errex.AFNI(c("Output filename not specified! Add filename with -prefix.\n"))
    an <- parse.AFNI.name(lop$outFN)
    if(an$type == "NIML") {
-      if(file.exists(lop$outFN)) errex.AFNI(c("File ", lop$outFN, " exists! Try a different name.\n"))
-   } else if(file.exists(paste(lop$outFN,"+tlrc.HEAD", sep="")) ||
-      file.exists(paste(lop$outFN,"+tlrc.BRIK", sep="")) ||
-      file.exists(paste(lop$outFN,"+orig.HEAD", sep="")) ||
-      file.exists(paste(lop$outFN,"+orig.BRIK", sep=""))) {
+      if(!lop$overwrite && file.exists(lop$outFN)) errex.AFNI(c("File ", lop$outFN, " exists! Try a different name.\n"))
+   } else if(!lop$overwrite && (
+                file.exists(paste(lop$outFN,"+tlrc.HEAD", sep="")) ||
+                file.exists(paste(lop$outFN,"+tlrc.BRIK", sep="")) ||
+                file.exists(paste(lop$outFN,"+orig.HEAD", sep="")) ||
+                file.exists(paste(lop$outFN,"+orig.BRIK", sep=""))) ) {
          errex.AFNI(c("File ", lop$outFN, " exists! Try a different name.\n"))
          return(NULL)
    }      
@@ -944,8 +945,9 @@ process.MVM.opts <- function (lop, verb = 0) {
       an <- parse.AFNI.name(lop$outFN)
       if(an$type == "BRIK" && an$ext == "" && is.na(an$view))
          lop$outFN <- paste(lop$outFN, "+tlrc", sep="")      
-      if (exists.AFNI.name(lop$outFN) || 
-          exists.AFNI.name(modify.AFNI.name(lop$outFN,"view","+tlrc")))
+      if (!lop$overwrite && (
+            exists.AFNI.name(lop$outFN) || 
+            exists.AFNI.name(modify.AFNI.name(lop$outFN,"view","+tlrc"))))
          errex.AFNI(c("File ", lop$outFN, " exists! Try a different name.\n"))
    }
 
@@ -1861,7 +1863,8 @@ if(lop$num_glf>0) for(ii in 1:lop$num_glf)
    statsym <- c(statsym, list(list(sb=lop$nF+lop$GES*lop$nFu+2*lop$num_glt+ii-1, typ="fift", par=glf_DF[ii][[1]])))        
    
 write.AFNI(lop$outFN, out, brickNames, defhead=head, idcode=newid.AFNI(),
-   com_hist=lop$com_history, statsym=statsym, addFDR=1, type='MRI_short')
+   com_hist=lop$com_history, statsym=statsym, addFDR=1, type='MRI_short',
+   overwrite=lop$overwrite)
 
 cat("\nCongratulations! You have got an output ", lop$outFN, ".\n\n", sep='')
 
