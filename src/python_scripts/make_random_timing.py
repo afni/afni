@@ -3531,7 +3531,6 @@ class RandTiming:
        nume = len(elist)
 
        for eind, event in enumerate(elist):
-          sc = self.sclasses[event[0]]
           # there are special cases for which rest class to use
           if eind == 0:
              # pre-stim rest event
@@ -3544,6 +3543,7 @@ class RandTiming:
              rc = g_instant_timing_class
           else:
              # ahhh, the usual case, get rest class out of stim class
+             sc = self.sclasses[event[0]]
              rc = sc.rclass
 
           # if we already have this one, increment the count, else append

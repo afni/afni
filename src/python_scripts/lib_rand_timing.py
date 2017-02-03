@@ -9,7 +9,8 @@ gDEF_T_GRAN     = 0.01   # default time granularity, in seconds
 gDEF_DEC_PLACES = 2      # decimal places when printing time (-1 ==> %g format)
 
 
-g_valid_dist_types = ['decay', 'uniform_rand', 'uniform_grid',
+g_valid_dist_types = ['decay', 'decay_old',
+                      'uniform_rand', 'uniform_grid',
                       'fixed', 'INSTANT']
 g_fixed_dist_types = ['fixed', 'INSTANT']
 g_valid_param_types= ['dist', 't_gran']
@@ -180,7 +181,7 @@ class TimingClass:
    def get_one_val(self):
       return random_duration_list(1, self)
 
-   def decay_get_dur_list(self, nevents, tot_time, max_dur):
+   def decay_get_dur_list(self, nevents, tot_time, max_dur, old=1):
       """return a list of durations of length nevents, such that tot_time is
          distributed with PDF decay (okay, the discrete version, which is less)
       """
@@ -230,7 +231,8 @@ class TimingClass:
 
       nmax = int(max_dur / self.t_gran)
 
-      self.decay_apply_max_limit_old(durlist, nmax)
+      if old: self.decay_apply_max_limit_old(durlist, nmax)
+      else:   self.decay_apply_max_limit(durlist, nmax)
 
       # and finally, scale by t_gran
       for dind in range(len(durlist)):
@@ -241,66 +243,77 @@ class TimingClass:
    def decay_apply_max_limit(self, dlist, nmax):
       """none of the (integer) entries in dlist should exceed nmax
 
-         Instead of
+         instead of:
             - truncating all big times to max (too many max's)
             - adding each extra time unit to a random event
-         now do:
-            - give all big times new times on uniform grid
-            - distribute time in random blocks one event at a time
+         now:
+            - give all big times new times on a uniform grid
+            - distribute time in random blocks one event at a time:
               while time to distribute exists
                  choose a non-max event
                  add random amount of time (subject to max and total)
             - re-randomize list (so we can separate maxed out events)
       """
-      
-      n2move = 0
-      navail = 0
-      spacelist = []
 
-      for dind, dur in enumerate(dlist):
-         # if there is space here, note the index and available space
-         if dur < nmax:
-            navail += nmax-dur
-            spacelist.append(dind)
-         # if this is too full, track count to move
-         # (do not fix until we are sure we can)
-         elif dur > nmax:
-            n2move += dur-nmax
+      nevents = len(dlist)
 
-      # is there anything to fix?
-      if n2move == 0:
-         return
-
-      # can we actually fix this?  (failure should already be prevented)
-      if navail < n2move:
-         print '** DAML space availability error for class %s' % self.name
-         return
-
-      # --------------------------------------------------
-      # okay, start fixing things
-
-      # first, truncate to max (skipped above, just to be sure)
+      # give big times new ones in the proper range, and tally lost time
+      nextra = 0
       for dind, dur in enumerate(dlist):
          if dur > nmax:
-            dlist[dind] = nmax
+            dnew = self.rand_uniform_int(nmax+1)
+            nextra += (dur-dnew)
+            dlist[dind] = dnew
 
-      # for each n2move, pick a place to move it and track space
-      nspace = len(spacelist)
+      # now remove any that are maxed out
+      addlist = [dur for dur in dlist if dur < nmax]
+      nadd = len(addlist)
+      nmaxed = nevents - nadd
 
-      for sind in range(n2move):
-         if nspace == 0:
-            print '** DAML: no more space entries in class %s' % self.name
-            return
-         mind = int(random.uniform(0,nspace))
-         if mind == nspace: mind -= 1  # probability close to 0
-         sind = spacelist[mind]
-         dlist[sind] += 1
-         # maybe this event is maxed out
-         if dlist[sind] >= nmax:
-            nspace -= 1
-            spacelist.remove(sind)
+      # and add remaining time until we are done until we are done
+      while nextra > 0:
+         # should not occur:
+         if nadd == 0:
+            print '** rcr screw-up: nadd = 0'
+            sys.exit(1)
+
+         # get random index to add to
+         aind = self.rand_uniform_int(nadd)
+
+         # set max to add
+         space = nmax - addlist[aind]
+
+         # get random space in {1,...,space}
+         ntoadd = self.rand_uniform_int(space)+1
+         if ntoadd > nextra: ntoadd = nextra
+         addlist[aind] += ntoadd
+         nextra -= ntoadd
+
+         # if maxed, pop...
+         if addlist[aind] == nmax:
+            nmaxed += 1
+            addlist.pop(aind)
+            nadd -= 1
+
+      # finally, re-randomize list
+      addlist.extend([nmax] * nmaxed)
+      dlist = addlist
+      UTIL.shuffle(dlist)
             
       return
+
+   def rand_uniform_int(self, nvals):
+      """return an integer in {0,...,nvals-1} with a uniform
+         probability distribution
+
+         This is basically int(random.uniform(0,nspace)), except
+         that apparently there is a small chance it could actually
+         equal nspace.
+      """
+      ival = int(random.uniform(0,nvals))
+      if ival >= nvals:
+         ival -= 1
+      return ival
 
    def decay_apply_max_limit_old(self, dlist, nmax):
       """none of the (integer) entries in dlist should exceed nmax
@@ -345,8 +358,7 @@ class TimingClass:
          if nspace == 0:
             print '** DAML: no more space entries in class %s' % self.name
             return
-         mind = int(random.uniform(0,nspace))
-         if mind == nspace: mind -= 1  # probability close to 0
+         mind = self.rand_uniform_int(nspace)
          sind = spacelist[mind]
          dlist[sind] += 1
          # maybe this event is maxed out
@@ -379,8 +391,7 @@ class TimingClass:
 
       durlist = []
       for ind in range(nevents//2):
-         ngran = int(random.uniform(0,nmax+1))
-         if ngran > nmax: ngran = nmax  # to be safe
+         ngran = self.rand_uniform_int(nmax+1)
          # add time and balancing time
          durlist.append(ngran * self.t_gran)
          durlist.append((nmax - ngran) * self.t_gran)
@@ -634,6 +645,8 @@ def random_duration_list(nevents, tclass, total_time=-1.0, force_total=0):
    dtype = tclass.dist_type
    if dtype == 'decay':
       dlist = tclass.decay_get_dur_list(nevents, remain, max_dur)
+   elif dtype == 'decay_old':
+      dlist = tclass.decay_get_dur_list(nevents, remain, max_dur, old=1)
    elif dtype == 'uniform_rand':
       dlist = tclass.urand_get_dur_list(nevents, remain)
    elif dtype == 'uniform_grid':
