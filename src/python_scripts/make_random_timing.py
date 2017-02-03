@@ -822,6 +822,9 @@ make_random_timing.py - Advanced usage
         dtype   : distribution type (default=decay)
                   decay:        shorter events are more likely
                                 see "NOTE: distribution of ISI"
+                              * new method as of Feb 3, 2017
+                  decay_old:    old decay method, which can bunch up at max
+                                limit, if one is applied
                   uniform_rand: randomly chosen durations with uniform dist
                   uniform_grid: durations spread evenly across grid
                   fixed:        one duration is specified
@@ -1039,6 +1042,9 @@ g_history = """
          * Advanced usage: applying user-defined timing classes for stim/rest.
            see:   make_random_timing.py -help_advanced
     2.1  Jan 23, 2017: allow use of INSTANT timing class; reorder example opts
+    2.2  Feb  3, 2017:
+         - decay class now follows a better curve
+         - added decay_old class for old decay method
 """
 
 g_version = "version 2.1, January 23, 2017"
