@@ -879,7 +879,7 @@ int main(int argc, char *argv[]) {
                                     NROI_REF[k]*NROI_REF[k], 
                                     "full", ParLab, 
                                     NULL, NULL, NULL);
-      if( xyz = THD_roi_cmass(ROIS, k, ROI_LABELS_REF[k]+1, NROI_REF[k]) ) {
+      if( xyz = THD_roi_cmass(ROIS, k, ROI_LABELS_REF[k]+1, NROI_REF[k], 0)) {
          if (!(SUMA_AddGDsetNodeListElement(gset, NULL,
                                             xyz, NULL, NULL, 
                                             gdset_roi_names[k],

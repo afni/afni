@@ -49,6 +49,90 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  2,  Feb, 2017, RCR, "steps_mac.rst", MINOR, TYPE_MODIFY,
+   "rewrite OS X install instructions to use 10.7_local and fink",
+   NULL
+ } ,
+
+ {  2,  Feb, 2017, RCR, "@update.afni.binaries", MICRO, TYPE_MODIFY,
+   "default mac package is now macosx_10.7_local",
+   NULL
+ } ,
+
+ {  1,  Feb, 2017, RCR, "afni_system_check", MINOR, TYPE_ENHANCE,
+   "updates for fink and homebrew",
+   NULL
+ } ,
+
+ { 27, Jan, 2017, RCR, "CA_EZ_atlas.csh", MICRO, TYPE_MODIFY,
+   "with -help, do not dump TT_N27 in current directory",
+   "Have script fail if any arguments are given (e.g. -help).\n"
+   "Fix in all bin dirs and under atlases."
+ } ,
+
+ { 26,  Jan, 2017, RCR, "Makefile.macosx_10.7_local", MINOR, TYPE_NEW_OPT,
+   "this is a new Makefile to prep for exec directory dynamic linking",
+   NULL
+ } ,
+
+ { 25,  Jan, 2017, RCR, "afni_system_check.py", MINOR, TYPE_ENHANCE,
+   "in 10.11+, check for DYLD variables via sub-shells",
+   NULL
+ } ,
+
+ { 24,  Jan, 2017, RCR, "align_epi_anat.py", MICRO, TYPE_ENHANCE,
+   "trap failure from main 3dAllineate call",
+   NULL
+ } ,
+
+ { 23,  Jan, 2017, RCR, "make_random_timing.py", MICRO, TYPE_BUG_FIX,
+   "allow automatic use of the INSTANT timing class",
+   NULL
+ } ,
+
+ { 20,  Jan, 2017, RCR, "make_random_timing.py", MAJOR, TYPE_ENHANCE,
+   "advanced usage, program version 2.00",
+   "Essentially a new program.  The user may now define timing classes for\n"
+   "stimulus and rest event types.\n"
+   "   see: make_random_timing.py -help_advanced\n"
+   "Motivated by K Kircanski and A Stringaris."
+ } ,
+
+ { 19,  Jan, 2017, RCR, "gen_ss_review_scripts.py", MICRO, TYPE_BUG_FIX,
+   "fix for -final_anat",
+   "Thanks to N Anderson for noting the problem."
+ } ,
+
+ { 19,  Jan, 2017, RCR, "make_random_timing.py", MICRO, TYPE_ENHANCE,
+   "advanced version 2 mostly ready",
+   "Have -max_consec and -ordered_stimuli implemented in new version."
+ } ,
+
+ { 18,  Jan, 2017, RCR, "3dmask_tool", MICRO, TYPE_MODIFY,
+   "change example 3 to be with EPI masks",
+   NULL
+ } ,
+
+ { 12,  Jan, 2017, RCR, "afni_system_check.py", MICRO, TYPE_MODIFY,
+   "for 10.11+, make flat warning and summary comment consistent",
+   NULL
+ } ,
+
+ { 11,  Jan, 2017, RCR, "make_random_timing.py", MICRO, TYPE_NEW_OPT,
+   "added some help: -help_advanced, -help_todo",
+   NULL
+ } ,
+
+ {  3,  Jan, 2017, RCR, "make_random_timing.py", MICRO, TYPE_ENHANCE,
+   "merged mrt branch into master - prep for advanced timing",
+   NULL
+ } ,
+
+ { 29,  Dec, 2016, RCR, "afni_proc.py", MICRO, TYPE_BUG_FIX,
+   "remove case 16 (brainstem) from aparc+aseg.nii WM extraction in help",
+   "Thanks to P Taylor for noting this."
+ } ,
+
  { 15,  Dec, 2016, RCR, "column_cat", MICRO, TYPE_ENHANCE,
    "allow for reading from stdin via either '-' or 'stdin'",
    NULL

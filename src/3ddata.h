@@ -1594,6 +1594,16 @@ typedef struct {
 #define EQUIV_DELTAXYZ(d1,d2) \
  ( ISVALID_DSET(d1) && ISVALID_DSET(d2) && EQUIV_DATADELTAXYZ((d1)->daxes,(d2)->daxes) )
 
+#define EQUIV_DATA_NXYZ(cax,dax)    \
+ ( ISVALID_DATAXES((cax))        && \
+   ISVALID_DATAXES((dax))        && \
+   (cax)->nxx == (dax)->nxx      && \
+   (cax)->nyy == (dax)->nyy      && \
+   (cax)->nzz == (dax)->nzz  )
+
+#define EQUIV_GRIDS_NXYZ(d1,d2) \
+ ( ISVALID_DSET(d1) && ISVALID_DSET(d2) && EQUIV_DATA_NXYZ((d1)->daxes,(d2)->daxes) )
+
 extern void THD_edit_dataxes( float , THD_dataxes * , THD_dataxes * ) ;
 
 extern void THD_set_daxes_bbox     ( THD_dataxes * ) ; /* 20 Dec 2005 */
@@ -4413,6 +4423,7 @@ extern int THD_slow_minmax_dset(THD_3dim_dataset *dset,
                 float *dmin, float *dmax, int iv_bot, int iv_top);
 extern float THD_dset_max(THD_3dim_dataset *dset, int scl);
 extern float THD_dset_min(THD_3dim_dataset *dset, int scl);
+extern float THD_dset_extent(THD_3dim_dataset *dset, char ret,float *RL_AP_IS);
 
 extern void THD_show_dataset_names( THD_3dim_dataset *dset,
                                     char *head, FILE *out);
@@ -4787,8 +4798,9 @@ extern void THD_check_idcodes( THD_sessionlist * ) ; /* 08 Jun 1999 */
 extern void THD_load_statistics( THD_3dim_dataset * ) ;
 extern void THD_update_statistics( THD_3dim_dataset * ) ;
 extern THD_brick_stats THD_get_brick_stats( MRI_IMAGE * ) ;
-extern void THD_update_one_bstat( THD_3dim_dataset * , int ) ; /* 29 Mar 2005 */
-extern int THD_dset_scale(THD_3dim_dataset *aset, float fac); /* Jan 31 2015 */
+extern void THD_update_one_bstat( THD_3dim_dataset * , int ) ;  /* 29 Mar 2005 */
+extern int THD_dset_scale(THD_3dim_dataset *aset, float fac);   /* 31 Jan 2015 */
+extern int THD_count_nonzero_bricks( THD_3dim_dataset *dset ) ; /* 17 Jan 2017 */
 
 extern THD_fvec3 THD_3dind_to_3dmm( THD_3dim_dataset * , THD_ivec3 ) ;
 extern THD_fvec3 THD_3dind_to_3dmm_no_wod( THD_3dim_dataset * , THD_ivec3 ) ;
@@ -4826,9 +4838,10 @@ extern float THD_timeof_slice( int , int , THD_3dim_dataset * ) ;  /* BDW */
 extern float * TS_parse_tpattern( int, float, char * ) ;  /* 11 Dec 2007 */
 
 extern THD_fvec3 THD_dataset_center( THD_3dim_dataset * ) ;  /* 01 Feb 2001 */
-extern THD_fvec3 THD_cmass( THD_3dim_dataset *xset , int iv , byte *mmm );
+extern THD_fvec3 THD_cmass( THD_3dim_dataset *xset , int iv , byte *mmm,
+                               int cmode);
 extern float *THD_roi_cmass(THD_3dim_dataset *xset , int iv ,
-                            int *rois, int N_rois);
+                            int *rois, int N_rois, int cmode);
 extern int THD_dataset_mismatch(THD_3dim_dataset *, THD_3dim_dataset *) ;
 extern double THD_diff_vol_vals(THD_3dim_dataset *d1, THD_3dim_dataset *d2,
                                 int scl);
@@ -5759,7 +5772,7 @@ extern THD_3dim_dataset * TT_retrieve_atlas_big_old(void) ; /* 01 Aug 2001 */
 extern void TT_purge_atlas_big(void);
 
 extern THD_3dim_dataset * TT_retrieve_atlas_either_old(void); /* 22 Aug 2001 */
-extern char **atlas_chooser_formatted_labels(char *atname);
+extern char **atlas_chooser_formatted_labels(char *atname,int flipxy);
 
 #define TT_ATLAS_NZ_SMALL 141 /* 01 Aug 2001 */
 #define TT_ATLAS_NZ_BIG   151
@@ -5780,10 +5793,11 @@ extern float THD_ktaub_corr   ( int,float *,float *) ;  /* 29 Apr 2010 */
 extern float THD_eta_squared  ( int,float *,float *) ;  /* 25 Jun 2010 */
 extern double THD_eta_squared_masked(int,float *,float *,byte *);/* 16 Jun'11 */
 extern float THD_dice_coef_f_masked(int,float *,float *,byte *);/* 28 Jul'15 */
+// orig- Apr. 2014;  updated- Jan. 2017, as part of some attempted saBobtage:
 extern THD_3dim_dataset * THD_Tcorr1D(THD_3dim_dataset *xset,
                               byte *mask, int nmask,
                               MRI_IMAGE *ysim,
-                              char *smethod, char *prefix); /* Apr. 2014 */
+                              char *smethod, char *prefix,int do_short); 
 extern float THD_quantile_corr( int,float *,float *) ;  /* 10 May 2012 */
 extern float quantile_corr( int n , float *x , float rv , float *r ) ;
 extern void THD_quantile_corr_setup( int ) ;

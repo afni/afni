@@ -3627,7 +3627,7 @@ int RunTrackingMaestro( int comline, TRACK_RUN_PARAMS opts,
                                           "full", ParLab, 
                                           NULL, NULL, NULL);
 
-            if( xyz = THD_roi_cmass(ROI_set, k, ROI_LABELS[k]+1, NROI[k]) ) {
+            if( xyz = THD_roi_cmass(ROI_set, k, ROI_LABELS[k]+1, NROI[k], 0)){
                if (!(SUMA_AddGDsetNodeListElement(gset, NULL,
                                                   xyz, NULL, NULL, 
                                                   gdset_roi_names[k],

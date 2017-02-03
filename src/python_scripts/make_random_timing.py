@@ -1,7 +1,9 @@
 #!/usr/bin/env python
 
-import sys, random, os, math
+import sys, random, os, math, copy
 import option_list as OL, afni_util as UTIL
+import lib_rand_timing as LRT
+import lib_afni1D as LAD
 
 g_help_string = """
 ===========================================================================
@@ -11,6 +13,17 @@ Create random stimulus timing files.
     for use in 3dDeconvolve.  These times will not be TR-locked (unless the
     user requests it).  Stimulus presentation times will never overlap, though
     their responses can.
+
+
+    ---------------------------------------------------------------------------
+    **  There is now basic (old) and advanced usage.  Until I decide whether
+        and how to merge the help, consider:
+
+            make_random_timing.py -help_advanced
+
+        Otherwise, what follows is the basic usage.  Though all options are
+        listed here.
+    ---------------------------------------------------------------------------
 
     This can easily be used to generate many sets of random timing files to
     test via "3dDeconvolve -nodata", in order to determine good timing, akin
@@ -462,10 +475,23 @@ NOTE: distribution of ISI
 informational arguments:
 
     -help                       : display this help
+    -help_advanced              : display help for advanced usage
+    -help_todo                  : display list of things to do
     -hist                       : display the modification history
     -show_valid_opts            : display all valid options (short format)
     -ver                        : display the version number
 
+----------------------------------------
+advanced arguments/options:
+
+    -help_advanced              : display help for advanced usage
+    -help_todo                  : "to do" list is mostly for advanced things
+
+    -add_timing_class           : create a new timing class (stim or rest)
+    -add_stim_class             : describe a new stimulus class (timing, etc.)
+    -rand_post_stim_rest yes/no : allow rest after final stimulus
+    -show_rest_events           : show details of rest timing, per type
+    -write_event_list FILE      : create FILE listing all events and times
 ----------------------------------------
 required arguments:
 
@@ -779,6 +805,196 @@ optional arguments:
 ===========================================================================
 """
 
+g_help_advanced = """
+===========================================================================
+make_random_timing.py - Advanced usage
+
+   With advanced usage, timing classes are defined for both stimulus periods
+   and rest periods.  Timing classes specify duration types that have different
+   distributions (min, mean, max and distribution type), which can be applied
+   to stimulus events or to rest events.
+
+   When specifying a timing class, one can provide:
+
+        min     : min, mean and maximum for possible durations
+        mean      (note that for a uniform distribution, the mean or max
+        max       implies the other, while that is not true for decay)
+        dtype   : distribution type (default=decay)
+                  decay:        shorter events are more likely
+                                see "NOTE: distribution of ISI"
+                  uniform_rand: randomly chosen durations with uniform dist
+                  uniform_grid: durations spread evenly across grid
+                  fixed:        one duration is specified
+                  INSTANT:      duration = 0
+        t_grid  : all durations are fixed on this grid (default=0.01s)
+
+   One can provide subsets:
+
+        min                             : implies fixed
+        min, mean max                   : implies decay on default t_grid
+        min, mean max, dtype            : implies default t_trid
+        min, mean max, dtype, t_grid
+
+
+   Every stimulus class type is followed by a fixed rest class type.  So rest
+   periods are "attached" to the preceding stimulus periods.  For example, the
+   'faces' class events might last for 0.5 - 1.5 seconds, and be uniformly
+   distributed (so average = 1s).  Those face events might then be followed by
+   0.5 - 8.5 seconds of rest with a 'decay' distribution (so shorter durations
+   are more probable than longer durations).
+
+   The 'decay' distribution type matches that of the basic (non-advanced) use
+   this program.  See "NOTE: distribution of ISI" in the -help output.
+
+   -------------------------------------------------------
+   Advanced Example 1: basic, with 3 conditions
+
+     - This is a simple case with 3 conditions, each having 8 events per run
+       of duration 3.5 s.  Rest is randomly distributed using the default
+       'decay' distribution (meaning shorter periods are more likely than
+       longer ones).  The first and last 20 s is also allocated for rest.
+
+     - Do this for 4 runs of length 200 s each.
+
+     - Also, do not allow any extra rest (beyond the specified 10 s) after
+       the final stimulus event.
+
+     - Show timing statistics.  Save a complete event list (events.adv.1.txt).
+
+         make_random_timing.py -num_runs 4 -run_time 200         \\
+            -pre_stim_rest 10 -post_stim_rest 10                 \\
+            -rand_post_stim_rest no                              \\
+            -add_timing_class stim 3.5                           \\
+            -add_timing_class rest 0 -1 -1                       \\
+            -add_stim_class houses 10 stim rest                  \\
+            -add_stim_class faces  10 stim rest                  \\
+            -add_stim_class donuts 10 stim rest                  \\
+            -show_timing_stats                                   \\
+            -write_event_list events.adv.1.txt                   \\
+            -seed 31415 -prefix stimes.adv.1
+
+
+   -------------------------------------------------------
+   Advanced Example 2: varying stimulus and rest timing classes
+
+     - This has 4 stimulus conditions employing 3 different stimulus timing
+       classes and 3 different rest timing classes.
+
+       timing classes (stim and rest periods):
+
+           stima: durations in [0.5, 10], ave = 3s (decay distribution)
+           stimb: durations in [0.1, 3], ave = 0.5s (decay distribution)
+           stimc: durations of 2s
+
+           resta: durations in [0.2, 1.2], ave = 0.7 (uniform rand dist)
+           restb: durations in [0.5, 1.5], ave = 1.0 (uniform grid dist)
+           restc: durations in (0, inf) (decay dist) - absorbs remaining rest
+
+       conditions (each has stim timing type and subsequent rest timing type)
+
+                    # events (per run)  stim timing        rest timing
+                    --------            -----------        -----------
+           houses :    20                  stima              resta
+           faces  :    20                  stimb              restb
+           donuts :    20                  stimb              restb
+           pizza  :    20                  stimc              restc
+
+     - Do not allow any rest (aside from -post_stim_rest) after final stim
+       (per run).  So there will be exactly the rest from -post_stim_rest at
+       the end of each run, 10s in this example.
+
+         make_random_timing.py -num_runs 2 -run_time 300         \\
+            -pre_stim_rest 10 -post_stim_rest 10                 \\
+            -rand_post_stim_rest no                              \\
+            -add_timing_class stima 0.5 3 10                     \\
+            -add_timing_class stimb 0.1 0.5 3                    \\
+            -add_timing_class stimc 2                            \\
+            -add_timing_class resta 0.2 .7 1.2 dist=uniform_rand \\
+            -add_timing_class restb 0.5 1  1.5 dist=uniform_grid \\
+            -add_timing_class restc 0 -1 -1                      \\
+            -add_stim_class houses 20 stima resta                \\
+            -add_stim_class faces  20 stimb restb                \\
+            -add_stim_class donuts 20 stimb restb                \\
+            -add_stim_class pizza  20 stimc restc                \\
+            -write_event_list events.adv.2                       \\
+            -show_timing_stats                                   \\
+            -seed 31415 -prefix stimes.adv.2
+
+
+   -------------------------------------------------------
+   Advanced Example 3: ordered event types
+
+     - Every cue event is followed by test and then result.
+     - Every pizza1 event is followed by pizza2 and then pizza3.
+     - The stimc timing class has durations on a grid of 0.1s, rather
+       than the default of 0.01s.
+
+         make_random_timing.py -num_runs 2 -run_time 300         \\
+            -pre_stim_rest 10 -post_stim_rest 10                 \\
+            -rand_post_stim_rest no                              \\
+            -add_timing_class stima 0.5 3 10                     \\
+            -add_timing_class stimb 0.1 0.5 3                    \\
+            -add_timing_class stimc 0.1 2.5 10 t_gran=0.1        \\
+            -add_timing_class stimd 2                            \\
+            -add_timing_class resta 0.2 .7 1.2 dist=uniform_rand \\
+            -add_timing_class restb 0.5 1  1.5 dist=uniform_grid \\
+            -add_timing_class restc 0 -1 -1                      \\
+            -add_stim_class cue    20 stima resta                \\
+            -add_stim_class test   20 stimb restb                \\
+            -add_stim_class result 20 stimb restb                \\
+            -add_stim_class pizza1 10 stimc restc                \\
+            -add_stim_class pizza2 10 stimc restc                \\
+            -add_stim_class pizza3 10 stimc restc                \\
+            -add_stim_class salad  10 stimd restc                \\
+            -write_event_list events.adv.3                       \\
+            -show_timing_stats                                   \\
+            -ordered_stimuli cue test result                     \\
+            -ordered_stimuli pizza1 pizza2 pizza3                \\
+            -seed 31415 -prefix stimes.adv.3
+
+   -------------------------------------------------------
+   Advanced Example 4: limit consecutive events per class type
+
+     - Use simple 1s stim events and random rest (decay).
+     - For entertainment, houses/faces and tuna/fish are
+       ordered event pairs.
+     - Classes houses, faces, tuna and fish are restricted to a
+       limit of 3 consecutive events.
+     - There is no limit on donuts.   Why would there be?
+
+         make_random_timing.py -num_runs 2 -run_time 600         \\
+            -pre_stim_rest 0 -post_stim_rest 0                   \\
+            -add_timing_class stim 1                             \\
+            -add_timing_class rest 0 -1 -1                       \\
+            -add_stim_class houses 100 stim rest                 \\
+            -add_stim_class faces  100 stim rest                 \\
+            -add_stim_class tuna 100 stim rest                   \\
+            -add_stim_class fish 100 stim rest                   \\
+            -add_stim_class donuts 100 stim rest                 \\
+            -ordered_stimuli houses faces                        \\
+            -ordered_stimuli tuna fish                           \\
+            -max_consec 3 3 3 3 0                                \\
+            -show_timing_stats                                   \\
+            -write_event_list events.adv.4                       \\
+            -seed 31415 -prefix stimes.adv.4 -verb 2
+
+---------------------------------------------------------------------
+options (specific to the advanced usage):
+
+    -help_advanced              : display help for advanced usage
+    -help_todo                  : "to do" list is mostly for advanced things
+
+    -add_timing_class           : create a new timing class (stim or rest)
+    -add_stim_class             : describe a new stimulus class (timing, etc.)
+    -rand_post_stim_rest yes/no : allow rest after final stimulus
+    -show_rest_events           : show details of rest timing, per type
+    -write_event_list FILE      : create FILE listing all events and times
+
+----------------------------------------------------------------------
+R Reynolds  Jan 20, 2017          motivated by K Kircanski and A Stringaris
+===========================================================================
+"""
+
 g_history = """
     make_random_timing.py history:
 
@@ -818,15 +1034,77 @@ g_history = """
     1.9  Aug 21, 2015: added help for understanding the distribution of ISI
                        see: NOTE: distribution of ISI
     1.10 Jun 01, 2016: minor updates to verbose output
+
+    2.0  Jan 20, 2017: basically a new program
+         * Advanced usage: applying user-defined timing classes for stim/rest.
+           see:   make_random_timing.py -help_advanced
+    2.1  Jan 23, 2017: allow use of INSTANT timing class; reorder example opts
 """
 
-g_version = "version 1.10, June 1, 2016"
+g_version = "version 2.1, January 23, 2017"
+
+g_todo = """
+   - add -show_consec_stats option
+   - apply -make_3dd_contrasts, -save_3dd_cmd
+   - apply -offset?
+   - reconcile t_grid as global vs per class (init/pass as single parameters)
+   - make new method for decay that better handles max duration, w/out spike
+   - add warning if post-stim rest < 3 seconds
+   - add option to change timing classes for pre and post stim rest
+   - add related dist_types rand_unif and rand_gauss?
+   - global "-across_runs" should still apply
+
+   - option to give -pre_/-post_stim_rest a class?
+
+   - maybe this program should just be a new one?  gen_random_timing.py?
+      - MRT could be forked and depricated, but maybe people want to use it?
+      - or perhaps it could be clear by calling it old_MRT.py
+      -no, just try to partition options
+         - OLD: -num_stim, -num_reps, -stim_dur, -stim_labels, -min_rest
+         - ADV: -add_stim_class, -add_timing_class
+"""
 
 gDEF_VERB       = 1      # default verbose level
-gDEF_T_GRAN     = 0.1    # default time granularity, in seconds
+gDEF_OLD_T_GRAN = 0.1    # old-style time granularity, in seconds
+gDEF_OLD_DEC_PLACES = 1  # old-style digits after decimal for times
 gDEF_MIN_T_GRAN = 0.0001 # minimum time granularity, in seconds
-gDEF_DEC_PLACES = 1      # decimal places when printing time (-1 ==> %g format)
 
+g_instant_timing_class = LRT.TimingClass('INSTANT', 0, 0, 0)
+
+
+g_style_opts_old = ['-num_stim', '-num_reps', '-stim_dur', '-stim_labels',
+                    '-min_rest']
+g_style_opts_new = ['-add_stim_class', '-add_timing_class']
+
+# sample usage:
+#
+# -add_timing_class stimA 3 
+# -add_timing_class stimA 3 3  3 decay 0.1
+# -add_timing_class stimA 3 5 10
+# -add_timing_class stimA 3 5 10 decay
+# -add_timing_class stimA 3 5 10 decay 0.1
+# -add_timing_class stimA 3 5  7 uniform 1
+# 
+# -add_timing_class restA 3
+# -add_timing_class restA 3 5 10 decay
+# -add_timing_class restA 1 5  9 uniform 0.1  (decide how to sample)
+
+# order of stim evens should be controlled by:
+#    - randomization
+#    - max consec
+#    - ordered_stimuli
+#    - across_runs (sum (sdur+ave rest) to match run lengths)
+#    - catch trials (can do later)
+#
+# stim events:
+#    randomize events subject to any constraints (max consec, ordered stim)
+#    compute random timing for events
+# apply rest:
+#    add all minimum rest: is design possible?
+#    add all maximum rest: is design possible?
+#    
+
+                        
 class RandTiming:
     def __init__(self, label):
         # actual stimulus timing lists
@@ -839,17 +1117,41 @@ class RandTiming:
         self.valid_opts = None          # OptionList
         self.user_opts  = None
 
-        # required arguments
+        # ------------------------------------------------------------
+        # required arguments for advanced method
+        self.tclasses   = [g_instant_timing_class] # TimingClass instances
+        self.sclasses   = []            # StimClass instances
+
+        # advanced options
+        self.rand_post_stim_rest = 1    # include random rest from last event?
+        self.show_rest_events = 0       # show stats and rest events
+
+        # pre- and post-rest timing classes
+        self.pre_stimc  = g_instant_timing_class
+        self.post_stimc = g_instant_timing_class
+
+        # other parameters for advanced method
+        self.stim_event_list = []       # stim index, duration lists
+        self.full_event_list = []       # index, duration, time lists
+        self.stim_adata      = []       # AfniData instance, per stim class
+        self.stimdict        = {}       # name:index Stim dict, for name lookup
+
+        # ------------------------------------------------------------
+        # required arguments for basic method
+        self.num_reps   = []            # number of stimuli, per class (per run)
+        self.stim_dur   = []            # time of single stimulus (seconds)
+                                        #   - per stim class
+
+        # ------------------------------------------------------------
+        # other required arguments
         self.num_stim   = 0             # number of stimulus classes
         self.num_runs   = 0             # number of runs
         self.prefix     = None          # prefix for output files
                                         # add .LABEL.INDEX.1D
 
         self.run_time   = []            # total time per run (seconds)
-        self.num_reps   = []            # number of stimuli, per class (per run)
-        self.stim_dur   = []            # time of single stimulus (seconds)
-                                        #   - per stim class
 
+        # ------------------------------------------------------------
         # optional arguments
         self.across_runs    = 0         # flag: stimuli span all runs
         self.pre_stim_rest  = 0         # seconds before first stim
@@ -858,10 +1160,16 @@ class RandTiming:
         self.min_rest = 0.0             # minimum rest after each stimulus
         self.offset   = 0.0             # offset for all stimulus times
         self.seed     = None            # random number seed
-        self.orderstim= []              # list of ordered stimulus lists
+        self.orderstim= []              # list of ordered stimulus lists (ints)
+        self.orderlabs= []              # list of ordered stimulus lists (strs)
+        self.osleaders= []              # leaders and followers
+        self.osfollow = []
+        self.osdict   = {}              # list of followers per leader
+
         self.max_consec = []            # max consectutive stimuli per type
-        self.t_gran   = gDEF_T_GRAN     # time granularity for rest
-        self.t_digits = gDEF_DEC_PLACES # digits after decimal when showing time
+        self.t_gran   = gDEF_OLD_T_GRAN # time granularity for rest
+        self.tgset    = 0               # was this field set?
+        self.t_digits = gDEF_OLD_DEC_PLACES # digits after decimal for times
                                         # (-1 means to use %g)
         self.labels   = None            # labels to be applied to filenames
 
@@ -871,6 +1179,7 @@ class RandTiming:
                                         # to post_stim_rest
         self.file_3dd_cmd   = None      # file for 3dD -nodata command
         self.make_3dd_contr = 0         # flag to make all 3dD contrasts
+        self.file_elist     = ''        # file for stimulus event list
 
         # statistics
         self.show_timing_stats = 0      # do we show ISI statistics?
@@ -885,6 +1194,10 @@ class RandTiming:
         # short, terminal arguments
         self.valid_opts.add_opt('-help', 0, [],      \
                         helpstr='display program help')
+        self.valid_opts.add_opt('-help_advanced', 0, [],      \
+                        helpstr='display program help for ADVANCED usage')
+        self.valid_opts.add_opt('-help_todo', 0, [],      \
+                        helpstr='display stupid todo list')
         self.valid_opts.add_opt('-hist', 0, [],      \
                         helpstr='display the modification history')
         self.valid_opts.add_opt('-show_isi_pdf', 2, [], \
@@ -896,21 +1209,36 @@ class RandTiming:
         self.valid_opts.add_opt('-ver', 0, [],       \
                         helpstr='display the current version number')
 
-        # required arguments
-        self.valid_opts.add_opt('-num_stim', 1, [], req=1,
+        # new 'required' arguments
+        self.valid_opts.add_opt('-add_timing_class', -2, [], req=0,
+                        helpstr='timing class: name min mean max pdf tgran')
+        self.valid_opts.add_opt('-add_stim_class', 4, [], req=0,
+                        helpstr='stim class: name nreps stiming rtiming')
+
+        # new optional arguments
+        self.valid_opts.add_opt('-rand_post_stim_rest', 1, [], req=0,
+                        acplist=['no','yes'],
+                        helpstr='include random rest after final stimulus? y/n')
+        self.valid_opts.add_opt('-show_rest_events', 0, [], req=0,
+                        helpstr='show stats on each rest class (y/n)')
+        self.valid_opts.add_opt('-write_event_list', 1, [],
+                        helpstr="write event list to file ('-' for stdout)")
+
+        # old 'required' arguments
+        self.valid_opts.add_opt('-num_stim', 1, [], req=0,
                         helpstr='number of stimulus types')
         self.valid_opts.add_opt('-num_runs', 1, [], req=1,
                         helpstr='number of scanning runs')
+        self.valid_opts.add_opt('-num_reps', -1, [], req=0, okdash=0,
+                        helpstr='number of stimulus reps per run, per class')
+        self.valid_opts.add_opt('-stim_dur', -1, [], req=0, okdash=0,
+                        helpstr='length of each stimulus, in seconds')
 
+        # required arguments
         self.valid_opts.add_opt('-prefix', 1, [], req=1,
                         helpstr='prefix for output stimulus timing files')
-
-        self.valid_opts.add_opt('-num_reps', -1, [], req=1, okdash=0,
-                        helpstr='number of stimulus reps per run, per class')
         self.valid_opts.add_opt('-run_time', -1, [], req=1, okdash=0,
                         helpstr='total length of each run, in seconds')
-        self.valid_opts.add_opt('-stim_dur', -1, [], req=1, okdash=0,
-                        helpstr='length of each stimulus, in seconds')
 
         # optional arguments
         self.valid_opts.add_opt('-across_runs', 0, [],
@@ -966,6 +1294,14 @@ class RandTiming:
             print g_help_string
             return 0
 
+        if '-help_advanced' in sys.argv:
+            print g_help_advanced
+            return 0
+
+        if '-help_todo' in sys.argv:
+            print g_todo
+            return 0
+
         # check for -ver and -hist, too
         if '-hist' in sys.argv:
             print g_history
@@ -1003,11 +1339,82 @@ class RandTiming:
         if self.verb == None: self.verb = gDEF_VERB
         elif err: return 1
 
+        # -----------------------------------------------------------------
+        # determine advanced or basic usage styles and get relevant args
+
+        # ADVANCED: -add_stim_class, -add_timing_class
+        if self.has_any_opts(g_style_opts_new):
+           if self.has_any_opts(g_style_opts_old):
+              print '** have both new- and old-styled options, use only one'
+              print '   ADVAN: %s' % ', '.join(g_style_opts_new)
+              print '   BASIC: %s' % ', '.join(g_style_opts_old)
+              return 1
+
+           # get timing classes first, required for stim classes
+           olist = self.user_opts.find_all_opts('-add_timing_class')
+           if len(olist) == 0:
+               print '** ADV STYLE: missing option -add_timing_class'
+               return 1
+           for opt in olist:
+               if self.apply_opt_timing_class(opt):
+                  return 1
+
+           olist = self.user_opts.find_all_opts('-add_stim_class')
+           if len(olist) == 0:
+               print '** ADV STYLE: missing option -add_stim_class'
+               return 1
+           for opt in olist:
+               if self.apply_opt_stim_class(opt):
+                  return 1
+
+           # default to including post-stim rest
+           if self.user_opts.have_no_opt('-rand_post_stim_rest'):
+              self.rand_post_stim_rest = 0
+
+           if self.user_opts.find_opt('-show_rest_events'):
+              self.show_rest_events = 1
+
+           # and set some of the old-style parameters
+           self.num_stim = len(olist)
+           self.labels = [scl.name for scl in self.sclasses]
+
+        # OLD: -num_stim, -num_reps, -stim_dur, -stim_labels, -min_rest
+        elif self.has_any_opts(g_style_opts_old):
+           self.num_stim, err = self.user_opts.get_type_opt(int, '-num_stim')
+           if self.num_stim == None or err: return 1
+
+           # set num_reps list of length num_runs
+           self.num_reps, err = self.user_opts.get_type_list(int, '-num_reps',
+                                               self.num_stim, 'num_stim')
+           if self.num_reps == None or err: return 1
+           if self.verb > 1:
+               print UTIL.int_list_string(self.num_reps, '-- num_reps : ')
+
+           # set stim_dur list of length num_stim
+           self.stim_dur, err = self.user_opts.get_type_list(float, '-stim_dur',
+                                               self.num_stim, 'stim_dur')
+           if self.stim_dur == None or err: return 1
+           if self.verb > 1:
+               print UTIL.gen_float_list_string(self.stim_dur, '-- stim_dur : ')
+
+           # get any labels
+           self.labels, err = self.user_opts.get_string_list('-stim_labels')
+           if self.labels and len(self.labels) != self.num_stim:
+               print '** error: %d stim classes but %d labels: %s' \
+                     % (self.num_stim, len(self.labels), self.labels)
+               return 1
+
+           self.min_rest, err = self.user_opts.get_type_opt(float,'-min_rest')
+           if self.min_rest == None: self.min_rest = 0
+           elif err: return 1
+
+
+        # end: process OLD and ADV style options
+        # -----------------------------------------------------------------
+
+        
         # ----------------------------------------
         # required args - single parameter
-        self.num_stim, err = self.user_opts.get_type_opt(int, '-num_stim')
-        if self.num_stim == None or err: return 1
-
         self.num_runs, err = self.user_opts.get_type_opt(int, '-num_runs')
         if self.num_runs == None or err: return 1
 
@@ -1021,26 +1428,12 @@ class RandTiming:
         # ----------------------------------------
         # required args - (possibly) multiple parameter
 
-        # set num_reps list of length num_runs
+        # set run_time list of length num_runs
         self.run_time, err = self.user_opts.get_type_list(float, '-run_time',
                                     self.num_runs, 'num_runs')
         if self.run_time == None or err: return 1
         if self.verb > 1:
             print UTIL.gen_float_list_string(self.run_time, '-- run_time : ')
-
-        # set num_reps list of length num_runs
-        self.num_reps, err = self.user_opts.get_type_list(int, '-num_reps',
-                                            self.num_stim, 'num_stim')
-        if self.num_reps == None or err: return 1
-        if self.verb > 1:
-            print UTIL.int_list_string(self.num_reps, '-- num_reps : ')
-
-        # set stim_dur list of length num_stim
-        self.stim_dur, err = self.user_opts.get_type_list(float, '-stim_dur',
-                                            self.num_stim, 'stim_dur')
-        if self.stim_dur == None or err: return 1
-        if self.verb > 1:
-            print UTIL.gen_float_list_string(self.stim_dur, '-- stim_dur : ')
 
         # ----------------------------------------
         # optional arguments (if failure, use default)
@@ -1066,10 +1459,6 @@ class RandTiming:
         if self.max_rest == None: self.max_rest = 0
         elif err: return 1
 
-        self.min_rest, err = self.user_opts.get_type_opt(float,'-min_rest')
-        if self.min_rest == None: self.min_rest = 0
-        elif err: return 1
-
         self.offset, err = self.user_opts.get_type_opt(float,'-offset')
         if self.offset == None: self.offset = 0
         elif err: return 1
@@ -1087,15 +1476,9 @@ class RandTiming:
            if self.max_consec and self.verb > 1:
                print UTIL.int_list_string(self.max_consec, '-- max_consec : ')
 
-        # get any labels
-        self.labels, err = self.user_opts.get_string_list('-stim_labels')
-        if self.labels and len(self.labels) != self.num_stim:
-            print '** error: %d stim classes but %d labels: %s' \
-                  % (self.num_stim, len(self.labels), self.labels)
-            return 1
-
         # gather a list of lists specified by -ordered_stimuli options
-        olist = self.user_opts.find_all_opts('-ordered_stimuli')
+        oname = '-ordered_stimuli'
+        olist = self.user_opts.find_all_opts(oname)
         for opt in olist:
             # check for non-int: if labels require labels to be already set
             slist, err = self.user_opts.get_type_list(int, opt=opt, verb=0)
@@ -1103,16 +1486,19 @@ class RandTiming:
                 # see if they are labels
                 slist, err = self.user_opts.get_string_list(opt=opt)
                 if err:
-                    print '** -ordered_stimuli: need list of ints or labels'
+                    print '** %s: need list of ints or labels' % oname
                     return 1
                 # see if we have labels to convert into indices
                 ilist, err = self.labels_to_indices(slist)
                 if err:
-                    print '** -ordered_stimuli requires indices or known labels'
+                    print '** %s requires indices or known labels' % oname
+                    print '   have: %s %s' % (oname, ' '.join(slist))
                     return 1
+                self.orderlabs.append(slist)
                 slist = ilist
             self.orderstim.append(slist)
-            if self.verb>1: print UTIL.int_list_string(slist, '-- orderstim : ')
+            if self.verb>1:
+               print UTIL.int_list_string(slist, '-- orderstim (1-based): ')
 
         if self.verb > 1 or self.user_opts.find_opt('-show_timing_stats'):
             self.show_timing_stats = 1
@@ -1146,20 +1532,29 @@ class RandTiming:
                 print '   min_rest + duration(s): %s' % sd
                 return 1
 
-        # if t_gran is still not set, apply the default
-        if not self.t_gran: self.t_gran = gDEF_T_GRAN
+        # if t_gran was set, note the fact, else apply default
+        if self.t_gran:
+           self.tgset = 1
+        else:
+           self.t_gran = gDEF_OLD_T_GRAN
 
         # t_digits must come after t_gran is set
         self.t_digits, err = self.user_opts.get_type_opt(float,'-t_digits')
         if self.t_digits == None:
             if self.t_gran == round(self.t_gran,1):
-                self.t_digits = gDEF_DEC_PLACES
+                self.t_digits = gDEF_OLD_DEC_PLACES
             else:
                 self.t_digits = 3
         elif err: return 1
 
         self.file_3dd_cmd, err = self.user_opts.get_string_opt('-save_3dd_cmd')
         if err: return 1
+
+        fname, err = self.user_opts.get_string_opt('-write_event_list')
+        if err: return 1
+        self.file_elist = fname
+
+        # have all options
 
         if self.make_3dd_contr:
             if not self.file_3dd_cmd:
@@ -1177,6 +1572,214 @@ class RandTiming:
                   'offset=%g, t_gran=%g, t_digits=%d'   \
                   % (self.offset, self.t_gran, self.t_digits)
             if self.labels: print '   labels are: %s' % ', '.join(self.labels)
+
+    def has_any_opts(self, olist):
+       """check user_opts for any name in olist"""
+       for oname in olist:
+          if self.user_opts.find_opt(oname):
+             return 1
+       return 0
+
+    def apply_opt_timing_class(self, opt):
+       """apply all -add_timing_class options
+
+          usage: -add_timing_class label mindur [[mean max] [dtype [tgran]]]
+
+          required: label mindur
+          more:     label mindur meandur maxdur
+          all:      label mindur meandur maxdur dtype tgran
+
+          sample usage:
+             -add_timing_class stimA 3 
+             -add_timing_class stimA 3 5 10
+             -add_timing_class stimA 3 5 10 dist=decay
+             -add_timing_class stimA 3 3  3 dist=decay t_grid=0.1
+       """
+
+       params = opt.parlist
+       nparm  = len(params)
+       oname  = '-add_timing_class'
+       error_string = "** bad usage in '%s %s'" % (oname, ' '.join(params))
+
+       if nparm < 2:
+          print error_string
+          return 1
+
+       # get label (verify that it is not a number)
+       name = params[0]        
+       try:
+          ff = float(name)
+          print error_string
+          print '   first parameter should be a timing class label'
+          return 1
+       except: pass
+
+       # ------------------------------------------------------------
+       # get all durations
+
+       try: min_dur = float(params[1])
+       except:
+          print error_string
+          print '   second parameter should be a duration'
+          return 1
+
+       # just one duration implies all 3
+       if nparm == 2:
+          mean_dur = max_dur = min_dur
+
+       # two is not allowed
+       elif nparm == 3:
+          print error_string
+          print "   either supply a fixed duration or 'min mean max'"
+          return 1
+
+       # get all 3
+       elif nparm >= 4:
+          try:
+             mean_dur = float(params[2])
+             max_dur  = float(params[3])
+          except:
+             print error_string
+             print '   not all 3 durations convert to float'
+             return 1
+
+       # ------------------------------------------------------------
+       # check non-decreasing, for any durs not equal to -1
+       # (min must be set)
+
+       # and check for non-decreasing or negative (allow zero)
+       if min_dur < 0:
+          print error_string
+          print "   invalid negative duration"
+          return 1
+
+       # meandur is allowed to be -1, for unspecified
+       if mean_dur == -1:
+          if self.verb > 2:
+             print "-- timing class %s will have no fixed mean duration" % name
+       elif min_dur > mean_dur:
+          print error_string
+          print "   durations must have: min <= mean"
+          return 1
+
+       # max can also be -1, for unspecified
+       if max_dur == -1:
+          if self.verb > 2:
+             print "-- timing class %s will have no maximum duration" % name
+       # max set, mean unset, so check min vs max
+       elif mean_dur == -1 and min_dur > max_dur:
+          print error_string
+          print "   durations must have: min <= max"
+          return 1
+       # max set, mean set, so check mean vs max
+       elif mean_dur != -1 and mean_dur > max_dur:
+          print error_string
+          print "   durations must have: mean <= max"
+          return 1
+
+       # ------------------------------------------------------------
+       # ready to roll, create the actual timing class instance
+       #
+       # just pass all other parameters, plus verb
+       
+       tclass = LRT.TimingClass(name, min_dur, mean_dur, max_dur,
+                                params=params[4:], verb=self.verb)
+       if tclass.status:
+          return 1
+
+       if self.verb > 1: print "++ adding new Timing class '%s'" % name
+       if self.verb > 2: tclass.show('new timing class')
+
+       self.tclasses.append(tclass)
+
+       return 0
+
+    def apply_opt_stim_class(self, opt):
+       """apply all -add_stim_class options
+
+          usage: -add_stim_class label Nreps stim_class rest_class
+
+          All parameters are required.
+       """
+
+       params = opt.parlist
+       nparm  = len(params)
+       oname  = '-add_stim_class'
+       error_string = "** bad usage in '%s %s'" % (oname, ' '.join(params))
+
+       if nparm != 4:
+          print error_string
+          return 1
+
+       # ------------------------------------------------------------
+       # check the 4 parameters: name, nreps, stname, rtname
+
+       # get label (verify that it is not a number)
+       name = params[0]
+       try:
+          ff = float(name)
+          print error_string
+          print '   first parameter should be a stim class label'
+          return 1
+       except: pass
+
+       # get nreps (verify that it is a positive integer)
+       try:
+          nreps = int(params[1])
+       except:
+          print error_string
+          print '   second parameter should be nreps (integer > 0)'
+          return 1
+
+       # get stim and rest timing classes, verify existence
+       stname = params[2]
+       rtname = params[3]
+
+       sclass = self.get_timing_class(stname)
+       if sclass == None:
+          print error_string
+          print "** did not find timing class '%s' for stim" % stname
+          return 1
+
+       rclass = self.get_timing_class(rtname)
+       if rclass == None:
+          print error_string
+          print "** did not find timing class '%s' for rest" % rtname
+          return 1
+
+       # ------------------------------------------------------------
+       # ready to roll, create the actual stim class instance
+       sclass = LRT.StimClass(name, nreps, sclass, rclass, verb=self.verb)
+       if sclass == None:
+          print error_string
+          return 1
+
+       if self.verb > 1: print "++ adding new Stim class '%s'" % name
+       if self.verb > 2: sclass.show('new stim class')
+
+       self.sclasses.append(sclass)
+
+       return 0
+
+    def get_timing_class(self, name):
+        """given name, return an LRT.TimingClass instance from tclasses
+           if not found, return None
+        """
+        for cc in self.tclasses:
+           if cc.name == name:
+              return cc
+
+        return None
+
+    def get_stim_class(self, name):
+        """given name, return an LRT.StimClass instance from sclasses
+           if not found, return None
+        """
+        for cc in self.sclasses:
+           if cc.name == name:
+              return cc
+
+        return None
 
     def labels_to_indices(self, labels, print_err=1):
         """convert the labels list into an index list
@@ -1277,6 +1880,62 @@ class RandTiming:
                 fname = '%s_%02d.1D' % (prefix, sind+1)
             self.fnames.append(fname)
 
+    def adv_write_timing_files(self):
+        """write files using AfniData class"""
+
+        if self.prefix: prefix = self.prefix    # be sure we have a prefix
+        else:           prefix = 'stim_times'
+
+        for sind, sc in enumerate(self.sclasses):
+            sc.adata.fname = '%s_%02d_%s.1D' % (prefix, sind+1, sc.name)
+            sc.adata.dur_len = -1.0
+            if sc.adata.write_as_timing():
+               return 1
+
+        return 0
+
+    def write_event_list(self, fname):
+       """write event list to given file ('' or '-' or 'stdout' means stdout)
+
+          self.full_event.list = per run list of [cind sdur tdur time]
+
+          eall = [ [ [1 3.2] [4 0.7] .. ]
+                   [ [0 4.2] [2 3.1] .. ]
+                   [ [4 2.0] [2 1.9] .. ]
+                 ]
+       """
+
+       if fname:
+          if self.verb > 3:
+             print "++ writing event list to file '%s'" % fname
+          fd = open(fname, 'w')
+          if not fd:
+             print "** failed to open '%s' for writing event list" % fname
+             return 1
+       else:
+          fd = sys.stderr
+
+       # note how much space will we need for '(NAME)'
+       maxlen = 2 + max([len(sc.name) for sc in self.sclasses])
+       emptystr = '%*s' % (maxlen, '')
+
+       if fd == sys.stderr:
+          fd.write('# ==== all events ====\n')
+       for rind, erun in enumerate(self.full_event_list):
+          fd.write('-- run %d events --\n' % (rind+1))
+          fd.write('class %s  start      dur     rest\n' % emptystr)
+          fd.write('----- %s  -----     ----     ----\n' % emptystr)
+          for event in erun:
+             nstr = '(%s)' % self.sclasses[event[0]].name
+             fd.write('%3d %-*s   %6.2f   %6.2f   %6.2f\n' \
+                   % (event[0], maxlen, nstr, event[3], event[1], event[2]))
+          fd.write('\n')
+
+       if fd != sys.stderr:
+          fd.close()
+
+       return 0
+
     def write_timing_files(self):
         """write timing from slist to files from the prefix"""
 
@@ -1287,6 +1946,11 @@ class RandTiming:
         if len(self.fnames) != self.num_stim:
             print '** missing filenames for timing output'
             return 1
+
+        # rcr - 
+        # if using AfniData class, then when writing timing:
+        #    if durations are constant, do not write them to file
+        #      to do this, set mtype to 0 before writing and reset
 
         # compute min and max stim times, for verbose output
         mint = max(self.run_time)
@@ -1851,21 +2515,7 @@ class RandTiming:
         else: 
             num_reps = self.num_reps
 
-        # rcr - test this!
-
-        # initial pass on creation of events list
-        rv, clist, rtype, rcount =  \
-            self.init_limited_event_list(num_reps, self.max_consec)
-        if rv:
-            print '** failure of randomize_limited_events'
-            return 1, None
-
-        # if we ran out of space for one event type, try to fill
-        # prev must be remaining event type
-        if rcount > 0:
-            rv, clist = self.fill_remaining_limited_space(self.max_consec,
-                                                          clist, rtype, rcount)
-            if rv: return 1, None
+        rv, clist = self.make_limited_space_list(num_reps, self.max_consec)
 
         # next, rewrite as elist   ---> convert to 1-based index list here 
         elist = []
@@ -1885,6 +2535,30 @@ class RandTiming:
 
         return 0, elist
 
+    def make_limited_space_list(self, num_reps, max_consec):
+        """given a list of num_reps per stim_class and max_consec for each,
+           return an event count list of the form [[eind, count] ...]
+
+           return status, clist
+        """
+        # initial pass on creation of events list
+        rv, clist, rtype, rcount =  \
+            self.init_limited_event_list(num_reps, max_consec)
+        if rv:
+            print '** failure of randomize_limited_events'
+            return 1, None
+
+        # if we ran out of space for one event type, try to fill
+        # prev must be remaining event type
+        if rcount > 0:
+            rv, clist = self.fill_remaining_limited_space(max_consec,
+                                                          clist, rtype, rcount)
+            if rv: return 1, None
+
+        if self.verb > 4:
+           print '++ MLSL: reps list %s' % clist
+
+        return 0, clist
 
     def init_limited_event_list(self, num_reps, max_consec):
         """first pass on limited event list:
@@ -1903,6 +2577,11 @@ class RandTiming:
 
              Note clist has 0-based event indices, they should be incremented.
         """
+
+        if self.verb > 3:
+           print '-- init_limited_event_list\n' \
+                 '      num_reps   = %s\n'       \
+                 '      max_consec = %s' % (num_reps, max_consec)
 
         remain   = num_reps[:]
         nremain  = sum(remain)
@@ -1998,7 +2677,7 @@ class RandTiming:
             return 1, None
 
         # do we have enough space for remaining events?
-        space, npos = self.count_limited_space(clist, rtype, max_consec)
+        space, npos = self.count_limited_space(clist, rtype, max_consec[rtype])
         if space < rcount:        # we are in trouble
             print '** limited_events: only %d positions for %d inserts' \
                   % (space, rcount)
@@ -2070,7 +2749,8 @@ class RandTiming:
             # fill cases subtraced pmax+1, so all can add 1 here
             space -= 1
             if self.verb > 5: print '   clist %s' % clist
-            snew, npos = self.count_limited_space(clist, rtype, max_consec)
+            snew, npos = self.count_limited_space(clist, rtype,
+                                                  max_consec[rtype])
             if space != snew:
                print "** space count failure, space = %d, count = %d" \
                      % (space, snew)
@@ -2082,7 +2762,7 @@ class RandTiming:
 
         return 0, clist
 
-    def count_limited_space(self, clist, eind, max_consec):
+    def count_limited_space(self, clist, eind, emax):
         """Given an event class list, and event index and the maximum number
            of sequential events of each type, return the number of such events
            that could possibly be added, as well as the number of positions
@@ -2092,7 +2772,6 @@ class RandTiming:
         """
         space = 0
         positions = 0
-        emax = max_consec[eind]
         if self.verb > 5:
            print '== eind, emax: %d, %d' % (eind, emax)
            print '== CLS clist: %s' % clist
@@ -2251,6 +2930,643 @@ class RandTiming:
                                   for i in range(len(elist))])
             print '-- updated etotal = %d' % etotal
 
+    # ======================================================================
+    # ADV: functions for modern timing method
+
+    def adv_create_timing(self):
+        """create stimulus timing event list
+              create list of events (array of event type/duration)
+                 - put 2D list of married data elements in StimClass
+                   (mdata element = [time [AM list] duration], [t [] d])
+
+           fill with rest
+              do for each run separately
+                 rest for last stim might be zero
+        """
+
+        if self.verb > 1: print '\n++ new: creating timing...'
+
+        if self.seed != None:
+            if self.verb > 1: print '++ init with random seed %d' % self.seed
+            random.seed(self.seed)
+
+        # create stimdict, a name -> StimClass index list
+        for sind, sc in enumerate(self.sclasses):
+           self.stimdict[sc.name] = sind
+        if self.verb > 3:
+           print '++ have len %d stimdict : %s' \
+                 % (len(self.stimdict.keys()), self.stimdict)
+
+        # apply any such command line options to the stim classes
+        if self.set_max_consec():
+           return 1
+
+        # durations are created per stim class even if the timing types are
+        # the same (so more time in one class does not cost time in another)
+        if LRT.create_duration_lists(self.sclasses, self.num_runs,
+                                     self.across_runs, verb=self.verb):
+           return 1
+
+        # simlpy randomize order of all events per run
+        if self.adv_randomize_event_lists():
+           return 1
+
+        # add rest, return final event list
+        if self.adv_create_afnidata_list():
+           return 1
+
+        if self.file_elist or self.verb > 4:
+           if self.write_event_list(self.file_elist):
+              return 1
+
+        return 0
+
+    def set_max_consec(self):
+       """apply max_consec list here    return 0 on success, 1 on error"""
+
+       nmc = len(self.max_consec)
+       nsc = len(self.sclasses)
+       if nmc == 0 or nsc == 0: return 0
+
+       if nmc == 1:
+          # expand list to linclude all
+          self.max_consec = [self.max_consec[0]] * nsc
+       elif nmc != nsc:
+          print '** have %d -max_consec params, but %d stim classes'%(nmc,nsc)
+          return 1
+
+       mclist = self.max_consec
+
+       mcnames = [self.sclasses[ind].name for ind in range(nmc) \
+                                          if mclist[ind] > 0]
+       print '++ applying max_consec to: %s' % ', '.join(mcnames)
+       if len(mcnames) == 0: return 0
+
+       # apply to each stim class
+       for sind, sc in enumerate(self.sclasses):
+          if mclist[sind] <= 0: continue
+          if sc.max_consec > 0:
+             print '** max_consec alread set for class %s' % sc.name
+             return 1
+          sc.max_consec = mclist[sind]
+          if self.verb > 1:
+             print '-- setting max_consec = %d for class %s' \
+                   % (sc.max_consec, sc.name)
+
+       return 0
+        
+    def adv_randomize_event_lists(self):
+       """For each run (or across), put all events in a list and randomize.
+
+          return an array of run lists of [stimind duration], e.g.
+
+          eall = [ [ [1 3.2] [4 0.7] .. ]
+                   [ [0 4.2] [2 3.1] .. ]
+                   [ [4 2.0] [2 1.9] .. ]
+                 ]
+       """
+
+       if self.across_runs: ntodo = 1
+       else:                ntodo = self.num_runs
+
+       ordered = self.valid_ordered_stim()
+       if ordered < 0: return 1
+
+       eall = []
+       for rind in range(ntodo):
+          # either applying max_consec or not
+          if len(self.max_consec) == len(self.sclasses):
+             erun = self.adv_limited_shuffled_run(rind, ordered)
+             if erun == None: return 1
+          else:
+             erun = []
+             for sind, sc in enumerate(self.sclasses):
+                # if ordered stim and sc is not a leader: skip
+                if ordered and sc.name in self.osfollow:
+                   if self.verb>3:
+                      print '-- no shuffle for follower %s' % sc.name
+                   continue
+                erun.extend([[sind, dur] for dur in sc.durlist[rind]])
+             UTIL.shuffle(erun)
+
+          if self.verb > 1:
+             print '-- randomized event lists (no followers) for run %d' % rind
+             self.disp_consec_event_counts([erun])
+
+          # if ordered stim, insert followers
+          if ordered:
+             erun = self.adv_insert_followers(rind, erun)
+
+          eall.append(erun)
+
+       self.stim_event_list = eall
+
+       if self.across_runs:
+          if self.adv_partition_sevents_across_runs():
+             return 1
+
+       if self.verb > 4:
+          print '-- randomized event lists across all runs'
+          self.disp_consec_event_counts(eall)
+
+       return 0
+
+    def disp_consec_event_counts(self, eall):
+       # first convert to a list of counts per class, across runs
+       numc = len(self.sclasses)
+
+       call = [[] for sind in range(numc)]
+       for erun in eall:
+          eind = 0
+          elen = len(erun)
+          while eind < elen:
+             ecur = eind
+             eind += 1
+             cind = erun[ecur][0]
+             while eind < elen:
+                if erun[eind][0] != cind: break
+                eind += 1
+             # have (eind-ecur) events of type cind
+             call[cind].append(eind-ecur)
+
+       if self.verb > 1:
+          print '++ consec event counts:'
+       slen = max([len(sc.name) for sc in self.sclasses])
+
+       if self.verb > 4:
+          for sind, sc in enumerate(self.sclasses):
+             print '-- consec list for #%2d=%-*s (len %3d): %s' \
+                   % (sind, slen, sc.name, len(call[sind]), call[sind])
+          print
+
+       for sind, sc in enumerate(self.sclasses):
+          mi, mn, mx, st = UTIL.min_mean_max_stdev(call[sind])
+          if self.verb > 1:
+             print '   consec for %*s, sum %4d,'        \
+                   ' mmms: %7.3f  %7.3f  %7.3f  %7.3f'  \
+                   % (slen, sc.name, sum(call[sind]), mi, mn, mx, st)
+
+    def adv_limited_shuffled_run(self, rind, ordered):
+       """return randomized events subject to max_consec
+          - if ordered stimuli, do not include followers
+       """
+       numc = len(self.sclasses)
+       if len(self.max_consec) != numc:
+          print '** ALSR: bad max_consec list: %s' % self.max_consec
+          return None
+
+       # create a modified reps list that omits followers
+       reps = [len(sc.durlist[rind]) for sc in self.sclasses]
+       if ordered:
+          for sind, sc in enumerate(self.sclasses):
+             if sc.name in self.osfollow:
+                if self.verb>3: print '-- no consec for follower %s' % sc.name
+                reps[sind] = 0
+
+       # generate a random list of the form [[sind nconsec] ...]
+       rv, clist = self.make_limited_space_list(reps, self.max_consec)
+       if rv: return None
+
+       clist.pop(0)     # remove initial [-1,0]
+
+       # convert to form [[sind dur] ...]
+       enew = []
+       for cind, consec in enumerate(clist):
+          # append consec[1] durations of type consec[0]
+          sind = consec[0]
+          sc = self.sclasses[sind]
+          for tind in range(consec[1]):
+             dur = sc.durlist[rind].pop(0)
+             enew.append([sind, dur])
+
+       return enew
+
+    def adv_insert_followers(self, rind, events):
+       """given list of [sind, dur], insert appropriate followers
+
+          return new event list"""
+       if self.verb > 3:
+          print '-- insert followers: starting with %d events' % len(events)
+       enew = []
+       for event in events:
+          ename = self.sclasses[event[0]].name
+          enew.append(event)
+
+          # possibly insert followers
+          if ename in self.osleaders:
+             for fname in self.osdict[ename]:
+                sind = self.stimdict[fname]
+                sc = self.sclasses[sind]
+                dur = sc.durlist[rind].pop(0)
+                enew.append([sind, dur])
+
+       if self.verb > 3:
+          print '-- insert followers: returning %d events' % len(enew)
+
+       return enew
+
+    def valid_ordered_stim(self):
+       oname = '-ordered_stimuli'
+
+       nostim = len(self.orderstim)
+       nolabs = len(self.orderlabs)
+       if nostim > 0 and nolabs == 0:
+          print '** advanced usage requires labels in %s' % oname
+          return -1
+       if nolabs == 0: return 0
+
+       errs = 0
+       alllabs = []
+       leaders = []
+       followers = []
+       for olabs in self.orderlabs:
+          if len(olabs) < 2:
+             print '** %s requires at least 2 labels, have: %s' \
+                   % (oname, ' '.join(olabs))
+             errs += 1
+             continue
+
+          lead = olabs[0]
+          follow = olabs[1:]
+          for lab in olabs:
+             if lab not in self.labels:
+                print '** invalid label %s in %s %s' \
+                      % (lab, oname, ' '.join(olabs))
+                return -1   # fatal
+             if lab in alllabs:
+                print '** %s: label %s used multiple times' % (oname, lab)
+                errs += 1
+             alllabs.append(lab)
+
+          # number of events must match
+          ls = self.sclasses[self.stimdict[lead]]
+          for fname in follow:
+             fs = self.sclasses[self.stimdict[fname]]
+             if fs.nreps != ls.nreps:
+                print '** -ordered_stimuli: classes must have equal num stim'
+                print '   %s has %d, %s has %d' \
+                      % (lead, ls.nreps, fname, fs.nreps)
+                errs += 1
+
+          self.osdict[lead] = follow
+          leaders.append(lead)
+          followers.extend(follow)
+
+       if errs: return -1
+
+       self.osleaders = leaders
+       self.osfollow = followers
+
+       if self.verb > 2:
+          print '-- have %d ordered stim, with %d leaders and %d followers' \
+                % (nolabs, len(leaders), len(followers))
+          if self.verb > 3:
+             print '   leaders  : %s' % ', '.join(leaders)
+             print '   followers: %s' % ', '.join(followers)
+
+       return 1
+
+
+    def adv_partition_sevents_across_runs(self):
+       """break stim_event_list into num_runs"""
+       if not self.across_runs: return 0
+
+       print '** rcr - adv_partition_sevents_across_runs'
+
+       return 1
+
+    # in across_runs case, we do not yet know run breaks
+    def adv_create_afnidata_list(self):
+       """create AfniData instances per stim class
+          (decide on rest, which implies all timing)
+          (across_runs: nothing special to do anymore)
+
+          convert stim_events to full_events (i.e. attach times, base on rest)
+          create corresponding mdata lists per stim class
+          create corresponding AfniData instances
+       """
+
+       # add rest to convert stim_event_list to full_event_list
+       if self.adv_create_full_event_list():
+          return 1
+
+       # convert to AfniData instances
+       if self.adv_create_adata_list():
+          return 1
+
+       return 0
+
+    def adv_create_adata_list(self):
+       """convert full_event_list to AfniData objects
+          given a list of [sind sdur rdur stime] per run
+          make a list of mdata = [stime [] sdur] per run, per sclass
+          convert mdata to AfniData object, stored as adata in stim class
+          - 
+       """
+       for sind, sc in enumerate(self.sclasses):
+          sc.mdata = []
+          for rind, erun in enumerate(self.full_event_list):
+             srun = [event for event in erun if event[0] == sind]
+             mrun = [[se[3], [], se[1]] for se in srun]
+             sc.mdata.append(mrun)
+          sc.adata = LAD.AfniData(mdata=sc.mdata, verb=self.verb)
+          sc.adata.name = sc.name
+
+       return 0
+
+    def adv_create_full_event_list(self):
+       """given stim_event_list of form:
+             [ [ [sind dur] [sind dur] ... ]
+               [ [sind dur] [sind dur] ... ] ]
+          create full_event_list (append rest dur and event time) of form:
+             [ [ [sind sdur rdur stime] [sind sdur rdur stime] ... ]
+               [ [sind sdur rdur stime] [sind sdur rdur stime] ... ] ]
+
+          return 0 on success
+       """
+
+       # input selist, output felist
+       selist = self.stim_event_list
+       felist = []
+       for rind, erun in enumerate(selist):
+          rv, ferun = self.adv_stim2full_run_elist(rind, erun)
+          if rv: return 1
+          if self.verb > 5:
+             print '== full timing list: run %d, elist:' % (rind+1)
+             for fe in ferun:
+                print '   %s' % ', '.join(['%g'%e for e in fe])
+          felist.append(ferun)
+
+       self.full_event_list = felist
+
+       return 0
+
+    def adv_stim2full_run_elist(self, rind, events):
+       """convert an event_list line:
+               [ [sind dur] [sind dur] ... ] ]
+          into a full_event_list line (includes rest dur and stim time):
+               [ [sind sdur rdir time] [sind sdur rdir time] ... ]
+
+          - add pre-stim and post-stim rest events, in case they have
+            needed timing classes
+          - compute total rest time (run_time - sum of stim durs)
+               rest time includes pre/post stim rest
+          - make list of all used rest classes (for this run)
+          - partition total rest time across rest classes
+          - distribute across applied rest classes
+
+          return status, full_event_list
+       """
+       # quick checks:
+       nevents = len(events)
+       if nevents == 0:
+          return 0, events
+       elif nevents == 1:
+          events[0].append(self.pre_stim_rest)
+          return 0, events
+
+       # total stim time before pre-/post-stim rest events are included
+       stime = sum([e[1] for e in events])
+
+       # -----------------------------------------------------------------
+       # include pre- and post- stimulus rest events :
+       #    dur entry comes from options
+       #    rest entry comes from timing class
+       # (these rest events come and go just within this function)
+       # also, self.rand_post_stim_rest affects rest for last stim
+       # rcr - explain in help
+       events.insert(0, [-2, self.pre_stim_rest])
+       events.append([-1, self.post_stim_rest])
+
+       pprest = self.pre_stim_rest+self.post_stim_rest
+
+       rtime = self.run_time[rind] - stime
+       randtime = rtime-pprest
+
+       if self.verb > 2 or randtime < 0:
+          print '-- run %02d: run time = %s, stime = %s, rtime = %s' \
+                % (rind+1, self.run_time[rind], stime, rtime)
+          print '   pre-rest = %s, post-rest = %s, random rest = %s' \
+                % (self.pre_stim_rest, self.post_stim_rest, randtime)
+
+       if randtime < 0:
+          print '** unsolvable random timing for rest'
+          return 1, []
+
+       rv, rcounts, rtypes = self.count_all_rest_types(events)
+       if rv: return 1, events
+
+       rv, rtimes = self.partition_rest_time(randtime, rcounts, rtypes)
+       if rv: return 1, events
+       if self.verb > 3:
+          print '== partitioned rest:'
+          for cind, rc in enumerate(rtypes):
+             print "   %4d rest events of type '%s', time = %g" \
+                   %(rcounts[cind], rc.name, rtimes[cind])
+
+       # get rest events, and apply to timing (append accumulated time)
+       for rtind, rc in enumerate(rtypes):
+          rc.etimes = LRT.random_duration_list(rcounts[rtind], rc,
+                                               rtimes[rtind], force_total=1)
+          # add option, show rest details
+          if self.verb > 5 or self.show_rest_events:
+             mesg='run %d rest' % rind
+             rc.show_durlist_stats(rc.etimes, mesg=mesg, details=1)
+
+       # quick test
+       if self.verb > 3:
+          rc = sum([len(rc.etimes) for rc in rtypes])
+          ec = len(events)
+          print '== have %d rest events and %d stim events' % (rc, ec)
+
+       # for each event, get the current rest time
+       rall = 0
+       try:
+          for eind, event in enumerate(events):
+             sind = event[0]
+
+             if eind == nevents and not self.rand_post_stim_rest:
+                # no post-stim rest (this is not in any rest list,
+                # since it does not match rest class for stim)
+                # (also, #nevents is before inserting pre-stim rest)
+                rc = g_instant_timing_class
+             elif sind == -2: rc = self.pre_stimc
+             elif sind == -1: rc = self.post_stimc
+             else:            rc = self.sclasses[event[0]].rclass
+             rtime = rc.etimes.pop(0)
+             event.append(rtime)
+       except:
+          print '** rest time extraction error'
+          return 0, events
+
+       # replace rest time with event time
+       ctime = 0
+       for event in events:
+          # append current time, and increment by stim and rest times
+          event.append(ctime)
+          ctime += event[1] + event[2]
+
+       # and finally remove the pre- and post- rest events
+       if events[0][0] != -2 or events[-1][0] != -1:
+          print '** pre/post-stim rest events out of order'
+       else:
+          events.pop(0)
+          events.pop()
+
+       return 0, events
+
+    def partition_rest_time(self, rtot, rcounts, rtypes):
+       """given counts and corresponding rest types, partition total rest time
+          per rest type
+
+          - try to allocate min time for all types
+          - for all types with means, decide on total needed time (above min)
+          - if there is not quite enough time, rescale their times
+          - for now, extra rest will trickle to end
+
+          return status, rtimes
+       """
+          
+       ntypes = len(rtypes)
+
+       # -----------------------------------------------------------------
+       # compute and distribute min_time
+       tot_min = 0
+       rtimes = [0] * ntypes
+       for rind, rc in enumerate(rtypes):
+          # compute min total, store it and accumuate
+          mt = rc.min_dur * rcounts[rind]
+          rtimes[rind] = mt
+          tot_min += mt
+
+       remain = rtot - tot_min
+       if remain < 0:
+          print '** partition rest: insufficient space for even min rest'
+          return 1, []
+
+       # now go back and track those with applied means (mean > min)
+       # - also, note whether we can alter the times later
+       tot_mean = 0
+       have_rand = 0    # have unrestricted rest
+       can_alter = [0] * ntypes   # we can adjust times for these classes
+       for rind, rc in enumerate(rtypes):
+          offset = rc.mean_dur - rc.min_dur
+          if offset != 0:
+             can_alter[rind] = 1
+
+          # do we have classes with unrestricted rest?
+          if offset < 0: have_rand = 1
+
+          # now skip anything without known space
+          if offset <= 0: continue
+
+          # total requested remaining time is mean * nevents
+          mt = offset * rcounts[rind]
+          tot_mean += mt
+
+       # -----------------------------------------------------------------
+       # check for early exit if remain == 0 (warn user if not complete)
+       # (remain < 0 was checked above, but be safe)
+       if remain <= 0:
+          if tot_mean > 0:
+             print '** PRT: no time left for above-min mean-based rest'
+          if have_rand == 1:
+             print '** PRT: no time left for above-min random rest'
+          return 0, rtimes
+
+       # -----------------------------------------------------------------
+       # possibly scale down offsets for means
+       mean_scalar = 1
+       if tot_mean > remain:
+          mean_scalar = remain * 1.0 / tot_mean
+       # or, scale UP if there are no max-less classes
+       elif have_rand == 0 and tot_mean > 0:
+          mean_scalar = remain * 1.0 / tot_mean
+
+       # possibly provide more details on scalar
+       if abs(mean_scalar-1) > 0.05 or self.verb > 2:
+          print '-- have %g of %g mean seconds available, scaling by %g' \
+                % (remain, tot_mean, mean_scalar)
+          if remain > tot_mean and have_rand:
+             print '   (no scaling due to unlimited rest classes)'
+       
+       # -----------------------------------------------------------------
+       # now actually distribute into rtimes
+
+       # min time is done, so next distribute postive mean time
+       if tot_mean > 0:
+          for rind, rc in enumerate(rtypes):
+             offset = rc.mean_dur - rc.min_dur
+             if offset <= 0: continue
+             mt = mean_scalar * offset * rcounts[rind]
+             rtimes[rind] += mt
+       remain -= tot_mean
+
+       # for have_rand, partition remaining time based on number of events
+       if remain > 0 and have_rand > 0:
+          nevents = 0
+          # first get total number of events
+          for rind, rc in enumerate(rtypes):
+             if rc.mean_dur < rc.min_dur:
+                nevents += rcounts[rind]
+          # then partition time based on fractional number of events
+          for rind, rc in enumerate(rtypes):
+             if rc.mean_dur < rc.min_dur:
+                rtimes[rind] = remain * rcounts[rind] * 1.0 / nevents
+
+       # any undistributed rest will trickle to post-stim rest
+
+       return 0, rtimes
+
+    def count_all_rest_types(self, elist):
+       """given an event list of [etype, dur] elements, get a unique
+          list of rest timing classes and their counts
+
+          return status, [rcount], [rtype]
+       """
+
+       rcounts = []
+       rtypes = []
+
+       nume = len(elist)
+
+       for eind, event in enumerate(elist):
+          sc = self.sclasses[event[0]]
+          # there are special cases for which rest class to use
+          if eind == 0:
+             # pre-stim rest event
+             rc = self.pre_stimc
+          elif eind == (nume-1):
+             # post-stim rest event
+             rc = self.post_stimc
+          elif eind == (nume-2) and not self.rand_post_stim_rest:
+             # use INSTANT rest after last event
+             rc = g_instant_timing_class
+          else:
+             # ahhh, the usual case, get rest class out of stim class
+             rc = sc.rclass
+
+          # if we already have this one, increment the count, else append
+          if rc in rtypes:
+             rind = rtypes.index(rc)
+             rcounts[rind] += 1
+          else:
+             rtypes.append(rc)
+             rcounts.append(1)
+
+       if self.verb > 2:
+          print "-- have %d rest events across %d rest classes" \
+                % (sum(rcounts), len(rcounts))
+          if self.verb > 3:
+             for cind, rc in enumerate(rtypes):
+                print "   %4d rest events of type '%s'"%(rcounts[cind],rc.name)
+
+       return 0, rcounts, rtypes
+
+    def adv_rest_across_runs(self, sall):
+       print '** RCR - rest across runs...'
+       return []
+
 def basis_from_time(stim_len):
     if stim_len > 1.0: return "'BLOCK(%g,1)'" % stim_len
     else: return 'GAM'
@@ -2338,6 +3654,7 @@ def prob_start_with_R(nA, nB, nS):
 def process():
     timing = RandTiming('make random timing')
     timing.init_opts()
+
     rv = timing.read_opts()
     if rv != None:      # 0 is okay, else error code
         if rv: UTIL.show_args_as_command(sys.argv,"** failed command:")
@@ -2348,24 +3665,40 @@ def process():
         if rv: UTIL.show_args_as_command(sys.argv,"** failed command:")
         return rv
 
-    rv = timing.create_timing()
-    if rv != None:
-        if rv: UTIL.show_args_as_command(sys.argv,"** failed command:")
-        return rv
+    # new, advanced way
+    if len(timing.sclasses) > 0:
+       rv = timing.adv_create_timing()
+       if rv:
+           UTIL.show_args_as_command(sys.argv,"** failed command:")
+           return 1
 
-    rv = timing.set_filenames()
-    if rv != None:
-        if rv: UTIL.show_args_as_command(sys.argv,"** failed command:")
-        return rv
+       if timing.adv_write_timing_files():
+          return 1
 
-    rv = timing.write_timing_files()
-    if rv != None:
-        if rv: UTIL.show_args_as_command(sys.argv,"** failed command:")
-        return rv
+       if timing.show_timing_stats:
+          LAD.show_multi_isi_stats(timing.sclasses, timing.run_time, timing.tr,
+                                   verb=(timing.verb>2))
 
-    if timing.file_3dd_cmd: timing.make_3dd_cmd()  # ignore return value
+    # old way
+    else:
+       rv = timing.create_timing()
+       if rv != None:
+           if rv: UTIL.show_args_as_command(sys.argv,"** failed command:")
+           return rv
 
-    if timing.show_timing_stats: timing.disp_time_stats() # ignore return value
+       rv = timing.set_filenames()
+       if rv != None:
+           if rv: UTIL.show_args_as_command(sys.argv,"** failed command:")
+           return rv
+
+       rv = timing.write_timing_files()
+       if rv != None:
+           if rv: UTIL.show_args_as_command(sys.argv,"** failed command:")
+           return rv
+
+       if timing.file_3dd_cmd: timing.make_3dd_cmd()  # ignore return value
+
+       if timing.show_timing_stats: timing.disp_time_stats() # ignore rval
 
     return 0
 

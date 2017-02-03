@@ -3461,6 +3461,13 @@ static ENV_SPEC envlist[] = {
       "old style colorization preceding the addition of this variable\n",
       "SUMA_Classic_Label_Colors",
       "NO" }, 
+   {  "Multiplier for range of thresholding scale.\n",
+      "SUMA_Range_Multiplier",
+      "1.0" },
+   {  "Default p value to adopt when switching to a new sub-brick.\n"
+      "Negative values mean leave the threshold alone when switching.\n",
+      "SUMA_pval_at_switch",
+      "-1.0" },
    {  NULL, NULL, NULL  }
 };
       

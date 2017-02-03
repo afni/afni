@@ -44,6 +44,70 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 31 , JAN , 2017 , RWC , "minimize_in_1D func" , MICRO , TYPE_GENERAL ,
+   "Modify to be more robust (I hope)." ,
+   "Used in solving for inverse to mixed model ACF (e.g., to get FWHM)." } ,
+
+ { 30 , JAN , 2017 , RWC , "ccalc etc" , MICRO , TYPE_ENHANCE ,
+   "Add acfwxm function to parser programs" ,
+   "To compute the Full Width at X Maximum for the mixed ACF model, for\n"
+   "input parameters a,b,c at level x (0 < x < 1) = acfwxm(a,b,c,x)" } ,
+
+ { 23 , JAN , 2017 , RWC , "3dAllineate" , MICRO , TYPE_MODIFY ,
+   "for ls, lpc, lpa: use -autoweight by default unless user changes it" ,
+   "The default weighting scheme was -autobox for all schemes.  For ls, lpc,\n"
+   "lpa, the default is not -autoweight -- if the user changes the weight,\n"
+   "this won't be enforced." } ,
+
+ { 19 , JAN , 2017 , RWC , "3dAllineate" , MICRO , TYPE_GENERAL ,
+   "Give warning when -lpa or -lpc is used without -autoweight" ,
+   "At beginning and at end. Thanks to PT." } ,
+
+ { 18 , JAN , 2017 , RWC , "3dmerge" , MICRO , TYPE_NEW_OPT ,
+   "option -nozero will prevent output of an all zero dataset" ,
+   NULL } ,
+
+ { 12 , JAN , 2017 , RWC , "afni GUI" , MICRO , TYPE_MODIFY ,
+   "First view of OLay: set sub-bricks to reasonable values" ,
+   "Where 'reasonable' is in the eye of RWCox." } ,
+
+ { 12 , JAN , 2017 , RWC , "@snapshot_volreg" , MICRO , TYPE_MODIFY ,
+   "Crop the volume before snapshot-ing" ,
+   "Cropping helps remove lots of blank space in the output.\n"
+   "Also, compute the slice spacing in the montages adaptively from\n"
+   "the dataset dimensions." } ,
+
+ { 11 , JAN , 2017 , RWC , "@snapshot_volreg" , MICRO , TYPE_MODIFY ,
+   "@snapshot_volreg has been replaced by the former @snapshot_volreg3" ,
+   "Also, replaced the use of the 'pam' functions with similar 'pnm'\n"
+   "functions, to help in portability to demented Linux systems." } ,
+
+ { 10 , JAN , 2017 , RWC , "afni GUI" , MICRO , TYPE_MODIFY ,
+   "Change x,y signs in 'Go to atlas location' menu for SPM coords" ,
+   "Per the request of Todd Braver" } ,
+
+ { 30 , DEC , 2016 , RWC , "3dttest++" , MICRO , TYPE_NEW_OPT ,
+   "Add -ACF option -- to compute ACF parameters from residuals" ,
+   NULL } ,
+
+ { 29 , DEC , 2016 , RWC , "@SSwarper" , MINOR , TYPE_NEW_PROG ,
+   "New script to combine skull stripping and nonlinear warping" ,
+   "Uses partial warping to improve skull stripping, and then finishes the\n"
+   "warping, producing outputs compatible for use with afni_proc.py\n"
+   "-tlrc_NL_warped_dsets" } ,
+
+ { 21 , DEC , 2016 , RWC , "3dQwarp" , MICRO , TYPE_GENERAL ,
+   "Add -awarp option, to save Allineate-to-Nonlinear warp only" ,
+   "If -allineate is used, the output WARP dataset is the catenated affine\n"
+   "transform from 3dAllineate and the nonlinear warp from Warpomatic.  If\n"
+   "the user wants to keep the 'pure' nonlinear warp from Warpomatic, then\n"
+   "'-awarp' will do so, with a dataset containing the AWARP moniker." } ,
+
+ { 21 , DEC , 2016 , RWC , "3dQwarp" , MINOR , TYPE_NEW_OPT ,
+   "Add '-wmask' option" ,
+   "Like '-wball', enhances the auto-generated weight in a region, but this\n"
+   "region is selected by a mask dataset." } ,
+
  { 20 , DEC , 2016 , RWC , "3dUnifize" , MICRO , TYPE_MODIFY ,
    "Tweak to make sure tiny values aren't amplified much by -GM" ,
    "Tiny positive values way outside the brain could get super-amplified by\n"
@@ -9335,7 +9399,7 @@ afni_history_struct rwcox_history[] = {
 
   { 24,APR,2003 , RWC , "Miscellaneous" , MICRO , TYPE_GENERAL , "Older History stuff" ,
    "* Modified 3dTshift.c and thd_tshift.c to negate time shift, since it seems have\n"
-   "   been wrong all these years.\n"
+   "   been wrong all these years :( [later: SPM and FSL were wrong, too!]\n"
    },
 
   { 28,APR,2003 , RWC , "Miscellaneous" , MICRO , TYPE_GENERAL , "Older History stuff" ,

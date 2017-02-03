@@ -8715,10 +8715,11 @@ char **atlas_reference_string_list(char *atname, int *N_refs) {
    return(NULL);
 }
 
-char **atlas_chooser_formatted_labels(char *atname) {
+char **atlas_chooser_formatted_labels(char *atname, int flipxy ) {
    char **at_labels=NULL;
    ATLAS_POINT_LIST *apl=NULL;
    int ii;
+   int sgnxy = (flipxy) ? -1 : 1 ;  /* 10 Jan 2017 */
 
    if (!(apl = atlas_point_list(atname))) {
       if (wami_verb()) {
@@ -8730,7 +8731,7 @@ char **atlas_chooser_formatted_labels(char *atname) {
    for( ii=0 ; ii < apl->n_points ; ii++ ){
       at_labels[ii] = (char *) malloc( sizeof(char) * TTO_LMAX ) ;
       sprintf( at_labels[ii] , TTO_FORMAT , apl->at_point[ii].name ,
-         apl->at_point[ii].xx , apl->at_point[ii].yy , apl->at_point[ii].zz ) ;
+         sgnxy*(apl->at_point[ii].xx) , sgnxy*(apl->at_point[ii].yy) , apl->at_point[ii].zz ) ;
    }
 
    return(at_labels);
@@ -9264,7 +9265,8 @@ int thd_LT_label_to_int_list(THD_3dim_dataset *dset, int_list *ilist, char *str)
 /* top-level function for converting globally known labels to a corresponding
  * list of ints
  * 
- * e.g. AFNI_GLAB_FS_WM might expand to a list of FreeSurfer WM values
+ * e.g. AFNI_GLAB_FS5_WM might expand to a list of FreeSurfer 5 WM values
+ * e.g. AFNI_GLAB_FS6_WM might be useful if FreeSurfer 6 changes the numbers
  *
  * This should realy be done using a hash table (or a list of them), akin to
  * how findin_Dtable_b() works.

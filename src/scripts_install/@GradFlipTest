@@ -1,73 +1,201 @@
 #!/bin/tcsh -f
 
-#########################################################################
+########################################################################
 #
-# Auto grad-flip tester (v2.3, May, 2016)
+# Auto grad-flip tester 
 #   by PA Taylor (NIH, UCT, AIMS)
 #
-# Simple script to test what 'flip', if any, should likely be
-# performed for a data set when using '1dDW_Grad_o_Mat.
+# Sep 2015, v2.1:  
+#   + linear DTI fits, for speed
 #
+# Sep 2015, v2.2:  
+#   + echo edu to print commands
 #
-# + USING
-# The script takes two arguments to run:
-# 
-# $ @GradFlipTest  'STRING_CMD'  DWI_FILE
+# May 2016, v2.3:  
+#   + use '-out_grad_cols_bwt' to allow for non-constant DW factors.
 #
-# where:
-#    STRING_CMD :is the string command you would use in 1dDW_Grad_o_Mat
-#                to input the gradient vector file, for example:
-#                '-in_grad_cols GRAD_FILE'  (and make sure to put quotes
-#                around the entry).  If you need to include other 
-#                options, such as 'in_bvals FILE' or something, you can
-#                do that in this single string command, as well.
-#
-#   DWI_FILE    :the name of the DWI set to be processed and possibly
-#                averaged together in parts at the same time as the grad
-#                file.
-#
-# + OUTPUT
-#   Mostly, this code will recommend using either 'No flip', or one of
-#   the {-flip_x|-flip_y|-flip_z}.  It will produce a directory called 
-#   '_tmp_TESTFLIP/' to store temporary files, of which there are many.
-#   It will also prompt you the user to visually check the tract results
-#   as well with some simple example scripts.
-#
-########################################################################
-#
-# v2.1, Sep,2015:  linear DTI fits, for speed
-# v2.2, Sep,2015:  echo edu to print commands
-# v2.3, May,2016:  use '-out_grad_cols_bwt' to allow for non-constant
-#                  DW factors.
+# Jan 2017, v2.4:
+#   + command line optioning
+#   + a real help output!
 #
 ########################################################################
 
+set version   = "2.4"
+set rev_dat   = "Jan, 2017"
+set this_prog = "@GradFlipTest"
+set here      = $PWD
 
-# trap for help or bad input   9 Feb 2015 [rickr]
-if ( $#argv != 2 ) then
-   echo "usage `basename $0` 'STRING_CMD' DWI_FILE"
-   exit
+# ----------------- find AFNI and set viewer ---------------------
+
+# find AFNI binaries directory and viewer location
+set adir      = ""
+set my_viewer = ""
+which afni >& /dev/null
+if ( $status ) then
+    echo "** Cannot find 'afni' (??!?!)."
+    goto BAD_EXIT
+else
+    set aa   = `which afni`
+    set adir = $aa:h
 endif
 
-set in_CMD = "$1"
-set in_DSET = "$2"
+# default location of viewer: user could modify!
+set my_viewer = "$adir/@chauffeur_afni"
 
-set FLIPS = ( "NO flip" '-flip_x' "-flip_y" "-flip_z" )
+# ----------------------- set defaults --------------------------
+
+set in_DSET = ""               # DWI set
+set in_CMD  = ""               # inputting grads/matr
+set in_BVAL = ""               # inputting bval, a la 1dDW*++
+set in_MASK = ""               # inputting bval, a la 1dDW*++
+set odir    = "."
+set out_ff  = "GradFlipTest_rec.txt"
+
+set min_tr_len = 30            # default min tract length
+set min_fa     = 0.2           # default min FA
+set SOT        = ""            # unnec ability to scale DT by 1000
+set DO_CLEAN   = 0             # don't delete tmpdir, by def
+
+set FLIPS = ( "-no_flip" '-flip_x' "-flip_y" "-flip_z" )
 set FNOMS = ( "F0" "FX" "FY" "FZ" )
 
-set dir = "_tmp_TESTFLIP"
+set tmpdir = "_tmp_TESTFLIP"
 set ALL_ARR =  ( )
 set SUMA_CALL = ""
 
-set min_tr_len = 30
-set min_fa     = 0.2
+# ------------------- process options, a la rr ----------------------
+
+if ( $#argv == 0 ) goto SHOW_HELP
+
+set ac = 1
+while ( $ac <= $#argv )
+    # terminal options
+    if ( ("$argv[$ac]" == "-h" ) || ("$argv[$ac]" == "-help" )) then
+        goto SHOW_HELP
+    endif
+    if ( "$argv[$ac]" == "-ver" ) then
+        goto SHOW_VERSION
+    endif
+
+    # ----- input file of DWIs -------------
+    if ( "$argv[$ac]" == "-indwi" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set in_DSET = "$argv[$ac]"
+
+    else if ( "$argv[$ac]" == "-mask" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set in_MASK = "$argv[$ac]"
+
+    # ------ inputs from 1dDW_Grad_o_Mat++ --------
+    else if ( "$argv[$ac]" == "-in_row_vec" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set in_CMD = "-in_row_vec $argv[$ac]"
+
+    else if ( "$argv[$ac]" == "-in_col_vec" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set in_CMD = "-in_col_vec $argv[$ac]"
+
+    else if ( "$argv[$ac]" == "-in_col_matA" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set in_CMD = "-in_col_matA $argv[$ac]"
+
+    else if ( "$argv[$ac]" == "-in_col_matT" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set in_CMD = "-in_col_matT $argv[$ac]"
+
+    else if ( "$argv[$ac]" == "-in_bvals" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set in_BVAL = "-in_bvals $argv[$ac]"
+
+    # --- control tracking, i.e., for infants, non-humans, etc. ---
+    else if ( "$argv[$ac]" == "-alg_Thresh_FA" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set min_FA = $argv[$ac]
+
+    else if ( "$argv[$ac]" == "-alg_Thresh_Len" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set min_tr_len = $argv[$ac]
+
+    # ---------- other opts -----------------
+
+    else if ( "$argv[$ac]" == "-outdir" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set odir = "$argv[$ac]"
+
+    else if ( "$argv[$ac]" == "-prefix" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set out_ff = "$argv[$ac]"
+
+    else if ( "$argv[$ac]" == "-scale_out_1000" ) then
+        set SOT = "-scale_out_1000"
+
+    else if ( "$argv[$ac]" == "-do_clean" ) then
+        set DO_CLEAN = 1
+
+    else
+        echo "\n\n** ERROR: unexpected option #$ac = '$argv[$ac]'\n\n"
+        goto BAD_EXIT
+        
+    endif
+    @ ac += 1
+end
+
+# =======================================================================
+# ============================ ** SETUP ** ==============================
+# =======================================================================
+
+# ============================ input files ==============================
+
+echo "++ Start script version: $version"
+
+# check for DWI
+set check = `3dinfo "$in_DSET"`
+if ( "$#check" == "0" ) then
+    echo "** ERROR: can't find inset file $in_DSET !"
+    goto BAD_EXIT
+endif
+
+# check mask, if one has been input
+if ( $in_MASK ) then
+    set check = `3dinfo "$in_MASK"`
+    if ( "$#check" == "0" ) then
+        echo "** ERROR: can't find inset file $in_MASK !"
+        goto BAD_EXIT
+    endif
+endif
+
+echo $in_CMD
+if ( "$in_CMD" == "" ) then
+    echo "** ERROR: can't load vector/matrix with $in_CMD !"
+    goto BAD_EXIT
+endif
+
+# add bval, if necessary
+if ( $in_BVAL != "" ) then
+    set in_CMD = ( $in_CMD $in_BVAL )
+    echo "++ Full gradient info input: '$in_CMD' !"
+endif
+
+# in case user wants to change this loc
+set tmpdir = "$odir/$tmpdir"
 
 # make a temporary output directory
-if( -d "$dir" ) then
-    echo "Directory '$dir' exists already."
+if( -d "$tmpdir" ) then
+    echo "Directory '$tmpdir' exists already."
 else
-    printf "\n\nMaking the temporary directory '$dir' for the files."
-    mkdir $dir
+    printf "\n\nMaking the temporary directory '$tmpdir' for the files."
+    mkdir $tmpdir
 endif
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
@@ -79,112 +207,135 @@ printf "\n\n\n++ Starting to test...\n"
 set i = '1'
 
 # Setup names
-set out_GRAD  = "$dir/$FNOMS[$i]_GRAD.dat"
-set out_DSET  = "$dir/$FNOMS[$i]_DSET.nii.gz"
-set out_DT    = "$dir/$FNOMS[$i]_DT"
-set out_TRK   = "$dir/$FNOMS[$i]_WB"
-set out_GRID  = "$dir/$FNOMS[$i]_WB_000.grid"
-set out_TRACT = "$dir/$FNOMS[$i]_WB_000.niml.tract"
-set out_mask  = "$dir/mask.nii.gz"
+set out_MATA  = "$tmpdir/$FNOMS[$i]_matA.txt"
+set out_DSET  = "$tmpdir/$FNOMS[$i]_DSET.nii.gz"
+set out_DT    = "$tmpdir/$FNOMS[$i]_DT"
+set out_TRK   = "$tmpdir/$FNOMS[$i]_WB"
+set out_GRID  = "$tmpdir/$FNOMS[$i]_WB_000.grid"
+set out_TRACT = "$tmpdir/$FNOMS[$i]_WB_000.niml.tract"
+set out_mask  = "$tmpdir/mask.nii.gz"
 
 printf "\n\n++ Grad_o_Matting (just needed once).\n\n\n"
 
-# Only do Grad_o_Mat with no flipping-- only fit tensors once, and
-# then flip eigenvectors individually
-1dDW_Grad_o_Mat                          \
+# -------------- copy over grads and data sets -----------------------
+1dDW_Grad_o_Mat++                        \
     -echo_edu                            \
     $in_CMD                              \
-    -proc_dset      $in_DSET             \
-    -pref_dset      $out_DSET            \
-    -out_grad_cols_bwt  $out_GRAD        \
+    -out_col_matA  $out_MATA             \
+    -overwrite
+3dcalc                                   \
+    -echo_edu                            \
+    -a $in_DSET                          \
+    -expr "a"                            \
+    -prefix $out_DSET                    \
     -overwrite
 
-# mask based on 0th brick of 1st set
-3dAutomask                               \
-    -echo_edu                            \
-    -overwrite                           \
-    -prefix $out_mask                    \
-    $out_DSET'[0]'
+# check that grad and vol numbers match
+set Nvm  = `wc $out_MATA`
+set Nvol = `3dinfo -nv $out_DSET`
+if ( $Nvm[1] != $Nvol ) then
+    echo "** ERROR! Number of grads ($Nvm[1]) != number of vols ($Nvol)!"
+    goto BAD_EXIT
+else
+    echo "++ Good: found the same number of grads ($Nvm[1]) and vols ($Nvol)"
+endif
 
-printf "\n\n++ Tensor fitting (just needed once).\n\n\n"
+# Only do Grad_o_Mat with no flipping-- only fit tensors once, and
+# then flip eigenvectors individually
+
+if ( $in_MASK ) then
+    echo "++ Copying mask"
+    3dcalc                                   \
+        -echo_edu                            \
+        -a $in_MASK                          \
+        -expr "a"                            \
+        -prefix $out_mask                    \
+        -overwrite
+else
+    echo "++ Automasking (-> $out_mask)"
+    # mask based on 0th brick of 1st set
+    3dAutomask                               \
+        -echo_edu                            \
+        -overwrite                           \
+        -prefix $out_mask                    \
+        $out_DSET'[0]'
+endif
+
+printf "\n\n++ Quick tensor fitting (just needed once):"
 
 # Tensor fitting of non-flipped
 3dDWItoDT                                \
     -echo_edu                            \
     -eigs -linear -sep_dsets             \
     -mask $out_mask                      \
+    $SOT                                 \
     -prefix $out_DT                      \
-    $out_GRAD                            \
+    -bmatrix_FULL $out_MATA              \
     $out_DSET                            \
     -overwrite
 
-
 set ext = `3dinfo -av_space ${out_DT}_FA*HEAD`
-
 
 printf "\n\n++ Make the new eigenvectors for each flip.\n\n\n"
 
-
 # Make other flips
 foreach j ( `seq 1 1 3` )
-
     # flip_x (i.e., 0th brick in V? files)
-    set out_DTx = "$dir/$FNOMS[2]_DT_V${j}"
+    set out_DTx = "$tmpdir/$FNOMS[2]_DT_V${j}"
     3dcalc                                  \
         -a ${out_DT}_V${j}$ext              \
         -expr 'a*(-equals(l,0)+equals(l,1)+equals(l,2))'  \
         -prefix $out_DTx                    \
         -overwrite
         
-    set out_DTy = "$dir/$FNOMS[3]_DT_V${j}"
+    set out_DTy = "$tmpdir/$FNOMS[3]_DT_V${j}"
     3dcalc                                  \
         -a ${out_DT}_V${j}$ext              \
         -expr 'a*(equals(l,0)-equals(l,1)+equals(l,2))'  \
         -prefix $out_DTy                    \
         -overwrite
 
-    set out_DTz = "$dir/$FNOMS[4]_DT_V${j}"
+    set out_DTz = "$tmpdir/$FNOMS[4]_DT_V${j}"
     3dcalc                                  \
         -a ${out_DT}_V${j}$ext              \
         -expr 'a*(equals(l,0)+equals(l,1)-equals(l,2))'  \
         -prefix $out_DTz                    \
         -overwrite
-
 end
 
 printf "\n\n++ Now for some tracking with each set of eigenvectors.\n\n"
 
 foreach j ( `seq 1 1 4` )
 
-    set out_DTx_niml = "$dir/$FNOMS[$j].niml.opts"
+    set out_DTx_niml = "$tmpdir/$FNOMS[$j].niml.opts"
     # Clear file first, then fill
     printf '' > $out_DTx_niml
     printf "<DTIFILE_opts\n" >> $out_DTx_niml
-    printf "dti_V1='$dir/$FNOMS[$j]_DT_V1$ext'\n" >> $out_DTx_niml
-    printf "dti_V2='$dir/$FNOMS[$j]_DT_V2$ext'\n" >> $out_DTx_niml
-    printf "dti_V3='$dir/$FNOMS[$j]_DT_V3$ext'\n" >> $out_DTx_niml
+    printf "dti_V1='$tmpdir/$FNOMS[$j]_DT_V1$ext'\n" >> $out_DTx_niml
+    printf "dti_V2='$tmpdir/$FNOMS[$j]_DT_V2$ext'\n" >> $out_DTx_niml
+    printf "dti_V3='$tmpdir/$FNOMS[$j]_DT_V3$ext'\n" >> $out_DTx_niml
     printf "dti_FA='${out_DT}_FA$ext'\n" >> $out_DTx_niml
     printf "dti_MD='${out_DT}_MD$ext'\n" >> $out_DTx_niml
-    printf "dti_L1='${out_DT}_L1$ext' />\n" >> $out_DTx_niml
+    printf "dti_L1='${out_DT}_L1$ext'\n" >> $out_DTx_niml
+    printf "dti_RD='${out_DT}_RD$ext' />\n" >> $out_DTx_niml
 
     # long tracts
-    set out_TRK   = "$dir/$FNOMS[$j]_WB"
+    set out_TRK   = "$tmpdir/$FNOMS[$j]_WB"
     3dTrackID -mode DET                      \
         -echo_edu                            \
+        -no_indipair_out                     \
+        -logic OR                            \
         -alg_Nseed_X 1                       \
         -alg_Nseed_Y 1                       \
         -alg_Nseed_Z 1                       \
         -alg_Thresh_Len $min_tr_len          \
-        -alg_Thresh_FA $min_fa               \
-        -no_indipair_out                     \
-        -logic OR                            \
-        -dti_list $out_DTx_niml              \
-        -netrois $out_mask                   \
-        -prefix $out_TRK                     \
+        -alg_Thresh_FA  $min_fa              \
+        -dti_list       $out_DTx_niml        \
+        -netrois        $out_mask            \
+        -mask           $out_mask            \
+        -prefix         $out_TRK             \
         -overwrite
-
 end
-
 
 ########################################################################
 #                           Summary stuff
@@ -193,11 +344,11 @@ end
 foreach i ( `seq 1 1 4` )
 
     # always underlay single FA, which wouldn't change
-    set out_DT    = "$dir/$FNOMS[1]_DT"    
+    set out_DT    = "$tmpdir/$FNOMS[1]_DT"    
 
-    set out_TRK   = "$dir/$FNOMS[$i]_WB"
-    set out_GRID  = "$dir/$FNOMS[$i]_WB_000.grid"
-    set out_TRACT = "$dir/$FNOMS[$i]_WB_000.niml.tract"
+    set out_TRK   = "$tmpdir/$FNOMS[$i]_WB"
+    set out_GRID  = "$tmpdir/$FNOMS[$i]_WB_000.grid"
+    set out_TRACT = "$tmpdir/$FNOMS[$i]_WB_000.niml.tract"
 
     # grep for the numbers of tracts in each case
     set HasNT = `grep -A 1 "\# NT" $out_GRID`
@@ -221,18 +372,141 @@ set MaxV = "$ALL_ARR[$MaxI]"
 
 printf "\n"
 foreach i ( `seq 1 1 $L` )
-
     if ( "$ALL_ARR[$i]" > "$MaxV" ) then
         set MaxI = "$i"
         set MaxV = "$ALL_ARR[$MaxI]"
     endif
-
-    printf "\n The number of tracks for '$FLIPS[$i]' was\t $ALL_ARR[$i]"
-
+    printf "\n The number of tracks for '$FLIPS[$i]' was:    $ALL_ARR[$i]"
 end
 
-printf "\n\n --> THEREFORE, I guess that the best flip is: '$FLIPS[$MaxI]'\n\n\n"
-printf "All results are in directory './$dir/'\n"
+echo "$FLIPS[$MaxI]" > $out_ff
+
+printf "\n\n -->"
+printf "Therefore, I *guess* that the best flip is:   "
+printf "'$FLIPS[$MaxI]'\n\n"
+printf "That recommendation is stored in '$out_ff'\n\n"
+printf "Volume + tracking results are in directory './$tmpdir/'\n"
 printf "You may check the tracking results to verify, e.g.:\n"
 printf "$SUMA_CALL\n"
 printf "DONE.\n\n"
+
+if ( $DO_CLEAN ) then
+    echo "++ ... and cleaning up by removing the temp dir: $tmpdir"
+    \rm -rf $tmpdir
+endif
+
+# ========================================================================
+# ========================================================================
+
+SHOW_HELP:
+cat << EOF
+#------------------------------------------------------------------------
+
+    Simple script to test what 'flip', if any, should likely be
+    performed for a data set when using 1dDW_Grad_o_Mat++.
+
+    **Majorly updated in Jan, 2017-- otherwise you wouldn't even be
+      reading this help file description!**
+
+    ver $version; revision date $rev_dat.
+    Written by PA Taylor (NIH).
+   
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+  OUTPUT 
+
+    On a good day, this function will:
+
+    + Recommend using either '-no_flip', or one
+      of the {-flip_x|-flip_y|-flip_z} options for 1dDW_Grad_o_Mat++.
+
+    + It will store this snippet of code in a file called $out_ff
+      (default name), which the User could be used in scripting later.
+
+    + It will produce a temporary working directory called
+      '_tmp_TESTFLIP/' to store intermediate files, of which there are
+      many (could be wiped away with '-do_clean').  
+
+    + It will also prompt you, O User, to visually check the
+      tract results with some simple example scripts (some day it might
+      automatically make snapshots!).
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+  COMMAND
+
+    $this_prog  \
+    -indwi     DWI                                                  \
+    { -in_row_vec | -in_col_vec | -in_col_matA | -in_col_matT } FF  \
+    { -mask MASK }                                                  \
+    { -in_bvals BB }                                                \
+    { -alg_Thresh_FA X }                                            \
+    { -alg_Thresh_Len L }                                           \
+    { -outdir     OUT }                                             \
+    { -prefix     PPP }                                             \
+    { -scale_out_1000 }                                             \
+    { -do_clean }
+
+  USAGE
+    (*must* input 1 set of DWIs *and* 1 set of grads-- choice of format):
+
+    -indwi     DWI  :set of DWIs (N total volumes)
+    -in_row_vec  FF :set of row-wise gradient vectors
+    -in_col_vec  FF :set of column-wise gradient vectors
+    -in_col_matA FF :set of column-wise g- or b-matrix elements
+                     ("AFNI"-style format, "diagonal-first")
+    -in_col_matT FF :set of column-wise g- or b-matrix elements
+                     ("TORTOISE"-style format, "row-first")
+
+    -mask      MASK :option mask (probably whole brain); otherwise,
+                     automasking is performed 
+    -in_bvals    BB :can input bvals, as in 1dDW_Grad_o_Mat++, if 
+                     necessary (but shouldn't be necessary?)
+
+ -alg_Thresh_FA   X :set minimum FA value for tracking (default X=0.2
+                     as for adult, healthy WM parenchyma)
+ -alg_Thresh_Len  L :set minimum tract length to require to keep a tract
+                     when propagating (default L=30mm ; probably want it
+                     to be a bit on the longside for clear counting and
+                     comparison)
+
+    -outdir     OUT :can change location of temp dir and also of output 
+                     text file with recommended flip opt (default is '.')
+    -prefix     PPP :output name of text file that stores recommended
+                     flip opt (default is $out_ff)
+
+    -scale_out_1000 :as in 3dDWItoDT.  Probably not necessary, since we 
+                     are just checking out trackability
+
+    -do_clean       :remove temporary directory
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+  EXAMPLES
+
+    $this_prog  \
+        -indwi        DWI.nii.gz          \
+        -in_col_matA  BMTXT_AFNI.txt
+
+    or (perhaps if scanning infants, who have less developed myelin)
+
+    $this_prog  \
+        -indwi         DWI.nii.gz         \
+        -in_col_vec    GRADS.txt          \
+        -mask          mask_DWI.nii.gz    \
+        -alg_Thresh_FA 0.1
+
+# -----------------------------------------------------------------------
+EOF
+
+    goto GOOD_EXIT
+
+SHOW_VERSION:
+   echo "version  $version (${rev_dat})"
+   goto GOOD_EXIT
+
+BAD_EXIT:
+    exit 1
+
+GOOD_EXIT:
+    exit 0

@@ -1,4 +1,5 @@
 #include "mrilib.h"
+#include <ctype.h>
 
 /** to do:
      generalize equity loop to be over a struct array instead of just pthr
@@ -45,11 +46,21 @@ static float dz ;
 static int   niter=0 ;  /* number of iterations (realizations) */
 static float nit33=0.0f ;
 
-static int   do_fixed                = 0 ;    /* fixed FOM threshold? */
+#undef ALLOW_FIXED
+
+#ifdef ALLOW_FIXED
+static int   do_fixed  = 0 ;
+static int   do_mfixed = 0 ;
+# define NOT_fixed (!do_fixed && !do_mfixed)
+#else
+# define     do_fixed    0
+# define     do_mfixed   0
+# define     NOT_fixed   1
+#endif
+
 static int   fixed_cluster_threshold = 0 ;
 static float fixed_pvalue_threshold  = 0.0f ;
 
-static int            do_mfixed      = 0 ;
 static THD_3dim_dataset *mfixed_dset = NULL ;
 static int         nnlev_mfixed      = 0 ;
 static int         nnsid_mfixed      = 0 ;
@@ -57,28 +68,29 @@ static int         nzthr_mfixed      = 0 ;
 static float       *zthr_mfixed      = NULL ;
 
 static int   do_FOMcount = 0 ;
-static int   do_FARvox   = 1 ;
+static int   do_FARvox   = 0 ;
 
 #define PMAX 0.5
 
-static double pthr_init[5] = { 0.0100, 0.0056, 0.0031, 0.0018, 0.0010 } ;
-static double athr_init[5] = { 0.05 , 0.04 , 0.03 , 0.02 , 0.01 } ;
-
 static int    npthr = 5 ;
 static double *pthr = NULL ;
+static double pthr_init[5] = { 0.0100, 0.0056, 0.0031, 0.0018, 0.0010 } ;
 
 static float  *zthr_1sid = NULL ;
 static float  *zthr_2sid = NULL ;
 static float  *zthr_used = NULL ;
 
+#if 0
 static int    nathr = 5 ;     /* athr is not used at this time */
 static double *athr = NULL ;
+static double athr_init[5] = { 0.05 , 0.04 , 0.03 , 0.02 , 0.01 } ;
+#endif
 
 static int verb = 1 ;
 static int nthr = 1 ;  /* default number of threads */
 
-static int nnlev = 1 ; /* 1 or 2 or 3 */
-static int nnsid = 1 ; /* 1 or 2 */
+static int nnlev = 2 ; /* NN                = 1 or 2 or 3 */
+static int nnsid = 2 ; /* sidedness of test = 1 or 2      */
 
 /* macro for use inside parallel regions,
    to declare and get ithr = thread number */
@@ -103,19 +115,21 @@ static MRI_IMAGE *imtemplate = NULL ;
 #define PSMALL 1.e-15
 
 #define FARP_GOAL 5.00f    /* 5 percent -- non-adjustable by user */
-#define FGFAC     0.90f
-#define FG_GOAL   (FARP_GOAL*fgfac)
+#define FGFAC     1.00f    /* fudge factor (1 = no fudge for you) */
 
-static float fgfac = FGFAC ;
+static float fgfac     = FGFAC ;
+static float farp_goal = FARP_GOAL ;
+
+#define FG_GOAL   (farp_goal*fgfac)
 
 /*----------------------------------------------------------------------------*/
-/*! Threshold for upper tail probability of N(0,1) */
+/*! Threshold for upper tail probability of N(0,1) = 1-inverseCDF(pval) */
 
 double zthresh( double pval )
 {
         if( pval <= 0.0 ) pval = PSMALL ;
    else if( pval >= 1.0 ) pval = 1.0 - PSMALL ;
-   return qginv(pval) ;
+   return qginv(pval) ;   /* mri_stats.c */
 }
 
 /*---------------------------------------------------------------------------*/
@@ -171,12 +185,14 @@ ENTRY("get_options") ;
       nopt++ ; continue ;
     }
 
+#ifdef ALLOW_FIXED
     /*-----  -mfixed mthresh_dataset  -----*/
 
     if( strcasecmp(argv[nopt],"-mfixed") == 0 ){
       ATR_float *atr ; float *afl ;
       if( do_fixed     ) ERROR_exit("You can't use -fixed AND -mfixed together") ;
-      if( pthr != NULL ) ERROR_exit("You can't use '-mfixed' AND also use '-pthr'") ;
+      if( do_mfixed    ) ERROR_exit("You can't use -mfixed twice") ;
+      if( pthr != NULL ) ERROR_exit("You can't use -mfixed AND also use -pthr") ;
       if( ++nopt >= argc )
         ERROR_exit("You need 1 argument after option '-mfixed'") ;
       mfixed_dset = THD_open_dataset(argv[nopt]) ;
@@ -206,7 +222,8 @@ ENTRY("get_options") ;
 
     if( strcasecmp(argv[nopt],"-fixed") == 0 ){
       if( do_mfixed    ) ERROR_exit("You can't use -fixed AND -mfixed together") ;
-      if( pthr != NULL ) ERROR_exit("You can't use '-fixed' AND also use '-pthr'") ;
+      if( do_fixed     ) ERROR_exit("You can't use -fixed twice") ;
+      if( pthr != NULL ) ERROR_exit("You can't use -fixed AND also use -pthr") ;
       if( ++nopt >= argc-1 )
         ERROR_exit("You need 2 arguments after option '-fixed'") ;
       fixed_pvalue_threshold  = (float)strtod(argv[nopt++],NULL) ;
@@ -223,6 +240,7 @@ ENTRY("get_options") ;
       }
       continue ;
     }
+#endif
 
     /*----- -NN 1 or 2 or 3 -----*/
 
@@ -317,12 +335,28 @@ ENTRY("get_options") ;
       do_FARvox = 0 ; nopt++ ; continue ;
     }
 
+    /*----   -FARvox   ----*/
+
+    if( strcasecmp(argv[nopt],"-FARvox") == 0 ){
+      do_FARvox = 1 ; nopt++ ; continue ;
+    }
+
     /*-----   -pthr p   -----*/
 
+#define IS_NUMERIC(sss)                         \
+ ( (                    isdigit((sss)[0]) ) ||  \
+   ( (sss)[0] == '.' && isdigit((sss)[1]) )   )
+
+
     if( strcmp(argv[nopt],"-pthr") == 0 || strcmp(argv[nopt],"-pval") == 0 ){
-      if( pthr != NULL )         ERROR_exit("you can't use '-pthr' twice!'") ;
-      nopt++; if( nopt >= argc ) ERROR_exit("need argument after %s",argv[nopt-1]);
+      if( pthr != NULL )          ERROR_exit("you can't use -pthr twice!") ;
+      if( do_fixed || do_mfixed ) ERROR_exit("you can't use -pthr with -mfixed or -fixed!") ;
+      nopt++; if( nopt >= argc )  ERROR_exit("need argument after %s",argv[nopt-1]);
+#if 0
       for( ii=nopt ; ii < argc && argv[ii][0] != '-' ; ii++ ) ; /*nada*/
+#else
+      for( ii=nopt ; ii < argc && IS_NUMERIC(argv[ii]) ; ii++ ) ; /*nada*/
+#endif
       npthr = ii-nopt ;
       if( npthr <= 0 ) ERROR_exit("No positive values found after %s",argv[nopt-1]) ;
       pthr = (double *)realloc(pthr,sizeof(double)*npthr) ;
@@ -358,6 +392,8 @@ ENTRY("get_options") ;
   /*------- finalize some simple setup stuff --------*/
 
   if( xinset == NULL ) ERROR_exit("-inset option is mandatory :(") ;
+
+  /* create default pthr array, if none was given */
 
   if( pthr == NULL ){
     pthr = (double *)malloc(sizeof(double)*npthr) ;
@@ -462,8 +498,13 @@ void gather_clusters( int ipthr, float *fim, MRI_IMAGE *tfim, int nn,int ss, int
 
   thr = zthr_used[ipthr] ;
   if( ss == 1 ){
-    for( ii=0 ; ii < nxyz ; ii++ )
-      tfar[ii] = (      fim[ii]  >= thr) ? fim[ii] : 0.0f ;
+    if( thr >= 0.0f ){
+      for( ii=0 ; ii < nxyz ; ii++ )
+        tfar[ii] = (fim[ii] >= thr) ? fim[ii] : 0.0f ;
+    } else {
+      for( ii=0 ; ii < nxyz ; ii++ )
+        tfar[ii] = (fim[ii] <= thr) ? fim[ii] : 0.0f ;
+    }
   } else {
     for( ii=0 ; ii < nxyz ; ii++ )
       tfar[ii] = (fabsf(fim[ii]) >= thr) ? fim[ii] : 0.0f ;
@@ -743,11 +784,13 @@ int main( int argc , char *argv[] )
        " -NN        1 or 2 or 3 [-NN1 or -NN2 or -NN3 will work]\n"
        " -sid       1 or 2      [-1sid or -2sid will work]\n"
        " -prefix    something\n"
+#ifdef ALLOW_FIXED
        " -fixed     pvalue clustersize\n"
        " -mfixed    mthresh_dataset\n"
+#endif
        " -pthr      list of values [default = 0.0100 0.0056 0.0031 0.0018 0.0010]\n"
        " -FOMcount  turn on FOMcount output\n"
-       " -noFARvox  turn off FARvox output\n"
+       " -FARvox    turn on FARvox output\n"
      ) ;
      exit(0) ;
    }
@@ -762,7 +805,7 @@ int main( int argc , char *argv[] )
 
    get_options(argc,argv) ;
 
-   if( !do_FARvox && (do_fixed || do_mfixed) ){
+   if( !do_FARvox && !NOT_fixed ){
      do_FARvox = 1 ;
      INFO_message("-fixed or -mfixed turns FARvox output back on :)") ;
    }
@@ -791,7 +834,7 @@ int main( int argc , char *argv[] )
          and just compute the final result for the fixed thresholds;
          this is for testing and comparison with directly input parameters ---*/
 
-   if( do_fixed || do_mfixed ) goto FINAL_STUFF ;
+   if( !NOT_fixed ) goto FINAL_STUFF ;
 
    /*--- initialize the cluster arrays (one for each p-value thresh) ---*/
    /*--- Xclustar_g[qpthr][iter] = array of clusters at p-value
@@ -1200,7 +1243,7 @@ FARP_LOOPBACK:
 #endif
      /* we take the ithresh-th largest FOM at each voxel as its FOM threshold */
 
-     if( !(do_fixed || do_mfixed) ){
+     if( NOT_fixed ){
        if( verb )
          ININFO_message("Testing threshold images at %g ==> %d",tfrac,ithresh) ;
        for( qpthr=0 ; qpthr < npthr ; qpthr++ ){
@@ -1224,7 +1267,7 @@ FARP_LOOPBACK:
 
      /* find the FOM threshold for each voxel, for each p-value thresh */
 
-     if( !(do_fixed || do_mfixed) ){
+     if( NOT_fixed ){
 #pragma omp for
       for( iv=0 ; iv < mask_ngood ; iv++ ){          /* loop over voxels */
         for( ipthr=0 ; ipthr < npthr ; ipthr++ ){ /* over p-value thresh */
@@ -1295,7 +1338,7 @@ FARP_LOOPBACK:
           if( itrac < 5 ) farcut = 0.111f ; /* precision of goal meeting */
      else if( itrac < 9 ) farcut = 0.222f ;
      else                 farcut = 0.333f ;
-     if( !(do_fixed || do_mfixed) && itrac < 13 && fabsf(farperc-FG_GOAL) > farcut ){
+     if( NOT_fixed && itrac < 13 && fabsf(farperc-FG_GOAL) > farcut ){
        float fff ;
        if( itrac == 1 || (farperc-FG_GOAL)*(farpercold-FG_GOAL) > 0.0f ){ /* scale */
          fff = FG_GOAL/farperc ;
@@ -1316,7 +1359,7 @@ FARP_LOOPBACK:
    /*============================================*/
    /*--- Write stuff out, then quit quit quit ---*/
 
-   if( !(do_fixed || do_mfixed) ){         /* output the per-voxel FOM thresholds */
+   if( NOT_fixed ){         /* output the per-voxel FOM thresholds */
      qset = EDIT_empty_copy(mask_dset) ;
      sprintf(qpr,".mthresh") ;
      EDIT_dset_items( qset ,
