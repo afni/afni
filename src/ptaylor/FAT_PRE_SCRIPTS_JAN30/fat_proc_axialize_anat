@@ -618,7 +618,7 @@ if ( $DO_VIEWER ) then
     endif
 
     #echo "++ Output QC #1: final olay on (essentially) original refset."
-    echo "++ QC image #1 (final output ulay): $vpref1"
+    echo "++ QC image 00 (final output ulay): $vpref1"
     $my_viewer      -ulay $fout                     \
                     -prefix $vpref1                 \
                     -outdir ".."                    \
@@ -628,7 +628,7 @@ if ( $DO_VIEWER ) then
                     -do_clean                       \
                     $user_frange
 
-    echo "++ QC image #2 (earlier allin olaying ref ulay): $vpref2"
+    echo "++ QC image 01 (earlier allin olaying ref ulay): $vpref2"
     $my_viewer      -ulay $rout                     \
                     -olay $qc2o                     \
                     -prefix $vpref2                 \
