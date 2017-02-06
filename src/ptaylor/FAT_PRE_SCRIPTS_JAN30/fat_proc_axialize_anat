@@ -257,6 +257,8 @@ endif
 
 echo "\n-----> STARTING ---->"
 
+# ---------------------------- CMD ---------------------------------
+
 echo "\n\nThis command:"
 echo "$this_prog $argv\n\n"
 
@@ -608,11 +610,11 @@ if ( $DO_VIEWER ) then
     echo "++ Making QC images."
 
     if( $qc_prefix == "" ) then
-        set vpref1 = ${outpref}_${postfix}_qc1_fin
-        set vpref2 = ${outpref}_${postfix}_qc2_mat
+        set vpref1 = ${outpref}_${postfix}_qc00_fin
+        set vpref2 = ${outpref}_${postfix}_qc01_mat
     else
-        set vpref1 = ${qc_prefix}_${postfix}_qc1_fin
-        set vpref2 = ${qc_prefix}_${postfix}_qc2_mat
+        set vpref1 = ${qc_prefix}_${postfix}_qc00_fin
+        set vpref2 = ${qc_prefix}_${postfix}_qc01_mat
     endif
 
     #echo "++ Output QC #1: final olay on (essentially) original refset."
