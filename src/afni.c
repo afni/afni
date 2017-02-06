@@ -2046,6 +2046,7 @@ void AFNI_sigfunc_alrm(int sig)
      "Torment the data enough and it will tell you anything you want",
      "p-hacking? Bah -- I'll take a chainsaw to your p-values"       ,
      "Did you like your p-values? If not, I can 'fix' them for you"  ,
+     "Honesty is the best policy, but insanity is a better defense"  ,
 
      "Returning control of your brain (images) back to yourself"     ,
      "Returning your endofunctors back to their co-monads"           ,
@@ -2141,6 +2142,7 @@ void AFNI_sigfunc_alrm(int sig)
 
      /* Longer quotes */
 
+     "Remember -- at least half of all the brains on Earth belong to women"           ,
      "When human judgment and big data interact, peculiar things happen"              ,
      "FMRI is at best like reading source code with blurring goggles over your eyes"  ,
      "Do you prefer red blobs or blue blobs? That's the real FMRI question"           ,
