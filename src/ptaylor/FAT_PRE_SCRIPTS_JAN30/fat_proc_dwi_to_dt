@@ -7,11 +7,34 @@
 # Jan 27, 2017
 #   + update opts
 #
+set version   = "1.2"
+set rev_dat   = "Feb 6, 2017"
+#   + drive viewer
+#
 # ----------------------------------------------------------------
 
-set version   = "1.2"
-set rev_dat   = "Jan 27, 2017"
 set this_prog = "fat_proc_dwi_to_dt"
+set here      = $PWD
+
+# ----------------- find AFNI and set viewer ---------------------
+
+# find AFNI binaries directory and viewer location
+set adir      = ""
+set my_viewer = ""
+which afni >& /dev/null
+if ( $status ) then
+    echo "** Cannot find 'afni' (??!?!)."
+    goto BAD_EXIT
+else
+    set aa   = `which afni`
+    set adir = $aa:h
+endif
+
+# default location of viewer: user could modify!
+set my_viewer = "$adir/@chauffeur_afni"
+
+# ----------------------- set defaults --------------------------
+
 
 set idwi     = ""                 # necessary input: DWI dset
 set invecmat = ( "" "" "" "" )    # switches+names for bvecs and bvals
@@ -26,8 +49,14 @@ set opref    = "dwi"
 set postfix  = "parfit"
 set ori_new  = "RPI"              # default file output orientation
 
-set cmd_file    = ""              # def: same name as viewer
-#set postfix     = "axlz"          # stick into name
+set DO_VIEWER   = 1                # def: do viewing
+set qc_prefix   = ""               # def: autoname; user can enter
+set output_cmd  = 1                # def: output copy of this command
+                                   # -> should expand to have all cmds
+set cmd_file    = ""               # def: same name as viewer
+set postfix     = "dti"            # stick into name
+
+
 
 # ------------------- process options, a la rr ----------------------
 
@@ -62,34 +91,34 @@ while ( $ac <= $#argv )
     # ------------- input vecmat and bval --------------
     else if ( "$argv[$ac]" == "-in_col_matA" ) then
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
-        set invecmat[1]  = "$argv[$ac]" # reuse in 1dDW*++
+        set invecmat[1]  = $argv[$ac] 
         @ ac += 1
-        set invecmat[2] = "$argv[$ac]"
+        set invecmat[2]  = "$argv[$ac]"
 
     else if ( "$argv[$ac]" == "-in_col_matT" ) then
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
-        set invecmat[1]  = "$argv[$ac]" # reuse in 1dDW*++
+        set invecmat[1]  = $argv[$ac] 
         @ ac += 1
-        set invecmat[2] = "$argv[$ac]"
+        set invecmat[2]  = "$argv[$ac]"
 
     else if ( "$argv[$ac]" == "-in_col_vec" ) then
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
-        set invecmat[1]  = "$argv[$ac]" # reuse in 1dDW*++
+        set invecmat[1]  = $argv[$ac] 
         @ ac += 1
-        set invecmat[2] = "$argv[$ac]"
+        set invecmat[2]  = "$argv[$ac]"
 
     else if ( "$argv[$ac]" == "-in_row_vec" ) then
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
-        set invecmat[1]  = "$argv[$ac]" # reuse in 1dDW*++
+        set invecmat[1]  = $argv[$ac] 
         @ ac += 1
-        set invecmat[2] = "$argv[$ac]"
+        set invecmat[2]  = "$argv[$ac]"
 
     # not necessary; default is just empty
     else if ( "$argv[$ac]" == "-in_bvals" ) then
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
-        set invecmat[3]  = "$argv[$ac]" # reuse in 1dDW*++
+        set invecmat[3]  = $argv[$ac] 
         @ ac += 1
-        set invecmat[4] = "$argv[$ac]"
+        set invecmat[4]  = "$argv[$ac]"
 
     # ----------------- outputs ---------------------
     else if ( "$argv[$ac]" == "-outdir" ) then
@@ -117,6 +146,17 @@ while ( $ac <= $#argv )
     else if ( "$argv[$ac]" == "-scale_out_1000" ) then
         set sca = "-scale_out_1000"
 
+    else if ( "$argv[$ac]" == "-qc_prefix" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set qc_prefix = "$argv[$ac]"
+
+    else if ( "$argv[$ac]" == "-no_qc_view" ) then
+        set DO_VIEWER = 0
+
+    else if ( "$argv[$ac]" == "-no_cmd_out" ) then
+        set output_cmd = 0
+
     else
         echo "** unexpected option #$ac = '$argv[$ac]'"
         goto BAD_EXIT
@@ -134,10 +174,10 @@ end
 echo "++ Start script version: $version"
 
 # NEED these two inputs
-if ( $idwi == "" ) then
+if ( "$idwi" == "" ) then
     echo "** ERROR: no DWI file input??!"
     goto BAD_EXIT
-else if ( $invecmat[2] == "" ) then
+else if ( "$invecmat[2]" == "" ) then
     echo "** ERROR: no gradient/matrix file input??!"
     goto BAD_EXIT
 endif
@@ -152,11 +192,13 @@ else
 endif
 
 # check for vec/mat file
-if ( -f $invecmat[2] ) then
+if ( 0 ) then
+if ( -f "$invecmat[2]" ) then
     echo "++ Found input vec/mat file:  $invecmat[2]"
 else
     echo "** ERROR: can't find entered vec/mat file $invecmat[2] !"
     goto BAD_EXIT
+endif
 endif
 
 # check if MASK was input, then if can be read
@@ -183,13 +225,15 @@ if ( "$iref" != "" ) then
 endif
 
 # check for bval file, if entered
-if ( $invecmat[4] ) then
-    if ( -f $invecmat[4] ) then
+if ( 0 ) then
+if ( "$invecmat[4]" != "" ) then
+    if ( -f "$invecmat[4]" ) then
         echo "++ Found entered bval file:   $invecmat[4]"
     else
         echo "** ERROR: can't find entered bval file:  $invecmat[4] !"
         goto BAD_EXIT
     endif
+endif
 endif
 
 # ========================= output dir ==========================
@@ -200,7 +244,7 @@ if ( "$odir" == "" ) then
     # default output dir, if nothing input; it must exist already,
     # because a file is in it
 
-    set odir = `dirname $idwi`
+    set odir = `dirname "$idwi"`
     echo "\n++ No output directory specificied by the user."
     echo "++ Using the input DWI file's directory by default:"
     echo "\t$odir"
@@ -229,11 +273,25 @@ set dt     = "DT.nii.gz"             # NIFTI prefix for NII output
 
 echo "\n-----> STARTING ---->"
 
+# ---------------------------- CMD ---------------------------------
+
 echo "\n\nThis command:"
 echo "$this_prog $argv\n\n"
 
 if ( "$cmd_file" == "" ) then
     set cmd_file = "$odir/$ocmd"
+endif
+
+# copy original command:
+# dump copy of command into workdir/..
+if ( $output_cmd == 1 ) then
+    echo "++ Echoing the command to: $cmd_file"
+
+    echo "### Executed from the directory location:"  > $cmd_file
+    echo "# $here\n"            >> $cmd_file
+    echo "### The command was:" >> $cmd_file
+    echo "# $this_prog $argv"   >> $cmd_file
+    echo "\n"                   >> $cmd_file
 endif
 
 # ----------------- grads/bmats ---------------------
@@ -243,12 +301,14 @@ if ( 1 ) then
 
     # make grads ...
     1dDW_Grad_o_Mat++                     \
+        -overwrite                        \
         -echo_edu                         \
         $iflip                            \
-        $invecmat                         \
         -out_col_vec      $odir/$obvec    \
         -out_col_bval_sep $odir/$obval    \
-        -overwrite
+        "$invecmat[1]" "$invecmat[2]"     \
+        "$invecmat[3]" "$invecmat[4]" 
+
 
     # ... and matching matA
     1dDW_Grad_o_Mat++                     \
@@ -266,7 +326,7 @@ if ( "$iref" != "" ) then
     3dresample               \
         -echo_edu            \
         -overwrite           \
-        -inset  $idwi        \
+        -inset  "$idwi"      \
         -orient "$ori_new"   \
         -prefix $odir/$odwi
 
@@ -280,7 +340,7 @@ else
     3dcalc                   \
         -echo_edu            \
         -overwrite           \
-        -a  $idwi            \
+        -a  "$idwi"          \
         -expr 'a'            \
         -prefix $odir/$odwi
 endif
@@ -305,27 +365,78 @@ else
         -prefix $odir/$omask
 endif
 
-# ----------------- move to $odir now, mk subdir -------------
+# ----------------- make $odir/ubdir -------------
 
-cd $odir
-
-if ( ! -e "$dti" ) then
-    mkdir $dti
+if ( ! -e "$odir/$dti" ) then
+    mkdir $odir/$dti
 endif
 
-# ----------------- tensor fit -------------
+# ------------------- tensor fit -----------------
 
 echo "++ Fitting tensor and estimating params to make:  $odir/$dti/${dt}*"
-3dDWItoDT                        \
-    -overwrite                   \
-    -eigs -nonlinear -sep_dsets  \
-    $sca                         \
-    -prefix       $dti/$dt       \
-    -mask         $omask         \
-    -bmatrix_FULL $omata         \
-    $odwi
+3dDWItoDT                              \
+    -overwrite                         \
+    -eigs -nonlinear -sep_dsets        \
+    $sca                               \
+    -prefix       $odir/$dti/$dt       \
+    -mask         $odir/$omask         \
+    -bmatrix_FULL $odir/$omata         \
+                  $odir/$odwi
 
+# ---------------------------- VIEWER ---------------------------------
 
+if ( $DO_VIEWER ) then
+
+    echo "++ Making QC images."
+
+    if( $qc_prefix == "" ) then
+        set vpref0 = ${opref}_${postfix}_qc00_fin
+        set vpref1 = ${opref}_${postfix}_qc01_mat
+    else
+        set vpref0 = ${qc_prefix}_${postfix}_qc00_fin
+        set vpref1 = ${qc_prefix}_${postfix}_qc01_mat
+    endif
+
+    if( "$iref" != "" ) then
+
+        echo "++ QC image 00 ($odir/${odwi}[0] on $iref): $vpref0"
+        # need to put '[0]' on $iref?
+        $my_viewer  -olay "$iref"                   \
+                    -ulay "$odir/${odwi}""[0]"      \
+                    -prefix $vpref0                 \
+                    -outdir "$odir"                 \
+                    -montx 5 -monty 3               \
+                    -set_xhairs MULTI               \
+                    -label_mode 1 -label_size 3     \
+                    -do_clean 
+    endif
+
+    if ( 0 ) then
+    echo "++ QC image 00 (final output ulay): $vpref1"
+    $my_viewer      -ulay $fout                     \
+                    -prefix $vpref1                 \
+                    -outdir ".."                    \
+                    -montx 3 -monty 3               \
+                    -set_xhairs MULTI               \
+                    -label_mode 1 -label_size 3     \
+                    -do_clean                       \
+                    $user_frange
+
+    echo "++ QC image 01 (earlier allin olaying ref ulay): $vpref2"
+    $my_viewer      -ulay $rout                     \
+                    -olay $qc2o                     \
+                    -prefix $vpref2                 \
+                    -outdir ".."                    \
+                    -montx 3 -monty 3               \
+                    -set_xhairs MULTI               \
+                    -label_mode 1 -label_size 3     \
+                    -opacity 4                      \
+                    -do_clean
+    endif
+
+endif
+
+# ---------------------------------------------------------------------
 
 
 
