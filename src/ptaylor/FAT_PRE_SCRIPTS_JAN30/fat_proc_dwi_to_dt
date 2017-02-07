@@ -401,8 +401,8 @@ if ( $DO_VIEWER ) then
 
         echo "++ QC image 00 ($odir/${odwi}[0] on $iref): $vpref0"
         # need to put '[0]' on $iref?
-        $my_viewer  -olay "$iref"                   \
-                    -ulay "$odir/${odwi}""[0]"      \
+        $my_viewer  -ulay "$iref"                   \
+                    -olay "$odir/${odwi}""[0]"      \
                     -prefix $vpref0                 \
                     -outdir "$odir"                 \
                     -montx 5 -monty 3               \
