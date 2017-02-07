@@ -24,10 +24,10 @@
 # Jan, 2017d:
 #     + better slice selection/centering.
 #     + adjust for different orders of orientation
-
-
-# current ver
-set ver = 1.5
+#
+set version   = "1.6"
+set rev_dat   = "Feb 6, 2017"
+#     + olay quotes
 
 # For more info about opts/fields, see:
 #
@@ -324,7 +324,7 @@ endif
 echo "\n------------------ start of optionizing ------------------\n" 
 
 # need more cowbell
-if ( ($ulay == '') ) then
+if ( ("$ulay" == "") ) then
     echo "** ERROR: need to have an underlay, at least!!"
     goto BAD_EXIT
 endif
@@ -386,7 +386,7 @@ if ( ( $urange == "VOLUME" ) || ( $urange == "DSET" )  \
         echo "++ Copying ulay to visualize (volumetric) within user's range:"
         echo "   [${umin},${umax}]"
     else
-        set ubs  = `3dBrickStat -percentile 2 96 98 $ulay`
+        set ubs  = `3dBrickStat -percentile 2 96 98 "$ulay"`
         set umin = $ubs[2]
         set umax = $ubs[4]
 
@@ -397,22 +397,22 @@ if ( ( $urange == "VOLUME" ) || ( $urange == "DSET" )  \
     # copy over *thresholded* version to temporary read dir
     3dcalc                                        \
         -overwrite                                \
-        -a $ulay                                  \
+        -a "$ulay"                                  \
         -expr "a*within(a,${umin},${umax})+${umin}*step($umin-a)+${umax}*step(a-$umax)" \
         -prefix $read_dir/$read_ulay
 
 else
-    if ( `3dinfo -datum $ulay` == "rgb" ) then
+    if ( `3dinfo -datum "$ulay"` == "rgb" ) then
         # not sure why 3dcalc won't preserve rgb-ness...
         3dcopy                                        \
             -overwrite                                \
-            $ulay $read_dir/$read_ulay
+            "$ulay" $read_dir/$read_ulay
     else
         echo "++ For ulay, AFNI_IMAGE_GLOBALRANGE is set to be: $urange"
         # just copy over *original* version to temporary read dir
         3dcalc                                        \
             -overwrite                                \
-            -a $ulay                                  \
+            -a "$ulay"                                \
             -expr "a"                                 \
             -prefix $read_dir/$read_ulay
     endif
@@ -426,14 +426,15 @@ if ( "$see_olay" == "-" ) then
     # don't need to copy anything, just set this for scripty purposes,
     # doesn't affect visualization.
     set read_olay = $read_ulay
+    set Dim  = `3dinfo -n4 "$ulay"`
 
-    set Dim  = `3dinfo -n4 $ulay`
 else
-    set Dim  = `3dinfo -n4 $olay`
 
+    set Dim  = `3dinfo -n4 "$olay"`
     set read_olay = tmp_olay.nii.gz
+
     3dcalc                                    \
-        -a $olay                              \
+        -a "$olay"                            \
         -expr 'a'                             \
         -prefix $read_dir/$read_olay          \
         -overwrite
@@ -446,11 +447,13 @@ else
         #set tval    = `ccalc "min($cval,$mval/4)"`
         #set frange  = `ccalc "max(3*$cval,0.666*$mval)"`
 
-        set vv = `3dBrickStat -non-zero -percentile 98 1 98 $olay`
+        set vv = `3dBrickStat -non-zero      \
+                    -percentile 98 1 98      \
+                    $read_dir/$read_olay`
         set frange = $vv[2]
 
-        set maxolay = `3dinfo -max $olay`
-        set minolay = `3dinfo -min $olay`
+        set maxolay = `3dinfo -max $read_dir/$read_olay`
+        set minolay = `3dinfo -min $read_dir/$read_olay`
         echo "++ No user-entered function range ('-frange ...') value."
         echo "   --> Ergo, calculating based on 98th %ile, getting: $frange"
         echo "   ----> ... noting that range of values is: [$minolay, $maxolay]"
@@ -458,10 +461,11 @@ else
         echo "++ User-entered function range value value (${frange}%)"
     else if ( $USER_FRANGE == 2 ) then
         set vv = `3dBrickStat -non-zero                           \
-                    -percentile $frange_perc 1 $frange_perc -non-zero $olay`
+                    -percentile $frange_perc 1 $frange_perc       \
+                    -non-zero   $read_dir/$read_olay`
         set frange = $vv[2]
-        set maxolay = `3dinfo -max $olay`
-        set minolay = `3dinfo -min $olay`
+        set maxolay = `3dinfo -max $read_dir/$read_olay`
+        set minolay = `3dinfo -min $read_dir/$read_olay`
         echo "++ User-entered function range value as percentile (${frange_perc}%)"
         echo "   --> Ergo, calculating FUNC_RANGE, getting: $frange"
         echo "   ----> ... noting that range of values is: [$minolay, $maxolay]"
@@ -472,7 +476,7 @@ endif
 # Take number of mont wins plus a couple to calculate.
 @  Nwin  = $mx * $my
 # silly stuff to deal with orientation
-set ori  = `3dinfo -orient $ulay`
+set ori  = `3dinfo -orient "$ulay"`
 set ori0 = `echo $ori | awk '{print substr($0,1,1)}'`
 set ori1 = `echo $ori | awk '{print substr($0,2,1)}'`
 set ori2 = `echo $ori | awk '{print substr($0,3,1)}'`
@@ -608,7 +612,7 @@ goto GOOD_EXIT
 
 SHOW_VERSION:
 
-    echo "\n\n++ Version: $ver\n\n"
+    echo "\n\n++ Version: $version\n\n"
 
     goto GOOD_EXIT
 
