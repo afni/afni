@@ -164,12 +164,20 @@ When ``afni`` is started for the first time, you should be directed
        click on the ``Java`` icon.
 
     #. To install the package manager ``fink``, execute the following,
-       which gets an install script and executes it.  This takes perhaps
-       30 minutes and asks many questions.  One can simply keep hitting
-       the ENTER key to accept the useful defaults.  Run the commands::
+       which gets an install script and executes it.  This takes
+       perhaps 30 minutes and the user gets asked many questions
+       (sorry, no way around it).  One can simply keep hitting the
+       ``ENTER`` key to accept the useful defaults (**note:** you can
+       respond with 'n' for the ``Xcode`` installation prompt if
+       prompted otherwise, as you should have it from an earlier
+       step).
+
+       Run the commands::
 
            curl -O https://afni.nimh.nih.gov/pub/dist/bin/misc/save/install.fink.bash
            bash install.fink.bash
+
+
 
     #. Install PyQt4.
 
@@ -186,6 +194,9 @@ When ``afni`` is started for the first time, you should be directed
            sudo fink install pyqt4-mac-py27
            sudo ln -s /sw/bin/python2.7 /sw/bin/python
            echo 'setenv PYTHONPATH /sw/lib/qt4-mac/lib/python2.7/site-packages' >> ~/.cshrc
+
+         (You likely won't get a 'success' message here, but you can
+         use the **Evaluate** step below to verify the installation.)
 
        |
 
