@@ -25,7 +25,7 @@ help.LME.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
           ================== Welcome to 3dLME ==================          
     AFNI Group Analysis Program with Multi-Variate Modeling Approach
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 1.9.3, Jan 5, 2017
+Version 1.9.4, Feb 9, 2017
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - https://afni.nimh.nih.gov/sscc/gangc/lme.html
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -85,8 +85,8 @@ Usage:
  The advantage of the latter command is that the progression is saved into
  the text file diary.txt and, if anything goes awry, can be examined later.
  
- Thanks to the R community, Henrik Singmann and Helios de Rosario for the 
- strong technical support.'
+ Thanks to the R community, Henrik Singmann and Helios de Rosario for the strong
+ technical support.'
 
    ex1 <- 
 "
@@ -1825,7 +1825,7 @@ if(lop$ICC) {  # ICC part
 } # if(lop$ICC)
 
 #statpar <- paste(statpar, " -addFDR -newid ", lop$outFN)
-write.AFNI(lop$outFN, Stat[,,,1:lop$NoBrick], outLabel, defhead=head, idcode=newid.AFNI(),
+write.AFNI(lop$outFN, Stat[,,,1:lop$NoBrick, drop=FALSE], outLabel, defhead=head, idcode=newid.AFNI(),
    com_hist=lop$com_history, statsym=statsym, addFDR=1, type='MRI_short')
 if(lop$LOGIT) {
    write.AFNI(paste(parse.AFNI.name(lop$outFN)$path, paste('/cutoff_', parse.AFNI.name(lop$outFN)$prefix, sep=''), sep=''),
@@ -1834,7 +1834,7 @@ if(lop$LOGIT) {
       acc, label=NULL, defhead=head, idcode=newid.AFNI(), com_hist=lop$com_history, type='MRI_short')
 }
 if(!is.null(lop$resid))
-   write.AFNI(lop$resid, Stat[,,,(lop$NoBrick+1):(lop$NoBrick+(!is.null(lop$resid))*nrow(lop$dataStr))],
+   write.AFNI(lop$resid, Stat[,,,(lop$NoBrick+1):(lop$NoBrick+(!is.null(lop$resid))*nrow(lop$dataStr)), drop=FALSE],
       label=NULL, defhead=head, idcode=newid.AFNI(), com_hist=lop$com_history, type='MRI_short')
 
 #system(statpar)
