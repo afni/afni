@@ -2287,7 +2287,7 @@ will move the slider 1% of its height per PageUp/PageDown key or mouse click.
 Variable: AFNI_THRESH_AUTO (editable)
 --------------------------
 If this YES/NO variable is set to YES, then whenever you switch overlay datasets,
-the function threshold slider will automatically change to some value that may
+the function threshold slider will automatically change to some value that MIGHT
 be appropriate for the values in the new dataset.  [This is for Ziad!]
 
 -------------------------------
@@ -2296,6 +2296,20 @@ Variable: AFNI_THRESH_TOP_EXPON
 This variable defines the top value for the '**' setting underneath the Overlay
 threshold slider.  By default, this value is 4, but you can change that to 5
 or 6 with this variable.  [This is for Phil Kohn]
+
+-------------------------------
+Variable: AFNI_OLD_SHORT_THRESH
+-------------------------------
+When thresholding a dataset with a sub-brick that is stored as shorts (16 bit
+integers), the AFNI GUI uses floats, but the 3dmerge and Clusterize functions
+use shorts. The difference is that the user-supplied threshold in the latter
+case is rounded to the nearest short. Thus, a threshold of 2.2 would become
+2, and then a value of 2 would pass the 'greater than or equal to threshold'
+test -- which is probably not what the user meant. Again, this would happen
+in 3dmerge and Clusterize, but NOT in the AFNI GUI without Clusterize.
+This inconsistency has been fixed, and both sets of places now threshold
+using floats. However, IF you want to stick with the old method for some
+un-imaginable reason, you need to set this variable to YES.
 
 ------------------------------
 Variable: AFNI_SNAPFILE_PREFIX

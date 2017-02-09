@@ -1564,6 +1564,12 @@ extern char * SYM_test_gltsym( char *varlist , char *gltsym ) ; /* 01 May 2015 *
 
 THD_string_array * mri_read_1D_headerline( char *fname ) ; /* 18 May 2010 */
 
+/* 09 Feb 2017: change the way thresholds are short-ified,
+                along with changes in the relevant functions */
+
+#define THRESH_SHORTIZE(ttt) \
+  ( AFNI_yesenv("AFNI_OLD_SHORT_THRESH") ?  (float)SHORTIZE(ttt) : (ttt) )
+
 /*------------------------------------------------------------------------*/
 /* 13 Feb 2009: generic 4x4 matrix struct stuff */
 
