@@ -44,6 +44,17 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 9 , FEB , 2017 , RWC , "thresholding" , MINOR , TYPE_NEW_ENV ,
+   "Fix inconsistency in thresholding with short-valued bricks" ,
+   "In the AFNI GUI, thresholding is done with floats.\n"
+   "But in 3dmerge and in Clusterize, if the thresh brick is a short,\n"
+   "thresholding was done with shorts.  And the user-supplied threshold was\n"
+   "ROUNDED -- so that a threshold of 2.2 would become 2, which means that a\n"
+   "value of 2 was OK -- which it shouldn't be.  Solution: change those\n"
+   "places to threshold with floats. However, if someone wants to keep the\n"
+   "old way for compatibility, then they can set AFNI_OLD_SHORT_THRESH to\n"
+   "YES." } ,
+
  { 31 , JAN , 2017 , RWC , "minimize_in_1D func" , MICRO , TYPE_GENERAL ,
    "Modify to be more robust (I hope)." ,
    "Used in solving for inverse to mixed model ACF (e.g., to get FWHM)." } ,
