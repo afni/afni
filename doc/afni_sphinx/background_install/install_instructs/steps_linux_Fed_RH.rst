@@ -8,13 +8,16 @@
 
 
 Here we describe installation and system setup for reasonably modern
-Linux versions of Fedora (21+) and Red Hat (RHEL) 7.
+Linux versions of Fedora (21+) and Red Hat (RHEL) 7, along with the
+corresponding CentOS 7.
 
 Several of the following steps are system dependent, for example due
 to having different package managers, so we list parallel instructions
 for each.
 
 #. **Install prerequisite packages.**
+
+   .. note:: This is the only step that requires sudo ability.
 
    There are several packages and libraries that are needed to run the
    afni and shell programs, often even including ``tcsh``:
@@ -25,12 +28,20 @@ for each.
                            PyQt4 R-devel netpbm-progs gnome-tweak-tool ed
        sudo yum update -y
       
-   * *for RHEL 7*::
-      
-       sudo yum install -y tcsh libXp openmotif gsl xorg-x11-fonts-misc       \
-                           PyQt4 R-devel netpbm-progs gnome-tweak-tool ed     \
-                           libpng12
-       sudo yum update -y
+   * *for RHEL/CentOS 7*:
+
+     .. note:: R-devel requires epel-release (Extra Packages for Enterprize Linux)
+
+     on CentOS 7 one can enable epel-release easily::
+
+        sudo yum install -y epel-release
+
+     install libraries (once epel-release is enabled)::
+
+        sudo yum install -y tcsh libXp openmotif gsl xorg-x11-fonts-misc       \
+                            PyQt4 R-devel netpbm-progs gnome-tweak-tool ed     \
+                            libpng12
+        sudo yum update -y
             
    .. _setup_FRH_tcsh:
 #. **(optional, but recommended) Set "tcsh" to be the default shell.**
