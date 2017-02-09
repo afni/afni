@@ -41,9 +41,9 @@ ENTRY("mri_threshold") ;
       }
 
       case MRI_short:{                     /* threshold image is shorts */
-         register short th1 , th2 ;
+         register float th1 , th2 ;
          register short *thar = MRI_SHORT_PTR(thrim) ;
-         th1 = SHORTIZE(thbot) ; th2 = SHORTIZE(thtop) ;
+         th1 = THRESH_SHORTIZE(thbot) ; th2 = THRESH_SHORTIZE(thtop) ;
 
          if( thar == NULL ) EXRETURN ;
 
@@ -288,9 +288,9 @@ ENTRY("mri_threshold_minmax") ;
       }
 
       case MRI_short:{                     /* threshold image is shorts */
-         register short th1 , th2 ;
+         register float th1 , th2 ;
          register short *thar = MRI_SHORT_PTR(thrim) ;
-         th1 = SHORTIZE(thbot) ; th2 = SHORTIZE(thtop) ;
+         th1 = THRESH_SHORTIZE(thbot) ; th2 = THRESH_SHORTIZE(thtop) ;
 
          if( thar == NULL ) RETURN(result) ;
 

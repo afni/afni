@@ -2114,9 +2114,9 @@ void AFNI_sigfunc_alrm(int sig)
 
      /* The Manchurian Candidate */
 
-     "The kindest, bravest, warmest, most wonderful software you've ever used"    ,
-     "Your brains have not only been washed, but have been dry cleaned"           ,
-     "Why don't you pass the time by playing a little solitaire?"                 ,
+     "The kindest, bravest, warmest, most wonderful software you've ever used" ,
+     "Your brains have not only been washed, but have been dry cleaned"        ,
+     "Why don't you pass the time by playing a little solitaire?"              ,
 
      /* Carrie Fisher */
 
@@ -2127,18 +2127,18 @@ void AFNI_sigfunc_alrm(int sig)
 
      /* Oscar Wilde */
 
-     "We are all in the gutter, but some of us are looking at the stars"          ,
-     "Always forgive your enemies - nothing annoys them so much"                  ,
-     "Experience is the name men give to their mistakes"                          ,
-     "The truth is rarely pure and never simple"                                  ,
-     "Be yourself; everyone else is already taken"                                ,
-     "I have simple tastes: I am easily satisfied with the best"                  ,
-     "Remember -- Everything popular is wrong"                                    ,
-     "Experience is one thing you can't get for nothing"                          ,
-     "A thing is not necessarily true because a man dies for it"                  ,
-     "Moderation is fatal - nothing succeeds like excess"                         ,
-     "The world is a stage - but the play is badly cast"                          ,
-     "An idea that is not dangerous is unworthy of being called an idea at all"   ,
+     "We are all in the gutter, but some of us are looking at the stars"        ,
+     "Always forgive your enemies - nothing annoys them so much"                ,
+     "Experience is the name men give to their mistakes"                        ,
+     "The truth is rarely pure and never simple"                                ,
+     "Be yourself; everyone else is already taken"                              ,
+     "I have simple tastes: I am easily satisfied with the best"                ,
+     "Remember -- Everything popular is wrong"                                  ,
+     "Experience is one thing you can't get for nothing"                        ,
+     "A thing is not necessarily true because a man dies for it"                ,
+     "Moderation is fatal - nothing succeeds like excess"                       ,
+     "The world is a stage - but the play is badly cast"                        ,
+     "An idea that is not dangerous is unworthy of being called an idea at all" ,
 
      /* Longer quotes */
 
@@ -2183,6 +2183,7 @@ void AFNI_sigfunc_alrm(int sig)
      "What do you mean, you don't believe all those clusters in white matter?"        ,
      "For an extra pumpernickel bagel, I'll put a blob wherever you want it"          ,
      "I don't know about you, but my amygdala is lighting up like it's on fire"       ,
+     "My hippocampus stopped working years ago -- what did you say?"                  ,
      "Will all great Neptune's ocean wash this modeling error from my regression?"    ,
      "Data which passes through so many steps can hardly have much truth left"        ,
      "One man's way may be as good as another's, but we all like our own best"        ,

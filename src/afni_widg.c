@@ -7696,7 +7696,7 @@ float * get_3Dview_sort(Three_D_View *im3d, char *sel) /* ZSS April 26 2012 */
 
 /*--------------------------------------------------------------------------*/
 
-float get_3Dview_func_thresh( Three_D_View *im3d, int apply_power)
+float get_3Dview_func_thresh( Three_D_View *im3d, int apply_power )
 {
    float thresh = 0.0;
 
