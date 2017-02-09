@@ -264,8 +264,8 @@ set obval  = "${opref}_bval.txt"     # name for full afni bvals
 set odwi   = "${opref}_dwi.nii.gz"   # name for dwis
 set omask  = "${opref}_mask.nii.gz"  # name for mask
 
-set dti    = "DTI"
-set dt     = "DT.nii.gz"             # NIFTI prefix for NII output
+#set dti    = "DTI"
+set dti    = "dti.nii.gz"             # NIFTI prefix for NII output
 
 # =======================================================================
 # =========================== ** PROCESS ** =============================
@@ -367,9 +367,9 @@ endif
 
 # ----------------- make $odir/ubdir -------------
 
-if ( ! -e "$odir/$dti" ) then
-    mkdir $odir/$dti
-endif
+#if ( ! -e "$odir/$dti" ) then
+#    mkdir $odir/$dti
+#endif
 
 # ------------------- tensor fit -----------------
 
@@ -378,7 +378,7 @@ echo "++ Fitting tensor and estimating params to make:  $odir/$dti/${dt}*"
     -overwrite                         \
     -eigs -nonlinear -sep_dsets        \
     $sca                               \
-    -prefix       $odir/$dti/$dt       \
+    -prefix       $odir/$dti           \
     -mask         $odir/$omask         \
     -bmatrix_FULL $odir/$omata         \
                   $odir/$odwi
