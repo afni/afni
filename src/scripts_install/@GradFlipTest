@@ -78,7 +78,7 @@ while ( $ac <= $#argv )
     endif
 
     # ----- input file of DWIs -------------
-    if ( "$argv[$ac]" == "-indwi" ) then
+    if ( "$argv[$ac]" == "-in_dwi" ) then
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
         @ ac += 1
         set in_DSET = "$argv[$ac]"
@@ -436,7 +436,7 @@ cat << EOF
   COMMAND
 
     $this_prog  \
-    -indwi     DWI                                                  \
+    -in_dwi     DWI                                                 \
     { -in_row_vec | -in_col_vec | -in_col_matA | -in_col_matT } FF  \
     { -mask MASK }                                                  \
     { -in_bvals BB }                                                \
@@ -450,7 +450,7 @@ cat << EOF
   USAGE
     (*must* input 1 set of DWIs *and* 1 set of grads-- choice of format):
 
-    -indwi     DWI  :set of DWIs (N total volumes)
+    -in_dwi    DWI  :set of DWIs (N total volumes)
     -in_row_vec  FF :set of row-wise gradient vectors
     -in_col_vec  FF :set of column-wise gradient vectors
     -in_col_matA FF :set of column-wise g- or b-matrix elements
@@ -485,13 +485,13 @@ cat << EOF
   EXAMPLES
 
     $this_prog  \
-        -indwi        DWI.nii.gz          \
+        -in_dwi       DWI.nii.gz          \
         -in_col_matA  BMTXT_AFNI.txt
 
     or (perhaps if scanning infants, who have less developed myelin)
 
     $this_prog  \
-        -indwi         DWI.nii.gz         \
+        -in_dwi        DWI.nii.gz         \
         -in_col_vec    GRADS.txt          \
         -mask          mask_DWI.nii.gz    \
         -alg_Thresh_FA 0.1
