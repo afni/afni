@@ -167,7 +167,7 @@ if ( "$#check" == "0" ) then
 endif
 
 # check mask, if one has been input
-if ( $in_MASK ) then
+if ( "$in_MASK" != "" ) then
     set check = `3dinfo "$in_MASK"`
     if ( "$#check" == "0" ) then
         echo "** ERROR: can't find inset file $in_MASK !"
@@ -182,7 +182,7 @@ if ( "$in_CMD" == "" ) then
 endif
 
 # add bval, if necessary
-if ( $in_BVAL != "" ) then
+if ( "$in_BVAL" != "" ) then
     set in_CMD = ( $in_CMD $in_BVAL )
     echo "++ Full gradient info input: '$in_CMD' !"
 endif
@@ -243,7 +243,7 @@ endif
 # Only do Grad_o_Mat with no flipping-- only fit tensors once, and
 # then flip eigenvectors individually
 
-if ( $in_MASK ) then
+if ( "$in_MASK" != "" ) then
     echo "++ Copying mask"
     3dcalc                                   \
         -echo_edu                            \
@@ -395,6 +395,8 @@ if ( $DO_CLEAN ) then
     \rm -rf $tmpdir
 endif
 
+goto GOOD_EXIT
+
 # ========================================================================
 # ========================================================================
 
@@ -436,7 +438,7 @@ cat << EOF
   COMMAND
 
     $this_prog  \
-    -in_dwi     DWI                                                 \
+    -in_dwi     DWI                                                  \
     { -in_row_vec | -in_col_vec | -in_col_matA | -in_col_matT } FF  \
     { -mask MASK }                                                  \
     { -in_bvals BB }                                                \
@@ -450,7 +452,7 @@ cat << EOF
   USAGE
     (*must* input 1 set of DWIs *and* 1 set of grads-- choice of format):
 
-    -in_dwi    DWI  :set of DWIs (N total volumes)
+    -in_dwi     DWI :set of DWIs (N total volumes)
     -in_row_vec  FF :set of row-wise gradient vectors
     -in_col_vec  FF :set of column-wise gradient vectors
     -in_col_matA FF :set of column-wise g- or b-matrix elements
