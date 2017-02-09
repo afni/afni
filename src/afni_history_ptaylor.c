@@ -66,6 +66,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+   { 9, Feb , 2017 , PT , "@GradFlipTest" , MICRO , TYPE_BUG_FIX,
+   "Some IF conditions gave problems; some option names were inconvenient.",
+   "They are now ex-parrots.\n"
+},
+
 { 6, Feb , 2017 , PT , "@chauffeur_afni" , MINOR , TYPE_MODIFY,
    "Should deal with subbrick selection now.",
    "Works for ulay and olay sets in usual AFNI way.\n"

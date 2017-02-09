@@ -56,7 +56,9 @@ set output_cmd  = 1                # def: output copy of this command
 set cmd_file    = ""               # def: same name as viewer
 set postfix     = "dti"            # stick into name
 
-
+set DO_UNCERT   = 1
+set Niters      = 300
+set extra_unc_cmds = ""
 
 # ------------------- process options, a la rr ----------------------
 
@@ -156,6 +158,20 @@ while ( $ac <= $#argv )
 
     else if ( "$argv[$ac]" == "-no_cmd_out" ) then
         set output_cmd = 0
+
+    # ------ dti par uncert --------------
+    else if ( "$argv[$ac]" == "-uncert_off" ) then
+        set DO_UNCERT = 0
+
+    else if ( "$argv[$ac]" == "-uncert_iters" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set Niters = "$argv[$ac]"
+
+    else if ( "$argv[$ac]" == "-uncert_extra_cmds" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set extra_unc_cmds = "$argv[$ac]"
 
     else
         echo "** unexpected option #$ac = '$argv[$ac]'"
@@ -258,14 +274,16 @@ endif
 # ========================= output fnames ==========================
 
 set ocmd   = "${opref}_cmd.txt"      # name for output command
-set omata  = "${opref}_bmat.txt"     # name for full afni bmatrix
+set omata  = "${opref}_bmatA.txt"    # name for full afni bmatrix
 set obvec  = "${opref}_bvec.txt"     # name for full afni grads
 set obval  = "${opref}_bval.txt"     # name for full afni bvals
 set odwi   = "${opref}_dwi.nii.gz"   # name for dwis
 set omask  = "${opref}_mask.nii.gz"  # name for mask
 
-set dti    = "DTI"
-set dt     = "DT.nii.gz"             # NIFTI prefix for NII output
+#set dti    = "DTI"
+set dti     = "dti"                  # NIFTI prefix for NII output
+set dti_par = "${dti}.nii.gz"        # NIFTI prefix for NII output
+set dti_unc = "${dti}_UNC.nii.gz"    # name for mask
 
 # =======================================================================
 # =========================== ** PROCESS ** =============================
@@ -365,23 +383,33 @@ else
         -prefix $odir/$omask
 endif
 
-# ----------------- make $odir/ubdir -------------
-
-if ( ! -e "$odir/$dti" ) then
-    mkdir $odir/$dti
-endif
-
 # ------------------- tensor fit -----------------
 
-echo "++ Fitting tensor and estimating params to make:  $odir/$dti/${dt}*"
+echo "++ Fitting tensor and estimating params to make:  $odir/${dti_par}*"
 3dDWItoDT                              \
+    -echo_edu                          \
     -overwrite                         \
     -eigs -nonlinear -sep_dsets        \
     $sca                               \
-    -prefix       $odir/$dti/$dt       \
+    -prefix       $odir/$dti_par       \
     -mask         $odir/$omask         \
     -bmatrix_FULL $odir/$omata         \
                   $odir/$odwi
+
+echo "++ Tensor par. uncertainty with $Niters iterations:  $odir/${dti_unc}*"
+
+if ( $DO_UNCERT ) then
+    3dDWUncert                             \
+        -echo_edu                          \
+        -overwrite                         \
+        -inset         $odir/$odwi         \
+        -input         $odir/$dti          \
+        -bmatrix_FULL  $odir/$omata        \
+        -mask          $odir/$omask        \
+        -prefix        $odir/$dti_unc      \
+        -iters         $Niters             \
+        $extra_unc_cmds
+endif
 
 # ---------------------------- VIEWER ---------------------------------
 
