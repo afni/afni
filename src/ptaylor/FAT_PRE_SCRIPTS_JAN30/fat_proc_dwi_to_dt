@@ -53,6 +53,7 @@ set ori_new  = "RPI"              # default file output orientation
 set DO_VIEWER   = 1               # def: do viewing
 set qc_prefix   = ""              # def: autoname; user can enter
 set qc_fa_thr   = 0.2             # def: FA olay thr for QC
+set qc_fa_max   = 0.9             # def: FA olay max for QC
 set output_cmd  = 1               # def: output copy of this command
                                   # -> should expand to have all cmds
 set cmd_file    = ""              # def: same name as viewer
@@ -154,6 +155,11 @@ while ( $ac <= $#argv )
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
         @ ac += 1
         set qc_fa_thr = "$argv[$ac]"
+
+    else if ( "$argv[$ac]" == "-qc_fa_max" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set qc_fa_max = "$argv[$ac]"
 
     else if ( "$argv[$ac]" == "-qc_prefix" ) then
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
@@ -443,11 +449,14 @@ if ( $DO_VIEWER ) then
             -do_clean 
     endif
 
-        echo "++ QC image 01 (final output FA>thr on MD): $vpref1"
+        echo "\n\n++ QC image 01 (final output FA>thr on MD): $vpref1"
+        echo "   (olay colorbar is 'Plasma', with max value ${qc_fa_max})\n\n"
+
         $my_viewer                              \
             -ulay "$odir/${dtipref}_MD.nii.gz"  \
             -ulay_range "2%" "98%"              \
             -olay "$odir/${dtipref}_FA.nii.gz"  \
+            -func_range $qc_fa_max              \
             -thr_olay $qc_fa_thr                \
             -opacity 7                          \
             -prefix $vpref1                     \
@@ -458,7 +467,7 @@ if ( $DO_VIEWER ) then
             -do_clean    
 
     if ( 0 ) then
-    echo "++ QC image 01 (earlier allin olaying ref ulay): $vpref2"
+    echo "\n\n++ QC image 01 (earlier allin olaying ref ulay): $vpref2\n\n"
     $my_viewer      -ulay $rout                     \
                     -olay $qc2o                     \
                     -prefix $vpref2                 \
@@ -513,6 +522,8 @@ cat << EOF
    {-flip_x | -flip_y | -flip_z | -no_flip}       \
    {-scale_out_1000}                              \
    {-qc_prefix QCPREF}                            \
+   {-qc_fa_thr TTT}                               \
+   {-qc_fa_max MMM}                               \
    {-no_qc_view}                                  \
    {-no_cmd_out}                                  \
    {-uncert_off}                                  \
@@ -559,9 +570,12 @@ cat << EOF
                       you might have small numerical values leading to 
                       issues with statistical modeling.
 
-   -qc_fa_thr MMM    :set threshold for overlay FA volume in QC image
-                      (default:  MMM=0.2, as for healthy adult human 
+   -qc_fa_thr TTT    :set threshold for overlay FA volume in QC image
+                      (default:  TTT=0.2, as for healthy adult human 
                       parenchyma).
+   -qc_fa_max MMM    :set cbar max for overlay FA volume in QC image
+                      (default:  MMM=0.9, a very large value even for 
+                      healthy adult human parenchyma).
    -qc_prefix QCPREF :can set the prefix of the QC image files separately
                       (default is '$opref').
    -no_qc_view       :can turn off generating QC image files (why??)
