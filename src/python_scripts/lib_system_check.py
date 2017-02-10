@@ -581,7 +581,7 @@ class SysInfo:
       # if not even set, fail
       if s or not so:
          print '** env var %s not set to contain %s' % (evar, val)
-         self.comments.append('please set %s to %s'%(evar,val))
+         self.comments.append('please set %s to %s in %s' % (evar, val, shell))
          return 0
 
       # convert ':' delimited val list to array, and search for val
