@@ -7,8 +7,8 @@
 # Jan 27, 2017
 #   + update opts
 #
-set version   = "1.2"
-set rev_dat   = "Feb 6, 2017"
+set version   = "1.3"
+set rev_dat   = "Feb, 2017"
 #   + drive viewer
 #
 # ----------------------------------------------------------------
@@ -46,15 +46,17 @@ set sca      = ""                 # for 3dDWItoDT: -scale_out_1000
 
 set odir     = ""
 set opref    = "dwi"
+set dtipref  = "dt"               # NIFTI prefix for NII output
 set postfix  = "parfit"
 set ori_new  = "RPI"              # default file output orientation
 
-set DO_VIEWER   = 1                # def: do viewing
-set qc_prefix   = ""               # def: autoname; user can enter
-set output_cmd  = 1                # def: output copy of this command
-                                   # -> should expand to have all cmds
-set cmd_file    = ""               # def: same name as viewer
-set postfix     = "dti"            # stick into name
+set DO_VIEWER   = 1               # def: do viewing
+set qc_prefix   = ""              # def: autoname; user can enter
+set qc_fa_thr   = 0.2             # def: FA olay thr for QC
+set output_cmd  = 1               # def: output copy of this command
+                                  # -> should expand to have all cmds
+set cmd_file    = ""              # def: same name as viewer
+set postfix     = "dti"           # stick into name
 
 set DO_UNCERT   = 1
 set Niters      = 300
@@ -128,17 +130,17 @@ while ( $ac <= $#argv )
         @ ac += 1
         set odir = "$argv[$ac]"
 
-    else if ( "$argv[$ac]" == "-prefix" ) then
+    else if ( "$argv[$ac]" == "-prefix_dwi" ) then
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
         @ ac += 1
         set opref = "$argv[$ac]"
 
-    # ----------------- other opts ---------------------
-    else if ( "$argv[$ac]" == "-orient" ) then
+    else if ( "$argv[$ac]" == "-prefix_dti" ) then
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
         @ ac += 1
-        set ori_new = "$argv[$ac]"
+        set dtipref = "$argv[$ac]"
 
+    # ----------------- other opts ---------------------
     else if ( ("$argv[$ac]" == "-flip_x") || \
               ("$argv[$ac]" == "-flip_y") || \
               ("$argv[$ac]" == "-flip_z") || \
@@ -147,6 +149,11 @@ while ( $ac <= $#argv )
 
     else if ( "$argv[$ac]" == "-scale_out_1000" ) then
         set sca = "-scale_out_1000"
+
+    else if ( "$argv[$ac]" == "-qc_fa_thr" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set qc_fa_thr = "$argv[$ac]"
 
     else if ( "$argv[$ac]" == "-qc_prefix" ) then
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
@@ -281,9 +288,8 @@ set odwi   = "${opref}_dwi.nii.gz"   # name for dwis
 set omask  = "${opref}_mask.nii.gz"  # name for mask
 
 #set dti    = "DTI"
-set dti     = "dti"                  # NIFTI prefix for NII output
-set dti_par = "${dti}.nii.gz"        # NIFTI prefix for NII output
-set dti_unc = "${dti}_UNC.nii.gz"    # name for mask
+set dti_par = "${dtipref}.nii.gz"    # NIFTI prefix for NII output
+set dti_unc = "${dtipref}_UNC.nii.gz" # name for mask
 
 # =======================================================================
 # =========================== ** PROCESS ** =============================
@@ -313,31 +319,27 @@ if ( $output_cmd == 1 ) then
 endif
 
 # ----------------- grads/bmats ---------------------
-
 # Make grad file: bmatrix, bvector and bvalues
-if ( 1 ) then
 
-    # make grads ...
-    1dDW_Grad_o_Mat++                     \
-        -overwrite                        \
-        -echo_edu                         \
-        $iflip                            \
-        -out_col_vec      $odir/$obvec    \
-        -out_col_bval_sep $odir/$obval    \
-        "$invecmat[1]" "$invecmat[2]"     \
-        "$invecmat[3]" "$invecmat[4]" 
+# make grads ...
+1dDW_Grad_o_Mat++                     \
+    -overwrite                        \
+    -echo_edu                         \
+    $iflip                            \
+    -out_col_vec      $odir/$obvec    \
+    -out_col_bval_sep $odir/$obval    \
+    "$invecmat[1]" "$invecmat[2]"     \
+    "$invecmat[3]" "$invecmat[4]" 
 
-
-    # ... and matching matA
-    1dDW_Grad_o_Mat++                     \
-        -echo_edu                         \
-        -in_col_vec       $odir/$obvec    \
-        -out_col_matA     $odir/$omata    \
-        -overwrite
-endif
+# ... and matching matA
+1dDW_Grad_o_Mat++                     \
+    -echo_edu                         \
+    -in_col_vec       $odir/$obvec    \
+    -out_col_matA     $odir/$omata    \
+    -overwrite
 
 # -------------- copy DWI/reset ori^2 --------------
-
+if ( 0 ) then ###!!!!!
 if ( "$iref" != "" ) then
     # use reference dset for orientation/origin when copying
     echo "++ Resampling/fitting DWIs:  $odir/$odwi"
@@ -403,14 +405,14 @@ if ( $DO_UNCERT ) then
         -echo_edu                          \
         -overwrite                         \
         -inset         $odir/$odwi         \
-        -input         $odir/$dti          \
+        -input         $odir/$dtipref      \
         -bmatrix_FULL  $odir/$omata        \
         -mask          $odir/$omask        \
         -prefix        $odir/$dti_unc      \
         -iters         $Niters             \
         $extra_unc_cmds
 endif
-
+endif # !!!
 # ---------------------------- VIEWER ---------------------------------
 
 if ( $DO_VIEWER ) then
@@ -419,37 +421,43 @@ if ( $DO_VIEWER ) then
 
     if( $qc_prefix == "" ) then
         set vpref0 = ${opref}_${postfix}_qc00_fin
-        set vpref1 = ${opref}_${postfix}_qc01_mat
+        set vpref1 = ${opref}_${postfix}_qc01_FAMD
     else
         set vpref0 = ${qc_prefix}_${postfix}_qc00_fin
-        set vpref1 = ${qc_prefix}_${postfix}_qc01_mat
+        set vpref1 = ${qc_prefix}_${postfix}_qc01_FAMD
     endif
 
     if( "$iref" != "" ) then
 
         echo "++ QC image 00 ($odir/${odwi}[0] on $iref): $vpref0"
         # need to put '[0]' on $iref?
-        $my_viewer  -ulay "$iref"                   \
-                    -olay "$odir/${odwi}""[0]"      \
-                    -prefix $vpref0                 \
-                    -outdir "$odir"                 \
-                    -montx 5 -monty 3               \
-                    -set_xhairs MULTI               \
-                    -label_mode 1 -label_size 3     \
-                    -do_clean 
+        $my_viewer                            \
+            -ulay "$iref"                     \
+            -ulay_range "2%" "98%"            \
+            -olay "$odir/${odwi}""[0]"        \
+            -prefix $vpref0                   \
+            -outdir "$odir"                   \
+            -montx 5 -monty 3                 \
+            -set_xhairs MULTI                 \
+            -label_mode 1 -label_size 3       \
+            -do_clean 
     endif
 
-    if ( 0 ) then
-    echo "++ QC image 00 (final output ulay): $vpref1"
-    $my_viewer      -ulay $fout                     \
-                    -prefix $vpref1                 \
-                    -outdir ".."                    \
-                    -montx 3 -monty 3               \
-                    -set_xhairs MULTI               \
-                    -label_mode 1 -label_size 3     \
-                    -do_clean                       \
-                    $user_frange
+        echo "++ QC image 01 (final output FA>thr on MD): $vpref1"
+        $my_viewer                              \
+            -ulay "$odir/${dtipref}_MD.nii.gz"  \
+            -ulay_range "2%" "98%"              \
+            -olay "$odir/${dtipref}_FA.nii.gz"  \
+            -thr_olay $qc_fa_thr                \
+            -opacity 7                          \
+            -prefix $vpref1                     \
+            -outdir "$odir"                     \
+            -montx 5 -monty 3                   \
+            -set_xhairs MULTI                   \
+            -label_mode 1 -label_size 3         \
+            -do_clean    
 
+    if ( 0 ) then
     echo "++ QC image 01 (earlier allin olaying ref ulay): $vpref2"
     $my_viewer      -ulay $rout                     \
                     -olay $qc2o                     \
@@ -466,8 +474,6 @@ endif
 
 # ---------------------------------------------------------------------
 
-
-
 goto GOOD_EXIT
 
 # ========================================================================
@@ -477,7 +483,99 @@ SHOW_HELP:
 cat << EOF
 -------------------------------------------------------------------------
 
+ This program is for doing tensor and DT parameter fitting, as well as
+ the uncertainty of DT parameters that are needed for tractography.
 
+  Ver. $version (PA Taylor, ${rev_dat})
+
+-------------------------------------------------------------------------
+
+  RUNNING:
+
+  This script has two *required* arguments ('-in_dwi ...' and some
+  kind of gradient/matrix file input.  The rest are optional, but I
+  would often recommend also inputting a reference data set ('-in_ref
+  ...')  if you have used a processing tool that resets
+  origin+orientation (such as TORTOISE), as well as using
+  '-scale_out_1000' to make the output units of the physical DT
+  measures nicer.
+
+  $this_prog  \
+   -in_dwi       DWI                              \
+   {-in_col_matA | -in_col_matT |                 \
+    -in_col_vec | -in_row_vec} GRADMAT            \
+   {-in_bvals BVAL }                              \
+   {-in_mask MASK}                                \
+   {-in_ref  REF}                                 \
+   {-outdir  ODIR}                                \
+   {-prefix_dwi PREFIX1}                          \
+   {-prefix_dti PREFIX2}                          \
+   {-flip_x | -flip_y | -flip_z | -no_flip}       \
+   {-scale_out_1000}                              \
+   {-qc_prefix QCPREF}                            \
+   {-no_qc_view}                                  \
+   {-no_cmd_out}                                  \
+   {-uncert_off}                                  \
+   {-uncert_iters NN}                             \
+   {-uncert_extra_cmds STR}
+
+  where
+    -in_dwi     DWI  :4D volume of N DWIs.
+
+    -in_col_matA | -in_col_matT | -in_col_vec | -in_row_vec  GRADMAT
+                     :input text file of N gradient vectors or 
+                      bmatrices. If these still have physical units
+                      in them (or via the BVAL file), consider
+                      using '-scale_out_1000', as well.
+   -in_bvals    BVAL :optional, if bvalue information is
+                      in a separate file from the b-vectors
+                      or matrices; should have same number N as
+                      volumes and vectors/matrices.
+   -flip_x | -flip_y | -flip_z | -no_flip
+                     :can flip the DW grads, if needed; for example, 
+                      based on the recommendation of @GradFlipTest.
+
+   -in_mask     MASK :optional whole brain mask can be input;
+                      otherwise, automasking is performed for the 
+                      region to be tensor and parameter fit.
+   -in_ref      REF  :use another data set to adjust the DWI (and
+                      subsequent parameter) dsets' orientation and
+                      origin;  this can be really useful when using
+                      a preprocessing program that changes these 
+                      from the input (for example, after TORTOISEing
+                      I would use this with the REF as the pre-TORTOISE
+                      anatomical or something).
+
+   -outdir      ODIR :can specify output directory for all created 
+                      dsets (default is 'current' directory).
+ -prefix_dwi PREFIX1 :set prefix for output DWI data; default is '${opref}'.
+ -prefix_dti PREFIX2 :set prefix for output DTI data; default is '${dtipref}'.
+
+   -scale_out_1000   :if you have the DW b-value in the gradient vectors
+                      or grads, then I would recommend using this; see the 
+                      3dDWItoDT help file for what this entails.  Basically,
+                      you will likely have nicer numeric values (from 
+                      scaling physical length units by 1000); otherwise,
+                      you might have small numerical values leading to 
+                      issues with statistical modeling.
+
+   -qc_fa_thr MMM    :set threshold for overlay FA volume in QC image
+                      (default:  MMM=0.2, as for healthy adult human 
+                      parenchyma).
+   -qc_prefix QCPREF :can set the prefix of the QC image files separately
+                      (default is '$opref').
+   -no_qc_view       :can turn off generating QC image files (why??)
+   -no_cmd_out       :don't save the command line call of this program
+                      and the location where it was run (otherwise, it is
+                      saved by default in the ODIR/).
+
+   -uncert_off       :don't do uncertainty calc (default is to do so); 
+                      perhaps if it is slow or you want *very* different
+                      options.
+   -uncert_iters NN  :set the number of Monte Carlo iterations for the
+                      uncertainty calc (default NN=300).
+-uncert_extra_cmds STR:put in extra commands for the uncertainty calcs
+                      (see the 3dDWUncert helpfile for more opts).
 
 -------------------------------------------------------------------------
 
