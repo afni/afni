@@ -384,7 +384,29 @@ if ( ( $urange == "VOLUME" ) || ( $urange == "DSET" )  \
 
     if ( $USER_ULAY_RANGE ) then
         echo "++ Copying ulay to visualize (volumetric) within user's range:"
-        echo "   [${umin},${umax}]"
+
+        # will be 0 if no percent; otherwise, >0 if percent
+        set is_umin_perc = `echo ${umin} | awk '{print index ( $0,"%" ) }'`
+        set is_umax_perc = `echo ${umax} | awk '{print index ( $0,"%" ) }'`
+
+        if ( ($is_umin_perc > 0) && ($is_umax_perc > 0) ) then
+            # percentages!
+            set pmin  = "$umin"
+            set pmax  = "$umax"
+
+            set amin  = `3dBrickStat -percentile ${umin} 1 ${umin} "$ulay"`
+            set amax  = `3dBrickStat -percentile ${umax} 1 ${umax} "$ulay"`
+                
+            set umin = $amin[2]
+            set umax = $amax[2]
+
+            echo "++ Copying ulay to visualize (volumetric) within user's range:"
+            echo "  [${pmin},${pmax}] -> [${umin},${umax}]"
+
+        else
+            echo "++ Copying ulay to visualize (volumetric) within user's range:"
+            echo "   [${umin}, ${umax}]"
+        endif
     else
         set ubs  = `3dBrickStat -percentile 2 96 98 "$ulay"`
         set umin = $ubs[2]
