@@ -10924,7 +10924,7 @@ IndexWarp3D * IW3D_warpomatic( MRI_IMAGE *bim, MRI_IMAGE *wbim, MRI_IMAGE *sim,
    int ibot,itop,idon , jbot,jtop,jdon , kbot,ktop,kdon , dox,doy,doz , iii ;
    float flev , glev , Hcostold , Hcostmid=0.0f,Hcostend=0.0f,Hcostbeg=999.9f ;
    int imin,imax , jmin,jmax, kmin,kmax , ibbb,ittt , jbbb,jttt , kbbb,kttt ;
-   int dkkk,djjj,diii , ngmin=0 , levdone=0 , pcon ;
+   int dkkk,djjj,diii , ngmin=0 , levdone=0 , pcon , do_qfinal=0 ;
    int qmode=MRI_CUBIC , qmode2=MRI_CUBIC , qmodeX , nlevr , nsup,isup ;
    IndexWarp3D *OutWarp ;  /* the return value */
    char warplab[64] ;      /* 02 Jan 2015 */
@@ -11166,13 +11166,14 @@ ENTRY("IW3D_warpomatic") ;
 
      qmode = qmode2 = MRI_CUBIC ;  /* cubic patches from here on down */
 #ifdef ALLOW_QMODE                 /* or just maybe we'll do quintic? */
-     if( (levdone && !Hduplo && Hqfinal) || Hqonly ){ qmode = qmode2 = MRI_QUINTIC ; }
-     else if( Hqhard && !Hduplo )                   { qmode2 = MRI_QUINTIC ; }
+     do_qfinal = (Hfinal && Hqfinal) ;
+     if( do_qfinal || Hqonly )   { qmode = qmode2 = MRI_QUINTIC ; }
+     else if( Hqhard && !Hduplo ){ qmode2 = MRI_QUINTIC ; }
      if( xwid < NGMIN_Q || ywid < NGMIN_Q || zwid < NGMIN_Q )  /* 28 Oct 2015 */
        qmode = qmode2 = MRI_CUBIC ;
 #endif
 #ifdef ALLOW_BASIS5
-     if( (levdone && !Hduplo && H5final) && xwid*ywid*zwid < NVOXMAX_PLUS ){
+     if( (Hfinal && H5final) && xwid*ywid*zwid < NVOXMAX_PLUS ){
        if(        xwid*ywid*zwid >= NGMIN_PLUS_3*NGMIN_PLUS_3*NGMIN_PLUS_3 && H5final >= 3 ){
          qmode = qmode2 = MRI_CUBIC_PLUS_3 ;
        } else if( xwid*ywid*zwid >= NGMIN_PLUS_2*NGMIN_PLUS_2*NGMIN_PLUS_2 && H5final >= 2 ){
@@ -11210,7 +11211,8 @@ ENTRY("IW3D_warpomatic") ;
         the purpose of this is so that one side of the box doesn't get favored */
 
      if( lev%2 == 1 || nlevr > 1 ){  /* sweep from bot to top, ijk order */
-      if( nlevr > 1 ) powell_newuoa_set_con_box() ;
+           if( do_qfinal ) powell_newuoa_set_con_ball() ;
+      else if( nlevr > 1 ) powell_newuoa_set_con_box() ;
       for( isup=0 ; isup < nsup ; isup++ ){  /* working superhard? do this twice! */
        for( kdon=0,kbot=kbbb ; !kdon ; kbot += dkkk ){  /* loop over z direction of patches */
          ktop = kbot+zwid-1;  /* top edge of patch: maybe edit it down or up */
@@ -11254,7 +11256,7 @@ ENTRY("IW3D_warpomatic") ;
 
      if( lev%2 == 0 || nlevr > 1 ){ /* sweep from top to bot, kji order */
        if( nlevr > 1 && Hverb == 1 ) fprintf(stderr,":[cost=%.5f]:",Hcost) ;
-       if( nlevr > 1 ) powell_newuoa_set_con_ball() ;
+       if( do_qfinal || nlevr > 1 ) powell_newuoa_set_con_ball() ;
        qmodeX = (nlevr > 1) ? qmode2 : qmode ;
       for( isup=0 ; isup < nsup ; isup++ ){  /* superhard? */
        for( idon=0,itop=ittt ; !idon ; itop -= diii ){
@@ -12657,7 +12659,7 @@ IndexWarp3D * IW3D_warpomatic_plusminus( MRI_IMAGE *bim, MRI_IMAGE *wbim, MRI_IM
    IndexWarp3D *OutWarp ;
    float flev , glev , Hcostold , Hcostmid=0.0f,Hcostend=0.0f ;
    int imin,imax , jmin,jmax, kmin,kmax , ibbb,ittt , jbbb,jttt , kbbb,kttt ;
-   int dkkk,djjj,diii , ngmin=0 , levdone=0 ;
+   int dkkk,djjj,diii , ngmin=0 , levdone=0 , do_qfinal=0 ;
    int qmode=MRI_CUBIC , nlevr , nsup,isup , myIwarp=0 ;
    int qmode2=MRI_CUBIC , qmodeX ;
 
@@ -12828,8 +12830,9 @@ ENTRY("IW3D_warpomatic_plusminus") ;
 
      qmode = qmode2 = MRI_CUBIC ;  /* cubic patches from here on down */
 #ifdef ALLOW_QMODE
-     if( (levdone && !Hduplo && Hqfinal) || Hqonly ){ qmode = qmode2 = MRI_QUINTIC ; }
-     else if( Hqhard && !Hduplo )                   { qmode2 = MRI_QUINTIC ; }
+     do_qfinal = (Hfinal && Hqfinal) ;
+     if( do_qfinal || Hqonly )   { qmode = qmode2 = MRI_QUINTIC ; }
+     else if( Hqhard && !Hduplo ){ qmode2 = MRI_QUINTIC ; }
      if( xwid < NGMIN_Q || ywid < NGMIN_Q || zwid < NGMIN_Q )  /* 28 Oct 2015 */
        qmode = qmode2 = MRI_CUBIC ;
 #endif
