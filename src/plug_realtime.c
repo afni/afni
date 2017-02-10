@@ -882,21 +882,18 @@ PLUGIN_interface * PLUGIN_init( int ncall )
 
    /* initialize this - it can be overwritten in the plugin  23 Jan 2017 */
    /* rcr - but if coming throught the plugin, do not do this */
+   /* rcr - fix */
    ept = getenv("AFNI_REALTIME_T2star_ref");
-   if( ept ){
+   if( ept ) {
       /* remove any old one, first */
       if( g_t2star_ref_dset ) DSET_delete(g_t2star_ref_dset);
       g_t2star_ref_dset = THD_open_dataset(ept);
       if( g_t2star_ref_dset )
-{
-fprintf(stderr,"== pickles\n");
          fprintf(stderr,"== RTMerge: have T2star_ref from env, %s\n", ept);
-}
       else
          fprintf(stderr,"** RTMerge: bad T2star_ref from env, %s\n", ept);
-   }
-else
-fprintf(stderr,"-- no T2star_ref from env\n");
+   } else
+         fprintf(stderr,"-- no T2star_ref from env\n");
 
    PLUTO_add_option(plint, "" , "Registration Base" , FALSE ) ;
    PLUTO_add_hint  (plint, "choose registration base dataset and sub-brick");
@@ -1183,23 +1180,20 @@ char * RT_main( PLUGIN_interface * plint )
             g_reg_base_dset = NULL;
          }
 
-         /* rcr - if coming through the plugin, we should not delete */
-         if( g_t2star_ref_dset ) { /* if changed: remove reference to any existing */
-fprintf(stderr,"======= clearing old ref_dset\n");
-            DSET_delete(g_t2star_ref_dset);
-            g_t2star_ref_dset = NULL;
-         }
-
+         /* if coming through the plugin, afni already knows about the
+          * dataset, so we do not need to delete it
+          * (or we make a plugin copy, as with g_reg_base_dset) */
          idc = PLUTO_get_idcode(plint) ;
          g_t2star_ref_dset = PLUTO_find_dset(idc);     /* might be NULL */
 
          if (verbose)
             fprintf(stderr,
-                    "RTM: reg base mode '%s', index %d, dset %s, src chan %d, t2* ref %s\n",
-                    REG_BASE_strings[g_reg_base_mode], regtime,
-                    g_reg_base_dset ? "<found>" : "<empty>",
-                    g_reg_src_chan,
-                    g_t2star_ref_dset ? "<found>" : "<empty>");
+               "RTM: reg base mode '%s', index %d, dset %s, src chan %d,"
+               " t2* ref %s\n",
+               REG_BASE_strings[g_reg_base_mode], regtime,
+               g_reg_base_dset ? "<found>" : "<empty>",
+               g_reg_src_chan,
+               g_t2star_ref_dset ? "<found>" : "<empty>");
 
          /* Potential check here ? for Reg base and T2* Ref to have
             matching grids?                                         */
@@ -2291,13 +2285,9 @@ RT_input * new_RT_input( IOCHAN *ioc_data )
    rtin->mp_npsets  = 0 ;
    strcpy(rtin->mp_host, "localhost") ;
 
-   /* No need to copy */
-   // if(g_t2star_ref_dset) rtin->t2star_ref_dset=THD_copy_one_sub(g_t2star_ref_dset,0);
-   /* Just use data set as is */
+   /* make a local copy of the t2star dataset pointer */
    if(g_t2star_ref_dset) rtin->t2star_ref_dset=g_t2star_ref_dset;
    else                  rtin->t2star_ref_dset=NULL;
-fprintf(stderr,"-- INIT: t2star_ref_dset=%p, g=%p\n",
-        rtin->t2star_ref_dset, g_t2star_ref_dset);
 
    rtin->mask       = NULL ;      /* mask averages, to send w/motion params */
    rtin->mask_aves  = NULL ;      /*                    10 Nov 2006 [rickr] */
@@ -3834,8 +3824,8 @@ int RT_process_info( int ninfo , char * info , RT_input * rtin )
       }
    }  /* end of loop over command buffers */
 
-   /* check numte against num_chan (can equal, or numte == 1) */ {
-      }
+   /* check numte against num_chan (can equal, or numte == 1) */
+      
    if( numte > 0 ) {
       if( rtin->num_chan > 1 && numte == 1 ) /* then dupe */
          for( jj=1; jj < rtin->num_chan; jj++ ) rtin->TE[jj] = rtin->TE[0] ;
@@ -4273,6 +4263,7 @@ void RT_start_dataset( RT_input * rtin )
 
    /*---- 02 Jun 2009: make a dataset for merger, if need be ----*/
 
+   /* if not appropriate for merging, disable */
    if( rtin->num_chan == 1 || !MRI_IS_FLOAT_TYPE(rtin->datum) ) {
      /* fail only if not in OPT_COMB mode */
      if( ! (RT_chmrg_mode==RT_CHMER_OPT_COMB && rtin->datum == MRI_short) ) {
@@ -4918,7 +4909,7 @@ void RT_process_image( RT_input * rtin )
       if( cc+1 == rtin->num_chan && 
           RT_when_to_merge() == RT_CM_MERGE_AFTER_REG ) {
 
-{/* rcr fix */
+{/* rcr - fix */
  static int nmerged = 0;
  int tt;
  int ntt = DSET_NUM_TIMES( rtin->dset[g_reg_src_chan] ) ;
