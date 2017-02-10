@@ -10581,7 +10581,7 @@ int IW3D_improve_warp( int warp_code ,
                        int ibot, int itop, int jbot, int jtop, int kbot, int ktop )
 {
    MRI_IMAGE *warpim ;
-   int nxh,nyh,nzh , ii,jj,kk , iter,itmax,qq,pp , nwb ;
+   int nxh,nyh,nzh , ii,jj,kk , iter,itmax,qq,pp , nwb , nball ;
    float *wbfar , wsum ; double prad ;
    double *parvec, *xbot,*xtop ;
    float *sar , *Axd,*Ayd,*Azd,*Aje,*Ase , *bxd,*byd,*bzd,*bje,*bse , jt,st ;
@@ -10608,6 +10608,11 @@ ENTRY("IW3D_improve_warp") ;
    /* test if this region has enough "weight" to process */
 
    Hnval = nxh*nyh*nzh ;  /* number of points in this patch */
+
+   nball = (warp_code==MRI_CUBIC) ? 15 : 19 ;
+   if( nxh < nball || nyh < nball || nzh < nball ){      /* 10 Feb 2017 */
+     powell_newuoa_set_con_ball() ; ballopt = 1 ;
+   }
 
    wbfar = MRI_FLOAT_PTR(Hwtim) ; wsum = 0.0f ;  /* sum of weights in the patch */
    for( nwb=0,kk=kbot ; kk <= ktop ; kk++ ){
@@ -10641,10 +10646,10 @@ ENTRY("IW3D_improve_warp") ;
      default:
      case MRI_CUBIC:
        Hbasis_code   = MRI_CUBIC ;                   /* 3rd order polynomials */
-       Hbasis_parmax = 0.0333*Hfactor ;   /* max displacement from 1 function */
-       if( ballopt ) Hbasis_parmax = 0.066*Hfactor ;           /* 13 Jan 2015 */
+       Hbasis_parmax = 0.0444*Hfactor ;   /* max displacement from 1 function */
+       if( ballopt ) Hbasis_parmax = 0.0777*Hfactor ;          /* 13 Jan 2015 */
        Hnpar         = 24 ;                /* number of params for local warp */
-       prad          = 0.444 ;                       /* NEWUOA initial radius */
+       prad          = 0.333 ;                       /* NEWUOA initial radius */
        HCwarp_setup_basis( nxh,nyh,nzh, Hgflags ) ;      /* setup HCwarp_load */
 #ifdef USE_HLOADER
        Hloader       = HCwarp_load ;   /* func to make local warp from params */
@@ -10653,8 +10658,8 @@ ENTRY("IW3D_improve_warp") ;
 
      case MRI_QUINTIC:
        Hbasis_code   = MRI_QUINTIC ;                 /* 5th order polynomials */
-       Hbasis_parmax = 0.0077*Hfactor ;
-       if( ballopt ) Hbasis_parmax = 0.050*Hfactor ;           /* 13 Jan 2015 */
+       Hbasis_parmax = 0.0088*Hfactor ;
+       if( ballopt ) Hbasis_parmax = 0.066*Hfactor ;           /* 13 Jan 2015 */
        Hnpar         = 81 ;
        prad          = 0.333 ;
        HQwarp_setup_basis( nxh,nyh,nzh, Hgflags ) ;
@@ -10816,7 +10821,9 @@ ENTRY("IW3D_improve_warp") ;
    /** set maximum number of iterations allowed in the NEWUOA code **/
 
    itmax = (Hduplo) ? 6*Hnparmap+29 : 8*Hnparmap+31 ;
+#if 0
    if( WORKHARD(Hlev_now) || SUPERHARD(Hlev_now) ) itmax -= Hnparmap ;
+#endif
 
    if( Hverb > 3 ){
 /* INFO_message("itmax = %d",itmax) ; */
