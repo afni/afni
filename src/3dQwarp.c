@@ -1053,7 +1053,7 @@ void Qhelp(void)
     "                [this is the default at present].\n"
     "               * Note that if '-workhard' is used, then ball and box optimization\n"
     "                 are alternated in the different iterations at each level, so\n"
-    "                 these two options have not effect in that case.\n"
+    "                 these two options have no effect in that case.\n"
     "\n"
     " -verb        = Print out very very verbose progress messages (to stderr) :-)\n"
     " -quiet       = Cut out most of the fun fun fun progress messages :-(\n"

@@ -10609,6 +10609,10 @@ ENTRY("IW3D_improve_warp") ;
 
    Hnval = nxh*nyh*nzh ;  /* number of points in this patch */
 
+   if( nxh < 15 || nyh < 15 || nzh < 15 ){        /* 10 Feb 2017 */
+     powell_newuoa_set_con_ball() ; ballopt = 1 ;
+   }
+
    wbfar = MRI_FLOAT_PTR(Hwtim) ; wsum = 0.0f ;  /* sum of weights in the patch */
    for( nwb=0,kk=kbot ; kk <= ktop ; kk++ ){
      for( jj=jbot ; jj <= jtop ; jj++ ){
