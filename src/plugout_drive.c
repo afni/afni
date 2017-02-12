@@ -43,7 +43,7 @@
 
 static char afni_host[128] = "localhost" ;
 static char afni_name[128] = "\0" ;
-static int  afni_port      = 0 ;  /* Init. before parsing command line  
+static int  afni_port      = 0 ;  /* Init. before parsing command line
                                     ZSS June 2011 */
 static int  afni_verbose   = 0 ;  /* print out debug info? */
 static int  DontWait = 0;
@@ -117,14 +117,14 @@ int afni_io(void)
       char afni_iocname[128] ;           /* will hold name of I/O channel */
 
       /** Note that the control channel is always a
-          TCP/IP channel to port #get_port_named("AFNI_PLUGOUT_TCP_0") 
+          TCP/IP channel to port #get_port_named("AFNI_PLUGOUT_TCP_0")
           (used to be #7955) on the AFNI host system **/
 
       if( strcmp(afni_host,".") == 0 )
-         sprintf( afni_iocname , "tcp:%s:%d" , 
+         sprintf( afni_iocname , "tcp:%s:%d" ,
             "localhost", get_port_named("AFNI_PLUGOUT_TCP_0") ); /* make name */
       else
-         sprintf( afni_iocname , "tcp:%s:%d" , 
+         sprintf( afni_iocname , "tcp:%s:%d" ,
             afni_host, get_port_named("AFNI_PLUGOUT_TCP_0") ) ;  /* make name */
 
       afni_ioc = iochan_init( afni_iocname , "create" ) ;    /* create it */
@@ -163,7 +163,7 @@ int afni_io(void)
          if( afni_verbose )
             fprintf(stderr,"++ AFNI control channel connected\n");
       } else {
-         delta_t = (((float)(tn.tv_sec  - tw.tv_sec )*Time_Fact) +     
+         delta_t = (((float)(tn.tv_sec  - tw.tv_sec )*Time_Fact) +
                                                       /* time spent waiting */
                      (float)(tn.tv_usec - tw.tv_usec))/Time_Fact ;
          if (delta_t > maxwait) {
@@ -198,7 +198,7 @@ int afni_io(void)
            key (in function string_to_key in iochan.c).       **/
 
       if( strcmp(afni_host,".") == 0 ) {
-         sprintf( shmstr, "shm:test_plugout:%dK+%dK", 
+         sprintf( shmstr, "shm:test_plugout:%dK+%dK",
                      PLUGOUT_SHM_SIZE_K, PLUGOUT_SHM_SIZE_K);
          strcpy( afni_iocname , shmstr ) ;
       } else
@@ -294,7 +294,7 @@ int afni_io(void)
          strcpy(afni_buf, "DRIVE_AFNI ") ;
          strcat(afni_buf, com[I_com]   ) ; strcpy(cmd_buf,com[I_com]) ;
          if (afni_verbose) {
-            fprintf(stderr,"Command String %d Echo: '%s'\n", 
+            fprintf(stderr,"Command String %d Echo: '%s'\n",
                            I_com, afni_buf); fflush(stderr) ;
          }
          I_com++ ;
@@ -343,12 +343,26 @@ extern char *SUMA_Offset_SLines(char *, int);
 
 void usage_plugout_drive(int detail)
 {
-      printf("Usage: plugout_drive [-host name] [-v]\n"
+      printf("\n"
+"Usage: plugout_drive [-host name] [-v]\n\n"
 "This program connects to AFNI and sends commands\n"
 " that the user specifies interactively or on command line\n"
 " over to AFNI to be executed.\n"
 "\n"
-"Options:\n"
+"NOTE:\n"
+" If you quit plugout_drive and then re-start it immediately\n"
+" (as in a script), you might run into problems re-connecting\n"
+" to AFNI. The reason is that the TCP/IP system doesn't hang\n"
+" up a socket instantly when commanded to do so; the socket\n"
+" takes about a second to close down completely. If you are\n"
+" writing a script that starts plugout_drive repeatedly, you\n"
+" should insert a command 'sleep 1' between each start, to\n"
+" give the operating system time to clean the socket up.\n"
+" Otherwise, AFNI might not be able to open the socket,\n"
+" and plugout_drive will output an error message:\n"
+"   ** AFNI didn't like control information!\n"
+"\n"
+"OPTIONS:\n"
 "  -host name    Means to connect to AFNI running on the computer\n"
 "                'name' using TCP/IP.  The default is to connect\n"
 "                on the current host 'localhost' using TCP/IP.\n"
@@ -445,27 +459,27 @@ void usage_plugout_drive(int detail)
 int main( int argc , char *argv[] )
 {
    int narg , ii;
-   
+
    (void)AFNI_prefilter_args(&argc,argv);
-   
+
    afni_port = get_port_named("PLUGOUT_DRIVE_PORT"); /* ZSS June 2011 */
-   
+
    /***** See if the pitiful user wants help *****/
 
    if( argc == 2 && (
-      strcmp(argv[1],"-help") == 0 ||
-      strcmp(argv[1],"-h") == 0) ){
+      strcasecmp(argv[1],"-help") == 0 ||
+      strcasecmp(argv[1],"-h")    == 0)  ){
       usage_plugout_drive(strlen(argv[1]) > 3 ? 2:1);
       exit (0);
    }
 
    /***** Process command line options *****/
-   
+
    N_com = 0;
    DontWait = 0;
    narg = 1 ;
    while( narg < argc ){
-      
+
       /** -maxwait [27 Dec 2010] **/
 
       if( strcmp(argv[narg],"-maxwait") == 0 ){
