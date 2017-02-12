@@ -155,7 +155,7 @@ int afni_io(void)
 
       if( ii < 0 ){
          fprintf(stderr,"** Control channel to AFNI failed!\a\n") ;
-         IOCHAN_CLOSE(afni_ioc) ;
+         IOCHAN_CLOSENOW(afni_ioc) ;
          afni_mode = 0 ;
          return -1 ;
       } else if( ii > 0 ){
@@ -169,7 +169,7 @@ int afni_io(void)
          if (delta_t > maxwait) {
             fprintf(stderr,
                      "** Waited %g seconds to no avail ==> I quit.\n",maxwait);
-            IOCHAN_CLOSE(afni_ioc) ;
+            IOCHAN_CLOSENOW(afni_ioc) ;
             afni_mode = 0 ;
             return -1 ;
          } else {
@@ -231,7 +231,7 @@ int afni_io(void)
 
       if( ii < 0 ){
          fprintf(stderr,"** Transmission of control data to AFNI failed!\a\n") ;
-         IOCHAN_CLOSE(afni_ioc) ;
+         IOCHAN_CLOSENOW(afni_ioc) ;
          afni_mode = 0 ;
          return -1 ;
 
@@ -240,7 +240,7 @@ int afni_io(void)
          /** wait for the acknowledgment from AFNI, then close channel **/
 
          ii = iochan_recvall( afni_ioc , afni_buf , POACKSIZE ) ;
-         IOCHAN_CLOSE(afni_ioc) ;
+         IOCHAN_CLOSENOW(afni_ioc) ;
 
          if( ii < 0 || strncmp(afni_buf,"OK!",3) != 0 ){
             fprintf(stderr,"** AFNI didn't like control information!\a\n") ;
@@ -272,7 +272,7 @@ int afni_io(void)
       if( ii < 0 ){
          fprintf(stderr,
                  "** AFNI data channel aborted before any data was sent!\a\n") ;
-         IOCHAN_CLOSE( afni_ioc ) ;
+         IOCHAN_CLOSENOW( afni_ioc ) ;
          afni_mode = 0 ;
          return -1 ;
       } else if( ii > 0 ){                     /* ready to go! */
@@ -329,7 +329,7 @@ int afni_io(void)
 
       if( ii < 0 ){   /* send or acknowledgment failed */
          fprintf(stderr,"** AFNI data channel aborted!\a\n") ;
-         IOCHAN_CLOSE(afni_ioc) ;
+         IOCHAN_CLOSENOW(afni_ioc) ;
          afni_mode = 0 ;
          return -1 ;
       }
