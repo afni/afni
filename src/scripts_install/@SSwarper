@@ -6,11 +6,13 @@ if( $#argv < 2 )then
   echo
   echo "Script to skull-strip and warp to the MNI 2009 template."
   echo
-  echo "Usage: @SSwarper T1dataset SubID"
+  echo "Usage: @SSwarper T1dataset SubID [minp]"
   echo
   echo "T1dataset = a T1-weighted dataset, not skull-stripped,"
   echo "            with resolution about 1 mm."
   echo "SubID     = name code for output datasets (e.g., 'sub007')."
+  echo "minp      = optional: minimum patch size on final 3dQwarp"
+  echo "                      (if not given, 11 is used)"
   echo
   echo "The template dataset MNI152_2009_template.nii.gz is supplied"
   echo "with AFNI binaries and is described later in this help."
@@ -124,6 +126,12 @@ setenv AFNI_COMPRESSOR    NONE
 set Adataset = "$argv[1]"
 set SubID    = "$argv[2]"
 
+if( $#argv > 2 )then
+  set minp = "$argv[3]"
+else
+  set minp = 11
+endif
+
 if( ! -f "$Adataset" )then
   set chad = `@CheckForAfniDset "$Adataset"`
   if( "$chad" == "0" || "$chad" == "1" )then
@@ -217,7 +225,7 @@ endif
 
 3dQwarp -base "${Basedset}[0]" -source "${pref}AffSS.nii"  \
         -iniwarp "${pref}TAL5_AWARP.nii" -inilev 3         \
-        -pblur -minpatch 11 -Qfinal -workhard:5:8          \
+        -pblur -minpatch $minp -Qfinal -workhard:5:8       \
         -prefix anatQQ."${SubID}".nii
 
 ## Cleanup
