@@ -100,7 +100,7 @@ PROGRAMS = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge count   
            3dToyProg 3dRankizer nifti1_tool gifti_tool cifti_tool images_equal  \
            uniq_images tokens 3dLocalACF 3dXClustSim 3dtoXdataset 3dMultiThresh \
            3dLFCD 3dDegreeCentrality 3dECM 3dMSE 3dsvm_linpredict 3dTfilter     \
-           3dTsplit4D \
+           3dTsplit4D 3dSharpen \
            $(EXTRAS)
 
 PROGRAMS_NOPLUG = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge      \
@@ -1016,6 +1016,10 @@ qm:qm.o
 3dExtractGroupInCorr:3dExtractGroupInCorr.o
 	$(RM) $@
 	$(CCFAST) -o 3dExtractGroupInCorr 3dExtractGroupInCorr.o $(LFLAGS) $(LLIBS)
+
+3dSharpen:3dSharpen.o
+	$(RM) $@
+	$(CC) -o 3dSharpen 3dSharpen.o $(LFLAGS) $(LLIBS)
 
 rotcom:rotcom.o
 	$(RM) $@
@@ -2250,7 +2254,7 @@ MRI_OBJS = mri_cfft.o mri_complex_arith.o mri_fft_complex.o mri_free.o    \
            mri_warpfield.o mri_dicom_stuff.o mri_check.o mri_allzero.o         \
            mri_subset.o mri_to_fvect.o mri_genalign_util.o rcmat.o dmat44.o    \
            mri_sharpness.o mri_genARMA11.o mri_catvol.o mri_polyfit.o          \
-           mri_nwarp.o mri_extract.o mri_to_pval.o
+           mri_nwarp.o mri_extract.o mri_to_pval.o mri_sharpen3D.o
 
 THD_OBJS = thd_atr.o thd_dsetto1D.o thd_initalldir.o thd_reconpar.o \
            thd_auxdata.o thd_editdaxes.o thd_initdblk.o thd_sarr.o  \

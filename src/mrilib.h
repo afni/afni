@@ -1026,6 +1026,8 @@ extern MRI_IMAGE * mri_flatten_rgb( MRI_IMAGE * ) ;
 extern void mri_invert_inplace( MRI_IMAGE *) ;   /* 07 Apr 2003 */
 extern void mri_gamma_rgb_inplace( float gam , MRI_IMAGE *im ) ;
 
+extern void mri_sharpen3D_pos( MRI_IMAGE *im , float phi ) ; /* 13 Feb 2017 */
+
 extern MRI_IMAGE * mri_median21( MRI_IMAGE *innim ) ; /* 28 Oct 2014 */
 extern MRI_IMAGE * mri_sharpness( MRI_IMAGE *inim ) ;
 

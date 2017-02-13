@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 13 , FEB , 2017 , RWC , "3dSharpen" , MICRO , TYPE_NEW_PROG ,
+   "Sharpening filter in 3D" ,
+   NULL } ,
+
  { 9 , FEB , 2017 , RWC , "thresholding" , MINOR , TYPE_NEW_ENV ,
    "Fix inconsistency in thresholding with short-valued bricks" ,
    "In the AFNI GUI, thresholding is done with floats.\n"
