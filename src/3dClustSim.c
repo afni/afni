@@ -261,6 +261,12 @@ void display_help_menu()
    "Program to estimate the probability of false positive (noise-only) clusters.\n"
    "An adaptation of Doug Ward's AlphaSim, streamlined for various purposes.\n"
    "\n"
+   "**** NOTICE ****\n"
+   "You should use the -acf method, not the -fwhm method, when determining\n"
+   "cluster-size thresholds for FMRI data. The -acf method will give more\n"
+   "accurate false positive rate (FPR) control.\n"
+   "****************\n"
+   "\n"
    "In particular, this program lets you run with multiple p-value thresholds\n"
    "(the '-pthr' option) and only outputs the cluster size threshold at chosen\n"
    "values of the alpha significance level (the '-athr' option).\n"
@@ -859,7 +865,7 @@ ENTRY("get_options") ;
       if( fwhm_x < 0.0f || ep == argv[nopt] )
          ERROR_exit("illegal value after -fwhm") ;
       WARNING_message(
-         "Use of -fwhm is not advised;\n"
+         "Use of -fwhm is not advised; please consider using -acf instead\n"
          "           FMRI data does not have Gaussian-shaped smoothness!" ) ;
       fwhm_y = fwhm_z = fwhm_x ; nopt++; continue;
     }
@@ -904,7 +910,7 @@ ENTRY("get_options") ;
       if( fwhm_z < 0.0f || ep == argv[nopt-1] )
          ERROR_exit("illegal z value after -fwhmxyz") ;
       WARNING_message(
-         "Use of -fwhmxyz is not advised;\n"
+         "Use of -fwhmxyz is not advised; please consider using -acf instead\n"
          "           FMRI data does not have Gaussian-shaped smoothness!" ) ;
       continue;
     }
@@ -1142,6 +1148,13 @@ ENTRY("get_options") ;
   }
 
   /*------- finalize some simple setup stuff --------*/
+
+  if( fwhm_x > 0.0f )
+    WARNING_message(
+      "I repeat: -fwhm uses a Gaussian-shaped autocorrelation function\n"
+      "           which is not accurate for most FMRI data.\n"
+      "           Consider using -acf instead!"
+    ) ;
 
   if( do_athr_sum && (athr_sum_bot < 0 || athr_sum_top < 0) ){  /* 18 Dec 2015 */
     do_athr_sum = 0 ;
