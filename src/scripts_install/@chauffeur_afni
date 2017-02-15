@@ -25,8 +25,12 @@
 #     + better slice selection/centering.
 #     + adjust for different orders of orientation
 #
-set version   = "1.6"
-set rev_dat   = "Feb 6, 2017"
+# Feb, 2017:
+#     + commenting out some unused packages
+#
+
+set version   = "1.7"
+set rev_dat   = "Feb 15, 2017"
 #     + olay quotes
 
 # For more info about opts/fields, see:
@@ -304,8 +308,8 @@ set nerr = 0
 set errm = "** ERROR:"
 
 # (Ubuntu hassle ->) not using: pamcomp
-set plist = ( Xvfb djpeg cjpeg pnmcat pbmtext  \
-                pamstretch pbmtopgm )
+set plist = ( Xvfb djpeg cjpeg ) 
+    #pnmcat pbmtext pamstretch pbmtopgm )
 foreach pppp ( $plist )
   set wwww = `which $pppp`
   if( $status != 0 )then
