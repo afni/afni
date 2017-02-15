@@ -79,13 +79,17 @@ int main( int argc, char *argv[] )
 
    /*-- read input if not already there --*/
 
-   if( nopt < argc-1 ){
+   if( nopt < argc ){
      if( din == NULL ){
        din = THD_open_one_dataset(argv[nopt]) ;
        CHECK_OPEN_ERROR(din,argv[nopt]) ;
        DSET_load(din) ; CHECK_LOAD_ERROR(din) ;
      } else {
-       WARNING_message("arguments after last option are ignored") ;
+       WARNING_message(
+         "argument%s after last option %s ignored (since -input was used)" ,
+         (argc-nopt == 1) ? "\0" : "s"   ,
+         (argc-nopt == 1) ? "is" : "are"
+       ) ;
      }
    }
 

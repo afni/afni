@@ -35,6 +35,12 @@ int main( int argc , char *argv[] )
      printf(
       "Usage: 3dFWHMx [options] dataset\n"
       "\n"
+      "**** NOTICE ****\n"
+      " You should use the '-acf' option (which is what afni_proc.py uses now).\n"
+      " The 'Classic' method giving just a Gaussian FWHM can no longer be\n"
+      " considered reliable for FMRI statistical analyses!\n"
+      "****************\n"
+      "\n"
       "Unlike the older 3dFWHM, this program computes FWHMs for all sub-bricks\n"
       "in the input dataset, each one separately.  The output for each one is\n"
       "written to the file specified by '-out'.  The mean (arithmetic or geometric)\n"
