@@ -771,7 +771,7 @@ STATUS("checking ortar for goodness") ;
    if( nort_fixed >= ntkeep ){
      ERROR_message(
        "total number of fixed regressors (%d) is too many for %d retained time points!",
-       nort_fixed , nt ) ;
+       nort_fixed , ntkeep ) ;
      nbad++ ;
    }
 
