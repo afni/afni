@@ -1,5 +1,7 @@
 #!/bin/tcsh -ef
 
+# written by PA Taylor (NIMH, NIH)
+# convert dicoms to nifti, while "niceifying" several properties.
 
 
 # --------------------- revision history -------------------------
@@ -11,10 +13,13 @@
 #   + update opts
 #   + use 1dDW_Grad_o_Mat++
 #
+set version = "2.4"
+set rev_dat = "Feb 19, 2017"
+#   + add snapshotting with @djunct_dwi_imager
+#   + made nicer working dir stuff
+#
 # ----------------------------------------------------------------
 
-set version = "2.3"
-set rev_dat = "Jan, 2017"
 set this_prog = "fat_proc_convert_dwis"
 
 set here     = $PWD
@@ -27,6 +32,8 @@ set o_pa     = "PA"        # default file output prefix
 set ori_new  = "RPI"       # default file output orientation
 set doflip   = ""          # default: no flip of grads
 set DO_REORI = 1
+
+set wdir     = "__WORK_INTERMED"
 
 # ------------------- process options, a la rr ----------------------
 
@@ -173,6 +180,13 @@ if ( "$idir_ap" != "" ) then
     else
         mkdir $odir_ap
     endif
+
+    # and working dir
+    if ( -e "$odir_ap/$wdir" ) then
+        echo "\n+* WARNING: already some output directory $odir_ap/$wdir !"
+    else
+        mkdir $odir_ap/$wdir
+    endif
 endif
 
 if ( "$idir_pa" != "" ) then
@@ -189,6 +203,13 @@ if ( "$idir_pa" != "" ) then
     else
         mkdir $odir_pa
     endif
+
+    # and working dir
+    if ( -e "$odir_pa/$wdir" ) then
+        echo "\n+* WARNING: already some output directory $odir_pa/$wdir !"
+    else
+        mkdir $odir_pa/$wdir
+    endif
 endif
 
 # =======================================================================
@@ -200,14 +221,14 @@ endif
 if ( "$idir_ap" != "") then
     foreach dd ( $idir_ap )
         echo "\n++ OK, now converting dicoms in: $dd"
-        dcm2nii -o "$odir_ap" $dd/*
+        dcm2nii -o "$odir_ap/$wdir" $dd/*
     end
 endif
 
 if ( "$idir_pa" != "") then
     foreach dd ( $idir_pa )
         echo "\n++ OK, now converting dicoms in: $dd"
-        dcm2nii -o "$odir_pa" $dd/*
+        dcm2nii -o "$odir_pa/$wdir" $dd/*
     end
 endif
 
@@ -224,16 +245,7 @@ set ORIG = ( 0 0 0 )
 if ( "$odir_ap" != "") then
 
     cd $here
-    cd $odir_ap
-
-    set allfile = `ls *`
-    
-    # push all into OTHER/, and then bring back the useful sets.
-    mkdir OTHER
-    foreach ff ( $allfile )
-        \mv $ff OTHER/.
-    end
-    cd OTHER
+    cd $odir_ap/$wdir
 
     set all_bvec = `ls *bvec`
     @ Nbvec = $#all_bvec
@@ -256,18 +268,27 @@ if ( "$odir_ap" != "") then
             $doflip                                \
             -out_col_vec _TEMP_${ii}.cvec
 
+        # in either case, floatize here
         if ( $DO_REORI ) then
             3dresample                             \
                 -overwrite                         \
                 -orient $ori_new                   \
                 -prefix _TEMP_${ii}.nii.gz         \
                 -inset  ${gg}.nii.gz
+
+            3dcalc                                 \
+                -a _TEMP_${ii}.nii.gz              \
+                -expr 'a'                          \
+                -prefix _TEMP_${ii}.nii.gz         \
+                -datum float                       \
+                -overwrite
         else
             # chicken...
             3dcalc                                 \
                 -a ${gg}.nii.gz                    \
                 -expr 'a'                          \
                 -prefix _TEMP_${ii}.nii.gz         \
+                -datum float                       \
                 -overwrite
         endif
 
@@ -312,6 +333,15 @@ if ( "$odir_ap" != "") then
         endif
     endif
 
+    # Feb,2017: take images!
+    if ( 1 ) then
+
+        set img_pref = ${fin_vols:gas/.nii.gz//}
+        @djunct_dwi_imager                    \
+            -inset  $fin_vols                 \
+            -prefix "$img_pref"
+    endif
+
     # make bval/bvec/*.nii files
     1dDW_Grad_o_Mat++                          \
         -in_col_vec       $all_cvecs           \
@@ -325,16 +355,7 @@ endif
 if ( "$odir_pa" != "") then
 
     cd $here
-    cd $odir_pa
-
-    set allfile = `ls *`
-    
-    # push all into OTHER/, and then bring back the useful sets.
-    mkdir OTHER
-    foreach ff ( $allfile )
-        \mv $ff OTHER/.
-    end
-    cd OTHER
+    cd $odir_pa/$wdir
 
     set all_bvec = `ls *bvec`
     @ Nbvec = $#all_bvec
@@ -357,18 +378,27 @@ if ( "$odir_pa" != "") then
             $doflip                                \
             -out_col_vec _TEMP_${ii}.cvec
 
+        # in either case, floatize here
         if ( $DO_REORI ) then
             3dresample                             \
                 -overwrite                         \
                 -orient $ori_new                   \
                 -prefix _TEMP_${ii}.nii.gz         \
                 -inset  ${gg}.nii.gz
+
+            3dcalc                                 \
+                -a _TEMP_${ii}.nii.gz              \
+                -expr 'a'                          \
+                -prefix _TEMP_${ii}.nii.gz         \
+                -datum float                       \
+                -overwrite
         else
             # chicken...
             3dcalc                                 \
                 -a ${gg}.nii.gz                    \
                 -expr 'a'                          \
                 -prefix _TEMP_${ii}.nii.gz         \
+                -datum float                       \
                 -overwrite
         endif
 
@@ -411,6 +441,15 @@ if ( "$odir_pa" != "") then
             set ORIG = `3dinfo -o3 $fin_vols`
             set have_orig = 1
         endif
+    endif
+
+    # Feb,2017: take images!
+    if ( 1 ) then
+
+        set img_pref = ${fin_vols:gas/.nii.gz//}
+        @djunct_dwi_imager                    \
+            -inset  $fin_vols                 \
+            -prefix $img_pref
     endif
 
     # make bval/bvec/*.nii files
