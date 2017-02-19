@@ -25,12 +25,8 @@
 #     + better slice selection/centering.
 #     + adjust for different orders of orientation
 #
-# Feb, 2017:
-#     + commenting out some unused packages
-#
-
-set version   = "1.7"
-set rev_dat   = "Feb 15, 2017"
+set version   = "1.6"
+set rev_dat   = "Feb 6, 2017"
 #     + olay quotes
 
 # For more info about opts/fields, see:
@@ -97,7 +93,7 @@ set read_dir = ""
 set read_ulay = tmp_ulay.nii.gz
 
 set USER_ULAY_RANGE = 0          # def: user doesn't enter ulay range
-
+set ulay_nz = "-non-zero"
 # -------------------------------------------------------------------
 # ----------------------------- ugh ---------------------------------
 
@@ -308,8 +304,8 @@ set nerr = 0
 set errm = "** ERROR:"
 
 # (Ubuntu hassle ->) not using: pamcomp
-set plist = ( Xvfb djpeg cjpeg ) 
-    #pnmcat pbmtext pamstretch pbmtopgm )
+set plist = ( Xvfb djpeg cjpeg pnmcat pbmtext  \
+                pamstretch pbmtopgm )
 foreach pppp ( $plist )
   set wwww = `which $pppp`
   if( $status != 0 )then
@@ -398,8 +394,8 @@ if ( ( $urange == "VOLUME" ) || ( $urange == "DSET" )  \
             set pmin  = "$umin"
             set pmax  = "$umax"
 
-            set amin  = `3dBrickStat -percentile ${umin} 1 ${umin} "$ulay"`
-            set amax  = `3dBrickStat -percentile ${umax} 1 ${umax} "$ulay"`
+            set amin  = `3dBrickStat $ulay_nz -percentile ${umin} 1 ${umin} "$ulay"`
+            set amax  = `3dBrickStat $ulay_nz -percentile ${umax} 1 ${umax} "$ulay"`
                 
             set umin = $amin[2]
             set umax = $amax[2]
@@ -412,7 +408,7 @@ if ( ( $urange == "VOLUME" ) || ( $urange == "DSET" )  \
             echo "   [${umin}, ${umax}]"
         endif
     else
-        set ubs  = `3dBrickStat -percentile 2 96 98 "$ulay"`
+        set ubs  = `3dBrickStat $ulay_nz -percentile 2 96 98 "$ulay"`
         set umin = $ubs[2]
         set umax = $ubs[4]
 
@@ -467,11 +463,6 @@ else
 
     # set frange, if user hasn't, based on data:
     if ( $USER_FRANGE == 0 ) then
-        ### -> this is 'old' method
-        #set mval    = `3dBrickStat -max $olay`
-        #set cval    = `3dClipLevel $olay`
-        #set tval    = `ccalc "min($cval,$mval/4)"`
-        #set frange  = `ccalc "max(3*$cval,0.666*$mval)"`
 
         set vv = `3dBrickStat -non-zero      \
                     -percentile 98 1 98      \
