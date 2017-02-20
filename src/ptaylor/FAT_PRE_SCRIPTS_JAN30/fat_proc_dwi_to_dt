@@ -473,7 +473,7 @@ if ( $DO_VIEWER ) then
             -prefix $vpref0                   \
             -outdir "$odir"                   \
             -montx 5 -monty 3                 \
-            -set_xhairs MULTI                 \
+            -set_xhairs OFF                   \
             -label_mode 1 -label_size 3       \
             -do_clean 
     endif
@@ -491,7 +491,7 @@ if ( $DO_VIEWER ) then
             -prefix $vpref1                     \
             -outdir "$odir"                     \
             -montx 5 -monty 3                   \
-            -set_xhairs MULTI                   \
+            -set_xhairs OFF                     \
             -label_mode 1 -label_size 3         \
             -do_clean    
 
@@ -502,7 +502,7 @@ if ( $DO_VIEWER ) then
                     -prefix $vpref2                 \
                     -outdir ".."                    \
                     -montx 3 -monty 3               \
-                    -set_xhairs MULTI               \
+                    -set_xhairs OFF                 \
                     -label_mode 1 -label_size 3     \
                     -opacity 4                      \
                     -do_clean
