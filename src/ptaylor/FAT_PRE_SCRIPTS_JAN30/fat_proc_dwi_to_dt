@@ -1,5 +1,11 @@
 #!/bin/tcsh -ef
 
+# !!!! INPUT DWI IMAGER
+
+# !!! WHAT TO DO WITH STRUC?
+
+# !!!! CHECK ABOUT OUT ORIENT+ORIG STUFF
+
 # --------------------- revision history -------------------------
 # Jan, 2017
 #   + rename
@@ -10,6 +16,10 @@
 set version   = "1.3"
 set rev_dat   = "Feb, 2017"
 #   + drive viewer
+#
+set version   = "1.4"
+set rev_dat   = "Feb 20, 2017"
+#   + supplementary anat input
 #
 # ----------------------------------------------------------------
 
@@ -39,6 +49,7 @@ set my_viewer = "$adir/@chauffeur_afni"
 set idwi     = ""                 # necessary input: DWI dset
 set invecmat = ( "" "" "" "" )    # switches+names for bvecs and bvals
 set imask    = ""                 # optional mask; otherwise, automask
+set ianat    = ""                 # optional struc vol (like in TORT)
 set iref     = ""                 # option, for getting orient + orig
 
 set iflip    = ""                 # for 1dDW_*++: can flip (yaaawn)
@@ -88,7 +99,12 @@ while ( $ac <= $#argv )
         @ ac += 1
         set imask = "$argv[$ac]"
 
-    else if ( "$argv[$ac]" == "-in_ref" ) then
+    else if ( "$argv[$ac]" == "-in_anat" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set ianat = "$argv[$ac]"
+
+    else if ( "$argv[$ac]" == "-in_master" ) then
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
         @ ac += 1
         set iref = "$argv[$ac]"
@@ -241,6 +257,18 @@ if ( "$imask" != "" ) then
     endif
 endif
 
+# check if ANAT was input, then if can be read
+if ( "$ianat" != "" ) then
+    set check = `3dinfo "$ianat"`
+    if ( "$#check" == "0" ) then
+        echo "** ERROR: can't find input anatomical file:  $ianat !"
+        goto BAD_EXIT
+    else
+        echo "++ Found inset input file:   $ianat"
+    endif
+endif
+
+
 # check if REF was input, then if can be read
 if ( "$iref" != "" ) then
     set check = `3dinfo "$iref"`
@@ -292,6 +320,7 @@ set obvec  = "${opref}_bvec.txt"     # name for full afni grads
 set obval  = "${opref}_bval.txt"     # name for full afni bvals
 set odwi   = "${opref}_dwi.nii.gz"   # name for dwis
 set omask  = "${opref}_mask.nii.gz"  # name for mask
+set anat   = "${opref}_anat.nii.gz"  # name for mask
 
 #set dti    = "DTI"
 set dti_par = "${dtipref}.nii.gz"    # NIFTI prefix for NII output
@@ -301,7 +330,7 @@ set dti_unc = "${dtipref}_UNC.nii.gz" # name for mask
 # =========================== ** PROCESS ** =============================
 # =======================================================================
 
-echo "\n-----> STARTING ---->"
+echo "\n-----> STARTING $this_prog ---->"
 
 # ---------------------------- CMD ---------------------------------
 
@@ -345,7 +374,7 @@ endif
     -overwrite
 
 # -------------- copy DWI/reset ori^2 --------------
-if ( 0 ) then ###!!!!!
+
 if ( "$iref" != "" ) then
     # use reference dset for orientation/origin when copying
     echo "++ Resampling/fitting DWIs:  $odir/$odwi"
@@ -418,7 +447,7 @@ if ( $DO_UNCERT ) then
         -iters         $Niters             \
         $extra_unc_cmds
 endif
-endif # !!!
+
 # ---------------------------- VIEWER ---------------------------------
 
 if ( $DO_VIEWER ) then
