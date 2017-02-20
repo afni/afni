@@ -298,9 +298,9 @@ if ( "$odir_ap" != "") then
 
     # Combine everything
     set all_cvecs = "_TEMP_ALL.cvec"
-    set fin_bvecs = "../${o_ap}.bvec"
-    set fin_bvals = "../${o_ap}.bval"
-    set fin_vols  = "../${o_ap}.nii"
+    set fin_bvecs = "${o_ap}.bvec"
+    set fin_bvals = "${o_ap}.bval"
+    set fin_vols  = "${o_ap}.nii"
 
     # clear away a file, if *somehow* there? (shouldn't be...)
     if ( -e $all_cvecs ) then
@@ -311,7 +311,7 @@ if ( "$odir_ap" != "") then
     end
     3dTcat                             \
         -overwrite                     \
-        -prefix $fin_vols              \
+        -prefix ../$fin_vols           \
         $list_vols
 
     if ( $DO_REORI ) then
@@ -323,12 +323,12 @@ if ( "$odir_ap" != "") then
                 -xorigin_raw $ORIG[1]      \
                 -yorigin_raw $ORIG[2]      \
                 -zorigin_raw $ORIG[3]      \
-                $fin_vols
+                ../$fin_vols
         else
             echo "++ Set center of brain to center of mass..."
-            3dCM -automask -set 0 0 0 $fin_vols
+            3dCM -automask -set 0 0 0 ../$fin_vols
             echo "++ ... and remember it."
-            set ORIG = `3dinfo -o3 $fin_vols`
+            set ORIG = `3dinfo -o3 ../$fin_vols`
             set have_orig = 1
         endif
     endif
@@ -336,18 +336,23 @@ if ( "$odir_ap" != "") then
     # Feb,2017: take images!
     if ( 1 ) then
 
-        set img_pref = ${fin_vols:gas/.nii.gz//}
+        set img_pref = `basename $fin_vols .gz`
+        set img_pref = `basename $img_pref .nii`
+
         @djunct_dwi_imager                    \
-            -inset  $fin_vols                 \
+            -inset  ../$fin_vols              \
+            -outdir ".."                      \
             -prefix "$img_pref"
     endif
 
+    echo "++ And putting the bvec/bval files in their place"
     # make bval/bvec/*.nii files
     1dDW_Grad_o_Mat++                          \
+        -echo_edu                              \
         -in_col_vec       $all_cvecs           \
-        -out_row_bval_sep $fin_bvals           \
+        -out_row_bval_sep ../$fin_bvals        \
         -unit_mag_out                          \
-        -out_row_vec      $fin_bvecs
+        -out_row_vec      ../$fin_bvecs
 endif 
 
 
@@ -408,9 +413,9 @@ if ( "$odir_pa" != "") then
 
     # Combine everything
     set all_cvecs = "_TEMP_ALL.cvec"
-    set fin_bvecs = "../${o_pa}.bvec"
-    set fin_bvals = "../${o_pa}.bval"
-    set fin_vols  = "../${o_pa}.nii"
+    set fin_bvecs = "${o_pa}.bvec"
+    set fin_bvals = "${o_pa}.bval"
+    set fin_vols  = "${o_pa}.nii"
 
     # clear away a file, if *somehow* there? (shouldn't be...)
     if ( -e $all_cvecs ) then
@@ -421,7 +426,7 @@ if ( "$odir_pa" != "") then
     end
     3dTcat                             \
         -overwrite                     \
-        -prefix $fin_vols              \
+        -prefix ../$fin_vols           \
         $list_vols
 
     if ( $DO_REORI ) then
@@ -433,12 +438,12 @@ if ( "$odir_pa" != "") then
                 -xorigin_raw $ORIG[1]      \
                 -yorigin_raw $ORIG[2]      \
                 -zorigin_raw $ORIG[3]      \
-                $fin_vols
+                ../$fin_vols
         else
             echo "++ Set center of brain to center of mass..."
-            3dCM -automask -set 0 0 0 $fin_vols
+            3dCM -automask -set 0 0 0 ../$fin_vols
             echo "++ ... and remember it."
-            set ORIG = `3dinfo -o3 $fin_vols`
+            set ORIG = `3dinfo -o3 ../$fin_vols`
             set have_orig = 1
         endif
     endif
@@ -446,18 +451,23 @@ if ( "$odir_pa" != "") then
     # Feb,2017: take images!
     if ( 1 ) then
 
-        set img_pref = ${fin_vols:gas/.nii.gz//}
+        set img_pref = `basename $fin_vols .gz`
+        set img_pref = `basename $img_pref .nii`
+
         @djunct_dwi_imager                    \
-            -inset  $fin_vols                 \
+            -inset  ../$fin_vols              \
+            -outdir ".."                      \
             -prefix $img_pref
     endif
 
+    echo "++ And putting the bvec/bval files in their place"
     # make bval/bvec/*.nii files
     1dDW_Grad_o_Mat++                          \
+        -echo_edu                              \
         -in_col_vec       $all_cvecs           \
-        -out_row_bval_sep $fin_bvals           \
+        -out_row_bval_sep ../$fin_bvals        \
         -unit_mag_out                          \
-        -out_row_vec      $fin_bvecs
+        -out_row_vec      ../$fin_bvecs
 endif 
 
 
