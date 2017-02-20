@@ -1,5 +1,8 @@
 #!/bin/tcsh -ef
 
+# written by PA Taylor (NIMH, NIH)
+# filter sets of acquired DWIs with accompanying bvals/vecs
+
 # --------------------- revision history -------------------------
 #
 # Jan, 2017
@@ -9,13 +12,15 @@
 #   + new opts
 #   + switch to 1dDW_Grad_o_Mat++
 #
+set version = "2.5"
+set rev_dat = "Feb 20, 2017"
+#   + add snapshotting with @djunct_dwi_imager
+#
 # ----------------------------------------------------------------
 
-set version = "2.3"
-set rev_dat = "Jan, 2017"
 set this_prog = "fat_proc_filter_dwis" 
+set here      = $PWD
 
-set here     = $PWD
 set i_ap     = ""
 set i_pa     = ""
 set idir_ap  = ""
@@ -91,7 +96,7 @@ end
 # ============================ ** SETUP ** ==============================
 # =======================================================================
 
-echo "++ Start script version: $version"
+echo "++ Start $this_prog version: $version"
 
 # ============================= dicom dir ===============================
 
@@ -207,6 +212,17 @@ if ( "$idir_ap" != "") then
         -expr "(a)"                                              \
         -prefix $odir_ap/${o_ap}.nii                             \
         -overwrite
+
+    # Feb,2017: take images!
+    if ( 1 ) then
+        set img_pref = "${o_ap}"
+
+        @djunct_dwi_imager                    \
+            -inset  $odir_ap/${o_ap}.nii      \
+            -outdir "$odir_ap"                \
+            -prefix "$img_pref"
+    endif
+
 endif
 
 if ( "$idir_pa" != "") then
@@ -224,6 +240,17 @@ if ( "$idir_pa" != "") then
         -expr "(a)"                                              \
         -prefix $odir_pa/${o_pa}.nii                             \
         -overwrite
+
+    # Feb,2017: take images!
+    if ( 1 ) then
+        set img_pref = "${o_pa}"
+
+        @djunct_dwi_imager                    \
+            -inset  $odir_pa/${o_pa}.nii      \
+            -outdir "$odir_pa"                \
+            -prefix "$img_pref"
+    endif
+
 endif
 
 goto GOOD_EXIT
@@ -233,7 +260,7 @@ goto GOOD_EXIT
 
 SHOW_HELP:
 cat << EOF
--------------------------------------------------------------------------
+# -----------------------------------------------------------------------
 
     The purpose of this function is to help filter out user-found and
     user-defined bad volumes from DWI data sets.  
@@ -266,7 +293,7 @@ cat << EOF
 
     Ver. $version (PA Taylor, ${rev_dat})
 
--------------------------------------------------------------------------
+# -----------------------------------------------------------------------
 
   RUNNING: at least one of the two '-inset_* ...' files needs to be
            given; both can be, and the processing happens in parallel
@@ -305,9 +332,9 @@ cat << EOF
                      selecting which volumes/grads/bvals to *keep*.
                      This is done in typical AFNI format, and index
                      counting starts at 0 and the 'last' brick could
-                     be specified as '$'.  An example for skipping the
+                     be specified as '\$'.  An example for skipping the
                      index-4 and index-6 volumes in a data set:
-                     "[0..3,5,7..$]"
+                     "[0..3,5,7..\$]"
                      This string is applied to the volume, bval and
                      bvec files of all insets input.  The user should put 
                      quotes around the square brackets.
@@ -319,9 +346,9 @@ cat << EOF
   -prefix_ap PRE_AP :output prefix for the *.nii, *.bvec and *.bval files
                      in OUT_AP; default is '$o_ap'.
   -prefix_pa PRE_PA :output prefix for the *.nii, *.bvec and *.bval files
-                     in OUT_PA; default is '$o_PA'.
+                     in OUT_PA; default is '$o_pa'.
 
--------------------------------------------------------------------------
+# -----------------------------------------------------------------------
 
   OUTPUTS:
 
@@ -350,15 +377,15 @@ cat << EOF
     prefixes so the files aren't overwritten (which they would
     be!). Woe betide us in such an event.
 
--------------------------------------------------------------------------
+# -----------------------------------------------------------------------
 
   EXAMPLE:
   \$ $this_prog  \
-        -indir_ap  SUB001/UNFILT_AP/AP.nii      \
-        -indir_pa  SUB001/UNFILT_PA/PA.nii      \
-        -select    "[0..5,7,8,10..$]"
+        -indset_ap  SUB001/UNFILT_AP/AP.nii      \
+        -indset_pa  SUB001/UNFILT_PA/PA.nii      \
+        -select    "[0..5,7,8,10..\$]"
 
--------------------------------------------------------------------------
+# -----------------------------------------------------------------------
 
 EOF
     goto GOOD_EXIT

@@ -163,7 +163,7 @@ set P_THR = "$NUMS[2]"
 
 printf "\nThresh value will be: $P_THR \n"
 
-set fout = "$wdir/${temppref}_${idx}_pre.nii.gz"
+set fout = "$wdir/${temppref}_${idx}_pre.nii"
 set fout_thr = $fout
 3dcalc                                            \
     -echo_edu                                     \
@@ -176,7 +176,7 @@ set fout_thr = $fout
 
 if ( $T1in_ss == "" ) then
     set fin  = "$fout"
-    set fout = "$wdir/${temppref}_${idx}_ani.nii.gz"
+    set fout = "$wdir/${temppref}_${idx}_ani.nii"
     3danisosmooth -echo_edu       \
         -overwrite                \
         -iters 2                  \
@@ -186,7 +186,7 @@ if ( $T1in_ss == "" ) then
     @ idx += 1
 
     set fin  = "$fout"
-    set fout = "$wdir/${temppref}_${idx}_ss.nii.gz"
+    set fout = "$wdir/${temppref}_${idx}_ss.nii"
     set T1in_ss = $fout
     3dSkullStrip -echo_edu               \
         -input $fin                      \
@@ -199,7 +199,7 @@ endif
 
 # wherever SS brain came from, use it now as binary mask.
 set finm  = "$T1in_ss"
-set foutm = "$wdir/${temppref}_${idx}_mask1.nii.gz"
+set foutm = "$wdir/${temppref}_${idx}_mask1.nii"
 3dcalc                                \
     -echo_edu                         \
     -a $finm                          \
@@ -209,7 +209,7 @@ set foutm = "$wdir/${temppref}_${idx}_mask1.nii.gz"
 @ idx += 1
 
 set finm  = "$foutm"
-set foutm = "$wdir/${temppref}_${idx}_mask2.nii.gz"
+set foutm = "$wdir/${temppref}_${idx}_mask2.nii"
 3dmask_tool                           \
     -echo_edu                         \
     -inputs ${finm}                   \
@@ -237,7 +237,7 @@ printf "\nThresh value will be: $P_THR \n"
 
 set fin1  = "$fout"
 set fin2  = "$foutm"
-set t1out  = "$wdir/${outpref}_t1w.nii"
+set t1out  = "$wdir/${outpref}_t1w.nii.gz"
 3dcalc                                            \
     -echo_edu                                     \
     -a $fin1                                      \
@@ -263,7 +263,7 @@ set t1ss  = $fout
 # try making an imitation T2
 set fin1  = "$t1out"
 set fin2  = "$foutm"
-set t2out = "$wdir/${outpref}_t2w.nii"
+set t2out = "$wdir/${outpref}_t2w.nii.gz"
 3dcalc                                            \
     -echo_edu                                     \
     -a $fin1                                      \

@@ -90,7 +90,7 @@ set do_quit = "QUITT"            # quick-quit; not subject to change
 set tmp_dir  = "__tmp_ImG_837261"
 set DO_CLEAN = 0
 set read_dir = ""
-set read_ulay = tmp_ulay.nii.gz
+set read_ulay = tmp_ulay
 
 set USER_ULAY_RANGE = 0          # def: user doesn't enter ulay range
 set ulay_nz = "-non-zero"
@@ -453,7 +453,7 @@ if ( "$see_olay" == "-" ) then
 else
 
     set Dim  = `3dinfo -n4 "$olay"`
-    set read_olay = tmp_olay.nii.gz
+    set read_olay = tmp_olay
 
     3dcalc                                    \
         -a "$olay"                            \
