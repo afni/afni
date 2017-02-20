@@ -13,11 +13,17 @@
 #   + update opts
 #   + use 1dDW_Grad_o_Mat++
 #
-set version = "2.4"
-set rev_dat = "Feb 19, 2017"
+#set version = "2.4"
+#set rev_dat = "Feb 19, 2017"
 #   + add snapshotting with @djunct_dwi_imager
 #   + made nicer working dir stuff
 #
+set version = "2.5"
+set rev_dat = "Feb 20, 2017"
+#   + no longer gzip WDIR files (for speed)
+#   + sep wdirs, in case writing AP/PA to same dir
+#   + can clean up wdirs
+
 # ----------------------------------------------------------------
 
 set this_prog = "fat_proc_convert_dwis"
@@ -32,8 +38,11 @@ set o_pa     = "PA"        # default file output prefix
 set ori_new  = "RPI"       # default file output orientation
 set doflip   = ""          # default: no flip of grads
 set DO_REORI = 1
+set DO_CLEAN = 0
 
-set wdir     = "__WORK_INTERMED"
+
+set wdirap     = "__WORK_INTERMED_AP"
+set wdirpa     = "__WORK_INTERMED_PA"
 
 # ------------------- process options, a la rr ----------------------
 
@@ -103,6 +112,9 @@ while ( $ac <= $#argv )
     else if ( "$argv[$ac]" == "-reorig_reorient_off" ) then
         set DO_REORI = 0          # leave 'em alone!
 
+    else if ( "$argv[$ac]" == "-do_clean" ) then
+        set DO_CLEAN = 1
+
     else
         echo "** unexpected option #$ac = '$argv[$ac]'"
         goto BAD_EXIT
@@ -153,7 +165,7 @@ foreach dd ( $idir_ap $idir_pa )
 
     if ( (`find . -maxdepth 1 -type f -name "*nii" | wc -l` > 0 ) || \
          (`find . -maxdepth 1 -type f -name "*nii.gz" | wc -l` > 0 ) ) then
-        echo "\n** ERROR: already some *.nii.gz files in $dd !"
+        echo "\n** ERROR: already some nifti files in $dd !"
         goto BAD_EXIT
     endif
 end
@@ -182,10 +194,10 @@ if ( "$idir_ap" != "" ) then
     endif
 
     # and working dir
-    if ( -e "$odir_ap/$wdir" ) then
-        echo "\n+* WARNING: already some output directory $odir_ap/$wdir !"
+    if ( -e "$odir_ap/$wdirap" ) then
+        echo "\n+* WARNING: already some output directory $odir_ap/$wdirap !"
     else
-        mkdir $odir_ap/$wdir
+        mkdir $odir_ap/$wdirap
     endif
 endif
 
@@ -205,10 +217,10 @@ if ( "$idir_pa" != "" ) then
     endif
 
     # and working dir
-    if ( -e "$odir_pa/$wdir" ) then
-        echo "\n+* WARNING: already some output directory $odir_pa/$wdir !"
+    if ( -e "$odir_pa/$wdirpa" ) then
+        echo "\n+* WARNING: already some output directory $odir_pa/$wdirps !"
     else
-        mkdir $odir_pa/$wdir
+        mkdir $odir_pa/$wdirpa
     endif
 endif
 
@@ -221,14 +233,14 @@ endif
 if ( "$idir_ap" != "") then
     foreach dd ( $idir_ap )
         echo "\n++ OK, now converting dicoms in: $dd"
-        dcm2nii -o "$odir_ap/$wdir" $dd/*
+        dcm2nii -g n -o "$odir_ap/$wdirap" $dd/*
     end
 endif
 
 if ( "$idir_pa" != "") then
     foreach dd ( $idir_pa )
         echo "\n++ OK, now converting dicoms in: $dd"
-        dcm2nii -o "$odir_pa/$wdir" $dd/*
+        dcm2nii -g n -o "$odir_pa/$wdirpa" $dd/*
     end
 endif
 
@@ -245,7 +257,7 @@ set ORIG = ( 0 0 0 )
 if ( "$odir_ap" != "") then
 
     cd $here
-    cd $odir_ap/$wdir
+    cd $odir_ap/$wdirap
 
     set all_bvec = `ls *bvec`
     @ Nbvec = $#all_bvec
@@ -273,27 +285,27 @@ if ( "$odir_ap" != "") then
             3dresample                             \
                 -overwrite                         \
                 -orient $ori_new                   \
-                -prefix _TEMP_${ii}.nii.gz         \
-                -inset  ${gg}.nii.gz
+                -prefix _TEMP_${ii}.nii            \
+                -inset  ${gg}.nii
 
             3dcalc                                 \
-                -a _TEMP_${ii}.nii.gz              \
+                -a _TEMP_${ii}.nii                 \
                 -expr 'a'                          \
-                -prefix _TEMP_${ii}.nii.gz         \
+                -prefix _TEMP_${ii}.nii            \
                 -datum float                       \
                 -overwrite
         else
             # chicken...
             3dcalc                                 \
-                -a ${gg}.nii.gz                    \
+                -a ${gg}.nii                       \
                 -expr 'a'                          \
-                -prefix _TEMP_${ii}.nii.gz         \
+                -prefix _TEMP_${ii}.nii            \
                 -datum float                       \
                 -overwrite
         endif
 
         set list_cvecs = ( $list_cvecs _TEMP_${ii}.cvec )
-        set list_vols  = ( $list_vols  _TEMP_${ii}.nii.gz )
+        set list_vols  = ( $list_vols  _TEMP_${ii}.nii )
     end
 
     # Combine everything
@@ -353,6 +365,14 @@ if ( "$odir_ap" != "") then
         -out_row_bval_sep ../$fin_bvals        \
         -unit_mag_out                          \
         -out_row_vec      ../$fin_bvecs
+
+    if ( $DO_CLEAN == 1 ) then
+        echo "++ Cleaning working directory."
+        cd ..
+        \rm -rf $wdirap
+    endif
+
+    echo "++ Done with AP."
 endif 
 
 
@@ -360,7 +380,7 @@ endif
 if ( "$odir_pa" != "") then
 
     cd $here
-    cd $odir_pa/$wdir
+    cd $odir_pa/$wdirpa
 
     set all_bvec = `ls *bvec`
     @ Nbvec = $#all_bvec
@@ -388,27 +408,27 @@ if ( "$odir_pa" != "") then
             3dresample                             \
                 -overwrite                         \
                 -orient $ori_new                   \
-                -prefix _TEMP_${ii}.nii.gz         \
-                -inset  ${gg}.nii.gz
+                -prefix _TEMP_${ii}.nii            \
+                -inset  ${gg}.nii  
 
             3dcalc                                 \
-                -a _TEMP_${ii}.nii.gz              \
+                -a _TEMP_${ii}.nii                 \
                 -expr 'a'                          \
-                -prefix _TEMP_${ii}.nii.gz         \
+                -prefix _TEMP_${ii}.nii            \
                 -datum float                       \
                 -overwrite
         else
             # chicken...
             3dcalc                                 \
-                -a ${gg}.nii.gz                    \
+                -a ${gg}.nii                       \
                 -expr 'a'                          \
-                -prefix _TEMP_${ii}.nii.gz         \
+                -prefix _TEMP_${ii}.nii            \
                 -datum float                       \
                 -overwrite
         endif
 
         set list_cvecs = ( $list_cvecs _TEMP_${ii}.cvec )
-        set list_vols  = ( $list_vols  _TEMP_${ii}.nii.gz )
+        set list_vols  = ( $list_vols  _TEMP_${ii}.nii )
     end
 
     # Combine everything
@@ -468,6 +488,14 @@ if ( "$odir_pa" != "") then
         -out_row_bval_sep ../$fin_bvals        \
         -unit_mag_out                          \
         -out_row_vec      ../$fin_bvecs
+
+    if ( $DO_CLEAN == 1 ) then
+        echo "++ Cleaning working directory."
+        cd ..
+        \rm -rf $wdirpa
+    endif
+
+    echo "++ Done with PA."
 endif 
 
 
@@ -550,7 +578,8 @@ cat << EOF
       {-prefix_ap PRE_AP}                      \
       {-prefix_pa PRE_PA}                      \
       {-orient    ORIENT}                      \
-      {-flip_x | -flip_y | -flip_z | -no_flip}
+      {-flip_x | -flip_y | -flip_z | -no_flip} \
+      {-do_clean}
 
   where:
   -indir_ap  DIR_AP :directory name(s) of (only) DICOM files of the DWI
@@ -586,6 +615,8 @@ cat << EOF
                     :use any one of these for the ability to flip grads 
                      while processing with 1dDW_Grad_o_Mat++. (Default is 
                      to not flip.)
+   -do_clean        :switch to remove directory of intermediate/temporary
+                     files (default is not to).
 
 -------------------------------------------------------------------------
 
