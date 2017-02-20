@@ -44,6 +44,13 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 20 , FEB , 2017 , RWC , "3dDespike" , MINOR , TYPE_BUG_FIX ,
+   "Scale factor bug" ,
+   "The program ignored the scale factors attached to short datasets.\n"
+   "If they were all the same, that was not a problem.\n"
+   "But if they differed, then that was a big problem.\n"
+   "That was fixed.  Also, the output now is always in float format." } ,
+
  { 13 , FEB , 2017 , RWC , "3dSharpen" , MICRO , TYPE_NEW_PROG ,
    "Sharpening filter in 3D" ,
    NULL } ,
