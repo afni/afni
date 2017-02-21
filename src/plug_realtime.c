@@ -880,21 +880,6 @@ PLUGIN_interface * PLUGIN_init( int ncall )
       if( ii >= 0 && ii <= 9999 ) g_reg_src_chan = ii ;
    }
 
-   /* initialize this - it can be overwritten in the plugin  23 Jan 2017 */
-   /* rcr - but if coming throught the plugin, do not do this */
-   /* rcr - fix (if we allow this, free an old dataset of this sort)*/
-   ept = getenv("AFNI_REALTIME_T2star_ref");
-   if( ept ) {
-      /* remove any old one, first */
-      if( g_t2star_ref_dset ) DSET_delete(g_t2star_ref_dset);
-      g_t2star_ref_dset = THD_open_dataset(ept);
-      if( g_t2star_ref_dset )
-         fprintf(stderr,"== RTMerge: have T2star_ref from env, %s\n", ept);
-      else
-         fprintf(stderr,"** RTMerge: bad T2star_ref from env, %s\n", ept);
-   } else
-         fprintf(stderr,"-- no T2star_ref from env\n");
-
    PLUTO_add_option(plint, "" , "Registration Base" , FALSE ) ;
    PLUTO_add_hint  (plint, "choose registration base dataset and sub-brick");
    PLUTO_add_string(plint, "Reg Base", NREG_BASE, REG_BASE_strings,
@@ -907,14 +892,6 @@ PLUGIN_interface * PLUGIN_init( int ncall )
    PLUTO_add_hint  (plint, "registration base dataset index");
    PLUTO_add_number(plint, "Src Chan" , 0,9999,0 , g_reg_src_chan , TRUE ) ;
    PLUTO_add_hint  (plint, "registration source channel");
-
-   /*-- Filling this line out with T2* reference data set --*/
-   /* rcr - fix (move to plugin line that has more space) */
-
-   PLUTO_add_dataset( plint , "T2* Ref Dset", ANAT_ALL_MASK, FUNC_ALL_MASK,
-                                      DIMEN_ALL_MASK | BRICK_ALLREAL_MASK ) ;
-   PLUTO_add_hint  (plint, "Reference data set with T2* values.");
-
 
 
    /*-- next line of input: registration graphing --*/
@@ -990,13 +967,39 @@ PLUGIN_interface * PLUGIN_init( int ncall )
 
    PLUTO_add_string( plint , "Chan List" , 0, (ept!=NULL) ? &ept : NULL , 13 ) ;
 
-   /*-- Adding options for writing individual time-point volumes to disk --*/
-   PLUTO_add_option( plint , "" , "DataWriting" , FALSE ) ;
+   /*---------------------------------------------------------*/
+   /*-- a line to put misc options: RT writing and T2* dset --*/
 
+   /* initialize g_t2star_ref_dset - 
+    * it can be overwritten in the plugin  23 Jan 2017 */
+   /* rcr - but if coming throught the plugin, do not do this */
+   /* rcr - fix (if we allow this, free an old dataset of this sort)*/
+   ept = getenv("AFNI_REALTIME_T2star_ref");
+   if( ept ) {
+      /* remove any old one, first */
+      if( g_t2star_ref_dset ) DSET_delete(g_t2star_ref_dset);
+      g_t2star_ref_dset = THD_open_dataset(ept);
+      if( g_t2star_ref_dset )
+         fprintf(stderr,"== RTMerge: have T2star_ref from env, %s\n", ept);
+      else
+         fprintf(stderr,"** RTMerge: bad T2star_ref from env, %s\n", ept);
+   } else
+         fprintf(stderr,"-- no T2star_ref from env\n");
+
+   PLUTO_add_option( plint , "" , "MiscOptions" , FALSE ) ;
+
+   /*-- Adding options for writing individual time-point volumes to disk --*/
    RTdatamode = (int)AFNI_numenv("AFNI_REALTIME_WRITEMODE") ;
    if( RTdatamode < 0 || RTdatamode >= N_RT_WRITE_MODES ) RTdatamode = 0 ;
    PLUTO_add_string( plint , "RT Write" , N_RT_WRITE_MODES, RT_write_strings,
                      RTdatamode ) ;
+
+   /*-- Filling this line out with T2* reference data set --*/
+
+   PLUTO_add_dataset( plint , "T2* Ref Dset", ANAT_ALL_MASK, FUNC_ALL_MASK,
+                                      DIMEN_ALL_MASK | BRICK_ALLREAL_MASK ) ;
+   PLUTO_add_hint  (plint, "Reference data set with T2* values.");
+
 
 
    /* Cameron Craddock added to support real time detrend */
@@ -1181,24 +1184,6 @@ char * RT_main( PLUGIN_interface * plint )
             g_reg_base_dset = NULL;
          }
 
-         /* if coming through the plugin, afni already knows about the
-          * dataset, so we do not need to delete it
-          * (or we make a plugin copy, as with g_reg_base_dset) */
-         idc = PLUTO_get_idcode(plint) ;
-         g_t2star_ref_dset = PLUTO_find_dset(idc);     /* might be NULL */
-
-         if (verbose)
-            fprintf(stderr,
-               "RTM: reg base mode '%s', index %d, dset %s, src chan %d,"
-               " t2* ref %s\n",
-               REG_BASE_strings[g_reg_base_mode], regtime,
-               g_reg_base_dset ? "<found>" : "<empty>",
-               g_reg_src_chan,
-               g_t2star_ref_dset ? "<found>" : "<empty>");
-
-         /* Potential check here ? for Reg base and T2* Ref to have
-            matching grids?                                         */
-
          continue ;
       }
 
@@ -1265,10 +1250,28 @@ char * RT_main( PLUGIN_interface * plint )
          continue ;
       }
 
-      if( strcmp(tag,"DataWriting") == 0 ){
+      if( strcmp(tag,"MiscOptions") == 0 ){
+         MCW_idcode * idc;
+
          str        = PLUTO_get_string(plint) ;
          RTdatamode = PLUTO_string_index( str , N_RT_WRITE_MODES,
                                                 RT_write_strings ) ;
+
+         /* if coming through the plugin, afni already knows about the
+          * dataset, so we do not need to delete it
+          * (or we make a plugin copy, as with g_reg_base_dset) */
+         idc = PLUTO_get_idcode(plint) ;
+         g_t2star_ref_dset = PLUTO_find_dset(idc);     /* might be NULL */
+
+         if (verbose)
+            fprintf(stderr,
+               "RTM: reg base mode '%s', index %d, dset %s, src chan %d,"
+               " t2* ref %s\n",
+               REG_BASE_strings[g_reg_base_mode], regtime,
+               g_reg_base_dset ? "<found>" : "<empty>",
+               g_reg_src_chan,
+               g_t2star_ref_dset ? "<found>" : "<empty>");
+
          continue ;
       }
 
@@ -4911,16 +4914,13 @@ void RT_process_image( RT_input * rtin )
       if( cc+1 == rtin->num_chan && 
           RT_when_to_merge() == RT_CM_MERGE_AFTER_REG ) {
 
-{/* rcr - fix (just keep merge loop) */
- static int nmerged = 0; /* rcr - fix (use rtin->mrg_nvol, instead) */
- int tt;
- int ntt = DSET_NUM_TIMES( rtin->dset[g_reg_src_chan] ) ;
-fprintf(stderr,"== consider post-reg merging, nm = %d, ntt=%d\n", nmerged,ntt);
- for( ; nmerged < ntt && nmerged < rtin->reg_nvol; nmerged++ ) {
-   fprintf(stderr,"++ about to merge time index %d\n", nmerged);
-        RT_merge( rtin, cc, nmerged);
- }
-}
+         int tt, ntt=DSET_NUM_TIMES( rtin->dset[g_reg_src_chan] ) ;
+
+         for( tt = rtin->mrg_nvol; tt < ntt && tt < rtin->reg_nvol; tt++ ) {
+            if( verbose > 1 )
+               fprintf(stderr,"++ about to merge time index %d\n", tt);
+            RT_merge( rtin, cc, tt);
+         }
       }
 
       /* Cameron Craddock
@@ -5217,7 +5217,7 @@ static int RT_merge( RT_input * rtin, int chan, int tt )
 
    if ( verbose > 1 )
       fprintf(stderr,"-- RTMerge, merging chan=%d, tindex=%d, num_chan=%d,"
-                     " mode=%d\n", chan, rtin->num_chan, RT_chmrg_mode);
+                     " mode=%d\n", chan, iv, rtin->num_chan, RT_chmrg_mode);
 
    /* 10 Jul 2010 [rickr]: maybe merge only a subset of channels */
    /* note: the channel int list can only be created "now", since
@@ -6447,10 +6447,8 @@ void RT_registration_3D_realtime( RT_input *rtin )
    if( RT_will_register_merged_dset(rtin) )
       ntt = DSET_NUM_TIMES( rtin->mrg_dset ) ;
    else
-      ntt = DSET_NUM_TIMES( rtin->dset[g_reg_src_chan] ) ;
-
-/* rcr - fix (remove print) */
-fprintf(stderr,"== alignming time indices %d to %d\n", rtin->reg_nvol, ntt);
+      /* do not proceed with registration until all channels are complete */
+      ntt = DSET_NUM_TIMES( rtin->dset[rtin->num_chan-1] ) ;
 
 
    ttbot = rtin->reg_nvol ;
@@ -6834,9 +6832,10 @@ void RT_registration_3D_onevol( RT_input *rtin , int tt )
          ADDTO_IMARR(imarr, tim);
       }
 
-      /* rcr OC - change mri_3dalign_oneplus() to mri_3dalign_apply() */
+      /* rcr OC - change mri_3dalign_oneplus() to mri_3dalign_apply()     */
+      /*          (and specify to keep the input datum, if short or byte) */
       outarr = mri_3dalign_apply( rtin->reg_3dbasis , imarr ,
-                                  roll , pitch , yaw , dx , dy , dz ) ;
+                                  roll , pitch , yaw , dx , dy , dz , 1 ) ;
       if( outarr == NULL ) {
          fprintf(stderr,"** mri_3dalign_apply returns NULL\n");
          return;
@@ -6976,8 +6975,6 @@ void RT_registration_3D_onevol( RT_input *rtin , int tt )
                                                      ADN_none ) ;
          }
          FREE_IMARR(outarr);  /* but do not free the images */
-
-         /* rcr - fix (rcr - here: merge regsitered datasets) */
       }
    }
 

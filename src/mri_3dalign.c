@@ -762,19 +762,24 @@ ENTRY("mri_3dalign_oneplus") ;
    RETURN(outar) ;
 }
 
+
 /*---------------------------------------------------------------------------*/
 /* apply rotate/shift parameters to list of images        27 Oct 2016 [rickr]
 
    Like mri_3dalign_oneplus(), but expect that mri_3dalign_one() has already
    happened, so parameters are known.
+
+   If keep_datum and im->kind is MRI_byte or MRI_short, convert back.
+                                                          21 Feb 2017 [rickr]
 *//*-------------------------------------------------------------------------*/
 
 MRI_IMARR * mri_3dalign_apply( MRI_3dalign_basis *basis, MRI_IMARR *imar ,
                                  float dth1 , float dth2 , float dth3 ,
-                                 float ddx  , float ddy  , float ddz   )
+                                 float ddx  , float ddy  , float ddz ,
+                                 int keep_datum  )
 {
    int nim = IMARR_COUNT(imar) , kk ;
-   MRI_IMAGE *bim , *outim ;
+   MRI_IMAGE *bim , *outim , *keepim ;
    MRI_IMARR *outar ;
 
 ENTRY("mri_3dalign_apply") ;
@@ -804,6 +809,15 @@ ENTRY("mri_3dalign_apply") ;
      } else {                  /* real-valued input */
        outim = THD_rota3D( bim ,
                            ax1,dth1, ax2,dth2, ax3,dth3, dcode , ddx,ddy,ddz ) ;
+
+       /* if keeping shorts or bytes, convert immediately     21 Feb 2017 */
+       if( outim && keep_datum ) {
+          if( bim->kind == MRI_byte ) {
+             keepim = mri_to_byte(outim); mri_free(outim); outim=keepim;
+          } else if( bim->kind == MRI_short ) {
+             keepim = mri_to_short(1.0, outim); mri_free(outim); outim=keepim;
+          }
+       }
 
        if( outim != NULL && outim->kind == MRI_float && clipit &&
            (final_regmode == MRI_QUINTIC || final_regmode==MRI_CUBIC  ||
