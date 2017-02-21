@@ -337,8 +337,7 @@ cat << EOF
     \$ $this_prog  \
         -in_fa DTI/DT_FA+orig.                    \
         -in_v1 DTI/DT_V1+orig.                    \
-        -in_mask mask_DWI+orig                    \
-        -do_clean
+        -in_mask mask_DWI+orig 
 
 -------------------------------------------------------------------------
 EOF
