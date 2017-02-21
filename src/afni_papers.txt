@@ -253,3 +253,12 @@ Taylor PA, Chen G, Cox RW, Saad ZS.
     connectivity).
   * http://dx.doi.org/10.1089/brain.2015.0363
   * https://afni.nimh.nih.gov/pub/dist/papers/ASF_2015_draft_BCinpress.pdf
+----------------------------------------------------------------------------
+RW Cox, G Chen, DR Glen, RC Reynolds, PA Taylor.
+  FMRI Clustering in AFNI: False Positive Rates Redux.
+  accepted for publication, Brain Connectivity.
+
+  * A discussion of the cluster-size thresholding updates made to
+    AFNI in early 2017.
+  * Pre-print: https://arxiv.org/abs/1702.04845
+----------------------------------------------------------------------------

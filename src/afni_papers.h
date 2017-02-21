@@ -247,5 +247,22 @@ static char *afni_papers[] = {
    "  * http://dx.doi.org/10.1016/j.neuroimage.2014.06.027\n" ,
    "  * https://afni.nimh.nih.gov/pub/dist/doc/papers/3dMVM_2014.pdf\n" ,
    "----------------------------------------------------------------------------\n" ,
+   "Taylor PA, Chen G, Cox RW, Saad ZS. \n" ,
+   "  Open Environment for Multimodal Interactive Connectivity\n" ,
+   "  Visualization and Analysis. Brain Connectivity 6(2):109-21, 2016.\n" ,
+   "\n" ,
+   "  * Visualization and MVM stats tools using tracking (or even functional\n" ,
+   "    connectivity).\n" ,
+   "  * http://dx.doi.org/10.1089/brain.2015.0363\n" ,
+   "  * https://afni.nimh.nih.gov/pub/dist/papers/ASF_2015_draft_BCinpress.pdf\n" ,
+   "----------------------------------------------------------------------------\n" ,
+   "RW Cox, G Chen, DR Glen, RC Reynolds, PA Taylor.\n" ,
+   "  FMRI Clustering in AFNI: False Positive Rates Redux.\n" ,
+   "  accepted for publication, Brain Connectivity.\n" ,
+   "\n" ,
+   "  * A discussion of the cluster-size thresholding updates made to\n" ,
+   "    AFNI in early 2017.\n" ,
+   "  * Pre-print: https://arxiv.org/abs/1702.04845\n" ,
+   "----------------------------------------------------------------------------\n" ,
    NULL } ;
-#define NUM_afni_papers 247
+#define NUM_afni_papers 264
