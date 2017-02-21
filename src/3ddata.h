@@ -5475,7 +5475,7 @@ extern MRI_IMARR * mri_3dalign_oneplus( MRI_3dalign_basis * , MRI_IMARR * ,
                                         float *, float *, float * ) ;
 extern MRI_IMARR * mri_3dalign_apply( MRI_3dalign_basis * , MRI_IMARR * ,
                                         float, float, float,
-                                        float, float, float ) ;
+                                        float, float, float, int ) ;
 
 /*---------------------------------------------------------------------*/
 
