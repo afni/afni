@@ -3675,9 +3675,10 @@ INFO_message("AFNI controller xroot=%d yroot=%d",(int)xroot,(int)yroot) ;
       !AFNI_yesenv("AFNI_ENABLE_MARKERS")    )
      fprintf(stderr,"++ NOTE: 'Define Markers' is hidden: right-click 'DataDir' to see it\n") ;
 
-   if( MAIN_im3d->type == AFNI_3DDATA_VIEW && first_plugin_check < 0 )
+   if( MAIN_im3d->type == AFNI_3DDATA_VIEW && first_plugin_check < 0 && !GLOBAL_argopt.noplugins )
      fprintf(stderr,"++ NOTE: Use '-seehidden' option to see which plugins are hidden\n") ;
 
+#if 0
    /**--- Apr 2013: delete this message in a few months ---**/
 
    if( __DATE__[10] == '3' && (__DATE__[0] == 'A' || __DATE__[0] == 'M') )
@@ -3691,6 +3692,7 @@ INFO_message("AFNI controller xroot=%d yroot=%d",(int)xroot,(int)yroot) ;
        "         environment variable AFNI_DETACH to NO.  To kill all running copies\n"
        "         of AFNI, you could use the Unix command 'killall afni'. -- [Apr 2013]\n"
      ) ;
+#endif
 
    if( AFNI_check_environ_done() == 0 )
      fprintf(stderr,
@@ -3701,7 +3703,14 @@ INFO_message("AFNI controller xroot=%d yroot=%d",(int)xroot,(int)yroot) ;
 
    /*--- splash window down -- moved here 29 May 2013 ---*/
 
+#ifndef NO_FRIVOLITIES
+   if( lrand48()%7 == 3 )
+     INFO_message("Want your picture in the AFNI splash screen? Email us a square JPEG!") ;
+#endif
+
    AFNI_splashdown(); STATUS("splashed down");
+
+   /* this is for me only! */
 
    { char *eee = getenv("USER") ;
      set_program_name("afni") ;
