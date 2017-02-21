@@ -255,19 +255,23 @@ int main( int argc , char *argv[] )
    AFNI_SETUP_OMP(0) ;  /* 24 Jun 2013 */
 
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
-      printf("Usage: 3dDespike [options] dataset\n"
+      printf("\n"
+             "Usage: 3dDespike [options] dataset\n"
+             "\n"
              "Removes 'spikes' from the 3D+time input dataset and writes\n"
              "a new dataset with the spike values replaced by something\n"
              "more pleasing to the eye.\n"
              "\n"
-             "Method:\n"
+             "------------------\n"
+             "Outline of Method:\n"
+             "------------------\n"
              " * L1 fit a smooth-ish curve to each voxel time series\n"
              "    [see -corder option for description of the curve]\n"
              "    [see -NEW option for a different & faster fitting method]\n"
              " * Compute the MAD of the difference between the curve and\n"
              "    the data time series (the residuals).\n"
              " * Estimate the standard deviation 'sigma' of the residuals\n"
-             "    as sqrt(PI/2)*MAD.\n"
+             "    from the MAD.\n"
              " * For each voxel value, define s = (value-curve)/sigma.\n"
              " * Values with s > c1 are replaced with a value that yields\n"
              "    a modified s' = c1+(c2-c1)*tanh((s-c1)/(c2-c1)).\n"
@@ -275,7 +279,16 @@ int main( int argc , char *argv[] )
              " * c2 is the upper range of the allowed deviation from the curve:\n"
              "    s=[c1..infinity) is mapped to s'=[c1..c2)   [default c2=4].\n"
              "\n"
+             "An alternative method for replacing the spike value is provided\n"
+             "by the '-localedit' option, and that method is preferred by\n"
+             "many users.\n"
+             "\n"
+             "The input dataset can be stored in short or float formats.\n"
+             "The output dataset will always be stored in floats. [Feb 2017]\n"
+             "\n"
+             "--------\n"
              "Options:\n"
+             "--------\n"
              " -ignore I  = Ignore the first I points in the time series:\n"
              "               these values will just be copied to the\n"
              "               output dataset [default I=0].\n"
@@ -295,15 +308,20 @@ int main( int argc , char *argv[] )
              "\n"
              " -cut c1 c2 = Alter default values for the spike cut values\n"
              "               [default c1=2.5, c2=4.0].\n"
+             "\n"
              " -prefix pp = Save de-spiked dataset with prefix 'pp'\n"
              "               [default pp='despike']\n"
+             "\n"
              " -ssave ttt = Save 'spikiness' measure s for each voxel into a\n"
              "               3D+time dataset with prefix 'ttt' [default=no save]\n"
+             "\n"
              " -nomask    = Process all voxels\n"
              "               [default=use a mask of high-intensity voxels, ]\n"
              "               [as created via '3dAutomask -dilate 4 dataset'].\n"
+             "\n"
              " -dilate nd = Dilate 'nd' times (as in 3dAutomask).  The default\n"
              "               value of 'nd' is 4.\n"
+             "\n"
              " -q[uiet]   = Don't print '++' informational messages.\n"
              "\n"
              " -localedit = Change the editing process to the following:\n"
@@ -336,18 +354,19 @@ int main( int argc , char *argv[] )
              " -NEW25     = A slightly more aggressive despiking approach than\n"
              "              the '-NEW' method.\n"
              "\n"
+             "--------\n"
              "Caveats:\n"
+             "--------\n"
              "* Despiking may interfere with image registration, since head\n"
              "   movement may produce 'spikes' at the edge of the brain, and\n"
              "   this information would be used in the registration process.\n"
              "   This possibility has not been explored or calibrated.\n"
+             "\n"
              "* [LATER] Actually, it seems like the registration problem\n"
              "   does NOT happen, and in fact, despiking seems to help!\n"
+             "\n"
              "* Check your data visually before and after despiking and\n"
              "   registration!\n"
-             "   [Hint: open 2 AFNI controllers, and turn Time Lock on.]\n"
-             "* The input dataset can be stored in short or float formats.\n"
-             "  The output dataset will always be stored in floats. [Feb 2017]\n"
             ) ;
 
       PRINT_AFNI_OMP_USAGE("3dDespike",NULL) ;
@@ -462,7 +481,7 @@ int main( int argc , char *argv[] )
      ERROR_exit("Can't process non-short, non-float dataset!") ;
 
    out_datum = MRI_float ;
-   if( in_datum == MRI_short ){
+   if( verb && (in_datum == MRI_short) ){
      INFO_message("Input dataset is in short format, but output will be in float format") ;
    }
 
@@ -471,12 +490,15 @@ int main( int argc , char *argv[] )
      ERROR_exit("Can't use dataset with < 15 time points per voxel!") ;
 
    if( nuse > 500 && !do_NEW ){
-     INFO_message("Switching to '-NEW' method since number of time points = %d > 500",nuse) ;
+     if( verb )
+       INFO_message("Switching to '-NEW' method since number of time points = %d > 500",nuse) ;
      do_NEW = 1 ;
    }
    if( use_des25 && nuse <= 99 ){
-     INFO_message("'-NEW25' method was ordered, but need more than 99 time points for that") ;
-     INFO_message("  switching to the '-NEW' method instead") ;
+     if( verb ){
+       INFO_message("'-NEW25' method was ordered, but need more than 99 time points for that") ;
+       INFO_message("  switching to the '-NEW' method instead") ;
+     }
      use_des25 = 0 ;
    }
 
@@ -497,18 +519,20 @@ int main( int argc , char *argv[] )
 
    if( !nomask ){
      mask = THD_automask( dset ) ;
-     if( verb ){
-       ii = THD_countmask( DSET_NVOX(dset) , mask ) ;
+     ii = THD_countmask( DSET_NVOX(dset) , mask ) ;
+     if( verb && ii > 0 )
        INFO_message("%d voxels in the automask [out of %d in dataset]",ii,DSET_NVOX(dset)) ;
-     }
+     else if( ii == 0 )
+       ERROR_exit("Nothing to process -- automask is empty :(") ;
+
      for( ii=0 ; ii < dilate ; ii++ )
        THD_mask_dilate( DSET_NX(dset), DSET_NY(dset), DSET_NZ(dset), mask, 3 ) ;
-     if( verb ){
-       ii = THD_countmask( DSET_NVOX(dset) , mask ) ;
+
+     ii = THD_countmask( DSET_NVOX(dset) , mask ) ;
+     if( verb )
        INFO_message("%d voxels in the dilated automask [out of %d in dataset]",ii,DSET_NVOX(dset)) ;
-       if( ii == 0 )
-         ERROR_exit("Nothing to process -- no voxel in automask?!") ;
-     }
+     if( ii == 0 )
+       ERROR_exit("Nothing to process -- no voxels in automask?!") ;
    } else {
      if( verb ) INFO_message("processing all %d voxels in dataset",DSET_NVOX(dset)) ;
    }
@@ -621,10 +645,12 @@ int main( int argc , char *argv[] )
 
    if( do_NEW ){
      NEW_psinv = DES_get_psinv(nuse,nref,ref) ;
-     INFO_message("Procesing time series with %s model fit algorithm",
-                  (use_des25) ? "NEW25" : "NEW" ) ;
+     if( verb )
+       INFO_message("Procesing time series with %s model fit algorithm",
+                    (use_des25) ? "NEW25" : "NEW" ) ;
    } else {
-     INFO_message("Procesing time series with OLD model fit algorithm") ;
+     if( verb )
+       INFO_message("Procesing time series with OLD model fit algorithm") ;
    }
 
    /*--- loop over voxels and do work ---*/
@@ -667,11 +693,13 @@ int main( int argc , char *argv[] )
     fitar = (float *) malloc( sizeof(float) * nvals ) ;
     ssp   = (float *) malloc( sizeof(float) * nvals ) ;
     fit   = (float *) malloc( sizeof(float) * nref  ) ;
-    if( do_NEW ) NEW_wks = (float *)malloc(sizeof(float)*DES_workspace_size(nuse,nref)) ;
+    if( do_NEW )
+      NEW_wks = (float *)malloc(sizeof(float)*DES_workspace_size(nuse,nref)) ;
   }
 
 #ifdef USE_OMP
-   INFO_message("start OpenMP thread #%d",omp_get_thread_num()) ;
+   if( verb )
+     INFO_message("start OpenMP thread #%d",omp_get_thread_num()) ;
 #endif
 
 #pragma omp for
