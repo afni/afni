@@ -882,7 +882,7 @@ PLUGIN_interface * PLUGIN_init( int ncall )
 
    /* initialize this - it can be overwritten in the plugin  23 Jan 2017 */
    /* rcr - but if coming throught the plugin, do not do this */
-   /* rcr - fix */
+   /* rcr - fix (if we allow this, free an old dataset of this sort)*/
    ept = getenv("AFNI_REALTIME_T2star_ref");
    if( ept ) {
       /* remove any old one, first */
@@ -909,6 +909,7 @@ PLUGIN_interface * PLUGIN_init( int ncall )
    PLUTO_add_hint  (plint, "registration source channel");
 
    /*-- Filling this line out with T2* reference data set --*/
+   /* rcr - fix (move to plugin line that has more space) */
 
    PLUTO_add_dataset( plint , "T2* Ref Dset", ANAT_ALL_MASK, FUNC_ALL_MASK,
                                       DIMEN_ALL_MASK | BRICK_ALLREAL_MASK ) ;
@@ -2285,7 +2286,7 @@ RT_input * new_RT_input( IOCHAN *ioc_data )
    rtin->mp_npsets  = 0 ;
    strcpy(rtin->mp_host, "localhost") ;
 
-   /* make a local copy of the t2star dataset pointer */
+   /* just a local copy of the global t2star dataset pointer */
    if(g_t2star_ref_dset) rtin->t2star_ref_dset=g_t2star_ref_dset;
    else                  rtin->t2star_ref_dset=NULL;
 
@@ -3825,6 +3826,7 @@ int RT_process_info( int ninfo , char * info , RT_input * rtin )
    }  /* end of loop over command buffers */
 
    /* check numte against num_chan (can equal, or numte == 1) */
+   /* rcr - fix (fail if mismatch?  allow many 'real' channels and 1 te)*/
       
    if( numte > 0 ) {
       if( rtin->num_chan > 1 && numte == 1 ) /* then dupe */
@@ -4623,8 +4625,8 @@ static int RT_will_register_merged_dset(RT_input * rtin)
    return 0;
 }
 
-/* return whether this is true, whether we will register the
- * merged dataset                        27 Oct 2016 [rickr] */
+/* return whether to merge before registration, after, or not at all
+ *                                               27 Oct 2016 [rickr] */
 static int RT_when_to_merge( void )
 {
    if( RT_chmrg_mode == RT_CHMER_NONE )     return RT_CM_NO_MERGE;
@@ -4909,8 +4911,8 @@ void RT_process_image( RT_input * rtin )
       if( cc+1 == rtin->num_chan && 
           RT_when_to_merge() == RT_CM_MERGE_AFTER_REG ) {
 
-{/* rcr - fix */
- static int nmerged = 0;
+{/* rcr - fix (just keep merge loop) */
+ static int nmerged = 0; /* rcr - fix (use rtin->mrg_nvol, instead) */
  int tt;
  int ntt = DSET_NUM_TIMES( rtin->dset[g_reg_src_chan] ) ;
 fprintf(stderr,"== consider post-reg merging, nm = %d, ntt=%d\n", nmerged,ntt);
@@ -5207,13 +5209,15 @@ static int RT_merge( RT_input * rtin, int chan, int tt )
    MRI_IMAGE * mrgim ;
    int         iv;
 
-fprintf(stderr,"== RTMerge 0, chan=%d, num_chan=%d, mode=%d\n",
-chan, rtin->num_chan, RT_chmrg_mode);
    /* if not merging, we are out of here */
    if( chan+1 != rtin->num_chan || RT_chmrg_mode == 0 ) return 0;
 
    if ( tt >= 0 ) iv = tt;
    else           iv = rtin->nvol[chan]-1 ;  /* sub-brick index */
+
+   if ( verbose > 1 )
+      fprintf(stderr,"-- RTMerge, merging chan=%d, tindex=%d, num_chan=%d,"
+                     " mode=%d\n", chan, rtin->num_chan, RT_chmrg_mode);
 
    /* 10 Jul 2010 [rickr]: maybe merge only a subset of channels */
    /* note: the channel int list can only be created "now", since
@@ -6445,6 +6449,10 @@ void RT_registration_3D_realtime( RT_input *rtin )
    else
       ntt = DSET_NUM_TIMES( rtin->dset[g_reg_src_chan] ) ;
 
+/* rcr - fix (remove print) */
+fprintf(stderr,"== alignming time indices %d to %d\n", rtin->reg_nvol, ntt);
+
+
    ttbot = rtin->reg_nvol ;
    for( tt=ttbot ; tt < ntt ; tt++ )
       RT_registration_3D_onevol( rtin , tt ) ;
@@ -6787,6 +6795,7 @@ void RT_registration_3D_onevol( RT_input *rtin , int tt )
    datum = DSET_BRICK_TYPE(source, 0);
 
    /* if merging after registration and insufficient channel data, bail */
+   /* rcr - fix (this should not apply) */
    if ( RT_when_to_merge() == RT_CM_MERGE_AFTER_REG &&
          rtin->nvol[rtin->num_chan-1] <= tt )
       return;
@@ -6812,6 +6821,7 @@ void RT_registration_3D_onevol( RT_input *rtin , int tt )
    rim = mri_3dalign_one( rtin->reg_3dbasis , qim ,
                           &roll , &pitch , &yaw , &dx , &dy , &dz ) ;
 
+   /* if aligning channels, apply the parameters to the channels */
    if( rtin->reg_chan_mode >= RT_CM_RMODE_REG_CHAN ) {
       /* align mrg_dset and all channels as followers  27 May 2010 [rickr] */
       /* input imarr should have source image and then each channel        */
@@ -6967,7 +6977,7 @@ void RT_registration_3D_onevol( RT_input *rtin , int tt )
          }
          FREE_IMARR(outarr);  /* but do not free the images */
 
-         /* rcr - here: merge regsitered datasets */
+         /* rcr - fix (rcr - here: merge regsitered datasets) */
       }
    }
 
@@ -7619,10 +7629,6 @@ MRI_IMAGE * RT_mergerize(RT_input * rtin, int iv)
    short *sar[MAX_CHAN] , *star ;  /* OPT_COMB or T2STAREST */
 
    ds = rtin->dset ;
-
-fprintf(stderr,"++ RT_mergerize 0, iv=%d, nds=%d\n", iv, nds);
-fprintf(stderr,"   ds=%p, reg_chan_dset=%p, dset=%p\n",
-        ds, rtin->reg_chan_dset, rtin->dset);
 
    if( nds <= 1 || ds == NULL || !ISVALID_DSET(ds[0]) ) return NULL ;
    if( iv < 0 || iv >= DSET_NVALS(ds[0]) )              return NULL ;
