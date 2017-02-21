@@ -7834,25 +7834,36 @@ MRI_IMAGE * RT_mergerize(RT_input * rtin, int iv)
 
                */
 
+             if( t2star_ref[ii] != 0.0 ) {
                sumTEsByExpTEs = 0.0;
                for (cc=0 ; cc < ndsets ; cc++)
                {
-                  sumTEsByExpTEs += ( rtin->TE[cc] * exp (-1.0 * rtin->TE[cc] / t2star_ref[ii]) );
+                  sumTEsByExpTEs += ( rtin->TE[cc] 
+                                 * exp (-1.0*rtin->TE[cc] / t2star_ref[ii]) );
                }
 
                for (cc=0 ; cc < ndsets ; cc++)
                {
                   if (idatum == MRI_short) {
                      star   = (sar[cc]);
-                     fmar[ii] += (star[ii] * rtin->TE[cc] * exp (-1.0 * rtin->TE[cc] / t2star_ref[ii]));
+                     fmar[ii] += (star[ii] * rtin->TE[cc] 
+                              * exp (-1.0 * rtin->TE[cc] / t2star_ref[ii]));
                   }
                   else { /* idatum == MRI_float */
                      ftar   = (far[cc]);
-                     fmar[ii] += (ftar[ii] * rtin->TE[cc] * exp (-1.0 * rtin->TE[cc] / t2star_ref[ii]));
+                     fmar[ii] += (ftar[ii] * rtin->TE[cc] 
+                              * exp (-1.0 * rtin->TE[cc] / t2star_ref[ii]));
                   }
                }
 
-               fmar[ii] =  fmar[ii] / sumTEsByExpTEs;
+               /* rcr - fix (Vinai, is 0.001 reasonable?) */
+               if( sumTEsByExpTEs > 0.001 )
+                  fmar[ii] = fmar[ii] / sumTEsByExpTEs;
+               else
+                  fmar[ii] = 0.0;
+             } else {
+               fmar[ii] = 0.0;
+             }
            }
        }
      break ; /* done with RT_CHMER_OPT_COMB */
