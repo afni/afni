@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 22 , FEB , 2017 , RWC , "AFNI gui" , MICRO , TYPE_MODIFY ,
+   "Add VG painting effect to AFNI image viewer" ,
+   "Just for fun, please!" } ,
+
  { 20 , FEB , 2017 , RWC , "3dDespike" , MINOR , TYPE_BUG_FIX ,
    "Scale factor bug" ,
    "The program ignored the scale factors attached to short datasets.\n"
