@@ -13954,8 +13954,8 @@ static MRI_IMAGE * mri_vgize( MRI_IMAGE *iim )
    slen = 1.3f * bsig ;
    for( kk=0 ; kk < nxy ; kk++ ){
      bx = bxar[kk]*bmax ; by = byar[kk]*bmax ; gsiz = sqrtf(bx*bx+by*by) ;
-     if( gsiz < 0.03f ){
-       bx = by = 0.0f ;
+     if( gsiz < 0.03f && gsiz > 0.0f ){
+       bx *= (0.111f*slen/gsiz) ; by *= (0.111f*slen/gsiz) ;
      } else if( gsiz < 0.30f ){
        bx *= (0.333f*slen/gsiz) ; by *= (0.333f*slen/gsiz) ;
      } else {
