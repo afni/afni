@@ -763,7 +763,7 @@ extern void ISQ_show_image( MCW_imseq * ) ;
 extern void ISQ_draw_winfo( MCW_imseq * ) ;
 
  /* 06 Mar 2001 */
-extern MRI_IMAGE * ISQ_overlay( MCW_DC *, MRI_IMAGE *, MRI_IMAGE *, float , float ) ;
+extern MRI_IMAGE * ISQ_overlay( MCW_DC *, MRI_IMAGE *, MRI_IMAGE *, float ) ;
 #define ISQ_GOOD_OVERLAY_TYPE(dt) ( (dt)==MRI_short || (dt)==MRI_rgb || (dt)==MRI_rgba )
 
 extern MRI_IMAGE * ISQ_binarize_overlay( MRI_IMAGE * ) ; /* Mar 2013 */

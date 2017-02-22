@@ -2756,7 +2756,7 @@ ENTRY("ISQ_short_to_rgb") ;
    06 Mar 2001 -- RWCox
 -------------------------------------------------------------------------*/
 
-MRI_IMAGE * ISQ_overlay( MCW_DC *dc , MRI_IMAGE *ulim, MRI_IMAGE *ovim, float alpha , float vfac )
+MRI_IMAGE * ISQ_overlay( MCW_DC *dc , MRI_IMAGE *ulim, MRI_IMAGE *ovim, float alpha )
 {
    register int npix,ii,jj ;
    MRI_IMAGE *outim , *orim ;
@@ -2832,11 +2832,6 @@ ENTRY("ISQ_overlay") ;
             our[jj+2] = am*bb + bm*our[jj+2] ;
            }
        }
-       if( vfac > 0.0f ){
-         MRI_IMAGE *qim ;
-         vgize_sigfac = vfac ; qim = mri_vgize(outim) ;
-         if( qim != NULL ){ mri_free(outim); outim = qim; }
-       }
        RETURN(outim) ;
      }
      break ;
@@ -2899,12 +2894,6 @@ ENTRY("ISQ_overlay") ;
    }
 
    if( orim != ovim ) mri_free(orim) ;  /* destroy copy of overlay, if any */
-
-   if( vfac > 0.0f ){
-     MRI_IMAGE *qim ;
-     vgize_sigfac = vfac ; qim = mri_vgize(outim) ;
-     if( qim != NULL ){ mri_free(outim); outim = qim; }
-   }
 
    RETURN(outim) ;
 }
@@ -3037,6 +3026,7 @@ void ISQ_make_image( MCW_imseq *seq )
 {
    MRI_IMAGE *im , *ovim , *tim ;
    Boolean reset_done = False ;
+   float vfac = VGFAC(seq) ;
 
 ENTRY("ISQ_make_image") ;
 
@@ -3193,8 +3183,17 @@ ENTRY("ISQ_make_image") ;
    if( ovim == NULL || ISQ_SKIP_OVERLAY(seq) ){          /* nothing to do */
       tim = im ;
    } else {                                                /* 06 Mar 2001 */
-      tim = ISQ_overlay( seq->dc, im, ovim, seq->ov_opacity , VGFAC(seq) ) ;
+      tim = ISQ_overlay( seq->dc, im, ovim, seq->ov_opacity ) ;
       if( tim == NULL ) tim = im ;                    /* shouldn't happen */
+   }
+
+   if( vfac > 0.0f ){
+     MRI_IMAGE *qim ;
+     vgize_sigfac = vfac ; qim = mri_vgize(tim) ;
+     if( qim != NULL ){
+       if( tim != im ) KILL_1MRI(tim);
+       tim = qim;
+     }
    }
 
    /* convert result to XImage for display */
@@ -4254,7 +4253,7 @@ ENTRY("ISQ_saver_CB") ;
          if( ovim != NULL ){
             tim = flim ;
             if( dbg ) fprintf(stderr,"  merge overlay and underlay images\n") ;
-            flim = ISQ_overlay( seq->dc , tim , ovim , seq->ov_opacity , VGFAC(seq) ) ;
+            flim = ISQ_overlay( seq->dc , tim , ovim , seq->ov_opacity ) ;
             if( flim == NULL ){ flim = tim ; }     /* shouldn't happen */
             else              { KILL_1MRI(tim) ; }
             mri_free( ovim ) ;
@@ -4593,7 +4592,7 @@ ENTRY("ISQ_saver_CB") ;
 
          if( ovim != NULL ){
             tim = flim ;
-            flim = ISQ_overlay( seq->dc , tim , ovim , seq->ov_opacity , VGFAC(seq) ) ;
+            flim = ISQ_overlay( seq->dc , tim , ovim , seq->ov_opacity ) ;
             if( flim == NULL ){ flim = tim ; }     /* shouldn't happen */
             else              { KILL_1MRI(tim) ; }
             mri_free( ovim ) ;
@@ -9524,6 +9523,7 @@ void ISQ_make_montage( MCW_imseq *seq )
    Boolean reset_done = False ;
    float fac , wmm , hmm ;
    short gap_ov ;
+   float vfac = VGFAC(seq) ;
 
    byte  gap_rgb[3] ;  /* 11 Feb 1999 */
    void  *gapval ;
@@ -9904,8 +9904,17 @@ STATUS("Destroying overlay image array") ;
    if( ovim == NULL || ISQ_SKIP_OVERLAY(seq) ){   /* no processing of overlay */
       tim = im ;
    } else {
-      tim = ISQ_overlay( seq->dc , im, ovim, seq->ov_opacity , VGFAC(seq) ) ;
+      tim = ISQ_overlay( seq->dc , im, ovim, seq->ov_opacity ) ;
       if( tim == NULL ) tim = im ;     /* shouldn't happen */
+   }
+
+   if( vfac > 0.0f ){
+     MRI_IMAGE *qim ;
+     vgize_sigfac = vfac ; qim = mri_vgize(tim) ;
+     if( qim != NULL ){
+       if( tim != im ) KILL_1MRI(tim);
+       tim = qim;
+     }
    }
 
    /*--- convert result to XImage for display ---*/
@@ -13597,7 +13606,7 @@ ENTRY("ISQ_save_anim") ;
 
       if( ovim != NULL ){
         tim = flim ;
-        flim = ISQ_overlay( seq->dc , tim , ovim , seq->ov_opacity , VGFAC(seq) ) ;
+        flim = ISQ_overlay( seq->dc , tim , ovim , seq->ov_opacity ) ;
         if( flim == NULL ){ flim = tim ; }     /* shouldn't happen */
         else              { KILL_1MRI(tim) ; }
         mri_free( ovim ) ;
@@ -13894,14 +13903,16 @@ static MRI_IMAGE * mri_streakize( MRI_IMAGE *im , MRI_IMAGE *sxim , MRI_IMAGE *s
 
 /*----------------------------------------------------------------------------*/
 
-static MRI_IMAGE * mri_vgize( MRI_IMAGE *im )
+static MRI_IMAGE * mri_vgize( MRI_IMAGE *iim )
 {
-   MRI_IMAGE *blim , *gxim,*gyim , *bxim,*byim ;
+   MRI_IMAGE *blim , *gxim,*gyim , *bxim,*byim , *im ;
    float     *bar , *gxar,*gyar , *bxar,*byar ;
    int nx,ny,nxy , ii,jj,kk,joff ;
    float bsig , bmax , gsiz , blen , bx,by , slen , cc,ss ;
 
-   if( im == NULL || im->kind != MRI_rgb ) return NULL ;
+   if( iim == NULL ) return NULL ;
+
+   im = mri_to_rgb(iim) ;
 
    nx = im->nx ; ny = im->ny ; nxy = nx*ny ;
 
@@ -13938,7 +13949,7 @@ static MRI_IMAGE * mri_vgize( MRI_IMAGE *im )
    }
    bmax = sqrtf(bmax) ;
 /* ININFO_message("bmax=%g",bmax) ; */
-   if( bmax == 0.0f ){ mri_free(bxim); mri_free(byim) ; return NULL ; }
+   if( bmax == 0.0f ){ mri_free(bxim); mri_free(byim); mri_free(im); return NULL; }
    bmax = 1.0f / bmax ;
    slen = 1.3f * bsig ;
    for( kk=0 ; kk < nxy ; kk++ ){
@@ -13974,7 +13985,7 @@ static MRI_IMAGE * mri_vgize( MRI_IMAGE *im )
 
    blim = mri_streakize( im , bxim , byim ) ;
 
-   mri_free(bxim) ; mri_free(byim) ;
+   mri_free(bxim) ; mri_free(byim) ; mri_free(im) ;
 
    return blim ;
 }
