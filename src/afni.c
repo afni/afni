@@ -8805,7 +8805,7 @@ if(PRINT_TRACING)
    if( rgbov != NULL ){
      if( im != NULL ){
        MRI_IMAGE *qim ;
-       qim = ISQ_overlay( im3d->dc , rgbov , im , 1.0 ) ;
+       qim = ISQ_overlay( im3d->dc , rgbov , im , 1.0f , 0.0f ) ;
        mri_free(rgbov); mri_free(im); rgbov = qim;
      }
      im = rgbov ;
