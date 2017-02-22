@@ -13880,7 +13880,7 @@ static MRI_IMAGE * mri_streakize( MRI_IMAGE *im , MRI_IMAGE *sxim , MRI_IMAGE *s
      ii = kk % nx ; jj = kk / nx ;
      for( dd=1 ; dd <= sk ; dd++ ){
        di = (int)(dd*sx+0.499f) ; dj = (int)(dd*sy+0.499f) ;
-       if( di == 0.0f && dj == 0.0f ) continue ;
+       /* if( di == 0.0f && dj == 0.0f ) continue ; */
        ei = ii+di ; ej = jj+dj ;
        if( ei >= 0 && ei < nx && ej >= 0 && ej < ny ){
          dk = ei + ej*nx ;
