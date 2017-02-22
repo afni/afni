@@ -483,6 +483,10 @@ imand:imand.o
 	$(RM) $@
 	$(CC) -o imand imand.o $(LFLAGS) $(LLIBS)
 
+img:img.o
+	$(RM) $@
+	$(CC) -o img img.o $(LFLAGS) $(LLIBS)
+
 imrotate:imrotate.o
 	$(RM) $@
 	$(CC) -o imrotate imrotate.o $(LFLAGS) $(LLIBS)
