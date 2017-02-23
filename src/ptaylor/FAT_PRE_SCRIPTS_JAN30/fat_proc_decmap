@@ -13,12 +13,14 @@
 # Jan, 2017b
 #   + visualization output
 #
+set version   = "2.8"
+set rev_dat   = "Feb 21, 2017"
+#   + more QC output (sca and unwt+thr)
+#   + sca and thr opts in
 #
 
 # ----------------------------------------------------------------
 
-set version   = "2.4"
-set rev_dat   = "Jan, 2017"
 set this_prog = "fat_proc_decmap"
 set here      = $PWD
 
@@ -48,12 +50,19 @@ set in_mask   = ""
 set outdir    = ""
 set outpref   = "DEC"
 set qc_prefix = ""
-set tmppref   = "_zxcvbnm09"
+set tmppref   = "tmpdwi"
+set copy_fa   = "${tmppref}_FA.nii"
 
+set wdir      = "__WORKING_decmap"
 set DoClean   = 1                # def: do delete temp files
 set DO_VIEWER = 1                # def: do QC image visualization
 
-set postfix   = "dec"            # stick into name
+set sca_fa    = "0.7"            # optional user scaling for a brighter img
+
+set postfix0  = "dec"            # stick into name
+set postfix1  = "dec_unwt_thr"   # stick into name: unwtd, but thresholded
+set postfix2  = "dec_sca"        # stick into name: unwtd, but thresholded
+set thr_fa    = "0.2"            # for unweighted but thresholded image
 
 # ------------------- process options, a la rr ----------------------
 
@@ -95,6 +104,16 @@ while ( $ac <= $#argv )
         @ ac += 1
         set outpref = "$argv[$ac]"
 
+    else if ( "$argv[$ac]" == "-fa_thr" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set thr_fa = "$argv[$ac]"
+
+    else if ( "$argv[$ac]" == "-fa_sca" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set sca_fa = "$argv[$ac]"
+
     else if ( "$argv[$ac]" == "-no_clean" ) then
         set DoClean = 0
 
@@ -122,8 +141,6 @@ end
 # ============================ input files ==============================
 
 echo "++ Start script version: $version"
-
-set to_clean = ( ) 
 
 set check = `3dinfo "$in_fa"`
 if ( "$#check" == "0" ) then
@@ -157,18 +174,26 @@ else
     endif
 endif
 
+# make the working directory
+if ( ! -e $outdir/$wdir ) then
+    echo "++ Making working directory: $outdir/$wdir"
+    mkdir $outdir/$wdir
+else
+    echo "+* WARNING: Somehow found a premade working directory (?):"
+    echo "      $outdir/$wdir"
+endif
+
 if ( $in_mask =="" ) then
     echo "+* No mask input, so ~making one of regions where FA>0."
-    set in_mask = "$outdir/${tmppref}_mskd.nii.gz"
+    set in_mask = "${tmppref}_mskd.nii"
 
     3dcalc -echo_edu                     \
         -overwrite                       \
         -a $in_fa                        \
         -expr 'step(a)'                  \
-        -prefix $in_mask                 \
+        -prefix $outdir/$wdir/$in_mask   \
         -datum byte
 
-    set to_clean = ( $to_clean $in_mask )
 else
     echo "++ User input mask, so checking for it..."
     set check = `3dinfo "$in_mask"`
@@ -177,6 +202,16 @@ else
         goto BAD_EXIT
     endif 
     echo "++ ... OK, got $in_mask"
+    
+    # copy it, rename and reassign name
+    set newmask = "dwi_mask.nii.gz"
+    # copy it to wdir
+    3dcalc                              \
+        -overwrite                      \
+        -a $in_mask                     \
+        -expr 'a'                       \
+        -prefix $outdir/$wdir/$newmask
+    set in_mask = "$newmask"
 endif
 
 # =======================================================================
@@ -185,65 +220,159 @@ endif
 
 echo "\n-----> STARTING RGB calcs with FA and V1 <----\n"
 
-set fout = "$outdir/${tmppref}_v1fa.nii.gz"
-set to_clean = ( $to_clean $fout )
+3dcalc                                   \
+    -echo_edu                            \
+    -overwrite                           \
+    -a $in_fa                            \
+    -b "$outdir/$wdir/$in_mask"          \
+    -expr 'a*step(b)'                    \
+    -prefix "$outdir/$wdir/$copy_fa"     \
+    -datum float
+
+# weighted, but not thresholded, by FA
+set fout_wtd = "${tmppref}_wtd.nii"
 3dcalc                                   \
     -echo_edu                            \
     -overwrite                           \
     -a $in_fa                            \
     -b $in_v1                            \
     -expr 'a*abs(b)'                     \
-    -prefix "$fout"                      \
+    -prefix "$outdir/$wdir/$fout_wtd"    \
     -datum float
 
-set fin  = "$fout"
-set fout = "$outdir/${outpref}_${postfix}.nii.gz"
+# unweighted, but thresholded, by FA
+set fout_uwtd = "${tmppref}_uwtd.nii"
+3dcalc                                   \
+    -echo_edu                            \
+    -overwrite                           \
+    -a $in_fa                            \
+    -b $in_v1                            \
+    -expr "step(a-${thr_fa})*abs(b)"     \
+    -prefix "$outdir/$wdir/$fout_uwtd"   \
+    -datum float
+
+if ( $sca_fa != "" ) then
+    # weighted, but not thresholded, by FA PLUS scaled by userval
+    set fout_sca = "${tmppref}_sca.nii"
+    3dcalc                                   \
+        -echo_edu                            \
+        -overwrite                           \
+        -a $in_fa                            \
+        -b $in_v1                            \
+        -expr "a*abs(b)/${sca_fa}"           \
+        -prefix "$outdir/$wdir/$fout_sca"    \
+        -datum float
+endif
+
+# change to working directory
+cd $outdir/$wdir
+
+# "classical" dec map
+set fin0  = "$fout_wtd"
+set fout0 = "${outpref}_${postfix0}.nii"
 3dThreetoRGB                             \
     -echo_edu                            \
     -overwrite                           \
     -scale 255                           \
-    -prefix $fout                        \
+    -prefix ../$fout0                    \
     -mask   $in_mask                     \
-    $fin
+    $fin0
 
-# --------------------------------------------------------
+# "other" dec map
+set fin1  = "$fout_uwtd"
+set fout1 = "${outpref}_${postfix1}.nii"
+3dThreetoRGB                             \
+    -echo_edu                            \
+    -overwrite                           \
+    -scale 255                           \
+    -prefix ../$fout1                    \
+    -mask   $in_mask                     \
+    $fin1
 
-if ( $DoClean ) then
-    echo "\n Removing temporary file(s):"
-    echo "\t $to_clean"
-   \rm $to_clean
-else
-    echo "\n NOT Removing temporary files.\n"
+if ( $sca_fa != "" ) then
+    # "other" dec map
+    set fin2  = "$fout_sca"
+    set fout2 = "${outpref}_${postfix2}.nii"
+    3dThreetoRGB                             \
+        -echo_edu                            \
+        -overwrite                           \
+        -scale 255                           \
+        -prefix ../$fout2                    \
+        -mask   $in_mask                     \
+        $fin2
 endif
-
-# --------------------------------------------------------
-
-printf "\n++ -----------------------------------------------"
-printf "\n++ DONE! View the finished, DEC (whee, yay!) product:"
-printf "\n     $fout\n\n"
-
-# ---------------------------- VIEWER ---------------------------------
 
 if ( $DO_VIEWER ) then
 
     echo "++ Making QC images."
-
     if( $qc_prefix == "" ) then
-        set vpref1 = ${outpref}_${postfix}_qc1_fin
+        set vpref0 = ${outpref}_${postfix0}_qc0
+        set vpref1 = ${outpref}_${postfix1}_qc1
+        set vpref2 = ${outpref}_${postfix2}_"$sca_fa"_qc2
     else
-        set vpref1 = ${qc_prefix}_${postfix}_qc1_fin
+        set vpref0 = ${qc_prefix}_${postfix0}_qc0
+        set vpref1 = ${qc_prefix}_${postfix1}_qc1
+        set vpref2 = ${qc_prefix}_${postfix2}_"$sca_fa"_qc2
     endif
 
-    echo "++ QC image #1 (final output ulay): $vpref1"
-    $my_viewer      -ulay $fout                     \
-                    -prefix $vpref1                 \
-                    -outdir "."                     \
+    echo "++ QC image #0 (weighted+unthresholded dec): $vpref0"
+    $my_viewer      -ulay ../$fout0                 \
+                    -outdir ".."                    \
+                    -prefix $vpref0                 \
+                    -outdir ".."                    \
                     -montx 5 -monty 3               \
                     -set_xhairs OFF                 \
                     -label_mode 1 -label_size 3     \
                     -globalrange ""                 \
                     -do_clean
+
+    echo "++ QC image #1 (ulay FA, olay unweighted+thresholded dec): $vpref1"
+    $my_viewer      -ulay $copy_fa                  \
+                    -ulay_range 1% 99%              \
+                    -olay ../$fout1                 \
+                    -outdir ".."                    \
+                    -prefix $vpref1                 \
+                    -outdir ".."                    \
+                    -montx 5 -monty 3               \
+                    -set_xhairs OFF                 \
+                    -label_mode 1 -label_size 3     \
+                    -do_clean
+
+    if ( $sca_fa != "" ) then
+        echo "++ QC image #2 (weighted+unthresholded+scaled dec): $vpref2"
+        echo "     --> scaling value = $sca_fa"
+        $my_viewer      -ulay ../$fout2                 \
+                        -outdir ".."                    \
+                        -prefix $vpref2                 \
+                        -outdir ".."                    \
+                        -montx 5 -monty 3               \
+                        -set_xhairs OFF                 \
+                        -label_mode 1 -label_size 3     \
+                        -globalrange ""                 \
+                        -do_clean
+    endif
 endif
+
+# --------------------------------------------------------
+
+# leave working dir
+cd ../
+
+if ( $DoClean ) then
+    echo "\n Removing temporary file(s) in working dir: $wdir"
+   \rm -rf $wdir
+else
+    echo "\n NOT Removing working director: $wdir\n"
+endif
+
+# --------------------------------------------------------
+
+printf "\n++ -----------------------------------------------"
+printf "\n++ DONE! View the finished, DEC (whee, yay!) products:"
+printf "\n    $outdir/$fout0"
+printf "\n    $outdir/$fout1\n\n"
+
+# ---------------------------- VIEWER ---------------------------------
 
 # ---------------------------------------------------------------------
 
@@ -290,6 +419,8 @@ cat << EOF
         {-in_mask MASK}                          \
         {-prefix  PREFIX}                        \
         {-outdir  DIR}                           \
+        {-thr_fa  FFF}                           \
+        {-sca_fa  SSS}                           \
         {-no_clean}
 
    where:
@@ -299,10 +430,22 @@ cat << EOF
                     otherwise, only places with FA>0 are 
                     given coloration (which just makese sense,
                     anyways, since FA>=0?).
+
    -prefix  PREFIX :optional prefix for output file (default
-                    is ${outpref}).  Output is PREFIX_${postfix}.
+                    is ${outpref}).  Outputs are PREFIX_${postfix0}
+                    and PREFIX_${postfix1}
    -outdir  DIR    :optional location of output directory (default
                     is wherever the FA map is).
+
+   -thr_fa  FFF    :for QC1 type of DEC images, use FFF to threshold
+                    where DEC values are calculated (def: FFF = ${thr_fa}).
+   -sca_fa  SSS    :for QC2 type of DEC images, use SSS to scale the 
+                    FA weighting of what would otherwise be a 'classical'
+                    DEC map (where |V1|*FA);  this is added because 
+                    sometimes the DEC map can be kind of dim when 
+                    weighting by FA only; instead, in this map, RGB values
+                    are given by '|V1|*FA/SSS' (def:  SSS = ${sca_fa}).
+
    -no_clean       :a couple temporary files are created whilst
                     making the DEC map.  This switch tells the 
                     program to *not* delete them when finishing
@@ -313,22 +456,42 @@ cat << EOF
                     output.  To turn these off (why??), use this
                     switch
    -qc_prefix QCP  :by default, the QC snapshots carry the same output
-                    name as the final output: PREFIX_${postfix}. You
-                    can change this to be QCP_${postfix}, if you want.
+                    name as the final output: PREFIX_*. You
+                    can change this to be QCP_*, if you want.
 
  ------------------------------------------------------------------------
 
   OUTPUTS:
 
-    RGB_${postfix}.nii.gz 
+    PREFIX_${postfix0}.nii.gz 
         a single file of type 'rgb' that AFNI knows how to 
-        display with RGB coloration when viewed as underlay.
+        display with RGB coloration when viewed as underlay: 
+        made by using V1 as RGB and weighting by FA values
 
-    RGB_${postfix}_qc1_fin.*.png
+    PREFIX_${postfix1}.nii.gz 
+        a single file of type 'rgb' that AFNI knows how to 
+        display with RGB coloration when viewed as underlay: 
+        made by using V1 as RGB, *not* weighting by FA, but using FA
+        to threshold where DEC values are calculated (def: FA>0.2).
+
+    PREFIX_${postfix2}*.nii.gz 
+        A similar file to PREFIX_${postfix0}.nii.gz, but additionally
+        scaled by a value (such as 0.7; see "-sca_fa SSS" option
+        above); this can 'brighten' the DEC map for clarity.
+
+    PREFIX_${postfix0}_qc0*.png
         a set cor, axi and sag images (each a 5x3 montage) of the 
-        RGB data set    
+        PREFIX_${postfix0}.nii.gz data set.
 
-    (temp files    :these can be deleted, as desired.)
+    PREFIX_${postfix1}_qc1*.png
+        a set cor, axi and sag images (each a 5x3 montage) of the 
+        PREFIX_${postfix1}.nii.gz data set.
+
+    PREFIX_${postfix2}*_qc2*.png
+        a set cor, axi and sag images (each a 5x3 montage) of the 
+        PREFIX_${postfix2}.nii.gz data set.
+
+    (working directory of temp files: these can be deleted, as desired.)
 
 -------------------------------------------------------------------------
 
