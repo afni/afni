@@ -13854,9 +13854,9 @@ ENTRY("ISQ_save_anim") ;
 }
 
 /*----------------------------------------------------------------------------*/
-/**** Stuff for the VG effect ****/
+/**** Stuff for the VG effect [RWC Feb 2017] ****/
 
-#undef USE_NOIS
+#undef USE_NOIS  /* this stuff is useless */
 
 static MRI_IMAGE * mri_streakize( MRI_IMAGE *im , MRI_IMAGE *sxim , MRI_IMAGE *syim )
 {
@@ -13876,30 +13876,32 @@ static MRI_IMAGE * mri_streakize( MRI_IMAGE *im , MRI_IMAGE *sxim , MRI_IMAGE *s
 /* ININFO_message("mri_streakize") ; */
 
    for( kk=0 ; kk < nxy ; kk++ ){
+     /* get streak vector */
      sx = sxar[kk] ; sy = syar[kk] ; if( sx == 0.0f && sy == 0.0f ) continue ;
-     strk = sqrtf(sx*sx+sy*sy) ;     if( strk < 2.0f              ) continue ;
-     sx /= strk ; sy /= strk ;       if( strk > 20.0f ) strk = 20.0f ;
+     strk = sqrtf(sx*sx+sy*sy) ;     if( strk < 1.5f              ) continue ;
+     sx /= strk ; sy /= strk ;       if( strk > 29.0f ) strk = 29.0f ;
      sk = (int)(strk+0.499f) ;
+     /* color at start pixel */
      rr = iar[3*kk+0]; gg = iar[3*kk+1]; bb = iar[3*kk+2]; ns = 1;
 #ifdef USE_NOIS
      rz = rr ; gz = gg ; bz = bb ;
 #endif
      ii = kk % nx ; jj = kk / nx ;
-     for( dd=1 ; dd <= sk ; dd++ ){
+     for( dd=1 ; dd <= sk ; dd++ ){ /* streaking */
        di = (int)(dd*sx+0.499f) ; dj = (int)(dd*sy+0.499f) ;
        /* if( di == 0.0f && dj == 0.0f ) continue ; */
-       ei = ii+di ; ej = jj+dj ;
+       ei = ii+di ; ej = jj+dj ;    /* the plus step */
        if( ei >= 0 && ei < nx && ej >= 0 && ej < ny ){
          dk = ei + ej*nx ;
          rr += iar[3*dk+0] ; gg += iar[3*dk+1] ; bb += iar[3*dk+2] ; ns++ ;
        }
-       ei = ii-di ; ej = jj-dj ;
+       ei = ii-di ; ej = jj-dj ;    /* the minus step */
        if( ei >= 0 && ei < nx && ej >= 0 && ej < ny ){
          dk = ei + ej*nx ;
          rr += iar[3*dk+0] ; gg += iar[3*dk+1] ; bb += iar[3*dk+2] ; ns++ ;
        }
      }
-     if( ns > 1 ){
+     if( ns > 1 ){  /* if we summed in any other pixels */
        rr /= ns ; gg /= ns ; bb /= ns ;
 #ifdef USE_NOIS
        if( fabsf(rr-rz) < 5.0 && fabsf(gg-gz) < 5.0 && fabsf(bb-bz) < 5.0 ){
@@ -13956,9 +13958,11 @@ static MRI_IMAGE * mri_vgize( MRI_IMAGE *iim )
         gyar[ii+joff] = bar[ii+joff+nx] - bar[ii+joff-nx] ;
       }
    }}
+
 /* ININFO_message("blur gradients") ; */
    bxim = mri_float_blur2D(0.5f*bsig,gxim); mri_free(gxim); bxar = MRI_FLOAT_PTR(bxim);
    byim = mri_float_blur2D(0.5f*bsig,gyim); mri_free(gyim); byar = MRI_FLOAT_PTR(byim);
+
 /* ININFO_message("find gradient max") ; */
    bmax = 0.0f ;
    for( kk=0 ; kk < nxy ; kk++ ){
@@ -13968,11 +13972,14 @@ static MRI_IMAGE * mri_vgize( MRI_IMAGE *iim )
    bmax = sqrtf(bmax) ;
 /* ININFO_message("bmax=%g",bmax) ; */
    if( bmax == 0.0f ){ mri_free(bxim); mri_free(byim); mri_free(im); return NULL; }
+
+   /* scale gradients by largest one */
+
    bmax = 1.0f / bmax ;
    slen = 1.3f * bsig ;
    for( kk=0 ; kk < nxy ; kk++ ){
      bx = bxar[kk]*bmax ; by = byar[kk]*bmax ; gsiz = sqrtf(bx*bx+by*by) ;
-     if( gsiz < 0.04f ){
+     if( gsiz < 0.04f ){  /* very small gradient ==> minimal streak len */
 #ifdef USE_NOIS
        rr = iar[3*kk+0]; gg = iar[3*kk+1]; bb = iar[3*kk+2]; nois++ ;
        rr += (float)(40.0*drand48()-15.0) ;
@@ -13983,12 +13990,12 @@ static MRI_IMAGE * mri_vgize( MRI_IMAGE *iim )
        if( gsiz > 0.0f ){
          bx *= (0.111f*slen/gsiz) ; by *= (0.111f*slen/gsiz) ;
        }
-     } else {
+     } else {              /* non-trivial gradient ==> larger streak len */
        cc = 0.111f + 2.69f*gsiz ; if( cc > 1.0f ) cc = 1.0f ;
        bx *= (cc*slen/gsiz) ; by *= (cc*slen/gsiz) ;
      }
      bxar[kk] = by ; byar[kk] = -bx ;          /* streak direction */
-     bar[kk]  = (float)(30.0*drand48()-15.0) ; /* random angle */
+     bar[kk]  = (float)(30.0*drand48()-15.0) ; /* random angle for streak */
    }
 
 /* ININFO_message("blur angles") ; */
@@ -13998,6 +14005,8 @@ static MRI_IMAGE * mri_vgize( MRI_IMAGE *iim )
      gsiz = fabsf(gxar[kk]) ; if( gsiz > bmax ) bmax = gsiz ;
    }
 /* ININFO_message("max angle=%g",bmax) ; */
+
+   /* rotate streak directions randomly */
    if( bmax > 0.0f ){
      bmax = (40.0f * PI/180.0f) / bmax ;
      for( kk=0 ; kk < nxy ; kk++ ){
@@ -14010,7 +14019,7 @@ static MRI_IMAGE * mri_vgize( MRI_IMAGE *iim )
    }
    mri_free(gxim) ;
 
-   blim = mri_streakize( im , bxim , byim ) ;
+   blim = mri_streakize( im , bxim , byim ) ;  /* do the streaking */
 
    mri_free(bxim) ; mri_free(byim) ; mri_free(im) ;
 
