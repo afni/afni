@@ -574,6 +574,7 @@ void AFNI_syntax(void)
      SUMA_Offset_SLines(get_help_help(),3), get_gopt_help()
    ) ;
 
+#if 0
    printf(
      "\n"
      "-----------------------------------------------------\n"
@@ -629,11 +630,12 @@ void AFNI_syntax(void)
      " N.B.: The program 'aiv' (AFNI image viewer) can also be used to\n"
      "        get a quick look at images (but not time series graphs).\n"
    ) ;
+#endif
 
    printf(
      "\n"
      "-------------------------------------------------------\n"
-     "USAGE 3: read in datasets specified on the command line\n"
+     "USAGE 2: read in datasets specified on the command line\n"
      "-------------------------------------------------------\n"
      "\n"
      "  afni -dset [options] dname1 dname2 ...\n"
@@ -641,10 +643,19 @@ void AFNI_syntax(void)
      "where 'dname1' is the name of a dataset, etc.  With this option, only\n"
      "the chosen datasets are read in, and they are all put in the same\n"
      "'session'.  Follower datasets are not created.\n"
+     "\n"
      "* If you wish to be very tricksy, you can read in .1D files as datasets\n"
      "  using the \\' transpose syntax, as in\n"
      "     afni Fred.1D\\'\n"
      "  However, this isn't very useful (IMHO).\n"
+     "\n"
+     "* AFNI can also read image files (.jpg and .png) from the command line.\n"
+     "  For just viewing images, the 'aiv' program (AFNI image viewer) is\n"
+     "  simpler; but unlike aiv, you can do basic image processing on an\n"
+     "  image 'dataset' using the AFNI GUI's feature. Sample command:\n"
+     "     afni *.jpg\n"
+     "  Each image file is a single 'dataset'; to switch between images,\n"
+     "  use the 'Underlay' button. To view an image, open the 'Axial' viewer.\n"
      "\n");
     printf(MASTER_HELP_STRING);   putchar('\n');
     printf(CATENATE_HELP_STRING); putchar('\n');
@@ -3189,6 +3200,13 @@ STATUS("initialize plugins") ;
 STATUS("call 14") ;
 
         OPEN_CONTROLLER( MAIN_im3d ) ;
+
+        if( GLOBAL_argopt.only_images ){   /* 24 Feb 2017 */
+          AV_assign_ival( MAIN_im3d->vwid->imag->crosshair_av,0) ;
+          MAIN_im3d->vinfo->crosshair_visible = False ;
+          GLOBAL_argopt.left_is_left = 0 ;
+          putenv("AFNI_LEFT_IS_LEFT=NO" ) ;
+        }
 
         AFNI_initialize_controller( MAIN_im3d ) ;  /* decide what to see */
         AFNI_initialize_view( NULL, MAIN_im3d ) ;  /* set up to see it */
@@ -6123,6 +6141,7 @@ void AFNI_read_inputs( int argc , char *argv[] )
    int id , last_color ;
    Boolean isfunc ;
 
+
 ENTRY("AFNI_read_inputs") ;
 
    /* create empty library of dataset sessions */
@@ -6131,6 +6150,7 @@ ENTRY("AFNI_read_inputs") ;
    GLOBAL_library.sslist->type = SESSIONLIST_TYPE ;
    BLANK_SESSIONLIST(GLOBAL_library.sslist) ;
    GLOBAL_library.sslist->parent = NULL ;
+   GLOBAL_argopt.only_images = 0 ;  /* 24 Feb 2017 */
 
    /*----- read files -----*/
 
@@ -6311,6 +6331,8 @@ STATUS("normalizing directory list") ;
 
       /*----- read each session, set parents, put into session list -----*/
 
+      GLOBAL_argopt.only_images = 1 ;  /* 24 Feb 2017 */
+
       qlist = dlist ;
    RESTART_DIRECTORY_SCAN:   /* 18 Feb 2007 */
       num_ss = qlist->num ;
@@ -6337,6 +6359,8 @@ if(PRINT_TRACING)
                SET_SESSION_DSET(dset, dss, qd, dset->view_type);
 /*               dss->dsset_xform_table[qd][dset->view_type] = dset ;*/
                dss->num_dsset ++ ;
+               if( dset->dblk->diskptr->storage_mode != STORAGE_BY_IMAGE_FILE )
+                 GLOBAL_argopt.only_images = 0 ;  /* 24 Feb 2017 */
                AFNI_inconstancy_check(NULL,dset) ; /* 06 Sep 2006 */
              } else if( qlist == dlist ){
                fprintf(stderr,
@@ -6351,6 +6375,7 @@ if(PRINT_TRACING)
 
            /* set parent pointers */
 
+           GLOBAL_argopt.only_images = 0 ;  /* 24 Feb 2017 */
            new_ss->parent = NULL ;
            for( qd=0 ; qd < new_ss->num_dsset ; qd++ ){
              for( vv=0 ; vv <= LAST_VIEW_TYPE ; vv++ ){
@@ -6494,6 +6519,7 @@ if(PRINT_TRACING)
          /** manufacture a minimal dataset [cf. thd_dumdset.c] **/
 
          new_ss->num_dsset = 1 ;
+         GLOBAL_argopt.only_images = 0 ;  /* 24 Feb 2017 */
 
          cpt = getenv("AFNI_DUMMY_DATASET") ;
 
@@ -6513,7 +6539,10 @@ if(PRINT_TRACING)
 
       } else {  /* 04 Jan 2000: show total number of datasets */
 
-         sprintf(str,"\n dataset count = %d" , num_dsets ) ;
+         if( GLOBAL_argopt.only_images ) /* 24 Feb 2017 */
+           sprintf(str,"\n image count   = %d" , num_dsets ) ;
+         else
+           sprintf(str,"\n dataset count = %d" , num_dsets ) ;
          GLOBAL_num_dsets = num_dsets ;
          REPORT_PROGRESS(str) ;
       }
