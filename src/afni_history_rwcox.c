@@ -44,6 +44,11 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 24 , FEB , 2017 , RWC , "afni GUI" , MICRO , TYPE_GENERAL ,
+   "Turn off crosshairs and left-is-left if all inputs are image files." ,
+   "Also, hide the help for 'afni -im' since AFNI can now read images\n"
+   "directly as 'datasets'." } ,
+
  { 22 , FEB , 2017 , RWC , "AFNI gui" , MICRO , TYPE_MODIFY ,
    "Add VG painting effect to AFNI image viewer" ,
    "Just for fun, please!" } ,
