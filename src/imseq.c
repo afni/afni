@@ -13877,9 +13877,13 @@ static MRI_IMAGE * mri_streakize( MRI_IMAGE *im , MRI_IMAGE *sxim , MRI_IMAGE *s
 
    for( kk=0 ; kk < nxy ; kk++ ){
      /* get streak vector */
-     sx = sxar[kk] ; sy = syar[kk] ; if( sx == 0.0f && sy == 0.0f ) continue ;
-     strk = sqrtf(sx*sx+sy*sy) ;     if( strk < 1.5f              ) continue ;
-     sx /= strk ; sy /= strk ;       if( strk > 29.0f ) strk = 29.0f ;
+     sx = sxar[kk] ; sy = syar[kk] ;
+     strk = sqrtf(sx*sx+sy*sy) ;
+     if( strk < 1.0f ){
+       sx = 4.0*drand48()-2.0; sy = 4.0*drand48()-2.0; strk = sqrtf(sx*sx+sy*sy);
+     }
+     sx /= strk ; sy /= strk ;
+     if( strk < 2.0f ) strk = 2.0f; else if( strk > 29.0f ) strk = 29.0f;
      sk = (int)(strk+0.499f) ;
      /* color at start pixel */
      rr = iar[3*kk+0]; gg = iar[3*kk+1]; bb = iar[3*kk+2]; ns = 1;
@@ -14010,11 +14014,16 @@ static MRI_IMAGE * mri_vgize( MRI_IMAGE *iim )
    if( bmax > 0.0f ){
      bmax = (40.0f * PI/180.0f) / bmax ;
      for( kk=0 ; kk < nxy ; kk++ ){
-       bx = bxar[kk] ; by = byar[kk] ; if( bx==0.0f && by==0.0f ) continue ;
+       bx = bxar[kk] ; by = byar[kk] ;
+       gsiz = sqrtf(bx*bx+by*by) ;
        cc = cosf(bmax*gxar[kk]) ;
        ss = sinf(bmax*gxar[kk]) ;
-       bxar[kk] =  cc*bx + ss*by ;
-       byar[kk] = -ss*bx + cc*by ;
+       if( gsiz < 2.0f ){
+         bxar[kk] = 2.2f*cc ; byar[kk] = 2.2f*ss ;
+       } else {
+         bxar[kk] =  cc*bx + ss*by ;
+         byar[kk] = -ss*bx + cc*by ;
+       }
      }
    }
    mri_free(gxim) ;
