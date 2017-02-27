@@ -1723,6 +1723,13 @@ viewer window into which the user has not specifically set a string for
 this purpose from the GUI menu item 'Label Append String'.
 
 ------------------------------
+Variable: AFNI_IMAGE_LABEL_IJK
+------------------------------
+If this variable is YES, then the image label will be based on the
+slice index rather than the spatial (mm) coordinate. At present, there
+is no way to set this variable from inside the AFNI GUI.
+
+------------------------------
 Variable: AFNI_CROSSHAIR_LINES (editable) -- THIS VARIABLE IS NOW UNUSED
 ------------------------------
 If this YES/NO variable is set to YES, then the image crosshairs will be
