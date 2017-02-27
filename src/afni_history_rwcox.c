@@ -44,6 +44,21 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 27 , FEB , 2017 , RWC , "afni GUI" , MICRO , TYPE_NEW_ENV ,
+   "AFNI_IMAGE_LABEL_IJK" ,
+   "If this variable is set to YES, then the image label overlay (chosen\n"
+   "from the intensity bar popup menu) will show the slice index instead of\n"
+   "the slice coordinate. (for PT)" } ,
+
+ { 24 , FEB , 2017 , RWC , "afni GUI" , MICRO , TYPE_GENERAL ,
+   "Turn off crosshairs and left-is-left if all inputs are image files." ,
+   "Also, hide the help for 'afni -im' since AFNI can now read images\n"
+   "directly as 'datasets'." } ,
+
+ { 22 , FEB , 2017 , RWC , "AFNI gui" , MICRO , TYPE_MODIFY ,
+   "Add VG painting effect to AFNI image viewer" ,
+   "Just for fun, please!" } ,
+
  { 20 , FEB , 2017 , RWC , "3dDespike" , MINOR , TYPE_BUG_FIX ,
    "Scale factor bug" ,
    "The program ignored the scale factors attached to short datasets.\n"

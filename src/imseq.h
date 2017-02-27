@@ -157,6 +157,7 @@ typedef struct {
 #define ISQ_IMPROC_FLAT   1
 #define ISQ_IMPROC_SHARP  2  /* boxes in the Disp dialog improc box */
 #define ISQ_IMPROC_SOBEL  4  /* (powers of 2 of button indexes)     */
+#define ISQ_IMPROC_VG     8
 
 #define ISQ_CX_MAG        1  /* values returned by buttons in */
 #define ISQ_CX_PHASE      2  /* the Disp dialog "complex" box */
@@ -383,9 +384,9 @@ typedef struct MCW_imseq {
             wbut_bot[NBUTTON_BOT] , wbut_rig[NBUTTON_RIG] ; /* windows */
 
      Widget wbar_menu , wbar_rng_but , wbar_zer_but  , wbar_flat_but ,
-            wbar_sharp_but ;
+            wbar_sharp_but , wbar_vgize_but ;
      MCW_bbox *wbar_amask_bbox ;  /* 14 Jun 2010 */
-     float  rng_bot,rng_top,rng_ztop , flat_bot,flat_top , sharp_fac ;
+     float  rng_bot,rng_top,rng_ztop , flat_bot,flat_top , sharp_fac , vgize_fac ;
      int    zer_color , rng_extern ;
 
      MCW_arrowval *arrow[NARROW] ; /* arrow controls */
@@ -733,6 +734,7 @@ extern void ISQ_set_zcol_CB( Widget , XtPointer , MCW_choose_cbs * ) ;
 extern void ISQ_set_flat_CB( Widget , XtPointer , MCW_choose_cbs * ) ;
 extern void ISQ_set_sharp_CB( Widget , XtPointer , MCW_choose_cbs * ) ;
 extern void ISQ_overlay_label_CB( Widget , XtPointer , MCW_choose_cbs * ) ;
+extern void ISQ_set_vgize_CB( Widget , XtPointer , MCW_choose_cbs * ) ;
 
 extern void ISQ_but_disp_CB( Widget , XtPointer , XtPointer ) ;
 extern void ISQ_but_save_CB( Widget , XtPointer , XtPointer ) ;
