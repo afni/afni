@@ -25,13 +25,11 @@
 #     + better slice selection/centering.
 #     + adjust for different orders of orientation
 #
-set version   = "1.6"
-set rev_dat   = "Feb 6, 2017"
+#set version   = "1.6";   set rev_dat   = "Feb 6, 2017"
 #     + olay quotes
 #
-set version   = "2.0"
-set rev_dat   = "Feb 23, 2017"
-#     + no zipped nifti
+set version   = "2.1";   set rev_dat   = "Feb 27, 2017"
+#     + can have IJK labels -> DWImager
 
 # For more info about opts/fields, see:
 #
@@ -47,6 +45,7 @@ setenv AFNI_SPLASH_MELT       NO
 setenv AFNI_ENVIRON_WARNINGS  NO
 setenv AFNI_COMPRESSOR        NONE
 setenv AFNI_IMAGE_GLOBALRANGE VOLUME
+setenv AFNI_IMAGE_LABEL_IJK   NO         # thanks, Bob!
 # -------------------------------------------------------------------
 
 # ------------------- default/initialized variables -----------------
@@ -293,6 +292,11 @@ while ( $ac <= $#argv )
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
         @ ac += 1
         setenv AFNI_IMAGE_LABEL_SETBACK  "$argv[$ac]"
+
+    # Feb, 2017: useful when each slice is a from a sep vol, i.e., for
+    # @djunct*imager
+    else if ( "$argv[$ac]" == "-image_label_ijk" ) then
+        setenv AFNI_IMAGE_LABEL_IJK YES
 
     # default = VOLUME
     else if ( "$argv[$ac]" == "-globalrange" ) then
