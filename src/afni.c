@@ -4746,7 +4746,7 @@ STATUS("drawing crosshairs") ;
          if ((dval = (double)THD_get_voxel_dicom(dset,
                               im3d->vinfo->xi,
                               im3d->vinfo->yj,
-                              im3d->vinfo->zk, ival))>0.0f) {
+                              im3d->vinfo->zk, ival))>0.0) {
             AFNI_get_dset_val_label(dset,         /* Dec 7 2011 ZSS */
                                     dval, labstra);
          }
@@ -4754,7 +4754,7 @@ STATUS("drawing crosshairs") ;
          if ((dval = (double)THD_get_voxel_dicom(dset,
                               im3d->vinfo->xi,
                               im3d->vinfo->yj,
-                              im3d->vinfo->zk, ival))>0.0f) {
+                              im3d->vinfo->zk, ival))>0.0) {
             AFNI_get_dset_val_label(dset,         /* Dec 7 2011 ZSS */
                                     dval, labstrf);
          }
