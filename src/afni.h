@@ -77,6 +77,8 @@ typedef struct {
       char *script_fname ;    /* 21 Jan 2003 */
 
       int cat_sess ;          /* 02 Jun 2016 */
+
+      int only_images ;       /* 24 Feb 2017 */
 } AF_options ;
 
 #ifdef MAIN
