@@ -1,5 +1,9 @@
 #!/bin/tcsh -ef
 
+# !!! comment about movie/mpeg stuff! gifsicle, etc.
+
+# !!!? control loop speed?
+
 # !!!! Need to add inputting of different types of grad: matA,
 # !!!! bval/bvec, etc. and output the same as what is input!
 

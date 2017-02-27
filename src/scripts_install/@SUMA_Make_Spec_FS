@@ -68,6 +68,7 @@ goto L_GOOD_END   # finished, woohooo!
 
 L_INIT_VARS:
 
+    set USING_NIFTI = 0
     set prog_name = $0:t
     set endstr = "$prog_name ... finished"
     set debug     = 0
@@ -210,6 +211,7 @@ L_PARSE_COMMAND:
       set sfieldname = 'SurfaceName'
       set sex = 'gii'
       set stp = 'GIFTI'
+      set USING_NIFTI = 1      # [PT: Feb,2017] really useful...
       
        breaksw
 
@@ -1247,12 +1249,12 @@ echo "      - all created files are stored in a new SUMA directory"
 echo ""
 echo "  Usage: $prog_name [options] -sid SUBJECT_ID"
 echo ""
-echo "  examples:"
+echo "  examples ('-NIFTI' is really useful-- see below!):"
 echo ""
-echo "    $prog_name -sid subject1"
-echo "    $prog_name -help"
-echo "    $prog_name -fspath subject1/surface_stuff -sid subject1"
-echo "    $prog_name -neuro -sid 3.14159265 -debug 1"
+echo "    $prog_name -NIFTI -sid subject1"
+echo "    $prog_name -NIFTI -help"
+echo "    $prog_name -NIFTI -fspath subject1/surface_stuff -sid subject1"
+echo "    $prog_name -NIFTI -neuro -sid 3.14159265 -debug 1"
 echo ""
 echo "  options:"
 echo ""
@@ -1429,6 +1431,17 @@ L_BAD_END:
 # finished!
 
 L_GOOD_END:
+
+    if ( $USING_NIFTI == 0 ) then
+        echo "\n\n"
+        echo "WARNING!"
+        echo "  You didn't use the '-NIFTI' or '-GIFTI' or similarly-named"
+        echo "  option flag!  Are you *sure* you didn't want to?  Learning about"
+        echo "  this option changed my life-- it might just change yours, too."
+        echo "  Please read the helpfile entry for '-NIFTI' if you don't know"
+        echo "  what I'm talking about here."
+        echo "\n\n"
+    endif
 
     if ( $debug > 1 ) unset echo
 
