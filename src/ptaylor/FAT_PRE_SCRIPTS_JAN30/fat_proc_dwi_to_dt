@@ -13,13 +13,22 @@
 # Jan 27, 2017
 #   + update opts
 #
-set version   = "1.3"
-set rev_dat   = "Feb, 2017"
+#set version   = "1.3"
+#set rev_dat   = "Feb, 2017"
 #   + drive viewer
 #
-set version   = "1.4"
-set rev_dat   = "Feb 20, 2017"
+#set version   = "1.4"
+#set rev_dat   = "Feb 20, 2017"
 #   + supplementary anat input
+#
+#set version   = "1.5"
+#set rev_dat   = "Feb 26, 2017"
+#   + more with anat input
+#   + wdir
+#   + pre-alignment/matching stuff
+#
+set version   = "1.6";    set rev_dat   = "Feb 27, 2017"
+#   + pre-alignment/matching stuff
 #
 # ----------------------------------------------------------------
 
@@ -53,7 +62,7 @@ set ianat    = ""                 # optional struc vol (like in TORT)
 set iref     = ""                 # option, for getting orient + orig
 
 set iflip    = ""                 # for 1dDW_*++: can flip (yaaawn)
-set sca      = ""                 # for 3dDWItoDT: -scale_out_1000
+set sca      = "-scale_out_1000"  # for 3dDWItoDT: -scale_out_1000
 
 set odir     = ""
 set opref    = "dwi"
@@ -73,6 +82,9 @@ set postfix     = "dti"           # stick into name
 set DO_UNCERT   = 1
 set Niters      = 300
 set extra_unc_cmds = ""
+
+set DO_CLEAN = 1
+set wdir     = "__WORKING_dwitodt"
 
 # ------------------- process options, a la rr ----------------------
 
@@ -99,12 +111,12 @@ while ( $ac <= $#argv )
         @ ac += 1
         set imask = "$argv[$ac]"
 
-    else if ( "$argv[$ac]" == "-in_anat" ) then
+    else if ( "$argv[$ac]" == "-in_anat_res" ) then
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
         @ ac += 1
         set ianat = "$argv[$ac]"
 
-    else if ( "$argv[$ac]" == "-in_master" ) then
+    else if ( "$argv[$ac]" == "-in_ref_orig" ) then
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
         @ ac += 1
         set iref = "$argv[$ac]"
@@ -164,8 +176,8 @@ while ( $ac <= $#argv )
               ("$argv[$ac]" == "-no_flip") ) then
         set iflip = "$argv[$ac]"
 
-    else if ( "$argv[$ac]" == "-scale_out_1000" ) then
-        set sca = "-scale_out_1000"
+    else if ( "$argv[$ac]" == "-no_scale_out_1000" ) then
+        set sca = ""
 
     else if ( "$argv[$ac]" == "-qc_fa_thr" ) then
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
@@ -236,7 +248,7 @@ else
     echo "++ Found inset DWI file:   $idwi"
 endif
 
-# check for vec/mat file
+# check for vec/mat file ???????????????/
 if ( 0 ) then
 if ( -f "$invecmat[2]" ) then
     echo "++ Found input vec/mat file:  $invecmat[2]"
@@ -267,7 +279,6 @@ if ( "$ianat" != "" ) then
         echo "++ Found inset input file:   $ianat"
     endif
 endif
-
 
 # check if REF was input, then if can be read
 if ( "$iref" != "" ) then
@@ -312,6 +323,17 @@ else
     endif
 endif
 
+set wdir = "$odir/$wdir"
+
+# make the working directory
+if ( ! -e $wdir ) then
+    echo "++ Making working directory: $wdir"
+    mkdir $wdir
+else
+    echo "+* WARNING: Somehow found a premade working directory (?):"
+    echo "      $wdir"
+endif
+
 # ========================= output fnames ==========================
 
 set ocmd   = "${opref}_cmd.txt"      # name for output command
@@ -320,7 +342,7 @@ set obvec  = "${opref}_bvec.txt"     # name for full afni grads
 set obval  = "${opref}_bval.txt"     # name for full afni bvals
 set odwi   = "${opref}_dwi.nii.gz"   # name for dwis
 set omask  = "${opref}_mask.nii.gz"  # name for mask
-set anat   = "${opref}_anat.nii.gz"  # name for mask
+set oanat  = "${opref}_anat.nii.gz"  # name for anat in output
 
 #set dti    = "DTI"
 set dti_par = "${dtipref}.nii.gz"    # NIFTI prefix for NII output
@@ -376,20 +398,130 @@ endif
 # -------------- copy DWI/reset ori^2 --------------
 
 if ( "$iref" != "" ) then
-    # use reference dset for orientation/origin when copying
-    echo "++ Resampling/fitting DWIs:  $odir/$odwi"
-    3dresample               \
+
+    # make sure this is in same orientation with ref
+    set ori_idwi = `3dinfo -orient "$idwi"`
+    if ( "$ori_idwi" != "$ori_new" ) then
+        echo "++ Resampling/fitting input DWI vols."
+        set tmp_idwi = $wdir/DWI_res.nii
+        3dresample               \
+            -echo_edu            \
+            -overwrite           \
+            -inset  "$idwi"      \
+            -orient "$ori_new"   \
+            -prefix $tmp_idwi
+    else
+        # ... or just use input file as is
+        set tmp_idwi = "$idwi"
+    endif
+
+    if ( "$ianat" != "" ) then
+        # resample anat, if nec; then use it to find shift to get to
+        # refspace
+        set ori_anat = `3dinfo -orient "$ianat"`
+        if ( "$ori_anat" != "$ori_new" ) then
+            echo "++ Resampling/fitting input anat vol."
+            set tmp_ianat = $wdir/anat_res.nii
+            3dresample               \
+                -echo_edu            \
+                -overwrite           \
+                -inset  "$ianat"     \
+                -orient "$ori_new"   \
+                -prefix $tmp_ianat
+        else
+            # ... or just use input file as is
+            set tmp_ianat = "$ianat"
+        endif
+
+        set isetinref  = $wdir/anat_in_ref.nii
+        set map_to_ref = $wdir/map_to_ref.param.1D
+        3dAllineate                      \
+            -lpa                         \
+            -source_automask             \
+            -autoweight                  \
+            -cmass                       \
+            -1Dparam_save $map_to_ref    \
+            -warp shift_only             \
+            -source $tmp_ianat           \
+            -base "$iref"                \
+            -prefix $isetinref           \
+            -overwrite
+    else
+        # use dwi[0] for it.
+        set isetinref  = $wdir/dwi0_in_ref.nii
+        set map_to_ref = $wdir/map_to_ref.param.1D
+        3dAllineate                      \
+            -lpa                         \
+            -source_automask             \
+            -autoweight                  \
+            -cmass                       \
+            -1Dparam_save $map_to_ref    \
+            -warp shift_only             \
+            -source $tmp_idwi"[0]"       \
+            -base "$iref"                \
+            -prefix $isetinref           \
+            -overwrite
+    endif
+
+    # --> from either of the above maps, we just care about the
+    # --> $map_to_ref, to apply those shifts to the DWI set, so it
+    # --> isn't resampled/smoothed.
+    
+    # les shifts; need to reverse signs to apply
+    set shsh = `grep -v -h "#" $map_to_ref`
+    set sss  = ( 0 0 0 )
+    foreach i ( `seq 1 1 3` ) 
+        set sss[$i]  = `echo "scale=2; -1.0 * $shsh[$i]" | bc`
+    end
+
+    # copy dwi, and apply shifts with refit
+    3dcalc                   \
         -echo_edu            \
         -overwrite           \
-        -inset  "$idwi"      \
-        -orient "$ori_new"   \
+        -a  "$tmp_idwi"      \
+        -expr 'a'            \
         -prefix $odir/$odwi
 
-    # and then reset origin
+    # apply to both DWI and, if applicable, the anat
     3drefit                  \
-        -echo_edu            \
-        -duporigin $iref     \
+        -dxorigin "$sss[1]"  \
+        -dyorigin "$sss[2]"  \
+        -dzorigin "$sss[3]"  \
         $odir/$odwi
+
+    if ( "$ianat" != "" ) then
+        3dcalc                   \
+            -echo_edu            \
+            -overwrite           \
+            -a  "$tmp_ianat"     \
+            -expr 'a'            \
+            -prefix $odir/$oanat
+        3drefit                  \
+            -dxorigin "$sss[1]"  \
+            -dyorigin "$sss[2]"  \
+            -dzorigin "$sss[3]"  \
+            $odir/$oanat
+    endif
+
+    # !!!!!!!!!! delete
+    if ( 0 ) then
+        # use reference dset for orientation/origin when copying
+        echo "++ Resampling/fitting DWIs:  $odir/$odwi"
+        3dresample               \
+            -echo_edu            \
+            -overwrite           \
+            -inset  "$idwi"      \
+            -orient "$ori_new"   \
+            -prefix $odir/$odwi
+
+        # and then reset origin
+        3drefit                  \
+            -echo_edu            \
+            -duporigin $iref     \
+            $odir/$odwi
+    endif
+
+
 else
     # just copy
     3dcalc                   \
@@ -398,6 +530,13 @@ else
         -a  "$idwi"          \
         -expr 'a'            \
         -prefix $odir/$odwi
+
+    3dcalc                   \
+        -echo_edu            \
+        -overwrite           \
+        -a  "$ianat"         \
+        -expr 'a'            \
+        -prefix $odir/$oanat
 endif
 
 # ----------------- WB mask: make or copy -------------
@@ -464,7 +603,9 @@ if ( $DO_VIEWER ) then
 
     if( "$iref" != "" ) then
 
+        echo "\n\n"
         echo "++ QC image 00 ($odir/${odwi}[0] on $iref): $vpref0"
+        echo "\n\n"
         # need to put '[0]' on $iref?
         $my_viewer                            \
             -ulay "$iref"                     \
@@ -478,8 +619,10 @@ if ( $DO_VIEWER ) then
             -do_clean 
     endif
 
-        echo "\n\n++ QC image 01 (final output FA>thr on MD): $vpref1"
-        echo "   (olay colorbar is 'Plasma', with max value ${qc_fa_max})\n\n"
+        echo "\n\n"
+        echo "++ QC image 01 (final output FA>thr on MD): $vpref1"
+        echo "   (olay colorbar is 'Plasma', with max value ${qc_fa_max})"
+        echo "\n\n"
 
         $my_viewer                              \
             -ulay "$odir/${dtipref}_MD.nii.gz"  \
@@ -531,28 +674,30 @@ cat << EOF
   RUNNING:
 
   This script has two *required* arguments ('-in_dwi ...' and some
-  kind of gradient/matrix file input.  The rest are optional, but I
-  would often recommend also inputting a reference data set ('-in_ref
-  ...')  if you have used a processing tool that resets
-  origin+orientation (such as TORTOISE), as well as using
-  '-scale_out_1000' to make the output units of the physical DT
+  kind of gradient/matrix file input.  
+
+  The rest are optional, but it is highly recommended to input a
+  reference data set ('-in_ref ...')  if you have used a processing
+  tool that resets origin+orientation (such as TORTOISE), as well as
+  using '-scale_out_1000' to make the output units of the physical DT
   measures nicer.
 
   $this_prog  \
    -in_dwi       DWI                              \
    {-in_col_matA | -in_col_matT |                 \
     -in_col_vec | -in_row_vec} GRADMAT            \
-   {-in_bvals BVAL }                              \
-   {-in_mask MASK}                                \
-   {-in_ref  REF}                                 \
-   {-outdir  ODIR}                                \
-   {-prefix_dwi PREFIX1}                          \
-   {-prefix_dti PREFIX2}                          \
+   {-in_bvals     BVAL}                           \
+   {-in_mask      MASK}                           \
+   {-in_anat_res  ANAT}                           \
+   {-in_ref_orig  REF}                            \
+   {-outdir       ODIR}                           \
+   {-prefix_dwi   PREFIX1}                        \
+   {-prefix_dti   PREFIX2}                        \
    {-flip_x | -flip_y | -flip_z | -no_flip}       \
-   {-scale_out_1000}                              \
-   {-qc_prefix QCPREF}                            \
-   {-qc_fa_thr TTT}                               \
-   {-qc_fa_max MMM}                               \
+   {-no_scale_out_1000}                           \
+   {-qc_prefix    QCPREF}                         \
+   {-qc_fa_thr    TTT}                            \
+   {-qc_fa_max    MMM}                            \
    {-no_qc_view}                                  \
    {-no_cmd_out}                                  \
    {-uncert_off}                                  \
@@ -564,9 +709,12 @@ cat << EOF
 
     -in_col_matA | -in_col_matT | -in_col_vec | -in_row_vec  GRADMAT
                      :input text file of N gradient vectors or 
-                      bmatrices. If these still have physical units
-                      in them (or via the BVAL file), consider
-                      using '-scale_out_1000', as well.
+                      bmatrices. By default, it is assumed that
+                      these still have physical units in them (or that
+                      there is an accompanying BVAL file input), so
+                      scaling physical values by 1000 is on by default;
+                      see turning this scaling off, if unnecessary, by 
+                      using '-no_scale_out_1000', below.
    -in_bvals    BVAL :optional, if bvalue information is
                       in a separate file from the b-vectors
                       or matrices; should have same number N as
@@ -578,26 +726,48 @@ cat << EOF
    -in_mask     MASK :optional whole brain mask can be input;
                       otherwise, automasking is performed for the 
                       region to be tensor and parameter fit.
-   -in_ref      REF  :use another data set to adjust the DWI (and
-                      subsequent parameter) dsets' orientation and
-                      origin;  this can be really useful when using
-                      a preprocessing program that changes these 
-                      from the input (for example, after TORTOISEing
-                      I would use this with the REF as the pre-TORTOISE
-                      anatomical or something).
 
+   -in_ref_orig REF  :use another data set to adjust the DWI (and
+                      subsequent parameter) dsets' orientation and
+                      origin; for example, TORTOISE has default 
+                      orientation and origin for all output DWIs-- it
+                      would be very advisable to use the anatomical
+                      volume that you had input into TORTOISE as REF,
+                      so that the DWIs should be viewable overlaying
+                      it afterwards; if an ANAT (below) that has been 
+                      merely resampled is *not* used, then you really, 
+                      really want REF to have the same contrast as the
+                      b=0 DWI volume.
+   -in_anat_res ANAT :accomplish the alignment of the output DWI to the 
+                      REF data set via ANAT: a version of the anatomical 
+                      that has been resampled to match the DWI set (in 
+                      both orientation and origin);  for example, in
+                      TORTOISE there is a 'structure.nii' file that should
+                      match this description.  Both ANAT and DWI should 
+                      then be well aligned to the original REF (and to  
+                      each other).
+         
    -outdir      ODIR :can specify output directory for all created 
                       dsets (default is 'current' directory).
  -prefix_dwi PREFIX1 :set prefix for output DWI data; default is '${opref}'.
  -prefix_dti PREFIX2 :set prefix for output DTI data; default is '${dtipref}'.
 
-   -scale_out_1000   :if you have the DW b-value in the gradient vectors
-                      or grads, then I would recommend using this; see the 
-                      3dDWItoDT help file for what this entails.  Basically,
-                      you will likely have nicer numeric values (from 
-                      scaling physical length units by 1000); otherwise,
-                      you might have small numerical values leading to 
-                      issues with statistical modeling.
+  -no_scale_out_1000 :by default, for tensor fitting it is assumed
+                      that 1) the DW b-value information is included
+                      in the gradient vectors or grads, and 2) you are
+                      happy to have tiny numbers of physical
+                      diffusion, which in standard units are like
+                      MD~0.001 "mm^2/s", scaled by 1000 so that they
+                      are returned as MD~1 "10^{-3} mm^2/s".  Isn't
+                      that nicer?  I thought you'd agree-- therefore,
+                      such a kind of scaling is *on* by default.  To
+                      turn that *off*, use this option flag.
+                      See the 3dDWItoDT help file for what this
+                      entails.  Basically, you will likely have nicer
+                      numeric values (from scaling physical length
+                      units by 1000); otherwise, you might have small
+                      numerical values leading to issues with
+                      statistical modeling.
 
    -qc_fa_thr TTT    :set threshold for overlay FA volume in QC image
                       (default:  TTT=0.2, as for healthy adult human 
@@ -619,6 +789,17 @@ cat << EOF
                       uncertainty calc (default NN=300).
 -uncert_extra_cmds STR:put in extra commands for the uncertainty calcs
                       (see the 3dDWUncert helpfile for more opts).
+
+# -----------------------------------------------------------------------
+
+  EXAMPLE
+
+    $this_prog \
+        -in_dwi       DWI.nii                \
+        -in_col_matA  BMTXT_AFNI.txt         \
+        -outdir       DTI                    \
+        -in_anat_res  ../structure.nii       \
+        -in_ref_orig  t2w.nii
 
 -------------------------------------------------------------------------
 
