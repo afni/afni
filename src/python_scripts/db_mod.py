@@ -10407,7 +10407,19 @@ g_help_string = """
             Please see '3dDeconvolve -help' for more information, or the link:
                 https://afni.nimh.nih.gov/afni/doc/misc/3dDeconvolveSummer2004
             See also -regress_basis_normall, -regress_stim_times,
-                     -regress_stim_types.
+                     -regress_stim_types, -regress_basis_multi.
+
+        -regress_basis_multi BASIS BASIS .. : specify multiple basis functions
+
+                e.g. -regress_basis_multi 'BLOCK(30,1)' 'TENT(0,45,16)' \\
+                                          'BLOCK(30,1)' dmUBLOCK
+
+            In the case that basis functions vary across stim classes, use
+            this option to list a basis function for each class.  The given
+            basis functions should correspond to the listed -regress_stim_times
+            files, just as the -regress_stim_labels entries do.
+
+            See also -regress_basis.
 
         -regress_basis_normall NORM : specify the magnitude of basis functions
 
