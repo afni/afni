@@ -574,6 +574,7 @@ void AFNI_syntax(void)
      SUMA_Offset_SLines(get_help_help(),3), get_gopt_help()
    ) ;
 
+#if 0
    printf(
      "\n"
      "-----------------------------------------------------\n"
@@ -629,11 +630,12 @@ void AFNI_syntax(void)
      " N.B.: The program 'aiv' (AFNI image viewer) can also be used to\n"
      "        get a quick look at images (but not time series graphs).\n"
    ) ;
+#endif
 
    printf(
      "\n"
      "-------------------------------------------------------\n"
-     "USAGE 3: read in datasets specified on the command line\n"
+     "USAGE 2: read in datasets specified on the command line\n"
      "-------------------------------------------------------\n"
      "\n"
      "  afni -dset [options] dname1 dname2 ...\n"
@@ -641,10 +643,19 @@ void AFNI_syntax(void)
      "where 'dname1' is the name of a dataset, etc.  With this option, only\n"
      "the chosen datasets are read in, and they are all put in the same\n"
      "'session'.  Follower datasets are not created.\n"
+     "\n"
      "* If you wish to be very tricksy, you can read in .1D files as datasets\n"
      "  using the \\' transpose syntax, as in\n"
      "     afni Fred.1D\\'\n"
      "  However, this isn't very useful (IMHO).\n"
+     "\n"
+     "* AFNI can also read image files (.jpg and .png) from the command line.\n"
+     "  For just viewing images, the 'aiv' program (AFNI image viewer) is\n"
+     "  simpler; but unlike aiv, you can do basic image processing on an\n"
+     "  image 'dataset' using the AFNI GUI's feature. Sample command:\n"
+     "     afni *.jpg\n"
+     "  Each image file is a single 'dataset'; to switch between images,\n"
+     "  use the 'Underlay' button. To view an image, open the 'Axial' viewer.\n"
      "\n");
     printf(MASTER_HELP_STRING);   putchar('\n');
     printf(CATENATE_HELP_STRING); putchar('\n');
@@ -3190,6 +3201,13 @@ STATUS("call 14") ;
 
         OPEN_CONTROLLER( MAIN_im3d ) ;
 
+        if( GLOBAL_argopt.only_images ){   /* 24 Feb 2017 */
+          AV_assign_ival( MAIN_im3d->vwid->imag->crosshair_av,0) ;
+          MAIN_im3d->vinfo->crosshair_visible = False ;
+          GLOBAL_argopt.left_is_left = 0 ;
+          putenv("AFNI_LEFT_IS_LEFT=NO" ) ;
+        }
+
         AFNI_initialize_controller( MAIN_im3d ) ;  /* decide what to see */
         AFNI_initialize_view( NULL, MAIN_im3d ) ;  /* set up to see it */
 
@@ -4663,40 +4681,65 @@ STATUS("drawing crosshairs") ;
       double dval;
       THD_3dim_dataset *dset=NULL ;
 
-
       if( im3d->type != AFNI_3DDATA_VIEW ) RETURN(NULL) ;
 
       LOAD_IVEC3(iv,0,0,n) ;
       ivp = THD_fdind_to_3dind( br , iv ) ;
-      fvp = THD_3dind_to_3dmm ( br->dset , ivp ) ;
-      fvp = THD_3dmm_to_dicomm( br->dset , fvp ) ;
 
       if( n == 0 ) LOAD_IVEC3(iv,0,0,1) ;
       else         LOAD_IVEC3(iv,0,0,n-1) ;
       ivm = THD_fdind_to_3dind( br , iv ) ;
-      fvm = THD_3dind_to_3dmm ( br->dset , ivm ) ;
-      fvm = THD_3dmm_to_dicomm( br->dset , fvm ) ;
 
-      dxyz = MIN(br->del1,br->del2) ;
-      dxyz = MIN(dxyz    ,br->del3) ; dxyz *= 0.1 ;
+      if( AFNI_yesenv("AFNI_IMAGE_LABEL_IJK") ){ /* 27 Feb 2017 */
 
-      if( fabs(fvm.xyz[0]-fvp.xyz[0]) > dxyz ){ /* +=R -=L */
-         cc = fvp.xyz[0] ;
-         dd = ( cc >= 0.0 ) ? "L" : "R" ;
-      } else if( fabs(fvm.xyz[1]-fvp.xyz[1]) > dxyz ){ /* +=P -=A */
-         cc = fvp.xyz[1] ;
-         dd = ( cc >= 0.0 ) ? "P" : "A" ;
-      } else if( fabs(fvm.xyz[2]-fvp.xyz[2]) > dxyz ){ /* +=S -=I */
-         cc = fvp.xyz[2] ;
-         dd = ( cc >= 0.0 ) ? "S" : "I" ;
+        int nnn ; char *fmt ;
+        nnn = MAX(br->n1,br->n2) ; nnn = MAX(nnn,br->n3) ;
+        fmt =  (nnn < 10)  ? "#%1d"
+             : (nnn < 100) ? "#%02d"
+             : (nnn < 1000)? "#%03d"
+             :               "#%04d" ;
+
+        if( ivm.ijk[0] != ivp.ijk[0] ){
+          sprintf(str,fmt,ivp.ijk[0]) ;
+
+        } else if( ivm.ijk[1] != ivp.ijk[1] ){
+          sprintf(str,fmt,ivp.ijk[1]) ;
+
+        } else if( ivm.ijk[2] != ivp.ijk[2] ){
+          sprintf(str,fmt,ivp.ijk[2]) ;
+
+        } else {  /* should never happen */
+          RETURN(NULL) ;
+        }
+
       } else {
-        RETURN(NULL) ;   /* should never happen */
-      }
+        fvp = THD_3dind_to_3dmm ( br->dset , ivp ) ;
+        fvp = THD_3dmm_to_dicomm( br->dset , fvp ) ;
 
-      sprintf(str,"%6.2f",fabs(cc)) ;
-      for( ii=strlen(str)-1 ; ii > 0 && str[ii] == '0' ; ii-- ) str[ii] = '\0' ;
-      if( str[ii] == '.' ) str[ii] = '\0' ;
-      strcat(str, dd) ;
+        fvm = THD_3dind_to_3dmm ( br->dset , ivm ) ;
+        fvm = THD_3dmm_to_dicomm( br->dset , fvm ) ;
+
+        dxyz = MIN(br->del1,br->del2) ;
+        dxyz = MIN(dxyz    ,br->del3) ; dxyz *= 0.1 ;
+
+        if( fabs(fvm.xyz[0]-fvp.xyz[0]) > dxyz ){ /* +=R -=L */
+           cc = fvp.xyz[0] ;
+           dd = ( cc >= 0.0 ) ? "L" : "R" ;
+        } else if( fabs(fvm.xyz[1]-fvp.xyz[1]) > dxyz ){ /* +=P -=A */
+           cc = fvp.xyz[1] ;
+           dd = ( cc >= 0.0 ) ? "P" : "A" ;
+        } else if( fabs(fvm.xyz[2]-fvp.xyz[2]) > dxyz ){ /* +=S -=I */
+           cc = fvp.xyz[2] ;
+           dd = ( cc >= 0.0 ) ? "S" : "I" ;
+        } else {
+          RETURN(NULL) ;   /* should never happen */
+        }
+
+        sprintf(str,"%6.2f",fabs(cc)) ;
+        for( ii=strlen(str)-1 ; ii > 0 && str[ii] == '0' ; ii-- ) str[ii] = '\0' ;
+        if( str[ii] == '.' ) str[ii] = '\0' ;
+        strcat(str, dd) ;
+      }
 
       if (!FD_brick_montized(br)){ /* Show labels if any.  ZSS Dec. 2011*/
          dset = Get_UO_Dset(br, 'U', 1, &ival);
@@ -6123,6 +6166,7 @@ void AFNI_read_inputs( int argc , char *argv[] )
    int id , last_color ;
    Boolean isfunc ;
 
+
 ENTRY("AFNI_read_inputs") ;
 
    /* create empty library of dataset sessions */
@@ -6131,6 +6175,7 @@ ENTRY("AFNI_read_inputs") ;
    GLOBAL_library.sslist->type = SESSIONLIST_TYPE ;
    BLANK_SESSIONLIST(GLOBAL_library.sslist) ;
    GLOBAL_library.sslist->parent = NULL ;
+   GLOBAL_argopt.only_images = 0 ;  /* 24 Feb 2017 */
 
    /*----- read files -----*/
 
@@ -6311,6 +6356,8 @@ STATUS("normalizing directory list") ;
 
       /*----- read each session, set parents, put into session list -----*/
 
+      GLOBAL_argopt.only_images = 1 ;  /* 24 Feb 2017 */
+
       qlist = dlist ;
    RESTART_DIRECTORY_SCAN:   /* 18 Feb 2007 */
       num_ss = qlist->num ;
@@ -6337,6 +6384,8 @@ if(PRINT_TRACING)
                SET_SESSION_DSET(dset, dss, qd, dset->view_type);
 /*               dss->dsset_xform_table[qd][dset->view_type] = dset ;*/
                dss->num_dsset ++ ;
+               if( dset->dblk->diskptr->storage_mode != STORAGE_BY_IMAGE_FILE )
+                 GLOBAL_argopt.only_images = 0 ;  /* 24 Feb 2017 */
                AFNI_inconstancy_check(NULL,dset) ; /* 06 Sep 2006 */
              } else if( qlist == dlist ){
                fprintf(stderr,
@@ -6351,6 +6400,7 @@ if(PRINT_TRACING)
 
            /* set parent pointers */
 
+           GLOBAL_argopt.only_images = 0 ;  /* 24 Feb 2017 */
            new_ss->parent = NULL ;
            for( qd=0 ; qd < new_ss->num_dsset ; qd++ ){
              for( vv=0 ; vv <= LAST_VIEW_TYPE ; vv++ ){
@@ -6494,6 +6544,7 @@ if(PRINT_TRACING)
          /** manufacture a minimal dataset [cf. thd_dumdset.c] **/
 
          new_ss->num_dsset = 1 ;
+         GLOBAL_argopt.only_images = 0 ;  /* 24 Feb 2017 */
 
          cpt = getenv("AFNI_DUMMY_DATASET") ;
 
@@ -6513,7 +6564,10 @@ if(PRINT_TRACING)
 
       } else {  /* 04 Jan 2000: show total number of datasets */
 
-         sprintf(str,"\n dataset count = %d" , num_dsets ) ;
+         if( GLOBAL_argopt.only_images ) /* 24 Feb 2017 */
+           sprintf(str,"\n image count   = %d" , num_dsets ) ;
+         else
+           sprintf(str,"\n dataset count = %d" , num_dsets ) ;
          GLOBAL_num_dsets = num_dsets ;
          REPORT_PROGRESS(str) ;
       }
@@ -8805,7 +8859,7 @@ if(PRINT_TRACING)
    if( rgbov != NULL ){
      if( im != NULL ){
        MRI_IMAGE *qim ;
-       qim = ISQ_overlay( im3d->dc , rgbov , im , 1.0 ) ;
+       qim = ISQ_overlay( im3d->dc , rgbov , im , 1.0f ) ;
        mri_free(rgbov); mri_free(im); rgbov = qim;
      }
      im = rgbov ;

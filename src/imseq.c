@@ -58,6 +58,11 @@ void ISQ_render_scal_CB( Widget w, XtPointer client_data, XtPointer call_data ) 
 void ISQ_popdown_render_scal( MCW_imseq *seq ) ;
 void ISQ_popup_render_scal( MCW_imseq *seq ) ;
 
+static float vgize_sigfac = 0.02f ;
+static MRI_IMAGE * mri_vgize( MRI_IMAGE *im ) ;
+#define VGFAC(sss) \
+  ( ((sss)->opt.improc_code & ISQ_IMPROC_VG) ? (sss)->vgize_fac : 0.0f )
+
 /************************************************************************
    Define the buttons and boxes that go in the "Disp" dialog
 *************************************************************************/
@@ -83,7 +88,7 @@ static MCW_action_item ISQ_disp_act[NACT_DISP] = {
 #define NBUT_DISP5  2  /* Auto- or Group- scale box */
 #define NBUT_DISP6  1  /* Free aspect box */
 #define NBUT_DISP7  2  /* Save box */          /* 26 Jul 2001: was 3, now 2 */
-#define NBUT_DISP8  3  /* IMPROC buttons */
+#define NBUT_DISP8  4  /* IMPROC buttons */
 #define NBUT_DISP9  4  /* CX buttons */
 
 #define NTOG_ROT  0    /* index of which button box control which option(s) */
@@ -119,7 +124,7 @@ static char * ISQ_dl4[NBUT_DISP4] = { "Min-to-Max" , "2%-to-98%" , "Clipped" } ;
 static char * ISQ_dl5[NBUT_DISP5] = { "Autoscale" , "Groupscale" } ;
 static char * ISQ_dl6[NBUT_DISP6] = { "Free Aspect" } ;
 static char * ISQ_dl7[NBUT_DISP7] = { "Nsize Save" , "PNM Save" } ;
-static char * ISQ_dl8[NBUT_DISP8] = { "Flatten" , "Sharpen" , "Edge Detect" } ;
+static char * ISQ_dl8[NBUT_DISP8] = { "Flatten" , "Sharpen" , "Edge Detect" , "VG paint" } ;
 static char * ISQ_dl9[NBUT_DISP9] = {
    "Complex->Mag" , "Complex->Arg" , "Complex->Real" , "Complex->Imag" } ;
 
@@ -217,13 +222,17 @@ static char * ISQ_bb8_help[NBUT_DISP8] = {
  "         OUT= Don't apply sharpening filter"                  ,
 
  "Edge: IN = Use Sobel edge detection filter on background\n"
- "      OUT= Don't use Sobel edge detector"
+ "      OUT= Don't use Sobel edge detector"                     ,
+
+ "VG: IN = Apply a painting effect to the image.\n"
+ "    OUT= Don't do this (which is just for fun)."
 } ;
 
 static char * ISQ_bb8_hint[NBUT_DISP8] = {
  "Flatten histogram of background" ,
  "Apply sharpening filter to background" ,
- "Apply Sobel edge detector to background"
+ "Apply Sobel edge detector to background" ,
+ "Apply painting effect (for fun)"
 } ;
 
 #define ISQ_CX_HELP                            \
@@ -1702,9 +1711,19 @@ if( PRINT_TRACING ){
          NULL ) ;
    XtAddCallback( newseq->wbar_sharp_but, XmNactivateCallback, ISQ_wbar_menu_CB, newseq ) ;
 
+   newseq->wbar_vgize_but =
+      XtVaCreateManagedWidget(
+         "menu" , xmPushButtonWidgetClass , newseq->wbar_menu ,
+            LABEL_ARG("Choose VG factor") ,
+            XmNtraversalOn , False ,
+            XmNinitialResourcesPersistent , False ,
+         NULL ) ;
+   XtAddCallback( newseq->wbar_vgize_but, XmNactivateCallback, ISQ_wbar_menu_CB, newseq ) ;
+
    newseq->rng_bot   = newseq->rng_top = newseq->rng_ztop = 0 ;
    newseq->flat_bot  = newseq->flat_top = 0.0 ;
-   newseq->sharp_fac = 0.60 ; newseq->rng_extern = 0 ;
+   newseq->sharp_fac = 0.60f ; newseq->rng_extern = 0 ;
+   newseq->vgize_fac = 0.02f ;
 
    newseq->zer_color = 0 ;
    ii = DC_find_overlay_color( newseq->dc , getenv("AFNI_IMAGE_ZEROCOLOR") ) ;
@@ -3006,6 +3025,7 @@ void ISQ_make_image( MCW_imseq *seq )
 {
    MRI_IMAGE *im , *ovim , *tim ;
    Boolean reset_done = False ;
+   float vfac = VGFAC(seq) ;
 
 ENTRY("ISQ_make_image") ;
 
@@ -3164,6 +3184,15 @@ ENTRY("ISQ_make_image") ;
    } else {                                                /* 06 Mar 2001 */
       tim = ISQ_overlay( seq->dc, im, ovim, seq->ov_opacity ) ;
       if( tim == NULL ) tim = im ;                    /* shouldn't happen */
+   }
+
+   if( vfac > 0.0f ){
+     MRI_IMAGE *qim ;
+     vgize_sigfac = vfac ; qim = mri_vgize(tim) ;
+     if( qim != NULL ){
+       if( tim != im ) KILL_1MRI(tim);
+       tim = qim;
+     }
    }
 
    /* convert result to XImage for display */
@@ -8939,6 +8968,12 @@ ENTRY("ISQ_wbar_menu_CB") ;
                           ISQ_set_sharp_CB , seq ) ;
    }
 
+   else if( w == seq->wbar_vgize_but ){
+      MCW_choose_integer( seq->wimage , "VG Factor" ,
+                          1 , 9 , (int)(100.01*seq->vgize_fac) ,
+                          ISQ_set_vgize_CB , seq ) ;
+   }
+
    else if( w == seq->wbar_graymap_pb ){   /* 24 Oct 2003 */
      ISQ_graymap_draw( seq ) ;
    }
@@ -9021,6 +9056,22 @@ ENTRY("ISQ_set_sharp_CB") ;
    if( ! ISQ_REALZ(seq) || w == NULL || ! XtIsWidget(w) ) EXRETURN ;
 
    seq->sharp_fac = 0.1 * cbs->ival ;
+
+   ISQ_redisplay( seq , -1 , isqDR_reimage ) ;  /* redo current image */
+   EXRETURN ;
+}
+
+/*----------------------------------------------------------------------*/
+
+void ISQ_set_vgize_CB( Widget w , XtPointer cd , MCW_choose_cbs *cbs )
+{
+   MCW_imseq *seq = (MCW_imseq *) cd ;
+
+ENTRY("ISQ_set_vgize_CB") ;
+
+   if( ! ISQ_REALZ(seq) || w == NULL || ! XtIsWidget(w) ) EXRETURN ;
+
+   seq->vgize_fac = 0.01f * cbs->ival ;
 
    ISQ_redisplay( seq , -1 , isqDR_reimage ) ;  /* redo current image */
    EXRETURN ;
@@ -9471,6 +9522,7 @@ void ISQ_make_montage( MCW_imseq *seq )
    Boolean reset_done = False ;
    float fac , wmm , hmm ;
    short gap_ov ;
+   float vfac = VGFAC(seq) ;
 
    byte  gap_rgb[3] ;  /* 11 Feb 1999 */
    void  *gapval ;
@@ -9853,6 +9905,15 @@ STATUS("Destroying overlay image array") ;
    } else {
       tim = ISQ_overlay( seq->dc , im, ovim, seq->ov_opacity ) ;
       if( tim == NULL ) tim = im ;     /* shouldn't happen */
+   }
+
+   if( vfac > 0.0f ){
+     MRI_IMAGE *qim ;
+     vgize_sigfac = vfac ; qim = mri_vgize(tim) ;
+     if( qim != NULL ){
+       if( tim != im ) KILL_1MRI(tim);
+       tim = qim;
+     }
    }
 
    /*--- convert result to XImage for display ---*/
@@ -13790,4 +13851,186 @@ ENTRY("ISQ_save_anim") ;
    /*--- go home ---*/
 
    DESTROY_SARR(agif_list) ; free(prefix) ; free(fnamep); EXRETURN ;
+}
+
+/*----------------------------------------------------------------------------*/
+/**** Stuff for the VG effect [RWC Feb 2017] ****/
+
+#undef USE_NOIS  /* this stuff is useless */
+
+static MRI_IMAGE * mri_streakize( MRI_IMAGE *im , MRI_IMAGE *sxim , MRI_IMAGE *syim )
+{
+   MRI_IMAGE *qim ; byte *qar , *iar ;
+   float *sxar , *syar ;
+   int nx,ny,nxy , kk,dk , ii,jj,sk, dd,di,dj , ei,ej , ns ;
+   float strk , sx,sy , rr,gg,bb ;
+#ifdef USE_NOIS
+   float rz,gz,bz ; int nois=0 ;
+#endif
+
+   nx = im->nx ; ny = im->ny ; nxy = nx*ny ;
+
+   qim = mri_copy(im) ; qar = MRI_RGB_PTR(qim) ; iar = MRI_RGB_PTR(im) ;
+   sxar = MRI_FLOAT_PTR(sxim) ; syar = MRI_FLOAT_PTR(syim) ;
+
+/* ININFO_message("mri_streakize") ; */
+
+   for( kk=0 ; kk < nxy ; kk++ ){
+     /* get streak vector */
+     sx = sxar[kk] ; sy = syar[kk] ;
+     strk = sqrtf(sx*sx+sy*sy) ;
+     if( strk < 1.0f ){
+       sx = 4.0*drand48()-2.0; sy = 4.0*drand48()-2.0; strk = sqrtf(sx*sx+sy*sy);
+     }
+     sx /= strk ; sy /= strk ;
+     if( strk < 2.0f ) strk = 2.0f; else if( strk > 29.0f ) strk = 29.0f;
+     sk = (int)(strk+0.499f) ;
+     /* color at start pixel */
+     rr = iar[3*kk+0]; gg = iar[3*kk+1]; bb = iar[3*kk+2]; ns = 1;
+#ifdef USE_NOIS
+     rz = rr ; gz = gg ; bz = bb ;
+#endif
+     ii = kk % nx ; jj = kk / nx ;
+     for( dd=1 ; dd <= sk ; dd++ ){ /* streaking */
+       di = (int)(dd*sx+0.499f) ; dj = (int)(dd*sy+0.499f) ;
+       /* if( di == 0.0f && dj == 0.0f ) continue ; */
+       ei = ii+di ; ej = jj+dj ;    /* the plus step */
+       if( ei >= 0 && ei < nx && ej >= 0 && ej < ny ){
+         dk = ei + ej*nx ;
+         rr += iar[3*dk+0] ; gg += iar[3*dk+1] ; bb += iar[3*dk+2] ; ns++ ;
+       }
+       ei = ii-di ; ej = jj-dj ;    /* the minus step */
+       if( ei >= 0 && ei < nx && ej >= 0 && ej < ny ){
+         dk = ei + ej*nx ;
+         rr += iar[3*dk+0] ; gg += iar[3*dk+1] ; bb += iar[3*dk+2] ; ns++ ;
+       }
+     }
+     if( ns > 1 ){  /* if we summed in any other pixels */
+       rr /= ns ; gg /= ns ; bb /= ns ;
+#ifdef USE_NOIS
+       if( fabsf(rr-rz) < 5.0 && fabsf(gg-gz) < 5.0 && fabsf(bb-bz) < 5.0 ){
+         rr += (float)(30.0*drand48()-15.0) ;
+         gg += (float)(30.0*drand48()-15.0) ;
+         bb += (float)(30.0*drand48()-15.0) ; nois++ ;
+       }
+#endif
+       qar[3*kk+0] = BYTEIZE(rr) ; qar[3*kk+1] = BYTEIZE(gg) ; qar[3*kk+2] = BYTEIZE(bb) ;
+     }
+   }
+
+   return qim ;
+}
+
+/*----------------------------------------------------------------------------*/
+
+static MRI_IMAGE * mri_vgize( MRI_IMAGE *iim )
+{
+   MRI_IMAGE *blim , *gxim,*gyim , *bxim,*byim , *im ;
+   float     *bar , *gxar,*gyar , *bxar,*byar ;
+   int nx,ny,nxy , ii,jj,kk,joff ;
+   float bsig , bmax , gsiz , blen , bx,by , slen , cc,ss ;
+   byte *iar ;
+#ifdef USE_NOIS
+   float rr,gg,bb ; int nois=0 ;
+#endif
+
+   if( iim == NULL ) return NULL ;
+
+   im = mri_to_rgb(iim) ; iar = MRI_RGB_PTR(im) ;
+
+   nx = im->nx ; ny = im->ny ; nxy = nx*ny ;
+
+   bsig = sqrtf(nx*(float)ny) * vgize_sigfac ;
+   if( bsig < 1.5f ) bsig = 1.5f ;
+/* INFO_message("mri_vgize: nx=%d ny=%d bsig=%.3f",nx,ny,bsig) ; */
+
+   bxim = mri_to_float(im) ;
+   blim = mri_float_blur2D( bsig , bxim ) ; mri_free(bxim) ;
+   bar  = MRI_FLOAT_PTR(blim) ;
+
+   gxim = mri_copy(blim) ; gxar = MRI_FLOAT_PTR(gxim) ;
+   gyim = mri_copy(blim) ; gyar = MRI_FLOAT_PTR(gyim) ;
+
+/* ININFO_message("compute gradients") ; */
+   for( jj=0 ; jj < ny ; jj++ ){
+    joff = jj*nx ;
+    for( ii=0 ; ii < nx ; ii++ ){
+      if( jj==0 || jj==ny-1 || ii==0 || ii==nx-1 ){
+        gxar[ii+joff] = gyar[ii+joff] = 0.0f ;
+      } else {
+        gxar[ii+joff] = bar[ii+joff+1 ] - bar[ii+joff-1 ] ;
+        gyar[ii+joff] = bar[ii+joff+nx] - bar[ii+joff-nx] ;
+      }
+   }}
+
+/* ININFO_message("blur gradients") ; */
+   bxim = mri_float_blur2D(0.5f*bsig,gxim); mri_free(gxim); bxar = MRI_FLOAT_PTR(bxim);
+   byim = mri_float_blur2D(0.5f*bsig,gyim); mri_free(gyim); byar = MRI_FLOAT_PTR(byim);
+
+/* ININFO_message("find gradient max") ; */
+   bmax = 0.0f ;
+   for( kk=0 ; kk < nxy ; kk++ ){
+     gsiz = bxar[kk]*bxar[kk] + byar[kk]*byar[kk] ;
+     if( gsiz > bmax ) bmax = gsiz ;
+   }
+   bmax = sqrtf(bmax) ;
+/* ININFO_message("bmax=%g",bmax) ; */
+   if( bmax == 0.0f ){ mri_free(bxim); mri_free(byim); mri_free(im); return NULL; }
+
+   /* scale gradients by largest one */
+
+   bmax = 1.0f / bmax ;
+   slen = 1.3f * bsig ;
+   for( kk=0 ; kk < nxy ; kk++ ){
+     bx = bxar[kk]*bmax ; by = byar[kk]*bmax ; gsiz = sqrtf(bx*bx+by*by) ;
+     if( gsiz < 0.04f ){  /* very small gradient ==> minimal streak len */
+#ifdef USE_NOIS
+       rr = iar[3*kk+0]; gg = iar[3*kk+1]; bb = iar[3*kk+2]; nois++ ;
+       rr += (float)(40.0*drand48()-15.0) ;
+       gg += (float)(30.0*drand48()-15.0) ;
+       bb += (float)(30.0*drand48()-15.0) ;
+       iar[3*kk+0] = BYTEIZE(rr); iar[3*kk+1] = BYTEIZE(gg); iar[3*kk+2] = BYTEIZE(bb);
+#endif
+       if( gsiz > 0.0f ){
+         bx *= (0.111f*slen/gsiz) ; by *= (0.111f*slen/gsiz) ;
+       }
+     } else {              /* non-trivial gradient ==> larger streak len */
+       cc = 0.111f + 2.69f*gsiz ; if( cc > 1.0f ) cc = 1.0f ;
+       bx *= (cc*slen/gsiz) ; by *= (cc*slen/gsiz) ;
+     }
+     bxar[kk] = by ; byar[kk] = -bx ;          /* streak direction */
+     bar[kk]  = (float)(30.0*drand48()-15.0) ; /* random angle for streak */
+   }
+
+/* ININFO_message("blur angles") ; */
+   gxim = mri_float_blur2D(0.5f*bsig,blim); mri_free(blim); gxar = MRI_FLOAT_PTR(gxim);
+   bmax = 0.0f ;
+   for( kk=0 ; kk < nxy ; kk++ ){
+     gsiz = fabsf(gxar[kk]) ; if( gsiz > bmax ) bmax = gsiz ;
+   }
+/* ININFO_message("max angle=%g",bmax) ; */
+
+   /* rotate streak directions randomly */
+   if( bmax > 0.0f ){
+     bmax = (40.0f * PI/180.0f) / bmax ;
+     for( kk=0 ; kk < nxy ; kk++ ){
+       bx = bxar[kk] ; by = byar[kk] ;
+       gsiz = sqrtf(bx*bx+by*by) ;
+       cc = cosf(bmax*gxar[kk]) ;
+       ss = sinf(bmax*gxar[kk]) ;
+       if( gsiz < 2.0f ){
+         bxar[kk] = 2.2f*cc ; byar[kk] = 2.2f*ss ;
+       } else {
+         bxar[kk] =  cc*bx + ss*by ;
+         byar[kk] = -ss*bx + cc*by ;
+       }
+     }
+   }
+   mri_free(gxim) ;
+
+   blim = mri_streakize( im , bxim , byim ) ;  /* do the streaking */
+
+   mri_free(bxim) ; mri_free(byim) ; mri_free(im) ;
+
+   return blim ;
 }
