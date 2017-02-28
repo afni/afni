@@ -1723,11 +1723,11 @@ viewer window into which the user has not specifically set a string for
 this purpose from the GUI menu item 'Label Append String'.
 
 ------------------------------
-Variable: AFNI_IMAGE_LABEL_IJK
+Variable: AFNI_IMAGE_LABEL_IJK (editable)
 ------------------------------
 If this variable is YES, then the image label will be based on the
-slice index rather than the spatial (mm) coordinate. At present, there
-is no way to set this variable from inside the AFNI GUI.
+slice index rather than the spatial (mm) coordinate. This variable can
+be set in the EditEnv AFNI GUI plugin (that is what 'editable' means).
 
 ------------------------------
 Variable: AFNI_CROSSHAIR_LINES (editable) -- THIS VARIABLE IS NOW UNUSED
