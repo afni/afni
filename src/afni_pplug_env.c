@@ -597,6 +597,10 @@ PLUGIN_interface * ENV_init(void)
           "Space name to use in Jump to (spacename)" ,
                  0, NULL, ENV_jumpspace_reset ) ;
 
+   /* 28 Feb 2017 [RWC] */
+   ENV_add_yesno( "AFNI_IMAGE_LABEL_IJK" ,
+                  "Plot image overlay label as slice index?" ) ;
+
    /*--------- Sort list of variables [21 Feb 2007]  -----------*/
 
    if( !AFNI_yesenv("AFNI_DONT_SORT_ENVIRONMENT") )
