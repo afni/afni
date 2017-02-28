@@ -37,7 +37,12 @@ int main( int argc , char *argv[] )
       "\n"
       "* Other dataset parameters can be changed with 3drefit.\n"
       "* The purpose of this program (combined with 3drefit) is to\n"
-      "  allow you to make up an AFNI header for an existing file.\n"
+      "  allow you to make up an AFNI header for an existing data file.\n"
+      "* This program does NOT create data to fill up the dataset.\n"
+      "* If you want to create a dataset of a given size with random\n"
+      "  values attached, a command like\n"
+      "    3dcalc -a jRandomDataset:32,32,16,10 -expr a -prefix Something\n"
+      "  would work. In this example, nx=ny=32 nz=16 nt=10.\n"
       "\n"
      ) ;
      PRINT_COMPILE_DATE ; exit(0) ;
