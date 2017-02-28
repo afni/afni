@@ -44,6 +44,17 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 28 , FEB , 2017 , RWC , "3dExtractGroupInCorr" , MICRO , TYPE_NEW_PROG ,
+   "Program to reconstruct individual dataset from a .niml/.data pair." ,
+   "This program is for any unfortunate person who has lost the datasets\n"
+   "that were used to create the 3dGroupInCorr inputs.  It is not really\n"
+   "'NEW', since it has been around for my personal use for a while, but now\n"
+   "it is being included in the AFNI distribution for the masses to enjoy." } ,
+
+ { 28 , FEB , 2017 , RWC , "3dEmpty" , MICRO , TYPE_NEW_OPT ,
+   "Add -geom option = define dataset by a 'MATRIX(...)' string" ,
+   NULL } ,
+
  { 27 , FEB , 2017 , RWC , "afni GUI" , MICRO , TYPE_NEW_ENV ,
    "AFNI_IMAGE_LABEL_IJK" ,
    "If this variable is set to YES, then the image label overlay (chosen\n"
