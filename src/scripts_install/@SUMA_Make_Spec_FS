@@ -106,10 +106,12 @@ goto L_INIT_VARS_DONE
 L_CHECK_USAGE:
 
     if ( $#argv == 0 ) then
-   echo "usage: $prog_name [options] -sid SUBJECT_ID"
-   echo "usage: $prog_name -help"
-   set endstr = ""
-   goto L_GOOD_END
+       # show help on no args   28 Feb 2017 [rickr]
+
+       # echo "usage: $prog_name [options] -sid SUBJECT_ID"
+       # echo "usage: $prog_name -help"
+       # set endstr = ""
+       goto L_HELP_END
     endif
 
 goto L_CHECK_USAGE_DONE
@@ -143,7 +145,7 @@ L_PARSE_COMMAND:
        case "-h":
        case "-help":
 
-      goto L_HELP_END      # and don't ya' come back, neither
+          goto L_HELP_END      # and don't ya' come back, neither
 
        breaksw
 
@@ -1251,8 +1253,8 @@ echo "  Usage: $prog_name [options] -sid SUBJECT_ID"
 echo ""
 echo "  examples ('-NIFTI' is really useful-- see below!):"
 echo ""
+echo "    $prog_name -help"
 echo "    $prog_name -NIFTI -sid subject1"
-echo "    $prog_name -NIFTI -help"
 echo "    $prog_name -NIFTI -fspath subject1/surface_stuff -sid subject1"
 echo "    $prog_name -NIFTI -neuro -sid 3.14159265 -debug 1"
 echo ""
