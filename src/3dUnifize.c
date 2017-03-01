@@ -669,12 +669,16 @@ int main( int argc , char *argv[] )
        "\n"
        "* This program replaces the older (and very different) 3dUniformize,\n"
        "  which is no longer maintained and may sublimate at any moment.\n"
+       "  (In other words, we do not recommend the use of 3dUniformize.)\n"
        "\n"
        "--------\n"
        "Options:\n"
        "--------\n"
+       "\n"
        "  -prefix pp = Use 'pp' for prefix of output dataset.\n"
+       "\n"
        "  -input dd  = Alternative way to specify input dataset.\n"
+       "\n"
        "  -T2        = Treat the input as if it were T2-weighted, rather than\n"
        "               T1-weighted. This processing is done simply by inverting\n"
        "               the image contrast, processing it as if that result were\n"
@@ -688,6 +692,7 @@ int main( int argc , char *argv[] )
        "              ++ Might be useful for skull-stripping T2-weighted datasets.\n"
        "              ++ Don't try the '-T2 -T2' trick on FLAIR-T2-weighted datasets.\n"
        "                 The results aren't pretty!\n"
+       "\n"
        "  -GM        = Also scale to unifize 'gray matter' = lower intensity voxels\n"
        "               (to aid in registering images from different scanners).\n"
        "              ++ This option is recommended for use with 3dQwarp when\n"
@@ -698,9 +703,11 @@ int main( int argc , char *argv[] )
        "                 3dQwarp match the source dataset to the base dataset.  If you\n"
        "                 later want the original source dataset to be warped, you can\n"
        "                 do so using the 3dNwarpApply program.\n"
+       "\n"
        "  -Urad rr   = Sets the radius (in voxels) of the ball used for the sneaky trick.\n"
        "               ++ Default value is %.1f, and should be changed proportionally\n"
        "                  if the dataset voxel size differs significantly from 1 mm.\n"
+       "\n"
        "  -ssave ss  = Save the scale factor used at each voxel into a dataset 'ss'.\n"
        "               ++ This is the white matter scale factor, and does not include\n"
        "                  the factor from the '-GM' option (if that was included).\n"
@@ -709,6 +716,7 @@ int main( int argc , char *argv[] )
        "               ++ Another volume (with the same grid dimensions) could be\n"
        "                  scaled the same way using 3dcalc, if that is needed.\n"
        "               ++ This saved scaled factor does NOT include any GM scaling :(\n"
+       "\n"
        "  -quiet     = Don't print the fun fun fun progress messages (but whyyyy?).\n"
        "               ++ For the curious, the codes used are:\n"
        "                   A = Automask\n"
@@ -718,10 +726,13 @@ int main( int argc , char *argv[] )
        "                   W = multiply by White matter factors\n"
        "                   G = multiply by Gray matter factors [cf the -GM option]\n"
        "                   I = contrast inversion              [cf the -T2 option]\n"
+       "                   M = compute median volume           [for the -EPI option]\n"
+       "                   E = compute scaled EPI datasets     [for the -EPI option]\n"
        "               ++ 'Duplo down' means to scale the input volume to be half the\n"
        "                  grid size in each direction for speed when computing the\n"
        "                  voxel-wise histograms.  The sub-sampling is done using the\n"
        "                  median of the central voxel value and its 6 nearest neighbors.\n"
+       "\n"
        "  -noduplo   = Do NOT use the 'duplo down' step; this can be useful for lower\n"
        "               resolution datasets.\n"
        "               ++ If a dataset has less than 1 million voxels in a 3D volume,\n"
@@ -734,6 +745,9 @@ int main( int argc , char *argv[] )
        "               ++ This option also implies '-noduplo' and '-T2'.\n"
        "               ++ This option turns off '-GM' if you turned it on.\n"
        "           -->>++ This option is experimental; check your results!\n"
+       "               ++ Remember: the program tries to uniform-ize the White Matter\n"
+       "                  regions, so the overall appearance of the image may become\n"
+       "                  less uniform, especially if it was fairly uniform already.\n"
        "               ++ For most (all?) purposes in AFNI processing, uniform-izing\n"
        "                  EPI datasets is not needed.\n"
        "\n"
@@ -974,7 +988,7 @@ int main( int argc , char *argv[] )
      do_T2 = 1 ; do_double = 0 ;
      if( do_GM ){ INFO_message("-EPI turns off -GM") ; do_GM = 0 ; }
      uu = cbrtf(fabsf(DSET_DX(inset)*DSET_DY(inset)*DSET_DZ(inset))) ;
-     uu = 18.3 / uu ; if( uu < 4.0f ) uu = 4.0f ;
+     uu = 18.3 / uu ; if( uu < 4.14f ) uu = 4.14f ;
      Uprad = uu ;
      INFO_message("-EPI changes -Urad to %.1f voxels",Uprad) ;
    }
