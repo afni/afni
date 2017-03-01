@@ -11,6 +11,9 @@ static int USE_ALL_VALS = 0 ;  /* 17 May 2016 */
 # include <omp.h>
 #endif
 
+static int do_EPI    = 0 ;  /* 01 Mar 2017 */
+static int do_double = 1 ;  /* duplo? */
+
 /*---------------------------------------------------------------------------*/
 
 void mri_invertcontrast_inplace( MRI_IMAGE *im , float uperc , byte *mask )
@@ -117,8 +120,6 @@ static INLINE float median7(float *p)
 /*---------------------------------------------------------------------------*/
 /* Shrink a 3D image down by a factor of 2 in all dimensions,
    by taking the median of each point and its 6 nearest neighbors. */
-
-static int do_double = 1 ;
 
 #undef  FSUB
 #define FSUB(far,i,j,k,ni,nij) far[(i)+(j)*(ni)+(k)*(nij)]
@@ -373,7 +374,7 @@ ENTRY("mri_local_percmean") ;
 
    /* shrink image by 2 for speed */
 
-   if( verb ) fprintf(stderr,"D") ;
+   if( verb && do_double ) fprintf(stderr,"D") ;
 
    if( do_double ){
      bim = mri_double_down(aim) ; bar = MRI_FLOAT_PTR(bim) ; mri_free(aim) ;
@@ -655,8 +656,8 @@ int main( int argc , char *argv[] )
        "* If the input dataset has more than 1 sub-brick, only sub-brick\n"
        "  #0 will be processed!\n"
        "\n"
-       "* At this time, 3dUnifize does not work properly on EPI datasets.\n"
-       "  Come see Obi-Wan in Namche to discuss this issue, if you want.\n"
+       "* Want to correct EPI datasets for nonuniformity?\n"
+       "  You can try the new and experimental [Mar 2017] '-EPI' option.\n"
        "\n"
        "* Method: Obi-Wan's personal variant of Ziad's sneaky trick.\n"
        "  (If you want to know what his trick is, you'll have to ask him, or\n"
@@ -707,6 +708,7 @@ int main( int argc , char *argv[] )
        "                  (voxel-wise) to get the WM-unifized image.\n"
        "               ++ Another volume (with the same grid dimensions) could be\n"
        "                  scaled the same way using 3dcalc, if that is needed.\n"
+       "               ++ This saved scaled factor does NOT include any GM scaling :(\n"
        "  -quiet     = Don't print the fun fun fun progress messages (but whyyyy?).\n"
        "               ++ For the curious, the codes used are:\n"
        "                   A = Automask\n"
@@ -720,6 +722,20 @@ int main( int argc , char *argv[] )
        "                  grid size in each direction for speed when computing the\n"
        "                  voxel-wise histograms.  The sub-sampling is done using the\n"
        "                  median of the central voxel value and its 6 nearest neighbors.\n"
+       "  -noduplo   = Do NOT use the 'duplo down' step; this can be useful for lower\n"
+       "               resolution datasets.\n"
+       "               ++ If a dataset has less than 1 million voxels in a 3D volume,\n"
+       "                  'duplo down' will not be used.\n"
+       "\n"
+       "  -EPI       = Assume the input dataset is a T2 (or T2*) weighted EPI time\n"
+       "               series. After computing the scaling, apply it to ALL volumes\n"
+       "               (TRs) in the input dataset. That is, a given voxel will be\n"
+       "               scaled by the same factor at each TR.\n"
+       "               ++ This option also implies '-noduplo' and '-T2'.\n"
+       "               ++ This option turns off '-GM' if you turned it on.\n"
+       "           -->>++ This option is experimental; check your results!\n"
+       "               ++ For most (all?) purposes in AFNI processing, uniform-izing\n"
+       "                  EPI datasets is not needed.\n"
        "\n"
        "------------------------------------------\n"
        "Special options for Jedi AFNI Masters ONLY:\n"
@@ -849,8 +865,12 @@ int main( int argc , char *argv[] )
    iarg = 1 ;
    while( iarg < argc && argv[iarg][0] == '-' ){
 
-     if( strcmp(argv[iarg],"-double") == 0 ){  /* 23 Dec 2016 -- for testing only */
-       do_double = 2 ; iarg++ ; continue ;
+     if( strcmp(argv[iarg],"-nodouble") == 0 || strcmp(argv[iarg],"-noduplo") == 0 ){
+       do_double = 0 ; iarg++ ; continue ;
+     }
+
+     if( strcasecmp(argv[iarg],"-EPI") == 0 ){
+       do_EPI = 1 ; iarg++ ; continue ;
      }
 
      if( strcmp(argv[iarg],"-clfrac") == 0 || strcmp(argv[iarg],"-mfrac") == 0 ){    /* 22 May 2013 */
@@ -949,18 +969,39 @@ int main( int argc , char *argv[] )
      CHECK_OPEN_ERROR(inset,argv[iarg]) ;
    }
 
+   if( do_EPI ){
+     float uu ;
+     do_T2 = 1 ; do_double = 0 ;
+     if( do_GM ){ INFO_message("-EPI turns off -GM") ; do_GM = 0 ; }
+     uu = cbrtf(fabsf(DSET_DX(inset)*DSET_DY(inset)*DSET_DZ(inset))) ;
+     uu = 18.3 / uu ; if( uu < 4.0f ) uu = 4.0f ;
+     Uprad = uu ;
+     INFO_message("-EPI changes -Urad to %.1f voxels",Uprad) ;
+   }
+
    if( verb ) fprintf(stderr," + Pre-processing: ") ;
 
    /* load input from disk */
 
    DSET_load( inset ) ; CHECK_LOAD_ERROR(inset) ;
-   if( DSET_NVALS(inset) > 1 )
+   if( ! do_EPI && DSET_NVALS(inset) > 1 ){
      WARNING_message("Only processing sub-brick #0 (out of %d)",DSET_NVALS(inset)) ;
+   } else if( do_EPI && DSET_NVALS(inset) == 1 ){
+     WARNING_message("-EPI was used, but only 1 volume in the input dataset") ;
+     do_EPI = 0 ;
+   }
 
    /* make a float copy of the input brick for processing */
 
-   imin = THD_extract_float_brick(0,inset) ; DSET_unload(inset) ;
-   if( imin == NULL ) ERROR_exit("Can't copy input dataset brick?!") ;
+   if( !do_EPI ){
+     imin = THD_extract_float_brick(0,inset) ;
+     if( imin == NULL ) ERROR_exit("Can't copy input dataset brick?!") ;
+   } else {
+     if( verb ) fprintf(stderr,"M") ;
+     imin = THD_median_brick(inset) ;
+     if( imin == NULL ) ERROR_exit("Can't compute median of EPI dataset?!") ;
+   }
+   if( ! do_EPI ) DSET_unload(inset) ;
 
 #if 0
 THD_cliplevel_search(imin) ; exit(0) ;  /* experimentation only */
@@ -994,6 +1035,63 @@ THD_cliplevel_search(imin) ; exit(0) ;  /* experimentation only */
      tross_Make_History( "3dUnifize" , argc,argv , outset ) ;
      DSET_write(outset) ; outset = NULL ;
    }
+
+   /*-- Compute the EPI output here [01 Mar 2017] --*/
+
+   if( do_EPI ){
+     int nvals=DSET_NVALS(inset) , nxyz=DSET_NVOX(inset) , ii,iv ;
+     float *scar , *imar ;
+
+     if( sclim == NULL )  /* should never happen */
+       ERROR_exit("Can't process EPI data: scale image missing :(") ;
+     scar = MRI_FLOAT_PTR(sclim) ;
+
+     outset = EDIT_empty_copy( inset )  ;  /* create shell of output */
+     EDIT_dset_items( outset ,
+                        ADN_prefix    , prefix ,
+                        ADN_datum_all , MRI_float ,
+                        ADN_brick_fac , NULL ,
+                      ADN_none ) ;
+
+     DSET_load(inset) ;
+
+     /* scale each volume */
+
+     if( verb ) fprintf(stderr,"E") ;
+     for( iv=0 ; iv < nvals ; iv++ ){
+       if( iv%100 == 47 ) fprintf(stderr,".") ;
+       /* get input volume */
+       imin = THD_extract_float_brick(iv,inset) ;
+       DSET_unload_one(inset,iv) ;
+       if( imin == NULL )
+         ERROR_exit("Can't load sub-brick #%d of input dataset :(",iv) ;
+       imar = MRI_FLOAT_PTR(imin) ;
+       /* invert contrast */
+       mri_invertcontrast_inplace( imin , T2_uperc , T2_mask ) ;
+       /* scale */
+       for( ii=0 ; ii < nxyz ; ii++ ) imar[ii] *= scar[ii] ;
+       /* invert contrast back */
+       mri_invertcontrast_inplace( imin , T2_uperc , T2_mask ) ;
+       /* put result into output dataset */
+       EDIT_substitute_brick( outset , iv , MRI_float , MRI_FLOAT_PTR(imin) ) ;
+       /* toss the empty shell of the processed image */
+       mri_clear_and_free(imin) ;
+     }
+     if( verb ) fprintf(stderr,"\n") ;
+
+     /* write the output and head back to the bakery */
+
+     DSET_unload(inset) ;
+     tross_Copy_History( inset , outset ) ;
+     tross_Make_History( "3dUnifize" , argc,argv , outset ) ;
+     DSET_write(outset) ;
+     WROTE_DSET(outset) ;
+     exit(0) ;
+
+   } /* end of -EPI output */
+
+   /*-- Continue the standard (1 volume) processing --*/
+
    if( sclim != NULL ){ mri_free(sclim) ; sclim = NULL ; }
 
    if( imout == NULL ){                   /* this is bad-ositiness */
