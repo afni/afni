@@ -507,7 +507,7 @@ else
     else if ( $USER_FRANGE == 2 ) then
         set vv = `3dBrickStat -non-zero                           \
                     -percentile $frange_perc 1 $frange_perc       \
-                    -non-zero   $read_dir/$read_olay`
+                    $read_dir/$read_olay`
         set frange = $vv[2]
         set maxolay = `3dinfo -max $read_dir/$read_olay`
         set minolay = `3dinfo -min $read_dir/$read_olay`
