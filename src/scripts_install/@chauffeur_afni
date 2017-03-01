@@ -468,6 +468,9 @@ else
     endif
 endif
 
+# always determine dim from ulay, because that's how montaging works!
+set Dim  = `3dinfo -n4 "$ulay"`
+
 # IF we don't want to see the olay, then set it to be the ulay, for
 # later simplicity with the automontaging
 if ( "$see_olay" == "-" ) then
@@ -480,7 +483,7 @@ if ( "$see_olay" == "-" ) then
 
 else
 
-    set Dim  = `3dinfo -n4 "$olay"`
+    #set Dim  = `3dinfo -n4 "$olay"`
     set read_olay = tmp_olay.nii
 
     3dcalc                                    \
