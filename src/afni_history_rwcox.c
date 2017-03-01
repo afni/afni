@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 1 , MAR , 2017 , RWC , "3dUnifize" , MAJOR , TYPE_NEW_OPT ,
+   "Add -EPI option, to unifize time series datasets." ,
+   NULL } ,
+
  { 28 , FEB , 2017 , RWC , "3dExtractGroupInCorr" , MICRO , TYPE_NEW_PROG ,
    "Program to reconstruct individual dataset from a .niml/.data pair." ,
    "This program is for any unfortunate person who has lost the datasets\n"
