@@ -697,6 +697,7 @@ static int  RT_mp_comm_close    ( RT_input * rtin, int );
 static int  RT_mp_comm_init     ( RT_input * rtin );
 static int  RT_mp_comm_init_vars( RT_input * rtin );
 static int  RT_mp_comm_send_data( RT_input * rtin, float *mp[6],int nt,int sub);
+static int  RT_mp_comm_send_data_wrapper(RT_input * rtin, int tfirst, int ntt);
 
 /* Cameron Craddock, init masking without setting up 
    communication */
@@ -2614,6 +2615,28 @@ static int RT_mp_comm_close( RT_input * rtin, int new_tcp_use )
     return 0;
 }
 
+/* set up the pointer to yar and call send_data */
+static int RT_mp_comm_send_data_wrapper(RT_input * rtin, int tfirst, int ntt)
+{
+   float * yar[7] ;
+
+   /* do we have anything to do here? */
+   if( ntt <= tfirst ) return 0;
+   if( ! rtin->mp && rtin->mp_tcp_use <= 0) return 0;
+
+   yar[0] = rtin->reg_rep   + tfirst ;
+   yar[1] = rtin->reg_dx    + tfirst ;
+   yar[2] = rtin->reg_dy    + tfirst ;
+   yar[3] = rtin->reg_dz    + tfirst ;
+   yar[4] = rtin->reg_phi   + tfirst ;
+   yar[5] = rtin->reg_psi   + tfirst ;
+   yar[6] = rtin->reg_theta + tfirst ;
+
+   /* send the data off over tcp connection               30 Mar 2004 [rickr] */
+   RT_mp_comm_send_data( rtin, yar+1, ntt-tfirst, tfirst );
+
+   return 0;
+}
 
 /*---------------------------------------------------------------------------
    Send the current motion params.                        30 Mar 2004 [rickr]
@@ -2728,6 +2751,9 @@ static int RT_mp_comm_send_data(RT_input *rtin, float *mp[6], int nt, int sub)
         rtin->mp_npsets += b2send;
     }
 
+    if( verbose > 1 )
+       fprintf(stderr,"RTM, sening time point %d\n", sub);
+
     return 0;
 }
 
@@ -2816,16 +2842,26 @@ static int RT_mp_set_mask_data( RT_input * rtin, float * data, int sub )
 -----------------------------------------------------------------------------*/
 static int RT_mp_get_mask_aves( RT_input * rtin, int sub )
 {
-    static int * nvals = NULL;
-    static int   nval_len = 0;
-    byte       * mask = rtin->mask;
-    float        ffac;
-    int          c, nvox;
+    static int       * nvals = NULL;
+    static int         nval_len = 0;
+    THD_3dim_dataset * source_set = NULL;
+    byte             * mask = rtin->mask;
+    float              ffac;
+    int                c, nvox, datum;
 
-    if( !ISVALID_DSET(rtin->reg_dset) || DSET_NVALS(rtin->reg_dset) <= sub ){
+    if( ISVALID_DSET(rtin->mrg_dset) ) source_set = rtin->mrg_dset;
+    else                               source_set = rtin->reg_dset;
+
+    if( !ISVALID_DSET(source_set) || DSET_NVALS(source_set) <= sub ){
        fprintf(stderr,"** RT_mp_get_mask_aves: not set for sub-brick %d\n",sub);
        return -1;
     }
+
+    /* rcr - fix (want DSET_BRICK_TYPE, but do we drag in all of 3ddata.h? globals?) */
+    if ( source_set == rtin->mrg_dset )
+       datum = source_set->dblk->brick->imarr[0]->kind;
+    else
+       datum = rtin->datum;
 
     if( sub < 0 ) return 0;
 
@@ -2835,11 +2871,11 @@ static int RT_mp_get_mask_aves( RT_input * rtin, int sub )
     }
 
     nvox = DSET_NVOX(g_mask_dset);
-    if( DSET_NVOX(rtin->reg_dset) != nvox ){
+    if( DSET_NVOX(source_set) != nvox ){
         /* terminal: whine, blow away the mask and continue */
         fprintf(stderr,"** nvox for mask (%d) != nvox for reg_dset (%d)\n"
                        "   terminating mask processing...\n",
-                nvox, DSET_NVOX(rtin->reg_dset) );
+                nvox, DSET_NVOX(source_set) );
         return RT_mp_mask_free(rtin);
     }
 
@@ -2859,15 +2895,15 @@ static int RT_mp_get_mask_aves( RT_input * rtin, int sub )
     for(c = 1; c < nval_len; c++ ) rtin->mask_aves[c] = 0.0;
     for(c = 1; c < nval_len; c++ ) nvals[c] = 0;
 
-    ffac = DSET_BRICK_FACTOR(rtin->reg_dset, sub);
+    ffac = DSET_BRICK_FACTOR(source_set, sub);
     if( ffac == 1.0 ) ffac = 0.0;
 
 
     /* try to be efficient... */
-    switch( rtin->datum ){
+    switch( datum ){
         int iv, m;
         case MRI_short:{
-           short * dar = (short *) DSET_ARRAY(rtin->reg_dset, sub);
+           short * dar = (short *) DSET_ARRAY(source_set, sub);
            if( ffac ) {
                for( iv=0 ; iv < nvox ; iv++ )
                    if( (m = mask[iv]) ){
@@ -2886,7 +2922,7 @@ static int RT_mp_get_mask_aves( RT_input * rtin, int sub )
         break ;
 
         case MRI_float:{
-           float * dar = (float *) DSET_ARRAY(rtin->reg_dset, sub);
+           float * dar = (float *) DSET_ARRAY(source_set, sub);
            if( ffac ) {
                for( iv=0 ; iv < nvox ; iv++ )
                    if( (m = mask[iv]) ){
@@ -2905,7 +2941,7 @@ static int RT_mp_get_mask_aves( RT_input * rtin, int sub )
         break ;
 
         case MRI_byte:{
-           byte * dar = (byte *) DSET_ARRAY(rtin->reg_dset, sub);
+           byte * dar = (byte *) DSET_ARRAY(source_set, sub);
            if( ffac ) {
                for( iv=0 ; iv < nvox ; iv++ )
                    if( (m = mask[iv]) ){
@@ -4915,12 +4951,17 @@ void RT_process_image( RT_input * rtin )
           RT_when_to_merge() == RT_CM_MERGE_AFTER_REG ) {
 
          int tt, ntt=DSET_NUM_TIMES( rtin->dset[g_reg_src_chan] ) ;
+         int tfirst = rtin->mrg_nvol;
 
          for( tt = rtin->mrg_nvol; tt < ntt && tt < rtin->reg_nvol; tt++ ) {
             if( verbose > 1 )
                fprintf(stderr,"++ about to merge time index %d\n", tt);
             RT_merge( rtin, cc, tt);
          }
+
+         /* possibly send mot params and ROI aves   2 Mar 2017 [rickr] */
+         if ( rtin->mp_tcp_use > 0 && rtin->reg_mode == REGMODE_3D_RTIME )
+            RT_mp_comm_send_data_wrapper( rtin, tfirst, ntt );
       }
 
       /* Cameron Craddock
@@ -5245,6 +5286,7 @@ static int RT_merge( RT_input * rtin, int chan, int tt )
      else
        EDIT_add_brick( rtin->mrg_dset , (int)mrgim->kind , 0.0 ,
                                               mri_data_pointer(mrgim) ) ;
+
      mri_clear_data_pointer(mrgim); mri_free(mrgim);
      if( verbose > 1 )
        fprintf(stderr,"RT: added brick #%d to merged dataset\n",iv) ;
@@ -6468,11 +6510,10 @@ void RT_registration_3D_realtime( RT_input *rtin )
       yar[5] = rtin->reg_psi   + ttbot ;
       yar[6] = rtin->reg_theta + ttbot ;
 
-      /* send the data off over tcp connection          30 Mar 2004 [rickr] */
-      if ( rtin->mp_tcp_use > 0 ) {
-          RT_mp_comm_send_data( rtin, yar+1, ntt-ttbot, ttbot );
-          if( verbose > 1 )
-             fprintf(stderr,"RTM, sending TRs %d..%d\n",ttbot,ntt-1);
+      /* send the data off over tcp connection               30 Mar 2004 [rickr] */
+      /* - if merging after reg, send the data after merging  2 Mar 2017 [rickr] */
+      if ( rtin->mp_tcp_use > 0 && RT_when_to_merge() != RT_CM_MERGE_AFTER_REG ) {
+          RT_mp_comm_send_data_wrapper(rtin, ttbot, ntt);
       } else if( g_show_times ) {
           char vmesg[64];
           sprintf(vmesg,"registered %d vol(s), %d..%d",ntt-ttbot,ttbot,ntt-1);
