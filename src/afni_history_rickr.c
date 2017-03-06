@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  6,  Mar, 2017, RCR, "RetroTS.py", MICRO, TYPE_MODIFY,
+   "Change -p and -v args to be read as floats.",
+   NULL
+ } ,
+
  {  6,  Mar, 2017, RCR, "AFNI.afnirc", MICRO, TYPE_BUG_FIX,
    "AFNI_COMPRESSOR can be set to GZIP, not gzip",
    NULL

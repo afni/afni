@@ -29,7 +29,8 @@ from lib_RetroTS.Show_RVT_Peak import show_rvt_peak
 
 
 
-def retro_ts(respiration_file, cardiac_file, phys_fs, number_of_slices, volume_tr,
+def retro_ts(respiration_file, cardiac_file, phys_fs, number_of_slices,
+             volume_tr,
              prefix='Output_File_Name',
              slice_offset=0,
              slice_major=1,
@@ -460,11 +461,12 @@ Output:
                     print "%s" % key
                 quit()
             temp_opt = opt
+    # change phys_fs and volume_tr to float     6 Mar 2017 [rickr]
     retro_ts(respiration_file=opt_dict['-r'],
              cardiac_file=opt_dict['-c'],
-             phys_fs=int(opt_dict['-p']),
+             phys_fs=float(opt_dict['-p']),
              number_of_slices=int(opt_dict['-n']),
-             volume_tr=int(opt_dict['-v']),
+             volume_tr=float(opt_dict['-v']),
              prefix=opt_dict['-prefix'],
              slice_offset=opt_dict['-slice_offset'],
              slice_major=opt_dict['-slice_major'],
