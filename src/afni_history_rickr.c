@@ -49,9 +49,14 @@
 
 afni_history_struct rickr_history[] = {
 
- {  3,  Feb, 2017, RCR, "make_random_timing.py", MINOR, TYPE_NEW_OPT,
-   "decay timing class now follows better distribution; new decay_old class",
+ {  6,  Mar, 2017, RCR, "AFNI.afnirc", MICRO, TYPE_BUG_FIX,
+   "AFNI_COMPRESSOR can be set to GZIP, not gzip",
    NULL
+ } ,
+
+ {  3,  Mar, 2017, RCR, "plug_realtime", MINOR, TYPE_NEW_OPT,
+   "add optimally combined 'Opt Comb' merge method",
+   "Done with V Roopchansingh."
  } ,
 
  {  2,  Feb, 2017, RCR, "steps_mac.rst", MINOR, TYPE_MODIFY,
