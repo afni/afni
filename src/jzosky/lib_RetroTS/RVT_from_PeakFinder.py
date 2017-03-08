@@ -44,7 +44,7 @@ def rvt_from_peakfinder(r):
             print 'Notice RVT_from_PeakFinder:\n'       \
                   '   Peak trace lengths differ by %d\n'\
                   '   Clipping longer trace.' % dd
-            dm = min(len(r['p_trace']), len(r['p_trace']))
+            dm = min(len(r['p_trace']), len(r['n_trace']))
             if len(r['p_trace']) != dm: 
                r['p_trace'] = r['p_trace'][0:dm]
                r['tp_trace'] = r['tp_trace'][0:dm]
