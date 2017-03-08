@@ -87,9 +87,11 @@ def rvt_from_peakfinder(r):
         v = (v - mv)
         # filter both ways to cancel phase shift
         v = lfilter(b, 1, v)
-        # v = numpy.flipud(v)  # Turns out these don't do anything in the MATLAB version(Might be a major problem)
+        if r['legacy_transform'] == 0:
+            v = numpy.flipud(v)  # Turns out these don't do anything in the MATLAB version(Might be a major problem)
         v = lfilter(b, 1, v)
-        # v = numpy.flipud(v)  # Turns out these don't do anything in the MATLAB version(Might be a major problem)
+        if r['legacy_transform'] == 0:
+            v = numpy.flipud(v)  # Turns out these don't do anything in the MATLAB version(Might be a major problem)
         r['rvtrs'] = v + mv
 
     # create RVT regressors
