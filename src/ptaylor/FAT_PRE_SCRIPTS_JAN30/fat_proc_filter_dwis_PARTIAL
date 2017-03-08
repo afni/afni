@@ -19,13 +19,14 @@
 #   + new opts
 #   + switch to 1dDW_Grad_o_Mat++
 #
-#set version = "2.5"
-#set rev_dat = "Feb 20, 2017"
+#set version = "2.5"; set rev_dat = "Feb 20, 2017"
 #   + add snapshotting with @djunct_dwi_imager
 #
-set version = "2.6"
-set rev_dat = "Feb 23, 2017"
+#set version = "2.6"; set rev_dat = "Feb 23, 2017"
 #   + add movie-making with @djunct_dwi_imager
+#
+set version = "2.8"; set rev_dat = "March 6, 2017"
+#   + allow more flexible inputs of vec/mat/bvals
 #
 # ----------------------------------------------------------------
  
@@ -36,10 +37,13 @@ set i_ap     = ""
 set i_pa     = ""
 set idir_ap  = ""
 set idir_pa  = ""
+set invecmat_ap = ( "" "" "" "" ) 
+set invecmat_pa = ( "" "" "" "" ) 
 set odir_ap  = ""
 set odir_pa  = ""
 set o_ap     = "AP"        # default file output prefix
 set o_pa     = "PA"        # default file output prefix
+
 set KEEP     = "" 
 
 set movie = ""
@@ -109,6 +113,46 @@ while ( $ac <= $#argv )
         endif
         # replace with both here for calling @dj*
         set movie = "-do_movie $movie"   
+
+    # ------------ more flexibility of bval/bvec/mat* input
+
+    else if ( "$argv[$ac]" == "-in_col_matA_ap" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        set invecmat_ap[1]  = $argv[$ac] 
+        @ ac += 1
+        set invecmat_ap[2]  = "$argv[$ac]"
+        set outvecmat_ap[1]  = "-out_col_matA"
+
+    else if ( "$argv[$ac]" == "-in_col_matT_ap" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        set invecmat_ap[1]  = $argv[$ac] 
+        @ ac += 1
+        set invecmat_ap[2]  = "$argv[$ac]"
+        set outvecmat_ap[1]  = "-out_col_matT"
+
+    else if ( "$argv[$ac]" == "-in_col_vec_ap" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        set invecmat_ap[1]  = $argv[$ac] 
+        @ ac += 1
+        set invecmat_ap[2]  = "$argv[$ac]"
+        set outvecmat_ap[1]  = "-out_col_vec"
+
+    else if ( "$argv[$ac]" == "-in_row_vec_ap" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        set invecmat_ap[1]  = $argv[$ac] 
+        @ ac += 1
+        set invecmat_ap[2]  = "$argv[$ac]"
+        set outvecmat_ap[1]  = "-out_row_vec"
+
+    # not necessary; default is just empty
+    else if ( "$argv[$ac]" == "-in_bvals_ap" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        set invecmat_ap[3]  = $argv[$ac] 
+        @ ac += 1
+        set invecmat_ap[4]  = "$argv[$ac]"
+        set outvecmat_ap[3]  = "-out_row_bval_sep" # !! only row at moment...
+
+    # ----------------------------------------------------
 
     else
         echo "** unexpected option #$ac = '$argv[$ac]'"
@@ -225,13 +269,28 @@ endif
 
 if ( "$idir_ap" != "") then
 
-    1dDW_Grad_o_Mat++       -echo_edu                            \
-        -in_bvals           $idir_ap/${iroot_ap}.bval"$KEEP"     \
-        -in_row_vec         $idir_ap/${iroot_ap}.bvec"$KEEP"     \
-        -out_row_bval_sep   $odir_ap/${o_ap}.bval                \
-        -unit_mag_out                                            \
-        -out_row_vec        $odir_ap/${o_ap}.bvec                \
-        -overwrite
+    if ( "$invecmat[1]" == "" ) then
+        echo "++ Default bvec/bval processing for AP set."
+        1dDW_Grad_o_Mat++       -echo_edu                            \
+            -in_bvals           $idir_ap/${iroot_ap}.bval"$KEEP"     \
+            -in_row_vec         $idir_ap/${iroot_ap}.bvec"$KEEP"     \
+            -out_row_bval_sep   $odir_ap/${o_ap}.bval                \
+            -unit_mag_out                                            \
+            -out_row_vec        $odir_ap/${o_ap}.bvec                \
+            -overwrite
+    else
+        echo "++ Processing non-default bvec/bval/mat sets for AP data."
+
+        if ( "$invecmat[3]" == "" ) then
+!!!!
+            1dDW_Grad_o_Mat++       -echo_edu                       \
+                "$invecmat[1]" "$invecmat[2]""$KEEP"                \
+                "$outvecmat[1]" "$outvecmat[2]"                      \
+                -out_row_bval_sep   $odir_ap/${o_ap}.bval                \
+                -out_row_vec        $odir_ap/${o_ap}.bvec                \
+                -overwrite
+    endif
+
 
     3dcalc   -echo_edu                                           \
         -a     $i_ap"$KEEP"                                      \
