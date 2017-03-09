@@ -69,7 +69,11 @@ def write_text_to_file(fname, tdata, mode='w', wrap=0, wrapstr='\\\n', exe=0):
 
     if fname != 'stdout' and fname != 'stderr':
        fp.close()
-       if exe: os.chmod(fname, 0755)
+       if exe:
+           try:
+               os.chmod(fname, 0755)
+            except OSError, e:
+                print e
 
     return 0
 
