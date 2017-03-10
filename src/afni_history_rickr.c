@@ -49,6 +49,18 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  9,  Mar, 2017, RCR, "afni-general", MICRO, TYPE_ENHANCE,
+   "from D Warren: put exception handling around os.chmod calls",
+   NULL
+ } ,
+
+ {  7,  Mar, 2017, RCR, "RetroTS.py", MINOR, TYPE_BUG_FIX,
+   "from J Zosky: default to using numpy.flipud()",
+   "The flipud() function did not work in the original Matlab version,\n"
+   "but it does in numpy.  Use the new -legacy_transform opt for old\n"
+   "(and presumably incorrect) results."
+ } ,
+
  {  6,  Mar, 2017, RCR, "RetroTS.py", MICRO, TYPE_MODIFY,
    "change -p and -v args to be read as floats; apply min(p/n_trace)",
    NULL
