@@ -9,12 +9,13 @@
 #   + start: align t1 to t2
 #
 set version   = "1.1";    set rev_dat   = "March 11, 2017"
+#   + change name...
 #   + help text added
 #   + no-clean option added
 #
 # ---------------------------------------------------------------
 
-set this_prog = "fat_proc_align_anats"
+set this_prog = "fat_proc_align_anat_pair"
 set here      = $PWD
 
 # ----------------- find AFNI and set viewer ---------------------
