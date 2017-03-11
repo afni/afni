@@ -350,10 +350,7 @@ endif
 set fdims = `3dinfo -n4 ${T1TOCOPY}`
 set fres  = `3dinfo -ad3 ${T1TOCOPY}`
 
-echo "++ Done workin'.  Just need to copy the final dset to:"
-echo "        $odir/$ot1w"
-echo "++ The final spatial dims are:  $fdims[1] $fdims[2] $fdims[3]"
-echo "++ The spatial resolution is:  $fres[1] $fres[2] $fres[3]"
+echo "++ Done workin'.  Just need to copy the final dset."
 
 3dcopy $T1TOCOPY $odir/$ot1w
 
@@ -413,6 +410,7 @@ if ( $DO_VIEWER == 1 ) then
 
 endif
 
+# clean, by default
 if ( $DO_CLEAN ) then
     echo "\n++ Cleaning working directory!\n"
     \rm -rf $wdir
@@ -420,6 +418,10 @@ else
     echo "\n++ NOT removing working directory '$wdir'.\n"
 endif
 
+# final messages
+echo "++ The final data set is here:  $odir/$ot1w"
+echo "++ The final spatial dims are:  $fdims[1] $fdims[2] $fdims[3]"
+echo "++ The spatial resolution is:   $fres[1] $fres[2] $fres[3]"
 
 # ---------------------------------------------------------------------
 
