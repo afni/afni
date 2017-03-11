@@ -26,7 +26,7 @@ set rev_dat = "Feb 20, 2017"
 
 # ----------------------------------------------------------------
 
-set this_prog = "fat_proc_convert_dwis"
+set this_prog = "fat_proc_convert_dcm_dwis"
 
 set here     = $PWD
 set idir_ap  = ""

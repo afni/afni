@@ -14,7 +14,7 @@
 
 set version = "2.3"
 set rev_dat = "Jan, 2017"
-set this_prog = "fat_proc_convert_anat"
+set this_prog = "fat_proc_convert_dcm_anat"
 
 set here     = $PWD
 set there    = ""

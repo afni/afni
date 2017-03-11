@@ -14,7 +14,7 @@
 
 set version = "2.3"
 set rev_dat = "Jan, 2017"
-set this_prog = "fat_proc_t2w_from_t1w"
+set this_prog = "fat_proc_imit2w_from_t1w"
 set here     = $PWD
 
 # ----------------- find AFNI and set viewer ---------------------
