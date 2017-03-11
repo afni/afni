@@ -72,7 +72,7 @@ def write_text_to_file(fname, tdata, mode='w', wrap=0, wrapstr='\\\n', exe=0):
        if exe:
            try:
                os.chmod(fname, 0755)
-            except OSError, e:
+           except OSError, e:
                 print e
 
     return 0
