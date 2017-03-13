@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 13 , MAR , 2017 , RWC , "mri_lsqfit" , MICRO , TYPE_GENERAL ,
+   "explicitly check for all zero input ref vectors" ,
+   NULL } ,
+
  { 1 , MAR , 2017 , RWC , "3dUnifize" , MAJOR , TYPE_NEW_OPT ,
    "Add -EPI option, to unifize time series datasets." ,
    NULL } ,
