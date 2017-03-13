@@ -1,10 +1,7 @@
 #!/bin/tcsh -ef
 
-# !!!! INPUT DWI IMAGER
 
-# !!! WHAT TO DO WITH STRUC?
-
-# !!!! CHECK ABOUT OUT ORIENT+ORIG STUFF
+# !? Need to clean?
 
 # --------------------- revision history -------------------------
 # Jan, 2017
@@ -27,8 +24,12 @@
 #   + wdir
 #   + pre-alignment/matching stuff
 #
-set version   = "1.6";    set rev_dat   = "Feb 27, 2017"
+#set version   = "1.6";    set rev_dat   = "Feb 27, 2017"
 #   + pre-alignment/matching stuff
+#
+set version   = "1.7";    set rev_dat   = "March 10, 2017"
+#   + fix when res struct and dwi don't have same origin to start
+#   + add QC snapshot of b0 edges overlayed on orig anat
 #
 # ----------------------------------------------------------------
 
@@ -416,12 +417,15 @@ if ( "$iref" != "" ) then
     endif
 
     if ( "$ianat" != "" ) then
+
         # resample anat, if nec; then use it to find shift to get to
         # refspace
+        set tmp_ianat = $wdir/anat_res.nii
+
         set ori_anat = `3dinfo -orient "$ianat"`
+
         if ( "$ori_anat" != "$ori_new" ) then
             echo "++ Resampling/fitting input anat vol."
-            set tmp_ianat = $wdir/anat_res.nii
             3dresample               \
                 -echo_edu            \
                 -overwrite           \
@@ -430,9 +434,33 @@ if ( "$iref" != "" ) then
                 -prefix $tmp_ianat
         else
             # ... or just use input file as is
-            set tmp_ianat = "$ianat"
+            echo "++ Copying input anat vol."
+            3dcalc                   \
+                -echo_edu            \
+                -overwrite           \
+                -a "$ianat"          \
+                -expr 'a'            \
+                -prefix $tmp_ianat
         endif
 
+        # check IJK dimensions of anat and dwi. [March 10, 2017]
+        set dimA = `3dinfo -n4 $tmp_ianat`
+        set dimD = `3dinfo -n4 $tmp_idwi`
+        foreach i ( `seq 1 1 3` ) 
+            if ( $dimA[$i] != $dimD[$i] ) then
+                echo "** ERROR! IJK dimensions of $ianat and $idwi do not match!"
+                goto BAD_EXIT
+            endif
+        end
+
+        # [March 10, 2017]
+        echo "++ Making sure the anat and DWI have the same origin!"
+        3drefit                      \
+            -echo_edu                \
+            -duporigin $tmp_idwi     \
+            $tmp_ianat
+
+        # now do alignment to ref anat
         set isetinref  = $wdir/anat_in_ref.nii
         set map_to_ref = $wdir/map_to_ref.param.1D
         3dAllineate                      \
@@ -440,6 +468,7 @@ if ( "$iref" != "" ) then
             -source_automask             \
             -autoweight                  \
             -cmass                       \
+            -final wsinc5                \
             -1Dparam_save $map_to_ref    \
             -warp shift_only             \
             -source $tmp_ianat           \
@@ -455,12 +484,42 @@ if ( "$iref" != "" ) then
             -source_automask             \
             -autoweight                  \
             -cmass                       \
+            -final wsinc5                \
             -1Dparam_save $map_to_ref    \
             -warp shift_only             \
             -source $tmp_idwi"[0]"       \
             -base "$iref"                \
             -prefix $isetinref           \
             -overwrite
+    endif
+
+    if ( $DO_VIEWER ) then
+
+        echo "++ Initial QC images: how did we align to ref?"
+
+        if( $qc_prefix == "" ) then
+            set vpref0 = ${opref}_${postfix}_qc00_refalign
+        else
+            set vpref0 = ${qc_prefix}_${postfix}_qc00_refalign
+        endif
+
+        echo "\n\n"
+        echo "++ QC image 00 ($isetinref on $iref): $vpref0"
+        echo "\n\n"
+        # need to put '[0]' on $iref?
+        $my_viewer                            \
+            -ulay "$iref"                     \
+            -ulay_range "2%" "98%"            \
+            -olay "$isetinref"                \
+            -pbar_posonly                     \
+            -opacity 4                        \
+            -prefix $vpref0                   \
+            -outdir "$odir"                   \
+            -montx 5 -monty 3                 \
+            -set_xhairs OFF                   \
+            -label_mode 1 -label_size 3       \
+            -do_clean 
+
     endif
 
     # --> from either of the above maps, we just care about the
@@ -503,25 +562,6 @@ if ( "$iref" != "" ) then
             $odir/$oanat
     endif
 
-    # !!!!!!!!!! delete
-    if ( 0 ) then
-        # use reference dset for orientation/origin when copying
-        echo "++ Resampling/fitting DWIs:  $odir/$odwi"
-        3dresample               \
-            -echo_edu            \
-            -overwrite           \
-            -inset  "$idwi"      \
-            -orient "$ori_new"   \
-            -prefix $odir/$odwi
-
-        # and then reset origin
-        3drefit                  \
-            -echo_edu            \
-            -duporigin $iref     \
-            $odir/$odwi
-    endif
-
-
 else
     # just copy
     3dcalc                   \
@@ -559,6 +599,57 @@ else
         -prefix $odir/$omask
 endif
 
+# [March 10, 2017]
+if ( $DO_VIEWER ) then
+    if ( "$iref" != "" ) then
+
+        echo "++ More QC images: b0 on initial ref."
+
+        set b0mskd = "$wdir/b0mskd.nii"   
+        set b0edge = "$wdir/b0edge.nii"   
+
+        3dcalc                          \
+            -a $odir/$omask             \
+            -b $odir/$odwi'[0]'         \
+            -expr 'step(a)*b'           \
+            -prefix $b0mskd             \
+            -float                      \
+            -overwrite
+
+        3dedge3                         \
+            -overwrite                  \
+            -prefix $b0edge             \
+            -input  $b0mskd
+
+        if( $qc_prefix == "" ) then
+            set vpref0 = ${opref}_${postfix}_qc01_b0edgeref
+        else
+            set vpref0 = ${qc_prefix}_${postfix}_qc01_b0edgeref
+        endif
+
+        echo "\n\n"
+        echo "++ QC image 01 ($odir/$odwi'[0]' on $iref): $vpref0"
+        echo "\n\n"
+        # need to put '[0]' on $iref?
+        $my_viewer                            \
+            -ulay "$iref"                     \
+            -ulay_range "2%" "98%"            \
+            -olay "$b0edge"                   \
+            -func_range_perc 50               \
+            -pbar_posonly                     \
+            -cbar "red_monochrome"            \
+            -opacity 6                        \
+            -prefix $vpref0                   \
+            -outdir "$odir"                   \
+            -montx 5 -monty 3                 \
+            -set_xhairs OFF                   \
+            -label_mode 1 -label_size 3       \
+            -do_clean 
+
+    endif
+endif
+
+
 # ------------------- tensor fit -----------------
 
 echo "++ Fitting tensor and estimating params to make:  $odir/${dti_par}*"
@@ -594,23 +685,25 @@ if ( $DO_VIEWER ) then
     echo "++ Making QC images."
 
     if( $qc_prefix == "" ) then
-        set vpref0 = ${opref}_${postfix}_qc00_fin
-        set vpref1 = ${opref}_${postfix}_qc01_FAMD
+        set vpref0 = ${opref}_${postfix}_qc02_fin
+        set vpref1 = ${opref}_${postfix}_qc03_FAMD
     else
-        set vpref0 = ${qc_prefix}_${postfix}_qc00_fin
-        set vpref1 = ${qc_prefix}_${postfix}_qc01_FAMD
+        set vpref0 = ${qc_prefix}_${postfix}_qc02_fin
+        set vpref1 = ${qc_prefix}_${postfix}_qc03_FAMD
     endif
 
     if( "$iref" != "" ) then
 
         echo "\n\n"
-        echo "++ QC image 00 ($odir/${odwi}[0] on $iref): $vpref0"
+        echo "++ QC image 02 ($odir/${odwi}[0] on $iref): $vpref0"
         echo "\n\n"
         # need to put '[0]' on $iref?
         $my_viewer                            \
             -ulay "$iref"                     \
             -ulay_range "2%" "98%"            \
             -olay "$odir/${odwi}""[0]"        \
+            -pbar_posonly                     \
+            -opacity 4                        \
             -prefix $vpref0                   \
             -outdir "$odir"                   \
             -montx 5 -monty 3                 \
@@ -620,7 +713,7 @@ if ( $DO_VIEWER ) then
     endif
 
         echo "\n\n"
-        echo "++ QC image 01 (final output FA>thr on MD): $vpref1"
+        echo "++ QC image 03 (final output FA>thr on MD): $vpref1"
         echo "   (olay colorbar is 'Plasma', with max value ${qc_fa_max})"
         echo "\n\n"
 
@@ -630,6 +723,7 @@ if ( $DO_VIEWER ) then
             -olay "$odir/${dtipref}_FA.nii.gz"  \
             -func_range $qc_fa_max              \
             -thr_olay $qc_fa_thr                \
+            -pbar_posonly                       \
             -opacity 7                          \
             -prefix $vpref1                     \
             -outdir "$odir"                     \

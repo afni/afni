@@ -44,7 +44,7 @@ def rvt_from_peakfinder(r):
             print 'Notice RVT_from_PeakFinder:\n'       \
                   '   Peak trace lengths differ by %d\n'\
                   '   Clipping longer trace.' % dd
-            dm = min(len(r['p_trace']), len(r['p_trace']))
+            dm = min(len(r['p_trace']), len(r['n_trace']))
             if len(r['p_trace']) != dm: 
                r['p_trace'] = r['p_trace'][0:dm]
                r['tp_trace'] = r['tp_trace'][0:dm]
@@ -87,9 +87,11 @@ def rvt_from_peakfinder(r):
         v = (v - mv)
         # filter both ways to cancel phase shift
         v = lfilter(b, 1, v)
-        # v = numpy.flipud(v)  # Turns out these don't do anything in the MATLAB version(Might be a major problem)
+        if r['legacy_transform'] == 0:
+            v = numpy.flipud(v)  # Turns out these don't do anything in the MATLAB version(Might be a major problem)
         v = lfilter(b, 1, v)
-        # v = numpy.flipud(v)  # Turns out these don't do anything in the MATLAB version(Might be a major problem)
+        if r['legacy_transform'] == 0:
+            v = numpy.flipud(v)  # Turns out these don't do anything in the MATLAB version(Might be a major problem)
         r['rvtrs'] = v + mv
 
     # create RVT regressors
