@@ -49,6 +49,33 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  9,  Mar, 2017, RCR, "afni-general", MICRO, TYPE_ENHANCE,
+   "from D Warren: put exception handling around os.chmod calls",
+   NULL
+ } ,
+
+ {  7,  Mar, 2017, RCR, "RetroTS.py", MINOR, TYPE_BUG_FIX,
+   "from J Zosky: default to using numpy.flipud()",
+   "The flipud() function did not work in the original Matlab version,\n"
+   "but it does in numpy.  Use the new -legacy_transform opt for old\n"
+   "(and presumably incorrect) results."
+ } ,
+
+ {  6,  Mar, 2017, RCR, "RetroTS.py", MICRO, TYPE_MODIFY,
+   "change -p and -v args to be read as floats; apply min(p/n_trace)",
+   NULL
+ } ,
+
+ {  6,  Mar, 2017, RCR, "AFNI.afnirc", MICRO, TYPE_BUG_FIX,
+   "AFNI_COMPRESSOR can be set to GZIP, not gzip",
+   NULL
+ } ,
+
+ {  3,  Mar, 2017, RCR, "plug_realtime", MINOR, TYPE_NEW_OPT,
+   "add optimally combined 'Opt Comb' merge method",
+   "Done with V Roopchansingh."
+ } ,
+
  {  3,  Feb, 2017, RCR, "make_random_timing.py", MINOR, TYPE_NEW_OPT,
    "decay timing class now follows better distribution; new decay_old class",
    NULL
