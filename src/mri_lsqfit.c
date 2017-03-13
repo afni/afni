@@ -7,6 +7,36 @@
 #include "mrilib.h"
 
 /*** 7D SAFE ***/
+/*-----------------------------------------------------------------*/
+/* Check ref vectors for all zero components [13 Mar 2017]
+   Return value
+    *   0 if all are OK.
+    *  -1 if inputs are invalid
+    * > 0 is count of all zero ref vectors
+*//*---------------------------------------------------------------*/
+
+int check_ref_vectors( int veclen , int nref , float *ref[] , char *funcname )
+{
+   int ii,jj , nbad=0 ; float *vv ;
+
+   if( veclen < 1 || nref < 1 || ref == NULL ){
+     if( funcname != NULL )
+       ERROR_message("%s :: bad inputs for data fitting",funcname) ;
+     return -1 ;
+   }
+
+   for( jj=0 ; jj < nref ; jj++ ){
+     vv = ref[jj] ;
+     for( ii=0 ; ii < veclen && vv[ii] == 0.0f ; ii++ ) ; /*nada*/
+     if( ii == veclen ) nbad++ ;
+   }
+
+   if( nbad > 0 && funcname != NULL )
+     ERROR_message("%s :: %d vector%s are all 0 for data fitting",
+                   funcname , nbad , (nbad > 1) ? "s" : "\0" ) ;
+
+   return nbad ;
+}
 
 /*-----------------------------------------------------------------
    Routine to compute the least squares fit of one image
@@ -139,6 +169,11 @@ float * lsqfit( int veclen ,
 
    if( nref < 1 || veclen < nref || data == NULL || ref == NULL ) return NULL ;
 
+   /* 13 Mar 2017 */
+   { int nbad = check_ref_vectors( veclen , nref , ref , "lsqfit" ) ;
+     if( nbad ) return NULL ;
+   }
+
    /*** form RHS vector into rr ***/
 
    rr = DBLEVEC(nref) ;
@@ -257,6 +292,11 @@ double * startup_lsqfit( int veclen ,
       return NULL ;
    }
 
+   /* 13 Mar 2017 */
+   { int nbad = check_ref_vectors( veclen , nref , ref , "lsqfit" ) ;
+     if( nbad ) return NULL ;
+   }
+
    /*** form coefficient matrix into cc */
 
    cc = DBLEVEC(nref*nref) ;
@@ -296,7 +336,7 @@ double * startup_lsqfit( int veclen ,
       if( sum <= 0.0 ){
          free(cc) ;
          ERROR_message(
-           "Choleski factorization failure in startup_lsqfit [%d]",ii) ;
+           "Choleski factorization failure in startup_lsqfit [row=%d sum=%g]",ii,sum) ;
          return NULL ;
       }
       CC(ii,ii) = sqrt(sum) ;
@@ -326,6 +366,11 @@ float * delayed_lsqfit( int veclen ,
 
    if( nref < 1 || veclen < nref ||
        data == NULL || ref == NULL || cc == NULL ) return NULL ;
+
+   /* 13 Mar 2017 */
+   { int nbad = check_ref_vectors( veclen , nref , ref , "lsqfit" ) ;
+     if( nbad ) return NULL ;
+   }
 
    /*** form RHS vector into rr ***/
 
