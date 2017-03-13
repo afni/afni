@@ -1269,7 +1269,7 @@ int main( int argc , char *argv[] )
    char *prefix="Qwarp" , *prefix_clean=NULL ; int nopt , nevox=0 ;
    char *wtprefix=NULL  , *wtprefix_clean=NULL ;
    int meth=GA_MATCH_PEARCLP_SCALAR ; int meth_is_lpc=0 ;
-   int ilev=0 , nowarp=0 , nowarpi=1 , mlev=666 , nodset=0 ;
+   int ilev=0 , nowarp=0 , nowarpi=1 , mlev=666 , nodset=0 , nnz ;
    int do_awarp=0 ; /* 21 Dec 2016 */
    int duplo=0 , qsave=0 , minpatch=0 , nx,ny,nz , ct , nnn , noneg=0 ;
    float dx,dy,dz ;
@@ -2410,9 +2410,19 @@ STATUS("load datasets") ; /*--------------------------------------------------*/
    if( DSET_NVALS(bset) > 1 )
      INFO_message("base dataset has more than 1 sub-brick: ignoring all but the first") ;
 
+   nnz = mri_nonzero_count(bim) ;  /* 13 Mar 2017 */
+   if( nnz < 100 )
+     ERROR_exit("3dQwarp fails :: base image has %d nonzero voxel%s (< 100)",
+                nnz , (nnz==1) ? "\0" : "s" ) ;
+
    DSET_load(sset) ; CHECK_LOAD_ERROR(sset) ;
    sim = THD_extract_float_brick(0,sset) ;
    DSET_unlock(sset) ; DSET_unload(sset) ;
+
+   nnz = mri_nonzero_count(sim) ;  /* 13 Mar 2017 */
+   if( nnz < 100 )
+     ERROR_exit("3dQwarp fails :: source image has %d nonzero voxel%s (< 100)",
+                nnz , (nnz==1) ? "\0" : "s" ) ;
 
    if( nevox > 0 && nevox != DSET_NVOX(bset) )
      ERROR_exit("-emask doesn't match base dataset grid :-(") ;
@@ -2734,6 +2744,7 @@ STATUS("construct weight/mask volume") ;
      } /* end of wball-ification */
 
      else if( wmask_set != NULL && wmask_f > 0.0f ){  /* 21 Dec 2016 */
+
        THD_3dim_dataset *qset ; MRI_IMAGE *qim ;
        float fff, *wbar=MRI_FLOAT_PTR(wbim) , *qar ;
        int ii , nxyz=nx*ny*nz , nwb=0 ;
@@ -2809,6 +2820,11 @@ STATUS("construct weight/mask volume") ;
      for( ii=0 ; ii < wbim->nvox ; ii++ )
        wt[ii] = ( wt[ii] <= 0.0f ) ? 0.0f : fac * wt[ii] ;
    }
+
+   nnz = mri_nonzero_count(wbim) ;  /* 13 Mar 2017 */
+   if( nnz < 100 )
+     ERROR_exit("3dQwarp fails :: weight image has %d nonzero voxel%s (< 100)",
+                nnz , (nnz==1) ? "\0" : "s" ) ;
 
    /*----- blurring of base is now done in warpomatic, along with source -----*/
 #if 0
