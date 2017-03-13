@@ -3138,10 +3138,12 @@ LABELS_ARE_DONE:  /* target for goto above */
      if( !use_singleton_fixed_val ){
        vectim_AAA = THD_dset_list_to_vectim( ndset_AAA , dset_AAA , mask ) ;
        for( ii=0 ; ii < ndset_AAA ; ii++ ) DSET_unload(dset_AAA[ii]) ;
+       THD_check_vectim(vectim_AAA,"3dttest++ -setA") ;
      }
      if( twosam ){
        vectim_BBB = THD_dset_list_to_vectim( ndset_BBB , dset_BBB , mask ) ;
        for( ii=0 ; ii < ndset_BBB ; ii++ ) DSET_unload(dset_BBB[ii]) ;
+       THD_check_vectim(vectim_AAA,"3dttest++ -setB") ;
      }
      MEMORY_CHECK ;
    }
