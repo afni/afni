@@ -66,7 +66,7 @@ ENTRY("THD_dset_to_vectim") ;
      ERROR_message("THD_dset_to_vectim: out of memory -- tried to get %lld bytes",(long long)ntot) ;
      free(mrv->ivec) ; free(mrv) ; if( mmm != mask ) free(mmm) ;
      RETURN(NULL) ;
-   } else if( ntot > 1000000000 ){
+   } else if( ntot > 1000000000 ){  /* one BILLION bytes */
      INFO_message("THD_dset_to_vectim: allocated %lld bytes",(long long)ntot) ;
    }
 
@@ -1305,4 +1305,46 @@ MRI_vectim * THD_dset_list_censored_to_vectim( int nds, THD_3dim_dataset **ds,
    vout = THD_tcat_vectims( nds , vim ) ;
    for( jj=0 ; jj < nds ; jj++ ) VECTIM_destroy(vim[jj]) ;
    free(vim) ; return vout ;
+}
+
+/*---------------------------------------------------------------------------*/
+
+void THD_check_vectim( MRI_vectim *mv , char *fname )
+{
+   int nvec , nvals ;
+   float *vpt ;
+   int nbad , ii,jj ;
+
+   if( fname == NULL ) fname = "vectim check" ;
+
+   if( mv == NULL ){
+     WARNING_message("%s :: bad input vector",fname); return;
+   }
+
+   nvec  = mv->nvec ;
+   nvals = mv->nvals ;
+
+   /* scan each time series for all zero */
+
+   for( nbad=jj=0 ; jj < nvec ; jj++ ){
+     vpt = VECTIM_PTR(mv,jj) ;
+     for( ii=0 ; ii < nvals && vpt[ii] == 0.0f ; ii++ ) ; /*nada*/
+     if( ii == nvals ) nbad++ ;
+   }
+   if( nbad > 0 )
+     WARNING_message("%s :: %d vector%s all zero",
+                     fname , nbad , (nbad==1) ? " is" : "s are" ) ;
+
+   /* scan each time point for all zero */
+
+   for( nbad=ii=0 ; ii < nvals ; ii++ ){
+     for( jj=0 ; jj < nvec ; jj++ ){
+       vpt = VECTIM_PTR(mv,jj) ; if( vpt[ii] != 0.0f ) break ;
+     }
+     if( jj == nvec ) nbad++ ;
+   }
+   if( nbad > 0 )
+     WARNING_message("%s :: %d volume%s all zero",
+                     fname , nbad , (nbad==1) ? " is" : "s are" ) ;
+   return ;
 }
