@@ -13,9 +13,10 @@ int main( int argc , char * argv[] )
    MRI_IMAGE **inim ;
    float *far;
    char *formatstr=NULL, *sel=NULL, *fname=NULL;
-   int nonconst=0 , ncol,ncold , cc , nonfixed=0 , stack=0;
+   int nonconst=0 , ncol,ncold , cc , nonfixed=0 , stack=0, okempty=0;
    intvec *ncv=NULL ;
    char *hline=NULL ;
+   static struct stat buf;
 
    mainENTRY("1dcat:main");
    
@@ -63,6 +64,10 @@ int main( int argc , char * argv[] )
 "            in file specification so that you can run something like:\n"
 "              1dcat -sel '[0,2]' f?.1D\n"
 "\n"
+"  -OKempty: Exit quietly when encountering an empty file on disk.\n"
+"            Note that if the file is poorly formatted, it might be\n"
+"            considered empty.\n"
+"\n"
 "EXAMPLE:\n"
 "--------\n"
 "  Input file 1:\n   1\n   2\n   3\n   4\n"
@@ -81,6 +86,7 @@ int main( int argc , char * argv[] )
    oform = CCALC_NOT_SET; 
    sel = NULL;
    stack = 0;
+   okempty = 0;
    narg = 1;
    while (narg < argc && argv[narg][0] == '-') {
 
@@ -92,6 +98,10 @@ int main( int argc , char * argv[] )
         nonfixed++ ; narg++ ; continue ;
       }
       
+      if( strncmp(argv[narg],"-OKempty",7) == 0 ){  /* March 2017 */
+        okempty++ ; narg++ ; continue ;
+      }
+
       if( strncmp(argv[narg],"-stack",6) == 0 ){  /* 05 Sep 2013 */
         stack = 1 ; narg++ ; continue ;
       }
@@ -168,8 +178,13 @@ int main( int argc , char * argv[] )
          fname = argv[jj+narg];  
       }
       inim[jj] = mri_read_1D( fname ) ;
-      if( inim[jj] == NULL )
-        ERROR_exit("Can't read input file '%s'",fname) ;
+      if( inim[jj] == NULL) {
+        if ( ! okempty || stat(fname, &buf)) {
+          ERROR_exit("Can't read input file '%s'",fname) ;
+        }
+        /* continuing will cause trouble, exit politely now */
+        exit(0);
+      }
       if( jj > 0 && inim[jj]->nx != inim[0]->nx )
         ERROR_exit("Input file %s doesn't match first file %s in length!",
                    fname,argv[1]) ;

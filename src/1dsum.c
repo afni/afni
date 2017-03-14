@@ -13,6 +13,8 @@ int main( int argc , char * argv[] )
    float *csum ;
    int nn_ignore=0 , mm_use=0 , iarg=1 , do_mean=0 , do_comments=1 ;
    char *comments=NULL ; /* 04 Aug 2016 */
+   int okempty = 0;
+   static struct stat buf;
 
    /*-- help? --*/
 
@@ -29,6 +31,9 @@ int main( int argc , char * argv[] )
             "               input file will be reproduced to the output;\n"
             "               if you do NOT want this to happen, use the\n"
             "               '-nocomment' option.\n"
+            "  -OKempty   = If you encounter an empty 1D file, print 0\n"
+            "               and exit quietly instead of exiting with an\n"
+            "               error message\n"
            ) ;
       PRINT_COMPILE_DATE ; exit(0) ;
    }
@@ -59,6 +64,10 @@ int main( int argc , char * argv[] )
         do_mean = 1 ; iarg++ ; continue ;
       }
 
+      if( strncmp(argv[iarg],"-OKempty",7) == 0 ){  /* March 2017 */
+        okempty++ ; iarg++ ; continue ;
+      }
+      
       fprintf(stderr,"** Unknown option: %s\n",argv[iarg]) ; exit(1) ;
    }
 
@@ -70,8 +79,12 @@ int main( int argc , char * argv[] )
    for( jj=0 ; jj < nim ; jj++ ){
       inim[jj] = mri_read_1D( argv[jj+iarg] ) ;
       if( inim[jj] == NULL ){
-         fprintf(stderr,"** Can't read input file %s\n",argv[jj+iarg]) ;
-         exit(1) ;
+         if ( ! okempty || stat(argv[jj+iarg], &buf)) {
+            fprintf(stderr,"** Can't read input file %s\n",argv[jj+iarg]) ;
+            exit(1) ;
+         }
+         printf("0\n");
+         exit(0);
       }
       if( do_comments && comments == NULL && inim[jj]->comments != NULL )  /* 04 Aug 2016 */
         comments = strdup(inim[jj]->comments) ;
