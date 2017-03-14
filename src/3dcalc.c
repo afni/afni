@@ -1095,6 +1095,12 @@ void CALC_Syntax(void)
     "                  The subscript notation is more flexible, as it can    \n"
     "                  be used to select a collection of sub-bricks.         \n"
 #endif
+    "               ** If you just want to test some 3dcalc expression,      \n"
+    "                  you can supply a dataset 'name' of the form           \n"
+    "                    jRandomDataset:64,64,16,40                          \n"
+    "                  to have the program create and use a dataset          \n"
+    "                  with a 3D 64x64x16 grid, with 40 time points,         \n"
+    "                  filled with random numbers (uniform on [-1,1]).       \n"
     "                                                                        \n"
     " -expr       = Apply the expression - within quotes - to the input      \n"
     "               datasets (dnames), one voxel at time, to produce the     \n"

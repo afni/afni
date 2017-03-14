@@ -347,17 +347,27 @@ void display_help_menu(void)
       "      [* more sophisticated type of 't-test' that also takes  *]\n"
       "      [* into account the variance map of each input dataset. *]\n"
       "\n"
-      "* Usage can be similar (but not identical) to the old 3dttest; for example:\n"
+      "* Usage can be similar (not identical) to the old 3dttest; for example [SHORT form]:\n"
       "\n"
       "    3dttest++ -setA a+tlrc'[3]' b+tlrc'[3]' ...\n"
       "\n"
-      "* OR, usage can be similar to 3dMEMA; for example:\n"
+      "* OR, usage can be similar to 3dMEMA; for example [LONG form]:\n"
       "\n"
       "    3dttest++ -setA Green sub001 a+tlrc'[3]' \\\n"
       "                          sub002 b+tlrc'[3]' \\\n"
       "                          sub003 c+tlrc'[3]' \\\n"
       "                            ...                \\\n"
       "                -covariates Cfile\n"
+      "\n"
+      "* Please note that in the second ('LONG') form of the '-setA' option,\n"
+      "  the first value after '-setA' is a label for the set (here, 'Green').\n"
+      " ++ After that, pairs of values are given; in each pair, the first\n"
+      "    entry is a label for the dataset that is the second entry.\n"
+      " ++ This dataset label is used as a key into the covariates file.\n"
+      " ++ If you want to have a label for the set, but do not wish (or need)\n"
+      "    to have a label for each dataset in the set, then you can use\n"
+      "    the SHORT form (first example above), and then provide the overall\n"
+      "    label for the set with the '-labelA' option.\n"
       "\n"
       "* You can input 1 or 2 sets of data (labeled 'A' and 'B').\n"
       "\n"
@@ -2065,6 +2075,8 @@ int main( int argc , char *argv[] )
        if( ISVALID_DSET(qset) || HAS_WILDCARD(argv[nopt]) ){  /* 19 Jun 2012: globbing */
          int nexp,iex,didex ; char **fexp ;
 
+         INFO_message("option %s :: processing as SHORT form (all values are datasets)",
+                      argv[nopt-1]) ;
          if( ISVALID_DSET(qset) ){ DSET_delete(qset) ; qset = NULL ; }
          nds  = nv = 0 ;
          nams = (char **)malloc(sizeof(char *)) ;
@@ -2115,24 +2127,29 @@ int main( int argc , char *argv[] )
 
        } else {  /* not a dataset => label label dset label dset ... */
 
+         int ndlab=0 ;  /* 13 Mar 2017 */
+
          if( brickwise )
            ERROR_exit("You can't use -brickwise and use the LONG FORM for a set of datasets") ;
+
+         INFO_message("option %s :: processing as LONG form (label label dset label dset ...)",
+                      argv[nopt-1]) ;
 
          if( strstr(argv[nopt],"+orig") != NULL ||  /* 25 Apr 2014 */
              strstr(argv[nopt],"+tlrc") != NULL ||
              strstr(argv[nopt],".nii" ) != NULL   )
-           WARNING_message("-set%c: group label '%s' looks like a dataset name but isn't -- is this OK ?!?",
-                           cc , argv[nopt] ) ;
+           WARNING_message(
+             "-set%c: LONG form group label '%s' looks like a dataset name but isn't -- is this OK ?!?",
+             cc , argv[nopt] ) ;
 
          snam = strdup(argv[nopt]) ; LTRUNC(snam) ;
          for( nopt++ ; nopt < argc && argv[nopt][0] != '-' ; nopt+=2 ){
            if( nopt+1 >= argc || argv[nopt+1][0] == '-' ){
-             ERROR_message(
+             ERROR_exit(
               "Option %s: ends prematurely after option %s.\n"
-              "   Make sure you are properly formatting your -set[A/B] parameters.\n"
-              "   Search for 'SHORT FORM' and 'LONG FORM' in the output of %s -help\n"
-               ,onam, argv[nopt], argv[0]) ;
-             exit(1);
+              "     Make sure you are properly formatting your -set[A/B] parameters.\n"
+              "     Search for 'SHORT FORM' and 'LONG FORM' in the output of %s -help\n"
+               , onam, argv[nopt], argv[0]) ;
            }
 
            /* Check if the label looks like a dataset name;
@@ -2140,9 +2157,11 @@ int main( int argc , char *argv[] )
 
            if( strstr(argv[nopt],"+orig") != NULL ||
                strstr(argv[nopt],"+tlrc") != NULL ||
-               strstr(argv[nopt],".nii" ) != NULL   )
-             WARNING_message("-set%c: dataset label '%s' looks like a dataset name -- is this OK ?!?",
+               strstr(argv[nopt],".nii" ) != NULL   ){
+             WARNING_message("-set%c: LONG form dataset label '%s' looks like a dataset name -- is this OK ?!?",
                              cc , argv[nopt] ) ;
+             ndlab++ ;
+           }
 
            qset = THD_open_dataset( argv[nopt+1] ) ;
            if( !ISVALID_DSET(qset) )
@@ -2158,20 +2177,33 @@ int main( int argc , char *argv[] )
            labcheck = argv[nopt];
            labs[nds-1] = strdup(argv[nopt]  ) ; LTRUNC(labs[nds-1]) ;
            /* check syntax */
-           if (!iwarn &&
-               (is_possible_filename( labcheck ) )) {
+           if( !iwarn && is_possible_filename(labcheck) ){
               WARNING_message(
                "Label %s (%s) appears to be a file on disk.\n"
-               "  Perhaps your command line syntax for %s is incorrect.\n"
-               "  Look for 'SHORT FORM' and 'LONG FORM' in output of %s -help\n"
-               "  Similar warnings will be muted.\n"
-               ,labcheck, labs[nds-1], onam, argv[0]) ;
+               "      * Perhaps your command line syntax for %s is incorrect.\n"
+               "      * Look for 'SHORT FORM' and 'LONG FORM' in output of %s -help.\n"
+               , labcheck, labs[nds-1], onam, argv[0]) ;
               ++iwarn;
            }
          }
 
          if( nv < 2 )
            ERROR_exit("Option %s (long form): need at least 2 datasets",onam) ;
+
+         if( ndlab > 0 ){  /* 13 Mar 2017 */
+           fprintf(stderr,"\n") ;
+           WARNING_message(
+             "LONG form input for -set%c has potential problems:\n"
+             "      * Found %d LONG form label%s that looked like dataset names\n"
+             "      * These were not read as datasets but only as string labels.\n"
+             "      * If they were supposed to be datasets, then your command\n"
+             "        line is in error. Re-read the -help output to understand\n"
+             "        the difference between the LONG and SHORT forms of the\n"
+             "        -setA/-setB options.\n" ,
+             cc , ndlab , (ndlab==1) ? "\0" : "s" ) ;
+           fprintf(stderr,"\n") ;
+         }
+
        }
 
        /* check for grid size mismatch */
@@ -3106,10 +3138,12 @@ LABELS_ARE_DONE:  /* target for goto above */
      if( !use_singleton_fixed_val ){
        vectim_AAA = THD_dset_list_to_vectim( ndset_AAA , dset_AAA , mask ) ;
        for( ii=0 ; ii < ndset_AAA ; ii++ ) DSET_unload(dset_AAA[ii]) ;
+       THD_check_vectim(vectim_AAA,"3dttest++ -setA") ;
      }
      if( twosam ){
        vectim_BBB = THD_dset_list_to_vectim( ndset_BBB , dset_BBB , mask ) ;
        for( ii=0 ; ii < ndset_BBB ; ii++ ) DSET_unload(dset_BBB[ii]) ;
+       THD_check_vectim(vectim_AAA,"3dttest++ -setB") ;
      }
      MEMORY_CHECK ;
    }

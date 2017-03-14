@@ -24,10 +24,12 @@
 # Jan, 2017d:
 #     + better slice selection/centering.
 #     + adjust for different orders of orientation
-
-
-# current ver
-set ver = 1.5
+#
+#set version   = "1.6";   set rev_dat   = "Feb 6, 2017"
+#     + olay quotes
+#
+set version   = "2.1";   set rev_dat   = "Feb 27, 2017"
+#     + can have IJK labels -> DWImager
 
 # For more info about opts/fields, see:
 #
@@ -43,6 +45,7 @@ setenv AFNI_SPLASH_MELT       NO
 setenv AFNI_ENVIRON_WARNINGS  NO
 setenv AFNI_COMPRESSOR        NONE
 setenv AFNI_IMAGE_GLOBALRANGE VOLUME
+setenv AFNI_IMAGE_LABEL_IJK   NO         # thanks, Bob!
 # -------------------------------------------------------------------
 
 # ------------------- default/initialized variables -----------------
@@ -71,6 +74,7 @@ set my     =  3                  # 'y' dim of montage
 set delsag = -1                  # (int) slice space in sag orient
 set delaxi = -1                  # (int) slice space in axi orient
 set delcor = -1                  # (int) slice space in cor orient
+set USER_COORS = 0               # switch to let user pick IJK
 set coors  = ( 0 0 0 )
 set gapord = ( 0 0 0 )
 
@@ -90,10 +94,10 @@ set do_quit = "QUITT"            # quick-quit; not subject to change
 set tmp_dir  = "__tmp_ImG_837261"
 set DO_CLEAN = 0
 set read_dir = ""
-set read_ulay = tmp_ulay.nii.gz
+set read_ulay = tmp_ulay.nii
 
 set USER_ULAY_RANGE = 0          # def: user doesn't enter ulay range
-
+set ulay_nz = "-non-zero"
 # -------------------------------------------------------------------
 # ----------------------------- ugh ---------------------------------
 
@@ -215,9 +219,28 @@ while ( $ac <= $#argv )
         @ ac += 1
         set topval = "$argv[$ac]"
         
-    else if ( "$argv[$ac]" == "-jpg" ) then
-        set ftype = "JPEG"
-        
+    # SAVE_ALLJPEG [c].imagewindowname filename
+    # SAVE_ALLPNG  [c].imagewindowname filename
+    # SAVE_MPEG    [c].imagewindowname filename
+    # SAVE_AGIF    [c].imagewindowname filename
+    # SAVE_JPEG [c.]windowname filename
+    # SAVE_PNG [c.]windowname filename
+    else if ( "$argv[$ac]" == "-save_ftype" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set ftype = "$argv[$ac]"
+
+    # takes 3 numbers!!!
+    else if ( "$argv[$ac]" == "-set_ijk" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set coors[1] = "$argv[$ac]"
+        @ ac += 1
+        set coors[2] = "$argv[$ac]"
+        @ ac += 1
+        set coors[3] = "$argv[$ac]"
+        set USER_COORS = 1
+
     else if ( "$argv[$ac]" == "-montx" ) then
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
         @ ac += 1
@@ -269,6 +292,11 @@ while ( $ac <= $#argv )
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
         @ ac += 1
         setenv AFNI_IMAGE_LABEL_SETBACK  "$argv[$ac]"
+
+    # Feb, 2017: useful when each slice is a from a sep vol, i.e., for
+    # @djunct*imager
+    else if ( "$argv[$ac]" == "-image_label_ijk" ) then
+        setenv AFNI_IMAGE_LABEL_IJK YES
 
     # default = VOLUME
     else if ( "$argv[$ac]" == "-globalrange" ) then
@@ -324,7 +352,7 @@ endif
 echo "\n------------------ start of optionizing ------------------\n" 
 
 # need more cowbell
-if ( ($ulay == '') ) then
+if ( ("$ulay" == "") ) then
     echo "** ERROR: need to have an underlay, at least!!"
     goto BAD_EXIT
 endif
@@ -384,9 +412,31 @@ if ( ( $urange == "VOLUME" ) || ( $urange == "DSET" )  \
 
     if ( $USER_ULAY_RANGE ) then
         echo "++ Copying ulay to visualize (volumetric) within user's range:"
-        echo "   [${umin},${umax}]"
+
+        # will be 0 if no percent; otherwise, >0 if percent
+        set is_umin_perc = `echo ${umin} | awk '{print index ( $0,"%" ) }'`
+        set is_umax_perc = `echo ${umax} | awk '{print index ( $0,"%" ) }'`
+
+        if ( ($is_umin_perc > 0) && ($is_umax_perc > 0) ) then
+            # percentages!
+            set pmin  = "$umin"
+            set pmax  = "$umax"
+
+            set amin  = `3dBrickStat $ulay_nz -percentile ${umin} 1 ${umin} "$ulay"`
+            set amax  = `3dBrickStat $ulay_nz -percentile ${umax} 1 ${umax} "$ulay"`
+                
+            set umin = $amin[2]
+            set umax = $amax[2]
+
+            echo "++ Copying ulay to visualize (volumetric) within user's range:"
+            echo "  [${pmin},${pmax}] -> [${umin},${umax}]"
+
+        else
+            echo "++ Copying ulay to visualize (volumetric) within user's range:"
+            echo "   [${umin}, ${umax}]"
+        endif
     else
-        set ubs  = `3dBrickStat -percentile 2 96 98 $ulay`
+        set ubs  = `3dBrickStat $ulay_nz -percentile 2 96 98 "$ulay"`
         set umin = $ubs[2]
         set umax = $ubs[4]
 
@@ -397,26 +447,29 @@ if ( ( $urange == "VOLUME" ) || ( $urange == "DSET" )  \
     # copy over *thresholded* version to temporary read dir
     3dcalc                                        \
         -overwrite                                \
-        -a $ulay                                  \
+        -a "$ulay"                                  \
         -expr "a*within(a,${umin},${umax})+${umin}*step($umin-a)+${umax}*step(a-$umax)" \
         -prefix $read_dir/$read_ulay
 
 else
-    if ( `3dinfo -datum $ulay` == "rgb" ) then
+    if ( `3dinfo -datum "$ulay"` == "rgb" ) then
         # not sure why 3dcalc won't preserve rgb-ness...
         3dcopy                                        \
             -overwrite                                \
-            $ulay $read_dir/$read_ulay
+            "$ulay" $read_dir/$read_ulay
     else
         echo "++ For ulay, AFNI_IMAGE_GLOBALRANGE is set to be: $urange"
         # just copy over *original* version to temporary read dir
         3dcalc                                        \
             -overwrite                                \
-            -a $ulay                                  \
+            -a "$ulay"                                \
             -expr "a"                                 \
             -prefix $read_dir/$read_ulay
     endif
 endif
+
+# always determine dim from ulay, because that's how montaging works!
+set Dim  = `3dinfo -n4 "$ulay"`
 
 # IF we don't want to see the olay, then set it to be the ulay, for
 # later simplicity with the automontaging
@@ -426,31 +479,29 @@ if ( "$see_olay" == "-" ) then
     # don't need to copy anything, just set this for scripty purposes,
     # doesn't affect visualization.
     set read_olay = $read_ulay
+    set Dim  = `3dinfo -n4 "$ulay"`
 
-    set Dim  = `3dinfo -n4 $ulay`
 else
-    set Dim  = `3dinfo -n4 $olay`
 
-    set read_olay = tmp_olay.nii.gz
+    #set Dim  = `3dinfo -n4 "$olay"`
+    set read_olay = tmp_olay.nii
+
     3dcalc                                    \
-        -a $olay                              \
+        -a "$olay"                            \
         -expr 'a'                             \
         -prefix $read_dir/$read_olay          \
         -overwrite
 
     # set frange, if user hasn't, based on data:
     if ( $USER_FRANGE == 0 ) then
-        ### -> this is 'old' method
-        #set mval    = `3dBrickStat -max $olay`
-        #set cval    = `3dClipLevel $olay`
-        #set tval    = `ccalc "min($cval,$mval/4)"`
-        #set frange  = `ccalc "max(3*$cval,0.666*$mval)"`
 
-        set vv = `3dBrickStat -non-zero -percentile 98 1 98 $olay`
+        set vv = `3dBrickStat -non-zero      \
+                    -percentile 98 1 98      \
+                    $read_dir/$read_olay`
         set frange = $vv[2]
 
-        set maxolay = `3dinfo -max $olay`
-        set minolay = `3dinfo -min $olay`
+        set maxolay = `3dinfo -max $read_dir/$read_olay`
+        set minolay = `3dinfo -min $read_dir/$read_olay`
         echo "++ No user-entered function range ('-frange ...') value."
         echo "   --> Ergo, calculating based on 98th %ile, getting: $frange"
         echo "   ----> ... noting that range of values is: [$minolay, $maxolay]"
@@ -458,10 +509,11 @@ else
         echo "++ User-entered function range value value (${frange}%)"
     else if ( $USER_FRANGE == 2 ) then
         set vv = `3dBrickStat -non-zero                           \
-                    -percentile $frange_perc 1 $frange_perc -non-zero $olay`
+                    -percentile $frange_perc 1 $frange_perc       \
+                    $read_dir/$read_olay`
         set frange = $vv[2]
-        set maxolay = `3dinfo -max $olay`
-        set minolay = `3dinfo -min $olay`
+        set maxolay = `3dinfo -max $read_dir/$read_olay`
+        set minolay = `3dinfo -min $read_dir/$read_olay`
         echo "++ User-entered function range value as percentile (${frange_perc}%)"
         echo "   --> Ergo, calculating FUNC_RANGE, getting: $frange"
         echo "   ----> ... noting that range of values is: [$minolay, $maxolay]"
@@ -472,7 +524,7 @@ endif
 # Take number of mont wins plus a couple to calculate.
 @  Nwin  = $mx * $my
 # silly stuff to deal with orientation
-set ori  = `3dinfo -orient $ulay`
+set ori  = `3dinfo -orient "$ulay"`
 set ori0 = `echo $ori | awk '{print substr($0,1,1)}'`
 set ori1 = `echo $ori | awk '{print substr($0,2,1)}'`
 set ori2 = `echo $ori | awk '{print substr($0,3,1)}'`
@@ -515,21 +567,24 @@ echo "++ pfrac = $pfrac"
 
 # These need to reflect the order of the original.  Ugh, annoying
 # conditions.
-foreach i ( `seq 1 1 3` )
-    set qfrac = `echo "scale=5; ( $pfrac ) " | bc` # frac to center
-    set qsh   = ""#+ 1"                             # zerobase count offset
-    if ( ( $all_ori[$i] == 'R' ) || ( $all_ori[$i] == 'P' )  \
-        || ( $all_ori[$i] == 'S' ) ) then
-        #echo "++ Coor calc:  $all_ori[$i] for $order[$i]"
-        set qfrac = `echo "scale=5; ( 1 - $pfrac ) " | bc`
-    #else
-    #    echo "++ Coor value: $all_ori[$i] for $order[$i]"
-    endif
-    set nn        = `echo "scale=0; ( ( $Dim[$i] * $qfrac ) $qsh )" | bc`
-    set coors[$i] = `echo $nn | perl -nl -MPOSIX -e 'print floor($_);'`
-end
-
-echo "++ Will have: SET_IJK $coors"
+if ( $USER_COORS == 1 ) then
+    echo "++ Will have user's chosen: SET_IJK $coors"
+else
+    foreach i ( `seq 1 1 3` )
+        set qfrac = `echo "scale=5; ( $pfrac ) " | bc` # frac to center
+        set qsh   = ""#+ 1"                             # zerobase count offset
+        if ( ( $all_ori[$i] == 'R' ) || ( $all_ori[$i] == 'P' )  \
+            || ( $all_ori[$i] == 'S' ) ) then
+            #echo "++ Coor calc:  $all_ori[$i] for $order[$i]"
+            set qfrac = `echo "scale=5; ( 1 - $pfrac ) " | bc`
+        #else
+        #    echo "++ Coor value: $all_ori[$i] for $order[$i]"
+        endif
+        set nn        = `echo "scale=0; ( ( $Dim[$i] * $qfrac ) $qsh )" | bc`
+        set coors[$i] = `echo $nn | perl -nl -MPOSIX -e 'print floor($_);'`
+    end
+    echo "++ Will have: SET_IJK $coors"
+endif
 
 echo "\n------------------- end of optionizing -------------------\n" 
 
@@ -608,7 +663,7 @@ goto GOOD_EXIT
 
 SHOW_VERSION:
 
-    echo "\n\n++ Version: $ver\n\n"
+    echo "\n\n++ Version: $version\n\n"
 
     goto GOOD_EXIT
 

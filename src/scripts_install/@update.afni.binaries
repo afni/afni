@@ -53,6 +53,9 @@ history for $prog :
                      (dot files and apsearch are now only done on request)
   2.9  05 May 2016 : -defaults implies -do_dotfiles and -apsearch yes
   3.0  02 Feb 2017 : default OS X package is macosx_10.7_local
+  3.1  08 Feb 2017 : (by David Abbott) fix crash in and finish case of
+                     -local_package with updated install script
+
 -------------------------------------------------------------------------------
 EOF
 exit
@@ -60,7 +63,7 @@ POST_HIST:
 # end history section
 # ----------------------------------------------------------------------
 
-set aub_version = "2.9, May 5, 2016"
+set aub_version = "3.1, Feb 8, 2017"
 
 # ----------------------------------------------------------------------
 # apply any options
@@ -71,7 +74,7 @@ set package = ""
 set local_package = ""          # existing .tgz package to use (no download)
 set prog_list = ()              # update programs or entire package
 set tmp_dir = ".tmp.install"    # should start with '.'
-set make_backup = 1             # backup previous binaires
+set make_backup = 1             # backup previous binaries
 
 set sys_ok = 0                  # OK to update having system programs
 set system_progs = ( apt-get at cc cpp cmp diff du gcc less man md5sum od \
@@ -424,7 +427,7 @@ echo "-- running $prog version $aub_version"
 # note any current AFNI location
 which afni >& /dev/null
 if ( $status ) then
-   echo "-- no current AFNI package..."
+   echo "-- no current AFNI package found in path..."
    set cur_afni = ""
 else
    set cur_afni = `which afni`
@@ -475,6 +478,8 @@ if ( $local_package != "" ) then
 
    # use package for extensionless name
    set package = $local_package:r
+
+   echo "-- will install from local package file: $local_package"
 endif
 
 # possibly apply default package
@@ -558,7 +563,7 @@ if ( ! $cert_verify ) then
    endif
 endif
 
-echo "-- will download from $hostsite via $get_prog"
+echo "-- any downloads will be from $hostsite via $get_prog"
 echo ""
 
 # make sure package is set to the base name
@@ -727,9 +732,12 @@ if ( $do_recur ) then
       if ( $local_package != "" ) then
          set ind = 1
          while ( $ind < $#args )
-            if ( $args[$ind] == "-local_package" ) then
-               set args[$ind+1] = $local_package_dir/$local_package
+            if ( "$args[$ind]" == "-local_package" ) then
+               @ ind += 1
+               set args[$ind] = $local_package_dir/$local_package
                break
+            else
+               @ ind += 1
             endif
          end
       endif

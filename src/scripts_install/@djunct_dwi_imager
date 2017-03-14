@@ -1,0 +1,435 @@
+#!/bin/tcsh
+
+set here      = $PWD
+set this_prog = "@djunct_dwi_imager"
+
+# --------------------- revision history -------------------------
+#
+#set rev_dat = "Feb 19, 2017"
+#set version = "1.0"
+#   + birth
+# 
+#set rev_dat = "Feb 20, 2017";  set version = "1.1"
+#   + no need to gzip temp files
+#
+#set rev_dat = "Feb 24, 2017";  set version = "1.2"
+#   + can output movies
+#
+set rev_dat = "Feb 27, 2017";  set version = "1.3"
+#   + slice number there as IJK in corner
+#
+
+# ----------------- find AFNI and set viewer ---------------------
+
+# find AFNI binaries directory and viewer location
+set adir      = ""
+set my_viewer = ""
+which afni >& /dev/null
+if ( $status ) then
+    echo "** Cannot find 'afni' (??!?!)."
+    goto BAD_EXIT
+else
+    set aa   = `which afni`
+    set adir = $aa:h
+endif
+
+# default location of viewer: user could modify!
+set my_viewer    = "$adir/@chauffeur_afni"
+set my_calc_func = "$adir/@djunct_calc_mont_dims.py"
+
+set wdir      = "__WORK_dwi_imager"    # working directory
+set DO_CLEAN    = 1
+
+set iset   = ""
+set odir   = ""
+
+set opref  = "DWI_IMAGES"
+set mfile0 = "tmpdwi.nii"  
+set svals  = ( )
+
+# final order?
+set imgview = ( "axi" "cor" "sag" )
+set mview = ( "axial" "coronal" "sagittal" )
+
+set movie = ""                        # not on by default, at the moment
+
+# ------------------- process options, a la rr ----------------------
+
+if ( $#argv == 0 ) goto SHOW_HELP
+
+set ac = 1
+while ( $ac <= $#argv )
+    # terminal options
+    if ( ("$argv[$ac]" == "-h" ) || ("$argv[$ac]" == "-help" )) then
+        goto SHOW_HELP
+    endif
+    if ( "$argv[$ac]" == "-ver" ) then
+        goto SHOW_VERSION
+    endif
+
+    # --------------- input dset(s) ----------------
+    if ( "$argv[$ac]" == "-inset" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set iset = "$argv[$ac]"
+
+    # ----------------- outputs ---------------------
+    else if ( "$argv[$ac]" == "-outdir" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set odir = "$argv[$ac]"
+
+    else if ( "$argv[$ac]" == "-prefix" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set opref = "$argv[$ac]"
+
+    else if ( "$argv[$ac]" == "-do_movie" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set movie = "$argv[$ac]"
+        if ( ( $movie == "MPEG" ) || ( $movie == "AGIF" ) ) then
+            echo "++ OK, will make a movie of type $movie."
+        else
+            echo "** ERROR: '$movie' is NOT an allowed movie format!"
+            echo "      -> must be either 'MPEG' or 'AGIF'"
+            goto BAD_EXIT
+        endif
+
+    #else if ( "$argv[$ac]" == "-no_clean" ) then
+    #    set DO_CLEAN = 0
+
+    else
+        echo "** unexpected option #$ac = '$argv[$ac]'"
+        goto BAD_EXIT
+
+    endif
+    @ ac += 1
+end
+
+# =======================================================================
+# ============================ ** SETUP ** ==============================
+# =======================================================================
+
+echo "++ Start imager script version: $version"
+
+# NEED these two inputs
+if ( "$iset" == "" ) then
+    echo "** ERROR: no file input??!"
+    goto BAD_EXIT
+endif
+
+# make sure we can read DWI OK
+set check = `3dinfo "$iset"`
+if ( "$#check" == "0" ) then
+    echo "** ERROR: can't find inset file:  $iset !"
+    goto BAD_EXIT
+else
+    echo "++ Found inset DWI file:   $iset"
+endif
+
+# ===================== output dir + wdir =======================
+ 
+# check output directory, use input one if nothing given
+
+if ( "$odir" == "" ) then
+    # default output dir, if nothing input; it must exist already,
+    # because a file is in it
+
+    set odir = `dirname "$iset"`
+    echo "\n++ No output directory specificied by the user."
+    echo "++ Using the input DWI file's directory by default:"
+    echo "\t$odir"
+else
+    if ( ! -e $odir ) then
+        echo "++ Making new output directory: $odir"
+        mkdir $odir
+    endif
+endif
+
+# make the working directory
+if ( ! -e $odir/$wdir ) then
+    echo "++ Making working directory: $odir/$wdir"
+    mkdir $odir/$wdir
+else
+    echo "+* WARNING: Somehow found a premade working directory (?):"
+    echo "      $odir/$wdir"
+endif
+
+# ====================================================================
+
+echo "\n-----> STARTING imager ---->"
+
+# --------------- copy inset, go to wdir ------------------------
+
+3dresample                  \
+    -overwrite              \
+    -inset $iset            \
+    -orient RPI             \
+    -prefix $odir/$wdir/$mfile0
+
+cd $odir/$wdir
+
+# ---------------- proc ---------------------
+
+# silly stuff to deal with orientation
+set ori  = `3dinfo -orient "$mfile0"`
+set ori0 = `echo $ori | awk '{print substr($0,1,1)}'`
+set ori1 = `echo $ori | awk '{print substr($0,2,1)}'`
+set ori2 = `echo $ori | awk '{print substr($0,3,1)}'`
+set all_ori = ( $ori0 $ori1 $ori2 )
+set dim0 = `3dinfo -n4 "$mfile0"`
+
+foreach ii ( `seq 1 1 3` ) 
+
+    if ( $ii == 1 ) then
+        echo "++ Iteration #$ii"
+        set mfile = "$mfile0"
+        set mcopy = ""
+    else 
+        echo "++ Iteration #$ii"
+        set mcopy = "COPY.nii"
+
+        if ( $ii == 2 ) then
+            set newori = "${ori0}${ori2}${ori1}"
+        else
+            set newori = "${ori2}${ori0}${ori1}"
+        endif
+            
+        3dcalc                  \
+            -overwrite          \
+            -a "$mfile0"        \
+            -expr 'a'           \
+            -prefix "$mcopy"
+
+        3drefit                 \
+            -orient "$newori"   \
+            "$mcopy"
+
+        3dresample              \
+            -overwrite          \
+            -prefix "$mcopy"    \
+            -orient $ori        \
+            -inset  "$mcopy"
+
+        set mfile = "$mcopy"
+    endif
+
+    set slpref   = "sssli"
+    set ccpref   = "padcombo"
+    set ovol     = "${ccpref}.nii"
+
+    # where the calc function is/can be called
+    set calc_pad     = "${ccpref}.dat"
+
+    set morient = `3dinfo -orient "$mfile"`
+    # {float|byte|short}:  assume types are same across vol!
+    set mdtype  = `3dinfo -datum "$mfile""[0]"` 
+    set mdim    = `3dinfo -n4 "$mfile"`
+
+    @ slnum     = ( $mdim[3] / 2 ) + 3
+    set svals   = ( $svals $slnum )
+    echo "++ Going to view slice [${slnum}]"
+
+    # ----------------- set type of number ---------------
+    # just make everything float, so no negs??
+    set mstr = ""
+    if ( "$mdtype" == "float" ) then
+        set mstr = "f"
+    else
+        set mstr = "f"
+        echo "+* WARNING: dset wasn't floats, but will be converted"
+        echo "   to float for image-making purposes!"
+    endif
+    #else if ( "$mdtype" == "complex" ) then
+    #    set mstr = "c"
+    #else if ( "$mdtype" == "double" ) then
+    #    set mstr = "d"
+    #else if ( "$mdtype" == "short" ) then
+    #    set mstr = "s"
+    #else if ( "$mdtype" == "byte" ) then
+    #    set mstr = "b"
+    #else if ( "$mdtype" == "int" ) then
+    #    set mstr = "i"
+    #else
+    #    echo "** Unrecognized type: $mdtype ! Exiting"
+    #    goto BAD_EXIT
+    #endif
+
+    # ---------------- calculate final dims + padding ----------
+
+    $my_calc_func $mdim[4] $calc_pad
+    set padpars = `grep -v "#" $calc_pad`
+    set Npad    = $padpars[2]
+    set Ncol    = $padpars[3]
+    set Nrow    = $padpars[4]
+
+    # ---------------- generate slices ----------------------
+
+    # make slices-- they should be float anyways, but saying so
+    # explicitly at the moment
+    echo "++ Slicing..."
+    from3d                            \
+        -raw                          \
+        -float                        \
+        -prefix "$slpref"             \
+        -input $mfile                 \
+        -zfirst $slnum -zlast $slnum
+
+    # --------------- combine slices and pad, if nec ------------
+
+    echo "++ ...and gluing."
+    # at the moment, have made eeeverything from from3d to be a float!
+    to3d                              \
+        -orient $morient              \
+        -prefix "$ovol"               \
+        "3D${mstr}:0:0:${mdim[1]}:${mdim[2]}:1:${slpref}*"
+
+    # Feb 24, 2017: lights, camera, action!
+    if ( "$movie" != "" ) then
+        echo "++ Making '${mview[$ii]}' movie"
+        # movie of the unpadded file: each view is pretending to be axial
+        $my_viewer                         \
+            -ulay "$ovol"                  \
+            -prefix "${opref}_onescl_$ii"  \
+            -olay_off                      \
+            -save_ftype "$movie"           \
+            -montx 1                       \
+            -monty 1                       \
+            -set_ijk 0 0 0                 \
+            -ulay_range 1% 99.5%           \
+            -label_mode 1 -label_size 3    \
+            -image_label_ijk
+
+        $my_viewer                         \
+            -ulay "$ovol"                  \
+            -prefix "${opref}_sepscl_$ii"  \
+            -olay_off                      \
+            -save_ftype "$movie"           \
+            -montx 1                       \
+            -monty 1                       \
+            -set_ijk 0 0 0                 \
+            -globalrange "SLICE"           \
+            -ulay_range 1% 99%             \
+            -label_mode 1 -label_size 3    \
+            -image_label_ijk
+    endif
+
+    if ( $Npad > 0 ) then
+        printf "++ Padding by $Npad, to make output image "
+        printf "$Ncol x $Nrow\n"
+
+        3dZeropad             \
+            -overwrite        \
+            -prefix "$ovol"   \
+            -S $Npad          \
+            "$ovol"
+    endif
+
+    # ------------------ snapshot(s) -----------------------
+
+    # global range, almost all
+    $my_viewer                         \
+        -ulay "$ovol"                  \
+        -prefix "${opref}_onescl_$ii"  \
+        -olay_off                      \
+        -montx $Ncol                   \
+        -monty $Nrow                   \
+        -ulay_range 1% 99.5%           \
+        -label_mode 1 -label_size 3    \
+        -image_label_ijk
+
+    # slicewise ranges
+    $my_viewer                         \
+        -ulay "$ovol"                  \
+        -prefix "${opref}_sepscl_$ii"  \
+        -olay_off                      \
+        -montx $Ncol                   \
+        -monty $Nrow                   \
+        -globalrange "SLICE"           \
+        -ulay_range 1% 99%             \
+        -label_mode 1 -label_size 3    \
+        -image_label_ijk
+
+    # some images are unuseful, so, bye bye; rename useful one
+    # correctly, and put into odir (out of wdir)
+    if ( 1 ) then
+        \rm ${opref}_*_${ii}.sag.*
+        \rm ${opref}_*_${ii}.cor.*
+        
+        foreach ff ( `ls ${opref}_*_${ii}.axi.*` )
+            set gg = `echo $ff | sed "s/_${ii}.axi/.${imgview[$ii]}/g"`
+            \mv $ff ../$gg
+        end
+
+        if ( 0 ) then
+#        if ( "$movie" != "" ) then
+            echo "++ copying up movie"
+            if ( "$movie" == "AGIF" ) then
+                set mext = "gif"
+            else 
+                set mext = "mpg"
+            endif
+
+            foreach ff ( `ls ${opref}_*_${ii}.axi."$mext"` )
+                set gg = `echo $ff | sed "s/_${ii}.axi/.${imgview[$ii]}/g"`
+                \mv $ff ../$gg
+            end
+        endif
+
+    endif
+
+    # ------------------ clean, if desired -----------------------
+
+    if ( $DO_CLEAN == 1 ) then
+        echo "\n++ Cleaning up old files... finishing iteration ${ii}/3.\n\n"
+        \rm $ovol $calc_pad ${slpref}* 
+        if ( "$mcopy" != "" ) then 
+            \rm "$mcopy"
+        endif
+    endif
+
+end
+
+# exit wdir, now in odir
+cd ../
+if ( $DO_CLEAN == 1 ) then
+    \rm -rf $wdir
+endif
+
+@ vvx = $dim0[1] - ${svals[3]}
+@ vvy = $dim0[2] - ${svals[2]}
+
+# have to put slice values in (i,j,k) order.
+echo ""
+echo "++ DONE. RPI slice values:  (${svals[3]}, ${svals[2]}, ${svals[1]})."
+echo "++ In AFNI GUI slide vals:  (${vvx}, ${vvy}, ${svals[1]})."
+echo "\n"
+
+goto GOOD_EXIT
+
+# ========================================================================
+# ========================================================================
+
+SHOW_HELP:
+cat << EOF
+-------------------------------------------------------------------------
+
+                    ... just a helper function ...
+
+-------------------------------------------------------------------------
+
+EOF
+
+    goto GOOD_EXIT
+
+SHOW_VERSION:
+    echo "version  $version (${rev_dat})"
+    goto GOOD_EXIT
+
+BAD_EXIT:
+    exit 1
+
+# send everyone here, in case there is any cleanup to do
+GOOD_EXIT:
+    exit 0

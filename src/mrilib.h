@@ -1026,6 +1026,8 @@ extern MRI_IMAGE * mri_flatten_rgb( MRI_IMAGE * ) ;
 extern void mri_invert_inplace( MRI_IMAGE *) ;   /* 07 Apr 2003 */
 extern void mri_gamma_rgb_inplace( float gam , MRI_IMAGE *im ) ;
 
+extern void mri_sharpen3D_pos( MRI_IMAGE *im , float phi ) ; /* 13 Feb 2017 */
+
 extern MRI_IMAGE * mri_median21( MRI_IMAGE *innim ) ; /* 28 Oct 2014 */
 extern MRI_IMAGE * mri_sharpness( MRI_IMAGE *inim ) ;
 
@@ -1563,6 +1565,12 @@ extern char * SYM_test_gltsym( char *varlist , char *gltsym ) ; /* 01 May 2015 *
 #include "thd_atlas.h"        /* 22 Feb 2012 [rickr] */
 
 THD_string_array * mri_read_1D_headerline( char *fname ) ; /* 18 May 2010 */
+
+/* 09 Feb 2017: change the way thresholds are short-ified,
+                along with changes in the relevant functions */
+
+#define THRESH_SHORTIZE(ttt) \
+  ( AFNI_yesenv("AFNI_OLD_SHORT_THRESH") ?  (float)SHORTIZE(ttt) : (ttt) )
 
 /*------------------------------------------------------------------------*/
 /* 13 Feb 2009: generic 4x4 matrix struct stuff */

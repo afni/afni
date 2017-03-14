@@ -68,6 +68,7 @@ goto L_GOOD_END   # finished, woohooo!
 
 L_INIT_VARS:
 
+    set USING_NIFTI = 0
     set prog_name = $0:t
     set endstr = "$prog_name ... finished"
     set debug     = 0
@@ -105,10 +106,12 @@ goto L_INIT_VARS_DONE
 L_CHECK_USAGE:
 
     if ( $#argv == 0 ) then
-   echo "usage: $prog_name [options] -sid SUBJECT_ID"
-   echo "usage: $prog_name -help"
-   set endstr = ""
-   goto L_GOOD_END
+       # show help on no args   28 Feb 2017 [rickr]
+
+       # echo "usage: $prog_name [options] -sid SUBJECT_ID"
+       # echo "usage: $prog_name -help"
+       # set endstr = ""
+       goto L_HELP_END
     endif
 
 goto L_CHECK_USAGE_DONE
@@ -142,7 +145,7 @@ L_PARSE_COMMAND:
        case "-h":
        case "-help":
 
-      goto L_HELP_END      # and don't ya' come back, neither
+          goto L_HELP_END      # and don't ya' come back, neither
 
        breaksw
 
@@ -210,6 +213,7 @@ L_PARSE_COMMAND:
       set sfieldname = 'SurfaceName'
       set sex = 'gii'
       set stp = 'GIFTI'
+      set USING_NIFTI = 1      # [PT: Feb,2017] really useful...
       
        breaksw
 
@@ -323,8 +327,8 @@ L_PARSE_COMMAND:
     end
 
     if ( $subj_id == "" ) then
-   set endstr = "missing required option: -sid"
-   goto L_BAD_END
+       set endstr = "missing required option: -sid"
+       goto L_BAD_END
     endif
 
     if ($#inflates == 0 && $neuro_ori == -1) set inflates = ($inflates 200) 
@@ -333,10 +337,10 @@ L_PARSE_COMMAND:
     if ( $debug > 1 ) set echo
     if ( $#ldu ) set ldlist = ($ldu)
     if ($#ldpref == 0 && $#ldlist != 0) then
-      set ldpref = ()
-      foreach lldd ($ldlist)
-         set ldpref = ($ldpref std.$lldd.)
-      end
+       set ldpref = ()
+       foreach lldd ($ldlist)
+          set ldpref = ($ldpref std.$lldd.)
+       end
     endif
     if ($#ldpref != 0 && $#ldpref != $#ldlist) then
       set endstr = "Not enough -ldpref options for $#ldlist values"  
@@ -345,11 +349,11 @@ L_PARSE_COMMAND:
 
     set spec_files   = ({$subj_id}_lh.spec {$subj_id}_rh.spec )
     set afni_prefix  = ${subj_id}_SurfVol
-      if ( $neuro_ori != -1 ) then
-    set afni_dataset = $afni_prefix+orig
-      else
-    set afni_dataset = $afni_prefix 
-      endif
+    if ( $neuro_ori != -1 ) then
+       set afni_dataset = $afni_prefix+orig
+    else
+       set afni_dataset = $afni_prefix 
+    endif
     # set and go to the base directory
     cd $fs_dir
     set start_dir = $cwd
@@ -614,11 +618,12 @@ L_CONVERT_SURFACES:
       if ( $surf =~ *.white* ||     \
            $surf =~ *.smoothwm* ||  \
            $surf =~ *.pial*) then
-         ConvertSurface -sv $start_dir/$suma_dir/$afni_dataset.nii -i $surf.asc \
-                        -ixmat_1D xmatras.1D -overwrite -o $surf.gii
+        # okay, these are identical commands...
+        ConvertSurface -sv $start_dir/$suma_dir/$afni_dataset.nii -i $surf.asc \
+                       -ixmat_1D xmatras.1D -overwrite -o $surf.gii
       else
-         ConvertSurface -sv $start_dir/$suma_dir/$afni_dataset.nii -i $surf.asc \
-                        -ixmat_1D xmatras.1D -overwrite -o $surf.gii
+        ConvertSurface -sv $start_dir/$suma_dir/$afni_dataset.nii -i $surf.asc \
+                       -ixmat_1D xmatras.1D -overwrite -o $surf.gii
       endif
    endif
 
@@ -1247,12 +1252,12 @@ echo "      - all created files are stored in a new SUMA directory"
 echo ""
 echo "  Usage: $prog_name [options] -sid SUBJECT_ID"
 echo ""
-echo "  examples:"
+echo "  examples ('-NIFTI' is really useful-- see below!):"
 echo ""
-echo "    $prog_name -sid subject1"
 echo "    $prog_name -help"
-echo "    $prog_name -fspath subject1/surface_stuff -sid subject1"
-echo "    $prog_name -neuro -sid 3.14159265 -debug 1"
+echo "    $prog_name -NIFTI -sid subject1"
+echo "    $prog_name -NIFTI -fspath subject1/surface_stuff -sid subject1"
+echo "    $prog_name -NIFTI -neuro -sid 3.14159265 -debug 1"
 echo ""
 echo "  options:"
 echo ""
@@ -1429,6 +1434,17 @@ L_BAD_END:
 # finished!
 
 L_GOOD_END:
+
+    if ( $USING_NIFTI == 0 ) then
+        echo "\n\n"
+        echo "WARNING!"
+        echo "  You didn't use the '-NIFTI' or '-GIFTI' or similarly-named"
+        echo "  option flag!  Are you *sure* you didn't want to?  Learning about"
+        echo "  this option changed my life-- it might just change yours, too."
+        echo "  Please read the helpfile entry for '-NIFTI' if you don't know"
+        echo "  what I'm talking about here."
+        echo "\n\n"
+    endif
 
     if ( $debug > 1 ) unset echo
 

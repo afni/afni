@@ -11,6 +11,9 @@ static int USE_ALL_VALS = 0 ;  /* 17 May 2016 */
 # include <omp.h>
 #endif
 
+static int do_EPI    = 0 ;  /* 01 Mar 2017 */
+static int do_double = 1 ;  /* duplo? */
+
 /*---------------------------------------------------------------------------*/
 
 void mri_invertcontrast_inplace( MRI_IMAGE *im , float uperc , byte *mask )
@@ -117,8 +120,6 @@ static INLINE float median7(float *p)
 /*---------------------------------------------------------------------------*/
 /* Shrink a 3D image down by a factor of 2 in all dimensions,
    by taking the median of each point and its 6 nearest neighbors. */
-
-static int do_double = 1 ;
 
 #undef  FSUB
 #define FSUB(far,i,j,k,ni,nij) far[(i)+(j)*(ni)+(k)*(nij)]
@@ -373,7 +374,7 @@ ENTRY("mri_local_percmean") ;
 
    /* shrink image by 2 for speed */
 
-   if( verb ) fprintf(stderr,"D") ;
+   if( verb && do_double ) fprintf(stderr,"D") ;
 
    if( do_double ){
      bim = mri_double_down(aim) ; bar = MRI_FLOAT_PTR(bim) ; mri_free(aim) ;
@@ -638,122 +639,171 @@ int main( int argc , char *argv[] )
 
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
      printf("\n"
-            "Usage: 3dUnifize [options] inputdataset\n\n"
-            "* The input dataset is supposed to be a T1-weighted volume,\n"
-            "  possibly already skull-stripped (e.g., via 3dSkullStrip).\n"
-            "  ++ However, this program can be a useful step to take BEFORE\n"
-            "     3dSkullStrip, since the latter program can fail if the input\n"
-            "     volume is strongly shaded -- 3dUnifize will (mostly) remove\n"
-            "     such shading artifacts.\n"
-            "* The output dataset has the white matter (WM) intensity approximately\n"
-            "  uniformized across space, and scaled to peak at about 1000.\n"
-            "* The output dataset is always stored in float format!\n"
-            "* If the input dataset has more than 1 sub-brick, only sub-brick\n"
-            "  #0 will be processed!\n"
-            "* Method: Obi-Wan's personal variant of Ziad's sneaky trick.\n"
-            "  (If you want to know what his trick is, you'll have to ask him, or\n"
-            "   read Obi-Wan's source code, which is a world of ecstasy and exaltation,\n"
-            "   or just read all the way to the end of this help output.)\n"
-            "* The principal motive for this program is for use in an image\n"
-            "  registration script, and it may or may not be useful otherwise.\n"
-            "\n"
-            "--------\n"
-            "Options:\n"
-            "--------\n"
-            "  -prefix pp = Use 'pp' for prefix of output dataset.\n"
-            "  -input dd  = Alternative way to specify input dataset.\n"
-            "  -T2        = Treat the input as if it were T2-weighted, rather than\n"
-            "               T1-weighted. This processing is done simply by inverting\n"
-            "               the image contrast, processing it as if that result were\n"
-            "               T1-weighted, and then re-inverting the results.\n"
-            "              ++ This option is NOT guaranteed to be useful for anything!\n"
-            "              ++ Of course, nothing in AFNI comes with a guarantee :-)\n"
-            "              ++ If you want to be REALLY sneaky, giving this option twice\n"
-            "                 will skip the second inversion step, so the result will\n"
-            "                 look like a T1-weighted volume (except at the edges and\n"
-            "                 near blood vessels).\n"
-            "              ++ Might be useful for skull-stripping T2-weighted datasets.\n"
-            "              ++ Don't try the '-T2 -T2' trick on FLAIR-T2-weighted datasets.\n"
-            "                 The results aren't pretty!\n"
-            "  -GM        = Also scale to unifize 'gray matter' = lower intensity voxels\n"
-            "               (to aid in registering images from different scanners).\n"
-            "              ++ This option is recommended for use with 3dQwarp when\n"
-            "                 aligning 2 T1-weighted volumes, in order to make the\n"
-            "                 WM-GM contrast about the same for the datasets, even\n"
-            "                 if they don't come from the same scanner/pulse-sequence.\n"
-            "              ++ Note that standardizing the contrasts with 3dUnifize will help\n"
-            "                 3dQwarp match the source dataset to the base dataset.  If you\n"
-            "                 later want the original source dataset to be warped, you can\n"
-            "                 do so using the 3dNwarpApply program.\n"
-            "  -Urad rr   = Sets the radius (in voxels) of the ball used for the sneaky trick.\n"
-            "               ++ Default value is %.1f, and should be changed proportionally\n"
-            "                  if the dataset voxel size differs significantly from 1 mm.\n"
-            "  -ssave ss  = Save the scale factor used at each voxel into a dataset 'ss'.\n"
-            "               ++ This is the white matter scale factor, and does not include\n"
-            "                  the factor from the '-GM' option (if that was included).\n"
-            "               ++ The input dataset is multiplied by the '-ssave' image\n"
-            "                  (voxel-wise) to get the WM-unifized image.\n"
-            "               ++ Another volume (with the same grid dimensions) could be\n"
-            "                  scaled the same way using 3dcalc, if that is needed.\n"
-            "  -quiet     = Don't print the fun fun fun progress messages (but whyyyy?).\n"
-            "               ++ For the curious, the codes used are:\n"
-            "                   A = Automask\n"
-            "                   D = Duplo down (process a half-size volume)\n"
-            "                   V = Voxel-wise histograms to get local scale factors\n"
-            "                   U = duplo Up (convert local scale factors to full-size volume)\n"
-            "                   W = multiply by White matter factors\n"
-            "                   G = multiply by Gray matter factors [cf the -GM option]\n"
-            "                   I = contrast inversion              [cf the -T2 option]\n"
-            "               ++ 'Duplo down' means to scale the input volume to be half the\n"
-            "                  grid size in each direction for speed when computing the\n"
-            "                  voxel-wise histograms.  The sub-sampling is done using the\n"
-            "                  median of the central voxel value and its 6 nearest neighbors.\n"
-            "\n"
-            "------------------------------------------\n"
-            "Special options for Jedi AFNI Masters ONLY:\n"
-            "------------------------------------------\n"
-            "  -rbt R b t = Specify the 3 parameters for the algorithm, as 3 numbers\n"
-            "               following the '-rbt':\n"
-            "                 R = radius; same as given by option '-Urad'     [default=%.1f]\n"
-            "                 b = bottom percentile of normalizing data range [default=%.1f]\n"
-            "                 r = top percentile of normalizing data range    [default=%.1f]\n"
-            "\n"
-            "  -T2up uu   = Set the upper percentile point used for T2-T1 inversion.\n"
-            "               The default value is 98.5 (for no good reason), and 'uu' is\n"
-            "               allowed to be anything between 90 and 100 (inclusive).\n"
-            "               ++ The histogram of the data is built, and the uu-th percentile\n"
-            "                  point value is called 'U'. The contrast inversion is simply\n"
-            "                  given by output_value = max( 0 , U - input_value ).\n"
-            "\n"
-            "  -clfrac cc = Set the automask 'clip level fraction' to 'cc', which\n"
-            "               must be a number between 0.1 and 0.9.\n"
-            "               A small 'cc' means to make the initial threshold\n"
-            "               for clipping (a la 3dClipLevel) smaller, which\n"
-            "               will tend to make the mask larger.  [default=0.1]\n"
-            "               ++ [22 May 2013] The previous version of this program used a\n"
-            "                  clip level fraction of 0.5, which proved to be too large\n"
-            "                  for some users, who had images with very strong shading issues.\n"
-            "                  Thus, the default value for this parameter was lowered to 0.1.\n"
-            "               ++ [24 May 2016] The default value for this parameter was\n"
-            "                  raised to 0.2, since the lower value often left a lot of\n"
-            "                  noise outside the head on non-3dSkullStrip-ed datasets.\n"
-            "                  You can still manually set -clfrac to 0.1 if you need to\n"
-            "                  correct for very large shading artifacts.\n"
-            "               ++ If the results of 3dUnifize have a lot of noise outside the head,\n"
-            "                  then using '-clfrac 0.5' value will probably help.\n"
+       "Usage: 3dUnifize [options] inputdataset\n"
+       "\n"
+       "* The input dataset is supposed to be a T1-weighted volume,\n"
+       "  possibly already skull-stripped (e.g., via 3dSkullStrip).\n"
+       "  ++ However, this program can be a useful step to take BEFORE\n"
+       "     3dSkullStrip, since the latter program can fail if the input\n"
+       "     volume is strongly shaded -- 3dUnifize will (mostly) remove\n"
+       "     such shading artifacts.\n"
+       "\n"
+       "* The output dataset has the white matter (WM) intensity approximately\n"
+       "  uniformized across space, and scaled to peak at about 1000.\n"
+       "\n"
+       "* The output dataset is always stored in float format!\n"
+       "\n"
+       "* If the input dataset has more than 1 sub-brick, only sub-brick\n"
+       "  #0 will be processed!\n"
+       "\n"
+       "* Want to correct EPI datasets for nonuniformity?\n"
+       "  You can try the new and experimental [Mar 2017] '-EPI' option.\n"
+       "\n"
+       "* Method: Obi-Wan's personal variant of Ziad's sneaky trick.\n"
+       "  (If you want to know what his trick is, you'll have to ask him, or\n"
+       "   read Obi-Wan's source code [which is a world of ecstasy and exaltation],\n"
+       "   or just read all the way to the end of this help output.)\n"
+       "\n"
+       "* The principal motive for this program is for use in an image\n"
+       "  registration script, and it may or may not be useful otherwise.\n"
+       "\n"
+       "* This program replaces the older (and very different) 3dUniformize,\n"
+       "  which is no longer maintained and may sublimate at any moment.\n"
+       "  (In other words, we do not recommend the use of 3dUniformize.)\n"
+       "\n"
+       "--------\n"
+       "Options:\n"
+       "--------\n"
+       "\n"
+       "  -prefix pp = Use 'pp' for prefix of output dataset.\n"
+       "\n"
+       "  -input dd  = Alternative way to specify input dataset.\n"
+       "\n"
+       "  -T2        = Treat the input as if it were T2-weighted, rather than\n"
+       "               T1-weighted. This processing is done simply by inverting\n"
+       "               the image contrast, processing it as if that result were\n"
+       "               T1-weighted, and then re-inverting the results.\n"
+       "              ++ This option is NOT guaranteed to be useful for anything!\n"
+       "              ++ Of course, nothing in AFNI comes with a guarantee :-)\n"
+       "              ++ If you want to be REALLY sneaky, giving this option twice\n"
+       "                 will skip the second inversion step, so the result will\n"
+       "                 look like a T1-weighted volume (except at the edges and\n"
+       "                 near blood vessels).\n"
+       "              ++ Might be useful for skull-stripping T2-weighted datasets.\n"
+       "              ++ Don't try the '-T2 -T2' trick on FLAIR-T2-weighted datasets.\n"
+       "                 The results aren't pretty!\n"
+       "\n"
+       "  -GM        = Also scale to unifize 'gray matter' = lower intensity voxels\n"
+       "               (to aid in registering images from different scanners).\n"
+       "              ++ This option is recommended for use with 3dQwarp when\n"
+       "                 aligning 2 T1-weighted volumes, in order to make the\n"
+       "                 WM-GM contrast about the same for the datasets, even\n"
+       "                 if they don't come from the same scanner/pulse-sequence.\n"
+       "              ++ Note that standardizing the contrasts with 3dUnifize will help\n"
+       "                 3dQwarp match the source dataset to the base dataset.  If you\n"
+       "                 later want the original source dataset to be warped, you can\n"
+       "                 do so using the 3dNwarpApply program.\n"
+       "\n"
+       "  -Urad rr   = Sets the radius (in voxels) of the ball used for the sneaky trick.\n"
+       "               ++ Default value is %.1f, and should be changed proportionally\n"
+       "                  if the dataset voxel size differs significantly from 1 mm.\n"
+       "\n"
+       "  -ssave ss  = Save the scale factor used at each voxel into a dataset 'ss'.\n"
+       "               ++ This is the white matter scale factor, and does not include\n"
+       "                  the factor from the '-GM' option (if that was included).\n"
+       "               ++ The input dataset is multiplied by the '-ssave' image\n"
+       "                  (voxel-wise) to get the WM-unifized image.\n"
+       "               ++ Another volume (with the same grid dimensions) could be\n"
+       "                  scaled the same way using 3dcalc, if that is needed.\n"
+       "               ++ This saved scaled factor does NOT include any GM scaling :(\n"
+       "\n"
+       "  -quiet     = Don't print the fun fun fun progress messages (but whyyyy?).\n"
+       "               ++ For the curious, the codes used are:\n"
+       "                   A = Automask\n"
+       "                   D = Duplo down (process a half-size volume)\n"
+       "                   V = Voxel-wise histograms to get local scale factors\n"
+       "                   U = duplo Up (convert local scale factors to full-size volume)\n"
+       "                   W = multiply by White matter factors\n"
+       "                   G = multiply by Gray matter factors [cf the -GM option]\n"
+       "                   I = contrast inversion              [cf the -T2 option]\n"
+       "                   M = compute median volume           [for the -EPI option]\n"
+       "                   E = compute scaled EPI datasets     [for the -EPI option]\n"
+       "               ++ 'Duplo down' means to scale the input volume to be half the\n"
+       "                  grid size in each direction for speed when computing the\n"
+       "                  voxel-wise histograms.  The sub-sampling is done using the\n"
+       "                  median of the central voxel value and its 6 nearest neighbors.\n"
+       "\n"
+       "  -noduplo   = Do NOT use the 'duplo down' step; this can be useful for lower\n"
+       "               resolution datasets.\n"
+       "               ++ If a dataset has less than 1 million voxels in a 3D volume,\n"
+       "                  'duplo down' will not be used.\n"
+       "\n"
+       "  -EPI       = Assume the input dataset is a T2 (or T2*) weighted EPI time\n"
+       "               series. After computing the scaling, apply it to ALL volumes\n"
+       "               (TRs) in the input dataset. That is, a given voxel will be\n"
+       "               scaled by the same factor at each TR.\n"
+       "               ++ This option also implies '-noduplo' and '-T2'.\n"
+       "               ++ This option turns off '-GM' if you turned it on.\n"
+       "           -->>++ This option is experimental; check your results!\n"
+       "               ++ Remember: the program tries to uniform-ize the White Matter\n"
+       "                  regions, so the overall appearance of the image may become\n"
+       "                  less uniform, especially if it was fairly uniform already.\n"
+       "               ++ For most purposes in AFNI processing, uniform-izing\n"
+       "                  EPI datasets is not needed.\n"
+       "                  -- If you are having trouble getting a good result from\n"
+       "                     3dAutomask, try adding the option '-clfrac 0.2'.\n"
+       "                  -- There is no reason to apply 3dUnifize to EPI datasets\n"
+       "                     that do not have significant shading artifacts.\n"
+       "                  -- EPI data from 7T systems might be 'improved' by 3dUnifize.\n"
+       "                  -- You might need to run 3dDespike before using 3dUnifize.\n"
+       "\n"
+       "------------------------------------------\n"
+       "Special options for Jedi AFNI Masters ONLY:\n"
+       "------------------------------------------\n"
+       "  -rbt R b t = Specify the 3 parameters for the algorithm, as 3 numbers\n"
+       "               following the '-rbt':\n"
+       "                 R = radius; same as given by option '-Urad'     [default=%.1f]\n"
+       "                 b = bottom percentile of normalizing data range [default=%.1f]\n"
+       "                 r = top percentile of normalizing data range    [default=%.1f]\n"
+       "\n"
+       "  -T2up uu   = Set the upper percentile point used for T2-T1 inversion.\n"
+       "               The default value is 98.5 (for no good reason), and 'uu' is\n"
+       "               allowed to be anything between 90 and 100 (inclusive).\n"
+       "               ++ The histogram of the data is built, and the uu-th percentile\n"
+       "                  point value is called 'U'. The contrast inversion is simply\n"
+       "                  given by output_value = max( 0 , U - input_value ).\n"
+       "\n"
+       "  -clfrac cc = Set the automask 'clip level fraction' to 'cc', which\n"
+       "               must be a number between 0.1 and 0.9.\n"
+       "               A small 'cc' means to make the initial threshold\n"
+       "               for clipping (a la 3dClipLevel) smaller, which\n"
+       "               will tend to make the mask larger.  [default=0.1]\n"
+       "               ++ [22 May 2013] The previous version of this program used a\n"
+       "                  clip level fraction of 0.5, which proved to be too large\n"
+       "                  for some users, who had images with very strong shading issues.\n"
+       "                  Thus, the default value for this parameter was lowered to 0.1.\n"
+       "               ++ [24 May 2016] The default value for this parameter was\n"
+       "                  raised to 0.2, since the lower value often left a lot of\n"
+       "                  noise outside the head on non-3dSkullStrip-ed datasets.\n"
+       "                  You can still manually set -clfrac to 0.1 if you need to\n"
+       "                  correct for very large shading artifacts.\n"
+       "               ++ If the results of 3dUnifize have a lot of noise outside the head,\n"
+       "                  then using '-clfrac 0.5' value will probably help.\n"
 #ifndef USE_ALL_VALS
-            "\n"
-            "  -useall    = The 'old' way of operating was to use all dataset values\n"
-            "               in the local WM histogram.  The 'new' way [May 2016] is to\n"
-            "               only use positive values.  If you want to use the 'old' way,\n"
-            "               then this option is what you want.\n"
+       "\n"
+       "  -useall    = The 'old' way of operating was to use all dataset values\n"
+       "               in the local WM histogram.  The 'new' way [May 2016] is to\n"
+       "               only use positive values.  If you want to use the 'old' way,\n"
+       "               then this option is what you want.\n"
 #endif
-            "\n"
-            "-- Feb 2013 - by Obi-Wan Unifobi\n"
+       "\n"
+       "-- Feb 2013 - by Obi-Wan Unifobi\n"
+       "            - can always be found at the Everest Bakery in Namche Bazaar,\n"
+       "              if you have any questions about this program\n"
 #ifdef USE_OMP
-            "-- This code uses OpenMP to speed up the slowest part (voxel-wise histograms).\n"
+       "-- This code uses OpenMP to speed up the slowest part (voxel-wise histograms).\n"
 #endif
-            , Uprad , Uprad , Upbot , Uptop ) ;
+       , Uprad , Uprad , Upbot , Uptop ) ;
 
      printf("\n"
       "----------------------------------------------------------------------------\n"
@@ -835,8 +885,12 @@ int main( int argc , char *argv[] )
    iarg = 1 ;
    while( iarg < argc && argv[iarg][0] == '-' ){
 
-     if( strcmp(argv[iarg],"-double") == 0 ){  /* 23 Dec 2016 -- for testing only */
-       do_double = 2 ; iarg++ ; continue ;
+     if( strcmp(argv[iarg],"-nodouble") == 0 || strcmp(argv[iarg],"-noduplo") == 0 ){
+       do_double = 0 ; iarg++ ; continue ;
+     }
+
+     if( strcasecmp(argv[iarg],"-EPI") == 0 ){
+       do_EPI = 1 ; iarg++ ; continue ;
      }
 
      if( strcmp(argv[iarg],"-clfrac") == 0 || strcmp(argv[iarg],"-mfrac") == 0 ){    /* 22 May 2013 */
@@ -935,18 +989,39 @@ int main( int argc , char *argv[] )
      CHECK_OPEN_ERROR(inset,argv[iarg]) ;
    }
 
+   if( do_EPI ){
+     float uu ;
+     do_T2 = 1 ; do_double = 0 ;
+     if( do_GM ){ INFO_message("-EPI turns off -GM") ; do_GM = 0 ; }
+     uu = cbrtf(fabsf(DSET_DX(inset)*DSET_DY(inset)*DSET_DZ(inset))) ;
+     uu = 18.3 / uu ; if( uu < 4.14f ) uu = 4.14f ;
+     Uprad = uu ;
+     INFO_message("-EPI changes -Urad to %.1f voxels",Uprad) ;
+   }
+
    if( verb ) fprintf(stderr," + Pre-processing: ") ;
 
    /* load input from disk */
 
    DSET_load( inset ) ; CHECK_LOAD_ERROR(inset) ;
-   if( DSET_NVALS(inset) > 1 )
+   if( ! do_EPI && DSET_NVALS(inset) > 1 ){
      WARNING_message("Only processing sub-brick #0 (out of %d)",DSET_NVALS(inset)) ;
+   } else if( do_EPI && DSET_NVALS(inset) == 1 ){
+     WARNING_message("-EPI was used, but only 1 volume in the input dataset") ;
+     do_EPI = 0 ;
+   }
 
-   /* make a float copy for processing */
+   /* make a float copy of the input brick for processing */
 
-   imin = mri_to_float( DSET_BRICK(inset,0) ) ; DSET_unload(inset) ;
-   if( imin == NULL ) ERROR_exit("Can't copy input dataset brick?!") ;
+   if( !do_EPI ){
+     imin = THD_extract_float_brick(0,inset) ;
+     if( imin == NULL ) ERROR_exit("Can't copy input dataset brick?!") ;
+   } else {
+     if( verb ) fprintf(stderr,"M") ;
+     imin = THD_median_brick(inset) ;
+     if( imin == NULL ) ERROR_exit("Can't compute median of EPI dataset?!") ;
+   }
+   if( ! do_EPI ) DSET_unload(inset) ;
 
 #if 0
 THD_cliplevel_search(imin) ; exit(0) ;  /* experimentation only */
@@ -980,6 +1055,63 @@ THD_cliplevel_search(imin) ; exit(0) ;  /* experimentation only */
      tross_Make_History( "3dUnifize" , argc,argv , outset ) ;
      DSET_write(outset) ; outset = NULL ;
    }
+
+   /*-- Compute the EPI output here [01 Mar 2017] --*/
+
+   if( do_EPI ){
+     int nvals=DSET_NVALS(inset) , nxyz=DSET_NVOX(inset) , ii,iv ;
+     float *scar , *imar ;
+
+     if( sclim == NULL )  /* should never happen */
+       ERROR_exit("Can't process EPI data: scale image missing :(") ;
+     scar = MRI_FLOAT_PTR(sclim) ;
+
+     outset = EDIT_empty_copy( inset )  ;  /* create shell of output */
+     EDIT_dset_items( outset ,
+                        ADN_prefix    , prefix ,
+                        ADN_datum_all , MRI_float ,
+                        ADN_brick_fac , NULL ,
+                      ADN_none ) ;
+
+     DSET_load(inset) ;
+
+     /* scale each volume */
+
+     if( verb ) fprintf(stderr,"E") ;
+     for( iv=0 ; iv < nvals ; iv++ ){
+       if( iv%100 == 47 ) fprintf(stderr,".") ;
+       /* get input volume */
+       imin = THD_extract_float_brick(iv,inset) ;
+       DSET_unload_one(inset,iv) ;
+       if( imin == NULL )
+         ERROR_exit("Can't load sub-brick #%d of input dataset :(",iv) ;
+       imar = MRI_FLOAT_PTR(imin) ;
+       /* invert contrast */
+       mri_invertcontrast_inplace( imin , T2_uperc , T2_mask ) ;
+       /* scale */
+       for( ii=0 ; ii < nxyz ; ii++ ) imar[ii] *= scar[ii] ;
+       /* invert contrast back */
+       mri_invertcontrast_inplace( imin , T2_uperc , T2_mask ) ;
+       /* put result into output dataset */
+       EDIT_substitute_brick( outset , iv , MRI_float , MRI_FLOAT_PTR(imin) ) ;
+       /* toss the empty shell of the processed image */
+       mri_clear_and_free(imin) ;
+     }
+     if( verb ) fprintf(stderr,"\n") ;
+
+     /* write the output and head back to the bakery */
+
+     DSET_unload(inset) ;
+     tross_Copy_History( inset , outset ) ;
+     tross_Make_History( "3dUnifize" , argc,argv , outset ) ;
+     DSET_write(outset) ;
+     WROTE_DSET(outset) ;
+     exit(0) ;
+
+   } /* end of -EPI output */
+
+   /*-- Continue the standard (1 volume) processing --*/
+
    if( sclim != NULL ){ mri_free(sclim) ; sclim = NULL ; }
 
    if( imout == NULL ){                   /* this is bad-ositiness */

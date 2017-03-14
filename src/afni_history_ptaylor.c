@@ -66,8 +66,17 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+   { 9, Feb , 2017 , PT , "@GradFlipTest" , MICRO , TYPE_BUG_FIX,
+   "Some IF conditions gave problems; some option names were inconvenient.",
+   "They are now ex-parrots.\n"
+},
 
-   { 31, Jan , 2017 , PT , "@SUMA_renumber_FS" , MINOR , TYPE_MODIFY,
+{ 6, Feb , 2017 , PT , "@chauffeur_afni" , MINOR , TYPE_MODIFY,
+   "Should deal with subbrick selection now.",
+   "Works for ulay and olay sets in usual AFNI way.\n"
+},
+
+{ 31, Jan , 2017 , PT , "@SUMA_renumber_FS" , MINOR , TYPE_MODIFY,
    "Update region list to work with new FS 6.0 that came out a week ago.",
    "Regions #3 and #42 (in FS file output) appear now; ~'leftover' GM.\n"
 },

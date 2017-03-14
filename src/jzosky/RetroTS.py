@@ -29,7 +29,8 @@ from lib_RetroTS.Show_RVT_Peak import show_rvt_peak
 
 
 
-def retro_ts(respiration_file, cardiac_file, phys_fs, number_of_slices, volume_tr,
+def retro_ts(respiration_file, cardiac_file, phys_fs, number_of_slices,
+             volume_tr,
              prefix='Output_File_Name',
              slice_offset=0,
              slice_major=1,
@@ -45,7 +46,8 @@ def retro_ts(respiration_file, cardiac_file, phys_fs, number_of_slices, volume_t
              respiration_out=1,
              slice_order='alt+z',
              show_graphs=0,
-             zero_phase_offset=0
+             zero_phase_offset=0,
+             legacy_transform=0
              ):
     """
     
@@ -74,7 +76,9 @@ def retro_ts(respiration_file, cardiac_file, phys_fs, number_of_slices, volume_t
     :param cardiac_out:
     :param respiration_out:
     :param slice_order:
-    :param show_graphs: 
+    :param show_graphs:
+    :param legacy_transform: Important-this will specify whether you use the original Matlab code's version or the
+        potentially bug-corrected version for the final phase correction in lib_RetroTS/RVT_from_PeakFinder.py
     :return:
     """
     if not slice_offset:
@@ -99,7 +103,8 @@ def retro_ts(respiration_file, cardiac_file, phys_fs, number_of_slices, volume_t
                  'respiration_out': respiration_out,
                  'slice_order': slice_order,
                  'show_graphs': show_graphs,
-                 'zero_phase_offset': zero_phase_offset
+                 'zero_phase_offset': zero_phase_offset,
+                 'legacy_transform': legacy_transform
                  }
     # Determining main_info['slice_offset'] based upon main_info['slice_order'], main_info['volume_tr'],
     #  and main_info['number_of_slices'].
@@ -326,7 +331,7 @@ if __name__ == "__main__":
 
     import sys
 
-    opt_dict = {"-help":"""
+    opt_dict = {"-help": """
 This function creates slice-based regressors for regressing out components of
     heart rate, respiration and respiration volume per time.
 
@@ -400,6 +405,12 @@ Input
                             each slice in seconds)
     ============================================================================
     :param -zero_phase_offset:
+    ============================================================================
+    :param legacy_transform: Important-this will specify whether you use the
+           original Matlab code's version (1) or the potentially bug-corrected
+           version (0) for the final phase correction in
+           lib_RetroTS/RVT_from_PeakFinder.py
+           (default is 0)
 
 Output:
 ================================================================================
@@ -437,7 +448,8 @@ Output:
                 "-respiration_out": 1,
                 "-slice_order": 'alt+z',
                 "-show_graphs": 0,
-                "-zero_phase_offset": 0}
+                "-zero_phase_offset": 0,
+                "-legacy_transform": 0}
 
     if len(sys.argv) < 2:
         print 'You need to provide parameters. If you need help, rerun the' \
@@ -460,11 +472,12 @@ Output:
                     print "%s" % key
                 quit()
             temp_opt = opt
+    # change phys_fs and volume_tr to float     6 Mar 2017 [rickr]
     retro_ts(respiration_file=opt_dict['-r'],
              cardiac_file=opt_dict['-c'],
-             phys_fs=int(opt_dict['-p']),
+             phys_fs=float(opt_dict['-p']),
              number_of_slices=int(opt_dict['-n']),
-             volume_tr=int(opt_dict['-v']),
+             volume_tr=float(opt_dict['-v']),
              prefix=opt_dict['-prefix'],
              slice_offset=opt_dict['-slice_offset'],
              slice_major=opt_dict['-slice_major'],
@@ -480,4 +493,5 @@ Output:
              respiration_out=int(opt_dict['-respiration_out']),
              slice_order=opt_dict['-slice_order'],
              show_graphs=opt_dict['-show_graphs'],
-             zero_phase_offset=opt_dict['-zero_phase_offset'])
+             zero_phase_offset=opt_dict['-zero_phase_offset'],
+             legacy_transform=opt_dict['-legacy_transform'])

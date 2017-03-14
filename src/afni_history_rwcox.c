@@ -44,6 +44,62 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 13 , MAR , 2017 , RWC , "mri_lsqfit" , MICRO , TYPE_GENERAL ,
+   "explicitly check for all zero input ref vectors" ,
+   NULL } ,
+
+ { 1 , MAR , 2017 , RWC , "3dUnifize" , MAJOR , TYPE_NEW_OPT ,
+   "Add -EPI option, to unifize time series datasets." ,
+   NULL } ,
+
+ { 28 , FEB , 2017 , RWC , "3dExtractGroupInCorr" , MICRO , TYPE_NEW_PROG ,
+   "Program to reconstruct individual dataset from a .niml/.data pair." ,
+   "This program is for any unfortunate person who has lost the datasets\n"
+   "that were used to create the 3dGroupInCorr inputs.  It is not really\n"
+   "'NEW', since it has been around for my personal use for a while, but now\n"
+   "it is being included in the AFNI distribution for the masses to enjoy." } ,
+
+ { 28 , FEB , 2017 , RWC , "3dEmpty" , MICRO , TYPE_NEW_OPT ,
+   "Add -geom option = define dataset by a 'MATRIX(...)' string" ,
+   NULL } ,
+
+ { 27 , FEB , 2017 , RWC , "afni GUI" , MICRO , TYPE_NEW_ENV ,
+   "AFNI_IMAGE_LABEL_IJK" ,
+   "If this variable is set to YES, then the image label overlay (chosen\n"
+   "from the intensity bar popup menu) will show the slice index instead of\n"
+   "the slice coordinate. (for PT)" } ,
+
+ { 24 , FEB , 2017 , RWC , "afni GUI" , MICRO , TYPE_GENERAL ,
+   "Turn off crosshairs and left-is-left if all inputs are image files." ,
+   "Also, hide the help for 'afni -im' since AFNI can now read images\n"
+   "directly as 'datasets'." } ,
+
+ { 22 , FEB , 2017 , RWC , "AFNI gui" , MICRO , TYPE_MODIFY ,
+   "Add VG painting effect to AFNI image viewer" ,
+   "Just for fun, please!" } ,
+
+ { 20 , FEB , 2017 , RWC , "3dDespike" , MINOR , TYPE_BUG_FIX ,
+   "Scale factor bug" ,
+   "The program ignored the scale factors attached to short datasets.\n"
+   "If they were all the same, that was not a problem.\n"
+   "But if they differed, then that was a big problem.\n"
+   "That was fixed.  Also, the output now is always in float format." } ,
+
+ { 13 , FEB , 2017 , RWC , "3dSharpen" , MICRO , TYPE_NEW_PROG ,
+   "Sharpening filter in 3D" ,
+   NULL } ,
+
+ { 9 , FEB , 2017 , RWC , "thresholding" , MINOR , TYPE_NEW_ENV ,
+   "Fix inconsistency in thresholding with short-valued bricks" ,
+   "In the AFNI GUI, thresholding is done with floats.\n"
+   "But in 3dmerge and in Clusterize, if the thresh brick is a short,\n"
+   "thresholding was done with shorts.  And the user-supplied threshold was\n"
+   "ROUNDED -- so that a threshold of 2.2 would become 2, which means that a\n"
+   "value of 2 was OK -- which it shouldn't be.  Solution: change those\n"
+   "places to threshold with floats. However, if someone wants to keep the\n"
+   "old way for compatibility, then they can set AFNI_OLD_SHORT_THRESH to\n"
+   "YES." } ,
+
  { 31 , JAN , 2017 , RWC , "minimize_in_1D func" , MICRO , TYPE_GENERAL ,
    "Modify to be more robust (I hope)." ,
    "Used in solving for inverse to mixed model ACF (e.g., to get FWHM)." } ,

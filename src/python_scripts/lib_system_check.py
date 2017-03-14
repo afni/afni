@@ -581,7 +581,7 @@ class SysInfo:
       # if not even set, fail
       if s or not so:
          print '** env var %s not set to contain %s' % (evar, val)
-         self.comments.append('please set %s to %s'%(evar,val))
+         self.comments.append('please set %s to %s in %s' % (evar, val, shell))
          return 0
 
       # convert ':' delimited val list to array, and search for val
@@ -1000,7 +1000,13 @@ class SysInfo:
        return 1
 
    def show_comments(self):
-      print UTIL.section_divider(' please fix ', hchar='=')
+      # check for a good result, first
+      if len(self.comments) == 0:
+          print UTIL.section_divider(' nothing to fix, yay! ', hchar='=')
+          print
+          return
+
+      print UTIL.section_divider(' summary, please fix: ', hchar='=')
       for cc in self.comments: 
          if len(cc) == 0: print ''
          else:

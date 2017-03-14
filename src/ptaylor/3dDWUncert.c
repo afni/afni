@@ -121,7 +121,7 @@ void usage_3dDWUncert(int detail)
 "            [5] stdev of FA\n"
 "\n\n"
 "  COMMAND: 3dDWUncert -inset FILE -input [base of FA/MD/etc.] \\\n"
-"           {-grads | -bmatrix_Z} FILE -prefix NAME -iters NUMBER \n"
+"           {-grads | -bmatrix_FULL} FILE -prefix NAME -iters NUMBER \n"
 "\n\n"
 "  + RUNNING, need to provide:\n"
 "    -inset  FILE     :file with b0 and DWI subbricks \n"
@@ -138,15 +138,15 @@ void usage_3dDWUncert(int detail)
 "                      used in place of '-input INPREF'.\n"
 "                      See below for a 'INPUT LIST FILE EXAMPLE'.\n"
 "\n"
-"    -grads  FILE     :file with 3 columns for x-, y-, and z-comps\n"
+"    -grads  FF       :file with 3 columns for x-, y-, and z-comps\n"
 "                      of DW-gradients (which have unit magnitude).\n"
 "                      NB: this option also assumes that only 1st DWI\n"
 "                      subbrick has a b=0 image (i.e., all averaging of\n"
 "                      multiple b=0 images has been done already); if such\n"
 "                      is not the case, then you should convert your grads to\n"
-"                      the bmatrix format and use `-bmatrix_Z'.\n"
+"                      the bmatrix format and use `-bmatrix_FULL'.\n"
 "  OR\n"
-"    -bmatrix_Z  FILE :using this means that file with gradient info\n"
+"    -bmatrix_Z  FF   :using this means that file with gradient info\n"
 "                      is in b-matrix format, with 6 columns representing:\n"
 "                      b_xx b_yy b_zz b_xy b_xz b_yz.\n"
 "                      NB: here, bvalue per image is the trace of the bmatr,\n"
@@ -154,6 +154,11 @@ void usage_3dDWUncert(int detail)
 "                      option might be used, for example, if multiple \n"
 "                      b-values were used to measure DWI data; this is an\n"
 "                      AFNI-style bmatrix that needs to be input.\n"
+"    -bmatrix_FULL FF :exact same as '-bmatrix_Z FF' above (i.e. there are N\n"
+"                      rows to the text file and N volumes in the matched\n"
+"                      data set) with just a lot more commonsensical name.\n"
+"                      Definitely would be preferred way to go, for ease of\n"
+"                      usage!\n"
 "\n"
 "    -iters  NUMBER   :number of jackknife resample iterations,\n"
 "                      e.g. 50.\n"
@@ -364,6 +369,21 @@ int main(int argc, char *argv[]) {
 
 			iarg++ ; continue ;
 		}
+		else if( strcmp(argv[iarg],"-bmatrix_FULL") == 0 ){ 
+			if( ++iarg >= argc ) 
+				ERROR_exit("Need argument after '-bmatrix_FULL'");
+         
+			// if b-matrix is being used as input,
+			// have to find out still which one(s) are b=0.
+         BMAT = 1;
+         flim0 = mri_read_1D (strdup(argv[iarg]));
+         if (flim0 == NULL) 
+            ERROR_exit("Error reading matrix file");
+         flim = mri_transpose(flim0);
+         mri_free(flim0);
+
+			iarg++ ; continue ;
+		}
 
       if( strcmp(argv[iarg],"-mask") == 0 ){
          iarg++ ; if( iarg >= argc ) 
@@ -516,10 +536,10 @@ int main(int argc, char *argv[]) {
    if( BMAT==1) {
       if(Ncol!=6) 
          ERROR_exit("There are %d columns, but should be 6 for"
-                    "'-bmatrix_Z ...' input!", Ncol);
+                    "'-bmatrix_Z ...' or '-bmatrix_FULL ...' input!", Ncol);
       if(Ngrad!=Dim[3]) 
-         ERROR_exit("There are %d rows, but should be %d (same as"
-                    "in Nvol) for '-bmatrix_Z ...' input!", 
+         ERROR_exit("There are %d rows, but should be %d (same as in Nvol) "
+                    "for '-bmatrix_Z ...' or '-bmatrix_FULL ...' input!", 
                     Ngrad, Dim[3]);
    }
 
