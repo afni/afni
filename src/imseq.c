@@ -58,10 +58,19 @@ void ISQ_render_scal_CB( Widget w, XtPointer client_data, XtPointer call_data ) 
 void ISQ_popdown_render_scal( MCW_imseq *seq ) ;
 void ISQ_popup_render_scal( MCW_imseq *seq ) ;
 
+/* stuff for the VG effect */
+
 static float vgize_sigfac = 0.02f ;
 static MRI_IMAGE * mri_vgize( MRI_IMAGE *im ) ;
 #define VGFAC(sss) \
   ( ((sss)->opt.improc_code & ISQ_IMPROC_VG) ? (sss)->vgize_fac : 0.0f )
+#if 1
+#  define INDEX_TO_VGFAC(qq) ( powf(1.316074f,(float)((qq)-1))*0.01f )
+#  define VGFAC_TO_INDEX(vf) ( (int)(logf(100.01f*(vf))/logf(1.316074f)+1.01f))
+#else
+#  define INDEX_TO_VGFAC(qq) (0.01f*(qq))
+#  define VGFAC_TO_INDEX(vf) ((int)(100.01f*(vf)))
+#endif
 
 /************************************************************************
    Define the buttons and boxes that go in the "Disp" dialog
@@ -1723,7 +1732,7 @@ if( PRINT_TRACING ){
    newseq->rng_bot   = newseq->rng_top = newseq->rng_ztop = 0 ;
    newseq->flat_bot  = newseq->flat_top = 0.0 ;
    newseq->sharp_fac = 0.60f ; newseq->rng_extern = 0 ;
-   newseq->vgize_fac = 0.02f ;
+   newseq->vgize_fac = INDEX_TO_VGFAC(2) ;
 
    newseq->zer_color = 0 ;
    ii = DC_find_overlay_color( newseq->dc , getenv("AFNI_IMAGE_ZEROCOLOR") ) ;
@@ -8970,7 +8979,7 @@ ENTRY("ISQ_wbar_menu_CB") ;
 
    else if( w == seq->wbar_vgize_but ){
       MCW_choose_integer( seq->wimage , "VG Factor" ,
-                          1 , 9 , (int)(100.01*seq->vgize_fac) ,
+                          1 , 9 , VGFAC_TO_INDEX(seq->vgize_fac) ,
                           ISQ_set_vgize_CB , seq ) ;
    }
 
@@ -9071,7 +9080,7 @@ ENTRY("ISQ_set_vgize_CB") ;
 
    if( ! ISQ_REALZ(seq) || w == NULL || ! XtIsWidget(w) ) EXRETURN ;
 
-   seq->vgize_fac = 0.01f * cbs->ival ;
+   seq->vgize_fac = INDEX_TO_VGFAC(cbs->ival) ;
 
    ISQ_redisplay( seq , -1 , isqDR_reimage ) ;  /* redo current image */
    EXRETURN ;
