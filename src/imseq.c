@@ -13863,12 +13863,15 @@ static MRI_IMAGE * mri_streakize( MRI_IMAGE *im , MRI_IMAGE *sxim , MRI_IMAGE *s
    MRI_IMAGE *qim ; byte *qar , *iar ;
    float *sxar , *syar ;
    int nx,ny,nxy , kk,dk , ii,jj,sk, dd,di,dj , ei,ej , ns ;
-   float strk , sx,sy , rr,gg,bb ;
+   float strk , sx,sy , rr,gg,bb , bsig,slo,shi ;
 #ifdef USE_NOIS
    float rz,gz,bz ; int nois=0 ;
 #endif
 
    nx = im->nx ; ny = im->ny ; nxy = nx*ny ;
+   bsig = sqrtf(nx*(float)ny) ;
+   slo  = 0.001f*bsig ; if( slo < 2.0f     ) slo = 2.0f ;
+   shi  = 0.011f*bsig ; if( shi < 6.6f*slo ) shi = 6.6f*slo ;
 
    qim = mri_copy(im) ; qar = MRI_RGB_PTR(qim) ; iar = MRI_RGB_PTR(im) ;
    sxar = MRI_FLOAT_PTR(sxim) ; syar = MRI_FLOAT_PTR(syim) ;
@@ -13879,11 +13882,13 @@ static MRI_IMAGE * mri_streakize( MRI_IMAGE *im , MRI_IMAGE *sxim , MRI_IMAGE *s
      /* get streak vector */
      sx = sxar[kk] ; sy = syar[kk] ;
      strk = sqrtf(sx*sx+sy*sy) ;
-     if( strk < 1.0f ){
-       sx = 4.0*drand48()-2.0; sy = 4.0*drand48()-2.0; strk = sqrtf(sx*sx+sy*sy);
+     if( strk < slo ){
+       sx = (2.0f*drand48()-1.0f) * slo ;
+       sy = (2.0f*drand48()-1.0f) * slo ;
+       strk = sqrtf(sx*sx+sy*sy);
      }
      sx /= strk ; sy /= strk ;
-     if( strk < 2.0f ) strk = 2.0f; else if( strk > 29.0f ) strk = 29.0f;
+     if( strk < slo ) strk = slo; else if( strk > shi ) strk = shi ;
      sk = (int)(strk+0.499f) ;
      /* color at start pixel */
      rr = iar[3*kk+0]; gg = iar[3*kk+1]; bb = iar[3*kk+2]; ns = 1;
