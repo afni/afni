@@ -994,6 +994,7 @@ STATUS("loading censored datasets") ;
      inset_mrv = THD_dset_censored_to_vectim( tp->inset, vmask, ntkeep, keep ) ;
    }
    DSET_unload(tp->inset) ;
+   THD_check_vectim(inset_mrv,"3dTproject input data") ;
 
    if( tp->dsortar != NULL ){
 STATUS("loading dsortar") ;
@@ -1006,6 +1007,7 @@ STATUS("loading dsortar") ;
                                                       vmask, ntkeep, keep ) ;
        DSET_unload(tp->dsortar->ar[jj]) ;
        THD_vectim_applyfunc( dsort_mrv[jj] , vector_demean ) ;
+       THD_check_vectim(dsort_mrv[jj],"3dTproject dsort data") ;
      }
    }
 

@@ -1577,7 +1577,7 @@ int main( int argc , char *argv[] )
    float *workspace=NULL , *datAAA , *datBBB=NULL , *resar ; size_t nws=0 ;
    float_pair tpair ;
    THD_3dim_dataset *outset , *bbset=NULL , *rrset=NULL ;
-   char blab[64] , *stnam ;
+   char blab[64] , *stnam , msg[1024] ;
    float dof_AB=0.0f , dof_A=0.0f , dof_B=0.0f ;
    int BminusA=-1 , ntwosam=0 ;  /* 05 Nov 2010 */
    int dupe_ok=0;  /* 1 Jun 2015 [rickr] */
@@ -2782,6 +2782,9 @@ int main( int argc , char *argv[] )
              if( covvim_BBB[jj] == NULL ){
                ERROR_message("Can't assemble dataset vectors for covariate #%d",jj+1) ;
                nbad++ ;
+             } else {
+               sprintf(msg,"3dttest++ -setB covariate #%d",jj+1) ;
+               THD_check_vectim(covvim_BBB[jj],msg) ;
              }
            }
            for( kk=0 ; kk < ndset_BBB ; kk++ )         /* tossola la trashola */
@@ -2834,6 +2837,9 @@ int main( int argc , char *argv[] )
              if( covvim_AAA[jj] == NULL ){
                ERROR_message("Can't assemble dataset vectors for covariate #%d",jj+1) ;
                nbad++ ;
+             } else {
+               sprintf(msg,"3dttest++ -setB covariate #%d",jj+1) ;
+               THD_check_vectim(covvim_BBB[jj],msg) ;
              }
            }
            for( kk=0 ; kk < ndset_AAA ; kk++ )       /* toss out the trashola */
@@ -3186,10 +3192,14 @@ LABELS_ARE_DONE:  /* target for goto above */
        vectim_AAA = THD_dset_list_censored_to_vectim( ndset_AAA , dset_AAA ,
                                                       mask , 1 , keep       ) ;
        for( ii=0 ; ii < ndset_AAA ; ii++ ) DSET_unload_one(dset_AAA[ii],bb) ;
+       sprintf(msg,"3dttest++ -setA brickwise #%d",bb) ;
+       THD_check_vectim(vectim_AAA,msg) ;
        if( twosam ){
          vectim_BBB = THD_dset_list_censored_to_vectim( ndset_BBB , dset_BBB ,
                                                         mask , 1 , keep       ) ;
          for( ii=0 ; ii < ndset_BBB ; ii++ ) DSET_unload_one(dset_BBB[ii],bb) ;
+         sprintf(msg,"3dttest++ -setB brickwise #%d",bb) ;
+         THD_check_vectim(vectim_BBB,msg) ;
        }
        if( debug ) MEMORY_CHECK ;
      }
