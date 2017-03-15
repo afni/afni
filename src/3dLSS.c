@@ -542,7 +542,7 @@ int main( int argc , char *argv[] )
      if( jst_bot < 0 || jst_top < 0 )
        ERROR_exit("Can't decode matrix attribute %s",nbuf) ;
      if( jst_bot >= jst_top || jst_top >= ncmat )
-       ERROR_exit("Matrix attribute %s has illegal value",nbuf) ;
+       ERROR_exit("Matrix attribute %s has illegal value: %d:%d (ncmat=%d)",nbuf,jst_bot,jst_top,ncmat) ;
      sprintf(nbuf,"BasisName_%06d",jj) ;
      cgl = NI_get_attribute( nelmat , nbuf ) ;
      if( cgl != NULL ) stlab = strdup(cgl) ;
