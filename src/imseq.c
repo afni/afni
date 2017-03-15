@@ -3197,7 +3197,9 @@ ENTRY("ISQ_make_image") ;
 
    if( vfac > 0.0f ){
      MRI_IMAGE *qim ;
+     MCW_invert_widget(seq->wbut_bot[NBUT_DISP]) ;
      vgize_sigfac = vfac ; qim = mri_vgize(tim) ;
+     MCW_invert_widget(seq->wbut_bot[NBUT_DISP]) ;
      if( qim != NULL ){
        if( tim != im ) KILL_1MRI(tim);
        tim = qim;
@@ -9918,7 +9920,9 @@ STATUS("Destroying overlay image array") ;
 
    if( vfac > 0.0f ){
      MRI_IMAGE *qim ;
+     MCW_invert_widget(seq->wbut_bot[NBUT_DISP]) ;
      vgize_sigfac = vfac ; qim = mri_vgize(tim) ;
+     MCW_invert_widget(seq->wbut_bot[NBUT_DISP]) ;
      if( qim != NULL ){
        if( tim != im ) KILL_1MRI(tim);
        tim = qim;
@@ -13874,8 +13878,8 @@ static MRI_IMAGE * mri_streakize( MRI_IMAGE *im , MRI_IMAGE *sxim , MRI_IMAGE *s
 
    nx = im->nx ; ny = im->ny ; nxy = nx*ny ;
    bsig = sqrtf(nx*(float)ny) ;
-   slo  = 0.002f*bsig ; if( slo < 2.0f     ) slo = 2.0f ;
-   shi  = 0.011f*bsig ; if( shi < 6.6f*slo ) shi = 6.6f*slo ;
+   slo  = 0.004f*bsig ; if( slo < 2.0f     ) slo = 2.0f ;
+   shi  = 0.024f*bsig ; if( shi < 6.0f*slo ) shi = 6.0f*slo ;
 
    qim = mri_copy(im) ; qar = MRI_RGB_PTR(qim) ; iar = MRI_RGB_PTR(im) ;
    sxar = MRI_FLOAT_PTR(sxim) ; syar = MRI_FLOAT_PTR(syim) ;
@@ -13886,12 +13890,13 @@ static MRI_IMAGE * mri_streakize( MRI_IMAGE *im , MRI_IMAGE *sxim , MRI_IMAGE *s
      /* get streak vector */
      sx = sxar[kk] ; sy = syar[kk] ;
      strk = sqrtf(sx*sx+sy*sy) ;
-     if( strk < slo ){
-       sx = (2.0f*drand48()-1.0f) * slo ;
-       sy = (2.0f*drand48()-1.0f) * slo ;
-       strk = sqrtf(sx*sx+sy*sy);
+     if( strk == 0.0f ){
+       sx = (2.0f*drand48()-1.0f)*slo ;
+       sy = (2.0f*drand48()-1.0f)*slo ; strk = sqrtf(sx*sx+sy*sy);
+     } else if( strk < slo ){
+       sx *= (slo/strk) ; sy *= (slo/strk) ; strk = slo ;
      }
-     sx /= strk ; sy /= strk ;
+     sx /= strk ; sy /= strk ; /* unit vector */
      if( strk < slo ) strk = slo; else if( strk > shi ) strk = shi ;
      sk = (int)(strk+0.499f) ;
      /* color at start pixel */
@@ -13937,39 +13942,37 @@ static MRI_IMAGE * mri_vgize( MRI_IMAGE *iim )
    nx = im->nx ; ny = im->ny ; nxy = nx*ny ;
 
    bsig = sqrtf(nx*(float)ny) * vgize_sigfac ;
-   if( bsig < 1.5f ) bsig = 1.5f ;
+   if( bsig < 1.9f ) bsig = 1.9f ;
 /* INFO_message("mri_vgize: nx=%d ny=%d bsig=%.3f",nx,ny,bsig) ; */
 
-#define USE_NOIS
-#define NOIS_SIZ  39.0f
+#define NOIS_SIZ  33.0f
 
-#ifdef USE_NOIS
+#ifdef NOIS_SIZ
  { MRI_IMAGE *rrim , *ggim , *bbim , *qqim ;
-   float     *rrar , *ggar , *bbar , rgbmax , rr,gg,bb,qq ;
+   float     *rrar , *ggar , *bbar , rmax,gmax,bmax , rr,gg,bb,qq ;
    rrim = mri_new_conforming(im,MRI_float) ; rrar = MRI_FLOAT_PTR(rrim) ;
    ggim = mri_new_conforming(im,MRI_float) ; ggar = MRI_FLOAT_PTR(ggim) ;
    bbim = mri_new_conforming(im,MRI_float) ; bbar = MRI_FLOAT_PTR(bbim) ;
    for( kk=0 ; kk < nxy ; kk++ ){
-     rrar[kk] = (float)(10.0*drand48()-5.5) ;
-     ggar[kk] = (float)(10.0*drand48()-6.0) ;
+     rrar[kk] = (float)(10.0*drand48()-5.0) ;
+     ggar[kk] = (float)(10.0*drand48()-5.0) ;
      bbar[kk] = (float)(10.0*drand48()-5.0) ;
    }
-   qqim = mri_float_blur2D(0.5f*bsig,rrim); mri_free(rrim); rrim = qqim; rrar = MRI_FLOAT_PTR(rrim);
-   qqim = mri_float_blur2D(0.5f*bsig,ggim); mri_free(ggim); ggim = qqim; ggar = MRI_FLOAT_PTR(ggim);
-   qqim = mri_float_blur2D(0.5f*bsig,bbim); mri_free(bbim); bbim = qqim; bbar = MRI_FLOAT_PTR(bbim);
-   rgbmax = 0.0f ;
+   qqim = mri_float_blur2D(0.4f*bsig,rrim); mri_free(rrim); rrim = qqim; rrar = MRI_FLOAT_PTR(rrim);
+   qqim = mri_float_blur2D(0.4f*bsig,ggim); mri_free(ggim); ggim = qqim; ggar = MRI_FLOAT_PTR(ggim);
+   qqim = mri_float_blur2D(0.4f*bsig,bbim); mri_free(bbim); bbim = qqim; bbar = MRI_FLOAT_PTR(bbim);
+   rmax = gmax = bmax = 0.0f ;
    for( kk=0 ; kk < nxy ; kk++ ){
-     qq = fabsf(rrar[kk]) ; if( qq > rgbmax ) rgbmax = qq ;
-     qq = fabsf(ggar[kk]) ; if( qq > rgbmax ) rgbmax = qq ;
-     qq = fabsf(bbar[kk]) ; if( qq > rgbmax ) rgbmax = qq ;
+     qq = fabsf(rrar[kk]) ; if( qq > rmax ) rmax = qq ;
+     qq = fabsf(ggar[kk]) ; if( qq > gmax ) gmax = qq ;
+     qq = fabsf(bbar[kk]) ; if( qq > bmax ) bmax = qq ;
    }
-   rgbmax = NOIS_SIZ / rgbmax ;
+   rmax = NOIS_SIZ/rmax ; gmax = NOIS_SIZ/gmax ; bmax = NOIS_SIZ/bmax ;
 
    for( kk=0 ; kk < nxy ; kk++ ){
-     rr = iar[3*kk+0] + rrar[kk]*rgbmax ;
-     gg = iar[3*kk+1] + ggar[kk]*rgbmax ;
-     bb = iar[3*kk+2] + bbar[kk]*rgbmax ;
-     iar[3*kk+0] = BYTEIZE(rr); iar[3*kk+1] = BYTEIZE(gg); iar[3*kk+2] = BYTEIZE(bb);
+     rr = (float)iar[3*kk+0] + rrar[kk]*rmax; iar[3*kk+0] = BYTEIZE(rr);
+     gg = (float)iar[3*kk+1] + ggar[kk]*gmax; iar[3*kk+1] = BYTEIZE(gg);
+     bb = (float)iar[3*kk+2] + bbar[kk]*bmax; iar[3*kk+2] = BYTEIZE(bb);
    }
    mri_free(rrim); mri_free(ggim); mri_free(bbim);
  }
@@ -14014,11 +14017,7 @@ static MRI_IMAGE * mri_vgize( MRI_IMAGE *iim )
    slen = 1.3f * bsig ;
    for( kk=0 ; kk < nxy ; kk++ ){
      bx = bxar[kk]*bmax ; by = byar[kk]*bmax ; gsiz = sqrtf(bx*bx+by*by) ;
-     if( gsiz < 0.04f ){  /* very small gradient ==> minimal streak len */
-       if( gsiz > 0.0f ){
-         bx *= (0.111f*slen/gsiz) ; by *= (0.111f*slen/gsiz) ;
-       }
-     } else {              /* non-trivial gradient ==> larger streak len */
+     if( gsiz > 0.0f ){
        cc = 0.111f + 2.69f*gsiz ; if( cc > 1.0f ) cc = 1.0f ;
        bx *= (cc*slen/gsiz) ; by *= (cc*slen/gsiz) ;
      }
