@@ -165,6 +165,7 @@ int main( int argc , char * argv[] )
    PRINT_VERSION("3dBandpass"); AUTHOR("RW Cox");
 
    WARNING_message("(-: For most purposes, 3dTproject is superior to 3dBandpass :-)") ;
+   WARNING_message("(-: Even better is to use afni_proc.py for pre-processing!! :-)") ;
 
    nosat =  AFNI_yesenv("AFNI_SKIP_SATCHECK") ;
 
