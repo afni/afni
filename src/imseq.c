@@ -13947,17 +13947,18 @@ static MRI_IMAGE * mri_vgize( MRI_IMAGE *iim )
    if( bsig < 1.9f ) bsig = 1.9f ;
 /* INFO_message("mri_vgize: nx=%d ny=%d bsig=%.3f",nx,ny,bsig) ; */
 
-#define NOIS_SIZ  29.0f
+#define NOIS_SIZ  27.0f
 
    /* add colored noise to the image */
 #ifdef NOIS_SIZ
  { MRI_IMAGE *rrim , *ggim , *bbim , *qqim ;
-   float     *rrar , *ggar , *bbar , rmax,gmax,bmax , rr,gg,bb,qq ;
+   float     *rrar , *ggar , *bbar , rmax,gmax,bmax , rr,gg,bb,qq , nois ;
    rrim = mri_new_conforming(im,MRI_float) ; rrar = MRI_FLOAT_PTR(rrim) ;
    ggim = mri_new_conforming(im,MRI_float) ; ggar = MRI_FLOAT_PTR(ggim) ;
    bbim = mri_new_conforming(im,MRI_float) ; bbar = MRI_FLOAT_PTR(bbim) ;
+   nois = NOIS_SIZ + 222.2f*vgize_sigfac ;
    for( kk=0 ; kk < nxy ; kk++ ){
-     rrar[kk] = (float)(10.0*drand48()-5.0) ;
+     rrar[kk] = (float)(11.0*drand48()-5.0) ;
      ggar[kk] = (float)(10.0*drand48()-5.0) ;
      bbar[kk] = (float)(11.0*drand48()-5.0) ;
    }
