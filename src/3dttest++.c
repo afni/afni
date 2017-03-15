@@ -3537,7 +3537,7 @@ LABELS_ARE_DONE:  /* target for goto above */
      /* how many iterations? */
 
      ncsim = (int)AFNI_numenv("AFNI_TTEST_NUMCSIM") ;  /* 0 if not set */
-          if( ncsim <    10000 ) ncsim =  ncmin ;
+          if( ncsim <     1000 ) ncsim =  ncmin ;
      else if( ncsim > 10000000 ) ncsim = 10000000 ;    /* that's a lot */
 
      cmd  = (char *)malloc(sizeof(char)*(16384+mcov*256+(nval_AAA+nval_BBB)*512)) ;
