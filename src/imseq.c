@@ -13867,7 +13867,7 @@ ENTRY("ISQ_save_anim") ;
 }
 
 /*----------------------------------------------------------------------------*/
-/**** Stuff for the VG effect [RWC Feb 2017] ****/
+/**** Stuff for the fun fun fun VG effect [RWC Feb 2017] ****/
 
 static MRI_IMAGE * mri_streakize( MRI_IMAGE *im , MRI_IMAGE *sxim , MRI_IMAGE *syim )
 {
@@ -13878,6 +13878,8 @@ static MRI_IMAGE * mri_streakize( MRI_IMAGE *im , MRI_IMAGE *sxim , MRI_IMAGE *s
 
    nx = im->nx ; ny = im->ny ; nxy = nx*ny ;
    bsig = sqrtf(nx*(float)ny) ;
+
+   /* min and max streak sizes */
    slo  = 0.004f*bsig ; if( slo < 2.0f     ) slo = 2.0f ;
    shi  = 0.024f*bsig ; if( shi < 6.0f*slo ) shi = 6.0f*slo ;
 
@@ -13945,8 +13947,9 @@ static MRI_IMAGE * mri_vgize( MRI_IMAGE *iim )
    if( bsig < 1.9f ) bsig = 1.9f ;
 /* INFO_message("mri_vgize: nx=%d ny=%d bsig=%.3f",nx,ny,bsig) ; */
 
-#define NOIS_SIZ  33.0f
+#define NOIS_SIZ  29.0f
 
+   /* add colored noise to the image */
 #ifdef NOIS_SIZ
  { MRI_IMAGE *rrim , *ggim , *bbim , *qqim ;
    float     *rrar , *ggar , *bbar , rmax,gmax,bmax , rr,gg,bb,qq ;
@@ -13956,7 +13959,7 @@ static MRI_IMAGE * mri_vgize( MRI_IMAGE *iim )
    for( kk=0 ; kk < nxy ; kk++ ){
      rrar[kk] = (float)(10.0*drand48()-5.0) ;
      ggar[kk] = (float)(10.0*drand48()-5.0) ;
-     bbar[kk] = (float)(10.0*drand48()-5.0) ;
+     bbar[kk] = (float)(11.0*drand48()-5.0) ;
    }
    qqim = mri_float_blur2D(0.4f*bsig,rrim); mri_free(rrim); rrim = qqim; rrar = MRI_FLOAT_PTR(rrim);
    qqim = mri_float_blur2D(0.4f*bsig,ggim); mri_free(ggim); ggim = qqim; ggar = MRI_FLOAT_PTR(ggim);
@@ -14035,7 +14038,7 @@ static MRI_IMAGE * mri_vgize( MRI_IMAGE *iim )
 
    /* rotate streak directions randomly */
    if( bmax > 0.0f ){
-     bmax = (40.0f * PI/180.0f) / bmax ;
+     bmax = (33.3f * PI/180.0f) / bmax ;  /* max angle is 33.3 degrees */
      for( kk=0 ; kk < nxy ; kk++ ){
        bx = bxar[kk] ; by = byar[kk] ;
        gsiz = sqrtf(bx*bx+by*by) ;
