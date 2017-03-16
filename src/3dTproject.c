@@ -628,7 +628,9 @@ STATUS("count un-censored points") ;
                   nt , nt-ntkeep , ntkeep ) ;
 
    if( ntkeep < MIN_RUN )
-     ERROR_exit("only %d points left after censoring -- cannot continue",ntkeep) ;
+     ERROR_exit(
+       "only %d points left after censoring -- cannot continue (need at least %d)",
+       ntkeep,MIN_RUN) ;
 
    /** The number of time points to use in regression [06 Dec 2013] **/
 
@@ -643,7 +645,9 @@ STATUS("count un-censored points in each run") ;
        aa = bla[tt] ; bb = blb[tt] ;
        for( nnk=0,jj=aa ; jj <= bb ; jj++ ) if( tp->censar[jj] != 0.0f ) nnk++ ;
        if( nnk < MIN_RUN ){
-         ERROR_message("run #%d has only %d points after censoring",tt+1,nnk) ;
+         ERROR_message(
+           "run #%d has only %d points after censoring (need at least %d)",
+           tt+1,nnk,MIN_RUN) ;
          nerr++ ;
        }
      }
@@ -840,11 +844,11 @@ STATUS("making explicit mask") ;
 STATUS("making automask") ;
      vmask = THD_automask( tp->inset ) ;
      if( vmask == NULL )
-       ERROR_exit("Can't mask automask for some reason :-( !!") ;
+       ERROR_exit("Can't mask automask for some unknown reason :-( !!") ;
      nvmask = THD_countmask( DSET_NVOX(tp->inset) , vmask ) ;
      INFO_message("%d voxels in the spatial automask",nvmask) ;
      if( nvmask == 0 )
-       ERROR_exit("autoask from input dataset %s has 0 voxels",DSET_BRIKNAME(tp->inset)) ;
+       ERROR_exit("automask from input dataset %s has 0 voxels",DSET_BRIKNAME(tp->inset)) ;
 
    } else {   /*** all voxels */
 
@@ -940,7 +944,9 @@ STATUS("censoring orts") ;
        if( is_vector_zero(ntkeep,opp) ) qort-- ;
      }
      if( qort < nort_fixed ){  /* it might have shrunk above */
-       INFO_message("%d fixed ort vectors discarded as all zero, after censoring",nort_fixed-qort) ;
+       INFO_message(
+         "%d fixed ort vectors (out of %d original) discarded as all zero, after censoring",
+         nort_fixed-qort,nort_fixed) ;
        nort_fixed = qort ;
      }
      if( nort_fixed == 0 )
@@ -1424,7 +1430,7 @@ int main( int argc , char *argv[] )
      ERROR_exit("input dataset has fewer than %d time points?",MIN_RUN) ;
 
    if( tinp->maskset != NULL && !EQUIV_GRIDXYZ(tinp->inset,tinp->maskset) )
-     ERROR_exit("mask and input datasets are NOT on the same 3D grid?") ;
+     ERROR_exit("mask and input datasets are NOT on the same 3D grid -- do you need 3dresample?") ;
 
    DSET_load(tinp->inset) ; CHECK_LOAD_ERROR(tinp->inset) ;
    if( tinp->maskset != NULL ){
@@ -1492,7 +1498,7 @@ int main( int argc , char *argv[] )
    if( tinp->censar != NULL   ) nact++ ;
    if( tinp->num_CENSOR > 0   ) nact++ ;
    if( nact == 0 )
-     ERROR_exit("Don't you want to DO something?") ;
+     ERROR_exit("Don't you want to DO something? Please read the help!") ;
 
    /*----- process the data -----*/
 
@@ -1508,7 +1514,7 @@ int main( int argc , char *argv[] )
      DSET_write(tinp->outset) ;
      if( tinp->verb ) WROTE_DSET(tinp->outset) ;
    } else {
-     ERROR_exit("Processing the data failed for unknown reasons!") ;
+     ERROR_exit("Processing the data failed for unknown reasons :(") ;
    }
 
    if( tinp->verb )
