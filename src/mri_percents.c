@@ -3,7 +3,7 @@
    of Wisconsin, 1994-2000, and are released under the Gnu General Public
    License, Version 2.  See the file README.Copyright for details.
 ******************************************************************************/
-   
+
 #include "mrilib.h"
 
 /*** 7D SAFE ***/
@@ -638,13 +638,32 @@ void mri_percents( MRI_IMAGE *im , int nper , float per[] )
    image value will be 0.173.  The output image is in MRI_float format.
 *****************************************************************************/
 
+/* 'softening' of the flattening thru a parameter 'bfac' between 0 and 1.
+   bfac = amount of histogram that is pure flat (1 = all of it);
+   afac = quadratic part of histogram = 6*(1-bfac)                       */
+
+#define USE_BFAC
+
+#ifdef  USE_BFAC
+static float afac=0.0f ;
+static float bfac=1.0f ;
+void mri_flatten_set_bfac(float b)
+{
+  bfac = ( b >= 0.0f && b <= 1.0f ) ? b : 1.0f ;
+  afac = 6.0f * (1.0f-bfac) ;
+}
+# define FLATV(x) ( (x)*( bfac + afac*(x)*( 0.5f - 0.3333333f*(x) ) ) )
+#else
+# define FLATV(x) (x)
+#endif
+
 MRI_IMAGE * mri_flatten( MRI_IMAGE *im )
 {
    MRI_IMAGE *flim , *intim , *outim ;
    float *far , *outar ;
    int *iar ;
    int ii , nvox , ibot,itop , nvox1 ;
-   float fac , val ;
+   float fac , val , xval ;
 
 #ifdef DEBUG
 printf("Entry: mri_flatten\n") ;
@@ -681,7 +700,7 @@ printf("Entry: mri_flatten\n") ;
         them by their average position in the histogram.
    ***/
 
-   fac = 1.0 / nvox ; nvox1 = nvox - 1 ;
+   fac = 1.0f/nvox ; nvox1 = nvox - 1 ;
 
    for( ibot=0 ; ibot < nvox1 ; ){
 
@@ -689,7 +708,7 @@ printf("Entry: mri_flatten\n") ;
 
       val = far[ibot] ; itop = ibot+1 ;
       if( val != far[itop] ){
-         far[ibot] = fac *ibot ;
+         xval = fac*ibot ; far[ibot] = FLATV(xval) ;
          ibot++ ; continue ;
       }
 
@@ -697,11 +716,11 @@ printf("Entry: mri_flatten\n") ;
 
       for( ; itop < nvox1 && val == far[itop] ; itop++ ) ; /* nada */
 
-      val = 0.5*fac * (ibot+itop-1) ;
-      for( ii=ibot ; ii < itop ; ii++ ) far[ii] = val ;
+      val = 0.5f*fac * (ibot+itop-1) ; xval = FLATV(val) ;
+      for( ii=ibot ; ii < itop ; ii++ ) far[ii] = xval ;
       ibot = itop ;
    }
-   far[nvox1] = 1.0 ;
+   far[nvox1] = 1.0f ;
 
    /*** now propagate these values back to the output image ***/
 
