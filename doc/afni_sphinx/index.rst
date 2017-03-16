@@ -1,7 +1,7 @@
-.. SUMA documentation master file, created by
-   sphinx-quickstart on Mon Feb  3 14:04:34 2014.
-   You can adapt this file completely to your liking, but it should at least
-   contain the root `toctree` directive.
+.. SUMA documentation master file, created by sphinx-quickstart on Mon
+   Feb 3 14:04:34 2014.  You can adapt this file completely to your
+   liking, but it should at least contain the root `toctree`
+   directive.
 
 ================================
 Welcome to AFNI's documentation!
@@ -23,6 +23,7 @@ Welcome to AFNI's documentation!
    programs/main_toc
    glossary
    references
+   afni_home
 
 ==================
 Indices and tables
