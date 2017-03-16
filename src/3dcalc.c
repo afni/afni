@@ -444,6 +444,8 @@ void CALC_read_opts( int argc , char * argv[] )
          nopt++ ;
          if( nopt >= argc )
            ERROR_exit("need argument after -prefix!\n") ;
+         if( !THD_filename_ok(argv[nopt]) )
+           ERROR_exit("argument after -prefix is not a good name: '%s'",argv[nopt]) ;
          MCW_strncpy( CALC_output_prefix , argv[nopt++] , THD_MAX_NAME ) ;
          continue ;
       }
@@ -461,14 +463,14 @@ void CALC_read_opts( int argc , char * argv[] )
 
       if( strncasecmp(argv[nopt],"-expr",4) == 0 ){
          if( CALC_code != NULL )
-           ERROR_exit("cannot have 2 -expr options!\n") ;
+           ERROR_exit("you cannot have 2 -expr options!\n") ;
          nopt++ ;
          if( nopt >= argc )
             ERROR_exit("need argument after -expr!\n") ;
          PARSER_set_printout(1) ;  /* 21 Jul 2003 */
          CALC_code = PARSER_generate_code( argv[nopt++] ) ;
          if( CALC_code == NULL )
-            ERROR_exit("illegal expression!\n") ;
+            ERROR_exit("illegal expression -- see the help for details") ;
          PARSER_mark_symbols( CALC_code , CALC_has_sym ) ; /* 15 Sep 1999 */
          continue ;
       }
@@ -507,15 +509,15 @@ void CALC_read_opts( int argc , char * argv[] )
 
          ival = argv[nopt][1] - 'a' ;
          if( VAR_DEFINED(ival) )
-            ERROR_exit("Can't define %c symbol twice\n",argv[nopt][1]);
+            ERROR_exit("Can't define %c symbol twice",argv[nopt][1]);
 
          isub = (ids == 2) ? 0 : strtol(argv[nopt]+2,NULL,10) ;
          if( isub < 0 )
-            ERROR_exit("Illegal sub-brick value: %s\n",argv[nopt]) ;
+            ERROR_exit("Illegal negative sub-brick value: %s",argv[nopt]) ;
 
          nopt++ ;
          if( nopt >= argc )
-            ERROR_exit("need argument after %s\n",argv[nopt-1]);
+            ERROR_exit("need argument after %s",argv[nopt-1]);
 
          /*-- 22 Feb 2005: allow for I:, J:, K: prefix --*/
 
@@ -566,10 +568,10 @@ void CALC_read_opts( int argc , char * argv[] )
             /*- sanity checks -*/
 
             if( ids > 2 )
-              ERROR_exit("Can't combine %s with differential subscripting %s\n",
+              ERROR_exit("Can't combine %s with differential subscripting %s",
                          argv[nopt-1],argv[nopt]) ;
             if( CALC_dset[jds] == NULL )
-              ERROR_exit("Must define dataset %c before using it in %s\n",
+              ERROR_exit("Must define dataset %c before using it in %s",
                          argv[nopt][0] , argv[nopt] ) ;
 
             /*- get subscripts -*/
@@ -674,7 +676,12 @@ void CALC_read_opts( int argc , char * argv[] )
             }
             if( nxyz != CALC_nvox ){
                ERROR_exit(
-                "dataset %s differs in size [%d voxels] from others [%d]\n",
+                "dataset %s differs in size [%d voxels] from others [%d]\n"
+                "    -->> Since calculations are done voxel-by-voxel and\n"
+                "         volume-by-volume, datasets must match both in\n"
+                "         number of voxels per volume, and number of volumes.\n"
+                "    -->> Depending on what you are doing, program 3dresample\n"
+                "         might be useful to you.\n" ,
                 argv[nopt-1] , nxyz , CALC_nvox ) ;
             }
         }
@@ -692,7 +699,7 @@ void CALC_read_opts( int argc , char * argv[] )
              if( DSET_BRICK_TYPE(dset,ii) != MRI_float ){
                far = calloc( sizeof(float) , nxyz ) ;
                if( far == NULL )
-                 ERROR_exit("can't malloc space for conversion\n");
+                 ERROR_exit("can't malloc space for conversion -- ran out of memory :(");
                EDIT_coerce_scale_type( nxyz , DSET_BRICK_FACTOR(dset,ii) ,
                                        DSET_BRICK_TYPE(dset,ii), DSET_ARRAY(dset,ii),
                                        MRI_float , far ) ;
@@ -786,7 +793,7 @@ void CALC_read_opts( int argc , char * argv[] )
            break ;
 
            default:
-             ERROR_exit("Dataset %s has illegal data type: %s\n" ,
+             ERROR_exit("Dataset %s has illegal data type for 3dcalc: %s\n" ,
                         argv[nopt-1] , MRI_type_name[CALC_type[ival]] ) ;
 
          } /* end of switch over type switch */
@@ -852,7 +859,10 @@ DSET_DONE: continue;  /*** target for various goto statements above ***/
 
    for (ids=0; ids < 26; ids ++)
       if (ntime[ids] > 1 && ntime[ids] != ntime_max ) {
-         ERROR_exit("Multi-brick datasets don't have same number of volumes!\n");
+         ERROR_exit("Multi-brick datasets don't have same number of volumes [%d]!\n"
+                    "    -->> Since calculations are done voxel-by-voxel and\n"
+                    "         volume-by-volume, datasets must match both in\n"
+                    "         number of voxels per volume, and number of volumes.",ntime_max);
       }
 
    /* 17 Apr 1998: if all input datasets are 3D only (no time),
@@ -1625,7 +1635,7 @@ int main( int argc , char *argv[] )
       for( ids=0 ; ids < 26 ; ids++ ) if( CALC_dset[ids] != NULL &&
                                           ntime[ids] > 1           ) break ;
    }
-   if( ids == 26 ) ERROR_exit("Can't find template dataset?!\n") ;
+   if( ids == 26 ) ERROR_exit("Can't find template dataset?! [this should never happen]") ;
 
    new_dset = EDIT_empty_copy( CALC_dset[ids] ) ;
 
@@ -1748,7 +1758,7 @@ int main( int argc , char *argv[] )
 
       buf[kt] = (float *)calloc(1,tempsiz);
       if( buf[kt] == NULL )
-        ERROR_exit("Can't malloc output dataset sub-brick %d!\n",kt) ;
+        ERROR_exit("Can't malloc output dataset sub-brick %d -- out of memory :(",kt) ;
 
       /*** loop over voxels ***/
 
@@ -2199,7 +2209,7 @@ int main( int argc , char *argv[] )
    switch( CALC_datum ){
 
       default:
-        ERROR_exit("Somehow ended up with CALC_datum = %d\n",CALC_datum) ;
+        ERROR_exit("Somehow ended up with CALC_datum = %d [this should never happen]",CALC_datum) ;
       exit(1) ;
 
       /* the easy case! */
@@ -2310,7 +2320,7 @@ int main( int argc , char *argv[] )
            /* make space for output brick and scale into it */
 
            dfim[ii] = (void *) malloc( mri_datum_size(CALC_datum) * CALC_nvox ) ;
-           if( dfim[ii] == NULL ) ERROR_exit("malloc fails at output[%d]\n",ii);
+           if( dfim[ii] == NULL ) ERROR_exit("malloc fails at output[%d] -- out of memory :(",ii);
 
            if( CALC_datum == MRI_byte ){  /* 29 Nov 2004: check for bad byte-ization */
              int nneg ;
