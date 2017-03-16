@@ -58,10 +58,19 @@ void ISQ_render_scal_CB( Widget w, XtPointer client_data, XtPointer call_data ) 
 void ISQ_popdown_render_scal( MCW_imseq *seq ) ;
 void ISQ_popup_render_scal( MCW_imseq *seq ) ;
 
+/* stuff for the VG effect */
+
 static float vgize_sigfac = 0.02f ;
 static MRI_IMAGE * mri_vgize( MRI_IMAGE *im ) ;
 #define VGFAC(sss) \
   ( ((sss)->opt.improc_code & ISQ_IMPROC_VG) ? (sss)->vgize_fac : 0.0f )
+#if 1
+#  define INDEX_TO_VGFAC(qq) ( powf(1.316074f,(float)((qq)-1))*0.01f )
+#  define VGFAC_TO_INDEX(vf) ( (int)(logf(100.01f*(vf))/logf(1.316074f)+1.01f))
+#else
+#  define INDEX_TO_VGFAC(qq) (0.01f*(qq))
+#  define VGFAC_TO_INDEX(vf) ((int)(100.01f*(vf)))
+#endif
 
 /************************************************************************
    Define the buttons and boxes that go in the "Disp" dialog
@@ -1723,7 +1732,7 @@ if( PRINT_TRACING ){
    newseq->rng_bot   = newseq->rng_top = newseq->rng_ztop = 0 ;
    newseq->flat_bot  = newseq->flat_top = 0.0 ;
    newseq->sharp_fac = 0.60f ; newseq->rng_extern = 0 ;
-   newseq->vgize_fac = 0.02f ;
+   newseq->vgize_fac = INDEX_TO_VGFAC(2) ;
 
    newseq->zer_color = 0 ;
    ii = DC_find_overlay_color( newseq->dc , getenv("AFNI_IMAGE_ZEROCOLOR") ) ;
@@ -3188,7 +3197,9 @@ ENTRY("ISQ_make_image") ;
 
    if( vfac > 0.0f ){
      MRI_IMAGE *qim ;
+     MCW_invert_widget(seq->wbut_bot[NBUT_DISP]) ;
      vgize_sigfac = vfac ; qim = mri_vgize(tim) ;
+     MCW_invert_widget(seq->wbut_bot[NBUT_DISP]) ;
      if( qim != NULL ){
        if( tim != im ) KILL_1MRI(tim);
        tim = qim;
@@ -8970,7 +8981,7 @@ ENTRY("ISQ_wbar_menu_CB") ;
 
    else if( w == seq->wbar_vgize_but ){
       MCW_choose_integer( seq->wimage , "VG Factor" ,
-                          1 , 9 , (int)(100.01*seq->vgize_fac) ,
+                          1 , 9 , VGFAC_TO_INDEX(seq->vgize_fac) ,
                           ISQ_set_vgize_CB , seq ) ;
    }
 
@@ -9071,7 +9082,7 @@ ENTRY("ISQ_set_vgize_CB") ;
 
    if( ! ISQ_REALZ(seq) || w == NULL || ! XtIsWidget(w) ) EXRETURN ;
 
-   seq->vgize_fac = 0.01f * cbs->ival ;
+   seq->vgize_fac = INDEX_TO_VGFAC(cbs->ival) ;
 
    ISQ_redisplay( seq , -1 , isqDR_reimage ) ;  /* redo current image */
    EXRETURN ;
@@ -9909,7 +9920,9 @@ STATUS("Destroying overlay image array") ;
 
    if( vfac > 0.0f ){
      MRI_IMAGE *qim ;
+     MCW_invert_widget(seq->wbut_bot[NBUT_DISP]) ;
      vgize_sigfac = vfac ; qim = mri_vgize(tim) ;
+     MCW_invert_widget(seq->wbut_bot[NBUT_DISP]) ;
      if( qim != NULL ){
        if( tim != im ) KILL_1MRI(tim);
        tim = qim;
@@ -13854,21 +13867,21 @@ ENTRY("ISQ_save_anim") ;
 }
 
 /*----------------------------------------------------------------------------*/
-/**** Stuff for the VG effect [RWC Feb 2017] ****/
-
-#undef USE_NOIS  /* this stuff is useless */
+/**** Stuff for the fun fun fun VG effect [RWC Feb 2017] ****/
 
 static MRI_IMAGE * mri_streakize( MRI_IMAGE *im , MRI_IMAGE *sxim , MRI_IMAGE *syim )
 {
    MRI_IMAGE *qim ; byte *qar , *iar ;
    float *sxar , *syar ;
    int nx,ny,nxy , kk,dk , ii,jj,sk, dd,di,dj , ei,ej , ns ;
-   float strk , sx,sy , rr,gg,bb ;
-#ifdef USE_NOIS
-   float rz,gz,bz ; int nois=0 ;
-#endif
+   float strk , sx,sy , rr,gg,bb , bsig,slo,shi ;
 
    nx = im->nx ; ny = im->ny ; nxy = nx*ny ;
+   bsig = sqrtf(nx*(float)ny) ;
+
+   /* min and max streak sizes */
+   slo  = 0.004f*bsig ; if( slo < 2.0f     ) slo = 2.0f ;
+   shi  = 0.024f*bsig ; if( shi < 6.0f*slo ) shi = 6.0f*slo ;
 
    qim = mri_copy(im) ; qar = MRI_RGB_PTR(qim) ; iar = MRI_RGB_PTR(im) ;
    sxar = MRI_FLOAT_PTR(sxim) ; syar = MRI_FLOAT_PTR(syim) ;
@@ -13879,17 +13892,17 @@ static MRI_IMAGE * mri_streakize( MRI_IMAGE *im , MRI_IMAGE *sxim , MRI_IMAGE *s
      /* get streak vector */
      sx = sxar[kk] ; sy = syar[kk] ;
      strk = sqrtf(sx*sx+sy*sy) ;
-     if( strk < 1.0f ){
-       sx = 4.0*drand48()-2.0; sy = 4.0*drand48()-2.0; strk = sqrtf(sx*sx+sy*sy);
+     if( strk == 0.0f ){
+       sx = (2.0f*drand48()-1.0f)*slo ;
+       sy = (2.0f*drand48()-1.0f)*slo ; strk = sqrtf(sx*sx+sy*sy);
+     } else if( strk < slo ){
+       sx *= (slo/strk) ; sy *= (slo/strk) ; strk = slo ;
      }
-     sx /= strk ; sy /= strk ;
-     if( strk < 2.0f ) strk = 2.0f; else if( strk > 29.0f ) strk = 29.0f;
+     sx /= strk ; sy /= strk ; /* unit vector */
+     if( strk < slo ) strk = slo; else if( strk > shi ) strk = shi ;
      sk = (int)(strk+0.499f) ;
      /* color at start pixel */
      rr = iar[3*kk+0]; gg = iar[3*kk+1]; bb = iar[3*kk+2]; ns = 1;
-#ifdef USE_NOIS
-     rz = rr ; gz = gg ; bz = bb ;
-#endif
      ii = kk % nx ; jj = kk / nx ;
      for( dd=1 ; dd <= sk ; dd++ ){ /* streaking */
        di = (int)(dd*sx+0.499f) ; dj = (int)(dd*sy+0.499f) ;
@@ -13907,13 +13920,6 @@ static MRI_IMAGE * mri_streakize( MRI_IMAGE *im , MRI_IMAGE *sxim , MRI_IMAGE *s
      }
      if( ns > 1 ){  /* if we summed in any other pixels */
        rr /= ns ; gg /= ns ; bb /= ns ;
-#ifdef USE_NOIS
-       if( fabsf(rr-rz) < 5.0 && fabsf(gg-gz) < 5.0 && fabsf(bb-bz) < 5.0 ){
-         rr += (float)(30.0*drand48()-15.0) ;
-         gg += (float)(30.0*drand48()-15.0) ;
-         bb += (float)(30.0*drand48()-15.0) ; nois++ ;
-       }
-#endif
        qar[3*kk+0] = BYTEIZE(rr) ; qar[3*kk+1] = BYTEIZE(gg) ; qar[3*kk+2] = BYTEIZE(bb) ;
      }
    }
@@ -13930,9 +13936,6 @@ static MRI_IMAGE * mri_vgize( MRI_IMAGE *iim )
    int nx,ny,nxy , ii,jj,kk,joff ;
    float bsig , bmax , gsiz , blen , bx,by , slen , cc,ss ;
    byte *iar ;
-#ifdef USE_NOIS
-   float rr,gg,bb ; int nois=0 ;
-#endif
 
    if( iim == NULL ) return NULL ;
 
@@ -13941,15 +13944,50 @@ static MRI_IMAGE * mri_vgize( MRI_IMAGE *iim )
    nx = im->nx ; ny = im->ny ; nxy = nx*ny ;
 
    bsig = sqrtf(nx*(float)ny) * vgize_sigfac ;
-   if( bsig < 1.5f ) bsig = 1.5f ;
+   if( bsig < 1.9f ) bsig = 1.9f ;
 /* INFO_message("mri_vgize: nx=%d ny=%d bsig=%.3f",nx,ny,bsig) ; */
+
+#define NOIS_SIZ  27.0f
+
+   /* add colored noise to the image */
+#ifdef NOIS_SIZ
+ { MRI_IMAGE *rrim , *ggim , *bbim , *qqim ;
+   float     *rrar , *ggar , *bbar , rmax,gmax,bmax , rr,gg,bb,qq , nois ;
+   rrim = mri_new_conforming(im,MRI_float) ; rrar = MRI_FLOAT_PTR(rrim) ;
+   ggim = mri_new_conforming(im,MRI_float) ; ggar = MRI_FLOAT_PTR(ggim) ;
+   bbim = mri_new_conforming(im,MRI_float) ; bbar = MRI_FLOAT_PTR(bbim) ;
+   nois = NOIS_SIZ + 222.2f*vgize_sigfac ;
+   for( kk=0 ; kk < nxy ; kk++ ){
+     rrar[kk] = (float)(11.0*drand48()-5.0) ;
+     ggar[kk] = (float)(10.0*drand48()-5.0) ;
+     bbar[kk] = (float)(11.0*drand48()-5.0) ;
+   }
+   qqim = mri_float_blur2D(0.4f*bsig,rrim); mri_free(rrim); rrim = qqim; rrar = MRI_FLOAT_PTR(rrim);
+   qqim = mri_float_blur2D(0.4f*bsig,ggim); mri_free(ggim); ggim = qqim; ggar = MRI_FLOAT_PTR(ggim);
+   qqim = mri_float_blur2D(0.4f*bsig,bbim); mri_free(bbim); bbim = qqim; bbar = MRI_FLOAT_PTR(bbim);
+   rmax = gmax = bmax = 0.0f ;
+   for( kk=0 ; kk < nxy ; kk++ ){
+     qq = fabsf(rrar[kk]) ; if( qq > rmax ) rmax = qq ;
+     qq = fabsf(ggar[kk]) ; if( qq > gmax ) gmax = qq ;
+     qq = fabsf(bbar[kk]) ; if( qq > bmax ) bmax = qq ;
+   }
+   rmax = NOIS_SIZ/rmax ; gmax = NOIS_SIZ/gmax ; bmax = NOIS_SIZ/bmax ;
+
+   for( kk=0 ; kk < nxy ; kk++ ){
+     rr = (float)iar[3*kk+0] + rrar[kk]*rmax; iar[3*kk+0] = BYTEIZE(rr);
+     gg = (float)iar[3*kk+1] + ggar[kk]*gmax; iar[3*kk+1] = BYTEIZE(gg);
+     bb = (float)iar[3*kk+2] + bbar[kk]*bmax; iar[3*kk+2] = BYTEIZE(bb);
+   }
+   mri_free(rrim); mri_free(ggim); mri_free(bbim);
+ }
+#endif
 
    bxim = mri_to_float(im) ;
    blim = mri_float_blur2D( bsig , bxim ) ; mri_free(bxim) ;
    bar  = MRI_FLOAT_PTR(blim) ;
 
-   gxim = mri_copy(blim) ; gxar = MRI_FLOAT_PTR(gxim) ;
-   gyim = mri_copy(blim) ; gyar = MRI_FLOAT_PTR(gyim) ;
+   gxim = mri_new_conforming(blim,MRI_float) ; gxar = MRI_FLOAT_PTR(gxim) ;
+   gyim = mri_new_conforming(blim,MRI_float) ; gyar = MRI_FLOAT_PTR(gyim) ;
 
 /* ININFO_message("compute gradients") ; */
    for( jj=0 ; jj < ny ; jj++ ){
@@ -13983,18 +14021,7 @@ static MRI_IMAGE * mri_vgize( MRI_IMAGE *iim )
    slen = 1.3f * bsig ;
    for( kk=0 ; kk < nxy ; kk++ ){
      bx = bxar[kk]*bmax ; by = byar[kk]*bmax ; gsiz = sqrtf(bx*bx+by*by) ;
-     if( gsiz < 0.04f ){  /* very small gradient ==> minimal streak len */
-#ifdef USE_NOIS
-       rr = iar[3*kk+0]; gg = iar[3*kk+1]; bb = iar[3*kk+2]; nois++ ;
-       rr += (float)(40.0*drand48()-15.0) ;
-       gg += (float)(30.0*drand48()-15.0) ;
-       bb += (float)(30.0*drand48()-15.0) ;
-       iar[3*kk+0] = BYTEIZE(rr); iar[3*kk+1] = BYTEIZE(gg); iar[3*kk+2] = BYTEIZE(bb);
-#endif
-       if( gsiz > 0.0f ){
-         bx *= (0.111f*slen/gsiz) ; by *= (0.111f*slen/gsiz) ;
-       }
-     } else {              /* non-trivial gradient ==> larger streak len */
+     if( gsiz > 0.0f ){
        cc = 0.111f + 2.69f*gsiz ; if( cc > 1.0f ) cc = 1.0f ;
        bx *= (cc*slen/gsiz) ; by *= (cc*slen/gsiz) ;
      }
@@ -14012,7 +14039,7 @@ static MRI_IMAGE * mri_vgize( MRI_IMAGE *iim )
 
    /* rotate streak directions randomly */
    if( bmax > 0.0f ){
-     bmax = (40.0f * PI/180.0f) / bmax ;
+     bmax = (33.3f * PI/180.0f) / bmax ;  /* max angle is 33.3 degrees */
      for( kk=0 ; kk < nxy ; kk++ ){
        bx = bxar[kk] ; by = byar[kk] ;
        gsiz = sqrtf(bx*bx+by*by) ;

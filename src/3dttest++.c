@@ -347,17 +347,27 @@ void display_help_menu(void)
       "      [* more sophisticated type of 't-test' that also takes  *]\n"
       "      [* into account the variance map of each input dataset. *]\n"
       "\n"
-      "* Usage can be similar (but not identical) to the old 3dttest; for example:\n"
+      "* Usage can be similar (not identical) to the old 3dttest; for example [SHORT form]:\n"
       "\n"
       "    3dttest++ -setA a+tlrc'[3]' b+tlrc'[3]' ...\n"
       "\n"
-      "* OR, usage can be similar to 3dMEMA; for example:\n"
+      "* OR, usage can be similar to 3dMEMA; for example [LONG form]:\n"
       "\n"
       "    3dttest++ -setA Green sub001 a+tlrc'[3]' \\\n"
       "                          sub002 b+tlrc'[3]' \\\n"
       "                          sub003 c+tlrc'[3]' \\\n"
       "                            ...                \\\n"
       "                -covariates Cfile\n"
+      "\n"
+      "* Please note that in the second ('LONG') form of the '-setA' option,\n"
+      "  the first value after '-setA' is a label for the set (here, 'Green').\n"
+      " ++ After that, pairs of values are given; in each pair, the first\n"
+      "    entry is a label for the dataset that is the second entry.\n"
+      " ++ This dataset label is used as a key into the covariates file.\n"
+      " ++ If you want to have a label for the set, but do not wish (or need)\n"
+      "    to have a label for each dataset in the set, then you can use\n"
+      "    the SHORT form (first example above), and then provide the overall\n"
+      "    label for the set with the '-labelA' option.\n"
       "\n"
       "* You can input 1 or 2 sets of data (labeled 'A' and 'B').\n"
       "\n"
@@ -1023,11 +1033,27 @@ void display_help_menu(void)
 #endif
       "          -->>++ It is important to use the proper '-mask' option with '-Clustsim'.\n"
       "                 Otherwise, the statistics of the clustering will be skewed (badly).\n"
+      "          -->>++ You can change the number of simulations from the default 10000 by\n"
+      "                 setting Unix environment variable AFNI_TTEST_NUMCSIM to a different\n"
+      "                 value (in the range 1000..1000000). Note that the 3dClustSim tables\n"
+      "                 go down to a cluster-corrected false positive rate of 0.01, so that\n"
+      "                 reducing the number of simulations below 10000 will produce notably\n"
+      "                 less accurate results for such small FPR (alpha) values.\n"
+      "          -->>++ The clever scripter can pick out a particular value from a particular\n"
+      "                 3dClustSim output .1D file using the '{row}[col]' syntax of AFNI,\n"
+      "                 as in the tcsh command\n"
+      "                   set csize = `1dcat Fred.NN1_1sided.1D\"{10}[6]\"`\n"
+      "                 to pick out the number in the #10 row, #6 column (counting from #0),\n"
+      "                 which is the p=0.010 FPR=0.05 entry in the table.\n"
+      "                 (-: Further adventures in scripting mojo I leave to your whimsy :-)\n"
+      "          -->>++ At this time, there is no way to do voxelwise inference from these\n"
+      "                 permutatation/randomization simulations (rather than just using\n"
+      "                 the output t-statistics). Perhaps someday, if AFNI survives.\n"
       "\n"
       "        ---==>>> PLEASE NOTE: This option has been tested for 1- and 2-sample\n"
       "        ---==>>> unpaired and paired tests vs. resting state data -- to see if the\n"
-      "        ---==>>> false alarm rate (FAR) was near the nominal 5%% level (it was).\n"
-      "        ---==>>> The FAR for the covariate effects (as opposed to the main effect)\n"
+      "        ---==>>> false positive rate (FPR) was near the nominal 5%% level (it was).\n"
+      "        ---==>>> The FPR for the covariate effects (as opposed to the main effect)\n"
       "        ---==>>> is still somewhat biased away from the 5%% level :(\n"
       "\n"
       " -prefix_clustsim cc = Use 'cc' for the prefix for the '-Clustsim' temporary\n"
@@ -1567,7 +1593,7 @@ int main( int argc , char *argv[] )
    float *workspace=NULL , *datAAA , *datBBB=NULL , *resar ; size_t nws=0 ;
    float_pair tpair ;
    THD_3dim_dataset *outset , *bbset=NULL , *rrset=NULL ;
-   char blab[64] , *stnam ;
+   char blab[64] , *stnam , msg[1024] ;
    float dof_AB=0.0f , dof_A=0.0f , dof_B=0.0f ;
    int BminusA=-1 , ntwosam=0 ;  /* 05 Nov 2010 */
    int dupe_ok=0;  /* 1 Jun 2015 [rickr] */
@@ -2065,6 +2091,8 @@ int main( int argc , char *argv[] )
        if( ISVALID_DSET(qset) || HAS_WILDCARD(argv[nopt]) ){  /* 19 Jun 2012: globbing */
          int nexp,iex,didex ; char **fexp ;
 
+         INFO_message("option %s :: processing as SHORT form (all values are datasets)",
+                      argv[nopt-1]) ;
          if( ISVALID_DSET(qset) ){ DSET_delete(qset) ; qset = NULL ; }
          nds  = nv = 0 ;
          nams = (char **)malloc(sizeof(char *)) ;
@@ -2115,24 +2143,29 @@ int main( int argc , char *argv[] )
 
        } else {  /* not a dataset => label label dset label dset ... */
 
+         int ndlab=0 ;  /* 13 Mar 2017 */
+
          if( brickwise )
            ERROR_exit("You can't use -brickwise and use the LONG FORM for a set of datasets") ;
+
+         INFO_message("option %s :: processing as LONG form (label label dset label dset ...)",
+                      argv[nopt-1]) ;
 
          if( strstr(argv[nopt],"+orig") != NULL ||  /* 25 Apr 2014 */
              strstr(argv[nopt],"+tlrc") != NULL ||
              strstr(argv[nopt],".nii" ) != NULL   )
-           WARNING_message("-set%c: group label '%s' looks like a dataset name but isn't -- is this OK ?!?",
-                           cc , argv[nopt] ) ;
+           WARNING_message(
+             "-set%c: LONG form group label '%s' looks like a dataset name but isn't -- is this OK ?!?",
+             cc , argv[nopt] ) ;
 
          snam = strdup(argv[nopt]) ; LTRUNC(snam) ;
          for( nopt++ ; nopt < argc && argv[nopt][0] != '-' ; nopt+=2 ){
            if( nopt+1 >= argc || argv[nopt+1][0] == '-' ){
-             ERROR_message(
+             ERROR_exit(
               "Option %s: ends prematurely after option %s.\n"
-              "   Make sure you are properly formatting your -set[A/B] parameters.\n"
-              "   Search for 'SHORT FORM' and 'LONG FORM' in the output of %s -help\n"
-               ,onam, argv[nopt], argv[0]) ;
-             exit(1);
+              "     Make sure you are properly formatting your -set[A/B] parameters.\n"
+              "     Search for 'SHORT FORM' and 'LONG FORM' in the output of %s -help\n"
+               , onam, argv[nopt], argv[0]) ;
            }
 
            /* Check if the label looks like a dataset name;
@@ -2140,9 +2173,11 @@ int main( int argc , char *argv[] )
 
            if( strstr(argv[nopt],"+orig") != NULL ||
                strstr(argv[nopt],"+tlrc") != NULL ||
-               strstr(argv[nopt],".nii" ) != NULL   )
-             WARNING_message("-set%c: dataset label '%s' looks like a dataset name -- is this OK ?!?",
+               strstr(argv[nopt],".nii" ) != NULL   ){
+             WARNING_message("-set%c: LONG form dataset label '%s' looks like a dataset name -- is this OK ?!?",
                              cc , argv[nopt] ) ;
+             ndlab++ ;
+           }
 
            qset = THD_open_dataset( argv[nopt+1] ) ;
            if( !ISVALID_DSET(qset) )
@@ -2158,20 +2193,33 @@ int main( int argc , char *argv[] )
            labcheck = argv[nopt];
            labs[nds-1] = strdup(argv[nopt]  ) ; LTRUNC(labs[nds-1]) ;
            /* check syntax */
-           if (!iwarn &&
-               (is_possible_filename( labcheck ) )) {
+           if( !iwarn && is_possible_filename(labcheck) ){
               WARNING_message(
                "Label %s (%s) appears to be a file on disk.\n"
-               "  Perhaps your command line syntax for %s is incorrect.\n"
-               "  Look for 'SHORT FORM' and 'LONG FORM' in output of %s -help\n"
-               "  Similar warnings will be muted.\n"
-               ,labcheck, labs[nds-1], onam, argv[0]) ;
+               "      * Perhaps your command line syntax for %s is incorrect.\n"
+               "      * Look for 'SHORT FORM' and 'LONG FORM' in output of %s -help.\n"
+               , labcheck, labs[nds-1], onam, argv[0]) ;
               ++iwarn;
            }
          }
 
          if( nv < 2 )
            ERROR_exit("Option %s (long form): need at least 2 datasets",onam) ;
+
+         if( ndlab > 0 ){  /* 13 Mar 2017 */
+           fprintf(stderr,"\n") ;
+           WARNING_message(
+             "LONG form input for -set%c has potential problems:\n"
+             "      * Found %d LONG form label%s that looked like dataset names\n"
+             "      * These were not read as datasets but only as string labels.\n"
+             "      * If they were supposed to be datasets, then your command\n"
+             "        line is in error. Re-read the -help output to understand\n"
+             "        the difference between the LONG and SHORT forms of the\n"
+             "        -setA/-setB options.\n" ,
+             cc , ndlab , (ndlab==1) ? "\0" : "s" ) ;
+           fprintf(stderr,"\n") ;
+         }
+
        }
 
        /* check for grid size mismatch */
@@ -2750,6 +2798,9 @@ int main( int argc , char *argv[] )
              if( covvim_BBB[jj] == NULL ){
                ERROR_message("Can't assemble dataset vectors for covariate #%d",jj+1) ;
                nbad++ ;
+             } else {
+               sprintf(msg,"3dttest++ -setB covariate #%d",jj+1) ;
+               THD_check_vectim(covvim_BBB[jj],msg) ;
              }
            }
            for( kk=0 ; kk < ndset_BBB ; kk++ )         /* tossola la trashola */
@@ -2802,6 +2853,9 @@ int main( int argc , char *argv[] )
              if( covvim_AAA[jj] == NULL ){
                ERROR_message("Can't assemble dataset vectors for covariate #%d",jj+1) ;
                nbad++ ;
+             } else {
+               sprintf(msg,"3dttest++ -setB covariate #%d",jj+1) ;
+               THD_check_vectim(covvim_BBB[jj],msg) ;
              }
            }
            for( kk=0 ; kk < ndset_AAA ; kk++ )       /* toss out the trashola */
@@ -3106,10 +3160,12 @@ LABELS_ARE_DONE:  /* target for goto above */
      if( !use_singleton_fixed_val ){
        vectim_AAA = THD_dset_list_to_vectim( ndset_AAA , dset_AAA , mask ) ;
        for( ii=0 ; ii < ndset_AAA ; ii++ ) DSET_unload(dset_AAA[ii]) ;
+       THD_check_vectim(vectim_AAA,"3dttest++ -setA") ;
      }
      if( twosam ){
        vectim_BBB = THD_dset_list_to_vectim( ndset_BBB , dset_BBB , mask ) ;
        for( ii=0 ; ii < ndset_BBB ; ii++ ) DSET_unload(dset_BBB[ii]) ;
+       THD_check_vectim(vectim_AAA,"3dttest++ -setB") ;
      }
      MEMORY_CHECK ;
    }
@@ -3152,10 +3208,14 @@ LABELS_ARE_DONE:  /* target for goto above */
        vectim_AAA = THD_dset_list_censored_to_vectim( ndset_AAA , dset_AAA ,
                                                       mask , 1 , keep       ) ;
        for( ii=0 ; ii < ndset_AAA ; ii++ ) DSET_unload_one(dset_AAA[ii],bb) ;
+       sprintf(msg,"3dttest++ -setA brickwise #%d",bb) ;
+       THD_check_vectim(vectim_AAA,msg) ;
        if( twosam ){
          vectim_BBB = THD_dset_list_censored_to_vectim( ndset_BBB , dset_BBB ,
                                                         mask , 1 , keep       ) ;
          for( ii=0 ; ii < ndset_BBB ; ii++ ) DSET_unload_one(dset_BBB[ii],bb) ;
+         sprintf(msg,"3dttest++ -setB brickwise #%d",bb) ;
+         THD_check_vectim(vectim_BBB,msg) ;
        }
        if( debug ) MEMORY_CHECK ;
      }
@@ -3493,7 +3553,7 @@ LABELS_ARE_DONE:  /* target for goto above */
      /* how many iterations? */
 
      ncsim = (int)AFNI_numenv("AFNI_TTEST_NUMCSIM") ;  /* 0 if not set */
-          if( ncsim <    10000 ) ncsim =  ncmin ;
+          if( ncsim <     1000 ) ncsim =  ncmin ;
      else if( ncsim > 10000000 ) ncsim = 10000000 ;    /* that's a lot */
 
      cmd  = (char *)malloc(sizeof(char)*(16384+mcov*256+(nval_AAA+nval_BBB)*512)) ;
