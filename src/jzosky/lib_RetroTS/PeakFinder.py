@@ -290,7 +290,7 @@ def peak_finder(var_v, filename):
     v = []
     with open(r['v_name'], 'rb') as h:
         for line in h:
-            v.append(int(line.strip()))
+            v.append(float(line.strip()))
     v_np = numpy.asarray(v)
         #else:
             #r_list[i_column]['v_name'] = 'vector input col %d' % i_column
