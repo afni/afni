@@ -228,9 +228,11 @@ ENTRY("mri_flatten_rgb") ;
 
    if( im->kind != MRI_rgb ) RETURN( mri_flatten(im) );
 
+   mri_flatten_set_bfac(0.01f) ;
    flim  = mri_to_float( im ) ;                  /* intensity of input */
    shim  = mri_flatten( flim ) ;                 /* flatten intensity  */
    newim = mri_new_conforming( im , MRI_rgb ) ;  /* will be output     */
+   mri_flatten_set_bfac(1.00f) ;
 
    nar = MRI_BYTE_PTR(newim) ; iar = MRI_BYTE_PTR(im) ;
    far = MRI_FLOAT_PTR(flim) ; sar = MRI_FLOAT_PTR(shim) ;
