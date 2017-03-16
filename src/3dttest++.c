@@ -1591,6 +1591,8 @@ int main( int argc , char *argv[] )
    int bb , bbase , ss ;  char *abbfmt ; /* for -brickwise -- 28 Jan 2014 */
    MRI_vectim *vimout=NULL , *rimout=NULL ;
    float *workspace=NULL , *datAAA , *datBBB=NULL , *resar ; size_t nws=0 ;
+   float *maxar , *minar ; char *prefix_minmax=NULL ; int do_minmax=0 ; /* 16 Mar 2017 */
+   float *t_minmax=NULL ; MRI_IMAGE *im_minmax=NULL ;
    float_pair tpair ;
    THD_3dim_dataset *outset , *bbset=NULL , *rrset=NULL ;
    char blab[64] , *stnam , msg[1024] ;
@@ -2484,8 +2486,19 @@ int main( int argc , char *argv[] )
    if( name_mask == NULL && do_Xclustsim )
      ERROR_exit("-Xclustsim requires -mask :(") ;
 
-   if( do_randomsign && num_randomsign > 1 ) /* 02 Feb 2016 */
+   if( do_randomsign && num_randomsign > 1 ){ /* 02 Feb 2016 */
+     char *cpt ;
      brickwise_num = num_randomsign ;
+
+     do_minmax     = 1 ;
+     prefix_minmax = (char *)malloc(sizeof(char)*(strlen(prefix)+32)) ;
+     strcpy(prefix_minmax,prefix) ;
+     cpt = strstr(prefix_minmax,".nii")  ; if( cpt != NULL ) *cpt = '\0' ;
+     cpt = strstr(prefix_minmax,".sdat") ; if( cpt != NULL ) *cpt = '\0' ;
+     strcat(prefix_minmax,".minmax.1D") ;
+     im_minmax = mri_new( brickwise_num , 2 , MRI_float ) ;
+     t_minmax  = MRI_FLOAT_PTR(im_minmax) ;
+   }
 
    if( do_randomsign && do_resid )           /* 02 Feb 2016 */
      ERROR_exit("You can't do -resid and -randomsign together!") ;
@@ -3133,6 +3146,11 @@ LABELS_ARE_DONE:  /* target for goto above */
 
    MAKE_VECTIM(vimout,nmask_hits,nvres) ; vimout->ignore = 0 ;
 
+   if( do_minmax ){
+     minar = (float *)malloc(sizeof(float)*nvres) ;
+     maxar = (float *)malloc(sizeof(float)*nvres) ;
+   }
+
    /* make residual dataset [07 Dec 2015] */
 
    if( do_resid ){
@@ -3189,6 +3207,10 @@ LABELS_ARE_DONE:  /* target for goto above */
 
    for( bb=0 ; bb < brickwise_num ; bb++ ){  /* for each 'brick' to process */
      bbase = bb*nvout ;
+
+     if( do_minmax ){ /* 16 Mar 2017 */
+       for( jj=0 ; jj < nvres ; jj++ ){ maxar[jj] = -WAY_BIG; minar[jj] = WAY_BIG; }
+     }
 
      /* setup permutation and randomization:
         the same things are applied to all voxels for each iteration! */
@@ -3380,6 +3402,15 @@ LABELS_ARE_DONE:  /* target for goto above */
          for( ii=0 ; ii < ntwosam ; ii++ ) resar[ii] = -resar[ii] ;
        }
 
+       /* save min and max values from resar [16 Mar 2017] */
+
+       if( do_minmax ){
+         for( jj=0 ; jj < nvres ; jj++ ){
+           if( resar[jj] > maxar[jj] ) maxar[jj] = resar[jj] ;
+           if( resar[jj] < minar[jj] ) minar[jj] = resar[jj] ;
+         }
+       }
+
        kout++ ;
 
      }  /*------- end of loop over voxels -------*/
@@ -3444,9 +3475,22 @@ LABELS_ARE_DONE:  /* target for goto above */
        THD_vectim_to_dset( rimout , rrset ) ;
      }
 
+     /* save minmax results */
+
+     if( do_minmax ){
+       t_minmax[bb              ] = minar[1] ;
+       t_minmax[bb+brickwise_num] = maxar[1] ;
+     }
+
    } /*----- end of brickwise loop -----*/
 
    if( brickwise_num > 1 ) fprintf(stderr,"!\n") ;
+
+   if( do_minmax ){  /* 16 Mar 2017 */
+     INFO_message("saving main effect t-stat MIN/MAX values in %s",prefix_minmax) ;
+     mri_write_1D( prefix_minmax , im_minmax ) ;
+     mri_free(im_minmax) ; free(maxar) ; free(minar) ;
+   }
 
    if( do_sdat ){      /*----- 29 Aug 2016 -----*/
      fclose(fp_sdat) ;
