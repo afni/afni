@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 16,  Mar, 2017, RCR, "RetroTS.py", MICRO, TYPE_MODIFY,
+   "change peak_finder() to read data as floats",
+   NULL
+ } ,
+
  {  9,  Mar, 2017, RCR, "afni-general", MICRO, TYPE_ENHANCE,
    "from D Warren: put exception handling around os.chmod calls",
    NULL
