@@ -43,6 +43,7 @@ int main( int argc , char *argv[] )
       "  values attached, a command like\n"
       "    3dcalc -a jRandomDataset:32,32,16,10 -expr a -prefix Something\n"
       "  would work. In this example, nx=ny=32 nz=16 nt=10.\n"
+      "  (Changing '-expr a' to '-expr 0' would fill the dataset with zeros.)\n"
       "\n"
      ) ;
      PRINT_COMPILE_DATE ; exit(0) ;
