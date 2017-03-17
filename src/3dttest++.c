@@ -1063,6 +1063,16 @@ void display_help_menu(void)
       "                         'TT.' and be followed by 11 alphanumeric characters,\n"
       "                         as in 'TT.Sv0Ghrn4uVg'.  To mimic this, you might\n"
       "                         use something like '-prefix_clustsim TT.Zhark'.\n"
+      "                  -->>++ If you use option '-Clustsim', then the simulations\n"
+      "                         keep track of the maximum (in mask) voxelwise z-statistic,\n"
+      "                         compute the threshold for 5%% global FPR, and write\n"
+      "                         those values (for 1-sided and 2-sided thresholding)\n"
+      "                         to a file named 'cc'.5percent.txt -- where 'cc' is\n"
+      "                         the prefix given here. Using such a threshold in the\n"
+      "                         AFNI GUI will (presumably) give you a map with a 5%%\n"
+      "                         chance of false positive WITHOUT clustering. Of course,\n"
+      "                         these thresholds generally come with a stringent per-voxel\n"
+      "                         p-value (e.g., about 7e-6 for a mask of 43000 voxels).\n"
       "\n"
       " -tempdir ttt        = Store temporary files for '-Clustsim' in this directory,\n"
       "                       rather than in the current working directory: this option\n"
@@ -3719,11 +3729,12 @@ LABELS_ARE_DONE:  /* target for goto above */
      ININFO_message("===== all jobs have finished (%.1f s elapsed) =====",ct2-ct1) ;
      ct1 = ct2 ;
 
-     /* read in the *.minmax.1D files from the above [16 Mar 2017] */
+     /* read in the *.minmax.1D files from the above [16 Mar 2017],
+        and gather statistics on them for the sake of amusement and mirth */
 
      { MRI_IMAGE *inim , *allim ; MRI_IMARR *inar ; int nbad=0 ;
        INIT_IMARR(inar) ;
-       for( pp=0 ; pp < num_clustsim ; pp++ ){
+       for( pp=0 ; pp < num_clustsim ; pp++ ){ /* read one from each simulation */
          sprintf(fname,"%s/%s.%03d.minmax.1D",tempdir,prefix_clustsim,pp) ;
          inim = mri_read_1D(fname) ;
          if( inim == NULL ){  /* should not happen */
@@ -3731,35 +3742,31 @@ LABELS_ARE_DONE:  /* target for goto above */
          }
          ADDTO_IMARR(inar,inim) ; remove(fname) ;
        }
-       if( nbad == 0 ){
-         allim = mri_catvol_1D(inar,1) ;
+       if( nbad == 0 ){                   /* if all are OK */
+         allim = mri_catvol_1D(inar,1) ;  /* glue them all together */
          if( allim != NULL ){
-           int nall=allim->nx , n05=(int)(0.05f*nall) ;
-           float *allar=MRI_FLOAT_PTR(allim) , *amin,*amax ;
-           float neg05 , pos05 , abs05 ; FILE *fp ;
+           int nall=2*allim->nx , n05=(int)rintf(0.05f*nall) ;
+           float *allar=MRI_FLOAT_PTR(allim) ;
+           float oneside_05 , twoside_05 ; FILE *fp ;
 
-           amin = allar ; amax = amin+nall ;
-           qsort_float(nall,amin) ; qsort_float_rev(nall,amax) ;
-           neg05 = amin[n05] ; pos05 = amax[n05] ;
-           for( pp=0 ; pp < 2*nall ; pp++ ) allar[pp] = fabsf(allar[pp]) ;
-           qsort_float_rev(2*nall,allar) ;
-           abs05 = allar[n05] ;
+           for( pp=0 ; pp < nall ; pp++ ) allar[pp] = fabsf(allar[pp]) ;
+           qsort_float_rev(nall,allar) ;  /* decreasing order */
+           twoside_05 = allar[n05] ;      /* 5% in all cases */
+           oneside_05 = allar[2*n05] ;    /* 10% in all cases = 5% one side */
            mri_free(allim) ;
-
-             INFO_message("Global 5%% points for simulated z-stats:") ;
-           ININFO_message("  1-sided (negative) = % .3f",neg05) ;
-           ININFO_message("  1-sided (positive) = % .3f",pos05) ;
-           ININFO_message("  2-sided            = % .3f",abs05) ;
 
            sprintf(fname,"%s.5percent.txt",prefix_clustsim) ;
            fp = fopen(fname,"w") ;
+           INFO_message("Global 5%% FPR points for simulated z-stats:") ;
+           fprintf(stderr,"   %.3f = 1-sided 5%% FPR\n",oneside_05) ;
+           fprintf(stderr,"   %.3f = 2-sided 5%% FPR\n",twoside_05) ;
            if( fp != NULL ){
-             fprintf(fp,"Global 5%% points for simulated z-stats:\n") ;
-             fprintf(fp,"  1-sided (negative) = % .3f\n",neg05) ;
-             fprintf(fp,"  1-sided (positive) = % .3f\n",pos05) ;
-             fprintf(fp,"  2-sided            = % .3f\n",abs05) ;
+             fprintf(fp," %.3f = 1-sided 5%% FPR\n",oneside_05) ;
+             fprintf(fp," %.3f = 2-sided 5%% FPR\n",twoside_05) ;
              fclose(fp) ;
              ININFO_message("    [above results also in file %s]",fname) ;
+           } else {  /* should never happen */
+             WARNING_message("   [for some reason, unable to write above results to a file]") ;
            }
          }
        }
