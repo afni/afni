@@ -1072,7 +1072,14 @@ void display_help_menu(void)
       "                         AFNI GUI will (presumably) give you a map with a 5%%\n"
       "                         chance of false positive WITHOUT clustering. Of course,\n"
       "                         these thresholds generally come with a stringent per-voxel\n"
-      "                         p-value (e.g., about 7e-6 for a mask of 43000 voxels).\n"
+      "                         p-value.\n"
+      "                        ** In one analysis, the 5%% 2-sided test FPR p-value was\n"
+      "                           about 7e-6 for a mask of 43000 voxels, which is bigger\n"
+      "                           (less strict) than the 1.2e-6 one would get from the\n"
+      "                           Bonferroni correction, but is still very stringent\n"
+      "                           for many purposes. This threshold value was also close\n"
+      "                           to the threshold at which the FDR q=1/43000, which may\n"
+      "                           not be a coincidence.\n"
       "\n"
       " -tempdir ttt        = Store temporary files for '-Clustsim' in this directory,\n"
       "                       rather than in the current working directory: this option\n"
@@ -1090,6 +1097,9 @@ void display_help_menu(void)
       " -dupe_ok  = Duplicate dataset labels are OK.  Do not generate warnings\n"
       "             for dataset pairs.\n"
       "            ** This option must preceed the corresponding -setX options.\n"
+      "            ** Such warnings are issued only when '-covariates' is used\n"
+      "               -- when the labels are used to extract covariate values\n"
+      "               from the covariate table.\n"
       "\n"
       " -debug    = Prints out information about the analysis, which can\n"
       "              be VERY lengthy -- not for general usage (or even for colonels).\n"
@@ -1608,7 +1618,8 @@ int main( int argc , char *argv[] )
    char blab[64] , *stnam , msg[1024] ;
    float dof_AB=0.0f , dof_A=0.0f , dof_B=0.0f ;
    int BminusA=-1 , ntwosam=0 ;  /* 05 Nov 2010 */
-   int dupe_ok=0;  /* 1 Jun 2015 [rickr] */
+   int dupe_ok=0;   /* 01 Jun 2015 [rickr] */
+   int have_cov=0 ; /* 17 Mar 2017 */
    char *snam_PPP=NULL, *snam_MMM=NULL ;
    static int iwarn=0;
    FILE *fp_sdat = NULL ; short *sdatar=NULL ; char *sdat_prefix=NULL ;
@@ -1631,6 +1642,15 @@ int main( int argc , char *argv[] )
    { int new_argc ; char ** new_argv ;                    /*-- 16 Sep 2016 --*/
      addto_args( argc , argv , &new_argc , &new_argv ) ;
      if( new_argv != NULL ){ argc = new_argc ; argv = new_argv ; }
+   }
+
+   /*-- check for -covariates now [17 Mar 2017] --*/
+
+   dupe_ok = 1 ;
+   for( nopt=1 ; nopt < argc ; nopt++ ){
+     if( strcasecmp(argv[nopt],"-covariates") == 0 ){
+       have_cov = 1 ; dupe_ok = 0 ; break ;
+     }
    }
 
    /*--- read the options from the command line ---*/
@@ -2264,8 +2284,8 @@ int main( int argc , char *argv[] )
          }
        }
        if( nbad > 0 ){  /* duplicate labels :-( */
-         WARNING_message("Duplicate labels for datasets in option '%s'",onam) ;
-         if( ! dupe_ok ) fprintf(stderr,"   (consider -dupe_ok)\n\n");
+         if( have_cov )
+           ERROR_message("Duplicate labels for datasets in option '%s'",onam) ;
          allow_cov = -1 ;
        }
 
