@@ -44,6 +44,12 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 16 , MAR , 2017 , RWC , "3dttest++" , MINOR , TYPE_ENHANCE ,
+   "-Clustsim option now also output 5 percent points for global z-stat" ,
+   "Takes the global min/max of the randomized z-stat results for each\n"
+   "iteration (10000) and then computes the 5 percent points for the\n"
+   "1-sided and 2-sided cases.  Is this useful?  Maybe for somebody." } ,
+
  { 13 , MAR , 2017 , RWC , "mri_lsqfit" , MICRO , TYPE_GENERAL ,
    "explicitly check for all zero input ref vectors" ,
    NULL } ,

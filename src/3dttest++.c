@@ -3585,7 +3585,7 @@ LABELS_ARE_DONE:  /* target for goto above */
    /*------------ Cluster Simulation now [10 Feb 2016] ------------*/
 
    if( do_clustsim || do_Xclustsim ){
-     char fname[128] , *cmd , *ccc ; int qq,pp , nper ; double ct1,ct2 ;
+     char fname[1024] , *cmd , *ccc ; int qq,pp , nper ; double ct1,ct2 ;
      int ncsim ;
      int use_sdat ;
      char **tfname ;
@@ -3718,6 +3718,53 @@ LABELS_ARE_DONE:  /* target for goto above */
      ct2 = COX_clock_time() ;
      ININFO_message("===== all jobs have finished (%.1f s elapsed) =====",ct2-ct1) ;
      ct1 = ct2 ;
+
+     /* read in the *.minmax.1D files from the above [16 Mar 2017] */
+
+     { MRI_IMAGE *inim , *allim ; MRI_IMARR *inar ; int nbad=0 ;
+       INIT_IMARR(inar) ;
+       for( pp=0 ; pp < num_clustsim ; pp++ ){
+         sprintf(fname,"%s/%s.%03d.minmax.1D",tempdir,prefix_clustsim,pp) ;
+         inim = mri_read_1D(fname) ;
+         if( inim == NULL ){  /* should not happen */
+           ERROR_message("Can't read file %s",fname) ; nbad++ ; continue ;
+         }
+         ADDTO_IMARR(inar,inim) ; remove(fname) ;
+       }
+       if( nbad == 0 ){
+         allim = mri_catvol_1D(inar,1) ;
+         if( allim != NULL ){
+           int nall=allim->nx , n05=(int)(0.05f*nall) ;
+           float *allar=MRI_FLOAT_PTR(allim) , *amin,*amax ;
+           float neg05 , pos05 , abs05 ; FILE *fp ;
+
+           amin = allar ; amax = amin+nall ;
+           qsort_float(nall,amin) ; qsort_float_rev(nall,amax) ;
+           neg05 = amin[n05] ; pos05 = amax[n05] ;
+           for( pp=0 ; pp < 2*nall ; pp++ ) allar[pp] = fabsf(allar[pp]) ;
+           qsort_float_rev(2*nall,allar) ;
+           abs05 = allar[n05] ;
+           mri_free(allim) ;
+
+             INFO_message("Global 5%% points for simulated z-stats:") ;
+           ININFO_message("  1-sided (negative) = % .3f",neg05) ;
+           ININFO_message("  1-sided (positive) = % .3f",pos05) ;
+           ININFO_message("  2-sided            = % .3f",abs05) ;
+
+           sprintf(fname,"%s.5percent.txt",prefix_clustsim) ;
+           fp = fopen(fname,"w") ;
+           if( fp != NULL ){
+             fprintf(fp,"Global 5%% points for simulated z-stats:\n") ;
+             fprintf(fp,"  1-sided (negative) = % .3f\n",neg05) ;
+             fprintf(fp,"  1-sided (positive) = % .3f\n",pos05) ;
+             fprintf(fp,"  2-sided            = % .3f\n",abs05) ;
+             fclose(fp) ;
+             ININFO_message("    [above results also in file %s]",fname) ;
+           }
+         }
+       }
+       DESTROY_IMARR(inar) ;
+     }
 
      /* run 3dClustSim[X] using the outputs from the above as the simulations */
 
