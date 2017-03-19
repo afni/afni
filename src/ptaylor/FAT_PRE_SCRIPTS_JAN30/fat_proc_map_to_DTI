@@ -5,8 +5,11 @@
 
 # --------------------- revision history -------------------------
 #
-set version   = "1.0";    set rev_dat   = "March 16, 2017"
+#set version   = "1.0";    set rev_dat   = "March 16, 2017"
 #   + inception
+#
+set version   = "1.1";    set rev_dat   = "March 19, 2017"
+#   + follower NN list
 #
 # ---------------------------------------------------------------
 
@@ -34,8 +37,6 @@ set my_viewer = "$adir/@chauffeur_afni"
 
 set it1w       = ""
 set it2w       = ""
-
-set OUT_T2W_GRID = 1             # the point of this is to match the T2w/b0
 
 set odir       = ""
 set opref      = "indti"
@@ -167,8 +168,6 @@ foreach ff ( "$it1w" "$it2w" $fNN )
     endif
 end
 
-exit
-
 # ========================= output dir ==========================
  
 # check output directory, use input one if nothing given
@@ -294,8 +293,30 @@ if ( 1 ) then
         -final wsinc5
 endif
 
+# map all followers
+set list_ofNN = ()
+foreach i ( `seq 1 1 $#fNN` ) 
 
+    set ffi = "$fNN[$i]"
+    set ppi = `3dinfo -prefix_noext $ffi`
+    set ffr = "$wdir/fff_${ppi}.nii"
+    set off = "$odir/${opref}_${ppi}.nii.gz"
 
+    3dresample                          \
+        -overwrite                      \
+        -prefix $ffr                    \
+        -orient $orient_t2w             \
+        -inset $ffi
+
+    3dAllineate   -echo_edu               \
+        -1Dmatrix_apply   $mapt1alnd      \
+        -source           $ffr            \
+        -master           "$it2w"         \
+        -prefix           $off            \
+        -interp NN
+
+    set list_ofNN = ( $list_ofNN $off )
+end
 
 # !!!!!!!!!!! WILL ADJUST THESE
 set T1TOCOPY = $t1mapped
@@ -360,6 +381,30 @@ if ( $DO_VIEWER == 1 ) then
         -label_mode 1 -label_size 3       \
         -do_clean 
 
+    foreach ff ( $list_ofNN )
+
+        set pp = `3dinfo -prefix_noext $ff`
+        if( $qc_prefix == "" ) then
+            set vprefnn = ${opref}_${postfix}_qc_$pp
+        else
+            set vprefnn = ${qc_prefix}_${postfix}_qc_$pp
+        endif
+
+        $my_viewer                            \
+            -ulay "$it2w"                     \
+            -ulay_range "2%" "98%"            \
+            -olay "$ff"                       \
+            -pbar_posonly                     \
+            -cbar "ROI_i256"                  \
+            -opacity 4                        \
+            -prefix $vprefnn                  \
+            -outdir "$odir"                   \
+            -montx 5 -monty 3                 \
+            -set_xhairs OFF                   \
+            -label_mode 1 -label_size 3       \
+            -do_clean 
+
+    end
 endif
 
 # clean, by default
@@ -450,9 +495,6 @@ cat << EOF
       {-in_t2w  T2W}                        \
       {-outdir  ODIR}                       \
       {-prefix  PPP}                        \
-      {-newgrid RES}                        \
-      {-out_t2w_grid}                       \
-      {-no_fs_prep}                         \
       {-no_cmd_out}                         \
       {-no_clean} 
 
@@ -464,15 +506,7 @@ cat << EOF
    -outdir  ODIR  :can specify output directory for all created 
                    dsets (default is T1W volume's directory).                
    -prefix  PPP   :output prefix for files and snapshots.                     
-   -newgrid RES   :specify output T1w volume's final resolution; will be
-                   isotropic in this value (default: 1 mm, or smallest voxel
-                   edge length of input T1W if that value is < 1 mm).
-   -out_t2w_grid  :final T1w volume is on the T2W volume's grid (with possible
-                   addition of padding with a slice of zeros if prepping for
-                   FS).
-   -no_fs_prep    :check output T1w volume to have an even number of slices
-                   in all directions, because FS appears to like/require this
-                   (at least at this slicetime of the universe, March, 2017).
+
    -no_cmd_out    :don't save the command line call of this program
                    and the location where it was run (otherwise, it is
                    saved by default in the ODIR/).                     
@@ -485,7 +519,6 @@ cat << EOF
 
     $this_prog  \
         -in_t1w    MPRAGE.nii.gz        \
-        -out_t2w   T2w_anat.nii.gz      \
         -outdir    SUB001               \
         -prefix    t1w_alnd
 
