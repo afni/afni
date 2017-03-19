@@ -1769,8 +1769,10 @@ SUMA_MorphInfo * SUMA_MapSurface (SUMA_SurfaceObject *surf1,
       if( dval > dmax ) dmax = dval;
    }
    dr2 /= numNodes_1;
-   fprintf(SUMA_STDERR,"-- MI: surf 1 radius: min %f, mean %f, max %f\n",
-                       dmin, dr2, dmax);
+   if( verb )
+      fprintf(SUMA_STDERR,"-- MI: surf 1 radius from center %f, %f, %f :\n"
+                          "   min %f, mean %f, max %f\n",
+                          ctr1[0], ctr1[1], ctr1[2], dmin, dr2, dmax);
 
    /*find radius of surf2*/
    /*(in theory should be able to just take distance first node -> center, but 
@@ -1789,8 +1791,10 @@ SUMA_MorphInfo * SUMA_MapSurface (SUMA_SurfaceObject *surf1,
    }
    /* compute as double, keep as float   19 Mar 2017 */
    dr2 /= numNodes_2;
-   fprintf(SUMA_STDERR,"-- MI: surf 2 radius: min %f, mean %f, max %f\n",
-                       dmin, dr2, dmax);
+   if( verb )
+      fprintf(SUMA_STDERR,"-- MI: surf 2 radius from center %f, %f, %f :\n"
+                          "   min %f, mean %f, max %f\n",
+                          ctr2[0], ctr2[1], ctr2[2], dmin, dr2, dmax);
 
    /* actually keep this result in r2 (compute as double, keep as float) */
    r2 = dr2;
