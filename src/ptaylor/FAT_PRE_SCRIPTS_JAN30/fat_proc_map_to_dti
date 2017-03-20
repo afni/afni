@@ -11,10 +11,13 @@
 #set version   = "1.0";    set rev_dat   = "March 16, 2017"
 #   + inception
 #
-set version   = "1.1";    set rev_dat   = "March 19, 2017"
+#set version   = "1.1";    set rev_dat   = "March 19, 2017"
 #   + follower NN, wsinc5 lists
 #   + snapshotting of images
 #   + update help file
+#
+set version   = "1.2";    set rev_dat   = "March 20, 2017"
+#   + propagate labeltables for NN sets
 #
 # ---------------------------------------------------------------
 
@@ -75,13 +78,13 @@ while ( $ac <= $#argv )
 
     # input volume 'source', likely to have opposite contrast to the
     # b0/T2w to which we are matching.
-    if ( "$argv[$ac]" == "-in_t1w" ) then
+    if ( "$argv[$ac]" == "-in_source" ) then
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
         @ ac += 1
         set it1w = "$argv[$ac]"
 
     # our name for the b0 file still
-    else if ( "$argv[$ac]" == "-in_t2w" ) then
+    else if ( "$argv[$ac]" == "-in_base" ) then
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
         @ ac += 1
         set it2w = "$argv[$ac]"
@@ -352,6 +355,15 @@ foreach i ( `seq 1 1 $#fNN` )
         -prefix           $off            \
         -final NN
 
+    # AND propagate labeltables
+    set lt = `3dinfo -labeltable $ffi`
+    if ( "$lt" == "NO_LABEL_TABLE" ) then
+        echo "++ Dset $ffi has *no* labeltable to propagate."
+    else
+        echo "++ Dset $ffi has a labeltable to propagate.  So I will."
+        3drefit -copytables $ffi $off 
+    endif
+
     set list_ofNN = ( $list_ofNN $off )
 end
 
@@ -607,13 +619,16 @@ cat << EOF
                    dsets, so that integer values remain integer
                    valued; thus, these might be dsets with ROI maps
                    already created.  NB: subbrick selectors are not
-                   allowed on the DSETs here at present.
+                   allowed on the DSETs here at present.  Labeltables 
+                   attached to these dsets do get propagated, as well.
    -followers_wsinc5  DSET1 DSET2 DSET3 ...
                    similar to the above '-followers_NN ...', except in
                    this case the final applied mapping is 'wsinc5', which
                    is appropriate, for example, for floating point values.
                    Again, a list of one or more volumes (sans subbrick
-                   selectors) can be provided here.
+                   selectors) can be provided here.  No labeltable is
+                   propagated for these sets (I doubt they would have one,
+                   anyways).
 
    -no_cmd_out    :don't save the command line call of this program
                    and the location where it was run (otherwise, it is
