@@ -3848,8 +3848,10 @@ ENTRY("T3D_quit_CB") ;
 
      EXRETURN ;
   }
+#if 0
   if( lrand48()%9 == 0 )
     MCW_melt_widget( wset.topform ) ;  /* 18 Feb 2011 */
+#endif
   exit(0) ;
 }
 

@@ -704,7 +704,9 @@ void AFNI_syntax(void)
      "   -no_detach   Do not detach from the terminal.\n"
      "   -get_processed_env   Show applied AFNI/NIFTI environment varables.\n"
      "   -global_opts Show options that are global to all AFNI programs.\n"
-     "   -goodbye     Print a 'goodbye' message and exit (just for fun).\n"
+     "   -goodbye [n] Print a 'goodbye' message and exit (just for fun).\n"
+     "                If an integer is supplied afterwards, will print that\n"
+     "                many (random) goodbye messages.\n"
      "   -ver         Print the current AFNI version and exit.\n"
      "\n"
      "N.B.: Many of these options, as well as the initial color set up,\n"
@@ -2153,6 +2155,7 @@ void AFNI_sigfunc_alrm(int sig)
 
      /* Longer quotes */
 
+     "I believe in giving everybody a fair and equal chance to foul things up"        ,
      "Remember -- at least half of all the brains on Earth belong to women"           ,
      "When human judgment and big data interact, peculiar things happen"              ,
      "FMRI is at best like reading source code with blurring goggles over your eyes"  ,
@@ -2263,6 +2266,7 @@ void AFNI_sigfunc_alrm(int sig)
      "Men worry more about what they can't see than about what they can"              ,
      "The best revenge is to be unlike him who performed the injury"                  ,
      "The art of living is more like wrestling than dancing"                          ,
+     "If the genome is the source code, it should have come with comments"            ,
 
      "It is the pardonable vanity of lonely people everywhere to assume that are unique"      ,
      "You know you're in trouble when it takes a 64 bit integer to count your unread emails"  ,
@@ -2276,6 +2280,7 @@ void AFNI_sigfunc_alrm(int sig)
      "Outside of a dog, a book is Man's best friend. Inside of a dog, it's too dark to read"  ,
 
      "Someday I'll tell you of the Giant Rat of Sumatra, a tale for which the world is not prepared" ,
+     "People have to learn to live with newly-discovered facts; if they don't, they die of them"     ,
 
      /* Multi-line quotes */
 
@@ -2283,8 +2288,16 @@ void AFNI_sigfunc_alrm(int sig)
      "  Lilac blooming perennial, drooping star in the West,\n"
      "  And thought of him I love"                                                            ,
 
+     "\nIn the words of H Beam Piper:\n"
+     "   If you don't like the facts, ignore them.\n"
+     "   And if you need facts, dream up some you DO like"                                    ,
+
+     "Remember:\n"
+     "  To argue with those who have renounced the use and authority\n"
+     "  of reason is as futile as to administer medicine to the dead"                         ,
+
      "\n  It is a truth universally acknowledged, that a single scientist\n"
-     "  in possession of a large FMRI data collection, is in need of an AFNI."                ,
+     "  in possession of a large FMRI data collection, is in need of an AFNI"                 ,
 
      "\n  The great thing about the human condition:\n"
      "  No matter how bad it is, it can always get worse"                                     ,
@@ -2353,6 +2366,12 @@ void AFNI_sigfunc_alrm(int sig)
        static char *dun[] = { "is done" , "wraps up"   , "concludes" ,
                               "is over" , "terminates" , "finishes"   } ;
        fprintf(stderr,"\n** AFNI %s: %s!\n\n",dun[lrand48()%NDUN],msg[nn]) ;
+       if( sig < 0 ){
+         int ss ;
+         for( ss=-1 ; ss > sig ; ss-- ){
+           nn = (lrand48()>>3) % NMSG ; fprintf(stderr,"%s!\n\n",msg[nn]) ;
+         }
+       }
      }
 #ifdef USE_SONNETS
      else {
@@ -2370,7 +2389,7 @@ void AFNI_sigfunc_alrm(int sig)
      /** MCHECK ; **/
    }
 
-   if( sig == 0 && !NO_frivolities ){
+   if( sig <= 0 && !NO_frivolities ){
      Three_D_View *im3d = AFNI_find_open_controller() ;
      char *eee = getenv("AFNI_SPLASH_MELT") ;
      if( eee == NULL ) eee = "?" ; else eee[0] = toupper(eee[0]) ;
@@ -2380,8 +2399,9 @@ void AFNI_sigfunc_alrm(int sig)
        XMapRaised( XtDisplay(im3d->vwid->top_shell) ,
                    XtWindow(im3d->vwid->top_shell)   ) ; /* raise controller */
        AFNI_sleep(111);
-       MCW_melt_widget( im3d->vwid->top_form ) ;
+       /* MCW_melt_widget( im3d->vwid->top_form ) ; */
      }
+     sig = 0 ;
    }
    selenium_close(); /* close any selenium opened browser windows if open */
    exit(sig);
@@ -2431,13 +2451,17 @@ int main( int argc , char *argv[] )
 
    /*--- help the pitiful user? ---*/
 
-   if( argc > 1 && strcmp(argv[1],"-help")    == 0 ) AFNI_syntax() ;
-   if( argc > 1 && strcmp(argv[1],"-goodbye") == 0 ) AFNI_sigfunc_alrm(0) ;
+   if( argc > 1 && strcasecmp(argv[1],"-help")    == 0 ) AFNI_syntax() ;
+   if( argc > 1 && strcasecmp(argv[1],"-goodbye") == 0 ){
+     ii = (argc > 2 ) ? abs((int)rintf((strtod(argv[2],NULL)))) : 0 ;
+     AFNI_sigfunc_alrm(-ii) ;
+   }
 
    /** Check for -version [15 Aug 2003] **/
 
 
-   if( check_string("-ver",argc,argv) || check_string("--ver",argc,argv) ) {
+   if( check_string("-ver"    ,argc,argv) || check_string("--ver"    ,argc,argv) ||
+       check_string("-version",argc,argv) || check_string("--version",argc,argv)   ){
       show_AFNI_version() ;
       dienow++ ;
    }
