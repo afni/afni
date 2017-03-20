@@ -42,6 +42,7 @@ set odir       = ""
 set opref      = "indti"
 
 set fNN        = ()              # followers to be interpolated with NN
+set fWS5       = ()              # followers to be interpolated with wsinc5
 
 set DO_VIEWER  = 1               # def: do viewing
 set DO_CLEAN   = 1
@@ -100,7 +101,9 @@ while ( $ac <= $#argv )
     else if ( "$argv[$ac]" == "-no_clean" ) then
         set DO_CLEAN = 0
 
-    # get followers -- can be arbitrary list (a bit clunky method...)
+    # -------------- get followers --------------------
+    # can be arbitrary list (a bit clunky method...)
+    
     else if ( "$argv[$ac]" == "-followers_NN" ) then
         set i0 = $ac
         # check that this ain't the end of argv[] entries
@@ -127,6 +130,35 @@ while ( $ac <= $#argv )
                 goto BAD_EXIT
             else
                 echo "++ User has listed $#fNN follower_NN dsets"
+            endif
+        endif
+
+    else if ( "$argv[$ac]" == "-followers_wsinc5" ) then
+        set i0 = $ac
+        # check that this ain't the end of argv[] entries
+        if ( $i0 == $#argv ) then
+            echo "** ERROR: need at least one dset after $argv[$ac]!"
+            goto BAD_EXIT
+        else 
+            # check that next argv[] member isn't a new option: shd be
+            # a dset
+            @ i0 += 1
+            set c0 = ""
+            while ( ( $i0 <= $#argv ) && ( "$c0" != "-" )  )
+                set fWS5 = ( $fWS5 "$argv[$i0]" )
+                @ ac += 1
+
+                @ i0 += 1
+                if ( $i0 <= $#argv ) then
+                    set c0 = `echo $argv[$i0] | awk '{print substr($0,1,1)}'`
+                endif
+            end
+
+            if ( $#fWS5 == 0 ) then
+                echo "** ERROR: need at least one dset after $argv[$ac]!"
+                goto BAD_EXIT
+            else
+                echo "++ User has listed $#fWS5 follower_ws5 dsets"
             endif
         endif
 
@@ -158,7 +190,7 @@ else if ( "$it2w" == "" ) then
 endif
 
 # make sure we can read volumes OK
-foreach ff ( "$it1w" "$it2w" $fNN )
+foreach ff ( "$it1w" "$it2w" $fNN $fWS5 )
     set check = `3dinfo "$ff"`
     if ( "$#check" == "0" ) then
         echo "** ERROR: can't find input file:  $ff !"
@@ -285,6 +317,7 @@ set t1mapped = $wdir/f06_t1mapped.nii
 if ( 1 ) then
     echo "++ Outputting final image to t2w space"
     3dAllineate   -echo_edu               \
+        -overwrite                        \
         -1Dmatrix_apply   $mapt1alnd      \
         -source           $T1TOMAP        \
         -master           "$it2w"         \
@@ -293,7 +326,7 @@ if ( 1 ) then
         -final wsinc5
 endif
 
-# map all followers
+# map all NN followers
 set list_ofNN = ()
 foreach i ( `seq 1 1 $#fNN` ) 
 
@@ -309,16 +342,42 @@ foreach i ( `seq 1 1 $#fNN` )
         -inset $ffi
 
     3dAllineate   -echo_edu               \
+        -overwrite                        \
         -1Dmatrix_apply   $mapt1alnd      \
         -source           $ffr            \
         -master           "$it2w"         \
         -prefix           $off            \
-        -interp NN
+        -final NN
 
     set list_ofNN = ( $list_ofNN $off )
 end
 
-# !!!!!!!!!!! WILL ADJUST THESE
+# map all WS5 followers
+set list_ofWS5 = ()
+foreach i ( `seq 1 1 $#fWS5` ) 
+
+    set ffi = "$fWS5[$i]"
+    set ppi = `3dinfo -prefix_noext $ffi`
+    set ffr = "$wdir/fff_${ppi}.nii"
+    set off = "$odir/${opref}_${ppi}.nii.gz"
+
+    3dresample                          \
+        -overwrite                      \
+        -prefix $ffr                    \
+        -orient $orient_t2w             \
+        -inset $ffi
+
+    3dAllineate   -echo_edu               \
+        -overwrite                        \
+        -1Dmatrix_apply   $mapt1alnd      \
+        -source           $ffr            \
+        -master           "$it2w"         \
+        -prefix           $off            \
+        -final wsinc5
+
+    set list_ofWS5 = ( $list_ofWS5 $off )
+end
+
 set T1TOCOPY = $t1mapped
 set fdims = `3dinfo -n4 ${T1TOCOPY}`
 set fres  = `3dinfo -ad3 ${T1TOCOPY}`
@@ -381,7 +440,10 @@ if ( $DO_VIEWER == 1 ) then
         -label_mode 1 -label_size 3       \
         -do_clean 
 
-    foreach ff ( $list_ofNN )
+    # for NN
+    foreach ff ( ${list_ofNN} )
+        echo "++ QC imaging for the follower dset list:"
+        echo "    ${list_ofNN}"
 
         set pp = `3dinfo -prefix_noext $ff`
         if( $qc_prefix == "" ) then
@@ -403,8 +465,35 @@ if ( $DO_VIEWER == 1 ) then
             -set_xhairs OFF                   \
             -label_mode 1 -label_size 3       \
             -do_clean 
-
     end
+
+    # for WS5
+    foreach ff ( ${list_ofWS5} )
+        echo "++ QC imaging for the follower dset list:"
+        echo "    ${list_ofWS5}"
+
+        set pp = `3dinfo -prefix_noext $ff`
+        if( $qc_prefix == "" ) then
+            set vprefnn = ${opref}_${postfix}_qc_$pp
+        else
+            set vprefnn = ${qc_prefix}_${postfix}_qc_$pp
+        endif
+
+        $my_viewer                            \
+            -ulay "$it2w"                     \
+            -ulay_range "2%" "98%"            \
+            -olay "$ff"                       \
+            -pbar_posonly                     \
+            -cbar "Viridis"                   \
+            -opacity 4                        \
+            -prefix $vprefnn                  \
+            -outdir "$odir"                   \
+            -montx 5 -monty 3                 \
+            -set_xhairs OFF                   \
+            -label_mode 1 -label_size 3       \
+            -do_clean 
+    end
+
 endif
 
 # clean, by default
