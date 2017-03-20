@@ -392,6 +392,8 @@ void mri_multi_threshold_setup(void)
    return ;
 }
 
+/*----------------------------------------------------------------------------*/
+
 void mri_multi_threshold_unsetup(void)
 {
    int nthr=1 , ithr ;
