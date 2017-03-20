@@ -2,6 +2,7 @@
 
 # [Dec 30, 2016] v1.1
 # [Jan 31, 2017] v1.2: update for FS 6.0
+# [Mar 20, 2017] v1.3: minor internal change of an `ls` to `find`
 
 # After using @SUMA_Make_Spec_FS, take standard recon-all's aparc+aseg
 # and aparc+aseg-2009 to make 1) a renumbered data set of all ROIs
@@ -29,23 +30,31 @@ cd $1
 # --------- check for known file names from @SUMA_Make_Spec_FS -----------
 
 # either zipped or unzipped files
-set ugh2000 = `ls aparc+aseg.nii*`
-if ( $#ugh2000 == "1" ) then
+#set ugh2000 = `ls aparc+aseg.nii*`
+set ugh2000 = `find ./ -maxdepth 1        \
+                -name aparc+aseg.nii      \
+                -o                        \
+                -name aparc+aseg.nii.gz`
+if ( $#ugh2000 > 0 ) then
     echo "++ found $ugh2000"
 else
     echo "** Trouble finding 'aparc+aseg.nii*'! Check $PWD"
     goto BAD_EXIT
 endif
-set set2000 = "$ugh2000"
+set set2000 = "$ugh2000[1]"
 
-set ugh2009 = `ls aparc.a2009s+aseg.nii*`
-if ( $#ugh2009 == "1" ) then
+#set ugh2009 = `ls aparc.a2009s+aseg.nii*`
+set ugh2009 = `find ./ -maxdepth 1            \
+                -name aparc.a2009s+aseg.nii   \
+                -o                            \
+                -name aparc.a2009s+aseg.nii.gz`
+if ( $#ugh2009 > 0 ) then
     echo "++ found $ugh2009"
 else
-    echo "** Trouble finding 'aparc+aseg.nii*'! Check $PWD"
+    echo "** Trouble finding 'aparc.a2009s+aseg.nii*'! Check $PWD"
     goto BAD_EXIT
 endif
-set set2009 = "$ugh2009"
+set set2009 = "$ugh2009[1]"
 
 # --------------------- look for reference files -----------------------
 
