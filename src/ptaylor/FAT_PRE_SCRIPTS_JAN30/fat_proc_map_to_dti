@@ -1,5 +1,8 @@
 #!/bin/tcsh -ef
 
+#!!!!!! allow for putting in a matrix!!
+
+
 # written by PA Taylor (NIMH, NIH, USA)
 # started March, 2017
 
@@ -9,11 +12,13 @@
 #   + inception
 #
 set version   = "1.1";    set rev_dat   = "March 19, 2017"
-#   + follower NN list
+#   + follower NN, wsinc5 lists
+#   + snapshotting of images
+#   + update help file
 #
 # ---------------------------------------------------------------
 
-set this_prog = "fat_proc_align_anat_pair"
+set this_prog = "fat_proc_map_to_dti"
 set here      = $PWD
 
 # ----------------- find AFNI and set viewer ---------------------
@@ -169,8 +174,6 @@ while ( $ac <= $#argv )
     endif
     @ ac += 1
 end
-
-
 
 # =======================================================================
 # ============================ ** SETUP ** ==============================
@@ -520,49 +523,28 @@ SHOW_HELP:
 cat << EOF
 # -----------------------------------------------------------------------
 
- This program is for aligning a T1w anatomical to a T2w anatomical
- using solid body parameters (i.e., only translation and rotation);
- this program does not clean or alter the T1w's brightness values
- (beyond minor smoothing from regridding).  If one is going to be
- entering the T1w volume into the realms of FreeSurfer (FS), one might
- want to do this just *before* that step.  If one wants axialized (or
- AC-PC-ized) anatomical volumes, one could perform that step on the
- T2w volume *before* using this function.
+ This program is for bringing data sets into DWI space, with the particular
+ thought that bringing anatomically-defined ROI maps or EPI data that are
+ aligned to a subject's anatomical might be useful.  This might be useful
+ after having run FreeSurfer, for example.  
 
- This program mainly assumes that the T1w and T2w volume come from the
- same subject, and have similar contrasts expected for standard
- sequences and healthy adult brains.  This might still work for other
- applications, but caveat emptor (even more than usual!).  This would
- *not* be recommended for aligning brains that aren't from the same
- subject.
+ An affine transformation matrix between, say, a subject's T1w volume and
+ a DWI reference volume is calculated, and then applied to follower data
+ sets.  The transformation can be applied either as 'NN' (-> for preserving
+ integer values in sets) or as 'wsinc5' (-> if one has floating point values).
+ The final dsets will reside in the DWI space. Yay.
 
- As part of this alignment, the T1w volume will end up with the same
- orientation and a similar FOV as the T2w volume.  Additionally, by
- default, the anatomical will be prepped a bit with an eye toward
- using FS, to have properties favorable to using it: 
+ At the moment this program *assumes* that the input source
+ ('-in_source SSS') and reference base ('-in_base BBB') are from the
+ same subject, because only 12 DOF affine alignment is calculated
+ (using 3dAllineate).  Maybe something could be done with 3dQwarp in
+ the future.  Maybe.
 
-   + the T1w volume is resampled to isotropic spatial resolution of
-     either 1 mm voxel edges or, if the input volume has any edge
-     length smaller than this, to that value (i.e., resampled to 1 mm
-     or the minimum input voxel edge length, whichever is less).  The
-     user can adjust this with the '-newgrid ...' option, or decide to 
-     match the grid of the T2w volume via '-out_t2w_grid'. 
-
-   + the T1w will have a FOV matching or quite similar to the T2w
-     volume (as well as matching orientation).
-
-   + the output T1w will be checked to ensure having an even number of
-     rows along each axis; this is because FS somehow seems to want
-     this for best behavioring. A slice of zeros will be appended in
-     any direction with with an odd number of slices; turned off
-     by using '-no_fs_prep'.
-
- Note that, if you are preparing to use FS afterwards, then make sure
- to use their current help files, archives, etc. for all options and
- settings.  For example, while at present (March, 2017) FS does seem
- to prefer isotropic voxels with 1 mm edge length by default, one can
- use high resolution options for data acquired at higher resolution.
- Anyways, you can read more about that there.
+ This program mainly assumes that the T1w and DWI reference volume
+ have similar contrasts expected for standard sequences and healthy
+ adult brains.  This might still work for other applications, but
+ caveat emptor (even more than usual!).  This would *not* be
+ recommended for aligning brains that aren't from the same subject.
 
   Ver. $version (PA Taylor, ${rev_dat})
 
@@ -570,47 +552,85 @@ cat << EOF
 
   OUTPUT:
 
-     + NIFTI file: aligned T1w volume
+     + NIFTI file: aligned T1w volume.
 
-     + QC snapshots of the T1w volume overlaying the T2w volume, and
-       also the T1w edges overlaying the T2w volume.
+     + NIFTI files: each follower DSET* ends up in the DWI/DTI space
+       and has a respective name PREFIX_DSET*.nii.gz.
+
+     + QC snapshots of the T1w volume overlaying the DWI reference 
+       volume, and also the T1w edges overlaying the ref vol.
+
+     + QC snapshots of each of the follower dsets overlaying the DWI ref
+       volume.
 
 # ----------------------------------------------------------------------
 
   RUNNING:
 
     $this_prog \
-      {-in_t1w  T1W}                        \
-      {-in_t2w  T2W}                        \
-      {-outdir  ODIR}                       \
-      {-prefix  PPP}                        \
-      {-no_cmd_out}                         \
+      {-in_source SSS}                               \
+      {-in_base   DDD}                               \
+      {-outdir    ODIR}                              \
+      {-prefix    PPP}                               \
+      {-followers_NN      DSET01 DSET02 DSET03 ...}  \
+      {-followers_wsinc5  DSET1 DSET2 DSET3 ...}     \
+      {-no_cmd_out}                                  \
       {-no_clean} 
 
   where:
 
-   -in_t1w  T1W   :T1w volume (required).
-   -in_t2w  T2W   :T2w volume (required; preferably from same subject as
-                   T1W).
+   -in_source SSS :T1w volume (required); 'source' volume from which we
+                   are mapping, such as an anatomical volume in whose
+                   space ROIs might have been defined.  SSS gets
+                   mapped into the '-in_base BBB' volume's space.
+   -in_base BBB   :DWI reference volume (required; should be from same
+                   subject as SSS), such as the b=0 (or minimally DWed
+                   volume), for aligning to; subbrick selections are
+                   allowed, so that dwi_dwi.nii'[0]', for example,
+                   would be allowed.  This is the base dset for the
+                   alignment, with the purpose to bring other volumes
+                   into the DWI/DTI space (see the '-followers* ...'
+                   options, below).  **NOTE**: BBB and SSS should be
+                   from the same subject by this function, because
+                   only affine alignment with 3dAllineate is
+                   performed!
+
    -outdir  ODIR  :can specify output directory for all created 
                    dsets (default is T1W volume's directory).                
-   -prefix  PPP   :output prefix for files and snapshots.                     
+   -prefix  PPP   :output prefix for files and snapshots.  
+
+   -followers_NN  DSET01 DSET02 DSET03 ...
+                  :apply the same transformation to 'follower' data
+                   sets; one or more dsets can be listed, with each
+                   assumed to overlay on the T1W source set. The 'NN'
+                   interpolation of 3dAllineate is applied to these
+                   dsets, so that integer values remain integer
+                   valued; thus, these might be dsets with ROI maps
+                   already created.  NB: subbrick selectors are not
+                   allowed on the DSETs here at present.
+   -followers_wsinc5  DSET1 DSET2 DSET3 ...
+                   similar to the above '-followers_NN ...', except in
+                   this case the final applied mapping is 'wsinc5', which
+                   is appropriate, for example, for floating point values.
+                   Again, a list of one or more volumes (sans subbrick
+                   selectors) can be provided here.
 
    -no_cmd_out    :don't save the command line call of this program
                    and the location where it was run (otherwise, it is
                    saved by default in the ODIR/).                     
-   -no_clean      :no not delete temporary working directory (default is to 
-                   remove it to save disk space).
+   -no_clean      :no not delete temporary working directory (default is 
+                   to remove it to save disk space).
 
 # ----------------------------------------------------------------------
 
   EXAMPLE
 
     $this_prog  \
-        -in_t1w    MPRAGE.nii.gz        \
-        -outdir    SUB001               \
-        -prefix    t1w_alnd
-
+        -in_source    brain.nii            \
+        -in_base      dwi_dwi.nii.gz'[0]'  \
+        -outdir       SUB001               \
+        -prefix       indti                \
+        -follower_NN  aparc*_REN_*.nii.gz 
 
 
 # -----------------------------------------------------------------------
