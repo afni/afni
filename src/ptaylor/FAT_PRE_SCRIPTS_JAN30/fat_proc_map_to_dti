@@ -16,8 +16,11 @@
 #   + snapshotting of images
 #   + update help file
 #
-set version   = "1.2";    set rev_dat   = "March 20, 2017"
+#set version   = "1.2";    set rev_dat   = "March 20, 2017"
 #   + propagate labeltables for NN sets
+#
+set version   = "1.3";    set rev_dat   = "March 21, 2017"
+#   + consistent option/help names
 #
 # ---------------------------------------------------------------
 
@@ -137,7 +140,7 @@ while ( $ac <= $#argv )
                 echo "** ERROR: need at least one dset after $argv[$ac]!"
                 goto BAD_EXIT
             else
-                echo "++ User has listed $#fNN follower_NN dsets"
+                echo "++ User has listed $#fNN followers_NN dsets"
             endif
         endif
 
@@ -166,7 +169,7 @@ while ( $ac <= $#argv )
                 echo "** ERROR: need at least one dset after $argv[$ac]!"
                 goto BAD_EXIT
             else
-                echo "++ User has listed $#fWS5 follower_ws5 dsets"
+                echo "++ User has listed $#fWS5 followers_ws5 dsets"
             endif
         endif
 
@@ -457,7 +460,7 @@ if ( $DO_VIEWER == 1 ) then
 
     # for NN
     foreach ff ( ${list_ofNN} )
-        echo "++ QC imaging for the follower dset list:"
+        echo "++ QC imaging for the NN followers dset list:"
         echo "    ${list_ofNN}"
 
         set pp = `3dinfo -prefix_noext $ff`
@@ -484,7 +487,7 @@ if ( $DO_VIEWER == 1 ) then
 
     # for WS5
     foreach ff ( ${list_ofWS5} )
-        echo "++ QC imaging for the follower dset list:"
+        echo "++ QC imaging for the wsinc5 followers dset list:"
         echo "    ${list_ofWS5}"
 
         set pp = `3dinfo -prefix_noext $ff`
@@ -645,7 +648,7 @@ cat << EOF
         -in_base      dwi_dwi.nii.gz'[0]'  \
         -outdir       SUB001               \
         -prefix       indti                \
-        -follower_NN  aparc*_REN_*.nii.gz 
+        -followers_NN  aparc*_REN_*.nii.gz 
 
 
 # -----------------------------------------------------------------------
