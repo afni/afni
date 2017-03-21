@@ -1772,8 +1772,9 @@ SUMA_MorphInfo * SUMA_MapSurface (SUMA_SurfaceObject *surf1,
       dr2 /= numNodes_1;
       if( verb )
          fprintf(SUMA_STDERR,
-                 "-- MI: surf 1 (%s) radius from center %f, %f, %f :\n"
-                 "   min %f, mean %f, max %f\n",
+                 "-- MI: surf 1 (%s) radius ...\n"
+                 "       from center %f, %f, %f :\n"
+                 "       min %f, mean %f, max %f\n",
                  surf1->Label ? surf1->Label : "<noname>",
                  ctr1[0], ctr1[1], ctr1[2], dmin, dr2, dmax);
    }
@@ -1799,10 +1800,11 @@ SUMA_MorphInfo * SUMA_MapSurface (SUMA_SurfaceObject *surf1,
       dr2 /= numNodes_2;
       if( verb )
          fprintf(SUMA_STDERR,
-                 "-- MI: surf 2 (%s) radius from center %f, %f, %f :\n"
-                 "   min %f, mean %f, max %f\n",
+                 "-- MI: surf 2 (%s) radius ...\n"
+                 "       from center %f, %f, %f :\n"
+                 "       min %f, mean %f, max %f\n",
                  surf2->Label ? surf2->Label : "<noname>",
-              ctr2[0], ctr2[1], ctr2[2], dmin, dr2, dmax);
+                 ctr2[0], ctr2[1], ctr2[2], dmin, dr2, dmax);
    }
 
    /* actually keep this result in r2 (compute as double, keep as float) */
