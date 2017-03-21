@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 21,  Mar, 2017, RCR, "afni_proc.py", MICRO, TYPE_BUG_FIX,
+   "allow for volreg-only script with MIN_OUTLIER",
+   NULL
+ } ,
+
  { 21,  Mar, 2017, RCR, "MapIcosahedron", MINOR, TYPE_BUG_FIX,
    "fix projection of surfaces with non-zero centers",
    "Center each surface around 0,0,0 instead of leaving the offset in."
