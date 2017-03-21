@@ -561,9 +561,10 @@ g_history = """
         - added -regress_ppi_stim_files, -regress_ppi_stim_labels
     5.11 Dec 29, 2016:
         - removed case 16 (brainstem) from aparc+aseg.nii WM extraction in help
+    5.12 Mar 21, 2017: allow for volreg-only script with MIN_OUTLIER
 """
 
-g_version = "version 5.11, December 29, 2016"
+g_version = "version 5.12, March 21, 2017"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \
