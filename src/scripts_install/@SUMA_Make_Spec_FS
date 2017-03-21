@@ -6,10 +6,11 @@
 #
 # usage @SUMA_Make_Spec_FS [options]
 #
-# options:  -sid   subject_id   : specify subject ID
-#       -fspath   FreeSurfer_path : specify path to FreeSurfer files
-#       -neuro         : use neurological orientation
-#           -debug      level      : display extra output
+# options:
+#       -sid    subject_id      : specify subject ID
+#       -fspath FreeSurfer_path : specify path to FreeSurfer files
+#       -neuro                  : use neurological orientation
+#       -debug  level           : display extra output
 #
 
 # [Dec 30, 2016]: PT+RCR updated.
@@ -1173,7 +1174,13 @@ L_ICO:
             end
          endif
          if ( -f $sp) then
-            MapIcosahedron -spec $sp -ld $ld $dm -prefix $ldpref[$ild] 
+            # possibly add -verb    19 Mar 2017 [rickr]
+            if ( $debug ) then
+               set vb = "-verb"
+            else
+               set vb = ""
+            endif
+            MapIcosahedron $vb -spec $sp -ld $ld $dm -prefix $ldpref[$ild] 
             set both = ($both ${ldpref[$ild]}{$subj_id}_${hem}.spec)
          endif
       end
