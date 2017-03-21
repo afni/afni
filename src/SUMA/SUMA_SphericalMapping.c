@@ -1756,45 +1756,54 @@ SUMA_MorphInfo * SUMA_MapSurface (SUMA_SurfaceObject *surf1,
    }
 
    /* debug: note radius stats of surf 1 */
-   dr2 = 0.0;
-   dmin = 99999.0;
-   dmax = 0.0;
-   for (i=0; i<numNodes_1; ++i) {
-      j = 3*i;
-      dval = sqrt( pow( ctrNodeList_1[j],   2) +
-                   pow( ctrNodeList_1[j+1], 2) + 
-                   pow( ctrNodeList_1[j+2], 2) );
-      dr2 += dval;
-      if( dval < dmin ) dmin = dval;
-      if( dval > dmax ) dmax = dval;
+   if( verb ) {
+      dr2 = 0.0;
+      dmin = 99999.0;
+      dmax = 0.0;
+      for (i=0; i<numNodes_1; ++i) {
+         j = 3*i;
+         dval = sqrt( pow( ctrNodeList_1[j],   2) +
+                      pow( ctrNodeList_1[j+1], 2) + 
+                      pow( ctrNodeList_1[j+2], 2) );
+         dr2 += dval;
+         if( dval < dmin ) dmin = dval;
+         if( dval > dmax ) dmax = dval;
+      }
+      dr2 /= numNodes_1;
+      if( verb )
+         fprintf(SUMA_STDERR,
+                 "-- MI: surf 1 (%s) radius from center %f, %f, %f :\n"
+                 "   min %f, mean %f, max %f\n",
+                 surf1->Label ? surf1->Label : "<noname>",
+                 ctr1[0], ctr1[1], ctr1[2], dmin, dr2, dmax);
    }
-   dr2 /= numNodes_1;
-   if( verb )
-      fprintf(SUMA_STDERR,"-- MI: surf 1 radius from center %f, %f, %f :\n"
-                          "   min %f, mean %f, max %f\n",
-                          ctr1[0], ctr1[1], ctr1[2], dmin, dr2, dmax);
 
    /*find radius of surf2*/
    /*(in theory should be able to just take distance first node -> center, but 
       freesurfer surfs are not perfectly spherical)*/
-   dr2 = 0.0;
-   dmin = 99999.0;
-   dmax = 0.0;
-   for (i=0; i<numNodes_2; ++i) {
-      j = 3*i;
-      dval = sqrt( pow( ctrNodeList_2[j],   2) +  /* remove zero 17 Mar 2017 */
-                   pow( ctrNodeList_2[j+1], 2) + 
-                   pow( ctrNodeList_2[j+2], 2) );
-      dr2 += dval;
-      if( dval < dmin ) dmin = dval;
-      if( dval > dmax ) dmax = dval;
+   { /* no if(verb), but keep indentation for readability */
+     /* or get function to return min, mean, max */
+      dr2 = 0.0;
+      dmin = 99999.0;
+      dmax = 0.0;
+      for (i=0; i<numNodes_2; ++i) {
+         j = 3*i;
+         dval = sqrt( pow( ctrNodeList_2[j], 2) + /* remove zero 17 Mar 2017 */
+                      pow( ctrNodeList_2[j+1], 2) + 
+                      pow( ctrNodeList_2[j+2], 2) );
+         dr2 += dval;
+         if( dval < dmin ) dmin = dval;
+         if( dval > dmax ) dmax = dval;
+      }
+      /* compute as double, keep as float   19 Mar 2017 */
+      dr2 /= numNodes_2;
+      if( verb )
+         fprintf(SUMA_STDERR,
+                 "-- MI: surf 2 (%s) radius from center %f, %f, %f :\n"
+                 "   min %f, mean %f, max %f\n",
+                 surf2->Label ? surf2->Label : "<noname>",
+              ctr2[0], ctr2[1], ctr2[2], dmin, dr2, dmax);
    }
-   /* compute as double, keep as float   19 Mar 2017 */
-   dr2 /= numNodes_2;
-   if( verb )
-      fprintf(SUMA_STDERR,"-- MI: surf 2 radius from center %f, %f, %f :\n"
-                          "   min %f, mean %f, max %f\n",
-                          ctr2[0], ctr2[1], ctr2[2], dmin, dr2, dmax);
 
    /* actually keep this result in r2 (compute as double, keep as float) */
    r2 = dr2;
