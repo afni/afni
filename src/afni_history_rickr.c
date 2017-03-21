@@ -49,6 +49,21 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 21,  Mar, 2017, RCR, "MapIcosahedron", MINOR, TYPE_BUG_FIX,
+   "fix projection of surfaces with non-zero centers",
+   "Center each surface around 0,0,0 instead of leaving the offset in."
+ } ,
+
+ { 21,  Mar, 2017, RCR, "@FS_roi_label", MICRO, TYPE_BUG_FIX,
+   "extra quote on line: choose one of $lbls",
+   NULL
+ } ,
+
+ { 21,  Mar, 2017, RCR, "@SUMA_Make_Spec_FS", MICRO, TYPE_ENHANCE,
+   "add -verb to MapIcosahedron if script is in verbose mode",
+   NULL
+ } ,
+
  { 16,  Mar, 2017, RCR, "RetroTS.py", MICRO, TYPE_MODIFY,
    "change peak_finder() to read data as floats",
    NULL
