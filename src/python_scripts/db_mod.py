@@ -368,7 +368,15 @@ def extract_registration_base(block, proc, prefix=''):
       print '** ERB: no vr_ext_pre'
       return 1
 
+   # get the block to put 3dbucket at the end of
    prev_block = proc.find_block(proc.prev_lab(block))
+  
+   # if it is the tcat block, shift to after postdata
+   if prev_block.label == 'tcat':
+      postblock = proc.find_block('postdata')
+      if postblock != None:
+         prev_block = postblock
+
    prev_block.post_cstr += \
       '# --------------------------------\n' \
       '# extract volreg registration base\n' \
