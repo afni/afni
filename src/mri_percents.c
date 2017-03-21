@@ -645,8 +645,8 @@ void mri_percents( MRI_IMAGE *im , int nper , float per[] )
 #define USE_BFAC
 
 #ifdef  USE_BFAC
-static float afac=0.0f ;
-static float bfac=1.0f ;
+static float afac=6.0f ;
+static float bfac=0.0f ;
 void mri_flatten_set_bfac(float b)
 {
   bfac = ( b >= 0.0f && b <= 1.0f ) ? b : 1.0f ;
@@ -662,14 +662,12 @@ MRI_IMAGE * mri_flatten( MRI_IMAGE *im )
    MRI_IMAGE *flim , *intim , *outim ;
    float *far , *outar ;
    int *iar ;
-   int ii , nvox , ibot,itop , nvox1 ;
+   int ii , nvox , ibot,itop , nvox1,isub ;
    float fac , val , xval ;
 
-#ifdef DEBUG
-printf("Entry: mri_flatten\n") ;
-#endif
+ENTRY("mri_flatten") ;
 
-   if( im == NULL ) return NULL ;
+   if( im == NULL ) RETURN(NULL) ;
 
    /*** make an image that is just the voxel index in its array ***/
    /*** also, make the output image while we are at it          ***/
@@ -700,15 +698,25 @@ printf("Entry: mri_flatten\n") ;
         them by their average position in the histogram.
    ***/
 
-   fac = 1.0f/nvox ; nvox1 = nvox - 1 ;
+   nvox1 = nvox - 1 ;
+   if( far[0] != 0.0f ){
+     fac = 1.0f/nvox ; ibot = 0 ; isub = 0 ;
+   } else {
+     for( ibot=1 ; ibot < nvox1 && far[ibot]==0.0f ; ibot++ ) ; /*nada*/
+     if( ibot == nvox1 ){
+       mri_free(flim) ; mri_free(intim) ; RETURN(NULL) ;
+     }
+     fac = 1.0f/(nvox-ibot-1) ;
+     isub = ibot-1 ; fac = 1.0f/(nvox-ibot) ;
+   }
 
-   for( ibot=0 ; ibot < nvox1 ; ){
+   for( ; ibot < nvox1 ; ){
 
       /** if this value is unique, just set the value and move on **/
 
       val = far[ibot] ; itop = ibot+1 ;
       if( val != far[itop] ){
-         xval = fac*ibot ; far[ibot] = FLATV(xval) ;
+         xval = fac*(ibot-isub) ; far[ibot] = FLATV(xval) ;
          ibot++ ; continue ;
       }
 
@@ -716,7 +724,7 @@ printf("Entry: mri_flatten\n") ;
 
       for( ; itop < nvox1 && val == far[itop] ; itop++ ) ; /* nada */
 
-      val = 0.5f*fac * (ibot+itop-1) ; xval = FLATV(val) ;
+      val = 0.5f*fac*(ibot+itop-1-2*isub) ; xval = FLATV(val) ;
       for( ii=ibot ; ii < itop ; ii++ ) far[ii] = xval ;
       ibot = itop ;
    }
@@ -726,10 +734,10 @@ printf("Entry: mri_flatten\n") ;
 
    for( ii=0 ; ii < nvox ; ii++ ) outar[iar[ii]] = far[ii] ;
 
-   mri_free( flim ) ; mri_free( intim ) ;
+   mri_free(flim) ; mri_free(intim) ;
 
    MRI_COPY_AUX( outim , im ) ;
-   return outim ;
+   RETURN(outim) ;
 }
 
 /*-------------------------------------------------------------------*/
