@@ -1282,6 +1282,7 @@ extern void mri_drawtext( MRI_IMAGE *im ,
                           byte r,byte g,byte b );
 
 extern void mri_draw_opacity( float ) ;
+extern void mri_draw_force_opaque(int fo) ;
 
 extern void mri_drawcircle( MRI_IMAGE *im ,
                             int cx, int cy, int radius, byte r,byte g,byte b, int fill ) ;

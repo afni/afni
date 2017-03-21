@@ -22,8 +22,15 @@
 #define DDA_SCALE 8192
 
 /*---------------------- Set opacity [22 Jul 2004] ----------------------------*/
-static float opa = 1.0 ;
-void mri_draw_opacity( float val ){ if( val >= 0.0 && val <= 1.0 ) opa = val ; }
+static int   force_opaque=0 ;
+static float opa = 1.0f ;
+void mri_draw_opacity( float val )
+{
+   if( force_opaque ) opa = 1.0f ;
+   else if( val >= 0.0 && val <= 1.0 ) opa = val ;
+}
+
+void mri_draw_force_opaque(int fo){ force_opaque = fo ; }
 
 #undef  ASSPIX
 #undef  ASSPIX_OLD

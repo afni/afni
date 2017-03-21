@@ -3243,6 +3243,7 @@ ENTRY("ISQ_plot_label") ;
    create_memplot_surely( "Ilabelplot" , asp ) ;
 
    set_thick_memplot(th[seq->wbar_labsz_av->ival]) ; /* 09 Dec 2011 */
+   set_opacity_memplot(1.0f) ;                       /* 21 Mar 2017 */
 
    /* get the color to plot with */
 
@@ -3901,13 +3902,7 @@ ENTRY("ISQ_but_cswap_CB") ;
      nval == 4 is the Save Many case (val = prefix, blowup, from, to)
 ---------------------------------------------------------------------*/
 
-#define USE_STUFF
-
-#ifndef USE_STUFF
-# define POPDOWN_first_one POPDOWN_string_chooser
-#else
-# define POPDOWN_first_one POPDOWN_stuff_chooser
-#endif
+#define POPDOWN_first_one POPDOWN_stuff_chooser
 
 void ISQ_saver_CB( Widget w , XtPointer cd , int nval , void **val )
 {
@@ -4034,7 +4029,9 @@ ENTRY("ISQ_saver_CB") ;
 
          if( tim != NULL && seq->mplot != NULL && tim->kind == MRI_rgb ){
            if( dbg ) fprintf(stderr,"  overlay geometry stuff\n") ;
+           /* mri_draw_force_opaque(1) ; */
            memplot_to_RGB_sef( tim, seq->mplot, 0,0,MEMPLOT_FREE_ASPECT ) ;
+           /* mri_draw_force_opaque(0) ; */
          }
 
          /* 25 Mar 2002: perhaps cut up zoomed image
@@ -4303,7 +4300,9 @@ ENTRY("ISQ_saver_CB") ;
            if( mp != NULL ){
              if( dbg ) fprintf(stderr,"  perform geometry overlay\n") ;
              flip_memplot( ISQ_TO_MRI_ROT(seq->opt.rot),seq->opt.mirror,mp );
+             /* mri_draw_force_opaque(1) ; */
              memplot_to_RGB_sef( flim, mp, 0,0,MEMPLOT_FREE_ASPECT ) ;
+             /* mri_draw_force_opaque(0) ; */
              delete_memplot(mp) ;
            }
          }
@@ -4313,7 +4312,9 @@ ENTRY("ISQ_saver_CB") ;
            if( lab != NULL ){
              MEM_plotdata *mp = ISQ_plot_label( seq , lab ) ;
              if( mp != NULL ){
+               /* mri_draw_force_opaque(1) ; */
                memplot_to_RGB_sef( flim, mp, 0,0,MEMPLOT_FREE_ASPECT ) ;
+               /* mri_draw_force_opaque(0) ; */
                delete_memplot(mp) ;
              }
              free(lab) ;
@@ -13309,8 +13310,11 @@ ENTRY("ISQ_save_image") ;
 
    /** line drawing overlay? **/
 
-   if( seq->mplot != NULL )
+   if( seq->mplot != NULL ){
+     /* mri_draw_force_opaque(1) ; */
      memplot_to_RGB_sef( tim, seq->mplot, 0,0,MEMPLOT_FREE_ASPECT ) ;
+     /* mri_draw_force_opaque(0) ; */
+   }
 
    /** cut up zoomed image? **/
 
@@ -13655,7 +13659,9 @@ ENTRY("ISQ_save_anim") ;
         mp = ISQ_getmemplot( kf , seq ) ;
         if( mp != NULL ){
           flip_memplot( ISQ_TO_MRI_ROT(seq->opt.rot),seq->opt.mirror,mp );
+          /* mri_draw_force_opaque(1) ; */
           memplot_to_RGB_sef( flim, mp, 0,0,MEMPLOT_FREE_ASPECT ) ;
+          /* mri_draw_force_opaque(0) ; */
           delete_memplot(mp) ;
         }
       }
@@ -13665,7 +13671,9 @@ ENTRY("ISQ_save_anim") ;
         if( lab != NULL ){
           MEM_plotdata *mp = ISQ_plot_label( seq , lab ) ;
           if( mp != NULL ){
+            /* mri_draw_force_opaque(1) ; */
             memplot_to_RGB_sef( flim, mp, 0,0,MEMPLOT_FREE_ASPECT ) ;
+            /* mri_draw_force_opaque(0) ; */
             delete_memplot(mp) ;
           }
           free(lab) ;
