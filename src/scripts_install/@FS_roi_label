@@ -37,11 +37,12 @@ if ( $Do_Surf ) then
          diff $lbls[1] $lbls[2]
          if ($status) then
             echo "Found more than one cmap file and they appear different"
-            echo "choose one of $lbls"
+            echo "choose one of $lbls (see -surf_annot_cmap)"
+            goto END
          endif
       else if ($#lbls > 2) then
          echo "Found more than two cmap files, choose one of"
-         echo "$lbls"
+         echo "$lbls (see -surf_annot_cmap)"
          goto END
       endif
       set SurfLabelFile = $lbls[1]
@@ -200,54 +201,54 @@ set stat = 0
 goto END
 
 PARSE:
-	
-	#find the locations of -ts and -roi, etc
+   
+   #find the locations of -ts and -roi, etc
    set name = ''
    set rankmap = ''
    set rankmax = 1024
    set rank = ''
    set lab = ''
-	set Narg = $#
-	set cnt = 1
+   set Narg = $#
+   set cnt = 1
    set SurfLabelFile = ""
    set Do_Surf = -1
    set labeltable = ''
    while ($cnt <= $Narg)
-		if ("$argv[$cnt]" == "-surf_annot_cmap") then
-         set SubLoc = $cnt		
-		   if ($Do_Surf == 0) then
+      if ("$argv[$cnt]" == "-surf_annot_cmap") then
+         set SubLoc = $cnt    
+         if ($Do_Surf == 0) then
             echo "-surf_annot_cmap is not good for volume annotations"
             goto END
          endif
-		   if ($SubLoc == $Narg) then
-				echo "Need file after -surf_annot_cmap"
+         if ($SubLoc == $Narg) then
+            echo "Need file after -surf_annot_cmap"
             goto END
-			else
-				@ cnt ++
-				set SurfLabelFile = "$argv[$cnt]"
+         else
+            @ cnt ++
+            set SurfLabelFile = "$argv[$cnt]"
             set Do_Surf = 1
             set NxtInd = $cnt
-			endif
+         endif
       endif
       if ("$argv[$cnt]" == "-rank") then
-         set SubLoc = $cnt		
-		   if ($SubLoc == $Narg) then
-				echo "Need integer after -rank"
+         set SubLoc = $cnt    
+         if ($SubLoc == $Narg) then
+            echo "Need integer after -rank"
             goto END
-			else
-				@ cnt ++
-				set rank = "$argv[$cnt]"
+         else
+            @ cnt ++
+            set rank = "$argv[$cnt]"
             set NxtInd = $cnt
-			endif
+         endif
       endif
-		if ("$argv[$cnt]" == "-rankmap") then
-         set SubLoc = $cnt		
-		   if ($SubLoc == $Narg) then
-				echo "Need file after -rankmap"
+      if ("$argv[$cnt]" == "-rankmap") then
+         set SubLoc = $cnt    
+         if ($SubLoc == $Narg) then
+            echo "Need file after -rankmap"
             goto END
-			else
-				@ cnt ++
-				set rankmap = "$argv[$cnt]"
+         else
+            @ cnt ++
+            set rankmap = "$argv[$cnt]"
             if ("${rankmap:r}.1D" != "$rankmap") then
                echo "rankmap must have a .1D extension"
             endif
@@ -256,89 +257,89 @@ PARSE:
                goto BEND
             endif
             set NxtInd = $cnt
-			endif
-      endif
-		
-      if ("$argv[$cnt]" == "-labeltable") then
-         set SubLoc = $cnt		
-		   if ($SubLoc == $Narg) then
-				echo "Need file after -labeltable"
-            goto END
-			else
-				@ cnt ++
-				set labeltable = `@NoExt "$argv[$cnt]" .niml .niml.lt`
-            set labeltable = $labeltable.niml.lt
-            set NxtInd = $cnt
-			endif
+         endif
       endif
       
-		if ("$argv[$cnt]" == "-name") then
-         set SubLoc = $cnt		
-		   if ($Do_Surf == 1) then
+      if ("$argv[$cnt]" == "-labeltable") then
+         set SubLoc = $cnt    
+         if ($SubLoc == $Narg) then
+            echo "Need file after -labeltable"
+            goto END
+         else
+            @ cnt ++
+            set labeltable = `@NoExt "$argv[$cnt]" .niml .niml.lt`
+            set labeltable = $labeltable.niml.lt
+            set NxtInd = $cnt
+         endif
+      endif
+      
+      if ("$argv[$cnt]" == "-name") then
+         set SubLoc = $cnt    
+         if ($Do_Surf == 1) then
             echo "-name is not good for surface annotations"
             goto END
          endif
          if ($SubLoc == $Narg) then
-				echo "Need area name after -name"
+            echo "Need area name after -name"
             goto END
-			else
-				@ cnt ++
+         else
+            @ cnt ++
             set Do_Surf = 0
-				set name = "$argv[$cnt]"
+            set name = "$argv[$cnt]"
             set NxtInd = $cnt
-			endif
+         endif
       endif
-		if ("$argv[$cnt]" == "-sname") then
-         set SubLoc = $cnt		
-		   if ($Do_Surf == 0) then
+      if ("$argv[$cnt]" == "-sname") then
+         set SubLoc = $cnt    
+         if ($Do_Surf == 0) then
             echo "-sname is not good for surface annotations"
             goto END
          endif
-		   if ($SubLoc == $Narg) then
-				echo "Need area name after -sname"
+         if ($SubLoc == $Narg) then
+            echo "Need area name after -sname"
             goto END
-			else
-				@ cnt ++
-				set Do_Surf = 1
+         else
+            @ cnt ++
+            set Do_Surf = 1
             set name = "$argv[$cnt]"
             set NxtInd = $cnt
-			endif
+         endif
       endif
-		if ("$argv[$cnt]" == "-lab" || "$argv[$cnt]" == "-label") then
-         set SufLoc = $cnt		
-		   if ($Do_Surf == 1) then
+      if ("$argv[$cnt]" == "-lab" || "$argv[$cnt]" == "-label") then
+         set SufLoc = $cnt    
+         if ($Do_Surf == 1) then
             echo "-lab is not good for surface annotations"
             goto END
          endif
          if ($SufLoc == $Narg) then
-				echo "Need option after -label"
+            echo "Need option after -label"
             goto END
-			else
-				@ cnt ++
+         else
+            @ cnt ++
             set Do_Surf = 0
             set lab = "$argv[$cnt]"
             set NxtInd = $cnt
-			endif
+         endif
       endif
-		if ("$argv[$cnt]" == "-slab" || "$argv[$cnt]" == "-surf_label") then
-         set SufLoc = $cnt		
-		   if ($Do_Surf == 0) then
+      if ("$argv[$cnt]" == "-slab" || "$argv[$cnt]" == "-surf_label") then
+         set SufLoc = $cnt    
+         if ($Do_Surf == 0) then
             echo "-slab is not good for volume annotations"
             goto END
          endif
-		   if ($SufLoc == $Narg) then
-				echo "Need option after -label"
+         if ($SufLoc == $Narg) then
+            echo "Need option after -label"
             goto END
-			else
-				@ cnt ++
+         else
+            @ cnt ++
             set Do_Surf = 1
             set lab = "$argv[$cnt]"
             set NxtInd = $cnt
-			endif
+         endif
       endif
-      		
-		@ cnt ++
-	end
+            
+      @ cnt ++
+   end
 
    @ NxtInd ++
    if ( $NxtInd > $#argv ) then
