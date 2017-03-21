@@ -37,7 +37,7 @@ if ( $Do_Surf ) then
          diff $lbls[1] $lbls[2]
          if ($status) then
             echo "Found more than one cmap file and they appear different"
-            echo "choose one of $lbls""
+            echo "choose one of $lbls"
          endif
       else if ($#lbls > 2) then
          echo "Found more than two cmap files, choose one of"

@@ -806,6 +806,16 @@ void display_help_menu(void)
       "             ++ -unpooled implies -toz, since t-statistics won't be\n"
       "                 comparable between voxels as the number of degrees\n"
       "                 of freedom will vary between voxels.\n"
+      "             ++ -toz is automatically turned on with the -Clustsim option.\n"
+      "             ++ If for some bizarre reason you want to convert a z-statistic\n"
+      "                to a t-statistic, you can use 3dcalc with a clumsy expression\n"
+      "                of the form\n"
+      "                  'cdf2stat(stat2cdf(x,5,0,0,0),3,DOF,0,0)'\n"
+      "                where 'DOF' is replaced with the number of degrees of freedom.\n"
+      "                The following command will show the effect of such a conversion:\n"
+      "                  1deval -xzero -4 -del 0.01 -num 801                         \\\n"
+      "                         -expr 'cdf2stat(stat2cdf(x,5,0,0,0),3,10,0,0)' |     \\\n"
+      "                  1dplot -xzero -4 -del 0.01 -stdin -xlabel z -ylabel 't(10)'\n"
       "\n"
       " -zskip [n]= Do not include voxel values that are zero in the analysis.\n"
       "             ++ This option can be used when not all subjects' datasets\n"
@@ -1033,11 +1043,27 @@ void display_help_menu(void)
 #endif
       "          -->>++ It is important to use the proper '-mask' option with '-Clustsim'.\n"
       "                 Otherwise, the statistics of the clustering will be skewed (badly).\n"
+      "          -->>++ You can change the number of simulations from the default 10000 by\n"
+      "                 setting Unix environment variable AFNI_TTEST_NUMCSIM to a different\n"
+      "                 value (in the range 1000..1000000). Note that the 3dClustSim tables\n"
+      "                 go down to a cluster-corrected false positive rate of 0.01, so that\n"
+      "                 reducing the number of simulations below 10000 will produce notably\n"
+      "                 less accurate results for such small FPR (alpha) values.\n"
+      "          -->>++ The clever scripter can pick out a particular value from a particular\n"
+      "                 3dClustSim output .1D file using the '{row}[col]' syntax of AFNI,\n"
+      "                 as in the tcsh command\n"
+      "                   set csize = `1dcat Fred.NN1_1sided.1D\"{10}[6]\"`\n"
+      "                 to pick out the number in the #10 row, #6 column (counting from #0),\n"
+      "                 which is the p=0.010 FPR=0.05 entry in the table.\n"
+      "                 (-: Further adventures in scripting mojo I leave to your whimsy :-)\n"
+      "          -->>++ At this time, there is no way to do voxelwise inference from these\n"
+      "                 permutatation/randomization simulations (rather than just using\n"
+      "                 the output t-statistics). Perhaps someday, if AFNI survives.\n"
       "\n"
       "        ---==>>> PLEASE NOTE: This option has been tested for 1- and 2-sample\n"
       "        ---==>>> unpaired and paired tests vs. resting state data -- to see if the\n"
-      "        ---==>>> false alarm rate (FAR) was near the nominal 5%% level (it was).\n"
-      "        ---==>>> The FAR for the covariate effects (as opposed to the main effect)\n"
+      "        ---==>>> false positive rate (FPR) was near the nominal 5%% level (it was).\n"
+      "        ---==>>> The FPR for the covariate effects (as opposed to the main effect)\n"
       "        ---==>>> is still somewhat biased away from the 5%% level :(\n"
       "\n"
       " -prefix_clustsim cc = Use 'cc' for the prefix for the '-Clustsim' temporary\n"
@@ -1047,6 +1073,23 @@ void display_help_menu(void)
       "                         'TT.' and be followed by 11 alphanumeric characters,\n"
       "                         as in 'TT.Sv0Ghrn4uVg'.  To mimic this, you might\n"
       "                         use something like '-prefix_clustsim TT.Zhark'.\n"
+      "                  -->>++ If you use option '-Clustsim', then the simulations\n"
+      "                         keep track of the maximum (in mask) voxelwise z-statistic,\n"
+      "                         compute the threshold for 5%% global FPR, and write\n"
+      "                         those values (for 1-sided and 2-sided thresholding)\n"
+      "                         to a file named 'cc'.5percent.txt -- where 'cc' is\n"
+      "                         the prefix given here. Using such a threshold in the\n"
+      "                         AFNI GUI will (presumably) give you a map with a 5%%\n"
+      "                         chance of false positive WITHOUT clustering. Of course,\n"
+      "                         these thresholds generally come with a stringent per-voxel\n"
+      "                         p-value.\n"
+      "                        ** In one analysis, the 5%% 2-sided test FPR p-value was\n"
+      "                           about 7e-6 for a mask of 43000 voxels, which is bigger\n"
+      "                           (less strict) than the 1.2e-6 one would get from the\n"
+      "                           Bonferroni correction, but is still very stringent\n"
+      "                           for many purposes. This threshold value was also close\n"
+      "                           to the threshold at which the FDR q=1/43000, which may\n"
+      "                           not be a coincidence.\n"
       "\n"
       " -tempdir ttt        = Store temporary files for '-Clustsim' in this directory,\n"
       "                       rather than in the current working directory: this option\n"
@@ -1064,6 +1107,9 @@ void display_help_menu(void)
       " -dupe_ok  = Duplicate dataset labels are OK.  Do not generate warnings\n"
       "             for dataset pairs.\n"
       "            ** This option must preceed the corresponding -setX options.\n"
+      "            ** Such warnings are issued only when '-covariates' is used\n"
+      "               -- when the labels are used to extract covariate values\n"
+      "               from the covariate table.\n"
       "\n"
       " -debug    = Prints out information about the analysis, which can\n"
       "              be VERY lengthy -- not for general usage (or even for colonels).\n"
@@ -1575,12 +1621,15 @@ int main( int argc , char *argv[] )
    int bb , bbase , ss ;  char *abbfmt ; /* for -brickwise -- 28 Jan 2014 */
    MRI_vectim *vimout=NULL , *rimout=NULL ;
    float *workspace=NULL , *datAAA , *datBBB=NULL , *resar ; size_t nws=0 ;
+   float *maxar , *minar ; char *prefix_minmax=NULL ; int do_minmax=0 ; /* 16 Mar 2017 */
+   float *t_minmax=NULL ; MRI_IMAGE *im_minmax=NULL ;
    float_pair tpair ;
    THD_3dim_dataset *outset , *bbset=NULL , *rrset=NULL ;
-   char blab[64] , *stnam ;
+   char blab[64] , *stnam , msg[1024] ;
    float dof_AB=0.0f , dof_A=0.0f , dof_B=0.0f ;
    int BminusA=-1 , ntwosam=0 ;  /* 05 Nov 2010 */
-   int dupe_ok=0;  /* 1 Jun 2015 [rickr] */
+   int dupe_ok=0;   /* 01 Jun 2015 [rickr] */
+   int have_cov=0 ; /* 17 Mar 2017 */
    char *snam_PPP=NULL, *snam_MMM=NULL ;
    static int iwarn=0;
    FILE *fp_sdat = NULL ; short *sdatar=NULL ; char *sdat_prefix=NULL ;
@@ -1603,6 +1652,15 @@ int main( int argc , char *argv[] )
    { int new_argc ; char ** new_argv ;                    /*-- 16 Sep 2016 --*/
      addto_args( argc , argv , &new_argc , &new_argv ) ;
      if( new_argv != NULL ){ argc = new_argc ; argv = new_argv ; }
+   }
+
+   /*-- check for -covariates now [17 Mar 2017] --*/
+
+   dupe_ok = 1 ;
+   for( nopt=1 ; nopt < argc ; nopt++ ){
+     if( strcasecmp(argv[nopt],"-covariates") == 0 ){
+       have_cov = 1 ; dupe_ok = 0 ; break ;
+     }
    }
 
    /*--- read the options from the command line ---*/
@@ -2236,8 +2294,8 @@ int main( int argc , char *argv[] )
          }
        }
        if( nbad > 0 ){  /* duplicate labels :-( */
-         WARNING_message("Duplicate labels for datasets in option '%s'",onam) ;
-         if( ! dupe_ok ) fprintf(stderr,"   (consider -dupe_ok)\n\n");
+         if( have_cov )
+           ERROR_message("Duplicate labels for datasets in option '%s'",onam) ;
          allow_cov = -1 ;
        }
 
@@ -2468,8 +2526,19 @@ int main( int argc , char *argv[] )
    if( name_mask == NULL && do_Xclustsim )
      ERROR_exit("-Xclustsim requires -mask :(") ;
 
-   if( do_randomsign && num_randomsign > 1 ) /* 02 Feb 2016 */
+   if( do_randomsign && num_randomsign > 1 ){ /* 02 Feb 2016 */
+     char *cpt ;
      brickwise_num = num_randomsign ;
+
+     do_minmax     = 1 ;
+     prefix_minmax = (char *)malloc(sizeof(char)*(strlen(prefix)+32)) ;
+     strcpy(prefix_minmax,prefix) ;
+     cpt = strstr(prefix_minmax,".nii")  ; if( cpt != NULL ) *cpt = '\0' ;
+     cpt = strstr(prefix_minmax,".sdat") ; if( cpt != NULL ) *cpt = '\0' ;
+     strcat(prefix_minmax,".minmax.1D") ;
+     im_minmax = mri_new( brickwise_num , 2 , MRI_float ) ;
+     t_minmax  = MRI_FLOAT_PTR(im_minmax) ;
+   }
 
    if( do_randomsign && do_resid )           /* 02 Feb 2016 */
      ERROR_exit("You can't do -resid and -randomsign together!") ;
@@ -2782,6 +2851,9 @@ int main( int argc , char *argv[] )
              if( covvim_BBB[jj] == NULL ){
                ERROR_message("Can't assemble dataset vectors for covariate #%d",jj+1) ;
                nbad++ ;
+             } else {
+               sprintf(msg,"3dttest++ -setB covariate #%d",jj+1) ;
+               THD_check_vectim(covvim_BBB[jj],msg) ;
              }
            }
            for( kk=0 ; kk < ndset_BBB ; kk++ )         /* tossola la trashola */
@@ -2834,6 +2906,9 @@ int main( int argc , char *argv[] )
              if( covvim_AAA[jj] == NULL ){
                ERROR_message("Can't assemble dataset vectors for covariate #%d",jj+1) ;
                nbad++ ;
+             } else {
+               sprintf(msg,"3dttest++ -setB covariate #%d",jj+1) ;
+               THD_check_vectim(covvim_BBB[jj],msg) ;
              }
            }
            for( kk=0 ; kk < ndset_AAA ; kk++ )       /* toss out the trashola */
@@ -3111,6 +3186,11 @@ LABELS_ARE_DONE:  /* target for goto above */
 
    MAKE_VECTIM(vimout,nmask_hits,nvres) ; vimout->ignore = 0 ;
 
+   if( do_minmax ){
+     minar = (float *)malloc(sizeof(float)*nvres) ;
+     maxar = (float *)malloc(sizeof(float)*nvres) ;
+   }
+
    /* make residual dataset [07 Dec 2015] */
 
    if( do_resid ){
@@ -3168,6 +3248,10 @@ LABELS_ARE_DONE:  /* target for goto above */
    for( bb=0 ; bb < brickwise_num ; bb++ ){  /* for each 'brick' to process */
      bbase = bb*nvout ;
 
+     if( do_minmax ){ /* 16 Mar 2017 */
+       for( jj=0 ; jj < nvres ; jj++ ){ maxar[jj] = -WAY_BIG; minar[jj] = WAY_BIG; }
+     }
+
      /* setup permutation and randomization:
         the same things are applied to all voxels for each iteration! */
 
@@ -3186,10 +3270,14 @@ LABELS_ARE_DONE:  /* target for goto above */
        vectim_AAA = THD_dset_list_censored_to_vectim( ndset_AAA , dset_AAA ,
                                                       mask , 1 , keep       ) ;
        for( ii=0 ; ii < ndset_AAA ; ii++ ) DSET_unload_one(dset_AAA[ii],bb) ;
+       sprintf(msg,"3dttest++ -setA brickwise #%d",bb) ;
+       THD_check_vectim(vectim_AAA,msg) ;
        if( twosam ){
          vectim_BBB = THD_dset_list_censored_to_vectim( ndset_BBB , dset_BBB ,
                                                         mask , 1 , keep       ) ;
          for( ii=0 ; ii < ndset_BBB ; ii++ ) DSET_unload_one(dset_BBB[ii],bb) ;
+         sprintf(msg,"3dttest++ -setB brickwise #%d",bb) ;
+         THD_check_vectim(vectim_BBB,msg) ;
        }
        if( debug ) MEMORY_CHECK ;
      }
@@ -3354,6 +3442,15 @@ LABELS_ARE_DONE:  /* target for goto above */
          for( ii=0 ; ii < ntwosam ; ii++ ) resar[ii] = -resar[ii] ;
        }
 
+       /* save min and max values from resar [16 Mar 2017] */
+
+       if( do_minmax ){
+         for( jj=0 ; jj < nvres ; jj++ ){
+           if( resar[jj] > maxar[jj] ) maxar[jj] = resar[jj] ;
+           if( resar[jj] < minar[jj] ) minar[jj] = resar[jj] ;
+         }
+       }
+
        kout++ ;
 
      }  /*------- end of loop over voxels -------*/
@@ -3418,9 +3515,22 @@ LABELS_ARE_DONE:  /* target for goto above */
        THD_vectim_to_dset( rimout , rrset ) ;
      }
 
+     /* save minmax results */
+
+     if( do_minmax ){
+       t_minmax[bb              ] = minar[1] ;
+       t_minmax[bb+brickwise_num] = maxar[1] ;
+     }
+
    } /*----- end of brickwise loop -----*/
 
    if( brickwise_num > 1 ) fprintf(stderr,"!\n") ;
+
+   if( do_minmax ){  /* 16 Mar 2017 */
+     INFO_message("saving main effect t-stat MIN/MAX values in %s",prefix_minmax) ;
+     mri_write_1D( prefix_minmax , im_minmax ) ;
+     mri_free(im_minmax) ; free(maxar) ; free(minar) ;
+   }
 
    if( do_sdat ){      /*----- 29 Aug 2016 -----*/
      fclose(fp_sdat) ;
@@ -3515,7 +3625,7 @@ LABELS_ARE_DONE:  /* target for goto above */
    /*------------ Cluster Simulation now [10 Feb 2016] ------------*/
 
    if( do_clustsim || do_Xclustsim ){
-     char fname[128] , *cmd , *ccc ; int qq,pp , nper ; double ct1,ct2 ;
+     char fname[1024] , *cmd , *ccc ; int qq,pp , nper ; double ct1,ct2 ;
      int ncsim ;
      int use_sdat ;
      char **tfname ;
@@ -3527,7 +3637,7 @@ LABELS_ARE_DONE:  /* target for goto above */
      /* how many iterations? */
 
      ncsim = (int)AFNI_numenv("AFNI_TTEST_NUMCSIM") ;  /* 0 if not set */
-          if( ncsim <    10000 ) ncsim =  ncmin ;
+          if( ncsim <     1000 ) ncsim =  ncmin ;
      else if( ncsim > 10000000 ) ncsim = 10000000 ;    /* that's a lot */
 
      cmd  = (char *)malloc(sizeof(char)*(16384+mcov*256+(nval_AAA+nval_BBB)*512)) ;
@@ -3648,6 +3758,50 @@ LABELS_ARE_DONE:  /* target for goto above */
      ct2 = COX_clock_time() ;
      ININFO_message("===== all jobs have finished (%.1f s elapsed) =====",ct2-ct1) ;
      ct1 = ct2 ;
+
+     /* read in the *.minmax.1D files from the above [16 Mar 2017],
+        and gather statistics on them for the sake of amusement and mirth */
+
+     { MRI_IMAGE *inim , *allim ; MRI_IMARR *inar ; int nbad=0 ;
+       INIT_IMARR(inar) ;
+       for( pp=0 ; pp < num_clustsim ; pp++ ){ /* read one from each simulation */
+         sprintf(fname,"%s/%s.%03d.minmax.1D",tempdir,prefix_clustsim,pp) ;
+         inim = mri_read_1D(fname) ;
+         if( inim == NULL ){  /* should not happen */
+           ERROR_message("Can't read file %s",fname) ; nbad++ ; continue ;
+         }
+         ADDTO_IMARR(inar,inim) ; remove(fname) ;
+       }
+       if( nbad == 0 ){                   /* if all are OK */
+         allim = mri_catvol_1D(inar,1) ;  /* glue them all together */
+         if( allim != NULL ){
+           int nall=2*allim->nx , n05=(int)rintf(0.05f*nall) ;
+           float *allar=MRI_FLOAT_PTR(allim) ;
+           float oneside_05 , twoside_05 ; FILE *fp ;
+
+           for( pp=0 ; pp < nall ; pp++ ) allar[pp] = fabsf(allar[pp]) ;
+           qsort_float_rev(nall,allar) ;  /* decreasing order */
+           twoside_05 = allar[n05] ;      /* 5% in all cases */
+           oneside_05 = allar[2*n05] ;    /* 10% in all cases = 5% one side */
+           mri_free(allim) ;
+
+           sprintf(fname,"%s.5percent.txt",prefix_clustsim) ;
+           fp = fopen(fname,"w") ;
+           INFO_message("Global 5%% FPR points for simulated z-stats:") ;
+           fprintf(stderr,"   %.3f = 1-sided 5%% FPR\n",oneside_05) ;
+           fprintf(stderr,"   %.3f = 2-sided 5%% FPR\n",twoside_05) ;
+           if( fp != NULL ){
+             fprintf(fp," %.3f = 1-sided 5%% FPR\n",oneside_05) ;
+             fprintf(fp," %.3f = 2-sided 5%% FPR\n",twoside_05) ;
+             fclose(fp) ;
+             ININFO_message("    [above results also in file %s]",fname) ;
+           } else {  /* should never happen */
+             WARNING_message("   [for some reason, unable to write above results to a file]") ;
+           }
+         }
+       }
+       DESTROY_IMARR(inar) ;
+     }
 
      /* run 3dClustSim[X] using the outputs from the above as the simulations */
 
