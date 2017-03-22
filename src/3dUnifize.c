@@ -656,6 +656,11 @@ int main( int argc , char *argv[] )
        "* If the input dataset has more than 1 sub-brick, only sub-brick\n"
        "  #0 will be processed!\n"
        "\n"
+       "* If you have a lot of tissue inferior to the brain, you might have\n"
+       "  to cut it off (using 3dZeropad -I -xxx to cut off the most inferior\n"
+       "  xxx slices -- where you pick the number xxx visually), before\n"
+       "  using 3dUnifize.\n"
+       "\n"
        "* Want to correct EPI datasets for nonuniformity?\n"
        "  You can try the new and experimental [Mar 2017] '-EPI' option.\n"
        "\n"
@@ -788,7 +793,7 @@ int main( int argc , char *argv[] )
        "                  You can still manually set -clfrac to 0.1 if you need to\n"
        "                  correct for very large shading artifacts.\n"
        "               ++ If the results of 3dUnifize have a lot of noise outside the head,\n"
-       "                  then using '-clfrac 0.5' value will probably help.\n"
+       "                  then using '-clfrac 0.5' (or even larger) will probably help.\n"
 #ifndef USE_ALL_VALS
        "\n"
        "  -useall    = The 'old' way of operating was to use all dataset values\n"
@@ -927,7 +932,7 @@ int main( int argc , char *argv[] )
      if( strcmp(argv[iarg],"-Urad") == 0 ){
        if( ++iarg >= argc ) ERROR_exit("Need argument after '%s'",argv[iarg-1]) ;
        Uprad = (float)strtod(argv[iarg],NULL) ;
-       if( Uprad <   5.0f || Uprad > 40.0f )
+       if( Uprad <   5.0f || Uprad > 99.0f )
          ERROR_exit("Illegal value %f after option -Urad",Uprad) ;
        iarg++ ; continue ;
      }
@@ -949,7 +954,7 @@ int main( int argc , char *argv[] )
        Uprad = (float)strtod(argv[iarg++],NULL) ;
        Upbot = (float)strtod(argv[iarg++],NULL) ;
        Uptop = (float)strtod(argv[iarg++],NULL) ;
-       if( Uprad <   5.0f || Uprad > 40.0f ||
+       if( Uprad <   5.0f || Uprad > 99.0f ||
            Upbot <  30.0f || Upbot > 80.0f ||
            Uptop <= Upbot || Uptop > 90.0f   )
          ERROR_exit("Illegal values (R pb pt) after '%s'",argv[iarg-4]) ;
@@ -1028,6 +1033,7 @@ THD_cliplevel_search(imin) ; exit(0) ;  /* experimentation only */
 #endif
 
    THD_automask_set_clipfrac(clfrac) ;
+   if( verb > 1 ) THD_automask_verbose(verb-1) ;
 
    /* invert T2? */
 
