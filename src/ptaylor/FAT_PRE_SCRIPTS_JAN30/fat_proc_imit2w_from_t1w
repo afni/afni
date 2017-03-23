@@ -24,7 +24,7 @@ set adir      = ""
 set my_viewer = ""
 which afni >& /dev/null
 if ( $status ) then
-    echo "** Cannot find 'afni' (??!?!)."
+    echo "** Cannot find 'afni' (?!)."
     goto BAD_EXIT
 else
     set aa   = `which afni`
