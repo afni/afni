@@ -699,11 +699,11 @@ A. Default: only the parts of the tract within and between the targets;
    within each target, between the targets, *and* those endparts
    sticking out away from each target.
 
-#. ``-tarf_surf_stop``: only parts of the tract between the targets and
+#. ``-targ_surf_stop``: only parts of the tract between the targets and
    just **one layer into** the target volumes; that is, the target
    surface stops the tracts after they enter.
 
-#. ``-tarf_surf_twixt``: only parts of the tract between the targets,
+#. ``-targ_surf_twixt``: only parts of the tract between the targets,
    stopping just **just outside of** the target volumes; that is, the
    tracts are only between (= betwixt) the targets, not overlapping at
    all.  
@@ -716,7 +716,7 @@ OR-logic tracts (the on-diagonal elements in the matrix of structural
 properties) that are defined by going through at least a single target
 are unaffected (those are always untrimmed).
 
-.. note:: Note that for the ``-tarf_surf_*`` cases, a tract between
+.. note:: Note that for the ``-targ_surf_*`` cases, a tract between
           targets A and B *could* overlap/pass through a separate
           target C, though; the restriction on a tract's overlap only
           refers to the two targets it connects. Separate tracts from
@@ -738,8 +738,8 @@ are unaffected (those are always untrimmed).
           :width: 100%
      - .. image:: media/TRACKING/TR_trim_uncut.jpg
           :width: 100%
-   * - C. ``-tarf_surf_stop``: between targets and includes surface
-     - D. ``-tarf_surf_twixt``: between targets only
+   * - C. ``-targ_surf_stop``: between targets and includes surface
+     - D. ``-targ_surf_twixt``: between targets only
    * - .. image:: media/TRACKING/TR_trim_targ_surf_stop.jpg
           :width: 100%
      - .. image:: media/TRACKING/TR_trim_targ_surf_twixt.jpg
