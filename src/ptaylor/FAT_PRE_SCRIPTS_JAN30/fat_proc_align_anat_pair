@@ -25,7 +25,7 @@ set adir      = ""
 set my_viewer = ""
 which afni >& /dev/null
 if ( $status ) then
-    echo "** Cannot find 'afni' (??!?!)."
+    echo "** Cannot find 'afni' (?!)."
     goto BAD_EXIT
 else
     set aa   = `which afni`
@@ -111,7 +111,7 @@ while ( $ac <= $#argv )
     else if ( "$argv[$ac]" == "-out_t2w_grid" ) then
         set OUT_T2W_GRID = 1
 
-    # *don't* prep for FS. Why??
+    # *don't* prep for FS. Why?
     else if ( "$argv[$ac]" == "-no_fs_prep" ) then
         set DO_PREP_FS= 0
 
@@ -136,10 +136,10 @@ echo "++ Start script version: $version"
 
 # NEED these two inputs
 if ( "$it1w" == "" ) then
-    echo "** ERROR: no t1w file input??!"
+    echo "** ERROR: no t1w file input?!"
     goto BAD_EXIT
 else if ( "$it2w" == "" ) then
-    echo "** ERROR: no t2w file input??!"
+    echo "** ERROR: no t2w file input?!"
     goto BAD_EXIT
 endif
 
