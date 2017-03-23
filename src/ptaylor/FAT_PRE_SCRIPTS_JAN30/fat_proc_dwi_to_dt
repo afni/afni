@@ -43,7 +43,7 @@ set adir      = ""
 set my_viewer = ""
 which afni >& /dev/null
 if ( $status ) then
-    echo "** Cannot find 'afni' (??!?!)."
+    echo "** Cannot find 'afni' (?!)."
     goto BAD_EXIT
 else
     set aa   = `which afni`
@@ -233,10 +233,10 @@ echo "++ Start script version: $version"
 
 # NEED these two inputs
 if ( "$idwi" == "" ) then
-    echo "** ERROR: no DWI file input??!"
+    echo "** ERROR: no DWI file input?!"
     goto BAD_EXIT
 else if ( "$invecmat[2]" == "" ) then
-    echo "** ERROR: no gradient/matrix file input??!"
+    echo "** ERROR: no gradient/matrix file input?!"
     goto BAD_EXIT
 endif
 
@@ -871,7 +871,7 @@ cat << EOF
                       healthy adult human parenchyma).
    -qc_prefix QCPREF :can set the prefix of the QC image files separately
                       (default is '$opref').
-   -no_qc_view       :can turn off generating QC image files (why??)
+   -no_qc_view       :can turn off generating QC image files (why?)
    -no_cmd_out       :don't save the command line call of this program
                       and the location where it was run (otherwise, it is
                       saved by default in the ODIR/).

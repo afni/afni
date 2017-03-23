@@ -43,7 +43,7 @@ set adir      = ""
 set my_viewer = ""
 which afni >& /dev/null
 if ( $status ) then
-    echo "** Cannot find 'afni' (??!?!)."
+    echo "** Cannot find 'afni' (?!)."
     goto BAD_EXIT
 else
     set aa   = `which afni`
@@ -512,6 +512,7 @@ set qc2o = $fout
     -twopass                               \
     -source_automask                       \
     -autoweight                            \
+    -wtprefit TESTWEIGHTPREF \
     -cost $costfunc                        \
     $extra_allin_inps                      \
     -source "$fin"                         \
