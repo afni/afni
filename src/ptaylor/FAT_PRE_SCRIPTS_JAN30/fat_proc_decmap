@@ -31,7 +31,7 @@ set adir      = ""
 set my_viewer = ""
 which afni >& /dev/null
 if ( $status ) then
-    echo "** Cannot find 'afni' (??!?!)."
+    echo "** Cannot find 'afni' (?!)."
     goto BAD_EXIT
 else
     set aa   = `which afni`
@@ -453,7 +453,7 @@ cat << EOF
                     files is "${tmppref}".
 
    -no_qc_view     :by default, a set of QC snapshots are made and
-                    output.  To turn these off (why??), use this
+                    output.  To turn these off (why?), use this
                     switch
    -qc_prefix QCP  :by default, the QC snapshots carry the same output
                     name as the final output: PREFIX_*. You

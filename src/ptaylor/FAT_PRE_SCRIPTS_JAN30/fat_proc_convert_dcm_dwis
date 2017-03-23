@@ -515,7 +515,7 @@ if ( "$odir_ap" != "") then
             echo "\t $ff"
         end
     else
-        echo "** ERROR: No files, even though some should be here??"
+        echo "** ERROR: No files, even though some should be here?"
     endif
 endif
 
@@ -531,7 +531,7 @@ if ( "$odir_pa" != "") then
             echo "\t $ff"
         end
     else
-        echo "** ERROR: No files, even though some should be here??"
+        echo "** ERROR: No files, even though some should be here?"
     endif
 endif
 
