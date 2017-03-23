@@ -1678,6 +1678,31 @@ SUMA_MorphInfo * SUMA_MapSurface (SUMA_SurfaceObject *surf1,
       SUMA_RETURN (NULL);
    }
 
+   /* ----------------------------------------------------------------------
+      change to centering:                      17 Mar 2017 [rickr]
+
+      Originally the surfaces were recentered to match that of surf2.  But
+      the step of scaling surf1 coordinates to land near surf2 did not deal
+      with non-zero centers properly, e.g.  
+         ptHit[0] = (r2/currDist)*currNode[0];
+      should have read:
+         ptHit[0] = (r2/currDist)*(currNode[0]-zero[0]) + zero[0];
+      where r2/currDist is the ratio of distances to the centers.
+
+      The difference: zero * (1 - r2).
+
+      For icosahedrons, r2 tends to vary between 0.7 and 1 (where it hits
+      the surface), so each coordinate is distorted by up to .3 * the center
+      coordinate (and they should be accurate where the ico hit the sphere).
+
+      The change: instead of fixing ptHit, recenter both surfaces at 0,0,0.
+      That simplifies (and speeds up) the computations, and we don't care
+      about the actual coordinates anyway, since the output is a mapping of
+      ico index to 3 orig surf indices (of a triangle) and their relative
+      weights.
+      ----------------------------------------------------------------------*/
+ 
+
 
    /**center surf1 to surf2 (that will make it easier to debug in SUMA)*/
    
@@ -1744,7 +1769,7 @@ SUMA_MorphInfo * SUMA_MapSurface (SUMA_SurfaceObject *surf1,
       the actual coordinates do not affect the output  17 Mar 2017 [rickr] */
    for (i=0; i<numNodes_1; ++i) {
       j = 3*i;
-      ctrNodeList_1[j]   = nodeList_1[j]   - ctr1[0]; /* set origin to 0,0,0 */
+      ctrNodeList_1[j]   = nodeList_1[j]   - ctr1[0]; /* set center to 0,0,0 */
       ctrNodeList_1[j+1] = nodeList_1[j+1] - ctr1[1];
       ctrNodeList_1[j+2] = nodeList_1[j+2] - ctr1[2];
    }
