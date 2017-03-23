@@ -512,6 +512,7 @@ set qc2o = $fout
     -twopass                               \
     -source_automask                       \
     -autoweight                            \
+    -wtprefit TESTWEIGHTPREF \
     -cost $costfunc                        \
     $extra_allin_inps                      \
     -source "$fin"                         \
