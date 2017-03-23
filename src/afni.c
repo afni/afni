@@ -2060,6 +2060,7 @@ void AFNI_sigfunc_alrm(int sig)
      "p-hacking? Bah -- I'll take a chainsaw to your p-values"       ,
      "Did you like your p-values? If not, I can 'fix' them for you"  ,
      "Honesty is the best policy, but insanity is a better defense"  ,
+     "A desk is a dangerous place from which to view the world"      ,
 
      "Returning control of your brain (images) back to yourself"     ,
      "Returning your endofunctors back to their co-monads"           ,
@@ -2268,7 +2269,7 @@ void AFNI_sigfunc_alrm(int sig)
      "The art of living is more like wrestling than dancing"                          ,
      "If the genome is the source code, it should have come with comments"            ,
 
-     "It is the pardonable vanity of lonely people everywhere to assume that are unique"      ,
+     "It is the pardonable vanity of lonely people everywhere to assume that they have no counterparts" ,
      "You know you're in trouble when it takes a 64 bit integer to count your unread emails"  ,
      "Once you've done what you have to do, no one will let you do what you want to do"       ,
      "My name is AFNImandias, Brain of Brains; Look on my Statistics, ye Clever, and Despair" ,
