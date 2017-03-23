@@ -185,7 +185,7 @@ endif
 
 ## Step #3: run 3dQwarp first time to a moderate level (skull on)
 
-3dQwarp -base "${Basedset}[1]" -source anatU."$SubID".nii -weight "${Basedset}[3]"   \
+3dQwarp -base "${Basedset}[1]" -source anatU."$SubID".nii -weight "${Basedset}[2]"   \
         -allineate -noneg -maxlev 5 -zeasy -iwarp -awarp -prefix "${pref}TAL5.nii"
 
 ## Step #4: mask off the skull from the template (second skull-strip)
