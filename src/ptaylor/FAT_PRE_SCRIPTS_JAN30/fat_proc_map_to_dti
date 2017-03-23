@@ -34,7 +34,7 @@ set adir      = ""
 set my_viewer = ""
 which afni >& /dev/null
 if ( $status ) then
-    echo "** Cannot find 'afni' (??!?!)."
+    echo "** Cannot find 'afni' (?!)."
     goto BAD_EXIT
 else
     set aa   = `which afni`
@@ -191,10 +191,10 @@ echo "++ Start script version: $version"
 
 # NEED these two inputs
 if ( "$it1w" == "" ) then
-    echo "** ERROR: no t1w file input??!"
+    echo "** ERROR: no t1w file input?!"
     goto BAD_EXIT
 else if ( "$it2w" == "" ) then
-    echo "** ERROR: no t2w file input??!"
+    echo "** ERROR: no t2w file input?!"
     goto BAD_EXIT
 endif
 
