@@ -8006,6 +8006,10 @@ g_help_string = """
     --------------------------------------------------
     BLIP NOTE:
 
+  * note: the original EPI should match the forward blip dataset
+          (so reversing datasets between -blip_forward_dset and
+          -blip_reverse_dset would actually double the distortion)
+
     application of reverse-blip (blip-up/blip-down) registration:
 
        o compute the median of the forward and reverse-blip data
@@ -9256,6 +9260,10 @@ g_help_string = """
 
             Without this option, the first TRs of the first input EPI time
             series would be used as the forward blip dataset.
+
+          * If -blip_forward_dset is used, the distortion should match that
+            of the functional EPI data.  If forward and reverse were backwards,
+            that would double the distortion.
 
             See also -blip_revers_dset.
 
