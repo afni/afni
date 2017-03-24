@@ -3473,7 +3473,16 @@ STATUS("zeropad weight dataset") ;
      }
      if( im_weig->nx != nx_base ||
          im_weig->ny != ny_base || im_weig->nz != nz_base )
-       ERROR_exit("-weight and base volumes don't match grid dimensions :-(") ;
+       ERROR_exit("-weight and base volumes don't match in 3D grid dimensions :-(") ;
+
+     /*-- convert to 0..1 range [23 Mar 2017] --*/
+     { float clip=0.0f, *wf=MRI_FLOAT_PTR(im_weig); int ii,nxyz=im_weig->nvox;
+       for( ii=0 ; ii < nxyz ; ii++ ) if( wf[ii] > clip ) clip = wf[ii] ;
+       if( clip == 0.0f )
+         ERROR_exit("Input -weight is never positive!") ;
+       clip = 1.0f / clip ;
+       for( ii=0 ; ii < nxyz ; ii++ ) wf[ii] *= clip ;
+     }
 
    } else if( auto_weight ){  /* manufacture weight from the base */
      if( meth_noweight[meth_code-1] && auto_weight == 1 && auto_wclip == 0.0f ){
@@ -4178,7 +4187,7 @@ STATUS("zeropad weight dataset") ;
      if( fill_source_mask ) stup.ajmask_ranfill = 1 ; /* 01 Mar 2010 */
    }
 
-   if( micho_ov != 0.0 ){
+   if( !APPLYING && micho_ov != 0.0 ){
      byte *mmm ; int ndil=auto_tdilation ; MRI_IMAGE *bsm ;
      mmm = mri_automask_image(im_base) ;
      if( mmm != NULL ){
