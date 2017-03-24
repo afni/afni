@@ -2269,7 +2269,6 @@ void AFNI_sigfunc_alrm(int sig)
      "The art of living is more like wrestling than dancing"                          ,
      "If the genome is the source code, it should have come with comments"            ,
 
-     "It is the pardonable vanity of lonely people everywhere to assume that they have no counterparts" ,
      "You know you're in trouble when it takes a 64 bit integer to count your unread emails"  ,
      "Once you've done what you have to do, no one will let you do what you want to do"       ,
      "My name is AFNImandias, Brain of Brains; Look on my Statistics, ye Clever, and Despair" ,
@@ -2280,8 +2279,9 @@ void AFNI_sigfunc_alrm(int sig)
      "You can always find me out on the Long Line -- I hang out by the Church-Kleene ordinal" ,
      "Outside of a dog, a book is Man's best friend. Inside of a dog, it's too dark to read"  ,
 
-     "Someday I'll tell you of the Giant Rat of Sumatra, a tale for which the world is not prepared" ,
-     "People have to learn to live with newly-discovered facts; if they don't, they die of them"     ,
+     "Someday I'll tell you of the Giant Rat of Sumatra, a tale for which the world is not prepared"    ,
+     "People have to learn to live with newly-discovered facts; if they don't, they die of them"        ,
+     "It is the pardonable vanity of lonely people everywhere to assume that they have no counterparts" ,
 
      /* Multi-line quotes */
 
