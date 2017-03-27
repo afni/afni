@@ -619,7 +619,8 @@ L_CONVERT_SURFACES:
       if ( $surf =~ *.white* ||     \
            $surf =~ *.smoothwm* ||  \
            $surf =~ *.pial*) then
-        # okay, these are identical commands...
+        # hmmm, identical commands suggest the second -ixmat_1D does not belong
+        # (currently left for future bickering)
         ConvertSurface -sv $start_dir/$suma_dir/$afni_dataset.nii -i $surf.asc \
                        -ixmat_1D xmatras.1D -overwrite -o $surf.gii
       else
@@ -1308,13 +1309,13 @@ echo "            August 1st 2013 will have their X and Y coordinates "
 echo "            negated and will no longer line up with the anatomy. "
 echo "            Correcting such surfaces can be done with ConvertSurface"
 echo "            with the following command:"
-echo "              ConvertSurface  -i lh.smoothwm.gii -o_gii lh.smoothwm \"
+echo "              ConvertSurface  -i lh.smoothwm.gii -o_gii lh.smoothwm \\"
 echo "                              -overwrite -xmat_1D NegXY"
 echo "            or for an entire SUMA directory:"
 echo "              cd SUMA"
 echo "              tcsh"
 echo '              foreach ss (*.gii)'
-echo '                 ConvertSurface  -i $ss -o_gii $ss \'
+echo '                 ConvertSurface  -i $ss -o_gii $ss \\'
 echo "                                 -overwrite -xmat_1D NegXY"
 echo "              end"
 echo ""            
@@ -1325,6 +1326,11 @@ echo "    -IFTI  :volume used to create the surface. All volumes are"
 echo "            written out NIFTI format, and all surfaces are"
 echo "            in GIFTI format."
 echo "            This option is incompatible with -neuro or -use_mgz"
+echo ""
+echo "         ** Note: from 22 Feb 2013 through 20 Mar 2017, use of -NIFTI"
+echo "                  would distort standard mesh surfaces.  To evaluate"
+echo "                  effects of this, consider: MapIcosahedron -write_dist."
+echo ""
 echo "    NOTE for -GNIFTI:"
 echo "        If you really care that the volumes in SUMA/ are in exact"
 echo "        register with the volume you passed to FreeSurfer, you "
