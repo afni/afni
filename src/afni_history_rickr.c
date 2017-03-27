@@ -51,7 +51,8 @@ afni_history_struct rickr_history[] = {
 
  { 27,  Mar, 2017, RCR, "afni_proc.py", MICRO, TYPE_MODIFY,
    "NL warps of all-1 volume now uses -interp cubic for speed",
-   "This applies only to interpolation of the warps via 3dNwarpApply."
+   "This applies only to interpolation of the warps via 3dNwarpApply.\n"
+   "Also, use abs() in lists_are_same for -import_mask."
  } ,
 
  { 27,  Mar, 2017, RCR, "@SUMA_Make_Spec_FS", MICRO, TYPE_GENERAL,
