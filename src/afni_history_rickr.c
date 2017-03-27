@@ -49,6 +49,15 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 27,  Mar, 2017, RCR, "MapIcosahedron", MINOR, TYPE_NEW_OPT,
+   "add -write_dist, for writing a distortion vector dataset",
+   "After running something like:\n"
+   "   MapIcosahedron ... -write_dist test.dist\n"
+   "to create test.dist.lh.sphere.reg.gii.txt, get summaries with:\n"
+   "   1d_tool.py -collapse_cols euclidean_norm -show_mmms \\\n"
+   "              -infile test.dist.lh.sphere.reg.gii.txt"
+ } ,
+
  { 21,  Mar, 2017, RCR, "afni_proc.py", MICRO, TYPE_BUG_FIX,
    "allow for volreg-only script with MIN_OUTLIER",
    NULL
@@ -56,7 +65,9 @@ afni_history_struct rickr_history[] = {
 
  { 21,  Mar, 2017, RCR, "MapIcosahedron", MINOR, TYPE_BUG_FIX,
    "fix projection of surfaces with non-zero centers",
-   "Center each surface around 0,0,0 instead of leaving the offset in."
+   "Center each surface around 0,0,0 instead of leaving the offset in.\n\n"
+   "Many thanks go to I Dewitt for even noticing this subtle issue,\n"
+   "much less diagnosing where it might be coming from.  Not easy."
  } ,
 
  { 21,  Mar, 2017, RCR, "@FS_roi_label", MICRO, TYPE_BUG_FIX,
