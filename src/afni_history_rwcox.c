@@ -44,6 +44,11 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 27 , MAR , 2017 , RWC , "afni GUI" , MICRO , TYPE_NEW_ENV ,
+   "AFNI_LEFT_IS_POSTERIOR" ,
+   "To show posterior of brain on the left (instead of right) in sagittal\n"
+   "image and graph viewers. A complement to AFNI_LEFT_IS_LEFT." } ,
+
  { 21 , MAR , 2017 , RWC , "AFNI GUI" , MICRO , TYPE_BUG_FIX ,
    "Improper fading of overlay plots in Montage" ,
    "function scale_memplot() was scaling the opacity factor as well as the\n"

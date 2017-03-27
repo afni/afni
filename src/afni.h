@@ -79,6 +79,7 @@ typedef struct {
       int cat_sess ;          /* 02 Jun 2016 */
 
       int only_images ;       /* 24 Feb 2017 */
+      int left_is_posterior ; /* 27 Mar 2017 */
 } AF_options ;
 
 #ifdef MAIN
