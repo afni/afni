@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 27,  Mar, 2017, RCR, "@SUMA_Make_Spec_FS", MICRO, TYPE_GENERAL,
+   "add comment about distortions for -NIFTI",
+   NULL
+ } ,
+
  { 27,  Mar, 2017, RCR, "MapIcosahedron", MINOR, TYPE_NEW_OPT,
    "add -write_dist, for writing a distortion vector dataset",
    "After running something like:\n"
