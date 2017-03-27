@@ -1718,6 +1718,11 @@ SUMA_MorphInfo * SUMA_MapSurface (SUMA_SurfaceObject *surf1,
 
       That might have been okay, except that it exposed the distortion problem
       in this function because of shifting the sphere.reg.asc surfaces.
+
+      ---
+
+      This subtle problem was found by I DeWitt, and required quite a bit of
+      investigation to diagnose.  Many thanks to Iain.
       ----------------------------------------------------------------------*/
  
 
