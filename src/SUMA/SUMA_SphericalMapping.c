@@ -1692,11 +1692,11 @@ SUMA_MorphInfo * SUMA_MapSurface (SUMA_SurfaceObject *surf1,
          ptHit[0] = (r2/currDist)*currNode[0];
       should have read:
          ptHit[0] = (r2/currDist)*(currNode[0]-zero[0]) + zero[0];
-      where r2/currDist is the ratio of distances to the centers.
+      where ratio=r2/currDist is the ratio of distances to the centers.
 
-      The difference: zero * (1 - r2).
+      The difference: zero * (1 - ratio).
 
-      For icosahedrons, r2 tends to vary between 0.7 and 1 (where it hits
+      For icosahedrons, ratio tends to vary between 0.7 and 1 (where it hits
       the surface), so each coordinate is distorted by up to .3 * the center
       coordinate (and they should be accurate where the ico hit the sphere).
 
