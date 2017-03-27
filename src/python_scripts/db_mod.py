@@ -3193,7 +3193,7 @@ def db_cmd_mask(proc, block):
        # and check grid
        dset = opt.parlist[1]
        dims = UTIL.get_3dinfo_val_list(dset, 'd3', float, verb=1)
-       if not UTIL.lists_are_same(dims, proc.delta, proc.delta[0]*0.01):
+       if not UTIL.lists_are_same(dims, proc.delta, proc.delta[0]*0.01,doabs=1):
           print "** bad dims for -mask_import dataset: \n" \
                 "   %s\n"                                  \
                 "   import dims = %s, analysis dims = %s"  \
