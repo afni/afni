@@ -1027,7 +1027,8 @@ ENTRY("AFNI_parse_args") ;
 
    strcpy(GLOBAL_argopt.title_name,"AFNI") ;           /* default title bar name */
 
-   GLOBAL_argopt.left_is_left = AFNI_yesenv( "AFNI_LEFT_IS_LEFT" ) ;
+   GLOBAL_argopt.left_is_left      = AFNI_yesenv( "AFNI_LEFT_IS_LEFT" ) ;
+   GLOBAL_argopt.left_is_posterior = AFNI_yesenv( "AFNI_LEFT_IS_POSTERIOR" ) ;
 
    GLOBAL_argopt.read_tim = 0 ;   /* 19 Oct 1999 */
 
@@ -7529,6 +7530,7 @@ ENTRY("AFNI_view_xyz_CB") ;
        snew  = &(im3d->s231) ;
        brnew = im3d->b231_ulay ;
        pboff = pb_yzx ;
+       mirror= GLOBAL_argopt.left_is_posterior ;
 
     } else if( w == pb_zxy && szxy == NULL ){  /* coronal image */
        snew  = &(im3d->s312) ;
@@ -7546,6 +7548,7 @@ ENTRY("AFNI_view_xyz_CB") ;
        gnew  = &(im3d->g231) ;
        brnew = im3d->b231_ulay ;
        pboff = gr_yzx ;
+       mirror= GLOBAL_argopt.left_is_posterior ;
 
     } else if( w == gr_zxy && gzxy == NULL ){  /* coronal graph */
        gnew  = &(im3d->g312) ;
