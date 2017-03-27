@@ -93,7 +93,7 @@ def warp_item(desc='', wtype='', warpset=''):
    return vo
 
 def apply_catenated_warps(proc, warp_list, base='', source='', prefix='',
-                          dim=0, NN=0, istr=''):
+                          dim=0, NN=0, NLinterp='', istr=''):
    """For now, warp_list should consist of an outer to inner list of warps.
       If any are non-linear, use 3dNwarpApply to apply them.  Otherwise,
       use 3dAllineate.
@@ -101,6 +101,9 @@ def apply_catenated_warps(proc, warp_list, base='', source='', prefix='',
       Note that 3dAllineate should take only a single warp (for now).
 
       if NN: include options for warping using NN, such as for an all-1 dset
+
+      if NLinterp: apply corresponding interp option to NL case
+                   (speed-up for computing warps of all-1 dsets)
 
       return: status and a single command, indented by istr
    """
@@ -124,7 +127,8 @@ def apply_catenated_warps(proc, warp_list, base='', source='', prefix='',
       clist = ['3dNwarpApply -master %s%s \\\n' % (base, dimstr),
                '             -source %s \\\n'   % source,
                '             -nwarp %s \\\n'    % wstr]
-      if NN: clist.append ('             -ainterp NN -quiet \\\n')
+      if NLinterp: clist.append('             -interp %s \\\n' % NLinterp)
+      if NN:       clist.append('             -ainterp NN -quiet \\\n')
       clist.append('             -prefix %s\n' % prefix)
 
    else: # affine
@@ -1970,7 +1974,7 @@ def db_cmd_volreg(proc, block):
            all1_prefix = 'rm.epi.1.r$run'
            st, wtmp = apply_catenated_warps(proc, all1_warps, base=allinbase,
                          source=all1_input.shortinput(), prefix=all1_prefix,
-                         dim=dim, NN=1, istr=indent)
+                         dim=dim, NN=1, NLinterp='cubic', istr=indent)
            if st: return
            wcmd += '\n%s# warp the all-1 dataset for extents masking \n%s' \
                    % (indent, wtmp)
@@ -8006,10 +8010,6 @@ g_help_string = """
     --------------------------------------------------
     BLIP NOTE:
 
-  * note: the original EPI should match the forward blip dataset
-          (so reversing datasets between -blip_forward_dset and
-          -blip_reverse_dset would actually double the distortion)
-
     application of reverse-blip (blip-up/blip-down) registration:
 
        o compute the median of the forward and reverse-blip data
@@ -9260,10 +9260,6 @@ g_help_string = """
 
             Without this option, the first TRs of the first input EPI time
             series would be used as the forward blip dataset.
-
-          * If -blip_forward_dset is used, the distortion should match that
-            of the functional EPI data.  If forward and reverse were backwards,
-            that would double the distortion.
 
             See also -blip_revers_dset.
 
