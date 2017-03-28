@@ -49,6 +49,80 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 27,  Mar, 2017, RCR, "afni_proc.py", MICRO, TYPE_MODIFY,
+   "NL warps of all-1 volume now uses -interp cubic for speed",
+   "This applies only to interpolation of the warps via 3dNwarpApply.\n"
+   "Also, use abs() in lists_are_same for -import_mask."
+ } ,
+
+ { 27,  Mar, 2017, RCR, "@SUMA_Make_Spec_FS", MICRO, TYPE_GENERAL,
+   "add comment about distortions for -NIFTI",
+   NULL
+ } ,
+
+ { 27,  Mar, 2017, RCR, "MapIcosahedron", MINOR, TYPE_NEW_OPT,
+   "add -write_dist, for writing a distortion vector dataset",
+   "After running something like:\n"
+   "   MapIcosahedron ... -write_dist test.dist\n"
+   "to create test.dist.lh.sphere.reg.gii.txt, get summaries with:\n"
+   "   1d_tool.py -collapse_cols euclidean_norm -show_mmms \\\n"
+   "              -infile test.dist.lh.sphere.reg.gii.txt"
+ } ,
+
+ { 21,  Mar, 2017, RCR, "afni_proc.py", MICRO, TYPE_BUG_FIX,
+   "allow for volreg-only script with MIN_OUTLIER",
+   NULL
+ } ,
+
+ { 21,  Mar, 2017, RCR, "MapIcosahedron", MINOR, TYPE_BUG_FIX,
+   "fix projection of surfaces with non-zero centers",
+   "Center each surface around 0,0,0 instead of leaving the offset in.\n\n"
+   "Many thanks go to I Dewitt for even noticing this subtle issue,\n"
+   "much less diagnosing where it might be coming from.  Not easy."
+ } ,
+
+ { 21,  Mar, 2017, RCR, "@FS_roi_label", MICRO, TYPE_BUG_FIX,
+   "extra quote on line: choose one of $lbls",
+   NULL
+ } ,
+
+ { 21,  Mar, 2017, RCR, "@SUMA_Make_Spec_FS", MICRO, TYPE_ENHANCE,
+   "add -verb to MapIcosahedron if script is in verbose mode",
+   NULL
+ } ,
+
+ { 16,  Mar, 2017, RCR, "RetroTS.py", MICRO, TYPE_MODIFY,
+   "change peak_finder() to read data as floats",
+   NULL
+ } ,
+
+ {  9,  Mar, 2017, RCR, "afni-general", MICRO, TYPE_ENHANCE,
+   "from D Warren: put exception handling around os.chmod calls",
+   NULL
+ } ,
+
+ {  7,  Mar, 2017, RCR, "RetroTS.py", MINOR, TYPE_BUG_FIX,
+   "from J Zosky: default to using numpy.flipud()",
+   "The flipud() function did not work in the original Matlab version,\n"
+   "but it does in numpy.  Use the new -legacy_transform opt for old\n"
+   "(and presumably incorrect) results."
+ } ,
+
+ {  6,  Mar, 2017, RCR, "RetroTS.py", MICRO, TYPE_MODIFY,
+   "change -p and -v args to be read as floats; apply min(p/n_trace)",
+   NULL
+ } ,
+
+ {  6,  Mar, 2017, RCR, "AFNI.afnirc", MICRO, TYPE_BUG_FIX,
+   "AFNI_COMPRESSOR can be set to GZIP, not gzip",
+   NULL
+ } ,
+
+ {  3,  Mar, 2017, RCR, "plug_realtime", MINOR, TYPE_NEW_OPT,
+   "add optimally combined 'Opt Comb' merge method",
+   "Done with V Roopchansingh."
+ } ,
+
  {  3,  Feb, 2017, RCR, "make_random_timing.py", MINOR, TYPE_NEW_OPT,
    "decay timing class now follows better distribution; new decay_old class",
    NULL

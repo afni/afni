@@ -25,11 +25,13 @@
 #     + better slice selection/centering.
 #     + adjust for different orders of orientation
 #
-#set version   = "1.6";   set rev_dat   = "Feb 6, 2017"
+set version   = "1.6"
+set rev_dat   = "Feb 6, 2017"
 #     + olay quotes
 #
-set version   = "2.1";   set rev_dat   = "Feb 27, 2017"
-#     + can have IJK labels -> DWImager
+set version   = "2.0"
+set rev_dat   = "Feb 23, 2017"
+#     + no zipped nifti
 
 # For more info about opts/fields, see:
 #
@@ -45,7 +47,6 @@ setenv AFNI_SPLASH_MELT       NO
 setenv AFNI_ENVIRON_WARNINGS  NO
 setenv AFNI_COMPRESSOR        NONE
 setenv AFNI_IMAGE_GLOBALRANGE VOLUME
-setenv AFNI_IMAGE_LABEL_IJK   NO         # thanks, Bob!
 # -------------------------------------------------------------------
 
 # ------------------- default/initialized variables -----------------
@@ -293,11 +294,6 @@ while ( $ac <= $#argv )
         @ ac += 1
         setenv AFNI_IMAGE_LABEL_SETBACK  "$argv[$ac]"
 
-    # Feb, 2017: useful when each slice is a from a sep vol, i.e., for
-    # @djunct*imager
-    else if ( "$argv[$ac]" == "-image_label_ijk" ) then
-        setenv AFNI_IMAGE_LABEL_IJK YES
-
     # default = VOLUME
     else if ( "$argv[$ac]" == "-globalrange" ) then
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
@@ -468,9 +464,6 @@ else
     endif
 endif
 
-# always determine dim from ulay, because that's how montaging works!
-set Dim  = `3dinfo -n4 "$ulay"`
-
 # IF we don't want to see the olay, then set it to be the ulay, for
 # later simplicity with the automontaging
 if ( "$see_olay" == "-" ) then
@@ -483,7 +476,7 @@ if ( "$see_olay" == "-" ) then
 
 else
 
-    #set Dim  = `3dinfo -n4 "$olay"`
+    set Dim  = `3dinfo -n4 "$olay"`
     set read_olay = tmp_olay.nii
 
     3dcalc                                    \
@@ -510,7 +503,7 @@ else
     else if ( $USER_FRANGE == 2 ) then
         set vv = `3dBrickStat -non-zero                           \
                     -percentile $frange_perc 1 $frange_perc       \
-                    $read_dir/$read_olay`
+                    -non-zero   $read_dir/$read_olay`
         set frange = $vv[2]
         set maxolay = `3dinfo -max $read_dir/$read_olay`
         set minolay = `3dinfo -min $read_dir/$read_olay`

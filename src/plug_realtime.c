@@ -219,6 +219,7 @@ typedef struct {
    THD_3dim_dataset *reg_dset ;       /* registered dataset, if any */
    THD_3dim_dataset *reg_base_dset ;  /* registration base dataset */
    MRI_2dalign_basis **reg_2dbasis ;  /* stuff for each slice */
+   THD_3dim_dataset *t2star_ref_dset ;/* T2* ref base dataset */
    int reg_base_index ;               /* where to start? */
    int reg_mode ;                     /* how to register? */
    int reg_base_mode ;                /* how to apply registration base */
@@ -486,9 +487,12 @@ static int verbose = 1 ;
   static int regmode  = 0 ;  /* index into REG_strings */
   static int reggraph = 0 ;  /* graphing mode */
 
+  static int g_reg_src_chan = 0 ;  /* chan for reg source 27 Oct 2016 [rcr] */
+
   /* registriation base globals to apply in RT_main     27 Aug 2009 [rickr] */
   static int g_reg_base_mode = 0 ;           /* index into REG_BASE_strings */
   static THD_3dim_dataset * g_reg_base_dset = NULL ;  /* single volume dset */
+  static THD_3dim_dataset * g_t2star_ref_dset = NULL ;  /* also a single volume dset */
 
   static int reg_resam = 1 ;    /* index into REG_resam_strings */
   static int   reg_nr  = 100 ;  /* units of TR */
@@ -547,19 +551,26 @@ static char * GRAPH_strings[NGRAPH] = { "No" , "Yes" , "Realtime" } ;
 #define RT_CHMER_SUM       1
 #define RT_CHMER_L1NORM    2
 #define RT_CHMER_L2NORM    3
-/* Begin FMRIF changes for RT T2* estimates - VR */
+/* Begin FMRIF changes for RT T2* estimates and optimally combined data - VR */
 #define RT_CHMER_T2STAREST 4
-#define N_RT_CHMER_MODES   5
+#define RT_CHMER_OPT_COMB  5
+#define N_RT_CHMER_MODES   6
    static char *RT_chmrg_strings[N_RT_CHMER_MODES] =
-                { "none" , "sum" , "L1 norm" , "L2 norm" , "T2* est"} ;
+          { "none" , "sum" , "L1 norm" , "L2 norm" , "T2* est", "Opt Comb"} ;
    static char *RT_chmrg_labels[N_RT_CHMER_MODES] =
-                { "none" , "sum" , "L1" , "L2" , "T2star" } ;
+          { "none" , "sum" , "L1" , "L2" , "T2star", "optComb" } ;
 /* End FMRIF changes for RT T2* estimates - VR */
    static int RT_chmrg_mode  = 0 ;
    static int RT_chmrg_datum = -1 ;
    static char * RT_chmrg_list = NULL ;
 
    MRI_IMAGE * RT_mergerize( RT_input * , int ) ;
+static int RT_merge( RT_input *, int, int ) ;  /* 28 Oct 2016 [rickr] */
+
+/* merge before or after registration */
+#define RT_CM_NO_MERGE          0
+#define RT_CM_MERGE_BEFORE_REG  1
+#define RT_CM_MERGE_AFTER_REG   2
 
 /* variables for regisrtation of merged dataset  17 May 2010 [rickr] */
 #define RT_CM_RMODE_NONE     0
@@ -686,6 +697,7 @@ static int  RT_mp_comm_close    ( RT_input * rtin, int );
 static int  RT_mp_comm_init     ( RT_input * rtin );
 static int  RT_mp_comm_init_vars( RT_input * rtin );
 static int  RT_mp_comm_send_data( RT_input * rtin, float *mp[6],int nt,int sub);
+static int  RT_mp_comm_send_data_wrapper(RT_input * rtin, int tfirst, int ntt);
 
 /* Cameron Craddock, init masking without setting up 
    communication */
@@ -700,6 +712,8 @@ static int  RT_mp_mask_free     ( RT_input * rtin );  /* 10 Nov 2006 [rickr] */
 static int  RT_mp_getenv        ( void );
 static int  RT_mp_show_time     ( char * mesg ) ;
 static int  RT_show_duration    ( char * mesg ) ;
+static int  RT_when_to_merge    ( void );
+static int  RT_will_register_merged_dset(RT_input * rtin);    /* 27 Oct 2016 */
 
 /* string list functions (used for DRIVE_WAIT commands) */
 static int add_to_rt_slist    ( rt_string_list * slist, char * str );
@@ -861,6 +875,12 @@ PLUGIN_interface * PLUGIN_init( int ncall )
       if( ii >= 0 && ii <= 9999 ) regtime = ii ;
    }
 
+   ept = getenv("AFNI_REALTIME_Reg_Source_Chan") ;    /* 27 Oct 2016 */
+   if( ept != NULL ){
+      int ii = (int) rint(strtod(ept,NULL)) ;
+      if( ii >= 0 && ii <= 9999 ) g_reg_src_chan = ii ;
+   }
+
    PLUTO_add_option(plint, "" , "Registration Base" , FALSE ) ;
    PLUTO_add_hint  (plint, "choose registration base dataset and sub-brick");
    PLUTO_add_string(plint, "Reg Base", NREG_BASE, REG_BASE_strings,
@@ -871,7 +891,8 @@ PLUGIN_interface * PLUGIN_init( int ncall )
    PLUTO_add_hint( plint , "choose mask dataset for serial_helper" ) ;
    PLUTO_add_number(plint, "Base Image" , 0,9999,0 , regtime , TRUE ) ;
    PLUTO_add_hint  (plint, "registration base dataset index");
-
+   PLUTO_add_number(plint, "Src Chan" , 0,9999,0 , g_reg_src_chan , TRUE ) ;
+   PLUTO_add_hint  (plint, "registration source channel");
 
 
    /*-- next line of input: registration graphing --*/
@@ -947,13 +968,39 @@ PLUGIN_interface * PLUGIN_init( int ncall )
 
    PLUTO_add_string( plint , "Chan List" , 0, (ept!=NULL) ? &ept : NULL , 13 ) ;
 
-   /*-- Adding options for writing individual time-point volumes to disk --*/
-   PLUTO_add_option( plint , "" , "DataWriting" , FALSE ) ;
+   /*---------------------------------------------------------*/
+   /*-- a line to put misc options: RT writing and T2* dset --*/
 
+   /* initialize g_t2star_ref_dset - 
+    * it can be overwritten in the plugin  23 Jan 2017 */
+   /* rcr - but if coming throught the plugin, do not do this */
+   /* rcr - fix (if we allow this, free an old dataset of this sort)*/
+   ept = getenv("AFNI_REALTIME_T2star_ref");
+   if( ept ) {
+      /* remove any old one, first */
+      if( g_t2star_ref_dset ) DSET_delete(g_t2star_ref_dset);
+      g_t2star_ref_dset = THD_open_dataset(ept);
+      if( g_t2star_ref_dset )
+         fprintf(stderr,"== RTMerge: have T2star_ref from env, %s\n", ept);
+      else
+         fprintf(stderr,"** RTMerge: bad T2star_ref from env, %s\n", ept);
+   } else
+         fprintf(stderr,"-- no T2star_ref from env\n");
+
+   PLUTO_add_option( plint , "" , "MiscOptions" , FALSE ) ;
+
+   /*-- Adding options for writing individual time-point volumes to disk --*/
    RTdatamode = (int)AFNI_numenv("AFNI_REALTIME_WRITEMODE") ;
    if( RTdatamode < 0 || RTdatamode >= N_RT_WRITE_MODES ) RTdatamode = 0 ;
    PLUTO_add_string( plint , "RT Write" , N_RT_WRITE_MODES, RT_write_strings,
                      RTdatamode ) ;
+
+   /*-- Filling this line out with T2* reference data set --*/
+
+   PLUTO_add_dataset( plint , "T2* Ref Dset", ANAT_ALL_MASK, FUNC_ALL_MASK,
+                                      DIMEN_ALL_MASK | BRICK_ALLREAL_MASK ) ;
+   PLUTO_add_hint  (plint, "Reference data set with T2* values.");
+
 
 
    /* Cameron Craddock added to support real time detrend */
@@ -1117,6 +1164,8 @@ char * RT_main( PLUGIN_interface * plint )
 
          regtime = PLUTO_get_number(plint) ;
 
+         g_reg_src_chan = PLUTO_get_number(plint) ;  /* 27 Oct 2016 */
+
          /* if extern dset, copy single volume */
          if( g_reg_base_mode == RT_RBASE_MODE_EXTERN ) {
             if( ! g_reg_base_dset )
@@ -1135,11 +1184,6 @@ char * RT_main( PLUGIN_interface * plint )
             fprintf(stderr,"** ignoring Reg Base Dset...\n");
             g_reg_base_dset = NULL;
          }
-
-         if (verbose)
-            fprintf(stderr,"RTM: reg base mode '%s', index %d, dset %s\n",
-                    REG_BASE_strings[g_reg_base_mode], regtime,
-                    g_reg_base_dset ? "<found>" : "<empty>");
 
          continue ;
       }
@@ -1207,10 +1251,28 @@ char * RT_main( PLUGIN_interface * plint )
          continue ;
       }
 
-      if( strcmp(tag,"DataWriting") == 0 ){
+      if( strcmp(tag,"MiscOptions") == 0 ){
+         MCW_idcode * idc;
+
          str        = PLUTO_get_string(plint) ;
          RTdatamode = PLUTO_string_index( str , N_RT_WRITE_MODES,
                                                 RT_write_strings ) ;
+
+         /* if coming through the plugin, afni already knows about the
+          * dataset, so we do not need to delete it
+          * (or we make a plugin copy, as with g_reg_base_dset) */
+         idc = PLUTO_get_idcode(plint) ;
+         g_t2star_ref_dset = PLUTO_find_dset(idc);     /* might be NULL */
+
+         if (verbose)
+            fprintf(stderr,
+               "RTM: reg base mode '%s', index %d, dset %s, src chan %d,"
+               " t2* ref %s\n",
+               REG_BASE_strings[g_reg_base_mode], regtime,
+               g_reg_base_dset ? "<found>" : "<empty>",
+               g_reg_src_chan,
+               g_t2star_ref_dset ? "<found>" : "<empty>");
+
          continue ;
       }
 
@@ -2228,6 +2290,10 @@ RT_input * new_RT_input( IOCHAN *ioc_data )
    rtin->mp_npsets  = 0 ;
    strcpy(rtin->mp_host, "localhost") ;
 
+   /* just a local copy of the global t2star dataset pointer */
+   if(g_t2star_ref_dset) rtin->t2star_ref_dset=g_t2star_ref_dset;
+   else                  rtin->t2star_ref_dset=NULL;
+
    rtin->mask       = NULL ;      /* mask averages, to send w/motion params */
    rtin->mask_aves  = NULL ;      /*                    10 Nov 2006 [rickr] */
    rtin->mask_init = 0 ;  /* CC: flag to indicate that mask was initialized */
@@ -2549,6 +2615,28 @@ static int RT_mp_comm_close( RT_input * rtin, int new_tcp_use )
     return 0;
 }
 
+/* set up the pointer to yar and call send_data */
+static int RT_mp_comm_send_data_wrapper(RT_input * rtin, int tfirst, int ntt)
+{
+   float * yar[7] ;
+
+   /* do we have anything to do here? */
+   if( ntt <= tfirst ) return 0;
+   if( ! rtin->mp && rtin->mp_tcp_use <= 0) return 0;
+
+   yar[0] = rtin->reg_rep   + tfirst ;
+   yar[1] = rtin->reg_dx    + tfirst ;
+   yar[2] = rtin->reg_dy    + tfirst ;
+   yar[3] = rtin->reg_dz    + tfirst ;
+   yar[4] = rtin->reg_phi   + tfirst ;
+   yar[5] = rtin->reg_psi   + tfirst ;
+   yar[6] = rtin->reg_theta + tfirst ;
+
+   /* send the data off over tcp connection               30 Mar 2004 [rickr] */
+   RT_mp_comm_send_data( rtin, yar+1, ntt-tfirst, tfirst );
+
+   return 0;
+}
 
 /*---------------------------------------------------------------------------
    Send the current motion params.                        30 Mar 2004 [rickr]
@@ -2663,6 +2751,9 @@ static int RT_mp_comm_send_data(RT_input *rtin, float *mp[6], int nt, int sub)
         rtin->mp_npsets += b2send;
     }
 
+    if( verbose > 1 )
+       fprintf(stderr,"RTM, sening time point %d\n", sub);
+
     return 0;
 }
 
@@ -2751,16 +2842,26 @@ static int RT_mp_set_mask_data( RT_input * rtin, float * data, int sub )
 -----------------------------------------------------------------------------*/
 static int RT_mp_get_mask_aves( RT_input * rtin, int sub )
 {
-    static int * nvals = NULL;
-    static int   nval_len = 0;
-    byte       * mask = rtin->mask;
-    float        ffac;
-    int          c, nvox;
+    static int       * nvals = NULL;
+    static int         nval_len = 0;
+    THD_3dim_dataset * source_set = NULL;
+    byte             * mask = rtin->mask;
+    float              ffac;
+    int                c, nvox, datum;
 
-    if( !ISVALID_DSET(rtin->reg_dset) || DSET_NVALS(rtin->reg_dset) <= sub ){
+    if( ISVALID_DSET(rtin->mrg_dset) ) source_set = rtin->mrg_dset;
+    else                               source_set = rtin->reg_dset;
+
+    if( !ISVALID_DSET(source_set) || DSET_NVALS(source_set) <= sub ){
        fprintf(stderr,"** RT_mp_get_mask_aves: not set for sub-brick %d\n",sub);
        return -1;
     }
+
+    /* rcr - fix (want DSET_BRICK_TYPE, but do we drag in all of 3ddata.h? globals?) */
+    if ( source_set == rtin->mrg_dset )
+       datum = source_set->dblk->brick->imarr[0]->kind;
+    else
+       datum = rtin->datum;
 
     if( sub < 0 ) return 0;
 
@@ -2770,11 +2871,11 @@ static int RT_mp_get_mask_aves( RT_input * rtin, int sub )
     }
 
     nvox = DSET_NVOX(g_mask_dset);
-    if( DSET_NVOX(rtin->reg_dset) != nvox ){
+    if( DSET_NVOX(source_set) != nvox ){
         /* terminal: whine, blow away the mask and continue */
         fprintf(stderr,"** nvox for mask (%d) != nvox for reg_dset (%d)\n"
                        "   terminating mask processing...\n",
-                nvox, DSET_NVOX(rtin->reg_dset) );
+                nvox, DSET_NVOX(source_set) );
         return RT_mp_mask_free(rtin);
     }
 
@@ -2794,15 +2895,15 @@ static int RT_mp_get_mask_aves( RT_input * rtin, int sub )
     for(c = 1; c < nval_len; c++ ) rtin->mask_aves[c] = 0.0;
     for(c = 1; c < nval_len; c++ ) nvals[c] = 0;
 
-    ffac = DSET_BRICK_FACTOR(rtin->reg_dset, sub);
+    ffac = DSET_BRICK_FACTOR(source_set, sub);
     if( ffac == 1.0 ) ffac = 0.0;
 
 
     /* try to be efficient... */
-    switch( rtin->datum ){
+    switch( datum ){
         int iv, m;
         case MRI_short:{
-           short * dar = (short *) DSET_ARRAY(rtin->reg_dset, sub);
+           short * dar = (short *) DSET_ARRAY(source_set, sub);
            if( ffac ) {
                for( iv=0 ; iv < nvox ; iv++ )
                    if( (m = mask[iv]) ){
@@ -2821,7 +2922,7 @@ static int RT_mp_get_mask_aves( RT_input * rtin, int sub )
         break ;
 
         case MRI_float:{
-           float * dar = (float *) DSET_ARRAY(rtin->reg_dset, sub);
+           float * dar = (float *) DSET_ARRAY(source_set, sub);
            if( ffac ) {
                for( iv=0 ; iv < nvox ; iv++ )
                    if( (m = mask[iv]) ){
@@ -2840,7 +2941,7 @@ static int RT_mp_get_mask_aves( RT_input * rtin, int sub )
         break ;
 
         case MRI_byte:{
-           byte * dar = (byte *) DSET_ARRAY(rtin->reg_dset, sub);
+           byte * dar = (byte *) DSET_ARRAY(source_set, sub);
            if( ffac ) {
                for( iv=0 ; iv < nvox ; iv++ )
                    if( (m = mask[iv]) ){
@@ -3764,6 +3865,8 @@ int RT_process_info( int ninfo , char * info , RT_input * rtin )
    }  /* end of loop over command buffers */
 
    /* check numte against num_chan (can equal, or numte == 1) */
+   /* rcr - fix (fail if mismatch?  allow many 'real' channels and 1 te)*/
+      
    if( numte > 0 ) {
       if( rtin->num_chan > 1 && numte == 1 ) /* then dupe */
          for( jj=1; jj < rtin->num_chan; jj++ ) rtin->TE[jj] = rtin->TE[0] ;
@@ -3808,6 +3911,13 @@ int RT_process_info( int ninfo , char * info , RT_input * rtin )
        rtin->reg_mode = REGMODE_NONE ;
        fprintf(stderr,"RT: can't do 3D registration on 2D dataset!\n") ;
      }
+   }
+
+   /** 27 Oct 2016 [rickr]: check g_reg_src_chan against num_chan **/
+   if( (g_reg_src_chan < 0) || (g_reg_src_chan >= rtin->num_chan) ) {
+     fprintf(stderr,"RT: ** bad src_chan %d for %d channels, clearning...\n",
+             g_reg_src_chan, rtin->num_chan);
+     g_reg_src_chan = 0;
    }
 
    RT_check_info( rtin , 0 ) ;
@@ -4194,8 +4304,17 @@ void RT_start_dataset( RT_input * rtin )
 
    /*---- 02 Jun 2009: make a dataset for merger, if need be ----*/
 
-   if( rtin->num_chan == 1 || !MRI_IS_FLOAT_TYPE(rtin->datum) )
-     RT_chmrg_mode = 0 ;  /* disable merger */
+   /* if not appropriate for merging, disable */
+   if( rtin->num_chan == 1 || !MRI_IS_FLOAT_TYPE(rtin->datum) ) {
+     /* fail only if not in OPT_COMB mode */
+     if( ! (RT_chmrg_mode==RT_CHMER_OPT_COMB && rtin->datum == MRI_short) ) {
+        if( verbose > 0 )
+           fprintf(stderr,"** RTCM: cancel merge, num_chan=%d, datum=%d,"
+                          "chmrg_mode=%d\n", rtin->num_chan, rtin->datum,
+                                             RT_chmrg_mode);
+        RT_chmrg_mode = 0 ;  /* disable merger */
+     }
+   }
 
    if( RT_chmrg_mode > 0 ){
      char qbuf[128] ; int mdatum=MRI_float ; /* default merge datum is float */
@@ -4232,7 +4351,7 @@ void RT_start_dataset( RT_input * rtin )
       note: reg_chan_mode specifies to register the mrg_dset, and maybe
             the channel dsets as followers          19 May 2010 [rickr] */
    rtin->reg_chan_mode = RT_chmrg_reg_mode;
-   if( rtin->reg_chan_mode > RT_CM_RMODE_NONE ) {
+   if( RT_will_register_merged_dset(rtin) ) {
      if( ! rtin->mrg_dset ) {
        if( verbose > 0 ) fprintf(stderr,"** RTCM: no merge dset to register\n");
        rtin->reg_chan_mode = RT_CM_RMODE_NONE;
@@ -4252,12 +4371,12 @@ void RT_start_dataset( RT_input * rtin )
         (rtin->dtype==DTYPE_3DTM) ){
 
       /* if registering mrg_dset, use it as base for reg_dset */
-      if( rtin->reg_chan_mode > RT_CM_RMODE_NONE ) {
+      if( RT_will_register_merged_dset(rtin) ) {
          if( verbose > 1 )
             fprintf(stderr,"RTCM: using MERGE dset for registration grid\n");
          rtin->reg_dset = EDIT_empty_copy( rtin->mrg_dset ) ;
       } else
-         rtin->reg_dset = EDIT_empty_copy( rtin->dset[0] ) ;
+         rtin->reg_dset = EDIT_empty_copy( rtin->dset[g_reg_src_chan] ) ;
 
       tross_Append_History( rtin->reg_dset , "plug_realtime: registration" ) ;
 
@@ -4534,6 +4653,28 @@ void RT_start_dataset( RT_input * rtin )
    return ;
 }
 
+/* return whether this is true, whether we will register the
+ * merged dataset                        27 Oct 2016 [rickr] */
+static int RT_will_register_merged_dset(RT_input * rtin)
+{
+   /* if( rtin->reg_chan_mode > RT_CM_RMODE_NONE ) */
+   if ( RT_when_to_merge() == RT_CM_MERGE_BEFORE_REG )
+      return 1;
+
+   return 0;
+}
+
+/* return whether to merge before registration, after, or not at all
+ *                                               27 Oct 2016 [rickr] */
+static int RT_when_to_merge( void )
+{
+   if( RT_chmrg_mode == RT_CHMER_NONE )     return RT_CM_NO_MERGE;
+   if( RT_chmrg_mode == RT_CHMER_OPT_COMB ) return RT_CM_MERGE_AFTER_REG;
+
+   /* otherwise, merge before registration */
+   return RT_CM_MERGE_BEFORE_REG;
+}
+
 /*--------------------------------------------------------------------
   Read one image (or volume) into the space pointed to by im.
 ----------------------------------------------------------------------*/
@@ -4782,49 +4923,10 @@ void RT_process_image( RT_input * rtin )
       /** 02 Jun 2009: merger operations?
                        if have completed a full set of channels, that is **/
 
-      if( cc+1 == rtin->num_chan && RT_chmrg_mode > 0 ){
-        int iv = rtin->nvol[cc]-1 ;  /* sub-brick index */
-        MRI_IMAGE *mrgim ;
-
-        /* 10 Jul 2010 [rickr]: maybe merge only a subset of channels */
-        /* note: the channel int list can only be created "now", since
-                 we must know how many channels there are to use */
-        if( rtin->chan_list_str && ! rtin->chan_list ) {
-          rtin->chan_list = MCW_get_labels_intlist(NULL, rtin->num_chan,
-                                                   rtin->chan_list_str);
-          if( !rtin->chan_list ) {
-             fprintf(stderr,"** failed to make channel list (%d) from '%s'\n",
-                     rtin->num_chan, rtin->chan_list_str);
-             free(rtin->chan_list_str);  rtin->chan_list_str = NULL;
-          } else if( verbose )
-             fprintf(stderr,"RTM: using list of %d chans for merge from %s\n",
-                     rtin->chan_list[0], rtin->chan_list_str);
-        }
-
-        mrgim = RT_mergerize(rtin, iv) ;
-        if( mrgim == NULL ){
-          ERROR_message("RT can't merge channels at time index #%d",iv) ;
-        } else {
-          if( iv == 0 )
-            EDIT_substitute_brick( rtin->mrg_dset , 0 , (int)mrgim->kind ,
-                                                   mri_data_pointer(mrgim) ) ;
-          else
-            EDIT_add_brick( rtin->mrg_dset , (int)mrgim->kind , 0.0 ,
-                                                   mri_data_pointer(mrgim) ) ;
-          mri_clear_data_pointer(mrgim); mri_free(mrgim);
-          if( verbose > 1 )
-            fprintf(stderr,"RT: added brick #%d to merged dataset\n",iv) ;
-          EDIT_dset_items( rtin->mrg_dset , ADN_ntt , iv+1 , ADN_none ) ;
-          rtin->mrg_nvol = iv+1 ;
-        }
-        VMCHECK ;
-
-        /* Cameron Craddock added this to ease profiling */
-        if( g_show_times && verbose > 1 ) {
-          char vmesg[64];
-          sprintf(vmesg,"volume %d through mergering",rtin->nvol[0]-1);
-          RT_show_duration(vmesg);
-        }
+      /* rcr OC - check for pre-reg merge */
+      if( cc+1 == rtin->num_chan && 
+          RT_when_to_merge() == RT_CM_MERGE_BEFORE_REG ) {
+        RT_merge( rtin, cc, -1);
       }
 
       /* do registration before function computation   - 30 Oct 2003 [rickr] */
@@ -4842,6 +4944,24 @@ void RT_process_image( RT_input * rtin )
           char vmesg[64];
           sprintf(vmesg,"volume %d through motion correction",rtin->nvol[0]-1);
           RT_show_duration(vmesg);
+      }
+
+      /* rcr OC - check for post-reg merge              1 Nov 2016 [rickr] */
+      if( cc+1 == rtin->num_chan && 
+          RT_when_to_merge() == RT_CM_MERGE_AFTER_REG ) {
+
+         int tt, ntt=DSET_NUM_TIMES( rtin->dset[g_reg_src_chan] ) ;
+         int tfirst = rtin->mrg_nvol;
+
+         for( tt = rtin->mrg_nvol; tt < ntt && tt < rtin->reg_nvol; tt++ ) {
+            if( verbose > 1 )
+               fprintf(stderr,"++ about to merge time index %d\n", tt);
+            RT_merge( rtin, cc, tt);
+         }
+
+         /* possibly send mot params and ROI aves   2 Mar 2017 [rickr] */
+         if ( rtin->mp_tcp_use > 0 && rtin->reg_mode == REGMODE_3D_RTIME )
+            RT_mp_comm_send_data_wrapper( rtin, tfirst, ntt );
       }
 
       /* Cameron Craddock
@@ -5125,6 +5245,66 @@ void RT_process_image( RT_input * rtin )
    return ;
 }
 
+static int RT_merge( RT_input * rtin, int chan, int tt )
+{
+   MRI_IMAGE * mrgim ;
+   int         iv;
+
+   /* if not merging, we are out of here */
+   if( chan+1 != rtin->num_chan || RT_chmrg_mode == 0 ) return 0;
+
+   if ( tt >= 0 ) iv = tt;
+   else           iv = rtin->nvol[chan]-1 ;  /* sub-brick index */
+
+   if ( verbose > 1 )
+      fprintf(stderr,"-- RTMerge, merging chan=%d, tindex=%d, num_chan=%d,"
+                     " mode=%d\n", chan, iv, rtin->num_chan, RT_chmrg_mode);
+
+   /* 10 Jul 2010 [rickr]: maybe merge only a subset of channels */
+   /* note: the channel int list can only be created "now", since
+            we must know how many channels there are to use */
+   /* if string is length zero, skip   13 Jan, 2017 [rickr] */
+   if(rtin->chan_list_str && strlen(rtin->chan_list_str) && ! rtin->chan_list){
+     rtin->chan_list = MCW_get_labels_intlist(NULL, rtin->num_chan,
+                                              rtin->chan_list_str);
+     if( !rtin->chan_list ) {
+        fprintf(stderr,"** failed to make channel list (%d) from '%s'\n",
+                rtin->num_chan, rtin->chan_list_str);
+        free(rtin->chan_list_str);  rtin->chan_list_str = NULL;
+     } else if( verbose )
+        fprintf(stderr,"RTM: using list of %d chans for merge from %s\n",
+                rtin->chan_list[0], rtin->chan_list_str);
+   }
+  
+   mrgim = RT_mergerize(rtin, iv) ;
+   if( mrgim == NULL ){
+     ERROR_message("RT can't merge channels at time index #%d",iv) ;
+   } else {
+     if( iv == 0 )
+       EDIT_substitute_brick( rtin->mrg_dset , 0 , (int)mrgim->kind ,
+                                              mri_data_pointer(mrgim) ) ;
+     else
+       EDIT_add_brick( rtin->mrg_dset , (int)mrgim->kind , 0.0 ,
+                                              mri_data_pointer(mrgim) ) ;
+
+     mri_clear_data_pointer(mrgim); mri_free(mrgim);
+     if( verbose > 1 )
+       fprintf(stderr,"RT: added brick #%d to merged dataset\n",iv) ;
+     EDIT_dset_items( rtin->mrg_dset , ADN_ntt , iv+1 , ADN_none ) ;
+     rtin->mrg_nvol = iv+1 ;
+   }
+   VMCHECK ;
+  
+   /* Cameron Craddock added this to ease profiling */
+   if( g_show_times && verbose > 1 ) {
+     char vmesg[64];
+     sprintf(vmesg,"volume %d through mergering",rtin->nvol[0]-1);
+     RT_show_duration(vmesg);
+   }
+
+   return 1;
+}
+
 /*-------------------------------------------------------------------
    Tell AFNI about all datasets we are building.
 ---------------------------------------------------------------------*/
@@ -5204,6 +5384,7 @@ void RT_tell_afni( RT_input *rtin , int mode )
        PLUTO_popup_transient(plint,qbuf);
      }
 
+     if( verbose ) fputs(qbuf, stderr);
      if( verbose > 1 ) SHOW_TIMES ;
 
      sync() ;  /* 08 Mar 2000: sync disk */
@@ -5949,7 +6130,7 @@ void RT_registration_2D_realtime( RT_input * rtin )
 
    /*-- register all sub-bricks that aren't done yet --*/
 
-   ntt = DSET_NUM_TIMES( rtin->dset[0] ) ;
+   ntt = DSET_NUM_TIMES( rtin->dset[g_reg_src_chan] ) ;
    for( tt=rtin->reg_nvol ; tt < ntt ; tt++ )
       RT_registration_2D_onevol( rtin , tt ) ;
 
@@ -5970,7 +6151,7 @@ void RT_registration_2D_atend( RT_input * rtin )
 
    /* check if have enough data to register as ordered */
 
-   if( rtin->reg_base_index >= rtin->nvol[0] ){
+   if( rtin->reg_base_index >= rtin->nvol[g_reg_src_chan] ){
       fprintf(stderr,"RT: can't do %s registration: not enough 3D volumes!\a\n",
               REG_strings[REGMODE_2D_ATEND] ) ;
       DSET_delete( rtin->reg_dset ) ; rtin->reg_dset = NULL ;
@@ -5996,7 +6177,7 @@ void RT_registration_2D_atend( RT_input * rtin )
 
    /* register each volume into the new dataset */
 
-   ntt = DSET_NUM_TIMES( rtin->dset[0] ) ;
+   ntt = DSET_NUM_TIMES( rtin->dset[g_reg_src_chan] ) ;
    for( tt=0 ; tt < ntt ; tt++ ){
       XmUpdateDisplay( THE_TOPSHELL ) ;
       RT_registration_2D_onevol( rtin , tt ) ;
@@ -6038,7 +6219,8 @@ void RT_registration_2D_setup( RT_input * rtin )
 
    /* set pointer to base volume                         26 Aug 2009 [rickr] */
    if( rtin->reg_base_dset ) bar = DSET_BRICK_ARRAY(rtin->reg_base_dset, 0);
-   else                      bar = DSET_BRICK_ARRAY(rtin->dset[0], ibase);
+   else                      bar = DSET_BRICK_ARRAY(rtin->dset[g_reg_src_chan],
+                                                    ibase);
 
    nbar = im->nvox * im->pixel_size ;               /* offset for each slice */
 
@@ -6092,7 +6274,7 @@ void RT_registration_2D_onevol( RT_input * rtin , int tt )
 
    /*-- sanity check --*/
 
-   if( rtin->dset[0] == NULL || rtin->reg_dset == NULL ) return ;
+   if( rtin->dset[g_reg_src_chan] == NULL || rtin->reg_dset == NULL ) return ;
 
    nx   = DSET_NX( rtin->dset[0] ) ;
    ny   = DSET_NY( rtin->dset[0] ) ; nxy = nx * ny ;
@@ -6100,7 +6282,8 @@ void RT_registration_2D_onevol( RT_input * rtin , int tt )
    kind = DSET_BRICK_TYPE( rtin->dset[0] , 0 ) ;
 
    im   = mri_new_vol_empty( nx,ny,1 , kind ) ;     /* fake image for slices */
-   bar  = DSET_BRICK_ARRAY( rtin->dset[0] , tt ) ;  /* ptr to input volume   */
+   /* ptr to input volume   */
+   bar  = DSET_BRICK_ARRAY( rtin->dset[g_reg_src_chan] , tt ) ;
    nbar = im->nvox * im->pixel_size ;               /* offset for each slice */
 
    /* make space for new sub-brick in reg_dset */
@@ -6141,7 +6324,8 @@ void RT_registration_2D_onevol( RT_input * rtin , int tt )
       rtin->reg_phi = (float *) realloc( (void *) rtin->reg_phi ,
                                          sizeof(float) * (nest+1) ) ;
 
-      rtin->reg_tim[nest] = THD_timeof_vox( tt , kk*nxy , rtin->dset[0] ) ;
+      rtin->reg_tim[nest] = THD_timeof_vox( tt , kk*nxy ,
+                                            rtin->dset[g_reg_src_chan] ) ;
       rtin->reg_dx [nest] = dx * DSET_DX(rtin->dset[0]) ;
       rtin->reg_dy [nest] = dy * DSET_DY(rtin->dset[0]) ;
       rtin->reg_phi[nest] = phi * R2DFAC             ; rtin->reg_nest ++ ;
@@ -6236,10 +6420,12 @@ void RT_registration_3D_realtime( RT_input *rtin )
 
    if( rtin->reg_3dbasis == NULL ){  /* need to setup */
 
-      /* check if enough data to setup */
+      /* check if enough data to setup (0 -> g_reg_src_chan 27 Oct 2016) */
+      if( rtin->reg_base_index >= rtin->nvol[g_reg_src_chan] )
+         return ;  /* can't setup */
 
-      if( rtin->reg_base_index >= rtin->nvol[0] ) return ;  /* can't setup */
-      if( rtin->reg_chan_mode > RT_CM_RMODE_NONE &&
+      /* rcr OC - applies to 1 and 2 */
+      if( RT_will_register_merged_dset(rtin) &&
           rtin->reg_base_index >= rtin->mrg_nvol ) return ;
 
       /* setup the registration process */
@@ -6299,10 +6485,13 @@ void RT_registration_3D_realtime( RT_input *rtin )
 
    /*-- register all sub-bricks that aren't done yet --*/
 
-   if( rtin->reg_chan_mode > RT_CM_RMODE_NONE )
+   /* rcr OC - applies to 1 and 2 */
+   if( RT_will_register_merged_dset(rtin) )
       ntt = DSET_NUM_TIMES( rtin->mrg_dset ) ;
    else
-      ntt = DSET_NUM_TIMES( rtin->dset[0] ) ;
+      /* do not proceed with registration until all channels are complete */
+      ntt = DSET_NUM_TIMES( rtin->dset[rtin->num_chan-1] ) ;
+
 
    ttbot = rtin->reg_nvol ;
    for( tt=ttbot ; tt < ntt ; tt++ )
@@ -6321,11 +6510,10 @@ void RT_registration_3D_realtime( RT_input *rtin )
       yar[5] = rtin->reg_psi   + ttbot ;
       yar[6] = rtin->reg_theta + ttbot ;
 
-      /* send the data off over tcp connection          30 Mar 2004 [rickr] */
-      if ( rtin->mp_tcp_use > 0 ) {
-          RT_mp_comm_send_data( rtin, yar+1, ntt-ttbot, ttbot );
-          if( verbose > 1 )
-             fprintf(stderr,"RTM, sending TRs %d..%d\n",ttbot,ntt-1);
+      /* send the data off over tcp connection               30 Mar 2004 [rickr] */
+      /* - if merging after reg, send the data after merging  2 Mar 2017 [rickr] */
+      if ( rtin->mp_tcp_use > 0 && RT_when_to_merge() != RT_CM_MERGE_AFTER_REG ) {
+          RT_mp_comm_send_data_wrapper(rtin, ttbot, ntt);
       } else if( g_show_times ) {
           char vmesg[64];
           sprintf(vmesg,"registered %d vol(s), %d..%d",ntt-ttbot,ttbot,ntt-1);
@@ -6395,7 +6583,7 @@ void RT_registration_3D_atend( RT_input * rtin )
 
    /* register each volume into the new dataset */
 
-   ntt = DSET_NUM_TIMES( rtin->dset[0] ) ;
+   ntt = DSET_NUM_TIMES( rtin->dset[g_reg_src_chan] ) ;
    if( verbose == 1 ) fprintf(stderr,"RT: ") ;
    for( tt=0 ; tt < ntt ; tt++ ){
       XmUpdateDisplay( THE_TOPSHELL ) ;
@@ -6439,8 +6627,12 @@ int RT_registration_set_vr_base(RT_input * rtin)
    if( rtin->reg_base_mode == RT_RBASE_MODE_CUR ) RETURN(0); /* nothing to do */
 
    /* note dset to register                     27 May 2010 [rickr] */
-   if( rtin->reg_chan_mode > RT_CM_RMODE_NONE ) dset = rtin->mrg_dset;
-   else                                         dset = rtin->dset[0];
+   /* rcr OC - applies to 1 and 2
+               also, can choose channel */
+   if( RT_will_register_merged_dset(rtin) )
+      dset = rtin->mrg_dset;
+   else
+      dset = rtin->dset[g_reg_src_chan];  /* 0->g_reg_src_chan  27 Oct 2016 */
 
    /* If CUR_KEEP, create the global base dataset (deleting any old one).
       Note that we still do not need to set rtin->reg_base_dset. */
@@ -6492,8 +6684,9 @@ void RT_registration_3D_setup( RT_input * rtin )
    if( RT_registration_set_vr_base(rtin) ) return;  /* failure */
 
    /* note dset to register                     27 May 2010 [rickr] */
-   if( rtin->reg_chan_mode > RT_CM_RMODE_NONE ) dset = rtin->mrg_dset;
-   else                                         dset = rtin->dset[0];
+   /* rcr OC - add case for option 3 */
+   if( RT_will_register_merged_dset(rtin) ) dset = rtin->mrg_dset;
+   else                                     dset = rtin->dset[g_reg_src_chan];
 
    /*-- extract info about coordinate axes of dataset --*/
 
@@ -6595,16 +6788,58 @@ void RT_registration_3D_onevol( RT_input *rtin , int tt )
 
    /*-- sanity check --*/
 
-   if( rtin->reg_chan_mode > RT_CM_RMODE_NONE ) {
+   /* rcr OC - option to set source channel
+        ChannelMerge MergeRegister modes (RT_CM_RMODE_*)
+           - NONE
+           - reg merged
+           - reg M and chans
+           - reg chans only     (merging probably happens after chan reg)
+        Registration SourceChan -1..(Nchan-1)
+           - -1 means last channel (since possibly unknown?)
+           - 0 is default in 0-based list
+
+        have g_reg_src_chan from AFNI_REALTIME_Reg_Source_Chan & GUI
+        set RT_chmrg_reg_mode
+        trace references to reg_chan_mode and RT_CM_RMODE_NONE
+        add variable for Registration:SourceChan
+        for RT_CM_RMODE_POST_MRG: merge reg_chan_dset list
+            - merging requires float data?
+        update Help
+        with multi-chan, no reg_dset
+          - allow reg in multi- mode, esp given Src Chan
+          - still add 'chans only' to MergeRegister list
+            (i.e. register channels without merging)
+          - again: maybe change MergeRegister to be (just Register?)
+                - FLAG to register channels
+                - MERGE: pre-reg or post-reg?
+             or
+                FLAG? : register chan or merge
+                - none
+                - merge pre-reg
+                - merge and reg chans
+                - reg chans and merge
+                - just reg chans
+          - afni hangs at end of run, waiting for Dimon to close
+   */
+
+   if( RT_will_register_merged_dset(rtin) ) {
       if(verbose && !tt) fprintf(stderr,"RTCM: using mrg_dset as reg source\n");
       source = rtin->mrg_dset ;
    }
-   else source = rtin->dset[0] ;
+   else source = rtin->dset[g_reg_src_chan] ; /* 0 -> g_reg_src_chan */
 
    if( source == NULL ) return ;
 
    /* merge datum might differ from rtin->datum */
    datum = DSET_BRICK_TYPE(source, 0);
+
+   /* if merging after registration and insufficient channel data, bail */
+   /* rcr - fix (this should not apply) */
+   if ( RT_when_to_merge() == RT_CM_MERGE_AFTER_REG &&
+         rtin->nvol[rtin->num_chan-1] <= tt )
+      return;
+
+   /* otherwise, merge before registration */
 
    /*------------------------- actual registration -------------------------*/
 
@@ -6616,14 +6851,20 @@ void RT_registration_3D_onevol( RT_input *rtin , int tt )
    qim->dy = fabs( DSET_DY(source) ) ;
    qim->dz = fabs( DSET_DZ(source) ) ;
 
-   if( rtin->reg_chan_mode < RT_CM_RMODE_REG_CHAN )
-      rim = mri_3dalign_one( rtin->reg_3dbasis , qim ,
+   /* rcr OC - source should be properly set
+             - then 3dalign_one from qim
+             - then mri_3dalign_apply(imarr, ...) */
+      /* rcr OC - if none, else for 3 use chan# */
+
+   /* always do the base, then apply afterwards        27 Oct 2016 [rickr] */
+   rim = mri_3dalign_one( rtin->reg_3dbasis , qim ,
                           &roll , &pitch , &yaw , &dx , &dy , &dz ) ;
-   else {
+
+   /* if aligning channels, apply the parameters to the channels */
+   if( rtin->reg_chan_mode >= RT_CM_RMODE_REG_CHAN ) {
       /* align mrg_dset and all channels as followers  27 May 2010 [rickr] */
       /* input imarr should have source image and then each channel        */
       INIT_IMARR(imarr);
-      ADDTO_IMARR(imarr, qim);
       dx = qim->dx ; dy = qim->dy ; dz = qim->dz ;   /* store for channels */
 
       for( cc = 0; cc < rtin->num_chan; cc++ ) {
@@ -6632,14 +6873,14 @@ void RT_registration_3D_onevol( RT_input *rtin , int tt )
          ADDTO_IMARR(imarr, tim);
       }
 
-      outarr = mri_3dalign_oneplus( rtin->reg_3dbasis , imarr ,
-                                    &roll , &pitch , &yaw , &dx , &dy , &dz ) ;
+      /* rcr OC - change mri_3dalign_oneplus() to mri_3dalign_apply()     */
+      /*          (and specify to keep the input datum, if short or byte) */
+      outarr = mri_3dalign_apply( rtin->reg_3dbasis , imarr ,
+                                  roll , pitch , yaw , dx , dy , dz , 1 ) ;
       if( outarr == NULL ) {
-         fprintf(stderr,"** mri_3dalign_oneplus returns NULL\n");
+         fprintf(stderr,"** mri_3dalign_apply returns NULL\n");
          return;
       }
-
-      rim = outarr->imarr[0];   /* point to expected result */
 
       FREE_IMARR(imarr);        /* but do not free the images */
    }
@@ -6766,10 +7007,11 @@ void RT_registration_3D_onevol( RT_input *rtin , int tt )
            store results (no conversion)         2 Jun 2010 [rickr] --*/
       if( rtin->reg_chan_mode >= RT_CM_RMODE_REG_CHAN && outarr ) {
          for( cc = 0; cc < rtin->num_chan; cc++ ) {
+            /* no more imarr[cc+1], since reg master is no longer in it */
             if( tt == 0 ) EDIT_substitute_brick(rtin->reg_chan_dset[cc], 0,
-                                       rtin->datum, outarr->imarr[cc+1]->im) ;
+                                       rtin->datum, outarr->imarr[cc]->im) ;
             else EDIT_add_brick(rtin->reg_chan_dset[cc], rtin->datum,
-                                0.0, outarr->imarr[cc+1]->im) ;
+                                0.0, outarr->imarr[cc]->im) ;
             EDIT_dset_items(rtin->reg_chan_dset[cc], ADN_ntt,rtin->reg_nvol ,
                                                      ADN_none ) ;
          }
@@ -6851,10 +7093,12 @@ int RT_fim_recurse( RT_input *rtin , int mode )
 
    if( mode == INIT_MODE ){
 
-      dset_time = rtin->dset[0] ;       /* assign dset_time first   30 Oct 2003 [rickr] */
+      /* assign dset_time first   30 Oct 2003 [rickr] */
+      dset_time = rtin->dset[g_reg_src_chan] ;
 
-      /* now check for use of registered dataset                    30 Oct 2003 [rickr] */
-      if( (rtin->reg_mode == REGMODE_2D_RTIME) || (rtin->reg_mode == REGMODE_3D_RTIME) )
+      /* now check for use of registered dataset        30 Oct 2003 [rickr] */
+      if( (rtin->reg_mode == REGMODE_2D_RTIME) ||
+          (rtin->reg_mode == REGMODE_3D_RTIME) )
          dset_time = rtin->reg_dset;
 
       if( dset_time == NULL ) return -1 ;
@@ -7412,7 +7656,7 @@ MRI_IMAGE * RT_mergerize(int nds , THD_3dim_dataset **ds , int iv, int * dlist)
 
 MRI_IMAGE * RT_mergerize(RT_input * rtin, int iv)
 {
-   THD_3dim_dataset **ds = rtin->dset ;
+   THD_3dim_dataset **ds ;
    int * dlist = rtin->chan_list ;
    int nds = rtin->num_chan ;
 
@@ -7420,6 +7664,9 @@ MRI_IMAGE * RT_mergerize(RT_input * rtin, int iv)
    int cc , nvox , idatum , ii , ndsets=rtin->num_chan ;
    MRI_IMAGE *mrgim ;
    float *fmar=NULL , *ftar ; complex *cmar=NULL , *ctar ;
+   short *sar[MAX_CHAN] , *star ;  /* OPT_COMB or T2STAREST */
+
+   ds = rtin->dset ;
 
    if( nds <= 1 || ds == NULL || !ISVALID_DSET(ds[0]) ) return NULL ;
    if( iv < 0 || iv >= DSET_NVALS(ds[0]) )              return NULL ;
@@ -7429,7 +7676,7 @@ MRI_IMAGE * RT_mergerize(RT_input * rtin, int iv)
       ndsets = dlist[0];
 
       if( ndsets > nds ) {
-         fprintf(stderr,"** RT_merge: dlist longer than num channels!\n");
+         fprintf(stderr,"** RT_mergerize: dlist longer than num channels!\n");
          return NULL;
       }
 
@@ -7437,7 +7684,7 @@ MRI_IMAGE * RT_mergerize(RT_input * rtin, int iv)
       for( ii=1 ; ii <= ndsets ; ii++ )
          if( dlist[ii] < 0 || dlist[ii] >= nds ) {
             fprintf(stderr,
-                    "** RT_merge: bad channel in list (%d chan): #%d = %d\n",
+                    "** RT_mergerize: bad channel in list (%d chan): #%d = %d\n",
                     nds, ii, dlist[ii]);
             cc = 1;
          }
@@ -7449,6 +7696,13 @@ MRI_IMAGE * RT_mergerize(RT_input * rtin, int iv)
    idatum = DSET_BRICK_TYPE(ds[0],iv) ;
    switch( idatum ){
      default: return NULL ; /* should never happen */
+
+     case MRI_short:
+       for( cc=0 ; cc < ndsets ; cc++ )
+          /* if dlist is set, get the index from there */
+          sar[cc] = dlist ? DSET_ARRAY(ds[dlist[cc+1]],iv)
+                          : DSET_ARRAY(ds[cc],iv) ;
+     break ;
 
      case MRI_float:
        for( cc=0 ; cc < ndsets ; cc++ )
@@ -7532,7 +7786,6 @@ MRI_IMAGE * RT_mergerize(RT_input * rtin, int iv)
         if( idatum != MRI_float )
            fprintf(stderr,"** type of T2star est dataset must be float\n");
         else {
-           float t2startest, intercept;
            float sumX, sumY, sumX2, sumXY, diffSumX2, logY;
 
            sumX = sumX2 = 0.0, diffSumX2 = 1.0;
@@ -7581,11 +7834,86 @@ MRI_IMAGE * RT_mergerize(RT_input * rtin, int iv)
        }
      break ; /* done with RT_CHMER_T2STAREST */
 
-     fflush (stdout);
-
      /* End FMRIF changes for RT T2* estimates - VR */
 
+     /* Begin FMRIF changes for RT Optimal combined echo data - VR */
+
+     case RT_CHMER_OPT_COMB :  /* output datum is always float */
+        {
+           float *t2star_ref, sumTEsByExpTEs;
+
+           DSET_load(rtin->t2star_ref_dset);
+           t2star_ref = DSET_ARRAY(rtin->t2star_ref_dset, 0);
+
+           for (ii=0 ; ii < nvox ; ii++)
+           {
+               /* def make_optcom(data,t2s,tes):
+
+                   """
+                   Generates the optimally combined time series. 
+
+                   Parameters:
+                   -----------
+                   data: this is the original ME dataset with the mean in a (Nv,Ne,Nt) array.
+                   t2s:  this is the static T2s map in a (Nv,) array.
+                   tes:  echo times in a (Ne,) array.
+
+                   Returns:
+                   --------
+                   octs: optimally combined time series in a (Nv,Nt) array.    
+                   """
+
+                   Nv,Ne,Nt = data.shape
+                   ft2s  = t2s[:,np.newaxis]
+                   alpha = tes * np.exp(-tes /ft2s)
+                   alpha = np.tile(alpha[:,:,np.newaxis],(1,1,Nt))
+                   octs  = np.average(data,axis = 1,weights=alpha)
+                   return octs
+
+               weight (T2*)[i] = TE[i] * exp (-TE[i]/T2*(fit)) /
+                                 Sum ( TE[i] * exp(-TE[i]/T2*(fit)) )
+
+               */
+
+             if( t2star_ref[ii] != 0.0 ) {
+               sumTEsByExpTEs = 0.0;
+               for (cc=0 ; cc < ndsets ; cc++)
+               {
+                  sumTEsByExpTEs += ( rtin->TE[cc] 
+                                 * exp (-1.0*rtin->TE[cc] / t2star_ref[ii]) );
+               }
+
+               for (cc=0 ; cc < ndsets ; cc++)
+               {
+                  if (idatum == MRI_short) {
+                     star   = (sar[cc]);
+                     fmar[ii] += (star[ii] * rtin->TE[cc] 
+                              * exp (-1.0 * rtin->TE[cc] / t2star_ref[ii]));
+                  }
+                  else { /* idatum == MRI_float */
+                     ftar   = (far[cc]);
+                     fmar[ii] += (ftar[ii] * rtin->TE[cc] 
+                              * exp (-1.0 * rtin->TE[cc] / t2star_ref[ii]));
+                  }
+               }
+
+               /* rcr - fix (Vinai, is 0.001 reasonable?) */
+               if( sumTEsByExpTEs > 0.001 )
+                  fmar[ii] = fmar[ii] / sumTEsByExpTEs;
+               else
+                  fmar[ii] = 0.0;
+             } else {
+               fmar[ii] = 0.0;
+             }
+           }
+       }
+     break ; /* done with RT_CHMER_OPT_COMB */
+
+     /* End FMRIF changes for RT Optimal combined echo data - VR */
+
      /*** sum of input values ***/
+
+     fflush (stdout);
 
      case RT_CHMER_SUM:  /* output datum is same as input datum */
        switch( idatum ){

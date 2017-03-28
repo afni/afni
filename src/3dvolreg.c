@@ -443,6 +443,12 @@ int main( int argc , char *argv[] )
      VL_nbase = -1 ;  /* will not match any sub-brick index */
    }
 
+   { int nnz = mri_nonzero_count(VL_imbase) ;
+     if( nnz < 100 )
+       ERROR_exit("3dvolreg fails: base image has %d nonzero voxel%s (< 100)",
+                  nnz , (nnz==1) ? "\0" : "s" ) ;
+   }
+
    VL_imbase->dx = fabs( DSET_DX(VL_dset) ) ;  /* set the voxel dimensions */
    VL_imbase->dy = fabs( DSET_DY(VL_dset) ) ;  /* in the MRI_IMAGE struct  */
    VL_imbase->dz = fabs( DSET_DZ(VL_dset) ) ;
@@ -689,7 +695,7 @@ int main( int argc , char *argv[] )
          fim->dy = fabs( DSET_DY(VL_dset) ) ;
          fim->dz = fabs( DSET_DZ(VL_dset) ) ;
 
-         if( kim != VL_nbase ){ /* 16 Nov 1998: don't register to base image */
+         if( kim != VL_nbase && mri_nonzero_count(fim) >= 66 ){ /* don't register to base image */
 
             EDIT_blur_volume_3d( nx,ny,nz , 1.0,1.0,1.0 ,
                                  MRI_float , MRI_FLOAT_PTR(fim) ,
@@ -805,7 +811,7 @@ int main( int argc , char *argv[] )
 
       /*-- the actual registration [please bow your head] --*/
 
-      if( kim != VL_nbase ){ /* 16 Nov 1998: don't register base to self */
+      if( kim != VL_nbase && mri_nonzero_count(fim) >= 66 ){ /* don't register base to self */
 
          if( VL_twopass )
             mri_3dalign_initvals( roll_1[kim] , pitch_1[kim] , yaw_1[kim] ,
@@ -817,8 +823,14 @@ int main( int argc , char *argv[] )
 
       } else {               /* 16 Nov 1998: just make a copy of base image */
 
-         if( !matvec ) tim = mri_to_float( VL_imbase ) ; /* make a copy */
-         else          tim = NULL ;                      /* 14 Feb 2001 */
+         if( kim == VL_nbase ){
+           if( !matvec ) tim = mri_to_float( VL_imbase ) ; /* make a copy */
+           else          tim = NULL ;                      /* 14 Feb 2001 */
+         } else {                                          /* 13 Mar 2017 */
+           WARNING_message("skipped registration for #%d because image is empty-ish",kim) ;
+           if( !matvec ) tim = mri_to_float( fim ) ;
+           else          tim = NULL ;
+         }
 
          roll[kim] = pitch[kim] = yaw[kim] = ddx = ddy = ddz = 0.0 ;
 

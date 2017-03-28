@@ -103,7 +103,7 @@ char *angle_strings[] = { "120" , "180" , "240" , "300" , "360" } ;
 #define NUM_angle_strings (sizeof(angle_strings)/sizeof(char *)) /* 08 Nov 2011 */
 
 char *globalrange_strings[] = { "Slice" , "Volume" , "Dataset" } ; /* 29 Jan 2014 */
-#define NUM_globalrange_strings 3 
+#define NUM_globalrange_strings 3
 
 /*--------------------- strings for Cooordinate format --------------------*/
 
@@ -125,6 +125,7 @@ static void ENV_angle_string( char * ) ;
 static void ENV_thresh_lock( char * ) ;
 static void ENV_compressor( char * ) ;
 static void ENV_leftisleft( char * ) ;
+static void ENV_leftisposterior( char * ); /* 27 Mar 2017 */
 static void ENV_marksquality( char * ) ;
 static void ENV_trusthost( char * ) ;     /* 21 Feb 2001 */
 static void ENV_cwd( char * ) ;           /* 22 Feb 2001 */
@@ -235,8 +236,12 @@ PLUGIN_interface * ENV_init(void)
                     0,10,2,2 , NULL                 ) ;
 
    ENV_add_string( "AFNI_LEFT_IS_LEFT" ,
-                   "To show subject's left on image left?" ,
+                   "To show subject's left on image left (axial, coronal)?" ,
                    NUM_yesno_list , yesno_list , ENV_leftisleft  ) ;
+
+   ENV_add_string( "AFNI_LEFT_IS_POSTERIOR" ,
+                   "To show subject's posterior on image left (sagittal)?" ,
+                   NUM_yesno_list , yesno_list , ENV_leftisposterior  ) ;
 
    ENV_add_string( "AFNI_NO_SIDES_LABELS" ,
                    "Skip showing image window left-side label?" ,
@@ -431,7 +436,7 @@ PLUGIN_interface * ENV_init(void)
 
    /* 23 Feb 2004 [rickr] */
    ENV_add_yesno( "AFNI_IMAGE_ZOOM_NN" ,
-	           "Use Nearest Neighbor interpolation for image Zoom?" ) ;
+                  "Use Nearest Neighbor interpolation for image Zoom?" ) ;
 
    /* 22 Mar 2004 [RWCox] */
    ENV_add_yesno( "AFNI_SLAVE_FUNCTIME" , "Time Index affects functional overlay?" ) ;
@@ -592,10 +597,14 @@ PLUGIN_interface * ENV_init(void)
    /* 23 Jul 2013 [RWC] */
    ENV_add_yesno( "AFNI_RECENTER_VIEWING" ,
                   "Re-center xhairs when switching UnderLay?" ) ;
-  
+
    ENV_add_string( "AFNI_JUMPTO_SPACE" ,
           "Space name to use in Jump to (spacename)" ,
                  0, NULL, ENV_jumpspace_reset ) ;
+
+   /* 28 Feb 2017 [RWC] */
+   ENV_add_yesno( "AFNI_IMAGE_LABEL_IJK" ,
+                  "Plot image overlay label as slice index?" ) ;
 
    /*--------- Sort list of variables [21 Feb 2007]  -----------*/
 
@@ -901,7 +910,7 @@ static void ENV_thresh_lock( char *vname )
 {
    /* initialize viewers with new env value */
    AFNI_set_all_thrlock_bboxes(NULL, -1);
-   return;  
+   return;
 }
 /*-----------------------------------------------------------------------*/
 
@@ -1046,6 +1055,12 @@ static void ENV_leftisleft( char *vname )
 {
    char *str = getenv(vname) ;
    GLOBAL_argopt.left_is_left = YESSISH(str) ;
+}
+
+static void ENV_leftisposterior( char *vname )  /* 27 Mar 2017 */
+{
+   char *str = getenv(vname) ;
+   GLOBAL_argopt.left_is_posterior = YESSISH(str) ;
 }
 
 /*-----------------------------------------------------------------------*/

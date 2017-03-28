@@ -318,7 +318,7 @@ int main( int argc , char *argv[] )
    MRI_IMAGE *im_base, *im_targ, *im_weig=NULL, *im_mask=NULL, *qim ;
    MRI_IMAGE *im_bset, *im_wset, *im_tmask=NULL ;
    GA_setup stup ;
-   int iarg , ii,jj,kk , nmask=0 , nfunc , rr , ntask , ntmask=0 ;
+   int iarg , ii,jj,kk , nmask=0 , nfunc , rr , ntask , ntmask=0 , nnz ;
    int   nx_base,ny_base,nz_base , nx_targ,ny_targ,nz_targ , nxy_base ;
    float dx_base,dy_base,dz_base , dx_targ,dy_targ,dz_targ , dxyz_top ;
    int   nxyz_base[3] , nxyz_targ[3] , nxyz_dout[3] ;
@@ -477,6 +477,8 @@ int main( int argc , char *argv[] )
    MRI_IMAGE *im_utarg         = NULL ;
 #endif
 
+#define APPLYING ( apply_1D != NULL || apply_mode != 0 )  /* 13 Mar 2017 */
+
    /**----------------------------------------------------------------------*/
    /**----------------- Help the pitifully ignorant user? -----------------**/
 
@@ -559,11 +561,11 @@ int main( int argc , char *argv[] )
 "               field inhomogeneities.\n"
 "\n"
 " ** NOTA BENE: The base and source dataset do NOT have to be defined **\n"
-" **            on the same 3D grids; the alignment process uses the  **\n"
-" **            coordinate systems defined in the dataset headers to  **\n"
-" **            make the match between spatial locations, rather than **\n"
-" **            matching the 2 datasets on a voxel-by-voxel basis     **\n"
-" **            (as 3dvolreg and 3dWarpDrive do).                     **\n"
+" ** [that's]   on the same 3D grids; the alignment process uses the  **\n"
+" ** [Latin ]   coordinate systems defined in the dataset headers to  **\n"
+" ** [  for ]   make the match between spatial locations, rather than **\n"
+" ** [ NOTE ]   matching the 2 datasets on a voxel-by-voxel basis     **\n"
+" ** [ WELL ]   (as 3dvolreg and 3dWarpDrive do).                     **\n"
 " **       -->> However, this coordinate-based matching requires that **\n"
 " **            image volumes be defined on roughly the same patch of **\n"
 " **            of (x,y,z) space, in order to find a decent starting  **\n"
@@ -573,6 +575,8 @@ int main( int argc , char *argv[] )
 " **       -->> Or the '-cmass' option to this program might be       **\n"
 " **            sufficient to solve this problem, maybe, with luck.   **\n"
 " **            (Another reason why you should use align_epi_anat.py) **\n"
+" **       -->> If the coordinate system in the dataset headers is    **\n"
+" **            WRONG, then 3dAllineate will probably not work well!  **\n"
 "\n"
 " -prefix ppp = Output the resulting dataset to file 'ppp'.  If this\n"
 "   *OR*        option is NOT given, no dataset will be output!  The\n"
@@ -2386,7 +2390,7 @@ int main( int argc , char *argv[] )
          strncmp(argv[iarg],"-1Dparam_apply",13) == 0   ){
        char *fname ;
 
-       if( apply_1D != NULL || apply_mode != 0 )
+       if( APPLYING )
          ERROR_exit("Can't have multiple 'apply' options :-(") ;
        if( ++iarg >= argc ) ERROR_exit("no argument after '%s' :-(",argv[iarg-1]) ;
 #if 0
@@ -2409,7 +2413,7 @@ int main( int argc , char *argv[] )
 
      if( strncmp(argv[iarg],"-1Dmatrix_apply",13) == 0 ){
        char *fname ;
-       if( apply_1D != NULL || apply_mode != 0 )
+       if( APPLYING )
          ERROR_exit("Can't have multiple 'apply' options :-(") ;
        if( ++iarg >= argc ) ERROR_exit("no argument after '%s' :-(",argv[iarg-1]) ;
 #if 0
@@ -3237,6 +3241,7 @@ int main( int argc , char *argv[] )
      DSET_load(dset_base) ; CHECK_LOAD_ERROR(dset_base) ;
      im_base = mri_scale_to_float( DSET_BRICK_FACTOR(dset_base,0) ,
                                    DSET_BRICK(dset_base,0)         ) ;
+
      DSET_unload(dset_base) ;
      dx_base = fabsf(DSET_DX(dset_base)) ;
      dy_base = fabsf(DSET_DY(dset_base)) ;
@@ -3256,6 +3261,13 @@ int main( int argc , char *argv[] )
    nx_base = im_base->nx ;
    ny_base = im_base->ny ; nxy_base  = nx_base *ny_base ;
    nz_base = im_base->nz ; nvox_base = nxy_base*nz_base ;
+
+   if( !APPLYING ){                     /* 13 Mar 2017 */
+     nnz = mri_nonzero_count(im_base) ;
+     if( nnz < 100 )
+       ERROR_exit("3dAllineate fails :: base image has %d nonzero voxel%s (< 100)",
+                  nnz , (nnz==1) ? "\0" : "s" ) ;
+   }
 
    /* Check emask for OK-ness [14 Feb 2013] */
 
@@ -3461,7 +3473,16 @@ STATUS("zeropad weight dataset") ;
      }
      if( im_weig->nx != nx_base ||
          im_weig->ny != ny_base || im_weig->nz != nz_base )
-       ERROR_exit("-weight and base volumes don't match grid dimensions :-(") ;
+       ERROR_exit("-weight and base volumes don't match in 3D grid dimensions :-(") ;
+
+     /*-- convert to 0..1 range [23 Mar 2017] --*/
+     { float clip=0.0f, *wf=MRI_FLOAT_PTR(im_weig); int ii,nxyz=im_weig->nvox;
+       for( ii=0 ; ii < nxyz ; ii++ ) if( wf[ii] > clip ) clip = wf[ii] ;
+       if( clip == 0.0f )
+         ERROR_exit("Input -weight is never positive!") ;
+       clip = 1.0f / clip ;
+       for( ii=0 ; ii < nxyz ; ii++ ) wf[ii] *= clip ;
+     }
 
    } else if( auto_weight ){  /* manufacture weight from the base */
      if( meth_noweight[meth_code-1] && auto_weight == 1 && auto_wclip == 0.0f ){
@@ -3508,6 +3529,9 @@ STATUS("zeropad weight dataset") ;
      nmask = THD_countmask(im_mask->nvox,mf) ;
      if( verb ) INFO_message("%d voxels [%.1f%%] in weight mask",
                              nmask, 100.0*nmask/(float)im_mask->nvox ) ;
+     if( !APPLYING && nmask < 100 )
+       ERROR_exit("3dAllineate fails: not enough voxels in weight mask") ;
+
    } else {
      nmask = nvox_base ;  /* the universal 'mask' */
    }
@@ -4163,7 +4187,7 @@ STATUS("zeropad weight dataset") ;
      if( fill_source_mask ) stup.ajmask_ranfill = 1 ; /* 01 Mar 2010 */
    }
 
-   if( micho_ov != 0.0 ){
+   if( !APPLYING && micho_ov != 0.0 ){
      byte *mmm ; int ndil=auto_tdilation ; MRI_IMAGE *bsm ;
      mmm = mri_automask_image(im_base) ;
      if( mmm != NULL ){
@@ -4225,6 +4249,11 @@ STATUS("zeropad weight dataset") ;
        float *bar = MRI_FLOAT_PTR(im_targ) ;
        for( ii=0 ; ii < im_targ->nvox ; ii++ ) if( bar[ii] < 0.0f ) bar[ii] = 0.0f ;
      }
+
+     nnz = mri_nonzero_count(im_targ) ;
+     if( nnz < 66 )
+       WARNING_message("3dAllineate :: source image #%d has %d nonzero voxel%s (< 66)",
+                       kk , nnz , (nnz==1) ? "\0" : "s" ) ;
 
      /*** if we are just applying input parameters, set up for that now ***/
 
