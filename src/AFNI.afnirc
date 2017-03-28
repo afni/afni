@@ -76,7 +76,7 @@
 
    AFNI_SESSTRAIL           = 1    // # of directory levels to show in filenames
    AFNI_HINTS               = YES  // YES==turns on popup hints
-// AFNI_COMPRESSOR          = gzip // force all .BRIK output to be compressed
+// AFNI_COMPRESSOR          = GZIP // force all .BRIK output to be compressed
    AFNI_AUTOGZIP            = YES  // gzip .BRIK files if it's a good idea
 // AFNI_NOMMAP              = YES  // to disable use of mmap() file I/O
    AFNI_LEFT_IS_LEFT        = YES  // YES==show human left on screen left

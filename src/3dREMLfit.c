@@ -2718,6 +2718,9 @@ STATUS("make GLTs from matrix file") ;
        if( inset_mrv != NULL )  DSET_unload(inset) ;
        else                   { ERROR_message("Can't create vector image!?"); virtu_mrv = 0; }
 
+       if( inset_mrv != NULL )
+         THD_check_vectim(inset_mrv,"3dREMLfit input data") ;
+
        if( virtu_mrv ){
          fname_mrv = mri_get_tempfilename("JUNK") ;
          ii = THD_vectim_data_tofile( inset_mrv , fname_mrv ) ;
@@ -3134,6 +3137,9 @@ STATUS("setting up Rglt") ;
          dsortar_mrv[dd] = THD_dset_to_vectim( dsortar->ar[dd] , mask , 0 ) ;
          if( dsortar_mrv[dd] != NULL ) DSET_unload(dsortar->ar[dd]) ;
          else                          ERROR_message("Can't create vector image from -dsort!?") ;
+
+         if( dsortar_mrv != NULL )
+           THD_check_vectim(dsortar_mrv[dd],"3dREMLfit -dsort") ;
        }
      }
 

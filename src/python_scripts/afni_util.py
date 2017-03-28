@@ -69,7 +69,11 @@ def write_text_to_file(fname, tdata, mode='w', wrap=0, wrapstr='\\\n', exe=0):
 
     if fname != 'stdout' and fname != 'stderr':
        fp.close()
-       if exe: os.chmod(fname, 0755)
+       if exe:
+           try:
+               os.chmod(fname, 0755)
+           except OSError, e:
+                print e
 
     return 0
 
@@ -1907,7 +1911,7 @@ def vals_are_unique(vlist, dosort=1):
       
    return rval
 
-def lists_are_same(list1, list2, epsilon=0):
+def lists_are_same(list1, list2, epsilon=0, doabs=0):
    """return 1 if the lists have similar values, else 0
 
       similar means difference <= epsilon
@@ -1918,9 +1922,15 @@ def lists_are_same(list1, list2, epsilon=0):
    if len(list1) != len(list2): return 0
 
    for ind in range(len(list1)):
-      if list1[ind] != list2[ind]: return 0
+      if doabs:
+         v1 = abs(list1[ind])
+         v2 = abs(list2[ind])
+      else:
+         v1 = list1[ind]
+         v2 = list2[ind]
+      if v1 != v2: return 0
       if epsilon:
-         if abs(list1[ind]-list2[ind]) > epsilon: return 0
+         if abs(v1-v2) > epsilon: return 0
 
    return 1
 

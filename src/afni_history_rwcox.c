@@ -44,6 +44,52 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 27 , MAR , 2017 , RWC , "afni GUI" , MICRO , TYPE_NEW_ENV ,
+   "AFNI_LEFT_IS_POSTERIOR" ,
+   "To show posterior of brain on the left (instead of right) in sagittal\n"
+   "image and graph viewers. A complement to AFNI_LEFT_IS_LEFT." } ,
+
+ { 21 , MAR , 2017 , RWC , "AFNI GUI" , MICRO , TYPE_BUG_FIX ,
+   "Improper fading of overlay plots in Montage" ,
+   "function scale_memplot() was scaling the opacity factor as well as the\n"
+   "xy coordinates - D'oh!" } ,
+
+ { 16 , MAR , 2017 , RWC , "3dttest++" , MINOR , TYPE_ENHANCE ,
+   "-Clustsim option now also output 5 percent points for global z-stat" ,
+   "Takes the global min/max of the randomized z-stat results for each\n"
+   "iteration (10000) and then computes the 5 percent points for the\n"
+   "1-sided and 2-sided cases.  Is this useful?  Maybe for somebody." } ,
+
+ { 13 , MAR , 2017 , RWC , "mri_lsqfit" , MICRO , TYPE_GENERAL ,
+   "explicitly check for all zero input ref vectors" ,
+   NULL } ,
+
+ { 1 , MAR , 2017 , RWC , "3dUnifize" , MAJOR , TYPE_NEW_OPT ,
+   "Add -EPI option, to unifize time series datasets." ,
+   NULL } ,
+
+ { 28 , FEB , 2017 , RWC , "3dExtractGroupInCorr" , MICRO , TYPE_NEW_PROG ,
+   "Program to reconstruct individual dataset from a .niml/.data pair." ,
+   "This program is for any unfortunate person who has lost the datasets\n"
+   "that were used to create the 3dGroupInCorr inputs.  It is not really\n"
+   "'NEW', since it has been around for my personal use for a while, but now\n"
+   "it is being included in the AFNI distribution for the masses to enjoy." } ,
+
+ { 28 , FEB , 2017 , RWC , "3dEmpty" , MICRO , TYPE_NEW_OPT ,
+   "Add -geom option = define dataset by a 'MATRIX(...)' string" ,
+   NULL } ,
+
+ { 27 , FEB , 2017 , RWC , "afni GUI" , MICRO , TYPE_NEW_ENV ,
+   "AFNI_IMAGE_LABEL_IJK" ,
+   "If this variable is set to YES, then the image label overlay (chosen\n"
+   "from the intensity bar popup menu) will show the slice index instead of\n"
+   "the slice coordinate. (for PT)" } ,
+
+ { 24 , FEB , 2017 , RWC , "afni GUI" , MICRO , TYPE_GENERAL ,
+   "Turn off crosshairs and left-is-left if all inputs are image files." ,
+   "Also, hide the help for 'afni -im' since AFNI can now read images\n"
+   "directly as 'datasets'." } ,
+
  { 22 , FEB , 2017 , RWC , "AFNI gui" , MICRO , TYPE_MODIFY ,
    "Add VG painting effect to AFNI image viewer" ,
    "Just for fun, please!" } ,

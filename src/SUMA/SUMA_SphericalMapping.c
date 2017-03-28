@@ -1614,7 +1614,8 @@ float intersection_map(float a, float b, float c, float d, float val) {
 */
 
 SUMA_MorphInfo * SUMA_MapSurface (SUMA_SurfaceObject *surf1, 
-                                  SUMA_SurfaceObject *surf2, int verb)
+                                  SUMA_SurfaceObject *surf2,
+                                  int verb, char * dist_prefix )
 {
    static char FuncName[]={"SUMA_MapSurface"};
 
@@ -1632,7 +1633,8 @@ SUMA_MorphInfo * SUMA_MapSurface (SUMA_SurfaceObject *surf1,
    float *weight=NULL;
    int *clsNodes=NULL;
    SUMA_MorphInfo *MI;
-   float ctr1[3], ctr2[3], zero[3], r2, dist_tmp;
+   double dr2, dmin, dmax, dval, dctr[3];
+   float ctr1[3], ctr2[3], zero[3]={0.0, 0.0, 0.0}, r2, dist_tmp;
    float  *justX_2=NULL, *justX_1=NULL, *srtdX_ctrNodeList_2=NULL;
    int *i_SrtdX_2=NULL;
    int N_outliers;
@@ -1645,7 +1647,11 @@ SUMA_MorphInfo * SUMA_MapSurface (SUMA_SurfaceObject *surf1,
    SUMA_SO_map *SO=NULL;
    SUMA_Boolean LocalHead = NOPE;
    
+   FILE * dfp=NULL;     /* can write distortions to this file */
+   float  ddiff, ratio;
+
    SUMA_ENTRY;
+
 
    MI = SUMA_Create_MorphInfo();
    if (MI == NULL) {
@@ -1677,45 +1683,93 @@ SUMA_MorphInfo * SUMA_MapSurface (SUMA_SurfaceObject *surf1,
       SUMA_RETURN (NULL);
    }
 
+   /* ----------------------------------------------------------------------
+      change to centering:                      17 Mar 2017 [rickr]
 
-   /**center surf1 to surf2 (that will make it easier to debug in SUMA)*/
+      Originally the surfaces were recentered to match that of surf2.  But
+      the step of scaling surf1 coordinates to land near surf2 did not deal
+      with non-zero centers properly, e.g.  
+         ptHit[0] = (r2/currDist)*currNode[0];
+      should have read:
+         ptHit[0] = (r2/currDist)*(currNode[0]-zero[0]) + zero[0];
+      where ratio=r2/currDist is the ratio of distances to the centers.
 
-   zero[0]=0; zero[1]=0; zero[2]=0;
-   
+      The difference: zero * (1 - ratio).
+
+      For icosahedrons, ratio tends to vary between 0.7 and 1 (where it hits
+      the surface), so each coordinate is distorted by up to .3 * the center
+      coordinate (and they should be accurate where the ico hit the sphere).
+
+      The change: instead of fixing ptHit, recenter both surfaces at 0,0,0.
+      That simplifies (and speeds up) the computations, and we don't care
+      about the actual coordinates anyway, since the output is a mapping of
+      ico index to 3 orig surf indices (of a triangle) and their relative
+      weights.
+
+      ---
+
+      The effect of this was seen when adding the -NIFTI (or similar) option
+      to @SUMA_Make_Spec_FS.  In that case, ConvertSurface would be run with
+      the option '-ixmat_1D xmatras.1D', shifting the coordinates (and centers)
+      of all surfaces to match the center of the NIFTI SurfVol dataset.  It
+      looks like perhaps the original intention was to shift only anatomically
+      correct surfaces, but it ended up being applied to all surfaces (as
+      identical commands were run in the 'if' and 'else' conditions).
+
+      That might have been okay, except that it exposed the distortion problem
+      in this function because of shifting the sphere.reg.asc surfaces.
+
+      ---
+
+      This subtle problem was found by I DeWitt, and required quite a bit of
+      investigation to diagnose.  Many thanks to Iain.
+      ----------------------------------------------------------------------*/
+ 
+
+   /* extract or compute the centers of the surfaces */
+
    if (SUMA_IS_GEOM_SYMM(surf1->isSphere)) {
       SUMA_COPY_VEC(surf1->SphereCenter, ctr1, 3, float, float);
    } else {
-      ctr1[0]=0; ctr1[1]=0; ctr1[2]=0;
+      /* compute as double, then copy over   17 Mar 2017 [rickr] */
+      dctr[0]=0; dctr[1]=0; dctr[2]=0;
       for (i=0; i<numNodes_1; ++i) {
          j = 3*i;
-         ctr1[0] = ctr1[0] + nodeList_1[j];
-         ctr1[1] = ctr1[1] + nodeList_1[j+1];
-         ctr1[2] = ctr1[2] + nodeList_1[j+2];
+         dctr[0] = dctr[0] + nodeList_1[j];
+         dctr[1] = dctr[1] + nodeList_1[j+1];
+         dctr[2] = dctr[2] + nodeList_1[j+2];
       }
-      ctr1[0] = ctr1[0]/numNodes_1;
-      ctr1[1] = ctr1[1]/numNodes_1;
-      ctr1[2] = ctr1[2]/numNodes_1;
+      /* but still store in the float array */
+      ctr1[0] = dctr[0]/numNodes_1;
+      ctr1[1] = dctr[1]/numNodes_1;
+      ctr1[2] = dctr[2]/numNodes_1;
    }
    if (SUMA_IS_GEOM_SYMM(surf2->isSphere)) {
       SUMA_COPY_VEC(surf2->SphereCenter, ctr2, 3, float, float);
    } else {
-      /*first find centers of each surface*/
-      ctr2[0]=0; ctr2[1]=0; ctr2[2]=0;
+      /* first find centers of each surface (as double 17 Mar 2017) */
+      dctr[0]=0; dctr[1]=0; dctr[2]=0;
       for (i=0; i<numNodes_2; ++i) {
          j = 3*i;
-         ctr2[0] = ctr2[0] + nodeList_2[j];
-         ctr2[1] = ctr2[1] + nodeList_2[j+1];
-         ctr2[2] = ctr2[2] + nodeList_2[j+2];
+         dctr[0] = dctr[0] + nodeList_2[j];
+         dctr[1] = dctr[1] + nodeList_2[j+1];
+         dctr[2] = dctr[2] + nodeList_2[j+2];
       }
-      ctr2[0] = ctr2[0]/numNodes_2;
-      ctr2[1] = ctr2[1]/numNodes_2;
-      ctr2[2] = ctr2[2]/numNodes_2;
+      /* again, store double results in float array */
+      ctr2[0] = dctr[0]/numNodes_2;
+      ctr2[1] = dctr[1]/numNodes_2;
+      ctr2[2] = dctr[2]/numNodes_2;
    }
 
-   /* set the zero center to be that of surf 2 */
-   zero[0] = ctr2[0];
-   zero[1] = ctr2[1];
-   zero[2] = ctr2[2];
+   /* obsolete: center surf1 to surf2 (that will make it easier to debug
+    *           in SUMA) */
+
+   /* INSTEAD, set both centers to 0,0,0 (below),  17 Mar 2017 [rickr] */
+   /*      and zero is now just a permanent 0,0,0 array.  This will    */
+   /*      make projections more straightforward, and the centers do   */
+   /*      not affect the output anyway.                               */
+ 
+   /* zero[0] = ctr2[0]; zero[1] = ctr2[1]; zero[2] = ctr2[2];         */
    
    ctrNodeList_1 = (float *) SUMA_calloc( 3*numNodes_1, sizeof(float) );
    ctrNodeList_2 = (float *) SUMA_calloc( 3*numNodes_2, sizeof(float) );
@@ -1732,33 +1786,78 @@ SUMA_MorphInfo * SUMA_MapSurface (SUMA_SurfaceObject *surf1,
       SUMA_RETURN (NULL);
    }
 
-   /* one of these two loops will be useless if we stick to having 
-      zero be the center of the one  of the two surfaces.... */
+   /* obsolete: one of these two loops will be useless if we stick to having 
+                zero be the center of the one  of the two surfaces.... */
+   /* NEW: adjust both so that each center is at 0,0,0, since once equated,
+      the actual coordinates do not affect the output  17 Mar 2017 [rickr] */
    for (i=0; i<numNodes_1; ++i) {
       j = 3*i;
-      ctrNodeList_1[j]   = nodeList_1[j]   - ctr1[0] + zero[0];
-      ctrNodeList_1[j+1] = nodeList_1[j+1] - ctr1[1] + zero[1];
-      ctrNodeList_1[j+2] = nodeList_1[j+2] - ctr1[2] + zero[2];
+      ctrNodeList_1[j]   = nodeList_1[j]   - ctr1[0]; /* set center to 0,0,0 */
+      ctrNodeList_1[j+1] = nodeList_1[j+1] - ctr1[1];
+      ctrNodeList_1[j+2] = nodeList_1[j+2] - ctr1[2];
    }
    for (i=0; i<numNodes_2; ++i) {
       j = 3*i;
-      ctrNodeList_2[j]   = nodeList_2[j]   - ctr2[0] + zero[0];
-      ctrNodeList_2[j+1] = nodeList_2[j+1] - ctr2[1] + zero[1];
-      ctrNodeList_2[j+2] = nodeList_2[j+2] - ctr2[2] + zero[2];
+      ctrNodeList_2[j]   = nodeList_2[j]   - ctr2[0];
+      ctrNodeList_2[j+1] = nodeList_2[j+1] - ctr2[1];
+      ctrNodeList_2[j+2] = nodeList_2[j+2] - ctr2[2];
+   }
+
+   /* debug: note radius stats of surf 1 */
+   if( verb ) {
+      dr2 = 0.0;
+      dmin = 99999.0;
+      dmax = 0.0;
+      for (i=0; i<numNodes_1; ++i) {
+         j = 3*i;
+         dval = sqrt( pow( ctrNodeList_1[j],   2) +
+                      pow( ctrNodeList_1[j+1], 2) + 
+                      pow( ctrNodeList_1[j+2], 2) );
+         dr2 += dval;
+         if( dval < dmin ) dmin = dval;
+         if( dval > dmax ) dmax = dval;
+      }
+      dr2 /= numNodes_1;
+      if( verb )
+         fprintf(SUMA_STDERR,
+                 "-- MI: surf 1 (%s) radius ...\n"
+                 "       from center %f, %f, %f :\n"
+                 "       min %f, mean %f, max %f\n",
+                 surf1->Label ? surf1->Label : "<noname>",
+                 ctr1[0], ctr1[1], ctr1[2], dmin, dr2, dmax);
    }
 
    /*find radius of surf2*/
    /*(in theory should be able to just take distance first node -> center, but 
       freesurfer surfs are not perfectly spherical)*/
-   r2 = 0.0;
-   for (i=0; i<numNodes_2; ++i) {
-      j = 3*i;
-      r2 = r2 + 
-         sqrt( pow( ctrNodeList_2[j]-zero[0], 2) + 
-               pow( ctrNodeList_2[j+1]-zero[1], 2) + 
-               pow( ctrNodeList_2[j+2]-zero[2], 2) );
+
+   { /* no if(verb), but keep indentation for readability */
+     /* or get function to return min, mean, max */
+      dr2 = 0.0;
+      dmin = 99999.0;
+      dmax = 0.0;
+      for (i=0; i<numNodes_2; ++i) {
+         j = 3*i;
+         dval = sqrt( pow( ctrNodeList_2[j], 2) + /* remove zero 17 Mar 2017 */
+                      pow( ctrNodeList_2[j+1], 2) + 
+                      pow( ctrNodeList_2[j+2], 2) );
+         dr2 += dval;
+         if( dval < dmin ) dmin = dval;
+         if( dval > dmax ) dmax = dval;
+      }
+      /* compute as double, keep as float   19 Mar 2017 */
+      dr2 /= numNodes_2;
+      if( verb )
+         fprintf(SUMA_STDERR,
+                 "-- MI: surf 2 (%s) radius ...\n"
+                 "       from center %f, %f, %f :\n"
+                 "       min %f, mean %f, max %f\n",
+                 surf2->Label ? surf2->Label : "<noname>",
+                 ctr2[0], ctr2[1], ctr2[2], dmin, dr2, dmax);
    }
-   r2 /= numNodes_2;
+
+   /* actually keep this result in r2 (compute as double, keep as float) */
+   r2 = dr2;
 
    avgDist = (4*pi*pow(r2,2))/numNodes_2;  /*average distance between nodes on 
                                              surf2 surface */
@@ -1768,9 +1867,9 @@ SUMA_MorphInfo * SUMA_MapSurface (SUMA_SurfaceObject *surf1,
    N_outliers = 0;
    for (i=0; i<numNodes_2; ++i) {
       j = 3*i;
-      dist_tmp = sqrt(  pow( ctrNodeList_2[j]-zero[0], 2) + 
-                        pow( ctrNodeList_2[j+1]-zero[1], 2) +
-                        pow( ctrNodeList_2[j+2]-zero[2], 2) );
+      dist_tmp = sqrt(  pow( ctrNodeList_2[j], 2) +  /* no zero */
+                        pow( ctrNodeList_2[j+1], 2) +
+                        pow( ctrNodeList_2[j+2], 2) );
       if ( abs(dist_tmp-r2)>r2/10) {
          /*node does not lie on sphere*/
          if ( N_outliers>(numNodes_2/1000)) {
@@ -1836,6 +1935,24 @@ SUMA_MorphInfo * SUMA_MapSurface (SUMA_SurfaceObject *surf1,
    }
 
 
+   /* allow users to write distortions out              27 Mar 2017 [rickr] */
+   if( dist_prefix ) {
+      char *label;
+      char *dfname=NULL;
+      int   slen;
+
+      if( surf2->Label ) label = surf2->Label;
+      else               label = "surf2labl";
+      slen = strlen(dist_prefix) + strlen(label) + 6;
+      dfname = malloc(slen * sizeof(char));
+      sprintf(dfname, "%s.%s.txt", dist_prefix, label);
+      fprintf(SUMA_STDERR,"++ %s: will write distortions to %s\n",
+              FuncName, dfname);
+      dfp = fopen(dfname, "w");
+      if(!dfp) fprintf(SUMA_STDERR,"** failed to open %s for write\n",dfname);
+      free(dfname);
+   }
+
 
    /** mapping surf1 to surf2 */
 
@@ -1849,17 +1966,30 @@ SUMA_MorphInfo * SUMA_MapSurface (SUMA_SurfaceObject *surf1,
       currNode[0]=ctrNodeList_1[j];
       currNode[1]=ctrNodeList_1[j+1];
       currNode[2]=ctrNodeList_1[j+2];
-      currDist = sqrt( pow( currNode[0]-zero[0], 2) + 
-                       pow( currNode[1]-zero[1], 2) + 
-                       pow( currNode[2]-zero[2], 2) );
+      currDist = sqrt( pow( currNode[0], 2) +  /* removed zero  19 Mar 2017 */
+                       pow( currNode[1], 2) + 
+                       pow( currNode[2], 2) );
+
+      ratio = r2/currDist; /* ratio of new to old distance from 0,0,0 */
 
       /*compute inflation of node onto sphere by adjusting surf1 node so 
          that its distance from zero[0],[1],[2]
          exactly equals the radius of the spherical surf2 (r2)*/
-      ptHit[0] = (r2/currDist)*currNode[0];
-      ptHit[1] = (r2/currDist)*currNode[1];
-      ptHit[2] = (r2/currDist)*currNode[2];
+      /* should work properly now (with centers at 0,0,0), else would need
+         rat*(cur-z)+z, say, to avoid distortion       18 Mar 2017 [rickr] */
+      ptHit[0] = ratio*currNode[0];
+      ptHit[1] = ratio*currNode[1];
+      ptHit[2] = ratio*currNode[2];
 
+      /* if writing distortions, do so here            27 Mar 2017 [rickr] */
+      if( dfp ) {
+         /* old centers were from ctr2
+            distortion = z(1-rat) = ctr2[ind]*(1-r2/currDist), for ind=0..2 */
+         fprintf(dfp, "%8.3f  %8.3f  %8.3f\n",
+            ctr2[0]*(1.0-ratio),
+            ctr2[1]*(1.0-ratio),
+            ctr2[2]*(1.0-ratio));
+      }
 
       /**find 3 nodes in ctrNodeList_2 closest to ptHit*/
       
@@ -2082,7 +2212,10 @@ SUMA_MorphInfo * SUMA_MapSurface (SUMA_SurfaceObject *surf1,
          weight[j] = weight[j+1] = weight[j+2] = 1.0/3.0;
       }
 
-   }
+   } /* for each node */
+
+   /* if distortions were written, close the file */
+   if( dfp ) { fclose(dfp); dfp = NULL; }
 
    MI->N_Node_std = numNodes_1;
    MI->N_Node_orig = numNodes_2;

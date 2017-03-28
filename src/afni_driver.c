@@ -2604,6 +2604,10 @@ int AFNI_drive_setenv( char *cmd )
      GLOBAL_argopt.left_is_left = YESSISH(val) ;
    }
 
+   else if( strcmp(nam,"AFNI_LEFT_IS_POSTERIOR") == 0 ){
+     GLOBAL_argopt.left_is_posterior = YESSISH(val) ;
+   }
+
    return(0) ;
 }
 

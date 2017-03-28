@@ -10,6 +10,13 @@ void usage_3dExtractGroupInCorr(int detail)
      "This program breaks the collection of images from a GroupInCorr\n"
      "file back into individual AFNI 3D+time datasets.\n"
      "\n"
+     "Of course, only the data inside the mask used in 3dSetupGroupInCorr\n"
+     "is stored in the .data file, so only those portions of the input\n"
+     "files can be reconstructed :)\n"
+     "\n"
+     "The output datasets will be stored in float format, no matter what\n"
+     "the storage type of the original datasets or of the .data file.\n"
+     "\n"
      "OPTION:\n"
      "-------\n"
      " -prefix PPP The actual dataset prefix with be the internal dataset\n"
@@ -65,7 +72,7 @@ typedef struct {
      if( geometry_string != NULL ) free(geometry_string) ;             \
      NI_free_element(nel) ;                                            \
      if( sss != NULL ) ERROR_message("EIC: file %s: %s",fname,(sss)) ; \
-     return(NULL) ;                                                    \
+     RETURN(NULL) ;                                                    \
  } while(0)
 
 /*--------------------------------------------------------------------------*/
@@ -92,6 +99,8 @@ MRI_shindss * GRINCOR_read_input( char *fname )
    NI_str_array *slabar=NULL ;
 
    if( fname == NULL || *fname == '\0' ) GQUIT(NULL) ;
+
+ENTRY("GRINCOR_read_input") ;
 
    /* get data element */
 
@@ -303,7 +312,7 @@ MRI_shindss * GRINCOR_read_input( char *fname )
    if( var == (void *)(-1) ){ /* this is bad */
      ERROR_message(
        "EIC: file %s: can't mmap() datafile -- memory space exhausted?" , dfname ) ;
-     free(shd) ; return NULL ;
+     free(shd) ; RETURN(NULL) ;
    }
 
    /*-- create array of pointers to each dataset's data array --*/
@@ -325,7 +334,7 @@ MRI_shindss * GRINCOR_read_input( char *fname )
    }
 
    shd->nbytes = nbytes_needed ;
-   return shd ;
+   RETURN(shd) ;
 }
 
 #undef GQUIT
@@ -340,11 +349,13 @@ MRI_vectim * GRINCOR_extract_vectim_short( MRI_shindss *shd , int ids )
    float fac=shd->fac[ids] , *fv ;
    short *sv = shd->sv[ids] ;
 
+ENTRY("GRINCOR_extract_vectim_short") ;
+
    MAKE_VECTIM( mv , nvec , nvals ) ;
    fv  = mv->fvec ;
    nvv = nvec * nvals ;
    for( ii=0 ; ii < nvv ; ii++ ) fv[ii] = fac * sv[ii] ;
-   return mv ;
+   RETURN(mv) ;
 }
 
 MRI_vectim * GRINCOR_extract_vectim_sbyte( MRI_shindss *shd , int ids )
@@ -354,11 +365,13 @@ MRI_vectim * GRINCOR_extract_vectim_sbyte( MRI_shindss *shd , int ids )
    float fac=shd->fac[ids] , *fv ;
    sbyte *sv = shd->bv[ids] ;
 
+ENTRY("GRINCOR_extract_vectim_sbyte") ;
+
    MAKE_VECTIM( mv , nvec , nvals ) ;
    fv  = mv->fvec ;
    nvv = nvec * nvals ;
    for( ii=0 ; ii < nvv ; ii++ ) fv[ii] = fac * sv[ii] ;
-   return mv ;
+   RETURN(mv) ;
 }
 
 MRI_vectim * GRINCOR_extract_vectim( MRI_shindss *shd , int ids )
@@ -377,15 +390,27 @@ THD_3dim_dataset * GRINCOR_extract_dataset( MRI_shindss *shd, int ids, char *pre
    THD_3dim_dataset *dset ;
    char prefix[THD_MAX_NAME] ;
    int iv , nvals=shd->nvals[ids] ;
+   static int nds=0 ;
 
+ENTRY("GRINCOR_extract_dataset") ;
+
+STATUS("extract vectim") ;
    mv = GRINCOR_extract_vectim( shd , ids ) ;
 
+STATUS("create empty copy of template") ;
    dset = EDIT_empty_copy( shd->tdset ) ;
 
+STATUS("edit prefix") ;
    prefix[0] = '\0' ;
    if( pref != NULL && *pref != '\0' ){ strcpy(prefix,pref) ; strcat(prefix,"_") ; }
-   strcat(prefix,shd->dslab[ids]) ;
+   if( shd->dslab != NULL && shd->dslab[ids] != NULL ){
+     strcat(prefix,shd->dslab[ids]) ;
+   } else {
+     nds++ ;
+     sprintf(prefix+strlen(prefix),"%03d",nds) ;
+   }
 
+STATUS("edit empty copy header") ;
    EDIT_dset_items( dset ,
                       ADN_prefix    , prefix          ,
                       ADN_nvals     , nvals           ,
@@ -397,19 +422,24 @@ THD_3dim_dataset * GRINCOR_extract_dataset( MRI_shindss *shd, int ids, char *pre
                       ADN_func_type , FUNC_FIM_TYPE   ,
                     ADN_none ) ;
 
+STATUS("create empty float bricks") ;
    for( iv=0 ; iv < nvals ; iv++ )
      EDIT_substitute_brick( dset , iv , MRI_float , NULL ) ;
 
+STATUS("copy index vector") ;
    if( shd->ivec != NULL ){
      memcpy( mv->ivec , shd->ivec , sizeof(int)*shd->nvec ) ;
    } else {
      for( iv=0 ; iv < shd->nvec ; iv++ ) mv->ivec[iv] = iv ;
    }
 
+STATUS("convert vectim to dset") ;
    THD_vectim_to_dset( mv , dset ) ;
+
+STATUS("destroy vectim") ;
    VECTIM_destroy( mv ) ;
 
-   return dset ;
+   RETURN(dset) ;
 }
 
 /*----------------------------------------------------------------------------*/

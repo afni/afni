@@ -1151,9 +1151,9 @@ ENTRY("get_options") ;
 
   if( fwhm_x > 0.0f )
     WARNING_message(
-      "I repeat: -fwhm uses a Gaussian-shaped autocorrelation function\n"
-      "           which is not accurate for most FMRI data.\n"
-      "           Consider using -acf instead!"
+      "I repeat: -fwhm uses a Gaussian-shaped autocorrelation function,\n"
+      "           which is not accurate for most FMRI data :(\n"
+      "           Consider using -acf instead :)"
     ) ;
 
   if( do_athr_sum && (athr_sum_bot < 0 || athr_sum_top < 0) ){  /* 18 Dec 2015 */

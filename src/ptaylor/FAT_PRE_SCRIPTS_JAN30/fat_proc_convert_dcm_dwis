@@ -26,7 +26,7 @@ set rev_dat = "Feb 20, 2017"
 
 # ----------------------------------------------------------------
 
-set this_prog = "fat_proc_convert_dwis"
+set this_prog = "fat_proc_convert_dcm_dwis"
 
 set here     = $PWD
 set idir_ap  = ""
@@ -515,7 +515,7 @@ if ( "$odir_ap" != "") then
             echo "\t $ff"
         end
     else
-        echo "** ERROR: No files, even though some should be here??"
+        echo "** ERROR: No files, even though some should be here?"
     endif
 endif
 
@@ -531,7 +531,7 @@ if ( "$odir_pa" != "") then
             echo "\t $ff"
         end
     else
-        echo "** ERROR: No files, even though some should be here??"
+        echo "** ERROR: No files, even though some should be here?"
     endif
 endif
 

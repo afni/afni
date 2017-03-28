@@ -27,9 +27,11 @@
 # Jan, 2017d
 #   + allow brightness control for ulay
 #
-set version   = "2.8"
-set rev_dat   = "Feb 20, 2017"
+#set version   = "2.8";  set rev_dat   = "Feb 20, 2017"
 #   + don't gzip intermed files (-> faster); just final is gzipped
+#
+set version   = "2.9";  set rev_dat   = "Mar 23, 2017"
+#   + extra weight mask allowed: can focus on subcort
 #
 # ----------------------------------------------------------------
 
@@ -43,7 +45,7 @@ set adir      = ""
 set my_viewer = ""
 which afni >& /dev/null
 if ( $status ) then
-    echo "** Cannot find 'afni' (??!?!)."
+    echo "** Cannot find 'afni' (?!)."
     goto BAD_EXIT
 else
     set aa   = `which afni`
@@ -69,6 +71,8 @@ set POST_LR = "0"
 set costfunc = "lpa"                # in 3dAllin estimate
 set extra_allin_apps = ""           # could use to upsample?
 set extra_allin_inps = ""           # could use to get large rots?
+set final_al_wtmask  = ""           # def: autowt; now user can inp mask
+set child_wtmask     = ""           # gets populated if wtmask used
 
 # opts to be changed for t2w
 set DoUni    = "1"
@@ -145,6 +149,13 @@ while ( $ac <= $#argv )
         set DoAni  = "1"
         set valthr = 99
 
+    # can enter a weight mask emphasizing, e.g., subcort struct for
+    # ACPC align
+    else if ( "$argv[$ac]" == "-extra_al_wtmask" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set final_al_wtmask = "$argv[$ac]"
+
     else if ( "$argv[$ac]" == "-do_clean" ) then
         set DoClean = 1
         
@@ -210,16 +221,21 @@ if ( "$#check" == "0" ) then
     goto BAD_EXIT
 endif
 
+# make sure we can read volumes OK: anat and final mask, if inpu
+foreach ff ( "$anat_inp" "$anat_ref" $final_al_wtmask )
+    set check = `3dinfo "$ff"`
+    if ( "$#check" == "0" ) then
+        echo "** ERROR: can't find input file:  $ff !"
+        goto BAD_EXIT
+    else
+        echo "++ Found input file:   $ff"
+    endif
+end
+
 set inp_ORIENT = `3dinfo -orient "$anat_inp"`
 set inp_SPACE  = `3dinfo -space "$anat_inp"`
 set inp_VIEW  = `3dinfo -av_space "$anat_inp"`
 set inp_VIEW  = "$inp_VIEW:gas/+//"
-
-set check = `3dinfo "$anat_ref"`
-if ( $#check == "0" ) then
-    echo "** ERROR: can't find refset file $anat_ref !"
-    goto BAD_EXIT
-endif
 
 # ========================= output/working dir ==========================
 
@@ -287,7 +303,7 @@ set idx = 0
 
 # copy ref here, while also making orientation match
 set rin  = "$anat_ref"
-set rout = "REF.nii"
+set rout = "REF.nii"    # this name/file gets used a lot later!
 3dresample -echo_edu           \
     -orient "$inp_ORIENT"      \
     -prefix "$wdir/$rout"      \
@@ -298,6 +314,37 @@ set rout = "REF.nii"
     -space "$inp_SPACE"        \
     -view  "$inp_VIEW"         \
     "$wdir/$rout"
+
+# --------------------------------------------------------------
+
+# if a weightmask is input, 
+#    1) make sure it matches with the anat, and
+#    2) put a copy in wdir/
+# else
+#    -> use autoweight
+
+# default: autoweight in final align, but can also have user input one
+# that matches anat_ref data
+if ( "$final_al_wtmask" == "" ) then
+    set final_al_wtmask = "-autoweight"
+else
+    set wtin  = "$final_al_wtmask"
+    set wtout = "REF_WT.nii"
+    3dresample -echo_edu           \
+        -orient "$inp_ORIENT"      \
+        -prefix "$wdir/$wtout"     \
+        -inset  "$wtin"            \
+        -overwrite
+    # so sets can be overlayed
+    3drefit   -echo_edu            \
+        -space "$inp_SPACE"        \
+        -view  "$inp_VIEW"         \
+        "$wdir/$wtout"
+    
+    # don't need $wdir in path name for these...
+    set final_al_wtmask = "-weight $wtout"
+    set child_wtmask    = "-child $wtout"
+endif
 
 # --------------------------------------------------------------
 
@@ -478,12 +525,13 @@ if ( $OutMatchRef == "0" ) then
     echo "++ Aligning center of refset -> inset."
 
     # make data sets close together before starting to align formally;
-    # rewrite REF
+    # rewrite REF; if wtmask is input, child is brought along
     @Align_Centers               \
         -cm                      \
         -no_cp                   \
         -dset "$rout"            \
-        -base "$fout"
+        -base "$fout"            \
+        $child_wtmask
 else
     echo "++ Aligning center of inset -> refset."
     @Align_Centers               \
@@ -499,7 +547,9 @@ endif
 # --------------------------------------------------------------
 
 # 9 DOF fit, inp -> ref; when we actually apply, won't include
-# scaling.  *NB: "-autoweight" is very important here, esp. for T2w
+# scaling.  *NB: "-autoweight" is very important here, esp. for T2w--
+# and as of Mar 23, 2017, this user could also input their *own*
+# weightmask.
 set iidx = `printf "%02d" $idx`
 set fin  = "$fout"
 set fout = "${tpref}_${iidx}_alnd.nii"
@@ -511,7 +561,8 @@ set qc2o = $fout
     -base "$rout"                          \
     -twopass                               \
     -source_automask                       \
-    -autoweight                            \
+    $final_al_wtmask                       \
+    -wtprefix  ${tpref}_${iidx}_wtmask.nii \
     -cost $costfunc                        \
     $extra_allin_inps                      \
     -source "$fin"                         \

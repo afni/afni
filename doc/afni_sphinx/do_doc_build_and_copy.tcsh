@@ -32,8 +32,11 @@ make html
 
 ### new documentation ----> slow to RSYNC!
 rsync -av --delete _build/html/                              \
-    /mnt/afni/var/www/html/pub/dist/doc/htmldoc
+    /mnt/afni/pub/dist/doc/htmldoc
 
+# OLD
+#rsync -av --delete _build/html/                              \
+#    /mnt/afni/var/www/html/pub/dist/doc/htmldoc
 
 
 

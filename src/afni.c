@@ -574,6 +574,7 @@ void AFNI_syntax(void)
      SUMA_Offset_SLines(get_help_help(),3), get_gopt_help()
    ) ;
 
+#if 0
    printf(
      "\n"
      "-----------------------------------------------------\n"
@@ -629,11 +630,12 @@ void AFNI_syntax(void)
      " N.B.: The program 'aiv' (AFNI image viewer) can also be used to\n"
      "        get a quick look at images (but not time series graphs).\n"
    ) ;
+#endif
 
    printf(
      "\n"
      "-------------------------------------------------------\n"
-     "USAGE 3: read in datasets specified on the command line\n"
+     "USAGE 2: read in datasets specified on the command line\n"
      "-------------------------------------------------------\n"
      "\n"
      "  afni -dset [options] dname1 dname2 ...\n"
@@ -641,10 +643,19 @@ void AFNI_syntax(void)
      "where 'dname1' is the name of a dataset, etc.  With this option, only\n"
      "the chosen datasets are read in, and they are all put in the same\n"
      "'session'.  Follower datasets are not created.\n"
+     "\n"
      "* If you wish to be very tricksy, you can read in .1D files as datasets\n"
      "  using the \\' transpose syntax, as in\n"
      "     afni Fred.1D\\'\n"
      "  However, this isn't very useful (IMHO).\n"
+     "\n"
+     "* AFNI can also read image files (.jpg and .png) from the command line.\n"
+     "  For just viewing images, the 'aiv' program (AFNI image viewer) is\n"
+     "  simpler; but unlike aiv, you can do basic image processing on an\n"
+     "  image 'dataset' using the AFNI GUI's feature. Sample command:\n"
+     "     afni *.jpg\n"
+     "  Each image file is a single 'dataset'; to switch between images,\n"
+     "  use the 'Underlay' button. To view an image, open the 'Axial' viewer.\n"
      "\n");
     printf(MASTER_HELP_STRING);   putchar('\n');
     printf(CATENATE_HELP_STRING); putchar('\n');
@@ -693,7 +704,9 @@ void AFNI_syntax(void)
      "   -no_detach   Do not detach from the terminal.\n"
      "   -get_processed_env   Show applied AFNI/NIFTI environment varables.\n"
      "   -global_opts Show options that are global to all AFNI programs.\n"
-     "   -goodbye     Print a 'goodbye' message and exit (just for fun).\n"
+     "   -goodbye [n] Print a 'goodbye' message and exit (just for fun).\n"
+     "                If an integer is supplied afterwards, will print that\n"
+     "                many (random) goodbye messages.\n"
      "   -ver         Print the current AFNI version and exit.\n"
      "\n"
      "N.B.: Many of these options, as well as the initial color set up,\n"
@@ -1014,7 +1027,8 @@ ENTRY("AFNI_parse_args") ;
 
    strcpy(GLOBAL_argopt.title_name,"AFNI") ;           /* default title bar name */
 
-   GLOBAL_argopt.left_is_left = AFNI_yesenv( "AFNI_LEFT_IS_LEFT" ) ;
+   GLOBAL_argopt.left_is_left      = AFNI_yesenv( "AFNI_LEFT_IS_LEFT" ) ;
+   GLOBAL_argopt.left_is_posterior = AFNI_yesenv( "AFNI_LEFT_IS_POSTERIOR" ) ;
 
    GLOBAL_argopt.read_tim = 0 ;   /* 19 Oct 1999 */
 
@@ -2047,6 +2061,7 @@ void AFNI_sigfunc_alrm(int sig)
      "p-hacking? Bah -- I'll take a chainsaw to your p-values"       ,
      "Did you like your p-values? If not, I can 'fix' them for you"  ,
      "Honesty is the best policy, but insanity is a better defense"  ,
+     "A desk is a dangerous place from which to view the world"      ,
 
      "Returning control of your brain (images) back to yourself"     ,
      "Returning your endofunctors back to their co-monads"           ,
@@ -2142,6 +2157,7 @@ void AFNI_sigfunc_alrm(int sig)
 
      /* Longer quotes */
 
+     "I believe in giving everybody a fair and equal chance to foul things up"        ,
      "Remember -- at least half of all the brains on Earth belong to women"           ,
      "When human judgment and big data interact, peculiar things happen"              ,
      "FMRI is at best like reading source code with blurring goggles over your eyes"  ,
@@ -2252,8 +2268,8 @@ void AFNI_sigfunc_alrm(int sig)
      "Men worry more about what they can't see than about what they can"              ,
      "The best revenge is to be unlike him who performed the injury"                  ,
      "The art of living is more like wrestling than dancing"                          ,
+     "If the genome is the source code, it should have come with comments"            ,
 
-     "It is the pardonable vanity of lonely people everywhere to assume that are unique"      ,
      "You know you're in trouble when it takes a 64 bit integer to count your unread emails"  ,
      "Once you've done what you have to do, no one will let you do what you want to do"       ,
      "My name is AFNImandias, Brain of Brains; Look on my Statistics, ye Clever, and Despair" ,
@@ -2264,7 +2280,9 @@ void AFNI_sigfunc_alrm(int sig)
      "You can always find me out on the Long Line -- I hang out by the Church-Kleene ordinal" ,
      "Outside of a dog, a book is Man's best friend. Inside of a dog, it's too dark to read"  ,
 
-     "Someday I'll tell you of the Giant Rat of Sumatra, a tale for which the world is not prepared" ,
+     "Someday I'll tell you of the Giant Rat of Sumatra, a tale for which the world is not prepared"    ,
+     "People have to learn to live with newly-discovered facts; if they don't, they die of them"        ,
+     "It is the pardonable vanity of lonely people everywhere to assume that they have no counterparts" ,
 
      /* Multi-line quotes */
 
@@ -2272,8 +2290,16 @@ void AFNI_sigfunc_alrm(int sig)
      "  Lilac blooming perennial, drooping star in the West,\n"
      "  And thought of him I love"                                                            ,
 
+     "\nIn the words of H Beam Piper:\n"
+     "   If you don't like the facts, ignore them.\n"
+     "   And if you need facts, dream up some you DO like"                                    ,
+
+     "Remember:\n"
+     "  To argue with those who have renounced the use and authority\n"
+     "  of reason is as futile as to administer medicine to the dead"                         ,
+
      "\n  It is a truth universally acknowledged, that a single scientist\n"
-     "  in possession of a large FMRI data collection, is in need of an AFNI."                ,
+     "  in possession of a large FMRI data collection, is in need of an AFNI"                 ,
 
      "\n  The great thing about the human condition:\n"
      "  No matter how bad it is, it can always get worse"                                     ,
@@ -2342,6 +2368,12 @@ void AFNI_sigfunc_alrm(int sig)
        static char *dun[] = { "is done" , "wraps up"   , "concludes" ,
                               "is over" , "terminates" , "finishes"   } ;
        fprintf(stderr,"\n** AFNI %s: %s!\n\n",dun[lrand48()%NDUN],msg[nn]) ;
+       if( sig < 0 ){
+         int ss ;
+         for( ss=-1 ; ss > sig ; ss-- ){
+           nn = (lrand48()>>3) % NMSG ; fprintf(stderr,"%s!\n\n",msg[nn]) ;
+         }
+       }
      }
 #ifdef USE_SONNETS
      else {
@@ -2359,7 +2391,7 @@ void AFNI_sigfunc_alrm(int sig)
      /** MCHECK ; **/
    }
 
-   if( sig == 0 && !NO_frivolities ){
+   if( sig <= 0 && !NO_frivolities ){
      Three_D_View *im3d = AFNI_find_open_controller() ;
      char *eee = getenv("AFNI_SPLASH_MELT") ;
      if( eee == NULL ) eee = "?" ; else eee[0] = toupper(eee[0]) ;
@@ -2369,8 +2401,9 @@ void AFNI_sigfunc_alrm(int sig)
        XMapRaised( XtDisplay(im3d->vwid->top_shell) ,
                    XtWindow(im3d->vwid->top_shell)   ) ; /* raise controller */
        AFNI_sleep(111);
-       MCW_melt_widget( im3d->vwid->top_form ) ;
+       /* MCW_melt_widget( im3d->vwid->top_form ) ; */
      }
+     sig = 0 ;
    }
    selenium_close(); /* close any selenium opened browser windows if open */
    exit(sig);
@@ -2420,13 +2453,17 @@ int main( int argc , char *argv[] )
 
    /*--- help the pitiful user? ---*/
 
-   if( argc > 1 && strcmp(argv[1],"-help")    == 0 ) AFNI_syntax() ;
-   if( argc > 1 && strcmp(argv[1],"-goodbye") == 0 ) AFNI_sigfunc_alrm(0) ;
+   if( argc > 1 && strcasecmp(argv[1],"-help")    == 0 ) AFNI_syntax() ;
+   if( argc > 1 && strcasecmp(argv[1],"-goodbye") == 0 ){
+     ii = (argc > 2 ) ? abs((int)rintf((strtod(argv[2],NULL)))) : 0 ;
+     AFNI_sigfunc_alrm(-ii) ;
+   }
 
    /** Check for -version [15 Aug 2003] **/
 
 
-   if( check_string("-ver",argc,argv) || check_string("--ver",argc,argv) ) {
+   if( check_string("-ver"    ,argc,argv) || check_string("--ver"    ,argc,argv) ||
+       check_string("-version",argc,argv) || check_string("--version",argc,argv)   ){
       show_AFNI_version() ;
       dienow++ ;
    }
@@ -3189,6 +3226,13 @@ STATUS("initialize plugins") ;
 STATUS("call 14") ;
 
         OPEN_CONTROLLER( MAIN_im3d ) ;
+
+        if( GLOBAL_argopt.only_images ){   /* 24 Feb 2017 */
+          AV_assign_ival( MAIN_im3d->vwid->imag->crosshair_av,0) ;
+          MAIN_im3d->vinfo->crosshair_visible = False ;
+          GLOBAL_argopt.left_is_left = 0 ;
+          putenv("AFNI_LEFT_IS_LEFT=NO" ) ;
+        }
 
         AFNI_initialize_controller( MAIN_im3d ) ;  /* decide what to see */
         AFNI_initialize_view( NULL, MAIN_im3d ) ;  /* set up to see it */
@@ -4663,47 +4707,72 @@ STATUS("drawing crosshairs") ;
       double dval;
       THD_3dim_dataset *dset=NULL ;
 
-
       if( im3d->type != AFNI_3DDATA_VIEW ) RETURN(NULL) ;
 
       LOAD_IVEC3(iv,0,0,n) ;
       ivp = THD_fdind_to_3dind( br , iv ) ;
-      fvp = THD_3dind_to_3dmm ( br->dset , ivp ) ;
-      fvp = THD_3dmm_to_dicomm( br->dset , fvp ) ;
 
       if( n == 0 ) LOAD_IVEC3(iv,0,0,1) ;
       else         LOAD_IVEC3(iv,0,0,n-1) ;
       ivm = THD_fdind_to_3dind( br , iv ) ;
-      fvm = THD_3dind_to_3dmm ( br->dset , ivm ) ;
-      fvm = THD_3dmm_to_dicomm( br->dset , fvm ) ;
 
-      dxyz = MIN(br->del1,br->del2) ;
-      dxyz = MIN(dxyz    ,br->del3) ; dxyz *= 0.1 ;
+      if( AFNI_yesenv("AFNI_IMAGE_LABEL_IJK") ){ /* 27 Feb 2017 */
 
-      if( fabs(fvm.xyz[0]-fvp.xyz[0]) > dxyz ){ /* +=R -=L */
-         cc = fvp.xyz[0] ;
-         dd = ( cc >= 0.0 ) ? "L" : "R" ;
-      } else if( fabs(fvm.xyz[1]-fvp.xyz[1]) > dxyz ){ /* +=P -=A */
-         cc = fvp.xyz[1] ;
-         dd = ( cc >= 0.0 ) ? "P" : "A" ;
-      } else if( fabs(fvm.xyz[2]-fvp.xyz[2]) > dxyz ){ /* +=S -=I */
-         cc = fvp.xyz[2] ;
-         dd = ( cc >= 0.0 ) ? "S" : "I" ;
+        int nnn ; char *fmt ;
+        nnn = MAX(br->n1,br->n2) ; nnn = MAX(nnn,br->n3) ;
+        fmt =  (nnn < 10)  ? "#%1d"
+             : (nnn < 100) ? "#%02d"
+             : (nnn < 1000)? "#%03d"
+             :               "#%04d" ;
+
+        if( ivm.ijk[0] != ivp.ijk[0] ){
+          sprintf(str,fmt,ivp.ijk[0]) ;
+
+        } else if( ivm.ijk[1] != ivp.ijk[1] ){
+          sprintf(str,fmt,ivp.ijk[1]) ;
+
+        } else if( ivm.ijk[2] != ivp.ijk[2] ){
+          sprintf(str,fmt,ivp.ijk[2]) ;
+
+        } else {  /* should never happen */
+          RETURN(NULL) ;
+        }
+
       } else {
-        RETURN(NULL) ;   /* should never happen */
-      }
+        fvp = THD_3dind_to_3dmm ( br->dset , ivp ) ;
+        fvp = THD_3dmm_to_dicomm( br->dset , fvp ) ;
 
-      sprintf(str,"%6.2f",fabs(cc)) ;
-      for( ii=strlen(str)-1 ; ii > 0 && str[ii] == '0' ; ii-- ) str[ii] = '\0' ;
-      if( str[ii] == '.' ) str[ii] = '\0' ;
-      strcat(str, dd) ;
+        fvm = THD_3dind_to_3dmm ( br->dset , ivm ) ;
+        fvm = THD_3dmm_to_dicomm( br->dset , fvm ) ;
+
+        dxyz = MIN(br->del1,br->del2) ;
+        dxyz = MIN(dxyz    ,br->del3) ; dxyz *= 0.1 ;
+
+        if( fabs(fvm.xyz[0]-fvp.xyz[0]) > dxyz ){ /* +=R -=L */
+           cc = fvp.xyz[0] ;
+           dd = ( cc >= 0.0 ) ? "L" : "R" ;
+        } else if( fabs(fvm.xyz[1]-fvp.xyz[1]) > dxyz ){ /* +=P -=A */
+           cc = fvp.xyz[1] ;
+           dd = ( cc >= 0.0 ) ? "P" : "A" ;
+        } else if( fabs(fvm.xyz[2]-fvp.xyz[2]) > dxyz ){ /* +=S -=I */
+           cc = fvp.xyz[2] ;
+           dd = ( cc >= 0.0 ) ? "S" : "I" ;
+        } else {
+          RETURN(NULL) ;   /* should never happen */
+        }
+
+        sprintf(str,"%6.2f",fabs(cc)) ;
+        for( ii=strlen(str)-1 ; ii > 0 && str[ii] == '0' ; ii-- ) str[ii] = '\0' ;
+        if( str[ii] == '.' ) str[ii] = '\0' ;
+        strcat(str, dd) ;
+      }
 
       if (!FD_brick_montized(br)){ /* Show labels if any.  ZSS Dec. 2011*/
          dset = Get_UO_Dset(br, 'U', 1, &ival);
          if ((dval = (double)THD_get_voxel_dicom(dset,
                               im3d->vinfo->xi,
                               im3d->vinfo->yj,
-                              im3d->vinfo->zk, ival))>0.0f) {
+                              im3d->vinfo->zk, ival))>0.0) {
             AFNI_get_dset_val_label(dset,         /* Dec 7 2011 ZSS */
                                     dval, labstra);
          }
@@ -4711,7 +4780,7 @@ STATUS("drawing crosshairs") ;
          if ((dval = (double)THD_get_voxel_dicom(dset,
                               im3d->vinfo->xi,
                               im3d->vinfo->yj,
-                              im3d->vinfo->zk, ival))>0.0f) {
+                              im3d->vinfo->zk, ival))>0.0) {
             AFNI_get_dset_val_label(dset,         /* Dec 7 2011 ZSS */
                                     dval, labstrf);
          }
@@ -6123,6 +6192,7 @@ void AFNI_read_inputs( int argc , char *argv[] )
    int id , last_color ;
    Boolean isfunc ;
 
+
 ENTRY("AFNI_read_inputs") ;
 
    /* create empty library of dataset sessions */
@@ -6131,6 +6201,7 @@ ENTRY("AFNI_read_inputs") ;
    GLOBAL_library.sslist->type = SESSIONLIST_TYPE ;
    BLANK_SESSIONLIST(GLOBAL_library.sslist) ;
    GLOBAL_library.sslist->parent = NULL ;
+   GLOBAL_argopt.only_images = 0 ;  /* 24 Feb 2017 */
 
    /*----- read files -----*/
 
@@ -6311,6 +6382,8 @@ STATUS("normalizing directory list") ;
 
       /*----- read each session, set parents, put into session list -----*/
 
+      GLOBAL_argopt.only_images = 1 ;  /* 24 Feb 2017 */
+
       qlist = dlist ;
    RESTART_DIRECTORY_SCAN:   /* 18 Feb 2007 */
       num_ss = qlist->num ;
@@ -6337,6 +6410,8 @@ if(PRINT_TRACING)
                SET_SESSION_DSET(dset, dss, qd, dset->view_type);
 /*               dss->dsset_xform_table[qd][dset->view_type] = dset ;*/
                dss->num_dsset ++ ;
+               if( dset->dblk->diskptr->storage_mode != STORAGE_BY_IMAGE_FILE )
+                 GLOBAL_argopt.only_images = 0 ;  /* 24 Feb 2017 */
                AFNI_inconstancy_check(NULL,dset) ; /* 06 Sep 2006 */
              } else if( qlist == dlist ){
                fprintf(stderr,
@@ -6351,6 +6426,7 @@ if(PRINT_TRACING)
 
            /* set parent pointers */
 
+           GLOBAL_argopt.only_images = 0 ;  /* 24 Feb 2017 */
            new_ss->parent = NULL ;
            for( qd=0 ; qd < new_ss->num_dsset ; qd++ ){
              for( vv=0 ; vv <= LAST_VIEW_TYPE ; vv++ ){
@@ -6494,6 +6570,7 @@ if(PRINT_TRACING)
          /** manufacture a minimal dataset [cf. thd_dumdset.c] **/
 
          new_ss->num_dsset = 1 ;
+         GLOBAL_argopt.only_images = 0 ;  /* 24 Feb 2017 */
 
          cpt = getenv("AFNI_DUMMY_DATASET") ;
 
@@ -6513,7 +6590,10 @@ if(PRINT_TRACING)
 
       } else {  /* 04 Jan 2000: show total number of datasets */
 
-         sprintf(str,"\n dataset count = %d" , num_dsets ) ;
+         if( GLOBAL_argopt.only_images ) /* 24 Feb 2017 */
+           sprintf(str,"\n image count   = %d" , num_dsets ) ;
+         else
+           sprintf(str,"\n dataset count = %d" , num_dsets ) ;
          GLOBAL_num_dsets = num_dsets ;
          REPORT_PROGRESS(str) ;
       }
@@ -7450,6 +7530,7 @@ ENTRY("AFNI_view_xyz_CB") ;
        snew  = &(im3d->s231) ;
        brnew = im3d->b231_ulay ;
        pboff = pb_yzx ;
+       mirror= GLOBAL_argopt.left_is_posterior ;
 
     } else if( w == pb_zxy && szxy == NULL ){  /* coronal image */
        snew  = &(im3d->s312) ;
@@ -7467,6 +7548,7 @@ ENTRY("AFNI_view_xyz_CB") ;
        gnew  = &(im3d->g231) ;
        brnew = im3d->b231_ulay ;
        pboff = gr_yzx ;
+       mirror= GLOBAL_argopt.left_is_posterior ;
 
     } else if( w == gr_zxy && gzxy == NULL ){  /* coronal graph */
        gnew  = &(im3d->g312) ;

@@ -35,8 +35,8 @@ static char uDS_viewer_cont[]={
 };
 static char uDS_recorder_cont[]={
 "       DriveSuma -com  recorder_cont -save_as allanimgif.agif \\\n"
-"                 -com  recorder_cont -save_last lastone.jpg \\\n"
-"                 -com  recorder_cont -save_as three.jpg -save_index 3\\\n"
+"                 -com  recorder_cont -save_as lastone.jpg -save_last \\\n"
+"                 -com  recorder_cont -save_as three.jpg -save_index 3 \\\n"
 "                 -com  recorder_cont -save_as some.png -save_range 3 6\n"
 };
 static char uDS_surf_cont[]={
@@ -333,7 +333,8 @@ if (detail > 1) {
 "                      at the expense of file size, of course.\n"
 "                      DUP's default is set by the value of AFNI_ANIM_DUP\n"
 "                      environment variable. \n"
-"                      To set DUP back to its default value, use -anim_dup 0.\n" 
+"                      To set DUP back to its default value,\n"
+"                      use -anim_dup 0.\n" 
 "       -save_as PREFIX.EXT: Save image(s) in recorder\n"
 "                             in the format determined by\n"
 "                             extension EXT.\n"

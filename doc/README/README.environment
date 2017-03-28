@@ -476,8 +476,16 @@ Variable: AFNI_LEFT_IS_LEFT (editable)
 Setting this YES/NO variable to YES tells AFNI to display images with
 the left side of the subject on the left side of the window.  The default
 mode is to display the right side of the subject on the left side of
-the window - the radiology convention.  This "handedness" can also be
-controlled with the "-flipim" and "-noflipim" command line options to AFNI.
+the window - the radiology convention. This setting affects the
+coronal and axial image and graph viewers.
+
+--------------------------------
+Variable: AFNI_LEFT_IS_POSTERIOR (editable)
+--------------------------------
+Setting this YES/NO variable to YES tells AFNI to display images with
+the posterior side of the subject on the left side of the window.  The
+default mode is to display the anterior side of the subject on the left side
+of the window. This setting affects the sagittal image and graph viewers.
 
 --------------------------
 Variable: AFNI_ALWAYS_LOCK
@@ -1721,6 +1729,13 @@ controlled from the right-click popup menu attached to the intensity bar to
 the right of the image itself.  This variable applies to any slice image
 viewer window into which the user has not specifically set a string for
 this purpose from the GUI menu item 'Label Append String'.
+
+------------------------------
+Variable: AFNI_IMAGE_LABEL_IJK (editable)
+------------------------------
+If this variable is YES, then the image label will be based on the
+slice index rather than the spatial (mm) coordinate. This variable can
+be set in the EditEnv AFNI GUI plugin (that is what 'editable' means).
 
 ------------------------------
 Variable: AFNI_CROSSHAIR_LINES (editable) -- THIS VARIABLE IS NOW UNUSED
