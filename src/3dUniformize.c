@@ -6,7 +6,7 @@
 
 /*---------------------------------------------------------------------------*/
 /*
-  Program to correct for image intensity non-uniformity.
+  Program to correct for image intensity nonuniformity.
 
   File:    3dUniformize.c
   Author:  B. Douglas Ward
@@ -46,9 +46,9 @@ char * commandline = NULL ;                /* command line for history notes */
 int input_datum = MRI_short ;              /* 16 Apr 2003 - RWCox */
 int quiet       = 0 ;                      /* ditto */
 #define USE_QUIET
- 
+
 typedef struct UN_options
-{ 
+{
   char * anat_filename;       /* file name for input anat dataset */
   char * prefix_filename;     /* prefix name for output dataset */
   Boolean quiet;              /* flag for suppress screen output */
@@ -90,7 +90,7 @@ void UN_error (char * message)
 #define MTEST(ptr) \
 if((ptr)==NULL) \
 ( UN_error ("Cannot allocate memory") )
-     
+
 
 /*---------------------------------------------------------------------------*/
 /*
@@ -99,9 +99,19 @@ if((ptr)==NULL) \
 
 void display_help_menu()
 {
-  printf 
+  printf
     (
-     "This program corrects for image intensity non-uniformity.\n\n"
+     "   ***** NOTES *********************************************\n"
+     "   1) This program is superseded by 3dUnifize, and we don't\n"
+     "      recommend that you use it.\n"
+     "   2) This program will crash if you give it a multi-volume\n"
+     "      dataset.\n"
+     "   3) Neither 3dUniformize nor 3dUnifize can properly deal\n"
+     "      with EPI datasets at this time.\n"
+     "   *********************************************************\n"
+     "\n"
+     "This program corrects for T1-weighted image intensity nonuniformity.\n\n"
+     "\n"
      "Usage: \n"
      "3dUniformize  \n"
      "-anat filename    Filename of anat dataset to be corrected            \n"
@@ -137,26 +147,26 @@ void display_help_menu()
 /*
   Routine to initialize the input options.
 */
- 
-void initialize_options 
+
+void initialize_options
 (
   UN_options * option_data    /* uniformization program options */
 )
- 
+
 {
 
   /*----- initialize default values -----*/
   option_data->anat_filename = NULL;    /* file name for input anat dataset */
   option_data->prefix_filename = NULL;  /* prefix name for output dataset */
   option_data->quiet = FALSE;           /* flag for suppress screen output */
-  option_data->lower_limit = -1;        /* voxel intensity lower limit, 
-                                           used to be 25 
-                                           -1 is default flag for auto_clip 
+  option_data->lower_limit = -1;        /* voxel intensity lower limit,
+                                           used to be 25
+                                           -1 is default flag for auto_clip
                                                        ZSS Jan 2011 */
   option_data->upper_limit = 0;
   option_data->rpts = 200000;   /* #voxels in sub-sampled image (for pdf) */
-  option_data->spts = 10000;    /* #voxels in subsub-sampled image 
-				   (for field polynomial estimation) */
+  option_data->spts = 10000;    /* #voxels in subsub-sampled image
+                       (for field polynomial estimation) */
   option_data->nbin = 250;      /* #bins for pdf estimation */
   option_data->npar = 35;       /* #parameters for field polynomial */
   option_data->niter = 5;       /* #number of iterations  */
@@ -172,7 +182,7 @@ void initialize_options
 void get_options
 (
   int argc,                        /* number of input arguments */
-  char ** argv,                    /* array of input arguments */ 
+  char ** argv,                    /* array of input arguments */
   UN_options * option_data         /* uniformization program options */
 )
 
@@ -184,11 +194,11 @@ void get_options
 
 
   /*----- does user request help menu? -----*/
-  if (argc < 2 || strncmp(argv[1], "-help", 5) == 0)  display_help_menu();  
-   
-  
+  if (argc < 2 || strncmp(argv[1], "-help", 5) == 0)  display_help_menu();
+
+
   /*----- add to program log -----*/
-  AFNI_logger (PROGRAM_NAME,argc,argv); 
+  AFNI_logger (PROGRAM_NAME,argc,argv);
 
 
   /*----- main loop over input options -----*/
@@ -197,28 +207,29 @@ void get_options
 
       /*-----   -anat filename   -----*/
       if (strncmp(argv[nopt], "-anat", 5) == 0)
-	{
-	  nopt++;
-	  if (nopt >= argc)  UN_error ("need argument after -anat ");
-	  option_data->anat_filename = 
-	    malloc (sizeof(char) * MAX_STRING_LENGTH);
-	  MTEST (option_data->anat_filename);
-	  strcpy (option_data->anat_filename, argv[nopt]);
+     {
+       nopt++;
+       if (nopt >= argc)  UN_error ("need argument after -anat ");
+       option_data->anat_filename =
+         malloc (sizeof(char) * MAX_STRING_LENGTH);
+       MTEST (option_data->anat_filename);
+       strcpy (option_data->anat_filename, argv[nopt]);
 
-	  anat_dset = THD_open_dataset (option_data->anat_filename);
-	  if (!ISVALID_3DIM_DATASET (anat_dset))
-	    {
-	      sprintf (message, "Can't open dataset: %s\n", 
-		       option_data->anat_filename); 
-	      UN_error (message); 
-	    } 
-	  DSET_load(anat_dset) ; CHECK_LOAD_ERROR(anat_dset) ;
+       anat_dset = THD_open_dataset (option_data->anat_filename);
+       if (!ISVALID_3DIM_DATASET (anat_dset))
+         {
+           sprintf (message, "Can't open dataset: %s\n",
+                 option_data->anat_filename);
+           UN_error (message);
+         }
+       DSET_load(anat_dset) ; CHECK_LOAD_ERROR(anat_dset) ;
 
-     
+     if( DSET_NVALS(anat_dset) > 1 )
+      WARNING_message("3dUniformize cannot process multi-volume datasets :(") ;
 
       /* if input is not float, float it */
      input_datum = DSET_BRICK_TYPE(anat_dset,0);
-     if( input_datum != MRI_float ){ 
+     if( input_datum != MRI_float ){
          THD_3dim_dataset *qset ;
          register float *far ;
          register int ii,nvox ;
@@ -227,95 +238,95 @@ void get_options
          INFO_message("converting input dataset to float") ;
          qset = EDIT_empty_copy(anat_dset) ;
          nvox = DSET_NVOX(anat_dset) ;
-         imf = THD_extract_float_brick(0,anat_dset) ; 
+         imf = THD_extract_float_brick(0,anat_dset) ;
          far = (float *)malloc(sizeof(float)*nvox) ;
          memcpy(far, MRI_FLOAT_PTR(imf), sizeof(float)*nvox) ;
          mri_free(imf); imf=NULL;
          EDIT_substitute_brick( qset , 0 , MRI_float, far);
          DSET_delete(anat_dset) ; anat_dset = qset ;
      }
-     
+
 
      nopt++;
-	  continue;
-	}
-      
+       continue;
+     }
+
       /*-----   -clip_low  -----*/
       if (strncmp(argv[nopt], "-clip_low", 9) == 0)
-	{
-	  nopt++;
-	  if (nopt >= argc)  UN_error ("need value after -clip_low ");
+     {
+       nopt++;
+       if (nopt >= argc)  UN_error ("need value after -clip_low ");
      /* compare with -1 noted by A Waite     29 Jul 2011 [rickr] */
-     if (option_data->lower_limit >= 0) {  
+     if (option_data->lower_limit >= 0) {
       UN_error ("lower clip value already set, check your options");
      }
      option_data->lower_limit = atoi(argv[nopt]); /* ZSS Sept 26 05 */
-	  nopt++;
-	  continue;
-	}
+       nopt++;
+       continue;
+     }
 
       /*-----   -clip_high  -----*/
       if (strncmp(argv[nopt], "-clip_high", 9) == 0)
-	{
-	  nopt++;
-	  if (nopt >= argc)  UN_error ("need value after -clip_high ");
+     {
+       nopt++;
+       if (nopt >= argc)  UN_error ("need value after -clip_high ");
      if (option_data->upper_limit) {
       UN_error ("upper clip value already set, check your options");
      }
      option_data->upper_limit = atoi(argv[nopt]); /* ZSS Sept 26 05 */
-	  nopt++;
-	  continue;
-	}
-   
+       nopt++;
+       continue;
+     }
+
    if (strncmp(argv[nopt], "-auto_clip", 8) == 0)
-	{
+     {
      if (option_data->lower_limit >= 0) {
       UN_error ("lower clip value already set, check your options");
      }
      option_data->lower_limit = -1; /* flag for auto_clip ZSS Sept 26 05 */
-	  nopt++;
-	  continue;
-	}
-   
+       nopt++;
+       continue;
+     }
+
    if (strncmp(argv[nopt], "-niter", 6) == 0)
-	{
+     {
      nopt++;
-	  if (nopt >= argc)  UN_error ("need value after -niter ");
+       if (nopt >= argc)  UN_error ("need value after -niter ");
      option_data->niter = atoi(argv[nopt]); /* flag for auto_clip ZSS Sept 26 05 */
-	  nopt++;
-	  continue;
-	} 
-      
+       nopt++;
+       continue;
+     }
+
       /*-----   -quiet  -----*/
       if (strncmp(argv[nopt], "-quiet", 6) == 0)
-	{
-	  option_data->quiet = TRUE;
+     {
+       option_data->quiet = TRUE;
           quiet = 1 ;                /* 16 Apr 2003 */
-	  nopt++;
-	  continue;
-	}
+       nopt++;
+       continue;
+     }
 
 
       /*-----   -prefix prefixname   -----*/
       if (strncmp(argv[nopt], "-prefix", 7) == 0)
-	{
-	  nopt++;
-	  if (nopt >= argc)  UN_error ("need argument after -prefix ");
-	  option_data->prefix_filename = 
-	    malloc (sizeof(char) * MAX_STRING_LENGTH);
-	  MTEST (option_data->prefix_filename);
-	  strcpy (option_data->prefix_filename, argv[nopt]);
-	  nopt++;
-	  continue;
-	}
-      
+     {
+       nopt++;
+       if (nopt >= argc)  UN_error ("need argument after -prefix ");
+       option_data->prefix_filename =
+         malloc (sizeof(char) * MAX_STRING_LENGTH);
+       MTEST (option_data->prefix_filename);
+       strcpy (option_data->prefix_filename, argv[nopt]);
+       nopt++;
+       continue;
+     }
+
 
       /*----- unknown command -----*/
       sprintf(message,"Unrecognized command line option: %s\n", argv[nopt]);
       UN_error (message);
-      
+
     }
-    
+
    if (option_data->lower_limit < 0) { /* ZSS Sept 26 05 */
       option_data->lower_limit = (int) THD_cliplevel( DSET_BRICK(anat_dset,0) , 0.0 ) ;
       option_data->upper_limit = 3*option_data->lower_limit;
@@ -358,9 +369,9 @@ void get_options
                   "Upper limit not set.\n", option_data->lower_limit);
          }
       }
-   } 
-   
-   
+   }
+
+
 }
 
 
@@ -369,7 +380,7 @@ void get_options
   Routine to check whether one output file already exists.
 */
 
-void check_one_output_file 
+void check_one_output_file
 (
   char * filename                   /* name of output file */
 )
@@ -379,73 +390,73 @@ void check_one_output_file
   THD_3dim_dataset * new_dset=NULL;   /* output afni data set pointer */
   int ierror;                         /* number of errors in editing data */
 
-  
+
   /*----- make an empty copy of input dataset -----*/
   new_dset = EDIT_empty_copy ( anat_dset );
-  
-  
+
+
   ierror = EDIT_dset_items( new_dset ,
-			    ADN_prefix , filename ,
-			    ADN_label1 , filename ,
-			    ADN_self_name , filename ,
-			    ADN_none ) ;
-  
+                   ADN_prefix , filename ,
+                   ADN_label1 , filename ,
+                   ADN_self_name , filename ,
+                   ADN_none ) ;
+
   if( ierror > 0 )
     {
       sprintf (message,
-	       "*** %d errors in attempting to create output dataset!\n", 
-	       ierror);
+            "*** %d errors in attempting to create output dataset!\n",
+            ierror);
       UN_error (message);
     }
- 
+
   if( THD_deathcon() && THD_is_file(new_dset->dblk->diskptr->header_name) )
     {
       sprintf (message,
-	       "Output dataset file %s already exists"
-	       "--cannot continue!\a\n",
-	       new_dset->dblk->diskptr->header_name);
+            "Output dataset file %s already exists"
+            "--cannot continue!\a\n",
+            new_dset->dblk->diskptr->header_name);
       UN_error (message);
     }
-  
-  /*----- deallocate memory -----*/   
+
+  /*----- deallocate memory -----*/
   THD_delete_3dim_dataset( new_dset , False ) ; new_dset = NULL ;
-  
+
 }
 
 
 /*---------------------------------------------------------------------------*/
 
-void verify_inputs 
-(  
+void verify_inputs
+(
   UN_options * option_data         /* uniformization program options */
 )
 
 {
   char *filename;
   int ierror;
-  
+
   filename = option_data->prefix_filename;
   /*-- make an empty copy of this dataset, for eventual output --*/
   option_data->new_dset =  EDIT_empty_copy( anat_dset ) ;
 
   /* check if output name is OK */
   ierror = EDIT_dset_items( option_data->new_dset ,
-			    ADN_prefix , filename ,
-			    ADN_label1 , filename ,
-			    ADN_self_name , filename ,
-			    ADN_none ) ;
+                   ADN_prefix , filename ,
+                   ADN_label1 , filename ,
+                   ADN_self_name , filename ,
+                   ADN_none ) ;
   if( ierror > 0 ){
     fprintf(stderr,
-	    "*** %d errors in attempting to create output dataset!\n", 
-	    ierror ) ;
+         "*** %d errors in attempting to create output dataset!\n",
+         ierror ) ;
     exit(1) ;
   }
 
 
   if( THD_deathcon() && THD_is_file(option_data->new_dset->dblk->diskptr->header_name) ){
     fprintf(stderr,
-	    "*** Output dataset file %s already exists--cannot continue!\a\n",
-	    option_data->new_dset->dblk->diskptr->header_name ) ;
+         "*** Output dataset file %s already exists--cannot continue!\a\n",
+         option_data->new_dset->dblk->diskptr->header_name ) ;
     exit(1) ;
   }
 
@@ -459,10 +470,10 @@ void verify_inputs
   Program initialization.
 */
 
-void initialize_program 
+void initialize_program
 (
   int argc,                        /* number of input arguments */
-  char ** argv,                    /* array of input arguments */ 
+  char ** argv,                    /* array of input arguments */
   UN_options ** option_data,       /* uniformization program options */
   float ** ffim                    /* output image volume */
 )
@@ -479,9 +490,9 @@ void initialize_program
   *option_data = (UN_options *) malloc (sizeof(UN_options));
   MTEST (*option_data);
 
-  
+
   /*----- Initialize the input options -----*/
-  initialize_options (*option_data); 
+  initialize_options (*option_data);
 
 
   /*----- Get operator inputs -----*/
@@ -530,11 +541,11 @@ void ts_write (char * filename, int ts_length, float * data)
 /*
   Resample the original image at randomly selected voxels (whose intensity
   value is greater than the specified lower limit, to exclude voxels outside
-  the brain).  Take the logarithm of the intensity values for the selected 
+  the brain).  Take the logarithm of the intensity values for the selected
   voxels.
 */
 
-void resample 
+void resample
 (
   UN_options * option_data,
   int * ir,                         /* voxel indices for resampled image */
@@ -563,11 +574,11 @@ void resample
       if ( (k >= 0) && (k < nxyz) && (anat_data[k] > lower_limit) &&
            ( ! option_data->upper_limit ||
                (anat_data[k] < option_data->upper_limit) ) )
-	{
-	  ir[it] = k;
-	  vr[it] = log (anat_data[k] + rand_uniform (0.0,1.0));
-	  it++;
-	}
+     {
+       ir[it] = k;
+       vr[it] = log (anat_data[k] + rand_uniform (0.0,1.0));
+       it++;
+     }
     }
 
   return;
@@ -589,16 +600,16 @@ void create_map (pdf vpdf, float * pars, float * vtou)
   for (ibin = 0;  ibin < vpdf.nbin;  ibin++)
     {
       v = PDF_ibin_to_xvalue (vpdf, ibin);
-          
+
       if ((v > pars[4]-2.0*pars[5]) && (v < 0.5*(pars[4]+pars[7])))
-	vtou[ibin] = pars[4];
+     vtou[ibin] = pars[4];
       else if ((v > 0.5*(pars[4]+pars[7])) && (v < pars[7]+2.0*pars[8]))
-	vtou[ibin] = pars[7];
+     vtou[ibin] = pars[7];
       else
-	vtou[ibin] = v;
+     vtou[ibin] = v;
 
     }
-  
+
 }
 
 
@@ -618,11 +629,11 @@ void map_vtou (pdf vpdf, int rpts, float * vr, float * vtou, float * ur)
     {
       v = vr[i];
       ibin = PDF_xvalue_to_ibin (vpdf, v);
-      
+
       if ((ibin >= 0) && (ibin < vpdf.nbin))
-	ur[i] = vtou[ibin];
+     ur[i] = vtou[ibin];
       else
-	ur[i] = v;
+     ur[i] = v;
     }
 
 }
@@ -656,7 +667,7 @@ void create_row (int ixyz, int nx, int ny, int nz, float * xrow)
   float x, y, z, x2, y2, z2, x3, y3, z3, x4, y4, z4;
 
 
-  IJK_TO_THREE (ixyz, ix, jy, kz, nx, nx*ny); 
+  IJK_TO_THREE (ixyz, ix, jy, kz, nx, nx*ny);
 
 
   x = (float) ix / (float) nx - 0.5;
@@ -714,11 +725,11 @@ void create_row (int ixyz, int nx, int ny, int nz, float * xrow)
   Approximate the distortion field with a polynomial function in 3 dimensions.
 */
 
-void poly_field (int nx, int ny, int nz, int rpts, int * ir, float * fr, 
-		 int spts, int npar, float * fpar)
+void poly_field (int nx, int ny, int nz, int rpts, int * ir, float * fr,
+           int spts, int npar, float * fpar)
 
 {
-  int p;                   /* number of parameters in the full model */ 
+  int p;                   /* number of parameters in the full model */
   int i, j, k;
   matrix x;                      /* independent variable matrix */
   matrix xtxinv;                 /* matrix:  1/(X'X)       */
@@ -745,8 +756,8 @@ void poly_field (int nx, int ny, int nz, int rpts, int * ir, float * fr,
   /*----- Allocate memory -----*/
   matrix_create (spts, p, &x);
   vector_create (spts, &y);
-  xrow = (float *) malloc (sizeof(float) * p); 
- 
+  xrow = (float *) malloc (sizeof(float) * p);
+
 
   /*----- Set up the X matrix and Y vector -----*/
   for (i = 0;  i < spts;  i++)
@@ -755,12 +766,12 @@ void poly_field (int nx, int ny, int nz, int rpts, int * ir, float * fr,
       create_row (ir[k], nx, ny, nz, xrow);
 
       for (j = 0;  j < p;  j++)
-	x.elts[i][j] = xrow[j];
+     x.elts[i][j] = xrow[j];
       y.elts[i] = fr[k];
     }
 
 
-  /*  
+  /*
       matrix_sprint ("X matrix = ", x);
       vector_sprint ("Y vector = ", y);
   */
@@ -770,30 +781,29 @@ void poly_field (int nx, int ny, int nz, int rpts, int * ir, float * fr,
     /*----- calculate various matrices which will be needed later -----*/
     matrix xt, xtx;            /* temporary matrix calculation results */
     int ok;                    /* flag for successful matrix inversion */
-    
-    
+
+
     /*----- initialize matrices -----*/
     matrix_initialize (&xt);
     matrix_initialize (&xtx);
-    
-	
+
     matrix_transpose (x, &xt);
     matrix_multiply (xt, x, &xtx);
     ok = matrix_inverse (xtx, &xtxinv);
-    
+
     if (ok)
       matrix_multiply (xtxinv, xt, &xtxinvxt);
     else
       {
-	matrix_sprint ("X matrix = ", x);
-	matrix_sprint ("X'X matrix = ", xtx);
-	UN_error ("Improper X matrix  (cannot invert X'X) ");
+     matrix_sprint ("X matrix = ", x);
+     matrix_sprint ("X'X matrix = ", xtx);
+     UN_error ("Improper X matrix  (cannot invert X'X) ");
       }
-    
+
     /*----- dispose of matrices -----*/
     matrix_destroy (&xtx);
     matrix_destroy (&xt);
-    
+
   }
 
 
@@ -802,18 +812,18 @@ void poly_field (int nx, int ny, int nz, int rpts, int * ir, float * fr,
     matrix_sprint ("(1/(X'X))X' = ", xtxinvxt);
     vector_sprint ("Y data  = ", y);
   */
-  
+
   vector_multiply (xtxinvxt, y, &coef);
   /*
     vector_sprint ("Coef    = ", coef);
   */
-  
+
 
   for (ip = 0;  ip < p;  ip++)
     {
      fpar[ip] = coef.elts[ip];
     }
-  
+
 
   /*----- Dispose of matrices and vectors -----*/
   matrix_destroy (&x);
@@ -822,7 +832,7 @@ void poly_field (int nx, int ny, int nz, int rpts, int * ir, float * fr,
   vector_destroy (&y);
   vector_destroy (&coef);
 
-  
+
 }
 
 
@@ -833,7 +843,7 @@ void poly_field (int nx, int ny, int nz, int rpts, int * ir, float * fr,
 */
 
 float warp_image (int npar, float * fpar, int nx, int ny, int nz,
-		  int rpts, int * ir, float * fs)
+            int rpts, int * ir, float * fs)
 {
   int i, j;
   float x;
@@ -841,7 +851,7 @@ float warp_image (int npar, float * fpar, int nx, int ny, int nz,
   float max_warp;
 
 
-  xrow = (float *) malloc (sizeof(float) * npar); 
+  xrow = (float *) malloc (sizeof(float) * npar);
 
 
   max_warp = 0.0;
@@ -851,12 +861,12 @@ float warp_image (int npar, float * fpar, int nx, int ny, int nz,
       create_row (ir[i], nx, ny, nz, xrow);
 
       fs[i] = 0.0;
-            
+
       for (j = 1;  j < npar;  j++)
-	fs[i] += fpar[j] * xrow[j];
+     fs[i] += fpar[j] * xrow[j];
 
       if (fabs(fs[i]) > max_warp)
-	max_warp = fabs(fs[i]);
+     max_warp = fabs(fs[i]);
     }
 
 
@@ -872,8 +882,8 @@ float warp_image (int npar, float * fpar, int nx, int ny, int nz,
   Find polynomial approximation to the distortion field.
 */
 
-void estimate_field (UN_options * option_data, 
-		     int * ir, float * vr, float * fpar)
+void estimate_field (UN_options * option_data,
+               int * ir, float * vr, float * fpar)
 {
   float * ur = NULL, * us = NULL, * fr = NULL, * fs = NULL, * wr = NULL;
   float * vtou = NULL;
@@ -940,8 +950,8 @@ void estimate_field (UN_options * option_data,
   poly_field (nx, ny, nz, rpts, ir, vr, spts, npar, fpar);
   warp_image (npar, fpar, nx, ny, nz, rpts, ir, fs);
   subtract (rpts, vr, fs, ur);
- 
-  
+
+
   for (ip = 0;  ip < rpts;  ip++)
     vr[ip] = ur[ip];
 
@@ -973,7 +983,7 @@ void estimate_field (UN_options * option_data,
       /*----- Create perturbed image ur -----*/
       subtract (rpts, vr, fs, ur);
     }
-  
+
 
   /*----- Accumulate distortion field polynomial coefficients -----*/
   for (ip = 0;  ip < npar;  ip++)
@@ -981,7 +991,7 @@ void estimate_field (UN_options * option_data,
 
 
   /*----- Deallocate memory -----*/
-  free (ur);     ur = NULL;  
+  free (ur);     ur = NULL;
   free (us);     us = NULL;
   free (fr);     fr = NULL;
   free (fs);     fs = NULL;
@@ -1020,24 +1030,24 @@ void remove_field (UN_options * option_data, float * fpar, float * ffim)
   npar = option_data->npar;
   lower_limit = option_data->lower_limit;
 
-  xrow = (float *) malloc (sizeof(float) * npar); 
+  xrow = (float *) malloc (sizeof(float) * npar);
 
 
   for (ixyz = 0;  ixyz < nxyz;  ixyz++)
     {
-	   {
-	     create_row (ixyz, nx, ny, nz, xrow);
+        {
+          create_row (ixyz, nx, ny, nz, xrow);
 
-	     f = 0.0;
-	     for (jpar = 1;  jpar < npar;  jpar++)
-	       f += fpar[jpar] * xrow[jpar];
+          f = 0.0;
+          for (jpar = 1;  jpar < npar;  jpar++)
+            f += fpar[jpar] * xrow[jpar];
 
           ffim[ixyz] = exp( log(anat_data[ixyz]) - f);
-	   }
-      
+        }
+
     }
 
-  
+
   return;
 }
 
@@ -1086,10 +1096,10 @@ void uniformize (UN_options * option_data, float * ffim)
    fprintf (stderr,"     removing field... \n");
   }
 
-  
+
   remove_field (option_data, fpar, ffim);
 
- 
+
   /*----- Deallocate memory -----*/
   free (ir);     ir = NULL;
   free (vr);     vr = NULL;
@@ -1101,11 +1111,11 @@ void uniformize (UN_options * option_data, float * ffim)
 /*---------------------------------------------------------------------------*/
 /*
   Routine to write one AFNI dataset.
-  
-  
+
+
 */
 
-void write_afni_data 
+void write_afni_data
 (
   UN_options * option_data,
   float * ffim
@@ -1130,48 +1140,48 @@ void write_afni_data
   if( commandline != NULL )
      tross_Append_History( option_data->new_dset , commandline ) ;
 
-  
-  /*----- deallocate memory -----*/   
+
+  /*----- deallocate memory -----*/
   THD_delete_3dim_dataset (anat_dset, False);   anat_dset = NULL ;
 
   output_datum = input_datum ;
-           
-  
-  /*-- we now return control to your regular programming --*/ 
-  ibuf[0] = output_datum ;
-  
-  ierror = EDIT_dset_items( option_data->new_dset ,
-			    ADN_datum_array , ibuf ,
-			    ADN_malloc_type, DATABLOCK_MEM_MALLOC ,  
-			    ADN_none ) ;
 
-     
+
+  /*-- we now return control to your regular programming --*/
+  ibuf[0] = output_datum ;
+
+  ierror = EDIT_dset_items( option_data->new_dset ,
+                   ADN_datum_array , ibuf ,
+                   ADN_malloc_type, DATABLOCK_MEM_MALLOC ,
+                   ADN_none ) ;
+
+
   if( ierror > 0 ){
     fprintf(stderr,
-	    "*** %d errors in attempting to create output dataset!\n", 
-	    ierror ) ;
+         "*** %d errors in attempting to create output dataset!\n",
+         ierror ) ;
     exit(1) ;
   }
 
 
   if( THD_is_file(option_data->new_dset->dblk->diskptr->header_name) ){
     fprintf(stderr,
-	    "*** Output dataset file %s already exists--cannot continue!\a\n",
-	    option_data->new_dset->dblk->diskptr->header_name ) ;
+         "*** Output dataset file %s already exists--cannot continue!\a\n",
+         option_data->new_dset->dblk->diskptr->header_name ) ;
     exit(1) ;
   }
-  
-  
+
+
   EDIT_substscale_brick(option_data->new_dset,0,
-                        MRI_float,ffim , output_datum, -1.0 ); 
-  
+                        MRI_float,ffim , output_datum, -1.0 );
+
   THD_load_statistics( option_data->new_dset ) ;
   THD_write_3dim_dataset( NULL,NULL , option_data->new_dset , True ) ;
 
-  
-  /*----- deallocate memory -----*/   
+
+  /*----- deallocate memory -----*/
   THD_delete_3dim_dataset( option_data->new_dset , False ) ; option_data->new_dset = NULL ;
-  
+
 }
 
 
@@ -1183,7 +1193,7 @@ void write_afni_data
 int main
 (
   int argc,                /* number of input arguments */
-  char ** argv             /* array of input arguments */ 
+  char ** argv             /* array of input arguments */
 )
 
 {
@@ -1212,16 +1222,20 @@ int main
    PRINT_VERSION("3dUniformize") ; AUTHOR(PROGRAM_AUTHOR);
    mainENTRY("3dUniformize main") ; machdep() ;
 
-  
+
   /*----- Program initialization -----*/
   if( !quiet ){
    fprintf (stderr,"  Initializing... \n");
   }
   initialize_program (argc, argv, &option_data, &ffim);
 
+  WARNING_message(" ") ;
+  WARNING_message("Please use 3dUnifize instead of 3dUniformize!") ;
+  WARNING_message(" ") ;
+
 
   /*----- Perform uniformization -----*/
-  
+
   if( !quiet ){
    fprintf (stderr,"  Uniformizing... \n");
   }
@@ -1233,7 +1247,7 @@ int main
    fprintf (stderr,"  Writing results... \n");
   }
   write_afni_data (option_data, ffim);
-  
+
 
   exit(0);
 

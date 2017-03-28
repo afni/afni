@@ -25,13 +25,11 @@
 #     + better slice selection/centering.
 #     + adjust for different orders of orientation
 #
-set version   = "1.6"
-set rev_dat   = "Feb 6, 2017"
+#set version   = "1.6";   set rev_dat   = "Feb 6, 2017"
 #     + olay quotes
 #
-set version   = "2.0"
-set rev_dat   = "Feb 23, 2017"
-#     + no zipped nifti
+set version   = "2.1";   set rev_dat   = "Feb 27, 2017"
+#     + can have IJK labels -> DWImager
 
 # For more info about opts/fields, see:
 #
@@ -47,6 +45,7 @@ setenv AFNI_SPLASH_MELT       NO
 setenv AFNI_ENVIRON_WARNINGS  NO
 setenv AFNI_COMPRESSOR        NONE
 setenv AFNI_IMAGE_GLOBALRANGE VOLUME
+setenv AFNI_IMAGE_LABEL_IJK   NO         # thanks, Bob!
 # -------------------------------------------------------------------
 
 # ------------------- default/initialized variables -----------------
@@ -75,6 +74,7 @@ set my     =  3                  # 'y' dim of montage
 set delsag = -1                  # (int) slice space in sag orient
 set delaxi = -1                  # (int) slice space in axi orient
 set delcor = -1                  # (int) slice space in cor orient
+set USER_COORS = 0               # switch to let user pick IJK
 set coors  = ( 0 0 0 )
 set gapord = ( 0 0 0 )
 
@@ -219,9 +219,28 @@ while ( $ac <= $#argv )
         @ ac += 1
         set topval = "$argv[$ac]"
         
-    else if ( "$argv[$ac]" == "-jpg" ) then
-        set ftype = "JPEG"
-        
+    # SAVE_ALLJPEG [c].imagewindowname filename
+    # SAVE_ALLPNG  [c].imagewindowname filename
+    # SAVE_MPEG    [c].imagewindowname filename
+    # SAVE_AGIF    [c].imagewindowname filename
+    # SAVE_JPEG [c.]windowname filename
+    # SAVE_PNG [c.]windowname filename
+    else if ( "$argv[$ac]" == "-save_ftype" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set ftype = "$argv[$ac]"
+
+    # takes 3 numbers!!!
+    else if ( "$argv[$ac]" == "-set_ijk" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set coors[1] = "$argv[$ac]"
+        @ ac += 1
+        set coors[2] = "$argv[$ac]"
+        @ ac += 1
+        set coors[3] = "$argv[$ac]"
+        set USER_COORS = 1
+
     else if ( "$argv[$ac]" == "-montx" ) then
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
         @ ac += 1
@@ -273,6 +292,11 @@ while ( $ac <= $#argv )
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
         @ ac += 1
         setenv AFNI_IMAGE_LABEL_SETBACK  "$argv[$ac]"
+
+    # Feb, 2017: useful when each slice is a from a sep vol, i.e., for
+    # @djunct*imager
+    else if ( "$argv[$ac]" == "-image_label_ijk" ) then
+        setenv AFNI_IMAGE_LABEL_IJK YES
 
     # default = VOLUME
     else if ( "$argv[$ac]" == "-globalrange" ) then
@@ -444,6 +468,9 @@ else
     endif
 endif
 
+# always determine dim from ulay, because that's how montaging works!
+set Dim  = `3dinfo -n4 "$ulay"`
+
 # IF we don't want to see the olay, then set it to be the ulay, for
 # later simplicity with the automontaging
 if ( "$see_olay" == "-" ) then
@@ -456,7 +483,7 @@ if ( "$see_olay" == "-" ) then
 
 else
 
-    set Dim  = `3dinfo -n4 "$olay"`
+    #set Dim  = `3dinfo -n4 "$olay"`
     set read_olay = tmp_olay.nii
 
     3dcalc                                    \
@@ -483,7 +510,7 @@ else
     else if ( $USER_FRANGE == 2 ) then
         set vv = `3dBrickStat -non-zero                           \
                     -percentile $frange_perc 1 $frange_perc       \
-                    -non-zero   $read_dir/$read_olay`
+                    $read_dir/$read_olay`
         set frange = $vv[2]
         set maxolay = `3dinfo -max $read_dir/$read_olay`
         set minolay = `3dinfo -min $read_dir/$read_olay`
@@ -540,21 +567,24 @@ echo "++ pfrac = $pfrac"
 
 # These need to reflect the order of the original.  Ugh, annoying
 # conditions.
-foreach i ( `seq 1 1 3` )
-    set qfrac = `echo "scale=5; ( $pfrac ) " | bc` # frac to center
-    set qsh   = ""#+ 1"                             # zerobase count offset
-    if ( ( $all_ori[$i] == 'R' ) || ( $all_ori[$i] == 'P' )  \
-        || ( $all_ori[$i] == 'S' ) ) then
-        #echo "++ Coor calc:  $all_ori[$i] for $order[$i]"
-        set qfrac = `echo "scale=5; ( 1 - $pfrac ) " | bc`
-    #else
-    #    echo "++ Coor value: $all_ori[$i] for $order[$i]"
-    endif
-    set nn        = `echo "scale=0; ( ( $Dim[$i] * $qfrac ) $qsh )" | bc`
-    set coors[$i] = `echo $nn | perl -nl -MPOSIX -e 'print floor($_);'`
-end
-
-echo "++ Will have: SET_IJK $coors"
+if ( $USER_COORS == 1 ) then
+    echo "++ Will have user's chosen: SET_IJK $coors"
+else
+    foreach i ( `seq 1 1 3` )
+        set qfrac = `echo "scale=5; ( $pfrac ) " | bc` # frac to center
+        set qsh   = ""#+ 1"                             # zerobase count offset
+        if ( ( $all_ori[$i] == 'R' ) || ( $all_ori[$i] == 'P' )  \
+            || ( $all_ori[$i] == 'S' ) ) then
+            #echo "++ Coor calc:  $all_ori[$i] for $order[$i]"
+            set qfrac = `echo "scale=5; ( 1 - $pfrac ) " | bc`
+        #else
+        #    echo "++ Coor value: $all_ori[$i] for $order[$i]"
+        endif
+        set nn        = `echo "scale=0; ( ( $Dim[$i] * $qfrac ) $qsh )" | bc`
+        set coors[$i] = `echo $nn | perl -nl -MPOSIX -e 'print floor($_);'`
+    end
+    echo "++ Will have: SET_IJK $coors"
+endif
 
 echo "\n------------------- end of optionizing -------------------\n" 
 

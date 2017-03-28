@@ -354,13 +354,17 @@ void scale_memplot( float sx , float tx ,
    if( mp == NULL ) return ;
 
    for( nn=ii=0 ; ii < mp->nxyline ; ii++ ){
-      mp->xyline[nn] = mp->xyline[nn] * sx + tx ; nn++ ; /* x1 */
-      mp->xyline[nn] = mp->xyline[nn] * sy + ty ; nn++ ; /* y1 */
-      mp->xyline[nn] = mp->xyline[nn] * sx + tx ; nn++ ; /* x2 */
-      mp->xyline[nn] = mp->xyline[nn] * sy + ty ; nn++ ; /* y2 */
-                                                  nn++ ; /* color */
-      if( mp->xyline[nn] > 0.0 )
-        mp->xyline[nn] = mp->xyline[nn] * st    ; nn++ ; /* thick */
+      if( mp->xyline[nn+5] == -THCODE_OPAC ){  /* 21 Mar 2017 */
+        nn += 6 ;
+      } else {
+        mp->xyline[nn] = mp->xyline[nn] * sx + tx ; nn++ ; /* x1 */
+        mp->xyline[nn] = mp->xyline[nn] * sy + ty ; nn++ ; /* y1 */
+        mp->xyline[nn] = mp->xyline[nn] * sx + tx ; nn++ ; /* x2 */
+        mp->xyline[nn] = mp->xyline[nn] * sy + ty ; nn++ ; /* y2 */
+        /** no change here */                       nn++ ; /* color */
+        if( mp->xyline[nn] > 0.0f )
+          mp->xyline[nn] = mp->xyline[nn] * st    ; nn++ ; /* thick */
+      }
    }
    return ;
 }
@@ -722,6 +726,11 @@ MEM_plotdata * clip_memplot( float xclbot, float yclbot,
            yy = y1+rr ; if( !INSIDE(x1,yy) ) break ;
            yy = y1-rr ; if( !INSIDE(x1,yy) ) break ;
            ADDTO_MEMPLOT(np,x1,y1,x2,y2,col,th) ;
+         }
+         break ;
+
+         case THCODE_OPAC:{
+           ADDTO_MEMPLOT(np,x1,0.0f,0.0f,0.0f,col,th) ;
          }
          break ;
        }

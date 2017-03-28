@@ -9,9 +9,14 @@ set this_prog = "@djunct_dwi_imager"
 #set version = "1.0"
 #   + birth
 # 
-set rev_dat = "Feb 20, 2017"
-set version = "1.1"
+#set rev_dat = "Feb 20, 2017";  set version = "1.1"
 #   + no need to gzip temp files
+#
+#set rev_dat = "Feb 24, 2017";  set version = "1.2"
+#   + can output movies
+#
+set rev_dat = "Feb 27, 2017";  set version = "1.3"
+#   + slice number there as IJK in corner
 #
 
 # ----------------- find AFNI and set viewer ---------------------
@@ -33,6 +38,7 @@ set my_viewer    = "$adir/@chauffeur_afni"
 set my_calc_func = "$adir/@djunct_calc_mont_dims.py"
 
 set wdir      = "__WORK_dwi_imager"    # working directory
+set DO_CLEAN    = 1
 
 set iset   = ""
 set odir   = ""
@@ -40,6 +46,12 @@ set odir   = ""
 set opref  = "DWI_IMAGES"
 set mfile0 = "tmpdwi.nii"  
 set svals  = ( )
+
+# final order?
+set imgview = ( "axi" "cor" "sag" )
+set mview = ( "axial" "coronal" "sagittal" )
+
+set movie = ""                        # not on by default, at the moment
 
 # ------------------- process options, a la rr ----------------------
 
@@ -71,6 +83,21 @@ while ( $ac <= $#argv )
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
         @ ac += 1
         set opref = "$argv[$ac]"
+
+    else if ( "$argv[$ac]" == "-do_movie" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set movie = "$argv[$ac]"
+        if ( ( $movie == "MPEG" ) || ( $movie == "AGIF" ) ) then
+            echo "++ OK, will make a movie of type $movie."
+        else
+            echo "** ERROR: '$movie' is NOT an allowed movie format!"
+            echo "      -> must be either 'MPEG' or 'AGIF'"
+            goto BAD_EXIT
+        endif
+
+    #else if ( "$argv[$ac]" == "-no_clean" ) then
+    #    set DO_CLEAN = 0
 
     else
         echo "** unexpected option #$ac = '$argv[$ac]'"
@@ -145,9 +172,6 @@ cd $odir/$wdir
 
 # ---------------- proc ---------------------
 
-# final order?
-set imgview = ( "axi" "cor" "sag" )
-
 # silly stuff to deal with orientation
 set ori  = `3dinfo -orient "$mfile0"`
 set ori0 = `echo $ori | awk '{print substr($0,1,1)}'`
@@ -195,8 +219,6 @@ foreach ii ( `seq 1 1 3` )
     set ccpref   = "padcombo"
     set ovol     = "${ccpref}.nii"
 
-    set DO_CLEAN    = 1
-
     # where the calc function is/can be called
     set calc_pad     = "${ccpref}.dat"
 
@@ -210,23 +232,29 @@ foreach ii ( `seq 1 1 3` )
     echo "++ Going to view slice [${slnum}]"
 
     # ----------------- set type of number ---------------
+    # just make everything float, so no negs??
     set mstr = ""
     if ( "$mdtype" == "float" ) then
         set mstr = "f"
-    else if ( "$mdtype" == "complex" )
-        set mstr = "c"
-    else if ( "$mdtype" == "double" )
-        set mstr = "d"
-    else if ( "$mdtype" == "short" )
-        set mstr = "s"
-    else if ( "$mdtype" == "byte" )
-        set mstr = "b"
-    else if ( "$mdtype" == "int" )
-        set mstr = "i"
     else
-        echo "** Unrecognized type: $mdtype ! Exiting"
-        goto BAD_EXIT
+        set mstr = "f"
+        echo "+* WARNING: dset wasn't floats, but will be converted"
+        echo "   to float for image-making purposes!"
     endif
+    #else if ( "$mdtype" == "complex" ) then
+    #    set mstr = "c"
+    #else if ( "$mdtype" == "double" ) then
+    #    set mstr = "d"
+    #else if ( "$mdtype" == "short" ) then
+    #    set mstr = "s"
+    #else if ( "$mdtype" == "byte" ) then
+    #    set mstr = "b"
+    #else if ( "$mdtype" == "int" ) then
+    #    set mstr = "i"
+    #else
+    #    echo "** Unrecognized type: $mdtype ! Exiting"
+    #    goto BAD_EXIT
+    #endif
 
     # ---------------- calculate final dims + padding ----------
 
@@ -243,6 +271,7 @@ foreach ii ( `seq 1 1 3` )
     echo "++ Slicing..."
     from3d                            \
         -raw                          \
+        -float                        \
         -prefix "$slpref"             \
         -input $mfile                 \
         -zfirst $slnum -zlast $slnum
@@ -250,10 +279,41 @@ foreach ii ( `seq 1 1 3` )
     # --------------- combine slices and pad, if nec ------------
 
     echo "++ ...and gluing."
+    # at the moment, have made eeeverything from from3d to be a float!
     to3d                              \
         -orient $morient              \
         -prefix "$ovol"               \
         "3D${mstr}:0:0:${mdim[1]}:${mdim[2]}:1:${slpref}*"
+
+    # Feb 24, 2017: lights, camera, action!
+    if ( "$movie" != "" ) then
+        echo "++ Making '${mview[$ii]}' movie"
+        # movie of the unpadded file: each view is pretending to be axial
+        $my_viewer                         \
+            -ulay "$ovol"                  \
+            -prefix "${opref}_onescl_$ii"  \
+            -olay_off                      \
+            -save_ftype "$movie"           \
+            -montx 1                       \
+            -monty 1                       \
+            -set_ijk 0 0 0                 \
+            -ulay_range 1% 99.5%           \
+            -label_mode 1 -label_size 3    \
+            -image_label_ijk
+
+        $my_viewer                         \
+            -ulay "$ovol"                  \
+            -prefix "${opref}_sepscl_$ii"  \
+            -olay_off                      \
+            -save_ftype "$movie"           \
+            -montx 1                       \
+            -monty 1                       \
+            -set_ijk 0 0 0                 \
+            -globalrange "SLICE"           \
+            -ulay_range 1% 99%             \
+            -label_mode 1 -label_size 3    \
+            -image_label_ijk
+    endif
 
     if ( $Npad > 0 ) then
         printf "++ Padding by $Npad, to make output image "
@@ -275,7 +335,9 @@ foreach ii ( `seq 1 1 3` )
         -olay_off                      \
         -montx $Ncol                   \
         -monty $Nrow                   \
-        -ulay_range 1% 99.5% 
+        -ulay_range 1% 99.5%           \
+        -label_mode 1 -label_size 3    \
+        -image_label_ijk
 
     # slicewise ranges
     $my_viewer                         \
@@ -285,7 +347,9 @@ foreach ii ( `seq 1 1 3` )
         -montx $Ncol                   \
         -monty $Nrow                   \
         -globalrange "SLICE"           \
-        -ulay_range 1% 99%
+        -ulay_range 1% 99%             \
+        -label_mode 1 -label_size 3    \
+        -image_label_ijk
 
     # some images are unuseful, so, bye bye; rename useful one
     # correctly, and put into odir (out of wdir)
@@ -293,16 +357,32 @@ foreach ii ( `seq 1 1 3` )
         \rm ${opref}_*_${ii}.sag.*
         \rm ${opref}_*_${ii}.cor.*
         
-        foreach ff ( `ls ${opref}_*_${ii}.axi.png` )
+        foreach ff ( `ls ${opref}_*_${ii}.axi.*` )
             set gg = `echo $ff | sed "s/_${ii}.axi/.${imgview[$ii]}/g"`
             \mv $ff ../$gg
         end
+
+        if ( 0 ) then
+#        if ( "$movie" != "" ) then
+            echo "++ copying up movie"
+            if ( "$movie" == "AGIF" ) then
+                set mext = "gif"
+            else 
+                set mext = "mpg"
+            endif
+
+            foreach ff ( `ls ${opref}_*_${ii}.axi."$mext"` )
+                set gg = `echo $ff | sed "s/_${ii}.axi/.${imgview[$ii]}/g"`
+                \mv $ff ../$gg
+            end
+        endif
+
     endif
 
     # ------------------ clean, if desired -----------------------
 
     if ( $DO_CLEAN == 1 ) then
-        echo "\n++ Cleaning up old files...\n\n"
+        echo "\n++ Cleaning up old files... finishing iteration ${ii}/3.\n\n"
         \rm $ovol $calc_pad ${slpref}* 
         if ( "$mcopy" != "" ) then 
             \rm "$mcopy"
@@ -313,7 +393,7 @@ end
 
 # exit wdir, now in odir
 cd ../
-if ( 1 ) then
+if ( $DO_CLEAN == 1 ) then
     \rm -rf $wdir
 endif
 

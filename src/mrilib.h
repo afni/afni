@@ -1119,6 +1119,7 @@ extern void mri_histoshort_nonneg( MRI_IMAGE * , int * ) ;
 
 extern void mri_percents( MRI_IMAGE * , int nper , float per[] ) ;
 extern MRI_IMAGE * mri_flatten( MRI_IMAGE * ) ;
+extern void mri_flatten_set_bfac(float b) ;  /* 16 Mar 2017 */
 extern float mri_quantile( MRI_IMAGE * im , float alpha ) ;
 
 extern float_pair mri_twoquantiles( MRI_IMAGE * im, float alpha, float beta ) ;
@@ -1281,6 +1282,7 @@ extern void mri_drawtext( MRI_IMAGE *im ,
                           byte r,byte g,byte b );
 
 extern void mri_draw_opacity( float ) ;
+extern void mri_draw_force_opaque(int fo) ;
 
 extern void mri_drawcircle( MRI_IMAGE *im ,
                             int cx, int cy, int radius, byte r,byte g,byte b, int fill ) ;
