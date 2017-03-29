@@ -9,6 +9,7 @@ void usage_prompt_user (SUMA_GENERIC_ARGV_PARSE *ps)
       int i;
       printf ( 
          "\n"
+         "Mostly replaced by prompt_popup for more customization.\n"
          "Usage: prompt_user <-pause MESSAGE> \n"
          "  -pause MESSAGE: Pops a window prompting the user with MESSAGE.\n"
          "                  Program does not return until user responds.\n"
