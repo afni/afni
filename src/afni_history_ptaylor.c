@@ -66,6 +66,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 29, Mar , 2017 , PT , "@chauffeur_afni" , MICRO , TYPE_MODIFY,
+   "Change how xvfb is used to run in virtual environment.",
+   "This should improve usage on biowulf-- thanks much, D. Godlove!\n"
+},
+
 { 20, Mar , 2017 , PT , "@SUMA_renumber_FS" , MICRO , TYPE_MODIFY,
    "Changed an ls -> find, to search for either *.nii or *.nii.gz better.",
    "Necessary in case of problematic users (you know who you are!).\n"
