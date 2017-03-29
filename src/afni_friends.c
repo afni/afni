@@ -75,6 +75,8 @@ static AFNI_friend afni_friends[] = {
   { "L Ungerleider"  , (     2                                          ) } ,
   { "KR Hammett"     , (             8 |           64                   ) } ,
   { "A Clark"        , (                           64 |       512       ) } ,
+  { "J Rajendra"     , (                           64 | 128 | 512       ) } ,
+  { "B Pittman"      , (                           64 |       512       ) } ,
   { "DS Cohen"       , ( 1 | 2                                          ) } ,
   { "DA Jacobson"    , ( 1 | 2              | 32                        ) } ,
   { "DR Glen"        , (         4 | 8 |           64                   ) } ,
