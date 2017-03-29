@@ -1027,7 +1027,8 @@ ENTRY("AFNI_parse_args") ;
 
    strcpy(GLOBAL_argopt.title_name,"AFNI") ;           /* default title bar name */
 
-   GLOBAL_argopt.left_is_left = AFNI_yesenv( "AFNI_LEFT_IS_LEFT" ) ;
+   GLOBAL_argopt.left_is_left      = AFNI_yesenv( "AFNI_LEFT_IS_LEFT" ) ;
+   GLOBAL_argopt.left_is_posterior = AFNI_yesenv( "AFNI_LEFT_IS_POSTERIOR" ) ;
 
    GLOBAL_argopt.read_tim = 0 ;   /* 19 Oct 1999 */
 
@@ -2060,6 +2061,7 @@ void AFNI_sigfunc_alrm(int sig)
      "p-hacking? Bah -- I'll take a chainsaw to your p-values"       ,
      "Did you like your p-values? If not, I can 'fix' them for you"  ,
      "Honesty is the best policy, but insanity is a better defense"  ,
+     "A desk is a dangerous place from which to view the world"      ,
 
      "Returning control of your brain (images) back to yourself"     ,
      "Returning your endofunctors back to their co-monads"           ,
@@ -2268,7 +2270,6 @@ void AFNI_sigfunc_alrm(int sig)
      "The art of living is more like wrestling than dancing"                          ,
      "If the genome is the source code, it should have come with comments"            ,
 
-     "It is the pardonable vanity of lonely people everywhere to assume that are unique"      ,
      "You know you're in trouble when it takes a 64 bit integer to count your unread emails"  ,
      "Once you've done what you have to do, no one will let you do what you want to do"       ,
      "My name is AFNImandias, Brain of Brains; Look on my Statistics, ye Clever, and Despair" ,
@@ -2279,8 +2280,9 @@ void AFNI_sigfunc_alrm(int sig)
      "You can always find me out on the Long Line -- I hang out by the Church-Kleene ordinal" ,
      "Outside of a dog, a book is Man's best friend. Inside of a dog, it's too dark to read"  ,
 
-     "Someday I'll tell you of the Giant Rat of Sumatra, a tale for which the world is not prepared" ,
-     "People have to learn to live with newly-discovered facts; if they don't, they die of them"     ,
+     "Someday I'll tell you of the Giant Rat of Sumatra, a tale for which the world is not prepared"    ,
+     "People have to learn to live with newly-discovered facts; if they don't, they die of them"        ,
+     "It is the pardonable vanity of lonely people everywhere to assume that they have no counterparts" ,
 
      /* Multi-line quotes */
 
@@ -7528,6 +7530,7 @@ ENTRY("AFNI_view_xyz_CB") ;
        snew  = &(im3d->s231) ;
        brnew = im3d->b231_ulay ;
        pboff = pb_yzx ;
+       mirror= GLOBAL_argopt.left_is_posterior ;
 
     } else if( w == pb_zxy && szxy == NULL ){  /* coronal image */
        snew  = &(im3d->s312) ;
@@ -7545,6 +7548,7 @@ ENTRY("AFNI_view_xyz_CB") ;
        gnew  = &(im3d->g231) ;
        brnew = im3d->b231_ulay ;
        pboff = gr_yzx ;
+       mirror= GLOBAL_argopt.left_is_posterior ;
 
     } else if( w == gr_zxy && gzxy == NULL ){  /* coronal graph */
        gnew  = &(im3d->g312) ;

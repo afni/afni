@@ -93,7 +93,7 @@ def warp_item(desc='', wtype='', warpset=''):
    return vo
 
 def apply_catenated_warps(proc, warp_list, base='', source='', prefix='',
-                          dim=0, NN=0, istr=''):
+                          dim=0, NN=0, NLinterp='', istr=''):
    """For now, warp_list should consist of an outer to inner list of warps.
       If any are non-linear, use 3dNwarpApply to apply them.  Otherwise,
       use 3dAllineate.
@@ -101,6 +101,9 @@ def apply_catenated_warps(proc, warp_list, base='', source='', prefix='',
       Note that 3dAllineate should take only a single warp (for now).
 
       if NN: include options for warping using NN, such as for an all-1 dset
+
+      if NLinterp: apply corresponding interp option to NL case
+                   (speed-up for computing warps of all-1 dsets)
 
       return: status and a single command, indented by istr
    """
@@ -124,7 +127,8 @@ def apply_catenated_warps(proc, warp_list, base='', source='', prefix='',
       clist = ['3dNwarpApply -master %s%s \\\n' % (base, dimstr),
                '             -source %s \\\n'   % source,
                '             -nwarp %s \\\n'    % wstr]
-      if NN: clist.append ('             -ainterp NN -quiet \\\n')
+      if NLinterp: clist.append('             -interp %s \\\n' % NLinterp)
+      if NN:       clist.append('             -ainterp NN -quiet \\\n')
       clist.append('             -prefix %s\n' % prefix)
 
    else: # affine
@@ -368,7 +372,15 @@ def extract_registration_base(block, proc, prefix=''):
       print '** ERB: no vr_ext_pre'
       return 1
 
+   # get the block to put 3dbucket at the end of
    prev_block = proc.find_block(proc.prev_lab(block))
+  
+   # if it is the tcat block, shift to after postdata
+   if prev_block.label == 'tcat':
+      postblock = proc.find_block('postdata')
+      if postblock != None:
+         prev_block = postblock
+
    prev_block.post_cstr += \
       '# --------------------------------\n' \
       '# extract volreg registration base\n' \
@@ -1962,7 +1974,7 @@ def db_cmd_volreg(proc, block):
            all1_prefix = 'rm.epi.1.r$run'
            st, wtmp = apply_catenated_warps(proc, all1_warps, base=allinbase,
                          source=all1_input.shortinput(), prefix=all1_prefix,
-                         dim=dim, NN=1, istr=indent)
+                         dim=dim, NN=1, NLinterp='cubic', istr=indent)
            if st: return
            wcmd += '\n%s# warp the all-1 dataset for extents masking \n%s' \
                    % (indent, wtmp)
@@ -3181,7 +3193,7 @@ def db_cmd_mask(proc, block):
        # and check grid
        dset = opt.parlist[1]
        dims = UTIL.get_3dinfo_val_list(dset, 'd3', float, verb=1)
-       if not UTIL.lists_are_same(dims, proc.delta, proc.delta[0]*0.01):
+       if not UTIL.lists_are_same(dims, proc.delta, proc.delta[0]*0.01,doabs=1):
           print "** bad dims for -mask_import dataset: \n" \
                 "   %s\n"                                  \
                 "   import dims = %s, analysis dims = %s"  \
