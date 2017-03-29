@@ -50,6 +50,7 @@
 #define GC  "G Chen"         /* no middle initial (clearly evil) */
 #define PPC "PP Christidis"  /* gone but not forgotten */
 #define BGP "BG Pittman"     /* AKA Brien (not Brienne) */
+#define JKR "JK Rajendra"    /* AKA discoraj */
 
 /* importance levels */
 #define MIN_PROG_LEVEL  1  /* min in list */
@@ -101,6 +102,7 @@ extern afni_history_struct ptaylor_history[];
 extern afni_history_struct rickr_history[];
 extern afni_history_struct rwcox_history[];
 extern afni_history_struct ziad_history[];
+extern afni_history_struct discoraj_history[];
 
 
 /*----------------------------------------------------------------------*/

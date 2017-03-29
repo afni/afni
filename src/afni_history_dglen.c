@@ -49,6 +49,14 @@
 
 
 afni_history_struct dglen_history[] = {
+{ 27, MAR, 2017 , DRG , "align_epi_anat.py" , 
+    MINOR , TYPE_BUG_FIX, 
+    "rm of temporary files could delete all files in current directory",
+    "rm deletes all files that have tabs/spaces inserted in dataset names\n"
+    "The tab  or space character can be somewhat invisible if after\n"
+    "line continuation character in input script. Fix removes whitespace\n"
+    "before deleting"
+},
 { 5, JAN, 2017 , DRG , "align_epi_anat.py" , 
     MINOR , TYPE_BUG_FIX, 
     "NIFTI output and output directories not always handled correctly or completely"

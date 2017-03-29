@@ -27,9 +27,10 @@ static char g_history[] =
   "1.8   3 Jun 2010 [rickr] : added TYPE_ENHANCE\n"
   "1.9  19 Jul 2010 [rickr] : added -check_date option\n"
   "1.10 30 Nov 2010 [rickr] : added -final_sort_by_prog option\n"
+  "1.11 29 Mar 2017 [rickr] : added justin: JKR\n"
 };
 
-static char g_version[] = "afni_history version 1.10, 30 Nov 2010";
+static char g_version[] = "afni_history version 1.11, 29 Mar 2017";
 
 static  char * g_author_list[] = {
     "rwcox",    "RWC",  RWC,
@@ -40,6 +41,7 @@ static  char * g_author_list[] = {
     "christip", "PPC",  PPC,
     "bpittman", "BGP",  BGP,
     "ptaylor",  "PT" ,  PT
+    "discoraj", "JKR",  JKR,
 };
 
 
@@ -256,6 +258,12 @@ char * convert_author(char * name)
     if( !strcmp(name, "pittmanb") ) return BGP;
     if( !strcmp(name, "Brian") )    return BGP;
     if( !strcmp(name, "brian") )    return BGP;
+
+    if( !strcmp(name, "JKR") )      return JKR;
+    if( !strcmp(name, "discoraj") ) return JKR;
+    if( !strcmp(name, "justin") )   return JKR;
+    if( !strcmp(name, "Justin") )   return JKR;
+    if( !strcmp(name, "rajendrajk"))return JKR;
 
     return name;   /* give up and stick with what we have */
 }
@@ -1449,6 +1457,7 @@ int init_histlist( global_data * gd )
 
     plist = gd->histpairs;              /* for convenience */
     c = 0;
+    plist[c].hlist = discoraj_history;  plist[c++].author = JKR;
     plist[c].hlist = bpittman_history;  plist[c++].author = BGP;
     plist[c].hlist = christip_history;  plist[c++].author = PPC;
     plist[c].hlist = dglen_history;     plist[c++].author = DRG;

@@ -598,7 +598,7 @@ g_help_string = """
 ## BEGIN common functions across scripts (loosely of course)
 class RegWrap:
    def __init__(self, label):
-      self.align_version = "1.56" # software version (update for changes)
+      self.align_version = "1.57" # software version (update for changes)
       self.label = label
       self.valid_opts = None
       self.user_opts = None
@@ -3324,6 +3324,8 @@ class RegWrap:
    # remove old results too optionally
    def fresh_start(self, epref="", apref="", rmold = 0, epipath="", anatpath="" ):
       self.info_msg("Removing all the temporary files")
+      epref = epref.strip()
+      apref = apref.strip()
       if epref == "" and apref == "":
          com = shell_com(  "\\rm -f %s__tt_*" % ps.output_dir, ps.oexec)
          com.run()  
