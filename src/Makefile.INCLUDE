@@ -3354,7 +3354,7 @@ SUMA_PROGS = testGL suma ScaleToMap CompareSurfaces \
    SurfSmooth inspec quickspec FSread_annot SurfPatch SurfQual SampBias \
    3dSkullStrip 3dCRUISEtoAFNI 3dBRAIN_VOYAGERtoAFNI 3dSurfMask\
    SurfToSurf Surf2VolCoord ROIgrow SurfDsetInfo SurfInfo AnalyzeTrace \
-   DriveSuma SurfDist SpharmReco SpharmDeco prompt_user prompt_popup   \
+   DriveSuma SurfDist SpharmReco SpharmDeco prompt_user \
    SurfRetinoMap ParseName 3dGenPriors 3dGenFeatureDist 3dSeg SurfExtrema \
    3dinfill 3dHist HalloSuma InstaTract niprobe SUMA_glxdino SUMA_paperplane \
    SUMA_pixmap2eps BrainSkin
@@ -3521,8 +3521,6 @@ suma_clean:
 	if [ -f SUMA/SpharmDeco ]; then $(RM) SUMA/SpharmDeco; fi;
 	if [ -f prompt_user ]; then $(RM) prompt_user; fi;
 	if [ -f SUMA/prompt_user ]; then $(RM) SUMA/prompt_user; fi;
-	if [ -f prompt_popup ]; then $(RM) prompt_popup; fi;
-	if [ -f SUMA/prompt_popup ]; then $(RM) SUMA/prompt_popup; fi;
 	if [ -f SurfRetinoMap ]; then $(RM) SurfRetinoMap; fi;
 	if [ -f SUMA/SurfRetinoMap ]; then $(RM) SUMA/SurfRetinoMap; fi;
 	if [ -f ParseName ]; then $(RM) ParseName; fi;
@@ -3561,7 +3559,7 @@ suma_link:
    quickspec FSread_annot SurfPatch SurfQual SampBias 3dSkullStrip \
    3dCRUISEtoAFNI 3dBRAIN_VOYAGERtoAFNI 3dSurfMask\
    SurfToSurf Surf2VolCoord ROIgrow SurfDsetInfo SurfInfo AnalyzeTrace \
-   DriveSuma SurfDist SpharmReco SpharmDeco prompt_user prompt_popup \
+   DriveSuma SurfDist SpharmReco SpharmDeco prompt_user \
    SurfRetinoMap ParseName 3dGenPriors 3dGenFeatureDist 3dSeg SurfExtrema \
    3dinfill 3dHist HalloSuma niprobe BrainSkin \
    InstaTract; \
@@ -3572,7 +3570,7 @@ suma_link:
    quickspec FSread_annot SurfPatch SurfQual SampBias 3dSkullStrip \
    3dCRUISEtoAFNI 3dBRAIN_VOYAGERtoAFNI 3dSurfMask \
 	SurfToSurf Surf2VolCoord ROIgrow SurfDsetInfo SurfInfo AnalyzeTrace \
-   DriveSuma SurfDist SpharmReco SpharmDeco prompt_user prompt_popup \
+   DriveSuma SurfDist SpharmReco SpharmDeco prompt_user \
    SurfRetinoMap ParseName 3dGenPriors 3dGenFeatureDist 3dSeg SurfExtrema \
    3dinfill 3dHist HalloSuma InstaTract niprobe BrainSkin \
 	'INSTALLDIR=$(INSTALLDIR)' \
@@ -3604,7 +3602,7 @@ suma_install:
    SUMA/3dBRAIN_VOYAGERtoAFNI SUMA/3dSurfMask \
    SUMA/SurfToSurf  SUMA/Surf2VolCoord  SUMA/ROIgrow SUMA/SurfDsetInfo \
    SUMA/SurfInfo SUMA/AnalyzeTrace SUMA/DriveSuma SUMA/SurfDist \
-   SUMA/SpharmReco SUMA/SpharmDeco SUMA/prompt_user SUMA/prompt_popup \
+   SUMA/SpharmReco SUMA/SpharmDeco SUMA/prompt_user \
    SUMA/SurfRetinoMap SUMA/ParseName SUMA/3dGenPriors SUMA/3dGenFeatureDist \
    SUMA/3dSeg SUMA/SurfExtrema SUMA/3dinfill \
    SUMA/3dHist SUMA/HalloSuma SUMA/InstaTract SUMA/niprobe SUMA/BrainSkin \
