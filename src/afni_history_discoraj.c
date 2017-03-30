@@ -8,9 +8,9 @@
     basic format: 3-field date, user, program_name, impact_level,
                   short description without newline
                   (optional) long descrption with intermediate newlines
-  
+
     copy entire section: { ... } ,
-  
+
     Notes: - months are JAN ... DEC (see afni_history.h)
 
            - levels are :
@@ -52,9 +52,9 @@ afni_history_struct discoraj_history[] = {
 
  /* can copy to and change one of the examples here */
 
- { 29 , MAR , 2017 , JKR , "eggs" , MAJOR , TYPE_GENERAL ,
-   "ate breakfast" ,
-   NULL
+ { 29 , MAR , 2017 , JKR , "prompt_popup" , MINOR , TYPE_GENERAL ,
+   "add new program prompt_popup" ,
+   "Similar to prompt_user, but adds label customization and up to 3 buttons"
  } ,
 
  { 99,99,99, NULL,NULL, 99,99, NULL,NULL}  /** the end (do not delete) **/

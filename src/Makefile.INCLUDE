@@ -672,11 +672,11 @@ csfft_cache:csfft_cache.o
 	$(RM) $@
 	$(CCFAST) -o 3danisosmooth 3danisosmooth.o DWIstructtensor.o \
           $(LFLAGS) $(LLIBS)
-	
+
 3dToutcount:3dToutcount.o
 	$(RM) $@
 	$(CC) -o 3dToutcount 3dToutcount.o $(LFLAGS) $(LLIBS)
-	
+
 3dCountSpikes:3dCountSpikes.o
 	$(RM) $@
 	$(CC) -o 3dCountSpikes 3dCountSpikes.o $(LFLAGS) $(LLIBS)
@@ -3354,16 +3354,16 @@ SUMA_PROGS = testGL suma ScaleToMap CompareSurfaces \
    SurfSmooth inspec quickspec FSread_annot SurfPatch SurfQual SampBias \
    3dSkullStrip 3dCRUISEtoAFNI 3dBRAIN_VOYAGERtoAFNI 3dSurfMask\
    SurfToSurf Surf2VolCoord ROIgrow SurfDsetInfo SurfInfo AnalyzeTrace \
-   DriveSuma SurfDist SpharmReco SpharmDeco prompt_user \
-   SurfRetinoMap ParseName 3dGenPriors 3dGenFeatureDist 3dSeg SurfExtrema \
-   3dinfill 3dHist HalloSuma InstaTract niprobe SUMA_glxdino SUMA_paperplane \
+   DriveSuma SurfDist SpharmReco SpharmDeco prompt_user prompt_popup SurfRetinoMap \
+   ParseName 3dGenPriors 3dGenFeatureDist 3dSeg SurfExtrema 3dinfill \
+   3dHist HalloSuma InstaTract niprobe SUMA_glxdino SUMA_paperplane \
    SUMA_pixmap2eps BrainSkin
 
 SUMA_GTS_PROGS = SurfMesh
 
 
 ###
-#link executables but check for libraries first and create them if needed	
+#link executables but check for libraries first and create them if needed
 suma_exec:libGLws.a libSUMA.a libtracktools.a libmri.a xutil.o LiteClue.o parser.o parser_int.o libmrix.a libcoxplot.a libf2c.a
 	( cd SUMA ;	\
 	$(MAKE) -f $(SUMA_MAKEFILE_NAME) $(SUMA_PROGS) \
@@ -3381,7 +3381,7 @@ suma_exec:libGLws.a libSUMA.a libtracktools.a libmri.a xutil.o LiteClue.o parser
 	cd ../	;)
 
 ###
-#Do the GTS related stuff 	
+#Do the GTS related stuff
 suma_gts_progs: libgts.a
 	( cd SUMA ;	\
 	$(MAKE) -f $(SUMA_MAKEFILE_NAME) SurfMesh 'INSTALLDIR=$(INSTALLDIR)' \
@@ -3398,7 +3398,7 @@ suma_gts_progs: libgts.a
 	cd ../	;)
 
 ###
-#run make all in SUMA directory, USE FOR DEVELOPMENT ONLY	
+#run make all in SUMA directory, USE FOR DEVELOPMENT ONLY
 suma_all:libmri.a libtracktools.a xutil.o LiteClue.o parser.o parser_int.o libmrix.a libcoxplot.a libf2c.a
 	( cd SUMA ;	\
 	$(MAKE) -f $(SUMA_MAKEFILE_NAME) all 'INSTALLDIR=$(INSTALLDIR)' 'INSTALLDIR_SUMA=$(INSTALLDIR)' \
@@ -3415,7 +3415,7 @@ suma_all:libmri.a libtracktools.a xutil.o LiteClue.o parser.o parser_int.o libmr
 	cd ../	;)
 
 ###
-#run make anew in SUMA directory, USE FOR DEVELOPMENT ONLY	
+#run make anew in SUMA directory, USE FOR DEVELOPMENT ONLY
 suma_anew:libmri.a xutil.o LiteClue.o parser.o parser_int.o libmrix.a libcoxplot.a libf2c.a libtracktools.a
 	( cd SUMA ;	\
 	$(MAKE) -f $(SUMA_MAKEFILE_NAME) anew 'INSTALLDIR=$(INSTALLDIR)' 'INSTALLDIR_SUMA=$(INSTALLDIR)' \
@@ -3432,7 +3432,7 @@ suma_anew:libmri.a xutil.o LiteClue.o parser.o parser_int.o libmrix.a libcoxplot
 	cd ../	;)
 
 suma_clean:
-	$(RM) SUMA/libSUMA.a libSUMA.a SUMA/libGLws.a libGLws.a	
+	$(RM) SUMA/libSUMA.a libSUMA.a SUMA/libGLws.a libGLws.a
 	if [ -f SUMA/suma ]; then $(RM) SUMA/suma; fi;
 	if [ -f suma ]; then $(RM) suma; fi;
 	if [ -f SUMA/MakeColorMap ]; then $(RM) SUMA/MakeColorMap; fi;
@@ -3559,9 +3559,9 @@ suma_link:
    quickspec FSread_annot SurfPatch SurfQual SampBias 3dSkullStrip \
    3dCRUISEtoAFNI 3dBRAIN_VOYAGERtoAFNI 3dSurfMask\
    SurfToSurf Surf2VolCoord ROIgrow SurfDsetInfo SurfInfo AnalyzeTrace \
-   DriveSuma SurfDist SpharmReco SpharmDeco prompt_user \
-   SurfRetinoMap ParseName 3dGenPriors 3dGenFeatureDist 3dSeg SurfExtrema \
-   3dinfill 3dHist HalloSuma niprobe BrainSkin \
+   DriveSuma SurfDist SpharmReco SpharmDeco prompt_user prompt_popup SurfRetinoMap \
+   ParseName 3dGenPriors 3dGenFeatureDist 3dSeg SurfExtrema 3dinfill \
+   3dHist HalloSuma niprobe BrainSkin \
    InstaTract; \
 	$(MAKE) -f $(SUMA_MAKEFILE_NAME) testGL suma MakeColorMap ROI2dataset \
    3dVol2Surf 3dSurf2Vol ScaleToMap SurfMeasures SurfFWHM \
@@ -3570,9 +3570,9 @@ suma_link:
    quickspec FSread_annot SurfPatch SurfQual SampBias 3dSkullStrip \
    3dCRUISEtoAFNI 3dBRAIN_VOYAGERtoAFNI 3dSurfMask \
 	SurfToSurf Surf2VolCoord ROIgrow SurfDsetInfo SurfInfo AnalyzeTrace \
-   DriveSuma SurfDist SpharmReco SpharmDeco prompt_user \
-   SurfRetinoMap ParseName 3dGenPriors 3dGenFeatureDist 3dSeg SurfExtrema \
-   3dinfill 3dHist HalloSuma InstaTract niprobe BrainSkin \
+   DriveSuma SurfDist SpharmReco SpharmDeco prompt_user prompt_popup SurfRetinoMap \
+   ParseName 3dGenPriors 3dGenFeatureDist 3dSeg SurfExtrema 3dinfill \
+   3dHist HalloSuma InstaTract niprobe BrainSkin \
 	'INSTALLDIR=$(INSTALLDIR)' \
 	'SUMA_MDEFS=$(SUMA_MDEFS)' \
 	'SUMA_INCLUDE_PATH=$(SUMA_INCLUDE_PATH)' \
@@ -3602,14 +3602,14 @@ suma_install:
    SUMA/3dBRAIN_VOYAGERtoAFNI SUMA/3dSurfMask \
    SUMA/SurfToSurf  SUMA/Surf2VolCoord  SUMA/ROIgrow SUMA/SurfDsetInfo \
    SUMA/SurfInfo SUMA/AnalyzeTrace SUMA/DriveSuma SUMA/SurfDist \
-   SUMA/SpharmReco SUMA/SpharmDeco SUMA/prompt_user \
-   SUMA/SurfRetinoMap SUMA/ParseName SUMA/3dGenPriors SUMA/3dGenFeatureDist \
-   SUMA/3dSeg SUMA/SurfExtrema SUMA/3dinfill \
+   SUMA/SpharmReco SUMA/SpharmDeco SUMA/prompt_user SUMA/prompt_popup SUMA/SurfRetinoMap \
+   SUMA/ParseName SUMA/3dGenPriors SUMA/3dGenFeatureDist SUMA/3dSeg \
+   SUMA/SurfExtrema SUMA/3dinfill \
    SUMA/3dHist SUMA/HalloSuma SUMA/InstaTract SUMA/niprobe SUMA/BrainSkin \
    ${INSTALLDIR} ; \
 	if [ -f SUMA/SurfMesh ]; then $(CP) SUMA/SurfMesh ${INSTALLDIR} ; fi; \
 	$(CP) scripts_install/@SUMA_* ${INSTALLDIR} ;)
-	
+
 suma: suma_clean suma_exec suma_install
 suma_gts: suma_clean suma_exec suma_gts_progs suma_install
 suma_fromobjs: suma_link suma_install
