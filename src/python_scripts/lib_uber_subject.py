@@ -148,7 +148,9 @@ g_history = """
     0.38 Feb 22, 2016: replace tlrc_no_ss with anat_has_skull
          - to pass -anat_has_skull yes or no to afni_proc.py
     0.39 Mar 21, 2016: run GLTsymtest on GLTs
-    0.40 Mar 30, 2017: allow subj_dir to affect GUI
+    0.40 Mar 30, 2017:
+         - allow subj_dir to affect GUI
+         - apply uvar align_opts_aea and tlrc_opts_at
 """
 
 g_version = '0.40 (March 30, 2017)'
@@ -817,7 +819,12 @@ class AP_Subject(object):
 
       if 'align' not in self.svars.blocks: return ''
 
-      rstr = '' # for now, will be part of '-align_opts_aea'
+      # put things together into main -align_opts_aea string
+      # let user worry about keeping them separate
+      if self.svars.is_empty('align_opts_aea'):
+         rstr = ''
+      else:
+         rstr = ' %s' % self.svars.val('align_opts_aea')
 
       # add each option after a space
 
@@ -848,7 +855,14 @@ class AP_Subject(object):
                         defval=g_subj_defs.tlrc_base)
 
       # now fill any -tlrc_opts_at options (put a space before each)
-      topts = ''
+      #
+      # put things together into main -align_opts_aea string 30 Mar 2017
+      # let user worry about keeping them separate
+      if self.svars.is_empty('tlrc_opts_at'):
+         topts = ''
+      else:
+         topts = ' %s' % self.svars.val('tlrc_opts_at')
+
       if self.svars.val('tlrc_ok_maxite') == 'yes':
          topts += ' -OK_maxite'
 
