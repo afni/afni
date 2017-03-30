@@ -51,7 +51,8 @@ afni_history_struct rickr_history[] = {
 
  { 30,  Mar, 2017, RCR, "uber_subject.py", MICRO, TYPE_ENHANCE,
    "allow subj_dir to affect the GUI (so no subject_results)",
-   NULL
+   "Also, apply user command-line variables align_opts_aea and tlrc_opts_at\n"
+   "(still not part of the GUI).  Requested by J Rajendra."
  } ,
 
  { 30,  Mar, 2017, RCR, "gen_ss_review_scripts.py", MICRO, TYPE_MODIFY,
