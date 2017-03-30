@@ -66,6 +66,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 30, Mar , 2017 , PT , "lib_fat_funcs.py" , MICRO , TYPE_BUG_FIX,
+   "An error message in func called by fat_mvm_scripter.py was wrong.",
+   "Fixed an indexing mistake which gave wrong ROI list-- thanks, E. Grodin!\n"
+},
+
 { 29, Mar , 2017 , PT , "@chauffeur_afni" , MICRO , TYPE_MODIFY,
    "Change how xvfb is used to run in virtual environment.",
    "This should improve usage on biowulf-- thanks much, D. Godlove!\n"
