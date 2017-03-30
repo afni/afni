@@ -14,11 +14,11 @@
 ## original input dwi
 dwi=$1 #"dwi.nii"
 
-## input a png output from Paul's functions
+## png output from Paul's functinos
 png=$2 # "PREF_sepscl.axi.png"
 
 ## output file
-file_out=$3 #"volumes_selected.txt"
+file_out="volumes_selected.txt"
 
 ######################################################
 ## get the coordinates
@@ -96,6 +96,5 @@ do
 	 vol_sel=`ccalc -int -eval "$y_ind * $Ncol + $x_ind"`
 
 	 ## save out volume numbers to text file
-    ## *append* to what is there, in case on is preexisting
 	 echo $vol_sel >> $file_out
 done

@@ -34,9 +34,7 @@ set my_selector = "$adir/@djunct_dwi_selector.sh"
 
 # ----------------------- set defaults --------------------------
 
-set idwi       = ""              # required input
-set iimg       = ""              # required input
-set obads      = ""              # NOT required input
+set idwi       = ""
 
 set odir       = ""
 set opref      = "indti"
@@ -64,23 +62,12 @@ while ( $ac <= $#argv )
     endif
 
     # --------------- input dset(s) ----------------
+
     # input dwi set
     if ( "$argv[$ac]" == "-in_dwi" ) then
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
         @ ac += 1
         set idwi = "$argv[$ac]"
-
-    # input dwi set
-    else if ( "$argv[$ac]" == "-in_img" ) then
-        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
-        @ ac += 1
-        set iimg = "$argv[$ac]"
-
-    # can edit a pre-existing text file
-    else if ( "$argv[$ac]" == "-in_bads" ) then
-        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
-        @ ac += 1
-        set obads = "$argv[$ac]"
 
     # ----------------- outputs ---------------------
 
@@ -95,8 +82,6 @@ while ( $ac <= $#argv )
         set opref = "$argv[$ac]"
 
     # ------------------- other opts ---------------
-
-    # ? make a flag to chop the input DWI if necessary?
 
     else if ( "$argv[$ac]" == "-no_cmd_out" ) then
         set output_cmd = 0
@@ -145,7 +130,7 @@ if ( "$odir" == "" ) then
     # default output dir, if nothing input; it must exist already,
     # because a file is in it
 
-    set odir = `dirname "$idwi"`
+    set odir = `dirname "$it1w"`
     echo "\n++ No output directory specified by the user."
     echo "++ Using the input T1w file's directory by default:"
     echo "\t$odir"
@@ -170,30 +155,7 @@ endif
 # ========================= output fnames ==========================
 
 set ocmd   = "${opref}_cmd.txt"      # name for output command
-
-## !!!!!!
-if ( "$obads" == "" ) then
-
-    if ( -e "$odir/$obads" ) then
-        echo ""
-        echo "** ERROR! File for listing 'bads' exists already: $odir/$obads"
-        echo "   ---> If you want to add to a list you started previously,"
-        echo "        you must use the '-in_bads ...' option."
-        echo "        (Sorry, but hopefully this prevents mistakenly"
-        echo "        appending to preexisting lists.)\n"
-        goto BAD_EXIT
-    endif
-    set obads  = "${opref}_bad.txt"
-else
-    if ( -e "$odir/$obads" ) then
-        echo ""
-        echo "+* WARNING! Just so you know the file: $odir/$obads"
-        echo "   exists already!  I assume you know that you will append to"
-        echo "   it, and that you want to do so (because I assume all users"
-        echo "   read help files as much as *I* do!)"
-        echo "   Ooook, carrying on, then.\n"
-    endif
-endif
+## !!!!!!set ot1w   = "${opref}.nii.gz"       # name for output t1w
 
 # =======================================================================
 # =========================== ** PROCESS ** =============================
@@ -224,10 +186,138 @@ endif
 
 # --------------------- start proc ---------------------------
 
-$my_selector "$idwi" "$iimg" "$obads"
+# copy the t1w file to wdir via resampling: match t2w-t1w orients
+set orient_t2w = `3dinfo -orient "$it2w"`
+set t1res      = $wdir/f00_t1res.nii
+set T1TOMAP    = $t1res                 # we will apply map to this!
+3dresample                          \
+    -overwrite                      \
+    -prefix $t1res                  \
+    -orient $orient_t2w             \
+    -inset "$it1w"
 
+# prep this side for aligning with a bit of unifizing and brightness
+# thresholding
+echo "++ Unifize T1w proc vol."
+set t1uni = $wdir/f01_t1uni.nii
+3dUnifize                            \
+    -GM                              \
+    -prefix  $t1uni                  \
+    -input   "$t1res"                \
+    -overwrite 
 
-if ( 0 ) then
+echo "++ Threshold T1w proc vol."
+set t1thr = $wdir/f02_t1thr.nii
+set v1 = `3dBrickStat -non-zero -automask   \
+            -percentile 95 1 95 ${t1uni}`
+echo ${v1[2]}
+3dcalc -a  ${t1uni}                         \
+       -expr "maxbelow(${v1[2]},a)"         \
+       -prefix $t1thr                       \
+       -overwrite
+
+set t1align   = $wdir/f05_t1align.nii
+set mapt1alnd = $wdir/map_shrot.aff12.1D
+
+3dAllineate   -echo_edu               \
+    -1Dmatrix_save  $mapt1alnd        \
+    -prefix         "$t1align"        \
+    -base           "$it2w"           \
+    -twopass                          \
+    -cost lpc                         \
+    -cmass                            \
+    -source_automask                  \
+    -autoweight                       \
+    -source "$t1thr"                  \
+    -final wsinc5                     \
+    -overwrite
+
+echo "++ Calc'ed alignment.  Now to apply it."
+
+# --> always match dti grid...
+set t1mapped = $wdir/f06_t1mapped.nii
+if ( 1 ) then
+    echo "++ Outputting final image to t2w space"
+    3dAllineate   -echo_edu               \
+        -overwrite                        \
+        -1Dmatrix_apply   $mapt1alnd      \
+        -source           $T1TOMAP        \
+        -master           "$it2w"         \
+        -prefix           $t1mapped       \
+        -float                            \
+        -final wsinc5
+endif
+
+# map all NN followers
+set list_ofNN = ()
+foreach i ( `seq 1 1 $#fNN` ) 
+
+    set ffi = "$fNN[$i]"
+    set ppi = `3dinfo -prefix_noext $ffi`
+    set ffr = "$wdir/fff_${ppi}.nii"
+    set off = "$odir/${opref}_${ppi}.nii.gz"
+
+    3dresample                          \
+        -overwrite                      \
+        -prefix $ffr                    \
+        -orient $orient_t2w             \
+        -inset $ffi
+
+    3dAllineate   -echo_edu               \
+        -overwrite                        \
+        -1Dmatrix_apply   $mapt1alnd      \
+        -source           $ffr            \
+        -master           "$it2w"         \
+        -prefix           $off            \
+        -final NN
+
+    # AND propagate labeltables
+    set lt = `3dinfo -labeltable $ffi`
+    if ( "$lt" == "NO_LABEL_TABLE" ) then
+        echo "++ Dset $ffi has *no* labeltable to propagate."
+    else
+        echo "++ Dset $ffi has a labeltable to propagate.  So I will."
+        3drefit -copytables $ffi $off 
+    endif
+
+    set list_ofNN = ( $list_ofNN $off )
+end
+
+# map all WS5 followers
+set list_ofWS5 = ()
+foreach i ( `seq 1 1 $#fWS5` ) 
+
+    set ffi = "$fWS5[$i]"
+    set ppi = `3dinfo -prefix_noext $ffi`
+    set ffr = "$wdir/fff_${ppi}.nii"
+    set off = "$odir/${opref}_${ppi}.nii.gz"
+
+    3dresample                          \
+        -overwrite                      \
+        -prefix $ffr                    \
+        -orient $orient_t2w             \
+        -inset $ffi
+
+    3dAllineate   -echo_edu               \
+        -overwrite                        \
+        -1Dmatrix_apply   $mapt1alnd      \
+        -source           $ffr            \
+        -master           "$it2w"         \
+        -prefix           $off            \
+        -final wsinc5
+
+    set list_ofWS5 = ( $list_ofWS5 $off )
+end
+
+set T1TOCOPY = $t1mapped
+set fdims = `3dinfo -n4 ${T1TOCOPY}`
+set fres  = `3dinfo -ad3 ${T1TOCOPY}`
+
+echo "++ Done workin'.  Just need to copy the final dset."
+
+3dcopy $T1TOCOPY $odir/$ot1w
+
+if ( $DO_VIEWER == 1 ) then
 
     set vedge = $wdir/f10_edges.nii
 
@@ -337,8 +427,6 @@ if ( 0 ) then
 
 endif
 
-
-if ( 0 ) then
 # clean, by default
 if ( $DO_CLEAN ) then
     echo "\n++ Cleaning working directory!\n"
@@ -351,9 +439,6 @@ endif
 echo "++ The final data set is here:  $odir/$ot1w"
 echo "++ The final spatial dims are:  $fdims[1] $fdims[2] $fdims[3]"
 echo "++ The spatial resolution is:   $fres[1] $fres[2] $fres[3]"
-
-
-endif
 
 # ---------------------------------------------------------------------
 
