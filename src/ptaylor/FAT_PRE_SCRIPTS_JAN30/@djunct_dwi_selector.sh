@@ -96,5 +96,6 @@ do
 	 vol_sel=`ccalc -int -eval "$y_ind * $Ncol + $x_ind"`
 
 	 ## save out volume numbers to text file
+    ## *append* to what is there, in case on is preexisting
 	 echo $vol_sel >> $file_out
 done
