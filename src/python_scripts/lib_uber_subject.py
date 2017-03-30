@@ -148,9 +148,10 @@ g_history = """
     0.38 Feb 22, 2016: replace tlrc_no_ss with anat_has_skull
          - to pass -anat_has_skull yes or no to afni_proc.py
     0.39 Mar 21, 2016: run GLTsymtest on GLTs
+    0.40 Mar 30, 2017: allow subj_dir to affect GUI
 """
 
-g_version = '0.39 (March 21, 2016)'
+g_version = '0.40 (March 30, 2017)'
 
 # ----------------------------------------------------------------------
 # global definition of default processing blocks
@@ -434,9 +435,9 @@ class AP_Subject(object):
       self.rvars.file_ap   = name # store which file we have written to
       self.rvars.output_ap = 'output.%s' % name # file for command output
 
+      if UTIL.is_trivial_dir(self.cvars.subj_dir): pstr = ''
+      else: pstr = '%s/' % self.cvars.subj_dir
       if self.cvars.verb>0:
-         if UTIL.is_trivial_dir(self.cvars.subj_dir): pstr = ''
-         else: pstr = '%s/' % self.cvars.subj_dir
          print '++ writing afni_proc.py command to %s%s' % (pstr, name)
 
       # if requested, make an original copy
