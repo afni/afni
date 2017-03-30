@@ -842,9 +842,10 @@ g_history = """
         - get each last estimate (so prefer err_reml > errts > epits)
         - update -help_fields
    0.49 Jan 19, 2017: fix for -final_anat (thanks to N Anderson)
+   0.50 Mar 30, 2017: clust with AFNI_ORIENT=RAI, to match afni -com SET_DICOM_XYZ
 """
 
-g_version = "gen_ss_review_scripts.py version 0.49, January 19, 2017"
+g_version = "gen_ss_review_scripts.py version 0.50, March 30, 2017"
 
 g_todo_str = """
    - add @epi_review execution as a run-time choice (in the 'drive' script)?
@@ -2298,8 +2299,8 @@ class MyInterface:
        '# locate peak coords of biggest masked cluster and jump there\n'  \
        '3dcalc -a %s"[0]" -b %s -expr "a*b" \\\n'                         \
        '       -overwrite -prefix .tmp.F\n'  \
-       'set maxcoords = ( `3dclust -1thresh $thresh -dxyz=1 1 2 .tmp.F+%s \\\n'\
-       '       | & awk \'/^ / {print $14, $15, $16}\' | head -n 1` )\n'\
+       'set maxcoords = ( `3dclust -DAFNI_ORIENT=RAI -1thresh $thresh -dxyz=1 1 2 \\\n' \
+       '       .tmp.F+%s | & awk \'/^ / {print $14, $15, $16}\' | head -n 1` )\n'\
        'echo -- jumping to max coords: $maxcoords\n'                      \
        % (sset.pv(), mset.pv(), self.uvars.final_view)
 
