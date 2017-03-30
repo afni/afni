@@ -3346,15 +3346,15 @@ libGLws.a:
 	$(CP) SUMA/libGLws.a ${INSTALLDIR}; \
 	$(CP) SUMA/libGLws.a ./;	)
 
-SUMA_PROGS = testGL suma ScaleToMap CompareSurfaces MakeColorMap ROI2dataset \
-   3dVol2Surf 3dSurf2Vol SurfMeasures SurfFWHM ConvertSurface ConvertDset    \
-   SurfClust IsoSurface ConvexHull MapIcosahedron CreateIcosahedron 	     \
-   SurfaceMetrics SurfSmooth inspec quickspec FSread_annot SurfPatch SurfQual\
-   SampBias 3dSkullStrip 3dCRUISEtoAFNI 3dBRAIN_VOYAGERtoAFNI 3dSurfMask     \
-   SurfToSurf Surf2VolCoord ROIgrow SurfDsetInfo SurfInfo AnalyzeTrace       \
-   DriveSuma SurfDist SpharmReco SpharmDeco prompt_user prompt_popup         \
-   SurfRetinoMap ParseName 3dGenPriors 3dGenFeatureDist 3dSeg SurfExtrema    \
-   3dinfill 3dHist HalloSuma InstaTract niprobe SUMA_glxdino SUMA_paperplane \
+SUMA_PROGS = testGL suma ScaleToMap CompareSurfaces MakeColorMap ROI2dataset  \
+   3dVol2Surf 3dSurf2Vol SurfMeasures SurfFWHM ConvertSurface ConvertDset     \
+   SurfClust IsoSurface ConvexHull MapIcosahedron CreateIcosahedron 	      \
+   SurfaceMetrics SurfSmooth inspec quickspec FSread_annot SurfPatch SurfQual \
+   SampBias 3dSkullStrip 3dCRUISEtoAFNI 3dBRAIN_VOYAGERtoAFNI 3dSurfMask      \
+   SurfToSurf Surf2VolCoord ROIgrow SurfDsetInfo SurfInfo AnalyzeTrace        \
+   DriveSuma SurfDist SpharmReco SpharmDeco prompt_user prompt_popup          \
+   SurfRetinoMap ParseName 3dGenPriors 3dGenFeatureDist 3dSeg SurfExtrema     \
+   3dinfill 3dHist HalloSuma InstaTract niprobe SUMA_glxdino SUMA_paperplane  \
    SUMA_pixmap2eps BrainSkin
 
 SUMA_GTS_PROGS = SurfMesh
@@ -3585,22 +3585,22 @@ suma_link:
 ###
 #install suma
 suma_install:
-	( if [ ! -d $(INSTALLDIR) ]; then $(MKDIR) -p $(INSTALLDIR); echo WARNING: directory $(INSTALLDIR) has been created. ; fi	;\
+	( if [ ! -d $(INSTALLDIR) ]; then $(MKDIR) -p $(INSTALLDIR); echo WARNING: directory $(INSTALLDIR) has been created. ; fi	; 		 \
 	$(CP) SUMA/suma SUMA/MakeColorMap SUMA/ROI2dataset SUMA/3dVol2Surf \
-	SUMA/3dSurf2Vol SUMA/SurfMeasures SUMA/SurfFWHM \
-	SUMA/ScaleToMap SUMA/MapIcosahedron SUMA/CreateIcosahedron \
-	SUMA/CompareSurfaces SUMA/ConvertSurface SUMA/ConvertDset	\
-    	SUMA/SurfClust SUMA/IsoSurface SUMA/ConvexHull SUMA/SUMA_glxdino\
-	SUMA/SUMA_pixmap2eps SUMA/SurfaceMetrics SUMA/inspec		\
-	SUMA/quickspec SUMA/FSread_annot SUMA/SurfPatch SUMA/SurfQual 	\
-	SUMA/SurfSmooth SUMA/SUMA_paperplane SUMA/SampBias		\
-	SUMA/3dSkullStrip SUMA/3dCRUISEtoAFNI 				\
-   SUMA/3dBRAIN_VOYAGERtoAFNI SUMA/3dSurfMask 				\
-   SUMA/SurfToSurf  SUMA/Surf2VolCoord  SUMA/ROIgrow SUMA/SurfDsetInfo 	\
-   SUMA/SurfInfo SUMA/AnalyzeTrace SUMA/DriveSuma SUMA/SurfDist 	\
-   SUMA/SpharmReco SUMA/SpharmDeco SUMA/prompt_user SUMA/prompt_popup 	\
-   SUMA/SurfRetinoMap SUMA/ParseName SUMA/3dGenPriors			\
-   SUMA/3dGenFeatureDist SUMA/3dSeg SUMA/SurfExtrema SUMA/3dinfill 	\
+	SUMA/3dSurf2Vol SUMA/SurfMeasures SUMA/SurfFWHM 		 \
+	SUMA/ScaleToMap SUMA/MapIcosahedron SUMA/CreateIcosahedron 	 \
+	SUMA/CompareSurfaces SUMA/ConvertSurface SUMA/ConvertDset	 \
+    	SUMA/SurfClust SUMA/IsoSurface SUMA/ConvexHull SUMA/SUMA_glxdino \
+	SUMA/SUMA_pixmap2eps SUMA/SurfaceMetrics SUMA/inspec		 \
+	SUMA/quickspec SUMA/FSread_annot SUMA/SurfPatch SUMA/SurfQual 	 \
+	SUMA/SurfSmooth SUMA/SUMA_paperplane SUMA/SampBias		 \
+	SUMA/3dSkullStrip SUMA/3dCRUISEtoAFNI 				 \
+   SUMA/3dBRAIN_VOYAGERtoAFNI SUMA/3dSurfMask 				 \
+   SUMA/SurfToSurf  SUMA/Surf2VolCoord  SUMA/ROIgrow SUMA/SurfDsetInfo 	 \
+   SUMA/SurfInfo SUMA/AnalyzeTrace SUMA/DriveSuma SUMA/SurfDist 	 \
+   SUMA/SpharmReco SUMA/SpharmDeco SUMA/prompt_user SUMA/prompt_popup 	 \
+   SUMA/SurfRetinoMap SUMA/ParseName SUMA/3dGenPriors			 \
+   SUMA/3dGenFeatureDist SUMA/3dSeg SUMA/SurfExtrema SUMA/3dinfill 	 \
    SUMA/3dHist SUMA/HalloSuma SUMA/InstaTract SUMA/niprobe SUMA/BrainSkin \
    ${INSTALLDIR} ; \
 	if [ -f SUMA/SurfMesh ]; then $(CP) SUMA/SurfMesh ${INSTALLDIR} ; fi; \
