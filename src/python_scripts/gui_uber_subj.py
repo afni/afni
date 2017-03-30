@@ -2342,7 +2342,8 @@ class SingleSubjectWindow(QtGui.QMainWindow):
       # then process tables
       if self.update_svars_from_tables(): return 1
 
-      if self.set_sdir:
+      # if still default, create new subj_dir name
+      if self.set_sdir == '.':
          # subj dir should read: subject_results/group.gA/subj.SUBJ
          sdir =  USUBJ.get_def_subj_path(gid=self.svars.gid, sid=self.svars.sid)
          if sdir != self.cvars.val('subj_dir'):
