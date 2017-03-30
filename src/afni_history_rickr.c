@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 30,  Mar, 2017, RCR, "gen_ss_review_scripts.py", MICRO, TYPE_MODIFY,
+   "run 3dclust -DAFNI_ORIENT=RAI to match SET_DICOM_XYZ coordinate order",
+   "Suggested by J Rajendra."
+ } ,
+
  { 27,  Mar, 2017, RCR, "afni_proc.py", MICRO, TYPE_MODIFY,
    "NL warps of all-1 volume now uses -interp cubic for speed",
    "This applies only to interpolation of the warps via 3dNwarpApply.\n"
