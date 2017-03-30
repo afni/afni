@@ -2323,7 +2323,7 @@ class MyInterface:
 
       txt += '\n'                                                      \
              'prompt_user -pause "                                 \\\n' \
-             '   review: peruse statistical retsults               \\\n' \
+             '   review: peruse statistical results                \\\n' \
              '      - thresholding Full-F at masked 90 percentile  \\\n' \
              '        (thresh = $thresh)                           \\\n' \
              '                                                     \\\n' \
