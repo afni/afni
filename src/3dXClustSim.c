@@ -761,6 +761,7 @@ int main( int argc , char *argv[] )
        " -inset     mask sdata  {MANDATORY} [e.g., from 3dtoXdataset or 3dttest++]\n"
        " -NN        1 or 2 or 3 [-NN1 or -NN2 or -NN3 will work]\n"
        " -sid       1 or 2      [-1sid or -2sid will work]\n"
+       " -hpow      0 1 2       [or some subset of these]\n"
        " -prefix    something\n"
        " -pthr      list of values [default = 0.0100 0.0056 0.0031 0.0018 0.0010]\n"
        " -FOMcount  turn on FOMcount output\n"
