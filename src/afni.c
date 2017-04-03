@@ -2062,6 +2062,10 @@ void AFNI_sigfunc_alrm(int sig)
      "Did you like your p-values? If not, I can 'fix' them for you"  ,
      "Honesty is the best policy, but insanity is a better defense"  ,
      "A desk is a dangerous place from which to view the world"      ,
+     "If you can't be kind, at least be vague"                       ,
+     "Give into temptation; it might not come again"                 ,
+     "Insanity is my only means of relaxation"                       ,
+     "The three 'ups' of life: Grow Up, Shut Up, Lighten Up"         ,
 
      "Returning control of your brain (images) back to yourself"     ,
      "Returning your endofunctors back to their co-monads"           ,

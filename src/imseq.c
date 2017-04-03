@@ -65,8 +65,9 @@ static MRI_IMAGE * mri_vgize( MRI_IMAGE *im ) ;
 #define VGFAC(sss) \
   ( ((sss)->opt.improc_code & ISQ_IMPROC_VG) ? (sss)->vgize_fac : 0.0f )
 #if 1
-#  define INDEX_TO_VGFAC(qq) ( powf(1.316074f,(float)((qq)-1))*0.01f )
-#  define VGFAC_TO_INDEX(vf) ( (int)(logf(100.01f*(vf))/logf(1.316074f)+1.01f))
+#  define VGSCAL 1.27537f
+#  define INDEX_TO_VGFAC(qq) ( powf(VGSCAL,(float)((qq)-1))*0.01f )
+#  define VGFAC_TO_INDEX(vf) ( (int)(logf(100.01f*(vf))/logf(VGSCAL)+1.01f))
 #else
 #  define INDEX_TO_VGFAC(qq) (0.01f*(qq))
 #  define VGFAC_TO_INDEX(vf) ((int)(100.01f*(vf)))

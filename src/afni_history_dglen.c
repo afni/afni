@@ -1,3 +1,4 @@
+
 /** cf. afni_history.h **/
 
 #include "afni_history.h"
@@ -49,6 +50,13 @@
 
 
 afni_history_struct dglen_history[] = {
+{ 30, MAR, 2017 , DRG , "3dLocalstat" , 
+    MINOR , TYPE_NEW_OPT, 
+    "simple statistics of filled or unfilled",
+    "These options provide binary tests for whether the neighborhood shape\n"
+    "entirely fits within a mask or dataset around each voxel\n"
+    "A value can be specified for a fill and unfill value"
+},
 { 27, MAR, 2017 , DRG , "align_epi_anat.py" , 
     MINOR , TYPE_BUG_FIX, 
     "rm of temporary files could delete all files in current directory",
