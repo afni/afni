@@ -174,7 +174,7 @@ else
 endif
 
 DOIT:
-   set vvv = `@parse_afni_name $invol`
+   set vvv = (`@parse_afni_name $invol` '')
    set vvv = $vvv[3]
    set nvals = `3dnvals -all $invol`
    if ($nvals[4] > 1) then
@@ -213,7 +213,7 @@ DOIT:
    goto END
 
 DOIT_FEAT_NORM:
-   set vvv = `@parse_afni_name $invol`
+   set vvv = (`@parse_afni_name $invol` '')
    set vvv = $vvv[3]
    set nvals = `3dinfo -nv $invol`
    set v0 = 1
@@ -234,7 +234,7 @@ DOIT_FEAT_NORM:
    goto END
 
 DOIT_FEAT_ZNORM:
-   set vvv = `@parse_afni_name $invol`
+   set vvv = (`@parse_afni_name $invol` '')
    set vvv = $vvv[3]
    set nvals = `3dinfo -nv $invol`
    set v0 = 1
@@ -257,7 +257,7 @@ DOIT_FEAT_ZNORM:
    
 DOIT_NORM:
    set nvals = `3dnvals -all $invol`
-   set vvv = `@parse_afni_name $invol`
+   set vvv = (`@parse_afni_name $invol` '')
    set vvv = $vvv[3]
    3dTstat $maskopt -mean -stdev -prefix ___ts $invol
    3dcalc -a $invol -b ___ts$vvv"[0]" -c ___ts$vvv"[1]" \
@@ -268,7 +268,7 @@ DOIT_NORM:
    goto END
    
 DOIT_DIV:
-   set vvv = `@parse_afni_name $invol`
+   set vvv = (`@parse_afni_name $invol` '')
    set vvv = $vvv[3]
    set nvals = `3dnvals -all $invol`
    set cnt = 0
