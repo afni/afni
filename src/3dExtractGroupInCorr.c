@@ -470,6 +470,11 @@ int main( int argc , char *argv[] )
        nopt++ ; continue ;
      }
 
+     if( strcmp(argv[nopt],"-help") == 0 || strcmp(argv[nopt],"-h") == 0 ){
+       usage_3dExtractGroupInCorr(2) ;
+       exit(0) ;
+     }
+
      ERROR_message("Unknown option: '%s'",argv[nopt]) ;
      suggest_best_prog_option(argv[0], argv[nopt]);
      exit(1);
