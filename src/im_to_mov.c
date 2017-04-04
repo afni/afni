@@ -182,8 +182,10 @@ int main( int argc , char *argv[] )
    MRI_IMAGE *inim , *qim , *jnim ; MRI_IMAGE *im0=NULL ;
    float fac ;
    int down=1 ; int do_jpg=0 ; int do_loop=0 ;
+   int do_resize=0 ;
 
    if( argc < 3 || strcasecmp(argv[1],"-help") == 0 ){
+     printf("\n") ;
      printf("Usage: im_to_mov [options] imagefile1 imagefile2 ...\n") ;
      printf("\n") ;
      printf(
@@ -217,9 +219,11 @@ int main( int argc , char *argv[] )
             " -jpg      = write JPEG output files and stop\n"
             " -mpg      = write PPM files, convert to MPEG-1, delete PPMs\n"
             "             [this is the default mode of operation]\n"
+            " -resize   = resize all input images to match the first one\n"
             "Notes:\n"
             "------\n"
             "* The input images must all be the same size!\n"
+            "  (Unless you use the -resize option.)\n"
             "* Valid input image formats are JPEG, PPM, GIF, and PNG.\n"
             "* The output MPEG-1 frame rate is 24 per second,\n"
             "  so the default P and F parameters add up to 1 second\n"
@@ -232,6 +236,9 @@ int main( int argc , char *argv[] )
 
    while( iarg < argc && argv[iarg][0] == '-' ){
 
+     if( strcasecmp(argv[iarg],"-resize") == 0 ){
+       do_resize = 1 ; iarg++ ; continue ;
+     }
      if( strcasecmp(argv[iarg],"-jpg") == 0 ){
        do_jpg = 1 ; iarg++ ; continue ;
      }
@@ -310,8 +317,12 @@ int main( int argc , char *argv[] )
      if( IMARR_COUNT(in_imar) == 0 ){
        nx = inim->nx ; ny = inim->ny ;
      } else if( inim->nx != nx || inim->ny != ny ){
-       ERROR_message("Image '%s' has (nx,ny)=(%d,%d) mismatch from (%d,%d)",
-                     argv[ii] , inim->nx,inim->ny , nx,ny ) ; nbad++ ; continue ;
+       if( do_resize ){
+         qim = mri_resize(inim,nx,ny) ; mri_free(inim) ; inim = qim ;
+       } else {
+         ERROR_message("Image '%s' has (nx,ny)=(%d,%d) mismatch from (%d,%d)",
+                       argv[ii] , inim->nx,inim->ny , nx,ny ) ; nbad++ ; continue ;
+       }
      }
      ADDTO_IMARR(in_imar,inim) ; fprintf(stderr,".") ;
    }
