@@ -1,5 +1,10 @@
 #!/bin/tcsh -ef
 
+# ---> ! should simplify and just do AP or PA separately-- much
+# ---> ! easier/more generalized naming is possible!
+
+# --- !!! add in video thing for easy QC
+
 # written by PA Taylor (NIMH, NIH)
 # convert dicoms to nifti, while "niceifying" several properties.
 
