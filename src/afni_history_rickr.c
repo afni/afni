@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  5,  Apr, 2017, RCR, "uber_subject.py", MICRO, TYPE_BUG_FIX,
+   "apply subject dir again; allow -cvar subj_dir to override default",
+   NULL
+ } ,
+
  {  5,  Apr, 2017, RCR, "3dresample", MICRO, TYPE_MODIFY,
    "show -input as the typical usage, rather than -inset",
    NULL
