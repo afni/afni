@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  5,  Apr, 2017, RCR, "3dresample", MICRO, TYPE_MODIFY,
+   "show -input as the typical usage, rather than -inset",
+   NULL
+ } ,
+
  {  3,  Apr, 2017, RCR, "afni-general", MICRO, TYPE_MODIFY,
    "remove -f from @AddEdge, @DO.examples, @DriveAfni and @DriveSuma",
    "Since OS X is neglecting to pass DYLD variables to child shells,\n"
