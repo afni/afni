@@ -12,7 +12,7 @@
  *    - change the dx, dy, dz spacing, to one that is specified
  *    - master a dataset, so that its orientation and spacing matches
  *
- * usage:  3dresample  [options]  -prefix OUTPUT_DSET  -inset INPUT_DSET
+ * usage:  3dresample  [options]  -prefix OUTPUT_DSET  -input INPUT_DSET
  *
  *    options:
  *              -help             : detailed program info
@@ -32,9 +32,9 @@
  *              -bound_type TYPE  : one of {"FOV", "SLAB"}
  *
  *    examples:
- *      3dresample -orient "asl" -rmode NN -prefix asl.dset -inset inset+orig
- *      3dresample -dxyz 1.0 1.0 0.9 -prefix 119.dset -inset some.input+tlrc
- *      3dresample -master master+orig -prefix new.copy -inset old.copy+orig
+ *      3dresample -orient "asl" -rmode NN -prefix asl.dset -input inset+orig
+ *      3dresample -dxyz 1.0 1.0 0.9 -prefix 119.dset -input some.input+tlrc
+ *      3dresample -master master+orig -prefix new.copy -input old.copy+orig
  *----------------------------------------------------------------------
 */
 
@@ -283,7 +283,7 @@ int init_options ( options_t * opts, int argc, char * argv [] )
         {
             if ( (ac+1) >= argc )
             {
-                fputs( "option usage: -inset INPUT_DSET\n", stderr );
+                fputs( "option usage: -input INPUT_DSET\n", stderr );
                 usage( argv[0], USE_SHORT );
                 return FAIL;
             }
@@ -461,7 +461,7 @@ int usage ( char * progg, int level )
     if ( level == USE_SHORT )
     {
         fprintf( stderr,
-                 "usage: %s [options] -prefix OUT_DSET -inset IN_DSET\n"
+                 "usage: %s [options] -prefix OUT_DSET -input IN_DSET\n"
                  "usage: %s -help\n",
                  prog, prog );
         return 0;
@@ -498,13 +498,13 @@ int usage ( char * progg, int level )
             "\n"
             "------------------------------------------------------------\n"
             "\n"
-            "  usage: %s [options] -prefix OUT_DSET -inset IN_DSET\n"
+            "  usage: %s [options] -prefix OUT_DSET -input IN_DSET\n"
             "\n"
             "  examples:\n"
             "\n"
-            "    %s -orient asl -rmode NN -prefix asl.dset -inset in+orig\n"
-            "    %s -dxyz 1.0 1.0 0.9 -prefix 119.dset -inset in+tlrc\n"
-            "    %s -master master+orig -prefix new.dset -inset old+orig\n"
+            "    %s -orient asl -rmode NN -prefix asl.dset -input in+orig\n"
+            "    %s -dxyz 1.0 1.0 0.9 -prefix 119.dset -input in+tlrc\n"
+            "    %s -master master+orig -prefix new.dset -input old+orig\n"
             "\n"
             "  note:\n"
             "\n"
@@ -587,9 +587,10 @@ int usage ( char * progg, int level )
             "    -prefix OUT_DSET : required prefix for output dataset\n"
             "          e.g.  -prefix reori.asl.pickle\n"
             "\n"
-            "    -inset IN_DSET   : required input dataset to reorient\n"
-            "          e.g.  -inset old.dset+orig\n"
+            "    -input IN_DSET   : required input dataset to reorient\n"
+            "          e.g.  -input old.dset+orig\n"
             "\n"
+            "    -inset IN_DSET   : alternative to -input\n"
             "------------------------------------------------------------\n"
             "\n"
             "  Author: R. Reynolds - %s\n"
