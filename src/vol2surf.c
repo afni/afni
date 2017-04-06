@@ -186,7 +186,8 @@ v2s_plugin_opts gv2s_plug_opts = {
                             /* this must match v2s_map_nums enum */
 char * gv2s_map_names[] = { "none", "mask", "midpoint", "mask2", "ave",
                             "count", "min", "max", "max_abs", "seg_vals",
-                            "median", "mode" };
+                            "median", "mode", "nzave",
+                            "nzmin", "nzmax"  };
 char gv2s_no_label[] = "undefined";
 
 /*----------------------------------------------------------------------
@@ -1029,6 +1030,9 @@ ENTRY("v2s_adjust_endpts");
         case E_SMAP_SEG_VALS:
         case E_SMAP_MEDIAN:
         case E_SMAP_MODE:
+        case E_SMAP_NZAVE:
+        case E_SMAP_NZMIN:
+        case E_SMAP_NZMAX:
             break;
 
         case E_SMAP_MIDPT:
@@ -1101,6 +1105,25 @@ ENTRY("v2s_apply_filter");
             comp = comp / rr->ims.num;
             break;
 
+        case E_SMAP_NZAVE:
+            {
+            int nnum;
+
+            if ( findex ) *findex = 0;
+            nnum = 0;
+            comp = 0.0;
+            for ( count = 0; count < rr->ims.num; count++ ){
+                tmp = MRI_FLOAT_PTR(rr->ims.imarr[count])[index];
+                if(tmp!=0){
+                   comp += tmp;
+                   nnum++;
+                }
+             }
+            if (nnum != 0)
+               comp = comp / nnum;
+            break;
+            }
+
         case E_SMAP_MASK:
         case E_SMAP_MIDPT:
             if ( findex ) *findex = 0;
@@ -1116,6 +1139,21 @@ ENTRY("v2s_apply_filter");
             {
                 tmp = MRI_FLOAT_PTR(rr->ims.imarr[count])[index];
                 if ( tmp > comp )
+                {
+                    if ( findex ) *findex = count;
+                    comp = tmp;
+                }
+            }
+            break;
+
+        case E_SMAP_NZMAX:
+            comp = MRI_FLOAT_PTR(rr->ims.imarr[0])[index];
+            if ( findex ) *findex = 0;
+
+            for ( count = 1; count < rr->ims.num; count++ )
+            {
+                tmp = MRI_FLOAT_PTR(rr->ims.imarr[count])[index];
+                if (( tmp > comp )  && (tmp != 0.0))
                 {
                     if ( findex ) *findex = count;
                     comp = tmp;
@@ -1146,6 +1184,21 @@ ENTRY("v2s_apply_filter");
             {
                 tmp = MRI_FLOAT_PTR(rr->ims.imarr[count])[index];
                 if ( tmp < comp )
+                {
+                    if ( findex ) *findex = count;
+                    comp = tmp;
+                }
+            }
+            break;
+
+        case E_SMAP_NZMIN:
+            comp = MRI_FLOAT_PTR(rr->ims.imarr[0])[index];
+            if ( findex ) *findex = 0;
+
+            for ( count = 1; count < rr->ims.num; count++ )
+            {
+                tmp = MRI_FLOAT_PTR(rr->ims.imarr[count])[index];
+                if (( tmp < comp ) && (tmp != 0.0))
                 {
                     if ( findex ) *findex = count;
                     comp = tmp;
