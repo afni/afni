@@ -2063,6 +2063,12 @@ void AFNI_sigfunc_alrm(int sig)
      "Give into temptation; it might not come again"                 ,
      "Insanity is my best and only means of relaxation"              ,
      "The three 'Ups' of life: Grow Up, Shut Up, Lighten Up"         ,
+     "If I agreed with you, we'd both be wrong"                      ,
+     "I didn't say it was your fault; I said I was blaming you"      ,
+     "I used to be indecisive, but now I'm not so sure"              ,
+     "You're never too old to learn something stupid"                ,
+     "Borrow money from a pessimist; he won't expect it back"        ,
+     "I used to be conceited, but now I'm perfect"                   ,
      
      "The 'Lead Standard' for neuroimaging since 1994"               ,
      "Shedding new light on the brain since 1994"                    ,
@@ -2164,6 +2170,8 @@ void AFNI_sigfunc_alrm(int sig)
 
      /* Longer quotes */
 
+     "To steal ideas from one person is plagiarism; to steal from many is research"   ,
+     "The early bird gets the worm, but the second mouse gets the cheese"             ,
      "I believe in giving everybody a fair and equal chance to foul things up"        ,
      "Remember -- at least half of all the brains on Earth belong to women"           ,
      "When human judgment and big data interact, peculiar things happen"              ,
