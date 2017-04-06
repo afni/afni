@@ -49,6 +49,22 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  5,  Apr, 2017, RCR, "uber_subject.py", MICRO, TYPE_BUG_FIX,
+   "apply subject dir again; allow -cvar subj_dir to override default",
+   NULL
+ } ,
+
+ {  5,  Apr, 2017, RCR, "3dresample", MICRO, TYPE_MODIFY,
+   "show -input as the typical usage, rather than -inset",
+   NULL
+ } ,
+
+ {  3,  Apr, 2017, RCR, "afni-general", MICRO, TYPE_MODIFY,
+   "remove -f from @AddEdge, @DO.examples, @DriveAfni and @DriveSuma",
+   "Since OS X is neglecting to pass DYLD variables to child shells,\n"
+   "we need to rely on the rc files to reset them when driving GUIs."
+ } ,
+
  { 30,  Mar, 2017, RCR, "uber_subject.py", MICRO, TYPE_ENHANCE,
    "allow subj_dir to affect the GUI (so no subject_results)",
    "Also, apply user command-line variables align_opts_aea and tlrc_opts_at\n"
