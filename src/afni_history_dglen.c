@@ -50,6 +50,11 @@
 
 
 afni_history_struct dglen_history[] = {
+{ 5, APR, 2017 , DRG , "3dVol2Surf nzoptions" , 
+    MINOR , TYPE_NEW_OPT, 
+    "3dVol2Surf nonzero min, nonzero max, nonzero ave",
+    "Options allowing for statistics that ignore zero values"
+},
 { 30, MAR, 2017 , DRG , "3dLocalstat" , 
     MINOR , TYPE_NEW_OPT, 
     "simple statistics of filled or unfilled",
