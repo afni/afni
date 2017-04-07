@@ -2063,13 +2063,19 @@ void AFNI_sigfunc_alrm(int sig)
      "Give into temptation; it might not come again"                 ,
      "Insanity is my best and only means of relaxation"              ,
      "The three 'Ups' of life: Grow Up, Shut Up, Lighten Up"         ,
-     "If I agreed with you, we'd both be wrong"                      ,
-     "I didn't say it was your fault; I said I was blaming you"      ,
-     "I used to be indecisive, but now I'm not so sure"              ,
-     "You're never too old to learn something stupid"                ,
-     "Borrow money from a pessimist; he won't expect it back"        ,
-     "I used to be conceited, but now I'm perfect"                   ,
-     
+
+     /* paraprosdokians */
+
+     "If I agreed with you, we'd both be wrong"                           ,
+     "I didn't say it was your fault; I said I was blaming you"           ,
+     "I used to be indecisive, but now I'm not so sure"                   ,
+     "You're never too old to learn something stupid"                     ,
+     "Borrow money from a pessimist; he won't expect it back"             ,
+     "I used to be conceited, but now I'm perfect"                        ,
+     "We never really grow up; we only learn how to act in public"        ,
+     "I didn't say it was your fault; I said I was blaming you"           ,
+     "Money can't buy happiness, but it makes misery easier to live with" ,
+
      "The 'Lead Standard' for neuroimaging since 1994"               ,
      "Shedding new light on the brain since 1994"                    ,
      "Brain-ology at the cutting edge since 1994"                    ,
