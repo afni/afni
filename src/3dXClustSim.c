@@ -1087,7 +1087,7 @@ int main( int argc , char *argv[] )
        if( ndilstep < NDILMAX-1 && ndilsum < niter/50 ) break ;
      } /* end of loop over dilation steps */
      if( verb )
-       ININFO_message("     p=%.5f had %d dilation loops with %d cluster dilations",
+       ININFO_message("     p=%.5f used %d dilation loops with %d total cluster dilations",
                       pthr[qpthr],ndilstep+1,ndiltot) ;
    } /* end of loop over p-value thresh cluster collection */
 
@@ -1410,7 +1410,7 @@ FARP_LOOPBACK:
      farpercold = farperc ;               /* save what we got last time */
      farperc    = (100.0*nfar)/(float)niter ;  /* what we got this time */
      if( verb )
-       ININFO_message("     #%d: FPR = %.2f%%  [nedge=%d nmin=%d]",
+       ININFO_message("         FPR = %.2f%%  [nedge=%d nmin=%d]",
                       itrac, farperc/fgfac, nedge, nmin ) ;
 
      /* do we need to try another tfrac to get closer to our goal? */
