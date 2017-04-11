@@ -103,7 +103,7 @@ static char *meth_names[] = {
    "ArgMin+1"      , "ArgMax+1"     , "ArgAbsMax+1"   , "CentroMean"  ,
    "CVarInv"       , "CvarInv (NOD)", "ZeroCount"     , "NZ Median"   ,
    "Signed Absmax" , "L2 Norm"      , "NonZero Count" , "NZ Stdev"    ,
-   "Percentile %d" , "FirstValue"   , "tSNR"
+   "Percentile %d" , "FirstValue"   , "TSNR"
 };
 
 static void STATS_tsfunc( double tzero , double tdelta ,
