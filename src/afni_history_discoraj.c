@@ -52,7 +52,7 @@ afni_history_struct discoraj_history[] = {
 
  /* can copy to and change one of the examples here */
  { 10 , APR , 2017 , JKR , "3dTstat" , MINOR , TYPE_GENERAL ,
-   "add tSNR" ,
+   "add -tsnr" ,
    "same as -cvarinvNOD"
  } ,
 
