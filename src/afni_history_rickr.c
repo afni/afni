@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 11,  Apr, 2017, RCR, "afni_proc.py", MICRO, TYPE_GENERAL,
+   "add GENERAL ANALYSIS NOTE; mentioned resting state scaling as optional",
+   NULL
+ } ,
+
  { 30,  Mar, 2017, RCR, "uber_subject.py", MICRO, TYPE_ENHANCE,
    "allow subj_dir to affect the GUI (so no subject_results)",
    "Also, apply user command-line variables align_opts_aea and tlrc_opts_at\n"
