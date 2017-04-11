@@ -7,12 +7,16 @@
 #include "cs_qmed.c"
 #endif
 
+/* default fill and unfill values */
+static float fillvalue = 1.0;
+static float unfillvalue = 1.0;
+
 /*--------------------------------------------------------------------------*/
 /*! Input = 1D float array, and an NSTAT_ code to compute some statistic.
     Output = statistic's value.
 *//*------------------------------------------------------------------------*/
 
-float mri_nstat( int code , int npt , float *far , float voxval )
+float mri_nstat( int code , int npt , float *far , float voxval, MCW_cluster *nbhd )
 {
    register float outval ; float val ;
 
@@ -23,6 +27,18 @@ float mri_nstat( int code , int npt , float *far , float voxval )
    switch( code ){
 
      case NSTAT_NUM: outval = (float)npt ; break ;  /* quite easy */
+
+     /* another easy case - filled */
+     case NSTAT_FILLED:
+       if(npt==nbhd->num_pt)
+          outval = fillvalue;
+     break ;
+
+     /* and one more simple case - not filled */
+     case NSTAT_UNFILLED:
+       if(npt<nbhd->num_pt)
+          outval = unfillvalue;
+     break ;
 
      default:
      case NSTAT_SUM:
@@ -37,9 +53,10 @@ float mri_nstat( int code , int npt , float *far , float voxval )
      case NSTAT_NZNUM:{
        register int ii ;
        for( ii=0 ; ii < npt ; ii++ ) if (far[ii] != 0.0f) outval += 1 ;
-       if( code != NSTAT_NZNUM) outval /= npt ;
+       if( code != NSTAT_NZNUM) outval /= npt ; /* fractional number of points that are non-zero */
      }
      break ;
+
      
      case NSTAT_SIGMA:   /* these 3 need the mean and variance sums */
      case NSTAT_CVAR:
@@ -938,7 +955,7 @@ ENTRY("THD_localstat") ;
            cc += 3 ;  /* skip redundant codes that follow */
          } else {   /* the "usual" (catchall) case */
 
-           aar[cc][ijk] = mri_nstat( code[cc] , nbar_num , nbar, brick[ijk] ) ;
+           aar[cc][ijk] = mri_nstat( code[cc] , nbar_num , nbar, brick[ijk], nbhd ) ;
 
          }
 
@@ -984,4 +1001,14 @@ ENTRY("THD_localstat") ;
       if (mask) THD_applydsetmask(oset,mask);
    }
    RETURN(oset) ;
+}
+
+void set_mri_nstat_fillvalue(float tf)
+{
+   fillvalue = tf;
+}
+
+void set_mri_nstat_unfillvalue(float tf)
+{
+   unfillvalue = tf;
 }

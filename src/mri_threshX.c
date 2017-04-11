@@ -4,6 +4,8 @@
 
 #include "mrilib.h"
 
+/* get thread number if compiled with OpenMP -- or zero if not */
+
 #undef DECLARE_ithr   /* 30 Nov 2015 */
 #ifdef USE_OMP
 # define DECLARE_ithr const int ithr=omp_get_thread_num()
@@ -12,13 +14,13 @@
 #endif
 
 /*---------------------------------------------------------------------------*/
-/* Cluster definition.  Index type ind_t can be byte or short. */
+/* Cluster definition. Index type ind_t can be byte or short. */
 
 #define USE_UBYTE
 
 /*====================================*/
 #ifndef IND_T
-#ifdef USE_UBYTE  /* for grids <= 255 */
+#ifdef USE_UBYTE  /* for grids <= 255 on each side */
 
 # define DALL    128
 # define MAX_IND 255u
@@ -27,7 +29,7 @@
 
 # define IND_T unsigned char
 
-#else   /*==== for grids <= 32767 ====*/
+#else   /*==== for grids <= 65535 on each side ====*/
 
 # define DALL    512
 # define MAX_IND 32767u
@@ -47,7 +49,8 @@ typedef struct {
       nall ,                /* number of points allocated */
       norig ,               /* number of original pts (before dilation) */
       nbcount ;             /* for dilation decisions (cf. 3dXClustSim) */
-  float fom ;               /* Figure Of Merit for cluster */
+  float fomh[3] ;           /* Figure Of Merit for hpow=0, 1, 2 */
+  float cth[3] ;            /* FOM threshold for hpow=0, 1, 2 */
   ind_t *ip , *jp , *kp ;   /* 3D indexes for each point */
   int   *ijk ;              /* 1D index for each point */
 } Xcluster ;
@@ -71,7 +74,7 @@ typedef struct {
 
 #define ADDTO_Xcluster_array(xcar,xc)                                          \
  do{ if( (xcar)->nclu == (xcar)->nall ){                                       \
-       (xcar)->nall += 16 ;                                                    \
+       (xcar)->nall += 32 ;                                                    \
        (xcar)->xclu = (Xcluster **)realloc((xcar)->xclu,                       \
                                            sizeof(Xcluster **)*(xcar)->nall) ; \
      }                                                                         \
@@ -104,7 +107,8 @@ typedef struct {
 #define CREATE_Xcluster(xc,siz)                                        \
  do{ xc = (Xcluster *)malloc(sizeof(Xcluster)) ;                       \
      xc->npt = xc->norig = xc->nbcount = 0 ; xc->nall = (siz) ;        \
-     xc->fom = 0.0f ;                                                  \
+     xc->fomh[0] = xc->fomh[1] = xc->fomh[2] = 0.0f ;                  \
+     xc->cth [0] = xc->cth [1] = xc->cth [2] = 0.0f ;                  \
      xc->ip  = (ind_t *)malloc(sizeof(ind_t)*(siz)) ;                  \
      xc->jp  = (ind_t *)malloc(sizeof(ind_t)*(siz)) ;                  \
      xc->kp  = (ind_t *)malloc(sizeof(ind_t)*(siz)) ;                  \
@@ -117,7 +121,7 @@ typedef struct {
        free((xc)->ijk); free(xc);                                      \
  }} while(0)
 
-#if 0
+#if 0 /************************************************************************/
 /*----------------------------------------------------------------------------*/
 /* Copy one cluster's data over another's */
 
@@ -139,9 +143,15 @@ void copyover_Xcluster( Xcluster *xcin , Xcluster *xcout )
    AA_memcpy( xcout->jp , xcin->jp , sizeof(ind_t)*nin ) ;
    AA_memcpy( xcout->kp , xcin->kp , sizeof(ind_t)*nin ) ;
    AA_memcpy( xcout->ijk, xcin->ijk, sizeof(int)  *nin ) ;
-   xcout->fom   = xcin->fom ;
-   xcout->npt   = nin ;
-   xcout->norig = xcin->norig ;
+   xcout->fomh[0] = xcin->fomh[0] ;
+   xcout->fomh[1] = xcin->fomh[1] ;
+   xcout->fomh[2] = xcin->fomh[2] ;
+   xcout->cth [0] = xcin->cth [0] ;
+   xcout->cth [1] = xcin->cth [1] ;
+   xcout->cth [2] = xcin->cth [2] ;
+   xcout->npt     = nin ;
+   xcout->norig   = xcin->norig ;
+   xcout->nbcount = xcin->nbcount ;
    return ;
 }
 
@@ -157,39 +167,51 @@ Xcluster * copy_Xcluster( Xcluster *xcc )
    copyover_Xcluster( xcc , xccout ) ;
    return xccout ;
 }
-#endif
-
-/*----------------------------------------------------------------------------*/
-/* Struct to define how to threshold and clusterize */
-
-typedef struct {
-  int nnlev , sid , hpow ;
-  float pthr , blur ;
-} Xthresh_clust_param ;
-
-/*----------------------------------------------------------------------------*/
-
-#define ADDTO_FOM(val)                                       \
-  ( (hpow==0) ? 1.0f :(hpow==1) ? fabsf(val) : (val)*(val) )
+#endif /***********************************************************************/
 
 /*----------------------------------------------------------------------------*/
 /* Add a point to current cluster (if far is nonzero at this point).
    For use only in the function directly below!
 *//*--------------------------------------------------------------------------*/
 
-static float **cthar = NULL ;
-static int   *ncthar = NULL ;
-static int   *kcthar = NULL ;
+static float **cthar0 = NULL ; /* arrays to keep track of cluster */
+static int   *ncthar0 = NULL ; /* thresholds at each point and in */
+static int   *kcthar0 = NULL ; /* each OpenMP thread --           */
+                               /* see mri_multi_threshold_setup() */
+
+static float **cthar1 = NULL ;
+static int   *ncthar1 = NULL ;
+static int   *kcthar1 = NULL ;
+
+static float **cthar2 = NULL ;
+static int   *ncthar2 = NULL ;
+static int   *kcthar2 = NULL ;
 
 static int   cth_mode = 2 ;    /* 0 = mean , 1 = median, 2 = cth_perc% */
 static float cth_perc = 90.0f ;
 
-#define ADDTO_CTHAR(val,ith)                                                 \
- do{ if( kcthar[ith] >= ncthar[ith] ){                                       \
-      ncthar[ith] = 2*kcthar[ith] ;                                          \
-       cthar[ith] = (float *)realloc(cthar[ith],sizeof(float)*ncthar[ith]);  \
-     }                                                                       \
-     cthar[ith][kcthar[ith]++] = (val) ;                                     \
+#define ADDTO_CTHAR0(val,ith)                                                  \
+ do{ if( kcthar0[ith] >= ncthar0[ith] ){                                       \
+      ncthar0[ith] = 2*kcthar0[ith] ;                                          \
+       cthar0[ith] = (float *)realloc(cthar0[ith],sizeof(float)*ncthar0[ith]); \
+     }                                                                         \
+     cthar0[ith][kcthar0[ith]++] = (val) ;                                     \
+ } while(0)
+
+#define ADDTO_CTHAR1(val,ith)                                                  \
+ do{ if( kcthar1[ith] >= ncthar1[ith] ){                                       \
+      ncthar1[ith] = 2*kcthar1[ith] ;                                          \
+       cthar1[ith] = (float *)realloc(cthar1[ith],sizeof(float)*ncthar1[ith]); \
+     }                                                                         \
+     cthar1[ith][kcthar1[ith]++] = (val) ;                                     \
+ } while(0)
+
+#define ADDTO_CTHAR2(val,ith)                                                  \
+ do{ if( kcthar2[ith] >= ncthar2[ith] ){                                       \
+      ncthar2[ith] = 2*kcthar2[ith] ;                                          \
+       cthar2[ith] = (float *)realloc(cthar2[ith],sizeof(float)*ncthar2[ith]); \
+     }                                                                         \
+     cthar2[ith][kcthar2[ith]++] = (val) ;                                     \
  } while(0)
 
 #define CPUT_point(i,j,k)                                                    \
@@ -205,8 +227,12 @@ static float cth_perc = 90.0f ;
        (xcc)->ip[npt] = (i); (xcc)->jp[npt] = (j); (xcc)->kp[npt] = (k);     \
        (xcc)->ijk[npt] = pqr ;                                               \
        (xcc)->npt++ ; (xcc)->norig++ ;                                       \
-       (xcc)->fom += ADDTO_FOM(far[pqr]) ;                                   \
-       if( car != NULL ) ADDTO_CTHAR(car[pqr],ithr) ;                        \
+       (xcc)->fomh[0] += 1.0f ;                                              \
+       (xcc)->fomh[1] += fabsf(far[pqr]) ;                                   \
+       (xcc)->fomh[2] += far[pqr]*far[pqr] ;                                 \
+       if( docim0 ) ADDTO_CTHAR0(car0[pqr],ithr) ;                           \
+       if( docim1 ) ADDTO_CTHAR1(car1[pqr],ithr) ;                           \
+       if( docim2 ) ADDTO_CTHAR2(car2[pqr],ithr) ;                           \
        far[pqr] = 0.0f ;                                                     \
      } } while(0)
 
@@ -217,25 +243,28 @@ static float cth_perc = 90.0f ;
      cim    = image of min FOM to keep (can be NULL == keep everything)
 *//*--------------------------------------------------------------------------*/
 
-Xcluster_array * find_Xcluster_array( MRI_IMAGE *fim, int nnlev, MRI_IMAGE *cim )
+Xcluster_array * find_Xcluster_array( MRI_IMAGE *fim, int nnlev,
+                                      MRI_IMAGE *cim0, MRI_IMAGE *cim1, MRI_IMAGE *cim2 )
 {
    Xcluster *xcc=NULL ; Xcluster_array *xcar=NULL ;
-   float *far,*car , cth ;
+   float *far,*car0,*car1,*car2 ;
    int ii,jj,kk, icl , ijk , ijk_last ;
    int ip,jp,kp , im,jm,km , nx,ny,nz,nxy,nxyz ;
    const int do_nn2=(nnlev > 1) , do_nn3=(nnlev > 2) ;
-   const int hpow=0 ;
-   float qmed=0.0f,qmean=0.0f ;
+   const int docim0=(cim0!=NULL), docim1=(cim1!=NULL), docim2=(cim2!=NULL) ;
+   const int doccc =(docim0||docim1||docim2) ;
    DECLARE_ithr ;
 
    far = MRI_FLOAT_PTR(fim) ;
-   car = (cim != NULL) ? MRI_FLOAT_PTR(cim) : NULL ;
+   car0 = (docim0) ? MRI_FLOAT_PTR(cim0) : NULL ;
+   car1 = (docim1) ? MRI_FLOAT_PTR(cim1) : NULL ;
+   car2 = (docim2) ? MRI_FLOAT_PTR(cim2) : NULL ;
    nx = fim->nx; ny = fim->ny; nxy = nx*ny; nz = fim->nz; nxyz = nxy*nz;
 
    ijk_last = 0 ;  /* start scanning at the {..wait for it..} start */
 
    while(1){
-     /* find next nonzero point in far array */
+     /* find next nonzero point in far array (not far away) */
 
      for( ijk=ijk_last ; ijk < nxyz ; ijk++ ) if( far[ijk] != 0.0f ) break ;
      if( ijk == nxyz ) break ;  /* didn't find any! */
@@ -248,15 +277,16 @@ Xcluster_array * find_Xcluster_array( MRI_IMAGE *fim, int nnlev, MRI_IMAGE *cim 
      if( xcc == NULL )
        CREATE_Xcluster(xcc,16) ;  /* initialize to have just 16 points */
 
-     xcc->ip[0] = (ind_t)ii; xcc->jp[0] = (ind_t)jj; xcc->kp[0] = (ind_t)kk;
-     xcc->ijk[0]= ijk;
-     xcc->npt   = xcc->norig = 1 ;
-     xcc->fom   = ADDTO_FOM(far[ijk]) ; far[ijk] = 0.0f ;
-     if( car != NULL ){
-       cthar[ithr][0] = car[ijk] ; kcthar[ithr] = 1 ;
-     } else {
-       kcthar[ithr] = 0 ;
-     }
+     xcc->ip[0]   = (ind_t)ii; xcc->jp[0] = (ind_t)jj; xcc->kp[0] = (ind_t)kk;
+     xcc->ijk[0]  = ijk;
+     xcc->npt     = xcc->norig = 1 ;
+     xcc->fomh[0] = 1.0f ;
+     xcc->fomh[1] = fabsf(far[ijk]) ;
+     xcc->fomh[2] = far[ijk]*far[ijk] ; far[ijk] = 0.0f ;
+     xcc->cth[0]  = xcc->cth[1] = xcc->cth[2] = 0.0f ;
+     if( docim0 ){ cthar0[ithr][0] = car0[ijk]; kcthar0[ithr] = 1; } else { kcthar0[ithr] = 0; }
+     if( docim1 ){ cthar1[ithr][0] = car1[ijk]; kcthar1[ithr] = 1; } else { kcthar1[ithr] = 0; }
+     if( docim2 ){ cthar2[ithr][0] = car2[ijk]; kcthar2[ithr] = 1; } else { kcthar2[ithr] = 0; }
 
      /* loop over points in cluster, checking their neighbors,
         growing the cluster if we find any that belong therein */
@@ -264,7 +294,9 @@ Xcluster_array * find_Xcluster_array( MRI_IMAGE *fim, int nnlev, MRI_IMAGE *cim 
      for( icl=0 ; icl < xcc->npt ; icl++ ){
        ii = xcc->ip[icl]; jj = xcc->jp[icl]; kk = xcc->kp[icl];
        im = ii-1        ; jm = jj-1        ; km = kk-1 ;  /* minus 1 indexes */
-       ip = ii+1        ; jp = jj+1        ; kp = kk+1 ;  /* plus 1 indexes */
+       ip = ii+1        ; jp = jj+1        ; kp = kk+1 ;  /* plus  1 indexes */
+
+       /* CPUT_point(i,j,k) only does something if far[i,j,k] is nonzero */
 
        if( im >= 0 ){                 CPUT_point(im,jj,kk) ;  /* 1NN */
          if( do_nn2 ){
@@ -303,47 +335,77 @@ Xcluster_array * find_Xcluster_array( MRI_IMAGE *fim, int nnlev, MRI_IMAGE *cim 
        if( km >= 0 )                  CPUT_point(ii,jj,km) ;  /* 1NN */
        if( kp < nz )                  CPUT_point(ii,jj,kp) ;  /* 1NN */
 
-     } /* since xcc->npt increases if CPUT_point adds the point,
+     } /* since xcc->npt increases when CPUT_point adds a point,
           the loop continues until finally no new neighbors get added */
 
-     if( car != NULL && kcthar[ithr] > 0 ){
-       qmean = qmean_float(kcthar[ithr],cthar[ithr]) ;
+     if( xcc->npt < MIN_CLUST ){  /* too small ==> recycle */
+       xcc->npt = xcc->norig = 0; continue ;
+     }
+
+     /* compute FOM thresholds, if they will be used */
+
+     if( docim0 ){  /* h=0 */
+       float cth , qmean=qmean_float(kcthar0[ithr],cthar0[ithr]) , qmed ;
        switch( cth_mode ){
-         case 0:
-           cth = qmean ; break ;
-         case 1:
-           qmed  = qmed_float (kcthar[ithr],cthar[ithr]) ;
-           cth   = MAX(qmean,qmed) ;
-           break ;
+         case 0: cth  = qmean; break;
+         case 1: qmed = qmed_float(kcthar0[ithr],cthar0[ithr]); cth = MAX(qmean,qmed); break;
          default:
-         case 2:
-           qmed = qfrac_float( kcthar[ithr], 0.01f*cth_perc, cthar[ithr] ) ;
-           cth  = MAX(qmean,qmed) ;
-           break ;
+         case 2: qmed = qfrac_float(kcthar0[ithr],0.01f*cth_perc,cthar0[ithr]); cth = MAX(qmean,qmed); break;
        }
-     } else {
-       cth = 0.0f ;
+       xcc->cth[0] = cth ;
      }
 
-     /* decide what to do with this cluster */
-
-     if( xcc->fom < cth || xcc->npt < MIN_CLUST ){ /* too 'small' ==> recycle */
-       xcc->npt = xcc->norig = 0 ; xcc->fom = 0.0f ;
-     } else {                         /* add to the ever growing cluster list */
-       if( xcar == NULL ) CREATE_Xcluster_array(xcar,4) ;  /* create the list */
-       ADDTO_Xcluster_array(xcar,xcc) ; xcc = NULL ;
+     if( docim1 ){  /* h=1 */
+       float cth , qmean=qmean_float(kcthar1[ithr],cthar1[ithr]) , qmed ;
+       switch( cth_mode ){
+         case 0: cth  = qmean; break;
+         case 1: qmed = qmed_float(kcthar1[ithr],cthar1[ithr]); cth = MAX(qmean,qmed); break;
+         default:
+         case 2: qmed = qfrac_float(kcthar1[ithr],0.01f*cth_perc,cthar1[ithr]); cth = MAX(qmean,qmed); break;
+       }
+       xcc->cth[1] = cth ;
      }
+
+     if( docim2 ){  /* h=2 */
+       float cth , qmean=qmean_float(kcthar2[ithr],cthar2[ithr]) , qmed ;
+       switch( cth_mode ){
+         case 0: cth  = qmean; break;
+         case 1: qmed = qmed_float(kcthar2[ithr],cthar2[ithr]); cth = MAX(qmean,qmed); break;
+         default:
+         case 2: qmed = qfrac_float(kcthar2[ithr],0.01f*cth_perc,cthar2[ithr]); cth = MAX(qmean,qmed); break;
+       }
+       xcc->cth[2] = cth ;
+     }
+
+     /* check thresholds vs cluster FOMs to see if cluster is worthy? */
+
+     if( doccc ){
+       int ngood=0 ;
+       if( docim0 && xcc->fomh[0] >= xcc->cth[0] ) ngood++ ;
+       if( docim1 && xcc->fomh[1] >= xcc->cth[1] ) ngood++ ;
+       if( docim2 && xcc->fomh[2] >= xcc->cth[2] ) ngood++ ;
+       if( ngood == 0 ){  /* didn't pass any threshold ==> recycle */
+         xcc->npt = xcc->norig = 0; continue;
+       }
+     }
+
+     /* if cluster makes it to here, throw it on the pile */
+
+     if( xcar == NULL ) CREATE_Xcluster_array(xcar,8) ;  /* create the list */
+     ADDTO_Xcluster_array(xcar,xcc) ;
+     xcc = NULL ;  /* no recycling ==> will create new xcc when needed */
 
    } /* loop until all nonzero points in far[] have been used up */
 
-   if( xcc != NULL ) DESTROY_Xcluster(xcc) ;
+   if( xcc != NULL ) DESTROY_Xcluster(xcc) ; /* exited with unsaved cluster? */
 
-   return xcar ;  /* could be NULL */
+   return xcar ;  /* could be NULL (if nothing survived the tests) */
 }
 
-#undef CPUT_point
+#undef CPUT_point  /* not to be used again */
 
 /*----------------------------------------------------------------------------*/
+/* Allocate the initial cthar arrays for cluster FOM thresholding */
 
 void mri_multi_threshold_setup(void)
 {
@@ -351,13 +413,25 @@ void mri_multi_threshold_setup(void)
 #ifdef USE_OMP
    nthr = omp_get_max_threads() ;
 #endif
-    cthar = (float **)malloc(sizeof(float *)*nthr) ;
-   ncthar = (int *   )malloc(sizeof(int)*nthr) ;
-   kcthar = (int *   )malloc(sizeof(int)*nthr) ;
+    cthar0 = (float **)malloc(sizeof(float *)*nthr) ;
+   ncthar0 = (int *   )malloc(sizeof(int)*nthr) ;
+   kcthar0 = (int *   )malloc(sizeof(int)*nthr) ;
+    cthar1 = (float **)malloc(sizeof(float *)*nthr) ;
+   ncthar1 = (int *   )malloc(sizeof(int)*nthr) ;
+   kcthar1 = (int *   )malloc(sizeof(int)*nthr) ;
+    cthar2 = (float **)malloc(sizeof(float *)*nthr) ;
+   ncthar2 = (int *   )malloc(sizeof(int)*nthr) ;
+   kcthar2 = (int *   )malloc(sizeof(int)*nthr) ;
    for( ithr=0 ; ithr < nthr ; ithr++ ){
-     cthar[ithr] = (float *)malloc(sizeof(float)*4096) ;
-    ncthar[ithr] = 4096 ;
-    kcthar[ithr] = 0 ;
+     cthar0[ithr] = (float *)malloc(sizeof(float)*4096) ;
+    ncthar0[ithr] = 4096 ;
+    kcthar0[ithr] = 0 ;
+     cthar1[ithr] = (float *)malloc(sizeof(float)*4096) ;
+    ncthar1[ithr] = 4096 ;
+    kcthar1[ithr] = 0 ;
+     cthar2[ithr] = (float *)malloc(sizeof(float)*4096) ;
+    ncthar2[ithr] = 4096 ;
+    kcthar2[ithr] = 0 ;
    }
    eee = getenv("AFNI_MTHRESH_MODE") ;
    if( eee != NULL ){
@@ -393,22 +467,39 @@ void mri_multi_threshold_setup(void)
 }
 
 /*----------------------------------------------------------------------------*/
+/* get rid of the cthar arrays */
 
 void mri_multi_threshold_unsetup(void)
 {
    int nthr=1 , ithr ;
-   if( cthar != NULL ) return ;
 #ifdef USE_OMP
    nthr = omp_get_max_threads() ;
 #endif
-   for( ithr=0 ; ithr < nthr ; ithr++ ) free(cthar[ithr]) ;
-   free(cthar) ; free(ncthar) ; free(kcthar) ;
+   if( cthar0 != NULL ){
+     for( ithr=0 ; ithr < nthr ; ithr++ ) free(cthar0[ithr]) ;
+     free(cthar0) ; free(ncthar0) ; free(kcthar0) ;
+   }
+   if( cthar1 != NULL ){
+     for( ithr=0 ; ithr < nthr ; ithr++ ) free(cthar1[ithr]) ;
+     free(cthar1) ; free(ncthar1) ; free(kcthar1) ;
+   }
+   if( cthar2 != NULL ){
+     for( ithr=0 ; ithr < nthr ; ithr++ ) free(cthar2[ithr]) ;
+     free(cthar2) ; free(ncthar2) ; free(kcthar2) ;
+   }
+    cthar0 =  cthar1 =  cthar2 = NULL ;
+   ncthar0 = ncthar1 = ncthar2 = NULL ;
+   kcthar0 = kcthar1 = kcthar2 = NULL ;
    return ;
 }
 
 /*----------------------------------------------------------------------------*/
 
 #define XTHRESH_OUTPUT_MASK  1
+
+#define CIM0(i) ( (cimar0==NULL) ? NULL : IMARR_SUBIM(cimar0,(i)) )
+#define CIM1(i) ( (cimar1==NULL) ? NULL : IMARR_SUBIM(cimar1,(i)) )
+#define CIM2(i) ( (cimar2==NULL) ? NULL : IMARR_SUBIM(cimar2,(i)) )
 
 /*----------------------------------------------------------------------------*/
 /* fim   = image to threshold
@@ -426,14 +517,16 @@ void mri_multi_threshold_unsetup(void)
 *//*--------------------------------------------------------------------------*/
 
 MRI_IMAGE * mri_multi_threshold_Xcluster( MRI_IMAGE *fim ,
-                                          int nthr , float *thar ,
-                                          int sid , int nnlev ,
-                                          MRI_IMARR *cimar ,
-                                          int flags , int *nhits )
+                                          int nthr  , float *thar ,
+                                          int sid   , int nnlev   ,
+                                          MRI_IMARR *cimar0 ,
+                                          MRI_IMARR *cimar1 ,
+                                          MRI_IMARR *cimar2 ,
+                                          int flags , int *nhits   )
 {
-   MRI_IMAGE *tfim , *qfim=NULL , *cim ;
+   MRI_IMAGE *tfim , *qfim=NULL , *cim0,*cim1,*cim2 ;
    float *tfar , *far , *qfar=NULL , cth,cval,thr ;
-   int ii,nvox , kth ;
+   int ii,nvox , kth , jhp ;
    Xcluster_array *xcar ; Xcluster *xcc ; int icl,npt, *ijkar ;
    int do_mask = (flags & XTHRESH_OUTPUT_MASK) ;
    byte *qbyt=NULL ;
@@ -442,16 +535,19 @@ MRI_IMAGE * mri_multi_threshold_Xcluster( MRI_IMAGE *fim ,
 
    if( nhits != NULL ) *nhits = 0 ;
 
-   if( fim  == NULL || fim->kind          != MRI_float ) return NULL ;
-   if( nthr <= 0    || thar               == NULL      ) return NULL ;
-   if( cimar!= NULL && IMARR_COUNT(cimar) <  nthr      ) return NULL ;
+   if( fim  == NULL || fim->kind != MRI_float  ) return NULL ;
+   if( nthr <= 0    || thar      == NULL       ) return NULL ;
+
+   if( cimar0 != NULL && IMARR_COUNT(cimar0) != nthr ) return NULL ;
+   if( cimar1 != NULL && IMARR_COUNT(cimar1) != nthr ) return NULL ;
+   if( cimar2 != NULL && IMARR_COUNT(cimar2) != nthr ) return NULL ;
 
    nvox = fim->nvox ;
    far  = MRI_FLOAT_PTR(fim) ;
 
    for( kth=0 ; kth < nthr ; kth++ ){  /* loop over thresholds */
      thr  = thar[kth] ;
-     cim  = (cimar != NULL) ? IMARR_SUBIM(cimar,kth) : NULL ;
+     cim0 = CIM0(kth) ; cim1 = CIM1(kth) ; cim2 = CIM2(kth) ;
      tfim = mri_copy(fim) ;
      tfar = MRI_FLOAT_PTR(tfim) ;
 
@@ -473,7 +569,7 @@ MRI_IMAGE * mri_multi_threshold_Xcluster( MRI_IMAGE *fim ,
 
      /* clusterize and keep "good" clusters (relative to cim) */
 
-     xcar = find_Xcluster_array( tfim , nnlev , cim ) ;
+     xcar = find_Xcluster_array( tfim , nnlev , cim0,cim1,cim2 ) ;
 
      mri_free(tfim) ;
 
@@ -481,7 +577,7 @@ MRI_IMAGE * mri_multi_threshold_Xcluster( MRI_IMAGE *fim ,
 
      /* put "good" clusters into qfim (copying from original input image) */
 
-     if( qfim == NULL ){                            /* create output image */
+     if( qfim == NULL ){          /* create output image if needed */
        if( do_mask ){
          qfim = mri_new_conforming(fim,MRI_byte) ;  /* zero filled */
          qbyt = MRI_BYTE_PTR(qfim) ;
@@ -514,7 +610,7 @@ MRI_IMAGE * mri_multi_threshold_Xcluster( MRI_IMAGE *fim ,
      *nhits = npt ;
    }
 
-   return qfim ;  /* will be NULL if nuthin was found nowhere nohow */
+   return qfim ;  /* nuthin nowhere nohow ==> NULL */
 }
 
 /*----------------------------------------------------------------------------*/
@@ -524,18 +620,27 @@ MRI_IMAGE * mri_multi_threshold_Xcluster( MRI_IMAGE *fim ,
 
 MRI_IMAGE * mri_threshold_Xcluster( MRI_IMAGE *fim ,
                                     float thr , int sid , int nnlev ,
-                                    MRI_IMAGE *cim , int flags , int *nhits )
+                                    MRI_IMAGE *cim0 ,
+                                    MRI_IMAGE *cim1 ,
+                                    MRI_IMAGE *cim2 ,
+                                    int flags , int *nhits )
 {
    float thar[1] ;
-   MRI_IMARR *cimar ;
+   MRI_IMARR *cimar0=NULL,*cimar1=NULL,*cimar2=NULL ;
    MRI_IMAGE *qfim ;
 
-   INIT_IMARR(cimar) ;
-   ADDTO_IMARR(cimar,cim) ;
+   if( cim0 != NULL ){ INIT_IMARR(cimar0); ADDTO_IMARR(cimar0,cim0); }
+   if( cim1 != NULL ){ INIT_IMARR(cimar1); ADDTO_IMARR(cimar1,cim1); }
+   if( cim2 != NULL ){ INIT_IMARR(cimar2); ADDTO_IMARR(cimar2,cim2); }
+
    thar[0] = thr ;
 
-   qfim = mri_multi_threshold_Xcluster(fim,1,thar,sid,nnlev,cimar,flags,nhits) ;
+   qfim = mri_multi_threshold_Xcluster(fim,1,thar,sid,nnlev,
+                                       cimar0,cimar1,cimar2,flags,nhits) ;
 
-   FREE_IMARR(cimar) ;
+   if( cimar0 != NULL ) FREE_IMARR(cimar0) ;
+   if( cimar1 != NULL ) FREE_IMARR(cimar1) ;
+   if( cimar2 != NULL ) FREE_IMARR(cimar2) ;
+
    return qfim ;
 }

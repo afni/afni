@@ -763,6 +763,8 @@ extern void binarize_mask( int , byte * ) ;
 #define NSTAT_adiffs2     39
 #define NSTAT_LIST        40
 #define NSTAT_HIST        41
+#define NSTAT_FILLED      42
+#define NSTAT_UNFILLED    43
 
 #define NSTAT_FWHMx      63   /*these should be after all other NSTAT_* values */
 #define NSTAT_FWHMy      64
@@ -796,10 +798,11 @@ extern void binarize_mask( int , byte * ) ;
 #define NBISTAT_CITYBLOCK_DIST     66694 /* 4 May 2012, ZSS */
 
 
-extern float mri_nstat  ( int , int , float * , float) ;  /* 19 Aug 2005 */
 extern float mri_nbistat( int , MRI_IMAGE *, MRI_IMAGE * ) ; /* 26 Oct 2006 */
 extern void mri_nbistat_setclip( float, float , float, float ) ;
 extern void mri_bistat_setweight( MRI_IMAGE *wm ) ;  /* 14 Aug 2007 */
+extern void set_mri_nstat_fillvalue(float tf);
+extern void set_mri_nstat_unfillvalue(float tf);
 
 extern MRI_IMAGE * mri_edit_image( float pthr, float power, MRI_IMAGE * im ) ;
 
@@ -2083,6 +2086,7 @@ extern float mriarr_estimate_FWHM_acf( MRI_IMARR *imar, byte *mask, int unif, fl
 
 void mri_fwhm_setfester( THD_fvec3 (*func)(MRI_IMAGE *, byte *) ) ;
 
+extern float mri_nstat  ( int , int , float * , float, MCW_cluster *) ;  /* 19 Aug 2005 */
 extern THD_fvec3 mri_nstat_fwhmxyz( int,int,int ,
                                     MRI_IMAGE *, byte *, MCW_cluster * );
 
