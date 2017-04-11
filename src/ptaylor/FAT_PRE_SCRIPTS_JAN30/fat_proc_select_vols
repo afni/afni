@@ -29,8 +29,8 @@ endif
 
 # default location of viewer: user could modify!
 set my_viewer   = "$adir/@chauffeur_afni"
-set my_selector = "$adir/@djunct_dwi_selector.sh"
-
+set my_selector = "$adir/@djunct_dwi_selector.bash"
+set my_encoder  = "$adir/@djunct_select_str.py"
 
 # ----------------------- set defaults --------------------------
 
@@ -39,11 +39,11 @@ set iimg       = ""              # required input
 set obads      = ""              # NOT required input
 
 set odir       = ""
-set opref      = "indti"
+set opref      = "subs"
+set DO_OUTVOL  = 0               # don't apply to DWI by default
 
 set DO_VIEWER  = 1               # def: do viewing
 set DO_CLEAN   = 1
-set wdir       = "__WORKING_maptodti"
 set output_cmd = 1               # def: output copy of this command
 set cmd_file   = ""              # def: same name as viewer
 set qc_prefix  = ""              # def: autoname; user can enter
@@ -101,8 +101,24 @@ while ( $ac <= $#argv )
     else if ( "$argv[$ac]" == "-no_cmd_out" ) then
         set output_cmd = 0
 
-    else if ( "$argv[$ac]" == "-no_clean" ) then
-        set DO_CLEAN =0 
+    # --------------- apply to DWI and image ---------
+
+    else if ( "$argv[$ac]" == "-apply_to_dwi" ) then
+        set DO_OUTVOL = 1
+
+    else if ( "$argv[$ac]" == "-do_movie" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set movie = "$argv[$ac]"
+        if ( ( $movie == "MPEG" ) || ( $movie == "AGIF" ) ) then
+            echo "++ OK, will make a movie of type $movie."
+        else
+            echo "** ERROR: '$movie' is NOT an allowed movie format!"
+            echo "      -> must be either 'MPEG' or 'AGIF'"
+            goto BAD_EXIT
+        endif
+        # replace with both here for calling @dj*
+        set movie = "-do_movie $movie"   
 
     else
         echo "** unexpected option #$ac = '$argv[$ac]'"
@@ -156,23 +172,16 @@ else
     endif
 endif
 
-set wdir = "$odir/$wdir"
-
-# make the working directory
-if ( ! -e $wdir ) then
-    echo "++ Making working directory: $wdir"
-    mkdir $wdir
-else
-    echo "+* WARNING: Somehow found a premade working directory (?):"
-    echo "      $wdir"
-endif
-
 # ========================= output fnames ==========================
 
 set ocmd   = "${opref}_cmd.txt"      # name for output command
+set ogoods = "${opref}_goods.txt"    # name 
+set ovol   = "${opref}.nii"    # name 
 
 ## !!!!!!
 if ( "$obads" == "" ) then
+
+    set obads  = "${opref}_bads.txt"
 
     if ( -e "$odir/$obads" ) then
         echo ""
@@ -183,7 +192,6 @@ if ( "$obads" == "" ) then
         echo "        appending to preexisting lists.)\n"
         goto BAD_EXIT
     endif
-    set obads  = "${opref}_bad.txt"
 else
     if ( -e "$odir/$obads" ) then
         echo ""
@@ -224,139 +232,42 @@ endif
 
 # --------------------- start proc ---------------------------
 
+echo "++ Call selector:"
+echo "   $my_selector $idwi $iimg $obads\n"
+
 $my_selector "$idwi" "$iimg" "$obads"
 
+set Nvols = `3dinfo -nv "$idwi"`
 
-if ( 0 ) then
+$my_encoder  "$obads" $Nvols "$ogoods"
 
-    set vedge = $wdir/f10_edges.nii
 
-    echo "++ More QC images: b0 on initial ref."
-    3dedge3                         \
-        -overwrite                  \
-        -prefix $vedge              \
-        -input  $odir/$ot1w
+if ( $DO_OUTVOL ) then
 
-    if( $qc_prefix == "" ) then
-        set vpref0 = ${opref}_${postfix}_qc00_t1wEt2w
-        set vpref1 = ${opref}_${postfix}_qc01_t1won2w
-    else
-        set vpref0 = ${qc_prefix}_${postfix}_qc00_t1wEt2w 
-        set vpref1 = ${qc_prefix}_${postfix}_qc01_t1won2w
+    set selstr = `cat PPP_goods.txt`
+    3dcalc                    \
+        -overwrite            \
+        -a "$idwi""[$selstr]" \
+        -expr 'a'             \
+        -prefix $odir/$ovol
+
+    if ( 1 ) then
+
+        set img_pref = `basename $ovol     .gz`
+        set img_pref = `basename $img_pref .nii`
+
+        @djunct_dwi_imager                    \
+            -inset  $odir/$ovol               \
+            -outdir "$odir"                   \
+            -prefix "$odir/$img_pref"         \
+            $movie
+
     endif
 
-    echo "\n\n"
-    echo "++ QC image 00 ($odir/$ot1w edges on $it2w): $vpref0"
-    echo "\n\n"
-    # need to put '[0]' on $iref?
-    $my_viewer                            \
-        -ulay "$it2w"                     \
-        -ulay_range "2%" "98%"            \
-        -olay "$vedge"                    \
-        -func_range_perc 50               \
-        -pbar_posonly                     \
-        -cbar "red_monochrome"            \
-        -opacity 6                        \
-        -prefix $vpref0                   \
-        -outdir "$odir"                   \
-        -montx 5 -monty 3                 \
-        -set_xhairs OFF                   \
-        -label_mode 1 -label_size 3       \
-        -do_clean 
-
-    echo "\n\n"
-    echo "++ QC image 01 ($odir/$ot1w olay on $it2w): $vpref1"
-    echo "\n\n"
-
-    $my_viewer                            \
-        -ulay "$it2w"                     \
-        -ulay_range "2%" "98%"            \
-        -olay "$odir/$ot1w"               \
-        -pbar_posonly                     \
-        -opacity 4                        \
-        -prefix $vpref1                   \
-        -outdir "$odir"                   \
-        -montx 5 -monty 3                 \
-        -set_xhairs OFF                   \
-        -label_mode 1 -label_size 3       \
-        -do_clean 
-
-    # for NN
-    foreach ff ( ${list_ofNN} )
-        echo "++ QC imaging for the NN followers dset list:"
-        echo "    ${list_ofNN}"
-
-        set pp = `3dinfo -prefix_noext $ff`
-        if( $qc_prefix == "" ) then
-            set vprefnn = ${opref}_${postfix}_qc_$pp
-        else
-            set vprefnn = ${qc_prefix}_${postfix}_qc_$pp
-        endif
-
-        $my_viewer                            \
-            -ulay "$it2w"                     \
-            -ulay_range "2%" "98%"            \
-            -olay "$ff"                       \
-            -pbar_posonly                     \
-            -cbar "ROI_i256"                  \
-            -opacity 4                        \
-            -prefix $vprefnn                  \
-            -outdir "$odir"                   \
-            -montx 5 -monty 3                 \
-            -set_xhairs OFF                   \
-            -label_mode 1 -label_size 3       \
-            -do_clean 
-    end
-
-    # for WS5
-    foreach ff ( ${list_ofWS5} )
-        echo "++ QC imaging for the wsinc5 followers dset list:"
-        echo "    ${list_ofWS5}"
-
-        set pp = `3dinfo -prefix_noext $ff`
-        if( $qc_prefix == "" ) then
-            set vprefnn = ${opref}_${postfix}_qc_$pp
-        else
-            set vprefnn = ${qc_prefix}_${postfix}_qc_$pp
-        endif
-
-        $my_viewer                            \
-            -ulay "$it2w"                     \
-            -ulay_range "2%" "98%"            \
-            -olay "$ff"                       \
-            -pbar_posonly                     \
-            -cbar "Viridis"                   \
-            -opacity 4                        \
-            -prefix $vprefnn                  \
-            -outdir "$odir"                   \
-            -montx 5 -monty 3                 \
-            -set_xhairs OFF                   \
-            -label_mode 1 -label_size 3       \
-            -do_clean 
-    end
-
 endif
 
-
-if ( 0 ) then
-# clean, by default
-if ( $DO_CLEAN ) then
-    echo "\n++ Cleaning working directory!\n"
-    \rm -rf $wdir
-else
-    echo "\n++ NOT removing working directory '$wdir'.\n"
-endif
-
-# final messages
-echo "++ The final data set is here:  $odir/$ot1w"
-echo "++ The final spatial dims are:  $fdims[1] $fdims[2] $fdims[3]"
-echo "++ The spatial resolution is:   $fres[1] $fres[2] $fres[3]"
-
-
-endif
 
 # ---------------------------------------------------------------------
-
 goto GOOD_EXIT
 
 # ========================================================================
@@ -366,28 +277,15 @@ SHOW_HELP:
 cat << EOF
 # -----------------------------------------------------------------------
 
- This program is for bringing data sets into DWI space, with the particular
- thought that bringing anatomically-defined ROI maps or EPI data that are
- aligned to a subject's anatomical might be useful.  This might be useful
- after having run FreeSurfer, for example.  
+ This program is for building a selector string for AFNI subbricks
+ and/or 1D text files.  It makes use of J. Rajendra's
+ ``@djunct_dwi_selector.sh`` script to make a list of 'bad' volume
+ indices by clicking on individual volumes in a montage image.  Pretty
+ cool.
 
- An affine transformation matrix between, say, a subject's T1w volume and
- a DWI reference volume is calculated, and then applied to follower data
- sets.  The transformation can be applied either as 'NN' (-> for preserving
- integer values in sets) or as 'wsinc5' (-> if one has floating point values).
- The final dsets will reside in the DWI space. Yay.
-
- At the moment this program *assumes* that the input source
- ('-in_source SSS') and reference base ('-in_base BBB') are from the
- same subject, because only 12 DOF affine alignment is calculated
- (using 3dAllineate).  Maybe something could be done with 3dQwarp in
- the future.  Maybe.
-
- This program mainly assumes that the T1w and DWI reference volume
- have similar contrasts expected for standard sequences and healthy
- adult brains.  This might still work for other applications, but
- caveat emptor (even more than usual!).  This would *not* be
- recommended for aligning brains that aren't from the same subject.
+ In the end, a selector string of volumes *to keep* (i.e., the
+ complement of the set of indices chosen with clicks) is output to
+ screen as well as stored in a text file.
 
   Ver. $version (PA Taylor, ${rev_dat})
 
@@ -395,89 +293,78 @@ cat << EOF
 
   OUTPUT:
 
-     + NIFTI file: aligned T1w volume.
-
-     + NIFTI files: each follower DSET* ends up in the DWI/DTI space
-       and has a respective name PREFIX_DSET*.nii.gz.
-
-     + QC snapshots of the T1w volume overlaying the DWI reference 
-       volume, and also the T1w edges overlaying the ref vol.
-
-     + QC snapshots of each of the follower dsets overlaying the DWI ref
-       volume.
+    + PPP_bads.txt: text file with AFNI-usable selector string, which
+                    can be put into either square brackets [] or curly
+                    brackets {}, whichever is appropriate for a given
+                    application.
 
 # ----------------------------------------------------------------------
 
   RUNNING:
 
-    $this_prog \
-      {-in_source SSS}                               \
-      {-in_base   DDD}                               \
-      {-outdir    ODIR}                              \
-      {-prefix    PPP}                               \
-      {-followers_NN      DSET01 DSET02 DSET03 ...}  \
-      {-followers_wsinc5  DSET1 DSET2 DSET3 ...}     \
-      {-no_cmd_out}                                  \
-      {-no_clean} 
+    $this_prog  \
+        {-in_dwi  DDD}                 \
+        {-in_img  IM2D}                \
+        {-in_bads TTT}                 \
+        {-outdir  ODIR}                \
+        {-prefix  PPP}                 \
+        {-apply_to_dwi}                \
+        {-do_movie AGIF|MPEG}          \
+        {-no_cmd_out} 
 
   where:
 
-   -in_source SSS :T1w volume (required); 'source' volume from which we
-                   are mapping, such as an anatomical volume in whose
-                   space ROIs might have been defined.  SSS gets
-                   mapped into the '-in_base BBB' volume's space.
-   -in_base BBB   :DWI reference volume (required; should be from same
-                   subject as SSS), such as the b=0 (or minimally DWed
-                   volume), for aligning to; subbrick selections are
-                   allowed, so that dwi_dwi.nii'[0]', for example,
-                   would be allowed.  This is the base dset for the
-                   alignment, with the purpose to bring other volumes
-                   into the DWI/DTI space (see the '-followers* ...'
-                   options, below).  **NOTE**: BBB and SSS should be
-                   from the same subject by this function, because
-                   only affine alignment with 3dAllineate is
-                   performed!
+   -in_dwi  DDD   :input DWI set (required).
+   -in_img  IM2D  :2d image of DDD, such as made by a fat_proc* 
+                   script, or @djunct_*imager directly (required).
+   -in_bads TTT   :(optional) a single column file of integers,
+                   such as made by a previous run of $this_prog.
+                   For example, if one has dual phase-encoded
+                   DWI data, then one might make a list of bads
+                   from the AP-acquired set and then add to it any
+                   bad indices from the PA-acquired set.
 
    -outdir  ODIR  :can specify output directory for all created 
-                   dsets (default is T1W volume's directory).                
-   -prefix  PPP   :output prefix for files and snapshots.  
+                   dsets (default is DWI volume's directory).                
+   -prefix  PPP   :output prefix for files.  
 
-   -followers_NN  DSET01 DSET02 DSET03 ...
-                  :apply the same transformation to 'follower' data
-                   sets; one or more dsets can be listed, with each
-                   assumed to overlay on the T1W source set. The 'NN'
-                   interpolation of 3dAllineate is applied to these
-                   dsets, so that integer values remain integer
-                   valued; thus, these might be dsets with ROI maps
-                   already created.  NB: subbrick selectors are not
-                   allowed on the DSETs here at present.  Labeltables 
-                   attached to these dsets do get propagated, as well.
-   -followers_wsinc5  DSET1 DSET2 DSET3 ...
-                   similar to the above '-followers_NN ...', except in
-                   this case the final applied mapping is 'wsinc5', which
-                   is appropriate, for example, for floating point values.
-                   Again, a list of one or more volumes (sans subbrick
-                   selectors) can be provided here.  No labeltable is
-                   propagated for these sets (I doubt they would have one,
-                   anyways).
+   -apply_to_dwi  :switch to apply the created selection of good 
+                   volumes to the DWI dset.  NB: if you are using 
+                   this function to select out bad volumes from 
+                   a dual phase encode set, then you *wouldn't* want 
+                   to use this option, because you want to apply
+                   the complete removal to *both* volumes.  Note also,
+                   that once you apply this selection to the volumes,
+                   you also need to apply it to any bval, bvec, bmatrix,
+                   etc. text files.
+    -do_movie AGIF | MPEG:
+                   when "-apply_to_dwi" is used, static images are 
+                   output by default;  one can use this option with 
+                   either of the given arguments to output a movie of the
+                   newly created dset.  Only those arguments can be used
+                   at present.
 
    -no_cmd_out    :don't save the command line call of this program
                    and the location where it was run (otherwise, it is
                    saved by default in the ODIR/).                     
-   -no_clean      :no not delete temporary working directory (default is 
-                   to remove it to save disk space).
 
 # ----------------------------------------------------------------------
 
   EXAMPLE
 
-    $this_prog  \
-        -in_source    brain.nii            \
-        -in_base      dwi_dwi.nii.gz'[0]'  \
-        -outdir       SUB001               \
-        -prefix       indti                \
-        -followers_NN  aparc*_REN_*.nii.gz 
+    $this_prog    \
+        -in_dwi DWI.nii               \
+        -in_img DWI_sepscl.sag.png    \
+        -outdir .                     \
+        -prefix DWI_trim
 
+
+    $this_prog    \
+        -in_dwi DWI_ap.nii               \
+        -in_img DWI_ap_sepscl.sag.png    \
+        -outdir .                        \
+        -prefix DWI_trim_both            \
+        -in_bads DWI_appa_bads.txt
 
 # -----------------------------------------------------------------------
 

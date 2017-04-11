@@ -2004,8 +2004,6 @@ void AFNI_sigfunc_alrm(int sig)
      "Was it the silver bullet you were hoping for?"                 ,
      "Why is 'gold' the standard for data analysis, anyway?"         ,
      "Did you find the Holy Grail of neuroimaging yet?"              ,
-     "Shedding new light on the brain since 1994!"                   ,
-     "Brain-ology at the cutting edge since 1994!"                   ,
      "Don't you wish it had a 'Write Nature Paper' button?"          ,
      "Coming REAL soon: the 'Write Science Paper' interface"         ,
      "And flights of angels sing thee to thy rest"                   ,
@@ -2041,7 +2039,6 @@ void AFNI_sigfunc_alrm(int sig)
      "Remember to take your brain out and polish it"                 ,
      "What in God's Holy Name are you blathering on about?"          ,
      "Are you a Dada-ist or a Dude-ist?"                             ,
-     "Putting the 'wit' in 'twit' since 1994"                        ,
      "I'm completely innocent. Within reason"                        ,
      "Believe those who seek the truth; doubt those who find it"     ,
      "There is more to truth that just the facts"                    ,
@@ -2062,6 +2059,28 @@ void AFNI_sigfunc_alrm(int sig)
      "Did you like your p-values? If not, I can 'fix' them for you"  ,
      "Honesty is the best policy, but insanity is a better defense"  ,
      "A desk is a dangerous place from which to view the world"      ,
+     "If you can't be kind, at least be vague"                       ,
+     "Give into temptation; it might not come again"                 ,
+     "Insanity is my best and only means of relaxation"              ,
+     "The three 'Ups' of life: Grow Up, Shut Up, Lighten Up"         ,
+
+     /* paraprosdokians */
+
+     "If I agreed with you, we'd both be wrong"                           ,
+     "I didn't say it was your fault; I said I was blaming you"           ,
+     "I used to be indecisive, but now I'm not so sure"                   ,
+     "You're never too old to learn something stupid"                     ,
+     "Borrow money from a pessimist; he won't expect it back"             ,
+     "I used to be conceited, but now I'm perfect"                        ,
+     "We never really grow up; we only learn how to act in public"        ,
+     "I didn't say it was your fault; I said I was blaming you"           ,
+     "Money can't buy happiness, but it makes misery easier to live with" ,
+
+     "The 'Lead Standard' for neuroimaging since 1994"               ,
+     "Shedding new light on the brain since 1994"                    ,
+     "Brain-ology at the cutting edge since 1994"                    ,
+     "Putting the 'wit' in 'twit' since 1994"                        ,
+     "Confusing neuroscientists successfully since 1994"             ,
 
      "Returning control of your brain (images) back to yourself"     ,
      "Returning your endofunctors back to their co-monads"           ,
@@ -2157,6 +2176,8 @@ void AFNI_sigfunc_alrm(int sig)
 
      /* Longer quotes */
 
+     "To steal ideas from one person is plagiarism; to steal from many is research"   ,
+     "The early bird gets the worm, but the second mouse gets the cheese"             ,
      "I believe in giving everybody a fair and equal chance to foul things up"        ,
      "Remember -- at least half of all the brains on Earth belong to women"           ,
      "When human judgment and big data interact, peculiar things happen"              ,
@@ -2212,7 +2233,6 @@ void AFNI_sigfunc_alrm(int sig)
      "Dreams are true while they last, and do we not live in dreams?"                 ,
      "Have you made your long term (trillion year) research plan yet? Get busy now"   ,
      "Why is 'Gold Standard' used in science? Gold is pretty but almost useless"      ,
-     "The 'Lead Standard' for neuroimaging since 1994"                                ,
      "Oh well, you can always end your paper with 'Further research needed'"          ,
      "It's not true my youth was wild and crazy -- only half of that is true"         ,
      "Your theory is crazy, just not crazy enough to be true"                         ,

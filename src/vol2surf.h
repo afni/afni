@@ -44,6 +44,8 @@ typedef enum
     E_SMAP_MAX_ABS, E_SMAP_SEG_VALS,
     /* sorted ones: */
     E_SMAP_MEDIAN,  E_SMAP_MODE,
+    /* non-zero versions of a few */
+    E_SMAP_NZAVE, E_SMAP_NZMIN, E_SMAP_NZMAX,
     E_SMAP_FINAL                        /* leave FINAL at the end */
 } v2s_map_nums;
 

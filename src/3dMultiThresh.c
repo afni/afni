@@ -12,6 +12,8 @@ int main( int argc , char *argv[] )
    int nopt , ii , tindex=-1 , ival,nval,nvox ;
    int nnlev,nnsid,nzthr ; float *zthr=NULL ;
    MRI_IMAGE *fim , *bfim ; int nhits=0 , do_nozero=0 ;
+   int do_hpow0=0,do_hpow1=0,do_hpow2=0 , nhpow=0,hpow=0 , hstart ;
+   MRI_IMARR *cimar0=NULL , *cimar1=NULL , *cimar2=NULL ;
 
    /*----- help, I'm trapped in an instance of vi and can't get out -----*/
 
@@ -37,7 +39,10 @@ int main( int argc , char *argv[] )
       "\n"
       "The number of surviving voxels will be written to stdout.\n"
       "It can be captured in a csh script by a command such as\n"
-      "   set nhits = `3dMultiThresh [options]`\n"
+      "   set nhits = `3dMultiThresh OPTIONS`\n"
+      "\n"
+      "Meant to be used in conjunction with program 3dXClustSim,\n"
+      "which is in turn meant to be used with program 3dttest++ -- RWCox\n\n"
      ) ;
      exit(0) ;
    }
@@ -87,7 +92,7 @@ int main( int argc , char *argv[] )
      }
 
      if( strcasecmp(argv[nopt],"-mthresh") == 0 ){
-       ATR_float *atr ; float *afl ;
+       ATR_float *atr ; float *afl ; int nbad=0 ;
        if( mset != NULL )
          ERROR_exit("you can't use '-mthresh' twice!") ;
        if( ++nopt >= argc )
@@ -105,14 +110,25 @@ int main( int argc , char *argv[] )
        nnlev = (int)afl[0] ;
        nnsid = (int)afl[1] ;
        nzthr = (int)afl[2] ;
+       hpow  = (int)afl[3] ;
        zthr  = (float *)malloc(sizeof(float)*nzthr) ;
-       for( ii=0 ; ii < nzthr ; ii++ ) zthr[ii] = afl[3+ii] ;
+       for( ii=0 ; ii < nzthr ; ii++ ) zthr[ii] = afl[4+ii] ;
+
+       do_hpow0 = (hpow & 1) != 0 ;
+       do_hpow1 = (hpow & 2) != 0 ;
+       do_hpow2 = (hpow & 4) != 0 ;
+       nhpow    = do_hpow0 + do_hpow1 + do_hpow2 ;
 
        if( verb ){
            INFO_message("-mthresh dataset parameters") ;
-         ININFO_message("  clustering NN=%d  thresholding=%d-sided  %d thresholds",
-                        nnlev,nnsid,nzthr ) ;
+         ININFO_message("     clustering NN=%d  thresholding=%d-sided  %d thresholds  %d hpows",
+                        nnlev,nnsid,nzthr,nhpow ) ;
        }
+       if( nnlev < 1 || nnlev > 3 ){ ERROR_message("illegal nnlev=%d",nnlev); nbad++; }
+       if( nnsid < 1 || nnsid > 2 ){ ERROR_message("illegal sided=%d",nnsid); nbad++; }
+       if( nzthr < 1              ){ ERROR_message("illegal nzthr=%d",nzthr); nbad++; }
+       if( nhpow < 1              ){ ERROR_message("illegal nhpow=%d",nhpow); nbad++; }
+       if( nbad )                    ERROR_exit("Can't continue after the above problems") ;
 
        nopt++ ; continue ;
      }
@@ -122,8 +138,8 @@ int main( int argc , char *argv[] )
 
    /*-- check for errors --*/
 
-   if( iset == NULL ) ERROR_exit("-input is a mandatory option") ;
-   if( mset == NULL ) ERROR_exit("-mthresh is a mandatory option") ;
+   if( iset == NULL ) ERROR_exit("-input is a mandatory 'option'") ;
+   if( mset == NULL ) ERROR_exit("-mthresh is a mandatory 'option'") ;
 
    /*----- do the work (oog) -----*/
 
@@ -153,16 +169,37 @@ int main( int argc , char *argv[] )
 
    /* get the mask of values above the multi-thresholds */
 
+   hstart = 0 ;
+   if( do_hpow0 ){
+     INIT_IMARR(cimar0) ;
+     for( ival=0 ; ival < nzthr ; ival++ )
+       ADDTO_IMARR(cimar0,DSET_BRICK(mset,hstart+ival*nhpow)) ;
+     hstart++ ;
+   }
+   if( do_hpow1 ){
+     INIT_IMARR(cimar1) ;
+     for( ival=0 ; ival < nzthr ; ival++ )
+       ADDTO_IMARR(cimar1,DSET_BRICK(mset,hstart+ival*nhpow)) ;
+     hstart++ ;
+   }
+   if( do_hpow2 ){
+     INIT_IMARR(cimar2) ;
+     for( ival=0 ; ival < nzthr ; ival++ )
+       ADDTO_IMARR(cimar2,DSET_BRICK(mset,hstart+ival*nhpow)) ;
+     hstart++ ;
+   }
+
    mri_multi_threshold_setup() ;
 
    bfim = mri_multi_threshold_Xcluster( fim ,
                                         nzthr , zthr , nnsid , nnlev ,
-                                        mset->dblk->brick ,
+                                        cimar0 , cimar1 , cimar2 ,
                                         XTHRESH_OUTPUT_MASK , &nhits ) ;
 
    mri_multi_threshold_unsetup() ;
 
    mri_free(fim) ; DSET_unload(mset) ;
+   FREE_IMARR(cimar0) ; FREE_IMARR(cimar1) ; FREE_IMARR(cimar2) ;
 
    /* nothing survived? */
 

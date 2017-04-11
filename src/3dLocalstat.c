@@ -137,6 +137,10 @@ void usage_3dLocalstat(int detail)
 "                          map that size.  It may be useful if you\n"
 "                          plan to compute a t-statistic (say) from\n"
 "                          the mean and stdev outputs.\n"
+"               * filled = 1 or fillvalue if all voxels in neighborhood\n"
+"                          are within mask\n"
+"               * unfilled = 1 or unfillvalue if not all voxels in neighborhood\n"
+"                          are within mask\n"
 "               * sum    = sum of the values in the region:\n"
 "               * FWHM   = compute (like 3dFWHM) image smoothness\n"
 "                          inside each voxel's neighborhood.  Results\n"
@@ -237,7 +241,8 @@ void usage_3dLocalstat(int detail)
 "                           set Rx Ry Rz so that the computation grid is\n"
 "                           at a resolution of nbhd/MAX_VOX voxels.\n"
 " -grid_rmode RESAM = Interpolant to use when resampling the output with\n"
-"                     reduce_restore_grid option. The resampling method\n"        "                     string RESAM should come from the set \n"
+"                     reduce_restore_grid option. The resampling method\n"
+"                     string RESAM should come from the set \n"
 "                     {'NN', 'Li', 'Cu', 'Bk'}.  These stand for\n"
 "                     'Nearest Neighbor', 'Linear', 'Cubic'\n"
 "                     and 'Blocky' interpolation, respectively.\n"
@@ -246,6 +251,8 @@ void usage_3dLocalstat(int detail)
 " -verb       = a little more verbose.\n"
 " -proceed_small_N = Do not crash if neighborhood is too small for \n"
 "                    certain estimates.\n"
+" -fillvalue x.xx = value used for filled statistic, default=1\n"
+" -unfillvalue x.xx = value used for unfilled statistic, default=1\n"
 "\n"
 "Author: RWCox - August 2005.  Instigator: ZSSaad.\n"
      ) ;
@@ -261,7 +268,7 @@ int main( int argc , char *argv[] )
                        "kurt; min; max; absmax; num; nznum; fnznum;"
                        "sum; rank; frank; fwhm; diffs; adiffs; mMP2s;"
                        "mmMP2s; list; hist; perc; fwhmbar; fwhmbar12;"
-                       "mode;nzmode;ALL;" };
+                       "mode;nzmode;filled;unfilled;ALL;" };
    THD_3dim_dataset *inset=NULL , *outset ;
    int ncode=0 , code[MAX_NCODE] , iarg=1 , ii ;
    float codeparams[MAX_NCODE][MAX_CODE_PARAMS+1], 
@@ -274,7 +281,8 @@ int main( int argc , char *argv[] )
    int npv = -1;
    int ipv, restore_grid=0, resam_mode=resam_str2mode("Linear");
    int datum = MRI_float;
-   
+   float fillvalue, unfillvalue;
+
    /*---- for the clueless who wish to become clued-in ----*/
 
    if( argc == 1){ usage_3dLocalstat(1); exit(0); } /* Bob's help shortcut */
@@ -469,6 +477,20 @@ int main( int argc , char *argv[] )
         iarg++ ; continue ;
      }
      
+     if( strcmp(argv[iarg],"-fillvalue") == 0) {
+        if( ++iarg >= argc ) ERROR_exit("Need argument after '-grid_rmode'") ;
+        fillvalue = strtod(argv[iarg],NULL);
+        set_mri_nstat_fillvalue(fillvalue);
+        iarg++ ; continue ;
+     }
+
+     if( strcmp(argv[iarg],"-unfillvalue") == 0) {
+        if( ++iarg >= argc ) ERROR_exit("Need argument after '-grid_rmode'") ;
+        unfillvalue = strtod(argv[iarg],NULL);
+        set_mri_nstat_unfillvalue(unfillvalue);
+        iarg++ ; continue ;
+     }
+
 
       ERROR_message("** 3dLocalstat: Illegal option: '%s'",argv[iarg]) ;
       suggest_best_prog_option(argv[0], argv[iarg]);
@@ -619,6 +641,8 @@ int main( int argc , char *argv[] )
        else if( strcasecmp(cpt,"num")   == 0 ) code[ncode++] = NSTAT_NUM   ;
        else if( strcasecmp(cpt,"nznum") == 0 ) code[ncode++] = NSTAT_NZNUM ;
        else if( strcasecmp(cpt,"fnznum")== 0 ) code[ncode++] = NSTAT_FNZNUM;
+       else if( strcasecmp(cpt,"filled")== 0 ) code[ncode++] = NSTAT_FILLED;
+       else if( strcasecmp(cpt,"unfilled")== 0 ) code[ncode++] = NSTAT_UNFILLED;
        else if( strcasecmp(cpt,"sum")   == 0 ) code[ncode++] = NSTAT_SUM   ;
        else if( strcasecmp(cpt,"rank")  == 0 ) code[ncode++] = NSTAT_RANK  ;
        else if( strcasecmp(cpt,"frank") == 0 ) code[ncode++] = NSTAT_FRANK ;
@@ -764,6 +788,7 @@ int main( int argc , char *argv[] )
      lcode[NSTAT_mmMP2s1] = "MEDIAN";  lcode[NSTAT_mmMP2s2]    = "MAD";
      lcode[NSTAT_mmMP2s3] = "P2skew";  lcode[NSTAT_FWHMbar12]  = "FWHMbar12";
      lcode[NSTAT_NZNUM]   = "NZNUM" ;  lcode[NSTAT_FNZNUM]     = "FNZNUM" ;
+     lcode[NSTAT_FILLED]  = "FILLED";  lcode[NSTAT_UNFILLED]   = "UNFILLED" ;
      lcode[NSTAT_diffs0]  = "AvgDif";  lcode[NSTAT_diffs1]     = "MinDif";
                                        lcode[NSTAT_diffs2]     = "MaxDif"; 
      lcode[NSTAT_adiffs0] = "Avg|Dif|";lcode[NSTAT_adiffs1]    = "Min|Dif|";

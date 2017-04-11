@@ -790,7 +790,8 @@ def MakeSubTable(file_table, pref_subnet, roi_list):
     if not(list_count.all()) :
         for i in range(Nrois):
             if not( list_count[i]):
-                print "** ERROR: can't find selected ROI %s in the original table list" % roi_list[list_count[i]]
+                # fixed indexing mistake in roi_list[].  [PT, March 27, 2017]
+                print "** ERROR: can't find selected ROI %s in the original table list" % roi_list[i]
         print "** Please select again!"
         sys.exit(544)
     else:
