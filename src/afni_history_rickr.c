@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 11,  Apr, 2017, RCR, "afni_proc.py", MICRO, TYPE_GENERAL,
+   "add GENERAL ANALYSIS NOTE; mentioned resting state scaling as optional",
+   NULL
+ } ,
+
  {  5,  Apr, 2017, RCR, "uber_subject.py", MICRO, TYPE_BUG_FIX,
    "apply subject dir again; allow -cvar subj_dir to override default",
    NULL
