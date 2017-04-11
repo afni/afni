@@ -6787,9 +6787,11 @@ g_help_string = """
         DEFAULTS                : basic default operations, per block
         EXAMPLES                : various examples of running this program
         NOTE sections           : details on various topics
-            RESTING STATE NOTE, FREESURFER NOTE, TIMING FILE NOTE, MASKING NOTE,
+            GENERAL ANALYSIS NOTE, RESTING STATE NOTE, FREESURFER NOTE,
+            TIMING FILE NOTE, MASKING NOTE,
             ANAT/EPI ALIGNMENT CASES NOTE, ANAT/EPI ALIGNMENT CORRECTIONS NOTE,
-            WARP TO TLRC NOTE, RETROICOR NOTE, RUNS OF DIFFERENT LENGTHS NOTE,
+            WARP TO TLRC NOTE,
+            RETROICOR NOTE, RUNS OF DIFFERENT LENGTHS NOTE,
             SCRIPT EXECUTION NOTE
         OPTIONS                 : desriptions of all program options
             informational       : options to get quick info and quit
@@ -7299,6 +7301,10 @@ g_help_string = """
                  than errts in the case of bandpassing.  Both options are
                  included here.
 
+           Note: scaling is optional here.  While scaling has no direct effect
+                 on voxel correlations, it does have an effect on ROI averages
+                 used for correlations.
+
            Other options to consider: -tlrc_NL_warp, -anat_uniform_method
 
                 afni_proc.py -subj_id subj123                                \\
@@ -7551,6 +7557,81 @@ g_help_string = """
     ==================================================
 
     --------------------------------------------------
+    GENERAL ANALYSIS NOTE:
+
+    How might one run a full analysis?  Here are some details to consider.
+
+    0. Expect to re-run the full analysis.  This might be to fix a mistake, to
+       change applied options or to run with current software, to name a few
+       possibilities.  So...
+
+         - keep permanently stored input data separate from computed results
+           (one should be able to easily delete the results to start over)
+         - keep scripts in yet another location
+         - use file naming that is consistent across subjects and groups,
+           making it easy to script with
+
+    1. Script everything.  One should be able to carry out the full analysis
+       just by running the main scripts.
+
+       Learning is best done by typing commands and looking at data, including
+       the input to and output from said commands.  But running an analysis for
+       publication should not rely on typing complicated commands or pressing
+       buttons in a GUI (graphical user interface).
+
+         - it is easy to apply to new subjects
+         - the steps can be clear and unambiguous (no magic or black boxes)
+         - some scripts can be included with publication
+           (e.g. an afni_proc.py command, with the AFNI version)
+
+         - using a GUI relies on consistent button pressing, making it much
+           more difficult to *correctly* repeat, or even understand
+
+    2. Analyze and perform quality control on new subjects promptly.
+
+         - any problems with the acquisition would (hopefully) be caught early
+         - can compare basic quality control measures quickly
+
+    3. LOOK AT YOUR DATA.  Quality control is best done by researchers.
+       Software should not be simply trusted.
+
+         - afni_proc.py processing scripts write guiding @ss_review_driver
+           scripts for *minimal* per-subject quality control (i.e. at a
+           minimum, run that for every subject)
+         - initial subjects should be scrutinized (beyond @ss_review_driver)
+
+         - concatenate anat_final datasets to look for consistency
+         - concatenate final_epi datasets to look for consistency
+         - run gen_ss_review_table.py on the out.ss_review*.txt files 
+           (making a spreadsheet to quickly scan for outlier subjects)
+
+         - many issues can be detected by software, buy those usually just come
+           as warnings to the researcher
+         - similarly, some issues will NOT be detected by the software
+         - for QC, software can assist the researcher, not replace them
+
+         NOTE: Data from external sites should be heavily scrutinized,
+               including any from well known public repositories.
+
+    3. Consider regular software updates, even as new subjects are acquired.
+       This ends up requiring a full re-analysis at the end.
+
+       If it will take a while (one year or more?) to collect data, update the
+       software regularly (weekly?  monthly?).  Otherwise, the analysis ends up
+       being done with old software.
+
+          - analysis is run with current, rather than old software
+          - will help detect changes in the software (good ones or bad ones)
+          - at a minimum, more quality control tools tend to show up
+          - keep a copy of the prior software version, in case comparisons are
+            desired (@update.afni.binaries does keep one prior version)
+          - the full analysis should be done with one software version, so once
+            all datasets are collected, back up the current analysis and re-run
+            the entire thing with the current software
+          - keep a snapshot of the software package used for the analysis
+          - report the software version in any publication
+
+    --------------------------------------------------
     RESTING STATE NOTE:
 
     Resting state data should be processed with physio recordings (for typical
@@ -7561,8 +7642,9 @@ g_help_string = """
 
         Bandpassing is the norm right now.  However most TRs may be too long
         for this process to be able to remove the desired components of no
-        interest.  Perhaps bandpassing will eventually go away.  But it is the
-        norm right now.
+        interest.  On the flip side, if the TRs are short, the vast majority
+        of the degrees of freedom are sacrificed just to do it.  Perhaps
+        bandpassing will eventually go away, but it is the norm right now.
 
         Also, there is a danger with bandpassing and censoring in that subjects
         with a lot of motion may run out of degrees of freedom (for baseline,
@@ -7606,6 +7688,10 @@ g_help_string = """
             Functional integration between brain regions at rest occurs in
                 multiple-frequency bands
             (2015) Brain Connectivity, 5 (1), pp. 23-34
+
+            Caballero-Gaudes C., Reynolds R.C.
+            Methods for cleaning the BOLD fMRI signal
+            (2016) NeuroImage
 
     Application of bandpassing in afni_proc.py:
 
@@ -7653,6 +7739,7 @@ g_help_string = """
                 tlrc    (figure out alignment between anat and template)
                 volreg  (align anat and EPI together, and to standard template)
                 blur    (apply desired FWHM blur to EPI data)
+                scale   (optional, e.g. before seed averaging)
                 regress (polort, motion, mot deriv, bandpass, censor)
                         (depending on chosen options)
                         soon: ANATICOR/WMeLocal
