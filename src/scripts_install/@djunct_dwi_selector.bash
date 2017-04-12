@@ -13,6 +13,12 @@
 ## stupid macs
 #export DYLD_LIBRARY_PATH=/opt/X11/lib/flat_namespace
 
+## display some usage (maybe improve this)
+if [ "$#" -ne 3 ]; then
+   echo "usage: $0 DWI PNG OUTFILE"
+   exit 0
+fi
+
 ## original input dwi
 dwi=$1
 # dwi="dwi.nii"
