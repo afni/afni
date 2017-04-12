@@ -208,7 +208,7 @@ void usage_3dDWUncert(int detail)
 "  with nonlinear fitting described in: \n"
 "        Taylor PA, Biswal BB (2011). Geometric analysis of the b-dependent\n"
 "        effects of Rician signal noise on diffusion tensor imaging\n"
-"        estimates and determining an optimal b value. MRI 29:777–788.\n"
+"        estimates and determining an optimal b value. MRI 29:777-788.\n"
 "  and the introductory/description paper for the FATCAT toolbox:\n"
 "        Taylor PA, Saad ZS (2013).  FATCAT: (An Efficient) Functional\n"
 "        And Tractographic Connectivity Analysis Toolbox. Brain \n"
