@@ -13,9 +13,13 @@ set version   = "1.1";    set rev_dat   = "March 11, 2017"
 #   + help text added
 #   + no-clean option added
 #
+set version   = "1.2";    set rev_dat   = "Apr 12, 2017"
+#   + standardize I/O, helpfile, option names
+#
 # ---------------------------------------------------------------
 
 set this_prog = "fat_proc_align_anat_pair"
+set tpname    = "${this_prog:gas/fat_proc_//}"
 set here      = $PWD
 
 # ----------------- find AFNI and set viewer ---------------------
@@ -39,6 +43,7 @@ set my_viewer = "$adir/@chauffeur_afni"
 
 set it1w       = ""
 set it2w       = ""
+set imtrx      = ""              # user can input 12 DOF made elsewhere
 
 # def: do prep t1w for freesurfing -> matrix has even numbered dims ->
 # 1mm iso voxels, or other iso
@@ -48,15 +53,15 @@ set RES        = ""              # def: 1mm output res, or smallest vox dim
 set OUT_T2W_GRID = 0
 
 set odir       = ""
-set opref      = "newt1w"
+set opref      = ""
 
 set DO_VIEWER  = 1               # def: do viewing
 set DO_CLEAN   = 1
-set wdir       = "__WORKING_alignanats"
+set wdir       = "__WORKING_$tpname"
 set output_cmd = 1               # def: output copy of this command
 set cmd_file   = ""              # def: same name as viewer
 set qc_prefix  = ""              # def: autoname; user can enter
-set postfix    = "t1w"           # stick into name
+set postfix    = ""              # stick into name
 
 # ------------------- process options, a la rr ----------------------
 
@@ -84,12 +89,13 @@ while ( $ac <= $#argv )
         @ ac += 1
         set it2w = "$argv[$ac]"
 
-    # ----------------- outputs ---------------------
-
-    else if ( "$argv[$ac]" == "-outdir" ) then
+    # optional input: premade 3dAllineate matrix
+    else if ( "$argv[$ac]" == "-matrix" ) then
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
         @ ac += 1
-        set odir = "$argv[$ac]"
+        set imtrx = "$argv[$ac]"
+
+    # ----------------- outputs ---------------------
 
     else if ( "$argv[$ac]" == "-prefix" ) then
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
@@ -97,6 +103,11 @@ while ( $ac <= $#argv )
         set opref = "$argv[$ac]"
 
     # ------------------- other opts ---------------
+
+    else if ( "$argv[$ac]" == "-workdir" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set wdir = "$argv[$ac]"
 
     else if ( "$argv[$ac]" == "-no_cmd_out" ) then
         set output_cmd = 0
@@ -154,23 +165,26 @@ foreach ff ( "$it1w" "$it2w" )
     endif
 end
 
-# ========================= output dir ==========================
- 
+# ===================== output and working dirs =========================
+
+if ( "$opref" == "" ) then
+    echo "** ERROR: need '-prefix ...' option provided!"
+    echo "   See the helpfile for more information."
+    goto BAD_EXIT
+else
+    set odir = `dirname $opref`
+    echo ""
+    echo "++ Based on prefix, the output directory will be:"
+    echo "     $odir"
+    echo ""
+endif
+
 # check output directory, use input one if nothing given
 
-if ( "$odir" == "" ) then
-    # default output dir, if nothing input; it must exist already,
-    # because a file is in it
-
-    set odir = `dirname "$it1w"`
-    echo "\n++ No output directory specified by the user."
-    echo "++ Using the input T1w file's directory by default:"
-    echo "\t$odir"
-else
-    if ( ! -e $odir ) then
-        echo "++ Making new output directory: $odir"
-        mkdir $odir
-    endif
+# default output dir, if nothing input.
+if ( ! -e "$odir" ) then
+    "+* Output directory didn't exist.  Trying to make it now."
+    mkdir "$odir"
 endif
 
 set wdir = "$odir/$wdir"
@@ -211,6 +225,7 @@ endif
 
 set ocmd   = "${opref}_cmd.txt"      # name for output command
 set ot1w   = "${opref}.nii.gz"       # name for output t1w
+set omtrx  = "${opref}_map_anat.aff12.1D" # save matrix with other files
 
 # =======================================================================
 # =========================== ** PROCESS ** =============================
@@ -272,29 +287,34 @@ echo ${v1[2]}
        -overwrite
 
 set t1align   = $wdir/f05_t1align.nii
-set mapt1alnd = $wdir/map_shrot.aff12.1D
+if ( "$imtrx" == "" ) then
 
-3dAllineate   -echo_edu               \
-    -warp shift_rotate                \
-    -1Dmatrix_save  $mapt1alnd        \
-    -prefix         "$t1align"        \
-    -base           "$it2w"           \
-    -twopass                          \
-    -cost lpc                         \
-    -cmass                            \
-    -source_automask                  \
-    -autoweight                       \
-    -source "$t1thr"                  \
-    -final wsinc5                     \
-    -overwrite
+    echo "++ Calculating alignment matrix."
 
-echo "++ Calc'ed alignment.  Now to apply it."
+    set imtrx = $wdir/map_to_t2w.aff12.1D
+
+    3dAllineate   -echo_edu               \
+        -warp shift_rotate                \
+        -1Dmatrix_save  $imtrx            \
+        -prefix         "$t1align"        \
+        -base           "$it2w"           \
+        -twopass                          \
+        -cost lpc                         \
+        -cmass                            \
+        -source_automask                  \
+        -autoweight                       \
+        -source "$t1thr"                  \
+        -final wsinc5                     \
+        -overwrite
+endif
+
+echo "++ Apply alignment matrix."
 
 set t1mapped = $wdir/f06_t1mapped.nii
 if ( $OUT_T2W_GRID == 1 ) then
     echo "++ Outputting final image to t2w space"
     3dAllineate   -echo_edu               \
-        -1Dmatrix_apply   $mapt1alnd      \
+        -1Dmatrix_apply   $imtrx          \
         -source           $T1TOMAP        \
         -master           "$it2w"         \
         -prefix           $t1mapped       \
@@ -304,7 +324,7 @@ if ( $OUT_T2W_GRID == 1 ) then
 else
     echo "++ Outputting final image to $RES mm iso voxels"
     3dAllineate   -echo_edu               \
-        -1Dmatrix_apply   $mapt1alnd      \
+        -1Dmatrix_apply   $imtrx          \
         -source           $T1TOMAP        \
         -prefix           $t1mapped       \
         -base             "$it2w"         \
@@ -314,6 +334,7 @@ else
 endif
 
 set T1TOCOPY = $t1mapped
+\cp $imtrx $odir/$omtrx
 
 # zeropad if needed
 if ( $DO_PREP_FS == 1) then
@@ -380,11 +401,11 @@ if ( $DO_VIEWER == 1 ) then
         -input  $odir/$ot1w
 
     if( $qc_prefix == "" ) then
-        set vpref0 = ${opref}_${postfix}_qc00_t1wEt2w
-        set vpref1 = ${opref}_${postfix}_qc01_t1won2w
+        set vpref0 = ${opref}_${postfix}_qc00_t2w_u_et1w
+        set vpref1 = ${opref}_${postfix}_qc01_t2w_u_t1w
     else
-        set vpref0 = ${qc_prefix}_${postfix}_qc00_t1wEt2w 
-        set vpref1 = ${qc_prefix}_${postfix}_qc01_t1won2w
+        set vpref0 = ${qc_prefix}_${postfix}_qc00_t2w_u_et1w
+        set vpref1 = ${qc_prefix}_${postfix}_qc01_t2w_u_t1w
     endif
 
     echo "\n\n"
@@ -434,9 +455,11 @@ else
 endif
 
 # final messages
+echo ""
 echo "++ The final data set is here:  $odir/$ot1w"
 echo "++ The final spatial dims are:  $fdims[1] $fdims[2] $fdims[3]"
 echo "++ The spatial resolution is:   $fres[1] $fres[2] $fres[3]"
+echo ""
 
 # ---------------------------------------------------------------------
 
@@ -511,10 +534,11 @@ cat << EOF
     $this_prog \
       {-in_t1w  T1W}                        \
       {-in_t2w  T2W}                        \
-      {-outdir  ODIR}                       \
       {-prefix  PPP}                        \
       {-newgrid RES}                        \
       {-out_t2w_grid}                       \
+      {-matrix MMM}                         \
+      {-workdir WWW}                        \
       {-no_fs_prep}                         \
       {-no_cmd_out}                         \
       {-no_clean} 
@@ -524,18 +548,26 @@ cat << EOF
    -in_t1w  T1W   :T1w volume (required).
    -in_t2w  T2W   :T2w volume (required; preferably from same subject as
                    T1W).
-   -outdir  ODIR  :can specify output directory for all created 
-                   dsets (default is T1W volume's directory).                
+
    -prefix  PPP   :output prefix for files and snapshots.                     
+
    -newgrid RES   :specify output T1w volume's final resolution; will be
                    isotropic in this value (default: 1 mm, or smallest voxel
                    edge length of input T1W if that value is < 1 mm).
    -out_t2w_grid  :final T1w volume is on the T2W volume's grid (with possible
                    addition of padding with a slice of zeros if prepping for
                    FS).
+
    -no_fs_prep    :check output T1w volume to have an even number of slices
                    in all directions, because FS appears to like/require this
                    (at least at this slicetime of the universe, March, 2017).
+
+   -matrix MMM    :one can apply a pre-made matrix that has been made by
+                   3dAllineate previously.  With this option.  If you want.
+
+   -workdir WWW   :specify a working directory, which can be removed;
+                   (default name = '$wdir')
+
    -no_cmd_out    :don't save the command line call of this program
                    and the location where it was run (otherwise, it is
                    saved by default in the ODIR/).                     
