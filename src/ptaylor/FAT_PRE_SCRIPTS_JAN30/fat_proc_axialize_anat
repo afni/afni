@@ -30,12 +30,17 @@
 #set version   = "2.8";  set rev_dat   = "Feb 20, 2017"
 #   + don't gzip intermed files (-> faster); just final is gzipped
 #
-set version   = "2.9";  set rev_dat   = "Mar 23, 2017"
+#set version   = "2.9";  set rev_dat   = "Mar 23, 2017"
 #   + extra weight mask allowed: can focus on subcort
+#
+set version   = "2.91";  set rev_dat   = "Apr 11, 2017"
+#   + wdir update; file i/o usage update
+#   + fixed printfs for Mac (thanks S. Luthra and P. Fuhrmeister)
 #
 # ----------------------------------------------------------------
 
 set this_prog = "fat_proc_axialize_anat"
+set tpname    = "${this_prog:gas/fat_proc_//}"
 set here      = $PWD
 
 # ----------------- find AFNI and set viewer ---------------------
@@ -57,18 +62,18 @@ set my_viewer = "$adir/@chauffeur_afni"
 
 # ----------------------- set defaults --------------------------
 
-set anat_dir = ""                   # will be output dir
-set anat_inp = ""                   # nec input T1w vol
-set anat_ref = ""                   # optional, if SS'ing elsewhere
-set outpref  = "anat"               # for final output files
+set ifile    = ""                   # nec input T1w vol
+set iref     = ""                   # optional, if SS'ing elsewhere
+set opref    = ""                   # for final output files
+set odir     = ""                   # will be output dir
 set tpref    = "tt"                 # for intermed files
-set wdir     = "__WORK_prealign"    # working directory
+set wdir     = "__WORKING_$tpname"  # working directory
 set DoClean  = "0"                  # default: keep working dir
 
 set PRE_LR  = "1"
 set POST_LR = "0"
 
-set costfunc = "lpa"                # in 3dAllin estimate
+set costfunc         = "lpa"        # in 3dAllin estimate
 set extra_allin_apps = ""           # could use to upsample?
 set extra_allin_inps = ""           # could use to get large rots?
 set final_al_wtmask  = ""           # def: autowt; now user can inp mask
@@ -87,7 +92,7 @@ set qc_prefix   = ""               # def: autoname; user can enter
 set output_cmd  = 1                # def: output copy of this command
                                    # -> should expand to have all cmds
 set cmd_file    = ""               # def: same name as viewer
-set postfix     = "axlz"           # stick into name
+set postfix     = ""               # stick into name
   
 set defran  = -100000
 set frange1 = $defran              # for giving FUNC_RANGE value to
@@ -112,22 +117,17 @@ while ( $ac <= $#argv )
     if ( "$argv[$ac]" == "-inset" ) then
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
         @ ac += 1
-        set anat_inp = "$argv[$ac]"
+        set ifile = "$argv[$ac]"
 
     else if ( "$argv[$ac]" == "-refset" ) then
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
         @ ac += 1
-        set anat_ref = "$argv[$ac]"
-
-    else if ( "$argv[$ac]" == "-outdir" ) then
-        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
-        @ ac += 1
-        set anat_dir = "$argv[$ac]"
+        set iref = "$argv[$ac]"
 
     else if ( "$argv[$ac]" == "-prefix" ) then
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
         @ ac += 1
-        set outpref = "$argv[$ac]"
+        set opref = "$argv[$ac]"
 
     else if ( "$argv[$ac]" == "-extra_al_opts" ) then
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
@@ -214,15 +214,15 @@ end
 
 echo "++ Start script version: $version"
 
-set check = `3dinfo "$anat_inp"`
+set check = `3dinfo "$ifile"`
 echo "$#check"
 if ( "$#check" == "0" ) then
-    echo "** ERROR: can't find inset file $anat_inp !"
+    echo "** ERROR: can't find inset file $ifile !"
     goto BAD_EXIT
 endif
 
 # make sure we can read volumes OK: anat and final mask, if inpu
-foreach ff ( "$anat_inp" "$anat_ref" $final_al_wtmask )
+foreach ff ( "$ifile" "$iref" $final_al_wtmask )
     set check = `3dinfo "$ff"`
     if ( "$#check" == "0" ) then
         echo "** ERROR: can't find input file:  $ff !"
@@ -232,32 +232,35 @@ foreach ff ( "$anat_inp" "$anat_ref" $final_al_wtmask )
     endif
 end
 
-set inp_ORIENT = `3dinfo -orient "$anat_inp"`
-set inp_SPACE  = `3dinfo -space "$anat_inp"`
-set inp_VIEW  = `3dinfo -av_space "$anat_inp"`
+set inp_ORIENT = `3dinfo -orient "$ifile"`
+set inp_SPACE  = `3dinfo -space "$ifile"`
+set inp_VIEW  = `3dinfo -av_space "$ifile"`
 set inp_VIEW  = "$inp_VIEW:gas/+//"
 
 # ========================= output/working dir ==========================
 
+if ( "$opref" == "" ) then
+    echo "** ERROR: need '-prefix ...' option provided!"
+    echo "   See the helpfile for more information."
+    goto BAD_EXIT
+else
+    set odir = `dirname $opref`
+    echo ""
+    echo "++ Based on prefix, the output directory will be:"
+    echo "     $odir"
+    echo ""
+endif
+
 # check output directory, use input one if nothing given
 
-if ( $anat_dir == "" ) then
-    # default output dir, if nothing input; it must exist already,
-    # because a file is in it
-
-    set anat_dir = `dirname $anat_inp`
-    echo "\n++ No output directory specificied by the user."
-    echo "++ Using the input anatomy file's directory by default:"
-    echo "\t$anat_dir"
-else
-    if ( ! -e $anat_dir ) then
-        echo "++ Making new output directory: $anat_dir"
-        mkdir $anat_dir
-    endif
+# default output dir, if nothing input.
+if ( ! -e "$odir" ) then
+    "+* Output directory didn't exist.  Trying to make it now."
+    mkdir "$odir"
 endif
 
 # and put working directory as subdirectory.
-set wdir = $anat_dir/$wdir
+set wdir = $odir/$wdir
 
 # make the working directory
 if ( ! -e $wdir ) then
@@ -280,7 +283,7 @@ echo "\n\nThis command:"
 echo "$this_prog $argv\n\n"
 
 if ( $cmd_file == "" ) then
-    set cmd_file = "${outpref}_${postfix}_cmd.txt"
+    set cmd_file = "${opref}_${postfix}_cmd.txt"
 endif
 
 # copy original command:
@@ -295,14 +298,14 @@ if ( $output_cmd == 1 ) then
     echo "\n"                   >> $cmd_file
 endif
 
-echo "\nThe reference template is: $anat_ref"
+echo "\nThe reference template is: $iref"
 
 set idx = 0
 
 # --------------------------------------------------------------
 
 # copy ref here, while also making orientation match
-set rin  = "$anat_ref"
+set rin  = "$iref"
 set rout = "REF.nii"    # this name/file gets used a lot later!
 3dresample -echo_edu           \
     -orient "$inp_ORIENT"      \
@@ -324,7 +327,7 @@ set rout = "REF.nii"    # this name/file gets used a lot later!
 #    -> use autoweight
 
 # default: autoweight in final align, but can also have user input one
-# that matches anat_ref data
+# that matches iref data
 if ( "$final_al_wtmask" == "" ) then
     set final_al_wtmask = "-autoweight"
 else
@@ -350,7 +353,7 @@ endif
 
 # copy input file into working dir
 set iidx = `printf "%02d" $idx`
-set fin  = "$anat_inp"
+set fin  = "$ifile"
 set fout = "${tpref}_${iidx}.nii"
 set inp0 = $fout
 3dcalc    -echo_edu          \
@@ -361,7 +364,7 @@ set inp0 = $fout
     -overwrite
 @ idx += 1
 
-# --------------------------------------------------------------
+# --------------- move to wdir and continue ------------------
 
 cd $wdir
 
@@ -573,9 +576,11 @@ set qc2o = $fout
 # That is, make it only the 6 (solid body) DOF params.
 grep "3dAllineate" _map_9dof.param.1D > map_fake12dof.param.1D
 set vals = `sed -n '2p' _map_9dof.param.1D`
-printf "$vals[1-7] ... and faking\n" >> map_fake12dof.param.1D
+#printf "$vals[1-7] ... and faking\n" >> map_fake12dof.param.1D
+printf "%s\n" "$vals[1-7] ... and faking" >> map_fake12dof.param.1D
 set vals = `sed -n '3p' _map_9dof.param.1D`
-printf "$vals[1-6] 0 0 0 0 0 0\n" >> map_fake12dof.param.1D
+printf "%s\n" "$vals[1-6] 0 0 0 0 0 0" >> map_fake12dof.param.1D
+#printf "$vals[1-6] 0 0 0 0 0 0\n" >> map_fake12dof.param.1D
 
 # --------------------------------------------------------------
 
@@ -646,7 +651,7 @@ endif
 
 # DONE, just copy endprod out!
 set fin  = $fout
-set fout = ../"${outpref}_${postfix}.nii.gz"
+set fout = ../"${opref}_${postfix}.nii.gz"
 # copy, preserve history
 3dcalc                        \
     -echo_edu                 \
@@ -662,8 +667,8 @@ if ( $DO_VIEWER ) then
     echo "++ Making QC images."
 
     if( $qc_prefix == "" ) then
-        set vpref1 = ${outpref}_${postfix}_qc00_fin
-        set vpref2 = ${outpref}_${postfix}_qc01_mat
+        set vpref1 = ${opref}_${postfix}_qc00_fin
+        set vpref2 = ${opref}_${postfix}_qc01_mat
     else
         set vpref1 = ${qc_prefix}_${postfix}_qc00_fin
         set vpref2 = ${qc_prefix}_${postfix}_qc01_mat
@@ -705,8 +710,8 @@ else
     echo "\n++ NOT removing temporary axialization working dir: '$wdir'\n"
 endif
 
-printf "\n++ DONE! View the finished, axialized product:"
-printf "\n     $PWD/$fout\n\n"
+printf "\n%s" "++ DONE! View the finished, axialized product:"
+printf "\n%s\n\n" "     $PWD/$fout"
 
 cd $here
 
@@ -760,8 +765,10 @@ cat << EOF
         -refset  REF_FILE                     \
         {-prefix PREFIX}                      \
         {-outdir DIR_NAME}                    \
+        {-t2w_mode}                           \
         {-wdir   WORKDIR}                     \
         {-out_match_ref}                      \
+        {-extra_al_wtmask WT }                \
         {-extra_al_cost CC}                   \
         {-extra_al_inps II}                   \
         {-extra_al_opts SS}                   \
@@ -781,7 +788,7 @@ cat << EOF
                     there is a skull or not, etc.).
 
   -prefix PREFIX   :is the prefix of the output/processed anatomical 
-                    volume (default is '${outpref}_${postfix}').
+                    volume (default is '${opref}_${postfix}').
   -outdir DIR_NAME :is the output directory (default is the directory
                     containing the input anatomical file).
 
@@ -794,11 +801,23 @@ cat << EOF
 
   -t2w_mode        :switch to alter some intermediate steps (turn off
                     unifizing and raise voxel ceiling threshold).
-                    This is particularly useful when dealing with a
-                    (adult) T2w image, which tends to be bright in the
-                    CSF and darker in other tissues; default options
-                    are for dealing with (adult) T1w brains, where the
-                    opposite is the case.
+                    This is particularly useful (= essential,
+                    probably) when dealing with a (adult) T2w image,
+                    which tends to be bright in the CSF and darker in
+                    other tissues; default options are for dealing
+                    with (adult) T1w brains, where the opposite is the
+                    case.
+
+  -extra_al_wtmask WT:
+                    Axialization is generally based on an overall 
+                    whole brain alignment.  If you want, however, you
+                    can add extra emphasis to part of the weight mask WT
+                    for deciding what is good alignment.  For example, 
+                    you might make a WB mask of values ~1 and a make 
+                    a subcortical volume have larger values ~5 or so, so
+                    that that part of the brain's alignment carries more
+                    weight (in this example, behaving more like AC-PC
+                    alignment, potentially).
 
  -extra_al_cost CC :specify a cost function for 3dAllineate to work
                     with (default is 'lpa'; one might investigate
@@ -862,16 +881,16 @@ cat << EOF
 
   EXAMPLE:
     
-   \$ $this_prog  \
+   $this_prog  \
         -inset  SUB001/ANATOM/T1.nii.gz                            \
         -refset /somehwere/TT_N27+tlrc.                            \
         -extra_al_opts "-newgrid 1.0"
 
     or, a specifically T2w example:
 
-   \$ $this_prog  \
+   $this_prog  \
         -inset  SUB001/ANATOM/T2.nii.gz                            \
-        -refset /somehwere/mni_icbm152_t2_tal_nlin_sym_09a.nii.gz  \
+        -refset /somewhere/mni_icbm152_t2_tal_nlin_sym_09a.nii.gz  \
         -t2w_mode                                                  \
         -extra_al_opts "-newgrid 1.0" 
 
@@ -888,6 +907,10 @@ cat << EOF
       useful; it might also somewhat, veeeery roughly help standardize
       a group of subjects' data in terms of spatial resolution, centering
       in FOV, etc.
+
+    + To try to get something closer to AC-PC alignment, one can add in a 
+      weight mask with '-extra_al_wtmask ...' that has the ~subcortical 
+      region given extra weight. 
 
 -------------------------------------------------------------------------
 EOF
