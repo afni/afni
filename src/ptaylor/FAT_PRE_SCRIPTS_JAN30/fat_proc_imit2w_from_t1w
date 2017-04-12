@@ -10,8 +10,11 @@
 #set version   = "1.3";    set rev_dat   = "March 21, 2017"
 #   + consistent option/help names
 #
-set version   = "1.4";    set rev_dat   = "April 10, 2017"
+#set version   = "1.4";    set rev_dat   = "April 10, 2017"
 #   + wdir-ize
+#
+set version   = "1.5";    set rev_dat   = "April 11, 2017"
+#   + fixed printfs
 #
 # ----------------------------------------------------------------
 
@@ -131,7 +134,7 @@ if ( $imask != "" ) then
     endif
 endif
 
-# ============================= output dir ==============================
+# ===================== output and working dirs =========================
 
 if ( "$opref" == "" ) then
     echo "** ERROR: need '-prefix ...' option provided!"
@@ -153,8 +156,6 @@ if ( ! -e "$odir" ) then
     mkdir "$odir"
 endif
 
-# ============================== naming ================================
-
 set wdir = "$odir/$wdir"
 
 # make the working directory
@@ -166,10 +167,6 @@ else
     echo "      $wdir"
 endif
 
-set ocmd   = "${opref}_cmd.txt"      # name for output command
-
-
-
 # =======================================================================
 # =========================== ** PROCESS ** =============================
 # =======================================================================
@@ -180,6 +177,8 @@ echo "\n-----> STARTING $this_prog ---->"
 
 echo "\n\nThis command:"
 echo "$this_prog $argv\n\n"
+
+set ocmd   = "${opref}_cmd.txt"      # name for output command
 
 if ( "$cmd_file" == "" ) then
     set cmd_file = "$odir/$ocmd"
@@ -245,7 +244,7 @@ echo "\nPre-brightening: ON\n"
 set NUMS = `3dBrickStat -mask ${amask} -percentile 90 1 90  ${fin}`
 set P_THR = "$NUMS[2]"
 
-printf "\nThresh value will be: $P_THR \n"
+echo "\nThresh value will be: $P_THR"
 
 set fout = "${tpref}_${idx}_pre.nii"
 set fout_thr = $fout
@@ -317,7 +316,7 @@ set fout = "${tpref}_${idx}_uni.nii.gz"
 set NUMS = `3dBrickStat -mask ${foutm}  -percentile 90 1 90  ${fout}`
 set P_THR = "$NUMS[2]"
 
-printf "\nThresh value will be: $P_THR \n"
+echo "\nThresh value will be: $P_THR \n"
 
 set fin1  = "$fout"
 set fin2  = "$foutm"
@@ -400,8 +399,8 @@ else
     echo "\n NOT Removing temporary working directory.\n"
 endif
 
-printf "\n DONE!\n View T1w file:\n    $odir/${t1out}\n"
-printf "\n DONE!\n View imitation T2w file:\n   $odir/${t2out}\n\n"
+echo "\n DONE!\n View T1w file:\n    $odir/${t1out}\n"
+echo "\n DONE!\n View imitation T2w file:\n   $odir/${t2out}\n\n"
 
 # ---------------------------------------------------------------------
 
