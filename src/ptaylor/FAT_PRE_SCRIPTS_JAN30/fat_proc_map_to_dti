@@ -1,8 +1,5 @@
 #!/bin/tcsh -ef
 
-#!!!!!! allow for putting in a matrix!!
-
-
 # written by PA Taylor (NIMH, NIH, USA)
 # started March, 2017
 
@@ -19,12 +16,18 @@
 #set version   = "1.2";    set rev_dat   = "March 20, 2017"
 #   + propagate labeltables for NN sets
 #
-set version   = "1.3";    set rev_dat   = "March 21, 2017"
+#set version   = "1.3";    set rev_dat   = "March 21, 2017"
 #   + consistent option/help names
+#
+set version   = "1.4";    set rev_dat   = "Apr 12, 2017"
+#   + standardizing names, I/O
+#   + change option names
+#   + allow 3dAllineate matrix to be input+applied
 #
 # ---------------------------------------------------------------
 
 set this_prog = "fat_proc_map_to_dti"
+set tpname    = "${this_prog:gas/fat_proc_//}"
 set here      = $PWD
 
 # ----------------- find AFNI and set viewer ---------------------
@@ -46,22 +49,23 @@ set my_viewer = "$adir/@chauffeur_afni"
 
 # ----------------------- set defaults --------------------------
 
-set it1w       = ""
-set it2w       = ""
+set isrc       = ""              # t1w
+set ibase      = ""              # b=0 or t2w
+set imtrx      = ""              # user can input 12 DOF made elsewhere
 
 set odir       = ""
-set opref      = "indti"
+set opref      = ""
 
 set fNN        = ()              # followers to be interpolated with NN
 set fWS5       = ()              # followers to be interpolated with wsinc5
 
 set DO_VIEWER  = 1               # def: do viewing
 set DO_CLEAN   = 1
-set wdir       = "__WORKING_maptodti"
+set wdir       = "__WORKING_$tpname"
 set output_cmd = 1               # def: output copy of this command
 set cmd_file   = ""              # def: same name as viewer
 set qc_prefix  = ""              # def: autoname; user can enter
-set postfix    = "dti"           # stick into name
+set postfix    = ""              # stick into name
 
 # ------------------- process options, a la rr ----------------------
 
@@ -81,23 +85,24 @@ while ( $ac <= $#argv )
 
     # input volume 'source', likely to have opposite contrast to the
     # b0/T2w to which we are matching.
-    if ( "$argv[$ac]" == "-in_source" ) then
+    if ( "$argv[$ac]" == "-source" ) then
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
         @ ac += 1
-        set it1w = "$argv[$ac]"
+        set isrc = "$argv[$ac]"
 
     # our name for the b0 file still
-    else if ( "$argv[$ac]" == "-in_base" ) then
+    else if ( "$argv[$ac]" == "-base" ) then
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
         @ ac += 1
-        set it2w = "$argv[$ac]"
+        set ibase = "$argv[$ac]"
+
+    # optional input: premade 3dAllineate matrix
+    else if ( "$argv[$ac]" == "-matrix" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set imtrx = "$argv[$ac]"
 
     # ----------------- outputs ---------------------
-
-    else if ( "$argv[$ac]" == "-outdir" ) then
-        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
-        @ ac += 1
-        set odir = "$argv[$ac]"
 
     else if ( "$argv[$ac]" == "-prefix" ) then
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
@@ -111,6 +116,11 @@ while ( $ac <= $#argv )
 
     else if ( "$argv[$ac]" == "-no_clean" ) then
         set DO_CLEAN = 0
+
+    else if ( "$argv[$ac]" == "-workdir" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set wdir = "$argv[$ac]"
 
     # -------------- get followers --------------------
     # can be arbitrary list (a bit clunky method...)
@@ -190,16 +200,16 @@ end
 echo "++ Start script version: $version"
 
 # NEED these two inputs
-if ( "$it1w" == "" ) then
+if ( "$isrc" == "" ) then
     echo "** ERROR: no t1w file input?!"
     goto BAD_EXIT
-else if ( "$it2w" == "" ) then
+else if ( "$ibase" == "" ) then
     echo "** ERROR: no t2w file input?!"
     goto BAD_EXIT
 endif
 
 # make sure we can read volumes OK
-foreach ff ( "$it1w" "$it2w" $fNN $fWS5 )
+foreach ff ( "$isrc" "$ibase" $fNN $fWS5 )
     set check = `3dinfo "$ff"`
     if ( "$#check" == "0" ) then
         echo "** ERROR: can't find input file:  $ff !"
@@ -209,23 +219,26 @@ foreach ff ( "$it1w" "$it2w" $fNN $fWS5 )
     endif
 end
 
-# ========================= output dir ==========================
- 
+# ===================== output and working dirs =========================
+
+if ( "$opref" == "" ) then
+    echo "** ERROR: need '-prefix ...' option provided!"
+    echo "   See the helpfile for more information."
+    goto BAD_EXIT
+else
+    set odir = `dirname $opref`
+    echo ""
+    echo "++ Based on prefix, the output directory will be:"
+    echo "     $odir"
+    echo ""
+endif
+
 # check output directory, use input one if nothing given
 
-if ( "$odir" == "" ) then
-    # default output dir, if nothing input; it must exist already,
-    # because a file is in it
-
-    set odir = `dirname "$it1w"`
-    echo "\n++ No output directory specified by the user."
-    echo "++ Using the input T1w file's directory by default:"
-    echo "\t$odir"
-else
-    if ( ! -e $odir ) then
-        echo "++ Making new output directory: $odir"
-        mkdir $odir
-    endif
+# default output dir, if nothing input.
+if ( ! -e "$odir" ) then
+    "+* Output directory didn't exist.  Trying to make it now."
+    mkdir "$odir"
 endif
 
 set wdir = "$odir/$wdir"
@@ -241,8 +254,9 @@ endif
 
 # ========================= output fnames ==========================
 
-set ocmd   = "${opref}_cmd.txt"      # name for output command
-set ot1w   = "${opref}.nii.gz"       # name for output t1w
+set ocmd   = "${opref}_cmd.txt"            # name for output command
+set osrc   = "${opref}.nii.gz"             # name for output t1w
+set omtrx  = "${opref}_map_allin.aff12.1D" # save matrix with other files
 
 # =======================================================================
 # =========================== ** PROCESS ** =============================
@@ -274,14 +288,14 @@ endif
 # --------------------- start proc ---------------------------
 
 # copy the t1w file to wdir via resampling: match t2w-t1w orients
-set orient_t2w = `3dinfo -orient "$it2w"`
+set orient_t2w = `3dinfo -orient "$ibase"`
 set t1res      = $wdir/f00_t1res.nii
 set T1TOMAP    = $t1res                 # we will apply map to this!
 3dresample                          \
     -overwrite                      \
     -prefix $t1res                  \
     -orient $orient_t2w             \
-    -inset "$it1w"
+    -inset "$isrc"
 
 # prep this side for aligning with a bit of unifizing and brightness
 # thresholding
@@ -304,22 +318,29 @@ echo ${v1[2]}
        -overwrite
 
 set t1align   = $wdir/f05_t1align.nii
-set mapt1alnd = $wdir/map_shrot.aff12.1D
 
-3dAllineate   -echo_edu               \
-    -1Dmatrix_save  $mapt1alnd        \
-    -prefix         "$t1align"        \
-    -base           "$it2w"           \
-    -twopass                          \
-    -cost lpc                         \
-    -cmass                            \
-    -source_automask                  \
-    -autoweight                       \
-    -source "$t1thr"                  \
-    -final wsinc5                     \
-    -overwrite
+if ( "$imtrx" == "" ) then
 
-echo "++ Calc'ed alignment.  Now to apply it."
+    echo "++ Calculating alignment matrix."
+
+    set imtrx = $wdir/map_to_dti.aff12.1D
+
+    3dAllineate   -echo_edu               \
+        -1Dmatrix_save  $imtrx            \
+        -prefix         "$t1align"        \
+        -base           "$ibase"          \
+        -twopass                          \
+        -cost lpc                         \
+        -cmass                            \
+        -source_automask                  \
+        -autoweight                       \
+        -source "$t1thr"                  \
+        -final wsinc5                     \
+        -overwrite
+
+endif
+
+echo "++ Apply alignment matrix."
 
 # --> always match dti grid...
 set t1mapped = $wdir/f06_t1mapped.nii
@@ -327,9 +348,9 @@ if ( 1 ) then
     echo "++ Outputting final image to t2w space"
     3dAllineate   -echo_edu               \
         -overwrite                        \
-        -1Dmatrix_apply   $mapt1alnd      \
+        -1Dmatrix_apply   $imtrx          \
         -source           $T1TOMAP        \
-        -master           "$it2w"         \
+        -master           "$ibase"        \
         -prefix           $t1mapped       \
         -float                            \
         -final wsinc5
@@ -352,9 +373,9 @@ foreach i ( `seq 1 1 $#fNN` )
 
     3dAllineate   -echo_edu               \
         -overwrite                        \
-        -1Dmatrix_apply   $mapt1alnd      \
+        -1Dmatrix_apply   $imtrx          \
         -source           $ffr            \
-        -master           "$it2w"         \
+        -master           "$ibase"        \
         -prefix           $off            \
         -final NN
 
@@ -387,9 +408,9 @@ foreach i ( `seq 1 1 $#fWS5` )
 
     3dAllineate   -echo_edu               \
         -overwrite                        \
-        -1Dmatrix_apply   $mapt1alnd      \
+        -1Dmatrix_apply   $imtrx          \
         -source           $ffr            \
-        -master           "$it2w"         \
+        -master           "$ibase"        \
         -prefix           $off            \
         -final wsinc5
 
@@ -402,32 +423,33 @@ set fres  = `3dinfo -ad3 ${T1TOCOPY}`
 
 echo "++ Done workin'.  Just need to copy the final dset."
 
-3dcopy $T1TOCOPY $odir/$ot1w
+3dcopy $T1TOCOPY $odir/$osrc
+\cp $imtrx $odir/$omtrx
 
 if ( $DO_VIEWER == 1 ) then
 
     set vedge = $wdir/f10_edges.nii
 
-    echo "++ More QC images: b0 on initial ref."
+    echo "++ Calc edges of source."
     3dedge3                         \
         -overwrite                  \
         -prefix $vedge              \
-        -input  $odir/$ot1w
+        -input  $odir/$osrc
 
     if( $qc_prefix == "" ) then
-        set vpref0 = ${opref}_${postfix}_qc00_t1wEt2w
-        set vpref1 = ${opref}_${postfix}_qc01_t1won2w
+        set vpref0 = ${opref}_${postfix}_qc00_base_u_esrc
+        set vpref1 = ${opref}_${postfix}_qc01_base_u_src
     else
-        set vpref0 = ${qc_prefix}_${postfix}_qc00_t1wEt2w 
-        set vpref1 = ${qc_prefix}_${postfix}_qc01_t1won2w
+        set vpref0 = ${qc_prefix}_${postfix}_qc00_base_u_esrc
+        set vpref1 = ${qc_prefix}_${postfix}_qc01_base_u_src
     endif
 
     echo "\n\n"
-    echo "++ QC image 00 ($odir/$ot1w edges on $it2w): $vpref0"
+    echo "++ QC image 00 ($odir/$osrc edges on $ibase): $vpref0"
     echo "\n\n"
     # need to put '[0]' on $iref?
     $my_viewer                            \
-        -ulay "$it2w"                     \
+        -ulay "$ibase"                    \
         -ulay_range "2%" "98%"            \
         -olay "$vedge"                    \
         -func_range_perc 50               \
@@ -442,13 +464,13 @@ if ( $DO_VIEWER == 1 ) then
         -do_clean 
 
     echo "\n\n"
-    echo "++ QC image 01 ($odir/$ot1w olay on $it2w): $vpref1"
+    echo "++ QC image 01 ($odir/$osrc olay on $ibase): $vpref1"
     echo "\n\n"
 
     $my_viewer                            \
-        -ulay "$it2w"                     \
+        -ulay "$ibase"                    \
         -ulay_range "2%" "98%"            \
-        -olay "$odir/$ot1w"               \
+        -olay "$odir/$osrc"               \
         -pbar_posonly                     \
         -opacity 4                        \
         -prefix $vpref1                   \
@@ -463,15 +485,24 @@ if ( $DO_VIEWER == 1 ) then
         echo "++ QC imaging for the NN followers dset list:"
         echo "    ${list_ofNN}"
 
+        # fun file name manipulation: get non-prefix and non-prefix
+        # (ha!)  name
         set pp = `3dinfo -prefix_noext $ff`
+        # numbers of chars in $opref
+        set Lopref = `echo $opref | awk '{print length($0)}'`
+        # where to start reading from in $pp to cut out "${opref}_"
+        @ sss = $Lopref + 2
+        # apply
+        set ppp = `echo "$pp" | cut -c ${sss}-`
+
         if( $qc_prefix == "" ) then
-            set vprefnn = ${opref}_${postfix}_qc_$pp
+            set vprefnn = ${opref}_${postfix}_qc_$ppp
         else
-            set vprefnn = ${qc_prefix}_${postfix}_qc_$pp
+            set vprefnn = ${qc_prefix}_${postfix}_qc_$ppp
         endif
 
         $my_viewer                            \
-            -ulay "$it2w"                     \
+            -ulay "$ibase"                    \
             -ulay_range "2%" "98%"            \
             -olay "$ff"                       \
             -pbar_posonly                     \
@@ -490,15 +521,24 @@ if ( $DO_VIEWER == 1 ) then
         echo "++ QC imaging for the wsinc5 followers dset list:"
         echo "    ${list_ofWS5}"
 
+        # fun file name manipulation: get non-prefix and non-prefix
+        # (ha!)  name
         set pp = `3dinfo -prefix_noext $ff`
+        # numbers of chars in $opref
+        set Lopref = `echo $opref | awk '{print length($0)}'`
+        # where to start reading from in $pp to cut out "${opref}_"
+        @ sss = $Lopref + 2
+        # apply
+        set ppp = `echo "$pp" | cut -c ${sss}-`
+
         if( $qc_prefix == "" ) then
-            set vprefnn = ${opref}_${postfix}_qc_$pp
+            set vprefnn = ${opref}_${postfix}_qc_$ppp
         else
-            set vprefnn = ${qc_prefix}_${postfix}_qc_$pp
+            set vprefnn = ${qc_prefix}_${postfix}_qc_$ppp
         endif
 
         $my_viewer                            \
-            -ulay "$it2w"                     \
+            -ulay "$ibase"                    \
             -ulay_range "2%" "98%"            \
             -olay "$ff"                       \
             -pbar_posonly                     \
@@ -523,9 +563,11 @@ else
 endif
 
 # final messages
-echo "++ The final data set is here:  $odir/$ot1w"
+echo ""
+echo "++ The final data set is here:  $odir/$osrc"
 echo "++ The final spatial dims are:  $fdims[1] $fdims[2] $fdims[3]"
 echo "++ The spatial resolution is:   $fres[1] $fres[2] $fres[3]"
+echo ""
 
 # ---------------------------------------------------------------------
 
@@ -538,22 +580,23 @@ SHOW_HELP:
 cat << EOF
 # -----------------------------------------------------------------------
 
- This program is for bringing data sets into DWI space, with the particular
- thought that bringing anatomically-defined ROI maps or EPI data that are
- aligned to a subject's anatomical might be useful.  This might be useful
- after having run FreeSurfer, for example.  
+ This program is for bringing data sets into DWI space, with the
+ particular thought that bringing anatomically-defined ROI maps or EPI
+ data that are aligned to a subject's anatomical might be useful.
+ This might be useful after having run FreeSurfer, for example.
 
- An affine transformation matrix between, say, a subject's T1w volume and
- a DWI reference volume is calculated, and then applied to follower data
- sets.  The transformation can be applied either as 'NN' (-> for preserving
- integer values in sets) or as 'wsinc5' (-> if one has floating point values).
- The final dsets will reside in the DWI space. Yay.
+ An affine transformation matrix between, say, a subject's T1w volume
+ and a DWI reference volume is calculated, and then applied to
+ follower data sets.  The transformation can be applied either as 'NN'
+ (-> for preserving integer values in sets) or as 'wsinc5' (-> if one
+ has floating point values).  The final dsets will reside in the DWI
+ space. Yay.
 
- At the moment this program *assumes* that the input source
- ('-in_source SSS') and reference base ('-in_base BBB') are from the
- same subject, because only 12 DOF affine alignment is calculated
- (using 3dAllineate).  Maybe something could be done with 3dQwarp in
- the future.  Maybe.
+ At the moment this program *assumes* that the input source ('-source
+ SSS') and reference base ('-base BBB') are from the same subject,
+ because only 12 DOF affine alignment is calculated (using
+ 3dAllineate).  Maybe something could be done with 3dQwarp in the
+ future.  Maybe.
 
  This program mainly assumes that the T1w and DWI reference volume
  have similar contrasts expected for standard sequences and healthy
@@ -583,22 +626,23 @@ cat << EOF
   RUNNING:
 
     $this_prog \
-      {-in_source SSS}                               \
-      {-in_base   DDD}                               \
-      {-outdir    ODIR}                              \
-      {-prefix    PPP}                               \
+      -source   SSS                                  \
+      -base     DDD                                  \
+      {-prefix  PPP}                                 \
       {-followers_NN      DSET01 DSET02 DSET03 ...}  \
       {-followers_wsinc5  DSET1 DSET2 DSET3 ...}     \
+      {-matrix MMM}                                  \
+      {-workdir WWW}                                 \
       {-no_cmd_out}                                  \
       {-no_clean} 
 
   where:
 
-   -in_source SSS :T1w volume (required); 'source' volume from which we
+   -source SSS    :T1w volume (required); 'source' volume from which we
                    are mapping, such as an anatomical volume in whose
                    space ROIs might have been defined.  SSS gets
-                   mapped into the '-in_base BBB' volume's space.
-   -in_base BBB   :DWI reference volume (required; should be from same
+                   mapped into the '-base BBB' volume's space.
+   -base BBB      :DWI reference volume (required; should be from same
                    subject as SSS), such as the b=0 (or minimally DWed
                    volume), for aligning to; subbrick selections are
                    allowed, so that dwi_dwi.nii'[0]', for example,
@@ -610,8 +654,6 @@ cat << EOF
                    only affine alignment with 3dAllineate is
                    performed!
 
-   -outdir  ODIR  :can specify output directory for all created 
-                   dsets (default is T1W volume's directory).                
    -prefix  PPP   :output prefix for files and snapshots.  
 
    -followers_NN  DSET01 DSET02 DSET03 ...
@@ -633,6 +675,12 @@ cat << EOF
                    propagated for these sets (I doubt they would have one,
                    anyways).
 
+   -matrix MMM    :one can apply a pre-made matrix that has been made by
+                   3dAllineate previously.  With this option.  If you want.
+
+   -workdir WWW   :specify a working directory, which can be removed;
+                   (default name = '$wdir')
+
    -no_cmd_out    :don't save the command line call of this program
                    and the location where it was run (otherwise, it is
                    saved by default in the ODIR/).                     
@@ -644,8 +692,8 @@ cat << EOF
   EXAMPLE
 
     $this_prog  \
-        -in_source    brain.nii            \
-        -in_base      dwi_dwi.nii.gz'[0]'  \
+        -source       brain.nii            \
+        -base         dwi_dwi.nii.gz'[0]'  \
         -outdir       SUB001               \
         -prefix       indti                \
         -followers_NN  aparc*_REN_*.nii.gz 
