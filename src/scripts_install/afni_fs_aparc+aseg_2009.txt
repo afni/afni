@@ -1,4 +1,4 @@
-# FS_NUM  STRING_LABEL                         TISS__TYPE  MAP_NUM    COLOR_LUT
+# FS_NUM  STRING_LABEL                         TISS__TYPE  REN_VAL    COLOR_LUT
 0         Unknown                              tiss__unkn        0    0   0   0   0  
 2         Left-Cerebral-White-Matter           tiss__wmat        1    245 245 245 0
 3         Left-Cerebral-Cortex                 tiss__gm          2    205 62  78  0
