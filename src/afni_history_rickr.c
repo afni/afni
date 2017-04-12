@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 12,  Apr, 2017, RCR, "afni-general", MICRO, TYPE_MODIFY,
+   "remove some non-ASCII chars: a couple of bad dashes and some Unicode",
+   "some of the Unicode characters are upsetting sed via apsearch"
+ } ,
+
  { 12,  Apr, 2017, RCR, "afni-general", MINOR, TYPE_BUG_FIX,
    "in suggest_best_prog_option(), do not search for -help, -h_* or similar",
    "A program without -help that tests it would otherwise lead to an\n"
