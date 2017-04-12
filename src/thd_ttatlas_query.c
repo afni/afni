@@ -4980,6 +4980,19 @@ void suggest_best_prog_option(char *prog, char *str)
          return;
       }
    }
+
+   /* prevent recursion of system commands if we are searching for a
+    * non-existent -help (or similar) option     12 Apr 2017 [rickr] */
+   if( ! strcmp(str, "-help") || ! strcmp(str, "-HELP") ) {
+      fprintf(stderr,"** program %s does not seem to have a -help option...\n",
+              prog);
+      return;
+   } else if( ! strncmp(str, "-h_", 3) ) {
+      fprintf(stderr,"** suggest option: will not search for any '-h_' opts\n"
+                     "   to recommend match for '%s %s'\n", prog, str);
+      return;
+   }
+
    ws = approx_str_sort_phelp(prog, 0, &N_ws, str,
                    1, &ws_score,
                    NULL, &D, 0, '\\');
