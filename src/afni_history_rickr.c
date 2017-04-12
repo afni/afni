@@ -49,6 +49,12 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 12,  Apr, 2017, RCR, "afni-general", MINOR, TYPE_BUG_FIX,
+   "in suggest_best_prog_option(), do not search for -help, -h_* or similar",
+   "A program without -help that tests it would otherwise lead to an\n"
+   "infinitely recursive system call trying to use -help to suggest an option."
+ } ,
+
  { 11,  Apr, 2017, RCR, "afni_proc.py", MICRO, TYPE_GENERAL,
    "add GENERAL ANALYSIS NOTE; mentioned resting state scaling as optional",
    NULL
