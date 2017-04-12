@@ -55,6 +55,11 @@ afni_history_struct rickr_history[] = {
    "infinitely recursive system call trying to use -help to suggest an option."
  } ,
 
+ { 11,  Apr, 2017, RCR, "@djunct_dwi_selector.bash", MICRO, TYPE_MODIFY,
+   "if bad args, show usage and exit",
+   "Else -help would open afni GUI and wait, hanging the build."
+ } ,
+
  { 11,  Apr, 2017, RCR, "afni_proc.py", MICRO, TYPE_GENERAL,
    "add GENERAL ANALYSIS NOTE; mentioned resting state scaling as optional",
    NULL
