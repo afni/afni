@@ -74,11 +74,6 @@ while ( $ac <= $#argv )
         set idir = "$argv[$ac]"
 
     # ------------- output(s) ----------------
-    else if ( "$argv[$ac]" == "-outdir" ) then
-        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
-        @ ac += 1
-        set odir = "$argv[$ac]"
-
     else if ( "$argv[$ac]" == "-prefix" ) then
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
         @ ac += 1
@@ -213,7 +208,12 @@ endif
 # ======================== convert dicoms ===============================
 
 # place output into wdir, using gzipped files
-dcm2nii -g -o "$wdir" $idir/*
+dcm2nii                  \
+    -4 Y                 \
+    -d Y                 \
+    -n Y                 \
+    -g Y                 \
+    -o "$wdir" $idir/*
 
 # ================ clean up possible extraneous files ===================
 
