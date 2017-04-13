@@ -60,7 +60,7 @@ set copy_fa   = "${tpref}_FA.nii"
 set wdir       = "__WORKING_$tpname"
 set output_cmd = 1                # def: output copy of this command
 set cmd_file   = ""               # def: same name as viewer
-set DoClean    = 1                # def: do delete temp files
+set DO_CLEAN    = "1"             # def: do delete temp files
 set DO_VIEWER  = 1                # def: do QC image visualization
 
 set sca_fa    = "0.7"            # optional user scaling for a brighter img
@@ -117,7 +117,7 @@ while ( $ac <= $#argv )
         set sca_fa = "$argv[$ac]"
 
     else if ( "$argv[$ac]" == "-no_clean" ) then
-        set DoClean = 0
+        set DO_CLEAN = "0"
 
     else if ( "$argv[$ac]" == "-no_qc_view" ) then
         set DO_VIEWER = 0
@@ -165,15 +165,18 @@ if ( "$opref" == "" ) then
     goto BAD_EXIT
 else
     set odir = `dirname $opref`
+    set opref = `basename $opref`
     echo ""
     echo "++ Based on prefix, the output directory will be:"
     echo "     $odir"
+    echo "++ Based on prefix, the output prefix will be:"
+    echo "     $opref"
     echo ""
 endif
 
 # default output dir, if nothing input.
 if ( ! -e "$odir" ) then
-    "+* Output directory didn't exist.  Trying to make it now."
+    echo "+* Output directory didn't exist.  Trying to make it now."
     mkdir "$odir"
 endif
 
@@ -186,6 +189,10 @@ if ( ! -e $wdir ) then
 else
     echo "+* WARNING: Somehow found a premade working directory (?):"
     echo "     $wdir"
+
+    # don't clean preexisting directories-- could be user mistake.
+    echo "   NB: will *not* clean it afterwards."
+    set DO_CLEAN = "0"
 endif
 
 set ocmd   = "${opref}_cmd.txt"      # name for output command
@@ -389,9 +396,9 @@ endif
 # --------------------------------------------------------
 
 # leave working dir
-cd ../
+cd $here
 
-if ( $DoClean ) then
+if ( "$DO_CLEAN" == "1" ) then
     echo "\n Removing temporary file(s) in working dir: $wdir"
    \rm -rf $wdir
 else
