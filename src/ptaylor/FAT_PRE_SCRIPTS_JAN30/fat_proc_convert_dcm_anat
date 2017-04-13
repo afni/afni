@@ -326,13 +326,13 @@ cat << EOF
            etc.); these usually have different formats of file name,
            starting with '2*', 'co*' and 'o*'.  Basically, the '2*' is
            chosen for outputting, and the others are stored in a
-           subdirectory called DIR_OUT/WDIR/.
+           subdirectory called DIR_OUT/WWW/.
 
 -------------------------------------------------------------------------
 
   EXAMPLE:
 
-  \$ $this_prog  \
+    $this_prog  \
        -indir  "ANAT_DICOMS"                 \
        -orient RAI
     
