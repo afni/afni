@@ -106,6 +106,13 @@ while ( $ac <= $#argv )
         @ ac += 1
         set opref = "$argv[$ac]"
 
+    else if ( "$argv[$ac]" == "-workdir" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set wdir = "$argv[$ac]"
+
+    # --------------- other opts -------------------
+
     else if ( "$argv[$ac]" == "-fa_thr" ) then
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
         @ ac += 1
@@ -459,6 +466,7 @@ cat << EOF
         {-prefix  PREFIX}                        \
         {-thr_fa  FFF}                           \
         {-sca_fa  SSS}                           \
+        {-workdir WWW}                           \
         {-no_clean}
 
    where:
@@ -469,9 +477,7 @@ cat << EOF
                     given coloration (which just makese sense,
                     anyways, since FA>=0?).
 
-   -prefix  PREFIX :optional prefix for output file (default
-                    is ${opref}).  Outputs are PREFIX_${postfix0}
-                    and PREFIX_${postfix1}
+   -prefix   PPP   :set prefix (and path) for output DWI data; required.
 
    -thr_fa  FFF    :for QC1 type of DEC images, use FFF to threshold
                     where DEC values are calculated (def: FFF = ${thr_fa}).
@@ -482,18 +488,21 @@ cat << EOF
                     weighting by FA only; instead, in this map, RGB values
                     are given by '|V1|*FA/SSS' (def:  SSS = ${sca_fa}).
 
-   -no_clean       :a couple temporary files are created whilst
-                    making the DEC map.  This switch tells the 
-                    program to *not* delete them when finishing
-                    (default is to do so).  The prefix of the temp
-                    files is "${tpref}".
-
    -no_qc_view     :by default, a set of QC snapshots are made and
                     output.  To turn these off (why?), use this
                     switch
    -qc_prefix QCP  :by default, the QC snapshots carry the same output
                     name as the final output: PREFIX_*. You
                     can change this to be QCP_*, if you want.
+
+   -workdir WWW    :specify a working directory, which can be removed;
+                    (default name = '$wdir').
+
+   -no_clean       :a couple temporary files are created whilst
+                    making the DEC map.  This switch tells the 
+                    program to *not* delete them when finishing
+                    (default is to do so).  The default prefix of 
+                    working dir is '$wdir'.
 
  ------------------------------------------------------------------------
 

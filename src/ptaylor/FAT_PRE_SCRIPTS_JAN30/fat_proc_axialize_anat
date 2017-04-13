@@ -132,6 +132,13 @@ while ( $ac <= $#argv )
         @ ac += 1
         set opref = "$argv[$ac]"
 
+    else if ( "$argv[$ac]" == "-workdir" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set wdir = "$argv[$ac]"
+        
+    # -------------- other opts --------------------
+
     else if ( "$argv[$ac]" == "-extra_al_opts" ) then
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
         @ ac += 1
