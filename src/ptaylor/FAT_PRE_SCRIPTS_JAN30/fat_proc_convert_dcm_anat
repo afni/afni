@@ -1,7 +1,5 @@
 #!/bin/tcsh -ef
 
-!!!!!!!!! ADD VIEWER STUFF
-
 # --------------------- revision history -------------------------
 # Jan, 2017
 #   + rename
@@ -51,7 +49,9 @@ set wdir       = "__WORKING_$tpname"
 set output_cmd = 1                # def: output copy of this command
 set cmd_file   = ""               # def: same name as viewer
 set DO_CLEAN   = "1"              # def: do delete temp files
-set DO_VIEWER  = 1                # def: do QC image visualization
+set DO_VIEWER  = "1"              # def: do QC image visualization
+set qc_prefix  = ""               # def: autoname; user can enter
+set postfix    = ""               # stick into name
 
 # ------------------- process options, a la rr ----------------------
 
@@ -91,8 +91,21 @@ while ( $ac <= $#argv )
         set ori_new = "$argv[$ac]"
 
     # -------------- more other opts ----------------
+    else if ( "$argv[$ac]" == "-no_clean" ) then
+        set DO_CLEAN = "0"
+
     else if ( "$argv[$ac]" == "-reorig_reorient_off" ) then
         set DO_REORI = 0          # leave 'em alone!
+
+    # -------------- qc stuff ----------------
+
+    else if ( "$argv[$ac]" == "-qc_prefix" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set qc_prefix = "$argv[$ac]"
+
+    else if ( "$argv[$ac]" == "-no_qc_view" ) then
+        set DO_VIEWER = 0
 
     else
         echo "** unexpected option #$ac = '$argv[$ac]'"
@@ -265,6 +278,42 @@ if ( "$#check" >= "0" ) then
 else 
     echo "Whoa, badness outputting: $odir/$ofile"
     goto BAD_EXIT
+endif
+
+# ---------------- imager -------------------
+
+if ( "$DO_VIEWER" == "1" ) then
+
+    if( $qc_prefix == "" ) then
+        set vpref0 = ${opref}_${postfix}_qc00_anat
+    else
+        set vpref0 = ${qc_prefix}_${postfix}_qc00_anat
+    endif
+
+    echo "\n\n"
+    echo "++ QC image 00 ($odir/$ofile): $vpref0"
+    echo "\n\n"
+    # need to put '[0]' on $iref?
+    $my_viewer                            \
+        -ulay "$odir/$ofile"              \
+        -ulay_range "2%" "98%"            \
+        -olay_off                         \
+        -prefix $vpref0                   \
+        -outdir "$odir"                   \
+        -montx 5 -monty 3                 \
+        -set_xhairs OFF                   \
+        -label_mode 1 -label_size 3       \
+        -do_clean 
+
+endif
+
+# --------------- clean --------------------
+
+if ( "$DO_CLEAN" == "1" ) then
+    echo "\n++ Cleaning working directory!\n"
+    \rm -rf $wdir
+else
+    echo "\n++ NOT removing working directory '$wdir'.\n"
 endif
 
 goto GOOD_EXIT
