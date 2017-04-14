@@ -1,6 +1,6 @@
 #!/bin/tcsh -ef
 
-
+!!!!!!!!! ADD VIEWER STUFF
 
 # --------------------- revision history -------------------------
 # Jan, 2017
@@ -293,19 +293,19 @@ cat << EOF
   RUNNING:
 
   $this_prog  \
-        -indir   DIR_IN                       \
-        {-prefix PPP}                         \
-        {-workdir WWW}                        \
-        {-orient ORIENT} 
+        -indir    DIR_IN                       \
+        {-prefix  PPP}                         \
+        {-workdir WWW}                         \
+        {-orient  ORIENT}                      \
         {-reorig_reorient_off}
 
   where:
     -indir  DIR_IN  :required input directory; DIR_IN should contain
                      only DICOM files; all will be selected.
 
-    -prefix   PPP   :set prefix (and path) for output DWI data; required.
+    -prefix   PPP   :set prefix (and path) for output data; required.
 
-    -workdir WWW    :specify a working directory, which can be removed;
+    -workdir  WWW   :specify a working directory, which can be removed;
                      (default name = '$wdir').
 
     -orient  ORIENT :optional chance to reset orientation of the volume
