@@ -1,4 +1,4 @@
-#!/bin/tcsh -ef
+#!/bin/tcsh -e
 
 # --------------------- revision history -------------------------
 # Jan, 2017
@@ -8,9 +8,13 @@
 #   + update opts
 #   + 
 #
-set version   = "2.0"; set rev_dat   = "Apr 11, 2017"
+#set version   = "2.0"; set rev_dat   = "Apr 11, 2017"
 #   + majorly updating I/O
 #   + wdir stuff
+#
+set version   = "2.1"; set rev_dat   = "Apr 14, 2017"
+#   + try to anonymize
+#   + qc snapshotting
 #
 # ----------------------------------------------------------------
 
@@ -37,8 +41,9 @@ set my_viewer = "$adir/@chauffeur_afni"
 
 # ----------------------- set defaults --------------------------
 
-set idir    = ""
+set idir     = ""
 set odir     = ""
+set tpref    = "ttt"
 
 set ori_new  = "RPI"
 set ofile    = ""
@@ -137,7 +142,7 @@ endif
 
 cd $idir
 
-printf "++ Checking $PWD for preexisting NIFTIs ... "
+echo "++ Checking $PWD for preexisting NIFTIs ... "
 
 if ( (`find . -maxdepth 1 -type f -name "*nii" | wc -l` > 0 ) || \
      (`find . -maxdepth 1 -type f -name "*nii.gz" | wc -l` > 0 ) ) then
@@ -226,7 +231,8 @@ dcm2nii                  \
     -d Y                 \
     -n Y                 \
     -g Y                 \
-    -o "$wdir" $idir/*
+    -o "$wdir"           \
+    $idir/*
 
 # ================ clean up possible extraneous files ===================
 
@@ -246,11 +252,23 @@ else if ( ${#all_nii} >= "2" ) then
     echo ""
 endif
 
+# ---------- try to anonymize -------------
+echo "++ Using nifti_tool to remove ID info, if possible."
+
+set fin  = $all_nii[1]
+set fout = ${tpref}_empty.nii
+nifti_tool                          \
+    -strip_extras                   \
+    -prefix  $fout                  \
+    -infiles $fin
+
+# ---------- center nicely, if desired -------------
+
 if ( $DO_REORI ) then
 
     3dresample                                        \
         -orient $ori_new                              \
-        -inset  $all_nii[1]                           \
+        -inset  $fout                                 \
         -prefix ../$ofile                             \
         -overwrite
 
@@ -260,7 +278,7 @@ if ( $DO_REORI ) then
 else
     # chicken...
     3dcalc                                 \
-        -a $all_nii[1]                     \
+        -a $fout                           \
         -expr 'a'                          \
         -prefix ../$ofile                  \
         -overwrite
@@ -311,6 +329,7 @@ endif
 
 if ( "$DO_CLEAN" == "1" ) then
     echo "\n++ Cleaning working directory!\n"
+    cd $here
     \rm -rf $wdir
 else
     echo "\n++ NOT removing working directory '$wdir'.\n"
