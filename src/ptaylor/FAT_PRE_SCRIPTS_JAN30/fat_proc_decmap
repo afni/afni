@@ -1,4 +1,4 @@
-#!/bin/tcsh -ef
+#!/bin/tcsh -e
 
 # --------------------- revision history -------------------------
 # Sept, 2016

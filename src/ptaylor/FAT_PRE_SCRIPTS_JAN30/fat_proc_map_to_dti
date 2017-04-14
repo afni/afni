@@ -1,4 +1,4 @@
-#!/bin/tcsh -ef
+#!/bin/tcsh -e
 
 # written by PA Taylor (NIMH, NIH, USA)
 # started March, 2017
