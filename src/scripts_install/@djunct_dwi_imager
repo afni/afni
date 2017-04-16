@@ -357,7 +357,7 @@ foreach ii ( `seq 1 1 3` )
         \rm ${opref}_*_${ii}.sag.*
         \rm ${opref}_*_${ii}.cor.*
         
-        foreach ff ( `ls ${opref}_*_${ii}.axi.*` )
+        foreach ff ( `\ls ${opref}_*_${ii}.axi.*` )
             set gg = `echo $ff | sed "s/_${ii}.axi/.${imgview[$ii]}/g"`
             \mv $ff ../$gg
         end
@@ -371,7 +371,7 @@ foreach ii ( `seq 1 1 3` )
                 set mext = "mpg"
             endif
 
-            foreach ff ( `ls ${opref}_*_${ii}.axi."$mext"` )
+            foreach ff ( `\ls ${opref}_*_${ii}.axi."$mext"` )
                 set gg = `echo $ff | sed "s/_${ii}.axi/.${imgview[$ii]}/g"`
                 \mv $ff ../$gg
             end
