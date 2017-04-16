@@ -238,7 +238,7 @@ dcm2nii                  \
 
 cd $wdir
 
-set all_nii = `ls 2*.nii.gz`
+set all_nii = `\ls 2*.nii.gz`
 
 # =========== put into proper orientation, simplify name =================
 
