@@ -56,7 +56,8 @@ else
 endif
 
 # default location of viewer: user could modify!
-set my_viewer = "$adir/@chauffeur_afni"
+set my_viewer    = "$adir/@chauffeur_afni"
+set my_viewer_4d = "$adir/@djunct_dwi_imager"
 
 # ----------------------- set defaults --------------------------
 
@@ -165,7 +166,7 @@ if ( "$idir" == "" ) then
 endif
 
 if ( "$idir" != "" ) then
-    set idir = `ls -d $idir`
+    set idir = `\ls -d $idir`
     set Nap = $#idir
     echo "++ Found $Nap directories from '-indir $idir':"
     echo "\t $idir"
@@ -304,7 +305,7 @@ set list_vols  = ( )
 foreach jj ( `seq 1 1 $Nsets` )
 
     set dd = "$all_tdir[$jj]"   # temp dir
-    set ff = `ls ${dd}/*bvec`   # bvec for getting file prefix
+    set ff = `\ls ${dd}/*bvec`   # bvec for getting file prefix
     set gg = ${ff:gas/.bvec//}  # prefix
 
     # ---------- bval*bvec stuff -------------
@@ -437,7 +438,7 @@ endif
 # Feb,2017: take images!
 if ( "$DO_VIEWER" == "1" ) then
 
-    @djunct_dwi_imager                    \
+    $my_viewer_4d \
         -inset  ../$fin_vols              \
         -outdir ".."                      \
         -prefix "${opref}"
