@@ -1,17 +1,7 @@
 #!/bin/tcsh -e
 
-#### ????????? HOW TO DO origin setting across possible AP/PA
-#### acquisitions. --> probably just allow input of origin stuff
-
-
-# ---> ! should simplify and just do AP or PA separately-- much
-# ---> ! easier/more generalized naming is possible!
-
-# --- !!! add in video thing for easy QC
-
 # written by PA Taylor (NIMH, NIH)
 # convert dicoms to nifti, while "niceifying" several properties.
-
 
 # --------------------- revision history -------------------------
 #
@@ -32,8 +22,11 @@
 #   + sep wdirs, in case writing AP/PA to same dir
 #   + can clean up wdirs
 #
-set version = "2.6"; set rev_dat = "Apr 13, 2017"
+#set version = "2.6"; set rev_dat = "Apr 13, 2017"
 #   + standardize I/O, wdir
+#
+set version = "2.7"; set rev_dat = "Apr 16, 2017"
+#   + can input origin, e.g. to match between AP and PA
 #
 # ----------------------------------------------------------------
 
@@ -76,6 +69,10 @@ set fpref    = "fff"       # temp names when working in temp subdirs
 set fpref0   = "aaa"       # for anonymizing
 set fpref1   = "bbb"       # for reorienting
 set tpref    = "ttt"       # temp names when working in wdir directly
+
+# Use this to give AP and PA same origin, if desired
+set DO_HAVE_ORIG = "0"  
+set iorig = ( 0 0 0 )
 
 # ------------------- process options, a la rr ----------------------
 
@@ -133,6 +130,19 @@ while ( $ac <= $#argv )
 
     else if ( "$argv[$ac]" == "-no_clean" ) then
         set DO_CLEAN = "0"
+
+    # will require 3 args
+    else if ( "$argv[$ac]" == "-origin_xyz" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set iorig[1] = "$argv[$ac]"
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set iorig[2] = "$argv[$ac]"
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set iorig[3] = "$argv[$ac]"
+        set DO_HAVE_ORIG = "1"
 
     # -------------- qc stuff ----------------
 
@@ -280,13 +290,6 @@ endif
 
 # ============ do the major rearranging/sorting/combining ================
 
-# ----> future note: simplify scripting with loop instead of lame
-# ----> copying...
-
-# Use this to give AP and PA same origin....
-set have_orig = 0  
-set ORIG = ( 0 0 0 )
-
 cd $here
 cd $wdir
 
@@ -407,7 +410,6 @@ if ( 1 ) then
 
 endif
 
-
 # ----------- volumes ------------------
 
 # glue tog volumes
@@ -419,19 +421,20 @@ endif
 if ( $DO_REORI ) then
     # set the (0,0,0) to the CM of the brain, or apply the previously
     # calc'ed origin. (Aug., 2016)
-    if ( $have_orig ) then
-        echo "++ Apply known appropriate origin."
+    if ( "$DO_HAVE_ORIG" == "1" ) then
+        echo "++ Applying input origin: $iorig"
         3drefit                        \
-            -xorigin_raw $ORIG[1]      \
-            -yorigin_raw $ORIG[2]      \
-            -zorigin_raw $ORIG[3]      \
+            -xorigin_raw $iorig[1]      \
+            -yorigin_raw $iorig[2]      \
+            -zorigin_raw $iorig[3]      \
             ../$fin_vols
     else
         echo "++ Set center of brain to center of mass..."
         3dCM -automask -set 0 0 0 ../$fin_vols
         echo "++ ... and remember it."
-        set ORIG = `3dinfo -o3 ../$fin_vols`
-        set have_orig = 1
+        # -> think next two lines are unnec
+        #set iorig = `3dinfo -o3 ../$fin_vols`
+        #set DO_HAVE_ORIG = 1
     endif
 endif
 
@@ -468,13 +471,17 @@ goto GOOD_EXIT
 SHOW_HELP:
 cat << EOF
 -------------------------------------------------------------------------
-    !!!!!!!!!!!!!!!! REWRITE !!!!!!!!!!!!!!!!!
+
     The purpose of this function is to help convert one or more sets
-    of DWIs in DICOM format into 'nicer' volume+grad format.  This 
-    function can process AP/PA (AKA 'blip up'/'blip down') data sets in 
-    parallel.  Also, if multiple directories of DICOMS exist for a given
-    AP or PA set, then those can be combined into a single volume+grad 
-    file.  Data sets are also converted to have a single orientation.
+    of DWIs in DICOM format into 'nicer' volume+grad format. If
+    multiple directories of DICOMS exist for a given AP or PA set,
+    then those can be combined into a single volume+grad file with a
+    single call of this function. Data sets are also converted to have
+    a single orientation. For data acquired with dual phase encoding
+    (such as AP/PA, or what is often known as 'blip up'/'blip down'),
+    separate calls of this function need to be made for each encode
+    set; however, one can pass origin information to have the same
+    origin across all volumes during recentering.
 
     This program can be used to: convert dicoms to NIFTI (with bvals
     and bvecs); reorient volumetric data; and glue together multiple
@@ -488,19 +495,16 @@ cat << EOF
 
 -------------------------------------------------------------------------
 
-  RUNNING: at least one of the two '-indir_* ...' directories needs to
-           be given; both can be, and the processing happens in
-           parallel, producing two output directories. The 'AP' vs
-           'PA' designation is not very important-- it is really a
-           naming convention to differentiate the separate phase
-           encodings.
+  RUNNING: 
 
     $this_prog  \
-      -indir   DIR                       \
-      {-prefix PPP}                      \
+      -indir   DIR                             \
+      {-prefix PPP}                            \
       {-workdir   WWW}                         \
       {-orient    ORIENT}                      \
+      {-origin_xyz X0 Y0 Z0}                   \
       {-flip_x | -flip_y | -flip_z | -no_flip} \
+      {-reorig_reorient_off}                   \
       {-no_clean}
 
   where:
@@ -519,6 +523,21 @@ cat << EOF
     -orient  ORIENT :optional chance to reset orientation of the volume
                      files (default is currently '$ori_new').
 
+    -origin_xyz X0 Y0 Z0
+                    :by default, dset will be given an origin value
+                     such that the center of mass of the dset is located
+                     at (x, y, z) = (0, 0, 0), for niceness's sake.  
+                     However, an explicit origin can also be given with 
+                     this option (NB: this depends on the orientation of
+                     the data, which can various be: explicitly chosen or 
+                     set to a default value, or not changed at all).  
+                     Three numbers are required to be input (i.e., the 
+                     xyz origin values), and this might be useful if, for 
+                     example, you've already processed one set of a dual-
+                     phase encoded acquisition, so that you can get the 
+                     origin from the first and ensure that the second
+                     has the same values afterwards, making it easier
+                     to overlay the data, should you wish.
   -reorig_reorient_off
                     :switch to turn of the nicety of putting (0, 0, 0)
                      at brain's center of mass (-> 'reorigin' calc) and to
@@ -529,7 +548,8 @@ cat << EOF
   -flip_x | -flip_y | -flip_z | -no_flip
                     :use any one of these for the ability to flip grads 
                      while processing with 1dDW_Grad_o_Mat++. (Default is 
-                     to not flip.)
+                     to not flip; it is not necessary to provide that 
+                     "-no_flip" option for no flipping to occur.)
 
    -no_clean        :switch to not remove working directory of intermediate,
                      temporary files (default is to delete it).
