@@ -1,4 +1,4 @@
-#!/bin/tcsh -ef
+#!/bin/tcsh -e
 
 # !!! comment about movie/mpeg stuff! gifsicle, etc.
 

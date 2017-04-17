@@ -1,4 +1,4 @@
-#!/bin/tcsh -ef
+#!/bin/tcsh -e
 
 
 # --------------------- revision history -------------------------
@@ -33,9 +33,14 @@
 #set version   = "2.9";  set rev_dat   = "Mar 23, 2017"
 #   + extra weight mask allowed: can focus on subcort
 #
-set version   = "2.91";  set rev_dat   = "Apr 11, 2017"
+#set version   = "2.91";  set rev_dat   = "Apr 11, 2017"
 #   + wdir update; file i/o usage update
 #   + fixed printfs for Mac (thanks S. Luthra and P. Fuhrmeister)
+#
+set version   = "2.92";  set rev_dat   = "Apr 13, 2017"
+#   + need to choose either t1wmode or t2wmode explicitly
+#     ---> to avoid confusion because even *I've* forgotten about
+#          adding in the mode.
 #
 # ----------------------------------------------------------------
 
@@ -68,7 +73,7 @@ set opref    = ""                   # for final output files
 set odir     = ""                   # will be output dir
 set tpref    = "tt"                 # for intermed files
 set wdir     = "__WORKING_$tpname"  # working directory
-set DoClean  = "0"                  # default: keep working dir
+set DO_CLEAN  = "1"                  # default: keep working dir
 
 set PRE_LR  = "1"
 set POST_LR = "0"
@@ -80,9 +85,7 @@ set final_al_wtmask  = ""           # def: autowt; now user can inp mask
 set child_wtmask     = ""           # gets populated if wtmask used
 
 # opts to be changed for t2w
-set DoUni    = "1"
-set DoAni    = "0"
-set valthr   = 90
+set MODESET  = ""                  # user *needs* to pick a mode
 set powcon   = 1.1                 # enhance contrast in t2w mode
 
 set OutMatchRef = "0"
@@ -129,6 +132,13 @@ while ( $ac <= $#argv )
         @ ac += 1
         set opref = "$argv[$ac]"
 
+    else if ( "$argv[$ac]" == "-workdir" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set wdir = "$argv[$ac]"
+        
+    # -------------- other opts --------------------
+
     else if ( "$argv[$ac]" == "-extra_al_opts" ) then
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
         @ ac += 1
@@ -144,10 +154,17 @@ while ( $ac <= $#argv )
         @ ac += 1
         set costfunc = "$argv[$ac]"
 
-    else if ( "$argv[$ac]" == "-t2w_mode" ) then
+    else if ( "$argv[$ac]" == "-mode_t2w" ) then
         set DoUni  = "0"
         set DoAni  = "1"
         set valthr = 99
+        set MODESET = "1"
+
+    else if ( "$argv[$ac]" == "-mode_t1w" ) then
+        set DoUni    = "1"
+        set DoAni    = "0"
+        set valthr   = 90
+        set MODESET = "1"
 
     # can enter a weight mask emphasizing, e.g., subcort struct for
     # ACPC align
@@ -156,8 +173,8 @@ while ( $ac <= $#argv )
         @ ac += 1
         set final_al_wtmask = "$argv[$ac]"
 
-    else if ( "$argv[$ac]" == "-do_clean" ) then
-        set DoClean = 1
+    else if ( "$argv[$ac]" == "-no_clean" ) then
+        set DO_CLEAN = 0
         
     # turn it *off* if desired-- on by default
     else if ( "$argv[$ac]" == "-no_pre_lr_symm" ) then
@@ -214,6 +231,12 @@ end
 
 echo "++ Start script version: $version"
 
+if ( "$MODESET" == "" ) then
+    echo "** ERROR: need to select one of the '-mode_*' options !"
+    echo "   -> see the help file for more details."
+    goto BAD_EXIT
+endif
+
 set check = `3dinfo "$ifile"`
 echo "$#check"
 if ( "$#check" == "0" ) then
@@ -245,9 +268,12 @@ if ( "$opref" == "" ) then
     goto BAD_EXIT
 else
     set odir = `dirname $opref`
+    set opref = `basename $opref`
     echo ""
     echo "++ Based on prefix, the output directory will be:"
     echo "     $odir"
+    echo "++ Based on prefix, the output prefix will be:"
+    echo "     $opref"
     echo ""
 endif
 
@@ -255,7 +281,7 @@ endif
 
 # default output dir, if nothing input.
 if ( ! -e "$odir" ) then
-    "+* Output directory didn't exist.  Trying to make it now."
+    echo "+* Output directory didn't exist.  Trying to make it now."
     mkdir "$odir"
 endif
 
@@ -269,6 +295,10 @@ if ( ! -e $wdir ) then
 else
     echo "+* WARNING: Somehow found a premade working directory (?):"
     echo "      $wdir"
+
+    # don't clean preexisting directories-- could be user mistake.
+    echo "   NB: will *not* clean it afterwards."
+    set DO_CLEAN = "0"
 endif
 
 # =======================================================================
@@ -369,7 +399,7 @@ set inp0 = $fout
 cd $wdir
 
 # if t2w, do do this
-if ( $DoAni ) then
+if ( "$DoAni" == "1" ) then
 
     echo "++ Doing a little anisosmoothing."
     set iidx = `printf "%02d" $idx`
@@ -419,7 +449,7 @@ set fout = "${tpref}_${iidx}_thr.nii"
 # --------------------------------------------------------------
 
 # if t2w, don't do this
-if ( $DoUni ) then
+if ( "$DoUni" == "0" ) then
 
     echo "\n++ Doing unifizing."
 
@@ -702,18 +732,18 @@ endif
 
 cd ..
 
-if ( $DoClean ) then
+if ( "$DO_CLEAN" == "1" ) then
     echo "\n+* Removing temporary axialization working dir: '$wdir'\n"
-    \rm $wdir/*
-    \rmdir $wdir
+    cd $here
+    \rm -rf $wdir
 else
     echo "\n++ NOT removing temporary axialization working dir: '$wdir'\n"
 endif
 
-printf "\n%s" "++ DONE! View the finished, axialized product:"
-printf "\n%s\n\n" "     $PWD/$fout"
-
-cd $here
+echo ""
+echo "++ DONE! View the finished, axialized product:"
+echo "     $PWD/$fout"
+echo ""
 
 goto GOOD_EXIT
 
@@ -763,9 +793,9 @@ cat << EOF
   \$ $this_prog  \
         -inset   IN_FILE                      \
         -refset  REF_FILE                     \
-        {-prefix PREFIX}                      \
+        {-mode_t2w | -mode_t1w}               \
+        -prefix PPP                           \
         {-outdir DIR_NAME}                    \
-        {-t2w_mode}                           \
         {-wdir   WORKDIR}                     \
         {-out_match_ref}                      \
         {-extra_al_wtmask WT }                \
@@ -787,10 +817,7 @@ cat << EOF
                     the contrast of your anatomical INFILE, whether 
                     there is a skull or not, etc.).
 
-  -prefix PREFIX   :is the prefix of the output/processed anatomical 
-                    volume (default is '${opref}_${postfix}').
-  -outdir DIR_NAME :is the output directory (default is the directory
-                    containing the input anatomical file).
+  -prefix  PPP     :output prefix for files and snapshots (required).
 
   -out_match_ref   :switch to have the final output volume be in the same
                     'space' (FOV, spatial resolution) as the REF_FILE. 
@@ -799,7 +826,7 @@ cat << EOF
                     in the FOV. (This applies a '-master REF_FILE' to the
                     final 3dAllineate in the script.)
 
-  -t2w_mode        :switch to alter some intermediate steps (turn off
+  -mode_t2w        :switch to alter some intermediate steps (turn off
                     unifizing and raise voxel ceiling threshold).
                     This is particularly useful (= essential,
                     probably) when dealing with a (adult) T2w image,
@@ -807,6 +834,10 @@ cat << EOF
                     other tissues; default options are for dealing
                     with (adult) T1w brains, where the opposite is the
                     case.
+  -mode_t1w        :similar to the preceding option, but specifying an 
+                    image with (human, adult) t1w-like contrast
+                    has been input.
+      ----> NB: some 'mode_*' setting MUST be picked.
 
   -extra_al_wtmask WT:
                     Axialization is generally based on an overall 
@@ -882,16 +913,9 @@ cat << EOF
   EXAMPLE:
     
    $this_prog  \
-        -inset  SUB001/ANATOM/T1.nii.gz                            \
-        -refset /somehwere/TT_N27+tlrc.                            \
-        -extra_al_opts "-newgrid 1.0"
-
-    or, a specifically T2w example:
-
-   $this_prog  \
         -inset  SUB001/ANATOM/T2.nii.gz                            \
         -refset /somewhere/mni_icbm152_t2_tal_nlin_sym_09a.nii.gz  \
-        -t2w_mode                                                  \
+        -mode_t2w                                                  \
         -extra_al_opts "-newgrid 1.0" 
 
 -------------------------------------------------------------------------

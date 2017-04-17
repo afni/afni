@@ -1,6 +1,4 @@
-#!/bin/tcsh -ef
-
-
+#!/bin/tcsh -e
 
 # --------------------- revision history -------------------------
 # Jan, 2017
@@ -10,18 +8,55 @@
 #   + update opts
 #   + 
 #
+#set version   = "2.0"; set rev_dat   = "Apr 11, 2017"
+#   + majorly updating I/O
+#   + wdir stuff
+#
+set version   = "2.1"; set rev_dat   = "Apr 14, 2017"
+#   + try to anonymize
+#   + qc snapshotting
+#
 # ----------------------------------------------------------------
 
-set version = "2.3"
-set rev_dat = "Jan, 2017"
 set this_prog = "fat_proc_convert_dcm_anat"
-
+set tpname    = "${this_prog:gas/fat_proc_//}"
 set here     = $PWD
-set there    = ""
-set anat_dir = ""
+
+# ----------------- find AFNI and set viewer ---------------------
+
+# find AFNI binaries directory and viewer location
+set adir      = ""
+set my_viewer = ""
+which afni >& /dev/null
+if ( $status ) then
+    echo "** Cannot find 'afni' (?!)."
+    goto BAD_EXIT
+else
+    set aa   = `which afni`
+    set adir = $aa:h
+endif
+
+# default location of viewer: user could modify!
+set my_viewer = "$adir/@chauffeur_afni"
+
+# ----------------------- set defaults --------------------------
+
+set idir     = ""
+set odir     = ""
+set tpref    = "ttt"
+
 set ori_new  = "RPI"
-set the_t1   = "anat.nii"
+set ofile    = ""
+set opref    = ""
 set DO_REORI = 1
+
+set wdir       = "__WORKING_$tpname"
+set output_cmd = 1                # def: output copy of this command
+set cmd_file   = ""               # def: same name as viewer
+set DO_CLEAN   = "1"              # def: do delete temp files
+set DO_VIEWER  = "1"              # def: do QC image visualization
+set qc_prefix  = ""               # def: autoname; user can enter
+set postfix    = ""               # stick into name
 
 # ------------------- process options, a la rr ----------------------
 
@@ -41,18 +76,18 @@ while ( $ac <= $#argv )
     if ( "$argv[$ac]" == "-indir" ) then
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
         @ ac += 1
-        set there = "$argv[$ac]"
+        set idir = "$argv[$ac]"
 
     # ------------- output(s) ----------------
-    else if ( "$argv[$ac]" == "-outdir" ) then
-        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
-        @ ac += 1
-        set anat_dir = "$argv[$ac]"
-
     else if ( "$argv[$ac]" == "-prefix" ) then
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
         @ ac += 1
-        set the_t1 = "$argv[$ac]"
+        set opref = "$argv[$ac]"
+
+    else if ( "$argv[$ac]" == "-workdir" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set wdir = "$argv[$ac]"
 
     # -------------- other opts ----------------
     else if ( "$argv[$ac]" == "-orient" ) then
@@ -61,8 +96,21 @@ while ( $ac <= $#argv )
         set ori_new = "$argv[$ac]"
 
     # -------------- more other opts ----------------
+    else if ( "$argv[$ac]" == "-no_clean" ) then
+        set DO_CLEAN = "0"
+
     else if ( "$argv[$ac]" == "-reorig_reorient_off" ) then
         set DO_REORI = 0          # leave 'em alone!
+
+    # -------------- qc stuff ----------------
+
+    else if ( "$argv[$ac]" == "-qc_prefix" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set qc_prefix = "$argv[$ac]"
+
+    else if ( "$argv[$ac]" == "-no_qc_view" ) then
+        set DO_VIEWER = 0
 
     else
         echo "** unexpected option #$ac = '$argv[$ac]'"
@@ -80,123 +128,211 @@ echo "++ Start script version: $version"
 
 # ============================= dicom dir ===============================
 
-if ( $there == "" ) then
+if ( "$idir" == "" ) then
     echo "** ERROR: need to input DICOM directory, after '-indir':"
     goto BAD_EXIT
 endif
 
-if ( ! -e "$there" ) then
-    echo "\n** ERROR: can't find input DICOM directory: $there !"
+if ( ! -e "$idir" ) then
+    echo "\n** ERROR: can't find input DICOM directory: $idir !"
     goto BAD_EXIT
 endif
-
-# ============================= input dir ===============================
 
 # check for old relics
 
-cd $there
+cd $idir
 
-printf "++ Checking $PWD for preexisting NIFTIs ... "
+echo "++ Checking $PWD for preexisting NIFTIs ... "
 
 if ( (`find . -maxdepth 1 -type f -name "*nii" | wc -l` > 0 ) || \
      (`find . -maxdepth 1 -type f -name "*nii.gz" | wc -l` > 0 ) ) then
-    echo "\n** ERROR: already some NIFTI files in $there !"
+    echo "\n** ERROR: already some NIFTI files in $idir !"
     goto BAD_EXIT
 endif
 
+# get back home for running stuff
 cd $here 
 
-# ============================= output dir ==============================
+# ========================= output/working dir ==========================
 
-# check output directory, use default if nec
+# check output directory, use input one if nothing given
+
+if ( "$opref" == "" ) then
+    echo "** ERROR: need '-prefix ...' option provided!"
+    echo "   See the helpfile for more information."
+    goto BAD_EXIT
+else
+    set odir = `dirname $opref`
+    set opref = `basename $opref`
+    echo ""
+    echo "++ Based on prefix, the output directory will be:"
+    echo "     $odir"
+    echo "++ Based on prefix, the output prefix will be:"
+    echo "     $opref"
+    echo ""
+endif
 
 # default output dir, if nothing input.
-if ( $anat_dir == "" ) then
-    cd $here
-    cd $there
-
-    # designate full path
-    set anat_dir = "$PWD/../ANATOM"
-    echo "\n++ No output directory specificied by the user."
-    echo "++ Using default location/naming output directory:"
-    echo "\t$PWD"
-
-    cd $here
+if ( ! -e "$odir" ) then
+    echo "+* Output directory didn't exist.  Trying to make it now."
+    mkdir "$odir"
 endif
 
-if ( -e "$anat_dir" ) then
-    echo "\n+* WARNING: already some output directory $anat_dir"
+set wdir = "$odir/$wdir"
+
+# make the working directory
+if ( ! -e $wdir ) then
+    echo "++ Making working directory: $wdir"
+    mkdir $wdir
+else
+    echo "+* WARNING: Somehow found a premade working directory (?):"
+    echo "     $wdir"
+
+    # don't clean preexisting directories-- could be user mistake.
+    echo "   NB: will *not* clean it afterwards."
+    set DO_CLEAN = "0"
 endif
+
+set ocmd   = "${opref}_cmd.txt"      # name for output command
+set ofile  = "${opref}.nii"          # name for output command
 
 # =======================================================================
 # =========================== ** PROCESS ** =============================
 # =======================================================================
 
+echo "\n-----> STARTING $this_prog ---->"
+
+# ---------------------------- CMD ---------------------------------
+
+echo "\n\nThis command:"
+echo "$this_prog $argv\n\n"
+
+if ( "$cmd_file" == "" ) then
+    set cmd_file = "$odir/$ocmd"
+endif
+
+# copy original command:
+# dump copy of command into workdir/..
+if ( $output_cmd == 1 ) then
+    echo "++ Echoing the command to: $cmd_file"
+
+    echo "### Executed from the directory location:"  > $cmd_file
+    echo "# $here\n"            >> $cmd_file
+    echo "### The command was:" >> $cmd_file
+    echo "# $this_prog $argv"   >> $cmd_file
+    echo "\n"                   >> $cmd_file
+endif
+
 # ======================== convert dicoms ===============================
 
-if ( ! -e $anat_dir ) then
-    mkdir $anat_dir
-endif
-if ( ! -e $anat_dir/__TEMP_CONV_123 ) then
-    mkdir $anat_dir/__TEMP_CONV_123
-else
-    echo "** ERROR: directory $anat_dir/__TEMP_CONV_123/ already exists!"
-    echo "   -> confusion happens with converting repeats into same dir!"
-    goto BAD_EXIT
-endif
-
-dcm2nii -o "$anat_dir/__TEMP_CONV_123" $there/*
+# place output into wdir, using gzipped files
+dcm2nii                  \
+    -4 Y                 \
+    -d Y                 \
+    -n Y                 \
+    -g Y                 \
+    -o "$wdir"           \
+    $idir/*
 
 # ================ clean up possible extraneous files ===================
 
-cd $anat_dir/__TEMP_CONV_123
+cd $wdir
 
-set all_t1 = `ls 2*.nii.gz`
+set all_nii = `\ls 2*.nii.gz`
 
 # =========== put into proper orientation, simplify name =================
 
-if ( ${#all_t1} < "1" ) then
+if ( ${#all_nii} < "1" ) then
     echo "\n** ERROR: no anatomical found"
     echo "\t(at least not with expected filename '2*')\n"
     goto BAD_EXIT
-else if ( ${#all_t1} >= "2" ) then
+else if ( ${#all_nii} >= "2" ) then
     echo ""
-    echo "+* Warning: multiple possible volumes, just choosing first one (?!?)"
+    echo "+* Warning: multiple possible volumes, just choosing first one (?)"
     echo ""
 endif
+
+# ---------- try to anonymize -------------
+echo "++ Using nifti_tool to remove ID info, if possible."
+
+set fin  = $all_nii[1]
+set fout = ${tpref}_empty.nii
+nifti_tool                          \
+    -strip_extras                   \
+    -prefix  $fout                  \
+    -infiles $fin
+
+# ---------- center nicely, if desired -------------
 
 if ( $DO_REORI ) then
 
     3dresample                                        \
         -orient $ori_new                              \
-        -inset  $all_t1[1]                            \
-        -prefix ../$the_t1                            \
+        -inset  $fout                                 \
+        -prefix ../$ofile                             \
         -overwrite
 
     # put (0, 0, 0) at center of mass.  (Aug, 2016)
-    3dCM -automask -set 0 0 0 ../$the_t1
+    3dCM -automask -set 0 0 0 ../$ofile
 
 else
     # chicken...
     3dcalc                                 \
-        -a $all_t1[1]                      \
+        -a $fout                           \
         -expr 'a'                          \
-        -prefix ../$the_t1                 \
+        -prefix ../$ofile                  \
         -overwrite
 endif
 
 cd $here 
 
-set check = `3dinfo "$anat_dir/$the_t1"`
+set check = `3dinfo "$odir/$ofile"`
 #echo "$#check"
 if ( "$#check" >= "0" ) then
     echo "\nAll done!"
-    cd $anat_dir
-    echo "\nYour output anatomical is:\n\t$PWD/$the_t1\n"
+    cd $odir
+    echo "\nYour output anatomical is:\n\t$PWD/$ofile\n"
     cd $here
 else 
-    echo "Whoa, badness outputting: $anat_dir/$the_t1"
+    echo "Whoa, badness outputting: $odir/$ofile"
     goto BAD_EXIT
+endif
+
+# ---------------- imager -------------------
+
+if ( "$DO_VIEWER" == "1" ) then
+
+    if( $qc_prefix == "" ) then
+        set vpref0 = ${opref}_${postfix}_qc00_anat
+    else
+        set vpref0 = ${qc_prefix}_${postfix}_qc00_anat
+    endif
+
+    echo "\n\n"
+    echo "++ QC image 00 ($odir/$ofile): $vpref0"
+    echo "\n\n"
+    # need to put '[0]' on $iref?
+    $my_viewer                            \
+        -ulay "$odir/$ofile"              \
+        -ulay_range "2%" "98%"            \
+        -olay_off                         \
+        -prefix $vpref0                   \
+        -outdir "$odir"                   \
+        -montx 5 -monty 3                 \
+        -set_xhairs OFF                   \
+        -label_mode 1 -label_size 3       \
+        -do_clean 
+
+endif
+
+# --------------- clean --------------------
+
+if ( "$DO_CLEAN" == "1" ) then
+    echo "\n++ Cleaning working directory!\n"
+    cd $here
+    \rm -rf $wdir
+else
+    echo "\n++ NOT removing working directory '$wdir'.\n"
 endif
 
 goto GOOD_EXIT
@@ -225,23 +361,25 @@ cat << EOF
   RUNNING:
 
   $this_prog  \
-        -indir   DIR_IN                       \
-        {-outdir DIR_OUT}                     \
-        {-prefix PREFIX}                      \
-        {-orient ORIENT} 
+        -indir    DIR_IN                       \
+        {-prefix  PPP}                         \
+        {-workdir WWW}                         \
+        {-orient  ORIENT}                      \
+        {-reorig_reorient_off}
 
   where:
     -indir  DIR_IN  :required input directory; DIR_IN should contain
                      only DICOM files; all will be selected.
 
-    -outdir DIR_OUT :optional output directory (default is called
-                     'ANATOM', placed parallel to DIR_IN).
-    -prefix PREFIX  :optional output file prefix for volume in DIR_OUT
-                     (default is called '$the_t1').
+    -prefix   PPP   :set prefix (and path) for output data; required.
+
+    -workdir  WWW   :specify a working directory, which can be removed;
+                     (default name = '$wdir').
 
     -orient  ORIENT :optional chance to reset orientation of the volume
                      files (default is currently '$ori_new').
-  -reorig_reorient_off: switch to turn of the nicety of putting (0, 0, 0)
+  -reorig_reorient_off
+                    :switch to turn of the nicety of putting (0, 0, 0)
                      at brain's center of mass (-> 'reorigin' calc) and to
                      not reorient data (-> 'reorient' calc).  Could lead
                      to weirdness later on down the road, depending on the
@@ -256,13 +394,13 @@ cat << EOF
            etc.); these usually have different formats of file name,
            starting with '2*', 'co*' and 'o*'.  Basically, the '2*' is
            chosen for outputting, and the others are stored in a
-           subdirectory called DIR_OUT/__TEMP_CONV_123/.
+           subdirectory called DIR_OUT/WWW/.
 
 -------------------------------------------------------------------------
 
   EXAMPLE:
 
-  \$ $this_prog  \
+    $this_prog  \
        -indir  "ANAT_DICOMS"                 \
        -orient RAI
     

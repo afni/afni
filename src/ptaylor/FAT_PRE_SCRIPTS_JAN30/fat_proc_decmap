@@ -1,4 +1,4 @@
-#!/bin/tcsh -ef
+#!/bin/tcsh -e
 
 # --------------------- revision history -------------------------
 # Sept, 2016
@@ -60,7 +60,7 @@ set copy_fa   = "${tpref}_FA.nii"
 set wdir       = "__WORKING_$tpname"
 set output_cmd = 1                # def: output copy of this command
 set cmd_file   = ""               # def: same name as viewer
-set DoClean    = 1                # def: do delete temp files
+set DO_CLEAN    = "1"             # def: do delete temp files
 set DO_VIEWER  = 1                # def: do QC image visualization
 
 set sca_fa    = "0.7"            # optional user scaling for a brighter img
@@ -106,6 +106,13 @@ while ( $ac <= $#argv )
         @ ac += 1
         set opref = "$argv[$ac]"
 
+    else if ( "$argv[$ac]" == "-workdir" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set wdir = "$argv[$ac]"
+
+    # --------------- other opts -------------------
+
     else if ( "$argv[$ac]" == "-fa_thr" ) then
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
         @ ac += 1
@@ -117,7 +124,7 @@ while ( $ac <= $#argv )
         set sca_fa = "$argv[$ac]"
 
     else if ( "$argv[$ac]" == "-no_clean" ) then
-        set DoClean = 0
+        set DO_CLEAN = "0"
 
     else if ( "$argv[$ac]" == "-no_qc_view" ) then
         set DO_VIEWER = 0
@@ -165,15 +172,18 @@ if ( "$opref" == "" ) then
     goto BAD_EXIT
 else
     set odir = `dirname $opref`
+    set opref = `basename $opref`
     echo ""
     echo "++ Based on prefix, the output directory will be:"
     echo "     $odir"
+    echo "++ Based on prefix, the output prefix will be:"
+    echo "     $opref"
     echo ""
 endif
 
 # default output dir, if nothing input.
 if ( ! -e "$odir" ) then
-    "+* Output directory didn't exist.  Trying to make it now."
+    echo "+* Output directory didn't exist.  Trying to make it now."
     mkdir "$odir"
 endif
 
@@ -186,6 +196,10 @@ if ( ! -e $wdir ) then
 else
     echo "+* WARNING: Somehow found a premade working directory (?):"
     echo "     $wdir"
+
+    # don't clean preexisting directories-- could be user mistake.
+    echo "   NB: will *not* clean it afterwards."
+    set DO_CLEAN = "0"
 endif
 
 set ocmd   = "${opref}_cmd.txt"      # name for output command
@@ -389,9 +403,9 @@ endif
 # --------------------------------------------------------
 
 # leave working dir
-cd ../
+cd $here
 
-if ( $DoClean ) then
+if ( "$DO_CLEAN" == "1" ) then
     echo "\n Removing temporary file(s) in working dir: $wdir"
    \rm -rf $wdir
 else
@@ -452,6 +466,7 @@ cat << EOF
         {-prefix  PREFIX}                        \
         {-thr_fa  FFF}                           \
         {-sca_fa  SSS}                           \
+        {-workdir WWW}                           \
         {-no_clean}
 
    where:
@@ -462,9 +477,7 @@ cat << EOF
                     given coloration (which just makese sense,
                     anyways, since FA>=0?).
 
-   -prefix  PREFIX :optional prefix for output file (default
-                    is ${opref}).  Outputs are PREFIX_${postfix0}
-                    and PREFIX_${postfix1}
+   -prefix   PPP   :set prefix (and path) for output DWI data; required.
 
    -thr_fa  FFF    :for QC1 type of DEC images, use FFF to threshold
                     where DEC values are calculated (def: FFF = ${thr_fa}).
@@ -475,18 +488,21 @@ cat << EOF
                     weighting by FA only; instead, in this map, RGB values
                     are given by '|V1|*FA/SSS' (def:  SSS = ${sca_fa}).
 
-   -no_clean       :a couple temporary files are created whilst
-                    making the DEC map.  This switch tells the 
-                    program to *not* delete them when finishing
-                    (default is to do so).  The prefix of the temp
-                    files is "${tpref}".
-
    -no_qc_view     :by default, a set of QC snapshots are made and
                     output.  To turn these off (why?), use this
                     switch
    -qc_prefix QCP  :by default, the QC snapshots carry the same output
                     name as the final output: PREFIX_*. You
                     can change this to be QCP_*, if you want.
+
+   -workdir WWW    :specify a working directory, which can be removed;
+                    (default name = '$wdir').
+
+   -no_clean       :a couple temporary files are created whilst
+                    making the DEC map.  This switch tells the 
+                    program to *not* delete them when finishing
+                    (default is to do so).  The default prefix of 
+                    working dir is '$wdir'.
 
  ------------------------------------------------------------------------
 

@@ -1,7 +1,4 @@
-#!/bin/tcsh -ef
-
-
-# !? Need to clean?
+#!/bin/tcsh -e
 
 # --------------------- revision history -------------------------
 # Jan, 2017
@@ -27,13 +24,18 @@
 #set version   = "1.6";    set rev_dat   = "Feb 27, 2017"
 #   + pre-alignment/matching stuff
 #
-set version   = "1.7";    set rev_dat   = "March 10, 2017"
+#set version   = "1.7";    set rev_dat   = "March 10, 2017"
 #   + fix when res struct and dwi don't have same origin to start
 #   + add QC snapshot of b0 edges overlayed on orig anat
+#
+set version   = "1.8";    set rev_dat   = "Apr 13, 2017"
+#   + alter I/O to be consistent across progs
+#   + wdir update
 #
 # ----------------------------------------------------------------
 
 set this_prog = "fat_proc_dwi_to_dt"
+set tpname    = "${this_prog:gas/fat_proc_//}"
 set here      = $PWD
 
 # ----------------- find AFNI and set viewer ---------------------
@@ -66,9 +68,8 @@ set iflip    = ""                 # for 1dDW_*++: can flip (yaaawn)
 set sca      = "-scale_out_1000"  # for 3dDWItoDT: -scale_out_1000
 
 set odir     = ""
-set opref    = "dwi"
+set opref    = ""
 set dtipref  = "dt"               # NIFTI prefix for NII output
-set postfix  = "parfit"
 set ori_new  = "RPI"              # default file output orientation
 
 set DO_VIEWER   = 1               # def: do viewing
@@ -78,14 +79,14 @@ set qc_fa_max   = 0.9             # def: FA olay max for QC
 set output_cmd  = 1               # def: output copy of this command
                                   # -> should expand to have all cmds
 set cmd_file    = ""              # def: same name as viewer
-set postfix     = "dti"           # stick into name
+set postfix     = ""              # stick into name
 
 set DO_UNCERT   = 1
 set Niters      = 300
 set extra_unc_cmds = ""
 
-set DO_CLEAN = 1
-set wdir     = "__WORKING_dwitodt"
+set DO_CLEAN = "1"
+set wdir     = "__WORKING_$tpname"
 
 # ------------------- process options, a la rr ----------------------
 
@@ -107,12 +108,12 @@ while ( $ac <= $#argv )
         @ ac += 1
         set idwi = "$argv[$ac]"
         
-    else if ( "$argv[$ac]" == "-in_mask" ) then
+    else if ( "$argv[$ac]" == "-mask" ) then
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
         @ ac += 1
         set imask = "$argv[$ac]"
 
-    else if ( "$argv[$ac]" == "-in_anat_res" ) then
+    else if ( "$argv[$ac]" == "-in_struc_res" ) then
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
         @ ac += 1
         set ianat = "$argv[$ac]"
@@ -155,20 +156,23 @@ while ( $ac <= $#argv )
         set invecmat[4]  = "$argv[$ac]"
 
     # ----------------- outputs ---------------------
-    else if ( "$argv[$ac]" == "-outdir" ) then
-        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
-        @ ac += 1
-        set odir = "$argv[$ac]"
-
-    else if ( "$argv[$ac]" == "-prefix_dwi" ) then
+    # *THIS* is the main prefix that can determine
+    # output file location-- required!
+    else if ( "$argv[$ac]" == "-prefix" ) then
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
         @ ac += 1
         set opref = "$argv[$ac]"
 
+    # will just take the basename of this-- optional
     else if ( "$argv[$ac]" == "-prefix_dti" ) then
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
         @ ac += 1
         set dtipref = "$argv[$ac]"
+
+    else if ( "$argv[$ac]" == "-workdir" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set wdir = "$argv[$ac]"
 
     # ----------------- other opts ---------------------
     else if ( ("$argv[$ac]" == "-flip_x") || \
@@ -200,6 +204,9 @@ while ( $ac <= $#argv )
 
     else if ( "$argv[$ac]" == "-no_cmd_out" ) then
         set output_cmd = 0
+
+    else if ( "$argv[$ac]" == "-no_clean" ) then
+        set DO_CLEAN = "0"
 
     # ------ dti par uncert --------------
     else if ( "$argv[$ac]" == "-uncert_off" ) then
@@ -305,26 +312,33 @@ if ( "$invecmat[4]" != "" ) then
 endif
 endif
 
-# ========================= output dir ==========================
- 
-# check output directory, use input one if nothing given
+# ========================= output/working dir ==========================
 
-if ( "$odir" == "" ) then
-    # default output dir, if nothing input; it must exist already,
-    # because a file is in it
-
-    set odir = `dirname "$idwi"`
-    echo "\n++ No output directory specificied by the user."
-    echo "++ Using the input DWI file's directory by default:"
-    echo "\t$odir"
+if ( "$opref" == "" ) then
+    echo "** ERROR: need '-prefix ...' option provided!"
+    echo "   See the helpfile for more information."
+    goto BAD_EXIT
 else
-    if ( ! -e $odir ) then
-        echo "++ Making new output directory: $odir"
-        mkdir $odir
-    endif
+    set odir = `dirname $opref`
+    set opref = `basename $opref`
+    echo ""
+    echo "++ Based on prefix, the output directory will be:"
+    echo "     $odir"
+    echo "++ Based on prefix, the output prefix will be:"
+    echo "     $opref"
+    echo ""
 endif
 
-set wdir = "$odir/$wdir"
+# check output directory, use input one if nothing given
+
+# default output dir, if nothing input.
+if ( ! -e "$odir" ) then
+    echo "+* Output directory didn't exist.  Trying to make '$odir' now."
+    mkdir "$odir"
+endif
+
+# and put working directory as subdirectory.
+set wdir = $odir/$wdir
 
 # make the working directory
 if ( ! -e $wdir ) then
@@ -333,9 +347,13 @@ if ( ! -e $wdir ) then
 else
     echo "+* WARNING: Somehow found a premade working directory (?):"
     echo "      $wdir"
+
+    # don't clean preexisting directories-- could be user mistake.
+    echo "   NB: will *not* clean it afterwards."
+    set DO_CLEAN = "0"
 endif
 
-# ========================= output fnames ==========================
+# file names for lots of outputs
 
 set ocmd   = "${opref}_cmd.txt"      # name for output command
 set omata  = "${opref}_bmatA.txt"    # name for full afni bmatrix
@@ -497,10 +515,16 @@ if ( "$iref" != "" ) then
 
         echo "++ Initial QC images: how did we align to ref?"
 
-        if( $qc_prefix == "" ) then
-            set vpref0 = ${opref}_${postfix}_qc00_refalign
+        if ( "$ianat" == "" ) then
+            set ffo = "b0"
         else
-            set vpref0 = ${qc_prefix}_${postfix}_qc00_refalign
+            set ffo = "struc"
+        endif
+
+        if( $qc_prefix == "" ) then
+            set vpref0 = ${opref}_${postfix}_qc00_ref_u_$ffo
+        else
+            set vpref0 = ${qc_prefix}_${postfix}_qc00_ref_u_$ffo
         endif
 
         echo "\n\n"
@@ -622,9 +646,9 @@ if ( $DO_VIEWER ) then
             -input  $b0mskd
 
         if( $qc_prefix == "" ) then
-            set vpref0 = ${opref}_${postfix}_qc01_b0edgeref
+            set vpref0 = ${opref}_${postfix}_qc01_ref_u_eb0
         else
-            set vpref0 = ${qc_prefix}_${postfix}_qc01_b0edgeref
+            set vpref0 = ${qc_prefix}_${postfix}_qc01_ref_u_eb0
         endif
 
         echo "\n\n"
@@ -685,11 +709,11 @@ if ( $DO_VIEWER ) then
     echo "++ Making QC images."
 
     if( $qc_prefix == "" ) then
-        set vpref0 = ${opref}_${postfix}_qc02_fin
-        set vpref1 = ${opref}_${postfix}_qc03_FAMD
+        set vpref0 = ${opref}_${postfix}_qc02_ref_u_b0
+        set vpref1 = ${opref}_${postfix}_qc03_MD_u_FA_thr${qc_fa_thr}
     else
-        set vpref0 = ${qc_prefix}_${postfix}_qc02_fin
-        set vpref1 = ${qc_prefix}_${postfix}_qc03_FAMD
+        set vpref0 = ${qc_prefix}_${postfix}_qc02_ref_u_b0
+        set vpref1 = ${qc_prefix}_${postfix}_qc03_MD_u_FA_thr${qc_fa_thr}
     endif
 
     if( "$iref" != "" ) then
@@ -712,40 +736,45 @@ if ( $DO_VIEWER ) then
             -do_clean 
     endif
 
-        echo "\n\n"
-        echo "++ QC image 03 (final output FA>thr on MD): $vpref1"
-        echo "   (olay colorbar is 'Plasma', with max value ${qc_fa_max})"
-        echo "\n\n"
+    echo "\n\n"
+    echo "++ QC image 03 (final output FA>${qc_fa_thr} on MD): $vpref1"
+    echo "   (olay colorbar is 'Plasma', with max value ${qc_fa_max})"
+    echo "\n\n"
 
-        $my_viewer                              \
-            -ulay "$odir/${dtipref}_MD.nii.gz"  \
-            -ulay_range "2%" "98%"              \
-            -olay "$odir/${dtipref}_FA.nii.gz"  \
-            -func_range $qc_fa_max              \
-            -thr_olay $qc_fa_thr                \
-            -pbar_posonly                       \
-            -opacity 7                          \
-            -prefix $vpref1                     \
-            -outdir "$odir"                     \
-            -montx 5 -monty 3                   \
-            -set_xhairs OFF                     \
-            -label_mode 1 -label_size 3         \
-            -do_clean    
-
-    if ( 0 ) then
-    echo "\n\n++ QC image 01 (earlier allin olaying ref ulay): $vpref2\n\n"
-    $my_viewer      -ulay $rout                     \
-                    -olay $qc2o                     \
-                    -prefix $vpref2                 \
-                    -outdir ".."                    \
-                    -montx 3 -monty 3               \
-                    -set_xhairs OFF                 \
-                    -label_mode 1 -label_size 3     \
-                    -opacity 4                      \
-                    -do_clean
-    endif
+    $my_viewer                              \
+        -ulay "$odir/${dtipref}_MD.nii.gz"  \
+        -ulay_range "2%" "98%"              \
+        -olay "$odir/${dtipref}_FA.nii.gz"  \
+        -func_range $qc_fa_max              \
+        -thr_olay $qc_fa_thr                \
+        -pbar_posonly                       \
+        -opacity 7                          \
+        -prefix $vpref1                     \
+        -outdir "$odir"                     \
+        -montx 5 -monty 3                   \
+        -set_xhairs OFF                     \
+        -label_mode 1 -label_size 3         \
+        -do_clean    
 
 endif
+
+# ------------------------- clean (y/n) -----------------------------
+
+# clean, by default
+if ( "$DO_CLEAN" == "1" ) then
+    echo "\n++ Cleaning working directory!\n"
+    \rm -rf $wdir
+else
+    echo "\n++ NOT removing working directory '$wdir'.\n"
+endif
+
+# final messages
+echo ""
+echo "++ The final DWI data are here:  $odir/${opref}*"
+echo "++ The final DTI data are here:  $odir/${dtipref}*"
+echo ""
+
+
 
 # ---------------------------------------------------------------------
 
@@ -780,13 +809,13 @@ cat << EOF
    -in_dwi       DWI                              \
    {-in_col_matA | -in_col_matT |                 \
     -in_col_vec | -in_row_vec} GRADMAT            \
+   -prefix        PPP                             \
    {-in_bvals     BVAL}                           \
-   {-in_mask      MASK}                           \
-   {-in_anat_res  ANAT}                           \
+   {-mask         MASK}                           \
+   {-in_struc_res STRUC}                          \
    {-in_ref_orig  REF}                            \
    {-outdir       ODIR}                           \
-   {-prefix_dwi   PREFIX1}                        \
-   {-prefix_dti   PREFIX2}                        \
+   {-prefix_dti   PREFIX_D}                       \
    {-flip_x | -flip_y | -flip_z | -no_flip}       \
    {-no_scale_out_1000}                           \
    {-qc_prefix    QCPREF}                         \
@@ -795,6 +824,8 @@ cat << EOF
    {-no_qc_view}                                  \
    {-no_cmd_out}                                  \
    {-uncert_off}                                  \
+   {-workdir WWW}                                 \
+   {-no_clean}                                    \
    {-uncert_iters NN}                             \
    {-uncert_extra_cmds STR}
 
@@ -809,6 +840,9 @@ cat << EOF
                       scaling physical values by 1000 is on by default;
                       see turning this scaling off, if unnecessary, by 
                       using '-no_scale_out_1000', below.
+
+   -prefix   PPP     :set prefix for output DWI data; required.
+
    -in_bvals    BVAL :optional, if bvalue information is
                       in a separate file from the b-vectors
                       or matrices; should have same number N as
@@ -817,7 +851,7 @@ cat << EOF
                      :can flip the DW grads, if needed; for example, 
                       based on the recommendation of @GradFlipTest.
 
-   -in_mask     MASK :optional whole brain mask can be input;
+   -mask        MASK :optional whole brain mask can be input;
                       otherwise, automasking is performed for the 
                       region to be tensor and parameter fit.
 
@@ -832,7 +866,7 @@ cat << EOF
                       merely resampled is *not* used, then you really, 
                       really want REF to have the same contrast as the
                       b=0 DWI volume.
-   -in_anat_res ANAT :accomplish the alignment of the output DWI to the 
+ -in_struc_res STRUC :accomplish the alignment of the output DWI to the 
                       REF data set via ANAT: a version of the anatomical 
                       that has been resampled to match the DWI set (in 
                       both orientation and origin);  for example, in
@@ -841,10 +875,8 @@ cat << EOF
                       then be well aligned to the original REF (and to  
                       each other).
          
-   -outdir      ODIR :can specify output directory for all created 
-                      dsets (default is 'current' directory).
- -prefix_dwi PREFIX1 :set prefix for output DWI data; default is '${opref}'.
- -prefix_dti PREFIX2 :set prefix for output DTI data; default is '${dtipref}'.
+ -prefix_dti PREFIX2 :set prefix for output DTI data; optional, 
+                      default is '${dtipref}'.
 
   -no_scale_out_1000 :by default, for tensor fitting it is assumed
                       that 1) the DW b-value information is included
@@ -876,6 +908,11 @@ cat << EOF
                       and the location where it was run (otherwise, it is
                       saved by default in the ODIR/).
 
+   -no_clean         :is an optional switch to NOT remove working 
+                      directory '$wdir'; (default: remove working dir).
+   -workdir WWW      :specify a working directory, which can be removed;
+                      (default name = '$wdir').
+
    -uncert_off       :don't do uncertainty calc (default is to do so); 
                       perhaps if it is slow or you want *very* different
                       options.
@@ -892,7 +929,7 @@ cat << EOF
         -in_dwi       DWI.nii                \
         -in_col_matA  BMTXT_AFNI.txt         \
         -outdir       DTI                    \
-        -in_anat_res  ../structure.nii       \
+        -in_struc_res ../structure.nii       \
         -in_ref_orig  t2w.nii
 
 -------------------------------------------------------------------------
