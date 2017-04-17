@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 17,  Apr, 2017, RCR, "1d_tool.py", MICRO, TYPE_MODIFY,
+   "clarify source in -show_censored_trs (if Xmat, use header info)",
+   NULL
+ } ,
+
  { 12,  Apr, 2017, RCR, "afni-general", MICRO, TYPE_MODIFY,
    "remove some non-ASCII chars: a couple of bad dashes and some Unicode",
    "some of the Unicode characters are upsetting sed via apsearch"
