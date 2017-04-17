@@ -1,4 +1,4 @@
-#!/bin/tcsh -ef
+#!/bin/tcsh -e
 
 # written by PA Taylor (NIMH, NIH, USA)
 # started March, 2017
@@ -8,7 +8,7 @@
 #set version   = "1.0";    set rev_dat   = "March 10, 2017"
 #   + start: align t1 to t2
 #
-set version   = "1.1";    set rev_dat   = "March 11, 2017"
+#set version   = "1.1";    set rev_dat   = "March 11, 2017"
 #   + change name...
 #   + help text added
 #   + no-clean option added
@@ -56,7 +56,7 @@ set odir       = ""
 set opref      = ""
 
 set DO_VIEWER  = 1               # def: do viewing
-set DO_CLEAN   = 1
+set DO_CLEAN   = "1"
 set wdir       = "__WORKING_$tpname"
 set output_cmd = 1               # def: output copy of this command
 set cmd_file   = ""              # def: same name as viewer
@@ -127,7 +127,7 @@ while ( $ac <= $#argv )
         set DO_PREP_FS= 0
 
     else if ( "$argv[$ac]" == "-no_clean" ) then
-        set DO_CLEAN = 0
+        set DO_CLEAN = "0"
 
     else
         echo "** unexpected option #$ac = '$argv[$ac]'"
@@ -173,9 +173,12 @@ if ( "$opref" == "" ) then
     goto BAD_EXIT
 else
     set odir = `dirname $opref`
+    set opref = `basename $opref`
     echo ""
     echo "++ Based on prefix, the output directory will be:"
     echo "     $odir"
+    echo "++ Based on prefix, the output prefix will be:"
+    echo "     $opref"
     echo ""
 endif
 
@@ -183,7 +186,7 @@ endif
 
 # default output dir, if nothing input.
 if ( ! -e "$odir" ) then
-    "+* Output directory didn't exist.  Trying to make it now."
+    echo "+* Output directory didn't exist.  Trying to make it now."
     mkdir "$odir"
 endif
 
@@ -196,6 +199,10 @@ if ( ! -e $wdir ) then
 else
     echo "+* WARNING: Somehow found a premade working directory (?):"
     echo "      $wdir"
+
+    # don't clean preexisting directories-- could be user mistake.
+    echo "   NB: will *not* clean it afterwards."
+    set DO_CLEAN = "0"
 endif
 
 # --------------------- output res ---------------------------
@@ -447,7 +454,7 @@ if ( $DO_VIEWER == 1 ) then
 endif
 
 # clean, by default
-if ( $DO_CLEAN ) then
+if ( "$DO_CLEAN" == "1" ) then
     echo "\n++ Cleaning working directory!\n"
     \rm -rf $wdir
 else
@@ -532,9 +539,9 @@ cat << EOF
   RUNNING:
 
     $this_prog \
-      {-in_t1w  T1W}                        \
-      {-in_t2w  T2W}                        \
-      {-prefix  PPP}                        \
+      -in_t1w  T1W                          \
+      -in_t2w  T2W                          \
+      -prefix  PPP                          \
       {-newgrid RES}                        \
       {-out_t2w_grid}                       \
       {-matrix MMM}                         \
@@ -549,7 +556,7 @@ cat << EOF
    -in_t2w  T2W   :T2w volume (required; preferably from same subject as
                    T1W).
 
-   -prefix  PPP   :output prefix for files and snapshots.                     
+   -prefix  PPP   :output prefix for files and snapshots (required).
 
    -newgrid RES   :specify output T1w volume's final resolution; will be
                    isotropic in this value (default: 1 mm, or smallest voxel

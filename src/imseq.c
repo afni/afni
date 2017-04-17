@@ -13962,7 +13962,8 @@ static MRI_IMAGE * mri_vgize( MRI_IMAGE *iim )
 
    /* add colored noise to the image */
 #ifdef NOIS_SIZ
- { MRI_IMAGE *rrim , *ggim , *bbim , *qqim ;
+ if( ! AFNI_noenv("AFNI_VG_RANCOLOR") ){
+   MRI_IMAGE *rrim , *ggim , *bbim , *qqim ;
    float     *rrar , *ggar , *bbar , rmax,gmax,bmax , rr,gg,bb,qq , nois ;
    rrim = mri_new_conforming(im,MRI_float) ; rrar = MRI_FLOAT_PTR(rrim) ;
    ggim = mri_new_conforming(im,MRI_float) ; ggar = MRI_FLOAT_PTR(ggim) ;

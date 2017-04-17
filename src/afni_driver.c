@@ -94,6 +94,7 @@ static int AFNI_set_func_resam         ( char *cmd ) ; /* 21 Jan 2003 */
 static int AFNI_sleeper                ( char *cmd ) ; /* 22 Jan 2003 */
 static int AFNI_define_colorscale      ( char *cmd ) ; /* 03 Feb 2003 */
 static int AFNI_open_panel             ( char *cmd ) ; /* 05 Feb 2003 */
+static int AFNI_close_panel            ( char *cmd ) ; /* 14 Apr 2017 */
 static int AFNI_drive_purge_memory     ( char *cmd ) ; /* 09 Dec 2004 */
 static int AFNI_redisplay              ( char *cmd ) ;
 static int AFNI_read_niml_file         ( char *cmd ) ; /* 01 Feb 2008 */
@@ -203,6 +204,7 @@ static AFNI_driver_pair dpair[] = {
  { "DEFINE_COLORSCALE"  , AFNI_define_colorscale       } ,
  { "DEFINE_COLOR_SCALE" , AFNI_define_colorscale       } ,
  { "OPEN_PANEL"         , AFNI_open_panel              } ,
+ { "CLOSE_PANEL"        , AFNI_close_panel             } , /* 14 Apr 2017 */
 
  { "INSTACORR"          , AFNI_drive_instacorr         } , /* 20 Oct 2010 */
 
@@ -1956,7 +1958,7 @@ ENTRY("AFNI_drive_set_threshnew") ;
       qval = THD_fdrcurve_zqtot( im3d->fim_now,im3d->vinfo->thr_index,qval) ;
       if( qval >= 0.0 ) val = qval;
    }
- 
+
    if( val >= im3d->vinfo->func_thresh_top || dostar ){ /* reset scale range */
 
      newdec = (int)( log10(val) + 1.0 ) ;
@@ -2683,15 +2685,58 @@ ENTRY("AFNI_open_panel") ;
 
    /* do the right thing (simulate a button press) */
 
-   if( strcmp(cmd+dadd,"Define_Function") == 0 || strcmp(cmd+dadd,"Define_Overlay") == 0 ){
+   if( strcasecmp(cmd+dadd,"Define_Function") == 0 || strcasecmp(cmd+dadd,"Define_Overlay") == 0 ){
      if( !XtIsManaged(im3d->vwid->func->frame) )
        AFNI_define_CB( im3d->vwid->view->define_func_pb, im3d, NULL ) ;
-   } else if( strcmp(cmd+dadd,"Define_Datamode") == 0 ){
+   } else if( strcasecmp(cmd+dadd,"Define_Datamode") == 0 ){
      if( !XtIsManaged(im3d->vwid->dmode->frame) )
        AFNI_define_CB( im3d->vwid->view->define_dmode_pb, im3d, NULL ) ;
-   } else if( strcmp(cmd+dadd,"Define_Markers")  == 0 ){
+   } else if( strcasecmp(cmd+dadd,"Define_Markers")  == 0 ){
      if( !XtIsManaged(im3d->vwid->marks->frame) )
        AFNI_define_CB( im3d->vwid->view->define_marks_pb, im3d, NULL ) ;
+   } else if( strncasecmp(cmd+dadd,"Etc",3) == 0 ){  /* 14 Apr 2017 */
+     if( !XtIsManaged(im3d->vwid->view->frame) ){
+       AFNI_controller_panel_CB( NULL , im3d , NULL ) ;
+     }
+   } else {
+     RETURN(-1) ;
+   }
+   RETURN(0) ;
+}
+
+/*---------------------------------------------------------------------*/
+/*! CLOSE_PANEL [c.]Define_Function, etc. [14 Apr 2017] */
+
+static int AFNI_close_panel( char *cmd )
+{
+   int ic , dadd=2 , fr=-1 , tr=-1 ;
+   Three_D_View *im3d ;
+
+ENTRY("AFNI_close_panel") ;
+
+   if( cmd == NULL || strlen(cmd) < 2 ) RETURN(-1) ;
+
+   ic = AFNI_controller_code_to_index( cmd ) ;
+   if( ic < 0 ){ ic = 0 ; dadd = 0 ; }
+
+   im3d = GLOBAL_library.controllers[ic] ;
+   if( !IM3D_OPEN(im3d) ) RETURN(-1) ;
+
+   /* do the right thing (simulate a button press) */
+
+   if( strcasecmp(cmd+dadd,"Define_Function") == 0 || strcasecmp(cmd+dadd,"Define_Overlay") == 0 ){
+     if( XtIsManaged(im3d->vwid->func->frame) )
+       AFNI_define_CB( im3d->vwid->view->define_func_pb, im3d, NULL ) ;
+   } else if( strcasecmp(cmd+dadd,"Define_Datamode") == 0 ){
+     if( XtIsManaged(im3d->vwid->dmode->frame) )
+       AFNI_define_CB( im3d->vwid->view->define_dmode_pb, im3d, NULL ) ;
+   } else if( strcasecmp(cmd+dadd,"Define_Markers")  == 0 ){
+     if( XtIsManaged(im3d->vwid->marks->frame) )
+       AFNI_define_CB( im3d->vwid->view->define_marks_pb, im3d, NULL ) ;
+   } else if( strncasecmp(cmd+dadd,"Etc",3) == 0 ){
+     if( XtIsManaged(im3d->vwid->view->frame) ){
+       AFNI_controller_panel_CB( NULL , im3d , NULL ) ;
+     }
    } else {
      RETURN(-1) ;
    }
@@ -3558,13 +3603,13 @@ static int AFNI_drive_write_underlay( char *cmd )  /* 16 Jun 2014 */
 /*--------------------------------------------------------------------*/
 /* WRITE_CONT_SPX_HELP prefix */
 extern char * AFNI_Help_AllMainCont (TFORM targ);
-static int AFNI_drive_write_cont_spxhelp( char *cmd ) 
+static int AFNI_drive_write_cont_spxhelp( char *cmd )
 {
-   int ic, dadd=2 , ii ; 
-   Three_D_View *im3d ; 
+   int ic, dadd=2 , ii ;
+   Three_D_View *im3d ;
    char *prefix, *s=NULL;
    FILE *fout = NULL;
-   
+
    if( strlen(cmd) < 3 ) return -1 ;
 
    ic = AFNI_controller_code_to_index( cmd ) ;
@@ -3593,14 +3638,14 @@ static int AFNI_drive_write_cont_spxhelp( char *cmd )
 }
 
 /*--------------------------------------------------------------------*/
-/* SNAP_CONT prefix 
+/* SNAP_CONT prefix
    Take a selfie of the main controller*/
-static int AFNI_drive_snap_cont( char *cmd ) 
+static int AFNI_drive_snap_cont( char *cmd )
 {
-   int ic, dadd=2 , ii ; 
-   Three_D_View *im3d ; 
+   int ic, dadd=2 , ii ;
+   Three_D_View *im3d ;
    char *prefix;
-   
+
    if( strlen(cmd) < 3 ) return -1 ;
 
    ic = AFNI_controller_code_to_index( cmd ) ;
@@ -3613,7 +3658,7 @@ static int AFNI_drive_snap_cont( char *cmd )
          XtIsRealized(im3d->vwid->top_form), XtIsManaged(im3d->vwid->top_form));
       return -1 ;
    }
-   
+
    /* skip blanks */
 
    for( ii=dadd ; cmd[ii] != '\0' && isspace(cmd[ii]) ; ii++ ) ; /*nada*/
