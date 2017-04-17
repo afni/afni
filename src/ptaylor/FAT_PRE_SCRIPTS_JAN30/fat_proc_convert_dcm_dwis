@@ -154,6 +154,9 @@ while ( $ac <= $#argv )
     else if ( "$argv[$ac]" == "-no_qc_view" ) then
         set DO_VIEWER = "0"
 
+    else if ( "$argv[$ac]" == "-no_cmd_out" ) then
+        set output_cmd = 0
+
     else
         echo "** unexpected option #$ac = '$argv[$ac]'"
         goto BAD_EXIT
@@ -499,13 +502,17 @@ cat << EOF
 
     $this_prog  \
       -indir   DIR                             \
-      {-prefix PPP}                            \
+      -prefix PPP                              \
       {-workdir   WWW}                         \
       {-orient    ORIENT}                      \
       {-origin_xyz X0 Y0 Z0}                   \
       {-flip_x | -flip_y | -flip_z | -no_flip} \
       {-reorig_reorient_off}                   \
-      {-no_clean}
+      {-no_clean}                              \
+      {-qc_prefix    QCPREF}                   \
+      {-no_cmd_out}                            \
+      {-no_qc_view} 
+
 
   where:
   -indir  DIR       :directory name(s) of (only) DICOM files of the
@@ -554,6 +561,13 @@ cat << EOF
    -no_clean        :switch to not remove working directory of intermediate,
                      temporary files (default is to delete it).
 
+  -qc_prefix QCPREF :can set the prefix of the QC image files separately
+                     (default is '$opref').
+   -no_qc_view      :can turn off generating QC image files (why?)
+   -no_cmd_out      :don't save the command line call of this program
+                     and the location where it was run (otherwise, it is
+                     saved by default in the ODIR/).
+
 -------------------------------------------------------------------------
 
   OUTPUTS:
@@ -590,6 +604,10 @@ EOF
 SHOW_VERSION:
     echo "version  $version (${rev_dat})"
     goto GOOD_EXIT
+
+FAIL_MISSING_ARG:
+    echo "** ERROR! Missing an argument after option flag: '$argv[$ac]'"
+    goto BAD_EXIT
 
 BAD_EXIT:
     exit 1

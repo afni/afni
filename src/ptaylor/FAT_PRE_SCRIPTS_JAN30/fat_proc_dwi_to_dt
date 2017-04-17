@@ -823,14 +823,15 @@ cat << EOF
    {-qc_fa_max    MMM}                            \
    {-no_qc_view}                                  \
    {-no_cmd_out}                                  \
-   {-uncert_off}                                  \
    {-workdir WWW}                                 \
    {-no_clean}                                    \
+   {-uncert_off}                                  \
    {-uncert_iters NN}                             \
    {-uncert_extra_cmds STR}
 
-  where
-    -in_dwi     DWI  :4D volume of N DWIs.
+  where:
+
+    -in_dwi  DWI     :4D volume of N DWIs. Required.
 
     -in_col_matA | -in_col_matT | -in_col_vec | -in_row_vec  GRADMAT
                      :input text file of N gradient vectors or 
@@ -865,7 +866,7 @@ cat << EOF
                       it afterwards; if an ANAT (below) that has been 
                       merely resampled is *not* used, then you really, 
                       really want REF to have the same contrast as the
-                      b=0 DWI volume.
+                      b=0 DWI volume. *Highly recommended to include!*
  -in_struc_res STRUC :accomplish the alignment of the output DWI to the 
                       REF data set via ANAT: a version of the anatomical 
                       that has been resampled to match the DWI set (in 
@@ -873,7 +874,7 @@ cat << EOF
                       TORTOISE there is a 'structure.nii' file that should
                       match this description.  Both ANAT and DWI should 
                       then be well aligned to the original REF (and to  
-                      each other).
+                      each other). *Highly recommended to include!*
          
  -prefix_dti PREFIX2 :set prefix for output DTI data; optional, 
                       default is '${dtipref}'.
@@ -928,9 +929,9 @@ cat << EOF
     $this_prog \
         -in_dwi       DWI.nii                \
         -in_col_matA  BMTXT_AFNI.txt         \
-        -outdir       DTI                    \
         -in_struc_res ../structure.nii       \
-        -in_ref_orig  t2w.nii
+        -in_ref_orig  t2w.nii                \
+        -outdir       DTI 
 
 -------------------------------------------------------------------------
 
@@ -941,6 +942,10 @@ EOF
 SHOW_VERSION:
     echo "version  $version (${rev_dat})"
     goto GOOD_EXIT
+
+FAIL_MISSING_ARG:
+    echo "** ERROR! Missing an argument after option flag: '$argv[$ac]'"
+    goto BAD_EXIT
 
 BAD_EXIT:
     exit 1

@@ -410,7 +410,7 @@ cat << EOF
 # -----------------------------------------------------------------------
 
   EXAMPLE:
-  \$ $this_prog  \
+    $this_prog  \
         -indset_ap  SUB001/UNFILT_AP/AP.nii      \
         -indset_pa  SUB001/UNFILT_PA/PA.nii      \
         -select    "[0..5,7,8,10..\$]"
@@ -423,6 +423,10 @@ EOF
 SHOW_VERSION:
    echo "version  $version (${rev_dat})"
    goto GOOD_EXIT
+
+FAIL_MISSING_ARG:
+    echo "** ERROR! Missing an argument after option flag: '$argv[$ac]'"
+    goto BAD_EXIT
 
 BAD_EXIT:
    exit 1

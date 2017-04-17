@@ -112,6 +112,9 @@ while ( $ac <= $#argv )
     else if ( "$argv[$ac]" == "-no_qc_view" ) then
         set DO_VIEWER = 0
 
+    else if ( "$argv[$ac]" == "-no_cmd_out" ) then
+        set output_cmd = 0
+
     else
         echo "** unexpected option #$ac = '$argv[$ac]'"
         goto BAD_EXIT
@@ -362,10 +365,14 @@ cat << EOF
 
   $this_prog  \
         -indir    DIR_IN                       \
-        {-prefix  PPP}                         \
+        -prefix  PPP                           \
         {-workdir WWW}                         \
         {-orient  ORIENT}                      \
-        {-reorig_reorient_off}
+        {-no_clean}                            \
+        {-reorig_reorient_off}                 \
+        {-qc_prefix    QCPREF}                 \
+        {-no_cmd_out}                          \
+        {-no_qc_view} 
 
   where:
     -indir  DIR_IN  :required input directory; DIR_IN should contain
@@ -384,6 +391,13 @@ cat << EOF
                      not reorient data (-> 'reorient' calc).  Could lead
                      to weirdness later on down the road, depending on the
                      data and headers (ergo, not recommended.)
+
+  -qc_prefix QCPREF :can set the prefix of the QC image files separately
+                     (default is '$opref').
+   -no_qc_view      :can turn off generating QC image files (why?)
+   -no_cmd_out      :don't save the command line call of this program
+                     and the location where it was run (otherwise, it is
+                     saved by default in the ODIR/).
 
 -------------------------------------------------------------------------
 
@@ -412,6 +426,10 @@ EOF
 SHOW_VERSION:
    echo "version  $version (${rev_dat})"
    goto GOOD_EXIT
+
+FAIL_MISSING_ARG:
+    echo "** ERROR! Missing an argument after option flag: '$argv[$ac]'"
+    goto BAD_EXIT
 
 BAD_EXIT:
    exit 1
