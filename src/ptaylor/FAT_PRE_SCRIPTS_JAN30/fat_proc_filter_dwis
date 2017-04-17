@@ -1,5 +1,9 @@
 #!/bin/tcsh -e
 
+IIN PROGRESSS
+
+# !! add in regular snapshot
+
 # !!! comment about movie/mpeg stuff! gifsicle, etc.
 
 # !!!? control loop speed?
@@ -21,28 +25,50 @@
 #
 #set version = "2.5"
 #set rev_dat = "Feb 20, 2017"
+
 #   + add snapshotting with @djunct_dwi_imager
 #
-set version = "2.6"
-set rev_dat = "Feb 23, 2017"
+#set version = "2.6"; set rev_dat = "Feb 23, 2017"
 #   + add movie-making with @djunct_dwi_imager
+#
+set version = "2.7"; set rev_dat = "Apr 17, 2017"
+#   + I/O standardization
+#   + cut back to just a single directory at once.  
+#     -> Simplifies life (for everyone, really, it's not just 
+#        laziness by the author (well, only *partially* the latter))
 #
 # ----------------------------------------------------------------
  
 set this_prog = "fat_proc_filter_dwis" 
+set tpname    = "${this_prog:gas/fat_proc_//}"
 set here      = $PWD
 
-set i_ap     = ""
-set i_pa     = ""
-set idir_ap  = ""
-set idir_pa  = ""
-set odir_ap  = ""
-set odir_pa  = ""
-set o_ap     = "AP"        # default file output prefix
-set o_pa     = "PA"        # default file output prefix
+# ----------------- find AFNI and set viewer ---------------------
+
+# find AFNI binaries directory and viewer location
+set adir      = ""
+which afni >& /dev/null
+if ( $status ) then
+    echo "** Cannot find 'afni' (?!)."
+    goto BAD_EXIT
+else
+    set aa   = `which afni`
+    set adir = $aa:h
+endif
+
+# default location of viewer: user could modify!
+set my_viewer    = "$adir/@chauffeur_afni"
+set my_viewer_4d = "$adir/@djunct_dwi_imager"
+
+# ----------------------- set defaults --------------------------
+
+set idwi     = ""                 # necessary input: DWI dset
+set invecmat = ( "" "" "" "" )    # switches+names for bvecs and bvals
+set opref    = ""
+set odir     = ""
 set KEEP     = "" 
 
-set movie = ""
+set movie    = ""
 
 # ------------------- process options, a la rr ----------------------
 
@@ -65,11 +91,6 @@ while ( $ac <= $#argv )
         @ ac += 1
         set i_ap = "$argv[$ac]"
 
-    else if ( "$argv[$ac]" == "-inset_pa" ) then
-        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
-        @ ac += 1
-        set i_pa = "$argv[$ac]"
-        
     else if ( "$argv[$ac]" == "-select" ) then
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
         @ ac += 1
@@ -79,22 +100,12 @@ while ( $ac <= $#argv )
     else if ( "$argv[$ac]" == "-outdir_ap" ) then
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
         @ ac += 1
-        set odir_ap = "$argv[$ac]"
+        set odir = "$argv[$ac]"
 
-    else if ( "$argv[$ac]" == "-outdir_pa" ) then
-        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
-        @ ac += 1
-        set odir_pa = "$argv[$ac]"
-        
     else if ( "$argv[$ac]" == "-prefix_ap" ) then
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
         @ ac += 1
         set o_ap = "$argv[$ac]"
-
-    else if ( "$argv[$ac]" == "-prefix_pa" ) then
-        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
-        @ ac += 1
-        set o_pa = "$argv[$ac]"
 
     else if ( "$argv[$ac]" == "-do_movie" ) then
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
@@ -122,100 +133,89 @@ end
 # ============================ ** SETUP ** ==============================
 # =======================================================================
 
-echo "++ Start $this_prog version: $version"
+# ============================ input files ==============================
 
-# ============================= dicom dir ===============================
+echo "++ Start script version: $version"
 
-if ( ("$i_ap" == "") && ("$i_pa" == "") ) then
-    echo "** ERROR: need to input at least one NIFTI volume,"
-    echo "\t using either after '-inset_ap' or '-inset_pa'."
+# NEED these two inputs
+if ( "$idwi" == "" ) then
+    echo "** ERROR: no DWI file input?!"
+    goto BAD_EXIT
+else if ( "$invecmat[2]" == "" ) then
+    echo "** ERROR: no gradient/matrix file input?!"
     goto BAD_EXIT
 endif
 
-# first check for everything needed in AP dir
-if ( "$i_ap" != "" ) then
-    set check = `3dinfo "$i_ap"`
-    if ( "$#check" == "0" ) then
-        echo "** ERROR: can't find file $i_ap !"
-        goto BAD_EXIT
-    endif
-
-    set idir_ap = `dirname $i_ap`
-    set iroot_ap = `3dinfo -prefix_noext $i_ap`
-    if ( ! -e $idir_ap/${iroot_ap}.bval ) then
-        echo "** ERROR: can't find AP file's bval file!"
-        echo "   --> had expected to find: $Piroot_ap}.bval ?!?"
-        goto BAD_EXIT
-    endif
-    if ( ! -e $idir_ap/${iroot_ap}.bvec ) then
-        echo "** ERROR: can't find AP file's bvec file!"
-        echo "   --> had expected to find: ${iroot_ap}.bvec ?!?"
-        goto BAD_EXIT
-    endif
-
-    echo "++ Found 'AP' NIFTI, bval and bvec files in: $idir_ap"
+# make sure we can read DWI OK
+set check = `3dinfo "$idwi"`
+if ( "$#check" == "0" ) then
+    echo "** ERROR: can't find inset file:  $idwi !"
+    goto BAD_EXIT
+else
+    echo "++ Found inset DWI file:   $idwi"
 endif
 
-# then check for everything needed in PA dir
-if ( "$i_pa" != "" ) then
-    set check = `3dinfo "$i_pa"`
-    if ( "$#check" == "0" ) then
-        echo "** ERROR: can't find file $i_pa !"
-        goto BAD_EXIT
-    endif
-
-    set idir_pa = `dirname $i_pa`
-    set iroot_pa = `3dinfo -prefix_noext $i_pa`
-    if ( ! -e $idir_pa/${iroot_pa}.bval ) then
-        echo "** ERROR: can't find PA file's bval file!"
-        echo "   --> had expected to find: $Piroot_pa}.bval ?!?"
-        goto BAD_EXIT
-    endif
-    if ( ! -e $idir_pa/${iroot_pa}.bvec ) then
-        echo "** ERROR: can't find PA file's bvec file!"
-        echo "   --> had expected to find: ${iroot_pa}.bvec ?!?"
-        goto BAD_EXIT
-    endif
-
-    echo "++ Found 'PA' NIFTI, bval and bvec files in: $idir_pa"
+# check for vec/mat file ???????????????/
+if ( 0 ) then
+if ( -f "$invecmat[2]" ) then
+    echo "++ Found input vec/mat file:  $invecmat[2]"
+else
+    echo "** ERROR: can't find entered vec/mat file $invecmat[2] !"
+    goto BAD_EXIT
+endif
 endif
 
-# ============================= output dirs =============================
+# -------------------------------
 
-# check output directory, use default if nec
+# ========================= output/working dir ==========================
+
+if ( "$opref" == "" ) then
+    echo "** ERROR: need '-prefix ...' option provided!"
+    echo "   See the helpfile for more information."
+    goto BAD_EXIT
+else
+    set odir = `dirname $opref`
+    set opref = `basename $opref`
+    echo ""
+    echo "++ Based on prefix, the output directory will be:"
+    echo "     $odir"
+    echo "++ Based on prefix, the output prefix will be:"
+    echo "     $opref"
+    echo ""
+endif
+
+# check output directory, use input one if nothing given
 
 # default output dir, if nothing input.
-if ( "$i_ap" != "" ) then
-
-    if ("$odir_ap" == "") then
-        set odir_ap = "$idir_ap/../FILT_AP"
-        echo "\n++ No output 'AP' directory specified by the user."
-        echo "\t Using default location/naming output directory:"
-        echo "\t   $odir_ap"
-    endif
-
-    if ( -e "$odir_ap" ) then
-        echo "\n+* WARNING: already some output directory $odir_ap !"
-    else
-        mkdir $odir_ap
-    endif
+if ( ! -e "$odir" ) then
+    echo "+* Output directory didn't exist.  Trying to make '$odir' now."
+    mkdir "$odir"
 endif
 
-if ( "$i_pa" != "" ) then
+# and put working directory as subdirectory.
+set wdir = $odir/$wdir
 
-    if ("$odir_pa" == "") then
-        set odir_pa = "$idir_pa/../FILT_PA"
-        echo "\n++ No output 'PA' directory specified by the user."
-        echo "\t Using default location/naming output directory:"
-        echo "\t   $odir_pa"
-    endif
+# make the working directory
+if ( ! -e $wdir ) then
+    echo "++ Making working directory: $wdir"
+    mkdir $wdir
+else
+    echo "+* WARNING: Somehow found a premade working directory (?):"
+    echo "      $wdir"
 
-    if ( -e "$odir_pa" ) then
-        echo "\n+* WARNING: already some output directory $odir_pa !"
-    else
-        mkdir $odir_pa
-    endif
+    # don't clean preexisting directories-- could be user mistake.
+    echo "   NB: will *not* clean it afterwards."
+    set DO_CLEAN = "0"
 endif
+
+# file names for lots of outputs
+
+set ocmd   = "${opref}_cmd.txt"      # name for output command
+set omata  = "${opref}_bmatA.txt"    # name for full afni bmatrix
+set obvec  = "${opref}_bvec.txt"     # name for full afni grads
+set obval  = "${opref}_bval.txt"     # name for full afni bvals
+set odwi   = "${opref}_dwi.nii.gz"   # name for dwis
+
 
 # =======================================================================
 # =========================== ** PROCESS ** =============================
@@ -228,15 +228,15 @@ if ( "$idir_ap" != "") then
     1dDW_Grad_o_Mat++       -echo_edu                            \
         -in_bvals           $idir_ap/${iroot_ap}.bval"$KEEP"     \
         -in_row_vec         $idir_ap/${iroot_ap}.bvec"$KEEP"     \
-        -out_row_bval_sep   $odir_ap/${o_ap}.bval                \
+        -out_row_bval_sep   $odir/${o_ap}.bval                \
         -unit_mag_out                                            \
-        -out_row_vec        $odir_ap/${o_ap}.bvec                \
+        -out_row_vec        $odir/${o_ap}.bvec                \
         -overwrite
 
     3dcalc   -echo_edu                                           \
         -a     $i_ap"$KEEP"                                      \
         -expr "(a)"                                              \
-        -prefix $odir_ap/${o_ap}.nii                             \
+        -prefix $odir/${o_ap}.nii                             \
         -overwrite
 
     # Feb,2017: take images!
@@ -244,39 +244,9 @@ if ( "$idir_ap" != "") then
         echo "++ Make AP images."
         set img_pref = "${o_ap}"
 
-        @djunct_dwi_imager                    \
-            -inset  $odir_ap/${o_ap}.nii      \
-            -outdir "$odir_ap"                \
-            -prefix "$img_pref"               \
-            $movie
-    endif
-
-endif
-
-if ( "$idir_pa" != "") then
-
-    1dDW_Grad_o_Mat++       -echo_edu                            \
-        -in_bvals           $idir_pa/${iroot_pa}.bval"$KEEP"     \
-        -in_row_vec         $idir_pa/${iroot_pa}.bvec"$KEEP"     \
-        -out_row_bval_sep   $odir_pa/${o_pa}.bval                \
-        -unit_mag_out                                            \
-        -out_row_vec        $odir_pa/${o_pa}.bvec                \
-        -overwrite
-
-    3dcalc   -echo_edu                                           \
-        -a     $i_pa"$KEEP"                                      \
-        -expr "(a)"                                              \
-        -prefix $odir_pa/${o_pa}.nii                             \
-        -overwrite
-
-    # Feb,2017: take images!
-    if ( 1 ) then
-        echo "++ Make PA images."
-        set img_pref = "${o_pa}"
-
-        @djunct_dwi_imager                    \
-            -inset  $odir_pa/${o_pa}.nii      \
-            -outdir "$odir_pa"                \
+        $my_viewer_4d  \
+            -inset  $odir/${o_ap}.nii      \
+            -outdir "$odir"                \
             -prefix "$img_pref"               \
             $movie
     endif
@@ -291,7 +261,7 @@ goto GOOD_EXIT
 SHOW_HELP:
 cat << EOF
 # -----------------------------------------------------------------------
-
+    !!!!!!!!!!!!!!! REWRITE !!!!!!!!!!!!!!!!!!!!!!
     The purpose of this function is to help filter out user-found and
     user-defined bad volumes from DWI data sets.  
 
