@@ -134,6 +134,9 @@ while ( $ac <= $#argv )
         @ ac += 1
         set qc_prefix = "$argv[$ac]"
 
+    else if ( "$argv[$ac]" == "-no_cmd_out" ) then
+        set output_cmd = 0
+
     else
         echo "** unexpected option #$ac = '$argv[$ac]'"
         goto BAD_EXIT
@@ -459,15 +462,18 @@ cat << EOF
   This script has two *required* arguments ('-in_fa ...' and '-in_v1 ...'),
   and the rest are optional:
 
-   \$ $this_prog  \
+    $this_prog  \
         -in_fa    IFA                            \
         -in_v1    IV1                            \
         {-mask    MASK}                          \
-        {-prefix  PREFIX}                        \
-        {-thr_fa  FFF}                           \
-        {-sca_fa  SSS}                           \
+        -prefix   PREFIX                         \
+        {-fa_thr  FFF}                           \
+        {-fa_sca  SSS}                           \
         {-workdir WWW}                           \
-        {-no_clean}
+        {-no_clean}                              \
+        {-qc_prefix    QCPREF}                   \
+        {-no_cmd_out}                            \
+        {-no_qc_view} 
 
    where:
    -in_fa   IFA    :input FA (scalar) map.   
@@ -479,9 +485,9 @@ cat << EOF
 
    -prefix   PPP   :set prefix (and path) for output DWI data; required.
 
-   -thr_fa  FFF    :for QC1 type of DEC images, use FFF to threshold
+   -fa_thr  FFF    :for QC1 type of DEC images, use FFF to threshold
                     where DEC values are calculated (def: FFF = ${thr_fa}).
-   -sca_fa  SSS    :for QC2 type of DEC images, use SSS to scale the 
+   -fa_sca  SSS    :for QC2 type of DEC images, use SSS to scale the 
                     FA weighting of what would otherwise be a 'classical'
                     DEC map (where |V1|*FA);  this is added because 
                     sometimes the DEC map can be kind of dim when 
@@ -503,6 +509,13 @@ cat << EOF
                     program to *not* delete them when finishing
                     (default is to do so).  The default prefix of 
                     working dir is '$wdir'.
+
+ -qc_prefix QCPREF :can set the prefix of the QC image files separately
+                    (default is '$opref').
+   -no_qc_view     :can turn off generating QC image files (why?)
+   -no_cmd_out     :don't save the command line call of this program
+                    and the location where it was run (otherwise, it is
+                    saved by default in the ODIR/).
 
  ------------------------------------------------------------------------
 
@@ -556,6 +569,9 @@ SHOW_VERSION:
    echo "version  $version (${rev_dat})"
    goto GOOD_EXIT
 
+FAIL_MISSING_ARG:
+    echo "** ERROR! Missing an argument after option flag: '$argv[$ac]'"
+    goto BAD_EXIT
 
 BAD_EXIT:
     exit 1

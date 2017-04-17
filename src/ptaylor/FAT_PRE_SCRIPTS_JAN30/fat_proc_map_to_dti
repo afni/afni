@@ -635,7 +635,7 @@ cat << EOF
     $this_prog \
       -source   SSS                                  \
       -base     DDD                                  \
-      {-prefix  PPP}                                 \
+      -prefix  PPP                                   \
       {-followers_NN      DSET01 DSET02 DSET03 ...}  \
       {-followers_wsinc5  DSET1 DSET2 DSET3 ...}     \
       {-matrix MMM}                                  \
@@ -661,7 +661,7 @@ cat << EOF
                    only affine alignment with 3dAllineate is
                    performed!
 
-   -prefix  PPP   :output prefix for files and snapshots.  
+   -prefix  PPP   :output prefix for files and snapshots.  Required.
 
    -followers_NN  DSET01 DSET02 DSET03 ...
                   :apply the same transformation to 'follower' data
@@ -715,6 +715,10 @@ EOF
 SHOW_VERSION:
     echo "version  $version (${rev_dat})"
     goto GOOD_EXIT
+
+FAIL_MISSING_ARG:
+    echo "** ERROR! Missing an argument after option flag: '$argv[$ac]'"
+    goto BAD_EXIT
 
 BAD_EXIT:
     exit 1

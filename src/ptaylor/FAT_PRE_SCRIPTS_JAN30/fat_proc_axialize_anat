@@ -796,16 +796,15 @@ cat << EOF
         {-mode_t2w | -mode_t1w}               \
         -prefix PPP                           \
         {-outdir DIR_NAME}                    \
-        {-wdir   WORKDIR}                     \
+        {-workdir  WWW}                       \
         {-out_match_ref}                      \
         {-extra_al_wtmask WT }                \
         {-extra_al_cost CC}                   \
         {-extra_al_inps II}                   \
         {-extra_al_opts SS}                   \
-        {-no_inter_uni}                       \
         {-post_lr_symm}                       \
         {-no_pre_lr_symm}                     \
-        {-do_clean}                           \
+        {-no_clean}                           \
         {-qc1_ulay_range UMIN UMAX}           \
         {-no_qc_view}                         \
         {-qc_prefix QCP}
@@ -871,12 +870,11 @@ cat << EOF
   -post_lr_symm    :a post-alignment left-right symmetrization can be 
                     added, if desired.
 
-  -wdir WORKDIR    :the name of the working subdirectory in the output
+  -workdir WWW     :the name of the working subdirectory in the output
                     directory can be specified (default: ${wdir}).
 
-  -do_clean        :is an optional switch to remove the working file
-                    '${wdir}' and its intermediate files; 
-                    (default: not to do so).
+  -no_clean        :is an optional switch to NOT remove working 
+                    directory '$wdir'; (default: remove working dir).
   -no_cmd_out      :by default, a copy of the command and file location
                     from which it is run is dumped into the WORKDIR 
                     (file name: 'PREFIX*_cmd.txt'). 
@@ -944,6 +942,10 @@ EOF
 SHOW_VERSION:
    echo "version  $version (${rev_dat})"
    goto GOOD_EXIT
+
+FAIL_MISSING_ARG:
+    echo "** ERROR! Missing an argument after option flag: '$argv[$ac]'"
+    goto BAD_EXIT
 
 BAD_EXIT:
     exit 1
