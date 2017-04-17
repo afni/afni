@@ -427,6 +427,10 @@ SHOW_VERSION:
     echo "version  $version (${rev_dat})"
     goto GOOD_EXIT
 
+FAIL_MISSING_ARG:
+    echo "** ERROR! Missing an argument after option flag: '$argv[$ac]'"
+    goto BAD_EXIT
+
 BAD_EXIT:
     exit 1
 
