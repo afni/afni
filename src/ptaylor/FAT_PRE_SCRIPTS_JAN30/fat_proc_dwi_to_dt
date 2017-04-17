@@ -57,7 +57,6 @@ set my_viewer = "$adir/@chauffeur_afni"
 
 # ----------------------- set defaults --------------------------
 
-
 set idwi     = ""                 # necessary input: DWI dset
 set invecmat = ( "" "" "" "" )    # switches+names for bvecs and bvals
 set imask    = ""                 # optional mask; otherwise, automask
@@ -265,6 +264,8 @@ else
     goto BAD_EXIT
 endif
 endif
+
+# -------------------------------
 
 # check if MASK was input, then if can be read
 if ( "$imask" != "" ) then
