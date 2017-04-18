@@ -170,6 +170,7 @@ static char *tempdir         = "./" ;/* 20 Jul 2016 */
 
 typedef struct {
   int nnlev , sid , npthr ;
+  int do_hpow0 , do_hpow1 , do_hpow2 ;
   float *pthr ;
   char name[32] ;
 } Xclu_opt ;
@@ -183,6 +184,8 @@ static char *clustsim_prog=NULL ;    /* 30 Aug 2016 */
 static char *clustsim_opt =NULL ;
 
 static int dofsub          = 0    ;  /* 19 Jan 2016 */
+
+static float exblur        = 0.0f ;  /* 27 Mar 2017 */
 
 /*--------------------------------------------------------------------------*/
 
@@ -1673,6 +1676,24 @@ int main( int argc , char *argv[] )
 
      if( debug ) INFO_message("=== argv[%d] = %s",nopt,argv[nopt]) ;
 
+     /*----- exblur bb [27 Mar 2017] -----*/   /* HIDDEN */
+
+     if( strcasecmp(argv[nopt],"-exblur") == 0 ){
+       if( ++nopt >= argc ) ERROR_exit("need 1 argument after '%s'",argv[nopt-1]) ;
+       exblur = (float)strtod(argv[nopt],NULL) ;
+       if( exblur < 0.0f ){
+         WARNING_message("value after '%s' is negative == ignoring it!",argv[nopt-1]) ;
+         exblur = 0.0f ;
+       } else if( exblur == 0.0f ){
+         WARNING_message("value after '%s' is zero == ignoring it!",argv[nopt-1]) ;
+       } else if( exblur >= 10.0f ){
+         WARNING_message("value after '%s' is big (%.2f) -- just letting you know",argv[nopt-1],exblur) ;
+       } else {
+         /* INFO_message("-exblur set to %.2f mm",exblur) ; */
+       }
+       nopt++ ; continue ;
+     }
+
      /*----- brickwise [28 Jan 2014] -----*/
 
      if( strcasecmp(argv[nopt],"-brickwise") == 0 ){ /* 28 Jan 2014 */
@@ -1787,7 +1808,7 @@ int main( int argc , char *argv[] )
        if( do_clustsim )
          WARNING_message("Why do you use -Clustsim more than once?!") ;
        if( do_Xclustsim )
-         ERROR_exit("You can't use -Clustsim and -Xclustsim together!") ;
+         ERROR_exit("You can't use -Clustsim and -ETAC/-Xclustsim together!") ;
        toz = 1 ;
 
        clustsim_prog = "3dClustSim" ;
@@ -1829,17 +1850,18 @@ int main( int argc , char *argv[] )
 
      /*----- -Xclustsim njob [30 Aug 2016] -----*/
 
-     if( strcasecmp(argv[nopt],"-Xclustsim") == 0 ){
+     if( strcasecmp(argv[nopt],"-Xclustsim") == 0 ||
+         strcasecmp(argv[nopt],"-ETAC"     ) == 0   ){
        char *uuu ;
        if( do_Xclustsim )
-         WARNING_message("Why do you use -Xclustsim more than once?!") ;
+         WARNING_message("Why do you use -ETAC/-Xclustsim more than once?!") ;
        if( do_clustsim )
-         ERROR_exit("You can't use -Clustsim and -Xclustsim together!") ;
+         ERROR_exit("You can't use -Clustsim and -ETAC/-Xclustsim together!") ;
        toz = 1 ;
 
        clustsim_prog = "3dXClustSim" ;
        clustsim_opt  = argv[nopt] ;
-       do_Xclustsim  = (argv[nopt][2] == 'c' ) ? 1 : 2 ;
+       do_Xclustsim  = (argv[nopt][2] == 'C') ? 2 : 1 ;
 
        /* if next option is a number, it is the number of CPUs to use */
 
@@ -1847,9 +1869,9 @@ int main( int argc , char *argv[] )
        if( nopt < argc && isdigit(argv[nopt][0]) ){
          num_clustsim = (int)strtod(argv[nopt],NULL) ; nopt++ ;
          if( num_clustsim > 99 ){
-           WARNING_message("CPU count after -Xclustsim is > 99") ; num_clustsim = 99 ;
+           WARNING_message("CPU count after %s is > 99",clustsim_opt) ; num_clustsim = 99 ;
          } else if( num_clustsim < 1 ){
-           WARNING_message("CPU count after -Xclustsim is < 1" ) ; num_clustsim = 1 ;
+           WARNING_message("CPU count after %s is < 1" ,clustsim_opt) ; num_clustsim = 1 ;
          }
        }
 
@@ -1861,12 +1883,12 @@ int main( int argc , char *argv[] )
          if( jj > 0 && (jj < num_clustsim || num_clustsim == 1) ) num_clustsim = jj ;
        }
 
-       INFO_message("Number of -Xclustsim threads set to %d",num_clustsim) ;
+       INFO_message("Number of 3dXClustSim threads set to %d",num_clustsim) ;
        if( prefix_clustsim == NULL ){
          uuu = UNIQ_idcode_11() ;
          prefix_clustsim = (char *)malloc(sizeof(char)*32) ;
          sprintf(prefix_clustsim,"TT.%s",uuu) ;
-         ININFO_message("Default Xclustsim prefix set to '%s'",prefix_clustsim) ;
+         ININFO_message("Default %s prefix set to '%s'",clustsim_opt,prefix_clustsim) ;
        }
 
        continue ;
@@ -1874,9 +1896,10 @@ int main( int argc , char *argv[] )
 
      /*-----  -Xclu_opt STUFF  [03 Sep 2016]  -----*/
 
-     if( strcasecmp(argv[nopt],"-Xclu_opt") == 0 ){
-       char *cpt , *acp ; int qq,nbad=0 ; Xclu_opt *opx ;
-       if( ++nopt >= argc ) ERROR_exit("need 1 argument after '%s'",argv[nopt-1]) ;
+     if( strcasecmp(argv[nopt],"-Xclu_opt") == 0 ||
+         strcasecmp(argv[nopt],"-ETAC_opt") == 0   ){
+       char *cpt , *acp , *thisopt=argv[nopt] ; int qq,nbad=0 ; Xclu_opt *opx ;
+       if( ++nopt >= argc ) ERROR_exit("need 1 argument after '%s'",thisopt) ;
 
        opt_Xclu = (Xclu_opt **)realloc( opt_Xclu , sizeof(Xclu_opt *)*(nnopt_Xclu+1)) ;
        opx = opt_Xclu[nnopt_Xclu]  = malloc(sizeof(Xclu_opt)) ;
@@ -1884,10 +1907,14 @@ int main( int argc , char *argv[] )
        opx->sid   = 0 ;
        opx->npthr = 0 ;
        opx->pthr  = NULL ;
+       opx->do_hpow0 = 0 ; opx->do_hpow1 = 0 ; opx->do_hpow2 = 0 ;
        sprintf(opx->name,"Case%d",nnopt_Xclu+1) ;
 
        acp = strdup(argv[nopt]) ;  /* change colons to blanks */
-       for( cpt=acp ; *cpt != '\0' ; cpt++ ) if( *cpt == ':' ) *cpt = ' ' ;
+       for( cpt=acp ; *cpt != '\0' ; cpt++ ){
+              if( *cpt == ':' ) *cpt = ' ' ;
+         else if( *cpt == '%' ) *cpt = ' ' ;
+       }
 
        cpt = strcasestr(acp,"NN1") ; if( cpt != NULL ) opx->nnlev = 1 ;
        cpt = strcasestr(acp,"NN2") ; if( cpt != NULL ) opx->nnlev = 2 ;
@@ -1898,34 +1925,64 @@ int main( int argc , char *argv[] )
          qq = (int)strtod(cpt+3,NULL) ;
          if( qq >= 1 && qq <= 3 ) opx->nnlev = qq ;
          else {
-          ERROR_message("Illegal value after NN= in argument '%s'",argv[nopt]); nbad++;
+          ERROR_message("Illegal value after NN= in '%s %s'",thisopt,argv[nopt]); nbad++;
          }
        }
 
        cpt = strcasestr(acp,"1sid") ; if( cpt != NULL ) opx->sid = 1 ;
        cpt = strcasestr(acp,"2sid") ; if( cpt != NULL ) opx->sid = 2 ;
+       cpt = strcasestr(acp,"sid1") ; if( cpt != NULL ) opx->sid = 1 ;
+       cpt = strcasestr(acp,"sid2") ; if( cpt != NULL ) opx->sid = 2 ;
 
        cpt = strcasestr(acp,"sid=") ;
        if( cpt != NULL ){
          qq = (int)strtod(cpt+4,NULL) ;
          if( qq >= 1 && qq <= 2 ) opx->sid = qq ;
          else {
-           ERROR_message("Illegal value after sid= in argument '%s'",argv[nopt]); nbad++;
+           ERROR_message("Illegal value after sid= in '%s %s'",thisopt,argv[nopt]); nbad++;
          }
        }
 
        cpt = strcasestr(acp,"pthr=") ;
        if( cpt != NULL ){
-         NI_float_array *nfar = NI_decode_float_list(cpt+5,",") ;
+         char *qstr=strdup(cpt+5) , *qpt ;
+         NI_float_array *nfar ;
+         qpt = strchr(qstr,' ') ; if( qpt != NULL ) *qpt = '\0' ;
+         nfar = NI_decode_float_list(qstr,",") ;
          if( nfar != NULL && nfar->num > 0 ){
            for( nbad=qq=0 ; qq < nfar->num ; qq++ ){
              if( nfar->ar[qq] < 0.0001f || nfar->ar[qq] > 0.1f ){
-               ERROR_message("Illegal value after pthr= in argument '%s'",argv[nopt]);  nbad++ ;
+               ERROR_message("Illegal value after pthr= in '%s %s'",thisopt,argv[nopt]);  nbad++ ;
              }
            }
            opx->npthr = nfar->num ; opx->pthr = nfar->ar ;
          } else {
-           ERROR_message("Indecipherable values after pthr= in argument '%s'",argv[nopt]); nbad++;
+           ERROR_message("Indecipherable values after pthr= in '%s %s'",thisopt,argv[nopt]); nbad++;
+         }
+       }
+
+       cpt = strcasestr(acp,"hpow=") ;
+       if( cpt != NULL ){
+         char *qstr=strdup(cpt+5) , *qpt ;
+         NI_float_array *nfar ;
+         qpt = strchr(qstr,' ') ; if( qpt != NULL ) *qpt = '\0' ;
+         nfar = NI_decode_float_list(qstr,",") ;
+         if( nfar != NULL && nfar->num > 0 ){
+           for( nbad=qq=0 ; qq < nfar->num ; qq++ ){
+             switch( (int)nfar->ar[qq] ){
+               case 0: opx->do_hpow0 = 1 ; break ;
+               case 1: opx->do_hpow1 = 1 ; break ;
+               case 2: opx->do_hpow2 = 1 ; break ;
+               default:
+                 ERROR_message("Illegal value after hpow= in '%s %s'",thisopt,argv[nopt]);
+                 nbad++ ; break ;
+             }
+           }
+           if( opx->do_hpow0 + opx->do_hpow1 + opx->do_hpow2 == 0 ){
+             ERROR_message("No good values set after hpow= in '%s %s'",thisopt,argv[nopt]); nbad++ ;
+           }
+         } else {
+           ERROR_message("Indecipherable values after hpow= in '%s %s'",thisopt,argv[nopt]); nbad++;
          }
        }
 
@@ -1934,21 +1991,22 @@ int main( int argc , char *argv[] )
          char nam[128] ; nam[0] = '\0' ;
          sscanf(cpt+5," %s",nam) ;
          if( strlen(nam) == 0 || strlen(nam) > 31 || !THD_filename_pure(nam) ){
-           ERROR_message("Illegal string after name= in argument '%s'",argv[nopt]); nbad++ ;
+           ERROR_message("Illegal string after name= in '%s %s'",thisopt,argv[nopt]); nbad++ ;
          } else {
            MCW_strncpy(opx->name,nam,32) ;
          }
        }
 
        if( nbad > 0 )
-         ERROR_exit("Can't continue after such errors in option %s",argv[nopt-1]) ;
+         ERROR_exit("Can't continue after such errors in option %s :(",thisopt) ;
 
        nnopt_Xclu++ ; nopt++ ; free(acp) ; continue ;
      }
 
      /*-----  -Xclu_arg string  -----*/
 
-     if( strcasecmp(argv[nopt],"-Xclu_arg") == 0 ){
+     if( strcasecmp(argv[nopt],"-Xclu_arg") == 0 ||
+         strcasecmp(argv[nopt],"-ETAC_arg") == 0   ){
        if( ++nopt >= argc ) ERROR_exit("need 1 argument after '%s'",argv[nopt-1]) ;
        if( Xclu_arg == NULL ){
          Xclu_arg = strdup(argv[nopt]) ;
@@ -1977,7 +2035,8 @@ int main( int argc , char *argv[] )
      /*----- -prefix_clustsim cc [11 Feb 2016] -----*/
 
      if( strcasecmp(argv[nopt],"-prefix_clustsim" ) == 0 ||
-         strcasecmp(argv[nopt],"-prefix_Xclustsim") == 0   ){
+         strcasecmp(argv[nopt],"-prefix_Xclustsim") == 0 ||
+         strcasecmp(argv[nopt],"-prefix_ETAC"     ) == 0   ){
        if( ++nopt >= argc )
          ERROR_exit("Need argument after '%s'",argv[nopt-1]) ;
        prefix_clustsim = strdup(argv[nopt]) ;
@@ -2499,7 +2558,23 @@ int main( int argc , char *argv[] )
 
    /*----- check lots of possible usage errors and other things -----*/
 
+   if( nval_AAA <= 0 )
+     ERROR_exit("No '-setA' or '-singletonA' option?\n"
+                "********* Please please read the -help instructions again!") ;
+
    if( !brickwise ) brickwise_num = 1 ;      /* 28 Jan 2014 */
+
+   if( brickwise && exblur > 0.0f ){
+     WARNING_message("-brickwise turns off -exblur :(") ;
+     exblur = 0.0f ;
+   }
+
+   if( num_covset_col > 0 && exblur > 0.0f ){
+     WARNING_message(
+       "dataset (voxel-wise) covariates are used, and so is -exblur\n"
+       "    -->> NOTE that the dataset covariates will not be blurred,\n"
+       "    -->> unlike the input (-setA and -setB) datasets!" ) ;
+   }
 
    if( debug ) INFO_message("brickwise_num set to %d",brickwise_num) ;
 
@@ -2509,10 +2584,10 @@ int main( int argc , char *argv[] )
      ERROR_exit("You can't use -brickwise and -randomsign together!") ;
 
    if( do_clustsim && do_Xclustsim ) /* should not be possible */
-     ERROR_exit("You can't use -Clustsim and -Xclustsim together :(") ;
+     ERROR_exit("You can't use -Clustsim and -ETAC/-Xclustsim together :(") ;
 
    if( nnopt_Xclu > 0 && !do_Xclustsim )
-     ERROR_exit("You can't use -Xclu_opt without -Xclustsim :( !!") ;
+     ERROR_exit("You can't use -ETAC_opt/-Xclu_opt without -ETAC/-Xclustsim :( !!") ;
 
    if( brickwise && (do_clustsim || do_Xclustsim) )
      ERROR_exit("You can't use -brickwise and %s together!",clustsim_opt) ;
@@ -2524,7 +2599,7 @@ int main( int argc , char *argv[] )
      ERROR_exit("You can't use -randomsign and %s together!",clustsim_opt) ;
 
    if( name_mask == NULL && do_Xclustsim )
-     ERROR_exit("-Xclustsim requires -mask :(") ;
+     ERROR_exit("%s requires -mask :(",clustsim_opt) ;
 
    if( do_randomsign && num_randomsign > 1 ){ /* 02 Feb 2016 */
      char *cpt ;
@@ -2543,9 +2618,14 @@ int main( int argc , char *argv[] )
    if( do_randomsign && do_resid )           /* 02 Feb 2016 */
      ERROR_exit("You can't do -resid and -randomsign together!") ;
 
+   if( exblur > 0.0f ){                                       /* 27 Mar 2017 */
+     if( DSET_NY(dset_AAA[0]) < 4 || DSET_NZ(dset_AAA[0]) < 4 )
+       ERROR_exit("You cannot use '-exblur' option except on 3D datasets :(") ;
+   }
+
    if( do_clustsim || do_Xclustsim ){
      if( DSET_NY(dset_AAA[0]) < 4 || DSET_NZ(dset_AAA[0]) < 4 )  /* 21 Jul 2016 */
-       ERROR_exit("You cannot use the '%s' option except on 3D datasets :-(",clustsim_opt) ;
+       ERROR_exit("You cannot use '%s' option except on 3D datasets :-(",clustsim_opt) ;
 
      do_resid = 1 ;
      if( prefix_resid == NULL ){
@@ -2583,10 +2663,6 @@ int main( int argc , char *argv[] )
                      "         ==> centering will be on -setB covariates only\n") ;
      center_code = CENTER_DIFF ;
    }
-
-   if( nval_AAA <= 0 )
-     ERROR_exit("No '-setA' or '-singletonA' option?\n"
-               "********* Please please read the -help instructions again!") ;
 
    if( nval_AAA != nval_BBB && ttest_opcode == 2 )
      ERROR_exit("Can't do '-paired' with unequal set sizes: #A=%d #B=%d",
@@ -2741,7 +2817,7 @@ int main( int argc , char *argv[] )
        if( do_permute == 1 )          /* default to off */
          { do_permute = 0 ; dont_permute = 1 ; }
        else if( do_permute > 1 )      /* forced on */
-         WARNING_message("-permute with -covariates is a little weird\n"
+         WARNING_message("-permute with -covariates is not likely to work the way you want\n"
                          "           -- but since you asked for it, you'll get it :)") ;
      }
    } /* end of polymorphic permute perturbations */
@@ -2911,7 +2987,7 @@ int main( int argc , char *argv[] )
                THD_check_vectim(covvim_BBB[jj],msg) ;
              }
            }
-           for( kk=0 ; kk < ndset_AAA ; kk++ )       /* toss out the trashola */
+           for( kk=0 ; kk < ndset_AAA ; kk++ )       /* tossola la trashola */
              if( qset[kk] != NULL ) DSET_delete(qset[kk]) ;
          }
        } /* end of jj loop = covariates column index */
@@ -3003,7 +3079,7 @@ int main( int argc , char *argv[] )
    bbset = EDIT_empty_copy(outset) ;
    EDIT_dset_items( bbset, ADN_nvals,nvout, ADN_none ) ;
 
-   if( do_sdat ){  /* 29 Aug 2016 */
+   if( do_sdat ){  /* for writing results to a short data file [29 Aug 2016] */
      char *cpt ;
      sdat_prefix = (char *)malloc(sizeof(char)*(strlen(prefix)+32)) ;
      strcpy(sdat_prefix,prefix) ;
@@ -3214,16 +3290,25 @@ LABELS_ARE_DONE:  /* target for goto above */
    /*----- convert each input set of datasets to a vectim -----*/
 
    if( !brickwise ){    /* load data now if not doing brickwise tests */
-     INFO_message("loading input datasets") ;
+     INFO_message("loading -setA datasets") ;
      if( !use_singleton_fixed_val ){
        vectim_AAA = THD_dset_list_to_vectim( ndset_AAA , dset_AAA , mask ) ;
        for( ii=0 ; ii < ndset_AAA ; ii++ ) DSET_unload(dset_AAA[ii]) ;
        THD_check_vectim(vectim_AAA,"3dttest++ -setA") ;
+       if( exblur > 0.0f ){
+         ININFO_message("blurring -setA datasets %.2f mm",exblur) ;
+         mri_blur3D_vectim( vectim_AAA , exblur ) ;
+       }
      }
      if( twosam ){
+       INFO_message("loading -setB datasets") ;
        vectim_BBB = THD_dset_list_to_vectim( ndset_BBB , dset_BBB , mask ) ;
        for( ii=0 ; ii < ndset_BBB ; ii++ ) DSET_unload(dset_BBB[ii]) ;
        THD_check_vectim(vectim_AAA,"3dttest++ -setB") ;
+       if( exblur > 0.0f ){
+         ININFO_message("blurring -setB datasets %.2f mm",exblur) ;
+         mri_blur3D_vectim( vectim_BBB , exblur ) ;
+       }
      }
      MEMORY_CHECK ;
    }
@@ -3495,12 +3580,12 @@ LABELS_ARE_DONE:  /* target for goto above */
          EDIT_substitute_brick( outset , kk+bbase , MRI_float , DSET_ARRAY(bbset,kk) ) ;
          DSET_NULL_ARRAY(bbset,kk) ;
        }
-     } else {  /* 29 Aug 2016 */
+     } else {  /* do_sdat [29 Aug 2016] */
 #define SFAC 0.0002f
        float rval ;
        ss = (do_means) ? 0 : 1 ;
-       for( kout=0 ; kout < nmask_hits ; kout++ ){
-         resar = VECTIM_PTR(vimout,kout) ;
+       for( kout=0 ; kout < nmask_hits ; kout++ ){   /* just convert results to shorts */
+         resar = VECTIM_PTR(vimout,kout) ;           /* and write to the sdat file */
          rval  = resar[ss] / SFAC ;
          sdatar[kout] = SHORTIZE(rval) ;
        }
@@ -3621,8 +3706,9 @@ LABELS_ARE_DONE:  /* target for goto above */
      ININFO_message("%s test: results are %s - %s",
                     ttest_opcode == 2 ? "paired":"2-sample", snam_PPP,snam_MMM) ;
 
-   /*--------------------------------------------------------------*/
-   /*------------ Cluster Simulation now [10 Feb 2016] ------------*/
+   /*------------------------------------------------------------------------*/
+   /*----------------- Cluster Simulation now [10 Feb 2016] -----------------*/
+   /*------------------------------------------------------------------------*/
 
    if( do_clustsim || do_Xclustsim ){
      char fname[1024] , *cmd , *ccc ; int qq,pp , nper ; double ct1,ct2 ;
@@ -3850,6 +3936,7 @@ LABELS_ARE_DONE:  /* target for goto above */
 
        int ixx , nxx=MAX(nnopt_Xclu,1) ; Xclu_opt *opx ;
        int nnlev, sid, npthr ; float *pthr ; char *nam ;
+       int do_hpow0, do_hpow1, do_hpow2 ;
 
        for( ixx=0 ; ixx < nxx ; ixx++ ){   /* loop over -Xclu_opt cases */
          if( ixx < nnopt_Xclu ){   /* and run 3dXClustSim once for each */
@@ -3859,8 +3946,12 @@ LABELS_ARE_DONE:  /* target for goto above */
            npthr = opx->npthr ;      /* number of threshold */
             pthr = opx->pthr ;       /* threshold array */
            nam   = opx->name ;       /* code name for output */
+           do_hpow0 = opx->do_hpow0 ;
+           do_hpow1 = opx->do_hpow1 ;
+           do_hpow2 = opx->do_hpow2 ;
          } else {
            nnlev = sid = npthr = 0 ; pthr = NULL ; nam="default" ;
+           do_hpow0 = 1 ; do_hpow1 = 0 ; do_hpow2 = 0 ;
          }
 
          sprintf( cmd , "3dXClustSim -DAFNI_DONT_LOGFILE=YES -noFARvox"
@@ -3870,6 +3961,13 @@ LABELS_ARE_DONE:  /* target for goto above */
          if( Xclu_arg != NULL ){  /* any extra argument from user */
            sprintf( cmd+strlen(cmd) , " %s",Xclu_arg ) ;
            sprintf( cmd+strlen(cmd) , " \\\n   ") ;
+         }
+
+         if( do_hpow0+do_hpow1+do_hpow2 ){
+                          sprintf( cmd+strlen(cmd) , " -hpow") ;
+           if( do_hpow0 ) sprintf( cmd+strlen(cmd) , " 0" ) ;
+           if( do_hpow1 ) sprintf( cmd+strlen(cmd) , " 1" ) ;
+           if( do_hpow2 ) sprintf( cmd+strlen(cmd) , " 2" ) ;
          }
 
          if( nnlev > 0 )
@@ -3895,7 +3993,7 @@ LABELS_ARE_DONE:  /* target for goto above */
      /* remove intermediate files */
 
      if( do_Xclustsim == 1 ){
-       ININFO_message("===== deleting -Xclustsim temp files =====") ;
+       ININFO_message("===== deleting %s temp files =====",clustsim_opt) ;
        sprintf(cmd,"\\rm %s",prefix_resid) ;
        for( pp=0 ; pp < num_clustsim ; pp++ )
          sprintf(cmd+strlen(cmd)," %s",tfname[pp]) ;
@@ -3927,9 +4025,12 @@ LABELS_ARE_DONE:  /* target for goto above */
      free(tfname) ;
 #endif
      ININFO_message("=============== %s work is finished :-) ===============",clustsim_opt) ;
-   }
 
-   /*--- e finito ------------------------------------------------------------*/
+   } /*--------------------- end of Cluster Simulation ----------------------*/
+
+   /*------------------------------------------------------------------------*/
+   /*--- e finito [3dttest++ is done] ---------------------------------------*/
+   /*------------------------------------------------------------------------*/
 
    exit(0) ;
 

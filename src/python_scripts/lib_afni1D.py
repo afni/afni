@@ -1129,10 +1129,19 @@ class Afni1D:
          print "** Afni1D not ready for write_timing to '%s'" % fname
          return 1
 
-      ccount = self.mat[0].count(0)             # start with censor count
+      ccount = self.mat[0].count(0)             # start by counting 0
+      lstr = '(simple form)'
+
+      # if it is a valid x-mat, override (should be a separate function)
+      if self.havelabs:
+         lstr = '(from xmat header)'
+         rv, tplist = self.get_censored_trs()
+         if not rv:
+            ccount = len(tplist)
+
       if invert: ccount = self.nt - ccount
 
-      if self.verb: print 'total number of censored TRs = %d' % ccount
+      if self.verb: print 'total number of censored TRs %s = %d'%(lstr, ccount)
       else:         print ccount
 
       return 0
@@ -2409,6 +2418,8 @@ class Afni1D:
          might be '-' or stdin"""
 
       aname = BASE.afni_name(self.fname)
+
+      if self.verb > 3: print "-- Afni1D: init_from_gen name '%s'" % name
 
       if self.init_from_1D(aname.rpve()): return 1 # failure
 

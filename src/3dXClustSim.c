@@ -46,27 +46,6 @@ static float dz ;
 static int   niter=0 ;  /* number of iterations (realizations) */
 static float nit33=0.0f ;
 
-#undef ALLOW_FIXED
-
-#ifdef ALLOW_FIXED
-static int   do_fixed  = 0 ;
-static int   do_mfixed = 0 ;
-# define NOT_fixed (!do_fixed && !do_mfixed)
-#else
-# define     do_fixed    0
-# define     do_mfixed   0
-# define     NOT_fixed   1
-#endif
-
-static int   fixed_cluster_threshold = 0 ;
-static float fixed_pvalue_threshold  = 0.0f ;
-
-static THD_3dim_dataset *mfixed_dset = NULL ;
-static int         nnlev_mfixed      = 0 ;
-static int         nnsid_mfixed      = 0 ;
-static int         nzthr_mfixed      = 0 ;
-static float       *zthr_mfixed      = NULL ;
-
 static int   do_FOMcount = 0 ;
 static int   do_FARvox   = 0 ;
 
@@ -80,8 +59,30 @@ static float  *zthr_1sid = NULL ;
 static float  *zthr_2sid = NULL ;
 static float  *zthr_used = NULL ;
 
+static int    do_hpow0 = 1 ;
+static int    do_hpow1 = 0 ;
+static int    do_hpow2 = 0 ;
+static int    nhpow    = 1 ;  /* sum of the above */
+
+static int    nblur = 1 ;
+static double *blur = NULL ;
+static double  blur_init[1] = { 0.0 } ;
+
+/** global cases are npthr * nblur       **/
+/** macros convert icase to ipthr, iblur **/
+/** and vice-versa                       **/
+
+static int ncase = 0 ;  /* will be npthr * nblur */
+
+#define ICASE(ip,ih,ib) ((ip)+(ih)*npthr+(ib)*(npnh))
+#define IPTHR(ic)       ((ic)%npthr)
+#define IBLUR(ic)       ((ic)/npnh)
+#define IHPOW(ic)       (((ic)/npthr)%nhpow)
+
+/** athr would be for computing threshold for more than one goal **/
+
 #if 0
-static int    nathr = 5 ;     /* athr is not used at this time */
+static int    nathr = 5 ;
 static double *athr = NULL ;
 static double athr_init[5] = { 0.05 , 0.04 , 0.03 , 0.02 , 0.01 } ;
 #endif
@@ -185,63 +186,6 @@ ENTRY("get_options") ;
       nopt++ ; continue ;
     }
 
-#ifdef ALLOW_FIXED
-    /*-----  -mfixed mthresh_dataset  -----*/
-
-    if( strcasecmp(argv[nopt],"-mfixed") == 0 ){
-      ATR_float *atr ; float *afl ;
-      if( do_fixed     ) ERROR_exit("You can't use -fixed AND -mfixed together") ;
-      if( do_mfixed    ) ERROR_exit("You can't use -mfixed twice") ;
-      if( pthr != NULL ) ERROR_exit("You can't use -mfixed AND also use -pthr") ;
-      if( ++nopt >= argc )
-        ERROR_exit("You need 1 argument after option '-mfixed'") ;
-      mfixed_dset = THD_open_dataset(argv[nopt]) ;
-      if( mfixed_dset == NULL )
-        ERROR_exit("Can't open -mfixed dataset '%s'",argv[nopt]) ;
-      DSET_load(mfixed_dset) ; CHECK_LOAD_ERROR(mfixed_dset) ;
-
-      atr = THD_find_float_atr( mfixed_dset->dblk , "MULTI_THRESHOLDS" ) ;
-      if( atr == NULL )
-        ERROR_exit("-mfixed dataset does not have MULTI_THRESHOLDS attribute :(") ;
-      afl = atr->fl ;
-      nnlev_mfixed = (int)afl[0] ;
-      nnsid_mfixed = (int)afl[1] ;
-      nzthr_mfixed = (int)afl[2] ;
-      zthr_mfixed  = (float *)malloc(sizeof(float)*nzthr_mfixed) ;
-      for( ii=0 ; ii < nzthr_mfixed ; ii++ ) zthr_mfixed[ii] = afl[3+ii] ;
-
-      if( verb ){
-          INFO_message("-mfixed dataset parameters") ;
-        ININFO_message("  clustering NN=%d  thresholding=%d-sided  %d thresholds",
-                       nnlev_mfixed,nnsid_mfixed,nzthr_mfixed ) ;
-      }
-      do_mfixed = 1 ; nopt++ ; continue ;
-    }
-
-    /*-----  -fixed pvalue clustersize  -----*/
-
-    if( strcasecmp(argv[nopt],"-fixed") == 0 ){
-      if( do_mfixed    ) ERROR_exit("You can't use -fixed AND -mfixed together") ;
-      if( do_fixed     ) ERROR_exit("You can't use -fixed twice") ;
-      if( pthr != NULL ) ERROR_exit("You can't use -fixed AND also use -pthr") ;
-      if( ++nopt >= argc-1 )
-        ERROR_exit("You need 2 arguments after option '-fixed'") ;
-      fixed_pvalue_threshold  = (float)strtod(argv[nopt++],NULL) ;
-      fixed_cluster_threshold = (int)  strtod(argv[nopt++],NULL) ;
-      do_fixed = ( fixed_pvalue_threshold  > 0.0f &&
-                   fixed_pvalue_threshold  < 0.1f &&
-                   fixed_cluster_threshold > MIN_CLUST ) ;
-      if( do_fixed ){
-        npthr   = 1 ;
-        pthr    = (double *)malloc(sizeof(double)) ;
-        pthr[0] = fixed_pvalue_threshold ;
-      } else {
-        ERROR_exit("Illegal values after '-fixed'") ;
-      }
-      continue ;
-    }
-#endif
-
     /*----- -NN 1 or 2 or 3 -----*/
 
     if( strcasecmp(argv[nopt],"-NN") == 0 ){
@@ -341,7 +285,7 @@ ENTRY("get_options") ;
       do_FARvox = 1 ; nopt++ ; continue ;
     }
 
-    /*-----   -pthr p   -----*/
+    /*-----   -pthr p p p   -----*/
 
 #define IS_NUMERIC(sss)                         \
  ( (                    isdigit((sss)[0]) ) ||  \
@@ -350,13 +294,9 @@ ENTRY("get_options") ;
 
     if( strcmp(argv[nopt],"-pthr") == 0 || strcmp(argv[nopt],"-pval") == 0 ){
       if( pthr != NULL )          ERROR_exit("you can't use -pthr twice!") ;
-      if( do_fixed || do_mfixed ) ERROR_exit("you can't use -pthr with -mfixed or -fixed!") ;
       nopt++; if( nopt >= argc )  ERROR_exit("need argument after %s",argv[nopt-1]);
-#if 0
-      for( ii=nopt ; ii < argc && argv[ii][0] != '-' ; ii++ ) ; /*nada*/
-#else
+
       for( ii=nopt ; ii < argc && IS_NUMERIC(argv[ii]) ; ii++ ) ; /*nada*/
-#endif
       npthr = ii-nopt ;
       if( npthr <= 0 ) ERROR_exit("No positive values found after %s",argv[nopt-1]) ;
       pthr = (double *)realloc(pthr,sizeof(double)*npthr) ;
@@ -375,6 +315,28 @@ ENTRY("get_options") ;
         }
       }
       nopt += npthr ;
+      continue ;
+    }
+
+    /*-----   -hpow h h h  [28 Mar 2017]  -----*/
+
+    if( strcmp(argv[nopt],"-hpow") == 0 ){
+      int jj ;
+      nopt++; if( nopt >= argc )  ERROR_exit("need argument after %s",argv[nopt-1]);
+
+      do_hpow0 = do_hpow1 = do_hpow2 = 0 ;
+      for( ; nopt < argc && isdigit(argv[nopt][0]) ; nopt++ ){
+        switch( (int)strtod(argv[nopt],NULL) ){
+          case 0: do_hpow0 = 1 ; break ;
+          case 1: do_hpow1 = 1 ; break ;
+          case 2: do_hpow2 = 1 ; break ;
+          default:
+            ERROR_exit("value '%s' after '-hpow' is illegal (only 0, 1, and/or 2 allowed)",argv[nopt]) ;
+        }
+      }
+      nhpow = do_hpow0 + do_hpow1 + do_hpow2 ;
+      if( nhpow < 1 )
+        ERROR_exit("No valid powers (0 and/or 1 and/or 2) found after '-hpow' :(") ;
       continue ;
     }
 
@@ -401,6 +363,10 @@ ENTRY("get_options") ;
     if( !verb )
       INFO_message("Using default %d p-value thresholds",npthr) ;
   }
+
+  nblur = 1 ;  /* for later */
+
+  ncase = npthr * nblur ;  /* number of thresholding cases */
 
 #if 0
   if( athr == NULL ){
@@ -477,14 +443,14 @@ void generate_image( float *fim , int iter )
 
 /*---------------------------------------------------------------------------*/
 /* Global cluster collection:
-     Xclustar_g[ipthr][iter] = cluster array at iteration iter and
-     threshold ipthr. The basic array is created in main().
+     Xclustar_g[icase][iter] = cluster array at iteration iter and for
+     case icase. The basic array is created in main().
 *//*-------------------------------------------------------------------------*/
 
 static Xcluster_array ***Xclustar_g ;
 
 static int        *nclust_tot , nclust_max ;
-static Xcluster ***Xclust_tot ;  /* [ipthr][nclust_tot[ipthr]] */
+static Xcluster ***Xclust_tot ;  /* [icase][nclust_tot[icase]] */
 
 /*---------------------------------------------------------------------------*/
 /* Get a NN{nn}_{ss}sided cluster array at a particular threshold (ipthr),
@@ -510,7 +476,7 @@ void gather_clusters( int ipthr, float *fim, MRI_IMAGE *tfim, int nn,int ss, int
       tfar[ii] = (fabsf(fim[ii]) >= thr) ? fim[ii] : 0.0f ;
   }
 
-  Xclustar_g[ipthr][iter] = find_Xcluster_array( tfim , nn , NULL ) ;
+  Xclustar_g[ipthr][iter] = find_Xcluster_array( tfim , nn , NULL,NULL,NULL ) ;
 
   return ;
 }
@@ -522,7 +488,7 @@ void gather_clusters( int ipthr, float *fim, MRI_IMAGE *tfim, int nn,int ss, int
  do{ int i,j,k , npt=xc->npt;                                     \
      IJK_TO_THREE(pqr,i,j,k,nx,nxy) ;                             \
      if( npt == xc->nall ){                                       \
-       xc->nall += DALL + xc->nall ;                              \
+       xc->nall += DALL + xc->nall/4 ;                            \
        xc->ip = (ind_t *)realloc(xc->ip,sizeof(ind_t)*xc->nall) ; \
        xc->jp = (ind_t *)realloc(xc->jp,sizeof(ind_t)*xc->nall) ; \
        xc->kp = (ind_t *)realloc(xc->kp,sizeof(ind_t)*xc->nall) ; \
@@ -634,7 +600,7 @@ typedef struct {
 
 #define ADDTO_Xvector(xv,val)                                         \
  do{ if( xv->npt == xv->nall ){                                       \
-       xv->nall += DALL ;                                             \
+       xv->nall += DALL + xv->nall/4 ;                                \
        xv->far   = (float *)realloc(xv->far,sizeof(float)*xv->nall) ; \
      }                                                                \
      xv->far[xv->npt++] = (val) ;                                     \
@@ -642,8 +608,13 @@ typedef struct {
 
 /* global FOM vector array -- created in main() */
 
-static Xvector **fomvec = NULL ;    /* [mask_ngood] */
-static Xvector ***fomsort = NULL ;  /* [npthr][mask_ngood] */
+static Xvector **fomvec0   = NULL ;  /* [mask_ngood] */
+static Xvector **fomvec1   = NULL ;  /* [mask_ngood] */
+static Xvector **fomvec2   = NULL ;  /* [mask_ngood] */
+
+static Xvector ***fomsort0 = NULL ;  /* [npthr][mask_ngood] */
+static Xvector ***fomsort1 = NULL ;  /* [npthr][mask_ngood] */
+static Xvector ***fomsort2 = NULL ;  /* [npthr][mask_ngood] */
 
 /*---------------------------------------------------------------------------*/
 /* Process the clusters to FOM vectors for a range of 3D indexes,
@@ -663,10 +634,14 @@ void process_clusters_to_Xvectors( int ijkbot, int ijktop , int ipthr )
    int cc , pp,npt , ijk,vin ;
    const int nx1=nx-1,ny1=ny-1,nz1=nz-1 ;
 
-#define PROCESS(iii)                                        \
- do{ if( iii >= ijkbot && ijk <= ijktop ){                  \
-       vin = ijk_to_vec[iii] ;                              \
-       if( vin >= 0 ) ADDTO_Xvector(fomvec[vin],xc->fom) ;  \
+#define PROCESS(iii)                                \
+ do{ if( iii >= ijkbot && ijk <= ijktop ){          \
+       vin = ijk_to_vec[iii] ;                      \
+       if( vin >= 0 ){                              \
+         ADDTO_Xvector(fomvec0[vin],xc->fomh[0]) ;  \
+         ADDTO_Xvector(fomvec1[vin],xc->fomh[1]) ;  \
+         ADDTO_Xvector(fomvec2[vin],xc->fomh[2]) ;  \
+       }                                            \
    }} while(0)
 
    for( cc=0 ; cc < ncar ; cc++ ){                    /* loop over clusters */
@@ -707,7 +682,7 @@ int get_Xcluster_nbcount( Xcluster *xc , int ithr )
 
    if( xc == NULL || xc->npt == 0 ) return 0 ;
    if( xc->npt == 1 ){
-     xc->nbcount = fomvec[ijk_to_vec[xc->ijk[0]]]->npt ;
+     xc->nbcount = fomvec0[ijk_to_vec[xc->ijk[0]]]->npt ;
      return xc->nbcount ;
    }
 
@@ -723,7 +698,7 @@ int get_Xcluster_nbcount( Xcluster *xc , int ithr )
 
    fc = fcount_g[ithr] ;  /* thread-specific temp array */
    for( ii=0 ; ii < xc->npt ; ii++ )
-     fc[ii] = fomvec[ijk_to_vec[xc->ijk[ii]]]->npt ;  /* count */
+     fc[ii] = fomvec0[ijk_to_vec[xc->ijk[ii]]]->npt ;  /* count */
 
    xc->nbcount = (int)qmed_float(xc->npt,fc) ;  /* find the median count */
    return xc->nbcount ;
@@ -767,10 +742,13 @@ int main( int argc , char *argv[] )
    int ndilstep , ndilated[4] , ndilsum , ndiltot ;
    int count_targ100 , count_targ80, count_targ60 ;
    THD_3dim_dataset *qset=NULL ;
-   float *qar=NULL , *gthresh=NULL ;
+   float *qar=NULL , *gthresh0=NULL , *gthresh1=NULL, *gthresh2=NULL ;
    char qpr[32] ;
-   MRI_IMAGE *cim ; MRI_IMARR *cimar=NULL ; float **car , *farar ;
-   int nfomkeep , nfar , itrac , ithresh ;
+   MRI_IMAGE *cim0  =NULL , *cim1  =NULL , *cim2  =NULL ;
+   MRI_IMARR *cimar0=NULL , *cimar1=NULL , *cimar2=NULL ;
+   float     **car0 =NULL , **car1 =NULL , **car2 =NULL , **carHP ;
+   float *farar ;
+   int nfomkeep , nfar , itrac , ithresh , hp,ibr;
    float tfrac , farperc,farcut , tfracold,farpercold,ttemp ;
 
    /*----- help me if you can -----*/
@@ -780,14 +758,11 @@ int main( int argc , char *argv[] )
        "God only knows what this program does (if anything).\n") ;
 
      printf("\n"
-       " -inset     mask sdata  {MANDATORY} [e.g., from 3dtoXdataset]\n"
+       " -inset     mask sdata  {MANDATORY} [e.g., from 3dtoXdataset or 3dttest++]\n"
        " -NN        1 or 2 or 3 [-NN1 or -NN2 or -NN3 will work]\n"
        " -sid       1 or 2      [-1sid or -2sid will work]\n"
+       " -hpow      0 1 2       [or some subset of these]\n"
        " -prefix    something\n"
-#ifdef ALLOW_FIXED
-       " -fixed     pvalue clustersize\n"
-       " -mfixed    mthresh_dataset\n"
-#endif
        " -pthr      list of values [default = 0.0100 0.0056 0.0031 0.0018 0.0010]\n"
        " -FOMcount  turn on FOMcount output\n"
        " -FARvox    turn on FARvox output\n"
@@ -804,11 +779,6 @@ int main( int argc , char *argv[] )
    /*----- load command line options -----*/
 
    get_options(argc,argv) ;
-
-   if( !do_FARvox && !NOT_fixed ){
-     do_FARvox = 1 ;
-     INFO_message("-fixed or -mfixed turns FARvox output back on :)") ;
-   }
 
    /*----- get the number of threads -----------------------------------*/
 
@@ -830,12 +800,6 @@ int main( int argc , char *argv[] )
 
    mri_multi_threshold_setup() ;
 
-   /*--- skip all the cluster size thresholding calculations,
-         and just compute the final result for the fixed thresholds;
-         this is for testing and comparison with directly input parameters ---*/
-
-   if( !NOT_fixed ) goto FINAL_STUFF ;
-
    /*--- initialize the cluster arrays (one for each p-value thresh) ---*/
    /*--- Xclustar_g[qpthr][iter] = array of clusters at p-value
                                    pthr[qpthr] for realization iter  ---*/
@@ -848,7 +812,7 @@ int main( int argc , char *argv[] )
    /*--- STEP 1a: loop over realizations to load up Xclustar_g[][] ---*/
 
    if( verb )
-     INFO_message("STEP 1: start %d-sided clustering with NN=%d",nnsid,nnlev) ;
+     INFO_message("STEP 1a: start %d-sided clustering with NN=%d",nnsid,nnlev) ;
 
  AFNI_OMP_START ;      /*------------ start parallel section ----------*/
 #pragma omp parallel
@@ -875,7 +839,7 @@ int main( int argc , char *argv[] )
      }
    }
 
-   /* delete thread-specific workspace */
+   /* delete thread-specific workspace for this processing block */
 
 #pragma omp critical
    { mri_free(fim) ; mri_free(tfim) ; }
@@ -890,6 +854,9 @@ int main( int argc , char *argv[] )
      Xclust_tot = (Xcluster ***)malloc(sizeof(Xcluster_array **)*npthr) ;
      nclust_max = 0 ;
 
+     if( verb )
+       ININFO_message("STEP 1b: merge cluster lists") ;
+
      for( qpthr=0 ; qpthr < npthr ; qpthr++ ){  /* loop over p-value thresh */
        nclust_tot[qpthr] = 0 ;
        for( qter=0 ; qter < niter ; qter++ ){   /* count total clusters */
@@ -898,9 +865,8 @@ int main( int argc , char *argv[] )
        }
        /* max number of clusters across all p-value thresh */
        if( nclust_tot[qpthr] > nclust_max ) nclust_max = nclust_tot[qpthr] ;
-#if 0
-       ININFO_message("pthr=%.5f has %d total clusters",pthr[qpthr],nclust_tot[qpthr]);
-#endif
+       if( verb )
+         ININFO_message("     pthr=%.5f found %d total clusters",pthr[qpthr],nclust_tot[qpthr]);
 
        /* assemble all clusters at this p-value thresh into one big array */
 
@@ -926,31 +892,72 @@ int main( int argc , char *argv[] )
 
    { int nfom,jj,nfff; Xcluster **xcc;
      float a0,a1,f0,f1,fta,ftb , fmax ;
-     float *fomg=calloc(sizeof(float),nclust_max);
+     float *fomg0=calloc(sizeof(float),nclust_max) ; /* workspaces */
+     float *fomg1=calloc(sizeof(float),nclust_max) ; /* for this  */
+     float *fomg2=calloc(sizeof(float),nclust_max) ; /* section  */
 
-     gthresh = (float *)calloc(sizeof(float),npthr) ;
+     if( verb )
+       ININFO_message("STEP 1c: compute minimum thresholds") ;
+
+     gthresh0 = (float *)calloc(sizeof(float),npthr) ; /* saved */
+     gthresh1 = (float *)calloc(sizeof(float),npthr) ; /* global */
+     gthresh2 = (float *)calloc(sizeof(float),npthr) ; /* thresholds */
+
      for( qpthr=0 ; qpthr < npthr ; qpthr++ ){
        xcc = Xclust_tot[qpthr] ;
        for( nfom=ii=0 ; ii < nclust_tot[qpthr] ; ii++ ){
-         if( xcc[ii] != NULL ) fomg[nfom++] = xcc[ii]->fom ;
+         if( xcc[ii] != NULL ){
+           fomg0[nfom] = xcc[ii]->fomh[0] ;
+           fomg1[nfom] = xcc[ii]->fomh[1] ;
+           fomg2[nfom] = xcc[ii]->fomh[2] ; nfom++ ;
+         }
        }
        if( nfom < 50 ) continue ;      /* should not happen */
        nfff = niter ;
        if( nfff > nfom ) nfff = nfom ; /* very unlikely */
-       qsort_float_rev( nfom, fomg ) ;
+
+       qsort_float_rev( nfom, fomg0 ) ;
        jj  = (int)rintf(GTHRESH_THA*nfff) ;
-       fta = GTHRESH_FAC*fomg[jj] ;
+       fta = GTHRESH_FAC*fomg0[jj] ;
        jj  = (int)rintf(GTHRESH_THB*nfff) ;
-       ftb = fomg[jj] ;
+       ftb = fomg0[jj] ;
        fmax = AFNI_numenv("AFNI_XCLUSTSIM_FMAX") ;
        if( fmax <= 0.01f || fmax > 1.0f ) fmax = 0.622f ;
-       gthresh[qpthr] = (int)(fmax*MAX(fta,ftb)+(1.0f-fmax)*MIN(fta,ftb)) ;
-       if( verb ){
-         ININFO_message("pthr=%.5f gets min threshold %.0f [fta=%.1f ftb=%1.f] [nfom=%d niter=%d]",
-                        pthr[qpthr],gthresh[qpthr],fta,ftb,nfom,niter) ;
+       gthresh0[qpthr] = (int)(fmax*MAX(fta,ftb)+(1.0f-fmax)*MIN(fta,ftb)) ;
+       if( verb && do_hpow0 ){
+         ININFO_message("     pthr=%.5f h=0 min threshold %.1f",
+                        pthr[qpthr],gthresh0[qpthr]) ;
        }
-     }
-     free(fomg) ;
+
+       qsort_float_rev( nfom, fomg1 ) ;
+       jj  = (int)rintf(GTHRESH_THA*nfff) ;
+       fta = GTHRESH_FAC*fomg1[jj] ;
+       jj  = (int)rintf(GTHRESH_THB*nfff) ;
+       ftb = fomg1[jj] ;
+       fmax = AFNI_numenv("AFNI_XCLUSTSIM_FMAX") ;
+       if( fmax <= 0.01f || fmax > 1.0f ) fmax = 0.622f ;
+       gthresh1[qpthr] = (fmax*MAX(fta,ftb)+(1.0f-fmax)*MIN(fta,ftb)) ;
+       if( verb && do_hpow1 ){
+         ININFO_message("     pthr=%.5f h=1 min threshold %.1f",
+                        pthr[qpthr],gthresh1[qpthr]) ;
+       }
+
+       qsort_float_rev( nfom, fomg2 ) ;
+       jj  = (int)rintf(GTHRESH_THA*nfff) ;
+       fta = GTHRESH_FAC*fomg2[jj] ;
+       jj  = (int)rintf(GTHRESH_THB*nfff) ;
+       ftb = fomg2[jj] ;
+       fmax = AFNI_numenv("AFNI_XCLUSTSIM_FMAX") ;
+       if( fmax <= 0.01f || fmax > 1.0f ) fmax = 0.622f ;
+       gthresh2[qpthr] = (fmax*MAX(fta,ftb)+(1.0f-fmax)*MIN(fta,ftb)) ;
+       if( verb && do_hpow2 ){
+         ININFO_message("     pthr=%.5f h=2 min threshold %.1f",
+                        pthr[qpthr],gthresh2[qpthr]) ;
+       }
+
+     } /* end loop over thresholds */
+
+     free(fomg0) ; free(fomg1) ; free(fomg2) ;
    }
 
    /*==========================================================================*/
@@ -961,13 +968,25 @@ int main( int argc , char *argv[] )
    /*--- this is the list of FOMs (e.g., cluster sizes)
          that were found at that voxel                  ---*/
 
-   fomvec = (Xvector **)malloc(sizeof(Xvector *)*mask_ngood) ;
+   fomvec0 = (Xvector **)malloc(sizeof(Xvector *)*mask_ngood) ;
+   fomvec1 = (Xvector **)malloc(sizeof(Xvector *)*mask_ngood) ;
+   fomvec2 = (Xvector **)malloc(sizeof(Xvector *)*mask_ngood) ;
    for( ii=0 ; ii < mask_ngood ; ii++ ){
-     CREATE_Xvector(fomvec[ii],100) ;
-     fomvec[ii]->ip  = ipmask[ii] ;   /* store location of this */
-     fomvec[ii]->jp  = jpmask[ii] ;   /* vector in the 3D grid */
-     fomvec[ii]->kp  = kpmask[ii] ;
-     fomvec[ii]->ijk = ijkmask[ii] ;
+     CREATE_Xvector(fomvec0[ii],100) ;
+      fomvec0[ii]->ip  = ipmask[ii] ;   /* store location of this */
+      fomvec0[ii]->jp  = jpmask[ii] ;   /* vector in the 3D grid */
+      fomvec0[ii]->kp  = kpmask[ii] ;
+      fomvec0[ii]->ijk = ijkmask[ii] ;
+     CREATE_Xvector(fomvec1[ii],100) ;
+      fomvec1[ii]->ip  = ipmask[ii] ;
+      fomvec1[ii]->jp  = jpmask[ii] ;
+      fomvec1[ii]->kp  = kpmask[ii] ;
+      fomvec1[ii]->ijk = ijkmask[ii] ;
+     CREATE_Xvector(fomvec2[ii],100) ;
+      fomvec2[ii]->ip  = ipmask[ii] ;
+      fomvec2[ii]->jp  = jpmask[ii] ;
+      fomvec2[ii]->kp  = kpmask[ii] ;
+      fomvec2[ii]->ijk = ijkmask[ii] ;
    }
 
    /* temp space to hold counts of FOM vec length for each voxel in a cluster */
@@ -1022,7 +1041,11 @@ int main( int argc , char *argv[] )
     /* reset the FOM vector for each voxel */
 
 #pragma omp for
-    for( iter=0 ; iter < mask_ngood ; iter++ ) fomvec[iter]->npt = 0 ;
+    for( iter=0 ; iter < mask_ngood ; iter++ ){
+      fomvec0[iter]->npt = 0 ;
+      fomvec1[iter]->npt = 0 ;
+      fomvec2[iter]->npt = 0 ;
+    }
 
     /* load the FOM vectors (parallelized across 3D segments) */
 
@@ -1063,8 +1086,9 @@ int main( int argc , char *argv[] )
 
        if( ndilstep < NDILMAX-1 && ndilsum < niter/50 ) break ;
      } /* end of loop over dilation steps */
-ININFO_message(" p=%.5f did %d dilation loops with %d cluster dilations",
-               pthr[qpthr],ndilstep+1,ndiltot) ;
+     if( verb )
+       ININFO_message("     p=%.5f used %d dilation loops with %d total cluster dilations",
+                      pthr[qpthr],ndilstep+1,ndiltot) ;
    } /* end of loop over p-value thresh cluster collection */
 
    /* free the counting workspace for each thread */
@@ -1076,13 +1100,17 @@ ININFO_message(" p=%.5f did %d dilation loops with %d cluster dilations",
    /*--- STEP 3: create sorted and truncated FOM vectors ---*/
 
    if( verb )
-     INFO_message("STEP 3: re-loading & sorting FOM vectors after final dilations") ;
+     INFO_message("STEP 3: re-loading & sorting FOM vectors after dilations") ;
 
    /*--- initialize the final sorted FOM vector array for each voxel ---*/
 
-   fomsort = (Xvector ***)malloc(sizeof(Xvector **)*npthr) ;
+   fomsort0 = (Xvector ***)malloc(sizeof(Xvector **)*npthr) ;
+   fomsort1 = (Xvector ***)malloc(sizeof(Xvector **)*npthr) ;
+   fomsort2 = (Xvector ***)malloc(sizeof(Xvector **)*npthr) ;
    for( qpthr=0 ; qpthr < npthr ; qpthr++ ){
-     fomsort[qpthr] = (Xvector **)malloc(sizeof(Xvector *)*mask_ngood) ;
+     fomsort0[qpthr] = (Xvector **)malloc(sizeof(Xvector *)*mask_ngood) ;
+     fomsort1[qpthr] = (Xvector **)malloc(sizeof(Xvector *)*mask_ngood) ;
+     fomsort2[qpthr] = (Xvector **)malloc(sizeof(Xvector *)*mask_ngood) ;
    }
 
 #define TOPFRAC 0.0222f
@@ -1099,7 +1127,11 @@ ININFO_message(" p=%.5f did %d dilation loops with %d cluster dilations",
      /* re-load FOM vectors for this threshold */
 
 #pragma omp for
-    for( iv=0 ; iv < mask_ngood ; iv++ ) fomvec[iv]->npt = 0 ;
+    for( iv=0 ; iv < mask_ngood ; iv++ ){
+      fomvec0[iv]->npt = 0 ;
+      fomvec1[iv]->npt = 0 ;
+      fomvec2[iv]->npt = 0 ;
+    }
 
 #pragma omp for schedule(dynamic,1)
      for( ijkbot=0 ; ijkbot < nxyz ; ijkbot+=dijk ){
@@ -1125,29 +1157,53 @@ ININFO_message(" p=%.5f did %d dilation loops with %d cluster dilations",
 
 #pragma omp for schedule(dynamic,500)
      for( iv=0 ; iv < mask_ngood ; iv++ ){
-       if( fomvec[iv]->npt < 3 ){          /* if it's way short */
-         ADDTO_Xvector(fomvec[iv],0.01f) ; /* put some padding in */
-         ADDTO_Xvector(fomvec[iv],0.01f) ;
-         ADDTO_Xvector(fomvec[iv],0.01f) ;
+       if( fomvec0[iv]->npt < 3 ){          /* if it's way short */
+         ADDTO_Xvector(fomvec0[iv],0.01f) ; /* put some padding in */
+         ADDTO_Xvector(fomvec0[iv],0.01f) ;
+         ADDTO_Xvector(fomvec0[iv],0.01f) ;
+         ADDTO_Xvector(fomvec1[iv],0.01f) ;
+         ADDTO_Xvector(fomvec1[iv],0.01f) ;
+         ADDTO_Xvector(fomvec1[iv],0.01f) ;
+         ADDTO_Xvector(fomvec2[iv],0.01f) ;
+         ADDTO_Xvector(fomvec2[iv],0.01f) ;
+         ADDTO_Xvector(fomvec2[iv],0.01f) ;
        }
 
        /* sort into decreasing order (largest FOMs first) */
 
-       qsort_float_rev( fomvec[iv]->npt , fomvec[iv]->far ) ;
+       qsort_float_rev( fomvec0[iv]->npt , fomvec0[iv]->far ) ;
+       qsort_float_rev( fomvec1[iv]->npt , fomvec1[iv]->far ) ;
+       qsort_float_rev( fomvec2[iv]->npt , fomvec2[iv]->far ) ;
 
-       /* how many to keep */
-
-       jj = MIN(fomvec[iv]->npt,nfomkeep) ;
 
        /* create a new vector to get the keeper FOM counts */
 
-       CREATE_Xvector(fomsort[qpthr][iv],jj) ;
-       fomsort[qpthr][iv]->ip  = ipmask[iv] ;  /* location */
-       fomsort[qpthr][iv]->jp  = jpmask[iv] ;
-       fomsort[qpthr][iv]->kp  = kpmask[iv] ;
-       fomsort[qpthr][iv]->ijk = ijkmask[iv] ;
-       fomsort[qpthr][iv]->npt = jj ;          /* count */
-       AAmemcpy(fomsort[qpthr][iv]->far,fomvec[iv]->far,sizeof(float)*jj) ;
+       jj = MIN(fomvec0[iv]->npt,nfomkeep) ;    /* how many to keep */
+       CREATE_Xvector(fomsort0[qpthr][iv],jj) ;
+       fomsort0[qpthr][iv]->ip  = ipmask[iv] ;  /* location */
+       fomsort0[qpthr][iv]->jp  = jpmask[iv] ;
+       fomsort0[qpthr][iv]->kp  = kpmask[iv] ;
+       fomsort0[qpthr][iv]->ijk = ijkmask[iv] ;
+       fomsort0[qpthr][iv]->npt = jj ;          /* count */
+       AAmemcpy(fomsort0[qpthr][iv]->far,fomvec0[iv]->far,sizeof(float)*jj) ;
+
+       jj = MIN(fomvec1[iv]->npt,nfomkeep) ;    /* how many to keep */
+       CREATE_Xvector(fomsort1[qpthr][iv],jj) ;
+       fomsort1[qpthr][iv]->ip  = ipmask[iv] ;  /* location */
+       fomsort1[qpthr][iv]->jp  = jpmask[iv] ;
+       fomsort1[qpthr][iv]->kp  = kpmask[iv] ;
+       fomsort1[qpthr][iv]->ijk = ijkmask[iv] ;
+       fomsort1[qpthr][iv]->npt = jj ;          /* count */
+       AAmemcpy(fomsort1[qpthr][iv]->far,fomvec1[iv]->far,sizeof(float)*jj) ;
+
+       jj = MIN(fomvec2[iv]->npt,nfomkeep) ;    /* how many to keep */
+       CREATE_Xvector(fomsort2[qpthr][iv],jj) ;
+       fomsort2[qpthr][iv]->ip  = ipmask[iv] ;  /* location */
+       fomsort2[qpthr][iv]->jp  = jpmask[iv] ;
+       fomsort2[qpthr][iv]->kp  = kpmask[iv] ;
+       fomsort2[qpthr][iv]->ijk = ijkmask[iv] ;
+       fomsort2[qpthr][iv]->npt = jj ;          /* count */
+       AAmemcpy(fomsort2[qpthr][iv]->far,fomvec2[iv]->far,sizeof(float)*jj) ;
      }
    }
  AFNI_OMP_END ;       /*---------- end parallel section ----------*/
@@ -1165,8 +1221,8 @@ ININFO_message(" p=%.5f did %d dilation loops with %d cluster dilations",
        qar = DSET_ARRAY(qset,0) ;
        for( ii=0 ; ii < mask_ngood ; ii++ ){
          ijk = ijkmask[ii] ;
-         qar[ijk] = (float)fomvec[ii]->npt ;
-         fomvec[ii]->npt = 0 ;
+         qar[ijk] = (float)fomvec0[ii]->npt ;
+         fomvec0[ii]->npt = 0 ;
        }
        EDIT_BRICK_LABEL(qset,0,"FOMcount") ;
        tross_Make_History( "3dXClustSim" , argc,argv , qset ) ;
@@ -1178,9 +1234,14 @@ ININFO_message(" p=%.5f did %d dilation loops with %d cluster dilations",
 
    /* destroy the original unsorted FOM vectors */
 
-   for( ii=0 ; ii < mask_ngood ; ii++ )  /* don't need no more */
-     DESTROY_Xvector(fomvec[ii]) ;
-   free(fomvec) ; fomvec = NULL ;
+   for( ii=0 ; ii < mask_ngood ; ii++ ){  /* don't need no more */
+     DESTROY_Xvector(fomvec0[ii]) ;
+     DESTROY_Xvector(fomvec1[ii]) ;
+     DESTROY_Xvector(fomvec2[ii]) ;
+   }
+   free(fomvec0) ; fomvec0 = NULL ;
+   free(fomvec1) ; fomvec1 = NULL ;
+   free(fomvec2) ; fomvec2 = NULL ;
 
    /*========================================================*/
    /*--- STEP 4: test FOM count thresholds to find FAR=5% ---*/
@@ -1189,33 +1250,38 @@ FINAL_STUFF:
 
    /* create voxel-specific FOM threshold images (for each p-value thresh) */
 
-   if( do_mfixed ){              /* setup parameters from the  */
-     nnsid     = nnsid_mfixed ;  /* multi-thresh dataset read  */
-     nnlev     = nnlev_mfixed ;  /* in via '-mfixed' option    */
-     npthr     = nzthr_mfixed ;
-     zthr_used = zthr_mfixed ;
-     cimar     = mfixed_dset->dblk->brick ;
-   } else {
-     INIT_IMARR(cimar) ;
-     car = (float **)malloc(sizeof(float *)*npthr) ;
+   if( do_hpow0 ){
+     INIT_IMARR(cimar0) ;
+     car0 = (float **)malloc(sizeof(float *)*npthr) ;
      for( qpthr=0; qpthr < npthr ; qpthr++ ){
-       cim = mri_new_conforming( imtemplate , MRI_float ) ;
-       ADDTO_IMARR(cimar,cim) ;
-       car[qpthr] = MRI_FLOAT_PTR(cim) ;
-       if( do_fixed ){ /* special case: all values are given by user */
-         for( ii=0 ; ii < nxyz ; ii++ ) car[qpthr][ii] = fixed_cluster_threshold;
-       }
+       cim0 = mri_new_conforming( imtemplate , MRI_float ) ;
+       ADDTO_IMARR(cimar0,cim0) ;
+       car0[qpthr] = MRI_FLOAT_PTR(cim0) ;
      }
    }
 
-   if( verb ){
-     if( do_fixed )
-       INFO_message("Computing FPR count for each voxel for -fixed") ;
-     else if( do_mfixed )
-       INFO_message("Computing FPR count for each voxel for -mfixed") ;
-     else
-       INFO_message("STEP 4: adjusting per-voxel FOM thresholds to reach FPR=%.2f%%",FARP_GOAL) ;
+   if( do_hpow1 ){
+     INIT_IMARR(cimar1) ;
+     car1 = (float **)malloc(sizeof(float *)*npthr) ;
+     for( qpthr=0; qpthr < npthr ; qpthr++ ){
+       cim1 = mri_new_conforming( imtemplate , MRI_float ) ;
+       ADDTO_IMARR(cimar1,cim1) ;
+       car1[qpthr] = MRI_FLOAT_PTR(cim1) ;
+     }
    }
+
+   if( do_hpow2 ){
+     INIT_IMARR(cimar2) ;
+     car2 = (float **)malloc(sizeof(float *)*npthr) ;
+     for( qpthr=0; qpthr < npthr ; qpthr++ ){
+       cim2 = mri_new_conforming( imtemplate , MRI_float ) ;
+       ADDTO_IMARR(cimar2,cim2) ;
+       car2[qpthr] = MRI_FLOAT_PTR(cim2) ;
+     }
+   }
+
+   if( verb )
+     INFO_message("STEP 4: adjusting per-voxel FOM thresholds to reach FPR=%.2f%%",FARP_GOAL) ;
 
    /* tfrac = FOM count fractional threshold;
               will be adjusted to find the 5% FPR goal */
@@ -1243,12 +1309,12 @@ FARP_LOOPBACK:
 #endif
      /* we take the ithresh-th largest FOM at each voxel as its FOM threshold */
 
-     if( NOT_fixed ){
-       if( verb )
-         ININFO_message("Testing threshold images at %g ==> %d",tfrac,ithresh) ;
-       for( qpthr=0 ; qpthr < npthr ; qpthr++ ){
-         AAmemset(car[qpthr],0,sizeof(float)*nxyz) ;
-       }
+     if( verb )
+       ININFO_message("     #%d: Testing threshold images at %g ==> %d",itrac,tfrac,ithresh) ;
+     for( qpthr=0 ; qpthr < npthr ; qpthr++ ){
+       if( do_hpow0 ){ AAmemset(car0[qpthr],0,sizeof(float)*nxyz) ; }
+       if( do_hpow1 ){ AAmemset(car1[qpthr],0,sizeof(float)*nxyz) ; }
+       if( do_hpow2 ){ AAmemset(car2[qpthr],0,sizeof(float)*nxyz) ; }
      }
      AAmemset(farar,0,sizeof(float)*nxyz) ;  /* zero out FARvox array */
 
@@ -1258,6 +1324,7 @@ FARP_LOOPBACK:
     MRI_IMAGE *fim , *tfim ; float *far , *tfar ;
     int iter,npt,iv,jthresh , ipthr , qq ;
     float a0,a1,f0,f1,ft ;
+    Xvector ***fomsortH=NULL ; float **carH=NULL, *gthreshH; int hh ;
 
     /* workspace array for each thread */
 
@@ -1267,51 +1334,64 @@ FARP_LOOPBACK:
 
      /* find the FOM threshold for each voxel, for each p-value thresh */
 
-     if( NOT_fixed ){
 #pragma omp for
-      for( iv=0 ; iv < mask_ngood ; iv++ ){          /* loop over voxels */
-        for( ipthr=0 ; ipthr < npthr ; ipthr++ ){ /* over p-value thresh */
-          npt = fomsort[ipthr][iv]->npt ;    /* how many FOM values here */
-          jthresh = ithresh ;             /* default index of FOM thresh */
-          if( jthresh > (int)(0.222f*npt) ){
-            jthresh = (int)(0.222f*npt) ;
+     for( iv=0 ; iv < mask_ngood ; iv++ ){          /* loop over voxels */
+       for( ipthr=0 ; ipthr < npthr ; ipthr++ ){ /* over p-value thresh */
+         for( hh=0 ; hh < 3 ; hh++ ){               /* over hpow values */
+           if( hh==0 ){
+             if( !do_hpow0 ) continue ;
+             fomsortH = fomsort0; carH = car0; gthreshH = gthresh0;
+           }
+           if( hh==1 ){
+             if( !do_hpow1 ) continue ;
+             fomsortH = fomsort1; carH = car1; gthreshH = gthresh1;
+           }
+           if( hh==2 ){
+             if( !do_hpow2 ) continue ;
+             fomsortH = fomsort2; carH = car2; gthreshH = gthresh2;
+           }
+           npt = fomsortH[ipthr][iv]->npt ;  /* how many FOM values here */
+           jthresh = ithresh ;            /* default index of FOM thresh */
+           if( jthresh > (int)(0.222f*npt) ){
+             jthresh = (int)(0.222f*npt) ;
 #pragma omp atomic
-            nedge++ ;
-          }
-          /* extract this FOM thresh by interpolation */
+             nedge++ ;
+           }
+           /* extract this FOM thresh by interpolation */
 #if 0
-          a0 = ((float)jthresh)/((float)niter) ;
-          a1 = a0        + 1.0f/((float)niter) ;
+           a0 = ((float)jthresh)/((float)niter) ;
+           a1 = a0        + 1.0f/((float)niter) ;
 #else
-          a0 = ((float)jthresh+0.666f)*nit33 ;
-          a1 = a0 + nit33 ;
+           a0 = ((float)jthresh+0.666f)*nit33 ;
+           a1 = a0 + nit33 ;
 #endif
-          f0 = fomsort[ipthr][iv]->far[jthresh] ;
-          f1 = fomsort[ipthr][iv]->far[jthresh+1] ;
-          ft = inverse_interp_extreme( a0,a1,tfrac , f0,f1 ) ;
-          if( ft < gthresh[ipthr] ){
-            ft = gthresh[ipthr] ;
+           f0 = fomsortH[ipthr][iv]->far[jthresh] ;
+           f1 = fomsortH[ipthr][iv]->far[jthresh+1] ;
+           ft = inverse_interp_extreme( a0,a1,tfrac , f0,f1 ) ;
+           if( ft < gthreshH[ipthr] ){
+             ft = gthreshH[ipthr] ;
 #pragma omp atomic
-            nmin++ ;
-          }
-          car[ipthr][ijkmask[iv]] = ft ;  /* = FOM threshold for this voxel */
-                                          /* = the goal of this entire program! */
-        }
-      } /* end of loop over voxels */
-     } /* if not fixed */
+             nmin++ ;
+           }
+           carH[ipthr][ijkmask[iv]] = ft ;  /* = FOM threshold for this voxel */
+                                        /* = the goal of this entire program! */
+         } /* end loop over hh */
+       } /* end loop over p-thresh */
+     } /* end loop over voxels */
 
      /* now, use the thresholds just computed to multi-threshold
         each realization, and create count of total FA and in each voxel */
 
-#pragma omp for schedule(dynamic,500)
+#pragma omp for schedule(dynamic,300)
      for( iter=0 ; iter < niter ; iter++ ){
        generate_image( far , iter ) ;
        tfim = mri_multi_threshold_Xcluster( fim, npthr,zthr_used,
-                                            nnsid,nnlev, cimar, 0, NULL ) ;
+                                            nnsid,nnlev,
+                                            cimar0,cimar1,cimar2 , 0, NULL ) ;
        if( tfim != NULL ){   /* nothing found ==> NULL is returned */
          tfar = MRI_FLOAT_PTR(tfim) ;
          for( qq=0 ; qq < nxyz ; qq++ ){
-           if( tfar[qq] != 0.0f )
+           if( do_FARvox && tfar[qq] != 0.0f )
 #pragma omp atomic
              farar[qq]++ ;  /* count of FA at this voxel */
          }
@@ -1330,7 +1410,7 @@ FARP_LOOPBACK:
      farpercold = farperc ;               /* save what we got last time */
      farperc    = (100.0*nfar)/(float)niter ;  /* what we got this time */
      if( verb )
-       ININFO_message("#%2d: FPR = %.2f%%  [nedge=%d nmin=%d]",
+       ININFO_message("         FPR = %.2f%%  [nedge=%d nmin=%d]",
                       itrac, farperc/fgfac, nedge, nmin ) ;
 
      /* do we need to try another tfrac to get closer to our goal? */
@@ -1338,7 +1418,7 @@ FARP_LOOPBACK:
           if( itrac < 5 ) farcut = 0.111f ; /* precision of goal meeting */
      else if( itrac < 9 ) farcut = 0.222f ;
      else                 farcut = 0.333f ;
-     if( NOT_fixed && itrac < 13 && fabsf(farperc-FG_GOAL) > farcut ){
+     if( itrac < 13 && fabsf(farperc-FG_GOAL) > farcut ){
        float fff ;
        if( itrac == 1 || (farperc-FG_GOAL)*(farpercold-FG_GOAL) > 0.0f ){ /* scale */
          fff = FG_GOAL/farperc ;
@@ -1359,34 +1439,38 @@ FARP_LOOPBACK:
    /*============================================*/
    /*--- Write stuff out, then quit quit quit ---*/
 
-   if( NOT_fixed ){         /* output the per-voxel FOM thresholds */
-     qset = EDIT_empty_copy(mask_dset) ;
-     sprintf(qpr,".mthresh") ;
-     EDIT_dset_items( qset ,
-                        ADN_prefix , modify_afni_prefix(prefix,NULL,qpr) ,
-                        ADN_nvals  , npthr ,
-                      ADN_none ) ;
-     for( qpthr=0 ; qpthr < npthr ; qpthr++ ){
-       EDIT_substitute_brick( qset , qpthr , MRI_float , NULL ) ;
-       qar = DSET_ARRAY(qset,qpthr) ;
-       AAmemcpy( qar , car[qpthr] , sizeof(float)*nxyz ) ;
-       sprintf(qpr,"FPRthr:%.4f",pthr[qpthr]) ;
-       EDIT_BRICK_LABEL(qset,qpthr,qpr) ;
-     }
-     { float *afl=malloc(sizeof(float)*(npthr+3)) ;
-       afl[0] = (float)nnlev ;
-       afl[1] = (float)nnsid ;
-       afl[2] = (float)qpthr ;
-       for( qpthr=0 ; qpthr < npthr ; qpthr++ )
-         afl[qpthr+3] = zthr_used[qpthr] ;
-       THD_set_float_atr( qset->dblk ,
-                          "MULTI_THRESHOLDS" , npthr+3 , afl ) ;
-       free(afl) ;
-     }
-     tross_Make_History( "3dXClustSim" , argc,argv , qset ) ;
-     DSET_write(qset); WROTE_DSET(qset);
-     DSET_delete(qset); qset = NULL; qar = NULL;
+   qset = EDIT_empty_copy(mask_dset) ;
+   sprintf(qpr,".mthresh") ;
+   EDIT_dset_items( qset ,
+                      ADN_prefix    , modify_afni_prefix(prefix,NULL,qpr) ,
+                      ADN_nvals     , npthr*nhpow ,
+                      ADN_datum_all , MRI_float ,
+                    ADN_none ) ;
+   for( ibr=0,qpthr=0 ; qpthr < npthr ; qpthr++ ){
+    for( hp=0 ; hp < 3 ; hp++ ){
+      if( hp==0 ){ if( !do_hpow0 ) continue ; else carHP = car0 ; }
+      if( hp==1 ){ if( !do_hpow1 ) continue ; else carHP = car1 ; }
+      if( hp==2 ){ if( !do_hpow2 ) continue ; else carHP = car2 ; }
+      EDIT_substitute_brick( qset , ibr , MRI_float , NULL ) ;
+      qar = DSET_ARRAY(qset,ibr) ;
+      AAmemcpy( qar , carHP[qpthr] , sizeof(float)*nxyz ) ;
+      sprintf(qpr,"Mth:%.4f:h=%d",pthr[qpthr],hp) ;
+      EDIT_BRICK_LABEL(qset,ibr,qpr) ; ibr++ ;
+   }}
+   { float *afl=malloc(sizeof(float)*(npthr+4)) ;
+     afl[0] = (float)nnlev ;
+     afl[1] = (float)nnsid ;
+     afl[2] = (float)qpthr ;
+     afl[3] = (float)(do_hpow0 + 2*do_hpow1 + 4*do_hpow2) ;
+     for( qpthr=0 ; qpthr < npthr ; qpthr++ )
+       afl[qpthr+4] = zthr_used[qpthr] ;
+     THD_set_float_atr( qset->dblk ,
+                        "MULTI_THRESHOLDS" , npthr+4 , afl ) ;
+     free(afl) ;
    }
+   tross_Make_History( "3dXClustSim" , argc,argv , qset ) ;
+   DSET_write(qset); WROTE_DSET(qset);
+   DSET_delete(qset); qset = NULL; qar = NULL;
 
    if( do_FARvox ){                       /* output the per-voxel false alarm count */
      qset = EDIT_empty_copy(mask_dset) ;

@@ -49,6 +49,48 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 17,  Apr, 2017, RCR, "1d_tool.py", MICRO, TYPE_MODIFY,
+   "clarify source in -show_censored_trs (if Xmat, use header info)",
+   NULL
+ } ,
+
+ { 12,  Apr, 2017, RCR, "afni-general", MICRO, TYPE_MODIFY,
+   "remove some non-ASCII chars: a couple of bad dashes and some Unicode",
+   "some of the Unicode characters are upsetting sed via apsearch"
+ } ,
+
+ { 12,  Apr, 2017, RCR, "afni-general", MINOR, TYPE_BUG_FIX,
+   "in suggest_best_prog_option(), do not search for -help, -h_* or similar",
+   "A program without -help that tests it would otherwise lead to an\n"
+   "infinitely recursive system call trying to use -help to suggest an option."
+ } ,
+
+ { 11,  Apr, 2017, RCR, "@djunct_dwi_selector.bash", MICRO, TYPE_MODIFY,
+   "if bad args, show usage and exit",
+   "Else -help would open afni GUI and wait, hanging the build."
+ } ,
+
+ { 11,  Apr, 2017, RCR, "afni_proc.py", MICRO, TYPE_GENERAL,
+   "add GENERAL ANALYSIS NOTE; mentioned resting state scaling as optional",
+   NULL
+ } ,
+
+ {  5,  Apr, 2017, RCR, "uber_subject.py", MICRO, TYPE_BUG_FIX,
+   "apply subject dir again; allow -cvar subj_dir to override default",
+   NULL
+ } ,
+
+ {  5,  Apr, 2017, RCR, "3dresample", MICRO, TYPE_MODIFY,
+   "show -input as the typical usage, rather than -inset",
+   NULL
+ } ,
+
+ {  3,  Apr, 2017, RCR, "afni-general", MICRO, TYPE_MODIFY,
+   "remove -f from @AddEdge, @DO.examples, @DriveAfni and @DriveSuma",
+   "Since OS X is neglecting to pass DYLD variables to child shells,\n"
+   "we need to rely on the rc files to reset them when driving GUIs."
+ } ,
+
  { 30,  Mar, 2017, RCR, "uber_subject.py", MICRO, TYPE_ENHANCE,
    "allow subj_dir to affect the GUI (so no subject_results)",
    "Also, apply user command-line variables align_opts_aea and tlrc_opts_at\n"

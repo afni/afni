@@ -862,6 +862,10 @@ ENTRY("set_smap_opts");
         case E_SMAP_SEG_VALS:
         case E_SMAP_MEDIAN:
         case E_SMAP_MODE:
+        case E_SMAP_NZAVE:
+        case E_SMAP_NZMIN:
+        case E_SMAP_NZMAX:
+
             nsurf = 2;
             break;
 
@@ -1607,6 +1611,9 @@ ENTRY("check_map_func");
         case E_SMAP_SEG_VALS:
         case E_SMAP_MEDIAN:
         case E_SMAP_MODE:
+        case E_SMAP_NZAVE:
+        case E_SMAP_NZMIN:
+        case E_SMAP_NZMAX:
             break;
     }
 
@@ -2106,6 +2113,10 @@ ENTRY("usage");
             "\n"
             "          mode     : Output the mode of the dataset values along\n"
             "                     the connecting segment.\n"
+            "\n"
+            "          nzave, nzmin, nzmax : Non-zero equivalents to ave, min, max\n"
+            "                     Does not include the zero values in the\n"
+            "                     computation\n"
             "\n"
             "          seg_vals : Output all of the dataset values along the\n"
             "                     connecting segment.  Here, only sub-brick\n"

@@ -196,8 +196,13 @@ SET_FUNC_ALPHA [c.]{Off|Linear|Quadratic} [floor]
 
 OPEN_PANEL [c.]Panel_Name
   Opens the specified controller panel, where 'Panel_Name' is one of
-  'Define_Overlay', 'Define_Datamode', or 'Define_Markers'.  At this time,
-  there is no way to close a panel except from the GUI.
+  'Define_Overlay', 'Define_Datamode', 'Define_Markers', or 'Etc'.
+  (Panel name is not case-sensitive.)
+
+CLOSE_PANEL [c.]Panel_Name
+  Closes the specified controller panel, where 'Panel_Name' is one of
+  'Define_Overlay', 'Define_Datamode', 'Define_Markers', or 'Etc'.
+  (Panel name is not case-sensitive.)
 
 SYSTEM command string
   Executes "command string" using the system() library function; for
