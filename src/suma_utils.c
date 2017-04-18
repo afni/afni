@@ -2189,7 +2189,7 @@ int SUMA_NumStringUnits (char *s, int marktip)
 {
    static char FuncName[]={"SUMA_NumStringUnits"};
    int unt = SUMA_NO_NUM_UNITS;
-   int FoundTip = 0, nd = 0, ndm=0;
+   int FoundTip = 0, nd = 0, ndm=0, tiploc=-1;
    int LocalHead = 0;
    
    SUMA_ENTRY;
@@ -2207,36 +2207,41 @@ int SUMA_NumStringUnits (char *s, int marktip)
          --nd;
       }
    }
+   SUMA_LHv("Fount tip %d on %s at %d\n",FoundTip, s, nd);
    if (!FoundTip) SUMA_RETURN(unt);
-   
-   if (marktip) s[nd] = '\0';
-   
+      
    
    /* now move forward, skipping blanks, commas, parenthesis */
    SUMA_LH("Got tip, goind forward");
    ++nd;
    FoundTip = 0;
+   tiploc = -1;
    while (nd < ndm && !FoundTip) {
       if (  isspace(s[nd]) || s[nd] == ',' || 
             s[nd] == '[' || s[nd] == '(' || s[nd] == '{') {
          ++nd;
       } else {
          FoundTip = 1;
+         tiploc=nd;
       }
    }
- 
+   SUMA_LHv("Fount tip %d on %s at %d\n",FoundTip, s, nd);
+
    /* now look for unit string */
    SUMA_LH("%s",(s+nd));
    unt = SUMA_NO_NUM_UNITS;
    if (0) ; /* order of following else ifs matters */
    else if (!strncmp((s+nd), "mm", 2)) 
-                              SUMA_RETURN(SUMA_MM_UNITS);
+                              unt = SUMA_MM_UNITS;
    else if (!strncmp((s+nd), "p", 1)) 
-                              SUMA_RETURN(SUMA_P_VALUE_UNITS);
+                              unt = SUMA_P_VALUE_UNITS;
    else if (!strncmp((s+nd), "q",1)) 
-                              SUMA_RETURN(SUMA_Q_VALUE_UNITS);
+                              unt = SUMA_Q_VALUE_UNITS;
    else if (!strncmp((s+nd), "%",1)) 
-                              SUMA_RETURN(SUMA_PERC_VALUE_UNITS);
+                              unt = SUMA_PERC_VALUE_UNITS;
+
+   if (marktip && tiploc>-1) s[tiploc] = '\0';
+
    SUMA_RETURN(unt);
 }
 

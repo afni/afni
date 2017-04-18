@@ -4166,11 +4166,45 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                }
             }
             if (NI_get_attribute(EngineData->ngr, "T_val")) {
-               NI_GET_FLOAT(EngineData->ngr, "T_val", ftmp);
-               SUMA_MODIFY_CELL_VALUE(SurfCont->SetThrScaleTable, 0,0, ftmp);
+               int unt;
+               char *stmp=NULL;
+               float val=0.0;
+               stmp = SUMA_copy_string(NI_get_attribute(
+                                                   EngineData->ngr, "T_val"));
+               SUMA_LHv("Tval %s\n", stmp);
+               unt = SUMA_NumStringUnits(stmp, 1);
+               SUMA_LHv("Tval %s\n", stmp);
+               if (SUMA_StringToNum(stmp, (void *)&val, 1, 1) != 1) {
+                  SUMA_BEEP;
+                  /* bad syntax, reset value*/
+                  if (LocalHead) fprintf (SUMA_STDERR, "%s: Bad syntax.\n", FuncName);
+               } else {
+                  switch (unt) {
+                     case SUMA_P_VALUE_UNITS:
+                        if (LocalHead) 
+                           fprintf( SUMA_STDERR,
+                              "%s:\nUnits in p value, transforming %f\n",
+                              FuncName, val);
+                        /* transform value from P to threshold value */
+                        val = (float)SUMA_Pval2ThreshVal (ado, (double)val);
+                        if (LocalHead) 
+                              fprintf( SUMA_STDERR, "   to %f\n", val);
+                        break;
+                     case SUMA_PERC_VALUE_UNITS:
+               SUMA_LH("Units in percentile value, transforming %f\n", val);
+               val = SUMA_OverlayPercentile(SurfCont->curColPlane, 'T', val);
+                        break;
+                     default:
+                        break;
+                  }
+               }
+               SUMA_MODIFY_CELL_VALUE(SurfCont->SetThrScaleTable, 0,0, val);
+
                /* inefficient implementation, but avoids duplicate code... */
                SUMA_cb_SetScaleThr(EngineData->vp); 
+               SUMA_free(stmp);
             }
+
             if (NI_get_attribute(EngineData->ngr, "Dim")) {
                char stmp[50];
                NI_GET_FLOAT(EngineData->ngr, "Dim", ftmp);

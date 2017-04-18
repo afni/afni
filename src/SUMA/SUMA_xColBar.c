@@ -1279,13 +1279,14 @@ int SUMA_SwitchColPlaneIntensity_one (
                                  ":Diff",    ":t-stat",  /* 3dANOVA */
                                  ":b",       ":t",       /* 3dMEMA */
                                  "_mean",    "_Zscr",    /* GICOR */
-                                 "_meanNC",    "_ZscrNC",    /* GICOR */
+                                 "_meanNC",  "_ZscrNC",  /* GICOR */
+                                 "",         " t",       /* 3dMVM */
                                  NULL, NULL }; /* leave always at the bottom*/
          SUMA_LHv("Looking for decent match for %s\n", lab);
          if (lab) {
             ipair=0;
             while(ind2 < 0 && (ext = exta[ipair*2])) {
-               if (STRING_HAS_SUFFIX(lab,ext)) {
+               if (ext == "" || STRING_HAS_SUFFIX(lab,ext)) {
                   lab[strlen(lab)-strlen(ext)]='\0';
                   lab2 = SUMA_append_string(lab,exta[ipair*2+1]);
                   SUMA_LHv("  Looking for %s\n", lab2);

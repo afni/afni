@@ -1964,6 +1964,9 @@ SUMA_NIDO *SUMA_ReadNIDO (char *fname, char *parent_so_id)
                         fname, parent_so_id);
                NI_set_attribute(nido->ngr, "bond", atr);
             }
+            if ((atr = NI_get_attribute(nini,"render_mode"))) {
+               NI_set_attribute(nido->ngr, "render_mode", atr);
+            }
             if ((atr = NI_get_attribute(nini,"coord_type"))) {
                if (SUMA_CoordType(atr) != SUMA_COORD_TYPE_ERROR) {
                   NI_set_attribute(nido->ngr, "coord_type", atr);
@@ -4852,7 +4855,11 @@ SUMA_DO * SUMA_Multiply_NodeObjects ( SUMA_SurfaceObject *SO,
             NI_set_attribute(niout->ngr, "default_color", atr);
          else NI_set_attribute(niout->ngr, "default_color",  
                                                 "1.0 1.0 1.0 1.0");
-         
+         if ((atr=NI_get_attribute(nido, "render_mode"))) 
+            NI_set_attribute(niout->ngr, "render_mode", atr);
+         else 
+            NI_set_attribute(niout->ngr, "render_mode", "");
+
          /* Now for each node, create a new copy of that element */
          for (i=0; i<SO->N_Node; ++i) {
             if ((vel = NI_duplicate(nido->ngr->part[0], 1))) {
@@ -13106,8 +13113,9 @@ SUMA_Boolean SUMA_PrepForNIDOnelPlacement (  SUMA_SurfaceViewer *sv,
       /* justify */
       {
          glGetIntegerv(GL_VIEWPORT, viewport);
-         SUMA_LHv("sz=[%d, %d, %d]\nviewport=[%d %d %d]\n", 
-               sz[0], sz[1], sz[2], viewport[0], viewport[1],viewport[2]);
+      SUMA_LHv("sz=[%d, %d, %d]\nviewport=[%d %d %d]\natr_ha=%s, atr_va=%s\n", 
+               sz[0], sz[1], sz[2], viewport[0], viewport[1],viewport[2],
+               atr_ha, atr_va);
          
          if (xyzoffset) {
             xyzoffset[0]=txloc[0]; 
@@ -13635,7 +13643,8 @@ SUMA_Boolean SUMA_DrawNIDO (SUMA_NIDO *SDO, SUMA_SurfaceViewer *sv)
    float default_color[4] = {0.2, 0.5, 1, 1.0};
    SUMA_DO_CoordType coord_type = SUMA_WORLD;
    SUMA_DO_CoordUnits default_coord_units = SUMA_WORLD_UNIT;
-   char *atr=NULL;
+   char *atr=NULL, *eee=NULL;
+   GLfloat polymode[4]= {-1.0, 0.0, 0.0, 0.0};
    static int iwarn=0;
    SUMA_Boolean LocalHead = NOPE;
    
@@ -13666,11 +13675,35 @@ SUMA_Boolean SUMA_DrawNIDO (SUMA_NIDO *SDO, SUMA_SurfaceViewer *sv)
          SUMA_RETURN (NOPE);
    } 
    
+   
    ngr = SDO->ngr;
    {
-      SUMA_LH("Setting up other nido defaults:");
       
       /* set up group defaults */
+         polymode[0] = (GLfloat)-1.0;
+         if ((atr = NI_get_attribute(ngr, "render_mode"))) {
+            if (!strcmp(atr,"Fill")) {
+               glGetFloatv(GL_POLYGON_MODE, polymode);
+               SUMA_SET_GL_RENDER_MODE(SRM_Fill);
+            } else if (!strcmp(atr,"Line")) {
+               glGetFloatv(GL_POLYGON_MODE, polymode);
+               SUMA_SET_GL_RENDER_MODE(SRM_Line);
+            } else if (!strcmp(atr,"Points")) {
+               glGetFloatv(GL_POLYGON_MODE, polymode);
+               SUMA_SET_GL_RENDER_MODE(SRM_Points);
+            } else if (!strcmp(atr,"Hide")) {
+               SUMA_RETURN(NULL);
+            } else if (!strcmp(atr,"Viewer")) {
+               glGetFloatv(GL_POLYGON_MODE, polymode);
+               SUMA_SET_GL_RENDER_MODE(sv->PolyMode);
+            } else if (atr[0] == '\0' || !strcmp(atr,"Default")) {
+               /* nothing to do */
+            } else {
+               SUMA_S_Warn("Bad render_mode value");
+            }
+         }
+
+
          if ((atr = NI_get_attribute(ngr, "default_font"))) {
             if (!(default_font = SUMA_glutBitmapFont(atr))) {
                SUMA_S_Errv("Bad font %s, using default %s", 
@@ -13802,7 +13835,10 @@ SUMA_Boolean SUMA_DrawNIDO (SUMA_NIDO *SDO, SUMA_SurfaceViewer *sv)
       
    }
    
-     
+   if (polymode[0]>-1.0) {
+      glPolygonMode(GL_FRONT_AND_BACK, (GLenum)polymode[0]); 
+   }
+
    SUMA_RETURN (YUP);
    
 }
@@ -17090,7 +17126,7 @@ int SUMA_NodeMask_to_FaceMask(SUMA_SurfaceObject *SO, byte *nodemask,
    static char FuncName[]={"SUMA_NodeMask_to_FaceMask"};
    byte *fm=NULL;
    int N_fm=-1, i, j, i0, k;
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
    
@@ -17179,7 +17215,7 @@ int SUMA_Prep_SO_DrawPatches(SUMA_SurfaceObject *SO, SUMA_SurfaceViewer *sv)
    byte *fm=NULL;
    int N_fm = -1, tb[2];
    SUMA_DrawPatch *ptch=NULL;
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
       
    SUMA_ENTRY;
    
@@ -17288,7 +17324,7 @@ SUMA_DrawPatch *SUMA_New_DrawPatchDatum(SUMA_SurfaceObject *SO, int *triblock,
    static char FuncName[]={"SUMA_New_DrawPatchDatum"};
    SUMA_DrawPatch *ptch=NULL;
    int lb2[2], ii, i, pp, k;
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
    
@@ -23447,7 +23483,7 @@ NI_group *SUMA_MDO_to_NIMDO(SUMA_MaskDO *mdo, NI_group *cont)
    
    if (!mdo) SUMA_RETURN(ngr);
    
-   if (!mdo->mtype) {
+   if (mdo->mtype[0] == '\0') {
       SUMA_S_Err("NULL mtype"); SUMA_RETURN(ngr);
    }
    
