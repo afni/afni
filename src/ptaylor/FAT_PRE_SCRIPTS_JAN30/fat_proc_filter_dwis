@@ -1,6 +1,5 @@
 #!/bin/tcsh -e
 
-IIN PROGRESSS
 
 # !! add in regular snapshot
 
@@ -64,6 +63,7 @@ set my_viewer_4d = "$adir/@djunct_dwi_imager"
 
 set idwi     = ""                 # necessary input: DWI dset
 set invecmat = ( "" "" "" "" )    # switches+names for bvecs and bvals
+set outvecmat = ( "" "" "" "" )    # switches+names for bvecs and bvals
 set opref    = ""
 set odir     = ""
 set KEEP     = "" 
@@ -96,16 +96,53 @@ while ( $ac <= $#argv )
         @ ac += 1
         set KEEP = "$argv[$ac]"
 
-    # -------------- output opts --------------------
-    else if ( "$argv[$ac]" == "-outdir_ap" ) then
+    # ------------- input vecmat and bval --------------
+    else if ( "$argv[$ac]" == "-in_col_matA" ) then
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        set invecmat[1]  = $argv[$ac] 
         @ ac += 1
-        set odir = "$argv[$ac]"
+        set invecmat[2]  = "$argv[$ac]"
+        # output postfix; [1] and [3] sorted out, below
+        set outvecmat[2] = "_matA.txt"
 
-    else if ( "$argv[$ac]" == "-prefix_ap" ) then
+    else if ( "$argv[$ac]" == "-in_col_matT" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        set invecmat[1]  = $argv[$ac] 
+        @ ac += 1
+        set invecmat[2]  = "$argv[$ac]"
+        # output postfix; [1] and [3] sorted out, below
+        set outvecmat[2] = "_matT.txt"
+
+    else if ( "$argv[$ac]" == "-in_col_vec" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        set invecmat[1]  = $argv[$ac] 
+        @ ac += 1
+        set invecmat[2]  = "$argv[$ac]"
+        # output postfix; [1] and [3] sorted out, below
+        set outvecmat[2] = "_cvec.txt"
+
+    else if ( "$argv[$ac]" == "-in_row_vec" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        set invecmat[1]  = $argv[$ac] 
+        @ ac += 1
+        set invecmat[2]  = "$argv[$ac]"
+        # output postfix; [1] and [3] sorted out, below
+        set outvecmat[2] = "_rvec.txt"
+
+    # not necessary; default is just empty
+    else if ( "$argv[$ac]" == "-in_bvals" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        set invecmat[3]  = $argv[$ac] 
+        @ ac += 1
+        set invecmat[4]  = "$argv[$ac]"
+        # output postfix; [1] and [3] sorted out, below
+        set outvecmat[4] = "_bval.txt"
+
+    # -------------- output opts --------------------
+    else if ( "$argv[$ac]" == "-prefix" ) then
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
         @ ac += 1
-        set o_ap = "$argv[$ac]"
+        set opref = "$argv[$ac]"
 
     else if ( "$argv[$ac]" == "-do_movie" ) then
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
@@ -209,12 +246,24 @@ else
 endif
 
 # file names for lots of outputs
-
 set ocmd   = "${opref}_cmd.txt"      # name for output command
 set omata  = "${opref}_bmatA.txt"    # name for full afni bmatrix
+set omatt  = "${opref}_bmatT.txt"    # name for full afni bmatrix
 set obvec  = "${opref}_bvec.txt"     # name for full afni grads
 set obval  = "${opref}_bval.txt"     # name for full afni bvals
 set odwi   = "${opref}_dwi.nii.gz"   # name for dwis
+
+# file *types* for output (grad/matrix stuff)
+set outvecmat[1] = ${invecmat[1]:gas/in/out/}
+set outvecmat[3] = ${invecmat[3]:gas/in/out/}
+
+if ( "$outvecmat[1]" == "-out"
+
+
+
+
+
+
 
 
 # =======================================================================
@@ -228,24 +277,24 @@ if ( "$idir_ap" != "") then
     1dDW_Grad_o_Mat++       -echo_edu                            \
         -in_bvals           $idir_ap/${iroot_ap}.bval"$KEEP"     \
         -in_row_vec         $idir_ap/${iroot_ap}.bvec"$KEEP"     \
-        -out_row_bval_sep   $odir/${o_ap}.bval                \
+        -out_row_bval_sep   $odir/${opref}.bval                \
         -unit_mag_out                                            \
-        -out_row_vec        $odir/${o_ap}.bvec                \
+        -out_row_vec        $odir/${opref}.bvec                \
         -overwrite
 
     3dcalc   -echo_edu                                           \
         -a     $i_ap"$KEEP"                                      \
         -expr "(a)"                                              \
-        -prefix $odir/${o_ap}.nii                             \
+        -prefix $odir/${opref}.nii                             \
         -overwrite
 
     # Feb,2017: take images!
     if ( 1 ) then
         echo "++ Make AP images."
-        set img_pref = "${o_ap}"
+        set img_pref = "${opref}"
 
         $my_viewer_4d  \
-            -inset  $odir/${o_ap}.nii      \
+            -inset  $odir/${opref}.nii      \
             -outdir "$odir"                \
             -prefix "$img_pref"               \
             $movie
@@ -344,7 +393,7 @@ cat << EOF
   -outdir_pa OUT_PA :single output directory name for the 'PA' set(s);
                      default is 'FILT_PA', placed parallel to DIR_PA.
   -prefix_ap PRE_AP :output prefix for the *.nii, *.bvec and *.bval files
-                     in OUT_AP; default is '$o_ap'.
+                     in OUT_AP; default is '$opref'.
   -prefix_pa PRE_PA :output prefix for the *.nii, *.bvec and *.bval files
                      in OUT_PA; default is '$o_pa'.
 
