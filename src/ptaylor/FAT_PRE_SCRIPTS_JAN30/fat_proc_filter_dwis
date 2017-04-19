@@ -64,9 +64,15 @@ set my_viewer_4d = "$adir/@djunct_dwi_imager"
 set idwi     = ""                 # necessary input: DWI dset
 set invecmat = ( "" "" "" "" )    # switches+names for bvecs and bvals
 set outvecmat = ( "" "" "" "" )    # switches+names for bvecs and bvals
+set do_unit_mag = ""
 set opref    = ""
 set odir     = ""
 set KEEP     = "" 
+set KEEP3    = ""
+set ll2       = "{"               # for column selection (def guess)
+set rr2       = "}"               # for column selection (def guess)
+set ll4       = ""                # empty
+set rr4       = ""                # empty
 
 set movie    = ""
 
@@ -86,10 +92,10 @@ while ( $ac <= $#argv )
 
     # -------------- input opts --------------------
     # here, specify NIFTI *files*, not directories
-    if ( "$argv[$ac]" == "-inset_ap" ) then
+    if ( "$argv[$ac]" == "-indwi" ) then
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
         @ ac += 1
-        set i_ap = "$argv[$ac]"
+        set idwi = "$argv[$ac]"
 
     else if ( "$argv[$ac]" == "-select" ) then
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
@@ -128,6 +134,8 @@ while ( $ac <= $#argv )
         set invecmat[2]  = "$argv[$ac]"
         # output postfix; [1] and [3] sorted out, below
         set outvecmat[2] = "_rvec.txt"
+        set ll2       = "["
+        set rr2       = "]"
 
     # not necessary; default is just empty
     else if ( "$argv[$ac]" == "-in_bvals" ) then
@@ -137,6 +145,20 @@ while ( $ac <= $#argv )
         set invecmat[4]  = "$argv[$ac]"
         # output postfix; [1] and [3] sorted out, below
         set outvecmat[4] = "_bval.txt"
+        # ugh, have to see if this is row or col
+        set aa = `1d_tool.py -show_rows_cols -infile $invecmat[4]`
+        if ( ${aa[3]:gas/,//} < ${aa[6]:gas/,//} ) then
+            # -> is rows
+            set ll4 = "["
+            set rr4 = "["
+        else
+            # -> is cols
+            set ll4 = "{"
+            set rr4 = "}"
+        endif
+
+    else if ( "$argv[$ac]" == "-unit_mag_out" ) then
+        set do_unit_mag = "-unit_mag_out"
 
     # -------------- output opts --------------------
     else if ( "$argv[$ac]" == "-prefix" ) then
@@ -229,6 +251,7 @@ if ( ! -e "$odir" ) then
     mkdir "$odir"
 endif
 
+if ( 0 ) then
 # and put working directory as subdirectory.
 set wdir = $odir/$wdir
 
@@ -244,6 +267,7 @@ else
     echo "   NB: will *not* clean it afterwards."
     set DO_CLEAN = "0"
 endif
+endif
 
 # file names for lots of outputs
 set ocmd   = "${opref}_cmd.txt"      # name for output command
@@ -253,18 +277,16 @@ set obvec  = "${opref}_bvec.txt"     # name for full afni grads
 set obval  = "${opref}_bval.txt"     # name for full afni bvals
 set odwi   = "${opref}_dwi.nii.gz"   # name for dwis
 
-# file *types* for output (grad/matrix stuff)
+# file *types* for output (grad/matrix stuff); [2,4] are filled above
 set outvecmat[1] = ${invecmat[1]:gas/in/out/}
 set outvecmat[3] = ${invecmat[3]:gas/in/out/}
-
-if ( "$outvecmat[1]" == "-out"
-
-
-
-
-
-
-
+set outvecmat[2] = "$odir/${opref}$outvecmat[2]"
+if ( "$outvecmat[4]" != "" ) then
+    set outvecmat[4] = "$odir/${opref}$outvecmat[4]"
+endif
+if ( "$invecmat[4]" ) then
+    set KEEP3 = $KEEP
+endif
 
 # =======================================================================
 # =========================== ** PROCESS ** =============================
@@ -272,20 +294,24 @@ if ( "$outvecmat[1]" == "-out"
 
 # ======================== convert dicoms ===============================
 
-if ( "$idir_ap" != "") then
+if ( 1 ) then
 
-    1dDW_Grad_o_Mat++       -echo_edu                            \
-        -in_bvals           $idir_ap/${iroot_ap}.bval"$KEEP"     \
-        -in_row_vec         $idir_ap/${iroot_ap}.bvec"$KEEP"     \
-        -out_row_bval_sep   $odir/${opref}.bval                \
-        -unit_mag_out                                            \
-        -out_row_vec        $odir/${opref}.bvec                \
-        -overwrite
+    # make grads ...
+    1dDW_Grad_o_Mat++                                     \
+        -overwrite                                        \
+        -echo_edu                                         \
+        "$invecmat[1]" "$invecmat[2]""$ll2""$KEEP""$rr2"  \
+        $do_unit_mag                                      \
+        "$outvecmat[1]" "$outvecmat[2]"                   \
+        "$outvecmat[3]" "$outvecmat[4]"                   \
+        "$invecmat[2]" "$invecmat[4]""$ll4""$KEEP3""$rr4"
+    # NB: the above works somewhat cheatingly by having the empty
+    # strings at the end of the function call.
 
     3dcalc   -echo_edu                                           \
-        -a     $i_ap"$KEEP"                                      \
+        -a     $idwi"[${KEEP}]"                                  \
         -expr "(a)"                                              \
-        -prefix $odir/${opref}.nii                             \
+        -prefix $odir/${opref}.nii                               \
         -overwrite
 
     # Feb,2017: take images!
@@ -295,8 +321,8 @@ if ( "$idir_ap" != "") then
 
         $my_viewer_4d  \
             -inset  $odir/${opref}.nii      \
-            -outdir "$odir"                \
-            -prefix "$img_pref"               \
+            -outdir "$odir"                 \
+            -prefix "$img_pref"             \
             $movie
     endif
 
