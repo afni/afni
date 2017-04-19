@@ -32,6 +32,8 @@ set version = "2.8"; set rev_dat = "Apr 19, 2017"
 #   + switch to dcm2niix from dcm2nii
 #     -> motivated by Philips scaling requirements
 #     -> prob better to stick with newer, anyways
+#   + has cmd out now
+#   + movie stuff there, too, now
 #
 # ----------------------------------------------------------------
 
@@ -75,6 +77,13 @@ set doflip   = ""          # default: no flip of grads
 set DO_REORI = 1
 set DO_CLEAN = "1"
 set DO_VIEWER = "1"
+set output_cmd = 1               # def: output copy of this command
+set cmd_file   = ""              # def: same name as viewer
+set qc_prefix  = ""              # def: autoname; user can enter
+set postfix    = ""              # stick into name
+
+set movie     = ""
+
 
 set wdir     = "__WORKING_$tpname"
 set dpref    = "tmpdir"    # tmp dirs for dcm2niix to dump into
@@ -171,6 +180,20 @@ while ( $ac <= $#argv )
     else if ( "$argv[$ac]" == "-no_cmd_out" ) then
         set output_cmd = 0
 
+    else if ( "$argv[$ac]" == "-do_movie" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set movie = "$argv[$ac]"
+        if ( ( $movie == "MPEG" ) || ( $movie == "AGIF" ) ) then
+            echo "++ OK, will make a movie of type $movie."
+        else
+            echo "** ERROR: '$movie' is NOT an allowed movie format!"
+            echo "      -> must be either 'MPEG' or 'AGIF'"
+            goto BAD_EXIT
+        endif
+        # replace with both here for calling @dj*
+        set movie = "-do_movie $movie"   
+
     else
         echo "** unexpected option #$ac = '$argv[$ac]'"
         goto BAD_EXIT
@@ -182,8 +205,6 @@ end
 # =======================================================================
 # ============================ ** SETUP ** ==============================
 # =======================================================================
-
-echo "++ Start script version: $version"
 
 # ============================= dicom dir ===============================
 
@@ -261,11 +282,35 @@ else
 endif
 
 set ocmd   = "${opref}_cmd.txt"      # name for output command
-set ofile  = "${opref}.nii"          # name for output command
 
 # =======================================================================
 # =========================== ** PROCESS ** =============================
 # =======================================================================
+
+echo "\n-----> STARTING $this_prog ---->"
+
+# ---------------------------- CMD ---------------------------------
+
+echo "\n\nThis command:"
+echo "$this_prog $argv\n\n"
+
+if ( "$cmd_file" == "" ) then
+    set cmd_file = "$odir/$ocmd"
+endif
+
+# copy original command:
+# dump copy of command into workdir/..
+if ( $output_cmd == 1 ) then
+    echo "++ Echoing the command to: $cmd_file"
+
+    echo "### Executed from the directory location:"  > $cmd_file
+    echo "# $here\n"            >> $cmd_file
+    echo "### The command was:" >> $cmd_file
+    echo "# $this_prog $argv"   >> $cmd_file
+    echo "\n"                   >> $cmd_file
+endif
+
+# --------------------- start proc ---------------------------
 
 # ======================== convert dicoms ===============================
 
@@ -378,11 +423,13 @@ end
 
 # ================== combine everything =====================
 
-# -> default:
+# temp file:
 set all_cvecs = "${tpref}.cvec"
-set fin_bvecs = "${opref}.bvec"
-set fin_bvals = "${opref}.bval"
+
+# -> default:
 set fin_vols  = "${opref}.nii"
+set fin_rvec = "${opref}_rvec.dat"
+set fin_bval = "${opref}_bval.dat"
 # -> optional:
 set fin_bmatA = "${opref}_matA.dat"
 set fin_bmatT = "${opref}_matT.dat"
@@ -401,9 +448,9 @@ echo "++ And putting the bvec/bval files in their place"
 1dDW_Grad_o_Mat++                          \
     -echo_edu                              \
     -in_col_vec       $all_cvecs           \
-    -out_row_bval_sep ../$fin_bvals        \
+    -out_row_bval_sep ../$fin_bval         \
     -unit_mag_out                          \
-    -out_row_vec      ../$fin_bvecs
+    -out_row_vec      ../$fin_rvec
 
 if ( 1 ) then
 
@@ -462,6 +509,14 @@ if ( "$DO_VIEWER" == "1" ) then
         -inset  ../$fin_vols              \
         -outdir ".."                      \
         -prefix "${opref}"
+
+    if ( "$movie" != "" ) then
+        $my_viewer_4d \
+            -inset  ../$fin_vols          \
+            -outdir ".."                  \
+            -prefix "${opref}"            \
+            $movie
+    endif
 endif
 
 if ( "$DO_CLEAN" == "1" ) then
@@ -476,8 +531,8 @@ echo "++ Done DWI conversion."
 echo ""
 echo "++ Please check results:"
 echo "++ DWI volume dset            : $odir/$fin_vols"
-echo "++ Grad vecs (unit-mag; rows) : $odir/$fin_bvecs"
-echo "++ b-values (rows)            : $odir/$fin_bvals"
+echo "++ Grad vecs (unit-mag; rows) : $odir/$fin_rvec"
+echo "++ b-values (rows)            : $odir/$fin_bval"
 echo ""
 
 goto GOOD_EXIT
@@ -525,8 +580,8 @@ cat << EOF
       {-no_clean}                              \
       {-qc_prefix    QCPREF}                   \
       {-no_cmd_out}                            \
-      {-no_qc_view} 
-
+      {-no_qc_view}                            \
+      {-do_movie AGIF|MPEG}
 
   where:
   -indir  DIR       :directory name(s) of (only) DICOM files of the
@@ -582,32 +637,46 @@ cat << EOF
                      and the location where it was run (otherwise, it is
                      saved by default in the ODIR/).
 
+    -do_movie AGIF | MPEG:
+                    :one can use this option with either of the given
+                     arguments to output a movie of the newly created
+                     dset.  Only those arguments can be used at
+                     present.
+
 -------------------------------------------------------------------------
 
   OUTPUTS:
 
-    For a given phase encoding set (and both can be processed
-    simultaneously, in parallel), the output directory contains a
-    NIFTI file with N volumes, a row-wise (3xN) bvec file of the
-    gradient orientations, and a row-wise (1xN) bval file of the
-    gradient magnitudes; these files are respectively named: 
-        PREFIX.nii 
-        PREFIX.bvec 
-        PREFIX.bval
-    and they are meant to mimic the trio of files output by dcm2nii.
+    For a given phase encoding set, the output files are:
+
+        PREFIX.nii        # a NIFTI file with N volumes;
+        PREFIX.rvec       # a row-wise (3xN) bvec file of 
+                            the (unit-magnitude) gradient orientations;
+        PREFIX.bval       # a row-wise (1xN) bval file of the
+                            gradient magnitudes;
+        PREFIX_matA.dat   # a column-wise (Nx6) AFNI-style matrix file of
+                            the (scaled) b-matrix values;
+        PREFIX_matT.dat   # a column-wise (Nx6) TORTOISE-style matrix file 
+                            of the (scaled) b-matrix values;
+        PREFIX_cvec.dat   # a column-wise (Nx3) bvec file of 
+                            the (b-magn scaled) gradient orientations;
+
+    with the first three meant to mimic the trio of files output by
+    dcm2niix, and the rest there for convenience.  
 
 -------------------------------------------------------------------------
 
   EXAMPLE:
     $this_prog  \
-        -indir  "SUB001/DTI_AP_0*"            \
-        -prefix UNFILT/dwi
-
+        -indir  "DWI_DICOMS"                 \
+        -prefix  DWI_UNFILT/dwi
+        
     or
 
     $this_prog  \
-        -indir  "DTI_DICOMS"                 \
-        -prefix  UNFILT_DTI/dwi
+        -indir    dwi_ap                 \
+        -prefix   DWI_UNFILT/dwi
+        -do_movie AGIF
 
 -------------------------------------------------------------------------
 
