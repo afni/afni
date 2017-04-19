@@ -407,6 +407,8 @@ endif
     -out_col_bval_sep $odir/$obval    \
     "$invecmat[1]" "$invecmat[2]"     \
     "$invecmat[3]" "$invecmat[4]" 
+# NB: the above works somewhat cheatingly by having the empty strings
+# at the end of the function call.
 
 # ... and matching matA
 1dDW_Grad_o_Mat++                     \
