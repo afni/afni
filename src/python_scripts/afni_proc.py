@@ -565,9 +565,12 @@ g_history = """
     5.13 Mar 27, 2017:
         - NL warps of all-1 volume uses -interp cubic for speed
         - for -mask_import, have lists_are_same compare abs() of dimensions
+    5.14 Apr 11, 2017:
+        - added GENERAL ANALYSIS NOTE to help
+        - mentioned scaling as an option in resting state analysis
 """
 
-g_version = "version 5.13, March 27, 2017"
+g_version = "version 5.14, April 11, 2017"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \

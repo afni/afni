@@ -326,7 +326,7 @@ examples (very basic for now):
    Example 16. Randomize a list of numbers, say, those from 1..40.
 
        The numbers can come from 1deval, with the result piped to
-       '1d_tool.py -input stdin -randomize_trs ...'.
+       '1d_tool.py -infile stdin -randomize_trs ...'.
 
         1deval -num 40 -expr t+1 |   \\
            1d_tool.py -infile stdin -randomize_trs -write stdout
@@ -665,7 +665,7 @@ general options:
 
         These are terminal options that check whether the input file seems to
         be of type 1D, local stim_times or global stim_times formats.  The only
-        associated options are currently -input, -set_run_lens, -set_tr and
+        associated options are currently -infile, -set_run_lens, -set_tr and
         -verb.
 
         They are terminal in that no other 1D-style actions are performed.
@@ -811,6 +811,10 @@ general options:
    -set_tr TR                   : set the TR (in seconds) for the data
    -show_argmin                 : display the index of min arg (of first column)
    -show_censor_count           : display the total number of censored TRs
+                           Note : if input is a valid xmat.1D dataset, then the
+                                  count will come from the header.  Otherwise
+                                  the input is assumed to be a binary censor
+                                  file, and zeros are simply counted.
    -show_cormat                 : display correlation matrix
    -show_cormat_warnings        : display correlation matrix warnings
    -show_gcor                   : display GCOR: the average correlation
@@ -900,7 +904,7 @@ general options:
    -transpose_write             : transpose the output matrix before writing
    -volreg2allineate            : convert 3dvolreg parameters to 3dAllineate
 
-        This option should be used when the -input file is a 6 column file
+        This option should be used when the -infile file is a 6 column file
         of motion parameters (roll, pitch, yaw, dS, dL, dP).  The output would
         be converted to a 12 parameter file, suitable for input to 3dAllineate
         via the -1Dparam_apply option.
@@ -1045,12 +1049,12 @@ g_history = """
    1.24 Mar 31, 2015 - allow -censor_fill_parent with simple 1D files
    1.25 Apr  1, 2015 - expand simple -censor_fill_parent for 2-D files
    1.26 Nov  4, 2015 - added -slice_order_to_times
-   1.27 Sep 23, 2016
-        - tiny nruns adjust
-        - added -select_runs
+   1.27 Sep 23, 2016 - added -select_runs; tiny nruns adjust
+   1.28 Apr 17, 2017
+        - clarify source in -show_censored_trs (if Xmat, use header info)
 """
 
-g_version = "1d_tool.py version 1.27, September 23, 2016"
+g_version = "1d_tool.py version 1.28, April 17, 2017"
 
 
 class A1DInterface:
