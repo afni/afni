@@ -10,6 +10,8 @@
 /* default fill and unfill values */
 static float fillvalue = 1.0;
 static float unfillvalue = 1.0;
+static float maskvalue = -1.0;
+static float maskvalue2 = -2.0;
 
 /*--------------------------------------------------------------------------*/
 /*! Input = 1D float array, and an NSTAT_ code to compute some statistic.
@@ -38,6 +40,32 @@ float mri_nstat( int code , int npt , float *far , float voxval, MCW_cluster *nb
      case NSTAT_UNFILLED:
        if(npt<nbhd->num_pt)
           outval = unfillvalue;
+     break ;
+
+     /* check if neighborhood contains a specified mask value */
+     case NSTAT_MASKED:{
+        register int ii;
+        outval = 0.0f;
+        for( ii=0; ii < npt; ii++) {
+           if(far[ii] == maskvalue) { 
+             outval = unfillvalue;
+             break;
+          }
+        }
+     }
+     break ;
+
+     /* check if neighborhood contains another specified mask value */
+     case NSTAT_MASKED2: {
+        register int ii;
+        outval = 0.0f;
+        for( ii=0; ii < npt; ii++) {
+          if(far[ii] == maskvalue2) { 
+             outval = unfillvalue;
+             break;
+          }
+        }
+     }
      break ;
 
      default:
@@ -1011,4 +1039,14 @@ void set_mri_nstat_fillvalue(float tf)
 void set_mri_nstat_unfillvalue(float tf)
 {
    unfillvalue = tf;
+}
+
+void set_mri_nstat_maskvalue(float tf)
+{
+   maskvalue = tf;
+}
+
+void set_mri_nstat_maskvalue2(float tf)
+{
+   maskvalue2 = tf;
 }
