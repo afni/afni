@@ -50,6 +50,17 @@
 
 
 afni_history_struct dglen_history[] = {
+{ 19, APR, 2017 , DRG , "3dMean min, max options" , 
+    MINOR , TYPE_NEW_OPT, 
+    "3dMean computes min and max voxelwise across datasets",
+    "Options -min, -max give min and max values. This can be\n"
+    "combined with -non-zero to restrict to non-zero min and max."
+},
+{ 19, APR, 2017 , DRG , "3dLocalstat has_mask, has_mask2 options" , 
+    MINOR , TYPE_NEW_OPT, 
+    "3dLocalstat can report if neighborhood intersects specified values",
+    "Options -has_mask and -has_mask2 allow flagging with unfillvalue"
+},
 { 5, APR, 2017 , DRG , "3dVol2Surf nzoptions" , 
     MINOR , TYPE_NEW_OPT, 
     "3dVol2Surf nonzero min, nonzero max, nonzero ave",
