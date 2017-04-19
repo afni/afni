@@ -1,6 +1,4 @@
-#!/bin/tcsh -ef
-
-
+#!/bin/tcsh -e
 
 # --------------------- revision history -------------------------
 # Jan, 2017
@@ -9,13 +7,20 @@
 # Jan, 2017b
 #   + drive QC snapshots
 #
-
+#set version   = "1.3";    set rev_dat   = "March 21, 2017"
+#   + consistent option/help names
+#
+#set version   = "1.4";    set rev_dat   = "April 10, 2017"
+#   + wdir-ize
+#
+set version   = "1.5";    set rev_dat   = "April 11, 2017"
+#   + fixed printfs
+#
 # ----------------------------------------------------------------
 
-set version = "2.3"
-set rev_dat = "Jan, 2017"
 set this_prog = "fat_proc_imit2w_from_t1w"
-set here     = $PWD
+set tpname    = "${this_prog:gas/fat_proc_//}"
+set here      = $PWD
 
 # ----------------- find AFNI and set viewer ---------------------
 
@@ -36,16 +41,20 @@ set my_viewer = "$adir/@chauffeur_afni"
 
 # ----------------------- set defaults --------------------------
 
-set anat_dir  = ""                # will be output dir
-set T1in      = ""                # nec input T1w vol
-set T1in_ss   = ""                # optional, if SS'ing elsewhere
-set outpref   = "irct"            # for final output files
-set temppref  = "_tempZ43q6"      # for intermed files
-set DoClean   = "0"
+set ifile     = ""                # nec input: T1w vol
+set imask     = ""                # optional, if SS'ing elsewhere
+set odir      = ""                # will be output dir
+set opref     = ""                # for final output files
+set tpref     = "ttt"             # for intermed files
+set DO_CLEAN   = "1"               # clean by default
+
+set wdir       = "__WORKING_$tpname"
+set output_cmd = 1               # def: output copy of this command
+set cmd_file   = ""              # def: same name as viewer
 
 set qc_prefix = ""
 set DO_VIEWER = 1                 # def: do QC image visualization
-set postfix   = "inv"             # stick into name
+set postfix   = ""                # stick into name
 
 # ------------------- process options, a la rr ----------------------
 
@@ -61,29 +70,31 @@ while ( $ac <= $#argv )
         goto SHOW_VERSION
     endif
 
-    # required
+    # required 
     if ( "$argv[$ac]" == "-inset" ) then
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
         @ ac += 1
-        set T1in = "$argv[$ac]"
+        set ifile = "$argv[$ac]"
         
-    else if ( "$argv[$ac]" == "-in_ss" ) then
-        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
-        @ ac += 1
-        set T1in_ss = "$argv[$ac]"
+    # ---------- other opts ----------------
 
-    else if ( "$argv[$ac]" == "-outdir" ) then
+    else if ( "$argv[$ac]" == "-mask" ) then
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
         @ ac += 1
-        set anat_dir = "$argv[$ac]"
+        set imask = "$argv[$ac]"
+
+    else if ( "$argv[$ac]" == "-workdir" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set wdir = "$argv[$ac]"
 
     else if ( "$argv[$ac]" == "-prefix" ) then
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
         @ ac += 1
-        set outpref = "$argv[$ac]"
+        set opref = "$argv[$ac]"
 
-    else if ( "$argv[$ac]" == "-do_clean" ) then
-        set DoClean = 1
+    else if ( "$argv[$ac]" == "-no_clean" ) then
+        set DO_CLEAN = "0"
 
     else if ( "$argv[$ac]" == "-no_qc_view" ) then
         set DO_VIEWER = 0
@@ -109,46 +120,125 @@ echo "++ Start script version: $version"
 
 # ============================= input file ==============================
 
-set check = `3dinfo "$T1in"`
+set check = `3dinfo "$ifile"`
 if ( "$#check" == "0" ) then
-    echo "** ERROR: can't find file $T1in !"
+    echo "** ERROR: can't find file $ifile !"
     goto BAD_EXIT
 endif
 
-if ( $T1in_ss != "" ) then
-    set check = `3dinfo "$T1in_ss"`
+if ( $imask != "" ) then
+    set check = `3dinfo "$imask"`
     if ( "$#check" == "0" ) then
-        echo "** ERROR: can't find file $T1in_ss !"
+        echo "** ERROR: can't find file $imask !"
         goto BAD_EXIT
     endif
 endif
 
-# ============================= output dir ==============================
+# ===================== output and working dirs =========================
+
+if ( "$opref" == "" ) then
+    echo "** ERROR: need '-prefix ...' option provided!"
+    echo "   See the helpfile for more information."
+    goto BAD_EXIT
+else
+    set odir = `dirname $opref`
+    set opref = `basename $opref`
+    echo ""
+    echo "++ Based on prefix, the output directory will be:"
+    echo "     $odir"
+    echo "++ Based on prefix, the output prefix will be:"
+    echo "     $opref"
+    echo ""
+endif
 
 # check output directory, use input one if nothing given
 
 # default output dir, if nothing input.
-if ( $anat_dir == "" ) then
-
-    set anat_dir = `dirname $T1in`
-    echo "\n++ No output directory specificied by the user."
-    echo "++ Using the '-indir ...' directory by default:"
-    echo "\t$anat_dir"
-
+if ( ! -e "$odir" ) then
+    echo "+* Output directory didn't exist.  Trying to make it now."
+    mkdir "$odir"
 endif
 
-# ============================== naming ================================
+set wdir = "$odir/$wdir"
 
-set wdir  = "$anat_dir"
+# make the working directory
+if ( ! -e $wdir ) then
+    echo "++ Making working directory: $wdir"
+    mkdir $wdir
+else
+    echo "+* WARNING: Somehow found a premade working directory (?):"
+    echo "      $wdir"
+
+    # don't clean preexisting directories-- could be user mistake.
+    echo "   NB: will *not* clean it afterwards."
+    set DO_CLEAN = "0"
+endif
 
 # =======================================================================
 # =========================== ** PROCESS ** =============================
 # =======================================================================
 
-set idx = 1 
+echo "\n-----> STARTING $this_prog ---->"
 
-set amask = "$wdir/${temppref}_${idx}_automask.nii.gz"
-set fin = $T1in
+# ---------------------------- CMD ---------------------------------
+
+echo "\n\nThis command:"
+echo "$this_prog $argv\n\n"
+
+set ocmd   = "${opref}_cmd.txt"      # name for output command
+
+if ( "$cmd_file" == "" ) then
+    set cmd_file = "$odir/$ocmd"
+endif
+
+# copy original command:
+# dump copy of command into workdir/..
+if ( $output_cmd == 1 ) then
+    echo "++ Echoing the command to: $cmd_file"
+
+    echo "### Executed from the directory location:"  > $cmd_file
+    echo "# $here\n"            >> $cmd_file
+    echo "### The command was:" >> $cmd_file
+    echo "# $this_prog $argv"   >> $cmd_file
+    echo "\n"                   >> $cmd_file
+endif
+
+# ----------- init: cp data + move to wdir ----------------
+
+echo "++ Copying input files to working dir."
+
+set idx = 0
+
+# cp data to wdir
+set fin  = "$ifile"
+set fout = "${tpref}_${idx}_cp0.nii"
+3dcalc -echo_edu         \
+    -overwrite           \
+    -a $fin              \
+    -expr 'a'            \
+    -prefix $wdir/$fout
+
+if ( "$imask" != "" ) then
+
+    set foutm = "${tpref}_${idx}_mask0.nii"
+    3dcalc -echo_edu         \
+        -overwrite           \
+        -a $imask            \
+        -expr 'a'            \
+        -prefix $wdir/$foutm
+
+    set imask = $foutm
+endif
+
+@ idx += 1
+
+# move to wdir
+cd $wdir
+
+# ---------- continue proc in wdir ------------
+
+set amask = "${tpref}_${idx}_automask.nii.gz"
+set fin = $fout
 echo "\nPre-brightening: ON\n"
 3dAutomask  -echo_edu                            \
     -overwrite                                   \
@@ -161,9 +251,9 @@ echo "\nPre-brightening: ON\n"
 set NUMS = `3dBrickStat -mask ${amask} -percentile 90 1 90  ${fin}`
 set P_THR = "$NUMS[2]"
 
-printf "\nThresh value will be: $P_THR \n"
+echo "\nThresh value will be: $P_THR"
 
-set fout = "$wdir/${temppref}_${idx}_pre.nii"
+set fout = "${tpref}_${idx}_pre.nii"
 set fout_thr = $fout
 3dcalc                                            \
     -echo_edu                                     \
@@ -174,9 +264,9 @@ set fout_thr = $fout
     -overwrite
 @ idx += 1
 
-if ( $T1in_ss == "" ) then
+if ( $imask == "" ) then
     set fin  = "$fout"
-    set fout = "$wdir/${temppref}_${idx}_ani.nii"
+    set fout = "${tpref}_${idx}_ani.nii"
     3danisosmooth -echo_edu       \
         -overwrite                \
         -iters 2                  \
@@ -186,8 +276,8 @@ if ( $T1in_ss == "" ) then
     @ idx += 1
 
     set fin  = "$fout"
-    set fout = "$wdir/${temppref}_${idx}_ss.nii"
-    set T1in_ss = $fout
+    set fout = "${tpref}_${idx}_ss.nii"
+    set imask = $fout
     3dSkullStrip -echo_edu               \
         -input $fin                      \
         -prefix $fout                    \
@@ -198,8 +288,8 @@ if ( $T1in_ss == "" ) then
 endif
 
 # wherever SS brain came from, use it now as binary mask.
-set finm  = "$T1in_ss"
-set foutm = "$wdir/${temppref}_${idx}_mask1.nii"
+set finm  = "$imask"
+set foutm = "${tpref}_${idx}_mask1.nii"
 3dcalc                                \
     -echo_edu                         \
     -a $finm                          \
@@ -209,7 +299,7 @@ set foutm = "$wdir/${temppref}_${idx}_mask1.nii"
 @ idx += 1
 
 set finm  = "$foutm"
-set foutm = "$wdir/${temppref}_${idx}_mask2.nii"
+set foutm = "${tpref}_${idx}_mask2.nii"
 3dmask_tool                           \
     -echo_edu                         \
     -inputs ${finm}                   \
@@ -220,7 +310,7 @@ set foutm = "$wdir/${temppref}_${idx}_mask2.nii"
 
 # unifize the *unmasked* one
 set fin  = "$fout_thr"
-set fout = "$wdir/${temppref}_${idx}_uni.nii.gz"
+set fout = "${tpref}_${idx}_uni.nii.gz"
 3dUnifize                    \
     -echo_edu                \
     -prefix $fout            \
@@ -233,11 +323,11 @@ set fout = "$wdir/${temppref}_${idx}_uni.nii.gz"
 set NUMS = `3dBrickStat -mask ${foutm}  -percentile 90 1 90  ${fout}`
 set P_THR = "$NUMS[2]"
 
-printf "\nThresh value will be: $P_THR \n"
+echo "\nThresh value will be: $P_THR \n"
 
 set fin1  = "$fout"
 set fin2  = "$foutm"
-set t1out  = "$wdir/${outpref}_t1w.nii.gz"
+set t1out  = "../${opref}_t1w.nii.gz"
 3dcalc                                            \
     -echo_edu                                     \
     -a $fin1                                      \
@@ -249,7 +339,7 @@ set t1out  = "$wdir/${outpref}_t1w.nii.gz"
 
 set fin1  = "$t1out"
 set fin2  = "$foutm"
-set fout  = "$wdir/${outpref}_t1w_ss.nii"
+set fout  = "../${opref}_t1w_ss.nii"
 set t1ss  = $fout
 3dcalc                                            \
     -echo_edu                                     \
@@ -263,7 +353,7 @@ set t1ss  = $fout
 # try making an imitation T2
 set fin1  = "$t1out"
 set fin2  = "$foutm"
-set t2out = "$wdir/${outpref}_t2w.nii.gz"
+set t2out = "../${opref}_t2w.nii.gz"
 3dcalc                                            \
     -echo_edu                                     \
     -a $fin1                                      \
@@ -273,16 +363,6 @@ set t2out = "$wdir/${outpref}_t2w.nii.gz"
     -float                                        \
     -overwrite
 
-if ( $DoClean ) then
-    echo "\n Removing temporary (${temppref}*) files.\n"
-    \rm $wdir/${temppref}*
-else
-    echo "\n NOT Removing temporary files.\n"
-endif
-
-printf "\n DONE!\n View T1w file:\n    ${t1out}\n"
-printf "\n DONE!\n View 'T2w' file:\n    ${t2out}\n\n"
-
 # ---------------------------- VIEWER ---------------------------------
 
 if ( $DO_VIEWER ) then
@@ -290,17 +370,17 @@ if ( $DO_VIEWER ) then
     echo "++ Making QC images."
 
     if( $qc_prefix == "" ) then
-        set vpref1 = ${outpref}_${postfix}_qc1_t1wss
-        set vpref2 = ${outpref}_${postfix}_qc2_fin
+        set vpref1 = ${opref}_${postfix}_qc1_t1wss
+        set vpref2 = ${opref}_${postfix}_qc2_imit2w
     else
         set vpref1 = ${qc_prefix}_${postfix}_qc1_t1wss
-        set vpref2 = ${qc_prefix}_${postfix}_qc2_fin
+        set vpref2 = ${qc_prefix}_${postfix}_qc2_imit2w
     endif
 
     echo "++ QC image #1 (intermed T1w skullstripped ulay): $vpref1"
     $my_viewer      -ulay $t1ss                     \
                     -prefix $vpref1                 \
-                    -outdir "."                     \
+                    -outdir ".."                    \
                     -montx 5 -monty 3               \
                     -set_xhairs OFF                 \
                     -label_mode 1 -label_size 3     \
@@ -309,12 +389,25 @@ if ( $DO_VIEWER ) then
     echo "++ QC image #2 (final output ulay): $vpref2"
     $my_viewer      -ulay $t2out                    \
                     -prefix $vpref2                 \
-                    -outdir "."                     \
+                    -outdir ".."                    \
                     -montx 5 -monty 3               \
                     -set_xhairs OFF                 \
                     -label_mode 1 -label_size 3     \
                     -do_clean
 endif
+
+# ------------------- clean + final message(s) -----------------------
+
+if ( "$DO_CLEAN" == "1" ) then
+    cd $here
+    echo "\n Removing temporary working directory ($wdir).\n"
+    \rm -rf $wdir
+else
+    echo "\n NOT Removing temporary working directory.\n"
+endif
+
+echo "\n DONE!\n View T1w file:\n    $odir/${t1out}\n"
+echo "\n DONE!\n View imitation T2w file:\n   $odir/${t2out}\n\n"
 
 # ---------------------------------------------------------------------
 
@@ -358,28 +451,29 @@ cat << EOF
   This script has one required argument ('-inset ...'), and the rest are
     optional:
 
-  \$ tcsh $this_prog  \
+    tcsh $this_prog  \
         -inset  T1_FILE                       \
-        {-outdir DIR_NAME}                    \
-        {-prefix PREFIX}                      \
-        {-in_ss T1_SS}                        \
-        {-do_clean}                           \
+        -prefix PPP                           \
+        {-workdir WWW}                        \
+        {-mask    MASK}                       \
+        {-no_clean}                           \
         {-no_qc_view}                         \
         {-qc_prefix QCP}
 
   where: 
   -inset  T1_FILE  :is the full name of the input T1w volume;
 
-  -outdir DIR_NAME :is the output directory (default is the directory
-                    containing the input T1_SS file).
-  -prefix PREFIX   :is the prefix of the output processed T1 name
-                    (default is 'out').
-  -in_ss  T1_SS    :an optional input of a pre-skullstripped T1_FILE
+  -prefix  PPP     :output prefix for files and snapshots (required).
+
+  -mask   MASK     :an optional input of a pre-skullstripped T1_FILE
                     (this can be either a mask or a skullstripped volume).
                     This can be useful if the default skullstripping
                     options in this script ain't getting the job done
                     and other ones have to be done (skullstripping is
                     probably the slowest part of this set of steps).
+
+  -workdir WWW     :specify a working directory, which can be removed;
+                    (default name = '$wdir')
 
   -no_qc_view      :turn off the automatic creation of QC montages (which
                     are produced by default).
@@ -387,8 +481,8 @@ cat << EOF
   -qc_prefix QCP   :change the prefix of the QC images (default: use the
                     prefix of the volumes).
 
-  -do_clean        :is an optional switch to remove intermediate 
-                    '${temppref}*' files; (default: not to do so).
+  -no_clean        :is an optional switch to NOT remove working directory
+                    '$wdir'; (default: remove working dir).
 
  ------------------------------------------------------------------------
 
@@ -411,14 +505,14 @@ cat << EOF
 
   EXAMPLE:
     
-    \$ tcsh $this_prog  -inset T1.nii
+    tcsh $this_prog  -inset T1.nii
     
   or
 
-    \$ tcsh $this_prog  \
-          -inset T1.nii                           \
-          -in_ss mask_WB.nii.gz                   \
-          -do_clean
+    tcsh $this_prog  \
+        -inset T1.nii                           \
+        -mask  mask_WB.nii.gz                   \
+        -no_clean
 
 -------------------------------------------------------------------------
 
@@ -429,6 +523,10 @@ EOF
 SHOW_VERSION:
     echo "version  $version (${rev_dat})"
     goto GOOD_EXIT
+
+FAIL_MISSING_ARG:
+    echo "** ERROR! Missing an argument after option flag: '$argv[$ac]'"
+    goto BAD_EXIT
 
 BAD_EXIT:
     exit 1
