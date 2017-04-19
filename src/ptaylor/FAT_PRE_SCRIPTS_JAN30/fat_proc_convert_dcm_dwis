@@ -25,8 +25,13 @@
 #set version = "2.6"; set rev_dat = "Apr 13, 2017"
 #   + standardize I/O, wdir
 #
-set version = "2.7"; set rev_dat = "Apr 16, 2017"
+#set version = "2.7"; set rev_dat = "Apr 16, 2017"
 #   + can input origin, e.g. to match between AP and PA
+#
+set version = "2.8"; set rev_dat = "Apr 19, 2017"
+#   + switch to dcm2niix from dcm2nii
+#     -> motivated by Philips scaling requirements
+#     -> prob better to stick with newer, anyways
 #
 # ----------------------------------------------------------------
 
@@ -41,7 +46,7 @@ set adir      = ""
 set my_viewer = ""
 which afni >& /dev/null
 if ( $status ) then
-    echo "** Cannot find 'afni' (?!)."
+    echo "** ERROR: Cannot find 'afni'."
     goto BAD_EXIT
 else
     set aa   = `which afni`
@@ -51,6 +56,14 @@ endif
 # default location of viewer: user could modify!
 set my_viewer    = "$adir/@chauffeur_afni"
 set my_viewer_4d = "$adir/@djunct_dwi_imager"
+
+# ----------------- find dcm2niix ---------------------
+
+which dcm2niix >& /dev/null
+if ( $status ) then
+    echo "** ERROR: Cannot find 'dcm2niix'."
+    goto BAD_EXIT
+endif
 
 # ----------------------- set defaults --------------------------
 
@@ -64,11 +77,12 @@ set DO_CLEAN = "1"
 set DO_VIEWER = "1"
 
 set wdir     = "__WORKING_$tpname"
-set dpref    = "tmpdir"    # tmp dirs for dcm2nii to dump into
+set dpref    = "tmpdir"    # tmp dirs for dcm2niix to dump into
 set fpref    = "fff"       # temp names when working in temp subdirs
 set fpref0   = "aaa"       # for anonymizing
 set fpref1   = "bbb"       # for reorienting
 set tpref    = "ttt"       # temp names when working in wdir directly
+set npref    = "nnn"
 
 # Use this to give AP and PA same origin, if desired
 set DO_HAVE_ORIG = "0"  
@@ -263,7 +277,7 @@ if ( "$idir" != "") then
 
         set dd = $idir[$ii]
 
-        # tmp sub-wdirs for dumping dcm2nii output
+        # tmp sub-wdirs for dumping dcm2niix output
         set iii   = `printf "%03d" $ii`
         set tdir  = ${dpref}_$iii
         if ( ! -e "$wdir/$tdir" ) then
@@ -278,13 +292,13 @@ if ( "$idir" != "") then
 
         echo "\n++ OK, now converting dicoms from: $dd"
         # place output into wdir, using gzipped files
-        dcm2nii                  \
-            -4 Y                 \
-            -d Y                 \
-            -n Y                 \
-            -g Y                 \
-            -o "$wdir/$tdir"     \
-            $dd/*
+        dcm2niix  \
+                -z y              \
+                -x n              \
+                -p y              \
+                -f $npref         \
+                -o "$wdir/$tdir"  \
+                $dd/
 
         # add it to the list of tdirs in wdir
         set all_tdir = ( $all_tdir $tdir )
@@ -311,8 +325,8 @@ set list_vols  = ( )
 foreach jj ( `seq 1 1 $Nsets` )
 
     set dd = "$all_tdir[$jj]"   # temp dir
-    set ff = `\ls ${dd}/*bvec`   # bvec for getting file prefix
-    set gg = ${ff:gas/.bvec//}  # prefix
+    set ff = `\ls ${dd}/${npref}.bvec`  # bvec for getting file prefix
+    set gg = ${ff:gas/.bvec//}  # prefix for all!
 
     # ---------- bval*bvec stuff -------------
 
@@ -492,7 +506,7 @@ cat << EOF
     appropriate to combine!).  More functionality could be demanded by
     demanding users.
 
-    REQUIRES: AFNI, dcm2nii.
+    REQUIRES: AFNI, dcm2niix.
 
     Ver. $version (PA Taylor, ${rev_dat})
 
