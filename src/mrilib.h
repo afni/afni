@@ -765,6 +765,8 @@ extern void binarize_mask( int , byte * ) ;
 #define NSTAT_HIST        41
 #define NSTAT_FILLED      42
 #define NSTAT_UNFILLED    43
+#define NSTAT_MASKED      44
+#define NSTAT_MASKED2     45
 
 #define NSTAT_FWHMx      63   /*these should be after all other NSTAT_* values */
 #define NSTAT_FWHMy      64
