@@ -1,14 +1,8 @@
 #!/bin/tcsh -e
 
-
-# !! add in regular snapshot
-
 # !!! comment about movie/mpeg stuff! gifsicle, etc.
 
 # !!!? control loop speed?
-
-# !!!! Need to add inputting of different types of grad: matA,
-# !!!! bval/bvec, etc. and output the same as what is input!
 
 # written by PA Taylor (NIMH, NIH)
 # filter sets of acquired DWIs with accompanying bvals/vecs
@@ -35,6 +29,10 @@ set version = "2.7"; set rev_dat = "Apr 17, 2017"
 #   + cut back to just a single directory at once.  
 #     -> Simplifies life (for everyone, really, it's not just 
 #        laziness by the author (well, only *partially* the latter))
+#
+set version = "2.8"; set rev_dat = "Apr 19, 2017"
+#   + more I/O work
+#   + more general outputting, when scaling/not scaling
 #
 # ----------------------------------------------------------------
  
@@ -74,7 +72,12 @@ set rr2       = "}"               # for column selection (def guess)
 set ll4       = ""                # empty
 set rr4       = ""                # empty
 
-set movie    = ""
+set DO_VIEWER = "1"
+set movie     = ""
+set output_cmd = 1               # def: output copy of this command
+set cmd_file   = ""              # def: same name as viewer
+set qc_prefix  = ""              # def: autoname; user can enter
+set postfix    = ""              # stick into name
 
 # ------------------- process options, a la rr ----------------------
 
@@ -101,6 +104,7 @@ while ( $ac <= $#argv )
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
         @ ac += 1
         set KEEP = "$argv[$ac]"
+        echo $KEEP
 
     # ------------- input vecmat and bval --------------
     else if ( "$argv[$ac]" == "-in_col_matA" ) then
@@ -179,6 +183,19 @@ while ( $ac <= $#argv )
         endif
         # replace with both here for calling @dj*
         set movie = "-do_movie $movie"   
+
+    # -------------- qc stuff ----------------
+
+    else if ( "$argv[$ac]" == "-qc_prefix" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set qc_prefix = "$argv[$ac]"
+
+    else if ( "$argv[$ac]" == "-no_qc_view" ) then
+        set DO_VIEWER = "0"
+
+    else if ( "$argv[$ac]" == "-no_cmd_out" ) then
+        set output_cmd = 0
 
     else
         echo "** unexpected option #$ac = '$argv[$ac]'"
@@ -288,9 +305,41 @@ if ( "$invecmat[4]" ) then
     set KEEP3 = $KEEP
 endif
 
+# in case someone wants just unit-mag vec|mat, we don't want to lose
+# the bvalue info!
+if ( "$do_unit_mag" != "" ) then
+    if ( "$outvecmat[3]" == "" ) then
+        set outvecmat[3] = "-out_col_bval_sep"
+        set outvecmat[4] = "$odir/${opref}_bval.txt"
+    endif
+endif
+
 # =======================================================================
 # =========================== ** PROCESS ** =============================
 # =======================================================================
+
+echo "\n-----> STARTING $this_prog ---->"
+
+# ---------------------------- CMD ---------------------------------
+
+echo "\n\nThis command:"
+echo "$this_prog $argv\n\n"
+
+if ( "$cmd_file" == "" ) then
+    set cmd_file = "$odir/$ocmd"
+endif
+
+# copy original command:
+# dump copy of command into workdir/..
+if ( $output_cmd == 1 ) then
+    echo "++ Echoing the command to: $cmd_file"
+
+    echo "### Executed from the directory location:"  > $cmd_file
+    echo "# $here\n"            >> $cmd_file
+    echo "### The command was:" >> $cmd_file
+    echo "# $this_prog $argv"   >> $cmd_file
+    echo "\n"                   >> $cmd_file
+endif
 
 # ======================== convert dicoms ===============================
 
@@ -315,17 +364,23 @@ if ( 1 ) then
         -overwrite
 
     # Feb,2017: take images!
-    if ( 1 ) then
+    if ( "$DO_VIEWER" == "1" ) then
         echo "++ Make AP images."
         set img_pref = "${opref}"
 
         $my_viewer_4d  \
-            -inset  $odir/${opref}.nii      \
-            -outdir "$odir"                 \
-            -prefix "$img_pref"             \
-            $movie
-    endif
+            -inset  $odir/${opref}.nii         \
+            -outdir "$odir"                    \
+            -prefix "$img_pref" 
 
+        if ( "$movie" != "" ) then
+            $my_viewer_4d \
+                -inset  $odir/${opref}.nii     \
+                -outdir "$odir"                \
+                -prefix "$img_pref"      \
+                $movie
+        endif
+    endif
 endif
 
 goto GOOD_EXIT
@@ -336,7 +391,7 @@ goto GOOD_EXIT
 SHOW_HELP:
 cat << EOF
 # -----------------------------------------------------------------------
-    !!!!!!!!!!!!!!! REWRITE !!!!!!!!!!!!!!!!!!!!!!
+
     The purpose of this function is to help filter out user-found and
     user-defined bad volumes from DWI data sets.  
 
@@ -346,23 +401,26 @@ cat << EOF
     that was acquired with two sets of phase encodings for EPI
     distortion correction, then one wants to remove the same volume
     *from both sets*.  This script is designed to help facilitate this
-    process in a scriptable manner.
+    process in a scriptable manner (the script still has to be run twice,
+    but hopefully with easy enough syntax to avoid confusion/bugs).
 
-    It will assume that the input DWI data is stored in a format
-    similar to the output of dcm2nii for diffusion data.  That is,
-    there should be three files in a directory that have the same
-    prefix:
+    The user has to input 
 
         1) a 4D volumetric data sets of N DWIs (NAME.nii),
 
-        2) a text file of N unit-magnitude diffusion gradients
-        (NAME.bvec), with 3 rows and N entries per row.
+        2) and accompanying bvalue/bmatrix/bvector values that they
+           want to be parsed; this could be a unit-magn bvec file + a
+           file of bvalues, or it could be a single file of scaled
+           vector|matrix values.
 
-        3) a text file of N b-values (NAME.bval), a single line of N
-        entries.
+    The output will be in similar format to what was input (i.e., the
+    type of bvector|bmatrix files matching what was input), but with a
+    different prefix name and/or directory, and everything filtered in
+    a consistent manner *hopefully*.
 
-    The output will be in similar format, but with a different prefix
-    name and/or directory.
+    Check out the function "fat_proc_select_vols" for a nice, GUI way
+    to select the bad DWIs you want to get rid of and to build a
+    selector nicely (courtesy of J. Rajendra).
 
     REQUIRES: AFNI.
 
@@ -370,95 +428,80 @@ cat << EOF
 
 # -----------------------------------------------------------------------
 
-  RUNNING: at least one of the two '-inset_* ...' files needs to be
-           given; both can be, and the processing happens in parallel
-           (which is useful if you have to remove a
-           volume/gradient/bval from a matched pair of phase encoded
-           DWIs), producing two output sets. The 'AP' vs 'PA'
-           designation is not necessarily very important-- it is
-           really a naming convention to differentiate the separate
-           phase encodings.
+  RUNNING: 
 
-  \$ $this_prog  \
-      -inset_ap   FILE_AP                      \
-      -inset_pa   FILE_PA                      \
-      -select     SSS                          \
-      {-outdir_ap OUT_AP}                      \
-      {-outdir_pa OUT_PA}                      \
-      {-prefix_ap PRE_AP}                      \
-      {-prefix_pa PRE_PA} 
+    $this_prog  \
+        -indwi    DDD                      \
+        -select   'SSS'                    \
+        -prefix   PPP                      \
+        {-in_col_matA|-in_col_matT|        \
+         -in_col_vec|-in_row_vec} FFF      \
+        {-in_bvals BBB}                    \
+        {-unit_mag_out}                    \
+        {-qc_prefix  QCPREF}               \
+        {-no_cmd_out}                      \
+        {-no_qc_view}                      \
+        {-do_movie AGIF|MPEG}
 
   where:
-  -inset_ap FILE_AP :name of a 4D file of DWIs, designated as having 
-                     'AP' phase encoding.
-  -inset_pa FILE_PA :name of a 4D file of DWIs, designated as having 
-                     'PA' phase encoding.
+  -indwi  DDD       :name of a 4D file of DWIs (required).
 
-         ----> these inputs are processed in parallel, if both are
-               provided. FILE_?? can be either a NIFTI file or
-               BRIK/HEAD. It will be assumed that for each FILE_??,
-               that there is a *.bval and *.bvec in the same directory
-               with the same prefix (i.e., prefix without extension
-               like '+orig' or anything), such as would be output by
-               dcm2nii (see top section of help for more precise
-               description of these text file formats).
+  -in_col_matA|-in_col_matT|-in_col_vec|-in_row_vec FFF
+                    :one of these options must be used to input 
+                     a bvec/bmat file from the gradients. Required.
+                     Same type of output file is returned.
 
-  -select SSS       :a string of indices and index ranges for
+  -in_bvals BBB     :if the bvec/bmat is a file of unit-magnitude values,
+                     then the bvalues can be input, as well (optional).
+
+  -select 'SSS'     :a string of indices and index ranges for
                      selecting which volumes/grads/bvals to *keep*.
-                     This is done in typical AFNI format, and index
-                     counting starts at 0 and the 'last' brick could
-                     be specified as '\$'.  An example for skipping the
-                     index-4 and index-6 volumes in a data set:
-                     "[0..3,5,7..\$]"
-                     This string is applied to the volume, bval and
-                     bvec files of all insets input.  The user should put 
-                     quotes around the square brackets.
+                     This is done in a generic form of the typical
+                     AFNI format, and index counting starts at 0 and
+                     the 'last' brick could be specified as '\$'.  An
+                     example for skipping the index-4 and index-6
+                     volumes in a data set: 
+                        '0..3,5,7..\$' 
+                     This string gets applied to the volume, bval|bvec|bmat
+                     files for an input set. Required.
+                     NB: there are neither square nor curly brackets used
+                     here!
+                     NB2: Always use the single quotes around the
+                     selector expression. 
 
-  -outdir_ap OUT_AP :single output directory name for the 'AP' set(s);
-                     default is 'FILT_AP', placed parallel to DIR_AP.
-  -outdir_pa OUT_PA :single output directory name for the 'PA' set(s);
-                     default is 'FILT_PA', placed parallel to DIR_PA.
-  -prefix_ap PRE_AP :output prefix for the *.nii, *.bvec and *.bval files
-                     in OUT_AP; default is '$opref'.
-  -prefix_pa PRE_PA :output prefix for the *.nii, *.bvec and *.bval files
-                     in OUT_PA; default is '$o_pa'.
+  -prefix    PPP    :output prefix for all the volumes and text files.
+                     Required.
 
-# -----------------------------------------------------------------------
+  -unit_mag_out     :if one wants to prevent an input bvalue file being
+                     applied to unit-magnitude gradients|vecs|matrices,
+                     or if one just wants to ensure that the output grad
+                     information is unit magnitude, use this option.  If
+                     this is used with just a vec/matrix file input, then
+                     a b-value file will also be output (so b-value info
+                     wouldn't be lost at this moment).  Optional.
 
-  OUTPUTS:
+  -qc_prefix QCPREF :can set the prefix of the QC image files separately
+                     (default is '$opref').
+   -no_qc_view      :can turn off generating QC image files (why?)
+   -no_cmd_out      :don't save the command line call of this program
+                     and the location where it was run (otherwise, it is
+                     saved by default in the ODIR/).
 
-    Say that the input DWI set had N volumes/gradients/bvals, and that
-    the filter specified with '-select ...' gets rid of 3 volumes,
-    leaving M = N-3 volumes/grads/bvals.  
-
-    Then, For a given phase encoding set (and both can be processed
-    simultaneously, in parallel-- indeed, that's the *point* of this
-    function), the output directory contains a NIFTI file with M
-    volumes, a row-wise (3xM) bvec file of the gradient orientations,
-    and a row-wise (1xM) bval file of the gradient magnitudes; these
-    files are respectively named: 
-        PREFIX.nii      
-        PREFIX.bvec 
-        PREFIX.bval
-    and they are (also) meant to mimic the trio of files output by
-    dcm2nii (just as the inputs were).
-
-    If you are going to be using TORTOISE afterward, you might be
-    happy enough to have the outputs put into a separate directory on
-    their own, since that is what TORTOISE would expect.  
-
-    If you *do* decide to have the output directory(ies) be the same
-    as the input one(s), then you should probably change the output
-    prefixes so the files aren't overwritten (which they would
-    be!). Woe betide us in such an event.
+    -do_movie AGIF | MPEG:
+                    :one can use this option with either of the given
+                     arguments to output a movie of the newly created
+                     dset.  Only those arguments can be used at
+                     present.
 
 # -----------------------------------------------------------------------
 
-  EXAMPLE:
+  EXAMPLE (again, note the single apostrophes around the selector!):
+
     $this_prog  \
-        -indset_ap  SUB001/UNFILT_AP/AP.nii      \
-        -indset_pa  SUB001/UNFILT_PA/PA.nii      \
-        -select    "[0..5,7,8,10..\$]"
+        -indwi        UNFILT_AP/AP.nii          \
+        -in_col_matA  UNFILT_AP/AP_bmatT.dat    \
+        -select       '0..5,8,20..\$'           \
+        -prefix       FILT_AP/AP 
 
 # -----------------------------------------------------------------------
 
