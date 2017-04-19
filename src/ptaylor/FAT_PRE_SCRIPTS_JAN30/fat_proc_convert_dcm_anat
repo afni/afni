@@ -15,6 +15,10 @@
 set version   = "2.1"; set rev_dat   = "Apr 14, 2017"
 #   + try to anonymize
 #   + qc snapshotting
+set version = "2.8"; set rev_dat = "Apr 19, 2017"
+#   + switch to dcm2niix from dcm2nii
+#     -> motivated by Philips scaling requirements
+#     -> prob better to stick with newer, anyways
 #
 # ----------------------------------------------------------------
 
@@ -29,7 +33,7 @@ set adir      = ""
 set my_viewer = ""
 which afni >& /dev/null
 if ( $status ) then
-    echo "** Cannot find 'afni' (?!)."
+    echo "** ERROR: Cannot find 'afni'."
     goto BAD_EXIT
 else
     set aa   = `which afni`
@@ -38,6 +42,14 @@ endif
 
 # default location of viewer: user could modify!
 set my_viewer = "$adir/@chauffeur_afni"
+
+# ----------------- find dcm2niix ---------------------
+
+which dcm2niix >& /dev/null
+if ( $status ) then
+    echo "** ERROR: Cannot find 'dcm2niix'."
+    goto BAD_EXIT
+endif
 
 # ----------------------- set defaults --------------------------
 
@@ -57,6 +69,8 @@ set DO_CLEAN   = "1"              # def: do delete temp files
 set DO_VIEWER  = "1"              # def: do QC image visualization
 set qc_prefix  = ""               # def: autoname; user can enter
 set postfix    = ""               # stick into name
+
+set npref      = "nnn"
 
 # ------------------- process options, a la rr ----------------------
 
@@ -229,19 +243,19 @@ endif
 # ======================== convert dicoms ===============================
 
 # place output into wdir, using gzipped files
-dcm2nii                  \
-    -4 Y                 \
-    -d Y                 \
-    -n Y                 \
-    -g Y                 \
-    -o "$wdir"           \
-    $idir/*
+dcm2niix  \
+        -z y              \
+        -x n              \
+        -p y              \
+        -f $npref         \
+        -o "$wdir"        \
+        $idir/
 
 # ================ clean up possible extraneous files ===================
 
 cd $wdir
 
-set all_nii = `\ls 2*.nii.gz`
+set all_nii = `\ls ${npref}.nii.gz`
 
 # =========== put into proper orientation, simplify name =================
 
