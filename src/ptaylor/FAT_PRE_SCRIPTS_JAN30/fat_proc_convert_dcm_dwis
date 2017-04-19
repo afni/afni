@@ -1,13 +1,7 @@
-#!/bin/tcsh -ef
-
-# ---> ! should simplify and just do AP or PA separately-- much
-# ---> ! easier/more generalized naming is possible!
-
-# --- !!! add in video thing for easy QC
+#!/bin/tcsh -e
 
 # written by PA Taylor (NIMH, NIH)
 # convert dicoms to nifti, while "niceifying" several properties.
-
 
 # --------------------- revision history -------------------------
 #
@@ -23,31 +17,76 @@
 #   + add snapshotting with @djunct_dwi_imager
 #   + made nicer working dir stuff
 #
-set version = "2.5"
-set rev_dat = "Feb 20, 2017"
+#set version = "2.5"; set rev_dat = "Feb 20, 2017"
 #   + no longer gzip WDIR files (for speed)
 #   + sep wdirs, in case writing AP/PA to same dir
 #   + can clean up wdirs
-
+#
+#set version = "2.6"; set rev_dat = "Apr 13, 2017"
+#   + standardize I/O, wdir
+#
+#set version = "2.7"; set rev_dat = "Apr 16, 2017"
+#   + can input origin, e.g. to match between AP and PA
+#
+set version = "2.8"; set rev_dat = "Apr 19, 2017"
+#   + switch to dcm2niix from dcm2nii
+#     -> motivated by Philips scaling requirements
+#     -> prob better to stick with newer, anyways
+#
 # ----------------------------------------------------------------
 
 set this_prog = "fat_proc_convert_dcm_dwis"
-
+set tpname    = "${this_prog:gas/fat_proc_//}"
 set here     = $PWD
-set idir_ap  = ""
-set idir_pa  = ""
-set odir_ap  = ""
-set odir_pa  = ""
-set o_ap     = "AP"        # default file output prefix
-set o_pa     = "PA"        # default file output prefix
+
+# ----------------- find AFNI and set viewer ---------------------
+
+# find AFNI binaries directory and viewer location
+set adir      = ""
+set my_viewer = ""
+which afni >& /dev/null
+if ( $status ) then
+    echo "** ERROR: Cannot find 'afni'."
+    goto BAD_EXIT
+else
+    set aa   = `which afni`
+    set adir = $aa:h
+endif
+
+# default location of viewer: user could modify!
+set my_viewer    = "$adir/@chauffeur_afni"
+set my_viewer_4d = "$adir/@djunct_dwi_imager"
+
+# ----------------- find dcm2niix ---------------------
+
+which dcm2niix >& /dev/null
+if ( $status ) then
+    echo "** ERROR: Cannot find 'dcm2niix'."
+    goto BAD_EXIT
+endif
+
+# ----------------------- set defaults --------------------------
+
+set idir  = ""
+set odir  = ""
+set opref    = ""          # default file output prefix
 set ori_new  = "RPI"       # default file output orientation
 set doflip   = ""          # default: no flip of grads
 set DO_REORI = 1
-set DO_CLEAN = 0
+set DO_CLEAN = "1"
+set DO_VIEWER = "1"
 
+set wdir     = "__WORKING_$tpname"
+set dpref    = "tmpdir"    # tmp dirs for dcm2niix to dump into
+set fpref    = "fff"       # temp names when working in temp subdirs
+set fpref0   = "aaa"       # for anonymizing
+set fpref1   = "bbb"       # for reorienting
+set tpref    = "ttt"       # temp names when working in wdir directly
+set npref    = "nnn"
 
-set wdirap     = "__WORK_INTERMED_AP"
-set wdirpa     = "__WORK_INTERMED_PA"
+# Use this to give AP and PA same origin, if desired
+set DO_HAVE_ORIG = "0"  
+set iorig = ( 0 0 0 )
 
 # ------------------- process options, a la rr ----------------------
 
@@ -64,36 +103,22 @@ while ( $ac <= $#argv )
     endif
 
     # ------------- input(s) ----------------
-    if ( "$argv[$ac]" == "-indir_ap" ) then
+    if ( "$argv[$ac]" == "-indir" ) then
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
         @ ac += 1
-        set idir_ap = "$argv[$ac]"
+        set idir = "$argv[$ac]"
 
-    else if ( "$argv[$ac]" == "-indir_pa" ) then
-        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
-        @ ac += 1
-        set idir_pa = "$argv[$ac]"
-        
     # ------------- output(s) ----------------
-    else if ( "$argv[$ac]" == "-outdir_ap" ) then
-        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
-        @ ac += 1
-        set odir_ap = "$argv[$ac]"
         
-    else if ( "$argv[$ac]" == "-outdir_pa" ) then
+    else if ( "$argv[$ac]" == "-prefix" ) then
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
         @ ac += 1
-        set odir_pa = "$argv[$ac]"
-        
-    else if ( "$argv[$ac]" == "-prefix_ap" ) then
-        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
-        @ ac += 1
-        set o_ap = "$argv[$ac]"
+        set opref = "$argv[$ac]"
 
-    else if ( "$argv[$ac]" == "-prefix_pa" ) then
+    else if ( "$argv[$ac]" == "-workdir" ) then
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
         @ ac += 1
-        set o_pa = "$argv[$ac]"
+        set wdir = "$argv[$ac]"
 
     # -------------- other opts ----------------
     else if ( "$argv[$ac]" == "-orient" ) then
@@ -117,8 +142,34 @@ while ( $ac <= $#argv )
     else if ( "$argv[$ac]" == "-reorig_reorient_off" ) then
         set DO_REORI = 0          # leave 'em alone!
 
-    else if ( "$argv[$ac]" == "-do_clean" ) then
-        set DO_CLEAN = 1
+    else if ( "$argv[$ac]" == "-no_clean" ) then
+        set DO_CLEAN = "0"
+
+    # will require 3 args
+    else if ( "$argv[$ac]" == "-origin_xyz" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set iorig[1] = "$argv[$ac]"
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set iorig[2] = "$argv[$ac]"
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set iorig[3] = "$argv[$ac]"
+        set DO_HAVE_ORIG = "1"
+
+    # -------------- qc stuff ----------------
+
+    else if ( "$argv[$ac]" == "-qc_prefix" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set qc_prefix = "$argv[$ac]"
+
+    else if ( "$argv[$ac]" == "-no_qc_view" ) then
+        set DO_VIEWER = "0"
+
+    else if ( "$argv[$ac]" == "-no_cmd_out" ) then
+        set output_cmd = 0
 
     else
         echo "** unexpected option #$ac = '$argv[$ac]'"
@@ -128,7 +179,6 @@ while ( $ac <= $#argv )
     @ ac += 1
 end
 
-
 # =======================================================================
 # ============================ ** SETUP ** ==============================
 # =======================================================================
@@ -137,31 +187,23 @@ echo "++ Start script version: $version"
 
 # ============================= dicom dir ===============================
 
-if ( ("$idir_ap" == "") && ("$idir_pa" == "") ) then
-    echo "** ERROR: need to input at least one DICOM directory,"
-    echo "\t using either after '-indir_ap' or '-indir_pa'."
+if ( "$idir" == "" ) then
+    echo "** ERROR: need to input a DICOM directory with '-indir ...'"
     goto BAD_EXIT
 endif
 
-if ( "$idir_ap" != "" ) then
-    set idir_ap = `ls -d $idir_ap`
-    set Nap = $#idir_ap
-    echo "++ Found $Nap directories from '-indir_ap $idir_ap':"
-    echo "\t $idir_ap"
-endif
-
-if ( "$idir_pa" != "" ) then
-    set idir_pa = `ls -d $idir_pa`
-    set Npa = $#idir_pa
-    echo "++ Found $Npa directories from '-indir_pa $idir_pa':"
-    echo "\t $idir_pa"
+if ( "$idir" != "" ) then
+    set idir = `\ls -d $idir`
+    set Nap = $#idir
+    echo "++ Found $Nap directories from '-indir $idir':"
+    echo "\t $idir"
 endif
 
 # ============================= input dir ===============================
 
 # check for old relics
 
-foreach dd ( $idir_ap $idir_pa ) 
+foreach dd ( $idir ) 
 
     cd $here
     cd $dd
@@ -178,56 +220,48 @@ end
 cd $here
 echo "++ --> OK, good, no competing NIFTIs in any DICOM directory."
 
-# ============================= output dirs =============================
+# ========================= output/working dir ==========================
 
-# check output directory, use default if nec
+# check output directory, use input one if nothing given
+
+if ( "$opref" == "" ) then
+    echo "** ERROR: need '-prefix ...' option provided!"
+    echo "   See the helpfile for more information."
+    goto BAD_EXIT
+else
+    set odir = `dirname $opref`
+    set opref = `basename $opref`
+    echo ""
+    echo "++ Based on prefix, the output directory will be:"
+    echo "     $odir"
+    echo "++ Based on prefix, the output prefix will be:"
+    echo "     $opref"
+    echo ""
+endif
 
 # default output dir, if nothing input.
-if ( "$idir_ap" != "" ) then
-
-    if ("$odir_ap" == "") then
-        set odir_ap = "$idir_ap[1]/../UNFILT_AP"
-        echo "\n++ No output 'AP' directory specified by the user."
-        echo "\t Using default location/naming output directory:"
-        echo "\t   $odir_ap"
-    endif
-
-    if ( -e "$odir_ap" ) then
-        echo "\n+* WARNING: already some output directory $odir_ap !"
-    else
-        mkdir $odir_ap
-    endif
-
-    # and working dir
-    if ( -e "$odir_ap/$wdirap" ) then
-        echo "\n+* WARNING: already some output directory $odir_ap/$wdirap !"
-    else
-        mkdir $odir_ap/$wdirap
-    endif
+if ( ! -e "$odir" ) then
+    echo "+* Output directory didn't exist.  Trying to make it now."
+    mkdir "$odir"
 endif
 
-if ( "$idir_pa" != "" ) then
+set wdir = "$odir/$wdir"
 
-    if ("$odir_pa" == "") then
-        set odir_pa = "$idir_pa[1]/../UNFILT_PA"
-        echo "\n++ No output 'PA' directory specified by the user."
-        echo "\t Using default location/naming output directory:"
-        echo "\t   $odir_pa"
-    endif
+# make the working directory
+if ( ! -e $wdir ) then
+    echo "++ Making working directory: $wdir"
+    mkdir $wdir
+else
+    echo "+* WARNING: Somehow found a premade working directory (?):"
+    echo "     $wdir"
 
-    if ( -e "$odir_pa" ) then
-        echo "\n+* WARNING: already some output directory $odir_ap !"
-    else
-        mkdir $odir_pa
-    endif
-
-    # and working dir
-    if ( -e "$odir_pa/$wdirpa" ) then
-        echo "\n+* WARNING: already some output directory $odir_pa/$wdirps !"
-    else
-        mkdir $odir_pa/$wdirpa
-    endif
+    # don't clean preexisting directories-- could be user mistake.
+    echo "   NB: will *not* clean it afterwards."
+    set DO_CLEAN = "0"
 endif
+
+set ocmd   = "${opref}_cmd.txt"      # name for output command
+set ofile  = "${opref}.nii"          # name for output command
 
 # =======================================================================
 # =========================== ** PROCESS ** =============================
@@ -235,310 +269,216 @@ endif
 
 # ======================== convert dicoms ===============================
 
-if ( "$idir_ap" != "") then
-    foreach dd ( $idir_ap )
-        echo "\n++ OK, now converting dicoms in: $dd"
-        dcm2nii -g n -o "$odir_ap/$wdirap" $dd/*
-    end
-endif
+# list of temp dirs, in case there are several idirs
+set all_tdir = ()
 
-if ( "$idir_pa" != "") then
-    foreach dd ( $idir_pa )
-        echo "\n++ OK, now converting dicoms in: $dd"
-        dcm2nii -g n -o "$odir_pa/$wdirpa" $dd/*
+if ( "$idir" != "") then
+    foreach ii ( `seq 1 1 $#idir` )
+
+        set dd = $idir[$ii]
+
+        # tmp sub-wdirs for dumping dcm2niix output
+        set iii   = `printf "%03d" $ii`
+        set tdir  = ${dpref}_$iii
+        if ( ! -e "$wdir/$tdir" ) then
+            \mkdir "$wdir/$tdir"
+        else
+            echo "\n** ERROR: already existing subdir $tdir in $wdir!"
+            echo "     Was there some previous badness in running this"
+            echo "     function?  Maybe get move/get rid of the working"
+            echo "     directory:  $wdir ?\n"
+            goto BAD_EXIT
+        endif 
+
+        echo "\n++ OK, now converting dicoms from: $dd"
+        # place output into wdir, using gzipped files
+        dcm2niix  \
+                -z y              \
+                -x n              \
+                -p y              \
+                -f $npref         \
+                -o "$wdir/$tdir"  \
+                $dd/
+
+        # add it to the list of tdirs in wdir
+        set all_tdir = ( $all_tdir $tdir )
     end
 endif
 
 # ============ do the major rearranging/sorting/combining ================
 
-# ----> future note: simplify scripting with loop instead of lame
-# ----> copying...
+cd $here
+cd $wdir
 
-# Use this to give AP and PA same origin....
-set have_orig = 0  
-set ORIG = ( 0 0 0 )
+set Nsets = $#all_tdir
+echo "++ Found $Nsets sets of DTI data in ${wdir}..."
+echo "   Organizizing now."
 
-# first for AP, if they are input
-if ( "$odir_ap" != "") then
+# ------------------ go through all tdirs --------------------
 
-    cd $here
-    cd $odir_ap/$wdirap
+# combine bval+bvec into single col vec file; rename simply
 
-    set all_bvec = `ls *bvec`
-    @ Nbvec = $#all_bvec
-    echo "++ Found $Nbvec sets of DTI data in ${odir_ap}..."
-    echo "   Organizizing now."
+# overkill, but make sure everything stays sorted in proper order
+set list_cvecs = ( )
+set list_vols  = ( )
 
-    # overkill, but make sure everything stays sorted in proper order
-    set list_cvecs = ( )
-    set list_vols  = ( )
+foreach jj ( `seq 1 1 $Nsets` )
 
-    foreach i ( `seq 1 1 $Nbvec` )
-        @ ii = $i - 1
-        set ff = "$all_bvec[$i]"
-        set gg = ${ff:gas/.bvec//}
+    set dd = "$all_tdir[$jj]"   # temp dir
+    set ff = `\ls ${dd}/${npref}.bvec`  # bvec for getting file prefix
+    set gg = ${ff:gas/.bvec//}  # prefix for all!
 
-        # combine bvals and bvec, NEWER func call
-        1dDW_Grad_o_Mat++                          \
-            -in_row_vec   ${gg}.bvec               \
-            -in_bvals     ${gg}.bval               \
-            $doflip                                \
-            -out_col_vec _TEMP_${ii}.cvec
+    # ---------- bval*bvec stuff -------------
 
-        # in either case, floatize here
-        if ( $DO_REORI ) then
-            3dresample                             \
-                -overwrite                         \
-                -orient $ori_new                   \
-                -prefix _TEMP_${ii}.nii            \
-                -inset  ${gg}.nii
+    # combine bvals and bvec, NEWER func call
+    set cout = ${dd}/${fpref}.cvec
+    1dDW_Grad_o_Mat++                          \
+        -in_row_vec   ${gg}.bvec               \
+        -in_bvals     ${gg}.bval               \
+        $doflip                                \
+        -out_col_vec  $cout
 
-            3dcalc                                 \
-                -a _TEMP_${ii}.nii                 \
-                -expr 'a'                          \
-                -prefix _TEMP_${ii}.nii            \
-                -datum float                       \
-                -overwrite
-        else
-            # chicken...
-            3dcalc                                 \
-                -a ${gg}.nii                       \
-                -expr 'a'                          \
-                -prefix _TEMP_${ii}.nii            \
-                -datum float                       \
-                -overwrite
-        endif
+    # --------- try to anonymize NII -----------
+    echo "++ Using nifti_tool to remove ID info, if possible."
+    
+    set fin  = ${gg}.nii
+    set fout = ${dd}/${fpref0}.nii
+    nifti_tool                          \
+        -strip_extras                   \
+        -prefix  $fout                  \
+        -infiles $fin
 
-        set list_cvecs = ( $list_cvecs _TEMP_${ii}.cvec )
-        set list_vols  = ( $list_vols  _TEMP_${ii}.nii )
-    end
-
-    # Combine everything
-    set all_cvecs = "_TEMP_ALL.cvec"
-    set fin_bvecs = "${o_ap}.bvec"
-    set fin_bvals = "${o_ap}.bval"
-    set fin_vols  = "${o_ap}.nii"
-
-    # clear away a file, if *somehow* there? (shouldn't be...)
-    if ( -e $all_cvecs ) then
-        \rm $all_cvecs
-    endif
-    foreach ff ( $list_cvecs )
-        cat $ff >> $all_cvecs
-    end
-    3dTcat                             \
-        -overwrite                     \
-        -prefix ../$fin_vols           \
-        $list_vols
+    # ---------- floatize and maybe reorient -------------
 
     if ( $DO_REORI ) then
-        # set the (0,0,0) to the CM of the brain, or apply the previously
-        # calc'ed origin. (Aug., 2016)
-        if ( $have_orig ) then
-            echo "++ Apply known appropriate origin."
-            3drefit                        \
-                -xorigin_raw $ORIG[1]      \
-                -yorigin_raw $ORIG[2]      \
-                -zorigin_raw $ORIG[3]      \
-                ../$fin_vols
-        else
-            echo "++ Set center of brain to center of mass..."
-            3dCM -automask -set 0 0 0 ../$fin_vols
-            echo "++ ... and remember it."
-            set ORIG = `3dinfo -o3 ../$fin_vols`
-            set have_orig = 1
-        endif
+        set fin  = $fout
+        set fout = ${dd}/${fpref1}.nii
+        3dresample                             \
+            -overwrite                         \
+            -orient $ori_new                   \
+            -prefix $fout                      \
+            -inset  $fin
     endif
 
-    # Feb,2017: take images!
-    if ( 1 ) then
+    # in either case, floatize here: just overwrite file
+    set fin  = $fout
+    set fout = ${dd}/${fpref}.nii
+    3dcalc                                 \
+        -a $fin                            \
+        -expr 'a'                          \
+        -prefix $fout                      \
+        -datum float                       \
+        -overwrite
 
-        set img_pref = `basename $fin_vols .gz`
-        set img_pref = `basename $img_pref .nii`
+    # -------- make list of all ready-to-go ------------
 
-        @djunct_dwi_imager                    \
-            -inset  ../$fin_vols              \
-            -outdir ".."                      \
-            -prefix "$img_pref"
-    endif
+    set list_cvecs = ( $list_cvecs  $cout )
+    set list_vols  = ( $list_vols   $fout )
+end
 
-    echo "++ And putting the bvec/bval files in their place"
-    # make bval/bvec/*.nii files
+# ================== combine everything =====================
+
+# -> default:
+set all_cvecs = "${tpref}.cvec"
+set fin_bvecs = "${opref}.bvec"
+set fin_bvals = "${opref}.bval"
+set fin_vols  = "${opref}.nii"
+# -> optional:
+set fin_bmatA = "${opref}_matA.dat"
+set fin_bmatT = "${opref}_matT.dat"
+set fin_cvec  = "${opref}_cvec.dat"
+
+# ----------- bvecs, bvals ------------------
+
+# clear away a col vec file, if *somehow* there? (shouldn't be...)
+printf "%s" "" > $all_cvecs
+foreach ff ( $list_cvecs )
+    cat $ff >> $all_cvecs
+end
+
+echo "++ And putting the bvec/bval files in their place"
+# make bval/bvec/*.nii files
+1dDW_Grad_o_Mat++                          \
+    -echo_edu                              \
+    -in_col_vec       $all_cvecs           \
+    -out_row_bval_sep ../$fin_bvals        \
+    -unit_mag_out                          \
+    -out_row_vec      ../$fin_bvecs
+
+if ( 1 ) then
+
+    echo "++ Bonus:  AFNI-style bmatrix: $fin_bmatA"
     1dDW_Grad_o_Mat++                          \
         -echo_edu                              \
         -in_col_vec       $all_cvecs           \
-        -out_row_bval_sep ../$fin_bvals        \
-        -unit_mag_out                          \
-        -out_row_vec      ../$fin_bvecs
+        -out_col_matA     ../$fin_bmatA
 
-    if ( $DO_CLEAN == 1 ) then
-        echo "++ Cleaning working directory."
-        cd ..
-        \rm -rf $wdirap
-    endif
-
-    echo "++ Done with AP."
-endif 
-
-
-# then for PA, if they are input
-if ( "$odir_pa" != "") then
-
-    cd $here
-    cd $odir_pa/$wdirpa
-
-    set all_bvec = `ls *bvec`
-    @ Nbvec = $#all_bvec
-    echo "++ Found $Nbvec sets of DTI data in ${odir_pa}..."
-    echo "   Organizizing now."
-
-    # overkill, but make sure everything stays sorted in proper order
-    set list_cvecs = ( )
-    set list_vols  = ( )
-
-    foreach i ( `seq 1 1 $Nbvec` )
-        @ ii = $i - 1
-        set ff = "$all_bvec[$i]"
-        set gg = ${ff:gas/.bvec//}
-
-        # combine bvals and bvec, NEWER func call
-        1dDW_Grad_o_Mat++                          \
-            -in_row_vec   ${gg}.bvec               \
-            -in_bvals     ${gg}.bval               \
-            $doflip                                \
-            -out_col_vec _TEMP_${ii}.cvec
-
-        # in either case, floatize here
-        if ( $DO_REORI ) then
-            3dresample                             \
-                -overwrite                         \
-                -orient $ori_new                   \
-                -prefix _TEMP_${ii}.nii            \
-                -inset  ${gg}.nii  
-
-            3dcalc                                 \
-                -a _TEMP_${ii}.nii                 \
-                -expr 'a'                          \
-                -prefix _TEMP_${ii}.nii            \
-                -datum float                       \
-                -overwrite
-        else
-            # chicken...
-            3dcalc                                 \
-                -a ${gg}.nii                       \
-                -expr 'a'                          \
-                -prefix _TEMP_${ii}.nii            \
-                -datum float                       \
-                -overwrite
-        endif
-
-        set list_cvecs = ( $list_cvecs _TEMP_${ii}.cvec )
-        set list_vols  = ( $list_vols  _TEMP_${ii}.nii )
-    end
-
-    # Combine everything
-    set all_cvecs = "_TEMP_ALL.cvec"
-    set fin_bvecs = "${o_pa}.bvec"
-    set fin_bvals = "${o_pa}.bval"
-    set fin_vols  = "${o_pa}.nii"
-
-    # clear away a file, if *somehow* there? (shouldn't be...)
-    if ( -e $all_cvecs ) then
-        \rm $all_cvecs
-    endif
-    foreach ff ( $list_cvecs )
-        cat $ff >> $all_cvecs
-    end
-    3dTcat                             \
-        -overwrite                     \
-        -prefix ../$fin_vols           \
-        $list_vols
-
-    if ( $DO_REORI ) then
-        # set the (0,0,0) to the CM of the brain, or apply the previously
-        # calc'ed origin. (Aug., 2016)
-        if ( $have_orig ) then
-            echo "++ Apply known appropriate origin."
-            3drefit                        \
-                -xorigin_raw $ORIG[1]      \
-                -yorigin_raw $ORIG[2]      \
-                -zorigin_raw $ORIG[3]      \
-                ../$fin_vols
-        else
-            echo "++ Set center of brain to center of mass..."
-            3dCM -automask -set 0 0 0 ../$fin_vols
-            echo "++ ... and remember it."
-            set ORIG = `3dinfo -o3 ../$fin_vols`
-            set have_orig = 1
-        endif
-    endif
-
-    # Feb,2017: take images!
-    if ( 1 ) then
-
-        set img_pref = `basename $fin_vols .gz`
-        set img_pref = `basename $img_pref .nii`
-
-        @djunct_dwi_imager                    \
-            -inset  ../$fin_vols              \
-            -outdir ".."                      \
-            -prefix $img_pref
-    endif
-
-    echo "++ And putting the bvec/bval files in their place"
-    # make bval/bvec/*.nii files
+    echo "++ Bonus:  TORT-style bmatrix: $fin_bmatT"
     1dDW_Grad_o_Mat++                          \
         -echo_edu                              \
         -in_col_vec       $all_cvecs           \
-        -out_row_bval_sep ../$fin_bvals        \
-        -unit_mag_out                          \
-        -out_row_vec      ../$fin_bvecs
+        -out_col_matA     ../$fin_bmatT
 
-    if ( $DO_CLEAN == 1 ) then
-        echo "++ Cleaning working directory."
-        cd ..
-        \rm -rf $wdirpa
-    endif
+    echo "++ Bonus:  gradient col vec: $fin_cvec"
+    1dDW_Grad_o_Mat++                          \
+        -echo_edu                              \
+        -in_col_vec       $all_cvecs           \
+        -out_col_vec     ../$fin_cvec
 
-    echo "++ Done with PA."
-endif 
+endif
 
+# ----------- volumes ------------------
 
-# ================ display outputs  ====================
+# glue tog volumes
+3dTcat                             \
+    -overwrite                     \
+    -prefix ../$fin_vols           \
+    $list_vols
 
-echo "\n++ All done!\n"
-
-if ( "$odir_ap" != "") then
-
-    cd $here
-    cd $odir_ap
-
-    set all_out = `ls *{bval,bvec,nii}`
-    echo "++ In ${PWD}:"
-    if ( $#all_out >= 1 ) then
-        foreach ff ( $all_out )
-            echo "\t $ff"
-        end
+if ( $DO_REORI ) then
+    # set the (0,0,0) to the CM of the brain, or apply the previously
+    # calc'ed origin. (Aug., 2016)
+    if ( "$DO_HAVE_ORIG" == "1" ) then
+        echo "++ Applying input origin: $iorig"
+        3drefit                        \
+            -xorigin_raw $iorig[1]      \
+            -yorigin_raw $iorig[2]      \
+            -zorigin_raw $iorig[3]      \
+            ../$fin_vols
     else
-        echo "** ERROR: No files, even though some should be here?"
+        echo "++ Set center of brain to center of mass..."
+        3dCM -automask -set 0 0 0 ../$fin_vols
+        echo "++ ... and remember it."
+        # -> think next two lines are unnec
+        #set iorig = `3dinfo -o3 ../$fin_vols`
+        #set DO_HAVE_ORIG = 1
     endif
 endif
 
-if ( "$odir_pa" != "") then
+# Feb,2017: take images!
+if ( "$DO_VIEWER" == "1" ) then
 
-    cd $here
-    cd $odir_pa
-
-    set all_out = `ls *{bval,bvec,nii}`
-    echo "++ In ${PWD}:"
-    if ( $#all_out >= 1 ) then
-        foreach ff ( $all_out )
-            echo "\t $ff"
-        end
-    else
-        echo "** ERROR: No files, even though some should be here?"
-    endif
+    $my_viewer_4d \
+        -inset  ../$fin_vols              \
+        -outdir ".."                      \
+        -prefix "${opref}"
 endif
+
+if ( "$DO_CLEAN" == "1" ) then
+    echo "\n++ Cleaning working directory!\n"
+    cd $here
+    \rm -rf $wdir
+else
+    echo "\n++ NOT removing working directory '$wdir'.\n"
+endif
+
+echo "++ Done DWI conversion."
+echo ""
+echo "++ Please check results:"
+echo "++ DWI volume dset            : $odir/$fin_vols"
+echo "++ Grad vecs (unit-mag; rows) : $odir/$fin_bvecs"
+echo "++ b-values (rows)            : $odir/$fin_bvals"
+echo ""
 
 goto GOOD_EXIT
 
@@ -550,11 +490,15 @@ cat << EOF
 -------------------------------------------------------------------------
 
     The purpose of this function is to help convert one or more sets
-    of DWIs in DICOM format into 'nicer' volume+grad format.  This 
-    function can process AP/PA (AKA 'blip up'/'blip down') data sets in 
-    parallel.  Also, if multiple directories of DICOMS exist for a given
-    AP or PA set, then those can be combined into a single volume+grad 
-    file.  Data sets are also converted to have a single orientation.
+    of DWIs in DICOM format into 'nicer' volume+grad format. If
+    multiple directories of DICOMS exist for a given AP or PA set,
+    then those can be combined into a single volume+grad file with a
+    single call of this function. Data sets are also converted to have
+    a single orientation. For data acquired with dual phase encoding
+    (such as AP/PA, or what is often known as 'blip up'/'blip down'),
+    separate calls of this function need to be made for each encode
+    set; however, one can pass origin information to have the same
+    origin across all volumes during recentering.
 
     This program can be used to: convert dicoms to NIFTI (with bvals
     and bvecs); reorient volumetric data; and glue together multiple
@@ -562,55 +506,61 @@ cat << EOF
     appropriate to combine!).  More functionality could be demanded by
     demanding users.
 
-    REQUIRES: AFNI, dcm2nii.
+    REQUIRES: AFNI, dcm2niix.
 
     Ver. $version (PA Taylor, ${rev_dat})
 
 -------------------------------------------------------------------------
 
-  RUNNING: at least one of the two '-indir_* ...' directories needs to
-           be given; both can be, and the processing happens in
-           parallel, producing two output directories. The 'AP' vs
-           'PA' designation is not very important-- it is really a
-           naming convention to differentiate the separate phase
-           encodings.
+  RUNNING: 
 
-  \$ $this_prog  \
-      -indir_ap   DIR_AP                       \
-      -indir_pa   DIR_PA                       \
-      {-outdir_ap OUT_AP}                      \
-      {-outdir_pa OUT_PA}                      \
-      {-prefix_ap PRE_AP}                      \
-      {-prefix_pa PRE_PA}                      \
+    $this_prog  \
+      -indir   DIR                             \
+      -prefix PPP                              \
+      {-workdir   WWW}                         \
       {-orient    ORIENT}                      \
+      {-origin_xyz X0 Y0 Z0}                   \
       {-flip_x | -flip_y | -flip_z | -no_flip} \
-      {-do_clean}
+      {-reorig_reorient_off}                   \
+      {-no_clean}                              \
+      {-qc_prefix    QCPREF}                   \
+      {-no_cmd_out}                            \
+      {-no_qc_view} 
+
 
   where:
-  -indir_ap  DIR_AP :directory name(s) of (only) DICOM files of the DWI
-                      data,designated as having 'AP' phase encoding.
-  -indir_pa  DIR_PA :directory name(s) of (only) DICOM files of the DWI
-                      data, designated as having 'PA' phase encoding.
-         ----> these inputs are processed in parallel; DIR_AP can actually
-               contain a wildcard expression for several directories, if,
-               for example, multiple DWI sets should be glued together into
-               one set (and the same is analogously true for DIR_PA). 
-               NOTE: if specifying more than one directory, put double
-               quotes around your entry, like: "file*".
+  -indir  DIR       :directory name(s) of (only) DICOM files of the
+                     DWI data,designated as having 'AP' phase
+                     encoding.  DIR can actually contain a wildcard
+                     expression for several directories, if, for
+                     example, multiple DWI sets should be glued
+                     together into one set.  NOTE: if specifying more
+                     than one directory, put double quotes around your
+                     entry, like: "file*".
 
+    -prefix   PPP   :set prefix (and path) for output data; will be prefix
+                     for the *.nii, *.bvec and *.bval files. Required.
 
-  -outdir_ap OUT_AP :single output directory name for the 'AP' set(s);
-                     default is 'UNFILT_AP', placed parallel to DIR_AP.
-  -outdir_pa OUT_PA :single output directory name for the 'PA' set(s);
-                     default is 'UNFILT_PA', placed parallel to DIR_PA.
-  -prefix_ap PRE_AP :output prefix for the *.nii, *.bvec and *.bval files
-                     in OUT_AP (default is '$o_ap').
-  -prefix_pa PRE_PA :output prefix for the *.nii, *.bvec and *.bval files
-                     in OUT_PA (default is currently '$o_pa').
-
-  -orient    ORIENT :optional chance to reset orientation of the volume
+    -orient  ORIENT :optional chance to reset orientation of the volume
                      files (default is currently '$ori_new').
-  -reorig_reorient_off: switch to turn of the nicety of putting (0, 0, 0)
+
+    -origin_xyz X0 Y0 Z0
+                    :by default, dset will be given an origin value
+                     such that the center of mass of the dset is located
+                     at (x, y, z) = (0, 0, 0), for niceness's sake.  
+                     However, an explicit origin can also be given with 
+                     this option (NB: this depends on the orientation of
+                     the data, which can various be: explicitly chosen or 
+                     set to a default value, or not changed at all).  
+                     Three numbers are required to be input (i.e., the 
+                     xyz origin values), and this might be useful if, for 
+                     example, you've already processed one set of a dual-
+                     phase encoded acquisition, so that you can get the 
+                     origin from the first and ensure that the second
+                     has the same values afterwards, making it easier
+                     to overlay the data, should you wish.
+  -reorig_reorient_off
+                    :switch to turn of the nicety of putting (0, 0, 0)
                      at brain's center of mass (-> 'reorigin' calc) and to
                      not reorient data (-> 'reorient' calc).  Could lead
                      to weirdness later on down the road, depending on the
@@ -619,9 +569,18 @@ cat << EOF
   -flip_x | -flip_y | -flip_z | -no_flip
                     :use any one of these for the ability to flip grads 
                      while processing with 1dDW_Grad_o_Mat++. (Default is 
-                     to not flip.)
-   -do_clean        :switch to remove directory of intermediate/temporary
-                     files (default is not to).
+                     to not flip; it is not necessary to provide that 
+                     "-no_flip" option for no flipping to occur.)
+
+   -no_clean        :switch to not remove working directory of intermediate,
+                     temporary files (default is to delete it).
+
+  -qc_prefix QCPREF :can set the prefix of the QC image files separately
+                     (default is '$opref').
+   -no_qc_view      :can turn off generating QC image files (why?)
+   -no_cmd_out      :don't save the command line call of this program
+                     and the location where it was run (otherwise, it is
+                     saved by default in the ODIR/).
 
 -------------------------------------------------------------------------
 
@@ -641,16 +600,14 @@ cat << EOF
 
   EXAMPLE:
     $this_prog  \
-        -indir_ap  "SUB001/DTI_AP_0*"           \
-        -indir_pa  "SUB001/DTI_PA_0*"           \
-        -outdir_ap  SUB001/UNFILT_AP            \
-        -outdir_pa  SUB001/UNFILT_PA  
+        -indir  "SUB001/DTI_AP_0*"            \
+        -prefix UNFILT/dwi
 
     or
 
     $this_prog  \
-        -indir_ap  "DTI_DICOMS"                 \
-        -outdir_ap  UNFILT_DTI
+        -indir  "DTI_DICOMS"                 \
+        -prefix  UNFILT_DTI/dwi
 
 -------------------------------------------------------------------------
 
@@ -661,6 +618,10 @@ EOF
 SHOW_VERSION:
     echo "version  $version (${rev_dat})"
     goto GOOD_EXIT
+
+FAIL_MISSING_ARG:
+    echo "** ERROR! Missing an argument after option flag: '$argv[$ac]'"
+    goto BAD_EXIT
 
 BAD_EXIT:
     exit 1

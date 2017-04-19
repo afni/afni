@@ -1393,7 +1393,7 @@ int main( int argc , char *argv[] )
 "      O. A., & Barkhof, F. (2012). Fast Eigenvector Centrality\n"
 "      Mapping of Voxel-Wise Connectivity in Functional Magnetic\n"
 "      Resonance Imaging: Implementation, Validation, and\n"
-"      Interpretation. Brain Connectivity, 2(5), 265–274.\n"
+"      Interpretation. Brain Connectivity, 2(5), 265-274.\n"
 "      doi:10.1089/brain.2012.0087\n\n"
 "\n"
 "Options:\n"
