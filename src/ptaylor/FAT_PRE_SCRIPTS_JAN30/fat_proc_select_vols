@@ -8,8 +8,11 @@
 #set version   = "1.0";    set rev_dat   = "March 29, 2017"
 #   + inception
 #
-set version   = "1.1";    set rev_dat   = "Apr 15, 2017"
+#set version   = "1.1";    set rev_dat   = "Apr 15, 2017"
 #   + standardize I/O
+#
+set version   = "1.2";    set rev_dat   = "Apr 15, 2017"
+#   + run with helpfile correctly for no inputs
 #
 # ---------------------------------------------------------------
 
@@ -354,7 +357,7 @@ cat << EOF
 
  This program is for building a selector string for AFNI subbricks
  and/or 1D text files.  It makes use of J. Rajendra's
- ``@djunct_dwi_selector.sh`` script to make a list of 'bad' volume
+ '@djunct_dwi_selector.sh' script to make a list of 'bad' volume
  indices by clicking on individual volumes in a montage image.  Pretty
  cool.
 
@@ -432,14 +435,12 @@ cat << EOF
     $this_prog    \
         -in_dwi DWI.nii               \
         -in_img DWI_sepscl.sag.png    \
-        -outdir .                     \
         -prefix DWI_trim
 
 
     $this_prog    \
         -in_dwi DWI_ap.nii               \
         -in_img DWI_ap_sepscl.sag.png    \
-        -outdir .                        \
         -prefix DWI_trim_both            \
         -in_bads DWI_appa_bads.txt
 
