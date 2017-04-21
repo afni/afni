@@ -37,10 +37,13 @@
 #   + wdir update; file i/o usage update
 #   + fixed printfs for Mac (thanks S. Luthra and P. Fuhrmeister)
 #
-set version   = "2.92";  set rev_dat   = "Apr 13, 2017"
+#set version   = "2.92";  set rev_dat   = "Apr 13, 2017"
 #   + need to choose either t1wmode or t2wmode explicitly
 #     ---> to avoid confusion because even *I've* forgotten about
 #          adding in the mode.
+#
+set version   = "3.0";  set rev_dat   = "Apr 21, 2017"
+#   + add in precentering opt
 #
 # ----------------------------------------------------------------
 
@@ -77,6 +80,7 @@ set DO_CLEAN  = "1"                  # default: keep working dir
 
 set PRE_LR  = "1"
 set POST_LR = "0"
+set DO_CM   = "0"                   # initial center of mass calc
 
 set costfunc         = "lpa"        # in 3dAllin estimate
 set extra_allin_apps = ""           # could use to upsample?
@@ -95,7 +99,7 @@ set qc_prefix   = ""               # def: autoname; user can enter
 set output_cmd  = 1                # def: output copy of this command
                                    # -> should expand to have all cmds
 set cmd_file    = ""               # def: same name as viewer
-set postfix     = ""               # stick into name
+set postfix     = "_"              # stick into name
   
 set defran  = -100000
 set frange1 = $defran              # for giving FUNC_RANGE value to
@@ -176,6 +180,9 @@ while ( $ac <= $#argv )
     else if ( "$argv[$ac]" == "-no_clean" ) then
         set DO_CLEAN = 0
         
+    else if ( "$argv[$ac]" == "-pre_center_mass" ) then
+        set DO_CM = "1"
+
     # turn it *off* if desired-- on by default
     else if ( "$argv[$ac]" == "-no_pre_lr_symm" ) then
         set PRE_LR = 0
@@ -313,7 +320,7 @@ echo "\n\nThis command:"
 echo "$this_prog $argv\n\n"
 
 if ( $cmd_file == "" ) then
-    set cmd_file = "${opref}_${postfix}_cmd.txt"
+    set cmd_file = "${opref}${postfix}_cmd.txt"
 endif
 
 # copy original command:
@@ -397,6 +404,22 @@ set inp0 = $fout
 # --------------- move to wdir and continue ------------------
 
 cd $wdir
+
+if ( "$DO_CM" == "1" ) then
+    echo "++ Pre-step: make input's center of mass sit at (x,y,z)=(0,0,0)."
+    set fin  = "$fout"
+    3dCM  \
+        -set 0 0 0    \
+        $fin
+else
+    set xyz = `3dCM $fin`
+    set dist_to_ctr = `echo " sqrt( $xyz[1] * $xyz[1] + $xyz[2] * $xyz[2] + $xyz[3] * $xyz[3] ) " | bc`
+    set d000 = `printf "%.5f" $dist_to_ctr`
+    echo "++ Distance between input's center of mass to (0,0,0) is $d000 mm."
+    echo "   -> if this is large, you might want to recenter with:"
+    echo "        3dCM -set 0 0 0 FILE"
+    echo "      or something (you could copy it first)."
+endif
 
 # if t2w, do do this
 if ( "$DoAni" == "1" ) then
@@ -516,11 +539,11 @@ if ( $PRE_LR ) then
         -overwrite
     @ idx += 1
 
-   # grep "3dAllineate" _map_lr6.param.1D > _map_lr12.param.1D
-   # set vals = `sed -n '2p' _map_lr6.param.1D`
-   # printf "$vals[1-7] ... and faking\n" >> _map_lr12.param.1D
-   # set vals = `sed -n '3p' _map_lr6.param.1D`
-   # printf "$vals[1-6] 0 0 0 0 0 0\n" >> _map_lr12.param.1D
+    # grep "3dAllineate" _map_lr6.param.1D > _map_lr12.param.1D
+    # set vals = `sed -n '2p' _map_lr6.param.1D`
+    # printf "$vals[1-7] ... and faking\n" >> _map_lr12.param.1D
+    # set vals = `sed -n '3p' _map_lr6.param.1D`
+    # printf "$vals[1-6] 0 0 0 0 0 0\n" >> _map_lr12.param.1D
 
     cat_matvec -ONELINE _map_lr6.aff12.1D -S > _map_lr_half.aff12.1D
 
@@ -681,7 +704,7 @@ endif
 
 # DONE, just copy endprod out!
 set fin  = $fout
-set fout = ../"${opref}_${postfix}.nii.gz"
+set fout = ../"${opref}${postfix}.nii.gz"
 # copy, preserve history
 3dcalc                        \
     -echo_edu                 \
@@ -697,11 +720,11 @@ if ( $DO_VIEWER ) then
     echo "++ Making QC images."
 
     if( $qc_prefix == "" ) then
-        set vpref1 = ${opref}_${postfix}_qc00_fin
-        set vpref2 = ${opref}_${postfix}_qc01_mat
+        set vpref1 = ${opref}${postfix}_qc00_fin
+        set vpref2 = ${opref}${postfix}_qc01_mat
     else
-        set vpref1 = ${qc_prefix}_${postfix}_qc00_fin
-        set vpref2 = ${qc_prefix}_${postfix}_qc01_mat
+        set vpref1 = ${qc_prefix}${postfix}_qc00_fin
+        set vpref2 = ${qc_prefix}${postfix}_qc01_mat
     endif
 
     #echo "++ Output QC #1: final olay on (essentially) original refset."

@@ -77,7 +77,7 @@ set movie     = ""
 set output_cmd = 1               # def: output copy of this command
 set cmd_file   = ""              # def: same name as viewer
 set qc_prefix  = ""              # def: autoname; user can enter
-set postfix    = ""              # stick into name
+set postfix    = "_"             # stick into name
 
 # ------------------- process options, a la rr ----------------------
 

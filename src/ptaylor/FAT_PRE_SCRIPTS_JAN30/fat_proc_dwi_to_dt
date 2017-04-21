@@ -78,7 +78,7 @@ set qc_fa_max   = 0.9             # def: FA olay max for QC
 set output_cmd  = 1               # def: output copy of this command
                                   # -> should expand to have all cmds
 set cmd_file    = ""              # def: same name as viewer
-set postfix     = ""              # stick into name
+set postfix     = "_"             # stick into name
 
 set DO_UNCERT   = 1
 set Niters      = 300
@@ -525,9 +525,9 @@ if ( "$iref" != "" ) then
         endif
 
         if( $qc_prefix == "" ) then
-            set vpref0 = ${opref}_${postfix}_qc00_ref_u_$ffo
+            set vpref0 = ${opref}${postfix}_qc00_ref_u_$ffo
         else
-            set vpref0 = ${qc_prefix}_${postfix}_qc00_ref_u_$ffo
+            set vpref0 = ${qc_prefix}${postfix}_qc00_ref_u_$ffo
         endif
 
         echo "\n\n"
@@ -649,9 +649,9 @@ if ( $DO_VIEWER ) then
             -input  $b0mskd
 
         if( $qc_prefix == "" ) then
-            set vpref0 = ${opref}_${postfix}_qc01_ref_u_eb0
+            set vpref0 = ${opref}${postfix}_qc01_ref_u_eb0
         else
-            set vpref0 = ${qc_prefix}_${postfix}_qc01_ref_u_eb0
+            set vpref0 = ${qc_prefix}${postfix}_qc01_ref_u_eb0
         endif
 
         echo "\n\n"
@@ -712,11 +712,11 @@ if ( $DO_VIEWER ) then
     echo "++ Making QC images."
 
     if( $qc_prefix == "" ) then
-        set vpref0 = ${opref}_${postfix}_qc02_ref_u_b0
-        set vpref1 = ${opref}_${postfix}_qc03_MD_u_FA_thr${qc_fa_thr}
+        set vpref0 = ${opref}${postfix}_qc02_ref_u_b0
+        set vpref1 = ${opref}${postfix}_qc03_MD_u_FA_thr${qc_fa_thr}
     else
-        set vpref0 = ${qc_prefix}_${postfix}_qc02_ref_u_b0
-        set vpref1 = ${qc_prefix}_${postfix}_qc03_MD_u_FA_thr${qc_fa_thr}
+        set vpref0 = ${qc_prefix}${postfix}_qc02_ref_u_b0
+        set vpref1 = ${qc_prefix}${postfix}_qc03_MD_u_FA_thr${qc_fa_thr}
     endif
 
     if( "$iref" != "" ) then
