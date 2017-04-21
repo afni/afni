@@ -71,7 +71,7 @@ set cmd_file   = ""               # def: same name as viewer
 set DO_CLEAN   = "1"              # def: do delete temp files
 set DO_VIEWER  = "1"              # def: do QC image visualization
 set qc_prefix  = ""               # def: autoname; user can enter
-set postfix    = ""               # stick into name
+set postfix    = "_"              # stick into name
 
 set npref      = "nnn"
 
@@ -323,9 +323,9 @@ endif
 if ( "$DO_VIEWER" == "1" ) then
 
     if( $qc_prefix == "" ) then
-        set vpref0 = ${opref}_${postfix}_qc00_anat
+        set vpref0 = ${opref}${postfix}_qc00_anat
     else
-        set vpref0 = ${qc_prefix}_${postfix}_qc00_anat
+        set vpref0 = ${qc_prefix}${postfix}_qc00_anat
     endif
 
     echo "\n\n"

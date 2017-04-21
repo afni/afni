@@ -54,7 +54,7 @@ set cmd_file   = ""              # def: same name as viewer
 
 set qc_prefix = ""
 set DO_VIEWER = 1                 # def: do QC image visualization
-set postfix   = ""                # stick into name
+set postfix   = "_"               # stick into name
 
 # ------------------- process options, a la rr ----------------------
 
@@ -370,11 +370,11 @@ if ( $DO_VIEWER ) then
     echo "++ Making QC images."
 
     if( $qc_prefix == "" ) then
-        set vpref1 = ${opref}_${postfix}_qc1_t1wss
-        set vpref2 = ${opref}_${postfix}_qc2_imit2w
+        set vpref1 = ${opref}${postfix}_qc1_t1wss
+        set vpref2 = ${opref}${postfix}_qc2_imit2w
     else
-        set vpref1 = ${qc_prefix}_${postfix}_qc1_t1wss
-        set vpref2 = ${qc_prefix}_${postfix}_qc2_imit2w
+        set vpref1 = ${qc_prefix}${postfix}_qc1_t1wss
+        set vpref2 = ${qc_prefix}${postfix}_qc2_imit2w
     endif
 
     echo "++ QC image #1 (intermed T1w skullstripped ulay): $vpref1"
@@ -497,7 +497,7 @@ cat << EOF
                            and noise outside the brain.
     PREFIX_t1w_ss.nii     :a skull-stripped version of PREFIX_t1w.nii.gz.
 
-    PREFIX_*${postfix}_qc*
+    PREFIX${postfix}_qc*
                           :QC images of the skull-stripped T1w volume
                            and of the final imitation-T2w volume.
 

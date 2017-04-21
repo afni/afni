@@ -61,7 +61,7 @@ set wdir       = "__WORKING_$tpname"
 set output_cmd = 1               # def: output copy of this command
 set cmd_file   = ""              # def: same name as viewer
 set qc_prefix  = ""              # def: autoname; user can enter
-set postfix    = ""              # stick into name
+set postfix    = "_"             # stick into name
 
 # ------------------- process options, a la rr ----------------------
 
@@ -408,11 +408,11 @@ if ( $DO_VIEWER == 1 ) then
         -input  $odir/$ot1w
 
     if( $qc_prefix == "" ) then
-        set vpref0 = ${opref}_${postfix}_qc00_t2w_u_et1w
-        set vpref1 = ${opref}_${postfix}_qc01_t2w_u_t1w
+        set vpref0 = ${opref}${postfix}_qc00_t2w_u_et1w
+        set vpref1 = ${opref}${postfix}_qc01_t2w_u_t1w
     else
-        set vpref0 = ${qc_prefix}_${postfix}_qc00_t2w_u_et1w
-        set vpref1 = ${qc_prefix}_${postfix}_qc01_t2w_u_t1w
+        set vpref0 = ${qc_prefix}${postfix}_qc00_t2w_u_et1w
+        set vpref1 = ${qc_prefix}${postfix}_qc01_t2w_u_t1w
     endif
 
     echo "\n\n"

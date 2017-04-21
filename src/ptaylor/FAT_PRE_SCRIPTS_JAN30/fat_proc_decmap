@@ -65,11 +65,11 @@ set DO_VIEWER  = 1                # def: do QC image visualization
 
 set sca_fa    = "0.7"            # optional user scaling for a brighter img
 
-set postfix   = ""               
-set postfix0  = "dec"            # stick into name
-set postfix1  = "dec_unwt_thr"   # stick into name: unwtd, but thresholded
-set postfix2  = "dec_sca"        # stick into name: unwtd, but thresholded
-set thr_fa    = "0.2"            # for unweighted but thresholded image
+set postfix   = "_"               
+set postfix0  = "_dec"            # stick into name
+set postfix1  = "_dec_unwt_thr"   # stick into name: unwtd, but thresholded
+set postfix2  = "_dec_sca"        # stick into name: unwtd, but thresholded
+set thr_fa    = "0.2"             # for unweighted but thresholded image
 
 # ------------------- process options, a la rr ----------------------
 
@@ -323,7 +323,7 @@ cd $wdir
 
 # "classical" dec map
 set fin0  = "$fout_wtd"
-set fout0 = "${opref}_${postfix0}.nii"
+set fout0 = "${opref}${postfix0}.nii"
 3dThreetoRGB                             \
     -echo_edu                            \
     -overwrite                           \
@@ -334,7 +334,7 @@ set fout0 = "${opref}_${postfix0}.nii"
 
 # "other" dec map
 set fin1  = "$fout_uwtd"
-set fout1 = "${opref}_${postfix1}.nii"
+set fout1 = "${opref}${postfix1}.nii"
 3dThreetoRGB                             \
     -echo_edu                            \
     -overwrite                           \
@@ -346,7 +346,7 @@ set fout1 = "${opref}_${postfix1}.nii"
 if ( $sca_fa != "" ) then
     # "other" dec map
     set fin2  = "$fout_sca"
-    set fout2 = "${opref}_${postfix2}.nii"
+    set fout2 = "${opref}${postfix2}.nii"
     3dThreetoRGB                             \
         -echo_edu                            \
         -overwrite                           \
@@ -360,13 +360,13 @@ if ( $DO_VIEWER ) then
 
     echo "++ Making QC images."
     if( $qc_prefix == "" ) then
-        set vpref0 = ${opref}_${postfix}_qc0_${postfix0}
-        set vpref1 = ${opref}_${postfix}_qc1_${postfix1}_"$thr_fa"
-        set vpref2 = ${opref}_${postfix}_qc2_${postfix2}_"$sca_fa"
+        set vpref0 = ${opref}${postfix}_qc0${postfix0}
+        set vpref1 = ${opref}${postfix}_qc1${postfix1}_"$thr_fa"
+        set vpref2 = ${opref}${postfix}_qc2${postfix2}_"$sca_fa"
     else
-        set vpref0 = ${qc_prefix}_${postfix}_qc0_${postfix0}
-        set vpref1 = ${qc_prefix}_${postfix}_qc1_${postfix1}_"$thr_fa"
-        set vpref2 = ${qc_prefix}_${postfix}_qc2_${postfix2}_"$sca_fa"
+        set vpref0 = ${qc_prefix}${postfix}_qc0${postfix0}
+        set vpref1 = ${qc_prefix}${postfix}_qc1${postfix1}_"$thr_fa"
+        set vpref2 = ${qc_prefix}${postfix}_qc2${postfix2}_"$sca_fa"
     endif
 
     echo "++ QC image #0 (weighted+unthresholded dec): $vpref0"
@@ -521,33 +521,33 @@ cat << EOF
 
   OUTPUTS:
 
-    PREFIX_${postfix0}.nii.gz 
+    PREFIX${postfix0}.nii.gz 
         a single file of type 'rgb' that AFNI knows how to 
         display with RGB coloration when viewed as underlay: 
         made by using V1 as RGB and weighting by FA values
 
-    PREFIX_${postfix1}.nii.gz 
+    PREFIX${postfix1}.nii.gz 
         a single file of type 'rgb' that AFNI knows how to 
         display with RGB coloration when viewed as underlay: 
         made by using V1 as RGB, *not* weighting by FA, but using FA
         to threshold where DEC values are calculated (def: FA>0.2).
 
-    PREFIX_${postfix2}*.nii.gz 
-        A similar file to PREFIX_${postfix0}.nii.gz, but additionally
+    PREFIX${postfix2}*.nii.gz 
+        A similar file to PREFIX${postfix0}.nii.gz, but additionally
         scaled by a value (such as 0.7; see "-sca_fa SSS" option
         above); this can 'brighten' the DEC map for clarity.
 
-    PREFIX_${postfix0}_qc0*.png
+    PREFIX${postfix0}_qc0*.png
         a set cor, axi and sag images (each a 5x3 montage) of the 
-        PREFIX_${postfix0}.nii.gz data set.
+        PREFIX${postfix0}.nii.gz data set.
 
-    PREFIX_${postfix1}_qc1*.png
+    PREFIX${postfix1}_qc1*.png
         a set cor, axi and sag images (each a 5x3 montage) of the 
-        PREFIX_${postfix1}.nii.gz data set.
+        PREFIX${postfix1}.nii.gz data set.
 
-    PREFIX_${postfix2}*_qc2*.png
+    PREFIX${postfix2}*_qc2*.png
         a set cor, axi and sag images (each a 5x3 montage) of the 
-        PREFIX_${postfix2}.nii.gz data set.
+        PREFIX${postfix2}.nii.gz data set.
 
     (working directory of temp files: these can be deleted, as desired.)
 
