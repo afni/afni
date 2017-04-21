@@ -13,7 +13,7 @@
 
         1. generate a 2-D Gaussian density function, centered at x0, y0,
            and with given sigma
-           -> pRF model g(x,y) = e^-([(x-x0)^2+(y-y0)^2] / 2*sigma^2)
+           -> pRF model g(x,y) = e^-([(x-x0)^2+(y-y0)^2] / (2*sigma^2))
         2. integrate (dot product) over binary stimulus image per time point
            -> pRF response r(t)
         3. convolve with HRF
@@ -1289,7 +1289,8 @@ static int model_help(void)
 "   The model is made from parameters A, x0, y0, sigma, and from stimulus\n"
 "   time series input (visual field masks over time) by:\n"
 "\n"
-"      1. compute a Gaussian curve centered at x0, y0 of with sigma\n"
+"      1. compute a Gaussian curve centered at x0, y0 of with spread sigma\n"
+"             g(x,y) = e^-( [(x-x0)^2+(y-y0)^2] / (2*sigma^2) )\n"
 "      2. multiply this 2-D image by each 2-D stimulus mask image\n"
 "      3. convolve the result with an ideal HRF\n"
 "      4. scale by the amplitude A\n"
