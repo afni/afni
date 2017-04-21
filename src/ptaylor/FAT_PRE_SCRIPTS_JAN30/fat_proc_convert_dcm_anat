@@ -20,6 +20,9 @@ set version = "2.8"; set rev_dat = "Apr 19, 2017"
 #     -> motivated by Philips scaling requirements
 #     -> prob better to stick with newer, anyways
 #
+set version = "2.9"; set rev_dat = "Apr 21, 2017"
+#   + no more automask in 3dCM
+#
 # ----------------------------------------------------------------
 
 set this_prog = "fat_proc_convert_dcm_anat"
@@ -290,7 +293,7 @@ if ( $DO_REORI ) then
         -overwrite
 
     # put (0, 0, 0) at center of mass.  (Aug, 2016)
-    3dCM -automask -set 0 0 0 ../$ofile
+    3dCM -set 0 0 0 ../$ofile
 
 else
     # chicken...

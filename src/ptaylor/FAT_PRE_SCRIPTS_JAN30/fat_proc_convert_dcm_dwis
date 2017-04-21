@@ -35,6 +35,9 @@ set version = "2.8"; set rev_dat = "Apr 19, 2017"
 #   + has cmd out now
 #   + movie stuff there, too, now
 #
+set version = "2.9"; set rev_dat = "Apr 21, 2017"
+#   + no more automasking in 3dCM
+#
 # ----------------------------------------------------------------
 
 set this_prog = "fat_proc_convert_dcm_dwis"
@@ -494,7 +497,7 @@ if ( $DO_REORI ) then
             ../$fin_vols
     else
         echo "++ Set center of brain to center of mass..."
-        3dCM -automask -set 0 0 0 ../$fin_vols
+        3dCM -set 0 0 0 ../$fin_vols
         echo "++ ... and remember it."
         # -> think next two lines are unnec
         #set iorig = `3dinfo -o3 ../$fin_vols`
