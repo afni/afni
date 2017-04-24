@@ -13,8 +13,13 @@
 #set version   = "1.4";    set rev_dat   = "April 10, 2017"
 #   + wdir-ize
 #
-set version   = "1.5";    set rev_dat   = "April 11, 2017"
+#set version   = "1.5";    set rev_dat   = "April 11, 2017"
 #   + fixed printfs
+#
+set version   = "1.6";    set rev_dat   = "April 24, 2017"
+#   + make outside brain less bright
+#   + new wdir naming
+#   + redone final file naming
 #
 # ----------------------------------------------------------------
 
@@ -49,6 +54,7 @@ set tpref     = "ttt"             # for intermed files
 set DO_CLEAN   = "1"               # clean by default
 
 set wdir       = "__WORKING_$tpname"
+set WDIR_EX    = "1"             # put opref on wdir (unless user names)
 set output_cmd = 1               # def: output copy of this command
 set cmd_file   = ""              # def: same name as viewer
 
@@ -87,6 +93,7 @@ while ( $ac <= $#argv )
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
         @ ac += 1
         set wdir = "$argv[$ac]"
+        set WDIR_EX  = "0"
 
     else if ( "$argv[$ac]" == "-prefix" ) then
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
@@ -159,7 +166,12 @@ if ( ! -e "$odir" ) then
     mkdir "$odir"
 endif
 
-set wdir = "$odir/$wdir"
+# and put working directory as subdirectory.
+if ( "$WDIR_EX" == "1" ) then
+    set wdir = $odir/${wdir}_$opref
+else
+    set wdir = $odir/$wdir
+endif
 
 # make the working directory
 if ( ! -e $wdir ) then
@@ -327,39 +339,39 @@ echo "\nThresh value will be: $P_THR \n"
 
 set fin1  = "$fout"
 set fin2  = "$foutm"
-set t1out  = "../${opref}_t1w.nii.gz"
+set t1out  = "${opref}_t1w.nii.gz"
+# [PT: now weight as 10% values outside brain]
 3dcalc                                            \
     -echo_edu                                     \
     -a $fin1                                      \
     -b $fin2                                      \
-    -expr "maxbelow(${P_THR},a)*(1*b+0.2*not(b))" \
-    -prefix $t1out                                \
+    -expr "maxbelow(${P_THR},a)*(1*b+0.1*not(b))" \
+    -prefix ../$t1out                             \
     -float                                        \
     -overwrite
 
-set fin1  = "$t1out"
+set fin1  = "../$t1out"
 set fin2  = "$foutm"
-set fout  = "../${opref}_t1w_ss.nii"
+set fout  = "${opref}_t1w_ss.nii"
 set t1ss  = $fout
 3dcalc                                            \
     -echo_edu                                     \
     -a $fin1                                      \
     -b $fin2                                      \
     -expr "maxbelow(${P_THR},a)*(1*b)"            \
-    -prefix $fout                                 \
+    -prefix ../$fout                              \
     -float                                        \
     -overwrite
 
-# try making an imitation T2
-set fin1  = "$t1out"
-set fin2  = "$foutm"
-set t2out = "../${opref}_t2w.nii.gz"
+# try making an imitation T2;
+# same fin* as above
+set t2out = "${opref}_t2w.nii.gz"
 3dcalc                                            \
     -echo_edu                                     \
     -a $fin1                                      \
     -b $fin2                                      \
     -expr "(1.1*${P_THR}-a)*b+not(b)*a"           \
-    -prefix $t2out                                \
+    -prefix ../$t2out                             \
     -float                                        \
     -overwrite
 
@@ -378,7 +390,7 @@ if ( $DO_VIEWER ) then
     endif
 
     echo "++ QC image #1 (intermed T1w skullstripped ulay): $vpref1"
-    $my_viewer      -ulay $t1ss                     \
+    $my_viewer      -ulay ../$t1ss                  \
                     -prefix $vpref1                 \
                     -outdir ".."                    \
                     -montx 5 -monty 3               \
@@ -387,7 +399,7 @@ if ( $DO_VIEWER ) then
                     -do_clean
 
     echo "++ QC image #2 (final output ulay): $vpref2"
-    $my_viewer      -ulay $t2out                    \
+    $my_viewer      -ulay ../$t2out                 \
                     -prefix $vpref2                 \
                     -outdir ".."                    \
                     -montx 5 -monty 3               \
@@ -407,6 +419,7 @@ else
 endif
 
 echo "\n DONE!\n View T1w file:\n    $odir/${t1out}\n"
+echo "\n DONE!\n View skullstripped T1w file (check for qc):\n    $odir/${t1ss}\n"
 echo "\n DONE!\n View imitation T2w file:\n   $odir/${t2out}\n\n"
 
 # ---------------------------------------------------------------------
@@ -505,13 +518,15 @@ cat << EOF
 
   EXAMPLE:
     
-    tcsh $this_prog  -inset T1.nii
-    
+    $this_prog  \
+        -inset T1.nii                           \
+        -prefix imit2w
   or
 
-    tcsh $this_prog  \
+    $this_prog  \
         -inset T1.nii                           \
         -mask  mask_WB.nii.gz                   \
+        -prefix imit2w
         -no_clean
 
 -------------------------------------------------------------------------
