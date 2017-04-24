@@ -4136,7 +4136,7 @@ LABELS_ARE_DONE:  /* target for goto above */
          /* let only job #0 print progress to the screen */
          if( pp > 0 ) strcat(cmd," &> /dev/null") ;
 
-         if( pp == 0 && !dryrun )
+         if( pp == 0 && dryrun )
            ININFO_message("#0 jobs command:\n   %s",cmd) ;
 
          if( pp == 0 && bmd != NULL ){
@@ -4165,7 +4165,7 @@ LABELS_ARE_DONE:  /* target for goto above */
      } /*----- end of loop over blur cases -----*/
 
      ct2 = COX_clock_time() ;
-     ININFO_message("===== all jobs have finished (%.1f s elapsed) =====",ct2-ct1) ;
+     ININFO_message("===== simulation jobs have finished (%.1f s elapsed) =====",ct2-ct1) ;
      ct1 = ct2 ;
 
      /* read in the *.minmax.1D files from the above [16 Mar 2017],
@@ -4245,7 +4245,11 @@ LABELS_ARE_DONE:  /* target for goto above */
        if( dryrun ){
          ININFO_message("3dClustSim command:\n  %s",cmd) ;
        } else {
+#if 0
          ININFO_message("===== starting 3dClustSim =====\n   %s",cmd) ;
+#else
+         ININFO_message("===== starting 3dClustSim =====") ;
+#endif
          system(cmd) ;
 
          /* load the 3drefit command from 3dClustSim */
@@ -4261,7 +4265,9 @@ LABELS_ARE_DONE:  /* target for goto above */
 
          /* and run 3drefit */
 
+#if 0
          ININFO_message("===== 3drefit-ing 3dClustSim results into %s =====",DSET_HEADNAME(outset)) ;
+#endif
          sprintf(cmd,"%s -DAFNI_DONT_LOGFILE=NO %s",ccc,DSET_HEADNAME(outset)) ;
          system(cmd) ;
        }
@@ -4330,7 +4336,11 @@ LABELS_ARE_DONE:  /* target for goto above */
          if( dryrun ){
            ININFO_message("3dXClustSim command:\n   %s",cmd) ;
          } else {
+#if 0
            ININFO_message("===== starting 3dXClustSim =====\n   %s",cmd) ;
+#else
+           ININFO_message("===== starting 3dXClustSim =====") ;
+#endif
            system(cmd) ;
            if( Xclu_nblur > 0 ){ /* use results to make a union mask */
              for( icase=0 ; icase < ncase ; icase++ ){
@@ -4340,16 +4350,13 @@ LABELS_ARE_DONE:  /* target for goto above */
                                           prefix_clustsim , clab[icase] ) ;
                sprintf( cmd+strlen(cmd) , " -mthresh %s.%s.ETAC.mthresh.%s.nii" ,
                                           prefix_clustsim , nam , clab[icase] ) ;
-INFO_message("command:\n   %s",cmd) ;
                system(cmd) ;
              }
              sprintf( cmd , "3dmask_tool -input %s.ETACtmask.*.nii -union -prefix %s.%s.ETACmask.nii.gz" ,
                             prefix_clustsim , prefix_clustsim , nam ) ;
              system(cmd) ;
-INFO_message("command:\n   %s",cmd) ;
              sprintf( cmd , "\\rm %s.ETACtmask.*.nii" , prefix_clustsim ) ;
              system(cmd) ;
-INFO_message("command:\n   %s",cmd) ;
            }
          }
        }  /* loop over 3dXClustSim (-Xclu_opt) cases to run */
@@ -4367,7 +4374,9 @@ INFO_message("command:\n   %s",cmd) ;
        if( dryrun ){
          ININFO_message("3dXClustSim cleanup command:\n  %s",cmd) ;
        } else {
+#if 0
          ININFO_message("===== deleting %s temp files =====",clustsim_opt) ;
+#endif
          system(cmd) ;
        }
 
@@ -4380,7 +4389,9 @@ INFO_message("command:\n   %s",cmd) ;
        if( dryrun ){
          ININFO_message("3dClustSim cleanup command:\n  %s",cmd) ;
        } else {
+#if 0
          ININFO_message("===== deleting %s temp files =====",clustsim_opt) ;
+#endif
          system(cmd) ;
        }
 
@@ -4391,12 +4402,16 @@ INFO_message("command:\n   %s",cmd) ;
        if( dryrun ){
          ININFO_message("3dClustSim cleanup command:\n  %s",cmd) ;
        } else {
+#if 0
          ININFO_message("===== deleting %s temp files =====",clustsim_opt) ;
+#endif
          system(cmd) ;
        }
 
      } else {
+#if 0
        ININFO_message("===== NOT deleting %s temp files =====",clustsim_opt) ;
+#endif
      }
 
      /* et viola (or maybe cello?) */

@@ -303,6 +303,10 @@ ENTRY("get_options") ;
       verb = 0 ; nopt++ ; continue ;
     }
 
+    if( strcasecmp(argv[nopt],"-verb") == 0 ){
+      verb++ ; nopt++ ; continue ;
+    }
+
 #ifdef ALLOW_EXTRAS
     /*----   -FOMcount   ----*/
 
@@ -411,7 +415,7 @@ ENTRY("get_options") ;
   if( pthr == NULL ){
     pthr = (double *)malloc(sizeof(double)*npthr) ;
     AAmemcpy( pthr , pthr_init , sizeof(double)*npthr ) ;
-    if( verb )
+    if( verb > 1 )
       INFO_message("Using default %d p-value thresholds",npthr) ;
   }
 
@@ -420,7 +424,7 @@ ENTRY("get_options") ;
   if( ncase == 1 & lcase == NULL ){
     lcase = (char **)malloc(sizeof(char *)) ;
     lcase[0] = strdup("A") ;
-    if( verb )
+    if( verb > 1 )
       INFO_message("Using default case label 'A'") ;
   }
 
@@ -432,7 +436,7 @@ ENTRY("get_options") ;
                  xinset->nvtot,ncase) ;
     } else {
       niter = xinset->nvtot / ncase ;
-      if( verb ){
+      if( verb > 1 ){
           INFO_message("number of input volumes = %d",xinset->nvtot) ;
         ININFO_message("number of cases         = %d",ncase) ;
         ININFO_message("number of iterations    = %d / %d = %d",xinset->nvtot,ncase,niter) ;
@@ -440,7 +444,7 @@ ENTRY("get_options") ;
     }
   } else {
     niter = xinset->nvtot ;
-    if( verb )
+    if( verb > 1 )
       INFO_message("number of input volumes = number of iterations = %d",niter) ;
   }
 
@@ -468,7 +472,7 @@ ENTRY("get_options") ;
   imtemplate = DSET_BRICK(xinset->mask_dset,0) ;  /* sample 3D volume */
   mask_ngood = xinset->ngood ;
   mask_vol   = xinset->mask_vol ;
-  if( verb )
+  if( verb > 1 )
     INFO_message("mask has %d points",mask_ngood) ;
 
   nxy = nx*ny ; nxyz = nxy*nz ; nxyz1 = nxyz - nxy ;
@@ -939,7 +943,7 @@ int main( int argc , char *argv[] )
 
    if( verb )
      INFO_message("STEP 1a: start %d-sided clustering with NN=%d",nnsid,nnlev) ;
-   if( verb ) ININFO_message("  Elapsed time = %.1f s",COX_clock_time()) ;
+   if( verb > 1 ) ININFO_message("  Elapsed time = %.1f s",COX_clock_time()) ;
 
  AFNI_OMP_START ;      /*------------ start parallel section ----------*/
 #pragma omp parallel
@@ -1001,7 +1005,7 @@ int main( int argc , char *argv[] )
 
      if( verb )
        ININFO_message("STEP 1b: merge cluster lists") ;
-     if( verb ) ININFO_message("  Elapsed time = %.1f s",COX_clock_time()) ;
+     if( verb > 1 ) ININFO_message("  Elapsed time = %.1f s",COX_clock_time()) ;
 
      for( qcase=0 ; qcase < ncase ; qcase++ ){
        for( qpthr=0 ; qpthr < npthr ; qpthr++ ){
@@ -1012,7 +1016,7 @@ int main( int argc , char *argv[] )
          }
          /* max number of clusters across all p-value thresh, all cases */
          if( nclust_tot[qcase][qpthr] > nclust_max ) nclust_max = nclust_tot[qcase][qpthr] ;
-         if( verb )
+         if( verb > 1 )
            ININFO_message("     %d total clusters :: Case %s pthr=%.5f",
                           nclust_tot[qcase][qpthr], lcase[qcase] , pthr[qpthr] );
 
@@ -1051,7 +1055,7 @@ int main( int argc , char *argv[] )
 
      if( verb )
        ININFO_message("STEP 1c: compute minimum thresholds") ;
-     if( verb ) ININFO_message("  Elapsed time = %.1f s",COX_clock_time()) ;
+     if( verb > 1 ) ININFO_message("  Elapsed time = %.1f s",COX_clock_time()) ;
 
      gthresh0 = (float **)malloc(sizeof(float *)*ncase) ;
      gthresh1 = (float **)malloc(sizeof(float *)*ncase) ;
@@ -1089,7 +1093,7 @@ int main( int argc , char *argv[] )
          jj  = (int)rintf(GTHRESH_THB*nfff) ;
          ftb = fomg0[jj] ;
          gthresh0[qcase][qpthr] = (int)(fmax*MAX(fta,ftb)+(1.0f-fmax)*MIN(fta,ftb)) ;
-         if( verb && do_hpow0 ){
+         if( verb > 1 && do_hpow0 ){
            ININFO_message("     min threshold %.1f :: Case %s pthr=%.5f h=0",
                           gthresh0[qcase][qpthr],lcase[qcase],pthr[qpthr]) ;
          }
@@ -1100,7 +1104,7 @@ int main( int argc , char *argv[] )
          jj  = (int)rintf(GTHRESH_THB*nfff) ;
          ftb = fomg1[jj] ;
          gthresh1[qcase][qpthr] = (fmax*MAX(fta,ftb)+(1.0f-fmax)*MIN(fta,ftb)) ;
-         if( verb && do_hpow1 ){
+         if( verb > 1 && do_hpow1 ){
            ININFO_message("     min threshold %.1f :: Case %s pthr=%.5f h=1",
                           gthresh1[qcase][qpthr],lcase[qcase],pthr[qpthr]) ;
          }
@@ -1111,7 +1115,7 @@ int main( int argc , char *argv[] )
          jj  = (int)rintf(GTHRESH_THB*nfff) ;
          ftb = fomg2[jj] ;
          gthresh2[qcase][qpthr] = (fmax*MAX(fta,ftb)+(1.0f-fmax)*MIN(fta,ftb)) ;
-         if( verb && do_hpow2 ){
+         if( verb > 1 && do_hpow2 ){
            ININFO_message("     min threshold %.1f :: Case %s pthr=%.5f h=2",
                           gthresh2[qcase][qpthr],lcase[qcase],pthr[qpthr]) ;
          }
@@ -1186,7 +1190,7 @@ int main( int argc , char *argv[] )
 
    if( verb )
      INFO_message("STEP 2: start cluster dilations") ;
-   if( verb ) ININFO_message("  Elapsed time = %.1f s",COX_clock_time()) ;
+   if( verb > 1 ) ININFO_message("  Elapsed time = %.1f s",COX_clock_time()) ;
 
    for( qcase=0 ; qcase < ncase ; qcase++ ){  /* loop over cases */
     for( qpthr=0 ; qpthr < npthr ; qpthr++ ){  /* loop over p-value thresh */
@@ -1263,7 +1267,7 @@ int main( int argc , char *argv[] )
 
        if( ndilstep < NDILMAX-1 && ndilsum < niter/50 ) break ;
      } /* end of loop over dilation steps */
-     if( verb )
+     if( verb > 1 )
        ININFO_message("     %d dilation loops; %d total cluster dilations :: Case %s pthr=%.5f",
                       ndilstep+1,ndiltot,lcase[qcase],pthr[qpthr]) ;
     } /* end of loop over p-value thresh cluster collection */
@@ -1279,7 +1283,7 @@ int main( int argc , char *argv[] )
 
    if( verb )
      INFO_message("STEP 3: re-loading & sorting FOM vectors after dilations") ;
-   if( verb ) ININFO_message("  Elapsed time = %.1f s",COX_clock_time()) ;
+   if( verb > 1 ) ININFO_message("  Elapsed time = %.1f s",COX_clock_time()) ;
 
    /*--- initialize the final sorted FOM vector array for each voxel ---*/
 
@@ -1497,7 +1501,7 @@ int main( int argc , char *argv[] )
 
    if( verb )
      INFO_message("STEP 4: adjusting per-voxel FOM thresholds to reach FPR=%.2f%%",FARP_GOAL) ;
-   if( verb ) ININFO_message("  Elapsed time = %.1f s",COX_clock_time()) ;
+   if( verb > 1 ) ININFO_message("  Elapsed time = %.1f s",COX_clock_time()) ;
 
    /* tfrac = FOM count fractional threshold;
               will be adjusted to find the 5% FPR goal */
@@ -1744,6 +1748,6 @@ FARP_LOOPBACK:
 
    /* It's the end of the world, Calvin */
 
-   if( verb ) INFO_message("Elapsed time = %.1f s",COX_clock_time()) ;
+   INFO_message("=== 3dXClustSim ends: Elapsed time = %.1f s",COX_clock_time()) ;
    exit(0) ;
 }
