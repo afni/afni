@@ -4001,9 +4001,9 @@ LABELS_ARE_DONE:  /* target for goto above */
        cblur = (Xclu_blur == NULL || !do_Xclustsim) ? 0.0f : Xclu_blur[icase] ;
 
        if( bmd != NULL ){
-         INFO_message("--- start simulations for blur case %.2f ---",cblur) ;
          sprintf( fname , "B%.1f" , cblur ) ;
          clab[icase] = strdup(fname) ;
+         INFO_message("--- start simulations for blur case %.2f (%s) ---",cblur,fname) ;
        } else {
          clab[icase] = strdup("\0") ;
        }
@@ -4352,6 +4352,7 @@ LABELS_ARE_DONE:  /* target for goto above */
                                           prefix_clustsim , nam , clab[icase] ) ;
                system(cmd) ;
              }
+             INFO_message("--- merging %d blur cases to make activation mask ---",ncase) ;
              sprintf( cmd , "3dmask_tool -input %s.ETACtmask.*.nii -union -prefix %s.%s.ETACmask.nii.gz" ,
                             prefix_clustsim , prefix_clustsim , nam ) ;
              system(cmd) ;
