@@ -169,7 +169,7 @@ static char *CS_arg        = NULL ;  /* 07 Dec 2016 */
 static int       do_clustsim = 0 ;   /* 10 Feb 2016 */
 static int      num_clustsim = 0 ;
 static char *prefix_clustsim = NULL ;
-static char *tempdir         = "./" ;/* 20 Jul 2016 */
+static char *tempdir         = "." ; /* 20 Jul 2016 */
 
 static int dryrun = 0 ;
 
@@ -2192,6 +2192,8 @@ int main( int argc , char *argv[] )
        tempdir = strdup(argv[nopt]) ;
        if( !THD_filename_ok(tempdir) )
          ERROR_exit("-tempdir '%s' is not acceptable",tempdir) ;
+       ii = strlen(tempdir) ;
+       if( ii > 1 && tempdir[ii-1] == '/' ) tempdir[ii-1] = '\0' ;
        nopt++ ; continue ;
      }
 
@@ -3952,7 +3954,7 @@ LABELS_ARE_DONE:  /* target for goto above */
      char fname[1024] , *cmd , *ccc ; int qq,pp , nper ; double ct1,ct2 ;
      int ncsim , ncase , icase ; float cblur ;
      int use_sdat ;
-     char **tfname , *bmd=NULL , *qmd=NULL , bprefix[1024] , **clab ;
+     char **tfname=NULL, *bmd=NULL, *qmd=NULL, bprefix[1024], **clab=NULL, **cprefix=NULL ;
      int ncmin = (do_Xclustsim) ? 36000 : 10000 ;
 
      use_sdat = do_Xclustsim ||
@@ -3983,6 +3985,7 @@ LABELS_ARE_DONE:  /* target for goto above */
        bmd = (char *)malloc(sizeof(char)*(32768+mcov*256+(nval_AAA+nval_BBB)*512)) ;
        strcpy( bprefix , prefix ) ;
        if( !PREFIX_IS_NIFTI(prefix) ) strcat( bprefix , ".nii" ) ;
+       cprefix = (char **)malloc(sizeof(char *)*ncase) ;
      }
 
      /* loop to start randomize jobs */
@@ -4019,7 +4022,8 @@ LABELS_ARE_DONE:  /* target for goto above */
            sprintf( bmd+strlen(bmd) , " -paired") ;
 
          sprintf( fname , ".%s" , clab[icase] ) ;
-         sprintf( bmd+strlen(bmd) , " -prefix %s" , modify_afni_prefix(prefix,NULL,fname) ) ;
+         cprefix[icase] = strdup( modify_afni_prefix(bprefix,NULL,fname) ) ;
+         sprintf( bmd+strlen(bmd) , " -prefix %s" , cprefix[icase] ) ;
 
          sprintf( bmd+strlen(bmd) , " \\\n   ") ;
        }
@@ -4285,7 +4289,7 @@ LABELS_ARE_DONE:  /* target for goto above */
          }
 
          sprintf( cmd , "3dXClustSim -DAFNI_DONT_LOGFILE=YES"
-                        " -prefix %s.%s.CsimX.nii" , prefix_clustsim , nam ) ;
+                        " -prefix %s.%s.ETAC.nii" , prefix_clustsim , nam ) ;
          sprintf( cmd+strlen(cmd) , " \\\n   ") ;
 
          if( Xclu_nblur > 0 ){
@@ -4328,8 +4332,29 @@ LABELS_ARE_DONE:  /* target for goto above */
          } else {
            ININFO_message("===== starting 3dXClustSim =====\n   %s",cmd) ;
            system(cmd) ;
+           if( Xclu_nblur > 0 ){ /* use results to make a union mask */
+             for( icase=0 ; icase < ncase ; icase++ ){
+               sprintf( cmd , "3dMultiThresh -quiet -input %s -1tindex 1 -maskonly \\\n   " ,
+                              cprefix[icase] ) ;
+               sprintf( cmd+strlen(cmd) , " -prefix %s.ETACtmask.%s.nii" ,
+                                          prefix_clustsim , clab[icase] ) ;
+               sprintf( cmd+strlen(cmd) , " -mthresh %s.%s.ETAC.mthresh.%s.nii" ,
+                                          prefix_clustsim , nam , clab[icase] ) ;
+INFO_message("command:\n   %s",cmd) ;
+               system(cmd) ;
+             }
+             sprintf( cmd , "3dmask_tool -input %s.ETACtmask.*.nii -union -prefix %s.%s.ETACmask.nii.gz" ,
+                            prefix_clustsim , prefix_clustsim , nam ) ;
+             system(cmd) ;
+INFO_message("command:\n   %s",cmd) ;
+             sprintf( cmd , "\\rm %s.ETACtmask.*.nii" , prefix_clustsim ) ;
+             system(cmd) ;
+INFO_message("command:\n   %s",cmd) ;
+           }
          }
        }  /* loop over 3dXClustSim (-Xclu_opt) cases to run */
+
+/* X.0531.P010-001s1.CsimX.mthresh.B10.0.nii.gz */
      }
 
      /* remove intermediate files */
@@ -4348,7 +4373,7 @@ LABELS_ARE_DONE:  /* target for goto above */
 
      } else if( do_clustsim == 1 ){ /** currently, this case will never be executed **/
        sprintf(cmd,"\\rm %s.*",prefix_clustsim) ;
-       if( strcmp(tempdir,"./") != 0 ){
+       if( strcmp(tempdir,".") != 0 ){
          for( pp=0 ; pp < num_clustsim ; pp++ )
            sprintf(cmd+strlen(cmd)," %s",tfname[pp]) ;
        }
@@ -4358,6 +4383,7 @@ LABELS_ARE_DONE:  /* target for goto above */
          ININFO_message("===== deleting %s temp files =====",clustsim_opt) ;
          system(cmd) ;
        }
+
      } else if( do_clustsim == 2 ){                     /** the default case **/
        sprintf(cmd,"\\rm %s.*.niml %s",prefix_clustsim,prefix_resid) ;
        for( pp=0 ; pp < num_clustsim ; pp++ )
@@ -4368,6 +4394,7 @@ LABELS_ARE_DONE:  /* target for goto above */
          ININFO_message("===== deleting %s temp files =====",clustsim_opt) ;
          system(cmd) ;
        }
+
      } else {
        ININFO_message("===== NOT deleting %s temp files =====",clustsim_opt) ;
      }
