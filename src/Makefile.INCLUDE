@@ -2646,6 +2646,15 @@ r_misc.o: rickr/r_misc.c rickr/r_misc.h
 	$(CC) -o 3dTsplit4D 3dTsplit4D.o $(LFLAGS) $(LLIBS)
 
 #######
+# Chris Rorden's dcm2niix, but call it _afni
+
+dcm2niix_afni:
+	( cd crorden/dcm2niix_console ;	\
+	  make ;			\
+	  $(MV) $@ ../.. ;		\
+	  cd ../../ ; )
+
+#######
 # rickr programs
 
 3dmaxima: 3dmaxima.o maxima.o libmri.a
