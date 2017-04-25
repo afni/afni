@@ -1734,29 +1734,26 @@ char * gifti_get_meta_value(const nvpairs * nvp, const char * name)
 /*----------------------------------------------------------------------
  *! return the number of 'rows' and 'columns' of a DataArray element
  *
- *  define rows to be the number of nodes, which should be the slowest
- *  changing element, depending on the index order (kuru kuru pa)
+ *  define rows to be along the first dimension, and collapse the
+ *  remaining dimensions as cols
 *//*-------------------------------------------------------------------*/
 int gifti_DA_rows_cols(giiDataArray * da, long long * rows, long long * cols)
 {
     *rows = da->dims[0];  /* init */
     *cols = 1;
                                                                                 
-    if( da->num_dim == 1 ) return 0;  /* use default */
+    if( da->num_dim == 1 ) return 0;          /* use default */
                                                                                 
-    if( da->ind_ord == GIFTI_IND_ORD_ROW_MAJOR ) {
-        /* treat Dim[0] as nodes (they change most slowly) */
-        *rows = da->dims[0];
-        *cols = (*rows) ? da->nvals / *rows : 1;    /* be safe */
-    } else {
-        if( ! gifti_valid_num_dim(da->num_dim, 1) ){
-            fprintf(stderr,"** cannot assign DA_rows_cols");
-            return 1;
-        }
+    /* ROW_MAJOR does not matter here    25 Apr 2017 [rickr] */
+    /* treat Dim[0] as nodes (they change most slowly)       */
+    *rows = da->dims[0];
+    *cols = (*rows) ? da->nvals / *rows : 1;      /* be safe */
 
+#if 0
+        /* old COL_MAJOR case... */
         *rows = da->dims[da->num_dim-1];  /* take highest index */
         *cols = (*rows > 0) ? da->nvals / *rows : 1;
-    }
+#endif
                                                                                 
     return 0;
 }
