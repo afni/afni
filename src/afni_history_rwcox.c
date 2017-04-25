@@ -44,6 +44,11 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 21 , APR , 2017 , RWC , "3dttest++" , MAJOR , TYPE_ENHANCE ,
+   "Extensive modifications to ETAC" ,
+   "Adding the ability to due multiple amounts of blurring.  Some changes to\n"
+   "3dttest++ and 3dMultiThresh, big changes to 3dXClustSim." } ,
+
  { 27 , MAR , 2017 , RWC , "afni GUI" , MICRO , TYPE_NEW_ENV ,
    "AFNI_LEFT_IS_POSTERIOR" ,
    "To show posterior of brain on the left (instead of right) in sagittal\n"

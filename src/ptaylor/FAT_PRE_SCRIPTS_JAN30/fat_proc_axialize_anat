@@ -1,5 +1,6 @@
 #!/bin/tcsh -e
 
+# !!!!!???????? CHECK LRMID STUFFF?????
 
 # --------------------- revision history -------------------------
 # Sept, 2016
@@ -37,10 +38,22 @@
 #   + wdir update; file i/o usage update
 #   + fixed printfs for Mac (thanks S. Luthra and P. Fuhrmeister)
 #
-set version   = "2.92";  set rev_dat   = "Apr 13, 2017"
+#set version   = "2.92";  set rev_dat   = "Apr 13, 2017"
 #   + need to choose either t1wmode or t2wmode explicitly
 #     ---> to avoid confusion because even *I've* forgotten about
 #          adding in the mode.
+#
+#set version   = "3.0";  set rev_dat   = "Apr 21, 2017"
+#   + add in precentering opt
+#
+set version   = "3.1";  set rev_dat   = "Apr 21, 2017"
+#   + Fix unifizing! 
+#   + (some other stuff?)
+#
+set version   = "3.2";  set rev_dat   = "Apr 24, 2017"
+#   + better naming wdir
+#   + checking steps again
+#   + change viewer output: edgey
 #
 # ----------------------------------------------------------------
 
@@ -73,10 +86,12 @@ set opref    = ""                   # for final output files
 set odir     = ""                   # will be output dir
 set tpref    = "tt"                 # for intermed files
 set wdir     = "__WORKING_$tpname"  # working directory
-set DO_CLEAN  = "1"                  # default: keep working dir
+set WDIR_EX  = "1"                  # put opref on wdir (unless user names)
+set DO_CLEAN  = "1"                 # default: keep working dir
 
 set PRE_LR  = "1"
 set POST_LR = "0"
+set DO_CM   = "0"                   # initial center of mass calc
 
 set costfunc         = "lpa"        # in 3dAllin estimate
 set extra_allin_apps = ""           # could use to upsample?
@@ -136,7 +151,8 @@ while ( $ac <= $#argv )
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
         @ ac += 1
         set wdir = "$argv[$ac]"
-        
+        set WDIR_EX  = "0"
+
     # -------------- other opts --------------------
 
     else if ( "$argv[$ac]" == "-extra_al_opts" ) then
@@ -155,7 +171,7 @@ while ( $ac <= $#argv )
         set costfunc = "$argv[$ac]"
 
     else if ( "$argv[$ac]" == "-mode_t2w" ) then
-        set DoUni  = "0"
+        set DoUni  = "0" 
         set DoAni  = "1"
         set valthr = 99
         set MODESET = "1"
@@ -176,6 +192,9 @@ while ( $ac <= $#argv )
     else if ( "$argv[$ac]" == "-no_clean" ) then
         set DO_CLEAN = 0
         
+    else if ( "$argv[$ac]" == "-pre_center_mass" ) then
+        set DO_CM = "1"
+
     # turn it *off* if desired-- on by default
     else if ( "$argv[$ac]" == "-no_pre_lr_symm" ) then
         set PRE_LR = 0
@@ -186,11 +205,6 @@ while ( $ac <= $#argv )
     else if ( "$argv[$ac]" == "-no_cmd_out" ) then
         set output_cmd = 0
 
-    else if ( "$argv[$ac]" == "-wdir" ) then
-        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
-        @ ac += 1
-        set wdir = "$argv[$ac]"
-        
     else if ( "$argv[$ac]" == "-out_match_ref" ) then
         set OutMatchRef = 1
 
@@ -286,7 +300,11 @@ if ( ! -e "$odir" ) then
 endif
 
 # and put working directory as subdirectory.
-set wdir = $odir/$wdir
+if ( "$WDIR_EX" == "1" ) then
+    set wdir = $odir/${wdir}_$opref
+else
+    set wdir = $odir/$wdir
+endif
 
 # make the working directory
 if ( ! -e $wdir ) then
@@ -313,7 +331,7 @@ echo "\n\nThis command:"
 echo "$this_prog $argv\n\n"
 
 if ( $cmd_file == "" ) then
-    set cmd_file = "${opref}_${postfix}_cmd.txt"
+    set cmd_file = "${opref}${postfix}_cmd.txt"
 endif
 
 # copy original command:
@@ -398,6 +416,23 @@ set inp0 = $fout
 
 cd $wdir
 
+if ( "$DO_CM" == "1" ) then
+    echo "++ Pre-step: make input's center of mass sit at (x,y,z)=(0,0,0)."
+    set fin  = "$fout"
+    3dCM  \
+        -set 0 0 0    \
+        $fin
+else
+    set fin  = "$fout"
+    set xyz = `3dCM $fin`
+    set dist_to_ctr = `echo " sqrt( $xyz[1] * $xyz[1] + $xyz[2] * $xyz[2] + $xyz[3] * $xyz[3] ) " | bc`
+    set d000 = `printf "%.5f" $dist_to_ctr`
+    echo "++ Distance between input's center of mass to (0,0,0) is $d000 mm."
+    echo "   -> if this is large, you might want to recenter with:"
+    echo "        3dCM -set 0 0 0 FILE"
+    echo "      or something (you could copy it first)."
+endif
+
 # if t2w, do do this
 if ( "$DoAni" == "1" ) then
 
@@ -449,7 +484,8 @@ set fout = "${tpref}_${iidx}_thr.nii"
 # --------------------------------------------------------------
 
 # if t2w, don't do this
-if ( "$DoUni" == "0" ) then
+# [PT: Apr 21, 2017: fixed this condition]
+if ( "$DoUni" == "1" ) then
 
     echo "\n++ Doing unifizing."
 
@@ -511,16 +547,16 @@ if ( $PRE_LR ) then
         -base   "$fflip"                  \
         -twopass                          \
         -cost nmi                         \
-        -nomask                           \
         -source "$fin"                    \
         -overwrite
     @ idx += 1
+        #-nomask                           \
 
-   # grep "3dAllineate" _map_lr6.param.1D > _map_lr12.param.1D
-   # set vals = `sed -n '2p' _map_lr6.param.1D`
-   # printf "$vals[1-7] ... and faking\n" >> _map_lr12.param.1D
-   # set vals = `sed -n '3p' _map_lr6.param.1D`
-   # printf "$vals[1-6] 0 0 0 0 0 0\n" >> _map_lr12.param.1D
+    # grep "3dAllineate" _map_lr6.param.1D > _map_lr12.param.1D
+    # set vals = `sed -n '2p' _map_lr6.param.1D`
+    # printf "$vals[1-7] ... and faking\n" >> _map_lr12.param.1D
+    # set vals = `sed -n '3p' _map_lr6.param.1D`
+    # printf "$vals[1-6] 0 0 0 0 0 0\n" >> _map_lr12.param.1D
 
     cat_matvec -ONELINE _map_lr6.aff12.1D -S > _map_lr_half.aff12.1D
 
@@ -675,13 +711,13 @@ if ( $OutMatchRef == "0" ) then
     # Nearly done-- keep center at center (unless using refspace for
     # output).
     echo "++ Setting (0, 0, 0) to the center of mass."
-    3dCM -automask -set 0 0 0 $fout
+    3dCM -set 0 0 0 $fout
 
 endif
 
 # DONE, just copy endprod out!
 set fin  = $fout
-set fout = ../"${opref}_${postfix}.nii.gz"
+set fout = ../"${opref}${postfix}.nii.gz"
 # copy, preserve history
 3dcalc                        \
     -echo_edu                 \
@@ -697,11 +733,11 @@ if ( $DO_VIEWER ) then
     echo "++ Making QC images."
 
     if( $qc_prefix == "" ) then
-        set vpref1 = ${opref}_${postfix}_qc00_fin
-        set vpref2 = ${opref}_${postfix}_qc01_mat
+        set vpref1 = ${opref}${postfix}_qc00_fin
+        set vpref2 = ${opref}${postfix}_qc01_ref_u_inp
     else
-        set vpref1 = ${qc_prefix}_${postfix}_qc00_fin
-        set vpref2 = ${qc_prefix}_${postfix}_qc01_mat
+        set vpref1 = ${qc_prefix}${postfix}_qc00_fin
+        set vpref2 = ${qc_prefix}${postfix}_qc01_ref_u_inp
     endif
 
     #echo "++ Output QC #1: final olay on (essentially) original refset."
@@ -716,21 +752,34 @@ if ( $DO_VIEWER ) then
                     $user_frange
 
     echo "++ QC image 01 (earlier allin olaying ref ulay): $vpref2"
+    # should still be wdir at the moment
+    set vedge = ./${tpref}_alnd_edges.nii
+    3dedge3                         \
+        -overwrite                  \
+        -prefix $vedge              \
+        -input  $qc2o
+
     $my_viewer      -ulay $rout                     \
-                    -olay $qc2o                     \
+                    -ulay_range "2%" "98%"          \
+                    -olay $vedge                    \
+                    -func_range_perc 50             \
+                    -pbar_posonly                   \
+                    -cbar "red_monochrome"          \
+                    -opacity 6                      \
                     -prefix $vpref2                 \
                     -outdir ".."                    \
                     -montx 3 -monty 3               \
                     -set_xhairs MULTI               \
                     -label_mode 1 -label_size 3     \
-                    -opacity 4                      \
                     -do_clean
 
 endif
 
 # ---------------------------------------------------------------------
 
+# move out of wdir to the odir
 cd ..
+set whereout = $PWD
 
 if ( "$DO_CLEAN" == "1" ) then
     echo "\n+* Removing temporary axialization working dir: '$wdir'\n"
@@ -742,7 +791,7 @@ endif
 
 echo ""
 echo "++ DONE! View the finished, axialized product:"
-echo "     $PWD/$fout"
+echo "     $whereout/$fout"
 echo ""
 
 goto GOOD_EXIT
@@ -796,16 +845,15 @@ cat << EOF
         {-mode_t2w | -mode_t1w}               \
         -prefix PPP                           \
         {-outdir DIR_NAME}                    \
-        {-wdir   WORKDIR}                     \
+        {-workdir  WWW}                       \
         {-out_match_ref}                      \
         {-extra_al_wtmask WT }                \
         {-extra_al_cost CC}                   \
         {-extra_al_inps II}                   \
         {-extra_al_opts SS}                   \
-        {-no_inter_uni}                       \
         {-post_lr_symm}                       \
         {-no_pre_lr_symm}                     \
-        {-do_clean}                           \
+        {-no_clean}                           \
         {-qc1_ulay_range UMIN UMAX}           \
         {-no_qc_view}                         \
         {-qc_prefix QCP}
@@ -871,12 +919,11 @@ cat << EOF
   -post_lr_symm    :a post-alignment left-right symmetrization can be 
                     added, if desired.
 
-  -wdir WORKDIR    :the name of the working subdirectory in the output
+  -workdir WWW     :the name of the working subdirectory in the output
                     directory can be specified (default: ${wdir}).
 
-  -do_clean        :is an optional switch to remove the working file
-                    '${wdir}' and its intermediate files; 
-                    (default: not to do so).
+  -no_clean        :is an optional switch to NOT remove working 
+                    directory '$wdir'; (default: remove working dir).
   -no_cmd_out      :by default, a copy of the command and file location
                     from which it is run is dumped into the WORKDIR 
                     (file name: 'PREFIX*_cmd.txt'). 
@@ -914,9 +961,21 @@ cat << EOF
     
    $this_prog  \
         -inset  SUB001/ANATOM/T2.nii.gz                            \
-        -refset /somewhere/mni_icbm152_t2_tal_nlin_sym_09a.nii.gz  \
-        -mode_t2w                                                  \
-        -extra_al_opts "-newgrid 1.0" 
+        -refset /somewhere/mni_icbm152_t1_tal_nlin_sym_09a_MSKD.nii.gz \
+        -mode_t1w                                                  \
+        -extra_al_opts "-newgrid 1.0"                              \
+        -prefix t2w_axlz
+
+    or
+
+   $this_prog  \
+     -inset  SUB001/ANATOM/T2.nii.gz                            \
+     -refset /somewhere/mni_icbm152_t2_tal_nlin_sym_09a.nii.gz  \
+     -extra_al_wtmask mni_icbm152_t2_relx_tal_nlin_sym_09a_ACPC_wtell.nii.gz \
+     -mode_t2w                                                  \
+     -prefix t2w_axlz
+
+
 
 -------------------------------------------------------------------------
   TIPS:
@@ -944,6 +1003,10 @@ EOF
 SHOW_VERSION:
    echo "version  $version (${rev_dat})"
    goto GOOD_EXIT
+
+FAIL_MISSING_ARG:
+    echo "** ERROR! Missing an argument after option flag: '$argv[$ac]'"
+    goto BAD_EXIT
 
 BAD_EXIT:
     exit 1

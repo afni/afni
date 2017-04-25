@@ -8,8 +8,11 @@
 #set version   = "1.0";    set rev_dat   = "March 29, 2017"
 #   + inception
 #
-set version   = "1.1";    set rev_dat   = "Apr 15, 2017"
+#set version   = "1.1";    set rev_dat   = "Apr 15, 2017"
 #   + standardize I/O
+#
+set version   = "1.2";    set rev_dat   = "Apr 15, 2017"
+#   + run with helpfile correctly for no inputs
 #
 # ---------------------------------------------------------------
 
@@ -52,7 +55,7 @@ set DO_CLEAN   = 1
 set output_cmd = 1               # def: output copy of this command
 set cmd_file   = ""              # def: same name as viewer
 set qc_prefix  = ""              # def: autoname; user can enter
-set postfix    = ""              # stick into name
+set postfix    = "_"             # stick into name
 
 set movie      = ""
 set wdir     = "__WORKING_$tpname"
@@ -106,7 +109,7 @@ while ( $ac <= $#argv )
 
     # --------------- apply to DWI and image ---------
 
-    else if ( "$argv[$ac]" == "-apply_to_dwi" ) then
+    else if ( "$argv[$ac]" == "-apply_to_vols" ) then
         set DO_OUTVOL = "1"
 
     else if ( "$argv[$ac]" == "-do_movie" ) then
@@ -354,7 +357,7 @@ cat << EOF
 
  This program is for building a selector string for AFNI subbricks
  and/or 1D text files.  It makes use of J. Rajendra's
- ``@djunct_dwi_selector.sh`` script to make a list of 'bad' volume
+ '@djunct_dwi_selector.sh' script to make a list of 'bad' volume
  indices by clicking on individual volumes in a montage image.  Pretty
  cool.
 
@@ -378,12 +381,13 @@ cat << EOF
   RUNNING:
 
     $this_prog  \
-        {-in_dwi  DDD}                 \
-        {-in_img  IM2D}                \
+        -in_dwi   DDD                  \
+        -in_img   IM2D                 \
         {-in_bads TTT}                 \
-        {-prefix  PPP}                 \
-        {-apply_to_dwi}                \
+        -prefix  PPP                   \
+        {-apply_to_vols}               \
         {-do_movie AGIF|MPEG}          \
+        {-workdir WWW}                 \
         {-no_cmd_out} 
 
   where:
@@ -400,7 +404,7 @@ cat << EOF
 
    -prefix  PPP   :output prefix for files. Required.
 
-   -apply_to_dwi  :switch to apply the created selection of good 
+   -apply_to_vols :switch to apply the created selection of good 
                    volumes to the DWI dset.  NB: if you are using 
                    this function to select out bad volumes from 
                    a dual phase encode set, then you *wouldn't* want 
@@ -408,13 +412,17 @@ cat << EOF
                    the complete removal to *both* volumes.  Note also,
                    that once you apply this selection to the volumes,
                    you also need to apply it to any bval, bvec, bmatrix,
-                   etc. text files.
+                   etc. text files!
+
     -do_movie AGIF | MPEG:
-                   when "-apply_to_dwi" is used, static images are 
+                   when "-apply_to_vols" is used, static images are 
                    output by default;  one can use this option with 
                    either of the given arguments to output a movie of the
                    newly created dset.  Only those arguments can be used
                    at present.
+
+   -workdir WWW   :specify a working directory, which can be removed;
+                   (default name = '$wdir').
 
    -no_cmd_out    :don't save the command line call of this program
                    and the location where it was run (otherwise, it is
@@ -427,14 +435,12 @@ cat << EOF
     $this_prog    \
         -in_dwi DWI.nii               \
         -in_img DWI_sepscl.sag.png    \
-        -outdir .                     \
         -prefix DWI_trim
 
 
     $this_prog    \
         -in_dwi DWI_ap.nii               \
         -in_img DWI_ap_sepscl.sag.png    \
-        -outdir .                        \
         -prefix DWI_trim_both            \
         -in_bads DWI_appa_bads.txt
 
@@ -447,6 +453,10 @@ EOF
 SHOW_VERSION:
     echo "version  $version (${rev_dat})"
     goto GOOD_EXIT
+
+FAIL_MISSING_ARG:
+    echo "** ERROR! Missing an argument after option flag: '$argv[$ac]'"
+    goto BAD_EXIT
 
 BAD_EXIT:
     exit 1

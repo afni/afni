@@ -765,6 +765,8 @@ extern void binarize_mask( int , byte * ) ;
 #define NSTAT_HIST        41
 #define NSTAT_FILLED      42
 #define NSTAT_UNFILLED    43
+#define NSTAT_MASKED      44
+#define NSTAT_MASKED2     45
 
 #define NSTAT_FWHMx      63   /*these should be after all other NSTAT_* values */
 #define NSTAT_FWHMy      64
@@ -1180,6 +1182,7 @@ extern MRI_IMAGE * mri_cat2D( int,int,int,void *,MRI_IMARR *) ;
 extern MRI_IMARR * mri_uncat2D( int , int , MRI_IMAGE * im ) ; /* 09 May 2000 */
 
 extern MRI_IMAGE * mri_catvol_1D( MRI_IMARR *imar , int dir ); /* 08 Dec 2010 */
+extern MRI_IMAGE * mri_catvol_1D_ab( MRI_IMARR *imar , int dir, int na,int nb );
 
 extern MRI_IMAGE * mri_shift_1D( MRI_IMAGE * im , float shift ) ;
 

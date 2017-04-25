@@ -15,6 +15,13 @@
 set version   = "2.1"; set rev_dat   = "Apr 14, 2017"
 #   + try to anonymize
 #   + qc snapshotting
+set version = "2.8"; set rev_dat = "Apr 19, 2017"
+#   + switch to dcm2niix from dcm2nii
+#     -> motivated by Philips scaling requirements
+#     -> prob better to stick with newer, anyways
+#
+set version = "2.9"; set rev_dat = "Apr 21, 2017"
+#   + no more automask in 3dCM
 #
 # ----------------------------------------------------------------
 
@@ -29,7 +36,7 @@ set adir      = ""
 set my_viewer = ""
 which afni >& /dev/null
 if ( $status ) then
-    echo "** Cannot find 'afni' (?!)."
+    echo "** ERROR: Cannot find 'afni'."
     goto BAD_EXIT
 else
     set aa   = `which afni`
@@ -38,6 +45,14 @@ endif
 
 # default location of viewer: user could modify!
 set my_viewer = "$adir/@chauffeur_afni"
+
+# ----------------- find dcm2niix ---------------------
+
+which dcm2niix >& /dev/null
+if ( $status ) then
+    echo "** ERROR: Cannot find 'dcm2niix'."
+    goto BAD_EXIT
+endif
 
 # ----------------------- set defaults --------------------------
 
@@ -56,7 +71,9 @@ set cmd_file   = ""               # def: same name as viewer
 set DO_CLEAN   = "1"              # def: do delete temp files
 set DO_VIEWER  = "1"              # def: do QC image visualization
 set qc_prefix  = ""               # def: autoname; user can enter
-set postfix    = ""               # stick into name
+set postfix    = "_"              # stick into name
+
+set npref      = "nnn"
 
 # ------------------- process options, a la rr ----------------------
 
@@ -111,6 +128,9 @@ while ( $ac <= $#argv )
 
     else if ( "$argv[$ac]" == "-no_qc_view" ) then
         set DO_VIEWER = 0
+
+    else if ( "$argv[$ac]" == "-no_cmd_out" ) then
+        set output_cmd = 0
 
     else
         echo "** unexpected option #$ac = '$argv[$ac]'"
@@ -226,19 +246,19 @@ endif
 # ======================== convert dicoms ===============================
 
 # place output into wdir, using gzipped files
-dcm2nii                  \
-    -4 Y                 \
-    -d Y                 \
-    -n Y                 \
-    -g Y                 \
-    -o "$wdir"           \
-    $idir/*
+dcm2niix  \
+        -z y              \
+        -x n              \
+        -p y              \
+        -f $npref         \
+        -o "$wdir"        \
+        $idir/
 
 # ================ clean up possible extraneous files ===================
 
 cd $wdir
 
-set all_nii = `\ls 2*.nii.gz`
+set all_nii = `\ls ${npref}.nii.gz`
 
 # =========== put into proper orientation, simplify name =================
 
@@ -273,7 +293,7 @@ if ( $DO_REORI ) then
         -overwrite
 
     # put (0, 0, 0) at center of mass.  (Aug, 2016)
-    3dCM -automask -set 0 0 0 ../$ofile
+    3dCM -set 0 0 0 ../$ofile
 
 else
     # chicken...
@@ -303,9 +323,9 @@ endif
 if ( "$DO_VIEWER" == "1" ) then
 
     if( $qc_prefix == "" ) then
-        set vpref0 = ${opref}_${postfix}_qc00_anat
+        set vpref0 = ${opref}${postfix}_qc00_anat
     else
-        set vpref0 = ${qc_prefix}_${postfix}_qc00_anat
+        set vpref0 = ${qc_prefix}${postfix}_qc00_anat
     endif
 
     echo "\n\n"
@@ -362,10 +382,14 @@ cat << EOF
 
   $this_prog  \
         -indir    DIR_IN                       \
-        {-prefix  PPP}                         \
+        -prefix  PPP                           \
         {-workdir WWW}                         \
         {-orient  ORIENT}                      \
-        {-reorig_reorient_off}
+        {-no_clean}                            \
+        {-reorig_reorient_off}                 \
+        {-qc_prefix    QCPREF}                 \
+        {-no_cmd_out}                          \
+        {-no_qc_view} 
 
   where:
     -indir  DIR_IN  :required input directory; DIR_IN should contain
@@ -384,6 +408,13 @@ cat << EOF
                      not reorient data (-> 'reorient' calc).  Could lead
                      to weirdness later on down the road, depending on the
                      data and headers (ergo, not recommended.)
+
+  -qc_prefix QCPREF :can set the prefix of the QC image files separately
+                     (default is '$opref').
+   -no_qc_view      :can turn off generating QC image files (why?)
+   -no_cmd_out      :don't save the command line call of this program
+                     and the location where it was run (otherwise, it is
+                     saved by default in the ODIR/).
 
 -------------------------------------------------------------------------
 
@@ -412,6 +443,10 @@ EOF
 SHOW_VERSION:
    echo "version  $version (${rev_dat})"
    goto GOOD_EXIT
+
+FAIL_MISSING_ARG:
+    echo "** ERROR! Missing an argument after option flag: '$argv[$ac]'"
+    goto BAD_EXIT
 
 BAD_EXIT:
    exit 1

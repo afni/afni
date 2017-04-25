@@ -65,7 +65,7 @@ set wdir       = "__WORKING_$tpname"
 set output_cmd = 1               # def: output copy of this command
 set cmd_file   = ""              # def: same name as viewer
 set qc_prefix  = ""              # def: autoname; user can enter
-set postfix    = ""              # stick into name
+set postfix    = "_"             # stick into name
 
 # ------------------- process options, a la rr ----------------------
 
@@ -444,11 +444,11 @@ if ( $DO_VIEWER == 1 ) then
         -input  $odir/$osrc
 
     if( $qc_prefix == "" ) then
-        set vpref0 = ${opref}_${postfix}_qc00_base_u_esrc
-        set vpref1 = ${opref}_${postfix}_qc01_base_u_src
+        set vpref0 = ${opref}${postfix}_qc00_base_u_esrc
+        set vpref1 = ${opref}${postfix}_qc01_base_u_src
     else
-        set vpref0 = ${qc_prefix}_${postfix}_qc00_base_u_esrc
-        set vpref1 = ${qc_prefix}_${postfix}_qc01_base_u_src
+        set vpref0 = ${qc_prefix}${postfix}_qc00_base_u_esrc
+        set vpref1 = ${qc_prefix}${postfix}_qc01_base_u_src
     endif
 
     echo "\n\n"
@@ -503,9 +503,9 @@ if ( $DO_VIEWER == 1 ) then
         set ppp = `echo "$pp" | cut -c ${sss}-`
 
         if( $qc_prefix == "" ) then
-            set vprefnn = ${opref}_${postfix}_qc_$ppp
+            set vprefnn = ${opref}${postfix}_qc_$ppp
         else
-            set vprefnn = ${qc_prefix}_${postfix}_qc_$ppp
+            set vprefnn = ${qc_prefix}${postfix}_qc_$ppp
         endif
 
         $my_viewer                            \
@@ -539,9 +539,9 @@ if ( $DO_VIEWER == 1 ) then
         set ppp = `echo "$pp" | cut -c ${sss}-`
 
         if( $qc_prefix == "" ) then
-            set vprefnn = ${opref}_${postfix}_qc_$ppp
+            set vprefnn = ${opref}${postfix}_qc_$ppp
         else
-            set vprefnn = ${qc_prefix}_${postfix}_qc_$ppp
+            set vprefnn = ${qc_prefix}${postfix}_qc_$ppp
         endif
 
         $my_viewer                            \
@@ -635,7 +635,7 @@ cat << EOF
     $this_prog \
       -source   SSS                                  \
       -base     DDD                                  \
-      {-prefix  PPP}                                 \
+      -prefix  PPP                                   \
       {-followers_NN      DSET01 DSET02 DSET03 ...}  \
       {-followers_wsinc5  DSET1 DSET2 DSET3 ...}     \
       {-matrix MMM}                                  \
@@ -661,7 +661,7 @@ cat << EOF
                    only affine alignment with 3dAllineate is
                    performed!
 
-   -prefix  PPP   :output prefix for files and snapshots.  
+   -prefix  PPP   :output prefix for files and snapshots.  Required.
 
    -followers_NN  DSET01 DSET02 DSET03 ...
                   :apply the same transformation to 'follower' data
@@ -715,6 +715,10 @@ EOF
 SHOW_VERSION:
     echo "version  $version (${rev_dat})"
     goto GOOD_EXIT
+
+FAIL_MISSING_ARG:
+    echo "** ERROR! Missing an argument after option flag: '$argv[$ac]'"
+    goto BAD_EXIT
 
 BAD_EXIT:
     exit 1
