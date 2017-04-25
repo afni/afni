@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 25,  Apr, 2017, RCR, "suma", MICRO, TYPE_MODIFY,
+   "SUMA_input.c: 'r'ecord with oversamle - use tcsh -c to delete files",
+   "To be explicit about shell in system(), sending errors to /dev/null."
+ } ,
+
  { 25,  Apr, 2017, RCR, "afni_proc.py", MICRO, TYPE_BUG_FIX,
    "fix follower warps for gzipped NL-WARP datasets",
    "Thanks to C Connely for noting the problem."
