@@ -74,7 +74,7 @@ while ( $ac <= $#argv )
 
    else
       echo "** unexpected option #$ac = '$argv[$ac]'"
-      exit 2
+      goto BAD_EXIT
 
    endif
    @ ac += 1
@@ -85,7 +85,8 @@ end
 # need more cowbell
 if ( ($in_FA == '') || ($in_V1 == '') || ("$in_TrNet" == '') || \
     ($out_pref == '')) then
-    exit 3
+    echo "** ERROR: missing some vital option-- check help file."
+    goto BAD_EXIT
 endif
 
 if ( $do_only_vis == 1 ) then
@@ -153,7 +154,7 @@ quickspec                                \
 if ( no_view == "1" ) then
     echo "Done calculating, and I guess you don't want to see the"
     echo "\t preeeeetty results..."
-    EXIT
+    goto GOOD_EXIT
 endif
 
 ONLY_VIEW:
@@ -247,7 +248,7 @@ DriveSuma                                              \
 
 echo "\n\n++ Up and running!\n\n"
 
-goto EXIT
+goto GOOD_EXIT
 
 
 # ========================================================================
@@ -338,12 +339,20 @@ cat << EOF
 -------------------------------------------------------------------------
 
 EOF
-    goto EXIT
+    goto GOOD_EXIT
 
 SHOW_VERSION:
    echo "version  1.2 (June, 2016)"
-   goto EXIT
+   goto GOOD_EXIT
+
+FAIL_MISSING_ARG:
+    echo "** ERROR! Missing an argument after option flag: '$argv[$ac]'"
+    goto BAD_EXIT
+
 
 # send everyone here, in case there is any cleanup to do
-EXIT:
-   exit
+BAD_EXIT:
+   exit 1
+
+GOOD_EXIT:
+   exit 0

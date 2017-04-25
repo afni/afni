@@ -14,11 +14,13 @@ int main( int argc , char * argv[] )
    char * prefix = "mean" ;
    int datum=-1 , verb=0 , do_sd=0, do_sum=0 , do_sqr=0, firstds=0 ;
    int do_union=0 , do_inter=0, non_zero=0, count_flag =0 ;
+   int min_flag = 0, max_flag = 0;
    float ** sum=NULL , fsum=0.0;
    float ** sd=NULL;
    int ** count=NULL;
    char *first_dset=NULL;
    int fscale=0 , gscale=0 , nscale=0 ;
+   float initvalue = 0.0f;
 
    nx = ny = nz = nxyz = nval = 0;  /* just for compiler warnings */
 
@@ -101,6 +103,14 @@ int main( int argc , char * argv[] )
 
       if( strcmp(argv[nopt],"-sqr") == 0 ){
          do_sqr = 1 ; nopt++ ; continue ;
+      }
+
+      if( strcmp(argv[nopt],"-min") == 0 ){
+         min_flag = 1 ; nopt++ ; continue ;
+      }
+
+      if( strcmp(argv[nopt],"-max") == 0 ){
+         max_flag = 1 ; nopt++ ; continue ;
       }
 
       if( strcmp(argv[nopt],"-non_zero") == 0 ){
@@ -233,7 +243,11 @@ int main( int argc , char * argv[] )
            if( do_inter ) {
               for( ii=0 ; ii < nxyz ; ii++ ) sum[kk][ii] = 1.0f ;
            } else {
-              for( ii=0 ; ii < nxyz ; ii++ ) sum[kk][ii] = 0.0f ;
+             if ( min_flag )   /* if looking for minima, start big */
+                 initvalue = WAY_BIG;
+             if ( max_flag )   /* if looking for maxima, start small */
+                 initvalue = -WAY_BIG;
+             for( ii=0 ; ii < nxyz ; ii++ ) sum[kk][ii] = initvalue ; /* usually 0.0 */
            }
          }
 
@@ -285,7 +299,7 @@ int main( int argc , char * argv[] )
 
       DSET_load(inset) ; CHECK_LOAD_ERROR(inset) ;
 
-      if( verb ) fprintf(stderr,"  ++ read in dataset %s\n",argv[nopt]) ;
+      if( verb ) fprintf(stderr,"  ++ read in dataset - 1 %s\n",argv[nopt]) ;
 
       /*-- sum dataset values --*/
 
@@ -325,6 +339,20 @@ int main( int argc , char * argv[] )
                   for( ii=0 ; ii < nxyz ; ii++ ) {
                         if(pp[ii]) count[kk][ii]++;
                   }
+               else if (min_flag){  /* minimum 18 Apr 2017 [drg] */
+                   for( ii=0 ; ii < nxyz ; ii++ ) {
+                      if(non_zero && (pp[ii]==0.0)) {continue;}
+                      val = fac * pp[ii] ;
+                      if(val<sum[kk][ii]){ sum[kk][ii] = val; }
+                   }
+                  }
+               else if (max_flag){  /* maximum 18 Apr 2017 [drg] */
+                   for( ii=0 ; ii < nxyz ; ii++ ) {
+                      if(non_zero && (pp[ii]==0.0)) {continue;}
+                      val = fac * pp[ii] ;
+                      if(val>sum[kk][ii]) {sum[kk][ii] = val;}
+                   }
+                  }
                else {
                   for( ii=0 ; ii < nxyz ; ii++ )
                       sum[kk][ii] += fac * pp[ii] ;
@@ -360,6 +388,22 @@ int main( int argc , char * argv[] )
                else if (count_flag)  /* count only 03 Oct 2010 [drg] */
                   for( ii=0 ; ii < nxyz ; ii++ ) {
                         if(pp[ii]) count[kk][ii]++;
+                  }
+               else if (min_flag){  /* minimum 18 Apr 2017 [drg] */
+                   for( ii=0 ; ii < nxyz ; ii++ ) {
+                      val = fac * pp[ii] ;
+                      if(non_zero && val==0.0) continue;
+                      if(val<sum[kk][ii])
+                          sum[kk][ii] = val;
+                   }
+                  }
+               else if (max_flag){  /* maximum 18 Apr 2017 [drg] */
+                   for( ii=0 ; ii < nxyz ; ii++ ) {
+                      val = fac * pp[ii] ;
+                      if(non_zero && val==0.0) continue;
+                      if(val>sum[kk][ii])
+                          sum[kk][ii] = val;
+                   }
                   }
                else {
                   for( ii=0 ; ii < nxyz ; ii++ )
@@ -397,6 +441,22 @@ int main( int argc , char * argv[] )
                   for( ii=0 ; ii < nxyz ; ii++ ) {
                         if(pp[ii]) count[kk][ii]++;
                   }
+               else if (min_flag){  /* minimum 18 Apr 2017 [drg] */
+                   for( ii=0 ; ii < nxyz ; ii++ ) {
+                      val = fac * pp[ii] ;
+                      if(non_zero && val==0.0) continue;
+                      if(val<sum[kk][ii])
+                          sum[kk][ii] = val;
+                   }
+                  }
+               else if (max_flag){  /* maximum 18 Apr 2017 [drg] */
+                   for( ii=0 ; ii < nxyz ; ii++ ) {
+                      val = fac * pp[ii] ;
+                      if(non_zero && val==0.0) continue;
+                      if(val>sum[kk][ii])
+                          sum[kk][ii] = val;
+                   }
+                  }
                else {
                   for( ii=0 ; ii < nxyz ; ii++ )
                      sum[kk][ii] += fac * pp[ii] ;
@@ -414,8 +474,8 @@ int main( int argc , char * argv[] )
    }
 
    /* scale to be mean instead of sum */
-
-   if( !do_sum && !do_inter && !do_union && !count_flag){
+   /* these !... && are getting a little ridiculous - should change to more flexible system */
+   if( !max_flag && !min_flag && !do_sum && !do_inter && !do_union && !count_flag){
       /* adjust for non-zeros if requested */
       if(non_zero){
          for( kk=0 ; kk < nval ; kk++ )
@@ -434,7 +494,12 @@ int main( int argc , char * argv[] )
            for( ii=0 ; ii < nxyz ; ii++ )
               sum[kk][ii] =  (float) count[kk][ii];
    }
-   
+
+   if(min_flag || max_flag){
+        for( kk=0 ; kk < nval ; kk++ )
+           for( ii=0 ; ii < nxyz ; ii++ )
+              if((sum[kk][ii]==WAY_BIG) || (sum[kk][ii] == -WAY_BIG))  sum[kk][ii] = 0.0;
+   }
 
    /* MSB: If calculating SD,
            loop through datasets again,
@@ -462,7 +527,7 @@ int main( int argc , char * argv[] )
 
       DSET_load(inset) ; CHECK_LOAD_ERROR(inset) ;
 
-      if( verb ) fprintf(stderr,"  ++ read in dataset %s\n",argv[nopt]) ;
+      if( verb ) fprintf(stderr,"  ++ read in dataset - 2 %s\n",argv[nopt]) ;
 
       /*-- sum dataset values into sd --*/
 
