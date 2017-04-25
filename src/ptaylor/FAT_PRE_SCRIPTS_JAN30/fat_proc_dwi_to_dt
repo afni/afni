@@ -57,7 +57,6 @@ set my_viewer = "$adir/@chauffeur_afni"
 
 # ----------------------- set defaults --------------------------
 
-
 set idwi     = ""                 # necessary input: DWI dset
 set invecmat = ( "" "" "" "" )    # switches+names for bvecs and bvals
 set imask    = ""                 # optional mask; otherwise, automask
@@ -79,7 +78,7 @@ set qc_fa_max   = 0.9             # def: FA olay max for QC
 set output_cmd  = 1               # def: output copy of this command
                                   # -> should expand to have all cmds
 set cmd_file    = ""              # def: same name as viewer
-set postfix     = ""              # stick into name
+set postfix     = "_"             # stick into name
 
 set DO_UNCERT   = 1
 set Niters      = 300
@@ -266,6 +265,8 @@ else
 endif
 endif
 
+# -------------------------------
+
 # check if MASK was input, then if can be read
 if ( "$imask" != "" ) then
     set check = `3dinfo "$imask"`
@@ -406,6 +407,8 @@ endif
     -out_col_bval_sep $odir/$obval    \
     "$invecmat[1]" "$invecmat[2]"     \
     "$invecmat[3]" "$invecmat[4]" 
+# NB: the above works somewhat cheatingly by having the empty strings
+# at the end of the function call.
 
 # ... and matching matA
 1dDW_Grad_o_Mat++                     \
@@ -522,9 +525,9 @@ if ( "$iref" != "" ) then
         endif
 
         if( $qc_prefix == "" ) then
-            set vpref0 = ${opref}_${postfix}_qc00_ref_u_$ffo
+            set vpref0 = ${opref}${postfix}_qc00_ref_u_$ffo
         else
-            set vpref0 = ${qc_prefix}_${postfix}_qc00_ref_u_$ffo
+            set vpref0 = ${qc_prefix}${postfix}_qc00_ref_u_$ffo
         endif
 
         echo "\n\n"
@@ -646,9 +649,9 @@ if ( $DO_VIEWER ) then
             -input  $b0mskd
 
         if( $qc_prefix == "" ) then
-            set vpref0 = ${opref}_${postfix}_qc01_ref_u_eb0
+            set vpref0 = ${opref}${postfix}_qc01_ref_u_eb0
         else
-            set vpref0 = ${qc_prefix}_${postfix}_qc01_ref_u_eb0
+            set vpref0 = ${qc_prefix}${postfix}_qc01_ref_u_eb0
         endif
 
         echo "\n\n"
@@ -709,11 +712,11 @@ if ( $DO_VIEWER ) then
     echo "++ Making QC images."
 
     if( $qc_prefix == "" ) then
-        set vpref0 = ${opref}_${postfix}_qc02_ref_u_b0
-        set vpref1 = ${opref}_${postfix}_qc03_MD_u_FA_thr${qc_fa_thr}
+        set vpref0 = ${opref}${postfix}_qc02_ref_u_b0
+        set vpref1 = ${opref}${postfix}_qc03_MD_u_FA_thr${qc_fa_thr}
     else
-        set vpref0 = ${qc_prefix}_${postfix}_qc02_ref_u_b0
-        set vpref1 = ${qc_prefix}_${postfix}_qc03_MD_u_FA_thr${qc_fa_thr}
+        set vpref0 = ${qc_prefix}${postfix}_qc02_ref_u_b0
+        set vpref1 = ${qc_prefix}${postfix}_qc03_MD_u_FA_thr${qc_fa_thr}
     endif
 
     if( "$iref" != "" ) then
@@ -823,14 +826,15 @@ cat << EOF
    {-qc_fa_max    MMM}                            \
    {-no_qc_view}                                  \
    {-no_cmd_out}                                  \
-   {-uncert_off}                                  \
    {-workdir WWW}                                 \
    {-no_clean}                                    \
+   {-uncert_off}                                  \
    {-uncert_iters NN}                             \
    {-uncert_extra_cmds STR}
 
-  where
-    -in_dwi     DWI  :4D volume of N DWIs.
+  where:
+
+    -in_dwi  DWI     :4D volume of N DWIs. Required.
 
     -in_col_matA | -in_col_matT | -in_col_vec | -in_row_vec  GRADMAT
                      :input text file of N gradient vectors or 
@@ -865,7 +869,7 @@ cat << EOF
                       it afterwards; if an ANAT (below) that has been 
                       merely resampled is *not* used, then you really, 
                       really want REF to have the same contrast as the
-                      b=0 DWI volume.
+                      b=0 DWI volume. *Highly recommended to include!*
  -in_struc_res STRUC :accomplish the alignment of the output DWI to the 
                       REF data set via ANAT: a version of the anatomical 
                       that has been resampled to match the DWI set (in 
@@ -873,7 +877,7 @@ cat << EOF
                       TORTOISE there is a 'structure.nii' file that should
                       match this description.  Both ANAT and DWI should 
                       then be well aligned to the original REF (and to  
-                      each other).
+                      each other). *Highly recommended to include!*
          
  -prefix_dti PREFIX2 :set prefix for output DTI data; optional, 
                       default is '${dtipref}'.
@@ -928,9 +932,9 @@ cat << EOF
     $this_prog \
         -in_dwi       DWI.nii                \
         -in_col_matA  BMTXT_AFNI.txt         \
-        -outdir       DTI                    \
         -in_struc_res ../structure.nii       \
-        -in_ref_orig  t2w.nii
+        -in_ref_orig  t2w.nii                \
+        -outdir       DTI 
 
 -------------------------------------------------------------------------
 
@@ -941,6 +945,10 @@ EOF
 SHOW_VERSION:
     echo "version  $version (${rev_dat})"
     goto GOOD_EXIT
+
+FAIL_MISSING_ARG:
+    echo "** ERROR! Missing an argument after option flag: '$argv[$ac]'"
+    goto BAD_EXIT
 
 BAD_EXIT:
     exit 1

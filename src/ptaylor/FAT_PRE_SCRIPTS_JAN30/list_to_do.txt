@@ -1,15 +1,6 @@
-make better working directory names
-
-make better QC names
-
 make consistent deletion of working dirs
 
 make list of co-installs/check script?
 
 make fail if no xvfb-run detected
 
-fat_proc_convert_dwis: see top of file
-
-fat_proc_decmap: check unwt thr one?
-
-name QC images more usefully, e.g., ULAY__OLAY or something
