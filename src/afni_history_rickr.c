@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 25,  Apr, 2017, RCR, "GIFTI", MINOR, TYPE_MODIFY,
+   "no COL_MAJOR changes for gifti_DA_rows_cols, write_*_file",
+   "Also, init gifti_globs_t struct with verb=1."
+ } ,
+
  { 25,  Apr, 2017, RCR, "suma", MICRO, TYPE_MODIFY,
    "SUMA_input.c: 'r'ecord with oversamle - use tcsh -c to delete files",
    "To be explicit about shell in system(), sending errors to /dev/null."
