@@ -1596,15 +1596,11 @@ int write_1D_file(giiDataArray ** dlist, int len, char * prefix, int add_suf)
         }
 
         fprintf(stderr,"++ 1D write, RxC = %lld x %lld\n", rows, cols);
-        if( da->ind_ord == GIFTI_IND_ORD_COL_MAJOR ) {
-            fprintf(stderr,"-- writing data rows in reverse order\n");
-            for(c = rows-1; c >= 0; c-- )
-                ewrite_data_line(da->data, da->datatype, c, cols, 0, 0, fp);
-        } else {
-            fprintf(stderr,"-- writing data rows in normal order\n");
-            for(c = 0; c < rows; c++ )
-                ewrite_data_line(da->data, da->datatype, c, cols, 0, 0, fp);
-        }
+        /* no longer re-order output for column major order, which was */
+        /* probably a mistake to begin with        25 Apr 2017 [rickr] */
+        fprintf(stderr,"-- writing data rows in normal order\n");
+        for(c = 0; c < rows; c++ )
+           ewrite_data_line(da->data, da->datatype, c, cols, 0, 0, fp);
     } else {            /* write da->nvals lines of 'num values */
         void ** vlist = (void **)malloc(len * sizeof(void *));
         int     fail = 0;
@@ -1699,15 +1695,11 @@ int write_surf_file(giiDataArray * dc, giiDataArray * dt, char * prefix,
     rows = crows;
     cols = ccols;
 
-    if( da->ind_ord == GIFTI_IND_ORD_COL_MAJOR ) {
-        fprintf(stderr,"-- writing coord rows in reverse order\n");
-        for(c = rows-1; c >= 0; c-- )
-            ewrite_data_line(da->data, da->datatype, c, cols, 0, 1, fp);
-    } else {
-        fprintf(stderr,"-- writing coord rows in normal order\n");
-        for(c = 0; c < rows; c++ )
-            ewrite_data_line(da->data, da->datatype, c, cols, 0, 1, fp);
-    }
+    /* no longer re-order output for column major order, which was */
+    /* probably a mistake to begin with        25 Apr 2017 [rickr] */
+    fprintf(stderr,"-- writing coord rows in normal order\n");
+    for(c = 0; c < rows; c++ )
+       ewrite_data_line(da->data, da->datatype, c, cols, 0, 1, fp);
 
     /* write out the triangles */
 
@@ -1715,16 +1707,9 @@ int write_surf_file(giiDataArray * dc, giiDataArray * dt, char * prefix,
     rows = trows;
     cols = tcols;
 
-    if( da->ind_ord == GIFTI_IND_ORD_COL_MAJOR ) {
-        fprintf(stderr,"-- writing triangle rows in reverse order\n");
-        for(c = rows-1; c >= 0; c-- )
-            ewrite_data_line(da->data, da->datatype, c, cols, 0, 1, fp);
-    } else {
-        fprintf(stderr,"-- writing triangle rows in normal order\n");
-        for(c = 0; c < rows; c++ )
-            ewrite_data_line(da->data, da->datatype, c, cols, 0, 1, fp);
-    }
-
+    fprintf(stderr,"-- writing triangle rows in normal order\n");
+    for(c = 0; c < rows; c++ )
+       ewrite_data_line(da->data, da->datatype, c, cols, 0, 1, fp);
 
     fclose(fp);
 
@@ -1835,7 +1820,14 @@ int ewrite_data_line(void * data, int type, int row, int cols, int spaces,
 }
 
 
-/* write out as cols by rows (else we'd use ewrite_data_line) */
+/* write out as cols by rows (else we'd use ewrite_data_line)
+ *
+ * This essentially transposes DA elements and DA data (Row/Column major
+ * order is not handled, as that is within each DA element).  The point is
+ * to print the time series for each node on a single line.
+ *
+ * Time points are the likely cols here, where each col is a DA element.
+ */
 int ewrite_many_lines(void ** data, int type, long long cols, long long rows,
                       int spaces, FILE * fp)
 {
