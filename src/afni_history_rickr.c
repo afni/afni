@@ -49,6 +49,16 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 25,  Apr, 2017, RCR, "afni_proc.py", MICRO, TYPE_BUG_FIX,
+   "fix follower warps for gzipped NL-WARP datasets",
+   "Thanks to C Connely for noting the problem."
+ } ,
+
+ { 25,  Apr, 2017, RCR, "dcm2niix_afni", MICRO, TYPE_ENHANCE,
+   "added to source for build testing",
+   NULL
+ } ,
+
  { 17,  Apr, 2017, RCR, "1d_tool.py", MICRO, TYPE_MODIFY,
    "clarify source in -show_censored_trs (if Xmat, use header info)",
    NULL

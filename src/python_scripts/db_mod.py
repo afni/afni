@@ -2225,7 +2225,7 @@ def warp_anat_followers(proc, block, anat_aname, epi_aname=None, prevepi=0):
    # check for any non-linear warp
    donl = 0
    for warp in warps:
-      if warp.endswith('qw_WARP.nii'):
+      if warp.endswith('qw_WARP.nii') or warp.endswith('qw_WARP.nii.gz'):
          donl = 1
          break
 
@@ -2257,7 +2257,7 @@ def warp_anat_followers(proc, block, anat_aname, epi_aname=None, prevepi=0):
       if xform == identity_warp: warpstr = "-1Dparam_apply %s\\'" % xform
       else:                      warpstr = '-1Dmatrix_apply %s' % xform
 
-   if donl:                     wtstr = 'non-liner'
+   if donl:                     wtstr = 'non-linear'
    elif xform == identity_warp: wtstr = 'identity: resample'
    else:                        wtstr = 'affine'
    wstr = '# -----------------------------------------\n'  \
