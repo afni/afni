@@ -28,6 +28,8 @@
    Jan 2015:
    + nifti outputtable
 
+   Apr 2017:
+   + change behavior around empty ROIs
 */
 
 
@@ -78,8 +80,9 @@ void usage_NetCorr(int detail)
 "* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n"
 "\n"
 "  + COMMAND: 3dNetCorr -prefix PREFIX {-mask MASK} {-fish_z} {-part_corr} \\\n"
-"                -inset FILE -in_rois INROIS {-ts_out} {-ts_label} \\\n"
-"                {-ts_indiv} {-ts_wb_corr} {-ts_wb_Z} {-nifti} \n"
+"                -inset FILE -in_rois INROIS {-ts_out} {-ts_label}         \\\n"
+"                {-ts_indiv} {-ts_wb_corr} {-ts_wb_Z} {-nifti}             \\\n"
+"                {-push_thru_many_zeros}\n"
 "\n"
 "* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n"
 "\n"
@@ -111,6 +114,16 @@ void usage_NetCorr(int detail)
 "        as either Pearson r or Fisher-transformed Z-scores (or both); see\n"
 "        the '-ts_wb*' options below.\n"
 "\n"
+"        [As of April, 2017] There is now more checking done for having any\n"
+"        null time series in ROIs.  They are bad to have around, esp. when\n"
+"        they fill an ROI.  A new file called 'PREFIX.roidat' is now output,\n"
+"        whose columns contain information for each ROI in the used mask:\n"
+"        [Nvox] [Nvox with non-null ts] [non-null frac] # [ROI number] [label]\n"
+"        The program also won't run now by default if an ROI contains more\n"
+"        than 10 percent null time series; one can use a '-push*' option\n"
+"        (see below) to still calculate anyways, but it will definitely cease\n"
+"        if any ROI is full of null time series.\n"
+"\n"
 "* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n"
 "\n"
 "  + RUNNING, need to provide:\n"
@@ -124,9 +137,11 @@ void usage_NetCorr(int detail)
 "                      be treated as a separate network.\n"
 "    -fish_z          :switch to also output a matrix of Fisher Z-transform\n"
 "                      values for the corr coefs (r):\n"
-"                          Z = 0.5 ln( [1+r]/[1-r] ) ,\n"
-"                      (with zeros being output along matrix diagonals where\n"
-"                      r=1).\n"
+"                          Z = atanh(r) ,\n"
+"                      (with Z=4 being output along matrix diagonals where\n"
+"                      r=1, as the r-to-Z conversion is ceilinged at \n"
+"                      Z = atanh(r=0.999329) = 4, which is still *quite* a\n"
+"                      high Pearson-r value.\n"
 "    -part_corr       :output the partial correlation matrix. It is \n"
 "                      calculated from the inverse of regular Pearson\n"
 "                      matrix, R, as follows: let M = R^{I} be in the inverse\n"
@@ -174,6 +189,19 @@ void usage_NetCorr(int detail)
 "    -nifti           :output any correlation map files as NIFTI files\n"
 "                      (default is BRIK/HEAD). Only useful if using\n"
 "                      '-ts_wb_corr' and/or '-ts_wb_Z'.\n"
+"\n"
+"   -push_thru_many_zeros\n"
+"                     :by default, this program will grind to a halt and\n"
+"                      and refuse to calculate if any ROI contains >10 percent\n"
+"                      of voxels with null times series (i.e., each point is\n"
+"                      0), as of April, 2017.  This is because it seems most\n"
+"                      likely that hidden badness is responsible. However,\n"
+"                      if the user still wants to carry on the calculation\n"
+"                      anyways, then this option will allow one to push on\n"
+"                      through.  However, if any ROI *only* has null time\n"
+"                      series, then the program will not calculate and the\n"
+"                      user will really, really, really need to address\n"
+"                      their masking.\n"
 "\n"
 "    -ignore_LT       :switch to ignore any label table labels in the \n"
 "                      '-in_rois' file, if there are any labels attached.\n"
@@ -260,7 +288,12 @@ int main(int argc, char *argv[]) {
    int OLD_LABEL=0; // ooollld style format of regions: Nnumber:Rnumber
    int IGNORE_LT=0; // ignore label table
 
-
+   double checksum = 0.;
+   int **ROI_COUNTnz=NULL;
+   byte ***mskdnz=NULL; // use to check for nonzero locs
+   byte *mskd2nz=NULL; // use to check for nonzero locs: use for mask app
+   int DO_PUSH = 0;
+   int *FLAG_nulls=NULL;
 
    int idx = 0;
    int Nmask = 0;
@@ -347,6 +380,11 @@ int main(int argc, char *argv[]) {
     
       if( strcmp(argv[iarg],"-fish_z") == 0) {
          FISH_OUT=1;
+         iarg++ ; continue ;
+      }
+
+      if( strcmp(argv[iarg],"-push_thru_many_zeros") == 0) {
+         DO_PUSH=1;
          iarg++ ; continue ;
       }
 
@@ -474,7 +512,17 @@ int main(int argc, char *argv[]) {
       for ( j = 0 ; j < Dim[1] ; j++ ) 
          mskd[i][j] = (byte *) calloc( Dim[2], sizeof(byte) );
 
-   if( (mskd == NULL) || (Nlist == NULL) || (mskd2 == NULL)) { 
+   mskd2nz = (byte *)calloc(Nvox,sizeof(byte)); 
+
+   mskdnz = (byte ***) calloc( Dim[0], sizeof(byte **) );
+   for ( i = 0 ; i < Dim[0] ; i++ ) 
+      mskdnz[i] = (byte **) calloc( Dim[1], sizeof(byte *) );
+   for ( i = 0 ; i < Dim[0] ; i++ ) 
+      for ( j = 0 ; j < Dim[1] ; j++ ) 
+         mskdnz[i][j] = (byte *) calloc( Dim[2], sizeof(byte) );
+
+   if( (mskd == NULL) || (Nlist == NULL) || (mskd2 == NULL) ||
+       (mskdnz == NULL) || (mskd2nz == NULL) ) { 
       fprintf(stderr, "\n\n MemAlloc failure (masks).\n\n");
       exit(122);
    }
@@ -487,10 +535,27 @@ int main(int argc, char *argv[]) {
 	
    INFO_message("Allocating...");
 
+   if( HAVE_MASK ) 
+      INFO_message("Applying user's mask");
+   else
+      INFO_message("User didn't enter mask: will make my own, "
+                   "based on where I find nonzero time series.");
+
+   idx = 0;
    // go through once: define data vox, and calc rank for each
    for( k=0 ; k<Dim[2] ; k++ ) 
       for( j=0 ; j<Dim[1] ; j++ ) 
          for( i=0 ; i<Dim[0] ; i++ ) {
+            // first, we make a mask of nonzero time series
+            checksum = 0.;
+            for( m=0 ; m<Dim[3] ; m++ ) 
+               checksum+= fabs(THD_get_voxel(insetTIME,idx,0));
+            if( checksum > EPS_V ) {
+               mskdnz[i][j][k] = 1;
+               mskd2nz[idx] = 1;
+            }
+
+            // if user input a mask, then use that
             if( HAVE_MASK ) {
                if( THD_get_voxel(MASK,idx,0)>0 ) {
                   mskd[i][j][k] = 1;
@@ -498,12 +563,8 @@ int main(int argc, char *argv[]) {
                   Nmask++;
                }
             }
-            else // simple automask attempt
-               if( fabs(THD_get_voxel(insetTIME,idx,0))+
-                   fabs(THD_get_voxel(insetTIME,idx,1))+
-                   fabs(THD_get_voxel(insetTIME,idx,2))+
-                   fabs(THD_get_voxel(insetTIME,idx,3))+
-                   fabs(THD_get_voxel(insetTIME,idx,4)) > EPS_V) {
+            else    // ... use checksum results for nonzero time series
+               if( checksum > EPS_V ) {
                   mskd[i][j][k] = 1;
                   mskd2[idx] = 1;
                   Nmask++;
@@ -511,19 +572,19 @@ int main(int argc, char *argv[]) {
             idx+= 1; // skip, and mskd and KW are both still 0 from calloc
          }
    
-   
    if (HAVE_MASK) {
       DSET_delete(MASK);
       free(MASK);
    }
 
-
    // obviously, this should always be TRUE at this point...
    if(HAVE_ROIS>0) {
      
+      FLAG_nulls = (int *)calloc(HAVE_ROIS, sizeof(int)); 
       NROI_REF = (int *)calloc(HAVE_ROIS, sizeof(int)); 
       INVROI_REF = (int *)calloc(HAVE_ROIS, sizeof(int)); 
-      if( (NROI_REF == NULL) || (INVROI_REF == NULL) ) {
+      if( (NROI_REF == NULL) || (INVROI_REF == NULL) ||
+          (FLAG_nulls == NULL) ) {
          fprintf(stderr, "\n\n MemAlloc failure.\n\n");
          exit(122);
       }
@@ -543,6 +604,14 @@ int main(int argc, char *argv[]) {
          fprintf(stderr, "\n\n MemAlloc failure.\n\n");
          exit(123);
       }
+
+      // PT: Apr, 2017: apply mask to ROIs, zero out those not in it
+      // initially
+      INFO_message("Applying mask to ROIs.");
+      mm = THD_applydsetmask( ROIS, mskd2 );
+      //INFO_message("FYI, there were %d voxels across all networks that got"
+      //             "\n\tmasked out here.  If that seems like a lot to you, then"
+      //             "\n\tconsider checking your masks and network maps again.", mm);
 
       INFO_message("Labelling regions internally.");
 
@@ -600,7 +669,11 @@ int main(int argc, char *argv[]) {
       for(i=0 ; i<HAVE_ROIS ; i++) 
          ROI_COUNT[i] = calloc(NROI_REF[i],sizeof(int)); 
 
-      if( (ROI_COUNT == NULL) ) {
+      ROI_COUNTnz = calloc( HAVE_ROIS,sizeof(ROI_COUNTnz));  
+      for(i=0 ; i<HAVE_ROIS ; i++) 
+         ROI_COUNTnz[i] = calloc(NROI_REF[i],sizeof(int)); 
+
+      if( (ROI_COUNT == NULL) || (ROI_COUNTnz == NULL) ) {
          fprintf(stderr, "\n\n MemAlloc failure.\n\n");
          exit(123);
       }
@@ -611,13 +684,104 @@ int main(int argc, char *argv[]) {
          for( k=0 ; k<Dim[2] ; k++ ) 
             for( j=0 ; j<Dim[1] ; j++ ) 
                for( i=0 ; i<Dim[0] ; i++ ) {
+                  // count total num of vox per ROI
                   if( (THD_get_voxel(ROIS,idx,m) > 0 ) && mskd[i][j][k] ) {
                      ROI_COUNT[m][INV_LABELS_REF[m][(int) 
+                                                    THD_get_voxel(ROIS,idx,m)]-1]++;
+                  }
+                  // count num of nonzero vox per ROI (above is just within mask)
+                  if( (THD_get_voxel(ROIS,idx,m) > 0 ) && mskdnz[i][j][k] ) {
+                     ROI_COUNTnz[m][INV_LABELS_REF[m][(int) 
                                                     THD_get_voxel(ROIS,idx,m)]-1]++;
                   }
                   idx++;
                }
       }
+      
+      /*
+      // describe the nums of nonzeros still left in
+      {
+         fprintf(stderr,"\n\n ROI counts \n\n");
+         for(i=0 ; i<HAVE_ROIS ; i++) {
+            fprintf(stderr,"%10s %10s  %8s  #  %6s  %s\n", 
+                    "ROI_vol", "ROI_nnull", "frac", "ROI", "ROI_label");
+            for(j=0 ; j<NROI_REF[i] ; j++) {
+               checksum = (ROI_COUNTnz[i][j]) / ((double) ROI_COUNT[i][j]);
+               // badness count!
+               if (checksum < 0.9 ) 
+                  FLAG_nulls[i]+= 1;
+               fprintf(stderr,"%10d %10d  %8.5f  #  %6d  %s\n",
+                       ROI_COUNT[i][j], ROI_COUNTnz[i][j], (float) checksum, 
+                       ROI_LABELS_REF[i][j+1], ROI_STR_LABELS[i][j+1]);
+            }
+         }
+      }
+      */
+
+      // describe the nums of nonzeros still left in
+      if( 1 ) {
+         for( k=0 ; k<HAVE_ROIS ; k++) { // each netw gets own file
+            
+            sprintf(OUT_grid,"%s_%03d.roidat", prefix, k);
+            if( (fout1 = fopen(OUT_grid, "w")) == NULL) {
+               fprintf(stderr, "Error opening file %s.", OUT_grid);
+               exit(19);
+            }
+            fprintf(fout1, "# %8s %10s  %8s  #  %6s  %s\n", 
+                    "N_vox", "N_nonnull", "frac", "ROI", "ROI_label");
+            for(j=0 ; j<NROI_REF[k] ; j++) {
+               checksum = (ROI_COUNTnz[k][j]) / ((double) ROI_COUNT[k][j]);
+               // badness count!
+               
+               if (checksum <= EPS_V )
+                  FLAG_nulls[k] = -1; // ultimate badness
+               else if ( (checksum < 0.9) && (FLAG_nulls[k]>=0 ) )
+                  FLAG_nulls[k]+= 1; //can be badness
+               fprintf(fout1,"%10d %10d  %8.5f  #  %6d  %s\n",
+                       ROI_COUNT[k][j], ROI_COUNTnz[k][j], (float) checksum, 
+                       ROI_LABELS_REF[k][j+1], ROI_STR_LABELS[k][j+1]);
+            }
+            fclose(fout1);  
+         }
+      }
+
+      for( k=0 ; k<HAVE_ROIS ; k++) {
+         if( FLAG_nulls[k] < 0 ) {
+            WARNING_message("Some null/empty time series in ROIs. See file:"
+                            "\n\t%s_%03d.roivol", prefix, k);
+            ERROR_message("Network [%d] has at least one ROI with null "
+                          "time series! If you want, you *can* "
+                          "\n\t use the '-push_thru_many_zeros' option "
+                          "(see the help), but it ain't recommended.",
+                          k, FLAG_nulls[k]); 
+            exit(1);
+         }
+         else if( FLAG_nulls[k] > 0 ) {
+            WARNING_message("Some null/empty time series in ROIs. See file:"
+                            "\n\t %s_%03d.roivol", prefix, k);
+            if ( DO_PUSH ) {
+               WARNING_message("Network [%d] has %d ROIs with >10 percent "
+                               "null time series!", k, FLAG_nulls[k]);
+            }
+            else {
+               ERROR_message("Network [%d] has %d ROIs with >10 percent "
+                             "null time series! If you want, you *can*"
+                             "\n\t use the '-push_thru_many_zeros' option "
+                             "(see the help), but it ain't recommended.",
+                             k, FLAG_nulls[k]); 
+               exit(1);
+            }
+         }
+      }
+
+
+
+
+
+
+
+
+
 
       // make list of vox per ROI
       ROI_LISTS = (int ***) calloc( HAVE_ROIS, sizeof(int **) );
@@ -696,21 +860,24 @@ int main(int argc, char *argv[]) {
    for( i=0 ; i<Dim[0] ; i++) 
       for( j=0 ; j<Dim[1] ; j++) {
          free(mskd[i][j]);
+         free(mskdnz[i][j]);
       }
    for( i=0 ; i<Dim[0] ; i++) {
       free(mskd[i]);
+      free(mskdnz[i]);
    }
    free(mskd);
+   free(mskdnz);
 
    INFO_message("Calculating average time series.");
-
 
    // ROI values
    for(i=0 ; i<HAVE_ROIS ; i++) 
       for( j=0 ; j<NROI_REF[i] ; j++ ) {
          Nlist[0]=ROI_COUNT[i][j];
-         k = CalcAveRTS(ROI_LISTS[i][j], ROI_AVE_TS[i][j], 
-                        insetTIME, Dim, Nlist);
+         if ( Nlist[0] )    // otherwise, the ROI's ts is just 0s
+            k = CalcAveRTS(ROI_LISTS[i][j], ROI_AVE_TS[i][j], 
+                           insetTIME, Dim, Nlist);
       }
   
    INFO_message("Calculating correlation matrix.");
@@ -1016,6 +1183,7 @@ int main(int argc, char *argv[]) {
    free(insetTIME);
 
    free(mskd2);
+   free(mskd2nz);
    free(Nlist);
 
    free(Dim); // need to free last because it's used for other arrays...
@@ -1026,6 +1194,8 @@ int main(int argc, char *argv[]) {
 
    if(HAVE_ROIS >0) {
 		
+      free(FLAG_nulls);
+
       for( i=0 ; i<HAVE_ROIS ; i++) {
          for( j=0 ; j<NROI_REF[i] ; j++) {
             free(ROI_LISTS[i][j]);
