@@ -44,6 +44,14 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 26 , APR , 2017 , RWC , "3dMultiThresh" , MICRO , TYPE_NEW_OPT ,
+   "Add option to choose sign for 1-sided thresholding" ,
+   NULL } ,
+
+ { 26 , APR , 2017 , RWC , "3dXClustSim" , MICRO , TYPE_BUG_FIX ,
+   "Bug in looping index in STEP 2 caused malloc() problems.  Oog" ,
+   NULL } ,
+
  { 21 , APR , 2017 , RWC , "3dttest++" , MAJOR , TYPE_ENHANCE ,
    "Extensive modifications to ETAC" ,
    "Adding the ability to due multiple amounts of blurring.  Some changes to\n"
