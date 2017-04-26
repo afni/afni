@@ -74,8 +74,8 @@ typedef struct {
  } while(0)
 
 #define ADDTO_Xcluster_array(xcar,xc)                                          \
- do{ if( (xcar)->nclu == (xcar)->nall ){                                       \
-       (xcar)->nall += 32 ;                                                    \
+ do{ if( (xcar)->nclu >= (xcar)->nall ){                                       \
+       (xcar)->nall = (xcar)->nclu + 32 ;                                      \
        (xcar)->xclu = (Xcluster **)realloc((xcar)->xclu,                       \
                                            sizeof(Xcluster **)*(xcar)->nall) ; \
      }                                                                         \
@@ -221,8 +221,8 @@ static float cth_perc = 90.0f ;
 #define CPUT_point(i,j,k)                                                    \
  do{ int pqr = (i)+(j)*nx+(k)*nxy , npt=(xcc)->npt ;                         \
      if( far[pqr] != 0.0f ){                                                 \
-       if( npt == (xcc)->nall ){                                             \
-         (xcc)->nall += DALL + (xcc)->nall/2 ;                               \
+       if( npt >= (xcc)->nall ){                                             \
+         (xcc)->nall = npt + DALL + (xcc)->nall/2 ;                          \
          (xcc)->ip = (ind_t *)realloc((xcc)->ip,sizeof(ind_t)*(xcc)->nall) ; \
          (xcc)->jp = (ind_t *)realloc((xcc)->jp,sizeof(ind_t)*(xcc)->nall) ; \
          (xcc)->kp = (ind_t *)realloc((xcc)->kp,sizeof(ind_t)*(xcc)->nall) ; \

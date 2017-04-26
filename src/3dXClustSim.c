@@ -1,17 +1,37 @@
 #include "mrilib.h"
 #include <ctype.h>
 
-/** to do:
-     generalize equity loop to be over a struct array instead of just pthr
-     write better help
-**/
+#undef DEBUG_MEM
+#if 0 && !defined(DONT_USE_MCW_MALLOC)
+# define DEBUG_MEM
+#endif
 
 #ifdef USE_OMP
-#include <omp.h>
+# include <omp.h>
+#endif
+
+#ifdef DEBUG_MEM
+# include "mcw_malloc.c"
+# define malloc(a)     mcw_malloc((a),__FILE__,__LINE__)
+# define realloc(a,b)  mcw_realloc((a),(b),__FILE__,__LINE__)
+# define calloc(a,b)   mcw_calloc((a),(b),__FILE__,__LINE__)
+# define free(a)       mcw_free((a),__FILE__,__LINE__)
+# undef  strdup
+# define strdup(a)     mcw_strdup((a),__FILE__,__LINE__)
 #endif
 
 #include "mri_threshX.c"  /* important stuff: clustering, thresholding */
 #include "thd_Xdataset.c" /* input dataset format and funcs */
+
+#undef MEMORY_CHECK
+#ifdef DEBUG_MEM
+# define MEMORY_CHECK(mm)                                                               \
+   do{ if( verb > 1 )                                                                    \
+         ININFO_message("Memory %s: %s",mm,mcw_malloc_status("3dXClustSim.c",__LINE__)) ; \
+   } while(0)
+#else
+# define MEMORY_CHECK(mm) /*nada*/
+#endif
 
 /*---------------------------------------------------------------------------*/
 /*--- Global data ---*/
@@ -72,10 +92,10 @@ static float  *zthr_used = NULL ;
 
 /* hpow values: FOM = sum |z|^H for H=0, 1, and/or 2 */
 
-static int    do_hpow0 = 1 ;  /* 1 or 0 */
+static int    do_hpow0 = 0 ;  /* 1 or 0 */
 static int    do_hpow1 = 0 ;
 static int    do_hpow2 = 1 ;
-static int    nhpow    = 2 ;  /* sum of the above */
+static int    nhpow    = 1 ;  /* sum of the above */
 
 /* cases (e.g., blurs) */
 
@@ -691,12 +711,12 @@ typedef struct {
 #define DESTROY_Xvector(xv)                            \
  do{ free(xv->far); free(xv); } while(0)
 
-#define ADDTO_Xvector(xv,val)                                         \
- do{ if( xv->npt == xv->nall ){                                       \
-       xv->nall += DALL + xv->nall/4 ;                                \
-       xv->far   = (float *)realloc(xv->far,sizeof(float)*xv->nall) ; \
-     }                                                                \
-     xv->far[xv->npt++] = (val) ;                                     \
+#define ADDTO_Xvector(xv,val)                                        \
+ do{ if( xv->npt >= xv->nall ){                                      \
+       xv->nall = xv->npt + DALL + xv->nall/4 ;                      \
+       xv->far  = (float *)realloc(xv->far,sizeof(float)*xv->nall) ; \
+     }                                                               \
+     xv->far[xv->npt++] = (val) ;                                    \
  } while(0)
 
 /* global FOM vector arrays -- created in main() */
@@ -862,9 +882,34 @@ int main( int argc , char *argv[] )
 
    if( argc < 2 || strcasecmp(argv[1],"-help") == 0 ){
      printf("\n"
-       "God only knows what this program does (if anything).\n") ;
+       "This program takes as input random field simulations\n"
+       "(e.g., from 3dttest++) and does the ETAC processing to\n"
+       "find cluster figure of merit (FOM) thresholds that are\n"
+       "equitable across\n"
+       "  * voxel-wise p-values (-pthr option)\n"
+       "  * blurring cases      (-ncase option)\n"
+       "  * H power values      (-hpow option)\n"
+       "as well as being balanced across space to produce\n"
+       "a False Positive Rate (FPR) that is approximately the\n"
+       "same for each location and for each sub-case listed\n"
+       "above. The goal is a global FPR of 5%%.\n"
+       "\n"
+       "* This program can be slow and consume a lot of memory!\n"
+       "* The output is a set of multi-threshold (.mthresh.nii)\n"
+       "  files -- one for each of the -ncase inputs.\n"
+       "* These files can be used via program 3dMultiThresh\n"
+       "  to produce an 'activation' mask.\n"
+       "* 3dXClustSim is intended to be used from 3dttest++\n"
+       "  (via its '-ETAC' option) or some other script.\n"
+       "  It is not intended to be run directly by any but the\n"
+       "  most knowledgeable users.\n"
+     ) ;
 
      printf("\n"
+       "--------\n"
+       "OPTIONS:\n"
+       "--------\n"
+       "\n"
        " -inset     mask sdata ... {MANDATORY} [from 3dtoXdataset or 3dttest++]\n"
        " -insdat\n"
        "\n"
@@ -881,10 +926,17 @@ int main( int argc , char *argv[] )
        "                           [equiv z2= 2.576  2.770  2.958  3.121  3.291 ]\n"
        "\n"
        " -prefix    something\n"
+       " -verb      be more verbose\n"
+       " -quiet     silentium est aureum\n"
 #if 0
        " -FOMcount  turn on FOMcount output\n"
        " -FARvox    turn on FARvox output\n"
 #endif
+       "\n"
+       "**-----------------------------------------------------------\n"
+       "** Authored by Lamont Cranston, also known as ... The Shadow.\n"
+       "**-----------------------------------------------------------\n"
+       "\n"
      ) ;
      exit(0) ;
    }
@@ -897,9 +949,20 @@ int main( int argc , char *argv[] )
    AFNI_logger("3dXClustSim",argc,argv);
    PRINT_VERSION("3dXClustSim"); AUTHOR("Lamont Cranston") ;
 
+#ifdef DEBUG_MEM
+   enable_mcw_malloc() ;
+#ifdef USE_OMP
+   omp_set_num_threads(1) ;
+#endif
+#endif
+
    /*----- load command line options -----*/
 
    get_options(argc,argv) ;
+
+#ifdef DEBUG_MEM
+   if( verb < 2 ) pause_mcw_malloc() ;
+#endif
 
    /*----- get the number of threads -----------------------------------*/
 
@@ -938,6 +1001,8 @@ int main( int argc , char *argv[] )
      }
    }
 
+   MEMORY_CHECK("startup") ;
+
    /*===================================================================*/
    /*--- STEP 1a: loop over realizations to load up Xclustar_g[][][] ---*/
 
@@ -971,6 +1036,11 @@ int main( int argc , char *argv[] )
        /* creates Xclustar_g[icase][ipthr][iter] */
        gather_clusters( icase, ipthr , far, tfim, nnlev,nnsid, iter ) ;
      }
+     if( verb > 2 && nthr == 1 && isim%1000 == 666 ) fprintf(stderr,".") ;
+     if( 0 && verb > 2 ){
+#pragma omp critical
+       { char mmm[32] ; sprintf(mmm,"isim=%d",isim) ; MEMORY_CHECK(mmm) ; }
+     }
    }
 
    /* delete thread-specific workspace for this processing block */
@@ -980,10 +1050,11 @@ int main( int argc , char *argv[] )
  }
  AFNI_OMP_END ;       /*---------- end parallel section ----------*/
 
+   MEMORY_CHECK("after clustering") ;
+
 #if 0
    /* don't need xinset's data any more */
-
-   unmap_Xdataset(xinset) ;  /* 13 Apr 2017 */
+   unmap_Xdataset(xinset) ;
 #endif
 
    /*=====================================================================*/
@@ -1039,6 +1110,8 @@ int main( int argc , char *argv[] )
      free(Xclustar_g) ; Xclustar_g = NULL ; /* not needed no more */
    }
 
+   MEMORY_CHECK("after counting") ;
+
    /*=========================================================================*/
    /*--- STEP 1c: find the global distributions and min thresholds -----------*/
 
@@ -1048,10 +1121,11 @@ int main( int argc , char *argv[] )
 
    { int nfom,jj,nfff; Xcluster **xcc;
      float a0,a1,f0,f1,fta,ftb , fmax ;
+     float *fomg0, *fomg1, *fomg2 ;
 
-     float *fomg0=calloc(sizeof(float),nclust_max) ; /* workspaces */
-     float *fomg1=calloc(sizeof(float),nclust_max) ; /* for this  */
-     float *fomg2=calloc(sizeof(float),nclust_max) ; /* section  */
+     fomg0 = calloc(sizeof(float),nclust_max) ; /* workspaces */
+     fomg1 = calloc(sizeof(float),nclust_max) ; /* for this  */
+     fomg2 = calloc(sizeof(float),nclust_max) ; /* section  */
 
      if( verb )
        ININFO_message("STEP 1c: compute minimum thresholds") ;
@@ -1061,7 +1135,7 @@ int main( int argc , char *argv[] )
      gthresh1 = (float **)malloc(sizeof(float *)*ncase) ;
      gthresh2 = (float **)malloc(sizeof(float *)*ncase) ;
 
-     for( qcase=0 ; qcase < npthr ; qcase++ ){
+     for( qcase=0 ; qcase < ncase ; qcase++ ){
        gthresh0[qcase] = (float *)calloc(sizeof(float),npthr) ; /* saved */
        gthresh1[qcase] = (float *)calloc(sizeof(float),npthr) ; /* global */
        gthresh2[qcase] = (float *)calloc(sizeof(float),npthr) ; /* thresholds */
@@ -1125,6 +1199,8 @@ int main( int argc , char *argv[] )
 
      free(fomg0) ; free(fomg1) ; free(fomg2) ;
    }
+
+   MEMORY_CHECK("after globalizing") ;
 
    /*==========================================================================*/
    /*--- STEP 2: dilate the clusters ------------------------------------------*/
@@ -1205,6 +1281,14 @@ int main( int argc , char *argv[] )
        /* initialize counts of number of dilations for each NN type */
        ndilated[0] = ndilated[1] = ndilated[2] = ndilated[3] = 0 ;
 
+#ifdef DEBUG_MEM
+       if( verb > 1 ){
+         char mmm[256] ;
+         sprintf(mmm,"before dilation: qcase=%d qpthr=%d ndilstep=%d",qcase,qpthr,ndilstep) ;
+         MEMORY_CHECK(mmm) ;
+       }
+#endif
+
  AFNI_OMP_START ;      /*------------ start parallel section ----------*/
 #pragma omp parallel
  {  DECLARE_ithr ;
@@ -1231,7 +1315,7 @@ int main( int argc , char *argv[] )
 /* #pragma omp for schedule(dynamic,1) */
 #pragma omp for
     for( ijkbot=0 ; ijkbot < nxyz ; ijkbot+=dijk ){
-      ijktop = ijkbot + (dijk-1) ;
+      ijktop = ijkbot + (dijk-1) ; if( ijktop >= nxyz ) ijktop = nxyz-1 ;
       process_clusters_to_Xvectors( ijkbot, ijktop , qcase,qpthr ) ;
     }
 
@@ -1278,6 +1362,8 @@ int main( int argc , char *argv[] )
    for( ii=0 ; ii < nthr ; ii++ ) free(dilg_ijk[ii]) ;
    free(ndilg); free(dilg_ijk);
 
+   MEMORY_CHECK("after all dilations") ;
+
    /*=======================================================*/
    /*--- STEP 3: create sorted and truncated FOM vectors ---*/
 
@@ -1309,6 +1395,17 @@ int main( int argc , char *argv[] )
 
      Xcluster **xcar = Xclust_tot[qcase][qpthr] ;
      int        ncar = nclust_tot[qcase][qpthr] ;
+
+#ifdef DEBUG_MEM
+     if( verb > 1 ){
+       char mmm[256] ;
+       sprintf(mmm,"before FOMsort: qcase=%d qpthr=%d",qcase,qpthr) ;
+       MEMORY_CHECK(mmm) ;
+     }
+#else
+     if( verb > 1 )
+       ININFO_message("     start Case %s pthr=%.5f",lcase[qcase],pthr[qpthr]) ;
+#endif
 
  AFNI_OMP_START ;      /*------------ start parallel section ----------*/
 # pragma omp parallel
@@ -1451,6 +1548,8 @@ int main( int argc , char *argv[] )
    free(fomvec0) ; fomvec0 = NULL ;
    free(fomvec1) ; fomvec1 = NULL ;
    free(fomvec2) ; fomvec2 = NULL ;
+
+   MEMORY_CHECK("after all FOMsort") ;
 
    /*========================================================*/
    /*--- STEP 4: test FOM count thresholds to find FAR=5% ---*/
@@ -1653,6 +1752,7 @@ FARP_LOOPBACK:
      farperc    = (100.0*nfar)/(float)niter ;  /* what we got this time */
      if( verb )
        ININFO_message("         FPR = %.2f%%", farperc/fgfac ) ;
+     MEMORY_CHECK(" ") ;
 
      /* do we need to try another tfrac to get closer to our goal? */
 
@@ -1749,5 +1849,6 @@ FARP_LOOPBACK:
    /* It's the end of the world, Calvin */
 
    INFO_message("=== 3dXClustSim ends: Elapsed time = %.1f s",COX_clock_time()) ;
+   MEMORY_CHECK("THE END") ;
    exit(0) ;
 }

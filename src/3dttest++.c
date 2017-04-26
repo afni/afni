@@ -233,9 +233,14 @@ static unsigned short xran_pm[3] = { 23456 , 34567 , 54321 } ;
 #define SET_XRAN(xr,rss) \
  ( (xr)[0]=((rss)>>16), (xr)[1]=((rss)&65535), (xr)[2]=(xr)[0]+(xr)[1]+17 )
 
+#undef DEBUG_RAN
+
 static void setup_randomsign(void)  /* moved here 02 Feb 2016 */
 {
    int nflip , nb,nt , jj ;
+#ifdef DEBUG_RAN
+   static int ncall=0 ;
+#endif
 
    if( randomsign_AAA == NULL )
      randomsign_AAA = (int *)malloc(sizeof(int)*nval_AAA) ;
@@ -248,11 +253,13 @@ static void setup_randomsign(void)  /* moved here 02 Feb 2016 */
        if( randomsign_AAA[jj] ) nflip++ ;
      }
    } while( nflip < nb || nflip > nt ) ;
-#if 0
-   fprintf(stderr,"++ randomsign for setA:") ;
-   for( jj=0 ; jj < nval_AAA ; jj++ )
-     fprintf(stderr,"%c" , randomsign_AAA[jj] ? '-' : '+' ) ;
-   fprintf(stderr,"\n") ;
+#ifdef DEBUG_RAN
+   if( ncall < 5 ){
+     fprintf(stderr,"++ randomsign for setA:") ;
+     for( jj=0 ; jj < nval_AAA ; jj++ )
+       fprintf(stderr,"%c" , randomsign_AAA[jj] ? '-' : '+' ) ;
+     fprintf(stderr,"\n") ;
+   }
 #endif
 
    if( nval_BBB > 0 ){
@@ -267,13 +274,21 @@ static void setup_randomsign(void)  /* moved here 02 Feb 2016 */
          if( randomsign_BBB[jj] ) nflip++ ;
        }
      } while( nflip < nb || nflip > nt ) ;
-#if 0
-     fprintf(stderr,"++ randomsign for setB:") ;
-     for( jj=0 ; jj < nval_BBB ; jj++ )
-       fprintf(stderr,"%c" , randomsign_BBB[jj] ? '-' : '+' ) ;
-     fprintf(stderr,"\n") ;
+#ifdef DEBUG_RAN
+     if( ncall < 5 ){
+       fprintf(stderr,"++ randomsign for setB:") ;
+       for( jj=0 ; jj < nval_BBB ; jj++ )
+         fprintf(stderr,"%c" , randomsign_BBB[jj] ? '-' : '+' ) ;
+       fprintf(stderr,"\n") ;
+     }
 #endif
    }
+
+#ifdef DEBUG_RAN
+   ncall++ ;
+#endif
+
+   return ;
 }
 
 /*--------------------------------------------------------------------------*/
@@ -314,8 +329,8 @@ static void setup_permute( int nx , int ny )
      }
    }
 
-#if 0
-   {static int first=9 ;  /* debugging printouts */
+#ifdef DEBUG_RAN
+   {static int first=5 ;  /* debugging printouts */
     if( first ){
       fprintf(stderr,"\nPermutation [0..%d]:",p_nxy-1) ;
       for(ii=0;ii<p_nxy;ii++){
@@ -1192,8 +1207,9 @@ void display_help_menu(void)
       "\n"
       " -ETAC_arg something  = This option is used to pass extra options to the 3dXClustSim\n"
       "                        program (which is what implements ETAC). There is almost no\n"
-      "                        reason to use this option that I can think of.\n"
-      "                       ++ You can only use this option once.\n"
+      "                        reason to use this option that I can think of, except perhaps\n"
+      "                        in this example:\n"
+      "                          -ETAC_arg -verb\n"
       "\n"
       "The output of the ETAC computations (in 3dXClustSim) is a set of multi-threshold\n"
       "maps that can be used with program 3dMultiThresh to be applied to the 3dttest++\n"
@@ -1203,9 +1219,9 @@ void display_help_menu(void)
       "3dXClustSim and then applied to the 3dttest++ main statistical result.\n"
       "\n"
       "*** WARNING: ETAC consumes a lot of CPU time, and a lot of memory ***\n"
-      "***         (especially if many -ETAC_blur cases are used).       ***\n"
+      "***         (especially if many -ETAC_blur cases are used)!       ***\n"
       "\n"
-      "+++ One of these days, I'll try to expand this section to make it more complete :) +++\n"
+      "+++ (: One of these days, I'll expand this section :) +++\n"
       "\n"
 #endif
 
@@ -2179,6 +2195,7 @@ int main( int argc , char *argv[] )
          Xclu_arg = (char *)realloc(Xclu_arg,sizeof(char)*nch) ;
          strcat(Xclu_arg," ") ; strcat(Xclu_arg,argv[nopt]) ;
        }
+       INFO_message("ETAC extra arg = %s",Xclu_arg) ;
        nopt++ ; continue ;
      }
 
