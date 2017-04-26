@@ -935,7 +935,7 @@ int gifti_valid_dims(const giiDataArray * da, int whine)
     int       c, nbyper;
 
     if( !da ) {
-        if( G.verb > 2 ) fprintf(stderr,"** GVD: no giiDataArray\n");
+        if( G.verb > 2 || whine ) fprintf(stderr,"** GVD: no giiDataArray\n");
         return 0;
     }
 
@@ -1942,6 +1942,56 @@ int gifti_check_swap(void * data, int endian, long long nsets, int swapsize)
     (void)gifti_swap_Nbytes(data, nsets, swapsize);
 
     return 1;
+}
+
+/*---------------------------------------------------------------------*/
+/*! Convert the ArrayIndexingOrder of the DataArry element to the
+ *  specified order.
+ *
+ *  This is not just a tranpose, but a more general permutation of
+ *  the data in memory, so allocate a new data pointer.
+ *
+ *  return 0 on success
+*//*-------------------------------------------------------------------*/
+int gifti_DA_convert_ind_ord(giiDataArray * da, int new_ord)
+{
+   char * fname = "convert_ind_ord";
+   void * newdata = NULL;
+
+   if ( !gifti_valid_dims(da, 1) ) /* will whine */
+      return 1;
+
+   if( new_ord <= GIFTI_IND_ORD_UNDEF || new_ord > GIFTI_IND_ORD_MAX ) {
+      if( G.verb )
+         fprintf(stderr,"** %s: invalid order %d\n", fname, new_ord);
+      return 1;
+   }
+
+   if( da->ind_ord == new_ord ) {
+      if( G.verb > 3 )
+         fprintf(stderr,"-- %s: order already %d = %s\n", fname, new_ord,
+                 gifti_list_index2string(gifti_index_order_list, new_ord));
+      return 0;
+   }
+
+   if( nvals == 0 ) return 0;
+
+   /* have something to do, either RM->CM or the reverse */
+   newdata = malloc(da->nvals * da->nbyper);
+   if( ! newdata ) {
+      fprintf(stderr,"** %s: failed to alloc %lld bytes for DA\n",
+              fname, da->nvals*da->nbyper);
+      return 1;
+   }
+
+   switch( nbyper)
+   if( da->ind_ord == GIFTI_IND_ORD_ROW_MAJOR ) {
+      return 1;
+   } else {
+      return 1;
+   }
+
+   return 0;
 }
 
 /*---------------------------------------------------------------------*/
