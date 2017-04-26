@@ -4467,7 +4467,7 @@ LABELS_ARE_DONE:  /* target for goto above */
                                             prefix_clustsim , nam , clab[icase] ) ;
                  system(cmd) ;
                }
-               sprintf( cmd , "3dmask_tool -input %s.ETACtmask.1pos.*.nii -union -prefix %s.%s.ETACmask.nii.gz" ,
+               sprintf( cmd , "3dmask_tool -input %s.ETACtmask.1pos.*.nii -union -prefix %s.%s.ETACmask.1pos.nii.gz" ,
                               prefix_clustsim , prefix_clustsim , nam ) ;
                system(cmd) ;
                INFO_message("--- merging %d blur cases to make neg 1-sided activation mask ---",ncase) ;
@@ -4480,7 +4480,7 @@ LABELS_ARE_DONE:  /* target for goto above */
                                             prefix_clustsim , nam , clab[icase] ) ;
                  system(cmd) ;
                }
-               sprintf( cmd , "3dmask_tool -input %s.ETACtmask.1neg.*.nii -union -prefix %s.%s.ETACmask.nii.gz" ,
+               sprintf( cmd , "3dmask_tool -input %s.ETACtmask.1neg.*.nii -union -prefix %s.%s.ETACmask.1neg.nii.gz" ,
                               prefix_clustsim , prefix_clustsim , nam ) ;
                system(cmd) ;
              }
