@@ -28,15 +28,19 @@
 #set version = "2.7"; set rev_dat = "Apr 16, 2017"
 #   + can input origin, e.g. to match between AP and PA
 #
-set version = "2.8"; set rev_dat = "Apr 19, 2017"
+#set version = "2.8"; set rev_dat = "Apr 19, 2017"
 #   + switch to dcm2niix from dcm2nii
 #     -> motivated by Philips scaling requirements
 #     -> prob better to stick with newer, anyways
 #   + has cmd out now
 #   + movie stuff there, too, now
 #
-set version = "2.9"; set rev_dat = "Apr 21, 2017"
+#set version = "2.9"; set rev_dat = "Apr 21, 2017"
 #   + no more automasking in 3dCM
+#
+set version = "3.0"; set rev_dat = "Apr 26, 2017"
+#   + dcm2niix -> dcm2niix_afni
+#   + new wdir convention
 #
 # ----------------------------------------------------------------
 
@@ -64,9 +68,9 @@ set my_viewer_4d = "$adir/@djunct_dwi_imager"
 
 # ----------------- find dcm2niix ---------------------
 
-which dcm2niix >& /dev/null
+which dcm2niix_afni >& /dev/null
 if ( $status ) then
-    echo "** ERROR: Cannot find 'dcm2niix'."
+    echo "** ERROR: Cannot find 'dcm2niix_afni'."
     goto BAD_EXIT
 endif
 
@@ -89,6 +93,7 @@ set movie     = ""
 
 
 set wdir     = "__WORKING_$tpname"
+set WDIR_EX  = "1"         # put opref on wdir (unless user names)
 set dpref    = "tmpdir"    # tmp dirs for dcm2niix to dump into
 set fpref    = "fff"       # temp names when working in temp subdirs
 set fpref0   = "aaa"       # for anonymizing
@@ -131,6 +136,7 @@ while ( $ac <= $#argv )
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
         @ ac += 1
         set wdir = "$argv[$ac]"
+        set WDIR_EX  = "0"
 
     # -------------- other opts ----------------
     else if ( "$argv[$ac]" == "-orient" ) then
@@ -269,7 +275,12 @@ if ( ! -e "$odir" ) then
     mkdir "$odir"
 endif
 
-set wdir = "$odir/$wdir"
+# and put working directory as subdirectory.
+if ( "$WDIR_EX" == "1" ) then
+    set wdir = $odir/${wdir}_$opref
+else
+    set wdir = $odir/$wdir
+endif
 
 # make the working directory
 if ( ! -e $wdir ) then
@@ -340,7 +351,7 @@ if ( "$idir" != "") then
 
         echo "\n++ OK, now converting dicoms from: $dd"
         # place output into wdir, using gzipped files
-        dcm2niix  \
+        dcm2niix_afni  \
                 -z y              \
                 -x n              \
                 -p y              \
@@ -564,7 +575,8 @@ cat << EOF
     appropriate to combine!).  More functionality could be demanded by
     demanding users.
 
-    REQUIRES: AFNI, dcm2niix.
+    REQUIRES: AFNI (which should now contain dcm2niix_afni, the
+    version of dcm2niix [by C. Rorden] distributed in AFNI).
 
     Ver. $version (PA Taylor, ${rev_dat})
 
@@ -665,7 +677,7 @@ cat << EOF
                             the (b-magn scaled) gradient orientations;
 
     with the first three meant to mimic the trio of files output by
-    dcm2niix, and the rest there for convenience.  
+    dcm2niix_afni, and the rest there for convenience.  
 
 -------------------------------------------------------------------------
 
