@@ -434,7 +434,7 @@ ENTRY("prep_output_dset");
           break;
 
 		case E_SM_THICK:
-		    if (!SUMA_AddDsetNelCol ( p->out_dset, "Tickness", 
+		    if (!SUMA_AddDsetNelCol ( p->out_dset, "Thickness", 
                             SUMA_NODE_THICKNESS, (void *)p->nodes, NULL, 1)) {
              SUMA_S_Err("Failed to add column");
              SUMA_FreeDset(p->out_dset); p->out_dset=NULL;
