@@ -4441,28 +4441,56 @@ LABELS_ARE_DONE:  /* target for goto above */
            ININFO_message("===== starting 3dXClustSim =====") ;
 #endif
            system(cmd) ;
-           if( Xclu_nblur > 0 ){ /* use results to make a union mask */
-             for( icase=0 ; icase < ncase ; icase++ ){
-               sprintf( cmd , "3dMultiThresh -quiet -input %s -1tindex 1 -maskonly \\\n   " ,
-                              cprefix[icase] ) ;
-               sprintf( cmd+strlen(cmd) , " -prefix %s.ETACtmask.%s.nii" ,
-                                          prefix_clustsim , clab[icase] ) ;
-               sprintf( cmd+strlen(cmd) , " -mthresh %s.%s.ETAC.mthresh.%s.nii" ,
-                                          prefix_clustsim , nam , clab[icase] ) ;
+           if( ncase > 1 ){ /* use results to make a union mask */
+             if( sid == 2 ){
+               INFO_message("--- merging %d blur cases to make 2-sided activation mask ---",ncase) ;
+               for( icase=0 ; icase < ncase ; icase++ ){
+                 sprintf( cmd , "3dMultiThresh -quiet -input %s -1tindex 1 -maskonly \\\n   " ,
+                                cprefix[icase] ) ;
+                 sprintf( cmd+strlen(cmd) , " -prefix %s.ETACtmask.%s.nii" ,
+                                            prefix_clustsim , clab[icase] ) ;
+                 sprintf( cmd+strlen(cmd) , " -mthresh %s.%s.ETAC.mthresh.%s.nii" ,
+                                            prefix_clustsim , nam , clab[icase] ) ;
+                 system(cmd) ;
+               }
+               sprintf( cmd , "3dmask_tool -input %s.ETACtmask.*.nii -union -prefix %s.%s.ETACmask.nii.gz" ,
+                              prefix_clustsim , prefix_clustsim , nam ) ;
+               system(cmd) ;
+             } else {
+               INFO_message("--- merging %d blur cases to make pos 1-sided activation mask ---",ncase) ;
+               for( icase=0 ; icase < ncase ; icase++ ){
+                 sprintf( cmd , "3dMultiThresh -quiet -input %s -1tindex 1 -maskonly -pos \\\n   " ,
+                                cprefix[icase] ) ;
+                 sprintf( cmd+strlen(cmd) , " -prefix %s.ETACtmask.1pos.%s.nii" ,
+                                            prefix_clustsim , clab[icase] ) ;
+                 sprintf( cmd+strlen(cmd) , " -mthresh %s.%s.ETAC.mthresh.%s.nii" ,
+                                            prefix_clustsim , nam , clab[icase] ) ;
+                 system(cmd) ;
+               }
+               sprintf( cmd , "3dmask_tool -input %s.ETACtmask.1pos.*.nii -union -prefix %s.%s.ETACmask.nii.gz" ,
+                              prefix_clustsim , prefix_clustsim , nam ) ;
+               system(cmd) ;
+               INFO_message("--- merging %d blur cases to make neg 1-sided activation mask ---",ncase) ;
+               for( icase=0 ; icase < ncase ; icase++ ){
+                 sprintf( cmd , "3dMultiThresh -quiet -input %s -1tindex 1 -maskonly -neg \\\n   " ,
+                                cprefix[icase] ) ;
+                 sprintf( cmd+strlen(cmd) , " -prefix %s.ETACtmask.1neg.%s.nii" ,
+                                            prefix_clustsim , clab[icase] ) ;
+                 sprintf( cmd+strlen(cmd) , " -mthresh %s.%s.ETAC.mthresh.%s.nii" ,
+                                            prefix_clustsim , nam , clab[icase] ) ;
+                 system(cmd) ;
+               }
+               sprintf( cmd , "3dmask_tool -input %s.ETACtmask.1neg.*.nii -union -prefix %s.%s.ETACmask.nii.gz" ,
+                              prefix_clustsim , prefix_clustsim , nam ) ;
                system(cmd) ;
              }
-             INFO_message("--- merging %d blur cases to make activation mask ---",ncase) ;
-             sprintf( cmd , "3dmask_tool -input %s.ETACtmask.*.nii -union -prefix %s.%s.ETACmask.nii.gz" ,
-                            prefix_clustsim , prefix_clustsim , nam ) ;
-             system(cmd) ;
              sprintf( cmd , "\\rm %s.ETACtmask.*.nii" , prefix_clustsim ) ;
              system(cmd) ;
-           }
-         }
+           } /* end of multi-blur mask making */
+         } /* not dryrun */
        }  /* loop over 3dXClustSim (-Xclu_opt) cases to run */
 
-/* X.0531.P010-001s1.CsimX.mthresh.B10.0.nii.gz */
-     }
+     } /* end 3dXClustSim runs */
 
      /* remove intermediate files */
 
