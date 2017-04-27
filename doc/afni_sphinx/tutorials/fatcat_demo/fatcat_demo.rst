@@ -1,13 +1,14 @@
 .. _FATCAT_Demo:
 
-===============
-**FATCAT Demo**
-===============
+========================
+**FATCAT Visualization**
+========================
 
-.. note::
-   
-   Looking for :ref:`installation instructions?<FATCAT_Demo_Install>`. 
-   
+This visualiztion ties in with the current FATCAT Demo, which has a
+number of data sets and commented scripts.  If you don't have it
+already (?!?!), then please check out the :ref:`Demo installation
+instructions?<FATCAT_Demo_Install>`.
+
 .. Paul: Do you want to add a few words here?
 
 .. _Do_00_PRESTO_ALL_RUNS.tcsh:
@@ -48,7 +49,14 @@
 
 .. _Do_PostTORTOISE_2014.tcsh:
 
-At some point you should read the README file under FATCAT_Demo, and go over the comments in each of the scripts that provide context to the different commands used. Scripts Do_*_VIS* are meant to illustrate interactive visualization of the results. The scripts will open results in AFNI and SUMA and a prompt window will guide throuh basic viewing steps. See also the :ref:`quick tour for tract viewing<Tract_Viewing>`. You should be able to create images such as the ones shown above. Fun times!
+At some point you should read the README file under FATCAT_Demo, and
+go over the comments in each of the scripts that provide context to
+the different commands used. Scripts Do_*_VIS* are meant to illustrate
+interactive visualization of the results. The scripts will open
+results in AFNI and SUMA and a prompt window will guide throuh basic
+viewing steps. See also the :ref:`quick tour for tract
+viewing<Tract_Viewing>`. You should be able to create images such as
+the ones shown above. Fun times!
 
 
 .. _Do_06_VISdti_SUMA_visual_ex1.tcsh:

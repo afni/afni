@@ -64,6 +64,14 @@ References
 .. [TCCS_2015]    | PA Taylor, G Chen, RW Cox, ZS Saad.  
                   | **Open Environment for Multimodal Interactive
                     Connectivity Visualization and Analysis.**
-                  | Brain Connectivity (*in press*).
+                  | Brain Connectivity 6(2):109-21.
+
+.. [T_etal_2016]  | PA Taylor, A Alhamud , AJW van der Kouwe, MG Saleh,
+                    B Laughton, EM Meintjes.
+                  | **Assessing the performance of different DTI motion
+                    correction strategies in the presence of EPI
+                    distortion correction.**
+                  | Human Brain Mapping (*in press*).
+                  
 ================  =======================================================
 

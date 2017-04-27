@@ -44,6 +44,8 @@ PLUGIN_interface * PLUGIN_init( int ncall )
 
    if( ncall > 0 ) return NULL ;  /* only one interface */
 
+   CHECK_IF_ALLOWED("3DCORRELATION","3D Correlation") ;  /* 30 Sep 2016 */
+
    /*-- set titles and call point --*/
 
    plint = PLUTO_new_interface( "3D Correlation" , "3D Dataset Correlation" , helpstring ,

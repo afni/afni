@@ -454,7 +454,7 @@ class RegWrap:
       
       ps.base = afni_name(opt.parlist[0]) 
       ps.base.locate()
-      if (not ps.input.exist()):
+      if (not ps.base.exist()):
          self.error_ex("Could not find base")
 
       #get 3dSkullstrip options

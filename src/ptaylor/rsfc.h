@@ -3,11 +3,17 @@
 
 
 #define MAX_R (0.9999999999999999)
+#undef  BOBatanhf
+#define BOBatanhf(x) ( ((x)<-0.999329f) ? -4.0f                \
+                      :((x)>+0.999329f) ? +4.0f : atanhf(x) )
+#undef  BOBatanhd
+#define BOBatanhd(x) ( ((x)<-0.999329) ? -4.0                \
+                      :((x)>+0.999329) ? +4.0 : atanh(x) )
 
 /*
   Fisher Z transform of correlation value R
 */
-float FisherZ( double Rcorr);
+//float FisherZ( double Rcorr);  outdated-- use other DEF
   
 
 /*

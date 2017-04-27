@@ -2710,13 +2710,16 @@ STATUS("make GLTs from matrix file") ;
      double dsiz = (double)DSET_TOTALBYTES( inset ) ;
      if( virtu_mrv || (vsiz < 0.9*dsiz && vsiz > 10.0e+6) ){
        if( verb ){
-         INFO_message("Converting dataset to vector image") ;
+         INFO_message("Converting input dataset to vector image") ;
          ININFO_message(" dataset = %s bytes",approximate_number_string(dsiz)) ;
          ININFO_message(" vectim  = %s bytes",approximate_number_string(vsiz)) ;
        }
        inset_mrv = THD_dset_to_vectim( inset , mask , 0 ) ;
        if( inset_mrv != NULL )  DSET_unload(inset) ;
        else                   { ERROR_message("Can't create vector image!?"); virtu_mrv = 0; }
+
+       if( inset_mrv != NULL )
+         THD_check_vectim(inset_mrv,"3dREMLfit input data") ;
 
        if( virtu_mrv ){
          fname_mrv = mri_get_tempfilename("JUNK") ;
@@ -3134,6 +3137,9 @@ STATUS("setting up Rglt") ;
          dsortar_mrv[dd] = THD_dset_to_vectim( dsortar->ar[dd] , mask , 0 ) ;
          if( dsortar_mrv[dd] != NULL ) DSET_unload(dsortar->ar[dd]) ;
          else                          ERROR_message("Can't create vector image from -dsort!?") ;
+
+         if( dsortar_mrv != NULL )
+           THD_check_vectim(dsortar_mrv[dd],"3dREMLfit -dsort") ;
        }
      }
 

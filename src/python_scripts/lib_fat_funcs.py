@@ -790,7 +790,8 @@ def MakeSubTable(file_table, pref_subnet, roi_list):
     if not(list_count.all()) :
         for i in range(Nrois):
             if not( list_count[i]):
-                print "** ERROR: can't find selected ROI %s in the original table list" % roi_list[list_count[i]]
+                # fixed indexing mistake in roi_list[].  [PT, March 27, 2017]
+                print "** ERROR: can't find selected ROI %s in the original table list" % roi_list[i]
         print "** Please select again!"
         sys.exit(544)
     else:
@@ -1273,7 +1274,7 @@ def Check_Matr_type(LM):
 
     return
 
-def FindGroupwiseTargets(All_sub_grid, ftype, ExternLabsOK):
+def FindGroupwiseTargets(All_sub_grid, ftype, ExternLabsOK, UNION=0):
     '''Take a list of 4-tuples representing subject data (and a string
     of what filetype it is), go through all, and find set of
     intersecting matrix elements based on labels.  When done, return
@@ -1295,7 +1296,11 @@ def FindGroupwiseTargets(All_sub_grid, ftype, ExternLabsOK):
     print '\tThe number of elements in the ROI matrix set is:\n\t  ',
     for i in range(1,Nsub):
         print '%d,' % len(a),
-        a.intersection_update(GetSet(All_sub_grid[i], ftype, ExternLabsOK))
+        if UNION: 
+            # updating with the *union* of regions
+            a.update(GetSet(All_sub_grid[i], ftype, ExternLabsOK))
+        else:
+            a.intersection_update(GetSet(All_sub_grid[i], ftype, ExternLabsOK))
     print '%d.' % len(a)
 
     temp = list(a)

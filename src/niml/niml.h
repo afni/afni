@@ -1254,7 +1254,7 @@ typedef struct { int num; float *ar; } NI_float_array ;
 #define NI_delete_float_array(far) \
   do{ if( (far)->ar != NULL ) NI_free((far)->ar); NI_free(far); } while(0)
 
-extern NI_float_array * NI_decode_float_list( char *ss , char* sep ) ;
+extern NI_float_array * NI_decode_float_list( char *ss , char *sep ) ;
 extern char *           NI_encode_float_list( NI_float_array *, char * ) ;
 #define NI_decode_float_array NI_decode_float_list
 

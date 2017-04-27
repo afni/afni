@@ -14,6 +14,9 @@ char * convert_text_to_html( char *txt ){ return txt; }  /* 06 May 2015 */
 #include "XmHTML/XmHTML.h"
 #include "debugtrace.h"    /* 12 Mar 2001 */
 
+extern int afni_uses_selenium(void) ;
+extern int selenium_open_webpage(char *) ;
+
 XmImageConfig *_xmimage_cfg = NULL ;
 
 

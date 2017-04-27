@@ -165,6 +165,8 @@ if(ncall >= 1) { /* only one interface */
 	return NULL;
 	}
 
+   CHECK_IF_ALLOWED("REORDER","Reorder") ;  /* 30 Sep 2016 */
+
 /*---------------- set titles and call point ----------------*/
 
 plint = PLUTO_new_interface("Reorder",

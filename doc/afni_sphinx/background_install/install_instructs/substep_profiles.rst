@@ -4,11 +4,11 @@ and SUMA have a lot of default settings, controlled using
 *environment variables*.  Vanilla-mode profiles with default values
 are easily installed:
 
-- for AFNI, copy it from the main directory of binaries::
+- For AFNI, copy the file from the main directory of binaries::
 
     cp $HOME/abin/AFNI.afnirc $HOME/.afnirc
 
-- for SUMA, run the command::
+- For SUMA, run the command::
 
     suma -update_env
 

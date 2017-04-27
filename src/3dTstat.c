@@ -70,15 +70,18 @@
 #define METH_PERCENTILE    40  /* RWC 05 May 2016 */
 static int perc_val = -666;
 
-#define MAX_NUM_OF_METHS   41
+#define METH_FIRSTVALUE    41 /* returns the 1st value - to avoid exiting on invalid 1-input-methods */
+#define METH_TSNR          42 /* JKR 10 April 2017 */
+
+#define MAX_NUM_OF_METHS   43
 
 /* allow single inputs for some methods (test as we care to add) */
-#define NUM_1_INPUT_METHODS 4
+#define NUM_1_INPUT_METHODS 12
 static int valid_1_input_methods[NUM_1_INPUT_METHODS]
-           = { METH_MEAN, METH_MAX, METH_MIN, METH_SUM };
-/* maybe add:  METH_ARGMAX, METH_ARGMIN, METH_ARGABSMAX,
-               METH_SUM, METH_ABSSUM, METH_NZMEAN, METH_SUM_SQUARES
-*/
+           = { METH_MEAN, METH_MAX, METH_MIN, METH_SUM,
+               METH_ARGMAX, METH_ARGMIN, METH_ARGABSMAX,METH_SUM,
+               METH_ABSSUM, METH_NZMEAN, METH_SUM_SQUARES, METH_FIRSTVALUE };
+
 
 static int meth[MAX_NUM_OF_METHS]  = {METH_MEAN};
 static int nmeths                  = 0;
@@ -100,7 +103,7 @@ static char *meth_names[] = {
    "ArgMin+1"      , "ArgMax+1"     , "ArgAbsMax+1"   , "CentroMean"  ,
    "CVarInv"       , "CvarInv (NOD)", "ZeroCount"     , "NZ Median"   ,
    "Signed Absmax" , "L2 Norm"      , "NonZero Count" , "NZ Stdev"    ,
-   "Percentile %d"
+   "Percentile %d" , "FirstValue"   , "TSNR"
 };
 
 static void STATS_tsfunc( double tzero , double tdelta ,
@@ -113,7 +116,7 @@ static int Calc_duration(float *ts, int npts, float vmax, int max_index,
    int *onset, int *offset);
 static float Calc_centroid(float *ts, int npts);
 
-void usage_3dTstat(int detail) 
+void usage_3dTstat(int detail)
 {
 
      printf(
@@ -141,6 +144,8 @@ void usage_3dTstat(int detail)
  "                   options only, to turn off detrending, as in\n"
  "                     -stdevNOD  and/or  -cvarNOD  and/or  -cvarinvNOD\n"
  "\n"
+ " -tsnr      = compute temporal signal to noise ratio\n"
+ "                fabs(mean)/stdev NOT DETRENDED (same as -cvarinvNOD)\n"
  " -MAD       = compute MAD (median absolute deviation) of\n"
  "                input voxels = median(|voxel-median(voxel)|)\n"
  "                [N.B.: the trend is NOT removed for this]\n"
@@ -191,6 +196,7 @@ void usage_3dTstat(int detail)
  "\n"
  " -centromean = compute mean of middle 50%% of voxel values [undetrended]\n"
  "\n"
+ " -firstvalue = first value in dataset - typically just placeholder\n\n"
  " ** If no statistic option is given, then '-mean' is assumed **\n"
  "\n"
  "Other Options:\n"
@@ -267,9 +273,9 @@ void usage_3dTstat(int detail)
   "option, then the output will be written into a NIML-formatted 1D\n"
   "dataset, which you might find slightly confusing (but still usable).\n"
  ) ;
-   
-   PRINT_COMPILE_DATE ;  
-   
+
+   PRINT_COMPILE_DATE ;
+
    return;
 }
 
@@ -310,7 +316,7 @@ int main( int argc , char *argv[] )
       if( strcmp(argv[nopt],"-verb") == 0 ){
         verb++ ; nopt++ ; continue ;
       }
-      
+
       /*-- methods --*/
 
       if( strcasecmp(argv[nopt],"-centromean") == 0 ){ /* 01 Nov 2010 */
@@ -451,6 +457,12 @@ int main( int argc , char *argv[] )
          meth[nmeths++] = METH_CVARINVNOD ;
          nbriks++ ;
          nopt++ ; continue ;
+      }
+
+     if( strcasecmp(argv[nopt],"-tsnr") == 0 ){     /* 10 April 2017 */
+        meth[nmeths++] = METH_TSNR ;
+        nbriks++ ;
+        nopt++ ; continue ;
       }
 
       if( strcasecmp(argv[nopt],"-min") == 0 ){
@@ -638,7 +650,7 @@ int main( int argc , char *argv[] )
       if( strcasecmp(argv[nopt],"-nscale") == 0 ){  /* 25 May 2011 */
         nscale = 1 ; nopt++ ; continue ;
       }
-      
+
       /*-- datum --*/
 
       if( strcasecmp(argv[nopt],"-datum") == 0 ){
@@ -704,7 +716,7 @@ int main( int argc , char *argv[] )
       ERROR_exit("Time series is of length 0?\n") ;
    }
    else if( DSET_NVALS(old_dset) == 1 || (do_tdiff && DSET_NVALS(old_dset)==2) ) {
-     int methOK, OK = 1;
+     int methOK;
      /* see if each method is valid for nvals == 1 */
      for( methIndex = 0; methIndex < nmeths; methIndex++ ) {
         methOK = 0;
@@ -713,9 +725,11 @@ int main( int argc , char *argv[] )
                 methOK = 1;
                 break;
             }
+            else
+               meth[methIndex] = METH_FIRSTVALUE;
         }
         if( ! methOK )
-           ERROR_exit("Can't use dataset with %d values per voxel!" ,
+           WARNING_message("Using dataset with only %d values per voxel and giving back just the first value!" ,
                       DSET_NVALS(old_dset) ) ;
      }
      /* tell the library function that this case is okay */
@@ -905,6 +919,7 @@ static void STATS_tsfunc( double tzero, double tdelta ,
     switch( meth[meth_index] ){
 
       default:
+      case METH_FIRSTVALUE:  val[out_index] = ts[0]; break ; /* placeholder drg 06/13/2016 */
       case METH_MEAN:  val[out_index] = ts_mean  ; break ;
 
       case METH_SUM:   val[out_index] = ts_mean * npts; break; /* 24 Apr 2006 */
@@ -986,6 +1001,19 @@ static void STATS_tsfunc( double tzero, double tdelta ,
           val[out_index] = (ts_mean != 0.0) ? sum/fabs(ts_mean) : 0.0 ;
         else
           val[out_index] = (sum     != 0.0) ? fabs(ts_mean)/sum : 0.0 ;
+      }
+      break ;
+
+      case METH_TSNR:{
+        register int ii ;
+        register double std = 0.0;
+        register double sum = 0.0;
+
+        /* no detrending */
+        for( ii=0 ; ii < npts ; ii++ ) sum += (ts[ii]-ts_mean)
+                                           *(ts[ii]-ts_mean) ;
+        std = sqrt( sum/(npts-1.0) ) ;  /* stdev */
+        val[out_index] = (std != 0.0) ? fabs(ts_mean)/std : 0.0 ;
       }
       break ;
 

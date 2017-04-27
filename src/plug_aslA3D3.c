@@ -85,6 +85,7 @@ PLUGIN_interface * PLUGIN_init( int ncall )
    PLUGIN_interface * plint ;     /* will be the output of this routine */
 
    if( ncall > 1 ) return NULL ;  /* two interfaces */
+   CHECK_IF_ALLOWED("ASL","ASL a3/d3") ;  /* 30 Sep 2016 */
 
 #ifdef ALLOW_TESTING
    if( ncall == 1 ) return TEST_init() ;

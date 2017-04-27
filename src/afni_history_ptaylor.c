@@ -66,8 +66,197 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 30, Mar , 2017 , PT , "lib_fat_funcs.py" , MICRO , TYPE_BUG_FIX,
+   "An error message in func called by fat_mvm_scripter.py was wrong.",
+   "Fixed an indexing mistake which gave wrong ROI list-- thanks, E. Grodin!\n"
+},
 
-{ 9, June , 2016 , PT , "3dLombScargle" , MAJOR , TYPE_MODIFY,
+{ 29, Mar , 2017 , PT , "@chauffeur_afni" , MICRO , TYPE_MODIFY,
+   "Change how xvfb is used to run in virtual environment.",
+   "This should improve usage on biowulf-- thanks much, D. Godlove!\n"
+},
+
+{ 20, Mar , 2017 , PT , "@SUMA_renumber_FS" , MICRO , TYPE_MODIFY,
+   "Changed an ls -> find, to search for either *.nii or *.nii.gz better.",
+   "Necessary in case of problematic users (you know who you are!).\n"
+},
+
+{ 9, Feb , 2017 , PT , "@GradFlipTest" , MICRO , TYPE_BUG_FIX,
+   "Some IF conditions gave problems; some option names were inconvenient.",
+   "They are now ex-parrots.\n"
+},
+
+{ 6, Feb , 2017 , PT , "@chauffeur_afni" , MINOR , TYPE_MODIFY,
+   "Should deal with subbrick selection now.",
+   "Works for ulay and olay sets in usual AFNI way.\n"
+},
+
+{ 31, Jan , 2017 , PT , "@SUMA_renumber_FS" , MINOR , TYPE_MODIFY,
+   "Update region list to work with new FS 6.0 that came out a week ago.",
+   "Regions #3 and #42 (in FS file output) appear now; ~'leftover' GM.\n"
+},
+
+{ 27, Jan , 2017 , PT , "3dDWItoDT" , MICRO , TYPE_NEW_OPT,
+   "Miniscule new option, '-bmatrix_FULL' to have clearer usage.",
+   "Just copies functionality of cryptic '-bmatrix_Z'.\n"
+},
+
+{ 27, Jan , 2017 , PT , "@GradFlipTest" , MAJOR , TYPE_MODIFY,
+   "Totally revamped-- have real options, better funcs, output text file.",
+   "Meshes with other changes in 1dDW_Grad* and 3dDWItoDT.\n"
+},
+
+{ 26, Jan , 2017 , PT , "@chauffeur_afni" , MINOR , TYPE_NEW_PROG,
+   "Simplish function for driving AFNI to make images/montages.",
+   "Based on @snapshot_volreg; mainly intended for my selfish use.\n"
+},
+
+{ 26, Jan , 2017 , PT , "1dDW_Grad_o_Mat++" , MINOR , TYPE_NEW_PROG,
+   "New program for changing/reformatting grads and things.",
+   "Better defaults and simpler than original 1dDW_Grad_o_Mat++.\n"
+},
+
+{ 30, Dec , 2016 , PT , "@SUMA_renumber_FS" , MINOR , TYPE_NEW_PROG,
+   "New program for renumbering FS output after @SUMA_Make_Spec_FS.",
+   "Also conglomerates things into tissue maps.\n"
+},
+
+{ 30, Dec , 2016 , PT , "@SUMA_Make_Spec_FS" , MINOR , TYPE_MODIFY,
+   "Output new data sets of renumb'd values, more consistent than 'rank' ones.",
+   "Also output more tissue segmentation maps based on ROIs.\n"
+},
+
+{ 26, Dec , 2016 , PT , "thd_center" , MINOR , TYPE_NEW_OPT,
+   "Extra argument in THD_cmass() and THD_roi_cmass().",
+   "Allows for local ijk coordinate output; updated other calling functions.\n"
+},
+
+{ 23, Dec , 2016 , PT , "3dCM" , MINOR , TYPE_NEW_OPT,
+   "Allow ijk coordinate output.",
+   "Will be in local orientation.  Makes undumping after easier.\n"
+},
+
+{ 20, Dec , 2016 , PT , "fat_mvm_prep.py" , MICRO , TYPE_NEW_OPT,
+   "New --unionize_rois option: affects GRID element selection.",
+   "Now can select union of matrix elements across group for MVM_tbl.\n"
+},
+
+{ 23, Nov , 2016 , PT , "3dTrackID" , MINOR , TYPE_BUG_FIX,
+   "Used to be able to have nans in sBL b/c of sqrt(neg-from-rounding).",
+   "Now IF condition to prevent that.  Happy Thanksgiving.\n"
+},
+
+{ 23, Nov , 2016 , PT , "3dNetCorr" , MINOR , TYPE_BUG_FIX,
+   "Z-score WB maps were all zeros-> now have values.",
+   "Hopefully even the correct Z-values.\n"
+},
+
+{ 16, Nov , 2015 , PT , "3dTrackID" , MAJOR , TYPE_GENERAL,
+   "Estimate mean and stdev of fiber lengths in bundles.",
+   "These are now automatically output in *.grid file.\n"
+},
+
+{ 16, Nov , 2015 , PT , "3dTrackID" , MAJOR , TYPE_NEW_OPT,
+   "Can limit tracts to 'between targets' in new ways.",
+   "See '-targ_surf_stop' and '-targ_surf_twixt' in the help.\n"
+},
+
+{ 16, Nov , 2016 , PT , "1dDW_Grad_o_Mat" , MINOR , TYPE_GENERAL,
+   "Output b-values are now floats, not ints.",
+   "Seems necessary, depending on what user has input.\n"
+},
+
+{ 16, Nov , 2016 , PT , "1dDW_Grad_o_Mat" , MINOR , TYPE_BUG_FIX,
+   "The -out_bval_col_sep used did nothing (after last changes).",
+   "Have returned it to functionality.\n"
+},
+
+{ 16, Nov , 2016 , PT , "3dDWUncert" , MINOR , TYPE_GENERAL,
+   "Check for singular values, so don't get crashes from GSL calcs.",
+   "These pretty much occur outside mask, but can also be inside mask.\n"
+},
+
+{ 12, Oct , 2016 , PT , "3dDWItoDT" , MINOR , TYPE_GENERAL,
+   "Now, automatically output RD if '-eigs' opt is used.",
+   "And the users of 3dTrackID say, 'Yaaaay'. Or 'Wha'evah!'.\n"
+},
+
+{ 12, Oct , 2016 , PT , "3dDWUncert" , MINOR , TYPE_GENERAL,
+   "Now output progress; also, only divvy up non-zeros to proc.",
+   "Should be faster/better parallelized, also tell user about itself.\n"
+},
+
+{ 11, Oct , 2016 , PT , "map_TrackID" , MICRO , TYPE_GENERAL,
+   "Put integer variables in to not get lame warnings when building.",
+   "Things like 'pppp = fscan();', etc... Purely aesthetic changes.\n"
+},
+
+{ 11, Oct , 2016 , PT , "3dDWUncert" , MAJOR , TYPE_GENERAL,
+   "Totally reprogrammed, mainly to use OpenMP and be fstr.",
+   "Also should be more generalized if b0 != 0.\n"
+},
+
+{ 14, Sep , 2016 , PT , "3dDWItoDT" , MINOR , TYPE_NEW_OPT,
+   "Have a new '-bmax_ref ...' option: if bref has b>0.",
+   "Won't have much effective change *yet*, but will later. Possibly.\n"
+},
+
+{ 13, Sep , 2016 , PT , "1dDW_Grad_o_Mat" , MINOR , TYPE_NEW_OPT,
+   "New opt -bref_mean_top to average over mean bref when b>0.",
+   "Also, totally reprogrammed most of interior; had been too scraggly.\n"
+},
+
+{ 31, Aug , 2016 , PT , "3dSpaceTimeCorr" , MAJOR , TYPE_BUG_FIX,
+   "Fixed bug in yet-unreleased function... and also changed a feature.",
+   "Bug: ts = all0 -> GSL badness on some comp; now, exclude seedvox in corr.\n"
+},
+
+{ 31, Aug , 2016 , PT , "3dSpaceTimeCorr" , MAJOR , TYPE_NEW_PROG,
+   "New function for calculating spatial corr of temporal corr maps.",
+   "Calc spatial corr of WB/mask connectivity maps; useful for RSFC?\n"
+},
+
+{ 18, Aug , 2016 , PT , "3dReHo" , MINOR , TYPE_BUG_FIX,
+   "Used to not allow subbrik selection on input.",
+   "Now it does.  Thanks to Daniel H. for pointing it out.\n"
+},
+
+{ 1, Aug , 2016 , PT , "3dRSFC" , MINOR , TYPE_BUG_FIX,
+   "In cases of *very large* N_pts, an error message appeared-- no more.",
+   "Just changed default initialization of >f_N value.\n"
+},
+
+{ 21, Jun , 2016 , PT , "@fat_tract_colorize" , MAJOR , TYPE_NEW_PROG,
+   "New function for coloring the volumetric tracking outputs.",
+   "RGB coloration of local diffusion, esp. for PROB track output.\n"
+},
+
+{ 20, Jun , 2016 , PT , "3dLombScargle" , MINOR , TYPE_BUG_FIX,
+   "Fixing bug in delta F calculation.",
+   "What more needs to be said?\n"
+},
+
+{ 14, Jun , 2016 , PT , "3dAmptoRSFC" , MAJOR , TYPE_NEW_PROG,
+   "New function for calculating RSFC params from one-side spectra.",
+   "Complements 3dLombScargle. What an epithet.\n"
+},
+
+{ 14, Jun , 2016 , PT , "3dLombScargle" , MINOR , TYPE_MODIFY,
+   "Making this output 'one-sided' spectra now.",
+   "Easier for 3dAmpToRSFC calcs.\n"
+},
+
+{ 16, Jun , 2016 , PT , "3dLombScargle" , MINOR , TYPE_MODIFY,
+   "Changed how number of output points/freqs is calc'ed.",
+   "Should be more stable across group.).\n"
+},
+
+{ 13, Jun , 2016 , PT , "3dLombScargle" , MAJOR , TYPE_MODIFY,
+   "Revamped LS program-- AGAIN**2!-- now has Welch windows+tapers.",
+   "Scaling properly/consistently, couple bug fixes.\n"
+},
+
+{ 9, Jun , 2016 , PT , "3dLombScargle" , MAJOR , TYPE_MODIFY,
    "Revamped LS program-- AGAIN-- now has Welch windows+tapers.",
    "Several new options added (related to windows/tapers).\n"
 },

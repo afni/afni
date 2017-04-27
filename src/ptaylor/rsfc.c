@@ -7,6 +7,9 @@
 #include <gsl/gsl_blas.h>
 #include <gsl/gsl_linalg.h>
 
+
+/*
+OUTDATED! Aug,2016--> use BOBatanh
 float FisherZ( double Rcorr)
 {
   float Z=0.; 
@@ -20,7 +23,7 @@ float FisherZ( double Rcorr)
   
   return Z;
 }
-
+*/
 
 int CalcAveRTS(int *LIST, double *RAT, THD_3dim_dataset *T, 
                int *DIM, int *Nv)
@@ -284,7 +287,7 @@ int WB_netw_corr(int Do_r,
          mri = mri_float_arrays_to_image(AVE_TS_fl,Dim[3],1);
          OUT_CORR_MAP = THD_Tcorr1D(insetTIME, mskd2, Nmask,
                                     mri,
-                                    "pearson", OUT_indiv);
+                                    "pearson", OUT_indiv, 0);
          if(Do_r){
             THD_load_statistics(OUT_CORR_MAP);
             tross_Copy_History( insetTIME , OUT_CORR_MAP ) ;
@@ -324,12 +327,14 @@ int WB_netw_corr(int Do_r,
 
             for( j=0 ; j<Nvox ; j++ )
               if( mskd2[j] ) // control for r ==1
+                 zscores[j] = BOBatanhf( THD_get_voxel(OUT_CORR_MAP, j, 0) );
+                 /*
                  if( THD_get_voxel(OUT_CORR_MAP, j, 0) > MAX_R )
                    zscores[j] = (float) atanh(MAX_R);
                  else if ( THD_get_voxel(OUT_CORR_MAP, j, 0) < -MAX_R )
                    zscores[j] =  (float) atanh(-MAX_R);
                  else
-                   zscores[j] = (float) atanh(THD_get_voxel(OUT_CORR_MAP, j, 0));
+                 zscores[j] = (float) atanh(THD_get_voxel(OUT_CORR_MAP, j, 0));*/
             
             EDIT_substitute_brick(OUT_Z_MAP, 0, MRI_float, zscores); 
             zscores=NULL;

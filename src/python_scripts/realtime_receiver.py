@@ -184,9 +184,10 @@ g_history = """
    0.3  Sep 08, 2009 : bind to open host (so /etc/hosts entry is not required)
    0.4  Jul 26, 2012 : added -show_comm_times
    0.5  Jan 16, 2013 : added -dc_params
+   0.6  Sep 16, 2016 : proceed even if requested GUI fails to load
 """
 
-g_version = "realtime_receiver.py version 0.5, Jan 16, 2013"
+g_version = "realtime_receiver.py version 0.6, Sep 16, 2016"
 
 g_RTinterface = None      # global reference to main class (for signal handler)
 
@@ -359,16 +360,22 @@ class ReceiverInterface:
 
       val, err = uopts.get_string_opt('-show_demo_gui')
       if val != None and not err:
-         if val == 'yes': self.set_demo_gui()
+         if val == 'yes':
+            if self.set_demo_gui():
+               print '\n** GUI demo failed, proceeding without GUI...\n'
 
       return 0  # so continue and listen
 
    def set_demo_gui(self):
       """create the GUI for display of the demo data"""
       testlibs = ['numpy', 'wx']
-      if module_test_lib.num_import_failures(testlibs): sys.exit(1)
-      import numpy as N, wx
-      import lib_RR_plot as LPLOT
+      if module_test_lib.num_import_failures(testlibs):
+         return 1
+      try:
+         import numpy as N, wx
+         import lib_RR_plot as LPLOT
+      except:
+         return 1
 
       self.wx_app = wx.App()
       self.demo_frame = LPLOT.CanvasFrame(title='receiver demo')

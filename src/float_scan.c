@@ -8,6 +8,7 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <stdlib.h>
+#include <string.h>
 
 #if defined(SUN) || defined(SOLARIS) || defined(SGI)
 # include <ieeefp.h>

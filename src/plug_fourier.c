@@ -82,6 +82,8 @@ PLUGIN_interface * PLUGIN_init( int ncall )
    PLUGIN_interface * plint ;
    static char *yn[2] = {"No", "Yes"};
 
+   CHECK_IF_ALLOWED("FOURIER","Fourier") ;  /* 30 Sep 2016 */
+
    if( ncall > 0 ) return NULL ;  /* only one interface */
 
    /*-- set titles and call point --*/

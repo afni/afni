@@ -186,7 +186,8 @@ v2s_plugin_opts gv2s_plug_opts = {
                             /* this must match v2s_map_nums enum */
 char * gv2s_map_names[] = { "none", "mask", "midpoint", "mask2", "ave",
                             "count", "min", "max", "max_abs", "seg_vals",
-                            "median", "mode" };
+                            "median", "mode", "nzave",
+                            "nzmin", "nzmax"  };
 char gv2s_no_label[] = "undefined";
 
 /*----------------------------------------------------------------------
@@ -283,7 +284,7 @@ ENTRY("opt_vol2surf");
     res = vol2surf(sopt, &P);
 
     v2s_make_command(sopt, &P);
-    if( gv2s_plug_opts.sopt.debug > 2 ) disp_v2s_command(sopt);
+    if( gv2s_plug_opts.sopt.debug > 1 ) disp_v2s_command(sopt);
 
     /* if the user wants output files, here they are (don't error check) */
     if( res && sopt->outfile_1D ) {
@@ -488,11 +489,16 @@ ENTRY("dump_surf_3dt");
         init_seg_endpoints(sopt, p, &r3mm, nindex);    /* segment endpoints */
         v2s_adjust_endpts( sopt, &r3mm.p1, &r3mm.pn );
 
-        if ( r3mm.debug )
+        if ( r3mm.debug ) {
+            fprintf(stderr,"===== finished with debug node =====\n");
             r3mm.debug = 0;
+        }
 
         if ( nindex == sopt->dnode )      /* if we have dnode, forget debug */
             r3mm.debug = sopt->debug > 0 ? sopt->debug : 1;
+
+        if ( r3mm.debug )
+            fprintf(stderr,"===== processing debug node %d =====\n", nindex);
 
         /* if both points are outside our dataset, skip the pair   v2.3 */
         oob1 = f3mm_out_of_bounds( &r3mm.p1, &r3mm.dset_min, &r3mm.dset_max );
@@ -535,7 +541,7 @@ ENTRY("dump_surf_3dt");
                                             sopt->oob.index, sopt->oob.value) )
                         RETURN(1);
                 if ( nindex == sopt->dnode )
-                    disp_surf_vals("-d debug node, out-of-bounds : ", sd, -1);
+                    disp_surf_vals("-d debug node, all out-of-bounds : ",sd,-1);
             }
             else   /* then we consider it out of mask */
             {
@@ -569,6 +575,11 @@ ENTRY("dump_surf_3dt");
             r3mm_res.ims.imarr[sub] = NULL;
         }
         r3mm_res.ims.num = 0;
+    }
+
+    if ( r3mm.debug ) {
+        fprintf(stderr,"===== finished with debug node =====\n");
+        r3mm.debug = 0;
     }
 
     if ( sopt->debug > 0 )                                      /* v2.3 */
@@ -1019,6 +1030,9 @@ ENTRY("v2s_adjust_endpts");
         case E_SMAP_SEG_VALS:
         case E_SMAP_MEDIAN:
         case E_SMAP_MODE:
+        case E_SMAP_NZAVE:
+        case E_SMAP_NZMIN:
+        case E_SMAP_NZMAX:
             break;
 
         case E_SMAP_MIDPT:
@@ -1091,6 +1105,25 @@ ENTRY("v2s_apply_filter");
             comp = comp / rr->ims.num;
             break;
 
+        case E_SMAP_NZAVE:
+            {
+            int nnum;
+
+            if ( findex ) *findex = 0;
+            nnum = 0;
+            comp = 0.0;
+            for ( count = 0; count < rr->ims.num; count++ ){
+                tmp = MRI_FLOAT_PTR(rr->ims.imarr[count])[index];
+                if(tmp!=0){
+                   comp += tmp;
+                   nnum++;
+                }
+             }
+            if (nnum != 0)
+               comp = comp / nnum;
+            break;
+            }
+
         case E_SMAP_MASK:
         case E_SMAP_MIDPT:
             if ( findex ) *findex = 0;
@@ -1106,6 +1139,21 @@ ENTRY("v2s_apply_filter");
             {
                 tmp = MRI_FLOAT_PTR(rr->ims.imarr[count])[index];
                 if ( tmp > comp )
+                {
+                    if ( findex ) *findex = count;
+                    comp = tmp;
+                }
+            }
+            break;
+
+        case E_SMAP_NZMAX:
+            comp = MRI_FLOAT_PTR(rr->ims.imarr[0])[index];
+            if ( findex ) *findex = 0;
+
+            for ( count = 1; count < rr->ims.num; count++ )
+            {
+                tmp = MRI_FLOAT_PTR(rr->ims.imarr[count])[index];
+                if (( tmp > comp )  && (tmp != 0.0))
                 {
                     if ( findex ) *findex = count;
                     comp = tmp;
@@ -1136,6 +1184,21 @@ ENTRY("v2s_apply_filter");
             {
                 tmp = MRI_FLOAT_PTR(rr->ims.imarr[count])[index];
                 if ( tmp < comp )
+                {
+                    if ( findex ) *findex = count;
+                    comp = tmp;
+                }
+            }
+            break;
+
+        case E_SMAP_NZMIN:
+            comp = MRI_FLOAT_PTR(rr->ims.imarr[0])[index];
+            if ( findex ) *findex = 0;
+
+            for ( count = 1; count < rr->ims.num; count++ )
+            {
+                tmp = MRI_FLOAT_PTR(rr->ims.imarr[count])[index];
+                if (( tmp < comp ) && (tmp != 0.0))
                 {
                     if ( findex ) *findex = count;
                     comp = tmp;
@@ -2618,9 +2681,15 @@ ENTRY("v2s_make_command");
 
     if( gv2s_plug_opts.gpt_index >= 0 ){
         loc_add_2_list(&argv, &acnall, &argc, "-cmask");
-        sprintf(str,"-a %s[%d] -expr astep(a,%f)+equals(a,%f)",
-                dset_file, gv2s_plug_opts.gpt_index, gv2s_plug_opts.gpt_thresh,
-                gv2s_plug_opts.gpt_thresh);
+        if( gv2s_plug_opts.gpt_thresh > 0 )
+           sprintf(str,"-a %s[%d] -expr astep(a,%f)+equals(a,%f)",
+                   dset_file, gv2s_plug_opts.gpt_index,
+                   gv2s_plug_opts.gpt_thresh,
+                   gv2s_plug_opts.gpt_thresh);
+        else
+           sprintf(str,"-a %s[%d] -expr astep(a,%f)",
+                   dset_file, gv2s_plug_opts.gpt_index,
+                   gv2s_plug_opts.gpt_thresh);
         loc_add_2_list(&argv, &acnall, &argc, str);
     }
 

@@ -162,7 +162,8 @@ html_theme_path = [csp.get_theme_dir()]
 
 # The name for this set of Sphinx documents.  If None, it defaults to
 # "<project> v<release> documentation".
-html_title = "%s (doc v%s)  " % (project, release) #None
+#html_title = "%s (doc v%s)  " % (project, release) #None
+html_title = "%s" % (project) # don't need doc version number
 
 # A shorter title for the navigation bar.  Default is the same as html_title.
 #html_short_title = None

@@ -202,6 +202,12 @@ void LSS_help(void)
      " -matrix mmm = Read the matrix 'mmm', which should have been\n"
      "                output from 3dDeconvolve via the '-x1D' option, and\n"
      "                should have included exactly one '-stim_times_IM' option.\n"
+     "             -->> The 3dLSS algorithm requires that at least 2 different\n"
+     "                  stimulus times be given in the -stim_times_IM option.\n"
+     "                  If you have only 1 stim time, this program will not run.\n"
+     "                  In such a case, the normal '-bucket' output from 3dDeconvolve\n"
+     "                  (or '-Rbuck' output from 3dREMLfit) will have the single\n"
+     "                  beta for the single stim time.\n"
      "\n"
      " -input ddd  = Read time series dataset 'ddd'\n"
      "   ** OR **\n"
@@ -541,8 +547,16 @@ int main( int argc , char *argv[] )
      sscanf(cgl,"%d:%d",&jst_bot,&jst_top) ;
      if( jst_bot < 0 || jst_top < 0 )
        ERROR_exit("Can't decode matrix attribute %s",nbuf) ;
+     if( jst_bot == jst_top )
+       ERROR_exit("Matrix attribute %s shows only 1 column for -stim_time_IM:\n"
+                  "      -->> 3dLSS is meant to be used when more than one stimulus\n"
+                  "           time was given, and then it computes the response beta\n"
+                  "           for each stim time separately. If you have only one\n"
+                  "           stim time with -stim_times_IM, you can use the output\n"
+                  "           dataset from 3dDeconvolve (or 3dREMLfit) to get that\n"
+                  "           single beta directly.\n" , nbuf ) ;
      if( jst_bot >= jst_top || jst_top >= ncmat )
-       ERROR_exit("Matrix attribute %s has illegal value",nbuf) ;
+       ERROR_exit("Matrix attribute %s has illegal value: %d:%d (ncmat=%d)",nbuf,jst_bot,jst_top,ncmat) ;
      sprintf(nbuf,"BasisName_%06d",jj) ;
      cgl = NI_get_attribute( nelmat , nbuf ) ;
      if( cgl != NULL ) stlab = strdup(cgl) ;

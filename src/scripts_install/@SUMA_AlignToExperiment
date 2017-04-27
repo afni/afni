@@ -1,5 +1,8 @@
 #!/bin/tcsh -f
 
+# Jan, 2017: PT reformatted helpfile, which was hard to read in
+# eeeemacs viewer.
+
 @global_parse `basename $0` "$*" ; if ($status) exit 0
 
 set stat = 0
@@ -619,7 +622,8 @@ RESAMPLE:
          rm -f $ExpAnat_Resamp.BRIK* $ExpAnat_Resamp.HEAD
       endif
       if ("$sel" == 'S' || "$sel" == 's') then
-         echo "Skipping resampling, existing data set $ExpAnat_Resamp will be used"
+         echo "Skipping resampling, existing data set $ExpAnat_Resamp "
+         echo "  will be used"
          set Skip = 1
       endif
       if ("$sel" == 'Q' || "$sel" == 'q') then
@@ -999,13 +1003,15 @@ CHECK_PROGRAMS:
    
 NO_SURFANAT:
    echo ""
-   echo "Error: No Surface Anatomy $SurfAnat (.HEAD or .BRIK) volume in $SurfAnatPath"
+   echo "Error: No Surface Anatomy $SurfAnat (.HEAD or .BRIK) "
+   echo "  volume in $SurfAnatPath"
    echo ""
    goto BEND
 
 NO_EXPANAT:
    echo ""
-   echo "Error: No Experiment Anatomy $ExpAnat (.HEAD or .BRIK) in current directory"
+   echo "Error: No Experiment Anatomy $ExpAnat (.HEAD or .BRIK) "
+   echo "  in current directory"
    echo ""
    goto BEND
 
@@ -1040,185 +1046,232 @@ NO_RESAMP:
    goto BEND
    
 USAGE:
-echo ""
-echo "Usage: "
-echo "`basename $0` <-exp_anat Experiment_Anatomy> <-surf_anat Surface_Anatomy> "
-echo "              [dxyz] [-wd] [-prefix PREFIX] [-EA_clip_below CLP]"
-echo "              [-align_centers] [-ok_change_view] [-strip_skull WHICH]"
-echo ""
-echo "Creates a version of Surface Anatomy that is registered to Experiment Anatomy."
-echo ""
-echo "Mandatory parameters:"
-echo "<-exp_anat Experiment_Anatomy>: Name of high resolution anatomical data set in register "
-echo "        with experimental data."
-echo "<-surf_anat Surface_Anatomy> Path and Name of high resolution antomical data set used to "
-echo "        create the surface."
-echo ""
-echo "  NOTE: In the old usage, there were no -exp_anat and -surf_anat flags and the two "
-echo "  volumes had to appear first on the command line and in the proper order."
-echo ""
-echo "Optional parameters:"
-echo "   [-dxyz DXYZ]: This optional parameter indicates that the anatomical "
-echo "        volumes must be downsampled to dxyz mm voxel resolution before "
-echo "        registration. That is only necessary if 3dvolreg runs out of memory."
-echo "        You MUST have 3dvolreg that comes with afni distributions newer than "
-echo "        version 2.45l. It contains an option for reducing memory usage and "
-echo "        thus allow the registration of large data sets."
-echo "   [-out_dxyz DXYZ]: Output the final aligned volume at a cubic voxelsize"
-echo "                     of DXYZmm. The default is based on the grid of ExpVol."
-echo "   [-wd]: Use 3dWarpDrive's general affine transform (12 param) instead of "
-echo "        3dvolreg's 6 parameters."
-echo "        If the anatomical coverage differs markedly between 'Experiment "
-echo "        Anatomy' and 'Surface Anatomy', you might need to use -EA_clip_below "
-echo "        option or you could end up with a very distorted brain."
-#echo "        With more degrees of freedom, there is more room for the alignment not"
-#echo "        to converge very well, especially when spatial coverage of the two dsets"
-#echo "        is not the same. So use this option when you have to, not as the default."
-echo "        The default now is to use -coarserot option with 3dWarpDrive, this"
-echo "        should make the program more robust. If you want to try running without it"
-echo "        the add -ncr with -wd"
-echo "        I would be interested in examining cases where -wd option failed to "
-echo "        produce a good alignment."
-echo "   [-al]: Use 3dAllineate to do the 12 parameter alignment. Cost function"
-echo "          is lpa"
-echo "   [-al_opt 'Options for 3dAllineate']: Specify set of options between quotes"
-echo "                                           to pass to 3dAllineate.   "
-echo "   [-ok_change_view]: Be quiet when view of registered volume is changed"
-echo "                      to match that of the Experiment_Anatomy, even when"
-echo "                      rigid body registration is used."
-echo "   [-strip_skull WHICH]: Use 3dSkullStrip to remove non-brain tissue and "
-echo "          potentially improve the alignment. WHICH can be"
-echo "          one of 'exp_anat', 'surf_anat', 'both', or 'neither' (default). "
-echo "          In the first case, the skull is removed from Experiment_Anatomy "
-echo "          dataset, in the second it is removed from the surf_anat dataset."
-echo "          With 'both' the skull is removed from Experiment_Anatomy  "
-echo "          and Surface_Anatomy."
-echo "   [-skull_strip_opt 'Options For 3dSkullStrip']: Pass the options between"
-echo "                         quotes to 3dSkullStrip."
-echo "   [-align_centers]: Adds an additional transformation to align the volume"
-echo "                     centers. This is a good option to use when volumes"
-echo "                     are severely out of alignment."
-echo "   [-init_xform XFORM0.1D]: Apply affine transform in XFORM0.1D to"
-echo "                       Surface_Anatomy before beginning registration."
-echo "                       After convergence, combine XFORM.1D and the "
-echo "                       the registration matrix to create the output volume"
-echo "                       To verify that XFORM0.1D does what you think"
-echo "                       it should be doing, try:"
-echo "                 3dWarp    -matvec_out2in XFORM0.1D \"
-echo "                           -prefix pre.SurfVol SurfVol+orig"
-echo "                       and verify that 'pre.SurfVol+orig' is"
-echo "                       transformed by XFORM0.1D as you expected it to be."
-echo ""
-echo "                    XFORM0.1D can be obtained in a variety of ways. "
-echo "                    One of which involves extracting it from a transformed"
-echo "                    volume."
-echo "                    For example, say you want to perform an initial"
-echo "                    rotation that is equivalent to: "
-echo "                 3drotate -matvec_order RotMat.1D \"
-echo "                          -prefix struct.r struct+orig "
-echo "                    The equivalent XFORM0.1D is obtained with:\n"
-echo "                 cat_matvec 'struct.r+orig::ROTATE_MATVEC_000000' -I \"
-echo "                           > XFORM0.1D  "
-echo ""
-echo "                    See cat_matvec -help for more details on extracting"
-echo "                    appropriate affine transforms from dataset headers."
-echo ""
-echo "                    See also Example 4 below."
-echo ""
-echo "   [-EA_clip_below CLP]: Set slices below CLPmm in 'Experiment Anatomy' to zero."
-echo "        Use this if the coverage of 'Experiment Anatomy' dataset"
-echo "        extends far below the data in 'Surface Anatomy' dataset."
-echo "        To get the value of CLP, use AFNI to locate the slice"
-echo "        below which you want to clip and set CLP to the z coordinate"
-echo "        from AFNI's top left corner. Coordinate must be in RAI, DICOM."   
-echo "   [-prefix PREFIX]: Use PREFIX for the output volume. Default is the prefix "
-echo "   [-surf_anat_followers Fdset1 Fdset2 ...]: Apply the same alignment"
-echo "                transform to datasets Fdset1, Fdset2, etc."
-echo "                This must be the last option on the command line."
-echo "                All parameters following it are considered datasets."
-echo "                You can transform other follower dsets manually by"
-echo "                executing: "
-echo "         3dAllineate -master Experiment_Anatomy \"
-echo "                     -1Dmatrix_apply Surface_Anatomy_Alnd_Exp.A2E.1D \"
-echo "                     -input Fdset   \"
-echo "                     -prefix Fdset_Alnd_Exp+orig \"
-echo "                     -final NN"
-echo "   [-followers_interp KERNEL]: Set the interpolation mode for the "
-echo "                               follower datasets. Default is NN, which "
-echo "                               is appropriate for ROI datasets."
-echo "                               Allowed KERNEL values are:"
-echo "                               NN, linear, cubic, or quintic"
-echo "                    Note: For atlas datasets, the KERNEL is forced to NN"
-echo "                          regardless of what you set here."
-echo "        of the 'Surface Anatomy' suffixed by _Alnd_Exp."
-echo "   [-atlas_followers]: Automatically set the followers to be atlases in"
-echo "                       the directory of -surf_anat. This way all the "
-echo "                       parcellations will get aligned to the experiment."
-echo "   [-echo]: Echo all commands to terminal for debugging"
-echo "   [-keep_tmp]: Keep temporary files for debugging. Note that you should"
-echo "                delete temporary files before rerunning the script."
-echo "   [-overwrite_resp RESP]: Answer 'overwrite' questions automatically."
-echo "        RESP (response) should be one of O/S/Q/A:"
-echo "             O : overwrite previous result"
-echo "             S : skip this step (applying previous result)"
-echo "             Q : quit the script"
-echo "             A : pause script and ask at each occurance"
-echo ""         
-echo ""
-echo "NOTE: You must run the script from the directory where Experiment Anatomy resides."
-echo ""
-echo "Example 1: For datasets with no relative distortion and comparable coverage."
-echo "           Using 6 param. rigid body transform."
-echo "@SUMA_AlignToExperiment -exp_anat DemoSubj_spgrsa+orig. \"
-echo "                        -surf_anat ../FreeSurfer/SUMA/DemoSubj_SurfVol+orig."
-echo ""
-echo "Example 2: For datasets with some distortion and different coverage."
-echo "           Using 12 param. transform and clipping of areas below cerebellum:"
-echo "@SUMA_AlignToExperiment -exp_anat ABanat+orig. -surf_anat DemoSubj_SurfVol+orig. \"
-echo "                       -wd -prefix DemoSubj_SurfVol_WD_Alnd_Exp \"
-echo "                       -EA_clip_below -30"
-echo ""
-echo "Example 3: For two monkey T1 volumes with very different resolutions and severe"
-echo "           shading artifacts."
-echo "@SUMA_AlignToExperiment    -surf_anat MOanat+orig. -al \"
-echo "                           -exp_anat MoExpanat+orig. \"
-echo "                           -strip_skull both -skull_strip_opt -monkey \"
-echo "                           -align_centers \"
-echo "                           -out_dxyz 0.3"
-echo ""
-echo "Example 4: When -exp_anat and -surf_anat have very different orientations"
-echo "       Here is an egregious case where -exp_anat (EA) was rotated severely"
-echo "       out of whack relative to -surf_anat (SV), AND volume centers were"
-echo "       way off. "
-echo "       With the 'Nudge Dataset' plugin, it was determined that a 60deg."
-echo "       rotation got SV oriented more like ExpAnat."
-echo "       The plugin can be made to spit out an the 3dRotate command"
-echo "       to apply the roation:"
-echo "         3drotate -quintic -clipit -rotate 0.00I 60.00R 0.00A \"
-echo "                                   -ashift 0.00S 0.00L 0.00P \"
-echo "                     -prefix ./SV_rotated+orig SV+orig"
-echo "       We will get XFROM.1D from that rotated volume:"
-echo "         cat_matvec 'SV_rotated+orig::ROTATE_MATVEC_000000' -I \"
-echo "                                > XFORM0.1D"
-echo "       and tell @SUMA_AlignToExperiment to apply both center alignment"
-echo "       and XFORM0.1D"
-echo "         @SUMA_AlignToExperiment \"
-echo "                    -init_xform XFORM0.1D -align_centers \"
-echo "                    -surf_anat SV+orig  -exp_anat EA+orig \"
-echo "                    -prefix SV_A2E_autAUTPre   "
-echo ""
-echo "       Note 1: 'Nudge Dataset' can also be used to get the centers"
-echo "       aligned, but that would be more buttons to press."
-echo "       Note 2: -init_xform does not need to be accurate, it is just "
-echo "       meant to get -surf_anat to have a comparable orientation."
-echo ""
-@global_parse -gopts_help
-echo ""
-echo "More help may be found at https://afni.nimh.nih.gov/ssc/ziad/SUMA/SUMA_doc.htm"
-echo ""
-echo "Ziad Saad (saadz@mail.nih.gov)"
-echo "SSCC/NIMH/ National Institutes of Health, Bethesda Maryland"
-echo ""
+
+cat << EOF
+
+Usage: 
+
+@SUMA_AlignToExperiment                                                 \
+    <-exp_anat Experiment_Anatomy> <-surf_anat Surface_Anatomy>         \
+    [dxyz] [-wd] [-prefix PREFIX]                                       \
+    [-EA_clip_below CLP] [-align_centers] [-ok_change_view]             \
+    [-strip_skull WHICH]
+
+Creates a version of Surface Anatomy that is registered to Experiment
+Anatomy.
+
+Mandatory parameters:
+
+    <-exp_anat Experiment_Anatomy>
+        Name of high resolution anatomical data set in register with
+        experimental data.
+
+    <-surf_anat Surface_Anatomy> 
+        Path and name of high resolution antomical data set used to
+        create the surface.
+
+  NOTE: In the old usage, there were no -exp_anat and -surf_anat flags
+  and the two volumes had to appear first on the command line and in
+  the proper order.
+
+Optional parameters:
+
+   [-dxyz DXYZ]: This optional parameter indicates that the anatomical
+                volumes must be downsampled to dxyz mm voxel
+                resolution before registration. That is only necessary
+                if 3dvolreg runs out of memory.  You MUST have
+                3dvolreg that comes with afni distributions newer than
+                version 2.45l. It contains an option for reducing
+                memory usage and thus allow the registration of large
+                data sets.
+
+   [-out_dxyz DXYZ]: Output the final aligned volume at a cubic
+                voxelsize of DXYZmm. The default is based on the grid
+                of ExpVol.
+
+   [-wd]: Use 3dWarpDrive's general affine transform (12 param)
+                instead of 3dvolreg's 6 parameters.  If the anatomical
+                coverage differs markedly between 'Experiment Anatomy'
+                and 'Surface Anatomy', you might need to use
+                -EA_clip_below option or you could end up with a very
+                distorted brain.  The default now is to use -coarserot
+                option with 3dWarpDrive, this should make the program
+                more robust. If you want to try running without it the
+                add -ncr with -wd I would be interested in examining
+                cases where -wd option failed to produce a good
+                alignment.
+
+   [-al]: Use 3dAllineate to do the 12 parameter alignment. Cost
+                function is 'lpa'.
+
+   [-al_opt 'Options for 3dAllineate']: Specify set of options between
+                quotes to pass to 3dAllineate.
+
+   [-ok_change_view]: Be quiet when view of registered volume is
+                changed to match that of the Experiment_Anatomy, even
+                when rigid body registration is used.
+
+   [-strip_skull WHICH]: Use 3dSkullStrip to remove non-brain tissue
+                and potentially improve the alignment. WHICH can be
+                one of 'exp_anat', 'surf_anat', 'both', or 'neither'
+                (default).  In the first case, the skull is removed
+                from Experiment_Anatomy dataset, in the second it is
+                removed from the surf_anat dataset.  With 'both' the
+                skull is removed from Experiment_Anatomy and
+                Surface_Anatomy.
+
+   [-skull_strip_opt 'Options For 3dSkullStrip']: Pass the options
+                between quotes to 3dSkullStrip.
+
+   [-align_centers]: Adds an additional transformation to align the
+                volume centers. This is a good option to use when
+                volumes are severely out of alignment.
+
+   [-init_xform XFORM0.1D]: Apply affine transform in XFORM0.1D to
+                Surface_Anatomy before beginning registration.  After
+                convergence, combine XFORM.1D and the the registration
+                matrix to create the output volume To verify that
+                XFORM0.1D does what you think it should be doing, try:
+                    3dWarp -matvec_out2in XFORM0.1D           \
+                           -prefix pre.SurfVol SurfVol+orig
+                and verify that 'pre.SurfVol+orig' is transformed by
+                XFORM0.1D as you expected it to be.
+                XFORM0.1D can be obtained in a variety of ways. One
+                of which involves extracting it from a transformed
+                volume.  For example, say you want to perform an
+                initial rotation that is equivalent to:
+                    3drotate -matvec_order RotMat.1D          \
+                          -prefix struct.r struct+orig 
+                The equivalent XFORM0.1D is obtained with:
+                    cat_matvec 'struct.r+orig::ROTATE_MATVEC_000000' -I  \
+                           > XFORM0.1D  
+                See cat_matvec -help for more details on extracting
+                appropriate affine transforms from dataset headers.
+                See also Example 4 below.
+
+   [-EA_clip_below CLP]: Set slices below CLPmm in 'Experiment
+                Anatomy' to zero.  Use this if the coverage of
+                'Experiment Anatomy' dataset extends far below the
+                data in 'Surface Anatomy' dataset.  To get the value
+                of CLP, use AFNI to locate the slice below which you
+                want to clip and set CLP to the z coordinate from
+                AFNI's top left corner. Coordinate must be in RAI,
+                DICOM.
+
+   [-prefix PREFIX]: Use PREFIX for the output volume. Default is the
+                prefix
+
+   [-surf_anat_followers Fdset1 Fdset2 ...]: Apply the same alignment
+                transform to datasets Fdset1, Fdset2, etc.  This must
+                be the last option on the command line.  All
+                parameters following it are considered datasets.  You
+                can transform other follower dsets manually by
+                executing:
+                    3dAllineate -master Experiment_Anatomy              \
+                        -1Dmatrix_apply Surface_Anatomy_Alnd_Exp.A2E.1D \
+                        -input Fdset                                    \
+                        -prefix Fdset_Alnd_Exp+orig                     \
+                        -final NN
+
+   [-followers_interp KERNEL]: Set the interpolation mode for the
+                follower datasets. Default is NN, which is appropriate
+                for ROI datasets.  Allowed KERNEL values are: NN,
+                linear, cubic, or quintic
+                Note: For atlas datasets, the KERNEL is forced to NN
+                regardless of what you set here.
+        of the 'Surface Anatomy' suffixed by _Alnd_Exp.
+
+   [-atlas_followers]: Automatically set the followers to be atlases
+                in the directory of -surf_anat. This way all the
+                parcellations will get aligned to the experiment.
+
+   [-echo]: Echo all commands to terminal for debugging
+
+   [-keep_tmp]: Keep temporary files for debugging. Note that you
+                should delete temporary files before rerunning the
+                script.
+
+   [-overwrite_resp RESP]: Answer 'overwrite' questions automatically.
+                RESP (response) should be one of O/S/Q/A:
+                    O : overwrite previous result
+                    S : skip this step (applying previous result)
+                    Q : quit the script
+                    A : pause script and ask at each occurance
+
+
+NOTE: You must run the script from the directory where Experiment
+Anatomy resides.
+
+Example 1: For datasets with no relative distortion and comparable
+           coverage.  Using 6 param. rigid body transform.
+@SUMA_AlignToExperiment                                   \
+    -exp_anat DemoSubj_spgrsa+orig.                       \
+    -surf_anat ../FreeSurfer/SUMA/DemoSubj_SurfVol+orig.
+
+Example 2: For datasets with some distortion and different coverage.
+           Using 12 param. transform and clipping of areas below
+           cerebellum:
+@SUMA_AlignToExperiment                                      \
+    -exp_anat ABanat+orig. -surf_anat DemoSubj_SurfVol+orig. \
+    -wd -prefix DemoSubj_SurfVol_WD_Alnd_Exp                 \
+    -EA_clip_below -30
+
+Example 3: For two monkey T1 volumes with very different resolutions
+           and severe shading artifacts.
+
+@SUMA_AlignToExperiment                                      \
+    -surf_anat MOanat+orig. -al                              \
+    -exp_anat MoExpanat+orig.                                \
+    -strip_skull both -skull_strip_opt -monkey               \
+    -align_centers                                           \
+    -out_dxyz 0.3
+
+Example 4: When -exp_anat and -surf_anat have very different
+           orientations Here is an egregious case where -exp_anat (EA)
+           was rotated severely out of whack relative to -surf_anat
+           (SV), AND volume centers were way off.  With the 'Nudge
+           Dataset' plugin, it was determined that a 60deg.  rotation
+           got SV oriented more like ExpAnat.  The plugin can be made
+           to spit out an the 3dRotate command to apply the roation:
+                3drotate                                        \
+                    -quintic -clipit                            \
+                    -rotate 0.00I 60.00R 0.00A                  \
+                    -ashift 0.00S 0.00L 0.00P                   \
+                    -prefix ./SV_rotated+orig SV+orig
+           We will get XFROM.1D from that rotated volume:
+                cat_matvec 'SV_rotated+orig::ROTATE_MATVEC_000000' -I \
+                    > XFORM0.1D
+           and tell @SUMA_AlignToExperiment to apply both center
+           alignment and XFORM0.1D
+                @SUMA_AlignToExperiment                        \
+                    -init_xform XFORM0.1D -align_centers       \
+                    -surf_anat SV+orig  -exp_anat EA+orig      \
+                    -prefix SV_A2E_autAUTPre   
+           Note 1: 'Nudge Dataset' can also be used to get the centers
+           aligned, but that would be more buttons to press.
+           Note 2: -init_xform does not need to be accurate, it is
+           just meant to get -surf_anat to have a comparable
+           orientation.
+
+Global Help Options:
+--------------------
+
+   -h_web: Open webpage with help for this program
+   -hweb: Same as -h_web
+   -h_view: Open -help output in a GUI editor
+   -hview: Same as -hview
+   -all_opts: List all of the options for this script
+   -h_find WORD: Search for lines containing WORD in -help
+                 output. Seach is approximate.
+
+More help may be found at:
+https://afni.nimh.nih.gov/ssc/ziad/SUMA/SUMA_doc.htm
+
+Ziad Saad (saadz@mail.nih.gov)
+SSCC/NIMH/ National Institutes of Health, Bethesda Maryland
+
+EOF
+
    goto END
 
 BEND:

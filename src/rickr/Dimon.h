@@ -100,6 +100,7 @@ typedef struct  /* user options */
     int              gert_reco;     /* output GERT_Reco script          */
     char           * gert_filename; /* GERT_Reco script name            */
     char           * gert_prefix;   /* to3d prefix in GERT_Reco script  */
+    char           * chan_prefix;   /* _chan_ par of prefix in script   */
     int              gert_nz;       /* override nz=1 in script          */
     int              gert_format;   /* dataset format: 0=AFNI, 1=NIFTI  */
                                     /* (see -gert_write_as_*)           */
@@ -110,6 +111,8 @@ typedef struct  /* user options */
     int              dicom_org;     /* flag to organize dicom files     */
     int              sort_num_suff; /* flag to sort by numerical suffix */
     int              sort_acq_time; /* flag to sort by acq time         */
+    int              order_as_zt;   /* change tminor to slice minor order */
+    int              read_all;      /* flag to read all images at once  */
     int              rev_org_dir;   /* flag to reverse dicom_org dir    */
     int              rev_sort_dir;  /* flag to reverse glob sort dir    */
     int              save_errors;   /* save details in cases of errors  */

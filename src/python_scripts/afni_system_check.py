@@ -183,9 +183,16 @@ g_history = """
         - make comments about shell RC files, given login shell
    0.18 Mar 25, 2016 - tiny update
    0.19 May 20, 2016 - added -dot_file_list/_pack/_show
+   0.20 Jul  7, 2016 - check for partial PyQt4 (for OS X 10.11)
+   0.21 Aug 29, 2016 - added a few more FALLBACK tests
+   0.22 Nov  2, 2016 - handle OS X 10.12 version string
+   0.23 Nov 17, 2016 - look for flat_namespace on macs
+   0.24 Dec  7, 2016 - check for python2 and python3
+   0.25 Jan 25, 2017 - new OS X, check any DYLD vars via sub-shells
+   0.26 Feb  1, 2017 - updates for brew/fink, and check for fink python link
 """
 
-g_version = "afni_system_check.py version 0.19, May 20, 2016"
+g_version = "afni_system_check.py version 0.26, February 1, 2017"
 
 
 class CmdInterface:

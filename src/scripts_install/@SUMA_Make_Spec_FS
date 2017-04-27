@@ -6,11 +6,19 @@
 #
 # usage @SUMA_Make_Spec_FS [options]
 #
-# options:  -sid   subject_id   : specify subject ID
-#       -fspath   FreeSurfer_path : specify path to FreeSurfer files
-#       -neuro         : use neurological orientation
-#           -debug      level      : display extra output
+# options:
+#       -sid    subject_id      : specify subject ID
+#       -fspath FreeSurfer_path : specify path to FreeSurfer files
+#       -neuro                  : use neurological orientation
+#       -debug  level           : display extra output
 #
+
+# [Dec 30, 2016]: PT+RCR updated.
+#    + new renumbering of aparc/aseg files for both 2000 and 2009
+#      atlases
+#    + replaces functionality of 'rank' data sets
+#    + produce tissue maps based on hopefully good guesses of FS
+#      labeling
 
 #----------------------------------------------------------------------
 goto L_INIT_VARS
@@ -49,6 +57,10 @@ goto L_ICO
 goto L_TEST_SURF_VOL
      L_TEST_SURF_VOL_DONE:
 
+# PT added [Dec 30, 2016]
+goto L_RENUMBER_ROIS
+     L_RENUMBER_ROIS_DONE:
+
 goto L_GOOD_END   # finished, woohooo!
 
 
@@ -57,6 +69,7 @@ goto L_GOOD_END   # finished, woohooo!
 
 L_INIT_VARS:
 
+    set USING_NIFTI = 0
     set prog_name = $0:t
     set endstr = "$prog_name ... finished"
     set debug     = 0
@@ -94,10 +107,12 @@ goto L_INIT_VARS_DONE
 L_CHECK_USAGE:
 
     if ( $#argv == 0 ) then
-   echo "usage: $prog_name [options] -sid SUBJECT_ID"
-   echo "usage: $prog_name -help"
-   set endstr = ""
-   goto L_GOOD_END
+       # show help on no args   28 Feb 2017 [rickr]
+
+       # echo "usage: $prog_name [options] -sid SUBJECT_ID"
+       # echo "usage: $prog_name -help"
+       # set endstr = ""
+       goto L_HELP_END
     endif
 
 goto L_CHECK_USAGE_DONE
@@ -131,7 +146,7 @@ L_PARSE_COMMAND:
        case "-h":
        case "-help":
 
-      goto L_HELP_END      # and don't ya' come back, neither
+          goto L_HELP_END      # and don't ya' come back, neither
 
        breaksw
 
@@ -199,6 +214,7 @@ L_PARSE_COMMAND:
       set sfieldname = 'SurfaceName'
       set sex = 'gii'
       set stp = 'GIFTI'
+      set USING_NIFTI = 1      # [PT: Feb,2017] really useful...
       
        breaksw
 
@@ -312,8 +328,8 @@ L_PARSE_COMMAND:
     end
 
     if ( $subj_id == "" ) then
-   set endstr = "missing required option: -sid"
-   goto L_BAD_END
+       set endstr = "missing required option: -sid"
+       goto L_BAD_END
     endif
 
     if ($#inflates == 0 && $neuro_ori == -1) set inflates = ($inflates 200) 
@@ -322,10 +338,10 @@ L_PARSE_COMMAND:
     if ( $debug > 1 ) set echo
     if ( $#ldu ) set ldlist = ($ldu)
     if ($#ldpref == 0 && $#ldlist != 0) then
-      set ldpref = ()
-      foreach lldd ($ldlist)
-         set ldpref = ($ldpref std.$lldd.)
-      end
+       set ldpref = ()
+       foreach lldd ($ldlist)
+          set ldpref = ($ldpref std.$lldd.)
+       end
     endif
     if ($#ldpref != 0 && $#ldpref != $#ldlist) then
       set endstr = "Not enough -ldpref options for $#ldlist values"  
@@ -334,11 +350,11 @@ L_PARSE_COMMAND:
 
     set spec_files   = ({$subj_id}_lh.spec {$subj_id}_rh.spec )
     set afni_prefix  = ${subj_id}_SurfVol
-      if ( $neuro_ori != -1 ) then
-    set afni_dataset = $afni_prefix+orig
-      else
-    set afni_dataset = $afni_prefix 
-      endif
+    if ( $neuro_ori != -1 ) then
+       set afni_dataset = $afni_prefix+orig
+    else
+       set afni_dataset = $afni_prefix 
+    endif
     # set and go to the base directory
     cd $fs_dir
     set start_dir = $cwd
@@ -603,11 +619,13 @@ L_CONVERT_SURFACES:
       if ( $surf =~ *.white* ||     \
            $surf =~ *.smoothwm* ||  \
            $surf =~ *.pial*) then
-         ConvertSurface -sv $start_dir/$suma_dir/$afni_dataset.nii -i $surf.asc \
-                        -ixmat_1D xmatras.1D -overwrite -o $surf.gii
+        # hmmm, identical commands suggest the second -ixmat_1D does not belong
+        # (currently left for future bickering)
+        ConvertSurface -sv $start_dir/$suma_dir/$afni_dataset.nii -i $surf.asc \
+                       -ixmat_1D xmatras.1D -overwrite -o $surf.gii
       else
-         ConvertSurface -sv $start_dir/$suma_dir/$afni_dataset.nii -i $surf.asc \
-                        -ixmat_1D xmatras.1D -overwrite -o $surf.gii
+        ConvertSurface -sv $start_dir/$suma_dir/$afni_dataset.nii -i $surf.asc \
+                       -ixmat_1D xmatras.1D -overwrite -o $surf.gii
       endif
    endif
 
@@ -1066,6 +1084,15 @@ L_CREATE_BRICK:
     cd $start_dir
     
     if ($#other_mgz > 0) then
+#       cat /Applications/freesurfer/FreeSurferColorLUT.txt | grep -v "^#" | sed '/^[[:space:]]*$/d' > fslut.txt
+       # first unranked original datasets - reliably constant across subjects
+       @FS_roi_label -name ALL -labeltable $start_dir/$suma_dir/fs_table
+       if -e $start_dir/$suma_dir/fs_table.niml.lt then
+          echo "Made roi label table for AFNI - fs_table.niml.lt"
+       else
+          echo "ERROR: failed to make roi label table fs_table.niml.lt"
+       endif
+
        #Do the other .mgz files
        foreach other ($other_mgz)
          #@SUMA_FSvolToBRIK $other $start_dir/$suma_dir/$other:t:r
@@ -1081,6 +1108,16 @@ L_CREATE_BRICK:
               "${other:t:r}" == "aparc.a2009s+aseg" ||   \
               "${other:t:r}" == "aseg" ||   \
               "${other:t:r}" == "aparc+aseg" ) then
+            # put atlas labels into FreeSurfer segmentation datasets
+            # first use generic FS table that's the same for all datasets
+            if -e $start_dir/$suma_dir/fs_table.niml.lt then
+               3drefit -labeltable $start_dir/$suma_dir/fs_table.niml.lt \
+                                  "${other:t:r}.nii"
+               @MakeLabelTable -replace -atlasize_labeled_dset "${other:t:r}.nii"
+            endif
+
+
+            # now ranked datasets-removing empty indices - easier to color in AFNI
             3dmerge -1rank -prefix "${other:t:r}_rank.nii" ${other:t:r}".nii"
             if (0) then
                # kill this block soon.
@@ -1096,7 +1133,7 @@ L_CREATE_BRICK:
             else
                3drefit -labeltable ${other:t:r}_rank.niml.lt \
                                   "${other:t:r}_rank.nii"
-               @MakeLabelTable -atlasize_labeled_dset "${other:t:r}_rank.nii"
+               @MakeLabelTable -replace -atlasize_labeled_dset "${other:t:r}_rank.nii"
             endif
          endif
          cd - 
@@ -1138,7 +1175,13 @@ L_ICO:
             end
          endif
          if ( -f $sp) then
-            MapIcosahedron -spec $sp -ld $ld $dm -prefix $ldpref[$ild] 
+            # possibly add -verb    19 Mar 2017 [rickr]
+            if ( $debug ) then
+               set vb = "-verb"
+            else
+               set vb = ""
+            endif
+            MapIcosahedron $vb -spec $sp -ld $ld $dm -prefix $ldpref[$ild] 
             set both = ($both ${ldpref[$ild]}{$subj_id}_${hem}.spec)
          endif
       end
@@ -1174,6 +1217,19 @@ L_TEST_SURF_VOL:
 
 goto L_TEST_SURF_VOL_DONE
 
+####################################################################
+# [PT, Dec 30, 2016]
+# finally replacing rank utility.
+
+L_RENUMBER_ROIS:
+
+    echo "\n\n++ Going to make renumbered ROIs now."
+    echo "    --> done for colorbar and making tissue maps."
+    echo "        See '@SUMA_renumber_FS -help' for description.\n\n"
+
+    @SUMA_renumber_FS $suma_dir
+
+goto L_RENUMBER_ROIS_DONE
 
 ####################################################################
 # display help and exit
@@ -1195,17 +1251,21 @@ echo "        by FreeSurfer. The segmentation volumes with aseg in the "
 echo "        name are best viewed in AFNI with the FreeSurfer_Seg_255"
 echo "        colormap. See bottom of @SUMA_FSvolToBRIK -help for more"
 echo "        info." 
+echo "      - [new: Dec 30, 2016] new renumbered data sets output, to"
+echo "        replace old '*rank*' file data sets. Also new tissue maps"
+echo "        based on FS functions and labels. Collectively, these are"
+echo "        the '*REN*' dsets in the output directory."
 echo ""
 echo "      - all created files are stored in a new SUMA directory"
 echo ""
 echo "  Usage: $prog_name [options] -sid SUBJECT_ID"
 echo ""
-echo "  examples:"
+echo "  examples ('-NIFTI' is really useful-- see below!):"
 echo ""
-echo "    $prog_name -sid subject1"
 echo "    $prog_name -help"
-echo "    $prog_name -fspath subject1/surface_stuff -sid subject1"
-echo "    $prog_name -neuro -sid 3.14159265 -debug 1"
+echo "    $prog_name -NIFTI -sid subject1"
+echo "    $prog_name -NIFTI -fspath subject1/surface_stuff -sid subject1"
+echo "    $prog_name -NIFTI -neuro -sid 3.14159265 -debug 1"
 echo ""
 echo "  options:"
 echo ""
@@ -1249,13 +1309,13 @@ echo "            August 1st 2013 will have their X and Y coordinates "
 echo "            negated and will no longer line up with the anatomy. "
 echo "            Correcting such surfaces can be done with ConvertSurface"
 echo "            with the following command:"
-echo "              ConvertSurface  -i lh.smoothwm.gii -o_gii lh.smoothwm \"
+echo "              ConvertSurface  -i lh.smoothwm.gii -o_gii lh.smoothwm \\"
 echo "                              -overwrite -xmat_1D NegXY"
 echo "            or for an entire SUMA directory:"
 echo "              cd SUMA"
 echo "              tcsh"
 echo '              foreach ss (*.gii)'
-echo '                 ConvertSurface  -i $ss -o_gii $ss \'
+echo '                 ConvertSurface  -i $ss -o_gii $ss \\'
 echo "                                 -overwrite -xmat_1D NegXY"
 echo "              end"
 echo ""            
@@ -1266,6 +1326,11 @@ echo "    -IFTI  :volume used to create the surface. All volumes are"
 echo "            written out NIFTI format, and all surfaces are"
 echo "            in GIFTI format."
 echo "            This option is incompatible with -neuro or -use_mgz"
+echo ""
+echo "         ** Note: from 22 Feb 2013 through 20 Mar 2017, use of -NIFTI"
+echo "                  would distort standard mesh surfaces.  To evaluate"
+echo "                  effects of this, consider: MapIcosahedron -write_dist."
+echo ""
 echo "    NOTE for -GNIFTI:"
 echo "        If you really care that the volumes in SUMA/ are in exact"
 echo "        register with the volume you passed to FreeSurfer, you "
@@ -1348,13 +1413,15 @@ echo "       but NOT between SUBJ_lh and SUBJ_rh surfaces."
 echo ""
 echo "  notes:"
 echo ""
-echo "    0. More help may be found at https://afni.nimh.nih.gov/ssc/ziad/SUMA/SUMA_doc.htm"
+echo "    0. More help may be found at:"
+echo "           https://afni.nimh.nih.gov/ssc/ziad/SUMA/SUMA_doc.htm"
 echo "    1. Surface file names should look like 'lh.smoothwm'."
 echo "    2. Patches of surfaces need the word patch in their name, in"
 echo "       order to use the correct option for 'mris_convert'."
 echo "    3. Flat surfaces must have .flat in their name."
-echo "    4. You can tailor the script to your needs. Just make sure you rename it or risk"
-echo "       having your modifications overwritten with the next SUMA version you install."
+echo "    4. You can tailor the script to your needs. Just make sure you"
+echo "       rename it or risk having your modifications overwritten with"
+echo "       the next SUMA version you install."
 echo ""
 echo "     R. Reynolds (rickr@codon.nih.gov)"
 echo "     Z. Saad (saadz@mail.nih.gov)"
@@ -1380,6 +1447,17 @@ L_BAD_END:
 # finished!
 
 L_GOOD_END:
+
+    if ( $USING_NIFTI == 0 ) then
+        echo "\n\n"
+        echo "WARNING!"
+        echo "  You didn't use the '-NIFTI' or '-GIFTI' or similarly-named"
+        echo "  option flag!  Are you *sure* you didn't want to?  Learning about"
+        echo "  this option changed my life-- it might just change yours, too."
+        echo "  Please read the helpfile entry for '-NIFTI' if you don't know"
+        echo "  what I'm talking about here."
+        echo "\n\n"
+    endif
 
     if ( $debug > 1 ) unset echo
 

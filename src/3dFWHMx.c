@@ -9,9 +9,9 @@ extern void THD_estimate_FWHM_moments_all( THD_3dim_dataset *dset,
 #ifdef USE_OMP
 # include <omp.h>
 # include "mri_fwhm.c"
+#else
+extern void mri_fwhm_mom12_set_stdev_fac(double) ;
 #endif
-
-#undef ADD_COL5  /* for -acf: add the old Gaussian model column (in blue) */
 
 int main( int argc , char *argv[] )
 {
@@ -23,7 +23,7 @@ int main( int argc , char *argv[] )
    double fx,fy,fz , cx,cy,cz , ccomb ; int nx,ny,nz , ncomb ;
    int geom=1 , demed=0 , unif=0 , corder=0 , combine=0 ;
    char *newprefix=NULL ;
-   int do_acf = 0 ; float acf_rad=0.0f ; int do_classic=0 ; int add_col5=0 ;
+   int do_acf = 0 ; float acf_rad=0.0f ; int do_classic=0 ; int addcol5=0 ;
    char *acf_fname="3dFWHMx.1D" ; MRI_IMAGE *acf_im=NULL ; float_quad acf_Epar ;
    double ct ;
 
@@ -34,6 +34,12 @@ int main( int argc , char *argv[] )
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
      printf(
       "Usage: 3dFWHMx [options] dataset\n"
+      "\n"
+      "**** NOTICE ****\n"
+      " You should use the '-acf' option (which is what afni_proc.py uses now).\n"
+      " The 'Classic' method giving just a Gaussian FWHM can no longer be\n"
+      " considered reliable for FMRI statistical analyses!\n"
+      "****************\n"
       "\n"
       "Unlike the older 3dFWHM, this program computes FWHMs for all sub-bricks\n"
       "in the input dataset, each one separately.  The output for each one is\n"
@@ -104,14 +110,15 @@ int main( int argc , char *argv[] )
       "  -detrend [q]= Instead of demed (0th order detrending), detrend to\n"
       "                order 'q'.  If q is not given, the program picks q=NT/30.\n"
       "                -detrend disables -demed, and includes -unif.\n"
-      "        **N.B.: I recommend this option, and it is not the default\n"
-      "                only for historical compatibility reasons.  It may\n"
-      "                become the default someday. Depending on my mood.\n"
-      "                It is already the default in program 3dBlurToFWHM.\n"
+      "        **N.B.: I recommend this option IF you are running 3dFWHMx on\n"
+      "                functional MRI time series that have NOT been processed\n"
+      "                to remove any activation and/or physiological artifacts.\n"
+      "           **** If you are running 3dFWHMx on the residual (errts) time\n"
+      "                series from afni_proc.py, you don't need -detrend.\n"
       "        **N.B.: This is the same detrending as done in 3dDespike;\n"
       "                using 2*q+3 basis functions for q > 0.\n"
-      "        ******* If you don't use '-detrend', the program now [Aug 2010]\n"
-      "                checks if a large number of voxels are have significant\n"
+      "        ******* If you don't use '-detrend', the program checks\n"
+      "                if a large number of voxels are have significant\n"
       "                nonzero means. If so, the program will print a warning\n"
       "                message suggesting the use of '-detrend', since inherent\n"
       "                spatial structure in the image will bias the estimation\n"
@@ -336,6 +343,10 @@ int main( int argc , char *argv[] )
          }
        }
        continue ;
+     }
+
+     if( strcasecmp(argv[iarg],"-addcol5") == 0 ){
+       addcol5++ ; iarg++ ; continue ;
      }
 
      if( strncasecmp(argv[iarg],"-classic",6) == 0 ){   /* 01 Dec 2015 */
@@ -596,13 +607,13 @@ int main( int argc , char *argv[] )
 
      if( do_acf > 0 )
        printf("# ACF model parameters for a*exp(-r*r/(2*b*b))+(1-a)*exp(-r/c) plus effective FWHM\n") ;
-     printf(" %g  %g  %g     %g\n",acf_Epar.a,acf_Epar.b,acf_Epar.c,acf_Epar.d) ;
+     printf(" %g  %g  %g    %g\n",acf_Epar.a,acf_Epar.b,acf_Epar.c,acf_Epar.d) ;
 
      if( acf_im != NULL ){
        char cmd[4096] ;
 
-#ifdef ADD_COL5
-       { MRI_IMAGE *qim,*pim ; float *rar, *qar, sig ; MRI_IMARR *imar ;
+       if( addcol5 ){
+         MRI_IMAGE *qim,*pim ; float *rar, *qar, sig ; MRI_IMARR *imar ;
          qim = mri_new( acf_im->nx , 1 , MRI_float ) ;
          qar = MRI_FLOAT_PTR(qim) ; rar = MRI_FLOAT_PTR(acf_im) ;
          sig = FWHM_TO_SIGMA(ccomb) ;
@@ -611,11 +622,10 @@ int main( int argc , char *argv[] )
          INIT_IMARR(imar) ; ADDTO_IMARR(imar,acf_im) ; ADDTO_IMARR(imar,qim) ;
          pim = mri_catvol_1D(imar,2) ; DESTROY_IMARR(imar) ; acf_im = pim ;
        }
-#endif
 
        mri_write_1D( acf_fname , acf_im ) ;
 
-#ifdef ADD_COL5
+      if( addcol5 ){
        INFO_message("ACF 1D file [radius ACF mixed_model gaussian_NEWmodel gaussian_OLDmodel] written to %s",acf_fname) ;
        sprintf(cmd,
          "1dplot -one -xlabel 'r (mm)'"
@@ -627,7 +637,7 @@ int main( int argc , char *argv[] )
          inset_prefix ,
          acf_Epar.a , acf_Epar.b , 1.0f-acf_Epar.a , acf_Epar.c ,
          acf_fname, acf_fname, acf_fname, acf_fname, acf_fname, acf_fname ) ;
-#else
+      } else {
        INFO_message("ACF 1D file [radius ACF mixed_model gaussian_NEWmodel] written to %s",acf_fname) ;
        sprintf(cmd,
          "1dplot -one -xlabel 'r (mm)'"
@@ -639,7 +649,8 @@ int main( int argc , char *argv[] )
          inset_prefix ,
          acf_Epar.a , acf_Epar.b , 1.0f-acf_Epar.a , acf_Epar.c ,
          acf_fname, acf_fname, acf_fname, acf_fname, acf_fname ) ;
-#endif
+      }
+
        system(cmd) ;
        ININFO_message("and 1dplot-ed to file %s.png",acf_fname) ;
      }

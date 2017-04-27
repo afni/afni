@@ -69,14 +69,14 @@ static INLINE void AAmemset( void *ooo , int c , size_t nnn )
     "* OpenMP is NOT like MPI -- it does not work with CPUs connected only\n"      \
     "   by a network (e.g., OpenMP doesn't work with 'cluster' setups).\n"         \
     "* For implementation and compilation details, please see\n"                   \
-    "   https://afni.nimh.nih.gov/pub/dist/doc/misc/OpenMP.html\n"                  \
+    "   https://afni.nimh.nih.gov/pub/dist/doc/misc/OpenMP.html\n"                 \
     "* The number of CPU threads used will default to the maximum number on\n"     \
     "   your system.  You can control this value by setting environment variable\n"\
     "   OMP_NUM_THREADS to some smaller value (including 1).\n"                    \
     "* Un-setting OMP_NUM_THREADS resets OpenMP back to its default state of\n"    \
     "   using all CPUs available.\n"                                               \
-    "   ++ However, on some systems (such as the NIH Biowulf), it seems to be\n"   \
-    "      necessary to set OMP_NUM_THREADS explicitly, or you only get one CPU.\n"\
+    "   ++ However, on some systems, it seems to be necessary to set variable\n"   \
+    "      OMP_NUM_THREADS explicitly, or you only get one CPU.\n"                 \
     "   ++ On other systems with many CPUS, you probably want to limit the CPU\n"  \
     "      count, since using more than (say) 16 threads is probably useless.\n"   \
     "* You must set OMP_NUM_THREADS in the shell BEFORE running the program,\n"    \

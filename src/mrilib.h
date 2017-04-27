@@ -70,7 +70,7 @@ extern float * g_siemens_timing_times;  /* actual list of times          */
 extern int     g_siemens_timing_units;  /* time units, UNITS_MSEC_TYPE?  */
 extern int     populate_g_siemens_times(int tunits);
 extern int     get_and_display_siemens_times(void);
-extern int     valid_g_siemens_times(int nz, float TR, int verb);
+extern int     valid_g_siemens_times(int, float, int, int);
 
 /*----------------------------------------------------------------------------*/
 
@@ -384,11 +384,13 @@ typedef struct MRI_IMAGE {
          int was_swapped ; /* 07 Mar 2002 */
          int vdim ;        /* 28 Nov 2008 */
          int flags ;       /* 21 Mar 2013 */
+
+         char *comments ;  /* 03 Aug 2016 */
 } MRI_IMAGE ;
 
 #ifdef USE_MRI_LABELS
 /*! Copy auxiliary data from one MRI_IMAGE to another. */
-#  define MRI_COPY_AUX(nn,oo)                                           \
+#  define MRI_COPY_AUX_OLD(nn,oo)                                       \
     ( (nn)->dx = (oo)->dx , (nn)->dy = (oo)->dy , (nn)->dz = (oo)->dz , \
       (nn)->dt = (oo)->dt , (nn)->du = (oo)->du , (nn)->dv = (oo)->dv , \
       (nn)->dw = (oo)->dw ,                                             \
@@ -401,7 +403,7 @@ typedef struct MRI_IMAGE {
       strcpy((nn)->wlab,(oo)->wlab) ,                                   \
       mri_add_name( (oo)->name , (nn) ) )
 #else
-#  define MRI_COPY_AUX(nn,oo)                                           \
+#  define MRI_COPY_AUX_OLD(nn,oo)                                       \
     ( (nn)->dx = (oo)->dx , (nn)->dy = (oo)->dy , (nn)->dz = (oo)->dz , \
       (nn)->dt = (oo)->dt , (nn)->du = (oo)->du , (nn)->dv = (oo)->dv , \
       (nn)->dw = (oo)->dw ,                                             \
@@ -410,6 +412,12 @@ typedef struct MRI_IMAGE {
       (nn)->wo = (oo)->wo ,                                             \
       mri_add_name( (oo)->name , (nn) ) )
 #endif
+
+#define MRI_COPY_AUX(nn,oo)                                                  \
+  do{ MRI_COPY_AUX_OLD(nn,oo) ;                                              \
+      if( (oo)->comments != NULL ) (nn)->comments = strdup((oo)->comments) ; \
+      else                         (nn)->comments = NULL ;                   \
+  } while(0)
 
 /*! Check if MRI_IMAGE is 1D (ny=1) */
 #define MRI_IS_1D(iq)  ((iq)->ny == 1)
@@ -755,6 +763,10 @@ extern void binarize_mask( int , byte * ) ;
 #define NSTAT_adiffs2     39
 #define NSTAT_LIST        40
 #define NSTAT_HIST        41
+#define NSTAT_FILLED      42
+#define NSTAT_UNFILLED    43
+#define NSTAT_MASKED      44
+#define NSTAT_MASKED2     45
 
 #define NSTAT_FWHMx      63   /*these should be after all other NSTAT_* values */
 #define NSTAT_FWHMy      64
@@ -788,10 +800,11 @@ extern void binarize_mask( int , byte * ) ;
 #define NBISTAT_CITYBLOCK_DIST     66694 /* 4 May 2012, ZSS */
 
 
-extern float mri_nstat  ( int , int , float * , float) ;  /* 19 Aug 2005 */
 extern float mri_nbistat( int , MRI_IMAGE *, MRI_IMAGE * ) ; /* 26 Oct 2006 */
 extern void mri_nbistat_setclip( float, float , float, float ) ;
 extern void mri_bistat_setweight( MRI_IMAGE *wm ) ;  /* 14 Aug 2007 */
+extern void set_mri_nstat_fillvalue(float tf);
+extern void set_mri_nstat_unfillvalue(float tf);
 
 extern MRI_IMAGE * mri_edit_image( float pthr, float power, MRI_IMAGE * im ) ;
 
@@ -1018,6 +1031,8 @@ extern MRI_IMAGE * mri_flatten_rgb( MRI_IMAGE * ) ;
 extern void mri_invert_inplace( MRI_IMAGE *) ;   /* 07 Apr 2003 */
 extern void mri_gamma_rgb_inplace( float gam , MRI_IMAGE *im ) ;
 
+extern void mri_sharpen3D_pos( MRI_IMAGE *im , float phi ) ; /* 13 Feb 2017 */
+
 extern MRI_IMAGE * mri_median21( MRI_IMAGE *innim ) ; /* 28 Oct 2014 */
 extern MRI_IMAGE * mri_sharpness( MRI_IMAGE *inim ) ;
 
@@ -1109,6 +1124,7 @@ extern void mri_histoshort_nonneg( MRI_IMAGE * , int * ) ;
 
 extern void mri_percents( MRI_IMAGE * , int nper , float per[] ) ;
 extern MRI_IMAGE * mri_flatten( MRI_IMAGE * ) ;
+extern void mri_flatten_set_bfac(float b) ;  /* 16 Mar 2017 */
 extern float mri_quantile( MRI_IMAGE * im , float alpha ) ;
 
 extern float_pair mri_twoquantiles( MRI_IMAGE * im, float alpha, float beta ) ;
@@ -1166,6 +1182,7 @@ extern MRI_IMAGE * mri_cat2D( int,int,int,void *,MRI_IMARR *) ;
 extern MRI_IMARR * mri_uncat2D( int , int , MRI_IMAGE * im ) ; /* 09 May 2000 */
 
 extern MRI_IMAGE * mri_catvol_1D( MRI_IMARR *imar , int dir ); /* 08 Dec 2010 */
+extern MRI_IMAGE * mri_catvol_1D_ab( MRI_IMARR *imar , int dir, int na,int nb );
 
 extern MRI_IMAGE * mri_shift_1D( MRI_IMAGE * im , float shift ) ;
 
@@ -1271,6 +1288,7 @@ extern void mri_drawtext( MRI_IMAGE *im ,
                           byte r,byte g,byte b );
 
 extern void mri_draw_opacity( float ) ;
+extern void mri_draw_force_opaque(int fo) ;
 
 extern void mri_drawcircle( MRI_IMAGE *im ,
                             int cx, int cy, int radius, byte r,byte g,byte b, int fill ) ;
@@ -1555,6 +1573,12 @@ extern char * SYM_test_gltsym( char *varlist , char *gltsym ) ; /* 01 May 2015 *
 #include "thd_atlas.h"        /* 22 Feb 2012 [rickr] */
 
 THD_string_array * mri_read_1D_headerline( char *fname ) ; /* 18 May 2010 */
+
+/* 09 Feb 2017: change the way thresholds are short-ified,
+                along with changes in the relevant functions */
+
+#define THRESH_SHORTIZE(ttt) \
+  ( AFNI_yesenv("AFNI_OLD_SHORT_THRESH") ?  (float)SHORTIZE(ttt) : (ttt) )
 
 /*------------------------------------------------------------------------*/
 /* 13 Feb 2009: generic 4x4 matrix struct stuff */
@@ -2065,6 +2089,7 @@ extern float mriarr_estimate_FWHM_acf( MRI_IMARR *imar, byte *mask, int unif, fl
 
 void mri_fwhm_setfester( THD_fvec3 (*func)(MRI_IMAGE *, byte *) ) ;
 
+extern float mri_nstat  ( int , int , float * , float, MCW_cluster *) ;  /* 19 Aug 2005 */
 extern THD_fvec3 mri_nstat_fwhmxyz( int,int,int ,
                                     MRI_IMAGE *, byte *, MCW_cluster * );
 

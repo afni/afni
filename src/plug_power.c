@@ -106,6 +106,8 @@ PLUGIN_interface * PLUGIN_init( int ncall )
 
    /*---------------- set titles and call point ----------------*/
 
+   CHECK_IF_ALLOWED("POWERSPECTRUM","Power Spectrum") ;  /* 30 Sep 2016 */
+
    plint = PLUTO_new_interface( "Power Spectrum" ,
                                 "Power Spectrum of a 3D+time Dataset" ,
                                 helpstring ,

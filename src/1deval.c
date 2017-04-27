@@ -361,7 +361,6 @@ int main( int argc , char * argv[] )
 
    value = AFNI_numenv("AFNI_1DEVAL_ZZERO") ;  /* 02 Apr 2010 */
 
-   init_rand_seed(0) ;
    if( dindex && do_1Dc ){
      do_1Dc = 0; WARNING_message("-1D: is incompatible with -index");
    }
