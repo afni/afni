@@ -229,6 +229,57 @@ If this YES/NO variable is set to YES, then AFNI will not try to
 read plugins when it starts up.  The command line switch "-noplugins"
 will have the same effect.
 
+--------------------------------
+Variable: AFNI_ALLOW_ALL_PLUGINS
+--------------------------------
+Setting this variable to YES will allow all defined plugins to
+be loaded.  Otherwise, little-used plugins must be allowed one
+at a time, using the next set of variable names.
+
+-------------------------------------
+Variables: AFNI_ALLOW_somename_PLUGIN
+-------------------------------------
+Some plugins distributed with AFNI are not commonly used, and are
+disabled by default.  If you wish to turn one of these plugins
+back on, set the corresponding environment variable to YES.
+The list of these plugins is:
+  --- somename ---     --- name in menu ---
+  2DREGISTRATION       2D Registration
+  3DCLUSTER            3D Cluster
+  3DCORRELATION        3D Correlation
+  3DDUMP98             3D Dump98
+  3DEDIT               3D Edit
+  3DEXTRACT            3D+t Extract
+  3DREGISTRATION       3D Registration
+  3DSTATISTIC          3D+t Statistic
+  4DDUMP               4D Dump
+  ASL                  ASL a3/d3
+  BRIKCOMPRESSOR       BRIK Compressor
+  COORDORDER           Coord Order
+  DATASETCOPY          Dataset Copy
+  DATASETDUP           Dataset Dup
+  DATASETRENAME        Dataset Rename
+  DECONVOLVE           Deconvolution
+  DSETZEROPAD          Dset Zeropad
+  FOURIER              Fourier
+  GYRUSFINDER          Gyrus Finder
+  HEMISUBTRACT         Hemi-subtract
+  HILBERTDELAY98       Hilbert Delay98
+  HISTOGRAMBFIT        Histogram: BFit
+  L1FIT                L1_Fit & Dtr
+  L2FIT                LSqFit & Dtr
+  MASKCALC             maskcalc
+  PERMUTATIONTEST      Permutation Test
+  POWERSPECTRUM        Power Spectrum
+  REORDER              Reorder
+  RETROICOR            RETROICOR
+  ROIAVERAGE           ROI Average
+  ROIPLOT              ROI Plot
+  SINGLETRIALAVG       SingleTrial Avg
+  THRESHOLD            Threshold
+  TSGENERATE           TS Generate
+  WAVELETS             Wavelets
+
 --------------------------
 Variable: AFNI_YESPLUGOUTS
 --------------------------
@@ -324,6 +375,16 @@ automatically be uncompressed on input, no matter what the setting of
 this variable.  AFNI_COMPRESSOR only controls how the datasets are
 written.
 
+----------------------------
+Variable: AFNI_DONT_USE_PIGZ
+----------------------------
+On some systems, the multi-threaded version of gzip -- program pigz -- can
+fail randomly.  To prevent the use of pigz even if it is found, set
+this variable to YES.  Note that if you explicitly set AFNI_COMPRESSOR
+to PIGZ, then AFNI_DONT_USE_PIGZ will be ignored.  The purpose of
+AFNI_DONT_USE_PIGZ is to prevent the automatic use of the pigz program
+in cases where you don't provide AFNI_COMPRESSOR explicitly.
+
 ------------------------
 Variable: AFNI_BYTEORDER
 ------------------------
@@ -415,8 +476,16 @@ Variable: AFNI_LEFT_IS_LEFT (editable)
 Setting this YES/NO variable to YES tells AFNI to display images with
 the left side of the subject on the left side of the window.  The default
 mode is to display the right side of the subject on the left side of
-the window - the radiology convention.  This "handedness" can also be
-controlled with the "-flipim" and "-noflipim" command line options to AFNI.
+the window - the radiology convention. This setting affects the
+coronal and axial image and graph viewers.
+
+--------------------------------
+Variable: AFNI_LEFT_IS_POSTERIOR (editable)
+--------------------------------
+Setting this YES/NO variable to YES tells AFNI to display images with
+the posterior side of the subject on the left side of the window.  The
+default mode is to display the anterior side of the subject on the left side
+of the window. This setting affects the sagittal image and graph viewers.
 
 --------------------------
 Variable: AFNI_ALWAYS_LOCK
@@ -1536,6 +1605,20 @@ of the AFNI graph window is turned on for all graph viewers when
 they open.  Otherwise, you have to turn this feature on via the
 'F' key or the toggle control in the Opt menu.
 
+------------------------------
+Variable: AFNI_AdptMeanWidth1D
+------------------------------
+This variable lets you add a new Adaptive Mean filter to the 'Tran 1D'
+transformations menu in the AFNI graph viewer.  The built in adaptive
+mean filter widths are 9 time points (plus/minus 4 about each value)
+and 19 time points (plus/minus 9).  If you define this variable to
+be an odd integer larger than 9, not equal to 19, and less than 100,
+then a new function labeled 'AdptMeanXX' will appear in the 'Tran 1D'
+menu, where 'XX' is the width you choose here.  This transformation
+is mainly for 'fun' -- to smooth out a time series to see structure
+obscured by noise.  You can combine this function with the |FFT|
+function using the 'Edit 1Dchain' item in the Datamode->Misc menu.
+
 --------------------------
 Variable: AFNI_VALUE_LABEL (editable)
 --------------------------
@@ -1646,6 +1729,13 @@ controlled from the right-click popup menu attached to the intensity bar to
 the right of the image itself.  This variable applies to any slice image
 viewer window into which the user has not specifically set a string for
 this purpose from the GUI menu item 'Label Append String'.
+
+------------------------------
+Variable: AFNI_IMAGE_LABEL_IJK (editable)
+------------------------------
+If this variable is YES, then the image label will be based on the
+slice index rather than the spatial (mm) coordinate. This variable can
+be set in the EditEnv AFNI GUI plugin (that is what 'editable' means).
 
 ------------------------------
 Variable: AFNI_CROSSHAIR_LINES (editable) -- THIS VARIABLE IS NOW UNUSED
@@ -2212,7 +2302,7 @@ will move the slider 1% of its height per PageUp/PageDown key or mouse click.
 Variable: AFNI_THRESH_AUTO (editable)
 --------------------------
 If this YES/NO variable is set to YES, then whenever you switch overlay datasets,
-the function threshold slider will automatically change to some value that may
+the function threshold slider will automatically change to some value that MIGHT
 be appropriate for the values in the new dataset.  [This is for Ziad!]
 
 -------------------------------
@@ -2221,6 +2311,20 @@ Variable: AFNI_THRESH_TOP_EXPON
 This variable defines the top value for the '**' setting underneath the Overlay
 threshold slider.  By default, this value is 4, but you can change that to 5
 or 6 with this variable.  [This is for Phil Kohn]
+
+-------------------------------
+Variable: AFNI_OLD_SHORT_THRESH
+-------------------------------
+When thresholding a dataset with a sub-brick that is stored as shorts (16 bit
+integers), the AFNI GUI uses floats, but the 3dmerge and Clusterize functions
+use shorts. The difference is that the user-supplied threshold in the latter
+case is rounded to the nearest short. Thus, a threshold of 2.2 would become
+2, and then a value of 2 would pass the 'greater than or equal to threshold'
+test -- which is probably not what the user meant. Again, this would happen
+in 3dmerge and Clusterize, but NOT in the AFNI GUI without Clusterize.
+This inconsistency has been fixed, and both sets of places now threshold
+using floats. However, IF you want to stick with the old method for some
+un-imaginable reason, you need to set this variable to YES.
 
 ------------------------------
 Variable: AFNI_SNAPFILE_PREFIX
@@ -2284,7 +2388,6 @@ Variable: AFNI_1D_ZERO_TEXT
 ---------------------------
 If this is set to 'YES', then non-commented text gets set to 0
 instead of causing a read failure. The default setting is 'No'
-
 
 ------------------------
 Variable: AFNI_3D_BINARY

@@ -113,6 +113,8 @@ void usage_3dmaskave(int detail) {
 "  -min         Means to compute the min instead of the mean.\n"
 "                 [-sigma is ignored with -sum, -median, -max, or -min.]\n"
 "                 [the last given of -sum, -median, -max, or -min wins.]\n"
+"  -perc XX     Means to compute the XX-th percentile value (min=0 max=100).\n"
+"               XX should be an integer from 0 to 100.\n"
 "  -dump        Means to print out all the voxel values that\n"
 "                 go into the result.\n"
 "  -udump       Means to print out all the voxel values that\n"
@@ -174,6 +176,7 @@ int main( int argc , char * argv[] )
    int minit    = 0 ;                         /* 25 Feb 2005 */
    int sumit    = 0 ;                         /* 15 Jun 2011 */
    int sumsqit  = 0 , enormit  = 0 ;          /* 16 Apr 2013 */
+   int percit   = 0 ; float perc = 0.0f ;     /* 21 Jun 2016 */
    float *exar ;                              /* 06 Jul 2003 */
    char *sname = "Average" ;                  /* 06 Jul 2003 */
    int self_mask = 0 ;                        /* 06 Dec 2004 */
@@ -323,35 +326,60 @@ int main( int argc , char * argv[] )
 
       if( strncmp(argv[narg],"-median",5) == 0 ){
          medianit = 1 ; maxit = 0 ; minit = 0 ; sumit = 0 ;
-                        sumsqit = 0 ; enormit = 0 ;
+                        sumsqit = 0 ; enormit = 0 ; percit = 0 ;
          narg++ ; continue ;
+      }
+
+      if( strncmp(argv[narg],"-perc",5) == 0 ){
+        if( narg+1 > argc ) ERROR_exit("need argument after '-perc'") ;
+        perc = (float)strtod(argv[++narg],NULL) ;
+        if( perc < 0.0f || perc > 100.0f )
+          ERROR_exit("'-perc %s' is not legal [range is 0..100]",argv[narg]) ;
+        if( perc == 0.0f ){
+          WARNING_message("'-perc 0' is the same as '-min'") ;
+          maxit = 0 ; medianit = 0 ; minit = 1 ; sumit = 0 ;
+                      sumsqit = 0 ; enormit = 0 ; percit = 0 ;
+        } else if( perc == 100.0f ){
+          WARNING_message("'-perc 100' is the same as '-max'") ;
+          maxit = 1 ; medianit = 0 ; minit = 0 ; sumit = 0 ;
+                      sumsqit = 0 ; enormit = 0 ; percit = 0 ;
+        } else if( perc == 50.0f ){
+          WARNING_message("'-perc 50' is the same as '-median'") ;
+          maxit = 0 ; medianit = 1 ; minit = 0 ; sumit = 0 ;
+                      sumsqit = 0 ; enormit = 0 ; percit = 0 ;
+        } else {
+          maxit = 0 ; medianit = 0 ; minit = 0 ; sumit = 0 ;
+                      sumsqit = 0 ; enormit = 0 ;
+          percit = 1 ;
+        }
+        narg++ ; continue ;
       }
 
       if( strncmp(argv[narg],"-max",4) == 0 ){  /* 24 Feb 2005 */
          maxit = 1 ; medianit = 0 ; minit = 0 ; sumit = 0 ;
-                     sumsqit = 0 ; enormit = 0 ;
+                     sumsqit = 0 ; enormit = 0 ; percit = 0 ;
          narg++ ; continue ;
       }
 
       if( strcmp(argv[narg],"-sum") == 0 ){  /* 15 Jun 2011, P.S. no strncmp */
-        sumit = 1 ; maxit = medianit = minit = 0 ;
+        sumit = 1 ; maxit = medianit = minit = 0 ; percit = 0 ;
         narg++ ; continue ;
       }
 
       if( strcmp(argv[narg],"-sumsq") == 0 ){  /* 16 Apr 2013 [rickr] */
-        sumsqit = 1 ; sumit = maxit = medianit = minit = 0 ;
+        sumsqit = 1 ; sumit = maxit = medianit = minit = 0 ; percit = 0 ;
         narg++ ; continue ;
       }
 
       if( strcmp(argv[narg],"-enorm") == 0 ){  /* 16 Apr 2013 [rickr] */
         /* enorm implies sumsq, since enorm just takes sqrt */
-        enormit = sumsqit = 1 ; sumit = maxit = medianit = minit = 0 ;
+        enormit = sumsqit = 1 ; sumit = maxit = medianit = minit = 0 ; percit = 0 ;
         narg++ ; continue ;
       }
 
       if( strncmp(argv[narg],"-min",4) == 0 ){  /* 25 Feb 2005 */
          maxit = 0 ; medianit = 0 ; minit = 1 ; sumit = 0 ;
-                     sumsqit = 0 ; enormit = 0 ;
+                     sumsqit = 0 ; enormit = 0 ; percit = 0 ;
          narg++ ; continue ;
       }
 
@@ -371,6 +399,9 @@ int main( int argc , char * argv[] )
    if( sumit    ){ sigmait = 0; sname = "Sum"   ; } /* 15 Jun 2011 */
    if( sumsqit  ){ sigmait = 0; sname = "Sumsq" ; } /* 16 Apr 2013 */
    if( enormit  ){ sigmait = 0; sname = "Enorm" ; } /* 16 Apr 2013 */
+   if( percit   ){ sigmait = 0;
+                   sname   = (char *)malloc(sizeof(char)*16) ;
+                   sprintf(sname,"Perc%02d",(int)rintf(perc)) ; }
 
    /* should have one more argument */
 
@@ -635,6 +666,13 @@ int main( int argc , char * argv[] )
             else if( minit    ) sum = min_float ( mc , exar ) ;
             else if( sumit    ) sum *= mc ;
             else if( sumsqit  ) sum *= mc*mfac ; /* and include extra mfac */
+            else if( percit   ){
+              float *qar=(float *)malloc(sizeof(float)*mc) ; int iq ;
+              memcpy(qar,exar,sizeof(float)*mc) ;
+              qsort_float(mc,qar) ;
+              iq = (int)rintf(0.01f*perc*mc) ; sum = qar[iq] ; free(qar) ;
+            }
+
             sum = mfac * sum ;
 
             if( enormit ) sum = sqrt( sum ) ;
@@ -690,6 +728,12 @@ int main( int argc , char * argv[] )
             else if( minit    ) sum = min_float ( mc , exar ) ;
             else if( sumit    ) sum *= mc ;
             else if( sumsqit  ) sum *= mc*mfac ; /* and include extra mfac */
+            else if( percit   ){
+              float *qar=(float *)malloc(sizeof(float)*mc) ; int iq ;
+              memcpy(qar,exar,sizeof(float)*mc) ;
+              qsort_float(mc,qar) ;
+              iq = (int)rintf(0.01f*perc*mc) ; sum = qar[iq] ; free(qar) ;
+            }
             sum = mfac * sum ;
 
             if( enormit ) sum = sqrt( sum ) ;
@@ -745,6 +789,12 @@ int main( int argc , char * argv[] )
             else if( minit    ) sum = min_float ( mc , exar ) ;
             else if( sumit    ) sum *= mc ;
             else if( sumsqit  ) sum *= mc*mfac ; /* and include extra mfac */
+            else if( percit   ){
+              float *qar=(float *)malloc(sizeof(float)*mc) ; int iq ;
+              memcpy(qar,exar,sizeof(float)*mc) ;
+              qsort_float(mc,qar) ;
+              iq = (int)rintf(0.01f*perc*mc) ; sum = qar[iq] ; free(qar) ;
+            }
             sum = mfac * sum ;
 
             if( enormit ) sum = sqrt( sum ) ;

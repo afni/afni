@@ -55,6 +55,7 @@ void ssqrt_func( int num , float *vec )
 }
 
 /*--------------------------------------------------------------------------*/
+/* adaptive = downweight things a long ways from median */
 
 float adaptive_weighted_mean( int num , float *x )
 {
@@ -67,7 +68,7 @@ float adaptive_weighted_mean( int num , float *x )
    qmedmad_float( num , x , &med , &mad ) ;
    if( mad <= 0.0f ) return (med) ;
 
-   wsum = xsum = 0.0f ; mad = 0.4567f / mad ;
+   wsum = xsum = 0.0f ; mad = 0.56789f / mad ;
    for( ii=0 ; ii < num ; ii++ ){
      wt = mad*fabsf(x[ii]-med); wt = 1.0f / (1.0f+wt*wt*wt); wsum += wt;
      xsum += wt * x[ii] ;
@@ -76,6 +77,7 @@ float adaptive_weighted_mean( int num , float *x )
 }
 
 /*--------------------------------------------------------------------------*/
+/* 1D adaptive filter 9 points wide */
 
 void adpt_wt_mn9( int num , double to,double dt, float *vec )
 {
@@ -91,6 +93,57 @@ void adpt_wt_mn9( int num , double to,double dt, float *vec )
      }
 
      nv[ii] = adaptive_weighted_mean( 9 , x ) ;
+   }
+
+   memcpy(vec,nv,sizeof(float)*num) ; free(nv) ; return ;
+}
+
+/*--------------------------------------------------------------------------*/
+/* 1D adaptive filter 19 points wide */
+
+void adpt_wt_mn19( int num , double to,double dt, float *vec )
+{
+   float x[19] , *nv ; int ii,jj,kk , n1=num-1 ;
+
+   nv = (float *)malloc(sizeof(float)*num) ;
+
+   for( ii=0 ; ii < num ; ii++ ){
+
+     for( jj=-9 ; jj <= 9 ; jj++ ){
+       kk = ii+jj ; if( kk < 0 ) kk = 0 ; else if( kk > n1 ) kk = n1 ;
+       x[jj+9] = vec[kk] ;
+     }
+
+     nv[ii] = adaptive_weighted_mean( 19 , x ) ;
+   }
+
+   memcpy(vec,nv,sizeof(float)*num) ; free(nv) ; return ;
+}
+
+/*--------------------------------------------------------------------------*/
+/* 1D adaptive filter user-initialized points wide (must be odd) */
+
+void adpt_wt_mnXX( int num , double to,double dt, float *vec )
+{
+   static int nXX=0,nHH=0 ; static float *XX=NULL ;
+   float *nv ; int ii,jj,kk , n1=num-1 ;
+
+   if( vec == NULL ){
+     nXX = num ; nHH = nXX/2 ;
+     XX  = (float *)malloc(sizeof(float)*nXX) ;
+     return ;
+   }
+
+   nv = (float *)malloc(sizeof(float)*num) ;
+
+   for( ii=0 ; ii < num ; ii++ ){
+
+     for( jj=-nHH ; jj <= nHH ; jj++ ){
+       kk = ii+jj ; if( kk < 0 ) kk = 0 ; else if( kk > n1 ) kk = n1 ;
+       XX[jj+nHH] = vec[kk] ;
+     }
+
+     nv[ii] = adaptive_weighted_mean( nXX , XX ) ;
    }
 
    memcpy(vec,nv,sizeof(float)*num) ; free(nv) ; return ;
@@ -282,7 +335,7 @@ void absfft_func( int num , double to,double dt, float *vec )
 {
    static complex *cx=NULL ;
    static int      ncx=0 , numold=0 ;
-   float f0,f1 ;
+   float f0,f1,f2 ;
    int ii ;
 
    if( num < 2 ) return ;
@@ -290,14 +343,15 @@ void absfft_func( int num , double to,double dt, float *vec )
      numold = num ;
      ncx    = csfft_nextup_even(numold) ;
      cx     = (complex *)realloc(cx,sizeof(complex)*ncx) ;
+     INFO_message("1D FFT: ndata=%d nfft=%d",num,ncx) ;
    }
 
-   get_linear_trend( num , vec , &f0,&f1 ) ;  /* thd_detrend.c */
+   get_quadratic_trend( num , vec , &f0,&f1,&f2 ) ;  /* thd_detrend.c */
 
-   for( ii=0 ; ii < num ; ii++ ){ cx[ii].r = vec[ii]-(f0+f1*ii); cx[ii].i = 0.0; }
+   for( ii=0 ; ii < num ; ii++ ){ cx[ii].r = vec[ii]-(f0+f1*ii+f2*ii*ii); cx[ii].i = 0.0; }
    for(      ; ii < ncx ; ii++ ){ cx[ii].r = cx[ii].i = 0.0 ; }
 
-   csfft_cox( -1 , ncx , cx ) ;               /* csfft.c */
+   csfft_cox( -1 , ncx , cx ) ;                      /* csfft.c */
 
    vec[0] = 0.0 ;
    for( ii=1 ; ii < num ; ii++ ) vec[ii] = CABS(cx[ii]) ;

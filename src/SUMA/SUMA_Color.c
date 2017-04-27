@@ -8534,7 +8534,7 @@ SUMA_Boolean SUMA_ListOrderToPlaneOrder (DList *listop)
 int SUMA_GetLargestBackroundOrder (DList *listop)
 {
    static char FuncName[]={"SUMA_GetLargestBackroundOrder"};
-   int Order, i;
+   int Order, i=0;
    DListElmt *Elmop=NULL;
    SUMA_OVERLAY_LIST_DATUM *OvD = NULL;
    SUMA_Boolean LocalHead = NOPE;
@@ -8566,7 +8566,7 @@ int SUMA_GetLargestBackroundOrder (DList *listop)
 int SUMA_GetSmallestForegroundOrder (DList *listop)
 {
    static char FuncName[]={"SUMA_GetSmallestForegroundOrder"};
-   int Order, i;
+   int Order, i=0;
    DListElmt *Elmop=NULL;
    SUMA_OVERLAY_LIST_DATUM *OvD = NULL, *oOvD = NULL;
    SUMA_Boolean LocalHead = NOPE;

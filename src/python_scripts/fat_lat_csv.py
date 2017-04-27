@@ -313,10 +313,10 @@ def main(argv):
         print "\n"
         sys.exit(32)
     if ( file_csv == '' ) or ( file_prefix == '' ) :
-	print "** ERROR: missing a necessary input."
-    	sys.exit()
+        print "** ERROR: missing a necessary input."
+        sys.exit()
     if ( file_matr_glob == '' ) and ( file_listmatch == '' ):
-	print "*+ No matrices input -> going to use all subjects in calcs."
+        print "*+ No matrices input -> going to use all subjects in calcs."
     if not( file_matr_glob == '' ) and not( file_listmatch == '' ):
         print "*+ Warning: both a path for globbing *and* a listfile have",
         print " been input for the matrix file."

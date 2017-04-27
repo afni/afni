@@ -172,7 +172,7 @@ int main( int argc , char *argv[] )
      INFO_message("1D file %s has %d columns: correlating with ALL of them!",
                    ynam,ysim->ny) ;
 
-   cset = THD_Tcorr1D(xset, mask, nmask, ysim, smethod, prefix);
+   cset = THD_Tcorr1D(xset, mask, nmask, ysim, smethod, prefix, (datum==MRI_short) );
    tross_Make_History( "3dTcorr1D" , argc,argv , cset ) ;
 
    DSET_unload(xset) ;  /* no longer needful */

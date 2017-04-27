@@ -55,6 +55,8 @@ typedef struct {
    int OUTPUT_TRK;                //  "-do_trk_out"
    int OUT_INDIPAIR;              //  "-no_indipair_out"
    int THRESH_BUNDS;              //  "-bundle_thr"
+   int TARG_SURF_STOP;            //  "-targ_surf_stop"
+   int TARG_SURF_TWIXT;           //  "-targ_surf_twixt"
 
    // minorly used control stuff, mostly default
    char *NAMEIN_outmode;          //  "-tract_out_mode"

@@ -1,0 +1,44 @@
+#!/usr/bin/env tcsh
+
+# created by uber_subject.py: version 0.37 (April 14, 2015)
+# creation date: Thu Sep 10 14:27:59 2015
+
+set top_dir   = ~/AFNI_data6/FT_analysis/FT
+
+# set subject and group identifiers
+set subj      = FT
+set group_id  = horses
+
+# run afni_proc.py to create a single subject processing script
+afni_proc.py -subj_id $subj                                      \
+   -write_3dD_script proc.3dd.ppi.pre                           \
+   -write_3dD_prefix ppi.pre.                                    \
+        -script proc.$subj -scr_overwrite                        \
+        -blocks tshift align tlrc volreg blur mask scale regress \
+        -copy_anat $top_dir/FT_anat+orig                         \
+        -tcat_remove_first_trs 2                                 \
+        -dsets                                                   \
+            $top_dir/FT_epi_r1+orig.HEAD                         \
+            $top_dir/FT_epi_r2+orig.HEAD                         \
+            $top_dir/FT_epi_r3+orig.HEAD                         \
+        -volreg_align_to third                                   \
+        -volreg_align_e2a                                        \
+        -volreg_tlrc_warp                                        \
+        -blur_size 4.0                                           \
+        -regress_stim_times                                      \
+            $top_dir/AV1_vis.txt                                 \
+            $top_dir/AV2_aud.txt                                 \
+        -regress_stim_labels                                     \
+            vis aud                                              \
+        -regress_basis 'BLOCK(20,1)'                             \
+     #  -regress_censor_motion 0.3                               \
+        -regress_opts_3dD                                        \
+            -jobs 5                                              \
+            -gltsym 'SYM: vis -aud' -glt_label 1 V-A             \
+            -gltsym 'SYM: 0.5*vis +0.5*aud' -glt_label 2 mean.VA \
+        -regress_compute_fitts                                   \
+        -regress_make_ideal_sum sum_ideal.1D                     \
+        -regress_est_blur_epits                                  \
+        -regress_est_blur_errts                                  \
+        -regress_run_clustsim no
+

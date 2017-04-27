@@ -129,7 +129,7 @@ int close_files( info_s * I )
     int filec;
 
     for ( filec = 0; filec < I->num_files; filec++ )
-	if ( I->flist[filec] )
+	if ( I->flist[filec] && I->flist[filec] != stdin )
 	    fclose( I->flist[filec] );
 
     return P_SUCCESS;
@@ -137,11 +137,22 @@ int close_files( info_s * I )
 
 int open_files( info_s * I )
 {
-    int c, filec;
+    int c, filec, nstdin=0;
 
     for ( filec = 0; filec < I->num_files; filec++ )
     {
-	if ( (I->flist[filec] = fopen(I->fnames[filec], "r")) == NULL )
+        /* allow for one stdin stream           15 Dec 2016 */
+        if( ! strcmp(I->fnames[filec], "-") ||
+            ! strcmp(I->fnames[filec],"stdin") ) {
+           if( nstdin ) {
+              fprintf(stderr,"** cannot read stdin more than once\n");
+              return( P_FAILURE );
+           }
+           nstdin++;
+
+           I->flist[filec] = stdin;
+        }
+	else if ( (I->flist[filec] = fopen(I->fnames[filec], "r")) == NULL )
 	{
 	    fprintf(stderr,"error: failed to open %s for reading, exiting...\n",
                     I->fnames[filec]);
@@ -232,6 +243,9 @@ int usage ( char * prog, int style )
 	       "  separated by a space.  If different separation is desired,\n"
 	       "  such as a tab, please use the -sep option.\n"
 	       "\n"
+	       "  ** Note that using '-' or 'stdin' for an input file means\n"
+	       "     to read from stdin.  One such stream is allowed.\n"
+	       "\n"
 	       "  Optionos:\n"
 	       "     -line LINE_NUM : print only line #LINE_NUM (1-based)\n"
 	       "                      e.g. -line 1   (shows top line)\n"
@@ -246,10 +260,11 @@ int usage ( char * prog, int style )
 	       "     %s -sep : file_a file_b > output_file\n"
 	       "     %s -sep '\\t' file_a file_b > output_file\n"
 	       "     %s -sep ' : ' file_a file_b > output_file\n"
+	       "     cat file_a | %s -line 27 stdin\n"
 	       "\n"
 	       "R Reynolds    Jan, 2002 (distributed Aug, 2012)\n"
 	       "\n",
-               prog, prog, prog, prog, prog, prog, prog
+               prog, prog, prog, prog, prog, prog, prog, prog
               );
     }
     else

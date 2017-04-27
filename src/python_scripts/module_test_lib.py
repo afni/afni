@@ -53,45 +53,48 @@ alllibs.extend(guilibs)
 
 # ---------------------------------------------------------------------------
 # library failure message list (for select library packages)
+# 
+# These install descriptions are old.  Just mention the libraries for now.
+#                                                       16 Sep 2016
 g_mesglist = [
-             [ 'numpy', 
-"""
-     -> consider downloading 'numpy' from www.scipy.org
-           or on Linux: "sudo yum install numpy"
-           or on OS X:  "sudo fink install numpy-py25"
-""" ],
-             [ 'matplotlib', 
-"""
-     -> consider downloading 'matplotlib' from matplotlib.sourceforge.net
-           or on Linux: "sudo yum install python-matplotlib"
-           or on OS X:  "sudo fink install matplotlib-py25"
-""" ],
-             [ 'R', 
-"""
-     -> consider downloading 'R' from a site in the mirror list:
-        http://cran.r-project.org/mirrors.html
-           or on Linux: "sudo yum install R"
-
-        consider also installing the developer sub-package 'R-devel'
-           "sudo yum install R-devel"
-""" ],
-             [ 'scipy', 
-"""
-     -> consider downloading 'scipy' from www.scipy.org
-           or on Linux: "sudo yum install scipy"
-           or on OS X:  "sudo fink install scipy-py25"
-""" ],
-             [ 'PyQt4',
-"""
-     -> please see the output of "uber_subject.py -help_install"
-""" ],
-             [ 'wx', 
-"""
-     -> consider downloading 'wxpython' from www.wxpython.org
-           or on Linux: "sudo yum install wxPython"
-           or on OS X:  "sudo fink install wxpython-py25"
-                        Note: wxpython-py25 is not available on OS X 10.4
-""" ]
+             [ 'numpy', '' ],
+#"""
+#     -> consider downloading 'numpy' from www.scipy.org
+#           or on Linux: "sudo yum install numpy"
+#           or on OS X:  "sudo fink install numpy-py25"
+#""" ],
+             [ 'matplotlib', '' ],
+#"""
+#     -> consider downloading 'matplotlib' from matplotlib.sourceforge.net
+#           or on Linux: "sudo yum install python-matplotlib"
+#           or on OS X:  "sudo fink install matplotlib-py25"
+#""" ],
+             [ 'R', '' ],
+#"""
+#     -> consider downloading 'R' from a site in the mirror list:
+#        http://cran.r-project.org/mirrors.html
+#           or on Linux: "sudo yum install R"
+#
+#        consider also installing the developer sub-package 'R-devel'
+#           "sudo yum install R-devel"
+#""" ],
+             [ 'scipy', '' ],
+#"""
+#     -> consider downloading 'scipy' from www.scipy.org
+#           or on Linux: "sudo yum install scipy"
+#           or on OS X:  "sudo fink install scipy-py25"
+#""" ],
+             [ 'PyQt4','' ],
+#"""
+#     -> please see the output of "uber_subject.py -help_install"
+#""" ],
+             [ 'wx', '' ],
+#"""
+#     -> consider downloading 'wxpython' from www.wxpython.org
+#           or on Linux: "sudo yum install wxPython"
+#           or on OS X:  "sudo fink install wxpython-py25"
+#                        Note: wxpython-py25 is not available on OS X 10.4
+#""" ]
 ]
 
 

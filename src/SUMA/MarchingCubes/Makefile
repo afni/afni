@@ -10,7 +10,8 @@
 
 ###################### GENERAL SETTINGS ############################
 
-LIBS      = -L/usr/lib/ -lm 
+## LIBS      = -L/usr/lib/ -lm 
+LIBS      = $(SUMA_LINK_PATH) -lm 
 
 ########################### Programs #################################
 

@@ -17,6 +17,8 @@ See SUMA_Makefile_NoDev
 
 #include "suma_suma.h"
 
+extern int selenium_close(void) ;
+
 int SUMA_AddDsetNelIndexCol ( SUMA_DSET *dset, char *col_label, 
                                SUMA_COL_TYPE ctp, void *col, 
                                void *col_attr, int stride) ;
@@ -2612,14 +2614,6 @@ char * SUMA_GetNgrColStringAttr( NI_group *ngr, int col_index,
    SUMA_RETURN(rs);
 }
 
-int SUMA_GetDsetNodeIndexColRange(  SUMA_DSET *dset, 
-                                    double range[2], int loc[2], 
-                                    int addifmissing)
-{
-   return(SUMA_GetDsetNodeIndexColRange_eng(
-            dset, range, loc, addifmissing,0));
-}
-
 int SUMA_GetDsetNodeIndexColRange_eng(  SUMA_DSET *dset, 
                                     double range[2], int loc[2], 
                                     int addifmissing, int ii)
@@ -2712,6 +2706,14 @@ int SUMA_GetDsetNodeIndexColRange_eng(  SUMA_DSET *dset,
    range[0] = nums[0]; range[1] = nums[1]; 
    loc[0] = (int)nums[2]; loc[1] = (int)nums[3];
    SUMA_RETURN(1);
+}
+
+int SUMA_GetDsetNodeIndexColRange(  SUMA_DSET *dset, 
+                                    double range[2], int loc[2], 
+                                    int addifmissing)
+{
+   return(SUMA_GetDsetNodeIndexColRange_eng(
+            dset, range, loc, addifmissing,0));
 }
 
 
@@ -10814,7 +10816,7 @@ int SUMA_WriteDset_NameCheck_eng (  char *Name, SUMA_DSET *dset,
       SUMA_PushErrLog("SL_Err","NULL Name", FuncName); SUMA_RETURN(-1); 
       }
    }
-   
+
    if (!SUMA_IS_DSET_STDXXX_FORMAT(form)) {
       PrefOut = SUMA_RemoveDsetExtension_ns(Name, form);
       if (!PrefOut) { 
@@ -10828,7 +10830,6 @@ int SUMA_WriteDset_NameCheck_eng (  char *Name, SUMA_DSET *dset,
    if (form == SUMA_NO_DSET_FORMAT) {
       form = SUMA_GuessFormatFromExtension(Name, NULL);
    }
-   
    switch (form) {
       case SUMA_XML_DSET:
       case SUMA_XML_ASCII_DSET:
@@ -10858,6 +10859,12 @@ int SUMA_WriteDset_NameCheck_eng (  char *Name, SUMA_DSET *dset,
          } 
          break;
       case SUMA_1D_PURE:
+         NameOut = SUMA_Extension(PrefOut, ".1D.dset", NOPE);
+         if (SUMA_filexists(NameOut)) {
+            exists = 1;
+         } 
+         break;
+      case SUMA_1D_PURE_TRANSPOSE:
          NameOut = SUMA_Extension(PrefOut, ".1D.dset", NOPE);
          if (SUMA_filexists(NameOut)) {
             exists = 1;
@@ -10937,7 +10944,6 @@ char * SUMA_WriteDset_eng (char *Name, SUMA_DSET *dset,
    SUMA_ENTRY;
    
    if (LocalHead) verb = 3;
-   
    if (!dset) { 
       SUMA_PushErrLog("SL_Err", "NULL dset", FuncName); 
       SUMA_RETURN(NameOut); 
@@ -16326,7 +16332,7 @@ byte SUMA_isTractDset(SUMA_DSET *dset)
       }      
    }
    if (SUMA_isTractDsetNgr(dset->ngr)) {
-      dset->Aux->isGraph == TRACT_DSET;
+      dset->Aux->isGraph = TRACT_DSET;
    }
    
    SUMA_RETURN(dset->Aux->isGraph == TRACT_DSET);
@@ -16378,12 +16384,12 @@ byte SUMA_isCIFTIDset(SUMA_DSET *dset)
       	             	       with CIFTI dataset that
 			       are elementarized, there is
 			       no more ngr, etc.*/
-      dset->Aux->isGraph == CIFTI_DSET;
+      dset->Aux->isGraph = CIFTI_DSET;
       SUMA_RETURN(YUP);
    }
    
    if (dset->ngr && SUMA_isCIFTIDsetNgr(dset->ngr)) {
-      dset->Aux->isGraph == CIFTI_DSET;
+      dset->Aux->isGraph = CIFTI_DSET;
    }
    
    SUMA_RETURN(dset->Aux->isGraph == CIFTI_DSET);

@@ -384,6 +384,7 @@ extern long   strtol() ;
 /** # define NEED_XSETLOCALE **/  /* removed on 16 May 2005, for Tiger */
 # define NEED_NL_LANGINFO
 # define ENFORCE_ASPECT           /* 29 Apr 2003 */
+# define USE_SYSCTL               /* 02 Aug 2016 */
 #endif
 
 /************************************************************************
@@ -433,6 +434,7 @@ extern char * AFNI_strcasestr(const char *s1, const char *s2);
 
 extern void AFNI_do_nothing(void) ;
 
-extern int  AFNI_get_ncpu(void) ;  /* 11 Feb 2016 */
+extern int     AFNI_get_ncpu(void) ;    /* 11 Feb 2016 */
+extern int64_t AFNI_get_memsize(void) ; /* 02 Aug 2016 */
 
 #endif /* _MCW_MACHDEP_ */

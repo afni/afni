@@ -32,7 +32,7 @@ help.MVM.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
           ================== Welcome to 3dMVM ==================          
     AFNI Group Analysis Program with Multi-Variate Modeling Approach
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 3.8.1, May 6, 2016
+Version 3.9.4, Dec 21, 2016
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - https://afni.nimh.nih.gov/sscc/gangc/MVM.html
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -103,8 +103,8 @@ Chen, G., Saad, Z.S., Adleman, N.E., Leibenluft, E., Cox, R.W. (2015).
  The advantage of the latter command is that the progression is saved into
  the text file diary.txt and, if anything goes awry, can be examined later.
  
- Thank the R community, Henrik Singmann, and Helios de Rosario for the strong
- technical support.'
+ Thanks to the R community, Henrik Singmann, and Helios de Rosario for the 
+ strong technical support.'
 
    ex1 <- 
 "\n--------------------------------
@@ -113,7 +113,6 @@ within-subject (condition and emotion) variables:
    3dMVM  -prefix Example1 -jobs 4            \\
           -bsVars  'genotype*sex+scanner'      \\
           -wsVars \"condition*emotion\"         \\
-          -wsE2                               \\
           -SS_type 2                          \\
           -num_glt 14                         \\
           -gltLabel 1 face_pos_vs_neg -gltCode  1 'condition : 1*face emotion : 1*pos -1*neg'            \\
@@ -136,29 +135,25 @@ within-subject (condition and emotion) variables:
           s68   TN         female scan2   house       neg       s68+tlrc\'[face_neg_beta]\'                \\
           s68   TN         female scan2   house       neu       s68+tlrc\'[house_pos_beta]\'                    
 
-   NOTE:  1) Option -wsE2 is used to combine both the univariate testing and the within-subject
-          multivariate approach. This option only makes sense if a within-subject factor has
-          more than 2 levels.
-          2) The 3rd GLT is for the 2-way 2 x 2 interaction between sex and condition, which
+   NOTE:  1) The 3rd GLT is for the 2-way 2 x 2 interaction between sex and condition, which
           is essentially a t-test (or one degree of freedom for the numerator of F-statistic).
           Multiple degrees of freedom for the numerator of F-statistic can be obtained through
           option -glfCode (see GLFs #1, #2, and #3).
-          3) Similarly, the 4th GLT is a 3-way 2 x 2 x 2 interaction, which is a partial (not full)
+          2) Similarly, the 4th GLT is a 3-way 2 x 2 x 2 interaction, which is a partial (not full)
           interaction between the three factors because 'emotion' has three levels. The F-test for
           the full 2 x 2 x 3 interaction is automatically spilled out by 3dMVM.
-          4) The two GLFs showcase the user how to specify sub-interactions.
+          3) The two GLFs showcase the user how to specify sub-interactions.
           5) Option '-SS_type 2' specifies the hierarchial type for the sume of squares in the
           omnibus F-statistics in the output. See more details in the help.\n"   
       
    ex2 <-
 "--------------------------------
 Example 2 --- two between-subjects (genotype and sex), onewithin-subject
-(emotion) factor, plus two quantitative variables (age and IQ).f
+(emotion) factor, plus two quantitative variables (age and IQ).
 
    3dMVM -prefix Example2 -jobs 24        \\
           -bsVars  \"genotype*sex+age+IQ\"  \\
           -wsVars emotion                \\
-          -wsE2                           \\
           -qVars  \"age,IQ\"               \\
           -qVarCenters '25,105'          \\
           -num_glt 10                    \\
@@ -178,20 +173,14 @@ Example 2 --- two between-subjects (genotype and sex), onewithin-subject
           s63   NN         female 29   110    neg       s63+tlrc\'[neg_beta]\'           \\
           s63   NN         female 29   110    neu       s63+tlrc\'[neu_beta]\'         
 
-   NOTE:  1) By default the program provides an F-stat through the univariate testing
-          (UVT) method for each effect that involves a within-subject factor. With option
-          -wsE2 UVT is combined with the within-subject multivariate approach, and the
-          merged result remains the same as UVT most of the time (or in most brain regions),
-          but occasionally it may be more powerful. This option only makes sense if a
-          within-subject factor has more than 3 level.
-          2) The 2nd GLT shows the age effect (slope) while the 3rd GLT reveals the contrast
+   NOTE:  1) The 2nd GLT shows the age effect (slope) while the 3rd GLT reveals the contrast
           between the emotions at the age of 30 (5 above the center). On the other hand,
           all the other GLTs (1st, 4th, and 5th) should be interpreted at the center Age
           value, 25 year old.
-          3) The 4rd GLT is for the 2-way 2 x 2 interaction between genotype and sex, which
+          2) The 4rd GLT is for the 2-way 2 x 2 interaction between genotype and sex, which
           is essentially a t-test (or one degree of freedom for the numerator of F-statistic).
           Multiple degrees of freedom for the numerator of F-statistic is currently unavailable.
-          4) Similarly, the 5th GLT is a 3-way 2 x 2 x 2 interaction, which is a partial (not full)
+          3) Similarly, the 5th GLT is a 3-way 2 x 2 x 2 interaction, which is a partial (not full)
           interaction between the three factors because 'emotion' has three levels. The F-test for
           the full 2 x 2 x 3 interaction is automatically spilled out by 3dMVM.\n"
      
@@ -405,12 +394,18 @@ read.MVM.opts.batch <- function (args=NULL, verb = 0) {
    "         reasonably handled through MM-estimation. Currently it",
    "         only works without involving any within-subject factors.",
    "         That is, anything that can be done with 3dttest++ could",
-   "         be analyzed through robust regression here (except that",
-   "         pairwise comparison would have to be done by providing",
-   "         contrast from each subject as input. Post hoc F-tests",
+   "         be analyzed through robust regression here (except for",
+   "         one-sample which can be added later one if requested).",
+   "         pairwise comparisons can be performed by providing",
+   "         contrast from each subject as input). Post hoc F-tests",
    "         through option -glfCode are currently not available with",
    "         robust regression. This option requires that the user",
    "         install R package robustbase.\n", sep='\n')),
+
+      '-dbgArgs' = apl(n=0, h = paste(
+   "-dbgArgs: This option will enable R to save the parameters in a",
+   "         file called .3dMVM.dbg.AFNI.args in the current directory",
+   "          so that debugging can be performed.\n", sep='\n')),
 
       '-qVars' = apl(n=c(1,100), d=NA, h = paste(
    "-qVars variable_list: Identify quantitative variables (or covariates) with",
@@ -445,7 +440,7 @@ read.MVM.opts.batch <- function (args=NULL, verb = 0) {
              sep = '\n'
              ) ),
 
-     '-qVarCenters' = apl(n=1, d=NA, h = paste(
+     '-qvarcenters' = apl(n=1, d=NA, h = paste(
    "-qVarCenters VALUES: Specify centering values for quantitative variables",
    "         identified under -qVars. Multiple centers are separated by ",
    "         commas (,) within (single or double) quotes. The order of the",
@@ -606,7 +601,7 @@ read.MVM.opts.batch <- function (args=NULL, verb = 0) {
    #Parse dems options
    #initialize with defaults
       com_history<-AFNI.command.history(ExecName, args,NULL)
-      lop <- list (com_history = com_history)
+      lop <- AFNI.new.options.list(history = com_history, parsed_args = ops)
       lop$nNodes <- 1
       lop$model  <- 1
       lop$maskFN <- NA
@@ -614,7 +609,7 @@ read.MVM.opts.batch <- function (args=NULL, verb = 0) {
       lop$wsVars <- NA
       lop$mVar   <- NA
       lop$qVars  <- NA
-      lop$vVars  <- NA
+      lop$vVars  <- NULL
       lop$vQV    <- NA
       lop$qVarCenters <- NA
       lop$vVarCenters <- NA
@@ -642,6 +637,7 @@ read.MVM.opts.batch <- function (args=NULL, verb = 0) {
                            # factor (e.g., effects from basis functions). Results added (or appended) to 
                            # others (cf., lop$mvE5a).
       lop$parSubset <- NA  # parameter subset from option -matrPar for DTI data analysis
+      lop$dbgArgs  <- FALSE # for debugging purpose 
       lop$iometh <- 'clib'
       lop$verb   <- 0
 
@@ -670,7 +666,7 @@ read.MVM.opts.batch <- function (args=NULL, verb = 0) {
              glfCode  = lop$glfCode <- ops[[i]],
              dataTable  = lop$dataTable <- dataTable.AFNI.parse(ops[[i]]),
              parSubset  = lop$parSubset <- ops[[i]],
- 
+            
              help   = help.MVM.opts(params, adieu=TRUE),
              GES    = lop$GES    <- TRUE,
              SC     = lop$SC     <- TRUE,
@@ -680,7 +676,8 @@ read.MVM.opts.batch <- function (args=NULL, verb = 0) {
              mvE5   = lop$mvE5   <- TRUE,
              mvE5a  = lop$mvE5a  <- TRUE,
              cio    = lop$iometh <- 'clib',
-             Rio    = lop$iometh <- 'Rlib'
+             Rio    = lop$iometh <- 'Rlib',
+             dbgArgs = lop$dbgArgs <- TRUE
              )
    }
 
@@ -730,8 +727,9 @@ glfConstr <- function(cStr, dataStr) {
    nvar <- length(vars)
    pos <- c(pos, length(cStr)+2) # add an artificial one for convenient usage below
    varsOK <- vars %in% colnames(dataStr)
+   glfList <- vector('list', nvar)
    if(all(varsOK)) {
-      glfList <- vector('list', nvar)
+      #glfList <- vector('list', nvar)
       names(glfList) <- vars
       for(ii in 1:nvar) {
 	 lvl  <- levels(dataStr[,vars[ii]])   # all the levels for each involved factor
@@ -757,13 +755,14 @@ glfConstr <- function(cStr, dataStr) {
 	       if(all(lvlOK)) {
 	          sq <- match(lvlInv, lvl)
                   glfList[[ii]][sq,jj] <- as.numeric(sepTerms[seq(1,length(sepTerms),2)])
-	       } else errex.AFNI(paste("Incorrect level coding in variable", vars[ii],
-	         ": ", lvlInv[which(!lvlOK)], " \n   "))
-            }
+	       #} else errex.AFNI(paste("Incorrect level coding in variable", vars[ii], ": ", lvlInv[which(!lvlOK)], " \n   "))
+               } else glfList <- NULL
+           }
          #}
       }
       return(glfList)
-   } else errex.AFNI(paste("Incorrect variable name in GLF coding: ", vars[which(!varsOK)], " \n   "))
+   #} else errex.AFNI(paste("Incorrect variable name in GLF coding: ", vars[which(!varsOK)], " \n   "))
+   } else glfList <- NULL
 }
 
 # glfConstr(lop$glfCode[[1]], lop$dataStr)
@@ -773,11 +772,12 @@ process.MVM.opts <- function (lop, verb = 0) {
    if(is.null(lop$outFN)) errex.AFNI(c("Output filename not specified! Add filename with -prefix.\n"))
    an <- parse.AFNI.name(lop$outFN)
    if(an$type == "NIML") {
-      if(file.exists(lop$outFN)) errex.AFNI(c("File ", lop$outFN, " exists! Try a different name.\n"))
-   } else if(file.exists(paste(lop$outFN,"+tlrc.HEAD", sep="")) ||
-      file.exists(paste(lop$outFN,"+tlrc.BRIK", sep="")) ||
-      file.exists(paste(lop$outFN,"+orig.HEAD", sep="")) ||
-      file.exists(paste(lop$outFN,"+orig.BRIK", sep=""))) {
+      if(!lop$overwrite && file.exists(lop$outFN)) errex.AFNI(c("File ", lop$outFN, " exists! Try a different name.\n"))
+   } else if(!lop$overwrite && (
+                file.exists(paste(lop$outFN,"+tlrc.HEAD", sep="")) ||
+                file.exists(paste(lop$outFN,"+tlrc.BRIK", sep="")) ||
+                file.exists(paste(lop$outFN,"+orig.HEAD", sep="")) ||
+                file.exists(paste(lop$outFN,"+orig.BRIK", sep=""))) ) {
          errex.AFNI(c("File ", lop$outFN, " exists! Try a different name.\n"))
          return(NULL)
    }      
@@ -789,7 +789,7 @@ process.MVM.opts <- function (lop, verb = 0) {
                    'format other than BRIK'))
 
    if(!is.na(lop$qVars[1])) lop$QV <- strsplit(lop$qVars, '\\,')[[1]]
-   if(!is.na(lop$vVars[1])) lop$vQV <- strsplit(lop$vVars, '\\,')[[1]]
+   if(!is.null(lop$vVars[1])) lop$vQV <- strsplit(lop$vVars, '\\,')[[1]]
 
    if(!is.na(lop$parSubset[1])) lop$parSubsetVector <- strsplit(lop$parSubset, '\\,')[[1]]
 
@@ -847,7 +847,7 @@ process.MVM.opts <- function (lop, verb = 0) {
       #if(!is.na(lop$qVars)) for(jj in lop$QV) lop$dataStr[,jj] <- as.numeric(lop$dataStr[,jj])
       if(!is.na(lop$qVars[1])) for(jj in lop$QV) lop$dataStr[,jj] <- as.numeric(as.character(lop$dataStr[,jj]))
       # or if(!is.na(lop$qVars)) for(jj in lop$QV) lop$dataStr[,jj] <- as.numeric(levels(lop$dataStr[,jj]))[as.integer(lop$dataStr[,jj])]
-      if(!is.na(lop$vVars[1])) for(jj in lop$vQV) lop$dataStr[,jj] <- as.character(lop$dataStr[,jj])
+      if(!is.null(lop$vVars[1])) for(jj in lop$vQV) lop$dataStr[,jj] <- as.character(lop$dataStr[,jj])
    }
    
    # set the covariate default values at their centers
@@ -945,8 +945,9 @@ process.MVM.opts <- function (lop, verb = 0) {
       an <- parse.AFNI.name(lop$outFN)
       if(an$type == "BRIK" && an$ext == "" && is.na(an$view))
          lop$outFN <- paste(lop$outFN, "+tlrc", sep="")      
-      if (exists.AFNI.name(lop$outFN) || 
-          exists.AFNI.name(modify.AFNI.name(lop$outFN,"view","+tlrc")))
+      if (!lop$overwrite && (
+            exists.AFNI.name(lop$outFN) || 
+            exists.AFNI.name(modify.AFNI.name(lop$outFN,"view","+tlrc"))))
          errex.AFNI(c("File ", lop$outFN, " exists! Try a different name.\n"))
    }
 
@@ -967,6 +968,7 @@ process.MVM.opts <- function (lop, verb = 0) {
 
    return(lop)
 }
+# process.MVM.opts(lop, verb = lop$verb)                                               
 
 #################################################################################
 ################# MVM Computation functions ##############################
@@ -1031,15 +1033,15 @@ mvCom5 <- function(fm, nF_mvE5) {
    if(is.null(mvfm))
       out_p <- apply(cbind(uvP[1:nF_mvE5], uvP[(nF_mvE5+1):(2*nF_mvE5)], p_wsmvt[1:nF_mvE5],  p_wsmvt[(nF_mvE5+1):(2*nF_mvE5)]), 1, min) else {
       if(fm$Anova$type=='III') for(kk in 1:nF_mvE5) {
-         mvt <- stats:::Pillai(Re(eigen(qr.coef(qr(mvfm$SSPE), mvfm$SSP[[kk]]), symmetric = FALSE)$values), mvfm$df[[kk]], mvfm$error.df)
+         mvt <- tryCatch(stats:::Pillai(Re(eigen(qr.coef(qr(mvfm$SSPE), mvfm$SSP[[kk]]), symmetric = FALSE)$values), mvfm$df[[kk]], mvfm$error.df), error=function(e) NULL)
          #p-value for upper F
-         p_mvt[kk] <- pf(mvt[2], mvt[3], mvt[4], lower.tail = FALSE)
+         p_mvt[kk] <- ifelse(is.null(mvt), 1, pf(mvt[2], mvt[3], mvt[4], lower.tail = FALSE))
       }
       if(fm$Anova$type=='II') for(kk in 1:nF_mvE5) { # no intercept
          if(kk==1) p_mvt[kk] <- 1 else {
-         mvt <- stats:::Pillai(Re(eigen(qr.coef(qr(mvfm$SSPE), mvfm$SSP[[kk-1]]), symmetric = FALSE)$values), mvfm$df[[kk-1]], mvfm$error.df)
+         mvt <- tryCatch(stats:::Pillai(Re(eigen(qr.coef(qr(mvfm$SSPE), mvfm$SSP[[kk-1]]), symmetric = FALSE)$values), mvfm$df[[kk-1]], mvfm$error.df), error=function(e) NULL)
          #p-value for upper F
-         p_mvt[kk] <- pf(mvt[2], mvt[3], mvt[4], lower.tail = FALSE)
+         p_mvt[kk] <- ifelse(is.null(mvt), 1, pf(mvt[2], mvt[3], mvt[4], lower.tail = FALSE))
          }
       }
       #out_p <- apply(cbind(uvP[1:nF_mvE5], uvP[(nF_mvE5+1):(2*nF_mvE5)], p_wsmvt, p_mvt), 1, min)
@@ -1268,8 +1270,8 @@ read.MVM.opts.from.file <- function (modFile='model.txt', verb = 0) {
    if(!exists('.DBG_args')) { 
       args = (commandArgs(TRUE))  
       rfile <- first.in.path(sprintf('%s.R',ExecName))
-       # save only on -dbg_args          28 Apr 2016 [rickr]
-       if ('-dbg_args' %in% args) try(save(args, rfile, file="3dMVM.dbg.AFNI.args", ascii = TRUE), silent=TRUE) 
+       # save only on -dbgArgs          28 Apr 2016 [rickr]
+       if ('-dbgArgs' %in% args) try(save(args, rfile, file=".3dMVM.dbg.AFNI.args", ascii = TRUE), silent=TRUE) 
    } else {
       note.AFNI("Using .DBG_args resident in workspace")
       args <- .DBG_args
@@ -1436,7 +1438,7 @@ head <- inData
 cat('Reading input files: Done!\n\n')
 
 # voxel-wise covariate files
-if(any(!is.na(lop$vVars))) {
+if(any(!is.null(lop$vVars))) {
    for(ii in lop$vQV)
    if(length(unique(lop$dataStr[,ii])) != nlevels(lop$dataStr$Subj))
       errex.AFNI(c("Error with voxel-wise covariate ", ii, ": Each subject is only\n",
@@ -1471,7 +1473,7 @@ assVV <- function(DF, vQV, value, c) {
 }                                           
 
 # add a new column to store the voxel-wise filenames
-if(any(!is.na(lop$vVars))) {
+if(any(!is.null(lop$vVars))) {
    lop$dataStr <- cbind(lop$dataStr, lop$dataStr[, lop$vQV[1]])                                                
    names(lop$dataStr)[length(names(lop$dataStr))] <- paste(lop$vQV[1], '_fn', sep='')
 }                                           
@@ -1504,7 +1506,7 @@ while(is.null(fm)) {
    fm<-NULL
    if (all(abs(inData[ii, jj, kk,]) < 10e-8)) fm<-NULL else {
    lop$dataStr$Beta<-inData[ii, jj, kk,1:lop$NoFile]
-   if(any(!is.na(lop$vVars))) {
+   if(any(!is.null(lop$vVars))) {
       #lop$dataStr <- assVV(lop$dataStr, lop$vQV[1], vQV[ii,jj,kk,])
       lop$dataStr <- assVV(lop$dataStr, lop$vQV[1], inData[ii,jj,kk,(lop$NoFile+1):(lop$NoFile+lop$nSubj)], lop$vVarCenters[1])
       #if(all(is.na(lop$vVarCenters))) 
@@ -1861,7 +1863,8 @@ if(lop$num_glf>0) for(ii in 1:lop$num_glf)
    statsym <- c(statsym, list(list(sb=lop$nF+lop$GES*lop$nFu+2*lop$num_glt+ii-1, typ="fift", par=glf_DF[ii][[1]])))        
    
 write.AFNI(lop$outFN, out, brickNames, defhead=head, idcode=newid.AFNI(),
-   com_hist=lop$com_history, statsym=statsym, addFDR=1, type='MRI_short')
+   com_hist=lop$com_history, statsym=statsym, addFDR=1, type='MRI_short',
+   overwrite=lop$overwrite)
 
 cat("\nCongratulations! You have got an output ", lop$outFN, ".\n\n", sep='')
 

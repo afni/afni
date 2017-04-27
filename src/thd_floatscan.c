@@ -28,7 +28,7 @@
    Return the number of illegal values found.
 -----------------------------------------------------------------------*/
 
-int thd_floatscan( size_t nbuf , float *fbuf )
+size_t thd_floatscan( size_t nbuf , float *fbuf )
 {
    size_t ii , nerr ;
 
@@ -37,7 +37,7 @@ int thd_floatscan( size_t nbuf , float *fbuf )
    for( nerr=ii=0 ; ii < nbuf ; ii++ )
      if( !IS_GOOD_FLOAT(fbuf[ii]) ){ fbuf[ii] = 0.0f ; nerr++ ; }
 
-   return (int)nerr ;
+   return nerr ;
 }
 
 /*--------------------------------------------------------------------*/
@@ -46,7 +46,7 @@ int thd_floatscan( size_t nbuf , float *fbuf )
 typedef struct complex { float r , i ; } complex ;  /* cf. mrilib.h */
 #endif
 
-int thd_complexscan( size_t nbuf , complex *cbuf )
+size_t thd_complexscan( size_t nbuf , complex *cbuf )
 {
    size_t ii , nerr ;
 
@@ -57,13 +57,13 @@ int thd_complexscan( size_t nbuf , complex *cbuf )
      if( !IS_GOOD_FLOAT(cbuf[ii].i) ){ cbuf[ii].i = 0.0f ; nerr++ ; }
    }
 
-   return (int)nerr ;
+   return nerr ;
 }
 
 /*--------------------------------------------------------------------*/
 /* Functions below added 22 Feb 2007 -- RWCox */
 
-int mri_floatscan( MRI_IMAGE *im )
+size_t mri_floatscan( MRI_IMAGE *im )
 {
    if( im == NULL ) return 0 ;
    switch( im->kind ){
@@ -78,9 +78,9 @@ int mri_floatscan( MRI_IMAGE *im )
 
 /*--------------------------------------------------------------------*/
 
-int imarr_floatscan( MRI_IMARR *imar )
+size_t imarr_floatscan( MRI_IMARR *imar )
 {
-   int ii , nn ;
+   size_t ii , nn ;
    if( imar == NULL ) return 0 ;
    for( nn=ii=0 ; ii < IMARR_COUNT(imar) ; ii++ ){
      nn += mri_floatscan( IMARR_SUBIM(imar,ii) ) ;
@@ -90,9 +90,9 @@ int imarr_floatscan( MRI_IMARR *imar )
 
 /*--------------------------------------------------------------------*/
 
-int dblk_floatscan( THD_datablock *dblk )
+size_t dblk_floatscan( THD_datablock *dblk )
 {
-   int nn ;
+   size_t nn ;
    if( !ISVALID_DATABLOCK(dblk) ) return 0 ;
    nn = imarr_floatscan( dblk->brick ) ;
    return nn ;
@@ -100,9 +100,9 @@ int dblk_floatscan( THD_datablock *dblk )
 
 /*--------------------------------------------------------------------*/
 
-int dset_floatscan( THD_3dim_dataset *dset )
+size_t dset_floatscan( THD_3dim_dataset *dset )
 {
-   int nn ;
+   size_t nn ;
    if( !ISVALID_DSET(dset) ) return 0 ;
    nn = dblk_floatscan( dset->dblk ) ;
    return nn ;

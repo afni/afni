@@ -171,6 +171,8 @@ extern void MCW_message_timer_CB( XtPointer , XtIntervalId * ) ;
 
 extern void MCW_message_alter( Widget , char * ) ;  /* 10 Jul 2001 */
 
+extern void MCW_popup_message_once( Widget w, char *msg, char *expiry, char *codestring ) ;
+
 #define MCW_nofile    0
 #define MCW_readonly  1
 #define MCW_readwrite 2
@@ -279,5 +281,7 @@ extern void MCW_melt_widget( Widget w ) ;
 #ifdef  __cplusplus
 }
 #endif
+
+extern char * get_XQuartz_version(void) ; /* 27 Jan 2017 */
 
 #endif /* _MCW_XUTIL_HEADER_ */

@@ -198,6 +198,7 @@ extern void           set_color_memplot( float , float , float ) ;
 extern void           set_thick_memplot( float ) ;
 extern float          get_thick_memplot(void) ;
 extern void           plot_ts_dohist(int) ;                         /* 10 Jun 2014 */
+extern void           plot_ts_noline( int ) ;
 extern int            nline_active_memplot(void) ;
 extern void           plotrect_memplot( float,float,float,float ) ; /* 21 Mar 2001 */
 extern void           plotfrect_memplot( float,float,float,float) ; /* 24 Apr 2012 */
@@ -309,6 +310,11 @@ extern void plot_ts_xfix( int,int , float,float ) ;                /* 22 Jul 200
 extern void plot_ts_yfix( int,int , float,float ) ;
 
 extern void plot_ts_add_vbox( int,float,float,float,float,float ); /* 24 Apr 2012 */
+
+extern void plot_ts_add_rbox( int ygr ,
+                              float x1,float y1 , float x2,float y2 ,
+                              float rr,float gg,float bb,
+                              float r2,float g2,float b2 ) ;       /* 29 Jan 2017 */
 
 extern void plot_ts_add_sepx( int lx , float *x ) ;                /* 21 Oct 2013 */
 extern void plot_ts_clear_sepx(void) ;

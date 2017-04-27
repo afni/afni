@@ -15,16 +15,27 @@ stim_types_one_reg = ['file', 'AM1', 'times']
 
 # this file contains various afni utilities   17 Nov 2006 [rickr]
 
-def change_path_basename(orig, prefix, suffix):
+def change_path_basename(orig, prefix='', suffix='', append=0):
     """given a path (leading directory or not) swap the trailing
        filename with the passed prefix and suffix
-
-          e.g. C_P_B('my/dir/pickles.yummy','toast','.1D') --> 'my/dir/toast.1D' 
+          e.g. C_P_B('my/dir/pickles.yummy','toast','.1D')
+                 --> 'my/dir/toast.1D' 
+       or with append...
+          e.g. C_P_B('my/dir/pickles.yummy','toast','.1D', append=1)
+                 --> 'my/dir/toastpickles.yummy.1D'
+       or maybe we want another dot then
+          e.g. C_P_B('my/dir/pickles.yummy','toast.','.1D', append=1)
+                 --> 'my/dir/toast.pickles.yummy.1D'
     """
-    if not orig or not prefix: return
+    if not orig: return ''
+    if not prefix and not suffix: return orig
+
     (head, tail) = os.path.split(orig)
-    if head == '': return "%s%s" % (prefix, suffix)
-    return "%s/%s%s" % (head, prefix, suffix)
+    if append: tail = '%s%s%s' % (prefix, tail, suffix)
+    else:      tail = '%s%s' % (prefix, suffix)
+
+    if head == '': return tail
+    return "%s/%s" % (head, tail)
 
 # write text to a file
 def write_text_to_file(fname, tdata, mode='w', wrap=0, wrapstr='\\\n', exe=0):
@@ -58,7 +69,11 @@ def write_text_to_file(fname, tdata, mode='w', wrap=0, wrapstr='\\\n', exe=0):
 
     if fname != 'stdout' and fname != 'stderr':
        fp.close()
-       if exe: os.chmod(fname, 0755)
+       if exe:
+           try:
+               os.chmod(fname, 0755)
+           except OSError, e:
+                print e
 
     return 0
 
@@ -823,6 +838,90 @@ def get_3dinfo(dname, lines=0, verb=0):
 
    return output
 
+def get_3dinfo_nt(dname, verb=1):
+   """run 3dinfo -nt
+
+      return 0 on failure (>= 0 on success)
+   """
+   command = '3dinfo -nt %s' % dname
+   status, output, se = limited_shell_exec(command, nlines=1)
+   if status or len(output) == 0:
+      if verb: print '** 3dinfo -nt failure: message is:\n%s%s\n' % (se,output)
+      return 0
+
+   output = output[0].strip()
+   if output == 'NO-DSET' :
+      if verb: print '** 3dinfo -nt: no dataset %s' % dname
+      return 0
+
+   nt = 0
+   try: nt = int(output)
+   except:
+      if verb: print '** 3dinfo -nt: cannot get NT from %s, for dset %s' \
+                     % (output, dname)
+      return 0
+
+   return nt
+
+def get_3dinfo_val(dname, val, vtype, verb=1):
+   """run 3dinfo -val, and convert to vtype (also serves as a test)
+
+      return vtype(0) on failure
+   """
+   command = '3dinfo -%s %s' % (val, dname)
+   status, output, se = limited_shell_exec(command, nlines=1)
+   if status or len(output) == 0:
+      if verb:
+         print '** 3dinfo -%s failure: message is:\n%s%s\n' % (val, se, output)
+      return 0
+
+   output = output[0].strip()
+   if output == 'NO-DSET' :
+      if verb: print '** 3dinfo -%s: no dataset %s' % (val, dname)
+      return 0
+
+   dval = 0
+   try: dval = vtype(output)
+   except:
+      # allow conversion from float to int as a backup
+      fail = 0
+      if vtype == int:
+         try:
+            dval = float(output)
+            dval = vtype(dval)
+         except:
+            fail = 1
+      if verb and fail:
+         print "** 3dinfo -%s: cannot get val from %s, for dset %s" \
+               % (val, output, dname)
+      if fail: return vtype(0)
+
+   return dval
+
+def get_3dinfo_val_list(dname, val, vtype, verb=1):
+   """run 3dinfo -val, and convert to vtype (also serves as a test)
+
+      return None on failure, else a list
+   """
+   command = '3dinfo -%s %s' % (val, dname)
+   status, output, se = limited_shell_exec(command, nlines=1)
+   if status or len(output) == 0:
+      if verb:
+         print '** 3dinfo -%s failure: message is:\n%s%s\n' % (val, se, output)
+      return None
+
+   output = output[0].strip()
+   if output == 'NO-DSET' :
+      if verb: print '** 3dinfo -%s: no dataset %s' % (val, dname)
+      return None
+
+   dlist = string_to_type_list(output, vtype)
+   if dlist == None and verb:
+      print "** 3dinfo -%s: cannot get val list from %s, for dset %s" \
+            % (val, output, dname)
+
+   return dlist
+
 def dset_view(dname):
    """return the AFNI view for the given dset"""
    command = '3dinfo -av_space %s' % dname
@@ -975,50 +1074,27 @@ def test_truncation(top=10.0, bot=0.1, bits=3, e=0.0000001):
         print val, ' -> ', trunc
         val = trunc - e
     
-def get_dset_reps_tr(dset, verb=1):
+def get_dset_reps_tr(dset, notr=0, verb=1):
     """given an AFNI dataset, return err, reps, tr
+
+       if notr: use 3dinfo -nt
 
        err  = error code (0 = success, else failure)
        reps = number of TRs in the dataset
-       tr   = length of TR, in seconds"""
+       tr   = length of TR, in seconds
+    """
+
+    # use 3dinfo directly, instead of TAXIS attributes  30 Jun 2016
+
+    reps = get_3dinfo_val(dset, 'nt', int, verb=verb)
+    tr = get_3dinfo_val(dset, 'tr', float, verb=verb)
 
     # store timing info in a list (to get reps and timing units)
-    tinfo = BASE.read_attribute(dset, 'TAXIS_NUMS')
-    if tinfo == None:
+    if reps == 0:
         print "** failed to find the number of TRs from dset '%s'" % dset
         return 1, None, None
 
-    # look for the number of repetitions
-    try: reps = int(tinfo[0])
-    except:
-        print "** reps '%s' is not an int in dset %s?" % (tinfo[0], dset)
-        return 1, None, None
-    if reps < 1:
-        print "** invalid nreps (%d) for dset %s" % (reps, dset)
-        return 1, None, None
-
-    # note the units (either sec (77002) or ms (77001))
-    try: units = int(tinfo[2])
-    except: units = 77002
-    if units != 77001 and units != 77002: units = 77002
-
-    # now read the TR (and apply previous units)
-    tinfo = BASE.read_attribute(dset, 'TAXIS_FLOATS')
-    if tinfo == None:
-        print "** failed to find the TR length from dset '%s'" % dset
-        return 1, None, None
-    try: tr = float(tinfo[1])
-    except:
-        print "** TR '%s' is not a float?" % tinfo[0]
-        return 1, None, None
-
-    if verb > 1:
-        if units == 77001: unit_str = 'ms'
-        else             : unit_str = 's'
-        print '-- dset %s : reps = %d, tr = %s%s' %(dset,reps,str(tr),unit_str)
-
-    # and adjust TR
-    if units == 77001: tr /= 1000.0
+    if verb > 1: print '-- dset %s : reps = %d, tr = %ss' % (dset, reps, tr)
 
     return 0, reps, tr
 
@@ -1265,7 +1341,6 @@ def consec_len(ilist, start):
    """return the length of consecutive integers - always at least 1"""
    prev = ilist[start]
    length = len(ilist)
-   ind  = start
    for ind in range(start+1, length+1):
       if ind == length: break
       if ilist[ind] != prev + 1:
@@ -1836,15 +1911,26 @@ def vals_are_unique(vlist, dosort=1):
       
    return rval
 
-def lists_are_same(list1, list2):
-   """return 1 if the lists have identical values, else 0"""
+def lists_are_same(list1, list2, epsilon=0, doabs=0):
+   """return 1 if the lists have similar values, else 0
+
+      similar means difference <= epsilon
+   """
    if not list1 and not list2: return 1
    if not list1: return 0
    if not list2: return 0
    if len(list1) != len(list2): return 0
 
    for ind in range(len(list1)):
-      if list1[ind] != list2[ind]: return 0
+      if doabs:
+         v1 = abs(list1[ind])
+         v2 = abs(list2[ind])
+      else:
+         v1 = list1[ind]
+         v2 = list2[ind]
+      if v1 != v2: return 0
+      if epsilon:
+         if abs(v1-v2) > epsilon: return 0
 
    return 1
 
@@ -1862,6 +1948,26 @@ def string_to_float_list(fstring):
    except: return None
 
    return flist
+
+def string_to_type_list(sdata, dtype=float):
+   """return a list of dtype, converted from the string
+      return None on error
+   """
+
+   if type(sdata) != str: return None
+   slist = sdata.split()
+
+   if len(slist) == 0: return []
+
+   # if going to int, use float as an intermediate step
+   if dtype == int:
+      try: slist = [float(sval) for sval in slist]
+      except: return None
+
+   try: dlist = [dtype(sval) for sval in slist]
+   except: return None
+
+   return dlist
 
 def float_list_string(vals, nchar=7, ndec=3, nspaces=2, mesg='', left=0):
    """return a string to display the floats:
@@ -2127,6 +2233,18 @@ def first_last_match_strs(slist):
    else:          tstr = ''
 
    return slist[0][0:hmatch], tstr
+
+def glob2stdout(globlist):
+   """given a list of glob forms, print all matches to stdout
+
+      This is meant to be a stream workaround to shell errors
+      like, "Argument list too long".
+
+      echo 'd1/*.dcm' 'd2/*.dcm' | afni_util.py -listfunc glob2stdout -
+   """
+   for gform in globlist:
+      for fname in glob.glob(gform):
+         print fname
 
 def glob_form_from_list(slist):
    """given a list of strings, return a glob form
@@ -2697,6 +2815,23 @@ def search_path_dirs(word, mtype=0, casematch=1):
    rlist = [os.path.realpath(pfile) for pfile in rlist]
 
    return 0, get_unique_sublist(rlist)
+
+def num_found_in_path(word, mtype=0, casematch=1):
+   """a simple wrapper to print search_path_dirs results
+
+      Search for given 'word' in path, and print out list elements
+      with element prefix of 'indent'.
+
+        mtype     : 0 = match any sub-word (i.e. look for DIR/*word*)
+                    1 = exact match (i.e. no wildcard, look for DIR/word)
+                    2 = prefix match (i.e. look for DIR/word*)
+        casematch : flag: if set, case must match
+                          else, 'word' letters can be either case
+        indent    : prefix/separator string for list elements
+   """
+   rv, rlist = search_path_dirs(word, mtype=mtype, casematch=casematch)
+   if rv: return 0
+   return len(rlist)
 
 def show_found_in_path(word, mtype=0, casematch=1, indent='\n   '):
    """a simple wrapper to print search_path_dirs results
@@ -3620,6 +3755,14 @@ afni_util.py: not really intended as a main program
             afni_util.py -exec "import PyQt4"
             afni_util.py -exec "show_process_stack()"
 
+      -funchelp FUNC    : print the help for afni_util.py function FUNC
+
+         Pring the FUNC.__doc__ text, if any.
+
+         Example:
+
+            afni_util.py -funchelp wrap_file_text
+
       -print STRING     : print the result of executing STRING
 
          Akin to -eval, but print the results of evaluating STRING.
@@ -3657,6 +3800,7 @@ afni_util.py: not really intended as a main program
 
             afni_util.py -listfunc -join shuffle `count -digits 4 1 124`
             count -digits 4 1 124 | afni_util.py -listfunc -join shuffle -
+            afni_util.py -listfunc glob2stdout 'EPI_run1/8*'
 
             afni_util.py -listfunc -joinc list_minus_glob_form *HEAD
 
@@ -3750,6 +3894,14 @@ def process_listfunc(argv):
    # else do nothing special
    return 0
 
+def show_function_help(flist):
+   for func in flist:
+      print section_divider('help for: %s' % func)
+      try:
+         fn = eval(func)
+         print fn.__doc__
+      except:
+         print "** not a valid function '%s'" % func
 
 def main():
    argv = sys.argv
@@ -3762,6 +3914,9 @@ def main():
          return 0
       elif argv[1] == '-exec':
          exec(' '.join(argv[2:]))
+         return 0
+      elif argv[1] == '-funchelp':
+         show_function_help(argv[2:])
          return 0
       elif argv[1] == '-lprint':
          ret = eval(' '.join(argv[2:]))

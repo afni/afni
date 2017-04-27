@@ -76,6 +76,7 @@ PLUGIN_interface * PLUGIN_init(int ncall)
    PLUGIN_interface * plint ;
 
    if( ncall > 0 ) return NULL ;  /* only one interface */
+   CHECK_IF_ALLOWED("HISTOGRAMBFIT","Histogram: BFit") ;  /* 30 Sep 2016 */
 
    /*-- set titles and call point --*/
 

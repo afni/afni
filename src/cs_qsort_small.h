@@ -24,7 +24,7 @@
 # define TWO_TWO(x,y) TWO_ONE(x,y)
 #endif
 
-/* define the function names for array lengths 2..21 */
+/* define the function names for array lengths 2..21 (plus 25 and 27) */
 
 #define FUNC2 TWO_TWO(qsort2_,DTYPE)
 #define FUNC3 TWO_TWO(qsort3_,DTYPE)

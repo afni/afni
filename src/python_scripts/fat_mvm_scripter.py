@@ -352,7 +352,7 @@ def main(argv):
         print "\t Need to use either '-l' or '--log'."
         sys.exit()
     if ( list_model == '' ) and ( file_listmodel == '' ):
-	print "** ERROR: missing a necessary model description input."
+        print "** ERROR: missing a necessary model description input."
         print "\t Need to use either '-m' or '-f'."
         sys.exit()
     if not( list_model == '' ) and not( file_listmodel == '' ):

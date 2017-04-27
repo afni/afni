@@ -6,6 +6,9 @@ if ("$1" == '' || "$1" == "-help" || "$1" == "-h") then
    echo ""
    echo "Outputs the path, prefix, view and sub-brick selection string."
    echo ""
+   echo "If view is missing (nifti file), and sub-brick selection"
+   echo "is used, view is set to '----'"
+   echo ""
    goto END
 endif
 
@@ -18,7 +21,7 @@ if ( "$anat_path" == "${anat_in}" ) set anat_path = "."
 
 set ana_pref = `@GetAfniPrefix ${anat_in}`
 set ana_view = `@GetAfniView ${anat_in}`
-
+if ("$ana_view" == '' && "$bling" != '') set ana_view = "----"
 echo "$anat_path $ana_pref $ana_view $bling"
 
 END:

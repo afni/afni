@@ -32,7 +32,7 @@ static char * file_extension_list[] = {
     ".nii", ".nii.gz", ".nia", ".hdr", ".img",
     ".mpg", ".mpeg", ".MPG", ".MPEG",
     ".niml", ".niml.dset", ".niml.do",
-    ".gii", ".gii.dset", ".niml.tract"
+    ".gii", ".gii.dset", ".niml.tract" , ".jpg" , ".png"
 };
 
 /*
@@ -255,6 +255,15 @@ ENTRY("THD_open_one_dataset") ;
      RETURN(dset) ;
    }
 
+   if( STRING_HAS_SUFFIX_CASE(pathname,".jpg") ||
+       STRING_HAS_SUFFIX_CASE(pathname,".png")   ){  /* 06 Jul 2016 */
+
+     CHECK_FOR_DATA(pathname) ;
+     dset = THD_open_image(pathname) ;  /* will be loaded, too */
+     THD_patch_brickim(dset) ;
+     RETURN(dset) ;
+   }
+
    /*-- 26 May 2006 [rickr]: the NIML way! --*/
 
    if( STRING_HAS_SUFFIX(pathname,".niml") ){
@@ -307,11 +316,12 @@ ENTRY("THD_open_one_dataset") ;
    strcpy( fullname , pathname ) ;
    fname = fullname + offset ; /* trailing filename (past directory) - rickr */
 
+   /* note: e.g. DATASET_HEADER_SUFFIX does not start with '.' */
    /* (REPLACE) sub = strstr( fullname , DATASET_HEADER_SUFFIX ) ;  * .HEAD ? */
-   sub = strstr( fname , DATASET_HEADER_SUFFIX ) ;   /* .HEAD ?  r:fname */
+   sub = strstr( fname , DATASET_DOT_HEADER_SUFFIX ) ;   /* .HEAD ?  r:fname */
 
    if( sub == NULL ){                                   /* no! */
-      sub = strstr( fname , DATASET_BRICK_SUFFIX ) ; /* .BRIK ?  r:fname */
+      sub = strstr( fname , DATASET_DOT_BRICK_SUFFIX ) ; /* .BRIK ?  r:fname */
 
       if( sub == NULL ){                               /* no! */
          ii = strlen(fullname) ;
@@ -319,7 +329,7 @@ ENTRY("THD_open_one_dataset") ;
          strcat( fullname , DATASET_HEADER_SUFFIX ) ;           /* onto end */
 
       } else {                                     /* yes! */
-         strcpy( sub , DATASET_HEADER_SUFFIX ) ;   /* replace .BRIK with .HEAD */
+         strcpy( sub , DATASET_DOT_HEADER_SUFFIX ) ; /* replace .BRIK with .HEAD */
       }
    }
 

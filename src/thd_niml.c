@@ -1167,7 +1167,7 @@ ENTRY("THD_add_sparse_data");
         if( !mlist ){ NI_free(nel->vec[mind]);  nel->vec[mind] = NULL; }
     }
 
-    if( DBLK_IS_MASTERED(blk) && blk->master_bot <= blk->master_top )
+    if( DBLK_IS_MASTER_SUBRANGED(blk) )
         THD_apply_master_subrange(blk);
 
     RETURN(nvals);

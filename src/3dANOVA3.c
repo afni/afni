@@ -396,7 +396,7 @@ void get_options (int argc, char ** argv, anova_options * option_data)
 	  if (nopt >= argc)  ANOVA_error ("need argument after -voxel ");
 	  sscanf (argv[nopt], "%d", &ival);
 	  if (ival <= 0)
-	    ANOVA_error ("illegal argument after -voxel ");
+	    ANOVA_error ("-voxel param must be positive");
 	  option_data->nvoxel = ival;
 	  nopt++;
 	  continue;
@@ -410,7 +410,7 @@ void get_options (int argc, char ** argv, anova_options * option_data)
 	 if (nopt >= argc)  ANOVA_error ("need argument after -type ");
          sscanf (argv[nopt], "%d", &ival);
 	 if ((ival < 1) || (ival > 5))
-	    ANOVA_error ("illegal argument after -type ");
+	    ANOVA_error ("-type param must be in {1..5}");
 	 option_data->model = ival;
          nopt++;
          continue;
@@ -476,7 +476,7 @@ void get_options (int argc, char ** argv, anova_options * option_data)
 	  if (nopt >= argc)  ANOVA_error ("need argument after -alevels ");
 	  sscanf (argv[nopt], "%d", &ival);
 	  if ((ival <= 0) || (ival > MAX_LEVELS))
-	    ANOVA_error ("illegal argument after -alevels ");
+	    ANOVA_error ("-alevels param must be in {1..MAX}");
 	  option_data->a = ival;
 	  nopt++;
 	  continue;
@@ -490,7 +490,7 @@ void get_options (int argc, char ** argv, anova_options * option_data)
 	  if (nopt >= argc)  ANOVA_error ("need argument after -blevels ");
 	  sscanf (argv[nopt], "%d", &ival);
 	  if ((ival <= 0) || (ival > MAX_LEVELS))
-	    ANOVA_error ("illegal argument after -blevels ");
+	    ANOVA_error ("-blevels param must be in {1..MAX}");
 	  option_data->b = ival;
 	  nopt++;
 	  continue;
@@ -504,7 +504,7 @@ void get_options (int argc, char ** argv, anova_options * option_data)
 	  if (nopt >= argc)  ANOVA_error ("need argument after -clevels ");
 	  sscanf (argv[nopt], "%d", &ival);
 	  if ((ival <= 0) || (ival > MAX_LEVELS))
-	    ANOVA_error ("illegal argument after -clevels ");
+	    ANOVA_error ("-clevels param must be in {1..MAX}");
 	  option_data->c = ival;
 	  nopt++;
 	  continue;
@@ -518,17 +518,17 @@ void get_options (int argc, char ** argv, anova_options * option_data)
 	  if (nopt+3 >= argc)  ANOVA_error ("need 4 arguments after -dset ");
 	  sscanf (argv[nopt], "%d", &ival);
 	  if ((ival <= 0) || (ival > option_data->a))
-	    ANOVA_error ("illegal argument after -dset ");
+	    ANOVA_error ("-dset param 1 must be in {1..numA}");
 	
 	  nopt++;
 	  sscanf (argv[nopt], "%d", &jval);
 	  if ((jval <= 0) || (jval > option_data->b))
-	    ANOVA_error ("illegal argument after -dset ");
+	    ANOVA_error ("-dset param 2 must be in {1..numB}");
 	
 	  nopt++;
 	  sscanf (argv[nopt], "%d", &kval);
 	  if ((kval <= 0) || (kval > option_data->c))
-	    ANOVA_error ("illegal argument after -dset ");
+	    ANOVA_error ("-dset param 3 must be in {1..numC}");
 
 	  N_INDEX(ival-1, jval-1, kval-1) += 1;
 	  nijk = N_INDEX(ival-1, jval-1, kval-1);
@@ -662,7 +662,7 @@ void get_options (int argc, char ** argv, anova_options * option_data)
 	
 	  sscanf (argv[nopt], "%d", &ival);
 	  if ((ival <= 0) || (ival > option_data->a))
-	    ANOVA_error ("illegal argument after -amean ");
+	    ANOVA_error ("-amean param must be in {1..numA}");
 	  option_data->ameans[option_data->num_ameans-1] = ival - 1;
 	  nopt++;
 	
@@ -686,7 +686,7 @@ void get_options (int argc, char ** argv, anova_options * option_data)
 	
 	  sscanf (argv[nopt], "%d", &ival);
 	  if ((ival <= 0) || (ival > option_data->b))
-	    ANOVA_error ("illegal argument after -bmean ");
+	    ANOVA_error ("-bmean param must be in {1..numB}");
 	  option_data->bmeans[option_data->num_bmeans-1] = ival - 1;
 	  nopt++;
 	
@@ -710,7 +710,7 @@ void get_options (int argc, char ** argv, anova_options * option_data)
 	
 	  sscanf (argv[nopt], "%d", &ival);
 	  if ((ival <= 0) || (ival > option_data->c))
-	    ANOVA_error ("illegal argument after -cmean ");
+	    ANOVA_error ("-cmean param must be in {1..numC}");
 	  option_data->cmeans[option_data->num_cmeans-1] = ival - 1;
 	  nopt++;
 	
@@ -734,19 +734,19 @@ void get_options (int argc, char ** argv, anova_options * option_data)
 	
 	  sscanf (argv[nopt], "%d", &ival);
 	  if ((ival <= 0) || (ival > option_data->a))
-	    ANOVA_error ("illegal argument after -xmean ");
+	    ANOVA_error ("-xmean param 1 must be in {1..numA}");
 	  option_data->xmeans[option_data->num_xmeans-1][0] = ival - 1;
 	  nopt++;
 	
 	  sscanf (argv[nopt], "%d", &ival);
 	  if ((ival <= 0) || (ival > option_data->b))
-	    ANOVA_error ("illegal argument after -xmean ");
+	    ANOVA_error ("-xmean param 2 must be in {1..numB}");
 	  option_data->xmeans[option_data->num_xmeans-1][1] = ival - 1;
 	  nopt++;
 	
 	  sscanf (argv[nopt], "%d", &ival);
 	  if ((ival <= 0) || (ival > option_data->c))
-	    ANOVA_error ("illegal argument after -xmean ");
+	    ANOVA_error ("-xmean param 3 must be in {1..numC}");
 	  option_data->xmeans[option_data->num_xmeans-1][2] = ival - 1;
 	  nopt++;
 	
@@ -770,13 +770,13 @@ void get_options (int argc, char ** argv, anova_options * option_data)
 	
 	  sscanf (argv[nopt], "%d", &ival);
 	  if ((ival <= 0) || (ival > option_data->a))
-	    ANOVA_error ("illegal argument after -adiff ");
+	    ANOVA_error ("-adiff params must be in {1..numA}");
 	  option_data->adiffs[option_data->num_adiffs-1][0] = ival - 1;
 	  nopt++;
 	
 	  sscanf (argv[nopt], "%d", &ival);
 	  if ((ival <= 0) || (ival > option_data->a))
-	    ANOVA_error ("illegal argument after -adiff ");
+	    ANOVA_error ("-adiff params must be in {1..numA}");
 	  option_data->adiffs[option_data->num_adiffs-1][1] = ival - 1;
 	  nopt++;
 	
@@ -800,13 +800,13 @@ void get_options (int argc, char ** argv, anova_options * option_data)
 
 	  sscanf (argv[nopt], "%d", &ival);
 	  if ((ival <= 0) || (ival > option_data->b))
-	    ANOVA_error ("illegal argument after -bdiff ");
+	    ANOVA_error ("-bdiff params must be in {1..numB}");
 	  option_data->bdiffs[option_data->num_bdiffs-1][0] = ival - 1;
 	  nopt++;
 
 	  sscanf (argv[nopt], "%d", &ival);
 	  if ((ival <= 0) || (ival > option_data->b))
-	    ANOVA_error ("illegal argument after -bdiff ");
+	    ANOVA_error ("-bdiff params must be in {1..numB}");
 	  option_data->bdiffs[option_data->num_bdiffs-1][1] = ival - 1;
 	  nopt++;
 
@@ -830,13 +830,13 @@ void get_options (int argc, char ** argv, anova_options * option_data)
 
 	  sscanf (argv[nopt], "%d", &ival);
 	  if ((ival <= 0) || (ival > option_data->c))
-	    ANOVA_error ("illegal argument after -cdiff ");
+	    ANOVA_error ("-cdiff params must be in {1..numC}");
 	  option_data->cdiffs[option_data->num_cdiffs-1][0] = ival - 1;
 	  nopt++;
 
 	  sscanf (argv[nopt], "%d", &ival);
 	  if ((ival <= 0) || (ival > option_data->c))
-	    ANOVA_error ("illegal argument after -cdiff ");
+	    ANOVA_error ("-cdiff params must be in {1..numC}");
 	  option_data->cdiffs[option_data->num_cdiffs-1][1] = ival - 1;
 	  nopt++;
 
@@ -860,37 +860,37 @@ void get_options (int argc, char ** argv, anova_options * option_data)
 
 	  sscanf (argv[nopt], "%d", &ival);
 	  if ((ival <= 0) || (ival > option_data->a))
-	    ANOVA_error ("illegal argument after -xdiff ");
+	    ANOVA_error ("-xdiff params must be in {1..numA/numB/numC}");
 	  option_data->xdiffs[option_data->num_xdiffs-1][0][0] = ival - 1;
 	  nopt++;
 
 	  sscanf (argv[nopt], "%d", &ival);
 	  if ((ival <= 0) || (ival > option_data->b))
-	    ANOVA_error ("illegal argument after -xdiff ");
+	    ANOVA_error ("-xdiff params must be in {1..numA/numB/numC}");
 	  option_data->xdiffs[option_data->num_xdiffs-1][0][1] = ival - 1;
 	  nopt++;
 
 	  sscanf (argv[nopt], "%d", &ival);
 	  if ((ival <= 0) || (ival > option_data->c))
-	    ANOVA_error ("illegal argument after -xdiff ");
+	    ANOVA_error ("-xdiff params must be in {1..numA/numB/numC}");
 	  option_data->xdiffs[option_data->num_xdiffs-1][0][2] = ival - 1;
 	  nopt++;
 
 	  sscanf (argv[nopt], "%d", &ival);
 	  if ((ival <= 0) || (ival > option_data->a))
-	    ANOVA_error ("illegal argument after -xdiff ");
+	    ANOVA_error ("-xdiff params must be in {1..numA/numB/numC}");
 	  option_data->xdiffs[option_data->num_xdiffs-1][1][0] = ival - 1;
 	  nopt++;
 
 	  sscanf (argv[nopt], "%d", &ival);
 	  if ((ival <= 0) || (ival > option_data->b))
-	    ANOVA_error ("illegal argument after -xdiff ");
+	    ANOVA_error ("-xdiff params must be in {1..numA/numB/numC}");
 	  option_data->xdiffs[option_data->num_xdiffs-1][1][1] = ival - 1;
 	  nopt++;
 
 	  sscanf (argv[nopt], "%d", &ival);
 	  if ((ival <= 0) || (ival > option_data->c))
-	    ANOVA_error ("illegal argument after -xdiff ");
+	    ANOVA_error ("-xdiff params must be in {1..numA/numB/numC}");
 	  option_data->xdiffs[option_data->num_xdiffs-1][1][2] = ival - 1;
 	  nopt++;
 

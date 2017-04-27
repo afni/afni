@@ -42,6 +42,8 @@ ENTRY("THD_open_tcat") ;
    /* save selectors, akin to wildcard selection         4 Apr 2016 [rickr] */
    /* (use by default; consider future vals: FOR_COMPOSITE and FOR_INDIVID) */
    tcat_open_verb = AFNI_numenv_def("AFNI_TCAT_SELECTORS_VERB", 0);
+   if( tcat_open_verb > 1 )
+      INFO_message("THD_open_tcat: processing wildcards in '%s'\n", dlocal);
    if( ! AFNI_noenv("AFNI_TCAT_SELECTORS") ) {
       for( dd=0; dd < strlen(dlocal); dd++ ) {
          if( dlocal[dd] == '[' || dlocal[dd] == '<' || dlocal[dd] == '{' ) {
@@ -78,9 +80,24 @@ ENTRY("THD_open_tcat") ;
       }
    }
 
-   if( strchr(dlocal,' ') )        sar = NI_decode_string_list( dlocal , "~" ) ;
-   else if( HAS_WILDCARD(dlocal) ) sar = NI_get_wildcard_list( dlocal );
-   else {
+   /* check for failure here       14 Jul 2016 [rickr] */
+   if( strchr(dlocal,' ') ) {
+      sar = NI_decode_string_list( dlocal , "~" ) ;
+
+      if( ! sar ) {
+         if( tcat_open_verb )
+            WARNING_message("THD_open_tcat: no space list from '%s'", dlocal);
+         RETURN(NULL);
+      }
+   } else if( HAS_WILDCARD(dlocal) ) {
+      sar = NI_get_wildcard_list( dlocal );
+
+      if( ! sar ) {
+         if( tcat_open_verb )
+            WARNING_message("THD_open_tcat: no wildcard match for '%s'",dlocal);
+         RETURN(NULL);
+      }
+   } else {
       WARNING_message("THD_open_tcat: should find wildcard or space in %s",
                       dlocal);
       RETURN(NULL) ;
@@ -268,6 +285,7 @@ static char * update_sar_with_selectors(NI_str_array * sar, char * sel)
    char * lptr, * dlist;
    int    dd, len, fulllen, nsel=0;
 
+   if( ! sar ) return NULL;
    if( sel ) nsel = strlen(sel);
 
    /* first allocate for catenation string with repeated selectors */

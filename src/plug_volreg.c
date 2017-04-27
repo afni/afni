@@ -109,6 +109,7 @@ PLUGIN_interface * PLUGIN_init( int ncall )
    PLUGIN_interface * plint ;     /* will be the output of this routine */
 
    if( ncall > 0 ) return NULL ;  /* only one interface */
+   CHECK_IF_ALLOWED("3DREGISTRATION","3D Registration") ;  /* 30 Sep 2016 */
 
    /*---------------- set titles and call point ----------------*/
 

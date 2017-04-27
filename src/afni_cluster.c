@@ -1624,7 +1624,7 @@ ENTRY("AFNI_clus_update_widgets") ;
    qval = DSET_BRICK_FDRMIN(im3d->fim_now,im3d->vinfo->thr_index) ;
    if( qval > 0.1f )
      sprintf(rrr+strlen(rrr),
-             " Minimum FDR q in threshold = %.2f : True detections are rare!\n",qval) ;
+             " Min FDR q in threshold = %.2f: True detections are rare or weak\n",qval) ;
 
    ii = strlen(rrr) ; if( rrr[ii-1] == '\n' ) rrr[ii-1] = '\0' ;
 

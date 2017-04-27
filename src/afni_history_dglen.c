@@ -1,3 +1,4 @@
+
 /** cf. afni_history.h **/
 
 #include "afni_history.h"
@@ -49,6 +50,82 @@
 
 
 afni_history_struct dglen_history[] = {
+{ 19, APR, 2017 , DRG , "3dMean min, max options" , 
+    MINOR , TYPE_NEW_OPT, 
+    "3dMean computes min and max voxelwise across datasets",
+    "Options -min, -max give min and max values. This can be\n"
+    "combined with -non-zero to restrict to non-zero min and max."
+},
+{ 19, APR, 2017 , DRG , "3dLocalstat has_mask, has_mask2 options" , 
+    MINOR , TYPE_NEW_OPT, 
+    "3dLocalstat can report if neighborhood intersects specified values",
+    "Options -has_mask and -has_mask2 allow flagging with unfillvalue"
+},
+{ 5, APR, 2017 , DRG , "3dVol2Surf nzoptions" , 
+    MINOR , TYPE_NEW_OPT, 
+    "3dVol2Surf nonzero min, nonzero max, nonzero ave",
+    "Options allowing for statistics that ignore zero values"
+},
+{ 30, MAR, 2017 , DRG , "3dLocalstat" , 
+    MINOR , TYPE_NEW_OPT, 
+    "simple statistics of filled or unfilled",
+    "These options provide binary tests for whether the neighborhood shape\n"
+    "entirely fits within a mask or dataset around each voxel\n"
+    "A value can be specified for a fill and unfill value"
+},
+{ 27, MAR, 2017 , DRG , "align_epi_anat.py" , 
+    MINOR , TYPE_BUG_FIX, 
+    "rm of temporary files could delete all files in current directory",
+    "rm deletes all files that have tabs/spaces inserted in dataset names\n"
+    "The tab  or space character can be somewhat invisible if after\n"
+    "line continuation character in input script. Fix removes whitespace\n"
+    "before deleting"
+},
+{ 5, JAN, 2017 , DRG , "align_epi_anat.py" , 
+    MINOR , TYPE_BUG_FIX, 
+    "NIFTI output and output directories not always handled correctly or completely"
+},
+{ 17, NOV, 2016 , DRG , "DriveSuma" , 
+    MINOR , TYPE_NEW_OPT, 
+    "Ask suma to send current surface name to SUMA_OUTPLUG file or stdout"
+},
+{ 19, AUG, 2016 , DRG , "3dLocalstat" , 
+    MINOR , TYPE_BUG_FIX, 
+    "Neighborhoods miscalculated"
+},
+{ 17, AUG, 2016 , DRG , "align_epi_anat.py" , 
+    MICRO , TYPE_BUG_FIX, 
+    "History not updated properly on output with NIFTI dset1/anat"
+},
+{ 9, AUG, 2016 , DRG , "@SUMA_MakeSpecFS" , 
+    MINOR , TYPE_MODIFY, 
+    "Atlasize original unranked datasets too. They will have more reliable indices than the ranked"
+},
+{ 11, JUL, 2016 , DRG , "3dWarp tta2mni grid dimensions bug" , 
+    MINOR , TYPE_BUG_FIX, 
+    "Ignored grid dimensions in transformation between Talairach to MNI"
+},
+{ 30, JUN, 2016 , DRG , "unWarpEPI.py anat to epi lpc+ZZ cost" , 
+    MINOR , TYPE_BUG_FIX, 
+    "Mistakenly used lpa for anat to epi alignment"
+},
+{ 29, JUN, 2016 , DRG , "align_epi_anat.py flipping identity" , 
+    MINOR , TYPE_BUG_FIX, 
+    "Case of mistaken IDENTITY for check_flip option"
+},
+{ 19, JUN, 2016 , DRG , "align_epi_anat.py dset1/2 deobliquing" , 
+    MICRO , TYPE_BUG_FIX, 
+    "Using dset1/2 terminology forced deobliquing off"
+},
+{ 13, JUN, 2016 , DRG , "3dTstat - single sub-bricks" , 
+    MINOR , TYPE_NEW_OPT, 
+    "For datasets with only a single sub-brick, 3dTstat would exit\n"
+    "with an error for many statistics. The new behavior makes the\n"
+    "program use the first value of the time series instead. Some other\n"
+    "requested statistics like the argmax type stats are now calculated\n"
+    "even for this trivial case. Optionally the user may use\n"
+    "-firstvalue for a statistic"
+},
 { 3, JUN, 2016 , DRG , "3dQwarp bug" , 
     MINOR , TYPE_BUG_FIX, 
     "bug fix in option processing\n"
