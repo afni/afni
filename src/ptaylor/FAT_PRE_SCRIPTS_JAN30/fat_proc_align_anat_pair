@@ -13,8 +13,11 @@
 #   + help text added
 #   + no-clean option added
 #
-set version   = "1.2";    set rev_dat   = "Apr 12, 2017"
+#set version   = "1.2";    set rev_dat   = "Apr 12, 2017"
 #   + standardize I/O, helpfile, option names
+#
+set version   = "1.3";    set rev_dat   = "Apr 26, 2017"
+#   + newer wdir convention
 #
 # ---------------------------------------------------------------
 
@@ -58,6 +61,7 @@ set opref      = ""
 set DO_VIEWER  = 1               # def: do viewing
 set DO_CLEAN   = "1"
 set wdir       = "__WORKING_$tpname"
+set WDIR_EX  = "1"               # put opref on wdir (unless user names)
 set output_cmd = 1               # def: output copy of this command
 set cmd_file   = ""              # def: same name as viewer
 set qc_prefix  = ""              # def: autoname; user can enter
@@ -108,6 +112,7 @@ while ( $ac <= $#argv )
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
         @ ac += 1
         set wdir = "$argv[$ac]"
+        set WDIR_EX  = "0"
 
     else if ( "$argv[$ac]" == "-no_cmd_out" ) then
         set output_cmd = 0
@@ -190,7 +195,12 @@ if ( ! -e "$odir" ) then
     mkdir "$odir"
 endif
 
-set wdir = "$odir/$wdir"
+# and put working directory as subdirectory.
+if ( "$WDIR_EX" == "1" ) then
+    set wdir = $odir/${wdir}_$opref
+else
+    set wdir = $odir/$wdir
+endif
 
 # make the working directory
 if ( ! -e $wdir ) then

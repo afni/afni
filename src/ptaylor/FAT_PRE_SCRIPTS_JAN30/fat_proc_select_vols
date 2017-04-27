@@ -59,6 +59,7 @@ set postfix    = "_"             # stick into name
 
 set movie      = ""
 set wdir     = "__WORKING_$tpname"
+set WDIR_EX  = "1"               # put opref on wdir (unless user names)
 
 # ------------------- process options, a la rr ----------------------
 
@@ -133,6 +134,7 @@ while ( $ac <= $#argv )
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
         @ ac += 1
         set wdir = "$argv[$ac]"
+        set WDIR_EX  = "0"
 
     else
         echo "** unexpected option #$ac = '$argv[$ac]'"
@@ -294,7 +296,12 @@ else
     if ( "$DO_VIEWER" == "1" ) then
         
         # ---------- wdir ---------------------
-        set wdir = "$odir/$wdir"
+        # and put working directory as subdirectory.
+        if ( "$WDIR_EX" == "1" ) then
+            set wdir = $odir/${wdir}_$opref
+        else
+            set wdir = $odir/$wdir
+        endif
 
         # make the working directory
         if ( ! -e $wdir ) then

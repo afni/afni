@@ -16,10 +16,13 @@
 #set version   = "1.5";    set rev_dat   = "April 11, 2017"
 #   + fixed printfs
 #
-set version   = "1.6";    set rev_dat   = "April 24, 2017"
+#set version   = "1.6";    set rev_dat   = "April 24, 2017"
 #   + make outside brain less bright
 #   + new wdir naming
 #   + redone final file naming
+#
+set version   = "1.7";  set rev_dat   = "Apr 26, 2017"
+#   + better naming wdir
 #
 # ----------------------------------------------------------------
 
