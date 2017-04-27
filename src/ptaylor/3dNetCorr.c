@@ -125,6 +125,11 @@ void usage_NetCorr(int detail)
 "        than 10 percent null time series; one can use a '-push*' option\n"
 "        (see below) to still calculate anyways, but it will definitely cease\n"
 "        if any ROI is full of null time series.\n"
+"        ... And the user can flag to output a binary mask of the non-null\n"
+"        time series, called 'PREFIX_mask_nnull*', with the new option\n"
+"        '-output_mask_nonnull'.  This might be useful to check if your data\n"
+"        are well-masked, if you haven't done so already (and you know who\n"
+"        you are...).\n"
 "\n"
 "        [As of April, 2017] On a minor note, one can also apply string labels\n"
 "        to the WB correlation/Z-score output files;  see the option\n"
@@ -308,6 +313,10 @@ int main(int argc, char *argv[]) {
    int DO_PUSH = 0;
    int *FLAG_nulls=NULL;
    int DO_STRLABEL = 0;
+   int DO_OUTPUT_NONNULL=0;
+   char prefix_nonnull[300];
+   THD_3dim_dataset *MASK_nonnull=NULL;  // output nonnull mask, if
+                                         // user wants
 
    int idx = 0;
    int Nmask = 0;
@@ -400,6 +409,12 @@ int main(int argc, char *argv[]) {
       // [Apr, 2017, PT]
       if( strcmp(argv[iarg],"-push_thru_many_zeros") == 0) {
          DO_PUSH=1;
+         iarg++ ; continue ;
+      }
+
+      // [Apr, 2017, PT]
+      if( strcmp(argv[iarg],"-output_mask_nonnull") == 0) {
+         DO_OUTPUT_NONNULL=1;
          iarg++ ; continue ;
       }
 
@@ -593,6 +608,44 @@ int main(int argc, char *argv[]) {
             idx+= 1; // skip, and mskd and KW are both still 0 from calloc
          }
    
+   // [PT: Apr, 2017] output nonnull mask that we've calc'ed.  It is
+   // the applied one *if* the user had not input a mask; otherwise,
+   // they can compare it with their own and/or with the ROI map they
+   // use.
+   if ( DO_OUTPUT_NONNULL ) {
+      INFO_message("Preparing mask of non-null time series for output.");
+
+      MASK_nonnull = EDIT_empty_copy( insetTIME );
+
+      if( NIFTI_OUT ) 
+         sprintf(prefix_nonnull,"%s_%s.nii.gz", prefix, "mask_nnull");
+      else
+         sprintf(prefix_nonnull,"%s_%s", prefix, "mask_nnull");
+
+      EDIT_dset_items( MASK_nonnull,
+                       ADN_prefix    , prefix_nonnull,
+                       ADN_datum_all , MRI_byte,
+                       ADN_brick_fac , NULL,
+                       ADN_nvals     , 1,
+                       ADN_none );
+
+      EDIT_substitute_brick(MASK_nonnull, 0, MRI_byte, mskd2nz);
+      mskd2nz=NULL; // to not get into trouble...
+      free(mskd2nz);
+
+      THD_load_statistics(MASK_nonnull);
+      tross_Copy_History( insetTIME , MASK_nonnull ) ;
+      tross_Make_History( "3dNetcorr", argc, argv, MASK_nonnull );
+      if( !THD_ok_overwrite() && 
+          THD_is_ondisk(DSET_HEADNAME(MASK_nonnull)) )
+         ERROR_exit("Can't overwrite existing dataset '%s'",
+                    DSET_HEADNAME(MASK_nonnull));
+      THD_write_3dim_dataset(NULL, NULL, MASK_nonnull, True);
+      INFO_message("Wrote dataset: %s\n",DSET_BRIKNAME(MASK_nonnull));
+   }
+
+
+
    if (HAVE_MASK) {
       DSET_delete(MASK);
       free(MASK);
@@ -1206,7 +1259,6 @@ int main(int argc, char *argv[]) {
    free(insetTIME);
 
    free(mskd2);
-   free(mskd2nz);
    free(Nlist);
 
    free(Dim); // need to free last because it's used for other arrays...
