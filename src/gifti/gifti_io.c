@@ -237,6 +237,8 @@ static int copy_data_as_float(void * dest, int dtype, void * src, int stype,
                               long long nvals);
 static int DA_data_exists(gifti_image * gim, const int * dalist, int len);
 static int str2list_index(char *list[], int max, const char *str);
+static int permute_by_ind_order_cm2rm(void * dest, giiDataArray * da,
+                                      char * mesg);
 
 /* ---------------------------------------------------------------------- */
 /*! giftilib globals */
@@ -1944,6 +1946,13 @@ int gifti_check_swap(void * data, int endian, long long nsets, int swapsize)
     return 1;
 }
 
+#ifdef GIFTI_BAD_SIZEOF
+#undef GIFTI_BAD_SIZEOF
+#endif
+#define GIFTI_BAD_SIZEOF(mesg, type, size)                      \
+   ((sizeof(type) == size) ? 0 :                                \
+    (fprintf(stderr,"%s : sizeof(#type) != %d\n", mesg, size), 1))
+
 /*---------------------------------------------------------------------*/
 /*! Convert the ArrayIndexingOrder of the DataArry element to the
  *  specified order.
@@ -1951,7 +1960,7 @@ int gifti_check_swap(void * data, int endian, long long nsets, int swapsize)
  *  This is not just a tranpose, but a more general permutation of
  *  the data in memory, so allocate a new data pointer.
  *
- *  return 0 on success
+ *  return 0 on success                        27 Apr 2017 [rickr]
 *//*-------------------------------------------------------------------*/
 int gifti_DA_convert_ind_ord(giiDataArray * da, int new_ord)
 {
@@ -1974,9 +1983,28 @@ int gifti_DA_convert_ind_ord(giiDataArray * da, int new_ord)
       return 0;
    }
 
-   if( nvals == 0 ) return 0;
+   if( da->nvals == 0 ) return 0;
 
-   /* have something to do, either RM->CM or the reverse */
+   /*--- have something to do ---*/
+
+   if( G.verb > 3 )
+      fprintf(stderr,"-- changing ind_ord from %d (%s) to %d (%s)...\n",
+              da->ind_ord,
+              gifti_list_index2string(gifti_index_order_list, da->ind_ord),
+              new_ord,
+              gifti_list_index2string(gifti_index_order_list, new_ord));
+
+   /* have something to do, but is it trivial? */
+   if( da->num_dim == 1 ) {
+      if( G.verb > 3 )
+         fprintf(stderr,"-- %s: num_dim == 1, so simply change field\n",fname);
+      da->ind_ord = new_ord;
+      return 0;
+   }
+
+   /*------ have something real to do, either RM->CM or the reverse ------*/
+
+   /* allocate output data array (or could overwrite input not to change it? */
    newdata = malloc(da->nvals * da->nbyper);
    if( ! newdata ) {
       fprintf(stderr,"** %s: failed to alloc %lld bytes for DA\n",
@@ -1984,11 +2012,253 @@ int gifti_DA_convert_ind_ord(giiDataArray * da, int new_ord)
       return 1;
    }
 
-   switch( nbyper)
-   if( da->ind_ord == GIFTI_IND_ORD_ROW_MAJOR ) {
+   /* actually permute the data */
+/* rcr - check the direction */
+   if( permute_by_ind_order_cm2rm(newdata, da, fname) ) {
+      free(newdata);
       return 1;
-   } else {
-      return 1;
+   }
+
+   /* insert result and clean up */
+   free(da->data);
+   da->data = newdata;
+   da->ind_ord = new_ord;
+
+   return 0;
+}
+
+/*===========================================================================
+ * row major/column major index order permutation macros
+ *===========================================================================*/
+
+/* column major to row major conversion */
+#define GIFTI_PBIO_C2R_2(type, din, dout)                       \
+   do {                                                         \
+      type * dinp = (type *)din, * doutp = (type *)dout;        \
+      for( i0 = 0; i0 < m0; i0++ )                              \
+         for( i1 = 0; i1 < m1; i1++ )                           \
+            *doutp++ = dinp[i0 + m0 * i1];                      \
+   } while(0)
+   
+
+#define GIFTI_PBIO_C2R_3(type, din, dout)                       \
+   do {                                                         \
+      type * dinp = (type *)din, * doutp = (type *)dout;        \
+      type * bp0, * bp1, * bp2;                                 \
+      for( i0 = 0; i0 < m0; i0++ ) {                            \
+         bp0 = dinp + i0;                                       \
+         for( i1 = 0; i1 < m1; i1++ ) {                         \
+            bp1 = bp0 + i1 * m0;                                \
+            for( i2 = 0; i2 < m2; i2++ ) {                      \
+               bp2 = bp1 + i2 * m0*m1;                          \
+               *doutp++ = *bp2;                                 \
+            } } }                                               \
+   } while(0)
+
+#define GIFTI_PBIO_C2R_4(type, din, dout)                       \
+   do {                                                         \
+      type * dinp = (type *)din, * doutp = (type *)dout;        \
+      type * bp0, * bp1, * bp2, * bp3;                          \
+      for( i0 = 0; i0 < m0; i0++ ) {                            \
+         bp0 = dinp + i0;                                       \
+         for( i1 = 0; i1 < m1; i1++ ) {                         \
+            bp1 = bp0 + i1 * m0;                                \
+            for( i2 = 0; i2 < m2; i2++ ) {                      \
+               bp2 = bp1 + i2 * m0*m1;                          \
+               for( i3 = 0; i3 < m3; i3++ ) {                   \
+                  bp3 = bp2 + i3 * m0*m1*m2;                    \
+                  *doutp++ = *bp3;                              \
+               } } } }                                          \
+   } while(0)
+
+#define GIFTI_PBIO_C2R_5(type, din, dout)                       \
+   do {                                                         \
+      type * dinp = (type *)din, * doutp = (type *)dout;        \
+      type * bp0, * bp1, * bp2, * bp3, * bp4;                   \
+      for( i0 = 0; i0 < m0; i0++ ) {                            \
+         bp0 = dinp + i0;                                       \
+         for( i1 = 0; i1 < m1; i1++ ) {                         \
+            bp1 = bp0 + i1 * m0;                                \
+            for( i2 = 0; i2 < m2; i2++ ) {                      \
+               bp2 = bp1 + i2 * m0*m1;                          \
+               for( i3 = 0; i3 < m3; i3++ ) {                   \
+                  bp3 = bp2 + i3 * m0*m1*m2;                    \
+                  for( i4 = 0; i4 < m4; i4++ ) {                \
+                     bp4 = bp3 + i4 * m0*m1*m2*m3;              \
+                     *doutp++ = *bp4;                           \
+                  } } } } }                                     \
+   } while(0)
+
+#define GIFTI_PBIO_C2R_6(type, din, dout)                       \
+   do {                                                         \
+      type * dinp = (type *)din, * doutp = (type *)dout;        \
+      type * bp0, * bp1, * bp2, * bp3, * bp4, * bp5;            \
+      for( i0 = 0; i0 < m0; i0++ ) {                            \
+         bp0 = dinp + i0;                                       \
+         for( i1 = 0; i1 < m1; i1++ ) {                         \
+            bp1 = bp0 + i1 * m0;                                \
+            for( i2 = 0; i2 < m2; i2++ ) {                      \
+               bp2 = bp1 + i2 * m0*m1;                          \
+               for( i3 = 0; i3 < m3; i3++ ) {                   \
+                  bp3 = bp2 + i3 * m0*m1*m2;                    \
+                  for( i4 = 0; i4 < m4; i4++ ) {                \
+                     bp4 = bp3 + i4 * m0*m1*m2*m3;              \
+                     for( i5 = 0; i5 < m5; i5++ ) {             \
+                        bp5 = bp4 + i5 * m0*m1*m2*m3*m4;        \
+                        *doutp++ = *bp5;                        \
+                     } } } } } }                                \
+   } while(0)
+
+
+/* row major to column major conversions */
+/* same indexing, but switch application between in and out pointers */
+#define GIFTI_PBIO_R2C_2(type, din, dout)                       \
+   do {                                                         \
+      type * dinp = (type *)din, * doutp = (type *)dout;        \
+      for( i0 = 0; i0 < m0; i0++ )                              \
+         for( i1 = 0; i1 < m1; i1++ )                           \
+            doutp[i0 + m0 * i1] = *dinp++;                      \
+   } while(0)
+   
+
+#define GIFTI_PBIO_R2C_3(type, din, dout)                       \
+   do {                                                         \
+      type * dinp = (type *)din, * doutp = (type *)dout;        \
+      type * bp0, * bp1, * bp2;                                 \
+      for( i0 = 0; i0 < m0; i0++ ) {                            \
+         bp0 = doutp + i0;                                      \
+         for( i1 = 0; i1 < m1; i1++ ) {                         \
+            bp1 = bp0 + i1 * m0;                                \
+            for( i2 = 0; i2 < m2; i2++ ) {                      \
+               bp2 = bp1 + i2 * m0*m1;                          \
+               *bp2 = *dinp++;                                  \
+            } } }                                               \
+   } while(0)
+
+#define GIFTI_PBIO_R2C_4(type, din, dout)                       \
+   do {                                                         \
+      type * dinp = (type *)din, * doutp = (type *)dout;        \
+      type * bp0, * bp1, * bp2, * bp3;                          \
+      for( i0 = 0; i0 < m0; i0++ ) {                            \
+         bp0 = doutp + i0;                                      \
+         for( i1 = 0; i1 < m1; i1++ ) {                         \
+            bp1 = bp0 + i1 * m0;                                \
+            for( i2 = 0; i2 < m2; i2++ ) {                      \
+               bp2 = bp1 + i2 * m0*m1;                          \
+               for( i3 = 0; i3 < m3; i3++ ) {                   \
+                  bp3 = bp2 + i3 * m0*m1*m2;                    \
+                  *bp3 = *dinp++;                               \
+               } } } }                                          \
+   } while(0)
+
+#define GIFTI_PBIO_R2C_5(type, din, dout)                       \
+   do {                                                         \
+      type * dinp = (type *)din, * doutp = (type *)dout;        \
+      type * bp0, * bp1, * bp2, * bp3, * bp4;                   \
+      for( i0 = 0; i0 < m0; i0++ ) {                            \
+         bp0 = doutp + i0;                                      \
+         for( i1 = 0; i1 < m1; i1++ ) {                         \
+            bp1 = bp0 + i1 * m0;                                \
+            for( i2 = 0; i2 < m2; i2++ ) {                      \
+               bp2 = bp1 + i2 * m0*m1;                          \
+               for( i3 = 0; i3 < m3; i3++ ) {                   \
+                  bp3 = bp2 + i3 * m0*m1*m2;                    \
+                  for( i4 = 0; i4 < m4; i4++ ) {                \
+                     bp4 = bp3 + i4 * m0*m1*m2*m3;              \
+                     *bp4 = *dinp++;                            \
+                  } } } } }                                     \
+   } while(0)
+
+#define GIFTI_PBIO_R2C_6(type, din, dout)                       \
+   do {                                                         \
+      type * dinp = (type *)din, * doutp = (type *)dout;        \
+      type * bp0, * bp1, * bp2, * bp3, * bp4, * bp5;            \
+      for( i0 = 0; i0 < m0; i0++ ) {                            \
+         bp0 = doutp + i0;                                      \
+         for( i1 = 0; i1 < m1; i1++ ) {                         \
+            bp1 = bp0 + i1 * m0;                                \
+            for( i2 = 0; i2 < m2; i2++ ) {                      \
+               bp2 = bp1 + i2 * m0*m1;                          \
+               for( i3 = 0; i3 < m3; i3++ ) {                   \
+                  bp3 = bp2 + i3 * m0*m1*m2;                    \
+                  for( i4 = 0; i4 < m4; i4++ ) {                \
+                     bp4 = bp3 + i4 * m0*m1*m2*m3;              \
+                     for( i5 = 0; i5 < m5; i5++ ) {             \
+                        bp5 = bp4 + i5 * m0*m1*m2*m3*m4;        \
+                        *bp5 = *dinp++;                         \
+                     } } } } } }                                \
+   } while(0)
+
+
+/*===========================================================================*/
+
+/* decisions... slow and steady or fast and dangerous?
+ * let's change to slow and steady, since this should be uncommon */
+static int permute_by_ind_order_cm2rm(void * dest, giiDataArray * da,
+                                      char * mesg)
+{
+   long long m0, m1, m2, m3, m4, m5;
+   long long i0, i1, i2, i3, i4, i5;
+
+   /* avoid repetitive indexing (for speed) */
+   m0 = da->dims[0]; m1 = da->dims[1]; m2 = da->dims[2];
+   m3 = da->dims[3]; m4 = da->dims[4]; m5 = da->dims[5];
+
+   switch( da->nbyper ) {
+      default: {
+         /* don't need to fail after malloc, but this should be rare,
+            and this is a good place for a failure check */
+         fprintf(stderr,"** %s: not prepared for nbyper = %d\n",
+                 mesg, da->nbyper);
+         return 1;
+      }
+      case 1: { /* process as char (signed int8) */
+         if( GIFTI_BAD_SIZEOF(mesg, char, 1) ) return 1;
+
+         switch( da->num_dim ) {
+            default: break; /* do nothing for 1 or unknown */
+            case 2: GIFTI_PBIO_C2R_2(char, da->data, dest); break;
+            case 3: GIFTI_PBIO_C2R_3(char, da->data, dest); break;
+            case 4: GIFTI_PBIO_C2R_4(char, da->data, dest); break;
+            case 5: GIFTI_PBIO_C2R_5(char, da->data, dest); break;
+            case 6: GIFTI_PBIO_C2R_6(char, da->data, dest); break;
+         }
+      }
+      case 2: { /* process as short (signed int16) */
+         if( GIFTI_BAD_SIZEOF(mesg, short, 2) ) return 1;
+
+         switch( da->num_dim ) {
+            default: break; /* do nothing for 1 or unknown */
+            case 2: GIFTI_PBIO_C2R_2(short, da->data, dest); break;
+            case 3: GIFTI_PBIO_C2R_3(short, da->data, dest); break;
+            case 4: GIFTI_PBIO_C2R_4(short, da->data, dest); break;
+            case 5: GIFTI_PBIO_C2R_5(short, da->data, dest); break;
+            case 6: GIFTI_PBIO_C2R_6(short, da->data, dest); break;
+         }
+      }
+      case 4: { /* process as int (signed int32) */
+         if( GIFTI_BAD_SIZEOF(mesg, int,   4) ) return 1;
+
+         switch( da->num_dim ) {
+            default: break; /* do nothing for 1 or unknown */
+            case 2: GIFTI_PBIO_C2R_2(int, da->data, dest); break;
+            case 3: GIFTI_PBIO_C2R_3(int, da->data, dest); break;
+            case 4: GIFTI_PBIO_C2R_4(int, da->data, dest); break;
+            case 5: GIFTI_PBIO_C2R_5(int, da->data, dest); break;
+            case 6: GIFTI_PBIO_C2R_6(int, da->data, dest); break;
+         }
+      }
+      case 8: { /* process as long long (signed int64) */
+         if( GIFTI_BAD_SIZEOF(mesg, long long, 8) ) return 1;
+         switch( da->num_dim ) {
+            default: break; /* do nothing for 1 or unknown */
+            case 2: GIFTI_PBIO_C2R_2(long long, da->data, dest); break;
+            case 3: GIFTI_PBIO_C2R_3(long long, da->data, dest); break;
+            case 4: GIFTI_PBIO_C2R_4(long long, da->data, dest); break;
+            case 5: GIFTI_PBIO_C2R_5(long long, da->data, dest); break;
+            case 6: GIFTI_PBIO_C2R_6(long long, da->data, dest); break;
+         }
+      }
    }
 
    return 0;
