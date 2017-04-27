@@ -49,7 +49,7 @@ char * afni_fgets( char *buf , int nbuf , FILE *fp )
        qin = getc(fp) ;             /* check next character */
                                     /* if have a CR+LF or LF+CR combo, */
                                     /* skip next char, otherwise push it back */
-       if( (cin==CR && qin!=LF) || (cin ==LF && qin!= CR) ) ungetc(qin,fp) ;
+       if( (cin==CR && qin!=LF) || (cin==LF && qin!=CR) ) ungetc(qin,fp) ;
        break ;                      /* in either case, am done with loop */
      }
    } while( nin < nbuf-1 ) ;    /* don't run off the end of the world */

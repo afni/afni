@@ -933,7 +933,11 @@ ENTRY("THD_load_nifti") ;
      }
    }
 
-   if( DBLK_IS_MASTERED(dblk) && dblk->master_bot <= dblk->master_top )
+   /* rcr - replace this with DBLK_IS_RANGE_MASTERED to also check for
+    *       csv list
+    *     - then call a new parent function to THD_apply_master_subrange
+    */
+   if( DBLK_IS_MASTER_SUBRANGED(dblk) )
      THD_apply_master_subrange(dblk) ;
 
    /*-- throw away the trash and return --*/

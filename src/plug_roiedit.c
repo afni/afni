@@ -75,6 +75,8 @@ PLUGIN_interface * PLUGIN_init( int ncall )
 {
    if( ncall > 0 ) return NULL ;  /* only one interface */
 
+   CHECK_IF_ALLOWED("GYRUSFINDER","Gyrus Finder") ;  /* 30 Sep 2016 */
+
    plint = PLUTO_new_interface( "Gyrus Finder" , NULL , NULL ,
 				PLUGIN_CALL_IMMEDIATELY , DRAW_main ) ;
 

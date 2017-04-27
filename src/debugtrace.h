@@ -316,6 +316,11 @@ void DBG_sigfunc(int sig)   /** signal handler for fatal errors **/
        last_status[0] = '\0' ;                                                       \
  } } while(0)
 
+/* prototypes for clock time logging */
+
+extern void set_program_name(char *) ;  /* 03 Nov 2016 */
+extern void clock_time_atexit(void) ;
+
 /*! This macro is only to be used inside main(). */
 
 #define mainENTRY(rout)                                               \
@@ -324,6 +329,7 @@ void DBG_sigfunc(int sig)   /** signal handler for fatal errors **/
       e = getenv("AFNI_TRACE_FILE") ;                                 \
       if( e != NULL ) DBG_fp=fopen(e,"w") ;                           \
       if( DBG_fp==NULL ) DBG_fp=stdout;                               \
+      (void)NI_clock_time() ;                                         \
       DBG_SIGNALS; ENTRY(rout); (void)AFNI_prefilter_args(&argc,argv); } while(0)
 
 #define STATUS(str)                                                                  \

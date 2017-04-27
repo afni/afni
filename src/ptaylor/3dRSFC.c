@@ -18,6 +18,8 @@
   calculate the fALFF denominator.
 
   Sept. 2012:  improving some memory stuff
+  Aug.  2016:  change >f_N initialization to avoid division errors when 
+               there are *a lot* of time points.
 
 */
 
@@ -468,6 +470,9 @@ int main( int argc , char * argv[] )
 			dt = 1.0f ;
 		}
    }
+   ftopALL = 1./dt ;// Aug,2016: should solve problem of a too-large
+                    // value for THD_bandpass_vectors(), while still
+                    // being >f_{Nyquist}
 
    if( !THD_bandpass_OK(ntime,dt,fbot,ftop,1) ) ERROR_exit("Can't continue!") ;
 

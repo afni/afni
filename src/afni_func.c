@@ -1741,7 +1741,9 @@ ENTRY("AFNI_func_overlay") ;
 
    if( need_thr ){
      STATUS("fetch im_thr") ;
+     AFNI_set_ignore_vedit(1) ;  /* 20 Oct 2016 */
      im_thr = FD_warp_to_mri( n , ival , br_fim ) ;
+     AFNI_set_ignore_vedit(0) ;
    } else{
      STATUS("don't need im_thr") ;
      im_thr = NULL ;
@@ -1762,13 +1764,8 @@ ENTRY("AFNI_func_overlay") ;
      if( ind >= DSET_NVALS(br_fim->dset) )
        ind = DSET_NVALS(br_fim->dset) - 1 ;
 
-     if( im_thr != NULL && ind == ival ){   /* 06 Feb 2003: allow for */
-       STATUS("copy im_thr to im_fim") ;
-       im_fim = mri_copy( im_thr ) ;        /* func image = thr image */
-     } else {
-       STATUS("fetch im_fim") ;
-       im_fim = FD_warp_to_mri( n, ind, br_fim ) ;  /* get func image */
-     }
+     STATUS("fetch im_fim") ;
+     im_fim = FD_warp_to_mri( n, ind, br_fim ) ;  /* get func image */
      scale_factor = FIM_RANGE(im3d) ;
      if( scale_factor == 0.0 || PBAR_FULLRANGE ) scale_factor = 1.0f ;
 
@@ -3529,7 +3526,7 @@ ENTRY("AFNI_finalize_dataset_CB") ;
       ss_new   = GLOBAL_library.sslist->ssar[new_sess] ;
 
       new_func = cbs->ival ;
-      if( new_func < 0 || new_func >= ss_new->num_dsset ){
+      if( new_func < 0 || new_func >= ss_new->num_dsset ){  /* should not happen */
          BEEPIT ;
          WARNING_message("bad func index when finalizing choice!") ;
          EXRETURN ;  /* bad! */
@@ -3556,7 +3553,7 @@ ENTRY("AFNI_finalize_dataset_CB") ;
 
             if( vv <= LAST_VIEW_TYPE ){  /* found it above */
                new_view = vv ;
-            } else {
+            } else {                     /* should not happen */
                BEEPIT ;
                WARNING_message("bad view index when finalizing choice!") ;
                EXRETURN ;  /* bad news */
@@ -3588,6 +3585,7 @@ ENTRY("AFNI_finalize_dataset_CB") ;
 
       if( !im3d->vinfo->func_visible && im3d->vinfo->func_visible_count == 0 ){
         AFNI_SEE_FUNC_ON(im3d) ; OPEN_PANEL(im3d,func) ;
+        im3d->vinfo->func_init_subbricks = 1 ;  /* 12 Jan 2017 */
       }
 
    /*--- switch to Hell? ---*/
@@ -7258,6 +7256,52 @@ STATUS("got func info") ;
 }
 
 /*---------------------------------------------------------------*/
+/* Find a sub-brick containing a given text in its label */
+
+int find_subbrick_with_label( THD_3dim_dataset *dset , char *lstr )
+{
+   int iv , nvals ;
+
+   if( !ISVALID_DSET(dset) || lstr == NULL || *lstr == '\0' ) return -1 ;
+
+   nvals = DSET_NVALS(dset) ;
+   for( iv=0 ; iv < nvals ; iv++ ){
+     if( strcasestr( DSET_BRICK_LABEL(dset,iv) , lstr ) != NULL )
+       return iv ;
+   }
+   return -1 ;
+}
+
+/*-------- get a pair of indexes for OLay/Thr [11 Jan 2017] --------*/
+
+int_pair find_reasonable_overlay_indexes( THD_3dim_dataset *dset )
+{
+   int_pair ovp={-1,-1} ;
+   int ith, iov ;
+
+   if( !ISVALID_DSET(dset) ) return ovp ;
+
+   iov = find_subbrick_with_label( dset , "Coef" ) ;
+   if( iov < 0 )
+     iov = find_subbrick_with_label( dset , "Beta" ) ;
+   if( iov >= 0 ){
+     ovp.i = iov ;
+     if( iov+1 < DSET_NVALS(dset) ) ovp.j = iov+1 ;
+     return ovp ;
+   }
+
+   iov = find_subbrick_with_label( dset , "Tstat" ) ;
+   if( iov < 0 )
+     iov = find_subbrick_with_label( dset , "Fstat" ) ;
+   if( iov >= 0 ){
+     ovp.i = ovp.j = iov ;
+     return ovp ;
+   }
+
+   return ovp ;
+}
+
+/*---------------------------------------------------------------*/
 
 void AFNI_editenv_CB( Widget w , XtPointer cd , XtPointer cbd )
 {
@@ -7401,6 +7445,7 @@ ENTRY("AFNI_hidden_CB") ;
 
    else if( w == im3d->vwid->prog->hidden_melter_pb ){   /* 18 Feb 2011 */
      MCW_melt_widget( im3d->vwid->top_form ) ;
+     SENSITIZE(w,0) ; /* 25 Jan 2017 */
    }
 
    else if( w == im3d->vwid->prog->hidden_gamberi_pb ){

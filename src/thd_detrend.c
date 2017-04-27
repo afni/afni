@@ -309,18 +309,29 @@ void THD_generic_detrend_LSQ( int npt, float *far ,
    int ii,jj , nref ;
    float **ref , *qfit , xmid , xfac , val ;
 
+ENTRY("THD_generic_detrend_LSQ") ;
+
    /* check inputs */
 
-   if( npt <= 1 || far == NULL ) return ;
+   if( npt <= 1 || far == NULL ){
+     ERROR_message("THD_generic_detrend_LSQ :: bad inputs"); EXRETURN;
+   }
    if( nort > 0 ){
-     if( ort == NULL ) return ;
-     for( jj=0 ; jj < nort ; jj++ ) if( ort[jj] == NULL ) return ;
+     if( ort == NULL ){
+       ERROR_message("THD_generic_detrend_LSQ :: ort == NULL"); EXRETURN;
+     }
+     for( jj=0 ; jj < nort ; jj++ ){
+       if( ort[jj] == NULL || THD_is_zero(npt,ort[jj]) ){
+         ERROR_message("THD_generic_detrend_LSQ :: ort[%d] is invalid",jj) ;
+         EXRETURN ;
+       }
+     }
    }
    if( polort <  0 ) polort = -1 ;
    if( nort   <  0 ) nort   =  0 ;
 
    nref = polort+1+nort ;
-   if( nref <= 0 || nref >= npt-1 ) return ;
+   if( nref <= 0 || nref >= npt-1 ) EXRETURN ;
 
    /* assemble all reference vectors */
 
@@ -350,7 +361,7 @@ void THD_generic_detrend_LSQ( int npt, float *far ,
    }
 
    for( jj=0 ; jj <= polort ; jj++ ) free(ref[jj]) ;
-   free(ref) ; return ;
+   free(ref) ; EXRETURN ;
 }
 
 /*-----------------------------------------------------------------------*/
@@ -379,10 +390,19 @@ ENTRY("THD_generic_detrend_L1") ;
 
    if( npt < -1 ){ nosub = 1 ; npt = -npt ; }  /* 02 Jan 2013 */
 
-   if( npt <= 1 || far == NULL ) EXRETURN ;
+   if( npt <= 1 || far == NULL ){
+     ERROR_message("THD_generic_detrend_L1 :: bad inputs"); EXRETURN;
+   }
    if( nort > 0 ){
-     if( ort == NULL ) EXRETURN ;
-     for( jj=0 ; jj < nort ; jj++ ) if( ort[jj] == NULL ) EXRETURN ;
+     if( ort == NULL ){
+       ERROR_message("THD_generic_detrend_LSQ :: ort == NULL"); EXRETURN;
+     }
+     for( jj=0 ; jj < nort ; jj++ ){
+       if( ort[jj] == NULL || THD_is_zero(npt,ort[jj]) ){
+         ERROR_message("THD_generic_detrend_L1 :: ort[%d] is invalid",jj) ;
+         EXRETURN ;
+       }
+     }
    }
    if( polort <  0 ) polort = -1 ;
    if( nort   <  0 ) nort   =  0 ;
@@ -434,18 +454,29 @@ void THD_generic_retrend( int npt , float *far ,
    int ii,jj , nref ;
    float **ref , xmid , xfac , val ;
 
+ENTRY("THD_generic_retrend") ;
+
    /* check inputs */
 
-   if( npt <= 1 || far == NULL || fit == NULL ) return ;
+   if( npt <= 1 || far == NULL ){
+     ERROR_message("THD_generic_retrend :: bad inputs"); EXRETURN;
+   }
    if( nort > 0 ){
-     if( ort == NULL ) return ;
-     for( jj=0 ; jj < nort ; jj++ ) if( ort[jj] == NULL ) return ;
+     if( ort == NULL ){
+       ERROR_message("THD_generic_detrend_LSQ :: ort == NULL"); EXRETURN;
+     }
+     for( jj=0 ; jj < nort ; jj++ ){
+       if( ort[jj] == NULL || THD_is_zero(npt,ort[jj]) ){
+         ERROR_message("THD_generic_retrend :: ort[%d] is invalid",jj) ;
+         EXRETURN ;
+       }
+     }
    }
    if( polort <  0 ) polort = -1 ;
    if( nort   <  0 ) nort   =  0 ;
 
    nref = polort+1+nort ;
-   if( nref == 0 || nref >= npt-1 ) return ;
+   if( nref == 0 || nref >= npt-1 ) EXRETURN ;
 
    /* assemble all reference vectors */
 
@@ -491,7 +522,7 @@ void THD_generic_retrend( int npt , float *far ,
    }
 
    for( jj=0 ; jj <= polort ; jj++ ) free(ref[jj]) ;
-   free(ref) ; return ;
+   free(ref) ; EXRETURN ;
 }
 
 /*----------------------------------------------------------------------------*/

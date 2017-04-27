@@ -456,7 +456,10 @@ class GenEPIReview:
 
         fp.write(cmd)
         fp.close()
-        os.chmod(self.script, 0755)
+        try:
+            os.chmod(self.script, 0755)
+        except OSError, e:
+            print e
 
         return
 

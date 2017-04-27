@@ -312,7 +312,7 @@ def proc_mats(uopts):
                 label = ".label%d" % (newfile_index)
 
             newp = "%s.%02d%s" % (prefix,newfile_index,label)
-            newfile = afni_util.change_path_basename(fname, newp, ".1D")
+            newfile = afni_util.change_path_basename(fname, newp+".1D")
             if newfile == None: return
             if   prefix == '-' or prefix == 'stdout': fp = sys.stdout
             elif prefix == 'stderr':                  fp = sys.stderr

@@ -171,6 +171,15 @@ void SUMA_MapIcosahedron_usage ()
 "                       -mapfile std.60.rh.niml.M2M \\\n"
 "                       -dset rh.SOMEDSET.gii.dset\n"
 "   -no_nodemap: Opposite of write_nodemap\n"
+"   -write_dist PREFIX: write distortions to PREFIX.LABEL\n"
+"        The mapping for 0,0,0-centered surfaces was previously distorted.\n"
+"        Write a file containing the node-wise distortion vectors.\n"
+"        One could then summarize that file using 1d_tool.py, as in:\n"
+"            1d_tool.py -collapse_cols euclidean_norm -show_mmms \\\n"
+"                       -infile PREFIX.LABEL.txt\n"
+"        or simply write out the euclidean norms for suma display:\n"
+"            1d_tool.py -collapse_cols euclidean_norm \\\n"
+"                       -infile PREFIX.LABEL.txt -write PREFIX.enorm.1D\n"
 "\n"
 "NOTE 1: The algorithm used by this program is applicable\n"
 "      to any surfaces warped to a spherical coordinate\n"
@@ -214,6 +223,7 @@ int main (int argc, char *argv[])
    static char FuncName[]={"MapIcosahedron"};
    SUMA_Boolean brk, smooth=NOPE, verb=NOPE, all_surfs_spec=NOPE;
    char fout[SUMA_MAX_FILENAME_LENGTH];
+   char * dist_prefix=NULL;
    char icoFileNm[SUMA_MAX_FILENAME_LENGTH], 
         outSpecFileNm[SUMA_MAX_FILENAME_LENGTH];
    char bin[SUMA_MAX_FILENAME_LENGTH], *histnote=NULL;
@@ -301,12 +311,12 @@ int main (int argc, char *argv[])
       
       SUMA_SKIP_COMMON_OPTIONS(brk, kar);
 
-		if (!brk && (strcmp(argv[kar], "-iodbg") == 0)) {
-			fprintf( SUMA_STDOUT,
-                  "Warning %s: SUMA running in in/out debug mode.\n", FuncName);
-			SUMA_INOUT_NOTIFY_ON;
-			brk = YUP;
-		}
+      if (!brk && (strcmp(argv[kar], "-iodbg") == 0)) {
+          fprintf( SUMA_STDOUT,
+                "Warning %s: SUMA running in in/out debug mode.\n", FuncName);
+          SUMA_INOUT_NOTIFY_ON;
+          brk = YUP;
+      }
       if (!brk && (strcmp(argv[kar], "-memdbg") == 0)) {
          fprintf( SUMA_STDOUT,
                   "Warning %s: SUMA running in memory trace mode.\n", FuncName);
@@ -515,6 +525,17 @@ int main (int argc, char *argv[])
                exit (1);
             }
             sprintf (fout, "%s", argv[kar]);
+            brk = YUP;
+         }   
+      
+      if (!brk && strcmp(argv[kar], "-write_dist") == 0)
+         {
+            kar ++;
+            if (kar >= argc)  {
+               fprintf (SUMA_STDERR, "need argument after -write_dist");
+               exit (1);
+            }
+            dist_prefix = argv[kar];
             brk = YUP;
          }   
       
@@ -1177,7 +1198,7 @@ int main (int argc, char *argv[])
       SO_morph->isSphere = SUMA_GEOM_NOT_SET;
    }
    
-   MI = SUMA_MapSurface( icoSurf, SO_morph, verb ) ;
+   MI = SUMA_MapSurface( icoSurf, SO_morph, verb, dist_prefix ) ;
    if (!MI) {
       fprintf (SUMA_STDERR, 
                "Error %s: Failed in SUMA_MapIcosahedron.\n", FuncName);

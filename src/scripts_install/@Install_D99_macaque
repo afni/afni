@@ -1,0 +1,117 @@
+#!/bin/tcsh -fe
+
+set stat = 0
+set sdir = $PWD
+
+set demo = D99_macaque
+set demo_download = macaqueatlas_1.2a
+
+goto PARSE
+RET_PARSE:
+
+if ( -d ./$demo) then
+echo ""
+echo "ERROR:"
+echo "   Directory ./$demo exists already"
+echo "   If you want to recreate it, remove it with:"
+echo "\rm -rf ./$demo"
+echo "   then run `basename $0` $argv[*] again."
+echo ""
+echo "Otherwise to see what you can do with this atlas,"
+echo "  see content of ./$demo/README.txt"
+echo ""
+goto END
+   endif
+
+if ($use_curl == -1) then
+   which curl
+   if ($status) then
+      set use_curl = 0;
+   else
+      set use_curl = 1;
+   endif
+endif
+
+if ($use_curl == 0) then
+   wget https://afni.nimh.nih.gov/pub/dist/atlases/macaque/$demo_download.tgz
+else
+   curl -O https://afni.nimh.nih.gov/pub/dist/atlases/macaque/$demo_download.tgz
+endif
+tar xvzf $demo_download.tgz
+# change name to simpler one here
+mv $demo_download $demo
+cd $demo
+   echo "********************************************************"
+   echo "Follow examples in ./$demo/README.txt "
+   #echo "---------------------------------------------------------"
+   #PL: Normally here you can consider running some or all of the"
+   #scripts and guide the users to look at the results.
+   #You could eventually script the whole deal to include self "
+   #executing AFNI/SUMA commands to show results.
+   echo "********************************************************"
+
+set atlas_dir = `pwd`
+@AfniEnv -set AFNI_SUPP_ATLAS_DIR $atlas_dir
+@AfniEnv -set AFNI_WHEREAMI_DEC_PLACES 2
+@AfniEnv -set AFNI_ATLAS_COLORS D99_atlas
+@AfniEnv -set AFNI_TEMPLATE_SPACE_LIST D99_Macaque,D99_Macaque_book
+@AfniEnv -set AFNI_WEBBY_WAMI YES
+cd -
+goto END
+
+PARSE:
+   set Narg = $#
+   set use_curl = -1
+   set cnt = 1
+   while ($cnt <= $Narg)
+		set donext = 1;
+      if ($donext && "$argv[$cnt]" == "-echo") then
+         set echo
+         set donext = 0; goto NEXT		
+      endif
+      if ($donext && "$argv[$cnt]" == "-curl") then
+         set use_curl = 1
+         set donext = 0; goto NEXT		
+      endif
+      if ($donext && "$argv[$cnt]" == "-wget") then
+         set use_curl = 0
+         set donext = 0; goto NEXT		
+      endif
+      if ($donext && ("$argv[$cnt]" == "-h" || "$argv[$cnt]" == "-help")) then
+         goto HELP
+         set donext = 0;	 goto NEXT	
+      endif
+      if ($donext == 1) then
+         echo "Error: Option or parameter '$argv[$cnt]' not understood"
+         goto END
+      endif
+      
+      NEXT:
+		@ cnt ++
+	end
+   
+goto RET_PARSE
+
+HELP:
+   echo "Installs the D99 macaque atlas described"
+   echo "in:"
+   echo "    \"Three-dimensional digital template atlas of the macaque brain\""
+   echo      Reveley, Gruslys, Ye, Samaha, Glen, Russ, Saad, Seth, Leopold, Saleem,
+   echo      Cerebral Cortex, 2016, in press
+   echo ""
+   echo "After the archive is downloaded and unpacked, see its README.txt"
+   echo "for details."
+   echo "Options:"
+   echo "[-wget]: Use wget to download archive. Script chooses by default"
+   echo "         with preference for curl"
+   echo "[-curl]: Use curl to download archive. Script chooses by default"
+   echo "         with preference for curl"
+   goto END
+
+BEND:
+   echo "Failed"
+   set stat = 1
+   goto END
+   
+END:
+   exit $stat

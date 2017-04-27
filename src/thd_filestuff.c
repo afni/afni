@@ -35,13 +35,13 @@ int THD_is_ondisk( char *pathname )  /* 19 Dec 2002 */
 /*-----------------------------------------------------------*/
 /*! Determine if a prefix is that of a dset on disk. */
 
-int THD_is_prefix_ondisk( char *pathname, int stripsels)  
+int THD_is_prefix_ondisk( char *pathname, int stripsels)
 {
    int ii, open1, open2, open3, open4;
    char *ppp=pathname;
-   
+
    if (!pathname) return(0);
-   
+
    if (stripsels) {
       ppp = strdup(pathname);
       open1 = open2 = open3 = open4 = 0;
@@ -56,7 +56,7 @@ int THD_is_prefix_ondisk( char *pathname, int stripsels)
          else if (ppp[ii] == '#' &&  open4) ppp[ii] = '\0';
       }
    }
-    
+
    if (THD_is_directory(ppp)) { if (ppp!=pathname) free(ppp); return(0); }
    if (THD_is_ondisk(ppp)) { if (ppp!=pathname) free(ppp); return (1); }
    ii = THD_is_dataset(THD_filepath(ppp), THD_trailname(ppp,0), -1);
@@ -163,41 +163,41 @@ long long THD_filesize( char *pathname )
 char *THD_filetime( char *pathname )
 {
    static struct stat buf ; int ii ;
-   static char sout[10][64]; 
+   static char sout[10][64];
    static int icall=0;
    static struct tm *lt=NULL ;
-   
+
    ++icall; if (icall > 9) icall=0;
    sout[icall][0]='\0';
-   
+
    if( pathname == NULL || *pathname == '\0' ) return (sout[icall]);
    ii = stat( pathname , &buf ) ; if( ii != 0 ) return (sout[icall]) ;
-   
+
    lt = localtime(&buf.st_mtime);
    sprintf(sout[icall], "%04d_%02d_%02d-%02d_%02d_%02d",
             lt->tm_year+1900, lt->tm_mon+1, lt->tm_mday,
             lt->tm_hour, lt->tm_min, lt->tm_sec);
-   
+
    return (sout[icall]) ;
 }
 
 /*-------------------------------------------------------*/
-/*! Compare file's last modified date to reference       
-    -1 file modification predates the specified day 
+/*! Compare file's last modified date to reference
+    -1 file modification predates the specified day
      0 same as specified day
-     1 newer 
+     1 newer
      2 for error in input or file not found              */
 
-int THD_filetime_diff( char *pathname, 
+int THD_filetime_diff( char *pathname,
                        int year, int month, int day  )
 {
    static struct stat buf ; int ii ;
    static struct tm *lt=NULL ;
    int fday, Dday = year*10000+month*100+day;
-      
+
    if( pathname == NULL || *pathname == '\0' ) return (2);
    ii = stat( pathname , &buf ) ; if( ii != 0 ) return (2) ;
-   
+
    lt = localtime(&buf.st_mtime);
    fday = (lt->tm_year+1900)*10000+(lt->tm_mon+1)*100+lt->tm_mday;
    if (Dday > fday) return(-1);
@@ -208,16 +208,16 @@ int THD_filetime_diff( char *pathname,
 
 char *THD_homedir(byte withslash)
 {
-   static char sout[3][520]; 
+   static char sout[3][520];
    static int icall=0;
    char *home=NULL;
    int nn=0;
    struct passwd *pw = NULL;
-   
+
    ++icall; if (icall>2) icall=0;
    sout[icall][0]='\0';
-   
-   home = getenv("HOME"); 
+
+   home = getenv("HOME");
    if (!home) {
       pw = getpwuid(getuid());
       if (pw) home = (char *)pw->pw_dir;
@@ -229,68 +229,68 @@ char *THD_homedir(byte withslash)
          sprintf(sout[icall], "%s", home);
       }
    }
-   
+
    /* remove slash */
-   while ( (nn=strlen(sout[icall])-1) && sout[icall][nn] == '/') 
+   while ( (nn=strlen(sout[icall])-1) && sout[icall][nn] == '/')
       sout[icall][nn] = '\0';
-   
+
    if (withslash) {
       nn=strlen(sout[icall]);
       sout[icall][nn] = '/'; sout[icall][nn+1] = '\0';
-   }  
-   
+   }
+
    return (sout[icall]) ;
 }
 
-char *THD_afnirc(void) 
+char *THD_afnirc(void)
 {
-   static char sout[3][520]; 
+   static char sout[3][520];
    static int icall=0;
-   
+
    ++icall; if (icall>2) icall=0;
    sout[icall][0]='\0';
 
-   strcpy(sout[icall],THD_homedir(1));  
+   strcpy(sout[icall],THD_homedir(1));
    strcat(sout[icall],".afnirc");
    return(sout[icall]);
 }
 
 char *THD_custom_atlas_dir(byte withslash)
 {
-   static char sout[3][520]; 
+   static char sout[3][520];
    static int icall=0;
    char *home=NULL;
    int nn=0;
 /*   struct passwd *pw = NULL;*/
-   
+
    ++icall; if (icall>2) icall=0;
    sout[icall][0]='\0';
-   
+
    if (!(home = getenv("AFNI_SUPP_ATLAS_DIR"))) {
       return(sout[icall]);
-   } 
-   
+   }
+
    if (strlen(home) > 510) {
       ERROR_message("Not enough space to store AFNI_SUPP_ATLAS_DIR dir of '%s'.\n");
    } else {
       sprintf(sout[icall], "%s", home);
    }
-   
+
    /* remove slash */
-   while ( (nn=strlen(sout[icall])-1)>=0 && sout[icall][nn] == '/') 
+   while ( (nn=strlen(sout[icall])-1)>=0 && sout[icall][nn] == '/')
       sout[icall][nn] = '\0';
-   
+
    if (withslash) {
       nn=strlen(sout[icall]);
       sout[icall][nn] = '/'; sout[icall][nn+1] = '\0';
-   }  
-   
+   }
+
    return (sout[icall]) ;
 }
 
-/* retrieve custom atlas directory and make sure it is present 
+/* retrieve custom atlas directory and make sure it is present
    Do not free returned pointer. Failure is a NULL pointer */
-char *THD_get_custom_atlas_dir(byte withslash) 
+char *THD_get_custom_atlas_dir(byte withslash)
 {
    char *cadir = NULL;
    cadir = THD_custom_atlas_dir(withslash);
@@ -307,13 +307,13 @@ char *THD_get_custom_atlas_dir(byte withslash)
 
 char *THD_custom_atlas_file(char *name)
 {
-   static char sout[3][1024]; 
+   static char sout[3][1024];
    static int icall=0;
 /*   struct passwd *pw = NULL;*/
-   
+
    ++icall; if (icall>2) icall=0;
    sout[icall][0]='\0';
-   
+
    if (!name) name = getenv("AFNI_SUPP_ATLAS");
    if (name) {
       if (THD_is_file(name)) {
@@ -343,7 +343,7 @@ char *THD_custom_atlas_file(char *name)
          return (sout[icall]) ;
       }
    }
-   
+
    return (sout[icall]) ;
 }
 
@@ -353,20 +353,20 @@ char *THD_custom_atlas_file(char *name)
 */
 char *THD_helpdir(byte withslash)
 {
-   static char sout[3][610]; 
+   static char sout[3][610];
    static int icall=0;
    char *home=NULL;
-   
+
    ++icall; if (icall>2) icall=0;
-   
+
    sout[icall][0]='\0';
-   
+
    home = THD_homedir(0);
-   if (home[0]=='\0') return(sout[icall]); 
-   
+   if (home[0]=='\0') return(sout[icall]);
+
    if (withslash) snprintf(sout[icall],600*sizeof(char),"%s/.afni/help/",home);
    else snprintf(sout[icall],599*sizeof(char),"%s/.afni/help",home);
-    
+
    return (sout[icall]) ;
 }
 
@@ -376,26 +376,26 @@ char *THD_helpdir(byte withslash)
 */
 char *THD_datadir(byte withslash)
 {
-   static char sout[3][610]; 
+   static char sout[3][610];
    static int icall=0;
    char *home=NULL;
-   
+
    ++icall; if (icall>2) icall=0;
-   
+
    sout[icall][0]='\0';
-   
+
    home = THD_homedir(0);
-   if (home[0]=='\0') return(sout[icall]); 
-   
+   if (home[0]=='\0') return(sout[icall]);
+
    if (withslash) snprintf(sout[icall],600*sizeof(char),"%s/.afni/data/",home);
    else snprintf(sout[icall],599*sizeof(char),"%s/.afni/data",home);
-    
+
    return (sout[icall]) ;
 }
 
-/* retrieve help directory and make sure it is present 
+/* retrieve help directory and make sure it is present
    Do not free returned pointer. Failure is a NULL pointer */
-char *THD_get_helpdir(byte withslash) 
+char *THD_get_helpdir(byte withslash)
 {
    char *hdir = NULL;
    hdir = THD_helpdir(withslash);
@@ -410,9 +410,9 @@ char *THD_get_helpdir(byte withslash)
    return(hdir);
 }
 
-/* retrieve data directory and make sure it is present 
+/* retrieve data directory and make sure it is present
    Do not free returned pointer. Failure is a NULL pointer */
-char *THD_get_datadir(byte withslash) 
+char *THD_get_datadir(byte withslash)
 {
    char *hdir = NULL;
    hdir = THD_datadir(withslash);
@@ -431,7 +431,7 @@ char *THD_helpsearchlog(int createpath)
 {
    static int bad = 0;
    static char shelpname[256]={""};
-   
+
    if (!bad && createpath && !THD_mkdir(THD_helpdir(0))) {
       ERROR_message("Cannot create %s help directory\n", THD_helpdir(0));
       bad = 1;
@@ -537,39 +537,43 @@ char * THD_filepath( char *fname )
    static char pname[10][THD_MAX_NAME];
    char *ppp = NULL;
    long lend=0;
-   
+
    ++icall; if (icall > 9) icall = 0;
    pname[icall][0]='.'; pname[icall][1]='/'; pname[icall][2]='\0';
-   
+
    if (!fname) return(pname[icall]);
-   
+
    lend = strlen(fname);
    if (fname[lend-1] == '/') {   /* fname is a path*/
       if (lend >= THD_MAX_NAME-1) {
-         ERROR_message("Path name too long. Returning './'");
+         ERROR_message("Path name too long. Returning './' as the file path :(");
+         ERROR_message("  Offending input is:\n   %s",fname) ;
+         ERROR_message("Almost certainly something bad will happen below here!") ;
       } else {
          strncpy(pname[icall], fname, lend);
          pname[icall][lend]='\0';
       }
       return(pname[icall]);
    }
-   
+
    if (!(ppp=THD_trailname(fname,0))) return(pname[icall]);
    if (!(lend = ppp-fname)) return(pname[icall]); /* no path on name */
-   
+
    if (lend >= THD_MAX_NAME-1) {
-      ERROR_message("Path name too long. Returning './'");
+      ERROR_message("Path name too long. Returning './' as the file path :-(");
+      ERROR_message("  Offending input is:\n   %s",fname) ;
+      ERROR_message("Almost certainly something bad will happen below here!") ;
       return(pname[icall]);
    }
-  
+
    strncpy(pname[icall], fname, lend);
    pname[icall][lend]='\0';
-   if (pname[icall][lend-1] != '/') {
-      pname[icall][lend-1] = '/';
-      pname[icall][lend] = '\0';
+   if( pname[icall][lend-1] != '/' ){
+     pname[icall][lend-1] = '/';
+     pname[icall][lend] = '\0';
    }
    return(pname[icall]);
-}  
+}
 
 /*----------------------------------------------------------------------*/
 /* Does filename have a path */

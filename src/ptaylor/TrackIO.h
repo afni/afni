@@ -1,6 +1,19 @@
 #ifndef TRACKIO_INCLUDED
 #define TRACKIO_INCLUDED
 
+// ---------------- for param names while tracking -------------------------
+
+#define N_DEF_PAR_LABS (7) // we define a few things initially
+#define N_XTR_PAR_LABS (3) // we define a few things initially
+
+static char *DEF_PAR_LABS[N_DEF_PAR_LABS] = { "NT", "fNT", "PV", 
+                                              "fNV", "NV", "BL",
+                                              "sBL"}; 
+static char *XTR_PAR_LABS[N_XTR_PAR_LABS] = { "NTpTarVol", 
+                                              "NTpTarSA",
+                                              "NTpTarSAFA"}; 
+
+
 // temporary candidate for NIML string reading based on ZSS's
 // int/float-reading definitions in */suma_afni_surface.h
 #define NI_SETA_STR_tmp(ngr, name, val)  {\
@@ -71,9 +84,9 @@ int Network_1P_to_PTB(TAYLOR_NETWORK *network, int P1,
 int Network_1T_to_TB(TAYLOR_NETWORK *net, int TT, int *t, int *b, 
                      int *P0, int *P1);
 int Network_1B_to_1P(TAYLOR_NETWORK *net, int BB, int *PP1);
-TAYLOR_TRACT *Create_Tract(int N_ptsB, float **pts_buffB,
+/*TAYLOR_TRACT *Create_Tract(int N_ptsB, float **pts_buffB,
                           int N_ptsF, float **pts_buffF, 
-                          int id, THD_3dim_dataset *grid);
+                          int id, THD_3dim_dataset *grid);*/
 TAYLOR_TRACT *Free_Tracts(TAYLOR_TRACT *tt, int N);
 TAYLOR_BUNDLE *AppCreateBundle(TAYLOR_BUNDLE *tbu, int N_tractsbuf, 
                                TAYLOR_TRACT *tracts_buff);
@@ -178,10 +191,10 @@ int SimpleWriteDetNetTr_M(int N_HAR, FILE *file, int ***idx,
 
 NI_element * ReadDTI_inputs(char *fname);
 int NI_getDTI_inputs( NI_element *nel, 
-                      char **NameVEC, //[3],
+                      char **NameVECT, 
                       char *NameXF, 
-                      char **NameSCAL, //[3], 
-                      char **NameP, //[4],
+                      char **NameSCAL,
+                      char **NamePLUS, 
                       int *extrafile, int *pars_top);
 
 #endif

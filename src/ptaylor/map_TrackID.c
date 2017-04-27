@@ -9,6 +9,8 @@
 	etc. maps can be transformed directly with -1Dmatrix_apply).
    
    September 2012, part II: fixing some memory stuff.
+
+   Oct,2016: add int to get rid of compilation warnings.
 */
 
 
@@ -157,6 +159,7 @@ void usage_map_TrackID(int detail)
 
 int main(int argc, char *argv[]) {
 	int i,j,k,m,mm,nn;
+   int pppp;
 	int iarg;
 
 	tv_io_header READ_head;
@@ -341,7 +344,7 @@ int main(int argc, char *argv[]) {
 		
 		j=0;
 		while(READ_ch!= '\n' && j<300) {
-			fscanf(file_map,"%c",&READ_ch);
+			pppp = fscanf(file_map,"%c",&READ_ch);
 			j+=1;
 			//printf("\nCHAR:%c\t%d",READ_ch,j);
 		}
@@ -356,11 +359,11 @@ int main(int argc, char *argv[]) {
 
 	for( j=0 ; j<3 ; j++){
 		for( i=0 ; i<3 ; i++){
-			fscanf(file_map,"%f",&READ_fl);
+			pppp = fscanf(file_map,"%f",&READ_fl);
 			gsl_matrix_set(Umatr,j,i,READ_fl);	
 			//printf("\nREAD:%f",Umatr[j][i]);
 		}
-		fscanf(file_map,"%f",&Vvect[j]);
+		pppp = fscanf(file_map,"%f",&Vvect[j]);
 		//printf("\nREAD:%f",Vvect[j]);
 	}
 	
@@ -392,7 +395,7 @@ int main(int argc, char *argv[]) {
 	}
 	
 	// header
-	fread(&READ_head,sizeof(tv_io_header),1,file_trk);
+	pppp = fread(&READ_head,sizeof(tv_io_header),1,file_trk);
 	
 	// as a check
 	if( READ_head.hdr_size != 1000 ) 
@@ -448,7 +451,7 @@ int main(int argc, char *argv[]) {
 		// get length of new track
 		for( j=0; j<nn ; j++) {
 			for( k=0; k<3 ; k++) {
-				fread(&READ_fl,sizeof(float),1,file_trk);
+				pppp = fread(&READ_fl,sizeof(float),1,file_trk);
 				if(TV_switch[k])
 					loc_old[k] = READ_fl+old_orig[k]-old_ledge[k]*(old_dim[k]-1);
 				else 
@@ -468,13 +471,13 @@ int main(int argc, char *argv[]) {
 			}
 			// not changing...
 			for( k=0; k<READ_head.n_scalars ; k++) {
-				fread(&READ_fl,sizeof(float),1,file_trk);
+				pppp = fread(&READ_fl,sizeof(float),1,file_trk);
 				fwrite(&READ_fl,sizeof(float),1,file_out);
 			}
 		}
 		// not changing...
 		for( k=0; k<READ_head.n_properties ; k++) {
-			fread(&READ_fl,sizeof(float),1,file_trk);
+			pppp = fread(&READ_fl,sizeof(float),1,file_trk);
 			fwrite(&READ_fl,sizeof(float),1,file_out);
 		}
 	}

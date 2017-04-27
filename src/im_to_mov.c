@@ -176,14 +176,16 @@ MRI_IMAGE * mri_rgb_scaledown_by4( MRI_IMAGE *inim )
 
 int main( int argc , char *argv[] )
 {
-   int npure=18 , nfade=6 , iarg=1 , ii,jj,kk , nbad , nx,ny,nin ;
+   int npure=18 , nfade=6 , iarg=1 , ii,jj,kk,nkk , nbad , nx,ny,nin ;
    char *prefix="i2m" , *outname ; char **fcopy ;
    MRI_IMARR *in_imar=NULL ;
    MRI_IMAGE *inim , *qim , *jnim ; MRI_IMAGE *im0=NULL ;
    float fac ;
    int down=1 ; int do_jpg=0 ; int do_loop=0 ;
+   int do_resize=0 , rnx=0,rny=0 ;
 
    if( argc < 3 || strcasecmp(argv[1],"-help") == 0 ){
+     printf("\n") ;
      printf("Usage: im_to_mov [options] imagefile1 imagefile2 ...\n") ;
      printf("\n") ;
      printf(
@@ -211,15 +213,21 @@ int main( int argc , char *argv[] )
             " -nfade F  = number of transition fades between pairs [6] (0 or more)\n"
             " -loop     = output a final set of fade images between the\n"
             "             last input image and the first one, so that the\n"
-            "             video can be played in an endless loop\n"
+            "             video can be played in an endless loop :)\n"
             " -down  X  = downsample images by factor X = 2 or 3 or 4 [none]\n"
             " -prefix Q = prefix for output files [i2m]\n"
             " -jpg      = write JPEG output files and stop\n"
             " -mpg      = write PPM files, convert to MPEG-1, delete PPMs\n"
             "             [this is the default mode of operation]\n"
+            " -resize   = resize all input images to match the first one\n"
+            "             [produces weird results if image sizes are very different]\n"
+            "          ++ You can also do '-resize X Y' to force resizing of all\n"
+            "             images to X by Y pixels, where X and Y are positive integers.\n"
+            "          ++ It is legal to combine '-resize' and '-down', but why try?\n"
             "Notes:\n"
             "------\n"
             "* The input images must all be the same size!\n"
+            "  (Unless you use the -resize option.)\n"
             "* Valid input image formats are JPEG, PPM, GIF, and PNG.\n"
             "* The output MPEG-1 frame rate is 24 per second,\n"
             "  so the default P and F parameters add up to 1 second\n"
@@ -231,6 +239,15 @@ int main( int argc , char *argv[] )
    /*---- scan options ----*/
 
    while( iarg < argc && argv[iarg][0] == '-' ){
+
+     if( strcasecmp(argv[iarg],"-resize") == 0 ){
+       do_resize = 1 ;
+       if( iarg+2 < argc && isdigit(argv[iarg+1][0]) && isdigit(argv[iarg+2][0]) ){
+         rnx = (int)strtod(argv[++iarg],NULL) ;
+         rny = (int)strtod(argv[++iarg],NULL) ;
+       }
+       iarg++ ; continue ;
+     }
 
      if( strcasecmp(argv[iarg],"-jpg") == 0 ){
        do_jpg = 1 ; iarg++ ; continue ;
@@ -307,11 +324,16 @@ int main( int argc , char *argv[] )
        case 3: qim = mri_rgb_scaledown_by3(inim); mri_free(inim); inim = qim; break;
        case 4: qim = mri_rgb_scaledown_by4(inim); mri_free(inim); inim = qim; break;
      }
-     if( IMARR_COUNT(in_imar) == 0 ){
-       nx = inim->nx ; ny = inim->ny ;
+     if( IMARR_COUNT(in_imar) == 0 ){ nx = inim->nx ; ny = inim->ny ; }
+     if( do_resize ){
+       if( rnx == 0 ){ rnx = inim->nx ; rny = inim->ny ; }
+       if( inim->nx != rnx || inim->ny != rny ){
+         qim = mri_resize(inim,rnx,rny) ; mri_free(inim) ; inim = qim ;
+       }
      } else if( inim->nx != nx || inim->ny != ny ){
        ERROR_message("Image '%s' has (nx,ny)=(%d,%d) mismatch from (%d,%d)",
-                     argv[ii] , inim->nx,inim->ny , nx,ny ) ; nbad++ ; continue ;
+                     argv[ii] , inim->nx,inim->ny , nx,ny ) ; nbad++ ;
+       mri_free(inim) ; continue ;
      }
      ADDTO_IMARR(in_imar,inim) ; fprintf(stderr,".") ;
    }
@@ -325,8 +347,10 @@ int main( int argc , char *argv[] )
    nin     = IMARR_COUNT(in_imar) ;
    fac     = 1.0f / ( nfade + 1.0f ) ;
 
-   if( down < 2 )
-     INFO_message("Read in %d images %dx%d",nin,nx,ny) ;
+   if( do_resize )
+     INFO_message("Read in %d images, resized to %dx%d",nin,rnx,rny) ;
+   else if( down < 2 )
+     INFO_message("Read in %d images, all sized %dx%d",nin,nx,ny) ;
    else
      INFO_message("Read in %d images, downsampled to %dx%d",nin,nx,ny) ;
 
@@ -468,7 +492,8 @@ int main( int argc , char *argv[] )
 
      fprintf(stderr,"!\n") ;
 
-     INFO_message("Output %d images with filename format %s_xxxxxx.ppm",kk,prefix) ;
+     nkk = kk ;
+     INFO_message("Output %d images with filename format %s_xxxxxx.ppm",nkk,prefix) ;
 
      /* now create MPEG from PPMs [stolen from imseq.c] */
 
@@ -515,7 +540,7 @@ int main( int argc , char *argv[] )
                   "%s_*.ppm [%06d-%06d]\n"  /* prefix, from, to */
                   "END_INPUT\n"
                , oof , npure+nfade , frate , pattrn , qscale ,
-                 prefix,0,kk-1 ) ;
+                 prefix,0,nkk-1 ) ;
        fclose(fpar) ; free(pattrn) ;
 
        /* make command to run */
@@ -526,7 +551,9 @@ int main( int argc , char *argv[] )
        INFO_message("Running '%s' to produce %s\n",alf,oof) ;
        system(alf) ;                            /* so run it!    */
        ININFO_message("** DONE -- deleting ppm files") ;
-       sprintf(alf,"\\rm -f %s_??????.ppm",prefix) ; system(alf) ;
+       for( kk=0 ; kk < nkk ; kk++ ){
+         sprintf(outname,"%s_%06d.ppm",prefix,kk) ; unlink(outname) ;
+       }
        remove(par); free(alf); free(oof); free(par); /* free trash */
      }
 

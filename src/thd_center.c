@@ -33,11 +33,18 @@ ENTRY("THD_dataset_center") ;
 
 /*-------------------------------------------------------------------------*/
 /*! Get the center of mass of this volume, in DICOM coords, taken from 3dCM.
+
+// [PT, 20 Dec, 2016] Updated to output either: ijk, or the (default)
+// xyz in DICOM coords.  New input variable 'cmode' controls this
+// (default, cmode=0).
+
 ---------------------------------------------------------------------------*/
 
-THD_fvec3 THD_cmass( THD_3dim_dataset *xset , int iv , byte *mmm )
+THD_fvec3 THD_cmass( THD_3dim_dataset *xset , int iv , byte *mmm,
+                     int cmode)
 {
    THD_fvec3 cmv ;
+   THD_ivec3 cmvi ;
    MRI_IMAGE *im ;
    float *far , icm,jcm,kcm ;
    int ii , nvox ;
@@ -56,8 +63,18 @@ THD_fvec3 THD_cmass( THD_3dim_dataset *xset , int iv , byte *mmm )
    }
 
    mri_get_cmass_3D( im , &icm,&jcm,&kcm ) ; mri_free(im) ;
+
    LOAD_FVEC3(cmv,icm,jcm,kcm) ;
    cmv = THD_3dfind_to_3dmm( xset , cmv ) ;
+
+   // [PT, Dec, 2016]: a bit convoluted, but return ijk (as floats) if
+   // the mode suits it.
+   if( cmode == 1 ) {  // return int ijk in dset-orientation
+      cmvi = THD_3dmm_to_3dind( xset , cmv );
+      LOAD_FVEC3(cmv,cmvi.ijk[0], cmvi.ijk[1], cmvi.ijk[2]);
+      return cmv; 
+   }
+
    cmv = THD_3dmm_to_dicomm( xset , cmv ) ;
    return cmv ;
 }
@@ -67,7 +84,8 @@ THD_fvec3 THD_cmass( THD_3dim_dataset *xset , int iv , byte *mmm )
 a float vector N_rois XYZ triplets.
 ---------------------------------------------------------------------------*/
 
-float *THD_roi_cmass(THD_3dim_dataset *xset , int iv , int *rois, int N_rois)
+float *THD_roi_cmass(THD_3dim_dataset *xset , int iv , int *rois, 
+                     int N_rois, int cmode)
 {
    float *xyz=NULL, roi;
    THD_fvec3 cmr ;
@@ -82,9 +100,11 @@ float *THD_roi_cmass(THD_3dim_dataset *xset , int iv , int *rois, int N_rois)
    for (ir = 0; ir < N_rois; ++ir) {
       roi = rois[ir];
       mmm = THD_makemask( xset, iv , roi , roi );
-      cmr = THD_cmass( xset, iv , mmm);
+      cmr = THD_cmass( xset, iv , mmm, cmode);
       free(mmm); mmm = NULL;
-      xyz[3*ir] = cmr.xyz[0]; xyz[3*ir+1] = cmr.xyz[1]; xyz[3*ir+2] = cmr.xyz[2];
+      xyz[3*ir]   = cmr.xyz[0]; 
+      xyz[3*ir+1] = cmr.xyz[1]; 
+      xyz[3*ir+2] = cmr.xyz[2];
    }
    
    RETURN(xyz);

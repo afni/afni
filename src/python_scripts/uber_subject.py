@@ -429,52 +429,44 @@ g_install_str = """
    ------------------------------------------------------------------
    A. Linux
 
-      A1. Fedora 10+:
+      A1. Fedora
 
-         1. yum install PyQt4
-
-   ----------
-
-      A2. current Debian/Ubuntu:
-
-         1. apt-get install python-qwt5-qt4
-
-      * Note: if your system libraries are old enough where this step does not
-              simply work (e.g. RHEL/CentOS 4 and 5), life becomes difficult.
-              I am not sure if there is a solution for even version 5.
+         yum install PyQt4
 
    ----------
 
-   B. OS X 10.6 (or later)
+      A2. Debian/Ubuntu
 
-      B1. via fink (assuming python 2.7 and the x11 version of qt4):
+         apt-get install python-qt4
 
-         0. fink should be installed and current, to make current:
+   ----------
 
-               sudo fink selfupdate
+   B. OS X
 
-         1. install pyqt4 for python version 2.7
-            (might also require making a new link to python under /sw/bin)
+      B1. via homebrew
 
-               sudo fink install pyqt4-py27
-               sudo ln -s /sw/bin/python2.7 /sw/bin/python     (if needed)
+         0. homebrew should be installed
+
+               https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/background_install/install_instructs/steps_mac.html
+
+         1. install pyqt
+
+               brew install pyqt
 
             Note: for this to apply, /sw/bin needs to be before /usr/bin in
                   the PATH.
 
-         2. update PYTHONPATH to point to new site-packages directory
+         2. possibly update PYTHONPATH to point to new site-packages directory
             (put this in .cshrc)
 
-               setenv PYTHONPATH /sw/lib/qt4-x11/lib/python2.7/site-packages
+               setenv PYTHONPATH /usr/local/lib/python2.7/site-packages
 
-            Note: depending on what is installed...
+      B2. do we still need fink instructions?
 
-                - qt4-x11 might be qt4-mac
-                - 2.7 might be a different version of python
 
-   ----------
+   For extra details, see the output from:
 
-      B2. directly from Nokia - see "-help_install_nokia" (NOT recommended)
+        afni_system_check.py -check_all
 """
 
 g_install_nokia = """

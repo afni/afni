@@ -38,6 +38,7 @@ extern float qmed_float     ( int , float * ) ;
 extern float qmean_float    ( int , float * ) ;               /* 26 Mar 2013 */
 extern void  qmedmad_float  ( int,float *,float *,float * ) ; /* 08 Mar 2001 */
 extern void  meansigma_float( int,float *,float *,float * ) ; /* 07 Dec 2006 */
+extern float qfrac_float    ( int , float , float * ) ;       /* 31 Oct 2016 */
 
 extern void qmedmadbmv_float   ( int, float *, float *, float *, float * ) ;
 extern void qmedmadmeanad_float( int, float *, float *, float *, float * ) ;

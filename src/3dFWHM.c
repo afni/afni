@@ -27,20 +27,24 @@
   Date:    08 March 2004  [rickr]
 */
 
-static int dontcheckplus = 0 ;  /* 09 Nov 2006 */
+#undef ENABLE_THIS_PROGRAM      /* 03 Apr 2017 */
+
+#ifdef ENABLE_THIS_PROGRAM
 
 /*---------------------------------------------------------------------------*/
 
 #define PROGRAM_NAME "3dFWHM"                        /* name of this program */
 #define PROGRAM_AUTHOR "B. Douglas Ward"                   /* program author */
 #define PROGRAM_INITIAL "20 February 1997"/* date of initial program release */
-#define PROGRAM_LATEST  "08 March 2004"/* date of latest program revision */
+#define PROGRAM_LATEST  "08 March 2004"   /* date of latest program revision */
 
 /*---------------------------------------------------------------------------*/
 
 #include "mrilib.h"
 
 #define MAX_NAME_LENGTH THD_MAX_NAME    /* max. string length for file names */
+
+static int dontcheckplus = 0 ;  /* 09 Nov 2006 */
 
 /*---------------------------------------------------------------------------*/
 
@@ -635,6 +639,12 @@ void terminate (input_options ** option_data, float ** fim, float ** fmask)
     {  free (*fmask);       *fmask = NULL; }
 }
 
+#else   /* ENABLE_THIS_PROGRAM */
+
+#include <stdio.h>
+#include <stdlib.h>
+
+#endif  /* ENABLE_THIS_PROGRAM */
 
 /*---------------------------------------------------------------------------*/
 /*
@@ -643,27 +653,27 @@ void terminate (input_options ** option_data, float ** fim, float ** fmask)
 
 int main (int argc, char ** argv)
 {
+
+#ifdef ENABLE_THIS_PROGRAM
   input_options * option_data = NULL;
   float * fim = NULL;
   float * fmask = NULL;
   float sx, sy, sz;
+#endif
 
 
   /*----- Identify software -----*/
 
-#if 0
-  printf ("\n\n");
-  printf ("Program: %s \n", PROGRAM_NAME);
-  printf ("Author:  %s \n", PROGRAM_AUTHOR);
-  printf ("Initial Release:  %s \n", PROGRAM_INITIAL);
-  printf ("Latest Revision:  %s \n", PROGRAM_LATEST);
-  printf ("\n");
-#endif
+#ifndef ENABLE_THIS_PROGRAM
+  fprintf(stderr,"\n\n") ;
+  fprintf(stderr,"*** Program 3dFWHM is obsolete!  Use 3dFWHMx instead! ***\n\n\n") ;
+  exit(0) ;
+#else
 
   PRINT_VERSION("3dFWHM") ;
   AUTHOR(PROGRAM_AUTHOR);
+
   mainENTRY("3dFWHM main") ;
-  WARNING_message("This program is obsolete!  Use 3dFWHMx instead!!") ;
   machdep() ;
 
   /*----- program initialization -----*/
@@ -677,6 +687,8 @@ int main (int argc, char ** argv)
 
   /*----- terminate program -----*/
   terminate (&option_data, &fim, &fmask);
+
+#endif /* ENABLE_THIS_PROGRAM */
 
   exit(0);
 }

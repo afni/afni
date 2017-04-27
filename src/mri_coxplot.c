@@ -1,6 +1,8 @@
 #include "mrilib.h"
 #include "coxplot.h"
 
+#undef DEBUG
+
 /*--------------------------------------------------------------------------
   Routines to render a memplot into an MRI_rgb image.
   The assumption is that the plot is over the region [0,1]x[0,1],
@@ -97,6 +99,10 @@ ENTRY("memplot_to_RGB_sef") ;
 
    mri_draw_opacity( 1.0f ) ;
 
+#ifdef DEBUG
+INFO_message("memplot_to_RGB_sef from %d to %d",start,end) ;
+#endif
+
    for( ii=start ; ii < end ; ii++ ){
 
       skip = 0 ;
@@ -108,12 +114,11 @@ ENTRY("memplot_to_RGB_sef") ;
          float rr=COL_TO_RRR(new_color) ,
                gg=COL_TO_GGG(new_color) , bb=COL_TO_BBB(new_color) ;
 
-#if 0
-fprintf(stderr,"Changing color to %f %f %f\n",rr,gg,bb) ;
-#endif
-
          rrr = ZO_TO_TFS(rr) ; ggg = ZO_TO_TFS(gg) ; bbb = ZO_TO_TFS(bb) ;
          old_color = new_color ;
+#ifdef DEBUG
+ININFO_message("Changing color to %f->%d %f->%d %f->%d\n",rr,(int)rrr,gg,(int)ggg,bb,(int)bbb) ;
+#endif
       }
 
       new_thick = MEMPLOT_TH(mp,ii) ;
@@ -131,6 +136,9 @@ fprintf(stderr,"Changing color to %f %f %f\n",rr,gg,bb) ;
                if( x1 < x2 ){ xb=x1; xt=x2; } else { xb=x2; xt=x1; }
                if( y1 < y2 ){ yb=y1; yt=y2; } else { yb=y2; yt=y1; }
                w = xt-xb+1 ; h = yt-yb+1 ;
+#ifdef DEBUG
+ININFO_message("drawfilledrectangle") ;
+#endif
                mri_drawfilledrectangle( im , xb,yb , w,h , rrr,ggg,bbb ) ;
                skip = 1 ;
             }
@@ -144,12 +152,18 @@ fprintf(stderr,"Changing color to %f %f %f\n",rr,gg,bb) ;
                ycen = rint(yoff + yscal * (1.0 - MEMPLOT_Y1(mp,ii)) );
                xrad = xscal * MEMPLOT_X2(mp,ii) ;
                yrad = yscal * MEMPLOT_X2(mp,ii) ; rad = rintf(sqrtf(xrad*yrad)) ;
+#ifdef DEBUG
+ININFO_message("drawcircle") ;
+#endif
                mri_drawcircle( im , xcen,ycen , rad, rrr,ggg,bbb , (thc==THCODE_BALL) ) ;
                skip = 1 ;
             }
             break ;
 
             case THCODE_OPAC:{        /* opacity [22 Jul 2004] */
+#ifdef DEBUG
+ININFO_message("set opacity %f",MEMPLOT_X1(mp,ii)) ;
+#endif
                mri_draw_opacity( MEMPLOT_X1(mp,ii) ) ;
                skip = 1 ;
             }
@@ -160,6 +174,9 @@ fprintf(stderr,"Changing color to %f %f %f\n",rr,gg,bb) ;
 
          old_thick = new_thick ;  /* thickness not used at this time */
          sthick = new_thick * scal ; /* sthick = MIN(sthick,9.0f) ; */
+#ifdef DEBUG
+ININFO_message("set thick %f",sthick) ;
+#endif
 
       }
 
@@ -175,7 +192,9 @@ fprintf(stderr,"Changing color to %f %f %f\n",rr,gg,bb) ;
         y1 = (int)( yoff + yscal * b1 ) ; y2 = (int)( yoff + yscal * b2 ) ;
 
         /* draw it */
-
+#ifdef DEBUG
+ININFO_message("drawline x1=%d y1=%d  x2=%d y2=%d rrr=%d ggg=%d bbb=%d",x1,y1,x2,y2,(int)rrr,(int)ggg,(int)bbb) ;
+#endif
         mri_drawline( im , x1,y1 , x2,y2 , rrr,ggg,bbb ) ;
 
         if( do_thick && sthick >= 1.0f && (x1 != x2 || y1 != y2) ){  /* 06 Dec 2007 */
@@ -208,6 +227,9 @@ fprintf(stderr,"Changing color to %f %f %f\n",rr,gg,bb) ;
       }
    }
 
+#ifdef DEBUG
+ININFO_message("----- EXIT -----") ;
+#endif
    set_memplot_RGB_box(0,0,0,0) ; /* clear box */
    EXRETURN ;
 }

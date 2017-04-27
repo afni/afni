@@ -3316,8 +3316,10 @@ STATUS("KeyPress event") ;
                 case XK_Page_Up:   buf[0] = 'Z' ; break ;
                 case XK_KP_Page_Down:
                 case XK_Page_Down: buf[0] = 'z' ; break ;
+#if 0
                 case XK_F5:
                   MCW_melt_widget( grapher->draw_fd ) ; break ;
+#endif
               }
             }
             if( buf[0] != '\0' ) GRA_handle_keypress( grapher , buf , ev ) ;

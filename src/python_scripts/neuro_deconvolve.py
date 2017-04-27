@@ -330,7 +330,7 @@ class Decon:
             if self.aname.type != 'BRIK':
                 print "** unknown 'type' for -input '%s'" % self.infiles[0]
             err,self.reps,self.tr =     \
-                UTIL.get_dset_reps_tr(self.aname.pv(),self.verb)
+                UTIL.get_dset_reps_tr(self.aname.pv(), verb=self.verb)
             if err: return 1
 
         if self.verb > 1:

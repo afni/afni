@@ -63,6 +63,8 @@ TRACK_RUN_PARAMS SetInitialTrackingDefaults(void)
    defopt.OUTPUT_TRK = 0;              //  "-do_trk_out", Feb,2015:->0
    defopt.OUT_INDIPAIR = 1;            //  "-no_indipair_out"
    defopt.THRESH_BUNDS = 1;            //  "-bundle_thr", Feb,2015:NEW
+   defopt.TARG_SURF_STOP = 0;          //  "-targ_surf_stop", Nov,2016
+   defopt.TARG_SURF_TWIXT = 0;         //  "-targ_surf_twixt", Nov,2016
 
    // minorly used control stuff, mostly default
    defopt.NAMEIN_outmode = NULL;       //  "-tract_out_mode"

@@ -4,6 +4,7 @@
 #include "mcw_malloc.h"
 #include "AFNI_version.h"
 #include "debugtrace.h"  /* contains 1 function */
+#include <ctype.h>
 
 /*--------------------------------------------------------------------------*/
 
@@ -76,10 +77,10 @@ ENTRY("THD_zzprintf") ;
    /* make new space, copy input string sss, append new stuff, return result */
 
    if( sss == NULL || *sss == '\0' ){  /* no input string ==> copy new stuff */
-     zz = (char *) malloc( sizeof(char)*(nsbuf+2) ) ;
+     zz = (char *) malloc( sizeof(char)*(nsbuf+8) ) ;
      strcpy(zz,sbuf) ;
    } else {             /* the full Monty: copy old then new */
-     nzz = strlen(sss) + nsbuf + 2 ;
+     nzz = strlen(sss) + nsbuf + 8 ;
      zz  = (char *) malloc( sizeof(char) * nzz ) ;
      strcpy(zz,sss) ; strcat(zz,sbuf) ;
      free(sss) ;       /* don't need input copy any more */
@@ -275,3 +276,38 @@ void STATUS_message( char *fmt , ... )
 }
 #endif
 #endif
+
+/*--------------------------------------------------------------------------*/
+/* Clock time logging [03 Nov 2016] */
+
+static char *pname=NULL ;
+
+void set_program_name(char *ch)
+{
+   if( ch != NULL ) pname = strdup(ch) ;
+   return ;
+}
+
+#include <time.h>
+extern char * nice_time_string(int) ;
+extern int NI_clock_time(void) ;
+extern int THD_is_directory( char * ) ;
+
+void clock_time_atexit(void)
+{
+   char *eee=getenv("HOME") ;
+   int ct=NI_clock_time() ;
+   time_t tnow=time(NULL) ;
+   char *fname ; char *cht=ctime(&tnow) ;
+   FILE *fp ;
+
+   if( ct == 0 || pname == NULL || !THD_is_directory(eee) ) return ;
+
+   fname = (char *)malloc(sizeof(char)*(strlen(eee)+32)) ;
+   if( fname == NULL ) return ;
+   strcpy(fname,eee) ; strcat(fname,"/.afni.clocktime.log") ;
+   fp = fopen(fname,"a") ; free(fname) ; if( fp == NULL ) return ;
+   fprintf(fp,"[%.24s] %s =%s\n",ctime(&tnow) , pname , nice_time_string(ct) ) ;
+   fclose(fp) ;
+   return ;
+}

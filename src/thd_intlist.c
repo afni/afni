@@ -17,11 +17,16 @@ void MCW_intlist_allow_negative( int iii )   /* 22 Nov 1999 */
    allow_negative = iii ; return ;
 }
 
-/*! Stopping criterion for MCW_get_intlist()          ZSS, Aug 06: Added '#' to ISEND */
+/*! Stopping criterion for MCW_get_intlist()  ZSS, Aug 06: Added '#' to ISEND */
 
 #define ISEND(c) ( (c)==']' || (c)=='}' || (c)=='#' || (c)=='\0' )
 
 int * get_count_intlist ( char *str , int *nret, int maxval )
+{
+   get_count_intlist_eng( str, nret, maxval, allow_negative );
+}
+
+int * get_count_intlist_eng ( char *str, int *nret, int maxval, int ok_neg )
 {
    int *subv = NULL, *ret = NULL ;
    int ii , ipos , nout , slen, shuffle, step, itmp;
@@ -52,7 +57,7 @@ int * get_count_intlist ( char *str , int *nret, int maxval )
    while( isspace(str[ipos]) ) ipos++ ;   /* skip blanks */
    if( ISEND(str[ipos]) ) return NULL ;         /* bad */
    ibot = strtol( str+ipos , &cpt , 10 ) ;
-   if( ibot < 0 && !allow_negative ){
+   if( ibot < 0 && !ok_neg ){
      fprintf(stderr,"** ERROR: bot selector index %d cannot be < 0\n",
              ibot) ;
      return NULL ;  /* added return     4 Jan 2016 [rickr] */
@@ -71,7 +76,7 @@ int * get_count_intlist ( char *str , int *nret, int maxval )
    while( isspace(str[ipos]) ) ipos++ ;   /* skip blanks */
    if( ISEND(str[ipos]) ) return NULL  ;         /* Bad */
    itop = strtol( str+ipos , &cpt , 10 ) ;
-   if( itop < 0 && !allow_negative ){
+   if( itop < 0 && !ok_neg ){
      fprintf(stderr,"** ERROR: top selector index %d cannot be < 0\n",
              itop) ;
      return NULL ;
@@ -161,9 +166,13 @@ int * get_count_intlist ( char *str , int *nret, int maxval )
    return(subv);
 }
 
+int * get_1dcat_intlist ( char *sin , int *nret, int maxval)
+{
+   return get_1dcat_intlist_eng(sin, nret, maxval, allow_negative);
+}
 
 /* if maxval >= 0, values may not exceed it */
-int * get_1dcat_intlist ( char *sin , int *nret, int maxval)
+int * get_1dcat_intlist_eng ( char *sin , int *nret, int maxval, int ok_neg )
 {
    int ipos , slen, *ret=NULL, ii=0;
    MRI_IMAGE *aim = NULL;
@@ -206,7 +215,7 @@ int * get_1dcat_intlist ( char *sin , int *nret, int maxval)
    for (ii=0; ii<*nret; ++ii) {
       ret[ii+1] = (int)far[ii];
       /* was #if 0: leave error handling for elsewhere, 4 Jan 2016 [rickr] */
-      if ( (!allow_negative && ret[ii+1]<0) ||
+      if ( (!ok_neg && ret[ii+1]<0) ||
            (maxval >= 0 && ret[ii+1] > maxval) ) {
          ERROR_message( "Bad 1dcat brick selection value in 1D file '%s'\n"
                         "   value %d is %g (max=%d)\n",
@@ -780,5 +789,226 @@ int MCW_get_angle_range(THD_3dim_dataset * dset, char * instr, float * bot,
 
    /* should not get here */
    return 1;
+}
+
+
+/* ----------------------------------------------------------------------
+ * Prepare to apply mastery <> selector to dataset by setting
+ * master_bot/top (for <a> or <a..b>) or
+ * master_int_list (for <a,b,c,...,d>).
+ *
+ * Comma-delimited values must be ints.  Labels are applied as ints.
+ *
+ * Labels:
+ *    For now, allow <label>.  Think about doing it as a range or int list.
+ *
+ * return 0 on success, 1 on error                   17 Apr 2012 [rickr]
+ * ----------------------------------------------------------------------
+ */
+int thd_check_angle_selector(THD_3dim_dataset * dset, char * instr)
+{
+   char * rstr;         /* copied range string */
+   char * rptr;         /* current pointer within range string */
+   char * dptr, * cptr; /* dot dot (..) and comma pointers */
+   int    rlen, scount;
+   float  fbot, ftop;   /* read values */
+   double dval;         
+
+   /* missing input */
+   if ( !dset || !instr ) {
+      fprintf(stderr,"** thd_check_angle_selector: missing inputs\n");
+      return 1;
+   }
+
+   /* init to defaults */
+   dset->dblk->master_bot = 1.0;
+   dset->dblk->master_top = 0.0;
+
+   /* maybe there is nothing here */
+   if( strlen(instr) == 0 ) return 0;
+
+   /* duplicate input, skip any leaning '<', nuke any trailing '>' */
+   rstr = nifti_strdup(instr);
+   rlen = strlen(rstr);
+
+   rptr = rstr; /* rptr moves, rstr is location of copied string */
+   if( *rptr == '<' ) rptr++;
+   dptr = strchr(rptr, '>');
+   if( dptr ) *dptr = '\0';     /* clear any trailing '>' */
+
+   /* set dot and comma pointers */
+   dptr = strstr(rptr,"..") ;
+   cptr = strstr(rptr,",") ;
+
+   /* having both is an error */
+   if( dptr && cptr ) {
+      fprintf(stderr,"** TSAR: cannot have both , and .. in <> selector\n");
+      return 1;
+   }
+
+   /* handle .. range applies to bot and top */
+   if( dptr ) {
+      if( strstr(dptr+2,"..") ) {
+         fprintf(stderr,"** TSAR: cannot handle multiple .. ranges in <>\n");
+         return 1;
+      }
+
+      *dptr = '\0';
+      scount  = sscanf(rptr,   "%f", &fbot);
+      scount += sscanf(dptr+2, "%f", &ftop);
+      if( scount == 2 && fbot <= ftop ) {
+         dset->dblk->master_bot = fbot;
+         dset->dblk->master_top = ftop;
+         return 0;  /* success */
+      } else { /* go after labels */
+         if( AFNI_get_dset_label_val(dset, &dval, rptr) ) 
+            return 1; /* failure */
+         fbot = dval;
+         if( AFNI_get_dset_label_val(dset, &dval, dptr+2) )
+            return 1; /* failure */
+         dset->dblk->master_bot = fbot;
+         dset->dblk->master_top = dval;
+         return 0;  /* success */
+      }
+   /* handle ,-delimited list of integers/labels */
+   } else if ( cptr ) {
+      if( thd_get_labeltable_intlist(dset, rptr, &dset->dblk->master_csv,
+                                                 &dset->dblk->master_ncsv) )
+         return 1;
+      return 0;
+   /* handle single value/label */
+   } else { /* ZSS: Why not allow for <val> ? */
+      scount = sscanf(rptr,   "%f", &fbot);
+      if( scount == 1 ) {
+         dset->dblk->master_bot = fbot;
+         dset->dblk->master_top = fbot;
+         return 0;  /* success */
+      } else { /* go after label */
+         if( AFNI_get_dset_label_val(dset, &dval, rptr) )
+            return 1; /* failure */
+         dset->dblk->master_bot = dval;
+         dset->dblk->master_top = dval;
+         return 0;  /* success */
+      }
+   }
+
+   /* should not get here */
+   return 1;
+}
+
+
+/* based on MCW_get_intlist
+ *
+ * dset is only needed if going after labeltable
+ *
+ * return 0 on success, else error
+ */
+int thd_get_labeltable_intlist(THD_3dim_dataset * dset, char *str)
+{   
+   static int   show_labs = -1;
+   int_list     ilist, llist;    /* maintain list in int_list struct */
+   char       * workstr, * next, * cpt;
+   int        * list=NULL, * tmplist;
+   int          nvals=0, ival, tind, err;
+
+   ENTRY("thd_get_labeltable_intlist");
+
+   /* check for missing inputs */
+   if( ! dset ) RETURN(1);
+
+   /* init to empty */
+   dset->dblk->master_csv = NULL;
+   dset->dblk->master_ncsv = 0;
+
+   /* call empty selection list okay */
+   if( !str || str[0] == '\0' ) RETURN(0);
+
+   if( show_labs == -1 ) show_labs = AFNI_yesenv("AFNI_SHOW_LABEL_TO_INDEX");
+
+   /* ---------------------------------------------------------------------- */
+   /* check if using 1dcat or count */
+   tmplist = NULL;
+
+   if (strstr(str,"1dcat ")) {
+      tmplist = get_1dcat_intlist_eng(str, &nvals, 0, 1);
+      if( ! tmplist || nvals < 1 ) RETURN(1);
+   }
+   if (strstr(str,"count ")) {
+      tmplist = get_count_intlist_eng(str, &nvals, 0, 1);
+      if( ! tmplist || nvals < 1 ) RETURN(1);
+   }
+
+   /* if success, get rid of initial length value in tmplist */
+   if ( tmplist ) {
+      list = malloc(nvals * sizeof(int));
+      memcpy(list, tmplist+1, nvals * sizeof(int));
+      free(tmplist);
+
+      dset->dblk->master_csv = list;
+      dset->dblk->master_ncsv = nvals;
+
+      RETURN(0);
+   }
+
+   /* ---------------------------------------------------------------------- */
+   /* else, process as comma-separated list                                  */
+
+   /* create empty int lists */
+   init_int_list(&ilist, 0);
+   init_int_list(&llist, 0);
+
+   /* use strtok to process comma-separated list */
+   workstr = nifti_strdup(str);
+   if( !workstr ) { ERROR_message("TGLI: failed to cp <> string"); RETURN(1); }
+   next = strtok(workstr, ",");
+   err = 0;
+   for( tind=0;  next && ! err;  next=strtok(NULL, ", "), tind++ ) {
+      if( *next == '>' ) break;
+
+      if ( isdigit(*next) ) { /* then decode integer */
+         ival = strtol( next , &cpt , 10 ) ;
+         if( ival == 0 && cpt == next ){
+            err = 1;
+            break;
+         } else if ( ival == 0 ) {
+            WARNING_message("<> select: skipping useless 0");
+            continue;
+         }
+
+         if( add_to_int_list(&ilist, ival, 16) <= 0 ) {
+            ERROR_message(
+               "<> select: failed to extend int_list to len %d for %s\n",
+               ilist.nall, next);
+            err = 1;
+            break;
+         }
+      } else if ( isalpha(*next) ) {
+         if ( thd_LT_label_to_int_list(dset, &llist, next) <= 0 ) {
+            ERROR_message( "<> select: invalid label %s\n", next);
+            err = 1;
+            break;
+         }
+         extend_int_list(&ilist, &llist);
+      } else {
+         ERROR_message("<> select: unexpected char at posn %d in '%s'",
+                       (int)(next-workstr), str);
+         err = 1;
+      }
+   }  /* end of loop through selector string */
+
+   free(workstr);
+   free_int_list(&llist);
+
+   if( err ) {
+      ERROR_message("failed to process <> selector, '%s'", str);
+      free_int_list(&ilist);
+      RETURN(1);
+   }
+
+   /* success!  steal integer list and flee */
+   dset->dblk->master_csv = ilist.list;
+   dset->dblk->master_ncsv = ilist.num;
+
+   RETURN(0);
 }
 

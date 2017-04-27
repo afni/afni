@@ -623,7 +623,7 @@ ENTRY("GA_scalar_costfun") ;
 
         if( micho_ov != 0.0 && gstup->bsmask != NULL && gstup->ajmask != NULL ){
           ovv = GA_get_warped_overlap_fraction() ;
-          ovv = MAX(0.0f,9.0f-10.0f*ovv) ;
+          ovv = MAX(0.0f,9.95f-10.0f*ovv) ;
           val += micho_ov * ovv*ovv ;
         }
       }

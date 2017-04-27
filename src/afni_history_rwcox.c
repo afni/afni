@@ -44,6 +44,318 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 26 , APR , 2017 , RWC , "3dMultiThresh" , MICRO , TYPE_NEW_OPT ,
+   "Add option to choose sign for 1-sided thresholding" ,
+   NULL } ,
+
+ { 26 , APR , 2017 , RWC , "3dXClustSim" , MICRO , TYPE_BUG_FIX ,
+   "Bug in looping index in STEP 2 caused malloc() problems.  Oog" ,
+   NULL } ,
+
+ { 21 , APR , 2017 , RWC , "3dttest++" , MAJOR , TYPE_ENHANCE ,
+   "Extensive modifications to ETAC" ,
+   "Adding the ability to due multiple amounts of blurring.  Some changes to\n"
+   "3dttest++ and 3dMultiThresh, big changes to 3dXClustSim." } ,
+
+ { 27 , MAR , 2017 , RWC , "afni GUI" , MICRO , TYPE_NEW_ENV ,
+   "AFNI_LEFT_IS_POSTERIOR" ,
+   "To show posterior of brain on the left (instead of right) in sagittal\n"
+   "image and graph viewers. A complement to AFNI_LEFT_IS_LEFT." } ,
+
+ { 21 , MAR , 2017 , RWC , "AFNI GUI" , MICRO , TYPE_BUG_FIX ,
+   "Improper fading of overlay plots in Montage" ,
+   "function scale_memplot() was scaling the opacity factor as well as the\n"
+   "xy coordinates - D'oh!" } ,
+
+ { 16 , MAR , 2017 , RWC , "3dttest++" , MINOR , TYPE_ENHANCE ,
+   "-Clustsim option now also output 5 percent points for global z-stat" ,
+   "Takes the global min/max of the randomized z-stat results for each\n"
+   "iteration (10000) and then computes the 5 percent points for the\n"
+   "1-sided and 2-sided cases.  Is this useful?  Maybe for somebody." } ,
+
+ { 13 , MAR , 2017 , RWC , "mri_lsqfit" , MICRO , TYPE_GENERAL ,
+   "explicitly check for all zero input ref vectors" ,
+   NULL } ,
+
+ { 1 , MAR , 2017 , RWC , "3dUnifize" , MAJOR , TYPE_NEW_OPT ,
+   "Add -EPI option, to unifize time series datasets." ,
+   NULL } ,
+
+ { 28 , FEB , 2017 , RWC , "3dExtractGroupInCorr" , MICRO , TYPE_NEW_PROG ,
+   "Program to reconstruct individual dataset from a .niml/.data pair." ,
+   "This program is for any unfortunate person who has lost the datasets\n"
+   "that were used to create the 3dGroupInCorr inputs.  It is not really\n"
+   "'NEW', since it has been around for my personal use for a while, but now\n"
+   "it is being included in the AFNI distribution for the masses to enjoy." } ,
+
+ { 28 , FEB , 2017 , RWC , "3dEmpty" , MICRO , TYPE_NEW_OPT ,
+   "Add -geom option = define dataset by a 'MATRIX(...)' string" ,
+   NULL } ,
+
+ { 27 , FEB , 2017 , RWC , "afni GUI" , MICRO , TYPE_NEW_ENV ,
+   "AFNI_IMAGE_LABEL_IJK" ,
+   "If this variable is set to YES, then the image label overlay (chosen\n"
+   "from the intensity bar popup menu) will show the slice index instead of\n"
+   "the slice coordinate. (for PT)" } ,
+
+ { 24 , FEB , 2017 , RWC , "afni GUI" , MICRO , TYPE_GENERAL ,
+   "Turn off crosshairs and left-is-left if all inputs are image files." ,
+   "Also, hide the help for 'afni -im' since AFNI can now read images\n"
+   "directly as 'datasets'." } ,
+
+ { 22 , FEB , 2017 , RWC , "AFNI gui" , MICRO , TYPE_MODIFY ,
+   "Add VG painting effect to AFNI image viewer" ,
+   "Just for fun, please!" } ,
+
+ { 20 , FEB , 2017 , RWC , "3dDespike" , MINOR , TYPE_BUG_FIX ,
+   "Scale factor bug" ,
+   "The program ignored the scale factors attached to short datasets.\n"
+   "If they were all the same, that was not a problem.\n"
+   "But if they differed, then that was a big problem.\n"
+   "That was fixed.  Also, the output now is always in float format." } ,
+
+ { 13 , FEB , 2017 , RWC , "3dSharpen" , MICRO , TYPE_NEW_PROG ,
+   "Sharpening filter in 3D" ,
+   NULL } ,
+
+ { 9 , FEB , 2017 , RWC , "thresholding" , MINOR , TYPE_NEW_ENV ,
+   "Fix inconsistency in thresholding with short-valued bricks" ,
+   "In the AFNI GUI, thresholding is done with floats.\n"
+   "But in 3dmerge and in Clusterize, if the thresh brick is a short,\n"
+   "thresholding was done with shorts.  And the user-supplied threshold was\n"
+   "ROUNDED -- so that a threshold of 2.2 would become 2, which means that a\n"
+   "value of 2 was OK -- which it shouldn't be.  Solution: change those\n"
+   "places to threshold with floats. However, if someone wants to keep the\n"
+   "old way for compatibility, then they can set AFNI_OLD_SHORT_THRESH to\n"
+   "YES." } ,
+
+ { 31 , JAN , 2017 , RWC , "minimize_in_1D func" , MICRO , TYPE_GENERAL ,
+   "Modify to be more robust (I hope)." ,
+   "Used in solving for inverse to mixed model ACF (e.g., to get FWHM)." } ,
+
+ { 30 , JAN , 2017 , RWC , "ccalc etc" , MICRO , TYPE_ENHANCE ,
+   "Add acfwxm function to parser programs" ,
+   "To compute the Full Width at X Maximum for the mixed ACF model, for\n"
+   "input parameters a,b,c at level x (0 < x < 1) = acfwxm(a,b,c,x)" } ,
+
+ { 23 , JAN , 2017 , RWC , "3dAllineate" , MICRO , TYPE_MODIFY ,
+   "for ls, lpc, lpa: use -autoweight by default unless user changes it" ,
+   "The default weighting scheme was -autobox for all schemes.  For ls, lpc,\n"
+   "lpa, the default is not -autoweight -- if the user changes the weight,\n"
+   "this won't be enforced." } ,
+
+ { 19 , JAN , 2017 , RWC , "3dAllineate" , MICRO , TYPE_GENERAL ,
+   "Give warning when -lpa or -lpc is used without -autoweight" ,
+   "At beginning and at end. Thanks to PT." } ,
+
+ { 18 , JAN , 2017 , RWC , "3dmerge" , MICRO , TYPE_NEW_OPT ,
+   "option -nozero will prevent output of an all zero dataset" ,
+   NULL } ,
+
+ { 12 , JAN , 2017 , RWC , "afni GUI" , MICRO , TYPE_MODIFY ,
+   "First view of OLay: set sub-bricks to reasonable values" ,
+   "Where 'reasonable' is in the eye of RWCox." } ,
+
+ { 12 , JAN , 2017 , RWC , "@snapshot_volreg" , MICRO , TYPE_MODIFY ,
+   "Crop the volume before snapshot-ing" ,
+   "Cropping helps remove lots of blank space in the output.\n"
+   "Also, compute the slice spacing in the montages adaptively from\n"
+   "the dataset dimensions." } ,
+
+ { 11 , JAN , 2017 , RWC , "@snapshot_volreg" , MICRO , TYPE_MODIFY ,
+   "@snapshot_volreg has been replaced by the former @snapshot_volreg3" ,
+   "Also, replaced the use of the 'pam' functions with similar 'pnm'\n"
+   "functions, to help in portability to demented Linux systems." } ,
+
+ { 10 , JAN , 2017 , RWC , "afni GUI" , MICRO , TYPE_MODIFY ,
+   "Change x,y signs in 'Go to atlas location' menu for SPM coords" ,
+   "Per the request of Todd Braver" } ,
+
+ { 30 , DEC , 2016 , RWC , "3dttest++" , MICRO , TYPE_NEW_OPT ,
+   "Add -ACF option -- to compute ACF parameters from residuals" ,
+   NULL } ,
+
+ { 29 , DEC , 2016 , RWC , "@SSwarper" , MINOR , TYPE_NEW_PROG ,
+   "New script to combine skull stripping and nonlinear warping" ,
+   "Uses partial warping to improve skull stripping, and then finishes the\n"
+   "warping, producing outputs compatible for use with afni_proc.py\n"
+   "-tlrc_NL_warped_dsets" } ,
+
+ { 21 , DEC , 2016 , RWC , "3dQwarp" , MICRO , TYPE_GENERAL ,
+   "Add -awarp option, to save Allineate-to-Nonlinear warp only" ,
+   "If -allineate is used, the output WARP dataset is the catenated affine\n"
+   "transform from 3dAllineate and the nonlinear warp from Warpomatic.  If\n"
+   "the user wants to keep the 'pure' nonlinear warp from Warpomatic, then\n"
+   "'-awarp' will do so, with a dataset containing the AWARP moniker." } ,
+
+ { 21 , DEC , 2016 , RWC , "3dQwarp" , MINOR , TYPE_NEW_OPT ,
+   "Add '-wmask' option" ,
+   "Like '-wball', enhances the auto-generated weight in a region, but this\n"
+   "region is selected by a mask dataset." } ,
+
+ { 20 , DEC , 2016 , RWC , "3dUnifize" , MICRO , TYPE_MODIFY ,
+   "Tweak to make sure tiny values aren't amplified much by -GM" ,
+   "Tiny positive values way outside the brain could get super-amplified by\n"
+   "the -GM switch, producing a 3D halo.  This fix clips those off." } ,
+
+ { 20 , DEC , 2016 , RWC , "AFNI GUI" , MICRO , TYPE_ENHANCE ,
+   "Allow blowups for saved montage images" ,
+   "For @snapshot_volreg3 script, but of course anyone can use it now." } ,
+
+ { 18 , NOV , 2016 , RWC , "afni GUI" , MICRO , TYPE_ENHANCE ,
+   "Add 'QUITT' command to the driver" ,
+   "Exits AFNI immediately, rather than calling the usual leisurely rundown.\n"
+   "For use in scripts, to save a little time." } ,
+
+ { 17 , NOV , 2016 , RWC , "afni GUI" , MICRO , TYPE_ENHANCE ,
+   "Four new colorscales" ,
+   NULL } ,
+
+ { 7 , NOV , 2016 , RWC , "3dTfilter" , MINOR , TYPE_NEW_PROG ,
+   "Platform for generic filtering of time series" ,
+   "Right now, just for adaptive local mean filtering (generalized smoothing\n"
+   "plus despiking)." } ,
+
+ { 4 , NOV , 2016 , RWC , "afni InstaCorr" , MINOR , TYPE_ENHANCE ,
+   "Two small changes" ,
+   "(1) Extend the range of the bandpass to allow up to 10Hz (formerly only\n"
+   "up to 1Hz).  10Hz = Nyquist frequency for TR=0.05s, which is pretty fast\n"
+   "for MRI -- but doable for single slice imaging.\n"
+   "(2) Add a #PC option, to compute principal components to use as global\n"
+   "orts." } ,
+
+ { 3 , NOV , 2016 , RWC , "afni GUI" , MICRO , TYPE_ENHANCE ,
+   "Experiment with logging duration of use (only for me for now)" ,
+   NULL } ,
+
+ { 3 , NOV , 2016 , RWC , "afni GUI" , MICRO , TYPE_BUG_FIX ,
+   "Single slice dataset InstaCorr failed" ,
+   "Due to the 'roundtrip' index calculation giving a value outside the\n"
+   "dataset.  This is now prevented." } ,
+
+ { 2 , NOV , 2016 , RWC , "3dTproject" , MICRO , TYPE_MODIFY ,
+   "Add warning message if DOF is less than 20" ,
+   NULL } ,
+
+ { 20 , OCT , 2016 , RWC , "afni GUI" , MICRO , TYPE_MODIFY ,
+   "Don't get 'vedit' volume for threshold slice when OLay==Thr brick" ,
+   "When Clusterize is on, the steps are\n"
+   "1) create a new overlay volume that is 'edited' -- set to zero where Thr\n"
+   "is too small or cluster was too small -- this is on the OLay grid\n"
+   "2) colorization fetches 2D slices from OLay and Thr sub-bricks for\n"
+   "viewing, interpolated to the ULay grid, then processes them for display\n"
+   "(threshold+coloring)\n"
+   "But when OLay==Thr, and anything but NN interpolation is used at step 2,\n"
+   "then the visible shape of the clusters can change due to the\n"
+   "interpolation of the Thr slice after its volume was edited.  To avoid\n"
+   "this, volume editing is now skipped when extracting the threshold slice\n"
+   "in step 2.\n"
+   "This artifact occurs because of the 'warp-on-demand' feature in AFNI,\n"
+   "which allows the display of overlays whose grid does not match the\n"
+   "underlay grid, combined with the nonlinear operations of thresholding\n"
+   "and clusterizing.  Since DRG brought this to my attention, he has to\n"
+   "bring the cookies to the next group meeting." } ,
+
+ { 13 , OCT , 2016 , RWC , "3dttest++" , MINOR , TYPE_BUG_FIX ,
+   "Fix -BminusA bug" ,
+   "double sign reversal == no sign reversal == not good for anyone" } ,
+
+ { 30 , SEP , 2016 , RWC , "AFNI plugins" , MAJOR , TYPE_GENERAL ,
+   "A long list of little-used plugins has been disabled." ,
+   "They can all be re-enabled by setting environment variable\n"
+   "AFNI_ALLOW_ALL_PLUGINS to YES.\n"
+   "Or each one can be individually re-enabled by setting environment\n"
+   "variable AFNI_ALLOW_somename_PLUGIN to YES, where the list of such\n"
+   "plugins can be found in file README.environment." } ,
+
+ { 30 , SEP , 2016 , RWC , "AFNI GUI" , MICRO , TYPE_ENHANCE ,
+   "Let user specify length of adaptive mean Tran 1D function" ,
+   "Through environment variable AFNI_AdptMeanWidth" } ,
+
+ { 29 , SEP , 2016 , RWC , "afni GUI" , MICRO , TYPE_MODIFY ,
+   "New 1D transform = AdptMean19 = 19 point adaptive local mean" ,
+   NULL } ,
+
+ { 29 , SEP , 2016 , RWC , "3dDespike" , MINOR , TYPE_NEW_OPT ,
+   "-NEW25 is a slightly more agressive approach" ,
+   "(a) uses 25 point running median instead of 9 for pre-filtering\n"
+   "(b) sets cut2=3.2 (4 MADs) instead of 4.0 (5 MADs)" } ,
+
+ { 30 , AUG , 2016 , RWC , "3dtoXdataset" , MINOR , TYPE_NEW_PROG ,
+   "Convert 3D datasets to a list of in-mask shorts" ,
+   "Purpose = compression for use in 3dClustSimX simulations.  The '.sdat'\n"
+   "format is now directly write-able from 3dttest++, so this program is\n"
+   "probably not generally useful." } ,
+
+ { 30 , AUG , 2016 , RWC , "3dClustSimX" , SUPER , TYPE_NEW_PROG ,
+   "Generalized cluster simulation" ,
+   "Hopefully, the new way forward.  Not ready for general users yet, but\n"
+   "getting there." } ,
+
+ { 9 , AUG , 2016 , RWC , "3dAllineate" , MICRO , TYPE_ENHANCE ,
+   "Allow IDENTITY to specify the identity matrix for transformations" ,
+   "In options -1Dparam_apply and -1Dmatrix_apply -- to make resampling\n"
+   "simpler for the hopeless users out there" } ,
+
+ { 9 , AUG , 2016 , RWC , "afni GUI" , MICRO , TYPE_MODIFY ,
+   "If A controller pops up with a negative x or y, move it" ,
+   "This is an attempt to overcome some peculiar bug in XQuartz on El\n"
+   "Capitan, where the A controller pops up, then disappears to a negative x\n"
+   "location (off screen)." } ,
+
+ { 4 , AUG , 2016 , RWC , "afni GUI" , MICRO , TYPE_GENERAL ,
+   "Changes to keep controller height from expanding on Linux" ,
+   "Of course, being on a Mac, I can't actually test this change." } ,
+
+ { 4 , AUG , 2016 , RWC , "1dsum" , MICRO , TYPE_ENHANCE ,
+   "Save # header lines from mri_read_1D; echo back in 1dsum output" ,
+   "For use in combining 3dClustSim outputs, for example." } ,
+
+ { 22 , JUL , 2016 , RWC , "3dttest++" , MICRO , TYPE_MODIFY ,
+   "New -nocov option for used with -Clustsim" ,
+   "To avoid writing out the -covariates sub-bricks in the -Clustsim\n"
+   "operation.  Not clear that it is useful otherwise." } ,
+
+ { 21 , JUL , 2016 , RWC , "3dttest++" , MICRO , TYPE_MODIFY ,
+   "if -clustsim, check for non-3D datasets (e.g., surfaces)" ,
+   NULL } ,
+
+ { 20 , JUL , 2016 , RWC , "3dttest++" , MICRO , TYPE_NEW_OPT ,
+   "-tempdir for -Clustsim" ,
+   NULL } ,
+
+ { 14 , JUL , 2016 , RWC , "3dttest++" , MICRO , TYPE_BUG_FIX ,
+   "Fix problem with -resid combined with -clustsim" ,
+   "Program assumed prefix_resid was NIFTI format,"
+   "so just add '.nii' if it does have that already." } ,
+
+ { 8 , JUL , 2016 , RWC , "3dttest++" , MAJOR , TYPE_ENHANCE ,
+   "Extend -clustsim option" ,
+   "Covariates and centering\n"
+   "1- and 2-sided\n"
+   "unpooled and paired\n"
+   "1 sample as well as 2 sample" } ,
+
+ { 6 , JUL , 2016 , RWC , "3dQwarp" , MICRO , TYPE_ENHANCE ,
+   "Allow .jpg or .png file as source/base 'dataset' for 2D warping" ,
+   NULL } ,
+
+ { 21 , JUN , 2016 , RWC , "3dmaskave" , MICRO , TYPE_NEW_OPT ,
+   "Add -perc option for percentile" ,
+   NULL } ,
+
+ { 14 , JUN , 2016 , RWC , "3dREMLfit" , MICRO , TYPE_BUG_FIX ,
+   "Conversion to vector image fails for LARGE datasets" ,
+   "The final step in the conversion to vectim is scanning the data for\n"
+   "floating point errors (NaN, infinity).  If there are more than 2^31-1\n"
+   "voxels, integer overflow caused problems.  Fixed by making the loop\n"
+   "variables in the floatscan functions be size_t, not int.  This problem\n"
+   "certainly lurks elsewhere in AFNI, waiting to pounce on Spaniards." } ,
+
+ { 14 , JUN , 2016 , RWC , "3dBlurInMask" , MINOR , TYPE_NEW_OPT ,
+   "Option -FWHMdset allows specifying per-voxel blurring parameter" ,
+   "For use with 3dLocalACF and scripting.  EXPERIMENTAL!" } ,
+
  { 9 , JUN , 2016 , RWC , "3dLocalACF" , MINOR , TYPE_NEW_PROG ,
    "Estimate ACF parameters locally.  Slow and experimental." ,
    NULL } ,
@@ -9172,7 +9484,7 @@ afni_history_struct rwcox_history[] = {
 
   { 24,APR,2003 , RWC , "Miscellaneous" , MICRO , TYPE_GENERAL , "Older History stuff" ,
    "* Modified 3dTshift.c and thd_tshift.c to negate time shift, since it seems have\n"
-   "   been wrong all these years.\n"
+   "   been wrong all these years :( [later: SPM and FSL were wrong, too!]\n"
    },
 
   { 28,APR,2003 , RWC , "Miscellaneous" , MICRO , TYPE_GENERAL , "Older History stuff" ,
