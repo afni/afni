@@ -46,7 +46,7 @@
 #set version   = "3.0";  set rev_dat   = "Apr 21, 2017"
 #   + add in precentering opt
 #
-set version   = "3.1";  set rev_dat   = "Apr 21, 2017"
+#set version   = "3.1";  set rev_dat   = "Apr 21, 2017"
 #   + Fix unifizing! 
 #   + (some other stuff?)
 #
@@ -331,7 +331,7 @@ echo "\n\nThis command:"
 echo "$this_prog $argv\n\n"
 
 if ( $cmd_file == "" ) then
-    set cmd_file = "${opref}${postfix}_cmd.txt"
+    set cmd_file = "$odir/${opref}${postfix}_cmd.txt"
 endif
 
 # copy original command:

@@ -143,7 +143,7 @@ static MRI_IMAGE *imtemplate = NULL ;
 #define PSMALL 1.e-15
 
 #define FARP_GOAL 5.00f    /* 5 percent -- non-adjustable by user */
-#define FGFAC     1.00f    /* fudge factor (1 = no fudge for you) */
+#define FGFAC     0.98f    /* fudge factor (1 = no fudge for you) */
 
 static float fgfac     = FGFAC ;
 static float farp_goal = FARP_GOAL ;
@@ -1157,7 +1157,7 @@ int main( int argc , char *argv[] )
          if( nfff > nfom ) nfff = nfom ; /* very very unlikely */
 
          fmax = AFNI_numenv("AFNI_XCLUSTSIM_FMAX") ;
-         if( fmax <= 0.01f || fmax > 1.0f ) fmax = 0.567f ;
+         if( fmax <= 0.01f || fmax > 1.0f ) fmax = 0.666f ;
 
          /* global threshold computed from tail of FOM distribution */
 

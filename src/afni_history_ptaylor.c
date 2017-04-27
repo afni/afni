@@ -66,6 +66,21 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 27, Apr , 2017 , PT , "3dNetCorr" , MINOR , TYPE_NEW_OPT,
+   "With '-output_mask_nonnull', user can output mask of non-null ts.",
+   "This was made to help those who need to finnd null time series here.\n"
+},
+
+{ 27, Apr , 2017 , PT , "3dNetCorr" , MINOR , TYPE_NEW_OPT,
+   "With '-ts_wb_strlabel', can use ROI string labels in WB output filenames.",
+   "This was made expressly for The Rajendra Who Shall Not Be Named.\n"
+},
+
+{ 27, Apr , 2017 , PT , "3dNetCorr" , MINOR , TYPE_MODIFY,
+   "More watchfulness for null time series from badly masked dsets.",
+   "Count and report null time series, and possibly fail if too many.\n"
+},
+
 { 30, Mar , 2017 , PT , "lib_fat_funcs.py" , MICRO , TYPE_BUG_FIX,
    "An error message in func called by fat_mvm_scripter.py was wrong.",
    "Fixed an indexing mistake which gave wrong ROI list-- thanks, E. Grodin!\n"
