@@ -1,5 +1,11 @@
 #!/bin/tcsh -e
 
+# !!!!!!!!! needs checking with some in_bads selection and path stuff!
+
+# !!! also, if "in-bads exists already, can we 1) list it, and 2, can
+# !!! things be erased from it (though, don't know why that wd ever
+# !!! happen??
+
 # written by PA Taylor (NIMH, NIH, USA)
 # started March, 2017
 
@@ -11,8 +17,11 @@
 #set version   = "1.1";    set rev_dat   = "Apr 15, 2017"
 #   + standardize I/O
 #
-set version   = "1.2";    set rev_dat   = "Apr 15, 2017"
+#set version   = "1.2";    set rev_dat   = "Apr 15, 2017"
 #   + run with helpfile correctly for no inputs
+#
+set version   = "1.3";    set rev_dat   = "Apr 27, 2017"
+#   + naming conventions corrected
 #
 # ---------------------------------------------------------------
 
@@ -202,7 +211,6 @@ set ocmd   = "${opref}_cmd.txt"      # name for output command
 set ogoods = "${opref}_goods.txt"    # name 
 set ovol   = "${opref}.nii"    # name 
 
-## !!!!!!
 if ( "$obads" == "" ) then
 
     set obads  = "${opref}_bads.txt"
@@ -217,9 +225,10 @@ if ( "$obads" == "" ) then
         goto BAD_EXIT
     endif
 else
-    if ( -e "$odir/$obads" ) then
+    # in input by the user, then $obads shd be a full path, as needed, 
+    if ( -e "$obads" ) then
         echo ""
-        echo "+* WARNING! Just so you know the file: $odir/$obads"
+        echo "+* WARNING! Just so you know the file: $obads"
         echo "   exists already!  I assume you know that you will append to"
         echo "   it, and that you want to do so (because I assume all users"
         echo "   read help files as much as *I* do!)"
@@ -282,13 +291,13 @@ if ( "$DO_OUTVOL" == "1" ) then
         $my_viewer_4d \
             -inset  $odir/$ovol               \
             -outdir "$odir"                   \
-            -prefix "$odir/$img_pref"   
+            -prefix "$img_pref"   
 
         if ( "$movie" != "" ) then
             $my_viewer_4d \
-                -inset  $odir/$ovol               \
-                -outdir "$odir"                   \
-                -prefix "$odir/$img_pref"         \
+                -inset  $odir/$ovol          \
+                -outdir "$odir"              \
+                -prefix "$img_pref"          \
                 $movie
         endif
     endif
@@ -331,13 +340,13 @@ else
         $my_viewer_4d \
             -inset  "$fout"        \
             -outdir "$odir"                   \
-            -prefix "$odir/$img_pref"   
+            -prefix "$img_pref"   
 
         if ( "$movie" != "" ) then
             $my_viewer_4d \
                 -inset  "$fout"        \
                 -outdir "$odir"                   \
-                -prefix "$odir/$img_pref"         \
+                -prefix "$img_pref"         \
                 $movie
         endif
 
@@ -448,8 +457,8 @@ cat << EOF
     $this_prog    \
         -in_dwi DWI_ap.nii               \
         -in_img DWI_ap_sepscl.sag.png    \
-        -prefix DWI_trim_both            \
-        -in_bads DWI_appa_bads.txt
+        -in_bads DWI_trim_bads.txt       \
+        -prefix DWI_trim_both 
 
 # -----------------------------------------------------------------------
 

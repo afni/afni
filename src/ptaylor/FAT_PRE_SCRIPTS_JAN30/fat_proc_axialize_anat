@@ -717,14 +717,14 @@ endif
 
 # DONE, just copy endprod out!
 set fin  = $fout
-set fout = ../"${opref}${postfix}.nii.gz"
+set fout = "${opref}${postfix}.nii.gz"
 # copy, preserve history
 3dcalc                        \
     -echo_edu                 \
     -overwrite                \
     -a $fin                   \
     -expr 'a'                 \
-    -prefix $fout
+    -prefix ../$fout
 
 # ---------------------------- VIEWER ---------------------------------
 
@@ -742,7 +742,7 @@ if ( $DO_VIEWER ) then
 
     #echo "++ Output QC #1: final olay on (essentially) original refset."
     echo "++ QC image 00 (final output ulay): $vpref1"
-    $my_viewer      -ulay $fout                     \
+    $my_viewer      -ulay ../$fout                  \
                     -prefix $vpref1                 \
                     -outdir ".."                    \
                     -montx 3 -monty 3               \

@@ -598,16 +598,16 @@ cat << EOF
     # have isotropic 1x1x1 mm final anat:
     $this_prog  \
         -in_t1w    MPRAGE.nii.gz        \
+        -in_t2w    T2w_anat.nii.gz      \
         -newgrid   1.0                  \
-        -outdir    SUB001               \
         -prefix    t1w_alnd
 
     # match the final anat resolution to that of the t2w dset:
     $this_prog  \
         -in_t1w    MPRAGE.nii.gz        \
-        -out_t2w   T2w_anat.nii.gz      \
-        -outdir    SUB001               \
-        -prefix    t1w_alnd
+        -in_t2w    T2w_anat.nii.gz      \
+        -out_t2w_grid                   \
+        -prefix    t1w_alndb
 
 
 # -----------------------------------------------------------------------
