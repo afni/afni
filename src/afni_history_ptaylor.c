@@ -66,6 +66,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 27, Apr , 2017 , PT , "3dNetCorr" , MINOR , TYPE_MODIFY,
+   "More watchfulness for null time series from badly masked dsets.",
+   "Count and report null time series, and possibly fail if too many.\n"
+},
+
 { 30, Mar , 2017 , PT , "lib_fat_funcs.py" , MICRO , TYPE_BUG_FIX,
    "An error message in func called by fat_mvm_scripter.py was wrong.",
    "Fixed an indexing mistake which gave wrong ROI list-- thanks, E. Grodin!\n"
