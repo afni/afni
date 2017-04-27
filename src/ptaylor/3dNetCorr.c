@@ -30,6 +30,8 @@
 
    Apr 2017:
    + change behavior around empty ROIs
+   + allow WB dsets to be named by str labels
+
 */
 
 
@@ -82,7 +84,8 @@ void usage_NetCorr(int detail)
 "  + COMMAND: 3dNetCorr -prefix PREFIX {-mask MASK} {-fish_z} {-part_corr} \\\n"
 "                -inset FILE -in_rois INROIS {-ts_out} {-ts_label}         \\\n"
 "                {-ts_indiv} {-ts_wb_corr} {-ts_wb_Z} {-nifti}             \\\n"
-"                {-push_thru_many_zeros}\n"
+"                {-push_thru_many_zeros} {-ts_wb_strlabel}                 \\\n"
+"                {-output_mask_nonnull}\n"
 "\n"
 "* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n"
 "\n"
@@ -123,6 +126,15 @@ void usage_NetCorr(int detail)
 "        than 10 percent null time series; one can use a '-push*' option\n"
 "        (see below) to still calculate anyways, but it will definitely cease\n"
 "        if any ROI is full of null time series.\n"
+"        ... And the user can flag to output a binary mask of the non-null\n"
+"        time series, called 'PREFIX_mask_nnull*', with the new option\n"
+"        '-output_mask_nonnull'.  This might be useful to check if your data\n"
+"        are well-masked, if you haven't done so already (and you know who\n"
+"        you are...).\n"
+"\n"
+"        [As of April, 2017] On a minor note, one can also apply string labels\n"
+"        to the WB correlation/Z-score output files;  see the option\n"
+"        '-ts_wb_strlabel', below.\n"
 "\n"
 "* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n"
 "\n"
@@ -186,13 +198,25 @@ void usage_NetCorr(int detail)
 "                      are effectively capped at |r| = 0.999329 (where\n"
 "                      |Z| = 4.0;  hope that's good enough).\n"
 "                      Files are labelled WB_Z_ROI_001+orig, etc.\n"
+"\n"
+"    -ts_wb_strlabel  :by default, '-ts_wb_{corr,Z}' output files are named\n"
+"                      using the int number of a given ROI, such as:\n"
+"                        WB_Z_ROI_001+orig.\n"
+"                      with this option, one can replace the int (such as\n"
+"                      '001') with the string label (such as 'L-thalamus')\n"
+"                      *if* one has a labeltable attached to the file.\n"
 "    -nifti           :output any correlation map files as NIFTI files\n"
 "                      (default is BRIK/HEAD). Only useful if using\n"
 "                      '-ts_wb_corr' and/or '-ts_wb_Z'.\n"
 "\n"
+"   -output_mask_nonnull\n"
+"                     :internally, this program checks for where there are\n"
+"                      nonnull time series, because we don't like those, in\n"
+"                      general.  With this flag, the user can output the\n"
+"                      determined mask of non-null time series.\n"
 "   -push_thru_many_zeros\n"
 "                     :by default, this program will grind to a halt and\n"
-"                      and refuse to calculate if any ROI contains >10 percent\n"
+"                      refuse to calculate if any ROI contains >10 percent\n"
 "                      of voxels with null times series (i.e., each point is\n"
 "                      0), as of April, 2017.  This is because it seems most\n"
 "                      likely that hidden badness is responsible. However,\n"
@@ -294,6 +318,11 @@ int main(int argc, char *argv[]) {
    byte *mskd2nz=NULL; // use to check for nonzero locs: use for mask app
    int DO_PUSH = 0;
    int *FLAG_nulls=NULL;
+   int DO_STRLABEL = 0;
+   int DO_OUTPUT_NONNULL=0;
+   char prefix_nonnull[300];
+   THD_3dim_dataset *MASK_nonnull=NULL;  // output nonnull mask, if
+                                         // user wants
 
    int idx = 0;
    int Nmask = 0;
@@ -383,8 +412,21 @@ int main(int argc, char *argv[]) {
          iarg++ ; continue ;
       }
 
+      // [Apr, 2017, PT]
       if( strcmp(argv[iarg],"-push_thru_many_zeros") == 0) {
          DO_PUSH=1;
+         iarg++ ; continue ;
+      }
+
+      // [Apr, 2017, PT]
+      if( strcmp(argv[iarg],"-output_mask_nonnull") == 0) {
+         DO_OUTPUT_NONNULL=1;
+         iarg++ ; continue ;
+      }
+
+      // [Apr, 2017, PT]
+      if( strcmp(argv[iarg],"-ts_wb_strlabel") == 0) {
+         DO_STRLABEL=1;
          iarg++ ; continue ;
       }
 
@@ -572,6 +614,44 @@ int main(int argc, char *argv[]) {
             idx+= 1; // skip, and mskd and KW are both still 0 from calloc
          }
    
+   // [PT: Apr, 2017] output nonnull mask that we've calc'ed.  It is
+   // the applied one *if* the user had not input a mask; otherwise,
+   // they can compare it with their own and/or with the ROI map they
+   // use.
+   if ( DO_OUTPUT_NONNULL ) {
+      INFO_message("Preparing mask of non-null time series for output.");
+
+      MASK_nonnull = EDIT_empty_copy( insetTIME );
+
+      if( NIFTI_OUT ) 
+         sprintf(prefix_nonnull,"%s_%s.nii.gz", prefix, "mask_nnull");
+      else
+         sprintf(prefix_nonnull,"%s_%s", prefix, "mask_nnull");
+
+      EDIT_dset_items( MASK_nonnull,
+                       ADN_prefix    , prefix_nonnull,
+                       ADN_datum_all , MRI_byte,
+                       ADN_brick_fac , NULL,
+                       ADN_nvals     , 1,
+                       ADN_none );
+
+      EDIT_substitute_brick(MASK_nonnull, 0, MRI_byte, mskd2nz);
+      mskd2nz=NULL; // to not get into trouble...
+      free(mskd2nz);
+
+      THD_load_statistics(MASK_nonnull);
+      tross_Copy_History( insetTIME , MASK_nonnull ) ;
+      tross_Make_History( "3dNetcorr", argc, argv, MASK_nonnull );
+      if( !THD_ok_overwrite() && 
+          THD_is_ondisk(DSET_HEADNAME(MASK_nonnull)) )
+         ERROR_exit("Can't overwrite existing dataset '%s'",
+                    DSET_HEADNAME(MASK_nonnull));
+      THD_write_3dim_dataset(NULL, NULL, MASK_nonnull, True);
+      INFO_message("Wrote dataset: %s\n",DSET_BRIKNAME(MASK_nonnull));
+   }
+
+
+
    if (HAVE_MASK) {
       DSET_delete(MASK);
       free(MASK);
@@ -1129,6 +1209,8 @@ int main(int argc, char *argv[]) {
                         Dim,
                         ROI_AVE_TS,
                         ROI_LABELS_REF,
+                        ROI_STR_LABELS,
+                        DO_STRLABEL,
                         insetTIME,
                         mskd2,
                         Nmask,
@@ -1183,7 +1265,6 @@ int main(int argc, char *argv[]) {
    free(insetTIME);
 
    free(mskd2);
-   free(mskd2nz);
    free(Nlist);
 
    free(Dim); // need to free last because it's used for other arrays...
