@@ -30,6 +30,8 @@
 
    Apr 2017:
    + change behavior around empty ROIs
+   + allow WB dsets to be named by str labels
+
 */
 
 
@@ -82,7 +84,7 @@ void usage_NetCorr(int detail)
 "  + COMMAND: 3dNetCorr -prefix PREFIX {-mask MASK} {-fish_z} {-part_corr} \\\n"
 "                -inset FILE -in_rois INROIS {-ts_out} {-ts_label}         \\\n"
 "                {-ts_indiv} {-ts_wb_corr} {-ts_wb_Z} {-nifti}             \\\n"
-"                {-push_thru_many_zeros}\n"
+"                {-push_thru_many_zeros} {-ts_wb_strlabel}\n"
 "\n"
 "* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n"
 "\n"
@@ -123,6 +125,10 @@ void usage_NetCorr(int detail)
 "        than 10 percent null time series; one can use a '-push*' option\n"
 "        (see below) to still calculate anyways, but it will definitely cease\n"
 "        if any ROI is full of null time series.\n"
+"\n"
+"        [As of April, 2017] On a minor note, one can also apply string labels\n"
+"        to the WB correlation/Z-score output files;  see the option\n"
+"        '-ts_wb_strlabel', below.\n"
 "\n"
 "* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n"
 "\n"
@@ -186,6 +192,13 @@ void usage_NetCorr(int detail)
 "                      are effectively capped at |r| = 0.999329 (where\n"
 "                      |Z| = 4.0;  hope that's good enough).\n"
 "                      Files are labelled WB_Z_ROI_001+orig, etc.\n"
+"\n"
+"    -ts_wb_strlabel  :by default, '-ts_wb_{corr,Z}' output files are named\n"
+"                      using the int number of a given ROI, such as:\n"
+"                        WB_Z_ROI_001+orig.\n"
+"                      with this option, one can replace the int (such as\n"
+"                      '001') with the string label (such as 'L-thalamus')\n"
+"                      *if* one has a labeltable attached to the file.\n"
 "    -nifti           :output any correlation map files as NIFTI files\n"
 "                      (default is BRIK/HEAD). Only useful if using\n"
 "                      '-ts_wb_corr' and/or '-ts_wb_Z'.\n"
@@ -294,6 +307,7 @@ int main(int argc, char *argv[]) {
    byte *mskd2nz=NULL; // use to check for nonzero locs: use for mask app
    int DO_PUSH = 0;
    int *FLAG_nulls=NULL;
+   int DO_STRLABEL = 0;
 
    int idx = 0;
    int Nmask = 0;
@@ -383,8 +397,15 @@ int main(int argc, char *argv[]) {
          iarg++ ; continue ;
       }
 
+      // [Apr, 2017, PT]
       if( strcmp(argv[iarg],"-push_thru_many_zeros") == 0) {
          DO_PUSH=1;
+         iarg++ ; continue ;
+      }
+
+      // [Apr, 2017, PT]
+      if( strcmp(argv[iarg],"-ts_wb_strlabel") == 0) {
+         DO_STRLABEL=1;
          iarg++ ; continue ;
       }
 
@@ -1129,6 +1150,8 @@ int main(int argc, char *argv[]) {
                         Dim,
                         ROI_AVE_TS,
                         ROI_LABELS_REF,
+                        ROI_STR_LABELS,
+                        DO_STRLABEL,
                         insetTIME,
                         mskd2,
                         Nmask,
