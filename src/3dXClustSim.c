@@ -1157,7 +1157,7 @@ int main( int argc , char *argv[] )
          if( nfff > nfom ) nfff = nfom ; /* very very unlikely */
 
          fmax = AFNI_numenv("AFNI_XCLUSTSIM_FMAX") ;
-         if( fmax <= 0.01f || fmax > 1.0f ) fmax = 0.567f ;
+         if( fmax <= 0.01f || fmax > 1.0f ) fmax = 0.666f ;
 
          /* global threshold computed from tail of FOM distribution */
 
