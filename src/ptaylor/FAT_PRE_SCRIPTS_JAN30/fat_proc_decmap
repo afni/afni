@@ -17,10 +17,13 @@
 #   + more QC output (sca and unwt+thr)
 #   + sca and thr opts in
 #
-set version   = "2.9"; set rev_dat   = "Apr 11, 2017"
+#set version   = "2.9"; set rev_dat   = "Apr 11, 2017"
 #   + printf fix
 #   + working dir better
 #   + output command
+#
+set version   = "3.0"; set rev_dat   = "Apr 26, 2017"
+#   + wdir naming
 #
 # ----------------------------------------------------------------
 
@@ -58,6 +61,7 @@ set tpref     = "tdwi"
 set copy_fa   = "${tpref}_FA.nii"
 
 set wdir       = "__WORKING_$tpname"
+set WDIR_EX  = "1"                # put opref on wdir (unless user names)
 set output_cmd = 1                # def: output copy of this command
 set cmd_file   = ""               # def: same name as viewer
 set DO_CLEAN    = "1"             # def: do delete temp files
@@ -110,6 +114,7 @@ while ( $ac <= $#argv )
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
         @ ac += 1
         set wdir = "$argv[$ac]"
+        set WDIR_EX  = "0"
 
     # --------------- other opts -------------------
 
@@ -190,7 +195,12 @@ if ( ! -e "$odir" ) then
     mkdir "$odir"
 endif
 
-set wdir = "$odir/$wdir"
+# and put working directory as subdirectory.
+if ( "$WDIR_EX" == "1" ) then
+    set wdir = $odir/${wdir}_$opref
+else
+    set wdir = $odir/$wdir
+endif
 
 # make the working directory
 if ( ! -e $wdir ) then
