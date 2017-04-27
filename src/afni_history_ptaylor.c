@@ -66,6 +66,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 27, Apr , 2017 , PT , "3dNetCorr" , MINOR , TYPE_NEW_OPT,
+   "With '-ts_wb_strlabel', can use ROI string labels in WB output filenames.",
+   "This was made expressly for The Rajendra Who Shall Not Be Named.\n"
+},
+
 { 27, Apr , 2017 , PT , "3dNetCorr" , MINOR , TYPE_MODIFY,
    "More watchfulness for null time series from badly masked dsets.",
    "Count and report null time series, and possibly fail if too many.\n"
