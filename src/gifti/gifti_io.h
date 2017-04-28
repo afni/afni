@@ -175,6 +175,8 @@ int    gifti_get_update_ok      (void);
 int    gifti_set_update_ok      (int level);
 int    gifti_get_zlevel         (void);
 int    gifti_set_zlevel         (int level);
+int    gifti_get_per_by_iord    (void);
+int    gifti_set_per_by_iord    (int level);
 
 /* data copy routines */
 int     gifti_convert_to_float(gifti_image * gim);

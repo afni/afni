@@ -268,6 +268,8 @@ int gifti_set_zlevel( int level )
     return gxml_set_zlevel(level);
 }
 
+int gifti_get_perm_by_iord(void )       { return gxml_get_perm_by_iord(); }
+int gifti_set_perm_by_iord(int level )  { return gxml_set_perm_by_iord(level); }
 int gifti_get_xml_buf_size(void)        { return gxml_get_buf_size(); }
 int gifti_set_xml_buf_size(int buf_size){ return gxml_set_buf_size(buf_size); }
 
