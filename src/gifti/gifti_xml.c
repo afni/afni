@@ -135,6 +135,7 @@ static gxml_data GXD = {
     GIFTI_B64_CHECK_SKIPNCOUNT, /* b64_check, for b64 errors  */
     1,          /* assume it is okay to update metadata       */
     GZ_DEFAULT_COMPRESSION, /* zlevel, compress level, -1..9  */
+    1,          /* perm_by_iord: permute by index order       */
 
     NULL,       /* da_list, list of DA indices to store       */
     0,          /* da_len, length of da_list                  */
@@ -319,6 +320,10 @@ gifti_image * gxml_read_image(const char * fname, int read_data,
         }
 
     free_xd_data(xd);  /* free data buffers */
+
+    /* if auto-permute, convert to row major order (appropriate for C) */
+    if( xd->perm_by_iord )
+       gifti_convert_ind_ord(xd->gim, GIFTI_IND_ORD_ROW_MAJOR);
 
     return xd->gim;
 }
@@ -653,6 +658,20 @@ int gxml_set_zlevel( int val )
     else return 1;      /* failure - no action */
     return 0;
 }
+
+/*! perm_by_iord specifies whether to permute the data to row major
+    index order (since this is C) upon read
+    (-1 is used to initialize to the default)      28 Apr 2017 [rickr] */
+int gxml_get_perm_by_iord( void    ){ return GXD.perm_by_iord; }
+int gxml_set_perm_by_iord( int val )
+{
+    if( val == -1 )
+        GXD.perm_by_iord = 1;
+    else if ( val >= 0 && val <= 1 )
+        GXD.perm_by_iord = val;
+    else return 1;      /* failure - no action */
+    return 0;
+}
 /*----------------------- END accessor functions -----------------------*/
 
 
@@ -668,6 +687,7 @@ static int init_gxml_data(gxml_data *dp, int doall, const int *dalist, int len)
         dp->b64_check = GIFTI_B64_CHECK_SKIPNCOUNT;
         dp->update_ok = 1;
         dp->zlevel    = GZ_DEFAULT_COMPRESSION;
+        dp->perm_by_iord = 1;
     }
 
     if( dalist && len > 0 ) {
@@ -3248,9 +3268,10 @@ static int disp_gxml_data(char * mesg, gxml_data * dp, int show_all )
                 "   buf_size    : %d\n"
                 "   b64_check   : %d\n"
                 "   zlevel      : %d\n"
+                "   perm_by_iord: %d\n"
                 "   da_len      : %d\n"
            , dp->verb, dp->dstore, dp->indent, dp->buf_size, dp->b64_check,
-             dp->zlevel, dp->da_len);
+             dp->zlevel, dp->perm_by_iord, dp->da_len);
 
     if( show_all )
         fprintf(stderr,

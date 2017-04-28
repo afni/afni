@@ -237,7 +237,7 @@ static int copy_data_as_float(void * dest, int dtype, void * src, int stype,
                               long long nvals);
 static int DA_data_exists(gifti_image * gim, const int * dalist, int len);
 static int str2list_index(char *list[], int max, const char *str);
-static int permute_by_index_order(void * dest, int new_ord, giiDataArray * da):
+static int permute_by_index_order(void * dest, int new_ord, giiDataArray * da);
 
 /* ---------------------------------------------------------------------- */
 /*! giftilib globals */
@@ -1953,6 +1953,33 @@ int gifti_check_swap(void * data, int endian, long long nsets, int swapsize)
     (fprintf(stderr,"%s : sizeof(#type) != %d\n", mesg, size), 1))
 
 /*---------------------------------------------------------------------*/
+/*! Convert the ArrayIndexingOrder of the gifti_image DA elements to
+ *  the given order.
+ *
+ *  This is not just a tranpose, but a more general permutation of
+ *  the data in memory, so allocate a new data pointer.
+ *
+ *  Terminate on first DA failure.
+ *
+ *  return 0 on success                        28 Apr 2017 [rickr]
+*//*-------------------------------------------------------------------*/
+int gifti_convert_ind_ord(gifti_image * gim, int new_ord)
+{
+   int dind;
+
+   if ( ! gim ) {
+      fprintf(stderr,"** gifti_convert_ind_ord: no gifti_image\n");
+      return 1;
+   }
+
+   for( dind = 0; dind < gim->numDA; dind++ )
+      if( gifti_convert_DA_ind_ord(gim->darray[dind], new_ord) )
+         return 1;
+
+   return 0;
+}
+
+/*---------------------------------------------------------------------*/
 /*! Convert the ArrayIndexingOrder of the DataArry element to the
  *  specified order.
  *
@@ -1976,7 +2003,7 @@ int gifti_convert_DA_ind_ord(giiDataArray * da, int new_ord)
    }
 
    if( da->ind_ord == new_ord ) {
-      if( G.verb > 3 )
+      if( G.verb > 4 )
          fprintf(stderr,"-- %s: order already %d = %s\n", fname, new_ord,
                  gifti_list_index2string(gifti_index_order_list, new_ord));
       return 0;
@@ -2207,9 +2234,15 @@ static int permute_by_index_order(void * dest, int new_ord, giiDataArray * da)
 
    /* we checked before, but hey... */
    if( new_ord != GIFTI_IND_ORD_ROW_MAJOR && 
-       new_ord != GIFTI_IND_ORD_COL_MAJOR )
+       new_ord != GIFTI_IND_ORD_COL_MAJOR ) {
       fprintf(stderr,"** PBIO: invalid index order %d\n", new_ord);
       return 1;
+   }
+
+   if( G.verb > 3 ) {
+      fprintf(stderr,"-- permute order: %d to %d, nbyper %d\n   dims: ",
+              da->ind_ord, new_ord, da->nbyper);
+      gifti_disp_raw_data(da->dims, DT_INT32, da->num_dim, 1, stderr);
    }
 
    switch( da->nbyper ) {
@@ -2242,6 +2275,7 @@ static int permute_by_index_order(void * dest, int new_ord, giiDataArray * da)
                case 6: GIFTI_PBIO_R2C_6(char, da->data, dest); break;
             }
          }
+         break;
       }
       case 2: { /* process as short (signed int16) */
          if( GIFTI_BAD_SIZEOF(mesg, short, 2) ) return 1;
@@ -2265,6 +2299,7 @@ static int permute_by_index_order(void * dest, int new_ord, giiDataArray * da)
                case 6: GIFTI_PBIO_R2C_6(short, da->data, dest); break;
             }
          }
+         break;
       }
       case 4: { /* process as int (signed int32) */
          if( GIFTI_BAD_SIZEOF(mesg, int,   4) ) return 1;
@@ -2288,6 +2323,7 @@ static int permute_by_index_order(void * dest, int new_ord, giiDataArray * da)
                case 6: GIFTI_PBIO_R2C_6(int, da->data, dest); break;
             }
          }
+         break;
       }
       case 8: { /* process as long long (signed int64) */
          if( GIFTI_BAD_SIZEOF(mesg, long long, 8) ) return 1;
@@ -2311,6 +2347,7 @@ static int permute_by_index_order(void * dest, int new_ord, giiDataArray * da)
                case 6: GIFTI_PBIO_R2C_6(long long, da->data, dest); break;
             }
          }
+         break;
       }
    }
 
